@@ -542,7 +542,7 @@ public:
 private:
 	// Adds or deletes a layer
 	void AddLayerImpl(CBaseLayer& layer) override;
-	void DeleteLayerImpl(CBaseLayer& layer) override;
+	void DeleteLayerImpl(CBaseLayer& layer) final;
 
 	CTextStream* log; // the logging stream
 	int logFrequency;	// the logging frequency

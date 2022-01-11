@@ -17,6 +17,7 @@ limitations under the License.
 #pragma hdrstop
 
 #include <CpuMathEngine.h>
+#include <CpuExecutionScope.h>
 #include <float.h>
 #include <CpuMathEngineOmp.h>
 #include <MathEngineCommon.h>
@@ -27,10 +28,10 @@ limitations under the License.
 namespace NeoML {
 
 void CCpuMathEngine::blob3dConvolution1x1x1Backward( const CCommon3dConvolutionDesc& desc,
-	const float* outputDiffData, const float* filterData, const CFloatHandle* freeTermData,
+	const float* outputDiffData, const float* filterData, const CConstFloatHandle* freeTermData,
 	float* inputDiffData )
 {
-	float* freeTermDataRaw = freeTermData == nullptr ? nullptr : GetRaw( *freeTermData );
+	const float* freeTermDataRaw = freeTermData == nullptr ? nullptr : GetRaw( *freeTermData );
 
 	const CBlobDesc& inputDiff = desc.Source;
 	const CBlobDesc& outputDiff = desc.Result;
@@ -112,8 +113,8 @@ void CCpuMathEngine::blob3dConvolution1x1x1Backward( const CCommon3dConvolutionD
 	}
 }
 
-void CCpuMathEngine::blob3dConvolution1x1x1LearnAdd( const CCommon3dConvolutionDesc& desc, const CFloatHandle& inputData,
-	const CFloatHandle& outputDiffData, const CFloatHandle& filterDiffData, const CFloatHandle* freeTermDiffData )
+void CCpuMathEngine::blob3dConvolution1x1x1LearnAdd( const CCommon3dConvolutionDesc& desc, const CConstFloatHandle& inputData,
+	const CConstFloatHandle& outputDiffData, const CFloatHandle& filterDiffData, const CFloatHandle* freeTermDiffData )
 {
 	const CBlobDesc& input = desc.Source;
 	const CBlobDesc& outputDiff = desc.Result;
@@ -121,7 +122,7 @@ void CCpuMathEngine::blob3dConvolution1x1x1LearnAdd( const CCommon3dConvolutionD
 
 	bool isRepackNeeded = desc.StrideHeight > 1 || desc.StrideWidth > 1 || desc.StrideDepth > 1;
 	CBlobDesc inputBlob = input;
-	CFloatHandle inputBlobData = inputData;
+	CConstFloatHandle inputBlobData = inputData;
 
 	int inputBlobHolderSize = 0;
 	if( isRepackNeeded ) {
@@ -137,7 +138,7 @@ void CCpuMathEngine::blob3dConvolution1x1x1LearnAdd( const CCommon3dConvolutionD
 
 		// Repack the input
 		const float* inputDataPtr = GetRaw( inputData );
-		float* inputBlobDataPtr = GetRaw( inputBlobData );
+		float* inputBlobDataPtr = GetRaw( inputBlobHolder.GetHandle() );
 		for( int b = 0; b < inputBlob.ObjectCount(); ++b ) {
 			const float* inputRowData = inputDataPtr;
 			for( int j = 0; j < inputBlob.Height(); ++j ) {
@@ -285,9 +286,9 @@ void CCpuMathEngine::blob3dConvolutionPrepareInput( const CCommon3dConvolutionDe
 }
 
 void CCpuMathEngine::blob3dConvolution( const CCommon3dConvolutionDesc& desc, const float* sourceData,
-	const float* filterData, const CFloatHandle* freeTermData, float* resultData )
+	const float* filterData, const CConstFloatHandle* freeTermData, float* resultData )
 {
-	float* freeTermDataRaw = freeTermData == nullptr ? nullptr : GetRaw( *freeTermData );
+	const float* freeTermDataRaw = freeTermData == nullptr ? nullptr : GetRaw( *freeTermData );
 
 	const CBlobDesc& source = desc.Source;
 	const CBlobDesc& result = desc.Result;
@@ -375,13 +376,12 @@ void CCpuMathEngine::sumMatrixRowsAdd( float* result, const float* matrix,
 		vectorAdd(result, matrix, result, matrixWidth);
 		matrix += matrixWidth;
 	}
-	result += matrixWidth;
 }
 
 void CCpuMathEngine::blob3dConvolutionBackward( const CCommon3dConvolutionDesc& desc, const float* sourceData,
-	const CFloatHandle& filterData, const CFloatHandle* freeTermData, float* resultData )
+	const CConstFloatHandle& filterData, const CConstFloatHandle* freeTermData, float* resultData )
 {
-	float* freeTermDataRaw = freeTermData == nullptr ? nullptr : GetRaw( *freeTermData );
+	const float* freeTermDataRaw = freeTermData == nullptr ? nullptr : GetRaw( *freeTermData );
 
 	const CBlobDesc& source = desc.Result;
 	const CBlobDesc& filter = desc.Filter;
@@ -600,17 +600,18 @@ C3dConvolutionDesc* CCpuMathEngine::InitBlob3dConvolution( const CBlobDesc& sour
 	return desc;
 }
 
-void CCpuMathEngine::Blob3dConvolution( const C3dConvolutionDesc& convDesc, const CFloatHandle& sourceData,
-	const CFloatHandle& filterData, const CFloatHandle* freeTermData, const CFloatHandle& resultData )
+void CCpuMathEngine::Blob3dConvolution( const C3dConvolutionDesc& convDesc, const CConstFloatHandle& sourceData,
+	const CConstFloatHandle& filterData, const CConstFloatHandle* freeTermData, const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( filterData.GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
 	ASSERT_EXPR( freeTermData == 0 || freeTermData->GetMathEngine() == this );
+	CCpuExecutionScope scope;
 
 	const float* sourceDataRaw = GetRaw( sourceData );
 	const float* filterDataRaw = GetRaw( filterData );
-	float* freeTermDataRaw = freeTermData == nullptr ? nullptr : GetRaw( *freeTermData );
+	const float* freeTermDataRaw = freeTermData == nullptr ? nullptr : GetRaw( *freeTermData );
 	float* resultDataRaw = GetRaw( resultData );
 
 	const CCommon3dConvolutionDesc& desc = static_cast<const CCommon3dConvolutionDesc&>( convDesc );
@@ -623,13 +624,14 @@ void CCpuMathEngine::Blob3dConvolution( const C3dConvolutionDesc& convDesc, cons
 	}
 }
 
-void CCpuMathEngine::Blob3dConvolutionBackward( const C3dConvolutionDesc& convDesc, const CFloatHandle& sourceData,
-	const CFloatHandle& filterData, const CFloatHandle* freeTermData, const CFloatHandle& resultData )
+void CCpuMathEngine::Blob3dConvolutionBackward( const C3dConvolutionDesc& convDesc, const CConstFloatHandle& sourceData,
+	const CConstFloatHandle& filterData, const CConstFloatHandle* freeTermData, const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( filterData.GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
 	ASSERT_EXPR( freeTermData == 0 || freeTermData->GetMathEngine() == this );
+	CCpuExecutionScope scope;
 
 	const float* sourceDataRaw = GetRaw( sourceData );
 	const float* filterDataRaw = GetRaw( filterData );
@@ -644,13 +646,15 @@ void CCpuMathEngine::Blob3dConvolutionBackward( const C3dConvolutionDesc& convDe
 	}
 }
 
-void CCpuMathEngine::Blob3dConvolutionLearnAdd( const C3dConvolutionDesc& convDesc, const CFloatHandle& inputData,
-	const CFloatHandle& outputDiffData, const CFloatHandle& filterDiffData, const CFloatHandle* freeTermDiffData, bool isFreeTermDiffFromInput )
+void CCpuMathEngine::Blob3dConvolutionLearnAdd( const C3dConvolutionDesc& convDesc, const CConstFloatHandle& inputData,
+	const CConstFloatHandle& outputDiffData, const CFloatHandle& filterDiffData, const CFloatHandle* freeTermDiffData,
+	bool isFreeTermDiffFromInput )
 {
 	ASSERT_EXPR( inputData.GetMathEngine() == this );
 	ASSERT_EXPR( outputDiffData.GetMathEngine() == this );
 	ASSERT_EXPR( filterDiffData.GetMathEngine() == this );
 	ASSERT_EXPR( freeTermDiffData == 0 || freeTermDiffData->GetMathEngine() == this );
+	CCpuExecutionScope scope;
 
 	const CCommon3dConvolutionDesc& desc = static_cast<const CCommon3dConvolutionDesc&>( convDesc );
 

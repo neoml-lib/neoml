@@ -122,7 +122,7 @@ static void blobConvolutionImpl( const CTestParams& params, int seed )
 		paddingHeight, paddingWidth, strideHeight, strideWidth,
 		dilationHeight, dilationWidth, filterBlob.GetDesc(), outputBlob.GetDesc() );
 
-	CFloatHandle freeTermDataPtr = freeTermBlob.GetData();
+	CConstFloatHandle freeTermDataPtr = freeTermBlob.GetData();
 	
 	const int outputSize = inputLength * inputBatch * outputHeight * outputWidth * 1 * filterCount;
 	std::vector<float> actualData( outputSize );

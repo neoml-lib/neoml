@@ -202,6 +202,15 @@ void CCudaMathEngine::AllReduce( const CFloatHandle& handle, int size )
 #endif
 }
 
+void CCudaMathEngine::AbortDistributed()
+{
+#ifdef NEOML_USE_NCCL
+	if( ncclCommunicator != nullptr ){
+		ncclCommunicator->Abort();
+	}
+#endif
+}
+
 void CCudaMathEngine::Broadcast( const CFloatHandle& handle, int size, int root )
 {
 	ASSERT_EXPR( handle.GetMathEngine() == this );
@@ -215,9 +224,10 @@ void CCudaMathEngine::Broadcast( const CFloatHandle& handle, int size, int root 
 }
 
 #ifdef NEOML_USE_NCCL
-void CCudaMathEngine::SetDistributedCommunicator( const ncclUniqueId& uniqueId, const CMathEngineDistributedInfo& info )
+void CCudaMathEngine::SetDistributedCommunicator( const ncclUniqueId& uniqueId, const CMathEngineDistributedInfo& info,
+	std::shared_ptr<std::atomic<bool>> isAbort )
 {
-	ncclCommunicator = std::make_unique<CCudaDistributedCommunicator>( uniqueId, info );
+	ncclCommunicator = std::make_unique<CCudaDistributedCommunicator>( uniqueId, info, isAbort );
 	distributedInfo = info;
 }
 #endif

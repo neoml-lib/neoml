@@ -678,11 +678,7 @@ inline CArchive& operator<<( CArchive& archive, const CArray<T, Allocator>& arr 
 //------------------------------------------------------------------------------------------------------
 // Objects array
 
-template<class T, class Allocator = CurrentMemoryManager>
-class CObjectArray : public CArray< CPtr<T>, Allocator > {
-public:
-	CObjectArray() {}
-};
+template <class T, class Allocator = CurrentMemoryManager> using CObjectArray = CArray<CPtr<T>, Allocator>;
 
 //---------------------------------------------------------------------------------------------------
 // Specialized ArrayMemMove for the types that may be bitwise moved in memory

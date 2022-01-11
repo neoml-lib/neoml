@@ -15,6 +15,7 @@ limitations under the License.
 #ifdef NEOML_USE_NCCL
 
 #include <nccl.h>
+#include <atomic>
 #include <NeoMathEngine/NeoMathEngine.h>
 #include <NcclFunctions.h>
 
@@ -22,13 +23,18 @@ namespace NeoML {
 
 class CCudaDistributedCommunicator {
 public:
-    CCudaDistributedCommunicator( const ncclUniqueId& uniqueId, const CMathEngineDistributedInfo& info );
+    CCudaDistributedCommunicator( const ncclUniqueId& uniqueId, const CMathEngineDistributedInfo& info, std::shared_ptr<std::atomic<bool>> isAbort );
     void AllReduce( const CFloatHandle& handle, int size );
     void Broadcast( const CFloatHandle& handle, int size, int root );
+    void Abort();
     ~CCudaDistributedCommunicator();
 private:
     ncclComm_t comm;
     const CNccl* nccl;
+    std::shared_ptr<std::atomic<bool>> isAbort;
+    CDllLoader ncclLoader;
+
+    void ncclStreamSynchronize( cudaStream_t stream );
 };
 
 void CreateDistributedCudaMathEnginesNccl( IMathEngine** mathEngines, int devsCount, const int* cudaDevs );

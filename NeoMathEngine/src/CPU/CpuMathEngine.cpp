@@ -75,6 +75,9 @@ CCpuMathEngine::CCpuMathEngine( int _threadCount, size_t _memoryLimit ) :
 	// warning fix
 	(void)customSgemmFunction;
 #endif
+#ifdef NEOML_USE_MKL
+	vmlSetMode( VML_ERRMODE_NOERR );
+#endif
 }
 
 CCpuMathEngine::~CCpuMathEngine()
@@ -264,6 +267,13 @@ void CCpuMathEngine::Broadcast( const CFloatHandle& handle, int size, int root )
 {
 	if( communicator != nullptr ){
 		communicator->Broadcast( handle, size, root );
+	}
+}
+
+void CCpuMathEngine::AbortDistributed() 
+{
+	if( communicator != nullptr ){
+		communicator->Abort();
 	}
 }
 

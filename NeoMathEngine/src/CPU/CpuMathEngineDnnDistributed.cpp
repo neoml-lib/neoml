@@ -20,7 +20,7 @@ limitations under the License.
 namespace NeoML {
 
 CMultiThreadDistributedCommunicator::CMultiThreadDistributedCommunicator( int _n_threads )
-    : counter( _n_threads ), waiting_flag( true ), n_threads( _n_threads )
+    : counter( _n_threads ), waiting_flag( true ), n_threads( _n_threads ), isAbort( false )
 {
     handles.resize( n_threads );
 }
@@ -40,6 +40,9 @@ void CMultiThreadDistributedCommunicator::barrier()
         waiting_flag++;
     } else {
         while( waiting_flag == wait ){
+            if( isAbort ){
+                throw std::logic_error( "Stopping due to error in another thread." );
+            }
             std::this_thread::yield();
         }
     }

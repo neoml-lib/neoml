@@ -485,7 +485,7 @@ void CGradientBoost::initialize()
 // Performs gradient boosting iteration
 // On a sub-problem of the first problem using cache
 void CGradientBoost::executeStep( IGradientBoostingLossFunction& lossFunction,
-	const IMultivariateRegressionProblem* problem, CObjectArray<IRegressionTreeNode>& curModels )
+	const IMultivariateRegressionProblem* problem, CGradientBoostEnsemble& curModels )
 {
 	NeoAssert( !models.IsEmpty() );
 	NeoAssert( curModels.IsEmpty() );
@@ -771,7 +771,7 @@ bool CGradientBoost::trainStep()
 		}
 
 		// Gradient boosting step
-		CObjectArray<IRegressionTreeNode> curIterationModels; // a new model for multi-class classification
+		CGradientBoostEnsemble curIterationModels; // a new model for multi-class classification
 		executeStep( *lossFunction, baseProblem, curIterationModels );
 
 		for( int j = 0; j < curIterationModels.Size(); j++ ) {
