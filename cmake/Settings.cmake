@@ -1,7 +1,12 @@
 
 # Define global cmake variables and some usefull variables
 macro(set_global_variables)
-    
+    # Allow environment variables <PackageName>_ROOT
+    if(POLICY CMP0074)
+        set(CMAKE_POLICY_DEFAULT_CMP0074 NEW)
+        cmake_policy(SET CMP0074 NEW)
+    endif()
+
     # Usefull variables
     if(UNIX AND APPLE AND NOT IOS)
         set(DARWIN TRUE)
