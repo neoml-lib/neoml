@@ -66,6 +66,7 @@ public:
 	bool IsInCompatibilityMode() const { return isInCompatibilityMode; }
 	void SetCompatibilityMode( bool compatibilityMode );
 
+	void RunOnce() override;
 private:
 	// The gate numbers for the hidden layer output
 	enum TGateOut {
@@ -94,6 +95,9 @@ private:
 
 	void buildLayer(float dropout);
 	void setWeightsData(const CPtr<CDnnBlob>& newWeights);
+
+	void fastLstm();
+	void dropoutRunOnce( const CPtr<CDnnBlob>& src, CPtr<CDnnBlob>& dst );
 };
 
 NEOML_API CLayerWrapper<CLstmLayer> Lstm(
