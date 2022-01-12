@@ -312,6 +312,14 @@ void CLstmLayer::Serialize( CArchive& archive )
 	}
 }
 
+void CLstmLayer::RunOnce() {
+	if( !IsInCompatibilityMode() ) {
+		fastLstm();
+	} else {
+		CRecurrentLayer::RunOnce();
+	}
+}
+
 // Sets weights to input and reccurrent fully connected layers.
 // Used for loading previous versions of LSTM, where single fully connected layer was used.
 void CLstmLayer::setWeightsData( const CPtr<CDnnBlob>& newWeights )
@@ -365,6 +373,126 @@ void CLstmLayer::setWeightsData( const CPtr<CDnnBlob>& newWeights )
 
 	SetInputWeightsData( splitWeights[0] );
 	SetRecurWeightsData( splitWeights[1] );
+}
+
+void CLstmLayer::fastLstm() 
+{
+	auto initRecurentBlob = [&]( CPtr<CDnnBlob>& backlinkBlob, int num ) {
+		if( inputBlobs.Size() > num && inputBlobs[num] != nullptr ) {
+			CPtr<CDnnBlob> windowBlob = CDnnBlob::CreateWindowBlob( backlinkBlob );
+			windowBlob->SetParentPos( IsReverseSequence() ? backlinkBlob->GetBatchLength() - 1 : 0 );
+			NeoAssert( windowBlob->GetDataSize() == inputBlobs[num]->GetDataSize() );
+			MathEngine().VectorCopy( windowBlob->GetData(), inputBlobs[num]->GetData(), windowBlob->GetDataSize() );
+		} else {
+			backlinkBlob->Clear();
+		}
+	};
+
+	const size_t hiddenSize = GetHiddenSize();
+
+	// Write state data directly to output or create temporary blob for recurent 
+	CPtr<CDnnBlob> stateBacklinkBlob;
+	if( outputDescs.Size() == 2 ) {
+		stateBacklinkBlob = outputBlobs[1];
+	} else {
+		stateBacklinkBlob = CDnnBlob::CreateDataBlob( MathEngine(), CT_Float, 1, outputDescs[0].BatchWidth(), outputDescs[0].ObjectSize() );
+	}
+
+	CPtr<CDnnBlob>& inputWeights = inputHiddenLayer->GetWeightsData();
+	CPtr<CDnnBlob>& inputFreeTerm = inputHiddenLayer->GetFreeTermData();
+	CPtr<CDnnBlob>& recurrentWeights = recurHiddenLayer->GetWeightsData();
+	CPtr<CDnnBlob>& recurrentFreeTerm = recurHiddenLayer->GetFreeTermData();
+
+	// Emulate working of LSTM recurrent implementation
+	CPtr<CDnnBlob>& mainBacklink = outputBlobs[0];
+	CPtr<CDnnBlob>& stateBacklink = stateBacklinkBlob;
+
+	// Create temporary blobs for result of fully connected layers
+	CPtr<CDnnBlob> inputFullyConnectedResult = CDnnBlob::CreateDataBlob( MathEngine(), CT_Float, 1, inputDescs[0].BatchWidth(), G_Count * hiddenSize );
+	CPtr<CDnnBlob> reccurentFullyConnectedResult = CDnnBlob::CreateBlob( MathEngine(), CT_Float, inputFullyConnectedResult->GetDesc() );
+
+	CLstmDesc* lstmDesc = MathEngine().InitLstm(
+		inputWeights->GetData(), inputFreeTerm.Ptr() ? &( inputFreeTerm->GetData() ) : nullptr,
+		recurrentWeights->GetData(), recurrentFreeTerm.Ptr() ? &( recurrentFreeTerm->GetData() ) : nullptr,
+		inputFullyConnectedResult->GetData(), reccurentFullyConnectedResult->GetData(),
+		hiddenSize, inputDescs[0].BatchWidth(), inputDescs[0].ObjectSize() );
+
+	CPtr<CDnnBlob> mainBacklinkInput = CDnnBlob::CreateWindowBlob( mainBacklink );
+	CPtr<CDnnBlob> mainBacklinkOutput = CDnnBlob::CreateWindowBlob( mainBacklink );
+	CPtr<CDnnBlob> input = CDnnBlob::CreateWindowBlob( inputBlobs[0] );
+	CPtr<CDnnBlob> stateBacklinkInput = CDnnBlob::CreateWindowBlob( stateBacklink );
+	CPtr<CDnnBlob> stateBacklinkOutput = CDnnBlob::CreateWindowBlob( stateBacklink );
+
+	// Init state and main backlink blobs
+	initRecurentBlob( stateBacklink, 1 );
+	initRecurentBlob( mainBacklink, 2 );
+
+	// Create termporary blobs for result of dropout (if it is applied)
+	CPtr<CDnnBlob> tempMainBackLink;
+	CPtr<CDnnBlob> tempInput;
+
+	if( GetDropoutRate() != 0. ) {
+		// Create temp vector in order to apply dropout
+		tempMainBackLink = CDnnBlob::CreateDataBlob( MathEngine(), CT_Float, 1, mainBacklink->GetBatchWidth(), mainBacklink->GetObjectSize() );
+		tempInput = CDnnBlob::CreateDataBlob( MathEngine(), CT_Float, 1, input->GetBatchWidth(), input->GetObjectSize() );
+	}
+
+	// Iterate recurent net step by step
+	for( int i = 0; i < inputBlobs[0]->GetBatchLength(); i++ ) {
+		int inputPos, outputPos;
+		if( IsReverseSequence() ) {
+			const int LastIdx = inputBlobs[0]->GetBatchLength() - 1;
+			int iRev = LastIdx - i;
+			inputPos = min( LastIdx, iRev + 1 );
+			outputPos = iRev;
+		} else {
+			inputPos = max( 0, i - 1 );
+			outputPos = i;
+		}
+		// Set current step
+		mainBacklinkInput->SetParentPos( inputPos );
+		input->SetParentPos( outputPos );
+
+		// Apply dropout
+		if( GetDropoutRate() != 0. ) {
+			dropoutRunOnce( mainBacklinkInput, tempMainBackLink );
+			dropoutRunOnce( input, tempInput );
+		} else {
+			// Just create alias if dropout isn't set
+			tempMainBackLink = mainBacklinkInput;
+			tempInput = input;
+		}
+
+		if( outputDescs.Size() == 2 ) {
+			// if ( outputDescs.Size() == 1 ) we could preserve only one step of state ( and we do it )
+			stateBacklinkInput->SetParentPos( inputPos );
+			stateBacklinkOutput->SetParentPos( outputPos );
+		}
+		mainBacklinkOutput->SetParentPos( outputPos );
+
+		MathEngine().Lstm( *lstmDesc, stateBacklinkInput->GetData(), tempMainBackLink->GetData(),
+			tempInput->GetData(), stateBacklinkOutput->GetData(), mainBacklinkOutput->GetData() );
+	}
+
+	delete lstmDesc;
+}
+
+void CLstmLayer::dropoutRunOnce( const CPtr<CDnnBlob>& src, CPtr<CDnnBlob>& dst )
+{
+	if( GetDropoutRate() == 0. ) {
+		// Dropout isn't applied
+		return;
+	}
+
+	if( !IsBackwardPerformed() ) {
+		MathEngine().VectorCopy( dst->GetData(), src->GetData(), src->GetDataSize() );
+		return;
+	}
+
+	CDropoutDesc* dropoutDesc = MathEngine().InitDropout( GetDropoutRate(), false, false, src->GetDesc(), dst->GetDesc(),
+			GetDnn()->Random().Next() );
+	MathEngine().Dropout( *dropoutDesc, src->GetData(), dst->GetData() );
+	delete dropoutDesc;
 }
 
 CLayerWrapper<CLstmLayer> Lstm(
