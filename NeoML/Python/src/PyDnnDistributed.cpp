@@ -51,6 +51,13 @@ py::array CPyDistributedTraining::LastLosses( const std::string& layer )
     return lastLosses;
 }
 
+void CPyDistributedTraining::Save( const std::string& path )
+{
+    CArchiveFile file( path.c_str(), CArchive::store );
+    CArchive archive( &file, CArchive::store );
+    Serialize( archive );
+}
+
 void InitializeDistributedTraining(py::module& m)
 {
 	py::class_<CPyDistributedTraining>(m, "DnnDistributed")
@@ -74,7 +81,8 @@ void InitializeDistributedTraining(py::module& m)
             })
         )
 
-        .def( "_learn", &CPyDistributedTraining::Learn, py::return_value_policy::reference )
+        .def( "_learn", &CPyDistributedTraining::Learn )
         .def( "_last_losses", &CPyDistributedTraining::LastLosses, py::return_value_policy::reference )
+        .def( "_save", &CPyDistributedTraining::Save )
 	;
 } 
