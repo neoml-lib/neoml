@@ -66,9 +66,13 @@ REGISTER_NEOML_PYLAYER_EX( "Split", "SplitChannels", "FmlCnnSplitChannelsLayer" 
 REGISTER_NEOML_PYLAYER_EX( "Split", "SplitDepth", "FmlCnnSplitDepthLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Split", "SplitWidth", "FmlCnnSplitWidthLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Split", "SplitHeight", "FmlCnnSplitHeightLayer" )
+REGISTER_NEOML_PYLAYER_EX( "Split", "SplitListSize", "NeoMLDnnSplitListSizeLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Split", "SplitBatchWidth", "FmlCnnSplitBatchWidthLayer" )
+REGISTER_NEOML_PYLAYER_EX( "Split", "SplitBatchLength", "NeoMLDnnSplitBatchLengthLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Eltwise", "EltwiseSum", "FmlCnnEltwiseSumLayer" )
+REGISTER_NEOML_PYLAYER_EX( "Eltwise", "EltwiseSub", "NeoMLDnnEltwiseSubLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Eltwise", "EltwiseMul", "FmlCnnEltwiseMulLayer" )
+REGISTER_NEOML_PYLAYER_EX( "Eltwise", "EltwiseDiv", "NeoMLDnnEltwiseDivLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Eltwise", "EltwiseNegMul", "FmlCnnEltwiseNegMulLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Eltwise", "EltwiseMax", "FmlCnnEltwiseMaxLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Activation", "LinearLayer", "FmlCnnLinearLayer")
@@ -96,6 +100,7 @@ REGISTER_NEOML_PYLAYER( "FullyConnectedSource", "FmlCnnFullyConnectedSourceLayer
 REGISTER_NEOML_PYLAYER_EX( "Loss", "CrossEntropyLoss", "FmlCnnCrossEntropyLossLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Loss", "BinaryCrossEntropyLoss", "FmlCnnBinaryCrossEntropyLossLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Loss", "EuclideanLoss", "FmlCnnEuclideanLossLayer" )
+REGISTER_NEOML_PYLAYER_EX( "Loss", "L1Loss", "NeoMLDnnL1LossLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Loss", "HingeLoss", "FmlCnnHingeLossLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Loss", "SquaredHingeLoss", "FmlCnnSquaredHingeLossLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Loss", "CustomLoss", "NeoMLCustomLossLayer" )
@@ -165,6 +170,10 @@ REGISTER_NEOML_PYLAYER( "Irnn", "NeoMLDnnIrnnLayer" )
 REGISTER_NEOML_PYLAYER( "IndRnn", "NeoMLDnnIndRnnLayer" )
 REGISTER_NEOML_PYLAYER( "Qrnn", "NeoMLDnnQrnnLayer" )
 REGISTER_NEOML_PYLAYER( "Lrn", "NeoMLDnnLrnLayer" )
+REGISTER_NEOML_PYLAYER( "Cast", "NeoMLDnnCastLayer" )
+REGISTER_NEOML_PYLAYER( "Data", "NeoMLDnnDataLayer" )
+REGISTER_NEOML_PYLAYER( "TransformerEncoder", "NeoMLDnnTransformerEncoderLayer" )
+REGISTER_NEOML_PYLAYER( "BertConv", "NeoMLDnnBertConvLayer" )
 
 }
 
@@ -373,7 +382,7 @@ py::dict CPyDnn::Run( py::list inputs )
 	return result;
 }
 
-void CPyDnn::RunAndBackward( py::list inputs )
+py::dict CPyDnn::RunAndBackward( py::list inputs )
 {
 	CArray<const char*> layerNames;
 	dnn->GetLayerList( layerNames );
@@ -392,9 +401,19 @@ void CPyDnn::RunAndBackward( py::list inputs )
 		py::gil_scoped_release release;
 		dnn->RunAndBackwardOnce();
 	}
+
+	auto result = py::dict();
+	for( int layerIndex = 0; layerIndex < layerNames.Size(); ++layerIndex ) {
+		CPtr<CSinkLayer> layer = dynamic_cast<CSinkLayer*>( dnn->GetLayer( layerNames[layerIndex] ).Ptr() );
+		if( layer != 0 ) {
+			result[layerNames[layerIndex]] = CPyBlob( *mathEngineOwner, layer->GetBlob() );
+		}
+	}
+
+	return result;
 }
 
-void CPyDnn::Learn( py::list inputs )
+py::dict CPyDnn::Learn( py::list inputs )
 {
 	CArray<const char*> layerNames;
 	dnn->GetLayerList( layerNames );
@@ -413,6 +432,16 @@ void CPyDnn::Learn( py::list inputs )
 		py::gil_scoped_release release;
 		dnn->RunAndLearnOnce();
 	}
+
+	auto result = py::dict();
+	for( int layerIndex = 0; layerIndex < layerNames.Size(); ++layerIndex ) {
+		CPtr<CSinkLayer> layer = dynamic_cast<CSinkLayer*>( dnn->GetLayer( layerNames[layerIndex] ).Ptr() );
+		if( layer != 0 ) {
+			result[layerNames[layerIndex]] = CPyBlob( *mathEngineOwner, layer->GetBlob() );
+		}
+	}
+
+	return result;
 }
 
 //------------------------------------------------------------------------------------------------------------

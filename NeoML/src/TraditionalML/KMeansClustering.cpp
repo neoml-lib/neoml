@@ -51,6 +51,7 @@ static CPtr<CDnnBlob> createWeightBlob( IMathEngine& mathEngine, const IClusteri
 	for( int vectorIndex = 0; vectorIndex < vectorCount; ++vectorIndex ) {
 		buffer[vectorIndex] = static_cast<float>( data->GetVectorWeight( vectorIndex ) );
 	}
+	buffer.Close();
 	return weight;
 }
 
@@ -219,7 +220,7 @@ bool CKMeansClustering::denseLloydL2Clusterize( IClusteringData* rawData, int se
 	}
 
 	result.ClusterCount = result.Clusters.Size();
-	assert( result.Clusters.Size() > 0 );
+	NeoAssert( result.Clusters.Size() > 0 );
 	return success;
 }
 
@@ -653,6 +654,7 @@ void CKMeansClustering::selectInitialClusters( const CDnnBlob& data, int seed, C
 			::memcpy( currPtr, initialClusterCenters[i].Mean.GetPtr(), featureCount * sizeof( float ) );
 			currPtr += featureCount;
 		}
+		buffer.Close();
 		return;
 	}
 
@@ -751,8 +753,8 @@ void CKMeansClustering::kMeansPlusPlusInitialization( const CDnnBlob& data, int 
 			}
 		}
 
-		assert( nextCoice != -1 );
-		assert( !usedVectors.Has( nextCoice ) );
+		NeoAssert( nextCoice != -1 );
+		NeoAssert( !usedVectors.Has( nextCoice ) );
 		usedVectors.Add( nextCoice );
 		mathEngine.VectorCopy( centers.GetObjectData( k ), data.GetObjectData( nextCoice ), featureCount );
 	}
@@ -875,6 +877,7 @@ void CKMeansClustering::recalcCenters( const CDnnBlob& data, const CDnnBlob& wei
 		}
 		newCenter += featureCount;
 	}
+	rawSizes.Close();
 }
 
 // Calculates clusters' variances

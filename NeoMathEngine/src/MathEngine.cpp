@@ -225,4 +225,16 @@ IGpuMathEngineManager* CreateGpuMathEngineManager()
 	return new CGpuMathEngineManager();
 }
 
+void CreateDistributedCudaMathEngines( IMathEngine** mathEngines, int devsCount, const int* cudaDevs )
+{
+	ASSERT_EXPR( mathEngines != nullptr );
+	ASSERT_EXPR( devsCount > 0 );
+	ASSERT_EXPR( cudaDevs != nullptr );
+#ifdef NEOML_USE_NCCL
+	CreateDistributedCudaMathEnginesNccl( mathEngines, devsCount, cudaDevs );
+#else
+	ASSERT_EXPR( false );
+#endif
+}
+
 } // namespace NeoML

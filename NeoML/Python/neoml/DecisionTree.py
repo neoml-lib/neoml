@@ -71,12 +71,16 @@ class DecisionTreeClassifier(PythonWrapper.DecisionTree):
         -1 means use all features every time.
     :type random_selected_feature_count: int, default=-1
 
+    :param available_memory: the memory limit for the algorithm (default is 1 Gigabyte)
+    :type available_memory: int, default=1024*1024*1024
+
     :param multiclass_mode: determines how to handle multi-class classification
     :type multiclass_mode: str, ['single_tree', 'one_vs_all', 'one_vs_one'], default='single_tree'
     """
 
     def __init__(self, criterion='gini', min_subset_size=1, min_subset_part=0.0, min_split_size=1, max_tree_depth=32,
-                 max_node_count=4096, const_threshold=0.99, random_selected_feature_count=-1, multiclass_mode='single_tree'):
+                 max_node_count=4096, const_threshold=0.99, random_selected_feature_count=-1, available_memory=1024*1024*1024,
+                 multiclass_mode='single_tree'):
 
         if criterion != 'gini' and criterion != 'information_gain':
             raise ValueError('The `criterion` must be one of: `gini`, `information_gain`.')
@@ -94,12 +98,14 @@ class DecisionTreeClassifier(PythonWrapper.DecisionTree):
             raise ValueError('The `const_threshold` must be in [0, 1].')
         if random_selected_feature_count <= 0 and random_selected_feature_count != -1:
             raise ValueError('The `random_selected_feature_count` must be > 0 or -1.')
+        if available_memory < 0:
+            raise ValueError('The `available_memory` must be non-negative.')
         if multiclass_mode != 'single_tree' and multiclass_mode != 'one_vs_all' and multiclass_mode != 'one_vs_one':
             raise ValueError('The `multiclass_mode` must be one of: `single_tree`, `one_vs_all`, `one_vs_one`.')
 
         super().__init__(int(min_subset_size), float(min_subset_part), int(min_split_size), int(max_tree_depth),
                          int(max_node_count), criterion, float(const_threshold), int(random_selected_feature_count),
-                         multiclass_mode)
+                         int(available_memory), multiclass_mode)
 
     def train(self, X, Y, weight=None):
         """Trains the decision tree.

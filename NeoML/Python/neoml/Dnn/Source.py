@@ -20,7 +20,7 @@ import neoml.Blob as Blob
 
 
 class Source(Layer):
-    """The source layer that serves to pass a data blob into the network.
+    """The source layer that serves to pass a user data blob into the network.
 
     :param dnn: The neural network.
     :type dnn: object
@@ -52,4 +52,4 @@ class Source(Layer):
     def get_blob(self):
         """Gets the blob with source data.
         """
-        return Blob(self._internal.get_blob())
+        return Blob.Blob(self._internal.get_blob())

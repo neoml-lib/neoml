@@ -195,7 +195,7 @@ public:
 	// Returns number of RunOnce calls since last Reshape
 	int GetRunOnceCount() const { return runOnceCount; }
 	// Returns total time of RunOnce calls (in milliseconds) since last Reshape
-	IPerformanceCounters::CCounter::TCounterType GetRunOnceTime() const { return runOnceTime; }
+	IPerformanceCounters::CCounter::TCounterType GetRunOnceTime() const { return runOnceTime / 1000000; }
 
 protected:
 	// A virtual method that creates output blobs using the input blobs
@@ -347,7 +347,7 @@ private:
 	bool useTimer;
 	// The total number of RunOnce calls since last Reshape
 	int runOnceCount;
-	// The total time of RunOnce calls since last Reshape in milliseconds
+	// The total time of RunOnce calls since last Reshape in nanoseconds
 	IPerformanceCounters::CCounter::TCounterType runOnceTime;
 
 	// Switches the specified blobs into sequence processing mode
@@ -542,7 +542,7 @@ public:
 private:
 	// Adds or deletes a layer
 	void AddLayerImpl(CBaseLayer& layer) override;
-	void DeleteLayerImpl(CBaseLayer& layer) override;
+	void DeleteLayerImpl(CBaseLayer& layer) final;
 
 	CTextStream* log; // the logging stream
 	int logFrequency;	// the logging frequency

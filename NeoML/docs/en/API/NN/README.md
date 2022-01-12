@@ -83,6 +83,7 @@ Before the first training iteration the layers' weights (trainable parameters) a
 
 - `CDnnUniformInitializer` generates the weights using a uniform distribution over a segment from `GetLowerBound` to `GetUpperBound`.
 - `CDnnXavierInitializer` generates the weights using the normal distribution `N(0, 1/n)` where `n` is the input size.
+- `CDnnXavierUniformInitializer` generates the weights using the uniform distribution `U(-sqrt(1/n), sqrt(1/n))` where `n` is the input size.
 
 To select the preferred initializer, create an instance of one of these classes and pass it to the network using the [`CDnn::SetInitializer`](Dnn.md#weights-initialization) method. The default initialization methods is `Xavier`.
 
@@ -202,10 +203,11 @@ delete gpuMathEngine;
 
 - [CBaseLayer](BaseLayer.md) is the base class for common layer functionality
 - The layers used to pass the data to and from the network:
-  - [CSourceLayer](IOLayers/SourceLayer.md) transmits a blob of data into the network
+  - [CSourceLayer](IOLayers/SourceLayer.md) transmits a blob of user data into the network
   - [CSinkLayer](IOLayers/SinkLayer.md) is used to retrieve a blob of data with the network response
   - [CProblemSourceLayer](IOLayers/ProblemSourceLayer.md) transmits the data from [`IProblem`](../ClassificationAndRegression/Problems.md) into the network
   - [CFullyConnectedSourceLayer](IOLayers/FullyConnectedSourceLayer.md) transmits the data from `IProblem` into the network, multiplying the vectors by a trainable weights matrix
+  - [CDataLayer](IOLayers/DataLayer.md) transmits a blob of fixed data into the network
 - [CFullyConnectedLayer](FullyConnectedLayer.md) is the fully-connected layer
 - [Activation functions](ActivationLayers/README.md):
   - [CLinearLayer](ActivationLayers/LinearLayer.md) - a linear activation function `ax + b`
@@ -243,7 +245,9 @@ delete gpuMathEngine;
 - [CLrnLayer](LrnLayer.md) implements local response normalization
 - Elementwise operations with data blobs:
   - [CEltwiseSumLayer](EltwiseLayers/EltwiseSumLayer.md) - elementwise sum
+  - [CEltwiseSubLayer](EltwiseLayers/EltwiseSubLayer.md) - elementwise sub
   - [CEltwiseMulLayer](EltwiseLayers/EltwiseMulLayer.md) - elementwise product
+  - [CEltwiseDivLayer](EltwiseLayers/EltwiseDivLayer.md) - elementwise division
   - [CEltwiseMaxLayer](EltwiseLayers/EltwiseMaxLayer.md) - elementwise maximum
   - [CEltwiseNegMulLayer](EltwiseLayers/EltwiseNegMulLayer.md) calculates the elementwise product of `1 - first input` and the other inputs
 - Auxiliary operations:
@@ -255,6 +259,7 @@ delete gpuMathEngine;
   - [CDotProductLayer](DotProductLayer.md) calculates the dot product of its inputs
   - [CAddToObjectLayer](AddToObjectLayer.md) adds the content of one input to each of the objects of the other
   - [CMatrixMultiplicationLayer](MatrixMultiplicationLayer.md) - mutiplication of two sets of matrices
+  - [CCastLayer](CastLayer.md) - data type conversion
   - Blob concatenation:
     - [CConcatChannelsLayer](ConcatLayers/ConcatChannelsLayer.md) concatenates along the Channels dimension
     - [CConcatDepthLayer](ConcatLayers/ConcatDepthLayer.md) concatenates along the Depth dimension
@@ -267,7 +272,9 @@ delete gpuMathEngine;
     - [CSplitDepthLayer](SplitLayers/SplitDepthLayer.md) splits along the Depth dimension
     - [CSplitWidthLayer](SplitLayers/SplitWidthLayer.md) splits along the Width dimension
     - [CSplitHeightLayer](SplitLayers/SplitHeightLayer.md) splits along the Height dimension
+    - [CSplitListSizeLayer](SplitLayers/SplitListSizeLayer.md) splits along the ListSize dimension
     - [CSplitBatchWidthLayer](SplitLayers/SplitBatchWidthLayer.md) splits along the BatchWidth dimension
+    - [CSplitBatchLengthLayer](SplitLayers/SplitBatchLengthLayer.md) splits along the BatchLength dimension
   - Working with pixel lists:
     - [CPixelToImageLayer](PixelToImageLayer.md) creates images from the pixel lists
     - [CImageToPixelLayer](ImageToPixelLayer.md) extracts pixel lists from the images
@@ -290,6 +297,7 @@ delete gpuMathEngine;
     - [CFocalLossLayer](LossLayers/FocalLossLayer.md) - focal loss function (modified cross-entropy)
   - For regression:
     - [CEuclideanLossLayer](LossLayers/EuclideanLossLayer.md) - Euclidean distance
+    - [CL1LossLayer](LossLayers/L1LossLayer.md) - L1 distance
   - Additionally:
     - [CCenterLossLayer](LossLayers/CenterLossLayer.md) - the auxiliary *center loss* function that penalizes large variance inside a class
 - Working with discrete features:

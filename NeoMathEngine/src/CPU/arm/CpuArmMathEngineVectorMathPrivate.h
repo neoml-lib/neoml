@@ -1,4 +1,4 @@
-/* Copyright � 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -272,6 +272,27 @@ inline void alignedVectorMultiplyAndAdd( const float* first, const float* second
 
 //------------------------------------------------------------------------------------------------------------
 
+inline void vectorMultiply( const float* first, float* result, float multiplier, int vectorSize )
+{
+	int count = GetCount4(vectorSize);
+	float32x4_t mult = vdupq_n_f32(multiplier);
+
+	for(int i = 0; i < count; ++i) {
+		float32x4_t res = vmulq_f32(LoadNeon4(first), mult);
+		StoreNeon4(res, result);
+
+		first += 4;
+		result += 4;
+	}
+
+	if(vectorSize > 0) {
+		float32x4_t res = vmulq_f32(LoadNeon(first, vectorSize), mult);
+		StoreNeon(res, result, vectorSize);
+	}
+}
+
+//------------------------------------------------------------------------------------------------------------
+
 inline void vectorEltwiseMultiply( const float* first, const float* second, float* result, int neonSize, int nonNeonSize )
 {
 	while( neonSize >= 4 ) {
@@ -317,6 +338,51 @@ inline void vectorEltwiseMultiply( const float* first, const float* second, floa
 inline void vectorEltwiseMultiply( const float* first, const float* second, float* result, int vectorSize )
 {
 	vectorEltwiseMultiply( first, second, result, vectorSize / 4, vectorSize % 4 );
+}
+
+inline void vectorEltwiseMultiply( const int* first, const int* second, int* result, int vectorSize )
+{
+	int neonSize = vectorSize / 4;
+	int nonNeonSize = vectorSize % 4;
+
+	while( neonSize >= 4 ) {
+		NEON_LOAD_16_INTS(first, first);
+		first += 16;
+
+		NEON_LOAD_16_INTS(second, second);
+		second += 16;
+
+		int32x4_t result0 = vmulq_s32( first0, second0 );
+		int32x4_t result1 = vmulq_s32( first1, second1 );
+		int32x4_t result2 = vmulq_s32( first2, second2 );
+		int32x4_t result3 = vmulq_s32( first3, second3 );
+
+		NEON_STORE_16_INTS(result, result);
+		result += 16;
+
+		neonSize -= 4;
+	}
+
+	while( neonSize > 0 ) {
+		int32x4_t first0 = LoadIntNeon4( first );
+		first += 4;
+
+		int32x4_t second0 = LoadIntNeon4( second );
+		second += 4;
+
+		int32x4_t res0 = vmulq_s32( first0, second0 );
+		StoreIntNeon4( res0, result );
+		result += 4;
+
+		neonSize--;
+	}
+
+	if( nonNeonSize ) {
+		int32x4_t first0 = LoadIntNeon( first, nonNeonSize );
+		int32x4_t second0 = LoadIntNeon( second, nonNeonSize );
+		int32x4_t res0 = vmulq_s32( first0, second0 );
+		StoreIntNeon( res0, result, nonNeonSize );
+	}
 }
 
 inline void vectorEltwiseMultiplyAdd( const float* first, const float* second, float* result, int vectorSize )
@@ -640,6 +706,43 @@ static inline void qrnnIfPoolingStep( const float* z, const float* f, const floa
 		float32x4_t i0 = LoadNeon( i, nonNeonSize );
 		float32x4_t res0 = vaddq_f32( vmulq_f32( f0, h0 ), vmulq_f32( i0, z0 ) );
 		StoreNeon( res0, res, nonNeonSize );
+	}
+}
+
+inline void vectorMinMax( const float* first, float* result, const float minValue, const float maxValue, int vectorSize )
+{
+	int count = GetCount4(vectorSize);
+
+	float32x4_t minVal = vdupq_n_f32(minValue);
+	float32x4_t maxVal = vdupq_n_f32(maxValue);
+
+	while( count >= 4 ) {
+		NEON_LOAD_16_FLOATS( first, first );
+		first += 16;
+
+		float32x4_t res0 = vmaxq_f32(minVal, vminq_f32(maxVal, first0));
+		float32x4_t res1 = vmaxq_f32(minVal, vminq_f32(maxVal, first1));
+		float32x4_t res2 = vmaxq_f32(minVal, vminq_f32(maxVal, first2));
+		float32x4_t res3 = vmaxq_f32(minVal, vminq_f32(maxVal, first3));
+
+		NEON_STORE_16_FLOATS( res, result );
+		result += 16;
+
+		count -= 4;
+	}
+
+	while( count > 0 ) {
+		float32x4_t res = vmaxq_f32(minVal, vminq_f32(maxVal, LoadNeon4(first)));
+		StoreNeon4(res, result);
+
+		first += 4;
+		result += 4;
+		--count;
+	}
+
+	if(vectorSize > 0) {
+		float32x4_t res = vmaxq_f32(minVal, vminq_f32(maxVal, LoadNeon(first, vectorSize)));
+		StoreNeon(res, result, vectorSize);
 	}
 }
 

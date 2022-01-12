@@ -122,21 +122,25 @@ static void blobConvolutionImpl( const CTestParams& params, int seed )
 		paddingHeight, paddingWidth, strideHeight, strideWidth,
 		dilationHeight, dilationWidth, filterBlob.GetDesc(), outputBlob.GetDesc() );
 
-	CFloatHandle freeTermDataPtr = freeTermBlob.GetData();
-
+	CConstFloatHandle freeTermDataPtr = freeTermBlob.GetData();
+	
+	const int outputSize = inputLength * inputBatch * outputHeight * outputWidth * 1 * filterCount;
+	std::vector<float> actualData( outputSize );
+	
 	auto startTime = high_resolution_clock::now();
+	
 	MathEngine().BlobConvolution( *convDesc, inputBlob.GetData(), filterBlob.GetData(),
 		isZeroFreeTerm ? 0 : &freeTermDataPtr, outputBlob.GetData() );
+	outputBlob.CopyTo( actualData.data() );
+	
 	auto stopTime = high_resolution_clock::now();
-	GTEST_LOG_( INFO ) << "ConvParams: " <<params.GetStrValue( "ConvParams" ) << std::endl <<
+	
+	GTEST_LOG_( INFO ) << "ConvParams: " << params.GetStrValue( "ConvParams" ) << std::endl <<
 		"BlobConvolution time: " << std::setprecision(3) << ( stopTime - startTime ).count() / 1e6 << " ms.";
 
 	delete convDesc;
-
-	const int outputSize = inputLength * inputBatch * outputHeight * outputWidth * 1 * filterCount;
+	
 	std::vector<float> expectedData( outputSize );
-	std::vector<float> actualData( outputSize );
-	outputBlob.CopyTo( actualData.data() );
 
 	batchConvolutionForward( inputData.data(), filterData.data(), freeTermData.data(), expectedData.data(),
 		inputLength, inputBatch, inputHeight, inputWidth, inputDepth, inputChannels,

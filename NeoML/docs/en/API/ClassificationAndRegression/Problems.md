@@ -20,7 +20,6 @@ The input data set for training a classification model should be represented by 
 - *IsDiscreteFeature* — indicates if the feature with the given index is discrete
 - *GetVectorCount* — the number of vectors (and objects to be classified)
 - *GetClass* — the class of the vector with the given number; classes are numbered from 0 to (*GetClassCount* - 1)
-- *GetVector* — the vector with the given index
 - *GetMatrix* — the whole training set as a matrix (of the *GetFeatureCount* * *GetVectorCount* size)
 - *GetVectorWeight* — the vector weight
 
@@ -44,9 +43,6 @@ public:
 	// Get the number of class [0, GetClassCount()) for the given vector
 	virtual int GetClass( int index ) const = 0;
 
-	// Get a vector
-	virtual CFloatVectorDesc GetVector( int index ) const = 0;
-
 	// The training set as a matrix
 	virtual CFloatMatrixDesc GetMatrix() const = 0;
 
@@ -67,7 +63,6 @@ This object should contain all data for model training. The main data is a set o
 
 - *GetFeatureCount* — the number of features (that is, a single vector length)
 - *GetVectorCount* — the number of vectors (and objects to be classified)
-- *GetVector* — the vector with the given index
 - *GetMatrix* — the whole training set as a matrix (of the *GetFeatureCount* * *GetVectorCount* size)
 - *GetVectorWeight* — the vector weight
 - *GetValue* — the value of the function on the given vector (a single number for `IRegressionProblem`, a vector for `IMultivariateRegressionProblem`);
@@ -81,9 +76,6 @@ public:
 
 	// The number of input vectors
 	virtual int GetVectorCount() const = 0;
-
-	// Get a vector
-	virtual CFloatVectorDesc GetVector( int index ) const = 0;
 
 	// The training set as a matrix
 	virtual CFloatMatrixDesc GetMatrix() const = 0;

@@ -63,6 +63,9 @@ public:
 
 	bool GetAmsGrad() const { return Solver<CDnnAdaptiveGradientSolver>()->IsAmsGradEnabled(); }
 	void SetAmsGrad( bool enable ) { Solver<CDnnAdaptiveGradientSolver>()->EnableAmsGrad( enable ); }
+
+	bool GetDecoupledWeightDecay() const { return Solver<CDnnAdaptiveGradientSolver>()->IsDecoupledWeightDecay(); }
+	void SetDecoupledWeightDecay( bool enable ) { Solver<CDnnAdaptiveGradientSolver>()->EnableDecoupledWeightDecay( enable ); }
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -131,7 +134,7 @@ void InitializeSolver( py::module& m )
 			return new CPyAdaptiveGradientSolver( *solver.Solver<CDnnAdaptiveGradientSolver>(), solver.MathEngineOwner() );
 		}) )
 		.def( py::init([]( const CPyMathEngine& mathEngine, float learning_rate, float l1, float l2, float max_grad_norm,
-			float moment_decay_rate, float second_moment_decay_rate, float epsilon, bool ams_grad )
+			float moment_decay_rate, float second_moment_decay_rate, float epsilon, bool ams_grad, bool decoupled_weight_decay )
 		{
 			CPtr<CDnnAdaptiveGradientSolver> solver( new CDnnAdaptiveGradientSolver( mathEngine.MathEngineOwner().MathEngine() ) );
 			solver->SetLearningRate(learning_rate);
@@ -143,6 +146,7 @@ void InitializeSolver( py::module& m )
 			solver->SetSecondMomentDecayRate(second_moment_decay_rate);
 			solver->SetEpsilon(epsilon);
 			solver->EnableAmsGrad(ams_grad);
+			solver->EnableDecoupledWeightDecay(decoupled_weight_decay);
 
 			return new CPyAdaptiveGradientSolver( *solver, mathEngine.MathEngineOwner() );
 		}) )
@@ -155,6 +159,8 @@ void InitializeSolver( py::module& m )
 		.def( "set_epsilon", &CPyAdaptiveGradientSolver::SetEpsilon, py::return_value_policy::reference )
 		.def( "get_ams_grad", &CPyAdaptiveGradientSolver::GetAmsGrad, py::return_value_policy::reference )
 		.def( "set_ams_grad", &CPyAdaptiveGradientSolver::SetAmsGrad, py::return_value_policy::reference )
+		.def( "get_decoupled_weight_decay", &CPyAdaptiveGradientSolver::GetDecoupledWeightDecay, py::return_value_policy::reference )
+		.def( "set_decoupled_weight_decay", &CPyAdaptiveGradientSolver::SetDecoupledWeightDecay, py::return_value_policy::reference )
 	;
 
 //------------------------------------------------------------------------------------------------------------

@@ -97,7 +97,7 @@ void CMetalMathEngine::VectorMultichannelLookupAndCopy(int batchSize, int channe
 
     int outputChannel = 0;
     for( int i = 0; i < lookupCount; ++i ) {
-        C2DKernel kernel( *queue, "matrixKernelBatchVectorChannelLookupAndCopyFloat", 4, 1, batchSize, lookupDimensions[i].VectorSize );
+        C2DKernel kernel( *queue, "matrixKernelBatchVectorChannelLookupAndCopyFloatIndicesFloatData", 4, 1, batchSize, lookupDimensions[i].VectorSize );
         kernel.SetParam( batchSize, 0 );
         kernel.SetParam( inputHandle + i, 1 );
         kernel.SetParam( channelCount, 2 );
@@ -112,7 +112,7 @@ void CMetalMathEngine::VectorMultichannelLookupAndCopy(int batchSize, int channe
     }
     
     if( lookupCount < channelCount ) {
-        C2DKernel kernel( *queue, "matrixKernelBatchVectorChannelCopyFloat",
+        C2DKernel kernel( *queue, "matrixKernelBatchVectorChannelCopyFloatIndicesFloatData",
             4, 1, batchSize, channelCount - lookupCount );
         kernel.SetParam( batchSize, 0 );
         kernel.SetParam( inputHandle + lookupCount, 1 );
@@ -134,7 +134,7 @@ void CMetalMathEngine::VectorMultichannelLookupAndCopy(int batchSize, int channe
 
     int outputChannel = 0;
     for( int i = 0; i < lookupCount; ++i ) {
-        C2DKernel kernel( *queue, "matrixKernelBatchVectorChannelLookupAndCopyInt", 4, 1, batchSize, lookupDimensions[i].VectorSize );
+        C2DKernel kernel( *queue, "matrixKernelBatchVectorChannelLookupAndCopyIntIndicesFloatData", 4, 1, batchSize, lookupDimensions[i].VectorSize );
         kernel.SetParam( batchSize, 0 );
         kernel.SetParam( inputHandle + i, 1 );
         kernel.SetParam( channelCount, 2 );
@@ -149,7 +149,43 @@ void CMetalMathEngine::VectorMultichannelLookupAndCopy(int batchSize, int channe
     }
     
     if( lookupCount < channelCount ) {
-        C2DKernel kernel( *queue, "matrixKernelBatchVectorChannelCopyInt", 4, 1, batchSize, channelCount - lookupCount );
+        C2DKernel kernel( *queue, "matrixKernelBatchVectorChannelCopyIntIndicesFloatData", 4, 1, batchSize, channelCount - lookupCount );
+        kernel.SetParam( batchSize, 0 );
+        kernel.SetParam( inputHandle + lookupCount, 1 );
+        kernel.SetParam( channelCount, 2 );
+        kernel.SetParam( channelCount - lookupCount, 3 );
+        kernel.SetParam( outputHandle + outputChannel, 5 );
+        kernel.SetParam( outputChannelsCount, 6 );
+        kernel.SetParam( kernel.GetGridWidth(), 7 );
+        ASSERT_EXPR( kernel.Run() );
+    }
+}
+
+void CMetalMathEngine::VectorMultichannelLookupAndCopy(int batchSize, int channelCount, const CConstIntHandle& inputHandle,
+    const CConstIntHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
+    const CIntHandle& outputHandle, int outputChannelsCount)
+{
+    ASSERT_EXPR( inputHandle.GetMathEngine() == this );
+	ASSERT_EXPR( outputHandle.GetMathEngine() == this );
+
+    int outputChannel = 0;
+    for( int i = 0; i < lookupCount; ++i ) {
+        C2DKernel kernel( *queue, "matrixKernelBatchVectorChannelLookupAndCopyIntIndicesIntData", 4, 1, batchSize, lookupDimensions[i].VectorSize );
+        kernel.SetParam( batchSize, 0 );
+        kernel.SetParam( inputHandle + i, 1 );
+        kernel.SetParam( channelCount, 2 );
+        kernel.SetParam( lookupHandles[i], 3 );
+        kernel.SetParam( lookupDimensions[i].VectorSize, 4 );
+        kernel.SetParam( outputHandle + outputChannel, 5 );
+        kernel.SetParam( outputChannelsCount, 6 );
+        kernel.SetParam( kernel.GetGridWidth(), 7 );
+        ASSERT_EXPR( kernel.Run() );
+        
+        outputChannel += lookupDimensions[i].VectorSize;
+    }
+    
+    if( lookupCount < channelCount ) {
+        C2DKernel kernel( *queue, "matrixKernelBatchVectorChannelCopyIntIndicesIntData", 4, 1, batchSize, channelCount - lookupCount );
         kernel.SetParam( batchSize, 0 );
         kernel.SetParam( inputHandle + lookupCount, 1 );
         kernel.SetParam( channelCount, 2 );
@@ -265,26 +301,6 @@ void CMetalMathEngine::AddMatrixElementsToMatrix(const CConstFloatHandle& matrix
     kernel.SetParam( width, 2 );
     kernel.SetParam( result, 3 );
     kernel.SetParam( indices, 4 );
-    ASSERT_EXPR( kernel.Run() );
-}
-
-void CMetalMathEngine::EltwiseLogSumExpVectorToMatrixElements(const CFloatHandle& matrix, int height, int width,
-	const CConstIntHandle& rowIndices, const CConstIntHandle& columnIndices,
-	const CConstFloatHandle& vector, int vectorSize)
-{
-    ASSERT_EXPR( matrix.GetMathEngine() == this );
-	ASSERT_EXPR( rowIndices.GetMathEngine() == this );
-	ASSERT_EXPR( columnIndices.GetMathEngine() == this );
-	ASSERT_EXPR( vector.GetMathEngine() == this ); 
-
-    C2DKernel kernel( *queue, "matrixKernelEltwiseLogSumExpVectorToMatrixElements", 1, 1, height, width );
-    kernel.SetParam( matrix, 0 );
-    kernel.SetParam( height, 1 );
-    kernel.SetParam( width, 2 );
-    kernel.SetParam( rowIndices, 3 );
-    kernel.SetParam( columnIndices, 4 );
-    kernel.SetParam( vector, 5 );
-    kernel.SetParam( vectorSize, 6 );
     ASSERT_EXPR( kernel.Run() );
 }
 
@@ -410,26 +426,6 @@ void CMetalMathEngine::SetVectorToMatrixRows(const CFloatHandle& resultHandle,
     kernel.SetParam( matrixHeight, 1 );
     kernel.SetParam( matrixWidth, 2 );
     kernel.SetParam( vectorHandle, 3 );
-    ASSERT_EXPR( kernel.Run() );
-}
-
-void CMetalMathEngine::SetVectorToMatrixElements( const CFloatHandle& matrixHandle, int height, int width,
-    const CConstIntHandle& rowIndicesHandle, const CConstIntHandle& columnIndicesHandle,
-    const CConstFloatHandle& vectorHandle, int vectorSize )
-{
-    ASSERT_EXPR( matrixHandle.GetMathEngine() == this );
-	ASSERT_EXPR( rowIndicesHandle.GetMathEngine() == this );
-	ASSERT_EXPR( columnIndicesHandle.GetMathEngine() == this );
-	ASSERT_EXPR( vectorHandle.GetMathEngine() == this ); 
-
-    C1DKernel kernel( *queue, "vectorKernelSetVectorToMatrixElements", 4, vectorSize );
-    kernel.SetParam( matrixHandle, 0 );
-    kernel.SetParam( height, 1 );
-    kernel.SetParam( width, 2 );
-    kernel.SetParam( rowIndicesHandle, 3 );
-    kernel.SetParam( columnIndicesHandle, 4 );
-    kernel.SetParam( vectorHandle, 5 );
-    kernel.SetParam( vectorSize, 6 );
     ASSERT_EXPR( kernel.Run() );
 }
 
@@ -1104,24 +1100,6 @@ void CMetalMathEngine::MatrixLogSumExpByRows(const CConstFloatHandle& matrix, in
     
     // threadgroupCount.width = 1;
     ASSERT_EXPR( kernel.Run( 0, 0, 1 ) );
-}
-
-void CMetalMathEngine::MatrixLogSumExpByColumns(const CConstFloatHandle& matrix, int height, int width,
-	const CFloatHandle& result, int resultSize)
-{
-    ASSERT_EXPR( matrix.GetMathEngine() == this );
-	ASSERT_EXPR( result.GetMathEngine() == this );
-	ASSERT_EXPR( resultSize >= width );
-
-    C2DKernel kernel( *queue, "matrixKernelMatrixLogSumExpByColumns", 1, 1, height, width );
-    kernel.SetParam( matrix, 0 );
-    kernel.SetParam( height, 1 );
-    kernel.SetParam( width, 2 );
-    kernel.SetParam( result, 3 );
-    kernel.SetSharedParam( kernel.GetThreadCount() * sizeof(float), 4 );
-    
-    // threadgroupCount.height = 1;
-    ASSERT_EXPR( kernel.Run( 0, 1, 0 ) );
 }
 
 void CMetalMathEngine::MatrixSoftmaxByRows(const CConstFloatHandle& matrix, int height, int width,

@@ -166,7 +166,8 @@ NEOML_API CLayerWrapper<CCrossEntropyLossLayer> CrossEntropyLoss(
 ///////////////////////////////////////////////////////////////////////////////////
 
 // CBinaryCrossEntropyLossLayer is a binary variant of cross-entropy
-// taking the input of BatchSize * 1 size with the [-1;+1] values
+// It takes non-normalized probabilities of +1 class of size BatchSize x 1 as the first input (network response)
+// and blob of the same size with values -1.f / +1.f as the second input (labels)
 class NEOML_API CBinaryCrossEntropyLossLayer : public CLossLayer {
 	NEOML_DNN_LAYER( CBinaryCrossEntropyLossLayer )
 public:
@@ -215,6 +216,25 @@ protected:
 };
 
 NEOML_API CLayerWrapper<CEuclideanLossLayer> EuclideanLoss( float lossWeight = 1.0f );
+
+///////////////////////////////////////////////////////////////////////////////////
+
+// CL1LossLayer implements a layer that estimates the loss value as abs(result - standard)
+// The layer has two inputs: #0 - result, #1 - standard
+class NEOML_API CL1LossLayer : public CLossLayer {
+	NEOML_DNN_LAYER( CL1LossLayer )
+public:
+	explicit CL1LossLayer( IMathEngine& mathEngine ) : CLossLayer( mathEngine, "CL1LossLayer" ) {}
+
+	void Serialize( CArchive& archive ) override;
+
+protected:
+	void Reshape() override;
+	void BatchCalculateLossAndGradient( int batchSize, CConstFloatHandle data, int vectorSize, CConstFloatHandle label,
+		int labelSize, CFloatHandle lossValue, CFloatHandle lossGradient ) override;
+};
+
+NEOML_API CLayerWrapper<CL1LossLayer> L1Loss( float lossWeight = 1.0f );
 
 ///////////////////////////////////////////////////////////////////////////////////
 

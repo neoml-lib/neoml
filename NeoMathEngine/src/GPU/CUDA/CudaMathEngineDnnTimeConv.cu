@@ -63,7 +63,7 @@ CTimeConvolutionDesc* CCudaMathEngine::InitTimeConvolution( const CBlobDesc& sou
 }
 
 void CCudaMathEngine::BlobTimeConvolution( const CTimeConvolutionDesc& convDesc,
-	const CFloatHandle& sourceData, const CFloatHandle& filterData, const CFloatHandle& freeTermData,
+	const CConstFloatHandle& sourceData, const CConstFloatHandle& filterData, const CConstFloatHandle& freeTermData,
 	const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
@@ -89,8 +89,7 @@ void CCudaMathEngine::BlobTimeConvolution( const CTimeConvolutionDesc& convDesc,
 		const int tempMatrixWidth = filter.ObjectSize();
 		const int tempMatrixHeight = result.BlobSize() / filter.ObjectCount();
 		// Max amount of memory allowed is a half of math engine's free memory
-		const int maxInMemoryHeight = max( 1,
-			min( static_cast<int>( GetFreeMemorySize() / 2 / ( sizeof( float ) * tempMatrixWidth ) ), tempMatrixHeight ) );
+		const int maxInMemoryHeight = getCudaTempMatrixMaxHeight( tempMatrixHeight, tempMatrixWidth );
 
 		int matrixRowIndex = 0;
 		CFloatHandle currResult = resultData;
@@ -120,7 +119,7 @@ void CCudaMathEngine::BlobTimeConvolution( const CTimeConvolutionDesc& convDesc,
 }
 
 void CCudaMathEngine::BlobTimeConvolutionBackward( const CTimeConvolutionDesc& convDesc,
-	const CFloatHandle& outputDiffData, const CFloatHandle& filterData, const CFloatHandle& /*freeTerm*/,
+	const CConstFloatHandle& outputDiffData, const CConstFloatHandle& filterData, const CConstFloatHandle& /*freeTerm*/,
 	const CFloatHandle& inputDiffData )
 {
 	ASSERT_EXPR( outputDiffData.GetMathEngine() == this );
@@ -144,11 +143,10 @@ void CCudaMathEngine::BlobTimeConvolutionBackward( const CTimeConvolutionDesc& c
 		const int tempMatrixWidth = filter.ObjectSize();
 		const int tempMatrixHeight = outputDiff.BlobSize() / filter.ObjectCount();
 		// Max amount of memory allowed is a half of math engine's free memory
-		const int maxInMemoryHeight = max( 1,
-			min( static_cast<int>( GetFreeMemorySize() / 2 / ( sizeof( float ) * tempMatrixWidth ) ), tempMatrixHeight ) );
+		const int maxInMemoryHeight = getCudaTempMatrixMaxHeight( tempMatrixHeight, tempMatrixWidth );
 
 		int matrixRowIndex = 0;
-		CFloatHandle currOutputDiff = outputDiffData;
+		CConstFloatHandle currOutputDiff = outputDiffData;
 		CFloatHandleStackVar tempMatrixPart( mathEngine(), maxInMemoryHeight * tempMatrixWidth );
 
 		VectorFill( inputDiffData, 0.f, inputDiff.BlobSize() );
@@ -173,8 +171,8 @@ void CCudaMathEngine::BlobTimeConvolutionBackward( const CTimeConvolutionDesc& c
 	}
 }
 
-void CCudaMathEngine::BlobTimeConvolutionLearnAdd( const CTimeConvolutionDesc& convDesc, const CFloatHandle& inputData,
-	const CFloatHandle& outputDiffData, const CFloatHandle& filterDiffData, const CFloatHandle& freeTermDiffData )
+void CCudaMathEngine::BlobTimeConvolutionLearnAdd( const CTimeConvolutionDesc& convDesc, const CConstFloatHandle& inputData,
+	const CConstFloatHandle& outputDiffData, const CFloatHandle& filterDiffData, const CFloatHandle& freeTermDiffData )
 {
 	ASSERT_EXPR( inputData.GetMathEngine() == this );
 	ASSERT_EXPR( outputDiffData.GetMathEngine() == this );
@@ -199,8 +197,7 @@ void CCudaMathEngine::BlobTimeConvolutionLearnAdd( const CTimeConvolutionDesc& c
 		const int tempMatrixWidth = filterDiff.ObjectSize();
 		const int tempMatrixHeight = outputDiff.BlobSize() / filterDiff.ObjectCount();
 		// Max amount of memory allowed is a half of math engine's free memory
-		const int maxInMemoryHeight = min( static_cast<int>( GetFreeMemorySize() / 2 / ( sizeof( float ) * tempMatrixWidth ) ),
-			tempMatrixHeight );
+		const int maxInMemoryHeight = getCudaTempMatrixMaxHeight( tempMatrixHeight, tempMatrixWidth );
 
 		if( maxInMemoryHeight == 0 ) {
 			// naive implementatino which doesn't use additional memory
@@ -211,7 +208,7 @@ void CCudaMathEngine::BlobTimeConvolutionLearnAdd( const CTimeConvolutionDesc& c
 				GetRaw( outputDiffData ), GetRaw( filterDiffData ) );
 		} else {
 			int matrixRowIndex = 0;
-			CFloatHandle currOutputDiff = outputDiffData;
+			CConstFloatHandle currOutputDiff = outputDiffData;
 			CFloatHandleStackVar tempMatrixPart( mathEngine(), maxInMemoryHeight * tempMatrixWidth );
 			const int filterCount = desc.Result.ObjectSize();
 

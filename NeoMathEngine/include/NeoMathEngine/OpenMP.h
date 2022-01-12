@@ -43,14 +43,21 @@ limitations under the License.
 
 namespace NeoML {
 
-const int MinOmpOperationCount = 4096;
+const int MinOmpOperationCount = 32768;
 
 // Indicates if using the OMP pool makes sense for the scenario
 // taskCount is the number of tasks that may run on a thread
 // operationCount is the total number of operations across all tasks
 inline bool IsOmpRelevant( int taskCount, int64_t operationCount = MinOmpOperationCount )
 {
+#ifdef NEOML_USE_OMP
 	return taskCount > 1 && operationCount >= MinOmpOperationCount;
+#else
+	(void)MinOmpOperationCount;
+	(void)taskCount;
+	(void)operationCount;
+	return false;
+#endif
 }
 
 // Returns the maximum possible number of threads used in an OMP block

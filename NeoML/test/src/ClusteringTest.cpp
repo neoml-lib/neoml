@@ -153,15 +153,23 @@ static void firstComeClustering( IClusteringData* data, CClusteringResult& resul
 	firstCome.Clusterize( data, result );
 }
 
+template<CHierarchicalClustering::TLinkage LINKAGE>
 static void hierarchicalClustering( IClusteringData* data, CClusteringResult& result )
 {
 	CHierarchicalClustering::CParam params;
+	params.Linkage = LINKAGE;
 	params.DistanceType = DF_Euclid;
 	params.MinClustersCount = 2;
-	params.MaxClustersDistance = 5;
+	params.MaxClustersDistance = 10;
 
 	CHierarchicalClustering hierarchical( params );
-	hierarchical.Clusterize( data, result );
+	if( static_cast<int>( LINKAGE ) % 2 == 0 ) {
+		CArray<CHierarchicalClustering::CMergeInfo> dendrogram;
+		CArray<int> dendrogramIndices;
+		hierarchical.ClusterizeEx( data, result, dendrogram, dendrogramIndices );
+	} else {
+		hierarchical.Clusterize( data, result );
+	}
 }
 
 static void isoDataClustering( IClusteringData* data, CClusteringResult& result )
@@ -351,7 +359,7 @@ TEST_F( CClusteringTest, PrecalcFirstCome )
 	precalcTestImpl( firstComeClustering, expectedResult );
 }
 
-TEST_F( CClusteringTest, PrecalcHierarchical )
+TEST_F( CClusteringTest, PrecalcHierarchicalCentroid )
 {
 	CClusteringResult expectedResult;
 	expectedResult.ClusterCount = 2;
@@ -363,7 +371,7 @@ TEST_F( CClusteringTest, PrecalcHierarchical )
 	expectedResult.Clusters[1].Disp = buildFloatVector( { 0.212050, 0.282753, 0.268198 } );
 	expectedResult.Clusters[1].Norm = 1.273450;
 
-	precalcTestImpl( hierarchicalClustering, expectedResult );
+	precalcTestImpl( hierarchicalClustering<CHierarchicalClustering::L_Centroid>, expectedResult );
 }
 
 TEST_F( CClusteringTest, PrecalcIsoData )
@@ -412,6 +420,162 @@ TEST_F( CClusteringTest, PrecalcKmeans )
 	precalcTestImpl( kmeansElkanDefaultInitClustering, expectedResult );
 }
 
+// Returns data with a specific dendrogram (only Distances may vary)
+static void getDendrogramData( CPtr<IClusteringData>& denseData, CArray<CHierarchicalClustering::CMergeInfo>& dendrogram,
+	CArray<int>& dendrogramIndices )
+{
+	// Points on plane which can be easily divided into 2 clusters
+	// but greedy algorithms won't process it in correct order (and will sort their result afterwards)
+	const CArray<float> flattenedData = { 0.f, 0.f,
+		0.f, 1.f,
+		2.f, 0.f,
+		10.f, 10.f,
+		10.1f, 10.f,
+		10.f, 10.2f,
+		25.f, 25.f };
+	const int vectorCount = flattenedData.Size() / 2;
+	const int featureCount = 2;
+
+	CArray<CSparseFloatVector> vectors;
+	vectors.SetBufferSize( vectorCount );
+	for( int i = 0; i < vectorCount; ++i ) {
+		CSparseFloatVector& vector = vectors.Append();
+		vector.SetAt( 0, flattenedData[2 * i] );
+		vector.SetAt( 1, flattenedData[2 * i + 1] );
+	}
+
+	denseData = new CClusteringTestData( vectors, featureCount, true );
+	CFloatVector mean( 2 );
+
+	dendrogram.SetSize( 4 );
+	dendrogram[0].First = 3;
+	dendrogram[0].Second = 4;
+	mean.SetAt( 0, 10.05f );
+	mean.SetAt( 1, 10.f );
+	dendrogram[0].Center = CClusterCenter( mean );
+	dendrogram[0].Center.Weight = 2;
+
+	dendrogram[1].First = 5;
+	dendrogram[1].Second = 7;
+	mean.SetAt( 0, 30.1f / 3.f );
+	mean.SetAt( 1, 30.2f / 3.f );
+	dendrogram[1].Center = CClusterCenter( mean );
+	dendrogram[1].Center.Weight = 3;
+
+	dendrogram[2].First = 0;
+	dendrogram[2].Second = 1;
+	mean.SetAt( 0, 0.f );
+	mean.SetAt( 1, 0.5f );
+	dendrogram[2].Center = CClusterCenter( mean );
+	dendrogram[2].Center.Weight = 2;
+
+	dendrogram[3].First = 2;
+	dendrogram[3].Second = 9;
+	mean.SetAt( 0, 2.f / 3.f );
+	mean.SetAt( 1, 1.f / 3.f );
+	dendrogram[3].Center = CClusterCenter( mean );
+	dendrogram[3].Center.Weight = 3;
+
+	dendrogramIndices.Empty();
+	dendrogramIndices.Add( { 6, 8, 10 } );
+}
+
+template<CHierarchicalClustering::TLinkage LINKAGE>
+static void hierarchicalDendrogram( IClusteringData* data, CClusteringResult& result,
+	CArray<CHierarchicalClustering::CMergeInfo>& dendrogram, CArray<int>& dendrogramIndices )
+{
+	CHierarchicalClustering::CParam params;
+	params.Linkage = LINKAGE;
+	params.DistanceType = DF_Euclid;
+	params.MinClustersCount = 1; // The algo shouldn't merge last 2 clusters into 1 and should return true
+	params.MaxClustersDistance = 7;
+	CHierarchicalClustering clustering( params );
+
+	EXPECT_TRUE( clustering.ClusterizeEx( data, result, dendrogram, dendrogramIndices ) );
+}
+
+typedef void ( *THierarchicalClusteringFunction )( IClusteringData* data, CClusteringResult& result,
+	CArray<CHierarchicalClustering::CMergeInfo>& dendrogram, CArray<int>& dendrogramIndices );
+
+static inline bool compareVectors( const CFloatVector& first, const CFloatVector& second, float eps = 1e-5f )
+{
+	if( first.Size() != second.Size() ) {
+		return false;
+	}
+
+	for( int i = 0; i < first.Size(); ++i ) {
+		if( ::fabsf( first[i] - second[i] ) >= eps ) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+static inline bool compareCenters( const CClusterCenter& first, const CClusterCenter& second, float eps = 1e-5f )
+{
+	return compareVectors( first.Mean, second.Mean ) && compareVectors( first.Disp, second.Disp )
+		&& ::abs( first.Norm - second.Norm ) < eps && ::abs( first.Weight - second.Weight ) < eps;
+}
+
+TEST_F( CClusteringTest, HierarchicalDendrogram )
+{
+	CArray<THierarchicalClusteringFunction> functions = {
+		hierarchicalDendrogram<CHierarchicalClustering::L_Centroid>,
+		hierarchicalDendrogram<CHierarchicalClustering::L_Single>,
+		hierarchicalDendrogram<CHierarchicalClustering::L_Average>,
+		hierarchicalDendrogram<CHierarchicalClustering::L_Complete>,
+		hierarchicalDendrogram<CHierarchicalClustering::L_Ward>
+	};
+
+	for( int step = 0; step < functions.Size(); ++step ) {
+		CPtr<IClusteringData> data;
+		CArray<CHierarchicalClustering::CMergeInfo> expectedDendrogram;
+		CArray<int> expectedIndices;
+		getDendrogramData( data, expectedDendrogram, expectedIndices );
+
+		CClusteringResult result;
+		CArray<CHierarchicalClustering::CMergeInfo> actualDendrogram;
+		CArray<int> actualIndices;
+		functions[step]( data, result, actualDendrogram, actualIndices );
+
+		ASSERT_EQ( expectedDendrogram.Size(), actualDendrogram.Size() );
+		for( int i = 0; i < expectedDendrogram.Size(); ++i ) {
+			const CHierarchicalClustering::CMergeInfo& expected = expectedDendrogram[i];
+			const CHierarchicalClustering::CMergeInfo& actual = actualDendrogram[i];
+			ASSERT_GT( actual.Distance, 0.f );
+			ASSERT_TRUE( ( expected.First == actual.First && expected.Second == actual.Second )
+				|| ( expected.First == actual.Second && expected.Second == actual.First ) );
+			if( i < expectedDendrogram.Size() - 1 ) {
+				ASSERT_GT( actualDendrogram[i + 1].Distance, actual.Distance );
+			}
+			ASSERT_TRUE( compareCenters( expected.Center, actual.Center ) );
+		}
+
+		ASSERT_EQ( expectedIndices.Size(), actualIndices.Size() );
+		for( int i = 0; i < expectedIndices.Size(); ++i ) {
+			int resultPos = actualIndices.Find( expectedIndices[i] );
+			ASSERT_NE( NotFound, resultPos );
+			int index = expectedIndices[i];
+			if( index < data->GetVectorCount() ) {
+				// One of the original 1-element clusters
+				ASSERT_TRUE( compareVectors( result.Clusters[resultPos].Mean,
+					CFloatVector( data->GetFeaturesCount(), data->GetMatrix().GetRow( index ) ) ) );
+				ASSERT_NEAR( result.Clusters[resultPos].Weight, data->GetVectorWeight( index ), 1e-5 );
+			} else {
+				// One of the dendrogram roots
+				index -= data->GetVectorCount();
+				ASSERT_TRUE( compareCenters( result.Clusters[resultPos], actualDendrogram[index].Center ) );
+			}
+		}
+	}
+}
+
 INSTANTIATE_TEST_CASE_P( CClusteringTestInstantiation, CClusteringTest,
-	::testing::Values( firstComeClustering, hierarchicalClustering,
+	::testing::Values( firstComeClustering,
+		hierarchicalClustering<CHierarchicalClustering::L_Centroid>,
+		hierarchicalClustering<CHierarchicalClustering::L_Single>,
+		hierarchicalClustering<CHierarchicalClustering::L_Average>,
+		hierarchicalClustering<CHierarchicalClustering::L_Complete>,
+		hierarchicalClustering<CHierarchicalClustering::L_Ward>,
 		isoDataClustering, kmeansElkanClustering, kmeansLloydClustering ) );

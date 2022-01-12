@@ -94,24 +94,31 @@ class Hierarchical(PythonWrapper.Hierarchical) :
     First, it creates a cluster per element, the merges closest clusters on each step 
     until the final cluster is achieved.
 
-    :param distance: the distance function.
-    :type distance: str, {'euclid', 'machalanobis', 'cosine'}, default='euclid'
-
     :param max_cluster_distance: the maximum distance between two clusters that still may be merged.
-    :type max_cluster_distance: int
+    :type max_cluster_distance: float
 
     :param min_cluster_count: the minimum number of clusters in the result.
     :type min_cluster_count: int
+
+    :param distance: the distance function.
+    :type distance: str, {'euclid', 'machalanobis', 'cosine'}, default='euclid'
+
+    :param linkage: the approach used for distance calculation between clusters
+    :type linkage: str, {'centroid', 'single', 'average', 'complete', 'ward'}, default='centroid'
     """
 
-    def __init__(self, max_cluster_distance, min_cluster_count, distance='euclid'):
+    def __init__(self, max_cluster_distance, min_cluster_count, distance='euclid', linkage='centroid'):
 
         if distance != 'euclid' and distance != 'machalanobis' and distance != 'cosine':
             raise ValueError('The `distance` must be one of {`euclid`, `machalanobis`, `cosine`}.')
         if min_cluster_count <= 0:
             raise ValueError('The `min_cluster_count` must be > 0.')
+        if linkage not in {'centroid', 'single', 'average', 'complete', 'ward'}:
+            raise ValueError('The `linkage` must be one of {`centroid`, `single`, `average`, `complete`, `ward`}')
+        if linkage == 'ward' and distance != 'euclid':
+            raise ValueError('`ward` linkage works only with `euclid` distance')
 
-        super().__init__(distance, int(max_cluster_distance), int(min_cluster_count))
+        super().__init__(distance, float(max_cluster_distance), int(min_cluster_count), linkage)
 
     def clusterize(self, X, weight=None):
         """Performs clustering of the given data.

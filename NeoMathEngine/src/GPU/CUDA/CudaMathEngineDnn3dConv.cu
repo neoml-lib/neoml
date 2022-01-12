@@ -58,7 +58,7 @@ C3dConvolutionDesc* CCudaMathEngine::InitBlob3dConvolution( const CBlobDesc& inp
 }
 
 void CCudaMathEngine::Blob3dConvolution( const C3dConvolutionDesc& convDesc,
-	const CFloatHandle& source, const CFloatHandle& filter, const CFloatHandle* freeTerm,
+	const CConstFloatHandle& source, const CConstFloatHandle& filter, const CConstFloatHandle* freeTerm,
 	const CFloatHandle& result )
 {
 	SetCudaDevice( device->DeviceNumber );
@@ -95,34 +95,39 @@ void CCudaMathEngine::Blob3dConvolution( const C3dConvolutionDesc& convDesc,
 	// Build the temporary matrix
 	const int matrixHeight = tempMatrixHeight( desc );
 	const int matrixWidth = tempMatrixWidth( desc );
-	CFloatHandleStackVar tempMatrix( *this, matrixHeight * matrixWidth );
-	{
+	const int tempMatrixHeightBatchSize = getCudaTempMatrixMaxHeight( matrixHeight, matrixWidth );
+	CFloatHandleStackVar tempMatrix( *this, tempMatrixHeightBatchSize * matrixWidth );
+
+	int tempMatrixHeightIndex = 0;
+	while( tempMatrixHeightIndex < matrixHeight ) {
+		int curTempMatrixHeight = min( matrixHeight - tempMatrixHeightIndex, tempMatrixHeightBatchSize );
+
 		dim3 blockCount;
 		dim3 threadCount;
 		const int widthNorm = ( matrixWidth + BuildTempMatrixCombine - 1 ) / BuildTempMatrixCombine;
-		getCudaTaskGrid2D( blockCount, threadCount, matrixHeight, widthNorm );
-		BuildTempMatrixKernel<<<blockCount, threadCount>>>( desc, GetRaw( source ), matrixHeight,
-			matrixWidth, GetRaw( tempMatrix.GetHandle() ), widthNorm );
-	}
+		getCudaTaskGrid2D( blockCount, threadCount, curTempMatrixHeight, widthNorm );
+		BuildTempMatrixKernel<<<blockCount, threadCount>>>( desc, GetRaw( source ), curTempMatrixHeight,
+			matrixWidth, GetRaw( tempMatrix.GetHandle() ), widthNorm, tempMatrixHeightIndex );
 	
-	// Multiply the temporary matrix by the filter
-	if( freeTerm != 0 ) {
-		multiplyMatrixByTransposedMatrixAndAdd( tempMatrix,
-			desc.Source.ObjectCount() * desc.Result.Height() * desc.Result.Width() * desc.Result.Depth(),
-			desc.Filter.ObjectSize(), desc.Filter.ObjectSize(), filter,
-			desc.Filter.ObjectCount(), desc.Filter.ObjectSize(), result,
-			desc.Filter.ObjectCount() );
-	} else {
-		MultiplyMatrixByTransposedMatrix( tempMatrix,
-			desc.Source.ObjectCount() * desc.Result.Height() * desc.Result.Width() * desc.Result.Depth(),
-			desc.Filter.ObjectSize(), desc.Filter.ObjectSize(), filter,
-			desc.Filter.ObjectCount(), desc.Filter.ObjectSize(), result,
-			desc.Filter.ObjectCount(), desc.Result.BlobSize() );
+		// Multiply the temporary matrix by the filter
+		if( freeTerm != 0 ) {
+			multiplyMatrixByTransposedMatrixAndAdd( tempMatrix,
+				curTempMatrixHeight, desc.Filter.ObjectSize(), desc.Filter.ObjectSize(),
+				filter, desc.Filter.ObjectCount(), desc.Filter.ObjectSize(),
+				result + tempMatrixHeightIndex * desc.Filter.ObjectCount(), desc.Filter.ObjectCount() );
+		} else {
+			MultiplyMatrixByTransposedMatrix( tempMatrix,
+				curTempMatrixHeight, desc.Filter.ObjectSize(), desc.Filter.ObjectSize(),
+				filter, desc.Filter.ObjectCount(), desc.Filter.ObjectSize(),
+				result + tempMatrixHeightIndex * desc.Filter.ObjectCount(),
+				desc.Filter.ObjectCount(), desc.Result.BlobSize() );
+		}
+		tempMatrixHeightIndex += curTempMatrixHeight;
 	}
 }
 
-void CCudaMathEngine::Blob3dConvolutionBackward( const C3dConvolutionDesc& convDesc, const CFloatHandle& outputDiff,
-	const CFloatHandle& filter, const CFloatHandle* freeTerm, const CFloatHandle& inputDiff )
+void CCudaMathEngine::Blob3dConvolutionBackward( const C3dConvolutionDesc& convDesc, const CConstFloatHandle& outputDiff,
+	const CConstFloatHandle& filter, const CConstFloatHandle* freeTerm, const CFloatHandle& inputDiff )
 {
 	SetCudaDevice( device->DeviceNumber );
 	const CCuda3dConvolutionDescInternal& desc = static_cast<const CCuda3dConvolutionDesc&>( convDesc ).Internal;
@@ -160,28 +165,34 @@ void CCudaMathEngine::Blob3dConvolutionBackward( const C3dConvolutionDesc& convD
 	// Get the temporary matrix
 	const int matrixHeight = tempMatrixHeight( desc );
 	const int matrixWidth = tempMatrixWidth( desc );
-	CFloatHandleStackVar tempMatrix( *this, matrixHeight * matrixWidth );
-	MultiplyMatrixByMatrix( 1, outputDiff, desc.Result.BlobSize() / filterCount, filterCount,
-		filter, filterObjectSize, tempMatrix, tempMatrix.Size() );
+	const int tempMatrixHeightBatchSize = getCudaTempMatrixMaxHeight( matrixHeight, matrixWidth );
+	CFloatHandleStackVar tempMatrix( *this, tempMatrixHeightBatchSize * matrixWidth );
+
+	int tempMatrixHeightIndex = 0;
+	while( tempMatrixHeightIndex < matrixHeight ) {
+		int curTempMatrixHeight = min( matrixHeight - tempMatrixHeightIndex, tempMatrixHeightBatchSize );
+		MultiplyMatrixByMatrix( 1, outputDiff + tempMatrixHeightIndex * filterCount, desc.Result.BlobSize() / filterCount, filterCount,
+			filter, filterObjectSize, tempMatrix, tempMatrix.Size() );
 		
-	// Get the input gradients from the temporary matrix data
-	dim3 blockCount;
-	dim3 threadCount;
-	int widthNorm = ( matrixWidth + BuildInputFromTempMatrixCombine - 1 ) / BuildInputFromTempMatrixCombine;
-	getCudaTaskGrid2D( blockCount, threadCount, matrixHeight, widthNorm );
-	BuildInputFromTempMatrixKernel<<<blockCount, threadCount>>>( desc, GetRaw( tempMatrix.GetHandle() ),
-		matrixHeight, matrixWidth, GetRaw( inputDiff ), operation, widthNorm );
+		// Get the input gradients from the temporary matrix data
+		dim3 blockCount;
+		dim3 threadCount;
+		int widthNorm = ( matrixWidth + BuildInputFromTempMatrixCombine - 1 ) / BuildInputFromTempMatrixCombine;
+		getCudaTaskGrid2D( blockCount, threadCount, curTempMatrixHeight, widthNorm );
+		BuildInputFromTempMatrixKernel<<<blockCount, threadCount>>>( desc, GetRaw( tempMatrix.GetHandle() ),
+			curTempMatrixHeight, matrixWidth, GetRaw( inputDiff ), operation, widthNorm, tempMatrixHeightIndex );
+		tempMatrixHeightIndex += curTempMatrixHeight;
+	}
 }
 
 void CCudaMathEngine::Blob3dConvolutionLearnAdd( const C3dConvolutionDesc& convDesc,
-	const CFloatHandle& input, const CFloatHandle& outputDiff, const CFloatHandle& filterDiff,
+	const CConstFloatHandle& input, const CConstFloatHandle& outputDiff, const CFloatHandle& filterDiff,
 	const CFloatHandle* freeTermDiff, bool isFreeTermDiffFromInput )
 {
 	SetCudaDevice( device->DeviceNumber );
 	const CCuda3dConvolutionDescInternal& desc = static_cast<const CCuda3dConvolutionDesc&>( convDesc ).Internal;
 
 	if( freeTermDiff != 0 ) {
-		const CConstFloatHandle& freeTermSrc = isFreeTermDiffFromInput ? input : outputDiff;
 		// Get the free term gradient
 		if( !isFreeTermDiffFromInput ) {
 			SumMatrixRowsAdd( 1, *freeTermDiff, outputDiff, desc.Result.BlobSize() / desc.Filter.ObjectCount(),
@@ -195,20 +206,27 @@ void CCudaMathEngine::Blob3dConvolutionLearnAdd( const C3dConvolutionDesc& convD
 	// Build the temporary matrix
 	const int matrixHeight = tempMatrixHeight( desc );
 	const int matrixWidth = tempMatrixWidth( desc );
+	const int tempMatrixHeightBatchSize = getCudaTempMatrixMaxHeight( matrixHeight, matrixWidth );
+	CFloatHandleStackVar tempMatrix( *this, tempMatrixHeightBatchSize * matrixWidth );
 	const int filterCount = desc.Filter.ObjectCount();
-	CFloatHandleStackVar tempMatrix( *this, matrixHeight * matrixWidth );
-	{
+
+	int tempMatrixHeightIndex = 0;
+	while( tempMatrixHeightIndex < matrixHeight ) {
+		int curTempMatrixHeight = min( matrixHeight - tempMatrixHeightIndex, tempMatrixHeightBatchSize );
+
 		dim3 blockCount;
 		dim3 threadCount;
 		const int widthNorm = ( matrixWidth + BuildTempMatrixCombine - 1 ) / BuildTempMatrixCombine;
-		getCudaTaskGrid2D( blockCount, threadCount, matrixHeight, widthNorm );
-		BuildTempMatrixKernel<<<blockCount, threadCount>>>( desc, GetRaw( input ), matrixHeight,
-			matrixWidth, GetRaw( tempMatrix.GetHandle() ), widthNorm );
-	}
+		getCudaTaskGrid2D( blockCount, threadCount, curTempMatrixHeight, widthNorm );
+		BuildTempMatrixKernel<<<blockCount, threadCount>>>( desc, GetRaw( input ), curTempMatrixHeight,
+			matrixWidth, GetRaw( tempMatrix.GetHandle() ), widthNorm, tempMatrixHeightIndex );
 	
-	// Get the filter gradients by multiplying the temporary matrix and the output gradients
-	MultiplyTransposedMatrixByMatrixAndAdd( outputDiff, matrixHeight, filterCount, filterCount,
-		tempMatrix, matrixWidth, matrixWidth, filterDiff, matrixWidth, desc.Filter.BlobSize() );
+		// Get the filter gradients by multiplying the temporary matrix and the output gradients
+		MultiplyTransposedMatrixByMatrixAndAdd( outputDiff + tempMatrixHeightIndex * filterCount, curTempMatrixHeight,
+			filterCount, filterCount, tempMatrix, matrixWidth, matrixWidth, filterDiff, matrixWidth, desc.Filter.BlobSize() );
+
+		tempMatrixHeightIndex += curTempMatrixHeight;
+	}
 }
 
 } // namespace NeoML
