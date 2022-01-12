@@ -31,6 +31,7 @@ public:
         : CDistributedTraining( archive, cudaDevs ) {};
     void Learn( const py::object& data );
     py::array LastLosses( const std::string& layer );
+    void Save( const std::string& path );
 };
 
 void InitializeDistributedTraining(py::module& m);

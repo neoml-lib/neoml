@@ -68,3 +68,11 @@ class DnnDistributed(PythonWrapper.DnnDistributed):
         :type layer_name: str
         """
         return self._last_losses(layer_name)
+
+    def save(self, path):
+        """Serializes the trained network.
+
+        :param path: The full path to the location where the network should be stored.
+        :type path: str
+        """
+        return self._save(path)
