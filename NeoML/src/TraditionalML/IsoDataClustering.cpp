@@ -37,9 +37,7 @@ CIsoDataClustering::CIsoDataClustering( const CParam& _params ) :
 	history.SetBufferSize( params.MaxIterations );
 }
 
-CIsoDataClustering::~CIsoDataClustering()
-{
-}
+CIsoDataClustering::~CIsoDataClustering() = default;
 
 bool CIsoDataClustering::Clusterize( IClusteringData* input, CClusteringResult& result )
 {

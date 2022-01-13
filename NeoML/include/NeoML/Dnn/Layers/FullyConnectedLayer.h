@@ -57,7 +57,7 @@ public:
 	void SetZeroFreeTerm(bool _isZeroFreeTerm);
 
 protected:
-	virtual ~CFullyConnectedLayer();
+	~CFullyConnectedLayer() override;
 
 	void Reshape() override;
 	void RunOnce() override;

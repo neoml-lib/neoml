@@ -41,7 +41,7 @@ public:
 	void SetFilterData( const CPtr<CDnnBlob>& newFilter ) override;
 
 protected:
-	virtual ~CChannelwiseConvLayer() { destroyConvDesc(); }
+	~CChannelwiseConvLayer() override { destroyConvDesc(); }
 
 	void Reshape() override;
 	void RunOnce() override;
