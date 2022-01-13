@@ -173,7 +173,7 @@ public:
 	// The method is overloaded for the composite layer and the backward link layer
 	virtual void RestartSequence() {} 
 
-	virtual void Serialize(CArchive& archive);
+	void Serialize(CArchive& archive) override;
 
 	// Indicates that backpropagation should be performed for the layer 
 	// even if there are no trainable layers before it
@@ -390,7 +390,7 @@ private:
 // CDnnLayerGraph is the base class for a layer graph
 class NEOML_API CDnnLayerGraph {
 public:
-	virtual ~CDnnLayerGraph() {}
+	virtual ~CDnnLayerGraph() = default;
 
 	// Accessing the layers
 	virtual int GetLayerCount() const = 0;
@@ -447,7 +447,7 @@ NEOML_API IMathEngine* GetRecommendedGpuMathEngine( size_t memoryLimit );
 class NEOML_API CDnn : public CDnnLayerGraph {
 public:
 	CDnn( CRandom& random, IMathEngine& mathEngine );
-	~CDnn();
+	~CDnn() override;
 
 	// Sets a text stream for logging processing
 	// By default logging is off (set to null to turn off)

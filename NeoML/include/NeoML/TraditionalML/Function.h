@@ -25,7 +25,7 @@ namespace NeoML {
 // Used for optimization problems and error functions
 class CFunction {
 public:
-	virtual ~CFunction() {}
+	virtual ~CFunction() = default;
 
 	// The problem dimensions
 	virtual int NumberOfDimensions() const = 0;
@@ -63,14 +63,14 @@ public:
 class NEOML_API CSquaredHinge : public CFunctionWithHessian {
 public:
 	CSquaredHinge( const IProblem& data, double errorWeight, float l1Coeff, int threadCount );
-	virtual ~CSquaredHinge() {}
+	~CSquaredHinge() override = default;
 
 	// The CFunctionWithHessian class methods:
-	virtual int NumberOfDimensions() const { return matrix.Width + 1; }
-	virtual void SetArgument( const CFloatVector& w );
-	virtual double Value() { return value;}
-	virtual CFloatVector Gradient() { return gradient; }
-	virtual CFloatVector HessianProduct( const CFloatVector& s );
+	int NumberOfDimensions() const override { return matrix.Width + 1; }
+	void SetArgument( const CFloatVector& w ) override;
+	double Value() override { return value;}
+	CFloatVector Gradient() override { return gradient; }
+	CFloatVector HessianProduct( const CFloatVector& s ) override;
 
 protected:
 	const CFloatMatrixDesc matrix;
@@ -91,14 +91,14 @@ protected:
 class NEOML_API CL2Regression : public CFunctionWithHessian {
 public:
 	CL2Regression( const IRegressionProblem& data, double errorWeight, double p, float l1Coeff, int threadCount );
-	virtual ~CL2Regression() {}
+	~CL2Regression() override = default;
 
 	// The CFunctionWithHessian class methods:
-	virtual int NumberOfDimensions() const { return matrix.Width + 1; }
-	virtual void SetArgument(const CFloatVector& w);
-	virtual double Value() { return value; }
-	virtual CFloatVector Gradient() { return gradient; }
-	virtual CFloatVector HessianProduct(const CFloatVector& s);
+	int NumberOfDimensions() const override { return matrix.Width + 1; }
+	void SetArgument(const CFloatVector& w) override;
+	double Value() override { return value; }
+	CFloatVector Gradient() override { return gradient; }
+	CFloatVector HessianProduct(const CFloatVector& s) override;
 
 protected:
 	const CFloatMatrixDesc matrix;
@@ -120,14 +120,14 @@ protected:
 class NEOML_API CLogRegression: public CFunctionWithHessian {
 public:
 	CLogRegression( const IProblem& _data, double errorWeight, float l1Coeff, int threadCount );
-	virtual ~CLogRegression() {}
+	~CLogRegression() override = default;
 
 	// The CFunctionWithHessian class methods:
-	virtual int NumberOfDimensions() const { return matrix.Width + 1; }
-	virtual void SetArgument( const CFloatVector& w );
-	virtual double Value() { return value; }
-	virtual CFloatVector Gradient() { return gradient; }
-	virtual CFloatVector HessianProduct( const CFloatVector& s );
+	int NumberOfDimensions() const override { return matrix.Width + 1; }
+	void SetArgument( const CFloatVector& w ) override;
+	double Value() override { return value; }
+	CFloatVector Gradient() override { return gradient; }
+	CFloatVector HessianProduct( const CFloatVector& s ) override;
 
 protected:
 	const CFloatMatrixDesc matrix;
@@ -148,14 +148,14 @@ protected:
 class NEOML_API CSmoothedHinge : public CFunctionWithHessian {
 public:
 	CSmoothedHinge( const IProblem& data, double errorWeight, float l1Coeff, int threadCount );
-	virtual ~CSmoothedHinge() {}
+	~CSmoothedHinge() override = default;
 
 	// The CFunctionWithHessian class methods:
-	virtual int NumberOfDimensions() const { return matrix.Width + 1; }
-	virtual void SetArgument( const CFloatVector& w );
-	virtual double Value() { return value; }
-	virtual CFloatVector Gradient() { return gradient; }
-	virtual CFloatVector HessianProduct( const CFloatVector& s );
+	int NumberOfDimensions() const override { return matrix.Width + 1; }
+	void SetArgument( const CFloatVector& w ) override;
+	double Value() override { return value; }
+	CFloatVector Gradient() override { return gradient; }
+	CFloatVector HessianProduct( const CFloatVector& s ) override;
 
 protected:
 	const CFloatMatrixDesc matrix;

@@ -20,6 +20,7 @@ namespace NeoML {
 
 void CDistributedTraining::initialize( CArchive& archive, int count )
 {
+    NeoAssert( archive.IsLoading() );
     for( int i = 0; i < count; i++ ){
         rands.Add( new CRandom( 42 ) );
         cnns.Add( new CDnn( *rands[i], *mathEngines[i] ) );
@@ -95,6 +96,12 @@ void CDistributedTraining::GetLastLoss( const CString& layerName, CArray<float>&
             losses[i] = lossLayer->GetLastLoss();
         }
     }
+}
+
+void CDistributedTraining::Serialize( CArchive& archive )
+{
+    NeoAssert( archive.IsStoring() );
+    archive.Serialize( *cnns[0] );
 }
 
 } // namespace NeoML

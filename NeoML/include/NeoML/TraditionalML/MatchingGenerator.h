@@ -28,11 +28,11 @@ namespace NeoML {
 template<int BlockSize>
 class CGeneratorAllocator : public IMemoryManager {
 public:
-	virtual void* Alloc( size_t ) { return allocator.Alloc(); }
-	virtual void Free( void* ptr ) { allocator.Free( ptr ); }
+	void* Alloc( size_t ) override { return allocator.Alloc(); }
+	void Free( void* ptr ) override { allocator.Free( ptr ); }
 
 #ifdef _DEBUG
-	virtual void* Alloc( size_t, const char*, int ) { return allocator.Alloc(); }
+	void* Alloc( size_t, const char*, int ) override { return allocator.Alloc(); }
 #endif
 
 	// Sets the tentative number of blocks to be allocated

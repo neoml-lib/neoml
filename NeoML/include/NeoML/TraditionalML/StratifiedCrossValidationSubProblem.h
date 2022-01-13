@@ -42,7 +42,7 @@ public:
 
 protected:
 	// delete prohibited
-	virtual ~CStratifiedCrossValidationSubProblem() {}
+	~CStratifiedCrossValidationSubProblem() override = default;
 
 private:
 	const CPtr<const IProblem> problem; // the original data
