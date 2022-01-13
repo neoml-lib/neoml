@@ -123,7 +123,7 @@ public:
 	void Serialize( CArchive& archive ) override;
 
 protected:
-	virtual ~CConvLayer();
+	~CConvLayer() override;
 
 	void Reshape() override;
 	void RunOnce() override;
@@ -164,7 +164,7 @@ public:
 	void SetNonStrokeValue(float _nonStrokeValue) { nonStrokeValue = _nonStrokeValue; }
 
 protected:
-	virtual ~CRleConvLayer();
+	~CRleConvLayer() override;
 
 	void Reshape() override;
 	void RunOnce() override;

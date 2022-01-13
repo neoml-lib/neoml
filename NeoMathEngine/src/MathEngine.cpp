@@ -46,27 +46,27 @@ limitations under the License.
 namespace NeoML {
 
 // Interface destructors
-IVectorMathEngine::~IVectorMathEngine() {}
-IBlasEngine::~IBlasEngine() {}
-IDnnEngine::~IDnnEngine() {}
-IMathEngine::~IMathEngine() {}
-IMathEngineExceptionHandler::~IMathEngineExceptionHandler() {}
-IGpuMathEngineManager::~IGpuMathEngineManager() {}
+IVectorMathEngine::~IVectorMathEngine() = default;
+IBlasEngine::~IBlasEngine() = default;
+IDnnEngine::~IDnnEngine() = default;
+IMathEngine::~IMathEngine() = default;
+IMathEngineExceptionHandler::~IMathEngineExceptionHandler() = default;
+IGpuMathEngineManager::~IGpuMathEngineManager() = default;
 
-CTimeConvolutionDesc::~CTimeConvolutionDesc() {}
-C3dConvolutionDesc::~C3dConvolutionDesc() {}
-CConvolutionDesc::~CConvolutionDesc() {}
-CChannelwiseConvolutionDesc::~CChannelwiseConvolutionDesc() {}
-CRleConvolutionDesc::~CRleConvolutionDesc() {}
-CDropoutDesc::~CDropoutDesc() {}
-CGlobalMaxPoolingDesc::~CGlobalMaxPoolingDesc() {}
-CMaxPoolingDesc::~CMaxPoolingDesc() {}
-CMeanPoolingDesc::~CMeanPoolingDesc() {}
-C3dMaxPoolingDesc::~C3dMaxPoolingDesc() {}
-C3dMeanPoolingDesc::~C3dMeanPoolingDesc() {}
-CGlobalMaxOverTimePoolingDesc::~CGlobalMaxOverTimePoolingDesc() {}
-CMaxOverTimePoolingDesc::~CMaxOverTimePoolingDesc() {}
-CLrnDesc::~CLrnDesc() {}
+CTimeConvolutionDesc::~CTimeConvolutionDesc() = default;
+C3dConvolutionDesc::~C3dConvolutionDesc() = default;
+CConvolutionDesc::~CConvolutionDesc() = default;
+CChannelwiseConvolutionDesc::~CChannelwiseConvolutionDesc() = default;
+CRleConvolutionDesc::~CRleConvolutionDesc() = default;
+CDropoutDesc::~CDropoutDesc() = default;
+CGlobalMaxPoolingDesc::~CGlobalMaxPoolingDesc() = default;
+CMaxPoolingDesc::~CMaxPoolingDesc() = default;
+CMeanPoolingDesc::~CMeanPoolingDesc() = default;
+C3dMaxPoolingDesc::~C3dMaxPoolingDesc() = default;
+C3dMeanPoolingDesc::~C3dMeanPoolingDesc() = default;
+CGlobalMaxOverTimePoolingDesc::~CGlobalMaxOverTimePoolingDesc() = default;
+CMaxOverTimePoolingDesc::~CMaxOverTimePoolingDesc() = default;
+CLrnDesc::~CLrnDesc() = default;
 
 // GPU manager implementation
 class CGpuMathEngineManager : public IGpuMathEngineManager {

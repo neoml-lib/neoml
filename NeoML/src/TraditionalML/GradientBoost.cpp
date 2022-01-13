@@ -31,17 +31,11 @@ namespace NeoML {
 
 const double MaxExpArgument = 30; // the maximum argument for an exponent
 
-IGradientBoostModel::~IGradientBoostModel()
-{
-}
+IGradientBoostModel::~IGradientBoostModel() = default;
 
-IGradientBoostRegressionModel::~IGradientBoostRegressionModel()
-{
-}
+IGradientBoostRegressionModel::~IGradientBoostRegressionModel() = default;
 
-IRegressionTreeNode::~IRegressionTreeNode()
-{
-}
+IRegressionTreeNode::~IRegressionTreeNode() = default;
 
 // Loss function interface
 class IGradientBoostingLossFunction : public virtual IObject {
@@ -316,9 +310,7 @@ CGradientBoost::CGradientBoost( const CParams& _params ) :
 	NeoAssert( params.MinSubsetWeight >= 0 );
 }
 
-CGradientBoost::~CGradientBoost()
-{
-}
+CGradientBoost::~CGradientBoost() = default;
 
 CPtr<IMultivariateRegressionModel> CGradientBoost::TrainRegression(
 	const IMultivariateRegressionProblem& problem )
