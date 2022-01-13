@@ -18,6 +18,10 @@ macro(set_global_variables)
         set(NEOML_USE_AVX TRUE)
     endif()
 
+    if(NOT MSVC AND USE_FINE_OBJECTS)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-strict-aliasing")
+    endif()
+
     # Cmake default variables
     set(CMAKE_POSITION_INDEPENDENT_CODE ON)
     
