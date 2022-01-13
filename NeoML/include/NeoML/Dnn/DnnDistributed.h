@@ -34,6 +34,8 @@ public:
 	// Returns last loss of `layerName` for all models
 	// `layerName` should correspond to CLossLayer or CCtcLossLayer
 	void GetLastLoss( const CString& layerName, CArray<float>& losses );
+	// Save trained net
+	void Serialize( CArchive& archive );
 	~CDistributedTraining();
 private:
 	CArray<IMathEngine*> mathEngines;

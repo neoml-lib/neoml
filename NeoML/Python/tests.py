@@ -2578,3 +2578,9 @@ class DnnDistributedTestCase(TestCase):
         distributed = neoml.Dnn.DnnDistributed(dnn, 'cpu', 4)
         distributed.learn(set_data)
         self.assertEqual(distributed.last_losses("loss").shape, (4,))
+        path = 'distributed'
+        distributed.save(path)
+        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        dnn_loaded = neoml.Dnn.Dnn(math_engine)
+        dnn_loaded.load(path)
+        self.assertEqual(len(dnn_loaded.layers), 4)
