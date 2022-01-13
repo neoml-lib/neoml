@@ -89,7 +89,7 @@ double CGradientBoostingBinomialLossFunction::CalcLossMean( const CArray< CArray
 	for( int i = 0; i < predicts.Size(); ++i ) {
 		double sum = 0;
 		for( int j = 0; j < predicts[i].Size(); ++j ) {
-			sum += log( 1 + exp( min( -predicts[i][j], MaxExpArgument ) ) ) - predicts[i][j] * answers[i][j]; 
+			sum += log1p( exp( min( -predicts[i][j], MaxExpArgument ) ) ) - predicts[i][j] * answers[i][j]; 
 		}
 		overallSum += getMean( sum, predicts[i].Size() );
 	}

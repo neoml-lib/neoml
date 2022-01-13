@@ -26,7 +26,7 @@ struct CClusterStatistics {
 	CArray<double> SumSquare;
 	double SumWeight;
 
-	CClusterStatistics( int featuresCount );
+	explicit CClusterStatistics( int featuresCount );
 
 	void AddVector( const CFloatVectorDesc& vector, double weight );
 	void GetVariance( CArray<double>& variance );

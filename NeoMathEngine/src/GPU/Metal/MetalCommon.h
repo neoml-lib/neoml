@@ -23,9 +23,9 @@ using namespace metal;
 inline float LogSumExpFunc( float f, float s )
 {
     if( f >= s ) {
-        return f + log( 1 + exp( s - f ) );
+        return f + log1p( exp( s - f ) );
     }
-    return s + log( 1 + exp( f - s ) );
+    return s + log1p( exp( f - s ) );
 }
 
 inline float ExponentFunc(float f)

@@ -67,7 +67,7 @@ CrtAllocator(const CrtAllocator<_Ty>&) noexcept
 }
 
 template<class _Other>
-CrtAllocator(const CrtAllocator<_Other>&) noexcept
+explicit CrtAllocator(const CrtAllocator<_Other>&) noexcept
 {	// construct from a related allocator (do nothing)
 }
 
