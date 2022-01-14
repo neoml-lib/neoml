@@ -519,11 +519,12 @@ public:
 	void BertConvBackward( const CConstFloatHandle& dataHandle, const CConstFloatHandle& kernelHandle,
 		const CConstFloatHandle& outDiffHandle, int seqLen, int batchSize, int numHeads, int headSize, int kernelSize,
 		const CFloatHandle& dataDiffHandle, const CFloatHandle& kernelDiffHandle ) override;
-	CLstmDesc* InitLstm( const CFloatHandle& inputWeights, const CFloatHandle* inputFreeTerm,
-		const CFloatHandle& recurrentWeights, const CFloatHandle* recurrentFreeTerm,
-		const CFloatHandle& inputFullyConnectedResult, const CFloatHandle& reccurentFullyConnectedResult,
+	CLstmDesc* InitLstm( const CFloatHandle& inputFullyConnectedResult, const CFloatHandle& reccurentFullyConnectedResult,
 		int hiddenSize, int objectCount, int objectSize ) override;
-	void Lstm( CLstmDesc& desc, const CConstFloatHandle& inputStateBackLink, const CConstFloatHandle& inputMainBackLink, const CConstFloatHandle& input,
+	void Lstm( CLstmDesc& desc, 
+		const CFloatHandle& inputWeights, const CFloatHandle* inputFreeTerm,
+		const CFloatHandle& recurrentWeights, const CFloatHandle* recurrentFreeTerm, 
+		const CConstFloatHandle& inputStateBackLink, const CConstFloatHandle& inputMainBackLink, const CConstFloatHandle& input,
 		const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink ) override;
 	void CalcTanh( const CConstFloatHandle& src, const CFloatHandle& dst, int dataSize ) override;
 	void CalcSigmoid( const CConstFloatHandle& src, const CFloatHandle& dst, int dataSize ) override;

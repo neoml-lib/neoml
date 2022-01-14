@@ -67,6 +67,8 @@ public:
 	void SetCompatibilityMode( bool compatibilityMode );
 
 	void RunOnce() override;
+	void Reshape() override;
+
 private:
 	// The gate numbers for the hidden layer output
 	enum TGateOut {
@@ -76,6 +78,33 @@ private:
 		G_Reset,	// Reset gate
 
 		G_Count
+	};
+
+	class CFastLstmDesc {
+	public:
+		CFastLstmDesc() : lstmDesc( nullptr ), isInitialized( false ) {}
+		~CFastLstmDesc() { clearPointers(); }
+
+		void Reset() { isInitialized = false; }
+		void Init( CLstmLayer* lstmLayer );
+
+		CPtr<CDnnBlob>& StateBacklinkBlob() { return stateBacklinkBlob; }
+		CPtr<CDnnBlob>& InputFullyConnectedResult() { return inputFullyConnectedResult; }
+		CPtr<CDnnBlob>& ReccurentFullyConnectedResult() { return reccurentFullyConnectedResult; }
+		CLstmDesc& LstmDesc() { return *lstmDesc; }
+	private:
+		CPtr<CDnnBlob> stateBacklinkBlob;
+		CPtr<CDnnBlob> inputFullyConnectedResult;
+		CPtr<CDnnBlob> reccurentFullyConnectedResult;
+		CLstmDesc* lstmDesc;
+		bool isInitialized;
+
+		void clearPointers() {
+			if( lstmDesc ) {
+				delete lstmDesc;
+				lstmDesc = nullptr;
+			}
+		}
 	};
 
 	CPtr<CFullyConnectedLayer> inputHiddenLayer;
@@ -93,11 +122,13 @@ private:
 	TActivationFunction recurrentActivation;
 	bool isInCompatibilityMode;
 
+	CFastLstmDesc fastLstmDesc;
+
 	void buildLayer(float dropout);
 	void setWeightsData(const CPtr<CDnnBlob>& newWeights);
 
 	void fastLstm();
-	void dropoutRunOnce( const CPtr<CDnnBlob>& src, CPtr<CDnnBlob>& dst );
+	void initRecurentBlob( CPtr<CDnnBlob>& backlinkBlob, int num );
 };
 
 NEOML_API CLayerWrapper<CLstmLayer> Lstm(
