@@ -109,8 +109,7 @@ void CFastLstmLayer::RunOnce()
 	}
 
 	if( lstmDesc == nullptr ) {
-		lstmDesc = MathEngine().InitLstm( inputWeights()->GetData(), inputFreeTerm().Ptr() ? &( inputFreeTerm()->GetData() ) : nullptr,
-			recurrentWeights()->GetData(), recurrentFreeTerm().Ptr() ? &( recurrentFreeTerm()->GetData() ) : nullptr,
+		lstmDesc = MathEngine().InitLstm(
 			inputFullyConnectedResult->GetData(), reccurentFullyConnectedResult->GetData(),
 			hiddenSize, inputDescs[0].BatchWidth(), inputDescs[0].ObjectSize() );
 	}
@@ -167,12 +166,20 @@ void CFastLstmLayer::RunOnce()
 		}
 		mainBacklinkOutput->SetParentPos( outputPos );
 
-		MathEngine().Lstm( *lstmDesc, stateBacklinkInput->GetData(), tempMainBackLink->GetData(),
+		MathEngine().Lstm( *lstmDesc, 
+			inputWeights()->GetData(), inputFreeTerm().Ptr() ? &( inputFreeTerm()->GetData() ) : nullptr,
+			recurrentWeights()->GetData(), recurrentFreeTerm().Ptr() ? &( recurrentFreeTerm()->GetData() ) : nullptr, 
+			stateBacklinkInput->GetData(), tempMainBackLink->GetData(),
 			tempInput->GetData(), stateBacklinkOutput->GetData(), mainBacklinkOutput->GetData() );
 	}
 }
 
 void CFastLstmLayer::BackwardOnce()
+{
+	// FIXME:
+}
+
+void CFastLstmLayer::LearnOnce()
 {
 	// FIXME:
 }
