@@ -22,12 +22,8 @@ limitations under the License.
 namespace NeoML {
 
 struct CMathEngineLstmDesc : public CLstmDesc {
-	CMathEngineLstmDesc( const CFloatHandle& _inputWeights, const CFloatHandle* _inputFreeTerm,
-		const CFloatHandle& _recurrentWeights, const CFloatHandle* _recurrentFreeTerm,
-		const CFloatHandle& _inputFullyConnectedResult, const CFloatHandle& _reccurentFullyConnectedResult,
+	CMathEngineLstmDesc( const CFloatHandle& _inputFullyConnectedResult, const CFloatHandle& _reccurentFullyConnectedResult,
 		int _hiddenSize, int _objectCount, int _objectSize, IMathEngine* _mathEngine, int _threadCount ) :
-		inputWeights( _inputWeights ), inputFreeTerm( _inputFreeTerm ),
-		recurrentWeights( _recurrentWeights ), recurrentFreeTerm( _recurrentFreeTerm ),
 		inputFullyConnectedResult( _inputFullyConnectedResult ), reccurentFullyConnectedResult( _reccurentFullyConnectedResult ),
 		hiddenSize( _hiddenSize ), objectCount( _objectCount ), objectSize( _objectSize ),
 		mathEngine( _mathEngine ), threadCount( _threadCount )
@@ -35,12 +31,8 @@ struct CMathEngineLstmDesc : public CLstmDesc {
 
 	static int constexpr GatesNum = 4;
 
-	const CFloatHandle& inputWeights;
-	const CFloatHandle* inputFreeTerm;
-	const CFloatHandle& recurrentWeights;
-	const CFloatHandle* recurrentFreeTerm;
-	const CFloatHandle& inputFullyConnectedResult;
-	const CFloatHandle& reccurentFullyConnectedResult;
+	const CFloatHandle inputFullyConnectedResult;
+	const CFloatHandle reccurentFullyConnectedResult;
 	int hiddenSize; 
 	int objectCount;
 	int objectSize;

@@ -24,18 +24,17 @@ limitations under the License.
 
 namespace NeoML {
 
-CLstmDesc* CCpuMathEngine::InitLstm( const CFloatHandle& inputWeights, const CFloatHandle* inputFreeTerm,
-	const CFloatHandle& recurrentWeights, const CFloatHandle* recurrentFreeTerm,
-	const CFloatHandle& inputFullyConnectedResult, const CFloatHandle& reccurentFullyConnectedResult,
+CLstmDesc* CCpuMathEngine::InitLstm( const CFloatHandle& inputFullyConnectedResult, const CFloatHandle& reccurentFullyConnectedResult,
 	int hiddenSize, int objectCount, int objectSize )
 {
-	return new CMathEngineLstmDesc( inputWeights, inputFreeTerm,
-		recurrentWeights, recurrentFreeTerm,
-		inputFullyConnectedResult, reccurentFullyConnectedResult,
+	return new CMathEngineLstmDesc( inputFullyConnectedResult, reccurentFullyConnectedResult,
 		hiddenSize, objectCount, objectSize, this, threadCount );
 }
 
-void CCpuMathEngine::Lstm( CLstmDesc& desc, const CConstFloatHandle& inputStateBackLink, const CConstFloatHandle& inputMainBackLink, const CConstFloatHandle& input,
+void CCpuMathEngine::Lstm( CLstmDesc& desc, 
+	const CFloatHandle& inputWeights, const CFloatHandle* inputFreeTerm,
+	const CFloatHandle& recurrentWeights, const CFloatHandle* recurrentFreeTerm, 
+	const CConstFloatHandle& inputStateBackLink, const CConstFloatHandle& inputMainBackLink, const CConstFloatHandle& input,
 	const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink )
 {
 	CMathEngineLstmDesc& lstmDesc = dynamic_cast< CMathEngineLstmDesc& >( desc );
@@ -54,15 +53,14 @@ void CCpuMathEngine::Lstm( CLstmDesc& desc, const CConstFloatHandle& inputStateB
 	};
 
 	//-----------------------------------------------------------------------------------------------------------------
-
 	// Apply fully connected layers
 	fullyConnectedRunOnce( input, lstmDesc.objectCount, lstmDesc.objectSize,
-		lstmDesc.inputWeights, lstmDesc.objectSize, CMathEngineLstmDesc::GatesNum * lstmDesc.hiddenSize,
-		lstmDesc.inputFullyConnectedResult, lstmDesc.inputFreeTerm );
+		inputWeights, lstmDesc.objectSize, CMathEngineLstmDesc::GatesNum * lstmDesc.hiddenSize,
+		lstmDesc.inputFullyConnectedResult, inputFreeTerm );
 
 	fullyConnectedRunOnce( inputMainBackLink, lstmDesc.objectCount, lstmDesc.hiddenSize,
-		lstmDesc.recurrentWeights, lstmDesc.hiddenSize, CMathEngineLstmDesc::GatesNum * lstmDesc.hiddenSize,
-		lstmDesc.reccurentFullyConnectedResult, lstmDesc.recurrentFreeTerm );
+		recurrentWeights, lstmDesc.hiddenSize, CMathEngineLstmDesc::GatesNum * lstmDesc.hiddenSize,
+		lstmDesc.reccurentFullyConnectedResult, recurrentFreeTerm );
 
 	if( simdMathEngine != nullptr ) {
 		simdMathEngine->RunOnceRestOfLstm( &lstmDesc, inputStateBackLink, outputStateBackLink, outputMainBackLink );
