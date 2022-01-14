@@ -370,7 +370,7 @@ if(WIN32)
     target_sources(${PROJECT_NAME} PRIVATE ../NeoML.rc)
 endif()
 
-target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_11)
+target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_14)
 
 add_subdirectory(../../NeoMathEngine ${CMAKE_BINARY_DIR}/NeoMathEngine)
 
