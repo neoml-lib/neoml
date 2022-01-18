@@ -35,7 +35,7 @@ Xbyak::Address CJitCommon::Prologue( const reg64Vec_t& preservedGPR,
     push( rbp );
     mov( rbp, rsp );
  
-    sub( rsp, preservedYmm.size() * SizeOfYmm );
+    sub( rsp, static_cast<uint32_t>( preservedYmm.size() * SizeOfYmm ) );
     for( int i = 0; i < preservedYmm.size(); i++ ) {
         vmovdqu( ptr[rsp + i * SizeOfYmm], preservedYmm[i] );
     }
@@ -44,18 +44,19 @@ Xbyak::Address CJitCommon::Prologue( const reg64Vec_t& preservedGPR,
         push( preservedGPR[i] );
     }
 
-    return ptr[rsp + ShadowSpace + 2 * SizeofReg64 + preservedGPR.size() * SizeofReg64 + preservedYmm.size() * SizeOfYmm];
+    return ptr[rsp + ShadowSpace + static_cast< uint32_t >( 
+        2 * SizeofReg64 + preservedGPR.size() * SizeofReg64 + preservedYmm.size() * SizeOfYmm )];
 }
 
 void CJitCommon::Epilogue( const reg64Vec_t& preservedGPR,
     const ymmVec_t& preservedYmm )
 {
-    for( int i = preservedGPR.size() - 1; i >= 0; i-- ) {
+    for( int i = static_cast<int>( preservedGPR.size() - 1 ); i >= 0; i-- ) {
         pop( preservedGPR[i] );
     }
 
-    for( int i = 0; i < preservedYmm.size(); i++ ) {
-        vmovdqu( preservedYmm[i], ptr[rsp + i * SizeOfYmm] );
+    for( int i = 0; i < static_cast< int >( preservedYmm.size() ); i++ ) {
+        vmovdqu( preservedYmm[i], ptr[rsp + static_cast< uint32_t >( i * SizeOfYmm )] );
     }
 
     leave();
