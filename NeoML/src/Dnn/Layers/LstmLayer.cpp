@@ -426,6 +426,7 @@ void CLstmLayer::fastLstm()
 			stateBacklinkOutput->SetParentPos( outputPos );
 		}
 		mainBacklinkOutput->SetParentPos( outputPos );
+
 		CConstFloatHandle inputFreeTermHandle, recurrentFreeTermHandle;
 		if( inputFreeTerm.Ptr() ) {
 			inputFreeTermHandle = inputFreeTerm->GetData();

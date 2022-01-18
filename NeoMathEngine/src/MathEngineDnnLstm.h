@@ -84,10 +84,10 @@ void CMathEngineLstmDesc::RunOnceRestOfLstm( const CConstFloatHandle& inputState
 			}
 
 			// Apply activations
-			mathEngine->CalcTanh( inputTanhData, inputTanhData, CurDataSize, false );
-			mathEngine->CalcSigmoid( forgetData, forgetData, CurDataSize, false );
-			mathEngine->CalcSigmoid( inputData, inputData, CurDataSize, false );
-			mathEngine->CalcSigmoid( outputData, outputData, CurDataSize, false );
+			mathEngine->VectorTanh( inputTanhData, inputTanhData, CurDataSize );
+			mathEngine->VectorSigmoid( forgetData, forgetData, CurDataSize );
+			mathEngine->VectorSigmoid( inputData, inputData, CurDataSize );
+			mathEngine->VectorSigmoid( outputData, outputData, CurDataSize );
 
 			// Multiply input gates
 			mathEngine->VectorEltwiseMultiply( inputData, inputTanhData, inputData, CurDataSize );
@@ -99,7 +99,7 @@ void CMathEngineLstmDesc::RunOnceRestOfLstm( const CConstFloatHandle& inputState
 			mathEngine->VectorAdd( forgetData, inputData, outputStateBackLink + OffsetBackLink, CurDataSize );
 
 			// Apply tanh to state baclink
-			mathEngine->CalcTanh( outputStateBackLink + OffsetBackLink, inputData, CurDataSize, false );
+			mathEngine->VectorTanh( outputStateBackLink + OffsetBackLink, inputData, CurDataSize );
 
 			// Multiply output gate with result of previous operation
 			mathEngine->VectorEltwiseMultiply( outputData, inputData, outputMainBackLink + OffsetBackLink, CurDataSize );

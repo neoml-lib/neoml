@@ -109,7 +109,7 @@ private:
 	template<TPrimitive P>
 	void initPrimitive();
 	template<TPrimitive P>
-	void initActivationFunction( std::function<void()>& afterPrologue,
+	void initActivationFunction( const std::function<void()>& afterPrologue,
 		const reg64Vec_t& preservedGPR, const ymmVec_t& preservedYmm,
 		const ymmVec_t& ymmSrc, const ymmVec_t& ymmAux );
 
