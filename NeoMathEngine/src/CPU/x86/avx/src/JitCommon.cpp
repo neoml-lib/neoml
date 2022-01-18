@@ -29,7 +29,7 @@ Xbyak::Address CJitCommon::Prologue( const reg64Vec_t& preservedGPR,
 #ifdef _WIN32
     const int ShadowSpace = 0x20;
 #else
-    const int HomeSpace = 0;
+    const int ShadowSpace = 0;
 #endif
 
     push( rbp );

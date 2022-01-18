@@ -268,21 +268,23 @@ void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::RestOfLstm>()
 	const reg64_t regReccurentFullyConnectedResultPtr = rsi; // param6
 	gen.mov( regInputFullyConnectedResultPtr, stackArgsPtr );
 	gen.mov( regReccurentFullyConnectedResultPtr, gen.ptr[stackArgsPtr.getRegExp() + SizeofReg64] );
+	const int WinUnixStackDiff = 2;
 #else
 	const reg64_t regInputFullyConnectedResultPtr = Param5;
 	const reg64_t regReccurentFullyConnectedResultPtr = Param6;
+	const int WinUnixStackDiff = 0;
 #endif
 	const reg64_t regOffset = rax;
 	const reg64_t regObjectsCount = r11;
-	gen.mov( regOffset, gen.ptr[stackArgsPtr.getRegExp() + 2 * SizeofReg64] );
-	gen.mov( regObjectsCount, gen.ptr[stackArgsPtr.getRegExp() + 3 * SizeofReg64] );
+	gen.mov( regOffset, gen.ptr[stackArgsPtr.getRegExp() + ( WinUnixStackDiff + 0 ) * SizeofReg64] );
+	gen.mov( regObjectsCount, gen.ptr[stackArgsPtr.getRegExp() + ( WinUnixStackDiff + 1 ) * SizeofReg64] );
 	
 	// Current offset of intput in each of gates
 	const reg64_t regForgetOffset = r12;
 	const reg64_t regInputOffset = r13;
 	const reg64_t regMainOffset = r14;
 	const reg64_t regResetOffset = r15;
-	gen.xor( regMainOffset, regMainOffset ); // 0
+	gen.xor_( regMainOffset, regMainOffset ); // 0
 	gen.mov( regForgetOffset, regHiddenSize ); // hiddenSize
 	gen.mov( regInputOffset, regHiddenSize );
 	gen.shl( regInputOffset, 1 ); // 2 * hiddenSize
@@ -291,7 +293,7 @@ void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::RestOfLstm>()
 	// Register for moving offsets to the next row
 	const reg64_t regGoBack = rbx; // = 3 * regHiddenSize + regHiddenSize % 8
 	gen.mov( regGoBack, regHiddenSize );
-	gen.and( regGoBack, 0x7 ); // regHiddenSize % 8
+	gen.and_( regGoBack, 0x7 ); // regHiddenSize % 8
 	gen.add( regGoBack, regResetOffset ); // + 3 * regHiddenSize
 
 	// Update data pointers with accordind to offset
@@ -306,7 +308,7 @@ void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::RestOfLstm>()
 	// regHiddenSize is read only and is used very rare, hence we put it onto stack and reuse its register
 	gen.push( regHiddenSize );
 	const reg64_t regBacklinkOffset = regHiddenSize;
-	gen.xor( regBacklinkOffset, regBacklinkOffset );
+	gen.xor_( regBacklinkOffset, regBacklinkOffset );
 	Address addrStackHiddenSize = gen.ptr[rsp];
 
 	const reg64_t regLoopCounter = rax;
@@ -488,7 +490,7 @@ void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::RestOfLstm>()
 }
 
 template<CPrimitivesJit::TPrimitive P>
-void CPrimitivesJit::initActivationFunction( std::function<void()>& afterPrologue,
+void CPrimitivesJit::initActivationFunction( const std::function<void()>& afterPrologue,
 	const reg64Vec_t& preservedGPR, const ymmVec_t& preservedYmm,
 	const ymmVec_t& ymmSrc, const ymmVec_t& ymmAux )
 {

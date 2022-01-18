@@ -204,42 +204,6 @@ public:
 	void SetParentPos( int pos );
 	void ShiftParentPos( int shift );
 
-	float* print10( const char* tag ) {
-		static float ret[20];
-		int size = min( desc.BlobSize(), 20 );
-		CopyTo( ret, size );
-
-		printf( "%s[%d] : { ", tag, size );
-		for( int i = 0; i < size; i++ ) {
-			printf( "%.6f", ret[i] );
-			if( i != ( size - 1 ) ) {
-				printf( ", " );
-			} else {
-				printf( " }\n" );
-			}
-		}
-		return ret;
-	}
-
-	static  float* print10( const char* tag, const CFloatHandle& data, int dataSize  ) {
-		static float ret[20];
-		int size = min( dataSize, 20 );
-		for( int i = 0; i < size; i++ ) {
-			ret[i] = data.GetValueAt( i );
-		}
-
-		printf( "%s[%d] : { ", tag, size );
-		for( int i = 0; i < size; i++ ) {
-			printf( "%.6f", ret[i] );
-			if( i != ( size - 1 ) ) {
-				printf( ", " );
-			} else {
-				printf( " }\n" );
-			}
-		}
-		return ret;
-	}
-
 protected:
 	~CDnnBlob() override;
 
