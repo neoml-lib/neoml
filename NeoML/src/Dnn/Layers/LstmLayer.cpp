@@ -314,7 +314,7 @@ void CLstmLayer::Serialize( CArchive& archive )
 }
 
 void CLstmLayer::RunOnce() {
-	if( !IsInCompatibilityMode() ) {
+	if( !isInCompatibilityMode && recurrentActivation == AF_Sigmoid ) {
 		fastLstm();
 	} else {
 		CRecurrentLayer::RunOnce();
@@ -425,7 +425,7 @@ void CLstmLayer::fastLstm()
 			stateBacklinkInput->SetParentPos( inputPos );
 			stateBacklinkOutput->SetParentPos( outputPos );
 		}
-		mainBacklinkOutput->SetParentPos( outputPos );
+			mainBacklinkOutput->SetParentPos( outputPos );
 
 		MathEngine().Lstm( fastLstmDesc.LstmDesc(), 
 			inputWeights->GetData(), inputFreeTerm.Ptr() ? &( inputFreeTerm->GetData() ) : nullptr,
