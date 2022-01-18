@@ -141,7 +141,6 @@ set(NeoML_SOURCES
 set(NeoML_NON_UNITY_SOURCES
     Dnn/DnnSolver.cpp
     Dnn/Layers/LossLayer.cpp
-    Dnn/Layers/FastLstmLayer.cpp
     Dnn/Layers/LstmLayer.cpp
     TraditionalML/CompactRegressionTree.cpp
     TraditionalML/DecisionTreeClassificationModel.cpp

@@ -425,11 +425,18 @@ void CLstmLayer::fastLstm()
 			stateBacklinkInput->SetParentPos( inputPos );
 			stateBacklinkOutput->SetParentPos( outputPos );
 		}
-			mainBacklinkOutput->SetParentPos( outputPos );
+		mainBacklinkOutput->SetParentPos( outputPos );
+		CConstFloatHandle inputFreeTermHandle, recurrentFreeTermHandle;
+		if( inputFreeTerm.Ptr() ) {
+			inputFreeTermHandle = inputFreeTerm->GetData();
+		}
+		if( recurrentFreeTerm.Ptr() ) {
+			recurrentFreeTermHandle = recurrentFreeTerm->GetData();
+		}
 
 		MathEngine().Lstm( fastLstmDesc.LstmDesc(), 
-			inputWeights->GetData(), inputFreeTerm.Ptr() ? &( inputFreeTerm->GetData() ) : nullptr,
-			recurrentWeights->GetData(), recurrentFreeTerm.Ptr() ? &( recurrentFreeTerm->GetData() ) : nullptr, 
+			inputWeights->GetData(), inputFreeTermHandle,
+			recurrentWeights->GetData(), recurrentFreeTermHandle,
 			stateBacklinkInput->GetData(), mainBacklinkInput->GetData(),
 			input->GetData(), stateBacklinkOutput->GetData(), mainBacklinkOutput->GetData() );
 	}

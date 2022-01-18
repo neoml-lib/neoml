@@ -32,8 +32,8 @@ CLstmDesc* CCpuMathEngine::InitLstm( const CFloatHandle& inputFullyConnectedResu
 }
 
 void CCpuMathEngine::Lstm( CLstmDesc& desc, 
-	const CFloatHandle& inputWeights, const CFloatHandle* inputFreeTerm,
-	const CFloatHandle& recurrentWeights, const CFloatHandle* recurrentFreeTerm, 
+	const CFloatHandle& inputWeights, const CConstFloatHandle& inputFreeTerm,
+	const CFloatHandle& recurrentWeights, const CConstFloatHandle& recurrentFreeTerm,
 	const CConstFloatHandle& inputStateBackLink, const CConstFloatHandle& inputMainBackLink, const CConstFloatHandle& input,
 	const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink )
 {
@@ -41,14 +41,14 @@ void CCpuMathEngine::Lstm( CLstmDesc& desc,
 
 	auto fullyConnectedRunOnce = [&]( const CConstFloatHandle& input, int inputHeight, int inputWidth,
 		const CFloatHandle& weights, int weightHeight, int weightsWidth,
-		const CFloatHandle& output, const CFloatHandle* freeTerm ) {
+		const CFloatHandle& output, const CConstFloatHandle& freeTerm ) {
 		MultiplyMatrixByTransposedMatrix( input, inputHeight, inputWidth, inputWidth,
 			weights, weightsWidth, weightHeight,
 			output, weightsWidth, inputHeight * weightsWidth );
 
-		if( freeTerm != nullptr ) {
+		if( !freeTerm.IsNull() ) {
 			AddVectorToMatrixRows( 1, output, output, inputHeight,
-				weightsWidth, *freeTerm );
+				weightsWidth, freeTerm );
 		}
 	};
 
@@ -62,6 +62,7 @@ void CCpuMathEngine::Lstm( CLstmDesc& desc,
 		recurrentWeights, lstmDesc.hiddenSize, CMathEngineLstmDesc::GatesNum * lstmDesc.hiddenSize,
 		lstmDesc.reccurentFullyConnectedResult, recurrentFreeTerm );
 
+	// if outputMainBackLink != output then we are in compatibility mode
 	if( simdMathEngine != nullptr ) {
 		simdMathEngine->RunOnceRestOfLstm( &lstmDesc, inputStateBackLink, outputStateBackLink, outputMainBackLink );
 	} else {
