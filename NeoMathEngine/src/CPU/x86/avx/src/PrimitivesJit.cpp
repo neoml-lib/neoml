@@ -107,14 +107,14 @@ void CPrimitivesJit::initTable()
 		0x43c83910, 0xc3c872d1, 0xc186bc9e, 0x42325bc3, 0xbf2ffa4a, 0x3d9a203c, 0xbc545a43, 0xbae08fee,
 		0x3c80225d, 0x3b1fd1df, 0xba36b9d1, 0xb91de544, 0xb71f100f, 0xb408e2ed, 0xb685fec8, 0x00000000
 		} );
-	addVal( TTableKey::TanhIdxBias, 0x39800000 );
+	addVal( TTableKey::TanhIdxBias, 0x39800000 ); // 0x1.0p*2^-12
 	addVal( TTableKey::TanhIdxMaskShifted, 0x0000001f );
 	addVal( TTableKey::TanhIdxMask, 0xffc00000 );
-	addVal( TTableKey::TanhLineralUBound, 0x39ddb3d7 );
-	addVal( TTableKey::TanhSaturationLBound, 0x41102cb3 );
+	addVal( TTableKey::TanhLineralUBound, 0x39ddb3d7 ); // 0x1.7320507764816284p * 2^-12
+	addVal( TTableKey::TanhSaturationLBound, 0x41102cb3 ); // 0x1.1263641119003296p * 2^3
 
 	// Common
-	addVal( TTableKey::Ln2f, 0x3f317218 );
+	addVal( TTableKey::Ln2f, 0x3f317218 ); // 1.44269502f
     addVal( TTableKey::PositiveMask, 0x7fffffff ); // changes sign to positive
 	addVal( TTableKey::Half, 0x3f000000 ); // 0.5f
     addVal( TTableKey::One, 0x3f800000 ); // 1.f  or  mask for exponent bits
@@ -150,7 +150,7 @@ uint32_t CPrimitivesJit::getOfft( TTableKey key, uint32_t offset ) const
 {
 	auto it = tableOffsets.find( key );
 	assert( it != tableOffsets.end() );
-    return ( it->second + offset ) * sizeof( decltype( table )::value_type );
+    return static_cast<uint32_t>( ( it->second + offset ) * sizeof( decltype( table )::value_type ) );
 }
 
 Xbyak::Address CPrimitivesJit::getAddr( TTableKey key, uint32_t offset ) const
@@ -188,7 +188,6 @@ void CPrimitivesJit::addVal( TTableKey key, uint32_t val, size_t repeatNum )
 template<>
 void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::Tanh>()
 {
-	using namespace Xbyak::util;
 	// create new instance
 	auto& gen = gens[static_cast< size_t >( TPrimitive::Tanh )].gen;
 
@@ -204,7 +203,6 @@ void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::Tanh>()
 template<>
 void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::Sigmoid>()
 {
-	using namespace Xbyak::util;
 	// create new instance
 	auto& gen = gens[static_cast< size_t >( TPrimitive::Sigmoid )].gen;
 
@@ -226,7 +224,6 @@ void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::Sigmoid>()
 template<>
 void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::Exp>()
 {
-	using namespace Xbyak::util;
 	// create new instance
 	auto& gen = gens[static_cast< size_t >( TPrimitive::Exp )].gen;
 
@@ -248,14 +245,14 @@ void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::RestOfLstm>()
 	auto& gen = gens[static_cast< size_t >( TPrimitive::RestOfLstm )].gen;
 
 #ifdef _WIN32
-	const reg64Vec_t preservedGPR = { rdi, rsi, r12, r13, r14, r15, rbx };
+	const reg64Vec_t preservedReg64 = { rdi, rsi, r12, r13, r14, r15, rbx };
 #else
-	const reg64Vec_t preservedGPR = { r12, r13, r14, r15, rbx };
+	const reg64Vec_t preservedReg64 = { r12, r13, r14, r15, rbx };
 #endif
 	const ymmVec_t preservedYmm = initVecRange<Ymm>( 6, 15 );
 
 	// Insert prologue and calculate pointer to function arguments (in reverse order)
-	Address stackArgsPtr = gen.Prologue( preservedGPR, preservedYmm );
+	Address stackArgsPtr = gen.Prologue( preservedReg64, preservedYmm );
 	gen.mov( regTablePtr, ( uint64_t )table.data() );
 
 	// *** Define registers ***
@@ -284,19 +281,20 @@ void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::RestOfLstm>()
 	const reg64_t regInputOffset = r13;
 	const reg64_t regMainOffset = r14;
 	const reg64_t regResetOffset = r15;
-	gen.xor_( regMainOffset, regMainOffset ); // 0
-	gen.mov( regForgetOffset, regHiddenSize ); // hiddenSize
+	gen.xor_( regMainOffset, regMainOffset ); // regMainOffset <- 0
+	gen.mov( regForgetOffset, regHiddenSize ); // regForgetOffset <- hiddenSize
 	gen.mov( regInputOffset, regHiddenSize );
-	gen.shl( regInputOffset, 1 ); // 2 * hiddenSize
+	gen.shl( regInputOffset, 1 ); // regInputOffset <- 2 * hiddenSize
 	gen.mov( regResetOffset, regInputOffset );
-	gen.add( regResetOffset, regHiddenSize ); // 3 * hiddenSize
-	// Register for moving offsets to the next row
+	gen.add( regResetOffset, regHiddenSize ); // regResetOffset <- 3 * hiddenSize
+	// Register for moving offsets to the next row when we reach end of current gate.
+	// Stride equals to 4 * hiddenSize but we is at the offset ( hiddenSize - regHiddenSize % 8 ) at the last iteration
 	const reg64_t regGoBack = rbx; // = 3 * regHiddenSize + regHiddenSize % 8
 	gen.mov( regGoBack, regHiddenSize );
 	gen.and_( regGoBack, 0x7 ); // regHiddenSize % 8
 	gen.add( regGoBack, regResetOffset ); // + 3 * regHiddenSize
 
-	// Update data pointers with accordind to offset
+	// Update data pointers with accordind to offset of current thread
 	gen.imul( regOffset, regHiddenSize );
 	gen.lea( regInputStateBackLinkPtr, gen.ptr[regInputStateBackLinkPtr + regOffset * sizeof( float )] ); // += Offset * HiddenSize
 	gen.lea( regOutputStateBackLinkPtr, gen.ptr[regOutputStateBackLinkPtr + regOffset * sizeof( float )] ); // += Offset * HiddenSize
@@ -305,7 +303,7 @@ void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::RestOfLstm>()
 	gen.lea( regInputFullyConnectedResultPtr, gen.ptr[regInputFullyConnectedResultPtr + regOffset * sizeof( float )] ); // += Offset * 4 *HiddenSize
 	gen.lea( regReccurentFullyConnectedResultPtr, gen.ptr[regReccurentFullyConnectedResultPtr + regOffset * sizeof( float )] ); // += Offset * 4 * HiddenSize
 
-	// regHiddenSize is read only and is used very rare, hence we put it onto stack and reuse its register
+	// regHiddenSize is read only and is used very rarely, hence we put it onto stack and reuse its register
 	gen.push( regHiddenSize );
 	const reg64_t regBacklinkOffset = regHiddenSize;
 	gen.xor_( regBacklinkOffset, regBacklinkOffset );
@@ -466,7 +464,7 @@ void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::RestOfLstm>()
 	gen.add( regBacklinkOffset, NumFloatInYmm );
 	gen.sub( regLoopCounter, NumFloatInYmm );
 
-	// 4. Process tail of lstm
+	// 4. Process tail of lstm (hiddenSize % 8) floats
 	gen.L( labelTailProcessing );
 	gen.test( regLoopCounter, regLoopCounter );
 	gen.jz( labelEndProcessing, gen.T_NEAR );
@@ -485,13 +483,13 @@ void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::RestOfLstm>()
 
 	// Restore stack pointer after pushing regHiddenSize
 	gen.add( rsp, SizeofReg64 );
-	gen.Epilogue( preservedGPR, preservedYmm );
+	gen.Epilogue( preservedReg64, preservedYmm );
 	gen.ret();
 }
 
 template<CPrimitivesJit::TPrimitive P>
 void CPrimitivesJit::initActivationFunction( const std::function<void()>& afterPrologue,
-	const reg64Vec_t& preservedGPR, const ymmVec_t& preservedYmm,
+	const reg64Vec_t& preservedReg64, const ymmVec_t& preservedYmm,
 	const ymmVec_t& ymmSrc, const ymmVec_t& ymmAux )
 {
 	// !!! We assume that we can use batch processing and last src register in tail
@@ -518,7 +516,7 @@ void CPrimitivesJit::initActivationFunction( const std::function<void()>& afterP
 				gen.StopDownCountLoop();
 	};
 
-	gen.Prologue( preservedGPR, preservedYmm );
+	gen.Prologue( preservedReg64, preservedYmm );
 	gen.mov( regTablePtr, ( uint64_t )table.data() );
 
 	if( afterPrologue ) {
@@ -546,7 +544,7 @@ void CPrimitivesJit::initActivationFunction( const std::function<void()>& afterP
 	gen.vmaskmovps( gen.ptr[regDstPtr], ymmMask, ymmLastSrc );
 	gen.L( "end" );
 
-	gen.Epilogue( preservedGPR, preservedYmm );
+	gen.Epilogue( preservedReg64, preservedYmm );
 	gen.ret();
 }
 
@@ -567,7 +565,8 @@ void CPrimitivesJit::insertPrimitive<CPrimitivesJit::TPrimitive::Tanh>( CJitComm
 	ymmVec_t ymmSrcOrig = initFromAux( 4, ymmSrc, ymmAux );
 	ymmVec_t& ymmSign = ymmSrcOrig;
 	
-	// We split the positive domain in 33 intervals:
+
+	// We split the entire positive range into 33 intervals
 	// a) [0; linear_ubound]: in this interval tanh(x) = x
 	// b) [linear_ubound; 0x1.8p-12]: This interval spans part of a
 	//    half binade
@@ -578,18 +577,6 @@ void CPrimitivesJit::insertPrimitive<CPrimitivesJit::TPrimitive::Tanh>( CJitComm
 	// e) [0x1.205966p3; saturation_ubound]: in this interval, tanh(x) = 1
 	// For b-d, we need 31 polynomials and will do a table lookup for those.
 	// To simplify the logic, we will also put a) in the table.
-
-	// The polynomials are of degree 6, so we need to gather 7 coefficients.
-	// - sse4.1: we do it the naive way using vextract/vinsert.
-	//           Here we will extract the indices in gpr only once and
-	//           reuse them as there are only 4 of them.
-	// - avx: we do the same as for sse4.1 but use half of the 64-bits
-	//           registers to store the idx of second half of YMM and half for
-	//           responding XMM. Halfway through the copy we exchange Xmm and
-	//           higher half of ymm_t and we get the expected result.
-	// - avx2: we use vpermps and blend for each coefficient.
-	//         This needs an extra vmm to store the mask
-	// - avx512: because the table fits in 2 registers, we can use vpermi2d.
 	auto gather_coefficient = [&]( ymmVec_t& ymmCoeff, int coeff_idx,
 		ymmVec_t& vmm_pol_idx ) {
 			vector<Xbyak::Address> idx_addr( vmm_pol_idx.size(), Xbyak::Address( 0 ) );

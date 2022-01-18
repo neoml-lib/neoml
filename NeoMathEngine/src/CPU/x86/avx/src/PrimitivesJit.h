@@ -37,6 +37,7 @@ public:
 	void Sigmoid( float* dst, const float* src, size_t dataSize, bool isMultithread = true );
 	void Exp( float* dst, const float* src, size_t dataSize, bool isMultithread = true );
 
+	// Process part of lstm layer which follow after fullyconnected layers.
 	void RestOfLstm( CLstmDesc* desc, const CConstFloatHandle& inputStateBackLink,
 		const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink,
 		bool isMultithread );
@@ -53,28 +54,28 @@ private:
 
 	enum class TTableKey {
 		// Tanh specific items
-		TanhPolyCoeff,
-		TanhIdxBias,
-		TanhIdxMaskShifted,
-		TanhIdxMask,
-		TanhLineralUBound,
-		TanhSaturationLBound,
+		TanhPolyCoeff, // Coefficients of tanh polynome
+		TanhIdxBias, // 0x1.0p * 2^-12; Bias is applied to x in order to obtain correct interval for polynomial calculation
+		TanhIdxMaskShifted, // This mask aims to obtain correct index of interval for polynomial calculation
+		TanhIdxMask, // Applied to extract index
+		TanhLineralUBound, // Below this 'x' tanh(x) = x
+		TanhSaturationLBound, // Above this 'x' tanh(x) = 1.f
 
 		// Common Items
-		Ln2f,
-		PositiveMask,
-		Half,
-		One,
-		Two,
-		SignMask,
-		ExpBias,
+		Ln2f, // 0.69314718f
+		PositiveMask, // Extract value without sign
+		Half, // 0.5f
+		One, // 1.0f
+		Two, // 2.0f
+		SignMask, // Extract sign from valiable
+		ExpBias, // (127 = 2^7 - 1), gets exponent bits
 
-		LoadMask,
+		LoadMask, // Load 1-7 floats with vmaskmovps instruction
 
-		ExpLog2ef,
-		ExpFltMax,
-		ExpFltMin,
-		ExpPolyCoeff
+		ExpLog2ef, // 1.44269502f
+		ExpFltMax, // logf(FLT_MAX) - max normal value
+		ExpFltMin, // logf(FLT_MIN) - min normal value
+		ExpPolyCoeff  // Coefficients of exp polynome
 	};
 	
 	struct CGenerator {
@@ -101,9 +102,13 @@ private:
 		
 	// Functions for handling table
 	void initTable();
+	// Get offset in bytes of specific key in table ( optionaly with offset in floats )
 	uint32_t getOfft( TTableKey key, uint32_t offset = 0 ) const;
+	// Get address of field ( optionaly with offset in floats )
 	Xbyak::Address getAddr( TTableKey key, uint32_t offset = 0 ) const;
+	// Add vector or value to the table and append appropriate table key to the tableOffsets
 	void addVector( TTableKey key, std::initializer_list<uint32_t>&& data, size_t repeatNum = 1 );
+	// repeatNum specifies how many times value will be repeated in the table
 	void addVal( TTableKey key, uint32_t val, size_t repeatNum = NumFloatInYmm );
 
 	template<TPrimitive P>
@@ -129,7 +134,7 @@ private:
 
 	// Function helps to parse raw aux vector to the small slices
 	ymmVec_t initFromAux( int idx, const ymmVec_t& ymmSrc, const ymmVec_t& ymmAux ) {
-		const int SrcSize = ymmSrc.size();
+		const size_t SrcSize = ymmSrc.size();
 		auto begin = ymmAux.begin() + idx * SrcSize;
 		return ymmVec_t( begin, begin + SrcSize );
 	};
