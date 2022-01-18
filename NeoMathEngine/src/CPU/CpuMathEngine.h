@@ -522,13 +522,10 @@ public:
 	CLstmDesc* InitLstm( const CFloatHandle& inputFullyConnectedResult, const CFloatHandle& reccurentFullyConnectedResult,
 		int hiddenSize, int objectCount, int objectSize ) override;
 	void Lstm( CLstmDesc& desc, 
-		const CFloatHandle& inputWeights, const CFloatHandle* inputFreeTerm,
-		const CFloatHandle& recurrentWeights, const CFloatHandle* recurrentFreeTerm, 
+		const CFloatHandle& inputWeights, const CConstFloatHandle& inputFreeTerm,
+		const CFloatHandle& recurrentWeights, const CConstFloatHandle& recurrentFreeTerm,
 		const CConstFloatHandle& inputStateBackLink, const CConstFloatHandle& inputMainBackLink, const CConstFloatHandle& input,
 		const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink ) override;
-	void CalcTanh( const CConstFloatHandle& src, const CFloatHandle& dst, int dataSize ) override;
-	void CalcSigmoid( const CConstFloatHandle& src, const CFloatHandle& dst, int dataSize ) override;
-	void CalcExp( const CConstFloatHandle& src, const CFloatHandle& dst, int dataSize ) override;
 
 	IPerformanceCounters* CreatePerformanceCounters() const override;
 	void SetDistributedCommunicator( std::shared_ptr<CMultiThreadDistributedCommunicator> comm, const CMathEngineDistributedInfo& info );

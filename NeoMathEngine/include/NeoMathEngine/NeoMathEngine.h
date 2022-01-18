@@ -332,10 +332,6 @@ public:
 
 	virtual void VectorTopKDiff(const CConstFloatHandle& sourceGrad, int sourceGradHeight, int sourceGradWidth,
 		const CConstIntHandle& indices, int k, const CFloatHandle& resultGrad) = 0;
-
-	virtual void CalcTanh( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize ) = 0;
-	virtual void CalcSigmoid( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize ) = 0;
-	virtual void CalcExp( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize ) = 0;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -905,8 +901,8 @@ public:
 	virtual CLstmDesc* InitLstm( const CFloatHandle& inputFullyConnectedResult, const CFloatHandle& reccurentFullyConnectedResult,
 		int hiddenSize, int objectCount, int objectSize ) = 0;
 	virtual void Lstm( CLstmDesc& desc, 
-		const CFloatHandle& inputWeights, const CFloatHandle* inputFreeTerm,
-		const CFloatHandle& recurrentWeights, const CFloatHandle* recurrentFreeTerm, 
+		const CFloatHandle& inputWeights, const CConstFloatHandle& inputFreeTerm,
+		const CFloatHandle& recurrentWeights, const CConstFloatHandle& recurrentFreeTerm,
 		const CConstFloatHandle& inputStateBackLink, const CConstFloatHandle& inputMainBackLink, const CConstFloatHandle& input,
 		const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink ) = 0;
 
