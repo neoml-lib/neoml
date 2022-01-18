@@ -49,48 +49,62 @@ void CMathEngineLstmDesc::RunOnceRestOfLstm( const CConstFloatHandle& inputState
 	// Elementwise summ of fully connected layers' results (inplace)
 	const int ResultMatrixHeight = objectCount;
 	const int ResultMatrixWidth = CMathEngineLstmDesc::GatesNum * hiddenSize;
-	const CFloatHandle& hiddenLayerSum = inputFullyConnectedResult;
-	mathEngine->VectorAdd( inputFullyConnectedResult, reccurentFullyConnectedResult, hiddenLayerSum, ResultMatrixHeight* ResultMatrixWidth );
-
-	// Rearrange sum
-	const CFloatHandle& hiddenLayerSumRearranged = reccurentFullyConnectedResult;
 	const int DataSize = ResultMatrixHeight * hiddenSize;
-	CFloatHandle inputTanhData = hiddenLayerSumRearranged;
-	CFloatHandle forgetData = inputTanhData + DataSize;
-	CFloatHandle inputData = forgetData + DataSize;
-	CFloatHandle outputData = inputData + DataSize;
 
-	int objectSize = hiddenSize;
-	float* rawFrom = GetRaw( hiddenLayerSum );
-	float* rawTo = GetRaw( hiddenLayerSumRearranged );
-	for( int x = 0; x < ResultMatrixHeight; x++ ) {
-		const float* input = rawFrom + x * ResultMatrixWidth;
-		for( int i = 0; i < CMathEngineLstmDesc::GatesNum; ++i ) {
-			memcpy( ( rawTo + i * DataSize ) + x * objectSize, input, objectSize * sizeof( float ) );
-			input += objectSize;
+	const int curThreadCount = IsOmpRelevant( static_cast< int >( objectCount ) ) ? threadCount : 1;
+	NEOML_OMP_NUM_THREADS( curThreadCount ) {
+		int offt, count;
+		if( OmpGetTaskIndexAndCount( static_cast< int >( objectCount ), offt, count ) ) {
+			const int OffsetFullyConnectedResult = offt * ResultMatrixWidth;
+			const int OffsetBackLink = offt * hiddenSize;
+			const int CurDataSize = count * hiddenSize;
+			const CFloatHandle& curInputFullyConnectedResult = inputFullyConnectedResult + OffsetFullyConnectedResult;
+			const CFloatHandle& curReccurentFullyConnectedResult = reccurentFullyConnectedResult + OffsetFullyConnectedResult;
+			
+			const CFloatHandle& hiddenLayerSum = curInputFullyConnectedResult;
+			mathEngine->VectorAdd( curInputFullyConnectedResult, curReccurentFullyConnectedResult,
+				hiddenLayerSum, count * ResultMatrixWidth );
+
+			// Rearrange sum
+			const CFloatHandle& hiddenLayerSumRearranged = curReccurentFullyConnectedResult;
+			CFloatHandle inputTanhData = hiddenLayerSumRearranged;
+			CFloatHandle forgetData = inputTanhData + DataSize;
+			CFloatHandle inputData = forgetData + DataSize;
+			CFloatHandle outputData = inputData + DataSize;
+
+			int objectSize = hiddenSize;
+			float* rawFrom = GetRaw( hiddenLayerSum );
+			float* rawTo = GetRaw( hiddenLayerSumRearranged );
+			for( int x = offt; x < offt + count; x++ ) {
+				const float* input = rawFrom + x * ResultMatrixWidth;
+				for( int i = 0; i < CMathEngineLstmDesc::GatesNum; ++i ) {
+					memcpy( ( rawTo + i * DataSize ) + x * objectSize, input, objectSize * sizeof( float ) );
+					input += objectSize;
+				}
+			}
+
+			// Apply activations
+			mathEngine->CalcTanh( inputTanhData, inputTanhData, CurDataSize, false );
+			mathEngine->CalcSigmoid( forgetData, forgetData, CurDataSize, false );
+			mathEngine->CalcSigmoid( inputData, inputData, CurDataSize, false );
+			mathEngine->CalcSigmoid( outputData, outputData, CurDataSize, false );
+
+			// Multiply input gates
+			mathEngine->VectorEltwiseMultiply( inputData, inputTanhData, inputData, CurDataSize );
+
+			// Multiply state backlink with forget gate
+			mathEngine->VectorEltwiseMultiply( forgetData, inputStateBackLink + OffsetBackLink, forgetData, CurDataSize );
+
+			// Append input gate to state backlink
+			mathEngine->VectorAdd( forgetData, inputData, outputStateBackLink + OffsetBackLink, CurDataSize );
+
+			// Apply tanh to state baclink
+			mathEngine->CalcTanh( outputStateBackLink + OffsetBackLink, inputData, CurDataSize, false );
+
+			// Multiply output gate with result of previous operation
+			mathEngine->VectorEltwiseMultiply( outputData, inputData, outputMainBackLink + OffsetBackLink, CurDataSize );
 		}
 	}
-
-	// Apply activations
-	mathEngine->VectorTanh( inputTanhData, inputTanhData, DataSize );
-	mathEngine->VectorSigmoid( forgetData, forgetData, DataSize );
-	mathEngine->VectorSigmoid( inputData, inputData, DataSize );
-	mathEngine->VectorSigmoid( outputData, outputData, DataSize );
-
-	// Multiply input gates
-	mathEngine->VectorEltwiseMultiply( inputData, inputTanhData, inputData, DataSize );
-
-	// Multiply state backlink with forget gate
-	mathEngine->VectorEltwiseMultiply( forgetData, inputStateBackLink, forgetData, DataSize );
-
-	// Append input gate to state backlink
-	mathEngine->VectorAdd( forgetData, inputData, outputStateBackLink, DataSize );
-
-	// Apply tanh to state baclink
-	mathEngine->VectorTanh( outputStateBackLink, inputData, DataSize );
-
-	// Multiply output gate with result of previous operation
-	mathEngine->VectorEltwiseMultiply( outputData, inputData, outputMainBackLink, DataSize );
 }
 
 } // namespace NeoML
