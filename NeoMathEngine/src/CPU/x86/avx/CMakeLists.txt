@@ -2,7 +2,7 @@ project(NeoMathEngineAvx)
 
 add_library(${PROJECT_NAME} SHARED common.cpp)
 
-target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_11)
+target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_14)
 
 target_sources(${PROJECT_NAME}
     PRIVATE
@@ -60,7 +60,9 @@ target_compile_definitions(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME} PRIVATE NeoMathEngine)
 
 # OpenMP
-link_openmp(${PROJECT_NAME})
+if(NOT DARWIN)
+    link_openmp(${PROJECT_NAME})
+endif()
 
 # AVX
 if(WIN32)
