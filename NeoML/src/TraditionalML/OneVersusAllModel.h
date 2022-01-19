@@ -40,7 +40,7 @@ public:
 	bool ClassifyEx( const CFloatVector& data, COneVersusAllClassificationResult& result ) const override;
 
 protected:
-	virtual ~COneVersusAllModel() {} // delete prohibited
+	~COneVersusAllModel() override = default; // delete prohibited
 
 private:
 	CObjectArray<IModel> classifiers; // the binary classifiers for each of the classes in turn

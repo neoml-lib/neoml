@@ -86,9 +86,7 @@ private:
 // The manager class
 class CHostStackMemoryManager : public CCrtAllocatedObject {
 public:
-	CHostStackMemoryManager() : head(0), maxAllocSize(0), curAllocSize(0)
-	{
-	}
+	CHostStackMemoryManager() = default;
 
 	~CHostStackMemoryManager()
 	{
@@ -145,9 +143,9 @@ public:
 	}
 
 private:
-	CHostStackBlock *head;
-	size_t maxAllocSize;
-	size_t curAllocSize;
+	CHostStackBlock *head{};
+	size_t maxAllocSize{};
+	size_t curAllocSize{};
 
 	void cleanUpWorker()
 	{

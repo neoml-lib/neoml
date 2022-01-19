@@ -114,7 +114,7 @@ protected:
 private:
 	// Adds/deletes a layer
 	void AddLayerImpl(CBaseLayer& layer) override;
-	void DeleteLayerImpl(CBaseLayer& layer) override;
+	void DeleteLayerImpl(CBaseLayer& layer) final;
 
 	// The internal network object
 	CDnn* internalDnn;
