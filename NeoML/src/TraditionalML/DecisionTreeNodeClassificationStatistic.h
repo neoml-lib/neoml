@@ -25,7 +25,7 @@ namespace NeoML {
 class CVectorSetClassificationStatistic {
 public:
 	explicit CVectorSetClassificationStatistic( int classCount );
-	explicit CVectorSetClassificationStatistic( const CVectorSetClassificationStatistic& other );
+	CVectorSetClassificationStatistic( const CVectorSetClassificationStatistic& other );
 
 	// Adds vectors
 	void AddVectorSet( int count, int classIndex, double weight );
@@ -135,14 +135,14 @@ public:
 	explicit CClassificationStatistics( CDecisionTreeNodeBase* node, const IProblem& problem, const CArray<int>& usedFeatures );
 
 	// CDecisionTreeNodeStatisticBase interface methods
-	virtual void AddVector( int index, const CFloatVectorDesc& vector );
-	virtual void Finish();
-	virtual size_t GetSize() const;
-	virtual bool GetSplit( CDecisionTree::CParams param,
-		bool& isDiscrete, int& featureIndex, CArray<double>& values, double& criterioValue ) const;
-	virtual double GetPredictions( CArray<double>& predictions ) const;
-	virtual int GetVectorsCount() const { return totalStatistics.TotalCount(); }
-	virtual CDecisionTreeNodeBase& GetNode() const { return *node; }
+	void AddVector( int index, const CFloatVectorDesc& vector ) override;
+	void Finish() override;
+	size_t GetSize() const override;
+	bool GetSplit( CDecisionTree::CParams param,
+		bool& isDiscrete, int& featureIndex, CArray<double>& values, double& criterioValue ) const override;
+	double GetPredictions( CArray<double>& predictions ) const override;
+	int GetVectorsCount() const  override { return totalStatistics.TotalCount(); }
+	CDecisionTreeNodeBase& GetNode() const  override { return *node; }
 
 private:
 	// Sampling interval

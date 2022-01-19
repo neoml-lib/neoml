@@ -1001,7 +1001,7 @@ void CVulkanMathEngine::VectorMax( const CConstFloatHandle& firstHandle, float s
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	ASSERT_EXPR( vectorSize > 0 );
 	ASSERT_EXPR( false );
-	secondValue;	
+	(void)secondValue;
 }
 
 void CVulkanMathEngine::VectorMaxDiff( const CConstFloatHandle& firstHandle, float secondValue, const CFloatHandle& gradHandle,
@@ -1012,7 +1012,7 @@ void CVulkanMathEngine::VectorMaxDiff( const CConstFloatHandle& firstHandle, flo
 	ASSERT_EXPR( gradHeight > 0 );
 	ASSERT_EXPR( gradWidth > 0 );
 	ASSERT_EXPR( false );
-	secondValue;	
+	(void)secondValue;
 }
 
 void CVulkanMathEngine::VectorNeg(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize)
@@ -1041,7 +1041,7 @@ void CVulkanMathEngine::VectorSub(const CConstFloatHandle& firstHandle, float se
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	ASSERT_EXPR( vectorSize > 0 );
 	ASSERT_EXPR( false );
-	second;
+	(void)second;
 }
 
 void CVulkanMathEngine::VectorSub(float first, const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle,
@@ -1051,7 +1051,7 @@ void CVulkanMathEngine::VectorSub(float first, const CConstFloatHandle& secondHa
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	ASSERT_EXPR( vectorSize > 0 );
 	ASSERT_EXPR( false );
-	first;
+	(void)first;
 }
 
 void CVulkanMathEngine::VectorTopK(const CConstFloatHandle& first, int firstSize, int k, const CFloatHandle& result,
