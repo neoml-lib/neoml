@@ -280,7 +280,7 @@ void CCpuMathEngine::VectorExp(const CConstFloatHandle& firstHandle,
 	float* result = GetRaw(resultHandle);
 	int count = GetCount4(vectorSize);
 
-	CExpNeon expObj;
+	const CExpNeon expObj;
 
 	for(int i = 0; i < count; ++i) {
 		float32x4_t val = LoadNeon4(first);
@@ -309,7 +309,7 @@ void CCpuMathEngine::VectorLog(const CConstFloatHandle& firstHandle,
 	float* result = GetRaw(resultHandle);
 	int count = GetCount4(vectorSize);
 
-	CLogNeon logObj;
+	const CLogNeon logObj;
 
 	for(int i = 0; i < count; ++i) {
 		float32x4_t val = LoadNeon4(first);
@@ -338,7 +338,7 @@ void CCpuMathEngine::VectorNegLog(const CConstFloatHandle& firstHandle,
 	float* result = GetRaw(resultHandle);
 	int count = GetCount4(vectorSize);
 
-	CLogNeon logObj;
+	const CLogNeon logObj;
 
 	for(int i = 0; i < count; ++i) {
 		float32x4_t val = LoadNeon4(first);
@@ -783,7 +783,7 @@ void CCpuMathEngine::VectorEqualValue( const CConstIntHandle& firstHandle, const
 }
 
 static inline float32x4_t vectorELUWorker(const float32x4_t& val,
-	const float32x4_t& alpha, const float32x4_t& zero, const float32x4_t& one, CExpNeon& expObj)
+	const float32x4_t& alpha, const float32x4_t& zero, const float32x4_t& one, const CExpNeon& expObj)
 {
 	uint32x4_t upperMask = vcgeq_f32(val, zero);
 	float32x4_t lowerRes = vmulq_f32(alpha, vsubq_f32(expObj.Execute(val), one));
@@ -805,7 +805,7 @@ void CCpuMathEngine::VectorELU(const CConstFloatHandle& firstHandle, const CFloa
 	float32x4_t alpha = vdupq_n_f32(*GetRaw(alphaHandle));
 	const float32x4_t zero = vdupq_n_f32(0);
 	const float32x4_t one = vdupq_n_f32(1);
-	CExpNeon expObj;
+	const CExpNeon expObj;
 
 	for(int i = 0; i < count; ++i) {
 		float32x4_t val = LoadNeon4(first);
@@ -824,7 +824,7 @@ void CCpuMathEngine::VectorELU(const CConstFloatHandle& firstHandle, const CFloa
 }
 
 static inline float32x4_t vectorELUDiffWorker(const float32x4_t& first, const float32x4_t& second,
-	const float32x4_t& alpha, const float32x4_t& zero, CExpNeon& expObj)
+	const float32x4_t& alpha, const float32x4_t& zero, const CExpNeon& expObj)
 {
 	uint32x4_t upperMask = vcgeq_f32(first, zero);
 	float32x4_t lowerRes = vmulq_f32(second, vmulq_f32(alpha, expObj.Execute(first)));
@@ -847,7 +847,7 @@ void CCpuMathEngine::VectorELUDiff(const CConstFloatHandle& firstHandle, const C
 
 	float32x4_t alpha = vdupq_n_f32(*GetRaw(alphaHandle));
 	const float32x4_t zero = vdupq_n_f32(0);
-	CExpNeon expObj;
+	const CExpNeon expObj;
 
 	for(int i = 0; i < count; ++i) {
 		float32x4_t res = vectorELUDiffWorker(LoadNeon4(first), LoadNeon4(second), alpha, zero, expObj);
@@ -1546,7 +1546,7 @@ void CCpuMathEngine::VectorBernulliKLDerivative(const CConstFloatHandle& estimat
 }
 
 static inline float32x4_t vectorEltwisePowerWorker(const float32x4_t& first, const float32x4_t& second,
-	CLogNeon& logObj, CExpNeon& expObj)
+	const CLogNeon& logObj, const CExpNeon& expObj)
 {
 	return expObj.Execute(vmulq_f32(logObj.Execute(first), second));
 }
@@ -1564,8 +1564,8 @@ void CCpuMathEngine::VectorEltwisePower(const CConstFloatHandle& firstHandle,
 	float* result = GetRaw(resultHandle);
 	int count = GetCount4(vectorSize);
 
-	CLogNeon logObj;
-	CExpNeon expObj;
+	const CLogNeon logObj;
+	const CExpNeon expObj;
 
 	for(int i = 0; i < count; ++i) {
 		float32x4_t res = vectorEltwisePowerWorker(LoadNeon4(first), LoadNeon4(second), logObj, expObj);
@@ -1621,7 +1621,7 @@ void CCpuMathEngine::VectorInv(const CConstFloatHandle& firstHandle, const CFloa
 	}
 }
 
-static inline float32x4_t vectorSigmoidWorker(const float32x4_t& val, const float32x4_t& one, CExpNeon& expObj)
+static inline float32x4_t vectorSigmoidWorker(const float32x4_t& val, const float32x4_t& one, const CExpNeon& expObj)
 {
 	return InvNeon(vaddq_f32(one, expObj.Execute(vnegq_f32(val))));
 }
@@ -1637,7 +1637,7 @@ void CCpuMathEngine::VectorSigmoid(const CConstFloatHandle& firstHandle, const C
 	int count = GetCount4(vectorSize);
 
 	const float32x4_t one = vdupq_n_f32(1);
-	CExpNeon expObj;
+	const CExpNeon expObj;
 
 	for(int i = 0; i < count; ++i) {
 		float32x4_t res = vectorSigmoidWorker(LoadNeon4(first), one, expObj);
@@ -1654,7 +1654,7 @@ void CCpuMathEngine::VectorSigmoid(const CConstFloatHandle& firstHandle, const C
 }
 
 static inline float32x4_t vectorSigmoidDiffWorker(const float32x4_t& first, const float32x4_t& second,
-	const float32x4_t& one, CExpNeon& expObj)
+	const float32x4_t& one, const CExpNeon& expObj)
 {
 	float32x4_t expNeg = expObj.Execute(vnegq_f32(first));
 	float32x4_t denom = vaddq_f32(one, expNeg);
@@ -1676,7 +1676,7 @@ void CCpuMathEngine::VectorSigmoidDiff(const CConstFloatHandle& firstHandle, con
 	int count = GetCount4(vectorSize);
 
 	const float32x4_t one = vdupq_n_f32(1);
-	CExpNeon expObj;
+	const CExpNeon expObj;
 
 	for(int i = 0; i < count; ++i) {
 		float32x4_t res = vectorSigmoidDiffWorker(LoadNeon4(first), LoadNeon4(second), one, expObj);
@@ -1728,7 +1728,7 @@ void CCpuMathEngine::VectorSigmoidDiffOp(const CConstFloatHandle& firstHandle, c
 	}
 }
 
-static inline float32x4_t vectorTanhWorker(const float32x4_t& val, const float32x4_t& one, CExpNeon& expObj)
+static inline float32x4_t vectorTanhWorker(const float32x4_t& val, const float32x4_t& one, const CExpNeon& expObj)
 {
 	float32x4_t expVal = expObj.Execute(vaddq_f32(val, val));
 	return DivideNeon(vsubq_f32(expVal, one), vaddq_f32(expVal, one));
@@ -1745,7 +1745,7 @@ void CCpuMathEngine::VectorTanh(const CConstFloatHandle& firstHandle, const CFlo
 	int count = GetCount4(vectorSize);
 
 	const float32x4_t one = vdupq_n_f32(1);
-	CExpNeon expObj;
+	const CExpNeon expObj;
 
 	for(int i = 0; i < count; ++i) {
 		float32x4_t res = vectorTanhWorker(LoadNeon4(first), one, expObj);
@@ -1762,7 +1762,7 @@ void CCpuMathEngine::VectorTanh(const CConstFloatHandle& firstHandle, const CFlo
 }
 
 static inline float32x4_t vectorTanhDiffWorker(const float32x4_t& first, const float32x4_t& second,
-	const float32x4_t& one, CExpNeon& expObj)
+	const float32x4_t& one, const CExpNeon& expObj)
 {
 	float32x4_t tanh = vectorTanhWorker(first, one, expObj);
 	float32x4_t derivative = vsubq_f32(one, vmulq_f32(tanh, tanh));
@@ -1783,7 +1783,7 @@ void CCpuMathEngine::VectorTanhDiff(const CConstFloatHandle& firstHandle, const 
 	int count = GetCount4(vectorSize);
 
 	const float32x4_t one = vdupq_n_f32(1);
-	CExpNeon expObj;
+	const CExpNeon expObj;
 
 	for(int i = 0; i < count; ++i) {
 		float32x4_t res = vectorTanhDiffWorker(LoadNeon4(first), LoadNeon4(second), one, expObj);
@@ -1834,7 +1834,7 @@ void CCpuMathEngine::VectorTanhDiffOp(const CConstFloatHandle& firstHandle, cons
 	}
 }
 
-static inline float32x4_t vectorPowerWorker(const float32x4_t& val, const float32x4_t& pow, CLogNeon& logObj, CExpNeon& expObj)
+static inline float32x4_t vectorPowerWorker(const float32x4_t& val, const float32x4_t& pow, const CLogNeon& logObj, const CExpNeon& expObj)
 {
 	return expObj.Execute(vmulq_f32(pow, logObj.Execute(val)));
 }
@@ -1851,8 +1851,8 @@ void CCpuMathEngine::VectorPower(float exponent, const CConstFloatHandle& firstH
 	int count = GetCount4(vectorSize);
 
 	float32x4_t pow = vdupq_n_f32(exponent);
-	CLogNeon logObj;
-	CExpNeon expObj;
+	const CLogNeon logObj;
+	const CExpNeon expObj;
 
 	for(int i = 0; i < count; ++i) {
 		float32x4_t res = vectorPowerWorker(LoadNeon4(first), pow, logObj, expObj);
@@ -1869,7 +1869,7 @@ void CCpuMathEngine::VectorPower(float exponent, const CConstFloatHandle& firstH
 }
 
 static inline float32x4_t vectorPowerDiffWorker(const float32x4_t& first, const float32x4_t& second,
-	const float32x4_t& pow, const float32x4_t& pow1, CLogNeon& logObj, CExpNeon& expObj)
+	const float32x4_t& pow, const float32x4_t& pow1, const CLogNeon& logObj, const CExpNeon& expObj)
 {
 	float32x4_t derivative = vmulq_f32(pow, vectorPowerWorker(first, pow1, logObj, expObj));
 	return vmulq_f32(second, derivative);
@@ -1890,8 +1890,8 @@ void CCpuMathEngine::VectorPowerDiff(float exponent, const CConstFloatHandle& fi
 
 	float32x4_t pow = vdupq_n_f32(exponent);
 	float32x4_t pow1 = vdupq_n_f32(exponent - 1);
-	CLogNeon logObj;
-	CExpNeon expObj;
+	const CLogNeon logObj;
+	const CExpNeon expObj;
 
 	for(int i = 0; i < count; ++i) {
 		float32x4_t res = vectorPowerDiffWorker(LoadNeon4(first), LoadNeon4(second), pow, pow1, logObj, expObj);
@@ -1924,8 +1924,8 @@ void CCpuMathEngine::VectorPowerDiffOp(float exponent, const CConstFloatHandle& 
 
 	float32x4_t pow = vdupq_n_f32(exponent);
 	float32x4_t pow1 = DivideNeon(vdupq_n_f32(exponent - 1), pow);
-	CLogNeon logObj;
-	CExpNeon expObj;
+	const CLogNeon logObj;
+	const CExpNeon expObj;
 
 	for(int i = 0; i < count; ++i) {
 		float32x4_t res = vectorPowerDiffWorker(LoadNeon4(first), LoadNeon4(second), pow, pow1, logObj, expObj);
@@ -2016,7 +2016,7 @@ void CCpuMathEngine::VectorEltwiseNotNegative( const CConstIntHandle& firstHandl
 }
 
 static inline float32x4_t vectorEltwiseLogSumExpWorker(const float32x4_t& first, const float32x4_t& second,
-	const float32x4_t& one, CExpNeon& expObj, CLogNeon& logObj)
+	const float32x4_t& one, const CExpNeon& expObj, const CLogNeon& logObj)
 {
 	float32x4_t maxVal = vmaxq_f32(first, second);
 	float32x4_t minVal = vminq_f32(first, second);
@@ -2036,8 +2036,8 @@ void CCpuMathEngine::vectorEltwiseLogSumExp(const CConstFloatHandle& firstHandle
 	int count = GetCount4(vectorSize);
 
 	const float32x4_t one = vdupq_n_f32(1);
-	CExpNeon expObj;
-	CLogNeon logObj;
+	const CExpNeon expObj;
+	const CLogNeon logObj;
 
 	for(int i = 0; i < count; ++i) {
 		float32x4_t res = vectorEltwiseLogSumExpWorker(LoadNeon4(first), LoadNeon4(second),

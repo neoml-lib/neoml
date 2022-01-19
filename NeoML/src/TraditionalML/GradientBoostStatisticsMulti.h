@@ -23,7 +23,7 @@ public:
 	typedef CArray<double> Type;
 	CGradientBoostStatisticsMulti() = default;
 	explicit CGradientBoostStatisticsMulti( int valueSize );
-	explicit CGradientBoostStatisticsMulti( const CGradientBoostStatisticsMulti& other );
+	CGradientBoostStatisticsMulti( const CGradientBoostStatisticsMulti& other );
 	explicit CGradientBoostStatisticsMulti( const CArray<double>& gradient, const CArray<double>& hessian, double weight );
 	CGradientBoostStatisticsMulti& operator=( const CGradientBoostStatisticsMulti& other );
 

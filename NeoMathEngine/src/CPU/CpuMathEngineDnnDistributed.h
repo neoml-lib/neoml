@@ -21,7 +21,7 @@ namespace NeoML {
 
 class CMultiThreadDistributedCommunicator {
 public:
-    CMultiThreadDistributedCommunicator( int n_threads );
+    explicit CMultiThreadDistributedCommunicator( int n_threads );
     void AllReduce( const CFloatHandle& handle, int size );
     void Broadcast( const CFloatHandle& handle, int size, int root );
     void Abort() { isAbort = true; }

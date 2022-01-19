@@ -256,7 +256,7 @@ public:
 	const float DefVal;
 	const int DefIntVal;
 
-	CLoadStoreNeon(int len, float defVal = 0, int defIntVal = 0) :
+	explicit CLoadStoreNeon(int len, float defVal = 0, int defIntVal = 0) :
 		Len(len), DefVal(defVal), DefIntVal(defIntVal)
 	{
 	}
@@ -584,7 +584,7 @@ class CSqrtNeon : public CCrtAllocatedObject {
 public:
 	CSqrtNeon() : MinVal(vdupq_n_f32(FLT_MIN)) {}
 
-	float32x4_t Execute(const float32x4_t& val)
+	float32x4_t Execute(const float32x4_t& val) const
 	{
 		return vmulq_f32(val, InvSqrtNeon(vmaxq_f32(MinVal, val)));
 	}

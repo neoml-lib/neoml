@@ -36,7 +36,7 @@ public:
 	virtual void SetArgument( const CFloatVector& x ) = 0;
 
 	// The function value
-	virtual double Value() = 0;
+	virtual double Value() const = 0;
 
 	// The Evaluate function that is a wrapper over SetArgument and Value
 	double Evaluate( const CFloatVector& x );
@@ -46,7 +46,7 @@ public:
 class CFunctionWithGradient : public CFunction {
 public:
 	// Function gradient
-	virtual CFloatVector Gradient() = 0;
+	virtual CFloatVector Gradient() const = 0;
 };
 
 // The interface for a function that supports gradient and hessian calculation
@@ -68,8 +68,8 @@ public:
 	// The CFunctionWithHessian class methods:
 	int NumberOfDimensions() const override { return matrix.Width + 1; }
 	void SetArgument( const CFloatVector& w ) override;
-	double Value() override { return value;}
-	CFloatVector Gradient() override { return gradient; }
+	double Value() const override { return value;}
+	CFloatVector Gradient() const override { return gradient; }
 	CFloatVector HessianProduct( const CFloatVector& s ) override;
 
 protected:
@@ -96,8 +96,8 @@ public:
 	// The CFunctionWithHessian class methods:
 	int NumberOfDimensions() const override { return matrix.Width + 1; }
 	void SetArgument(const CFloatVector& w) override;
-	double Value() override { return value; }
-	CFloatVector Gradient() override { return gradient; }
+	double Value() const override { return value; }
+	CFloatVector Gradient() const override { return gradient; }
 	CFloatVector HessianProduct(const CFloatVector& s) override;
 
 protected:
@@ -125,8 +125,8 @@ public:
 	// The CFunctionWithHessian class methods:
 	int NumberOfDimensions() const override { return matrix.Width + 1; }
 	void SetArgument( const CFloatVector& w ) override;
-	double Value() override { return value; }
-	CFloatVector Gradient() override { return gradient; }
+	double Value() const override { return value; }
+	CFloatVector Gradient() const override { return gradient; }
 	CFloatVector HessianProduct( const CFloatVector& s ) override;
 
 protected:
@@ -153,8 +153,8 @@ public:
 	// The CFunctionWithHessian class methods:
 	int NumberOfDimensions() const override { return matrix.Width + 1; }
 	void SetArgument( const CFloatVector& w ) override;
-	double Value() override { return value; }
-	CFloatVector Gradient() override { return gradient; }
+	double Value() const override { return value; }
+	CFloatVector Gradient() const override { return gradient; }
 	CFloatVector HessianProduct( const CFloatVector& s ) override;
 
 protected:
