@@ -22,7 +22,7 @@ namespace NeoML {
 // One versus all classifier
 class COneVersusAllModel : public IOneVersusAllModel {
 public:
-	COneVersusAllModel() {}
+	COneVersusAllModel() = default;
 	explicit COneVersusAllModel( CObjectArray<IModel>& classifiers );
 
 	// For serialization
