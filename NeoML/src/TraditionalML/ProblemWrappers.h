@@ -115,7 +115,7 @@ private:
 template<class TProblem>
 class CNotNullWeightsView {
 public:
-	CNotNullWeightsView( const TProblem* problem );
+	explicit CNotNullWeightsView( const TProblem* problem );
 	virtual ~CNotNullWeightsView() = default;
 
 	// Calculates the index as if we had the matrix without null weighted elements

@@ -86,7 +86,7 @@ private:
 // The manager class
 class CHostStackMemoryManager : public CCrtAllocatedObject {
 public:
-	explicit CHostStackMemoryManager() : head(0), maxAllocSize(0), curAllocSize(0)
+	CHostStackMemoryManager() : head(0), maxAllocSize(0), curAllocSize(0)
 	{
 	}
 

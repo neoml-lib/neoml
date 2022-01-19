@@ -559,10 +559,10 @@ void CKMeansClustering::assignVectors( const CFloatMatrixDesc& matrix, const CVa
 		if( OmpGetTaskIndexAndCount( matrix.Height, firstVector, vectorCount ) ) {
 			const int lastVector = firstVector + vectorCount;
 			for( int i = firstVector; i < lastVector; i++ ) {
-				bool mustRecalculate = true;
 				if( upperBounds[i] <= closestClusterDist[assignments[i]] ) {
 					continue;
 				} else {
+					bool mustRecalculate = true;
 					for( int c = 0; c < clusters.Size(); c++ ) {
 						if( isPruned( upperBounds, lowerBounds, clusterDists, assignments[i], c, i ) ) {
 							continue;

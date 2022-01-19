@@ -16,7 +16,6 @@ limitations under the License.
 #pragma once
 
 #include <NeoMathEngine/NeoMathEngine.h>
-#include <memory>
 
 namespace NeoML {
 
