@@ -63,7 +63,7 @@ struct CVulkanRleConvolutionDesc : public CRleConvolutionDesc {
 	CConvolutionDesc* ConvDesc;
 
 	CVulkanRleConvolutionDesc() : ConvDesc( 0 ) {}
-	virtual ~CVulkanRleConvolutionDesc();
+	~CVulkanRleConvolutionDesc() override;
 };
 
 CVulkanRleConvolutionDesc::~CVulkanRleConvolutionDesc()
@@ -626,7 +626,7 @@ const CVulkanImage& CVulkanMathEngine::blobConvolution3x3s1d1PrepareFilterAdreno
 	int channels = filter.Depth() * filter.Channels();
 	int fullHeight = channels * 3;
 
-	const CVulkanImage* images[] =
+	const CVulkanImage* images[1] =
 		{ getTmpImage( (TTmpVulkanImage)imageId, filter.ObjectCount(), fullHeight ) };
 
 	CMemoryHandle bufs[1] = { filterData };
@@ -658,7 +658,7 @@ const CVulkanImage& CVulkanMathEngine::blobConvolution3x3s1d1PrepareSourceAdreno
 	channelGroupSize = getChannelGroupSize( totalHeight, channels );
 	int channelGroupCount = Ceil(channels, channelGroupSize);
 
-	const CVulkanImage* images[] = { getTmpImage( (TTmpVulkanImage)imageId,
+	const CVulkanImage* images[1] = { getTmpImage( (TTmpVulkanImage)imageId,
 		totalWidth4 * channelGroupCount, totalHeight * channelGroupSize ) };
 
 	totalHeight *= channels;

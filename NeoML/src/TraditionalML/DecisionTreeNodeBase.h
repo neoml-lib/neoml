@@ -23,8 +23,8 @@ namespace NeoML {
 struct CDecisionTreeNodeInfoBase {
 	TDecisionTreeNodeType Type; // node type
 
-	CDecisionTreeNodeInfoBase( TDecisionTreeNodeType type ) : Type( type ) {}
-	virtual ~CDecisionTreeNodeInfoBase() {}
+	explicit CDecisionTreeNodeInfoBase( TDecisionTreeNodeType type ) : Type( type ) {}
+	virtual ~CDecisionTreeNodeInfoBase() = default;
 };
 
 // Base class for a decision tree node

@@ -165,7 +165,7 @@ IMathEngine* CGpuMathEngineManager::CreateMathEngine( int index, size_t memoryLi
 	case MET_Undefined:
 	default:
 	{
-		memoryLimit;
+		(void)memoryLimit;
 		return nullptr;
 	}
 	}

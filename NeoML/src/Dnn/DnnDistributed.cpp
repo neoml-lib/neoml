@@ -80,7 +80,7 @@ void CDistributedTraining::RunAndLearnOnce( IDistributedDataset& data )
     }
     CheckArchitecture( errorMessage.IsEmpty(), "DistributedTraining", errorMessage );
 #else
-    data;
+    (void)data;
     NeoAssert( false );
 #endif
 }
