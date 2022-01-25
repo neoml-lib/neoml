@@ -141,15 +141,18 @@ void InitializePCA(py::module& m)
 			SingularValueDecomposition( desc, isFullAlgorithm ? SVD_Full : SVD_Sparse, leftVectors, singularValues, rightVectors,
 				returnLeftVectors, returnRightVectors, components );
 		}
-		auto leftArray = py::array_t<float>( leftVectors.Size(), leftVectors.GetPtr() );
-		auto singularArray = py::array_t<float>( singularValues.Size(), singularValues.GetPtr() );
-		auto rightArray = py::array_t<float>( rightVectors.Size(), rightVectors.GetPtr() );
+		py::array_t<float, py::array::c_style> leftArray;
 		if( returnLeftVectors ) {
 			leftArray.resize( { height, components } );
+			memcpy( static_cast<float*>( leftArray.request().ptr ), leftVectors.GetPtr(), height * components * sizeof( float ) );
 		}
+		py::array_t<float, py::array::c_style> singularArray( { components } );
+		memcpy( static_cast<float*>( singularArray.request().ptr ), singularValues.GetPtr(), components * sizeof( float ) );
+		py::array_t<float, py::array::c_style> rightArray;
 		if( returnRightVectors ) {
 			rightArray.resize( { components, width } );
+			memcpy( static_cast< float* >( rightArray.request().ptr ), rightVectors.GetPtr(), components * width * sizeof( float ) );
 		}
 		return py::make_tuple( leftArray, singularArray, rightArray );
-	}, py::return_value_policy::take_ownership );
+	}, py::return_value_policy::reference );
 }
