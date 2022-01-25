@@ -1294,9 +1294,13 @@ void CCpuMathEngine::SparseSingularValueDecomposition( const CSparseMatrixDesc& 
 	MKL_INT k;
 	MKL_INT pm[128];
 	ASSERT_EXPR( mkl_sparse_ee_init( pm ) == SPARSE_STATUS_SUCCESS );
-	char* returnVectors = returnLeftVectors ? "L" : "R";
-	ASSERT_EXPR( mkl_sparse_s_svd( "L", returnVectors, pm, sparseMatrix, descr, components, &k, GetRaw(e), GetRaw(xl),
-		GetRaw( xr ), GetRaw( res ) ) == SPARSE_STATUS_SUCCESS );
+	char returnValues[2] = "L";
+	char returnVectors[2] = "R";
+	if( returnLeftVectors ) {
+		returnVectors[0] = 'L';
+	}
+	ASSERT_EXPR( mkl_sparse_s_svd( returnValues, returnVectors, pm, sparseMatrix, descr, components, &k, GetRaw(e),
+		GetRaw(xl), GetRaw( xr ), GetRaw( res ) ) == SPARSE_STATUS_SUCCESS );
 	ASSERT_EXPR( mkl_sparse_destroy( sparseMatrix ) == SPARSE_STATUS_SUCCESS );
 #else
 	assert( false );

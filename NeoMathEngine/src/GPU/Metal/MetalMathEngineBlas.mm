@@ -1293,9 +1293,16 @@ void CMetalMathEngine::SumMatrixRows( int batchSize, const CFloatHandle& resultH
 }
 
 void CMetalMathEngine::SingularValueDecomposition( const CFloatHandle& a, int n, int m, const CFloatHandle& u, const CFloatHandle& s,
-	const CFloatHandle& vt, const CFloatHandle& superb )
+	const CFloatHandle& vt, const CFloatHandle& superb, bool returnLeftVectors, bool returnRightVectors )
 {
-	ASSERT_EXPR( false );
+    ASSERT_EXPR( false );
+}
+
+void CMetalMathEngine::SparseSingularValueDecomposition( const CSparseMatrixDesc& desc, int height, int width,
+    const CFloatHandle& leftVectors, const CFloatHandle& s, const CFloatHandle& rightVectors, const CFloatHandle& res,
+    int components, bool returnLeftVectors )
+{
+    ASSERT_EXPR( false );
 }
 
 } // namespace NeoML

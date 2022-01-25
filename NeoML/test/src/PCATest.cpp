@@ -38,7 +38,7 @@ CSparseFloatMatrix generateMatrix( int samples, int features, CArray<float>& val
 static void checkArraysEqual( const CArray<float>& expected, const float* get )
 {
 	for( int i = 0; i < expected.Size(); i++ ) {
-		ASSERT_NEAR( get[i], expected[i], 1e-4 );
+		ASSERT_NEAR( get[i], expected[i], 5e-3 );
 	}
 }
 
@@ -63,7 +63,7 @@ static void svdTestExample( int samples, int features, int components,
 			for( int col = 0; col < totalComponents; col++ ) {
 				const float get = leftVectors[row * totalComponents + col];
 				const float expected = expectedLeftVectors[row * features + col];
-				ASSERT_NEAR( fabs( get ), fabs( expected ), 1e-4 );
+				ASSERT_NEAR( fabs( get ), fabs( expected ), 5e-3 );
 			}
 		}
 	}
@@ -73,7 +73,7 @@ static void svdTestExample( int samples, int features, int components,
 		for( int row = 0; row < totalComponents; row++ ) {
 			for( int col = 0; col < features; col++ ) {
 				const int index = row * features + col;
-				ASSERT_NEAR( fabs( rightVectors[index] ), fabs( expectedRightVectors[index] ), 1e-4 );
+				ASSERT_NEAR( fabs( rightVectors[index] ), fabs( expectedRightVectors[index] ), 5e-3 );
 			}
 		}
 	}
@@ -133,7 +133,7 @@ static void pcaTestExample( int samples, int features, int components,
 	ASSERT_EQ( components, varianceRatio.Size() );
 	checkArraysEqual( expectedVarianceRatio, varianceRatio.GetPtr() );
 
-	ASSERT_NEAR( expectedNoiseVariance, pca.GetNoiseVariance(), 1e-4 );
+	ASSERT_NEAR( expectedNoiseVariance, pca.GetNoiseVariance(), 5e-3 );
 }
 
 TEST( CPCATest, PCAExamplesTest )
@@ -193,7 +193,7 @@ TEST( CPCATest, PCAEllipseTest )
 		expectedComponent.Add( 0, features );
 		expectedComponent[row] = 1.f;
 		for( int i = 0; i < features; i++ ) {
-			ASSERT_NEAR( expectedComponent[i], abs( actualComponent.GetValue( i ) ), 1e-4 );
+			ASSERT_NEAR( expectedComponent[i], abs( actualComponent.GetValue( i ) ), 5e-3 );
 		}
 	}
 }
