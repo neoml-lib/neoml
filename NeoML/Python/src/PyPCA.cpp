@@ -20,11 +20,8 @@ limitations under the License.
 
 static inline py::array getArray( const CArray<float>& matr )
 {
-	py::array_t<double, py::array::c_style> array( { matr.Size() } );
-	auto tempArray = array.mutable_unchecked<1>();
-	for( int i = 0; i < matr.Size(); i++ ){
-		tempArray(i) = matr[i];
-	}
+	py::array_t<float, py::array::c_style> array( { matr.Size() } );
+	memcpy( static_cast<float*>( array.request().ptr ), matr.GetPtr(), matr.Size() * sizeof( float ) );
 	return array;
 }
 
@@ -74,8 +71,8 @@ py::array CPyPca::FitTransform( int height, int width, py::array indices, py::ar
 		py::gil_scoped_release release;
 		resDesc = Transform( desc );
 	}
-	py::array_t<double, py::array::c_style> transformed( { resDesc.Height, resDesc.Width } );
-	memset( static_cast<double*>( transformed.request().ptr ), 0, resDesc.Height * resDesc.Width * sizeof(double) );
+	py::array_t<float, py::array::c_style> transformed( { resDesc.Height, resDesc.Width } );
+	memset( static_cast<float*>( transformed.request().ptr ), 0, resDesc.Height * resDesc.Width * sizeof( float ) );
 	auto tempTransformed = transformed.mutable_unchecked<2>();
 	for( int i = 0; i < resDesc.Height; i++ ) {
 		for( int j = resDesc.PointerB[i]; j < resDesc.PointerE[i]; j++ ){
@@ -88,8 +85,8 @@ py::array CPyPca::FitTransform( int height, int width, py::array indices, py::ar
 py::array CPyPca::Components()
 {
 	CFloatMatrixDesc desc = GetComponents();
-	py::array_t<double, py::array::c_style> components( { desc.Height, desc.Width } );
-	memset( static_cast<double*>( components.request().ptr ), 0, desc.Height * desc.Width * sizeof(double) );
+	py::array_t<float, py::array::c_style> components( { desc.Height, desc.Width } );
+	memset( static_cast<float*>( components.request().ptr ), 0, desc.Height * desc.Width * sizeof( float ) );
 	auto tempComponents = components.mutable_unchecked<2>();
 	for( int i = 0; i < desc.Height; i++ ){
 		for( int j = desc.PointerB[i]; j < desc.PointerE[i]; j++ ){
