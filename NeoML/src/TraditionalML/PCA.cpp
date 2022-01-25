@@ -19,16 +19,25 @@ limitations under the License.
 #include <NeoML/Dnn/DnnBlob.h>
 #include <NeoML/TraditionalML/PCA.h>
 #include <memory>
+#include <NeoML/TraditionalML/FeatureSelection.h>
 
 using namespace NeoML;
 
-CPca::CPca( const CParams& _params ) :
-	params( _params )
-{
-	NeoAssert( ( params.ComponentsType == PCAC_None ) ||
-		( ( params.ComponentsType == PCAC_Int ) && ( params.Components > 0 ) ) ||
-		( ( params.ComponentsType == PCAC_Float ) && ( 0 < params.Components ) && ( params.Components < 1 ) ) );
-}
+class CFeatureVarianceProblem : public IProblem {
+public:
+	CFeatureVarianceProblem( const CFloatMatrixDesc& _desc ) : desc( _desc ) {};
+
+	virtual int GetClassCount() const { return 1; }
+	virtual bool IsDiscreteFeature( int ) const { return false; }
+	virtual int GetFeatureCount() const { return desc.Width; }
+	virtual int GetVectorCount() const { return desc.Height; }
+	virtual int GetClass( int index ) const { return 0; }
+	virtual CFloatMatrixDesc GetMatrix() const { return desc; }
+	virtual double GetVectorWeight( int ) const { return 1; }
+
+private:
+	CFloatMatrixDesc desc;
+};
 
 // Convert CFloatMatrix to CDnnBlob
 static CPtr<CDnnBlob> convertToBlob( IMathEngine& mathEngine, const CFloatMatrixDesc& data )
@@ -54,50 +63,216 @@ static CPtr<CDnnBlob> convertToBlob( IMathEngine& mathEngine, const CFloatMatrix
 	return result;
 }
 
-// data -= mean(data)
-static void subtractMean( IMathEngine& mathEngine, const CFloatHandle& data, int matrixHeight, int matrixWidth )
+void reverseArrays( CArray<float>& leftVectors, CArray<float>& singularVectors, CArray<float>& rightVectors,
+	int m, int components, int n, bool hasLeft, bool hasRight )
 {
-	CPtr<CDnnBlob> meanVector = CDnnBlob::CreateVector( mathEngine, CT_Float, matrixWidth );
-	CPtr<CDnnBlob> height = CDnnBlob::CreateVector( mathEngine, CT_Float, 1 );
-	const CFloatHandle& heightHandle = height->GetData();
-	heightHandle.SetValue( -1.f / static_cast<float>( matrixHeight ) );
-	mathEngine.SumMatrixRows( 1, meanVector->GetData(), data, matrixHeight, matrixWidth );
-	mathEngine.VectorMultiply( meanVector->GetData(), meanVector->GetData(), matrixWidth, heightHandle );
-	mathEngine.AddVectorToMatrixRows( 1, data, data, matrixHeight, matrixWidth, meanVector->GetData() );
+	if( hasLeft ) {
+		for( int row = 0; row < m; row++ ) {
+			int leftIndex = row * components;
+			int rightIndex = ( row + 1 ) * components - 1;
+			for( int col = 0; col < components / 2; col++ ) {
+				float temp = leftVectors[leftIndex];
+				leftVectors[leftIndex] = leftVectors[rightIndex];
+				leftVectors[rightIndex] = temp;
+				leftIndex++;
+				rightIndex--;
+			}
+		}
+	}
+
+	for( int i = 0; i < components / 2; i++ ) {
+		float temp = singularVectors[i];
+		singularVectors[i] = singularVectors[components - i - 1];
+		singularVectors[components - i - 1] = temp;
+	}
+
+	if( hasRight ) {
+		for( int row = 0; row < components / 2; row++ ) {
+			int leftIndex = row * n;
+			int rightIndex = ( components - row - 1 ) * n;
+			for( int col = 0; col < n; col++ ) {
+				float temp = rightVectors[leftIndex];
+				rightVectors[leftIndex] = rightVectors[rightIndex];
+				rightVectors[rightIndex] = temp;
+				leftIndex++;
+				rightIndex++;
+			}
+		}
+	}
+}
+
+CSparseMatrixDesc getSparseMatrixDesc( IMathEngine& mathEngine, const CFloatMatrixDesc& data,
+	CPtr<CDnnBlob>& columns, CPtr<CDnnBlob>& rows, CPtr<CDnnBlob>& values )
+{
+	int m = data.Height;
+	int n = data.Width;
+	CSparseMatrixDesc desc;
+	desc.ElementCount = ( data.Columns == nullptr ) ? m * n : data.PointerE[m - 1];
+	columns = CDnnBlob::CreateVector( mathEngine, CT_Int, desc.ElementCount );
+	rows = CDnnBlob::CreateVector( mathEngine, CT_Int, m + 1 );
+	values = CDnnBlob::CreateVector( mathEngine, CT_Float, desc.ElementCount );
+	if( data.Columns != nullptr ) {
+		columns->CopyFrom( data.Columns );
+		int* rowBuffer = rows->GetBuffer<int>( 0, m + 1, false );
+		for( int i = 0; i < m; i++ ) {
+			rowBuffer[i] = data.PointerB[i];
+		}
+		rowBuffer[m] = data.PointerE[m - 1];
+		rows->ReleaseBuffer( rowBuffer, true );
+	} else {
+		desc.ElementCount = m * n;
+		int* colBuffer = columns->GetBuffer<int>( 0, m * n, false );
+		int* rowBuffer = rows->GetBuffer<int>( 0, m + 1, false );
+		for( int i = 0; i < m; i++ ) {
+			rowBuffer[i] = i * n;
+			for( int j = 0; j < n; j++ ) {
+				colBuffer[i * n + j] = j;
+			}
+		}
+		rowBuffer[m] = m * n;
+		rows->ReleaseBuffer( rowBuffer, true );
+		columns->ReleaseBuffer( colBuffer, true );
+	}
+	desc.Columns = columns->GetData<int>();
+	values->CopyFrom( data.Values );
+	desc.Values = values->GetData<float>();
+	desc.Rows = rows->GetData<int>();
+	return desc;
+}
+
+namespace NeoML {
+
+void SingularValueDecomposition( const CFloatMatrixDesc& data, const TSvd& svdSolver,
+	CArray<float>& leftVectors_, CArray<float>& singularValues_, CArray<float>& rightVectors_,
+	bool returnLeftVectors, bool returnRightVectors, int components )
+{
+	if( svdSolver == SVD_Sparse && ( returnLeftVectors == returnRightVectors ) ) {
+		// exactly one flag must be true
+		NeoAssert( false );
+	}
+	int n = data.Width;
+	int m = data.Height;
+
+	if( svdSolver == SVD_Full || components == 0 ) {
+		components = min( n, m );
+	}
+	
+	std::unique_ptr<IMathEngine> mathEngine( CreateCpuMathEngine( 1, 0 ) );
+	CPtr<CDnnBlob> leftVectors;
+	if( returnLeftVectors ) {
+		leftVectors = CDnnBlob::CreateMatrix( *mathEngine, CT_Float, components, m );
+	} else {
+		leftVectors = CDnnBlob::CreateVector( *mathEngine, CT_Float, 1 );
+	}
+	CPtr<CDnnBlob> rightVectors;
+	if( returnRightVectors ) {
+		rightVectors = CDnnBlob::CreateMatrix( *mathEngine, CT_Float, components, n );
+	} else {
+		rightVectors = CDnnBlob::CreateVector( *mathEngine, CT_Float, 1 );
+	}
+	CPtr<CDnnBlob> singularValues = CDnnBlob::CreateVector( *mathEngine, CT_Float, components );
+	CPtr<CDnnBlob> superb = CDnnBlob::CreateVector( *mathEngine, CT_Float, components );
+	if( svdSolver == SVD_Full ) {
+		CPtr<CDnnBlob> a = convertToBlob( *mathEngine, data );
+		mathEngine->SingularValueDecomposition( a->GetData(), n, m, leftVectors->GetData(),
+			singularValues->GetData(), rightVectors->GetData(), superb->GetData(), returnLeftVectors, returnRightVectors );
+	} else {
+		CPtr<CDnnBlob> columns;
+		CPtr<CDnnBlob> rows;
+		CPtr<CDnnBlob> values;
+		CSparseMatrixDesc desc = getSparseMatrixDesc( *mathEngine, data, columns, rows, values );
+		mathEngine->SparseSingularValueDecomposition( desc, m, n, leftVectors->GetData(),
+			singularValues->GetData(), rightVectors->GetData(), superb->GetData(),
+			components, returnLeftVectors );
+		leftVectors = leftVectors->GetTransposed( 0, 1 );
+	}
+
+	if( returnLeftVectors ) {
+		leftVectors_.SetSize( m * components );
+		leftVectors->CopyTo( leftVectors_.GetPtr() );
+	}
+	singularValues_.SetSize( components );             
+	singularValues->CopyTo( singularValues_.GetPtr() );
+	if( returnRightVectors ) {
+		rightVectors_.SetSize( components * n );
+		rightVectors->CopyTo( rightVectors_.GetPtr() );
+	}
+	if( svdSolver == SVD_Sparse ) {
+		reverseArrays( leftVectors_, singularValues_, rightVectors_, m, components, n,
+			returnLeftVectors, returnRightVectors );
+	}
+}
+
+} // namespace NeoML
+
+CPca::CPca( const CParams& _params ) :
+	params( _params )
+{
+	NeoAssert( ( params.ComponentsType == PCAC_None ) ||
+		( ( params.ComponentsType == PCAC_Int ) && ( params.Components > 0 ) ) ||
+		( ( params.ComponentsType == PCAC_Float ) && ( 0 < params.Components ) && ( params.Components < 1 ) ) );
+	NeoAssert( ( params.SvdSolver == SVD_Full ) || ( params.ComponentsType != PCAC_Float ) );
+}
+
+// returns data - mean(data)
+CSparseFloatMatrix subtractMean( const CFloatMatrixDesc& data )
+{
+	CSparseFloatVector mean( data.GetRow( 0 ) );
+	for( int i = 1; i < data.Height; i++ ) {
+		CSparseFloatVector cur( data.GetRow( i ) );
+		mean += cur;
+	}
+	mean /= data.Height;
+	CSparseFloatMatrix centeredMatrix( data.Width );
+	for( int i = 0; i < data.Height; i++ ) {
+		CSparseFloatVector cur( data.GetRow( i ) );
+		cur -= mean;
+		centeredMatrix.AddRow( cur );
+	}
+	return centeredMatrix;
 }
 
 // Flip signs of u columns and vt rows to obtain deterministic result
-static void flipSVD( IMathEngine& mathEngine, const CPtr<CDnnBlob>& u, const CFloatHandle& vt, int m, int k, int n )
+static void flipSVD( CArray<float>& u, CArray<float>& vt, int m, int k, int n,
+	bool hasRight )
 {
-	CPtr<CDnnBlob> maxValues = CDnnBlob::CreateVector( mathEngine, CT_Float, k );
-	maxValues->Fill( 0 );
-	float* uPtr = u->GetBuffer<float>( 0, m * k, false );
-	float* maxValuesPtr = maxValues->GetBuffer<float>( 0, k, false );
+	CArray<float> maxValues;
+	maxValues.Add( 0, k );
 
 	for( int row = 0; row < m; row++ ) {
 		for( int col = 0; col < k; col++ ) {
-			if( abs( uPtr[row * k + col] ) > abs( maxValuesPtr[col] ) ) {
-				maxValuesPtr[col] = uPtr[row * k + col];
+			if( abs( u[row * k + col] ) > abs( maxValues[col] ) ) {
+				maxValues[col] = u[row * k + col];
 			}
 		}
 	}
 	for( int col = 0; col < k; col++ ) {
-		maxValuesPtr[col] = ( ( maxValuesPtr[col] >= 0 ) ? 1.f : -1.f );
+		maxValues[col] = ( ( maxValues[col] >= 0 ) ? 1.f : -1.f );
 	}
-	maxValues->ReleaseBuffer( maxValuesPtr, false );
-	mathEngine.MultiplyMatrixByDiagMatrix( u->GetData(), m, k, maxValues->GetData<float>(), u->GetData(), m * k );
-	mathEngine.MultiplyDiagMatrixByMatrix( maxValues->GetData<float>(), k, vt, n, vt, n * k );
+
+	for( int row = 0; row < m; row++ ) {
+		for( int col = 0; col < k; col++ ) {
+			u[row * k + col] *= maxValues[col];
+		}
+	}
+
+	if( hasRight ) {
+		for( int row = 0; row < k; row++ ) {
+			for( int col = 0; col < n; col++ ) {
+				vt[row * n + col] *= maxValues[row];
+			}
+		}
+	}
 }
 
 // Convert CDnnBlob to CSparseFloatMatrix
-static void blobToMatrix( const CPtr<CDnnBlob>& blob, CSparseFloatMatrix& matrix, int matrixHeight, int matrixWidth, int blobWidth )
+static void convertToMatrix( CArray<float>& input, CSparseFloatMatrix& matrix, int matrixHeight, int components, int matrixWidth )
 {
 	CFloatVectorDesc row;
-	row.Size = matrixWidth;
+	row.Size = components;
 
-	int pos = 0;
-	for( int i = 0; i < matrixHeight; i++, pos += blobWidth ) {
-		row.Values = blob->GetBuffer<float>( pos, matrixWidth, false );
+	for( int i = 0; i < matrixHeight; i++ ) {
+		row.Values = input.GetPtr() + i * matrixWidth;
 		matrix.AddRow( row );
 	}
 }
@@ -124,34 +299,48 @@ void CPca::getComponentsNum( const CArray<float>& explainedVarianceRatio, int k 
 	}
 }
 
-void CPca::calculateVariance( IMathEngine& mathEngine, const CFloatHandle& s, int m, int k )
+void CPca::calculateVariance( const CFloatMatrixDesc& data, const CArray<float>& s, int total_components )
 {
-	CPtr<CDnnBlob> var = CDnnBlob::CreateVector( mathEngine, CT_Float, k );
-	CPtr<CDnnBlob> temp = CDnnBlob::CreateVector( mathEngine, CT_Float, 1 );
-	const CFloatHandle& tempHandle = temp->GetData();
+	int m = data.Height;
+	int n = data.Width;
 
 	// calculate explained_variance
-	mathEngine.VectorEltwiseMultiply( s, s, var->GetData(), k );
-	tempHandle.SetValue( 1.f / static_cast<float>( m - 1 ) );
-	mathEngine.VectorMultiply( var->GetData(), var->GetData(), k, tempHandle );
-	explainedVariance.SetSize( k );
-	var->CopyTo( explainedVariance.GetPtr(), k );
+	explainedVariance.SetSize( total_components );
+	for( int i = 0; i < total_components; i++ ) {
+		explainedVariance[i] = s[i] * s[i] / ( m - 1 );
+	}
+
+	// calculate total variance
+	float totalVariance = 0;
+	if( params.SvdSolver == SVD_Full ) {
+		for( int i = 0; i < total_components; i++ ) {
+			totalVariance += explainedVariance[i];
+		}
+	} else {
+		CFeatureVarianceProblem problem( data );
+		CArray<double> variance;
+		CalcFeaturesVariance( problem, variance );
+		for( int i = 0; i < variance.Size(); i++ ) {
+			totalVariance += variance[i];
+		}
+		totalVariance *= m * 1. / ( m - 1 );
+	}
 
 	// calculate explained_variance_ratio
-	mathEngine.VectorSum( var->GetData(), k, tempHandle );
-	tempHandle.SetValue( 1.f / tempHandle.GetValue() );
-	mathEngine.VectorMultiply( var->GetData(), var->GetData(), k, tempHandle );
-	explainedVarianceRatio.SetSize( k );
-	var->CopyTo( explainedVarianceRatio.GetPtr(), k );
+	explainedVarianceRatio.SetSize( total_components );
+	for( int i = 0; i < total_components; i++ ) {
+		explainedVarianceRatio[i] = explainedVariance[i] / totalVariance;
+	}
 
-	getComponentsNum( explainedVarianceRatio, k );
+	// get actual number of components (still not defined in case of PCAC_Float)
+	getComponentsNum( explainedVarianceRatio, total_components );
 
 	// calculate noise_variance
-	noiseVariance = 0;
-	for( int i = components; i < k; i++ ) {
-		noiseVariance += explainedVariance[i];
+	noiseVariance = totalVariance;
+	for( int i = 0; i < components; i++ ) {
+		noiseVariance -= explainedVariance[i];
 	}
-	noiseVariance /= max( 1, k - components );
+	noiseVariance /= max( 1, n - components );
 
 	explainedVariance.SetSize( components );
 	explainedVarianceRatio.SetSize( components );
@@ -159,36 +348,46 @@ void CPca::calculateVariance( IMathEngine& mathEngine, const CFloatHandle& s, in
 
 void CPca::train( const CFloatMatrixDesc& data, bool isTransform )
 {
-	int n = data.Width;
 	int m = data.Height;
+	int n = data.Width;
 	int k = min( n, m );
 
-	std::unique_ptr<IMathEngine> mathEngine( CreateCpuMathEngine( 1, 0 ) );
-	CPtr<CDnnBlob> a = convertToBlob( *mathEngine, data );
-	CPtr<CDnnBlob> u = CDnnBlob::CreateDataBlob( *mathEngine, CT_Float, 1, m, k );
-	CPtr<CDnnBlob> s = CDnnBlob::CreateVector( *mathEngine, CT_Float, k );
-	CPtr<CDnnBlob> vt = CDnnBlob::CreateDataBlob( *mathEngine, CT_Float, 1, k, n );
-	CPtr<CDnnBlob> superb = CDnnBlob::CreateVector( *mathEngine, CT_Float, k - 1 );
+	// matrix = data - mean(data)
+	CSparseFloatMatrix matrix = subtractMean( data );
 
-	// data -= mean(data)
-	subtractMean( *mathEngine, a->GetData(), m, n );
-
-	mathEngine->SingularValueDecomposition( a->GetData(), n, m, u->GetData(), s->GetData(), vt->GetData(), superb->GetData() );
+	CArray<float> leftVectors;
+	CArray<float> rightVectors;
+	if( params.SvdSolver == SVD_Sparse ) {
+		components = ( params.ComponentsType == PCAC_None ) ? k : params.Components;
+		SingularValueDecomposition( matrix.GetDesc(), params.SvdSolver, leftVectors, singularValues, rightVectors,
+			true, false, components );
+	} else {
+		SingularValueDecomposition( matrix.GetDesc(), params.SvdSolver, leftVectors, singularValues, rightVectors,
+			true, true, 0 );
+	}
 
 	// flip signs of u columns and vt rows to obtain deterministic result
-	flipSVD( *mathEngine, u, vt->GetData(), m, k, n );
+	flipSVD( leftVectors, rightVectors, m, ( params.SvdSolver == SVD_Sparse ) ? components : k,
+		n, params.SvdSolver == SVD_Full );
 
-	calculateVariance( *mathEngine, s->GetData(), m, k );
+	// calculate variance per component
+	calculateVariance( data, singularValues, ( params.SvdSolver == SVD_Sparse ) ? components : k );
 
 	singularValues.SetSize( components );
-	s->CopyTo( singularValues.GetPtr(), components );
-	componentsMatrix = CSparseFloatMatrix( components, n );
-	blobToMatrix( vt, componentsMatrix, components, n, n );
+	if( params.SvdSolver == SVD_Full ) {
+		componentsMatrix = CSparseFloatMatrix( components, n );
+		convertToMatrix( rightVectors, componentsMatrix, components, n, n );
+	}
 
 	if( isTransform ) {
+		const int step = ( params.SvdSolver == SVD_Sparse ) ? components : k;
 		transformedMatrix = CSparseFloatMatrix( components, m, components * m );
-		mathEngine->MultiplyMatrixByDiagMatrix( u->GetData(), m, k, s->GetData(), u->GetData(), m * k );
-		blobToMatrix( u, transformedMatrix, m, components, k );
+		for( int row = 0; row < m; row++ ) {
+			for( int col = 0; col < components; col++ ) {
+				leftVectors[row * step + col] *= singularValues[col];
+			}
+		}
+		convertToMatrix( leftVectors, transformedMatrix, m, components, step );
 	}
 }
 

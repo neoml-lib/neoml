@@ -24,6 +24,7 @@ limitations under the License.
 #include <math.h>
 #ifdef NEOML_USE_MKL
 #include <mkl_lapacke.h>
+#include <mkl_solvers_ee.h>
 #endif
 
 namespace NeoML {
@@ -1268,15 +1269,37 @@ void CCpuMathEngine::BitSetBinarization( int batchSize, int bitSetSize,
 }
 
 void CCpuMathEngine::SingularValueDecomposition( const CFloatHandle& a, int n, int m, const CFloatHandle& u, const CFloatHandle& s,
-	const CFloatHandle& vt, const CFloatHandle& superb )
+	const CFloatHandle& vt, const CFloatHandle& superb, bool returnLeftVectors, bool returnRightVectors )
 {
-	#ifdef NEOML_USE_MKL
+#ifdef NEOML_USE_MKL
 	int lda = max( 1, n ), ldu = min( n, m ), ldv = n;
-	LAPACKE_sgesvd( LAPACK_ROW_MAJOR, 'S', 'S', m, n, GetRaw( a ), lda, GetRaw( s ), GetRaw( u ), ldu,
-		GetRaw( vt ), ldv, GetRaw( superb ) );
-	#else
+	ASSERT_EXPR( LAPACKE_sgesvd( LAPACK_ROW_MAJOR, returnLeftVectors ? 'S' : 'N', returnRightVectors ? 'S' : 'N',
+		m, n, GetRaw( a ), lda, GetRaw( s ), GetRaw(u), ldu, GetRaw( vt ), ldv, GetRaw( superb ) ) == 0 );
+#else
 	assert( false );
-	#endif
+#endif
+}
+
+void CCpuMathEngine::SparseSingularValueDecomposition( const CSparseMatrixDesc& desc, int height, int width,
+	const CFloatHandle& xl, const CFloatHandle& e, const CFloatHandle& xr, const CFloatHandle& res,
+	int components, bool returnLeftVectors )
+{
+#ifdef NEOML_USE_MKL
+	sparse_matrix_t sparseMatrix;
+	int* rows = GetRaw( desc.Rows );
+	ASSERT_EXPR( mkl_sparse_s_create_csr( &sparseMatrix, SPARSE_INDEX_BASE_ZERO, height, width, rows,
+		rows + 1, GetRaw( desc.Columns ), GetRaw( desc.Values ) ) ==  SPARSE_STATUS_SUCCESS );
+	matrix_descr descr;
+	descr.type = SPARSE_MATRIX_TYPE_GENERAL;
+	MKL_INT k;
+	MKL_INT pm[128];
+	ASSERT_EXPR( mkl_sparse_ee_init( pm ) == SPARSE_STATUS_SUCCESS );
+	ASSERT_EXPR( mkl_sparse_s_svd( "L", returnLeftVectors ? "L" : "R", pm, sparseMatrix, descr, components, &k, GetRaw(e), GetRaw(xl),
+		GetRaw( xr ), GetRaw( res ) ) == SPARSE_STATUS_SUCCESS );
+	ASSERT_EXPR( mkl_sparse_destroy( sparseMatrix ) == SPARSE_STATUS_SUCCESS );
+#else
+	assert( false );
+#endif
 }
 
 } // namespace NeoML

@@ -117,7 +117,7 @@ void InitializePCA(py::module& m)
 			})
 		)
 
-		.def( "fit", &CPyPca::Fit, py::return_value_policy::reference )
+		.def( "fit", &CPyPca::Fit )
 		.def( "fit_transform", &CPyPca::FitTransform, py::return_value_policy::reference )
 		.def( "components", &CPyPca::Components, py::return_value_policy::reference )
 		.def( "n_components", &CPyPca::NComponents, py::return_value_policy::reference )
@@ -126,4 +126,30 @@ void InitializePCA(py::module& m)
 		.def( "singular_values", &CPyPca::SingularValues, py::return_value_policy::reference )
 		.def( "noise_variance", &CPyPca::NoiseVariance, py::return_value_policy::reference )
 	;
+
+	m.def( "singular_value_decomposition", []( int height, int width, py::array indices, py::array data, py::array rowPtr, bool isSparse,
+		bool returnLeftVectors, bool returnRightVectors, bool isFullAlgorithm, int components ) {
+		CFloatMatrixDesc desc = getMatrix( height, width, 
+			reinterpret_cast<const int*>( isSparse ? indices.data() : nullptr ), reinterpret_cast<const float*>( data.data() ),
+			reinterpret_cast<const int*>( rowPtr.data() ) );
+
+		CArray<float> leftVectors;
+		CArray<float> singularValues;
+		CArray<float> rightVectors;
+		{
+			py::gil_scoped_release release;
+			SingularValueDecomposition( desc, isFullAlgorithm ? SVD_Full : SVD_Sparse, leftVectors, singularValues, rightVectors,
+				returnLeftVectors, returnRightVectors, components );
+		}
+		auto leftArray = py::array_t<float>( leftVectors.Size(), leftVectors.GetPtr() );
+		auto singularArray = py::array_t<float>( singularValues.Size(), singularValues.GetPtr() );
+		auto rightArray = py::array_t<float>( rightVectors.Size(), rightVectors.GetPtr() );
+		if( returnLeftVectors ) {
+			leftArray.resize( { height, components } );
+		}
+		if( returnRightVectors ) {
+			rightArray.resize( { components, width } );
+		}
+		return py::make_tuple( leftArray, singularArray, rightArray );
+	}, py::return_value_policy::take_ownership );
 }

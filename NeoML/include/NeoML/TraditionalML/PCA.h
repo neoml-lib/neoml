@@ -20,6 +20,26 @@ limitations under the License.
 
 namespace NeoML {
 
+// SVD solver type
+enum TSvd {
+	// Full svd for dense matrices
+	SVD_Full = 0,
+	// Truncated svd for sparse matrices
+	SVD_Sparse,
+	SVD_Count
+};
+
+// Computes the singular value decomposition of the `data` matrix, of shape m x n:
+// `data` = `leftVectors` * `singularValues` * `rightVectors`.
+// For SVD_Full `leftVectors` is of shape m x min(n, m), `rightVectors` is of shape min(n, m) x n,
+// `singularValues` contains min(n, m) singular values.
+// For SVD_Sparse parameter `components` must be set. Then `leftVectors` is of shape `components` x m,
+// `rightVectors` is of shape `components` x n, `singularValues` contains `components` largest singular values.
+// If returnLeftVectors or returnRightVectors is false then corresponding singular vectors are not returned.
+void NEOML_API SingularValueDecomposition( const CFloatMatrixDesc& data, const TSvd& svdSolver,
+	CArray<float>& leftVectors, CArray<float>& singularValues, CArray<float>& rightVectors,
+	bool returnLeftVectors = true, bool returnRightVectors = false, int components = 0 );
+
 // PCA algorithm implementing linear dimensionality reduction
 // using Singular Value Decomposition to project the data into
 // a lower dimensional space
@@ -31,7 +51,7 @@ public:
 		PCAC_None = 0,
 		// Integer number Components representing a number of components to compute
 		PCAC_Int,
-		// Number of components is selected such that
+		// In case of SVD_Full number of components is selected such that
 		// the value of explained_variance is greater than Components
 		// 0 < Components < 1
 		PCAC_Float,
@@ -41,10 +61,12 @@ public:
 	// PCA params
 	struct CParams {
 		TComponents ComponentsType;
+		TSvd SvdSolver;
 		float Components;
 
 		CParams() :
 			ComponentsType( PCAC_None ),
+			SvdSolver( SVD_Full ),
 			Components( 0 )
 		{
 		}
@@ -70,7 +92,11 @@ public:
 	// Selected number of principal axis
 	int GetComponentsNum() const { return components; }
 	// Matrix ( components x features ) with rows corresponding to the selected principal axis 
-	CFloatMatrixDesc GetComponents() const { return componentsMatrix.GetDesc(); }
+	CFloatMatrixDesc GetComponents() const {
+		// not working for sparse algorithm
+		NeoAssert( params.SvdSolver == SVD_Full );
+		return componentsMatrix.GetDesc();
+	}
 
 private:
 	const CParams params;
@@ -83,7 +109,7 @@ private:
 	int components;
 
 	void train( const CFloatMatrixDesc& data, bool isTransform );
-	void calculateVariance(  IMathEngine& mathEngine, const CFloatHandle& s, int m, int k );
+	void calculateVariance( const CFloatMatrixDesc& data, const CArray<float>& s, int total_components );
 	void getComponentsNum( const CArray<float>& explainedVarianceRatio, int k );
 };
 

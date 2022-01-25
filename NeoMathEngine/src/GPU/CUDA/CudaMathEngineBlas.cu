@@ -754,7 +754,14 @@ void CCudaMathEngine::MatrixSpreadRows(const CConstIntHandle& sourceHandle, int 
 }
 
 void CCudaMathEngine::SingularValueDecomposition( const CFloatHandle& a, int n, int m, const CFloatHandle& u, const CFloatHandle& s,
-	const CFloatHandle& vt, const CFloatHandle& superb )
+	const CFloatHandle& vt, const CFloatHandle& superb, bool returnLeftVectors, bool returnRightVectors )
+{
+	ASSERT_EXPR( false );
+}
+
+void CCudaMathEngine::SparseSingularValueDecomposition( const CSparseMatrixDesc& desc, int height, int width,
+	const CFloatHandle& leftVectors, const CFloatHandle& s, const CFloatHandle& rightVectors, const CFloatHandle& res,
+	int components, bool returnLeftVectors )
 {
 	ASSERT_EXPR( false );
 }

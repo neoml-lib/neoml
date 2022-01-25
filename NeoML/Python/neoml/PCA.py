@@ -19,6 +19,36 @@ from .Utils import convert_data, get_data
 from scipy.sparse import csr_matrix
 import neoml.PythonWrapper as PythonWrapper
 
+"""
+Singular Value Decomposition of a given matrix into matrices u, s, v.
+
+:param compute_u: indicates whether matrix u will be returned
+:type compute_u: bool, default=True
+:param compute_v: indicates whether matrix v will be returned
+:type compute_v: bool, default=False
+:param algorithm: chooses an algorithm.
+    'full' implements LAPACK SVD (LAPACKE_sgesvd).
+    'sparse' implements the FEAST algorithm (mkl_sparse_s_svd).
+:type algorithm: str, ['full', 'sparse'], default='full'
+:param components: indicates a number of largest singular values
+    to search (only for 'sparse' algorithm).
+    Default value is min(matrix.height, matrix.width).
+:type components: int
+"""
+def svd(matrix, compute_u = True, compute_v = False, algorithm = 'full', components = None):
+    if algorithm not in ('full', 'sparse'):
+        raise ValueError("`algorithm` must be one of ('full', 'sparse').")
+    x = convert_data(matrix)
+    if len(x.shape) != 2:
+        raise ValueError("Matrix must be square.")
+    if algorithm == 'sparse':
+        if compute_u == compute_v:
+            raise ValueError("Exactly one of u and v must be calculated.")
+    if components is None:
+        components = min(*x.shape)
+    return PythonWrapper.singular_value_decomposition(*x.shape, *get_data(x),
+        compute_u, compute_v, algorithm == 'full', components)
+
 class PCA(PythonWrapper.PCA) :
     """PCA algorithm implementing linear dimensionality reduction
     using Singular Value Decomposition to project the data into

@@ -2561,24 +2561,52 @@ class ClusteringTestCase(MultithreadedTestCase):
     def test_kmeans(self):
         self._test_clusterize('KMeans', dict(max_iteration_count=100, cluster_count=6, init='k++'))
 
+
 class TestPca(MultithreadedTestCase):
+    def test_full_svd(self):
+        from neoml.PCA import svd
+        x = np.array([[2, 1, 3, 2], [2, 4, 4, 1], [2, 4, 1, 1], [4, 4, 3, 4]], dtype=np.float32)
+        u, s, v = svd(x, compute_u=True, compute_v=True, algorithm='full')
+        expected_s = [11.011665,  2.7114089,  2.315459,  0.17357856]
+        self.assertTrue(u.shape == (4, 4))
+        self.assertTrue(s.shape == (4,))
+        self.assertTrue(all([abs(s[i] - expected_s[i]) < 1e-3 for i in range(4)]))
+        self.assertTrue(v.shape == (4, 4))
+
+    def test_sparse_svd(self):
+        from neoml.PCA import svd
+        components = 2
+        x = np.array([[2, 1, 3, 2], [2, 4, 4, 1], [2, 4, 1, 1], [4, 4, 3, 4]], dtype=np.float32)
+        expected_s = [11.011665,  2.7114089,  2.315459,  0.17357856]
+        for compute_u, compute_v in [
+            (False, True), (True, False)
+        ]:
+            u, s, v = svd(x, compute_u=compute_u, compute_v=compute_v, algorithm='sparse', components=components)
+            if compute_u:
+                self.assertTrue(u.shape == (4, components))
+            self.assertTrue(s.shape == (components,))
+            self.assertTrue(all([abs(s[i] - expected_s[i]) < 1e-3 for i in range(components)]))
+            if compute_v:
+                self.assertTrue(v.shape == (components, 4))
+
     def test_pca(self):
         n_samples, n_components = 1000, 2
         X = np.empty((2 *  n_samples, 4), dtype=np.float32)
         a, b = 3., 2.
         for i in range(n_samples):
-            x = -a + 2 * i * a / n_samples;
+            x = -a + 2 * i * a / n_samples
             y = np.sqrt(1 - (x * x) / (a * a)) * b
             X[2 * i] = [x, y, 1, 0]
             X[2 * i + 1] = [x, -y, 1, 0]
         pca = neoml.PCA.PCA(2)
         transformedX = pca.fit_transform(X)
         self.assertEqual( pca.components.tolist(), [[-1, 0, 0, 0], [0, 1, 0, 0]] )
-        self.assertEqual( pca.singular_values.size, 2 )
-        self.assertEqual( pca.explained_variance.size, 2 )
-        self.assertEqual( pca.explained_variance_ratio.size, 2 )
-        self.assertTrue( pca.n_components == 2 )
-        self.assertTrue( pca.noise_variance == 0 )
+        self.assertEqual( pca.singular_values.size, n_components )
+        self.assertEqual( pca.explained_variance.size, n_components )
+        self.assertEqual( pca.explained_variance_ratio.size, n_components )
+        self.assertTrue( pca.n_components == n_components )
+        self.assertTrue( abs(pca.noise_variance) < 1e-5 )
+
 
 @skipIf(sys.platform == 'darwin', 'Not supposed to work on MacOS')
 class DnnDistributedTestCase(TestCase):
