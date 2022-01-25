@@ -50,12 +50,13 @@ def svd(matrix, compute_u = True, compute_v = False, algorithm = 'full', compone
         compute_u, compute_v, algorithm == 'full', components)
 
 class PCA(PythonWrapper.PCA) :
-    """PCA algorithm implementing linear dimensionality reduction
-    using Singular Value Decomposition to project the data into
+    """Principal components analysis (PCA) algorithm. 
+    It uses singular value decomposition to project the data into
     a lower dimensional space.
 
-    :param n_components: number of components.
-        If 0 < n_components < 1, set the number of components such that variance is greater than n_components.
+    :param n_components: number of components or the way it should be chosen.
+        If it's an integer value, it's simply the number of components.
+        If it's a float value and 0 < n_components < 1, set the number of components so that variance is greater than this value.
         If n_components = None, set the number of components as min(data.width, data.height).
     :type n_components: int, float, default=None
     """
@@ -74,7 +75,10 @@ class PCA(PythonWrapper.PCA) :
         super().__init__(*components)
 
     def fit(self, X):
-        """Performs linear dimensionality reduction of the given data.
+        """Performs linear dimensionality reduction of the given data:
+        finds the singular vectors and selects the required number of them
+        to be principal components, preferring the vectors that correspond
+        to the largest singular values.
 
         :param X: the input sample. Internally, it will be converted
             to ``dtype=np.float32``, and if a sparse matrix is provided -
@@ -86,7 +90,12 @@ class PCA(PythonWrapper.PCA) :
         super().fit(*x.shape, *get_data(x))
 
     def fit_transform(self, X):
-        """Performs linear dimensionality reduction of the given data.
+        """Performs linear dimensionality reduction of the given data:
+        finds the singular vectors and selects the required number of them
+        to be principal components, preferring the vectors that correspond
+        to the largest singular values.
+        
+        Then projects the dataset onto the principal components axes and returns the result.
 
         :param X: the input sample. Internally, it will be converted
             to ``dtype=np.float32``, and if a sparse matrix is provided -
@@ -102,36 +111,36 @@ class PCA(PythonWrapper.PCA) :
 
     @property
     def singular_values(self):
-        """Returns singular values corresponding to the selected principal axis
+        """Returns the singular values corresponding to the selected principal axes.
         """
         return super().singular_values()
 
     @property
     def explained_variance(self):
-        """Returns variance explained by each of the selected principal axis
+        """Returns the variance explained by each of the selected principal axes.
         """
         return super().explained_variance()
 
     @property
     def explained_variance_ratio(self):
-        """Returns percentage of variance explained by each of the selected principal axis
+        """Returns the percentage of variance explained by each of the selected principal axes.
         """
         return super().explained_variance_ratio()
 
     @property
     def components(self):
-        """Returns ndarray ( components x features ) with rows corresponding to the selected principal axis 
+        """Returns ndarray ( components x features ) with rows corresponding to the selected principal axes.
         """
         return super().components()
 
     @property
     def n_components(self):
-        """Returns selected number of principal axis
+        """Returns the selected number of principal axes.
         """
         return super().n_components()
 
     @property
     def noise_variance(self):
-        """Returns mean of singular values not corresponding to the selected principal axis
+        """Returns the mean of singular values not corresponding to the selected principal axes.
         """
         return super().noise_variance()
