@@ -14,6 +14,8 @@
 		- [CGraphGenerator](#cgraphgenerator)
 		- [CMatchingGenerator](#cmatchinggenerator)
 		- [CSimpleGenerator](#csimplegenerator)
+	- [Dimensionality reduction](#dimensionality-reduction)
+		- [Principal component analysis](#principal-component-analysis)
 
 <!-- TOC -->
 
@@ -342,5 +344,76 @@ CIntSimpleGenerator generator;
 CArray<CIntElement> next;
 generator.GetNextSet( next );
 generator.GetNextSet( next );
+
+```
+
+## Dimensionality reduction
+
+It may be useful in many tasks to lower the dimensionality of a large multidimensional dataset while still retaining most of the information it contained.
+
+### Principal component analysis
+
+PCA uses singular value decomposition to project the dataset into a lower dimensional space.
+
+```c++
+void SingularValueDecomposition( const CFloatMatrixDesc& data, const TSvd& svdSolver,
+	CArray<float>& leftVectors, CArray<float>& singularValues, CArray<float>& rightVectors,
+	bool returnLeftVectors, bool returnRightVectors, int components )
+```
+There are two algorithms for full and sparse matrices, `SVD_Full` and `SVD_Sparse` correspondingly.
+
+The number of principal components can be selected in several ways, determined by the `ComponentsType` field of `CParams`:
+
+* `PCAC_None`: the number of components will simply be the smaller of the data matrix width and height
+* `PCAC_Int`: the number of components is directly specified in the `Components` field
+* `PCAC_Float`: select the number of components so that the explained variance is greater than the float value in `Components` field (it should be in (0, 1) range)
+
+The `Train` method performs SVD, then takes the required number of the singular vectors for principal components, selecting those that correspond to the largest singular values.
+
+The `Transform` method does the same, then transforms the data matrix into the new principal component coordinates.
+
+You can access the singular values, variance, and the principal components via the getter methods.
+
+```c++
+class NEOML_API CPca {
+public:
+    enum TComponents {
+		PCAC_None = 0,
+		PCAC_Int,
+		PCAC_Float,
+    	PCAC_Count
+	};
+
+	struct CParams {
+		TComponents ComponentsType;
+		TSvd SvdSolver;
+		float Components;
+
+		CParams() :
+			ComponentsType( PCAC_None ),
+			SvdSolver( SVD_Full ),
+			Components( 0 )
+		{
+		}
+	};
+
+	// Chooses the greatest singular values from `Components` and
+	// selects the corresponding principal axes as the final components
+	void Train( const CFloatMatrixDesc& data );
+	// Trains and transforms the data into shape ( samples x components )
+	CSparseFloatMatrixDesc Transform( const CFloatMatrixDesc& data );
+
+	// Singular values corresponding to the selected principal axes
+	const CArray<float>& GetSingularValues() const { return singularValues; }
+	// Variance explained by each of the selected principal axes
+	const CArray<float>& GetExplainedVariance() const { return explainedVariance; }
+	// Percentage of variance explained by each of the selected principal axis
+	const CArray<float>& GetExplainedVarianceRatio() const { return explainedVarianceRatio; }
+	// Mean of singular values not corresponding to the selected principal axes
+	float GetNoiseVariance() const { return noiseVariance; }
+	// Selected number of principal axes
+	int GetComponentsNum() const { return components; }
+	// Matrix ( components x features ) with rows corresponding to the selected principal axes 
+	CFloatMatrixDesc GetComponents() const { return componentsMatrix.GetDesc(); }
 
 ```

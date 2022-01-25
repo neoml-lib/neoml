@@ -135,6 +135,9 @@ set(NeoML_SOURCES
     TraditionalML/SparseFloatMatrix.cpp
     TraditionalML/StratifiedCrossValidationSubProblem.cpp
     TraditionalML/Svm.cpp
+    TraditionalML/PCA.cpp
+    TraditionalML/SvmBinaryModel.cpp
+    TraditionalML/SvmBinaryModel.h
     TraditionalML/SvmKernel.cpp
     TraditionalML/TrustRegionNewtonOptimizer.cpp
 )
@@ -314,6 +317,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/TraditionalML/SparseFloatVector.h
     ../include/NeoML/TraditionalML/SparseVectorIterator.h
     ../include/NeoML/TraditionalML/Svm.h
+    ../include/NeoML/TraditionalML/PCA.h
     ../include/NeoML/TraditionalML/SvmKernel.h
     ../include/NeoML/TraditionalML/StratifiedCrossValidationSubProblem.h
     ../include/NeoML/TraditionalML/TrainingModel.h
@@ -370,7 +374,7 @@ if(WIN32)
     target_sources(${PROJECT_NAME} PRIVATE ../NeoML.rc)
 endif()
 
-target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_14)
+target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_11)
 
 add_subdirectory(../../NeoMathEngine ${CMAKE_BINARY_DIR}/NeoMathEngine)
 
