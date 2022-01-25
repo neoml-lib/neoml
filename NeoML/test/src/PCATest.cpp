@@ -104,7 +104,7 @@ static void pcaTestExample( int samples, int features, int components,
 {
 	CPca::CParams params;
 	params.ComponentsType = CPca::TComponents::PCAC_Int;
-	params.Components = components;
+	params.Components = static_cast<float>( components );
 	params.SvdSolver = svdSolver;
 
 	const CSparseFloatMatrix& matrix = generateMatrix( samples, features, data );
