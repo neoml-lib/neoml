@@ -31,7 +31,7 @@ public:
 	virtual bool IsDiscreteFeature( int ) const { return false; }
 	virtual int GetFeatureCount() const { return desc.Width; }
 	virtual int GetVectorCount() const { return desc.Height; }
-	virtual int GetClass( int index ) const { return 0; }
+	virtual int GetClass( int ) const { return 0; }
 	virtual CFloatMatrixDesc GetMatrix() const { return desc; }
 	virtual double GetVectorWeight( int ) const { return 1; }
 
@@ -321,9 +321,9 @@ void CPca::calculateVariance( const CFloatMatrixDesc& data, const CArray<float>&
 		CArray<double> variance;
 		CalcFeaturesVariance( problem, variance );
 		for( int i = 0; i < variance.Size(); i++ ) {
-			totalVariance += variance[i];
+			totalVariance += static_cast<float>( variance[i] );
 		}
-		totalVariance *= m * 1. / ( m - 1 );
+		totalVariance *= static_cast<float>( m * 1. / ( m - 1 ) );
 	}
 
 	// calculate explained_variance_ratio
@@ -358,7 +358,7 @@ void CPca::train( const CFloatMatrixDesc& data, bool isTransform )
 	CArray<float> leftVectors;
 	CArray<float> rightVectors;
 	if( params.SvdSolver == SVD_Sparse ) {
-		components = ( params.ComponentsType == PCAC_None ) ? k : params.Components;
+		components = ( params.ComponentsType == PCAC_None ) ? k : static_cast<int>( params.Components );
 		SingularValueDecomposition( matrix.GetDesc(), params.SvdSolver, leftVectors, singularValues, rightVectors,
 			true, false, components );
 	} else {
