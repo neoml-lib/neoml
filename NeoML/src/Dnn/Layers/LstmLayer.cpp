@@ -314,7 +314,9 @@ void CLstmLayer::Serialize( CArchive& archive )
 }
 
 void CLstmLayer::RunOnce() {
-	if( !isInCompatibilityMode && recurrentActivation == AF_Sigmoid ) {
+	if( MathEngine().GetType() == MET_Cpu && 
+		!isInCompatibilityMode && 
+		recurrentActivation == AF_Sigmoid ) {
 		fastLstm();
 	} else {
 		CRecurrentLayer::RunOnce();
@@ -323,7 +325,9 @@ void CLstmLayer::RunOnce() {
 
 void CLstmLayer::Reshape() {
 	CRecurrentLayer::Reshape();
-	fastLstmDesc.Reset();
+	if( MathEngine().GetType() == MET_Cpu ) {
+		fastLstmDesc.Reset();
+	}
 }
 
 // Sets weights to input and reccurrent fully connected layers.

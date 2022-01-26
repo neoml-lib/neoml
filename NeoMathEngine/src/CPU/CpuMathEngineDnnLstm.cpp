@@ -18,7 +18,7 @@ limitations under the License.
 
 #include <CpuMathEngine.h>
 #include <CpuMathEnginePrivate.h>
-#include <MathEngineDnnLstm.h>
+#include <CpuMathEngineDnnLstm.h>
 #include <NeoMathEngine/NeoMathEngineException.h>
 #include <NeoMathEngine/OpenMP.h>
 
