@@ -64,7 +64,7 @@ void CJitCommon::Epilogue( const reg64Vec_t& preservedGPR,
 
 void CJitCommon::StartDownCountLoop( reg64_t counter, size_t step )
 {
-    loopDescs.emplace( counter, step );
+    loopDescs.emplace( counter, static_cast<uint32_t>( step ) );
     CLoopDesc& loopDesc = loopDescs.top();
     L( loopDesc.StartLabel );
     cmp( loopDesc.Counter, loopDesc.Step );
