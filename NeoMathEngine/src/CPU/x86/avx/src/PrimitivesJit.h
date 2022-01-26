@@ -17,7 +17,7 @@ limitations under the License.
 #include <common.h>
 #pragma hdrstop
 
-#include <MathEngineDnnLstm.h>
+#include <CpuMathEngineDnnLstm.h>
 #include <JitCommon.h>
 #include <unordered_map>
 #include <array>
