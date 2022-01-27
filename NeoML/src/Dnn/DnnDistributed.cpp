@@ -204,7 +204,12 @@ void CDistributedTraining::GetLastLoss( const CString& layerName, CArray<float>&
     for( int i = 0; i < cnns.Size(); i++ ){
         CLossLayer* lossLayer = dynamic_cast<CLossLayer*>( cnns[i]->GetLayer( layerName ).Ptr() );
         if( lossLayer == nullptr ){
-            losses[i] = dynamic_cast<CCtcLossLayer*>( cnns[i]->GetLayer( layerName ).Ptr() )->GetLastLoss();
+            CCtcLossLayer* ctc = dynamic_cast<CCtcLossLayer*>( cnns[i]->GetLayer( layerName ).Ptr() );
+            if( ctc != nullptr ) {
+                losses[i] = ctc->GetLastLoss();
+            } else {
+                losses[i] = CheckCast<CCrfLossLayer>( cnns[i]->GetLayer( layerName ) )->GetLastLoss();
+            }
         } else {
             losses[i] = lossLayer->GetLastLoss();
         }

@@ -44,7 +44,7 @@ public:
 	// Updates the trainable weights of all models (after RunAndBackwardOnce)
 	void Train();
 	// Returns last loss of `layerName` for all models
-	// `layerName` should correspond to CLossLayer or CCtcLossLayer
+	// `layerName` should correspond to CLossLayer, CCtcLossLayer or CCrfLossLayer
 	void GetLastLoss( const CString& layerName, CArray<float>& losses );
 	// Returns last blobs of `layerName` for all models
 	// `layerName` should correspond to CSinkLayer
