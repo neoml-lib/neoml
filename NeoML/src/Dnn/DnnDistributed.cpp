@@ -194,7 +194,6 @@ void CDistributedTraining::Train()
     }
     CheckArchitecture( errorMessage.IsEmpty(), "DistributedTraining", errorMessage );
 #else
-    ( void ) data;
     NeoAssert( false );
 #endif
 }
