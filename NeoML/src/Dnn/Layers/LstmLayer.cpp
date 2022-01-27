@@ -439,14 +439,6 @@ void CLstmLayer::fastLstm()
 			recurrentFreeTermHandle = recurrentFreeTerm->GetData();
 		}
 
-		CConstFloatHandle inputFreeTermHandle, recurrentFreeTermHandle;
-		if( inputFreeTerm.Ptr() ) {
-			inputFreeTermHandle = inputFreeTerm->GetData();
-		}
-		if( recurrentFreeTerm.Ptr() ) {
-			recurrentFreeTermHandle = recurrentFreeTerm->GetData();
-		}
-
 		MathEngine().Lstm( fastLstmDesc.LstmDesc(), 
 			inputWeights->GetData(), inputFreeTermHandle,
 			recurrentWeights->GetData(), recurrentFreeTermHandle,
