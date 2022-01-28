@@ -2,7 +2,7 @@ project(NeoMathEngineAvx)
 
 add_library(${PROJECT_NAME} SHARED common.cpp)
 
-target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_11)
+target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_14)
 
 target_sources(${PROJECT_NAME}
     PRIVATE
@@ -10,14 +10,21 @@ target_sources(${PROJECT_NAME}
     # Sources
     ./src/AvxMathEngine.cpp
     ./src/MatrixMultiplyingInterleaved/AvxMatrixMultiplying.cpp
+
     # Headers
     ./common.h
     ./src/BlobConvolution.h
-    ./src/BlobConvolution_FltCnt_6.h
-    ./src/BlobConvolution_FltCnt_18.h
-    ./src/BlobConvolution_FltCnt_24.h
-    ./src/BlobConvolution_FltCnt_32.h
+    ./src/BlobConvolution.inl
+    ./src/BlobConvolution_jit.inl
+    ./src/BlobConvolution_jit_FltCnt_3.inl
+    ./src/BlobConvolution_jit_FltCnt_6.inl
+    ./src/BlobConvolution_jit_FltCnt_8.inl
+    ./src/BlobConvolution_jit_FltCnt_16.inl
+    ./src/BlobConvolution_jit_FltCnt_18.inl
+    ./src/BlobConvolution_jit_FltCnt_24.inl
+    ./src/BlobConvolution_jit_FltCnt_32.inl
     ./src/AvxCommon.h
+    ./src/JitCommon.h
     ./src/MatrixMultiplyingInterleaved/Interleavers/Interleavers.h
     ./src/MatrixMultiplyingInterleaved/MicroKernels/Kernel_AVX_6x16.h
     ./src/MatrixMultiplyingInterleaved/MicroKernels/Kernel_AVX_6x8.h
@@ -53,7 +60,9 @@ target_compile_definitions(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME} PRIVATE NeoMathEngine)
 
 # OpenMP
-link_openmp(${PROJECT_NAME})
+if(NOT DARWIN)
+    link_openmp(${PROJECT_NAME})
+endif()
 
 # AVX
 if(WIN32)

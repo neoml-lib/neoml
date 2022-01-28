@@ -86,7 +86,6 @@ namespace NeoML {
 #include <shaders/generated/VectorPowerDiffOp.h>
 #include <shaders/generated/VectorL1DiffAdd.h>
 #include <shaders/generated/VectorDotProduct.h>
-#include <shaders/generated/VectorEltwiseLogSumExp.h>
 #include <shaders/generated/VectorSum.h>
 #include <shaders/generated/VectorEqual.h>
 #include <shaders/generated/VectorFillBernoulli.h>
@@ -162,7 +161,7 @@ void CVulkanMathEngine::VectorFillBernoulli( const CFloatHandle& result, float p
 	CMemoryHandle bufs[1] = { result };
 	size_t sizes[1] = { vectorSize * sizeof(float) };
 
-	const uint32_t threshold = uint32_t(p * 0xFFFFFFFF);
+	const unsigned int threshold = ( unsigned int ) ( ( double ) p * UINT_MAX );
 	PARAM_STRUCT(VectorFillBernoulli) param = { value, p, threshold, seed };
 
 	runVectorShader( shaderLoader->GET_SHADER_DATA(VectorFillBernoulli, true, 0, 0, 1),
@@ -920,16 +919,6 @@ void CVulkanMathEngine::VectorSpreadValues( const CConstFloatHandle&, CFloatHand
 	ASSERT_EXPR( false );
 }
 
-void CVulkanMathEngine::VectorEltwiseLogSumExp( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
-	const CFloatHandle& resultHandle, int vectorSize )
-{
-	CMemoryHandle bufs[3] = { firstHandle, secondHandle, resultHandle};
-	size_t sizes[3] = { vectorSize * sizeof(float), vectorSize * sizeof(float), vectorSize * sizeof(float) };
-
-	runVectorShader( shaderLoader->GET_SHADER_DATA(VectorEltwiseLogSumExp, false, 0, 0, 3), 0, 0, 0, 0, 0, 0, bufs, sizes, 3,
-		Ceil(vectorSize, VectorCombine) );
-}
-
 void CVulkanMathEngine::VectorSum( const CConstFloatHandle& firstHandle, int vectorSize, const CFloatHandle& resultHandle )
 {
 	CMemoryHandle bufs[2] = { firstHandle, resultHandle };
@@ -948,18 +937,6 @@ void CVulkanMathEngine::VectorSumAdd( const CConstFloatHandle& firstHandle, int 
 	size_t sizes[2] = { vectorSize * sizeof(float), sizeof(float) };
 
 	PARAM_STRUCT(VectorSum) param = { 1, 0 };
-
-	const CVulkanShaderData& shaderData = shaderLoader->GET_SHADER_DATA(VectorSum, true, 0, 0, 2);
-
-	runVectorShader(shaderData, &param, sizeof(param), 0, 0, 0, 0, bufs, sizes, 2, shaderData.GetGroupSize());
-}
-
-void CVulkanMathEngine::VectorNegSum(const CConstFloatHandle& firstHandle, int vectorSize, const CFloatHandle& resultHandle)
-{
-	CMemoryHandle bufs[2] = { firstHandle, resultHandle };
-	size_t sizes[2] = { vectorSize * sizeof(float), sizeof(float) };
-
-	PARAM_STRUCT(VectorSum) param = { 0, 1 };
 
 	const CVulkanShaderData& shaderData = shaderLoader->GET_SHADER_DATA(VectorSum, true, 0, 0, 2);
 
@@ -1020,7 +997,7 @@ void CVulkanMathEngine::VectorMax( const CConstFloatHandle& firstHandle, float s
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	ASSERT_EXPR( vectorSize > 0 );
 	ASSERT_EXPR( false );
-	secondValue;	
+	(void)secondValue;
 }
 
 void CVulkanMathEngine::VectorMaxDiff( const CConstFloatHandle& firstHandle, float secondValue, const CFloatHandle& gradHandle,
@@ -1031,7 +1008,7 @@ void CVulkanMathEngine::VectorMaxDiff( const CConstFloatHandle& firstHandle, flo
 	ASSERT_EXPR( gradHeight > 0 );
 	ASSERT_EXPR( gradWidth > 0 );
 	ASSERT_EXPR( false );
-	secondValue;	
+	(void)secondValue;
 }
 
 void CVulkanMathEngine::VectorNeg(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize)
@@ -1060,7 +1037,7 @@ void CVulkanMathEngine::VectorSub(const CConstFloatHandle& firstHandle, float se
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	ASSERT_EXPR( vectorSize > 0 );
 	ASSERT_EXPR( false );
-	second;
+	(void)second;
 }
 
 void CVulkanMathEngine::VectorSub(float first, const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle,
@@ -1070,7 +1047,7 @@ void CVulkanMathEngine::VectorSub(float first, const CConstFloatHandle& secondHa
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	ASSERT_EXPR( vectorSize > 0 );
 	ASSERT_EXPR( false );
-	first;
+	(void)first;
 }
 
 void CVulkanMathEngine::VectorTopK(const CConstFloatHandle& first, int firstSize, int k, const CFloatHandle& result,

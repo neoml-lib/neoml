@@ -77,6 +77,8 @@ When processing on a GPU, you can optionally use [CUDA](https://developer.nvidia
 
 We also use Google [Test](https://github.com/google/googletest) for testing and Google [Protocol Buffers](https://developers.google.com/protocol-buffers) for working with ONNX model format.
 
+We use very convinous generator of JIT code [xbyak](https://github.com/herumi/xbyak) for speeding up some convolutions on x86_64 processors.
+
 ### Build fully functional C++ version
 
 See [here](NeoML/docs/en/Installation/cpp.md) for instructions on building the C++ library version for different platforms.

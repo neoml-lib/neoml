@@ -80,6 +80,7 @@
 
 - `CDnnUniformInitializer` - класс, генерирующий веса из равномерного распределения на отрезке, границы которого устанавливаются методами `GetLowerBound` и `GetUpperBound`;
 - `CDnnXavierInitializer` - класс, генерирующий веса из нормального распределения `N(0, 1/n)`, где `n` - число входных нейронов у слоя.
+- `CDnnXavierUniformInitializer` - класс, генерирующий веса из равномерного распределения `U(-sqrt(1/n), sqrt(1/n))`, где `n` - число входных нейронов у слоя.
 
 Для задания инициализации необходимо создать объект нужного класса и передать его в сеть при помощи метода [`CDnn::SetInitializer`](Dnn.md#инициализация-весов). По умолчанию используется инициализация `Xavier`.
 
@@ -295,6 +296,7 @@ delete gpuMathEngine;
     - [CFocalLossLayer](LossLayers/FocalLossLayer.md) - функция `Focal` (модифицированная кросс-энтропия)
   - Регрессия:
     - [CEuclideanLossLayer](LossLayers/EuclideanLossLayer.md) - евклидово расстояние
+    - [CL1LossLayer](LossLayers/L1ossLayer.md) - L1 расстояние
   - Дополнительно:
     - [CCenterLossLayer](LossLayers/CenterLossLayer.md) - вспомогательная функция `Center`, штрафующая дисперсию внутри классов
 - Работа с дискретными признаками:

@@ -32,7 +32,7 @@ public:
 
 protected:
 	CQualityControlLayer( IMathEngine& mathEngine, const char* name );
-	~CQualityControlLayer() {}
+	~CQualityControlLayer() override = default;
 
 	void Reshape() override;
 	void BackwardOnce() override;

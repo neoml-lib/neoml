@@ -421,7 +421,7 @@ void CVulkanMathEngine::runVectorShader( const CVulkanShaderData& shader, const 
 const CVulkanImage& CVulkanMathEngine::batchVectorToImage( int batchSize, const CConstFloatHandle& vector, int size, int imageId )
 {
 	int size4 = Ceil(size, 4);
-	const CVulkanImage* images[] = { getTmpImage((TTmpVulkanImage)imageId, size4, batchSize) };
+	const CVulkanImage* images[1] = { getTmpImage((TTmpVulkanImage)imageId, size4, batchSize) };
 
 	CMemoryHandle bufs[1] = { vector };
 	size_t sizes[1] = { static_cast<size_t>( batchSize ) * size * sizeof( float ) };

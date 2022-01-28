@@ -8,6 +8,10 @@ add_executable(${PROJECT_NAME}
     FullTestDesktop.cpp
 )
 
+set_target_properties( ${PROJECT_NAME} PROPERTIES
+    UNITY_BUILD_MODE GROUP
+)
+
 if(MSVC)
     target_link_options(${PROJECT_NAME} PRIVATE "/SUBSYSTEM:Console")
 endif()

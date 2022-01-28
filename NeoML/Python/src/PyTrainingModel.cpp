@@ -385,7 +385,7 @@ void InitializeTrainingModel(py::module& m)
 	py::class_<CPyDecisionTree, CPyTrainingModel>(m, "DecisionTree")
 		.def(
 			py::init([]( int min_subset_size, float min_subset_part, int min_split_size, int max_tree_depth, int max_node_count, const std::string& criterion,
-						float const_threshold, int random_selected_feature_count, const std::string& multiclass_mode )
+						float const_threshold, int random_selected_feature_count, size_t available_memory, const std::string& multiclass_mode )
 						{
 							CDecisionTreeTrainingModel::CParams p;
 							p.SplitCriterion = CDecisionTreeTrainingModel::SC_Count;
@@ -402,6 +402,7 @@ void InitializeTrainingModel(py::module& m)
 							p.MaxNodesCount = max_node_count;
 							p.ConstNodeThreshold = const_threshold;
 							p.RandomSelectedFeaturesCount = random_selected_feature_count;
+							p.AvailableMemory = available_memory;
 
 							if( multiclass_mode == "single_tree" ) {
 								p.MulticlassMode = MM_SingleClassifier;

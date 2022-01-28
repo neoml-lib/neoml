@@ -29,7 +29,7 @@ void AvxMultiplyMatrix( bool transA, bool transB,
 	size_t m, size_t n, size_t k );
 
 struct CAvxConvolutionDesc : public CConvolutionDesc {
-	~CAvxConvolutionDesc() override {}
+	~CAvxConvolutionDesc() override = default;
 
 	CAvxConvolutionDesc( IMathEngine* mathEngine, const CBlobDesc& source, const CBlobDesc& result, const CBlobDesc& filter,
 		int paddingHeight, int paddingWidth, int strideHeight, int strideWidth, int dilationHeight, int dilationWidth );

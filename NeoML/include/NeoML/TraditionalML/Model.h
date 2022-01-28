@@ -25,7 +25,7 @@ namespace NeoML {
 // Trained classifier model interface
 class NEOML_API IModel : virtual public IObject {
 public:
-	virtual ~IModel();
+	~IModel() override;
 
 	// The number of classes
 	virtual int GetClassCount() const = 0;
@@ -38,13 +38,13 @@ public:
 		{ return Classify( data.GetDesc(), result ); }
 
 	// Serializes the model
-	virtual void Serialize( CArchive& archive ) = 0;
+	void Serialize( CArchive& archive ) override = 0;
 };
 
 // Regression model for a function that returns a number
 class NEOML_API IRegressionModel : virtual public IObject {
 public:
-	virtual ~IRegressionModel();
+	~IRegressionModel() override;
 
 	// Predicts the function value on a vector
 	virtual double Predict( const CFloatVectorDesc& desc ) const = 0;
@@ -54,13 +54,13 @@ public:
 		{ return Predict( data.GetDesc() ); };
 
 	// Serializes the model
-	virtual void Serialize( CArchive& archive ) = 0;
+	void Serialize( CArchive& archive ) override = 0;
 };
 
 // Regression model for a function that returns a vector
 class NEOML_API IMultivariateRegressionModel : virtual public IObject {
 public:
-	virtual ~IMultivariateRegressionModel();
+	~IMultivariateRegressionModel() override;
 
 	// Predicts the function value on a vector
 	virtual CFloatVector MultivariatePredict( const CSparseFloatVector& data ) const
@@ -70,7 +70,7 @@ public:
 	virtual CFloatVector MultivariatePredict( const CFloatVectorDesc& data ) const = 0;
 
 	// Serializes the model
-	virtual void Serialize( CArchive& archive ) = 0;
+	void Serialize( CArchive& archive ) override = 0;
 };
 
 //------------------------------------------------------------------------------------------------------------

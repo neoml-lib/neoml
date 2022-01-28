@@ -18,21 +18,12 @@ limitations under the License.
 
 #include <CpuMathEngine.h>
 #include <CpuMathEnginePrivate.h>
+#include <CpuExecutionScope.h>
 #include <MemoryHandleInternal.h>
 #include <MathEngineCommon.h>
 #include <math.h>
 
 namespace NeoML {
-
-// LogSumExp for two inputs
-inline float LogSumExpFunc(float f, float s)
-{
-	if(f >= s) {
-		return f + log1pf(expf(s - f));
-	} else {
-		return s + log1pf(expf(f - s));
-	}
-}
 
 static void subVectorFromMatrixRows(CCpuMathEngine* engine, const CConstFloatHandle& matrixHandle, const CFloatHandle& resultHandle,
 	int matrixHeight, int matrixWidth, const CConstFloatHandle& vectorHandle)
@@ -150,6 +141,7 @@ void CCpuMathEngine::TransposeMatrix( int batchSize, const CConstFloatHandle& fi
 {
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	CCpuExecutionScope scope;
 
 	transposeMatrix( batchSize, GetRaw( firstHandle ), height, medium, width, channels, GetRaw( resultHandle ) );
 }
@@ -159,6 +151,7 @@ void CCpuMathEngine::TransposeMatrix( int batchSize, const CConstIntHandle& firs
 {
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	CCpuExecutionScope scope;
 
 	transposeMatrix( batchSize, GetRaw( firstHandle ), height, medium, width, channels, GetRaw( resultHandle ) );
 }
@@ -188,12 +181,15 @@ void CCpuMathEngine::addVectorToMatrixRows( const float* matrix, float* result,
 void CCpuMathEngine::SetVectorToMatrixRows( const CFloatHandle& resultHandle,
 	int matrixHeight, int matrixWidth, const CConstFloatHandle& vectorHandle )
 {
-	CFloatHandle result = resultHandle;
+	CCpuExecutionScope scope;
+	
+	float* result = GetRaw( resultHandle );
+	const float* vector = GetRaw( vectorHandle );
 
 	const int curThreadCount = IsOmpRelevant( matrixHeight, matrixHeight * matrixWidth ) ? threadCount : 1;
 	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
 	for(int i = 0; i < matrixHeight; i++) {
-		VectorCopy( result + i * matrixWidth, vectorHandle, matrixWidth );
+		dataCopy( result + i * matrixWidth, vector, matrixWidth );
 	}
 }
 
@@ -212,6 +208,7 @@ void CCpuMathEngine::AddVectorToMatrixColumns(const CConstFloatHandle& matrixHan
 	ASSERT_EXPR( matrixHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	ASSERT_EXPR( vectorHandle.GetMathEngine() == this );
+	CCpuExecutionScope scope;
 
 	const float* matrix = GetRaw( matrixHandle );
 	float* result = GetRaw( resultHandle );
@@ -228,6 +225,8 @@ void CCpuMathEngine::AddVectorToMatrixColumns(const CConstFloatHandle& matrixHan
 void CCpuMathEngine::AddVectorToMatrixRows( int batchSize, const CConstFloatHandle& matrixHandle, const CFloatHandle& resultHandle,
 	int matrixHeight, int matrixWidth, const CConstFloatHandle& vectorHandle )
 {
+	CCpuExecutionScope scope;
+
 	float* result = GetRaw( resultHandle );
 	const float* matrix = GetRaw( matrixHandle );
 	const float* vector = GetRaw( vectorHandle );
@@ -266,6 +265,7 @@ void CCpuMathEngine::RowMultiplyMatrixByMatrix(const CConstFloatHandle& firstHan
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	CCpuExecutionScope scope;
 
 	const float* first = GetRaw( firstHandle );
 	const float* second = GetRaw( secondHandle );
@@ -282,6 +282,8 @@ void CCpuMathEngine::RowMultiplyMatrixByMatrix(const CConstFloatHandle& firstHan
 static void ColumnMultiplyMatrixByMatrix(CCpuMathEngine* engine, const CConstFloatHandle& firstHandle,
 	const CConstFloatHandle& secondHandle, int height, int width, const CFloatHandle& resultHandle)
 {
+	CCpuExecutionScope scope;
+
 	CConstFloatHandle first = firstHandle;
 	CConstFloatHandle second = secondHandle;
 
@@ -296,6 +298,8 @@ static void ColumnMultiplyMatrixByMatrix(CCpuMathEngine* engine, const CConstFlo
 void CCpuMathEngine::AddVectorToMatrixColumns(const CConstIntHandle& matrixHandle, const CIntHandle& resultHandle,
 	int matrixHeight, int matrixWidth, const CConstIntHandle& vectorHandle)
 {
+	CCpuExecutionScope scope;
+
 	CConstIntHandle matrix = matrixHandle;
 	CIntHandle result = resultHandle;
 	CConstIntHandle vector = vectorHandle;
@@ -311,6 +315,8 @@ void CCpuMathEngine::AddVectorToMatrixColumns(const CConstIntHandle& matrixHandl
 void CCpuMathEngine::SubVectorFromMatrixColumns(const CConstFloatHandle& matrixHandle, const CFloatHandle& resultHandle,
 	int matrixHeight, int matrixWidth, const CConstFloatHandle& vectorHandle)
 {
+	CCpuExecutionScope scope;
+
 	CConstFloatHandle matrix = matrixHandle;
 	CFloatHandle result = resultHandle;
 	const float* vector = GetRaw( vectorHandle );
@@ -326,6 +332,8 @@ void CCpuMathEngine::SubVectorFromMatrixColumns(const CConstFloatHandle& matrixH
 void CCpuMathEngine::SumMatrixColumns(const CFloatHandle& resultHandle, const CConstFloatHandle& matrixHandle,
 	int matrixHeight, int matrixWidth)
 {
+	CCpuExecutionScope scope;
+
 	CConstFloatHandle matrix = matrixHandle;
 	CFloatHandle result = resultHandle;
 
@@ -339,6 +347,8 @@ void CCpuMathEngine::SumMatrixColumns(const CFloatHandle& resultHandle, const CC
 void CCpuMathEngine::MatrixColumnsEltwiseDivide( const CConstFloatHandle& matrixHandle, int matrixHeight, int matrixWidth,
 	const CConstFloatHandle& vectorHandle, const CFloatHandle& resultHandle )
 {
+	CCpuExecutionScope scope;
+
 	const float* matrix = GetRaw( matrixHandle );
 	const float* vector = GetRaw( vectorHandle );
 	float* result = GetRaw( resultHandle );
@@ -369,6 +379,8 @@ void CCpuMathEngine::sumMatrixColumnsAdd(const CFloatHandle& resultHandle, const
 void CCpuMathEngine::SumMatrixRows(int batchSize,
 	const CFloatHandle& resultHandle, const CConstFloatHandle& matrixHandle, int matrixHeight, int matrixWidth)
 {
+	CCpuExecutionScope scope;
+
 	VectorFill(resultHandle, 0.f, batchSize * matrixWidth);
 	SumMatrixRowsAdd(batchSize, resultHandle, matrixHandle, matrixHeight, matrixWidth);
 }
@@ -376,6 +388,8 @@ void CCpuMathEngine::SumMatrixRows(int batchSize,
 void CCpuMathEngine::SumMatrixRowsAdd(int batchSize,
 	const CFloatHandle& resultHandle, const CConstFloatHandle& matrixHandle, int matrixHeight, int matrixWidth)
 {
+	CCpuExecutionScope scope;
+
 	CConstFloatHandle matrix = matrixHandle;
 	CFloatHandle result = resultHandle;
 	for( int i = 0; i < batchSize; ++i ) {
@@ -404,66 +418,58 @@ void CCpuMathEngine::findMaxValueInColumns( float* resultHandle, const float* ma
 	}
 }
 
-// Sets the matrix elements to the values from a vector: matrix[rowIndices[i], columnIndices[i]] = vector[i].
-void CCpuMathEngine::SetVectorToMatrixElements(
-	const CFloatHandle& matrixHandle, int /*height*/, int width,
-	const CConstIntHandle& rowIndicesHandle, const CConstIntHandle& columnIndicesHandle,
-	const CConstFloatHandle& vectorHandle, int vectorSize )
-{
-	float* matrix = GetRaw( matrixHandle );
-	const int* rowIndices = GetRaw( rowIndicesHandle );
-	const int* columnIndices = GetRaw( columnIndicesHandle );
-	const float* vector = GetRaw( vectorHandle );
-
-	for( int i = 0; i < vectorSize; i++ ) {
-		matrix[rowIndices[i] * width + columnIndices[i]] = vector[i];
-	}
-}
-
 void CCpuMathEngine::VectorMultichannelLookupAndCopy( int batchSize, int channelCount, const CConstFloatHandle& inputHandle,
 	const CConstFloatHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
-	const CFloatHandle& outputHandle, int /*outputChannels*/ )
+	const CFloatHandle& outputHandle, int outputChannels )
 {
 	ASSERT_EXPR(lookupCount <= channelCount);
+	CCpuExecutionScope scope;
 
-	CConstFloatHandle input = inputHandle;
-	CFloatHandle output = outputHandle;
+	const float* inputStart = GetRaw(inputHandle);
+	float* outputStart = GetRaw(outputHandle);
 
+	const int curThreadCount = IsOmpRelevant( batchSize, batchSize * outputChannels ) ? threadCount : 1;
+	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
 	for(int i = 0; i < batchSize; ++i) {
+		const float* input = inputStart + i * channelCount;
+		float* output = outputStart + i * outputChannels;
 		for(int j = 0; j < lookupCount; ++j) {
-			int index = (int)input.GetValue();
+			int index = (int)*input;
 			input++;
 			PRESUME_EXPR(0 <= index && index < lookupDimensions[j].VectorCount);
 			int vectorSize = lookupDimensions[j].VectorSize;
-			VectorCopy(output, lookupHandles[j] + index * vectorSize, vectorSize);
+			dataCopy(output, GetRaw(lookupHandles[j]) + index * vectorSize, vectorSize);
 			output += vectorSize;
 		}
 		int remained = channelCount - lookupCount;
 		if(remained > 0) {
-			VectorCopy(output, input, remained);
-			input += remained;
-			output += remained;
+			dataCopy(output, input, remained);
 		}
 	}
 }
 
 void CCpuMathEngine::VectorMultichannelLookupAndCopy(int batchSize, int channelCount, const CConstIntHandle& inputHandle,
 	const CConstFloatHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
-	const CFloatHandle& outputHandle, int /*outputChannels*/)
+	const CFloatHandle& outputHandle, int outputChannels)
 {
 	ASSERT_EXPR(lookupCount == channelCount);
+	CCpuExecutionScope scope;
 
-	CConstIntHandle input = inputHandle;
-	CFloatHandle output = outputHandle;
+	const int* inputStart = GetRaw( inputHandle );
+	float* outputStart = GetRaw( outputHandle );
 
+	const int curThreadCount = IsOmpRelevant( batchSize, batchSize * outputChannels ) ? threadCount : 1;
+	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
 	for(int i = 0; i < batchSize; ++i) {
+		const int* input = inputStart + i * channelCount;
+		float* output = outputStart + i * outputChannels;
 		for(int j = 0; j < lookupCount; ++j) {
 			if(j < channelCount) {
-				int index = input.GetValue();
+				int index = *input;
 				input++;
 				PRESUME_EXPR(0 <= index && index < lookupDimensions[j].VectorCount);
 				int vectorSize = lookupDimensions[j].VectorSize;
-				VectorCopy(output, lookupHandles[j] + index * vectorSize, vectorSize);
+				dataCopy(output, GetRaw(lookupHandles[j]) + index * vectorSize, vectorSize);
 				output += vectorSize;
 			}
 		}
@@ -472,27 +478,30 @@ void CCpuMathEngine::VectorMultichannelLookupAndCopy(int batchSize, int channelC
 
 void CCpuMathEngine::VectorMultichannelLookupAndCopy(int batchSize, int channelCount, const CConstIntHandle& inputHandle,
 	const CConstIntHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
-	const CIntHandle& outputHandle, int /*outputChannels*/)
+	const CIntHandle& outputHandle, int outputChannels)
 {
 	ASSERT_EXPR(lookupCount <= channelCount);
+	CCpuExecutionScope scope;
 
-	CConstIntHandle input = inputHandle;
-	CIntHandle output = outputHandle;
+	const int* inputStart = GetRaw(inputHandle);
+	int* outputStart = GetRaw(outputHandle);
 
+	const int curThreadCount = IsOmpRelevant( batchSize, batchSize * outputChannels ) ? threadCount : 1;
+	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
 	for(int i = 0; i < batchSize; ++i) {
+		const int* input = inputStart + i * channelCount;
+		int* output = outputStart + i * outputChannels;
 		for(int j = 0; j < lookupCount; ++j) {
-			int index = (int)input.GetValue();
+			int index = *input;
 			input++;
 			PRESUME_EXPR(0 <= index && index < lookupDimensions[j].VectorCount);
 			int vectorSize = lookupDimensions[j].VectorSize;
-			VectorCopy(output, lookupHandles[j] + index * vectorSize, vectorSize);
+			dataCopy(output, GetRaw(lookupHandles[j]) + index * vectorSize, vectorSize);
 			output += vectorSize;
 		}
 		int remained = channelCount - lookupCount;
 		if(remained > 0) {
-			VectorCopy(output, input, remained);
-			input += remained;
-			output += remained;
+			dataCopy(output, input, remained);
 		}
 	}
 }
@@ -502,6 +511,7 @@ void CCpuMathEngine::VectorMultichannelLookupAndAddToTable(int batchSize, int ch
 	const CConstFloatHandle& multHandle, const CConstFloatHandle& matrixHandle, int /*outputChannels*/)
 {
 	ASSERT_EXPR(lookupCount <= channelCount);
+	CCpuExecutionScope scope;
 
 	CConstFloatHandle input = inputHandle;
 	CConstFloatHandle matrix = matrixHandle;
@@ -531,6 +541,7 @@ void CCpuMathEngine::VectorMultichannelLookupAndAddToTable(int batchSize, int ch
 	const CConstFloatHandle& matrixHandle, int /*outputChannels*/)
 {
 	ASSERT_EXPR(lookupCount <= channelCount);
+	CCpuExecutionScope scope;
 
 	CConstIntHandle input = inputHandle;
 	CConstFloatHandle matrix = matrixHandle;
@@ -557,6 +568,8 @@ void CCpuMathEngine::VectorMultichannelLookupAndAddToTable(int batchSize, int ch
 void CCpuMathEngine::EnumBinarization(int batchSize,
 	const CConstFloatHandle& inputHandle, int enumSize, const CFloatHandle& resultHandle)
 {
+	CCpuExecutionScope scope;
+
 	const float* input = GetRaw(inputHandle);
 	float* result = GetRaw(resultHandle);
 
@@ -575,6 +588,8 @@ void CCpuMathEngine::EnumBinarization(int batchSize,
 void CCpuMathEngine::EnumBinarization(int batchSize,
 	const CConstIntHandle& inputHandle, int enumSize, const CFloatHandle& resultHandle)
 {
+	CCpuExecutionScope scope;
+
 	const int* input = GetRaw(inputHandle);
 	float* result = GetRaw(resultHandle);
 
@@ -594,6 +609,7 @@ void CCpuMathEngine::AddMatrixElementsToVector(const CConstFloatHandle& matrixHa
 	const CConstIntHandle& indicesHandle, const CFloatHandle& resultHandle, int vectorSize)
 {
 	ASSERT_EXPR(vectorSize >= height);
+	CCpuExecutionScope scope;
 
 	const float* matrix = GetRaw(matrixHandle);
 	const int* indices = GetRaw(indicesHandle);
@@ -612,6 +628,8 @@ void CCpuMathEngine::AddMatrixElementsToVector(const CConstFloatHandle& matrixHa
 void CCpuMathEngine::AddDiagMatrixToMatrix( const CConstFloatHandle& diagMatrix, const CConstFloatHandle& matrix,
 	int height, int width, const CFloatHandle& result )
 {
+	CCpuExecutionScope scope;
+
 	const float* diagMatrixPtr = GetRaw(diagMatrix);
 	const float* matrixPtr = GetRaw(matrix);
 	float* resultPtr = GetRaw(result);
@@ -631,6 +649,8 @@ void CCpuMathEngine::AddDiagMatrixToMatrix( const CConstFloatHandle& diagMatrix,
 void CCpuMathEngine::AddMatrixElementsToMatrix(const CConstFloatHandle& matrixHandle, int height, int width,
 	const CFloatHandle& resultHandle, const CConstIntHandle& indicesHandle)
 {
+	CCpuExecutionScope scope;
+
 	const float* matrix = GetRaw(matrixHandle);
 	const int* indices = GetRaw(indicesHandle);
 	float* result = GetRaw(resultHandle);
@@ -649,6 +669,8 @@ void CCpuMathEngine::AddMatrixElementsToVector(const CConstFloatHandle& matrixHa
 	const CConstIntHandle& rowIndicesHandle, const CConstIntHandle& columnIndicesHandle,
 	const CFloatHandle& resultHandle, int vectorSize)
 {
+	CCpuExecutionScope scope;
+
 	const float* matrix = GetRaw(matrixHandle);
 	const int* rowIndices = GetRaw(rowIndicesHandle);
 	const int* columnIndices = GetRaw(columnIndicesHandle);
@@ -665,6 +687,8 @@ void CCpuMathEngine::AddMatrixElementsToVector(const CConstFloatHandle& matrixHa
 void CCpuMathEngine::AddVectorToMatrixElements(const CFloatHandle& matrixHandle, int height, int width,
 	const CConstIntHandle& indicesHandle, const CConstFloatHandle& vectorHandle)
 {
+	CCpuExecutionScope scope;
+
 	float* matrix = GetRaw(matrixHandle);
 	const int* indices = GetRaw(indicesHandle);
 	const float* vector = GetRaw(vectorHandle);
@@ -684,6 +708,8 @@ void CCpuMathEngine::AddVectorToMatrixElements(const CFloatHandle& matrixHandle,
 	const CConstIntHandle& rowIndicesHandle, const CConstIntHandle& columnIndicesHandle,
 	const CConstFloatHandle& vectorHandle, int vectorSize)
 {
+	CCpuExecutionScope scope;
+
 	float* matrix = GetRaw(matrixHandle);
 	const int* rowIndices = GetRaw(rowIndicesHandle);
 	const int* columnIndices = GetRaw(columnIndicesHandle);
@@ -694,66 +720,34 @@ void CCpuMathEngine::AddVectorToMatrixElements(const CFloatHandle& matrixHandle,
 	}
 }
 
-void CCpuMathEngine::EltwiseLogSumExpVectorToMatrixElements(const CFloatHandle& matrixHandle, int height, int width,
-	const CConstIntHandle& indicesHandle, const CConstFloatHandle& vectorHandle)
-{
-	float* matrix = GetRaw(matrixHandle);
-	const int* indices = GetRaw(indicesHandle);
-	const float* vector = GetRaw(vectorHandle);
-
-	for(int j = 0; j < height; ++j) {
-		int index = *indices++;
-		if(index < 0 || index >= width) {
-			++vector;
-		} else {
-			matrix[index] = LogSumExpFunc(*vector++, matrix[index]);
-		}
-		matrix += width;
-	}
-}
-
-void CCpuMathEngine::EltwiseLogSumExpVectorToMatrixElements(const CFloatHandle& matrixHandle,
-	int height, int width,
-	const CConstIntHandle& rowIndicesHandle, const CConstIntHandle& columnIndicesHandle,
-	const CConstFloatHandle& vectorHandle, int vectorSize)
-{
-	float* matrix = GetRaw(matrixHandle);
-	const int* rowIndices = GetRaw(rowIndicesHandle);
-	const int* columnIndices = GetRaw(columnIndicesHandle);
-	const float* vector = GetRaw(vectorHandle);
-
-	for(int i = 0; i < vectorSize; i++) {
-		const int rowIndex = rowIndices[i];
-		const int columnIndex = columnIndices[i];
-		if(rowIndex >= 0 && rowIndex < height &&
-			columnIndex >= 0 && columnIndex < width) {
-			const int matrixIndex = rowIndex * width + columnIndex;
-			matrix[matrixIndex] = LogSumExpFunc(vector[i], matrix[matrixIndex]);
-		}
-	}
-}
-
 void CCpuMathEngine::LookupAndSum(const CConstIntHandle& indicesHandle, int batchSize, int indexCount,
 	const CConstFloatHandle& tableHandle, int vectorSize, const CFloatHandle& result)
 {
-	CConstIntHandle indices = indicesHandle;
-	CFloatHandle output = result;
+	CCpuExecutionScope scope;
+
+	const int* indicesStart = GetRaw(indicesHandle);
+	float* outputStart = GetRaw(result);
+	const float* table = GetRaw(tableHandle);
+
+	const int curThreadCount = IsOmpRelevant( batchSize, batchSize * indexCount * vectorSize ) ? threadCount : 1;
+	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
 	for(int b = 0; b < batchSize; ++b) {
-		int index = (int)indices.GetValue();
+		float* output = outputStart + b * vectorSize;
+		const int* indices = indicesStart + b * indexCount;
+		int index = *indices;
 		indices++;
 		if(index >= 0) {
-			VectorCopy(output, tableHandle + vectorSize * index, vectorSize);
+			dataCopy(output, table + vectorSize * index, vectorSize);
 		} else {
-			VectorFill(output, 0.f, vectorSize);
+			vectorFill(output, 0.f, vectorSize);
 		}
 		for(int elem = 1; elem < indexCount; ++elem) {
-			index = (int)indices.GetValue();
+			index = *indices;
 			indices++;
 			if(index >= 0) {
-				VectorAdd(output, tableHandle + vectorSize * index, output, vectorSize);
+				vectorAdd(output, table + vectorSize * index, output, vectorSize);
 			}
 		}
-		output += vectorSize;
 	}
 }
 
@@ -763,6 +757,7 @@ void CCpuMathEngine::LookupAndAddToTable(const CConstIntHandle& indicesHandle, i
 	ASSERT_EXPR( indicesHandle.GetMathEngine() == this );
 	ASSERT_EXPR( tableHandle.GetMathEngine() == this );
 	ASSERT_EXPR( additionsHandle.GetMathEngine() == this );
+	CCpuExecutionScope scope;
 
 	const int* indices = GetRaw( indicesHandle );
 	const float* additions = GetRaw( additionsHandle );
@@ -786,7 +781,7 @@ void CCpuMathEngine::findMaxValueInColumns( float* result, int* rowIndices,
 	const float* matrix, int matrixHeight, int matrixWidth )
 {
 	// Copy the first row
-	vectorCopy( result, matrix, matrixWidth );
+	dataCopy( result, matrix, matrixWidth );
 	memset( rowIndices, 0, matrixWidth * sizeof( *rowIndices ) );
 	matrix += matrixWidth;
 	// Process the rest
@@ -810,16 +805,17 @@ void CCpuMathEngine::MultiplyDiagMatrixByMatrix( const CConstFloatHandle& firstH
 	const CFloatHandle& resultHandle, int resultBufferSize )
 {
 	ASSERT_EXPR( resultBufferSize >= firstSize * secondWidth );
+	CCpuExecutionScope scope;
 
-	CConstFloatHandle first = firstHandle;
-	CConstFloatHandle second = secondHandle;
-	CFloatHandle result = resultHandle;
+	const float* first = GetRaw( firstHandle );
+	const float* second = GetRaw( secondHandle );
+	float* result = GetRaw( resultHandle );
 
-	for( int j = 0; j < firstSize; ++j ) {
-		VectorMultiply( second, result, secondWidth, first );
-		second += secondWidth;
-		result += secondWidth;
-		++first;
+	const int curThreadCount = IsOmpRelevant( firstSize, firstSize * secondWidth ) ? threadCount : 1;
+	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
+	for( int i = 0; i < firstSize; i++ ) {
+		const float multiplier = *( first + i );
+		vectorMultiply( second + i * secondWidth, result + i * secondWidth, multiplier, secondWidth );
 	}
 }
 
@@ -828,6 +824,7 @@ void CCpuMathEngine::Multiply1DiagMatrixByMatrix( int batchSize, const CConstFlo
 	const CFloatHandle& resultHandle, int resultBufferSize )
 {
 	ASSERT_EXPR( resultBufferSize >= batchSize * firstSize * secondWidth );
+	CCpuExecutionScope scope;
 
 	CConstFloatHandle second = secondHandle;
 	CFloatHandle result = resultHandle;
@@ -848,6 +845,7 @@ void CCpuMathEngine::MultiplyMatrixByMatrix( int batchSize, const CConstFloatHan
 	const CFloatHandle& resultHandle, int resultBufferSize )
 {
 	ASSERT_EXPR( resultBufferSize >= batchSize * firstHeight * secondWidth );
+	CCpuExecutionScope scope;
 
 	const float* first = GetRaw( firstHandle );
 	const float* second = GetRaw( secondHandle );
@@ -868,6 +866,7 @@ void CCpuMathEngine::MultiplyTransposedMatrixByMatrixAndAdd(const CConstFloatHan
 	const CFloatHandle& resultHandle, int resultRowSize, int resultBufferSize)
 {
 	ASSERT_EXPR((firstWidth - 1) * resultRowSize + secondWidth <= resultBufferSize);
+	CCpuExecutionScope scope;
 
 	multiplyTransposedMatrixByMatrixAndAdd( GetRaw( firstHandle ),
 		firstHeight, firstWidth, firstRowSize, GetRaw( secondHandle ), secondWidth, secondRowSize,
@@ -878,6 +877,7 @@ void CCpuMathEngine::MultiplyTransposedMatrixByMatrix(int batchSize, const CCons
 	int firstWidth, const CConstFloatHandle& secondHandle, int secondWidth, const CFloatHandle& resultHandle, int resultBufferSize)
 {
 	ASSERT_EXPR( resultBufferSize >= batchSize * firstWidth * secondWidth );
+	CCpuExecutionScope scope;
 	
 	batchMultiplyTransposedMatrixByMatrix( batchSize, GetRaw( firstHandle ), firstHeight, firstWidth,
 		GetRaw( secondHandle ), secondWidth, GetRaw( resultHandle ) );
@@ -904,6 +904,8 @@ void CCpuMathEngine::MultiplyMatrixByTransposedMatrix(const CConstFloatHandle& f
 	int firstWidth, int firstRowSize, const CConstFloatHandle& secondHandle, int secondHeight, int secondRowSize,
 	const CFloatHandle& resultHandle, int resultRowSize, int)
 {
+	CCpuExecutionScope scope;
+
 	const float* first = GetRaw( firstHandle );
 	const float* second = GetRaw( secondHandle );
 	float* result = GetRaw( resultHandle );
@@ -935,6 +937,7 @@ void CCpuMathEngine::MultiplyMatrixByTransposedMatrix( int batchSize, const CCon
 	const CFloatHandle& resultHandle, int resultBufferSize )
 {
 	ASSERT_EXPR( resultBufferSize >= batchSize * firstHeight * secondHeight );
+	CCpuExecutionScope scope;
 
 	CConstFloatHandle first = firstHandle;
 	CConstFloatHandle second = secondHandle;
@@ -968,6 +971,7 @@ void CCpuMathEngine::MultiplyMatrixByDiagMatrix( const CConstFloatHandle& firstH
 	const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int resultBufferSize )
 {
 	ASSERT_EXPR( resultBufferSize >= firstHeight * firstWidth );
+	CCpuExecutionScope scope;
 
 	CConstFloatHandle first = firstHandle;
 	CFloatHandle result = resultHandle;
@@ -983,18 +987,22 @@ void CCpuMathEngine::MatrixSpreadRows( const CConstFloatHandle& sourceHandle, in
 	const CFloatHandle& resultHandle, int resultHeight, const CConstIntHandle& indexHandle,
 	const CConstFloatHandle& fillValue )
 {
+	CCpuExecutionScope scope;
+
 	float val = fillValue.IsNull() ? 0 : *GetRaw( fillValue );
 	const int* indices = GetRaw( indexHandle );
 
 	VectorFill( resultHandle, val, resultHeight * width );
 
-	CConstFloatHandle source = sourceHandle;
+	const float* source = GetRaw(sourceHandle);
+	float* result = GetRaw(resultHandle);
+
+	const int curThreadCount = IsOmpRelevant( height, height * width ) ? threadCount : 1;
+	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
 	for( int j = 0; j < height; ++j ) {
-		if( *indices >= 0 ) {
-			VectorCopy( resultHandle + *indices * width, source, width );
+		if( indices[j] >= 0 ) {
+			dataCopy( result + indices[j] * width, source + j * width, width );
 		}
-		source += width;
-		++indices;
 	}
 }
 
@@ -1002,24 +1010,30 @@ void CCpuMathEngine::MatrixSpreadRows( const CConstIntHandle& sourceHandle, int 
 	const CIntHandle& resultHandle, int resultHeight, const CConstIntHandle& indexHandle,
 	const CConstIntHandle& fillValue )
 {
+	CCpuExecutionScope scope;
+
 	int val = fillValue.IsNull() ? 0 : *GetRaw( fillValue );
 	const int* indices = GetRaw( indexHandle );
 
 	VectorFill( resultHandle, val, resultHeight * width );
 
-	CConstIntHandle source = sourceHandle;
+	const int* source = GetRaw( sourceHandle );
+	int* result = GetRaw( resultHandle );
+
+	const int curThreadCount = IsOmpRelevant( height, height * width ) ? threadCount : 1;
+	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
 	for( int j = 0; j < height; ++j ) {
-		if( *indices >= 0 ) {
-			VectorCopy( resultHandle + *indices * width, source, width );
+		if( indices[j] >= 0 ) {
+			dataCopy( result + indices[j] * width, source + j * width, width );
 		}
-		source += width;
-		++indices;
 	}
 }
 
 void CCpuMathEngine::MatrixSpreadRowsAdd( const CConstFloatHandle& sourceHandle, int height, int width,
 	const CFloatHandle& resultHandle, int /*resultHeight*/, const CConstIntHandle& indexHandle )
 {
+	CCpuExecutionScope scope;
+
 	CConstFloatHandle source = sourceHandle;
 	const int* indices = GetRaw( indexHandle );
 
@@ -1038,6 +1052,7 @@ void CCpuMathEngine::MultiplyTransposedLookupMatrixByVector( int batchSize, cons
 {
 	ASSERT_EXPR( matrix.RowCount > 0 );
 	ASSERT_EXPR( resultSize >= batchSize * matrix.Width() );
+	CCpuExecutionScope scope;
 
 	CConstFloatHandle vector = vectorHandle;
 	CFloatHandle result = resultHandle;
@@ -1057,6 +1072,7 @@ void CCpuMathEngine::MultiplyTransposedLookupMatrixByVectorAndAdd( int batchSize
 	const CConstFloatHandle& vectorHandle, const CFloatHandle& resultHandle, int resultSize )
 {
 	ASSERT_EXPR( resultSize >= batchSize * matrix.Width() );
+	CCpuExecutionScope scope;
 
 	CConstFloatHandle vector = vectorHandle;
 	CFloatHandle result = resultHandle;
@@ -1076,6 +1092,7 @@ void CCpuMathEngine::MultiplyVectorByTransposedLookupVectorAndAddToTable( int ba
 	const CConstFloatHandle& firstHandle, int firstSize, const CLookupVector& second )
 {
 	ASSERT_EXPR( vectorSize == second.VectorSize() );
+	CCpuExecutionScope scope;
 
 	CConstFloatHandle first = firstHandle;
 	const int* index = GetRaw( indexHandle );
@@ -1094,6 +1111,7 @@ void CCpuMathEngine::MatrixLogSumExpByRows( const CConstFloatHandle& matrixHandl
 	int height, int width, const CFloatHandle& resultHandle, int resultSize )
 {
 	ASSERT_EXPR( resultSize >= height );
+	CCpuExecutionScope scope;
 
 	CFloatHandleStackVar temp( mathEngine(), height * width );
 	CFloatHandleStackVar tempVec( mathEngine(), height );
@@ -1120,6 +1138,8 @@ void CCpuMathEngine::MatrixLogSumExpByRows( const CConstFloatHandle& matrixHandl
 void CCpuMathEngine::MatrixSoftmaxByRows( const CConstFloatHandle& matrixHandle, int height, int width,
 	const CFloatHandle& resultHandle )
 {
+	CCpuExecutionScope scope;
+
 	CFloatHandleStackVar temp( mathEngine(), height );
 
 	// Find maximum in each row
@@ -1144,6 +1164,8 @@ void CCpuMathEngine::MatrixSoftmaxByRows( const CConstFloatHandle& matrixHandle,
 void CCpuMathEngine::MatrixSoftmaxDiffOpByRows( const CConstFloatHandle& firstHandle,
 	const CConstFloatHandle& secondHandle, int height, int width, const CFloatHandle& resultHandle )
 {
+	CCpuExecutionScope scope;
+
 	// The formula: first - y, second - dE/dy, result - dE/dx
 	// dE/dxi = yi * (dE/dyi - <dE/dy, y>)
 
@@ -1159,36 +1181,11 @@ void CCpuMathEngine::MatrixSoftmaxDiffOpByRows( const CConstFloatHandle& firstHa
 	VectorEltwiseMultiply( resultHandle, firstHandle, resultHandle, height * width );
 }
 
-void CCpuMathEngine::MatrixLogSumExpByColumns( const CConstFloatHandle& matrixHandle,
-	int height, int width, const CFloatHandle& resultHandle, int resultSize )
-{
-	ASSERT_EXPR( resultSize >= width );
-
-	CFloatHandleStackVar temp( mathEngine(), height * width );
-	CFloatHandleStackVar tempVec( mathEngine(), width );
-
-	// Find maximum in each column
-	findMaxValueInColumns( GetRaw( resultHandle ), GetRaw( matrixHandle ), height, width );
-
-	// Subtract the maximum and save the result to a temporary variable
-	subVectorFromMatrixRows( this, matrixHandle, temp, height, width, resultHandle );
-
-	// exp
-	VectorExp( temp, temp, height * width );
-
-	// Add up the rows, putting the result into tempVec
-	SumMatrixRows( 1, tempVec, temp, height, width );
-
-	// log
-	VectorLog( tempVec, tempVec, width );
-
-	// Add the logarithm to the maximum
-	VectorAdd( resultHandle, tempVec, resultHandle, width );
-}
-
 void CCpuMathEngine::MatrixSoftmaxByColumns( const CConstFloatHandle& matrix, int height, int width,
 	const CFloatHandle& result )
 {
+	CCpuExecutionScope scope;
+
 	CFloatHandleStackVar temp( mathEngine(), width );
 
 	// Find maximum in each column
@@ -1213,6 +1210,8 @@ void CCpuMathEngine::MatrixSoftmaxByColumns( const CConstFloatHandle& matrix, in
 void CCpuMathEngine::MatrixSoftmaxDiffOpByColumns( const CConstFloatHandle& firstHandle,
 	const CConstFloatHandle& secondHandle, int height, int width, const CFloatHandle& resultHandle )
 {
+	CCpuExecutionScope scope;
+
 	// The formula: first - y, second - dE/dy, result - dE/dx
 	// dE/dxi = yi * (dE/dyi - <dE/dy, y>)
 
@@ -1231,6 +1230,8 @@ void CCpuMathEngine::MatrixSoftmaxDiffOpByColumns( const CConstFloatHandle& firs
 void CCpuMathEngine::BitSetBinarization( int batchSize, int bitSetSize,
 	const CConstIntHandle& inputHandle, int outputVectorSize, const CFloatHandle& resultHandle )
 {
+	CCpuExecutionScope scope;
+
 	const int BitsPerElement = sizeof( int ) * CHAR_BIT;
 	ASSERT_EXPR( static_cast<int>( bitSetSize * BitsPerElement ) >= outputVectorSize );
 

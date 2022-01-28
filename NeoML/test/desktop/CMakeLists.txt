@@ -12,6 +12,10 @@ add_executable(${PROJECT_NAME}
     main.cpp
 )
 
+set_target_properties( ${PROJECT_NAME} PROPERTIES
+    UNITY_BUILD_MODE GROUP
+)
+
 configure_target(${PROJECT_NAME})
 
 target_link_libraries(${PROJECT_NAME} PRIVATE NeoMLTestSrc gtest NeoML)

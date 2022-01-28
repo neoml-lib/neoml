@@ -59,7 +59,7 @@ public:
 	void Serialize( CArchive& archive ) override;
 
 protected:
-	virtual ~CMaxPoolingLayer() { destroyDesc(); }
+	~CMaxPoolingLayer() override { destroyDesc(); }
 
 	void RunOnce() override;
 	void BackwardOnce() override;
@@ -87,7 +87,7 @@ public:
 	void Serialize( CArchive& archive ) override;
 
 protected:
-	virtual ~CMeanPoolingLayer() { destroyDesc(); }
+	~CMeanPoolingLayer() override { destroyDesc(); }
 
 	void RunOnce() override;
 	void BackwardOnce() override;

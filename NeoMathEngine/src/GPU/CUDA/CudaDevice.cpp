@@ -437,10 +437,15 @@ static CCudaDevice* captureSpecifiedCudaDevice( int deviceNumber, size_t deviceM
 	result->DeviceId = devProp.pciBusID;
 	result->MemoryLimit = deviceMemoryLimit;
 	result->SharedMemoryLimit = 48 * 1024;
-	result->ThreadMaxCount = devProp.maxThreadsPerBlock;
-	result->ThreadMax3DCountX = devProp.maxThreadsDim[0];
-	result->ThreadMax3DCountY = devProp.maxThreadsDim[1];
-	result->ThreadMax3DCountZ = devProp.maxThreadsDim[2];
+
+	// RTX 30* has 1536 maxThreadsPerMultiProcessor and 1024 maxThreadsPerBlock
+	// If blockSize is in interval [769;1024] then one Streaming Multiprocessor (SM) can process only one block
+	// That's why we limit block size in a way when one SM can process at least 2 blocks
+	result->ThreadMaxCount = min( devProp.maxThreadsPerBlock, devProp.maxThreadsPerMultiProcessor / 2 );
+	result->ThreadMax3DCountX = min( result->ThreadMaxCount, devProp.maxThreadsDim[0] );
+	result->ThreadMax3DCountY = min( result->ThreadMaxCount, devProp.maxThreadsDim[1] );
+	result->ThreadMax3DCountZ = min( result->ThreadMaxCount, devProp.maxThreadsDim[2] );
+
 	result->WarpSize = devProp.warpSize;
 	result->Handle = handle;
 

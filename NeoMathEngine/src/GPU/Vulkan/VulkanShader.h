@@ -142,12 +142,10 @@ enum TShader {
 	SH_VectorPowerDiffOp,
 	SH_VectorL1DiffAdd,
 	SH_VectorDotProduct,
-	SH_VectorEltwiseLogSumExp,
 	SH_VectorSum,
 	SH_RowMultiplyMatrixByMatrix,
 	SH_VectorEqual,
 	SH_VectorToImage,
-	SH_SetVectorToMatrixElements,
 	SH_LookupAndSum,
 	SH_Upsampling2DForwardInt,
 	SH_Upsampling2DForwardFloat,
@@ -202,6 +200,7 @@ enum TShader {
 	SH_SpaceToDepthInt,
 	SH_SpaceToDepthFloat,
 	SH_Lrn,
+	SH_BertConv,
 
 	SH_Count
 };

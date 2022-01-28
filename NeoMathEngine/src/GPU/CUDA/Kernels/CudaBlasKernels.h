@@ -24,11 +24,9 @@ namespace NeoML {
 __global__ void SetVectorToMatrixRowsKernel(float* result,
 	int matrixHeight, int matrixWidth, const float* __restrict__ vector)
 {
-	int i;
-	int j;
-	if(GetCudaTaskIndex2D(matrixHeight, matrixWidth, j, i)) {
-		int index = matrixWidth * j + i;
-		result[index] = vector[i];
+	int index;
+	if( GetCudaTaskIndex( matrixHeight * matrixWidth, index ) ) {
+		result[index] = vector[index % matrixWidth];
 	}
 }
 
@@ -79,40 +77,6 @@ __global__ void SetVectorToMatrixElementsKernel(
 	for( int i = 0; i < count; ++i ) {
 		matrix[rowIndices[index] * width + columnIndices[index]] = vector[index];
 		index += step;
-	}
-}
-
-__global__ void EltwiseLogSumExpVectorToMatrixElementsKernel( float* matrix, int height, int width,
-	const int* __restrict__ indices, const float* __restrict__ vector )
-{
-	int jPos;
-	if( GetCudaTaskIndex( height, jPos ) ) {
-		int index = indices[jPos];
-		if( index >= 0 && index < width ) {
-			float& elem = matrix[jPos * width + index];
-			elem = LogSumExpFunc( vector[jPos], elem );
-		}
-	}
-}
-
-__global__ void EltwiseLogSumExpVectorToMatrixElementsKernel( float* matrix, int height, int width,
-	const int* __restrict__ rowIndices, const int* __restrict__ columnIndices,
-	const float* __restrict__ vector, int vectorSize )
-{
-	int row;
-	int col;
-	if( !GetCudaTaskIndex2D( height, width, row, col ) ) {
-		return;
-	}
-
-	float& data = matrix[row * width + col];
-
-	// Iterate through the array looking for the needed coordinates
-	// No parallel processing of a vector because the indices may be the same
-	for( int i = 0; i < vectorSize; ++i ) {
-		if( rowIndices[i] == row && columnIndices[i] == col ) {
-			data = LogSumExpFunc( vector[i], data );
-		}
 	}
 }
 
@@ -167,11 +131,10 @@ __global__ void AddMatrixElementsToMatrixKernel(const float* __restrict__ matrix
 const int BatchAddVectorToMatrixRowsCombine = 4;
 __global__ void AddVectorToMatrixRowsKernel(int batchSize,
 	const float* __restrict__ matrix, float* result, int matrixHeight,
-	int matrixWidth, const float* __restrict__ vector, int widthNorm)
+	int matrixWidth, const float* __restrict__ vector)
 {
-	int xPos;
-	int yPos;
-	if(GetCudaTaskIndex2D(batchSize * matrixHeight, matrixWidth, yPos, xPos)) {
+	const int yPos = blockIdx.y * blockDim.y + threadIdx.y;
+	if(yPos < batchSize * matrixHeight) {
 		int matrixBaseIndex = yPos * matrixWidth;
 		int batch = yPos / matrixHeight;
 		int vectorBaseIndex = batch * matrixWidth;
@@ -438,53 +401,6 @@ __global__ void MatrixSoftmaxDiffOpByRowsKernel(const float* __restrict__ first,
 			result[index + i * step] =
 				first[index + i * step] * (second[index + i * step] - dotProd);
 		}
-	}
-}
-
-const int MatrixLogSumExpByColumnsCombine = 2;
-__global__ void MatrixLogSumExpByColumnsKernel(const float* __restrict__ matrix, int height, int width, float* result, int heightNorm)
-{
-	extern __shared__  float buffer[];
-	float& my = buffer[threadIdx.y * blockDim.x + threadIdx.x];
-
-	my = -FLT_MAX;
-
-	int combineCount = (height + blockDim.x - 1) / blockDim.x;
-
-	int index;
-	int step;
-	int count = GetCudaTaskCountAndIndexX(height, combineCount, index, step);
-	index *= width;
-	step *= width;
-
-	int xPos;
-	int yPos;
-	if(GetCudaTaskIndex2D(width, heightNorm, xPos, yPos) && count > 0) {
-		matrix += xPos; // get the correct column
-						// find the maximum
-		my = matrix[index];
-		for(int j = 1; j < count; ++j) {
-			float val = matrix[index + j * step];
-			if(val > my) {
-				my = val;
-			}
-		}
-	}
-
-	float maxVal = ReduceMaxXSharedBuffer(buffer);
-
-	// Add up the needed part
-	if(xPos < width && count > 0) {
-		my = expf(matrix[index] - maxVal);
-		for(int j = 1; j < count; ++j) {
-			my += expf(matrix[index + j * step] - maxVal);
-		}
-	}
-
-	float sumVal = ReduceSumXSharedBuffer(buffer);
-
-	if(xPos < width && threadIdx.x == 0) {
-		result[xPos] = maxVal + log(sumVal);
 	}
 }
 
@@ -1043,17 +959,6 @@ __global__ void Multiply1DiagMatrixByMatrixKernel(int batchSize, const float* __
 		*result = mult * (*second);
 		second += matrixSize;
 		result += matrixSize;
-	}
-}
-
-__global__ void MultiplyMatrixByDiagMatrixKernel(const float* __restrict__ first,
-	int firstHeight, int firstWidth, const float* __restrict__ second, float* result)
-{
-	int i;
-	int j;
-	if(GetCudaTaskIndex2D(firstHeight, firstWidth, j, i)) {
-		int index = j * firstWidth + i;
-		result[index] = first[index] * second[i];
 	}
 }
 

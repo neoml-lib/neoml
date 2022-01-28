@@ -55,8 +55,11 @@ public:
 	void SetFilterCount( int _filterCount );
 
 	// Returns or sets the filter data (the blobs are copied)
-	// A filter blob has the FilterCount * FilterHeight * FilterWidth * FilterDepth * InputChannelsCount dimensions
-	// (or InputChannelsCount * FilterHeight * FilterWidth * FilterDepth * FilterCount dimensions for transposed filters)
+	// The dimensions of the blob are
+	//     filterData.GetObjectCount() is equal to FilterCount (or InputChannelsCount for transposed filters)
+	//     filterData.GetHeight() is equal to FilterHeight
+	//     filterData.GetWidth() is equal to FilterWidth
+	//     filterData.GetChannelsCount() is equal to InputChannelsCount (or FilterCount for transposed filters)
 	// May be null if the filter has not been initialized (or must be reset)
 	virtual CPtr<CDnnBlob> GetFilterData() const;
 	virtual void SetFilterData(const CPtr<CDnnBlob>& newFilter);
@@ -120,7 +123,7 @@ public:
 	void Serialize( CArchive& archive ) override;
 
 protected:
-	virtual ~CConvLayer();
+	~CConvLayer() override;
 
 	void Reshape() override;
 	void RunOnce() override;
@@ -161,7 +164,7 @@ public:
 	void SetNonStrokeValue(float _nonStrokeValue) { nonStrokeValue = _nonStrokeValue; }
 
 protected:
-	virtual ~CRleConvLayer();
+	~CRleConvLayer() override;
 
 	void Reshape() override;
 	void RunOnce() override;

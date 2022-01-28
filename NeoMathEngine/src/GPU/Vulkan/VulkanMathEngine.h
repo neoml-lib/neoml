@@ -92,7 +92,6 @@ public:
 		const CBlobDesc& toDesc, const CBlobDesc& fromDesc, int additionalWidth) override;
 	void VectorSum(const CConstFloatHandle& firstHandle, int vectorSize, const CFloatHandle& resultHandle) override;
 	void VectorSumAdd(const CConstFloatHandle& firstHandle, int vectorSize, const CFloatHandle& resultHandle) override;
-	void VectorNegSum(const CConstFloatHandle& firstHandle, int vectorSize, const CFloatHandle& resultHandle) override;
 	void VectorSumAlongDimension(const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
 		int followingDimension, const CFloatHandle& resultHandle) override;
 	void VectorCumSumAlongDimension(const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
@@ -249,8 +248,6 @@ public:
 		const CIntHandle& indexHandle, int vectorSize) override;
 	void VectorSpreadValues(const CConstFloatHandle& sourceHandle, CFloatHandle* vectors, int vectorCount,
 		const CConstIntHandle& indexHandle, int vectorSize) override;
-	void VectorEltwiseLogSumExp(const CConstFloatHandle& first, const CConstFloatHandle& second,
-		const CFloatHandle& result, int vectorSize) override;
 	void VectorTopK(const CConstFloatHandle& first, int firstSize, int k, const CFloatHandle& result, const CIntHandle& indices) override;
 	void VectorTopKDiff(const CConstFloatHandle& sourceGrad, int sourceGradHeight, int sourceGradWidth,
 		const CConstIntHandle& indices, int k, const CFloatHandle& resultGrad) override;
@@ -261,15 +258,6 @@ public:
 	void AddVectorToMatrixElements(const CFloatHandle& matrix, int height, int width,
 		const CConstIntHandle& indices, const CConstFloatHandle& vector) override;
 	void AddVectorToMatrixElements(const CFloatHandle& matrix, int height, int width,
-		const CConstIntHandle& rowIndices, const CConstIntHandle& columnIndices,
-		const CConstFloatHandle& vector, int vectorSize) override;
-	void SetVectorToMatrixElements(
-		const CFloatHandle& matrix, int height, int width,
-		const CConstIntHandle& rowIndices, const CConstIntHandle& columnIndices,
-		const CConstFloatHandle& vector, int vectorSize ) override;
-	void EltwiseLogSumExpVectorToMatrixElements(const CFloatHandle& matrix, int height, int width,
-		const CConstIntHandle& indices, const CConstFloatHandle& vector) override;
-	void EltwiseLogSumExpVectorToMatrixElements(const CFloatHandle& matrix, int height, int width,
 		const CConstIntHandle& rowIndices, const CConstIntHandle& columnIndices,
 		const CConstFloatHandle& vector, int vectorSize) override;
 	void AddMatrixElementsToVector(const CConstFloatHandle& matrix, int height, int width,
@@ -302,8 +290,6 @@ public:
 	void MatrixSoftmaxByRows(const CConstFloatHandle& matrix, int height, int width, const CFloatHandle& result) override;
 	void MatrixSoftmaxDiffOpByRows(const CConstFloatHandle& first, const CConstFloatHandle& second,
 		int height, int width, const CFloatHandle& result) override;
-	void MatrixLogSumExpByColumns(const CConstFloatHandle& matrix, int height, int width, const CFloatHandle& result,
-		int resultSize) override;
 	void MatrixSoftmaxByColumns(const CConstFloatHandle& matrix, int height, int width,
 		const CFloatHandle& result) override;
 	void MatrixSoftmaxDiffOpByColumns(const CConstFloatHandle& first, const CConstFloatHandle& second,
@@ -407,33 +393,33 @@ public:
 		const CBlobDesc& to, const CFloatHandle& toData, int startPos, bool isRev ) override;
 	CTimeConvolutionDesc* InitTimeConvolution( const CBlobDesc& source, int stride, int paddingFront, int paddingBack, int dilation,
 		const CBlobDesc& filter, const CBlobDesc& result ) override;
-	void BlobTimeConvolution( const CTimeConvolutionDesc& desc, const CFloatHandle& source,
-		const CFloatHandle& filter, const CFloatHandle& freeTerm, const CFloatHandle& result ) override;
-	void BlobTimeConvolutionBackward( const CTimeConvolutionDesc& desc, const CFloatHandle& outputDiff,
-		const CFloatHandle& filter, const CFloatHandle& freeTerm, const CFloatHandle& inputDiff ) override;
-	void BlobTimeConvolutionLearnAdd( const CTimeConvolutionDesc& desc, const CFloatHandle& input,
-		const CFloatHandle& outputDiff, const CFloatHandle& filterDiff, const CFloatHandle& freeTermDiff ) override;
+	void BlobTimeConvolution( const CTimeConvolutionDesc& desc, const CConstFloatHandle& source,
+		const CConstFloatHandle& filter, const CConstFloatHandle& freeTerm, const CFloatHandle& result ) override;
+	void BlobTimeConvolutionBackward( const CTimeConvolutionDesc& desc, const CConstFloatHandle& outputDiff,
+		const CConstFloatHandle& filter, const CConstFloatHandle& freeTerm, const CFloatHandle& inputDiff ) override;
+	void BlobTimeConvolutionLearnAdd( const CTimeConvolutionDesc& desc, const CConstFloatHandle& input,
+		const CConstFloatHandle& outputDiff, const CFloatHandle& filterDiff, const CFloatHandle& freeTermDiff ) override;
 	C3dConvolutionDesc* InitBlob3dConvolution( const CBlobDesc& input,
 		int paddingHeight, int paddingWidth, int paddingDepth,
 		int strideHeight, int strideWidth, int strideDepth,
 		const CBlobDesc& filter, const CBlobDesc& output ) override;
-	void Blob3dConvolution( const C3dConvolutionDesc& desc, const CFloatHandle& source,
-		const CFloatHandle& filter, const CFloatHandle* freeTerm, const CFloatHandle& result ) override;
-	void Blob3dConvolutionBackward( const C3dConvolutionDesc& desc, const CFloatHandle& source,
-		const CFloatHandle& filter, const CFloatHandle* freeTerm, const CFloatHandle& result ) override;
-	void Blob3dConvolutionLearnAdd( const C3dConvolutionDesc& desc, const CFloatHandle& input,
-		const CFloatHandle& outputDiff, const CFloatHandle& filterDiff,
+	void Blob3dConvolution( const C3dConvolutionDesc& desc, const CConstFloatHandle& source,
+		const CConstFloatHandle& filter, const CConstFloatHandle* freeTerm, const CFloatHandle& result ) override;
+	void Blob3dConvolutionBackward( const C3dConvolutionDesc& desc, const CConstFloatHandle& source,
+		const CConstFloatHandle& filter, const CConstFloatHandle* freeTerm, const CFloatHandle& result ) override;
+	void Blob3dConvolutionLearnAdd( const C3dConvolutionDesc& desc, const CConstFloatHandle& input,
+		const CConstFloatHandle& outputDiff, const CFloatHandle& filterDiff,
 		const CFloatHandle* freeTermDiff, bool isFreeTermDiffFromInput ) override;
 	CConvolutionDesc* InitBlobConvolution( const CBlobDesc& input,
 		int paddingHeight, int paddingWidth, int strideHeight, int strideWidth, int dilationHeight, int dilationWidth,
 		const CBlobDesc& filter, const CBlobDesc& output ) override;
 	void BlobConvolution( const CConvolutionDesc& desc,
-		const CFloatHandle& source, const CFloatHandle& filter, const CFloatHandle* freeTerm,
+		const CConstFloatHandle& source, const CConstFloatHandle& filter, const CConstFloatHandle* freeTerm,
 		const CFloatHandle& result ) override;
-	void BlobConvolutionBackward( const CConvolutionDesc& desc, const CFloatHandle& outputDiff,
-		const CFloatHandle& filter, const CFloatHandle* freeTerm, const CFloatHandle& inputDiff ) override;
+	void BlobConvolutionBackward( const CConvolutionDesc& desc, const CConstFloatHandle& outputDiff,
+		const CConstFloatHandle& filter, const CConstFloatHandle* freeTerm, const CFloatHandle& inputDiff ) override;
 	void BlobConvolutionLearnAdd( const CConvolutionDesc& desc,
-		const CFloatHandle& input, const CFloatHandle& outputDiff, const CFloatHandle& filterDiff,
+		const CConstFloatHandle& input, const CConstFloatHandle& outputDiff, const CFloatHandle& filterDiff,
 		const CFloatHandle* freeTermDiff, bool isFreeTermDiffFromInput ) override;
 	CChannelwiseConvolutionDesc* InitBlobChannelwiseConvolution( const CBlobDesc& input,
 		int paddingHeight, int paddingWidth, int strideHeight, int strideWidth,
@@ -441,9 +427,9 @@ public:
 	void BlobChannelwiseConvolution( const CChannelwiseConvolutionDesc& desc, const CConstFloatHandle& source,
 		const CConstFloatHandle& filter, const CConstFloatHandle* freeTerm, const CFloatHandle& result ) override;
 	void BlobChannelwiseConvolutionBackward( const CChannelwiseConvolutionDesc& convDesc,
-		const CFloatHandle& source, const CFloatHandle& filter, const CFloatHandle& result ) override;
+		const CConstFloatHandle& source, const CConstFloatHandle& filter, const CFloatHandle& result ) override;
 	void BlobChannelwiseConvolutionLearnAdd( const CChannelwiseConvolutionDesc& convDesc,
-		const CFloatHandle& input, const CFloatHandle& outputDiff, const CFloatHandle& filterDiff,
+		const CConstFloatHandle& input, const CConstFloatHandle& outputDiff, const CFloatHandle& filterDiff,
 		const CFloatHandle* freeTermDiff ) override;
 	CGlobalMaxPoolingDesc* InitGlobalMaxPooling( const CBlobDesc& source, const CBlobDesc& maxIndices,
 		const CBlobDesc& result ) override;
@@ -502,10 +488,10 @@ public:
 	CRleConvolutionDesc* InitBlobRleConvolution( const CBlobDesc& input, float strokeValue,
 		float nonStrokeValue, int strideHeight, int strideWidth, const CBlobDesc& filter,
 		const CBlobDesc& output ) override;
-	void BlobRleConvolution( const CRleConvolutionDesc& desc, const CFloatHandle& source,
-		const CFloatHandle& filter, const CFloatHandle* freeTerm, const CFloatHandle& result ) override;
-	void BlobRleConvolutionLearnAdd( const CRleConvolutionDesc& desc, const CFloatHandle& input,
-		const CFloatHandle& outputDiff, const CFloatHandle& filterDiff, const CFloatHandle* freeTermDiff ) override;
+	void BlobRleConvolution( const CRleConvolutionDesc& desc, const CConstFloatHandle& source,
+		const CConstFloatHandle& filter, const CConstFloatHandle* freeTerm, const CFloatHandle& result ) override;
+	void BlobRleConvolutionLearnAdd( const CRleConvolutionDesc& desc, const CConstFloatHandle& input,
+		const CConstFloatHandle& outputDiff, const CFloatHandle& filterDiff, const CFloatHandle* freeTermDiff ) override;
 	void Reorg( const CBlobDesc& source, const CFloatHandle& sourceData, int stride, bool isForward,
 		const CBlobDesc& result, const CFloatHandle& resultData ) override;
 	void Reorg( const CBlobDesc& source, const CIntHandle& sourceData, int stride, bool isForward,
@@ -554,7 +540,19 @@ public:
 	void LrnBackward( const CLrnDesc& desc, const CConstFloatHandle& input, const CConstFloatHandle& output,
 		const CConstFloatHandle& outputDiff, const CConstFloatHandle& invSum, const CConstFloatHandle& invSumBeta,
 		const CFloatHandle& inputDiff ) override;
+	void CtcLossForward( int resultLen, int batchSize, int classCount, int labelLen, int blankLabel, bool skipBlanks,
+		const CConstFloatHandle& result, const CConstIntHandle& labels,
+		const CConstIntHandle& labelLens, const CConstIntHandle& resultLens, const CConstFloatHandle& labelWeights,
+		const CFloatHandle& loss, const CFloatHandle& lossGradient ) override;
+	void BertConv( const CConstFloatHandle& dataHandle, const CConstFloatHandle& kernelHandle, int seqLen, int batchSize,
+		int numHeads, int headSize, int kernelSize, const CFloatHandle& outputHandle ) override;
+	void BertConvBackward( const CConstFloatHandle& dataHandle, const CConstFloatHandle& kernelHandle,
+		const CConstFloatHandle& outDiffHandle, int seqLen, int batchSize, int numHeads, int headSize, int kernelSize,
+		const CFloatHandle& dataDiffHandle, const CFloatHandle& kernelDiffHandle ) override;
+
 	IPerformanceCounters* CreatePerformanceCounters() const override { 	return new CPerformanceCountersDefault(); }
+	void AllReduce( const CFloatHandle& /*handle*/, int /*size*/ ) override {};
+	void Broadcast( const CFloatHandle& /*handle*/, int /*size*/, int /*root*/ ) override {};
 
 protected:
 	// IRawMemoryManager interface methods
@@ -593,39 +591,39 @@ private:
 	const CVulkanImage& batchVectorToImage( int batchSize, const CConstFloatHandle& vector, int size, int imageId );
 
 	void blobConvolution3x3s1d1( const CCommonConvolutionDesc& desc,
-		const CFloatHandle& sourceData, const CFloatHandle& filterData, const CFloatHandle* freeTermData,
+		const CConstFloatHandle& sourceData, const CConstFloatHandle& filterData, const CConstFloatHandle* freeTermData,
 		const CFloatHandle& resultData );
-	void blobConvolution3x3s1d1PrepareSource( const CBlobDesc& blob, const CFloatHandle& blobData,
+	void blobConvolution3x3s1d1PrepareSource( const CBlobDesc& blob, const CConstFloatHandle& blobData,
 		int paddingTop, int paddingBottom, int paddingLeft, int paddingRight, const CFloatHandle& buffer );
 
 	void blobConvolution3x3s1d1Adreno( const CCommonConvolutionDesc& desc,
-		const CFloatHandle& sourceData, const CFloatHandle& filterData, const CFloatHandle* freeTermData,
+		const CConstFloatHandle& sourceData, const CConstFloatHandle& filterData, const CConstFloatHandle* freeTermData,
 		const CFloatHandle& resultData );
 	const CVulkanImage& blobConvolution3x3s1d1PrepareFilterAdreno( const CBlobDesc& filter,
-		const CFloatHandle& filterData, int imageId );
-	const CVulkanImage& blobConvolution3x3s1d1PrepareSourceAdreno( const CBlobDesc& blob, const CFloatHandle& blobData,
+		const CConstFloatHandle& filterData, int imageId );
+	const CVulkanImage& blobConvolution3x3s1d1PrepareSourceAdreno( const CBlobDesc& blob, const CConstFloatHandle& blobData,
 		int paddingTop, int paddingBottom, int paddingLeft, int paddingRight, int imageId, int& channelGroupSize );
 
 	void blobConvolution1x1s1Common( const CCommonConvolutionDesc& desc,
-		const CFloatHandle& sourceData, const CFloatHandle& filterData, const CFloatHandle* freeTermData,
+		const CConstFloatHandle& sourceData, const CConstFloatHandle& filterData, const CConstFloatHandle* freeTermData,
 		const CFloatHandle& resultData );
 	void blobConvolutionImpl1Adreno( const CCommonConvolutionDesc& desc,
-		const CFloatHandle& source, const CFloatHandle& filter, bool isFreeTerm,
+		const CConstFloatHandle& source, const CConstFloatHandle& filter, bool isFreeTerm,
 		const CFloatHandle& result, int startChannel, int inputChannelGroupSize, int filterChannelGroupSize );
 	void blobConvolutionImpl8Adreno( const CCommonConvolutionDesc& desc,
-		const CFloatHandle& source, const CFloatHandle& filter, bool isFreeTerm,
+		const CConstFloatHandle& source, const CConstFloatHandle& filter, bool isFreeTerm,
 		const CFloatHandle& result, int channels8, int inputChannelGroupSize, int filterChannelGroupSize );
 	void blobConvolutionImpl1( const CCommonConvolutionDesc& desc,
 		const CFloatHandleStackVar& source, const CFloatHandleStackVar& filter,
-		const CFloatHandle* freeTermData, const CFloatHandle& result, int startChannel, int totalChannels );
+		const CConstFloatHandle* freeTermData, const CFloatHandle& result, int startChannel, int totalChannels );
 	void blobConvolutionImpl8( const CCommonConvolutionDesc& desc,
 		const CFloatHandleStackVar& source, const CFloatHandleStackVar& filter,
-		const CFloatHandle* freeTermData, const CFloatHandle& result, int totalChannels );
+		const CConstFloatHandle* freeTermData, const CFloatHandle& result, int totalChannels );
 	const CVulkanImage& prepareBlobForConvolutionAdreno( const CBlobDesc& blob,
 		const CConstFloatHandle& blobData, int imageId, int& channelGroupSize );
 	void prepareBlobForConvolution( const CBlobDesc& blob, const CConstFloatHandle& blobData, CFloatHandleStackVar& result );
 	const CVulkanImage& blobConvolutionBackwardPrepareFilterAdreno( const CBlobDesc& blob,
-		const CFloatHandle& blobData, int imageId );
+		const CConstFloatHandle& blobData, int imageId );
 
 	void blobChannelwiseConvolution3x3s1( const CChannelwiseConvolutionDesc& convDesc,
 		const CConstFloatHandle& sourceData, const CConstFloatHandle& filterData, 
@@ -655,7 +653,7 @@ private:
 	void matrixToInterleavedAdreno( int batchSize, CConstFloatHandle from, int height, int width, int rowSize,
 		bool isTrans, int imageId, CInterleavedMatrixDesc& result );
 
-	void blobConvertFromRleCommon( const CVulkanRleConvolutionDesc& desc, const CFloatHandle& sourceData,
+	void blobConvertFromRleCommon( const CVulkanRleConvolutionDesc& desc, const CConstFloatHandle& sourceData,
 		const CFloatHandle& resultData );
 
 	void blobMergeByDim(int dimNum, const CBlobDesc* from, const CFloatHandle* fromData, int fromCount,

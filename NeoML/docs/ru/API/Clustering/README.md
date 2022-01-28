@@ -50,9 +50,6 @@ public:
 	// Количество признаков в наборе.
 	virtual int GetFeaturesCount() const = 0;
 
-	// Получить вектор из набора.
-	virtual CFloatVectorDesc GetVector( int index ) const = 0;
-
 	// Получить все вектора набора в виде матрицы размера GetVectorCount() x GetFeaturesCount().
 	virtual CFloatMatrixDesc GetMatrix() const = 0;
 
