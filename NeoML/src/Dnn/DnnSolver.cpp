@@ -169,6 +169,11 @@ void CDnnSolver::AddDiff( CBaseLayer* layer, const CObjectArray<CDnnBlob>& param
 {
 	NeoAssert( layer != 0 );
 
+	if( MathEngine().IsDistributed() && !layersToReduce.Has( layer ) ) {
+		layersToReduce.Add( layer );
+		reduceOrder.Add( layer );
+	}
+
 	CDiffBlobSum& paramDiffBlobsSum = layerToParamDiffBlobsSum.GetOrCreateValue( layer );
 
 	if( !sharedWeights ) {
@@ -237,18 +242,15 @@ void CDnnSolver::Reset()
 
 void CDnnSolver::allReduce()
 {
-	CDnn* dnn = layerToParamDiffBlobsSum.GetKey( layerToParamDiffBlobsSum.GetFirstPosition() )->GetDnn();
-	CArray<const char*> layerList;
-	dnn->GetLayerList( layerList );
-	for( int i = 0; i < layerList.Size(); i++ ){
-		CBaseLayer* layer = dnn->GetLayer( layerList[i] );
-		if( layer->IsLearnable() && layer->IsLearningEnabled() ){
-			const CObjectArray<CDnnBlob>& params = layer->paramBlobs;
-			for( int j = 0; j < params.Size(); j++ ){
-				MathEngine().AllReduce( params[j]->GetData(), params[j]->GetDataSize() );
-			}
+	for( int i = 0; i < reduceOrder.Size(); ++i ) {
+		const CObjectArray<CDnnBlob>& params = reduceOrder[i]->paramBlobs;
+		for( int j = 0; j < params.Size(); j++ ) {
+			MathEngine().AllReduce( params[j]->GetData(), params[j]->GetDataSize() );
 		}
 	}
+
+	layersToReduce.Empty();
+	reduceOrder.Empty();
 }
 
 void CDnnSolver::clipGradients(const CObjectArray<CDnnBlob>& paramDiffBlobs)
@@ -313,6 +315,8 @@ void CDnnSolver::Serialize( CArchive& archive, CDnn& dnn )
 
 		layerToParamDiffBlobsSum.DeleteAll();
 		layerToGradientHistory.DeleteAll();
+		layersToReduce.DeleteAll();
+		reduceOrder.DeleteAll();
 
 		int size;
 		archive >> size;
