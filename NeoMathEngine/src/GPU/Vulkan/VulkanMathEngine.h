@@ -54,7 +54,7 @@ bool LoadVulkanEngineInfo( const CVulkanDll& dll, std::vector< CMathEngineInfo, 
 //------------------------------------------------------------------------------------------------------------
 
 // The math engine on vulkan
-class CVulkanMathEngine : public IMathEngine, public IRawMemoryManager {
+class CVulkanMathEngine final: public IMathEngine, private IRawMemoryManager {
 public:
 	CVulkanMathEngine( std::unique_ptr<const CVulkanDevice>& device, size_t memoryLimit );
 	~CVulkanMathEngine() override;
@@ -554,7 +554,7 @@ public:
 	void AllReduce( const CFloatHandle& /*handle*/, int /*size*/ ) override {};
 	void Broadcast( const CFloatHandle& /*handle*/, int /*size*/, int /*root*/ ) override {};
 
-protected:
+private:
 	// IRawMemoryManager interface methods
 	CMemoryHandle Alloc( size_t size ) override;
 	void Free( const CMemoryHandle& handle ) override;
