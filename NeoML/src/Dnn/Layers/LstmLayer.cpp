@@ -459,7 +459,7 @@ void CLstmLayer::initRecurentBlob( CPtr<CDnnBlob>& backlinkBlob, int num )
 	} else {
 		backlinkBlob->Clear();
 	}
-};
+}
 
 void CLstmLayer::CFastLstmDesc::Init( CLstmLayer* lstmLayer ) {
 	if( isInitialized ) {
