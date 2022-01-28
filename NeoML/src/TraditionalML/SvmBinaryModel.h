@@ -22,29 +22,29 @@ namespace NeoML {
 // The binary SVM classifier
 class CSvmBinaryModel : public ISvmBinaryModel {
 public:
-	CSvmBinaryModel() : freeTerm( 0 ) {}
+	CSvmBinaryModel() = default;
 	CSvmBinaryModel( const CSvmKernel& kernel, const IProblem& problem, const CArray<double>& alpha, double freeTerm );
 
 	// For serialization
 	static CPtr<IModel> Create() { return FINE_DEBUG_NEW CSvmBinaryModel(); }
 
 	// IModel interface methods
-	virtual int GetClassCount() const { return 2; }
-	virtual bool Classify( const CFloatVectorDesc& data, CClassificationResult& result ) const;
-	virtual void Serialize( CArchive& archive );
+	int GetClassCount() const override { return 2; }
+	bool Classify( const CFloatVectorDesc& data, CClassificationResult& result ) const override;
+	void Serialize( CArchive& archive ) override;
 
 	// ISvmBinaryModel interface methods
-	virtual CSvmKernel::TKernelType GetKernelType() const { return kernel.KernelType(); }
-	virtual CSparseFloatMatrix GetVectors() const { return matrix; }
-	virtual const CArray<double>& GetAlphas() const { return alpha; }
-	virtual double GetFreeTerm() const { return freeTerm; }
+	CSvmKernel::TKernelType GetKernelType() const override { return kernel.KernelType(); }
+	CSparseFloatMatrix GetVectors() const override { return matrix; }
+	const CArray<double>& GetAlphas() const override { return alpha; }
+	double GetFreeTerm() const override { return freeTerm; }
 
 protected:
-	virtual ~CSvmBinaryModel() {} // delete prohibited
+	~CSvmBinaryModel() override = default; // delete prohibited
 
 private:
 	CSvmKernel kernel; // the kernel
-	double freeTerm; // the free term
+	double freeTerm{}; // the free term
 	CSparseFloatMatrix matrix; // the support vectors
 	CArray<double> alpha; // the coefficients
 };
