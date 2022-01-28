@@ -865,11 +865,7 @@ inline void vectorMinMax( const float* first, float* result, const float minValu
 		for(int i = 0; i < sseSize; ++i) {
 			__m128 value = _mm_loadu_ps(first);
 
-			__m128 cmpMin = _mm_cmplt_ps(value, minSse);
-			__m128 cmpMax = _mm_cmpgt_ps(value, maxSse);
-			__m128 cmpNotNorm = _mm_or_ps(cmpMin, cmpMax);
-			__m128 res = _mm_or_ps(_mm_or_ps(_mm_andnot_ps(cmpNotNorm, value),
-				_mm_and_ps(cmpMin, minSse)), _mm_and_ps(cmpMax, maxSse));
+			__m128 res = _mm_min_ps(_mm_max_ps(value, minSse), maxSse);
 
 			_mm_storeu_ps(result, res);
 			first += 4;
