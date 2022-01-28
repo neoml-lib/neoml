@@ -21,6 +21,7 @@ limitations under the License.
 #ifdef NEOML_USE_NEON
 
 #include <CpuMathEngine.h>
+#include <CpuExecutionScope.h>
 #include <CpuArm.h>
 #include <MemoryHandleInternal.h>
 #include <MathEngineCommon.h>
@@ -72,6 +73,7 @@ void CCpuMathEngine::MatrixRowsToVectorSquaredL2Distance( const CConstFloatHandl
 	ASSERT_EXPR( matrixHandle.GetMathEngine() == this );
 	ASSERT_EXPR( vectorHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	CCpuExecutionScope scope;
 
 	const float* matrix = GetRaw( matrixHandle );
 	float* result = GetRaw( resultHandle );
@@ -97,6 +99,7 @@ void CCpuMathEngine::FindMaxValueInRows(const CConstFloatHandle& matrixHandle, i
 	ASSERT_EXPR( columnIndices.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	ASSERT_EXPR( vectorSize >= matrixHeight );
+	CCpuExecutionScope scope;
 
 	const float* matrix = GetRaw(matrixHandle);
 	float* result = GetRaw(resultHandle);
@@ -140,6 +143,7 @@ void CCpuMathEngine::FindMaxValueInRows(const CConstFloatHandle& matrixHandle, i
 	ASSERT_EXPR( matrixHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	ASSERT_EXPR(vectorSize >= matrixHeight);
+	CCpuExecutionScope scope;
 
 	const float* matrix = GetRaw(matrixHandle);
 	float* result = GetRaw(resultHandle);
@@ -170,6 +174,7 @@ void CCpuMathEngine::FindMaxValueInColumns( int batchSize, const CConstFloatHand
 	ASSERT_EXPR( matrixHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	ASSERT_EXPR( rowIndices.GetMathEngine() == this );
+	CCpuExecutionScope scope;
 
 	if( matrixWidth == 1 ) {
 		// In this case FindMaxValueInRows would be more optimal because it uses Neon in a different way
@@ -245,13 +250,14 @@ void CCpuMathEngine::FindMinValueInColumns( const CConstFloatHandle& matrixHandl
 	ASSERT_EXPR( matrixHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	ASSERT_EXPR( rowIndicesHandle.GetMathEngine() == this );
+	CCpuExecutionScope scope;
 
 	const float* matrix = GetRaw( matrixHandle );
 	float* result = GetRaw( resultHandle );
 	int* rowIndices = GetRaw( rowIndicesHandle );
 
 	// Copy the first row
-	vectorCopy( result, matrix, matrixWidth );
+	dataCopy( result, matrix, matrixWidth );
 	vectorFill( rowIndices, 0, matrixWidth );
 	matrix += matrixWidth;
 	// Process the rest
@@ -276,6 +282,7 @@ void CCpuMathEngine::MultiplyLookupMatrixByLookupVector(int batchSize, const CLo
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	ASSERT_EXPR(matrix.Width() == vector.VectorSize());
 	ASSERT_EXPR(resultSize >= batchSize * matrix.Height());
+	CCpuExecutionScope scope;
 
 	int height = matrix.Height();
 	int height4 = GetCount4(height);
@@ -373,6 +380,7 @@ void CCpuMathEngine::MultiplySparseMatrixByTransposedMatrix( int firstHeight, in
 	ASSERT_EXPR( firstDesc.Values.GetMathEngine() == this );
 	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	CCpuExecutionScope scope;
 
 	const int* firstRows = GetRaw( firstDesc.Rows );
 	const int* firstColumns = GetRaw( firstDesc.Columns );
@@ -402,6 +410,7 @@ void CCpuMathEngine::MultiplyTransposedMatrixBySparseMatrixAndAdd( int firstHeig
 	ASSERT_EXPR( secondDesc.Columns.GetMathEngine() == this );
 	ASSERT_EXPR( secondDesc.Values.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	CCpuExecutionScope scope;
 
 	const float* first = GetRaw( firstHandle );
 	const int* secondRows = GetRaw( secondDesc.Rows );
@@ -425,6 +434,7 @@ void CCpuMathEngine::MultiplyDiagMatrixByMatrixAndAdd(int batchSize, const CCons
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	CCpuExecutionScope scope;
 
 	const float* first = GetRaw(firstHandle);
 	const float* second = GetRaw(secondHandle);

@@ -38,6 +38,7 @@ limitations under the License.
 #include <NeoML/Dnn/AutoDiff.h>
 #include <NeoML/Dnn/AutoDiffFunctions.h>
 #include <NeoML/Dnn/Dnn.h>
+#include <NeoML/Dnn/DnnDistributed.h>
 #include <NeoML/Dnn/Layers/BaseInPlaceLayer.h>
 #include <NeoML/Dnn/Layers/SourceLayer.h>
 #include <NeoML/Dnn/Layers/SinkLayer.h>
@@ -120,6 +121,8 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/LrnLayer.h>
 #include <NeoML/Dnn/Layers/CastLayer.h>
 #include <NeoML/Dnn/Layers/DataLayer.h>
+#include <NeoML/Dnn/Layers/TransformerLayer.h>
+#include <NeoML/Dnn/Layers/BertConvLayer.h>
 #include <NeoML/ArchiveFile.h>
 
 #ifndef NO_NEOML_NAMESPACE

@@ -106,6 +106,46 @@ inline void vectorFill( float* result, float value, int vectorSize )
 	}
 }
 
+inline void vectorFill( int* result, int value, int vectorSize )
+{
+	int sseSize;
+	int nonSseSize;
+	checkSse( vectorSize, sseSize, nonSseSize );
+
+	__m128i valueSse = _mm_set1_epi32( value );
+
+	while( sseSize >= 4 ) {
+		_mm_storeu_si128( ( __m128i* )result, valueSse );
+		result += 4;
+		_mm_storeu_si128( ( __m128i* )result, valueSse );
+		result += 4;
+		_mm_storeu_si128( ( __m128i* )result, valueSse );
+		result += 4;
+		_mm_storeu_si128( ( __m128i* )result, valueSse );
+		result += 4;
+
+		sseSize -= 4;
+	}
+
+	while( sseSize > 0 ) {
+		_mm_storeu_si128( ( __m128i* )result, valueSse );
+		result += 4;
+		sseSize--;
+	}
+
+#if FINE_PLATFORM(FINE_WINDOWS)
+	if( nonSseSize > 0 ) {
+		__stosd( (DWORD*) result, value, nonSseSize );
+	}
+#elif FINE_PLATFORM(FINE_LINUX) || FINE_PLATFORM(FINE_DARWIN) || FINE_PLATFORM(FINE_ANDROID) || FINE_PLATFORM(FINE_IOS)
+	for( int i = 0; i < nonSseSize; ++i ) {
+		*result++ = value;
+	}
+#else
+#error "Platform isn't supported!"
+#endif
+}
+
 inline void vectorFill0( float* result, int vectorSize )
 {
 	int sseSize;
@@ -282,6 +322,27 @@ inline void alignedVectorMultiplyAndAdd( const float* first, const float* second
 		second += 4;
 		result += 4;
 		sseSize--;
+	}
+}
+
+//------------------------------------------------------------------------------------------------------------
+inline void vectorMultiply( const float* first, float* result, float multiplier, int vectorSize )
+{
+	int sseSize;
+	int nonSseSize;
+	checkSse( vectorSize, sseSize, nonSseSize );
+
+	if( sseSize > 0 ) {
+		__m128 multSse = _mm_set_ps1( multiplier );
+		for( int i = 0; i < sseSize; ++i ) {
+			_mm_storeu_ps( result, _mm_mul_ps( _mm_loadu_ps( first ), multSse ) );
+			first += 4;
+			result += 4;
+		}
+	}
+
+	for( int i = 0; i < nonSseSize; ++i ) {
+		*result++ = *first++ * multiplier;
 	}
 }
 
@@ -789,6 +850,37 @@ static inline void qrnnIfPoolingStep( const float* z, const float* f, const floa
 		__m128 h0 = LoadSse( h, nonSseSize );
 		__m128 res0 = _mm_add_ps( _mm_mul_ps( f0, h0 ), _mm_mul_ps( i0, z0 ) );
 		StoreSse( res0, res, nonSseSize );
+	}
+}
+
+inline void vectorMinMax( const float* first, float* result, const float minValue, const float maxValue, int vectorSize )
+{
+	int sseSize;
+	int nonSseSize;
+	checkSse(vectorSize, sseSize, nonSseSize);
+
+	if(sseSize > 0) {
+		const __m128 minSse = _mm_set_ps1(minValue);
+		const __m128 maxSse = _mm_set_ps1(maxValue);
+		for(int i = 0; i < sseSize; ++i) {
+			__m128 value = _mm_loadu_ps(first);
+
+			__m128 cmpMin = _mm_cmplt_ps(value, minSse);
+			__m128 cmpMax = _mm_cmpgt_ps(value, maxSse);
+			__m128 cmpNotNorm = _mm_or_ps(cmpMin, cmpMax);
+			__m128 res = _mm_or_ps(_mm_or_ps(_mm_andnot_ps(cmpNotNorm, value),
+				_mm_and_ps(cmpMin, minSse)), _mm_and_ps(cmpMax, maxSse));
+
+			_mm_storeu_ps(result, res);
+			first += 4;
+			result += 4;
+		}
+	}
+
+	for(int i = 0; i < nonSseSize; ++i) {
+		*result = min(max(*first, minValue), maxValue);
+		result++;
+		first++;
 	}
 }
 

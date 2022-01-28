@@ -5,12 +5,14 @@ add_library(${PROJECT_NAME} INTERFACE)
 target_sources(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/AddVectorToMatrixColumnsTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/AddVectorToMatrixRowsTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/BertConvTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/BitSetBinarizationTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Blob3dConvolutionTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Blob3dMaxPoolingTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Blob3dMeanPoolingTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/BlobChannelwiseConvolutionTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/BlobConvolutionTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/BlobConvolutionJitTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/BlobConvolutionPerformanceTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/BlobGetSubSequenceTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/BlobGlobalMaxOverTimePoolingTest.cpp
@@ -38,7 +40,6 @@ target_sources(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/MultiplyMatrixByTransposedMatrixTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/QrnnInferenceTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/ReorgTest.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/SetVectorToMatrixElementsTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/SetVectorToMatrixRowsTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/SpaceToDepthTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/SumMatrixRowsTest.cpp
@@ -52,7 +53,6 @@ target_sources(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorConvertTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorDotProductTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorEltwiseDivideTest.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/VectorEltwiseLogSumExpTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorEltwiseMaxTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorEltwiseMinTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorEltwiseMultiplyTest.cpp

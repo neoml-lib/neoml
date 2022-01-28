@@ -54,7 +54,6 @@ namespace NeoML {
 #include <shaders/generated/BatchMultiplyTransposedMatrixByMatrixBorders.h>
 #include <shaders/generated/BatchInitAddMultiplyMatrixByTransposedMatrix.h>
 #include <shaders/generated/BatchInitMultiplyMatrixByTransposedMatrixBorders.h>
-#include <shaders/generated/SetVectorToMatrixElements.h>
 #include <shaders/generated/FindMaxValueInRows.h>
 #include <shaders/generated/FindMaxValueInRowsNoIndices.h>
 #include <shaders/generated/FindMaxValueInColumns.h>
@@ -377,31 +376,6 @@ void CVulkanMathEngine::AddVectorToMatrixElements( const CFloatHandle&, int, int
 
 void CVulkanMathEngine::AddVectorToMatrixElements( const CFloatHandle&, int, int, const CConstIntHandle&, const CConstIntHandle&,
 	const CConstFloatHandle&, int )
-{
-	ASSERT_EXPR( false );
-}
-
-void CVulkanMathEngine::SetVectorToMatrixElements( const CFloatHandle& matrixHandle, int height, int width,
-	const CConstIntHandle& rowIndicesHandle, const CConstIntHandle& columnIndicesHandle,
-	const CConstFloatHandle& vectorHandle, int vectorSize )
-{
-	CMemoryHandle bufs[4] = { rowIndicesHandle, columnIndicesHandle, vectorHandle, matrixHandle };
-	size_t sizes[4] = { vectorSize * sizeof(int), vectorSize * sizeof(int), vectorSize * sizeof(float), height * width * sizeof(float) };
-
-	PARAM_STRUCT(SetVectorToMatrixElements) param = { width };
-
-	runShader( shaderLoader->GET_SHADER_DATA(SetVectorToMatrixElements, true, 0, 0, 4),
-		&param, sizeof(param), 0, 0, 0, 0, bufs, sizes, 4, vectorSize, 1, 1 );
-}
-
-void CVulkanMathEngine::EltwiseLogSumExpVectorToMatrixElements( const CFloatHandle&, int, int, const CConstIntHandle&,
-	const CConstFloatHandle& )
-{
-	ASSERT_EXPR( false );
-}
-
-void CVulkanMathEngine::EltwiseLogSumExpVectorToMatrixElements( const CFloatHandle&, int, int,
-	const CConstIntHandle&, const CConstIntHandle&, const CConstFloatHandle&, int )
 {
 	ASSERT_EXPR( false );
 }
@@ -778,11 +752,6 @@ void CVulkanMathEngine::MatrixSoftmaxDiffOpByRows( const CConstFloatHandle&, con
 	ASSERT_EXPR( false );
 }
 
-void CVulkanMathEngine::MatrixLogSumExpByColumns( const CConstFloatHandle&, int, int, const CFloatHandle&, int )
-{
-	ASSERT_EXPR( false );
-}
-
 void CVulkanMathEngine::MatrixSoftmaxByColumns( const CConstFloatHandle& matrix, int height, int width,
 	const CFloatHandle& result )
 {
@@ -805,7 +774,6 @@ void CVulkanMathEngine::MultiplyMatrixByDiagMatrix( const CConstFloatHandle& fir
 {
 	const int batchSize = 1;
 	const int secondBatchSize = 1;
-	const bool toAdd = false;
 	int matrixSize = batchSize * firstHeight * firstWidth;
 
 	ASSERT_EXPR( resultBufferSize >= matrixSize );
@@ -817,8 +785,7 @@ void CVulkanMathEngine::MultiplyMatrixByDiagMatrix( const CConstFloatHandle& fir
 		CMemoryHandle bufs[2] = { firstHandle, resultHandle };
 		size_t sizes[2] = { matrixSize * sizeof( float ), matrixSize * sizeof( float ) };
 
-		PARAM_STRUCT( MultiplyMatrixByDiagMatrixAdreno ) param =
-		{ batchSize, secondBatchSize, firstHeight, firstWidth, ( toAdd ? 1 : 0 ) };
+		PARAM_STRUCT( MultiplyMatrixByDiagMatrixAdreno ) param = { batchSize, secondBatchSize, firstHeight, firstWidth, 0 };
 
 		runShader( shaderLoader->GET_SHADER_DATA( MultiplyMatrixByDiagMatrixAdreno, true, 0, 1, 2 ),
 			&param, sizeof( param ), 0, 0, samplers, 1, bufs, sizes, 2, Ceil( firstWidth, 4 ), batchSize * firstHeight, 1 );
@@ -826,8 +793,7 @@ void CVulkanMathEngine::MultiplyMatrixByDiagMatrix( const CConstFloatHandle& fir
 		CMemoryHandle bufs[3] = { firstHandle, secondHandle, resultHandle };
 		size_t sizes[3] = { matrixSize * sizeof( float ), firstWidth * sizeof( float ), matrixSize * sizeof( float ) };
 
-		PARAM_STRUCT( MultiplyMatrixByDiagMatrix ) param =
-		{ batchSize, secondBatchSize, firstHeight, firstWidth, ( toAdd ? 1 : 0 ) };
+		PARAM_STRUCT( MultiplyMatrixByDiagMatrix ) param = { batchSize, secondBatchSize, firstHeight, firstWidth, 0 };
 
 		runShader( shaderLoader->GET_SHADER_DATA( MultiplyMatrixByDiagMatrix, true, 0, 0, 3 ),
 			&param, sizeof( param ), 0, 0, 0, 0, bufs, sizes, 3, Ceil( firstWidth, 4 ), batchSize * firstHeight, 1 );

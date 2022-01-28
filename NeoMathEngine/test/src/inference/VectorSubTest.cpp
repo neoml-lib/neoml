@@ -34,7 +34,7 @@ static void vectorSubImpl( const CTestParams& params, int seed )
 	MathEngine().VectorSub( CARRAY_WRAPPER( T, a ), CARRAY_WRAPPER( T, b ),CARRAY_WRAPPER( T, result ), vectorSize );
 
 	for( int i = 0; i < vectorSize; i++ ) {
-		float expected = a[i] - b[i];
+		T expected = a[i] - b[i];
 		ASSERT_EQ(expected, result[i]);
 	}
 }

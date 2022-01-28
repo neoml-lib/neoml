@@ -56,7 +56,7 @@ public:
 		const CArray<double>& weights, double weightsSum );
 
 protected:
-	virtual ~CGradientBoostFullTreeBuilder() {} // delete prohibited
+	~CGradientBoostFullTreeBuilder() override = default; // delete prohibited
 
 private:
 	const CGradientBoostFullTreeBuilderParams params; // classifier parameters

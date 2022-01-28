@@ -21,7 +21,8 @@ limitations under the License.
 #ifdef NEOML_USE_SSE
 
 #include <CpuMathEngine.h>
-#include <CpuX86.h>
+#include <CpuExecutionScope.h>
+#include <CpuMathEnginePrivate.h>
 #include <float.h>
 #include <MemoryHandleInternal.h>
 #include <MathEngineCommon.h>
@@ -35,6 +36,7 @@ void CCpuMathEngine::BlobGlobalMaxPooling( const CGlobalMaxPoolingDesc& poolingD
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( maxIndicesData.GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
+	CCpuExecutionScope scope;
 
 	const CCommonGlobalMaxPoolingDesc& desc = static_cast<const CCommonGlobalMaxPoolingDesc&>( poolingDesc );
 	const CBlobDesc& source = desc.Source;
@@ -249,6 +251,7 @@ void CCpuMathEngine::Blob3dMaxPooling( const C3dMaxPoolingDesc& poolingDesc, con
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( maxIndicesData == 0 || maxIndicesData->GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
+	CCpuExecutionScope scope;
 
 	const CCommon3dMaxPoolingDesc& desc = static_cast<const CCommon3dMaxPoolingDesc&>( poolingDesc );
 	const CBlobDesc& source = desc.Source;
@@ -358,6 +361,7 @@ void CCpuMathEngine::Blob3dMeanPooling( const C3dMeanPoolingDesc& convDesc, cons
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
+	CCpuExecutionScope scope;
 
 	const CCommon3dMeanPoolingDesc& desc = static_cast<const CCommon3dMeanPoolingDesc&>( convDesc );
 	const CBlobDesc& source = desc.Source;
@@ -480,6 +484,7 @@ void CCpuMathEngine::Blob3dMeanPoolingBackward( const C3dMeanPoolingDesc& poolin
 {
 	ASSERT_EXPR( outputDiffData.GetMathEngine() == this );
 	ASSERT_EXPR( inputDiffData.GetMathEngine() == this );
+	CCpuExecutionScope scope;
 
 	const CCommon3dMeanPoolingDesc& desc = static_cast<const CCommon3dMeanPoolingDesc&>( poolingDesc );
 	const CBlobDesc& inputDiff = desc.Source;
@@ -543,6 +548,7 @@ void CCpuMathEngine::BlobMaxOverTimePooling( const CMaxOverTimePoolingDesc& pool
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( maxIndicesData == 0 || maxIndicesData->GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
+	CCpuExecutionScope scope;
 
 	const CCommonMaxOverTimePoolingDesc& desc = static_cast<const CCommonMaxOverTimePoolingDesc&>( poolingDesc );
 	const CBlobDesc& source = desc.Source;
@@ -552,25 +558,25 @@ void CCpuMathEngine::BlobMaxOverTimePooling( const CMaxOverTimePoolingDesc& pool
 		int seqElemSize = source.BlobSize() / source.BatchLength();
 		int seqElemSizeSse = seqElemSize / 4;
 		int seqElemSizeNonSse = seqElemSize % 4;
-	
-		CConstFloatHandle sourceStart = sourceData;
-		CFloatHandle resultStart = resultData;
-		CIntHandle indexStart = *maxIndicesData;
+
+		const float* sourceStart = GetRaw( sourceData );
+		float* resultStart = GetRaw( resultData );
+		int* indexStart = GetRaw( *maxIndicesData );
 
 		int indexValueStart = 0;
 		for(int l = 0; l < result.BatchLength(); ++l) {
-			const float* sourceDataPtr = GetRaw( sourceStart );
+			const float* sourceDataPtr = sourceStart;
 
 			// Set the initial values (the zero value)
-			VectorCopy(resultStart, sourceStart, seqElemSize);
-			VectorFill(indexStart, indexValueStart, seqElemSize);
+			dataCopy(resultStart, sourceStart, seqElemSize);
+			vectorFill(indexStart, indexValueStart, seqElemSize);
 
 			sourceDataPtr += seqElemSize;
 
 			for(int n = 1; n < desc.FilterLen; ++n) {
 				// Restart the result data
-				float* resultDataPtr = GetRaw( resultStart );
-				int* indexData = GetRaw( indexStart );
+				float* resultDataPtr = resultStart;
+				int* indexData = indexStart;
 				int indexValue = indexValueStart + n;
 				__m128i indexValueSse = _mm_set1_epi32(indexValue);
 
@@ -611,21 +617,20 @@ void CCpuMathEngine::BlobMaxOverTimePooling( const CMaxOverTimePoolingDesc& pool
 		int seqElemSizeSse = seqElemSize / 4;
 		int seqElemSizeNonSse = seqElemSize % 4;
 
-		CConstFloatHandle sourceStart = sourceData;
-		CFloatHandle resultStart = resultData;
+		const float* sourceStart = GetRaw(sourceData);
+		float* resultStart = GetRaw(resultData);
 
 		for(int l = 0; l < result.BatchLength(); ++l) {
-			const float* sourceDataPtr = GetRaw( sourceStart );
+			const float* sourceDataPtr = sourceStart;
 
 			// Set the initial values (the zero value)
-			VectorCopy( resultStart, sourceStart, seqElemSize);
+			dataCopy(resultStart, sourceStart, seqElemSize);
 
 			sourceDataPtr += seqElemSize;
 
 			for(int n = 1; n < desc.FilterLen; ++n) {
 				// Restart the result data
-				float* resultDataPtr = GetRaw(resultStart);
-
+				float* resultDataPtr = resultStart;
 				for(int i = 0; i < seqElemSizeSse; ++i) {
 					__m128 src = _mm_loadu_ps(sourceDataPtr);
 					__m128 res = _mm_loadu_ps(resultDataPtr);
@@ -656,6 +661,7 @@ void CCpuMathEngine::AddWidthIndex( const CBlobDesc& source, const CFloatHandle&
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
+	CCpuExecutionScope scope;
 
 	const float* pSource = GetRaw( sourceData );
 	float* pResult = GetRaw( resultData );
@@ -677,6 +683,7 @@ void CCpuMathEngine::AddWidthIndex( const CBlobDesc& source, const CIntHandle& s
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
+	CCpuExecutionScope scope;
 
 	const int* pSource = GetRaw( sourceData );
 	int* pResult = GetRaw( resultData );
@@ -698,6 +705,7 @@ void CCpuMathEngine::AddHeightIndex( const CBlobDesc& source, const CFloatHandle
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
+	CCpuExecutionScope scope;
 
 	const float* pSource = GetRaw( sourceData );
 	float* pResult = GetRaw( resultData );
@@ -719,6 +727,7 @@ void CCpuMathEngine::AddHeightIndex( const CBlobDesc& source, const CIntHandle& 
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
+	CCpuExecutionScope scope;
 
 	const int* pSource = GetRaw( sourceData );
 	int* pResult = GetRaw( resultData );

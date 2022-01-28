@@ -34,7 +34,7 @@ public:
 		blob.GetDimSizes( dimensions );
 	}
 
-	__host__ __device__ explicit CCudaBlobDesc()
+	__host__ __device__ CCudaBlobDesc()
 	{
 		for( int i = 0; i < MaxDimensions; i++ ) {
 			dimensions[i] = 1;

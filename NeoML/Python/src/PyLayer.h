@@ -34,6 +34,10 @@ public:
 	int GetOutputCount() const { return baseLayer->GetOutputCount(); }
 	std::string GetName() const { return std::string( baseLayer->GetName() ); }
 
+	void DisableLearning() { baseLayer->DisableLearning(); }
+	void EnableLearning() { baseLayer->EnableLearning(); }
+	bool IsLearningEnabled() const { return baseLayer->IsLearningEnabled(); }
+
 	virtual py::object CreatePythonObject() const { NeoAssert(false); return py::cast(0); }
 
 	void Connect( CPyLayer& layer, int outputIndex, int inputIndex );

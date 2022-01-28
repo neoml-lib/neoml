@@ -33,6 +33,15 @@ option(NeoML_BUILD_TESTS "Enable and build all of NeoML's tests." ON)
 # Build NeoML as shared library.
 option(NeoML_BUILD_SHARED "Build NeoML as shared library." ON)
 
+# Use CMAKE_UNITY_BUILD or not
+option(NeoML_UNITY_BUILD "Use Unity (Jumbo) build cmake's feature" ON)
+if(${CMAKE_VERSION} VERSION_GREATER "3.16.0")
+    set(CMAKE_UNITY_BUILD ${NeoML_UNITY_BUILD})
+endif()
+
+# Set UNITY_BUILD_BATCH_SIZE. This option is ignored if not CMAKE_UNITY_BUILD
+set(NeoML_UNITY_BUILD_BATCH_SIZE 8 CACHE STRING "Batch size for Unity build" )
+
 # Install NeoML or not
 option(NeoML_INSTALL "Install NeoML" ON)
 
@@ -74,6 +83,9 @@ if(NeoML_INSTALL)
     set(INSTALLED_TARGETS NeoML NeoMathEngine)
     if(NeoOnnx_BUILD)
         list(APPEND INSTALLED_TARGETS NeoOnnx)
+        if (NOT ANDROID AND NOT IOS)
+            list(APPEND INSTALLED_TARGETS Onnx2NeoML)
+        endif()
     endif()
     
     if(USE_FINE_OBJECTS)

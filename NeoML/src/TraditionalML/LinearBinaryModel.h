@@ -22,7 +22,7 @@ namespace NeoML {
 // The linear binary classifier
 class CLinearBinaryModel : public ILinearBinaryModel, public ILinearRegressionModel {
 public:
-	CLinearBinaryModel() {}
+	CLinearBinaryModel() = default;
 	CLinearBinaryModel( const CFloatVector& plane, const CSigmoid& sigmoidCoefficients );
 
 	// For serialization
@@ -41,7 +41,7 @@ public:
 	double Predict( const CFloatVectorDesc& data ) const override;
 
 protected:
-	virtual ~CLinearBinaryModel() {} // delete prohibited
+	~CLinearBinaryModel() override = default; // delete prohibited
 
 private:
 	CFloatVector plane; // the base plane
