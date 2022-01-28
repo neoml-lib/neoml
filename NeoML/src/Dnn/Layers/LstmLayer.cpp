@@ -315,7 +315,9 @@ void CLstmLayer::Serialize( CArchive& archive )
 
 void CLstmLayer::RunOnce() {
 	if( MathEngine().GetType() == MET_Cpu && 
-		!isInCompatibilityMode && 
+		!isInCompatibilityMode &&
+		!IsBackwardPerformed() &&
+		!IsLearningPerformed() &&
 		recurrentActivation == AF_Sigmoid ) {
 		fastLstm();
 	} else {
