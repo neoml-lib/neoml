@@ -80,7 +80,9 @@ public:
 	// selects the corresponding principal axes as the final components
 	void Train( const CFloatMatrixDesc& data );
 	// Trains and transforms the data into shape ( samples x components )
-	CSparseFloatMatrixDesc Transform( const CFloatMatrixDesc& data );
+	CFloatMatrixDesc TrainTransform( const CFloatMatrixDesc& data );
+	// Transforms the data into shape ( samples x components )
+	CFloatMatrixDesc Transform( const CFloatMatrixDesc& data );
 
 	// Singular values corresponding to the selected principal axes
 	const CArray<float>& GetSingularValues() const { return singularValues; }
@@ -93,11 +95,7 @@ public:
 	// Selected number of principal axes
 	int GetComponentsNum() const { return components; }
 	// Matrix ( components x features ) with rows corresponding to the selected principal axis 
-	CFloatMatrixDesc GetComponents() const {
-		// not working for sparse algorithm
-		NeoAssert( params.SvdSolver == SVD_Full );
-		return componentsMatrix.GetDesc();
-	}
+	CFloatMatrixDesc GetComponents() const { return componentsMatrix.GetDesc(); }
 
 private:
 	const CParams params;
