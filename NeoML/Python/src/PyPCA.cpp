@@ -43,6 +43,7 @@ public:
 
 	void Fit( int height, int width, py::array indices, py::array data, py::array rowPtr, bool isSparse );
 	py::array FitTransform( int height, int width, py::array indices, py::array data, py::array rowPtr, bool isSparse );
+	py::array Transform_( int height, int width, py::array indices, py::array data, py::array rowPtr, bool isSparse );
 	py::array SingularValues() { return getArray( GetSingularValues() ); }
 	py::array ExplainedVariance() { return getArray( GetExplainedVariance() ); }
 	py::array ExplainedVarianceRatio() { return getArray( GetExplainedVarianceRatio() ); }
@@ -69,6 +70,28 @@ py::array CPyPca::FitTransform( int height, int width, py::array indices, py::ar
 	CFloatMatrixDesc resDesc;
 	{
 		py::gil_scoped_release release;
+		resDesc = TrainTransform( desc );
+	}
+	py::array_t<float, py::array::c_style> transformed( { resDesc.Height, resDesc.Width } );
+	memset( static_cast<float*>( transformed.request().ptr ), 0, resDesc.Height * resDesc.Width * sizeof( float ) );
+	auto tempTransformed = transformed.mutable_unchecked<2>();
+	for( int i = 0; i < resDesc.Height; i++ ) {
+		for( int j = resDesc.PointerB[i]; j < resDesc.PointerE[i]; j++ ){
+			tempTransformed(i, resDesc.Columns[j]) = resDesc.Values[j];
+		}
+	}
+	return transformed;
+}
+
+py::array CPyPca::Transform_( int height, int width, py::array indices, py::array data, py::array rowPtr, bool isSparse )
+{
+	CFloatMatrixDesc desc = getMatrix( height, width,
+		reinterpret_cast<const int*>( isSparse ? indices.data() : nullptr ), reinterpret_cast<const float*>( data.data() ),
+		reinterpret_cast<const int*>( rowPtr.data() ) );
+
+	CFloatMatrixDesc resDesc;
+	{
+		py::gil_scoped_release release;
 		resDesc = Transform( desc );
 	}
 	py::array_t<float, py::array::c_style> transformed( { resDesc.Height, resDesc.Width } );
@@ -84,7 +107,8 @@ py::array CPyPca::FitTransform( int height, int width, py::array indices, py::ar
 
 py::array CPyPca::Components()
 {
-	CFloatMatrixDesc desc = GetComponents();
+	CSparseFloatMatrix matrix = GetComponents();
+	CFloatMatrixDesc desc = matrix.GetDesc();
 	py::array_t<float, py::array::c_style> components( { desc.Height, desc.Width } );
 	memset( static_cast<float*>( components.request().ptr ), 0, desc.Height * desc.Width * sizeof( float ) );
 	auto tempComponents = components.mutable_unchecked<2>();
@@ -116,6 +140,7 @@ void InitializePCA(py::module& m)
 
 		.def( "fit", &CPyPca::Fit )
 		.def( "fit_transform", &CPyPca::FitTransform, py::return_value_policy::reference )
+		.def( "transform", &CPyPca::Transform_, py::return_value_policy::reference )
 		.def( "components", &CPyPca::Components, py::return_value_policy::reference )
 		.def( "n_components", &CPyPca::NComponents, py::return_value_policy::reference )
 		.def( "explained_variance", &CPyPca::ExplainedVariance, py::return_value_policy::reference )
