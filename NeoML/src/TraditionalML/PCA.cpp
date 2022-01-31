@@ -371,8 +371,6 @@ void CPca::train( const CFloatMatrixDesc& data, bool isTransform )
 	calculateVariance( data, singularValues, ( params.SvdSolver == SVD_Sparse ) ? components : k );
 
 	singularValues.SetSize( components );
-	// componentsMatrix = CSparseFloatMatrix( components, n );
-	// convertToMatrix( rightVectors, componentsMatrix, components, n, n );
 
 	if( isTransform ) {
 		if( params.SvdSolver == SVD_Full ) {
