@@ -2598,14 +2598,20 @@ class TestPca(MultithreadedTestCase):
             y = np.sqrt(1 - (x * x) / (a * a)) * b
             X[2 * i] = [x, y, 1, 0]
             X[2 * i + 1] = [x, -y, 1, 0]
-        pca = neoml.PCA.PCA(2)
-        transformedX = pca.fit_transform(X)
-        self.assertEqual( pca.components.tolist(), [[-1, 0, 0, 0], [0, 1, 0, 0]] )
-        self.assertEqual( pca.singular_values.size, n_components )
-        self.assertEqual( pca.explained_variance.size, n_components )
-        self.assertEqual( pca.explained_variance_ratio.size, n_components )
-        self.assertTrue( pca.n_components == n_components )
-        self.assertTrue( abs(pca.noise_variance) < 1e-5 )
+
+        for s in ('fit + transform', 'fit_transform'):
+            pca = neoml.PCA.PCA(2)
+            if s == 'fit + transform':
+                pca.fit(X)
+                transformedX = pca.transform(X)
+            else:
+                transformedX = pca.fit_transform(X)
+            self.assertEqual( pca.components.tolist(), [[-1, 0, 0, 0], [0, 1, 0, 0]] )
+            self.assertEqual( pca.singular_values.size, n_components )
+            self.assertEqual( pca.explained_variance.size, n_components )
+            self.assertEqual( pca.explained_variance_ratio.size, n_components )
+            self.assertTrue( pca.n_components == n_components )
+            self.assertTrue( abs(pca.noise_variance) < 1e-5 )
 
 
 @skipIf(sys.platform == 'darwin', 'Not supposed to work on MacOS')
