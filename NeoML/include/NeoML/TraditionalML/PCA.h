@@ -45,17 +45,16 @@ void NEOML_API SingularValueDecomposition( const CFloatMatrixDesc& data, const T
 // a lower dimensional space
 class NEOML_API CPca {
 public:
-	// Determines how the number of components will be chosen
+	// Components parameter type
 	enum TComponents {
-		// Set the number of components to min(data.width, data.height)
+		// Set number of components as min(data.width, data.height)
 		PCAC_None = 0,
-		// Take the integer value in the Components field for the number of components
+		// Integer number Components representing a number of components to compute
 		PCAC_Int,
 		// In case of SVD_Full number of components is selected such that
 		// the value of explained_variance is greater than Components
 		// 0 < Components < 1
 		PCAC_Float,
-        // The number of constants in the enum
 		PCAC_Count
 	};
 
@@ -76,26 +75,28 @@ public:
 	explicit CPca( const CParams& params );
 	~CPca() {};
 
-	// Chooses the greatest singular values from `Components` and
-	// selects the corresponding principal axes as the final components
+	// Chooses `Components` greatest singular values and
+	// selects the corresponding principal axis as the final components
 	void Train( const CFloatMatrixDesc& data );
-	// Trains and transforms the data into shape ( samples x components )
-	CFloatMatrixDesc TrainTransform( const CFloatMatrixDesc& data );
-	// Transforms the data into shape ( samples x components )
-	CFloatMatrixDesc Transform( const CFloatMatrixDesc& data );
+	// Train + transform the data into shape ( samples x components )
+	CSparseFloatMatrixDesc Transform( const CFloatMatrixDesc& data );
 
-	// Singular values corresponding to the selected principal axes
+	// Singular values corresponding to the selected principal axis
 	const CArray<float>& GetSingularValues() const { return singularValues; }
-	// Variance explained by each of the selected principal axes
+	// Variance explained by each of the selected principal axis
 	const CArray<float>& GetExplainedVariance() const { return explainedVariance; }
 	// Percentage of variance explained by each of the selected principal axis
 	const CArray<float>& GetExplainedVarianceRatio() const { return explainedVarianceRatio; }
-	// Mean of singular values not corresponding to the selected principal axes
+	// Mean of singular values not corresponding to the selected principal axis
 	float GetNoiseVariance() const { return noiseVariance; }
-	// Selected number of principal axes
+	// Selected number of principal axis
 	int GetComponentsNum() const { return components; }
 	// Matrix ( components x features ) with rows corresponding to the selected principal axis 
-	CFloatMatrixDesc GetComponents() const { return componentsMatrix.GetDesc(); }
+	CFloatMatrixDesc GetComponents() const {
+		// not working for sparse algorithm
+		NeoAssert( params.SvdSolver == SVD_Full );
+		return componentsMatrix.GetDesc();
+	}
 
 private:
 	const CParams params;
