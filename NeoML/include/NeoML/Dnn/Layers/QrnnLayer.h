@@ -142,7 +142,7 @@ public:
 	CPtr<CDnnBlob> GetFreeTermData() const { return timeConv->GetFreeTermData(); }
 	void SetFreeTermData( const CPtr<CDnnBlob>& newFreeTerm ) { timeConv->SetFreeTermData( newFreeTerm ); }
 
-	void Serialize( CArchive& archive );
+	void Serialize( CArchive& archive ) override;
 
 private:
 	enum TGate {
