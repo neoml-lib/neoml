@@ -60,9 +60,9 @@ namespace NeoML {
 struct CVulkanRleConvolutionDesc : public CRleConvolutionDesc {
 	float StrokeValue;
 	float NonStrokeValue;
-	CConvolutionDesc* ConvDesc;
+	CConvolutionDesc* ConvDesc{};
 
-	CVulkanRleConvolutionDesc() : ConvDesc( 0 ) {}
+	CVulkanRleConvolutionDesc() = default;
 	~CVulkanRleConvolutionDesc() override;
 };
 

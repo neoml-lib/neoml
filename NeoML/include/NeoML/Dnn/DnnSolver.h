@@ -93,6 +93,9 @@ private:
 	// The buffers for storing gradients history and moment
 	// Used in the inheriting classes
 	CMap<CBaseLayer*, CObjectArray<CDnnBlob>> layerToGradientHistory;
+	// Layers which require reduction across distributed solver
+	CHashTable<CBaseLayer*> layersToReduce; // Fast check if layer is included already
+	CArray<CBaseLayer*> reduceOrder; // Correct order across all of the distributed nets
 
 	// Averages weights over all threads
 	void allReduce();
