@@ -109,6 +109,21 @@ class PCA(PythonWrapper.PCA) :
 
         return super().fit_transform(*x.shape, *get_data(x))
 
+    def transform(self, X):
+        """Projects the dataset onto the principal components axes and returns the result.
+
+        :param X: the input sample. Internally, it will be converted
+            to ``dtype=np.float32``, and if a sparse matrix is provided -
+            to a sparse ``scipy.csr_matrix``.
+        :type X: {array-like, sparse matrix} of shape (n_samples, n_features)
+
+        :return: projection of the data into a lower dimensional space.
+        :rtype: *generator of ndarray of shape (n_samples, n_components)*
+        """
+        x = convert_data( X )
+
+        return super().transform(*x.shape, *get_data(x))
+
     @property
     def singular_values(self):
         """Returns the singular values corresponding to the selected principal axes.

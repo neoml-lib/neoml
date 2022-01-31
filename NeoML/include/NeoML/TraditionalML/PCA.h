@@ -80,9 +80,9 @@ public:
 	// selects the corresponding principal axes as the final components
 	void Train( const CFloatMatrixDesc& data );
 	// Trains and transforms the data into shape ( samples x components )
-	CFloatMatrixDesc TrainTransform( const CFloatMatrixDesc& data );
+	CSparseFloatMatrixDesc TrainTransform( const CFloatMatrixDesc& data );
 	// Transforms the data into shape ( samples x components )
-	CFloatMatrixDesc Transform( const CFloatMatrixDesc& data );
+	CSparseFloatMatrixDesc Transform( const CFloatMatrixDesc& data );
 
 	// Singular values corresponding to the selected principal axes
 	const CArray<float>& GetSingularValues() const { return singularValues; }
@@ -95,21 +95,24 @@ public:
 	// Selected number of principal axes
 	int GetComponentsNum() const { return components; }
 	// Matrix ( components x features ) with rows corresponding to the selected principal axis 
-	CFloatMatrixDesc GetComponents() const { return componentsMatrix.GetDesc(); }
+	CSparseFloatMatrix GetComponents();
 
 private:
 	const CParams params;
 	CArray<float> singularValues;
 	CArray<float> explainedVariance;
 	CArray<float> explainedVarianceRatio;
-	CSparseFloatMatrix componentsMatrix;
+	CArray<float> componentsMatrix;
 	CSparseFloatMatrix transformedMatrix;
+	CSparseFloatVector meanVector;
 	float noiseVariance;
 	int components;
+	int componentWidth;
 
 	void train( const CFloatMatrixDesc& data, bool isTransform );
 	void calculateVariance( const CFloatMatrixDesc& data, const CArray<float>& s, int total_components );
 	void getComponentsNum( const CArray<float>& explainedVarianceRatio, int k );
+	CSparseFloatMatrix transform( const CFloatMatrixDesc& data );
 };
 
 } // namespace NeoML
