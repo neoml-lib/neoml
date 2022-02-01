@@ -22,13 +22,22 @@ public:
 	virtual void SetInputBatch( CDnn& dnn, int thread ) = 0;
 };
 
+// Initializer to use in distributed training
+enum class TDistributedInitializer {
+	Xavier,
+	XavierUniform,
+	Uniform
+};
+
 // Single process, multiple threads distributed training
 class NEOML_API CDistributedTraining {
 public:
 	// Creates `count` cpu models
-	explicit CDistributedTraining( CArchive& archive, int count );
+	explicit CDistributedTraining( CArchive& archive, int count,
+		TDistributedInitializer initializer = TDistributedInitializer::Xavier, int seed = 42 );
 	// Creates gpu models, `devs` should contain numbers of using devices
-	explicit CDistributedTraining( CArchive& archive, const CArray<int>& cudaDevs );
+	explicit CDistributedTraining( CArchive& archive, const CArray<int>& cudaDevs,
+		TDistributedInitializer initializer = TDistributedInitializer::Xavier, int seed = 42 );
 	// Gets the number of models in disitrbuted traning
 	int GetModelCount() const { return cnns.Size(); }
 	// Sets the solver for all of the models
@@ -58,7 +67,7 @@ private:
 	CArray<CDnn*> cnns;
 	CString errorMessage;
 
-	void initialize( CArchive& archive, int count );
+	void initialize( CArchive& archive, int count, TDistributedInitializer initializer, int seed );
 };
 
 
