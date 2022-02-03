@@ -318,7 +318,8 @@ void CLstmLayer::RunOnce() {
 		!isInCompatibilityMode &&
 		!IsBackwardPerformed() &&
 		!IsLearningPerformed() &&
-		recurrentActivation == AF_Sigmoid ) {
+		recurrentActivation == AF_Sigmoid )
+	{
 		fastLstm();
 	} else {
 		CRecurrentLayer::RunOnce();
@@ -433,7 +434,8 @@ void CLstmLayer::fastLstm()
 		}
 		mainBacklinkOutput->SetParentPos( outputPos );
 
-		CConstFloatHandle inputFreeTermHandle, recurrentFreeTermHandle;
+		CConstFloatHandle inputFreeTermHandle;
+		CConstFloatHandle recurrentFreeTermHandle;
 		if( inputFreeTerm.Ptr() ) {
 			inputFreeTermHandle = inputFreeTerm->GetData();
 		}

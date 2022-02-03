@@ -100,7 +100,7 @@ private:
 		bool isInitialized;
 
 		void clearPointers() {
-			if( lstmDesc ) {
+			if( lstmDesc != nullptr ) {
 				delete lstmDesc;
 				lstmDesc = nullptr;
 			}
