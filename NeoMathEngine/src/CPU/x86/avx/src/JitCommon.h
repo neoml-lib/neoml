@@ -79,6 +79,7 @@ public:
     void StartDownCountLoop( reg64_t counter, size_t step );
     void StopDownCountLoop();
 
+    inline void JmpIfZero( reg64_t counter, const char* label );
 
     template<class LastVec>
     bool HasSameSize( const LastVec& ) {
@@ -182,7 +183,10 @@ public:
     XBYAK_FORWARD_CAST_2( vmovups, Address, Xmm )
     XBYAK_FORWARD_CAST_2( vmovups, Xmm, Operand )
     XBYAK_FORWARD_CAST_3( vaddps, Xmm, Operand, Operand )
+    XBYAK_FORWARD_CAST_3( vmaxps, Xmm, Operand, Operand )
+    XBYAK_FORWARD_CAST_3( vminps, Xmm, Operand, Operand )
     XBYAK_FORWARD_CAST_3( vmulps, Xmm, Operand, Operand )
+    XBYAK_FORWARD_CAST_3( vxorps, Xmm, Operand, Operand )
 
 private:
     struct CLoopDesc {

@@ -128,11 +128,11 @@ void CCpuMathEngine::VectorAdd(const CConstFloatHandle& firstHandle, const CCons
 		NEOML_OMP_NUM_THREADS( curThreadCount ) {
 			int index, count;
 			if( OmpGetTaskIndexAndCount( vectorSize, 16, index, count ) ) {
-				NeoML::vectorAdd( GetRaw(firstHandle + index), GetRaw(secondHandle + index), GetRaw(resultHandle + index), count );
+				vectorAdd( GetRaw(firstHandle + index), GetRaw(secondHandle + index), GetRaw(resultHandle + index), count );
 			}
 		}
 	} else {
-		NeoML::vectorAdd( GetRaw(firstHandle), GetRaw(secondHandle), GetRaw(resultHandle), vectorSize );
+		vectorAdd( GetRaw(firstHandle), GetRaw(secondHandle), GetRaw(resultHandle), vectorSize );
 	}
 }
 

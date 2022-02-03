@@ -31,19 +31,12 @@ class IMathEngine;
 
 class CPrimitivesJit {
 public:
-	CPrimitivesJit( IMathEngine* _mathEngine, int _threadCount );
-
-	void Tanh( float* dst, const float* src, size_t dataSize, bool isMultithread = true );
-	void Sigmoid( float* dst, const float* src, size_t dataSize, bool isMultithread = true );
-	void Exp( float* dst, const float* src, size_t dataSize, bool isMultithread = true );
-
-	// Process part of lstm layer which follow after fullyconnected layers.
-	void RestOfLstm( CLstmDesc* desc, const CConstFloatHandle& inputStateBackLink,
-		const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink,
-		bool isMultithread );
-
-private:
 	enum class TPrimitive {
+		VectorAdd,
+		VectorAlignedAdd,
+		VectorMax,
+		VectorReLU,
+		VectorReLUTreshold,
 		Tanh,
 		Sigmoid,
 		Exp,
@@ -52,6 +45,29 @@ private:
 		Count
 	};
 
+	CPrimitivesJit( IMathEngine* _mathEngine, int _threadCount );
+
+	void Tanh( float* dst, const float* src, size_t dataSize, bool isMultithread );
+	void Sigmoid( float* dst, const float* src, size_t dataSize, bool isMultithread );
+	void Exp( float* dst, const float* src, size_t dataSize, bool isMultithread );
+
+	// Process part of lstm layer which follow after fullyconnected layers.
+	void RestOfLstm( CLstmDesc* desc, const CConstFloatHandle& inputStateBackLink,
+		const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink,
+		bool isMultithread );
+
+	template<CPrimitivesJit::TPrimitive P>
+	const uint8_t* GetFunctionRawPtr() {
+		CGenerator& genInst = gens[static_cast< size_t >( P )];
+		genInst.lock.lock();
+		if( genInst.gen.getSize() == 0 ) {
+			initPrimitive<P>();
+		}
+		genInst.lock.unlock();
+		return genInst.gen.getCode();
+	}
+
+private:
 	enum class TTableKey {
 		// Tanh specific items
 		TanhPolyCoeff, // Coefficients of tanh polynome
@@ -85,6 +101,7 @@ private:
 
 	static constexpr int MantissaNumBits = 23;
 
+	using EltwiseFunc = void( * )( const float* op1, const float* op2, float* res, size_t count );
 	using ActivationFunc = void( * )( float* dst, const float* src, size_t offset, size_t count );
 	using RestOfLstmFunc = void( * )( size_t hiddenSize, const float* inputStateBackLinkPtr, float* outputStateBackLinkPtr,
 		float* outputMainBackLinkPtr, float* inputFullyConnectedResultPtr, float* reccurentFullyConnectedResultPtr, size_t offset, size_t count );
@@ -110,7 +127,24 @@ private:
 	void addVector( TTableKey key, std::initializer_list<uint32_t>&& data, size_t repeatNum = 1 );
 	// repeatNum specifies how many times value will be repeated in the table
 	void addVal( TTableKey key, uint32_t val, size_t repeatNum = NumFloatInYmm );
+	
+	using EltwiseGenFunc = void( CJitCommon::* )( const Xbyak::Xmm&, const Xbyak::Operand&, const Xbyak::Operand& );
 
+	static EltwiseGenFunc GetEltwiseFuncPtr( TPrimitive p ) {
+		switch( p ) {
+		case TPrimitive::VectorAdd:
+		case TPrimitive::VectorAlignedAdd:
+			return static_cast<EltwiseGenFunc>( &CJitCommon::vaddps );
+		case TPrimitive::VectorMax:
+			return static_cast< EltwiseGenFunc >( &CJitCommon::vmaxps );
+		default:
+			assert( false );
+			return nullptr;
+		}
+	}
+
+	void initEltwisePrimitive( TPrimitive P, bool hasOp2 );
+	void initReLU( TPrimitive P );
 	template<TPrimitive P>
 	void initPrimitive();
 	template<TPrimitive P>

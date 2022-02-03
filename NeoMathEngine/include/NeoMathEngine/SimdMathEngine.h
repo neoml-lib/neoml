@@ -46,6 +46,12 @@ public:
 	virtual void Exp( float* dst, const float* src, size_t dataSize, bool isMultithread = true ) = 0;
 	virtual void RunOnceRestOfLstm( CLstmDesc* desc, const CConstFloatHandle& inputStateBackLink,
 		const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink, bool isMultithread = true ) = 0;
+
+	virtual const uint8_t* GetVectorAddFunc() = 0;
+	virtual const uint8_t* GetAlignedVectorAddFunc() = 0;
+	virtual const uint8_t* GetVectorMaxFunc() = 0;
+	virtual const uint8_t* GetVectorReLUFunc() = 0;
+	virtual const uint8_t* GetVectorReLUTresholdFunc() = 0;
 };
 
 }

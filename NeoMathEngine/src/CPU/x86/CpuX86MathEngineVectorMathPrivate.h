@@ -270,20 +270,20 @@ inline void vectorAdd(const float* first, const float* second, float* result, in
 
 //------------------------------------------------------------------------------------------------------------
 
-inline void alignedVectorAdd( float* first, const float* second, int vectorSize )
+inline void alignedVectorAdd( const float* first, float* second, int vectorSize )
 {
 	int sseSize = vectorSize / 4;
 	while( sseSize >= 4 ) {
-		_mm_store_ps( first, _mm_add_ps( _mm_load_ps( first ), _mm_load_ps( second ) ) );
+		_mm_store_ps( second, _mm_add_ps( _mm_load_ps( first ), _mm_load_ps( second ) ) );
 		first += 4;
 		second += 4;
-		_mm_store_ps( first, _mm_add_ps( _mm_load_ps( first ), _mm_load_ps( second ) ) );
+		_mm_store_ps( second, _mm_add_ps( _mm_load_ps( first ), _mm_load_ps( second ) ) );
 		first += 4;
 		second += 4;
-		_mm_store_ps( first, _mm_add_ps( _mm_load_ps( first ), _mm_load_ps( second ) ) );
+		_mm_store_ps( second, _mm_add_ps( _mm_load_ps( first ), _mm_load_ps( second ) ) );
 		first += 4;
 		second += 4;
-		_mm_store_ps( first, _mm_add_ps( _mm_load_ps( first ), _mm_load_ps( second ) ) );
+		_mm_store_ps( second, _mm_add_ps( _mm_load_ps( first ), _mm_load_ps( second ) ) );
 		first += 4;
 		second += 4;
 
@@ -291,7 +291,7 @@ inline void alignedVectorAdd( float* first, const float* second, int vectorSize 
 	}
 
 	while( sseSize > 0 ) {
-		_mm_store_ps( first, _mm_add_ps( _mm_load_ps( first ), _mm_load_ps( second ) ) );
+		_mm_store_ps( second, _mm_add_ps( _mm_load_ps( first ), _mm_load_ps( second ) ) );
 		first += 4;
 		second += 4;
 		sseSize--;
@@ -569,7 +569,7 @@ inline void vectorReLU( const float* first, float* result, int vectorSize )
 	}
 }
 
-inline void vectorReLU( const float* first, float* result, int vectorSize, float threshold )
+inline void vectorReLUTreshold( const float* first, float* result, int vectorSize, float threshold )
 {
 	int sseSize;
 	int nonSseSize;

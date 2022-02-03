@@ -24,6 +24,7 @@ limitations under the License.
 #include <NeoMathEngine/SimdMathEngine.h>
 #include <DllLoader.h>
 #include <CPUInfo.h>
+#include <CpuMathEnginePrivate.h>
 
 #if FINE_PLATFORM( FINE_ANDROID ) || FINE_PLATFORM( FINE_LINUX )
 #include <PerformanceCountersCpuLinux.h>
@@ -78,6 +79,19 @@ CCpuMathEngine::CCpuMathEngine( int _threadCount, size_t _memoryLimit ) :
 #ifdef NEOML_USE_MKL
 	vmlSetMode( VML_ERRMODE_NOERR );
 #endif
+	if( simdMathEngine != nullptr ) {
+		vectorAdd = reinterpret_cast< decltype( vectorAdd ) >( simdMathEngine->GetVectorAddFunc() );
+		alignedVectorAdd = reinterpret_cast< decltype( alignedVectorAdd ) >( simdMathEngine->GetAlignedVectorAddFunc() );
+		vectorEltwiseMax = reinterpret_cast< decltype( vectorEltwiseMax ) >( simdMathEngine->GetVectorMaxFunc() );
+		vectorReLU = reinterpret_cast< decltype( vectorReLU ) >( simdMathEngine->GetVectorReLUFunc() );
+		vectorReLUTreshold = reinterpret_cast< decltype( vectorReLUTreshold ) >( simdMathEngine->GetVectorReLUTresholdFunc() );
+	} else {
+		vectorAdd = &NeoML::vectorAdd;
+		alignedVectorAdd = &NeoML::alignedVectorAdd;
+		vectorEltwiseMax = &NeoML::vectorEltwiseMax;
+		vectorReLU = &NeoML::vectorReLU;
+		vectorReLUTreshold = &NeoML::vectorReLUTreshold;
+	}
 }
 
 CCpuMathEngine::~CCpuMathEngine()

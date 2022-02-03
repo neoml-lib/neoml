@@ -558,6 +558,12 @@ private:
 	std::unique_ptr<ISimdMathEngine> simdMathEngine; // interface for using simd instructions
 	SgemmFunc customSgemmFunction; // Used when it is availabled and is faster then default sgemm
 
+	void ( *vectorAdd )( const float* first, const float* second, float* result, int vectorSize );
+	void ( *alignedVectorAdd )( const float* first, float* second, int vectorSize );
+	void ( *vectorEltwiseMax )( const float* first, const float* second, float* result, int vectorSize );
+	void ( *vectorReLU )( const float* first, float* result, int vectorSize );
+	void ( *vectorReLUTreshold )( const float* first, float* result, int vectorSize, float threshold );
+
 	IMathEngine& mathEngine() { IMathEngine* engine = this; return *engine; }
 
 	void blob3dConvolution1x1x1( const CBlobDesc& source, const CBlobDesc& filter, const CBlobDesc& result,

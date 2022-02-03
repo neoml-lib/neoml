@@ -35,7 +35,9 @@ Xbyak::Address CJitCommon::Prologue( const reg64Vec_t& preservedGPR,
     push( rbp );
     mov( rbp, rsp );
  
-    sub( rsp, static_cast<uint32_t>( preservedYmm.size() * SizeOfYmm ) );
+    if( preservedYmm.size() != 0 ) {
+        sub( rsp, static_cast< uint32_t >( preservedYmm.size() * SizeOfYmm ) );
+    }
     for( int i = 0; i < preservedYmm.size(); i++ ) {
         vmovdqu( ptr[rsp + i * SizeOfYmm], preservedYmm[i] );
     }
@@ -51,6 +53,8 @@ Xbyak::Address CJitCommon::Prologue( const reg64Vec_t& preservedGPR,
 void CJitCommon::Epilogue( const reg64Vec_t& preservedGPR,
     const ymmVec_t& preservedYmm )
 {
+    vzeroupper();
+
     for( int i = static_cast<int>( preservedGPR.size() - 1 ); i >= 0; i-- ) {
         pop( preservedGPR[i] );
     }
@@ -79,6 +83,11 @@ void CJitCommon::StopDownCountLoop()
     jmp( loopDesc.StartLabel, T_NEAR );
     L( loopDesc.EndLabel );
     loopDescs.pop();
+}
+
+void CJitCommon::JmpIfZero( reg64_t counter, const char* label ) {
+    test( counter, counter );
+    jz( label, T_NEAR );
 }
 
 }
