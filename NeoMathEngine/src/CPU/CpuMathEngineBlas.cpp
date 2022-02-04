@@ -1284,7 +1284,7 @@ void CCpuMathEngine::SingularValueDecomposition( const CFloatHandle& a, int n, i
 		m, n, GetRaw( a ), lda, GetRaw( s ), GetRaw(u), ldu, GetRaw( vt ), ldv, GetRaw( superb ) ) == 0 );
 #else
 	( void )returnLeftVectors;
-	( void )returnRightVectors
+	( void )returnRightVectors;
 	ASSERT_EXPR( false );
 #endif
 }
