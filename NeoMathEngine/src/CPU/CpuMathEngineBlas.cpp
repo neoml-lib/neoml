@@ -1285,7 +1285,7 @@ void CCpuMathEngine::SingularValueDecomposition( const CFloatHandle& a, int n, i
 #else
 	( void )returnLeftVectors;
 	( void )returnRightVectors
-	assert( false );
+	ASSERT_EXPR( false );
 #endif
 }
 
@@ -1321,7 +1321,7 @@ void CCpuMathEngine::SparseSingularValueDecomposition( const CSparseMatrixDesc& 
 	ASSERT_EXPR( mkl_sparse_destroy( sparseMatrix ) == SPARSE_STATUS_SUCCESS );
 #else
 	( void )returnLeftVectors;
-	assert( false );
+	ASSERT_EXPR( false );
 #endif
 }
 
