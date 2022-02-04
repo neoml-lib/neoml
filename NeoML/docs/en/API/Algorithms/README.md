@@ -370,7 +370,9 @@ The number of principal components can be selected in several ways, determined b
 
 The `Train` method performs SVD, then takes the required number of the singular vectors for principal components, selecting those that correspond to the largest singular values.
 
-The `Transform` method does the same, then transforms the data matrix into the new principal component coordinates.
+The `TrainTransform` method does the same, then transforms the data matrix into the new principal component coordinates.
+
+The `Transform` method only transforms the given data matrix into the selected principal component coordinates.
 
 You can access the singular values, variance, and the principal components via the getter methods.
 
@@ -400,8 +402,11 @@ public:
 	// Chooses the greatest singular values from `Components` and
 	// selects the corresponding principal axes as the final components
 	void Train( const CFloatMatrixDesc& data );
-	// Trains and transforms the data into shape ( samples x components )
+	// Transforms the data into shape ( samples x components )
+	// using the principal components calculated before
 	CSparseFloatMatrixDesc Transform( const CFloatMatrixDesc& data );
+	// Trains and transforms the data into shape ( samples x components )
+	CSparseFloatMatrixDesc TrainTransform( const CFloatMatrixDesc& data );
 
 	// Singular values corresponding to the selected principal axes
 	const CArray<float>& GetSingularValues() const { return singularValues; }
@@ -413,7 +418,14 @@ public:
 	float GetNoiseVariance() const { return noiseVariance; }
 	// Selected number of principal axes
 	int GetComponentsNum() const { return components; }
-	// Matrix ( components x features ) with rows corresponding to the selected principal axes 
-	CFloatMatrixDesc GetComponents() const { return componentsMatrix.GetDesc(); }
+	// Matrix ( components x features ) with rows corresponding to the selected principal axis
+	CSparseFloatMatrix GetComponents();
+
+	// Get input params
+	CParams GetParams() const { return params; }
+	// For serialization
+	static CPtr<CPca> Create() { return FINE_DEBUG_NEW CPca(); }
+	// Serializes the model
+	void Serialize( CArchive& archive ) override;
 
 ```
