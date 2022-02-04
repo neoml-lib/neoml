@@ -2606,12 +2606,61 @@ class TestPca(MultithreadedTestCase):
                 transformedX = pca.transform(X)
             else:
                 transformedX = pca.fit_transform(X)
-            self.assertEqual( pca.components.tolist(), [[-1, 0, 0, 0], [0, 1, 0, 0]] )
+            self.assertEqual( pca.components.tolist(), [[1, 0, 0, 0], [0, 1, 0, 0]] )
             self.assertEqual( pca.singular_values.size, n_components )
             self.assertEqual( pca.explained_variance.size, n_components )
             self.assertEqual( pca.explained_variance_ratio.size, n_components )
             self.assertTrue( pca.n_components == n_components )
             self.assertTrue( abs(pca.noise_variance) < 1e-5 )
+
+    def test_pickle(self):
+        x = np.array([[2, 1, 3, 2], [2, 4, 4, 1], [2, 4, 1, 1], [4, 4, 3, 4]], dtype=np.float32)
+        expected_s = [3.04067, 2.6677]
+        components = 2
+        pca = neoml.PCA.PCA(components)
+        pca.fit(x)
+
+        dir = tempfile.mkdtemp()
+
+        path = os.path.join(dir, 'pca.pickle')
+        binary_file = open(path, mode='wb')
+        pickle.dump(pca, binary_file)
+        binary_file.close()
+
+        binary_file = open(path, mode='rb')
+        loaded_pca = pickle.load(binary_file)
+        binary_file.close()
+
+        os.remove(path)
+        os.rmdir(dir)
+
+        s = loaded_pca.singular_values
+        transformed = loaded_pca.transform(x)
+        self.assertTrue(all([abs(s[i] - expected_s[i]) < 1e-3 for i in range(components)]))
+        self.assertEqual(transformed.shape, (4, components))
+
+    def test_load_store(self):
+        x = np.array([[2, 1, 3, 2], [2, 4, 4, 1], [2, 4, 1, 1], [4, 4, 3, 4]], dtype=np.float32)
+        expected_s = [3.04067, 2.6677]
+        components = 2
+        pca = neoml.PCA.PCA(components)
+        pca.fit(x)
+
+        dir = tempfile.mkdtemp()
+
+        path = os.path.join(dir, 'pca.pickle')
+        pca.store(path)
+
+        loaded_pca = neoml.PCA.PCA()
+        loaded_pca.load(path)
+
+        os.remove(path)
+        os.rmdir(dir)
+
+        s = loaded_pca.singular_values
+        transformed = loaded_pca.transform(x)
+        self.assertTrue(all([abs(s[i] - expected_s[i]) < 1e-3 for i in range(components)]))
+        self.assertEqual(transformed.shape, (4, components))
 
 
 @skipIf(sys.platform == 'darwin', 'Not supposed to work on MacOS')

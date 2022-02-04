@@ -1271,11 +1271,20 @@ void CCpuMathEngine::BitSetBinarization( int batchSize, int bitSetSize,
 void CCpuMathEngine::SingularValueDecomposition( const CFloatHandle& a, int n, int m, const CFloatHandle& u, const CFloatHandle& s,
 	const CFloatHandle& vt, const CFloatHandle& superb, bool returnLeftVectors, bool returnRightVectors )
 {
+	ASSERT_EXPR( a.GetMathEngine() == this );
+	ASSERT_EXPR( u.GetMathEngine() == this );
+	ASSERT_EXPR( s.GetMathEngine() == this );
+	ASSERT_EXPR( vt.GetMathEngine() == this );
+	ASSERT_EXPR( superb.GetMathEngine() == this );
+	ASSERT_EXPR( n > 0 );
+	ASSERT_EXPR( m > 0 );
 #ifdef NEOML_USE_MKL
 	int lda = max( 1, n ), ldu = min( n, m ), ldv = n;
 	ASSERT_EXPR( LAPACKE_sgesvd( LAPACK_ROW_MAJOR, returnLeftVectors ? 'S' : 'N', returnRightVectors ? 'S' : 'N',
 		m, n, GetRaw( a ), lda, GetRaw( s ), GetRaw(u), ldu, GetRaw( vt ), ldv, GetRaw( superb ) ) == 0 );
 #else
+	( void )returnLeftVectors;
+	( void )returnRightVectors
 	assert( false );
 #endif
 }
@@ -1284,6 +1293,14 @@ void CCpuMathEngine::SparseSingularValueDecomposition( const CSparseMatrixDesc& 
 	const CFloatHandle& xl, const CFloatHandle& e, const CFloatHandle& xr, const CFloatHandle& res,
 	int components, bool returnLeftVectors )
 {
+	ASSERT_EXPR( xl.GetMathEngine() == this );
+	ASSERT_EXPR( e.GetMathEngine() == this );
+	ASSERT_EXPR( xr.GetMathEngine() == this );
+	ASSERT_EXPR( res.GetMathEngine() == this );
+	ASSERT_EXPR( height > 0 );
+	ASSERT_EXPR( width > 0 );
+	ASSERT_EXPR( desc.ElementCount > 0 );
+	ASSERT_EXPR( components > 0 );
 #ifdef NEOML_USE_MKL
 	sparse_matrix_t sparseMatrix;
 	int* rows = GetRaw( desc.Rows );
@@ -1303,6 +1320,7 @@ void CCpuMathEngine::SparseSingularValueDecomposition( const CSparseMatrixDesc& 
 		GetRaw(xl), GetRaw( xr ), GetRaw( res ) ) == SPARSE_STATUS_SUCCESS );
 	ASSERT_EXPR( mkl_sparse_destroy( sparseMatrix ) == SPARSE_STATUS_SUCCESS );
 #else
+	( void )returnLeftVectors;
 	assert( false );
 #endif
 }

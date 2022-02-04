@@ -17,6 +17,7 @@ limitations under the License.
 #pragma hdrstop
 
 #include "PyPCA.h"
+#include "PyMemoryFile.h"
 
 static inline py::array getArray( const CArray<float>& matr )
 {
@@ -39,7 +40,7 @@ static CFloatMatrixDesc getMatrix( int height, int width, const int* columns, co
 
 class CPyPca : public CPca {
 public:
-	explicit CPyPca( const CPca::CParams& p ) : CPca( p ) {}
+	CPyPca( const CPca::CParams& p ) : CPca( p ) {}
 
 	void Fit( int height, int width, py::array indices, py::array data, py::array rowPtr, bool isSparse );
 	py::array FitTransform( int height, int width, py::array indices, py::array data, py::array rowPtr, bool isSparse );
@@ -50,7 +51,25 @@ public:
 	py::array Components();
 	int NComponents() { return GetComponentsNum(); }
 	float NoiseVariance() { return GetNoiseVariance(); }
+	void Store( const std::string& path );
+	void Load( const std::string& path );
 };
+
+void CPyPca::Load( const std::string& path )
+{
+	py::gil_scoped_release release;
+	CArchiveFile file( path.c_str(), CArchive::load );
+	CArchive archive( &file, CArchive::load );
+	Serialize( archive );
+}
+
+void CPyPca::Store( const std::string& path )
+{
+	py::gil_scoped_release release;
+	CArchiveFile file( path.c_str(), CArchive::store );
+	CArchive archive( &file, CArchive::store );
+	Serialize( archive );
+}
 
 void CPyPca::Fit( int height, int width, py::array indices, py::array data, py::array rowPtr, bool isSparse )
 {
@@ -138,6 +157,8 @@ void InitializePCA(py::module& m)
 			})
 		)
 
+		.def( "store", &CPyPca::Store, py::return_value_policy::reference )
+		.def( "load", &CPyPca::Load, py::return_value_policy::reference )
 		.def( "fit", &CPyPca::Fit )
 		.def( "fit_transform", &CPyPca::FitTransform, py::return_value_policy::reference )
 		.def( "transform", &CPyPca::Transform_, py::return_value_policy::reference )
@@ -147,6 +168,28 @@ void InitializePCA(py::module& m)
 		.def( "explained_variance_ratio", &CPyPca::ExplainedVarianceRatio, py::return_value_policy::reference )
 		.def( "singular_values", &CPyPca::SingularValues, py::return_value_policy::reference )
 		.def( "noise_variance", &CPyPca::NoiseVariance, py::return_value_policy::reference )
+		.def( py::pickle(
+			[]( CPyPca& pyModel ) {
+				CPyMemoryFile file;
+				CArchive archive( &file, CArchive::store );
+				pyModel.Serialize( archive );
+				archive.Close();
+				file.Close();
+				return py::make_tuple( file.GetBuffer() );
+			},
+			[]( py::tuple t ) {
+				if( t.size() != 1 ) {
+					throw std::runtime_error("Invalid state!");
+				}
+
+				auto t0_array = t[0].cast<py::array>();
+				CPyMemoryFile file( t0_array );
+				CArchive archive( &file, CArchive::load );
+				CPca* pcaSerialized = new CPca();
+				pcaSerialized->Serialize( archive );
+				return static_cast<CPyPca*>( pcaSerialized );
+			}
+		))
 	;
 
 	m.def( "singular_value_decomposition", []( int height, int width, py::array indices, py::array data, py::array rowPtr, bool isSparse,

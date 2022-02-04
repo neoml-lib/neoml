@@ -112,6 +112,7 @@ static void pcaTestExample( int samples, int features, int components,
 	for( CString s : { "TrainTransform", "Train + Transform" } ) {
 		CPca pca( params );
 		CFloatMatrixDesc transformed;
+		transformed = pca.TrainTransform( matrix.GetDesc() );
 		if( s == "TrainTransform" ) {
 			transformed = pca.TrainTransform( matrix.GetDesc() );
 		} else {
@@ -122,12 +123,10 @@ static void pcaTestExample( int samples, int features, int components,
 		ASSERT_EQ( components, transformed.Width );
 		checkArraysEqual( expectedTransform, transformed.Values );
 
-		if( svdSolver == SVD_Full ) {
-			CSparseFloatMatrix componentsMatrix = pca.GetComponents();
-			ASSERT_EQ( components, componentsMatrix.GetHeight() );
-			ASSERT_EQ( features, componentsMatrix.GetWidth() );
-			checkArraysEqual( expectedComponents, componentsMatrix.GetDesc().Values );
-		}
+		CSparseFloatMatrix componentsMatrix = pca.GetComponents();
+		ASSERT_EQ( components, componentsMatrix.GetHeight() );
+		ASSERT_EQ( features, componentsMatrix.GetWidth() );
+		checkArraysEqual( expectedComponents, componentsMatrix.GetDesc().Values );
 
 		const CArray<float>& singular = pca.GetSingularValues();
 		ASSERT_EQ( components, singular.Size() );
@@ -213,4 +212,63 @@ TEST( CPCATest, PCAEllipseTest )
 			}
 		}
 	}
+}
+
+TEST( CPCATest, PCASerializationTest )
+{
+	CArray<float> data = { 2, 1, 3, 2, 2, 4, 4, 1, 2, 4, 1, 1, 4, 4, 3, 4 };
+	CArray<float> expectedTransform = { -0.8772, 2.1003, -0.5931, -0.4300, -1.1413, -1.5853, 2.6118, -0.0849 };
+	CArray<float> expectedSingularValues = { 3.0407, 2.6677 };
+	CArray<float> expectedVariance = { 3.0819, 2.3722 };
+	CArray<float> expectedVarianceRatio = { 0.451, 0.3472 };
+	float expectedNoiseVariance = 0.6896;
+	CArray<float> expectedComponents = { 0.5649, 0.2846, 0.1827, 0.7525, -0.0238, -0.8853, 0.3850, 0.2592 };
+	const CSparseFloatMatrix& matrix = generateMatrix( 4, 4, data );
+
+	CPca::CParams params;
+	params.ComponentsType = CPca::TComponents::PCAC_Int;
+	params.Components = static_cast<float>( 2 );
+	params.SvdSolver = SVD_Full;
+	CPca pca( params );
+
+	CString fileName = "PcaTest";
+	{
+		pca.Train( matrix.GetDesc() );
+		CArchiveFile archiveFile( fileName, CArchive::store, GetPlatformEnv() );
+		CArchive archive( &archiveFile, CArchive::SD_Storing );
+		pca.Serialize( archive );
+	}
+
+	CPtr<CPca> pcaSerialized;
+	{
+		CArchiveFile archiveFile( fileName, CArchive::load, GetPlatformEnv() );
+		CArchive archive( &archiveFile, CArchive::SD_Loading );
+		pcaSerialized = CPca::Create();
+		pcaSerialized->Serialize( archive );
+	}
+
+	CFloatMatrixDesc transformed = pcaSerialized->Transform( matrix.GetDesc() );
+	ASSERT_EQ( 4, transformed.Height );
+	ASSERT_EQ( 2, transformed.Width );
+	checkArraysEqual( expectedTransform, transformed.Values );
+	ASSERT_EQ( pcaSerialized->GetComponentsNum(), 2 );
+
+	CSparseFloatMatrix componentsMatrix = pcaSerialized->GetComponents();
+	ASSERT_EQ( 2, componentsMatrix.GetHeight() );
+	ASSERT_EQ( 4, componentsMatrix.GetWidth() );
+	checkArraysEqual( expectedComponents, componentsMatrix.GetDesc().Values );
+
+	const CArray<float>& singular = pcaSerialized->GetSingularValues();
+	ASSERT_EQ( 2, singular.Size() );
+	checkArraysEqual( expectedSingularValues, singular.GetPtr() );
+
+	const CArray<float>& variance = pcaSerialized->GetExplainedVariance();
+	ASSERT_EQ( 2, variance.Size() );
+	checkArraysEqual( expectedVariance, variance.GetPtr() );
+
+	const CArray<float>& varianceRatio = pcaSerialized->GetExplainedVarianceRatio();
+	ASSERT_EQ( 2, varianceRatio.Size() );
+	checkArraysEqual( expectedVarianceRatio, varianceRatio.GetPtr() );
+
+	ASSERT_NEAR( expectedNoiseVariance, pcaSerialized->GetNoiseVariance(), 5e-3 );
 }
