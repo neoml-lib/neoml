@@ -36,7 +36,7 @@ public:
 
 	// CBaseFile class methods
 #ifdef FINEOBJ_VERSION
-	virtual CUnicodeString GetFileName() const { return fileName.CreateUnicodeString( CP_UTF8 ); }
+	CUnicodeString GetFileName() const override { return fileName.CreateUnicodeString( CP_UTF8 ); }
 #else
 	const char* GetFileName() const override { return fileName; }
 #endif
