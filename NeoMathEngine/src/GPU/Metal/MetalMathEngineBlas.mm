@@ -1292,15 +1292,15 @@ void CMetalMathEngine::SumMatrixRows( int batchSize, const CFloatHandle& resultH
 	SumMatrixRowsAdd(batchSize, resultHandle, matrixHandle, matrixHeight, matrixWidth);
 }
 
-void CMetalMathEngine::SingularValueDecomposition( const CFloatHandle& a, int n, int m, const CFloatHandle& u, const CFloatHandle& s,
-	const CFloatHandle& vt, const CFloatHandle& superb, bool returnLeftVectors, bool returnRightVectors )
+void CMetalMathEngine::SingularValueDecomposition( const CFloatHandle&, int, int, const CFloatHandle&, const CFloatHandle&,
+	const CFloatHandle&, const CFloatHandle&, bool, bool )
 {
     ASSERT_EXPR( false );
 }
 
-void CMetalMathEngine::SparseSingularValueDecomposition( const CSparseMatrixDesc& desc, int height, int width,
-    const CFloatHandle& leftVectors, const CFloatHandle& s, const CFloatHandle& rightVectors, const CFloatHandle& res,
-    int components, bool returnLeftVectors )
+void CMetalMathEngine::SparseSingularValueDecomposition( const CSparseMatrixDesc&, int, int,
+    const CFloatHandle&, const CFloatHandle&, const CFloatHandle&, const CFloatHandle&,
+    int, bool )
 {
     ASSERT_EXPR( false );
 }
