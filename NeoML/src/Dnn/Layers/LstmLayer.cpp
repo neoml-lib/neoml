@@ -472,7 +472,8 @@ void CLstmLayer::CFastLstmDesc::Init( CLstmLayer* lstmLayer ) {
 	const int hiddenSize = lstmLayer->GetHiddenSize();
 
 	// Write state data directly to output or create temporary blob for recurent 
-	if( lstmLayer->outputDescs.Size() != 2 ) {
+	if( lstmLayer->outputDescs.Size() != 2 &&
+		( stateBacklinkBlob.Ptr() == nullptr || stateBacklinkBlob->GetDataSize() != lstmLayer->outputDescs[0].BatchWidth() * lstmLayer->outputDescs[0].ObjectSize() ) ) {
 		stateBacklinkBlob = CDnnBlob::CreateDataBlob( lstmLayer->MathEngine(), CT_Float, 1, 
 			lstmLayer->outputDescs[0].BatchWidth(), lstmLayer->outputDescs[0].ObjectSize() );
 	}

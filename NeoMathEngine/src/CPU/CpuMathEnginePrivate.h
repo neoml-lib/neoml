@@ -21,13 +21,13 @@ limitations under the License.
 
 #if defined(NEOML_USE_SSE)
 
-#include <CpuX86.h>
-#include <CpuX86MathEngineVectorMathPrivate.h>
+#include <x86/CpuX86.h>
+#include <x86/CpuX86MathEngineVectorMathPrivate.h>
 
 #elif defined(NEOML_USE_NEON)
 
-#include <CpuArm.h>
-#include <CpuArmMathEngineVectorMathPrivate.h>
+#include <arm/CpuArm.h>
+#include <arm/CpuArmMathEngineVectorMathPrivate.h>
 
 #else
 
