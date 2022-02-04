@@ -18,30 +18,47 @@ limitations under the License.
 
 namespace NeoML {
 
-void CDistributedTraining::initialize( CArchive& archive, int count )
+static CPtr<CDnnInitializer> createInitializer( TDistributedInitializer type, CRandom& random )
+{
+    switch( type ) {
+        case TDistributedInitializer::Xavier:
+            return new CDnnXavierInitializer( random );
+        case TDistributedInitializer::XavierUniform:
+            return new CDnnXavierUniformInitializer( random );
+        case TDistributedInitializer::Uniform:
+            return new CDnnUniformInitializer( random );
+        default:
+            NeoAssert( false );
+    }
+    return nullptr;
+}
+
+void CDistributedTraining::initialize( CArchive& archive, int count, TDistributedInitializer initializer, int seed )
 {
     NeoAssert( archive.IsLoading() );
     for( int i = 0; i < count; i++ ){
-        rands.Add( new CRandom( 42 ) );
+        rands.Add( new CRandom( seed ) );
         cnns.Add( new CDnn( *rands[i], *mathEngines[i] ) );
+        cnns[i]->SetInitializer( createInitializer( initializer, *rands[i] ) );
         cnns[i]->SetInitializer( new CDnnDistributedInitializer( *rands[i], mathEngines[i], cnns[i]->GetInitializer() ) );
         archive.Serialize( *cnns[i] );
         archive.Seek( 0, static_cast<CBaseFile::TSeekPosition>( 0 ) );
     }
 }
 
-CDistributedTraining::CDistributedTraining( CArchive& archive, int count )
+CDistributedTraining::CDistributedTraining( CArchive& archive, int count, TDistributedInitializer initializer, int seed )
 {
     mathEngines.SetSize( count );
     CreateDistributedCpuMathEngines( mathEngines.GetPtr(), count );
-    initialize( archive, count );
+    initialize( archive, count, initializer, seed );
 }
 
-CDistributedTraining::CDistributedTraining( CArchive& archive, const CArray<int>& cudaDevs )
+CDistributedTraining::CDistributedTraining( CArchive& archive, const CArray<int>& cudaDevs,
+    TDistributedInitializer initializer, int seed )
 {
     mathEngines.SetSize( cudaDevs.Size() );
     CreateDistributedCudaMathEngines( mathEngines.GetPtr(), cudaDevs.Size(), cudaDevs.GetPtr() );
-    initialize( archive, cudaDevs.Size() );
+    initialize( archive, cudaDevs.Size(), initializer, seed );
 }
 
 CDistributedTraining::~CDistributedTraining()
