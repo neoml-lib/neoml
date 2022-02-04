@@ -25,7 +25,7 @@ namespace NeoML {
 // FLT_MAX is used as "not set" value
 class CDistanceMatrixRow {
 public:
-	CDistanceMatrixRow() {}
+	CDistanceMatrixRow() = default;
 	CDistanceMatrixRow( const CDistanceMatrixRow& other );
 
 	// Random access (CFloatVector-like)

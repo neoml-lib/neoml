@@ -175,7 +175,7 @@ IMathEngine* CGpuMathEngineManager::CreateMathEngine( int index, size_t memoryLi
 
 class CDefaultMathEngineExceptionHandler : public IMathEngineExceptionHandler {
 public:
-	~CDefaultMathEngineExceptionHandler() override {}
+	~CDefaultMathEngineExceptionHandler() override = default;
 
 	void OnAssert( const char* message, const wchar_t*, int, int ) override
 	{
@@ -194,7 +194,7 @@ public:
 	}
 
 private:
-	CDefaultMathEngineExceptionHandler() {}
+	CDefaultMathEngineExceptionHandler() = default;
 };
 
 static IMathEngineExceptionHandler* exceptionHandler = CDefaultMathEngineExceptionHandler::GetInstance();

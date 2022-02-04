@@ -29,11 +29,26 @@ public:
 	explicit CDistributedTraining( CArchive& archive, int count );
 	// Creates gpu models, `devs` should contain numbers of using devices
 	explicit CDistributedTraining( CArchive& archive, const CArray<int>& cudaDevs );
+	// Gets the number of models in disitrbuted traning
+	int GetModelCount() const { return cnns.Size(); }
+	// Sets the solver for all of the models
+	void SetSolver( CArchive& archive );
+	// Sets the learning rate for all of the models
+	void SetLearningRate( float rate );
+	// Runs the networks without backward and training
+	void RunOnce( IDistributedDataset& data );
+	// Runs the networks and performs a backward pass
+	void RunAndBackwardOnce( IDistributedDataset& data );
 	// Runs the networks, performs a backward pass and updates the trainable weights of all models
 	void RunAndLearnOnce( IDistributedDataset& data );
+	// Updates the trainable weights of all models (after RunAndBackwardOnce)
+	void Train();
 	// Returns last loss of `layerName` for all models
-	// `layerName` should correspond to CLossLayer or CCtcLossLayer
+	// `layerName` should correspond to CLossLayer, CCtcLossLayer or CCrfLossLayer
 	void GetLastLoss( const CString& layerName, CArray<float>& losses );
+	// Returns last blobs of `layerName` for all models
+	// `layerName` should correspond to CSinkLayer
+	void GetLastBlob( const CString& layerName, CObjectArray<CDnnBlob>& blobs );
 	// Save trained net
 	void Serialize( CArchive& archive );
 	~CDistributedTraining();

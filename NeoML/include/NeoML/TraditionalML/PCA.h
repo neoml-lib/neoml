@@ -15,6 +15,7 @@ limitations under the License.
 
 #pragma once
 #include <NeoML/NeoMLDefs.h>
+#include <NeoML/TraditionalML/Model.h>
 #include <NeoMathEngine/NeoMathEngine.h>
 #include <NeoML/TraditionalML/SparseFloatMatrix.h>
 
@@ -40,10 +41,11 @@ void NEOML_API SingularValueDecomposition( const CFloatMatrixDesc& data, const T
 	CArray<float>& leftVectors, CArray<float>& singularValues, CArray<float>& rightVectors,
 	bool returnLeftVectors = true, bool returnRightVectors = false, int components = 0 );
 
+
 // PCA algorithm implementing linear dimensionality reduction
 // using Singular Value Decomposition to project the data into
 // a lower dimensional space
-class NEOML_API CPca {
+class NEOML_API CPca : public IObject {
 public:
 	// Determines how the number of components will be chosen
 	enum TComponents {
@@ -66,23 +68,25 @@ public:
 		float Components;
 
 		CParams() :
-			ComponentsType( PCAC_None ),
+			ComponentsType( PCAC_Int ),
 			SvdSolver( SVD_Full ),
 			Components( 0 )
 		{
 		}
 	};
 
+	CPca() = default;
 	explicit CPca( const CParams& params );
-	~CPca() {};
+	~CPca() = default;
 
 	// Chooses the greatest singular values from `Components` and
 	// selects the corresponding principal axes as the final components
 	void Train( const CFloatMatrixDesc& data );
+	// Transforms the data into shape ( samples x components )
+	// using the principal components calculated before
+	CSparseFloatMatrixDesc Transform( const CFloatMatrixDesc& data );
 	// Trains and transforms the data into shape ( samples x components )
 	CSparseFloatMatrixDesc TrainTransform( const CFloatMatrixDesc& data );
-	// Transforms the data into shape ( samples x components )
-	CSparseFloatMatrixDesc Transform( const CFloatMatrixDesc& data );
 
 	// Singular values corresponding to the selected principal axes
 	const CArray<float>& GetSingularValues() const { return singularValues; }
@@ -97,8 +101,15 @@ public:
 	// Matrix ( components x features ) with rows corresponding to the selected principal axis 
 	CSparseFloatMatrix GetComponents();
 
+	// Get input params
+	CParams GetParams() const { return params; }
+	// For serialization
+	static CPtr<CPca> Create() { return FINE_DEBUG_NEW CPca(); }
+	// Serializes the model
+	void Serialize( CArchive& archive ) override;
+
 private:
-	const CParams params;
+	CParams params;
 	CArray<float> singularValues;
 	CArray<float> explainedVariance;
 	CArray<float> explainedVarianceRatio;
@@ -107,12 +118,10 @@ private:
 	CSparseFloatVector meanVector;
 	float noiseVariance;
 	int components;
-	int componentWidth;
 
 	void train( const CFloatMatrixDesc& data, bool isTransform );
 	void calculateVariance( const CFloatMatrixDesc& data, const CArray<float>& s, int total_components );
 	void getComponentsNum( const CArray<float>& explainedVarianceRatio, int k );
-	CSparseFloatMatrix transform( const CFloatMatrixDesc& data );
 };
 
 } // namespace NeoML

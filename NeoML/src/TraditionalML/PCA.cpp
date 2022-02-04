@@ -203,7 +203,7 @@ void SingularValueDecomposition( const CFloatMatrixDesc& data, const TSvd& svdSo
 	}
 }
 
-} // namespace NeoML
+}
 
 CPca::CPca( const CParams& _params ) :
 	params( _params )
@@ -220,8 +220,7 @@ CSparseFloatMatrix subtractMean( const CFloatMatrixDesc& data, CSparseFloatVecto
 	if( calculateMean ) {
 		mean = CSparseFloatVector( data.GetRow( 0 ) );
 		for( int i = 1; i < data.Height; i++ ) {
-			CSparseFloatVector cur( data.GetRow( i ) );
-			mean += cur;
+			mean += data.GetRow( i );
 		}
 		mean /= data.Height;
 	}
@@ -235,15 +234,15 @@ CSparseFloatMatrix subtractMean( const CFloatMatrixDesc& data, CSparseFloatVecto
 }
 
 // Flip signs of u columns and vt rows to obtain deterministic result
-static void flipSVD( CArray<float>& u, CArray<float>& vt, int m, int k, int n )
+static void flipSVD( CArray<float>& u, CArray<float>& vt, int m, int k, int n, bool hasLeft )
 {
 	CArray<float> maxValues;
 	maxValues.Add( 0, k );
 
-	for( int row = 0; row < m; row++ ) {
-		for( int col = 0; col < k; col++ ) {
-			if( abs( u[row * k + col] ) > abs( maxValues[col] ) ) {
-				maxValues[col] = u[row * k + col];
+	for( int row = 0; row < k; row++ ) {
+		for( int col = 0; col < n; col++ ) {
+			if( abs( vt[row * k + col] ) > abs( maxValues[row] ) ) {
+				maxValues[row] = vt[row * k + col];
 			}
 		}
 	}
@@ -251,9 +250,11 @@ static void flipSVD( CArray<float>& u, CArray<float>& vt, int m, int k, int n )
 		maxValues[col] = ( ( maxValues[col] >= 0 ) ? 1.f : -1.f );
 	}
 
-	for( int row = 0; row < m; row++ ) {
-		for( int col = 0; col < k; col++ ) {
-			u[row * k + col] *= maxValues[col];
+	if( hasLeft ) {
+		for( int row = 0; row < m; row++ ) {
+			for( int col = 0; col < k; col++ ) {
+				u[row * k + col] *= maxValues[col];
+			}
 		}
 	}
 
@@ -345,58 +346,7 @@ void CPca::calculateVariance( const CFloatMatrixDesc& data, const CArray<float>&
 	explainedVarianceRatio.SetSize( components );
 }
 
-void CPca::train( const CFloatMatrixDesc& data, bool isTransform )
-{
-	int m = data.Height;
-	int n = data.Width;
-	int k = min( n, m );
-	componentWidth = n;
-
-	// matrix = data - mean(data)
-	CSparseFloatMatrix matrix = subtractMean( data, meanVector, true );
-
-	CArray<float> leftVectors;
-	if( params.SvdSolver == SVD_Sparse ) {
-		components = ( params.ComponentsType == PCAC_None ) ? k : static_cast<int>( params.Components );
-		SingularValueDecomposition( matrix.GetDesc(), params.SvdSolver, leftVectors, singularValues, componentsMatrix,
-			false, true, components );
-	} else {
-		SingularValueDecomposition( matrix.GetDesc(), params.SvdSolver, leftVectors, singularValues, componentsMatrix,
-			true, true, 0 );
-		// flip signs of u columns and vt rows to obtain deterministic result
-		flipSVD( leftVectors, componentsMatrix, m, ( params.SvdSolver == SVD_Sparse ) ? components : k, n );
-	}
-
-	// calculate variance per component
-	calculateVariance( data, singularValues, ( params.SvdSolver == SVD_Sparse ) ? components : k );
-
-	singularValues.SetSize( components );
-	// componentsMatrix = CSparseFloatMatrix( components, n );
-	// convertToMatrix( rightVectors, componentsMatrix, components, n, n );
-
-	if( isTransform ) {
-		if( params.SvdSolver == SVD_Full ) {
-			transformedMatrix = CSparseFloatMatrix( components, m );
-			for( int row = 0; row < m; row++ ) {
-				for( int col = 0; col < components; col++ ) {
-					leftVectors[row * k + col] *= singularValues[col];
-				}
-			}
-			convertToMatrix( leftVectors.GetPtr(), transformedMatrix, m, components, k );
-		} else {
-			transformedMatrix = transform( matrix.GetDesc() );
-		}
-	}
-}
-
-CSparseFloatMatrix CPca::GetComponents()
-{
-	CSparseFloatMatrix matrix = CSparseFloatMatrix( components, componentWidth );
-	convertToMatrix( componentsMatrix.GetPtr(), matrix, components, componentWidth, componentWidth );
-	return matrix;
-}
-
-CSparseFloatMatrix CPca::transform( const CFloatMatrixDesc& data )
+CSparseFloatMatrix transform( const CFloatMatrixDesc& data, const CArray<float>& componentsMatrix, int components )
 {
 	std::unique_ptr<IMathEngine> mathEngine( CreateCpuMathEngine( 1, 0 ) );
 	CPtr<CDnnBlob> columns;
@@ -415,21 +365,103 @@ CSparseFloatMatrix CPca::transform( const CFloatMatrixDesc& data )
 	return transformedResult;
 }
 
+void CPca::train( const CFloatMatrixDesc& data, bool isTransform )
+{
+	int m = data.Height;
+	int n = data.Width;
+	int k = min( n, m );
+
+	// matrix = data - mean(data)
+	CSparseFloatMatrix matrix = subtractMean( data, meanVector, true );
+
+	CArray<float> leftVectors;
+	if( params.SvdSolver == SVD_Sparse ) {
+		components = ( params.ComponentsType == PCAC_None ) ? k : static_cast<int>( params.Components );
+		SingularValueDecomposition( matrix.GetDesc(), params.SvdSolver, leftVectors, singularValues, componentsMatrix,
+			false, true, components );
+	} else {
+		SingularValueDecomposition( matrix.GetDesc(), params.SvdSolver, leftVectors, singularValues, componentsMatrix,
+			true, true, 0 );
+	}
+
+	// flip signs of u columns and vt rows to obtain deterministic result
+	flipSVD( leftVectors, componentsMatrix, m, ( params.SvdSolver == SVD_Sparse ) ? components : k, n, params.SvdSolver == SVD_Full );
+
+	// calculate variance per component
+	calculateVariance( data, singularValues, ( params.SvdSolver == SVD_Sparse ) ? components : k );
+
+	singularValues.SetSize( components );
+	componentsMatrix.SetSize( components * n );
+
+	if( isTransform ) {
+		if( params.SvdSolver == SVD_Full ) {
+			transformedMatrix = CSparseFloatMatrix( components, m );
+			for( int row = 0; row < m; row++ ) {
+				for( int col = 0; col < components; col++ ) {
+					leftVectors[row * k + col] *= singularValues[col];
+				}
+			}
+			convertToMatrix( leftVectors.GetPtr(), transformedMatrix, m, components, k );
+		} else {
+			transformedMatrix = transform( matrix.GetDesc(), componentsMatrix, components );
+		}
+	}
+}
+
+CSparseFloatMatrix CPca::GetComponents()
+{
+	const int componentWidth = componentsMatrix.Size() / components;
+	CSparseFloatMatrix matrix = CSparseFloatMatrix( components, componentWidth );
+	convertToMatrix( componentsMatrix.GetPtr(), matrix, components, componentWidth, componentWidth );
+	return matrix;
+}
+
 void CPca::Train( const CFloatMatrixDesc& data )
 {
 	train( data, false );
-}
-
-CSparseFloatMatrixDesc CPca::Transform( const CFloatMatrixDesc& data )
-{
-	// matrix = data - mean(data)
-	CSparseFloatMatrix matrix = subtractMean( data, meanVector, false );
-	transformedMatrix = transform( matrix.GetDesc() );
-	return transformedMatrix.GetDesc();
 }
 
 CSparseFloatMatrixDesc CPca::TrainTransform( const CFloatMatrixDesc& data )
 {
 	train( data, true );
 	return transformedMatrix.GetDesc();
+}
+
+CSparseFloatMatrixDesc CPca::Transform( const CFloatMatrixDesc& data )
+{
+	// matrix = data - mean(data)
+	CSparseFloatMatrix matrix = subtractMean( data, meanVector, false );
+	transformedMatrix = transform( matrix.GetDesc(), componentsMatrix, components );
+	return transformedMatrix.GetDesc();
+}
+
+void CPca::Serialize( CArchive& archive )
+{
+	archive.SerializeVersion( 0 );
+	if( archive.IsStoring() ) {
+		archive << params.Components;
+		archive << static_cast<int>( params.ComponentsType );
+		archive << static_cast<int>( params.SvdSolver );
+		archive << components << noiseVariance;
+		archive << singularValues;
+		archive << explainedVariance << explainedVarianceRatio;
+		archive << componentsMatrix;
+		archive << meanVector;
+	} else if( archive.IsLoading() ) {
+		CParams serializedParams;
+		archive >> serializedParams.Components;
+		int x;
+		archive >> x;
+		serializedParams.ComponentsType = static_cast<TComponents>( x );
+		archive >> x;
+		serializedParams.SvdSolver = static_cast<TSvd>( x );
+		params = serializedParams;
+		archive >> components >> noiseVariance;
+		archive >> singularValues;
+		archive >> explainedVariance >> explainedVarianceRatio;
+		archive >> componentsMatrix;
+		archive >> meanVector;
+	} else {
+		NeoAssert( false );
+	}
 }

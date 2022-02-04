@@ -141,8 +141,8 @@ public:
 	bool GetSplit( CDecisionTree::CParams param,
 		bool& isDiscrete, int& featureIndex, CArray<double>& values, double& criterioValue ) const override;
 	double GetPredictions( CArray<double>& predictions ) const override;
-	int GetVectorsCount() const  override { return totalStatistics.TotalCount(); }
-	CDecisionTreeNodeBase& GetNode() const  override { return *node; }
+	int GetVectorsCount() const override { return totalStatistics.TotalCount(); }
+	CDecisionTreeNodeBase& GetNode() const override { return *node; }
 
 private:
 	// Sampling interval

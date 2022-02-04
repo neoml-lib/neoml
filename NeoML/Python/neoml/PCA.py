@@ -61,7 +61,7 @@ class PCA(PythonWrapper.PCA) :
     :type n_components: int, float, default=None
     """
 
-    def __init__(self, n_components):
+    def __init__(self, n_components=None):
 
         if n_components is None:
             components = ('None', 0)
@@ -124,6 +124,16 @@ class PCA(PythonWrapper.PCA) :
 
         return super().transform(*x.shape, *get_data(x))
 
+    def store(self, path):
+        """Serializes the model.
+        """
+        super().store(str(path))
+
+    def load(self, path):
+        """Loads the model from file.
+        """
+        super().load(str(path))
+
     @property
     def singular_values(self):
         """Returns the singular values corresponding to the selected principal axes.
@@ -159,3 +169,4 @@ class PCA(PythonWrapper.PCA) :
         """Returns the mean of singular values not corresponding to the selected principal axes.
         """
         return super().noise_variance()
+

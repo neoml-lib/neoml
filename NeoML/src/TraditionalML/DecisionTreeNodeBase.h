@@ -30,7 +30,7 @@ struct CDecisionTreeNodeInfoBase {
 // Base class for a decision tree node
 class CDecisionTreeNodeBase : public virtual IObject {
 public:
-	CDecisionTreeNodeBase() : info( 0 ) {}
+	CDecisionTreeNodeBase() = default;
 
 	TDecisionTreeNodeType GetType() const { return info == 0 ? DTNT_Undefined : info->Type; }
 
@@ -43,10 +43,10 @@ public:
 	void GetClassifyNode( const CFloatVector& data, CPtr<CDecisionTreeNodeBase>& node, int& level ) const;
 
 protected:
-	virtual ~CDecisionTreeNodeBase(); // delete operator prohibited
+	~CDecisionTreeNodeBase() override; // delete operator prohibited
 
 private:
-	CDecisionTreeNodeInfoBase* info; // node info
+	CDecisionTreeNodeInfoBase* info{}; // node info
 };
 
 //------------------------------------------------------------------------------------------------------------
