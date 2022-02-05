@@ -915,11 +915,13 @@ inline void vectorExp( const float* first, float* result, int vectorSize )
 #endif
 }
 
-inline void vectorSigmoid( float* result, int vectorSize )
+inline void vectorSigmoid( const float* first, float* result, int vectorSize )
 {
 	int sseSize;
 	int nonSseSize;
 	checkSse( vectorSize, sseSize, nonSseSize );
+
+	vectorExp( first, result, vectorSize );
 
 	if( sseSize > 0 ) {
 		const __m128 oneSse = _mm_set_ps1( 1 );

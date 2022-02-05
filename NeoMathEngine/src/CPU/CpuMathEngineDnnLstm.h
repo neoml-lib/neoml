@@ -91,12 +91,9 @@ void CMathEngineLstmDesc::RunOnceRestOfLstm( const CConstFloatHandle& inputState
 			// Apply activations
 			NeoML::vectorTanh( GetRaw( inputTanhData ), GetRaw( inputTanhData ), CurDataSize );
 			
-			NeoML::vectorExp( GetRaw( forgetData ), GetRaw( forgetData ), CurDataSize );
-			NeoML::vectorSigmoid( GetRaw( forgetData ), CurDataSize );
-			NeoML::vectorExp( GetRaw( inputData ), GetRaw( inputData ), CurDataSize );
-			NeoML::vectorSigmoid( GetRaw( inputData ), CurDataSize );
-			NeoML::vectorExp( GetRaw( outputData ), GetRaw( outputData ), CurDataSize );
-			NeoML::vectorSigmoid( GetRaw( outputData ), CurDataSize );
+			NeoML::vectorSigmoid( GetRaw( forgetData ), GetRaw( forgetData ), CurDataSize );
+			NeoML::vectorSigmoid( GetRaw( inputData ), GetRaw( inputData ), CurDataSize );
+			NeoML::vectorSigmoid( GetRaw( outputData ), GetRaw( outputData ), CurDataSize );
 			
 			// Multiply input gates
 			NeoML::vectorEltwiseMultiply( GetRaw( inputData ), GetRaw( inputTanhData ), GetRaw( inputData ), CurDataSize );

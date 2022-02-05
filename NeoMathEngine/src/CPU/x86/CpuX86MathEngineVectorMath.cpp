@@ -1604,8 +1604,7 @@ void CCpuMathEngine::VectorSigmoid(const CConstFloatHandle& firstHandle, const C
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	CCpuExecutionScope scope;
 
-	VectorExp(firstHandle, resultHandle, vectorSize);
-
+	const float* first = GetRaw( firstHandle );
 	float* result = GetRaw( resultHandle );
 	const int curThreadCount = IsOmpRelevant( vectorSize, 2 * vectorSize ) ? threadCount : 1;
 	if( curThreadCount > 1 ) {
@@ -1614,11 +1613,11 @@ void CCpuMathEngine::VectorSigmoid(const CConstFloatHandle& firstHandle, const C
 			int start;
 			int count;
 			if( OmpGetTaskIndexAndCount( vectorSize, start, count ) ) {
-				vectorSigmoid( result + start, count );
+				vectorSigmoid( first + start, result + start, count );
 			}
 		}
 	} else {
-		vectorSigmoid( result, vectorSize );
+		vectorSigmoid( first, result, vectorSize );
 	}
 }
 
