@@ -10,7 +10,7 @@ git;https://tfs/HQ/ThirdParty/_git/Vulkan
 get;ThirdParty/Vulkan;/;Vulkan SDK 1.1.130 1.0.2.0
 
 git;https://tfs/HQ/ThirdParty/_git/MKL
-get;ThirdParty/MKL;/;MKL2022
+get;ThirdParty/MKL;/;MKL 2018 Update4 1.0.2.0
 
 git;https://tfs/HQ/Tools_Libs/_git/NeoMLTest
 get;NeoMLTest;/;NeoMLTest-master 1.0.43.0
