@@ -322,6 +322,9 @@ def asblob(math_engine, data, shape=None, copy=False):
     if len(np_data.shape) > 7:
         raise ValueError('The `shape` must have not more then 7 dimensions.')
 
+    if np.prod(np_data.shape) != np.prod(shape):
+        raise ValueError('The blob must have as many elements as ndarray')
+
     dtype = 'none'
     if np_data.dtype == np.float32:
         dtype = 'float32'
