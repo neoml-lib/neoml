@@ -41,9 +41,8 @@ def svd(matrix, compute_u = True, compute_v = False, algorithm = 'full', compone
     x = convert_data(matrix)
     if len(x.shape) != 2:
         raise ValueError("Matrix must be square.")
-    if algorithm == 'sparse':
-        if compute_u == compute_v:
-            raise ValueError("Exactly one of u and v must be calculated.")
+    if algorithm == 'sparse' and compute_u == compute_v:
+        raise ValueError("Exactly one of u and v must be calculated.")
     if components is None:
         components = min(*x.shape)
     return PythonWrapper.singular_value_decomposition(*x.shape, *get_data(x),
