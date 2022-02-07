@@ -86,11 +86,9 @@ static inline int calcUnionElementsCount( const CSparseFloatVector& vector1, con
 		while( i < size1 && j < size2 ) {
 			if( body1.Indexes[i] == j ) {
 				i++;
-				j++;
 				count++;
-			} else {
-				j++;
 			}
+			j++;
 		}
 	} else {
 		while( i < size1 && j < size2 ) {
