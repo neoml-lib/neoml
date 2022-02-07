@@ -31,6 +31,7 @@ limitations under the License.
 #include <NeoML/TraditionalML/OneVersusAll.h>
 #include <NeoML/TraditionalML/OneVersusOne.h>
 #include <NeoML/TraditionalML/Svm.h>
+#include <NeoML/TraditionalML/PCA.h>
 #include <NeoML/TraditionalML/PlattScalling.h>
 #include <NeoML/TraditionalML/DifferentialEvolution.h>
 #include <NeoML/TraditionalML/BytePairEncoder.h>

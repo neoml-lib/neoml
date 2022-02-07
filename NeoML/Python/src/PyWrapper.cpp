@@ -81,12 +81,15 @@ limitations under the License.
 #include "PyTiedEmbeddingsLayer.h"
 #include "PyDifferentialEvolution.h"
 #include "PyBytePairEncoder.h"
+#include "PyPCA.h"
 
 PYBIND11_MODULE(PythonWrapper, m) {
 
 	InitializeClustering( m );
 
 	InitializeTrainingModel( m );
+
+	InitializePCA( m );
 
 	InitializeMathEngine( m );
 
