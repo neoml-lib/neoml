@@ -36,7 +36,7 @@ struct CCudaDevice : public CCrtAllocatedObject {
 	int WarpSize;
 	void* Handle;
 
-	CCudaDevice() {}
+	CCudaDevice() = default;
 	~CCudaDevice();
 	CCudaDevice( const CCudaDevice& ) = delete;
 	CCudaDevice& operator=( const CCudaDevice& ) = delete;

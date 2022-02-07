@@ -18,30 +18,47 @@ limitations under the License.
 
 namespace NeoML {
 
-void CDistributedTraining::initialize( CArchive& archive, int count )
+static CPtr<CDnnInitializer> createInitializer( TDistributedInitializer type, CRandom& random )
+{
+    switch( type ) {
+        case TDistributedInitializer::Xavier:
+            return new CDnnXavierInitializer( random );
+        case TDistributedInitializer::XavierUniform:
+            return new CDnnXavierUniformInitializer( random );
+        case TDistributedInitializer::Uniform:
+            return new CDnnUniformInitializer( random );
+        default:
+            NeoAssert( false );
+    }
+    return nullptr;
+}
+
+void CDistributedTraining::initialize( CArchive& archive, int count, TDistributedInitializer initializer, int seed )
 {
     NeoAssert( archive.IsLoading() );
     for( int i = 0; i < count; i++ ){
-        rands.Add( new CRandom( 42 ) );
+        rands.Add( new CRandom( seed ) );
         cnns.Add( new CDnn( *rands[i], *mathEngines[i] ) );
+        cnns[i]->SetInitializer( createInitializer( initializer, *rands[i] ) );
         cnns[i]->SetInitializer( new CDnnDistributedInitializer( *rands[i], mathEngines[i], cnns[i]->GetInitializer() ) );
         archive.Serialize( *cnns[i] );
         archive.Seek( 0, static_cast<CBaseFile::TSeekPosition>( 0 ) );
     }
 }
 
-CDistributedTraining::CDistributedTraining( CArchive& archive, int count )
+CDistributedTraining::CDistributedTraining( CArchive& archive, int count, TDistributedInitializer initializer, int seed )
 {
     mathEngines.SetSize( count );
     CreateDistributedCpuMathEngines( mathEngines.GetPtr(), count );
-    initialize( archive, count );
+    initialize( archive, count, initializer, seed );
 }
 
-CDistributedTraining::CDistributedTraining( CArchive& archive, const CArray<int>& cudaDevs )
+CDistributedTraining::CDistributedTraining( CArchive& archive, const CArray<int>& cudaDevs,
+    TDistributedInitializer initializer, int seed )
 {
     mathEngines.SetSize( cudaDevs.Size() );
     CreateDistributedCudaMathEngines( mathEngines.GetPtr(), cudaDevs.Size(), cudaDevs.GetPtr() );
-    initialize( archive, cudaDevs.Size() );
+    initialize( archive, cudaDevs.Size(), initializer, seed );
 }
 
 CDistributedTraining::~CDistributedTraining()
@@ -51,6 +68,89 @@ CDistributedTraining::~CDistributedTraining()
         delete rands[i];
         delete mathEngines[i];
     }
+}
+
+void CDistributedTraining::SetSolver( CArchive& archive )
+{
+    NeoAssert( archive.IsLoading() );
+    long long startPos = archive.GetPosition();
+    for( int i = 0; i < cnns.Size(); ++i ) {
+        CPtr<CDnnSolver> newSolver = nullptr;
+        SerializeSolver( archive, *cnns[i], newSolver );
+        cnns[i]->SetSolver( newSolver );
+        archive.Seek( startPos, CBaseFile::begin );
+    }
+}
+
+void CDistributedTraining::SetLearningRate( float newRate )
+{
+    for( int i = 0; i < cnns.Size(); ++i ) {
+        cnns[i]->GetSolver()->SetLearningRate( newRate );
+    }
+}
+
+void CDistributedTraining::RunOnce( IDistributedDataset& data )
+{
+#ifdef NEOML_USE_OMP
+    NEOML_OMP_NUM_THREADS( cnns.Size() )
+    {
+        const int thread = OmpGetThreadNum();
+        try {
+            data.SetInputBatch( *cnns[thread], thread );
+            cnns[thread]->RunOnce();
+        } catch( std::exception& e ) {
+            if( errorMessage.IsEmpty() ) {
+                errorMessage = e.what();
+            }
+            cnns[thread]->GetMathEngine().AbortDistributed();
+        }
+#ifdef NEOML_USE_FINEOBJ
+        catch( CCheckException* e ) {
+            if( errorMessage.IsEmpty() ) {
+                errorMessage = e->MessageText().CreateString();
+            }
+            cnns[thread]->GetMathEngine().AbortDistributed();
+            delete e;
+        }
+#endif
+    }
+    CheckArchitecture( errorMessage.IsEmpty(), "DistributedTraining", errorMessage );
+#else
+    ( void ) data;
+    NeoAssert( false );
+#endif
+}
+
+void CDistributedTraining::RunAndBackwardOnce( IDistributedDataset& data )
+{
+#ifdef NEOML_USE_OMP
+    NEOML_OMP_NUM_THREADS( cnns.Size() )
+    {
+        const int thread = OmpGetThreadNum();
+        try {
+            data.SetInputBatch( *cnns[thread], thread );
+            cnns[thread]->RunAndBackwardOnce();
+        } catch( std::exception& e ) {
+            if( errorMessage.IsEmpty() ) {
+                errorMessage = e.what();
+            }
+            cnns[thread]->GetMathEngine().AbortDistributed();
+        }
+#ifdef NEOML_USE_FINEOBJ
+        catch( CCheckException* e ) {
+            if( errorMessage.IsEmpty() ) {
+                errorMessage = e->MessageText().CreateString();
+            }
+            cnns[thread]->GetMathEngine().AbortDistributed();
+            delete e;
+        }
+#endif
+    }
+    CheckArchitecture( errorMessage.IsEmpty(), "DistributedTraining", errorMessage );
+#else
+    ( void ) data;
+    NeoAssert( false );
+#endif
 }
 
 void CDistributedTraining::RunAndLearnOnce( IDistributedDataset& data )
@@ -85,16 +185,59 @@ void CDistributedTraining::RunAndLearnOnce( IDistributedDataset& data )
 #endif
 }
 
+void CDistributedTraining::Train()
+{
+#ifdef NEOML_USE_OMP
+    NEOML_OMP_NUM_THREADS( cnns.Size() )
+    {
+        const int thread = OmpGetThreadNum();
+        try {
+            cnns[thread]->GetSolver()->Train();
+        } catch( std::exception& e ) {
+            if( errorMessage.IsEmpty() ) {
+                errorMessage = e.what();
+            }
+            cnns[thread]->GetMathEngine().AbortDistributed();
+        }
+#ifdef NEOML_USE_FINEOBJ
+        catch( CCheckException* e ) {
+            if( errorMessage.IsEmpty() ) {
+                errorMessage = e->MessageText().CreateString();
+            }
+            cnns[thread]->GetMathEngine().AbortDistributed();
+            delete e;
+        }
+#endif
+    }
+    CheckArchitecture( errorMessage.IsEmpty(), "DistributedTraining", errorMessage );
+#else
+    NeoAssert( false );
+#endif
+}
+
 void CDistributedTraining::GetLastLoss( const CString& layerName, CArray<float>& losses )
 {
     losses.SetSize( cnns.Size() );
     for( int i = 0; i < cnns.Size(); i++ ){
         CLossLayer* lossLayer = dynamic_cast<CLossLayer*>( cnns[i]->GetLayer( layerName ).Ptr() );
         if( lossLayer == nullptr ){
-            losses[i] = dynamic_cast<CCtcLossLayer*>( cnns[i]->GetLayer( layerName ).Ptr() )->GetLastLoss();
+            CCtcLossLayer* ctc = dynamic_cast<CCtcLossLayer*>( cnns[i]->GetLayer( layerName ).Ptr() );
+            if( ctc != nullptr ) {
+                losses[i] = ctc->GetLastLoss();
+            } else {
+                losses[i] = CheckCast<CCrfLossLayer>( cnns[i]->GetLayer( layerName ) )->GetLastLoss();
+            }
         } else {
             losses[i] = lossLayer->GetLastLoss();
         }
+    }
+}
+
+void CDistributedTraining::GetLastBlob( const CString& layerName, CObjectArray<CDnnBlob>& blobs )
+{
+    blobs.SetSize( cnns.Size() );
+    for( int i = 0; i < cnns.Size(); ++i ) {
+        blobs[i] = CheckCast<CSinkLayer>( cnns[i]->GetLayer( layerName ) )->GetBlob();
     }
 }
 

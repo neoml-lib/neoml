@@ -22,18 +22,42 @@ public:
 	virtual void SetInputBatch( CDnn& dnn, int thread ) = 0;
 };
 
+// Initializer to use in distributed training
+enum class TDistributedInitializer {
+	Xavier,
+	XavierUniform,
+	Uniform
+};
+
 // Single process, multiple threads distributed training
 class NEOML_API CDistributedTraining {
 public:
 	// Creates `count` cpu models
-	explicit CDistributedTraining( CArchive& archive, int count );
+	explicit CDistributedTraining( CArchive& archive, int count,
+		TDistributedInitializer initializer = TDistributedInitializer::Xavier, int seed = 42 );
 	// Creates gpu models, `devs` should contain numbers of using devices
-	explicit CDistributedTraining( CArchive& archive, const CArray<int>& cudaDevs );
+	explicit CDistributedTraining( CArchive& archive, const CArray<int>& cudaDevs,
+		TDistributedInitializer initializer = TDistributedInitializer::Xavier, int seed = 42 );
+	// Gets the number of models in disitrbuted traning
+	int GetModelCount() const { return cnns.Size(); }
+	// Sets the solver for all of the models
+	void SetSolver( CArchive& archive );
+	// Sets the learning rate for all of the models
+	void SetLearningRate( float rate );
+	// Runs the networks without backward and training
+	void RunOnce( IDistributedDataset& data );
+	// Runs the networks and performs a backward pass
+	void RunAndBackwardOnce( IDistributedDataset& data );
 	// Runs the networks, performs a backward pass and updates the trainable weights of all models
 	void RunAndLearnOnce( IDistributedDataset& data );
+	// Updates the trainable weights of all models (after RunAndBackwardOnce)
+	void Train();
 	// Returns last loss of `layerName` for all models
-	// `layerName` should correspond to CLossLayer or CCtcLossLayer
+	// `layerName` should correspond to CLossLayer, CCtcLossLayer or CCrfLossLayer
 	void GetLastLoss( const CString& layerName, CArray<float>& losses );
+	// Returns last blobs of `layerName` for all models
+	// `layerName` should correspond to CSinkLayer
+	void GetLastBlob( const CString& layerName, CObjectArray<CDnnBlob>& blobs );
 	// Save trained net
 	void Serialize( CArchive& archive );
 	~CDistributedTraining();
@@ -43,7 +67,7 @@ private:
 	CArray<CDnn*> cnns;
 	CString errorMessage;
 
-	void initialize( CArchive& archive, int count );
+	void initialize( CArchive& archive, int count, TDistributedInitializer initializer, int seed );
 };
 
 
