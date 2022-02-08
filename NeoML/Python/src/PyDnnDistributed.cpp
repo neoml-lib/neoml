@@ -32,11 +32,32 @@ void CPyDistributedDataset::SetInputBatch( CDnn& dnn, int thread )
     }
 }
 
+void CPyDistributedTraining::Run( const py::object& data )
+{
+    py::gil_scoped_release release;
+    CPyDistributedDataset dataset( data );
+    RunOnce( dataset );
+}
+
+void CPyDistributedTraining::RunAndBackward( const py::object& data )
+{
+    py::gil_scoped_release release;
+    CPyDistributedDataset dataset( data );
+    RunAndBackwardOnce( dataset );
+}
+
 void CPyDistributedTraining::Learn( const py::object& data )
 {
     py::gil_scoped_release release;
     CPyDistributedDataset dataset( data );
     RunAndLearnOnce( dataset );
+}
+
+void CPyDistributedTraining::Train_( const py::object& data )
+{
+    py::gil_scoped_release release;
+    CPyDistributedDataset dataset( data );
+    Train( dataset );
 }
 
 py::array CPyDistributedTraining::LastLosses( const std::string& layer )
@@ -81,8 +102,12 @@ void InitializeDistributedTraining(py::module& m)
             })
         )
 
+        .def( "_run", &CPyDistributedTraining::Run )
+        .def( "_run_and_backward", &CPyDistributedTraining::RunAndBackward )
         .def( "_learn", &CPyDistributedTraining::Learn )
+        .def( "_train", &CPyDistributedTraining::Train_ )
         .def( "_last_losses", &CPyDistributedTraining::LastLosses, py::return_value_policy::reference )
+        .def( "_get_output", &CPyDistributedTraining::LastLosses, py::return_value_policy::reference )
         .def( "_save", &CPyDistributedTraining::Save )
 	;
 } 
