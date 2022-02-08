@@ -572,6 +572,7 @@ struct NEOMATHENGINE_API C3dMeanPoolingDesc : public CCrtAllocatedObject { publi
 struct NEOMATHENGINE_API CGlobalMaxOverTimePoolingDesc : public CCrtAllocatedObject { public: virtual ~CGlobalMaxOverTimePoolingDesc(); };
 struct NEOMATHENGINE_API CMaxOverTimePoolingDesc : public CCrtAllocatedObject { public: virtual ~CMaxOverTimePoolingDesc(); };
 struct NEOMATHENGINE_API CLrnDesc : public CCrtAllocatedObject { public: virtual ~CLrnDesc(); };
+struct NEOMATHENGINE_API CLstmDesc : public CCrtAllocatedObject { public: virtual ~CLstmDesc(); };
 
 //------------------------------------------------------------------------------------------------------------
 // RLE format
@@ -905,6 +906,16 @@ public:
 	virtual void LrnBackward( const CLrnDesc& desc, const CConstFloatHandle& input, const CConstFloatHandle& output,
 		const CConstFloatHandle& outputDiff, const CConstFloatHandle& invSum, const CConstFloatHandle& invSumBeta,
 		const CFloatHandle& inputDiff ) = 0;
+
+	// If currentDesc isn't nullptr, it will be reinitialized with new values and pointer to it will be returned.
+	// Otherwise new descriptor will be created.
+	virtual CLstmDesc* InitLstm( CLstmDesc* currentDesc, const CFloatHandle& inputFullyConnectedResult, const CFloatHandle& reccurentFullyConnectedResult,
+		int hiddenSize, int objectCount, int objectSize ) = 0;
+	virtual void Lstm( CLstmDesc& desc, 
+		const CFloatHandle& inputWeights, const CConstFloatHandle& inputFreeTerm,
+		const CFloatHandle& recurrentWeights, const CConstFloatHandle& recurrentFreeTerm,
+		const CConstFloatHandle& inputStateBackLink, const CConstFloatHandle& inputMainBackLink, const CConstFloatHandle& input,
+		const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink ) = 0;
 
 	// CTC
 
