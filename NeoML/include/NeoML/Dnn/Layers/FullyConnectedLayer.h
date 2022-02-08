@@ -34,7 +34,9 @@ public:
 	void SetNumberOfElements(int newNumberOfElements);
 
 	// Retrieves or sets the weights data (the data blob is copied)
-	// The dimensions of the blob are NumOfElements * InputHeight * InputWidth * InputChannelsCount
+	// The dimensions of the blob are
+	//     weightsData.GetObjectCount() is equal to GetNumberOfElements()
+	//     weightsData.GetObjectSize() is equal to inputBlob.GetObjectSize()
 	// If the weights have not been initialized, an empty blob will be returned; pass an empty blob to reset the weights
 	CPtr<CDnnBlob> GetWeightsData() const;
 	void SetWeightsData(const CDnnBlob* newWeights);
@@ -54,8 +56,13 @@ public:
 	bool IsZeroFreeTerm() const { return isZeroFreeTerm; }
 	void SetZeroFreeTerm(bool _isZeroFreeTerm);
 
+	CPtr<CDnnBlob>& Weights() { return paramBlobs[0]; }
+	CPtr<CDnnBlob>& FreeTerms() { return paramBlobs[1]; }	// the free term matrix
+	const CPtr<CDnnBlob>& Weights() const { return paramBlobs[0]; }
+	const CPtr<CDnnBlob>& FreeTerms() const { return paramBlobs[1]; }	// the free term matrix
+
 protected:
-	virtual ~CFullyConnectedLayer();
+	~CFullyConnectedLayer() override;
 
 	void Reshape() override;
 	void RunOnce() override;
@@ -64,14 +71,8 @@ protected:
 	void FilterLayerParams( float threshold ) override;
 
 	// The filter. The pointer is valid only if the desired parameters are known (either defined externally or obtained on reshape)
-	CPtr<CDnnBlob>& Weights() { return paramBlobs[0]; }
-	CPtr<CDnnBlob>& FreeTerms() { return paramBlobs[1]; }	// the free term matrix
-
 	CPtr<CDnnBlob>& WeightsDiff() { return paramDiffBlobs[0]; }
 	CPtr<CDnnBlob>& FreeTermsDiff() { return paramDiffBlobs[1]; }
-
-	const CPtr<CDnnBlob>& Weights() const { return paramBlobs[0]; }
-	const CPtr<CDnnBlob>& FreeTerms() const { return paramBlobs[1]; }	// the free term matrix
 
 private:
 	int numberOfElements; // the number of elements (neurons) of the fully-connected layer

@@ -61,7 +61,7 @@ CConvolutionDesc* CCudaMathEngine::InitBlobConvolution( const CBlobDesc& input, 
 }
 
 void CCudaMathEngine::BlobConvolution( const CConvolutionDesc& convDesc,
-	const CFloatHandle& sourceData, const CFloatHandle& filterData, const CFloatHandle* freeTermData,
+	const CConstFloatHandle& sourceData, const CConstFloatHandle& filterData, const CConstFloatHandle* freeTermData,
 	const CFloatHandle& resultData )
 {
 	SetCudaDevice( device->DeviceNumber );
@@ -143,8 +143,8 @@ void CCudaMathEngine::BlobConvolution( const CConvolutionDesc& convDesc,
 
 }
 
-void CCudaMathEngine::BlobConvolutionBackward( const CConvolutionDesc& convDesc, const CFloatHandle& outputDiff,
-	const CFloatHandle& filter, const CFloatHandle* freeTerm, const CFloatHandle& inputDiff )
+void CCudaMathEngine::BlobConvolutionBackward( const CConvolutionDesc& convDesc, const CConstFloatHandle& outputDiff,
+	const CConstFloatHandle& filter, const CConstFloatHandle* freeTerm, const CFloatHandle& inputDiff )
 {
 	SetCudaDevice( device->DeviceNumber );
 	const CCudaConvolutionDescInternal& desc = static_cast<const CCudaConvolutionDesc&>( convDesc ).Internal;
@@ -205,7 +205,7 @@ void CCudaMathEngine::BlobConvolutionBackward( const CConvolutionDesc& convDesc,
 }
 
 void CCudaMathEngine::BlobConvolutionLearnAdd( const CConvolutionDesc& convDesc,
-	const CFloatHandle& input, const CFloatHandle& outputDiff, const CFloatHandle& filterDiff,
+	const CConstFloatHandle& input, const CConstFloatHandle& outputDiff, const CFloatHandle& filterDiff,
 	const CFloatHandle* freeTermDiff, bool isFreeTermDiffFromInput )
 {
 	SetCudaDevice( device->DeviceNumber );

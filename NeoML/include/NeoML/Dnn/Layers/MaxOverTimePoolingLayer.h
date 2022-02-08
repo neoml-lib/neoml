@@ -38,7 +38,7 @@ public:
 	void SetStrideLength(int length);
 
 protected:
-	virtual ~CMaxOverTimePoolingLayer() { destroyDescs(); }
+	~CMaxOverTimePoolingLayer() override { destroyDescs(); }
 
 	// CBaseLayer methods
 	void Reshape() override;

@@ -5,6 +5,7 @@ add_library(${PROJECT_NAME} INTERFACE)
 target_sources(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/AddVectorToMatrixColumnsTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/AddVectorToMatrixRowsTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/BertConvTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/BitSetBinarizationTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Blob3dConvolutionTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Blob3dMaxPoolingTest.cpp

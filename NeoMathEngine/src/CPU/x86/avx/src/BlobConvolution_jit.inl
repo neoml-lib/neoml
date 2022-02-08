@@ -289,8 +289,8 @@ inline void CBlobConvolution<FltCnt>::CJitConvolution::flushResRegs( CBlobConvol
 template<int FltCnt>
 inline void CBlobConvolution<FltCnt>::CJitConvolution::initProcessingMainLoop(
         CBlobConvolution<FltCnt>& bc,
-        size_t stepCount, size_t stepSize, int batchChannelSize, std::function<void(int)>& fillKernel,
-        size_t windowIndex, bool useNarrowProcessing, std::function<void()>* callBeforeFlush )
+        size_t stepCount, size_t stepSize, int batchChannelSize, const std::function<void(int)>& fillKernel,
+        size_t windowIndex, bool useNarrowProcessing, const std::function<void()>* callBeforeFlush )
 {
     using namespace Xbyak;
 

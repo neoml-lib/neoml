@@ -691,6 +691,54 @@ void CCudaMathEngine::IndRnnRecurrentLearn( bool reverse, int sequenceLength, in
 		GetRaw( uDiff ) );
 }
 
+void CCudaMathEngine::BertConv( const CConstFloatHandle& dataHandle, const CConstFloatHandle& kernelHandle, int seqLen,
+	int batchSize, int numHeads, int headSize, int kernelSize, const CFloatHandle& outputHandle )
+{
+	ASSERT_EXPR( dataHandle.GetMathEngine() == this );
+	ASSERT_EXPR( kernelHandle.GetMathEngine() == this );
+	ASSERT_EXPR( outputHandle.GetMathEngine() == this );
+
+	const int taskCount = seqLen * batchSize * numHeads * headSize;
+
+	int blockCount;
+	int threadCount;
+	getCudaTaskGrid( blockCount, threadCount, taskCount );
+
+	BertConvKernel<<<blockCount, threadCount>>>( GetRaw( dataHandle ), GetRaw( kernelHandle ), seqLen, batchSize,
+		numHeads, headSize, kernelSize, GetRaw( outputHandle ) );
+}
+
+void CCudaMathEngine::BertConvBackward( const CConstFloatHandle& dataHandle, const CConstFloatHandle& kernelHandle,
+	const CConstFloatHandle& outputDiffHandle, int seqLen, int batchSize, int numHeads, int headSize, int kernelSize,
+	const CFloatHandle& dataDiffHandle, const CFloatHandle& kernelDiffHandle )
+{
+	ASSERT_EXPR( dataHandle.GetMathEngine() == this );
+	ASSERT_EXPR( kernelHandle.GetMathEngine() == this );
+	ASSERT_EXPR( outputDiffHandle.GetMathEngine() == this );
+	ASSERT_EXPR( dataDiffHandle.GetMathEngine() == this );
+	ASSERT_EXPR( kernelDiffHandle.GetMathEngine() == this );
+
+	{
+		// dataDiff
+		const int taskCount = seqLen * batchSize * numHeads * headSize;
+		int blockCount;
+		int threadCount;
+		getCudaTaskGrid( blockCount, threadCount, taskCount );
+		BertConvBackwardDataKernel<<<blockCount, threadCount>>>( GetRaw( kernelHandle ), GetRaw( outputDiffHandle ),
+			seqLen, batchSize, numHeads, headSize, kernelSize, GetRaw( dataDiffHandle ) );
+	}
+
+	{
+		// kernelDiff
+		const int taskCount = seqLen * batchSize * numHeads * kernelSize;
+		int blockCount;
+		int threadCount;
+		getCudaTaskGrid( blockCount, threadCount, taskCount );
+		BertConvBackwardKernelKernel<<<blockCount, threadCount>>>( GetRaw( dataHandle ), GetRaw( outputDiffHandle ),
+			seqLen, batchSize, numHeads, headSize, kernelSize, GetRaw( kernelDiffHandle ) );
+	}
+}
+
 } // namespace NeoML
 
 #endif // NEOML_USE_CUDA

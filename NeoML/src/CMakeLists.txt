@@ -17,6 +17,7 @@ set(NeoML_SOURCES
     Dnn/DnnBlob.cpp
     Dnn/DnnInitializer.cpp
     Dnn/DnnSparseMatrix.cpp
+    Dnn/DnnDistributed.cpp
     Dnn/Layers/3dConvLayer.cpp
     Dnn/Layers/3dPoolingLayer.cpp
     Dnn/Layers/3dTransposedConvLayer.cpp
@@ -29,6 +30,7 @@ set(NeoML_SOURCES
     Dnn/Layers/BaseConvLayer.cpp
     Dnn/Layers/BaseInPlaceLayer.cpp
     Dnn/Layers/BatchNormalizationLayer.cpp
+    Dnn/Layers/BertConvLayer.cpp
     Dnn/Layers/AddToObjectLayer.cpp
     Dnn/Layers/BinaryCrossEntropyLayer.cpp
     Dnn/Layers/BinaryFocalLossLayer.cpp
@@ -61,6 +63,7 @@ set(NeoML_SOURCES
     Dnn/Layers/ImageResizeLayer.cpp
     Dnn/Layers/IndRnnLayer.cpp
     Dnn/Layers/IrnnLayer.cpp
+    Dnn/Layers/L1LossLayer.cpp
     Dnn/Layers/LrnLayer.cpp
     Dnn/Layers/LstmLayer.cpp
     Dnn/Layers/MatrixMultiplicationLayer.cpp
@@ -132,6 +135,7 @@ set(NeoML_SOURCES
     TraditionalML/SparseFloatMatrix.cpp
     TraditionalML/StratifiedCrossValidationSubProblem.cpp
     TraditionalML/Svm.cpp
+    TraditionalML/PCA.cpp
     TraditionalML/SvmKernel.cpp
     TraditionalML/TrustRegionNewtonOptimizer.cpp
 )
@@ -192,7 +196,6 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/NeoML.h
     ../include/NeoML/NeoMLCommon.h
     ../include/NeoML/NeoMLDefs.h
-    ../include/NeoML/Platforms.h
     ../include/NeoML/Random.h
     ../include/NeoML/Dnn/AutoDiff.h
     ../include/NeoML/Dnn/AutoDiffFunctions.h
@@ -203,6 +206,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/Dnn/DnnSolver.h
     ../include/NeoML/Dnn/DnnSparseMatrix.h
     ../include/NeoML/Dnn/DnnLambdaHolder.h
+    ../include/NeoML/Dnn/DnnDistributed.h
     ../include/NeoML/Dnn/Layers/3dConvLayer.h
     ../include/NeoML/Dnn/Layers/3dPoolingLayer.h
     ../include/NeoML/Dnn/Layers/3dTransposedConvLayer.h
@@ -215,6 +219,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/Dnn/Layers/BaseInPlaceLayer.h
     ../include/NeoML/Dnn/Layers/BatchNormalizationLayer.h
     ../include/NeoML/Dnn/Layers/AddToObjectLayer.h
+    ../include/NeoML/Dnn/Layers/BertConvLayer.h
     ../include/NeoML/Dnn/Layers/BinaryFocalLossLayer.h
     ../include/NeoML/Dnn/Layers/CastLayer.h
     ../include/NeoML/Dnn/Layers/CenterLossLayer.h
@@ -310,6 +315,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/TraditionalML/SparseFloatVector.h
     ../include/NeoML/TraditionalML/SparseVectorIterator.h
     ../include/NeoML/TraditionalML/Svm.h
+    ../include/NeoML/TraditionalML/PCA.h
     ../include/NeoML/TraditionalML/SvmKernel.h
     ../include/NeoML/TraditionalML/StratifiedCrossValidationSubProblem.h
     ../include/NeoML/TraditionalML/TrainingModel.h
@@ -366,7 +372,7 @@ if(WIN32)
     target_sources(${PROJECT_NAME} PRIVATE ../NeoML.rc)
 endif()
 
-target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_11)
+target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_14)
 
 add_subdirectory(../../NeoMathEngine ${CMAKE_BINARY_DIR}/NeoMathEngine)
 

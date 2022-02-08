@@ -50,8 +50,8 @@ public:
 		double MeanDiameterCoef;
 	};
 
-	CIsoDataClustering( const CParam& params );
-	virtual ~CIsoDataClustering();
+	explicit CIsoDataClustering( const CParam& params );
+	~CIsoDataClustering() override;
 
 	// Sets a text stream for logging processing
 	// By default logging is off (set to null to turn off)

@@ -29,13 +29,13 @@ class CMemoryBuffer : public CCrtAllocatedObject {
 public:
 	CMemoryHandle Data; // the pointer to the data
 
-	explicit CMemoryBuffer() : next(0) {}
+	CMemoryBuffer() = default;
 
 	CMemoryBuffer* GetNext() { return next; }
 	void SetNext( CMemoryBuffer* _next ) { next = _next; }
 
 private:
-	CMemoryBuffer* next;
+	CMemoryBuffer* next{};
 };
 
 //------------------------------------------------------------------------------------------------------------

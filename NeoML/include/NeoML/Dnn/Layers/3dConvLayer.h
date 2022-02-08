@@ -60,7 +60,7 @@ public:
 	void Serialize( CArchive& archive ) override;
 
 protected:
-	virtual ~C3dConvLayer();
+	~C3dConvLayer() override;
 
 	void Reshape() override;
 	void RunOnce() override;

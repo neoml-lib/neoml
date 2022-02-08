@@ -1,7 +1,12 @@
 
 # Define global cmake variables and some usefull variables
 macro(set_global_variables)
-    
+    # Allow environment variables <PackageName>_ROOT
+    if(POLICY CMP0074)
+        set(CMAKE_POLICY_DEFAULT_CMP0074 NEW)
+        cmake_policy(SET CMP0074 NEW)
+    endif()
+
     # Usefull variables
     if(UNIX AND APPLE AND NOT IOS)
         set(DARWIN TRUE)
@@ -11,6 +16,10 @@ macro(set_global_variables)
 
     if(NOT DEFINED ENV{READTHEDOCS} AND (CMAKE_SIZEOF_VOID_P EQUAL 8) AND (WIN32 OR LINUX OR DARWIN) AND NOT CMAKE_SYSTEM_PROCESSOR MATCHES "arm.*")
         set(NEOML_USE_AVX TRUE)
+    endif()
+
+    if(NOT MSVC AND USE_FINE_OBJECTS)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-strict-aliasing")
     endif()
 
     # Cmake default variables
