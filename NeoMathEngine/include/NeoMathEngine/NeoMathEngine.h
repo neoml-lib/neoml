@@ -898,7 +898,9 @@ public:
 		const CConstFloatHandle& outputDiff, const CConstFloatHandle& invSum, const CConstFloatHandle& invSumBeta,
 		const CFloatHandle& inputDiff ) = 0;
 
-	virtual CLstmDesc* InitLstm( const CFloatHandle& inputFullyConnectedResult, const CFloatHandle& reccurentFullyConnectedResult,
+	// If currentDesc isn't nullptr, it will be reinitialized with new values and pointer to it will be returned.
+	// Otherwise new descriptor will be created.
+	virtual CLstmDesc* InitLstm( CLstmDesc* currentDesc, const CFloatHandle& inputFullyConnectedResult, const CFloatHandle& reccurentFullyConnectedResult,
 		int hiddenSize, int objectCount, int objectSize ) = 0;
 	virtual void Lstm( CLstmDesc& desc, 
 		const CFloatHandle& inputWeights, const CConstFloatHandle& inputFreeTerm,

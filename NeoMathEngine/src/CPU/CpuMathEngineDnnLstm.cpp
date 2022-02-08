@@ -24,11 +24,17 @@ limitations under the License.
 
 namespace NeoML {
 
-CLstmDesc* CCpuMathEngine::InitLstm( const CFloatHandle& inputFullyConnectedResult, const CFloatHandle& reccurentFullyConnectedResult,
+CLstmDesc* CCpuMathEngine::InitLstm( CLstmDesc* currentDesc, const CFloatHandle& inputFullyConnectedResult, const CFloatHandle& reccurentFullyConnectedResult,
 	int hiddenSize, int objectCount, int objectSize )
 {
-	return new CMathEngineLstmDesc( inputFullyConnectedResult, reccurentFullyConnectedResult,
-		hiddenSize, objectCount, objectSize, this, threadCount );
+	if( currentDesc != nullptr ) {
+		*currentDesc = CMathEngineLstmDesc( inputFullyConnectedResult, reccurentFullyConnectedResult,
+			hiddenSize, objectCount, objectSize, this, threadCount );
+		return currentDesc;
+	} else {
+		return new CMathEngineLstmDesc( inputFullyConnectedResult, reccurentFullyConnectedResult,
+			hiddenSize, objectCount, objectSize, this, threadCount );
+	}
 }
 
 void CCpuMathEngine::Lstm( CLstmDesc& desc, 

@@ -468,26 +468,31 @@ void CLstmLayer::CFastLstmDesc::Init( CLstmLayer* lstmLayer ) {
 		return;
 	}
 	isInitialized = true;
+	// Check before each initialization if new size of blob fits to previous one.
 
 	const int hiddenSize = lstmLayer->GetHiddenSize();
 
 	// Write state data directly to output or create temporary blob for recurent 
+	auto& sbl = stateBacklinkBlob;
+	auto& outDesc0 = lstmLayer->outputDescs[0];
 	if( lstmLayer->outputDescs.Size() != 2 &&
-		( stateBacklinkBlob.Ptr() == nullptr || stateBacklinkBlob->GetDataSize() != lstmLayer->outputDescs[0].BatchWidth() * lstmLayer->outputDescs[0].ObjectSize() ) ) {
+		( sbl.Ptr() == nullptr || sbl->GetBatchWidth() != outDesc0.BatchWidth() || sbl->GetObjectSize() != outDesc0.ObjectSize() ) ) {
 		stateBacklinkBlob = CDnnBlob::CreateDataBlob( lstmLayer->MathEngine(), CT_Float, 1, 
 			lstmLayer->outputDescs[0].BatchWidth(), lstmLayer->outputDescs[0].ObjectSize() );
 	}
 
 	// Create temporary blobs for result of fully connected layers
-	inputFullyConnectedResult = CDnnBlob::CreateDataBlob( lstmLayer->MathEngine(), CT_Float, 1, 
-		lstmLayer->inputDescs[0].BatchWidth(), G_Count * hiddenSize );
-	reccurentFullyConnectedResult = CDnnBlob::CreateBlob( lstmLayer->MathEngine(), CT_Float,
-		inputFullyConnectedResult->GetDesc() );
+	// inputFullyConnectedResult and reccurentFullyConnectedResult always equal to zero or not simultaneously
+	auto& ifcl = inputFullyConnectedResult;
+	auto& inDesc0 = lstmLayer->inputDescs[0];
+	if( ifcl.Ptr() == nullptr || ifcl->GetBatchWidth() != inDesc0.BatchWidth() || ifcl->GetObjectSize() != inDesc0.ObjectSize() ) {
+		inputFullyConnectedResult = CDnnBlob::CreateDataBlob( lstmLayer->MathEngine(), CT_Float, 1,
+			lstmLayer->inputDescs[0].BatchWidth(), G_Count * hiddenSize );
+		reccurentFullyConnectedResult = CDnnBlob::CreateBlob( lstmLayer->MathEngine(), CT_Float,
+			inputFullyConnectedResult->GetDesc() );
+	}
 
-	// Reinitializes descriptors
-	clearPointers();
-
-	lstmDesc = lstmLayer->MathEngine().InitLstm(
+	lstmDesc = lstmLayer->MathEngine().InitLstm( lstmDesc,
 		inputFullyConnectedResult->GetData(), reccurentFullyConnectedResult->GetData(),
 		hiddenSize, lstmLayer->inputDescs[0].BatchWidth(), lstmLayer->inputDescs[0].ObjectSize() );
 }

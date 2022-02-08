@@ -22,7 +22,7 @@ limitations under the License.
 
 namespace NeoML {
 
-CLstmDesc* CMetalMathEngine::InitLstm( const CFloatHandle&, const CFloatHandle&,	int, int, int )
+CLstmDesc* CMetalMathEngine::InitLstm(  CLstmDesc*, const CFloatHandle&, const CFloatHandle&,	int, int, int )
 {
 	ASSERT_EXPR( false );
 	return nullptr;
