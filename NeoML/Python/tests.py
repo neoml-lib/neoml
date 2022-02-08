@@ -965,7 +965,7 @@ class LayersTestCase(MultithreadedTestCase):
 
         input1 = neoml.Blob.asblob(math_engine, np.ones((4, 3, 3), dtype=np.float32), (1, 4, 3, 1, 1, 1, 3))
         input2 = neoml.Blob.asblob(math_engine, np.ones((4, 2, 3), dtype=np.float32), (1, 4, 2, 1, 1, 1, 3))
-        input3 = neoml.Blob.asblob(math_engine, np.ones((4, 2, 2), dtype=np.float32), (1, 4, 2, 1, 1, 1, 4))
+        input3 = neoml.Blob.asblob(math_engine, np.ones((4, 2, 4), dtype=np.float32), (1, 4, 2, 1, 1, 1, 4))
         inputs = {"source1": input1, "source2": input2, "source3": input3}
         outputs = dnn.run(inputs)
         out = outputs["sink"].asarray()
@@ -1169,7 +1169,7 @@ class LayersTestCase(MultithreadedTestCase):
         ctcLoss.skip = True
         self.assertEqual(ctcLoss.skip, True)
 
-        input1 = neoml.Blob.asblob(math_engine, np.ones((64, 4, 5), dtype=np.float32), (3, 4, 1, 1, 1, 1, 5))
+        input1 = neoml.Blob.asblob(math_engine, np.ones((3, 4, 5), dtype=np.float32), (3, 4, 1, 1, 1, 1, 5))
         input2 = neoml.Blob.asblob(math_engine, np.ones((2, 4), dtype=np.int32), (2, 4, 1, 1, 1, 1, 1))
         inputs = {"source1": input1, "source2": input2}
         dnn.run(inputs)
@@ -1843,7 +1843,7 @@ class PoolingTestCase(MultithreadedTestCase):
         source1 = neoml.Dnn.Source(dnn, "source1")
         source2 = neoml.Dnn.Source(dnn, "source2")
         qrnn = neoml.Dnn.Qrnn((source1, source2), 'fo', 7, 4, 2, (1, 1), "sigmoid", 0.6, "direct", "qrnn")
-        filter = neoml.Blob.asblob(math_engine, np.ones((21, 5, 6), dtype=np.float32), (1, 21, 1, 4, 1, 1, 6))
+        filter = neoml.Blob.asblob(math_engine, np.ones((21, 4, 6), dtype=np.float32), (1, 21, 1, 4, 1, 1, 6))
         qrnn.filter = filter
         free_term = neoml.Blob.asblob(math_engine, np.ones((21,), dtype=np.float32), (1, 21, 1, 1, 1, 1, 1))
         qrnn.free_term = free_term
@@ -2043,11 +2043,11 @@ class PoolingTestCase(MultithreadedTestCase):
         layer.second_dim = "channels"
         self.assertEqual(layer.second_dim, "channels")
 
-        input1 = neoml.Blob.asblob(math_engine, np.ones((2, 3, 4, 5), dtype=np.float32), (1, 2, 1, 2, 1, 5, 5))
+        input1 = neoml.Blob.asblob(math_engine, np.ones((2, 3, 4, 5), dtype=np.float32), (1, 2, 1, 3, 1, 4, 5))
         inputs = {"source1": input1}
         outputs = dnn.run(inputs)
         out = outputs["sink"].asarray()
-        self.assertTrue(np.equal(out, np.ones((2, 2, 5, 5), dtype=np.float32)).all())
+        self.assertTrue(np.equal(out, np.ones((2, 3, 5, 4), dtype=np.float32)).all())
 
     def test_sequence_sum(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)

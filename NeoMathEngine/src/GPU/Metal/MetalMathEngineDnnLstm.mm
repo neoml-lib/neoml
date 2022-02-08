@@ -13,24 +13,30 @@ See the License for the specific language governing permissions and
 limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
-// These functions only use raw pointers, do not contain any omp sections inside and perform no checks
-
-#pragma once
-
 #include <NeoMathEngine/NeoMathEngineDefs.h>
 
-#if defined(NEOML_USE_SSE)
+#ifdef NEOML_USE_METAL
 
-#include <x86/CpuX86.h>
-#include <x86/CpuX86MathEngineVectorMathPrivate.h>
+#include <MetalMathEngine.h>
+#include <NeoMathEngine/NeoMathEngineException.h>
 
-#elif defined(NEOML_USE_NEON)
+namespace NeoML {
 
-#include <arm/CpuArm.h>
-#include <arm/CpuArmMathEngineVectorMathPrivate.h>
+CLstmDesc* CMetalMathEngine::InitLstm(  CLstmDesc*, const CFloatHandle&, const CFloatHandle&,	int, int, int )
+{
+	ASSERT_EXPR( false );
+	return nullptr;
+}
 
-#else
+void CMetalMathEngine::Lstm( CLstmDesc&, 
+	const CFloatHandle&, const CConstFloatHandle&,
+	const CFloatHandle&, const CConstFloatHandle&,
+	const CConstFloatHandle&, const CConstFloatHandle&, const CConstFloatHandle&,
+	const CFloatHandle&, const CFloatHandle& )
+{
+	ASSERT_EXPR( false );
+}
 
-#error "Platform isn't supported!"
+} // namespace NeoML
 
-#endif
+#endif // NEOML_USE_METAL
