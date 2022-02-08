@@ -135,6 +135,7 @@ set(NeoML_SOURCES
     TraditionalML/SparseFloatMatrix.cpp
     TraditionalML/StratifiedCrossValidationSubProblem.cpp
     TraditionalML/Svm.cpp
+    TraditionalML/PCA.cpp
     TraditionalML/SvmKernel.cpp
     TraditionalML/TrustRegionNewtonOptimizer.cpp
 )
@@ -314,6 +315,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/TraditionalML/SparseFloatVector.h
     ../include/NeoML/TraditionalML/SparseVectorIterator.h
     ../include/NeoML/TraditionalML/Svm.h
+    ../include/NeoML/TraditionalML/PCA.h
     ../include/NeoML/TraditionalML/SvmKernel.h
     ../include/NeoML/TraditionalML/StratifiedCrossValidationSubProblem.h
     ../include/NeoML/TraditionalML/TrainingModel.h

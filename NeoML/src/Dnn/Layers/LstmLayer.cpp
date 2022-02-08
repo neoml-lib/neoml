@@ -20,6 +20,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/ConcatLayer.h>
 #include <NeoML/Dnn/Layers/SplitLayer.h>
 
+
 namespace NeoML {
 
 // Names used in versions < 2001.
@@ -312,6 +313,26 @@ void CLstmLayer::Serialize( CArchive& archive )
 	}
 }
 
+void CLstmLayer::RunOnce() {
+	if( MathEngine().GetType() == MET_Cpu && 
+		!isInCompatibilityMode &&
+		!IsBackwardPerformed() &&
+		!IsLearningPerformed() &&
+		recurrentActivation == AF_Sigmoid )
+	{
+		fastLstm();
+	} else {
+		CRecurrentLayer::RunOnce();
+	}
+}
+
+void CLstmLayer::Reshape() {
+	CRecurrentLayer::Reshape();
+	if( MathEngine().GetType() == MET_Cpu ) {
+		fastLstmDesc.Reset();
+	}
+}
+
 // Sets weights to input and reccurrent fully connected layers.
 // Used for loading previous versions of LSTM, where single fully connected layer was used.
 void CLstmLayer::setWeightsData( const CPtr<CDnnBlob>& newWeights )
@@ -365,6 +386,115 @@ void CLstmLayer::setWeightsData( const CPtr<CDnnBlob>& newWeights )
 
 	SetInputWeightsData( splitWeights[0] );
 	SetRecurWeightsData( splitWeights[1] );
+}
+
+void CLstmLayer::fastLstm() 
+{
+	fastLstmDesc.Init( this );
+
+	const CPtr<CDnnBlob>& inputWeights = inputHiddenLayer->Weights();
+	const CPtr<CDnnBlob>& inputFreeTerm = inputHiddenLayer->FreeTerms();
+	const CPtr<CDnnBlob>& recurrentWeights = recurHiddenLayer->Weights();
+	const CPtr<CDnnBlob>& recurrentFreeTerm = recurHiddenLayer->FreeTerms();
+
+	// Emulate working of LSTM recurrent implementation
+	CPtr<CDnnBlob>& mainBacklink = outputBlobs[0];
+	CPtr<CDnnBlob>& stateBacklink = outputDescs.Size() == 2 ? outputBlobs[1] : fastLstmDesc.StateBacklinkBlob();
+
+	CPtr<CDnnBlob> mainBacklinkInput = CDnnBlob::CreateWindowBlob( mainBacklink );
+	CPtr<CDnnBlob> mainBacklinkOutput = CDnnBlob::CreateWindowBlob( mainBacklink );
+	CPtr<CDnnBlob> input = CDnnBlob::CreateWindowBlob( inputBlobs[0] );
+	CPtr<CDnnBlob> stateBacklinkInput = CDnnBlob::CreateWindowBlob( stateBacklink );
+	CPtr<CDnnBlob> stateBacklinkOutput = CDnnBlob::CreateWindowBlob( stateBacklink );
+
+	// Init state and main backlink blobs
+	initRecurentBlob( stateBacklink, 1 );
+	initRecurentBlob( mainBacklink, 2 );
+
+	// Iterate recurent net step by step
+	for( int i = 0; i < inputBlobs[0]->GetBatchLength(); i++ ) {
+		int inputPos, outputPos;
+		if( IsReverseSequence() ) {
+			const int LastIdx = inputBlobs[0]->GetBatchLength() - 1;
+			int iRev = LastIdx - i;
+			inputPos = min( LastIdx, iRev + 1 );
+			outputPos = iRev;
+		} else {
+			inputPos = max( 0, i - 1 );
+			outputPos = i;
+		}
+		// Set current step
+		mainBacklinkInput->SetParentPos( inputPos );
+		input->SetParentPos( outputPos );
+
+		if( outputDescs.Size() == 2 ) {
+			// if ( outputDescs.Size() == 1 ) we could preserve only one step of state ( and we do it )
+			stateBacklinkInput->SetParentPos( inputPos );
+			stateBacklinkOutput->SetParentPos( outputPos );
+		}
+		mainBacklinkOutput->SetParentPos( outputPos );
+
+		CConstFloatHandle inputFreeTermHandle;
+		CConstFloatHandle recurrentFreeTermHandle;
+		if( inputFreeTerm.Ptr() ) {
+			inputFreeTermHandle = inputFreeTerm->GetData();
+		}
+		if( recurrentFreeTerm.Ptr() ) {
+			recurrentFreeTermHandle = recurrentFreeTerm->GetData();
+		}
+
+		MathEngine().Lstm( fastLstmDesc.LstmDesc(), 
+			inputWeights->GetData(), inputFreeTermHandle,
+			recurrentWeights->GetData(), recurrentFreeTermHandle,
+			stateBacklinkInput->GetData(), mainBacklinkInput->GetData(),
+			input->GetData(), stateBacklinkOutput->GetData(), mainBacklinkOutput->GetData() );
+	}
+}
+
+void CLstmLayer::initRecurentBlob( CPtr<CDnnBlob>& backlinkBlob, int num )
+{
+	if( inputBlobs.Size() > num && inputBlobs[num] != nullptr ) {
+		CPtr<CDnnBlob> windowBlob = CDnnBlob::CreateWindowBlob( backlinkBlob );
+		windowBlob->SetParentPos( IsReverseSequence() ? backlinkBlob->GetBatchLength() - 1 : 0 );
+		NeoAssert( windowBlob->GetDataSize() == inputBlobs[num]->GetDataSize() );
+		MathEngine().VectorCopy( windowBlob->GetData(), inputBlobs[num]->GetData(), windowBlob->GetDataSize() );
+	} else {
+		backlinkBlob->Clear();
+	}
+}
+
+void CLstmLayer::CFastLstmDesc::Init( CLstmLayer* lstmLayer ) {
+	if( isInitialized ) {
+		return;
+	}
+	isInitialized = true;
+	// Check before each initialization if new size of blob fits to previous one.
+
+	const int hiddenSize = lstmLayer->GetHiddenSize();
+
+	// Write state data directly to output or create temporary blob for recurent 
+	auto& sbl = stateBacklinkBlob;
+	auto& outDesc0 = lstmLayer->outputDescs[0];
+	if( lstmLayer->outputDescs.Size() != 2 &&
+		( sbl.Ptr() == nullptr || sbl->GetBatchWidth() != outDesc0.BatchWidth() || sbl->GetObjectSize() != outDesc0.ObjectSize() ) ) {
+		stateBacklinkBlob = CDnnBlob::CreateDataBlob( lstmLayer->MathEngine(), CT_Float, 1, 
+			lstmLayer->outputDescs[0].BatchWidth(), lstmLayer->outputDescs[0].ObjectSize() );
+	}
+
+	// Create temporary blobs for result of fully connected layers
+	// inputFullyConnectedResult and reccurentFullyConnectedResult always equal to zero or not simultaneously
+	auto& ifcl = inputFullyConnectedResult;
+	auto& inDesc0 = lstmLayer->inputDescs[0];
+	if( ifcl.Ptr() == nullptr || ifcl->GetBatchWidth() != inDesc0.BatchWidth() || ifcl->GetObjectSize() != inDesc0.ObjectSize() ) {
+		inputFullyConnectedResult = CDnnBlob::CreateDataBlob( lstmLayer->MathEngine(), CT_Float, 1,
+			lstmLayer->inputDescs[0].BatchWidth(), G_Count * hiddenSize );
+		reccurentFullyConnectedResult = CDnnBlob::CreateBlob( lstmLayer->MathEngine(), CT_Float,
+			inputFullyConnectedResult->GetDesc() );
+	}
+
+	lstmDesc = lstmLayer->MathEngine().InitLstm( lstmDesc,
+		inputFullyConnectedResult->GetData(), reccurentFullyConnectedResult->GetData(),
+		hiddenSize, lstmLayer->inputDescs[0].BatchWidth(), lstmLayer->inputDescs[0].ObjectSize() );
 }
 
 CLayerWrapper<CLstmLayer> Lstm(

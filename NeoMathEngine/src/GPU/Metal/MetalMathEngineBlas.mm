@@ -1292,6 +1292,19 @@ void CMetalMathEngine::SumMatrixRows( int batchSize, const CFloatHandle& resultH
 	SumMatrixRowsAdd(batchSize, resultHandle, matrixHandle, matrixHeight, matrixWidth);
 }
 
+void CMetalMathEngine::SingularValueDecomposition( const CFloatHandle&, int, int, const CFloatHandle&, const CFloatHandle&,
+	const CFloatHandle&, const CFloatHandle&, bool, bool )
+{
+    ASSERT_EXPR( false );
+}
+
+void CMetalMathEngine::SparseSingularValueDecomposition( const CSparseMatrixDesc&, int, int,
+    const CFloatHandle&, const CFloatHandle&, const CFloatHandle&, const CFloatHandle&,
+    int, bool )
+{
+    ASSERT_EXPR( false );
+}
+
 } // namespace NeoML
 
 #endif // NEOML_USE_METAL

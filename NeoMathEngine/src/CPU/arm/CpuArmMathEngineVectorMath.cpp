@@ -1621,11 +1621,6 @@ void CCpuMathEngine::VectorInv(const CConstFloatHandle& firstHandle, const CFloa
 	}
 }
 
-static inline float32x4_t vectorSigmoidWorker(const float32x4_t& val, const float32x4_t& one, const CExpNeon& expObj)
-{
-	return InvNeon(vaddq_f32(one, expObj.Execute(vnegq_f32(val))));
-}
-
 void CCpuMathEngine::VectorSigmoid(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize)
 {
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
@@ -1634,23 +1629,7 @@ void CCpuMathEngine::VectorSigmoid(const CConstFloatHandle& firstHandle, const C
 
 	const float* first = GetRaw(firstHandle);
 	float* result = GetRaw(resultHandle);
-	int count = GetCount4(vectorSize);
-
-	const float32x4_t one = vdupq_n_f32(1);
-	const CExpNeon expObj;
-
-	for(int i = 0; i < count; ++i) {
-		float32x4_t res = vectorSigmoidWorker(LoadNeon4(first), one, expObj);
-		StoreNeon4(res, result);
-
-		first += 4;
-		result += 4;
-	}
-
-	if(vectorSize > 0) {
-		float32x4_t res = vectorSigmoidWorker(LoadNeon(first, vectorSize), one, expObj);
-		StoreNeon(res, result, vectorSize);
-	}
+	vectorSigmoid( first, result, vectorSize );
 }
 
 static inline float32x4_t vectorSigmoidDiffWorker(const float32x4_t& first, const float32x4_t& second,
@@ -1728,12 +1707,6 @@ void CCpuMathEngine::VectorSigmoidDiffOp(const CConstFloatHandle& firstHandle, c
 	}
 }
 
-static inline float32x4_t vectorTanhWorker(const float32x4_t& val, const float32x4_t& one, const CExpNeon& expObj)
-{
-	float32x4_t expVal = expObj.Execute(vaddq_f32(val, val));
-	return DivideNeon(vsubq_f32(expVal, one), vaddq_f32(expVal, one));
-}
-
 void CCpuMathEngine::VectorTanh(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize)
 {
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
@@ -1742,23 +1715,8 @@ void CCpuMathEngine::VectorTanh(const CConstFloatHandle& firstHandle, const CFlo
 
 	const float* first = GetRaw(firstHandle);
 	float* result = GetRaw(resultHandle);
-	int count = GetCount4(vectorSize);
-
-	const float32x4_t one = vdupq_n_f32(1);
-	const CExpNeon expObj;
-
-	for(int i = 0; i < count; ++i) {
-		float32x4_t res = vectorTanhWorker(LoadNeon4(first), one, expObj);
-		StoreNeon4(res, result);
-
-		first += 4;
-		result += 4;
-	}
-
-	if(vectorSize > 0) {
-		float32x4_t res = vectorTanhWorker(LoadNeon(first, vectorSize), one, expObj);
-		StoreNeon(res, result, vectorSize);
-	}
+	
+	vectorTanh( first, result, vectorSize );
 }
 
 static inline float32x4_t vectorTanhDiffWorker(const float32x4_t& first, const float32x4_t& second,

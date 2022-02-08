@@ -1598,37 +1598,13 @@ void CCpuMathEngine::VectorInv(const CConstFloatHandle& firstHandle, const CFloa
 	}
 }
 
-static inline void vectorSigmoidWorker( float* result, int vectorSize )
-{
-	int sseSize;
-	int nonSseSize;
-	checkSse(vectorSize, sseSize, nonSseSize);
-
-	if(sseSize > 0) {
-		const __m128 oneSse = _mm_set_ps1(1);
-		for(int i = 0; i < sseSize; ++i) {
-			__m128 value = _mm_loadu_ps(result);
-			value = _mm_div_ps(value, _mm_add_ps(value, oneSse));
-			_mm_storeu_ps(result, value);
-
-			result += 4;
-		}
-	}
-
-	for(int i = 0; i < nonSseSize; ++i) {
-		*result = *result / (*result + 1);
-		++result;
-	}
-}
-
 void CCpuMathEngine::VectorSigmoid(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize)
 {
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	CCpuExecutionScope scope;
 
-	VectorExp(firstHandle, resultHandle, vectorSize);
-
+	const float* first = GetRaw( firstHandle );
 	float* result = GetRaw( resultHandle );
 	const int curThreadCount = IsOmpRelevant( vectorSize, 2 * vectorSize ) ? threadCount : 1;
 	if( curThreadCount > 1 ) {
@@ -1637,11 +1613,11 @@ void CCpuMathEngine::VectorSigmoid(const CConstFloatHandle& firstHandle, const C
 			int start;
 			int count;
 			if( OmpGetTaskIndexAndCount( vectorSize, start, count ) ) {
-				vectorSigmoidWorker( result + start, count );
+				vectorSigmoid( first + start, result + start, count );
 			}
 		}
 	} else {
-		vectorSigmoidWorker( result, vectorSize );
+		vectorSigmoid( first, result, vectorSize );
 	}
 }
 
