@@ -15,7 +15,7 @@ limitations under the License.
 
 #pragma once
 
-#include <NeoMathEngine/Platforms.h>
+#include <FinePlatforms.h>
 
 #if defined( STATIC_NEOONNX )
 	#define NEOONNX_API

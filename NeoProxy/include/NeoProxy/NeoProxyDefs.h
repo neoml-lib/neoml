@@ -15,7 +15,7 @@ limitations under the License.
 
 #pragma once
 
-#include <NeoMathEngine/Platforms.h>
+#include <FinePlatforms.h>
 
 #if FINE_PLATFORM( FINE_WINDOWS )
 

@@ -15,7 +15,7 @@ limitations under the License.
 
 #pragma once
 
-#include <NeoMathEngine/Platforms.h>
+#include <FinePlatforms.h>
 
 #if FINE_ARCHITECTURE( FINE_X86 ) || FINE_ARCHITECTURE( FINE_X64 )
 #define NEOML_USE_SSE

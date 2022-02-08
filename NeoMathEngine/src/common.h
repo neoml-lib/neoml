@@ -24,7 +24,7 @@ limitations under the License.
 #include <cassert>
 #include <vector>
 
-#include <NeoMathEngine/Platforms.h>
+#include <FinePlatforms.h>
 #if FINE_PLATFORM( FINE_WINDOWS )
 #include <windows.h>
 #endif

@@ -15,7 +15,7 @@ limitations under the License.
 
 #pragma once
 
-#include <NeoMathEngine/Platforms.h>
+#include <FinePlatforms.h>
 
 #if FINE_PLATFORM( FINE_WINDOWS )
 
@@ -64,7 +64,7 @@ limitations under the License.
 #endif
 
 #if !defined( FINEOBJ_VERSION )
-#include <NeoML/FineObjLite/FineObjLite.h>
+#include <FineObjLite.h>
 #endif
 
 #include <NeoML/NeoMLCommon.h>

@@ -15,7 +15,7 @@ limitations under the License.
 
 #pragma once
 
-#include <NeoMathEngine/Platforms.h>
+#include <FinePlatforms.h>
 
 #ifdef NEOML_USE_FINEOBJ
 #include <FineObj.h>
