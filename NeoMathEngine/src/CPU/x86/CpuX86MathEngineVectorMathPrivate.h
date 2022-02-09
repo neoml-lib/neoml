@@ -82,108 +82,15 @@ inline void channelwise1x3( const float* source, const float* filter0, const flo
 
 //------------------------------------------------------------------------------------------------------------
 
-inline void vectorFill( float* result, float value, int vectorSize )
+template<class T>
+inline void vectorFill( T* result, T value, int vectorSize )
 {
-	int sseSize;
-	int nonSseSize;
-	checkSse(vectorSize, sseSize, nonSseSize);
-
-	__m128 valueSse = _mm_set_ps1(value);
-
-	while( sseSize >= 4 ) {
-		_mm_storeu_ps(result, valueSse);
-		result += 4;
-		_mm_storeu_ps(result, valueSse);
-		result += 4;
-		_mm_storeu_ps(result, valueSse);
-		result += 4;
-		_mm_storeu_ps(result, valueSse);
-		result += 4;
-
-		sseSize -= 4;
-	}
-
-	while( sseSize > 0 ) {
-		_mm_storeu_ps(result, valueSse);
-		result += 4;
-		sseSize--;
-	}
-
-	for(int i = 0; i < nonSseSize; ++i) {
-		*result++ = value;
-	}
-}
-
-inline void vectorFill( int* result, int value, int vectorSize )
-{
-	int sseSize;
-	int nonSseSize;
-	checkSse( vectorSize, sseSize, nonSseSize );
-
-	__m128i valueSse = _mm_set1_epi32( value );
-
-	while( sseSize >= 4 ) {
-		_mm_storeu_si128( ( __m128i* )result, valueSse );
-		result += 4;
-		_mm_storeu_si128( ( __m128i* )result, valueSse );
-		result += 4;
-		_mm_storeu_si128( ( __m128i* )result, valueSse );
-		result += 4;
-		_mm_storeu_si128( ( __m128i* )result, valueSse );
-		result += 4;
-
-		sseSize -= 4;
-	}
-
-	while( sseSize > 0 ) {
-		_mm_storeu_si128( ( __m128i* )result, valueSse );
-		result += 4;
-		sseSize--;
-	}
-
-#if FINE_PLATFORM(FINE_WINDOWS)
-	if( nonSseSize > 0 ) {
-		__stosd( (DWORD*) result, value, nonSseSize );
-	}
-#elif FINE_PLATFORM(FINE_LINUX) || FINE_PLATFORM(FINE_DARWIN) || FINE_PLATFORM(FINE_ANDROID) || FINE_PLATFORM(FINE_IOS)
-	for( int i = 0; i < nonSseSize; ++i ) {
-		*result++ = value;
-	}
-#else
-#error "Platform isn't supported!"
-#endif
+	std::fill_n( result, vectorSize, value );
 }
 
 inline void vectorFill0( float* result, int vectorSize )
 {
-	int sseSize;
-	int nonSseSize;
-	checkSse(vectorSize, sseSize, nonSseSize);
-
-	__m128 valueSse = _mm_setzero_ps();
-
-	while( sseSize >= 4 ) {
-		_mm_storeu_ps(result, valueSse);
-		result += 4;
-		_mm_storeu_ps(result, valueSse);
-		result += 4;
-		_mm_storeu_ps(result, valueSse);
-		result += 4;
-		_mm_storeu_ps(result, valueSse);
-		result += 4;
-
-		sseSize -= 4;
-	}
-
-	while( sseSize > 0 ) {
-		_mm_storeu_ps(result, valueSse);
-		result += 4;
-		sseSize--;
-	}
-
-	for( int i = 0; i < nonSseSize; ++i ) {
-		*result++ = 0;
-	}
+	std::fill_n( result, vectorSize, 0. );
 }
 
 inline void vectorEltwiseMax( const float* first, const float* second, float* result, int vectorSize )

@@ -324,90 +324,10 @@ inline void checkSse2(int size, int& sseSize, int& nonSseSize)
 	return checkSse(size, sseSize, nonSseSize);
 }
 
-inline void dataCopy(float* dst, const float* src, int vectorSize)
+template<class T>
+inline void dataCopy(T* dst, const T* src, int vectorSize)
 {
-	static_assert( sizeof(float) == sizeof(unsigned int), "Size of float isn't equal to size of unsigned int." );
-
-	int sseSize;
-	int nonSseSize;
-	checkSse(vectorSize, sseSize, nonSseSize);
-
-	while( sseSize >= 4 ) {
-		_mm_storeu_ps(dst, _mm_loadu_ps(src));
-		dst += 4;
-		src += 4;
-		_mm_storeu_ps(dst, _mm_loadu_ps(src));
-		dst += 4;
-		src += 4;
-		_mm_storeu_ps(dst, _mm_loadu_ps(src));
-		dst += 4;
-		src += 4;
-		_mm_storeu_ps(dst, _mm_loadu_ps(src));
-		dst += 4;
-		src += 4;
-
-		sseSize -= 4;
-	}
-
-	for(int i = 0; i < sseSize; ++i) {
-		_mm_storeu_ps(dst, _mm_loadu_ps(src));
-		dst += 4;
-		src += 4;
-	}
-
-#if FINE_PLATFORM(FINE_WINDOWS)
-	if( nonSseSize > 0 ) {
-		__movsd((DWORD*)dst, (DWORD*)src, nonSseSize);
-	}
-#elif FINE_PLATFORM(FINE_LINUX) || FINE_PLATFORM(FINE_DARWIN) || FINE_PLATFORM(FINE_ANDROID) || FINE_PLATFORM(FINE_IOS)
-	for(int i = 0; i < nonSseSize; ++i) {
-		*dst++ = *src++;
-	}
-#else
-	#error "Platform isn't supported!"
-#endif
-}
-
-inline void dataCopy(int* dst, const int* src, int vectorSize)
-{
-	int sseSize;
-	int nonSseSize;
-	checkSse2(vectorSize, sseSize, nonSseSize);
-
-	while( sseSize >= 4 ) {
-		_mm_storeu_si128((__m128i*)dst, _mm_loadu_si128((__m128i*)src));
-		dst += 4;
-		src += 4;
-		_mm_storeu_si128((__m128i*)dst, _mm_loadu_si128((__m128i*)src));
-		dst += 4;
-		src += 4;
-		_mm_storeu_si128((__m128i*)dst, _mm_loadu_si128((__m128i*)src));
-		dst += 4;
-		src += 4;
-		_mm_storeu_si128((__m128i*)dst, _mm_loadu_si128((__m128i*)src));
-		dst += 4;
-		src += 4;
-
-		sseSize -= 4;
-	}
-
-	for(int i = 0; i < sseSize; ++i) {
-		_mm_storeu_si128((__m128i*)dst, _mm_loadu_si128((const __m128i*)src));
-		dst += 4;
-		src += 4;
-	}
-
-#if FINE_PLATFORM(FINE_WINDOWS)
-	if(nonSseSize > 0) {
-		__movsd((unsigned long*)dst, (const unsigned long*)src, nonSseSize);
-	}
-#elif FINE_PLATFORM(FINE_LINUX) || FINE_PLATFORM(FINE_DARWIN) || FINE_PLATFORM(FINE_ANDROID) || FINE_PLATFORM(FINE_IOS)
-	for(int i = 0; i < nonSseSize; ++i) {
-		*dst++ = *src++;
-	}
-#else
-	#error "Platform isn't supported!"
-#endif
+	memcpy( dst, src, vectorSize * sizeof( T ) );
 }
 
 inline float euclidianNoSSE( const float* x, const float* y, const int size )
