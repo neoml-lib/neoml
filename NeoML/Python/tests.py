@@ -965,7 +965,7 @@ class LayersTestCase(MultithreadedTestCase):
 
         input1 = neoml.Blob.asblob(math_engine, np.ones((4, 3, 3), dtype=np.float32), (1, 4, 3, 1, 1, 1, 3))
         input2 = neoml.Blob.asblob(math_engine, np.ones((4, 2, 3), dtype=np.float32), (1, 4, 2, 1, 1, 1, 3))
-        input3 = neoml.Blob.asblob(math_engine, np.ones((4, 2, 2), dtype=np.float32), (1, 4, 2, 1, 1, 1, 4))
+        input3 = neoml.Blob.asblob(math_engine, np.ones((4, 2, 4), dtype=np.float32), (1, 4, 2, 1, 1, 1, 4))
         inputs = {"source1": input1, "source2": input2, "source3": input3}
         outputs = dnn.run(inputs)
         out = outputs["sink"].asarray()
@@ -1169,7 +1169,7 @@ class LayersTestCase(MultithreadedTestCase):
         ctcLoss.skip = True
         self.assertEqual(ctcLoss.skip, True)
 
-        input1 = neoml.Blob.asblob(math_engine, np.ones((64, 4, 5), dtype=np.float32), (3, 4, 1, 1, 1, 1, 5))
+        input1 = neoml.Blob.asblob(math_engine, np.ones((3, 4, 5), dtype=np.float32), (3, 4, 1, 1, 1, 1, 5))
         input2 = neoml.Blob.asblob(math_engine, np.ones((2, 4), dtype=np.int32), (2, 4, 1, 1, 1, 1, 1))
         inputs = {"source1": input1, "source2": input2}
         dnn.run(inputs)
@@ -1843,7 +1843,7 @@ class PoolingTestCase(MultithreadedTestCase):
         source1 = neoml.Dnn.Source(dnn, "source1")
         source2 = neoml.Dnn.Source(dnn, "source2")
         qrnn = neoml.Dnn.Qrnn((source1, source2), 'fo', 7, 4, 2, (1, 1), "sigmoid", 0.6, "direct", "qrnn")
-        filter = neoml.Blob.asblob(math_engine, np.ones((21, 5, 6), dtype=np.float32), (1, 21, 1, 4, 1, 1, 6))
+        filter = neoml.Blob.asblob(math_engine, np.ones((21, 4, 6), dtype=np.float32), (1, 21, 1, 4, 1, 1, 6))
         qrnn.filter = filter
         free_term = neoml.Blob.asblob(math_engine, np.ones((21,), dtype=np.float32), (1, 21, 1, 1, 1, 1, 1))
         qrnn.free_term = free_term
@@ -2043,11 +2043,11 @@ class PoolingTestCase(MultithreadedTestCase):
         layer.second_dim = "channels"
         self.assertEqual(layer.second_dim, "channels")
 
-        input1 = neoml.Blob.asblob(math_engine, np.ones((2, 3, 4, 5), dtype=np.float32), (1, 2, 1, 2, 1, 5, 5))
+        input1 = neoml.Blob.asblob(math_engine, np.ones((2, 3, 4, 5), dtype=np.float32), (1, 2, 1, 3, 1, 4, 5))
         inputs = {"source1": input1}
         outputs = dnn.run(inputs)
         out = outputs["sink"].asarray()
-        self.assertTrue(np.equal(out, np.ones((2, 2, 5, 5), dtype=np.float32)).all())
+        self.assertTrue(np.equal(out, np.ones((2, 3, 5, 4), dtype=np.float32)).all())
 
     def test_sequence_sum(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
@@ -2560,6 +2560,107 @@ class ClusteringTestCase(MultithreadedTestCase):
 
     def test_kmeans(self):
         self._test_clusterize('KMeans', dict(max_iteration_count=100, cluster_count=6, init='k++'))
+
+
+class TestPca(MultithreadedTestCase):
+    def test_full_svd(self):
+        from neoml.PCA import svd
+        x = np.array([[2, 1, 3, 2], [2, 4, 4, 1], [2, 4, 1, 1], [4, 4, 3, 4]], dtype=np.float32)
+        u, s, v = svd(x, compute_u=True, compute_v=True, algorithm='full')
+        expected_s = [11.011665,  2.7114089,  2.315459,  0.17357856]
+        self.assertTrue(u.shape == (4, 4))
+        self.assertTrue(s.shape == (4,))
+        self.assertTrue(all([abs(s[i] - expected_s[i]) < 1e-3 for i in range(4)]))
+        self.assertTrue(v.shape == (4, 4))
+
+    def test_sparse_svd(self):
+        from neoml.PCA import svd
+        components = 2
+        x = np.array([[2, 1, 3, 2], [2, 4, 4, 1], [2, 4, 1, 1], [4, 4, 3, 4]], dtype=np.float32)
+        expected_s = [11.011665,  2.7114089,  2.315459,  0.17357856]
+        for compute_u, compute_v in [
+            (False, True), (True, False)
+        ]:
+            u, s, v = svd(x, compute_u=compute_u, compute_v=compute_v, algorithm='sparse', components=components)
+            if compute_u:
+                self.assertTrue(u.shape == (4, components))
+            self.assertTrue(s.shape == (components,))
+            self.assertTrue(all([abs(s[i] - expected_s[i]) < 1e-3 for i in range(components)]))
+            if compute_v:
+                self.assertTrue(v.shape == (components, 4))
+
+    def test_pca(self):
+        n_samples, n_components = 1000, 2
+        X = np.empty((2 *  n_samples, 4), dtype=np.float32)
+        a, b = 3., 2.
+        for i in range(n_samples):
+            x = -a + 2 * i * a / n_samples
+            y = np.sqrt(1 - (x * x) / (a * a)) * b
+            X[2 * i] = [x, y, 1, 0]
+            X[2 * i + 1] = [x, -y, 1, 0]
+
+        for s in ('fit + transform', 'fit_transform'):
+            pca = neoml.PCA.PCA(2)
+            if s == 'fit + transform':
+                pca.fit(X)
+                transformedX = pca.transform(X)
+            else:
+                transformedX = pca.fit_transform(X)
+            self.assertEqual( pca.components.tolist(), [[1, 0, 0, 0], [0, 1, 0, 0]] )
+            self.assertEqual( pca.singular_values.size, n_components )
+            self.assertEqual( pca.explained_variance.size, n_components )
+            self.assertEqual( pca.explained_variance_ratio.size, n_components )
+            self.assertTrue( pca.n_components == n_components )
+            self.assertTrue( abs(pca.noise_variance) < 1e-5 )
+
+    def test_pickle(self):
+        x = np.array([[2, 1, 3, 2], [2, 4, 4, 1], [2, 4, 1, 1], [4, 4, 3, 4]], dtype=np.float32)
+        expected_s = [3.04067, 2.6677]
+        components = 2
+        pca = neoml.PCA.PCA(components)
+        pca.fit(x)
+
+        dir = tempfile.mkdtemp()
+
+        path = os.path.join(dir, 'pca.pickle')
+        binary_file = open(path, mode='wb')
+        pickle.dump(pca, binary_file)
+        binary_file.close()
+
+        binary_file = open(path, mode='rb')
+        loaded_pca = pickle.load(binary_file)
+        binary_file.close()
+
+        os.remove(path)
+        os.rmdir(dir)
+
+        s = loaded_pca.singular_values
+        transformed = loaded_pca.transform(x)
+        self.assertTrue(all([abs(s[i] - expected_s[i]) < 1e-3 for i in range(components)]))
+        self.assertEqual(transformed.shape, (4, components))
+
+    def test_load_store(self):
+        x = np.array([[2, 1, 3, 2], [2, 4, 4, 1], [2, 4, 1, 1], [4, 4, 3, 4]], dtype=np.float32)
+        expected_s = [3.04067, 2.6677]
+        components = 2
+        pca = neoml.PCA.PCA(components)
+        pca.fit(x)
+
+        dir = tempfile.mkdtemp()
+
+        path = os.path.join(dir, 'pca.pickle')
+        pca.store(path)
+
+        loaded_pca = neoml.PCA.PCA()
+        loaded_pca.load(path)
+
+        os.remove(path)
+        os.rmdir(dir)
+
+        s = loaded_pca.singular_values
+        transformed = loaded_pca.transform(x)
+        self.assertTrue(all([abs(s[i] - expected_s[i]) < 1e-3 for i in range(components)]))
+        self.assertEqual(transformed.shape, (4, components))
 
 
 @skipIf(sys.platform == 'darwin', 'Not supposed to work on MacOS')

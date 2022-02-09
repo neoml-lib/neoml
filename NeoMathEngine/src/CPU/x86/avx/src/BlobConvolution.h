@@ -66,8 +66,6 @@ private:
 
         void Run( bool useNarrowProcessing, const float* srcPtr, const float* fltPtr, const float* freeTermPtr, float* resPtr );
 
-        static constexpr unsigned int NumFloatInYmm = 8;
-        static constexpr unsigned int SizeOfYmm = NumFloatInYmm * sizeof( float );
     private:
         // Passed to 'Run()' function as arguments
         const reg64_t regUseNarrowProcessing = Param1;

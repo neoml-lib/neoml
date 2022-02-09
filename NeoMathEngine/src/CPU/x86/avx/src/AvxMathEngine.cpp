@@ -18,6 +18,7 @@ limitations under the License.
 
 #include <NeoMathEngine/SimdMathEngine.h>
 #include <BlobConvolution.h>
+#include <PrimitivesJit.h>
 
 namespace NeoML {
 
@@ -48,7 +49,8 @@ CAvxConvolutionDesc::CAvxConvolutionDesc( IMathEngine* mathEngine, const CBlobDe
 
 class CAvxMathEngine : public ISimdMathEngine {
 public:
-	CAvxMathEngine( IMathEngine* _mathEngine, int _threadCount ) : mathEngine( _mathEngine ), threadCount( _threadCount ) {}
+	CAvxMathEngine( IMathEngine* _mathEngine, int _threadCount ) :
+		mathEngine( _mathEngine ), threadCount( _threadCount ), primitives( _mathEngine, _threadCount ) {}
 
 	CConvolutionDesc* InitBlobConvolution( const CBlobDesc& source, int paddingHeight, int paddingWidth,
 		int strideHeight, int strideWidth, int dilationHeight, int dilationWidth, const CBlobDesc& filter,
@@ -59,9 +61,16 @@ public:
 
 	SgemmFunc GetSgemmFunction() const override;
 
+	void Tanh( float* dst, const float* src, size_t dataSize, bool isMultithread ) override;
+	void Sigmoid( float* dst, const float* src, size_t dataSize, bool isMultithread ) override;
+	void Exp( float* dst, const float* src, size_t dataSize, bool isMultithread ) override;
+	void RunOnceRestOfLstm( CLstmDesc* desc, const CConstFloatHandle& inputStateBackLink,
+		const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink, bool isMultithread ) override;
+
 private:
 	IMathEngine* mathEngine;
 	int threadCount;
+	CPrimitivesJit primitives;
 };
 
 CConvolutionDesc* CAvxMathEngine::InitBlobConvolution( const CBlobDesc& source, int paddingHeight, int paddingWidth,
@@ -86,6 +95,27 @@ void CAvxMathEngine::BlobConvolution( const CConvolutionDesc& convDesc, const fl
 SgemmFunc CAvxMathEngine::GetSgemmFunction() const
 {
 	return AvxMultiplyMatrix;
+}
+
+void CAvxMathEngine::Tanh( float* dst, const float* src, size_t dataSize, bool isMultithread )
+{
+	primitives.Tanh( dst, src, dataSize, isMultithread );
+}
+
+void CAvxMathEngine::Sigmoid( float* dst, const float* src, size_t dataSize, bool isMultithread )
+{
+	primitives.Sigmoid( dst, src, dataSize, isMultithread );
+}
+
+void CAvxMathEngine::Exp( float* dst, const float* src, size_t dataSize, bool isMultithread )
+{
+	primitives.Exp( dst, src, dataSize, isMultithread );
+}
+
+void CAvxMathEngine::RunOnceRestOfLstm( CLstmDesc* desc, const CConstFloatHandle& inputStateBackLink,
+	const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink, bool isMultithread )
+{
+	primitives.RestOfLstm( desc, inputStateBackLink, outputStateBackLink, outputMainBackLink, isMultithread );
 }
 
 extern "C"
