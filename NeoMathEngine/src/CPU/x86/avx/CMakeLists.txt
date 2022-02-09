@@ -49,12 +49,10 @@ target_include_directories(${PROJECT_NAME}
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../..>
 )
 
-if(NOT USE_FINE_OBJECTS)
-    target_include_directories(${PROJECT_NAME}
-        PRIVATE
-            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../../../../NeoML/include/NeoML/FineObjLite>
-    )
-endif()
+target_include_directories(${PROJECT_NAME}
+    PRIVATE
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../../../../NeoML/include/NeoML/FineObjLite>
+)
 
 # Add some definitions
 target_compile_definitions(${PROJECT_NAME}

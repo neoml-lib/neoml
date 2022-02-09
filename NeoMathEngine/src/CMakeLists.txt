@@ -96,7 +96,9 @@ target_include_directories(${PROJECT_NAME}
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/CPU>
 )
 
-if(NOT USE_FINE_OBJECTS)
+if(USE_FINE_OBJECTS)
+    target_include_directories(${PROJECT_NAME} PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../NeoML/include/NeoML/FineObjLite>)
+else()
     target_include_directories(${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../../NeoML/include/NeoML/FineObjLite>)
     target_include_directories(${PROJECT_NAME} PUBLIC $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/>)
 endif()

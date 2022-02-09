@@ -27,6 +27,10 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 
 configure_target(${PROJECT_NAME})
 
+if(USE_FINE_OBJECTS)
+    target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../../NeoML/include/NeoML/FineObjLite)
+endif()
+
 if(USE_FINE_OBJECTS AND (IOS OR DARWIN))
     #TODO: fix FineGTest
     target_compile_options(${PROJECT_NAME} PRIVATE
