@@ -13,6 +13,10 @@ limitations under the License.
 #include <common.h>
 #pragma hdrstop
 
+#include <NeoML/Dnn/Layers/LossLayer.h>
+#include <NeoML/Dnn/Layers/SinkLayer.h>
+#include <NeoML/Dnn/Layers/CtcLayer.h>
+#include <NeoML/Dnn/Layers/CrfLayer.h>
 #include <NeoMathEngine/NeoMathEngine.h>
 #include <NeoML/Dnn/DnnDistributed.h>
 
@@ -46,11 +50,40 @@ void CDistributedTraining::initialize( CArchive& archive, int count, TDistribute
     }
 }
 
+CDistributedTraining::CDistributedTraining( CDnn& dnn, int count, TDistributedInitializer initializer, int seed )
+{
+    mathEngines.SetSize( count );
+    CreateDistributedCpuMathEngines( mathEngines.GetPtr(), count );
+    CMemoryFileEx<> file;
+	CArchive archive( &file, CArchive::SD_Storing );
+    dnn.Serialize( archive );
+    archive.Close();
+    file.SeekToBegin();
+
+    archive.Open( &file, CArchive::SD_Loading );
+    initialize( archive, count, initializer, seed );
+}
+
 CDistributedTraining::CDistributedTraining( CArchive& archive, int count, TDistributedInitializer initializer, int seed )
 {
     mathEngines.SetSize( count );
     CreateDistributedCpuMathEngines( mathEngines.GetPtr(), count );
     initialize( archive, count, initializer, seed );
+}
+
+CDistributedTraining::CDistributedTraining( CDnn& dnn, const CArray<int>& cudaDevs,
+    TDistributedInitializer initializer, int seed )
+{
+    mathEngines.SetSize( cudaDevs.Size() );
+    CreateDistributedCudaMathEngines( mathEngines.GetPtr(), cudaDevs.Size(), cudaDevs.GetPtr() );
+    CMemoryFileEx<> file;
+    CArchive archive( &file, CArchive::SD_Storing );
+    dnn.Serialize( archive );
+    archive.Close();
+    file.SeekToBegin();
+
+    archive.Open( &file, CArchive::SD_Loading );
+    initialize( archive, cudaDevs.Size(), initializer, seed );
 }
 
 CDistributedTraining::CDistributedTraining( CArchive& archive, const CArray<int>& cudaDevs,
@@ -68,6 +101,17 @@ CDistributedTraining::~CDistributedTraining()
         delete rands[i];
         delete mathEngines[i];
     }
+}
+
+void CDistributedTraining::SetSolver( CDnn& dnn, CPtr<CDnnSolver>& solver )
+{
+    CMemoryFileEx<> file;
+    CArchive archive( &file, CArchive::SD_Storing );
+    SerializeSolver( archive, dnn, solver );
+    archive.Close();
+
+    archive.Open( &file, CArchive::SD_Loading );
+    SetSolver( archive );
 }
 
 void CDistributedTraining::SetSolver( CArchive& archive )
@@ -173,6 +217,7 @@ void CDistributedTraining::RunAndLearnOnce( IDistributedDataset& data )
             if( errorMessage.IsEmpty() ){
                 errorMessage = e->MessageText().CreateString();
             }
+            printf("error = %s\n", errorMessage.GetBuffer());
             cnns[thread]->GetMathEngine().AbortDistributed();
             delete e;
         }

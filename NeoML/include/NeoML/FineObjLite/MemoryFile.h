@@ -61,7 +61,7 @@ private:
 	void throwBadSeekException();
 };
 
-inline CMemoryFile::CMemoryFile( int _growBytes ) :
+inline CMemoryFileEx::CMemoryFile( int _growBytes ) :
 	buffer( 0 ),
 	bufferSize( 0 ),
 	fileLength( 0 ),
@@ -72,12 +72,12 @@ inline CMemoryFile::CMemoryFile( int _growBytes ) :
 	NeoAssert( growBytes >= 0 );
 }
 
-inline CMemoryFile::~CMemoryFile()
+inline CMemoryFileEx::~CMemoryFile()
 {
 	Close();
 }
 
-inline int CMemoryFile::Read( void* ptr, int bytesCount )
+inline int CMemoryFileEx::Read( void* ptr, int bytesCount )
 {
 	if( bytesCount == 0 ) {
 		return 0;
@@ -94,7 +94,7 @@ inline int CMemoryFile::Read( void* ptr, int bytesCount )
 	return size;
 }
 
-inline void CMemoryFile::Write( const void* ptr, int bytesCount )
+inline void CMemoryFileEx::Write( const void* ptr, int bytesCount )
 {
 	if( bytesCount == 0 ) {
 		return;
@@ -112,7 +112,7 @@ inline void CMemoryFile::Write( const void* ptr, int bytesCount )
 	fileLength = max( fileLength, currentPosition );
 }
 
-inline void CMemoryFile::Close()
+inline void CMemoryFileEx::Close()
 {
 	if( !IsOpen() ) {
 		return;
@@ -128,12 +128,12 @@ inline void CMemoryFile::Close()
 	isOpen = false;
 }
 
-inline __int64 CMemoryFile::GetPosition() const
+inline __int64 CMemoryFileEx::GetPosition() const
 {
 	return currentPosition;
 }
 
-inline __int64 CMemoryFile::Seek( __int64 offset, TSeekPosition from )
+inline __int64 CMemoryFileEx::Seek( __int64 offset, TSeekPosition from )
 {
 	__int64 newPosition = currentPosition;
 	switch( from ) {
@@ -158,7 +158,7 @@ inline __int64 CMemoryFile::Seek( __int64 offset, TSeekPosition from )
 	return currentPosition;
 }
 
-inline void CMemoryFile::SetLength( __int64 newLength )
+inline void CMemoryFileEx::SetLength( __int64 newLength )
 {
 	NeoAssert( 0 <= newLength && newLength <= INT_MAX );
 	int length32 = to<int>( newLength );
@@ -171,26 +171,26 @@ inline void CMemoryFile::SetLength( __int64 newLength )
 	fileLength = length32;
 }
 
-inline __int64 CMemoryFile::GetLength() const
+inline __int64 CMemoryFileEx::GetLength() const
 {
 	return fileLength;
 }
 
-inline void CMemoryFile::Abort()
+inline void CMemoryFileEx::Abort()
 {
 	Close();
 }
 
-inline void CMemoryFile::Flush()
+inline void CMemoryFileEx::Flush()
 {
 }
 
-inline void CMemoryFile::FreeBuffer( BYTE* ptr )
+inline void CMemoryFileEx::FreeBuffer( BYTE* ptr )
 {
 	CurrentMemoryManager::Free( ptr );
 }
 
-inline BYTE* CMemoryFile::GrowBuffer( BYTE* oldBuffer, int oldSize, int newSize )
+inline BYTE* CMemoryFileEx::GrowBuffer( BYTE* oldBuffer, int oldSize, int newSize )
 {
 	NeoAssert( newSize > oldSize );
 	BYTE* newBuffer = static_cast<BYTE*>( ALLOCATE_MEMORY( CurrentMemoryManager, newSize * sizeof( BYTE ) ) );
@@ -203,7 +203,7 @@ inline BYTE* CMemoryFile::GrowBuffer( BYTE* oldBuffer, int oldSize, int newSize 
 	return newBuffer;
 }
 
-inline void CMemoryFile::setBufferSize( int requiredSize )
+inline void CMemoryFileEx::setBufferSize( int requiredSize )
 {
 	NeoAssert( growBytes > 0 );
 	// Exponential enlargement, newBufferSize >= requiredSize
@@ -213,7 +213,7 @@ inline void CMemoryFile::setBufferSize( int requiredSize )
 	bufferSize = newBufferSize;
 }
 
-inline void CMemoryFile::throwBadSeekException()
+inline void CMemoryFileEx::throwBadSeekException()
 {
 #if FINE_PLATFORM( FINE_WINDOWS )
 	ThrowFileException( ERROR_SEEK, GetFileName() );
