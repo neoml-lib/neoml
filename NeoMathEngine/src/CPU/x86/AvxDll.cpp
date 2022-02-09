@@ -99,9 +99,14 @@ bool CAvxDll::Load()
 #else
 	#error "Platform isn't supported!"
 #endif
-	ASSERT_EXPR( CDll::Load( dllPath.c_str() ) );
+	if( !CDll::Load( dllPath.c_str() ) ) {
+		return false;
+	}
 
-	ASSERT_EXPR( loadFunctions() );
+	if( !loadFunctions() ) {
+		CDll::Free();
+		return false;
+	}
 
 	return true;
 }
