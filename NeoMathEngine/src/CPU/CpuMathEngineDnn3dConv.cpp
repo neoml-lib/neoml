@@ -437,8 +437,8 @@ void CCpuMathEngine::blob3dConvolutionBackward( const CCommon3dConvolutionDesc& 
 		int outputLineCount;
 		if( OmpGetTaskIndexAndCount( outputLineY, outputLineStart, outputLineCount ) ) {
 			if( freeTermData == 0 ) {
-				vectorFill( resultData + outputLineStart * outputRowSize,
-					0, outputLineCount * outputRowSize );
+				vectorFill0( resultData + outputLineStart * outputRowSize,
+					outputLineCount * outputRowSize );
 			}
 
 			int outputLineEnd = outputLineStart + outputLineCount;

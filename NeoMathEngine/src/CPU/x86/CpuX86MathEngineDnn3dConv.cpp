@@ -57,7 +57,7 @@ void CCpuMathEngine::blob3dConvolution1x1x1(  const CBlobDesc& source, const CBl
 					if( freeTermData != 0 ) {
 						NeoML::setVectorToMatrixRows(outputDataPtr, geomCount, newChannels, freeTermData);
 					} else {
-						NeoML::vectorFill(outputDataPtr, 0, geomCount * newChannels);
+						NeoML::vectorFill0(outputDataPtr, geomCount * newChannels);
 					}
 					multiplyMatrixByTransposedMatrixAndAdd(sourceData + geomStart * channels,
 						geomCount, channels, channels,
@@ -81,7 +81,7 @@ void CCpuMathEngine::blob3dConvolution1x1x1(  const CBlobDesc& source, const CBl
 						}
 					} else {
 						for( float* res = resultPtr; res < resultEnd; res += newChannels ) {
-							NeoML::vectorFill(res, 0, channelCount);
+							NeoML::vectorFill0(res, channelCount);
 						}
 					}
 					multiplyMatrixByTransposedMatrixAndAdd(sourceData,
@@ -120,7 +120,7 @@ void CCpuMathEngine::blob3dConvolution1x1x1(  const CBlobDesc& source, const CBl
 			if( freeTermData != 0 ) {
 					NeoML::setVectorToMatrixRows(outputDataPtr, geomCount, newChannels, freeTermData);
 			} else {
-					NeoML::vectorFill(outputDataPtr, 0, geomCount * newChannels);
+					NeoML::vectorFill0(outputDataPtr, geomCount * newChannels);
 			}
 				multiplyMatrixByTransposedMatrixAndAdd(repackedData + geomStart * channels,
 					geomCount, channels, channels,

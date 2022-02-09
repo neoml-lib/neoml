@@ -90,7 +90,7 @@ inline void vectorFill( T* result, T value, int vectorSize )
 
 inline void vectorFill0( float* result, int vectorSize )
 {
-	std::fill_n( result, vectorSize, 0. );
+	std::fill_n( result, vectorSize, 0.0f );
 }
 
 inline void vectorEltwiseMax( const float* first, const float* second, float* result, int vectorSize )
