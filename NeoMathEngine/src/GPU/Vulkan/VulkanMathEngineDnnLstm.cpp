@@ -17,7 +17,7 @@ limitations under the License.
 
 #ifdef NEOML_USE_VULKAN
 
-#inlcude <VulkanMathEngine.h>
+#include <VulkanMathEngine.h>
 #include <NeoMathEngine/NeoMathEngineException.h>
 
 namespace NeoML {
