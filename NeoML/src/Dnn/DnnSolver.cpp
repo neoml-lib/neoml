@@ -455,7 +455,7 @@ void CDnnAdaptiveGradientSolver::Serialize( CArchive& archive, CDnn& dnn )
 	archive.Serialize( secondMomentDecayRateN );
 	archive.Serialize( epsilon );
 	archive.Serialize( isAmsGradEnabled );
-	if( version < DnnAdaptiveGradientSolver ) {
+	if( version < 1 ) {
 		isDecoupledWeightDecay = false;
 	} else {
 		archive.Serialize( isDecoupledWeightDecay );
@@ -628,7 +628,7 @@ void CDnnNesterovGradientSolver::Serialize( CArchive& archive, CDnn& dnn )
 	archive.Serialize( secondMomentDecayRateN );
 	archive.Serialize( epsilon );
 	archive.Serialize( isAmsGradEnabled );
-	if( version < DnnNesterovGradientSolverVersion ) {
+	if( version < 1 ) {
 		isDecoupledWeightDecay = false;
 	} else {
 		archive.Serialize( isDecoupledWeightDecay );
