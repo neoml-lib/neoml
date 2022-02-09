@@ -34,10 +34,21 @@ struct CMathEngineLstmDesc : public CLstmDesc {
 			threadCount( _threadCount )
 	{}
 
+	void Reset( const CFloatHandle& _inputFullyConnectedResult, const CFloatHandle& _reccurentFullyConnectedResult,
+		int _hiddenSize, int _objectCount, int _objectSize, IMathEngine* _mathEngine, int _threadCount ) {
+		inputFullyConnectedResult = _inputFullyConnectedResult;
+		reccurentFullyConnectedResult = _reccurentFullyConnectedResult;
+		hiddenSize = _hiddenSize;
+		objectCount = _objectCount;
+		objectSize = _objectSize;
+		mathEngine = _mathEngine;
+		threadCount = _threadCount;
+	}
+
 	static int constexpr GatesNum = 4;
 
-	const CFloatHandle inputFullyConnectedResult;
-	const CFloatHandle reccurentFullyConnectedResult;
+	CFloatHandle inputFullyConnectedResult;
+	CFloatHandle reccurentFullyConnectedResult;
 	int hiddenSize; 
 	int objectCount;
 	int objectSize;
