@@ -479,7 +479,7 @@ void CDnnAdaptiveGradientSolver::OnTrain()
 
 // Add regularization
 static CDnnBlob* addRegularization( IMathEngine& mathEngine, CDnnBlob* diffBlob, CDnnBlob* params, float regL1, float regL2,
-	CFloatHandle& l1Threshold, CFloatHandle& l1Mult, CFloatHandle& l2Reg, CPtr<CDnnBlob> temporaryBlob )
+	const CFloatHandle& l1Threshold, const CFloatHandle& l1Mult, const CFloatHandle& l2Reg, CPtr<CDnnBlob> temporaryBlob )
 {
 	if( regL2 > 0 ) {
 		mathEngine.VectorMultiplyAndAdd( diffBlob->GetData(), params->GetData(),
