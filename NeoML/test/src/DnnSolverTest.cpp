@@ -723,6 +723,7 @@ TEST( CDnnNesterovGradientSolverTest, Serialization1 )
 {
 	CPtr<CDnnNesterovGradientSolver> nadam = new CDnnNesterovGradientSolver( MathEngine() );
 	nadam->EnableAmsGrad( false );
+	nadam->EnableDecoupledWeightDecay( false );
 	nadam->SetEpsilon( 1e-3 );
 	nadam->SetL1Regularization( 1e-3 );
 	nadam->SetL2Regularization( 0.f );
@@ -737,6 +738,7 @@ TEST( CDnnNesterovGradientSolverTest, Serialization2 )
 {
 	CPtr<CDnnNesterovGradientSolver> nadam = new CDnnNesterovGradientSolver( MathEngine() );
 	nadam->EnableAmsGrad( true );
+	nadam->EnableDecoupledWeightDecay( true );
 	nadam->SetEpsilon( 3e-4 );
 	nadam->SetL1Regularization( 0.f );
 	nadam->SetL2Regularization( 1e-2 );
