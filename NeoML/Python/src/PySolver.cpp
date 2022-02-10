@@ -86,6 +86,9 @@ public:
 
 	bool GetAmsGrad() const { return Solver<CDnnNesterovGradientSolver>()->IsAmsGradEnabled(); }
 	void SetAmsGrad( bool enable ) { Solver<CDnnNesterovGradientSolver>()->EnableAmsGrad( enable ); }
+
+	bool GetDecoupledWeightDecay() const { return Solver<CDnnNesterovGradientSolver>()->IsDecoupledWeightDecay(); }
+	void SetDecoupledWeightDecay( bool enable ) { Solver<CDnnNesterovGradientSolver>()->EnableDecoupledWeightDecay( enable ); }
 };
 
 void InitializeSolver( py::module& m )
@@ -171,7 +174,7 @@ void InitializeSolver( py::module& m )
 			return new CPyNesterovGradientSolver( *solver.Solver<CDnnNesterovGradientSolver>(), solver.MathEngineOwner() );
 		}) )
 		.def( py::init([]( const CPyMathEngine& mathEngine, float learning_rate, float l1, float l2, float max_grad_norm,
-			float moment_decay_rate, float second_moment_decay_rate, float epsilon, bool ams_grad )
+			float moment_decay_rate, float second_moment_decay_rate, float epsilon, bool ams_grad, bool decoupled_weight_decay )
 		{
 			CPtr<CDnnNesterovGradientSolver> solver( new CDnnNesterovGradientSolver( mathEngine.MathEngineOwner().MathEngine() ) );
 			solver->SetLearningRate(learning_rate);
@@ -183,6 +186,7 @@ void InitializeSolver( py::module& m )
 			solver->SetSecondMomentDecayRate(second_moment_decay_rate);
 			solver->SetEpsilon(epsilon);
 			solver->EnableAmsGrad(ams_grad);
+			solver->EnableDecoupledWeightDecay(decoupled_weight_decay);
 
 			return new CPyNesterovGradientSolver( *solver, mathEngine.MathEngineOwner() );
 		}) )
@@ -195,5 +199,7 @@ void InitializeSolver( py::module& m )
 		.def( "set_epsilon", &CPyNesterovGradientSolver::SetEpsilon, py::return_value_policy::reference )
 		.def( "get_ams_grad", &CPyNesterovGradientSolver::GetAmsGrad, py::return_value_policy::reference )
 		.def( "set_ams_grad", &CPyNesterovGradientSolver::SetAmsGrad, py::return_value_policy::reference )
+		.def( "get_decoupled_weight_decay", &CPyNesterovGradientSolver::GetDecoupledWeightDecay, py::return_value_policy::reference )
+		.def( "set_decoupled_weight_decay", &CPyNesterovGradientSolver::SetDecoupledWeightDecay, py::return_value_policy::reference )
 	;
 }
