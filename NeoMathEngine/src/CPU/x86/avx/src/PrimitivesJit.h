@@ -37,6 +37,14 @@ public:
 		VectorMax,
 		VectorReLU,
 		VectorReLUTreshold,
+		VectorAlignedMultiplyAndAdd,
+		VectorMultiply,
+		VectorEltwiseMultiply,
+		VectorEltwiseMultiplyAdd,
+		VectorAddValue,
+		VectorDotProduct,
+		VectorMinMax,
+
 		Tanh,
 		Sigmoid,
 		Exp,
@@ -100,12 +108,8 @@ private:
 	};
 
 	static constexpr int MantissaNumBits = 23;
-	// '3V' means that function takes 3 pointers (vector).
-	// '2VS' means that function takes 2 pointers (vector) and one scalar.
-	// etc.
 	// Last pointer is always result
-	using EltwiseFunc_3V = void( * )( const float* op1, const float* op2, float* res, size_t count );
-	using EltwiseFunc_2VS = void( * )( const float* op1, float* res, float value, size_t count );
+	using EltwiseFunc = void( * )( const float* op1, const float* op2, float* res, size_t count );
 	using ActivationFunc = void( * )( float* dst, const float* src, size_t offset, size_t count );
 	using RestOfLstmFunc = void( * )( size_t hiddenSize, const float* inputStateBackLinkPtr, float* outputStateBackLinkPtr,
 		float* outputMainBackLinkPtr, float* inputFullyConnectedResultPtr, float* reccurentFullyConnectedResultPtr, size_t offset, size_t count );
@@ -132,27 +136,30 @@ private:
 	// repeatNum specifies how many times value will be repeated in the table
 	void addVal( TTableKey key, uint32_t val, size_t repeatNum = NumFloatInYmm );
 	
-	using EltwiseGenFunc_3V = void( CJitCommon::* )( const Xbyak::Xmm&, const Xbyak::Operand&, const Xbyak::Operand& );
+	using EltwiseGenFunc = void( CJitCommon::* )( const Xbyak::Xmm&, const Xbyak::Operand&, const Xbyak::Operand& );
 
-	static EltwiseGenFunc_3V GetEltwiseFuncPtr( TPrimitive p ) {
+	static EltwiseGenFunc GetEltwiseFuncPtr( TPrimitive p ) {
 		switch( p ) {
 		case TPrimitive::VectorAdd:
 		case TPrimitive::VectorAlignedAdd:
-			return static_cast<EltwiseGenFunc_3V>( &CJitCommon::vaddps );
+		case TPrimitive::VectorAddValue:
+			return static_cast<EltwiseGenFunc>( &CJitCommon::vaddps );
 		case TPrimitive::VectorMax:
-			return static_cast< EltwiseGenFunc_3V >( &CJitCommon::vmaxps );
+			return static_cast<EltwiseGenFunc>( &CJitCommon::vmaxps );
+		case TPrimitive::VectorMultiply:
+			return static_cast<EltwiseGenFunc>( &CJitCommon::vmulps );
 		default:
 			assert( false );
 			return nullptr;
 		}
 	}
 
-	void initEltwisePrimitive_3V( TPrimitive P, bool hasOp2 );
-	void initEltwisePrimitive_2VS( TPrimitive P );
-	void initReLU( TPrimitive P );
+	void initEltwisePrimitive( TPrimitive P, bool hasOp2, bool op2IsScalar = false );
+	void initMinMaxFunction( TPrimitive P, bool useLowerBound, bool useUpperBuond );
 	void insertSimpleMathFunction( const reg64Vec_t& preservedGPR, const ymmVec_t& preservedYmm, 
 		CJitCommon& gen, const reg64_t& regCount,
-		const std::function<void( int )>& insertKernel, const std::vector<int>& loopUnrollingSteps );
+		const std::function<void( int )>& insertKernel, const std::vector<int>& loopUnrollingSteps,
+		const std::function<void()>& callBeforeRet = std::function<void()>() );
 	template<TPrimitive P>
 	void initPrimitive();
 	template<TPrimitive P>
@@ -184,8 +191,10 @@ private:
 	template<class RegType>
 	std::vector<RegType> initVecRange( int firstIdx, int lastIdx ) {
 		const int VecSize = lastIdx - firstIdx + 1;
-		assert( VecSize > 0 );
-		assert( firstIdx >= 0 && lastIdx < 16 );
+		if( VecSize <= 0 ) {
+			return {};
+		}
+		assert(  lastIdx < 16 );
 		std::vector<RegType> ret( VecSize );
 		int idx = firstIdx;
 		for( auto& v : ret ) {

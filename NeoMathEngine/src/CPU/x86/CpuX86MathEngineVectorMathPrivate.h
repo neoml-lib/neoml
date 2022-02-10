@@ -85,12 +85,16 @@ inline void channelwise1x3( const float* source, const float* filter0, const flo
 template<class T>
 inline void vectorFill( T* result, T value, int vectorSize )
 {
-	std::fill_n( result, vectorSize, value );
+	if( vectorSize > 0 ) {
+		std::fill_n( result, vectorSize, value );
+	}
 }
 
 inline void vectorFill0( float* result, int vectorSize )
 {
-	std::fill_n( result, vectorSize, 0.0f );
+	if( vectorSize > 0 ) {
+		std::fill_n( result, vectorSize, 0.0f );
+	}
 }
 
 inline void vectorEltwiseMax( const float* first, const float* second, float* result, int vectorSize )
@@ -241,7 +245,7 @@ inline void alignedVectorMultiplyAndAdd( const float* first, const float* second
 }
 
 //------------------------------------------------------------------------------------------------------------
-inline void vectorMultiply( const float* first, float* result, float multiplier, int vectorSize )
+inline void vectorMultiply( const float* first, float multiplier, float* result, int vectorSize )
 {
 	int sseSize;
 	int nonSseSize;
@@ -517,7 +521,7 @@ inline void vectorReLUTreshold( const float* first, float* result, int vectorSiz
 
 //------------------------------------------------------------------------------------------------------------
 
-inline void vectorAddValue( const float* first, float* result, int vectorSize, float value )
+inline void vectorAddValue( const float* first, float value, float* result, int vectorSize )
 {
 	int sseSize;
 	int nonSseSize;
@@ -539,7 +543,7 @@ inline void vectorAddValue( const float* first, float* result, int vectorSize, f
 
 //------------------------------------------------------------------------------------------------------------
 
-inline void vectorDotProduct( const float* first, const float* second, int vectorSize, float* result )
+inline void vectorDotProduct( const float* first, const float* second, float* result, int vectorSize )
 {
 	int sseSize;
 	int nonSseSize;
@@ -768,7 +772,7 @@ static inline void qrnnIfPoolingStep( const float* z, const float* f, const floa
 	}
 }
 
-inline void vectorMinMax( const float* first, float* result, const float minValue, const float maxValue, int vectorSize )
+inline void vectorMinMax( const float* first, float* result, int vectorSize, const float minValue, const float maxValue )
 {
 	int sseSize;
 	int nonSseSize;
@@ -813,7 +817,7 @@ inline void vectorTanh( const float* first, float* result, int vectorSize )
 inline void vectorExp( const float* first, float* result, int vectorSize )
 {
 #ifdef NEOML_USE_MKL
-	vectorMinMax( first, result, FLT_MIN_LOG, FLT_MAX_LOG, vectorSize );
+	vectorMinMax( first, result, vectorSize, FLT_MIN_LOG, FLT_MAX_LOG );
 	vsExp( vectorSize, result, result );
 #else
 	for( int i = 0; i < vectorSize; ++i ) {

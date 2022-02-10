@@ -352,7 +352,7 @@ void CCpuMathEngine::VectorAddValue(const CConstFloatHandle& firstHandle, const 
 	float* result = GetRaw( resultHandle );
 	float value = *GetRaw( addition );
 
-	vectorAddValue( first, result, vectorSize, value );
+	vectorAddValue( first, value, result, vectorSize );
 }
 
 void CCpuMathEngine::VectorDotProduct(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
@@ -367,7 +367,7 @@ void CCpuMathEngine::VectorDotProduct(const CConstFloatHandle& firstHandle, cons
 	const float* second = GetRaw( secondHandle );
 	float* result = GetRaw( resultHandle );
 
-	vectorDotProduct( first, second, vectorSize, result );
+	vectorDotProduct( first, second, result, vectorSize );
 }
 
 void CCpuMathEngine::VectorTopK(const CConstFloatHandle& firstHandle, int firstSize, int k, const CFloatHandle& resultHandle,
@@ -470,11 +470,11 @@ void CCpuMathEngine::VectorMultiply(const CConstFloatHandle& firstHandle,
 		NEOML_OMP_NUM_THREADS( curThreadCount ) {
 			int index, count;
 			if( OmpGetTaskIndexAndCount( vectorSize, 16, index, count ) ) {
-				vectorMultiply( GetRaw( firstHandle + index ), GetRaw( resultHandle + index ), multiplier, count );
+				vectorMultiply( GetRaw( firstHandle + index ), multiplier, GetRaw( resultHandle + index ), count );
 			}
 		}
 	} else {
-		vectorMultiply( GetRaw( firstHandle ), GetRaw( resultHandle ), multiplier, vectorSize );
+		vectorMultiply( GetRaw( firstHandle ), multiplier, GetRaw( resultHandle ),  vectorSize );
 	}
 }
 
@@ -656,11 +656,11 @@ void CCpuMathEngine::VectorMinMax(const CConstFloatHandle& firstHandle, const CF
 		NEOML_OMP_NUM_THREADS( curThreadCount ) {
 			int index, count;
 			if( OmpGetTaskIndexAndCount( vectorSize, 16, index, count ) ) {
-				vectorMinMax( GetRaw(firstHandle + index), GetRaw(resultHandle + index), minValue, maxValue, count );
+				vectorMinMax( GetRaw(firstHandle + index), GetRaw(resultHandle + index), count, minValue, maxValue );
 			}
 		}
 	} else {
-		vectorMinMax( GetRaw(firstHandle ), GetRaw(resultHandle ), minValue, maxValue, vectorSize );
+		vectorMinMax( GetRaw(firstHandle ), GetRaw(resultHandle ), vectorSize, minValue, maxValue );
 	}
 }
 

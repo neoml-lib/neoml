@@ -72,6 +72,13 @@ public:
 	vectorEltwiseMax GetVectorMaxFunc() override { return reinterpret_cast<vectorEltwiseMax>( primitives.GetFunctionRawPtr<CPrimitivesJit::TPrimitive::VectorMax>() ); }
 	vectorReLU GetVectorReLUFunc() override { return reinterpret_cast<vectorReLU>( primitives.GetFunctionRawPtr<CPrimitivesJit::TPrimitive::VectorReLU>() ); }
 	vectorReLUTreshold GetVectorReLUTresholdFunc() override { return reinterpret_cast<vectorReLUTreshold>( primitives.GetFunctionRawPtr<CPrimitivesJit::TPrimitive::VectorReLUTreshold>() ); }
+	alignedVectorMultiplyAndAdd GetAlignedVectorMultiplyAndAddFunc() override { return reinterpret_cast< alignedVectorMultiplyAndAdd >( primitives.GetFunctionRawPtr<CPrimitivesJit::TPrimitive::VectorAlignedMultiplyAndAdd>() ); }
+	vectorMultiply GetVectorMultiplyFunc() override { return reinterpret_cast< vectorMultiply >( primitives.GetFunctionRawPtr<CPrimitivesJit::TPrimitive::VectorMultiply>() ); }
+	vectorEltwiseMultiply GetVectorEltwiseMultiplyFunc() override { return reinterpret_cast< vectorEltwiseMultiply >( primitives.GetFunctionRawPtr<CPrimitivesJit::TPrimitive::VectorEltwiseMultiply>() ); }
+	vectorEltwiseMultiplyAdd GetVectorEltwiseMultiplyAddFunc() override { return reinterpret_cast< vectorEltwiseMultiplyAdd >( primitives.GetFunctionRawPtr<CPrimitivesJit::TPrimitive::VectorEltwiseMultiplyAdd>() ); }
+	vectorAddValue GetVectorAddValueFunc() override { return reinterpret_cast< vectorAddValue >( primitives.GetFunctionRawPtr<CPrimitivesJit::TPrimitive::VectorAddValue>() ); }
+	vectorDotProduct GetVectorDotProductFunc() override { return reinterpret_cast< vectorDotProduct >( primitives.GetFunctionRawPtr<CPrimitivesJit::TPrimitive::VectorDotProduct>() ); }
+	vectorMinMax GetVectorMinMaxFunc() override { return reinterpret_cast< vectorMinMax >( primitives.GetFunctionRawPtr<CPrimitivesJit::TPrimitive::VectorMinMax>() ); }
 
 private:
 	IMathEngine* mathEngine;

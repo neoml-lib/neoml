@@ -272,7 +272,7 @@ inline void alignedVectorMultiplyAndAdd( const float* first, const float* second
 
 //------------------------------------------------------------------------------------------------------------
 
-inline void vectorMultiply( const float* first, float* result, float multiplier, int vectorSize )
+inline void vectorMultiply( const float* first, float multiplier, float* result, int vectorSize )
 {
 	int count = GetCount4(vectorSize);
 	float32x4_t mult = vdupq_n_f32(multiplier);
@@ -504,7 +504,7 @@ inline void vectorReLU( const float* first, float* result, int vectorSize, float
 
 //------------------------------------------------------------------------------------------------------------
 
-inline void vectorAddValue( const float* first, float* result, int vectorSize, float value )
+inline void vectorAddValue( const float* first, float value, float* result, int vectorSize )
 {
 	float32x4_t addition = vdupq_n_f32(value);
 
@@ -526,7 +526,7 @@ inline void vectorAddValue( const float* first, float* result, int vectorSize, f
 
 //------------------------------------------------------------------------------------------------------------
 
-inline void vectorDotProduct( const float* first, const float* second, int vectorSize, float* result )
+inline void vectorDotProduct( const float* first, const float* second, float* result, int vectorSize )
 {
 	float32x4_t acc = vdupq_n_f32(0);
 
@@ -709,7 +709,7 @@ static inline void qrnnIfPoolingStep( const float* z, const float* f, const floa
 	}
 }
 
-inline void vectorMinMax( const float* first, float* result, const float minValue, const float maxValue, int vectorSize )
+inline void vectorMinMax( const float* first, float* result, int vectorSize, const float minValue, const float maxValue )
 {
 	int count = GetCount4(vectorSize);
 

@@ -82,23 +82,22 @@ CCpuMathEngine::CCpuMathEngine( int _threadCount, size_t _memoryLimit ) :
 	if( simdMathEngine != nullptr ) {
 		vectorAdd = simdMathEngine->GetVectorAddFunc();
 		alignedVectorAdd = simdMathEngine->GetAlignedVectorAddFunc();
-		vectorEltwiseMax = reinterpret_cast< decltype( vectorEltwiseMax ) >( simdMathEngine->GetVectorMaxFunc() );
-		vectorReLU = reinterpret_cast< decltype( vectorReLU ) >( simdMathEngine->GetVectorReLUFunc() );
-		vectorReLUTreshold = reinterpret_cast< decltype( vectorReLUTreshold ) >( simdMathEngine->GetVectorReLUTresholdFunc() );
-		alignedVectorMultiplyAndAdd = reinterpret_cast< decltype( alignedVectorMultiplyAndAdd ) >( simdMathEngine->GetVectorReLUTresholdFunc() );
-	//	vectorMultiply = reinterpret_cast< decltype( vectorMultiply ) >( simdMathEngine->GetVectorReLUTresholdFunc() );
-	//	vectorEltwiseMultiply = reinterpret_cast< decltype( vectorEltwiseMultiply ) >( simdMathEngine->GetVectorReLUTresholdFunc() );
-	//	vectorEltwiseMultiplyAdd = reinterpret_cast< decltype( vectorEltwiseMultiplyAdd ) >( simdMathEngine->GetVectorReLUTresholdFunc() );
-	//	vectorAddValue = reinterpret_cast< decltype( vectorAddValue ) >( simdMathEngine->GetVectorReLUTresholdFunc() );
-	//	vectorDotProduct = reinterpret_cast< decltype( vectorDotProduct ) >( simdMathEngine->GetVectorReLUTresholdFunc() );
-	//	vectorMinMax = reinterpret_cast< decltype( vectorMinMax ) >( simdMathEngine->GetVectorReLUTresholdFunc() );
-	//	channelwiseConvolution1x3Kernel = reinterpret_cast< decltype( channelwiseConvolution1x3Kernel ) >( simdMathEngine->GetVectorReLUTresholdFunc() );
-	//} else {
-	//	vectorAdd = &NeoML::vectorAdd;
-	//	alignedVectorAdd = &NeoML::alignedVectorAdd;
-	//	vectorEltwiseMax = &NeoML::vectorEltwiseMax;
-	//	vectorReLU = &NeoML::vectorReLU;
-	//	vectorReLUTreshold = &NeoML::vectorReLUTreshold;
+		vectorEltwiseMax = simdMathEngine->GetVectorMaxFunc();
+		vectorReLU = simdMathEngine->GetVectorReLUFunc();
+		vectorReLUTreshold = simdMathEngine->GetVectorReLUTresholdFunc();
+		alignedVectorMultiplyAndAdd = simdMathEngine->GetAlignedVectorMultiplyAndAddFunc();
+		vectorMultiply = simdMathEngine->GetVectorMultiplyFunc();
+		vectorEltwiseMultiply = simdMathEngine->GetVectorEltwiseMultiplyFunc();
+		vectorEltwiseMultiplyAdd = simdMathEngine->GetVectorEltwiseMultiplyAddFunc();
+		vectorAddValue = simdMathEngine->GetVectorAddValueFunc();
+		vectorDotProduct = simdMathEngine->GetVectorDotProductFunc();
+		vectorMinMax = simdMathEngine->GetVectorMinMaxFunc();
+	} else {
+		vectorAdd = &NeoML::vectorAdd;
+		alignedVectorAdd = &NeoML::alignedVectorAdd;
+		vectorEltwiseMax = &NeoML::vectorEltwiseMax;
+		vectorReLU = &NeoML::vectorReLU;
+		vectorReLUTreshold = &NeoML::vectorReLUTreshold;
 		alignedVectorMultiplyAndAdd = &NeoML::alignedVectorMultiplyAndAdd;
 		vectorMultiply = &NeoML::vectorMultiply;
 		vectorEltwiseMultiply = &NeoML::vectorEltwiseMultiply;
@@ -106,7 +105,6 @@ CCpuMathEngine::CCpuMathEngine( int _threadCount, size_t _memoryLimit ) :
 		vectorAddValue = &NeoML::vectorAddValue;
 		vectorDotProduct = &NeoML::vectorDotProduct;
 		vectorMinMax = &NeoML::vectorMinMax;
-		channelwiseConvolution1x3Kernel = &NeoML::channelwiseConvolution1x3Kernel;
 	}
 }
 

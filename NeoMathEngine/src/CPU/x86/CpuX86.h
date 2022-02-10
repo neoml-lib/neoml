@@ -327,7 +327,10 @@ inline void checkSse2(int size, int& sseSize, int& nonSseSize)
 template<class T>
 inline void dataCopy(T* dst, const T* src, int vectorSize)
 {
-	memcpy( dst, src, vectorSize * sizeof( T ) );
+	if( vectorSize > 0 ) {
+		memcpy( dst, src, vectorSize * sizeof( T ) );
+	}
+	
 }
 
 inline float euclidianNoSSE( const float* x, const float* y, const int size )

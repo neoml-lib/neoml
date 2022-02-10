@@ -42,6 +42,9 @@ constexpr reg64_t Param1{Xbyak::Operand::RCX};
 constexpr reg64_t Param2{Xbyak::Operand::RDX};
 constexpr reg64_t Param3{Xbyak::Operand::R8};
 constexpr reg64_t Param4{Xbyak::Operand::R9};
+
+const int LowerPreservedYmm = 6;
+
 #else
 constexpr reg64_t Param1{Xbyak::Operand::RDI};
 constexpr reg64_t Param2{Xbyak::Operand::RSI};
@@ -49,6 +52,9 @@ constexpr reg64_t Param3{Xbyak::Operand::RDX};
 constexpr reg64_t Param4{Xbyak::Operand::RCX};
 constexpr reg64_t Param5{Xbyak::Operand::R8};
 constexpr reg64_t Param6{Xbyak::Operand::R9};
+
+// 16 means 'Don't preserve'
+const int LowerPreservedYmm = 16;
 #endif
 
 constexpr unsigned int NumFloatInYmm = 8;
@@ -187,6 +193,7 @@ public:
     XBYAK_FORWARD_CAST_3( vminps, Xmm, Operand, Operand )
     XBYAK_FORWARD_CAST_3( vmulps, Xmm, Operand, Operand )
     XBYAK_FORWARD_CAST_3( vxorps, Xmm, Operand, Operand )
+    XBYAK_FORWARD_CAST_3( vfmadd231ps, Xmm, Xmm, Operand )
 
 private:
     struct CLoopDesc {

@@ -219,7 +219,7 @@ void CCpuMathEngine::AddVectorToMatrixColumns(const CConstFloatHandle& matrixHan
 	const float* vector = GetRaw( vectorHandle );
 
 	for(int i = 0; i < matrixHeight; ++i) {
-		vectorAddValue(matrix, result, matrixWidth, *vector);
+		vectorAddValue(matrix, *vector, result, matrixWidth);
 		matrix += matrixWidth;
 		result += matrixWidth;
 		++vector;
@@ -276,7 +276,7 @@ void CCpuMathEngine::RowMultiplyMatrixByMatrix(const CConstFloatHandle& firstHan
 	float* result = GetRaw( resultHandle );
 
 	for(int i = 0; i < height; ++i) {
-		vectorDotProduct(first, second, width, result);
+		vectorDotProduct(first, second, result, width);
 		first += width;
 		second += width;
 		++result;
@@ -819,7 +819,7 @@ void CCpuMathEngine::MultiplyDiagMatrixByMatrix( const CConstFloatHandle& firstH
 	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
 	for( int i = 0; i < firstSize; i++ ) {
 		const float multiplier = *( first + i );
-		vectorMultiply( second + i * secondWidth, result + i * secondWidth, multiplier, secondWidth );
+		vectorMultiply( second + i * secondWidth, multiplier, result + i * secondWidth, secondWidth );
 	}
 }
 
