@@ -82,20 +82,20 @@ void CMathEngineLstmDesc::RunOnceRestOfLstm( const CConstFloatHandle& inputState
 				hiddenLayerSum, count * ResultMatrixWidth );
 
 			// Rearrange sum
+			const int LocalDataSize = count * hiddenSize;
 			const CFloatHandle& hiddenLayerSumRearranged = curReccurentFullyConnectedResult;
 			CFloatHandle inputTanhData = hiddenLayerSumRearranged;
-			CFloatHandle forgetData = inputTanhData + DataSize;
-			CFloatHandle inputData = forgetData + DataSize;
-			CFloatHandle outputData = inputData + DataSize;
+			CFloatHandle forgetData = inputTanhData + LocalDataSize;
+			CFloatHandle inputData = forgetData + LocalDataSize;
+			CFloatHandle outputData = inputData + LocalDataSize;
 
-			int objectSize = hiddenSize;
 			float* rawFrom = GetRaw( hiddenLayerSum );
 			float* rawTo = GetRaw( hiddenLayerSumRearranged );
-			for( int x = offt; x < offt + count; x++ ) {
+			for( int x = 0; x < count; x++ ) {
 				const float* input = rawFrom + x * ResultMatrixWidth;
 				for( int i = 0; i < CMathEngineLstmDesc::GatesNum; ++i ) {
-					memcpy( ( rawTo + i * DataSize ) + x * objectSize, input, objectSize * sizeof( float ) );
-					input += objectSize;
+					memcpy( ( rawTo + i * LocalDataSize ) + x * hiddenSize, input, hiddenSize * sizeof( float ) );
+					input += hiddenSize;
 				}
 			}
 
