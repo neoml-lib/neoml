@@ -63,7 +63,6 @@ void CMathEngineLstmDesc::RunOnceRestOfLstm( const CConstFloatHandle& inputState
 	const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink )
 {
 	// Elementwise summ of fully connected layers' results (inplace)
-	const int ResultMatrixHeight = objectCount;
 	const int ResultMatrixWidth = CMathEngineLstmDesc::GatesNum * hiddenSize;
 
 	const int curThreadCount = IsOmpRelevant( static_cast< int >( objectCount ) ) ? threadCount : 1;
@@ -81,19 +80,18 @@ void CMathEngineLstmDesc::RunOnceRestOfLstm( const CConstFloatHandle& inputState
 				hiddenLayerSum, count * ResultMatrixWidth );
 
 			// Rearrange sum
-			const int LocalDataSize = count * hiddenSize;
 			const CFloatHandle& hiddenLayerSumRearranged = curReccurentFullyConnectedResult;
 			CFloatHandle inputTanhData = hiddenLayerSumRearranged;
-			CFloatHandle forgetData = inputTanhData + LocalDataSize;
-			CFloatHandle inputData = forgetData + LocalDataSize;
-			CFloatHandle outputData = inputData + LocalDataSize;
+			CFloatHandle forgetData = inputTanhData + CurDataSize;
+			CFloatHandle inputData = forgetData + CurDataSize;
+			CFloatHandle outputData = inputData + CurDataSize;
 
 			float* rawFrom = GetRaw( hiddenLayerSum );
 			float* rawTo = GetRaw( hiddenLayerSumRearranged );
 			for( int x = 0; x < count; x++ ) {
 				const float* input = rawFrom + x * ResultMatrixWidth;
 				for( int i = 0; i < CMathEngineLstmDesc::GatesNum; ++i ) {
-					memcpy( ( rawTo + i * LocalDataSize ) + x * hiddenSize, input, hiddenSize * sizeof( float ) );
+					memcpy( ( rawTo + i * CurDataSize ) + x * hiddenSize, input, hiddenSize * sizeof( float ) );
 					input += hiddenSize;
 				}
 			}
