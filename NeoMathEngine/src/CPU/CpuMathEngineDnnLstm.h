@@ -65,7 +65,6 @@ void CMathEngineLstmDesc::RunOnceRestOfLstm( const CConstFloatHandle& inputState
 	// Elementwise summ of fully connected layers' results (inplace)
 	const int ResultMatrixHeight = objectCount;
 	const int ResultMatrixWidth = CMathEngineLstmDesc::GatesNum * hiddenSize;
-	const int DataSize = ResultMatrixHeight * hiddenSize;
 
 	const int curThreadCount = IsOmpRelevant( static_cast< int >( objectCount ) ) ? threadCount : 1;
 	NEOML_OMP_NUM_THREADS( curThreadCount ) {
