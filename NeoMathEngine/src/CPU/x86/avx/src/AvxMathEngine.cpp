@@ -67,11 +67,11 @@ public:
 	void RunOnceRestOfLstm( CLstmDesc* desc, const CConstFloatHandle& inputStateBackLink,
 		const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink, bool isMultithread ) override;
 
-	const uint8_t* GetVectorAddFunc() override { return primitives.GetFunctionRawPtr<CPrimitivesJit::TPrimitive::VectorAdd>(); }
-	const uint8_t* GetAlignedVectorAddFunc() override { return primitives.GetFunctionRawPtr<CPrimitivesJit::TPrimitive::VectorAlignedAdd>(); }
-	const uint8_t* GetVectorMaxFunc() override { return primitives.GetFunctionRawPtr<CPrimitivesJit::TPrimitive::VectorMax>(); }
-	const uint8_t* GetVectorReLUFunc() override { return primitives.GetFunctionRawPtr<CPrimitivesJit::TPrimitive::VectorReLU>(); }
-	const uint8_t* GetVectorReLUTresholdFunc() override { return primitives.GetFunctionRawPtr<CPrimitivesJit::TPrimitive::VectorReLUTreshold>(); }
+	vectorAddFunc GetVectorAddFunc() override { return reinterpret_cast<vectorAddFunc>( primitives.GetFunctionRawPtr<CPrimitivesJit::TPrimitive::VectorAdd>() ); }
+	alignedVectorAdd GetAlignedVectorAddFunc() override { return reinterpret_cast<alignedVectorAdd>( primitives.GetFunctionRawPtr<CPrimitivesJit::TPrimitive::VectorAlignedAdd>() ); }
+	vectorEltwiseMax GetVectorMaxFunc() override { return reinterpret_cast<vectorEltwiseMax>( primitives.GetFunctionRawPtr<CPrimitivesJit::TPrimitive::VectorMax>() ); }
+	vectorReLU GetVectorReLUFunc() override { return reinterpret_cast<vectorReLU>( primitives.GetFunctionRawPtr<CPrimitivesJit::TPrimitive::VectorReLU>() ); }
+	vectorReLUTreshold GetVectorReLUTresholdFunc() override { return reinterpret_cast<vectorReLUTreshold>( primitives.GetFunctionRawPtr<CPrimitivesJit::TPrimitive::VectorReLUTreshold>() ); }
 
 private:
 	IMathEngine* mathEngine;

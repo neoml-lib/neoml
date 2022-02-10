@@ -47,11 +47,27 @@ public:
 	virtual void RunOnceRestOfLstm( CLstmDesc* desc, const CConstFloatHandle& inputStateBackLink,
 		const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink, bool isMultithread = true ) = 0;
 
-	virtual const uint8_t* GetVectorAddFunc() = 0;
-	virtual const uint8_t* GetAlignedVectorAddFunc() = 0;
-	virtual const uint8_t* GetVectorMaxFunc() = 0;
-	virtual const uint8_t* GetVectorReLUFunc() = 0;
-	virtual const uint8_t* GetVectorReLUTresholdFunc() = 0;
+	using vectorAddFunc = void (*)( const float* first, const float* second, float* result, int vectorSize );
+	using alignedVectorAdd = void (*)( const float* first, float* second, int vectorSize );
+	using vectorEltwiseMax = void (*)( const float* first, const float* second, float* result, int vectorSize );
+	using vectorReLU = void (*)( const float* first, float* result, int vectorSize );
+	using vectorReLUTreshold = void (*)( const float* first, float* result, int vectorSize, float threshold );
+	using alignedVectorMultiplyAndAdd = void (*)( const float* first, const float* second,
+		float* result, int vectorSize, const float* mult );
+	using vectorMultiply = void (*)( const float* first, float* result, float multiplier, int vectorSize );
+	using vectorEltwiseMultiply = void (*)( const float* first, const float* second, float* result, int vectorSize );
+	using vectorEltwiseMultiplyAdd = void (*)( const float* first, const float* second, float* result, int vectorSize );
+	using vectorAddValue = void (*)( const float* first, float* result, int vectorSize, float value );
+	using vectorDotProduct = void (*)( const float* first, const float* second, int vectorSize, float* result );
+	using vectorMinMax = void (*)( const float* first, float* result, const float minValue, const float maxValue, int vectorSize );
+	using channelwiseConvolution1x3Kernel = void (*)( const float* source0, const float* source1, const float* source2, const float* source3,
+		const float* filter0, const float* filter1, const float* filter2, float* result0, float* result1 );
+
+	virtual vectorAddFunc GetVectorAddFunc() = 0;
+	virtual alignedVectorAdd GetAlignedVectorAddFunc() = 0;
+	virtual vectorEltwiseMax GetVectorMaxFunc() = 0;
+	virtual vectorReLU GetVectorReLUFunc() = 0;
+	virtual vectorReLUTreshold GetVectorReLUTresholdFunc() = 0;
 };
 
 }

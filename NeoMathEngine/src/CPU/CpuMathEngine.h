@@ -563,6 +563,16 @@ private:
 	void ( *vectorEltwiseMax )( const float* first, const float* second, float* result, int vectorSize );
 	void ( *vectorReLU )( const float* first, float* result, int vectorSize );
 	void ( *vectorReLUTreshold )( const float* first, float* result, int vectorSize, float threshold );
+	void ( *alignedVectorMultiplyAndAdd )( const float* first, const float* second,
+		float* result, int vectorSize, const float* mult );
+	void ( *vectorMultiply )( const float* first, float* result, float multiplier, int vectorSize );
+	void ( *vectorEltwiseMultiply )( const float* first, const float* second, float* result, int vectorSize );
+	void ( *vectorEltwiseMultiplyAdd )( const float* first, const float* second, float* result, int vectorSize );
+	void ( *vectorAddValue )( const float* first, float* result, int vectorSize, float value );
+	void ( *vectorDotProduct )( const float* first, const float* second, int vectorSize, float* result );
+	void ( *vectorMinMax )( const float* first, float* result, const float minValue, const float maxValue, int vectorSize );
+	void ( *channelwiseConvolution1x3Kernel )( const float* source0, const float* source1, const float* source2, const float* source3,
+		const float* filter0, const float* filter1, const float* filter2, float* result0, float* result1 );
 
 	IMathEngine& mathEngine() { IMathEngine* engine = this; return *engine; }
 

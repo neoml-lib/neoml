@@ -185,7 +185,7 @@ void CPrimitivesJit::addVal( TTableKey key, uint32_t val, size_t repeatNum )
 	fill_n( pTable, repeatNum, val );
 }
 
-void CPrimitivesJit::initEltwisePrimitive( CPrimitivesJit::TPrimitive P, bool hasOp2 )
+void CPrimitivesJit::initEltwisePrimitive_3V( CPrimitivesJit::TPrimitive P, bool hasOp2 )
 {
 	using namespace Xbyak;
 	using namespace Xbyak::util;
@@ -200,50 +200,39 @@ void CPrimitivesJit::initEltwisePrimitive( CPrimitivesJit::TPrimitive P, bool ha
 	const reg64_t regResPtr = hasOp2 ? Param3 : regOp2Ptr;
 	const reg64_t regCount = hasOp2 ? Param4 : Param3;
 
-	EltwiseGenFunc eltwiseFunc = GetEltwiseFuncPtr( P );
+	EltwiseGenFunc_3V eltwiseFunc = GetEltwiseFuncPtr( P );
 
-	auto insertCode = [&]( unsigned int stepCount ) {
-		for( unsigned int i = 0; i < stepCount; i++ ) { gen.vmovups( Ymm( i ), ptr[regOp1Ptr + i * SizeOfYmm] ); }
-		for( unsigned int i = 0; i < stepCount; i++ ) { ( gen.*eltwiseFunc )( Ymm( i ), Ymm( i ), ptr[regOp2Ptr + i * SizeOfYmm] ); }
-		for( unsigned int i = 0; i < stepCount; i++ ) { gen.vmovups( ptr[regResPtr + i * SizeOfYmm], Ymm( i ) ); }
-		gen.lea( regOp1Ptr, gen.ptr[regOp1Ptr + stepCount * SizeOfYmm] );
-		gen.lea( regOp2Ptr, gen.ptr[regOp2Ptr + stepCount * SizeOfYmm] );
-		if( hasOp2 ) {
-			gen.lea( regResPtr, gen.ptr[regResPtr + stepCount * SizeOfYmm] );
+	auto insertKernel = [&]( unsigned int stepCount ) {
+		if( stepCount > 0 ) {
+			for( unsigned int i = 0; i < stepCount; i++ ) {
+				gen.vmovups( Ymm( i ), ptr[regOp1Ptr + i * SizeOfYmm] );
+				( gen.*eltwiseFunc )( Ymm( i ), Ymm( i ), ptr[regOp2Ptr + i * SizeOfYmm] );
+				gen.vmovups( ptr[regResPtr + i * SizeOfYmm], Ymm( i ) );
+			}
+			gen.lea( regOp1Ptr, gen.ptr[regOp1Ptr + stepCount * SizeOfYmm] );
+			gen.lea( regOp2Ptr, gen.ptr[regOp2Ptr + stepCount * SizeOfYmm] );
+			if( hasOp2 ) {
+				gen.lea( regResPtr, gen.ptr[regResPtr + stepCount * SizeOfYmm] );
+			}
+		} else {
+			// Tail processing (ymm0 - is always mask)
+			ymm_t ymmMask = ymm0;
+			ymm_t ymmLastOp1 = ymm1;
+			ymm_t ymmLastOp2 = ymm2;
+			ymm_t ymmLastRes = ymm2;
+			gen.vmaskmovps( ymmLastOp1, ymmMask, gen.ptr[regOp1Ptr] );
+			gen.vmaskmovps( ymmLastOp2, ymmMask, gen.ptr[regOp2Ptr] );
+			( gen.*eltwiseFunc )( ymmLastRes, ymmLastOp1, ymmLastOp2 );
+			gen.vmaskmovps( gen.ptr[regResPtr], ymmMask, ymmLastRes );
 		}
 	};
 
-	// 2. Process by 32 floats
-	// for( ; regCount >= 4 * NumFloatInYmm; regCount -= 4 * NumFloatInYmm ) {
-	gen.StartDownCountLoop( regCount, 4 * NumFloatInYmm );
-	insertCode( 4 );
-	gen.StopDownCountLoop();
-	gen.JmpIfZero( regCount, "end" );
+	insertSimpleMathFunction( {}, {}, gen, regCount, insertKernel, { 4, 1, 0 } );
+}
 
-	// 3. Process by 8 floats
-	// for( ; regCount >= 8 * NumFloatInYmm; regCount -= 8 * NumFloatInYmm ) {
-	gen.StartDownCountLoop( regCount, 1 * NumFloatInYmm );
-	insertCode( 1 );
-	gen.StopDownCountLoop();
-	gen.JmpIfZero( regCount, "end" );
+void CPrimitivesJit::initEltwisePrimitive_2VS( TPrimitive P )
+{
 
-	// 4. Process tail
-	ymm_t ymmMask = ymm0;
-	ymm_t ymmLastOp1 = ymm1;
-	ymm_t ymmLastOp2 = ymm2;
-	ymm_t ymmLastRes = ymm2;
-	// Multiply by 8 for calculate right offset
-	gen.mov( regTablePtr, ( uint64_t )table.data() );
-	gen.shl( regCount, 3 );
-	gen.vmovups( ymmMask, gen.ptr[regTablePtr + regCount * sizeof( float ) + getOfft( TTableKey::LoadMask )] );
-	gen.vmaskmovps( ymmLastOp1, ymmMask, gen.ptr[regOp1Ptr] );
-	gen.vmaskmovps( ymmLastOp2, ymmMask, gen.ptr[regOp2Ptr] );
-	( gen.*eltwiseFunc )( ymmLastRes, ymmLastOp1, ymmLastOp2 );
-	gen.vmaskmovps( gen.ptr[regResPtr], ymmMask, ymmLastRes );
-
-	gen.L( "end" );
-	gen.Epilogue( {}, {} );
-	gen.ret();
 }
 
 void CPrimitivesJit::initReLU( CPrimitivesJit::TPrimitive P )
@@ -252,82 +241,94 @@ void CPrimitivesJit::initReLU( CPrimitivesJit::TPrimitive P )
 	using namespace Xbyak::util;
 	// create new instance
 	auto& gen = gens[static_cast< size_t >( P )].gen;
-
-	gen.Prologue( {}, {} );
+	const ymmVec_t preservedYmm = initVecRange<Xbyak::Ymm>( 6, 15 );
+	gen.Prologue( {}, preservedYmm );
 
 	// *** Define registers ***
 	const reg64_t regOp1Ptr = Param1;
 	const reg64_t regResPtr = Param2;
 	const reg64_t regCount = Param3;
 
-	Ymm ymmZero = ymm4;
-	Ymm ymmTreshhold = ymm5;
+	Ymm ymmZero = ymm14;
+	Ymm ymmTreshhold = ymm15;
 
 	gen.vxorps( ymmZero, ymmZero, ymmZero );
 	if( P == TPrimitive::VectorReLUTreshold ) {
 		gen.vbroadcastss( ymmTreshhold, xmm3 );
 	}
 
-	auto insertCode = [&]( unsigned int stepCount ) {
-		for( unsigned int i = 0; i < stepCount; i++ ) { gen.vmovups( Ymm( i ), ptr[regOp1Ptr + i * SizeOfYmm] ); }
-		for( unsigned int i = 0; i < stepCount; i++ ) { gen.vmaxps( Ymm( i ), Ymm( i ), ymmZero ); }
-		if( P == TPrimitive::VectorReLUTreshold ) {
-			for( unsigned int i = 0; i < stepCount; i++ ) { gen.vminps( Ymm( i ), Ymm( i ), ymmTreshhold ); }
+	auto insertKernel = [&]( unsigned int stepCount ) {
+		if( stepCount > 0 ) {
+			for( unsigned int i = 0; i < stepCount; i++ ) {
+				gen.vmovups( Ymm( i ), ptr[regOp1Ptr + i * SizeOfYmm] );
+				gen.vmaxps( Ymm( i ), Ymm( i ), ymmZero );
+				if( P == TPrimitive::VectorReLUTreshold ) {
+					gen.vminps( Ymm( i ), Ymm( i ), ymmTreshhold );
+				}
+				gen.vmovups( ptr[regResPtr + i * SizeOfYmm], Ymm( i ) );
+			}
+			gen.lea( regOp1Ptr, gen.ptr[regOp1Ptr + stepCount * SizeOfYmm] );
+			gen.lea( regResPtr, gen.ptr[regResPtr + stepCount * SizeOfYmm] );
+		} else {
+			// Tail processing (ymm0 - is always mask)
+			ymm_t ymmMask = ymm0;
+			ymm_t ymmLast = ymm1;
+			gen.vmaskmovps( ymmLast, ymmMask, gen.ptr[regOp1Ptr] );
+			gen.vmaxps( ymmLast, ymmLast, ymmZero );
+			if( P == TPrimitive::VectorReLUTreshold ) {
+				gen.vminps( ymmLast, ymmLast, ymmTreshhold );
+			}
+			gen.vmaskmovps( gen.ptr[regResPtr], ymmMask, ymmLast );
 		}
-		for( unsigned int i = 0; i < stepCount; i++ ) { gen.vmovups( ptr[regResPtr + i * SizeOfYmm], Ymm( i ) ); }
-		gen.lea( regOp1Ptr, gen.ptr[regOp1Ptr + stepCount * SizeOfYmm] );
-		gen.lea( regResPtr, gen.ptr[regResPtr + stepCount * SizeOfYmm] );
 	};
 
-	// 2. Process by 32 floats
-	// for( ; regCount >= 4 * NumFloatInYmm; regCount -= 4 * NumFloatInYmm ) {
-	gen.StartDownCountLoop( regCount, 4 * NumFloatInYmm );
-	insertCode( 4 );
-	gen.StopDownCountLoop();
-	gen.JmpIfZero( regCount, "end" );
+	insertSimpleMathFunction( {}, preservedYmm, gen, regCount, insertKernel, { 14, 4, 1, 0 } );
+}
 
-	// 3. Process by 8 floats
-	// for( ; regCount >= 8 * NumFloatInYmm; regCount -= 8 * NumFloatInYmm ) {
-	gen.StartDownCountLoop( regCount, 1 * NumFloatInYmm );
-	insertCode( 1 );
-	gen.StopDownCountLoop();
-	gen.JmpIfZero( regCount, "end" );
+void CPrimitivesJit::insertSimpleMathFunction( const reg64Vec_t& preservedGPR, const ymmVec_t& preservedYmm,
+	CJitCommon& gen, const reg64_t& regCount,
+	const std::function<void( int )>& insertKernel, const std::vector<int>& loopUnrollingSteps )
+{
+	using namespace Xbyak;
+	using namespace Xbyak::util;
 
-	// 4. Process tail
-	ymm_t ymmMask = ymm0;
-	ymm_t ymmLast = ymm1;
-	// Multiply by 8 for calculate right offset
-	gen.mov( regTablePtr, ( uint64_t )table.data() );
-	gen.shl( regCount, 3 );
-	gen.vmovups( ymmMask, gen.ptr[regTablePtr + regCount * sizeof( float ) + getOfft( TTableKey::LoadMask )] );
-	gen.vmaskmovps( ymmLast, ymmMask, gen.ptr[regOp1Ptr] );
-	gen.vmaxps( ymmLast, ymmLast, ymmZero );
-	if( P == TPrimitive::VectorReLUTreshold ) {
-		gen.vminps( ymmLast, ymmLast, ymmTreshhold );
+	for( auto step : loopUnrollingSteps ) {
+		if( step > 0 ) {
+			gen.StartDownCountLoop( regCount, step * NumFloatInYmm );
+			insertKernel( step );
+			gen.StopDownCountLoop();
+			gen.JmpIfZero( regCount, "end" );
+		} else {
+			// Process tail
+			ymm_t ymmMask = ymm0;
+			// Multiply by 8 for calculate right offset
+			gen.mov( regTablePtr, ( uint64_t )table.data() );
+			gen.shl( regCount, 3 );
+			gen.vmovups( ymmMask, gen.ptr[regTablePtr + regCount * sizeof( float ) + getOfft( TTableKey::LoadMask )] );
+			insertKernel( step );
+		}
 	}
-	gen.vmaskmovps( gen.ptr[regResPtr], ymmMask, ymmLast );
-
 	gen.L( "end" );
-	gen.Epilogue( {}, {} );
+	gen.Epilogue( preservedGPR, preservedYmm );
 	gen.ret();
 }
 
 template<>
 void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::VectorAdd>()
 {
-	initEltwisePrimitive( CPrimitivesJit::TPrimitive::VectorAdd, true );
+	initEltwisePrimitive_3V( CPrimitivesJit::TPrimitive::VectorAdd, true );
 }
 
 template<>
 void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::VectorAlignedAdd>()
 {
-	initEltwisePrimitive( CPrimitivesJit::TPrimitive::VectorAlignedAdd, false );
+	initEltwisePrimitive_3V( CPrimitivesJit::TPrimitive::VectorAlignedAdd, false );
 }
 
 template<>
 void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::VectorMax>()
 {
-	initEltwisePrimitive( CPrimitivesJit::TPrimitive::VectorMax, true );
+	initEltwisePrimitive_3V( CPrimitivesJit::TPrimitive::VectorMax, true );
 }
 
 template<>
