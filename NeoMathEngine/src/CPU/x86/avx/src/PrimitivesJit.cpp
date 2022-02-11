@@ -196,6 +196,7 @@ void CPrimitivesJit::initEltwisePrimitive( CPrimitivesJit::TPrimitive P, bool ha
 
 	Address stackArgsPtr = gen.Prologue( {}, {} );
 
+	constexpr int xmmArgIdx = GetFirstXmmArgIdx( 1 );
 	// *** Define registers ***
 	const reg64_t regOp1Ptr = Param1;
 
@@ -203,7 +204,7 @@ void CPrimitivesJit::initEltwisePrimitive( CPrimitivesJit::TPrimitive P, bool ha
 	const reg64_t regOp2Ptr = Param2;
 	const ymm_t ymmScalar = ymm5;
 	if( op2IsScalar ) {
-		gen.vbroadcastss( ymmScalar, xmm1 );
+		gen.vbroadcastss( ymmScalar, Xmm( xmmArgIdx ) );
 	}
 
 	const reg64_t regResPtr = hasOp2 ? Param3 : regOp2Ptr;
@@ -259,24 +260,25 @@ void CPrimitivesJit::initMinMaxFunction( CPrimitivesJit::TPrimitive P, bool useL
 	Ymm ymmLowerBound = ymm14;
 	Ymm ymmUpperBound = ymm15;
 
+	constexpr int xmmArgIdx = GetFirstXmmArgIdx( 3 );
 	// *** Define registers ***
 	const reg64_t regOp1Ptr = Param1;
 	const reg64_t regResPtr = Param2;
 	const reg64_t regCount = Param3;
 	// Set lower ans upper bound
 	if( useLowerBound ) {
-		gen.vbroadcastss( ymmLowerBound, xmm3 );
+		gen.vbroadcastss( ymmLowerBound, Xmm( xmmArgIdx ) );
 		if( useUpperBuond ) {
 #ifdef _WIN32
 			gen.vbroadcastss( ymmUpperBound, stackArgsPtr );
 #else
-			gen.vbroadcastss( ymmUpperBound, xmm4 );
+			gen.vbroadcastss( ymmUpperBound, Xmm( xmmArgIdx + 1 ) );
 #endif
 		}
 	} else {
 		gen.vxorps( ymmLowerBound, ymmLowerBound, ymmLowerBound );
 		if( useUpperBuond ) {
-			gen.vbroadcastss( ymmUpperBound, xmm3 );
+			gen.vbroadcastss( ymmUpperBound, Xmm( xmmArgIdx ) );
 		}
 	}
 

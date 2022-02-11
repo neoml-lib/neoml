@@ -62,6 +62,22 @@ constexpr unsigned int SizeOfYmm = NumFloatInYmm * sizeof( float );
 constexpr unsigned int SizeofReg64 = 8;
 constexpr unsigned int MaxYmmCount = 16;
 
+constexpr int GetFirstXmmArgIdx( int argNum ) {
+    // Windows and Linux calling conventions treat floating point arguments in different maner:
+    // Windows passes only 4 arguments through GPR (four for both integer/pointer and floating point).
+    // In windows registers for passing arguments (rcx,rdx,r8,r9 and xmm0-xmm3) are strictly fixed
+    // by sequence number of argument.
+    // Example (win) ( int, void*, float, int ) will be passed through ( rcx, rdx, xmm2, r9 )
+    // In linux GPR are strictly fixed by argument sequence number but Xmm always start from 0 index.
+    // Example (linux) ( int, void*, float, int ) will be passed through ( rdi, rsi, xmm0, rcx )
+#ifdef _WIN32
+    assert( argNum < 4 );
+    return argNum;
+#else
+    return 0;
+#endif
+}
+
 class CJitCommon : public Xbyak::CodeGenerator {
 public:
     using Base = Xbyak::CodeGenerator;
