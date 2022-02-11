@@ -43,6 +43,8 @@ constexpr reg64_t Param2{Xbyak::Operand::RDX};
 constexpr reg64_t Param3{Xbyak::Operand::R8};
 constexpr reg64_t Param4{Xbyak::Operand::R9};
 
+constexpr reg64_t Params[4] = { Param1, Param2, Param3, Param4 };
+
 const int LowerPreservedYmm = 6;
 
 #else
@@ -53,6 +55,8 @@ constexpr reg64_t Param4{Xbyak::Operand::RCX};
 constexpr reg64_t Param5{Xbyak::Operand::R8};
 constexpr reg64_t Param6{Xbyak::Operand::R9};
 
+constexpr reg64_t Params[6] = { Param1, Param2, Param3, Param4, Param5, Param6 };
+
 // 16 means 'Don't preserve'
 const int LowerPreservedYmm = 16;
 #endif
@@ -62,14 +66,14 @@ constexpr unsigned int SizeOfYmm = NumFloatInYmm * sizeof( float );
 constexpr unsigned int SizeofReg64 = 8;
 constexpr unsigned int MaxYmmCount = 16;
 
+// Windows and Linux calling conventions treat floating point arguments in different maner:
+// Windows passes only 4 arguments through GPR (four for both integer/pointer and floating point).
+// In windows registers for passing arguments (rcx,rdx,r8,r9 and xmm0-xmm3) are strictly fixed
+// by sequence number of argument.
+// Example (win) ( int, void*, float, int ) will be passed through ( rcx, rdx, xmm2, r9 )
+// In linux GPR and Xmm are indexed in continuous manner even in case of interleaving og GPR and XMM
+// Example (linux) ( int, void*, float, int ) will be passed through ( rdi, rsi, xmm0, rdx )
 constexpr int GetFirstXmmArgIdx( int argNum ) {
-    // Windows and Linux calling conventions treat floating point arguments in different maner:
-    // Windows passes only 4 arguments through GPR (four for both integer/pointer and floating point).
-    // In windows registers for passing arguments (rcx,rdx,r8,r9 and xmm0-xmm3) are strictly fixed
-    // by sequence number of argument.
-    // Example (win) ( int, void*, float, int ) will be passed through ( rcx, rdx, xmm2, r9 )
-    // In linux GPR are strictly fixed by argument sequence number but Xmm always start from 0 index.
-    // Example (linux) ( int, void*, float, int ) will be passed through ( rdi, rsi, xmm0, rcx )
 #ifdef _WIN32
     assert( argNum < 4 );
     return argNum;

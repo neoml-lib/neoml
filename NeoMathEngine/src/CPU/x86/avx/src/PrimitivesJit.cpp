@@ -197,18 +197,26 @@ void CPrimitivesJit::initEltwisePrimitive( CPrimitivesJit::TPrimitive P, bool ha
 	Address stackArgsPtr = gen.Prologue( {}, {} );
 
 	constexpr int xmmArgIdx = GetFirstXmmArgIdx( 1 );
+	int gprArgIdx = 0;
 	// *** Define registers ***
-	const reg64_t regOp1Ptr = Param1;
+	const reg64_t regOp1Ptr = Params[gprArgIdx++];
 
 	// Define both and choose which of them we need (ymmScalar or regOp2Ptr)
-	const reg64_t regOp2Ptr = Param2;
+	const reg64_t regOp2Ptr = Params[gprArgIdx];
 	const ymm_t ymmScalar = ymm5;
 	if( op2IsScalar ) {
+#ifdef _WIN32
+		// as mentioned in description for function GetFirstXmmArgIdx() in Windows,
+		//  GPR which is used for integer/pointer passing is depended only on sequence number of argument.
+		gprArgIdx++;
+#endif
 		gen.vbroadcastss( ymmScalar, Xmm( xmmArgIdx ) );
+	} else if( hasOp2 ) {
+		gprArgIdx++;
 	}
 
-	const reg64_t regResPtr = hasOp2 ? Param3 : regOp2Ptr;
-	const reg64_t regCount = hasOp2 ? Param4 : Param3;	
+	const reg64_t regResPtr = Params[gprArgIdx++];
+	const reg64_t regCount = Params[gprArgIdx];
 
 	EltwiseGenFunc eltwiseFunc = GetEltwiseFuncPtr( P );
 
