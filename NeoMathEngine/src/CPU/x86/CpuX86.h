@@ -328,7 +328,7 @@ template<class T>
 inline void dataCopy(T* dst, const T* src, int vectorSize)
 {
 	if( vectorSize > 0 ) {
-		memcpy( dst, src, vectorSize * sizeof( T ) );
+		std::copy_n( src, vectorSize, dst );
 	}
 	
 }

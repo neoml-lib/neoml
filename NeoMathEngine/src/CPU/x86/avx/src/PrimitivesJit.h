@@ -64,14 +64,14 @@ public:
 		bool isMultithread );
 
 	template<CPrimitivesJit::TPrimitive P>
-	const uint8_t* GetFunctionRawPtr() {
+	void* GetFunctionRawPtr() {
 		CGenerator& genInst = gens[static_cast< size_t >( P )];
 		genInst.lock.lock();
 		if( genInst.gen.getSize() == 0 ) {
 			initPrimitive<P>();
 		}
 		genInst.lock.unlock();
-		return genInst.gen.getCode();
+		return reinterpret_cast<void*>( const_cast<uint8_t*>( genInst.gen.getCode() ) );
 	}
 
 private:
