@@ -12,6 +12,7 @@ limitations under the License.
 
 #pragma once
 
+#include "PyDnn.h"
 #include "PyDnnBlob.h"
 #include <NeoML/Dnn/DnnDistributed.h>
 
@@ -25,12 +26,22 @@ private:
 
 class CPyDistributedTraining : public CDistributedTraining {
 public:
-    CPyDistributedTraining( CArchive& archive, int count )
-        : CDistributedTraining( archive, count ) {};
-    CPyDistributedTraining( CArchive& archive, const CArray<int>& cudaDevs )
-        : CDistributedTraining( archive, cudaDevs ) {};
+    CPyDistributedTraining( CDnn& dnn, int count, TDistributedInitializer initializer, int seed )
+        : CDistributedTraining( dnn, count, initializer, seed ) {};
+    CPyDistributedTraining( CArchive& archive, int count, TDistributedInitializer initializer, int seed )
+        : CDistributedTraining( archive, count, initializer, seed ) {};
+    CPyDistributedTraining( CDnn& dnn, const CArray<int>& cudaDevs, TDistributedInitializer initializer, int seed )
+        : CDistributedTraining( dnn, cudaDevs, initializer, seed ) {};
+    CPyDistributedTraining( CArchive& archive, const CArray<int>& cudaDevs, TDistributedInitializer initializer, int seed )
+        : CDistributedTraining( archive, cudaDevs, initializer, seed ) {};
+    void Run( const py::object& data );
+    void RunAndBackward( const py::object& data );
     void Learn( const py::object& data );
+    void Train_();
     py::array LastLosses( const std::string& layer );
+    py::list GetOutput( const std::string& layer );
+    int GetModelCount_() { return GetModelCount(); }
+    void SetSolver_( const std::string& path );
     void Save( const std::string& path );
 };
 

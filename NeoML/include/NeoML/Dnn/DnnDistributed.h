@@ -47,7 +47,6 @@ public:
 	// Gets the number of models in disitrbuted traning
 	int GetModelCount() const { return cnns.Size(); }
 	// Sets the solver for all of the models
-	void SetSolver( CDnn& dnn, CPtr<CDnnSolver>& solver );
 	void SetSolver( CArchive& archive );
 	// Sets the learning rate for all of the models
 	void SetLearningRate( float rate );

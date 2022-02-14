@@ -15,43 +15,38 @@ import uuid
 import os
 from neoml.MathEngine import MathEngine
 import neoml.PythonWrapper as PythonWrapper
+from neoml.Blob import Blob
 
 
 class DnnDistributed(PythonWrapper.DnnDistributed):
     """Single process, multiple threads distributed training.
     
-    :param dnn: The dnn to learn distributed.
-    :type dnn: neoml.Dnn or str
+    :param dnn: The dnn or the archive with the dnn to learn distributed.
+    :type dnn: neoml.Dnn.Dnn or str
     :param type: Learn on cpu or gpu.
     :type type: str, ("cpu", "gpu"), default="cpu"
     :param count: Count of models to use.
     :type count: int, default=0
     :param devs: Numbers of gpus to use
     :type devs: list, default=None
-    :param path: The archive filename using for internal purposes.
-    :type path: str, default="distributed.arch"
+    :param initializer: The initializer that will fill initial weight values.
+    :type path: str, ("xavier", "xavier_uniform", "uniform"), default="xavier"
+    :param seed: Random seed number.
+    :type seed: int, default=42
     """
-    def __init__(self, dnn, type='cpu', count=0, devs=None):
-        is_dnn = isinstance(dnn, neoml.Dnn)
-        path = str(uuid.uuid4()) if is_dnn else dnn
+    def __init__(self, dnn, type='cpu', count=0, devs=None, initializer='xavier', seed=42):
         if type == 'cpu':
             if count < 1:
                 raise ValueError('`count` must be a positive number.')
-            if is_dnn:
-                dnn.store(path)
-            super().__init__(path, count)
+            super().__init__(dnn, count, initializer, seed)
         elif type == 'cuda':
             if devs is None:
                 if count < 1:
                     raise ValueError('`devs` or `count` must be specified.')
                 devs = list(range(count))
-            if is_dnn:
-                dnn.store(path)
-            super().__init__(path, devs)
+            super().__init__(dnn, devs, initializer, seed)
         else:
             raise ValueError('`type` must be one of: "cpu", "cuda".')
-        if is_dnn:
-            os.remove(path)
 
     def run(self, set_data):
         """Runs the network.
@@ -103,8 +98,12 @@ class DnnDistributed(PythonWrapper.DnnDistributed):
 
     def get_output(self, layer_name):
         """Returns last blobs of `layer_name` for all models.
+
+        :param layer_name: The name of the layer for which last output will be returned.
+            `layer_name` should correspond to neoml.Sink.
+        :type layer_name: str
         """
-        return self._get_output(layer_name)
+        return [Blob(blob) for blob in self._get_output(layer_name)]
 
     def save(self, path):
         """Serializes the trained network.
@@ -114,14 +113,16 @@ class DnnDistributed(PythonWrapper.DnnDistributed):
         """
         return self._save(path)
 
-    @solver.setter
-    def solver(self, new_solver):
+    def solver(self, path):
         """Sets the optimizer for the layer's trainable parameters.
+
+        :param path: The full path to the location where the solver should be stored.
+        :type path: str
         """
-        self.set_solver(new_solver._internal)
+        self._set_solver(path)
 
     @property
     def get_model_count(self):
-        """Gets the number of models in disitrbuted traning.
+        """Gets the number of models in distributed traning.
         """
         return self._get_model_count()

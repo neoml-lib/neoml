@@ -15,31 +15,30 @@ limitations under the License.
 
 #pragma once
 
-#include <AllocFOL.h>
-#include <ErrorsFOL.h>
+#include "AllocFOL.h"
+#include "ErrorsFOL.h"
+#include "BaseFileFOL.h"
 
-namespace NeoML {
+namespace FObj {
+
+const int MemoryFileDefaultGrowBytes = 1024;
 
 // The class for working with in-memory files.
 template<class Allocator = CurrentMemoryManager>
 class CMemoryFileEx : public CBaseFile {
 public:
-	explicit CMemoryFileEx( int growBytes = 1024 );
+	explicit CMemoryFileEx( int growBytes = MemoryFileDefaultGrowBytes );
 	virtual ~CMemoryFileEx();
 
 	bool IsOpen() const { return isOpen; }
 
 	// CBaseFile methods:
-#ifdef FINEOBJ_VERSION
-	virtual CUnicodeString GetFileName() const { return L"Memory file."; }
-#else
 	virtual const char* GetFileName() const { return "Memory file."; }
-#endif
 	virtual int Read( void*, int bytesCount );
 	virtual void Write( const void*, int bytesCount );
 	virtual void Close();
 	virtual __int64 GetPosition() const;
-	virtual __int64 Seek( __int64 offset, TSeekPosition from );
+	virtual __int64 Seek( __int64 offset, CBaseFile::TSeekPosition from );
 	virtual void SetLength( __int64 newLength );
 	virtual __int64 GetLength() const;
 	virtual void Abort();
@@ -61,7 +60,15 @@ private:
 	void throwBadSeekException();
 };
 
-inline CMemoryFileEx::CMemoryFile( int _growBytes ) :
+class CMemoryFile : public CMemoryFileEx<> {
+public:
+	CMemoryFile(int growBytes = MemoryFileDefaultGrowBytes) : CMemoryFileEx<>(growBytes)
+	{
+	}
+};
+
+template<class Allocator>
+inline CMemoryFileEx<Allocator>::CMemoryFileEx( int _growBytes ) :
 	buffer( 0 ),
 	bufferSize( 0 ),
 	fileLength( 0 ),
@@ -69,21 +76,23 @@ inline CMemoryFileEx::CMemoryFile( int _growBytes ) :
 	currentPosition( 0 ),
 	isOpen( true )
 {
-	NeoAssert( growBytes >= 0 );
+	AssertFO( growBytes >= 0 );
 }
 
-inline CMemoryFileEx::~CMemoryFile()
+template<class Allocator>
+inline CMemoryFileEx<Allocator>::~CMemoryFileEx()
 {
 	Close();
 }
 
-inline int CMemoryFileEx::Read( void* ptr, int bytesCount )
+template<class Allocator>
+inline int CMemoryFileEx<Allocator>::Read( void* ptr, int bytesCount )
 {
 	if( bytesCount == 0 ) {
 		return 0;
 	}
-	NeoAssert( ptr != 0 );
-	NeoAssert( bytesCount > 0 );
+	AssertFO( ptr != 0 );
+	AssertFO( bytesCount > 0 );
 
 	int size = min( fileLength - currentPosition, bytesCount );
 	if( size <= 0 ) {
@@ -94,14 +103,15 @@ inline int CMemoryFileEx::Read( void* ptr, int bytesCount )
 	return size;
 }
 
-inline void CMemoryFileEx::Write( const void* ptr, int bytesCount )
+template<class Allocator>
+inline void CMemoryFileEx<Allocator>::Write( const void* ptr, int bytesCount )
 {
 	if( bytesCount == 0 ) {
 		return;
 	}
 
-	NeoAssert( ptr != 0 );
-	NeoAssert( bytesCount > 0 );
+	AssertFO( ptr != 0 );
+	AssertFO( bytesCount > 0 );
 
 	int newPosition = currentPosition + bytesCount;
 	if( newPosition > bufferSize ) {
@@ -112,7 +122,8 @@ inline void CMemoryFileEx::Write( const void* ptr, int bytesCount )
 	fileLength = max( fileLength, currentPosition );
 }
 
-inline void CMemoryFileEx::Close()
+template<class Allocator>
+inline void CMemoryFileEx<Allocator>::Close()
 {
 	if( !IsOpen() ) {
 		return;
@@ -128,12 +139,14 @@ inline void CMemoryFileEx::Close()
 	isOpen = false;
 }
 
-inline __int64 CMemoryFileEx::GetPosition() const
+template<class Allocator>
+inline __int64 CMemoryFileEx<Allocator>::GetPosition() const
 {
 	return currentPosition;
 }
 
-inline __int64 CMemoryFileEx::Seek( __int64 offset, TSeekPosition from )
+template<class Allocator>
+inline __int64 CMemoryFileEx<Allocator>::Seek( __int64 offset, TSeekPosition from )
 {
 	__int64 newPosition = currentPosition;
 	switch( from ) {
@@ -147,7 +160,7 @@ inline __int64 CMemoryFileEx::Seek( __int64 offset, TSeekPosition from )
 			newPosition = GetLength() + offset;
 			break;
 		default:
-			NeoAssert( false );
+			AssertFO( false );
 	}
 	if( 0 <= newPosition && newPosition <= INT_MAX ) {
 		currentPosition = to<int>( newPosition );
@@ -158,9 +171,10 @@ inline __int64 CMemoryFileEx::Seek( __int64 offset, TSeekPosition from )
 	return currentPosition;
 }
 
-inline void CMemoryFileEx::SetLength( __int64 newLength )
+template<class Allocator>
+inline void CMemoryFileEx<Allocator>::SetLength( __int64 newLength )
 {
-	NeoAssert( 0 <= newLength && newLength <= INT_MAX );
+	AssertFO( 0 <= newLength && newLength <= INT_MAX );
 	int length32 = to<int>( newLength );
 	if( bufferSize < length32 ) {
 		setBufferSize( length32 );
@@ -171,28 +185,33 @@ inline void CMemoryFileEx::SetLength( __int64 newLength )
 	fileLength = length32;
 }
 
-inline __int64 CMemoryFileEx::GetLength() const
+template<class Allocator>
+inline __int64 CMemoryFileEx<Allocator>::GetLength() const
 {
 	return fileLength;
 }
 
-inline void CMemoryFileEx::Abort()
+template<class Allocator>
+inline void CMemoryFileEx<Allocator>::Abort()
 {
 	Close();
 }
 
-inline void CMemoryFileEx::Flush()
+template<class Allocator>
+inline void CMemoryFileEx<Allocator>::Flush()
 {
 }
 
-inline void CMemoryFileEx::FreeBuffer( BYTE* ptr )
+template<class Allocator>
+inline void CMemoryFileEx<Allocator>::FreeBuffer( BYTE* ptr )
 {
 	CurrentMemoryManager::Free( ptr );
 }
 
-inline BYTE* CMemoryFileEx::GrowBuffer( BYTE* oldBuffer, int oldSize, int newSize )
+template<class Allocator>
+inline BYTE* CMemoryFileEx<Allocator>::GrowBuffer( BYTE* oldBuffer, int oldSize, int newSize )
 {
-	NeoAssert( newSize > oldSize );
+	AssertFO( newSize > oldSize );
 	BYTE* newBuffer = static_cast<BYTE*>( ALLOCATE_MEMORY( CurrentMemoryManager, newSize * sizeof( BYTE ) ) );
 	if( oldSize > 0 ) {
 		::memcpy( newBuffer, oldBuffer, oldSize );
@@ -203,17 +222,19 @@ inline BYTE* CMemoryFileEx::GrowBuffer( BYTE* oldBuffer, int oldSize, int newSiz
 	return newBuffer;
 }
 
-inline void CMemoryFileEx::setBufferSize( int requiredSize )
+template<class Allocator>
+inline void CMemoryFileEx<Allocator>::setBufferSize( int requiredSize )
 {
-	NeoAssert( growBytes > 0 );
+	AssertFO( growBytes > 0 );
 	// Exponential enlargement, newBufferSize >= requiredSize
 	int newBufferSize = max( bufferSize + bufferSize / 2, CeilTo( requiredSize, growBytes ) );
 	buffer = GrowBuffer( buffer, bufferSize, newBufferSize );
-	NeoAssert( buffer != 0 );
+	AssertFO( buffer != 0 );
 	bufferSize = newBufferSize;
 }
 
-inline void CMemoryFileEx::throwBadSeekException()
+template<class Allocator>
+inline void CMemoryFileEx<Allocator>::throwBadSeekException()
 {
 #if FINE_PLATFORM( FINE_WINDOWS )
 	ThrowFileException( ERROR_SEEK, GetFileName() );
