@@ -55,7 +55,7 @@ CDistributedTraining::CDistributedTraining( CDnn& dnn, int count, TDistributedIn
     mathEngines.SetSize( count );
     CreateDistributedCpuMathEngines( mathEngines.GetPtr(), count );
     CMemoryFile file;
-	CArchive archive( &file, CArchive::SD_Storing );
+    CArchive archive( &file, CArchive::SD_Storing );
     dnn.Serialize( archive );
     archive.Close();
     file.SeekToBegin();

@@ -18,6 +18,8 @@ limitations under the License.
 
 #include <TestFixture.h>
 
+#ifdef NEOML_USE_OMP
+
 using namespace NeoML;
 using namespace NeoMLTest;
 
@@ -211,4 +213,4 @@ TEST( CDnnDistributedTest, DnnDistributedSerializeTest )
     }
 }
 
-
+#endif
