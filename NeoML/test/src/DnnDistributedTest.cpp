@@ -26,7 +26,7 @@ public:
     CCustomDataset( int _inputSize, int _labelSize )
         : inputSize( _inputSize ), labelSize( _labelSize )  {};
 
-    void SetInputBatch( CDnn& cnn, int thread ) override
+    void SetInputBatch( CDnn& cnn, int ) override
     {
         CArray<float> inArr;
         inArr.Add( 1, inputSize );
@@ -47,7 +47,7 @@ private:
     int labelSize;
 };
 
-static void buildDnn( CDnn& cnn, int inputSize, int outputSize )
+static void buildDnn( CDnn& cnn, int outputSize )
 {
     CPtr<CSourceLayer> dataLayer = new CSourceLayer( cnn.GetMathEngine() );
     dataLayer->SetName( "in" );
@@ -87,7 +87,7 @@ TEST( CDnnDistributedTest, DnnDistributedNoArchiveTest )
     int inputSize = 1000;
     int outputSize = 5;
     CDnn cnn( rand, *mathEngine );
-    buildDnn( cnn, inputSize, outputSize );
+    buildDnn( cnn, outputSize );
 
     CDistributedTraining distributed( cnn, 2 );
     CCustomDataset dataset( inputSize, outputSize );
@@ -115,7 +115,7 @@ TEST( CDnnDistributedTest, DnnDistributedArchiveTest )
     int inputSize = 1000;
     int outputSize = 5;
     CDnn cnn( rand, *mathEngine );
-    buildDnn( cnn, inputSize, outputSize );
+    buildDnn( cnn, outputSize );
 
     CString archiveName = "distributed";
     {
@@ -163,7 +163,7 @@ TEST( CDnnDistributedTest, DnnDistributedSerializeTest )
     int inputSize = 1000;
     int outputSize = 5;
     CDnn cnn( rand, *mathEngine );
-    buildDnn( cnn, inputSize, outputSize );
+    buildDnn( cnn, outputSize );
 
     CDistributedTraining distributed( cnn, 3 );
     CCustomDataset dataset( inputSize, outputSize );
