@@ -53,7 +53,7 @@ private:
 	int bufferSize; // current buffer size
 	int fileLength; // file size
 	int growBytes; // minimum increment of buffer size
-	int currentPosition; // file pointer current offset
+	int currentPosition; // current offset of the file pointer
 	bool isOpen; // whether file is open
 
 	void setBufferSize( int requiredSize );
