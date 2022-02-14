@@ -209,29 +209,29 @@ inline void vectorAdd( const float* first, const float* second, float* result, i
 
 //------------------------------------------------------------------------------------------------------------
 
-inline void alignedVectorAdd( float* first, const float* second, int vectorSize )
+inline void alignedVectorAdd( const float* first, float* second, int vectorSize )
 {
 	int coord = 0;
 
-	for( ; coord <= vectorSize - 16; coord += 16, first += 16, second += 16 ) {
-		NEON_LOAD_16_FLOATS(first, first);
+	for( ; coord <= vectorSize - 16; coord += 16, second += 16, first += 16 ) {
 		NEON_LOAD_16_FLOATS(second, second);
+		NEON_LOAD_16_FLOATS(first, first);
 
-		float32x4_t result0 = vaddq_f32(first0, second0);
-		float32x4_t result1 = vaddq_f32(first1, second1);
-		float32x4_t result2 = vaddq_f32(first2, second2);
-		float32x4_t result3 = vaddq_f32(first3, second3);
+		float32x4_t result0 = vaddq_f32(second0, first0);
+		float32x4_t result1 = vaddq_f32(second1, first1);
+		float32x4_t result2 = vaddq_f32(second2, first2);
+		float32x4_t result3 = vaddq_f32(second3, first3);
 
-		NEON_STORE_16_FLOATS(result, first);
+		NEON_STORE_16_FLOATS(result, second);
 	}
 
-	for( ; coord <= vectorSize - 4; coord += 4, first += 4, second += 4 ) {
-		float32x4_t first0 = LoadNeon4(first);
+	for( ; coord <= vectorSize - 4; coord += 4, second += 4, first += 4 ) {
 		float32x4_t second0 = LoadNeon4(second);
+		float32x4_t first0 = LoadNeon4(first);
 
-		float32x4_t result0 = vaddq_f32(first0, second0);
+		float32x4_t result0 = vaddq_f32(second0, first0);
 
-		StoreNeon4(result0, first);
+		StoreNeon4(result0, second);
 	}
 }
 
