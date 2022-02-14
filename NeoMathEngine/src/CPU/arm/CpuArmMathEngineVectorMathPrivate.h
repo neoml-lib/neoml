@@ -467,7 +467,7 @@ inline void vectorReLU( const float* first, float* result, int vectorSize )
 	}
 }
 
-inline void vectorReLU( const float* first, float* result, int vectorSize, float threshold )
+inline void vectorReLUTreshold( const float* first, float* result, int vectorSize, float threshold )
 {
 	int coord = 0;
 

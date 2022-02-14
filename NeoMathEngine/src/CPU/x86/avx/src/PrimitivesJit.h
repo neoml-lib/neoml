@@ -71,7 +71,7 @@ public:
 			initPrimitive<P>();
 		}
 		genInst.lock.unlock();
-		return reinterpret_cast<void*>( const_cast<uint8_t*>( genInst.gen.getCode() ) );
+		return static_cast<void*>( const_cast<uint8_t*>( genInst.gen.getCode() ) );
 	}
 
 private:

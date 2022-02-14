@@ -138,7 +138,7 @@ void CCpuMathEngine::VectorReLU(const CConstFloatHandle& firstHandle,
 		int count;
 		if( OmpGetTaskIndexAndCount( vectorSize, 16, index, count ) ) {
 			if( threshold > 0 ) {
-				vectorReLU( first + index, result + index, count, threshold );
+				vectorReLUTreshold( first + index, result + index, count, threshold );
 			} else {
 				vectorReLU( first + index, result + index, count );
 			}
