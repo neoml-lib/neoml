@@ -146,6 +146,7 @@ private:
 		case TPrimitive::VectorMax:
 			return static_cast<EltwiseGenFunc>( &CJitCommon::vmaxps );
 		case TPrimitive::VectorMultiply:
+		case TPrimitive::VectorEltwiseMultiply:
 			return static_cast<EltwiseGenFunc>( &CJitCommon::vmulps );
 		default:
 			assert( false );

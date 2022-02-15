@@ -104,19 +104,19 @@ void CMathEngineLstmDesc::RunOnceRestOfLstm( const CConstFloatHandle& inputState
 			NeoML::vectorSigmoid( GetRaw( outputData ), GetRaw( outputData ), CurDataSize );
 			
 			// Multiply input gates
-			NeoML::vectorEltwiseMultiply( GetRaw( inputData ), GetRaw( inputTanhData ), GetRaw( inputData ), CurDataSize );
+			vectorEltwiseMultiply( GetRaw( inputData ), GetRaw( inputTanhData ), GetRaw( inputData ), CurDataSize );
 
 			// Multiply state backlink with forget gate
-			NeoML::vectorEltwiseMultiply( GetRaw( forgetData ), GetRaw( inputStateBackLink + OffsetBackLink ), GetRaw( forgetData ), CurDataSize );
+			vectorEltwiseMultiply( GetRaw( forgetData ), GetRaw( inputStateBackLink + OffsetBackLink ), GetRaw( forgetData ), CurDataSize );
 
 			// Append input gate to state backlink
-			NeoML::vectorAdd( GetRaw( forgetData ), GetRaw( inputData ), GetRaw( outputStateBackLink + OffsetBackLink ), CurDataSize );
+			vectorAdd( GetRaw( forgetData ), GetRaw( inputData ), GetRaw( outputStateBackLink + OffsetBackLink ), CurDataSize );
 
 			// Apply tanh to state baclink
-			NeoML::vectorTanh( GetRaw( outputStateBackLink + OffsetBackLink ), GetRaw( inputData ), CurDataSize );
+			vectorTanh( GetRaw( outputStateBackLink + OffsetBackLink ), GetRaw( inputData ), CurDataSize );
 
 			// Multiply output gate with result of previous operation
-			NeoML::vectorEltwiseMultiply( GetRaw( outputData ), GetRaw( inputData ), GetRaw( outputMainBackLink + OffsetBackLink ), CurDataSize );
+			vectorEltwiseMultiply( GetRaw( outputData ), GetRaw( inputData ), GetRaw( outputMainBackLink + OffsetBackLink ), CurDataSize );
 		}
 	}
 }

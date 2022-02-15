@@ -492,11 +492,11 @@ void CCpuMathEngine::VectorEltwiseMultiply(const CConstFloatHandle& firstHandle,
 		NEOML_OMP_NUM_THREADS( curThreadCount ) {
 			int index, count;
 			if( OmpGetTaskIndexAndCount( vectorSize, 16, index, count ) ) {
-				NeoML::vectorEltwiseMultiply( GetRaw( firstHandle + index ), GetRaw( secondHandle + index ), GetRaw( resultHandle + index ), count );
+				vectorEltwiseMultiply( GetRaw( firstHandle + index ), GetRaw( secondHandle + index ), GetRaw( resultHandle + index ), count );
 			}
 		}
 	} else {
-		NeoML::vectorEltwiseMultiply( GetRaw( firstHandle ), GetRaw( secondHandle ), GetRaw( resultHandle ), vectorSize );
+		vectorEltwiseMultiply( GetRaw( firstHandle ), GetRaw( secondHandle ), GetRaw( resultHandle ), vectorSize );
 	}
 }
 

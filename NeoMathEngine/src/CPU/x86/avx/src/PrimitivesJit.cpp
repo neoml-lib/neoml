@@ -243,12 +243,10 @@ void CPrimitivesJit::initEltwisePrimitive( CPrimitivesJit::TPrimitive P, bool ha
 			ymm_t ymmLastOp2 = op2IsScalar ? ymmScalar : ymm2;
 			ymm_t ymmLastRes = ymm2;
 			gen.vmaskmovps( ymmLastOp1, ymmMask, gen.ptr[regOp1Ptr] );
-			if( op2IsScalar ) {
-				( gen.*eltwiseFunc )( ymmLastRes, ymmScalar, ymmLastOp1 );
-			} else {
+			if( !op2IsScalar ) {
 				gen.vmaskmovps( ymmLastOp2, ymmMask, gen.ptr[regOp2Ptr] );
-				( gen.*eltwiseFunc )( ymmLastRes, ymmLastOp1, ymmLastOp2 );
 			}
+			( gen.*eltwiseFunc )( ymmLastRes, ymmLastOp1, ymmLastOp2 );
 			gen.vmaskmovps( gen.ptr[regResPtr], ymmMask, ymmLastRes );
 		}
 	};
@@ -308,7 +306,7 @@ void CPrimitivesJit::initMinMaxFunction( CPrimitivesJit::TPrimitive P, bool useL
 			ymm_t ymmLast = ymm1;
 			gen.vmaskmovps( ymmLast, ymmMask, gen.ptr[regOp1Ptr] );
 			gen.vmaxps( ymmLast, ymmLast, ymmLowerBound );
-			if( P == TPrimitive::VectorReLUTreshold ) {
+			if( useUpperBuond ) {
 				gen.vminps( ymmLast, ymmLast, ymmUpperBound );
 			}
 			gen.vmaskmovps( gen.ptr[regResPtr], ymmMask, ymmLast );
@@ -442,43 +440,7 @@ void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::VectorMultiply>(
 template<>
 void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::VectorEltwiseMultiply>()
 {
-	using namespace Xbyak;
-	using namespace Xbyak::util;
-	// create new instance
-	auto& gen = gens[static_cast< size_t >( TPrimitive::VectorEltwiseMultiply )].gen;
-
-	gen.Prologue( {}, {} );
-
-	// *** Define registers ***
-	const reg64_t regOp1Ptr = Param1;
-	const reg64_t regOp2Ptr = Param2;
-	const reg64_t regResPtr = Param3;
-	const reg64_t regCount = Param4;
-
-
-	auto insertKernel = [&]( unsigned int stepCount ) {
-		if( stepCount > 0 ) {
-			for( unsigned int i = 0; i < stepCount; i++ ) {
-				gen.vmovdqu( Ymm( i ), ptr[regOp1Ptr + i * SizeOfYmm] );
-				gen.vpmulld( Ymm( i ), Ymm( i ), ptr[regOp2Ptr + i * SizeOfYmm] );
-				gen.vmovdqu( ptr[regResPtr + i * SizeOfYmm], Ymm( i ) );
-			}
-			gen.lea( regOp1Ptr, gen.ptr[regOp1Ptr + stepCount * SizeOfYmm] );
-			gen.lea( regOp2Ptr, gen.ptr[regOp2Ptr + stepCount * SizeOfYmm] );
-			gen.lea( regResPtr, gen.ptr[regResPtr + stepCount * SizeOfYmm] );
-		} else {
-			// Tail processing (ymm0 - is always mask)
-			ymm_t ymmMask = ymm0;
-			ymm_t ymmLastOp1 = ymm1;
-			ymm_t ymmLastOp2 = ymm2;
-			ymm_t ymmLastRes = ymmLastOp1;
-			gen.vpmaskmovd( ymmLastOp1, ymmMask, gen.ptr[regOp1Ptr] );
-			gen.vpmulld( ymmLastOp1, ymmLastOp1, ymmLastOp2 );
-			gen.vpmaskmovd( gen.ptr[regResPtr], ymmMask, ymmLastRes );
-		}
-	};
-
-	insertSimpleMathFunction( {}, {}, gen, regCount, insertKernel, { 4, 1, 0 } );
+	initEltwisePrimitive( TPrimitive::VectorEltwiseMultiply, true );
 }
 
 template<>
