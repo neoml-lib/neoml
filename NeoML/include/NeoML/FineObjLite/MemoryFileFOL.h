@@ -28,7 +28,7 @@ template<class Allocator = CurrentMemoryManager>
 class CMemoryFileEx : public CBaseFile {
 public:
 	explicit CMemoryFileEx( int growBytes = MemoryFileDefaultGrowBytes );
-	virtual ~CMemoryFileEx();
+	~CMemoryFileEx() override;
 
 	bool IsOpen() const { return isOpen; }
 
