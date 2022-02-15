@@ -220,7 +220,7 @@ bool CKMeansClustering::denseLloydL2Clusterize( IClusteringData* rawData, int se
 	}
 
 	result.ClusterCount = result.Clusters.Size();
-	assert( result.Clusters.Size() > 0 );
+	NeoAssert( result.Clusters.Size() > 0 );
 	return success;
 }
 
@@ -559,10 +559,10 @@ void CKMeansClustering::assignVectors( const CFloatMatrixDesc& matrix, const CVa
 		if( OmpGetTaskIndexAndCount( matrix.Height, firstVector, vectorCount ) ) {
 			const int lastVector = firstVector + vectorCount;
 			for( int i = firstVector; i < lastVector; i++ ) {
-				bool mustRecalculate = true;
 				if( upperBounds[i] <= closestClusterDist[assignments[i]] ) {
 					continue;
 				} else {
+					bool mustRecalculate = true;
 					for( int c = 0; c < clusters.Size(); c++ ) {
 						if( isPruned( upperBounds, lowerBounds, clusterDists, assignments[i], c, i ) ) {
 							continue;
@@ -753,8 +753,8 @@ void CKMeansClustering::kMeansPlusPlusInitialization( const CDnnBlob& data, int 
 			}
 		}
 
-		assert( nextCoice != -1 );
-		assert( !usedVectors.Has( nextCoice ) );
+		NeoAssert( nextCoice != -1 );
+		NeoAssert( !usedVectors.Has( nextCoice ) );
 		usedVectors.Add( nextCoice );
 		mathEngine.VectorCopy( centers.GetObjectData( k ), data.GetObjectData( nextCoice ), featureCount );
 	}

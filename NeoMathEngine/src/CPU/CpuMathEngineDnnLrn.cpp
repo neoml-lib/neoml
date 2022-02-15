@@ -17,6 +17,7 @@ limitations under the License.
 #pragma hdrstop
 
 #include <CpuMathEngine.h>
+#include <CpuExecutionScope.h>
 #include <CpuMathEnginePrivate.h>
 #include <MathEngineDnnLrn.h>
 #include <MemoryHandleInternal.h>
@@ -38,6 +39,8 @@ CLrnDesc* CCpuMathEngine::InitLrn( const CBlobDesc& source, int windowSize, floa
 void CCpuMathEngine::Lrn( const CLrnDesc& lrnDesc, const CConstFloatHandle& input, const CFloatHandle& invSumHandle,
 	const CFloatHandle& invSumBetaHandle, const CFloatHandle& output )
 {
+	CCpuExecutionScope scope;
+
 	CFloatHandle invSum( invSumHandle.IsNull() ? output : invSumHandle );
 	CFloatHandle invSumBeta( invSumBetaHandle.IsNull() ? output : invSumBetaHandle );
 
@@ -75,6 +78,7 @@ void CCpuMathEngine::LrnBackward( const CLrnDesc& lrnDesc, const CConstFloatHand
 	ASSERT_EXPR( invSumBeta.GetMathEngine() == this );
 	ASSERT_EXPR( output.GetMathEngine() == this );
 	ASSERT_EXPR( inputDiff.GetMathEngine() == this );
+	CCpuExecutionScope scope;
 
 	const CMathEngineLrnDesc& desc = static_cast<const CMathEngineLrnDesc&>( lrnDesc );
 

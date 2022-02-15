@@ -21,6 +21,7 @@ limitations under the License.
 #include "PyMathEngine.h"
 #include "PyDnn.h"
 #include "PyDnnBlob.h"
+#include "PyDnnDistributed.h"
 #include "PyAutoDiff.h"
 #include "PyLayer.h"
 #include "PyAccumulativeLookupLayer.h"
@@ -31,6 +32,7 @@ limitations under the License.
 #include "PyAttentionDecoderLayer.h"
 #include "PyBatchNormalizationLayer.h"
 #include "PyBaseConvLayer.h"
+#include "PyBertConvLayer.h"
 #include "PyBinarizationLayer.h"
 #include "PyCastLayer.h"
 #include "PyConvLayer.h"
@@ -78,12 +80,15 @@ limitations under the License.
 #include "PyInitializer.h"
 #include "PyTiedEmbeddingsLayer.h"
 #include "PyDifferentialEvolution.h"
+#include "PyPCA.h"
 
 PYBIND11_MODULE(PythonWrapper, m) {
 
 	InitializeClustering( m );
 
 	InitializeTrainingModel( m );
+
+	InitializePCA( m );
 
 	InitializeMathEngine( m );
 
@@ -100,6 +105,7 @@ PYBIND11_MODULE(PythonWrapper, m) {
 	InitializeAttentionDecoderLayer( m );
 	InitializeBaseConvLayer( m );
 	InitializeBatchNormalizationLayer( m );
+	InitializeBertConvLayer( m );
 	InitializeBinarizationLayer( m );
 	InitializeCastLayer( m );
 	InitializeConvLayer( m );
@@ -110,6 +116,7 @@ PYBIND11_MODULE(PythonWrapper, m) {
 	InitializeEltwiseLayer( m );
 	InitializeDotProductLayer( m );
 	InitializeDropoutLayer( m );
+	InitializeDistributedTraining( m );
 	InitializeFullyConnectedLayer( m );
 	InitializeImageConversionLayer( m );
 	InitializeIndRnnLayer( m );

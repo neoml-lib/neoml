@@ -53,7 +53,7 @@ public:
 	void SetLabelType( TBlobType newLabelType );
 
 protected:
-	virtual ~CFullyConnectedSourceLayer();
+	~CFullyConnectedSourceLayer() override;
 
 	void Reshape() override;
 	void RunOnce() override;

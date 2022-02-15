@@ -22,7 +22,7 @@ namespace NeoML {
 // Statistics accumulated in a node
 class CDecisionTreeNodeStatisticBase {
 public:
-	virtual ~CDecisionTreeNodeStatisticBase() {}
+	virtual ~CDecisionTreeNodeStatisticBase() = default;
 
 	// Adds a vector to the statistics
 	virtual void AddVector( int index, const CFloatVectorDesc& vector ) = 0;

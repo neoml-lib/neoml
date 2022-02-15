@@ -56,7 +56,7 @@ public:
 	CPtr<IGradientTape> Tape() const { return tape; }
 	
 protected:
-	virtual ~CTapeBlob();
+	~CTapeBlob() override;
 
 	// Detaches the blob from the tape.
 	void Detach() const;

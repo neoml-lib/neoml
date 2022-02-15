@@ -20,7 +20,6 @@
 - *IsDiscreteFeature* — для каждого из признаков (по порядковому номеру) сообщает, принимает ли он лишь дискретные значения;
 - *GetVectorCount* — число векторов в наборе, т.е. различных объектов, которые мы классифицируем;
 - *GetClass* — класс, к которому принадлежит вектор с заданным порядковым номером; классы обозначаются номерами от 0 до (*GetClassCount* - 1);
-- *GetVector* — вектор с заданным порядковым номером;
 - *GetMatrix* — все вектора набора в виде матрицы (размером *GetFeatureCount* * *GetVectorCount*);
 - *GetVectorWeight* — вес вектора.
 
@@ -44,9 +43,6 @@ public:
 	// Получить номер класса для вектора [0, GetClassCount())
 	virtual int GetClass( int index ) const = 0;
 
-	// Получить вектор набора.
-	virtual CFloatVectorDesc GetVector( int index ) const = 0;
-
 	// Получить все вектора набора.
 	virtual CFloatMatrixDesc GetMatrix() const = 0;
 
@@ -68,7 +64,6 @@ public:
 
 - *GetFeatureCount* — число признаков, которыми характеризуются объекты (т.е. длина одного вектора входных данных);
 - *GetVectorCount* — число векторов в наборе, т.е. различных объектов, на которых вычисляются значения функции;
-- *GetVector* — вектор с заданным порядковым номером;
 - *GetMatrix* — все вектора набора в виде матрицы (размером *GetFeatureCount* * *GetVectorCount*);
 - *GetVectorWeight* — вес вектора;
 - *GetValue* — значение функции на векторе с заданным номером (скаляр в случае `IRegressionProblem`, вектор в случае `IMultivariateRegressionProblem`);
@@ -82,9 +77,6 @@ public:
 
 	// Количество векторов в наборе данных.
 	virtual int GetVectorCount() const = 0;
-
-	// Получить вектор из набора.
-	virtual CFloatVectorDesc GetVector( int index ) const = 0;
 
 	// Получить все вектора набора.
 	virtual CFloatMatrixDesc GetMatrix() const = 0;

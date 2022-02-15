@@ -113,7 +113,7 @@ inline static void findQsLeaves( const IRegressionTreeNode* root, CHashTable<con
 // Serialization interface for the optimized tree
 class IQsSerializer {
 public:
-	virtual ~IQsSerializer() {}
+	virtual ~IQsSerializer() = default;
 	
 	// Reads a node
 	virtual void Read( int& featureIndex, float& value, bool& isQsLeaf ) = 0;

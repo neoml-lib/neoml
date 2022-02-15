@@ -546,6 +546,15 @@ public:
 	virtual void MatrixSpreadRows( const CConstIntHandle& sourceHandle, int height, int width,
 		const CIntHandle& resultHandle, int resultHeight, const CConstIntHandle& indexHandle,
 		const CConstIntHandle& fillValue ) = 0;
+
+	// Computes the singular value decomposition of the dense matrix `a`: `a` = `u` * `s` * `vt`
+	virtual void SingularValueDecomposition( const CFloatHandle& a, int n, int m, const CFloatHandle& u, const CFloatHandle& s,
+		const CFloatHandle& vt, const CFloatHandle& superb, bool returnLeftVectors, bool returnRightVectors ) = 0;
+	// Computes the truncated singular value decomposition of the sparse matrix using `components` largest singular values
+	// If returnLeftVectors is true return only left singular vectors, otherwise only right
+	virtual void SparseSingularValueDecomposition( const CSparseMatrixDesc& desc, int height, int width,
+		const CFloatHandle& leftVectors, const CFloatHandle& s, const CFloatHandle& rightVectors, const CFloatHandle& res,
+		int components, bool returnLeftVectors ) = 0;
 };
 
 // Blob operations descriptors
@@ -563,6 +572,7 @@ struct NEOMATHENGINE_API C3dMeanPoolingDesc : public CCrtAllocatedObject { publi
 struct NEOMATHENGINE_API CGlobalMaxOverTimePoolingDesc : public CCrtAllocatedObject { public: virtual ~CGlobalMaxOverTimePoolingDesc(); };
 struct NEOMATHENGINE_API CMaxOverTimePoolingDesc : public CCrtAllocatedObject { public: virtual ~CMaxOverTimePoolingDesc(); };
 struct NEOMATHENGINE_API CLrnDesc : public CCrtAllocatedObject { public: virtual ~CLrnDesc(); };
+struct NEOMATHENGINE_API CLstmDesc : public CCrtAllocatedObject { public: virtual ~CLstmDesc(); };
 
 //------------------------------------------------------------------------------------------------------------
 // RLE format
@@ -620,12 +630,12 @@ public:
 	virtual CTimeConvolutionDesc* InitTimeConvolution( const CBlobDesc& source, int stride, int paddingFront,
 		int paddingBack, int dilation, const CBlobDesc& filter, const CBlobDesc& result ) = 0;
 
-	virtual void BlobTimeConvolution( const CTimeConvolutionDesc& desc, const CFloatHandle& source,
-		const CFloatHandle& filter, const CFloatHandle& freeTerm, const CFloatHandle& result ) = 0;
-	virtual void BlobTimeConvolutionBackward( const CTimeConvolutionDesc& desc, const CFloatHandle& outputDiff,
-		const CFloatHandle& filter, const CFloatHandle& freeTerm, const CFloatHandle& inputDiff ) = 0;
-	virtual void BlobTimeConvolutionLearnAdd( const CTimeConvolutionDesc& desc, const CFloatHandle& input,
-		const CFloatHandle& outputDiff, const CFloatHandle& filterDiff, const CFloatHandle& freeTermDiff ) = 0;
+	virtual void BlobTimeConvolution( const CTimeConvolutionDesc& desc, const CConstFloatHandle& source,
+		const CConstFloatHandle& filter, const CConstFloatHandle& freeTerm, const CFloatHandle& result ) = 0;
+	virtual void BlobTimeConvolutionBackward( const CTimeConvolutionDesc& desc, const CConstFloatHandle& outputDiff,
+		const CConstFloatHandle& filter, const CConstFloatHandle& freeTerm, const CFloatHandle& inputDiff ) = 0;
+	virtual void BlobTimeConvolutionLearnAdd( const CTimeConvolutionDesc& desc, const CConstFloatHandle& input,
+		const CConstFloatHandle& outputDiff, const CFloatHandle& filterDiff, const CFloatHandle& freeTermDiff ) = 0;
 
 	// 3D convolution
 	// The descriptor should be destroyed using the standard delete operator after use.
@@ -634,12 +644,12 @@ public:
 		int strideHeight, int strideWidth, int strideDepth,
 		const CBlobDesc& filter, const CBlobDesc& output ) = 0;
 
-	virtual void Blob3dConvolution( const C3dConvolutionDesc& desc, const CFloatHandle& source,
-		const CFloatHandle& filter, const CFloatHandle* freeTerm, const CFloatHandle& result ) = 0;
-	virtual void Blob3dConvolutionBackward( const C3dConvolutionDesc& desc, const CFloatHandle& source,
-		const CFloatHandle& filter, const CFloatHandle* freeTerm, const CFloatHandle& result ) = 0;
-	virtual void Blob3dConvolutionLearnAdd( const C3dConvolutionDesc& desc, const CFloatHandle& input,
-		const CFloatHandle& outputDiff, const CFloatHandle& filterDiff,
+	virtual void Blob3dConvolution( const C3dConvolutionDesc& desc, const CConstFloatHandle& source,
+		const CConstFloatHandle& filter, const CConstFloatHandle* freeTerm, const CFloatHandle& result ) = 0;
+	virtual void Blob3dConvolutionBackward( const C3dConvolutionDesc& desc, const CConstFloatHandle& source,
+		const CConstFloatHandle& filter, const CConstFloatHandle* freeTerm, const CFloatHandle& result ) = 0;
+	virtual void Blob3dConvolutionLearnAdd( const C3dConvolutionDesc& desc, const CConstFloatHandle& input,
+		const CConstFloatHandle& outputDiff, const CFloatHandle& filterDiff,
 		const CFloatHandle* freeTermDiff, bool isFreeTermDiffFromInput ) = 0;
 
 	// Convolution
@@ -648,12 +658,12 @@ public:
 		int strideHeight, int strideWidth, int dilationHeight, int dilationWidth, const CBlobDesc& filter,
 		const CBlobDesc& output ) = 0;
 
-	virtual void BlobConvolution( const CConvolutionDesc& desc, const CFloatHandle& source,
-		const CFloatHandle& filter, const CFloatHandle* freeTerm, const CFloatHandle& result ) = 0;
-	virtual void BlobConvolutionBackward( const CConvolutionDesc& desc, const CFloatHandle& outputDiff,
-		const CFloatHandle& filter, const CFloatHandle* freeTerm, const CFloatHandle& inputDiff ) = 0;
-	virtual void BlobConvolutionLearnAdd( const CConvolutionDesc& desc, const CFloatHandle& input,
-		const CFloatHandle& outputDiff, const CFloatHandle& filterDiff,
+	virtual void BlobConvolution( const CConvolutionDesc& desc, const CConstFloatHandle& source,
+		const CConstFloatHandle& filter, const CConstFloatHandle* freeTerm, const CFloatHandle& result ) = 0;
+	virtual void BlobConvolutionBackward( const CConvolutionDesc& desc, const CConstFloatHandle& outputDiff,
+		const CConstFloatHandle& filter, const CConstFloatHandle* freeTerm, const CFloatHandle& inputDiff ) = 0;
+	virtual void BlobConvolutionLearnAdd( const CConvolutionDesc& desc, const CConstFloatHandle& input,
+		const CConstFloatHandle& outputDiff, const CFloatHandle& filterDiff,
 		const CFloatHandle* freeTermDiff, bool isFreeTermDiffFromInput ) = 0;
 
 	// Calculates channelwise convolution
@@ -668,11 +678,11 @@ public:
 	// Calculates the derivative by the input for the channelwise convolution 
 	// when the derivative by the output is known
 	virtual void BlobChannelwiseConvolutionBackward( const CChannelwiseConvolutionDesc& desc,
-		const CFloatHandle& source, const CFloatHandle& filter, const CFloatHandle& result ) = 0;
+		const CConstFloatHandle& source, const CConstFloatHandle& filter, const CFloatHandle& result ) = 0;
 	// Calculates the derivative by parameters for the channelwise convolution
 	// when the input and the derivative by the output are known
 	virtual void BlobChannelwiseConvolutionLearnAdd( const CChannelwiseConvolutionDesc& desc,
-		const CFloatHandle& input, const CFloatHandle& outputDiff, const CFloatHandle& filterDiff,
+		const CConstFloatHandle& input, const CConstFloatHandle& outputDiff, const CFloatHandle& filterDiff,
 		const CFloatHandle* freeTermDiff ) = 0;
 
 	// GlobalMaxPooling
@@ -768,10 +778,10 @@ public:
 		float nonStrokeValue, int strideHeight, int strideWidth, const CBlobDesc& filter,
 		const CBlobDesc& output ) = 0;
 
-	virtual void BlobRleConvolution( const CRleConvolutionDesc& desc, const CFloatHandle& source,
-		const CFloatHandle& filter, const CFloatHandle* freeTerm, const CFloatHandle& result ) = 0;
-	virtual void BlobRleConvolutionLearnAdd( const CRleConvolutionDesc& desc, const CFloatHandle& input,
-		const CFloatHandle& outputDiff, const CFloatHandle& filterDiff, const CFloatHandle* freeTermDiff ) = 0;
+	virtual void BlobRleConvolution( const CRleConvolutionDesc& desc, const CConstFloatHandle& source,
+		const CConstFloatHandle& filter, const CConstFloatHandle* freeTerm, const CFloatHandle& result ) = 0;
+	virtual void BlobRleConvolutionLearnAdd( const CRleConvolutionDesc& desc, const CConstFloatHandle& input,
+		const CConstFloatHandle& outputDiff, const CFloatHandle& filterDiff, const CFloatHandle* freeTermDiff ) = 0;
 
 	// Renumbers the blob elements for a reorg transformation
 	// On forward pass, the blob height and width will be reduced by "stride" times, 
@@ -897,6 +907,16 @@ public:
 		const CConstFloatHandle& outputDiff, const CConstFloatHandle& invSum, const CConstFloatHandle& invSumBeta,
 		const CFloatHandle& inputDiff ) = 0;
 
+	// If currentDesc isn't nullptr, it will be reinitialized with new values and pointer to it will be returned.
+	// Otherwise new descriptor will be created.
+	virtual CLstmDesc* InitLstm( CLstmDesc* currentDesc, const CFloatHandle& inputFullyConnectedResult, const CFloatHandle& reccurentFullyConnectedResult,
+		int hiddenSize, int objectCount, int objectSize ) = 0;
+	virtual void Lstm( CLstmDesc& desc, 
+		const CFloatHandle& inputWeights, const CConstFloatHandle& inputFreeTerm,
+		const CFloatHandle& recurrentWeights, const CConstFloatHandle& recurrentFreeTerm,
+		const CConstFloatHandle& inputStateBackLink, const CConstFloatHandle& inputMainBackLink, const CConstFloatHandle& input,
+		const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink ) = 0;
+
 	// CTC
 
 	// Calculates CTC loss (and gradient if needed)
@@ -921,6 +941,24 @@ public:
 		const CConstFloatHandle& result, const CConstIntHandle& labels,
 		const CConstIntHandle& labelLens, const CConstIntHandle& resultLens, const CConstFloatHandle& labelWeights,
 		const CFloatHandle& loss, const CFloatHandle& lossGradient ) = 0;
+
+	// BERT Conv operations
+	virtual void BertConv( const CConstFloatHandle& dataHandle, const CConstFloatHandle& kernelHandle,
+		int seqLen, int batchSize, int numHeads, int headSize, int kernelSize, const CFloatHandle& outputHandle ) = 0;
+	virtual void BertConvBackward( const CConstFloatHandle& dataHandle, const CConstFloatHandle& kernelHandle,
+		const CConstFloatHandle& outDiffHandle, int seqLen, int batchSize, int numHeads, int headSize, int kernelSize,
+		const CFloatHandle& dataDiffHandle, const CFloatHandle& kernelDiffHandle ) = 0;
+};
+
+//------------------------------------------------------------------------------------------------------------
+
+// The position in distributed system
+struct CMathEngineDistributedInfo {
+	int Thread; // number among all threads
+	int Threads; // number of all threads
+
+	CMathEngineDistributedInfo() : Thread( 0 ), Threads( 1 ) {};
+	CMathEngineDistributedInfo( int thread, int threads ) : Thread( thread ), Threads( threads ) {};
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -1010,6 +1048,12 @@ public:
 	// Creates a object for aggregating statistics.
 	// This object should be destroyed using the standard delete operator after use.
 	virtual IPerformanceCounters* CreatePerformanceCounters() const = 0;
+
+	virtual CMathEngineDistributedInfo GetDistributedInfo() { return CMathEngineDistributedInfo(); }
+	virtual void AllReduce( const CFloatHandle& handle, int size ) = 0;
+	virtual void Broadcast( const CFloatHandle& handle, int size, int root ) = 0;
+	virtual void AbortDistributed() {};
+	virtual bool IsDistributed() { return false; }
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -1068,6 +1112,12 @@ public:
 // Should be destroyed after use with the standard delete operator
 // You should call SetMathEngineExceptionHandler() before this call
 NEOMATHENGINE_API IGpuMathEngineManager* CreateGpuMathEngineManager();
+
+// Creates `count` cpu MathEngines connected via distributed communicator object
+NEOMATHENGINE_API void CreateDistributedCpuMathEngines( IMathEngine** mathEngines, int count );
+// Creates `count` gpu MathEngines connected via distributed communicator object
+// i-th MathEngine placed on gpu with number devs[i]
+NEOMATHENGINE_API void CreateDistributedCudaMathEngines( IMathEngine** mathEngines, int devsCount, const int* cudaDevs );
 
 } // namespace NeoML
 

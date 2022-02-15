@@ -7,6 +7,7 @@ target_sources(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/AddMatrixElementsToVectorTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/AddVectorToMatrixElementsTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/AddWidthIndexTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/BertConvBackwardTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Blob3dConvolutionBackwardTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Blob3dConvolutionLearnAddTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Blob3dMaxPoolingBackwardTest.cpp

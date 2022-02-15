@@ -37,9 +37,7 @@ CIsoDataClustering::CIsoDataClustering( const CParam& _params ) :
 	history.SetBufferSize( params.MaxIterations );
 }
 
-CIsoDataClustering::~CIsoDataClustering()
-{
-}
+CIsoDataClustering::~CIsoDataClustering() = default;
 
 bool CIsoDataClustering::Clusterize( IClusteringData* input, CClusteringResult& result )
 {
@@ -310,8 +308,9 @@ bool CIsoDataClustering::splitByFeature(  const CFloatMatrixDesc& matrix, const 
 	double splitingMeans2 = 0;
 
 	for( int i = 0; i < means.Size(); i++ ) {
-		double means1 = means[i] - sqrt( dispSquare[i] / elements.Size() ) * 1.0;
-		double means2 = means[i] + sqrt( dispSquare[i] / elements.Size() ) * 1.0;
+		double m = means[i];
+		double means1 = m - sqrt( dispSquare[i] / elements.Size() ) * 1.0;
+		double means2 = m + sqrt( dispSquare[i] / elements.Size() ) * 1.0;
 		double sum1 = 0;
 		double sum2 = 0;
 		double weight1 = 0;
@@ -319,7 +318,7 @@ bool CIsoDataClustering::splitByFeature(  const CFloatMatrixDesc& matrix, const 
 
 		for( int j = 0; j < elements.Size(); j++ ) {
 			double value = elementsVectors[j][i];
-			if( abs( value - means1 ) < abs( value - means2 ) ) {
+			if( value < m ) {
 				sum1 += value * elementsWeight[j];
 				weight1 += elementsWeight[j];
 			} else {

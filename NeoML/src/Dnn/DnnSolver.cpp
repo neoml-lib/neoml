@@ -169,6 +169,11 @@ void CDnnSolver::AddDiff( CBaseLayer* layer, const CObjectArray<CDnnBlob>& param
 {
 	NeoAssert( layer != 0 );
 
+	if( MathEngine().IsDistributed() && !layersToReduce.Has( layer ) ) {
+		layersToReduce.Add( layer );
+		reduceOrder.Add( layer );
+	}
+
 	CDiffBlobSum& paramDiffBlobsSum = layerToParamDiffBlobsSum.GetOrCreateValue( layer );
 
 	if( !sharedWeights ) {
@@ -222,6 +227,10 @@ void CDnnSolver::Train()
 		paramDiffBlobsSum.Sum.Empty();
 		paramDiffBlobsSum.Count = 0;
 	}
+
+	if( MathEngine().IsDistributed() ){
+		allReduce();
+	}
 }
 
 void CDnnSolver::Reset()
@@ -229,6 +238,19 @@ void CDnnSolver::Reset()
 	layerToParamDiffBlobsSum.DeleteAll();
 	layerToGradientHistory.DeleteAll();
 	OnReset();
+}
+
+void CDnnSolver::allReduce()
+{
+	for( int i = 0; i < reduceOrder.Size(); ++i ) {
+		const CObjectArray<CDnnBlob>& params = reduceOrder[i]->paramBlobs;
+		for( int j = 0; j < params.Size(); j++ ) {
+			MathEngine().AllReduce( params[j]->GetData(), params[j]->GetDataSize() );
+		}
+	}
+
+	layersToReduce.Empty();
+	reduceOrder.Empty();
 }
 
 void CDnnSolver::clipGradients(const CObjectArray<CDnnBlob>& paramDiffBlobs)
@@ -293,6 +315,8 @@ void CDnnSolver::Serialize( CArchive& archive, CDnn& dnn )
 
 		layerToParamDiffBlobsSum.DeleteAll();
 		layerToGradientHistory.DeleteAll();
+		layersToReduce.DeleteAll();
+		reduceOrder.DeleteAll();
 
 		int size;
 		archive >> size;
@@ -738,6 +762,7 @@ CDnnLambGradientSolver::CDnnLambGradientSolver( IMathEngine& mathEngine ) :
 	tempVariables( CDnnBlob::CreateVector( mathEngine, CT_Float, TV_Count ) ),
 	totalGradientNorm( 1.0f )
 {
+	SetL2Regularization( 0.01f );
 }
 
 void CDnnLambGradientSolver::ExcludeWeightDecayLayer( const char* layerName, TExcludeLayerNameMatchType type,
@@ -899,11 +924,20 @@ void CDnnLambGradientSolver::TrainLayer( const CBaseLayer* layer, const CObjectA
 	}
 }
 
-// L2 norm of a vector
-float CDnnLambGradientSolver::calcL2Norm( const CConstFloatHandle& data, int dataSize ) const
+// L2 norm of a vector devided by vector size.
+float CDnnLambGradientSolver::calcL2NormAverage( const CConstFloatHandle& data, int dataSize ) const
 {
+	NeoAssert( dataSize > 0 );
+
 	tempVariables->GetData( { TV_L2NormVar } ).SetValue( 0.f );
-	MathEngine().VectorDotProduct( data, data, dataSize, tempVariables->GetData( { TV_L2NormVar } ) );
+
+	CFloatHandleStackVar multiplier{ MathEngine() };
+	multiplier.SetValue( 1.0f / dataSize );
+
+	CPtr<CDnnBlob> temp = CDnnBlob::CreateVector( MathEngine(), CT_Float, dataSize );
+	MathEngine().VectorMultiply( data, temp->GetData(), dataSize, multiplier );
+
+	MathEngine().VectorDotProduct( temp->GetData(), temp->GetData(), dataSize, tempVariables->GetData( { TV_L2NormVar } ) );
 
 	const float result = tempVariables->GetData( { TV_L2NormVar } ).GetValue();
 	return static_cast<float>( sqrt( result ) );
@@ -956,12 +990,12 @@ void CDnnLambGradientSolver::getWeightDecayIndices( const CBaseLayer& layer, int
 void CDnnLambGradientSolver::calcNormalizeMultiplier( const CDnnBlob& weights, const CDnnBlob& update,
 	const CFloatHandle& multiplierVar ) const
 {
-	float weightNorm = calcL2Norm( weights.GetData(), weights.GetDataSize() );
+	float weightNorm = calcL2NormAverage( weights.GetData(), weights.GetDataSize() );
 	if( weightDecayClip > 0 ) {
 		weightNorm = min( weightNorm, weightDecayClip );
 	}
 
-	const float updateNorm = calcL2Norm( update.GetData(), update.GetDataSize() );
+	const float updateNorm = calcL2NormAverage( update.GetData(), update.GetDataSize() );
 
 	float multiplier = 0;
 	if( weightNorm > 0 && updateNorm > 0 ) {

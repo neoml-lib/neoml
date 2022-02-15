@@ -40,6 +40,21 @@ void CDnnXavierInitializer::InitializeLayerParams(CDnnBlob& blob, int inputCount
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
+void CDnnXavierUniformInitializer::InitializeLayerParams( CDnnBlob& blob, int inputCount )
+{
+	const double bound = sqrt( 1. / max( inputCount, 1 ) );
+	float* buffer = blob.GetBuffer<float>( 0, blob.GetDataSize(), false );
+
+	float* data = buffer;
+	for( int i = 0; i < blob.GetDataSize(); ++i ) {
+		*data++ = static_cast<float>( Random().Uniform( -bound, bound ) );
+	}
+
+	blob.ReleaseBuffer( buffer, true );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////
 CDnnUniformInitializer::CDnnUniformInitializer(CRandom& _random) :
 	CDnnInitializer(_random), lowerBound(-1.f), upperBound(1.f)
 {
@@ -61,6 +76,17 @@ void CDnnUniformInitializer::InitializeLayerParams(CDnnBlob& blob, int)
 	}
 
 	blob.CopyFrom(tempData.GetPtr());
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+void CDnnDistributedInitializer::InitializeLayerParams( CDnnBlob& blob, int inputCount )
+{
+	if( mathEngine->GetDistributedInfo().Thread == 0 ){
+		baseInitializer->InitializeLayerParams( blob, inputCount );
+	}
+
+	mathEngine->Broadcast( blob.GetData(), blob.GetDataSize(), 0 );
 }
 
 }

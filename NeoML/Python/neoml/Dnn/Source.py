@@ -52,4 +52,4 @@ class Source(Layer):
     def get_blob(self):
         """Gets the blob with source data.
         """
-        return Blob(self._internal.get_blob())
+        return Blob.Blob(self._internal.get_blob())

@@ -28,7 +28,7 @@ DECLARE_NEOML_MODEL_NAME( SvmBinaryModelName, "FmlSvmBinaryModel" )
 // Support-vector machine binary classifier
 class NEOML_API ISvmBinaryModel : public IModel {
 public:
-	virtual ~ISvmBinaryModel();
+	~ISvmBinaryModel() override;
 
 	// Gets the kernel type
 	virtual CSvmKernel::TKernelType GetKernelType() const = 0;

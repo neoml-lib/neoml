@@ -51,7 +51,7 @@ public:
 	};
 
 	explicit CFirstComeClustering( const CParam& params );
-	virtual ~CFirstComeClustering() {}
+	~CFirstComeClustering() override = default;
 
 	// Sets a text stream for logging processing
 	// By default logging is off (set to null to turn off)

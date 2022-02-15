@@ -66,7 +66,7 @@ private:
 	void skipOne();
 };
 
-inline CMathEngineRandom::CMathEngineRandom() {}
+inline CMathEngineRandom::CMathEngineRandom() = default;
 
 inline CMathEngineRandom::CMathEngineRandom( int seed )
 {

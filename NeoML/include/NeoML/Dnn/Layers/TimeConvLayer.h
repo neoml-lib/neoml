@@ -67,7 +67,7 @@ public:
 	// Sets padding in both sides of BD_BatchLength
 	void SetPadding( int _padding );
 protected:
-	virtual ~CTimeConvLayer() { destroyDesc(); }
+	~CTimeConvLayer() override { destroyDesc(); }
 
 	// CBaseLayer methods
 	void Reshape() override;

@@ -884,6 +884,14 @@ The default initializer. It generates the weights using the normal distribution 
 .. autoclass:: neoml.Dnn.Xavier
    :members:
 
+XavierUniform
+******************
+
+The default initializer. It generates the weights using the uniform distribution ``U(-sqrt(1/n), sqrt(1/n))``, where `n` is the input size.
+
+.. autoclass:: neoml.Dnn.XavierUniform
+   :members:
+
 Uniform
 *************
 

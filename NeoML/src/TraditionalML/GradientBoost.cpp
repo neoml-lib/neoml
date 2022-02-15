@@ -31,17 +31,11 @@ namespace NeoML {
 
 const double MaxExpArgument = 30; // the maximum argument for an exponent
 
-IGradientBoostModel::~IGradientBoostModel()
-{
-}
+IGradientBoostModel::~IGradientBoostModel() = default;
 
-IGradientBoostRegressionModel::~IGradientBoostRegressionModel()
-{
-}
+IGradientBoostRegressionModel::~IGradientBoostRegressionModel() = default;
 
-IRegressionTreeNode::~IRegressionTreeNode()
-{
-}
+IRegressionTreeNode::~IRegressionTreeNode() = default;
 
 // Loss function interface
 class IGradientBoostingLossFunction : public virtual IObject {
@@ -95,7 +89,7 @@ double CGradientBoostingBinomialLossFunction::CalcLossMean( const CArray< CArray
 	for( int i = 0; i < predicts.Size(); ++i ) {
 		double sum = 0;
 		for( int j = 0; j < predicts[i].Size(); ++j ) {
-			sum += log( 1 + exp( min( -predicts[i][j], MaxExpArgument ) ) ) - predicts[i][j] * answers[i][j]; 
+			sum += log1p( exp( min( -predicts[i][j], MaxExpArgument ) ) ) - predicts[i][j] * answers[i][j]; 
 		}
 		overallSum += getMean( sum, predicts[i].Size() );
 	}
@@ -316,9 +310,7 @@ CGradientBoost::CGradientBoost( const CParams& _params ) :
 	NeoAssert( params.MinSubsetWeight >= 0 );
 }
 
-CGradientBoost::~CGradientBoost()
-{
-}
+CGradientBoost::~CGradientBoost() = default;
 
 CPtr<IMultivariateRegressionModel> CGradientBoost::TrainRegression(
 	const IMultivariateRegressionProblem& problem )
@@ -485,7 +477,7 @@ void CGradientBoost::initialize()
 // Performs gradient boosting iteration
 // On a sub-problem of the first problem using cache
 void CGradientBoost::executeStep( IGradientBoostingLossFunction& lossFunction,
-	const IMultivariateRegressionProblem* problem, CObjectArray<IRegressionTreeNode>& curModels )
+	const IMultivariateRegressionProblem* problem, CGradientBoostEnsemble& curModels )
 {
 	NeoAssert( !models.IsEmpty() );
 	NeoAssert( curModels.IsEmpty() );
@@ -771,7 +763,7 @@ bool CGradientBoost::trainStep()
 		}
 
 		// Gradient boosting step
-		CObjectArray<IRegressionTreeNode> curIterationModels; // a new model for multi-class classification
+		CGradientBoostEnsemble curIterationModels; // a new model for multi-class classification
 		executeStep( *lossFunction, baseProblem, curIterationModels );
 
 		for( int j = 0; j < curIterationModels.Size(); j++ ) {

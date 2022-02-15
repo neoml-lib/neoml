@@ -63,7 +63,7 @@ public:
 	double CalcDistance( const CFloatVectorDesc& element, TDistanceFunc distanceFunc ) const;
 
 protected:
-	virtual ~CCommonCluster() {} // delete operation is prohibited
+	~CCommonCluster()  override = default; // delete operation is prohibited
 
 private:
 	const CParams params; // cluster parameters

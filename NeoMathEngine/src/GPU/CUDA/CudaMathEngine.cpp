@@ -191,6 +191,47 @@ void CCudaMathEngine::GetMathEngineInfo( CMathEngineInfo& info ) const
 	::strcpy( info.Name, devProp.name );
 }
 
+void CCudaMathEngine::AllReduce( const CFloatHandle& handle, int size )
+{
+	ASSERT_EXPR( handle.GetMathEngine() == this );
+	ASSERT_EXPR( size >= 0 );
+#ifdef NEOML_USE_NCCL
+	if( ncclCommunicator != nullptr ){
+		ncclCommunicator->AllReduce( handle, size );
+	}
+#endif
+}
+
+void CCudaMathEngine::AbortDistributed()
+{
+#ifdef NEOML_USE_NCCL
+	if( ncclCommunicator != nullptr ){
+		ncclCommunicator->Abort();
+	}
+#endif
+}
+
+void CCudaMathEngine::Broadcast( const CFloatHandle& handle, int size, int root )
+{
+	ASSERT_EXPR( handle.GetMathEngine() == this );
+	ASSERT_EXPR( size >= 0 );
+	ASSERT_EXPR( root >= 0 );
+#ifdef NEOML_USE_NCCL
+	if( ncclCommunicator != nullptr ){
+		ncclCommunicator->Broadcast( handle, size, root );
+	}
+#endif
+}
+
+#ifdef NEOML_USE_NCCL
+void CCudaMathEngine::SetDistributedCommunicator( const ncclUniqueId& uniqueId, const CMathEngineDistributedInfo& info,
+	std::shared_ptr<std::atomic<bool>> isAbort )
+{
+	ncclCommunicator = std::make_unique<CCudaDistributedCommunicator>( uniqueId, info, isAbort );
+	distributedInfo = info;
+}
+#endif
+
 } // namespace NeoML
 
 #endif // NEOML_USE_CUDA

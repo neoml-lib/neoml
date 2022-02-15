@@ -24,7 +24,7 @@ public:
 
 	CGradientBoostStatisticsSingle();
 	explicit CGradientBoostStatisticsSingle( int valueSize );
-	explicit CGradientBoostStatisticsSingle( const CGradientBoostStatisticsSingle& other );
+	CGradientBoostStatisticsSingle( const CGradientBoostStatisticsSingle& other );
 	explicit CGradientBoostStatisticsSingle( double gradient, double hessian, double weight );
 	CGradientBoostStatisticsSingle& operator=( const CGradientBoostStatisticsSingle& other );
 

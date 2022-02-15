@@ -51,7 +51,7 @@ public:
 
 protected:
 	// delete prohibited
-	virtual ~CGradientBoostFastHistProblem() {}
+	~CGradientBoostFastHistProblem() override = default;
 
 private:
 	// A feature value

@@ -279,7 +279,7 @@ void CGradientBoostFullTreeBuilder<T>::distributeVectorsByNodes( const CGradient
 				}
 			}
 
-			i += params.ThreadCount;
+			i += OmpGetThreadCount();
 		}
 	}
 
@@ -327,7 +327,7 @@ void CGradientBoostFullTreeBuilder<T>::findSplits( const CGradientBoostFullProbl
 				findSplits( threadNumber, gradients, hessians, weights, i,
 					 reinterpret_cast<const CFloatVectorElement*>( problem.GetUsedFeatureDataPtr( i ) ), problem.GetUsedFeatureDataSize( i ) );
 			}
-			i += params.ThreadCount;
+			i += OmpGetThreadCount();
 		}
 	}
 }

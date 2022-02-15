@@ -74,12 +74,11 @@ private:
 
 	// The information about a memory block
 	struct CUsedInfo {
-		size_t size;
-		CMemoryBuffer* buffer;
-		CMemoryBufferPool* pool;
+		size_t size{};
+		CMemoryBuffer* buffer{};
+		CMemoryBufferPool* pool{};
 
-		CUsedInfo() :
-			size( 0 ), buffer( nullptr), pool( 0 ) {}
+		CUsedInfo() = default;
 		CUsedInfo(size_t _size, CMemoryBuffer* _buffer, CMemoryBufferPool* _pool) :
 			size(_size), buffer(_buffer), pool(_pool) {}
 	};

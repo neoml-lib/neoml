@@ -44,7 +44,7 @@ public:
 	void SetBatchwise( bool value );
 
 protected:
-	virtual ~CDropoutLayer() { destroyDropoutDesc(); }
+	~CDropoutLayer() override { destroyDropoutDesc(); }
 
 	// CBaseLayer methods
 	void RunOnce() override;

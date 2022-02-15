@@ -40,10 +40,10 @@ public:
 	void SetChannelIndex( int val );
 
 protected:
-	virtual void Reshape() override;
-	virtual void RunOnce() override;
-	virtual void BackwardOnce() override;
-	virtual void LearnOnce() override;
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
+	void LearnOnce() override;
 
 private:
 	// Embedding layer name from which we take the matrix.

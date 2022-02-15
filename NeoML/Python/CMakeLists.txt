@@ -44,6 +44,7 @@ pybind11_add_module(PythonWrapper
     src/PyAttentionDecoderLayer.cpp
     src/PyBaseConvLayer.cpp
     src/PyBatchNormalizationLayer.cpp
+    src/PyBertConvLayer.cpp
     src/PyBinarizationLayer.cpp
     src/PyConcatLayer.cpp
     src/PyCastLayer.cpp
@@ -56,6 +57,7 @@ pybind11_add_module(PythonWrapper
     src/PyDifferentialEvolution.cpp
     src/PyDotProductLayer.cpp
     src/PyDropoutLayer.cpp
+    src/PyDnnDistributed.cpp
     src/PyDnn.cpp
     src/PyDnnBlob.cpp
     src/PyEltwiseLayer.cpp
@@ -75,6 +77,7 @@ pybind11_add_module(PythonWrapper
     src/PyMultichannelLookupLayer.cpp
     src/PyMultiheadAttentionLayer.cpp
     src/PyObjectNormalizationLayer.cpp
+    src/PyPCA.cpp
     src/PyPoolingLayer.cpp
     src/PyPositionalEmbeddingLayer.cpp
     src/PyPrecisionRecallLayer.cpp

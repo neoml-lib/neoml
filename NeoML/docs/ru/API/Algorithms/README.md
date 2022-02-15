@@ -92,12 +92,150 @@ public:
 Запустить алгоритм можно, например, так:
 
 ```c++
+// Функция оценивающая параметры CSvm
+// Из-за того что дифференциальная эволющия подбирает каждый параметр линейно на промежутке [min;max]
+// Поэтому для некоторых параметров мы ищем их оптимальные логарифмы (по основанию 10)
+class CSvmEvaluation : public IFunctionEvaluation {
+private:
+	// Подбираемые параметры CSvm
+	enum TSvmParam {
+		SP_KernelType, // Тип ядра CSvm (enum интерпретируемый как int)
+		SP_LogErrorWeight, // Логарифм параметра ErrorWeight
+		SP_MaxIterations, // Максимальное число итераций
+		SP_Degree, // Параметр Degree
+		SP_LogGamma, // Логарифм параметра Gamma
+		SP_LogCoeff0, // Логарифм параметра Coeff0
+		SP_LogTolerance, // Логарифм параметра Tolerance
+
+		SP_Count // Размер вектора параметров
+	};
+public:
+	// Принимает на вход данные и количество частей, используемых при кросс-валидации
+	explicit CSvmEvaluation( const IProblem& problem, int cvFolds ) :
+		problem( &problem ), cvFolds( cvFolds ) {}
+
+	// IFunctionEvaluation interface 
+
+	// Число элементов в векторе параметров
+	int NumberOfDimensions() const override { return static_cast<int>( SP_Count ); }
+
+	// Тип каждого параметра в векторе
+	const IParamTraits& GetParamTraits( int index ) const override
+	{
+		switch( static_cast<TSvmParam>( index ) ) {
+			case SP_KernelType:
+			case SP_MaxIterations:
+			case SP_Degree:
+				return CIntTraits::GetInstance();
+			case SP_LogErrorWeight:
+			case SP_LogGamma:
+			case SP_LogCoeff0:
+			case SP_LogTolerance:
+				return CDoubleTraits::GetInstance();
+			case SP_Count:
+			default:
+				NeoAssert( false );
+		}
+		return CIntTraits::GetInstance();
+	}
+
+	// Тип оптимизируемого значения 
+	const IParamTraits& GetResultTraits() const override { return CDoubleTraits::GetInstance(); }
+
+	// Минимальные значения каждого из элементов
+	CFunctionParam GetMinConstraint( int index ) const override
+	{
+		switch( static_cast<TSvmParam>( index ) ) {
+			case SP_KernelType:
+				return CIntTraits::GetInstance().Box( static_cast<int>( CSvmKernel::KT_Linear ) );
+			case SP_LogErrorWeight:
+				return CDoubleTraits::GetInstance().Box( -3. );
+			case SP_MaxIterations:
+				return CIntTraits::GetInstance().Box( 10 );
+			case SP_Degree:
+				return CIntTraits::GetInstance().Box( 1 );
+			case SP_LogGamma:
+				return CDoubleTraits::GetInstance().Box( -3. );
+			case SP_LogCoeff0:
+				return CDoubleTraits::GetInstance().Box( -3. );
+			case SP_LogTolerance:
+				return CDoubleTraits::GetInstance().Box( -4 );
+			default:
+				NeoAssert( false );
+		}
+		return CDoubleTraits::GetInstance().Box( 1 );
+	}
+
+	// Максимальные значения каждого из элементов
+	CFunctionParam GetMaxConstraint( int index ) const override
+	{
+		switch( static_cast<TSvmParam>( index ) ) {
+			case SP_KernelType:
+				return CIntTraits::GetInstance().Box( static_cast<int>( CSvmKernel::KT_Sigmoid ) );
+			case SP_LogErrorWeight:
+				return CDoubleTraits::GetInstance().Box( 3. );
+			case SP_MaxIterations:
+				return CIntTraits::GetInstance().Box( 1000 );
+			case SP_Degree:
+				return CIntTraits::GetInstance().Box( 5 );
+			case SP_LogGamma:
+				return CDoubleTraits::GetInstance().Box( 3 );
+			case SP_LogCoeff0:
+				return CDoubleTraits::GetInstance().Box( 3 );
+			case SP_LogTolerance:
+				return CDoubleTraits::GetInstance().Box( -1 );
+			default:
+				NeoAssert( false );
+		}
+		return CDoubleTraits::GetInstance().Box( 1 );
+	}
+
+	// Оценка одного вектора параметров
+	// В нашем случае это средний результат кросс-валидации CSvm с этими параметрами
+	// на данных, переданных в конструкторе
+	CFunctionParam Evaluate( const CFunctionParamVector& param ) override
+	{
+		// Некоторые параметры использовать как показатель степени!
+		CSvm::CParams svmParams(
+			static_cast<CSvmKernel::TKernelType>( CIntTraits::GetInstance().Unbox( param[SP_KernelType] ) ),
+			::pow( 10., CDoubleTraits::GetInstance().Unbox( param[SP_LogErrorWeight] ) ),
+			CIntTraits::GetInstance().Unbox( param[SP_MaxIterations] ),
+			CIntTraits::GetInstance().Unbox( param[SP_Degree] ),
+			::pow( 10., CDoubleTraits::GetInstance().Unbox( param[SP_LogGamma] ) ),
+			::pow( 10., CDoubleTraits::GetInstance().Unbox( param[SP_LogCoeff0] ) ),
+			::pow( 10., CDoubleTraits::GetInstance().Unbox( param[SP_LogTolerance] ) ),
+			true,
+			OmpGetMaxThreadCount(),
+			MM_OneVsOne
+		);
+
+		CSvm svm( svmParams );
+		CCrossValidation cv( svm, problem );
+		CCrossValidationResult cvResult;
+		cv.Execute( cvFolds, AccuracyScore, cvResult, true );
+
+		double total = 0;
+		for( int i = 0; i < cvResult.Success.Size(); ++i ) {
+			total += cvResult.Success[i];
+		}
+		// В данной задаче мы пытаемся максимизировать accuracy.
+		// А дифф. эволюция пытается найти минимум целевого значения.
+		// Потому используем -accuracy как оптимизируемое значение.
+		return CDoubleTraits::GetInstance().Box( -total / cvResult.Success.Size() );
+	}
+
+private:
+	CPtr<const IProblem> problem;
+	int cvFolds;
+};
+
 double fluctuation = 0.5; // коэффициент флуктуации.
 double crossProbability = 0.5; // вероятность мутации.
-const int populationSize = 100; // размер популяции.
+const int populationSize = 20; // размер популяции.
 
-CDifferentialEvolution evolution( func, fluctuation, crossProbability, populationSize );
-evolution.SetMaxGenerationCount( 200 );
+CSvmEvaluation svmEval( *problem, 5 );
+CDifferentialEvolution evolution( svmEval, fluctuation, crossProbability, populationSize );
+evolution.SetMaxGenerationCount( 100 );
 evolution.SetMaxNonGrowingBestValue( 10 );
 
 evolution.RunOptimization();

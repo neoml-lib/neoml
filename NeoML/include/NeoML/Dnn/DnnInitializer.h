@@ -47,6 +47,17 @@ public:
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
+// Initializes a blob using the Xavier algorithm with uniform distribution
+// (randomly chosen values from ~U(-sqrt(1/<the input size>), sqrt(1/<the input size>))
+class NEOML_API CDnnXavierUniformInitializer : public CDnnInitializer {
+public:
+	explicit CDnnXavierUniformInitializer( CRandom& random ) : CDnnInitializer( random ) {}
+
+	void InitializeLayerParams( CDnnBlob& blob, int inputCount ) override;
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+
 // Initializes a blob using uniform distribution
 class NEOML_API CDnnUniformInitializer : public CDnnInitializer {
 public:
@@ -66,6 +77,21 @@ public:
 private:
 	float lowerBound;
 	float upperBound;
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// CDnnDistributedInitializer for distributed mathEngines
+// Initialization only in root, then root broadcasts to all
+class NEOML_API CDnnDistributedInitializer : public CDnnInitializer {
+public:
+	explicit CDnnDistributedInitializer( CRandom& _random, IMathEngine* _mathEngine, const CPtr<CDnnInitializer>& initializer ) :
+		CDnnInitializer( _random ), mathEngine( _mathEngine ), baseInitializer( initializer ) {}
+
+	void InitializeLayerParams( CDnnBlob& blob, int inputCount ) override;
+private:
+	IMathEngine* mathEngine;
+	CPtr<CDnnInitializer> baseInitializer;
 };
 
 } // namespace NeoML

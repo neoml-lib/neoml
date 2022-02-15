@@ -68,7 +68,7 @@ static inline bool hasConverged( const CArray<float>& matByProb, float probByMat
 	const int classCount = matByProb.Size();
 	NeoPresume( classCount > 1 );
 	for( int i = 0; i < classCount; ++i ) {
-		const float diff = fabs( probByMatByProb - matByProb[i] );
+		const float diff = ::fabsf( probByMatByProb - matByProb[i] );
 		if( diff > eps ) {
 			return false;
 		}

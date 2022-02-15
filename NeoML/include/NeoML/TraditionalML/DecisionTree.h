@@ -89,7 +89,7 @@ DECLARE_NEOML_MODEL_NAME( DecisionTreeModelName, "FmlDecisionTreeClassificationM
 // Classification model interface
 class NEOML_API IDecisionTreeModel : public IModel {
 public:
-	virtual ~IDecisionTreeModel();
+	~IDecisionTreeModel() override;
 
 	// Gets the number of child nodes
 	virtual int GetChildrenCount() const = 0;
@@ -158,13 +158,13 @@ public:
 
 	// All features will be used
 	explicit CDecisionTree( const CParams& params, CRandom* random = 0 );
-	~CDecisionTree();
+	~CDecisionTree() override;
 
 	// Set a text stream to log the progress
 	void SetLog( CTextStream* newLog ) { logStream = newLog; }
 
 	// The ITrainingModel interface methods:
-	virtual CPtr<IModel> Train( const IProblem& problem );
+	CPtr<IModel> Train( const IProblem& problem ) override;
 
 private:
 	static const int MaxClassifyNodesCacheSize = 10 * Megabyte; // the cache size for leaf nodes

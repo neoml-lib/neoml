@@ -1,0 +1,50 @@
+/* Copyright © 2017-2021 ABBYY Production LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+--------------------------------------------------------------------------------------------------------------*/
+
+layout(std430, binding=1) readonly buffer Data { float data[]; };
+layout(std430, binding=2) readonly buffer Kernel { float kernel[]; };
+layout(std430, binding=3) buffer Result { float result[]; };
+
+void main()
+{
+	const int taskCount = P.seqLen * P.batchSize * P.numHeads * P.headSize;
+	if( ID_X >= taskCount ) {
+		return;
+	}
+	int index = ID_X;
+
+	const int pad = ( P.kernelSize - 1 ) / 2;
+	const int dataSeqStep = P.batchSize * P.numHeads * P.headSize;
+
+	const int outputOffset = index;
+	const int h = index % P.headSize;
+	index /= P.headSize;
+	const int b = index % ( P.batchSize * P.numHeads );
+	const int seq = index / ( P.batchSize * P.numHeads );
+
+	const int kernelOffset = index * P.kernelSize;
+
+	float res = 0.f;
+	const int kernelStart = max( 0, pad - seq );
+	const int kernelEnd = min( P.kernelSize, P.seqLen + pad - seq );
+	int dataOffset = h + b * P.headSize + ( seq - pad + kernelStart ) * dataSeqStep;
+
+	for( int k = kernelStart; k < kernelEnd; ++k ) {
+		res += data[dataOffset] * kernel[kernelOffset + k];
+		dataOffset += dataSeqStep;
+	}
+
+	result[outputOffset] = res;
+}

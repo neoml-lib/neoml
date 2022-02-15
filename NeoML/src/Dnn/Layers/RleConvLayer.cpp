@@ -104,7 +104,7 @@ void CRleConvLayer::RunOnce()
 
 	initConvDesc();
 
-	CFloatHandle freeTerms = FreeTerms()->GetData();
+	CConstFloatHandle freeTerms = FreeTerms()->GetData();
 	for( int i = 0; i < inputBlobs.Size(); ++i ) {
 		MathEngine().BlobRleConvolution( *convDesc, inputBlobs[i]->GetData(), Filter()->GetData(),
 			IsZeroFreeTerm() ? 0 : &freeTerms, outputBlobs[i]->GetData() );

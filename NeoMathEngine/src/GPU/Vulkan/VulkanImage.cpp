@@ -134,8 +134,8 @@ bool CVulkanImage::IsImageFit(int& newWidth, int& newHeight) const
 void CVulkanImage::SetWorkingArea(int workingWidth, int workingHeight)
 {
 	ASSERT_EXPR(workingWidth <= width && workingHeight <= height);
-	workingWidth;
-	workingHeight;
+	(void)workingWidth;
+	(void)workingHeight;
 	// no more actions needed
 }
 

@@ -61,7 +61,7 @@ public:
 
 protected:
 	// delete prohibited
-	virtual ~CGradientBoostFullProblem() {}
+	~CGradientBoostFullProblem() override = default;
 
 private:
 	const int threadCount; // the number of processing threads

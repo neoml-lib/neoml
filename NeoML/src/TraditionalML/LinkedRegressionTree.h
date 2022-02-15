@@ -37,25 +37,25 @@ public:
 	const CLinkedRegressionTree* GetPredictionNode( const TVector& data ) const;
 
 	// CRegressionTree methods implementation.
-	virtual void Predict(
+	void Predict(
 		const CFloatVector& features, CPrediction& result ) const override;
-	virtual void Predict(
+	void Predict(
 		const CFloatVectorDesc& features, CPrediction& result ) const override;
-	virtual double Predict( const CFloatVector& features ) const override;
-	virtual double Predict( const CFloatVectorDesc& features ) const override;
-	virtual void CalcFeatureStatistics( int maxFeature, CArray<int>& result ) const override;
+	double Predict( const CFloatVector& features ) const override;
+	double Predict( const CFloatVectorDesc& features ) const override;
+	void CalcFeatureStatistics( int maxFeature, CArray<int>& result ) const override;
 
 	// IRegressionTreeNode interface methods
-	virtual CPtr<const IRegressionTreeNode> GetLeftChild() const override
+	CPtr<const IRegressionTreeNode> GetLeftChild() const override
 		{ return leftChild.Ptr(); }
-	virtual CPtr<const IRegressionTreeNode> GetRightChild() const override
+	CPtr<const IRegressionTreeNode> GetRightChild() const override
 		{ return rightChild.Ptr(); }
-	virtual void GetNodeInfo( CRegressionTreeNodeInfo& result ) const override { result = info; }
+	void GetNodeInfo( CRegressionTreeNodeInfo& result ) const override { result = info; }
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 protected:
-	virtual ~CLinkedRegressionTree(); // delete prohibited
+	~CLinkedRegressionTree() override; // delete prohibited
 
 private:
 	CPtr<CLinkedRegressionTree> leftChild; // left child

@@ -16,12 +16,14 @@ set(CPU_COMMON_SOURCES
     CPU/CpuMathEngineDnnChannelwiseConv.cpp
     CPU/CpuMathEngineDnnDropout.cpp
     CPU/CpuMathEngineDnnLrn.cpp
+    CPU/CpuMathEngineDnnLstm.cpp
     CPU/CpuMathEngineDnn.cpp
     CPU/CpuMathEngineDnnPooling.cpp
     CPU/CpuMathEngineDnnRleConv.cpp
     CPU/CpuMathEngineDnnTimeConv.cpp
     CPU/CpuMathEngine.cpp
     CPU/CpuMathEngineVectorMath.cpp
+    CPU/CpuMathEngineDnnDistributed.cpp
     CrtAllocatedObject.cpp
     DllLoader.cpp
     MathEngineDeviceStackAllocator.cpp
@@ -53,6 +55,9 @@ target_sources(${PROJECT_NAME}
     CPU/CpuRandom.h
     CPU/CpuMathEnginePrivate.h
     CPU/CpuMathEngineOmp.h
+    CPU/CpuMathEngineDnnDistributed.h
+    CPU/CpuMathEngineDnnLstm.h
+    CPU/CpuExecutionScope.h
 
     CPU/MatrixMultiplyingInterleavedCommon/CpuMemoryHelper.h
     CPU/MatrixMultiplyingInterleavedCommon/MatrixMultiplier.h
@@ -80,7 +85,7 @@ set_target_properties( ${PROJECT_NAME} PROPERTIES
 set_property(SOURCE ${CPU_COMMON_SOURCES} PROPERTY UNITY_GROUP 1)
 set_property(SOURCE MathEngineDeviceStackAllocator.cpp PROPERTY SKIP_UNITY_BUILD_INCLUSION ON)
 
-target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_11)
+target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_14)
 
 source_group("Header Files\\NeoMathEngine" REGULAR_EXPRESSION "^.*NeoMathEngine/.+\.h|inl$")
 source_group("CPU" REGULAR_EXPRESSION "CPU\/.*")
@@ -181,6 +186,10 @@ if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
         if(WIN32)
             set(CMAKE_CUDA_COMPILER "${CMAKE_CUDA_COMPILER}.exe")
         endif()
+
+        if(LINUX)
+            set(NCCL_ROOT_DIR $ENV{ROOT}/ThirdParty/CUDA/Linux/nccl)
+        endif()
     endif() # USE_FINE_OBJECTS
 
     include(CheckLanguage)
@@ -210,7 +219,8 @@ if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
                 $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_35,code=compute_35>
                 $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_61,code=sm_61>
                 $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_75,code=sm_75>
-                $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_86,code=sm_86>)
+                $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_86,code=sm_86>
+                $<$<COMPILE_LANGUAGE:CUDA>:-Wno-deprecated-gpu-targets>)
             target_sources(${PROJECT_NAME}
                 PRIVATE
                     GPU/CUDA/CublasDll.cpp
@@ -218,6 +228,7 @@ if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
                     GPU/CUDA/CudaDevice.cpp
                     GPU/CUDA/CudaMathEngine.cpp
                     GPU/CUDA/CusparseDll.cpp
+                    GPU/CUDA/NcclDll.cpp
                     # CUDA Sources
                     GPU/CUDA/CudaMathEngineBlas.cu
                     GPU/CUDA/CudaMathEngineCublas.cu
@@ -229,14 +240,18 @@ if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
                     GPU/CUDA/CudaMathEngineDnn.cu
                     GPU/CUDA/CudaMathEngineDnnDropout.cu
                     GPU/CUDA/CudaMathEngineDnnLrn.cu
+                    GPU/CUDA/CudaMathEngineDnnLstm.cu
                     GPU/CUDA/CudaMathEngineDnnPoolings.cu
                     GPU/CUDA/CudaMathEngineDnnRleConv.cu
                     GPU/CUDA/CudaMathEngineDnnTimeConv.cu
                     GPU/CUDA/CudaMathEngine.cu
                     GPU/CUDA/CudaMathEngineVectorMath.cu
+                    GPU/CUDA/CudaMathEngineDnnDistributed.cpp
                     # Headers
                     GPU/CUDA/CublasDll.h
                     GPU/CUDA/CublasFunctions.h
+                    GPU/CUDA/NcclDll.h
+                    GPU/CUDA/NcclFunctions.h
                     GPU/CUDA/CudaAssert.h
                     GPU/CUDA/CudaBlobDesc.h
                     GPU/CUDA/CudaCommon.h
@@ -270,6 +285,14 @@ if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
             target_include_directories(${PROJECT_NAME} PRIVATE $<BUILD_INTERFACE:${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}>)
             source_group("GPU\\CUDA" REGULAR_EXPRESSION "GPU\/CUDA\/[A-Za-z0-9_]+\.(h|cpp|cu)")
             source_group("GPU\\CUDA\\Kernels" REGULAR_EXPRESSION "GPU\/CUDA\/Kernels\/.+")
+
+            find_path(NCCL_INCLUDE_DIR NAMES nccl.h PATHS ${NCCL_ROOT_DIR})
+
+	        if (NOT "${NCCL_INCLUDE_DIR}" STREQUAL "NCCL_INCLUDE_DIR-NOTFOUND")
+                message(STATUS "Found NCCL (include: ${NCCL_INCLUDE_DIR})")
+                target_compile_definitions(${PROJECT_NAME} PUBLIC -D NEOML_USE_NCCL)
+                target_include_directories(${PROJECT_NAME} PRIVATE ${NCCL_INCLUDE_DIR})
+            endif ()
         endif()
     else()
         message(STATUS "No CUDA support.")
@@ -287,6 +310,7 @@ elseif(IOS)
         GPU/Metal/MetalMathEngineDnnDropout.mm
         GPU/Metal/MetalMathEngineDnnPoolings.mm
         GPU/Metal/MetalMathEngineDnnLrn.mm
+        GPU/Metal/MetalMathEngineDnnLstm.mm
         GPU/Metal/MetalKernel.h
         GPU/Metal/MetalKernel.mm
         GPU/Metal/MetalCommandQueue.h
@@ -354,6 +378,7 @@ if(NeoMathEngine_ENABLE_VULKAN)
                 GPU/Vulkan/VulkanMathEngineDnn.cpp
                 GPU/Vulkan/VulkanMathEngineDnnPoolings.cpp
                 GPU/Vulkan/VulkanMathEngineDnnLrn.cpp
+                GPU/Vulkan/VulkanMathEngineDnnLstm.cpp
                 GPU/Vulkan/VulkanMathEngine.cpp
                 GPU/Vulkan/VulkanMathEngineVectorMath.cpp
                 GPU/Vulkan/VulkanShader.cpp
@@ -398,7 +423,7 @@ endif()
 
 
 # OpenMP
-if(NOT IOS AND NOT (DARWIN AND CMAKE_SYSTEM_PROCESSOR MATCHES "arm64?"))
+if(NOT IOS AND NOT DARWIN)
     link_openmp(${PROJECT_NAME})
 endif()
 
@@ -459,11 +484,10 @@ if(NeoMathEngine_INSTALL)
             file(GLOB CUDA_LIBS ${FINE_ROOT}/ThirdParty/CUDA/Windows/redist/x64/*.dll)
             install(FILES ${CUDA_LIBS} DESTINATION ${FINE_ROOT}/Win${FINE_BUILD_TYPE}.x64)
         elseif(LINUX AND CMAKE_CUDA_COMPILER)
-            file(GLOB CUDA_LIBS ${FINE_ROOT}/ThirdParty/CUDA/Linux/redist/x64/*.so.10)
+            file(GLOB CUDA_LIBS ${FINE_ROOT}/ThirdParty/CUDA/Linux/redist/x64/*.so.11 ${FINE_ROOT}/ThirdParty/CUDA/Linux/redist/x64/libnccl.so)
             install(FILES ${CUDA_LIBS} DESTINATION ${FINE_ROOT}/X.${CMAKE_SYSTEM_NAME}.${FINE_BUILD_TYPE}/x86_64)
         endif()
     else()
-
         install(DIRECTORY ../include/NeoMathEngine DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
         if(CMAKE_PROJECT_NAME STREQUAL "NeoMathEngine")

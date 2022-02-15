@@ -70,6 +70,21 @@ public:
 
 //------------------------------------------------------------------------------------------------------------
 
+class CPyL1LossLayer : public CPyLossLayer {
+public:
+	explicit CPyL1LossLayer( CL1LossLayer& layer, CPyMathEngineOwner& mathEngineOwner ) :
+		CPyLossLayer( layer, mathEngineOwner ) {}
+
+	py::object CreatePythonObject() const
+	{
+		py::object pyModule = py::module::import( "neoml.Dnn" );
+		py::object pyConstructor = pyModule.attr( "L1Loss" );
+		return pyConstructor( py::cast(this) );
+	}
+};
+
+//------------------------------------------------------------------------------------------------------------
+
 class CPyHingeLossLayer : public CPyLossLayer {
 public:
 	explicit CPyHingeLossLayer( CHingeLossLayer& layer, CPyMathEngineOwner& mathEngineOwner ) :
@@ -290,6 +305,33 @@ void InitializeLossLayer( py::module& m )
 
 //------------------------------------------------------------------------------------------------------------
 
+	py::class_<CPyL1LossLayer, CPyLossLayer>(m, "L1Loss")
+		.def( py::init([]( const CPyLayer& layer )
+		{
+			return CPyL1LossLayer( *layer.Layer<CL1LossLayer>(), layer.MathEngineOwner() );
+		}) )
+		.def( py::init([]( const std::string& name, const py::list& layers, const py::list& outputs, float lossWeight )
+		{
+			py::gil_scoped_release release;
+			CDnn& dnn = layers[0].cast<CPyLayer>().Dnn();
+			IMathEngine& mathEngine = dnn.GetMathEngine();
+
+			CPtr<CL1LossLayer> loss = new CL1LossLayer( mathEngine );
+			loss->SetLossWeight( lossWeight );
+			loss->SetName( FindFreeLayerName( dnn, "L1Loss", name ).c_str() );
+			dnn.AddLayer( *loss );
+			loss->Connect( 0, layers[0].cast<CPyLayer>().BaseLayer(), outputs[0].cast<int>() );
+			loss->Connect( 1, layers[1].cast<CPyLayer>().BaseLayer(), outputs[1].cast<int>() );
+			if( layers.size() == 3 ) {
+				loss->Connect( 2, layers[2].cast<CPyLayer>().BaseLayer(), outputs[2].cast<int>() );
+			}
+
+			return CPyL1LossLayer( *loss, layers[0].cast<CPyLayer>().MathEngineOwner() );
+		}) )
+	;
+
+//------------------------------------------------------------------------------------------------------------
+
 	py::class_<CPyHingeLossLayer, CPyLossLayer>(m, "HingeLoss")
 		.def( py::init([]( const CPyLayer& layer )
 		{
@@ -303,7 +345,7 @@ void InitializeLossLayer( py::module& m )
 
 			CPtr<CHingeLossLayer> loss = new CHingeLossLayer( mathEngine );
 			loss->SetLossWeight( lossWeight );
-			loss->SetName( FindFreeLayerName( dnn, "EuclideanLoss", name ).c_str() );
+			loss->SetName( FindFreeLayerName( dnn, "HingeLoss", name ).c_str() );
 			dnn.AddLayer( *loss );
 			loss->Connect( 0, layers[0].cast<CPyLayer>().BaseLayer(), outputs[0].cast<int>() );
 			loss->Connect( 1, layers[1].cast<CPyLayer>().BaseLayer(), outputs[1].cast<int>() );

@@ -235,7 +235,7 @@ void CGradientBoostFastHistTreeBuilder<T>::buildHist( const CGradientBoostFastHi
 				addVectorToHist( problem.GetUsedVectorDataPtr( vectorIndex ), problem.GetUsedVectorDataSize( vectorIndex ),
 					gradients, hessians, weights, tempHistStats.GetPtr() + histSize * threadNumber, vectorIndex );
 				results[threadNumber].Add( gradients, hessians, weights, vectorIndex );
-				i += params.ThreadCount;
+				i += OmpGetThreadCount();
 			}
 		}
 
@@ -420,7 +420,7 @@ void CGradientBoostFastHistTreeBuilder<T>::applySplit( const CGradientBoostFastH
 				vectorSet[vectorPtr + i] = -( vectorSet[vectorPtr + i] + 1 );
 			} // To the right subtree otherwise (no action needed)
 
-			i += params.ThreadCount;
+			i += OmpGetThreadCount();
 		}
 	}
 

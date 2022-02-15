@@ -59,7 +59,7 @@ public:
 	float GetBeta() const { return beta; }
 
 protected:
-	virtual ~CLrnLayer() { destroyDesc(); }
+	~CLrnLayer() override { destroyDesc(); }
 
 	void Reshape() override;
 	void RunOnce() override;

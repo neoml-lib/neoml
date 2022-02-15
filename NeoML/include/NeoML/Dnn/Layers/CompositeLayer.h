@@ -61,7 +61,7 @@ public:
 	size_t GetOutputBlobsSize() const override;
 
 	// Releases all temporary resources allocated for the layer
-	virtual void CleanUp() override;
+	void CleanUp() override;
 
 	// Returns the total size of trainable parameters
 	size_t GetTrainableParametersSize() const override;
@@ -72,7 +72,7 @@ public:
 	void EnableProfile( bool profile ) override;
 
 protected:
-	virtual ~CCompositeLayer();
+	~CCompositeLayer() override;
 
 	void Reshape() override;
 	void RunOnce() override;
@@ -114,7 +114,7 @@ protected:
 private:
 	// Adds/deletes a layer
 	void AddLayerImpl(CBaseLayer& layer) override;
-	void DeleteLayerImpl(CBaseLayer& layer) override;
+	void DeleteLayerImpl(CBaseLayer& layer) final;
 
 	// The internal network object
 	CDnn* internalDnn;

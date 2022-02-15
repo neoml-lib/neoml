@@ -29,7 +29,7 @@ const int DefaultDiscretizationValue = 100;
 // This interface is implemented by the client
 class NEOML_API IProblem : virtual public IObject {
 public:
-	virtual ~IProblem();
+	~IProblem() override;
 
 	// The number of classes
 	virtual int GetClassCount() const = 0;
@@ -64,7 +64,7 @@ public:
 // This interface is implemented by the client
 class NEOML_API IBaseRegressionProblem : virtual public IObject {
 public:
-	virtual ~IBaseRegressionProblem();
+	~IBaseRegressionProblem() override;
 
 	// The number of features
 	virtual int GetFeatureCount() const = 0;
@@ -82,7 +82,7 @@ public:
 // The input data for regression in case the function returns a number
 class NEOML_API IRegressionProblem : public IBaseRegressionProblem {
 public:
-	virtual ~IRegressionProblem();
+	~IRegressionProblem() override;
 
 	// The value of the function on the vector with the given index
 	virtual double GetValue( int index ) const = 0;
@@ -91,7 +91,7 @@ public:
 // The input data for regression in case the function returns a vector
 class NEOML_API IMultivariateRegressionProblem : public IBaseRegressionProblem {
 public:
-	virtual ~IMultivariateRegressionProblem();
+	~IMultivariateRegressionProblem() override;
 
 	// The length of the function value vector
 	virtual int GetValueSize() const = 0;
@@ -103,7 +103,7 @@ public:
 // The interface for accumulating vectors in a data set
 class NEOML_API IDataAccumulator : public IProblem {
 public:
-	virtual ~IDataAccumulator();
+	~IDataAccumulator() override;
 
 	// Adds a vector
 	virtual void AddVector( const CSparseFloatVector& vector, double weight, int classIndex ) = 0;
@@ -115,7 +115,7 @@ public:
 // Subproblem interface
 class NEOML_API ISubProblem : public IProblem {
 public:
-	virtual ~ISubProblem();
+	~ISubProblem() override;
 
 	// Gets the vector index in the original data set
 	virtual int GetOriginalIndex( int index ) const = 0;

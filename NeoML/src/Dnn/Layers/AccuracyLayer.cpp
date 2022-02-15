@@ -143,7 +143,7 @@ void CAccuracyLayer::RunOnceAfterReset()
 						correctlyClassifiedCount += 1;
 					}
 				} else {
-					assert( expectedObjectSize == 1 );
+					NeoAssert( expectedObjectSize == 1 );
 					const int label = Round( expectedBuffer.GetValue( sampleId * expectedObjectSize ) );
 					if( label == expectedClass ) {
 						correctlyClassifiedCount += 1;

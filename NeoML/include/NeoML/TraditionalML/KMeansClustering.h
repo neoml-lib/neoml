@@ -87,7 +87,7 @@ public:
 	CKMeansClustering( const CArray<CClusterCenter>& initialClusters, const CParam& params );
 	// If you do not specify the initial cluster centers, they will be selected randomly from the input data
 	explicit CKMeansClustering( const CParam& params );
-	virtual ~CKMeansClustering() {}
+	~CKMeansClustering() override = default;
 
 	// Sets a text stream for logging processing
 	// By default logging is off (set to null to turn off)

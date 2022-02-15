@@ -30,7 +30,7 @@ namespace NeoML {
 // A dynamic link library
 class CDll : public CCrtAllocatedObject {
 public:
-	CDll() : handle( 0 ) {}
+	CDll() = default;
 	virtual ~CDll() { Free(); }
 
 	// Loads the library
@@ -47,7 +47,7 @@ public:
 	void Free();
 
 private:
-	void* handle;
+	void* handle{};
 };
 
 inline bool CDll::Load( const char* fileName )

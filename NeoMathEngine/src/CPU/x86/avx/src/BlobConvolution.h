@@ -66,8 +66,6 @@ private:
 
         void Run( bool useNarrowProcessing, const float* srcPtr, const float* fltPtr, const float* freeTermPtr, float* resPtr );
 
-        static constexpr unsigned int NumFloatInYmm = 8;
-        static constexpr unsigned int SizeOfYmm = NumFloatInYmm * sizeof( float );
     private:
         // Passed to 'Run()' function as arguments
         const reg64_t regUseNarrowProcessing = Param1;
@@ -104,8 +102,8 @@ private:
         // 'callBeforeFlush' will be called before flushing of result registers. It can be captured labda function.
         void flushResRegs( CBlobConvolution<FltCnt>& bc, size_t stepCount, size_t stepSize, bool useNarrowProcessing );
         void initProcessingMainLoop( CBlobConvolution<FltCnt>& bc,
-            size_t stepCount, size_t stepSize, int batchChannelSize, std::function<void( int )>& fillKernel,
-            size_t windowIndex, bool useNarrowProcessing = false, std::function<void()>* callBeforeFlush = nullptr );
+            size_t stepCount, size_t stepSize, int batchChannelSize, const std::function<void( int )>& fillKernel,
+            size_t windowIndex, bool useNarrowProcessing = false, const std::function<void()>* callBeforeFlush = nullptr );
 
         void circularShift( Xbyak::Ymm* dst, Xbyak::Ymm* src, Xbyak::Ymm* temp = nullptr ) {}
     };

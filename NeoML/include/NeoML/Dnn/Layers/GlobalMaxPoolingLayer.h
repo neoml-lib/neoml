@@ -35,7 +35,7 @@ public:
 	void SetMaxCount(int _enumSize);
 
 protected:
-	virtual ~CGlobalMaxPoolingLayer() { destroyDesc(); }
+	~CGlobalMaxPoolingLayer() override { destroyDesc(); }
 
 	// CBaseLayer methods
 	void Reshape() override;

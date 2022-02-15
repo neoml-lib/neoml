@@ -40,7 +40,7 @@ DECLARE_NEOML_MODEL_NAME( LinearBinaryModelName, "FmlLinearBinaryModel" )
 // Trained classification model interface
 class NEOML_API ILinearBinaryModel : public IModel {
 public:
-	virtual ~ILinearBinaryModel();
+	~ILinearBinaryModel() override;
 
 	// Gets the dividing plane
 	virtual CFloatVector GetPlane() const = 0;
@@ -54,7 +54,7 @@ DECLARE_NEOML_MODEL_NAME( LinearRegressionModelName, "FmlLinearBinaryModel" )
 // Trained regression model interface
 class NEOML_API ILinearRegressionModel : public IRegressionModel {
 public:
-	virtual ~ILinearRegressionModel();
+	~ILinearRegressionModel() override;
 
 	// Gets the dividing plane
 	virtual CFloatVector GetPlane() const = 0;
@@ -95,7 +95,7 @@ public:
 	};
 
 	explicit CLinear( const CParams& params );
-	virtual ~CLinear();
+	~CLinear() override;
 
 	// Sets a text stream for logging processing
 	void SetLog( CTextStream* newLog ) { log = newLog; }

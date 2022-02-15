@@ -45,10 +45,10 @@ class CLambdaHolder<T, Out( In... )> : public CLambdaHolderBase<Out( In... )> {
 public:
 	CLambdaHolder( T _lambda ) : lambda( _lambda ) {}
 
-	virtual Out Execute( In... in )
+	Out Execute( In... in ) override
 		{ return lambda( in... ); }
 
-	virtual CPtr<CLambdaHolderBase<Out( In... )>> Copy()
+	CPtr<CLambdaHolderBase<Out( In... )>> Copy() override
 		{ return new CLambdaHolder<T, Out( In... )>( lambda ); }
 
 private:

@@ -20,6 +20,7 @@ limitations under the License.
 #include <NeoMathEngine/CrtAllocatedObject.h>
 
 #include <CpuMathEngine.h>
+#include <CpuExecutionScope.h>
 #include <CpuMathEnginePrivate.h>
 #include <CpuMathEngineOmp.h>
 #include <MemoryHandleInternal.h>
@@ -94,8 +95,8 @@ CCpuRleConvolutionDesc::CCpuRleConvolutionDesc( IMathEngine& mathEngine, float s
 {
 }
 
-static inline void updateFilterConv( IMathEngine& mathEngine, CCpuRleConvolutionDesc& desc, const CFloatHandle& filterData,
-	const CFloatHandle* freeTermData )
+static inline void updateFilterConv( IMathEngine& mathEngine, CCpuRleConvolutionDesc& desc, const CConstFloatHandle& filterData,
+	const CConstFloatHandle* freeTermData )
 {
 	desc.UpdateNeeded = false;
 
@@ -185,13 +186,14 @@ CRleConvolutionDesc* CCpuMathEngine::InitBlobRleConvolution( const CBlobDesc& so
 	return desc;
 }
 
-void CCpuMathEngine::BlobRleConvolution( const CRleConvolutionDesc& convDesc, const CFloatHandle& sourceData,
-	const CFloatHandle& filterData, const CFloatHandle* freeTerm, const CFloatHandle& resultData )
+void CCpuMathEngine::BlobRleConvolution( const CRleConvolutionDesc& convDesc, const CConstFloatHandle& sourceData,
+	const CConstFloatHandle& filterData, const CConstFloatHandle* freeTerm, const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( filterData.GetMathEngine() == this );
 	ASSERT_EXPR( freeTerm == 0 || freeTerm->GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
+	CCpuExecutionScope scope;
 
 	const CCpuRleConvolutionDesc& desc = static_cast<const CCpuRleConvolutionDesc&>( convDesc );
 	const CBlobDesc& source = desc.Source;
@@ -221,7 +223,7 @@ void CCpuMathEngine::BlobRleConvolution( const CRleConvolutionDesc& convDesc, co
 
 	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
 	for( int b = 0; b < objectCount; ++b ) {
-		const CRleImage* inputImage = reinterpret_cast<CRleImage*>( GetRaw( sourceData + source.ObjectSize() * b ) );
+		const CRleImage* inputImage = reinterpret_cast<const CRleImage*>( GetRaw( sourceData + source.ObjectSize() * b ) );
 		int imageStartPos = ( source.Width() - inputImage->Width ) / 2;
 		int imageStartLine = ( source.Height() - inputImage->Height ) / 2;
 		int imageStopLine = imageStartLine + inputImage->Height;
@@ -276,13 +278,14 @@ void CCpuMathEngine::BlobRleConvolution( const CRleConvolutionDesc& convDesc, co
 	}
 }
 
-void CCpuMathEngine::BlobRleConvolutionLearnAdd( const CRleConvolutionDesc& convDesc, const CFloatHandle& inputData,
-	const CFloatHandle& outputDiffData, const CFloatHandle& filterDiffData, const CFloatHandle* freeTermDiffData )
+void CCpuMathEngine::BlobRleConvolutionLearnAdd( const CRleConvolutionDesc& convDesc, const CConstFloatHandle& inputData,
+	const CConstFloatHandle& outputDiffData, const CFloatHandle& filterDiffData, const CFloatHandle* freeTermDiffData )
 {
 	ASSERT_EXPR( inputData.GetMathEngine() == this );
 	ASSERT_EXPR( outputDiffData.GetMathEngine() == this );
 	ASSERT_EXPR( filterDiffData.GetMathEngine() == this );
 	ASSERT_EXPR( freeTermDiffData == 0 || freeTermDiffData->GetMathEngine() == this );
+	CCpuExecutionScope scope;
 
 	const CCpuRleConvolutionDesc& desc = static_cast<const CCpuRleConvolutionDesc&>( convDesc );
 	const CBlobDesc& input = desc.Source;
@@ -325,7 +328,7 @@ void CCpuMathEngine::BlobRleConvolutionLearnAdd( const CRleConvolutionDesc& conv
 
 	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
 	for( int b = 0; b < objectCount; ++b ) {
-		const CRleImage* inputImage = reinterpret_cast<CRleImage*>( GetRaw( inputData + input.ObjectSize() * b ) );
+		const CRleImage* inputImage = reinterpret_cast<const CRleImage*>( GetRaw( inputData + input.ObjectSize() * b ) );
 		int imageStartPos = ( input.Width() - inputImage->Width ) / 2;
 		int imageStartLine = ( input.Height() - inputImage->Height ) / 2;
 		int imageStopLine = imageStartLine + inputImage->Height;

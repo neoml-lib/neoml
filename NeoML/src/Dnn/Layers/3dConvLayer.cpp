@@ -168,7 +168,7 @@ void C3dConvLayer::RunOnce()
 	initConvDesc();
 
 	for(int i = 0; i < outputBlobs.Size(); ++i) {
-		CFloatHandle freeTerm = FreeTerms()->GetData();
+		CConstFloatHandle freeTerm = FreeTerms()->GetData();
 		MathEngine().Blob3dConvolution( *convDesc, inputBlobs[i]->GetData(), Filter()->GetData(),
 			IsZeroFreeTerm() ? 0 : &freeTerm, outputBlobs[i]->GetData() );
 	}

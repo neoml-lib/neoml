@@ -30,7 +30,7 @@ public:
 	void Serialize( CArchive& archive ) override;
 
 protected:
-	virtual ~C3dTransposedConvLayer() { destroyConvDesc(); }
+	~C3dTransposedConvLayer() override { destroyConvDesc(); }
 
 	void Reshape() override;
 	void RunOnce() override;

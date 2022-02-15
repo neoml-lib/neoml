@@ -50,7 +50,7 @@ public:
 		const CArray<typename T::Type>& gradients, const CArray<typename T::Type>& hessians, const CArray<double>& weights );
 
 protected:
-	virtual ~CGradientBoostFastHistTreeBuilder() {} // delete prohibited
+	~CGradientBoostFastHistTreeBuilder() override = default; // delete prohibited
 
 private:
 	const CGradientBoostFastHistTreeBuilderParams params; // classifier parameters

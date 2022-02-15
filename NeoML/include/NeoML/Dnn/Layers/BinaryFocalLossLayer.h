@@ -53,8 +53,8 @@ private:
 	// Controls the degree to which the algorithm focuses on objects difficult to classify
 	CPtr<CDnnBlob> focalForce;
 
-	void calculateGradient( CFloatHandle onesVector, CFloatHandle entropyValues, CFloatHandle sigmoidVector,
-		CFloatHandle sigmoidMinusOneVector, CConstFloatHandle labels, int batchSize, CFloatHandle lossGradient );
+	void calculateGradient( CFloatHandle entropyValues, CFloatHandle sigmoidVector, CFloatHandle sigmoidMinusOneVector,
+		CConstFloatHandle labels, int batchSize, CFloatHandle lossGradient );
 };
 
 NEOML_API CLayerWrapper<CBinaryFocalLossLayer> BinaryFocalLoss(

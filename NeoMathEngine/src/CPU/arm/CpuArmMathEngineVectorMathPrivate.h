@@ -746,6 +746,59 @@ inline void vectorMinMax( const float* first, float* result, const float minValu
 	}
 }
 
+inline float32x4_t vectorTanhWorker( const float32x4_t& val, const float32x4_t& one, const CExpNeon& expObj )
+{
+	float32x4_t expVal = expObj.Execute( vaddq_f32( val, val ) );
+	return DivideNeon( vsubq_f32( expVal, one ), vaddq_f32( expVal, one ) );
+}
+
+inline void vectorTanh( const float* first, float* result, int vectorSize )
+{
+	int count = GetCount4( vectorSize );
+
+	const float32x4_t one = vdupq_n_f32( 1 );
+	const CExpNeon expObj;
+
+	for( int i = 0; i < count; ++i ) {
+		float32x4_t res = vectorTanhWorker( LoadNeon4( first ), one, expObj );
+		StoreNeon4( res, result );
+
+		first += 4;
+		result += 4;
+	}
+
+	if( vectorSize > 0 ) {
+		float32x4_t res = vectorTanhWorker( LoadNeon( first, vectorSize ), one, expObj );
+		StoreNeon( res, result, vectorSize );
+	}
+}
+
+inline float32x4_t vectorSigmoidWorker( const float32x4_t& val, const float32x4_t& one, const CExpNeon& expObj )
+{
+	return InvNeon( vaddq_f32( one, expObj.Execute( vnegq_f32( val ) ) ) );
+}
+
+inline void vectorSigmoid( const float* first, float* result, int vectorSize )
+{
+	int count = GetCount4( vectorSize );
+
+	const float32x4_t one = vdupq_n_f32( 1 );
+	const CExpNeon expObj;
+
+	for( int i = 0; i < count; ++i ) {
+		float32x4_t res = vectorSigmoidWorker( LoadNeon4( first ), one, expObj );
+		StoreNeon4( res, result );
+
+		first += 4;
+		result += 4;
+	}
+
+	if( vectorSize > 0 ) {
+		float32x4_t res = vectorSigmoidWorker( LoadNeon( first, vectorSize ), one, expObj );
+		StoreNeon( res, result, vectorSize );
+	}
+}
+
 } // namespace NeoML
 
 #endif

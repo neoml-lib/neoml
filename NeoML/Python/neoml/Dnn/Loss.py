@@ -266,6 +266,50 @@ class EuclideanLoss(Loss):
 # ----------------------------------------------------------------------------------------------------------------------
 
 
+class L1Loss(Loss):
+    """The layer that calculates the loss function equal to L1 distance
+    between the objects in the network response and the correct objects.
+    
+    :param input_layers: The input layers to be connected. 
+        The integer in each tuple specifies the number of the output.
+        If not set, the first output will be used.
+    :type input_layers: list of object, tuple(object, int)
+    :param loss_weight: The multiplier for the loss function value during training.
+    :type loss_weight: float, default=1.0
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) the network response for which you are calculating the loss.
+    
+    (2) the correct objects. 
+    
+    (3) (optional): the objects' weights.
+    
+    The dimensions of all inputs are the same:
+
+        - **BatchLength** * **BatchWidth** * **ListSize** - the number of objects
+        - **Height** * **Width** * **Depth** * **Channels** - the object size
+
+    .. rubric:: Layer outputs:
+
+    The layer has no output.
+    """
+    def __init__(self, input_layers, loss_weight=1.0, name=None):
+
+        if type(input_layers) is PythonWrapper.L1Loss:
+            super().__init__(input_layers)
+            return
+
+        layers, outputs = check_input_layers(input_layers, (2, 3))
+
+        internal = PythonWrapper.L1Loss(str(name), layers, outputs, float(loss_weight))
+        super().__init__(internal)
+
+# ----------------------------------------------------------------------------------------------------------------------
+
+
 class HingeLoss(Loss):
     """The layer that calculates hinge loss function for binary classification:
     :math:`f(x) = \max(0, 1 - x * y)`, where 
