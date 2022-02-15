@@ -63,9 +63,7 @@ void CMathEngineLstmDesc::RunOnceRestOfLstm( const CConstFloatHandle& inputState
 	const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink )
 {
 	// Elementwise summ of fully connected layers' results (inplace)
-	const int ResultMatrixHeight = objectCount;
 	const int ResultMatrixWidth = CMathEngineLstmDesc::GatesNum * hiddenSize;
-	const int DataSize = ResultMatrixHeight * hiddenSize;
 
 	const int curThreadCount = IsOmpRelevant( static_cast< int >( objectCount ) ) ? threadCount : 1;
 	NEOML_OMP_NUM_THREADS( curThreadCount ) {
@@ -84,18 +82,17 @@ void CMathEngineLstmDesc::RunOnceRestOfLstm( const CConstFloatHandle& inputState
 			// Rearrange sum
 			const CFloatHandle& hiddenLayerSumRearranged = curReccurentFullyConnectedResult;
 			CFloatHandle inputTanhData = hiddenLayerSumRearranged;
-			CFloatHandle forgetData = inputTanhData + DataSize;
-			CFloatHandle inputData = forgetData + DataSize;
-			CFloatHandle outputData = inputData + DataSize;
+			CFloatHandle forgetData = inputTanhData + CurDataSize;
+			CFloatHandle inputData = forgetData + CurDataSize;
+			CFloatHandle outputData = inputData + CurDataSize;
 
-			int objectSize = hiddenSize;
 			float* rawFrom = GetRaw( hiddenLayerSum );
 			float* rawTo = GetRaw( hiddenLayerSumRearranged );
-			for( int x = offt; x < offt + count; x++ ) {
+			for( int x = 0; x < count; x++ ) {
 				const float* input = rawFrom + x * ResultMatrixWidth;
 				for( int i = 0; i < CMathEngineLstmDesc::GatesNum; ++i ) {
-					memcpy( ( rawTo + i * DataSize ) + x * objectSize, input, objectSize * sizeof( float ) );
-					input += objectSize;
+					memcpy( ( rawTo + i * CurDataSize ) + x * hiddenSize, input, hiddenSize * sizeof( float ) );
+					input += hiddenSize;
 				}
 			}
 

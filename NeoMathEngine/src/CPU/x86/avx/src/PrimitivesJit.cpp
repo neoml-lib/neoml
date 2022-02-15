@@ -50,10 +50,10 @@ void CPrimitivesJit::Exp( float* dst, const float* src, size_t dataSize, bool is
 	callPrimitive<TPrimitive::Exp, ActivationFunc>( dataSize, isMultithread, dst, src );
 }
 
-void CPrimitivesJit::RestOfLstm( CLstmDesc* desc, const CConstFloatHandle& inputStateBackLink,
+void CPrimitivesJit::RestOfLstm( CMathEngineLstmDesc* desc, const CConstFloatHandle& inputStateBackLink,
 	const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink, bool isMultithread )
 {
-	CMathEngineLstmDesc& lstmDesc = dynamic_cast< CMathEngineLstmDesc& >( *desc );
+	CMathEngineLstmDesc& lstmDesc = *desc;
 
 	const float* inputStateBackLinkPtr = GetRaw( inputStateBackLink );
 	float* outputStateBackLinkPtr = GetRaw( outputStateBackLink );
