@@ -154,7 +154,7 @@ void InitializeDistributedTraining(py::module& m)
         .def( "_train", &CPyDistributedTraining::Train_ )
         .def( "_last_losses", &CPyDistributedTraining::LastLosses, py::return_value_policy::reference )
         .def( "_get_output", &CPyDistributedTraining::GetOutput, py::return_value_policy::reference )
-        .def( "_get_model_count", &CPyDistributedTraining::GetModelCount_, py::return_value_policy::reference )
+        .def( "_get_model_count", &CPyDistributedTraining::GetModelCount, py::return_value_policy::reference )
         .def( "_set_solver", &CPyDistributedTraining::SetSolver_, py::return_value_policy::reference )
         .def( "_save", &CPyDistributedTraining::Save )
 	;

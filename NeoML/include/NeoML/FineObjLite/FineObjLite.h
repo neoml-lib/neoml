@@ -22,7 +22,7 @@ limitations under the License.
 #include "AllocFOL.h"
 #include "BaseFileFOL.h"
 #include "ArchiveFOL.h"
-#include "MemoryFile.h"
+#include "MemoryFileFOL.h"
 #include "internal/FastArrayFOL.h"
 #include "ObjectFOL.h"
 #include "ArrayFOL.h"

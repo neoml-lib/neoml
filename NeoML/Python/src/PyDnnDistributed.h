@@ -40,7 +40,6 @@ public:
     void Train_();
     py::array LastLosses( const std::string& layer );
     py::list GetOutput( const std::string& layer );
-    int GetModelCount_() { return GetModelCount(); }
     void SetSolver_( const std::string& path );
     void Save( const std::string& path );
 };

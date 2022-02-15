@@ -33,16 +33,16 @@ public:
 	bool IsOpen() const { return isOpen; }
 
 	// CBaseFile methods:
-	virtual const char* GetFileName() const { return "Memory file."; }
-	virtual int Read( void*, int bytesCount );
-	virtual void Write( const void*, int bytesCount );
-	virtual void Close();
-	virtual __int64 GetPosition() const;
-	virtual __int64 Seek( __int64 offset, CBaseFile::TSeekPosition from );
-	virtual void SetLength( __int64 newLength );
-	virtual __int64 GetLength() const;
-	virtual void Abort();
-	virtual void Flush();
+	const char* GetFileName() const override { return "Memory file."; }
+	int Read( void*, int bytesCount ) override;
+	void Write( const void*, int bytesCount ) override;
+	void Close() override;
+	__int64 GetPosition() const override;
+	__int64 Seek( __int64 offset, CBaseFile::TSeekPosition from ) override;
+	void SetLength( __int64 newLength ) override;
+	__int64 GetLength() const override;
+	void Abort() override;
+	void Flush() override;
 
 protected:
 	virtual void FreeBuffer( BYTE* );
