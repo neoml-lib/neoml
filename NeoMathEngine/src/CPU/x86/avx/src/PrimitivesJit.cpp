@@ -231,10 +231,10 @@ void CPrimitivesJit::initEltwisePrimitive( CPrimitivesJit::TPrimitive P, bool ha
 				}
 				gen.vmovups( ptr[regResPtr + i * SizeOfYmm], Ymm( i ) );
 			}
-			gen.lea( regOp1Ptr, gen.ptr[regOp1Ptr + stepCount * SizeOfYmm] );
-			gen.lea( regResPtr, gen.ptr[regResPtr + stepCount * SizeOfYmm] );
+			gen.add( regOp1Ptr, stepCount * SizeOfYmm );
+			gen.add( regResPtr, stepCount * SizeOfYmm );
 			if( hasOp2 && !op2IsScalar ) {
-				gen.lea( regOp2Ptr, gen.ptr[regOp2Ptr + stepCount * SizeOfYmm] );
+				gen.add( regOp2Ptr, stepCount * SizeOfYmm );
 			}
 		} else {
 			// Tail processing (ymm0 - is always mask)
@@ -298,8 +298,8 @@ void CPrimitivesJit::initMinMaxFunction( CPrimitivesJit::TPrimitive P, bool useL
 				}
 				gen.vmovups( ptr[regResPtr + i * SizeOfYmm], Ymm( i ) );
 			}
-			gen.lea( regOp1Ptr, gen.ptr[regOp1Ptr + stepCount * SizeOfYmm] );
-			gen.lea( regResPtr, gen.ptr[regResPtr + stepCount * SizeOfYmm] );
+			gen.add( regOp1Ptr, stepCount * SizeOfYmm );
+			gen.add( regResPtr, stepCount * SizeOfYmm );
 		} else {
 			// Tail processing (ymm0 - is always mask)
 			ymm_t ymmMask = ymm0;
@@ -412,9 +412,9 @@ void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::VectorAlignedMul
 				gen.vfmadd231ps( Ymm( i ), ymmMul, ptr[regOp2Ptr + i * SizeOfYmm] );
 				gen.vmovups( ptr[regResPtr + i * SizeOfYmm], Ymm( i ) );
 			}
-			gen.lea( regOp1Ptr, gen.ptr[regOp1Ptr + stepCount * SizeOfYmm] );
-			gen.lea( regOp2Ptr, gen.ptr[regOp2Ptr + stepCount * SizeOfYmm] );
-			gen.lea( regResPtr, gen.ptr[regResPtr + stepCount * SizeOfYmm] );
+			gen.add( regOp1Ptr, stepCount * SizeOfYmm );
+			gen.add( regOp2Ptr, stepCount * SizeOfYmm );
+			gen.add( regResPtr, stepCount * SizeOfYmm );
 		} else {
 			// Tail processing (ymm0 - is always mask)
 			ymm_t ymmMask = ymm0;
@@ -469,9 +469,9 @@ void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::VectorEltwiseMul
 				gen.vfmadd231ps( Ymm( i ), Ymm( i + 4 ), ptr[regOp2Ptr + i * SizeOfYmm] );
 				gen.vmovups( ptr[regResPtr + i * SizeOfYmm], Ymm( i ) );
 			}
-			gen.lea( regOp1Ptr, gen.ptr[regOp1Ptr + stepCount * SizeOfYmm] );
-			gen.lea( regOp2Ptr, gen.ptr[regOp2Ptr + stepCount * SizeOfYmm] );
-			gen.lea( regResPtr, gen.ptr[regResPtr + stepCount * SizeOfYmm] );
+			gen.add( regOp1Ptr, stepCount * SizeOfYmm );
+			gen.add( regOp2Ptr, stepCount * SizeOfYmm );
+			gen.add( regResPtr, stepCount * SizeOfYmm );
 		} else {
 			// Tail processing (ymm0 - is always mask)
 			ymm_t ymmMask = ymm0;
@@ -521,8 +521,8 @@ void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::VectorDotProduct
 				gen.vmovups( Ymm( i ), ptr[regOp1Ptr + i * SizeOfYmm] );
 				gen.vfmadd231ps( ymmRes, Ymm( i ), ptr[regOp2Ptr + i * SizeOfYmm] );
 			}
-			gen.lea( regOp1Ptr, gen.ptr[regOp1Ptr + stepCount * SizeOfYmm] );
-			gen.lea( regOp2Ptr, gen.ptr[regOp2Ptr + stepCount * SizeOfYmm] );
+			gen.add( regOp1Ptr, stepCount * SizeOfYmm );
+			gen.add( regOp2Ptr, stepCount * SizeOfYmm );
 		} else {
 			// Tail processing (ymm0 - is always mask)
 			ymm_t ymmMask = ymm0;
@@ -873,13 +873,13 @@ void CPrimitivesJit::initActivationFunction( const std::function<void()>& afterP
 	const reg64_t regCount = Param4;
 
 	auto insertCode = [&]( const ymmVec_t& ymmSrc, const ymmVec_t& ymmAux ) {
-				size_t stepCount = ymmSrc.size();
+				uint32_t stepCount = static_cast<uint32_t>( ymmSrc.size() );
 				gen.StartDownCountLoop( regCount, stepCount * NumFloatInYmm );
-				for( int i = 0; i < stepCount; i++ ) { gen.vmovups( ymmSrc[i], ptr[regSrcPtr + i * SizeOfYmm] ); }
+				for( uint32_t i = 0; i < stepCount; i++ ) { gen.vmovups( ymmSrc[i], ptr[regSrcPtr + i * SizeOfYmm] ); }
 				insertPrimitive<P>( gen, ymmSrc, ymmAux );
-				for( int i = 0; i < stepCount; i++ ) { gen.vmovups( ptr[regDstPtr + i * SizeOfYmm], ymmSrc[i] ); }
-				gen.lea( regSrcPtr, gen.ptr[regSrcPtr + stepCount * SizeOfYmm] );
-				gen.lea( regDstPtr, gen.ptr[regDstPtr + stepCount * SizeOfYmm] );
+				for( uint32_t i = 0; i < stepCount; i++ ) { gen.vmovups( ptr[regDstPtr + i * SizeOfYmm], ymmSrc[i] ); }
+				gen.add( regSrcPtr, stepCount * SizeOfYmm );
+				gen.add( regDstPtr, stepCount * SizeOfYmm );
 				gen.StopDownCountLoop();
 	};
 
