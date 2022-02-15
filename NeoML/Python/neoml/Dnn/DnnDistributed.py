@@ -102,6 +102,9 @@ class DnnDistributed(PythonWrapper.DnnDistributed):
         .. rubric:: Layer outputs:
 
             The array of losses for all models.
+
+        :return: The array of losses for all models.
+        :rtype: *ndarray of shape (model_count,)*
         """
         return self._last_losses(str(layer_name))
 
@@ -112,9 +115,8 @@ class DnnDistributed(PythonWrapper.DnnDistributed):
             `layer_name` should correspond to neoml.Sink.
         :type layer_name: str
 
-        .. rubric:: Layer outputs:
-
-            The list of output blobs for all models. Default cpu math engine is used for blobs.
+        :return: The list of output blobs for all models. Default cpu math engine is used for blobs.
+        :rtype: *list of size model_count*
         """
         return [Blob(blob) for blob in self._get_output(str(layer_name))]
 
