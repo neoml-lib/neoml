@@ -99,10 +99,6 @@ class DnnDistributed(PythonWrapper.DnnDistributed):
             be returned. The class of the layer with that name must be `neoml.Dnn.Loss`.
         :type layer_name: str
 
-        .. rubric:: Layer outputs:
-
-            The array of losses for all models.
-
         :return: The array of losses for all models.
         :rtype: *ndarray of shape (model_count,)*
         """
