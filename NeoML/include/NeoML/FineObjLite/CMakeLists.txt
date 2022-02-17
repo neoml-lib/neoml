@@ -24,6 +24,7 @@ set(${PROJECT_NAME}_SOURCES
     internal/IntervalFOL.h
     internal/MapFOL.h
     MathFOL.h
+    MemoryFileFOL.h
     ObjectFOL.h
     internal/PointerArrayFOL.h
     internal/PriorityQueueFOL.h

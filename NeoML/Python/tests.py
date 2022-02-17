@@ -248,7 +248,8 @@ class SolverTestCase(MultithreadedTestCase):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
         solver = neoml.Dnn.NesterovGradient(math_engine, learning_rate=0.6, l1=0.6, l2=0.6,
                                                moment_decay_rate=0.6, max_gradient_norm=0.6,
-                                               second_moment_decay_rate=0.6, epsilon=0.6, ams_grad=True)
+                                               second_moment_decay_rate=0.6, epsilon=0.6, ams_grad=True,
+                                               decoupled_weight_decay=True)
 
         self.assertAlmostEqual(solver.l1, 0.6, delta=1e-3)
         self.assertAlmostEqual(solver.l2, 0.6, delta=1e-3)
@@ -258,6 +259,7 @@ class SolverTestCase(MultithreadedTestCase):
         self.assertAlmostEqual(solver.second_moment_decay_rate, 0.6, delta=1e-3)
         self.assertAlmostEqual(solver.epsilon, 0.6, delta=1e-3)
         self.assertEqual(solver.ams_grad, True)
+        self.assertEqual(solver.decoupled_weight_decay, True)
 
     def test_adaptive_gradient(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
@@ -2676,12 +2678,35 @@ class DnnDistributedTestCase(TestCase):
         labels = neoml.Dnn.Source(dnn, 'labels')
         fully = neoml.Dnn.FullyConnected(source, 5, False, "fully")
         loss = neoml.Dnn.CrossEntropyLoss((fully, labels), name='loss')
-        distributed = neoml.Dnn.DnnDistributed(dnn, 'cpu', 4)
+        sink = neoml.Dnn.Sink(fully, 'sink')
+        distributed = neoml.Dnn.DnnDistributed(dnn, 'cpu', 3)
+        distributed.run(set_data)
         distributed.learn(set_data)
-        self.assertEqual(distributed.last_losses("loss").shape, (4,))
-        path = 'distributed'
+        distributed.run_and_backward(set_data)
+        distributed.train()
+
+        losses = distributed.last_losses("loss")
+        self.assertEqual(losses.shape, (3,))
+        self.assertEqual(losses[0], losses[1])
+
+        output = distributed.get_output("sink")
+        self.assertEqual(len(output), 3)
+        self.assertTrue((output[0].asarray() == output[1].asarray()).all())
+        self.assertTrue((output[1].asarray() == output[2].asarray()).all())
+
+        dir = tempfile.mkdtemp()
+        path = os.path.join(dir, 'distributed')
         distributed.save(path)
         math_engine = neoml.MathEngine.CpuMathEngine(1)
         dnn_loaded = neoml.Dnn.Dnn(math_engine)
         dnn_loaded.load(path)
-        self.assertEqual(len(dnn_loaded.layers), 4)
+        self.assertEqual(len(dnn_loaded.layers), 5)
+
+        dnn_loaded.load(path)
+        distributed = neoml.Dnn.DnnDistributed(path, 'cpu', 3)
+        distributed.run(set_data)
+        output = distributed.get_output("sink")
+        self.assertEqual(len(output), 3)
+
+        os.remove(path)
+        os.rmdir(dir)

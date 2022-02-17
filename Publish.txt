@@ -47,7 +47,7 @@ req;data;/inc:WinFinal\Data\*
 req;data;/inc:WinFinal.x64\msvcr110.dll,WinFinal.x64\msvcp110.dll,WinFinal.x64\vccorlib110.dll
 req;data;/inc:WinFinal.x64\Data\*
 
-aux;builded;/inc:WinDebug\*,WinDebug.x64\*,WinRelease\*,WinRelease.x64\*,WinFinal\*,WinFinal.x64\* /exc:*.log,*.txt /exc:WinDebug\Test\*,WinDebug.x64\Test\*,WinRelease\Test\*,WinRelease.x64\Test\* /recursive
+aux;builded;/inc:WinDebug\*,WinDebug.x64\*,WinRelease\*,WinRelease.x64\*,WinFinal\*,WinFinal.x64\* /exc:*.log /exc:WinDebug\Test\*,WinDebug.x64\Test\*,WinRelease\Test\*,WinRelease.x64\Test\* /recursive
 
 req;builded;/inc:X.Android.Debug\*
 req;builded;/inc:X.Android.Release\*

@@ -26,7 +26,6 @@ limitations under the License.
 
 namespace NeoML {
 
-struct CLstmDesc;
 class IMathEngine;
 
 class CPrimitivesJit {
@@ -38,7 +37,7 @@ public:
 	void Exp( float* dst, const float* src, size_t dataSize, bool isMultithread = true );
 
 	// Process part of lstm layer which follow after fullyconnected layers.
-	void RestOfLstm( CLstmDesc* desc, const CConstFloatHandle& inputStateBackLink,
+	void RestOfLstm( CMathEngineLstmDesc* desc, const CConstFloatHandle& inputStateBackLink,
 		const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink,
 		bool isMultithread );
 

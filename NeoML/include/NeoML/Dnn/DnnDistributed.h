@@ -12,7 +12,9 @@ limitations under the License.
 
 #pragma once
 
-#include <NeoML/NeoML.h>
+#include <NeoML/NeoMLDefs.h>
+#include <NeoML/ArchiveFile.h>
+#include <NeoML/Dnn/Dnn.h>
 
 namespace NeoML {
 
@@ -33,9 +35,13 @@ enum class TDistributedInitializer {
 class NEOML_API CDistributedTraining {
 public:
 	// Creates `count` cpu models
+	explicit CDistributedTraining( CDnn& dnn, int count,
+		TDistributedInitializer initializer = TDistributedInitializer::Xavier, int seed = 42 );
 	explicit CDistributedTraining( CArchive& archive, int count,
 		TDistributedInitializer initializer = TDistributedInitializer::Xavier, int seed = 42 );
 	// Creates gpu models, `devs` should contain numbers of using devices
+	explicit CDistributedTraining( CDnn& dnn, const CArray<int>& cudaDevs,
+		TDistributedInitializer initializer = TDistributedInitializer::Xavier, int seed = 42 );
 	explicit CDistributedTraining( CArchive& archive, const CArray<int>& cudaDevs,
 		TDistributedInitializer initializer = TDistributedInitializer::Xavier, int seed = 42 );
 	// Gets the number of models in disitrbuted traning

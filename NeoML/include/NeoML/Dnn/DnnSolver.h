@@ -219,7 +219,12 @@ public:
 	// Turns AMSGrad mode on. May be called only before training starts.
 	void EnableAmsGrad( bool enable );
 
+	// Decoupled Weight Decay Regularization.
+	// Used to improve regularization by decoupling the weight decay from the gradient-based update
+	// See https://openreview.net/pdf?id=Bkg6RiCqY7.
 	bool IsDecoupledWeightDecay() const { return isDecoupledWeightDecay; }
+	// Enables using of Decoupled Weight Decay Regularization.
+	// May be called only before training starts.
 	void EnableDecoupledWeightDecay( bool enable );
 
 	void Serialize( CArchive& archive, CDnn& dnn ) override;
@@ -286,9 +291,6 @@ private:
 	CPtr<CDnnBlob> tempVariables;
 
 	CPtr<CDnnBlob> temporaryBlob;
-
-	// Add regularization
-	CDnnBlob* addRegularization( CDnnBlob* diffBlob, CDnnBlob* params, float regL1, float regL2 );
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -317,6 +319,14 @@ public:
 	bool IsAmsGradEnabled() const { return isAmsGradEnabled; }
 	// Turns on AMSGrad mode. The algorithm is reset to initial state
 	void EnableAmsGrad( bool enable );
+
+	// Decoupled Weight Decay Regularization.
+	// Used to improve regularization by decoupling the weight decay from the gradient-based update
+	// See https://openreview.net/pdf?id=Bkg6RiCqY7.
+	bool IsDecoupledWeightDecay() const { return isDecoupledWeightDecay; }
+	// Enables using of Decoupled Weight Decay Regularization.
+	// May be called only before training starts.
+	void EnableDecoupledWeightDecay( bool enable );
 
 	void Serialize( CArchive& archive, CDnn& dnn ) override;
 
@@ -356,6 +366,8 @@ private:
 	float epsilon;
 	// Indicates if AMSGrad is used
 	bool isAmsGradEnabled;
+	// Perform weight decay after calculating the moving averages
+	bool isDecoupledWeightDecay;
 	
 	// Coefficients for moment schedule
 	int trainCount; // the number of calls to Train
