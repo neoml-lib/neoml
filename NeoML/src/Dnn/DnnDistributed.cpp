@@ -40,13 +40,14 @@ static CPtr<CDnnInitializer> createInitializer( TDistributedInitializer type, CR
 void CDistributedTraining::initialize( CArchive& archive, int count, TDistributedInitializer initializer, int seed )
 {
     NeoAssert( archive.IsLoading() );
+    const __int64 dnnStartPos = archive.GetPosition();
     for( int i = 0; i < count; i++ ){
         rands.Add( new CRandom( seed ) );
         cnns.Add( new CDnn( *rands[i], *mathEngines[i] ) );
         cnns[i]->SetInitializer( createInitializer( initializer, *rands[i] ) );
         cnns[i]->SetInitializer( new CDnnDistributedInitializer( *rands[i], mathEngines[i], cnns[i]->GetInitializer() ) );
         archive.Serialize( *cnns[i] );
-        archive.Seek( 0, static_cast<CBaseFile::TSeekPosition>( 0 ) );
+        archive.Seek( dnnStartPos, static_cast<CBaseFile::TSeekPosition>( 0 ) );
     }
 }
 
