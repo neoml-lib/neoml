@@ -674,6 +674,9 @@ void CBaseLayer::SetName( const char* _name )
 
 void CBaseLayer::Connect( int inputNumber, const char* input, int outputNumber )
 {
+	NeoAssert( inputNumber >= 0 );
+	NeoAssert( outputNumber >= 0 );
+
 	if( inputNumber >= inputs.Size() ) {
 		inputs.SetSize( inputNumber + 1 );
 	}
