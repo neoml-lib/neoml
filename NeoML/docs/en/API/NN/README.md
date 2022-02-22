@@ -166,8 +166,8 @@ IMathEngine* gpuMathEngine = CreateGpuMathEngine( 1024 * 1024 * 1024, GetFmlExce
 
     // Load the network
     {
-      CArchiveFile file( "my_net.archive", CArchive::store );
-      CArchive archive( &file, CArchive::SD_Storing );
+      CArchiveFile file( "my_net.archive", CArchive::load );
+      CArchive archive( &file, CArchive::SD_Loading );
       archive.Serialize( net );
       // file and archive will be closed in destructors
     }
