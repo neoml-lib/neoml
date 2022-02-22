@@ -250,6 +250,9 @@ void CDnnSolver::allReduce( float distributedCoeff )
 	}
 
 	for( int i = 0; i < reduceOrder.Size(); ++i ) {
+		if( !reduceOrder[i]->IsLearnable() || !reduceOrder[i]->IsLearningEnabled() ) {
+			continue;
+		}
 		const CObjectArray<CDnnBlob>& params = reduceOrder[i]->paramBlobs;
 		for( int j = 0; j < params.Size(); j++ ) {
 			if( isCoeffNontrivial ) {
@@ -258,9 +261,6 @@ void CDnnSolver::allReduce( float distributedCoeff )
 			MathEngine().AllReduce( params[j]->GetData(), params[j]->GetDataSize() );
 		}
 	}
-
-	layersToReduce.Empty();
-	reduceOrder.Empty();
 }
 
 void CDnnSolver::clipGradients(const CObjectArray<CDnnBlob>& paramDiffBlobs)
