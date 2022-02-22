@@ -375,12 +375,12 @@ static bool singleThreadMultiMathEngineTest( TTestedFunction func, bool useSingl
 
 		if( firstME == nullptr || secondME == nullptr ) {
 			addToLog( "Failed to create 2 GPU math engines" );
-		}
-
-		// Checking switching between two mathEngines
-		for( int iter = 0; iter < 10; ++iter ) {
-			func( *firstME, 10 );
-			func( *secondME, 10 );
+		} else {
+			// Checking switching between two mathEngines
+			for( int iter = 0; iter < 10; ++iter ) {
+				func( *firstME, 10 );
+				func( *secondME, 10 );
+			}
 		}
 	} catch( std::exception& ex ) {
 		addToLog( ex.what() );
