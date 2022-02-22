@@ -16,6 +16,9 @@ limitations under the License.
 #include <common.h>
 #pragma hdrstop
 
+#include <cmath>
+#include <cfloat>
+
 #include <NeoML/Dnn/DnnSolver.h>
 #include <NeoML/Dnn/Dnn.h>
 #include <NeoML/Dnn/Layers/CompositeLayer.h>
