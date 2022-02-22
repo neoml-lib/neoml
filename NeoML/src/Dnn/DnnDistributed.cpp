@@ -48,6 +48,7 @@ void CDistributedTraining::initialize( CArchive& archive, int count, TDistribute
         archive.Serialize( *cnns[i] );
         archive.Seek( 0, static_cast<CBaseFile::TSeekPosition>( 0 ) );
     }
+    batchSize.Add( 0, count );
 }
 
 CDistributedTraining::CDistributedTraining( CDnn& dnn, int count, TDistributedInitializer initializer, int seed )
@@ -151,8 +152,13 @@ void CDistributedTraining::RunOnce( IDistributedDataset& data )
     {
         const int thread = OmpGetThreadNum();
         try {
-            data.SetInputBatch( *cnns[thread], thread );
-            cnns[thread]->RunOnce();
+            const int currBatchSize = data.SetInputBatch( *cnns[thread], thread );
+            NeoAssert( currBatchSize > 0 || ( currBatchSize == 0 && !isFirstRun ) );
+            if( currBatchSize > 0 ) {
+                batchSize[thread] += currBatchSize;
+                cnns[thread]->RunOnce();
+            }
+            isFirstRun = false;
         } catch( std::exception& e ) {
             if( errorMessage.IsEmpty() ) {
                 errorMessage = e.what();
@@ -183,8 +189,13 @@ void CDistributedTraining::RunAndBackwardOnce( IDistributedDataset& data )
     {
         const int thread = OmpGetThreadNum();
         try {
-            data.SetInputBatch( *cnns[thread], thread );
-            cnns[thread]->RunAndBackwardOnce();
+            const int currBatchSize = data.SetInputBatch( *cnns[thread], thread );
+            NeoAssert( currBatchSize > 0 || ( currBatchSize == 0 && !isFirstRun ) );
+            if( currBatchSize > 0 ) {
+                batchSize[thread] += currBatchSize;
+                cnns[thread]->RunAndBackwardOnce();
+            }
+            isFirstRun = false;
         } catch( std::exception& e ) {
             if( errorMessage.IsEmpty() ) {
                 errorMessage = e.what();
@@ -210,44 +221,23 @@ void CDistributedTraining::RunAndBackwardOnce( IDistributedDataset& data )
 
 void CDistributedTraining::RunAndLearnOnce( IDistributedDataset& data )
 {
-#ifdef NEOML_USE_OMP
-    NEOML_OMP_NUM_THREADS( cnns.Size() )
-    {
-        const int thread = OmpGetThreadNum();
-        try {
-            data.SetInputBatch( *cnns[thread], thread );
-            cnns[thread]->RunAndLearnOnce();
-        } catch( std::exception& e ) {
-            if( errorMessage.IsEmpty() ){
-                errorMessage = e.what();
-            }
-            cnns[thread]->GetMathEngine().AbortDistributed();
-        }
-#ifdef NEOML_USE_FINEOBJ
-        catch( CCheckException* e ) {
-            if( errorMessage.IsEmpty() ){
-                errorMessage = e->MessageText().CreateString();
-            }
-            cnns[thread]->GetMathEngine().AbortDistributed();
-            delete e;
-        }
-#endif
-    }
-    CheckArchitecture( errorMessage.IsEmpty(), "DistributedTraining", errorMessage );
-#else
-    (void)data;
-    NeoAssert( false );
-#endif
+    RunAndBackwardOnce( data );
+    Train();
 }
 
 void CDistributedTraining::Train()
 {
+    int totalBatch = 0;
+    for( int i = 0; i < batchSize.Size(); ++i ) {
+        totalBatch += batchSize[i];
+    }
 #ifdef NEOML_USE_OMP
     NEOML_OMP_NUM_THREADS( cnns.Size() )
     {
         const int thread = OmpGetThreadNum();
         try {
-            cnns[thread]->GetSolver()->Train();
+            cnns[thread]->GetSolver()->Train( batchSize[thread] * cnns.Size() / static_cast<float>( totalBatch ) );
+            batchSize[thread] = 0;
         } catch( std::exception& e ) {
             if( errorMessage.IsEmpty() ) {
                 errorMessage = e.what();

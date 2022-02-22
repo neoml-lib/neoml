@@ -21,7 +21,7 @@ namespace NeoML {
 // Interface for setting input to a neural network
 class IDistributedDataset {
 public:
-	virtual void SetInputBatch( CDnn& dnn, int thread ) = 0;
+	virtual int SetInputBatch( CDnn& dnn, int thread ) = 0;
 };
 
 // Initializer to use in distributed training
@@ -71,6 +71,8 @@ private:
 	CArray<IMathEngine*> mathEngines;
 	CArray<CRandom*> rands;
 	CArray<CDnn*> cnns;
+	CArray<int> batchSize;
+	bool isFirstRun = true;
 	CString errorMessage;
 
 	void initialize( CArchive& archive, int count, TDistributedInitializer initializer, int seed );

@@ -192,7 +192,7 @@ void CDnnSolver::AddDiff( CBaseLayer* layer, const CObjectArray<CDnnBlob>& param
 
 // Modifies the trainable parameters of the network layers, using the accumulated gradient values 
 // and the history of previous modifications (moment, etc.)
-void CDnnSolver::Train()
+void CDnnSolver::Train( float distributedCoeff )
 {
 	OnTrain();
 
@@ -229,7 +229,7 @@ void CDnnSolver::Train()
 	}
 
 	if( MathEngine().IsDistributed() ){
-		allReduce();
+		allReduce( distributedCoeff );
 	}
 }
 
@@ -240,11 +240,21 @@ void CDnnSolver::Reset()
 	OnReset();
 }
 
-void CDnnSolver::allReduce()
+void CDnnSolver::allReduce( float distributedCoeff )
 {
+	const bool isCoeffNontrivial = ::fabsf( distributedCoeff - 1.f ) >= FLT_EPSILON;
+	std::unique_ptr<CFloatHandleStackVar> coeffVar;
+	if( isCoeffNontrivial ) {
+		coeffVar.reset( new CFloatHandleStackVar( MathEngine() ) );
+		coeffVar->SetValue( distributedCoeff );
+	}
+
 	for( int i = 0; i < reduceOrder.Size(); ++i ) {
 		const CObjectArray<CDnnBlob>& params = reduceOrder[i]->paramBlobs;
 		for( int j = 0; j < params.Size(); j++ ) {
+			if( isCoeffNontrivial ) {
+				MathEngine().VectorMultiply( params[j]->GetData(), params[j]->GetData(), params[j]->GetDataSize(), *coeffVar );
+			}
 			MathEngine().AllReduce( params[j]->GetData(), params[j]->GetDataSize() );
 		}
 	}
