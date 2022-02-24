@@ -25,7 +25,7 @@ int CPyDistributedDataset::SetInputBatch( CDnn& dnn, int thread )
     py::object input_data = getData( pyMathEngine, thread );
     int batchSize = 1;
     py::dict inputs;
-    if( py::dict(input_data).check() ) {
+    if( py::dict(input_data, true).check() ) {
         inputs = py::dict(input_data);
     } else {
         py::tuple thread_data = py::tuple(input_data);
