@@ -227,6 +227,7 @@ void CDistributedTraining::RunAndLearnOnce( IDistributedDataset& data )
 
 void CDistributedTraining::Train()
 {
+    NeoAssert( !isFirstRun );
     int totalBatch = 0;
     for( int i = 0; i < batchSize.Size(); ++i ) {
         totalBatch += batchSize[i];
