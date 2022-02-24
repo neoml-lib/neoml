@@ -19,7 +19,7 @@ limitations under the License.
 class CPyDistributedDataset : public IDistributedDataset {
 public:
     CPyDistributedDataset( const py::object& data ) : getData( data ) {};
-    void SetInputBatch( CDnn& dnn, int thread ) override;
+    int SetInputBatch( CDnn& dnn, int thread ) override;
 private:
     py::object getData;
 };

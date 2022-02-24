@@ -57,9 +57,12 @@ class DnnDistributed(PythonWrapper.DnnDistributed):
         """Runs the network.
 
         :param set_data_callback: A callback that takes a math_engine and thread number
-            as its arguments. It must return a dictionary of input blobs for the
-            dnn on a given thread, this dictionary must be the same as for the
-            run method of a dnn.
+            as its arguments. It must return a dict or a tuple(int, dict) where
+            optional int is the size of this batch and dict contains input blobs for the
+            dnn on a given thread, this dict must be the same as for the
+            run method of a dnn. If no batch size returned, all the
+            batches will be considered to be equal. Zero batch size
+            (no data for this thread during this run) is supported on any run except the first.
         :type set_data_callback: callable
         """
         self._run(set_data_callback)
@@ -68,9 +71,12 @@ class DnnDistributed(PythonWrapper.DnnDistributed):
         """Runs the network and performs a backward pass with the input data.
 
         :param set_data_callback: A callback that takes a math_engine and thread number
-            as its arguments. It must return a dictionary of input blobs for the
-            dnn on a given thread, this dictionary must be the same as for the
-            run method of a dnn.
+            as its arguments. It must return a dict or a tuple(int, dict) where
+            optional int is the size of this batch and dict contains input blobs for the
+            dnn on a given thread, this dict must be the same as for the
+            run_and_backward method of a dnn. If no batch size returned, all the
+            batches will be considered to be equal. Zero batch size
+            (no data for this thread during this run) is supported on any run except the first.
         :type set_data_callback: callable
         """
         self._run_and_backward(set_data_callback)
@@ -80,9 +86,12 @@ class DnnDistributed(PythonWrapper.DnnDistributed):
         and updates the trainable weights.
 
         :param set_data_callback: A callback that takes a math_engine and thread number
-            as its arguments. It must return a dictionary of input blobs for the
-            dnn on a given thread, this dictionary must be the same as for the
-            run method of a dnn.
+            as its arguments. It must return a dict or a tuple(int, dict) where
+            optional int is the size of this batch and dict contains input blobs for the
+            dnn on a given thread, this dict must be the same as for the
+            learn method of a dnn. If no batch size returned, all the
+            batches will be considered to be equal. Zero batch size
+            (no data for this thread during this run) is supported on any run except the first.
         :type set_data_callback: callable
         """
         self._learn(set_data_callback)

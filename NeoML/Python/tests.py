@@ -2671,6 +2671,8 @@ class DnnDistributedTestCase(TestCase):
         def set_data(math_engine, thread):
             source = neoml.Blob.asblob(math_engine, np.ones((20,), dtype=np.float32), (1, 1, 1, 1, 1, 1, 20))
             labels = neoml.Blob.asblob(math_engine, np.ones((5,), dtype=np.float32), (1, 1, 1, 1, 1, 1, 5))
+            if thread % 2 == 1:
+                return 1, dict(source=source, labels=labels)
             return dict(source=source, labels=labels)
         math_engine = neoml.MathEngine.CpuMathEngine(1)
         dnn = neoml.Dnn.Dnn(math_engine)
