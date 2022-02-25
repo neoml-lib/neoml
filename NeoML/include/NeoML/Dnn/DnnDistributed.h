@@ -25,8 +25,7 @@ public:
 	// Returns the current batch size (or 0, if there is no data for this thread on this run)
 	// This batch size affects weights balance between different threads
 	// Batch size doesn't affect different runs on the same thread (multiple RunAndBackwardOnce)
-	// Batch size 0 isn't supported on the first run (due to CDnn initialization)
-	// It's recommended to use different batch sizes only when processing the "tail" of the dataset (last iteration in epoch)
+	// Batch size 0 isn't supported on the first run (because of CDnn initialization)
 	virtual int SetInputBatch( CDnn& dnn, int thread ) = 0;
 };
 
