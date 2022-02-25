@@ -22,16 +22,9 @@ int CPyDistributedDataset::SetInputBatch( CDnn& dnn, int thread )
     CPyMathEngineOwner* owner = new CPyMathEngineOwner( &dnn.GetMathEngine(), false );
     CPyMathEngine mathEngine( *owner );
     py::object pyMathEngine = py::module::import( "neoml.MathEngine" ).attr( "MathEngine" )( mathEngine );
-    py::object input_data = getData( pyMathEngine, thread );
-    int batchSize = 1;
-    py::dict inputs;
-    if( py::dict(input_data, true).check() ) {
-        inputs = py::dict(input_data);
-    } else {
-        py::tuple thread_data = py::tuple(input_data);
-        batchSize = py::int_(thread_data[0]);
-        inputs = py::dict(thread_data[1]);
-    }
+    py::tuple input_data = py::tuple( getData( pyMathEngine, thread ) );
+    const int batchSize = py::int_( input_data[0] );
+    py::dict inputs = py::dict( input_data[1] );
 
     for ( std::pair<py::handle, py::handle> item : inputs ){
         auto layerName = item.first.cast<std::string>();
