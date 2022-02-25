@@ -60,9 +60,8 @@ class DnnDistributed(PythonWrapper.DnnDistributed):
             as its arguments. It must return a tuple(int, dict) where
             int is the size of this batch and dict contains input blobs for the
             dnn on a given thread, this dict must be the same as for the
-            run method of a dnn. If no batch size returned, all the
-            batches will be considered to be equal. Zero batch size
-            (no data for this thread during this run) is supported on any run except the first.
+            run method of a dnn. Zero batch size (no data for this thread during this run)
+            is supported on any run except the first.
         :type set_data_callback: callable
         """
         self._run(set_data_callback)
@@ -74,9 +73,9 @@ class DnnDistributed(PythonWrapper.DnnDistributed):
             as its arguments. It must return a tuple(int, dict) where
             int is the size of this batch and dict contains input blobs for the
             dnn on a given thread, this dict must be the same as for the
-            run_and_backward method of a dnn. If no batch size returned, all the
-            batches will be considered to be equal. Zero batch size
-            (no data for this thread during this run) is supported on any run except the first.
+            run_and_backward method of a dnn. Zero batch size
+            (no data for this thread during this run)
+            is supported on any run except the first.
         :type set_data_callback: callable
         """
         self._run_and_backward(set_data_callback)
@@ -89,9 +88,8 @@ class DnnDistributed(PythonWrapper.DnnDistributed):
             as its arguments. It must return a tuple(int, dict) where
             int is the size of this batch and dict contains input blobs for the
             dnn on a given thread, this dict must be the same as for the
-            learn method of a dnn. If no batch size returned, all the
-            batches will be considered to be equal. Zero batch size
-            (no data for this thread during this run) is supported on any run except the first.
+            learn method of a dnn. Zero batch size (no data for this thread during this run)
+            is supported on any run except the first.
         :type set_data_callback: callable
         """
         self._learn(set_data_callback)
