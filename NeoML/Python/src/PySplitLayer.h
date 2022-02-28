@@ -17,4 +17,13 @@ limitations under the License.
 
 #include "PyLayer.h"
 
+class CPyBaseSplitLayer : public CPyLayer {
+public:
+	CPyBaseSplitLayer( CBaseSplitLayer& layer, CPyMathEngineOwner& mathEngineOwner ) : CPyLayer( layer, mathEngineOwner ) {}
+
+	py::array GetOutputCounts() const;
+
+	void SetOutputCounts( py::array counts );
+};
+
 void InitializeSplitLayer( py::module& m );

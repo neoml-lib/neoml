@@ -20,7 +20,48 @@ from neoml.Utils import check_input_layers
 import numpy
 
 
-class SplitChannels(Layer):
+class SplitLayer(Layer):
+    """The base (abstract) class for a split layer.
+    """
+    def __init__(self, classname, input_layer, sizes, name):
+        assert hasattr(PythonWrapper, classname), 'Incorrect split layer specified: ' + classname
+
+        if type(input_layer) is getattr(PythonWrapper, classname):
+            super().__init__(input_layer)
+            return
+
+        layers, outputs = check_input_layers(input_layer, 1)
+
+        internal = getattr(PythonWrapper, classname)(str(name), layers[0], int(outputs[0]), self.__sizes_to_array(sizes))
+        super().__init__(internal)
+
+    @property
+    def output_sizes(self):
+        """
+        """
+        return self._internal.get_output_counts()
+
+    @output_sizes.setter
+    def output_sizes(self, value):
+        """
+        """        
+        self._internal.set_output_counts(self.__sizes_to_array(value))
+
+    @staticmethod
+    def __sizes_to_array(sizes) -> numpy.ndarray:
+        sizes = numpy.array(sizes, dtype=numpy.int32)
+        if sizes.ndim != 1 or sizes.size > 3:
+            raise ValueError('The `sizes` must be a one-dimentional sequence containing not more than 3 elements.')
+
+        if numpy.any(sizes < 0):
+            raise ValueError('The `sizes` must contain only positive values.')
+
+        return sizes
+
+# ----------------------------------------------------------------------------------------------------------------------
+
+
+class SplitChannels(SplitLayer):
     """The layer that splits an input blob along the Channels dimension.
     
     :param input_layer: The input layer and the number of its output. If no number
@@ -49,27 +90,12 @@ class SplitChannels(Layer):
     - all other dimensions are the same as for the input
     """
     def __init__(self, input_layer, sizes, name=None):
-        if type(input_layer) is PythonWrapper.SplitChannels:
-            super().__init__(input_layer)
-            return
-
-        layers, outputs = check_input_layers(input_layer, 1)
-
-        s = numpy.array(sizes, dtype=numpy.int32, copy=False)
-
-        if s.size > 3:
-            raise ValueError('The `sizes` must contain not more than 3 elements.')
-
-        if numpy.any(s < 0):
-            raise ValueError('The `sizes` must contain only positive values.')
-
-        internal = PythonWrapper.SplitChannels(str(name), layers[0], int(outputs[0]), s)
-        super().__init__(internal)
+        super().__init__("SplitChannels", input_layer, sizes, name)
 
 # ----------------------------------------------------------------------------------------------------------------------
 
 
-class SplitDepth(Layer):
+class SplitDepth(SplitLayer):
     """The layer that splits an input blob along the Depth dimension.
     
     :param input_layer: The input layer and the number of its output. If no number
@@ -98,27 +124,12 @@ class SplitDepth(Layer):
         - all other dimensions are the same as for the input
     """
     def __init__(self, input_layer, sizes, name=None):
-        if type(input_layer) is PythonWrapper.SplitDepth:
-            super().__init__(input_layer)
-            return
-
-        layers, outputs = check_input_layers(input_layer, 1)
-
-        s = numpy.array(sizes, dtype=numpy.int32, copy=False)
-
-        if s.size > 3:
-            raise ValueError('The `sizes` must contain not more than 3 elements.')
-
-        if numpy.any(s < 0):
-            raise ValueError('The `sizes` must contain only positive values.')
-
-        internal = PythonWrapper.SplitDepth(str(name), layers[0], int(outputs[0]), s)
-        super().__init__(internal)
+        super().__init__("SplitDepth", input_layer, sizes, name)
 
 # ----------------------------------------------------------------------------------------------------------------------
 
 
-class SplitWidth(Layer):
+class SplitWidth(SplitLayer):
     """The layer that splits an input blob along the Width dimension.
     
     :param input_layer: The input layer and the number of its output. If no number
@@ -147,27 +158,12 @@ class SplitWidth(Layer):
         - all other dimensions are the same as for the input
     """
     def __init__(self, input_layer, sizes, name=None):
-        if type(input_layer) is PythonWrapper.SplitWidth:
-            super().__init__(input_layer)
-            return
-
-        layers, outputs = check_input_layers(input_layer, 1)
-
-        s = numpy.array(sizes, dtype=numpy.int32, copy=False)
-
-        if s.size > 3:
-            raise ValueError('The `sizes` must contain not more than 3 elements.')
-
-        if numpy.any(s < 0):
-            raise ValueError('The `sizes` must contain only positive values.')
-
-        internal = PythonWrapper.SplitWidth(str(name), layers[0], int(outputs[0]), s)
-        super().__init__(internal)
+        super().__init__("SplitWidth", input_layer, sizes, name)
 
 # ----------------------------------------------------------------------------------------------------------------------
 
 
-class SplitHeight(Layer):
+class SplitHeight(SplitLayer):
     """The layer that splits an input blob along the Height dimension.
     
     :param input_layer: The input layer and the number of its output. If no number
@@ -196,27 +192,12 @@ class SplitHeight(Layer):
         - all other dimensions are the same as for the input
     """
     def __init__(self, input_layer, sizes, name=None):
-        if type(input_layer) is PythonWrapper.SplitHeight:
-            super().__init__(input_layer)
-            return
-
-        layers, outputs = check_input_layers(input_layer, 1)
-
-        s = numpy.array(sizes, dtype=numpy.int32, copy=False)
-
-        if s.size > 3:
-            raise ValueError('The `sizes` must contain not more than 3 elements.')
-
-        if numpy.any(s < 0):
-            raise ValueError('The `sizes` must contain only positive values.')
-
-        internal = PythonWrapper.SplitHeight(str(name), layers[0], int(outputs[0]), s)
-        super().__init__(internal)
+        super().__init__("SplitHeight", input_layer, sizes, name)
 
 # ----------------------------------------------------------------------------------------------------------------------
 
 
-class SplitListSize(Layer):
+class SplitListSize(SplitLayer):
     """The layer that splits an input blob along the ListSize dimension.
     
     :param input_layer: The input layer and the number of its output. If no number
@@ -245,27 +226,12 @@ class SplitListSize(Layer):
         - all other dimensions are the same as for the input
     """
     def __init__(self, input_layer, sizes, name=None):
-        if type(input_layer) is PythonWrapper.SplitListSize:
-            super().__init__(input_layer)
-            return
-
-        layers, outputs = check_input_layers(input_layer, 1)
-
-        s = numpy.array(sizes, dtype=numpy.int32, copy=False)
-
-        if s.size > 3:
-            raise ValueError('The `sizes` must contain not more than 3 elements.')
-
-        if numpy.any(s < 0):
-            raise ValueError('The `sizes` must contain only positive values.')
-
-        internal = PythonWrapper.SplitListSize(str(name), layers[0], int(outputs[0]), s)
-        super().__init__(internal)
+        super().__init__("SplitListSize", input_layer, sizes, name)
 
 # ----------------------------------------------------------------------------------------------------------------------
 
 
-class SplitBatchWidth(Layer):
+class SplitBatchWidth(SplitLayer):
     """The layer that splits an input blob along the BatchWidth dimension.
     
     :param input_layer: The input layer and the number of its output. If no number
@@ -294,27 +260,12 @@ class SplitBatchWidth(Layer):
         - all other dimensions are the same as for the input
     """
     def __init__(self, input_layer, sizes, name=None):
-        if type(input_layer) is PythonWrapper.SplitBatchWidth:
-            super().__init__(input_layer)
-            return
-
-        layers, outputs = check_input_layers(input_layer, 1)
-
-        s = numpy.array(sizes, dtype=numpy.int32, copy=False)
-
-        if s.size > 3:
-            raise ValueError('The `sizes` must contain not more than 3 elements.')
-
-        if numpy.any(s < 0):
-            raise ValueError('The `sizes` must contain only positive values.')
-
-        internal = PythonWrapper.SplitBatchWidth(str(name), layers[0], int(outputs[0]), s)
-        super().__init__(internal)
+        super().__init__("SplitBatchWidth", input_layer, sizes, name)
 
 # ----------------------------------------------------------------------------------------------------------------------
 
 
-class SplitBatchLength(Layer):
+class SplitBatchLength(SplitLayer):
     """The layer that splits an input blob along the BatchLength dimension.
     
     :param input_layer: The input layer and the number of its output. If no number
@@ -343,19 +294,4 @@ class SplitBatchLength(Layer):
         - all other dimensions are the same as for the input
     """
     def __init__(self, input_layer, sizes, name=None):
-        if type(input_layer) is PythonWrapper.SplitBatchLength:
-            super().__init__(input_layer)
-            return
-
-        layers, outputs = check_input_layers(input_layer, 1)
-
-        s = numpy.array(sizes, dtype=numpy.int32, copy=False)
-
-        if s.size > 3:
-            raise ValueError('The `sizes` must contain not more than 3 elements.')
-
-        if numpy.any(s < 0):
-            raise ValueError('The `sizes` must contain only positive values.')
-
-        internal = PythonWrapper.SplitBatchLength(str(name), layers[0], int(outputs[0]), s)
-        super().__init__(internal)
+        super().__init__("SplitBatchLength", input_layer, sizes, name)

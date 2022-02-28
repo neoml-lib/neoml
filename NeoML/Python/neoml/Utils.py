@@ -62,7 +62,7 @@ def check_input_layers(input_layers, layer_count):
             layers.append(i._internal)
             outputs.append(0)
         elif isinstance(i, (list, tuple)) and len(i) == 2 and isinstance(i[0], Layer) and isinstance(i[1], int):
-            if int(i[1]) < 0 or int(i[1]) >= i[0].output_count():
+            if int(i[1]) < 0:
                 raise ValueError('Invalid value `input_layers`.'
                                  ' It must be a list of layers or a list of (layer, output).')
             layers.append(i[0]._internal)
