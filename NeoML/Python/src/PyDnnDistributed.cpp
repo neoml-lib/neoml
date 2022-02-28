@@ -15,14 +15,16 @@ limitations under the License.
 
 #include "PyDnnDistributed.h"
 
-void CPyDistributedDataset::SetInputBatch( CDnn& dnn, int thread )
+int CPyDistributedDataset::SetInputBatch( CDnn& dnn, int thread )
 {
     py::gil_scoped_acquire acquire;
 
     CPyMathEngineOwner* owner = new CPyMathEngineOwner( &dnn.GetMathEngine(), false );
     CPyMathEngine mathEngine( *owner );
     py::object pyMathEngine = py::module::import( "neoml.MathEngine" ).attr( "MathEngine" )( mathEngine );
-    py::dict inputs = getData( pyMathEngine, thread );
+    py::tuple input_data = py::tuple( getData( pyMathEngine, thread ) );
+    const int batchSize = py::int_( input_data[0] );
+    py::dict inputs = py::dict( input_data[1] );
 
     for ( std::pair<py::handle, py::handle> item : inputs ){
         auto layerName = item.first.cast<std::string>();
@@ -30,6 +32,8 @@ void CPyDistributedDataset::SetInputBatch( CDnn& dnn, int thread )
         CPtr<CSourceLayer> layer = dynamic_cast<CSourceLayer*>( dnn.GetLayer( layerName.c_str() ).Ptr() );
         layer->SetBlob( input.Blob() );
     }
+
+    return batchSize;
 }
 
 void CPyDistributedTraining::Run( const py::object& data )
