@@ -17,6 +17,7 @@ limitations under the License.
 #pragma hdrstop
 
 #include <algorithm>
+#include <cstring>
 #include <PrimitivesJit.h>
 #include <MemoryHandleInternal.h>
 
@@ -133,7 +134,7 @@ void CPrimitivesJit::initTable()
 		} );
 
 	addVal( TTableKey::ExpLog2ef, 0x3fb8aa3b ); // 1.44269502f - formula-based for approx
-	addVal( TTableKey::ExpFltMax, 0x42b17218 ); // logf(FLT_MAX) - max normal value
+	addVal( TTableKey::ExpFltMax, 0x42b17217 ); // logf(FLT_MAX) - max normal value
 	addVal( TTableKey::ExpFltMin, 0xc2aeac50 ); // logf(FLT_MIN) - min normal value
 
 	addVector( TTableKey::ExpPolyCoeff, {

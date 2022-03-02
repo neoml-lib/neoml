@@ -164,8 +164,8 @@ IMathEngine* gpuMathEngine = CreateGpuMathEngine( 1024 * 1024 * 1024, GetFmlExce
 
     // Загружаем сеть.
     {
-      CArchiveFile file( "my_net.archive", CArchive::store );
-      CArchive archive( &file, CArchive::SD_Storing );
+      CArchiveFile file( "my_net.archive", CArchive::load );
+      CArchive archive( &file, CArchive::SD_Loading );
       archive.Serialize( net );
       // file и archive будут закрыты в деструкторах объектов. 
     }

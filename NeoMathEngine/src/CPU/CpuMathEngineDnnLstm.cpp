@@ -24,6 +24,8 @@ limitations under the License.
 
 namespace NeoML {
 
+CMathEngineLstmDesc::~CMathEngineLstmDesc() = default;
+
 CLstmDesc* CCpuMathEngine::InitLstm( CLstmDesc* currentDesc, const CFloatHandle& inputFullyConnectedResult, const CFloatHandle& reccurentFullyConnectedResult,
 	int hiddenSize, int objectCount, int objectSize )
 {

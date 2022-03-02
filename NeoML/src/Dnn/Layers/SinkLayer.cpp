@@ -29,7 +29,8 @@ const CPtr<CDnnBlob>& CSinkLayer::GetBlob() const
 void CSinkLayer::Reshape()
 {
 	// No action: just pass the data to the user
-	CheckInputs();
+	CheckInput1();
+	CheckArchitecture( GetOutputCount() == 0, GetName(), "sink layer isn't allowed to have any outputs" );
 	if(blob == 0 || !blob->GetDesc().HasEqualDimensions(inputDescs[0])) {
 		blob = 0; // reset the link to the external blob with the results
 	}
