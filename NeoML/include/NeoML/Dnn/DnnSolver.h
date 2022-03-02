@@ -34,7 +34,7 @@ public:
 
 	// Modifies the trainable parameters of the network layers, 
 	// using the accumulated gradients and previous steps' history (moment, etc.) 
-	void Train();
+	void Train( float distributedCoeff = 1.f );
 
 	// Resets to the initial state
 	void Reset();
@@ -98,7 +98,7 @@ private:
 	CArray<CBaseLayer*> reduceOrder; // Correct order across all of the distributed nets
 
 	// Averages weights over all threads
-	void allReduce();
+	void allReduce( float distributedCoeff );
 
 	// Clips gradients according to the settings
 	void clipGradients(const CObjectArray<CDnnBlob>& paramDiffBlobs);
