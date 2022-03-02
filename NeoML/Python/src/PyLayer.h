@@ -31,7 +31,6 @@ public:
 	template<class T>
 	T* Layer() const { return dynamic_cast<T*>(baseLayer.Ptr()); }
 
-	int GetOutputCount() const { return baseLayer->GetOutputCount(); }
 	std::string GetName() const { return std::string( baseLayer->GetName() ); }
 
 	void DisableLearning() { baseLayer->DisableLearning(); }

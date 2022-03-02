@@ -41,7 +41,6 @@ void CPyLayer::Connect( CPyLayer &layer, int outputIndex, int inputIndex )
 void InitializeLayer( py::module& m )
 {
 	py::class_<CPyLayer>(m, "Layer")
-		.def( "output_count", &CPyLayer::GetOutputCount, py::return_value_policy::reference )
 		.def( "get_name", &CPyLayer::GetName, py::return_value_policy::reference )
 		.def( "create_python_object", &CPyLayer::CreatePythonObject, py::return_value_policy::reference )
 		.def( "connect", &CPyLayer::Connect, py::return_value_policy::reference )
