@@ -33,6 +33,7 @@ struct CMathEngineLstmDesc : public CLstmDesc {
 			mathEngine( _mathEngine ),
 			threadCount( _threadCount )
 	{}
+	~CMathEngineLstmDesc() override;
 
 	void Reset( const CFloatHandle& _inputFullyConnectedResult, const CFloatHandle& _reccurentFullyConnectedResult,
 		int _hiddenSize, int _objectCount, int _objectSize, IMathEngine* _mathEngine, int _threadCount ) {
@@ -59,7 +60,7 @@ struct CMathEngineLstmDesc : public CLstmDesc {
 		const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink );
 };
 
-void CMathEngineLstmDesc::RunOnceRestOfLstm( const CConstFloatHandle& inputStateBackLink, 
+inline void CMathEngineLstmDesc::RunOnceRestOfLstm( const CConstFloatHandle& inputStateBackLink, 
 	const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink )
 {
 	// Elementwise summ of fully connected layers' results (inplace)
