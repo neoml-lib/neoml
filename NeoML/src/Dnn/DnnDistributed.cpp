@@ -13,35 +13,108 @@ limitations under the License.
 #include <common.h>
 #pragma hdrstop
 
+#include <NeoML/Dnn/Layers/LossLayer.h>
+#include <NeoML/Dnn/Layers/SinkLayer.h>
+#include <NeoML/Dnn/Layers/CtcLayer.h>
+#include <NeoML/Dnn/Layers/CrfLayer.h>
 #include <NeoMathEngine/NeoMathEngine.h>
 #include <NeoML/Dnn/DnnDistributed.h>
 
 namespace NeoML {
 
-void CDistributedTraining::initialize( CArchive& archive, int count )
+static CPtr<CDnnInitializer> createInitializer( TDistributedInitializer type, CRandom& random )
+{
+    switch( type ) {
+        case TDistributedInitializer::Xavier:
+            return new CDnnXavierInitializer( random );
+        case TDistributedInitializer::XavierUniform:
+            return new CDnnXavierUniformInitializer( random );
+        case TDistributedInitializer::Uniform:
+            return new CDnnUniformInitializer( random );
+        default:
+            NeoAssert( false );
+    }
+    return nullptr;
+}
+
+void CDistributedTraining::initialize( CArchive& archive, int count, TDistributedInitializer initializer, int seed )
 {
     NeoAssert( archive.IsLoading() );
     for( int i = 0; i < count; i++ ){
-        rands.Add( new CRandom( 42 ) );
+        rands.Add( new CRandom( seed ) );
         cnns.Add( new CDnn( *rands[i], *mathEngines[i] ) );
+        cnns[i]->SetInitializer( createInitializer( initializer, *rands[i] ) );
         cnns[i]->SetInitializer( new CDnnDistributedInitializer( *rands[i], mathEngines[i], cnns[i]->GetInitializer() ) );
         archive.Serialize( *cnns[i] );
         archive.Seek( 0, static_cast<CBaseFile::TSeekPosition>( 0 ) );
     }
+    batchSize.Add( 0, count );
 }
 
-CDistributedTraining::CDistributedTraining( CArchive& archive, int count )
+CDistributedTraining::CDistributedTraining( CDnn& dnn, int count, TDistributedInitializer initializer, int seed )
 {
     mathEngines.SetSize( count );
     CreateDistributedCpuMathEngines( mathEngines.GetPtr(), count );
-    initialize( archive, count );
+    CMemoryFile file;
+    CArchive archive( &file, CArchive::SD_Storing );
+    dnn.Serialize( archive );
+    archive.Close();
+    file.SeekToBegin();
+
+    archive.Open( &file, CArchive::SD_Loading );
+    initialize( archive, count, initializer, seed );
+    archive.Close();
+    file.SeekToBegin();
+
+    archive.Open( &file, CArchive::SD_Storing );
+    CPtr<CDnnSolver> solver = dnn.GetSolver();
+    SerializeSolver( archive, dnn, solver );
+    archive.Close();
+    file.SeekToBegin();
+
+    archive.Open( &file, CArchive::SD_Loading );
+    SetSolver( archive );
 }
 
-CDistributedTraining::CDistributedTraining( CArchive& archive, const CArray<int>& cudaDevs )
+CDistributedTraining::CDistributedTraining( CArchive& archive, int count, TDistributedInitializer initializer, int seed )
+{
+    mathEngines.SetSize( count );
+    CreateDistributedCpuMathEngines( mathEngines.GetPtr(), count );
+    initialize( archive, count, initializer, seed );
+}
+
+CDistributedTraining::CDistributedTraining( CDnn& dnn, const CArray<int>& cudaDevs,
+    TDistributedInitializer initializer, int seed )
 {
     mathEngines.SetSize( cudaDevs.Size() );
     CreateDistributedCudaMathEngines( mathEngines.GetPtr(), cudaDevs.Size(), cudaDevs.GetPtr() );
-    initialize( archive, cudaDevs.Size() );
+    CMemoryFile file;
+    CArchive archive( &file, CArchive::SD_Storing );
+    dnn.Serialize( archive );
+    archive.Close();
+    file.SeekToBegin();
+
+    archive.Open( &file, CArchive::SD_Loading );
+    initialize( archive, cudaDevs.Size(), initializer, seed );
+    archive.Close();
+    file.SeekToBegin();
+
+    archive.Open( &file, CArchive::SD_Storing );
+    CPtr<CDnnSolver> solver = dnn.GetSolver();
+    SerializeSolver( archive, dnn, solver );
+    archive.Close();
+    file.SeekToBegin();
+
+    archive.Open( &file, CArchive::SD_Loading );
+    SetSolver( archive );
+}
+
+CDistributedTraining::CDistributedTraining( CArchive& archive, const CArray<int>& cudaDevs,
+    TDistributedInitializer initializer, int seed )
+{
+    mathEngines.SetSize( cudaDevs.Size() );
+    CreateDistributedCudaMathEngines( mathEngines.GetPtr(), cudaDevs.Size(), cudaDevs.GetPtr() );
+    initialize( archive, cudaDevs.Size(), initializer, seed );
 }
 
 CDistributedTraining::~CDistributedTraining()
@@ -79,8 +152,13 @@ void CDistributedTraining::RunOnce( IDistributedDataset& data )
     {
         const int thread = OmpGetThreadNum();
         try {
-            data.SetInputBatch( *cnns[thread], thread );
-            cnns[thread]->RunOnce();
+            const int currBatchSize = data.SetInputBatch( *cnns[thread], thread );
+            NeoAssert( currBatchSize > 0 || ( currBatchSize == 0 && !isFirstRun ) );
+            if( currBatchSize > 0 ) {
+                batchSize[thread] += currBatchSize;
+                cnns[thread]->RunOnce();
+            }
+            isFirstRun = false;
         } catch( std::exception& e ) {
             if( errorMessage.IsEmpty() ) {
                 errorMessage = e.what();
@@ -111,8 +189,13 @@ void CDistributedTraining::RunAndBackwardOnce( IDistributedDataset& data )
     {
         const int thread = OmpGetThreadNum();
         try {
-            data.SetInputBatch( *cnns[thread], thread );
-            cnns[thread]->RunAndBackwardOnce();
+            const int currBatchSize = data.SetInputBatch( *cnns[thread], thread );
+            NeoAssert( currBatchSize > 0 || ( currBatchSize == 0 && !isFirstRun ) );
+            if( currBatchSize > 0 ) {
+                batchSize[thread] += currBatchSize;
+                cnns[thread]->RunAndBackwardOnce();
+            }
+            isFirstRun = false;
         } catch( std::exception& e ) {
             if( errorMessage.IsEmpty() ) {
                 errorMessage = e.what();
@@ -138,44 +221,24 @@ void CDistributedTraining::RunAndBackwardOnce( IDistributedDataset& data )
 
 void CDistributedTraining::RunAndLearnOnce( IDistributedDataset& data )
 {
-#ifdef NEOML_USE_OMP
-    NEOML_OMP_NUM_THREADS( cnns.Size() )
-    {
-        const int thread = OmpGetThreadNum();
-        try {
-            data.SetInputBatch( *cnns[thread], thread );
-            cnns[thread]->RunAndLearnOnce();
-        } catch( std::exception& e ) {
-            if( errorMessage.IsEmpty() ){
-                errorMessage = e.what();
-            }
-            cnns[thread]->GetMathEngine().AbortDistributed();
-        }
-#ifdef NEOML_USE_FINEOBJ
-        catch( CCheckException* e ) {
-            if( errorMessage.IsEmpty() ){
-                errorMessage = e->MessageText().CreateString();
-            }
-            cnns[thread]->GetMathEngine().AbortDistributed();
-            delete e;
-        }
-#endif
-    }
-    CheckArchitecture( errorMessage.IsEmpty(), "DistributedTraining", errorMessage );
-#else
-    (void)data;
-    NeoAssert( false );
-#endif
+    RunAndBackwardOnce( data );
+    Train();
 }
 
 void CDistributedTraining::Train()
 {
+    NeoAssert( !isFirstRun );
+    int totalBatch = 0;
+    for( int i = 0; i < batchSize.Size(); ++i ) {
+        totalBatch += batchSize[i];
+    }
 #ifdef NEOML_USE_OMP
     NEOML_OMP_NUM_THREADS( cnns.Size() )
     {
         const int thread = OmpGetThreadNum();
         try {
-            cnns[thread]->GetSolver()->Train();
+            cnns[thread]->GetSolver()->Train( batchSize[thread] * cnns.Size() / static_cast<float>( totalBatch ) );
+            batchSize[thread] = 0;
         } catch( std::exception& e ) {
             if( errorMessage.IsEmpty() ) {
                 errorMessage = e.what();

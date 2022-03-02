@@ -21,7 +21,15 @@ limitations under the License.
 
 #ifdef NEOML_USE_SSE
 
-#include <CpuX86.h>
+#include "CpuX86.h"
+
+#ifdef NEOML_USE_MKL
+#if FINE_PLATFORM( FINE_WINDOWS ) || FINE_PLATFORM( FINE_LINUX ) || FINE_PLATFORM( FINE_DARWIN )
+#include <mkl.h>
+#else
+#error Unknown platform
+#endif
+#endif
 
 namespace NeoML {
 
@@ -877,6 +885,54 @@ inline void vectorMinMax( const float* first, float* result, const float minValu
 		*result = min(max(*first, minValue), maxValue);
 		result++;
 		first++;
+	}
+}
+
+inline void vectorTanh( const float* first, float* result, int vectorSize )
+{
+#ifdef NEOML_USE_MKL
+	vsTanh( vectorSize, first, result );
+#else
+	for( int i = 0; i < vectorSize; ++i ) {
+		result[i] = -1.f + 2 / ( 1.f + ExponentFunc( -2 * first[i] ) );
+	}
+#endif
+}
+
+inline void vectorExp( const float* first, float* result, int vectorSize )
+{
+#ifdef NEOML_USE_MKL
+	vectorMinMax( first, result, FLT_MIN_LOG, FLT_MAX_LOG, vectorSize );
+	vsExp( vectorSize, result, result );
+#else
+	for( int i = 0; i < vectorSize; ++i ) {
+		result[i] = ExponentFunc( first[i] );
+	}
+#endif
+}
+
+inline void vectorSigmoid( const float* first, float* result, int vectorSize )
+{
+	int sseSize;
+	int nonSseSize;
+	checkSse( vectorSize, sseSize, nonSseSize );
+
+	vectorExp( first, result, vectorSize );
+
+	if( sseSize > 0 ) {
+		const __m128 oneSse = _mm_set_ps1( 1 );
+		for( int i = 0; i < sseSize; ++i ) {
+			__m128 value = _mm_loadu_ps( result );
+			value = _mm_div_ps( value, _mm_add_ps( value, oneSse ) );
+			_mm_storeu_ps( result, value );
+
+			result += 4;
+		}
+	}
+
+	for( int i = 0; i < nonSseSize; ++i ) {
+		*result = *result / ( *result + 1 );
+		++result;
 	}
 }
 

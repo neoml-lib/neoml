@@ -26,6 +26,8 @@ typedef void ( *SgemmFunc )( bool transA, bool transB,
 	float* cPtr, size_t cRowSize,
 	size_t m, size_t n, size_t k );
 
+struct CMathEngineLstmDesc;
+
 class ISimdMathEngine : public CCrtAllocatedObject {
 public:
 	virtual ~ISimdMathEngine() = default;
@@ -40,6 +42,12 @@ public:
 		const float* filter, const float* freeTerm, float* result ) const = 0;
 
 	virtual SgemmFunc GetSgemmFunction() const = 0;
+
+	virtual void Tanh( float* dst, const float* src, size_t dataSize, bool isMultithread = true ) = 0;
+	virtual void Sigmoid( float* dst, const float* src, size_t dataSize, bool isMultithread = true ) = 0;
+	virtual void Exp( float* dst, const float* src, size_t dataSize, bool isMultithread = true ) = 0;
+	virtual void RunOnceRestOfLstm( CMathEngineLstmDesc* desc, const CConstFloatHandle& inputStateBackLink,
+		const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink, bool isMultithread = true ) = 0;
 };
 
 }

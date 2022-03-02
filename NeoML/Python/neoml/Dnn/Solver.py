@@ -282,17 +282,21 @@ class NesterovGradient(Solver):
         memory, which may become a problem for the optimizers that use 
         the moving mean for squared gradient history (Adam, NAdam, RMSprop).
         See https://openreview.net/pdf?id=ryQu7f-RZ.
-    :type ams_grad: bool, default=False 
+    :type ams_grad: bool, default=False
+    :param decoupled_weight_decay: Enables using of Decoupled Weight Decay Regularization.
+        See https://openreview.net/pdf?id=Bkg6RiCqY7.
+    :type decoupled_weight_decay: bool, default=False
     """
     def __init__(self, math_engine, learning_rate=0.01, l1=0, l2=0, max_gradient_norm=-1.0, moment_decay_rate=0.9,
-                 second_moment_decay_rate=0.99, epsilon=1e-6, ams_grad=False):
+                 second_moment_decay_rate=0.99, epsilon=1e-6, ams_grad=False, decoupled_weight_decay=False):
         if isinstance(math_engine, PythonWrapper.NesterovGradient):
             super().__init__(math_engine)
             return
 
         internal = PythonWrapper.NesterovGradient(math_engine._internal, float(learning_rate), float(l1), float(l2),
                                                   float(max_gradient_norm), float(moment_decay_rate),
-                                                  float(second_moment_decay_rate), float(epsilon), float(ams_grad))
+                                                  float(second_moment_decay_rate), float(epsilon), float(ams_grad),
+                                                  bool(decoupled_weight_decay))
         super().__init__(internal)
 
     @property
@@ -352,3 +356,17 @@ class NesterovGradient(Solver):
         See https://openreview.net/pdf?id=ryQu7f-RZ.
         """
         self._internal.set_ams_grad(value)
+
+    @property
+    def decoupled_weight_decay(self):
+        """Checks if Decoupled Weight Decay Regularization is used.
+        """
+        return self._internal.get_decoupled_weight_decay()
+
+    @decoupled_weight_decay.setter
+    def decoupled_weight_decay(self, value):
+        """Enables using of Decoupled Weight Decay Regularization.
+        May be called only before training starts.
+        See https://openreview.net/pdf?id=Bkg6RiCqY7.
+        """
+        self._internal.set_decoupled_weight_decay(value)

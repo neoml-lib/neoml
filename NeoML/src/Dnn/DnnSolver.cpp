@@ -16,6 +16,9 @@ limitations under the License.
 #include <common.h>
 #pragma hdrstop
 
+#include <cmath>
+#include <cfloat>
+
 #include <NeoML/Dnn/DnnSolver.h>
 #include <NeoML/Dnn/Dnn.h>
 #include <NeoML/Dnn/Layers/CompositeLayer.h>
@@ -192,7 +195,7 @@ void CDnnSolver::AddDiff( CBaseLayer* layer, const CObjectArray<CDnnBlob>& param
 
 // Modifies the trainable parameters of the network layers, using the accumulated gradient values 
 // and the history of previous modifications (moment, etc.)
-void CDnnSolver::Train()
+void CDnnSolver::Train( float distributedCoeff )
 {
 	OnTrain();
 
@@ -229,7 +232,7 @@ void CDnnSolver::Train()
 	}
 
 	if( MathEngine().IsDistributed() ){
-		allReduce();
+		allReduce( distributedCoeff );
 	}
 }
 
@@ -240,17 +243,26 @@ void CDnnSolver::Reset()
 	OnReset();
 }
 
-void CDnnSolver::allReduce()
+void CDnnSolver::allReduce( float distributedCoeff )
 {
+	const bool isCoeffNontrivial = ::fabsf( distributedCoeff - 1.f ) >= FLT_EPSILON;
+	CFloatHandleStackVar coeffVar( MathEngine() );
+	if( isCoeffNontrivial ) {
+		coeffVar.SetValue( distributedCoeff );
+	}
+
 	for( int i = 0; i < reduceOrder.Size(); ++i ) {
+		if( !reduceOrder[i]->IsLearnable() || !reduceOrder[i]->IsLearningEnabled() ) {
+			continue;
+		}
 		const CObjectArray<CDnnBlob>& params = reduceOrder[i]->paramBlobs;
 		for( int j = 0; j < params.Size(); j++ ) {
+			if( isCoeffNontrivial ) {
+				MathEngine().VectorMultiply( params[j]->GetData(), params[j]->GetData(), params[j]->GetDataSize(), coeffVar );
+			}
 			MathEngine().AllReduce( params[j]->GetData(), params[j]->GetDataSize() );
 		}
 	}
-
-	layersToReduce.Empty();
-	reduceOrder.Empty();
 }
 
 void CDnnSolver::clipGradients(const CObjectArray<CDnnBlob>& paramDiffBlobs)
@@ -455,7 +467,7 @@ void CDnnAdaptiveGradientSolver::Serialize( CArchive& archive, CDnn& dnn )
 	archive.Serialize( secondMomentDecayRateN );
 	archive.Serialize( epsilon );
 	archive.Serialize( isAmsGradEnabled );
-	if( version < DnnAdaptiveGradientSolver ) {
+	if( version < 1 ) {
 		isDecoupledWeightDecay = false;
 	} else {
 		archive.Serialize( isDecoupledWeightDecay );
@@ -477,17 +489,18 @@ void CDnnAdaptiveGradientSolver::OnTrain()
 	secondMomentDecayRateN *= secondMomentDecayRate;
 }
 
-CDnnBlob* CDnnAdaptiveGradientSolver::addRegularization( CDnnBlob* diffBlob, CDnnBlob* params, float regL1, float regL2 )
+// Add regularization
+static CDnnBlob* addRegularization( IMathEngine& mathEngine, CDnnBlob* diffBlob, CDnnBlob* params, float regL1, float regL2,
+	const CFloatHandle& l1Threshold, const CFloatHandle& l1Mult, const CFloatHandle& l2Reg, CPtr<CDnnBlob> temporaryBlob )
 {
 	if( regL2 > 0 ) {
-		MathEngine().VectorMultiplyAndAdd( diffBlob->GetData(), params->GetData(),
-			temporaryBlob->GetData(), params->GetDataSize(), tempVariables->GetData( {TV_RegL2Var} ) );
+		mathEngine.VectorMultiplyAndAdd( diffBlob->GetData(), params->GetData(),
+			temporaryBlob->GetData(), params->GetDataSize(), l2Reg );
 		diffBlob = temporaryBlob;
 	}
 	if( regL1 > 0 ) {
-		MathEngine().VectorL1DiffAdd( diffBlob->GetData(), params->GetData(),
-			temporaryBlob->GetData(), params->GetDataSize(), tempVariables->GetData( {TV_L1Threshold} ),
-			tempVariables->GetData( {TV_L1Mult} ) );
+		mathEngine.VectorL1DiffAdd( diffBlob->GetData(), params->GetData(),
+			temporaryBlob->GetData(), params->GetDataSize(), l1Threshold, l1Mult );
 		diffBlob = temporaryBlob;
 	}
 	return diffBlob;
@@ -544,7 +557,9 @@ void CDnnAdaptiveGradientSolver::TrainLayer( const CBaseLayer* layer, const CObj
 
 		CDnnBlob* paramDiffBlob = paramDiffBlobs[i];
 		if( !IsDecoupledWeightDecay() ) {
-			paramDiffBlob = addRegularization( paramDiffBlob, paramBlobs[i], regL1, regL2 );
+			paramDiffBlob = addRegularization( MathEngine(), paramDiffBlob, paramBlobs[i], regL1, regL2,
+				tempVariables->GetData( {TV_L1Threshold} ), tempVariables->GetData( {TV_L1Mult} ),
+				tempVariables->GetData( {TV_RegL2Var} ), temporaryBlob );
 		}
 
 		// Update the historical gradient
@@ -577,7 +592,9 @@ void CDnnAdaptiveGradientSolver::TrainLayer( const CBaseLayer* layer, const CObj
 		MathEngine().VectorEltwiseDivide(moment->GetData(), temporaryBlob->GetData(), 
 			temporaryBlob->GetData(), dataSize);
 		if( IsDecoupledWeightDecay() ) {
-			temporaryBlob = addRegularization( temporaryBlob, paramBlobs[i], regL1, regL2 );
+			temporaryBlob = addRegularization( MathEngine(), temporaryBlob, paramBlobs[i], regL1, regL2,
+				tempVariables->GetData( {TV_L1Threshold} ), tempVariables->GetData( {TV_L1Mult} ),
+				tempVariables->GetData( {TV_RegL2Var} ), temporaryBlob );
 		}
 		// Add the gradient
 		MathEngine().VectorMultiplyAndAdd(paramBlobs[i]->GetData(), temporaryBlob->GetData(),
@@ -592,6 +609,7 @@ CDnnNesterovGradientSolver::CDnnNesterovGradientSolver( IMathEngine& mathEngine 
 	secondMomentDecayRateN( 1.f ),
 	epsilon( 1e-6f ),
 	isAmsGradEnabled( false ),
+	isDecoupledWeightDecay( false ),
 	trainCount( 0 ),
 	productMuT( 1.f ),
 	tempVariables( CDnnBlob::CreateVector( mathEngine, CT_Float, TV_Count ) )
@@ -605,17 +623,28 @@ void CDnnNesterovGradientSolver::EnableAmsGrad( bool enable )
 	isAmsGradEnabled = enable;
 }
 
-static const int DnnNesterovGradientSolverVersion = 0;
+void CDnnNesterovGradientSolver::EnableDecoupledWeightDecay( bool enable )
+{
+	Reset();
+	isDecoupledWeightDecay = enable;
+}
+
+static const int DnnNesterovGradientSolverVersion = 1;
 
 void CDnnNesterovGradientSolver::Serialize( CArchive& archive, CDnn& dnn )
 {
-	archive.SerializeVersion( DnnNesterovGradientSolverVersion );
+	const int version = archive.SerializeVersion( DnnNesterovGradientSolverVersion );
 	CDnnSolver::Serialize( archive, dnn );
 	archive.Serialize( momentDecayRate );
 	archive.Serialize( secondMomentDecayRate );
 	archive.Serialize( secondMomentDecayRateN );
 	archive.Serialize( epsilon );
 	archive.Serialize( isAmsGradEnabled );
+	if( version < 1 ) {
+		isDecoupledWeightDecay = false;
+	} else {
+		archive.Serialize( isDecoupledWeightDecay );
+	}
 	archive.Serialize( trainCount );
 	archive.Serialize( productMuT );
 }
@@ -689,18 +718,10 @@ void CDnnNesterovGradientSolver::TrainLayer( const CBaseLayer* layer, const CObj
 		}
 
 		CDnnBlob* paramDiffBlob = paramDiffBlobs[i];
-
-		// Add regularization
-		if( regL2 > 0 ) {
-			MathEngine().VectorMultiplyAndAdd( paramDiffBlob->GetData(), paramBlobs[i]->GetData(),
-				temporaryBlob->GetData(), dataSize, tempVariables->GetData( {TV_RegL2Var} ) );
-			paramDiffBlob = temporaryBlob;
-		}
-		if( regL1 > 0 ) {
-			MathEngine().VectorL1DiffAdd( paramDiffBlob->GetData(), paramBlobs[i]->GetData(),
-				temporaryBlob->GetData(), dataSize, tempVariables->GetData( {TV_L1Threshold} ),
-				tempVariables->GetData( {TV_L1Mult} ) );
-			paramDiffBlob = temporaryBlob;
+		if( !IsDecoupledWeightDecay() ) {
+			paramDiffBlob = addRegularization( MathEngine(), paramDiffBlob, paramBlobs[i], regL1, regL2,
+				tempVariables->GetData( {TV_L1Threshold} ), tempVariables->GetData( {TV_L1Mult} ),
+				tempVariables->GetData( {TV_RegL2Var} ), temporaryBlob );
 		}
 
 		// Update the historical gradient
@@ -743,6 +764,11 @@ void CDnnNesterovGradientSolver::TrainLayer( const CBaseLayer* layer, const CObj
 			tempVariables->GetData( { TV_EpsilonVar } ) );
 		// Calculate the final diff
 		MathEngine().VectorEltwiseDivide( mBar, temporaryBlob->GetData(), temporaryBlob->GetData(), dataSize );
+		if( IsDecoupledWeightDecay() ) {
+			temporaryBlob = addRegularization( MathEngine(), temporaryBlob, paramBlobs[i], regL1, regL2,
+				tempVariables->GetData( {TV_L1Threshold} ), tempVariables->GetData( {TV_L1Mult} ),
+				tempVariables->GetData( {TV_RegL2Var} ), temporaryBlob );
+		}
 		// Update parameters
 		MathEngine().VectorMultiplyAndAdd( paramBlobs[i]->GetData(), temporaryBlob->GetData(),
 			paramBlobs[i]->GetData(), dataSize, tempVariables->GetData( {TV_RateVar} ) );
