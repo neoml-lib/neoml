@@ -17,6 +17,7 @@ limitations under the License.
 #pragma hdrstop
 
 #include <algorithm>
+#include <cstring>
 #include <PrimitivesJit.h>
 #include <MemoryHandleInternal.h>
 
