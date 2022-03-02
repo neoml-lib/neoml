@@ -28,7 +28,7 @@ public:
     CCustomDataset( int _inputSize, int _labelSize )
         : inputSize( _inputSize ), labelSize( _labelSize )  {};
 
-    void SetInputBatch( CDnn& cnn, int ) override
+    int SetInputBatch( CDnn& cnn, int ) override
     {
         CArray<float> inArr;
         inArr.Add( 1, inputSize );
@@ -40,6 +40,7 @@ public:
         labels->CopyFrom( labelArr.GetPtr() );
         CheckCast<CSourceLayer>( cnn.GetLayer( "in" ) )->SetBlob( in );
         CheckCast<CSourceLayer>( cnn.GetLayer( "label" ) )->SetBlob( labels );
+        return 1;
     }
 
     ~CCustomDataset(){};
@@ -213,4 +214,4 @@ TEST( CDnnDistributedTest, DnnDistributedSerializeTest )
     }
 }
 
-#endif
+#endif // NEOML_USE_OMP
