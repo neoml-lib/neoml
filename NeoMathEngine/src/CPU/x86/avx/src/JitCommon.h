@@ -16,6 +16,7 @@ limitations under the License.
 
 #include <xbyak/xbyak.h>
 #include <stack>
+#include <vector>
 
 namespace NeoML {
 
