@@ -871,11 +871,7 @@ inline void vectorMinMax( const float* first, float* result, const float minValu
 	const __m128 maxSse = _mm_set_ps1(maxValue);
 
 	auto minMaxWorker = [&minSse, &maxSse](const __m128& value) -> __m128 {
-		__m128 cmpMin = _mm_cmplt_ps(value, minSse);
-		__m128 cmpMax = _mm_cmpgt_ps(value, maxSse);
-		__m128 cmpNotNorm = _mm_or_ps(cmpMin, cmpMax);
-		return _mm_or_ps(_mm_or_ps(_mm_andnot_ps(cmpNotNorm, value),
-			_mm_and_ps(cmpMin, minSse)), _mm_and_ps(cmpMax, maxSse));
+		return _mm_min_ps(maxSse, _mm_max_ps(minSse, value));
 	};
 
 	if(sseSize > 0) {
