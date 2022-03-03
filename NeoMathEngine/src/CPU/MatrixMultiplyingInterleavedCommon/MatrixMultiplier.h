@@ -328,17 +328,14 @@ struct CMatrixMultiplier {
 		size_t bWStep;
 		size_t bHStep;
 		size_t bLineSize;
-		const float* bEnd;
 		if( BTransposed ) {
 			bHStep = kBlock;
 			bWStep = nBlock * bRowSize;
 			bLineSize = n * bRowSize;
-			bEnd = bPtr + k;
 		} else {
 			bHStep = kBlock * bRowSize;
 			bWStep = nBlock;
 			bLineSize = n;
-			bEnd = bPtr + k * bRowSize;
 		}
 
 		// The cycle over the wide columns of A and wide rows of B
