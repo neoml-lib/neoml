@@ -38,14 +38,7 @@ static const char* cublasDllName = "libcublas.so.11";
 #error "Platform is not supported!"
 #endif
 
-CCublasDll::CCublasDll()
-{
-}
-
-CCublasDll::~CCublasDll()
-{
-	Free();
-}
+CCublasDll::CCublasDll() = default;
 
 bool CCublasDll::Load()
 {
@@ -63,13 +56,6 @@ bool CCublasDll::Load()
 	}
 
 	return true;
-}
-
-void CCublasDll::Free()
-{
-	if( IsLoaded() ) {
-		CDll::Free();
-	}
 }
 
 // Load all cublas functions used

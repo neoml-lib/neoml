@@ -37,14 +37,7 @@ static const char* cusparseDllName = "libcusparse.so.11";
 #endif
 
 
-CCusparseDll::CCusparseDll()
-{
-}
-
-CCusparseDll::~CCusparseDll()
-{
-	Free();
-}
+CCusparseDll::CCusparseDll() = default;
 
 bool CCusparseDll::Load()
 {
@@ -62,13 +55,6 @@ bool CCusparseDll::Load()
 	}
 
 	return true;
-}
-
-void CCusparseDll::Free()
-{
-	if( IsLoaded() ) {
-		CDll::Free();
-	}
 }
 
 // Load all cusparse library functions used

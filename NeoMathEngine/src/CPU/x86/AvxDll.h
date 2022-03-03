@@ -28,7 +28,7 @@ class IMathEngine;
 class CAvxDll : public CDll {
 public:
 	CAvxDll();
-	~CAvxDll();
+	~CAvxDll() override;
 
 	// Loads the library
 	bool Load();
@@ -42,7 +42,7 @@ private:
 	constexpr static char const* CreateSimdMathEngineFuncName = "CreateSimdMathEngine";
 	typedef ISimdMathEngine* ( *CreateSimdMathEngineFunc )( IMathEngine* mathEngine, int threadCount );
 
-	CreateSimdMathEngineFunc createSimdMathEngineFunc;
+	CreateSimdMathEngineFunc createSimdMathEngineFunc{};
 
 	bool loadFunctions();
 	static bool isAvxAvailable();

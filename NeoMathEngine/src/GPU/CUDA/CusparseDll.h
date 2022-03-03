@@ -30,19 +30,12 @@ namespace NeoML {
 class CCusparseDll : public CDll {
 public:
 	CCusparseDll();
-	virtual ~CCusparseDll();
 
 	// Loads the library
 	bool Load();
 
-	// Checks if the library has already been loaded
-	bool IsLoaded() const { return CDll::IsLoaded(); }
-
 	// Gets the structure with all functions of the cusparse library used by MathEngine
 	const CCusparse* GetFunctions() const { return IsLoaded() ? &functions : 0; }
-
-	// Unloads the library
-	void Free();
 
 private:
 	CCusparse functions; // the structure with all functions of the cusparse library used by MathEngine
