@@ -23,6 +23,7 @@ class NEOML_API CWordVocabulary {
 public:
 	CWordVocabulary() : totalWordsCount( 0 ) {}	
 	CWordVocabulary( const CWordVocabulary& other );
+	void CopyTo( CWordVocabulary& other ) const;
 
 	// Количество слов в словаре.
 	int Size() const { return words.Size(); }

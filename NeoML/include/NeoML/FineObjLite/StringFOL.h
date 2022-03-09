@@ -30,13 +30,15 @@ public:
 	operator const char*() const { return data(); }
 
 	bool IsEmpty() const { return empty(); }
-	int Find( const CString& other ) const;
+	int Length() const { return size(); }
+	int Find( const CString& other, int pos = 0 ) const;
+	void Append( char symbol ) { push_back( symbol ); }
 };
 
-inline int CString::Find( const CString& other ) const
+inline int CString::Find( const CString& other, int pos ) const
 {
-	size_t found = std::string::find( other );
-	return found == std::string::npos ? -1 : static_cast<int>( found );
+	size_t found = std::string::find( other, pos );
+	return found == std::string::npos ? -1 : static_cast< int >( found );
 }
 
 inline CString operator+( const CString& first, const CString& second )
