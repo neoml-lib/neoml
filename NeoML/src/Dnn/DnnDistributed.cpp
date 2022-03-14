@@ -58,6 +58,7 @@ static int getPhysicalCpuCount()
 #endif
 }
 
+// RAII switcher of current thread's group
 class CThreadGroupSwitcher {
 public:
     CThreadGroupSwitcher( int threadIndex, int threadCount, int physicalCpuCount ) :
