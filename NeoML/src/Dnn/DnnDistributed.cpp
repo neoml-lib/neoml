@@ -20,7 +20,84 @@ limitations under the License.
 #include <NeoMathEngine/NeoMathEngine.h>
 #include <NeoML/Dnn/DnnDistributed.h>
 
+#if FINE_PLATFORM( FINE_WINDOWS )
+#include <Windows.h>
+#endif
+
 namespace NeoML {
+
+static int getPhysicalCpuCount()
+{
+#if FINE_PLATFORM( FINE_WINDOWS )
+    DWORD bufferSize = 0;
+    ::GetLogicalProcessorInformationEx( RelationProcessorPackage, nullptr, &bufferSize );
+    NeoAssert( bufferSize > 0 );
+
+    PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX buffer = static_cast<PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX>( ::malloc( bufferSize ) );
+    NeoAssert( buffer != nullptr );
+
+    DWORD result = ::GetLogicalProcessorInformationEx( RelationProcessorPackage, buffer, &bufferSize );
+    if( result == 0 ) {
+        ::free( buffer );
+        NeoAssert( false );
+        return 1;
+    }
+    
+    int processorPackageCount = 0;
+    DWORD offset = 0;
+    while( offset < bufferSize ) {
+        processorPackageCount++;
+        SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX* currInfo = reinterpret_cast<SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*>(
+            reinterpret_cast<char*>( buffer ) + offset );
+        offset += currInfo->Size;
+    }
+    free( buffer );
+    return processorPackageCount;
+#else
+    return 1;
+#endif
+}
+
+class CThreadGroupSwitcher {
+public:
+    CThreadGroupSwitcher( int threadIndex, int threadCount, int physicalCpuCount ) :
+        physicalCpuCount( physicalCpuCount )
+    {
+#if FINE_PLATFORM( FINE_WINDOWS )
+        if( physicalCpuCount > 1 ) {
+            const int threadPerCpu = ( threadCount + physicalCpuCount - 1 ) / physicalCpuCount;
+            GROUP_AFFINITY affinity;
+            affinity.Reserved[0] = 0;
+            affinity.Reserved[1] = 0;
+            affinity.Reserved[2] = 0;
+            affinity.Group = threadIndex / threadPerCpu;
+            affinity.Mask = static_cast<KAFFINITY>( 1ULL << ( threadIndex % threadPerCpu ) );
+            NeoAssert( ::SetThreadGroupAffinity( ::GetCurrentThread(), &affinity, &prevAffinity ) != 0 );
+        }
+#else
+        ( void ) threadIndex;
+        ( void ) threadCount;
+#endif
+    }
+
+    ~CThreadGroupSwitcher()
+    {
+#if FINE_PLATFORM( FINE_WINDOWS )
+        if( physicalCpuCount > 1 ) {
+            ::SetThreadGroupAffinity( ::GetCurrentThread(), &prevAffinity, nullptr );
+        }
+#endif
+    }
+
+    CThreadGroupSwitcher( const CThreadGroupSwitcher& ) = delete;
+    CThreadGroupSwitcher operator=( const CThreadGroupSwitcher& ) = delete;
+
+private:
+    const int physicalCpuCount;
+#if FINE_PLATFORM( FINE_WINDOWS )
+    GROUP_AFFINITY prevAffinity;
+#endif
+};
 
 static CPtr<CDnnInitializer> createInitializer( TDistributedInitializer type, CRandom& random )
 {
@@ -51,7 +128,8 @@ void CDistributedTraining::initialize( CArchive& archive, int count, TDistribute
     batchSize.Add( 0, count );
 }
 
-CDistributedTraining::CDistributedTraining( CDnn& dnn, int count, TDistributedInitializer initializer, int seed )
+CDistributedTraining::CDistributedTraining( CDnn& dnn, int count, TDistributedInitializer initializer, int seed ) :
+    physicalCpuCount( getPhysicalCpuCount() )
 {
     mathEngines.SetSize( count );
     CreateDistributedCpuMathEngines( mathEngines.GetPtr(), count );
@@ -76,7 +154,8 @@ CDistributedTraining::CDistributedTraining( CDnn& dnn, int count, TDistributedIn
     SetSolver( archive );
 }
 
-CDistributedTraining::CDistributedTraining( CArchive& archive, int count, TDistributedInitializer initializer, int seed )
+CDistributedTraining::CDistributedTraining( CArchive& archive, int count, TDistributedInitializer initializer, int seed ) :
+    physicalCpuCount( getPhysicalCpuCount() )
 {
     mathEngines.SetSize( count );
     CreateDistributedCpuMathEngines( mathEngines.GetPtr(), count );
@@ -152,6 +231,7 @@ void CDistributedTraining::RunOnce( IDistributedDataset& data )
     {
         const int thread = OmpGetThreadNum();
         try {
+            CThreadGroupSwitcher groupSwitcher( thread, cnns.Size(), physicalCpuCount );
             const int currBatchSize = data.SetInputBatch( *cnns[thread], thread );
             NeoAssert( currBatchSize > 0 || ( currBatchSize == 0 && !isFirstRun ) );
             if( currBatchSize > 0 ) {
@@ -189,6 +269,7 @@ void CDistributedTraining::RunAndBackwardOnce( IDistributedDataset& data )
     {
         const int thread = OmpGetThreadNum();
         try {
+            CThreadGroupSwitcher groupSwitcher( thread, cnns.Size(), physicalCpuCount );
             const int currBatchSize = data.SetInputBatch( *cnns[thread], thread );
             NeoAssert( currBatchSize > 0 || ( currBatchSize == 0 && !isFirstRun ) );
             if( currBatchSize > 0 ) {
@@ -237,6 +318,7 @@ void CDistributedTraining::Train()
     {
         const int thread = OmpGetThreadNum();
         try {
+            CThreadGroupSwitcher groupSwitcher( thread, cnns.Size(), physicalCpuCount );
             cnns[thread]->GetSolver()->Train( batchSize[thread] * cnns.Size() / static_cast<float>( totalBatch ) );
             batchSize[thread] = 0;
         } catch( std::exception& e ) {
