@@ -36,7 +36,9 @@ class ISimdMathEngine;
 // Math engine that uses a CPU for calculations
 class CCpuMathEngine : public IMathEngine, public IRawMemoryManager {
 public:
-	CCpuMathEngine( int threadCount, size_t memoryLimit );
+	CCpuMathEngine( int threadCount, size_t memoryLimit,
+		std::shared_ptr<CMultiThreadDistributedCommunicator> communicator = nullptr, 
+		const CMathEngineDistributedInfo& distributedInfo = CMathEngineDistributedInfo() );
 	~CCpuMathEngine() override;
 
 	// IMathEngine interface methods
@@ -533,7 +535,6 @@ public:
 		const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink ) override;
 
 	IPerformanceCounters* CreatePerformanceCounters() const override;
-	void SetDistributedCommunicator( std::shared_ptr<CMultiThreadDistributedCommunicator> comm, const CMathEngineDistributedInfo& info );
 	void AllReduce( const CFloatHandle& handle, int size ) override;
 	void Broadcast( const CFloatHandle& handle, int size, int root ) override;
 	void AbortDistributed() override;
@@ -548,11 +549,11 @@ private:
 	const int threadCount; // the number of threads for OMP
 	const int floatAlignment; // float alignment
 	const int memoryAlignment; // allocation alignment
+	std::shared_ptr<CMultiThreadDistributedCommunicator> communicator;
+	CMathEngineDistributedInfo distributedInfo;
 	const std::unique_ptr<CMemoryPool> memoryPool; // the memory manager
 	const std::unique_ptr<CDeviceStackAllocator> stackAllocator; // the stack memory allocator
 	mutable std::mutex mutex; // to protect the allocations
-	std::shared_ptr<CMultiThreadDistributedCommunicator> communicator;
-	CMathEngineDistributedInfo distributedInfo;
 
 	CDllLoader dllLoader; // loading library for simd instructions
 	std::unique_ptr<ISimdMathEngine> simdMathEngine; // interface for using simd instructions
