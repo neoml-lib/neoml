@@ -84,7 +84,7 @@ public:
         }
     }
 #else
-    CThreadGroupSwitcher( int, int, int ) = default;
+    CThreadGroupSwitcher( int, int, int ) {}
     ~CThreadGroupSwitcher() = default;
 #endif
 
