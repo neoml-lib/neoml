@@ -61,10 +61,10 @@ static int getPhysicalCpuCount()
 // RAII switcher of current thread's group
 class CThreadGroupSwitcher {
 public:
+#if FINE_PLATFORM( FINE_WINDOWS )
     CThreadGroupSwitcher( int threadIndex, int threadCount, int physicalCpuCount ) :
         physicalCpuCount( physicalCpuCount )
     {
-#if FINE_PLATFORM( FINE_WINDOWS )
         if( physicalCpuCount > 1 ) {
             const int threadPerCpu = ( threadCount + physicalCpuCount - 1 ) / physicalCpuCount;
             GROUP_AFFINITY affinity;
@@ -75,27 +75,25 @@ public:
             affinity.Mask = static_cast<KAFFINITY>( 1ULL << ( threadIndex % threadPerCpu ) );
             NeoAssert( ::SetThreadGroupAffinity( ::GetCurrentThread(), &affinity, &prevAffinity ) != 0 );
         }
-#else
-        ( void ) threadIndex;
-        ( void ) threadCount;
-#endif
     }
 
     ~CThreadGroupSwitcher()
     {
-#if FINE_PLATFORM( FINE_WINDOWS )
         if( physicalCpuCount > 1 ) {
             ::SetThreadGroupAffinity( ::GetCurrentThread(), &prevAffinity, nullptr );
         }
-#endif
     }
+#else
+    CThreadGroupSwitcher( int, int, int ) = default;
+    ~CThreadGroupSwitcher() = default;
+#endif
 
     CThreadGroupSwitcher( const CThreadGroupSwitcher& ) = delete;
     CThreadGroupSwitcher operator=( const CThreadGroupSwitcher& ) = delete;
 
 private:
-    const int physicalCpuCount;
 #if FINE_PLATFORM( FINE_WINDOWS )
+    const int physicalCpuCount;
     GROUP_AFFINITY prevAffinity;
 #endif
 };
