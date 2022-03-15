@@ -45,7 +45,7 @@ void loadWinAPIFunctions()
     }
 
     winApiFunctionsLoaded = true;
-    HMODULE kernel32Handle = ::GetModuleHandle( L"kernel32" );
+    HMODULE kernel32Handle = ::GetModuleHandle( TEXT( "kernel32" ) );
     if( kernel32Handle == NULL ) {
         return;
     }
