@@ -26,17 +26,55 @@ limitations under the License.
 
 namespace NeoML {
 
+#if FINE_PLATFORM( FINE_WINDOWS )
+
+typedef BOOL (WINAPI *TGetProcessorInfoFunc) (LOGICAL_PROCESSOR_RELATIONSHIP,
+    PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX, PDWORD);
+typedef BOOL (WINAPI *TSetThreadGroupFunc) (HANDLE, const GROUP_AFFINITY*, PGROUP_AFFINITY);
+
+static TGetProcessorInfoFunc getProcessorInfo = nullptr;
+static TSetThreadGroupFunc setThreadGroupAffinity = nullptr;
+static bool winApiFunctionsLoaded = false;
+static CCriticalSection functionLoadSection;
+
+void loadWinAPIFunctions()
+{
+    CCriticalSectionLock lock( functionLoadSection );
+    if( winApiFunctionsLoaded ) {
+        return;
+    }
+
+    winApiFunctionsLoaded = true;
+    HMODULE kernel32Handle = ::GetModuleHandle( L"kernel32" );
+    if( kernel32Handle == NULL ) {
+        return;
+    }
+
+    getProcessorInfo = ( TGetProcessorInfoFunc ) ::GetProcAddress( kernel32Handle, "GetLogicalProcessorInformationEx" );
+    if( getProcessorInfo == nullptr ) {
+        return;
+    }
+    setThreadGroupAffinity = ( TSetThreadGroupFunc ) ::GetProcAddress( kernel32Handle, "SetThreadGroupAffinity" );
+    if( setThreadGroupAffinity == nullptr ) {
+        getProcessorInfo = nullptr;
+    }
+}
+
 static int getPhysicalCpuCount()
 {
-#if FINE_PLATFORM( FINE_WINDOWS )
+    loadWinAPIFunctions();
+    if( getProcessorInfo == nullptr ) {
+        return 1;
+    }
+
     DWORD bufferSize = 0;
-    ::GetLogicalProcessorInformationEx( RelationProcessorPackage, nullptr, &bufferSize );
+    getProcessorInfo( RelationProcessorPackage, nullptr, &bufferSize );
     NeoAssert( bufferSize > 0 );
 
     PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX buffer = static_cast<PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX>( ::malloc( bufferSize ) );
     NeoAssert( buffer != nullptr );
 
-    DWORD result = ::GetLogicalProcessorInformationEx( RelationProcessorPackage, buffer, &bufferSize );
+    DWORD result = getProcessorInfo( RelationProcessorPackage, buffer, &bufferSize );
     if( result == 0 ) {
         ::free( buffer );
         NeoAssert( false );
@@ -53,10 +91,16 @@ static int getPhysicalCpuCount()
     }
     free( buffer );
     return processorPackageCount;
-#else
-    return 1;
-#endif
 }
+
+#else
+
+static int getPhysicalCpuCount()
+{
+    return 1;
+}
+
+#endif
 
 // RAII switcher of current thread's group
 class CThreadGroupSwitcher {
@@ -66,6 +110,7 @@ public:
         physicalCpuCount( physicalCpuCount )
     {
         if( physicalCpuCount > 1 ) {
+            NeoAssert( setThreadGroupAffinity != nullptr );
             const int threadPerCpu = ( threadCount + physicalCpuCount - 1 ) / physicalCpuCount;
             GROUP_AFFINITY affinity;
             affinity.Reserved[0] = 0;
@@ -73,14 +118,14 @@ public:
             affinity.Reserved[2] = 0;
             affinity.Group = threadIndex / threadPerCpu;
             affinity.Mask = static_cast<KAFFINITY>( 1ULL << ( threadIndex % threadPerCpu ) );
-            NeoAssert( ::SetThreadGroupAffinity( ::GetCurrentThread(), &affinity, &prevAffinity ) != 0 );
+            NeoAssert( setThreadGroupAffinity( ::GetCurrentThread(), &affinity, &prevAffinity ) != 0 );
         }
     }
 
     ~CThreadGroupSwitcher()
     {
-        if( physicalCpuCount > 1 ) {
-            ::SetThreadGroupAffinity( ::GetCurrentThread(), &prevAffinity, nullptr );
+        if( physicalCpuCount > 1 && setThreadGroupAffinity != nullptr ) {
+            setThreadGroupAffinity( ::GetCurrentThread(), &prevAffinity, nullptr );
         }
     }
 #else
