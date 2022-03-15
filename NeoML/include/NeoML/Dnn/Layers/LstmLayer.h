@@ -125,6 +125,7 @@ private:
 	CFastLstmDesc fastLstmDesc;
 
 	void buildLayer(float dropout);
+	void checkBlobDescs() const;
 	void setWeightsData(const CPtr<CDnnBlob>& newWeights);
 
 	void fastLstm();
