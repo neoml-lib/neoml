@@ -89,8 +89,7 @@ void CreateDistributedCpuMathEngines( IMathEngine** mathEngines, int count )
 {
     auto comm = std::make_shared<CMultiThreadDistributedCommunicator>( count );
     for( int i = 0; i < count; i++ ){
-        mathEngines[i] = CreateCpuMathEngine( 1, 0 );
-        static_cast<CCpuMathEngine*>( mathEngines[i] )->SetDistributedCommunicator( comm, {i, count} );
+        mathEngines[i] = new CCpuMathEngine( 1, 0, comm, CMathEngineDistributedInfo( i, count ) );
     }
 }
 
