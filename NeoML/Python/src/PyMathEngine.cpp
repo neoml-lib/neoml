@@ -28,7 +28,8 @@ CPyMathEngine::CPyMathEngine( const std::string& type, int threadCount, int inde
 	if( type == "cpu" ) {
 		mathEngineOwner = new CPyMathEngineOwner( CreateCpuMathEngine( threadCount, 0 ) );
 	} else if( type == "gpu" ) {
-		mathEngineOwner = new CPyMathEngineOwner( CreateGpuMathEngine( index, 0 ) );
+		std::unique_ptr<IGpuMathEngineManager> manager( CreateGpuMathEngineManager() );
+		mathEngineOwner = new CPyMathEngineOwner( manager->CreateMathEngine( index, 0 ) );
 	} else {
 		assert( false );
 	}
