@@ -86,6 +86,16 @@ inline void GetAttributeValue<CFastArray<int, 8>>( const onnx::AttributeProto& a
 }
 
 template<>
+inline void GetAttributeValue<CFastArray<float, 8>>( const onnx::AttributeProto& attribute, CFastArray<float, 8>& value, const COperator& op )
+{
+	CheckOnnxProtocol( attribute.type() == onnx::AttributeProto_AttributeType_FLOATS,
+		( attribute.name() + " attribute is not an array of floats" ).c_str(), op );
+	for( float element : attribute.floats() ) {
+		value.Add( element );
+	}
+}
+
+template<>
 inline void GetAttributeValue<CPtr<CDataTensor>>( const onnx::AttributeProto& attribute, CPtr<CDataTensor>& value, const COperator& op )
 {
 	CheckOnnxProtocol( attribute.type() == onnx::AttributeProto_AttributeType_TENSOR && attribute.has_t(),

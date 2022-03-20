@@ -160,6 +160,10 @@ enum TBroadcastType {
 	BT_Onnx,
 	// Numpy-style broadcast, used in later opset versions
 	BT_Numpy,
+	// Upsample operator style
+	// Number of dimensions must match
+	// Supports broadcasting of non-trivial dimensions (size != 1)
+	BT_Upsample,
 
 	BT_Count
 };

@@ -47,6 +47,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Operators/SqueezeOperator.cpp
     Operators/TransposeOperator.cpp
     Operators/UnsqueezeOperator.cpp
+    Operators/UpsampleOperator.cpp
     TensorUtils.cpp
 
     ../include/NeoOnnx/NeoOnnx.h
@@ -86,6 +87,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Operators/SqueezeOperator.h
     Operators/TransposeOperator.h
     Operators/UnsqueezeOperator.h
+    Operators/UpsampleOperator.h
     Tensor.h
     TensorLayout.h
     TensorUtils.h
