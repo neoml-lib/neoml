@@ -70,9 +70,9 @@ void CUpsampleOperator::getScales( const CTensorArray& inputs, CFastArray<int, 8
 {
 	CFastArray<float, 8> floatScales;
 	if( OpsetVersion < 7 ) {
-		float heightScale;
+		float heightScale = 1.f;
 		CheckOnnxProtocol( GetAttribute( "height_scale", heightScale ), "height_scale attribute is missing", *this );
-		float widthScale;
+		float widthScale = 1.f;
 		CheckOnnxProtocol( GetAttribute( "width_scale", widthScale ), "width_scale attribute is missing", *this );
 		floatScales = { 1.f, 1.f, heightScale, widthScale };
 	} else if( OpsetVersion < 9 ) {
