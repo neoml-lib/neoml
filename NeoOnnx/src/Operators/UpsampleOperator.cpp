@@ -51,7 +51,7 @@ CUpsampleOperator::CUpsampleOperator( const onnx::NodeProto& upsample, int opset
 	CheckNeoOnnxSupport( mode == "nearest", "Upsample with non-nearest mode", *this );
 }
 
-void CUpsampleOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
+void CUpsampleOperator::AddLayers( const CTensorArray& inputs, CDnn& /* dnn */, CTensorArray& outputs) const
 {
 	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
 	CFastArray<int, 8> scales;
