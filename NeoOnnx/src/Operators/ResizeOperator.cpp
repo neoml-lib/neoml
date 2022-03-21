@@ -81,7 +81,7 @@ void CResizeOperator::getScales( const CTensorArray& inputs, CFastArray<int, 8>&
 		"Resize without scales", *this );
 	CheckNeoOnnxSupport( inputs[scalesInputIndex]->IsCalculated(), "User-provided scales", *this );
 	CFastArray<float, 8> floatScales;
-	const CDnnBlob& scalesBlob = *( dynamic_cast<const CDataTensor*>( inputs[1].Ptr() )->Data() );
+	const CDnnBlob& scalesBlob = *( dynamic_cast<const CDataTensor*>( inputs[scalesInputIndex].Ptr() )->Data() );
 	floatScales.SetSize( scalesBlob.GetDataSize() );
 	scalesBlob.CopyTo( floatScales.GetPtr() );
 
