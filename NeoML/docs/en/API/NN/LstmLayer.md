@@ -94,13 +94,15 @@ The layer may have 1 to 3 inputs:
 ### First input size
 
 - `BatchLength` - the length of one vector sequence.
-- `BatchWidth * ListSize` - the number of vector sequences in the input set.
+- `BatchWidth` - the number of vector sequences in the input set.
+- `ListSize` should be `1`.
 - `Height * Width * Depth * Channels` - the size of each vector in the sequence.
 
 ### Other inputs size
 
-- `BatchLength` should be `1`.
-- All the other dimensions should be equal to the dimensions of the first input.
+- `BatchLength` and `ListSize` should be `1`.
+- `BatchWidth` should be equal to the `BatchWidth` of the first input.
+- `Height * Width * Depth * Channels` must be equal to the `GetHiddenSize()`.
 
 ## Outputs
 
@@ -111,6 +113,6 @@ The layer has two outputs:
 
 Both outputs are of the following size:
 
-- `BatchLength`, `BatchWidth`, and `ListSize` are equal to the same sizes of the first input.
-- `Height`, `Width`, and `Depth` equal `1`.
+- `BatchLength` and `BatchWidth` are equal to the same sizes of the first input.
+- `ListSize`, `Height`, `Width`, and `Depth` equal `1`.
 - `Channels` equals `GetHiddenSize()`.
