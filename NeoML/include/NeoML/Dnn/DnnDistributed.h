@@ -73,7 +73,7 @@ public:
 	void Serialize( CArchive& archive );
 	~CDistributedTraining();
 private:
-	const int physicalCpuCount = 0;
+	const bool isCpu;
 	CArray<IMathEngine*> mathEngines;
 	CArray<CRandom*> rands;
 	CArray<CDnn*> cnns;
