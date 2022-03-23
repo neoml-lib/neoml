@@ -43,7 +43,7 @@ CResizeOperator::CResizeOperator( const onnx::NodeProto& resize, int opsetVersio
 }
 
 // Checks the fact that this resize operator is an equivalent of upsample operator
-void CResizeOperator::checkIfUpsample( const CTensorArray& inputs ) const
+void CResizeOperator::checkIfUpsample() const
 {
 	CString mode = "nearest";
 	GetAttribute( "mode", mode );
@@ -60,7 +60,7 @@ void CResizeOperator::AddLayers( const CTensorArray& inputs, CDnn& /* dnn */, CT
 {
 	// In NeoOnnx this operator is supported only as equivalent to Upsample
 	// Other scenraios are not supported
-	checkIfUpsample( inputs );
+	checkIfUpsample();
 
 	CFastArray<int, 8> scales;
 	getScales( inputs, scales );

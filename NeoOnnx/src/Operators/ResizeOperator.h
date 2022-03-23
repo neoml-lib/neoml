@@ -29,7 +29,7 @@ protected:
 	void AddLayers( const CTensorArray& input, CDnn& dnn, CTensorArray& outputs ) const override;
 
 private:
-	void checkIfUpsample( const CTensorArray& inputs ) const;
+	void checkIfUpsample() const;
 	void getScales( const CTensorArray& inputs, CFastArray<int, 8>& scales ) const;
 };
 
