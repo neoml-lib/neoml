@@ -93,13 +93,15 @@ CPtr<CDnnBlob> GetFreeTermData() const
 ### Размеры первого входа
 
 - `BatchLength` - длина последовательности;
-- `BatchWidth * ListSize` - количество последовательностей в наборе;
+- `BatchWidth` - количество последовательностей в наборе;
+- `ListSize` должен быть равен `1`.
 - `Height * Width * Depth * Channels` - размер векторов в последовательностях.
 
 ### Размеры остальных входов
 
-- `BatchLength` должен быть равен `1`;
-- Остальные размеры должны быть равны аналогичным у первого входа.
+- `BatchLength` и `ListSize` должны быть равны `1`;
+- `BatchWidth` должен быть равен `BatchWidth` у первого входа;
+- `Height * Width * Depth * Channels` должно быть равно `GetHiddenSize()`.
 
 ## Выходы
 
@@ -110,6 +112,6 @@ CPtr<CDnnBlob> GetFreeTermData() const
 
 Оба выхода имеют следующие размеры:
 
-- `BatchLength`, `BatchWidth` и `ListSize` равный соответствующим у первого входа;
-- `Height`, `Width` и `Depth` равные `1`;
+- `BatchLength` и `BatchWidth` равный соответствующим у первого входа;
+- `ListSize`, `Height`, `Width` и `Depth` равные `1`;
 - `Channels` равный `GetHiddenSize()`.
