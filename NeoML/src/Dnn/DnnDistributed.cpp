@@ -292,6 +292,7 @@ void CDistributedTraining::RunOnce( IDistributedDataset& data )
     }
     CheckArchitecture( errorMessage.IsEmpty(), "DistributedTraining", errorMessage );
 #else
+    ( void ) isCpu;
     ( void ) data;
     NeoAssert( false );
 #endif
@@ -330,6 +331,7 @@ void CDistributedTraining::RunAndBackwardOnce( IDistributedDataset& data )
     }
     CheckArchitecture( errorMessage.IsEmpty(), "DistributedTraining", errorMessage );
 #else
+    ( void ) isCpu;
     ( void ) data;
     NeoAssert( false );
 #endif
@@ -374,6 +376,7 @@ void CDistributedTraining::Train()
     }
     CheckArchitecture( errorMessage.IsEmpty(), "DistributedTraining", errorMessage );
 #else
+    ( void ) isCpu;
     NeoAssert( false );
 #endif
 }
