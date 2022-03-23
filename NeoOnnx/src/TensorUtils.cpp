@@ -443,11 +443,9 @@ static CPtr<const CUserTensor> addUpsample2dLayer( CUpsampling2DLayer& upsample,
 	CTensorShape outputShape;
 	result->Shape().CopyTo( outputShape );
 
-	NeoAssert( outputShape[heightDimIndex] == 1 );
-	outputShape[heightDimIndex] = upsample.GetHeightCopyCount();
+	outputShape[heightDimIndex] *= upsample.GetHeightCopyCount();
 	if( widthDimIndex != NotFound ) {
-		NeoAssert( outputShape[widthDimIndex] == 1 );
-		outputShape[widthDimIndex] = upsample.GetWidthCopyCount();
+		outputShape[widthDimIndex] *= upsample.GetWidthCopyCount();
 	}
 
 	// Construct new CUserTensor which is provided by imageResize layer
@@ -504,6 +502,7 @@ static CPtr<const CUserTensor> broadcastUserTensor( const CUserTensor& input, co
 
 	NeoAssert( broadcast.Type != BT_None );
 	NeoAssert( input.DimCount() <= outputShape.Size() );
+	NeoAssert( broadcast.Type != BT_Upsample || input.DimCount() == outputShape.Size() );
 
 	// Prefix for upsmaple layer names
 	const CString upsampleNamePrefix = input.Layer()->GetName() + CString( "_upsample_" );
@@ -528,7 +527,8 @@ static CPtr<const CUserTensor> broadcastUserTensor( const CUserTensor& input, co
 		if( inputShape[i] == outputShape[i] ) {
 			continue;
 		}
-		NeoAssert( inputShape[i] == 1 );
+		NeoAssert( broadcast.Type == BT_Upsample || inputShape[i] == 1 );
+		NeoAssert( outputShape[i] % inputShape[i] == 0 );
 
 		if( upsample == nullptr ) {
 			upsample = new CUpsampling2DLayer( mathEngine );
@@ -537,10 +537,10 @@ static CPtr<const CUserTensor> broadcastUserTensor( const CUserTensor& input, co
 
 		if( heightDimIndex == NotFound ) {
 			heightDimIndex = i;
-			upsample->SetHeightCopyCount( outputShape[i] );
+			upsample->SetHeightCopyCount( outputShape[i] / inputShape[i] );
 		} else {
 			widthDimIndex = i;
-			upsample->SetWidthCopyCount( outputShape[i] );
+			upsample->SetWidthCopyCount( outputShape[i] / inputShape[i] );
 			currData = addUpsample2dLayer( *upsample, dnn, *currData, heightDimIndex, widthDimIndex );
 			upsample = nullptr;
 			heightDimIndex = NotFound;
