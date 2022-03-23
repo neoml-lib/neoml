@@ -90,7 +90,7 @@ void CConvTransposeOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, C
 	CFastArray<int, 8> strides;
 	getStrides( inputs, strides );
 	CFastArray<int, 8> pads;
-	getPads( inputs, kernelShape, pads );
+	getPads( inputs, pads );
 	CFastArray<int, 8> dilations;
 	getDilations( inputs, dilations );
 	CTensorShape outputShape;
@@ -99,7 +99,6 @@ void CConvTransposeOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, C
 	CTensorLayout neoMLLayout( { BD_BatchWidth, BD_Channels, BD_Height, BD_Width } );
 	CPtr<const CDataTensor> filter = dynamic_cast<const CDataTensor*>( ConvertTensor( *inputs[1], neoMLLayout ).Ptr() );
 	const int filterCount = filter->Shape()[1];
-	const int inputChannels = inputs[0]->Shape()[1];
 
 	IMathEngine& mathEngine = dnn.GetMathEngine();
 	CPtr<CTransposedConvLayer> transposedConv = new CTransposedConvLayer( mathEngine );
@@ -147,7 +146,7 @@ void CConvTransposeOperator::getStrides( const CTensorArray& inputs, CFastArray<
 }
 
 // Gets padding sizes
-void CConvTransposeOperator::getPads( const CTensorArray& inputs, const CTensorShape& kernelShape, CFastArray<int, 8>& pads ) const
+void CConvTransposeOperator::getPads( const CTensorArray& inputs, CFastArray<int, 8>& pads ) const
 {
 	GetAttribute( "pads", pads );
 	if( pads.IsEmpty() ) {
