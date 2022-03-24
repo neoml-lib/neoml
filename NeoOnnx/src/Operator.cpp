@@ -45,6 +45,7 @@ limitations under the License.
 #include "Operators/PoolOperator.h"
 #include "Operators/RangeOperator.h"
 #include "Operators/ReshapeOperator.h"
+#include "Operators/ResizeOperator.h"
 #include "Operators/ShapeOperator.h"
 #include "Operators/SliceOperator.h"
 #include "Operators/SoftmaxOperator.h"
@@ -139,6 +140,7 @@ REGISTER_OPERATOR( CReduceMeanOperator, "ReduceMean" )
 REGISTER_OPERATOR( CReduceMinOperator, "ReduceMin" )
 REGISTER_OPERATOR( CReluOperator, "Relu" )
 REGISTER_OPERATOR( CReshapeOperator, "Reshape" )
+REGISTER_OPERATOR( CResizeOperator, "Resize" )
 REGISTER_OPERATOR( CShapeOperator, "Shape" )
 REGISTER_OPERATOR( CSigmoidOperator, "Sigmoid" )
 REGISTER_OPERATOR( CSliceOperator, "Slice" )
