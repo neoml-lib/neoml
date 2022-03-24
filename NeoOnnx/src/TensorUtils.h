@@ -32,6 +32,9 @@ constexpr const T& Clamp( const T& value, const T& low, const T& high )
 	return value < low ? low : ( high < value ? high : value );
 }
 
+// Checks if float contains an integer value
+bool IsInteger( float x );
+
 // Auxiliary tensor's data loading functions
 
 // Gets NeoML blob type from onnx tensor's data type
