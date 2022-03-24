@@ -27,11 +27,6 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-// Checks if float contains an integer value
-static inline bool isInteger( float x ) {
-	return std::fabs( std::roundf( x ) - x ) < FLT_EPSILON;
-}
-
 CUpsampleOperator::CUpsampleOperator( const onnx::NodeProto& upsample, int opsetVersion ) :
 	CLayerOperator( upsample, opsetVersion ),
 	mode( "nearest" )
@@ -88,7 +83,7 @@ void CUpsampleOperator::getScales( const CTensorArray& inputs, CFastArray<int, 8
 
 	scales.SetSize( floatScales.Size() );
 	for( int i = 0; i < floatScales.Size(); ++i ) {
-		CheckNeoOnnxSupport( isInteger( floatScales[i] ), "non-integer scale", *this );
+		CheckNeoOnnxSupport( IsInteger( floatScales[i] ), "non-integer scale", *this );
 		scales[i] = static_cast<int>( floatScales[i] );
 		CheckOnnxProtocol( scales[i] >= 1, "scale < 1", *this );
 	}

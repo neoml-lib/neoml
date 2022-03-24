@@ -16,10 +16,18 @@ limitations under the License.
 #include "common.h"
 #pragma hdrstop
 
+#include <cfloat>
+#include <cmath>
+
 #include "NeoOnnxCheck.h"
 #include "TensorUtils.h"
 
 namespace NeoOnnx {
+
+bool IsInteger( float x )
+{
+	return std::fabs( std::roundf( x ) - x ) < FLT_EPSILON;
+}
 
 TBlobType GetBlobType( const onnx::TensorProto_DataType& onnxDataType )
 {
