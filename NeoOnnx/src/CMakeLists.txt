@@ -27,6 +27,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Operators/ConstantOfShapeOperator.cpp
     Operators/ConstantOperator.cpp
     Operators/ConvOperator.cpp
+    Operators/ConvTransposeOperator.cpp
     Operators/DropoutOperator.cpp
     Operators/EltwiseOperator.cpp
     Operators/FlattenOperator.cpp
@@ -68,6 +69,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Operators/ConstantOfShapeOperator.h
     Operators/ConstantOperator.h
     Operators/ConvOperator.h
+    Operators/ConvTransposeOperator.h
     Operators/DropoutOperator.h
     Operators/EltwiseOperator.h
     Operators/FlattenOperator.h
