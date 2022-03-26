@@ -34,6 +34,8 @@ limitations under the License.
 #include <NeoML/TraditionalML/PCA.h>
 #include <NeoML/TraditionalML/PlattScalling.h>
 #include <NeoML/TraditionalML/DifferentialEvolution.h>
+#include <NeoML/TraditionalML/BytePairEncoder.h>
+#include <NeoML/TraditionalML/WordVocabulary.h>
 #include <NeoML/Dnn/DnnBlob.h>
 #include <NeoML/Dnn/DnnSparseMatrix.h>
 #include <NeoML/Dnn/AutoDiff.h>

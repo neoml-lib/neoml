@@ -32,7 +32,6 @@ public:
 	bool IsEmpty() const { return empty(); }
 	int Length() const { return size(); }
 	int Find( const CString& other, int pos = 0 ) const;
-	void Append( char symbol ) { push_back( symbol ); }
 };
 
 inline int CString::Find( const CString& other, int pos ) const

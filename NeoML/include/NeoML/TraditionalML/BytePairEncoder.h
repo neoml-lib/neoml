@@ -64,24 +64,26 @@ private:
 	bool updatePairVocabulary( CWordVocabulary& newTokens );
 };
 
-class CBpeCache;
-
 class NEOML_API CBytePairEncoder {
 public:
-	CBytePairEncoder();
+	CBytePairEncoder() = default;
 	CBytePairEncoder( const CBytePairEncoder& other );
+	CBytePairEncoder& operator=( const CBytePairEncoder& other );
 
-	// Период очистки кеша. Если NotFound - не использовать кеш.
+	// Период очистки кеша.
 	// Число слов в кеше примерно равно периоду очистки.
 	void SetCachePeriod( int _cachePeriod ) const;
 
-	void Build( int size, const CWordVocabulary& vocabulary );
+	void Build( int size, const CWordVocabulary& vocabulary, bool useEOW = true );
 
+	const CWordVocabulary& GetTokens() const;
 	void UpdateTokens( const CWordVocabulary& newVocabulary );
 
 	// Токенизация.
 	void Encode( const CString& word, CArray<int>& tokenIds ) const;
-	CString Decode( const CArray<int>& tokenIds ) const;
+	CString Decode( int tokenId, bool decodeOnlyVisibleSymbols = true ) const;
+
+	int Size() const;
 
 	// Сериализация.
 	void Serialize( CArchive& archive );
@@ -89,8 +91,37 @@ public:
 private:
 	// Словарь BPE.
 	CWordVocabulary tokens;
-	// Cache запросов в кодировщику.
-	mutable CPtrOwner<CBpeCache> cache;
+
+	class CCache {
+	public:
+		CCache();
+		void SetCachePeriod( int newPeriod );
+		bool Request( const CString& word, CArray<int>& bpeEncoding );
+		void Add( const CString& word, const CArray<int>& bpeEncoding );
+
+	private:
+		struct CEncodedWord {
+			// Токены.
+			CFastArray<int, 4> TokenIds;
+			// Время жизни.
+			long long Time;
+
+			CEncodedWord() : Time( 0 ) {}
+			CEncodedWord( const CEncodedWord& other ) :
+				Time( other.Time ) {
+				other.TokenIds.CopyTo( TokenIds );
+			}
+		};
+
+		// Кеш токенов слов.
+		CMap<CString, CEncodedWord> wordCache;
+		// Текущее время кеша.
+		long long cacheTime;
+		int cachePeriod;
+	};
+
+	// Cache запросов к кодировщику.
+	mutable CCache cache;
 
 	// 1: Добавлена опция для использования StartOfWordToken.
 	static const int currentVersion = 1;
@@ -100,6 +131,7 @@ private:
 	void createTrainVocabulary( const CWordVocabulary& vocabulary,
 		CWordVocabulary& trainVocabulary ) const;
 	CString splitWordIntoInitalTokens( const CString& word ) const;
+	CString removeSpecialTokens( const CString& word ) const;
 };
 
 } // namespace NeoML

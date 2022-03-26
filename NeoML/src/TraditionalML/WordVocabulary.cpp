@@ -53,13 +53,13 @@ CWordVocabulary::CWordVocabulary( const CWordVocabulary& other ) :
 	other.words.CopyTo( words );
 }
 
-void CWordVocabulary::CopyTo( CWordVocabulary& other ) const
+CWordVocabulary& CWordVocabulary::operator=( const CWordVocabulary& other )
 {
-	wordToIndex.CopyTo( other.wordToIndex );
-	words.CopyTo( other.words );
+	other.wordToIndex.CopyTo( wordToIndex );
+	other.words.CopyTo( words );
+	return *this;
 }
 
-#pragma message (WARNING_PREFIX "operator=")
 #pragma message (WARNING_PREFIX "move support")
 
 //////////////////////////////////////////////////////////////////////////////////////////
