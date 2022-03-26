@@ -98,6 +98,7 @@ set(NeoML_SOURCES
     Dnn/Layers/TransposeLayer.cpp
     Dnn/Layers/Upsampling2DLayer.cpp
     TraditionalML/AIModel.cpp
+    TraditionalML/BytePairEncoder.cpp
     TraditionalML/ClassificationProbability.cpp
     TraditionalML/ClusterCenter.cpp
     TraditionalML/CommonCluster.cpp
@@ -137,6 +138,7 @@ set(NeoML_SOURCES
     TraditionalML/Svm.cpp
     TraditionalML/SvmKernel.cpp
     TraditionalML/TrustRegionNewtonOptimizer.cpp
+    TraditionalML/WordVocabulary.cpp
 )
 set(NeoML_NON_UNITY_SOURCES
     Dnn/DnnSolver.cpp
