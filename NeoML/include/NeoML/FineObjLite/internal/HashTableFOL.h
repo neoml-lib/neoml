@@ -190,6 +190,8 @@ public:
 	const VALUE& operator [] ( THashTablePosition pos ) const { return GetValue( pos ); }
 	const VALUE& GetOrCreateValue( const VALUE& );
 
+	void Serialize( CArchive& ar );
+
 private:
 	class CIndexEntry {
 	public:
@@ -631,6 +633,29 @@ inline void CHashTable<VALUE, HASHINFO, ALLOCATOR>::growIndex( int minSize )
 
 	newIndex.MoveTo( index );
 	hashTableSize = newHashTableSize;
+}
+
+template<class VALUE, class HASHINFO, class ALLOCATOR>
+inline void CHashTable<VALUE, HASHINFO, ALLOCATOR>::Serialize( CArchive& ar )
+{
+	if( ar.IsStoring() ) {
+		int count = Size();
+		ar << count;
+		for( THashTablePosition pos = GetFirstPosition(); pos != NotFound; pos = GetNextPosition( pos ) ) {
+			ar << GetValue( pos );
+			count--;
+		}
+	} else {
+		DeleteAll();
+		int count;
+		ar >> count;
+		init( UpperPrimeNumber( count - 1 ) ); // чтобы не было перехэширования при заполнении
+		for( int i = 0; i < count; i++ ) {
+			VALUE value;
+			ar >> value;
+			Set( value );
+		}
+	}
 }
 
 template<class VALUE, class HASHINFO, class ALLOCATOR>
