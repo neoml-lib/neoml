@@ -140,6 +140,7 @@ set(NeoML_SOURCES
     TraditionalML/SvmKernel.cpp
     TraditionalML/TrustRegionNewtonOptimizer.cpp
     TraditionalML/WordDictionary.cpp
+    NeoML.natvis
 )
 set(NeoML_NON_UNITY_SOURCES
     Dnn/DnnSolver.cpp
