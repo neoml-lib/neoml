@@ -138,6 +138,7 @@ set(NeoML_SOURCES
     TraditionalML/PCA.cpp
     TraditionalML/SvmKernel.cpp
     TraditionalML/TrustRegionNewtonOptimizer.cpp
+    NeoML.natvis
 )
 set(NeoML_NON_UNITY_SOURCES
     Dnn/DnnSolver.cpp
