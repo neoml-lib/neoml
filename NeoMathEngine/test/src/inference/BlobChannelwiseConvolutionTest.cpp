@@ -249,6 +249,22 @@ INSTANTIATE_TEST_CASE_P( CMathEngineBlobChannelwiseConvolutionTestInstantiation,
 			"StrideWidth = 2;"
 			"Values = (-10..10);"
 			"TestCount = 1;"
+		),
+		CTestParams(
+			"InputHeight = 2;"
+			"InputWidth = 2;"
+			"Channels = 4;"
+			"BatchLength = 1;"
+			"BatchWidth = 1;"
+			"ListSize = 1;"
+			"FilterHeight = 3;"
+			"FilterWidth = 3;"
+			"PaddingHeight = 1;"
+			"PaddingWidth = 1;"
+			"StrideHeight = 2;"
+			"StrideWidth = 2;"
+			"Values = (-10..10);"
+			"TestCount = 1;"
 		)
 	)
 );
