@@ -48,18 +48,18 @@ void CPrecisionRecallLayer::Reshape()
 void CPrecisionRecallLayer::GetLastResult( CArray<int>& results )
 {
 	results.FreeBuffer();
-	results.Add( positivesCorrect );
-	results.Add( positivesTotal );
-	results.Add( negativesCorrect );
-	results.Add( negativesTotal );
+	results.Add( PositivesCorrect() );
+	results.Add( PositivesTotal() );
+	results.Add( NegativesCorrect() );
+	results.Add( NegativesTotal() );
 }
 
 void CPrecisionRecallLayer::OnReset()
 {
-	positivesCorrect = 0;
-	positivesTotal = 0;
-	negativesCorrect = 0;
-	negativesTotal = 0;
+	PositivesCorrect() = 0;
+	PositivesTotal() = 0;
+	NegativesCorrect() = 0;
+	NegativesTotal() = 0;
 }
 
 void CPrecisionRecallLayer::RunOnceAfterReset()
@@ -123,21 +123,21 @@ void CPrecisionRecallLayer::RunOnceAfterReset()
 	MathEngine().VectorAbs( binarizedLabel, binarizedLabel, vectorSize );
 	MathEngine().VectorSum( binarizedLabel, vectorSize, negativesCount );
 
-	positivesTotal += to<int>( positivesCount.GetValue() );
-	negativesTotal += to<int>( negativesCount.GetValue() );
-	positivesCorrect += to<int>( truePositivesCount.GetValue() );
-	negativesCorrect += to<int>( trueNegativeCount.GetValue() );
+	PositivesTotal() += to<int>( positivesCount.GetValue() );
+	NegativesTotal() += to<int>( negativesCount.GetValue() );
+	PositivesCorrect() += to<int>( truePositivesCount.GetValue() );
+	NegativesCorrect() += to<int>( trueNegativeCount.GetValue() );
 
-	NeoAssert( positivesTotal >= 0 );
-	NeoAssert( negativesTotal >= 0 );
-	NeoAssert( positivesCorrect <= positivesTotal );
-	NeoAssert( negativesCorrect <= negativesTotal );
+	NeoAssert( PositivesTotal() >= 0 );
+	NeoAssert( NegativesTotal() >= 0 );
+	NeoAssert( PositivesCorrect() <= PositivesTotal() );
+	NeoAssert( NegativesCorrect() <= NegativesTotal() );
 
 	CFastArray<float, 1> buffer;
-	buffer.Add( static_cast<float>( positivesCorrect ) );
-	buffer.Add( static_cast<float>( positivesTotal ) );
-	buffer.Add( static_cast<float>( negativesCorrect ) );
-	buffer.Add( static_cast<float>( negativesTotal ) );
+	buffer.Add( static_cast<float>( PositivesCorrect() ) );
+	buffer.Add( static_cast<float>( PositivesTotal() ) );
+	buffer.Add( static_cast<float>( NegativesCorrect() ) );
+	buffer.Add( static_cast<float>( NegativesTotal() ) );
 
 	outputBlobs[0]->CopyFrom( buffer.GetPtr() );
 }
