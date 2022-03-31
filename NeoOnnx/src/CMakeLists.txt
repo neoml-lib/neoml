@@ -19,6 +19,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     NeoOnnxImport.cpp
     NeoOnnxCheck.cpp
     LayerOperator.cpp
+    LayerUtils.cpp
     Operator.cpp
     Operators/ActivationOperator.cpp
     Operators/BatchNormalizationOperator.cpp
@@ -46,6 +47,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Operators/ShapeOperator.cpp
     Operators/SliceOperator.cpp
     Operators/SoftmaxOperator.cpp
+    Operators/SplitOperator.cpp
     Operators/SqueezeOperator.cpp
     Operators/TransposeOperator.cpp
     Operators/UnsqueezeOperator.cpp
@@ -60,6 +62,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     GraphInitializer.h
     GraphOutput.h
     LayerOperator.h
+    LayerUtils.h
     NeoOnnxCheck.h
     Operator.h
     Operators/ActivationOperator.h
@@ -88,6 +91,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Operators/ShapeOperator.h
     Operators/SliceOperator.h
     Operators/SoftmaxOperator.h
+    Operators/SplitOperator.h
     Operators/SqueezeOperator.h
     Operators/TransposeOperator.h
     Operators/UnsqueezeOperator.h
