@@ -90,7 +90,7 @@ static inline void processFilterRowStride2( const CCommonChannelwiseConvolutionD
 	const float* filter2 = filter1 + channels;
 
 	NeoML::vectorEltwiseMultiplyAdd( filter1, source, result, channels );
-	if( resultWidth > 1 ) {
+	if( desc.Source.Width() > 1 ) {
 		NeoML::vectorEltwiseMultiplyAdd( filter2, source + channels, result, channels );
 	}
 
