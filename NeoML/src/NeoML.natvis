@@ -1,0 +1,66 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+<!-- http://msdn.microsoft.com/en-us/library/vstudio/jj620914.aspx -->
+<!-- !!!Как влючить отладчик: http://msdn.microsoft.com/en-us/library/vstudio/jj620914.aspx#BKMK_Diagnosing_Natvis_errors -->
+
+	<!-- NeoML blobs -->
+	<Type Name="NeoML::CBlobDesc">
+		<DisplayString>{dimensions[0]} x {dimensions[1]} x {dimensions[2]} x {dimensions[3]} x {dimensions[4]} x {dimensions[5]} x {dimensions[6]}, {type}</DisplayString>
+		<Expand>
+			<Item Name="Type">type</Item>
+			<Item Name="BatchLength">dimensions[0]</Item>
+			<Item Name="BatchWidth">dimensions[1]</Item>
+			<Item Name="ListSize">dimensions[2]</Item>
+			<Item Name="Height">dimensions[3]</Item>
+			<Item Name="Width">dimensions[4]</Item>
+			<Item Name="Depth">dimensions[5]</Item>
+			<Item Name="Channels">dimensions[6]</Item>
+			<Item Name="ObjectsCount">dimensions[0]*dimensions[1]*dimensions[2]</Item>
+			<Item Name="ObjectSize">dimensions[3]*dimensions[4]*dimensions[5]*dimensions[6]</Item>
+			<Item Name="DataSize">dimensions[0]*dimensions[1]*dimensions[2]*dimensions[3]*dimensions[4]*dimensions[5]*dimensions[6]</Item>
+		</Expand>
+	</Type>
+	<Type Name="NeoML::CCpuMathEngine">
+		<DisplayString>CPU MathEngine: threadCount = {threadCount}, memory allocated = {memoryPool._Mypair._Myval2->allocatedMemory}</DisplayString>
+	</Type>
+	<Type Name="NeoML::CDnnBlob">
+		<DisplayString>Dnn Blob: {desc}</DisplayString>
+		<Expand>
+			<Item Name="Math engine">mathEngine</Item>
+			<Item Name="Description">desc</Item>
+			<Synthetic Name="Data" Optional="true">
+				<DisplayString>Values</DisplayString>
+				<Expand>
+					<ArrayItems Optional="true">
+						<Direction>Forward</Direction>
+						<Rank>7</Rank>
+						<Size>desc.dimensions[$i]</Size>
+						<ValuePointer Condition="desc.type == CT_Float">(float*)((BYTE*)data.object + data.offset)</ValuePointer>
+						<ValuePointer Condition="desc.type == CT_Int">(int*)((BYTE*)data.object + data.offset)</ValuePointer>
+					</ArrayItems>
+				</Expand>
+			</Synthetic>
+			<Item Name="Data owned">dataOwned</Item>
+			<Item Name="Parent" Condition="parent.ptr != 0">parent</Item>
+			<Item Name="Position in parent" Condition="parent.ptr != 0">parentPos</Item>
+		</Expand>
+	</Type>
+
+	<Type Name="NeoML::CMemoryHandleVarBase&lt;*&gt;">
+		<DisplayString>size: {size}</DisplayString>
+		<Expand>
+			<Item Name="Math Engine">*mathEngine</Item>
+			<Item Name="Size">size</Item>
+			<Synthetic Name="Data" Optional="true">
+				<Expand>
+					<ArrayItems>
+						<Size>size</Size>
+						<ValuePointer>($T1*)((BYTE*)data.object + data.offset)</ValuePointer>
+					</ArrayItems>
+				</Expand>
+			</Synthetic>
+		</Expand>
+	</Type>
+
+</AutoVisualizer>
