@@ -49,6 +49,7 @@ limitations under the License.
 #include "Operators/ShapeOperator.h"
 #include "Operators/SliceOperator.h"
 #include "Operators/SoftmaxOperator.h"
+#include "Operators/SplitOperator.h"
 #include "Operators/SqueezeOperator.h"
 #include "Operators/TransposeOperator.h"
 #include "Operators/UnsqueezeOperator.h"
@@ -145,6 +146,7 @@ REGISTER_OPERATOR( CShapeOperator, "Shape" )
 REGISTER_OPERATOR( CSigmoidOperator, "Sigmoid" )
 REGISTER_OPERATOR( CSliceOperator, "Slice" )
 REGISTER_OPERATOR( CSoftmaxOperator, "Softmax" )
+REGISTER_OPERATOR( CSplitOperator, "Split" )
 REGISTER_OPERATOR( CSqrtOperator, "Sqrt" )
 REGISTER_OPERATOR( CSqueezeOperator, "Squeeze" )
 REGISTER_OPERATOR( CSubOperator, "Sub" )
