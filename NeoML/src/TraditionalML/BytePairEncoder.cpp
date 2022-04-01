@@ -85,9 +85,14 @@ CWordVocabulary CBpeIterativeBuilder::RunIterations( int requestedIterationsCoun
 	if( iterationsCompletedCount == 0 ) {
 		// Ќа первой итерации инициализируем словарь токенов.
 		buildPairVocabulary( newTokens );
+		if( iterationsCompletedCount > requestedIterationsCount ) {
+			newTokens.RestrictSize( requestedIterationsCount );
+			return newTokens;
+		}
 	}
 
 	const int iterationsCount = calcIterationsCount( requestedIterationsCount );
+
 	for( int i = 0; i < iterationsCount; i++ ) {
 		if( !updatePairVocabulary( newTokens ) ) {
 			break;
@@ -141,6 +146,7 @@ void CBpeIterativeBuilder::buildPairVocabulary( CWordVocabulary& newTokens )
 	}
 
 	pairVocabulary.Finalize( 1 );
+	iterationsCompletedCount = pairVocabulary.Size();
 }
 
 // ќдна итераци€ обновлени€ словар€ BPE
@@ -156,8 +162,11 @@ bool CBpeIterativeBuilder::updatePairVocabulary( CWordVocabulary& newPairTokens 
 
 	// Ќаходим все id слов в словаре, в которых есть данна€ пара.
 	const CHashTable<int>& wordIdsToChange = reverseIndex.Get( bestPair );
-	for( int i = 0; i < wordIdsToChange.Size(); i++ ) {
-		const int id = wordIdsToChange[i];
+
+	for( THashTablePosition pos = wordIdsToChange.GetFirstPosition(); pos != NotFound;
+		pos = wordIdsToChange.GetNextPosition( pos ) ) 
+	{
+		const int id = wordIdsToChange.GetValue( pos );
 		const CString& word = trainVocabulary.GetWord( id );
 		const long long count = trainVocabulary.GetWordUseCount( id );
 
@@ -334,7 +343,7 @@ void CBytePairEncoder::doInitializeBuild( const CWordVocabulary& vocabulary,
 	CWordVocabulary trainVocabulary;
 	createTrainVocabulary( vocabulary, trainVocabulary );
 
-	builder.Initialize( trainVocabulary, min( tokensCount, trainVocabulary.Size() ) );
+	builder.Initialize( trainVocabulary, tokensCount );
 }
 
 void CBytePairEncoder::createTrainVocabulary( const CWordVocabulary& vocabulary,
@@ -350,7 +359,7 @@ void CBytePairEncoder::createTrainVocabulary( const CWordVocabulary& vocabulary,
 
 bool isNewUtf8Symbol( char c )
 {
-#pragma message( WARNING_PREGFIX "Not Tested" )
+//#pragma message( WARNING_PREGFIX "Not Tested" )
 	const unsigned char codePoint = static_cast<unsigned char>( c );
 	return ( codePoint >> 7 ) == 0
 		|| ( codePoint >> 6 ) == 3;
@@ -358,6 +367,7 @@ bool isNewUtf8Symbol( char c )
 
 CString CBytePairEncoder::splitWordIntoInitalTokens( const CString& word ) const
 {
+	NeoAssert( word.Find( Separator ) == NotFound );
 	CString result;
 	for( int i = 0; i < word.Length(); i++ ) {
 		if( i > 0
@@ -411,22 +421,37 @@ void CBytePairEncoder::Encode( const CString& word, CArray<int>& tokenIds ) cons
 	cache.Add( word, tokenIds );
 }
 
-CString CBytePairEncoder::Decode( int tokenId, bool decodeOnlyVisibleSymbols ) const
+CString CBytePairEncoder::Decode( const CArray<int>& tokenIds ) const
 {
-	if( tokenId == NotFound ) {
-		if( decodeOnlyVisibleSymbols ) {
-			return "";
+	CString result;
+
+	CString currentWord;
+	for( int i = 0; i < tokenIds.Size(); i++ ) {
+		if( tokenIds[i] == NotFound ) {
+			currentWord += UnknownToken;
 		} else {
-			return UnknownToken;
-		}
-	} else {
-		CString token = tokens.GetWord( tokenId );
-		if( decodeOnlyVisibleSymbols ) {
-			return removeSpecialTokens( token );
-		} else {
-			return token;
+			const CString rawToken = tokens.GetWord( tokenIds[i] );
+			const CString clearToken = removeSpecialTokens( rawToken );
+			currentWord += clearToken;
+
+			if( clearToken.Length() < rawToken.Length() ) {
+				// «начит, встретили конец слова.
+				if( !result.IsEmpty() ) {
+					result += Separator;
+				}
+				result += currentWord;
+				currentWord = "";
+			}
 		}
 	}
+	if( !currentWord.IsEmpty() ) {
+		// ¬друг что-то осталось.
+		if( !result.IsEmpty() ) {
+			result += Separator;
+		}
+		result += currentWord;
+	}
+	return result;
 }
 
 int CBytePairEncoder::Size() const

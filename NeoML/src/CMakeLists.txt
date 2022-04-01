@@ -280,6 +280,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/Dnn/Layers/TransposedConvLayer.h
     ../include/NeoML/Dnn/Layers/TransposeLayer.h
     ../include/NeoML/Dnn/Layers/Upsampling2DLayer.h
+    ../include/NeoML/TraditionalML/BytePairEncoder.h
     ../include/NeoML/TraditionalML/ClassificationProbability.h
     ../include/NeoML/TraditionalML/ClassificationResult.h
     ../include/NeoML/TraditionalML/ClusterCenter.h
@@ -322,6 +323,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/TraditionalML/TrustRegionNewtonOptimizer.h
     ../include/NeoML/TraditionalML/VariableMatrix.h
     ../include/NeoML/TraditionalML/VectorIterator.h
+    ../include/NeoML/TraditionalML/WordVocabulary.h
 )
 
 target_include_directories(${PROJECT_NAME}
