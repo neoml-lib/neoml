@@ -60,7 +60,7 @@ CWordVocabulary& CWordVocabulary::operator=( const CWordVocabulary& other )
 	return *this;
 }
 
-#pragma message (WARNING_PREFIX "move support")
+//#pragma message (WARNING_PREFIX "move support")
 
 //////////////////////////////////////////////////////////////////////////////////////////
 
@@ -180,8 +180,8 @@ void CWordVocabulary::Finalize( long long minCount )
 	const CWordWithCount countSeparator{ "", minCount - 1 };
 	const int insertionPoint = words.FindInsertionPoint<Descending<CWordWithCount>>( countSeparator );
 	
-#pragma message( WARNING_PREFIX "Need test")
-	RestrictSize( insertionPoint + 1 );
+	//#pragma message( WARNING_PREFIX "Need test")
+	RestrictSize( insertionPoint );
 	buildIndex();
 }
 
