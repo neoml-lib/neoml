@@ -36,21 +36,23 @@ private:
 
 void CPyBytePairEncoder::Build( py::dict vocabulary, int tokensCount )
 {
-	CWordVocabulary vocabularyRaw;
+	CWordDictionary vocabularyRaw;
 	for( const auto& item : vocabulary ) {
-		vocabularyRaw.AddWordWithCount( item.first.cast<std::string>(), 
+		vocabularyRaw.AddWord( item.first.cast<std::string>(), 
 			item.second.cast<int>() );
 	}
 	{
 		py::gil_scoped_release release;
-		encoder.Build( tokensCount, vocabularyRaw );
+		//CBpeIterativeBuilder;
+		encoder.Build( vocabularyRaw, tokensCount );
 	}
 }
 
 py::list CPyBytePairEncoder::Encode( const std::string& word ) const
 {
 	CArray<int> encoding;
-	encoder.Encode( word, encoding );
+	CArray<int> offsets;
+	encoder.Encode( word, encoding, offsets );
 
 	py::list result;
 	for( int i = 0; i < encoding.Size(); i++ ) {

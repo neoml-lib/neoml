@@ -13,4 +13,6 @@ import neoml.DecisionTree
 import neoml.Clustering
 import neoml.DifferentialEvolution
 
+import neoml.BytePairEncoder
+
 __all__ = []

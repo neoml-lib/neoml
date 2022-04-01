@@ -80,6 +80,7 @@ limitations under the License.
 #include "PyInitializer.h"
 #include "PyTiedEmbeddingsLayer.h"
 #include "PyDifferentialEvolution.h"
+#include "PyBytePairEncoder.h"
 
 PYBIND11_MODULE(PythonWrapper, m) {
 
@@ -153,5 +154,7 @@ PYBIND11_MODULE(PythonWrapper, m) {
 
 	InitializeInitializer( m );
 	InitializeDifferentialEvolution( m );
+
+	InitializeBytePairEncoder( m );
 }
 
