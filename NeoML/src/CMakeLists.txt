@@ -138,7 +138,7 @@ set(NeoML_SOURCES
     TraditionalML/Svm.cpp
     TraditionalML/SvmKernel.cpp
     TraditionalML/TrustRegionNewtonOptimizer.cpp
-    TraditionalML/WordVocabulary.cpp
+    TraditionalML/WordDictionary.cpp
 )
 set(NeoML_NON_UNITY_SOURCES
     Dnn/DnnSolver.cpp
@@ -323,7 +323,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/TraditionalML/TrustRegionNewtonOptimizer.h
     ../include/NeoML/TraditionalML/VariableMatrix.h
     ../include/NeoML/TraditionalML/VectorIterator.h
-    ../include/NeoML/TraditionalML/WordVocabulary.h
+    ../include/NeoML/TraditionalML/WordDictionary.h
 )
 
 target_include_directories(${PROJECT_NAME}
