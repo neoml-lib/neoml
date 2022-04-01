@@ -16,7 +16,7 @@ limitations under the License.
 #pragma once
 
 #include <NeoML/NeoMLDefs.h>
-#include <NeoML/TraditionalML/WordVocabulary.h>
+#include <NeoML/TraditionalML/WordDictionary.h>
 
 namespace NeoML {
 
@@ -25,13 +25,13 @@ public:
 	CBpeIterativeBuilder();
 
 	// Инициализация механизма.
-	void Initialize( const CWordVocabulary& vocabulary, int totalIterationsCount );
+	void Initialize( const CWordDictionary& vocabulary, int totalIterationsCount );
 
 	// Вычислить заданное кол-во итераций.
 	// Возращается словарь новых токенов.
-	CWordVocabulary RunIterations( int iterationCount );
+	CWordDictionary RunIterations( int iterationCount );
 	// Вычислить полное кол-во итераций.
-	CWordVocabulary RunTotalIterations();
+	CWordDictionary RunTotalIterations();
 
 	// Общее кол-во завершенных итерация.
 	int IterationsCompletedCount() const { return iterationsCompletedCount; }
@@ -50,9 +50,9 @@ private:
 	int totalIterationsCount;
 
 	// Текущий словарь словар.
-	CWordVocabulary trainVocabulary;
+	CWordDictionary trainVocabulary;
 	// Текущий словарь пар токенов.
-	CWordVocabulary pairVocabulary;
+	CWordDictionary pairVocabulary;
 
 	// По паре смердженных токенов хранит информацию об индексах слов в словаре, где эти 
 	// пары встречаются.
@@ -60,8 +60,8 @@ private:
 	CPairReverseIndex reverseIndex;
 
 	int calcIterationsCount( int requestedIterationsCount ) const;
-	void buildPairVocabulary( CWordVocabulary& newTokens );
-	bool updatePairVocabulary( CWordVocabulary& newTokens );
+	void buildPairVocabulary( CWordDictionary& newTokens );
+	bool updatePairVocabulary( CWordDictionary& newTokens );
 };
 
 class NEOML_API CBytePairEncoder {
@@ -74,14 +74,13 @@ public:
 	// Число слов в кеше примерно равно периоду очистки.
 	void SetCachePeriod( int _cachePeriod ) const;
 
-	void Build( int size, const CWordVocabulary& vocabulary, bool useEOW = true );
+	void Build( int size, const CWordDictionary& vocabulary, bool useEOW = true );
 
-	const CWordVocabulary& GetTokens() const;
-	void UpdateTokens( const CWordVocabulary& newVocabulary );
+	const CWordDictionary& GetTokens() const;
+	void UpdateTokens( const CWordDictionary& newVocabulary );
 
 	// Токенизация.
-	void Encode( const CString& word, CArray<int>& tokenIds ) const;
-	CString Decode( int tokenId, bool decodeOnlyVisibleSymbols = true ) const;
+	void Encode( const CString& word, CArray<int>& tokenIds, CArray<int>& offsets ) const;
 
 	int Size() const;
 
@@ -90,7 +89,7 @@ public:
 
 private:
 	// Словарь BPE.
-	CWordVocabulary tokens;
+	CWordDictionary tokens;
 
 	class CCache {
 	public:
@@ -126,12 +125,14 @@ private:
 	// 1: Добавлена опция для использования StartOfWordToken.
 	static const int currentVersion = 1;
 
-	void doInitializeBuild( const CWordVocabulary& vocabulary,
+	void doInitializeBuild( const CWordDictionary& vocabulary,
 		int tokensCount, CBpeIterativeBuilder& builder );
-	void createTrainVocabulary( const CWordVocabulary& vocabulary,
-		CWordVocabulary& trainVocabulary ) const;
+	void createTrainVocabulary( const CWordDictionary& vocabulary,
+		CWordDictionary& trainVocabulary ) const;
 	CString splitWordIntoInitalTokens( const CString& word ) const;
 	CString removeSpecialTokens( const CString& word ) const;
+	void calculateOffsets( const CArray<int>& tokenIds,
+		CArray<int>& offsets ) const;
 };
 
 } // namespace NeoML
