@@ -21,16 +21,20 @@ limitations under the License.
 
 namespace NeoML {
 
+// Some special tokens.
 static const CString EndOfWordToken( "<\\w>" );
 static const CString UnknownToken( "<UNK>" );
+// Separator between tokens.
 static const CString Separator = " ";
 
+// Concatenates tokens.
 static CString mergeTokens( const CString& first, const CString& second )
 {
 	return first + second;
 }
 
-static void split( const CString& string, CArray<CString>& result )
+// Splits word into tokens by Separator.
+static void splitIntoTokens( const CString& string, CArray<CString>& result )
 {
 	result.DeleteAll();
 	for( int pos = 0; pos <= string.Length(); ) {
@@ -44,6 +48,8 @@ static void split( const CString& string, CArray<CString>& result )
 		pos = nextDelimeter + 1;
 	}
 }
+
+///////////////////////////////////////////////////////////////////////////////
 
 CBpeIterativeBuilder::CBpeIterativeBuilder() :
 	iterationsCompletedCount( 0 ),
@@ -134,7 +140,7 @@ void CBpeIterativeBuilder::buildPairDictionary( CWordDictionary& newTokens )
 		const long long count = trainDictionary.GetWordUseCount( i );
 
 		CArray<CString> tokens;
-		split( word, tokens );
+		splitIntoTokens( word, tokens );
 
 		NeoAssert( !tokens.IsEmpty() );
 		for( int j = 0; j < tokens.Size() - 1; j++ ) {
@@ -177,7 +183,7 @@ bool CBpeIterativeBuilder::runSingleIteration( CWordDictionary& newPairTokens )
 
 		// Split the word into tokens.
 		CArray<CString> oldTokens;
-		split( word, oldTokens );
+		splitIntoTokens( word, oldTokens );
 
 		// Finding positions in the word where bestPair is located. 
 		CArray<int> indexesToMerge;
@@ -226,7 +232,7 @@ bool CBpeIterativeBuilder::runSingleIteration( CWordDictionary& newPairTokens )
 
 		// Updating counts for pairs in new word. 
 		CArray<CString> newTokens;
-		split( newWord, newTokens );
+		splitIntoTokens( newWord, newTokens );
 		for( int j = 0; j < newTokens.Size() - 1; j++ ) {
 			const CString pair = mergeTokens( newTokens[j], newTokens[j + 1] );
 			reverseIndex.GetOrCreateValue( pair ).Add( id );
@@ -273,7 +279,8 @@ bool CBytePairEncoder::CCache::Request( const CString& word,
 		success = true;
 	}
 
-	// При очистке кеша удаляем элементы, использовавшиеся реже одного раза за период.
+	// Removes items from cache.
+	// The item is erased if there has not been a request with the same word since the previous cleanup. 
 	if( cacheTime % cachePeriod == 0 ) {
 		CArray<CString> wordsToDelete;
 		for( TMapPosition pos = wordCache.GetFirstPosition(); pos != NotFound;
@@ -318,24 +325,22 @@ CBytePairEncoder& CBytePairEncoder::operator=( const CBytePairEncoder& other )
 	return *this;
 }
 
-void CBytePairEncoder::SetCachePeriod( int _cachePeriod ) const
+void CBytePairEncoder::Build( const CWordDictionary& vocabulary, int size )
 {
-	cache.SetCachePeriod( _cachePeriod );
-}
-
-void CBytePairEncoder::Build( int size, const CWordDictionary& vocabulary, bool useEOW )
-{
-	NeoAssert( size > 0 );
-
 	CBpeIterativeBuilder builder;
-	doInitializeBuild( vocabulary, size, builder );
+	InitializeBuilder( vocabulary, size, builder );
 
 	UpdateTokens( builder.RunTotalIterations() );
 }
 
-const CWordDictionary& CBytePairEncoder::GetTokens() const
+void CBytePairEncoder::InitializeBuilder( const CWordDictionary& vocabulary,
+	int tokensCount, CBpeIterativeBuilder& builder )
 {
-	return tokens;
+	NeoAssert( tokensCount > 0 );
+	CWordDictionary trainDictionary;
+	createTrainVocabulary( vocabulary, trainDictionary );
+
+	builder.Initialize( trainDictionary, tokensCount );
 }
 
 void CBytePairEncoder::UpdateTokens( const CWordDictionary& newVocabulary )
@@ -344,17 +349,53 @@ void CBytePairEncoder::UpdateTokens( const CWordDictionary& newVocabulary )
 	tokens.Finalize( 1 );
 }
 
-// Инициализация фазы построения кодировщика.
-void CBytePairEncoder::doInitializeBuild( const CWordDictionary& vocabulary,
-	int tokensCount, CBpeIterativeBuilder& builder )
+// Токенизация.
+void CBytePairEncoder::Encode( const CString& word, CArray<int>& tokenIds,
+	CArray<int>& offsets ) const
 {
-	// Подготавливаем слоаарь для обучения.
-	CWordDictionary trainDictionary;
-	createTrainVocabulary( vocabulary, trainDictionary );
+	if( cache.Request( word, tokenIds ) ) {
+		return;
+	}
 
-	builder.Initialize( trainDictionary, tokensCount );
+	const CString preparedWord = splitWordIntoInitalTokens( word );
+	CArray<CString> wordTokens;
+	splitIntoTokens( preparedWord, wordTokens );
+
+	while( true ) {
+		long long bestUseCount = 0;
+		int bestMergePos = NotFound;
+		for( int i = 0; i < wordTokens.Size() - 1; i++ ) {
+			const CString pair = mergeTokens( wordTokens[i], wordTokens[i + 1] );
+			const long long pairUseCount = tokens.GetWordUseCount( pair );
+			if( pairUseCount > bestUseCount ) {
+				bestUseCount = pairUseCount;
+				bestMergePos = i;
+			}
+		}
+
+		if( bestMergePos == NotFound ) {
+			break;
+		}
+
+		wordTokens[bestMergePos] = mergeTokens( wordTokens[bestMergePos],
+			wordTokens[bestMergePos + 1] );
+		wordTokens.DeleteAt( bestMergePos + 1 );
+	}
+
+	for( int i = 0; i < wordTokens.Size(); i++ ) {
+		tokenIds.Add( tokens.GetWordId( wordTokens[i] ) );
+	}
+
+	cache.Add( word, tokenIds );
 }
 
+void CBytePairEncoder::Serialize( CArchive& archive )
+{
+	const int version = archive.SerializeVersion( currentVersion );
+	tokens.Serialize( archive );
+}
+
+// Prepares input vocabulary for bpe training.
 void CBytePairEncoder::createTrainVocabulary( const CWordDictionary& vocabulary,
 	CWordDictionary& trainDictionary ) const
 {
@@ -391,46 +432,6 @@ CString CBytePairEncoder::splitWordIntoInitalTokens( const CString& word ) const
 	return result;
 }
 
-// Токенизация.
-void CBytePairEncoder::Encode( const CString& word, CArray<int>& tokenIds,
-	CArray<int>& offsets ) const
-{
-	if( cache.Request( word, tokenIds ) ) {
-		return;
-	}
-
-	const CString preparedWord = splitWordIntoInitalTokens( word );
-	CArray<CString> wordTokens;
-	split( preparedWord, wordTokens );
-
-	while( true ) {
-		long long bestUseCount = 0;
-		int bestMergePos = NotFound;
-		for( int i = 0; i < wordTokens.Size() - 1; i++ ) {
-			const CString pair = mergeTokens( wordTokens[i], wordTokens[i + 1] );
-			const long long pairUseCount = tokens.GetWordUseCount( pair );
-			if( pairUseCount > bestUseCount ) {
-				bestUseCount = pairUseCount;
-				bestMergePos = i;
-			}
-		}
-
-		if( bestMergePos == NotFound ) {
-			break;
-		}
-
-		wordTokens[bestMergePos] = mergeTokens( wordTokens[bestMergePos], 
-			wordTokens[bestMergePos + 1] );
-		wordTokens.DeleteAt( bestMergePos + 1 );
-	}
-
-	for( int i = 0; i < wordTokens.Size(); i++ ) {
-		tokenIds.Add( tokens.GetWordId( wordTokens[i] ) );
-	}
-
-	cache.Add( word, tokenIds );
-}
-
 //CString CBytePairEncoder::Decode( const CArray<int>& tokenIds ) const
 //{
 //	CString result;
@@ -464,31 +465,20 @@ void CBytePairEncoder::Encode( const CString& word, CArray<int>& tokenIds,
 //	return result;
 //}
 
-int CBytePairEncoder::Size() const
-{
-	return tokens.Size();
-}
+//CString CBytePairEncoder::removeSpecialTokens( const CString& word ) const
+//{
+//	const int clearLength = word.Length() - EndOfWordToken.Length();
+//	if( word.Find( EndOfWordToken, clearLength ) != NotFound ) {
+//		return CString( word, clearLength );
+//	} else {
+//		return word;
+//	}
+//}
 
-void CBytePairEncoder::Serialize( CArchive& archive )
-{
-	const int version = archive.SerializeVersion( currentVersion );
-	tokens.Serialize( archive );
-}
-
-CString CBytePairEncoder::removeSpecialTokens( const CString& word ) const
-{
-	const int clearLength = word.Length() - EndOfWordToken.Length();
-	if( word.Find( EndOfWordToken, clearLength ) != NotFound ) {
-		return CString( word, clearLength );
-	} else {
-		return word;
-	}
-}
-
-void CBytePairEncoder::calculateOffsets( const CArray<int>& tokenIds,
-	CArray<int>& offsets ) const
-{
-
-}
+//void CBytePairEncoder::calculateOffsets( const CArray<int>& tokenIds,
+//	CArray<int>& offsets ) const
+//{
+//
+//}
 
 } // namespace NeoML
