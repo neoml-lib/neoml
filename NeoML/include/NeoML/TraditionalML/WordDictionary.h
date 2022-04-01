@@ -52,7 +52,7 @@ public:
 
 	// Returns accumulated value of counts from all AddWord calls for the given word.
 	long long GetWordUseCount( const CString& word ) const;
-	long long GetWordUseCount( int id ) const { return words[id].Count; }
+	long long GetWordUseCount( int id ) const;
 	// Returns frequency of the given word.
 	double GetWordFrequency( const CString& word ) const;
 	double GetWordFrequency( int id ) const;
