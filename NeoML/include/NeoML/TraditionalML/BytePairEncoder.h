@@ -20,50 +20,50 @@ limitations under the License.
 
 namespace NeoML {
 
+// Class that calculates byte-pair-encoding tokens.
 class NEOML_API CBpeIterativeBuilder {
 public:
 	CBpeIterativeBuilder();
 
-	// Инициализация механизма.
-	void Initialize( const CWordDictionary& vocabulary, int totalIterationsCount );
+	// Initialization from word dictionary and the number of tokens to be calculated.
+	void Initialize( const CWordDictionary& dictionary, int totalIterationsCount );
 
-	// Вычислить заданное кол-во итераций.
-	// Возращается словарь новых токенов.
+	// Performs the calculation of new BPE tokens.
 	CWordDictionary RunIterations( int iterationCount );
-	// Вычислить полное кол-во итераций.
 	CWordDictionary RunTotalIterations();
 
-	// Общее кол-во завершенных итерация.
+	// Returns the number of iterations completed (== number of calculated token).
 	int IterationsCompletedCount() const { return iterationsCompletedCount; }
-	// Общее кол-во запланированных итераций.
+	// Returns the total number of iterations.
 	int TotalIterationsCount() const { return totalIterationsCount; }
-	// Завершено ли построение.
+	// Returns true if no more iterations can be performed.
 	bool IsBuildCompleted() const;
 
+	// Serialization to archive.
 	void Serialize( CArchive& archive );
 
 private:
-	// Выполенное кол-во итераций.
-	int iterationsCompletedCount;
-	// Общее запланированное кол-во итераций.
-	// NotFound - ограничения нет.
+	// The total number of iterations.
+	// The size of the dictionary returned from RunTotalIterations cannot exceed this value.
 	int totalIterationsCount;
+	// The number of completed iterations.
+	int iterationsCompletedCount;
 
-	// Текущий словарь словар.
-	CWordDictionary trainVocabulary;
-	// Текущий словарь пар токенов.
-	CWordDictionary pairVocabulary;
+	// The current state of train word dictionary.
+	CWordDictionary trainDictionary;
+	// The dictionary of pairs of neighbour tokens.
+	CWordDictionary pairDictionary;
 
-	// По паре смердженных токенов хранит информацию об индексах слов в словаре, где эти 
-	// пары встречаются.
+	// Map: pair of neighbour tokens -> set of ids of words containing these pair of tokens.
 	typedef CMap<CString, CHashTable<int>> CPairReverseIndex;
 	CPairReverseIndex reverseIndex;
 
 	int calcIterationsCount( int requestedIterationsCount ) const;
-	void buildPairVocabulary( CWordDictionary& newTokens );
-	bool updatePairVocabulary( CWordDictionary& newTokens );
+	void buildPairDictionary( CWordDictionary& newTokens );
+	bool runSingleIteration( CWordDictionary& newTokens );
 };
 
+// Class that encodes a word using byte-pair-encoding.
 class NEOML_API CBytePairEncoder {
 public:
 	CBytePairEncoder() = default;
@@ -128,7 +128,7 @@ private:
 	void doInitializeBuild( const CWordDictionary& vocabulary,
 		int tokensCount, CBpeIterativeBuilder& builder );
 	void createTrainVocabulary( const CWordDictionary& vocabulary,
-		CWordDictionary& trainVocabulary ) const;
+		CWordDictionary& trainDictionary ) const;
 	CString splitWordIntoInitalTokens( const CString& word ) const;
 	CString removeSpecialTokens( const CString& word ) const;
 	void calculateOffsets( const CArray<int>& tokenIds,

@@ -86,8 +86,7 @@ void CWordDictionary::Finalize( long long minCount )
 
 	const CWordWithCount countSeparator{ "", minCount - 1 };
 	const int insertionPoint = words.FindInsertionPoint<Descending<CWordWithCount>>( countSeparator );
-	
-#pragma message( WARNING_PREFIX "Need test")
+
 	RestrictSize( insertionPoint );
 	buildIndex();
 }
