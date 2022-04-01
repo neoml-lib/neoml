@@ -47,14 +47,14 @@ static void split( const CString& string, CArray<CString>& result )
 
 CBpeIterativeBuilder::CBpeIterativeBuilder() :
 	iterationsCompletedCount( 0 ),
-	totalIterationsCount( NotFound )
+	totalIterationsCount( 0 )
 {
 }
 
 void CBpeIterativeBuilder::Initialize( const CWordDictionary& vocabulary,
 	int _totalIterationsCount )
 {
-	trainVocabulary = vocabulary;
+	trainDictionary = vocabulary;
 	totalIterationsCount = _totalIterationsCount;
 	assert( totalIterationsCount > 0 );
 	iterationsCompletedCount = 0;
@@ -62,11 +62,11 @@ void CBpeIterativeBuilder::Initialize( const CWordDictionary& vocabulary,
 
 bool CBpeIterativeBuilder::IsBuildCompleted() const
 {
-	// Больше нельзя создать новую пару токенов (~ для каждого слова уже есть отдельный токен).
+	// No more pairs of neighbour tokens can be added.
 	const bool isNoMergeAvailable = iterationsCompletedCount > 0
-		&& pairVocabulary.Size() == 0;
-	// Достигнуто ограничение на общее число итераций.
-	const bool isTotalRunCountAchieved = iterationsCompletedCount == totalIterationsCount;
+		&& pairDictionary.Size() == 0;
+	// No more iterations can be completed.
+	const bool isTotalRunCountAchieved = iterationsCompletedCount >= totalIterationsCount;
 
 	return isNoMergeAvailable
 		|| isTotalRunCountAchieved;
@@ -83,9 +83,10 @@ CWordDictionary CBpeIterativeBuilder::RunIterations( int requestedIterationsCoun
 	CWordDictionary newTokens;
 
 	if( iterationsCompletedCount == 0 ) {
-		// На первой итерации инициализируем словарь токенов.
-		buildPairVocabulary( newTokens );
+		buildPairDictionary( newTokens );
 		if( iterationsCompletedCount > requestedIterationsCount ) {
+			// If the number of distinct chars in the word dictionary exceeds requestedIterationCount,
+			// no extra tokens should be introduced.
 			newTokens.RestrictSize( requestedIterationsCount );
 			return newTokens;
 		}
@@ -94,7 +95,7 @@ CWordDictionary CBpeIterativeBuilder::RunIterations( int requestedIterationsCoun
 	const int iterationsCount = calcIterationsCount( requestedIterationsCount );
 
 	for( int i = 0; i < iterationsCount; i++ ) {
-		if( !updatePairVocabulary( newTokens ) ) {
+		if( !runSingleIteration( newTokens ) ) {
 			break;
 		}
 		iterationsCompletedCount++;
@@ -107,11 +108,13 @@ void CBpeIterativeBuilder::Serialize( CArchive& archive )
 {
 	archive.Serialize( iterationsCompletedCount );
 	archive.Serialize( totalIterationsCount );
-	trainVocabulary.Serialize( archive );
-	pairVocabulary.Serialize( archive );
+	trainDictionary.Serialize( archive );
+	pairDictionary.Serialize( archive );
 	archive.Serialize( reverseIndex );
 }
 
+// Calculates the number of iterations for the current Run.
+// Returned value cannot exceed requestedIterationsCount.
 int CBpeIterativeBuilder::calcIterationsCount( int requestedIterationsCount ) const
 {
 	NeoAssert( requestedIterationsCount > 0 );
@@ -123,12 +126,12 @@ int CBpeIterativeBuilder::calcIterationsCount( int requestedIterationsCount ) co
 	return min( requestedIterationsCount, remainingIterationsCount );
 }
 
-// Создаем словарь пар.
-void CBpeIterativeBuilder::buildPairVocabulary( CWordDictionary& newTokens )
+// Adds token for each char in dictionary and builds dictionary of token pairs (~ neighbour char pairs).
+void CBpeIterativeBuilder::buildPairDictionary( CWordDictionary& newTokens )
 {
-	for( int i = 0; i < trainVocabulary.Size(); i++ ) {
-		const CString& word = trainVocabulary.GetWord( i );
-		const long long count = trainVocabulary.GetWordUseCount( i );
+	for( int i = 0; i < trainDictionary.Size(); i++ ) {
+		const CString& word = trainDictionary.GetWord( i );
+		const long long count = trainDictionary.GetWordUseCount( i );
 
 		CArray<CString> tokens;
 		split( word, tokens );
@@ -136,7 +139,7 @@ void CBpeIterativeBuilder::buildPairVocabulary( CWordDictionary& newTokens )
 		NeoAssert( !tokens.IsEmpty() );
 		for( int j = 0; j < tokens.Size() - 1; j++ ) {
 			const CString pair = mergeTokens( tokens[j], tokens[j + 1] );
-			pairVocabulary.AddWord( pair, count );
+			pairDictionary.AddWord( pair, count );
 			NeoAssert( count > 0 );
 
 			reverseIndex.GetOrCreateValue( pair ).Add( i );
@@ -145,44 +148,47 @@ void CBpeIterativeBuilder::buildPairVocabulary( CWordDictionary& newTokens )
 		newTokens.AddWord( tokens.Last(), count );
 	}
 
-	pairVocabulary.Finalize( 1 );
-	iterationsCompletedCount = pairVocabulary.Size();
+	pairDictionary.Finalize( 1 );
+	iterationsCompletedCount = pairDictionary.Size();
 }
 
-// Одна итерация обновления словаря BPE
-bool CBpeIterativeBuilder::updatePairVocabulary( CWordDictionary& newPairTokens )
+// Performs one iteration of the algorithm.
+// Adds the most frequent pair of neighbour tokens to newPairTokens.
+// If no pair of neighbour tokens can be created returns false.
+bool CBpeIterativeBuilder::runSingleIteration( CWordDictionary& newPairTokens )
 {
-	if( pairVocabulary.Size() == 0 ) {
+	if( pairDictionary.Size() == 0 ) {
 		return false;
 	}
 
-	// Выбираем лучшую пару по частоте встречаемости.
-	const CString bestPair = pairVocabulary.GetWord( 0 );
-	newPairTokens.AddWord( bestPair, pairVocabulary.GetWordUseCount( 0 ) );
+	// Selection of the most frequent pair of tokens.
+	const CString bestPair = pairDictionary.GetWord( 0 );
+	newPairTokens.AddWord( bestPair, pairDictionary.GetWordUseCount( 0 ) );
 
-	// Находим все id слов в словаре, в которых есть данная пара.
+	// Request for all words containing bestPair. 
 	const CHashTable<int>& wordIdsToChange = reverseIndex.Get( bestPair );
 
 	for( THashTablePosition pos = wordIdsToChange.GetFirstPosition(); pos != NotFound;
 		pos = wordIdsToChange.GetNextPosition( pos ) ) 
 	{
 		const int id = wordIdsToChange.GetValue( pos );
-		const CString& word = trainVocabulary.GetWord( id );
-		const long long count = trainVocabulary.GetWordUseCount( id );
+		const CString& word = trainDictionary.GetWord( id );
+		const long long count = trainDictionary.GetWordUseCount( id );
 
-		// Старое разбиение на токены.
+		// Split the word into tokens.
 		CArray<CString> oldTokens;
 		split( word, oldTokens );
 
-		// Находим индексы старых токенов в слове, которые нужно смерджить.
-		// Попутно дерегистрируем частоты встреченных пар.
+		// Finding positions in the word where bestPair is located. 
 		CArray<int> indexesToMerge;
 		bool wasPreviousPairMerged = false;
 		for( int j = 0; j < oldTokens.Size() - 1; j++ ) {
 			const CString pair = mergeTokens( oldTokens[j], oldTokens[j + 1] );
-			pairVocabulary.AddWord( pair, -count );
+			// Decreasing count for current pair.
+			pairDictionary.AddWord( pair, -count );
 			if( pair == bestPair ) {
 				if( !wasPreviousPairMerged ) {
+					// Careful handling of overlapping bestPairs.
 					indexesToMerge.Add( j );
 					wasPreviousPairMerged = true;
 					continue;
@@ -198,6 +204,7 @@ bool CBpeIterativeBuilder::updatePairVocabulary( CWordDictionary& newPairTokens 
 
 		NeoAssert( !indexesToMerge.IsEmpty() );
 
+		// Creating new word in which all neighbouring bestPairs will be replaced by a new token.
 		CString newWord;
 		int indexesToMergeIndex = 0;
 		for( int j = 0; j < oldTokens.Size(); j++ ) {
@@ -215,20 +222,22 @@ bool CBpeIterativeBuilder::updatePairVocabulary( CWordDictionary& newPairTokens 
 			}
 		}
 
-		trainVocabulary.SetWord( id, newWord );
+		trainDictionary.SetWord( id, newWord );
 
+		// Updating counts for pairs in new word. 
 		CArray<CString> newTokens;
 		split( newWord, newTokens );
 		for( int j = 0; j < newTokens.Size() - 1; j++ ) {
 			const CString pair = mergeTokens( newTokens[j], newTokens[j + 1] );
 			reverseIndex.GetOrCreateValue( pair ).Add( id );
-			pairVocabulary.AddWord( pair, count );
+			pairDictionary.AddWord( pair, count );
 		}
 	}
 
 	reverseIndex.Delete( bestPair );
-	NeoAssert( pairVocabulary.GetWordUseCount( bestPair ) == 0 );
-	pairVocabulary.Finalize( 1 );
+	NeoAssert( pairDictionary.GetWordUseCount( bestPair ) == 0 );
+	// Some pairs may have extincted.
+	pairDictionary.Finalize( 1 );
 
 	return true;
 }
@@ -340,20 +349,20 @@ void CBytePairEncoder::doInitializeBuild( const CWordDictionary& vocabulary,
 	int tokensCount, CBpeIterativeBuilder& builder )
 {
 	// Подготавливаем слоаарь для обучения.
-	CWordDictionary trainVocabulary;
-	createTrainVocabulary( vocabulary, trainVocabulary );
+	CWordDictionary trainDictionary;
+	createTrainVocabulary( vocabulary, trainDictionary );
 
-	builder.Initialize( trainVocabulary, tokensCount );
+	builder.Initialize( trainDictionary, tokensCount );
 }
 
 void CBytePairEncoder::createTrainVocabulary( const CWordDictionary& vocabulary,
-	CWordDictionary& trainVocabulary ) const
+	CWordDictionary& trainDictionary ) const
 {
-	trainVocabulary = vocabulary;
-	for( int i = 0; i < trainVocabulary.Size(); i++ ) {
-		const CString& word = trainVocabulary.GetWord( i );
+	trainDictionary = vocabulary;
+	for( int i = 0; i < trainDictionary.Size(); i++ ) {
+		const CString& word = trainDictionary.GetWord( i );
 		const CString splittedWord = splitWordIntoInitalTokens( word );
-		trainVocabulary.SetWord( i, splittedWord );
+		trainDictionary.SetWord( i, splittedWord );
 	}
 }
 
