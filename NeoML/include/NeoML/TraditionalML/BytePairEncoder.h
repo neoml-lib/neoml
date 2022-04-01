@@ -54,7 +54,7 @@ private:
 	// The dictionary of pairs of neighbour tokens.
 	CWordDictionary pairDictionary;
 
-	// Map: pair of neighbour tokens -> set of ids of words containing these pair of tokens.
+	// Map: pair of neighbour tokens -> set of ids of words containing this pair of tokens.
 	typedef CMap<CString, CHashTable<int>> CPairReverseIndex;
 	CPairReverseIndex reverseIndex;
 
@@ -70,39 +70,55 @@ public:
 	CBytePairEncoder( const CBytePairEncoder& other );
 	CBytePairEncoder& operator=( const CBytePairEncoder& other );
 
-	// Период очистки кеша.
-	// Число слов в кеше примерно равно периоду очистки.
-	void SetCachePeriod( int _cachePeriod ) const;
+	// Builds encoder.
+	void Build( const CWordDictionary& vocabulary, int size );
+	// Returns tokens dictionary.
+	const CWordDictionary& GetTokens() const { return tokens; }
 
-	void Build( int size, const CWordDictionary& vocabulary, bool useEOW = true );
+	// Initializes a builder that contains all the neccessary data for bpe tokens calculation
+	// and supports serialization.
+	// Thus, BPE tokens calculations can be performed asyncronically.
+	void InitializeBuilder( const CWordDictionary& vocabulary, int size,
+		CBpeIterativeBuilder& builder );
+	// Updates tokens with new ones (usually gotten from CBpeIterativeBuilder).
+	void UpdateTokens( const CWordDictionary& newTokens );
 
-	const CWordDictionary& GetTokens() const;
-	void UpdateTokens( const CWordDictionary& newVocabulary );
-
-	// Токенизация.
+	// Encodes a word.
 	void Encode( const CString& word, CArray<int>& tokenIds, CArray<int>& offsets ) const;
-
-	int Size() const;
-
-	// Сериализация.
+	// Returns the number of tokens.
+	int Size() const { return tokens.Size(); }
+	
+	// Serialization to archive.
 	void Serialize( CArchive& archive );
 
+	// Sets the cache cleanup period.
+	// The cache is used for Encode calls acceleration.
+	// The result of the encode call is cached and will be erased if 
+	// no call with the same word will occur among next 1-2 X cachePeriod calls.
+	// Increase in cachePeriod leads to a in increase in memory consumption.
+	// To completely switch the cache off set cachePeriod equal to -1.
+	// Value 0 is treated as invalid.
+	void SetCachePeriod( int cachePeriod ) const { cache.SetCachePeriod( cachePeriod ); }
+
 private:
-	// Словарь BPE.
+	// BPE tokens.
 	CWordDictionary tokens;
 
+	// Internal cache for frequent encoding requests.
 	class CCache {
 	public:
 		CCache();
+		// Sets the cache cleanup period
 		void SetCachePeriod( int newPeriod );
+		// Requests data from cache.
 		bool Request( const CString& word, CArray<int>& bpeEncoding );
+		// Adds data to cache.
 		void Add( const CString& word, const CArray<int>& bpeEncoding );
 
 	private:
+		// Data stored in cache: encoding and the lattest request time.
 		struct CEncodedWord {
-			// Токены.
 			CFastArray<int, 4> TokenIds;
-			// Время жизни.
 			long long Time;
 
 			CEncodedWord() : Time( 0 ) {}
@@ -112,27 +128,25 @@ private:
 			}
 		};
 
-		// Кеш токенов слов.
+		// Current cache state.
 		CMap<CString, CEncodedWord> wordCache;
-		// Текущее время кеша.
+		// Current cache time.
 		long long cacheTime;
+		// Cache cleanup period.
 		int cachePeriod;
 	};
 
-	// Cache запросов к кодировщику.
+	// Cache for Encode calls.
 	mutable CCache cache;
 
-	// 1: Добавлена опция для использования StartOfWordToken.
-	static const int currentVersion = 1;
+	static const int currentVersion = 0;
 
-	void doInitializeBuild( const CWordDictionary& vocabulary,
-		int tokensCount, CBpeIterativeBuilder& builder );
 	void createTrainVocabulary( const CWordDictionary& vocabulary,
 		CWordDictionary& trainDictionary ) const;
 	CString splitWordIntoInitalTokens( const CString& word ) const;
-	CString removeSpecialTokens( const CString& word ) const;
-	void calculateOffsets( const CArray<int>& tokenIds,
-		CArray<int>& offsets ) const;
+	//CString removeSpecialTokens( const CString& word ) const;
+	//void calculateOffsets( const CArray<int>& tokenIds,
+	//	CArray<int>& offsets ) const;
 };
 
 } // namespace NeoML
