@@ -66,7 +66,7 @@ void CBpeIterativeBuilder::Initialize( const CWordDictionary& vocabulary,
 	iterationsCompletedCount = 0;
 }
 
-bool CBpeIterativeBuilder::IsBuildCompleted() const
+bool CBpeIterativeBuilder::IsCompleted() const
 {
 	// No more pairs of neighbour tokens can be added.
 	const bool isNoMergeAvailable = iterationsCompletedCount > 0
@@ -124,7 +124,7 @@ void CBpeIterativeBuilder::Serialize( CArchive& archive )
 int CBpeIterativeBuilder::calcIterationsCount( int requestedIterationsCount ) const
 {
 	NeoAssert( requestedIterationsCount > 0 );
-	if( IsBuildCompleted() ) {
+	if( IsCompleted() ) {
 		return 0;
 	}
 	const int remainingIterationsCount = totalIterationsCount - iterationsCompletedCount;
@@ -349,7 +349,6 @@ void CBytePairEncoder::UpdateTokens( const CWordDictionary& newVocabulary )
 	tokens.Finalize( 1 );
 }
 
-// Токенизация.
 void CBytePairEncoder::Encode( const CString& word, CArray<int>& tokenIds,
 	CArray<int>& offsets ) const
 {
@@ -432,48 +431,48 @@ CString CBytePairEncoder::splitWordIntoInitalTokens( const CString& word ) const
 	return result;
 }
 
-//CString CBytePairEncoder::Decode( const CArray<int>& tokenIds ) const
-//{
-//	CString result;
-//
-//	CString currentWord;
-//	for( int i = 0; i < tokenIds.Size(); i++ ) {
-//		if( tokenIds[i] == NotFound ) {
-//			currentWord += UnknownToken;
-//		} else {
-//			const CString rawToken = tokens.GetWord( tokenIds[i] );
-//			const CString clearToken = removeSpecialTokens( rawToken );
-//			currentWord += clearToken;
-//
-//			if( clearToken.Length() < rawToken.Length() ) {
-//				// Значит, встретили конец слова.
-//				if( !result.IsEmpty() ) {
-//					result += Separator;
-//				}
-//				result += currentWord;
-//				currentWord = "";
-//			}
-//		}
-//	}
-//	if( !currentWord.IsEmpty() ) {
-//		// Вдруг что-то осталось.
-//		if( !result.IsEmpty() ) {
-//			result += Separator;
-//		}
-//		result += currentWord;
-//	}
-//	return result;
-//}
+CString CBytePairEncoder::Decode( const CArray<int>& tokenIds ) const
+{
+	CString result;
 
-//CString CBytePairEncoder::removeSpecialTokens( const CString& word ) const
-//{
-//	const int clearLength = word.Length() - EndOfWordToken.Length();
-//	if( word.Find( EndOfWordToken, clearLength ) != NotFound ) {
-//		return CString( word, clearLength );
-//	} else {
-//		return word;
-//	}
-//}
+	CString currentWord;
+	for( int i = 0; i < tokenIds.Size(); i++ ) {
+		if( tokenIds[i] == NotFound ) {
+			currentWord += UnknownToken;
+		} else {
+			const CString rawToken = tokens.GetWord( tokenIds[i] );
+			const CString clearToken = removeSpecialTokens( rawToken );
+			currentWord += clearToken;
+
+			if( clearToken.Length() < rawToken.Length() ) {
+				// Значит, встретили конец слова.
+				if( !result.IsEmpty() ) {
+					result += Separator;
+				}
+				result += currentWord;
+				currentWord = "";
+			}
+		}
+	}
+	if( !currentWord.IsEmpty() ) {
+		// Вдруг что-то осталось.
+		if( !result.IsEmpty() ) {
+			result += Separator;
+		}
+		result += currentWord;
+	}
+	return result;
+}
+
+CString CBytePairEncoder::removeSpecialTokens( const CString& word ) const
+{
+	const int clearLength = word.Length() - EndOfWordToken.Length();
+	if( word.Find( EndOfWordToken, clearLength ) != NotFound ) {
+		return CString( word, clearLength );
+	} else {
+		return word;
+	}
+}
 
 //void CBytePairEncoder::calculateOffsets( const CArray<int>& tokenIds,
 //	CArray<int>& offsets ) const
