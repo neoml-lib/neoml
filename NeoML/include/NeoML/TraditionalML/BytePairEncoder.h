@@ -37,7 +37,7 @@ public:
 	// Returns the total number of iterations.
 	int TotalIterationsCount() const { return totalIterationsCount; }
 	// Returns true if no more iterations can be performed.
-	bool IsBuildCompleted() const;
+	bool IsCompleted() const;
 
 	// Serialization to archive.
 	void Serialize( CArchive& archive );
@@ -85,6 +85,7 @@ public:
 
 	// Encodes a word.
 	void Encode( const CString& word, CArray<int>& tokenIds, CArray<int>& offsets ) const;
+	CString Decode( const CArray<int>& tokenIds ) const;
 	// Returns the number of tokens.
 	int Size() const { return tokens.Size(); }
 	
@@ -147,6 +148,8 @@ private:
 	//CString removeSpecialTokens( const CString& word ) const;
 	//void calculateOffsets( const CArray<int>& tokenIds,
 	//	CArray<int>& offsets ) const;
+
+	CString removeSpecialTokens( const CString& word ) const;
 };
 
 } // namespace NeoML
