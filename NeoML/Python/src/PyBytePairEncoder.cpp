@@ -24,11 +24,12 @@ public:
 	CPyBytePairEncoder() = default;
 	
 	void Build( py::dict vocabulary, int tokensCount );
-	py::list Encode( const std::string& word ) const;
-	std::string Decode( py::list encoding ) const;
+	py::tuple Encode( const std::string& word ) const;
 
 	const CBytePairEncoder& Encoder() const { return encoder; }
 	CBytePairEncoder& Encoder() { return encoder; }
+
+	py::list Tokens() const;
 
 private:
 	CBytePairEncoder encoder;
@@ -43,32 +44,37 @@ void CPyBytePairEncoder::Build( py::dict vocabulary, int tokensCount )
 	}
 	{
 		py::gil_scoped_release release;
-		//CBpeIterativeBuilder;
 		encoder.Build( vocabularyRaw, tokensCount );
 	}
 }
 
-py::list CPyBytePairEncoder::Encode( const std::string& word ) const
+py::tuple CPyBytePairEncoder::Encode( const std::string& word ) const
 {
-	CArray<int> encoding;
-	CArray<int> offsets;
-	encoder.Encode( word, encoding, offsets );
+	CArray<int> tokenIds;
+	CArray<int> tokenLengths;
+	encoder.Encode( word, tokenIds, tokenLengths );
 
-	py::list result;
-	for( int i = 0; i < encoding.Size(); i++ ) {
-		result.append( encoding[i] );
+	py::list tokenIdsResult;
+	py::list tokenLengthsResult;
+
+	int shift = 0;
+	for( int i = 0; i < tokenIds.Size(); i++ ) {
+		tokenIdsResult.append( tokenIds[i] );
+		tokenLengthsResult.append( py::make_tuple( shift, shift + tokenLengths[i] ) );
+		shift += tokenLengths[i];
 	}
-	return result;
+
+	return py::make_tuple( tokenIdsResult, tokenLengthsResult );
 }
 
-std::string CPyBytePairEncoder::Decode( py::list encoding ) const
+py::list CPyBytePairEncoder::Tokens() const
 {
-	CArray<int> encodingRaw;
-	encodingRaw.SetSize( encoding.size() );
-	for( int i = 0; i < encoding.size(); i++ ) {
-		encodingRaw[i] = encoding[i].cast<int>();
+	py::list result;
+	for( int i = 0; i < encoder.GetTokens().Size(); i++ ) {
+		result.append( py::make_tuple( std::string( encoder.GetTokens().GetWord( i ) ),
+			encoder.GetTokens().GetWordUseCount( i ) ) );
 	}
-	return encoder.Decode( encodingRaw );
+	return result;
 }
 
 void InitializeBytePairEncoder( py::module& m )
@@ -77,7 +83,7 @@ void InitializeBytePairEncoder( py::module& m )
 		.def( py::init<>() )
 		.def( "build", &CPyBytePairEncoder::Build, py::return_value_policy::reference )
 		.def( "encode", &CPyBytePairEncoder::Encode, py::return_value_policy::reference )
-		.def( "decode", &CPyBytePairEncoder::Decode, py::return_value_policy::reference )
+		.def( "tokens", &CPyBytePairEncoder::Tokens, py::return_value_policy::reference )
 		.def( py::pickle(
 			[]( const CPyBytePairEncoder& pyBpe ) {
 				CPyMemoryFile file;

@@ -24,9 +24,11 @@ namespace NeoML {
 class NEOML_API CBpeIterativeBuilder {
 public:
 	CBpeIterativeBuilder();
+	CBpeIterativeBuilder( const CBpeIterativeBuilder& other ) = delete;
+	CBpeIterativeBuilder& operator=( const CBpeIterativeBuilder& other ) = delete;
 
-	// Initialization from word dictionary and the number of tokens to be calculated.
-	void Initialize( const CWordDictionary& dictionary, int totalIterationsCount );
+	void Initialize( const CArray<CArray<CString>>& trainSplittedWords, 
+		const CArray<long long>& trainWordCounts, int totalIterationsCount );
 
 	// Performs the calculation of new BPE tokens.
 	CWordDictionary RunIterations( int iterationCount );
@@ -49,10 +51,11 @@ private:
 	// The number of completed iterations.
 	int iterationsCompletedCount;
 
-	// The current state of train word dictionary.
-	CWordDictionary trainDictionary;
 	// The dictionary of pairs of neighbour tokens.
 	CWordDictionary pairDictionary;
+
+	CArray<CArray<CString>> trainWords;
+	CArray<long long> trainCounts;
 
 	// Map: pair of neighbour tokens -> set of ids of words containing this pair of tokens.
 	typedef CMap<CString, CHashTable<int>> CPairReverseIndex;
@@ -66,12 +69,13 @@ private:
 // Class that encodes a word using byte-pair-encoding.
 class NEOML_API CBytePairEncoder {
 public:
-	CBytePairEncoder() = default;
+	CBytePairEncoder();
 	CBytePairEncoder( const CBytePairEncoder& other );
 	CBytePairEncoder& operator=( const CBytePairEncoder& other );
 
 	// Builds encoder.
-	void Build( const CWordDictionary& vocabulary, int size );
+	void Build( const CWordDictionary& dictionary, int size,
+		bool useEndOfWordToken = true, bool useStartOfWordToken = false );
 	// Returns tokens dictionary.
 	const CWordDictionary& GetTokens() const { return tokens; }
 
@@ -84,8 +88,8 @@ public:
 	void UpdateTokens( const CWordDictionary& newTokens );
 
 	// Encodes a word.
-	void Encode( const CString& word, CArray<int>& tokenIds, CArray<int>& offsets ) const;
-	CString Decode( const CArray<int>& tokenIds ) const;
+	void Encode( const CString& word, CArray<int>& tokenIds, 
+		CArray<int>& unicodeTokenLengths ) const;
 	// Returns the number of tokens.
 	int Size() const { return tokens.Size(); }
 	
@@ -104,6 +108,8 @@ public:
 private:
 	// BPE tokens.
 	CWordDictionary tokens;
+	bool useEndOfWordToken;
+	bool useStartOfWordToken;
 
 	// Internal cache for frequent encoding requests.
 	class CCache {
@@ -112,20 +118,25 @@ private:
 		// Sets the cache cleanup period
 		void SetCachePeriod( int newPeriod );
 		// Requests data from cache.
-		bool Request( const CString& word, CArray<int>& bpeEncoding );
+		bool Request( const CString& word, CArray<int>& tokenIds,
+			CArray<int>& tokenLengths );
 		// Adds data to cache.
-		void Add( const CString& word, const CArray<int>& bpeEncoding );
+		void Add( const CString& word, const CArray<int>& tokenIds,
+			const CArray<int>& tokenLengths );
 
 	private:
 		// Data stored in cache: encoding and the lattest request time.
 		struct CEncodedWord {
 			CFastArray<int, 4> TokenIds;
+			CFastArray<int, 4> TokenLengths;
 			long long Time;
 
 			CEncodedWord() : Time( 0 ) {}
 			CEncodedWord( const CEncodedWord& other ) :
-				Time( other.Time ) {
+				Time( other.Time )
+			{
 				other.TokenIds.CopyTo( TokenIds );
+				other.TokenLengths.CopyTo( TokenLengths );
 			}
 		};
 
@@ -142,14 +153,10 @@ private:
 
 	static const int currentVersion = 0;
 
-	void createTrainVocabulary( const CWordDictionary& vocabulary,
-		CWordDictionary& trainDictionary ) const;
-	CString splitWordIntoInitalTokens( const CString& word ) const;
-	//CString removeSpecialTokens( const CString& word ) const;
-	//void calculateOffsets( const CArray<int>& tokenIds,
-	//	CArray<int>& offsets ) const;
-
-	CString removeSpecialTokens( const CString& word ) const;
+	void createTrainVocabulary( const CWordDictionary& dictionary,
+		CArray<CArray<CString>>& trainWords, CArray<long long>& trainCounts ) const;
+	void splitWordIntoInitalTokens( const CString& word, 
+		CArray<CString>& splittedWord, CArray<int>* initialLengths = nullptr ) const;
 };
 
 } // namespace NeoML

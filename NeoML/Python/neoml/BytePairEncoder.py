@@ -26,7 +26,7 @@ class BytePairEncoder() :
     def encode(self, word):
         return self.internal.encode(word)    
         
-    def decode(self, encoding):
-        return self.internal.decode(encoding)
+    def tokens(self):
+        return self.internal.tokens()
         
 #-------------------------------------------------------------------------------------------------------------
