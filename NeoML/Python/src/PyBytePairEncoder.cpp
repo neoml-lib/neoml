@@ -26,11 +26,10 @@ public:
 	void Train( py::dict vocabulary, int tokensCount, bool useEndOfWordToken,
 		bool useStartOfWordToken );
 	py::tuple Encode( const std::string& word ) const;
+	py::list Decode( py::list tokenIds ) const;
 
 	const CBytePairEncoder& Encoder() const { return encoder; }
 	CBytePairEncoder& Encoder() { return encoder; }
-
-	py::list Tokens() const;
 
 private:
 	CBytePairEncoder encoder;
@@ -69,14 +68,22 @@ py::tuple CPyBytePairEncoder::Encode( const std::string& word ) const
 	return py::make_tuple( tokenIdsResult, tokenLengthsResult );
 }
 
-py::list CPyBytePairEncoder::Tokens() const
+py::tuple CPyBytePairEncoder::Decode( py::list _tokenIds ) const
 {
-	py::list result;
-	for( int i = 0; i < encoder.GetTokens().Size(); i++ ) {
-		result.append( py::make_tuple( std::string( encoder.GetTokens().GetWord( i ) ),
-			encoder.GetTokens().GetWordUseCount( i ) ) );
+	CArray<int> tokenIds;
+	for( const auto& id : _tokenIds ) {
+		tokenIds.Add( id.cast<int>() );
 	}
-	return result;
+
+	CArray<CString> words;
+	encoder.Decode( tokenIds, words );
+
+	py::list resultWords;
+	for( int i = 0; i < words.Size(); i++ ) {
+		resultWords.append( std::string( words[i] ) );
+	}
+
+	return resultWords;
 }
 
 void InitializeBytePairEncoder( py::module& m )
@@ -85,7 +92,7 @@ void InitializeBytePairEncoder( py::module& m )
 		.def( py::init<>() )
 		.def( "train", &CPyBytePairEncoder::Train, py::return_value_policy::reference )
 		.def( "encode", &CPyBytePairEncoder::Encode, py::return_value_policy::reference )
-		.def( "tokens", &CPyBytePairEncoder::Tokens, py::return_value_policy::reference )
+		.def( "decode", &CPyBytePairEncoder::Decode, py::return_value_policy::reference )
 		.def( py::pickle(
 			[]( const CPyBytePairEncoder& pyBpe ) {
 				CPyMemoryFile file;

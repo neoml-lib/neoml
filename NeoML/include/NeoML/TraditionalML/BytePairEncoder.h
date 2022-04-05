@@ -93,6 +93,9 @@ public:
 	// Some special tokens (like End-Of-Word) have zero unicode length.
 	void Encode( const CString& word, CArray<int>& tokenIds, 
 		CArray<int>& unicodeTokenLengths ) const;
+	// Decodes sequence of token ids into sequnce of words.
+	// tokenId == -1 (unknown) is decoded as <UNK>.
+	void Decode( const CArray<int>& tokenIds, CArray<CString>& words ) const;
 	// Returns the number of tokens.
 	int Size() const { return tokens.Size(); }
 	
@@ -161,6 +164,9 @@ private:
 		CArray<CArray<CString>>& trainWords, CArray<long long>& trainCounts ) const;
 	void splitWordIntoInitalTokens( const CString& word, 
 		CArray<CString>& splittedWord, CArray<int>* initialLengths = nullptr ) const;
+	void removeSpecialTokens( CString& token, bool& hasEoW, bool& hasSoW ) const;
+	bool removeEoWToken( CString& token ) const;
+	bool removeSoWToken( CString& token ) const;
 };
 
 } // namespace NeoML
