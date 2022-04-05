@@ -111,6 +111,7 @@ public:
 private:
 	// BPE tokens.
 	CWordDictionary tokens;
+	// Special flags usage flags.
 	bool useEndOfWordToken;
 	bool useStartOfWordToken;
 
@@ -128,7 +129,7 @@ private:
 			const CArray<int>& tokenLengths );
 
 	private:
-		// Data stored in cache: encoding and the lattest request time.
+		// Data stored in cache: token ids and their uniode lengths and the lattest request time.
 		struct CEncodedWord {
 			CFastArray<int, 4> TokenIds;
 			CFastArray<int, 4> TokenLengths;
@@ -156,7 +157,7 @@ private:
 
 	static const int currentVersion = 0;
 
-	void createTrainVocabulary( const CWordDictionary& dictionary,
+	void createTrainData( const CWordDictionary& dictionary,
 		CArray<CArray<CString>>& trainWords, CArray<long long>& trainCounts ) const;
 	void splitWordIntoInitalTokens( const CString& word, 
 		CArray<CString>& splittedWord, CArray<int>* initialLengths = nullptr ) const;

@@ -334,7 +334,7 @@ void CBytePairEncoder::InitializeBuilder( const CWordDictionary& dictionary,
 
 	CArray<CArray<CString>> trainWords;
 	CArray<long long> trainCounts;
-	createTrainVocabulary( dictionary, trainWords, trainCounts );
+	createTrainData( dictionary, trainWords, trainCounts );
 
 	builder.Initialize( trainWords, trainCounts, tokensCount );
 }
@@ -393,10 +393,12 @@ void CBytePairEncoder::Serialize( CArchive& archive )
 {
 	const int version = archive.SerializeVersion( currentVersion );
 	tokens.Serialize( archive );
+	archive.Serialize( useStartOfWordToken );
+	archive.Serialize( useEndOfWordToken );
 }
 
-// Prepares input vocabulary for bpe training.
-void CBytePairEncoder::createTrainVocabulary( const CWordDictionary& dictionary,
+// Creates train data for CBpeIterativeBuilder.
+void CBytePairEncoder::createTrainData( const CWordDictionary& dictionary,
 	CArray<CArray<CString>>& trainWords, CArray<long long>& trainCounts ) const
 {
 	trainWords.SetSize( dictionary.Size() );
@@ -427,7 +429,7 @@ static constexpr int utf8CharacterLength[256] = {
 	4, 4, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // F0-FF
 };
 
-// Returns length of character utf8 encoding.
+// Returns the length of character utf8 encoding by the first byte.
 static inline constexpr int getUtf8CharLength( char c )
 {
 	const unsigned char byte = ( unsigned char ) c;
