@@ -144,7 +144,7 @@ void CBpeIterativeBuilder::buildPairDictionary( CWordDictionary& newTokens )
 	}
 
 	pairDictionary.Finalize( 1 );
-	iterationsCompletedCount = pairDictionary.Size();
+	iterationsCompletedCount = newTokens.Size();
 }
 
 // Performs one iteration of the algorithm.
