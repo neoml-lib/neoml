@@ -24,6 +24,7 @@ namespace NeoML {
 // Some special tokens.
 static const CString StartOfWordToken( "</w>" );
 static const CString EndOfWordToken( "<\\w>" );
+static const CString UnknownToken( "<UNK>" );
 
 // Concatenates tokens.
 static inline CString mergeTokens( const CString& first, const CString& second )
@@ -389,6 +390,50 @@ void CBytePairEncoder::Encode( const CString& word, CArray<int>& tokenIds,
 	cache.Add( word, tokenIds, wordTokenLengths );
 }
 
+void CBytePairEncoder::Decode( const CArray<int>& tokenIds,
+	CArray<CString>& words ) const
+{
+	if( tokenIds.IsEmpty() ) {
+		return;
+	}
+
+	CArray<CString> rawWordTokens;
+	for( int i = 0; i < tokenIds.Size(); i++ ) {
+		if( tokenIds[i] == NotFound ) {
+			rawWordTokens.Add( UnknownToken );
+		} else {
+			rawWordTokens.Add( tokens.GetWord( tokenIds[i] ) );
+		}
+	}
+
+	CArray<bool> isWordBorder;
+	isWordBorder.Add( false, rawWordTokens.Size() - 1 );
+
+	for( int i = 0; i < rawWordTokens.Size(); i++ ) {
+		bool hasEow = false;
+		bool hasSow = false;
+		removeSpecialTokens( rawWordTokens[i], hasEow, hasSow );
+		if( i > 0 ) {
+			isWordBorder[i - 1] |= hasSow;
+		}
+		if( i < rawWordTokens.Size() - 1 ) {
+			isWordBorder[i] |= hasEow;
+		}
+	}
+
+	CString currentWord;
+	for( int i = 0; i < rawWordTokens.Size(); i++ ) {
+		currentWord += rawWordTokens[i];
+		if( i < rawWordTokens.Size() - 1
+			&& isWordBorder[i] ) 
+		{
+			words.Add( currentWord );
+			currentWord = "";
+		}
+	}
+	words.Add( currentWord );
+}
+
 void CBytePairEncoder::Serialize( CArchive& archive )
 {
 	const int version = archive.SerializeVersion( currentVersion );
@@ -467,6 +512,49 @@ void CBytePairEncoder::splitWordIntoInitalTokens( const CString& word,
 		if( useEndOfWordToken ) {
 			initialLengths->Last() = 0;
 		}
+	}
+}
+
+// Removes special subtokens form token.
+void CBytePairEncoder::removeSpecialTokens( CString& token, bool& hasEoW, bool& hasSoW ) const
+{
+	hasEoW = removeEoWToken( token );
+	hasSoW = removeSoWToken( token );
+}
+
+bool CBytePairEncoder::removeEoWToken( CString& token ) const
+{
+	if( !useEndOfWordToken
+		|| token.Length() < EndOfWordToken.Length() ) 
+	{
+		return false;
+	}
+
+	const int cleanLength = token.Length() - EndOfWordToken.Length();
+	const CString suffix( ( const char* )token + cleanLength, EndOfWordToken.Length() );
+	if( suffix == EndOfWordToken ) {
+		token = CString( ( const char* )token, cleanLength );
+		return true;
+	} else {
+		return false;
+	}
+}
+
+bool CBytePairEncoder::removeSoWToken( CString& token ) const
+{
+	if( !useStartOfWordToken
+		|| token.Length() < StartOfWordToken.Length() ) 
+	{
+		return false;
+	}
+
+	const int cleanLength = token.Length() - StartOfWordToken.Length();
+	const CString prefix( ( const char* )token, StartOfWordToken.Length() );
+	if( prefix == StartOfWordToken ) {
+		token = CString( ( const char* )token + StartOfWordToken.Length(), cleanLength );
+		return true;
+	} else {
+		return false;
 	}
 }
 

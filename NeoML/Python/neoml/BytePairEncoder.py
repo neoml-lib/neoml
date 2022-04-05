@@ -62,6 +62,17 @@ class BytePairEncoder() :
             - **token_ids** - *list of token ids (int)*
             - **token_positions** - *list of pairs (int, int)*
         """
-        return self.internal.encode(word)    
+        return self.internal.encode(word) 
+
+    def decode(self, token_ids):
+        """Decodes sequence of token ids into sequence of words.
+
+        :param token_ids: input sequence of token ids.
+        :type token_ids: array-like of int.
+
+        :return: sequence of words .
+        :rtype: list of str.
+        """
+        return self.internal.decode(token_ids) 
         
 #-------------------------------------------------------------------------------------------------------------
