@@ -21,11 +21,11 @@ limitations under the License.
 namespace NeoML {
 
 // Class that calculates byte-pair-encoding tokens.
-class NEOML_API CBpeIterativeBuilder {
+class NEOML_API CBpeIterativeTrainer {
 public:
-	CBpeIterativeBuilder();
-	CBpeIterativeBuilder( const CBpeIterativeBuilder& other ) = delete;
-	CBpeIterativeBuilder& operator=( const CBpeIterativeBuilder& other ) = delete;
+	CBpeIterativeTrainer();
+	CBpeIterativeTrainer( const CBpeIterativeTrainer& other ) = delete;
+	CBpeIterativeTrainer& operator=( const CBpeIterativeTrainer& other ) = delete;
 
 	void Initialize( const CArray<CArray<CString>>& trainSplittedWords, 
 		const CArray<long long>& trainWordCounts, int totalIterationsCount );
@@ -73,18 +73,18 @@ public:
 	CBytePairEncoder( const CBytePairEncoder& other );
 	CBytePairEncoder& operator=( const CBytePairEncoder& other );
 
-	// Builds encoder.
-	void Build( const CWordDictionary& dictionary, int size,
+	// Trains encoder.
+	void Train( const CWordDictionary& dictionary, int size,
 		bool useEndOfWordToken = true, bool useStartOfWordToken = false );
 	// Returns tokens dictionary.
 	const CWordDictionary& GetTokens() const { return tokens; }
 
-	// Initializes a builder that contains all the neccessary data for bpe tokens calculation
+	// Initializes a trainer that contains all the neccessary data for bpe tokens training
 	// and supports serialization.
-	// Thus, BPE tokens calculations can be performed asyncronically.
-	void InitializeBuilder( const CWordDictionary& vocabulary, int size,
-		CBpeIterativeBuilder& builder );
-	// Updates tokens with new ones (usually gotten from CBpeIterativeBuilder).
+	// Thus, BPE tokens training can be performed asyncronically.
+	void InitializeTrainer( const CWordDictionary& vocabulary, int size,
+		CBpeIterativeTrainer& builder );
+	// Updates tokens with new ones (usually gotten from CBpeIterativeTrainer).
 	void UpdateTokens( const CWordDictionary& newTokens );
 
 	// Encodes a word.

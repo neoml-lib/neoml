@@ -23,7 +23,8 @@ class CPyBytePairEncoder {
 public:
 	CPyBytePairEncoder() = default;
 	
-	void Build( py::dict vocabulary, int tokensCount );
+	void Train( py::dict vocabulary, int tokensCount, bool useEndOfWordToken,
+		bool useStartOfWordToken );
 	py::tuple Encode( const std::string& word ) const;
 
 	const CBytePairEncoder& Encoder() const { return encoder; }
@@ -35,7 +36,8 @@ private:
 	CBytePairEncoder encoder;
 };
 
-void CPyBytePairEncoder::Build( py::dict vocabulary, int tokensCount )
+void CPyBytePairEncoder::Train( py::dict vocabulary, int tokensCount,
+	bool useEndOfWordToken, bool useStartOfWordToken )
 {
 	CWordDictionary vocabularyRaw;
 	for( const auto& item : vocabulary ) {
@@ -44,7 +46,7 @@ void CPyBytePairEncoder::Build( py::dict vocabulary, int tokensCount )
 	}
 	{
 		py::gil_scoped_release release;
-		encoder.Build( vocabularyRaw, tokensCount );
+		encoder.Train( vocabularyRaw, tokensCount, useEndOfWordToken, useStartOfWordToken );
 	}
 }
 
@@ -81,7 +83,7 @@ void InitializeBytePairEncoder( py::module& m )
 {
 	py::class_<CPyBytePairEncoder>(m, "BytePairEncoder")
 		.def( py::init<>() )
-		.def( "build", &CPyBytePairEncoder::Build, py::return_value_policy::reference )
+		.def( "train", &CPyBytePairEncoder::Train, py::return_value_policy::reference )
 		.def( "encode", &CPyBytePairEncoder::Encode, py::return_value_policy::reference )
 		.def( "tokens", &CPyBytePairEncoder::Tokens, py::return_value_policy::reference )
 		.def( py::pickle(
