@@ -88,6 +88,9 @@ public:
 	void UpdateTokens( const CWordDictionary& newTokens );
 
 	// Encodes a word.
+	// Input word should be encoded in UTF-8.
+	// TokenId range = [-1, 0, ... , Size() - 1] where -1 is reserved for unknown characters.
+	// Some special tokens (like End-Of-Word) have zero unicode length.
 	void Encode( const CString& word, CArray<int>& tokenIds, 
 		CArray<int>& unicodeTokenLengths ) const;
 	// Returns the number of tokens.

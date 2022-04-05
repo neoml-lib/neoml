@@ -24,7 +24,6 @@ namespace NeoML {
 // Some special tokens.
 static const CString StartOfWordToken( "</w>" );
 static const CString EndOfWordToken( "<\\w>" );
-static const CString UnknownToken( "<UNK>" );
 
 // Concatenates tokens.
 static inline CString mergeTokens( const CString& first, const CString& second )
@@ -408,14 +407,34 @@ void CBytePairEncoder::createTrainVocabulary( const CWordDictionary& dictionary,
 	}
 }
 
-static bool isNewUtf8Symbol( char c )
+// Based on Utf8FirstByteProperties from UtfConverterFO.h.
+static constexpr int utf8CharacterLength[256] = {
+	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 00-0F
+	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 10-1F
+	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 20-2F
+	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 30-3F
+	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 40-4F
+	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 50-5F
+	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 60-6F
+	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 70-7F
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 80-8F
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 90-9F
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // A0-AF
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // B0-BF
+	0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, // C0-CF
+	2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, // D0-DF
+	3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, // E0-EF
+	4, 4, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // F0-FF
+};
+
+// Returns length of character utf8 encoding.
+static inline constexpr int getUtf8CharLength( char c )
 {
-#pragma message( WARNING_PREGFIX "Not Tested" )
-	const unsigned char codePoint = static_cast<unsigned char>( c );
-	return ( codePoint >> 7 ) == 0
-		|| ( codePoint >> 6 ) == 3;
+	const unsigned char byte = ( unsigned char ) c;
+	return utf8CharacterLength[byte];
 }
 
+// Splits a word into initial tokens: single unicode characters + special tokens (optional).
 void CBytePairEncoder::splitWordIntoInitalTokens( const CString& word,
 	CArray<CString>& splittedWord, CArray<int>* initialLengths ) const
 {
@@ -424,19 +443,14 @@ void CBytePairEncoder::splitWordIntoInitalTokens( const CString& word,
 		splittedWord.Add( StartOfWordToken );
 	}
 
-	CString currentToken;
-	for( int i = 0; i < word.Length(); i++ ) {
-		if( i > 0
-			&& isNewUtf8Symbol( word[i] ) )
-		{
-			NeoAssert( !currentToken.IsEmpty() );
-			splittedWord.Add( currentToken );
-			currentToken = "";
-		}
-		currentToken += word[i];
+	CString message;
+	for( int curPos = 0; curPos < word.Length(); ) {
+		const int charLength = getUtf8CharLength( word[curPos] );
+		NeoAssert( charLength > 0 );
+		NeoAssert( curPos + charLength <= word.Length() );
+		splittedWord.Add( CString( ( const char* )word + curPos, charLength ) );
+		curPos += charLength;
 	}
-	NeoAssert( !currentToken.IsEmpty() );
-	splittedWord.Add( currentToken );
 	
 	if( useEndOfWordToken ) {
 		splittedWord.Add( EndOfWordToken );
