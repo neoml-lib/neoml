@@ -31,13 +31,13 @@ public:
 
 	bool IsEmpty() const { return empty(); }
 	int Length() const { return size(); }
-	int Find( const CString& other, int pos = 0 ) const;
+	int Find( const CString& other ) const;
 };
 
-inline int CString::Find( const CString& other, int pos ) const
+inline int CString::Find( const CString& other ) const
 {
-	size_t found = std::string::find( other, pos );
-	return found == std::string::npos ? -1 : static_cast< int >( found );
+	size_t found = std::string::find( other );
+	return found == std::string::npos ? -1 : static_cast<int>( found );
 }
 
 inline CString operator+( const CString& first, const CString& second )
