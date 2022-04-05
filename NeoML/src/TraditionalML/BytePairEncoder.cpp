@@ -33,13 +33,13 @@ static inline CString mergeTokens( const CString& first, const CString& second )
 
 ///////////////////////////////////////////////////////////////////////////////
 
-CBpeIterativeBuilder::CBpeIterativeBuilder() :
+CBpeIterativeTrainer::CBpeIterativeTrainer() :
 	iterationsCompletedCount( 0 ),
 	totalIterationsCount( 0 )
 {
 }
 
-void CBpeIterativeBuilder::Initialize( const CArray<CArray<CString>>& trainSplittedWords,
+void CBpeIterativeTrainer::Initialize( const CArray<CArray<CString>>& trainSplittedWords,
 	const CArray<long long>& trainWordCounts, int _totalIterationsCount )
 {
 	NeoAssert( _totalIterationsCount > 0 );
@@ -55,7 +55,7 @@ void CBpeIterativeBuilder::Initialize( const CArray<CArray<CString>>& trainSplit
 	}
 }
 
-bool CBpeIterativeBuilder::IsCompleted() const
+bool CBpeIterativeTrainer::IsCompleted() const
 {
 	// No more pairs of neighbour tokens can be added.
 	const bool isNoMergeAvailable = iterationsCompletedCount > 0
@@ -67,12 +67,12 @@ bool CBpeIterativeBuilder::IsCompleted() const
 		|| isTotalRunCountAchieved;
 }
 
-CWordDictionary CBpeIterativeBuilder::RunTotalIterations()
+CWordDictionary CBpeIterativeTrainer::RunTotalIterations()
 {
 	return RunIterations( totalIterationsCount );
 }
 
-CWordDictionary CBpeIterativeBuilder::RunIterations( int requestedIterationsCount )
+CWordDictionary CBpeIterativeTrainer::RunIterations( int requestedIterationsCount )
 {
 	assert( requestedIterationsCount > 0 );
 	CWordDictionary newTokens;
@@ -99,7 +99,7 @@ CWordDictionary CBpeIterativeBuilder::RunIterations( int requestedIterationsCoun
 	return newTokens;
 }
 
-void CBpeIterativeBuilder::Serialize( CArchive& archive )
+void CBpeIterativeTrainer::Serialize( CArchive& archive )
 {
 	archive.Serialize( iterationsCompletedCount );
 	archive.Serialize( totalIterationsCount );
@@ -111,7 +111,7 @@ void CBpeIterativeBuilder::Serialize( CArchive& archive )
 
 // Calculates the number of iterations for the current Run.
 // Returned value cannot exceed requestedIterationsCount.
-int CBpeIterativeBuilder::calcIterationsCount( int requestedIterationsCount ) const
+int CBpeIterativeTrainer::calcIterationsCount( int requestedIterationsCount ) const
 {
 	NeoAssert( requestedIterationsCount > 0 );
 	if( IsCompleted() ) {
@@ -123,7 +123,7 @@ int CBpeIterativeBuilder::calcIterationsCount( int requestedIterationsCount ) co
 }
 
 // Adds token for each char in dictionary and builds dictionary of token pairs (~ neighbour char pairs).
-void CBpeIterativeBuilder::buildPairDictionary( CWordDictionary& newTokens )
+void CBpeIterativeTrainer::buildPairDictionary( CWordDictionary& newTokens )
 {
 	for( int i = 0; i < trainWords.Size(); i++ ) {
 		const CArray<CString>& tokens = trainWords[i];
@@ -149,7 +149,7 @@ void CBpeIterativeBuilder::buildPairDictionary( CWordDictionary& newTokens )
 // Performs one iteration of the algorithm.
 // Adds the most frequent pair of neighbour tokens to newPairTokens.
 // If no pair of neighbour tokens can be created returns false.
-bool CBpeIterativeBuilder::runSingleIteration( CWordDictionary& newPairTokens )
+bool CBpeIterativeTrainer::runSingleIteration( CWordDictionary& newPairTokens )
 {
 	if( pairDictionary.Size() == 0 ) {
 		return false;
@@ -315,20 +315,20 @@ CBytePairEncoder& CBytePairEncoder::operator=( const CBytePairEncoder& other )
 	return *this;
 }
 
-void CBytePairEncoder::Build( const CWordDictionary& vocabulary, int size,
+void CBytePairEncoder::Train( const CWordDictionary& vocabulary, int size,
 	bool _useEndOfWordToken, bool _useStartOfWordToken )
 {
 	useEndOfWordToken = _useEndOfWordToken;
 	useStartOfWordToken = _useStartOfWordToken;
 
-	CBpeIterativeBuilder builder;
-	InitializeBuilder( vocabulary, size, builder );
+	CBpeIterativeTrainer builder;
+	InitializeTrainer( vocabulary, size, builder );
 
 	UpdateTokens( builder.RunTotalIterations() );
 }
 
-void CBytePairEncoder::InitializeBuilder( const CWordDictionary& dictionary,
-	int tokensCount, CBpeIterativeBuilder& builder )
+void CBytePairEncoder::InitializeTrainer( const CWordDictionary& dictionary,
+	int tokensCount, CBpeIterativeTrainer& builder )
 {
 	NeoAssert( tokensCount > 0 );
 
@@ -397,7 +397,7 @@ void CBytePairEncoder::Serialize( CArchive& archive )
 	archive.Serialize( useEndOfWordToken );
 }
 
-// Creates train data for CBpeIterativeBuilder.
+// Creates train data for CBpeIterativeTrainer.
 void CBytePairEncoder::createTrainData( const CWordDictionary& dictionary,
 	CArray<CArray<CString>>& trainWords, CArray<long long>& trainCounts ) const
 {
