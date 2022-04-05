@@ -68,7 +68,7 @@ py::tuple CPyBytePairEncoder::Encode( const std::string& word ) const
 	return py::make_tuple( tokenIdsResult, tokenLengthsResult );
 }
 
-py::tuple CPyBytePairEncoder::Decode( py::list _tokenIds ) const
+py::list CPyBytePairEncoder::Decode( py::list _tokenIds ) const
 {
 	CArray<int> tokenIds;
 	for( const auto& id : _tokenIds ) {
