@@ -144,10 +144,9 @@ static CSparseMatrixDesc getSparseMatrixDesc( IMathEngine& mathEngine, const CFl
 }
 
 // copy blob with reduced width
-static void copyNarrowedBlobToArray( CPtr<CDnnBlob> blob, int oldWidth, CArray<float>& array, int newWidth )
+static void copyNarrowedBlobToArray( int height, CPtr<CDnnBlob> blob, int oldWidth, CArray<float>& array, int newWidth )
 {
 	float* buffer = blob->GetBuffer<float>( 0, blob->GetDataSize(), true );
-	int height = blob->GetDataSize() / oldWidth;
 	array.Empty();
 	if( newWidth < oldWidth ) {
 		array.SetBufferSize( height * newWidth );
@@ -159,7 +158,7 @@ static void copyNarrowedBlobToArray( CPtr<CDnnBlob> blob, int oldWidth, CArray<f
 		}
 	} else {
 		array.SetSize( height * newWidth );
-		memcpy( array.GetPtr(), buffer, height * newWidth );
+		blob->CopyTo( array.GetPtr(), height * newWidth );
 	}
 }
 
@@ -299,7 +298,7 @@ void RandomizedSingularValueDecomposition( const CFloatMatrixDesc& data,
 		singularValues->GetData(), rightVectors->GetData(), superb->GetData(), returnLeftVectors, returnRightVectors );
 	if( returnLeftVectors ) {
 		mathEngine->MultiplyMatrixByMatrix( 1, tempIterationMatrix[0]->GetData(), data.Height, thinSide, leftVectors->GetData(), thinSide, tempIterationMatrix[1]->GetData(), data.Height * thinSide );
-		copyNarrowedBlobToArray( tempIterationMatrix[1], thinSide, leftVectors_, components );
+		copyNarrowedBlobToArray( data.Height, tempIterationMatrix[1], thinSide, leftVectors_, components );
 	}
 	singularValues_.SetSize( components );
 	singularValues->CopyTo( singularValues_.GetPtr(), components );
@@ -356,8 +355,7 @@ void SingularValueDecomposition( const CFloatMatrixDesc& data, const TSvd& svdSo
 	}
 
 	if( returnLeftVectors ) {
-		leftVectors_.SetSize( height * components_ );
-		copyNarrowedBlobToArray( leftVectors, components, leftVectors_, components_ );
+		copyNarrowedBlobToArray( height, leftVectors, components, leftVectors_, components_ );
 	}
 	singularValues_.SetSize( components_ );
 	singularValues->CopyTo( singularValues_.GetPtr(), components_ );
