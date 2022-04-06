@@ -20,6 +20,7 @@ limitations under the License.
 #include <NeoML/TraditionalML/PCA.h>
 #include <memory>
 #include <NeoML/TraditionalML/FeatureSelection.h>
+#include <NeoML/Random.h>
 
 using namespace NeoML;
 
@@ -39,7 +40,7 @@ private:
 	CFloatMatrixDesc desc;
 };
 
-// Convert CFloatMatrix to CDnnBlob
+// convert CFloatMatrix to CDnnBlob
 static CPtr<CDnnBlob> convertToBlob( IMathEngine& mathEngine, const CFloatMatrixDesc& data )
 {
 	const int vectorCount = data.Height;
@@ -63,7 +64,8 @@ static CPtr<CDnnBlob> convertToBlob( IMathEngine& mathEngine, const CFloatMatrix
 	return result;
 }
 
-void reverseArrays( CArray<float>& leftVectors, CArray<float>& singularVectors, CArray<float>& rightVectors,
+// change sorting order of singular vectors
+static void reverseArrays( CArray<float>& leftVectors, CArray<float>& singularVectors, CArray<float>& rightVectors,
 	int m, int components, int n, bool hasLeft, bool hasRight )
 {
 	if( hasLeft ) {
@@ -101,7 +103,8 @@ void reverseArrays( CArray<float>& leftVectors, CArray<float>& singularVectors, 
 	}
 }
 
-CSparseMatrixDesc getSparseMatrixDesc( IMathEngine& mathEngine, const CFloatMatrixDesc& data,
+// convert CFloatMatrixDesc to internal CSparseMatrixDesc
+static CSparseMatrixDesc getSparseMatrixDesc( IMathEngine& mathEngine, const CFloatMatrixDesc& data,
 	CPtr<CDnnBlob>& columns, CPtr<CDnnBlob>& rows, CPtr<CDnnBlob>& values )
 {
 	int m = data.Height;
@@ -140,82 +143,28 @@ CSparseMatrixDesc getSparseMatrixDesc( IMathEngine& mathEngine, const CFloatMatr
 	return desc;
 }
 
-namespace NeoML {
-
-void SingularValueDecomposition( const CFloatMatrixDesc& data, const TSvd& svdSolver,
-	CArray<float>& leftVectors_, CArray<float>& singularValues_, CArray<float>& rightVectors_,
-	bool returnLeftVectors, bool returnRightVectors, int components )
+// copy blob with reduced width
+static void copyNarrowedBlobToArray( CPtr<CDnnBlob> blob, int oldWidth, CArray<float>& array, int newWidth )
 {
-	if( svdSolver == SVD_Sparse && ( returnLeftVectors == returnRightVectors ) ) {
-		// exactly one flag must be true
-		NeoAssert( false );
-	}
-	int n = data.Width;
-	int m = data.Height;
-
-	if( svdSolver == SVD_Full || components == 0 ) {
-		components = min( n, m );
-	}
-	
-	std::unique_ptr<IMathEngine> mathEngine( CreateCpuMathEngine( 1, 0 ) );
-	CPtr<CDnnBlob> leftVectors;
-	if( returnLeftVectors ) {
-		leftVectors = CDnnBlob::CreateMatrix( *mathEngine, CT_Float, components, m );
+	float* buffer = blob->GetBuffer<float>( 0, blob->GetDataSize(), true );
+	int height = blob->GetDataSize() / oldWidth;
+	array.Empty();
+	if( newWidth < oldWidth ) {
+		array.SetBufferSize( height * newWidth );
+		for( int i = 0; i < height; i++ ) {
+			for( int j = 0; j < newWidth; j++ ) {
+				array.Add( buffer[j] );
+			}
+			buffer += oldWidth;
+		}
 	} else {
-		leftVectors = CDnnBlob::CreateVector( *mathEngine, CT_Float, 1 );
+		array.SetSize( height * newWidth );
+		memcpy( array.GetPtr(), buffer, height * newWidth );
 	}
-	CPtr<CDnnBlob> rightVectors;
-	if( returnRightVectors ) {
-		rightVectors = CDnnBlob::CreateMatrix( *mathEngine, CT_Float, components, n );
-	} else {
-		rightVectors = CDnnBlob::CreateVector( *mathEngine, CT_Float, 1 );
-	}
-	CPtr<CDnnBlob> singularValues = CDnnBlob::CreateVector( *mathEngine, CT_Float, components );
-	CPtr<CDnnBlob> superb = CDnnBlob::CreateVector( *mathEngine, CT_Float, components );
-	if( svdSolver == SVD_Full ) {
-		CPtr<CDnnBlob> a = convertToBlob( *mathEngine, data );
-		mathEngine->SingularValueDecomposition( a->GetData(), n, m, leftVectors->GetData(),
-			singularValues->GetData(), rightVectors->GetData(), superb->GetData(), returnLeftVectors, returnRightVectors );
-	} else {
-		CPtr<CDnnBlob> columns;
-		CPtr<CDnnBlob> rows;
-		CPtr<CDnnBlob> values;
-		CSparseMatrixDesc desc = getSparseMatrixDesc( *mathEngine, data, columns, rows, values );
-		mathEngine->SparseSingularValueDecomposition( desc, m, n, leftVectors->GetData(),
-			singularValues->GetData(), rightVectors->GetData(), superb->GetData(),
-			components, returnLeftVectors );
-		leftVectors = leftVectors->GetTransposed( 0, 1 );
-	}
-
-	if( returnLeftVectors ) {
-		leftVectors_.SetSize( m * components );
-		leftVectors->CopyTo( leftVectors_.GetPtr() );
-	}
-	singularValues_.SetSize( components );             
-	singularValues->CopyTo( singularValues_.GetPtr() );
-	if( returnRightVectors ) {
-		rightVectors_.SetSize( components * n );
-		rightVectors->CopyTo( rightVectors_.GetPtr() );
-	}
-	if( svdSolver == SVD_Sparse ) {
-		reverseArrays( leftVectors_, singularValues_, rightVectors_, m, components, n,
-			returnLeftVectors, returnRightVectors );
-	}
-}
-
-}
-
-CPca::CPca( const CParams& _params ) :
-	params( _params )
-{
-	NeoAssert( ( params.ComponentsType == PCAC_None ) ||
-		( ( params.ComponentsType == PCAC_Int ) && ( params.Components > 0 ) ) ||
-		( ( params.ComponentsType == PCAC_Float ) && ( 0 < params.Components ) && ( params.Components < 1 ) ) );
-	NeoAssert( ( params.SvdSolver == SVD_Full ) || ( params.ComponentsType != PCAC_Float ) );
 }
 
 // returns data - mean(data)
-CSparseFloatMatrix subtractMean( const CFloatMatrixDesc& data, CSparseFloatVector& mean, bool calculateMean )
+static CSparseFloatMatrix subtractMean( const CFloatMatrixDesc& data, CSparseFloatVector& mean, bool calculateMean )
 {
 	if( calculateMean ) {
 		mean = CSparseFloatVector( data.GetRow( 0 ) );
@@ -233,7 +182,7 @@ CSparseFloatMatrix subtractMean( const CFloatMatrixDesc& data, CSparseFloatVecto
 	return centeredMatrix;
 }
 
-// Flip signs of u columns and vt rows to obtain deterministic result
+// flip signs of u columns and vt rows to obtain deterministic result
 static void flipSVD( CArray<float>& u, CArray<float>& vt, int m, int k, int n, bool hasLeft )
 {
 	CArray<float> maxValues;
@@ -265,7 +214,7 @@ static void flipSVD( CArray<float>& u, CArray<float>& vt, int m, int k, int n, b
 	}
 }
 
-// Convert CDnnBlob to CSparseFloatMatrix
+// convert CDnnBlob to CSparseFloatMatrix
 static void convertToMatrix( float* input, CSparseFloatMatrix& matrix, int matrixHeight, int components, int matrixWidth )
 {
 	CFloatVectorDesc row;
@@ -275,6 +224,162 @@ static void convertToMatrix( float* input, CSparseFloatMatrix& matrix, int matri
 		row.Values = input + i * matrixWidth;
 		matrix.AddRow( row );
 	}
+}
+
+// transform matrix using principal components
+static CSparseFloatMatrix transform( const CFloatMatrixDesc& data, const CArray<float>& componentsMatrix, int components )
+{
+	std::unique_ptr<IMathEngine> mathEngine( CreateCpuMathEngine( 1, 0 ) );
+	CPtr<CDnnBlob> columns;
+	CPtr<CDnnBlob> rows;
+	CPtr<CDnnBlob> values;
+	CSparseMatrixDesc desc = getSparseMatrixDesc( *mathEngine, data, columns, rows, values );
+	CPtr<CDnnBlob> rightVectors = CDnnBlob::CreateVector( *mathEngine, CT_Float, data.Width * components );
+	rightVectors->CopyFrom( componentsMatrix.GetPtr() );
+	CPtr<CDnnBlob> transformed = CDnnBlob::CreateVector( *mathEngine, CT_Float, data.Height * components );
+	mathEngine->MultiplySparseMatrixByTransposedMatrix( data.Height, data.Width, components,
+		desc, rightVectors->GetData(), transformed->GetData() );
+
+	CSparseFloatMatrix transformedResult = CSparseFloatMatrix( components, data.Height );
+	convertToMatrix( transformed->GetBuffer<float>( 0, data.Height * components, true ),
+		transformedResult, data.Height, components, components );
+	return transformedResult;
+}
+
+namespace NeoML {
+
+void RandomizedSingularValueDecomposition( const CFloatMatrixDesc& data,
+	CArray<float>& leftVectors_, CArray<float>& singularValues_, CArray<float>& rightVectors_,
+	bool returnLeftVectors, bool returnRightVectors, int components,
+	int iterationCount, int overSamples, int seed )
+{
+	CRandom rand( seed );
+	std::unique_ptr<IMathEngine> mathEngine( CreateCpuMathEngine( 1, 0 ) );
+
+	CPtr<CDnnBlob> columns;
+	CPtr<CDnnBlob> rows;
+	CPtr<CDnnBlob> values;
+	CSparseMatrixDesc dataDesc = getSparseMatrixDesc( *mathEngine, data, columns, rows, values );
+
+	int wideSide = max( data.Height, data.Width );
+	int thinSide = min( components + overSamples, min( data.Height, data.Width ) );
+	int tempSize = wideSide * thinSide;
+	CObjectArray<CDnnBlob> tempIterationMatrix;
+	tempIterationMatrix.Add( { CDnnBlob::CreateVector( *mathEngine, CT_Float, tempSize ), CDnnBlob::CreateVector( *mathEngine, CT_Float, tempSize ) } );
+	float* buffer = tempIterationMatrix[0]->GetBuffer<float>( 0, tempSize, false );
+	for( int i = 0; i < tempSize; i++ ) {
+		buffer[i] = rand.Normal( 0., 1. );
+	}
+	mathEngine->ReleaseBuffer( tempIterationMatrix[0]->GetData(), buffer, true );
+
+	for( int i = 0; i < iterationCount; i++ ) {
+		mathEngine->MultiplySparseMatrixByMatrix( data.Height, data.Width, thinSide, dataDesc, tempIterationMatrix[0]->GetData(), tempIterationMatrix[1]->GetData() );
+		mathEngine->MultiplyTransposedSparseMatrixByMatrix( data.Height, data.Width, thinSide, dataDesc, tempIterationMatrix[1]->GetData(), tempIterationMatrix[0]->GetData() );
+	}
+	mathEngine->MultiplySparseMatrixByMatrix( data.Height, data.Width, thinSide, dataDesc, tempIterationMatrix[0]->GetData(), tempIterationMatrix[1]->GetData() );
+	mathEngine->QRFactorization( data.Height, thinSide, tempIterationMatrix[1]->GetData(), &tempIterationMatrix[0]->GetData(), nullptr, true, true, false );
+	mathEngine->MultiplyTransposedMatrixBySparseMatrix( data.Height, thinSide, data.Width, tempIterationMatrix[0]->GetData(), dataDesc, tempIterationMatrix[1]->GetData() );
+
+	CPtr<CDnnBlob> leftVectors;
+	if( returnLeftVectors ) {
+		leftVectors = CDnnBlob::CreateMatrix( *mathEngine, CT_Float, thinSide, thinSide );
+	} else {
+		leftVectors = CDnnBlob::CreateVector( *mathEngine, CT_Float, 1 );
+	}
+	CPtr<CDnnBlob> rightVectors;
+	if( returnRightVectors ) {
+		rightVectors = CDnnBlob::CreateMatrix( *mathEngine, CT_Float, thinSide, data.Width );
+	} else {
+		rightVectors = CDnnBlob::CreateVector( *mathEngine, CT_Float, 1 );
+	}
+	CPtr<CDnnBlob> singularValues = CDnnBlob::CreateVector( *mathEngine, CT_Float, thinSide );
+	CPtr<CDnnBlob> superb = CDnnBlob::CreateVector( *mathEngine, CT_Float, thinSide );
+
+	mathEngine->SingularValueDecomposition( tempIterationMatrix[1]->GetData(), thinSide, data.Width, leftVectors->GetData(),
+		singularValues->GetData(), rightVectors->GetData(), superb->GetData(), returnLeftVectors, returnRightVectors );
+	if( returnLeftVectors ) {
+		mathEngine->MultiplyMatrixByMatrix( 1, tempIterationMatrix[0]->GetData(), data.Height, thinSide, leftVectors->GetData(), thinSide, tempIterationMatrix[1]->GetData(), data.Height * thinSide );
+		copyNarrowedBlobToArray( tempIterationMatrix[1], thinSide, leftVectors_, components );
+	}
+	singularValues_.SetSize( components );
+	singularValues->CopyTo( singularValues_.GetPtr(), components );
+	if( returnRightVectors ) {
+		rightVectors_.SetSize( components * data.Width );
+		rightVectors->CopyTo( rightVectors_.GetPtr(), components * data.Width );
+	}
+}
+
+void SingularValueDecomposition( const CFloatMatrixDesc& data, const TSvd& svdSolver,
+	CArray<float>& leftVectors_, CArray<float>& singularValues_, CArray<float>& rightVectors_,
+	bool returnLeftVectors, bool returnRightVectors, int components_ )
+{
+	if( svdSolver == SVD_Sparse && ( returnLeftVectors == returnRightVectors ) ) {
+		// exactly one flag must be true
+		NeoAssert( false );
+	}
+	int width = data.Width;
+	int height = data.Height;
+
+	int components = components_;
+	if( svdSolver == SVD_Full || components == 0 ) {
+		components = min( height, width );
+	}
+
+	std::unique_ptr<IMathEngine> mathEngine( CreateCpuMathEngine( 1, 0 ) );
+	CPtr<CDnnBlob> leftVectors;
+	if( returnLeftVectors ) {
+		leftVectors = CDnnBlob::CreateMatrix( *mathEngine, CT_Float, components, height );
+	} else {
+		leftVectors = CDnnBlob::CreateVector( *mathEngine, CT_Float, 1 );
+	}
+	CPtr<CDnnBlob> rightVectors;
+	if( returnRightVectors ) {
+		rightVectors = CDnnBlob::CreateMatrix( *mathEngine, CT_Float, components, width );
+	} else {
+		rightVectors = CDnnBlob::CreateVector( *mathEngine, CT_Float, 1 );
+	}
+	CPtr<CDnnBlob> singularValues = CDnnBlob::CreateVector( *mathEngine, CT_Float, components );
+	CPtr<CDnnBlob> superb = CDnnBlob::CreateVector( *mathEngine, CT_Float, components );
+	if( svdSolver == SVD_Full ) {
+		CPtr<CDnnBlob> a = convertToBlob( *mathEngine, data );
+		mathEngine->SingularValueDecomposition( a->GetData(), height, width, leftVectors->GetData(),
+			singularValues->GetData(), rightVectors->GetData(), superb->GetData(), returnLeftVectors, returnRightVectors );
+	} else {
+		CPtr<CDnnBlob> columns;
+		CPtr<CDnnBlob> rows;
+		CPtr<CDnnBlob> values;
+		CSparseMatrixDesc desc = getSparseMatrixDesc( *mathEngine, data, columns, rows, values );
+		mathEngine->SparseSingularValueDecomposition( desc, height, width, leftVectors->GetData(),
+			singularValues->GetData(), rightVectors->GetData(), superb->GetData(),
+			components, returnLeftVectors );
+		leftVectors = leftVectors->GetTransposed( 0, 1 );
+	}
+
+	if( returnLeftVectors ) {
+		leftVectors_.SetSize( height * components_ );
+		copyNarrowedBlobToArray( leftVectors, components, leftVectors_, components_ );
+	}
+	singularValues_.SetSize( components_ );
+	singularValues->CopyTo( singularValues_.GetPtr(), components_ );
+	if( returnRightVectors ) {
+		rightVectors_.SetSize( components_ * width );
+		rightVectors->CopyTo( rightVectors_.GetPtr(), components_ * width );
+	}
+	if( svdSolver == SVD_Sparse ) {
+		reverseArrays( leftVectors_, singularValues_, rightVectors_, height, components, width,
+			returnLeftVectors, returnRightVectors );
+	}
+}
+
+}
+
+CPca::CPca( const CParams& _params ) :
+	params( _params )
+{
+	NeoAssert( ( params.ComponentsType == PCAC_None ) ||
+		( ( params.ComponentsType == PCAC_Int ) && ( params.Components > 0 ) ) ||
+		( ( params.ComponentsType == PCAC_Float ) && ( 0 < params.Components ) && ( params.Components < 1 ) ) );
+	NeoAssert( ( params.SvdSolver == SVD_Full ) || ( params.ComponentsType != PCAC_Float ) );
 }
 
 void CPca::getComponentsNum( const CArray<float>& explainedVarianceRatio, int k )
@@ -344,25 +449,6 @@ void CPca::calculateVariance( const CFloatMatrixDesc& data, const CArray<float>&
 
 	explainedVariance.SetSize( components );
 	explainedVarianceRatio.SetSize( components );
-}
-
-CSparseFloatMatrix transform( const CFloatMatrixDesc& data, const CArray<float>& componentsMatrix, int components )
-{
-	std::unique_ptr<IMathEngine> mathEngine( CreateCpuMathEngine( 1, 0 ) );
-	CPtr<CDnnBlob> columns;
-	CPtr<CDnnBlob> rows;
-	CPtr<CDnnBlob> values;
-	CSparseMatrixDesc desc = getSparseMatrixDesc( *mathEngine, data, columns, rows, values );
-	CPtr<CDnnBlob> rightVectors = CDnnBlob::CreateVector( *mathEngine, CT_Float, data.Width * components );
-	rightVectors->CopyFrom( componentsMatrix.GetPtr() );
-	CPtr<CDnnBlob> transformed = CDnnBlob::CreateVector( *mathEngine, CT_Float, data.Height * components );
-	mathEngine->MultiplySparseMatrixByTransposedMatrix( data.Height, data.Width, components,
-		desc, rightVectors->GetData(), transformed->GetData() );
-
-	CSparseFloatMatrix transformedResult = CSparseFloatMatrix( components, data.Height );
-	convertToMatrix( transformed->GetBuffer<float>( 0, data.Height * components, true ),
-		transformedResult, data.Height, components, components );
-	return transformedResult;
 }
 
 void CPca::train( const CFloatMatrixDesc& data, bool isTransform )

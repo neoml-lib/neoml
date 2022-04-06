@@ -490,9 +490,20 @@ public:
 	virtual void MultiplySparseMatrixByTransposedMatrix( int firstHeight, int firstWidth, int secondHeight,
 		const CSparseMatrixDesc& firstDesc, const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle ) = 0;
 
+	virtual void MultiplyTransposedMatrixBySparseMatrix( int firstHeight, int firstWidth, int secondWidth,
+		const CConstFloatHandle& firstHandle, const CSparseMatrixDesc& secondDesc, const CFloatHandle& resultHandle ) = 0;
+
 	// result = result + T(first) * second. The result will be of firstWidth * secondWidth size
 	virtual void MultiplyTransposedMatrixBySparseMatrixAndAdd( int firstHeight, int firstWidth, int secondWidth,
 		const CConstFloatHandle& firstHandle, const CSparseMatrixDesc& secondDesc, const CFloatHandle& resultHandle ) = 0;
+
+	// result = first * second. The result will be of firstHeight * secondWidth size
+	virtual void MultiplySparseMatrixByMatrix( int firstHeight, int firstWidth, int secondWidth,
+		const CSparseMatrixDesc& firstDesc, const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle ) = 0;
+
+	// result = T(first) * second. The result size is firstWidth * secondWidth
+	virtual void MultiplyTransposedSparseMatrixByMatrix( int firstHeight, int firstWidth, int secondWidth,
+		const CSparseMatrixDesc& firstDesc, const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle ) = 0;
 
 	// result = result + first(T) * second
 	virtual void MultiplyTransposedMatrixByMatrixAndAdd(const CConstFloatHandle& firstHandle, int firstHeight, int firstWidth, int firstRowSize,
@@ -548,13 +559,16 @@ public:
 		const CConstIntHandle& fillValue ) = 0;
 
 	// Computes the singular value decomposition of the dense matrix `a`: `a` = `u` * `s` * `vt`
-	virtual void SingularValueDecomposition( const CFloatHandle& a, int n, int m, const CFloatHandle& u, const CFloatHandle& s,
+	virtual void SingularValueDecomposition( const CFloatHandle& a, int height, int width, const CFloatHandle& u, const CFloatHandle& s,
 		const CFloatHandle& vt, const CFloatHandle& superb, bool returnLeftVectors, bool returnRightVectors ) = 0;
 	// Computes the truncated singular value decomposition of the sparse matrix using `components` largest singular values
 	// If returnLeftVectors is true return only left singular vectors, otherwise only right
 	virtual void SparseSingularValueDecomposition( const CSparseMatrixDesc& desc, int height, int width,
 		const CFloatHandle& leftVectors, const CFloatHandle& s, const CFloatHandle& rightVectors, const CFloatHandle& res,
 		int components, bool returnLeftVectors ) = 0;
+
+	virtual void QRFactorization( int height, int width, const CFloatHandle& matrixHandle, const CFloatHandle* qHandle, const CFloatHandle* rHandle,
+		bool inplace, bool returnQ, bool returnR ) = 0;
 };
 
 // Blob operations descriptors
