@@ -276,7 +276,8 @@ void RandomizedSingularValueDecomposition( const CFloatMatrixDesc& data,
 		mathEngine->MultiplyTransposedSparseMatrixByMatrix( data.Height, data.Width, thinSide, dataDesc, tempIterationMatrix[1]->GetData(), tempIterationMatrix[0]->GetData() );
 	}
 	mathEngine->MultiplySparseMatrixByMatrix( data.Height, data.Width, thinSide, dataDesc, tempIterationMatrix[0]->GetData(), tempIterationMatrix[1]->GetData() );
-	mathEngine->QRFactorization( data.Height, thinSide, tempIterationMatrix[1]->GetData(), &tempIterationMatrix[0]->GetData(), nullptr, true, true, false );
+	CFloatHandle qHandle = tempIterationMatrix[0]->GetData();
+	mathEngine->QRFactorization( data.Height, thinSide, tempIterationMatrix[1]->GetData(), &qHandle, nullptr, true, true, false );
 	mathEngine->MultiplyTransposedMatrixBySparseMatrix( data.Height, thinSide, data.Width, tempIterationMatrix[0]->GetData(), dataDesc, tempIterationMatrix[1]->GetData() );
 
 	CPtr<CDnnBlob> leftVectors;
