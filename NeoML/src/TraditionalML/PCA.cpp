@@ -107,32 +107,32 @@ static void reverseArrays( CArray<float>& leftVectors, CArray<float>& singularVe
 static CSparseMatrixDesc getSparseMatrixDesc( IMathEngine& mathEngine, const CFloatMatrixDesc& data,
 	CPtr<CDnnBlob>& columns, CPtr<CDnnBlob>& rows, CPtr<CDnnBlob>& values )
 {
-	int m = data.Height;
-	int n = data.Width;
+	const int height = data.Height;
+	const int width = data.Width;
 	CSparseMatrixDesc desc;
-	desc.ElementCount = ( data.Columns == nullptr ) ? m * n : data.PointerE[m - 1];
+	desc.ElementCount = ( data.Columns == nullptr ) ? height * width : data.PointerE[height - 1];
 	columns = CDnnBlob::CreateVector( mathEngine, CT_Int, desc.ElementCount );
-	rows = CDnnBlob::CreateVector( mathEngine, CT_Int, m + 1 );
+	rows = CDnnBlob::CreateVector( mathEngine, CT_Int, height + 1 );
 	values = CDnnBlob::CreateVector( mathEngine, CT_Float, desc.ElementCount );
 	if( data.Columns != nullptr ) {
 		columns->CopyFrom( data.Columns );
-		int* rowBuffer = rows->GetBuffer<int>( 0, m + 1, false );
-		for( int i = 0; i < m; i++ ) {
+		int* rowBuffer = rows->GetBuffer<int>( 0, height + 1, false );
+		for( int i = 0; i < height; i++ ) {
 			rowBuffer[i] = data.PointerB[i];
 		}
-		rowBuffer[m] = data.PointerE[m - 1];
+		rowBuffer[height] = data.PointerE[height - 1];
 		rows->ReleaseBuffer( rowBuffer, true );
 	} else {
-		desc.ElementCount = m * n;
-		int* colBuffer = columns->GetBuffer<int>( 0, m * n, false );
-		int* rowBuffer = rows->GetBuffer<int>( 0, m + 1, false );
-		for( int i = 0; i < m; i++ ) {
-			rowBuffer[i] = i * n;
-			for( int j = 0; j < n; j++ ) {
-				colBuffer[i * n + j] = j;
+		desc.ElementCount = height * width;
+		int* colBuffer = columns->GetBuffer<int>( 0, height * width, false );
+		int* rowBuffer = rows->GetBuffer<int>( 0, height + 1, false );
+		for( int i = 0; i < height; i++ ) {
+			rowBuffer[i] = i * width;
+			for( int j = 0; j < width; j++ ) {
+				colBuffer[i * width + j] = j;
 			}
 		}
-		rowBuffer[m] = m * n;
+		rowBuffer[height] = height * width;
 		rows->ReleaseBuffer( rowBuffer, true );
 		columns->ReleaseBuffer( colBuffer, true );
 	}
@@ -260,9 +260,9 @@ void RandomizedSingularValueDecomposition( const CFloatMatrixDesc& data,
 	CPtr<CDnnBlob> values;
 	CSparseMatrixDesc dataDesc = getSparseMatrixDesc( *mathEngine, data, columns, rows, values );
 
-	int wideSide = max( data.Height, data.Width );
-	int thinSide = min( components + overSamples, min( data.Height, data.Width ) );
-	int tempSize = wideSide * thinSide;
+	const int wideSide = max( data.Height, data.Width );
+	const int thinSide = min( components + overSamples, min( data.Height, data.Width ) );
+	const int tempSize = wideSide * thinSide;
 	CObjectArray<CDnnBlob> tempIterationMatrix;
 	tempIterationMatrix.Add( { CDnnBlob::CreateVector( *mathEngine, CT_Float, tempSize ), CDnnBlob::CreateVector( *mathEngine, CT_Float, tempSize ) } );
 	float* buffer = tempIterationMatrix[0]->GetBuffer<float>( 0, tempSize, false );
@@ -313,13 +313,13 @@ void SingularValueDecomposition( const CFloatMatrixDesc& data, const TSvd& svdSo
 	CArray<float>& leftVectors_, CArray<float>& singularValues_, CArray<float>& rightVectors_,
 	bool returnLeftVectors, bool returnRightVectors, int resultComponents )
 {
-	int height = data.Height;
-	int width = data.Width;
+	const int height = data.Height;
+	const int width = data.Width;
 	NeoAssert( resultComponents >= 0 );
 	NeoAssert( resultComponents <= min( height, width ) );
 
 	resultComponents = ( resultComponents == 0 ) ? min( height, width ) : resultComponents;
-	int components = ( svdSolver == SVD_Full ) ? min( height, width ) : resultComponents;
+	const int components = ( svdSolver == SVD_Full ) ? min( height, width ) : resultComponents;
 
 	std::unique_ptr<IMathEngine> mathEngine( CreateCpuMathEngine( 1, 0 ) );
 	CPtr<CDnnBlob> leftVectors;
@@ -402,13 +402,13 @@ void CPca::getComponentsNum( const CArray<float>& explainedVarianceRatio, int k 
 
 void CPca::calculateVariance( const CFloatMatrixDesc& data, const CArray<float>& s, int total_components )
 {
-	int m = data.Height;
-	int n = data.Width;
+	const int height = data.Height;
+	const int width = data.Width;
 
 	// calculate explained_variance
 	explainedVariance.SetSize( total_components );
 	for( int i = 0; i < total_components; i++ ) {
-		explainedVariance[i] = s[i] * s[i] / ( m - 1 );
+		explainedVariance[i] = s[i] * s[i] / ( height - 1 );
 	}
 
 	// calculate total variance
@@ -424,7 +424,7 @@ void CPca::calculateVariance( const CFloatMatrixDesc& data, const CArray<float>&
 		for( int i = 0; i < variance.Size(); i++ ) {
 			totalVariance += static_cast<float>( variance[i] );
 		}
-		totalVariance *= static_cast<float>( m * 1. / ( m - 1 ) );
+		totalVariance *= static_cast<float>( height * 1. / ( height - 1 ) );
 	}
 
 	// calculate explained_variance_ratio
@@ -441,7 +441,7 @@ void CPca::calculateVariance( const CFloatMatrixDesc& data, const CArray<float>&
 	for( int i = 0; i < components; i++ ) {
 		noiseVariance -= explainedVariance[i];
 	}
-	noiseVariance /= max( 1, n - components );
+	noiseVariance /= max( 1, width - components );
 
 	explainedVariance.SetSize( components );
 	explainedVarianceRatio.SetSize( components );
@@ -449,9 +449,9 @@ void CPca::calculateVariance( const CFloatMatrixDesc& data, const CArray<float>&
 
 void CPca::train( const CFloatMatrixDesc& data, bool isTransform )
 {
-	int height = data.Height;
-	int width = data.Width;
-	int k = min( height, width );
+	const int height = data.Height;
+	const int width = data.Width;
+	const int k = min( height, width );
 
 	// matrix = data - mean(data)
 	CSparseFloatMatrix matrix = subtractMean( data, meanVector, true );
