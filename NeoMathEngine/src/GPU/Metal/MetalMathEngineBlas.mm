@@ -1305,22 +1305,22 @@ void CMetalMathEngine::SparseSingularValueDecomposition( const CSparseMatrixDesc
     ASSERT_EXPR( false );
 }
 
-void MultiplyTransposedMatrixBySparseMatrix( int, int, int, const CConstFloatHandle&, const CSparseMatrixDesc&, const CFloatHandle& )
+void CMetalMathEngine::MultiplyTransposedMatrixBySparseMatrix( int, int, int, const CConstFloatHandle&, const CSparseMatrixDesc&, const CFloatHandle& )
 {
     ASSERT_EXPR( false );
 }
 
-void MultiplySparseMatrixByMatrix( int, int, int, const CSparseMatrixDesc&, const CConstFloatHandle&, const CFloatHandle& )
+void CMetalMathEngine::MultiplySparseMatrixByMatrix( int, int, int, const CSparseMatrixDesc&, const CConstFloatHandle&, const CFloatHandle& )
 {
     ASSERT_EXPR( false );
 }
 
-void MultiplyTransposedSparseMatrixByMatrix( int, int, int, const CSparseMatrixDesc&, const CConstFloatHandle&, const CFloatHandle& )
+void CMetalMathEngine::MultiplyTransposedSparseMatrixByMatrix( int, int, int, const CSparseMatrixDesc&, const CConstFloatHandle&, const CFloatHandle& )
 {
     ASSERT_EXPR( false );
 }
 
-void QRFactorization( int, int, const CFloatHandle&, const CFloatHandle*, const CFloatHandle*, bool, bool, bool )
+void CMetalMathEngine::QRFactorization( int, int, const CFloatHandle&, const CFloatHandle*, const CFloatHandle*, bool, bool, bool )
 {
     ASSERT_EXPR( false );
 }

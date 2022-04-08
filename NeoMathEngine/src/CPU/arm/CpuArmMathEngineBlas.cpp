@@ -482,6 +482,39 @@ void CCpuMathEngine::MultiplyDiagMatrixByMatrixAndAdd(int batchSize, const CCons
 	}
 }
 
+void CCpuMathEngine::SingularValueDecomposition( const CFloatHandle& a, int n, int m, const CFloatHandle& u, const CFloatHandle& s,
+	const CFloatHandle& vt, const CFloatHandle& superb, bool returnLeftVectors, bool returnRightVectors )
+{
+	ASSERT_EXPR( false );
+}
+
+void CCpuMathEngine::SparseSingularValueDecomposition( const CSparseMatrixDesc& desc, int height, int width,
+	const CFloatHandle& leftVectors, const CFloatHandle& s, const CFloatHandle& rightVectors, const CFloatHandle& res,
+	int components, bool returnLeftVectors )
+{
+	ASSERT_EXPR( false );
+}
+
+void CCpuMathEngine::MultiplyTransposedMatrixBySparseMatrix( int, int, int, const CConstFloatHandle&, const CSparseMatrixDesc&, const CFloatHandle& )
+{
+    ASSERT_EXPR( false );
+}
+
+void CCpuMathEngine::MultiplySparseMatrixByMatrix( int, int, int, const CSparseMatrixDesc&, const CConstFloatHandle&, const CFloatHandle& )
+{
+    ASSERT_EXPR( false );
+}
+
+void CCpuMathEngine::MultiplyTransposedSparseMatrixByMatrix( int, int, int, const CSparseMatrixDesc&, const CConstFloatHandle&, const CFloatHandle& )
+{
+    ASSERT_EXPR( false );
+}
+
+void CCpuMathEngine::QRFactorization( int, int, const CFloatHandle&, const CFloatHandle*, const CFloatHandle*, bool, bool, bool )
+{
+    ASSERT_EXPR( false );
+}
+
 } // namespace NeoML
 
 #endif // NEOML_USE_NEON
