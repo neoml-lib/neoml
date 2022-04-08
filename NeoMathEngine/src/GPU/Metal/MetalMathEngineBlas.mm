@@ -1305,6 +1305,26 @@ void CMetalMathEngine::SparseSingularValueDecomposition( const CSparseMatrixDesc
     ASSERT_EXPR( false );
 }
 
+void MultiplyTransposedMatrixBySparseMatrix( int, int, int, const CConstFloatHandle&, const CSparseMatrixDesc&, const CFloatHandle& )
+{
+    ASSERT_EXPR( false );
+}
+
+void MultiplySparseMatrixByMatrix( int, int, int, const CSparseMatrixDesc&, const CConstFloatHandle&, const CFloatHandle& )
+{
+    ASSERT_EXPR( false );
+}
+
+void MultiplyTransposedSparseMatrixByMatrix( int, int, int, const CSparseMatrixDesc&, const CConstFloatHandle&, const CFloatHandle& )
+{
+    ASSERT_EXPR( false );
+}
+
+void QRFactorization( int, int, const CFloatHandle&, const CFloatHandle*, const CFloatHandle*, bool, bool, bool )
+{
+    ASSERT_EXPR( false );
+}
+
 } // namespace NeoML
 
 #endif // NEOML_USE_METAL
