@@ -27,24 +27,33 @@ enum TSvd {
 	SVD_Full = 0,
 	// Truncated svd for sparse matrices
 	SVD_Sparse,
+	// Randomized svd algorithm
+	SVD_Randomized,
 	SVD_Count
 };
 
-// Computes the singular value decomposition of the `data` matrix, of shape m x n:
+// Computes the singular value decomposition of the `data` matrix, of shape height x width:
 // `data` = `leftVectors` * `singularValues` * `rightVectors`.
-// For SVD_Full `leftVectors` is of shape m x min(n, m), `rightVectors` is of shape min(n, m) x n,
-// `singularValues` contains min(n, m) singular values.
-// For SVD_Sparse parameter `components` must be set. Then `leftVectors` is of shape `components` x m,
-// `rightVectors` is of shape `components` x n, `singularValues` contains `components` largest singular values.
+// `leftVectors` is of shape height x `components`,  `rightVectors` is of shape `components` x width,
+// `singularValues` contains `components` largest singular values.
 // If returnLeftVectors or returnRightVectors is false then corresponding singular vectors are not returned.
+// `components` is set as min(height, width) if not specified.
 void NEOML_API SingularValueDecomposition( const CFloatMatrixDesc& data, const TSvd& svdSolver,
 	CArray<float>& leftVectors, CArray<float>& singularValues, CArray<float>& rightVectors,
 	bool returnLeftVectors = true, bool returnRightVectors = false, int components = 0 );
 
+// Computes the singular value decomposition of the `data` matrix, of shape height x width:
+// `data` = `leftVectors` * `singularValues` * `rightVectors`.
+// `leftVectors` is of shape height x `components`,  `rightVectors` is of shape `components` x width,
+// `singularValues` contains `components` largest singular values.
+// If returnLeftVectors or returnRightVectors is false then corresponding singular vectors are not returned.
+// `overSamples` - additional number of components to be calculated to ensure proper conditioning.
+// `iterationCount` - number of algorithm iterations, a smaller number improves speed but can negatively impact precision.
+// `seed` used to generate a random matrix with the normal distribution for algorithm iterations.
 void NEOML_API RandomizedSingularValueDecomposition( const CFloatMatrixDesc& data,
 	CArray<float>& leftVectors_, CArray<float>& singularValues_, CArray<float>& rightVectors_,
 	bool returnLeftVectors, bool returnRightVectors, int components,
-	int iterationCount = 2, int overSamples = 10, int seed = 42 );
+	int iterationCount = 3, int overSamples = 10, int seed = 42 );
 
 // PCA algorithm implementing linear dimensionality reduction
 // using Singular Value Decomposition to project the data into

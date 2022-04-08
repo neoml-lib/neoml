@@ -2580,16 +2580,11 @@ class TestPca(MultithreadedTestCase):
         components = 2
         x = np.array([[2, 1, 3, 2], [2, 4, 4, 1], [2, 4, 1, 1], [4, 4, 3, 4]], dtype=np.float32)
         expected_s = [11.011665,  2.7114089,  2.315459,  0.17357856]
-        for compute_u, compute_v in [
-            (False, True), (True, False)
-        ]:
-            u, s, v = svd(x, compute_u=compute_u, compute_v=compute_v, algorithm='sparse', components=components)
-            if compute_u:
-                self.assertTrue(u.shape == (4, components))
-            self.assertTrue(s.shape == (components,))
-            self.assertTrue(all([abs(s[i] - expected_s[i]) < 1e-3 for i in range(components)]))
-            if compute_v:
-                self.assertTrue(v.shape == (components, 4))
+        u, s, v = svd(x, compute_u=compute_u, compute_v=compute_v, algorithm='randomized', components=components)
+        self.assertTrue(u.shape == (4, components))
+        self.assertTrue(s.shape == (components,))
+        self.assertTrue(all([abs(s[i] - expected_s[i]) < 1e-3 for i in range(components)]))
+        self.assertTrue(v.shape == (components, 4))
 
     def test_pca(self):
         n_samples, n_components = 1000, 2
