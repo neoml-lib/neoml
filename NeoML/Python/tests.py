@@ -2580,7 +2580,7 @@ class TestPca(MultithreadedTestCase):
         components = 2
         x = np.array([[2, 1, 3, 2], [2, 4, 4, 1], [2, 4, 1, 1], [4, 4, 3, 4]], dtype=np.float32)
         expected_s = [11.011665,  2.7114089,  2.315459,  0.17357856]
-        u, s, v = svd(x, compute_u=compute_u, compute_v=compute_v, algorithm='randomized', components=components)
+        u, s, v = svd(x, compute_u=True, compute_v=True, algorithm='randomized', components=components)
         self.assertTrue(u.shape == (4, components))
         self.assertTrue(s.shape == (components,))
         self.assertTrue(all([abs(s[i] - expected_s[i]) < 1e-3 for i in range(components)]))
