@@ -65,17 +65,21 @@ class GpuMathEngine(MathEngine):
     
     :param gpu_index: the index of the GPU on which you wish to work. 
         Use the `enum_gpu` method to get the list.
-    :type gpu_index: int, >= 0
+        Use `None` for auto-selection.
+    :type gpu_index: int, >= 0 or None
     """
-    def __init__(self, gpu_index):
+    def __init__(self, gpu_index=None):
         if gpu_index is None:
-            gpu_index = 0
+            gpu_index = -1
 
         if isinstance(gpu_index, PythonWrapper.MathEngine):
             super().__init__(gpu_index)
             return
 
-        if gpu_index < 0 or gpu_index >= len(enum_gpu()):
+        gpus = enum_gpu()
+        if len(gpus) == 0:
+            raise ValueError("No GPU available")
+        if gpu_index < -1 or gpu_index >= len(gpus):
             raise ValueError("GPU with index `gpu_index` doesn't exist.")
 
         internal = PythonWrapper.MathEngine('gpu', 0, int(gpu_index))

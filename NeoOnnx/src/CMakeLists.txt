@@ -19,6 +19,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     NeoOnnxImport.cpp
     NeoOnnxCheck.cpp
     LayerOperator.cpp
+    LayerUtils.cpp
     Operator.cpp
     Operators/ActivationOperator.cpp
     Operators/BatchNormalizationOperator.cpp
@@ -27,6 +28,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Operators/ConstantOfShapeOperator.cpp
     Operators/ConstantOperator.cpp
     Operators/ConvOperator.cpp
+    Operators/ConvTransposeOperator.cpp
     Operators/DropoutOperator.cpp
     Operators/EltwiseOperator.cpp
     Operators/FlattenOperator.cpp
@@ -40,13 +42,16 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Operators/PadOperator.cpp
     Operators/PoolOperator.cpp
     Operators/RangeOperator.cpp
+    Operators/ResizeOperator.cpp
     Operators/ReshapeOperator.cpp
     Operators/ShapeOperator.cpp
     Operators/SliceOperator.cpp
     Operators/SoftmaxOperator.cpp
+    Operators/SplitOperator.cpp
     Operators/SqueezeOperator.cpp
     Operators/TransposeOperator.cpp
     Operators/UnsqueezeOperator.cpp
+    Operators/UpsampleOperator.cpp
     TensorUtils.cpp
 
     ../include/NeoOnnx/NeoOnnx.h
@@ -57,6 +62,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     GraphInitializer.h
     GraphOutput.h
     LayerOperator.h
+    LayerUtils.h
     NeoOnnxCheck.h
     Operator.h
     Operators/ActivationOperator.h
@@ -66,6 +72,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Operators/ConstantOfShapeOperator.h
     Operators/ConstantOperator.h
     Operators/ConvOperator.h
+    Operators/ConvTransposeOperator.h
     Operators/DropoutOperator.h
     Operators/EltwiseOperator.h
     Operators/FlattenOperator.h
@@ -80,12 +87,15 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Operators/PoolOperator.h
     Operators/RangeOperator.h
     Operators/ReshapeOperator.h
+    Operators/ResizeOperator.h
     Operators/ShapeOperator.h
     Operators/SliceOperator.h
     Operators/SoftmaxOperator.h
+    Operators/SplitOperator.h
     Operators/SqueezeOperator.h
     Operators/TransposeOperator.h
     Operators/UnsqueezeOperator.h
+    Operators/UpsampleOperator.h
     Tensor.h
     TensorLayout.h
     TensorUtils.h

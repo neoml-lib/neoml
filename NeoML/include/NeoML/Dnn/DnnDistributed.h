@@ -73,6 +73,7 @@ public:
 	void Serialize( CArchive& archive );
 	~CDistributedTraining();
 private:
+	const bool isCpu;
 	CArray<IMathEngine*> mathEngines;
 	CArray<CRandom*> rands;
 	CArray<CDnn*> cnns;
