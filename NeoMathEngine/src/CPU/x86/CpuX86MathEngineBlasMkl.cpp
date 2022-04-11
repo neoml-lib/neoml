@@ -280,6 +280,7 @@ void CCpuMathEngine::MultiplySparseMatrixByMatrix( int firstHeight, int firstWid
 	ASSERT_EXPR( firstDesc.Values.GetMathEngine() == this );
 	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	ASSERT_EXPR( firstWidth > 0 );
 	CCpuExecutionScope scope;
 
 	int* firstRows = GetRaw( firstDesc.Rows );
