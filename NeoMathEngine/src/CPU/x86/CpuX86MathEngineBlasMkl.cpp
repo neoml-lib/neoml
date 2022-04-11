@@ -179,6 +179,52 @@ void CCpuMathEngine::MultiplySparseMatrixByTransposedMatrix( int firstHeight, in
 #endif
 }
 
+// result = T(first) * second. The result size is firstWidth * secondWidth:
+void CCpuMathEngine::MultiplyTransposedMatrixBySparseMatrix( int firstHeight, int firstWidth, int secondWidth,
+	const CConstFloatHandle& firstHandle, const CSparseMatrixDesc& secondDesc, const CFloatHandle& resultHandle )
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( secondDesc.Rows.GetMathEngine() == this );
+	ASSERT_EXPR( secondDesc.Columns.GetMathEngine() == this );
+	ASSERT_EXPR( secondDesc.Values.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	CCpuExecutionScope scope;
+
+	const float* first = GetRaw( firstHandle );
+	int* secondRows = GetRaw( secondDesc.Rows );
+	int* secondColumns = GetRaw( secondDesc.Columns );
+	float* secondValues = GetRaw( secondDesc.Values );
+	float* result = GetRaw( resultHandle );
+
+#ifdef NEOML_USE_MKL
+	CFloatHandleStackVar transposedFirst( mathEngine(), firstHeight * firstWidth );
+	mkl_somatcopy( 'r', 't', firstHeight, firstWidth, 1, first, firstWidth,
+		GetRaw( transposedFirst.GetHandle() ), firstHeight );
+
+	sparse_matrix_t sparseMatrix;
+
+	ASSERT_EXPR( mkl_sparse_s_create_csr( &sparseMatrix, SPARSE_INDEX_BASE_ZERO, firstHeight, secondWidth, secondRows,
+		secondRows + 1, secondColumns, secondValues ) == SPARSE_STATUS_SUCCESS );
+
+	matrix_descr descr;
+	descr.type = SPARSE_MATRIX_TYPE_GENERAL;
+
+	ASSERT_EXPR( mkl_sparse_s_mm( SPARSE_OPERATION_TRANSPOSE, 1.f, sparseMatrix, descr, SPARSE_LAYOUT_COLUMN_MAJOR,
+		GetRaw( transposedFirst.GetHandle() ), firstWidth, firstHeight, 0.f, result, secondWidth ) == SPARSE_STATUS_SUCCESS );
+
+	ASSERT_EXPR( mkl_sparse_destroy( sparseMatrix ) == SPARSE_STATUS_SUCCESS );
+#else
+	for( int row = 0; row < firstHeight; ++row ) {
+		for( int ind = secondRows[row]; ind < secondRows[row + 1]; ++ind ) {
+			for( int col = 0; col < firstWidth; ++col ) {
+				result[col * secondWidth + secondColumns[ind]] += first[col] * secondValues[ind];
+			}
+		}
+		first += firstWidth;
+	}
+#endif
+}
+
 // result = result + T(first) * second. The result size is firstWidth * secondWidth:
 void CCpuMathEngine::MultiplyTransposedMatrixBySparseMatrixAndAdd( int firstHeight, int firstWidth, int secondWidth,
 	const CConstFloatHandle& firstHandle, const CSparseMatrixDesc& secondDesc, const CFloatHandle& resultHandle )
@@ -223,6 +269,152 @@ void CCpuMathEngine::MultiplyTransposedMatrixBySparseMatrixAndAdd( int firstHeig
 		first += firstWidth;
 	}
 #endif
+}
+
+// result = first * second. The result size is firstHeight * secondWidth:
+void CCpuMathEngine::MultiplySparseMatrixByMatrix( int firstHeight, int firstWidth, int secondWidth,
+	const CSparseMatrixDesc& firstDesc, const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle )
+{
+	ASSERT_EXPR( firstDesc.Rows.GetMathEngine() == this );
+	ASSERT_EXPR( firstDesc.Columns.GetMathEngine() == this );
+	ASSERT_EXPR( firstDesc.Values.GetMathEngine() == this );
+	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	CCpuExecutionScope scope;
+
+	int* firstRows = GetRaw( firstDesc.Rows );
+	int* firstColumns = GetRaw( firstDesc.Columns );
+	float* values = GetRaw( firstDesc.Values );
+	const float* second = GetRaw( secondHandle );
+	float* res = GetRaw( resultHandle );
+
+#ifdef NEOML_USE_MKL
+	sparse_matrix_t sparseMatrix;
+
+	ASSERT_EXPR( mkl_sparse_s_create_csr( &sparseMatrix, SPARSE_INDEX_BASE_ZERO, firstHeight, firstWidth, firstRows,
+		firstRows + 1, firstColumns, values ) ==  SPARSE_STATUS_SUCCESS );
+
+	matrix_descr descr;
+	descr.type = SPARSE_MATRIX_TYPE_GENERAL;
+
+	ASSERT_EXPR( mkl_sparse_s_mm( SPARSE_OPERATION_NON_TRANSPOSE, 1.f, sparseMatrix, descr, SPARSE_LAYOUT_ROW_MAJOR,
+		second, secondWidth, secondWidth, 0, res, secondWidth ) == SPARSE_STATUS_SUCCESS );
+
+	ASSERT_EXPR( mkl_sparse_destroy( sparseMatrix ) == SPARSE_STATUS_SUCCESS );
+#else
+	nullify( res, firstHeight, secondWidth );
+	for( int row = 0; row < firstHeight; ++row ) {
+		float* result = res + row * secondWidth;
+		for( int ind = firstRows[row]; ind < firstRows[row + 1]; ++ind ) {
+			const float* dense = second + firstColumns[ind] * secondWidth;
+			for( int col = 0; col < secondWidth; ++col ) {
+				result[col] += values[ind] * dense[col];
+			}
+		}
+	}
+#endif
+}
+
+// result = T(first) * second. The result size is firstWidth * secondWidth:
+void CCpuMathEngine::MultiplyTransposedSparseMatrixByMatrix( int firstHeight, int firstWidth, int secondWidth,
+	const CSparseMatrixDesc& firstDesc, const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle )
+{
+	ASSERT_EXPR( firstDesc.Rows.GetMathEngine() == this );
+	ASSERT_EXPR( firstDesc.Columns.GetMathEngine() == this );
+	ASSERT_EXPR( firstDesc.Values.GetMathEngine() == this );
+	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	CCpuExecutionScope scope;
+
+	int* firstRows = GetRaw( firstDesc.Rows );
+	int* firstColumns = GetRaw( firstDesc.Columns );
+	float* values = GetRaw( firstDesc.Values );
+	const float* second = GetRaw( secondHandle );
+	float* res = GetRaw( resultHandle );
+
+#ifdef NEOML_USE_MKL
+	sparse_matrix_t sparseMatrix;
+
+	ASSERT_EXPR( mkl_sparse_s_create_csr( &sparseMatrix, SPARSE_INDEX_BASE_ZERO, firstHeight, firstWidth, firstRows,
+		firstRows + 1, firstColumns, values ) ==  SPARSE_STATUS_SUCCESS );
+
+	matrix_descr descr;
+	descr.type = SPARSE_MATRIX_TYPE_GENERAL;
+
+	ASSERT_EXPR( mkl_sparse_s_mm( SPARSE_OPERATION_TRANSPOSE, 1.f, sparseMatrix, descr, SPARSE_LAYOUT_ROW_MAJOR,
+		second, secondWidth, secondWidth, 0, res, secondWidth ) == SPARSE_STATUS_SUCCESS );
+
+	ASSERT_EXPR( mkl_sparse_destroy( sparseMatrix ) == SPARSE_STATUS_SUCCESS );
+#else
+	nullify( res, firstWidth, secondWidth );
+	for( int row = 0; row < firstHeight; ++row ) {
+		const float* dense = second + row * secondWidth;
+		for( int ind = firstRows[row]; ind < firstRows[row + 1]; ++ind ) {
+			float* result = res + firstColumns[ind] * secondWidth;
+			for( int col = 0; col < secondWidth; ++col ) {
+				result[col] += values[ind] * dense[col];
+			}
+		}
+	}
+#endif
+}
+
+void CCpuMathEngine::QRFactorization( int height, int width, const CFloatHandle& matrixHandle, const CFloatHandle* qHandle, const CFloatHandle* rHandle,
+	bool inplace, bool returnQ, bool returnR )
+{
+	ASSERT_EXPR( matrixHandle.GetMathEngine() == this );
+	ASSERT_EXPR( returnQ == false || qHandle != nullptr  );
+	ASSERT_EXPR( returnR == false || rHandle != nullptr  );
+	CCpuExecutionScope scope;
+	float* matrix = GetRaw( matrixHandle );
+	float* q = nullptr;
+	if( qHandle != nullptr ) {
+		ASSERT_EXPR( qHandle->GetMathEngine() == this );
+		q = GetRaw( *qHandle );
+	}
+	float* r = nullptr;
+	if( rHandle != nullptr ) {
+		ASSERT_EXPR( rHandle->GetMathEngine() == this );
+		r = GetRaw( *rHandle );
+	}
+	
+	unique_ptr<CFloatHandleStackVar> tempR;
+	if( inplace ) {
+		r = matrix;
+	} else {
+		if( r == nullptr ) {
+			tempR = make_unique<CFloatHandleStackVar>( mathEngine(), height * width );
+			r = GetRaw( tempR->GetHandle() );
+		}
+		memcpy( r, matrix, height * width * sizeof( float ) );
+	}
+	int reflectors = min( height, width );
+	CFloatHandleStackVar tau( mathEngine(), reflectors );
+	LAPACKE_sgeqrf( LAPACK_ROW_MAJOR, height, width, r, width, GetRaw( tau.GetHandle() ) );
+	if( returnQ ) {
+		float* temp = r;
+		if( returnR ) {
+			tempR = make_unique<CFloatHandleStackVar>( mathEngine(), height * width );
+			temp = GetRaw( tempR->GetHandle() );
+			memcpy( temp, r, height * width * sizeof( float ) );
+		}
+		LAPACKE_sorgqr( LAPACK_ROW_MAJOR, height, reflectors, reflectors, temp, width, GetRaw( tau.GetHandle() ) );
+		for( int i = 0; i < height; i++ ) {
+			for( int j = 0; j < reflectors; j++ ) {
+				*q++ = temp[j];
+			}
+			temp += width;
+		}
+	}
+	if( returnR ) {
+		float* rPtr = r;
+		for( int i = 0; i < height; i++ ) {
+			for( int j = 0; j < i; j++ ) {
+				rPtr[j] = 0.f;
+			}
+			rPtr += width;
+		}
+	}
 }
 
 void CCpuMathEngine::multiplyTransposedMatrixByMatrix(const float* first, int firstHeight,
@@ -271,6 +463,64 @@ void CCpuMathEngine::multiplyTransposedMatrixByMatrixAndAdd(const float* first,
 			result, resultRowSize, firstWidth, secondWidth, firstHeight );
 #endif
 	}
+}
+
+void CCpuMathEngine::SingularValueDecomposition( const CFloatHandle& a, int height, int width, const CFloatHandle& u, const CFloatHandle& s,
+	const CFloatHandle& vt, const CFloatHandle& superb, bool returnLeftVectors, bool returnRightVectors )
+{
+	ASSERT_EXPR( a.GetMathEngine() == this );
+	ASSERT_EXPR( u.GetMathEngine() == this );
+	ASSERT_EXPR( s.GetMathEngine() == this );
+	ASSERT_EXPR( vt.GetMathEngine() == this );
+	ASSERT_EXPR( superb.GetMathEngine() == this );
+	ASSERT_EXPR( height > 0 );
+	ASSERT_EXPR( width > 0 );
+
+#ifdef NEOML_USE_MKL
+	const int ldu = min( height, width );
+	ASSERT_EXPR( LAPACKE_sgesvd( LAPACK_ROW_MAJOR, returnLeftVectors ? 'S' : 'N', returnRightVectors ? 'S' : 'N',
+		height, width, GetRaw( a ), width, GetRaw( s ), GetRaw(u), ldu, GetRaw( vt ), width, GetRaw( superb ) ) == 0 );
+#else
+	( void )returnLeftVectors;
+	( void )returnRightVectors;
+	ASSERT_EXPR( false );
+#endif
+}
+
+void CCpuMathEngine::SparseSingularValueDecomposition( const CSparseMatrixDesc& desc, int height, int width,
+	const CFloatHandle& xl, const CFloatHandle& e, const CFloatHandle& xr, const CFloatHandle& res,
+	int components, bool returnLeftVectors )
+{
+	ASSERT_EXPR( xl.GetMathEngine() == this );
+	ASSERT_EXPR( e.GetMathEngine() == this );
+	ASSERT_EXPR( xr.GetMathEngine() == this );
+	ASSERT_EXPR( res.GetMathEngine() == this );
+	ASSERT_EXPR( height > 0 );
+	ASSERT_EXPR( width > 0 );
+	ASSERT_EXPR( desc.ElementCount > 0 );
+	ASSERT_EXPR( components > 0 );
+#ifdef NEOML_USE_MKL
+	sparse_matrix_t sparseMatrix;
+	int* rows = GetRaw( desc.Rows );
+	ASSERT_EXPR( mkl_sparse_s_create_csr( &sparseMatrix, SPARSE_INDEX_BASE_ZERO, height, width, rows,
+		rows + 1, GetRaw( desc.Columns ), GetRaw( desc.Values ) ) ==  SPARSE_STATUS_SUCCESS );
+	matrix_descr descr;
+	descr.type = SPARSE_MATRIX_TYPE_GENERAL;
+	MKL_INT k;
+	MKL_INT pm[128];
+	ASSERT_EXPR( mkl_sparse_ee_init( pm ) == SPARSE_STATUS_SUCCESS );
+	char returnValues[2] = "L";
+	char returnVectors[2] = "R";
+	if( returnLeftVectors ) {
+		returnVectors[0] = 'L';
+	}
+	ASSERT_EXPR( mkl_sparse_s_svd( returnValues, returnVectors, pm, sparseMatrix, descr, components, &k, GetRaw(e),
+		GetRaw(xl), GetRaw( xr ), GetRaw( res ) ) == SPARSE_STATUS_SUCCESS );
+	ASSERT_EXPR( mkl_sparse_destroy( sparseMatrix ) == SPARSE_STATUS_SUCCESS );
+#else
+	( void )returnLeftVectors;
+	ASSERT_EXPR( false );
+#endif
 }
 
 } // namespace NeoML

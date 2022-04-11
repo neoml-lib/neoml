@@ -143,7 +143,7 @@ void InitializePCA(py::module& m)
 {
 	py::class_<CPyPca>(m, "PCA")
 		.def( py::init(
-			[]( const std::string& components_type, float n_components ) {
+			[]( const std::string& components_type, float n_components, bool isFullAlgorithm ) {
 				CPca::CParams p;
 				if( components_type == "None" ) {
 					p.ComponentsType = CPca::TComponents::PCAC_None;
@@ -153,6 +153,7 @@ void InitializePCA(py::module& m)
 					p.ComponentsType = CPca::TComponents::PCAC_Float;
 				}
 				p.Components = n_components;
+				p.SvdSolver = ( isFullAlgorithm ) ? SVD_Full : SVD_Randomized;
 				return new CPyPca( p );
 			})
 		)
@@ -203,8 +204,13 @@ void InitializePCA(py::module& m)
 		CArray<float> rightVectors;
 		{
 			py::gil_scoped_release release;
-			SingularValueDecomposition( desc, isFullAlgorithm ? SVD_Full : SVD_Sparse, leftVectors, singularValues, rightVectors,
-				returnLeftVectors, returnRightVectors, components );
+			if( isFullAlgorithm ) {
+				SingularValueDecomposition( desc, SVD_Full, leftVectors, singularValues, rightVectors,
+					returnLeftVectors, returnRightVectors, components );
+			} else {
+				RandomizedSingularValueDecomposition( desc, leftVectors, singularValues, rightVectors,
+					returnLeftVectors, returnRightVectors, components );
+			}
 		}
 		py::array_t<float, py::array::c_style> leftArray;
 		if( returnLeftVectors ) {

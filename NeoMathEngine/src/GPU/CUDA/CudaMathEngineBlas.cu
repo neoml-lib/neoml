@@ -753,7 +753,7 @@ void CCudaMathEngine::MatrixSpreadRows(const CConstIntHandle& sourceHandle, int 
 		resultHandle, resultHeight, GetRaw(indexHandle), fillValue);
 }
 
-void CCudaMathEngine::SingularValueDecomposition( const CFloatHandle& a, int n, int m, const CFloatHandle& u, const CFloatHandle& s,
+void CCudaMathEngine::SingularValueDecomposition( const CFloatHandle& a, int height, int width, const CFloatHandle& u, const CFloatHandle& s,
 	const CFloatHandle& vt, const CFloatHandle& superb, bool returnLeftVectors, bool returnRightVectors )
 {
 	ASSERT_EXPR( false );
@@ -762,6 +762,12 @@ void CCudaMathEngine::SingularValueDecomposition( const CFloatHandle& a, int n, 
 void CCudaMathEngine::SparseSingularValueDecomposition( const CSparseMatrixDesc& desc, int height, int width,
 	const CFloatHandle& leftVectors, const CFloatHandle& s, const CFloatHandle& rightVectors, const CFloatHandle& res,
 	int components, bool returnLeftVectors )
+{
+	ASSERT_EXPR( false );
+}
+
+void CCudaMathEngine::QRFactorization( int height, int width, const CFloatHandle& matrixHandle, const CFloatHandle* qHandle, const CFloatHandle* rHandle,
+	bool inplace, bool returnQ, bool returnR )
 {
 	ASSERT_EXPR( false );
 }
