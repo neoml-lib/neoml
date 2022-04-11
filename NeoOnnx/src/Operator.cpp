@@ -30,6 +30,7 @@ limitations under the License.
 #include "Operators/ConstantOfShapeOperator.h"
 #include "Operators/ConstantOperator.h"
 #include "Operators/ConvOperator.h"
+#include "Operators/ConvTransposeOperator.h"
 #include "Operators/DropoutOperator.h"
 #include "Operators/EltwiseOperator.h"
 #include "Operators/FlattenOperator.h"
@@ -44,12 +45,15 @@ limitations under the License.
 #include "Operators/PoolOperator.h"
 #include "Operators/RangeOperator.h"
 #include "Operators/ReshapeOperator.h"
+#include "Operators/ResizeOperator.h"
 #include "Operators/ShapeOperator.h"
 #include "Operators/SliceOperator.h"
 #include "Operators/SoftmaxOperator.h"
+#include "Operators/SplitOperator.h"
 #include "Operators/SqueezeOperator.h"
 #include "Operators/TransposeOperator.h"
 #include "Operators/UnsqueezeOperator.h"
+#include "Operators/UpsampleOperator.h"
 
 namespace NeoOnnx {
 
@@ -112,6 +116,7 @@ REGISTER_OPERATOR( CConcatOperator, "Concat" )
 REGISTER_OPERATOR( CConstantOfShapeOperator, "ConstantOfShape" )
 REGISTER_OPERATOR( CConstantOperator, "Constant" )
 REGISTER_OPERATOR( CConvOperator, "Conv" )
+REGISTER_OPERATOR( CConvTransposeOperator, "ConvTranspose" )
 REGISTER_OPERATOR( CDivOperator, "Div" )
 REGISTER_OPERATOR( CDropoutOperator, "Dropout" )
 REGISTER_OPERATOR( CEluOperator, "Elu" )
@@ -136,10 +141,12 @@ REGISTER_OPERATOR( CReduceMeanOperator, "ReduceMean" )
 REGISTER_OPERATOR( CReduceMinOperator, "ReduceMin" )
 REGISTER_OPERATOR( CReluOperator, "Relu" )
 REGISTER_OPERATOR( CReshapeOperator, "Reshape" )
+REGISTER_OPERATOR( CResizeOperator, "Resize" )
 REGISTER_OPERATOR( CShapeOperator, "Shape" )
 REGISTER_OPERATOR( CSigmoidOperator, "Sigmoid" )
 REGISTER_OPERATOR( CSliceOperator, "Slice" )
 REGISTER_OPERATOR( CSoftmaxOperator, "Softmax" )
+REGISTER_OPERATOR( CSplitOperator, "Split" )
 REGISTER_OPERATOR( CSqrtOperator, "Sqrt" )
 REGISTER_OPERATOR( CSqueezeOperator, "Squeeze" )
 REGISTER_OPERATOR( CSubOperator, "Sub" )
@@ -147,6 +154,7 @@ REGISTER_OPERATOR( CSumOperator, "Sum" )
 REGISTER_OPERATOR( CTanhOperator, "Tanh" )
 REGISTER_OPERATOR( CTransposeOperator, "Transpose" )
 REGISTER_OPERATOR( CUnsqueezeOperator, "Unsqueeze" )
+REGISTER_OPERATOR( CUpsampleOperator, "Upsample" )
 
 } // anonymous namespace
 

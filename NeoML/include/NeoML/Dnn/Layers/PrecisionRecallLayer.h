@@ -40,6 +40,11 @@ protected:
 	void OnReset() override;
 	void RunOnceAfterReset() override;
 
+	virtual int& PositivesTotal(){ return positivesTotal; };
+	virtual int& NegativesTotal(){ return negativesTotal; };
+	virtual int& PositivesCorrect(){ return positivesCorrect; };
+	virtual int& NegativesCorrect(){ return negativesCorrect; };
+
 private:
 	int positivesTotal;
 	int negativesTotal;

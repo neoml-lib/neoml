@@ -392,6 +392,7 @@ void CCpuMathEngine::QRFactorization( int height, int width, const CFloatHandle&
 		}
 		memcpy( r, matrix, height * width * sizeof( float ) );
 	}
+
 	const int reflectors = min( height, width );
 	CFloatHandleStackVar tau( mathEngine(), reflectors );
 	LAPACKE_sgeqrf( LAPACK_ROW_MAJOR, height, width, r, width, GetRaw( tau.GetHandle() ) );

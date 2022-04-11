@@ -17,38 +17,13 @@ limitations under the License.
 #pragma hdrstop
 
 #include "SliceOperator.h"
+#include "LayerUtils.h"
 #include "NeoOnnxCheck.h"
 #include "TensorUtils.h"
 
 #include "onnx.pb.h"
 
 namespace NeoOnnx {
-
-// Creates split layer along given dimension
-static CPtr<CBaseSplitLayer> createSplitLayer( IMathEngine& mathEngine, TBlobDim dim )
-{
-	switch( dim ) {
-		case BD_BatchLength:
-			return new CSplitBatchLengthLayer( mathEngine );
-		case BD_BatchWidth:
-			return new CSplitBatchWidthLayer( mathEngine );
-		case BD_ListSize:
-			return new CSplitListSizeLayer( mathEngine );
-		case BD_Height:
-			return new CSplitHeightLayer( mathEngine );
-		case BD_Width:
-			return new CSplitWidthLayer( mathEngine );
-		case BD_Depth:
-			return new CSplitDepthLayer( mathEngine );
-		case BD_Channels:
-			return new CSplitChannelsLayer( mathEngine );
-		default:
-			NeoAssert( false );
-	}
-	return nullptr;
-}
-
-//---------------------------------------------------------------------------------------------------------------------
 
 CSliceOperator::CSliceOperator( const onnx::NodeProto& slice, int opsetVersion ) :
 	CLayerOperator( slice, opsetVersion )
@@ -192,7 +167,7 @@ CPtr<const CUserTensor> CSliceOperator::sliceAxis( const CUserTensor& input, int
 	}
 
 	CDnn& dnn = *input.Layer()->GetDnn();
-	CPtr<CBaseSplitLayer> split = createSplitLayer( dnn.GetMathEngine(), input.Layout()[axis] );
+	CPtr<CBaseSplitLayer> split = CreateSplitLayer( dnn.GetMathEngine(), input.Layout()[axis] );
 	split->SetName( Name() + "_" + Str( axis ) );
 	int outputIndex = 0;
 

@@ -567,6 +567,7 @@ public:
 	virtual void SparseSingularValueDecomposition( const CSparseMatrixDesc& desc, int height, int width,
 		const CFloatHandle& leftVectors, const CFloatHandle& s, const CFloatHandle& rightVectors, const CFloatHandle& res,
 		int components, bool returnLeftVectors ) = 0;
+
 	// Computes the QR factorization of the matrix = Q x R, where Q is of shape (height, min(height, width)), R is of shape(height, width).
 	// If returnQ or returnR is false then the corresponding matrix in the factorization is not returned.
 	// If inplace is true then the matrixHandle will be overwritten with a content of matrix R.
