@@ -178,8 +178,8 @@ void CVulkanMathEngine::MultiplySparseMatrixByTransposedMatrix( int firstHeight,
 		&param, sizeof( param ), 0, 0, 0, 0, bufs, sizes, 5, secondHeight, firstHeight, 1 );
 }
 
-void CVulkanMathEngine::MultiplyTransposedMatrixBySparseMatrix( int firstHeight, int firstWidth, int secondWidth,
-	const CConstFloatHandle& firstHandle, const CSparseMatrixDesc& secondDesc, const CFloatHandle& resultHandle )
+void CVulkanMathEngine::MultiplyTransposedMatrixBySparseMatrix( int, int, int,
+	const CConstFloatHandle&, const CSparseMatrixDesc&, const CFloatHandle& )
 {
 	ASSERT_EXPR( false );
 }
@@ -203,14 +203,14 @@ void CVulkanMathEngine::MultiplyTransposedMatrixBySparseMatrixAndAdd( int firstH
 		&param, sizeof( param ), 0, 0, 0, 0, bufs, sizes, 5, firstWidth );
 }
 
-void CVulkanMathEngine::MultiplySparseMatrixByMatrix( int firstHeight, int firstWidth, int secondWidth,
-	const CSparseMatrixDesc& firstDesc, const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle )
+void CVulkanMathEngine::MultiplySparseMatrixByMatrix( int, int, int,
+	const CSparseMatrixDesc&, const CConstFloatHandle&, const CFloatHandle& )
 {
 	ASSERT_EXPR( false );
 }
 
-void CVulkanMathEngine::MultiplyTransposedSparseMatrixByMatrix( int firstHeight, int firstWidth, int secondWidth,
-	const CSparseMatrixDesc& firstDesc, const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle )
+void CVulkanMathEngine::MultiplyTransposedSparseMatrixByMatrix( int, int, int,
+	const CSparseMatrixDesc&, const CConstFloatHandle&, const CFloatHandle& )
 {
 	ASSERT_EXPR( false );
 }
@@ -1184,8 +1184,8 @@ void CVulkanMathEngine::SparseSingularValueDecomposition( const CSparseMatrixDes
 	ASSERT_EXPR( false );
 }
 
-void CVulkanMathEngine::QRFactorization( int height, int width, const CFloatHandle& matrixHandle, const CFloatHandle* qHandle, const CFloatHandle* rHandle,
-	bool inplace, bool returnQ, bool returnR )
+void CVulkanMathEngine::QRFactorization( int, int, const CFloatHandle&, const CFloatHandle*, const CFloatHandle*,
+	bool, bool, bool )
 {
 	ASSERT_EXPR( false );
 }
