@@ -482,15 +482,14 @@ void CCpuMathEngine::MultiplyDiagMatrixByMatrixAndAdd(int batchSize, const CCons
 	}
 }
 
-void CCpuMathEngine::SingularValueDecomposition( const CFloatHandle& a, int n, int m, const CFloatHandle& u, const CFloatHandle& s,
-	const CFloatHandle& vt, const CFloatHandle& superb, bool returnLeftVectors, bool returnRightVectors )
+void CCpuMathEngine::SingularValueDecomposition( const CFloatHandle&, int, int, const CFloatHandle&, const CFloatHandle&,
+	const CFloatHandle&, const CFloatHandle&, bool, bool )
 {
 	ASSERT_EXPR( false );
 }
 
-void CCpuMathEngine::SparseSingularValueDecomposition( const CSparseMatrixDesc& desc, int height, int width,
-	const CFloatHandle& leftVectors, const CFloatHandle& s, const CFloatHandle& rightVectors, const CFloatHandle& res,
-	int components, bool returnLeftVectors )
+void CCpuMathEngine::SparseSingularValueDecomposition( const CSparseMatrixDesc&, int, int,
+	const CFloatHandle&, const CFloatHandle&, const CFloatHandle&, const CFloatHandle&, int, bool )
 {
 	ASSERT_EXPR( false );
 }
