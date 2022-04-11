@@ -364,8 +364,12 @@ void CCpuMathEngine::QRFactorization( int height, int width, const CFloatHandle&
 {
 	ASSERT_EXPR( matrixHandle.GetMathEngine() == this );
 	ASSERT_EXPR( returnQ == false || qHandle != nullptr  );
-	ASSERT_EXPR( returnR == false || rHandle != nullptr  );
+	ASSERT_EXPR( inplace == true || returnR == false || rHandle != nullptr  );
+	ASSERT_EXPR( height > 0 );
+	ASSERT_EXPR( width > 0 );
 	CCpuExecutionScope scope;
+
+#ifdef NEOML_USE_MKL
 	float* matrix = GetRaw( matrixHandle );
 	float* q = nullptr;
 	if( qHandle != nullptr ) {
@@ -388,7 +392,8 @@ void CCpuMathEngine::QRFactorization( int height, int width, const CFloatHandle&
 		}
 		memcpy( r, matrix, height * width * sizeof( float ) );
 	}
-	int reflectors = min( height, width );
+
+	const int reflectors = min( height, width );
 	CFloatHandleStackVar tau( mathEngine(), reflectors );
 	LAPACKE_sgeqrf( LAPACK_ROW_MAJOR, height, width, r, width, GetRaw( tau.GetHandle() ) );
 	if( returnQ ) {
@@ -415,6 +420,9 @@ void CCpuMathEngine::QRFactorization( int height, int width, const CFloatHandle&
 			rPtr += width;
 		}
 	}
+#else
+	ASSERT_EXPR( false );
+#endif
 }
 
 void CCpuMathEngine::multiplyTransposedMatrixByMatrix(const float* first, int firstHeight,
