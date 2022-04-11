@@ -330,6 +330,12 @@ public:
 		const CSparseMatrixDesc& firstDesc, const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle ) override;
 	void MultiplyTransposedMatrixBySparseMatrixAndAdd( int firstHeight, int firstWidth, int secondWidth,
 		const CConstFloatHandle& firstHandle, const CSparseMatrixDesc& secondDesc, const CFloatHandle& resultHandle ) override;
+	void MultiplyTransposedMatrixBySparseMatrix( int firstHeight, int firstWidth, int secondWidth,
+		const CConstFloatHandle& firstHandle, const CSparseMatrixDesc& secondDesc, const CFloatHandle& resultHandle ) override;
+	void MultiplySparseMatrixByMatrix( int firstHeight, int firstWidth, int secondWidth,
+		const CSparseMatrixDesc& firstDesc, const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle ) override;
+	void MultiplyTransposedSparseMatrixByMatrix( int firstHeight, int firstWidth, int secondWidth,
+		const CSparseMatrixDesc& firstDesc, const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle ) override;
 	void MultiplyTransposedMatrixByMatrixAndAdd(const CConstFloatHandle& firstHandle, int firstHeight, int firstWidth,
 		int firstRowSize, const CConstFloatHandle& secondHandle, int secondWidth, int secondRowSize,
 		const CFloatHandle& resultHandle, int resultRowSize, int resultBufferSize) override;
@@ -367,6 +373,8 @@ public:
 	void SparseSingularValueDecomposition( const CSparseMatrixDesc& desc, int height, int width,
 		const CFloatHandle& leftVectors, const CFloatHandle& s, const CFloatHandle& rightVectors, const CFloatHandle& res,
 		int components, bool returnLeftVectors ) override;
+	void QRFactorization( int height, int width, const CFloatHandle& matrixHandle, const CFloatHandle* qHandle, const CFloatHandle* rHandle,
+		bool inplace, bool returnQ, bool returnR ) override;
 
 
 	// IDnnEngine interface methods

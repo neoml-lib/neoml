@@ -22,29 +22,32 @@ import neoml.PythonWrapper as PythonWrapper
 """
 Singular Value Decomposition of a given matrix into matrices u, s, v.
 
-:param compute_u: indicates whether matrix u will be returned
+:param compute_u: indicates whether matrix u should be returned
 :type compute_u: bool, default=True
-:param compute_v: indicates whether matrix v will be returned
+:param compute_v: indicates whether matrix v should be returned
 :type compute_v: bool, default=False
 :param algorithm: chooses an algorithm.
     'full' implements LAPACK SVD (LAPACKE_sgesvd).
-    'sparse' implements the FEAST algorithm (mkl_sparse_s_svd).
-:type algorithm: str, ['full', 'sparse'], default='full'
-:param components: indicates a number of largest singular values
-    to search (only for 'sparse' algorithm).
+    'randomized' - see `Halko, N., Martinsson, P. G., and Tropp, J. A. (2011).
+    "Finding structure with randomness: Probabilistic algorithms for
+    constructing approximate matrix decompositions".
+    SIAM review, 53(2), 217-288.
+    <10.1137/090771806>.`
+:type algorithm: str, ['full', 'randomized'], default='full'
+:param components: indicates a number of largest singular values to search.
     Default value is min(matrix.height, matrix.width).
 :type components: int
 """
 def svd(matrix, compute_u = True, compute_v = False, algorithm = 'full', components = None):
-    if algorithm not in ('full', 'sparse'):
-        raise ValueError("`algorithm` must be one of ('full', 'sparse').")
+    if algorithm not in ('full', 'randomized'):
+        raise ValueError("`algorithm` must be one of ('full', 'randomized').")
     x = convert_data(matrix)
     if len(x.shape) != 2:
         raise ValueError("Matrix must be square.")
-    if algorithm == 'sparse' and compute_u == compute_v:
-        raise ValueError("Exactly one of u and v must be calculated.")
     if components is None:
         components = min(*x.shape)
+    if components <= 0 or components > min(*x.shape):
+        raise ValueError("`components` must be in range [1, min(matrix.height, matrix.width)].")
     return PythonWrapper.singular_value_decomposition(*x.shape, *get_data(x),
         compute_u, compute_v, algorithm == 'full', components)
 
@@ -58,9 +61,11 @@ class PCA(PythonWrapper.PCA) :
         If it's a float value and 0 < n_components < 1, set the number of components so that variance is greater than this value.
         If n_components = None, set the number of components as min(data.width, data.height).
     :type n_components: int, float, default=None
+    :param svd_solver: full or randomized svd algorithm
+    :type svd_solver: str, ['full', 'randomized'], default='full'
     """
 
-    def __init__(self, n_components=None):
+    def __init__(self, n_components=None, svd_solver='full'):
 
         if n_components is None:
             components = ('None', 0)
@@ -69,9 +74,12 @@ class PCA(PythonWrapper.PCA) :
         else:
             if n_components <= 0:
                 raise ValueError('`n_components` > 0.')
-            components = ('Int', n_components)
+            components = ('Int', n_components,)
 
-        super().__init__(*components)
+        if svd_solver not in ('full', 'randomized'):
+            raise ValueError("`svd_solver` must be 'full' or 'randomized'.")
+
+        super().__init__(*components, svd_solver == 'full')
 
     def fit(self, X):
         """Performs linear dimensionality reduction of the given data:
@@ -126,12 +134,12 @@ class PCA(PythonWrapper.PCA) :
     def store(self, path):
         """Serializes the model.
         """
-        super().store(str(path))
+        return super().store(str(path))
 
     def load(self, path):
         """Loads the model from file.
         """
-        super().load(str(path))
+        return super().load(str(path))
 
     @property
     def singular_values(self):

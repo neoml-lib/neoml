@@ -178,6 +178,12 @@ void CVulkanMathEngine::MultiplySparseMatrixByTransposedMatrix( int firstHeight,
 		&param, sizeof( param ), 0, 0, 0, 0, bufs, sizes, 5, secondHeight, firstHeight, 1 );
 }
 
+void CVulkanMathEngine::MultiplyTransposedMatrixBySparseMatrix( int firstHeight, int firstWidth, int secondWidth,
+	const CConstFloatHandle& firstHandle, const CSparseMatrixDesc& secondDesc, const CFloatHandle& resultHandle )
+{
+	ASSERT_EXPR( false );
+}
+
 void CVulkanMathEngine::MultiplyTransposedMatrixBySparseMatrixAndAdd( int firstHeight, int firstWidth, int secondWidth,
 	const CConstFloatHandle& firstHandle, const CSparseMatrixDesc& secondDesc, const CFloatHandle& resultHandle )
 {
@@ -195,6 +201,18 @@ void CVulkanMathEngine::MultiplyTransposedMatrixBySparseMatrixAndAdd( int firstH
 
 	runVectorShader( shaderLoader->GET_SHADER_DATA( MultiplyTransposedMatrixBySparseMatrix, true, 0, 0, 5 ),
 		&param, sizeof( param ), 0, 0, 0, 0, bufs, sizes, 5, firstWidth );
+}
+
+void CVulkanMathEngine::MultiplySparseMatrixByMatrix( int firstHeight, int firstWidth, int secondWidth,
+	const CSparseMatrixDesc& firstDesc, const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle )
+{
+	ASSERT_EXPR( false );
+}
+
+void CVulkanMathEngine::MultiplyTransposedSparseMatrixByMatrix( int firstHeight, int firstWidth, int secondWidth,
+	const CSparseMatrixDesc& firstDesc, const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle )
+{
+	ASSERT_EXPR( false );
 }
 
 void CVulkanMathEngine::MultiplyTransposedMatrixByMatrixAndAdd( const CConstFloatHandle& firstHandle, int firstHeight,
@@ -1162,6 +1180,12 @@ void CVulkanMathEngine::SingularValueDecomposition( const CFloatHandle&, int, in
 
 void CVulkanMathEngine::SparseSingularValueDecomposition( const CSparseMatrixDesc&, int, int, const CFloatHandle&, const CFloatHandle&,
 	const CFloatHandle&, const CFloatHandle&, int, bool )
+{
+	ASSERT_EXPR( false );
+}
+
+void CVulkanMathEngine::QRFactorization( int height, int width, const CFloatHandle& matrixHandle, const CFloatHandle* qHandle, const CFloatHandle* rHandle,
+	bool inplace, bool returnQ, bool returnR )
 {
 	ASSERT_EXPR( false );
 }
