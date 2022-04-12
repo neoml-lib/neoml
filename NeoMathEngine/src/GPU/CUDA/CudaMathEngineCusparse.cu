@@ -76,6 +76,12 @@ void CCudaMathEngine::MultiplySparseMatrixByTransposedMatrix( int firstHeight, i
 	TransposeMatrix( 1, tResultPtr, secondHeight, 1, firstHeight, 1, resultHandle, static_cast<int>( tResult.Size() ) );
 }
 
+void CCudaMathEngine::MultiplyTransposedMatrixBySparseMatrix( int firstHeight, int firstWidth, int secondWidth,
+	const CConstFloatHandle& firstHandle, const CSparseMatrixDesc& secondDesc, const CFloatHandle& resultHandle )
+{
+	ASSERT_EXPR( false );
+}
+
 // result = result + T(first) * second. The result size is firstWidth * secondWidth:
 void CCudaMathEngine::MultiplyTransposedMatrixBySparseMatrixAndAdd( int firstHeight, int firstWidth, int secondWidth,
 	const CConstFloatHandle& first, const CSparseMatrixDesc& secondDesc, const CFloatHandle& resultHandle )
@@ -122,6 +128,18 @@ void CCudaMathEngine::MultiplyTransposedMatrixBySparseMatrixAndAdd( int firstHei
 	ASSERT_CUSPARSE( cusparse->DestroyDnMat( resultDesc ) );
 	ASSERT_CUSPARSE( cusparse->DestroySpMat( secondCuDesc ) );
 	ASSERT_CUSPARSE( cusparse->DestroyDnMat( tFirstDesc ) );
+}
+
+void CCudaMathEngine::MultiplySparseMatrixByMatrix( int firstHeight, int firstWidth, int secondWidth,
+	const CSparseMatrixDesc& firstDesc, const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle )
+{
+	ASSERT_EXPR( false );
+}
+
+void CCudaMathEngine::MultiplyTransposedSparseMatrixByMatrix( int firstHeight, int firstWidth, int secondWidth,
+	const CSparseMatrixDesc& firstDesc, const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle )
+{
+	ASSERT_EXPR( false );
 }
 
 } // namespace NeoML
