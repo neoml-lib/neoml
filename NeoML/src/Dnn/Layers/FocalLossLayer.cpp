@@ -143,4 +143,13 @@ void CFocalLossLayer::calculateGradient( CFloatHandle correctClassProbabilityPer
 	MathEngine().MultiplyDiagMatrixByMatrix( diffPart, batchSize, label, labelSize, lossGradient, dataSize );
 }
 
+CLayerWrapper<CFocalLossLayer> FocalLoss( float focalForce, float lossWeight )
+{
+	return CLayerWrapper<CFocalLossLayer>( "FocalLoss", [=]( CFocalLossLayer* result )
+		{
+			result->SetFocalForce( focalForce );
+			result->SetLossWeight( lossWeight );
+		}
+	);
+}
 } // namespace NeoML
