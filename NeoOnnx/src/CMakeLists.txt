@@ -36,6 +36,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Operators/GemmOperator.cpp
     Operators/GlobalPoolOperator.cpp
     Operators/IdentityOperator.cpp
+    Operators/InstanceNormalizationOperator.cpp
     Operators/LrnOperator.cpp
     Operators/LstmOperator.cpp
     Operators/MatMulOperator.cpp
@@ -80,6 +81,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Operators/GemmOperator.h
     Operators/GlobalPoolOperator.h
     Operators/IdentityOperator.h
+    Operators/InstanceNormalizationOperator.h
     Operators/LrnOperator.h
     Operators/LstmOperator.h
     Operators/MatMulOperator.h
