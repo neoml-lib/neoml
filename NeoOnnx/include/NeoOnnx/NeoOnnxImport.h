@@ -20,7 +20,7 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-// Loads network "dnn" from onnx file "fileName"
+// The load functions build CDnn based on ONNX in the following way:
 //
 // For every uninitialized onnx graph input there will be CSourceLayer with the same name
 // For every CSourceLayer will be allocated input blob of the given size
@@ -30,20 +30,19 @@ namespace NeoOnnx {
 // Graph inputs' and outputs' names will be added to the corresponding CArray's
 // Names' pointers are attached to the corresponding layers' names
 //
-// Throws std::logic_error if failed to load network
+// Input and output blobs have the following relations with the ONNX N-dimensional tensors:
+// - first N dimensions of the blob are corresponding to the N dimensions of the ONNX tensor
+// - other dimensions must be of length 1
+// In C++ use CDnnBlob::CreateTensor( ... , onnxShape ); function
+// In Python use neomlBlobShape = onnxShape + [1] * (7 - len(onnxShape))
+//
+// Throw std::logic_error if failed to load network
+
+
+// Loads network "dnn" from onnx file "fileName"
 NEOONNX_API void LoadFromOnnx( const char* fileName, NeoML::CDnn& dnn, CArray<const char*>& inputs, CArray<const char*>& outputs );
 
 // Loads network "dnn" from buffer with onnx data
-//
-// For every uninitialized onnx graph input there will be CSourceLayer with the same name
-// For every CSourceLayer will be allocated input blob of the given size
-// Inputs with initializers will be ignored (used for parameters calculation)
-//
-// For every onnx graph output there will be CSinkLayer with the same name
-// Graph inputs' and outputs' names will be added to the corresponding CArray's
-// Names' pointers are attached to the corresponding layers' names
-//
-// Throws std::logic_error if failed to load network
 NEOONNX_API void LoadFromOnnx( const void* buffer, int bufferSize, NeoML::CDnn& dnn, CArray<const char*>& inputs, CArray<const char*>& outputs );
 
 } // namespace NeoOnnx
