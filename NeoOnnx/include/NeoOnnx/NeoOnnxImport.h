@@ -33,6 +33,7 @@ namespace NeoOnnx {
 // Input and output blobs have the following relations with the ONNX N-dimensional tensors:
 // - first N dimensions of the blob are corresponding to the N dimensions of the ONNX tensor
 // - other dimensions must be of length 1
+// E.g. 4-dimensional ONNX tensor [1, 3, 224, 224] is equivalent to a NeoML blob of shape [1, 3, 224, 224, 1, 1, 1]
 // In C++ use CDnnBlob::CreateTensor( ... , onnxShape ); function
 // In Python use neomlBlobShape = onnxShape + [1] * (7 - len(onnxShape))
 //
