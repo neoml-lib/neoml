@@ -208,6 +208,7 @@ void DeinitializeModule()
 {
 	NeoML::destroyDefaultCpuMathEngine();
 	deinitializeOmp();
+	NeoML::DeinitializeNeoMathEngine();
 }
 #endif // STATIC_NEOML
 

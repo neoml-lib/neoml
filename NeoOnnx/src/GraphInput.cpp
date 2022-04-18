@@ -54,6 +54,7 @@ CPtr<const CUserTensor> CGraphInput::AddSourceLayer( CDnn& dnn ) const
 
 	CTensorLayout outputLayout( outputShape.Size() );
 	for( int dimIndex = 0; dimIndex < outputShape.Size(); ++dimIndex ) {
+		outputLayout[dimIndex] = static_cast<TBlobDim>( dimIndex );
 		outputBlobDesc.SetDimSize( outputLayout[dimIndex], outputShape[dimIndex] );
 	}
 	CPtr<CDnnBlob> inputBlob = CDnnBlob::CreateBlob( dnn.GetMathEngine(), outputBlobDesc.GetDataType(), outputBlobDesc );

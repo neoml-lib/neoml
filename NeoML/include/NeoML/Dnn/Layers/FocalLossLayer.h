@@ -66,4 +66,7 @@ private:
 		CConstFloatHandle label, CFloatHandle lossGradient );
 };
 
+NEOML_API CLayerWrapper<CFocalLossLayer> FocalLoss(
+	float focalForce = CFocalLossLayer::DefaultFocalForceValue, float lossWeight = 1.0f  );
+
 } // namespace NeoML
