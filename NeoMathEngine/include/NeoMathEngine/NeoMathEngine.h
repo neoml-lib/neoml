@@ -1137,6 +1137,11 @@ NEOMATHENGINE_API void CreateDistributedCpuMathEngines( IMathEngine** mathEngine
 // i-th MathEngine placed on gpu with number devs[i]
 NEOMATHENGINE_API void CreateDistributedCudaMathEngines( IMathEngine** mathEngines, int devsCount, const int* cudaDevs );
 
+// Deinitialization function for NeoMathEngine library
+// It's recommended to call this function during the unload of the dynamic library
+// (esp. if you want to load/unload NeoMathEngine multiple times)
+NEOMATHENGINE_API void DeinitializeNeoMathEngine();
+
 } // namespace NeoML
 
 #include <NeoMathEngine/MemoryHandle.inl>
