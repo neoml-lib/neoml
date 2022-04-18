@@ -70,8 +70,6 @@ private:
 class NEOML_API CBytePairEncoder {
 public:
 	CBytePairEncoder();
-	CBytePairEncoder( const CBytePairEncoder& other );
-	CBytePairEncoder& operator=( const CBytePairEncoder& other );
 
 	// Trains encoder.
 	void Train( const CWordDictionary& dictionary, int size,
@@ -110,6 +108,10 @@ public:
 	// To completely switch the cache off set cachePeriod equal to -1.
 	// Value 0 is treated as invalid.
 	void SetCachePeriod( int cachePeriod ) const { cache.SetCachePeriod( cachePeriod ); }
+
+	// Returns encoder flags.
+	bool UseEndOfWordToken() const { return useEndOfWordToken; }
+	bool UseStartOfWordToken() const { return useStartOfWordToken; }
 
 private:
 	// BPE tokens.
