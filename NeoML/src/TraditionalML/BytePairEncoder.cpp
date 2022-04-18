@@ -22,8 +22,9 @@ limitations under the License.
 namespace NeoML {
 
 // Some special tokens.
-static const CString StartOfWordToken( "</w>" );
-static const CString EndOfWordToken( "<\\w>" );
+static const CString StartOfWordToken( "/\xFF" );
+static const CString EndOfWordToken( "\\\xFF" );
+
 static const CString UnknownToken( "<UNK>" );
 
 // Concatenates tokens.
@@ -300,21 +301,6 @@ CBytePairEncoder::CBytePairEncoder() :
 	useEndOfWordToken( true ),
 	useStartOfWordToken( false )
 {}
-
-CBytePairEncoder::CBytePairEncoder( const CBytePairEncoder& other ) :
-	tokens( other.tokens ),
-	useEndOfWordToken( other.useEndOfWordToken ),
-	useStartOfWordToken( other.useStartOfWordToken )
-{
-}
-
-CBytePairEncoder& CBytePairEncoder::operator=( const CBytePairEncoder& other )
-{
-	tokens = other.tokens;
-	useEndOfWordToken = other.useEndOfWordToken;
-	useStartOfWordToken = other.useStartOfWordToken;
-	return *this;
-}
 
 void CBytePairEncoder::Train( const CWordDictionary& vocabulary, int size,
 	bool _useEndOfWordToken, bool _useStartOfWordToken )

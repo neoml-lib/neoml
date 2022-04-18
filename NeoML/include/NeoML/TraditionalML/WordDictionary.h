@@ -24,8 +24,15 @@ namespace NeoML {
 class NEOML_API CWordDictionary {
 public:
 	CWordDictionary() : totalWordsUseCount( 0 ) {}	
-	CWordDictionary( const CWordDictionary& other );
-	CWordDictionary& operator=( const CWordDictionary& other );
+	CWordDictionary( CWordDictionary&& other );
+	CWordDictionary& operator=( CWordDictionary&& other );
+
+	// To deny implicit expensive copy calls.
+	CWordDictionary( const CWordDictionary& other ) = delete;
+	CWordDictionary& operator=( const CWordDictionary& other ) = delete;
+
+	// Copies data to the other dictionary.
+	void CopyTo( CWordDictionary& other ) const;
 	
 	// Adds word to the dictionary and increases its count by the given value.
 	void AddWord( const CString& word, long long count = 1 );

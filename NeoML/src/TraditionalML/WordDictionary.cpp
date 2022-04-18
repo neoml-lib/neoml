@@ -45,18 +45,26 @@ void CWordDictionary::CWordWithCount::Serialize( CArchive& archive )
 
 //////////////////////////////////////////////////////////////////////////////////////////
 
-CWordDictionary::CWordDictionary( const CWordDictionary& other ) :
+CWordDictionary::CWordDictionary( CWordDictionary&& other ) :
 	totalWordsUseCount( other.totalWordsUseCount )
 {
-	other.wordToId.CopyTo( wordToId );
-	other.words.CopyTo( words );
+	other.words.MoveTo( words );
+	other.wordToId.MoveTo( wordToId );
 }
 
-CWordDictionary& CWordDictionary::operator=( const CWordDictionary& other )
+CWordDictionary& CWordDictionary::operator=( CWordDictionary&& other )
 {
-	other.wordToId.CopyTo( wordToId );
-	other.words.CopyTo( words );
+	totalWordsUseCount = other.totalWordsUseCount;
+	other.words.MoveTo( words );
+	other.wordToId.MoveTo( wordToId );
 	return *this;
+}
+
+void CWordDictionary::CopyTo( CWordDictionary& other ) const
+{
+	other.totalWordsUseCount = totalWordsUseCount;
+	words.CopyTo( other.words );
+	wordToId.CopyTo( other.wordToId );
 }
 
 void CWordDictionary::AddWord( const CString& word, long long addedCount )

@@ -21,19 +21,23 @@ limitations under the License.
 
 class CPyBytePairEncoder {
 public:
-	CPyBytePairEncoder() = default;
+	CPyBytePairEncoder();
 	
 	void Train( py::dict vocabulary, int tokensCount, bool useEndOfWordToken,
 		bool useStartOfWordToken );
 	py::tuple Encode( const std::string& word ) const;
 	py::list Decode( py::list tokenIds ) const;
 
-	const CBytePairEncoder& Encoder() const { return encoder; }
-	CBytePairEncoder& Encoder() { return encoder; }
+	const CBytePairEncoder& Encoder() const { return *encoder; }
+	CBytePairEncoder& Encoder() { return *encoder; }
 
 private:
-	CBytePairEncoder encoder;
+	std::unique_ptr<CBytePairEncoder> encoder;
 };
+
+CPyBytePairEncoder::CPyBytePairEncoder() :
+	encoder( new CBytePairEncoder() )
+{}
 
 void CPyBytePairEncoder::Train( py::dict vocabulary, int tokensCount,
 	bool useEndOfWordToken, bool useStartOfWordToken )
@@ -45,7 +49,7 @@ void CPyBytePairEncoder::Train( py::dict vocabulary, int tokensCount,
 	}
 	{
 		py::gil_scoped_release release;
-		encoder.Train( vocabularyRaw, tokensCount, useEndOfWordToken, useStartOfWordToken );
+		encoder->Train( vocabularyRaw, tokensCount, useEndOfWordToken, useStartOfWordToken );
 	}
 }
 
@@ -53,7 +57,7 @@ py::tuple CPyBytePairEncoder::Encode( const std::string& word ) const
 {
 	CArray<int> tokenIds;
 	CArray<int> tokenLengths;
-	encoder.Encode( word, tokenIds, tokenLengths );
+	encoder->Encode( word, tokenIds, tokenLengths );
 
 	py::list tokenIdsResult;
 	py::list tokenLengthsResult;
@@ -76,7 +80,7 @@ py::list CPyBytePairEncoder::Decode( py::list _tokenIds ) const
 	}
 
 	CArray<CString> words;
-	encoder.Decode( tokenIds, words );
+	encoder->Decode( tokenIds, words );
 
 	py::list resultWords;
 	for( int i = 0; i < words.Size(); i++ ) {
