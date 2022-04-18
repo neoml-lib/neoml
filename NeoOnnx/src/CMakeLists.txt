@@ -111,19 +111,55 @@ if(DEFINED ENV{Protobuf_ROOT} AND (IOS OR ANDROID))
     list(APPEND CMAKE_FIND_ROOT_PATH $ENV{Protobuf_ROOT})
 endif()
 
-set(Protobuf_USE_STATIC_LIBS ON)
-
-find_package(Protobuf REQUIRED)
-
-if(NOT Protobuf_PROTOC_EXECUTABLE)
-    find_program(Protobuf_PROTOC_EXECUTABLE protoc)
-    if(NOT Protobuf_PROTOC_EXECUTABLE)
-        message(FATAL_ERROR "Protoc compiler wasn't found.")
+if(USE_FINE_OBJECTS)
+    if(NOT WIN32 AND NOT LINUX)
+        message(FATAL_ERROR "NeoOnnx works with FineObj only on Windows or Linux")
     endif()
-endif()
-message(STATUS "Found protoc compiler: ${Protobuf_PROTOC_EXECUTABLE}")
 
-protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS proto/onnx.proto)
+    if(CMAKE_SIZEOF_VOID_P EQUAL 4)
+        set(protobuf_BIN_SUBDIR "x86")
+    else()
+        set(protobuf_BIN_SUBDIR "x64")
+    endif()
+
+    if(${CMAKE_VERSION} VERSION_GREATER "3.16.0")
+        set(CMAKE_UNITY_BUILD OFF)
+    endif()
+
+    set(protobuf_BUILD_TESTS OFF CACHE BOOL "")
+    set(protobuf_MSVC_STATIC_RUNTIME "${STATIC_NEOML}" CACHE BOOL "")
+    set(protobuf_WITH_ZLIB OFF CACHE BOOL "")
+    set(protobuf_BUILD_PROTOC_BINARIES ON CACHE BOOL "")
+    set(protobuf_BUILD_SHARED_LIBS OFF CACHE BOOL "")
+    add_subdirectory("${FINE_ROOT}/ThirdParty/protobuf/cmake"
+        "${CMAKE_BINARY_DIR}/protobuf" EXCLUDE_FROM_ALL)
+    if(LINUX)
+        target_compile_options(libprotobuf PRIVATE -Wno-stringop-overflow)
+        target_compile_options(libprotobuf-lite PRIVATE -Wno-stringop-overflow)
+    endif()
+
+    if(${CMAKE_VERSION} VERSION_GREATER "3.16.0")
+        set(CMAKE_UNITY_BUILD ${NeoML_UNITY_BUILD})
+    endif()
+
+else()
+    set(Protobuf_USE_STATIC_LIBS ON)
+
+    find_package(Protobuf REQUIRED)
+endif()
+
+set(PROTO_DIR ${CMAKE_CURRENT_BINARY_DIR}/cpp_proto/${CMAKE_CFG_INTDIR})
+set(PROTO_SRCS ${PROTO_DIR}/onnx.pb.cc)
+set(PROTO_HDRS ${PROTO_DIR}/onnx.pb.h)
+
+add_custom_command(
+    OUTPUT ${PROTO_HDRS} ${PROTO_SRCS}
+    DEPENDS protobuf::protoc
+    COMMAND protobuf::protoc
+        "--cpp_out=${PROTO_DIR}"
+        "--proto_path=${CMAKE_CURRENT_SOURCE_DIR}/proto"
+        "${CMAKE_CURRENT_SOURCE_DIR}/proto/onnx.proto"
+)
 
 target_sources(${PROJECT_NAME} PRIVATE ${PROTO_HDRS} ${PROTO_SRCS})
 
@@ -136,7 +172,7 @@ if(MSVC)
     set_property(SOURCE ${PROTO_SRCS} APPEND_STRING PROPERTY COMPILE_FLAGS " /wd4251")
     target_compile_options(${PROJECT_NAME} PRIVATE /MD$<$<CONFIG:Debug>:d>)
 elseif(NOT WIN32)
-    set_property(SOURCE ${PROTO_SRCS} APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-pedantic ")
+    set_property(SOURCE ${PROTO_SRCS} APPEND_STRING PROPERTY COMPILE_FLAGS " -Wno-pedantic -Wno-array-bounds ")
     if(USE_FINE_OBJECTS)
         target_compile_options(${PROJECT_NAME} PRIVATE -Wno-nonportable-include-path)
     endif()
@@ -148,6 +184,7 @@ target_include_directories(${PROJECT_NAME}
     PRIVATE
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
         $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/NeoOnnx/src>
+        $<BUILD_INTERFACE:${PROTO_DIR}>
 )
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE BUILD_NEOONNX)
@@ -170,8 +207,8 @@ if(NeoOnnx_BUILD_SHARED AND NOT WIN32)
     endif()
 endif()
 
-if(NOT Protobuf_LIBRARY)
-    message(FATAL_ERROR "Protobuf_LIBRARY not found!")
+if(NOT TARGET protobuf::libprotobuf)
+    message(FATAL_ERROR "Protobuf not found!")
 endif()
 
 # Fix for a known protobuf Windows dll issue https://github.com/protocolbuffers/protobuf/issues/2502
