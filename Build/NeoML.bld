@@ -73,3 +73,9 @@ group;para;RunNeoMLTests
 		runx;%ROOT%\WinFinal.x64\NeoMLTest.exe;--TestDataPath=%ROOT%\WinFinal.x64\ --MathEngine=cuda
 	end_configuration
 end_group
+
+group;para;RunNeoOnnxTests
+	configuration;x64
+		runx;%ROOT%\WinFinal.x64\NeoOnnxTest.exe;--TestDataPath=%ROOT%\WinFinal.x64\
+	end_configuration
+end_group
