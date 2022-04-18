@@ -34,9 +34,9 @@ static void generateRleBlob( int batchCount, int height, int width, float stroke
 		while( i < height * width ) {
 			CRleStroke cur = Sentinel;
 			for( int j = 0; j < width; j++ ) {
-				const int value = random.UniformInt( 0, 1 );
-				resultNative[b * height * width + i + j] = value == 1 ? stroke : nonStroke;
-				if( value == 1 ) {
+				const int value = random.UniformInt( 0, 2 );
+				resultNative[b * height * width + i + j] = value != 0 ? stroke : nonStroke;
+				if( value != 0 ) {
 					if( cur.Start == Sentinel.Start ) {
 						cur.Start = ( short )( j );
 					}
@@ -130,7 +130,7 @@ static void blobRleConvolutionLearnAddImpl( const CTestParams& params, int seed 
 	const int outputHeight = calcConvOutputSize( inputHeight, 0, filterHeight, 1, strideHeight );
 	const int outputWidth = calcConvOutputSize( inputWidth, 0, filterWidth, 1, strideWidth );
 
-	const bool isZeroFreeTerm = random.UniformInt( 0, 1 ) == 1;
+	const bool isZeroFreeTerm = random.UniformInt( 0, 2 ) != 0;
 
 	std::vector<float> inputDataNative;
 	std::vector<float> inputDataRle;
