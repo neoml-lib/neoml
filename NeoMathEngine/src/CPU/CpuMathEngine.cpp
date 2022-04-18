@@ -289,4 +289,13 @@ void CpuMathEngineCleanUp()
 	mkl_free_buffers();
 #endif
 }
+
+void DeinitializeNeoMathEngine()
+{
+	CpuMathEngineCleanUp();
+#ifdef NEOML_USE_MKL
+	mkl_finalize();
+#endif
+}
+
 } // namespace NeoML
