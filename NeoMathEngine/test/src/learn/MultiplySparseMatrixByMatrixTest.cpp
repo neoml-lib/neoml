@@ -1,4 +1,4 @@
-/* Copyright Â© 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,19 +18,21 @@ limitations under the License.
 using namespace NeoML;
 using namespace NeoMLTest;
 
-static void multiplyTransposedMatrixBySparseMatrixAndAddNaive( float* first, int* secondRows, int* secondColumns, float* secondValues, float* result,
-	int firstHeight, int firstWidth, int secondWidth )
+static void multiplySparseMatrixByMatrixNaive( int* firstRows, int* firstColumns, float* firstValues, float* second, float* result,
+	int firstHeight, int secondWidth )
 {
 	for( int row = 0; row < firstHeight; ++row ) {
-		for( int ind = secondRows[row]; ind < secondRows[row + 1]; ++ind ) {
-			for( int col = 0; col < firstWidth; ++col ) {
-				result[col * secondWidth + secondColumns[ind]] += first[row * firstWidth + col] * secondValues[ind];
+		float* res = result + row * secondWidth;
+		for( int ind = firstRows[row]; ind < firstRows[row + 1]; ++ind ) {
+			const float* dense = second + firstColumns[ind] * secondWidth;
+			for( int col = 0; col < secondWidth; ++col ) {
+				res[col] += firstValues[ind] * dense[col];
 			}
 		}
 	}
 }
 
-static void multiplyTransposedMatrixBySparseMatrixAndAddTestImpl( const CTestParams& params, int seed )
+static void multiplySparseMatrixByMatrixTestImpl( const CTestParams& params, int seed )
 {
 	CRandom random( seed );
 
@@ -46,9 +48,10 @@ static void multiplyTransposedMatrixBySparseMatrixAndAddTestImpl( const CTestPar
 	std::vector<int> rows, columns;
 	std::vector<float> values;
 	rows.push_back( 0 );
+
 	for( int i = 0; i < firstHeight; i++ ) {
 		int elementsInRow = 0;
-		for( int j = 0; j < secondWidth; j++ ) {
+		for( int j = 0; j < firstWidth; j++ ) {
 			if( random.UniformInt( 0, 2 ) != 0 ) {
 				float value = static_cast< float >( random.UniformInt( valuesInterval.Begin, valuesInterval.End ) );
 				columns.push_back( j );
@@ -59,28 +62,28 @@ static void multiplyTransposedMatrixBySparseMatrixAndAddTestImpl( const CTestPar
 		rows.push_back( elementsInRow );
 	}
 
-	CREATE_FILL_FLOAT_ARRAY( first, valuesInterval.Begin, valuesInterval.End, firstWidth * firstHeight, random )
+	CREATE_FILL_FLOAT_ARRAY( second, valuesInterval.Begin, valuesInterval.End, firstWidth * secondWidth, random )
 
-	std::vector<float> expected, actual( firstWidth * secondWidth );
-	expected.insert( expected.begin(), firstWidth * secondWidth, 0.f );
+	std::vector<float> expected, actual( firstHeight * secondWidth );
+	expected.insert( expected.begin(), firstHeight * secondWidth, 0.f );
 
-	multiplyTransposedMatrixBySparseMatrixAndAddNaive( first.data(), rows.data(), columns.data(), values.data(), expected.data(),
-		firstHeight, firstWidth, secondWidth );
+	multiplySparseMatrixByMatrixNaive( rows.data(), columns.data(), values.data(), second.data(), expected.data(),
+		firstHeight, secondWidth );
 
-	MathEngine().MultiplyTransposedMatrixBySparseMatrixAndAdd( firstHeight, firstWidth, secondWidth, CARRAY_FLOAT_WRAPPER( first ),
-		GetSparseMatrix( MathEngine(), rows, columns, values ), CARRAY_FLOAT_WRAPPER( actual ) );
+	MathEngine().MultiplySparseMatrixByMatrix( firstHeight, firstWidth, secondWidth, GetSparseMatrix( MathEngine(), rows, columns, values ),
+		CARRAY_FLOAT_WRAPPER( second ), CARRAY_FLOAT_WRAPPER( actual ) );
 
-	for( int i = 0; i < firstWidth * secondWidth; ++i ) {
+	for( int i = 0; i < firstHeight * secondWidth; ++i ) {
 		ASSERT_NEAR( expected[i], actual[i], 1e-3 );
 	}
 }
 
 //------------------------------------------------------------------------------------------------------------
 
-class CMultiplyTransposedMatrixBySparseMatrixAndAddTest : public CTestFixtureWithParams {
+class CMultiplySparseMatrixByMatrixTest : public CTestFixtureWithParams {
 };
 
-INSTANTIATE_TEST_CASE_P( CMultiplyTransposedMatrixBySparseMatrixAndAddTestInstantiation, CMultiplyTransposedMatrixBySparseMatrixAndAddTest,
+INSTANTIATE_TEST_CASE_P( CMultiplySparseMatrixByMatrixTestInstantiation, CMultiplySparseMatrixByMatrixTest,
 	::testing::Values(
 		CTestParams(
 			"FirstHeight = (1..100);"
@@ -92,7 +95,10 @@ INSTANTIATE_TEST_CASE_P( CMultiplyTransposedMatrixBySparseMatrixAndAddTestInstan
 	)
 );
 
-TEST_P( CMultiplyTransposedMatrixBySparseMatrixAndAddTest, Random )
+TEST_P( CMultiplySparseMatrixByMatrixTest, Random )
 {
-	RUN_TEST_IMPL( multiplyTransposedMatrixBySparseMatrixAndAddTestImpl )
+	if( MathEngine().GetType() != MET_Cpu ) {
+		return;
+	}
+	RUN_TEST_IMPL( multiplySparseMatrixByMatrixTestImpl )
 }

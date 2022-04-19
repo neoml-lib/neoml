@@ -1305,7 +1305,7 @@ void CMetalMathEngine::SparseSingularValueDecomposition( const CSparseMatrixDesc
     ASSERT_EXPR( false );
 }
 
-void CMetalMathEngine::MultiplyTransposedMatrixBySparseMatrix( int, int, int, const CConstFloatHandle&, const CSparseMatrixDesc&, const CFloatHandle& )
+void CMetalMathEngine::MultiplyTransposedMatrixBySparseMatrix( int, int, int, const CConstFloatHandle&, const CSparseMatrixDesc&, const CFloatHandle&, bool )
 {
     ASSERT_EXPR( false );
 }

@@ -32,9 +32,9 @@ static void generateRleBlob( int batchCount, int height, int width, float stroke
 		while( i < height * width ) {
 			CRleStroke cur = Sentinel;
 			for( int j = 0; j < width; j++ ) {
-				const int value = random.UniformInt( 0, 1 );
-				resultNative[b * height * width + i + j] = value == 1 ? stroke : nonStroke;
-				if( value == 1 ) {
+				const int value = random.UniformInt( 0, 2 );
+				resultNative[b * height * width + i + j] = value != 0 ? stroke : nonStroke;
+				if( value != 0 ) {
 					if( cur.Start == Sentinel.Start ) {
 						cur.Start = (short)j;
 					}

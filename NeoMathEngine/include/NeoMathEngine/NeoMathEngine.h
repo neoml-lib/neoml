@@ -490,9 +490,10 @@ public:
 	virtual void MultiplySparseMatrixByTransposedMatrix( int firstHeight, int firstWidth, int secondHeight,
 		const CSparseMatrixDesc& firstDesc, const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle ) = 0;
 
-	// result = T(first) * second
-	virtual void MultiplyTransposedMatrixBySparseMatrix( int firstHeight, int firstWidth, int secondWidth,
-		const CConstFloatHandle& firstHandle, const CSparseMatrixDesc& secondDesc, const CFloatHandle& resultHandle ) = 0;
+	// result = T(first) * second, second is transposed if isTransposedSparse
+	virtual void MultiplyTransposedMatrixBySparseMatrix( int firstHeight, int firstWidth, int resultWidth,
+		const CConstFloatHandle& firstHandle, const CSparseMatrixDesc& secondDesc, const CFloatHandle& resultHandle,
+		bool isTransposedSparse ) = 0;
 
 	// result = result + T(first) * second. The result will be of firstWidth * secondWidth size
 	virtual void MultiplyTransposedMatrixBySparseMatrixAndAdd( int firstHeight, int firstWidth, int secondWidth,
