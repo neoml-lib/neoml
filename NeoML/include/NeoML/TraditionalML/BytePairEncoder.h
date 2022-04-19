@@ -74,15 +74,13 @@ public:
 	// Trains encoder.
 	void Train( const CWordDictionary& dictionary, int size,
 		bool useEndOfWordToken = true, bool useStartOfWordToken = false );
-	// Returns tokens dictionary.
-	const CWordDictionary& GetTokens() const { return tokens; }
 
 	// Initializes a trainer that contains all the neccessary data for bpe tokens training
 	// and supports serialization.
 	// Thus, BPE tokens training can be performed asyncronically.
 	void InitializeTrainer( const CWordDictionary& vocabulary, int size,
 		CBpeIterativeTrainer& builder );
-	// Updates tokens with new ones (usually gotten from CBpeIterativeTrainer).
+	// Updates tokens with new ones gotten from CBpeIterativeTrainer.
 	void UpdateTokens( const CWordDictionary& newTokens );
 
 	// Encodes a word.
@@ -115,7 +113,10 @@ public:
 
 private:
 	// BPE tokens.
-	CWordDictionary tokens;
+	CArray<CString> tokens;
+	// Reverse Map: Token -> Token index in tokens array.
+	CMap<CString, int> tokenToId;
+
 	// Special flags usage flags.
 	bool useEndOfWordToken;
 	bool useStartOfWordToken;
@@ -162,6 +163,7 @@ private:
 
 	static const int currentVersion = 0;
 
+	int getTokenIndex( const CString& token ) const;
 	void createTrainData( const CWordDictionary& dictionary,
 		CArray<CArray<CString>>& trainWords, CArray<long long>& trainCounts ) const;
 	void splitWordIntoInitalTokens( const CString& word, 

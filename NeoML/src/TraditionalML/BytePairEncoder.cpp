@@ -328,8 +328,12 @@ void CBytePairEncoder::InitializeTrainer( const CWordDictionary& dictionary,
 
 void CBytePairEncoder::UpdateTokens( const CWordDictionary& newVocabulary )
 {
-	tokens.AddDictionary( newVocabulary );
-	tokens.Finalize( 1 );
+	for( int i = 0; i < newVocabulary.Size(); i++ ) {
+		const CString newToken = newVocabulary.GetWord( i );
+		NeoAssert( !tokenToId.Has( newToken ) );
+		tokenToId.Add( newToken, tokens.Size() );
+		tokens.Add( newToken );
+	}
 }
 
 void CBytePairEncoder::Encode( const CString& word, CArray<int>& tokenIds,
@@ -344,13 +348,15 @@ void CBytePairEncoder::Encode( const CString& word, CArray<int>& tokenIds,
 	splitWordIntoInitalTokens( word, wordTokens, &wordTokenLengths );
 
 	while( true ) {
-		long long bestUseCount = 0;
+		int bestPairIndex = tokens.Size();
 		int bestMergePos = NotFound;
 		for( int i = 0; i < wordTokens.Size() - 1; i++ ) {
 			const CString pair = mergeTokens( wordTokens[i], wordTokens[i + 1] );
-			const long long pairUseCount = tokens.GetWordUseCount( pair );
-			if( pairUseCount > bestUseCount ) {
-				bestUseCount = pairUseCount;
+			const int pairIndex = getTokenIndex( pair );
+			if( pairIndex != NotFound
+				&& pairIndex < bestPairIndex ) 
+			{
+				bestPairIndex = pairIndex;
 				bestMergePos = i;
 			}
 		}
@@ -369,7 +375,7 @@ void CBytePairEncoder::Encode( const CString& word, CArray<int>& tokenIds,
 
 	NeoAssert( wordTokens.Size() == wordTokenLengths.Size() );
 	for( int i = 0; i < wordTokens.Size(); i++ ) {
-		tokenIds.Add( tokens.GetWordId( wordTokens[i] ) );
+		tokenIds.Add( getTokenIndex( wordTokens[i] ) );
 	}
 	tokenLengths.Add( wordTokenLengths );
 
@@ -388,7 +394,7 @@ void CBytePairEncoder::Decode( const CArray<int>& tokenIds,
 		if( tokenIds[i] == NotFound ) {
 			rawWordTokens.Add( UnknownToken );
 		} else {
-			rawWordTokens.Add( tokens.GetWord( tokenIds[i] ) );
+			rawWordTokens.Add( tokens[tokenIds[i]] );
 		}
 	}
 
@@ -423,9 +429,15 @@ void CBytePairEncoder::Decode( const CArray<int>& tokenIds,
 void CBytePairEncoder::Serialize( CArchive& archive )
 {
 	const int version = archive.SerializeVersion( currentVersion );
-	tokens.Serialize( archive );
 	archive.Serialize( useStartOfWordToken );
 	archive.Serialize( useEndOfWordToken );
+	tokens.Serialize( archive );
+	if( archive.IsLoading() ) {
+		tokenToId.Empty();
+		for( int i = 0; i < tokens.Size(); i++ ) {
+			tokenToId.Add( tokens[i], i );
+		}
+	}
 }
 
 // Creates train data for CBpeIterativeTrainer.
@@ -438,6 +450,14 @@ void CBytePairEncoder::createTrainData( const CWordDictionary& dictionary,
 		splitWordIntoInitalTokens( dictionary.GetWord( i ), trainWords[i] );
 		trainCounts[i] = dictionary.GetWordUseCount( i );
 	}
+}
+
+// Returns index of token (-1 if not found).
+int CBytePairEncoder::getTokenIndex( const CString& token ) const
+{
+	int tokenIndex = NotFound;
+	tokenToId.Lookup( token, tokenIndex );
+	return tokenIndex;
 }
 
 // Based on Utf8FirstByteProperties from UtfConverterFO.h.
