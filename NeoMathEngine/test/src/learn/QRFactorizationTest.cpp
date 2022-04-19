@@ -36,12 +36,12 @@ static void qrFactorizationTest( int height, int width, std::vector<float> matri
 					returnR ? &rHandle : nullptr, false, returnQ, returnR );
 			}
 			if( returnQ ) {
-				for( int i = 0; i < q.size(); ++i ) {
+				for( unsigned i = 0; i < q.size(); ++i ) {
 					ASSERT_NEAR( expectedQ[i], q[i], 1e-3 );
 				}
 			}
 			if( returnR ) {
-				for( int i = 0; i < r.size(); ++i ) {
+				for( unsigned i = 0; i < r.size(); ++i ) {
 					ASSERT_NEAR( expectedR[i], r[i], 1e-3 );
 				}
 			}
@@ -57,12 +57,12 @@ static void qrFactorizationTest( int height, int width, std::vector<float> matri
 				MathEngine().QRFactorization( height, width, CARRAY_FLOAT_WRAPPER( r ), &qHandle, nullptr, true, returnQ, returnR );
 			}
 			if( returnQ ) {
-				for( int i = 0; i < q.size(); ++i ) {
+				for( unsigned i = 0; i < q.size(); ++i ) {
 					ASSERT_NEAR( expectedQ[i], q[i], 1e-3 );
 				}
 			}
 			if( returnR ) {
-				for( int i = 0; i < r.size(); ++i ) {
+				for( unsigned i = 0; i < r.size(); ++i ) {
 					ASSERT_NEAR( expectedR[i], r[i], 1e-3 );
 				}
 			}
