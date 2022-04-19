@@ -498,7 +498,7 @@ void CBytePairEncoder::splitWordIntoInitalTokens( const CString& word,
 
 	CString message;
 	for( int curPos = 0; curPos < word.Length(); ) {
-		const int charLength = getUtf8CharLength( word[curPos] );
+		const int charLength = getUtf8CharLength( word[static_cast<unsigned int>( curPos )] );
 		NeoAssert( charLength > 0 );
 		NeoAssert( curPos + charLength <= word.Length() );
 		splittedWord.Add( CString( ( const char* )word + curPos, charLength ) );
