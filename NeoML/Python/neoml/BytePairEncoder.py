@@ -74,5 +74,17 @@ class BytePairEncoder() :
         :rtype: list of str.
         """
         return self.internal.decode(token_ids) 
+    
+    def use_eow(self):
+        """Returns End-Of-Word token usage flag
+        :rtype: bool.
+        """
+        return self.internal.use_eow()
         
+    def use_sow(self):
+        """Returns Start-Of-Word token usage flag
+        :rtype: bool.
+        """
+        return self.internal.use_sow()
+    
 #-------------------------------------------------------------------------------------------------------------

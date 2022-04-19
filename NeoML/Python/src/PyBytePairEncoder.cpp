@@ -31,6 +31,9 @@ public:
 	const CBytePairEncoder& Encoder() const { return *encoder; }
 	CBytePairEncoder& Encoder() { return *encoder; }
 
+	bool UseEoW() const { return encoder->UseEndOfWordToken(); }
+	bool UseSoW() const { return encoder->UseStartOfWordToken(); }
+
 private:
 	std::unique_ptr<CBytePairEncoder> encoder;
 };
@@ -97,6 +100,8 @@ void InitializeBytePairEncoder( py::module& m )
 		.def( "train", &CPyBytePairEncoder::Train, py::return_value_policy::reference )
 		.def( "encode", &CPyBytePairEncoder::Encode, py::return_value_policy::reference )
 		.def( "decode", &CPyBytePairEncoder::Decode, py::return_value_policy::reference )
+		.def( "use_eow", &CPyBytePairEncoder::UseEoW, py::return_value_policy::reference )
+		.def( "use_sow", &CPyBytePairEncoder::UseSoW, py::return_value_policy::reference )
 		.def( py::pickle(
 			[]( const CPyBytePairEncoder& pyBpe ) {
 				CPyMemoryFile file;
