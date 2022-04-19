@@ -161,8 +161,6 @@ private:
 	// Cache for Encode calls.
 	mutable CCache cache;
 
-	static const int currentVersion = 0;
-
 	int getTokenIndex( const CString& token ) const;
 	void createTrainData( const CWordDictionary& dictionary,
 		CArray<CArray<CString>>& trainWords, CArray<long long>& trainCounts ) const;

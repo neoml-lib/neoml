@@ -36,8 +36,8 @@ static inline CString mergeTokens( const CString& first, const CString& second )
 ///////////////////////////////////////////////////////////////////////////////
 
 CBpeIterativeTrainer::CBpeIterativeTrainer() :
-	iterationsCompletedCount( 0 ),
-	totalIterationsCount( 0 )
+	totalIterationsCount( 0 ),
+	iterationsCompletedCount( 0 )
 {
 }
 
@@ -103,6 +103,7 @@ CWordDictionary CBpeIterativeTrainer::RunIterations( int requestedIterationsCoun
 
 void CBpeIterativeTrainer::Serialize( CArchive& archive )
 {
+	archive.SerializeVersion( 0 );
 	archive.Serialize( iterationsCompletedCount );
 	archive.Serialize( totalIterationsCount );
 	trainWords.Serialize( archive );
@@ -428,7 +429,7 @@ void CBytePairEncoder::Decode( const CArray<int>& tokenIds,
 
 void CBytePairEncoder::Serialize( CArchive& archive )
 {
-	const int version = archive.SerializeVersion( currentVersion );
+	archive.SerializeVersion( 0 );
 	archive.Serialize( useStartOfWordToken );
 	archive.Serialize( useEndOfWordToken );
 	tokens.Serialize( archive );
