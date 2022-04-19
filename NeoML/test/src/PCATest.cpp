@@ -61,6 +61,7 @@ static void svdTestExample( int samples, int features, int components,
 		SingularValueDecomposition( matrix.GetDesc(), svdSolver, leftVectors, singularValues, rightVectors,
 			returnLeftVectors, returnRightVectors, components );
 	}
+
 	if( returnLeftVectors ) {
 		for( int row = 0; row < samples; row++ ) {
 			for( int col = 0; col < components; col++ ) {
@@ -72,6 +73,7 @@ static void svdTestExample( int samples, int features, int components,
 	}
 	expectedSingularValues.SetSize( components );
 	checkArraysEqual( expectedSingularValues, singularValues.GetPtr() );
+
 	if( returnRightVectors ) {
 		for( int row = 0; row < components; row++ ) {
 			for( int col = 0; col < features; col++ ) {
@@ -202,30 +204,32 @@ TEST( CPCATest, PCAEllipseTest )
 	CPca::CParams params;
 	params.ComponentsType = CPca::TComponents::PCAC_Int;
 	params.Components = components;
-	params.SvdSolver = SVD_Full;
 
-	for( CString s : { "TrainTransform", "Train + Transform" } ) {
-		CPca pca( params );
-		if( s == "TrainTransform" ) {
-			pca.TrainTransform( matrix.GetDesc() );
-		} else {
-			pca.Train( matrix.GetDesc() );
-			pca.Transform( matrix.GetDesc() );
-		}
-		ASSERT_NEAR( 0, pca.GetNoiseVariance(), 1e-3 );
+	for( TSvd svdSolver : { SVD_Full, SVD_Randomized } ) {
+		params.SvdSolver = svdSolver;
+		for( CString s : { "TrainTransform", "Train + Transform" } ) {
+			CPca pca( params );
+			if( s == "TrainTransform" ) {
+				pca.TrainTransform( matrix.GetDesc() );
+			} else {
+				pca.Train( matrix.GetDesc() );
+				pca.Transform( matrix.GetDesc() );
+			}
+			ASSERT_NEAR( 0, pca.GetNoiseVariance(), 1e-3 );
 
-		CSparseFloatMatrix componentsMatrix = pca.GetComponents();
-		ASSERT_EQ( components, componentsMatrix.GetHeight() );
-		ASSERT_EQ( features, componentsMatrix.GetWidth() );
+			CSparseFloatMatrix componentsMatrix = pca.GetComponents();
+			ASSERT_EQ( components, componentsMatrix.GetHeight() );
+			ASSERT_EQ( features, componentsMatrix.GetWidth() );
 
-		CArray<float> expectedComponent;
-		for( int row = 0; row < 2; row++ ) {
-			CSparseFloatVector actualComponent( componentsMatrix.GetRow( row ) );
-			expectedComponent.Empty();
-			expectedComponent.Add( 0, features );
-			expectedComponent[row] = 1.f;
-			for( int i = 0; i < features; i++ ) {
-				ASSERT_NEAR( expectedComponent[i], abs( actualComponent.GetValue( i ) ), 5e-3 );
+			CArray<float> expectedComponent;
+			for( int row = 0; row < 2; row++ ) {
+				CSparseFloatVector actualComponent( componentsMatrix.GetRow( row ) );
+				expectedComponent.Empty();
+				expectedComponent.Add( 0, features );
+				expectedComponent[row] = 1.f;
+				for( int i = 0; i < features; i++ ) {
+					ASSERT_NEAR( expectedComponent[i], abs( actualComponent.GetValue( i ) ), 5e-3 );
+				}
 			}
 		}
 	}

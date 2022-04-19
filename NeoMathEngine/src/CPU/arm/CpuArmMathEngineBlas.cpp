@@ -494,7 +494,7 @@ void CCpuMathEngine::SparseSingularValueDecomposition( const CSparseMatrixDesc&,
 	ASSERT_EXPR( false );
 }
 
-void CCpuMathEngine::MultiplyTransposedMatrixBySparseMatrix( int, int, int, const CConstFloatHandle&, const CSparseMatrixDesc&, const CFloatHandle& )
+void CCpuMathEngine::MultiplyTransposedMatrixBySparseMatrix( int, int, int, const CConstFloatHandle&, const CSparseMatrixDesc&, const CFloatHandle&, bool )
 {
     ASSERT_EXPR( false );
 }
