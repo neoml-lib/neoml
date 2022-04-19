@@ -19,7 +19,7 @@ using namespace NeoML;
 using namespace NeoMLTest;
 
 static void multiplyTransposedSparseMatrixByMatrixNaive( int* firstRows, int* firstColumns, float* firstValues, float* second, float* result,
-	int firstHeight, int firstWidth, int secondWidth )
+	int firstHeight, int secondWidth )
 {
 	for( int row = 0; row < firstHeight; ++row ) {
 		for( int ind = firstRows[row]; ind < firstRows[row + 1]; ++ind ) {
@@ -67,7 +67,7 @@ static void multiplyTransposedSparseMatrixByMatrixTestImpl( const CTestParams& p
 	expected.insert( expected.begin(), firstWidth * secondWidth, 0.f );
 
 	multiplyTransposedSparseMatrixByMatrixNaive( rows.data(), columns.data(), values.data(), second.data(), expected.data(),
-		firstHeight, firstWidth, secondWidth );
+		firstHeight, secondWidth );
 
 	MathEngine().MultiplyTransposedSparseMatrixByMatrix( firstHeight, firstWidth, secondWidth, GetSparseMatrix( MathEngine(), rows, columns, values ),
 		CARRAY_FLOAT_WRAPPER( second ), CARRAY_FLOAT_WRAPPER( actual ) );

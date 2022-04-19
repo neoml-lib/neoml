@@ -24,14 +24,15 @@ static void multiplyTransposedMatrixBySparseMatrixNaive( float* first, int* seco
 	for( int row = 0; row < firstHeight; ++row ) {
 		for( int ind = secondRows[row]; ind < secondRows[row + 1]; ++ind ) {
 			for( int col = 0; col < firstWidth; ++col ) {
-				result[col * resultWidth + secondColumns[ind]] += first[row * firstWidth + col] * secondValues[ind];
+				result[col * resultWidth + secondColumns[ind]] += first[col] * secondValues[ind];
 			}
 		}
+		first += firstWidth;
 	}
 }
 
 static void multiplyTransposedMatrixByTransposedSparseMatrixNaive( float* first, int* secondRows, int* secondColumns, float* secondValues, float* result,
-	int firstHeight, int firstWidth, int resultWidth )
+	int firstWidth, int resultWidth )
 {
 	for( int row = 0; row < resultWidth; ++row ) {
 		for( int ind = secondRows[row]; ind < secondRows[row + 1]; ++ind ) {
@@ -82,7 +83,7 @@ static void multiplyTransposedMatrixBySparseMatrixTestImpl( const CTestParams& p
 
 	if( isSparseTransposed ) {
 		multiplyTransposedMatrixByTransposedSparseMatrixNaive( first.data(), rows.data(), columns.data(), values.data(), expected.data(),
-			firstHeight, firstWidth, resultWidth );
+			firstWidth, resultWidth );
 
 		MathEngine().MultiplyTransposedMatrixBySparseMatrix( firstHeight, firstWidth, resultWidth, CARRAY_FLOAT_WRAPPER( first ),
 			GetSparseMatrix( MathEngine(), rows, columns, values ), CARRAY_FLOAT_WRAPPER( actual ), true );
