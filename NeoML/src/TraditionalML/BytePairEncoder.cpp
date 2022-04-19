@@ -481,7 +481,7 @@ static constexpr int utf8CharacterLength[256] = {
 };
 
 // Returns the length of character utf8 encoding by the first byte.
-static inline constexpr int getUtf8CharLength( char c )
+static int getUtf8CharLength( char c )
 {
 	const unsigned char byte = ( unsigned char ) c;
 	return utf8CharacterLength[byte];
