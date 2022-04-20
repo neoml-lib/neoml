@@ -38,6 +38,7 @@ limitations under the License.
 #include "Operators/GemmOperator.h"
 #include "Operators/GlobalPoolOperator.h"
 #include "Operators/IdentityOperator.h"
+#include "Operators/InstanceNormalizationOperator.h"
 #include "Operators/LrnOperator.h"
 #include "Operators/LstmOperator.h"
 #include "Operators/MatMulOperator.h"
@@ -127,6 +128,7 @@ REGISTER_OPERATOR( CGlobalAveragePoolOperator, "GlobalAveragePool" )
 REGISTER_OPERATOR( CGlobalMaxPoolOperator, "GlobalMaxPool" )
 REGISTER_OPERATOR( CHardSigmoidOperator, "HardSigmoid" )
 REGISTER_OPERATOR( CIdentityOperator, "Identity" )
+REGISTER_OPERATOR( CInstanceNormalizationOperator, "InstanceNormalization" )
 REGISTER_OPERATOR( CLeakyReluOperator, "LeakyRelu" )
 REGISTER_OPERATOR( CLrnOperator, "LRN" )
 REGISTER_OPERATOR( CLstmOperator, "LSTM" )
