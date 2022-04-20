@@ -77,7 +77,8 @@ void CCudaMathEngine::MultiplySparseMatrixByTransposedMatrix( int firstHeight, i
 }
 
 void CCudaMathEngine::MultiplyTransposedMatrixBySparseMatrix( int firstHeight, int firstWidth, int secondWidth,
-	const CConstFloatHandle& firstHandle, const CSparseMatrixDesc& secondDesc, const CFloatHandle& resultHandle )
+	const CConstFloatHandle& firstHandle, const CSparseMatrixDesc& secondDesc, const CFloatHandle& resultHandle,
+	bool isTransposedSparse )
 {
 	ASSERT_EXPR( false );
 }

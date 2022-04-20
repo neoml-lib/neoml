@@ -170,11 +170,11 @@ COperator::COperator( const onnx::NodeProto& onnxNode, int opsetVersion ) :
 	}
 
 	for( const std::string& inputName : onnxNode.input() ) {
-		inputNames.Add( CString( inputName ) );
+		inputNames.Add( CString( inputName.data() ) );
 	}
 
 	for( const std::string& outputName : onnxNode.output() ) {
-		outputNames.Add( CString( outputName ) );
+		outputNames.Add( CString( outputName.data() ) );
 	}
 }
 
@@ -192,7 +192,7 @@ const CString& COperator::OutputName( int index ) const
 
 COperator* COperator::CreateOperator( const onnx::NodeProto& onnxNode, int opsetVersion )
 {
-	TMapPosition pos = getRegisteredOperators().GetFirstPosition( onnxNode.op_type() );
+	TMapPosition pos = getRegisteredOperators().GetFirstPosition( CString( onnxNode.op_type().data() ) );
 	CheckNeoOnnxSupport( pos != NotFound, CString( "operator " ) + onnxNode.op_type().c_str() );
 	return getRegisteredOperators().GetValue( pos )( onnxNode, opsetVersion );
 }

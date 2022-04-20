@@ -490,9 +490,10 @@ public:
 	virtual void MultiplySparseMatrixByTransposedMatrix( int firstHeight, int firstWidth, int secondHeight,
 		const CSparseMatrixDesc& firstDesc, const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle ) = 0;
 
-	// result = T(first) * second
-	virtual void MultiplyTransposedMatrixBySparseMatrix( int firstHeight, int firstWidth, int secondWidth,
-		const CConstFloatHandle& firstHandle, const CSparseMatrixDesc& secondDesc, const CFloatHandle& resultHandle ) = 0;
+	// result = T(first) * second, second is transposed if isTransposedSparse
+	virtual void MultiplyTransposedMatrixBySparseMatrix( int firstHeight, int firstWidth, int resultWidth,
+		const CConstFloatHandle& firstHandle, const CSparseMatrixDesc& secondDesc, const CFloatHandle& resultHandle,
+		bool isTransposedSparse ) = 0;
 
 	// result = result + T(first) * second. The result will be of firstWidth * secondWidth size
 	virtual void MultiplyTransposedMatrixBySparseMatrixAndAdd( int firstHeight, int firstWidth, int secondWidth,
@@ -1136,6 +1137,11 @@ NEOMATHENGINE_API void CreateDistributedCpuMathEngines( IMathEngine** mathEngine
 // Creates `count` gpu MathEngines connected via distributed communicator object
 // i-th MathEngine placed on gpu with number devs[i]
 NEOMATHENGINE_API void CreateDistributedCudaMathEngines( IMathEngine** mathEngines, int devsCount, const int* cudaDevs );
+
+// Deinitialization function for NeoMathEngine library
+// It's recommended to call this function during the unload of the dynamic library
+// (esp. if you want to load/unload NeoMathEngine multiple times)
+NEOMATHENGINE_API void DeinitializeNeoMathEngine();
 
 } // namespace NeoML
 

@@ -179,7 +179,7 @@ void CVulkanMathEngine::MultiplySparseMatrixByTransposedMatrix( int firstHeight,
 }
 
 void CVulkanMathEngine::MultiplyTransposedMatrixBySparseMatrix( int, int, int,
-	const CConstFloatHandle&, const CSparseMatrixDesc&, const CFloatHandle& )
+	const CConstFloatHandle&, const CSparseMatrixDesc&, const CFloatHandle&, bool )
 {
 	ASSERT_EXPR( false );
 }

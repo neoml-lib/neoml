@@ -12,7 +12,9 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
-#include <string>
+#ifdef NEOML_USE_FINEOBJ
+#include <FineObj.h>
+#endif
 #include <NeoOnnx/NeoOnnx.h>
 #include <NeoMathEngine/NeoMathEngine.h>
 #include <NeoML/Random.h>
@@ -40,15 +42,18 @@ int ConvertOnnx2NeoML( const char* inputOnnxFilename, const char* outputDnnArchi
         std::cout << exc.what() << std::endl;
         return 1;
     }
-};
+}
 static const char* Help = 
 "Usage:\n$ Onnx2NeoML <path to some existing model.onnx> <path to new saved model.dnnarchive>\n"
 "Use this tool to convert your ONNX model "
 "into the archived NeoML::CDnn. To be converted your model "
 "must use only supported NeoOnnx operators.";
 
-
+#ifdef NEOML_USE_FINEOBJ
+int FineMain( int argc, wchar_t* argv[] )
+#else
 int main( int argc, char* argv[] )
+#endif
 {
     if( argc == 1 ) {
         std::cout << Help << std::endl;
@@ -59,7 +64,14 @@ int main( int argc, char* argv[] )
         std::cout << Help << std::endl;
         return 1;
     }
+#ifdef NEOML_USE_FINEOBJ
+    CString inpathStr = CUnicodeString( argv[1] ).CreateString();
+    CString outpathStr = CUnicodeString( argv[2] ).CreateString();
+    const char* inpath = inpathStr.Ptr();
+    const char* outpath = outpathStr.Ptr();
+#else
     const char* inpath = argv[1];
     const char* outpath = argv[2];
+#endif
     return ConvertOnnx2NeoML( inpath, outpath );
 }
