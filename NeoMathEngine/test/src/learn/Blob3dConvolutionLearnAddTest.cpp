@@ -232,7 +232,7 @@ static void blob3dConvolutionLearnAddImpl( const CTestParams& params, int seed )
 		freeTermDiffBlob.CopyTo( freeTermDiff.data() );
 
 		for( size_t i = 0; i < expectedFreeTermDiff.size(); i++ ) {
-			ASSERT_NEAR( expectedFreeTermDiff[i], freeTermDiff[i], 1e-3 );
+			ASSERT_NEAR( expectedFreeTermDiff[i], freeTermDiff[i], 1e-2 );
 		}
 	}
 }
