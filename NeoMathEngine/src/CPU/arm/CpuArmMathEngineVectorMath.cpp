@@ -636,17 +636,9 @@ void CCpuMathEngine::VectorEltwiseDivide(const CConstIntHandle& firstHandle,
 	int* result = GetRaw(resultHandle);
 	int count = GetCount4(vectorSize);
 
-	const int32x4_t zero = vdupq_n_s32(0);
 	for(int i = 0; i < count; ++i) {
-		int32x4_t fi = LoadIntNeon4(first);
-		int32x4_t se = LoadIntNeon4(second);
-		int32x4_t sign = veorq_s32(vcltq_s32(fi, zero), vcltq_s32(se, zero));
-		fi = vabsq_s32(fi);
-		se = vabsq_s32(se);
-		int32x4_t res = vcvtq_s32_f32(vdivq_f32(vcvtq_f32_s32(fi), vcvtq_f32_s32(se)));
-		res = veorq_s32(res, sign);
-		res = vsubq_s32(res, sign);
-		StoreIntNeon4(res, result);
+		float32x4_t res = vdivq_f32(vcvtq_f32_s32(LoadIntNeon4(first)), vcvtq_f32_s32(LoadIntNeon4(second)));
+		StoreIntNeon4(vcvtq_s32_f32(res), result);
 
 		first += 4;
 		second += 4;
@@ -655,7 +647,7 @@ void CCpuMathEngine::VectorEltwiseDivide(const CConstIntHandle& firstHandle,
 
 	if(vectorSize > 0) {
 		// set default to 1 for right to work correctly with FPRecipEstimate
-		float32x4_t res = DivideNeon(vcvtq_f32_s32(LoadIntNeon(first, vectorSize)), vcvtq_f32_s32(LoadIntNeon(second, vectorSize, 1)));
+		float32x4_t res = vdivq_f32(vcvtq_f32_s32(LoadIntNeon(first, vectorSize)), vcvtq_f32_s32(LoadIntNeon(second, vectorSize, 1)));
 		StoreIntNeon(vcvtq_s32_f32(res), result, vectorSize);
 	}
 }
