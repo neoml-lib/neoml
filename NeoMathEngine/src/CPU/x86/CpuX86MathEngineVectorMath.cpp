@@ -1478,34 +1478,6 @@ void CCpuMathEngine::VectorEltwiseNegMultiply(const CConstFloatHandle& firstHand
 	}
 }
 
-void CCpuMathEngine::VectorEltwiseDivide(const CConstIntHandle& firstHandle,
-	const CConstIntHandle& secondHandle, const CIntHandle& resultHandle, int vectorSize)
-{
-	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
-	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
-	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-	CCpuExecutionScope scope;
-
-	const int* first = GetRaw(firstHandle);
-	const int* second = GetRaw(secondHandle);
-	int* result = GetRaw(resultHandle);
-
-	int sseSize;
-	int nonSseSize;
-	checkSse(vectorSize, sseSize, nonSseSize);
-
-	for(int i = 0; i < sseSize; ++i) {
-		_mm_storeu_epi32(result, _mm_div_epi32(_mm_loadu_epi32(first), _mm_loadu_epi32(second)));
-		first += 4;
-		second += 4;
-		result += 4;
-	}
-
-	for(int i = 0; i < nonSseSize; ++i) {
-		*result++ = *first++ / *second++;
-	}
-}
-
 void CCpuMathEngine::VectorEltwiseDivide(const CConstFloatHandle& firstHandle,
 	const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int vectorSize)
 {
