@@ -675,7 +675,6 @@ void CCpuMathEngine::VectorEltwiseDivide(const CConstFloatHandle& firstHandle,
 	}
 
 	if(vectorSize > 0) {
-		// set default to 1 for right to work correctly with FPRecipEstimate
 		float32x4_t res = DivideNeon(LoadNeon(first, vectorSize), LoadNeon(second, vectorSize, 1));
 		StoreNeon(res, result, vectorSize);
 	}
