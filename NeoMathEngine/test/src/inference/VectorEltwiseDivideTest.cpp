@@ -18,6 +18,7 @@ limitations under the License.
 using namespace NeoML;
 using namespace NeoMLTest;
 
+template<class T>
 static void vectorEltwiseDivideImpl( const CTestParams& params, int seed )
 {
 	CRandom random( seed );
@@ -25,15 +26,15 @@ static void vectorEltwiseDivideImpl( const CTestParams& params, int seed )
 	const CInterval vectorValuesInterval = params.GetInterval( "VectorValues" );
 	const int vectorSize = random.UniformInt( vectorSizeInterval.Begin, vectorSizeInterval.End );
 
-	CREATE_FILL_FLOAT_ARRAY( a, vectorValuesInterval.Begin, vectorValuesInterval.End, vectorSize, random )
-	CREATE_FILL_FLOAT_ARRAY( b, 0.01, vectorValuesInterval.End, vectorSize, random )
+	CREATE_FILL_ARRAY( T, a, vectorValuesInterval.Begin, vectorValuesInterval.End, vectorSize, random )
+	CREATE_FILL_ARRAY( T, b, 1, vectorValuesInterval.End, vectorSize, random )
 
-	std::vector<float> result;
+	std::vector<T> result;
 	result.resize( vectorSize );
-	MathEngine().VectorEltwiseDivide( CARRAY_FLOAT_WRAPPER( a ), CARRAY_FLOAT_WRAPPER( b ), CARRAY_FLOAT_WRAPPER( result ), vectorSize );
+	MathEngine().VectorEltwiseDivide( CARRAY_WRAPPER( T, a ), CARRAY_WRAPPER( T, b ), CARRAY_WRAPPER( T, result ), vectorSize );
 
 	for( int i = 0; i < vectorSize; i++ ) {
-		float expected = a[i] / b[i];
+		T expected = a[i] / b[i];
 		ASSERT_NEAR( expected, result[i], 1e-3 );
 	}
 }
@@ -65,5 +66,6 @@ INSTANTIATE_TEST_CASE_P( CMathEngineVectorEltwiseDivideTestInstantiation, CMathE
 
 TEST_P( CMathEngineVectorEltwiseDivideTest, Random )
 {
-	RUN_TEST_IMPL( vectorEltwiseDivideImpl );
+	RUN_TEST_IMPL( vectorEltwiseDivideImpl<float> );
+	RUN_TEST_IMPL( vectorEltwiseDivideImpl<int> );
 }

@@ -1051,8 +1051,9 @@ __global__ void VectorEltwiseNegMultiplyKernel(const float* __restrict__ first,
 }
 
 const int VectorEltwiseDivideCombineCount = 8;
-__global__ void VectorEltwiseDivideKernel(const float* __restrict__ first,
-	const float* __restrict__ second, float* result, int count)
+template<class T>
+__global__ void VectorEltwiseDivideKernel(const T* __restrict__ first,
+	const T* __restrict__ second, T* result, int count)
 {
 	int index;
 	int step;

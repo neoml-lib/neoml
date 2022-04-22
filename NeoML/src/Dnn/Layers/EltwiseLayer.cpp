@@ -356,8 +356,13 @@ void CEltwiseDivLayer::Reshape()
 
 void CEltwiseDivLayer::RunOnce()
 {
-	MathEngine().VectorEltwiseDivide( inputBlobs[0]->GetData(), inputBlobs[1]->GetData(),
-		outputBlobs[0]->GetData(), inputBlobs[0]->GetDataSize() );
+	if( inputBlobs[0]->GetDataType() == CT_Float ) {
+		MathEngine().VectorEltwiseDivide( inputBlobs[0]->GetData(), inputBlobs[1]->GetData(),
+			outputBlobs[0]->GetData(), inputBlobs[0]->GetDataSize() );
+	} else {
+		MathEngine().VectorEltwiseDivide( inputBlobs[0]->GetData<int>(), inputBlobs[1]->GetData<int>(),
+			outputBlobs[0]->GetData<int>(), inputBlobs[0]->GetDataSize() );
+	}
 }
 
 void CEltwiseDivLayer::BackwardOnce()
