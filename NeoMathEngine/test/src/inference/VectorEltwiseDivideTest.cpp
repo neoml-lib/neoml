@@ -41,7 +41,7 @@ static void vectorEltwiseDivideImpl( const CTestParams& params, int seed )
 
 	for( int i = 0; i < vectorSize; i++ ) {
 		T expected = a[i] / b[i];
-		ASSERT_NEAR( expected, result[i], 5e-3 );
+		ASSERT_NEAR( expected, result[i], 5e-3 ) << "\t " << a[i] << " / " << b[i] << "\tat index " << i;
 	}
 }
 
