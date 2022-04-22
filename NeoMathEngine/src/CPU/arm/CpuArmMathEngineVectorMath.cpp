@@ -642,7 +642,7 @@ void CCpuMathEngine::VectorEltwiseDivide(const CConstIntHandle& firstHandle,
 		int32x4_t sign = veorq_s32(vcltq_s32(first), vcltq_s32(second));
 		fi = vabsq_s32(fi);
 		se = vabsq_s32(se);
-		int32x4_t res = vcvtq_s32_f32(DivideNeon(vcvtq_f32_s32(fi), vcvtq_f32_s32(se)));
+		int32x4_t res = vcvtq_s32_f32(vdivq_f32(vcvtq_f32_s32(fi), vcvtq_f32_s32(se)));
 		res = veorq_s32(res, sign);
 		res = vsubq_s32(res, sign);
 		StoreIntNeon4(res, result);
