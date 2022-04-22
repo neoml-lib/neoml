@@ -27,7 +27,13 @@ static void vectorEltwiseDivideImpl( const CTestParams& params, int seed )
 	const int vectorSize = random.UniformInt( vectorSizeInterval.Begin, vectorSizeInterval.End );
 
 	CREATE_FILL_ARRAY( T, a, vectorValuesInterval.Begin, vectorValuesInterval.End, vectorSize, random )
-	CREATE_FILL_ARRAY( T, b, 1, vectorValuesInterval.End, vectorSize, random )
+	CREATE_FILL_ARRAY( T, b, vectorValuesInterval.Begin, vectorValuesInterval.End, vectorSize, random )
+
+	for( T& denominator : b ) {
+		while( denominator == 0 ) {
+			denominator = static_cast<T>( random.Uniform( vectorValuesInterval.Begin, vectorValuesInterval.End ) );
+		}
+	}
 
 	std::vector<T> result;
 	result.resize( vectorSize );
@@ -35,7 +41,7 @@ static void vectorEltwiseDivideImpl( const CTestParams& params, int seed )
 
 	for( int i = 0; i < vectorSize; i++ ) {
 		T expected = a[i] / b[i];
-		ASSERT_NEAR( expected, result[i], 1e-3 );
+		ASSERT_NEAR( expected, result[i], 5e-3 );
 	}
 }
 
@@ -58,7 +64,7 @@ INSTANTIATE_TEST_CASE_P( CMathEngineVectorEltwiseDivideTestInstantiation, CMathE
 		),
 		CTestParams(
 			"VectorSize = (1179648..1179648);"
-			"VectorValues = (-1..1);"
+			"VectorValues = (-10..10);"
 			"TestCount = 10;"
 		)
 	)
