@@ -14,6 +14,7 @@ limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
 #include <TestFixture.h>
+#include <cmath>
 
 using namespace NeoML;
 using namespace NeoMLTest;
@@ -30,7 +31,7 @@ static void vectorEltwiseDivideImpl( const CTestParams& params, int seed )
 	CREATE_FILL_ARRAY( T, b, vectorValuesInterval.Begin, vectorValuesInterval.End, vectorSize, random )
 
 	for( T& denominator : b ) {
-		while( denominator == 0 ) {
+		while( ::fabsf( static_cast<float>( denominator ) ) < 0.01f ) {
 			denominator = static_cast<T>( random.Uniform( vectorValuesInterval.Begin, vectorValuesInterval.End ) );
 		}
 	}
@@ -41,7 +42,7 @@ static void vectorEltwiseDivideImpl( const CTestParams& params, int seed )
 
 	for( int i = 0; i < vectorSize; i++ ) {
 		T expected = a[i] / b[i];
-		ASSERT_NEAR( expected, result[i], 5e-3 ) << "\t " << a[i] << " / " << b[i] << "\tat index " << i;
+		ASSERT_NEAR( expected, result[i], 1e-3 ) << "\t " << a[i] << " / " << b[i] << "\tat index " << i;
 	}
 }
 
@@ -55,17 +56,17 @@ INSTANTIATE_TEST_CASE_P( CMathEngineVectorEltwiseDivideTestInstantiation, CMathE
 		CTestParams(
 			"VectorSize = (1..10000);"
 			"VectorValues = (-50..50);"
-			"TestCount = 100;"
+			"TestCount = 1000;"
 		),
 		CTestParams(
 			"VectorSize = (1..1000);"
 			"VectorValues = (-10..10);"
-			"TestCount = 100;"
+			"TestCount = 1000;"
 		),
 		CTestParams(
 			"VectorSize = (1179648..1179648);"
 			"VectorValues = (-10..10);"
-			"TestCount = 10;"
+			"TestCount = 100;"
 		)
 	)
 );
