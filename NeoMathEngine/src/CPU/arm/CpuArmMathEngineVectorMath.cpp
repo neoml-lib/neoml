@@ -646,7 +646,6 @@ void CCpuMathEngine::VectorEltwiseDivide(const CConstIntHandle& firstHandle,
 	}
 
 	if(vectorSize > 0) {
-		// set default to 1 for right to work correctly with FPRecipEstimate
 		float32x4_t res = vdivq_f32(vcvtq_f32_s32(LoadIntNeon(first, vectorSize)), vcvtq_f32_s32(LoadIntNeon(second, vectorSize, 1)));
 		StoreIntNeon(vcvtq_s32_f32(res), result, vectorSize);
 	}
@@ -675,6 +674,7 @@ void CCpuMathEngine::VectorEltwiseDivide(const CConstFloatHandle& firstHandle,
 	}
 
 	if(vectorSize > 0) {
+		// set default to 1 for right to work correctly with FPRecipEstimate
 		float32x4_t res = DivideNeon(LoadNeon(first, vectorSize), LoadNeon(second, vectorSize, 1));
 		StoreNeon(res, result, vectorSize);
 	}
