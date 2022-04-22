@@ -636,10 +636,11 @@ void CCpuMathEngine::VectorEltwiseDivide(const CConstIntHandle& firstHandle,
 	int* result = GetRaw(resultHandle);
 	int count = GetCount4(vectorSize);
 
+	const int32x4_t zero = vdupq_n_s32(0);
 	for(int i = 0; i < count; ++i) {
 		int32x4_t fi = LoadIntNeon4(first);
 		int32x4_t se = LoadIntNeon4(second);
-		int32x4_t sign = veorq_s32(vcltq_s32(first), vcltq_s32(second));
+		int32x4_t sign = veorq_s32(vcltq_s32(fi, zero), vcltq_s32(se, zero));
 		fi = vabsq_s32(fi);
 		se = vabsq_s32(se);
 		int32x4_t res = vcvtq_s32_f32(vdivq_f32(vcvtq_f32_s32(fi), vcvtq_f32_s32(se)));
