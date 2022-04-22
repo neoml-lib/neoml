@@ -56,17 +56,17 @@ INSTANTIATE_TEST_CASE_P( CMathEngineVectorEltwiseDivideTestInstantiation, CMathE
 		CTestParams(
 			"VectorSize = (1..10000);"
 			"VectorValues = (-50..50);"
-			"TestCount = 1000;"
+			"TestCount = 100;"
 		),
 		CTestParams(
 			"VectorSize = (1..1000);"
 			"VectorValues = (-10..10);"
-			"TestCount = 1000;"
+			"TestCount = 100;"
 		),
 		CTestParams(
 			"VectorSize = (1179648..1179648);"
 			"VectorValues = (-10..10);"
-			"TestCount = 100;"
+			"TestCount = 10;"
 		)
 	)
 );
