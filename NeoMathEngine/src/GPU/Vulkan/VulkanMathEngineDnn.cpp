@@ -46,6 +46,7 @@ namespace NeoML {
 #include <shaders/generated/SpaceToDepthFloat.h>
 #include <shaders/generated/SpaceToDepthInt.h>
 #include <shaders/generated/BertConv.h>
+#include <shaders/generated/LinearInterpolation.h>
 
 
 //------------------------------------------------------------------------------------------------------------
@@ -674,9 +675,27 @@ void CVulkanMathEngine::BertConvBackward( const CConstFloatHandle& /*dataHandle*
 	ASSERT_EXPR( false );
 }
 
-void CVulkanMathEngine::LinearInterpolation( const CConstFloatHandle&, const CFloatHandle&, int, int, int, int )
+void CVulkanMathEngine::LinearInterpolation( const CConstFloatHandle& dataHandle, const CFloatHandle& resultHandle,
+	int objectCount, int scaledAxis, int objectSize, int scale )
 {
-	ASSERT_EXPR( false );
+	ASSERT_EXPR( dataHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+	size_t sizes[2] = {
+		static_cast<size_t>( objectCount ) * scaledAxis * objectSize * sizeof( float ),
+		static_cast<size_t>( objectCount ) * scaledAxis * scale * objectSize * sizeof( float )
+	};
+
+	CMemoryHandle buffs[2] = { dataHandle, resultHandle };
+	PARAM_STRUCT( LinearInterpolation ) param = {
+		objectCount,
+		scaledAxis,
+		objectSize,
+		scale
+	};
+
+	runVectorShader( shaderLoader->GET_SHADER_DATA( LinearInterpolation, true, 0, 0, 2 ), &param,
+		sizeof( param ), 0, 0, 0, 0, buffs, sizes, 2, static_cast<int>( sizes[1] ) );
 }
 
 } // namespace NeoML

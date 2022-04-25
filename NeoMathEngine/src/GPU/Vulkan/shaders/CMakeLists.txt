@@ -145,6 +145,7 @@ set(SHADER_SOURCES
     SpaceToDepthInt.comp
     Lrn.comp
     BertConv.comp
+    LinearInterpolation.comp
 )
 
 set(IB_SHADER_SOURCES
