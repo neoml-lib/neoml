@@ -29,9 +29,6 @@ static void testLinearInterpolation( std::vector<float>& input, const std::vecto
 		objectCount, scaledAxis, objectSize, scale );
 
 	for( size_t i = 0; i < expected.size(); ++i ) {
-		if( ::fabsf( actual[i] - expected[i] ) >= 1e-3f ) {
-			ASSERT_TRUE( false );
-		}
 		ASSERT_NEAR( actual[i], expected[i], 1e-3f );
 	}
 }
