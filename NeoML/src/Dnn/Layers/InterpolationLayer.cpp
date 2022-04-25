@@ -137,7 +137,7 @@ void CInterpolationLayer::BackwardOnce()
 			const int scaledAxis = inputDiffBlobs[0]->DimSize( i );
 			if( scales[i] > 1 ) {
 				--nontrivialDims;
-				MathEngine().LinearInterpolation( currOutputDiff, currInputDiff,
+				MathEngine().LinearInterpolationBackward( currOutputDiff, currInputDiff,
 					outputDiffBlobs[0]->GetDataSize() / ( scales[i] * scaledAxis * objectSize ), scaledAxis, objectSize, scales[i] );
 				currOutputDiff = currInputDiff;
 				currInputDiff = nontrivialDims % 2 == 0 ? buffer.GetHandle() : inputDiffBlobs[0]->GetData();
