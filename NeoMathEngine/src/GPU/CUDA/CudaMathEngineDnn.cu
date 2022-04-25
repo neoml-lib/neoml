@@ -739,9 +739,18 @@ void CCudaMathEngine::BertConvBackward( const CConstFloatHandle& dataHandle, con
 	}
 }
 
-void CCudaMathEngine::LinearInterpolation( const CConstFloatHandle&, const CFloatHandle&, int, int, int, int )
+void CCudaMathEngine::LinearInterpolation( const CConstFloatHandle& dataHandle, const CFloatHandle& resultHandle,
+	int objectCount, int scaledAxis, int objectSize, int scale )
 {
-	ASSERT_EXPR( false );
+	ASSERT_EXPR( dataHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+	const int taskCount = objectCount * scaledAxis * scale * objectSize;
+	int blockCount;
+	int threadCount;
+	getCudaTaskGrid( blockCount, threadCount, taskCount );
+	LinearInterpolationKernel<<<blockCount, threadCount>>>( GetRaw( dataHandle ), GetRaw( resultHandle ),
+		objectCount, scaledAxis, objectSize, scale );
 }
 
 } // namespace NeoML
