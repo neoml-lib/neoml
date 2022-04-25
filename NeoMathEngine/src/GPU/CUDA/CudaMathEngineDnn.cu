@@ -739,6 +739,11 @@ void CCudaMathEngine::BertConvBackward( const CConstFloatHandle& dataHandle, con
 	}
 }
 
+void CCudaMathEngine::LinearInterpolation( const CConstFloatHandle&, const CFloatHandle&, int, int, int, int )
+{
+	ASSERT_EXPR( false );
+}
+
 } // namespace NeoML
 
 #endif // NEOML_USE_CUDA
