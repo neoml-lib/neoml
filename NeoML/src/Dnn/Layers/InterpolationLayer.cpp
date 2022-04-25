@@ -102,7 +102,6 @@ void CInterpolationLayer::RunOnce()
 			objectSize /= scaledAxis;
 			if( scales[i] > 1 ) {
 				--nontrivialDims;
-				NeoPresume( nontrivialDims >= 0 );
 				MathEngine().LinearInterpolation( currInput, currOutput, objectCount, scaledAxis, objectSize, scales[i] );
 				currInput = currOutput;
 				currOutput = nontrivialDims % 2 == 0 ? buffer.GetHandle() : outputBlobs[0]->GetData();
@@ -114,8 +113,38 @@ void CInterpolationLayer::RunOnce()
 
 void CInterpolationLayer::BackwardOnce()
 {
-	// TODO: add Good Old BackwardOnce
-	NeoAssert( false );
+	int nontrivialDims = nontrivialInterpolationDims( scales );
+	if( nontrivialDims == 0 ) {
+		inputDiffBlobs[0]->CopyFrom( outputDiffBlobs[0].Ptr() );
+	} else if( nontrivialDims == 1 ) {
+		int objectCount = 1;
+		for( int i = 0; i < scales.Size(); ++i ) {
+			if( scales[i] > 1 ) {
+				const int scaledAxis = inputDiffBlobs[0]->DimSize( i );
+				const int objectSize = inputDiffBlobs[0]->GetDataSize() / ( objectCount / scaledAxis );
+				MathEngine().LinearInterpolationBackward( outputDiffBlobs[0]->GetData(), inputDiffBlobs[0]->GetData(),
+					objectCount, scaledAxis, objectSize, scales[i] );
+				break;
+			}
+			objectCount *= inputDiffBlobs[0]->DimSize( i );
+		}
+	} else {
+		CFloatHandleStackVar buffer( MathEngine(), outputDiffBlobs[0]->GetDataSize() );
+		CConstFloatHandle currOutputDiff = outputDiffBlobs[0]->GetData();
+		CFloatHandle currInputDiff = nontrivialDims % 2 == 0 ? buffer.GetHandle() : inputDiffBlobs[0]->GetData();
+		int objectSize = 1;
+		for( int i = scales.Size() - 1; i >= 0; ++i ) {
+			const int scaledAxis = inputDiffBlobs[0]->DimSize( i );
+			if( scales[i] > 1 ) {
+				--nontrivialDims;
+				MathEngine().LinearInterpolation( currOutputDiff, currInputDiff,
+					outputDiffBlobs[0]->GetDataSize() / ( scales[i] * scaledAxis * objectSize ), scaledAxis, objectSize, scales[i] );
+				currOutputDiff = currInputDiff;
+				currInputDiff = nontrivialDims % 2 == 0 ? buffer.GetHandle() : inputDiffBlobs[0]->GetData();
+			}
+			objectSize *= inputDiffBlobs[0]->DimSize( i );
+		}
+	}
 }
 
 } // namespace NeoML
