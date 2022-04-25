@@ -133,7 +133,7 @@ void CInterpolationLayer::BackwardOnce()
 		CConstFloatHandle currOutputDiff = outputDiffBlobs[0]->GetData();
 		CFloatHandle currInputDiff = nontrivialDims % 2 == 0 ? buffer.GetHandle() : inputDiffBlobs[0]->GetData();
 		int objectSize = 1;
-		for( int i = scales.Size() - 1; i >= 0; ++i ) {
+		for( int i = scales.Size() - 1; i >= 0; --i ) {
 			const int scaledAxis = inputDiffBlobs[0]->DimSize( i );
 			if( scales[i] > 1 ) {
 				--nontrivialDims;
