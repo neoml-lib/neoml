@@ -788,7 +788,7 @@ __global__ void LinearInterpolationKernel( const float* data, float* result,
 	const int b = taskIndex / scaledAxis;
 	data += elem + objectSize * ( x + scaledAxis * b );
 
-	if( x == scaledAxis -1 || inScale == 0 ) {
+	if( x == scaledAxis - 1 || inScale == 0 ) {
 		*result = *data;
 	} else {
 		*result = static_cast<float>( scale - inScale ) / scale * data[0]
