@@ -43,10 +43,10 @@ CUpsampleOperator::CUpsampleOperator( const onnx::NodeProto& upsample, int opset
 
 	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
 	GetAttribute( "mode", mode );
-	CheckNeoOnnxSupport( mode == "nearest" || mode == "linear", "Upsample with non-nearest and non-linear mode", *this);
+	CheckNeoOnnxSupport( mode == "nearest", "Upsample with non-nearest mode", *this );
 }
 
-void CUpsampleOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs) const
+void CUpsampleOperator::AddLayers( const CTensorArray& inputs, CDnn& /* dnn */, CTensorArray& outputs) const
 {
 	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
 	CFastArray<int, 8> scales;
@@ -57,22 +57,7 @@ void CUpsampleOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTenso
 	for( int i = 0; i < outputShape.Size(); ++i ) {
 		outputShape[i] *= scales[i];
 	}
-
-	if( mode == "nearest" ) {
-		outputs.Add( BroadcastTensor( *inputs[0], CBroadcast( BT_Upsample ), outputShape ) );
-	} else {
-		IMathEngine& mathEngine = dnn.GetMathEngine();
-		CPtr<const CUserTensor> input = AsUserTensor( *inputs[0], Name() + "_Source", dnn );
-
-		CPtr<CInterpolationLayer> interpolation = new CInterpolationLayer( mathEngine );
-		interpolation->SetName( Name() );
-		for( int i = 0; i < scales.Size(); ++i ) {
-			interpolation->SetScale( input->Layout()[i], scales[i] );
-		}
-		interpolation->Connect( 0, *input->Layer(), input->OutputIndex() );
-		dnn.AddLayer( *interpolation );
-		outputs.Add( new CUserTensor( outputShape, input->Layout(), CLayerOutput( interpolation.Ptr(), 0 ) ) );
-	}
+	outputs.Add( BroadcastTensor( *inputs[0], CBroadcast( BT_Upsample ), outputShape ) );
 }
 
 // Gets scales
