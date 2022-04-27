@@ -196,6 +196,7 @@ enum TShader {
 	SH_SpaceToDepthFloat,
 	SH_Lrn,
 	SH_BertConv,
+	SH_LinearInterpolation,
 
 	SH_Count
 };

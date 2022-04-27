@@ -770,4 +770,30 @@ __global__ void BertConvBackwardKernelKernel( const float* data, const float* ou
 	kernelDiff[kernelOffset] = res;
 }
 
+__global__ void LinearInterpolationKernel( const float* data, float* result,
+	int objectCount, int scaledAxis, int objectSize, int scale )
+{
+	const int taskCount = objectCount * scaledAxis * scale * objectSize;
+	int taskIndex;
+	if( !GetCudaTaskIndex( taskCount, taskIndex ) ) {
+		return;
+	}
+
+	result += taskIndex;
+	const int elem = taskIndex % objectSize;
+	taskIndex /= objectSize;
+	const int inScale = taskIndex % scale;
+	taskIndex /= scale;
+	const int x = taskIndex % scaledAxis;
+	const int b = taskIndex / scaledAxis;
+	data += elem + objectSize * ( x + scaledAxis * b );
+
+	if( x == scaledAxis - 1 || inScale == 0 ) {
+		*result = *data;
+	} else {
+		*result = static_cast<float>( scale - inScale ) / scale * data[0]
+			+ static_cast<float>( inScale ) / scale * data[objectSize];
+	}
+}
+
 } // namespace NeoML
