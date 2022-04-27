@@ -979,6 +979,8 @@ public:
 	// result is a 3D tensor of size objectCount x (scale * scaledAxis) x objectSize
 	virtual void LinearInterpolation( const CConstFloatHandle& dataHandle, const CFloatHandle& resultHandle,
 		int objectCount, int scaledAxis, int objectSize, int scale ) = 0;
+	virtual void LinearInterpolationBackward( const CConstFloatHandle& outputDiffHandle, const CFloatHandle& inputDiffHandle,
+		int objectCount, int scaledAxis, int objectSize, int scale ) = 0;
 };
 
 //------------------------------------------------------------------------------------------------------------

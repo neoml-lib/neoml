@@ -753,6 +753,20 @@ void CCudaMathEngine::LinearInterpolation( const CConstFloatHandle& dataHandle, 
 		objectCount, scaledAxis, objectSize, scale );
 }
 
+void CCudaMathEngine::LinearInterpolationBackward( const CConstFloatHandle& outputDiffHandle,
+	const CFloatHandle& inputDiffHandle, int objectCount, int scaledAxis, int objectSize, int scale )
+{
+	ASSERT_EXPR( outputDiffHandle.GetMathEngine() == this );
+	ASSERT_EXPR( inputDiffHandle.GetMathEngine() == this );
+
+	const int inputDiffSize = objectCount * scaledAxis * objectSize;
+	int blockCount;
+	int threadCount;
+	getCudaTaskGrid( blockCount, threadCount, inputDiffSize );
+	LinearInterpolationBackwardKernel<<<blockCount, threadCount>>>( GetRaw( outputDiffHandle ),
+		GetRaw( inputDiffHandle ), objectCount, scaledAxis, objectSize, scale );
+}
+
 } // namespace NeoML
 
 #endif // NEOML_USE_CUDA
