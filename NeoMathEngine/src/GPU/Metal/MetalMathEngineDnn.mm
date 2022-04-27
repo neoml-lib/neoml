@@ -679,7 +679,7 @@ void CMetalMathEngine::LinearInterpolation( const CConstFloatHandle& dataHandle,
 
 void CMetalMathEngine::LinearInterpolationBackward( const CConstFloatHandle&, const CFloatHandle&, int, int, int, int )
 {
-	ASSERT_EXPR( false );
+    ASSERT_EXPR( false );
 }
 
 } // namespace NeoML
