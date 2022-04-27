@@ -27,9 +27,6 @@ public:
 protected:
 	// CLayerOperator methods
 	void AddLayers( const CTensorArray& input, CDnn& dnn, CTensorArray& outputs ) const override;
-
-private:
-	void getScales( const CTensorArray& inputs, CFastArray<int, 8>& scales ) const;
 };
 
 } // namespace NeoOnnx
