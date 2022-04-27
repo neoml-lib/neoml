@@ -967,6 +967,18 @@ public:
 	virtual void BertConvBackward( const CConstFloatHandle& dataHandle, const CConstFloatHandle& kernelHandle,
 		const CConstFloatHandle& outDiffHandle, int seqLen, int batchSize, int numHeads, int headSize, int kernelSize,
 		const CFloatHandle& dataDiffHandle, const CFloatHandle& kernelDiffHandle ) = 0;
+
+	// Interpolation
+
+	// Linear interpolation which increases size of scaledAxis by a multiple of scale and
+	// fills new elements with linear approximation based on its neighbours
+	// The last (scale - 1) elements are filled with the last value
+	// e.g. [1., 2., 4., 8.] (Scale 2) -> [1., 1.5, 2., 3., 4., 6., 8., 8.]
+	//
+	// data is a 3D tensor of size objectCount x scaledAxis x objectSize
+	// result is a 3D tensor of size objectCount x (scale * scaledAxis) x objectSize
+	virtual void LinearInterpolation( const CConstFloatHandle& dataHandle, const CFloatHandle& resultHandle,
+		int objectCount, int scaledAxis, int objectSize, int scale ) = 0;
 };
 
 //------------------------------------------------------------------------------------------------------------
