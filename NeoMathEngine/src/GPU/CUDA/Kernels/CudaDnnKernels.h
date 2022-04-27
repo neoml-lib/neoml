@@ -796,4 +796,37 @@ __global__ void LinearInterpolationKernel( const float* data, float* result,
 	}
 }
 
+__global__ void LinearInterpolationBackwardKernel( const float* outputDiff, float* inputDiff,
+	int objectCount, int scaledAxis, int objectSize, int scale )
+{
+	const int inputDiffSize = objectCount * scaledAxis * objectSize;
+	int taskIndex;
+	if( !GetCudaTaskIndex( inputDiffSize, taskIndex ) ) {
+		return;
+	}
+
+	inputDiff += taskIndex;
+	const int elem = taskIndex % objectSize;
+	taskIndex /= objectSize;
+	const int x = taskIndex % scaledAxis;
+	const int b = taskIndex / scaledAxis;
+
+	outputDiff += ( b * scaledAxis + x ) * scale * objectSize + elem;
+
+	float result = 0;
+	if( x > 0 ) {
+		for( int i = scale - 1; i > 0; --i ) {
+			result += *( outputDiff - i * objectSize ) * ( scale - i ) / scale;
+		}
+	}
+
+	result += *outputDiff;
+	
+	for( int i = 1; i < scale; ++i ) {
+		const float mult = x == scaledAxis - 1 ? 1.f : static_cast<float>( scale - i ) / scale;
+		result += outputDiff[i * objectSize] * mult;
+	}
+	*inputDiff = result;
+}
+
 } // namespace NeoML

@@ -62,6 +62,7 @@ set(NeoML_SOURCES
     Dnn/Layers/ImageAndPixelConversionLayer.cpp
     Dnn/Layers/ImageResizeLayer.cpp
     Dnn/Layers/IndRnnLayer.cpp
+    Dnn/Layers/InterpolationLayer.cpp
     Dnn/Layers/IrnnLayer.cpp
     Dnn/Layers/L1LossLayer.cpp
     Dnn/Layers/LrnLayer.cpp
@@ -246,6 +247,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/Dnn/Layers/ImageAndPixelConversionLayer.h
     ../include/NeoML/Dnn/Layers/ImageResizeLayer.h
     ../include/NeoML/Dnn/Layers/IndRnnLayer.h
+    ../include/NeoML/Dnn/Layers/InterpolationLayer.h
     ../include/NeoML/Dnn/Layers/IrnnLayer.h
     ../include/NeoML/Dnn/Layers/LossLayer.h
     ../include/NeoML/Dnn/Layers/LrnLayer.h
