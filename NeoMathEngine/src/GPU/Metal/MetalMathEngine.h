@@ -558,6 +558,8 @@ public:
 		const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink ) override;
 	void LinearInterpolation( const CConstFloatHandle& dataHandle, const CFloatHandle& resultHandle,
 		int objectCount, int scaledAxis, int objectSize, int scale ) override;
+	void LinearInterpolationBackward( const CConstFloatHandle& outputDiffHandle, const CFloatHandle& inputDiffHandle,
+		int objectCount, int scaledAxis, int objectSize, int scale ) override;
 
 	IPerformanceCounters* CreatePerformanceCounters() const override { 	return new CPerformanceCountersDefault(); }
 	void AllReduce( const CFloatHandle& /*handle*/, int /*size*/ ) override {};
