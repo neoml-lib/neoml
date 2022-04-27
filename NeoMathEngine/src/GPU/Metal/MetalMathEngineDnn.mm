@@ -661,6 +661,22 @@ void CMetalMathEngine::BertConvBackward( const CConstFloatHandle& /*dataHandle*/
     ASSERT_EXPR( false );
 }
 
+void CMetalMathEngine::LinearInterpolation( const CConstFloatHandle& dataHandle, const CFloatHandle& resultHandle,
+    int objectCount, int scaledAxis, int objectSize, int scale )
+{
+    ASSERT_EXPR( dataHandle.GetMathEngine() == this );
+    ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+    C1DKernel kernel( *queue, "vectorLinearInterpolation", 1, objectCount * scaledAxis * objectSize * scale );
+    kernel.SetParam( dataHandle, 0 );
+    kernel.SetParam( objectCount, 1 );
+    kernel.SetParam( scaledAxis, 2 );
+    kernel.SetParam( objectSize, 3 );
+    kernel.SetParam( scale, 4 );
+    kernel.SetParam( resultHandle, 5 );
+    ASSERT_EXPR( kernel.Run() );
+}
+
 } // namespace NeoML
 
 #endif // NEOML_USE_METAL
