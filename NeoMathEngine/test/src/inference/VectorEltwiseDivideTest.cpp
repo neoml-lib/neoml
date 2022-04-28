@@ -14,10 +14,12 @@ limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
 #include <TestFixture.h>
+#include <cmath>
 
 using namespace NeoML;
 using namespace NeoMLTest;
 
+template<class T>
 static void vectorEltwiseDivideImpl( const CTestParams& params, int seed )
 {
 	CRandom random( seed );
@@ -25,16 +27,22 @@ static void vectorEltwiseDivideImpl( const CTestParams& params, int seed )
 	const CInterval vectorValuesInterval = params.GetInterval( "VectorValues" );
 	const int vectorSize = random.UniformInt( vectorSizeInterval.Begin, vectorSizeInterval.End );
 
-	CREATE_FILL_FLOAT_ARRAY( a, vectorValuesInterval.Begin, vectorValuesInterval.End, vectorSize, random )
-	CREATE_FILL_FLOAT_ARRAY( b, 0.01, vectorValuesInterval.End, vectorSize, random )
+	CREATE_FILL_ARRAY( T, a, vectorValuesInterval.Begin, vectorValuesInterval.End, vectorSize, random )
+	CREATE_FILL_ARRAY( T, b, vectorValuesInterval.Begin, vectorValuesInterval.End, vectorSize, random )
 
-	std::vector<float> result;
+	for( T& denominator : b ) {
+		while( ::fabsf( static_cast<float>( denominator ) ) < 0.01f ) {
+			denominator = static_cast<T>( random.Uniform( vectorValuesInterval.Begin, vectorValuesInterval.End ) );
+		}
+	}
+
+	std::vector<T> result;
 	result.resize( vectorSize );
-	MathEngine().VectorEltwiseDivide( CARRAY_FLOAT_WRAPPER( a ), CARRAY_FLOAT_WRAPPER( b ), CARRAY_FLOAT_WRAPPER( result ), vectorSize );
+	MathEngine().VectorEltwiseDivide( CARRAY_WRAPPER( T, a ), CARRAY_WRAPPER( T, b ), CARRAY_WRAPPER( T, result ), vectorSize );
 
 	for( int i = 0; i < vectorSize; i++ ) {
-		float expected = a[i] / b[i];
-		ASSERT_NEAR( expected, result[i], 1e-3 );
+		T expected = a[i] / b[i];
+		ASSERT_NEAR( expected, result[i], 1e-3 ) << "\t " << a[i] << " / " << b[i] << "\tat index " << i;
 	}
 }
 
@@ -57,7 +65,7 @@ INSTANTIATE_TEST_CASE_P( CMathEngineVectorEltwiseDivideTestInstantiation, CMathE
 		),
 		CTestParams(
 			"VectorSize = (1179648..1179648);"
-			"VectorValues = (-1..1);"
+			"VectorValues = (-10..10);"
 			"TestCount = 10;"
 		)
 	)
@@ -65,5 +73,6 @@ INSTANTIATE_TEST_CASE_P( CMathEngineVectorEltwiseDivideTestInstantiation, CMathE
 
 TEST_P( CMathEngineVectorEltwiseDivideTest, Random )
 {
-	RUN_TEST_IMPL( vectorEltwiseDivideImpl );
+	RUN_TEST_IMPL( vectorEltwiseDivideImpl<float> );
+	RUN_TEST_IMPL( vectorEltwiseDivideImpl<int> );
 }

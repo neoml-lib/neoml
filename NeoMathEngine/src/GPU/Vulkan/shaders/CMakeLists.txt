@@ -37,7 +37,8 @@ set(SHADER_SOURCES
     VectorExp.comp 
     VectorLog.comp 
     VectorBernulliKLDerivative.comp  
-    VectorEltwiseDivide.comp
+    VectorEltwiseDivideInt.comp
+    VectorEltwiseDivideFloat.comp
     SetVectorToMatrixRows.comp
     BlobConvolution3x3s1d1.comp 
     MultiplyMatrixByDiagMatrix.comp

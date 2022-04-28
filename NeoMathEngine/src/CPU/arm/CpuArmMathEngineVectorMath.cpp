@@ -623,6 +623,34 @@ void CCpuMathEngine::VectorEltwiseNegMultiply(const CConstFloatHandle& firstHand
 	}
 }
 
+void CCpuMathEngine::VectorEltwiseDivide(const CConstIntHandle& firstHandle,
+	const CConstIntHandle& secondHandle, const CIntHandle& resultHandle, int vectorSize)
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
+	CCpuExecutionScope scope;
+
+	const int* first = GetRaw(firstHandle);
+	const int* second = GetRaw(secondHandle);
+	int* result = GetRaw(resultHandle);
+	int count = GetCount4(vectorSize);
+
+	for(int i = 0; i < count; ++i) {
+		float32x4_t res = vdivq_f32(vcvtq_f32_s32(LoadIntNeon4(first)), vcvtq_f32_s32(LoadIntNeon4(second)));
+		StoreIntNeon4(vcvtq_s32_f32(res), result);
+
+		first += 4;
+		second += 4;
+		result += 4;
+	}
+
+	if(vectorSize > 0) {
+		float32x4_t res = vdivq_f32(vcvtq_f32_s32(LoadIntNeon(first, vectorSize)), vcvtq_f32_s32(LoadIntNeon(second, vectorSize, 1)));
+		StoreIntNeon(vcvtq_s32_f32(res), result, vectorSize);
+	}
+}
+
 void CCpuMathEngine::VectorEltwiseDivide(const CConstFloatHandle& firstHandle,
 	const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int vectorSize)
 {

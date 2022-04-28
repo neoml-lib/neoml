@@ -375,10 +375,20 @@ PARAM_STRUCT(VectorMultiplyFloat)
 
 /////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////
-// VectorEltwiseDivide
-DEFINE_SHADER_1D(VectorEltwiseDivide)
+// VectorEltwiseDivideInt
+DEFINE_SHADER_1D(VectorEltwiseDivideInt)
 
-PARAM_STRUCT(VectorEltwiseDivide)
+PARAM_STRUCT(VectorEltwiseDivideInt)
+{
+	int dummy;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorEltwiseDivideFloat
+DEFINE_SHADER_1D(VectorEltwiseDivideFloat)
+
+PARAM_STRUCT(VectorEltwiseDivideFloat)
 {
 	int dummy;
 };
