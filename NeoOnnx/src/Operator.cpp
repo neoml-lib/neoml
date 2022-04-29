@@ -56,6 +56,7 @@ limitations under the License.
 #include "Operators/TransposeOperator.h"
 #include "Operators/UnsqueezeOperator.h"
 #include "Operators/UpsampleOperator.h"
+#include "Operators/WhereOperator.h"
 
 namespace NeoOnnx {
 
@@ -159,6 +160,7 @@ REGISTER_OPERATOR( CTanhOperator, "Tanh" )
 REGISTER_OPERATOR( CTransposeOperator, "Transpose" )
 REGISTER_OPERATOR( CUnsqueezeOperator, "Unsqueeze" )
 REGISTER_OPERATOR( CUpsampleOperator, "Upsample" )
+REGISTER_OPERATOR( CWhereOperator, "Where" )
 
 } // anonymous namespace
 
