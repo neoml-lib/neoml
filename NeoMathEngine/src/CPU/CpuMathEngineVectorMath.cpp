@@ -751,4 +751,20 @@ void CCpuMathEngine::VectorEltwiseLess( float first, const CConstFloatHandle& se
 	}
 }
 
+void CCpuMathEngine::VectorEltwiseDivide(const CConstIntHandle& firstHandle,
+	const CConstIntHandle& secondHandle, const CIntHandle& resultHandle, int vectorSize)
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
+	CCpuExecutionScope scope;
+
+	const int* first = GetRaw(firstHandle);
+	const int* second = GetRaw(secondHandle);
+	int* result = GetRaw(resultHandle);
+	for(int i = 0; i < vectorSize; ++i) {
+		*result++ = ( *first++ ) / ( *second++ );
+	}
+}
+
 } // namespace NeoML
