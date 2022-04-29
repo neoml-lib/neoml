@@ -15,7 +15,7 @@ limitations under the License.
 
 #pragma once
 
-#include "../LayerOperator.h"
+#include "../Operator.h"
 
 namespace NeoOnnx {
 
