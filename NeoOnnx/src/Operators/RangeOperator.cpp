@@ -52,7 +52,7 @@ static CPtr<const CDataTensor> generateRange( const CObjectArray<const CDnnBlob>
 	const T start = inputBlobs[ROI_Start]->GetData<T>().GetValue();
 	const T limit = inputBlobs[ROI_Limit]->GetData<T>().GetValue();
 	const T delta = inputBlobs[ROI_Delta]->GetData<T>().GetValue();
-	const int numberOfElements = static_cast<int>( max( T( ceil( limit - start / delta ) ), T( 0 ) ) );
+	const int numberOfElements = static_cast<int>( max( T( ceil( ( limit - start ) / delta ) ), T( 0 ) ) );
 
 	if( numberOfElements == 0 ) {
 		// ONNX doesn't clarify what to do in this case
