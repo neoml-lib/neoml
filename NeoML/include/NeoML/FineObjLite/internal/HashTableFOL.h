@@ -649,7 +649,7 @@ inline void CHashTable<VALUE, HASHINFO, ALLOCATOR>::Serialize( CArchive& ar )
 		DeleteAll();
 		int count;
 		ar >> count;
-		init( UpperPrimeNumber( count - 1 ) ); // чтобы не было перехэширования при заполнении
+		init( UpperPrimeNumber( count - 1 ) );
 		for( int i = 0; i < count; i++ ) {
 			VALUE value;
 			ar >> value;

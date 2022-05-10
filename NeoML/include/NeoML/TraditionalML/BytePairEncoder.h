@@ -16,100 +16,36 @@ limitations under the License.
 #pragma once
 
 #include <NeoML/NeoMLDefs.h>
+#include <NeoML/TraditionalML/SubwordEncoder.h>
 #include <NeoML/TraditionalML/WordDictionary.h>
 
 namespace NeoML {
 
-// Class that calculates byte-pair-encoding tokens.
-class NEOML_API CBpeIterativeTrainer {
+// Class that encodes a UTF-8 word using byte-pair-encoding.
+class NEOML_API CBytePairEncoder : public IBytePairEncoder {
 public:
-	CBpeIterativeTrainer();
-	CBpeIterativeTrainer( const CBpeIterativeTrainer& other ) = delete;
-	CBpeIterativeTrainer& operator=( const CBpeIterativeTrainer& other ) = delete;
+	explicit CBytePairEncoder( const CWordDictionary& tokens, bool useEndOfWordToken = true,
+		bool useStartOfWordToken = false );
 
-	void Initialize( const CArray<CArray<CString>>& trainSplittedWords, 
-		const CArray<long long>& trainWordCounts, int totalIterationsCount );
+	// ISubwordEncoder:
+	virtual void Decode( const CArray<int>& tokenIds, CArray<CString>& words ) const override;
+	virtual int Size() const override { return tokens.Size(); }
+	virtual void Serialize( CArchive& archive ) override;
 
-	// Performs the calculation of new BPE tokens.
-	CWordDictionary RunIterations( int iterationCount );
-	CWordDictionary RunTotalIterations();
+	// IBytePairEncoder:
+	virtual bool UseEndOfWordToken() const override { return useEndOfWordToken; }
+	virtual bool UseStartOfWordToken() const override { return useStartOfWordToken; }
 
-	// Returns the number of iterations completed (== number of calculated token).
-	int IterationsCompletedCount() const { return iterationsCompletedCount; }
-	// Returns the total number of iterations.
-	int TotalIterationsCount() const { return totalIterationsCount; }
-	// Returns true if no more iterations can be performed.
-	bool IsCompleted() const;
+	// Splits a word into initial tokens: single unicode characters + special tokens (optional).
+	static void SplitWordIntoInitialTokens( const CString& word, bool useStartOfWordToken,
+		bool useEndOfWordToken, CArray<CString>& initialTokens, CArray<int>* initialTokensLength = nullptr );
+	// Concatenates tokens.
+	static CString MergeTokens( const CString& first, const CString& second );
 
-	// Serialization to archive.
-	void Serialize( CArchive& archive );
-
-private:
-	// The total number of iterations.
-	// The size of the dictionary returned from RunTotalIterations cannot exceed this value.
-	int totalIterationsCount;
-	// The number of completed iterations.
-	int iterationsCompletedCount;
-
-	// The dictionary of pairs of neighbour tokens.
-	CWordDictionary pairDictionary;
-
-	CArray<CArray<CString>> trainWords;
-	CArray<long long> trainCounts;
-
-	// Map: pair of neighbour tokens -> set of ids of words containing this pair of tokens.
-	typedef CMap<CString, CHashTable<int>> CPairReverseIndex;
-	CPairReverseIndex reverseIndex;
-
-	int calcIterationsCount( int requestedIterationsCount ) const;
-	void buildPairDictionary( CWordDictionary& newTokens );
-	bool runSingleIteration( CWordDictionary& newTokens );
-};
-
-// Class that encodes a word using byte-pair-encoding.
-class NEOML_API CBytePairEncoder {
-public:
-	CBytePairEncoder();
-
-	// Trains encoder.
-	void Train( const CWordDictionary& dictionary, int size,
-		bool useEndOfWordToken = true, bool useStartOfWordToken = false );
-
-	// Initializes a trainer that contains all the neccessary data for bpe tokens training
-	// and supports serialization.
-	// Thus, BPE tokens training can be performed asyncronically.
-	void InitializeTrainer( const CWordDictionary& vocabulary, int size,
-		CBpeIterativeTrainer& builder );
-	// Updates tokens with new ones gotten from CBpeIterativeTrainer.
-	void UpdateTokens( const CWordDictionary& newTokens );
-
-	// Encodes a word.
-	// Input word should be encoded in UTF-8.
-	// TokenId range = [-1, 0, ... , Size() - 1] where -1 is reserved for unknown characters.
-	// Some special tokens (like End-Of-Word) have zero unicode length.
-	void Encode( const CString& word, CArray<int>& tokenIds, 
-		CArray<int>& unicodeTokenLengths ) const;
-	// Decodes sequence of token ids into sequnce of words.
-	// tokenId == -1 (unknown) is decoded as <UNK>.
-	void Decode( const CArray<int>& tokenIds, CArray<CString>& words ) const;
-	// Returns the number of tokens.
-	int Size() const { return tokens.Size(); }
-	
-	// Serialization to archive.
-	void Serialize( CArchive& archive );
-
-	// Sets the cache cleanup period.
-	// The cache is used for Encode calls acceleration.
-	// The result of the encode call is cached and will be erased if 
-	// no call with the same word will occur among next 1-2 X cachePeriod calls.
-	// Increase in cachePeriod leads to a in increase in memory consumption.
-	// To completely switch the cache off set cachePeriod equal to -1.
-	// Value 0 is treated as invalid.
-	void SetCachePeriod( int cachePeriod ) const { cache.SetCachePeriod( cachePeriod ); }
-
-	// Returns encoder flags.
-	bool UseEndOfWordToken() const { return useEndOfWordToken; }
-	bool UseStartOfWordToken() const { return useStartOfWordToken; }
+protected:
+	// ISubwordEncoderWithCache:
+	virtual void doEncode( const CString& word, CArray<int>& tokenIds,
+		CArray<int>& tokenLengths ) const override;
 
 private:
 	// BPE tokens.
@@ -121,51 +57,7 @@ private:
 	bool useEndOfWordToken;
 	bool useStartOfWordToken;
 
-	// Internal cache for frequent encoding requests.
-	class CCache {
-	public:
-		CCache();
-		// Sets the cache cleanup period
-		void SetCachePeriod( int newPeriod );
-		// Requests data from cache.
-		bool Request( const CString& word, CArray<int>& tokenIds,
-			CArray<int>& tokenLengths );
-		// Adds data to cache.
-		void Add( const CString& word, const CArray<int>& tokenIds,
-			const CArray<int>& tokenLengths );
-
-	private:
-		// Data stored in cache: token ids and their uniode lengths and the lattest request time.
-		struct CEncodedWord {
-			CFastArray<int, 4> TokenIds;
-			CFastArray<int, 4> TokenLengths;
-			long long Time;
-
-			CEncodedWord() : Time( 0 ) {}
-			CEncodedWord( const CEncodedWord& other ) :
-				Time( other.Time )
-			{
-				other.TokenIds.CopyTo( TokenIds );
-				other.TokenLengths.CopyTo( TokenLengths );
-			}
-		};
-
-		// Current cache state.
-		CMap<CString, CEncodedWord> wordCache;
-		// Current cache time.
-		long long cacheTime;
-		// Cache cleanup period.
-		int cachePeriod;
-	};
-
-	// Cache for Encode calls.
-	mutable CCache cache;
-
 	int getTokenIndex( const CString& token ) const;
-	void createTrainData( const CWordDictionary& dictionary,
-		CArray<CArray<CString>>& trainWords, CArray<long long>& trainCounts ) const;
-	void splitWordIntoInitalTokens( const CString& word, 
-		CArray<CString>& splittedWord, CArray<int>* initialLengths = nullptr ) const;
 	void removeSpecialTokens( CString& token, bool& hasEoW, bool& hasSoW ) const;
 	bool removeEoWToken( CString& token ) const;
 	bool removeSoWToken( CString& token ) const;

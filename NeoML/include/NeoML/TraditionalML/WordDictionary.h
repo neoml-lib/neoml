@@ -66,6 +66,8 @@ public:
 
 	// Returns number of words in the dictionary.
 	int Size() const { return words.Size(); }
+	// Checks whether dictionary is empty or not.
+	bool IsEmpty() const { return Size() == 0; }
 	// Decreases size of the dictionary if maxSize is less then the current size.
 	void RestrictSize( int maxSize );
 	// Removes all the words from the dictionary.

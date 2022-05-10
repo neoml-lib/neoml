@@ -27,360 +27,84 @@ static const CString EndOfWordToken( "\\\xFF" );
 
 static const CString UnknownToken( "<UNK>" );
 
-// Concatenates tokens.
-static inline CString mergeTokens( const CString& first, const CString& second )
+// Based on Utf8FirstByteProperties from UtfConverterFO.h.
+static constexpr int utf8CharacterLength[256] = {
+	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 00-0F
+	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 10-1F
+	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 20-2F
+	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 30-3F
+	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 40-4F
+	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 50-5F
+	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 60-6F
+	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 70-7F
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 80-8F
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 90-9F
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // A0-AF
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // B0-BF
+	0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, // C0-CF
+	2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, // D0-DF
+	3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, // E0-EF
+	4, 4, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // F0-FF
+};
+
+// Returns the length of character utf8 encoding by the first byte.
+static int getUtf8CharLength( char c )
+{
+	const unsigned char byte = ( unsigned char ) c;
+	return utf8CharacterLength[byte];
+}
+
+void CBytePairEncoder::SplitWordIntoInitialTokens( const CString& word, bool useStartOfWordToken,
+	bool useEndOfWordToken, CArray<CString>& initialTokens, CArray<int>* initialTokensLength )
+{
+	NeoAssert( word.IsEmpty() );
+	if( useStartOfWordToken ) {
+		initialTokens.Add( StartOfWordToken );
+	}
+
+	CString message;
+	for( int curPos = 0; curPos < word.Length(); ) {
+		const int charLength = getUtf8CharLength( word[static_cast< unsigned int >( curPos )] );
+		NeoAssert( charLength > 0 );
+		NeoAssert( curPos + charLength <= word.Length() );
+		initialTokens.Add( CString( ( const char* )word + curPos, charLength ) );
+		curPos += charLength;
+	}
+
+	if( useEndOfWordToken ) {
+		initialTokens.Add( EndOfWordToken );
+	}
+
+	if( initialTokensLength != nullptr ) {
+		NeoAssert( initialTokensLength->IsEmpty() );
+		initialTokensLength->Add( 1, initialTokens.Size() );
+		if( useStartOfWordToken ) {
+			initialTokensLength->First() = 0;
+		}
+		if( useEndOfWordToken ) {
+			initialTokensLength->Last() = 0;
+		}
+	}
+}
+
+CString CBytePairEncoder::MergeTokens( const CString& first, const CString& second )
 {
 	return first + second;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-CBpeIterativeTrainer::CBpeIterativeTrainer() :
-	totalIterationsCount( 0 ),
-	iterationsCompletedCount( 0 )
+CBytePairEncoder::CBytePairEncoder( const CWordDictionary& tokens_, bool useEndOfWordToken,
+	bool useStartOfWordToken ) :
+	useEndOfWordToken( useEndOfWordToken ),
+	useStartOfWordToken( useStartOfWordToken )
 {
-}
-
-void CBpeIterativeTrainer::Initialize( const CArray<CArray<CString>>& trainSplittedWords,
-	const CArray<long long>& trainWordCounts, int _totalIterationsCount )
-{
-	NeoAssert( _totalIterationsCount > 0 );
-	NeoAssert( trainSplittedWords.Size() == trainWordCounts.Size() );
-
-	totalIterationsCount = _totalIterationsCount;
-	iterationsCompletedCount = 0;
-
-	trainWordCounts.CopyTo( trainCounts );
-	trainWords.SetSize( trainSplittedWords.Size() );
-	for( int i = 0; i < trainSplittedWords.Size(); i++ ) {
-		trainSplittedWords[i].CopyTo( trainWords[i] );
-	}
-}
-
-bool CBpeIterativeTrainer::IsCompleted() const
-{
-	// No more pairs of neighbour tokens can be added.
-	const bool isNoMergeAvailable = iterationsCompletedCount > 0
-		&& pairDictionary.Size() == 0;
-	// No more iterations can be completed.
-	const bool isTotalRunCountAchieved = iterationsCompletedCount >= totalIterationsCount;
-
-	return isNoMergeAvailable
-		|| isTotalRunCountAchieved;
-}
-
-CWordDictionary CBpeIterativeTrainer::RunTotalIterations()
-{
-	return RunIterations( totalIterationsCount );
-}
-
-CWordDictionary CBpeIterativeTrainer::RunIterations( int requestedIterationsCount )
-{
-	assert( requestedIterationsCount > 0 );
-	CWordDictionary newTokens;
-
-	if( iterationsCompletedCount == 0 ) {
-		buildPairDictionary( newTokens );
-		if( iterationsCompletedCount > requestedIterationsCount ) {
-			// If the number of distinct chars in the word dictionary exceeds requestedIterationCount,
-			// no extra tokens should be introduced.
-			newTokens.RestrictSize( requestedIterationsCount );
-			return newTokens;
-		}
-	}
-
-	const int iterationsCount = calcIterationsCount( requestedIterationsCount );
-
-	for( int i = 0; i < iterationsCount; i++ ) {
-		if( !runSingleIteration( newTokens ) ) {
-			break;
-		}
-		iterationsCompletedCount++;
-	}
-
-	return newTokens;
-}
-
-void CBpeIterativeTrainer::Serialize( CArchive& archive )
-{
-	archive.SerializeVersion( 0 );
-	archive.Serialize( iterationsCompletedCount );
-	archive.Serialize( totalIterationsCount );
-	trainWords.Serialize( archive );
-	trainCounts.Serialize( archive );
-	pairDictionary.Serialize( archive );
-	archive.Serialize( reverseIndex );
-}
-
-// Calculates the number of iterations for the current Run.
-// Returned value cannot exceed requestedIterationsCount.
-int CBpeIterativeTrainer::calcIterationsCount( int requestedIterationsCount ) const
-{
-	NeoAssert( requestedIterationsCount > 0 );
-	if( IsCompleted() ) {
-		return 0;
-	}
-	const int remainingIterationsCount = totalIterationsCount - iterationsCompletedCount;
-	NeoAssert( remainingIterationsCount > 0 );
-	return min( requestedIterationsCount, remainingIterationsCount );
-}
-
-// Adds token for each char in dictionary and builds dictionary of token pairs (~ neighbour char pairs).
-void CBpeIterativeTrainer::buildPairDictionary( CWordDictionary& newTokens )
-{
-	for( int i = 0; i < trainWords.Size(); i++ ) {
-		const CArray<CString>& tokens = trainWords[i];
-		NeoAssert( !tokens.IsEmpty() );
-		
-		const long long count = trainCounts[i];
-		NeoAssert( count > 0 );
-
-		for( int j = 0; j < tokens.Size() - 1; j++ ) {
-			const CString pair = mergeTokens( tokens[j], tokens[j + 1] );
-			pairDictionary.AddWord( pair, count );
-
-			reverseIndex.GetOrCreateValue( pair ).Add( i );
-			newTokens.AddWord( tokens[j], count );
-		}
-		newTokens.AddWord( tokens.Last(), count );
-	}
-
-	pairDictionary.Finalize( 1 );
-	iterationsCompletedCount = newTokens.Size();
-}
-
-// Performs one iteration of the algorithm.
-// Adds the most frequent pair of neighbour tokens to newPairTokens.
-// If no pair of neighbour tokens can be created returns false.
-bool CBpeIterativeTrainer::runSingleIteration( CWordDictionary& newPairTokens )
-{
-	if( pairDictionary.Size() == 0 ) {
-		return false;
-	}
-
-	// Selection of the most frequent pair of tokens.
-	const CString bestPair = pairDictionary.GetWord( 0 );
-	newPairTokens.AddWord( bestPair, pairDictionary.GetWordUseCount( 0 ) );
-
-	// Request for all words containing bestPair. 
-	const CHashTable<int>& wordIdsToChange = reverseIndex.Get( bestPair );
-
-	for( THashTablePosition pos = wordIdsToChange.GetFirstPosition(); pos != NotFound;
-		pos = wordIdsToChange.GetNextPosition( pos ) ) 
-	{
-		const int id = wordIdsToChange.GetValue( pos );
-		const CArray<CString>& oldTokens = trainWords[id];
-		const long long count = trainCounts[id];
-
-		// Finding positions in the word where bestPair is located. 
-		CArray<int> indexesToMerge;
-		bool wasPreviousPairMerged = false;
-		for( int j = 0; j < oldTokens.Size() - 1; j++ ) {
-			const CString pair = mergeTokens( oldTokens[j], oldTokens[j + 1] );
-			// Decreasing count for current pair.
-			pairDictionary.AddWord( pair, -count );
-			if( pair == bestPair ) {
-				if( !wasPreviousPairMerged ) {
-					// Careful handling of overlapping bestPairs.
-					indexesToMerge.Add( j );
-					wasPreviousPairMerged = true;
-					continue;
-				}
-			} else {
-				int wordIndexToDeletePosition = reverseIndex[pair].GetPosition( id );
-				if( wordIndexToDeletePosition != NotFound ) {
-					reverseIndex[pair].DeleteAt( wordIndexToDeletePosition );
-				}
-			}
-			wasPreviousPairMerged = false;
-		}
-
-		NeoAssert( !indexesToMerge.IsEmpty() );
-
-		CArray<CString> newTokens;
-		int indexesToMergeIndex = 0;
-		for( int j = 0; j < oldTokens.Size(); j++ ) {
-			if( indexesToMergeIndex >= indexesToMerge.Size() ||
-				j != indexesToMerge[indexesToMergeIndex] )
-			{
-				newTokens.Add( oldTokens[j] );
-			} else {
-				newTokens.Add( mergeTokens( oldTokens[j], oldTokens[j + 1] ) );
-				indexesToMergeIndex++;
-				j++;
-			}
-
-			if( newTokens.Size() > 1 ) {
-				// Updating counts for pairs in new word.
-				const CString pair = mergeTokens( newTokens[newTokens.Size() - 2], newTokens.Last() );
-				reverseIndex.GetOrCreateValue( pair ).Add( id );
-				pairDictionary.AddWord( pair, count );
-			}
-		}
-
-		newTokens.MoveTo( trainWords[id] );
-	}
-
-	reverseIndex.Delete( bestPair );
-	NeoAssert( pairDictionary.GetWordUseCount( bestPair ) == 0 );
-	// Some pairs may have extincted.
-	pairDictionary.Finalize( 1 );
-
-	return true;
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-CBytePairEncoder::CCache::CCache()
-{
-	SetCachePeriod( 1000000 );
-}
-
-void CBytePairEncoder::CCache::SetCachePeriod( int newPeriod )
-{
-	NeoAssert( newPeriod == NotFound || newPeriod > 0 );
-	cachePeriod = newPeriod;
-}
-
-bool CBytePairEncoder::CCache::Request( const CString& word, 
-	CArray<int>& tokenIds, CArray<int>& tokenLengths )
-{
-	if( cachePeriod == NotFound ) {
-		return false;
-	}
-
-	cacheTime++;
-	bool success = false;
-	if( wordCache.Has( word ) ) {
-		CEncodedWord& ids = wordCache.Get( word );
-		for( int i = 0; i < ids.TokenIds.Size(); i++ ) {
-			tokenIds.Add( ids.TokenIds[i] );
-			tokenLengths.Add( ids.TokenLengths[i] );
-		}
-		ids.Time = cacheTime;
-		success = true;
-	}
-
-	// Removes items from cache.
-	// The item is erased if there has not been a request with the same word since the previous cleanup. 
-	if( cacheTime % cachePeriod == 0 ) {
-		CArray<CString> wordsToDelete;
-		for( TMapPosition pos = wordCache.GetFirstPosition(); pos != NotFound;
-			pos = wordCache.GetNextPosition( pos ) )
-		{
-			const CEncodedWord& encodedWord = wordCache.GetValue( pos );
-			if( cacheTime - encodedWord.Time >= cachePeriod ) {
-				wordsToDelete.Add( wordCache.GetKey( pos ) );
-			}
-		}
-
-		for( int i = 0; i < wordsToDelete.Size(); i++ ) {
-			wordCache.Delete( wordsToDelete[i] );
-		}
-	}
-
-	return success;
-}
-
-void CBytePairEncoder::CCache::Add( const CString& word, 
-	const CArray<int>& tokenIds, const CArray<int>& tokenLengths )
-{
-	NeoAssert( !wordCache.Has( word ) );
-	NeoAssert( tokenIds.Size() == tokenLengths.Size() );
-	CEncodedWord encodedeWord;
-	encodedeWord.Time = cacheTime;
-	for( int i = 0; i < tokenIds.Size(); i++ ) {
-		encodedeWord.TokenIds.Add( tokenIds[i] );
-		encodedeWord.TokenLengths.Add( tokenLengths[i] );
-	}
-	wordCache.Add( word, encodedeWord );
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-CBytePairEncoder::CBytePairEncoder() :
-	useEndOfWordToken( true ),
-	useStartOfWordToken( false )
-{}
-
-void CBytePairEncoder::Train( const CWordDictionary& vocabulary, int size,
-	bool _useEndOfWordToken, bool _useStartOfWordToken )
-{
-	useEndOfWordToken = _useEndOfWordToken;
-	useStartOfWordToken = _useStartOfWordToken;
-
-	CBpeIterativeTrainer builder;
-	InitializeTrainer( vocabulary, size, builder );
-
-	UpdateTokens( builder.RunTotalIterations() );
-}
-
-void CBytePairEncoder::InitializeTrainer( const CWordDictionary& dictionary,
-	int tokensCount, CBpeIterativeTrainer& builder )
-{
-	NeoAssert( tokensCount > 0 );
-
-	CArray<CArray<CString>> trainWords;
-	CArray<long long> trainCounts;
-	createTrainData( dictionary, trainWords, trainCounts );
-
-	builder.Initialize( trainWords, trainCounts, tokensCount );
-}
-
-void CBytePairEncoder::UpdateTokens( const CWordDictionary& newVocabulary )
-{
-	for( int i = 0; i < newVocabulary.Size(); i++ ) {
-		const CString newToken = newVocabulary.GetWord( i );
+	for( int i = 0; i < tokens_.Size(); i++ ) {
+		const CString newToken = tokens_.GetWord( i );
 		NeoAssert( !tokenToId.Has( newToken ) );
 		tokenToId.Add( newToken, tokens.Size() );
 		tokens.Add( newToken );
 	}
-}
-
-void CBytePairEncoder::Encode( const CString& word, CArray<int>& tokenIds,
-	CArray<int>& tokenLengths ) const
-{
-	if( cache.Request( word, tokenIds, tokenLengths ) ) {
-		return;
-	}
-
-	CArray<CString> wordTokens;
-	CArray<int> wordTokenLengths;
-	splitWordIntoInitalTokens( word, wordTokens, &wordTokenLengths );
-
-	while( true ) {
-		int bestPairIndex = tokens.Size();
-		int bestMergePos = NotFound;
-		for( int i = 0; i < wordTokens.Size() - 1; i++ ) {
-			const CString pair = mergeTokens( wordTokens[i], wordTokens[i + 1] );
-			const int pairIndex = getTokenIndex( pair );
-			if( pairIndex != NotFound
-				&& pairIndex < bestPairIndex ) 
-			{
-				bestPairIndex = pairIndex;
-				bestMergePos = i;
-			}
-		}
-
-		if( bestMergePos == NotFound ) {
-			break;
-		}
-
-		wordTokens[bestMergePos] = mergeTokens( wordTokens[bestMergePos],
-			wordTokens[bestMergePos + 1] );
-		wordTokenLengths[bestMergePos] += wordTokenLengths[bestMergePos + 1];
-		
-		wordTokens.DeleteAt( bestMergePos + 1 );
-		wordTokenLengths.DeleteAt( bestMergePos + 1 );
-	}
-
-	NeoAssert( wordTokens.Size() == wordTokenLengths.Size() );
-	for( int i = 0; i < wordTokens.Size(); i++ ) {
-		tokenIds.Add( getTokenIndex( wordTokens[i] ) );
-	}
-	tokenLengths.Add( wordTokenLengths );
-
-	cache.Add( word, tokenIds, wordTokenLengths );
 }
 
 void CBytePairEncoder::Decode( const CArray<int>& tokenIds,
@@ -441,16 +165,45 @@ void CBytePairEncoder::Serialize( CArchive& archive )
 	}
 }
 
-// Creates train data for CBpeIterativeTrainer.
-void CBytePairEncoder::createTrainData( const CWordDictionary& dictionary,
-	CArray<CArray<CString>>& trainWords, CArray<long long>& trainCounts ) const
+void CBytePairEncoder::doEncode( const CString& word, CArray<int>& tokenIds,
+	CArray<int>& tokenLengths ) const
 {
-	trainWords.SetSize( dictionary.Size() );
-	trainCounts.SetSize( dictionary.Size() );
-	for( int i = 0; i < dictionary.Size(); i++ ) {
-		splitWordIntoInitalTokens( dictionary.GetWord( i ), trainWords[i] );
-		trainCounts[i] = dictionary.GetWordUseCount( i );
+	CArray<CString> wordTokens;
+	CArray<int> wordTokenLengths;
+	SplitWordIntoInitialTokens( word, useStartOfWordToken, useEndOfWordToken,
+		wordTokens, &wordTokenLengths );
+
+	while( true ) {
+		int bestPairIndex = tokens.Size();
+		int bestMergePos = NotFound;
+		for( int i = 0; i < wordTokens.Size() - 1; i++ ) {
+			const CString pair = MergeTokens( wordTokens[i], wordTokens[i + 1] );
+			const int pairIndex = getTokenIndex( pair );
+			if( pairIndex != NotFound
+				&& pairIndex < bestPairIndex )
+			{
+				bestPairIndex = pairIndex;
+				bestMergePos = i;
+			}
+		}
+
+		if( bestMergePos == NotFound ) {
+			break;
+		}
+
+		wordTokens[bestMergePos] = MergeTokens( wordTokens[bestMergePos],
+			wordTokens[bestMergePos + 1] );
+		wordTokenLengths[bestMergePos] += wordTokenLengths[bestMergePos + 1];
+
+		wordTokens.DeleteAt( bestMergePos + 1 );
+		wordTokenLengths.DeleteAt( bestMergePos + 1 );
 	}
+
+	NeoAssert( wordTokens.Size() == wordTokenLengths.Size() );
+	for( int i = 0; i < wordTokens.Size(); i++ ) {
+		tokenIds.Add( getTokenIndex( wordTokens[i] ) );
+	}
+	tokenLengths.Add( wordTokenLengths );
 }
 
 // Returns index of token (-1 if not found).
@@ -459,67 +212,6 @@ int CBytePairEncoder::getTokenIndex( const CString& token ) const
 	int tokenIndex = NotFound;
 	tokenToId.Lookup( token, tokenIndex );
 	return tokenIndex;
-}
-
-// Based on Utf8FirstByteProperties from UtfConverterFO.h.
-static constexpr int utf8CharacterLength[256] = {
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 00-0F
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 10-1F
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 20-2F
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 30-3F
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 40-4F
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 50-5F
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 60-6F
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 70-7F
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 80-8F
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 90-9F
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // A0-AF
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // B0-BF
-	0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, // C0-CF
-	2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, // D0-DF
-	3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, // E0-EF
-	4, 4, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // F0-FF
-};
-
-// Returns the length of character utf8 encoding by the first byte.
-static int getUtf8CharLength( char c )
-{
-	const unsigned char byte = ( unsigned char ) c;
-	return utf8CharacterLength[byte];
-}
-
-// Splits a word into initial tokens: single unicode characters + special tokens (optional).
-void CBytePairEncoder::splitWordIntoInitalTokens( const CString& word,
-	CArray<CString>& splittedWord, CArray<int>* initialLengths ) const
-{
-	NeoAssert( splittedWord.IsEmpty() );
-	if( useStartOfWordToken ) {
-		splittedWord.Add( StartOfWordToken );
-	}
-
-	CString message;
-	for( int curPos = 0; curPos < word.Length(); ) {
-		const int charLength = getUtf8CharLength( word[static_cast<unsigned int>( curPos )] );
-		NeoAssert( charLength > 0 );
-		NeoAssert( curPos + charLength <= word.Length() );
-		splittedWord.Add( CString( ( const char* )word + curPos, charLength ) );
-		curPos += charLength;
-	}
-	
-	if( useEndOfWordToken ) {
-		splittedWord.Add( EndOfWordToken );
-	}
-
-	if( initialLengths != nullptr ) {
-		NeoAssert( initialLengths->IsEmpty() );
-		initialLengths->Add( 1, splittedWord.Size() );
-		if( useStartOfWordToken ) {
-			initialLengths->First() = 0;
-		}
-		if( useEndOfWordToken ) {
-			initialLengths->Last() = 0;
-		}
-	}
 }
 
 // Removes special subtokens form token.
