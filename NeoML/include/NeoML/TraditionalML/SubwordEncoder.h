@@ -25,15 +25,15 @@ public:
 	~ISubwordEncoder() override = default;
 
 	// Encodes a word as a sequence of token ids with corresponding token lengths.
-	// TokenId range = [-1, 0, ... , Size() - 1].
+	// TokenId range = [minId, ... , maxId].
 	virtual void Encode( const CString& word, CArray<int>& tokenIds,
 		CArray<int>& tokenLengths ) const = 0;
 	
 	// Decodes sequence of token ids into a sequence of words.
 	virtual void Decode( const CArray<int>& tokenIds, CArray<CString>& words ) const = 0;
 
-	// Returns the number of tokens.
-	virtual int Size() const = 0;
+	// Returns token id range.
+	virtual void GetTokenIdRange( int& minId, int& maxId ) const = 0;
 };
 
 // Subword encoder which supports caching results of 'Encode' calls.

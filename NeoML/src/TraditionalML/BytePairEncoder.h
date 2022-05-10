@@ -29,7 +29,7 @@ public:
 
 	// ISubwordEncoder:
 	virtual void Decode( const CArray<int>& tokenIds, CArray<CString>& words ) const override;
-	virtual int Size() const override { return tokens.Size(); }
+	virtual void GetTokenIdRange( int& minId, int& maxId ) const override;
 	virtual void Serialize( CArchive& archive ) override;
 
 	// IBytePairEncoder:

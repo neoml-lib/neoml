@@ -17,7 +17,7 @@ limitations under the License.
 #include <common.h>
 #pragma hdrstop
 
-#include <NeoML/TraditionalML/BytePairEncoder.h>
+#include <BytePairEncoder.h>
 
 namespace NeoML {
 
@@ -149,6 +149,12 @@ void CBytePairEncoder::Decode( const CArray<int>& tokenIds,
 		}
 	}
 	words.Add( currentWord );
+}
+
+void CBytePairEncoder::GetTokenIdRange( int& minId, int& maxId ) const
+{
+	minId = NotFound;
+	maxId = tokens.Size() - 1;
 }
 
 void CBytePairEncoder::Serialize( CArchive& archive )

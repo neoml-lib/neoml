@@ -17,7 +17,7 @@ limitations under the License.
 #pragma hdrstop
 
 #include <NeoML/TraditionalML/BytePairEncoderTrainer.h>
-#include <NeoML/TraditionalML/BytePairEncoder.h>
+#include <BytePairEncoder.h>
 
 namespace NeoML {
 
