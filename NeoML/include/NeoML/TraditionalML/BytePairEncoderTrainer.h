@@ -25,6 +25,7 @@ class NEOML_API CBytePairEncoderTrainer {
 public:
 	struct CParams {
 		// Max size of encoder.
+		// The size of the trained encoder cannot exceed this value, but CAN be smaller.
 		int MaxSize;
 		// Add EoW token to each word.
 		bool UseEndOfWordToken;
