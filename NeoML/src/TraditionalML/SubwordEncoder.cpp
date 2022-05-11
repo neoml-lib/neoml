@@ -113,7 +113,7 @@ void ISubwordEncoderWithCache::Encode( const CString& word, CArray<int>& tokenId
 
 	CArray<int> wordTokenIds;
 	CArray<int> wordTokenLengths;
-	doEncode( word, wordTokenIds, wordTokenLengths );
+	DoEncode( word, wordTokenIds, wordTokenLengths );
 
 	tokenIds.Add( wordTokenIds );
 	tokenLengths.Add( wordTokenLengths );

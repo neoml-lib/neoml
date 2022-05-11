@@ -47,7 +47,7 @@ public:
 
 protected:
 	// ISubwordEncoderWithCache:
-	virtual void doEncode( const CString& word, CArray<int>& tokenIds,
+	virtual void DoEncode( const CString& word, CArray<int>& tokenIds,
 		CArray<int>& tokenLengths ) const override;
 
 private:

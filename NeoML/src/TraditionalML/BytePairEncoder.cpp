@@ -175,7 +175,7 @@ void CBytePairEncoder::Serialize( CArchive& archive )
 	}
 }
 
-void CBytePairEncoder::doEncode( const CString& word, CArray<int>& tokenIds,
+void CBytePairEncoder::DoEncode( const CString& word, CArray<int>& tokenIds,
 	CArray<int>& tokenLengths ) const
 {
 	CArray<CString> wordTokens;
