@@ -60,6 +60,8 @@ public:
 	// additionalWidth != 1 means broadcasting from (*fromDesc, additionalWidth) to (*toDesc, additionalWidth)
 	// where (*desc, additionalWidth) is 8-dimensional shape with last dimension equals additionalWidth,
 	// channels count of handle must be additionalWidth times bigger than channels count of corresponding desc.
+	virtual void BroadcastCopy(const CIntHandle& toHandle, const CConstIntHandle& fromHandle,
+		const CBlobDesc& toDesc, const CBlobDesc& fromDesc, int additionalWidth) = 0;
 	virtual void BroadcastCopy(const CFloatHandle& toHandle, const CConstFloatHandle& fromHandle,
 		const CBlobDesc& toDesc, const CBlobDesc& fromDesc, int additionalWidth) = 0;
 

@@ -48,30 +48,34 @@ void CEltwiseOperatorBase::AddLayersImpl( const CBroadcast& broadcast, const CTe
 	// Calculate outputShape
 	CTensorShape outputShape;
 	inputs[0]->Shape().CopyTo( outputShape );
+	CTensorLayout outputLayout = inputs[0]->Layout();
+
 	for( int i = 1; i < inputs.Size(); ++i ) {
 		CheckOnnxProtocol( inputs[i] != nullptr, "input can't be optional", *this );
 		CTensorShape buff;
 		CheckNeoOnnxSupport( BroadcastTensorShape( outputShape, inputs[i]->Shape(), broadcast, buff ),
 			"Can't broadcast tensors shape", *this );
 		buff.CopyTo( outputShape );
+		if( inputs[i]->DimCount() > outputLayout.Size() ) {
+			outputLayout = inputs[i]->Layout();
+		}
 	}
 
-	CObjectArray<const CUserTensor> currInputs;
-	currInputs.SetBufferSize( inputs.Size() );
-	// Broadcast input to the final shape and set proper layout
-	// After that put pre-calculated tensors to the sources in the net
-	for( int i = 0; i < inputs.Size(); ++i ) {
-		CPtr<const CTensorBase> tensor = BroadcastTensor( *inputs[i], broadcast, outputShape );
-		tensor = ConvertTensor( *tensor, i == 0 ? tensor->Layout() : currInputs[0]->Layout() );
-		currInputs.Add( AsUserTensor( *tensor, Name() + "_input_" + Str( i ), dnn ) );
-	}
-
+	CPtr<CBroadcastLayer> broadcastLayer = new CBroadcastLayer( dnn.GetMathEngine() );
+	broadcastLayer->SetName( Name() + "_Broadcast" );
+	dnn.AddLayer( *broadcastLayer );
 	eltwiseLayer.SetName( Name() );
-	for( int i = 0; i < currInputs.Size(); ++i ) {
-		eltwiseLayer.Connect( i, *currInputs[i]->Layer(), currInputs[i]->OutputIndex() );
+
+	for( int i = 0; i < inputs.Size(); ++i ) {
+		CPtr<const CUserTensor> tensor = AsUserTensor( *inputs[i], Name() + "_input_" + Str( i ), dnn );
+		tensor = PrepareForBroadcast( *tensor, broadcast, outputShape.Size() );
+		tensor = ConvertTensor( *tensor, outputLayout );
+		broadcastLayer->Connect( i, *tensor->Layer(), tensor->OutputIndex() );
+		eltwiseLayer.Connect( i, *broadcastLayer, i );
 	}
+
 	dnn.AddLayer( eltwiseLayer );
-	outputs.Add( new CUserTensor( outputShape, currInputs[0]->Layout(), CLayerOutput( &eltwiseLayer, 0 ) ) );
+	outputs.Add( new CUserTensor( outputShape, inputs[0]->Layout(), CLayerOutput( &eltwiseLayer, 0 ) ) );
 }
 
 // --------------------------------------------------------------------------------------------------------------------
