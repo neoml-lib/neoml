@@ -31,7 +31,7 @@ public:
 	CWordDictionary( const CWordDictionary& other ) = delete;
 	CWordDictionary& operator=( const CWordDictionary& other ) = delete;
 
-	// Copies data to the other dictionary.
+	// Replaces data in 'other' with data from 'this'.
 	void CopyTo( CWordDictionary& other ) const;
 	
 	// Adds word to the dictionary and increases its count by the given value.
