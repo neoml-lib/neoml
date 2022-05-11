@@ -21,6 +21,8 @@ limitations under the License.
 
 namespace NeoML {
 
+REGISTER_NEOML_MODEL( CBytePairEncoder, BytePairEncoderModelName )
+
 // Some special tokens.
 static const CString StartOfWordToken( "/\xFF" );
 static const CString EndOfWordToken( "\\\xFF" );
@@ -57,12 +59,12 @@ static int getUtf8CharLength( char c )
 void CBytePairEncoder::SplitWordIntoInitialTokens( const CString& word, bool useStartOfWordToken,
 	bool useEndOfWordToken, CArray<CString>& initialTokens, CArray<int>* initialTokensLength )
 {
-	NeoAssert( word.IsEmpty() );
+	NeoAssert( !word.IsEmpty() );
+
 	if( useStartOfWordToken ) {
 		initialTokens.Add( StartOfWordToken );
 	}
 
-	CString message;
 	for( int curPos = 0; curPos < word.Length(); ) {
 		const int charLength = getUtf8CharLength( word[static_cast< unsigned int >( curPos )] );
 		NeoAssert( charLength > 0 );
@@ -94,8 +96,13 @@ CString CBytePairEncoder::MergeTokens( const CString& first, const CString& seco
 
 ///////////////////////////////////////////////////////////////////////////////
 
-CBytePairEncoder::CBytePairEncoder( const CWordDictionary& tokens_, bool useEndOfWordToken,
-	bool useStartOfWordToken ) :
+CBytePairEncoder::CBytePairEncoder() :
+	useEndOfWordToken( false ),
+	useStartOfWordToken( false )
+{}
+
+CBytePairEncoder::CBytePairEncoder( const CWordDictionary& tokens_, bool useEndOfWordToken, 
+		bool useStartOfWordToken ) :
 	useEndOfWordToken( useEndOfWordToken ),
 	useStartOfWordToken( useStartOfWordToken )
 {

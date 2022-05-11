@@ -23,36 +23,43 @@ class CPyBytePairEncoder {
 public:
 	CPyBytePairEncoder();
 	
-	void Train( py::dict vocabulary, int tokensCount, bool useEndOfWordToken,
+	void Train( py::dict dictionary, int tokensCount, bool useEndOfWordToken,
 		bool useStartOfWordToken );
+
 	py::tuple Encode( const std::string& word ) const;
 	py::list Decode( py::list tokenIds ) const;
 
-	const CBytePairEncoder& Encoder() const { return *encoder; }
-	CBytePairEncoder& Encoder() { return *encoder; }
+	bool UseEoW() const;
+	bool UseSoW() const;
 
-	bool UseEoW() const { return encoder->UseEndOfWordToken(); }
-	bool UseSoW() const { return encoder->UseStartOfWordToken(); }
+	void Serialize( CArchive& archive );
 
 private:
-	std::unique_ptr<CBytePairEncoder> encoder;
+	CPtr<IBytePairEncoder> encoder;
 };
 
 CPyBytePairEncoder::CPyBytePairEncoder() :
-	encoder( new CBytePairEncoder() )
+	encoder( nullptr )
 {}
 
-void CPyBytePairEncoder::Train( py::dict vocabulary, int tokensCount,
+void CPyBytePairEncoder::Train( py::dict dictionary, int tokensCount,
 	bool useEndOfWordToken, bool useStartOfWordToken )
 {
-	CWordDictionary vocabularyRaw;
-	for( const auto& item : vocabulary ) {
-		vocabularyRaw.AddWord( item.first.cast<std::string>(), 
+	CWordDictionary dictionaryRaw;
+	for( const auto& item : dictionary ) {
+		dictionaryRaw.AddWord( item.first.cast<std::string>(),
 			item.second.cast<int>() );
 	}
 	{
 		py::gil_scoped_release release;
-		encoder->Train( vocabularyRaw, tokensCount, useEndOfWordToken, useStartOfWordToken );
+
+		CBytePairEncoderTrainer::CParams params;
+		params.MaxSize = tokensCount;
+		params.UseEndOfWordToken = useEndOfWordToken;
+		params.UseStartOfWordToken = useStartOfWordToken;
+
+		CBytePairEncoderTrainer trainer( params, dictionaryRaw );
+		encoder = trainer.Train();
 	}
 }
 
@@ -93,6 +100,23 @@ py::list CPyBytePairEncoder::Decode( py::list _tokenIds ) const
 	return resultWords;
 }
 
+bool CPyBytePairEncoder::UseEoW() const 
+{
+	NeoAssert( encoder != nullptr );
+	return encoder->UseEndOfWordToken(); 
+}
+
+bool CPyBytePairEncoder::UseSoW() const 
+{
+	NeoAssert( encoder != nullptr );
+	return encoder->UseStartOfWordToken(); 
+}
+
+void CPyBytePairEncoder::Serialize( CArchive& archive )
+{
+	SerializeModel( archive, encoder );
+}
+
 void InitializeBytePairEncoder( py::module& m )
 {
 	py::class_<CPyBytePairEncoder>(m, "BytePairEncoder")
@@ -106,7 +130,7 @@ void InitializeBytePairEncoder( py::module& m )
 			[]( const CPyBytePairEncoder& pyBpe ) {
 				CPyMemoryFile file;
 				CArchive archive( &file, CArchive::store );
-				const_cast<CBytePairEncoder&>( pyBpe.Encoder() ).Serialize( archive );
+				const_cast<CPyBytePairEncoder&>( pyBpe ).Serialize( archive );
 				archive.Close();
 				file.Close();
 				return py::make_tuple( file.GetBuffer() );
@@ -120,7 +144,7 @@ void InitializeBytePairEncoder( py::module& m )
 				CPyMemoryFile file( t0_array );
 				CArchive archive( &file, CArchive::load );
 				CPyBytePairEncoder pyBpe;
-				pyBpe.Encoder().Serialize( archive );
+				pyBpe.Serialize( archive );
 				return pyBpe;
 			}
 			) 

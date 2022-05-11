@@ -160,4 +160,3 @@ PYBIND11_MODULE(PythonWrapper, m) {
 
 	InitializeBytePairEncoder( m );
 }
-

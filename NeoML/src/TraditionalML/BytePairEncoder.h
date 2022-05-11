@@ -18,14 +18,17 @@ limitations under the License.
 #include <NeoML/NeoMLDefs.h>
 #include <NeoML/TraditionalML/SubwordEncoder.h>
 #include <NeoML/TraditionalML/WordDictionary.h>
+#include <NeoML/TraditionalML/Model.h>
 
 namespace NeoML {
+
+DECLARE_NEOML_MODEL_NAME( BytePairEncoderModelName, "NeoMLBytePairEncoderModel" )
 
 // Class that encodes a UTF-8 word using byte-pair-encoding.
 class NEOML_API CBytePairEncoder : public IBytePairEncoder {
 public:
-	explicit CBytePairEncoder( const CWordDictionary& tokens, bool useEndOfWordToken = true,
-		bool useStartOfWordToken = false );
+	CBytePairEncoder();
+	CBytePairEncoder( const CWordDictionary& tokens, bool useEndOfWordToken, bool useStartOfWordToken );
 
 	// ISubwordEncoder:
 	virtual void Decode( const CArray<int>& tokenIds, CArray<CString>& words ) const override;
