@@ -22,18 +22,20 @@ namespace NeoML {
 // Subword encoder interface.
 class NEOML_API ISubwordEncoder : virtual public IObject {
 public:
-	~ISubwordEncoder() override = default;
+	virtual ~ISubwordEncoder() override = default;
 
 	// Encodes a word as a sequence of token ids with corresponding token lengths.
-	// TokenId range = [minId, ... , maxId].
+	// TokenId range = [0, ... , Size() - 1].
+	// To encode a string with wide characters you have to first encode it as utf-8 and wrap it in CString.
+	// In this case 'tokenLengths' will contain lengths of the tokens according to the original string version.
 	virtual void Encode( const CString& word, CArray<int>& tokenIds,
 		CArray<int>& tokenLengths ) const = 0;
 	
 	// Decodes sequence of token ids into a sequence of words.
 	virtual void Decode( const CArray<int>& tokenIds, CArray<CString>& words ) const = 0;
 
-	// Returns token id range.
-	virtual void GetTokenIdRange( int& minId, int& maxId ) const = 0;
+	// Returns number of tokens.
+	virtual int Size() const = 0;
 };
 
 // Subword encoder which supports caching results of 'Encode' calls.
@@ -52,8 +54,7 @@ public:
 	void SetCachePeriod( int cachePeriod ) const { cache.SetCachePeriod( cachePeriod ); }
 
 protected:
-	// Encodes a word as a sequence of token ids with corresponding token lengths.
-	// TokenId range = [0, ... , Size() - 1].
+	// 'Internal' Encode with the same meaning.
 	virtual void doEncode( const CString& word, CArray<int>& tokenIds,
 		CArray<int>& tokenLengths ) const = 0;
 

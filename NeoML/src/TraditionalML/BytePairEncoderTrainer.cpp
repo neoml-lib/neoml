@@ -23,10 +23,15 @@ namespace NeoML {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-CBytePairEncoderTrainer::CBytePairEncoderTrainer( const CParams& params, const CWordDictionary& dictionary ) :
-	params( params ),
-	iterationsCompletedCount( 0 )
+CBytePairEncoderTrainer::CBytePairEncoderTrainer( const CParams& params_, const CWordDictionary& dictionary ) :
+	params( params_ ),
+	stepsCompletedCount( 0 )
 {
+	NeoAssert( params.MaxSize > 0 );
+
+	// Reserve 1 for 'Unknown' token.
+	params.MaxSize--;
+
 	createTrainData( dictionary );
 }
 
@@ -40,23 +45,25 @@ bool CBytePairEncoderTrainer::TrainSteps( int stepsCount )
 {
 	NeoAssert( stepsCount > 0 );
 
-	if( iterationsCompletedCount == 0 ) {
+	if( stepsCompletedCount == 0 ) {
+
 		buildPairDictionary();
-		if( iterationsCompletedCount > params.MaxSize ) {
-			// If the number of distinct chars in the word dictionary exceeds requestedIterationCount,
+
+		if( stepsCompletedCount > params.MaxSize ) {
+			// If the number of distinct chars in the word dictionary exceeds params.MaxSize,
 			// no extra tokens should be introduced.
 			tokensDictionary.RestrictSize( params.MaxSize );
 			return true;
 		}
 	}
 
-	const int iterationsCount = calcIterationsCount( params.MaxSize );
+	const int currentStepsCount = calcCurrentStepsCount( params.MaxSize );
 
-	for( int i = 0; i < iterationsCount; i++ ) {
-		if( !runSingleIteration() ) {
+	for( int i = 0; i < currentStepsCount; i++ ) {
+		if( !trainSingleStep() ) {
 			break;
 		}
-		iterationsCompletedCount++;
+		stepsCompletedCount++;
 	}
 
 	return IsTrainingCompleted();
@@ -65,13 +72,13 @@ bool CBytePairEncoderTrainer::TrainSteps( int stepsCount )
 bool CBytePairEncoderTrainer::IsTrainingCompleted() const
 {
 	// No more pairs of neighbour tokens can be added.
-	const bool isNoMergeAvailable = iterationsCompletedCount > 0
+	const bool isNoMergeAvailable = stepsCompletedCount > 0
 		&& pairDictionary.Size() == 0;
-	// No more iterations can be completed.
-	const bool isTotalRunCountAchieved = iterationsCompletedCount >= params.MaxSize;
+	// No more steps can be completed.
+	const bool isTotalStepsCountAchieved = stepsCompletedCount >= params.MaxSize;
 
 	return isNoMergeAvailable
-		|| isTotalRunCountAchieved;
+		|| isTotalStepsCountAchieved;
 }
 
 CPtr<IBytePairEncoder> CBytePairEncoderTrainer::GetEncoder() const
@@ -82,7 +89,7 @@ CPtr<IBytePairEncoder> CBytePairEncoderTrainer::GetEncoder() const
 void CBytePairEncoderTrainer::Serialize( CArchive& archive )
 {
 	archive.SerializeVersion( 0 );
-	archive.Serialize( iterationsCompletedCount );
+	archive.Serialize( stepsCompletedCount );
 	trainWords.Serialize( archive );
 	trainCounts.Serialize( archive );
 	tokensDictionary.Serialize( archive );
@@ -123,18 +130,20 @@ void CBytePairEncoderTrainer::buildPairDictionary()
 	}
 
 	pairDictionary.Finalize( 1 );
-	iterationsCompletedCount = tokensDictionary.Size();
+	tokensDictionary.Finalize( 1 );
+
+	stepsCompletedCount += tokensDictionary.Size();
 }
 
 // Calculates the number of iterations for the current Run.
 // Returned value cannot exceed requestedIterationsCount.
-int CBytePairEncoderTrainer::calcIterationsCount( int requestedIterationsCount ) const
+int CBytePairEncoderTrainer::calcCurrentStepsCount( int requestedIterationsCount ) const
 {
 	NeoAssert( requestedIterationsCount > 0 );
 	if( IsTrainingCompleted() ) {
 		return 0;
 	}
-	const int remainingIterationsCount = params.MaxSize - iterationsCompletedCount;
+	const int remainingIterationsCount = params.MaxSize - stepsCompletedCount;
 	NeoAssert( remainingIterationsCount > 0 );
 	return min( requestedIterationsCount, remainingIterationsCount );
 }
@@ -142,7 +151,7 @@ int CBytePairEncoderTrainer::calcIterationsCount( int requestedIterationsCount )
 // Performs one iteration of the algorithm.
 // Adds the most frequent pair of neighbour tokens to newPairTokens.
 // If no pair of neighbour tokens can be created returns false.
-bool CBytePairEncoderTrainer::runSingleIteration()
+bool CBytePairEncoderTrainer::trainSingleStep()
 {
 	if( pairDictionary.IsEmpty() ) {
 		return false;

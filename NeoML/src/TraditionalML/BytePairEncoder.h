@@ -32,7 +32,7 @@ public:
 
 	// ISubwordEncoder:
 	virtual void Decode( const CArray<int>& tokenIds, CArray<CString>& words ) const override;
-	virtual void GetTokenIdRange( int& minId, int& maxId ) const override;
+	virtual int Size() const override;
 	virtual void Serialize( CArchive& archive ) override;
 
 	// IBytePairEncoder:
@@ -61,6 +61,8 @@ private:
 	bool useStartOfWordToken;
 
 	int getTokenIndex( const CString& token ) const;
+	CString getToken( int tokenId ) const;
+
 	void removeSpecialTokens( CString& token, bool& hasEoW, bool& hasSoW ) const;
 	bool removeEoWToken( CString& token ) const;
 	bool removeSoWToken( CString& token ) const;

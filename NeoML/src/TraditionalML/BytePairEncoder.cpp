@@ -27,7 +27,8 @@ REGISTER_NEOML_MODEL( CBytePairEncoder, BytePairEncoderModelName )
 static const CString StartOfWordToken( "/\xFF" );
 static const CString EndOfWordToken( "\\\xFF" );
 
-static const CString UnknownToken( "<UNK>" );
+// !!! Do not change:
+static const int UnknownTokenId = 0;
 
 // Based on Utf8FirstByteProperties from UtfConverterFO.h.
 static constexpr int utf8CharacterLength[256] = {
@@ -123,11 +124,7 @@ void CBytePairEncoder::Decode( const CArray<int>& tokenIds,
 
 	CArray<CString> rawWordTokens;
 	for( int i = 0; i < tokenIds.Size(); i++ ) {
-		if( tokenIds[i] == NotFound ) {
-			rawWordTokens.Add( UnknownToken );
-		} else {
-			rawWordTokens.Add( tokens[tokenIds[i]] );
-		}
+		rawWordTokens.Add( getToken( tokenIds[i] ) );
 	}
 
 	CArray<bool> isWordBorder;
@@ -158,10 +155,10 @@ void CBytePairEncoder::Decode( const CArray<int>& tokenIds,
 	words.Add( currentWord );
 }
 
-void CBytePairEncoder::GetTokenIdRange( int& minId, int& maxId ) const
+int CBytePairEncoder::Size() const
 {
-	minId = NotFound;
-	maxId = tokens.Size() - 1;
+	// One extra for 'Unknown'
+	return 1 + tokens.Size();
 }
 
 void CBytePairEncoder::Serialize( CArchive& archive )
@@ -192,7 +189,7 @@ void CBytePairEncoder::doEncode( const CString& word, CArray<int>& tokenIds,
 		for( int i = 0; i < wordTokens.Size() - 1; i++ ) {
 			const CString pair = MergeTokens( wordTokens[i], wordTokens[i + 1] );
 			const int pairIndex = getTokenIndex( pair );
-			if( pairIndex != NotFound
+			if( pairIndex != UnknownTokenId
 				&& pairIndex < bestPairIndex )
 			{
 				bestPairIndex = pairIndex;
@@ -219,12 +216,29 @@ void CBytePairEncoder::doEncode( const CString& word, CArray<int>& tokenIds,
 	tokenLengths.Add( wordTokenLengths );
 }
 
-// Returns index of token (-1 if not found).
+// Returns index of token.
 int CBytePairEncoder::getTokenIndex( const CString& token ) const
 {
 	int tokenIndex = NotFound;
-	tokenToId.Lookup( token, tokenIndex );
-	return tokenIndex;
+	if( tokenToId.Lookup( token, tokenIndex ) ) {
+		return tokenIndex + 1;
+	} else {
+		// Unknown token
+		return UnknownTokenId;
+	}
+}
+
+// Returns string representation of token by tokenId.
+CString CBytePairEncoder::getToken( int tokenId ) const
+{
+	NeoAssert( tokenId >= 0 && tokenId < Size() );
+
+	if( tokenId == UnknownTokenId ) {
+		// Unknown token.
+		return "<UNK>";
+	} else {
+		return tokens[tokenId - 1];
+	}
 }
 
 // Removes special subtokens form token.

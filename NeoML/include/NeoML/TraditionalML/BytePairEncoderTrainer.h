@@ -20,11 +20,11 @@ limitations under the License.
 
 namespace NeoML {
 
-// Class that traints byte-pair-encoding.
+// Class that trains byte-pair-encoding.
 class NEOML_API CBytePairEncoderTrainer {
 public:
 	struct CParams {
-		// Max number of tokens in BPE.
+		// Max size of encoder.
 		int MaxSize;
 		// Add EoW token to each word.
 		bool UseEndOfWordToken;
@@ -60,8 +60,8 @@ private:
 	// Encoder trainer params.
 	CParams params;
 
-	// The number of completed iterations.
-	int iterationsCompletedCount;
+	// The number of completed steps.
+	int stepsCompletedCount;
 
 	// The dictionary of pairs of neighbour tokens.
 	CWordDictionary pairDictionary;
@@ -81,8 +81,8 @@ private:
 
 	void createTrainData( const CWordDictionary& dictionary );
 	void buildPairDictionary();
-	int calcIterationsCount( int requestedIterationsCount ) const;
-	bool runSingleIteration();
+	int calcCurrentStepsCount( int requestedIterationsCount ) const;
+	bool trainSingleStep();
 };
 
 } // namespace NeoML
