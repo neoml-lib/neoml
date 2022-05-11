@@ -273,7 +273,6 @@ void CReducePoolOperatorBase::PoolAxes( const CTensorShape& inputShape, CFastArr
 
 	for( int i = 0; i < axes.Size(); ++i ) {
 		if( axes[i] < 0 ) {
-			CheckOnnxProtocol( OpsetVersion >= 11, "negative axes indices are supported since v11", *this );
 			axes[i] += inputShape.Size();
 		}
 	}
