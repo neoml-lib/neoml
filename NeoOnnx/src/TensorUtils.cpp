@@ -512,7 +512,7 @@ static CPtr<const CUserTensor> broadcastUserTensor( const CUserTensor& input, co
 	NeoAssert( input.DimCount() <= outputShape.Size() );
 	NeoAssert( broadcast.Type != BT_Upsample || input.DimCount() == outputShape.Size() );
 
-	// Prefix for upsmaple layer names
+	// Prefix for upsample layer names
 	const CString upsampleNamePrefix = input.Layer()->GetName() + CString( "_upsample_" );
 	// Used network
 	CDnn& dnn = *( input.Layer()->GetDnn() );
