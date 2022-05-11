@@ -47,7 +47,6 @@ CGemmOperator::CGemmOperator( const onnx::NodeProto& gemm, int opsetVersion ) :
 	CheckNeoOnnxSupport( transA == 0, "transA != 0", *this );
 
 	GetAttribute( "transB", transB );
-	CheckNeoOnnxSupport( transB != 0, "transB == 0", *this );
 
 	if( OpsetVersion < 7 ) {
 		int broadcast = 0;
@@ -61,7 +60,7 @@ void CGemmOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArr
 	CheckOnnxProtocol( inputs[0] != nullptr && inputs[1] != nullptr, "input can't be optional", *this );
 
 	const CTensorShape& inputShape = inputs[0]->Shape();
-	CheckNeoOnnxSupport( transA == 0, "transA != 0", *this );
+
 	// Some models from the model zoo has this op with 4-dimensional input
 	// e.g. 1 x 512 x 7 x 7 and this input is interpreted as matrix 1 x 25088
 	// The documentation does mention 'input matrix' but doesn't clarify what needs to be done when input is N-dimensional
@@ -89,9 +88,9 @@ void CGemmOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArr
 
 	fc->SetNumberOfElements( numberOfElements );
 
-	const CTensorLayout fcLayout( { BD_BatchWidth, BD_Channels } );
+	const CTensorLayout weightLayout( { transB == 0 ? BD_Channels: BD_BatchWidth, transB == 0 ? BD_BatchWidth : BD_Channels } );
 
-	CPtr<const CTensorBase> matrixTensor = ConvertTensor( *inputs[1], fcLayout );
+	CPtr<const CTensorBase> matrixTensor = ConvertTensor( *inputs[1], weightLayout );
 	fc->SetWeightsData( dynamic_cast<const CDataTensor*>( matrixTensor.Ptr() )->Data()->GetCopy() );
 
 	if( InputCount() > 2 ) {
@@ -100,7 +99,7 @@ void CGemmOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArr
 		fc->SetZeroFreeTerm( true );
 	}
 
-	CTensorLayout inputLayout = inputShape.Size() == 2 ? fcLayout : inputs[0]->Layout();
+	CTensorLayout inputLayout = inputShape.Size() == 2 ? CTensorLayout{ BD_BatchWidth, BD_Channels } : inputs[0]->Layout();
 	if( inputShape.Size() > 2 ) {
 		// Build input layout for N-dimensional input
 
@@ -115,7 +114,7 @@ void CGemmOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArr
 	fc->Connect( 0, *userInput->Layer(), userInput->OutputIndex() );
 	dnn.AddLayer( *fc );
 
-	outputs.Add( new CUserTensor( { inputShape[0], numberOfElements }, fcLayout, CLayerOutput( fc, 0 ) ) );
+	outputs.Add( new CUserTensor( { inputShape[0], numberOfElements }, CTensorLayout{ BD_BatchWidth, BD_Channels }, CLayerOutput( fc, 0 ) ) );
 }
 
 } // namespace NeoOnnx
