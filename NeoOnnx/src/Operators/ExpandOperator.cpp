@@ -38,16 +38,19 @@ void CExpandOperator::AddLayers( const CTensorArray& inputs, CDnn& /* dnn */, CT
 	CheckNeoOnnxSupport( inputs[1]->IsCalculated(), "user-provided shape", *this );
 
 	const CDnnBlob* shapeBlob = dynamic_cast<const CDataTensor&>( *inputs[1] ).Data();
-	CTensorShape outputShape;
-	CheckOnnxProtocol( inputs[0]->DimCount() >= shapeBlob->GetDataSize(),
-		"Number of input dims is less than length of the shape", *this );
+	CTensorShape shapeData;
+
 	const int preservedInputDims = inputs[0]->DimCount() - shapeBlob->GetDataSize();
 	for( int i = 0; i < preservedInputDims; ++i ) {
-		outputShape.Add( inputs[0]->Shape()[i]);
+		shapeData.Add( inputs[0]->Shape()[i]);
 	}
 
-	outputShape.SetSize( outputShape.Size() + shapeBlob->GetDataSize() );
-	shapeBlob->CopyTo( outputShape.GetPtr() + preservedInputDims );
+	shapeData.SetSize( shapeData.Size() + shapeBlob->GetDataSize() );
+	shapeBlob->CopyTo( shapeData.GetPtr() + max( 0, preservedInputDims ) );
+
+	CBroadcast broadcast( BT_Numpy );
+	CTensorShape outputShape;
+	BroadcastTensorShape( inputs[0]->Shape(), shapeData, broadcast, outputShape );
 
 	outputs.Add( BroadcastTensor( *inputs[0], CBroadcast( BT_Numpy ), outputShape ) );
 }

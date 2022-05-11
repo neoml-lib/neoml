@@ -108,59 +108,6 @@ static CPtr<const CUserTensor> convertTensorToHw( const CUserTensor& input, int 
 
 //---------------------------------------------------------------------------------------------------------------------
 
-// Renames dimensions of data blob (without any reordering in memory)
-static CPtr<const CDnnBlob> renameDimensions( const CDnnBlob& input, const CTensorShape& shape, const CTensorLayout& outputLayout )
-{
-	NeoAssert( shape.Size() == outputLayout.Size() );
-	// We have to copy data here because multiple tensors may be connected to the input tensor
-	CBlobDesc outputBlobDesc( input.GetDataType() );
-	for( int dimIndex = 0; dimIndex < shape.Size(); ++dimIndex ) {
-		outputBlobDesc.SetDimSize( outputLayout[dimIndex], shape[dimIndex] );
-	}
-	IMathEngine& mathEngine = input.GetMathEngine();
-	CPtr<CDnnBlob> result = CDnnBlob::CreateBlob( mathEngine, input.GetDataType(), outputBlobDesc );
-	if( result->GetDataType() == CT_Float ) {
-		mathEngine.VectorCopy( result->GetData(), input.GetData(), input.GetDataSize() );
-	} else {
-		mathEngine.VectorCopy( result->GetData<int>(), input.GetData<int>(), input.GetDataSize() );
-	}
-	return result.Ptr();
-}
-
-// Renames dimensions of layer output (without any reordering in memory)
-static CLayerOutput renameDimensions( const CLayerOutput& input, const CTensorShape& shape, const CTensorLayout& outputLayout )
-{
-	NeoAssert( shape.Size() == outputLayout.Size() );
-	CDnn& dnn = *( input.Layer->GetDnn() );
-	CPtr<CTransformLayer> transformLayer = new CTransformLayer( dnn.GetMathEngine() );
-	transformLayer->SetName( getUniqueLayerName( dnn, "transform_" ) );
-	for( TBlobDim dim = BD_BatchLength; dim < BD_Count; ++dim ) {
-		const int dimIndex = outputLayout.Find( dim );
-		if( dimIndex == NotFound ) {
-			transformLayer->SetDimensionRule( dim, CTransformLayer::CDimensionRule( CTransformLayer::O_SetSize, 1 ) );
-		} else {
-			transformLayer->SetDimensionRule( dim, CTransformLayer::CDimensionRule( CTransformLayer::O_SetSize, shape[dimIndex] ) );
-		}
-	}
-	dnn.AddLayer( *transformLayer );
-	transformLayer->Connect( 0, *input.Layer, input.OutputIndex );
-	return CLayerOutput( transformLayer.Ptr(), 0 );
-}
-
-// Renames dimensions of tensor (without any reordering in memory)
-static CPtr<const CTensorBase> renameDimensions( const CTensorBase& input, const CTensorLayout& outputLayout )
-{
-	if( input.IsCalculated() ) {
-		CPtr<const CDnnBlob> blob = renameDimensions( *dynamic_cast<const CDataTensor&>( input ).Data(),
-			input.Shape(), outputLayout );
-		return new CDataTensor( input.Shape(), outputLayout, *blob );
-	}
-
-	CLayerOutput layerOutput = renameDimensions( dynamic_cast<const CUserTensor&>( input ).LayerOutput(),
-		input.Shape(), outputLayout );
-	return new CUserTensor( input.Shape(), outputLayout, layerOutput );
-}
-
 // Swaps 2 dimensions of data blob
 static CPtr<const CDnnBlob> swapDimensions( const CDnnBlob& inputBlob, TBlobDim firstDim, TBlobDim secondDim )
 {
@@ -194,8 +141,12 @@ static CPtr<const CTensorBase> swapDimensions( const CTensorBase& input, TBlobDi
 	CTensorLayout outputLayout = input.Layout();
 	const int firstDimIndex = outputLayout.Find( firstDim );
 	const int secondDimIndex = outputLayout.Find( secondDim );
-	NeoAssert( firstDimIndex != NotFound && secondDimIndex != NotFound );
-	swap( outputLayout[firstDimIndex], outputLayout[secondDimIndex] );
+	NeoAssert( firstDimIndex != NotFound );
+	if( secondDimIndex != NotFound ) {
+		swap( outputLayout[firstDimIndex], outputLayout[secondDimIndex] );
+	} else {
+		outputLayout[firstDimIndex] = secondDim;
+	}
 
 	if( input.IsCalculated() ) {
 		CPtr<const CDnnBlob> blob = swapDimensions( *dynamic_cast<const CDataTensor&>( input ).Data(),
@@ -218,36 +169,7 @@ CPtr<const CTensorBase> ConvertTensor( const CTensorBase& input, const CTensorLa
 	const int dimCount = outputLayout.Size();
 	NeoAssert( input.DimCount() == dimCount );
 
-	// Step 1: renaming dimensions (if needed)
-	// It's possible that input.Layout() and outputLayout use different dimensions
-	// Renaming means assigning outputLayout's dimensions to the ones of input.Layout()
-	// without data transposing.
-	// e.g.
-	//     input.Layout() == { BD_Channels, BD_BatchWidth }
-	//     outputLayout == { BD_Height, BD_Width }
-	// result of renaming:
-	//     renamed.Layout == { BD_Width, BD_Height } (transpose will happen on step #2)
 	CPtr<const CTensorBase> currentTensor = &input;
-	CTensorLayout sortedInputLayout = input.Layout();
-	sortedInputLayout.QuickSort<Ascending<TBlobDim>>();
-	CTensorLayout sortedOutputLayout = outputLayout;
-	sortedOutputLayout.QuickSort<Ascending<TBlobDim>>();
-	if( sortedInputLayout != sortedOutputLayout ) {
-		// Tensors use different blob dimensions, need to rename
-		const CTensorLayout& inputLayout = input.Layout();
-		CTensorLayout renamedLayout;
-		renamedLayout.SetBufferSize( dimCount );
-		for( int dimIndex = 0; dimIndex < dimCount; ++dimIndex ) {
-			const int sortedDimIndex = sortedInputLayout.Find( inputLayout[dimIndex] );
-			renamedLayout.Add( sortedOutputLayout[sortedDimIndex] );
-		}
-		currentTensor = renameDimensions( *currentTensor, renamedLayout );
-	}
-
-	// Step 2: reordering dimensions
-	// Step 1 guarantees that outputLayout is a permutation of currentTensor.Layout()
-	// NeoML has operations only for swapping 2 dimensions
-	// that's why reordering is implemented as a sequence of swaps
 	for( int dimIndex = 0; dimIndex < dimCount; ++dimIndex ) {
 		TBlobDim inputDim = currentTensor->Layout()[dimIndex];
 		TBlobDim outputDim = outputLayout[dimIndex];
@@ -512,7 +434,7 @@ static CPtr<const CUserTensor> broadcastUserTensor( const CUserTensor& input, co
 	NeoAssert( input.DimCount() <= outputShape.Size() );
 	NeoAssert( broadcast.Type != BT_Upsample || input.DimCount() == outputShape.Size() );
 
-	// Prefix for upsmaple layer names
+	// Prefix for upsample layer names
 	const CString upsampleNamePrefix = input.Layer()->GetName() + CString( "_upsample_" );
 	// Used network
 	CDnn& dnn = *( input.Layer()->GetDnn() );
