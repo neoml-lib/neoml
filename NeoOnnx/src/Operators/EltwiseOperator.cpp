@@ -75,7 +75,7 @@ void CEltwiseOperatorBase::AddLayersImpl( const CBroadcast& broadcast, const CTe
 	}
 
 	dnn.AddLayer( eltwiseLayer );
-	outputs.Add( new CUserTensor( outputShape, inputs[0]->Layout(), CLayerOutput( &eltwiseLayer, 0 ) ) );
+	outputs.Add( new CUserTensor( outputShape, outputLayout, CLayerOutput( &eltwiseLayer, 0 ) ) );
 }
 
 // --------------------------------------------------------------------------------------------------------------------
