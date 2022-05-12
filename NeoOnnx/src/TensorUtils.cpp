@@ -385,7 +385,7 @@ static CPtr<const CUserTensor> addUpsample2dLayer( CUpsampling2DLayer& upsample,
 CPtr<const CUserTensor> PrepareForBroadcast( const CUserTensor& input, const CBroadcast& broadcast, int outputDims )
 {
 	int axis = outputDims - input.DimCount();
-	if( broadcast.Type == BT_Onnx && broadcast.Axis >= 0 ) {
+	if( broadcast.Type == BT_Onnx && broadcast.Axis >= 0 && axis > broadcast.Axis ) {
 		axis = broadcast.Axis;
 	}
 
