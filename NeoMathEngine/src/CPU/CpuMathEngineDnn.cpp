@@ -16,6 +16,8 @@ limitations under the License.
 #include <common.h>
 #pragma hdrstop
 
+#include <cmath>
+
 #include <CpuMathEngine.h>
 #include <CpuMathEnginePrivate.h>
 #include <CpuExecutionScope.h>
@@ -1177,11 +1179,11 @@ static TCoordTransformer getCoordTransformer( TInterpolationCoords coords )
 {
 	switch( coords ) {
 		case TInterpolationCoords::Asymmetric:
-			return []( int oldSize, float scale, int newCoord ) {
+			return []( int, float scale, int newCoord ) {
 				return newCoord / scale;
 			};
 		case TInterpolationCoords::HalfPixel:
-			return []( int oldSize, float scale, int newCoord ) {
+			return []( int, float scale, int newCoord ) {
 				return ( newCoord + 0.5f ) / scale  - 0.5f;
 			};
 		case TInterpolationCoords::PytorchHalfPixel:
