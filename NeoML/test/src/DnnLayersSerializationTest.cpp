@@ -2389,11 +2389,10 @@ GTEST_TEST( SerializeFromFile, TransformerEncoderLayerSerialization )
 
 static void setSpecificParams( CInterpolationLayer& layer )
 {
-	layer.SetScale( BD_BatchLength, 13 );
-	layer.SetScale( BD_BatchWidth, 7 );
-	layer.SetScale( BD_ListSize, 3 );
-	layer.SetScale( BD_Width, 5 );
-	layer.SetScale( BD_Channels, 11 );
+	layer.SetRule( BD_ListSize, CInterpolationLayer::CRule::Resize( 71 ) );
+	layer.SetRule( BD_Depth, CInterpolationLayer::CRule::Scale( 0.5f ) );
+	layer.SetCoords( TInterpolationCoords::AlignCorners );
+	layer.SetRound( TInterpolationRound::RoundPreferCeil );
 }
 
 GTEST_TEST( SerializeToFile, InterpolationLayerSerialization )
@@ -2406,17 +2405,15 @@ GTEST_TEST( SerializeToFile, InterpolationLayerSerialization )
 template<>
 inline void checkSpecificParams<CInterpolationLayer>( CInterpolationLayer& layer )
 {
-	EXPECT_EQ( 13, layer.GetScale( BD_BatchLength ) );
-	EXPECT_EQ( 7, layer.GetScale( BD_BatchWidth ) );
-	EXPECT_EQ( 3, layer.GetScale( BD_ListSize ) );
-	EXPECT_EQ( 1, layer.GetScale( BD_Height ) );
-	EXPECT_EQ( 5, layer.GetScale( BD_Width ) );
-	EXPECT_EQ( 1, layer.GetScale( BD_Depth ) );
-	EXPECT_EQ( 11, layer.GetScale( BD_Channels ) );
+	EXPECT_EQ( CInterpolationLayer::TRuleType::Resize, layer.GetRule( BD_ListSize ).Type );
+	EXPECT_EQ( 71, layer.GetRule( BD_ListSize ).NewSize );
+	EXPECT_EQ( CInterpolationLayer::TRuleType::Scale, layer.GetRule( BD_Depth ).Type );
+	EXPECT_FLOAT_EQ( 0.5f, layer.GetRule( BD_Depth ).ScaleCoeff );
+	EXPECT_EQ( TInterpolationCoords::AlignCorners, layer.GetCoords() );
+	EXPECT_EQ( TInterpolationRound::RoundPreferCeil, layer.GetRound() );
 }
 
 GTEST_TEST( SerializeFromFile, InterpolationLayerSerialization )
 {
 	checkSerializeLayer<CInterpolationLayer>( "NeoMLDnnInterpolationLayer" );
 }
-

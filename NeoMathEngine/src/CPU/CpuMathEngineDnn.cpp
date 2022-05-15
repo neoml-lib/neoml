@@ -1171,8 +1171,63 @@ void CCpuMathEngine::BertConvBackward( const CConstFloatHandle& dataHandle, cons
 	}
 }
 
+typedef float ( *TCoordTransformer )( int oldSize, float scale, int newCoord );
+
+static TCoordTransformer getCoordTransformer( TInterpolationCoords coords )
+{
+	switch( coords ) {
+		case TInterpolationCoords::Asymmetric:
+			return []( int oldSize, float scale, int newCoord ) {
+				return newCoord / scale;
+			};
+		case TInterpolationCoords::HalfPixel:
+			return []( int oldSize, float scale, int newCoord ) {
+				return ( newCoord + 0.5f ) / scale  - 0.5f;
+			};
+		case TInterpolationCoords::PytorchHalfPixel:
+			return []( int oldSize, float scale, int newCoord ) {
+				const int newSize = static_cast<int>( oldSize * scale );
+				return newSize > 1 ? ( newCoord + 0.5f ) / scale - 0.5f : 0.f;
+			};
+		case TInterpolationCoords::AlignCorners:
+			return []( int oldSize, float scale, int newCoord ) {
+				const int newSize = static_cast<int>( oldSize * scale );
+				return static_cast<float>( newCoord * ( oldSize - 1 ) ) / ( newSize - 1 );
+			};
+		default:
+			ASSERT_EXPR( false );
+	}
+	return nullptr;
+}
+
+typedef float ( *TCoordRound )( float x );
+
+static TCoordRound getCoordRound( TInterpolationRound round )
+{
+	switch( round ) {
+		case TInterpolationRound::None:
+			return nullptr;
+		case TInterpolationRound::RoundPreferFloor:
+			return []( float x ) {
+				if( x == static_cast<int>( x ) + 0.5f ) {
+					return ::floorf( x );
+				}
+				return ::roundf( x );
+			};
+		case TInterpolationRound::RoundPreferCeil:
+			return []( float x ) { return ::roundf( x ); };
+		case TInterpolationRound::Floor:
+			return []( float x ) { return ::floorf( x ); };
+		case TInterpolationRound::Ceil:
+			return []( float x ) { return ::ceilf( x ); };
+		default:
+			ASSERT_EXPR( false );
+	}
+	return nullptr;
+}
+
 void CCpuMathEngine::LinearInterpolation( const CConstFloatHandle& dataHandle, const CFloatHandle& resultHandle,
-	int objectCount, int scaledAxis, int objectSize, int scale )
+	TInterpolationCoords coords, TInterpolationRound round, int objectCount, int scaledAxis, int objectSize, float scale )
 {
 	ASSERT_EXPR( dataHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
@@ -1180,76 +1235,40 @@ void CCpuMathEngine::LinearInterpolation( const CConstFloatHandle& dataHandle, c
 	const float* data = GetRaw( dataHandle );
 	float* result = GetRaw( resultHandle );
 
-	const int dataBatchStep = objectSize * scaledAxis;
-	const int resultBatchStep = scale * dataBatchStep;
+	const int dataBatchStep = scaledAxis * objectSize;
+	const int resultBatchStep = static_cast<int>( scale * scaledAxis ) * objectSize;
 
 	const int opCount = objectCount * resultBatchStep;
 	const int curThreadCount = IsOmpRelevant( objectCount, opCount ) ? threadCount : 1;
+	CFloatHandleStackVar buff( *this, objectSize * curThreadCount );
+
+	TCoordTransformer getCoords = getCoordTransformer( coords );
+	TCoordRound roundCoords = getCoordRound( round );
 
 	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
 	for( int b = 0; b < objectCount; ++b ) {
-		const float* currData = data + b * dataBatchStep;
+		float* currBuff = GetRaw( buff.GetHandle() ) + OmpGetThreadNum() * objectSize;
 		float* currResult = result + b * resultBatchStep;
-		for( int i = 0; i < scaledAxis - 1; ++i ) {
-			for( int k = 0; k < objectSize; ++k ) {
-				*currResult++ = currData[k];
+		const float* currData = data + b * dataBatchStep;
+		for( int i = 0; i < static_cast<int>( scaledAxis * scale ); ++i ) {
+			float oldCoord = getCoords( scaledAxis, scale, i );
+			if( roundCoords != nullptr ) {
+				oldCoord = roundCoords( oldCoord );
 			}
-			for( int j = 1; j < scale; ++j ) {
-				for( int k = 0; k < objectSize; ++k ) {
-					currResult[k] = ( ( scale - j ) * currData[k] + j * currData[k + objectSize] ) / scale;
-				}
-				currResult += objectSize;
+			if( oldCoord <= 0 ) {
+				dataCopy( currResult, currData, objectSize );
+			} else if( oldCoord >= static_cast<float>( scaledAxis - 1 ) ) {
+				dataCopy( currResult, currData + ( scaledAxis - 1 ) * objectSize, objectSize );
+			} else {
+				const float leftCoord = std::floorf( oldCoord );
+				const float leftMul = 1.f - ( oldCoord - leftCoord );
+				const float rightMul = oldCoord - leftCoord;
+				vectorMultiply( currData + static_cast<int>( oldCoord ) * objectSize, currBuff, leftMul, objectSize );
+				vectorMultiply( currData + ( static_cast<int>( oldCoord ) + 1 ) * objectSize, currResult, rightMul, objectSize );
+				vectorAdd( currResult, currBuff, currResult, objectSize );
 			}
-			currData += objectSize;
+			currResult += objectSize;
 		}
-		for( int j = 0; j < scale; ++j ) {
-			for( int k = 0; k < objectSize; ++k ) {
-				*currResult++ = currData[k];
-			}
-		}
-	}
-}
-
-void CCpuMathEngine::LinearInterpolationBackward( const CConstFloatHandle& outputDiffHandle,
-	const CFloatHandle& inputDiffHandle, int objectCount, int scaledAxis, int objectSize, int scale )
-{
-	ASSERT_EXPR( outputDiffHandle.GetMathEngine() == this );
-	ASSERT_EXPR( inputDiffHandle.GetMathEngine() == this );
-
-	const float* outputDiff = GetRaw( outputDiffHandle );
-	float* inputDiff = GetRaw( inputDiffHandle );
-
-	const int inputBatchStep = objectSize * scaledAxis;
-	const int outputBatchStep = inputBatchStep * scale;
-
-	VectorFill( inputDiffHandle, 0.f, objectCount * inputBatchStep );
-
-	const int opCount = objectCount * outputBatchStep;
-	const int curThreadCount = IsOmpRelevant( objectCount, opCount ) ? threadCount : 1;
-
-	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
-	for( int b = 0; b < objectCount; ++b ) {
-		float* currInputDiff = inputDiff + b * inputBatchStep;
-		const float* currOutputDiff = outputDiff + b * outputBatchStep;
-		for( int i = 0; i < scaledAxis - 1; ++i ) {
-			for( int k = 0; k < objectSize; ++k ) {
-				currInputDiff[k] += *currOutputDiff++;
-			}
-			for( int j = 1; j < scale; ++j ) {
-				for( int k = 0; k < objectSize; ++k ) {
-					currInputDiff[k] += currOutputDiff[k] * ( scale - j ) / scale;
-					currInputDiff[k + objectSize] += currOutputDiff[k] * j / scale;
-				}
-				currOutputDiff += objectSize;
-			}
-			currInputDiff += objectSize;
-		}
-		for( int j = 0; j < scale; ++j ) {
-			for( int k = 0; k < objectSize; ++k ) {
-				currInputDiff[k] += *currOutputDiff++;
-			}
-		}
-
 	}
 }
 

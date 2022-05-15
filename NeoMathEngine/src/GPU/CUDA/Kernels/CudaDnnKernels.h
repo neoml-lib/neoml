@@ -770,10 +770,11 @@ __global__ void BertConvBackwardKernelKernel( const float* data, const float* ou
 	kernelDiff[kernelOffset] = res;
 }
 
-__global__ void LinearInterpolationKernel( const float* data, float* result,
-	int objectCount, int scaledAxis, int objectSize, int scale )
+__global__ void LinearInterpolationKernel( const float* data, float* result, int coords, int round,
+	int objectCount, int scaledAxis, int objectSize, float scale )
 {
-	const int taskCount = objectCount * scaledAxis * scale * objectSize;
+	const int newSize = static_cast<int>( scaledAxis * scale );
+	const int taskCount = objectCount * newSize * objectSize;
 	int taskIndex;
 	if( !GetCudaTaskIndex( taskCount, taskIndex ) ) {
 		return;
@@ -782,51 +783,57 @@ __global__ void LinearInterpolationKernel( const float* data, float* result,
 	result += taskIndex;
 	const int elem = taskIndex % objectSize;
 	taskIndex /= objectSize;
-	const int inScale = taskIndex % scale;
-	taskIndex /= scale;
-	const int x = taskIndex % scaledAxis;
-	const int b = taskIndex / scaledAxis;
-	data += elem + objectSize * ( x + scaledAxis * b );
+	const int xNew = taskIndex % newSize;
+	const int b = taskIndex / newSize;
 
-	if( x == scaledAxis - 1 || inScale == 0 ) {
-		*result = *data;
+	float xOld = 0;
+	switch( coords ) {
+		case 0: // HalfPixel
+			xOld = ( xNew + 0.5f ) / scale - 0.5f;
+			break;
+		case 1: // PytorchHalfPixel
+			xOld = ( newSize > 1 ) ? ( xNew + 0.5f ) / scale - 0.5f : 0.f;
+			break;
+		case 2: // AlignCorners
+			xOld = static_cast<float>( xNew * ( scaledAxis - 1 ) ) / ( newSize - 1 );
+			break;
+		case 3:
+			xOld = xNew / scale;
+			break;
+	}
+
+	switch( round ) {
+		case 0: // None
+			break;
+		case 1: // RoundPreferFloor
+			if( static_cast<int>( xOld ) + 0.5f == xOld ) {
+				xOld = ::floorf( xOld );
+			} else {
+				xOld = ::roundf( xOld );
+			}
+			break;
+		case 2: // RoundPreferCeil
+			xOld = ::roundf( xOld );
+			break;
+		case 3: // Floor
+			xOld = ::floorf( xOld );
+			break;
+		case 4: // Ceil
+			xOld = ::ceilf( xOld );
+			break;
+	}
+
+	if( xOld <= 0 ) {
+		*result = data[b * scaledAxis * objectSize + elem];
+	} else if( xOld >= static_cast<float>( scaledAxis - 1 ) ) {
+		*result = data[( b * scaledAxis + scaledAxis - 1 ) * objectSize + elem];
 	} else {
-		*result = static_cast<float>( scale - inScale ) / scale * data[0]
-			+ static_cast<float>( inScale ) / scale * data[objectSize];
+		const int leftCoord = static_cast<int>( xOld );
+		const float rightMul = xOld - std::floorf( xOld );
+		const float leftMul = 1.f - rightMul;
+		*result = leftMul * data[( b * scaledAxis + leftCoord ) * objectSize + elem]
+			+ rightMul * data[( b * scaledAxis + ( leftCoord + 1 ) ) * objectSize + elem];
 	}
-}
-
-__global__ void LinearInterpolationBackwardKernel( const float* outputDiff, float* inputDiff,
-	int objectCount, int scaledAxis, int objectSize, int scale )
-{
-	const int inputDiffSize = objectCount * scaledAxis * objectSize;
-	int taskIndex;
-	if( !GetCudaTaskIndex( inputDiffSize, taskIndex ) ) {
-		return;
-	}
-
-	inputDiff += taskIndex;
-	const int elem = taskIndex % objectSize;
-	taskIndex /= objectSize;
-	const int x = taskIndex % scaledAxis;
-	const int b = taskIndex / scaledAxis;
-
-	outputDiff += ( b * scaledAxis + x ) * scale * objectSize + elem;
-
-	float result = 0;
-	if( x > 0 ) {
-		for( int i = scale - 1; i > 0; --i ) {
-			result += *( outputDiff - i * objectSize ) * ( scale - i ) / scale;
-		}
-	}
-
-	result += *outputDiff;
-	
-	for( int i = 1; i < scale; ++i ) {
-		const float mult = x == scaledAxis - 1 ? 1.f : static_cast<float>( scale - i ) / scale;
-		result += outputDiff[i * objectSize] * mult;
-	}
-	*inputDiff = result;
 }
 
 } // namespace NeoML

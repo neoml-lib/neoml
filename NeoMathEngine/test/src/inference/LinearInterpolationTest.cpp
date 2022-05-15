@@ -18,33 +18,83 @@ limitations under the License.
 using namespace NeoML;
 using namespace NeoMLTest;
 
-static void testLinearInterpolation( std::vector<float>& input, const std::vector<float>& expected,
-	int objectCount, int scaledAxis, int objectSize, int scale )
+static void testLinearInterpolation( TInterpolationCoords coords, TInterpolationRound round, std::vector<float>& input,
+	const std::vector<float>& expected, int objectCount, int scaledAxis, int objectSize, float scale )
 {
 	ASSERT_EQ( input.size(), static_cast<size_t>( objectCount ) * scaledAxis * objectSize );
-	ASSERT_EQ( expected.size(), static_cast<size_t>( objectCount ) * scaledAxis * scale * objectSize );
+	ASSERT_EQ( expected.size(), static_cast<size_t>( objectCount ) * static_cast<int>( scaledAxis * scale ) * objectSize );
 
 	std::vector<float> actual( expected.size() );
 	MathEngine().LinearInterpolation( CARRAY_FLOAT_WRAPPER( input ), CARRAY_FLOAT_WRAPPER( actual ),
-		objectCount, scaledAxis, objectSize, scale );
+		coords, round, objectCount, scaledAxis, objectSize, scale );
 
 	for( size_t i = 0; i < expected.size(); ++i ) {
 		ASSERT_NEAR( actual[i], expected[i], 1e-3f );
 	}
 }
 
-static void naiveLinearInterpolation( const float* input, float* output, int objectCount, int scaledAxis,
-	int objectSize, int scale )
+static void naiveLinearInterpolation( TInterpolationCoords coords, TInterpolationRound round, const float* input, float* output,
+	int objectCount, int scaledAxis, int objectSize, float scale )
 {
+	const int newSize = static_cast<int>( scaledAxis * scale );
 	for( int obj = 0; obj < objectCount; ++obj ) {
-		for( int x = 0; x < scaledAxis; ++x ) {
-			for( int inScale = 0; inScale < scale; ++inScale ) {
-				for( int elem = 0; elem < objectSize; ++elem ) {
-					*output++ = x == scaledAxis - 1 ? input[elem]
-						: static_cast<float>( scale - inScale ) / scale * input[elem] + static_cast<float>( inScale ) / scale * input[elem + objectSize];
+		for( int xNew = 0; xNew < static_cast<int>( scale * scaledAxis ); ++xNew ) {
+			float xOld = -1.f;
+			switch( coords ) {
+				case TInterpolationCoords::HalfPixel:
+					xOld = ( xNew + 0.5f ) / scale - 0.5f;
+					break;
+				case TInterpolationCoords::PytorchHalfPixel:
+					xOld = newSize > 1 ? ( xNew + 0.5f ) / scale - 0.5f : 0;
+					break;
+				case TInterpolationCoords::AlignCorners:
+					xOld = static_cast<float>( xNew * ( scaledAxis - 1 ) ) / ( newSize - 1 );
+					break;
+				case TInterpolationCoords::Asymmetric:
+					xOld = xNew / scale;
+					break;
+				default:
+					ASSERT_TRUE( false ) << "Unknown coordinate system";
+			}
+			switch( round ) {
+				case TInterpolationRound::None:
+					break;
+				case TInterpolationRound::RoundPreferFloor:
+					if( xOld == static_cast<int>( xOld ) + 0.5f ) {
+						xOld = ::floorf( xOld );
+					} else {
+						xOld = ::roundf( xOld );
+					}
+					break;
+				case TInterpolationRound::RoundPreferCeil:
+					xOld = ::roundf( xOld );
+					break;
+				case TInterpolationRound::Floor:
+					xOld = ::floorf( xOld );
+					break;
+				case TInterpolationRound::Ceil:
+					xOld = ::ceilf( xOld );
+					break;
+				default:
+					ASSERT_TRUE( false ) << "Unknown rounding";
+			}
+			const float* currInput = input + obj * scaledAxis * objectSize;
+			for( int elem = 0; elem < objectSize; ++elem ) {
+				if( xOld <= 0 ) {
+					*output++ = *currInput++;
+				} else if( xOld >= scaledAxis - 1 ) {
+					*output++ = currInput[objectSize * ( scaledAxis - 1 )];
+					++currInput;
+				} else {
+					const int leftCoord = static_cast<int>( xOld );
+					const int rightCoord = leftCoord + 1;
+					const float rightMul = xOld - std::floorf( xOld );
+					const float leftMul = 1 - rightMul;
+					*output++ = currInput[objectSize * leftCoord] * leftMul
+						+ currInput[objectSize * rightCoord] * rightMul;
+					++currInput;
 				}
 			}
-			input += objectSize;
 		}
 	}
 }
@@ -62,27 +112,48 @@ static void testLinearInterpolationWithParams( const CTestParams& params, int se
 	const int objectCount = random.UniformInt( objectCountInterval.Begin, objectCountInterval.End );
 	const int scaledAxis = random.UniformInt( scaledAxisInterval.Begin, scaledAxisInterval.End );
 	const int objectSize = random.UniformInt( objectSizeInterval.Begin, objectSizeInterval.End );
-	const int scale = random.UniformInt( scaleInterval.Begin, scaleInterval.End );
 
-	CREATE_FILL_FLOAT_ARRAY( input, valuesInterval.Begin, valuesInterval.End,
-		objectCount * scaledAxis * objectSize, random );
-	std::vector<float> expected( input.size() * scale );
-	naiveLinearInterpolation( input.data(), expected.data(), objectCount, scaledAxis, objectSize, scale );
+	for( int coords = 0; coords < static_cast<int>( TInterpolationCoords::Count ); ++coords ) {
+		const int minOutputSize = coords == static_cast<int>( TInterpolationCoords::AlignCorners ) ? 2 : 1;
+		const double minScale = static_cast<double>( minOutputSize ) / scaledAxis;
+		float scale = static_cast<float>( random.Uniform( std::max( static_cast<double>( scaleInterval.Begin ), minScale ),
+			std::max( static_cast<double>( scaleInterval.End ), minScale ) ) );
+		while( static_cast<int>( scaledAxis * scale ) < minOutputSize ) {
+			scale = static_cast<float>( random.Uniform( static_cast<double>( scaleInterval.Begin ),
+				static_cast<double>( scaleInterval.End ) ) );
+		}
 
-	testLinearInterpolation( input, expected, objectCount, scaledAxis, objectSize, scale );
+		for( int round = 0; round < static_cast<int>( TInterpolationRound::Count ); ++round ) {
+			CREATE_FILL_FLOAT_ARRAY( input, valuesInterval.Begin, valuesInterval.End,
+				objectCount * scaledAxis * objectSize, random );
+			std::vector<float> expected( objectCount * static_cast<int>( scaledAxis * scale ) * objectSize );
+			naiveLinearInterpolation( static_cast<TInterpolationCoords>( coords ), static_cast<TInterpolationRound>( round ),
+				input.data(), expected.data(), objectCount, scaledAxis, objectSize, scale );
+
+			testLinearInterpolation( static_cast<TInterpolationCoords>( coords ), static_cast<TInterpolationRound>( round ),
+				input, expected, objectCount, scaledAxis, objectSize, scale );
+		}
+	}
 }
 
 class CMathEngineLinearInterpolationTest : public CTestFixtureWithParams {
 };
 
-TEST_F( CMathEngineLinearInterpolationTest, Precalc_Flat )
+TEST_F( CMathEngineLinearInterpolationTest, Precalc_FlatAsymmetric )
 {
 	std::vector<float> input{ 0.1f, 0.4f, 0.7f };
 	std::vector<float> expected{ 0.1f, 0.2f, 0.3f, 0.4f, 0.5f, 0.6f, 0.7f, 0.7f, 0.7f };
-	testLinearInterpolation( input, expected, 1, 3, 1, 3 );
+	testLinearInterpolation( TInterpolationCoords::Asymmetric, TInterpolationRound::None, input, expected, 1, 3, 1, 3.f );
 }
 
-TEST_F( CMathEngineLinearInterpolationTest, Precal_3D )
+TEST_F( CMathEngineLinearInterpolationTest, Precalc_FlatPytorchHalfPixel )
+{
+	std::vector<float> input{ 0.f, 1.f, 2.f };
+	std::vector<float> expected{ 0.f, 0.f, 1.f / 3, 2.f / 3, 1., 4.f / 3, 5.f / 3, 2.f, 2.f };
+	testLinearInterpolation( TInterpolationCoords::PytorchHalfPixel, TInterpolationRound::None, input, expected, 1, 3, 1, 3.f );
+}
+
+TEST_F( CMathEngineLinearInterpolationTest, Precal_3DAsymmetrict )
 {
 	std::vector<float> input{
 		1, 2,
@@ -104,7 +175,7 @@ TEST_F( CMathEngineLinearInterpolationTest, Precal_3D )
 		7, 8
 	};
 
-	testLinearInterpolation( input, expected, 2, 2, 2, 2 );
+	testLinearInterpolation( TInterpolationCoords::Asymmetric, TInterpolationRound::None, input, expected, 2, 2, 2, 2.f );
 }
 
 TEST_P( CMathEngineLinearInterpolationTest, Random )
@@ -118,7 +189,7 @@ INSTANTIATE_TEST_CASE_P( CMathEngineLinearInterpolationTestInstantiation, CMathE
 			"ObjectCount = (1..3);"
 			"ScaledAxis = (1..3);"
 			"ObjectSize = (1..3);"
-			"Scale = (1..3);"
+			"Scale = (0..3);"
 			"Values = (-10..15);"
 			"TestCount = 100;"
 		),
@@ -126,9 +197,10 @@ INSTANTIATE_TEST_CASE_P( CMathEngineLinearInterpolationTestInstantiation, CMathE
 			"ObjectCount = (1..10);"
 			"ScaledAxis = (1..10);"
 			"ObjectSize = (1..10);"
-			"Scale = (1..10);"
+			"Scale = (0..10);"
 			"Values = (-10..15);"
 			"TestCount = 100;"
 		)
 	)
 );
+

@@ -20,43 +20,64 @@ limitations under the License.
 
 namespace NeoML {
 
-static inline int nontrivialInterpolationDims( const CArray<int>& scales )
+static inline int nontrivialInterpolationDims( const CBlobDesc& input, const CBlobDesc& output )
 {
 	int result = 0;
-	for( int i = 0; i < scales.Size(); ++i ) {
-		result += scales[i] > 1 ? 1 : 0;
+	for( TBlobDim dim = BD_BatchLength; dim < BD_Count; ++dim ) {
+		if( input.DimSize( dim ) != output.DimSize( dim ) ) {
+			result++;
+		}
 	}
 	return result;
 }
 
 // --------------------------------------------------------------------------------------------------------------------
 
-CInterpolationLayer::CInterpolationLayer( IMathEngine& mathEngine ) :
-	CBaseLayer( mathEngine, "CInterpolationLayer", false )
+static const int InterpolationLayerRuleVersion = 1;
+
+void CInterpolationLayer::CRule::Serialize( CArchive& archive )
 {
-	scales.Add( 1, static_cast<int>( BD_Count ) );
+	archive.SerializeVersion( InterpolationLayerRuleVersion );
+	int typeInt = static_cast<int>( Type );
+	archive.Serialize( typeInt );
+	Type = static_cast<TRuleType>( typeInt );
+	switch( Type ) {
+		case TRuleType::None:
+			break;
+		case TRuleType::Resize:
+			archive.Serialize( NewSize );
+			break;
+		case TRuleType::Scale:
+			archive.Serialize( ScaleCoeff );
+			break;
+		default:
+			NeoAssert( false );
+	}
 }
 
-static const int InterpolationLayerVersion = 0;
+// --------------------------------------------------------------------------------------------------------------------
+
+CInterpolationLayer::CInterpolationLayer( IMathEngine& mathEngine ) :
+	CBaseLayer( mathEngine, "CInterpolationLayer", false ),
+	coords( TInterpolationCoords::Asymmetric ),
+	round( TInterpolationRound::None )
+{
+	rules.SetSize( BD_Count );
+}
+
+static const int InterpolationLayerVersion = 1;
 
 void CInterpolationLayer::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion( InterpolationLayerVersion );
+	const int version = archive.SerializeVersion( InterpolationLayerVersion );
 	CBaseLayer::Serialize( archive );
-	archive.Serialize( scales );
-}
-
-void CInterpolationLayer::SetScale( TBlobDim dim, int scale )
-{
-	NeoAssert( dim >= BD_BatchLength && dim < BD_Count );
-	NeoAssert( scale >= 1 );
-	scales[dim] = scale;
-}
-
-int CInterpolationLayer::GetScale( TBlobDim dim ) const
-{
-	NeoAssert( dim >= BD_BatchLength && dim < BD_Count );
-	return scales[dim];
+	int coordsInt = static_cast<int>( coords );
+	archive.Serialize( coordsInt );
+	coords = static_cast<TInterpolationCoords>( coordsInt );
+	int roundInt = static_cast<int>( round );
+	archive.Serialize( roundInt );
+	round = static_cast<TInterpolationRound>( roundInt );
+	archive.Serialize( rules );
 }
 
 void CInterpolationLayer::Reshape()
@@ -69,82 +90,72 @@ void CInterpolationLayer::Reshape()
 
 	outputDescs[0] = inputDescs[0];
 
-	for( int dim = 0; dim < scales.Size(); ++dim ) {
-		outputDescs[0].SetDimSize( dim, inputDescs[0].DimSize( dim ) * scales[dim] );
+	for( int dim = 0; dim < rules.Size(); ++dim ) {
+		switch( rules[dim].Type ) {
+			case TRuleType::None:
+				break;
+			case TRuleType::Resize:
+				outputDescs[0].SetDimSize( dim, rules[dim].NewSize );
+				break;
+			case TRuleType::Scale:
+				outputDescs[0].SetDimSize( dim, static_cast<int>( outputDescs[0].DimSize( dim ) * rules[dim].ScaleCoeff ) );
+				break;
+			default:
+				NeoAssert( false );
+		}
+		CheckArchitecture( outputDescs[0].DimSize( dim ) > 0, GetName(), "Zero or negative dim size" );
 	}
 }
 
 void CInterpolationLayer::RunOnce()
 {
-	int nontrivialDims = nontrivialInterpolationDims( scales );
+	int nontrivialDims = nontrivialInterpolationDims( inputBlobs[0]->GetDesc(), outputBlobs[0]->GetDesc() );
 	if( nontrivialDims == 0 ) {
 		outputBlobs[0]->CopyFrom( inputBlobs[0].Ptr() );
 	} else if( nontrivialDims == 1 ) {
 		int objectCount = 1;
-		for( int i = 0; i < scales.Size(); ++i ) {
-			if( scales[i] > 1 ) {
-				const int scaledAxis = inputBlobs[0]->DimSize( i );
-				const int objectSize = inputBlobs[0]->GetDataSize() / ( objectCount / scaledAxis );
-				MathEngine().LinearInterpolation( inputBlobs[0]->GetData(), outputBlobs[0]->GetData(),
-					objectCount, scaledAxis, objectSize, scales[i] );
+		for( int i = 0; i < static_cast<int>( BD_Count ); ++i ) {
+			const int oldSize = inputBlobs[0]->DimSize( i );
+			const int newSize = outputBlobs[0]->DimSize( i );
+			if( oldSize != newSize ) {
+				const float scale = rules[i].Type == TRuleType::Scale ? rules[i].ScaleCoeff
+					: static_cast<float>( newSize ) / oldSize;
+				const int objectSize = inputBlobs[0]->GetDataSize() / ( objectCount * oldSize );
+				MathEngine().LinearInterpolation( inputBlobs[0]->GetData(), outputBlobs[0]->GetData(), coords,
+					round, objectCount, oldSize, objectSize, scale );
 				break;
 			}
-			objectCount *= inputBlobs[0]->DimSize( i );
+			objectCount *= oldSize;
 		}
 	} else {
 		int objectCount = 1;
 		int objectSize = inputBlobs[0]->GetDataSize();
-		CFloatHandleStackVar buffer( MathEngine(), outputBlobs[0]->GetDataSize() );
+		const int halfBuffer = max( outputBlobs[0]->GetDataSize(), inputBlobs[0]->GetDataSize() );
+		CFloatHandleStackVar buffer( MathEngine(), 2 * halfBuffer );
 		CConstFloatHandle currInput = inputBlobs[0]->GetData();
-		CFloatHandle currOutput = nontrivialDims % 2 == 0 ? buffer.GetHandle() : outputBlobs[0]->GetData();
-		for( int i = 0; i < scales.Size(); ++i ) {
-			const int scaledAxis = inputBlobs[0]->DimSize( i );
-			objectSize /= scaledAxis;
-			if( scales[i] > 1 ) {
+		CFloatHandle currOutput = nontrivialDims % 2 == 0 ? buffer.GetHandle() : buffer.GetHandle() + halfBuffer;
+		for( int i = 0; i < static_cast<int>( BD_Count ); ++i ) {
+			const int oldSize = inputBlobs[0]->DimSize( i );
+			const int newSize = outputBlobs[0]->DimSize( i );
+			objectSize /= oldSize;
+			if( oldSize != newSize ) {
 				--nontrivialDims;
-				MathEngine().LinearInterpolation( currInput, currOutput, objectCount, scaledAxis, objectSize, scales[i] );
+				const float scale = rules[i].Type == TRuleType::Scale ? rules[i].ScaleCoeff
+					: static_cast<float>( newSize ) / oldSize;
+				MathEngine().LinearInterpolation( currInput, currOutput, coords, round,
+					objectCount, oldSize, objectSize, scale );
 				currInput = currOutput;
-				currOutput = nontrivialDims % 2 == 0 ? buffer.GetHandle() : outputBlobs[0]->GetData();
+				currOutput = nontrivialDims % 2 == 0 ? buffer.GetHandle() : buffer.GetHandle() + halfBuffer;
 			}
-			objectCount *= scaledAxis * scales[i];
+			objectCount *= newSize;
 		}
+		MathEngine().VectorCopy( outputBlobs[0]->GetData(), currInput, outputBlobs[0]->GetDataSize() );
 	}
 }
 
 void CInterpolationLayer::BackwardOnce()
 {
-	int nontrivialDims = nontrivialInterpolationDims( scales );
-	if( nontrivialDims == 0 ) {
-		inputDiffBlobs[0]->CopyFrom( outputDiffBlobs[0].Ptr() );
-	} else if( nontrivialDims == 1 ) {
-		int objectCount = 1;
-		for( int i = 0; i < scales.Size(); ++i ) {
-			if( scales[i] > 1 ) {
-				const int scaledAxis = inputDiffBlobs[0]->DimSize( i );
-				const int objectSize = inputDiffBlobs[0]->GetDataSize() / ( objectCount / scaledAxis );
-				MathEngine().LinearInterpolationBackward( outputDiffBlobs[0]->GetData(), inputDiffBlobs[0]->GetData(),
-					objectCount, scaledAxis, objectSize, scales[i] );
-				break;
-			}
-			objectCount *= inputDiffBlobs[0]->DimSize( i );
-		}
-	} else {
-		CFloatHandleStackVar buffer( MathEngine(), outputDiffBlobs[0]->GetDataSize() );
-		CConstFloatHandle currOutputDiff = outputDiffBlobs[0]->GetData();
-		CFloatHandle currInputDiff = nontrivialDims % 2 == 0 ? buffer.GetHandle() : inputDiffBlobs[0]->GetData();
-		int objectSize = 1;
-		for( int i = scales.Size() - 1; i >= 0; --i ) {
-			const int scaledAxis = inputDiffBlobs[0]->DimSize( i );
-			if( scales[i] > 1 ) {
-				--nontrivialDims;
-				MathEngine().LinearInterpolationBackward( currOutputDiff, currInputDiff,
-					outputDiffBlobs[0]->GetDataSize() / ( scales[i] * scaledAxis * objectSize ), scaledAxis, objectSize, scales[i] );
-				currOutputDiff = currInputDiff;
-				currInputDiff = nontrivialDims % 2 == 0 ? buffer.GetHandle() : inputDiffBlobs[0]->GetData();
-			}
-			objectSize *= inputDiffBlobs[0]->DimSize( i );
-		}
-	}
+	NeoAssert( false );
 }
 
 } // namespace NeoML
