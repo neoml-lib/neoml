@@ -69,7 +69,7 @@ static const int InterpolationLayerVersion = 1;
 
 void CInterpolationLayer::Serialize( CArchive& archive )
 {
-	const int version = archive.SerializeVersion( InterpolationLayerVersion );
+	archive.SerializeVersion( InterpolationLayerVersion );
 	CBaseLayer::Serialize( archive );
 	int coordsInt = static_cast<int>( coords );
 	archive.Serialize( coordsInt );
