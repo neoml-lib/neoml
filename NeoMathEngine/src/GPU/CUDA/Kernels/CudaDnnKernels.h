@@ -829,7 +829,7 @@ __global__ void LinearInterpolationKernel( const float* data, float* result, int
 		*result = data[( b * scaledAxis + scaledAxis - 1 ) * objectSize + elem];
 	} else {
 		const int leftCoord = static_cast<int>( xOld );
-		const float rightMul = xOld - std::floorf( xOld );
+		const float rightMul = xOld - ::floorf( xOld );
 		const float leftMul = 1.f - rightMul;
 		*result = leftMul * data[( b * scaledAxis + leftCoord ) * objectSize + elem]
 			+ rightMul * data[( b * scaledAxis + ( leftCoord + 1 ) ) * objectSize + elem];

@@ -88,7 +88,7 @@ static void naiveLinearInterpolation( TInterpolationCoords coords, TInterpolatio
 				} else {
 					const int leftCoord = static_cast<int>( xOld );
 					const int rightCoord = leftCoord + 1;
-					const float rightMul = xOld - std::floorf( xOld );
+					const float rightMul = xOld - ::floorf( xOld );
 					const float leftMul = 1 - rightMul;
 					*output++ = currInput[objectSize * leftCoord] * leftMul
 						+ currInput[objectSize * rightCoord] * rightMul;
