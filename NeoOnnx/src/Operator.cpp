@@ -33,6 +33,7 @@ limitations under the License.
 #include "Operators/ConvTransposeOperator.h"
 #include "Operators/DropoutOperator.h"
 #include "Operators/EltwiseOperator.h"
+#include "Operators/EqualOperator.h"
 #include "Operators/ExpandOperator.h"
 #include "Operators/FlattenOperator.h"
 #include "Operators/GatherOperator.h"
@@ -57,6 +58,7 @@ limitations under the License.
 #include "Operators/TransposeOperator.h"
 #include "Operators/UnsqueezeOperator.h"
 #include "Operators/UpsampleOperator.h"
+#include "Operators/WhereOperator.h"
 
 namespace NeoOnnx {
 
@@ -123,6 +125,7 @@ REGISTER_OPERATOR( CConvTransposeOperator, "ConvTranspose" )
 REGISTER_OPERATOR( CDivOperator, "Div" )
 REGISTER_OPERATOR( CDropoutOperator, "Dropout" )
 REGISTER_OPERATOR( CEluOperator, "Elu" )
+REGISTER_OPERATOR( CEqualOperator, "Equal" )
 REGISTER_OPERATOR( CExpandOperator, "Expand" )
 REGISTER_OPERATOR( CFlattenOperator, "Flatten" )
 REGISTER_OPERATOR( CGatherOperator, "Gather" )
@@ -161,6 +164,7 @@ REGISTER_OPERATOR( CTanhOperator, "Tanh" )
 REGISTER_OPERATOR( CTransposeOperator, "Transpose" )
 REGISTER_OPERATOR( CUnsqueezeOperator, "Unsqueeze" )
 REGISTER_OPERATOR( CUpsampleOperator, "Upsample" )
+REGISTER_OPERATOR( CWhereOperator, "Where" )
 
 } // anonymous namespace
 
