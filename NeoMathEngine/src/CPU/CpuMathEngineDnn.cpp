@@ -16,8 +16,6 @@ limitations under the License.
 #include <common.h>
 #pragma hdrstop
 
-#include <cmath>
-
 #include <CpuMathEngine.h>
 #include <CpuMathEnginePrivate.h>
 #include <CpuExecutionScope.h>
@@ -1262,7 +1260,7 @@ void CCpuMathEngine::LinearInterpolation( const CConstFloatHandle& dataHandle, c
 			} else if( oldCoord >= static_cast<float>( scaledAxis - 1 ) ) {
 				dataCopy( currResult, currData + ( scaledAxis - 1 ) * objectSize, objectSize );
 			} else {
-				const float leftCoord = std::floorf( oldCoord );
+				const float leftCoord = ::floorf( oldCoord );
 				const float leftMul = 1.f - ( oldCoord - leftCoord );
 				const float rightMul = oldCoord - leftCoord;
 				vectorMultiply( currData + static_cast<int>( oldCoord ) * objectSize, currBuff, leftMul, objectSize );
