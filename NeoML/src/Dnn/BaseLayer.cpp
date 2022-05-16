@@ -499,11 +499,9 @@ void CBaseLayer::recheckBackwardNeeded()
 	}
 }
 
-CDnnBlob* CBaseLayer::cloneBlobForDiff(CDnnBlob* blob)
+CDnnBlob* CBaseLayer::cloneBlobForDiff(const CBlobDesc& desc)
 {
-	NeoAssert( blob != 0 );
-
-	CDnnBlob* ret = blob->GetClone();
+	CDnnBlob* ret = CDnnBlob::CreateBlob( MathEngine(), desc );
 	ret->Clear();
 	return ret;
 }
@@ -541,7 +539,7 @@ void CBaseLayer::backwardRunAndLearnOnce()
 			if( isInPlace ) {
 				inputDiffBlobs.Add( outputDiffBlobs[i] );
 			} else {
-				inputDiffBlobs.Add( cloneBlobForDiff( inputBlobs[i] ) );
+				inputDiffBlobs.Add( cloneBlobForDiff( inputDescs[i] ) );
 			}
 		}
 
@@ -619,7 +617,7 @@ void CBaseLayer::transferDiffBlob( CDnnBlob* diffBlob, int outputNum )
 		// If an output is connected to several inputs, create a copy of the diff blob and then add it to the others
 		if(readyOutputDiffs[outputNum] == 0) {
 			if( outputDiffBlobs[outputNum] == 0 ) {
-				outputDiffBlobs[outputNum] = cloneBlobForDiff(diffBlob);
+				outputDiffBlobs[outputNum] = cloneBlobForDiff(diffBlob->GetDesc());
 			}
 			outputDiffBlobs[outputNum]->CopyFrom( diffBlob );
 		} else {

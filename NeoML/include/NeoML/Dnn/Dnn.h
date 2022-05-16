@@ -358,7 +358,7 @@ private:
 	void clearAllRuntimeBlobs();
 
 	// Clones a blob to store diffs
-	CDnnBlob* cloneBlobForDiff(CDnnBlob* blob);
+	CDnnBlob* cloneBlobForDiff(const CBlobDesc& desc);
 
 	// Indicates if the layer uses in-place processing (the output blobs replace the input blobs)
 	bool isInPlaceProcess() const;
