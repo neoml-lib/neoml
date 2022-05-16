@@ -539,7 +539,11 @@ void CBaseLayer::backwardRunAndLearnOnce()
 			if( isInPlace ) {
 				inputDiffBlobs.Add( outputDiffBlobs[i] );
 			} else {
-				inputDiffBlobs.Add( cloneBlobForDiff( inputDescs[i] ) );
+				CBlobDesc inputDiffDesc = inputDescs[i];
+				if( GetDnn()->IsRecurrentMode() ) {
+					inputDiffDesc.SetDimSize( BD_BatchLength, 1 );
+				}
+				inputDiffBlobs.Add( cloneBlobForDiff( inputDiffDesc ) );
 			}
 		}
 
