@@ -31,6 +31,7 @@ public:
 
 	bool IsEmpty() const { return empty(); }
 	int Find( const CString& other ) const;
+	int Length() const { return static_cast<int>( length() ); }
 };
 
 inline int CString::Find( const CString& other ) const
