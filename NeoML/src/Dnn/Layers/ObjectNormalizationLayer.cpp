@@ -243,8 +243,8 @@ void CObjectNormalizationLayer::applyScaleAndBias( const CConstFloatHandle& inpu
 
 void CObjectNormalizationLayer::BackwardOnce()
 {
-	const int objectCount = inputBlobs[0]->GetObjectCount();
-	const int objectSize = inputBlobs[0]->GetObjectSize();
+	const int objectCount = inputDiffBlobs[0]->GetObjectCount();
+	const int objectSize = inputDiffBlobs[0]->GetObjectSize();
 	const int dataSize = objectCount * objectSize;
 
 	CConstFloatHandle input = normalizedInput->GetData();
@@ -290,8 +290,8 @@ void CObjectNormalizationLayer::BackwardOnce()
 
 void CObjectNormalizationLayer::LearnOnce()
 {
-	const int objectCount = inputBlobs[0]->GetObjectCount();
-	const int objectSize = inputBlobs[0]->GetObjectSize();
+	const int objectCount = inputDiffBlobs[0]->GetObjectCount();
+	const int objectSize = inputDiffBlobs[0]->GetObjectSize();
 	const int dataSize = objectCount * objectSize;
 
 	CFloatHandle outDiff = outputDiffBackup == nullptr ? outputDiffBlobs[0]->GetData() : outputDiffBackup->GetData();

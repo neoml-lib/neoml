@@ -42,6 +42,7 @@ protected:
 	void RunOnce() override;
 	void BackwardOnce() override;
 	void AllocateOutputBlobs() override;
+	int BlobsForBackward() const override { return 0; }
 };
 
 // Creates CDataLayer with the given name

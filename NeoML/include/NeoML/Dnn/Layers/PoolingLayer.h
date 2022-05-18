@@ -64,6 +64,7 @@ protected:
 	void RunOnce() override;
 	void BackwardOnce() override;
 	void Reshape() override;
+	int BlobsForBackward() const override { return 0; }
 
 private:
 	CPtr<CDnnBlob> maxIndices; // contains the maximums' indices (for the backward pass)
@@ -92,6 +93,7 @@ protected:
 	void RunOnce() override;
 	void BackwardOnce() override;
 	void Reshape() override;
+	int BlobsForBackward() const override { return 0; }
 
 private:
 	CMeanPoolingDesc* desc;

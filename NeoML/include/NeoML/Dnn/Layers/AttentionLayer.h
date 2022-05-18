@@ -72,6 +72,10 @@ public:
 	int GetHiddenLayerSize() const;
 	void SetHiddenLayerSize( int size );
 
+protected:
+	int BlobsForBackward() const override { return TInputBlobs | TOutputBlobs; }
+	int BlobsForLearn() const override { return 0; }
+
 private:
 	TAttentionScore score; // estimate function
 	CPtr<CFullyConnectedLayer> initLayer;
@@ -119,6 +123,10 @@ public:
 
 	// The hidden layer size (only for AS_Additive):
 	void SetHiddenLayerSize( int size );
+
+protected:
+	int BlobsForBackward() const override { return TInputBlobs | TOutputBlobs; }
+	int BlobsForLearn() const override { return 0; }
 
 private:
 	TAttentionScore score; // the estimate function
@@ -176,6 +184,10 @@ public:
 	CPtr<CDnnBlob> GetFcFreeTermData() const;
 	void SetFcFreeTermData( const CPtr<CDnnBlob>& newFreeTerms );
 
+protected:
+	int BlobsForBackward() const override { return TInputBlobs; }
+	int BlobsForLearn() const override { return 0; }
+
 private:
 	TAttentionScore score; // the alignment estimating function
 	CPtr<CFullyConnectedLayer> tanhFc; // the fully-connected layer for AS_Additive
@@ -200,6 +212,7 @@ protected:
 	void Reshape() override;
 	void RunOnce() override;
 	void BackwardOnce() override;
+	int BlobsForBackward() const override { return TInputBlobs; }
 };
 
 // The dot product of the input and output sequences
@@ -219,6 +232,7 @@ protected:
 	void Reshape() override;
 	void RunOnce() override;
 	void BackwardOnce() override;
+	int BlobsForBackward() const override { return TInputBlobs; }
 };
 
 // The sum of the input and output sequences
@@ -238,6 +252,7 @@ protected:
 	void Reshape() override;
 	void RunOnce() override;
 	void BackwardOnce() override;
+	int BlobsForBackward() const override { return 0; }
 };
 
 } // namespace NeoML

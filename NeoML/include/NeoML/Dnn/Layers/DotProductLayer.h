@@ -38,6 +38,7 @@ protected:
 	void Reshape() override;
 	void RunOnce() override;
 	void BackwardOnce() override;
+	int BlobsForBackward() const override { return TInputBlobs; }
 };
 
 NEOML_API CLayerWrapper<CDotProductLayer> DotProduct();

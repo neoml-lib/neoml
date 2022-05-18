@@ -123,6 +123,8 @@ protected:
 	void RunOnce() override;
 	void BackwardOnce() override;
 	void LearnOnce() override;
+	int BlobsForBackward() const override { return TOutputBlobs; }
+	int BlobsForLearn() const override { return TOutputBlobs; }
 
 private:
 	TActivationFunction activation; // Activation function

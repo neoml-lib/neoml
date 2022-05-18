@@ -80,7 +80,7 @@ protected:
 	void LearnOnce() override;
 	void OnDnnChanged( CDnn* ) override;
 	void FilterLayerParams( float threshold ) override;
-	
+
 	// The network object for the internal layers
 	const CDnn* GetInternalDnn() const { return internalDnn; }
 	CDnn* GetInternalDnn() { return internalDnn; }

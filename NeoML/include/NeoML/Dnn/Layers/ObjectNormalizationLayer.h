@@ -58,6 +58,8 @@ protected:
 	void RunOnce() override;
 	void BackwardOnce() override;
 	void LearnOnce() override;
+	int BlobsForBackward() const override { return 0; }
+	int BlobsForLearn() const override { return 0; }
 
 private:
 	CPtr<CDnnBlob> epsilon;

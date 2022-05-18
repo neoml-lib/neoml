@@ -37,6 +37,7 @@ protected:
 	void Reshape() override;
 	void RunOnce() override;
 	void BackwardOnce() override;
+	int BlobsForBackward() const override { return 0; }
 
 private:
 	// Specifies the factor for reducing image size

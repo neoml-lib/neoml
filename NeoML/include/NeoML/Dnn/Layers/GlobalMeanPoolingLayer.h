@@ -33,6 +33,7 @@ protected:
 	void Reshape() override;
 	void RunOnce() override;
 	void BackwardOnce() override;
+	int BlobsForBackward() const override { return 0; }
 
 private:
 	CPtr<CDnnBlob> coeff;

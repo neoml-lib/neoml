@@ -34,6 +34,7 @@ protected:
 	void Reshape() override;
 	void RunOnce() override;
 	void BackwardOnce() override;
+	int BlobsForBackward() const override { return TInputBlobs; }
 
 private:
 	// Constant 1.702f

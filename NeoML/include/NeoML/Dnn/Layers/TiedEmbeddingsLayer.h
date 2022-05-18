@@ -44,6 +44,8 @@ protected:
 	void RunOnce() override;
 	void BackwardOnce() override;
 	void LearnOnce() override;
+	int BlobsForBackward() const override { return 0; }
+	int BlobsForLearn() const override { return TInputBlobs; }
 
 private:
 	// Embedding layer name from which we take the matrix.

@@ -68,7 +68,7 @@ public:
 
 	void RunOnce() override;
 	void Reshape() override;
-	int BlobsForBackward() const override { return 0; }
+	int BlobsForBackward() const override { return isInCompatibilityMode ? TOutputBlobs : 0; }
 	int BlobsForLearn() const override { return TInputBlobs; }
 
 private:

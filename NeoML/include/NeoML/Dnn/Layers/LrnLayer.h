@@ -64,6 +64,7 @@ protected:
 	void Reshape() override;
 	void RunOnce() override;
 	void BackwardOnce() override;
+	int BlobsForBackward() const override { return TInputBlobs | TOutputBlobs; }
 
 private:
 	CLrnDesc* desc; // the LRN descriptor
