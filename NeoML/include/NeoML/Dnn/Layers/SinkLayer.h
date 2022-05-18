@@ -39,6 +39,7 @@ protected:
 	void Reshape() override;
 	void RunOnce() override;
 	void BackwardOnce() override;
+	int BlobsForBackward() const override { return 0; }
 };
 
 // Creates CSinkLayer with name

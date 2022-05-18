@@ -46,6 +46,7 @@ protected:
 
 	void RunOnce() override;
 	void BackwardOnce() override;
+	int BlobsForBackward() const override { return 0; }
 };
 
 NEOML_API CLayerWrapper<CLinearLayer> Linear( float multiplier, float freeTerm );
@@ -68,6 +69,7 @@ public:
 protected:
 	void RunOnce() override;
 	void BackwardOnce() override;
+	int BlobsForBackward() const override { return TOutputBlobs; }
 };
 
 NEOML_API CLayerWrapper<CELULayer> Elu( float alpha = 0.01f );
@@ -92,6 +94,7 @@ public:
 protected:
 	void RunOnce() override;
 	void BackwardOnce() override;
+	int BlobsForBackward() const override { return TOutputBlobs; }
 
 private:
 	CPtr<CDnnBlob> upperThreshold;
@@ -117,6 +120,7 @@ public:
 protected:
 	void RunOnce() override;
 	void BackwardOnce() override;
+	int BlobsForBackward() const override { return TOutputBlobs; }
 };
 
 NEOML_API CLayerWrapper<CLeakyReLULayer> LeakyRelu( float alpha = 0.01f );
@@ -135,6 +139,7 @@ protected:
 	void Reshape() override;
 	void RunOnce() override;
 	void BackwardOnce() override;
+	int BlobsForBackward() const override { return TInputBlobs; }
 };
 
 NEOML_API CLayerWrapper<CHSwishLayer> HSwish();
@@ -153,6 +158,7 @@ protected:
 	void Reshape() override;
 	void RunOnce() override;
 	void BackwardOnce() override;
+	int BlobsForBackward() const override { return TInputBlobs; }
 };
 
 NEOML_API CLayerWrapper<CAbsLayer> Abs();
@@ -170,6 +176,7 @@ public:
 protected:
 	void RunOnce() override;
 	void BackwardOnce() override;
+	int BlobsForBackward() const override { return TOutputBlobs; }
 };
 
 NEOML_API CLayerWrapper<CSigmoidLayer> Sigmoid();
@@ -187,6 +194,7 @@ public:
 protected:
 	void RunOnce() override;
 	void BackwardOnce() override;
+	int BlobsForBackward() const override { return TOutputBlobs; }
 };
 
 NEOML_API CLayerWrapper<CTanhLayer> Tanh();
@@ -205,6 +213,7 @@ public:
 protected:
 	void RunOnce() override;
 	void BackwardOnce() override;
+	int BlobsForBackward() const override { return TOutputBlobs; }
 };
 
 NEOML_API CLayerWrapper<CHardTanhLayer> HardTanh();
@@ -228,6 +237,7 @@ public:
 protected:
 	void RunOnce() override;
 	void BackwardOnce() override;
+	int BlobsForBackward() const override { return TOutputBlobs; }
 
 private:
 	void setDefaultParamBlobs( IMathEngine& mathEngine );
@@ -251,6 +261,7 @@ public:
 protected:
 	void RunOnce() override;
 	void BackwardOnce() override;
+	int BlobsForBackward() const override { return TOutputBlobs; }
 
 private:
 	float exponent; // the power to which the elements will be raised

@@ -46,6 +46,7 @@ public:
 protected:
 	void RunOnce() override;
 	void BackwardOnce() override;
+	int BlobsForBackward() const override { return TOutputBlobs; }
 
 private:
 	TNormalizationArea area; // the normalization area

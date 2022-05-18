@@ -79,6 +79,7 @@ protected:
 	void RunOnce() override;
 	void BackwardOnce() override;
 	void LearnOnce() override;
+	int BlobsForLearn() const override { return TInputBlobs; }
 
 private:
 	// The size of stored vectors

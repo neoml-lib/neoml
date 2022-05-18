@@ -76,7 +76,6 @@ void CEltwiseSumLayer::RunOnce()
 
 void CEltwiseSumLayer::BackwardOnce()
 {
-	NeoAssert( inputBlobs[0]->GetDataType() == CT_Float );
 	for( int i = 0; i < inputDiffBlobs.Size(); ++i ) {
 		MathEngine().VectorCopy( inputDiffBlobs[i]->GetData(), outputDiffBlobs[0]->GetData(),
 			inputDiffBlobs[i]->GetDataSize() );

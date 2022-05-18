@@ -46,6 +46,7 @@ protected:
 	void RunOnce() override;
 	void BackwardOnce() override;
 	void LearnOnce() override;
+	int BlobsForLearn() const override { return TInputBlobs; }
 
 private:
 	CLookupDimension lookupDimension; // The size of representations table

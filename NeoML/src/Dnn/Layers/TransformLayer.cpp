@@ -165,7 +165,6 @@ void CTransformLayer::BackwardOnce()
 			inputDiffBlobs[0]->GetDataSize() );
 	} else {
 		inputDiffBlobs[0]->ReinterpretDimensions( inputDesc );
-		inputBlobs[0]->ReinterpretDimensions( inputDesc );
 	}
 }
 

@@ -35,6 +35,7 @@ public:
 	void RunOnce() override;
 	void BackwardOnce() override;
 	void Serialize( CArchive& archive ) override;
+	int BlobsForBackward() const override { return 0; }
 
 protected:
 	const TBlobDim dimension;

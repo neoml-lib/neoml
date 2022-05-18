@@ -198,7 +198,7 @@ public:
 
 void CBaseLayer::AllocateOutputBlobs()
 {
-	CMemoryModeSwitcher switcher( MathEngine(), GetDnn()->isReuseMemoryMode );
+	CMemoryModeSwitcher switcher( MathEngine(), !GetDnn()->isSmallNetInference );
 
 	for( int i = 0; i < outputDescs.Size(); ++i ) {
 		if( outputBlobs[i] == 0 ) {
@@ -358,6 +358,8 @@ void CBaseLayer::reshape()
 		MathEngine().CleanUp();
 	}
 
+	blobsNeededForBackward = ( IsBackwardPerformed() ? BlobsForBackward() : 0 )
+		| ( IsLearningPerformed() ? BlobsForLearn() : 0 );
 	Reshape();
 
 	NeoPresume( inputBlobs.IsEmpty() );
@@ -431,18 +433,19 @@ void CBaseLayer::runOnce()
 
 		inputBlobs[i] = prevLayerOutput;
 
-		if( GetDnn()->isReuseMemoryMode ) {
+		if( !GetDnn()->isSmallNetInference ) {
 			// Notify that the output has been processed
 			inputLayer->onOutputProcessed( outputNumber );
 		}
 	}
 
 	AllocateOutputBlobs();
+	allocatedBlobs = TInputBlobs | TOutputBlobs;
 
 	// Create window blobs for the inputs and outputs
 	if( dnn->IsRecurrentMode() ) {
-		switchBlobsToSequentialMode(inputBlobs, BCT_Input, GetDnn()->isReuseMemoryMode);
-		switchBlobsToSequentialMode(outputBlobs, BCT_Output, GetDnn()->isReuseMemoryMode);
+		switchBlobsToSequentialMode(inputBlobs, BCT_Input, !GetDnn()->isSmallNetInference );
+		switchBlobsToSequentialMode(outputBlobs, BCT_Output, !GetDnn()->isSmallNetInference );
 		switchBlobsToSequentialMode(runtimeBlobs, BCT_Runtime, false);
 		for(int i = 0; i < runtimeBlobs.Size(); i++) {
 			*runtimeBlobPtrs[i] = runtimeBlobs[i];
@@ -455,19 +458,17 @@ void CBaseLayer::runOnce()
 	}
 
 	if( dnn->IsRecurrentMode() ) {
-		switchBlobsToNonSequentialMode(inputBlobs, BCT_Input, GetDnn()->isReuseMemoryMode);
-		switchBlobsToNonSequentialMode(outputBlobs, BCT_Output, GetDnn()->isReuseMemoryMode);
+		switchBlobsToNonSequentialMode(inputBlobs, BCT_Input, !GetDnn()->isSmallNetInference );
+		switchBlobsToNonSequentialMode(outputBlobs, BCT_Output, !GetDnn()->isSmallNetInference );
 		switchBlobsToNonSequentialMode(runtimeBlobs, BCT_Runtime, false);
 		for(int i = 0; i < runtimeBlobs.Size(); i++) {
 			*runtimeBlobPtrs[i] = runtimeBlobs[i];
 		}
 	}
 
-	if( GetDnn()->isReuseMemoryMode ) {
-		for( int i = 0; i < inputs.Size(); ++i ) {
-			inputBlobs[i] = 0;
-		}
 
+	if( !GetDnn()->isSmallNetInference ) {
+		freeUnusedBlobs( TOutputBlobs | blobsNeededForBackward );
 		outputProcessedCount.SetSize( outputs.Size() );
 		for( int i = 0; i < outputs.Size(); ++i ) {
 			outputProcessedCount[i] = 0;
@@ -598,6 +599,8 @@ void CBaseLayer::backwardRunAndLearnOnce()
 			*runtimeBlobPtrs[i] = runtimeBlobs[i];
 		}
 	}
+
+	freeUnusedBlobs( 0 );
 }
 
 // Handles the notification that output diff is ready for a given output
@@ -761,17 +764,31 @@ void CBaseLayer::CheckOutputs() const
 
 void CBaseLayer::onOutputProcessed( int index )
 {
-	if( !GetDnn()->isReuseMemoryMode ) {
-		return;
-	}
-
+	NeoPresume( !GetDnn()->isSmallNetInference );
 	NeoPresume( outputProcessedCount.Size() > index );
 	NeoPresume( outputProcessedCount[index] < outputs[index] );
 
 	CPtr<CDnnBlob> result = outputBlobs[index];
 	outputProcessedCount[index]++;
-	if( outputProcessedCount[index] == outputs[index] ) {
+	if( outputProcessedCount[index] == outputs[index] && ( blobsNeededForBackward & TOutputBlobs ) == 0 ) {
 		outputBlobs[index] = 0;
+	}
+}
+
+void CBaseLayer::freeUnusedBlobs( int usedBlobs )
+{
+	if( ( TInputBlobs & usedBlobs ) == 0 && ( TInputBlobs & allocatedBlobs ) == 0 ) {
+		for( int i = 0; i < inputBlobs.Size(); ++i ) {
+			inputBlobs[i] = nullptr;
+		}
+		allocatedBlobs &= ~TInputBlobs;
+	}
+
+	if( ( TOutputBlobs & usedBlobs ) == 0 && ( TOutputBlobs & allocatedBlobs ) == 0 ) {
+		for( int i = 0; i < outputBlobs.Size(); ++i ) {
+			outputBlobs[i] = nullptr;
+		}
+		allocatedBlobs &= ~TOutputBlobs;
 	}
 }
 

@@ -362,7 +362,7 @@ CDnn::CDnn( CRandom& _random, IMathEngine& _mathEngine ) :
 	currentSequencePos( 0 ),
 	isReverseSequense( false ),
 	autoRestartMode( true ),
-	isReuseMemoryMode( false )
+	isSmallNetInference( false )
 {
 	solver = FINE_DEBUG_NEW CDnnSimpleGradientSolver( mathEngine );
 	initializer = FINE_DEBUG_NEW CDnnXavierInitializer( random );
@@ -540,7 +540,7 @@ void CDnn::RunOnce()
 		}
 		reshape(); // rebuild the network if necessary
 		
-		isReuseMemoryMode = ( getOutputBlobsSize() > MinReuseMemoryModeNetSize );
+		isSmallNetInference = ( getOutputBlobsSize() <= MinReuseMemoryModeNetSize );
 		runOnce(0);
 	}
 #ifdef NEOML_USE_FINEOBJ
@@ -575,7 +575,7 @@ void CDnn::RunAndBackwardOnce()
 			RestartSequence();
 		}
 		reshape(); // rebuild the network if necessary
-		isReuseMemoryMode = false;
+		isSmallNetInference = false;
 		runOnce(0);
 		backwardRunAndLearnOnce(0);
 	} catch( CCheckException* exception ) {

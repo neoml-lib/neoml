@@ -129,6 +129,8 @@ protected:
 	void RunOnce() override;
 	void BackwardOnce() override;
 	void LearnOnce() override;
+	int BlobsForBackward() const override { return 0; }
+	int BlobsForLearn() const override { return TInputBlobs; }
 
 private:
 	CConvolutionDesc* convDesc; // the convolution descriptor
@@ -170,6 +172,7 @@ protected:
 	void RunOnce() override;
 	void BackwardOnce() override;
 	void LearnOnce() override;
+	int BlobsForLearn() const override { return TInputBlobs; }
 
 private:
 	float strokeValue;		// the pixel value for strokes

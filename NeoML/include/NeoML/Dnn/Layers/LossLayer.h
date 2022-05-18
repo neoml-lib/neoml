@@ -68,6 +68,7 @@ protected:
 	void Reshape() override;
 	void RunOnce() override;
 	void BackwardOnce() override;
+	int BlobsForBackward() const override { return TInputBlobs; }
 
 	// The function that calculates the loss function and its gradient for a vector set
 	// The data vectors are stored one after another in the batch. The whole data set is of batchSize * vectorSize size.

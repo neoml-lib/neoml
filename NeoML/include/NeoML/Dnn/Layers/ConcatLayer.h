@@ -26,6 +26,7 @@ public:
 	void Reshape() override;
 	void RunOnce() override;
 	void BackwardOnce() override;
+	int BlobsForBackward() const override { return 0; }
 
 	void Serialize( CArchive& archive ) override;
 
@@ -145,6 +146,7 @@ protected:
 	void Reshape() override;
 	void RunOnce() override;
 	void BackwardOnce() override;
+	int BlobsForBackward() const override { return 0; }
 };
 
 NEOML_API CLayerWrapper<CConcatObjectLayer> ConcatObject();

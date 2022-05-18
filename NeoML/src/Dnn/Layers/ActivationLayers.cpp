@@ -98,7 +98,7 @@ void CLinearLayer::BackwardOnce()
 {
 	CConstFloatHandle outputDiffPtr = outputDiffBlobs[0]->GetData();
 	CFloatHandle inputDiffPtr = inputDiffBlobs[0]->GetData();
-	int dataSize = outputBlobs[0]->GetDataSize();
+	int dataSize = outputDiffBlobs[0]->GetDataSize();
 
 	if( multiplier != 1.f ) {
 		CFloatHandleStackVar multiplierValue( MathEngine() );

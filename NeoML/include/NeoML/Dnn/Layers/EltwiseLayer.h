@@ -43,6 +43,7 @@ public:
 protected:
 	void RunOnce() override;
 	void BackwardOnce() override;
+	int BlobsForBackward() const override { return 0; }
 };
 
 NEOML_API CLayerWrapper<CEltwiseSumLayer> Sum();
@@ -61,6 +62,7 @@ protected:
 	void Reshape() override;
 	void RunOnce() override;
 	void BackwardOnce() override;
+	int BlobsForBackward() const override { return 0; }
 };
 
 NEOML_API CLayerWrapper<CEltwiseSubLayer> Sub();
@@ -78,6 +80,7 @@ public:
 protected:
 	void RunOnce() override;
 	void BackwardOnce() override;
+	int BlobsForBackward() const override { return TInputBlobs; }
 };
 
 NEOML_API CLayerWrapper<CEltwiseMulLayer> Mul();
@@ -97,6 +100,7 @@ protected:
 	void Reshape() override;
 	void RunOnce() override;
 	void BackwardOnce() override;
+	int BlobsForBackward() const override { return TInputBlobs; }
 
 private:
 	CPtr<CDnnBlob> oneVector;
@@ -122,6 +126,7 @@ protected:
 	void Reshape() override;
 	void RunOnce() override;
 	void BackwardOnce() override;
+	int BlobsForBackward() const override { return 0; }
 
 private:
 	CPtr<CDnnBlob> maxIndices; // the indices of the inputs that had the largest elements
@@ -143,6 +148,7 @@ protected:
 	void Reshape() override;
 	void RunOnce() override;
 	void BackwardOnce() override;
+	int BlobsForBackward() const override { return TInputBlobs; }
 };
 
 NEOML_API CLayerWrapper<CEltwiseDivLayer> Div();

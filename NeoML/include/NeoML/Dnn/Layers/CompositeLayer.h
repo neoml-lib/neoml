@@ -182,6 +182,7 @@ protected:
 	void RunOnce() override;
 	void BackwardOnce() override;
 	void AllocateOutputBlobs() override;
+	int BlobsForBackward() const override { return 0; }
 
 private:
 	CBlobDesc desc;
@@ -218,6 +219,7 @@ protected:
 	void Reshape() override;
 	void RunOnce() override;
 	void BackwardOnce() override;
+	int BlobsForBackward() const override { return 0; }
 };
 
 } // namespace NeoML

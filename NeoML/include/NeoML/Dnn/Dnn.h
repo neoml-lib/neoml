@@ -270,6 +270,19 @@ protected:
 	// The default implementation creates the outputBlobs array using the output descriptions
 	virtual void AllocateOutputBlobs();
 
+	// The following section contains interface for the memory optimization during training
+	// The key idea is that the layer may provide additional information about blobs required for backward and
+
+	// Blob types which are used by layer during backward and learn
+	static const int TInputBlobs = 1 << 0;
+	static const int TOutputBlobs = 1 << 1;
+
+	// The following methods are called during reshape stage and may use anything available in Reshape methods
+	// Blob types required for the correct work of BackwardOnce
+	virtual int BlobsForBackward() const { return TInputBlobs | TOutputBlobs; }
+	// Blob types required for the correct work of LearnOnce
+	virtual int BlobsForLearn() const { return TInputBlobs | TOutputBlobs; }
+
 private:
 	// Describes an input connection
 	struct CInputInfo {
@@ -364,6 +377,12 @@ private:
 	bool isInPlaceProcess() const;
 	// Indicates if the layer is composite (contains another sub-network)
 	virtual bool isComposite() const { return false; }
+
+	// Fields used for memory optimization during training
+	int allocatedBlobs; // the mask of currently allocated blobs
+	int blobsNeededForBackward; // the mask of blobs needed for backward and learn
+	// Frees the blobs no longer required for the layer
+	void freeUnusedBlobs( int neededBlobs );
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////
 	// The methods and data for interacting with the network
@@ -578,8 +597,9 @@ private:
 	bool isReverseSequense;
 	// The auto-restart mode for each RunOnce/RunAndLearnOnce() call
 	bool autoRestartMode;
-	// The low memory use mode
-	bool isReuseMemoryMode;
+	// The specific case of running inference on small network
+	// It turns on some performance optimizations
+	bool isSmallNetInference;
 
 	void setProcessingParams(bool isRecurrentMode, int sequenceLength, bool isReverseSequense, bool isBackwardPerformed);
 	void runOnce(int curSequencePos);

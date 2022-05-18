@@ -282,7 +282,6 @@ void CImageToPixelLayer::BackwardOnce()
 	NeoAssert( inputBlobs.Size() == 2 );
 	NeoAssert( inputDiffBlobs.Size() == 2 );
 	NeoAssert( outputDiffBlobs.Size() == 1 );
-	NeoAssert( inputBlobs[0]->GetDataType() == CT_Float );
 
 	convertPixelToImage( MathEngine(), *outputDiffBlobs[0], *shiftedIndices, *inputDiffBlobs[0] );
 }
