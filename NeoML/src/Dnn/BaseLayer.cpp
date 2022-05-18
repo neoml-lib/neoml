@@ -170,9 +170,15 @@ bool CBaseLayer::IsInPlaceProcessAvailable() const
 			// so its data is shared by several layers and may not be processed in place
 			return false;
 		}
-		if(dynamic_cast<const CBaseInPlaceLayer*>(inputLayer) != 0) {
-			// The previous layer is itself processing in-place, so it may be counting on not having its output blobs changed
-			// So the data may not be processed in place because that would change the outputs of the previous layer
+		if( ( inputLayer->blobsNeededForBackward & TOutputBlobs ) != 0 ) {
+			// The previous layer needs its output for backward
+			return false;
+		}
+		const CBaseInPlaceLayer* inPlaceInput = dynamic_cast<const CBaseInPlaceLayer*>( inputLayer );
+		if( inPlaceInput != nullptr && inPlaceInput->isInPlace
+			&& ( inputLayer->blobsNeededForBackward & TInputBlobs ) != 0 )
+		{
+			// The previous layer is working inPlace and needs its input to function properly
 			return false;
 		}
 	}

@@ -37,6 +37,8 @@ private:
 
 	// Indicates if the layer performs in-place processing (after the Reshape method call)
 	bool isInPlace;
+
+	friend class CBaseLayer;
 };
 
 } // namespace NeoML
