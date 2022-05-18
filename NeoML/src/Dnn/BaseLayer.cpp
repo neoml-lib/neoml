@@ -777,14 +777,14 @@ void CBaseLayer::onOutputProcessed( int index )
 
 void CBaseLayer::freeUnusedBlobs( int usedBlobs )
 {
-	if( ( TInputBlobs & usedBlobs ) == 0 && ( TInputBlobs & allocatedBlobs ) == 0 ) {
+	if( ( TInputBlobs & usedBlobs ) == 0 && ( TInputBlobs & allocatedBlobs ) != 0 ) {
 		for( int i = 0; i < inputBlobs.Size(); ++i ) {
 			inputBlobs[i] = nullptr;
 		}
 		allocatedBlobs &= ~TInputBlobs;
 	}
 
-	if( ( TOutputBlobs & usedBlobs ) == 0 && ( TOutputBlobs & allocatedBlobs ) == 0 ) {
+	if( ( TOutputBlobs & usedBlobs ) == 0 && ( TOutputBlobs & allocatedBlobs ) != 0 ) {
 		for( int i = 0; i < outputBlobs.Size(); ++i ) {
 			outputBlobs[i] = nullptr;
 		}
