@@ -600,7 +600,11 @@ void CBaseLayer::backwardRunAndLearnOnce()
 		}
 	}
 
-	freeUnusedBlobs( 0 );
+	// If layer needs its inputs or outputs for training
+	// then it needs them for all the steps of the recurrent part
+	if( !GetDnn()->IsRecurrentMode() || GetDnn()->IsFirstSequencePos() ) {
+		freeUnusedBlobs( 0 );
+	}
 }
 
 // Handles the notification that output diff is ready for a given output
