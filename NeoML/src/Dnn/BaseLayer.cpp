@@ -441,6 +441,7 @@ void CBaseLayer::runOnce()
 
 	AllocateOutputBlobs();
 	allocatedBlobs = TInputBlobs | TOutputBlobs;
+	isInPlaceBackwardPossible = isInPlaceProcess();
 
 	// Create window blobs for the inputs and outputs
 	if( dnn->IsRecurrentMode() ) {
@@ -519,9 +520,6 @@ void CBaseLayer::backwardRunAndLearnOnce()
 		}
 	}
 
-	// Check for in-place processing before processing in sequential mode
-	bool isInPlace = isInPlaceProcess();
-
 	if( dnn->IsRecurrentMode() ) {
 		// Switch the input and output blobs to sequential mode (to the current position in sequence)
 		switchBlobsToSequentialMode(inputBlobs, BCT_Input, false);
@@ -537,7 +535,7 @@ void CBaseLayer::backwardRunAndLearnOnce()
 		NeoAssert( inputDiffBlobs.IsEmpty() );
 		// Create blobs
 		for( int i = 0; i < inputBlobs.Size(); ++i ) {
-			if( isInPlace ) {
+			if( isInPlaceBackwardPossible ) {
 				inputDiffBlobs.Add( outputDiffBlobs[i] );
 			} else {
 				CBlobDesc inputDiffDesc = inputDescs[i];

@@ -381,6 +381,7 @@ private:
 	// Fields used for memory optimization during training
 	int allocatedBlobs; // the mask of currently allocated blobs
 	int blobsNeededForBackward; // the mask of blobs needed for backward and learn
+	bool isInPlaceBackwardPossible; // flags that it's possible to use the same blobs for both inputDiff and otuputDiff
 	// Frees the blobs no longer required for the layer
 	void freeUnusedBlobs( int neededBlobs );
 

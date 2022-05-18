@@ -41,10 +41,10 @@ inline bool CBaseLayer::IsBackwardNeeded() const
 
 inline bool CBaseLayer::isInPlaceProcess() const
 {
-	// if(inputBlobs.Size() == 0 || inputBlobs.Size() != outputBlobs.Size()) {
+	if(inputBlobs.Size() == 0 || inputBlobs.Size() != outputBlobs.Size()) {
 		return false;
-	// }
-	// return inputBlobs[0] == outputBlobs[0];
+	}
+	return inputBlobs[0] == outputBlobs[0];
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
