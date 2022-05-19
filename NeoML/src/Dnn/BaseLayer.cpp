@@ -364,9 +364,9 @@ void CBaseLayer::reshape()
 		MathEngine().CleanUp();
 	}
 
+	Reshape();
 	blobsNeededForBackward = ( IsBackwardPerformed() ? BlobsForBackward() : 0 )
 		| ( IsLearningPerformed() ? BlobsForLearn() : 0 );
-	Reshape();
 
 	NeoPresume( inputBlobs.IsEmpty() );
 	NeoPresume( outputBlobs.IsEmpty() );

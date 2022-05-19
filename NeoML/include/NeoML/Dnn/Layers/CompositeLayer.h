@@ -80,6 +80,8 @@ protected:
 	void LearnOnce() override;
 	void OnDnnChanged( CDnn* ) override;
 	void FilterLayerParams( float threshold ) override;
+	int BlobsForBackward() const override { return blobsForBackward; }
+	int BlobsForLearn() const override { return blobsForLearn; }
 
 	// The network object for the internal layers
 	const CDnn* GetInternalDnn() const { return internalDnn; }
@@ -129,6 +131,11 @@ private:
 	CObjectArray<CCompositeSinkLayer> sinks;
 	// The output mappings
 	CArray<COutputMapping> outputMappings;
+
+	// Which of the blobs will be used during backward
+	int blobsForBackward;
+	// Which of the blobs will be used during learn
+	int blobsForLearn;
 	
 	// Indicates if the internal network logging is enabled
 	bool areInternalLogsEnabled;
@@ -144,6 +151,7 @@ private:
 	void createSinks();
 	void setInputDescs();
 	void setOutputDescs();
+	void calcBlobsForBackwardAndLearn();
 	void setInputBlobs();
 	void setOutputBlobs();
 

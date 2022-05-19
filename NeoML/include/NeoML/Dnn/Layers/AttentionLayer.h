@@ -72,10 +72,6 @@ public:
 	int GetHiddenLayerSize() const;
 	void SetHiddenLayerSize( int size );
 
-protected:
-	int BlobsForBackward() const override { return TInputBlobs | TOutputBlobs; }
-	int BlobsForLearn() const override { return 0; }
-
 private:
 	TAttentionScore score; // estimate function
 	CPtr<CFullyConnectedLayer> initLayer;
@@ -123,10 +119,6 @@ public:
 
 	// The hidden layer size (only for AS_Additive):
 	void SetHiddenLayerSize( int size );
-
-protected:
-	int BlobsForBackward() const override { return TInputBlobs | TOutputBlobs; }
-	int BlobsForLearn() const override { return 0; }
 
 private:
 	TAttentionScore score; // the estimate function
@@ -183,10 +175,6 @@ public:
 	// May only be used for AS_Additive
 	CPtr<CDnnBlob> GetFcFreeTermData() const;
 	void SetFcFreeTermData( const CPtr<CDnnBlob>& newFreeTerms );
-
-protected:
-	int BlobsForBackward() const override { return TInputBlobs; }
-	int BlobsForLearn() const override { return 0; }
 
 private:
 	TAttentionScore score; // the alignment estimating function
