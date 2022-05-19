@@ -562,7 +562,7 @@ void CCompositeLayer::RunOnce()
 		NeoPresume(outputBlobs[i]->GetOwner() == sinks[i]->GetInputBlob()->GetOwner());
 	}
 
-	if( GetDnn()->isSmallNetInference ) {
+	if( !GetDnn()->isSmallNetInference ) {
 		for( int i = 0; i < sources.Size(); ++i ) {
 			sources[i]->SetBlob( 0 );
 		}
