@@ -2380,3 +2380,43 @@ GTEST_TEST( SerializeFromFile, TransformerEncoderLayerSerialization )
 {
 	checkSerializeLayer<CTransformerEncoderLayer>( "NeoMLDnnTransformerEncoderLayer" );
 }
+
+// ====================================================================================================================
+
+// CInterpolationLayer
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+static void setSpecificParams( CInterpolationLayer& layer )
+{
+	layer.SetScale( BD_BatchLength, 13 );
+	layer.SetScale( BD_BatchWidth, 7 );
+	layer.SetScale( BD_ListSize, 3 );
+	layer.SetScale( BD_Width, 5 );
+	layer.SetScale( BD_Channels, 11 );
+}
+
+GTEST_TEST( SerializeToFile, InterpolationLayerSerialization )
+{
+	serializeToFile<CInterpolationLayer>( "NeoMLDnnInterpolationLayer" );
+}
+
+#endif
+
+template<>
+inline void checkSpecificParams<CInterpolationLayer>( CInterpolationLayer& layer )
+{
+	EXPECT_EQ( 13, layer.GetScale( BD_BatchLength ) );
+	EXPECT_EQ( 7, layer.GetScale( BD_BatchWidth ) );
+	EXPECT_EQ( 3, layer.GetScale( BD_ListSize ) );
+	EXPECT_EQ( 1, layer.GetScale( BD_Height ) );
+	EXPECT_EQ( 5, layer.GetScale( BD_Width ) );
+	EXPECT_EQ( 1, layer.GetScale( BD_Depth ) );
+	EXPECT_EQ( 11, layer.GetScale( BD_Channels ) );
+}
+
+GTEST_TEST( SerializeFromFile, InterpolationLayerSerialization )
+{
+	checkSerializeLayer<CInterpolationLayer>( "NeoMLDnnInterpolationLayer" );
+}
+

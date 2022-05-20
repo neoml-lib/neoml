@@ -1171,4 +1171,86 @@ void CCpuMathEngine::BertConvBackward( const CConstFloatHandle& dataHandle, cons
 	}
 }
 
+void CCpuMathEngine::LinearInterpolation( const CConstFloatHandle& dataHandle, const CFloatHandle& resultHandle,
+	int objectCount, int scaledAxis, int objectSize, int scale )
+{
+	ASSERT_EXPR( dataHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+	const float* data = GetRaw( dataHandle );
+	float* result = GetRaw( resultHandle );
+
+	const int dataBatchStep = objectSize * scaledAxis;
+	const int resultBatchStep = scale * dataBatchStep;
+
+	const int opCount = objectCount * resultBatchStep;
+	const int curThreadCount = IsOmpRelevant( objectCount, opCount ) ? threadCount : 1;
+
+	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
+	for( int b = 0; b < objectCount; ++b ) {
+		const float* currData = data + b * dataBatchStep;
+		float* currResult = result + b * resultBatchStep;
+		for( int i = 0; i < scaledAxis - 1; ++i ) {
+			for( int k = 0; k < objectSize; ++k ) {
+				*currResult++ = currData[k];
+			}
+			for( int j = 1; j < scale; ++j ) {
+				for( int k = 0; k < objectSize; ++k ) {
+					currResult[k] = ( ( scale - j ) * currData[k] + j * currData[k + objectSize] ) / scale;
+				}
+				currResult += objectSize;
+			}
+			currData += objectSize;
+		}
+		for( int j = 0; j < scale; ++j ) {
+			for( int k = 0; k < objectSize; ++k ) {
+				*currResult++ = currData[k];
+			}
+		}
+	}
+}
+
+void CCpuMathEngine::LinearInterpolationBackward( const CConstFloatHandle& outputDiffHandle,
+	const CFloatHandle& inputDiffHandle, int objectCount, int scaledAxis, int objectSize, int scale )
+{
+	ASSERT_EXPR( outputDiffHandle.GetMathEngine() == this );
+	ASSERT_EXPR( inputDiffHandle.GetMathEngine() == this );
+
+	const float* outputDiff = GetRaw( outputDiffHandle );
+	float* inputDiff = GetRaw( inputDiffHandle );
+
+	const int inputBatchStep = objectSize * scaledAxis;
+	const int outputBatchStep = inputBatchStep * scale;
+
+	VectorFill( inputDiffHandle, 0.f, objectCount * inputBatchStep );
+
+	const int opCount = objectCount * outputBatchStep;
+	const int curThreadCount = IsOmpRelevant( objectCount, opCount ) ? threadCount : 1;
+
+	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
+	for( int b = 0; b < objectCount; ++b ) {
+		float* currInputDiff = inputDiff + b * inputBatchStep;
+		const float* currOutputDiff = outputDiff + b * outputBatchStep;
+		for( int i = 0; i < scaledAxis - 1; ++i ) {
+			for( int k = 0; k < objectSize; ++k ) {
+				currInputDiff[k] += *currOutputDiff++;
+			}
+			for( int j = 1; j < scale; ++j ) {
+				for( int k = 0; k < objectSize; ++k ) {
+					currInputDiff[k] += currOutputDiff[k] * ( scale - j ) / scale;
+					currInputDiff[k + objectSize] += currOutputDiff[k] * j / scale;
+				}
+				currOutputDiff += objectSize;
+			}
+			currInputDiff += objectSize;
+		}
+		for( int j = 0; j < scale; ++j ) {
+			for( int k = 0; k < objectSize; ++k ) {
+				currInputDiff[k] += *currOutputDiff++;
+			}
+		}
+
+	}
+}
+
 } // namespace NeoML

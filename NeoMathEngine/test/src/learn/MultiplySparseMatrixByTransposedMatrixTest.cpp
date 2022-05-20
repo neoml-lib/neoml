@@ -49,7 +49,7 @@ static void multiplySparseMatrixByTransposedMatrixTestImpl( const CTestParams& p
 	for( int i = 0; i < firstHeight; i++ ) {
 		int elementsInRow = 0;
 		for( int j = 0; j < firstWidth; j++ ) {
-			if( random.UniformInt( 0, 1 ) ) {
+			if( random.UniformInt( 0, 2 ) != 0 ) {
 				float value = static_cast< float >( random.UniformInt( valuesInterval.Begin, valuesInterval.End ) );
 				columns.push_back( j );
 				values.push_back( value );

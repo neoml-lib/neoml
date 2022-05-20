@@ -260,6 +260,8 @@ public:
 		const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int vectorSize) = 0;
 
 	// result = first / second elementwise
+	virtual void VectorEltwiseDivide( const CConstIntHandle& firstHandle,
+		const CConstIntHandle& secondHandle, const CIntHandle& resultHandle, int vectorSize ) = 0;
 	virtual void VectorEltwiseDivide(const CConstFloatHandle& firstHandle,
 		const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int vectorSize) = 0;
 
@@ -490,9 +492,10 @@ public:
 	virtual void MultiplySparseMatrixByTransposedMatrix( int firstHeight, int firstWidth, int secondHeight,
 		const CSparseMatrixDesc& firstDesc, const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle ) = 0;
 
-	// result = T(first) * second
-	virtual void MultiplyTransposedMatrixBySparseMatrix( int firstHeight, int firstWidth, int secondWidth,
-		const CConstFloatHandle& firstHandle, const CSparseMatrixDesc& secondDesc, const CFloatHandle& resultHandle ) = 0;
+	// result = T(first) * second, second is transposed if isTransposedSparse
+	virtual void MultiplyTransposedMatrixBySparseMatrix( int firstHeight, int firstWidth, int resultWidth,
+		const CConstFloatHandle& firstHandle, const CSparseMatrixDesc& secondDesc, const CFloatHandle& resultHandle,
+		bool isTransposedSparse ) = 0;
 
 	// result = result + T(first) * second. The result will be of firstWidth * secondWidth size
 	virtual void MultiplyTransposedMatrixBySparseMatrixAndAdd( int firstHeight, int firstWidth, int secondWidth,
@@ -966,6 +969,20 @@ public:
 	virtual void BertConvBackward( const CConstFloatHandle& dataHandle, const CConstFloatHandle& kernelHandle,
 		const CConstFloatHandle& outDiffHandle, int seqLen, int batchSize, int numHeads, int headSize, int kernelSize,
 		const CFloatHandle& dataDiffHandle, const CFloatHandle& kernelDiffHandle ) = 0;
+
+	// Interpolation
+
+	// Linear interpolation which increases size of scaledAxis by a multiple of scale and
+	// fills new elements with linear approximation based on its neighbours
+	// The last (scale - 1) elements are filled with the last value
+	// e.g. [1., 2., 4., 8.] (Scale 2) -> [1., 1.5, 2., 3., 4., 6., 8., 8.]
+	//
+	// data is a 3D tensor of size objectCount x scaledAxis x objectSize
+	// result is a 3D tensor of size objectCount x (scale * scaledAxis) x objectSize
+	virtual void LinearInterpolation( const CConstFloatHandle& dataHandle, const CFloatHandle& resultHandle,
+		int objectCount, int scaledAxis, int objectSize, int scale ) = 0;
+	virtual void LinearInterpolationBackward( const CConstFloatHandle& outputDiffHandle, const CFloatHandle& inputDiffHandle,
+		int objectCount, int scaledAxis, int objectSize, int scale ) = 0;
 };
 
 //------------------------------------------------------------------------------------------------------------

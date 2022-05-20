@@ -196,7 +196,7 @@ static void blob3dConvolutionBackwardImpl( const CTestParams& params, int seed )
 	CConv3dBackwardTestParams convParams = getConv3dParams( params, random );
 	const CInterval valuesInterval = params.GetInterval( "Values" );
 
-	const bool addFreeTerm = random.UniformInt( 0, 1 ) == 1 ? true : false;
+	const bool addFreeTerm = random.UniformInt( 0, 2 ) != 0 ? true : false;
 
 	const int outHeight = calcConvOutputSize( convParams.InputHeight, convParams.PaddingHeight, convParams.FilterHeight, convParams.StrideHeight );
 	const int outWidth = calcConvOutputSize( convParams.InputWidth, convParams.PaddingWidth, convParams.FilterWidth, convParams.StrideWidth );

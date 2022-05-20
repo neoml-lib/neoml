@@ -127,6 +127,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/DataLayer.h>
 #include <NeoML/Dnn/Layers/TransformerLayer.h>
 #include <NeoML/Dnn/Layers/BertConvLayer.h>
+#include <NeoML/Dnn/Layers/InterpolationLayer.h>
 #include <NeoML/ArchiveFile.h>
 
 #ifndef NO_NEOML_NAMESPACE

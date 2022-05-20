@@ -183,6 +183,8 @@ public:
 		const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int vectorSize) override;
 	void VectorEltwiseNegMultiply(const CConstFloatHandle& firstHandle,
 		const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int vectorSize) override;
+	void VectorEltwiseDivide(const CConstIntHandle& firstHandle,
+		const CConstIntHandle& secondHandle, const CIntHandle& resultHandle, int vectorSize) override;
 	void VectorEltwiseDivide(const CConstFloatHandle& firstHandle,
 		const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int vectorSize) override;
 	void VectorEltwisePower(const CConstFloatHandle& firstHandle,
@@ -322,7 +324,8 @@ public:
 	void MultiplySparseMatrixByTransposedMatrix( int firstHeight, int firstWidth, int secondHeight,
 		const CSparseMatrixDesc& firstDesc, const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle ) override;
 	void MultiplyTransposedMatrixBySparseMatrix( int firstHeight, int firstWidth, int secondWidth,
-		const CConstFloatHandle& firstHandle, const CSparseMatrixDesc& secondDesc, const CFloatHandle& resultHandle ) override;
+		const CConstFloatHandle& firstHandle, const CSparseMatrixDesc& secondDesc, const CFloatHandle& resultHandle,
+		bool isTransposedSparse ) override;
 	void MultiplyTransposedMatrixBySparseMatrixAndAdd( int firstHeight, int firstWidth, int secondWidth,
 		const CConstFloatHandle& firstHandle, const CSparseMatrixDesc& secondDesc, const CFloatHandle& resultHandle ) override;
 	void MultiplySparseMatrixByMatrix( int firstHeight, int firstWidth, int secondWidth,
@@ -541,6 +544,10 @@ public:
 		const CFloatHandle& recurrentWeights, const CConstFloatHandle& recurrentFreeTerm,
 		const CConstFloatHandle& inputStateBackLink, const CConstFloatHandle& inputMainBackLink, const CConstFloatHandle& input,
 		const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink ) override;
+	void LinearInterpolation( const CConstFloatHandle& dataHandle, const CFloatHandle& resultHandle,
+		int objectCount, int scaledAxis, int objectSize, int scale ) override;
+	void LinearInterpolationBackward( const CConstFloatHandle& outputDiffHandle, const CFloatHandle& inputDiffHandle,
+		int objectCount, int scaledAxis, int objectSize, int scale ) override;
 
 	IPerformanceCounters* CreatePerformanceCounters() const override;
 	void AllReduce( const CFloatHandle& handle, int size ) override;

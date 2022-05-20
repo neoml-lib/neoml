@@ -29,6 +29,7 @@ target_sources(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/FindMinValueInColumnsTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/IndRnnBackwardTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/IndRnnLearnTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/LinearInterpolationBackwardTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/LookupAndAddToTableTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/LrnBackwardTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/MatrixLogSumExpByRowsTest.cpp
@@ -41,13 +42,17 @@ target_sources(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/MultiplyLookupMatrixByLookupVectorTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/MultiplyMatrixByDiagMatrixTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/MultiplyMatrixByMatrixTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/MultiplySparseMatrixByMatrixTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/MultiplySparseMatrixByTransposedMatrixTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/MultiplyTransposedLookupMatrixByVectorAndAddTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/MultiplyTransposedLookupMatrixByVectorTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/MultiplyTransposedMatrixByMatrixTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/MultiplyTransposedMatrixByMatrixAndAddTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/MultiplyTransposedMatrixBySparseMatrixTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/MultiplyTransposedMatrixBySparseMatrixAndAddTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/MultiplyTransposedSparseMatrixByMatrixTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/MultiplyVectorByTransposedLookupVectorAndAddToTableTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/QRFactorizationTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/QrnnBackwardTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/RowMultiplyMatrixByMatrixTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/SubVectorFromMatrixColumnsTest.cpp

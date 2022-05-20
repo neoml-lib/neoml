@@ -375,10 +375,20 @@ PARAM_STRUCT(VectorMultiplyFloat)
 
 /////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////
-// VectorEltwiseDivide
-DEFINE_SHADER_1D(VectorEltwiseDivide)
+// VectorEltwiseDivideInt
+DEFINE_SHADER_1D(VectorEltwiseDivideInt)
 
-PARAM_STRUCT(VectorEltwiseDivide)
+PARAM_STRUCT(VectorEltwiseDivideInt)
+{
+	int dummy;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorEltwiseDivideFloat
+DEFINE_SHADER_1D(VectorEltwiseDivideFloat)
+
+PARAM_STRUCT(VectorEltwiseDivideFloat)
 {
 	int dummy;
 };
@@ -2350,6 +2360,19 @@ PARAM_STRUCT( BertConv )
 	int numHeads;
 	int headSize;
 	int kernelSize;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// LinearInterpolation
+DEFINE_SHADER_1D( LinearInterpolation )
+
+PARAM_STRUCT( LinearInterpolation )
+{
+	int objectCount;
+	int scaledAxis;
+	int objectSize;
+	int scale;
 };
 
 

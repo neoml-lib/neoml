@@ -1421,13 +1421,38 @@ kernel void vectorKernelEltwiseNegMultiply( constant float* first [[buffer(0)]],
     }
 }
 
-kernel void vectorKernelEltwiseDivide( constant float* first [[buffer(0)]],
-                                       constant float* second [[buffer(1)]],
-                                       device float* result [[buffer(2)]],
-                                       constant int* count [[buffer(3)]],
-                                       uint thread_position_in_threadgroup [[ thread_position_in_threadgroup ]],
-                                       uint threads_per_threadgroup        [[ threads_per_threadgroup ]],
-                                       uint threadgroup_position_in_grid   [[ threadgroup_position_in_grid ]])
+kernel void vectorKernelEltwiseDivideInt( constant int* first [[buffer(0)]],
+                                          constant int* second [[buffer(1)]],
+                                          device int* result [[buffer(2)]],
+                                          constant int* count [[buffer(3)]],
+                                          uint thread_position_in_threadgroup [[ thread_position_in_threadgroup ]],
+                                          uint threads_per_threadgroup        [[ threads_per_threadgroup ]],
+                                          uint threadgroup_position_in_grid   [[ threadgroup_position_in_grid ]])
+{
+    C1DCombinePosition pos( thread_position_in_threadgroup, threads_per_threadgroup, threadgroup_position_in_grid );
+    int index;
+    int step;
+    int actionCount = pos.GetMetalTaskCountAndIndex( *count, VectorCombineCount, index, step );
+
+    first += index;
+    second += index;
+    result += index;
+
+    for( int i = 0; i < actionCount; ++i ) {
+        *result = *first / (*second);
+        first += step;
+        second += step;
+        result += step;
+    }
+}
+
+kernel void vectorKernelEltwiseDivideFloat( constant float* first [[buffer(0)]],
+                                            constant float* second [[buffer(1)]],
+                                            device float* result [[buffer(2)]],
+                                            constant int* count [[buffer(3)]],
+                                            uint thread_position_in_threadgroup [[ thread_position_in_threadgroup ]],
+                                            uint threads_per_threadgroup        [[ threads_per_threadgroup ]],
+                                            uint threadgroup_position_in_grid   [[ threadgroup_position_in_grid ]])
 {
     C1DCombinePosition pos( thread_position_in_threadgroup, threads_per_threadgroup, threadgroup_position_in_grid );
     int index;
@@ -2509,5 +2534,35 @@ kernel void vectorBertConv( constant float* data [[buffer(0)]],
         }
 
         output[outputOffset] = res;
+    }
+}
+
+kernel void vectorLinearInterpolation( constant float* data [[buffer(0)]],
+                                       constant int& objectCount [[buffer(1)]],
+                                       constant int& scaledAxis [[buffer(2)]],
+                                       constant int& objectSize [[buffer(3)]],
+                                       constant int& scale [[buffer(4)]],
+                                       device float* result [[buffer(5)]],
+                                       uint thread_position_in_grid [[thread_position_in_grid]] )
+{
+    C1DPosition pos( thread_position_in_grid );
+    const int taskCount = objectCount * scaledAxis * scale * objectSize;
+    int taskIndex;
+    if( pos.GetMetalTaskIndex( taskCount, taskIndex ) ) {
+        const int resultOffset = taskIndex;
+        const int elem = taskIndex % objectSize;
+        taskIndex /= objectSize;
+        const int inScale = taskIndex % scale;
+        taskIndex /= scale;
+        const int x = taskIndex % scaledAxis;
+        const int b = taskIndex / scaledAxis;
+        const int dataOffset = elem + objectSize * ( x + scaledAxis * b );
+
+        if( x == scaledAxis - 1 || inScale == 0 ) {
+            result[resultOffset] = data[dataOffset];
+        } else {
+            result[resultOffset] = static_cast<float>( scale - inScale ) / scale * data[dataOffset]
+                + static_cast<float>( inScale ) / scale * data[dataOffset + objectSize];
+        }
     }
 }
