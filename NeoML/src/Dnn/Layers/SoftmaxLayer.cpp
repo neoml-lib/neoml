@@ -77,10 +77,10 @@ void CSoftmaxLayer::BackwardOnce()
 				inputDiffBlobs[0]->GetData() );
 			break;
 		case NA_ListSize:
-			NeoAssert( inputBlobs[0]->GetObjectSize() == 1 );
+			NeoAssert( inputDiffBlobs[0]->GetObjectSize() == 1 );
 			// softmax over listSize
 			MathEngine().MatrixSoftmaxDiffOpByRows( outputBlobs[0]->GetData(), outputDiffBlobs[0]->GetData(),
-				inputBlobs[0]->GetObjectCount() / inputBlobs[0]->GetListSize(), outputBlobs[0]->GetListSize(),
+				inputDiffBlobs[0]->GetObjectCount() / inputDiffBlobs[0]->GetListSize(), outputBlobs[0]->GetListSize(),
 				inputDiffBlobs[0]->GetData() );
 			break;
 		case NA_Channel:
