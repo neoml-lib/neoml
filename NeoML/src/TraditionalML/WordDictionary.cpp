@@ -67,16 +67,20 @@ void CWordDictionary::CopyTo( CWordDictionary& other ) const
 	wordToId.CopyTo( other.wordToId );
 }
 
-void CWordDictionary::AddWord( const CString& word, long long addedCount )
+void CWordDictionary::AddWord( const CString& word, long long count )
 {
 	int id = 0;
 	if( !wordToId.Lookup( word, id ) ) {
+		NeoAssert( count > 0 );
 		wordToId.Set( word, words.Size() );
-		words.Add( CWordWithCount{ word, addedCount } );
+		words.Add( CWordWithCount{ word, count } );
 	} else {
-		words[id].Count += addedCount;
+		words[id].Count += count;
+		NeoAssert( words[id].Count >= 0 );
 	}
-	totalWordsUseCount += addedCount;
+	totalWordsUseCount += count;
+	
+	NeoAssert( totalWordsUseCount >= 0 );
 }
 
 void CWordDictionary::AddDictionary( const CWordDictionary& newDictionary )
@@ -117,15 +121,6 @@ CString CWordDictionary::GetWord( int id ) const
 {
 	checkId( id );
 	return words[id].Word;
-}
-
-void CWordDictionary::SetWord( int id, const CString& newWord )
-{
-	checkId( id );
-	const CString oldWord = GetWord( id );
-	wordToId.Delete( oldWord );
-	wordToId.Set( newWord, id );
-	words[id].Word = newWord;
 }
 
 long long CWordDictionary::GetWordUseCount( int id ) const
@@ -176,9 +171,6 @@ void CWordDictionary::Empty()
 void CWordDictionary::Serialize( CArchive& archive )
 {
 	archive.SerializeVersion( 0 );
-	if( archive.IsStoring() ) {
-		NeoAssert( words.IsSorted<Descending<CWordWithCount>>() );
-	}
 	words.Serialize( archive );
 	if( archive.IsLoading() ) {
 		buildIndex();

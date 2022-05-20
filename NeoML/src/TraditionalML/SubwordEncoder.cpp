@@ -36,7 +36,8 @@ ISubwordEncoderWithCache::CCache::CCachedData::CCachedData( CCachedData&& other 
 
 ///////////////////////////////////////////////////////////////////////////////
 
-ISubwordEncoderWithCache::CCache::CCache()
+ISubwordEncoderWithCache::CCache::CCache() :
+	cacheTime( 0 )
 {
 	SetCachePeriod( 1000000 );
 }
@@ -45,6 +46,11 @@ void ISubwordEncoderWithCache::CCache::SetCachePeriod( int newPeriod )
 {
 	NeoAssert( newPeriod == NotFound || newPeriod > 0 );
 	cachePeriod = newPeriod;
+	if( cachePeriod == NotFound ) {
+		// Clears the cache.
+		cacheTime = 0;
+		wordCache.Empty();
+	}
 }
 
 bool ISubwordEncoderWithCache::CCache::Request( const CString& word,
@@ -58,6 +64,9 @@ bool ISubwordEncoderWithCache::CCache::Request( const CString& word,
 	bool success = false;
 	if( wordCache.Has( word ) ) {
 		CCachedData& wordData = wordCache.Get( word );
+		tokenIds.SetBufferSize( wordData.TokenIds.Size() );
+		tokenLengths.SetBufferSize( wordData.TokenLengths.Size() );
+
 		for( int i = 0; i < wordData.TokenIds.Size(); i++ ) {
 			tokenIds.Add( wordData.TokenIds[i] );
 			tokenLengths.Add( wordData.TokenLengths[i] );

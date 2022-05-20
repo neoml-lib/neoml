@@ -54,8 +54,6 @@ public:
 	// Returns word by id.
 	// id must be valid.
 	CString GetWord( int id ) const;
-	// Replaces the word with the given id with a new one.
-	void SetWord( int id, const CString& word );
 
 	// Returns accumulated value of counts from all AddWord calls for the given word.
 	long long GetWordUseCount( const CString& word ) const;
