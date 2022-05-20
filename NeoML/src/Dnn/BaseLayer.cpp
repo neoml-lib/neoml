@@ -606,7 +606,7 @@ void CBaseLayer::backwardRunAndLearnOnce()
 
 	// If layer needs its inputs or outputs for training
 	// then it needs them for all the steps of the recurrent part
-	if( !GetDnn()->IsRecurrentMode() || GetDnn()->IsFirstSequencePos() ) {
+	if( GetDnn()->isReuseMemoryMode && ( !GetDnn()->IsRecurrentMode() || GetDnn()->IsFirstSequencePos() ) ) {
 		freeUnusedBlobs( 0 );
 	}
 }
