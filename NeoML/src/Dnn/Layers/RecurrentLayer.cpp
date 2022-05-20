@@ -176,7 +176,7 @@ void CRecurrentLayer::RunInternalDnn()
 	CheckArchitecture( outputBlobs[0]->GetOwner()->GetBatchLength() == inputBlobs[0]->GetOwner()->GetBatchLength() * repeatCount, 
 		GetName(), "incorrect batch length of outputBlobs[0]" );
 	CDnn* internalDnn = GetInternalDnn();
-	internalDnn->isSmallNetInference = GetDnn()->isSmallNetInference;
+	internalDnn->isReuseMemoryMode = GetDnn()->isReuseMemoryMode;
 	if(!GetDnn()->IsRecurrentMode()) {
 		// Run the internal network in recurrent mode
 		if(internalDnn->IsReverseSequense()) {

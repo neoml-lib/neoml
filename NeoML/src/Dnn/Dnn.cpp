@@ -362,7 +362,7 @@ CDnn::CDnn( CRandom& _random, IMathEngine& _mathEngine ) :
 	currentSequencePos( 0 ),
 	isReverseSequense( false ),
 	autoRestartMode( true ),
-	isSmallNetInference( false )
+	isReuseMemoryMode( false )
 {
 	solver = FINE_DEBUG_NEW CDnnSimpleGradientSolver( mathEngine );
 	initializer = FINE_DEBUG_NEW CDnnXavierInitializer( random );
@@ -539,8 +539,9 @@ void CDnn::RunOnce()
 			RestartSequence();
 		}
 		reshape(); // rebuild the network if necessary
-		
-		isSmallNetInference = ( getOutputBlobsSize() <= MinReuseMemoryModeNetSize );
+
+		// During inference we turning reuseMemoryMode on when the net is big enough
+		isReuseMemoryMode = ( getOutputBlobsSize() > MinReuseMemoryModeNetSize );
 		runOnce(0);
 	}
 #ifdef NEOML_USE_FINEOBJ
@@ -575,7 +576,11 @@ void CDnn::RunAndBackwardOnce()
 			RestartSequence();
 		}
 		reshape(); // rebuild the network if necessary
-		isSmallNetInference = false;
+
+		// During training we don't reuse memory only when training on nonDistributed CPU
+		CMathEngineInfo info;
+		mathEngine.GetMathEngineInfo( info );
+		isReuseMemoryMode = info.Type != MET_Cpu || mathEngine.IsDistributed();
 		runOnce(0);
 		backwardRunAndLearnOnce(0);
 	} catch( CCheckException* exception ) {

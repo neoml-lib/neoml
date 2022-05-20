@@ -528,7 +528,7 @@ void CCompositeLayer::Reshape()
 // Runs the internal network forward pass as defined in children
 void CCompositeLayer::RunInternalDnn()
 {
-	internalDnn->isSmallNetInference = GetDnn()->isSmallNetInference;
+	internalDnn->isReuseMemoryMode = GetDnn()->isReuseMemoryMode;
 	internalDnn->runOnce(GetDnn()->GetCurrentSequencePos());
 }
 
@@ -562,7 +562,7 @@ void CCompositeLayer::RunOnce()
 		NeoPresume(outputBlobs[i]->GetOwner() == sinks[i]->GetInputBlob()->GetOwner());
 	}
 
-	if( !GetDnn()->isSmallNetInference ) {
+	if( GetDnn()->isReuseMemoryMode ) {
 		for( int i = 0; i < sources.Size(); ++i ) {
 			sources[i]->SetBlob( 0 );
 		}

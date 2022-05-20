@@ -204,7 +204,7 @@ public:
 
 void CBaseLayer::AllocateOutputBlobs()
 {
-	CMemoryModeSwitcher switcher( MathEngine(), !GetDnn()->isSmallNetInference );
+	CMemoryModeSwitcher switcher( MathEngine(), GetDnn()->isReuseMemoryMode );
 
 	for( int i = 0; i < outputDescs.Size(); ++i ) {
 		if( outputBlobs[i] == 0 ) {
@@ -439,7 +439,7 @@ void CBaseLayer::runOnce()
 
 		inputBlobs[i] = prevLayerOutput;
 
-		if( !GetDnn()->isSmallNetInference ) {
+		if( GetDnn()->isReuseMemoryMode ) {
 			// Notify that the output has been processed
 			inputLayer->onOutputProcessed( outputNumber );
 		}
@@ -451,8 +451,8 @@ void CBaseLayer::runOnce()
 
 	// Create window blobs for the inputs and outputs
 	if( dnn->IsRecurrentMode() ) {
-		switchBlobsToSequentialMode(inputBlobs, BCT_Input, !GetDnn()->isSmallNetInference );
-		switchBlobsToSequentialMode(outputBlobs, BCT_Output, !GetDnn()->isSmallNetInference );
+		switchBlobsToSequentialMode(inputBlobs, BCT_Input, GetDnn()->isReuseMemoryMode );
+		switchBlobsToSequentialMode(outputBlobs, BCT_Output, GetDnn()->isReuseMemoryMode );
 		switchBlobsToSequentialMode(runtimeBlobs, BCT_Runtime, false);
 		for(int i = 0; i < runtimeBlobs.Size(); i++) {
 			*runtimeBlobPtrs[i] = runtimeBlobs[i];
@@ -465,8 +465,8 @@ void CBaseLayer::runOnce()
 	}
 
 	if( dnn->IsRecurrentMode() ) {
-		switchBlobsToNonSequentialMode(inputBlobs, BCT_Input, !GetDnn()->isSmallNetInference );
-		switchBlobsToNonSequentialMode(outputBlobs, BCT_Output, !GetDnn()->isSmallNetInference );
+		switchBlobsToNonSequentialMode(inputBlobs, BCT_Input, GetDnn()->isReuseMemoryMode );
+		switchBlobsToNonSequentialMode(outputBlobs, BCT_Output, GetDnn()->isReuseMemoryMode );
 		switchBlobsToNonSequentialMode(runtimeBlobs, BCT_Runtime, false);
 		for(int i = 0; i < runtimeBlobs.Size(); i++) {
 			*runtimeBlobPtrs[i] = runtimeBlobs[i];
@@ -474,7 +474,7 @@ void CBaseLayer::runOnce()
 	}
 
 
-	if( !GetDnn()->isSmallNetInference ) {
+	if( GetDnn()->isReuseMemoryMode ) {
 		freeUnusedBlobs( TOutputBlobs | blobsNeededForBackward );
 		outputProcessedCount.SetSize( outputs.Size() );
 		for( int i = 0; i < outputs.Size(); ++i ) {
@@ -772,7 +772,7 @@ void CBaseLayer::CheckOutputs() const
 
 void CBaseLayer::onOutputProcessed( int index )
 {
-	NeoPresume( !GetDnn()->isSmallNetInference );
+	NeoPresume( GetDnn()->isReuseMemoryMode );
 	NeoPresume( outputProcessedCount.Size() > index );
 	NeoPresume( outputProcessedCount[index] < outputs[index] );
 

@@ -599,9 +599,8 @@ private:
 	bool isReverseSequense;
 	// The auto-restart mode for each RunOnce/RunAndLearnOnce() call
 	bool autoRestartMode;
-	// The specific case of running inference on small network
-	// It turns on some performance optimizations
-	bool isSmallNetInference;
+	// The low memory use mode
+	bool isReuseMemoryMode;
 
 	void setProcessingParams(bool isRecurrentMode, int sequenceLength, bool isReverseSequense, bool isBackwardPerformed);
 	void runOnce(int curSequencePos);
