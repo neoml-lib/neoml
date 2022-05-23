@@ -23,7 +23,7 @@ namespace NeoML {
 // CBaseInPlaceLayer is the base class for an in-place processing layer
 class NEOML_API CBaseInPlaceLayer : public CBaseLayer {
 protected:
-	CBaseInPlaceLayer(IMathEngine& mathEngine, const char* name, bool isLearnable = false) : CBaseLayer(mathEngine, name, isLearnable), isInPlace( false ) {};
+	CBaseInPlaceLayer(IMathEngine& mathEngine, const char* name, bool isLearnable = false) : CBaseLayer(mathEngine, name, isLearnable) {};
 
 	// Called once reshape is complete
 	virtual void OnReshaped() {}
@@ -34,11 +34,6 @@ protected:
 private:
 	// The Reshape method may not be overloaded
 	void Reshape() final;
-
-	// Indicates if the layer performs in-place processing (after the Reshape method call)
-	bool isInPlace;
-
-	friend class CBaseLayer;
 };
 
 } // namespace NeoML
