@@ -363,7 +363,7 @@ void CLstmLayer::checkBlobDescs() const
 			"LSTM's initial state's object size must be equal to the hidden size" );
 	}
 
-	if( inputDescs.Size() == 2 ) {
+	if( inputDescs.Size() > 2 ) {
 		CheckArchitecture( inputDescs[2].GetDataType() == CT_Float, GetName(),
 			"LSTM's initial story must be CT_Float" );
 		CheckArchitecture( inputDescs[2].BatchLength() == 1, GetName(),
