@@ -426,6 +426,9 @@ void CBaseLayer::runOnce()
 		GetInputLayer(i)->runOnce();
 	}
 
+	const bool freeBlobs = GetDnn()->isReuseMemoryMode
+		&& ( !GetDnn()->isBackwardPerformed || !GetDnn()->IsRecurrentMode() || GetDnn()->IsLastSequencePos() );
+
 	// Either this is the first runOnce after reshape
 	// or the input and output blobs are released directly after use
 	for( int i = 0; i < inputBlobs.Size(); ++i ) {
@@ -439,7 +442,7 @@ void CBaseLayer::runOnce()
 
 		inputBlobs[i] = prevLayerOutput;
 
-		if( GetDnn()->isReuseMemoryMode ) {
+		if( freeBlobs ) {
 			// Notify that the output has been processed
 			inputLayer->onOutputProcessed( outputNumber );
 		}
@@ -474,7 +477,7 @@ void CBaseLayer::runOnce()
 	}
 
 
-	if( GetDnn()->isReuseMemoryMode ) {
+	if( freeBlobs ) {
 		freeUnusedBlobs( TOutputBlobs | blobsNeededForBackward );
 		outputProcessedCount.SetSize( outputs.Size() );
 		for( int i = 0; i < outputs.Size(); ++i ) {
@@ -526,10 +529,12 @@ void CBaseLayer::backwardRunAndLearnOnce()
 		}
 	}
 
+	const bool freeBlobs = GetDnn()->isReuseMemoryMode
+		&& ( !GetDnn()->IsRecurrentMode() || GetDnn()->IsFirstSequencePos() );
 	if( dnn->IsRecurrentMode() ) {
 		// Switch the input and output blobs to sequential mode (to the current position in sequence)
-		switchBlobsToSequentialMode(inputBlobs, BCT_Input, false);
-		switchBlobsToSequentialMode(outputBlobs, BCT_Output, false);
+		switchBlobsToSequentialMode(inputBlobs, BCT_Input, GetDnn()->isReuseMemoryMode);
+		switchBlobsToSequentialMode(outputBlobs, BCT_Output, GetDnn()->isReuseMemoryMode);
 		switchBlobsToSequentialMode(runtimeBlobs, BCT_Runtime, false);
 		for(int i = 0; i < runtimeBlobs.Size(); i++) {
 			*runtimeBlobPtrs[i] = runtimeBlobs[i];
@@ -596,8 +601,8 @@ void CBaseLayer::backwardRunAndLearnOnce()
 		readyOutputDiffs[out] = 0;
 	}
 	if( dnn->IsRecurrentMode() ) {
-		switchBlobsToNonSequentialMode(inputBlobs, BCT_Input, false);
-		switchBlobsToNonSequentialMode(outputBlobs, BCT_Output, false);
+		switchBlobsToNonSequentialMode(inputBlobs, BCT_Input, GetDnn()->isReuseMemoryMode);
+		switchBlobsToNonSequentialMode(outputBlobs, BCT_Output, GetDnn()->isReuseMemoryMode);
 		switchBlobsToNonSequentialMode(runtimeBlobs, BCT_Runtime, false);
 		for(int i = 0; i < runtimeBlobs.Size(); i++) {
 			*runtimeBlobPtrs[i] = runtimeBlobs[i];
@@ -606,7 +611,7 @@ void CBaseLayer::backwardRunAndLearnOnce()
 
 	// If layer needs its inputs or outputs for training
 	// then it needs them for all the steps of the recurrent part
-	if( GetDnn()->isReuseMemoryMode && ( !GetDnn()->IsRecurrentMode() || GetDnn()->IsFirstSequencePos() ) ) {
+	if( freeBlobs ) {
 		freeUnusedBlobs( 0 );
 	}
 }
