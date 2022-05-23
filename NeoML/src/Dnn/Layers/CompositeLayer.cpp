@@ -157,6 +157,8 @@ void CCompositeSinkLayer::Serialize( CArchive& archive )
 CCompositeLayer::CCompositeLayer( IMathEngine& mathEngine, const char* name ) :
 	CBaseLayer( mathEngine, name == nullptr ? "CCnnCompositeLayer" : name, true ),
 	internalDnn( 0 ),
+	blobsForBackward( 0 ),
+	blobsForLearn( 0 ),
 	areInternalLogsEnabled( true )
 {
 }
@@ -325,12 +327,12 @@ void CCompositeLayer::setOutputDescs()
 
 void CCompositeLayer::calcBlobsForBackwardAndLearn()
 {
+	blobsForBackward = 0;
+	blobsForLearn = 0;
 	const bool hasBackward = IsBackwardPerformed();
 	const bool hasLearn = IsLearningPerformed();
 
 	if( !hasBackward && !hasLearn ) {
-		blobsForBackward = 0;
-		blobsForLearn = 0;
 		return;
 	}
 
