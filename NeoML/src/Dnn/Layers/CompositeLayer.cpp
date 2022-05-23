@@ -536,6 +536,7 @@ void CCompositeLayer::RunOnce()
 {
 	NeoAssert(GetDnn() != 0 && internalDnn != 0);
 	NeoAssert(internalDnn->IsBackwardPerformed() == GetDnn()->IsBackwardPerformed());
+	internalDnn->isReuseMemoryMode = GetDnn()->isReuseMemoryMode;
 
 	if(internalDnn->GetLog() != 0) {
 		*internalDnn->GetLog() << "\n";

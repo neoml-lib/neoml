@@ -198,6 +198,7 @@ void CRecurrentLayer::RunInternalDnn()
 void CRecurrentLayer::RunInternalDnnBackward()
 {
 	CDnn* internalDnn = GetInternalDnn();
+	internalDnn->isReuseMemoryMode = GetDnn()->isReuseMemoryMode;
 	// Start the backward pass of the internal network in recurrent mode
 	if( !GetDnn()->IsRecurrentMode() ) {
 		if( internalDnn->IsReverseSequense() ) {
