@@ -72,7 +72,8 @@ __global__ void VectorConvertKernel( const From* from, To* to, int count )
 	}
 }
 
-__global__ void VectorBroadcastCopyKernel( float* to, const float* from, CCudaBlobDesc toDesc, CCudaBlobDesc fromDesc,
+template<class T>
+__global__ void VectorBroadcastCopyKernel( T* to, const T* from, CCudaBlobDesc toDesc, CCudaBlobDesc fromDesc,
 	int additionalWidth, int resultSize )
 {
 	int toIndex = 0;
