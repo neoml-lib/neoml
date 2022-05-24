@@ -2536,33 +2536,3 @@ kernel void vectorBertConv( constant float* data [[buffer(0)]],
         output[outputOffset] = res;
     }
 }
-
-kernel void vectorLinearInterpolation( constant float* data [[buffer(0)]],
-                                       constant int& objectCount [[buffer(1)]],
-                                       constant int& scaledAxis [[buffer(2)]],
-                                       constant int& objectSize [[buffer(3)]],
-                                       constant int& scale [[buffer(4)]],
-                                       device float* result [[buffer(5)]],
-                                       uint thread_position_in_grid [[thread_position_in_grid]] )
-{
-    C1DPosition pos( thread_position_in_grid );
-    const int taskCount = objectCount * scaledAxis * scale * objectSize;
-    int taskIndex;
-    if( pos.GetMetalTaskIndex( taskCount, taskIndex ) ) {
-        const int resultOffset = taskIndex;
-        const int elem = taskIndex % objectSize;
-        taskIndex /= objectSize;
-        const int inScale = taskIndex % scale;
-        taskIndex /= scale;
-        const int x = taskIndex % scaledAxis;
-        const int b = taskIndex / scaledAxis;
-        const int dataOffset = elem + objectSize * ( x + scaledAxis * b );
-
-        if( x == scaledAxis - 1 || inScale == 0 ) {
-            result[resultOffset] = data[dataOffset];
-        } else {
-            result[resultOffset] = static_cast<float>( scale - inScale ) / scale * data[dataOffset]
-                + static_cast<float>( inScale ) / scale * data[dataOffset + objectSize];
-        }
-    }
-}

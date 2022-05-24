@@ -24,6 +24,7 @@ set(NeoML_SOURCES
     Dnn/Layers/AccumulativeLookupLayer.cpp
     Dnn/Layers/AccuracyLayer.cpp
     Dnn/Layers/ActivationLayers.cpp
+    Dnn/Layers/AddToObjectLayer.cpp
     Dnn/Layers/ArgmaxLayer.cpp
     Dnn/Layers/AttentionLayer.cpp
     Dnn/Layers/BackLinkLayer.cpp
@@ -31,9 +32,9 @@ set(NeoML_SOURCES
     Dnn/Layers/BaseInPlaceLayer.cpp
     Dnn/Layers/BatchNormalizationLayer.cpp
     Dnn/Layers/BertConvLayer.cpp
-    Dnn/Layers/AddToObjectLayer.cpp
     Dnn/Layers/BinaryCrossEntropyLayer.cpp
     Dnn/Layers/BinaryFocalLossLayer.cpp
+    Dnn/Layers/BroadcastLayer.cpp
     Dnn/Layers/CastLayer.cpp
     Dnn/Layers/CenterLossLayer.cpp
     Dnn/Layers/ChannelwiseConvLayer.cpp
@@ -220,14 +221,15 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/Dnn/Layers/AccumulativeLookupLayer.h
     ../include/NeoML/Dnn/Layers/AccuracyLayer.h
     ../include/NeoML/Dnn/Layers/ActivationLayers.h
+    ../include/NeoML/Dnn/Layers/AddToObjectLayer.h
     ../include/NeoML/Dnn/Layers/ArgmaxLayer.h
     ../include/NeoML/Dnn/Layers/AttentionLayer.h
     ../include/NeoML/Dnn/Layers/BackLinkLayer.h
     ../include/NeoML/Dnn/Layers/BaseInPlaceLayer.h
     ../include/NeoML/Dnn/Layers/BatchNormalizationLayer.h
-    ../include/NeoML/Dnn/Layers/AddToObjectLayer.h
     ../include/NeoML/Dnn/Layers/BertConvLayer.h
     ../include/NeoML/Dnn/Layers/BinaryFocalLossLayer.h
+    ../include/NeoML/Dnn/Layers/BroadcastLayer.h
     ../include/NeoML/Dnn/Layers/CastLayer.h
     ../include/NeoML/Dnn/Layers/CenterLossLayer.h
     ../include/NeoML/Dnn/Layers/ChannelwiseConvLayer.h

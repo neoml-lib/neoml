@@ -382,22 +382,26 @@ static CPtr<const CUserTensor> addUpsample2dLayer( CUpsampling2DLayer& upsample,
 	return new CUserTensor( outputShape, result->Layout(), CLayerOutput( &upsample, 0 ) );
 }
 
-// Pads shape with '1' without changing the data
-static CPtr<const CUserTensor> padTensorShape( const CUserTensor& input, int dimCount, int axis )
+CPtr<const CUserTensor> PrepareForBroadcast( const CUserTensor& input, const CBroadcast& broadcast, int outputDims )
 {
+	int axis = outputDims - input.DimCount();
+	if( broadcast.Type == BT_Onnx && broadcast.Axis >= 0 && axis > broadcast.Axis ) {
+		axis = broadcast.Axis;
+	}
+
 	const CTensorShape& inputShape = input.Shape();
-	NeoAssert( axis + inputShape.Size() <= dimCount );
+	NeoAssert( axis + inputShape.Size() <= outputDims );
 
 	CTensorShape outputShape;
 	outputShape.Add( 1, axis );
 	outputShape.Add( inputShape );
-	outputShape.Add( 1, dimCount - outputShape.Size() );
+	outputShape.Add( 1, outputDims - outputShape.Size() );
 
 	const CTensorLayout& inputLayout = input.Layout();
 
 	TBlobDim currDim = BD_BatchLength;
 	CTensorLayout outputLayout;
-	outputLayout.SetBufferSize( dimCount );
+	outputLayout.SetBufferSize( outputDims );
 	// Adding unused blob dims to the new layout
 	for( int i = 0; i < axis; ++i ) {
 		while( inputLayout.Find( currDim ) != NotFound && currDim < BD_Count ) {
@@ -410,7 +414,7 @@ static CPtr<const CUserTensor> padTensorShape( const CUserTensor& input, int dim
 	// Copying existing dims
 	outputLayout.Add( inputLayout );
 	// Adding unused blob dims to the new layout
-	for( int i = outputLayout.Size(); i < dimCount; ++i ) {
+	for( int i = outputLayout.Size(); i < outputDims; ++i ) {
 		while( inputLayout.Find( currDim ) != NotFound && currDim < BD_Count ) {
 			++currDim;
 		}
@@ -441,12 +445,7 @@ static CPtr<const CUserTensor> broadcastUserTensor( const CUserTensor& input, co
 	// Used mathEngine
 	IMathEngine& mathEngine = dnn.GetMathEngine();
 
-	int axis = outputShape.Size() - input.DimCount();
-	if( broadcast.Type == BT_Onnx && broadcast.Axis >= 0 ) {
-		axis = broadcast.Axis;
-	}
-
-	CPtr<const CUserTensor> currData = padTensorShape( input, outputShape.Size(), axis );
+	CPtr<const CUserTensor> currData = PrepareForBroadcast( input, broadcast, outputShape.Size() );
 	CPtr<CUpsampling2DLayer> upsample = nullptr;
 	int heightDimIndex = NotFound;
 	int widthDimIndex = NotFound;

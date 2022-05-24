@@ -73,6 +73,8 @@ public:
 	void FilterSmallValues( const CFloatHandle& data, int dataSize, float threshold ) override;
 	void VectorCopy(const CFloatHandle& first, const CConstFloatHandle& second, int vectorSize) override;
 	void VectorCopy(const CIntHandle& first, const CConstIntHandle& second, int vectorSize) override;
+	void BroadcastCopy(const CIntHandle& toHandle, const CConstIntHandle& fromHandle,
+		const CBlobDesc& toDesc, const CBlobDesc& fromDesc, int additionalWidth) override;
 	void BroadcastCopy(const CFloatHandle& toHandle, const CConstFloatHandle& fromHandle,
 		const CBlobDesc& toDesc, const CBlobDesc& fromDesc, int additionalWidth) override;
 	void VectorSum(const CConstFloatHandle& firstHandle, int vectorSize, const CFloatHandle& resultHandle) override;
@@ -558,10 +560,8 @@ public:
 		const CFloatHandle& recurrentWeights, const CConstFloatHandle& recurrentFreeTerm,
 		const CConstFloatHandle& inputStateBackLink, const CConstFloatHandle& inputMainBackLink, const CConstFloatHandle& input,
 		const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink ) override;
-	void LinearInterpolation( const CConstFloatHandle& dataHandle, const CFloatHandle& resultHandle,
-		int objectCount, int scaledAxis, int objectSize, int scale ) override;
-	void LinearInterpolationBackward( const CConstFloatHandle& outputDiffHandle, const CFloatHandle& inputDiffHandle,
-		int objectCount, int scaledAxis, int objectSize, int scale ) override;
+	void LinearInterpolation( const CConstFloatHandle& dataHandle, const CFloatHandle& resultHandle, TInterpolationCoords coords,
+		TInterpolationRound round, int objectCount, int scaledAxis, int objectSize, float scale ) override;
 
 	IPerformanceCounters* CreatePerformanceCounters() const override { 	return new CPerformanceCountersDefault(); }
 	void AllReduce( const CFloatHandle& /*handle*/, int /*size*/ ) override {};

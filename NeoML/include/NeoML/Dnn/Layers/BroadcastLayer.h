@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2022 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,24 +15,24 @@ limitations under the License.
 
 #pragma once
 
-#include "../LayerOperator.h"
+#include <NeoML/NeoMLDefs.h>
+#include <NeoML/Dnn/Dnn.h>
 
-namespace NeoOnnx {
+namespace NeoML {
 
-// Resize operator
-class CResizeOperator : public CLayerOperator {
+// Layer that broadcasts all of the input blobs to the same shape
+class NEOML_API CBroadcastLayer : public CBaseLayer {
+	NEOML_DNN_LAYER( CBroadcastLayer )
 public:
-	CResizeOperator( const onnx::NodeProto& resize, int opsetVersion );
+	explicit CBroadcastLayer( IMathEngine& mathEngine );
+
+	void Serialize( CArchive& archive ) override;
 
 protected:
-	// CLayerOperator methods
-	void AddLayers( const CTensorArray& input, CDnn& dnn, CTensorArray& outputs ) const override;
-
-private:
-	TInterpolationCoords getInterpolationCoords() const;
-	TInterpolationRound getInterpolationRound() const;
-	void getScales( const CTensorArray& inputs, CFastArray<float, 8>& scales ) const;
-	void getSizes( const CTensorArray& inputs, CFastArray<int, 8>& sizes ) const;
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
 };
 
-} // namespace NeoOnnx
+} // namespace NeoML
+
