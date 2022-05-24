@@ -69,7 +69,6 @@ void CCastLayer::RunOnce()
 
 void CCastLayer::BackwardOnce()
 {
-	NeoAssert( inputBlobs[0]->GetDataType() == CT_Float && outputBlobs[0]->GetDataType() == CT_Float );
 	inputDiffBlobs[0]->CopyFrom( outputDiffBlobs[0] );
 }
 

@@ -136,6 +136,8 @@ protected:
 	void RunOnce() override;
 	void BackwardOnce() override;
 	void LearnOnce() override;
+	int BlobsForBackward() const override { return TInputBlobs; }
+	int BlobsForLearn() const override { return TInputBlobs; }
 
 private:
 	// The "zero" class (no label); reserved, currently not in use
@@ -236,6 +238,7 @@ protected:
 	void Reshape() override;
 	void RunOnce() override;
 	void BackwardOnce() override;
+	int BlobsForBackward() const override { return 0; }
 };
 
 //-----------------------------------------------------------------------------------------------

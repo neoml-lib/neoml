@@ -466,8 +466,6 @@ CHardSigmoidLayer::CHardSigmoidLayer( IMathEngine& mathEngine ) : CBaseInPlaceLa
 
 void CHardSigmoidLayer::RunOnce()
 {
-	CheckInput1();
-
 	MathEngine().VectorHardSigmoid( inputBlobs[0]->GetData(), outputBlobs[0]->GetData(), outputBlobs[0]->GetDataSize(),
 		paramBlobs[0]->GetData(), paramBlobs[1]->GetData() );
 }

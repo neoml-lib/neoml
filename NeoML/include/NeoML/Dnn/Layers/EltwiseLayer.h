@@ -148,7 +148,7 @@ protected:
 	void Reshape() override;
 	void RunOnce() override;
 	void BackwardOnce() override;
-	int BlobsForBackward() const override { return TInputBlobs; }
+	int BlobsForBackward() const override { return TInputBlobs | TOutputBlobs; }
 };
 
 NEOML_API CLayerWrapper<CEltwiseDivLayer> Div();

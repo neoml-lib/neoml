@@ -39,7 +39,6 @@ protected:
 	void Reshape() override;
 	void OnReset() override;
 	void RunOnceAfterReset() override;
-	int BlobsForBackward() const override { return 0; }
 
 	virtual int& PositivesTotal(){ return positivesTotal; };
 	virtual int& NegativesTotal(){ return negativesTotal; };

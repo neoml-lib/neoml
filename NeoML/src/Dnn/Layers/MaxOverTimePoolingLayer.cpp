@@ -124,11 +124,16 @@ void CMaxOverTimePoolingLayer::BackwardOnce()
 
 void CMaxOverTimePoolingLayer::initDescs()
 {
+	NeoPresume( inputBlobs[0] != nullptr || inputDiffBlobs[0] != nullptr );
+	NeoPresume( outputBlobs[0] != nullptr || outputDiffBlobs[0] != nullptr );
+	const CBlobDesc& inputDesc = inputBlobs[0] != nullptr ? inputBlobs[0]->GetDesc() : inputDiffBlobs[0]->GetDesc();
+	const CBlobDesc& outputDesc = outputBlobs[0] != nullptr ? outputBlobs[0]->GetDesc() : outputDiffBlobs[0]->GetDesc();
+
 	if( desc == 0 && filterLength > 0 && strideLength > 0 ) {
-		desc = MathEngine().InitMaxOverTimePooling( inputBlobs[0]->GetDesc(), filterLength, strideLength, outputBlobs[0]->GetDesc() );
+		desc = MathEngine().InitMaxOverTimePooling( inputDesc, filterLength, strideLength, outputDesc );
 	}
 	if( globalDesc == 0 && filterLength == 0 && strideLength == 0 ) {
-		globalDesc = MathEngine().InitGlobalMaxOverTimePooling( inputBlobs[0]->GetDesc(), outputBlobs[0]->GetDesc() );
+		globalDesc = MathEngine().InitGlobalMaxOverTimePooling( inputDesc, outputDesc );
 	}
 }
 

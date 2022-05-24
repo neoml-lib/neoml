@@ -86,7 +86,6 @@ protected:
 	void Reshape() override;
 	void RunOnce() override;
 	void BackwardOnce() override;
-	int BlobsForBackward() const override { return 0; }
 
 private:
 	CArray<CRule> rules;

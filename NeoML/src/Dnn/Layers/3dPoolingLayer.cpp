@@ -166,9 +166,12 @@ void C3dMaxPoolingLayer::BackwardOnce()
 void C3dMaxPoolingLayer::initDesc()
 {
 	if( desc == 0 ) {
-		desc = MathEngine().Init3dMaxPooling( inputBlobs[0]->GetDesc(),
+		NeoPresume( inputBlobs[0] != nullptr || inputDiffBlobs[0] != nullptr );
+		NeoPresume( outputBlobs[0] != nullptr || outputDiffBlobs[0] != nullptr );
+		desc = MathEngine().Init3dMaxPooling(
+			inputBlobs[0] != nullptr ? inputBlobs[0]->GetDesc() : inputDiffBlobs[0]->GetDesc(),
 			filterHeight, filterWidth, filterDepth, strideHeight, strideWidth, strideDepth,
-			outputBlobs[0]->GetDesc() );
+			outputBlobs[0] != nullptr ? outputBlobs[0]->GetDesc() : outputDiffBlobs[0]->GetDesc() );
 	}
 }
 
@@ -227,9 +230,12 @@ void C3dMeanPoolingLayer::BackwardOnce()
 void C3dMeanPoolingLayer::initDesc()
 {
 	if( desc == 0 ) {
-		desc = MathEngine().Init3dMeanPooling( inputBlobs[0]->GetDesc(),
+		NeoPresume( inputBlobs[0] != nullptr || inputDiffBlobs[0] != nullptr );
+		NeoPresume( outputBlobs[0] != nullptr || outputDiffBlobs[0] != nullptr );
+		desc = MathEngine().Init3dMeanPooling(
+			inputBlobs[0] != nullptr ? inputBlobs[0]->GetDesc() : inputDiffBlobs[0]->GetDesc(),
 			filterHeight, filterWidth, filterDepth, strideHeight, strideWidth, strideDepth,
-			outputBlobs[0]->GetDesc() );
+			outputBlobs[0] != nullptr ? outputBlobs[0]->GetDesc() : outputDiffBlobs[0]->GetDesc() );
 	}
 }
 

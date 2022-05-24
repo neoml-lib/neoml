@@ -181,7 +181,6 @@ void CPixelToImageLayer::BackwardOnce()
 
 	// The layer needs two inputs and one output
 	// Additional dimension checks are performed in Reshape()
-	NeoAssert( inputBlobs.Size() == 2 );
 	NeoAssert( inputDiffBlobs.Size() == 2 );
 	NeoAssert( outputDiffBlobs.Size() == 1 );
 
@@ -279,7 +278,6 @@ void CImageToPixelLayer::BackwardOnce()
 
 	// The layer needs two inputs and one output
 	// Additional dimension checks are performed in Reshape()
-	NeoAssert( inputBlobs.Size() == 2 );
 	NeoAssert( inputDiffBlobs.Size() == 2 );
 	NeoAssert( outputDiffBlobs.Size() == 1 );
 

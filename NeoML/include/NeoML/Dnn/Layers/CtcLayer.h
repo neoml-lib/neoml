@@ -81,6 +81,7 @@ protected:
 	void Reshape() override;
 	void RunOnce() override;
 	void BackwardOnce() override;
+	int BlobsForBackward() const override { return TInputBlobs; }
 
 private:
 	CPtr<CDnnBlob> lossWeight; // scale multiplier for the loss function
@@ -160,6 +161,7 @@ protected:
 	void Reshape() override;
 	void RunOnce() override;
 	void BackwardOnce() override;
+	int BlobsForBackward() const override { return 0; }
 
 private:
 	int blankLabel; // the blank label

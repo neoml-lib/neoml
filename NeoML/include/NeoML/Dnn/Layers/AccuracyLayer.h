@@ -37,7 +37,6 @@ protected:
 	void Reshape() override;
 	void OnReset() override;
 	void RunOnceAfterReset() override;
-	int BlobsForBackward() const override { return 0; }
 
 private:
 	// the number of iterations for which the error is accumulated
@@ -68,7 +67,6 @@ protected:
 	void Reshape() override;
 	void OnReset() override { confusionMatrix.Set( 0 ); }
 	void RunOnceAfterReset() override;
-	int BlobsForBackward() const override { return 0; }
 
 private:
 	// Confusion matrix

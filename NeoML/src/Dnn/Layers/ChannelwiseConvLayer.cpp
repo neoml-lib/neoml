@@ -146,9 +146,12 @@ void CChannelwiseConvLayer::Serialize( CArchive& archive )
 void CChannelwiseConvLayer::initConvDesc()
 {
 	if( convDesc == 0 ) {
-		convDesc = MathEngine().InitBlobChannelwiseConvolution( inputBlobs[0]->GetDesc(),
-			paddingHeight, paddingWidth, strideHeight, strideWidth,
-			Filter()->GetDesc(), &FreeTerms()->GetDesc(), outputBlobs[0]->GetDesc() );
+		NeoPresume( inputBlobs[0] != nullptr || inputDiffBlobs[0] != nullptr );
+		NeoPresume( outputBlobs[0] != nullptr || outputDiffBlobs[0] != nullptr );
+		convDesc = MathEngine().InitBlobChannelwiseConvolution(
+			inputBlobs[0] != nullptr ? inputBlobs[0]->GetDesc() : inputDiffBlobs[0]->GetDesc(),
+			paddingHeight, paddingWidth, strideHeight, strideWidth, Filter()->GetDesc(), &FreeTerms()->GetDesc(),
+			outputBlobs[0] != nullptr ? outputBlobs[0]->GetDesc() : outputDiffBlobs[0]->GetDesc() );
 	}
 }
 
