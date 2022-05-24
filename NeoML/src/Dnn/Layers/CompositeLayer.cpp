@@ -343,10 +343,10 @@ void CCompositeLayer::calcBlobsForBackwardAndLearn()
 		const CBaseLayer& layer = *layers[layerIndex];
 		for( int inputIndex = 0; inputIndex < layer.GetInputCount(); ++inputIndex ) {
 			if( dynamic_cast<const CCompositeSourceLayer*>( layer.GetInputLayer( inputIndex ) ) != nullptr ) {
-				if( hasBackward && ( layer.BlobsForBackward() & TInputBlobs ) != 0 ) {
+				if( hasBackward && layer.IsBackwardPerformed() && ( layer.BlobsForBackward() & TInputBlobs ) != 0 ) {
 					blobsForBackward |= TInputBlobs;
 				}
-				if( hasLearn && ( layer.BlobsForLearn() & TInputBlobs ) != 0 ) {
+				if( hasLearn && layer.IsLearningPerformed() && ( layer.BlobsForLearn() & TInputBlobs ) != 0 ) {
 					blobsForLearn |= TInputBlobs;
 				}
 				break;
@@ -361,10 +361,10 @@ void CCompositeLayer::calcBlobsForBackwardAndLearn()
 			break;
 		}
 		const CBaseLayer& layer = *GetLayer( outputMappings[outputIndex].InternalLayerName );
-		if( hasBackward && ( layer.BlobsForBackward() & TOutputBlobs ) != 0 ) {
+		if( hasBackward && layer.IsBackwardPerformed() && ( layer.BlobsForBackward() & TOutputBlobs ) != 0 ) {
 			blobsForBackward |= TOutputBlobs;
 		}
-		if( hasLearn && ( layer.BlobsForLearn() & TOutputBlobs ) != 0 ) {
+		if( hasLearn && layer.IsLearningPerformed() && ( layer.BlobsForLearn() & TOutputBlobs ) != 0 ) {
 			blobsForLearn |= TOutputBlobs;
 		}
 	}
