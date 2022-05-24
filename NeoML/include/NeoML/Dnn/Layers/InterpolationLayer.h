@@ -24,8 +24,6 @@ namespace NeoML {
 // and fills the new element with approximated values based on its neighbors
 // At the moment supports only linear interpolation
 //
-// For each of the dims outputShape[dim] = inputShape[dim] * GetScale(dim)
-//
 // By default each scale is equal to 1
 class NEOML_API CInterpolationLayer : public CBaseLayer {
 	NEOML_DNN_LAYER( CInterpolationLayer )
@@ -34,10 +32,55 @@ public:
 
 	void Serialize( CArchive& archive ) override;
 
-	// Sets the multiplier for a given blob dimension
-	// Must be >= 1
-	void SetScale( TBlobDim dim, int scale );
-	int GetScale( TBlobDim dim ) const;
+	// Rule types for dimensions
+	enum class TRuleType : int {
+		None, // Preserve dimension as-is
+		Resize, // Change to fixed size (with interpolation)
+		Scale, // Multiply dimension size (with interpolation)
+
+		Count
+	};
+
+	// The rule for the given dimension
+	struct CRule {
+		CRule() : Type( TRuleType::None ), NewSize( NotFound ), ScaleCoeff( 1.f ) {}
+		CRule( TRuleType type, int newSize, float scale ) : Type( type ), NewSize( newSize ), ScaleCoeff( scale ) {}
+
+		static CRule Resize( int newSize ) { return CRule( TRuleType::Resize, newSize, 1.f ); }
+		static CRule Scale( float scale ) { return CRule( TRuleType::Scale, NotFound, scale ); }
+
+		void Serialize( CArchive& archive );
+
+		TRuleType Type;
+		int NewSize;
+		float ScaleCoeff;
+	};
+
+	void SetRule( TBlobDim dim, const CRule& rule ) { NeoAssert( dim >= BD_BatchLength && dim < BD_Count ); rules[dim] = rule; }
+	const CRule& GetRule( TBlobDim dim ) const { NeoAssert( dim >= BD_BatchLength && dim < BD_Count ); return rules[dim]; }
+
+	// Sets the coordinate calculation mode
+	// The variables in formula:
+	//     - old_size - axis size before interpolation
+	//     - new_size - axis size after interpolation
+	//     - x_old - coordinate in array before the interpolation 
+	//     - x_new - coordinate in array after the interpolation
+	// The formulas:
+	//     - TInterpolationCoords::Asymmetric    x_old = float( x_new * old_size ) / new_size
+	//     - TInterpolationCoords::PytorchHalfPixel    x_old = new_size > 1 ? ( x_new + 0.5 ) * old_size / new_size - 0.5 : 0
+	// By default TInterpolationCoords::Asymmetric
+	TInterpolationCoords GetCoords() const { return coords; }
+	void SetCoords( TInterpolationCoords newCoords ) { coords = newCoords; }
+
+	// Sets the round mode (which transforms linear interpolation into nearest
+	// Possible values:
+	//     - TInterpolationRound::None - keep interpolation linear (*default)
+	//     - TInterpolationRound::RoundPreferFloor
+	//     - TInterpolationRound::RoundPreferCeil
+	//     - TInterpolationRound::Floor
+	//     - TInterpolationRound::Ceil
+	TInterpolationRound GetRound() const { return round; }
+	void SetRound( TInterpolationRound newRound ) { round = newRound; }
 
 protected:
 	void Reshape() override;
@@ -45,7 +88,21 @@ protected:
 	void BackwardOnce() override;
 
 private:
-	CArray<int> scales;
+	CArray<CRule> rules;
+	TInterpolationCoords coords;
+	TInterpolationRound round;
 };
+
+inline CArchive& operator<<( CArchive& archive, const CInterpolationLayer::CRule& rule )
+{
+	const_cast<CInterpolationLayer::CRule&>( rule ).Serialize( archive );
+	return archive;
+}
+
+inline CArchive& operator>>( CArchive& archive, CInterpolationLayer::CRule& rule )
+{
+	rule.Serialize( archive );
+	return archive;
+}
 
 } // namespace NeoML
