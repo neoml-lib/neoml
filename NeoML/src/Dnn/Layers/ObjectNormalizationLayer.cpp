@@ -290,8 +290,8 @@ void CObjectNormalizationLayer::BackwardOnce()
 
 void CObjectNormalizationLayer::LearnOnce()
 {
-	const int objectCount = inputDiffBlobs[0]->GetObjectCount();
-	const int objectSize = inputDiffBlobs[0]->GetObjectSize();
+	const int objectCount = outputDiffBlobs[0]->GetObjectCount();
+	const int objectSize = outputDiffBlobs[0]->GetObjectSize();
 	const int dataSize = objectCount * objectSize;
 
 	CFloatHandle outDiff = outputDiffBackup == nullptr ? outputDiffBlobs[0]->GetData() : outputDiffBackup->GetData();
