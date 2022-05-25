@@ -25,7 +25,7 @@ namespace NeoML {
 
 CPtr<CBaseLayer> CreateActivationLayer( IMathEngine& mathEngine, TActivationFunction type )
 {
-	static_assert( AF_Count == 12, "AF_Count != 12" );
+	static_assert( AF_Count == 13, "AF_Count != 13" );
 	switch( type ) {
 		case AF_Linear:
 			return FINE_DEBUG_NEW CLinearLayer( mathEngine );
@@ -51,6 +51,8 @@ CPtr<CBaseLayer> CreateActivationLayer( IMathEngine& mathEngine, TActivationFunc
 			return FINE_DEBUG_NEW CHSwishLayer( mathEngine );
 		case AF_GELU:
 			return FINE_DEBUG_NEW CGELULayer( mathEngine );
+		case AF_Exp:
+			return FINE_DEBUG_NEW CExpLayer( mathEngine );
 		default:
 			NeoAssert( false );
 	}
@@ -515,6 +517,32 @@ CLayerWrapper<CPowerLayer> Power( float exponent )
 	return CLayerWrapper<CPowerLayer>( "Power", [=]( CPowerLayer* result ) {
 		result->SetExponent( exponent );
 	} );
+}
+
+//---------------------------------------------------------------------------------------------------
+
+static const int ExpLayerVersion = 0;
+
+void CExpLayer::Serialize( CArchive& archive )
+{
+	archive.SerializeVersion( ExpLayerVersion );
+	CBaseInPlaceLayer::Serialize( archive );
+}
+
+void CExpLayer::RunOnce()
+{
+	MathEngine().VectorExp( inputBlobs[0]->GetData(), outputBlobs[0]->GetData(), outputBlobs[0]->GetDataSize() );
+}
+
+void CExpLayer::BackwardOnce()
+{
+	MathEngine().VectorEltwiseMultiply( outputBlobs[0]->GetData(), outputDiffBlobs[0]->GetData(),
+		inputDiffBlobs[0]->GetData(), outputBlobs[0]->GetDataSize() );
+}
+
+CLayerWrapper<CExpLayer> Exp()
+{
+	return CLayerWrapper<CExpLayer>( "Power", []( CExpLayer* ) {} );
 }
 
 } // namespace NeoML

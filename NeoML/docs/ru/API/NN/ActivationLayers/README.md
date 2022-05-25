@@ -34,6 +34,7 @@ enum TActivationFunction {
 	AF_Power,
 	AF_HSwish,
 	AF_GELU,
+	AF_Exp,
 
 	AF_Count
 };
@@ -53,4 +54,5 @@ enum TActivationFunction {
 `AF_Power` | [CPowerLayer](PowerLayer.md) | функция активации `pow(x, exp)`
 `AF_HSwish` | [CHSwishLayer](HSwishLayer.md) | функция активации `h-swish`
 `AF_GELU` | [CGELULayer](GELULayer.md) | функция активации `x * sigmoid(1.702 * x)`
+`AF_Exp` | [CExpLayer](ExpLayer.md) | функция активации `exp`
 `AF_Count` | | Вспомогательная константа, равная числу поддержанных функций активации.
