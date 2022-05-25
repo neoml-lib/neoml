@@ -569,8 +569,8 @@ inline float32x4_t Polynom8Neon(const float32x4_t& x,
 	tail = MultiplyAndAddNeon( poly4, x, tail );
 	tail = MultiplyAndAddNeon( poly3, x, tail );
 	tail = MultiplyAndAddNeon( poly2, x, tail );
-	float32x4_t t01 = MultiplyAndAddNeon( poly0, x, poly1 );
-	return MultiplyAndAddNeon( t01, vmulq_f32( x, x ), tail );
+	tail = MultiplyAndAddNeon( poly1, x, tail );
+	return MultiplyAndAddNeon( poly0, x, tail );
 }
 inline float32x4_t Polynom8Neon(const float32x4_t& x, const float32x4_t* poly)
 {
