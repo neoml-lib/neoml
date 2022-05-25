@@ -94,57 +94,6 @@ void CResizeOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorA
 	interpolation->Connect( 0, *x->Layer(), x->OutputIndex() );
 	dnn.AddLayer( *interpolation );
 	outputs.Add( new CUserTensor( outputShape, x->Layout(), CLayerOutput( interpolation.Ptr(), 0 ) ) );
-	/*
-	if( mode == "nearest" ) {
-		// Check if it's a broadcast
-		if( OpsetVersion >= 11 ) {
-			CString coordinateTransformationMode = "half_pixel";
-			GetAttribute( "coordinate_transformation_mode", coordinateTransformationMode );
-			CheckNeoOnnxSupport( coordinateTransformationMode == "asymmetric",
-				"Not 'assymetric' coordinate transformation", *this );
-			CString nearestMode = "round_prefer_floor";
-			GetAttribute( "nearest_mode", nearestMode );
-			CheckNeoOnnxSupport( nearestMode == "floor", "non-'floor' nearest mode", *this );
-		}
-
-		CTensorShape outputShape;
-		inputs[0]->Shape().CopyTo( outputShape );
-		CheckNeoOnnxSupport( outputShape.Size() == scales.Size(), "Size of 'scales' != number of input dims", *this );
-		for( int i = 0; i < outputShape.Size(); ++i ) {
-			outputShape[i] *= scales[i];
-		}
-		outputs.Add( BroadcastTensor( *inputs[0], CBroadcast( BT_Upsample ), outputShape ) );
-	} else if( mode == "linear" ) {
-		TInterpolationCoords coords = TInterpolationCoords::Asymmetric;
-		if( OpsetVersion >= 11 ) {
-			CString coordinateTransformationMode = "half_pixel";
-			GetAttribute( "coordinate_transformation_mode", coordinateTransformationMode );
-			if( coordinateTransformationMode == "pytorch_half_pixel" ) {
-				coords = TInterpolationCoords::PytorchHalfPixel;
-			} else if( coordinateTransformationMode != "asymmetric" ) {
-				CheckNeoOnnxSupport( false, "unsupported coordinate_transformation_mode", *this );
-			}
-		}
-
-		CPtr<const CUserTensor> currInput = AsUserTensor( *inputs[0], Name() + "_source", dnn );
-		CPtr<CInterpolationLayer> interpolationLayer = new CInterpolationLayer( dnn.GetMathEngine() );
-		interpolationLayer->SetName( Name() );
-		interpolationLayer->SetCoords( coords );
-
-		CTensorShape outputShape;
-		currInput->Shape().CopyTo( outputShape );
-		for( int i = 0; i < scales.Size(); ++i ) {
-			interpolationLayer->SetScale( inputs[0]->Layout()[i], scales[i] );
-			outputShape[i] *= scales[i];
-		}
-
-		interpolationLayer->Connect( 0, *currInput->Layer(), currInput->OutputIndex() );
-		dnn.AddLayer( *interpolationLayer );
-		outputs.Add( new CUserTensor( outputShape, currInput->Layout(), CLayerOutput( interpolationLayer.Ptr(), 0 ) ) );
-	} else {
-		CheckNeoOnnxSupport( "false", "mode must be linear or nearest", *this );
-	}
-	*/
 }
 
 TInterpolationCoords CResizeOperator::getInterpolationCoords() const
