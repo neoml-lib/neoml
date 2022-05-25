@@ -592,6 +592,7 @@ private:
 };
 
 // exponent
+// Based on Cephes math library exp implementation https://github.com/jeremybarnes/cephes/blob/master/cmath/exp.c
 // We use a polynomial approximation exp(x) of 7 degree over the [-ln(2), ln(2)] interval with the Remez method
 // The approximation uses Sollya 6.0 (http://sollya.gforge.inria.fr/)
 // > remez(exp(x), 7, [-log(2); log(2)]);
@@ -602,9 +603,9 @@ private:
 class CExpNeon : public CCrtAllocatedObject {
 public:
 	CExpNeon() :
-		Log2(vdupq_n_f32(0.693359375)),
-		InvLog2(vdupq_n_f32(1.44269504088896341)),
-		CephesExpC2( vdupq_n_f32( -2.12194440e-4 ) ),
+		InvLog2( vdupq_n_f32( 1.4426950408889634073599 ) ),
+		C1( vdupq_n_f32( 6.93145751953125E-1 ) ),
+		C2( vdupq_n_f32( 1.42860682030941723212E-6 ) ),
 		Poly0(vdupq_n_f32(0.99999998955224326136737550445628323296402203000823)),
 		Poly1(vdupq_n_f32(0.99999999071360726125072399571785309591215423779367)),
 		Poly2(vdupq_n_f32(0.50000069538458801897792933938736419406478763215156)),
@@ -622,7 +623,6 @@ public:
 	float32x4_t ExecuteNoCheck( float32x4_t x ) const
 	{
 		// The formula: exp(x) = r * 2^n, where n = floor(0.5 + x / ln(2)), r = exp(x - n * ln(2) - n * CephesExpC2)
-		// Based on Cephes math library as noticed here http://gruntthepeon.free.fr/ssemath/neon_mathfun.h
 		float32x4_t n = MultiplyAndAddNeon( vdupq_n_f32( 0.5f ), x, InvLog2 );
 
 		// Perform a floorf
@@ -631,8 +631,8 @@ public:
 		mask = vandq_u32( mask, vdupq_n_s32( 1 ) );
 		n = vsubq_f32( toIntAndBack, vreinterpretq_f32_u32( mask ) );
 
-		x = vsubq_f32( x, vmulq_f32( n, Log2 ) );
-		x = vsubq_f32( x, vmulq_f32( n, CephesExpC2 ) );
+		x = vsubq_f32( x, vmulq_f32( n, C1 ) );
+		x = vsubq_f32( x, vmulq_f32( n, C2 ) );
 
 		// Calculate r (via the polynomial)
 		float32x4_t r = Polynom8Neon( x, Poly0, Poly1, Poly2, Poly3, Poly4, Poly5, Poly6, Poly7 );
@@ -652,9 +652,9 @@ public:
 
 private:
 	// The constants used in the algorithm
-	const float32x4_t Log2;
 	const float32x4_t InvLog2;
-	const float32x4_t CephesExpC2;
+	const float32x4_t C1;
+	const float32x4_t C2;
 	const float32x4_t Poly0, Poly1, Poly2, Poly3, Poly4, Poly5, Poly6, Poly7;
 	const float32x4_t MaxLog;
 	const float32x4_t MinLog;
