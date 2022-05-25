@@ -34,6 +34,9 @@ limitations under the License.
 #include <NeoML/TraditionalML/PCA.h>
 #include <NeoML/TraditionalML/PlattScalling.h>
 #include <NeoML/TraditionalML/DifferentialEvolution.h>
+#include <NeoML/TraditionalML/BytePairEncoderTrainer.h>
+#include <NeoML/TraditionalML/WordDictionary.h>
+#include <NeoML/TraditionalML/SubwordEncoder.h>
 #include <NeoML/Dnn/DnnBlob.h>
 #include <NeoML/Dnn/DnnSparseMatrix.h>
 #include <NeoML/Dnn/AutoDiff.h>
@@ -125,6 +128,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/TransformerLayer.h>
 #include <NeoML/Dnn/Layers/BertConvLayer.h>
 #include <NeoML/Dnn/Layers/InterpolationLayer.h>
+#include <NeoML/Dnn/Layers/BroadcastLayer.h>
 #include <NeoML/ArchiveFile.h>
 
 #ifndef NO_NEOML_NAMESPACE

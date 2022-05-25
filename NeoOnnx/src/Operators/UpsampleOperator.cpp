@@ -49,58 +49,50 @@ CUpsampleOperator::CUpsampleOperator( const onnx::NodeProto& upsample, int opset
 void CUpsampleOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs) const
 {
 	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
-	CFastArray<int, 8> scales;
+	CFastArray<float, 8> scales;
 	getScales( inputs, scales );
 	CTensorShape outputShape;
 	inputs[0]->Shape().CopyTo( outputShape );
 	CheckOnnxProtocol( outputShape.Size() == scales.Size(), "number of scales must be equal to the input dimensions", *this );
 	for( int i = 0; i < outputShape.Size(); ++i ) {
-		outputShape[i] *= scales[i];
+		outputShape[i] = static_cast<int>( outputShape[i] * scales[i] );
+		CheckOnnxProtocol( outputShape[i] >= 1, "empty shape after scaling", *this );
 	}
 
+	CPtr<CInterpolationLayer> interpolation = new CInterpolationLayer( dnn.GetMathEngine() );
+	interpolation->SetName( Name() );
+	interpolation->SetCoords( TInterpolationCoords::Asymmetric );
 	if( mode == "nearest" ) {
-		outputs.Add( BroadcastTensor( *inputs[0], CBroadcast( BT_Upsample ), outputShape ) );
-	} else {
-		IMathEngine& mathEngine = dnn.GetMathEngine();
-		CPtr<const CUserTensor> input = AsUserTensor( *inputs[0], Name() + "_Source", dnn );
-
-		CPtr<CInterpolationLayer> interpolation = new CInterpolationLayer( mathEngine );
-		interpolation->SetName( Name() );
-		for( int i = 0; i < scales.Size(); ++i ) {
-			interpolation->SetScale( input->Layout()[i], scales[i] );
-		}
-		interpolation->Connect( 0, *input->Layer(), input->OutputIndex() );
-		dnn.AddLayer( *interpolation );
-		outputs.Add( new CUserTensor( outputShape, input->Layout(), CLayerOutput( interpolation.Ptr(), 0 ) ) );
+		interpolation->SetRound( TInterpolationRound::Floor );
 	}
+
+	CPtr<const CUserTensor> input = AsUserTensor( *inputs[0], Name() + "_Source", dnn );
+	for( int i = 0; i < scales.Size(); ++i ) {
+		interpolation->SetRule( input->Layout()[i], CInterpolationLayer::CRule::Scale( scales[i] ) );
+	}
+	interpolation->Connect( 0, *input->Layer(), input->OutputIndex() );
+	dnn.AddLayer( *interpolation );
+	outputs.Add( new CUserTensor( outputShape, input->Layout(), CLayerOutput( interpolation.Ptr(), 0 ) ) );
 }
 
 // Gets scales
-void CUpsampleOperator::getScales( const CTensorArray& inputs, CFastArray<int, 8>& scales ) const
+void CUpsampleOperator::getScales( const CTensorArray& inputs, CFastArray<float, 8>& scales ) const
 {
-	CFastArray<float, 8> floatScales;
 	if( OpsetVersion < 7 ) {
 		float heightScale = 1.f;
 		CheckOnnxProtocol( GetAttribute( "height_scale", heightScale ), "height_scale attribute is missing", *this );
 		float widthScale = 1.f;
 		CheckOnnxProtocol( GetAttribute( "width_scale", widthScale ), "width_scale attribute is missing", *this );
-		floatScales = { 1.f, 1.f, heightScale, widthScale };
+		scales = { 1.f, 1.f, heightScale, widthScale };
 	} else if( OpsetVersion < 9 ) {
-		CheckOnnxProtocol( GetAttribute( "scales", floatScales ), "scales attribute is missing", *this );
+		CheckOnnxProtocol( GetAttribute( "scales", scales ), "scales attribute is missing", *this );
 	} else {
 		CheckOnnxProtocol( inputs[1] != nullptr, "scales can't be optional", *this );
 		CheckNeoOnnxSupport( inputs[1]->IsCalculated(), "user-provided scales", *this );
 		const CDnnBlob& scalesBlob = *( dynamic_cast<const CDataTensor*>( inputs[1].Ptr() )->Data() );
 		CheckOnnxProtocol( scalesBlob.GetDataType() == CT_Float, "non-float scales", *this );
-		floatScales.SetSize( scalesBlob.GetDataSize() );
-		scalesBlob.CopyTo( floatScales.GetPtr() );
-	}
-
-	scales.SetSize( floatScales.Size() );
-	for( int i = 0; i < floatScales.Size(); ++i ) {
-		CheckNeoOnnxSupport( IsInteger( floatScales[i] ), "non-integer scale", *this );
-		scales[i] = static_cast<int>( floatScales[i] );
-		CheckOnnxProtocol( scales[i] >= 1, "scale < 1", *this );
+		scales.SetSize( scalesBlob.GetDataSize() );
+		scalesBlob.CopyTo( scales.GetPtr() );
 	}
 }
 

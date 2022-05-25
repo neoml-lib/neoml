@@ -740,31 +740,17 @@ void CCudaMathEngine::BertConvBackward( const CConstFloatHandle& dataHandle, con
 }
 
 void CCudaMathEngine::LinearInterpolation( const CConstFloatHandle& dataHandle, const CFloatHandle& resultHandle,
-	int objectCount, int scaledAxis, int objectSize, int scale )
+	TInterpolationCoords coords, TInterpolationRound round, int objectCount, int scaledAxis, int objectSize, float scale )
 {
 	ASSERT_EXPR( dataHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 
-	const int taskCount = objectCount * scaledAxis * scale * objectSize;
+	const int taskCount = objectCount * static_cast<int>( scaledAxis * scale ) * objectSize;
 	int blockCount;
 	int threadCount;
 	getCudaTaskGrid( blockCount, threadCount, taskCount );
 	LinearInterpolationKernel<<<blockCount, threadCount>>>( GetRaw( dataHandle ), GetRaw( resultHandle ),
-		objectCount, scaledAxis, objectSize, scale );
-}
-
-void CCudaMathEngine::LinearInterpolationBackward( const CConstFloatHandle& outputDiffHandle,
-	const CFloatHandle& inputDiffHandle, int objectCount, int scaledAxis, int objectSize, int scale )
-{
-	ASSERT_EXPR( outputDiffHandle.GetMathEngine() == this );
-	ASSERT_EXPR( inputDiffHandle.GetMathEngine() == this );
-
-	const int inputDiffSize = objectCount * scaledAxis * objectSize;
-	int blockCount;
-	int threadCount;
-	getCudaTaskGrid( blockCount, threadCount, inputDiffSize );
-	LinearInterpolationBackwardKernel<<<blockCount, threadCount>>>( GetRaw( outputDiffHandle ),
-		GetRaw( inputDiffHandle ), objectCount, scaledAxis, objectSize, scale );
+		static_cast<int>( coords ), static_cast<int>( round ), objectCount, scaledAxis, objectSize, scale );
 }
 
 } // namespace NeoML

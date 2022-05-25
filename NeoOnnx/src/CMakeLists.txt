@@ -32,6 +32,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Operators/ConvTransposeOperator.cpp
     Operators/DropoutOperator.cpp
     Operators/EltwiseOperator.cpp
+    Operators/EqualOperator.cpp
     Operators/ExpandOperator.cpp
     Operators/FlattenOperator.cpp
     Operators/GatherOperator.cpp
@@ -42,6 +43,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Operators/LrnOperator.cpp
     Operators/LstmOperator.cpp
     Operators/MatMulOperator.cpp
+    Operators/NonZeroOperator.cpp
     Operators/PadOperator.cpp
     Operators/PoolOperator.cpp
     Operators/RangeOperator.cpp
@@ -55,6 +57,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Operators/TransposeOperator.cpp
     Operators/UnsqueezeOperator.cpp
     Operators/UpsampleOperator.cpp
+    Operators/WhereOperator.cpp
     TensorUtils.cpp
 
     ../include/NeoOnnx/NeoOnnx.h
@@ -78,6 +81,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Operators/ConvTransposeOperator.h
     Operators/DropoutOperator.h
     Operators/EltwiseOperator.h
+    Operators/EqualOperator.h
     Operators/ExpandOperator.h
     Operators/FlattenOperator.h
     Operators/GatherOperator.h
@@ -88,6 +92,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Operators/LrnOperator.h
     Operators/LstmOperator.h
     Operators/MatMulOperator.h
+    Operators/NonZeroOperator.h
     Operators/PadOperator.h
     Operators/PoolOperator.h
     Operators/RangeOperator.h
@@ -101,6 +106,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Operators/TransposeOperator.h
     Operators/UnsqueezeOperator.h
     Operators/UpsampleOperator.h
+    Operators/WhereOperator.h
     Tensor.h
     TensorLayout.h
     TensorUtils.h

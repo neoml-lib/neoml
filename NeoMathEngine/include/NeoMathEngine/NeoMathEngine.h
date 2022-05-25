@@ -48,6 +48,34 @@ enum TActivationFunction {
 	AF_Count
 };
 
+// Supported coordinate modes for linear interpolation
+// The variables in formula:
+//     - scale - size multiplier
+//     - x_old - coordinate in array before the interpolation 
+//     - x_new - coordinate in array after the interpolation
+//     - old_size - size before the transformation
+//     - new_size - size after the transformation  (int(ratio * old_size))
+enum class TInterpolationCoords : int {
+	HalfPixel, // x_old = ( x_new + 0.5 ) / scale - 0.5
+	PytorchHalfPixel, // x_old = ( new_size > 1 ) ? ( x_new + 0.5 ) / scale - 0.5 : 0
+	AlignCorners, // x_old = x_new * ( old_size - 1) / ( new_size - 1 )
+	Asymmetric, // x_old = x_new / scale
+
+	Count
+};
+
+// Suppported rounding for coordinates
+// Transform linear interpolation into nearest (if set)
+enum class TInterpolationRound : int {
+	None, // no rounding, keep interpolation linear
+	RoundPreferFloor, // round half down
+	RoundPreferCeil, // round half up
+	Floor, // always floor
+	Ceil, // always ceil
+
+	Count
+};
+
 // The class provides operations on vectors
 class NEOMATHENGINE_API IVectorMathEngine : public CCrtAllocatedObject {
 public:
@@ -60,6 +88,8 @@ public:
 	// additionalWidth != 1 means broadcasting from (*fromDesc, additionalWidth) to (*toDesc, additionalWidth)
 	// where (*desc, additionalWidth) is 8-dimensional shape with last dimension equals additionalWidth,
 	// channels count of handle must be additionalWidth times bigger than channels count of corresponding desc.
+	virtual void BroadcastCopy(const CIntHandle& toHandle, const CConstIntHandle& fromHandle,
+		const CBlobDesc& toDesc, const CBlobDesc& fromDesc, int additionalWidth) = 0;
 	virtual void BroadcastCopy(const CFloatHandle& toHandle, const CConstFloatHandle& fromHandle,
 		const CBlobDesc& toDesc, const CBlobDesc& fromDesc, int additionalWidth) = 0;
 
@@ -970,19 +1000,12 @@ public:
 		const CConstFloatHandle& outDiffHandle, int seqLen, int batchSize, int numHeads, int headSize, int kernelSize,
 		const CFloatHandle& dataDiffHandle, const CFloatHandle& kernelDiffHandle ) = 0;
 
-	// Interpolation
+	// Linear interpolation
 
-	// Linear interpolation which increases size of scaledAxis by a multiple of scale and
-	// fills new elements with linear approximation based on its neighbours
-	// The last (scale - 1) elements are filled with the last value
-	// e.g. [1., 2., 4., 8.] (Scale 2) -> [1., 1.5, 2., 3., 4., 6., 8., 8.]
-	//
 	// data is a 3D tensor of size objectCount x scaledAxis x objectSize
-	// result is a 3D tensor of size objectCount x (scale * scaledAxis) x objectSize
+	// result is a 3D tensor of size objectCount x int(scaledAxis * scale) x objectSize
 	virtual void LinearInterpolation( const CConstFloatHandle& dataHandle, const CFloatHandle& resultHandle,
-		int objectCount, int scaledAxis, int objectSize, int scale ) = 0;
-	virtual void LinearInterpolationBackward( const CConstFloatHandle& outputDiffHandle, const CFloatHandle& inputDiffHandle,
-		int objectCount, int scaledAxis, int objectSize, int scale ) = 0;
+		TInterpolationCoords coords, TInterpolationRound round, int objectCount, int scaledAxis, int objectSize, float scale ) = 0;
 };
 
 //------------------------------------------------------------------------------------------------------------

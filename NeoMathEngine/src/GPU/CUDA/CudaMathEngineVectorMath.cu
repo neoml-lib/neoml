@@ -44,6 +44,22 @@ void CCudaMathEngine::VectorCopy(const CIntHandle& first, const CConstIntHandle&
 	ASSERT_CUDA( cudaMemcpy(GetRaw(first), GetRaw(second), vectorSize * sizeof(int), cudaMemcpyDeviceToDevice));
 }
 
+void CCudaMathEngine::BroadcastCopy(const CIntHandle& toHandle, const CConstIntHandle& fromHandle,
+	const CBlobDesc& toDesc, const CBlobDesc& fromDesc, int additionalWidth)
+{
+	ASSERT_EXPR(toHandle.GetMathEngine() == this);
+	ASSERT_EXPR(fromHandle.GetMathEngine() == this);
+	SetCudaDevice( device->DeviceNumber );
+
+	int blockCount;
+	int threadCount;
+	int resultSize = toDesc.BlobSize();
+	getCudaTaskGrid(blockCount, threadCount, resultSize);
+
+	VectorBroadcastCopyKernel<<<blockCount, threadCount>>>(
+		GetRaw( toHandle ), GetRaw( fromHandle ), toDesc, fromDesc, additionalWidth, resultSize );
+}
+
 void CCudaMathEngine::BroadcastCopy(const CFloatHandle& toHandle, const CConstFloatHandle& fromHandle,
 	const CBlobDesc& toDesc, const CBlobDesc& fromDesc, int additionalWidth)
 {
