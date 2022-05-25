@@ -602,8 +602,8 @@ private:
 class CExpNeon : public CCrtAllocatedObject {
 public:
 	CExpNeon() :
-		Log2(vdupq_n_f32(0.69314718055994530941723212145817656807550013436025)),
-		InvLog2(vdupq_n_f32(1.442695040888963407359924681001892137426645954153)),
+		Log2(vdupq_n_f32(0.693359375)),
+		InvLog2(vdupq_n_f32(1.44269504088896341)),
 		CephesExpC2( vdupq_n_f32( -2.12194440e-4 ) ),
 		Poly0(vdupq_n_f32(0.99999998955224326136737550445628323296402203000823)),
 		Poly1(vdupq_n_f32(0.99999999071360726125072399571785309591215423779367)),
@@ -622,6 +622,7 @@ public:
 	float32x4_t ExecuteNoCheck( float32x4_t x ) const
 	{
 		// The formula: exp(x) = r * 2^n, where n = floor(0.5 + x / ln(2)), r = exp(x - n * ln(2) - n * CephesExpC2)
+		// Based on Cephes math library as noticed here http://gruntthepeon.free.fr/ssemath/neon_mathfun.h
 		float32x4_t n = MultiplyAndAddNeon( vdupq_n_f32( 0.5f ), x, InvLog2 );
 
 		// Perform a floorf
@@ -637,10 +638,8 @@ public:
 		float32x4_t r = Polynom8Neon( x, Poly0, Poly1, Poly2, Poly3, Poly4, Poly5, Poly6, Poly7 );
 
 		// Calculate r * 2^n. Use the fact that n stores the binary exponent in bit positions from 23 to 30 (the 31 bit stores the sign)
-		int32x4_t mm = vshlq_n_s32( vaddq_s32( vcvtq_s32_f32( n ), vdupq_n_s32( 0x7f ) ), 23 );
-		float32x4_t pow2n = vreinterpretq_f32_s32( mm );
-
-		return vmulq_f32( r, pow2n );
+		int32x4_t pow2n = vshlq_n_s32( vaddq_s32( vcvtq_s32_f32( n ), vdupq_n_s32( 0x7f ) ), 23 );
+		return vmulq_f32( r, vreinterpretq_f32_s32( pow2n ) );
 	}
 
 	// Calculate the exponent with saturation
