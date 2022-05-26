@@ -24,6 +24,7 @@ limitations under the License.
 #include "NeoOnnxCheck.h"
 
 #include "Operators/ActivationOperator.h"
+#include "Operators/ArgMaxOperator.h"
 #include "Operators/BatchNormalizationOperator.h"
 #include "Operators/CastOperator.h"
 #include "Operators/ConcatOperator.h"
@@ -113,6 +114,7 @@ namespace {
 // Register all operators
 REGISTER_OPERATOR( CAbsOperator, "Abs" )
 REGISTER_OPERATOR( CAddOperator, "Add" )
+REGISTER_OPERATOR( CArgMaxOperator, "ArgMax" )
 REGISTER_OPERATOR( CAveragePoolOperator, "AveragePool" )
 REGISTER_OPERATOR( CBatchNormalizationOperator, "BatchNormalization" )
 REGISTER_OPERATOR( CCastOperator, "Cast" )
