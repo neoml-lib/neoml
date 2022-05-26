@@ -45,6 +45,7 @@ limitations under the License.
 #include "Operators/LstmOperator.h"
 #include "Operators/MatMulOperator.h"
 #include "Operators/NonZeroOperator.h"
+#include "Operators/OneHotOperator.h"
 #include "Operators/PadOperator.h"
 #include "Operators/PoolOperator.h"
 #include "Operators/RangeOperator.h"
@@ -142,6 +143,7 @@ REGISTER_OPERATOR( CMatMulOperator, "MatMul" )
 REGISTER_OPERATOR( CMaxPoolOperator, "MaxPool" )
 REGISTER_OPERATOR( CMulOperator, "Mul" )
 REGISTER_OPERATOR( CNonZeroOperator, "NonZero" )
+REGISTER_OPERATOR( COneHotOperator, "OneHotOperator" )
 REGISTER_OPERATOR( CPadOperator, "Pad" )
 REGISTER_OPERATOR( CPowOperator, "Pow" )
 REGISTER_OPERATOR( CRangeOperator, "Range" )
