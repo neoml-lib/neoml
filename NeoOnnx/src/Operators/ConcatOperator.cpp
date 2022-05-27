@@ -52,7 +52,6 @@ void CConcatOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorA
 	} else {
 		CheckOnnxProtocol( GetAttribute( "axis", axis ), "axis attribute is missing", *this );
 		if( axis < 0 ) {
-			CheckOnnxProtocol( OpsetVersion >= 11, "negative axis is supported since v11", *this );
 			axis += dimCount;
 		}
 	}
