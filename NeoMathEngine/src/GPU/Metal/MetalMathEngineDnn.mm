@@ -661,6 +661,12 @@ void CMetalMathEngine::BertConvBackward( const CConstFloatHandle& /*dataHandle*/
     ASSERT_EXPR( false );
 }
 
+void CMetalMathEngine::LinearInterpolation( const CConstFloatHandle&, const CFloatHandle&,
+    TInterpolationCoords, TInterpolationRound, int, int, int, float )
+{
+    ASSERT_EXPR( false );
+}
+
 } // namespace NeoML
 
 #endif // NEOML_USE_METAL

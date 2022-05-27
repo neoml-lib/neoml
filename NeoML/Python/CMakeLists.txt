@@ -46,6 +46,7 @@ pybind11_add_module(PythonWrapper
     src/PyBatchNormalizationLayer.cpp
     src/PyBertConvLayer.cpp
     src/PyBinarizationLayer.cpp
+    src/PyBytePairEncoder.cpp
     src/PyConcatLayer.cpp
     src/PyCastLayer.cpp
     src/PyConvLayer.cpp

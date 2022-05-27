@@ -1171,4 +1171,105 @@ void CCpuMathEngine::BertConvBackward( const CConstFloatHandle& dataHandle, cons
 	}
 }
 
+typedef float ( *TCoordTransformer )( int oldSize, float scale, int newCoord );
+
+static TCoordTransformer getCoordTransformer( TInterpolationCoords coords )
+{
+	switch( coords ) {
+		case TInterpolationCoords::Asymmetric:
+			return []( int, float scale, int newCoord ) {
+				return newCoord / scale;
+			};
+		case TInterpolationCoords::HalfPixel:
+			return []( int, float scale, int newCoord ) {
+				return ( newCoord + 0.5f ) / scale  - 0.5f;
+			};
+		case TInterpolationCoords::PytorchHalfPixel:
+			return []( int oldSize, float scale, int newCoord ) {
+				const int newSize = static_cast<int>( oldSize * scale );
+				return newSize > 1 ? ( newCoord + 0.5f ) / scale - 0.5f : 0.f;
+			};
+		case TInterpolationCoords::AlignCorners:
+			return []( int oldSize, float scale, int newCoord ) {
+				const int newSize = static_cast<int>( oldSize * scale );
+				return static_cast<float>( newCoord * ( oldSize - 1 ) ) / ( newSize - 1 );
+			};
+		default:
+			ASSERT_EXPR( false );
+	}
+	return nullptr;
+}
+
+typedef float ( *TCoordRound )( float x );
+
+static TCoordRound getCoordRound( TInterpolationRound round )
+{
+	switch( round ) {
+		case TInterpolationRound::None:
+			return nullptr;
+		case TInterpolationRound::RoundPreferFloor:
+			return []( float x ) {
+				if( x == static_cast<int>( x ) + 0.5f ) {
+					return ::floorf( x );
+				}
+				return ::roundf( x );
+			};
+		case TInterpolationRound::RoundPreferCeil:
+			return []( float x ) { return ::roundf( x ); };
+		case TInterpolationRound::Floor:
+			return []( float x ) { return ::floorf( x ); };
+		case TInterpolationRound::Ceil:
+			return []( float x ) { return ::ceilf( x ); };
+		default:
+			ASSERT_EXPR( false );
+	}
+	return nullptr;
+}
+
+void CCpuMathEngine::LinearInterpolation( const CConstFloatHandle& dataHandle, const CFloatHandle& resultHandle,
+	TInterpolationCoords coords, TInterpolationRound round, int objectCount, int scaledAxis, int objectSize, float scale )
+{
+	ASSERT_EXPR( dataHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+	const float* data = GetRaw( dataHandle );
+	float* result = GetRaw( resultHandle );
+
+	const int dataBatchStep = scaledAxis * objectSize;
+	const int resultBatchStep = static_cast<int>( scale * scaledAxis ) * objectSize;
+
+	const int opCount = objectCount * resultBatchStep;
+	const int curThreadCount = IsOmpRelevant( objectCount, opCount ) ? threadCount : 1;
+	CFloatHandleStackVar buff( *this, objectSize * curThreadCount );
+
+	TCoordTransformer getCoords = getCoordTransformer( coords );
+	TCoordRound roundCoords = getCoordRound( round );
+
+	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
+	for( int b = 0; b < objectCount; ++b ) {
+		float* currBuff = GetRaw( buff.GetHandle() ) + OmpGetThreadNum() * objectSize;
+		float* currResult = result + b * resultBatchStep;
+		const float* currData = data + b * dataBatchStep;
+		for( int i = 0; i < static_cast<int>( scaledAxis * scale ); ++i ) {
+			float oldCoord = getCoords( scaledAxis, scale, i );
+			if( roundCoords != nullptr ) {
+				oldCoord = roundCoords( oldCoord );
+			}
+			if( oldCoord <= 0 ) {
+				dataCopy( currResult, currData, objectSize );
+			} else if( oldCoord >= static_cast<float>( scaledAxis - 1 ) ) {
+				dataCopy( currResult, currData + ( scaledAxis - 1 ) * objectSize, objectSize );
+			} else {
+				const float leftCoord = ::floorf( oldCoord );
+				const float leftMul = 1.f - ( oldCoord - leftCoord );
+				const float rightMul = oldCoord - leftCoord;
+				vectorMultiply( currData + static_cast<int>( oldCoord ) * objectSize, currBuff, leftMul, objectSize );
+				vectorMultiply( currData + ( static_cast<int>( oldCoord ) + 1 ) * objectSize, currResult, rightMul, objectSize );
+				vectorAdd( currResult, currBuff, currResult, objectSize );
+			}
+			currResult += objectSize;
+		}
+	}
+}
+
 } // namespace NeoML

@@ -33,14 +33,18 @@ limitations under the License.
 #include "Operators/ConvTransposeOperator.h"
 #include "Operators/DropoutOperator.h"
 #include "Operators/EltwiseOperator.h"
+#include "Operators/EqualOperator.h"
+#include "Operators/ExpandOperator.h"
 #include "Operators/FlattenOperator.h"
 #include "Operators/GatherOperator.h"
 #include "Operators/GemmOperator.h"
 #include "Operators/GlobalPoolOperator.h"
 #include "Operators/IdentityOperator.h"
+#include "Operators/InstanceNormalizationOperator.h"
 #include "Operators/LrnOperator.h"
 #include "Operators/LstmOperator.h"
 #include "Operators/MatMulOperator.h"
+#include "Operators/NonZeroOperator.h"
 #include "Operators/PadOperator.h"
 #include "Operators/PoolOperator.h"
 #include "Operators/RangeOperator.h"
@@ -54,6 +58,7 @@ limitations under the License.
 #include "Operators/TransposeOperator.h"
 #include "Operators/UnsqueezeOperator.h"
 #include "Operators/UpsampleOperator.h"
+#include "Operators/WhereOperator.h"
 
 namespace NeoOnnx {
 
@@ -120,6 +125,8 @@ REGISTER_OPERATOR( CConvTransposeOperator, "ConvTranspose" )
 REGISTER_OPERATOR( CDivOperator, "Div" )
 REGISTER_OPERATOR( CDropoutOperator, "Dropout" )
 REGISTER_OPERATOR( CEluOperator, "Elu" )
+REGISTER_OPERATOR( CEqualOperator, "Equal" )
+REGISTER_OPERATOR( CExpandOperator, "Expand" )
 REGISTER_OPERATOR( CFlattenOperator, "Flatten" )
 REGISTER_OPERATOR( CGatherOperator, "Gather" )
 REGISTER_OPERATOR( CGemmOperator, "Gemm" )
@@ -127,12 +134,14 @@ REGISTER_OPERATOR( CGlobalAveragePoolOperator, "GlobalAveragePool" )
 REGISTER_OPERATOR( CGlobalMaxPoolOperator, "GlobalMaxPool" )
 REGISTER_OPERATOR( CHardSigmoidOperator, "HardSigmoid" )
 REGISTER_OPERATOR( CIdentityOperator, "Identity" )
+REGISTER_OPERATOR( CInstanceNormalizationOperator, "InstanceNormalization" )
 REGISTER_OPERATOR( CLeakyReluOperator, "LeakyRelu" )
 REGISTER_OPERATOR( CLrnOperator, "LRN" )
 REGISTER_OPERATOR( CLstmOperator, "LSTM" )
 REGISTER_OPERATOR( CMatMulOperator, "MatMul" )
 REGISTER_OPERATOR( CMaxPoolOperator, "MaxPool" )
 REGISTER_OPERATOR( CMulOperator, "Mul" )
+REGISTER_OPERATOR( CNonZeroOperator, "NonZero" )
 REGISTER_OPERATOR( CPadOperator, "Pad" )
 REGISTER_OPERATOR( CPowOperator, "Pow" )
 REGISTER_OPERATOR( CRangeOperator, "Range" )
@@ -155,6 +164,7 @@ REGISTER_OPERATOR( CTanhOperator, "Tanh" )
 REGISTER_OPERATOR( CTransposeOperator, "Transpose" )
 REGISTER_OPERATOR( CUnsqueezeOperator, "Unsqueeze" )
 REGISTER_OPERATOR( CUpsampleOperator, "Upsample" )
+REGISTER_OPERATOR( CWhereOperator, "Where" )
 
 } // anonymous namespace
 
@@ -168,11 +178,11 @@ COperator::COperator( const onnx::NodeProto& onnxNode, int opsetVersion ) :
 	}
 
 	for( const std::string& inputName : onnxNode.input() ) {
-		inputNames.Add( CString( inputName ) );
+		inputNames.Add( CString( inputName.data() ) );
 	}
 
 	for( const std::string& outputName : onnxNode.output() ) {
-		outputNames.Add( CString( outputName ) );
+		outputNames.Add( CString( outputName.data() ) );
 	}
 }
 
@@ -190,7 +200,7 @@ const CString& COperator::OutputName( int index ) const
 
 COperator* COperator::CreateOperator( const onnx::NodeProto& onnxNode, int opsetVersion )
 {
-	TMapPosition pos = getRegisteredOperators().GetFirstPosition( onnxNode.op_type() );
+	TMapPosition pos = getRegisteredOperators().GetFirstPosition( CString( onnxNode.op_type().data() ) );
 	CheckNeoOnnxSupport( pos != NotFound, CString( "operator " ) + onnxNode.op_type().c_str() );
 	return getRegisteredOperators().GetValue( pos )( onnxNode, opsetVersion );
 }

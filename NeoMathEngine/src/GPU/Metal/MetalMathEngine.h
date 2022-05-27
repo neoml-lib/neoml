@@ -73,6 +73,8 @@ public:
 	void FilterSmallValues( const CFloatHandle& data, int dataSize, float threshold ) override;
 	void VectorCopy(const CFloatHandle& first, const CConstFloatHandle& second, int vectorSize) override;
 	void VectorCopy(const CIntHandle& first, const CConstIntHandle& second, int vectorSize) override;
+	void BroadcastCopy(const CIntHandle& toHandle, const CConstIntHandle& fromHandle,
+		const CBlobDesc& toDesc, const CBlobDesc& fromDesc, int additionalWidth) override;
 	void BroadcastCopy(const CFloatHandle& toHandle, const CConstFloatHandle& fromHandle,
 		const CBlobDesc& toDesc, const CBlobDesc& fromDesc, int additionalWidth) override;
 	void VectorSum(const CConstFloatHandle& firstHandle, int vectorSize, const CFloatHandle& resultHandle) override;
@@ -188,6 +190,8 @@ public:
 		const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int vectorSize) override;
 	void VectorEltwiseNegMultiply(const CConstFloatHandle& firstHandle,
 		const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int vectorSize) override;
+	void VectorEltwiseDivide(const CConstIntHandle& firstHandle,
+		const CConstIntHandle& secondHandle, const CIntHandle& resultHandle, int vectorSize) override;
 	void VectorEltwiseDivide(const CConstFloatHandle& firstHandle,
 		const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int vectorSize) override;
 	void VectorEltwisePower(const CConstFloatHandle& firstHandle,
@@ -553,6 +557,8 @@ public:
 		const CFloatHandle& recurrentWeights, const CConstFloatHandle& recurrentFreeTerm,
 		const CConstFloatHandle& inputStateBackLink, const CConstFloatHandle& inputMainBackLink, const CConstFloatHandle& input,
 		const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink ) override;
+	void LinearInterpolation( const CConstFloatHandle& dataHandle, const CFloatHandle& resultHandle, TInterpolationCoords coords,
+		TInterpolationRound round, int objectCount, int scaledAxis, int objectSize, float scale ) override;
 
 	IPerformanceCounters* CreatePerformanceCounters() const override { 	return new CPerformanceCountersDefault(); }
 	void AllReduce( const CFloatHandle& /*handle*/, int /*size*/ ) override {};

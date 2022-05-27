@@ -222,7 +222,7 @@ void CCpuMathEngine::MultiplyTransposedMatrixBySparseMatrix( int firstHeight, in
 	if( isTransposedSparse ) {
 		for( int row = 0; row < resultWidth; ++row ) {
 			for( int ind = secondRows[row]; ind < secondRows[row + 1]; ++ind ) {
-				float* firstPtr = first + secondColumns[ind] * firstWidth;
+				const float* firstPtr = first + secondColumns[ind] * firstWidth;
 				for( int col = 0; col < firstWidth; ++col ) {
 					result[col * resultWidth + row] += firstPtr[col] * secondValues[ind];
 				}

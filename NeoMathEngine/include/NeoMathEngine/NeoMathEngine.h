@@ -48,6 +48,34 @@ enum TActivationFunction {
 	AF_Count
 };
 
+// Supported coordinate modes for linear interpolation
+// The variables in formula:
+//     - scale - size multiplier
+//     - x_old - coordinate in array before the interpolation 
+//     - x_new - coordinate in array after the interpolation
+//     - old_size - size before the transformation
+//     - new_size - size after the transformation  (int(ratio * old_size))
+enum class TInterpolationCoords : int {
+	HalfPixel, // x_old = ( x_new + 0.5 ) / scale - 0.5
+	PytorchHalfPixel, // x_old = ( new_size > 1 ) ? ( x_new + 0.5 ) / scale - 0.5 : 0
+	AlignCorners, // x_old = x_new * ( old_size - 1) / ( new_size - 1 )
+	Asymmetric, // x_old = x_new / scale
+
+	Count
+};
+
+// Suppported rounding for coordinates
+// Transform linear interpolation into nearest (if set)
+enum class TInterpolationRound : int {
+	None, // no rounding, keep interpolation linear
+	RoundPreferFloor, // round half down
+	RoundPreferCeil, // round half up
+	Floor, // always floor
+	Ceil, // always ceil
+
+	Count
+};
+
 // The class provides operations on vectors
 class NEOMATHENGINE_API IVectorMathEngine : public CCrtAllocatedObject {
 public:
@@ -60,6 +88,8 @@ public:
 	// additionalWidth != 1 means broadcasting from (*fromDesc, additionalWidth) to (*toDesc, additionalWidth)
 	// where (*desc, additionalWidth) is 8-dimensional shape with last dimension equals additionalWidth,
 	// channels count of handle must be additionalWidth times bigger than channels count of corresponding desc.
+	virtual void BroadcastCopy(const CIntHandle& toHandle, const CConstIntHandle& fromHandle,
+		const CBlobDesc& toDesc, const CBlobDesc& fromDesc, int additionalWidth) = 0;
 	virtual void BroadcastCopy(const CFloatHandle& toHandle, const CConstFloatHandle& fromHandle,
 		const CBlobDesc& toDesc, const CBlobDesc& fromDesc, int additionalWidth) = 0;
 
@@ -260,6 +290,8 @@ public:
 		const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int vectorSize) = 0;
 
 	// result = first / second elementwise
+	virtual void VectorEltwiseDivide( const CConstIntHandle& firstHandle,
+		const CConstIntHandle& secondHandle, const CIntHandle& resultHandle, int vectorSize ) = 0;
 	virtual void VectorEltwiseDivide(const CConstFloatHandle& firstHandle,
 		const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int vectorSize) = 0;
 
@@ -962,6 +994,13 @@ public:
 	virtual void BertConvBackward( const CConstFloatHandle& dataHandle, const CConstFloatHandle& kernelHandle,
 		const CConstFloatHandle& outDiffHandle, int seqLen, int batchSize, int numHeads, int headSize, int kernelSize,
 		const CFloatHandle& dataDiffHandle, const CFloatHandle& kernelDiffHandle ) = 0;
+
+	// Linear interpolation
+
+	// data is a 3D tensor of size objectCount x scaledAxis x objectSize
+	// result is a 3D tensor of size objectCount x int(scaledAxis * scale) x objectSize
+	virtual void LinearInterpolation( const CConstFloatHandle& dataHandle, const CFloatHandle& resultHandle,
+		TInterpolationCoords coords, TInterpolationRound round, int objectCount, int scaledAxis, int objectSize, float scale ) = 0;
 };
 
 //------------------------------------------------------------------------------------------------------------

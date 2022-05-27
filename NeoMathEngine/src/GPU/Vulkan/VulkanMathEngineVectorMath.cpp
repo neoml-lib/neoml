@@ -70,7 +70,8 @@ namespace NeoML {
 #include <shaders/generated/VectorMultiplyAndSub.h>
 #include <shaders/generated/VectorMultiplyInt.h>
 #include <shaders/generated/VectorMultiplyFloat.h>
-#include <shaders/generated/VectorEltwiseDivide.h>
+#include <shaders/generated/VectorEltwiseDivideInt.h>
+#include <shaders/generated/VectorEltwiseDivideFloat.h>
 #include <shaders/generated/VectorEltwisePower.h>
 #include <shaders/generated/VectorSqrt.h>
 #include <shaders/generated/VectorInv.h>
@@ -201,6 +202,12 @@ void CVulkanMathEngine::VectorCopy(const CIntHandle& to, const CConstIntHandle& 
 
 	std::lock_guard<std::mutex> lock( mutex );
 	commandQueue->RunCopyBuffer( vulkanMemoryFrom->Buffer(), vulkanMemoryTo->Buffer(), region );
+}
+
+void CVulkanMathEngine::BroadcastCopy( const CIntHandle& /*toHandle*/, const CConstIntHandle& /*fromHandle*/,
+	const CBlobDesc& /*toDesc*/, const CBlobDesc& /*fromDesc*/, int /*additionalWidth*/ )
+{
+	ASSERT_EXPR( false );
 }
 
 void CVulkanMathEngine::BroadcastCopy( const CFloatHandle& /*toHandle*/, const CConstFloatHandle& /*fromHandle*/,
@@ -683,13 +690,23 @@ void CVulkanMathEngine::VectorEltwiseNegMultiply(const CConstFloatHandle& firstH
 		&param, sizeof(param), 0, 0, 0, 0, bufs, sizes, 3, Ceil(vectorSize, VectorCombine));
 }
 
+void CVulkanMathEngine::VectorEltwiseDivide(const CConstIntHandle& firstHandle,
+	const CConstIntHandle& secondHandle, const CIntHandle& resultHandle, int vectorSize)
+{
+	CMemoryHandle bufs[3] = { firstHandle, secondHandle, resultHandle };
+	size_t sizes[3] = { vectorSize * sizeof(float), vectorSize * sizeof(float), vectorSize * sizeof(float) };
+
+	runVectorShader(shaderLoader->GET_SHADER_DATA(VectorEltwiseDivideInt, false, 0, 0, 3),
+		0, 0, 0, 0, 0, 0, bufs, sizes, 3, Ceil(vectorSize, VectorCombine));
+}
+
 void CVulkanMathEngine::VectorEltwiseDivide(const CConstFloatHandle& firstHandle,
 	const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int vectorSize)
 {
 	CMemoryHandle bufs[3] = { firstHandle, secondHandle, resultHandle };
 	size_t sizes[3] = { vectorSize * sizeof(float), vectorSize * sizeof(float), vectorSize * sizeof(float) };
 
-	runVectorShader(shaderLoader->GET_SHADER_DATA(VectorEltwiseDivide, false, 0, 0, 3),
+	runVectorShader(shaderLoader->GET_SHADER_DATA(VectorEltwiseDivideFloat, false, 0, 0, 3),
 		0, 0, 0, 0, 0, 0, bufs, sizes, 3, Ceil(vectorSize, VectorCombine));
 }
 

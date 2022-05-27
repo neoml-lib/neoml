@@ -30,6 +30,7 @@ public:
 	operator const char*() const { return data(); }
 
 	bool IsEmpty() const { return empty(); }
+	int Length() const { return static_cast<int>( size() ); }
 	int Find( const CString& other ) const;
 };
 

@@ -16,6 +16,8 @@
 		- [CSimpleGenerator](#csimplegenerator)
 	- [Dimensionality reduction](#dimensionality-reduction)
 		- [Principal component analysis](#principal-component-analysis)
+  - [Subword encoding for language modelling](#subword-encoding)
+    - [Byte pair encoding](#byte-pair-encoding)
 
 <!-- TOC -->
 
@@ -429,3 +431,114 @@ public:
 	void Serialize( CArchive& archive ) override;
 
 ```
+
+## Subword encoding for language modelling
+
+Subword tokenization (+encoding) is approach which has advantages over character-based and word-based approach in language modeling tasks.
+
+```c++
+// Subword encoder interface.
+class NEOML_API ISubwordEncoder : virtual public IObject {
+public:
+	virtual ~ISubwordEncoder() override = default;
+
+	// Encodes a word as a sequence of token ids with corresponding token lengths.
+	// TokenId range = [0, ... , Size() - 1].
+	// To encode a string with wide characters you have to first encode it as utf-8 and wrap it in CString.
+	// In this case 'tokenLengths' will contain lengths of the tokens according to the original string version.
+	virtual void Encode( const CString& word, CArray<int>& tokenIds,
+		CArray<int>& tokenLengths ) const = 0;
+	
+	// Decodes sequence of token ids into a sequence of words.
+	virtual void Decode( const CArray<int>& tokenIds, CArray<CString>& words ) const = 0;
+
+	// Returns number of tokens.
+	virtual int Size() const = 0;
+};
+```
+
+Some subword encoding algorithms can be accelerated by using a cache for `Encode` calls.
+For example, during the training of language model, a large number of `Encode` calls usually occur.
+
+For this reason an additional interface has been added:
+
+```c++
+// Subword encoder which supports caching results of 'Encode' calls.
+class NEOML_API ISubwordEncoderWithCache : public ISubwordEncoder {
+public:
+	virtual void Encode( const CString& word, CArray<int>& tokenIds,
+		CArray<int>& tokenLengths ) const override final;
+
+	// Sets the cache cleanup period.
+	// The cache is used for Encode calls acceleration.
+	// The result of the encode call is cached and will be erased if 
+	// no call with the same word will occur among next 1-2 X cachePeriod calls.
+	// Increase in cachePeriod leads to a in increase in memory consumption.
+	// To completely switch the cache off set cachePeriod equal to -1.
+	// Value 0 is treated as invalid.
+	void SetCachePeriod( int cachePeriod ) const { cache.SetCachePeriod( cachePeriod ); }
+```
+
+### Byte pair encoding
+
+Popular subword encoding algorithm.
+
+```c++
+class NEOML_API IBytePairEncoder : public ISubwordEncoderWithCache {
+public:
+	// Returns encoder flags.
+	virtual bool UseEndOfWordToken() const = 0;
+	virtual bool UseStartOfWordToken() const = 0;
+};
+```
+
+Additional methods cover usage of special tokens: End-Of-Word and Start-Of-Word token.
+Basically you probably want End-Of-Word set to `True` and Start-Of-Word set to `False`.
+
+To train encoder with `IBytePairEncoder` functionality you need to use `CBytePairEncoderTrainer`:
+
+```c++
+// Class that trains byte-pair-encoding.
+class NEOML_API CBytePairEncoderTrainer {
+public:
+	struct CParams {
+		// Max size of encoder.
+		// The size of the trained encoder cannot exceed this value, but CAN be smaller.
+		int MaxSize;
+		// Add EoW token to each word.
+		bool UseEndOfWordToken;
+		// Add SoW token to each word.
+		bool UseStartOfWordToken;
+
+		CParams() :
+			MaxSize( 50000 ),
+			UseEndOfWordToken( true ),
+			UseStartOfWordToken( false )
+		{}
+	};
+
+	CBytePairEncoderTrainer( const CParams& params, const CWordDictionary& dictionary );
+
+	// Trains and returns a fully trained encoder.
+	CPtr<IBytePairEncoder> Train();
+
+	// Trains addtional #stepsCount tokens.
+	// Returns true if no additional steps can be performed.
+	bool TrainSteps( int stepsCount );
+
+	// Returns true if training has been completed.
+	bool IsTrainingCompleted() const;
+
+	// Returns encoder consisting of bpe tokens obtained from completed steps.
+	CPtr<IBytePairEncoder> GetEncoder() const;
+
+	// Save/load checkpoint
+	void Serialize( CArchive& archive );
+```
+
+How to use:
+
+1. Create a dictionary of counted words from text corpus using `CWordDictionary` class instance.
+2. Create `CBytePairEncoderTrainer` instance with desired `CParams` and the dictionary.
+3. Call `Train` method of encoder trainer.
+    * Use `TrainSteps` method if you want to perform partial training of encoder. To get partially trained encoder use `GetEncoder` method.
