@@ -4,7 +4,7 @@ from .Initializer import Xavier, XavierUniform, Uniform
 
 from .Accuracy import Accuracy, ConfusionMatrix
 from .AccumulativeLookup import AccumulativeLookup
-from .Activation import Linear, ELU, ReLU, LeakyReLU, HSwish, Abs, Sigmoid, Tanh, HardTanh, HardSigmoid, Power, GELU
+from .Activation import Linear, ELU, ReLU, LeakyReLU, HSwish, Abs, Sigmoid, Tanh, HardTanh, HardSigmoid, Power, GELU, Exp
 from .AddToObject import AddToObject
 from .Argmax import Argmax
 from .AttentionDecoder import AttentionDecoder
