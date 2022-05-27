@@ -563,11 +563,6 @@ public:
 	// Computes the singular value decomposition of the dense matrix `a`: `a` = `u` * `s` * `vt`
 	virtual void SingularValueDecomposition( const CFloatHandle& a, int height, int width, const CFloatHandle& u, const CFloatHandle& s,
 		const CFloatHandle& vt, const CFloatHandle& superb, bool returnLeftVectors, bool returnRightVectors ) = 0;
-	// Computes the truncated singular value decomposition of the sparse matrix using `components` largest singular values
-	// If returnLeftVectors is true return only left singular vectors, otherwise only right
-	virtual void SparseSingularValueDecomposition( const CSparseMatrixDesc& desc, int height, int width,
-		const CFloatHandle& leftVectors, const CFloatHandle& s, const CFloatHandle& rightVectors, const CFloatHandle& res,
-		int components, bool returnLeftVectors ) = 0;
 
 	// Computes the QR factorization of the matrix = Q x R, where Q is of shape (height, min(height, width)), R is of shape(height, width).
 	// If returnQ or returnR is false then the corresponding matrix in the factorization is not returned.
