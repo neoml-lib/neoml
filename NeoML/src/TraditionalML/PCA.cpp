@@ -347,7 +347,6 @@ void SingularValueDecomposition( const CFloatMatrixDesc& data,
 	CArray<float>& leftVectors_, CArray<float>& singularValues_, CArray<float>& rightVectors_,
 	bool returnLeftVectors, bool returnRightVectors, int resultComponents )
 {
-	NeoAssert( svdSolver == SVD_Full || svdSolver == SVD_Sparse );
 	const int height = data.Height;
 	const int width = data.Width;
 	NeoAssert( resultComponents >= 0 );
