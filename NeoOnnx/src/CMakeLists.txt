@@ -45,6 +45,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Operators/LstmOperator.cpp
     Operators/MatMulOperator.cpp
     Operators/NonZeroOperator.cpp
+    Operators/OneHotOperator.cpp
     Operators/PadOperator.cpp
     Operators/PoolOperator.cpp
     Operators/RangeOperator.cpp
@@ -95,6 +96,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Operators/LstmOperator.h
     Operators/MatMulOperator.h
     Operators/NonZeroOperator.h
+    Operators/OneHotOperator.h
     Operators/PadOperator.h
     Operators/PoolOperator.h
     Operators/RangeOperator.h
