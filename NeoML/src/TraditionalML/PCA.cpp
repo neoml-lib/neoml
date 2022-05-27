@@ -64,45 +64,6 @@ static CPtr<CDnnBlob> convertToBlob( IMathEngine& mathEngine, const CFloatMatrix
 	return result;
 }
 
-// change sorting order of singular vectors
-static void reverseArrays( CArray<float>& leftVectors, CArray<float>& singularVectors, CArray<float>& rightVectors,
-	int m, int components, int n, bool hasLeft, bool hasRight )
-{
-	if( hasLeft ) {
-		for( int row = 0; row < m; row++ ) {
-			int leftIndex = row * components;
-			int rightIndex = ( row + 1 ) * components - 1;
-			for( int col = 0; col < components / 2; col++ ) {
-				float temp = leftVectors[leftIndex];
-				leftVectors[leftIndex] = leftVectors[rightIndex];
-				leftVectors[rightIndex] = temp;
-				leftIndex++;
-				rightIndex--;
-			}
-		}
-	}
-
-	for( int i = 0; i < components / 2; i++ ) {
-		float temp = singularVectors[i];
-		singularVectors[i] = singularVectors[components - i - 1];
-		singularVectors[components - i - 1] = temp;
-	}
-
-	if( hasRight ) {
-		for( int row = 0; row < components / 2; row++ ) {
-			int leftIndex = row * n;
-			int rightIndex = ( components - row - 1 ) * n;
-			for( int col = 0; col < n; col++ ) {
-				float temp = rightVectors[leftIndex];
-				rightVectors[leftIndex] = rightVectors[rightIndex];
-				rightVectors[rightIndex] = temp;
-				leftIndex++;
-				rightIndex++;
-			}
-		}
-	}
-}
-
 // convert CFloatMatrixDesc to internal CSparseMatrixDesc
 static CSparseMatrixDesc getSparseMatrixDesc( IMathEngine& mathEngine, const CFloatMatrixDesc& data,
 	CPtr<CDnnBlob>& columns, CPtr<CDnnBlob>& rows, CPtr<CDnnBlob>& values )
