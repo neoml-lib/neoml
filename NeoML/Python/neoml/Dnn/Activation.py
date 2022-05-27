@@ -615,7 +615,7 @@ class Exp(Layer):
             super().__init__(input_layer)
             return
 
-        layer, outputs = check_input_layers(input_layer, 1)
+        layers, outputs = check_input_layers(input_layer, 1)
 
         internal = PythonWrapper.Exp(str(name), layers[0], int(outputs[0]))
         super().__init__(internal)
