@@ -23,6 +23,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     LayerUtils.cpp
     Operator.cpp
     Operators/ActivationOperator.cpp
+    Operators/ArgMaxOperator.cpp
     Operators/BatchNormalizationOperator.cpp
     Operators/CastOperator.cpp
     Operators/ConcatOperator.cpp
@@ -73,6 +74,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     NeoOnnxCheck.h
     Operator.h
     Operators/ActivationOperator.h
+    Operators/ArgMaxOperator.h
     Operators/BatchNormalizationOperator.h
     Operators/CastOperator.h
     Operators/ConcatOperator.h
