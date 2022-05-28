@@ -807,6 +807,10 @@ class LayersTestCase(MultithreadedTestCase):
         out = self._test_activation('Power', dict(exponent=5.5))
         self.assertTrue(np.isclose(out, 1).all())
 
+    def test_activation_exp(self):
+        out = self._test_activation('Exp')
+        self.assertTrue(np.isclose(out, np.exp(1)).all())
+
     def test_add_object(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
         dnn = neoml.Dnn.Dnn(math_engine)
