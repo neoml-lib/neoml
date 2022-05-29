@@ -24,6 +24,7 @@ limitations under the License.
 #include "NeoOnnxCheck.h"
 
 #include "Operators/ActivationOperator.h"
+#include "Operators/ArgMaxOperator.h"
 #include "Operators/BatchNormalizationOperator.h"
 #include "Operators/CastOperator.h"
 #include "Operators/ConcatOperator.h"
@@ -114,6 +115,7 @@ namespace {
 // Register all operators
 REGISTER_OPERATOR( CAbsOperator, "Abs" )
 REGISTER_OPERATOR( CAddOperator, "Add" )
+REGISTER_OPERATOR( CArgMaxOperator, "ArgMax" )
 REGISTER_OPERATOR( CAveragePoolOperator, "AveragePool" )
 REGISTER_OPERATOR( CBatchNormalizationOperator, "BatchNormalization" )
 REGISTER_OPERATOR( CCastOperator, "Cast" )
@@ -127,6 +129,7 @@ REGISTER_OPERATOR( CDivOperator, "Div" )
 REGISTER_OPERATOR( CDropoutOperator, "Dropout" )
 REGISTER_OPERATOR( CEluOperator, "Elu" )
 REGISTER_OPERATOR( CEqualOperator, "Equal" )
+REGISTER_OPERATOR( CExpOperator, "Exp" )
 REGISTER_OPERATOR( CExpandOperator, "Expand" )
 REGISTER_OPERATOR( CFlattenOperator, "Flatten" )
 REGISTER_OPERATOR( CGatherOperator, "Gather" )
@@ -150,6 +153,7 @@ REGISTER_OPERATOR( CRangeOperator, "Range" )
 REGISTER_OPERATOR( CReduceMaxOperator, "ReduceMax" )
 REGISTER_OPERATOR( CReduceMeanOperator, "ReduceMean" )
 REGISTER_OPERATOR( CReduceMinOperator, "ReduceMin" )
+REGISTER_OPERATOR( CReduceSumOperator, "ReduceSum" )
 REGISTER_OPERATOR( CReluOperator, "Relu" )
 REGISTER_OPERATOR( CReshapeOperator, "Reshape" )
 REGISTER_OPERATOR( CResizeOperator, "Resize" )
