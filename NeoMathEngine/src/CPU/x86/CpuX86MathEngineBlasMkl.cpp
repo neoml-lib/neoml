@@ -511,42 +511,6 @@ void CCpuMathEngine::SingularValueDecomposition( const CFloatHandle& a, int heig
 #endif
 }
 
-void CCpuMathEngine::SparseSingularValueDecomposition( const CSparseMatrixDesc& desc, int height, int width,
-	const CFloatHandle& xl, const CFloatHandle& e, const CFloatHandle& xr, const CFloatHandle& res,
-	int components, bool returnLeftVectors )
-{
-	ASSERT_EXPR( xl.GetMathEngine() == this );
-	ASSERT_EXPR( e.GetMathEngine() == this );
-	ASSERT_EXPR( xr.GetMathEngine() == this );
-	ASSERT_EXPR( res.GetMathEngine() == this );
-	ASSERT_EXPR( height > 0 );
-	ASSERT_EXPR( width > 0 );
-	ASSERT_EXPR( desc.ElementCount > 0 );
-	ASSERT_EXPR( components > 0 );
-#ifdef NEOML_USE_MKL
-	sparse_matrix_t sparseMatrix;
-	int* rows = GetRaw( desc.Rows );
-	ASSERT_EXPR( mkl_sparse_s_create_csr( &sparseMatrix, SPARSE_INDEX_BASE_ZERO, height, width, rows,
-		rows + 1, GetRaw( desc.Columns ), GetRaw( desc.Values ) ) ==  SPARSE_STATUS_SUCCESS );
-	matrix_descr descr;
-	descr.type = SPARSE_MATRIX_TYPE_GENERAL;
-	MKL_INT k;
-	MKL_INT pm[128];
-	ASSERT_EXPR( mkl_sparse_ee_init( pm ) == SPARSE_STATUS_SUCCESS );
-	char returnValues[2] = "L";
-	char returnVectors[2] = "R";
-	if( returnLeftVectors ) {
-		returnVectors[0] = 'L';
-	}
-	ASSERT_EXPR( mkl_sparse_s_svd( returnValues, returnVectors, pm, sparseMatrix, descr, components, &k, GetRaw(e),
-		GetRaw(xl), GetRaw( xr ), GetRaw( res ) ) == SPARSE_STATUS_SUCCESS );
-	ASSERT_EXPR( mkl_sparse_destroy( sparseMatrix ) == SPARSE_STATUS_SUCCESS );
-#else
-	( void )returnLeftVectors;
-	ASSERT_EXPR( false );
-#endif
-}
-
 } // namespace NeoML
 
 #endif // NEOML_USE_SSE

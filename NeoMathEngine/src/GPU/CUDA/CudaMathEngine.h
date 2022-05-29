@@ -373,9 +373,6 @@ public:
 		const CConstIntHandle& fillValue) override;
 	void SingularValueDecomposition( const CFloatHandle& a, int height, int width, const CFloatHandle& u, const CFloatHandle& s,
 		const CFloatHandle& vt, const CFloatHandle& superb, bool returnLeftVectors, bool returnRightVectors ) override;
-	void SparseSingularValueDecomposition( const CSparseMatrixDesc& desc, int height, int width,
-		const CFloatHandle& leftVectors, const CFloatHandle& s, const CFloatHandle& rightVectors, const CFloatHandle& res,
-		int components, bool returnLeftVectors ) override;
 	void QRFactorization( int height, int width, const CFloatHandle& matrixHandle, const CFloatHandle* qHandle, const CFloatHandle* rHandle,
 		bool inplace, bool returnQ, bool returnR ) override;
 

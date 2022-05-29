@@ -1178,12 +1178,6 @@ void CVulkanMathEngine::SingularValueDecomposition( const CFloatHandle&, int, in
 	ASSERT_EXPR( false );
 }
 
-void CVulkanMathEngine::SparseSingularValueDecomposition( const CSparseMatrixDesc&, int, int, const CFloatHandle&, const CFloatHandle&,
-	const CFloatHandle&, const CFloatHandle&, int, bool )
-{
-	ASSERT_EXPR( false );
-}
-
 void CVulkanMathEngine::QRFactorization( int, int, const CFloatHandle&, const CFloatHandle*, const CFloatHandle*,
 	bool, bool, bool )
 {
