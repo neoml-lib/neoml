@@ -277,6 +277,12 @@ Power
 .. autoclass:: neoml.Dnn.Power
    :members:
 
+Exp
+===
+
+.. autoclass:: neoml.Dnn.Exp
+   :members:
+
 .. _py-dnn-conv:
 
 Convolutional layers

@@ -23,6 +23,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     LayerUtils.cpp
     Operator.cpp
     Operators/ActivationOperator.cpp
+    Operators/ArgMaxOperator.cpp
     Operators/BatchNormalizationOperator.cpp
     Operators/CastOperator.cpp
     Operators/ConcatOperator.cpp
@@ -44,6 +45,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Operators/LstmOperator.cpp
     Operators/MatMulOperator.cpp
     Operators/NonZeroOperator.cpp
+    Operators/OneHotOperator.cpp
     Operators/PadOperator.cpp
     Operators/PoolOperator.cpp
     Operators/RangeOperator.cpp
@@ -72,6 +74,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     NeoOnnxCheck.h
     Operator.h
     Operators/ActivationOperator.h
+    Operators/ArgMaxOperator.h
     Operators/BatchNormalizationOperator.h
     Operators/CastOperator.h
     Operators/ConcatOperator.h
@@ -93,6 +96,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Operators/LstmOperator.h
     Operators/MatMulOperator.h
     Operators/NonZeroOperator.h
+    Operators/OneHotOperator.h
     Operators/PadOperator.h
     Operators/PoolOperator.h
     Operators/RangeOperator.h

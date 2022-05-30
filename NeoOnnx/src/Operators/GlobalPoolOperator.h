@@ -27,6 +27,7 @@ public:
 		PT_Max, // Max pooling
 		PT_Min, // Min pooling
 		PT_Mean, // Mean pooling
+		PT_Sum, // Sum pooling
 
 		PT_Count
 	};
@@ -59,7 +60,7 @@ private:
 	void calcOutputShape( const CTensorShape& inputShape, const CFastArray<int, 8>& axes, CTensorShape& outputShape ) const;
 	CTensorLayout calcOutputLayout( const CTensorLayout& inputLayout, const CFastArray<int, 8>& axes ) const;
 
-	CPtr<const CUserTensor> addPostProcessing( const CUserTensor& layerOutput, CDnn& dnn ) const;
+	CPtr<const CUserTensor> addPostProcessing( const CUserTensor& layerOutput, int pooledSize, CDnn& dnn ) const;
 };
 
 // --------------------------------------------------------------------------------------------------------------------
@@ -123,6 +124,15 @@ class CReduceMinOperator : public CReducePoolOperatorBase {
 public:
 	CReduceMinOperator( const onnx::NodeProto& onnxNode, int opsetVersion ) :
 		CReducePoolOperatorBase( CGlobalPoolOperatorBase::PT_Min, onnxNode, opsetVersion )
+	{
+	}
+};
+
+// ReduceSum operator
+class CReduceSumOperator : public CReducePoolOperatorBase {
+public:
+	CReduceSumOperator( const onnx::NodeProto& onnxNode, int opsetVersion ) :
+		CReducePoolOperatorBase( CGlobalPoolOperatorBase::PT_Sum, onnxNode, opsetVersion )
 	{
 	}
 };
