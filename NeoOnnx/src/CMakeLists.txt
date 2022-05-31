@@ -9,10 +9,11 @@ endif()
 add_library(NeoML::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
 
 set_target_properties( ${PROJECT_NAME} PROPERTIES
-    UNITY_BUILD_MODE GROUP
+    UNITY_BUILD_MODE BATCH
+    UNITY_BUILD_BATCH_SIZE ${NeoML_UNITY_BUILD_BATCH_SIZE}
 )
 
-set( NeoOnnx_SOURCES
+target_sources(${PROJECT_NAME} PRIVATE
     GraphInput.cpp
     GraphInitializer.cpp
     GraphOutput.cpp
@@ -115,8 +116,6 @@ set( NeoOnnx_SOURCES
     TensorLayout.h
     TensorUtils.h
 )
-target_sources(${PROJECT_NAME} PRIVATE ${NeoOnnx_SOURCES})
-set_property(SOURCE ${NeoOnnx_SOURCES} PROPERTY UNITY_GROUP 1)
 
 if(ANDROID)
     set(CMAKE_LIBRARY_ARCHITECTURE ${ANDROID_ABI})
@@ -183,6 +182,7 @@ add_custom_command(
 )
 
 target_sources(${PROJECT_NAME} PRIVATE ${PROTO_HDRS} ${PROTO_SRCS})
+set_property(SOURCE ${PROTO_HDRS} ${PROTO_SRCS} PROPERTY SKIP_UNITY_BUILD_INCLUSION ON)
 
 if(MSVC)
     target_compile_options(${PROJECT_NAME} PRIVATE /W2)
