@@ -222,6 +222,7 @@ delete gpuMathEngine;
   - [CPowerLayer](ActivationLayers/PowerLayer.md) - `pow(x, exp)` activation function
   - [CHSwishLayer](ActivationLayers/HSwishLayer.md) - `h-swish` activation function
   - [CGELULayer](ActivationLayers/GELULayer.md) - `x * sigmoid(1.702 * x)` activation function
+  - [CExpLayer](ActivationLayers/ExpLayer.md) - `exp` activation function
 - Convolution layers:
   - [CConvLayer](ConvolutionLayers/ConvLayer.md) - 2-dimensional convolution
     - [CRleConvLayer](ConvolutionLayers/RleConvLayer.md) - convolution for 2-dimensional images in RLE format
@@ -260,6 +261,7 @@ delete gpuMathEngine;
   - [CAddToObjectLayer](AddToObjectLayer.md) adds the content of one input to each of the objects of the other
   - [CMatrixMultiplicationLayer](MatrixMultiplicationLayer.md) - mutiplication of two sets of matrices
   - [CCastLayer](CastLayer.md) - data type conversion
+  - [CInterpolationLayer](InterpolationLayer.md) - interpolation layer
   - Blob concatenation:
     - [CConcatChannelsLayer](ConcatLayers/ConcatChannelsLayer.md) concatenates along the Channels dimension
     - [CConcatDepthLayer](ConcatLayers/ConcatDepthLayer.md) concatenates along the Depth dimension

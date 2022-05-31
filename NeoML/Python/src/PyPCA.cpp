@@ -205,7 +205,7 @@ void InitializePCA(py::module& m)
 		{
 			py::gil_scoped_release release;
 			if( isFullAlgorithm ) {
-				SingularValueDecomposition( desc, SVD_Full, leftVectors, singularValues, rightVectors,
+				SingularValueDecomposition( desc, leftVectors, singularValues, rightVectors,
 					returnLeftVectors, returnRightVectors, components );
 			} else {
 				RandomizedSingularValueDecomposition( desc, leftVectors, singularValues, rightVectors,

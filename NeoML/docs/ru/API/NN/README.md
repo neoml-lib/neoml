@@ -220,6 +220,7 @@ delete gpuMathEngine;
   - [CPowerLayer](ActivationLayers/PowerLayer.md) - функция активации `pow(x, exp)`
   - [CHSwishLayer](ActivationLayers/HSwishLayer.md) - функция активации `h-swish`
   - [CGELULayer](ActivationLayers/GELULayer.md) - функция активации `x * sigmoid(1.702 * x)`
+  - [CExpLayer](ActivationLayers/ExpLayer.md) - функция активации `exp`
 - Свертки:
   - [CConvLayer](ConvolutionLayers/ConvLayer.md) - двумерная свертка
     - [CRleConvLayer](ConvolutionLayers/RleConvLayer.md) - свертка двумерных изображений в формате RLE
@@ -258,6 +259,7 @@ delete gpuMathEngine;
   - [CAddToObjectLayer](AddToObjectLayer.md) - прибавление содержимого одного входа ко всем объектам другого
   - [CMatrixMultiplicationLayer](MatrixMultiplicationLayer.md) - перемножение двух наборов матриц
   - [CCastLayer](CastLayer.md) - преобразование типа данных блоба
+  - [CInterpolationLayer](InterpolationLayer.md) - слой интерполяции
   - Объединение блобов:
     - [CConcatChannelsLayer](ConcatLayers/ConcatChannelsLayer.md) - объединение блобов по каналам
     - [CConcatDepthLayer](ConcatLayers/ConcatDepthLayer.md) - объединение блобов по глубине

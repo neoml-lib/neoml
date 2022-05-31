@@ -117,5 +117,11 @@ public:
 	CTanhOperator( const onnx::NodeProto& tanh, int opsetVersion );
 };
 
+// Exp operator
+class CExpOperator : public CActivationOperatorBase {
+public:
+	CExpOperator( const onnx::NodeProto& exp, int opsetVersion );
+};
+
 } // namespace NeoOnnx
 

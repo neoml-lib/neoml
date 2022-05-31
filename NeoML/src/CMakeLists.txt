@@ -24,6 +24,7 @@ set(NeoML_SOURCES
     Dnn/Layers/AccumulativeLookupLayer.cpp
     Dnn/Layers/AccuracyLayer.cpp
     Dnn/Layers/ActivationLayers.cpp
+    Dnn/Layers/AddToObjectLayer.cpp
     Dnn/Layers/ArgmaxLayer.cpp
     Dnn/Layers/AttentionLayer.cpp
     Dnn/Layers/BackLinkLayer.cpp
@@ -31,9 +32,9 @@ set(NeoML_SOURCES
     Dnn/Layers/BaseInPlaceLayer.cpp
     Dnn/Layers/BatchNormalizationLayer.cpp
     Dnn/Layers/BertConvLayer.cpp
-    Dnn/Layers/AddToObjectLayer.cpp
     Dnn/Layers/BinaryCrossEntropyLayer.cpp
     Dnn/Layers/BinaryFocalLossLayer.cpp
+    Dnn/Layers/BroadcastLayer.cpp
     Dnn/Layers/CastLayer.cpp
     Dnn/Layers/CenterLossLayer.cpp
     Dnn/Layers/ChannelwiseConvLayer.cpp
@@ -62,6 +63,7 @@ set(NeoML_SOURCES
     Dnn/Layers/ImageAndPixelConversionLayer.cpp
     Dnn/Layers/ImageResizeLayer.cpp
     Dnn/Layers/IndRnnLayer.cpp
+    Dnn/Layers/InterpolationLayer.cpp
     Dnn/Layers/IrnnLayer.cpp
     Dnn/Layers/L1LossLayer.cpp
     Dnn/Layers/LrnLayer.cpp
@@ -98,6 +100,7 @@ set(NeoML_SOURCES
     Dnn/Layers/TransposeLayer.cpp
     Dnn/Layers/Upsampling2DLayer.cpp
     TraditionalML/AIModel.cpp
+    TraditionalML/BytePairEncoderTrainer.cpp
     TraditionalML/ClassificationProbability.cpp
     TraditionalML/ClusterCenter.cpp
     TraditionalML/CommonCluster.cpp
@@ -137,13 +140,16 @@ set(NeoML_SOURCES
     TraditionalML/Svm.cpp
     TraditionalML/PCA.cpp
     TraditionalML/SvmKernel.cpp
+    TraditionalML/SubwordEncoder.cpp
     TraditionalML/TrustRegionNewtonOptimizer.cpp
+    TraditionalML/WordDictionary.cpp
     NeoML.natvis
 )
 set(NeoML_NON_UNITY_SOURCES
     Dnn/DnnSolver.cpp
     Dnn/Layers/LossLayer.cpp
     Dnn/Layers/LstmLayer.cpp
+    TraditionalML/BytePairEncoder.cpp
     TraditionalML/CompactRegressionTree.cpp
     TraditionalML/DecisionTreeClassificationModel.cpp
     TraditionalML/GradientBoost.cpp
@@ -166,6 +172,7 @@ set_property(SOURCE ${NeoML_NON_UNITY_SOURCES} PROPERTY SKIP_UNITY_BUILD_INCLUSI
 target_sources( ${PROJECT_NAME} PRIVATE
     ${NeoML_SOURCES}
     ${NeoML_NON_UNITY_SOURCES}
+    TraditionalML/BytePairEncoder.h
     TraditionalML/CompactRegressionTree.h
     TraditionalML/DecisionTreeClassificationModel.h
     TraditionalML/DecisionTreeNodeBase.h
@@ -214,14 +221,15 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/Dnn/Layers/AccumulativeLookupLayer.h
     ../include/NeoML/Dnn/Layers/AccuracyLayer.h
     ../include/NeoML/Dnn/Layers/ActivationLayers.h
+    ../include/NeoML/Dnn/Layers/AddToObjectLayer.h
     ../include/NeoML/Dnn/Layers/ArgmaxLayer.h
     ../include/NeoML/Dnn/Layers/AttentionLayer.h
     ../include/NeoML/Dnn/Layers/BackLinkLayer.h
     ../include/NeoML/Dnn/Layers/BaseInPlaceLayer.h
     ../include/NeoML/Dnn/Layers/BatchNormalizationLayer.h
-    ../include/NeoML/Dnn/Layers/AddToObjectLayer.h
     ../include/NeoML/Dnn/Layers/BertConvLayer.h
     ../include/NeoML/Dnn/Layers/BinaryFocalLossLayer.h
+    ../include/NeoML/Dnn/Layers/BroadcastLayer.h
     ../include/NeoML/Dnn/Layers/CastLayer.h
     ../include/NeoML/Dnn/Layers/CenterLossLayer.h
     ../include/NeoML/Dnn/Layers/ChannelwiseConvLayer.h
@@ -246,6 +254,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/Dnn/Layers/ImageAndPixelConversionLayer.h
     ../include/NeoML/Dnn/Layers/ImageResizeLayer.h
     ../include/NeoML/Dnn/Layers/IndRnnLayer.h
+    ../include/NeoML/Dnn/Layers/InterpolationLayer.h
     ../include/NeoML/Dnn/Layers/IrnnLayer.h
     ../include/NeoML/Dnn/Layers/LossLayer.h
     ../include/NeoML/Dnn/Layers/LrnLayer.h
@@ -280,6 +289,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/Dnn/Layers/TransposedConvLayer.h
     ../include/NeoML/Dnn/Layers/TransposeLayer.h
     ../include/NeoML/Dnn/Layers/Upsampling2DLayer.h
+    ../include/NeoML/TraditionalML/BytePairEncoderTrainer.h
     ../include/NeoML/TraditionalML/ClassificationProbability.h
     ../include/NeoML/TraditionalML/ClassificationResult.h
     ../include/NeoML/TraditionalML/ClusterCenter.h
@@ -319,10 +329,12 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/TraditionalML/PCA.h
     ../include/NeoML/TraditionalML/SvmKernel.h
     ../include/NeoML/TraditionalML/StratifiedCrossValidationSubProblem.h
+    ../include/NeoML/TraditionalML/SubwordEncoder.h
     ../include/NeoML/TraditionalML/TrainingModel.h
     ../include/NeoML/TraditionalML/TrustRegionNewtonOptimizer.h
     ../include/NeoML/TraditionalML/VariableMatrix.h
     ../include/NeoML/TraditionalML/VectorIterator.h
+    ../include/NeoML/TraditionalML/WordDictionary.h
 )
 
 target_include_directories(${PROJECT_NAME}

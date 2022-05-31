@@ -37,8 +37,9 @@ static void checkOperatorSupport( const onnx::GraphProto& onnxGraph )
 {
 	CHashTable<CString> notSupportedOps;
 	for( const onnx::NodeProto& onnxNode : onnxGraph.node() ) {
-		if( !COperator::IsSupportedOperator( onnxNode.op_type() ) && !notSupportedOps.Has( onnxNode.op_type() ) ) {
-			notSupportedOps.Add( onnxNode.op_type() );
+		const CString opType( onnxNode.op_type().data() );
+		if( !COperator::IsSupportedOperator( opType ) && !notSupportedOps.Has( opType ) ) {
+			notSupportedOps.Add( opType );
 		}
 	}
 

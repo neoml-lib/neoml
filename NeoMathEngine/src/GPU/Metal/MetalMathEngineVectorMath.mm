@@ -96,6 +96,12 @@ void CMetalMathEngine::VectorConvert(const CConstIntHandle& from, const CFloatHa
     ASSERT_EXPR( kernel.Run() );
 }
 
+void CMetalMathEngine::BroadcastCopy(const CIntHandle&, const CConstIntHandle&,
+	const CBlobDesc&, const CBlobDesc&, int)
+{
+	ASSERT_EXPR( false );
+}
+
 void CMetalMathEngine::BroadcastCopy(const CFloatHandle&, const CConstFloatHandle&,
 	const CBlobDesc&, const CBlobDesc&, int)
 {
@@ -858,6 +864,21 @@ void CMetalMathEngine::VectorEltwiseNegMultiply(const CConstFloatHandle& firstHa
     ASSERT_EXPR( kernel.Run() );
 }
 
+void CMetalMathEngine::VectorEltwiseDivide(const CConstIntHandle& firstHandle, const CConstIntHandle& secondHandle,
+    const CIntHandle& resultHandle, int vectorSize)
+{
+    ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+    ASSERT_EXPR( secondHandle.GetMathEngine() == this );
+    ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+    C1DKernel kernel( *queue, "vectorKernelEltwiseDivideInt", VectorCombineCount, vectorSize );
+    kernel.SetParam( firstHandle, 0 );
+    kernel.SetParam( secondHandle, 1 );
+    kernel.SetParam( resultHandle, 2 );
+    kernel.SetParam( vectorSize, 3 );
+    ASSERT_EXPR( kernel.Run() );
+}
+
 void CMetalMathEngine::VectorEltwiseDivide(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
     const CFloatHandle& resultHandle, int vectorSize)
 {
@@ -865,7 +886,7 @@ void CMetalMathEngine::VectorEltwiseDivide(const CConstFloatHandle& firstHandle,
     ASSERT_EXPR( secondHandle.GetMathEngine() == this );
     ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 
-    C1DKernel kernel( *queue, "vectorKernelEltwiseDivide", VectorCombineCount, vectorSize );
+    C1DKernel kernel( *queue, "vectorKernelEltwiseDivideFloat", VectorCombineCount, vectorSize );
     kernel.SetParam( firstHandle, 0 );
     kernel.SetParam( secondHandle, 1 );
     kernel.SetParam( resultHandle, 2 );

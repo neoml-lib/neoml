@@ -44,6 +44,22 @@ void CCudaMathEngine::VectorCopy(const CIntHandle& first, const CConstIntHandle&
 	ASSERT_CUDA( cudaMemcpy(GetRaw(first), GetRaw(second), vectorSize * sizeof(int), cudaMemcpyDeviceToDevice));
 }
 
+void CCudaMathEngine::BroadcastCopy(const CIntHandle& toHandle, const CConstIntHandle& fromHandle,
+	const CBlobDesc& toDesc, const CBlobDesc& fromDesc, int additionalWidth)
+{
+	ASSERT_EXPR(toHandle.GetMathEngine() == this);
+	ASSERT_EXPR(fromHandle.GetMathEngine() == this);
+	SetCudaDevice( device->DeviceNumber );
+
+	int blockCount;
+	int threadCount;
+	int resultSize = toDesc.BlobSize();
+	getCudaTaskGrid(blockCount, threadCount, resultSize);
+
+	VectorBroadcastCopyKernel<<<blockCount, threadCount>>>(
+		GetRaw( toHandle ), GetRaw( fromHandle ), toDesc, fromDesc, additionalWidth, resultSize );
+}
+
 void CCudaMathEngine::BroadcastCopy(const CFloatHandle& toHandle, const CConstFloatHandle& fromHandle,
 	const CBlobDesc& toDesc, const CBlobDesc& fromDesc, int additionalWidth)
 {
@@ -1026,6 +1042,22 @@ void CCudaMathEngine::VectorEltwiseNegMultiply(const CConstFloatHandle& firstHan
 	getCudaTaskGrid(blockCount, threadCount, vectorSize, VectorEltwiseNegMultiplyCombineCount);
 
 	VectorEltwiseNegMultiplyKernel<<<blockCount, threadCount>>>
+		(GetRaw(firstHandle), GetRaw(secondHandle), GetRaw(resultHandle), vectorSize);
+}
+
+void CCudaMathEngine::VectorEltwiseDivide(const CConstIntHandle& firstHandle, const CConstIntHandle& secondHandle,
+	const CIntHandle& resultHandle, int vectorSize)
+{
+	ASSERT_EXPR(firstHandle.GetMathEngine() == this);
+	ASSERT_EXPR(secondHandle.GetMathEngine() == this);
+	ASSERT_EXPR(resultHandle.GetMathEngine() == this);
+	SetCudaDevice( device->DeviceNumber );
+
+	int blockCount;
+	int threadCount;
+	getCudaTaskGrid(blockCount, threadCount, vectorSize, VectorEltwiseDivideCombineCount);
+
+	VectorEltwiseDivideKernel<<<blockCount, threadCount>>>
 		(GetRaw(firstHandle), GetRaw(secondHandle), GetRaw(resultHandle), vectorSize);
 }
 

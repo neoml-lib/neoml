@@ -674,6 +674,12 @@ void CVulkanMathEngine::BertConvBackward( const CConstFloatHandle& /*dataHandle*
 	ASSERT_EXPR( false );
 }
 
+void CVulkanMathEngine::LinearInterpolation( const CConstFloatHandle&, const CFloatHandle&,
+	TInterpolationCoords, TInterpolationRound, int, int, int, float )
+{
+	ASSERT_EXPR( false );
+}
+
 } // namespace NeoML
 
 #endif // NEOML_USE_VULKAN

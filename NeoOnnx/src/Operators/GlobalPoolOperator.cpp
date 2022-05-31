@@ -52,7 +52,11 @@ void CGlobalPoolOperatorBase::AddLayers( const CTensorArray& inputs, CDnn& dnn, 
 	CPtr<const CUserTensor> curr = AsUserTensor( *inputs[0], Name() + "_Source", dnn );
 	curr = prepareInput( *curr, axes, dnn );
 	curr = addPoolingLayer( *curr, axes, dnn );
-	curr = addPostProcessing( *curr, dnn );
+	int pooledSize = 1;
+	for( int i = 0; i < axes.Size(); ++i ) {
+		pooledSize *= inputs[0]->Shape()[axes[i]];
+	}
+	curr = addPostProcessing( *curr, pooledSize, dnn );
 
 	outputs.Add( curr.Ptr() );
 }
@@ -163,7 +167,7 @@ CPtr<const CUserTensor> CGlobalPoolOperatorBase::convertInputLayout( const CUser
 CPtr<const CUserTensor> CGlobalPoolOperatorBase::addPoolingLayer( const CUserTensor& preparedInput,
 	const CFastArray<int, 8>& axes, CDnn& dnn ) const
 {
-	static_assert( PT_Count == 3, "PT_Count != 3" );
+	static_assert( PT_Count == 4, "PT_Count != 4" );
 	CPtr<CBaseLayer> pooling;
 	switch( poolType ) {
 		case PT_Max:
@@ -171,6 +175,7 @@ CPtr<const CUserTensor> CGlobalPoolOperatorBase::addPoolingLayer( const CUserTen
 			pooling = new CGlobalMaxPoolingLayer( dnn.GetMathEngine() );
 			break;
 		case PT_Mean:
+		case PT_Sum:
 			pooling = new CGlobalMeanPoolingLayer( dnn.GetMathEngine() );
 			break;
 		default:
@@ -232,17 +237,22 @@ CTensorLayout CGlobalPoolOperatorBase::calcOutputLayout( const CTensorLayout& in
 }
 
 // Adds additional layers after pooling if needed.
-CPtr<const CUserTensor> CGlobalPoolOperatorBase::addPostProcessing( const CUserTensor& layerOutput, CDnn& dnn ) const
+CPtr<const CUserTensor> CGlobalPoolOperatorBase::addPostProcessing( const CUserTensor& layerOutput, int pooledSize, CDnn& dnn ) const
 {
-	if( poolType != PT_Min ) {
-		// Post-processing is needed only when MinPooling
+	static_assert( PT_Count == 4, "PT_Count != 4" );
+	if( poolType == PT_Max || poolType == PT_Mean ) {
+		// Post-processing is needed for MinPooling and SumPooling
 		return &layerOutput;
 	}
 
 	// MinPool( x ) == -1 * MaxPool( -1 * x )
 	CPtr<CLinearLayer> linear = new CLinearLayer( dnn.GetMathEngine() );
 	linear->SetName( Name() + "_postProcess" );
-	linear->SetMultiplier( -1 );
+	if( poolType == PT_Min ) {
+		linear->SetMultiplier( -1 );
+	} else if( poolType == PT_Sum ) {
+		linear->SetMultiplier( static_cast<float>( pooledSize ) );
+	}
 	linear->Connect( 0, *layerOutput.Layer(), layerOutput.OutputIndex() );
 	dnn.AddLayer( *linear );
 	return new CUserTensor( layerOutput.Shape(), layerOutput.Layout(), CLayerOutput( linear, 0 ) );
@@ -273,7 +283,6 @@ void CReducePoolOperatorBase::PoolAxes( const CTensorShape& inputShape, CFastArr
 
 	for( int i = 0; i < axes.Size(); ++i ) {
 		if( axes[i] < 0 ) {
-			CheckOnnxProtocol( OpsetVersion >= 11, "negative axes indices are supported since v11", *this );
 			axes[i] += inputShape.Size();
 		}
 	}

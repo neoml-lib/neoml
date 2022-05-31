@@ -292,8 +292,8 @@ void CpuMathEngineCleanUp()
 
 void DeinitializeNeoMathEngine()
 {
-	CpuMathEngineCleanUp();
 #ifdef NEOML_USE_MKL
+	mkl_free_buffers();
 	mkl_finalize();
 #endif
 }

@@ -277,5 +277,19 @@ CTanhOperator::CTanhOperator( const onnx::NodeProto& tanh, int opsetVersion ) :
 	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
 }
 
+//---------------------------------------------------------------------------------------------------------------------
+
+CExpOperator::CExpOperator( const onnx::NodeProto& exp, int opsetVersion ) :
+	CActivationOperatorBase( exp, opsetVersion, AF_Exp )
+{
+	// v1 - original
+	// v6 - legacy optimization attribute is removed
+	// v13 - bfloat16 is supported
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
+
+	CheckOnnxProtocol( InputCount() == 1, "operator must have 1 input", *this );
+	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
+}
+
 } // namespace NeoOnnx
 

@@ -186,6 +186,18 @@ public:
 	}
 };
 
+class CPyExpLayer : public CPyLayer {
+public:
+	explicit CPyExpLayer(CExpLayer& layer, CPyMathEngineOwner& mathEngineOwner) : CPyLayer(layer, mathEngineOwner) {}
+
+	py::object CreatePythonObject() const
+	{
+		py::object pyModule = py::module::import( "neoml.Dnn" );
+		py::object pyConstructor = pyModule.attr( "Exp" );
+		return pyConstructor( py::cast( this ) );
+	}
+};
+
 
 void InitializeActivationLayer( py::module& m )
 {
@@ -414,6 +426,23 @@ void InitializeActivationLayer( py::module& m )
 				dnn.AddLayer(*gelu);
 				gelu->Connect(0, layer.BaseLayer(), outputNumber);
 				return new CPyGELULayer(*gelu, layer.MathEngineOwner());
+			}))
+	;
+
+	py::class_<CPyExpLayer, CPyLayer>(m, "Exp")
+		.def(py::init([](const CPyLayer& layer)
+			{
+				return new CPyExpLayer(*layer.Layer<CExpLayer>(), layer.MathEngineOwner());
+			}))
+		.def(py::init([](const std::string& name, const CPyLayer& layer, int outputNumber) {
+				py::gil_scoped_release release;
+				CDnn& dnn = layer.Dnn();
+				IMathEngine& mathEngine = dnn.GetMathEngine();
+				CPtr<CExpLayer> exp = new CExpLayer(mathEngine);
+				exp->SetName( FindFreeLayerName(dnn, "Exp", name).c_str() );
+				dnn.AddLayer(*exp);
+				exp->Connect(0, layer.BaseLayer(), outputNumber);
+				return new CPyExpLayer(*exp, layer.MathEngineOwner());
 			}))
 	;
 }

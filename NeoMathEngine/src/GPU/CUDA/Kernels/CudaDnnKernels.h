@@ -770,4 +770,70 @@ __global__ void BertConvBackwardKernelKernel( const float* data, const float* ou
 	kernelDiff[kernelOffset] = res;
 }
 
+__global__ void LinearInterpolationKernel( const float* data, float* result, int coords, int round,
+	int objectCount, int scaledAxis, int objectSize, float scale )
+{
+	const int newSize = static_cast<int>( scaledAxis * scale );
+	const int taskCount = objectCount * newSize * objectSize;
+	int taskIndex;
+	if( !GetCudaTaskIndex( taskCount, taskIndex ) ) {
+		return;
+	}
+
+	result += taskIndex;
+	const int elem = taskIndex % objectSize;
+	taskIndex /= objectSize;
+	const int xNew = taskIndex % newSize;
+	const int b = taskIndex / newSize;
+
+	float xOld = 0;
+	switch( coords ) {
+		case 0: // HalfPixel
+			xOld = ( xNew + 0.5f ) / scale - 0.5f;
+			break;
+		case 1: // PytorchHalfPixel
+			xOld = ( newSize > 1 ) ? ( xNew + 0.5f ) / scale - 0.5f : 0.f;
+			break;
+		case 2: // AlignCorners
+			xOld = static_cast<float>( xNew * ( scaledAxis - 1 ) ) / ( newSize - 1 );
+			break;
+		case 3:
+			xOld = xNew / scale;
+			break;
+	}
+
+	switch( round ) {
+		case 0: // None
+			break;
+		case 1: // RoundPreferFloor
+			if( static_cast<int>( xOld ) + 0.5f == xOld ) {
+				xOld = ::floorf( xOld );
+			} else {
+				xOld = ::roundf( xOld );
+			}
+			break;
+		case 2: // RoundPreferCeil
+			xOld = ::roundf( xOld );
+			break;
+		case 3: // Floor
+			xOld = ::floorf( xOld );
+			break;
+		case 4: // Ceil
+			xOld = ::ceilf( xOld );
+			break;
+	}
+
+	if( xOld <= 0 ) {
+		*result = data[b * scaledAxis * objectSize + elem];
+	} else if( xOld >= static_cast<float>( scaledAxis - 1 ) ) {
+		*result = data[( b * scaledAxis + scaledAxis - 1 ) * objectSize + elem];
+	} else {
+		const int leftCoord = static_cast<int>( xOld );
+		const float rightMul = xOld - ::floorf( xOld );
+		const float leftMul = 1.f - rightMul;
+		*result = leftMul * data[( b * scaledAxis + leftCoord ) * objectSize + elem]
+			+ rightMul * data[( b * scaledAxis + ( leftCoord + 1 ) ) * objectSize + elem];
+	}
+}
+
 } // namespace NeoML
