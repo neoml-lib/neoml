@@ -12,7 +12,7 @@ set_target_properties( ${PROJECT_NAME} PROPERTIES
     UNITY_BUILD_MODE GROUP
 )
 
-target_sources( ${PROJECT_NAME} PRIVATE
+set( NeoOnnx_SOURCES
     GraphInput.cpp
     GraphInitializer.cpp
     GraphOutput.cpp
@@ -115,6 +115,8 @@ target_sources( ${PROJECT_NAME} PRIVATE
     TensorLayout.h
     TensorUtils.h
 )
+target_sources(${PROJECT_NAME} PRIVATE ${NeoOnnx_SOURCES})
+set_property(SOURCE ${NeoOnnx_SOURCES} PROPERTY UNITY_GROUP 1)
 
 if(ANDROID)
     set(CMAKE_LIBRARY_ARCHITECTURE ${ANDROID_ABI})
