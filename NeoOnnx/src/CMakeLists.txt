@@ -13,7 +13,7 @@ set_target_properties( ${PROJECT_NAME} PROPERTIES
     UNITY_BUILD_BATCH_SIZE ${NeoML_UNITY_BUILD_BATCH_SIZE}
 )
 
-target_sources(${PROJECT_NAME} PRIVATE
+target_sources( ${PROJECT_NAME} PRIVATE
     GraphInput.cpp
     GraphInitializer.cpp
     GraphOutput.cpp
