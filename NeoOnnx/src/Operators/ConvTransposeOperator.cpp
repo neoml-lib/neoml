@@ -25,7 +25,7 @@ limitations under the License.
 namespace NeoOnnx {
 
 // Gets kernel shape
-static void getKernelShape( const CTensorArray& inputs, CTensorShape& kernelShape )
+static void getConvTransposeKernelShape( const CTensorArray& inputs, CTensorShape& kernelShape )
 {
 	const CTensorShape& inputShape = inputs[0]->Shape();
 	kernelShape.SetBufferSize( inputShape.Size() - 2 );
@@ -86,7 +86,7 @@ void CConvTransposeOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, C
 	// 2. Output size is given, padding is calculated
 	// NeoOnnx supports only first scenario
 	CTensorShape kernelShape;
-	getKernelShape( inputs, kernelShape );
+	getConvTransposeKernelShape( inputs, kernelShape );
 	CFastArray<int, 8> strides;
 	getStrides( inputs, strides );
 	CFastArray<int, 8> pads;

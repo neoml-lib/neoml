@@ -9,7 +9,8 @@ endif()
 add_library(NeoML::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
 
 set_target_properties( ${PROJECT_NAME} PROPERTIES
-    UNITY_BUILD_MODE GROUP
+    UNITY_BUILD_MODE BATCH
+    UNITY_BUILD_BATCH_SIZE ${NeoML_UNITY_BUILD_BATCH_SIZE}
 )
 
 target_sources( ${PROJECT_NAME} PRIVATE
@@ -181,6 +182,7 @@ add_custom_command(
 )
 
 target_sources(${PROJECT_NAME} PRIVATE ${PROTO_HDRS} ${PROTO_SRCS})
+set_property(SOURCE ${PROTO_HDRS} ${PROTO_SRCS} PROPERTY SKIP_UNITY_BUILD_INCLUSION ON)
 
 if(MSVC)
     target_compile_options(${PROJECT_NAME} PRIVATE /W2)
