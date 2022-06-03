@@ -295,37 +295,42 @@ if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
     
 elseif(IOS)
     # Apple metal
-    set(IOS_SOURCES
-        GPU/Metal/MetalMathEngine.h
-        GPU/Metal/MetalMathEngine.mm
-        GPU/Metal/MetalMathEngineVectorMath.mm
-        GPU/Metal/MetalMathEngineBlas.mm
-        GPU/Metal/MetalMathEngineDnn.mm
-        GPU/Metal/MetalMathEngineDnnConvs.mm
-        GPU/Metal/MetalMathEngineDnnDropout.mm
-        GPU/Metal/MetalMathEngineDnnPoolings.mm
-        GPU/Metal/MetalMathEngineDnnLrn.mm
-        GPU/Metal/MetalMathEngineDnnLstm.mm
-        GPU/Metal/MetalKernel.h
-        GPU/Metal/MetalKernel.mm
-        GPU/Metal/MetalCommandQueue.h
-        GPU/Metal/MetalCommandQueue.mm
-    )
+    if(NeoMathEngine_ENABLE_METAL)
 
-    set_source_files_properties(${IOS_SOURCES} PROPERTIES COMPILE_FLAGS -fmodules)
-    target_include_directories(${PROJECT_NAME} PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/GPU/Metal>)
-    target_sources(${PROJECT_NAME} PRIVATE ${IOS_SOURCES})
+        target_compile_definitions(${PROJECT_NAME} PRIVATE NEOML_USE_METAL)
+
+        set(IOS_SOURCES
+            GPU/Metal/MetalMathEngine.h
+            GPU/Metal/MetalMathEngine.mm
+            GPU/Metal/MetalMathEngineVectorMath.mm
+            GPU/Metal/MetalMathEngineBlas.mm
+            GPU/Metal/MetalMathEngineDnn.mm
+            GPU/Metal/MetalMathEngineDnnConvs.mm
+            GPU/Metal/MetalMathEngineDnnDropout.mm
+            GPU/Metal/MetalMathEngineDnnPoolings.mm
+            GPU/Metal/MetalMathEngineDnnLrn.mm
+            GPU/Metal/MetalMathEngineDnnLstm.mm
+            GPU/Metal/MetalKernel.h
+            GPU/Metal/MetalKernel.mm
+            GPU/Metal/MetalCommandQueue.h
+            GPU/Metal/MetalCommandQueue.mm
+        )
+
+        set_source_files_properties(${IOS_SOURCES} PROPERTIES COMPILE_FLAGS -fmodules)
+        target_include_directories(${PROJECT_NAME} PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/GPU/Metal>)
+        target_sources(${PROJECT_NAME} PRIVATE ${IOS_SOURCES})
     
-    add_subdirectory(GPU/Metal/NeoMetalLib ${CMAKE_BINARY_DIR}/NeoMetalLib)
-    add_dependencies(${PROJECT_NAME} NeoMetalLib)
+        add_subdirectory(GPU/Metal/NeoMetalLib ${CMAKE_BINARY_DIR}/NeoMetalLib)
+        add_dependencies(${PROJECT_NAME} NeoMetalLib)
     
-    get_target_property(METAL_LIB NeoMetalLib OUTPUT_NAME)
+        get_target_property(METAL_LIB NeoMetalLib OUTPUT_NAME)
     
-    set_property(SOURCE ${METAL_LIB} PROPERTY GENERATED ON)
-    target_sources(${PROJECT_NAME} PRIVATE ${METAL_LIB})
+        set_property(SOURCE ${METAL_LIB} PROPERTY GENERATED ON)
+        target_sources(${PROJECT_NAME} PRIVATE ${METAL_LIB})
     
-    if(NeoMathEngine_BUILD_SHARED)
-        set_target_properties(${PROJECT_NAME} PROPERTIES RESOURCE ${METAL_LIB})
+        if(NeoMathEngine_BUILD_SHARED)
+            set_target_properties(${PROJECT_NAME} PROPERTIES RESOURCE ${METAL_LIB})
+        endif()
     endif()
 endif()
 

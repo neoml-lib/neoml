@@ -26,10 +26,6 @@ limitations under the License.
 #define NEOML_USE_OWN_BLAS
 #endif
 
-#if FINE_PLATFORM( FINE_IOS )
-#define NEOML_USE_METAL
-#endif // FINE_PLATFORM( FINE_IOS )
-
 #if FINE_PLATFORM( FINE_WINDOWS )
 
 #ifndef FME_LIB_VERSION_SUFFIX
