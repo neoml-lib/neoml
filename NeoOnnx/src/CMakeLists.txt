@@ -9,7 +9,8 @@ endif()
 add_library(NeoML::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
 
 set_target_properties( ${PROJECT_NAME} PROPERTIES
-    UNITY_BUILD_MODE GROUP
+    UNITY_BUILD_MODE BATCH
+    UNITY_BUILD_BATCH_SIZE ${NeoML_UNITY_BUILD_BATCH_SIZE}
 )
 
 target_sources( ${PROJECT_NAME} PRIVATE
@@ -23,6 +24,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     LayerUtils.cpp
     Operator.cpp
     Operators/ActivationOperator.cpp
+    Operators/ArgMaxOperator.cpp
     Operators/BatchNormalizationOperator.cpp
     Operators/CastOperator.cpp
     Operators/ConcatOperator.cpp
@@ -44,6 +46,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Operators/LstmOperator.cpp
     Operators/MatMulOperator.cpp
     Operators/NonZeroOperator.cpp
+    Operators/OneHotOperator.cpp
     Operators/PadOperator.cpp
     Operators/PoolOperator.cpp
     Operators/RangeOperator.cpp
@@ -72,6 +75,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     NeoOnnxCheck.h
     Operator.h
     Operators/ActivationOperator.h
+    Operators/ArgMaxOperator.h
     Operators/BatchNormalizationOperator.h
     Operators/CastOperator.h
     Operators/ConcatOperator.h
@@ -93,6 +97,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Operators/LstmOperator.h
     Operators/MatMulOperator.h
     Operators/NonZeroOperator.h
+    Operators/OneHotOperator.h
     Operators/PadOperator.h
     Operators/PoolOperator.h
     Operators/RangeOperator.h
@@ -177,6 +182,7 @@ add_custom_command(
 )
 
 target_sources(${PROJECT_NAME} PRIVATE ${PROTO_HDRS} ${PROTO_SRCS})
+set_property(SOURCE ${PROTO_HDRS} ${PROTO_SRCS} PROPERTY SKIP_UNITY_BUILD_INCLUSION ON)
 
 if(MSVC)
     target_compile_options(${PROJECT_NAME} PRIVATE /W2)

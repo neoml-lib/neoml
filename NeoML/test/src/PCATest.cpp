@@ -47,9 +47,6 @@ static void svdTestExample( int samples, int features, int components,
 	CArray<float> expectedSingularValues, CArray<float> expectedRightVectors,
 	bool returnLeftVectors, bool returnRightVectors, TSvd svdSolver )
 {
-	if( svdSolver == SVD_Sparse && ( returnLeftVectors == returnRightVectors ) ) {
-		return;
-	}
 	const CSparseFloatMatrix& matrix = generateMatrix( samples, features, data );
 	CArray<float> leftVectors;
 	CArray<float> singularValues;
@@ -58,7 +55,7 @@ static void svdTestExample( int samples, int features, int components,
 		RandomizedSingularValueDecomposition( matrix.GetDesc(), leftVectors, singularValues, rightVectors,
 			returnLeftVectors, returnRightVectors, components );
 	} else {
-		SingularValueDecomposition( matrix.GetDesc(), svdSolver, leftVectors, singularValues, rightVectors,
+		SingularValueDecomposition( matrix.GetDesc(), leftVectors, singularValues, rightVectors,
 			returnLeftVectors, returnRightVectors, components );
 	}
 
@@ -86,7 +83,7 @@ static void svdTestExample( int samples, int features, int components,
 
 TEST( CSVDTest, SVDExampleTest )
 {
-	for( TSvd svdSolver : { SVD_Full, SVD_Sparse, SVD_Randomized } ) {
+	for( TSvd svdSolver : { SVD_Full, SVD_Randomized } ) {
 		for( bool returnLeftVectors : { false, true } ) {
 			for( bool returnRightVectors : { false, true } ) {
 				svdTestExample( 4, 4, 2, { 2, 1, 3, 2, 2, 4, 4, 1, 2, 4, 1, 1, 4, 4, 3, 4 },

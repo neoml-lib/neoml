@@ -32,13 +32,18 @@ CConcatOperator::CConcatOperator( const onnx::NodeProto& concat, int opsetVersio
 	// v11 - supported negative axis index
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
-	CheckOnnxProtocol( InputCount() > 1, "operator must have more than 1 inputs", *this );
+	CheckOnnxProtocol( InputCount() >= 1, "operator must have at least 1 input", *this );
 	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
 }
 
 void CConcatOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
 	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
+	if( InputCount() == 1 ) {
+		outputs.Add( inputs[0] );
+		return;
+	}
+
 	const int dimCount = inputs[0]->DimCount();
 
 	int axis = 1;
@@ -47,7 +52,6 @@ void CConcatOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorA
 	} else {
 		CheckOnnxProtocol( GetAttribute( "axis", axis ), "axis attribute is missing", *this );
 		if( axis < 0 ) {
-			CheckOnnxProtocol( OpsetVersion >= 11, "negative axis is supported since v11", *this );
 			axis += dimCount;
 		}
 	}

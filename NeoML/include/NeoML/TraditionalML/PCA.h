@@ -25,9 +25,7 @@ namespace NeoML {
 enum TSvd {
 	// Full svd for dense matrices
 	SVD_Full = 0,
-	// Truncated svd for sparse matrices
-	SVD_Sparse,
-	// Randomized svd algorithm
+	// Randomized svd algorithm for sparse matrices
 	SVD_Randomized,
 	SVD_Count
 };
@@ -38,7 +36,7 @@ enum TSvd {
 // `singularValues` contains `components` largest singular values.
 // If returnLeftVectors or returnRightVectors is false then corresponding singular vectors are not returned.
 // `components` is set as min(height, width) if not specified.
-void NEOML_API SingularValueDecomposition( const CFloatMatrixDesc& data, const TSvd& svdSolver,
+void NEOML_API SingularValueDecomposition( const CFloatMatrixDesc& data,
 	CArray<float>& leftVectors, CArray<float>& singularValues, CArray<float>& rightVectors,
 	bool returnLeftVectors = true, bool returnRightVectors = false, int components = 0 );
 
@@ -49,7 +47,7 @@ void NEOML_API SingularValueDecomposition( const CFloatMatrixDesc& data, const T
 // If returnLeftVectors or returnRightVectors is false then corresponding singular vectors are not returned.
 // `overSamples` - additional number of components to be calculated to ensure proper conditioning.
 // `iterationCount` - number of algorithm iterations, a smaller number improves speed but can negatively impact precision.
-// `seed` used to generate a random matrix with the normal distribution for algorithm iterations.
+// `seed` used to initialize a random matrix with the normal distribution for algorithm iterations.
 void NEOML_API RandomizedSingularValueDecomposition( const CFloatMatrixDesc& data,
 	CArray<float>& leftVectors_, CArray<float>& singularValues_, CArray<float>& rightVectors_,
 	bool returnLeftVectors, bool returnRightVectors, int components,
@@ -64,7 +62,7 @@ public:
 	enum TComponents {
 		// Set the number of components to min(data.width, data.height)
 		PCAC_None = 0,
-		// Take the integer value in the Components field for the number of components
+		// Take the integer value in the Components parameter as the number of components
 		PCAC_Int,
 		// In case of SVD_Full number of components is selected such that
 		// the value of explained_variance is greater than Components

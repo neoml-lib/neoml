@@ -759,13 +759,6 @@ void CCudaMathEngine::SingularValueDecomposition( const CFloatHandle& a, int hei
 	ASSERT_EXPR( false );
 }
 
-void CCudaMathEngine::SparseSingularValueDecomposition( const CSparseMatrixDesc& desc, int height, int width,
-	const CFloatHandle& leftVectors, const CFloatHandle& s, const CFloatHandle& rightVectors, const CFloatHandle& res,
-	int components, bool returnLeftVectors )
-{
-	ASSERT_EXPR( false );
-}
-
 void CCudaMathEngine::QRFactorization( int height, int width, const CFloatHandle& matrixHandle, const CFloatHandle* qHandle, const CFloatHandle* rHandle,
 	bool inplace, bool returnQ, bool returnR )
 {

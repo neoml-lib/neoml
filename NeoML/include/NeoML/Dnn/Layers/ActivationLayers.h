@@ -269,4 +269,21 @@ private:
 
 NEOML_API CLayerWrapper<CPowerLayer> Power( float exponent );
 
+//------------------------------------------------------------------------------------------------------------
+
+// The layer that calculates exponent of eah element
+class NEOML_API CExpLayer : public CBaseInPlaceLayer {
+	NEOML_DNN_LAYER( CExpLayer )
+public:
+	explicit CExpLayer( IMathEngine& mathEngine ) : CBaseInPlaceLayer( mathEngine, "CExpLayer" ) {}
+
+	void Serialize( CArchive& archive ) override;
+
+protected:
+	void RunOnce() override;
+	void BackwardOnce() override;
+};
+
+NEOML_API CLayerWrapper<CExpLayer> Exp();
+
 } // namespace NeoML
