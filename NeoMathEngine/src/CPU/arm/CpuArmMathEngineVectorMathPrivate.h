@@ -209,29 +209,29 @@ inline void vectorAdd( const float* first, const float* second, float* result, i
 
 //------------------------------------------------------------------------------------------------------------
 
-inline void alignedVectorAdd( float* first, const float* second, int vectorSize )
+inline void alignedVectorAdd( const float* first, float* second, int vectorSize )
 {
 	int coord = 0;
 
-	for( ; coord <= vectorSize - 16; coord += 16, first += 16, second += 16 ) {
-		NEON_LOAD_16_FLOATS(first, first);
+	for( ; coord <= vectorSize - 16; coord += 16, second += 16, first += 16 ) {
 		NEON_LOAD_16_FLOATS(second, second);
+		NEON_LOAD_16_FLOATS(first, first);
 
-		float32x4_t result0 = vaddq_f32(first0, second0);
-		float32x4_t result1 = vaddq_f32(first1, second1);
-		float32x4_t result2 = vaddq_f32(first2, second2);
-		float32x4_t result3 = vaddq_f32(first3, second3);
+		float32x4_t result0 = vaddq_f32(second0, first0);
+		float32x4_t result1 = vaddq_f32(second1, first1);
+		float32x4_t result2 = vaddq_f32(second2, first2);
+		float32x4_t result3 = vaddq_f32(second3, first3);
 
-		NEON_STORE_16_FLOATS(result, first);
+		NEON_STORE_16_FLOATS(result, second);
 	}
 
-	for( ; coord <= vectorSize - 4; coord += 4, first += 4, second += 4 ) {
-		float32x4_t first0 = LoadNeon4(first);
+	for( ; coord <= vectorSize - 4; coord += 4, second += 4, first += 4 ) {
 		float32x4_t second0 = LoadNeon4(second);
+		float32x4_t first0 = LoadNeon4(first);
 
-		float32x4_t result0 = vaddq_f32(first0, second0);
+		float32x4_t result0 = vaddq_f32(second0, first0);
 
-		StoreNeon4(result0, first);
+		StoreNeon4(result0, second);
 	}
 }
 
@@ -272,7 +272,7 @@ inline void alignedVectorMultiplyAndAdd( const float* first, const float* second
 
 //------------------------------------------------------------------------------------------------------------
 
-inline void vectorMultiply( const float* first, float* result, float multiplier, int vectorSize )
+inline void vectorMultiply( const float* first, float multiplier, float* result, int vectorSize )
 {
 	int count = GetCount4(vectorSize);
 	float32x4_t mult = vdupq_n_f32(multiplier);
@@ -467,7 +467,7 @@ inline void vectorReLU( const float* first, float* result, int vectorSize )
 	}
 }
 
-inline void vectorReLU( const float* first, float* result, int vectorSize, float threshold )
+inline void vectorReLUTreshold( const float* first, float* result, int vectorSize, float threshold )
 {
 	int coord = 0;
 
@@ -504,7 +504,7 @@ inline void vectorReLU( const float* first, float* result, int vectorSize, float
 
 //------------------------------------------------------------------------------------------------------------
 
-inline void vectorAddValue( const float* first, float* result, int vectorSize, float value )
+inline void vectorAddValue( const float* first, float value, float* result, int vectorSize )
 {
 	float32x4_t addition = vdupq_n_f32(value);
 
@@ -526,7 +526,7 @@ inline void vectorAddValue( const float* first, float* result, int vectorSize, f
 
 //------------------------------------------------------------------------------------------------------------
 
-inline void vectorDotProduct( const float* first, const float* second, int vectorSize, float* result )
+inline void vectorDotProduct( const float* first, const float* second, float* result, int vectorSize )
 {
 	float32x4_t acc = vdupq_n_f32(0);
 
@@ -709,7 +709,7 @@ static inline void qrnnIfPoolingStep( const float* z, const float* f, const floa
 	}
 }
 
-inline void vectorMinMax( const float* first, float* result, const float minValue, const float maxValue, int vectorSize )
+inline void vectorMinMax( const float* first, float* result, int vectorSize, const float minValue, const float maxValue )
 {
 	int count = GetCount4(vectorSize);
 

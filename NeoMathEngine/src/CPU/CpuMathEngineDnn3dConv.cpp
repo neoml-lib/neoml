@@ -98,7 +98,7 @@ void CCpuMathEngine::blob3dConvolution1x1x1Backward( const CCommon3dConvolutionD
 						for( int i = 0; i < resultBlob.Width(); ++i ) {
 							float* inputDiffPixel = inputDiffCol;
 							for( int k = 0; k < resultBlob.Depth(); ++k ) {
-								NeoML::vectorAdd( inputDiffPixel, resultData, inputDiffPixel, inputDiff.Channels() );
+								vectorAdd( inputDiffPixel, resultData, inputDiffPixel, inputDiff.Channels() );
 								inputDiffPixel += inputDiff.Channels() * desc.StrideDepth;
 								resultData += inputDiff.Channels();
 							}
@@ -437,8 +437,8 @@ void CCpuMathEngine::blob3dConvolutionBackward( const CCommon3dConvolutionDesc& 
 		int outputLineCount;
 		if( OmpGetTaskIndexAndCount( outputLineY, outputLineStart, outputLineCount ) ) {
 			if( freeTermData == 0 ) {
-				vectorFill( resultData + outputLineStart * outputRowSize,
-					0, outputLineCount * outputRowSize );
+				vectorFill0( resultData + outputLineStart * outputRowSize,
+					outputLineCount * outputRowSize );
 			}
 
 			int outputLineEnd = outputLineStart + outputLineCount;

@@ -24,6 +24,7 @@ limitations under the License.
 #include <NeoMathEngine/SimdMathEngine.h>
 #include <DllLoader.h>
 #include <CPUInfo.h>
+#include <CpuMathEnginePrivate.h>
 
 #if FINE_PLATFORM( FINE_ANDROID ) || FINE_PLATFORM( FINE_LINUX )
 #include <PerformanceCountersCpuLinux.h>
@@ -82,6 +83,33 @@ CCpuMathEngine::CCpuMathEngine( int _threadCount, size_t _memoryLimit,
 #ifdef NEOML_USE_MKL
 	vmlSetMode( VML_ERRMODE_NOERR );
 #endif
+	if( simdMathEngine != nullptr ) {
+		vectorAdd = simdMathEngine->GetVectorAddFunc();
+		alignedVectorAdd = simdMathEngine->GetAlignedVectorAddFunc();
+		vectorEltwiseMax = simdMathEngine->GetVectorMaxFunc();
+		vectorReLU = simdMathEngine->GetVectorReLUFunc();
+		vectorReLUTreshold = simdMathEngine->GetVectorReLUTresholdFunc();
+		alignedVectorMultiplyAndAdd = simdMathEngine->GetAlignedVectorMultiplyAndAddFunc();
+		vectorMultiply = simdMathEngine->GetVectorMultiplyFunc();
+		vectorEltwiseMultiply = simdMathEngine->GetVectorEltwiseMultiplyFunc();
+		vectorEltwiseMultiplyAdd = simdMathEngine->GetVectorEltwiseMultiplyAddFunc();
+		vectorAddValue = simdMathEngine->GetVectorAddValueFunc();
+		vectorDotProduct = simdMathEngine->GetVectorDotProductFunc();
+		vectorMinMax = simdMathEngine->GetVectorMinMaxFunc();
+	} else {
+		vectorAdd = &NeoML::vectorAdd;
+		alignedVectorAdd = &NeoML::alignedVectorAdd;
+		vectorEltwiseMax = &NeoML::vectorEltwiseMax;
+		vectorReLU = &NeoML::vectorReLU;
+		vectorReLUTreshold = &NeoML::vectorReLUTreshold;
+		alignedVectorMultiplyAndAdd = &NeoML::alignedVectorMultiplyAndAdd;
+		vectorMultiply = &NeoML::vectorMultiply;
+		vectorEltwiseMultiply = &NeoML::vectorEltwiseMultiply;
+		vectorEltwiseMultiplyAdd = &NeoML::vectorEltwiseMultiplyAdd;
+		vectorAddValue = &NeoML::vectorAddValue;
+		vectorDotProduct = &NeoML::vectorDotProduct;
+		vectorMinMax = &NeoML::vectorMinMax;
+	}
 }
 
 CCpuMathEngine::~CCpuMathEngine()

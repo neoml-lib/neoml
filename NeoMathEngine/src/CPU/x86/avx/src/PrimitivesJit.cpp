@@ -186,6 +186,373 @@ void CPrimitivesJit::addVal( TTableKey key, uint32_t val, size_t repeatNum )
 	fill_n( pTable, repeatNum, val );
 }
 
+void CPrimitivesJit::initEltwisePrimitive( CPrimitivesJit::TPrimitive P, bool hasOp2, bool op2IsScalar )
+{
+	assert( ( op2IsScalar && hasOp2 ) || !op2IsScalar );
+
+	using namespace Xbyak;
+	using namespace Xbyak::util;
+	// create new instance
+	auto& gen = gens[static_cast< size_t >( P )].gen;
+
+	Address stackArgsPtr = gen.Prologue( {}, {} );
+
+	constexpr int xmmArgIdx = GetFirstXmmArgIdx( 1 );
+	int gprArgIdx = 0;
+	// *** Define registers ***
+	const reg64_t regOp1Ptr = Params[gprArgIdx++];
+
+	// Define both and choose which of them we need (ymmScalar or regOp2Ptr)
+	const reg64_t regOp2Ptr = Params[gprArgIdx];
+	const ymm_t ymmScalar = ymm5;
+	if( op2IsScalar ) {
+#ifdef _WIN32
+		// as mentioned in description for function GetFirstXmmArgIdx() in Windows,
+		//  GPR which is used for integer/pointer passing is depended only on sequence number of argument.
+		gprArgIdx++;
+#endif
+		gen.vbroadcastss( ymmScalar, Xmm( xmmArgIdx ) );
+	} else if( hasOp2 ) {
+		gprArgIdx++;
+	}
+
+	const reg64_t regResPtr = Params[gprArgIdx++];
+	const reg64_t regCount = Params[gprArgIdx];
+
+	EltwiseGenFunc eltwiseFunc = GetEltwiseFuncPtr( P );
+
+	auto insertKernel = [&]( unsigned int stepCount ) {
+		if( stepCount > 0 ) {
+			for( unsigned int i = 0; i < stepCount; i++ ) {
+				if( op2IsScalar ) {
+					( gen.*eltwiseFunc )( Ymm( i ), ymmScalar, ptr[regOp1Ptr + i * SizeOfYmm] );
+				} else {
+					gen.vmovups( Ymm( i ), ptr[regOp1Ptr + i * SizeOfYmm] );
+					( gen.*eltwiseFunc )( Ymm( i ), Ymm( i ), ptr[regOp2Ptr + i * SizeOfYmm] );
+				}
+				gen.vmovups( ptr[regResPtr + i * SizeOfYmm], Ymm( i ) );
+			}
+			gen.add( regOp1Ptr, stepCount * SizeOfYmm );
+			gen.add( regResPtr, stepCount * SizeOfYmm );
+			if( hasOp2 && !op2IsScalar ) {
+				gen.add( regOp2Ptr, stepCount * SizeOfYmm );
+			}
+		} else {
+			// Tail processing (ymm0 - is always mask)
+			ymm_t ymmMask = ymm0;
+			ymm_t ymmLastOp1 = ymm1;
+			ymm_t ymmLastOp2 = op2IsScalar ? ymmScalar : ymm2;
+			ymm_t ymmLastRes = ymm2;
+			gen.vmaskmovps( ymmLastOp1, ymmMask, gen.ptr[regOp1Ptr] );
+			if( !op2IsScalar ) {
+				gen.vmaskmovps( ymmLastOp2, ymmMask, gen.ptr[regOp2Ptr] );
+			}
+			( gen.*eltwiseFunc )( ymmLastRes, ymmLastOp1, ymmLastOp2 );
+			gen.vmaskmovps( gen.ptr[regResPtr], ymmMask, ymmLastRes );
+		}
+	};
+
+	insertSimpleMathFunction( {}, {}, gen, regCount, insertKernel, { 4, 1, 0 } );
+}
+
+void CPrimitivesJit::initMinMaxFunction( CPrimitivesJit::TPrimitive P, bool useLowerBound, bool useUpperBuond )
+{
+	using namespace Xbyak;
+	using namespace Xbyak::util;
+	// create new instance
+	auto& gen = gens[static_cast< size_t >( P )].gen;
+	const ymmVec_t preservedYmm = initVecRange<Xbyak::Ymm>( LowerPreservedYmm, 15 );
+	Address stackArgsPtr = gen.Prologue( {}, preservedYmm );
+
+	Ymm ymmLowerBound = ymm14;
+	Ymm ymmUpperBound = ymm15;
+
+	constexpr int xmmArgIdx = GetFirstXmmArgIdx( 3 );
+	// *** Define registers ***
+	const reg64_t regOp1Ptr = Param1;
+	const reg64_t regResPtr = Param2;
+	const reg64_t regCount = Param3;
+	// Set lower ans upper bound
+	if( useLowerBound ) {
+		gen.vbroadcastss( ymmLowerBound, Xmm( xmmArgIdx ) );
+		if( useUpperBuond ) {
+#ifdef _WIN32
+			gen.vbroadcastss( ymmUpperBound, stackArgsPtr );
+#else
+			gen.vbroadcastss( ymmUpperBound, Xmm( xmmArgIdx + 1 ) );
+#endif
+		}
+	} else {
+		gen.vxorps( ymmLowerBound, ymmLowerBound, ymmLowerBound );
+		if( useUpperBuond ) {
+			gen.vbroadcastss( ymmUpperBound, Xmm( xmmArgIdx ) );
+		}
+	}
+
+
+	auto insertKernel = [&]( unsigned int stepCount ) {
+		if( stepCount > 0 ) {
+			for( unsigned int i = 0; i < stepCount; i++ ) {
+				gen.vmaxps( Ymm( i ), ymmLowerBound, ptr[regOp1Ptr + i * SizeOfYmm] );
+				if( useUpperBuond ) {
+					gen.vminps( Ymm( i ), Ymm( i ), ymmUpperBound );
+				}
+				gen.vmovups( ptr[regResPtr + i * SizeOfYmm], Ymm( i ) );
+			}
+			gen.add( regOp1Ptr, stepCount * SizeOfYmm );
+			gen.add( regResPtr, stepCount * SizeOfYmm );
+		} else {
+			// Tail processing (ymm0 - is always mask)
+			ymm_t ymmMask = ymm0;
+			ymm_t ymmLast = ymm1;
+			gen.vmaskmovps( ymmLast, ymmMask, gen.ptr[regOp1Ptr] );
+			gen.vmaxps( ymmLast, ymmLast, ymmLowerBound );
+			if( useUpperBuond ) {
+				gen.vminps( ymmLast, ymmLast, ymmUpperBound );
+			}
+			gen.vmaskmovps( gen.ptr[regResPtr], ymmMask, ymmLast );
+		}
+	};
+
+	insertSimpleMathFunction( {}, preservedYmm, gen, regCount, insertKernel, { 14, 4, 1, 0 } );
+}
+
+void CPrimitivesJit::insertSimpleMathFunction( const reg64Vec_t& preservedGPR, const ymmVec_t& preservedYmm,
+	CJitCommon& gen, const reg64_t& regCount,
+	const std::function<void( int )>& insertKernel, const std::vector<int>& loopUnrollingSteps,
+	const std::function<void()>& callBeforeRet )
+{
+	using namespace Xbyak;
+	using namespace Xbyak::util;
+
+	for( auto step : loopUnrollingSteps ) {
+		if( step > 0 ) {
+			gen.StartDownCountLoop( regCount, step * NumFloatInYmm );
+			insertKernel( step );
+			gen.StopDownCountLoop();
+			gen.JmpIfZero( regCount, "end" );
+		} else {
+			// Process tail
+			ymm_t ymmMask = ymm0;
+			// Multiply by 8 for calculate right offset
+			gen.mov( regTablePtr, ( uint64_t )table.data() );
+			gen.shl( regCount, 3 );
+			gen.vmovups( ymmMask, gen.ptr[regTablePtr + regCount * sizeof( float ) + getOfft( TTableKey::LoadMask )] );
+			insertKernel( step );
+		}
+	}
+	gen.L( "end" );
+
+	if( callBeforeRet ) {
+		callBeforeRet();
+	}
+
+	gen.Epilogue( preservedGPR, preservedYmm );
+	gen.ret();
+}
+
+template<>
+void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::VectorAdd>()
+{
+	initEltwisePrimitive( TPrimitive::VectorAdd, true );
+}
+
+template<>
+void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::VectorAlignedAdd>()
+{
+	initEltwisePrimitive( TPrimitive::VectorAlignedAdd, false );
+}
+
+template<>
+void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::VectorMax>()
+{
+	initEltwisePrimitive( TPrimitive::VectorMax, true );
+}
+
+template<>
+void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::VectorReLU>()
+{
+	initMinMaxFunction( TPrimitive::VectorReLU, false, false );
+}
+
+template<>
+void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::VectorReLUTreshold>()
+{
+	initMinMaxFunction( TPrimitive::VectorReLUTreshold, false, true );
+}
+
+template<>
+void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::VectorAlignedMultiplyAndAdd>()
+{
+	using namespace Xbyak;
+	using namespace Xbyak::util;
+	// create new instance
+	auto& gen = gens[static_cast< size_t >( TPrimitive::VectorAlignedMultiplyAndAdd )].gen;
+
+	Address stackArgsPtr = gen.Prologue( {}, {} );
+
+	// *** Define registers ***
+	const reg64_t regOp1Ptr = Param1;
+	const reg64_t regOp2Ptr = Param2;
+	const reg64_t regResPtr = Param3;
+	const reg64_t regCount = Param4;
+#ifdef _WIN32
+	const reg64_t regMul = rax; // param5
+	gen.mov( regMul, stackArgsPtr );
+#else
+	const reg64_t regMul = Param5;
+#endif
+
+	ymm_t ymmMul = ymm5;
+	gen.vbroadcastss( ymmMul, gen.ptr[regMul] );
+
+	auto insertKernel = [&]( unsigned int stepCount ) {
+		if( stepCount > 0 ) {
+			for( unsigned int i = 0; i < stepCount; i++ ) {
+				gen.vmovups( Ymm( i ), ptr[regOp1Ptr + i * SizeOfYmm] );
+				gen.vfmadd231ps( Ymm( i ), ymmMul, ptr[regOp2Ptr + i * SizeOfYmm] );
+				gen.vmovups( ptr[regResPtr + i * SizeOfYmm], Ymm( i ) );
+			}
+			gen.add( regOp1Ptr, stepCount * SizeOfYmm );
+			gen.add( regOp2Ptr, stepCount * SizeOfYmm );
+			gen.add( regResPtr, stepCount * SizeOfYmm );
+		} else {
+			// Tail processing (ymm0 - is always mask)
+			ymm_t ymmMask = ymm0;
+			ymm_t ymmLastOp1 = ymm1;
+			ymm_t ymmLastOp2 = ymm2;
+			ymm_t ymmLastRes = ymmLastOp1;
+			gen.vmaskmovps( ymmLastOp1, ymmMask, gen.ptr[regOp1Ptr] );
+			gen.vmaskmovps( ymmLastOp2, ymmMask, gen.ptr[regOp2Ptr] );
+			gen.vfmadd231ps( ymmLastOp1, ymmMul, ymmLastOp2 );
+			gen.vmaskmovps( gen.ptr[regResPtr], ymmMask, ymmLastRes );
+		}
+	};
+
+	insertSimpleMathFunction( {}, {}, gen, regCount, insertKernel, { 4, 1, 0 } );
+}
+
+template<>
+void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::VectorMultiply>()
+{
+	initEltwisePrimitive( TPrimitive::VectorMultiply, true, true );
+}
+
+template<>
+void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::VectorEltwiseMultiply>()
+{
+	initEltwisePrimitive( TPrimitive::VectorEltwiseMultiply, true );
+}
+
+template<>
+void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::VectorEltwiseMultiplyAdd>()
+{
+	using namespace Xbyak;
+	using namespace Xbyak::util;
+	// create new instance
+	auto& gen = gens[static_cast< size_t >( TPrimitive::VectorEltwiseMultiplyAdd )].gen;
+	const ymmVec_t preservedYmm = initVecRange<Xbyak::Ymm>( LowerPreservedYmm, 7 );
+
+	gen.Prologue( {}, preservedYmm );
+
+	// *** Define registers ***
+	const reg64_t regOp1Ptr = Param1;
+	const reg64_t regOp2Ptr = Param2;
+	const reg64_t regResPtr = Param3;
+	const reg64_t regCount = Param4;
+
+	auto insertKernel = [&]( unsigned int stepCount ) {
+		assert( stepCount <= 4 );
+		if( stepCount > 0 ) {
+			for( unsigned int i = 0; i < stepCount; i++ ) {
+				gen.vmovups( Ymm( i ), ptr[regResPtr + i * SizeOfYmm] );
+				gen.vmovups( Ymm( i + 4 ), ptr[regOp1Ptr + i * SizeOfYmm] );
+				gen.vfmadd231ps( Ymm( i ), Ymm( i + 4 ), ptr[regOp2Ptr + i * SizeOfYmm] );
+				gen.vmovups( ptr[regResPtr + i * SizeOfYmm], Ymm( i ) );
+			}
+			gen.add( regOp1Ptr, stepCount * SizeOfYmm );
+			gen.add( regOp2Ptr, stepCount * SizeOfYmm );
+			gen.add( regResPtr, stepCount * SizeOfYmm );
+		} else {
+			// Tail processing (ymm0 - is always mask)
+			ymm_t ymmMask = ymm0;
+			ymm_t ymmLastOp1 = ymm1;
+			ymm_t ymmLastOp2 = ymm2;
+			ymm_t ymmLastRes = ymm3;
+			gen.vmaskmovps( ymmLastOp1, ymmMask, gen.ptr[regOp1Ptr] );
+			gen.vmaskmovps( ymmLastOp2, ymmMask, gen.ptr[regOp2Ptr] );
+			gen.vmaskmovps( ymmLastRes, ymmMask, gen.ptr[regResPtr] );
+			gen.vfmadd231ps( ymmLastRes, ymmLastOp1, ymmLastOp2 );
+			gen.vmaskmovps( gen.ptr[regResPtr], ymmMask, ymmLastRes );
+		}
+	};
+
+	insertSimpleMathFunction( {}, preservedYmm, gen, regCount, insertKernel, { 4, 1, 0 } );
+}
+
+template<>
+void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::VectorAddValue>()
+{
+	initEltwisePrimitive( TPrimitive::VectorAddValue, true, true );
+}
+
+template<>
+void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::VectorDotProduct>()
+{
+	using namespace Xbyak;
+	using namespace Xbyak::util;
+	// create new instance
+	auto& gen = gens[static_cast< size_t >( TPrimitive::VectorDotProduct )].gen;
+
+	gen.Prologue( {}, {} );
+
+	// *** Define registers ***
+	const reg64_t regOp1Ptr = Param1;
+	const reg64_t regOp2Ptr = Param2;
+	const reg64_t regResPtr = Param3;
+	const reg64_t regCount = Param4;
+
+	ymm_t ymmRes = ymm5;
+	gen.vxorps( ymmRes, ymmRes, ymmRes );
+
+	auto insertKernel = [&]( unsigned int stepCount ) {
+		assert( stepCount <= 4 );
+		if( stepCount > 0 ) {
+			for( unsigned int i = 0; i < stepCount; i++ ) {
+				gen.vmovups( Ymm( i ), ptr[regOp1Ptr + i * SizeOfYmm] );
+				gen.vfmadd231ps( ymmRes, Ymm( i ), ptr[regOp2Ptr + i * SizeOfYmm] );
+			}
+			gen.add( regOp1Ptr, stepCount * SizeOfYmm );
+			gen.add( regOp2Ptr, stepCount * SizeOfYmm );
+		} else {
+			// Tail processing (ymm0 - is always mask)
+			ymm_t ymmMask = ymm0;
+			ymm_t ymmLastOp1 = ymm1;
+			ymm_t ymmLastOp2 = ymm2;
+			gen.vmaskmovps( ymmLastOp1, ymmMask, gen.ptr[regOp1Ptr] );
+			gen.vmaskmovps( ymmLastOp2, ymmMask, gen.ptr[regOp2Ptr] );
+			gen.vfmadd231ps( ymmRes, ymmLastOp1, ymmLastOp2 );
+		}
+	};
+
+	auto flushResult = [&]() {
+		// Horisonally add result and store it
+		gen.vextractf128( xmm0, ymmRes, 1 );
+		gen.vhaddps( ymmRes, ymm0, ymmRes );
+		gen.vhaddps( ymmRes, ymmRes, ymmRes );
+		gen.vhaddps( ymmRes, ymmRes, ymmRes );
+		gen.vmovss( gen.ptr[regResPtr], ymmRes.copyAndSetKind( Operand::XMM ) );
+	};
+
+	insertSimpleMathFunction( {}, {}, gen, regCount, insertKernel, { 4, 1, 0 }, flushResult );
+}
+
+template<>
+void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::VectorMinMax>()
+{
+	initMinMaxFunction( TPrimitive::VectorMinMax, true, true );
+}
+
 template<>
 void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::Tanh>()
 {
@@ -193,7 +560,7 @@ void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::Tanh>()
 	auto& gen = gens[static_cast< size_t >( TPrimitive::Tanh )].gen;
 
 	const reg64Vec_t preservedReg64;
-	const ymmVec_t preservedYmm = initVecRange<Xbyak::Ymm>( 6, 11 );
+	const ymmVec_t preservedYmm = initVecRange<Xbyak::Ymm>( LowerPreservedYmm, 11 );
 	const ymmVec_t ymmSrc = initVecRange<Xbyak::Ymm>( 10, 11 );
 	const ymmVec_t ymmAux = initVecRange<Xbyak::Ymm>( 0, 9 );
 
@@ -208,7 +575,7 @@ void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::Sigmoid>()
 	auto& gen = gens[static_cast< size_t >( TPrimitive::Sigmoid )].gen;
 
 	const reg64Vec_t preservedReg64;
-	const ymmVec_t preservedYmm = initVecRange<Xbyak::Ymm>( 6, 12 );
+	const ymmVec_t preservedYmm = initVecRange<Xbyak::Ymm>( LowerPreservedYmm, 12 );
 	const ymmVec_t ymmSrc = initVecRange<Xbyak::Ymm>( 0, 2 );
 	const ymmVec_t ymmAux = initVecRange<Xbyak::Ymm>( 3, 12 );
 	
@@ -229,7 +596,7 @@ void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::Exp>()
 	auto& gen = gens[static_cast< size_t >( TPrimitive::Exp )].gen;
 
 	const reg64Vec_t preservedReg64;
-	const ymmVec_t preservedYmm = initVecRange<Xbyak::Ymm>( 6, 15 );
+	const ymmVec_t preservedYmm = initVecRange<Xbyak::Ymm>( LowerPreservedYmm, 15 );
 	const ymmVec_t ymmSrc = initVecRange<Xbyak::Ymm>( 12, 15 );
 	const ymmVec_t ymmAux = initVecRange<Xbyak::Ymm>( 0, 11 );
 
@@ -507,13 +874,13 @@ void CPrimitivesJit::initActivationFunction( const std::function<void()>& afterP
 	const reg64_t regCount = Param4;
 
 	auto insertCode = [&]( const ymmVec_t& ymmSrc, const ymmVec_t& ymmAux ) {
-				size_t stepCount = ymmSrc.size();
+				uint32_t stepCount = static_cast<uint32_t>( ymmSrc.size() );
 				gen.StartDownCountLoop( regCount, stepCount * NumFloatInYmm );
-				for( int i = 0; i < stepCount; i++ ) { gen.vmovups( ymmSrc[i], ptr[regSrcPtr + i * SizeOfYmm] ); }
+				for( uint32_t i = 0; i < stepCount; i++ ) { gen.vmovups( ymmSrc[i], ptr[regSrcPtr + i * SizeOfYmm] ); }
 				insertPrimitive<P>( gen, ymmSrc, ymmAux );
-				for( int i = 0; i < stepCount; i++ ) { gen.vmovups( ptr[regDstPtr + i * SizeOfYmm], ymmSrc[i] ); }
-				gen.lea( regSrcPtr, gen.ptr[regSrcPtr + stepCount * SizeOfYmm] );
-				gen.lea( regDstPtr, gen.ptr[regDstPtr + stepCount * SizeOfYmm] );
+				for( uint32_t i = 0; i < stepCount; i++ ) { gen.vmovups( ptr[regDstPtr + i * SizeOfYmm], ymmSrc[i] ); }
+				gen.add( regSrcPtr, stepCount * SizeOfYmm );
+				gen.add( regDstPtr, stepCount * SizeOfYmm );
 				gen.StopDownCountLoop();
 	};
 
@@ -716,18 +1083,7 @@ void CPrimitivesJit::insertPrimitive<CPrimitivesJit::TPrimitive::Sigmoid>( CJitC
 template<CPrimitivesJit::TPrimitive P, class PrimitiveFuncType, class... Args>
 inline void CPrimitivesJit::callPrimitive( size_t dataSize, bool isMultithread, Args... args )
 {
-	// args - usually are different kind of pointers
-	using namespace Xbyak::util;
-
-	CGenerator& genInst = gens[static_cast< size_t >( P )];
-	PrimitiveFuncType func;
-
-	genInst.lock.lock();
-	if( genInst.gen.getSize() == 0 ) {
-		initPrimitive<P>();
-	}
-	genInst.lock.unlock();
-	func = genInst.gen.getCode<PrimitiveFuncType>();
+	PrimitiveFuncType func = reinterpret_cast<PrimitiveFuncType>( GetFunctionRawPtr<P>() );
 
 	const int curThreadCount = isMultithread && IsOmpRelevant( static_cast< int >( dataSize ) ) ? threadCount : 1;
 	if( curThreadCount != 1 ) {

@@ -43,6 +43,11 @@ constexpr reg64_t Param1{Xbyak::Operand::RCX};
 constexpr reg64_t Param2{Xbyak::Operand::RDX};
 constexpr reg64_t Param3{Xbyak::Operand::R8};
 constexpr reg64_t Param4{Xbyak::Operand::R9};
+
+constexpr reg64_t Params[4] = { Param1, Param2, Param3, Param4 };
+
+const int LowerPreservedYmm = 6;
+
 #else
 constexpr reg64_t Param1{Xbyak::Operand::RDI};
 constexpr reg64_t Param2{Xbyak::Operand::RSI};
@@ -50,12 +55,33 @@ constexpr reg64_t Param3{Xbyak::Operand::RDX};
 constexpr reg64_t Param4{Xbyak::Operand::RCX};
 constexpr reg64_t Param5{Xbyak::Operand::R8};
 constexpr reg64_t Param6{Xbyak::Operand::R9};
+
+constexpr reg64_t Params[6] = { Param1, Param2, Param3, Param4, Param5, Param6 };
+
+// 16 means 'Don't preserve'
+const int LowerPreservedYmm = 16;
 #endif
 
 constexpr unsigned int NumFloatInYmm = 8;
 constexpr unsigned int SizeOfYmm = NumFloatInYmm * sizeof( float );
 constexpr unsigned int SizeofReg64 = 8;
 constexpr unsigned int MaxYmmCount = 16;
+
+// Windows and Linux calling conventions treat floating point arguments in different maner:
+// Windows passes only 4 arguments through GPR (four for both integer/pointer and floating point).
+// In windows registers for passing arguments (rcx,rdx,r8,r9 and xmm0-xmm3) are strictly fixed
+// by sequence number of argument.
+// Example (win) ( int, void*, float, int ) will be passed through ( rcx, rdx, xmm2, r9 )
+// In linux GPR and Xmm are indexed in continuous manner even in case of interleaving og GPR and XMM
+// Example (linux) ( int, void*, float, int ) will be passed through ( rdi, rsi, xmm0, rdx )
+constexpr int GetFirstXmmArgIdx( int argNum ) {
+#ifdef _WIN32
+    assert( argNum < 4 );
+    return argNum;
+#else
+    return 0;
+#endif
+}
 
 class CJitCommon : public Xbyak::CodeGenerator {
 public:
@@ -80,6 +106,7 @@ public:
     void StartDownCountLoop( reg64_t counter, size_t step );
     void StopDownCountLoop();
 
+    inline void JmpIfZero( reg64_t counter, const char* label );
 
     template<class LastVec>
     bool HasSameSize( const LastVec& ) {
@@ -183,7 +210,11 @@ public:
     XBYAK_FORWARD_CAST_2( vmovups, Address, Xmm )
     XBYAK_FORWARD_CAST_2( vmovups, Xmm, Operand )
     XBYAK_FORWARD_CAST_3( vaddps, Xmm, Operand, Operand )
+    XBYAK_FORWARD_CAST_3( vmaxps, Xmm, Operand, Operand )
+    XBYAK_FORWARD_CAST_3( vminps, Xmm, Operand, Operand )
     XBYAK_FORWARD_CAST_3( vmulps, Xmm, Operand, Operand )
+    XBYAK_FORWARD_CAST_3( vxorps, Xmm, Operand, Operand )
+    XBYAK_FORWARD_CAST_3( vfmadd231ps, Xmm, Xmm, Operand )
 
 private:
     struct CLoopDesc {

@@ -82,107 +82,18 @@ inline void channelwise1x3( const float* source, const float* filter0, const flo
 
 //------------------------------------------------------------------------------------------------------------
 
-inline void vectorFill( float* result, float value, int vectorSize )
+template<class T>
+inline void vectorFill( T* result, T value, int vectorSize )
 {
-	int sseSize;
-	int nonSseSize;
-	checkSse(vectorSize, sseSize, nonSseSize);
-
-	__m128 valueSse = _mm_set_ps1(value);
-
-	while( sseSize >= 4 ) {
-		_mm_storeu_ps(result, valueSse);
-		result += 4;
-		_mm_storeu_ps(result, valueSse);
-		result += 4;
-		_mm_storeu_ps(result, valueSse);
-		result += 4;
-		_mm_storeu_ps(result, valueSse);
-		result += 4;
-
-		sseSize -= 4;
+	if( vectorSize > 0 ) {
+		std::fill_n( result, vectorSize, value );
 	}
-
-	while( sseSize > 0 ) {
-		_mm_storeu_ps(result, valueSse);
-		result += 4;
-		sseSize--;
-	}
-
-	for(int i = 0; i < nonSseSize; ++i) {
-		*result++ = value;
-	}
-}
-
-inline void vectorFill( int* result, int value, int vectorSize )
-{
-	int sseSize;
-	int nonSseSize;
-	checkSse( vectorSize, sseSize, nonSseSize );
-
-	__m128i valueSse = _mm_set1_epi32( value );
-
-	while( sseSize >= 4 ) {
-		_mm_storeu_si128( ( __m128i* )result, valueSse );
-		result += 4;
-		_mm_storeu_si128( ( __m128i* )result, valueSse );
-		result += 4;
-		_mm_storeu_si128( ( __m128i* )result, valueSse );
-		result += 4;
-		_mm_storeu_si128( ( __m128i* )result, valueSse );
-		result += 4;
-
-		sseSize -= 4;
-	}
-
-	while( sseSize > 0 ) {
-		_mm_storeu_si128( ( __m128i* )result, valueSse );
-		result += 4;
-		sseSize--;
-	}
-
-#if FINE_PLATFORM(FINE_WINDOWS)
-	if( nonSseSize > 0 ) {
-		__stosd( (DWORD*) result, value, nonSseSize );
-	}
-#elif FINE_PLATFORM(FINE_LINUX) || FINE_PLATFORM(FINE_DARWIN) || FINE_PLATFORM(FINE_ANDROID) || FINE_PLATFORM(FINE_IOS)
-	for( int i = 0; i < nonSseSize; ++i ) {
-		*result++ = value;
-	}
-#else
-#error "Platform isn't supported!"
-#endif
 }
 
 inline void vectorFill0( float* result, int vectorSize )
 {
-	int sseSize;
-	int nonSseSize;
-	checkSse(vectorSize, sseSize, nonSseSize);
-
-	__m128 valueSse = _mm_setzero_ps();
-
-	while( sseSize >= 4 ) {
-		_mm_storeu_ps(result, valueSse);
-		result += 4;
-		_mm_storeu_ps(result, valueSse);
-		result += 4;
-		_mm_storeu_ps(result, valueSse);
-		result += 4;
-		_mm_storeu_ps(result, valueSse);
-		result += 4;
-
-		sseSize -= 4;
-	}
-
-	while( sseSize > 0 ) {
-		_mm_storeu_ps(result, valueSse);
-		result += 4;
-		sseSize--;
-	}
-
-	for( int i = 0; i < nonSseSize; ++i ) {
-		*result++ = 0;
+	if( vectorSize > 0 ) {
+		std::fill_n( result, vectorSize, 0.0f );
 	}
 }
 
@@ -270,20 +181,20 @@ inline void vectorAdd(const float* first, const float* second, float* result, in
 
 //------------------------------------------------------------------------------------------------------------
 
-inline void alignedVectorAdd( float* first, const float* second, int vectorSize )
+inline void alignedVectorAdd( const float* first, float* second, int vectorSize )
 {
 	int sseSize = vectorSize / 4;
 	while( sseSize >= 4 ) {
-		_mm_store_ps( first, _mm_add_ps( _mm_load_ps( first ), _mm_load_ps( second ) ) );
+		_mm_store_ps( second, _mm_add_ps( _mm_load_ps( first ), _mm_load_ps( second ) ) );
 		first += 4;
 		second += 4;
-		_mm_store_ps( first, _mm_add_ps( _mm_load_ps( first ), _mm_load_ps( second ) ) );
+		_mm_store_ps( second, _mm_add_ps( _mm_load_ps( first ), _mm_load_ps( second ) ) );
 		first += 4;
 		second += 4;
-		_mm_store_ps( first, _mm_add_ps( _mm_load_ps( first ), _mm_load_ps( second ) ) );
+		_mm_store_ps( second, _mm_add_ps( _mm_load_ps( first ), _mm_load_ps( second ) ) );
 		first += 4;
 		second += 4;
-		_mm_store_ps( first, _mm_add_ps( _mm_load_ps( first ), _mm_load_ps( second ) ) );
+		_mm_store_ps( second, _mm_add_ps( _mm_load_ps( first ), _mm_load_ps( second ) ) );
 		first += 4;
 		second += 4;
 
@@ -291,7 +202,7 @@ inline void alignedVectorAdd( float* first, const float* second, int vectorSize 
 	}
 
 	while( sseSize > 0 ) {
-		_mm_store_ps( first, _mm_add_ps( _mm_load_ps( first ), _mm_load_ps( second ) ) );
+		_mm_store_ps( second, _mm_add_ps( _mm_load_ps( first ), _mm_load_ps( second ) ) );
 		first += 4;
 		second += 4;
 		sseSize--;
@@ -334,7 +245,7 @@ inline void alignedVectorMultiplyAndAdd( const float* first, const float* second
 }
 
 //------------------------------------------------------------------------------------------------------------
-inline void vectorMultiply( const float* first, float* result, float multiplier, int vectorSize )
+inline void vectorMultiply( const float* first, float multiplier, float* result, int vectorSize )
 {
 	int sseSize;
 	int nonSseSize;
@@ -569,7 +480,7 @@ inline void vectorReLU( const float* first, float* result, int vectorSize )
 	}
 }
 
-inline void vectorReLU( const float* first, float* result, int vectorSize, float threshold )
+inline void vectorReLUTreshold( const float* first, float* result, int vectorSize, float threshold )
 {
 	int sseSize;
 	int nonSseSize;
@@ -610,7 +521,7 @@ inline void vectorReLU( const float* first, float* result, int vectorSize, float
 
 //------------------------------------------------------------------------------------------------------------
 
-inline void vectorAddValue( const float* first, float* result, int vectorSize, float value )
+inline void vectorAddValue( const float* first, float value, float* result, int vectorSize )
 {
 	int sseSize;
 	int nonSseSize;
@@ -632,7 +543,7 @@ inline void vectorAddValue( const float* first, float* result, int vectorSize, f
 
 //------------------------------------------------------------------------------------------------------------
 
-inline void vectorDotProduct( const float* first, const float* second, int vectorSize, float* result )
+inline void vectorDotProduct( const float* first, const float* second, float* result, int vectorSize )
 {
 	int sseSize;
 	int nonSseSize;
@@ -861,7 +772,7 @@ static inline void qrnnIfPoolingStep( const float* z, const float* f, const floa
 	}
 }
 
-inline void vectorMinMax( const float* first, float* result, const float minValue, const float maxValue, int vectorSize )
+inline void vectorMinMax( const float* first, float* result, int vectorSize, const float minValue, const float maxValue )
 {
 	int sseSize;
 	int nonSseSize;
@@ -901,7 +812,7 @@ inline void vectorTanh( const float* first, float* result, int vectorSize )
 inline void vectorExp( const float* first, float* result, int vectorSize )
 {
 #ifdef NEOML_USE_MKL
-	vectorMinMax( first, result, FLT_MIN_LOG, FLT_MAX_LOG, vectorSize );
+	vectorMinMax( first, result, vectorSize, FLT_MIN_LOG, FLT_MAX_LOG );
 	vsExp( vectorSize, result, result );
 #else
 	for( int i = 0; i < vectorSize; ++i ) {

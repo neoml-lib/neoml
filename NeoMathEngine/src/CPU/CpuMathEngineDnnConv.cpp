@@ -355,7 +355,7 @@ void CCpuMathEngine::fillTempData( const float* sourceData, float* tempData, con
 		for( int h = 0; h < desc.Filter.Height(); h++ ) {
 			if( 0 <= sourceHeight + h * desc.DilationHeight && sourceHeight + h * desc.DilationHeight < desc.Source.Height() ) {
 				if( startPaddingSize > 0 ) {
-					NeoML::vectorFill( tempStartPaddingPtr, 0.0, startPaddingSize * channelsCount );
+					NeoML::vectorFill0( tempStartPaddingPtr, startPaddingSize * channelsCount );
 				}
 
 				if( desc.DilationWidth == 1 ) {
@@ -369,10 +369,10 @@ void CCpuMathEngine::fillTempData( const float* sourceData, float* tempData, con
 				}
 
 				if( endPaddingSize > 0 ) {
-					NeoML::vectorFill( tempEndPaddingPtr, 0.0, endPaddingSize * channelsCount );
+					NeoML::vectorFill0( tempEndPaddingPtr, endPaddingSize * channelsCount );
 				}
 			} else {
-				NeoML::vectorFill( tempStartPaddingPtr, 0.0, filterLineSize );
+				NeoML::vectorFill0( tempStartPaddingPtr, filterLineSize );
 			}
 
 			tempStartPaddingPtr += filterLineSize;
@@ -577,7 +577,7 @@ void CCpuMathEngine::backwardConvolutionAddFilterToOutput( const CCpuConvolution
 			// Set the free term
 			setVectorToMatrixRows( outputDataPtr, output.Width(), output.Depth() * output.Channels(), freeTermDataRaw );
 		} else {
-			vectorFill( outputDataPtr, 0, output.Width() * output.Depth() * output.Channels() );
+			vectorFill0( outputDataPtr, output.Width() * output.Depth() * output.Channels() );
 		}
 
 		int batch = step / output.Height();

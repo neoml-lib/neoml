@@ -166,7 +166,7 @@ void CCpuMathEngine::blobChannelwiseConvolutionFilter3x3Padding1Stride2( const C
 					if( freeTerm != 0 ) {
 						fillResultRow( desc, freeTerm, resultFirstRow );
 					} else {
-						NeoML::vectorFill( resultFirstRow, 0, resultDesc.Width() * channels );
+						NeoML::vectorFill0( resultFirstRow, resultDesc.Width() * channels );
 					}
 
 					processFilterRowStride2( desc, filter + filterRowSize, sourceFirstRow, resultFirstRow );
@@ -181,7 +181,7 @@ void CCpuMathEngine::blobChannelwiseConvolutionFilter3x3Padding1Stride2( const C
 					if( freeTerm != 0 ) {
 						fillResultRow( desc, freeTerm, resRow );
 					} else {
-						NeoML::vectorFill( resRow, 0, resultDesc.Width() * channels );
+						NeoML::vectorFill0( resRow, resultDesc.Width() * channels );
 					}
 
 					processFilterRowStride2( desc, filter, srcRow, resRow );
@@ -193,7 +193,7 @@ void CCpuMathEngine::blobChannelwiseConvolutionFilter3x3Padding1Stride2( const C
 					if( freeTerm != 0 ) {
 						fillResultRow( desc, freeTerm, resultLastRow );
 					} else {
-						NeoML::vectorFill( resultLastRow, 0, resultDesc.Width() * channels );
+						NeoML::vectorFill0( resultLastRow, resultDesc.Width() * channels );
 					}
 
 					processFilterRowStride2( desc, filter, sourceLastRow, resultLastRow );
@@ -263,7 +263,7 @@ void CCpuMathEngine::blobChannelwiseConvolutionFilter3x3Padding1Stride1( const C
 					if( freeTerm != 0 ) {
 						fillResultRow( desc, freeTerm, resultFirstRow );
 					} else {
-						NeoML::vectorFill( resultFirstRow, 0, resultDesc.Width() * channels );
+						NeoML::vectorFill0( resultFirstRow, resultDesc.Width() * channels );
 					}
 					processFilterRowStride1( desc, filter + filterRowSize, sourceFirstRow, resultFirstRow );
 					if( resultCount >= 0 ) {
@@ -277,7 +277,7 @@ void CCpuMathEngine::blobChannelwiseConvolutionFilter3x3Padding1Stride1( const C
 					if( freeTerm != 0 ) {
 						fillResultRow( desc, freeTerm, resRow );
 					} else {
-						NeoML::vectorFill( resRow, 0, resultDesc.Width() * channels );
+						NeoML::vectorFill0( resRow, resultDesc.Width() * channels );
 					}
 
 					processFilterRowStride1( desc, filter, srcRow, resRow );
@@ -289,7 +289,7 @@ void CCpuMathEngine::blobChannelwiseConvolutionFilter3x3Padding1Stride1( const C
 					if( freeTerm != 0 ) {
 						fillResultRow( desc, freeTerm, resultLastRow );
 					} else {
-						NeoML::vectorFill( resultLastRow, 0, resultDesc.Width() * channels );
+						NeoML::vectorFill0( resultLastRow, resultDesc.Width() * channels );
 					}
 
 					processFilterRowStride1( desc, filter, sourceLastRow, resultLastRow );
@@ -366,7 +366,7 @@ void CCpuMathEngine::BlobChannelwiseConvolution( const CChannelwiseConvolutionDe
 							NeoML::dataCopy(rowStart, freeTerm, channels);
 						}
 					} else {
-						NeoML::vectorFill(resultRow, 0, resultDesc.Width() * channels);
+						NeoML::vectorFill0(resultRow, resultDesc.Width() * channels);
 					}
 
 					const int filterFirstRow = max( 0, -firstFilteredRow );

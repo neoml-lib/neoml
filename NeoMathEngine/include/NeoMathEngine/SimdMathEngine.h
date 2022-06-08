@@ -48,6 +48,33 @@ public:
 	virtual void Exp( float* dst, const float* src, size_t dataSize, bool isMultithread = true ) = 0;
 	virtual void RunOnceRestOfLstm( CMathEngineLstmDesc* desc, const CConstFloatHandle& inputStateBackLink,
 		const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink, bool isMultithread = true ) = 0;
+
+	using vectorAddFunc = void (*)( const float* first, const float* second, float* result, int vectorSize );
+	using alignedVectorAdd = void (*)( const float* first, float* second, int vectorSize );
+	using vectorEltwiseMax = void (*)( const float* first, const float* second, float* result, int vectorSize );
+	using vectorReLU = void (*)( const float* first, float* result, int vectorSize );
+	using vectorReLUTreshold = void (*)( const float* first, float* result, int vectorSize, float threshold );
+	using alignedVectorMultiplyAndAdd = void (*)( const float* first, const float* second,
+		float* result, int vectorSize, const float* mult );
+	using vectorMultiply = void (*)( const float* first, float multiplier, float* result, int vectorSize );
+	using vectorEltwiseMultiply = void (*)( const float* first, const float* second, float* result, int vectorSize );
+	using vectorEltwiseMultiplyAdd = void (*)( const float* first, const float* second, float* result, int vectorSize );
+	using vectorAddValue = void (*)( const float* first, float value, float* result, int vectorSize );
+	using vectorDotProduct = void (*)( const float* first, const float* second, float* result, int vectorSize );
+	using vectorMinMax = void (*)( const float* first, float* result, int vectorSize, const float minValue, const float maxValue );
+
+	virtual vectorAddFunc GetVectorAddFunc() = 0;
+	virtual alignedVectorAdd GetAlignedVectorAddFunc() = 0;
+	virtual vectorEltwiseMax GetVectorMaxFunc() = 0;
+	virtual vectorReLU GetVectorReLUFunc() = 0;
+	virtual vectorReLUTreshold GetVectorReLUTresholdFunc() = 0;
+	virtual alignedVectorMultiplyAndAdd GetAlignedVectorMultiplyAndAddFunc() = 0;
+	virtual vectorMultiply GetVectorMultiplyFunc() = 0;
+	virtual vectorEltwiseMultiply GetVectorEltwiseMultiplyFunc() = 0;
+	virtual vectorEltwiseMultiplyAdd GetVectorEltwiseMultiplyAddFunc() = 0;
+	virtual vectorAddValue GetVectorAddValueFunc() = 0;
+	virtual vectorDotProduct GetVectorDotProductFunc() = 0;
+	virtual vectorMinMax GetVectorMinMaxFunc() = 0;
 };
 
 }

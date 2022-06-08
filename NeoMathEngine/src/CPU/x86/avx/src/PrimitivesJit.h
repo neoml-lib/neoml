@@ -30,19 +30,20 @@ class IMathEngine;
 
 class CPrimitivesJit {
 public:
-	CPrimitivesJit( IMathEngine* _mathEngine, int _threadCount );
-
-	void Tanh( float* dst, const float* src, size_t dataSize, bool isMultithread = true );
-	void Sigmoid( float* dst, const float* src, size_t dataSize, bool isMultithread = true );
-	void Exp( float* dst, const float* src, size_t dataSize, bool isMultithread = true );
-
-	// Process part of lstm layer which follow after fullyconnected layers.
-	void RestOfLstm( CMathEngineLstmDesc* desc, const CConstFloatHandle& inputStateBackLink,
-		const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink,
-		bool isMultithread );
-
-private:
 	enum class TPrimitive {
+		VectorAdd,
+		VectorAlignedAdd,
+		VectorMax,
+		VectorReLU,
+		VectorReLUTreshold,
+		VectorAlignedMultiplyAndAdd,
+		VectorMultiply,
+		VectorEltwiseMultiply,
+		VectorEltwiseMultiplyAdd,
+		VectorAddValue,
+		VectorDotProduct,
+		VectorMinMax,
+
 		Tanh,
 		Sigmoid,
 		Exp,
@@ -51,6 +52,29 @@ private:
 		Count
 	};
 
+	CPrimitivesJit( IMathEngine* _mathEngine, int _threadCount );
+
+	void Tanh( float* dst, const float* src, size_t dataSize, bool isMultithread );
+	void Sigmoid( float* dst, const float* src, size_t dataSize, bool isMultithread );
+	void Exp( float* dst, const float* src, size_t dataSize, bool isMultithread );
+
+	// Process part of lstm layer which follow after fullyconnected layers.
+	void RestOfLstm( CMathEngineLstmDesc* desc, const CConstFloatHandle& inputStateBackLink,
+		const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink,
+		bool isMultithread );
+
+	template<CPrimitivesJit::TPrimitive P>
+	void* GetFunctionRawPtr() {
+		CGenerator& genInst = gens[static_cast< size_t >( P )];
+		genInst.lock.lock();
+		if( genInst.gen.getSize() == 0 ) {
+			initPrimitive<P>();
+		}
+		genInst.lock.unlock();
+		return static_cast<void*>( const_cast<uint8_t*>( genInst.gen.getCode() ) );
+	}
+
+private:
 	enum class TTableKey {
 		// Tanh specific items
 		TanhPolyCoeff, // Coefficients of tanh polynome
@@ -83,7 +107,8 @@ private:
 	};
 
 	static constexpr int MantissaNumBits = 23;
-
+	// Last pointer is always result
+	using EltwiseFunc = void( * )( const float* op1, const float* op2, float* res, size_t count );
 	using ActivationFunc = void( * )( float* dst, const float* src, size_t offset, size_t count );
 	using RestOfLstmFunc = void( * )( size_t hiddenSize, const float* inputStateBackLinkPtr, float* outputStateBackLinkPtr,
 		float* outputMainBackLinkPtr, float* inputFullyConnectedResultPtr, float* reccurentFullyConnectedResultPtr, size_t offset, size_t count );
@@ -109,7 +134,32 @@ private:
 	void addVector( TTableKey key, std::initializer_list<uint32_t>&& data, size_t repeatNum = 1 );
 	// repeatNum specifies how many times value will be repeated in the table
 	void addVal( TTableKey key, uint32_t val, size_t repeatNum = NumFloatInYmm );
+	
+	using EltwiseGenFunc = void( CJitCommon::* )( const Xbyak::Xmm&, const Xbyak::Operand&, const Xbyak::Operand& );
 
+	static EltwiseGenFunc GetEltwiseFuncPtr( TPrimitive p ) {
+		switch( p ) {
+		case TPrimitive::VectorAdd:
+		case TPrimitive::VectorAlignedAdd:
+		case TPrimitive::VectorAddValue:
+			return static_cast<EltwiseGenFunc>( &CJitCommon::vaddps );
+		case TPrimitive::VectorMax:
+			return static_cast<EltwiseGenFunc>( &CJitCommon::vmaxps );
+		case TPrimitive::VectorMultiply:
+		case TPrimitive::VectorEltwiseMultiply:
+			return static_cast<EltwiseGenFunc>( &CJitCommon::vmulps );
+		default:
+			assert( false );
+			return nullptr;
+		}
+	}
+
+	void initEltwisePrimitive( TPrimitive P, bool hasOp2, bool op2IsScalar = false );
+	void initMinMaxFunction( TPrimitive P, bool useLowerBound, bool useUpperBuond );
+	void insertSimpleMathFunction( const reg64Vec_t& preservedGPR, const ymmVec_t& preservedYmm, 
+		CJitCommon& gen, const reg64_t& regCount,
+		const std::function<void( int )>& insertKernel, const std::vector<int>& loopUnrollingSteps,
+		const std::function<void()>& callBeforeRet = std::function<void()>() );
 	template<TPrimitive P>
 	void initPrimitive();
 	template<TPrimitive P>
@@ -141,8 +191,10 @@ private:
 	template<class RegType>
 	std::vector<RegType> initVecRange( int firstIdx, int lastIdx ) {
 		const int VecSize = lastIdx - firstIdx + 1;
-		assert( VecSize > 0 );
-		assert( firstIdx >= 0 && lastIdx < 16 );
+		if( VecSize <= 0 ) {
+			return {};
+		}
+		assert(  lastIdx < 16 );
 		std::vector<RegType> ret( VecSize );
 		int idx = firstIdx;
 		for( auto& v : ret ) {

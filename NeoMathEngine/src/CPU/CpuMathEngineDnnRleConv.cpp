@@ -115,7 +115,7 @@ static inline void updateFilterConv( IMathEngine& mathEngine, CCpuRleConvolution
 	const float* convertFilterDataPtr = GetRaw( desc.ConvertedFilter.GetHandle() );
 	for( int j = 0; j < filterHeight; ++j ) {
 		for( int i = 0; i < filterWidth; ++i ) {
-			alignedVectorAdd( zeroFilterConvPtr, convertFilterDataPtr, filterCount );
+			alignedVectorAdd( convertFilterDataPtr, zeroFilterConvPtr, filterCount );
 			convertFilterDataPtr += filterCount;
 		}
 		zeroFilterConvPtr += filterCount;
@@ -268,7 +268,7 @@ void CCpuMathEngine::BlobRleConvolution( const CRleConvolutionDesc& convDesc, co
 				const float* curFilterConvData = filterConvData + index * filterConvStep;
 				float* curOutput = output;
 				for( int j = 0; j < jCount; ++j ) {
-					alignedVectorAdd( curOutput, curFilterConvData, filterCount );
+					alignedVectorAdd( curFilterConvData, curOutput, filterCount );
 					curFilterConvData += strideHeight * filterCount;
 					curOutput += outputRowSize;
 				}
@@ -382,7 +382,7 @@ void CCpuMathEngine::BlobRleConvolutionLearnAdd( const CRleConvolutionDesc& conv
 			// Calculate diff separately for the free terms
 			for( int j = 0; j < outputDiff.Height(); ++j ) {
 				for( int k = 0; k < outputDiff.Width(); ++k ) {
-					alignedVectorAdd( freeTermDiffReductionPrivatePtr, outputDiffDataPtr, filterCount );
+					alignedVectorAdd( outputDiffDataPtr, freeTermDiffReductionPrivatePtr, filterCount );
 					outputDiffDataPtr += filterCount;
 				}
 			}
