@@ -294,6 +294,9 @@ void DeinitializeNeoMathEngine()
 {
 #ifdef NEOML_USE_MKL
 	mkl_free_buffers();
+#if FINE_PLATFORM( FINE_WINDOWS )
+	MKLFreeTls( DLL_PROCESS_DETACH );
+#endif
 	mkl_finalize();
 #endif
 }
