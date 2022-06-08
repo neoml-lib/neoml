@@ -21,6 +21,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/ActivationLayers.h>
 #include <NeoML/Dnn/Layers/AddToObjectLayer.h>
 #include <NeoML/Dnn/Layers/DropoutLayer.h>
+#include <NeoML/Dnn/Layers/EltwiseLayer.h>
 #include <NeoML/Dnn/Layers/FullyConnectedLayer.h>
 #include <NeoML/Dnn/Layers/TransformLayer.h>
 #include <NeoML/Dnn/Layers/TransposeLayer.h>
@@ -34,6 +35,7 @@ CMultiheadAttentionLayer::CMultiheadAttentionLayer( IMathEngine& mathEngine ) :
 	hiddenSize( 8 ),
 	dropoutRate( -1 ),
 	useMask( false ),
+	maskType( MT_OneObject ),
 	outputSize( 8 )
 {
 }
@@ -66,6 +68,12 @@ void CMultiheadAttentionLayer::SetUseMask( bool newValue )
 	DeleteAllLayers();
 }
 
+void CMultiheadAttentionLayer::SetMaskType( TMaskType _maskType )
+{
+	maskType = _maskType;
+	DeleteAllLayers();
+}
+
 void CMultiheadAttentionLayer::SetOutputSize( int _outputSize )
 {
 	NeoAssert( _outputSize > 0 );
@@ -74,17 +82,20 @@ void CMultiheadAttentionLayer::SetOutputSize( int _outputSize )
 	DeleteAllLayers();
 }
 
-static const int MultiheadAttentionLayerVersion = 0;
+static const int MultiheadAttentionLayerVersion = 1;
 
 void CMultiheadAttentionLayer::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion( MultiheadAttentionLayerVersion );
+	const int version = archive.SerializeVersion( MultiheadAttentionLayerVersion );
 	CCompositeLayer::Serialize( archive );
 	archive.Serialize( headCount );
 	archive.Serialize( hiddenSize );
 	archive.Serialize( dropoutRate );
 	archive.Serialize( useMask );
 	archive.Serialize( outputSize );
+	if( version >= 1 ) {
+		archive.Serialize( maskType );
+	}
 }
 
 void CMultiheadAttentionLayer::Reshape()
@@ -94,6 +105,17 @@ void CMultiheadAttentionLayer::Reshape()
 	}
 
 	CCompositeLayer::Reshape();
+}
+
+// Recreates the layer if forceRebuild is true or it doesn't contain sublayers
+void CMultiheadAttentionLayer::Rebuild( bool forceRebuild )
+{
+	if( forceRebuild && HasLayer( "Q" ) ) {
+		DeleteAllLayers();
+	}
+	if ( !HasLayer( "Q" ) ) {
+		create();
+	}
 }
 
 // Creates layer with new parameters
@@ -268,8 +290,21 @@ CBaseLayer* CMultiheadAttentionLayer::applyMask( CBaseLayer* layer )
 	AddLayer( *multiplierLayer );
 	SetInputMapping( I_Mask, *multiplierLayer, 0 );
 
-	CPtr<CAddToObjectLayer> sumLayer = new CAddToObjectLayer( MathEngine() );
-	sumLayer->SetName( GetName() + CString( ".Mask.ObjEltwiseSum" ) );
+	CPtr<CBaseLayer> sumLayer;
+	CString sumLayerName;
+	switch( maskType ) {
+		case MT_OneObject:
+			sumLayer = new CAddToObjectLayer( MathEngine() );
+			sumLayerName = CString( ".Mask.ObjEltwiseSum" );
+			break;
+		case MT_Eltwise:
+			sumLayer = new CEltwiseSumLayer( MathEngine() );
+			sumLayerName = CString( ".Mask.EltwiseSum" );
+			break;
+		default:
+			NeoAssert( false );
+	}
+	sumLayer->SetName( GetName() + sumLayerName );
 	sumLayer->Connect( 0, *layer );
 	sumLayer->Connect( 1, *multiplierLayer );
 	AddLayer( *sumLayer );
