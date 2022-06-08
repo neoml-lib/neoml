@@ -266,7 +266,7 @@ void CBaseLayer::switchBlobsToSequentialMode(CObjectArray<CDnnBlob>& blobs, TBlo
 		}
 		CDnnBlob* window = CDnnBlob::CreateWindowBlob(blobs[i], 1);
 		window->SetParentPos( dnn->GetCurrentSequencePos() % blobs[i]->GetBatchLength() );
-		cache[i] = storeParent ? blobs[i] : window;
+		cache[i] = storeParent ? blobs[i].Ptr() : window;
 		blobs[i] = window;
 	}
 }
