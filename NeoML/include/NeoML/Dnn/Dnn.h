@@ -352,9 +352,7 @@ private:
 
 	// Switches the specified blobs into sequence processing mode
 	void switchBlobsToSequentialMode(CObjectArray<CDnnBlob>& blobs, TBlobCacheType cacheType, bool storeParent);
-	CDnnBlob* switchBlobToSequentialMode(CDnnBlob* blob, TBlobCacheType cacheType, bool storeParent);
 	void switchBlobsToNonSequentialMode(CObjectArray<CDnnBlob>& blobs, TBlobCacheType cacheType, bool clear);
-	CDnnBlob* switchBlobToNonSequentialMode(CDnnBlob* blob);
 	void clearAllRuntimeBlobs();
 
 	// Clones a blob to store diffs
