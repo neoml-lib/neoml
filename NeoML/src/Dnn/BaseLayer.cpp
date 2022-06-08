@@ -246,51 +246,43 @@ size_t CBaseLayer::GetTrainableParametersSize() const
 	return result;
 }
 
-CDnnBlob* CBaseLayer::switchBlobToSequentialMode(CDnnBlob* blob, TBlobCacheType cacheType, bool storeParent)
-{
-	if( blob == 0 || blob->GetBatchLength() == 1 ) {
-		return blob;
-	}
-
-	CObjectArray<CDnnBlob>& cache = blobCache[cacheType];
-
-	if( !storeParent ) {
-		// In this case, the blob may have been left over from the last run. Looking for it
-		for( int i = 0; i < cache.Size(); i++ ) {
-			NeoAssert( cache[i] != blob );
-			if( cache[i]->GetParent() == blob ) {
-				CDnnBlob* window = cache[i];
-				window->SetParentPos( dnn->GetCurrentSequencePos() % blob->GetBatchLength() );
-				return window;
-			}
-		}
-	}
-
-	CDnnBlob* window = CDnnBlob::CreateWindowBlob(blob, 1);
-	cache.Add( storeParent ? blob : window );
-	window->SetParentPos(dnn->GetCurrentSequencePos() % blob->GetBatchLength());
-	return window;
-}
-
-CDnnBlob* CBaseLayer::switchBlobToNonSequentialMode(CDnnBlob* blob)
-{
-	return blob != 0 && blob->GetParent() != 0 ? blob->GetParent() : blob;
-}
-
 void CBaseLayer::switchBlobsToSequentialMode(CObjectArray<CDnnBlob>& blobs, TBlobCacheType cacheType, bool storeParent)
 {
+	CObjectArray<CDnnBlob>& cache = blobCache[cacheType];
+
+	if( cache.Size() != blobs.Size() ) {
+		cache.SetSize( blobs.Size() );
+	}
+
 	for(int i = 0; i < blobs.Size(); i++) {
-		blobs[i] = switchBlobToSequentialMode(blobs[i], cacheType, storeParent);
+		if( blobs[i] == nullptr || blobs[i]->GetBatchLength() == 1 ) {
+			cache[i] = blobs[i];
+			continue;
+		}
+		if( !storeParent && cache[i] != nullptr && cache[i]->GetParent() == blobs[i] ) {
+			cache[i]->SetParentPos( dnn->GetCurrentSequencePos() % blobs[i]->GetBatchLength() );
+			blobs[i] = cache[i];
+			continue;
+		}
+		CDnnBlob* window = CDnnBlob::CreateWindowBlob(blobs[i], 1);
+		window->SetParentPos( dnn->GetCurrentSequencePos() % blobs[i]->GetBatchLength() );
+		cache[i] = storeParent ? blobs[i].Ptr() : window;
+		blobs[i] = window;
 	}
 }
 
 void CBaseLayer::switchBlobsToNonSequentialMode(CObjectArray<CDnnBlob>& blobs, TBlobCacheType cacheType, bool clear)
 {
 	for(int i = 0; i < blobs.Size(); i++) {
-		blobs[i] = switchBlobToNonSequentialMode(blobs[i]);
+		if( blobs[i] != nullptr && blobs[i]->GetParent() != nullptr ) {
+			blobs[i] = blobs[i]->GetParent();
+		}
 	}
 	if( clear ) {
-		blobCache[cacheType].DeleteAll();
+		CObjectArray<CDnnBlob>& cache = blobCache[cacheType];
+		for( int i = 0; i < cache.Size(); ++i ) {
+			cache[i] = nullptr;
+		}
 	}
 }
 
