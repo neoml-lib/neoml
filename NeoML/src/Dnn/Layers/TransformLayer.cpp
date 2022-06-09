@@ -30,7 +30,8 @@ CTransformLayer::CDimensionRule::CDimensionRule( TOperation op, int param ) :
 	Operation( op ),
 	Parameter( param )
 {
-	NeoAssert( Operation == O_Remainder || param > 0 );
+	NeoAssert( Operation == O_Remainder || param > 0
+		|| ( Operation == O_InputDim && param >= 0 && param < static_cast<int>( BD_Count ) ) );
 }
 
 bool CTransformLayer::CDimensionRule::operator==( const CDimensionRule& other ) const
