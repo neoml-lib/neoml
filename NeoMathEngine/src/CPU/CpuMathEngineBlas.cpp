@@ -106,6 +106,11 @@ template<class T>
 inline void CCpuMathEngine::transposeMatrixImpl( int batchSize, const T* first,
 	int height, int medium, int width, int channels, T* result )
 {
+	if( medium == 1 && ( height == 1 || width == 1 ) ) {
+		dataCopy( result, first, batchSize * height * medium * width * channels );
+		return;
+	}
+
 	if( medium == 1 && channels == 1 ) {
 		static_assert( sizeof(float) == sizeof(T), "Size of float isn't equal to size of T." );
 		batchTransposePlainMatrix( batchSize, reinterpret_cast<const float*>( first ),
@@ -141,6 +146,7 @@ void CCpuMathEngine::TransposeMatrix( int batchSize, const CConstFloatHandle& fi
 {
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
 	CCpuExecutionScope scope;
 
 	transposeMatrix( batchSize, GetRaw( firstHandle ), height, medium, width, channels, GetRaw( resultHandle ) );
@@ -151,6 +157,7 @@ void CCpuMathEngine::TransposeMatrix( int batchSize, const CConstIntHandle& firs
 {
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
 	CCpuExecutionScope scope;
 
 	transposeMatrix( batchSize, GetRaw( firstHandle ), height, medium, width, channels, GetRaw( resultHandle ) );
