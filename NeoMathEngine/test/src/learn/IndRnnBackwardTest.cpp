@@ -14,21 +14,10 @@ limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
 #include <TestFixture.h>
+#include <MeTestCommon.h>
 
 using namespace NeoML;
 using namespace NeoMLTest;
-
-static inline float sigmoidDiffOp( float output, float outputDiff )
-{
-	return outputDiff * output * ( 1.f - output );
-}
-
-static inline float reluDiffOp( float output, float outputDiff )
-{
-	return output > 0.f ? outputDiff : 0.f;
-}
-
-typedef float( *TTestActivationDiffOp ) ( float output, float outputDiff );
 
 static void indRnnRecurrentBackwardNaive( bool reverse, int seqLength, int batchSize, int objSize,
 	TActivationFunction activation, const float* mask, const float* u, const float* out, const float* outDiff,

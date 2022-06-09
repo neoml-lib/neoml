@@ -14,28 +14,10 @@ limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
 #include <TestFixture.h>
+#include <MeTestCommon.h>
 
 using namespace NeoML;
 using namespace NeoMLTest;
-
-static void batchMultiplyMatrixByMatrixAndAddNaive( int batchSize, const std::vector<float>& first, const std::vector<float>& second,
-	int firstHeight, int firstWidth, int secondWidth, std::vector<float>& result )
-{
-	const int firstMatrixSize = firstHeight * firstWidth;
-	const int secondMatrixSize = firstWidth * secondWidth;
-	const int resultMatrixSize = firstHeight * secondWidth;
-
-	for( int b = 0; b < batchSize; ++b ) {
-		for( int i = 0; i < firstHeight; ++i ) {
-			for( int j = 0; j < secondWidth; ++j ) {
-				for( int k = 0; k < firstWidth; ++k ) {
-					result[b * resultMatrixSize + i * secondWidth + j] +=
-						first[b * firstMatrixSize + i * firstWidth + k] * second[b * secondMatrixSize + k * secondWidth + j];
-				}
-			}
-		}
-	}
-}
 
 static void multiplyMatrixByMatrixAndAddTestImpl( const CTestParams& params, int seed )
 {
