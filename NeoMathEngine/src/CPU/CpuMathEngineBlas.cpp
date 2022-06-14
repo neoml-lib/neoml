@@ -106,6 +106,17 @@ template<class T>
 inline void CCpuMathEngine::transposeMatrixImpl( int batchSize, const T* first,
 	int height, int medium, int width, int channels, T* result )
 {
+	// Transpose B x 1 x M x W x C -> B x W x M x 1 x C
+	// is equivalent to B x M x 1 x W x C -> B x W x 1 x M x C
+	if( medium != 1 && height == 1 ) {
+		swap( medium, height );
+	}
+
+	// Same goes for W == 1 && H != 1
+	if( medium != 1 && width == 1 ) {
+		swap( medium, width );
+	}
+
 	if( medium == 1 && ( height == 1 || width == 1 ) ) {
 		dataCopy( result, first, batchSize * height * medium * width * channels );
 		return;
