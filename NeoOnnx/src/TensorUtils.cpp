@@ -150,6 +150,10 @@ static CLayerOutput renameDimensions( const CLayerOutput& input, const CTensorLa
 // Renames dimensions of tensor (without any reordering in memory)
 static CPtr<const CTensorBase> renameDimensions( const CTensorBase& input, const CTensorLayout& outputLayout )
 {
+	if( input.Layout() == outputLayout ) {
+		return &input;
+	}
+
 	if( input.IsCalculated() ) {
 		CPtr<const CDnnBlob> blob = renameDimensions( *dynamic_cast<const CDataTensor&>( input ).Data(),
 			input.Shape(), outputLayout );
@@ -194,8 +198,14 @@ static CPtr<const CTensorBase> swapDimensions( const CTensorBase& input, TBlobDi
 	CTensorLayout outputLayout = input.Layout();
 	const int firstDimIndex = outputLayout.Find( firstDim );
 	const int secondDimIndex = outputLayout.Find( secondDim );
-	NeoAssert( firstDimIndex != NotFound && secondDimIndex != NotFound );
-	swap( outputLayout[firstDimIndex], outputLayout[secondDimIndex] );
+	NeoAssert( firstDimIndex != NotFound || secondDimIndex != NotFound );
+	if( firstDimIndex != NotFound && secondDimIndex != NotFound ) {
+		swap( outputLayout[firstDimIndex], outputLayout[secondDimIndex] );
+	} else if( firstDimIndex != NotFound ) {
+		outputLayout[firstDimIndex] = secondDim;
+	} else {
+		outputLayout[secondDimIndex] = firstDim;
+	}
 
 	if( input.IsCalculated() ) {
 		CPtr<const CDnnBlob> blob = swapDimensions( *dynamic_cast<const CDataTensor&>( input ).Data(),
@@ -208,6 +218,85 @@ static CPtr<const CTensorBase> swapDimensions( const CTensorBase& input, TBlobDi
 	return new CUserTensor( input.Shape(), outputLayout, layerOutput );
 }
 
+// Checks that layout is a channel-last-like (NeoML compatible)
+static inline bool isChannelLastLayout( const CTensorLayout& layout )
+{
+	for( int i = 2; i < layout.Size(); ++i ) {
+		if( layout[0] > layout[i] || layout[1] < layout[i]
+			|| ( i != 2 && layout[i] < layout[i - 1] ) )
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+
+// Checks that layout is a channel-first-like (ONNX compatible)
+static inline bool isChannelFirstLayout( const CTensorLayout& layout )
+{
+	for( int i = 1; i < layout.Size(); ++i ) {
+		if( layout[i] < layout[i - 1] ) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+// Converts tensor from channel-first-like layout to channel-last-like layout
+static CPtr<const CTensorBase> convertToChannelLast( const CTensorBase& input, const CTensorLayout& outputLayout )
+{
+	static_assert( BD_Count == 7, "BD_Count != 7" );
+	const int dimCount = input.DimCount();
+	NeoAssert( dimCount > 2 && dimCount < 7 );
+	NeoAssert( isChannelFirstLayout( input.Layout() ) );
+	NeoAssert( isChannelLastLayout( outputLayout ) );
+
+	CPtr<const CTensorBase> currInput = &input;
+	if( currInput->Layout().Find( BD_Channels ) != NotFound ) {
+		CTensorLayout intermediateLayout( dimCount );
+		// isChannelFirstLayout( input.Layout() ) guarantees that layout[i + 1] > layout[i]
+		// The restriction dimCount < 7 guarantees that in this intermediate layout BD_Channels won't be used
+		for( int i = 0; i < dimCount; ++i ) {
+			intermediateLayout[i] = static_cast<TBlobDim>( i );
+		}
+		currInput = renameDimensions( *currInput, intermediateLayout );
+	}
+
+	NeoAssert( currInput->Layout().Find( BD_Channels ) == NotFound );
+	currInput = swapDimensions( *currInput, currInput->Layout()[1], BD_Channels );
+	return renameDimensions( *currInput, outputLayout );
+}
+
+// Converts tensor from channel-last-like layout to channel-first-like layout
+static CPtr<const CTensorBase> convertToChannelFirst( const CTensorBase& input, const CTensorLayout& outputLayout )
+{
+	static_assert( BD_Count == 7, "BD_Count != 7" );
+	const int dimCount = input.DimCount();
+	NeoAssert( dimCount > 2 && dimCount < 7 );
+	NeoAssert( isChannelLastLayout( input.Layout() ) );
+	NeoAssert( isChannelFirstLayout( outputLayout ) );
+
+	CPtr<const CTensorBase> currInput = &input;
+	TBlobDim onnxChannelDim = currInput->Layout()[0] + 1;
+	if( currInput->Layout()[2] == currInput->Layout()[0] + 1 ) {
+		// We have make additional renaming
+		CTensorLayout intermediateLayout( dimCount );
+		intermediateLayout[0] = BD_BatchLength;
+		intermediateLayout[1] = BD_Channels;
+		for( int i = 2; i < dimCount; ++i ) {
+			intermediateLayout[i] = BD_ListSize + ( i - 2 );
+		}
+		onnxChannelDim = BD_BatchWidth;
+		currInput = renameDimensions( *currInput, intermediateLayout );
+	}
+
+	NeoAssert( currInput->Layout().Find( onnxChannelDim ) == NotFound );
+	currInput = swapDimensions( *currInput, currInput->Layout()[1], onnxChannelDim );
+	return renameDimensions( *currInput, outputLayout );
+}
+
 CPtr<const CTensorBase> ConvertTensor( const CTensorBase& input, const CTensorLayout& outputLayout )
 {
 	// Trivial case
@@ -217,6 +306,15 @@ CPtr<const CTensorBase> ConvertTensor( const CTensorBase& input, const CTensorLa
 
 	const int dimCount = outputLayout.Size();
 	NeoAssert( input.DimCount() == dimCount );
+
+	// Special cases for conversions between channel-first (ONNX) and channel-last (NeoML)
+	if( dimCount > 2 && dimCount < 7 ) {
+		if( isChannelFirstLayout( input.Layout() ) && isChannelLastLayout( outputLayout ) ) {
+			return convertToChannelLast( input, outputLayout );
+		} else if( isChannelLastLayout( input.Layout() ) && isChannelFirstLayout( outputLayout ) ) {
+			return convertToChannelFirst( input, outputLayout );
+		}
+	}
 
 	// Step 1: renaming dimensions (if needed)
 	// It's possible that input.Layout() and outputLayout use different dimensions
