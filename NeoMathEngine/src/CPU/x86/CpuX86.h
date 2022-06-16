@@ -327,6 +327,20 @@ inline void checkSse2(int size, int& sseSize, int& nonSseSize)
 inline void dataCopy(float* dst, const float* src, int vectorSize)
 {
 	static_assert( sizeof(float) == sizeof(unsigned int), "Size of float isn't equal to size of unsigned int." );
+	if( vectorSize <= 4 ) {
+		switch( vectorSize ) {
+			case 4:
+				_mm_storeu_ps( dst, _mm_loadu_ps( src ) );
+				return;
+			case 3:
+				dst[2] = src[2];
+			case 2:
+				dst[1] = src[1];
+			case 1:
+				dst[0] = src[0];
+		}
+		return;
+	}
 
 	int sseSize;
 	int nonSseSize;
@@ -355,21 +369,32 @@ inline void dataCopy(float* dst, const float* src, int vectorSize)
 		src += 4;
 	}
 
-#if FINE_PLATFORM(FINE_WINDOWS)
-	if( nonSseSize > 0 ) {
-		__movsd((DWORD*)dst, (DWORD*)src, nonSseSize);
+	switch( nonSseSize ) {
+		case 3:
+			dst[2] = src[2];
+		case 2:
+			dst[1] = src[1];
+		case 1:
+			dst[0] = src[0];
 	}
-#elif FINE_PLATFORM(FINE_LINUX) || FINE_PLATFORM(FINE_DARWIN) || FINE_PLATFORM(FINE_ANDROID) || FINE_PLATFORM(FINE_IOS)
-	for(int i = 0; i < nonSseSize; ++i) {
-		*dst++ = *src++;
-	}
-#else
-	#error "Platform isn't supported!"
-#endif
 }
 
 inline void dataCopy(int* dst, const int* src, int vectorSize)
 {
+	if( vectorSize <= 4 ) {
+		switch( vectorSize ) {
+			case 4:
+				_mm_storeu_si128( ( __m128i* )dst, _mm_loadu_si128( ( __m128i* )src ) );
+				return;
+			case 3:
+				dst[2] = src[2];
+			case 2:
+				dst[1] = src[1];
+			case 1:
+				dst[0] = src[0];
+		}
+		return;
+	}
 	int sseSize;
 	int nonSseSize;
 	checkSse2(vectorSize, sseSize, nonSseSize);
@@ -397,17 +422,14 @@ inline void dataCopy(int* dst, const int* src, int vectorSize)
 		src += 4;
 	}
 
-#if FINE_PLATFORM(FINE_WINDOWS)
-	if(nonSseSize > 0) {
-		__movsd((unsigned long*)dst, (const unsigned long*)src, nonSseSize);
+	switch( nonSseSize ) {
+		case 3:
+			dst[2] = src[2];
+		case 2:
+			dst[1] = src[1];
+		case 1:
+			dst[0] = src[0];
 	}
-#elif FINE_PLATFORM(FINE_LINUX) || FINE_PLATFORM(FINE_DARWIN) || FINE_PLATFORM(FINE_ANDROID) || FINE_PLATFORM(FINE_IOS)
-	for(int i = 0; i < nonSseSize; ++i) {
-		*dst++ = *src++;
-	}
-#else
-	#error "Platform isn't supported!"
-#endif
 }
 
 inline float euclidianNoSSE( const float* x, const float* y, const int size )
