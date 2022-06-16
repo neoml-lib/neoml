@@ -28,6 +28,7 @@ namespace NeoOnnx {
 //
 // For every onnx graph output there will be CSinkLayer with the same name
 // Graph inputs' and outputs' names will be added to the corresponding CArray's
+// ONNX model's metadata will be added to the corresponding CMap
 // Names' pointers are attached to the corresponding layers' names
 //
 // Input and output blobs have the following relations with the ONNX N-dimensional tensors:
@@ -42,11 +43,11 @@ namespace NeoOnnx {
 
 // Loads network "dnn" from onnx file "fileName"
 NEOONNX_API void LoadFromOnnx( const char* fileName, NeoML::CDnn& dnn, CArray<const char*>& inputs,
-	CArray<const char*>& outputs, CMap<CString, CString>& metaData = CMap<CString, CString>() );
+	CArray<const char*>& outputs, CMap<CString, CString>& metadata );
 
 // Loads network "dnn" from buffer with onnx data
 NEOONNX_API void LoadFromOnnx( const void* buffer, int bufferSize, NeoML::CDnn& dnn, CArray<const char*>& inputs,
-	CArray<const char*>& outputs, CMap<CString, CString>& metaData = CMap<CString, CString>() );
+	CArray<const char*>& outputs, CMap<CString, CString>& metadata );
 
 } // namespace NeoOnnx
 

@@ -152,16 +152,17 @@ static void buildDnnFromGraphProto( const onnx::GraphProto& onnxGraph, int opset
 	}
 }
 
-static void extractMetaData( const onnx::ModelProto& model, CMap<CString, CString>& metaData )
+// Extracts metadata from the model
+static void extractMetadata( const onnx::ModelProto& model, CMap<CString, CString>& metadata )
 {
-	metaData.Empty();
+	metadata.Empty();
 	for( const onnx::StringStringEntryProto& entry : model.metadata_props() ) {
-		metaData.Add( CString( entry.key().data() ), CString( entry.value().data() ) );
+		metadata.Add( CString( entry.key().data() ), CString( entry.value().data() ) );
 	}
 }
 
 void LoadFromOnnx( const char* fileName, CDnn& dnn, CArray<const char*>& inputs,
-	CArray<const char*>& outputs, CMap<CString, CString>& metaData )
+	CArray<const char*>& outputs, CMap<CString, CString>& metadata )
 {
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
 
@@ -178,7 +179,7 @@ void LoadFromOnnx( const char* fileName, CDnn& dnn, CArray<const char*>& inputs,
 		}
 
 		buildDnnFromGraphProto( model.graph(), getOpsetVersion( model ), dnn, inputs, outputs );
-		extractMetaData( model, metaData );
+		extractMetadata( model, metadata );
 	} catch( ... ) {
 		input.close();
 		google::protobuf::ShutdownProtobufLibrary();
@@ -190,7 +191,7 @@ void LoadFromOnnx( const char* fileName, CDnn& dnn, CArray<const char*>& inputs,
 }
 
 void LoadFromOnnx( const void* buffer, int bufferSize, CDnn& dnn, CArray<const char*>& inputs,
-	CArray<const char*>& outputs, CMap<CString, CString>& metaData )
+	CArray<const char*>& outputs, CMap<CString, CString>& metadata )
 {
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
 
@@ -204,7 +205,7 @@ void LoadFromOnnx( const void* buffer, int bufferSize, CDnn& dnn, CArray<const c
 		}
 
 		buildDnnFromGraphProto( model.graph(), getOpsetVersion( model ), dnn, inputs, outputs );
-		extractMetaData( model, metaData );
+		extractMetadata( model, metadata );
 	} catch( ... ) {
 		google::protobuf::ShutdownProtobufLibrary();
 		throw;
