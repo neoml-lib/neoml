@@ -41,10 +41,12 @@ namespace NeoOnnx {
 
 
 // Loads network "dnn" from onnx file "fileName"
-NEOONNX_API void LoadFromOnnx( const char* fileName, NeoML::CDnn& dnn, CArray<const char*>& inputs, CArray<const char*>& outputs );
+NEOONNX_API void LoadFromOnnx( const char* fileName, NeoML::CDnn& dnn, CArray<const char*>& inputs,
+	CArray<const char*>& outputs, CMap<CString, CString>& metaData = CMap<CString, CString>() );
 
 // Loads network "dnn" from buffer with onnx data
-NEOONNX_API void LoadFromOnnx( const void* buffer, int bufferSize, NeoML::CDnn& dnn, CArray<const char*>& inputs, CArray<const char*>& outputs );
+NEOONNX_API void LoadFromOnnx( const void* buffer, int bufferSize, NeoML::CDnn& dnn, CArray<const char*>& inputs,
+	CArray<const char*>& outputs, CMap<CString, CString>& metaData = CMap<CString, CString>() );
 
 } // namespace NeoOnnx
 
