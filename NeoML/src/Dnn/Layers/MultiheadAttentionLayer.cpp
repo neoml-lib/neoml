@@ -94,7 +94,9 @@ void CMultiheadAttentionLayer::Serialize( CArchive& archive )
 	archive.Serialize( useMask );
 	archive.Serialize( outputSize );
 	if( version >= 1 ) {
-		archive.Serialize( maskType );
+		archive.SerializeEnum( maskType );
+	} else {
+		maskType = MT_OneObject;
 	}
 }
 
