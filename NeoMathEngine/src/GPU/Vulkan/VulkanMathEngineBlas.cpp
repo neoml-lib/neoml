@@ -109,6 +109,11 @@ void CVulkanMathEngine::AddDiagMatrixToMatrix( const CConstFloatHandle& diagMatr
 void CVulkanMathEngine::TransposeMatrix( int batchSize, const CConstFloatHandle& firstHandle,
 	int height, int medium, int width, int channels, const CFloatHandle& resultHandle, int /*resultBufferSize*/ )
 {
+	if( medium == 1 && ( height == 1 || width == 1 ) ) {
+		VectorCopy( resultHandle, firstHandle, batchSize * height * medium * width * channels );
+		return;
+	}
+
 	int vectorSize = batchSize * height * medium * width * channels;
 	CMemoryHandle bufs[2] = { firstHandle, resultHandle };
 	size_t sizes[2] = { vectorSize * sizeof(float), vectorSize * sizeof(float) };
@@ -122,6 +127,11 @@ void CVulkanMathEngine::TransposeMatrix( int batchSize, const CConstFloatHandle&
 void CVulkanMathEngine::TransposeMatrix( int batchSize, const CConstIntHandle& firstHandle,
 	int height, int medium, int width, int channels, const CIntHandle& resultHandle, int /*resultBufferSize*/ )
 {
+	if( medium == 1 && ( height == 1 || width == 1 ) ) {
+		VectorCopy( resultHandle, firstHandle, batchSize * height * medium * width * channels );
+		return;
+	}
+
 	int vectorSize = batchSize * height * medium * width * channels;
 	CMemoryHandle bufs[2] = { firstHandle, resultHandle };
 	size_t sizes[2] = { vectorSize * sizeof(int), vectorSize * sizeof(int) };

@@ -966,6 +966,11 @@ void CMetalMathEngine::TransposeMatrix(int batchSize, const CConstFloatHandle& f
     ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 
+	if( medium == 1 && ( height == 1 || width == 1 ) ) {
+		VectorCopy( resultHandle, firstHandle, batchSize * height * medium * width * channels );
+		return;
+	}
+
     const int size = batchSize * height * medium * width * channels;
     ASSERT_EXPR( resultBufferSize >= size );
     
@@ -986,6 +991,11 @@ void CMetalMathEngine::TransposeMatrix(int batchSize, const CConstIntHandle& fir
 {
     ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+	if( medium == 1 && ( height == 1 || width == 1 ) ) {
+		VectorCopy( resultHandle, firstHandle, batchSize * height * medium * width * channels );
+		return;
+	}
 
     const int size = batchSize * height * medium * width * channels;
     ASSERT_EXPR( resultBufferSize >= size );
