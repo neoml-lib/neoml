@@ -28,7 +28,7 @@ namespace NeoOnnx {
 //
 // For every onnx graph output there will be CSinkLayer with the same name
 // Graph inputs' and outputs' names will be added to the corresponding CArray's
-// ONNX model's metadata will be added to the corresponding CMap
+// ONNX model's metadata_props will be written to the metadata CMap
 // Names' pointers are attached to the corresponding layers' names
 //
 // Input and output blobs have the following relations with the ONNX N-dimensional tensors:

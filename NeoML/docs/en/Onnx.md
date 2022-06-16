@@ -30,7 +30,7 @@ For each network input the `dnn` network will have a `CSourceLayer` with the sam
 
 For each network output the `dnn` network will have a `CSinkLayer` with the same name. Also output names will be added to the `outputs` array.
 
-Model's `metadata_props` will be added to the `metadata` map.
+Model's `metadata_props` will be written to the `metadata`.
 
 Both `inputs` and `outputs` name pointers are attached to the names of the corresponding layers in `dnn` and will become invalid after changing name or deleting corresponding layer.
 
