@@ -212,8 +212,8 @@ endif()
 
 if(NeoOnnx_BUILD_SHARED AND NOT WIN32)
     set(EXPORT_SYMBOLS
-        _ZN7NeoOnnx12LoadFromOnnxEPKviRN5NeoML4CDnnERN4FObj6CArrayIPKcNS5_20CurrentMemoryManagerEEESB_
-        _ZN7NeoOnnx12LoadFromOnnxEPKcRN5NeoML4CDnnERN4FObj6CArrayIS1_NS5_20CurrentMemoryManagerEEES9_)
+        _ZN7NeoOnnx12LoadFromOnnxEPKviRN5NeoML4CDnnERN4FObj6CArrayIPKcNS5_20CurrentMemoryManagerEEESB_RNS5_4CMapINS5_7CStringESD_NS5_12CDefaultHashISD_EES9_EE
+        _ZN7NeoOnnx12LoadFromOnnxEPKcRN5NeoML4CDnnERN4FObj6CArrayIS1_NS5_20CurrentMemoryManagerEEES9_RNS5_4CMapINS5_7CStringESB_NS5_12CDefaultHashISB_EES7_EE)
     if(LINUX OR ANDROID)
         set(EXPORT_SYMBOLS_STR "${EXPORT_SYMBOLS};")
         configure_file(../NeoOnnx.version.in NeoOnnx.version)
