@@ -334,8 +334,10 @@ inline void dataCopy(float* dst, const float* src, int vectorSize)
 				return;
 			case 3:
 				dst[2] = src[2];
+				// fall through
 			case 2:
 				dst[1] = src[1];
+				// fall through
 			case 1:
 				dst[0] = src[0];
 		}
@@ -372,8 +374,10 @@ inline void dataCopy(float* dst, const float* src, int vectorSize)
 	switch( nonSseSize ) {
 		case 3:
 			dst[2] = src[2];
+			// fall through
 		case 2:
 			dst[1] = src[1];
+			// fall through
 		case 1:
 			dst[0] = src[0];
 	}
@@ -388,8 +392,10 @@ inline void dataCopy(int* dst, const int* src, int vectorSize)
 				return;
 			case 3:
 				dst[2] = src[2];
+				// fall through
 			case 2:
 				dst[1] = src[1];
+				// fall through
 			case 1:
 				dst[0] = src[0];
 		}
@@ -425,8 +431,10 @@ inline void dataCopy(int* dst, const int* src, int vectorSize)
 	switch( nonSseSize ) {
 		case 3:
 			dst[2] = src[2];
+			// fall through
 		case 2:
 			dst[1] = src[1];
+			// fall through
 		case 1:
 			dst[0] = src[0];
 	}
