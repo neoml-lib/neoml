@@ -327,22 +327,6 @@ inline void checkSse2(int size, int& sseSize, int& nonSseSize)
 inline void dataCopy(float* dst, const float* src, int vectorSize)
 {
 	static_assert( sizeof(float) == sizeof(unsigned int), "Size of float isn't equal to size of unsigned int." );
-	if( vectorSize <= 4 ) {
-		switch( vectorSize ) {
-			case 4:
-				_mm_storeu_ps( dst, _mm_loadu_ps( src ) );
-				return;
-			case 3:
-				dst[2] = src[2];
-				// fall through
-			case 2:
-				dst[1] = src[1];
-				// fall through
-			case 1:
-				dst[0] = src[0];
-		}
-		return;
-	}
 
 	int sseSize;
 	int nonSseSize;
@@ -385,22 +369,6 @@ inline void dataCopy(float* dst, const float* src, int vectorSize)
 
 inline void dataCopy(int* dst, const int* src, int vectorSize)
 {
-	if( vectorSize <= 4 ) {
-		switch( vectorSize ) {
-			case 4:
-				_mm_storeu_si128( ( __m128i* )dst, _mm_loadu_si128( ( __m128i* )src ) );
-				return;
-			case 3:
-				dst[2] = src[2];
-				// fall through
-			case 2:
-				dst[1] = src[1];
-				// fall through
-			case 1:
-				dst[0] = src[0];
-		}
-		return;
-	}
 	int sseSize;
 	int nonSseSize;
 	checkSse2(vectorSize, sseSize, nonSseSize);
