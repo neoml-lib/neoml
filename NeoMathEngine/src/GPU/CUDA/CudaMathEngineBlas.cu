@@ -833,6 +833,12 @@ void CCudaMathEngine::transposeMatrixImpl(int batchSize, const CTypedMemoryHandl
 {
 	int size = batchSize * height * medium * width * channels;
 	ASSERT_EXPR(resultBufferSize >= size);
+
+	if( medium == 1 && ( height == 1 || width == 1 ) ) {
+		VectorCopy( resultHandle, firstHandle, size );
+		return;
+	}
+
 	SetCudaDevice( device->DeviceNumber );
 
 	int blockCount;
