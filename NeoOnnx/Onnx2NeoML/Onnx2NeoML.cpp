@@ -29,8 +29,9 @@ int ConvertOnnx2NeoML( const char* inputOnnxFilename, const char* outputDnnArchi
     IMathEngine& mathEng = GetDefaultCpuMathEngine();
     CRandom random( 0x123 );
     CDnn net( random, mathEng );
+    CMap<CString, CString> metaData;
     try {
-        NeoOnnx::LoadFromOnnx( inputOnnxFilename, net, inputs, outputs );
+        NeoOnnx::LoadFromOnnx( inputOnnxFilename, net, inputs, outputs, metaData );
         {
             CArchiveFile file( outputDnnArchiveFileName, CArchive::store );
             CArchive archive( &file, CArchive::SD_Storing );
