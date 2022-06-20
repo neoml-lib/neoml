@@ -355,17 +355,16 @@ inline void dataCopy(float* dst, const float* src, int vectorSize)
 		src += 4;
 	}
 
-#if FINE_PLATFORM(FINE_WINDOWS)
-	if( nonSseSize > 0 ) {
-		__movsd((DWORD*)dst, (DWORD*)src, nonSseSize);
+	switch( nonSseSize ) {
+		case 3:
+			dst[2] = src[2];
+			// fall through
+		case 2:
+			dst[1] = src[1];
+			// fall through
+		case 1:
+			dst[0] = src[0];
 	}
-#elif FINE_PLATFORM(FINE_LINUX) || FINE_PLATFORM(FINE_DARWIN) || FINE_PLATFORM(FINE_ANDROID) || FINE_PLATFORM(FINE_IOS)
-	for(int i = 0; i < nonSseSize; ++i) {
-		*dst++ = *src++;
-	}
-#else
-	#error "Platform isn't supported!"
-#endif
 }
 
 inline void dataCopy(int* dst, const int* src, int vectorSize)
@@ -397,17 +396,16 @@ inline void dataCopy(int* dst, const int* src, int vectorSize)
 		src += 4;
 	}
 
-#if FINE_PLATFORM(FINE_WINDOWS)
-	if(nonSseSize > 0) {
-		__movsd((unsigned long*)dst, (const unsigned long*)src, nonSseSize);
+	switch( nonSseSize ) {
+		case 3:
+			dst[2] = src[2];
+			// fall through
+		case 2:
+			dst[1] = src[1];
+			// fall through
+		case 1:
+			dst[0] = src[0];
 	}
-#elif FINE_PLATFORM(FINE_LINUX) || FINE_PLATFORM(FINE_DARWIN) || FINE_PLATFORM(FINE_ANDROID) || FINE_PLATFORM(FINE_IOS)
-	for(int i = 0; i < nonSseSize; ++i) {
-		*dst++ = *src++;
-	}
-#else
-	#error "Platform isn't supported!"
-#endif
 }
 
 inline float euclidianNoSSE( const float* x, const float* y, const int size )
