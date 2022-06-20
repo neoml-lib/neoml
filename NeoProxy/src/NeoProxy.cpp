@@ -584,8 +584,9 @@ const struct CDnnDesc* CreateDnnFromOnnxFile( const struct CDnnMathEngineDesc* m
 	try {
 		CArray<const char*> inputs;
 		CArray<const char*> outputs;
+		CMap<CString, CString> metadata;
 		dnnDesc = FINE_DEBUG_NEW CDnnDescImpl( mathEngine );
-		NeoOnnx::LoadFromOnnx( fileName, dnnDesc->Dnn(), inputs, outputs );
+		NeoOnnx::LoadFromOnnx( fileName, dnnDesc->Dnn(), inputs, outputs, metadata );
 		dnnDesc->SetInputNames( inputs );
 		dnnDesc->SetOutputNames( outputs );
 		return dnnDesc;
@@ -626,8 +627,9 @@ const struct CDnnDesc* CreateDnnFromOnnxBuffer( const struct CDnnMathEngineDesc*
 	try {
 		CArray<const char*> inputs;
 		CArray<const char*> outputs;
+		CMap<CString, CString> metadata;
 		dnnDesc = FINE_DEBUG_NEW CDnnDescImpl( mathEngine );
-		NeoOnnx::LoadFromOnnx( buffer, bufferSize, dnnDesc->Dnn(), inputs, outputs );
+		NeoOnnx::LoadFromOnnx( buffer, bufferSize, dnnDesc->Dnn(), inputs, outputs, metadata );
 		dnnDesc->SetInputNames( inputs );
 		dnnDesc->SetOutputNames( outputs );
 		return dnnDesc;
