@@ -157,7 +157,6 @@ void CCpuMathEngine::TransposeMatrix( int batchSize, const CConstFloatHandle& fi
 {
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-
 	CCpuExecutionScope scope;
 
 	transposeMatrix( batchSize, GetRaw( firstHandle ), height, medium, width, channels, GetRaw( resultHandle ) );
@@ -168,7 +167,6 @@ void CCpuMathEngine::TransposeMatrix( int batchSize, const CConstIntHandle& firs
 {
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-
 	CCpuExecutionScope scope;
 
 	transposeMatrix( batchSize, GetRaw( firstHandle ), height, medium, width, channels, GetRaw( resultHandle ) );
