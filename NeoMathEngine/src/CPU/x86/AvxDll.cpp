@@ -137,8 +137,7 @@ bool CAvxDll::isAvxAvailable()
 	return false;
 #endif
 
-	static bool res = CCPUInfo::IsAvxAndFmaAvailable() && !CCPUInfo::IsAvx512Available();
-	return res;
+	return CCPUInfo::IsAvxAndFmaAvailable();
 }
 
 } // namespace NeoML

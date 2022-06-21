@@ -30,7 +30,8 @@ CTransformLayer::CDimensionRule::CDimensionRule( TOperation op, int param ) :
 	Operation( op ),
 	Parameter( param )
 {
-	NeoAssert( Operation == O_Remainder || param > 0 );
+	NeoAssert( Operation == O_Remainder || param > 0
+		|| ( Operation == O_InputDim && param >= 0 && param < static_cast<int>( BD_Count ) ) );
 }
 
 bool CTransformLayer::CDimensionRule::operator==( const CDimensionRule& other ) const
@@ -39,8 +40,9 @@ bool CTransformLayer::CDimensionRule::operator==( const CDimensionRule& other ) 
 }
 
 // Applies the transformation
-int CTransformLayer::CDimensionRule::Transform( int input ) const
+int CTransformLayer::CDimensionRule::Transform( int input, const CBlobDesc& inputDesc ) const
 {
+	static_assert( O_Count == 5, "O_Count != 5" );
 	switch( Operation ) {
 		case O_Remainder:
 			return 1;
@@ -48,11 +50,11 @@ int CTransformLayer::CDimensionRule::Transform( int input ) const
 			return Parameter;
 		case O_Multiply:
 			return input * Parameter;
-			break;
 		case O_Divide:
 			NeoAssert( input % Parameter == 0 );
 			return input / Parameter;
-			break;
+		case O_InputDim:
+			return inputDesc.DimSize( Parameter );
 		default:
 			NeoAssert( false );
 	}
@@ -106,7 +108,7 @@ void CTransformLayer::OnReshaped()
 			NeoAssert(remainderDim < 0);
 			remainderDim = d;
 		}
-		int outputDimSize = rules[d].Transform(inputDescs[0].DimSize(d));
+		int outputDimSize = rules[d].Transform(inputDescs[0].DimSize(d), inputDescs[0]);
 		outputDescs[0].SetDimSize(d, outputDimSize);
 		NeoAssert(remainder % outputDimSize == 0);
 		remainder /= outputDimSize;
@@ -121,7 +123,7 @@ void CTransformLayer::OnReshaped()
 	outputDesc = outputDescs[0];
 }
 
-static const int TransformLayerVersion = 2001;
+static const int TransformLayerVersion = 2002;
 
 void CTransformLayer::Serialize( CArchive& archive )
 {

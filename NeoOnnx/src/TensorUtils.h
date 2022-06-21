@@ -189,7 +189,7 @@ bool BroadcastTensorShape( const CTensorShape& first, const CTensorShape& second
 
 // Prepares user tensor for CBroadcastLayer
 // You don't need to use this function if you're gonna use BroadcastTensor(...) function below
-CPtr<const CUserTensor> PrepareForBroadcast( const CUserTensor& input, const CBroadcast& broadcast, int outputDims );
+CPtr<const CTensorBase> PrepareForBroadcast( const CTensorBase& input, const CBroadcast& broadcast, int outputDims );
 
 // Broadcasts the given tensor to the given outputShape according to given broadcast
 CPtr<const CTensorBase> BroadcastTensor( const CTensorBase& input, const CBroadcast& broadcast, const CTensorShape& outputShape );

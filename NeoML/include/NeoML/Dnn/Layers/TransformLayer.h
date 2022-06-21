@@ -39,7 +39,11 @@ public:
 		// Multiply this dimension by Parameter value
 		O_Multiply,
 		// Divide this dimension by Parameter value
-		O_Divide
+		O_Divide,
+		// Gets the size from the given input dimension
+		O_InputDim,
+
+		O_Count
 	};
 
 	// The rule of dimension change
@@ -55,7 +59,7 @@ public:
 		bool operator==( const CDimensionRule& other ) const;
 
 		// Applies the transformation set by the rule
-		int Transform( int input ) const;
+		int Transform( int input, const CBlobDesc& inputDesc ) const;
 	};
 
 	// The parameters for transforming the specified dimension
