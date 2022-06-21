@@ -558,7 +558,7 @@ static CPtr<const CUserTensor> addUpsample2dLayer( CUpsampling2DLayer& upsample,
 	return new CUserTensor( outputShape, result->Layout(), CLayerOutput( &upsample, 0 ) );
 }
 
-CPtr<const CUserTensor> PrepareForBroadcast( const CUserTensor& input, const CBroadcast& broadcast, int outputDims )
+CPtr<const CTensorBase> PrepareForBroadcast( const CTensorBase& input, const CBroadcast& broadcast, int outputDims )
 {
 	int axis = outputDims - input.DimCount();
 	if( broadcast.Type == BT_Onnx && broadcast.Axis >= 0 && axis > broadcast.Axis ) {
@@ -599,7 +599,10 @@ CPtr<const CUserTensor> PrepareForBroadcast( const CUserTensor& input, const CBr
 		++currDim;
 	}
 
-	return new CUserTensor( outputShape, outputLayout, input.LayerOutput() );
+	if( input.IsCalculated() ) {
+		return new CDataTensor( outputShape, outputLayout, *dynamic_cast<const CDataTensor&>( input ).Data() );
+	}
+	return new CUserTensor( outputShape, outputLayout, dynamic_cast<const CUserTensor&>( input ).LayerOutput() );
 }
 
 // Broadcasts user tensor into outputShape via broadcastInfo
@@ -621,7 +624,7 @@ static CPtr<const CUserTensor> broadcastUserTensor( const CUserTensor& input, co
 	// Used mathEngine
 	IMathEngine& mathEngine = dnn.GetMathEngine();
 
-	CPtr<const CUserTensor> currData = PrepareForBroadcast( input, broadcast, outputShape.Size() );
+	CPtr<const CUserTensor> currData = dynamic_cast<const CUserTensor*>( PrepareForBroadcast( input, broadcast, outputShape.Size() ).Ptr() );
 	CPtr<CUpsampling2DLayer> upsample = nullptr;
 	int heightDimIndex = NotFound;
 	int widthDimIndex = NotFound;
