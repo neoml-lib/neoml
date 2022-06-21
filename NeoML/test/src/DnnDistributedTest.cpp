@@ -16,8 +16,6 @@ limitations under the License.
 #include <common.h>
 #pragma hdrstop
 
-#if FINE_PLATFORM( FINE_WINDOWS ) || FINE_PLATFORM( FINE_LINUX )
-
 #include <TestFixture.h>
 
 #ifdef NEOML_USE_OMP
@@ -217,5 +215,3 @@ TEST( CDnnDistributedTest, DnnDistributedSerializeTest )
 }
 
 #endif // NEOML_USE_OMP
-
-#endif // FINE_PLATFORM( FINE_WINDOWS ) || FINE_PLATFORM( FINE_LINUX )
