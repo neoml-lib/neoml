@@ -18,8 +18,10 @@
 ```c++
 #include <NeoOnnx/NeoOnnx.h>
 
-NEOONNX_API void LoadFromOnnx( const char* fileName, NeoML::CDnn& dnn, CArray<const char*>& inputs, CArray<const char*>& outputs );
-NEOONNX_API void LoadFromOnnx( const void* buffer, int bufferSize, NeoML::CDnn& dnn, CArray<const char*>& inputs, CArray<const char*>& outputs );
+NEOONNX_API void LoadFromOnnx( const char* fileName, NeoML::CDnn& dnn, CArray<const char*>& inputs,
+    CArray<const char*>& outputs, CMap<CString, CString>& metadata );
+NEOONNX_API void LoadFromOnnx( const void* buffer, int bufferSize, NeoML::CDnn& dnn, CArray<const char*>& inputs,
+    CArray<const char*>& outputs, CMap<CString, CString>& metadata );
 ```
 
 Загружает сеть из файла или из буфера.
@@ -27,6 +29,8 @@ NEOONNX_API void LoadFromOnnx( const void* buffer, int bufferSize, NeoML::CDnn& 
 Для каждого входа сети в `dnn` будет создан `CSourceLayer` с таким же именем. Для каждого такого слоя будет выделен блоб размера, указанного в ONNX-модели. Также имена входов будут добавлены в массив `inputs`. Входы сети с инициализаторами будут проигнорированы.
 
 Для каждого выхода сети в `dnn` будет создан `CSinkLayer` с таким же именем. Также имена выходов будут добавлены в массив `outputs`.
+
+`metadata_props` модели будут записаны в `metadata`.
 
 Указатели в массивах `inputs` и `outputs` привязаны к именам соответствующих слоёв и станут невалидными после переименования или разрушения соответствующих слоёв.
 

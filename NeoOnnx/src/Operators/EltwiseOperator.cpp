@@ -67,10 +67,10 @@ void CEltwiseOperatorBase::AddLayersImpl( const CBroadcast& broadcast, const CTe
 	eltwiseLayer.SetName( Name() );
 
 	for( int i = 0; i < inputs.Size(); ++i ) {
-		CPtr<const CUserTensor> tensor = AsUserTensor( *inputs[i], Name() + "_input_" + Str( i ), dnn );
-		tensor = PrepareForBroadcast( *tensor, broadcast, outputShape.Size() );
+		CPtr<const CTensorBase> tensor = PrepareForBroadcast( *inputs[i], broadcast, outputShape.Size() );
 		tensor = ConvertTensor( *tensor, outputLayout );
-		broadcastLayer->Connect( i, *tensor->Layer(), tensor->OutputIndex() );
+		CPtr<const CUserTensor> userTensor = AsUserTensor( *tensor, Name() + "_input_" + Str( i ), dnn );
+		broadcastLayer->Connect( i, *userTensor->Layer(), userTensor->OutputIndex() );
 		eltwiseLayer.Connect( i, *broadcastLayer, i );
 	}
 
