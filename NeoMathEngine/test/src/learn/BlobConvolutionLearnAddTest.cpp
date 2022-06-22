@@ -14,14 +14,10 @@ limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
 #include <TestFixture.h>
+#include <MeTestCommon.h>
 
 using namespace NeoML;
 using namespace NeoMLTest;
-
-static inline int calcConvOutputSize( int input, int padding, int filter, int dilation, int stride )
-{
-	return  1 + ( input - ( filter - 1 ) * dilation + 2 * padding - 1 ) / stride;
-}
 
 static void batchConvolutionLearnAdd( const float* input, float* filter, float* freeTerms, const float* outputDiff,
 	int inputLength, int inputBatch, int inputHeight, int inputWidth, int inputDepth, int inputChannels,
