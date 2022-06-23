@@ -36,7 +36,9 @@ class BackendRep:
 		neoml_outputs = self.dnn.run(neoml_inputs)
 		result = list()
 		for output in self.outputs:
-			result.append(neoml_outputs[output].asarray())
+			out_blob = neoml_outputs[output[0]]
+			result.append(out_blob.asarray())
+			result[-1].resize(out_blob.shape[:output[1]])
 		return result
 
 

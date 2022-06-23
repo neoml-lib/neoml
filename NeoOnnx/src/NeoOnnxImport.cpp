@@ -103,7 +103,7 @@ static void processOperator( const COperator& op, CTensorCache& tensors, CDnn& d
 
 // Builds dnn based on GraphProto
 static void buildDnnFromGraphProto( const onnx::GraphProto& onnxGraph, int opsetVersion,
-	CDnn& dnn, CArray<const char*>& inputs, CArray<const char*>& outputs )
+	CDnn& dnn, CArray<const char*>& inputs, CArray<COutputInfo>& outputs )
 {
 	CheckOnnxProtocol( opsetVersion > 0, "Wrong onnx version: " + Str( opsetVersion ) );
 	CheckNeoOnnxSupport( opsetVersion <= MaxOpsetVersion, "Unsupported opset version: " + Str( opsetVersion ) );
@@ -148,7 +148,9 @@ static void buildDnnFromGraphProto( const onnx::GraphProto& onnxGraph, int opset
 		const CPtr<const CTensorBase>& baseTensor = tensors[output.Name()];
 		CheckNeoOnnxSupport( !baseTensor->IsCalculated(), "constant network output" );
 		CPtr<const CSinkLayer> sink = output.AddSinkLayer( dynamic_cast<const CUserTensor&>( *baseTensor ), dnn );
-		outputs.Add( sink->GetName() );
+		COutputInfo& outputInfo = outputs.Append();
+		outputInfo.Name = sink->GetName();
+		outputInfo.DimCount = baseTensor->DimCount();
 	}
 }
 
@@ -162,7 +164,7 @@ static void extractMetadata( const onnx::ModelProto& model, CMap<CString, CStrin
 }
 
 void LoadFromOnnx( const char* fileName, CDnn& dnn, CArray<const char*>& inputs,
-	CArray<const char*>& outputs, CMap<CString, CString>& metadata )
+	CArray<COutputInfo>& outputs, CMap<CString, CString>& metadata )
 {
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
 
@@ -191,7 +193,7 @@ void LoadFromOnnx( const char* fileName, CDnn& dnn, CArray<const char*>& inputs,
 }
 
 void LoadFromOnnx( const void* buffer, int bufferSize, CDnn& dnn, CArray<const char*>& inputs,
-	CArray<const char*>& outputs, CMap<CString, CString>& metadata )
+	CArray<COutputInfo>& outputs, CMap<CString, CString>& metadata )
 {
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
 

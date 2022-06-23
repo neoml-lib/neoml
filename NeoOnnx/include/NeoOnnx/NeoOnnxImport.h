@@ -20,6 +20,11 @@ limitations under the License.
 
 namespace NeoOnnx {
 
+struct NEOONNX_API COutputInfo {
+	CString Name;
+	int DimCount;
+};
+
 // The load functions build CDnn based on ONNX in the following way:
 //
 // For every uninitialized onnx graph input there will be CSourceLayer with the same name
@@ -40,14 +45,13 @@ namespace NeoOnnx {
 //
 // Throw std::logic_error if failed to load network
 
-
 // Loads network "dnn" from onnx file "fileName"
 NEOONNX_API void LoadFromOnnx( const char* fileName, NeoML::CDnn& dnn, CArray<const char*>& inputs,
-	CArray<const char*>& outputs, CMap<CString, CString>& metadata );
+	CArray<COutputInfo>& outputs, CMap<CString, CString>& metadata );
 
 // Loads network "dnn" from buffer with onnx data
 NEOONNX_API void LoadFromOnnx( const void* buffer, int bufferSize, NeoML::CDnn& dnn, CArray<const char*>& inputs,
-	CArray<const char*>& outputs, CMap<CString, CString>& metadata );
+	CArray<COutputInfo>& outputs, CMap<CString, CString>& metadata );
 
 } // namespace NeoOnnx
 

@@ -21,7 +21,7 @@ limitations under the License.
 
 #include <NeoOnnx/NeoOnnx.h>
 
-py::tuple wrapResults( const CArray<const char*>& cArrInputs, const CArray<const char*>& cArrOutputs,
+py::tuple wrapResults( const CArray<const char*>& cArrInputs, const CArray<NeoOnnx::COutputInfo>& cArrOutputs,
 	const CMap<CString, CString>& cMapMetadata )
 {
 	py::list inputs;
@@ -30,7 +30,10 @@ py::tuple wrapResults( const CArray<const char*>& cArrInputs, const CArray<const
 	}
 	py::list outputs;
 	for( int i = 0; i < cArrOutputs.Size(); ++i ) {
-		outputs.append( py::str( cArrOutputs[i] ) );
+		py::tuple currOutputInfo( 2 );
+		currOutputInfo[0] = py::str( static_cast<const char*>( cArrOutputs[i].Name ) );
+		currOutputInfo[1] = py::int_( cArrOutputs[i].DimCount );
+		outputs.append( currOutputInfo );
 	}
 	py::dict metadata;
 	for( int pos = cMapMetadata.GetFirstPosition(); pos != NotFound; pos = cMapMetadata.GetNextPosition( pos ) ) {
@@ -46,7 +49,7 @@ py::tuple wrapResults( const CArray<const char*>& cArrInputs, const CArray<const
 py::tuple loadFromFile(const std::string& fileName, CPyDnn& pyDnn)
 {
 	CArray<const char*> cArrInputs;
-	CArray<const char*> cArrOutputs;
+	CArray<NeoOnnx::COutputInfo> cArrOutputs;
 	CMap<CString, CString> cMapMetadata;
 	{
 		py::gil_scoped_release release;
@@ -58,7 +61,7 @@ py::tuple loadFromFile(const std::string& fileName, CPyDnn& pyDnn)
 py::tuple loadFromBuffer(const std::string& buffer, CPyDnn& pyDnn)
 {
 	CArray<const char*> cArrInputs;
-	CArray<const char*> cArrOutputs;
+	CArray<NeoOnnx::COutputInfo> cArrOutputs;
 	CMap<CString, CString> cMapMetadata;
 	{
 		py::gil_scoped_release release;

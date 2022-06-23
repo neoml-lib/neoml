@@ -25,7 +25,7 @@ using namespace NeoML;
 int ConvertOnnx2NeoML( const char* inputOnnxFilename, const char* outputDnnArchiveFileName )
 {
     CArray<const char*> inputs;
-    CArray<const char*> outputs;
+    CArray<NeoOnnx::COutputInfo> outputs;
     IMathEngine& mathEng = GetDefaultCpuMathEngine();
     CRandom random( 0x123 );
     CDnn net( random, mathEng );
