@@ -93,7 +93,7 @@ void CPoolOperatorBase::AddLayersImpl( const CTensorArray& inputs, float padValu
 	dnn.AddLayer( pooling );
 
 	outputs.Add( new CUserTensor( outputShape, input->Layout(), CLayerOutput( &pooling, 0 ) ) );
-	if( OutputCount() > 1 ) {
+	if( OutputCount() > outputs.Size() ) {
 		outputs.Add( nullptr, OutputCount() - outputs.Size() );
 	}
 }
