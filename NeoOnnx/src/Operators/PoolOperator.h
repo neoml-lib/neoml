@@ -44,8 +44,7 @@ private:
 // MaxPool operator
 class CMaxPoolOperator : public CPoolOperatorBase {
 public:
-	CMaxPoolOperator( const onnx::NodeProto& maxPool, int opsetVersion ) :
-		CPoolOperatorBase( maxPool, opsetVersion ) {}
+	CMaxPoolOperator( const onnx::NodeProto& maxPool, int opsetVersion );
 
 protected:
 	// CLayerOperator methods
