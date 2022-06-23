@@ -93,9 +93,14 @@ void broadcastCopyImpl( T* to, const T* from, const CBlobDesc& toDesc, const CBl
 			T* fromPtr = to + curSize - copySize;
 			T* toPtr = to + curSize * toDesc.DimSize( i ) - copySize;
 			for( int j = 0; j < curSize / copySize; j++ ) {
-				for( int k = 0; k < toDesc.DimSize( i ); k++ ) {
-					dataCopy( toPtr, fromPtr, copySize );
-					toPtr -= copySize;
+				if( copySize == 1 ) {
+					toPtr -= toDesc.DimSize( i );
+					vectorFill( toPtr + 1, *fromPtr, toDesc.DimSize( i ) );
+				} else {
+					for( int k = 0; k < toDesc.DimSize( i ); k++ ) {
+						dataCopy( toPtr, fromPtr, copySize );
+						toPtr -= copySize;
+					}
 				}
 				fromPtr -= copySize;
 			}

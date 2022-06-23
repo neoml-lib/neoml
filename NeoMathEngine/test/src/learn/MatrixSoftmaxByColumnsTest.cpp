@@ -14,54 +14,10 @@ limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
 #include <TestFixture.h>
+#include <MeTestCommon.h>
 
 using namespace NeoML;
 using namespace NeoMLTest;
-
-static void softmaxImpl( const std::vector<float>& input, int height, int width, bool byRow, std::vector<float>& output )
-{
-	std::vector<float> maxima;
-	maxima.resize( byRow ? height : width );
-	output = input;
-
-	for( int i = 0; i < height; ++i ) {
-		for( int j = 0; j < width; ++j ) {
-			if( byRow ) {
-				maxima[i] = j == 0 ? input[i * width + j] : std::max( maxima[i], input[i * width + j] );
-			}
-			else {
-				maxima[j] = i == 0 ? input[i * width + j] : std::max( maxima[j], input[i * width + j] );
-			}
-		}
-	}
-
-	for( int i = 0; i < height; ++i ) {
-		for( int j = 0; j < width; ++j ) {
-			output[i * width + j] -= byRow ? maxima[i] : maxima[j];
-			output[i * width + j] = expf( std::min( FLT_MAX_LOG, std::max( FLT_MIN_LOG, output[i * width + j] ) ) );
-		}
-	}
-
-	std::vector<float> sums;
-	sums.resize( byRow ? height : width );
-
-	for( int i = 0; i < height; ++i ) {
-		for( int j = 0; j < width; ++j ) {
-			if( byRow ) {
-				sums[i] = j == 0 ? output[i * width + j] : sums[i] + output[i * width + j];
-			}
-			else {
-				sums[j] = i == 0 ? output[i * width + j] : sums[j] + output[i * width + j];
-			}
-		}
-	}
-
-	for( int i = 0; i < height; ++i ) {
-		for( int j = 0; j < width; ++j ) {
-			output[i * width + j] /= byRow ? sums[i] : sums[j];
-		}
-	}
-}
 
 static void matrixSoftmaxByColumnsTestImpl( const CTestParams& params, int seed )
 {

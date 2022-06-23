@@ -66,7 +66,7 @@ namespace {
 #endif
 
 	static constexpr CharType TestDataPath[] = { '-','-','T','e','s','t','D','a','t','a','P','a','t','h','=' };
-	static constexpr CharType MathEngine[] = { '-','-','M','a','t','h','E','n','g','i','n','e','=' };
+	static constexpr CharType MathEngineArg[] = { '-','-','M','a','t','h','E','n','g','i','n','e','=' };
 	static constexpr CharType ThreadCount[] = { '-','-','T','h','r','e','a','d','C','o','u','n','t','=' };
 
 	static constexpr CharType Cpu[] = { 'c', 'p', 'u' };
@@ -77,7 +77,7 @@ namespace {
 	template <typename T>
 	TMathEngineType GetMathEngineType( int argc, T* argv[] )
 	{
-		auto value = ArgValue( argc, argv, MathEngine );
+		auto value = ArgValue( argc, argv, MathEngineArg );
 		if( !value ) {
 			return MET_Undefined;
 		}
