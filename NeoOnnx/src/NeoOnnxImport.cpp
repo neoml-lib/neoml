@@ -157,6 +157,7 @@ static void buildDnnFromGraphProto( const onnx::GraphProto& onnxGraph, int opset
 			dataLayer->SetBlob( dynamic_cast< const CDataTensor& >( *baseTensor ).Data()->GetCopy() );
 			baseTensor = new CUserTensor( baseTensor->Shape(), baseTensor->Layout(), CLayerOutput( dataLayer.Ptr(), 0));
 		}
+		NeoAssert( !baseTensor->IsCalculated() );
 		CPtr<const CSinkLayer> sink = output.AddSinkLayer( dynamic_cast<const CUserTensor&>( *baseTensor ), dnn );
 		outputs.Add( sink->GetName() );
 	}
