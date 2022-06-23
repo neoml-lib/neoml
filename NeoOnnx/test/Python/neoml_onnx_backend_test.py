@@ -8,8 +8,6 @@ pytest_plugins = "onnx.backend.test.report"
 
 backend_test = onnx.backend.test.runner.Runner(neoml.Onnx, __name__)
 
-# TODO: here we should disable tests which ain't gonna work in NeoOnnx anyway...
-
 # OnnxBackendNodeModelTest (tests for single ONNX node)
 
 # NeoOnnx doesn't support any training-related things
@@ -105,6 +103,52 @@ backend_test.exclude('test_xor3d_')  # Xor
 backend_test.exclude('test_xor4d_')  # Xor
 backend_test.exclude('test_xor_')  # Xor
 # Operators partly supported (with comments, why test fails)
+# TODO: analyze nodes that are implemented but can't be tested...
+
+# OnnxBackendRealModelTest (a bunch of models from the model zoo)
+
+backend_test.exclude('test_bvlc_alexnet_')  # Contains groupped convolution
+backend_test.exclude('test_inception_v1_')  # Contains average pooling with padding
+backend_test.exclude('test_inception_v2_')  # Contains average pooling with padding
+backend_test.exclude('test_shufflenet_')  # Contains groupped convolution
+
+# OnnxBackendSimpleModelTest (some synthetic test models)
+
+# Models containing unsupported operators
+backend_test.exclude('test_gradient_of_add_')  # Gradient
+backend_test.exclude('test_sequence_model1_')  # SequenceInsert, SequenceEmpty, SequenceAt
+backend_test.exclude('test_sequence_model2_')  # SequenceConstruct, SequenceErase, SequenceAt
+backend_test.exclude('test_sequence_model3_')  # SequenceConstruct, SequenceInsert, SequenceErase, SequenceAt
+backend_test.exclude('test_sequence_model4_')  # ConcatFromSequence, SequenceConstruct
+backend_test.exclude('test_sequence_model5_')  # ConcatFromSequence, SequenceConstruct
+backend_test.exclude('test_sequence_model6_')  # SplitToSequence, SequenceLength
+backend_test.exclude('test_sequence_model7_')  # SplitToSequence, SequenceAt
+backend_test.exclude('test_sequence_model8_')  # SplitToSequence, SequenceLength
+backend_test.exclude('test_strnorm_model_')  # StringNormalizer
+# Models not supported by NeoOnnx
+# TODO: analyze and write it down (with reason!)
+
+# OnnxBackendPyTorchConvertedModelTest
+
+backend_test.exclude('Conv[a-z_]*group')  # Groupped convolution
+backend_test.exclude('Conv3d[a-z_]*dilated')  # 3d convolution with dilations
+backend_test.exclude('_sparse_')  # Anything related to the sparse data
+backend_test.exclude('test_LogSoftmax')  # Contains LogSoftmax operator
+backend_test.exclude('test_PReLU')  # Contains PRelu operator
+backend_test.exclude('test_SELU')  # Contains Selu operator
+backend_test.exclude('test_Softmin')  # Contains Neg operator
+# TODO: analyze and write down remaining failed tests (with reason!)
+
+# OnnxBackendPyTorchOperatorModelTest
+
+backend_test.exclude('test_operator_basic_')  # Contains Neg operator
+backend_test.exclude('test_operator_max_')  # Contains Max operator
+backend_test.exclude('test_operator_min_')  # Contains Min operator
+backend_test.exclude('test_operator_params_')  # Contains Neg operator
+backend_test.exclude('test_operator_repeat_')  # Contains Tile operator
+backend_test.exclude('test_operator_selu_')  # Contains Selu operator
+backend_test.exclude('test_operator_symbolic_override_nested_')  # Contains Neg operator
+# TODO: analyze and write down remaining failed tests (with reason!)
 
 globals().update(backend_test.enable_report().test_cases)
 
