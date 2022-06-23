@@ -107,12 +107,6 @@ void CPoolOperatorBase::getStrides( const CTensorArray& inputs, CFastArray<int, 
 
 // --------------------------------------------------------------------------------------------------------------------
 
-CMaxPoolOperator::CMaxPoolOperator( const onnx::NodeProto& maxPool, int opsetVersion ) :
-	CPoolOperatorBase( maxPool, opsetVersion )
-{
-	CheckNeoOnnxSupport( OutputCount() == 1, "Indices output", *this );
-}
-
 void CMaxPoolOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
 	CPtr<CPoolingLayer> pooling( new CMaxPoolingLayer( dnn.GetMathEngine() ) );
