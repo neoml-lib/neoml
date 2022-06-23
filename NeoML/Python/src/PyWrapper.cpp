@@ -82,6 +82,7 @@ limitations under the License.
 #include "PyDifferentialEvolution.h"
 #include "PyPCA.h"
 #include "PyBytePairEncoder.h"
+#include "PyOnnx.h"
 
 PYBIND11_MODULE(PythonWrapper, m) {
 
@@ -159,4 +160,5 @@ PYBIND11_MODULE(PythonWrapper, m) {
 	InitializeDifferentialEvolution( m );
 
 	InitializeBytePairEncoder( m );
+	InitializeOnnx( m );
 }

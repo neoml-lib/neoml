@@ -29,7 +29,6 @@ endif()
 # Build NeoML
 set(NeoML_INSTALL OFF CACHE BOOL "" FORCE)
 set(NeoML_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-set(NeoOnnx_BUILD OFF CACHE BOOL "" FORCE)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/.. ${CMAKE_BINARY_DIR}/NeoML)
 
 # Build python module
@@ -101,11 +100,15 @@ pybind11_add_module(PythonWrapper
     src/PyTransposeLayer.cpp
     src/PyUpsampling2DLayer.cpp
     src/PyWrapper.cpp
+    src/PyOnnx.cpp
 )
 
 target_include_directories(PythonWrapper PRIVATE src)
 
 target_link_libraries(PythonWrapper PRIVATE NeoML)
+if(TARGET NeoOnnx)
+    target_link_libraries(PythonWrapper PRIVATE NeoOnnx)
+endif()
 
 set_target_properties(PythonWrapper PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
 if(APPLE)
@@ -116,5 +119,8 @@ install(TARGETS PythonWrapper DESTINATION ${CMAKE_INSTALL_PREFIX})
 install(FILES $<TARGET_FILE:NeoMathEngine> $<TARGET_FILE:NeoML> DESTINATION ${CMAKE_INSTALL_PREFIX})
 if(TARGET NeoMathEngineAvx)
     install(FILES $<TARGET_FILE:NeoMathEngineAvx> DESTINATION ${CMAKE_INSTALL_PREFIX})
+endif()
+if(TARGET NeoOnnx)
+    install(FILES $<TARGET_FILE:NeoOnnx> DESTINATION ${CMAKE_INSTALL_PREFIX})
 endif()
 

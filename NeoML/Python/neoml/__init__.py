@@ -16,4 +16,6 @@ import neoml.DifferentialEvolution
 
 import neoml.BytePairEncoder
 
+import neoml.Onnx
+
 __all__ = []
