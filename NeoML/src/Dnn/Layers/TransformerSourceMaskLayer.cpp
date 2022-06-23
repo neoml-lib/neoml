@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2022 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,9 +21,10 @@ limitations under the License.
 namespace NeoML {
 
 CTransformerSourceMaskLayer::CTransformerSourceMaskLayer( IMathEngine& mathEngine ) :
-	CBaseLayer( mathEngine, "CTransformerSourceMaskLayer", false ),
+	CBaseLayer( mathEngine, "TransformerSourceMaskLayer", false ),
 	headCount( 1 )
-{}
+{
+}
 
 void CTransformerSourceMaskLayer::Reshape()
 {
@@ -45,7 +46,7 @@ void CTransformerSourceMaskLayer::RunOnce()
 {
 	NeoAssert( inputBlobs.Size() == 2 && outputBlobs.Size() == 1 );
 
-	CPtr<const CDnnBlob> inputBlob = inputBlobs[I_Widths];
+	CPtr<CDnnBlob> inputBlob = inputBlobs[I_Widths];
 	CPtr<CDnnBlob> outputBlob = outputBlobs.First();
 	CConstIntHandle inputHandle = inputBlob->GetData<const int>();
 	CFloatHandle outputHandle = outputBlob->GetData();
@@ -74,9 +75,11 @@ void CTransformerSourceMaskLayer::BackwardOnce()
 	// No action
 }
 
+static const int TransformerSourceMaskLayerVersion = 0;
+
 void CTransformerSourceMaskLayer::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion( 0 );
+	archive.SerializeVersion( TransformerSourceMaskLayerVersion );
 	CBaseLayer::Serialize( archive );
 	archive.Serialize( headCount );
 }
