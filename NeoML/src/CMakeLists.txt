@@ -95,6 +95,7 @@ set(NeoML_SOURCES
     Dnn/Layers/TiedEmbeddingsLayer.cpp
     Dnn/Layers/TimeConvLayer.cpp
     Dnn/Layers/TransformerLayer.cpp
+    Dnn/Layers/TransformerSourceMaskLayer.cpp
     Dnn/Layers/TransformLayer.cpp
     Dnn/Layers/TransposedConvLayer.cpp
     Dnn/Layers/TransposeLayer.cpp
@@ -285,6 +286,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/Dnn/Layers/TiedEmbeddingsLayer.h
     ../include/NeoML/Dnn/Layers/TimeConvLayer.h
     ../include/NeoML/Dnn/Layers/TransformerLayer.h
+    ../include/NeoML/Dnn/Layers/TransformerSourceMaskLayer.h
     ../include/NeoML/Dnn/Layers/TransformLayer.h
     ../include/NeoML/Dnn/Layers/TransposedConvLayer.h
     ../include/NeoML/Dnn/Layers/TransposeLayer.h

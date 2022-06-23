@@ -92,6 +92,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/BertConvLayer.h>
 #include <NeoML/Dnn/Layers/InterpolationLayer.h>
 #include <NeoML/Dnn/Layers/BroadcastLayer.h>
+#include <NeoML/Dnn/Layers/TransformerSourceMaskLayer.h>
 
 namespace NeoML {
 
@@ -346,6 +347,7 @@ REGISTER_NEOML_LAYER( CL1LossLayer, "NeoMLDnnL1LossLayer" )
 REGISTER_NEOML_LAYER( CInterpolationLayer, "NeoMLDnnInterpolationLayer" )
 REGISTER_NEOML_LAYER( CBroadcastLayer, "NeoMLDnnBroadcastLayer" )
 REGISTER_NEOML_LAYER( CExpLayer, "NeoMLDnnExpLayer" )
+REGISTER_NEOML_LAYER( CTransformerSourceMaskLayer, "NeoMLDnnTransformerSourceMaskLayer" )
 
 }
 
