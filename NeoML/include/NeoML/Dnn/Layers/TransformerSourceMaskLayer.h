@@ -19,7 +19,7 @@ limitations under the License.
 
 namespace NeoML {
 
-// Tha layer that, based on a batch of widths and the shape of the matrix Q, builds a mask in multihead 
+// The layer that, based on a batch of widths and the shape of the matrix Q, builds a mask in multihead 
 // attention layer. It's needed to ignore padding in batches with sequences of different lengths.
 
 //  Inputs:
