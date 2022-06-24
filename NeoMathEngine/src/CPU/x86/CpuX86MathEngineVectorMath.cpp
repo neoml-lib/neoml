@@ -1607,7 +1607,9 @@ void CCpuMathEngine::VectorSigmoid(const CConstFloatHandle& firstHandle, const C
 	const float* first = GetRaw( firstHandle );
 	float* result = GetRaw( resultHandle );
 	const int curThreadCount = IsOmpRelevant( vectorSize, 2 * vectorSize ) ? threadCount : 1;
-	if( curThreadCount > 1 ) {
+	if( simdMathEngine != nullptr ) {
+		simdMathEngine->Sigmoid( result, first, vectorSize, curThreadCount > 1 );
+	} else if( curThreadCount > 1 ) {
 		NEOML_OMP_NUM_THREADS( curThreadCount )
 		{
 			int start;

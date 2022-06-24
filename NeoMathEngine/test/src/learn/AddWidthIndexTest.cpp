@@ -14,24 +14,10 @@ limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
 #include <TestFixture.h>
+#include <MeTestCommon.h>
 
 using namespace NeoML;
 using namespace NeoMLTest;
-
-static void addIndexNaive( const int *input, int batchSize, int height, int width, int channels, int *output, bool isAddHeight )
-{
-	for( int batch = 0; batch < batchSize; ++batch ) {
-		for( int h = 0; h < height; ++h ) {
-			for( int w = 0; w < width; ++w ) {
-				for( int c = 0; c < channels; ++c ) {
-					*output = *input + ( isAddHeight ? h : w );
-					input++;
-					output++;
-				}
-			}
-		}
-	}
-}
 
 static void addWidthIndexImpl( const CTestParams& params, int seed )
 {
