@@ -25,10 +25,15 @@ public:
 	
 	void Train( py::dict dictionary, int tokensCount, bool useEndOfWordToken,
 		bool useStartOfWordToken );
+	void LoadFromDictionary( py::dict dictionary, bool useEndOfWordToken,
+		bool useStartOfWordToken );
+	void Load( const std::string& path );
+	void Store( const std::string& path );
 
 	py::tuple Encode( const std::string& word ) const;
 	py::list Decode( py::list tokenIds ) const;
 
+	int Size() const;
 	bool UseEoW() const;
 	bool UseSoW() const;
 
@@ -42,7 +47,7 @@ CPyBytePairEncoder::CPyBytePairEncoder() :
 	encoder( nullptr )
 {}
 
-void CPyBytePairEncoder::Train( py::dict dictionary, int tokensCount,
+void CPyBytePairEncoder::Train( py::dict dictionary, int maxVocabSize,
 	bool useEndOfWordToken, bool useStartOfWordToken )
 {
 	CWordDictionary dictionaryRaw;
@@ -54,7 +59,7 @@ void CPyBytePairEncoder::Train( py::dict dictionary, int tokensCount,
 		py::gil_scoped_release release;
 
 		CBytePairEncoderTrainer::CParams params;
-		params.MaxSize = tokensCount;
+		params.MaxSize = maxVocabSize;
 		params.UseEndOfWordToken = useEndOfWordToken;
 		params.UseStartOfWordToken = useStartOfWordToken;
 
@@ -63,8 +68,36 @@ void CPyBytePairEncoder::Train( py::dict dictionary, int tokensCount,
 	}
 }
 
+void CPyBytePairEncoder::LoadFromDictionary( py::dict dictionary, bool useEndOfWordToken, bool useStartOfWordToken )
+{
+	CWordDictionary dictionaryRaw;
+	for( const auto& item : dictionary ) {
+		dictionaryRaw.AddWord( item.first.cast<std::string>(), item.second.cast<int>() );
+	}
+	encoder = CheckCast<IBytePairEncoder>( CreateModel( BytePairEncoderModelName ) );
+	encoder->LoadDictionary( dictionaryRaw, useEndOfWordToken, useStartOfWordToken );
+}
+
+void CPyBytePairEncoder::Load( const std::string& path )
+{
+	py::gil_scoped_release release;
+	CArchiveFile file( path.c_str(), CArchive::load );
+	CArchive archive( &file, CArchive::load );
+	Serialize( archive );
+}
+
+void CPyBytePairEncoder::Store( const std::string& path )
+{
+	py::gil_scoped_release release;
+	CArchiveFile file( path.c_str(), CArchive::store );
+	CArchive archive( &file, CArchive::store );
+	Serialize( archive );
+}
+
 py::tuple CPyBytePairEncoder::Encode( const std::string& word ) const
 {
+	NeoAssert( encoder != nullptr );
+
 	CArray<int> tokenIds;
 	CArray<int> tokenLengths;
 	encoder->Encode( word, tokenIds, tokenLengths );
@@ -84,6 +117,8 @@ py::tuple CPyBytePairEncoder::Encode( const std::string& word ) const
 
 py::list CPyBytePairEncoder::Decode( py::list _tokenIds ) const
 {
+	NeoAssert( encoder != nullptr );
+
 	CArray<int> tokenIds;
 	for( const auto& id : _tokenIds ) {
 		tokenIds.Add( id.cast<int>() );
@@ -98,6 +133,12 @@ py::list CPyBytePairEncoder::Decode( py::list _tokenIds ) const
 	}
 
 	return resultWords;
+}
+
+int CPyBytePairEncoder::Size() const
+{
+	NeoAssert( encoder != nullptr );
+	return encoder->Size();
 }
 
 bool CPyBytePairEncoder::UseEoW() const 
@@ -122,8 +163,12 @@ void InitializeBytePairEncoder( py::module& m )
 	py::class_<CPyBytePairEncoder>(m, "BytePairEncoder")
 		.def( py::init<>() )
 		.def( "train", &CPyBytePairEncoder::Train, py::return_value_policy::reference )
+		.def( "load_from_dictionary", &CPyBytePairEncoder::LoadFromDictionary, py::return_value_policy::reference )
+		.def( "load",  &CPyBytePairEncoder::Load, py::return_value_policy::reference )
+		.def( "store",  &CPyBytePairEncoder::Store, py::return_value_policy::reference )
 		.def( "encode", &CPyBytePairEncoder::Encode, py::return_value_policy::reference )
 		.def( "decode", &CPyBytePairEncoder::Decode, py::return_value_policy::reference )
+		.def( "get_size", &CPyBytePairEncoder::Size, py::return_value_policy::reference )
 		.def( "use_eow", &CPyBytePairEncoder::UseEoW, py::return_value_policy::reference )
 		.def( "use_sow", &CPyBytePairEncoder::UseSoW, py::return_value_policy::reference )
 		.def( py::pickle(

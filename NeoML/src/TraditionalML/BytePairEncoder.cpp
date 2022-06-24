@@ -53,7 +53,7 @@ static constexpr int utf8CharacterLength[256] = {
 // Returns the length of character utf8 encoding by the first byte.
 static int getUtf8CharLength( char c )
 {
-	const unsigned char byte = ( unsigned char ) c;
+	const unsigned char byte = ( unsigned char )c;
 	return utf8CharacterLength[byte];
 }
 
@@ -101,19 +101,6 @@ CBytePairEncoder::CBytePairEncoder() :
 	useEndOfWordToken( false ),
 	useStartOfWordToken( false )
 {}
-
-CBytePairEncoder::CBytePairEncoder( const CWordDictionary& tokens_, bool useEndOfWordToken, 
-		bool useStartOfWordToken ) :
-	useEndOfWordToken( useEndOfWordToken ),
-	useStartOfWordToken( useStartOfWordToken )
-{
-	for( int i = 0; i < tokens_.Size(); i++ ) {
-		const CString newToken = tokens_.GetWord( i );
-		NeoAssert( !tokenToId.Has( newToken ) );
-		tokenToId.Add( newToken, tokens.Size() );
-		tokens.Add( newToken );
-	}
-}
 
 void CBytePairEncoder::Decode( const CArray<int>& tokenIds,
 	CArray<CString>& words ) const
@@ -175,6 +162,26 @@ void CBytePairEncoder::Serialize( CArchive& archive )
 	}
 }
 
+void CBytePairEncoder::LoadDictionary( const CWordDictionary& _tokens, bool _useEndOfWordToken, bool _useStartOfWordToken )
+{
+	useEndOfWordToken = _useEndOfWordToken;
+	useStartOfWordToken = _useStartOfWordToken;
+
+	tokenToId.DeleteAll();
+	tokens.DeleteAll();
+	ClearCache();
+
+	CWordDictionary finalizedDictionary;
+	_tokens.CopyTo( finalizedDictionary );
+	finalizedDictionary.Finalize( 1 );
+	for( int i = 0; i < finalizedDictionary.Size(); i++ ) {
+		const CString newToken = finalizedDictionary.GetWord( i );
+		NeoAssert( !tokenToId.Has( newToken ) );
+		tokenToId.Add( newToken, tokens.Size() );
+		tokens.Add( newToken );
+	}
+}
+
 void CBytePairEncoder::DoEncode( const CString& word, CArray<int>& tokenIds,
 	CArray<int>& tokenLengths ) const
 {
@@ -184,7 +191,7 @@ void CBytePairEncoder::DoEncode( const CString& word, CArray<int>& tokenIds,
 		wordTokens, &wordTokenLengths );
 
 	while( true ) {
-		int bestPairIndex = tokens.Size();
+		int bestPairIndex = tokens.Size() + 1;
 		int bestMergePos = NotFound;
 		for( int i = 0; i < wordTokens.Size() - 1; i++ ) {
 			const CString pair = MergeTokens( wordTokens[i], wordTokens[i + 1] );

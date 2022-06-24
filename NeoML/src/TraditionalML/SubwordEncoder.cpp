@@ -36,20 +36,12 @@ ISubwordEncoderWithCache::CCache::CCachedData::CCachedData( CCachedData&& other 
 
 ///////////////////////////////////////////////////////////////////////////////
 
-ISubwordEncoderWithCache::CCache::CCache() :
-	cacheTime( 0 )
-{
-	SetCachePeriod( 1000000 );
-}
-
 void ISubwordEncoderWithCache::CCache::SetCachePeriod( int newPeriod )
 {
 	NeoAssert( newPeriod == NotFound || newPeriod > 0 );
 	cachePeriod = newPeriod;
 	if( cachePeriod == NotFound ) {
-		// Clears the cache.
-		cacheTime = 0;
-		wordCache.Empty();
+		Clear();
 	}
 }
 

@@ -26,6 +26,7 @@ target_sources(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/DnnSolverTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/CtcTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DnnDistributedTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/BpeTest.cpp
 )
 
 set_target_properties( ${PROJECT_NAME} PROPERTIES

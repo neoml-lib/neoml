@@ -16,6 +16,8 @@ limitations under the License.
 #pragma once
 
 #include <NeoML/NeoMLDefs.h>
+#include <NeoML/TraditionalML/Model.h>
+#include <NeoML/TraditionalML/WordDictionary.h>
 
 namespace NeoML {
 
@@ -36,12 +38,15 @@ public:
 
 	// Returns number of tokens.
 	virtual int Size() const = 0;
+
+	// Serializes the model
+	void Serialize( CArchive& ) override = 0;
 };
 
 // Subword encoder which supports caching results of 'Encode' calls.
 class NEOML_API ISubwordEncoderWithCache : public ISubwordEncoder {
 public:
-	virtual void Encode( const CString& word, CArray<int>& tokenIds,
+	void Encode( const CString& word, CArray<int>& tokenIds,
 		CArray<int>& tokenLengths ) const override final;
 
 	// Sets the cache cleanup period.
@@ -52,6 +57,7 @@ public:
 	// To completely switch the cache off set cachePeriod equal to -1.
 	// Value 0 is treated as invalid.
 	void SetCachePeriod( int cachePeriod ) const { cache.SetCachePeriod( cachePeriod ); }
+	void ClearCache() const { cache.Clear(); }
 
 protected:
 	// 'Internal' Encode with the same meaning.
@@ -62,7 +68,7 @@ private:
 	// Internal cache for encoding requests.
 	class CCache {
 	public:
-		CCache();
+		CCache() : cacheTime( 0 ), cachePeriod( 1000000 ) {}
 		// Sets the cache cleanup period
 		void SetCachePeriod( int newPeriod );
 		// Requests data from cache.
@@ -71,9 +77,10 @@ private:
 		// Adds data to cache.
 		void Add( const CString& word, const CArray<int>& tokenIds,
 			const CArray<int>& tokenLengths );
+		void Clear() { cacheTime = 0; wordCache.DeleteAll(); }
 
 	private:
-		// Data stored in cache: token ids and their uniode lengths and the lattest request time.
+		// Data stored in cache: token ids and their unicode lengths and the latest request time.
 		struct CCachedData {
 			CFastArray<int, 4> TokenIds;
 			CFastArray<int, 4> TokenLengths;
@@ -96,11 +103,16 @@ private:
 	mutable CCache cache;
 };
 
+DECLARE_NEOML_MODEL_NAME( BytePairEncoderModelName, "NeoMLBytePairEncoderModel" )
+
 class NEOML_API IBytePairEncoder : public ISubwordEncoderWithCache {
 public:
 	// Returns encoder flags.
 	virtual bool UseEndOfWordToken() const = 0;
 	virtual bool UseStartOfWordToken() const = 0;
+
+	// Can be safely used only once for encoder.
+	virtual void LoadDictionary( const CWordDictionary& tokens, bool useEndOfWordToken, bool useStartOfWordToken ) = 0;
 };
 
 } // namespace NeoML

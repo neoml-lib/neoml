@@ -83,7 +83,9 @@ bool CBytePairEncoderTrainer::IsTrainingCompleted() const
 
 CPtr<IBytePairEncoder> CBytePairEncoderTrainer::GetEncoder() const
 {
-	return new CBytePairEncoder( tokensDictionary, params.UseEndOfWordToken, params.UseStartOfWordToken );
+	CPtr<IBytePairEncoder> encoder = new CBytePairEncoder();
+	encoder->LoadDictionary( tokensDictionary, params.UseEndOfWordToken, params.UseStartOfWordToken );
+	return encoder;
 }
 
 void CBytePairEncoderTrainer::Serialize( CArchive& archive )

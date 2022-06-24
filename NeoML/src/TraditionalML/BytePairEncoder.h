@@ -18,26 +18,23 @@ limitations under the License.
 #include <NeoML/NeoMLDefs.h>
 #include <NeoML/TraditionalML/SubwordEncoder.h>
 #include <NeoML/TraditionalML/WordDictionary.h>
-#include <NeoML/TraditionalML/Model.h>
 
 namespace NeoML {
-
-DECLARE_NEOML_MODEL_NAME( BytePairEncoderModelName, "NeoMLBytePairEncoderModel" )
 
 // Class that encodes a UTF-8 word using byte-pair-encoding.
 class NEOML_API CBytePairEncoder : public IBytePairEncoder {
 public:
 	CBytePairEncoder();
-	CBytePairEncoder( const CWordDictionary& tokens, bool useEndOfWordToken, bool useStartOfWordToken );
 
 	// ISubwordEncoder:
-	virtual void Decode( const CArray<int>& tokenIds, CArray<CString>& words ) const override;
-	virtual int Size() const override;
-	virtual void Serialize( CArchive& archive ) override;
+	void Decode( const CArray<int>& tokenIds, CArray<CString>& words ) const override;
+	int Size() const override;
+	void Serialize( CArchive& archive ) override;
 
 	// IBytePairEncoder:
-	virtual bool UseEndOfWordToken() const override { return useEndOfWordToken; }
-	virtual bool UseStartOfWordToken() const override { return useStartOfWordToken; }
+	bool UseEndOfWordToken() const override { return useEndOfWordToken; }
+	bool UseStartOfWordToken() const override { return useStartOfWordToken; }
+	void LoadDictionary( const CWordDictionary& tokens, bool useEndOfWordToken, bool useStartOfWordToken ) override;
 
 	// Splits a word into initial tokens: single unicode characters + special tokens (optional).
 	static void SplitWordIntoInitialTokens( const CString& word, bool useStartOfWordToken,
@@ -47,7 +44,7 @@ public:
 
 protected:
 	// ISubwordEncoderWithCache:
-	virtual void DoEncode( const CString& word, CArray<int>& tokenIds,
+	void DoEncode( const CString& word, CArray<int>& tokenIds,
 		CArray<int>& tokenLengths ) const override;
 
 private:
