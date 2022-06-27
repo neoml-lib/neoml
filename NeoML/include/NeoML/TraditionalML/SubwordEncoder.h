@@ -111,8 +111,10 @@ public:
 	virtual bool UseEndOfWordToken() const = 0;
 	virtual bool UseStartOfWordToken() const = 0;
 
-	// Can be safely used only once for encoder.
+	// Initializes the encoder. Can be safely used only once.
 	virtual void LoadDictionary( const CWordDictionary& tokens, bool useEndOfWordToken, bool useStartOfWordToken ) = 0;
+	// Returns the BPE vocabulary. The preservation of the original frequencies is not guaranteed.
+	virtual void GetDictionary( CWordDictionary& tokens ) const = 0;
 };
 
 } // namespace NeoML

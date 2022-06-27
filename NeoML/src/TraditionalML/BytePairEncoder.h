@@ -35,6 +35,7 @@ public:
 	bool UseEndOfWordToken() const override { return useEndOfWordToken; }
 	bool UseStartOfWordToken() const override { return useStartOfWordToken; }
 	void LoadDictionary( const CWordDictionary& tokens, bool useEndOfWordToken, bool useStartOfWordToken ) override;
+	void GetDictionary( CWordDictionary& tokens ) const override;
 
 	// Splits a word into initial tokens: single unicode characters + special tokens (optional).
 	static void SplitWordIntoInitialTokens( const CString& word, bool useStartOfWordToken,

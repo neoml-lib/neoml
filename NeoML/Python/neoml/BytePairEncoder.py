@@ -53,7 +53,7 @@ class BytePairEncoder():
     def load_from_dictionary(self, word_dictionary: tp.Dict[str, int], use_eow: bool=True, use_sow: bool=False) -> None:
         """Loads encoder from a dictionary with frequencies.
 
-        :param word_dictionary: the input word dictionary with counts
+        :param word_dictionary: token dictionary with frequencies
         :type word_dictionary: dict-like of type str : int.
        
         :param use_eow: use special end-of-word token for each word in the word_dictionary
@@ -134,6 +134,15 @@ class BytePairEncoder():
         return self._internal.get_size()
 
     @property
+    def dictionary(self) -> tp.Optional[tp.Dict[str, int]]:
+        """Returns the dictionary used by the encoder.
+        :rtype: dict
+        """
+        if not self.is_loaded:
+            return None
+        return self._internal.get_dictionary()
+
+    @property
     def use_eow(self) -> tp.Optional[bool]:
         """Returns End-Of-Word token usage flag
         :rtype: bool.
@@ -150,5 +159,3 @@ class BytePairEncoder():
         if not self.is_loaded:
             return None
         return self._internal.use_sow()
-    
-#-------------------------------------------------------------------------------------------------------------

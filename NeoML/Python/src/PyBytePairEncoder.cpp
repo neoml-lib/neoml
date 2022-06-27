@@ -23,10 +23,12 @@ class CPyBytePairEncoder {
 public:
 	CPyBytePairEncoder();
 	
-	void Train( py::dict dictionary, int tokensCount, bool useEndOfWordToken,
+	void Train( py::dict dictionary, int maxVocabSize, bool useEndOfWordToken,
 		bool useStartOfWordToken );
+
 	void LoadFromDictionary( py::dict dictionary, bool useEndOfWordToken,
 		bool useStartOfWordToken );
+
 	void Load( const std::string& path );
 	void Store( const std::string& path );
 
@@ -34,6 +36,7 @@ public:
 	py::list Decode( py::list tokenIds ) const;
 
 	int Size() const;
+	py::dict GetDictionary() const;
 	bool UseEoW() const;
 	bool UseSoW() const;
 
@@ -141,6 +144,19 @@ int CPyBytePairEncoder::Size() const
 	return encoder->Size();
 }
 
+py::dict CPyBytePairEncoder::GetDictionary() const
+{
+	NeoAssert( encoder != nullptr );
+
+	py::dict result;
+	CWordDictionary dictionary;
+	encoder->GetDictionary( dictionary );
+	for( int i = 0; i < dictionary.Size(); ++i ) {
+		result[dictionary.GetWord( i )] = dictionary.GetWordUseCount( i );
+	}
+	return result;
+}
+
 bool CPyBytePairEncoder::UseEoW() const 
 {
 	NeoAssert( encoder != nullptr );
@@ -162,15 +178,16 @@ void InitializeBytePairEncoder( py::module& m )
 {
 	py::class_<CPyBytePairEncoder>(m, "BytePairEncoder")
 		.def( py::init<>() )
-		.def( "train", &CPyBytePairEncoder::Train, py::return_value_policy::reference )
-		.def( "load_from_dictionary", &CPyBytePairEncoder::LoadFromDictionary, py::return_value_policy::reference )
-		.def( "load",  &CPyBytePairEncoder::Load, py::return_value_policy::reference )
-		.def( "store",  &CPyBytePairEncoder::Store, py::return_value_policy::reference )
-		.def( "encode", &CPyBytePairEncoder::Encode, py::return_value_policy::reference )
-		.def( "decode", &CPyBytePairEncoder::Decode, py::return_value_policy::reference )
-		.def( "get_size", &CPyBytePairEncoder::Size, py::return_value_policy::reference )
-		.def( "use_eow", &CPyBytePairEncoder::UseEoW, py::return_value_policy::reference )
-		.def( "use_sow", &CPyBytePairEncoder::UseSoW, py::return_value_policy::reference )
+		.def( "train", &CPyBytePairEncoder::Train )
+		.def( "load_from_dictionary", &CPyBytePairEncoder::LoadFromDictionary )
+		.def( "load",  &CPyBytePairEncoder::Load )
+		.def( "store",  &CPyBytePairEncoder::Store )
+		.def( "encode", &CPyBytePairEncoder::Encode )
+		.def( "decode", &CPyBytePairEncoder::Decode )
+		.def( "get_size", &CPyBytePairEncoder::Size )
+		.def( "get_dictionary", &CPyBytePairEncoder::GetDictionary )
+		.def( "use_eow", &CPyBytePairEncoder::UseEoW )
+		.def( "use_sow", &CPyBytePairEncoder::UseSoW )
 		.def( py::pickle(
 			[]( const CPyBytePairEncoder& pyBpe ) {
 				CPyMemoryFile file;

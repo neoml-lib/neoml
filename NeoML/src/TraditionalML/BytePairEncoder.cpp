@@ -26,9 +26,10 @@ REGISTER_NEOML_MODEL( CBytePairEncoder, BytePairEncoderModelName )
 // Some special tokens.
 static const CString StartOfWordToken( "/\xFF" );
 static const CString EndOfWordToken( "\\\xFF" );
+static const CString UnkToken( "<UNK>" );
 
 // !!! Do not change:
-static const int UnknownTokenId = 0;
+static constexpr int UnknownTokenId = 0;
 
 // Based on Utf8FirstByteProperties from UtfConverterFO.h.
 static constexpr int utf8CharacterLength[256] = {
@@ -110,6 +111,7 @@ void CBytePairEncoder::Decode( const CArray<int>& tokenIds,
 	}
 
 	CArray<CString> rawWordTokens;
+	rawWordTokens.SetBufferSize( tokenIds.Size() );
 	for( int i = 0; i < tokenIds.Size(); i++ ) {
 		rawWordTokens.Add( getToken( tokenIds[i] ) );
 	}
@@ -171,14 +173,25 @@ void CBytePairEncoder::LoadDictionary( const CWordDictionary& _tokens, bool _use
 	tokens.DeleteAll();
 	ClearCache();
 
+	// Sort words descending
 	CWordDictionary finalizedDictionary;
 	_tokens.CopyTo( finalizedDictionary );
-	finalizedDictionary.Finalize( 1 );
+
+	finalizedDictionary.Finalize( INT64_MIN );
 	for( int i = 0; i < finalizedDictionary.Size(); i++ ) {
 		const CString newToken = finalizedDictionary.GetWord( i );
 		NeoAssert( !tokenToId.Has( newToken ) );
 		tokenToId.Add( newToken, tokens.Size() );
 		tokens.Add( newToken );
+	}
+}
+
+void CBytePairEncoder::GetDictionary( CWordDictionary& output ) const
+{
+	output.Empty();
+	output.AddWord( UnkToken, 0 );
+	for( int i = 0; i < tokens.Size(); ++i ) {
+		output.AddWord( tokens[i], -i - 1 );
 	}
 }
 
@@ -196,9 +209,7 @@ void CBytePairEncoder::DoEncode( const CString& word, CArray<int>& tokenIds,
 		for( int i = 0; i < wordTokens.Size() - 1; i++ ) {
 			const CString pair = MergeTokens( wordTokens[i], wordTokens[i + 1] );
 			const int pairIndex = getTokenIndex( pair );
-			if( pairIndex != UnknownTokenId
-				&& pairIndex < bestPairIndex )
-			{
+			if( pairIndex != UnknownTokenId	&& pairIndex < bestPairIndex ) {
 				bestPairIndex = pairIndex;
 				bestMergePos = i;
 			}
@@ -217,6 +228,7 @@ void CBytePairEncoder::DoEncode( const CString& word, CArray<int>& tokenIds,
 	}
 
 	NeoAssert( wordTokens.Size() == wordTokenLengths.Size() );
+	tokenIds.SetBufferSize( tokenIds.Size() + wordTokens.Size() );
 	for( int i = 0; i < wordTokens.Size(); i++ ) {
 		tokenIds.Add( getTokenIndex( wordTokens[i] ) );
 	}
@@ -242,7 +254,7 @@ CString CBytePairEncoder::getToken( int tokenId ) const
 
 	if( tokenId == UnknownTokenId ) {
 		// Unknown token.
-		return "<UNK>";
+		return UnkToken;
 	} else {
 		return tokens[tokenId - 1];
 	}
