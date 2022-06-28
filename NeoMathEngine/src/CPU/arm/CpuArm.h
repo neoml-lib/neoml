@@ -628,7 +628,7 @@ public:
 		// Perform a floorf
 		float32x4_t toIntAndBack = vcvtq_f32_s32( vcvtq_s32_f32( n ) );
 		uint32x4_t mask = vcgtq_f32( toIntAndBack, n );
-		mask = vandq_u32( mask, vdupq_n_s32( 1 ) );
+		mask = vandq_u32( mask, vreinterpretq_u32_f32( vdupq_n_f32( 1.f ) ) );
 		n = vsubq_f32( toIntAndBack, vreinterpretq_f32_u32( mask ) );
 
 		x = vsubq_f32( x, vmulq_f32( n, C1 ) );
@@ -679,7 +679,7 @@ public:
 		Poly3(vdupq_n_f32(4.0073882206207432223548376040428533830499620725419)),
 		Poly4(vdupq_n_f32(-2.06905895742501636916193336058740532558260222207)),
 		Poly5(vdupq_n_f32(0.6779636853241939027852947156614612589585157662135)),
-		Poly6(vdupq_n_f32(-0.12749724414788236804817747106717809620960121948297 - 1e-8)),
+		Poly6(vdupq_n_f32(-0.12749724414788236804817747106717809620960121948297)),
 		Poly7(vdupq_n_f32(1.04841000320826930139331087157692539801107792338888e-2)),
 		MinValue(vdupq_n_f32(FLT_MIN)),
 		FloatBias(vdupq_n_s32(127))
