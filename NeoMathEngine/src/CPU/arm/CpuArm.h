@@ -615,14 +615,15 @@ public:
 		Poly6(vdupq_n_f32(1.41290014424469272519724891748572016176588813531325e-3)),
 		Poly7(vdupq_n_f32(2.01747050601364376282735084344647908949985061826444e-4)),
 		MaxLog(vdupq_n_f32(FLT_MAX_LOG)),
-		MinLog(vdupq_n_f32(FLT_MIN_LOG))
+		MinLog(vdupq_n_f32(FLT_MIN_LOG)),
+		FloatBias(vdupq_n_s32(127))
 	{
 	}
 
 	// Calculates the exponent without checking data. Overflow may occur because of values over FLT_MAX_LOG or below FLT_MIN_LOG
 	float32x4_t ExecuteNoCheck( float32x4_t x ) const
 	{
-		// The formula: exp(x) = r * 2^n, where n = floor(0.5 + x / ln(2)), r = exp(x - n * ln(2) - n * CephesExpC2)
+		// The formula: exp(x) = r * 2^n, where n = floor(0.5 + x / ln(2)), r = exp(x - n * C1 - n * C2)
 		float32x4_t n = MultiplyAndAddNeon( vdupq_n_f32( 0.5f ), x, InvLog2 );
 
 		// Perform a floorf
@@ -631,6 +632,7 @@ public:
 		mask = vandq_u32( mask, vreinterpretq_u32_f32( vdupq_n_f32( 1.f ) ) );
 		n = vsubq_f32( toIntAndBack, vreinterpretq_f32_u32( mask ) );
 
+		// Only this way gets a correct result. MultiplyAndAddNeon( x, n, -(C1+C2) ) somehow gets wrong results 
 		x = vsubq_f32( x, vmulq_f32( n, C1 ) );
 		x = vsubq_f32( x, vmulq_f32( n, C2 ) );
 
@@ -638,7 +640,7 @@ public:
 		float32x4_t r = Polynom8Neon( x, Poly0, Poly1, Poly2, Poly3, Poly4, Poly5, Poly6, Poly7 );
 
 		// Calculate r * 2^n. Use the fact that n stores the binary exponent in bit positions from 23 to 30 (the 31 bit stores the sign)
-		int32x4_t pow2n = vshlq_n_s32( vaddq_s32( vcvtq_s32_f32( n ), vdupq_n_s32( 0x7f ) ), 23 );
+		int32x4_t pow2n = vshlq_n_s32( vaddq_s32( vcvtq_s32_f32( n ), FloatBias ), 23 );
 		return vmulq_f32( r, vreinterpretq_f32_s32( pow2n ) );
 	}
 
@@ -658,6 +660,7 @@ private:
 	const float32x4_t Poly0, Poly1, Poly2, Poly3, Poly4, Poly5, Poly6, Poly7;
 	const float32x4_t MaxLog;
 	const float32x4_t MinLog;
+	const int32x4_t FloatBias;
 };
 
 // Logarithm
