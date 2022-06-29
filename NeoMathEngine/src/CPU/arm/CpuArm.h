@@ -603,9 +603,8 @@ private:
 class CExpNeon : public CCrtAllocatedObject {
 public:
 	CExpNeon() :
-		InvLog2( vdupq_n_f32( 1.4426950408889634073599 ) ),
-		C1( vdupq_n_f32( 6.93145751953125E-1 ) ),
-		C2( vdupq_n_f32( 1.42860682030941723212E-6 ) ),
+		InvLog2(vdupq_n_f32(1.442695040888963407359924681001892137426645954153)),
+		NegLog2(vdupq_n_f32(-0.69314718055994530941723212145817656807550013436025)),
 		Poly0(vdupq_n_f32(0.99999998955224326136737550445628323296402203000823)),
 		Poly1(vdupq_n_f32(0.99999999071360726125072399571785309591215423779367)),
 		Poly2(vdupq_n_f32(0.50000069538458801897792933938736419406478763215156)),
@@ -621,9 +620,9 @@ public:
 	}
 
 	// Calculates the exponent without checking data. Overflow may occur because of values over FLT_MAX_LOG or below FLT_MIN_LOG
-	float32x4_t ExecuteNoCheck( float32x4_t x ) const
+	float32x4_t ExecuteNoCheck( const float32x4_t& x ) const
 	{
-		// The formula: exp(x) = r * 2^n, where n = floor(0.5 + x / ln(2)), r = exp(x - n * C1 - n * C2)
+		// The formula: exp(x) = r * 2^n, where n = floor(0.5 + x / ln(2)), r = exp(x - n * ln(2))
 		float32x4_t n = MultiplyAndAddNeon( vdupq_n_f32( 0.5f ), x, InvLog2 );
 
 		// Perform a floorf
@@ -632,12 +631,9 @@ public:
 		mask = vandq_u32( mask, vreinterpretq_u32_f32( vdupq_n_f32( 1.f ) ) );
 		n = vsubq_f32( toIntAndBack, vreinterpretq_f32_u32( mask ) );
 
-		// Only this way gets a correct result. MultiplyAndAddNeon( x, n, -(C1+C2) ) somehow gets wrong results 
-		x = vsubq_f32( x, vmulq_f32( n, C1 ) );
-		x = vsubq_f32( x, vmulq_f32( n, C2 ) );
-
 		// Calculate r (via the polynomial)
-		float32x4_t r = Polynom8Neon( x, Poly0, Poly1, Poly2, Poly3, Poly4, Poly5, Poly6, Poly7 );
+		float32x4_t r = Polynom8Neon( MultiplyAndAddNeon( x, n, NegLog2 ),
+			Poly0, Poly1, Poly2, Poly3, Poly4, Poly5, Poly6, Poly7 );
 
 		// Calculate r * 2^n. Use the fact that n stores the binary exponent in bit positions from 23 to 30 (the 31 bit stores the sign)
 		int32x4_t pow2n = vshlq_n_s32( vaddq_s32( vcvtq_s32_f32( n ), FloatBias ), 23 );
@@ -655,8 +651,7 @@ public:
 private:
 	// The constants used in the algorithm
 	const float32x4_t InvLog2;
-	const float32x4_t C1;
-	const float32x4_t C2;
+	const float32x4_t NegLog2;
 	const float32x4_t Poly0, Poly1, Poly2, Poly3, Poly4, Poly5, Poly6, Poly7;
 	const float32x4_t MaxLog;
 	const float32x4_t MinLog;
