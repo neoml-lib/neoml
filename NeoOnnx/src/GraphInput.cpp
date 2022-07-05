@@ -46,7 +46,7 @@ CPtr<const CUserTensor> CGraphInput::AddSourceLayer( CDnn& dnn ) const
 			outputShape.Last() = 1;
 		}
 	}
-	CheckNeoOnnxSupport( outputShape.Size() < BD_Count, "Tensor has too many dimensions" );
+	CheckNeoOnnxSupport( outputShape.Size() <= BD_Count, "Tensor has too many dimensions" );
 
 	CheckNeoOnnxSupport( valueInfo.type().has_tensor_type(), "Only tensors supported for graph input values" );
 	CBlobDesc outputBlobDesc(
