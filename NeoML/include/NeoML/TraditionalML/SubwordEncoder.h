@@ -49,14 +49,19 @@ public:
 	void Encode( const CString& word, CArray<int>& tokenIds,
 		CArray<int>& tokenLengths ) const override final;
 
-	// Sets the cache cleanup period.
+	// Cache cleanup period
 	// The cache is used for Encode calls acceleration.
 	// The result of the encode call is cached and will be erased if 
 	// no call with the same word will occur among next 1-2 X cachePeriod calls.
+	int GetCachePeriod() const { return cache.GetCachePeriod(); }
+
+	// Sets the cache cleanup period.
 	// Increase in cachePeriod leads to a in increase in memory consumption.
 	// To completely switch the cache off set cachePeriod equal to -1.
 	// Value 0 is treated as invalid.
 	void SetCachePeriod( int cachePeriod ) const { cache.SetCachePeriod( cachePeriod ); }
+
+	// Clears cache.
 	void ClearCache() const { cache.Clear(); }
 
 protected:
@@ -68,7 +73,9 @@ private:
 	// Internal cache for encoding requests.
 	class CCache {
 	public:
-		CCache() : cacheTime( 0 ), cachePeriod( 1000000 ) {}
+		CCache() : cacheTime( 0 ), cachePeriod( 50000 ) {}
+		// Cache cleanup period
+		int GetCachePeriod() const { return cachePeriod; }
 		// Sets the cache cleanup period
 		void SetCachePeriod( int newPeriod );
 		// Requests data from cache.
@@ -77,6 +84,7 @@ private:
 		// Adds data to cache.
 		void Add( const CString& word, const CArray<int>& tokenIds,
 			const CArray<int>& tokenLengths );
+		// Clears cache.
 		void Clear() { cacheTime = 0; wordCache.DeleteAll(); }
 
 	private:
@@ -112,9 +120,18 @@ public:
 	virtual bool UseStartOfWordToken() const = 0;
 
 	// Initializes the encoder. Can be safely used only once.
-	virtual void LoadDictionary( const CWordDictionary& tokens, bool useEndOfWordToken, bool useStartOfWordToken ) = 0;
-	// Returns the BPE vocabulary. The preservation of the original frequencies is not guaranteed.
-	virtual void GetDictionary( CWordDictionary& tokens ) const = 0;
+	// Every token except the letters must be a concatenation of two smaller tokens.
+	// Start-of-Word and End-of-Word are automatically added to the input word when encoding.
+	// If not empty, startOfWordToken and endOfWordToken must be contained in 'tokens' exactly only once as a separate token.
+	// As a part of longer tokens, startOfWordToken can be located only in the beginning,
+	// endOfWordToken can be located only in the end of a token
+	virtual void LoadDictionary( const CWordDictionary& tokens, 
+		const CString& endOfWordToken, const CString& startOfWordToken ) = 0;
+
+	// Returns the BPE vocabulary. The preservation of the original frequencies and EoW/BoW symbols is not guaranteed.
+	// If End-of-Word and Start-of-Word are disabled, the parameter values are ignored.
+	virtual void GetDictionary( CWordDictionary& tokens, 
+		const CString& endOfWordToken = "</s>", const CString& startOfWordToken = "<s>" ) const = 0;
 };
 
 } // namespace NeoML

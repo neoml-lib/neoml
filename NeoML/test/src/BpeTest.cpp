@@ -196,7 +196,7 @@ TEST_F( CBpeTest, Ambiguous )
 	dictionary.AddWord( "a", 2 );
 	dictionary.AddWord( "b", 1 );
 	CPtr<IBytePairEncoder> tokenizer = CheckCast<IBytePairEncoder>( CreateModel( BytePairEncoderModelName ) );
-	tokenizer->LoadDictionary( dictionary, false, false );
+	tokenizer->LoadDictionary( dictionary, "", "" );
 
 	CArray<int> tokenIds, tokenLengths;
 	tokenizer->Encode( "aaa", tokenIds, tokenLengths );
@@ -227,4 +227,63 @@ TEST_F( CBpeTest, Ambiguous )
 	EXPECT_EQ( 1, tokenLengths[1] );
 	EXPECT_EQ( 2, tokenLengths[2] );
 	EXPECT_EQ( 1, tokenLengths[3] );
+}
+
+TEST_F( CBpeTest, LoadIncorrectDictionary )
+{
+	CPtr<IBytePairEncoder> tokenizer = CheckCast<IBytePairEncoder>( CreateModel( BytePairEncoderModelName ) );
+
+	CWordDictionary badDictionary;
+	badDictionary.AddWord( "a@a", 3 );
+	badDictionary.AddWord( "a", 2 );
+	EXPECT_THROW( tokenizer->LoadDictionary( badDictionary, "@", "" ), CCheckException );
+
+	CWordDictionary dictionary;
+	dictionary.AddWord( "aa@@", 5 );
+	dictionary.AddWord( "a", 3 );
+	// aa@@ is inseparable
+	EXPECT_THROW( tokenizer->LoadDictionary( dictionary, "", "" ), CCheckException );
+	dictionary.AddWord( "aa", 10 );
+	// no single '@@'
+	EXPECT_THROW( tokenizer->LoadDictionary( dictionary, "@@", "" ), CCheckException );
+	dictionary.AddWord( "@@", 1 );
+	// confused BoW-EoW
+	EXPECT_THROW( tokenizer->LoadDictionary( dictionary, "", "@@" ), CCheckException );
+	// wrong symbol
+	EXPECT_THROW( tokenizer->LoadDictionary( dictionary, "!", "" ), CCheckException );
+}
+
+TEST_F( CBpeTest, SaveLoadDictionary )
+{
+	CPtr<IBytePairEncoder> tokenizer = CheckCast<IBytePairEncoder>( CreateModel( BytePairEncoderModelName ) );
+
+	CWordDictionary dictionary;
+	dictionary.AddWord( "aa@", 4 );
+	dictionary.AddWord( "aa", 3 );
+	dictionary.AddWord( "a", 2 );
+	dictionary.AddWord( "@", 1 );
+	tokenizer->LoadDictionary( dictionary, "@", "" );
+
+	CArray<int> tokenIds, tokenLengths;
+	tokenizer->Encode( "a", tokenIds, tokenLengths );
+	ASSERT_EQ( 2, tokenLengths.Size() );
+	EXPECT_EQ( 1, tokenLengths[0] );
+	EXPECT_EQ( 0, tokenLengths[1] );
+	tokenIds.DeleteAll();
+	tokenLengths.DeleteAll();
+
+	tokenizer->Encode( "aa", tokenIds, tokenLengths );
+	ASSERT_EQ( 1, tokenLengths.Size() );
+	tokenIds.DeleteAll();
+	tokenLengths.DeleteAll();	
+
+	CWordDictionary outDictionary;
+	tokenizer->GetDictionary( outDictionary );
+	EXPECT_EQ( 4, outDictionary.Size() );
+	// Default EoW is '</s>'
+	EXPECT_TRUE( outDictionary.HasWord( "aa</s>" ) );
+	EXPECT_TRUE( outDictionary.HasWord( "aa" ) );
+	EXPECT_TRUE( outDictionary.HasWord( "a" ) );
+	EXPECT_TRUE( outDictionary.HasWord( "</s>" ) );
+	EXPECT_FALSE( outDictionary.HasWord( "@" ) );
 }

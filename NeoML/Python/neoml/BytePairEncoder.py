@@ -159,3 +159,22 @@ class BytePairEncoder():
         if not self.is_loaded:
             return None
         return self._internal.use_sow()
+
+    @property
+    def cache_period(self) -> tp.Optional[int]:
+        """Returns the cache cleanup period. The cache is used for Encode calls acceleration.
+        The result of the encode call is cached and will be erased if 
+        no call with the same word will occur among next 1-2 X cachePeriod calls.
+        :rtype: int.
+        """
+        if not self.is_loaded:
+            return None
+        return self._internal.get_cache_period()
+
+    @cache_period.setter
+    def cache_period(self, period: int) -> None:
+        """Sets the cache cleanup period.
+        """
+        if not self.is_loaded:
+            raise ValueError("Encoder is not initialized.")
+        return self._internal.set_cache_period(period)

@@ -71,12 +71,15 @@ void CWordDictionary::AddWord( const CString& word, long long count )
 {
 	int id = 0;
 	if( !wordToId.Lookup( word, id ) ) {
+		NeoAssert( count > 0 );
 		wordToId.Set( word, words.Size() );
 		words.Add( CWordWithCount{ word, count } );
 	} else {
 		words[id].Count += count;
+		NeoAssert( words[id].Count >= 0 );
 	}
 	totalWordsUseCount += count;
+	NeoAssert( totalWordsUseCount >= 0 );
 }
 
 void CWordDictionary::AddDictionary( const CWordDictionary& newDictionary )
@@ -139,6 +142,7 @@ long long CWordDictionary::GetWordUseCount( const CString& word ) const
 double CWordDictionary::GetWordFrequency( int id ) const
 {
 	checkId( id );
+	NeoAssert( totalWordsUseCount > 0 );
 	return static_cast<double>( words[id].Count ) / totalWordsUseCount;
 }
 

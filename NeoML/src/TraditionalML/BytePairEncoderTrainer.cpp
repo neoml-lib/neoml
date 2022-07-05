@@ -21,6 +21,10 @@ limitations under the License.
 
 namespace NeoML {
 
+// Special tokens.
+static const CString StartOfWordTokenInternal( "/\xFF" );
+static const CString EndOfWordTokenInternal( "\\\xFF" );
+
 ///////////////////////////////////////////////////////////////////////////////
 
 CBytePairEncoderTrainer::CBytePairEncoderTrainer( const CParams& params_, const CWordDictionary& dictionary ) :
@@ -84,7 +88,9 @@ bool CBytePairEncoderTrainer::IsTrainingCompleted() const
 CPtr<IBytePairEncoder> CBytePairEncoderTrainer::GetEncoder() const
 {
 	CPtr<IBytePairEncoder> encoder = new CBytePairEncoder();
-	encoder->LoadDictionary( tokensDictionary, params.UseEndOfWordToken, params.UseStartOfWordToken );
+	encoder->LoadDictionary( tokensDictionary, 
+		params.UseEndOfWordToken ? EndOfWordTokenInternal : "", 
+		params.UseStartOfWordToken ? StartOfWordTokenInternal : "" );
 	return encoder;
 }
 
@@ -106,7 +112,9 @@ void CBytePairEncoderTrainer::createTrainData( const CWordDictionary& dictionary
 	trainCounts.SetSize( dictionary.Size() );
 	for( int i = 0; i < dictionary.Size(); i++ ) {
 		CBytePairEncoder::SplitWordIntoInitialTokens( dictionary.GetWord( i ), 
-			params.UseStartOfWordToken, params.UseEndOfWordToken, trainWords[i] );
+			params.UseStartOfWordToken ? StartOfWordTokenInternal : "", 
+			params.UseEndOfWordToken ? EndOfWordTokenInternal : "", 
+			trainWords[i] );
 		trainCounts[i] = dictionary.GetWordUseCount( i );
 	}
 }

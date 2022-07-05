@@ -24,8 +24,6 @@ namespace NeoML {
 // Class that encodes a UTF-8 word using byte-pair-encoding.
 class NEOML_API CBytePairEncoder : public IBytePairEncoder {
 public:
-	CBytePairEncoder();
-
 	// ISubwordEncoder:
 	void Decode( const CArray<int>& tokenIds, CArray<CString>& words ) const override;
 	int Size() const override;
@@ -34,12 +32,13 @@ public:
 	// IBytePairEncoder:
 	bool UseEndOfWordToken() const override { return useEndOfWordToken; }
 	bool UseStartOfWordToken() const override { return useStartOfWordToken; }
-	void LoadDictionary( const CWordDictionary& tokens, bool useEndOfWordToken, bool useStartOfWordToken ) override;
-	void GetDictionary( CWordDictionary& tokens ) const override;
+	void LoadDictionary( const CWordDictionary& tokens, 
+		const CString& endOfWordToken, const CString& startOfWordToken ) override;
+	void GetDictionary( CWordDictionary& tokens, const CString& endOfWordToken, const CString& startOfWordToken ) const override;
 
 	// Splits a word into initial tokens: single unicode characters + special tokens (optional).
-	static void SplitWordIntoInitialTokens( const CString& word, bool useStartOfWordToken,
-		bool useEndOfWordToken, CArray<CString>& initialTokens, CArray<int>* initialTokensLength = nullptr );
+	static void SplitWordIntoInitialTokens( const CString& word, const CString& startOfWordToken,
+		 const CString& endOfWordToken, CArray<CString>& initialTokens, CArray<int>* initialTokensLength = nullptr );
 	// Concatenates tokens.
 	static CString MergeTokens( const CString& first, const CString& second );
 
@@ -54,16 +53,18 @@ private:
 	// Reverse Map: Token -> Token index in tokens array.
 	CMap<CString, int> tokenToId;
 
-	// Special flags usage flags.
-	bool useEndOfWordToken;
-	bool useStartOfWordToken;
+	// Special tokens usage flags.
+	bool useStartOfWordToken = false;
+	bool useEndOfWordToken = true;
 
 	int getTokenIndex( const CString& token ) const;
 	CString getToken( int tokenId ) const;
 
 	void removeSpecialTokens( CString& token, bool& hasEoW, bool& hasSoW ) const;
-	bool removeEoWToken( CString& token ) const;
-	bool removeSoWToken( CString& token ) const;
+	bool replaceEoWToken( CString& token, const CString& eowToken, const CString& replacement ) const;
+	bool replaceSoWToken( CString& token, const CString& sowToken, const CString& replacement ) const;
+
+	static CString findInseparableToken( const CWordDictionary& dictionary, const CArray<CString>& auxTokens );
 };
 
 } // namespace NeoML
