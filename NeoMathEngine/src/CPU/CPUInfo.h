@@ -158,7 +158,7 @@ struct CCPUInfo {
 			return false;
 		}
 
-		callCpuId( regs, 7 );
+		callCpuIdEx( regs, 7, 0 );
 
 		const unsigned int avx2Bit = ( 1 << 5 );
 		const bool avx2IsAvailable = ( regs.ebx & avx2Bit ) == avx2Bit;
