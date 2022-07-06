@@ -177,4 +177,8 @@ class BytePairEncoder():
         """
         if not self.is_loaded:
             raise ValueError("Encoder is not initialized.")
+        
+        # -1 disables cache, 0 causes assert
+        if period < 1:
+            period = -1
         return self._internal.set_cache_period(period)

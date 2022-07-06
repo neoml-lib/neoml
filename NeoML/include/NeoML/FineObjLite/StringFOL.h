@@ -29,6 +29,9 @@ public:
 
 	operator const char*() const { return data(); }
 
+	char operator[]( int pos ) const { return std::string::operator[]( static_cast<size_t>(pos) ); }
+	char& operator[]( int pos ) { return std::string::operator[]( static_cast<size_t>(pos) ); }
+
 	bool IsEmpty() const { return empty(); }
 	int Length() const { return static_cast<int>( size() ); }
 	int Find( const CString& other ) const;

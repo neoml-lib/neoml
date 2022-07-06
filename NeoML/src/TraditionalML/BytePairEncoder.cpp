@@ -68,7 +68,7 @@ void CBytePairEncoder::SplitWordIntoInitialTokens( const CString& word, const CS
 	}
 
 	for( int curPos = 0; curPos < word.Length(); ) {
-		const int charLength = getUtf8CharLength( word[static_cast< unsigned int >( curPos )] );
+		const int charLength = getUtf8CharLength( word[curPos] );
 		NeoAssert( charLength > 0 );
 		NeoAssert( curPos + charLength <= word.Length() );
 		initialTokens.Add( CString( ( const char* )word + curPos, charLength ) );
@@ -185,7 +185,7 @@ void CBytePairEncoder::LoadDictionary( const CWordDictionary& _tokens,
 
 	// Import vocabulary
 	for( int i = 0; i < finalizedDictionary.Size(); i++ ) {
-		auto&& token = finalizedDictionary.GetWord( i );
+		auto token = finalizedDictionary.GetWord( i );
 		NeoAssert( !tokenToId.Has( token ) );
 
 		// To encode input texts safely, we replace EOW/SOW with unprintable symbols.
@@ -237,7 +237,7 @@ CString CBytePairEncoder::findInseparableToken( const CWordDictionary& dictionar
 			continue;
 		}
 
-		auto&& token = dictionary.GetWord( i );
+		auto token = dictionary.GetWord( i );
 		const int charLength = getUtf8CharLength( token[0] );
 		if( charLength == token.Length() ) {
 			// ok, single letter
