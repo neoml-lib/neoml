@@ -16,8 +16,8 @@
 		- [CSimpleGenerator](#csimplegenerator)
 	- [Dimensionality reduction](#dimensionality-reduction)
 		- [Principal component analysis](#principal-component-analysis)
-  - [Subword encoding for language modelling](#subword-encoding)
-    - [Byte pair encoding](#byte-pair-encoding)
+	- [Subword encoding for language modelling](#subword-encoding-for-language-modelling)
+		- [Byte pair encoding](#byte-pair-encoding)
 
 <!-- TOC -->
 
@@ -489,6 +489,12 @@ public:
 	// Returns encoder flags.
 	virtual bool UseEndOfWordToken() const = 0;
 	virtual bool UseStartOfWordToken() const = 0;
+
+	// Word with vocabulary directly. See below.
+	virtual void LoadDictionary( const CWordDictionary& tokens, 
+		const CString& endOfWordToken, const CString& startOfWordToken ) = 0;
+	virtual void GetDictionary( CWordDictionary& tokens, 
+		const CString& endOfWordToken = "</s>", const CString& startOfWordToken = "<s>" ) const = 0;
 };
 ```
 
@@ -542,3 +548,11 @@ How to use:
 2. Create `CBytePairEncoderTrainer` instance with desired `CParams` and the dictionary.
 3. Call `Train` method of encoder trainer.
     * Use `TrainSteps` method if you want to perform partial training of encoder. To get partially trained encoder use `GetEncoder` method.
+
+
+For debug reasons, `IBytePairEncoder` also provides direct methods for loading an externally created dictionary or exporting its own (`LoadDictionary` and `GetDictionary`). An external dictionary must be valid for using with our encoder:
+1. Every token except the letters must be a concatenation of two smaller tokens.
+2. If used, End-Of-Word can be located only in the end of a token. If used, Start-Of-Word can be located only in the beginning of a token.
+3. If used, End-Of-Word and Start-Of-Word must be contained in the dictionary as separate tokens (which is just an implication from rules above).
+
+`IBytePairEncoder` replaces user-defined End-Of-Word and Start-Of-Word marks with special unreadable symbols unlikely to appear in any text. Therefore, the original marks are lost and should be given as arguments of `GetDictionary`.
