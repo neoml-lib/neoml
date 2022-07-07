@@ -56,6 +56,7 @@ CCpuMathEngine::CCpuMathEngine( int _threadCount, size_t _memoryLimit,
 	memoryAlignment( floatAlignment * sizeof(float) ),
 	communicator( communicator ),
 	distributedInfo( distributedInfo ),
+	// TODO: turn memory pools on for distributed CPU after fixing OMP problem
 	memoryPool( new CMemoryPool( _memoryLimit == 0 ? SIZE_MAX : _memoryLimit, this, false ) ),
 	stackAllocator( new CDeviceStackAllocator( *memoryPool, memoryAlignment ) ),
 	dllLoader( CDllLoader::AVX_DLL ),
