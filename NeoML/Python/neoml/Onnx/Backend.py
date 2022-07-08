@@ -25,20 +25,20 @@ class BackendRep:
 			math_engine = neoml.MathEngine.CpuMathEngine(1)
 		else:
 			math_engine = neoml.MathEngine.GpuMathEngine()
-		self.dnn, self.inputs, self.outputs, self.metadata = load_from_buffer(model.SerializeToString(), math_engine)
+		self.dnn, self.info = load_from_buffer(model.SerializeToString(), math_engine)
 	
 	def run(self, inputs, **kwargs):
 		neoml_inputs = dict()
 		for idx, onnx_input in enumerate(inputs):
 			neoml_shape = list(onnx_input.shape) + [1] * (7 - len(onnx_input.shape))
 			neoml_blob = neoml.Blob.asblob(self.dnn.math_engine, onnx_input, neoml_shape)
-			neoml_inputs[self.inputs[idx]] = neoml_blob
+			neoml_inputs[self.info.inputs[idx].name] = neoml_blob
 		neoml_outputs = self.dnn.run(neoml_inputs)
 		result = list()
-		for output in self.outputs:
-			out_blob = neoml_outputs[output[0]]
+		for output in self.info.outputs:
+			out_blob = neoml_outputs[output.name]
 			result.append(out_blob.asarray())
-			result[-1].resize(out_blob.shape[:output[1]])
+			result[-1].resize(out_blob.shape[:output.dim_count])
 		return result
 
 

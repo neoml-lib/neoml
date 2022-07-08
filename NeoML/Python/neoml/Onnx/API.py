@@ -17,13 +17,35 @@ limitations under the License.
 import neoml.PythonWrapper as PythonWrapper
 import neoml.Dnn
 
+
+class ImportedModelInputInfo:
+	__slots__ = ['name']
+	def __init__(self, name):
+		self.name = name
+
+
+class ImportedModelOutputInfo:
+	__slots__ = ['name', 'dim_count']
+	def __init__(self, name, dim_count):
+		self.name = name
+		self.dim_count = dim_count
+
+
+class ImportedModelInfo:
+	__slots__ = ['inputs', 'outputs', 'metadata']
+	def __init__(self):
+		self.inputs = list()
+		self.outputs = list()
+		self.metadata = dict()
+
+
 def load_from_file(file_name, math_engine):
 	dnn = neoml.Dnn.Dnn(math_engine)
-	inputs, outputs, metadata = PythonWrapper.load_onnx_from_file(file_name, dnn)
-	return dnn, inputs, outputs, metadata
+	model_info = PythonWrapper.load_onnx_from_file(file_name, dnn)
+	return dnn, model_info
 
 
 def load_from_buffer(buffer, math_engine):
 	dnn = neoml.Dnn.Dnn(math_engine)
-	inputs, outputs, metadata = PythonWrapper.load_onnx_from_buffer(buffer, dnn)
-	return dnn, inputs, outputs, metadata
+	model_info = PythonWrapper.load_onnx_from_buffer(buffer, dnn)
+	return dnn, model_info

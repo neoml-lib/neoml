@@ -21,53 +21,50 @@ limitations under the License.
 
 #include <NeoOnnx/NeoOnnx.h>
 
-py::tuple wrapResults( const CArray<const char*>& cArrInputs, const CArray<NeoOnnx::COutputInfo>& cArrOutputs,
-	const CMap<CString, CString>& cMapMetadata )
+py::object wrapResults( const NeoOnnx::CImportedModelInfo& cInfo )
 {
-	py::list inputs;
-	for( int i = 0; i < cArrInputs.Size(); ++i ) {
-		inputs.append( py::str( cArrInputs[i] ) );
+	py::object pyModule = py::module::import( "neoml.Onnx" );
+	py::object pyInfoConstructor = pyModule.attr( "ImportedModelInfo" );
+	py::object pyInputConstructor = pyModule.attr( "ImportedModelInputInfo" );
+	py::object pyOutputConstructor = pyModule.attr( "ImportedModelOutputInfo" );
+
+	py::object info = pyInfoConstructor();
+	py::list inputs = info.attr( "inputs" );
+	for( int i = 0; i < cInfo.Inputs.Size(); ++i ) {
+		inputs.append( pyInputConstructor( py::str( cInfo.Inputs[i].Name ) ) );
 	}
-	py::list outputs;
-	for( int i = 0; i < cArrOutputs.Size(); ++i ) {
-		py::tuple currOutputInfo( 2 );
-		currOutputInfo[0] = py::str( static_cast<const char*>( cArrOutputs[i].Name ) );
-		currOutputInfo[1] = py::int_( cArrOutputs[i].DimCount );
-		outputs.append( currOutputInfo );
+	py::list outputs = info.attr( "outputs" );
+	for( int i = 0; i < cInfo.Outputs.Size(); ++i ) {
+		outputs.append( pyOutputConstructor( py::str( cInfo.Outputs[i].Name ), py::int_( cInfo.Outputs[i].DimCount ) ) );
 	}
-	py::dict metadata;
+	py::dict metadata = info.attr( "metadata" );
+	const CMap<CString, CString>& cMapMetadata = cInfo.Metadata;
 	for( int pos = cMapMetadata.GetFirstPosition(); pos != NotFound; pos = cMapMetadata.GetNextPosition( pos ) ) {
-		metadata[py::str(static_cast<const char*>(cMapMetadata.GetKey(pos)))] = py::str(static_cast<const char*>(cMapMetadata.GetKey(pos)));
+		metadata[py::str( cMapMetadata.GetKey( pos ) )] = py::str( cMapMetadata.GetKey( pos ) );
 	}
-	py::tuple result( 3 );
-	result[0] = inputs;
-	result[1] = outputs;
-	result[2] = metadata;
-	return result;
+	return info;
 }
 
-py::tuple loadFromFile(const std::string& fileName, CPyDnn& pyDnn)
+py::object loadFromFile(const std::string& fileName, CPyDnn& pyDnn)
 {
-	CArray<const char*> cArrInputs;
-	CArray<NeoOnnx::COutputInfo> cArrOutputs;
-	CMap<CString, CString> cMapMetadata;
+	NeoOnnx::CImportedModelInfo modelInfo;
 	{
 		py::gil_scoped_release release;
-		NeoOnnx::LoadFromOnnx( fileName.data(), pyDnn.Dnn(), cArrInputs, cArrOutputs, cMapMetadata );
+		NeoOnnx::CImportSettings settings;
+		NeoOnnx::LoadFromOnnx( fileName.data(), settings, pyDnn.Dnn(), modelInfo );
 	}
-	return wrapResults( cArrInputs, cArrOutputs, cMapMetadata );
+	return wrapResults( modelInfo );
 }
 
-py::tuple loadFromBuffer(const std::string& buffer, CPyDnn& pyDnn)
+py::object loadFromBuffer(const std::string& buffer, CPyDnn& pyDnn)
 {
-	CArray<const char*> cArrInputs;
-	CArray<NeoOnnx::COutputInfo> cArrOutputs;
-	CMap<CString, CString> cMapMetadata;
+	NeoOnnx::CImportedModelInfo modelInfo;
 	{
 		py::gil_scoped_release release;
-		NeoOnnx::LoadFromOnnx( buffer.data(), buffer.size(), pyDnn.Dnn(), cArrInputs, cArrOutputs, cMapMetadata );
+		NeoOnnx::CImportSettings settings;
+		NeoOnnx::LoadFromOnnx( buffer.data(), buffer.size(), settings, pyDnn.Dnn(), modelInfo );
 	}
-	return wrapResults( cArrInputs, cArrOutputs, cMapMetadata );
+	return wrapResults( modelInfo );
 }
 
 void InitializeOnnx(py::module& m)
