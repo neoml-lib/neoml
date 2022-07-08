@@ -129,7 +129,7 @@ if(DEFINED ENV{Protobuf_ROOT} AND (IOS OR ANDROID))
     list(APPEND CMAKE_FIND_ROOT_PATH $ENV{Protobuf_ROOT})
 endif()
 
-if(USE_FINE_OBJECTS)
+if(USE_FINE_OBJECTS OR Protobuf_SRC_ROOT)
     if(NOT WIN32 AND NOT LINUX)
         message(FATAL_ERROR "NeoOnnx works with FineObj only on Windows or Linux")
     endif()
@@ -143,8 +143,13 @@ if(USE_FINE_OBJECTS)
     set(protobuf_WITH_ZLIB OFF CACHE BOOL "")
     set(protobuf_BUILD_PROTOC_BINARIES ON CACHE BOOL "")
     set(protobuf_BUILD_SHARED_LIBS OFF CACHE BOOL "")
-    add_subdirectory("${FINE_ROOT}/ThirdParty/protobuf/cmake"
-        "${CMAKE_BINARY_DIR}/protobuf" EXCLUDE_FROM_ALL)
+    if(USE_FINE_OBJECTS)
+        add_subdirectory("${FINE_ROOT}/ThirdParty/protobuf/cmake"
+            "${CMAKE_BINARY_DIR}/protobuf" EXCLUDE_FROM_ALL)
+    else()
+        add_subdirectory("${Protobuf_SRC_ROOT}/cmake"
+            "${CMAKE_BINARY_DIR}/protobuf" EXCLUDE_FROM_ALL)
+    endif()
     if(LINUX)
         target_compile_options(libprotobuf PRIVATE -Wno-stringop-overflow)
         target_compile_options(libprotobuf-lite PRIVATE -Wno-stringop-overflow)
@@ -154,11 +159,13 @@ if(USE_FINE_OBJECTS)
         set(CMAKE_UNITY_BUILD ${NeoML_UNITY_BUILD})
     endif()
 
-    target_link_libraries(${PROJECT_NAME} PRIVATE FineObjects)
+    if(USE_FINE_OBJECTS)
+        target_link_libraries(${PROJECT_NAME} PRIVATE FineObjects)
 
-    # Todo: properly link FineStlStaticPart if any problems occure
-    if(MSVC)
-        target_link_libraries(${PROJECT_NAME} PRIVATE "msvcprt$<$<CONFIG:Debug>:d>")
+        # Todo: properly link FineStlStaticPart if any problems occure
+        if(MSVC)
+            target_link_libraries(${PROJECT_NAME} PRIVATE "msvcprt$<$<CONFIG:Debug>:d>")
+        endif()
     endif()
 else()
     set(Protobuf_USE_STATIC_LIBS ON)
