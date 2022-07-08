@@ -103,7 +103,7 @@ static void processOperator( const COperator& op, CTensorCache& tensors, CDnn& d
 
 // Builds dnn based on GraphProto
 static void buildDnnFromGraphProto( const onnx::GraphProto& onnxGraph, int opsetVersion,
-	CDnn& dnn, CArray<const char*>& inputs, CArray<const char*>& outputs )
+	CDnn& dnn, CArray<CImportedModelInfo::CInputInfo>& inputs, CArray<CImportedModelInfo::COutputInfo>& outputs)
 {
 	CheckOnnxProtocol( opsetVersion > 0, "Wrong onnx version: " + Str( opsetVersion ) );
 	CheckNeoOnnxSupport( opsetVersion <= MaxOpsetVersion, "Unsupported opset version: " + Str( opsetVersion ) );
@@ -132,7 +132,8 @@ static void buildDnnFromGraphProto( const onnx::GraphProto& onnxGraph, int opset
 		CGraphInput graphInput( onnxInput );
 		CPtr<const CUserTensor> inputTensor = graphInput.AddSourceLayer( dnn ).Ptr();
 		tensors.Add( graphInput.Name(), inputTensor.Ptr() );
-		inputs.Add( inputTensor->Layer()->GetName() );
+		CImportedModelInfo::CInputInfo& inputInfo = inputs.Append();
+		inputInfo.Name = CString( inputTensor->Layer()->GetName() );
 	}
 
 	// Add graph operators
@@ -148,7 +149,9 @@ static void buildDnnFromGraphProto( const onnx::GraphProto& onnxGraph, int opset
 		const CPtr<const CTensorBase>& baseTensor = tensors[output.Name()];
 		CheckNeoOnnxSupport( !baseTensor->IsCalculated(), "constant network output" );
 		CPtr<const CSinkLayer> sink = output.AddSinkLayer( dynamic_cast<const CUserTensor&>( *baseTensor ), dnn );
-		outputs.Add( sink->GetName() );
+		CImportedModelInfo::COutputInfo& outputInfo = outputs.Append();
+		outputInfo.Name = CString( sink->GetName() );
+		outputInfo.DimCount = baseTensor->DimCount();
 	}
 }
 
@@ -161,8 +164,8 @@ static void extractMetadata( const onnx::ModelProto& model, CMap<CString, CStrin
 	}
 }
 
-void LoadFromOnnx( const char* fileName, CDnn& dnn, CArray<const char*>& inputs,
-	CArray<const char*>& outputs, CMap<CString, CString>& metadata )
+void LoadFromOnnx( const char* fileName, const CImportSettings&,
+	CDnn& dnn, CImportedModelInfo& info )
 {
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
 
@@ -178,8 +181,8 @@ void LoadFromOnnx( const char* fileName, CDnn& dnn, CArray<const char*>& inputs,
 			NeoOnnxCheck( false, CString( "Failed to parse model from file " ) + fileName );
 		}
 
-		buildDnnFromGraphProto( model.graph(), getOpsetVersion( model ), dnn, inputs, outputs );
-		extractMetadata( model, metadata );
+		buildDnnFromGraphProto( model.graph(), getOpsetVersion( model ), dnn, info.Inputs, info.Outputs );
+		extractMetadata( model, info.Metadata );
 	} catch( ... ) {
 		input.close();
 		google::protobuf::ShutdownProtobufLibrary();
@@ -190,8 +193,8 @@ void LoadFromOnnx( const char* fileName, CDnn& dnn, CArray<const char*>& inputs,
 	google::protobuf::ShutdownProtobufLibrary();
 }
 
-void LoadFromOnnx( const void* buffer, int bufferSize, CDnn& dnn, CArray<const char*>& inputs,
-	CArray<const char*>& outputs, CMap<CString, CString>& metadata )
+void LoadFromOnnx( const void* buffer, int bufferSize, const CImportSettings&,
+	CDnn& dnn, CImportedModelInfo& info )
 {
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
 
@@ -204,8 +207,8 @@ void LoadFromOnnx( const void* buffer, int bufferSize, CDnn& dnn, CArray<const c
 			NeoOnnxCheck( false, "Failed to parse model from buffer" );
 		}
 
-		buildDnnFromGraphProto( model.graph(), getOpsetVersion( model ), dnn, inputs, outputs );
-		extractMetadata( model, metadata );
+		buildDnnFromGraphProto( model.graph(), getOpsetVersion( model ), dnn, info.Inputs, info.Outputs );
+		extractMetadata( model, info.Metadata );
 	} catch( ... ) {
 		google::protobuf::ShutdownProtobufLibrary();
 		throw;
