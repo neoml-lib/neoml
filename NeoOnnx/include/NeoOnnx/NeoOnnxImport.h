@@ -20,9 +20,24 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-struct NEOONNX_API COutputInfo {
-	CString Name;
-	int DimCount;
+// Additional settings for ONNX import
+struct NEOONNX_API CImportSettings {
+};
+
+// Information about imported model
+struct NEOONNX_API CImportedModelInfo {
+	struct NEOONNX_API CInputInfo {
+		CString Name;
+	};
+
+	struct NEOONNX_API COutputInfo {
+		CString Name;
+		int DimCount = NotFound;
+	};
+
+	CArray<CInputInfo> Inputs;
+	CArray<COutputInfo> Outputs;
+	CMap<CString, CString> Metadata; // metadata_props
 };
 
 // The load functions build CDnn based on ONNX in the following way:
@@ -32,9 +47,8 @@ struct NEOONNX_API COutputInfo {
 // Inputs with initializers will be ignored (used for parameters calculation)
 //
 // For every onnx graph output there will be CSinkLayer with the same name
-// Graph inputs' and outputs' names will be added to the corresponding CArray's
-// ONNX model's metadata_props will be written to the metadata CMap
-// Names' pointers are attached to the corresponding layers' names
+//
+// info will be filled with information about model's inputs, outputs, metadata etc.
 //
 // Input and output blobs have the following relations with the ONNX N-dimensional tensors:
 // - first N dimensions of the blob are corresponding to the N dimensions of the ONNX tensor
@@ -46,12 +60,12 @@ struct NEOONNX_API COutputInfo {
 // Throw std::logic_error if failed to load network
 
 // Loads network "dnn" from onnx file "fileName"
-NEOONNX_API void LoadFromOnnx( const char* fileName, NeoML::CDnn& dnn, CArray<const char*>& inputs,
-	CArray<COutputInfo>& outputs, CMap<CString, CString>& metadata );
+NEOONNX_API void LoadFromOnnx( const char* fileName, const CImportSettings& settings,
+	NeoML::CDnn& dnn, CImportedModelInfo& info );
 
 // Loads network "dnn" from buffer with onnx data
-NEOONNX_API void LoadFromOnnx( const void* buffer, int bufferSize, NeoML::CDnn& dnn, CArray<const char*>& inputs,
-	CArray<COutputInfo>& outputs, CMap<CString, CString>& metadata );
+NEOONNX_API void LoadFromOnnx( const void* buffer, int bufferSize, const CImportSettings& settings,
+	NeoML::CDnn& dnn, CImportedModelInfo& info );
 
 } // namespace NeoOnnx
 
