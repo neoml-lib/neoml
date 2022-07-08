@@ -151,7 +151,6 @@ static void buildDnnFromGraphProto( const onnx::GraphProto& onnxGraph, int opset
 		CPtr<const CSinkLayer> sink = output.AddSinkLayer( dynamic_cast<const CUserTensor&>( *baseTensor ), dnn );
 		CImportedModelInfo::COutputInfo& outputInfo = outputs.Append();
 		outputInfo.Name = CString( sink->GetName() );
-		outputInfo.DimCount = baseTensor->DimCount();
 	}
 }
 
