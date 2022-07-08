@@ -104,6 +104,21 @@ backend_test.exclude('test_xor4d_')  # Xor
 backend_test.exclude('test_xor_')  # Xor
 # Operators partly supported (with comments, why test fails)
 # TODO: analyze nodes that are implemented but can't be tested...
+backend_test.exclude('test_argmax_')  # ONNX tests expect int64 index dtype
+backend_test.exclude('test_averagepool_[a-z0-9_]*_pads_')  # NeoML doesn't support pads for average pooling
+backend_test.exclude('test_averagepool_1d_')  # NeoOnnx supports only 2d average pooling
+backend_test.exclude('test_averagepool_3d_')  # NeoOnnx supports only 2d average pooling
+# NeoML doesn't support trained weights as input
+# Conv operator will be tested in PyTorchExport tests
+backend_test.exclude('test_basic_conv_')
+backend_test.exclude('test_basic_integerconv')  # NeoML doesn't support integer convolution
+# NeoML supports only INT32 <-> FLOAT32 cast (which isn't tested by ONNX tests anyway...)
+backend_test.exclude('test_cast_')
+# NeoOnnx supports Clip only when lower value is an initializer with value 0 (analogue of ReLU)
+backend_test.exclude('test_clip_')
+# NeoML doesn't support trained weights as input
+# Conv operator will be tested in PyTorchExport tests
+backend_test.exclude('test_conv')
 
 # OnnxBackendRealModelTest (a bunch of models from the model zoo)
 
@@ -130,8 +145,8 @@ backend_test.exclude('test_strnorm_model_')  # StringNormalizer
 
 # OnnxBackendPyTorchConvertedModelTest
 
-backend_test.exclude('Conv[a-z_]*group')  # Groupped convolution
-backend_test.exclude('Conv3d[a-z_]*dilated')  # 3d convolution with dilations
+backend_test.exclude('Conv[a-z0-9_]*group')  # Groupped convolution
+backend_test.exclude('Conv3d[a-z0-9_]*dilated')  # 3d convolution with dilations
 backend_test.exclude('_sparse_')  # Anything related to the sparse data
 backend_test.exclude('test_LogSoftmax')  # Contains LogSoftmax operator
 backend_test.exclude('test_PReLU')  # Contains PRelu operator
