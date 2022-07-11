@@ -57,6 +57,10 @@ protected:
 class CEluOperator : public CActivationOperatorBase {
 public:
 	CEluOperator( const onnx::NodeProto& elu, int opsetVersion );
+
+protected:
+	// CLayerOperator methods
+	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
 };
 
 // HardSigmoid operator
