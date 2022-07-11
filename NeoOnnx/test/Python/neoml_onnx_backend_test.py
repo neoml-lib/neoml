@@ -217,8 +217,6 @@ backend_test.exclude('test_operator_symbolic_override_nested_')  # Contains Neg 
 # TODO: ALARM!!! Some failing tests for future research (no explanation for failure yet...)
 backend_test.exclude('test_BatchNorm3d_')
 backend_test.exclude('test_ConvTranspose2d_')
-backend_test.exclude('test_elu_')
-backend_test.exclude('test_ELU_')
 backend_test.exclude('test_gather_negative_indices')
 backend_test.exclude('test_leakyrelu_default_')
 backend_test.exclude('test_momentum_')  # Some WEIRD stuff happens here...
