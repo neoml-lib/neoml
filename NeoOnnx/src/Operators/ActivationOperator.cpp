@@ -130,6 +130,17 @@ CEluOperator::CEluOperator( const onnx::NodeProto& elu, int opsetVersion ) :
 	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
 }
 
+void CEluOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
+{
+	CActivationOperatorBase::AddLayers( inputs, dnn, outputs );
+	CELULayer* elu = dynamic_cast<CELULayer*>( dnn.GetLayer( Name() ).Ptr() );
+	NeoAssert( elu != nullptr );
+
+	float alpha = 1;
+	GetAttribute( "alpha", alpha );
+	elu->SetAlpha( alpha );
+}
+
 //---------------------------------------------------------------------------------------------------------------------
 
 CLeakyReluOperator::CLeakyReluOperator( const onnx::NodeProto& leakyRelu, int opsetVersion ) :
