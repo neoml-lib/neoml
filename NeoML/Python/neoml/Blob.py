@@ -326,7 +326,11 @@ def asblob(math_engine, data, shape=None, copy=False):
         raise ValueError('The blob must have as many elements as ndarray')
 
     dtype = 'none'
-    if np.issubdtype(np_data.dtype, np.floating):
+    if np_data.dtype == np.float32:
+        dtype = 'float32'
+    elif np_data.dtype == np.int32:
+        dtype = 'int32'
+    elif np.issubdtype(np_data.dtype, np.floating):
         np_data = np_data.astype(np.float32)
         dtype = 'float32'
     elif np.issubdtype(np_data.dtype, np.integer):
