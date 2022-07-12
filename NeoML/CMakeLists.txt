@@ -47,8 +47,8 @@ option(NeoML_INSTALL "Install NeoML" ON)
 
 # Build NeoOnnx library
 option(NeoOnnx_BUILD "Build NeoOnnx" ON)
-if(USE_FINE_OBJECTS AND NOT WIN32 AND NOT CMAKE_SYSTEM_NAME MATCHES "Linux")
-    set(NeoOnnx_BUILD OFF CACHE BOOL "" FORCE) 
+if(NOT (WIN32 OR CMAKE_SYSTEM_NAME MATCHES "Linux" OR CMAKE_SYSTEM_NAME MATCHES "Darwin"))
+    set(NeoOnnx_BUILD OFF CACHE BOOL "" FORCE)
 endif()
 
 # Set cmake default variables and some usefull variables

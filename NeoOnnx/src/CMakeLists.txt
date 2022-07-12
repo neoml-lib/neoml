@@ -129,41 +129,51 @@ if(DEFINED ENV{Protobuf_ROOT} AND (IOS OR ANDROID))
     list(APPEND CMAKE_FIND_ROOT_PATH $ENV{Protobuf_ROOT})
 endif()
 
+if(${CMAKE_VERSION} VERSION_GREATER "3.16.0")
+    set(CMAKE_UNITY_BUILD OFF)
+endif()
+
+set(protobuf_BUILD_TESTS OFF CACHE BOOL "")
+set(protobuf_MSVC_STATIC_RUNTIME "${STATIC_NEOML}" CACHE BOOL "")
+set(protobuf_WITH_ZLIB OFF CACHE BOOL "")
+set(protobuf_BUILD_PROTOC_BINARIES ON CACHE BOOL "")
+set(protobuf_BUILD_SHARED_LIBS OFF CACHE BOOL "")
+
 if(USE_FINE_OBJECTS)
-    if(NOT WIN32 AND NOT LINUX)
-        message(FATAL_ERROR "NeoOnnx works with FineObj only on Windows or Linux")
-    endif()
-
-    if(${CMAKE_VERSION} VERSION_GREATER "3.16.0")
-        set(CMAKE_UNITY_BUILD OFF)
-    endif()
-
-    set(protobuf_BUILD_TESTS OFF CACHE BOOL "")
-    set(protobuf_MSVC_STATIC_RUNTIME "${STATIC_NEOML}" CACHE BOOL "")
-    set(protobuf_WITH_ZLIB OFF CACHE BOOL "")
-    set(protobuf_BUILD_PROTOC_BINARIES ON CACHE BOOL "")
-    set(protobuf_BUILD_SHARED_LIBS OFF CACHE BOOL "")
     add_subdirectory("${FINE_ROOT}/ThirdParty/protobuf/cmake"
         "${CMAKE_BINARY_DIR}/protobuf" EXCLUDE_FROM_ALL)
-    if(LINUX)
-        target_compile_options(libprotobuf PRIVATE -Wno-stringop-overflow)
-        target_compile_options(libprotobuf-lite PRIVATE -Wno-stringop-overflow)
-    endif()
+else()
+    include(FetchContent)
+    FetchContent_Declare(
+        protobuf
+        GIT_REPOSITORY https://github.com/protocolbuffers/protobuf.git
+        GIT_TAG v3.11.4
+    )
 
-    if(${CMAKE_VERSION} VERSION_GREATER "3.16.0")
-        set(CMAKE_UNITY_BUILD ${NeoML_UNITY_BUILD})
-    endif()
+    FetchContent_GetProperties(protobuf)
 
+    if(NOT protobuf_POPULATED)
+        FetchContent_Populate(protobuf)
+        add_subdirectory(${protobuf_SOURCE_DIR}/cmake ${protobuf_BINARY_DIR} EXCLUDE_FROM_ALL)    
+    endif()
+endif()
+
+if(LINUX)
+    target_compile_options(libprotobuf PRIVATE -Wno-stringop-overflow)
+    target_compile_options(libprotobuf-lite PRIVATE -Wno-stringop-overflow)
+endif()
+
+if(${CMAKE_VERSION} VERSION_GREATER "3.16.0")
+    set(CMAKE_UNITY_BUILD ${NeoML_UNITY_BUILD})
+endif()
+
+if(USE_FINE_OBJECTS)
     target_link_libraries(${PROJECT_NAME} PRIVATE FineObjects)
 
     # Todo: properly link FineStlStaticPart if any problems occure
     if(MSVC)
         target_link_libraries(${PROJECT_NAME} PRIVATE "msvcprt$<$<CONFIG:Debug>:d>")
     endif()
-else()
-    set(Protobuf_USE_STATIC_LIBS ON)
-
-    find_package(Protobuf REQUIRED)
 endif()
 
 set(PROTO_DIR ${CMAKE_CURRENT_BINARY_DIR}/cpp_proto/${CMAKE_CFG_INTDIR})
