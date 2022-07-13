@@ -33,7 +33,6 @@ CSoftmaxOperator::CSoftmaxOperator( const onnx::NodeProto& softmax, int opsetVer
 
 	// Negative axis index supported since v11
 	GetAttribute( "axis", axis );
-	CheckOnnxProtocol( axis >= 0 || opsetVersion >= 11, "negative axis index", *this );
 	CheckOnnxProtocol( InputCount() == 1, "operator must have 1 input", *this );
 	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
 }
@@ -54,7 +53,16 @@ void CSoftmaxOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensor
 	softmax->Connect( 0, *input->Layer(), input->OutputIndex() );
 	dnn.AddLayer( *softmax );
 
-	outputs.Add( new CUserTensor( input->Shape(), input->Layout(), CLayerOutput( softmax, 0 ) ) );
+	CBaseLayer* outLayer = softmax.Ptr();
+	if( Type() == "LogSoftmax" ) {
+		CPtr<CLogLayer> log = new CLogLayer( dnn.GetMathEngine() );
+		log->SetName( Name() + "_Log" );
+		log->Connect( *softmax );
+		dnn.AddLayer( *log );
+		outLayer = log.Ptr();
+	}
+
+	outputs.Add( new CUserTensor( input->Shape(), input->Layout(), CLayerOutput( outLayer, 0 ) ) );
 }
 
 CTensorLayout CSoftmaxOperator::getCompatibleLayout( int dimCount, int axis, const CTensorLayout& inputLayout ) const
