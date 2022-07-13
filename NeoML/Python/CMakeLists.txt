@@ -108,6 +108,11 @@ target_include_directories(PythonWrapper PRIVATE src)
 target_link_libraries(PythonWrapper PRIVATE NeoML)
 
 set_target_properties(PythonWrapper PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
+
+if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
+    set_target_properties(PythonWrapper PROPERTIES CUDA_ARCHITECTURES native)
+endif()
+
 if(APPLE)
     set_target_properties(PythonWrapper PROPERTIES INSTALL_RPATH "@loader_path")
 endif()
