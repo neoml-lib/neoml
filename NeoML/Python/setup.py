@@ -41,8 +41,7 @@ class CMakeBuild(build_ext):
         cmake_args = [
             "-DCMAKE_INSTALL_PREFIX={}".format(extdir),
             "-DCMAKE_BUILD_TYPE={}".format(cfg),
-            "-DPython3_FIND_VERSION={}.{}".format(sys.version_info.major, sys.version_info.minor),
-            "-DProtobuf_SRC_ROOT=D:\\ROOT\\STD\\protobuf_3.12.0"
+            "-DPython3_FIND_VERSION={}.{}".format(sys.version_info.major, sys.version_info.minor)
         ]
         build_args = []
 
