@@ -8,6 +8,9 @@ pytest_plugins = "onnx.backend.test.report"
 
 backend_test = onnx.backend.test.runner.Runner(neoml.Onnx, __name__)
 
+# Exclude CUDA tests for the sake of less testing time
+backend_test.exclude('_cuda')
+
 # OnnxBackendNodeModelTest (tests for single ONNX node)
 
 # NeoOnnx doesn't support any training-related things
@@ -50,7 +53,6 @@ backend_test.exclude('test_hardmax_')  # HardMax
 backend_test.exclude('test_isinf_')  # IsInf
 backend_test.exclude('test_isnan_')  # IsNan
 backend_test.exclude('test_less_')  # Less
-backend_test.exclude('test_logsoftmax_')  # LogSoftmax
 backend_test.exclude('test_matmulinteger_')  # MatMulInteger
 backend_test.exclude('test_max_')  # Max
 backend_test.exclude('test_maxunpool_')  # MaxUnpool
@@ -133,6 +135,7 @@ backend_test.exclude('test_equal_')  # NeoOnnx supports equal operator only when
 backend_test.exclude('test_expand_')  # NeoML doesn't support shape as input
 backend_test.exclude('test_gemm_')  # NeoML supports only specific case when it's an FC layer (with constant weights)
 backend_test.exclude('test_instancenorm_')  # NeoML doesn't support scales as input
+backend_test.exclude('test_logsoftmax_negative_axis_')  # NeoOnnx doesn't support softmax over more than 4 dims
 backend_test.exclude('test_lstm_')  # NeoML doesn't support trained weights as inputs
 backend_test.exclude('test_maxpool_1d_')  # NeoOnnx supports only 2d max pooling
 backend_test.exclude('test_maxpool_2d_ceil_')  # NeoML doesn't support ceil in maxpool
@@ -181,7 +184,6 @@ backend_test.exclude('test_AvgPool3d_')  # NeoOnnx supports only 2d avg pooling
 backend_test.exclude('test_Conv[a-z0-9_]*group')  # NeoML doesn't support groupped convolution
 backend_test.exclude('test_Conv[a-z0-9_]*multiplier')  # NeoML doesn't support groupped convolution
 backend_test.exclude('test_Conv3d[a-z0-9_]*dilated')  # NeoML doesn't support dilation in 3d convolution
-backend_test.exclude('test_LogSoftmax')  # Contains LogSoftmax operator
 backend_test.exclude('test_MaxPool1d_')  # NeoOnnx supports only 2d max pooling
 backend_test.exclude('test_MaxPool3d_')  # NeoOnnx supports only 2d max pooling
 backend_test.exclude('test_PReLU')  # Contains PRelu operator
@@ -218,6 +220,7 @@ backend_test.exclude('test_BatchNorm3d_')
 backend_test.exclude('test_ConvTranspose2d_')
 backend_test.exclude('test_gather_negative_indices')
 backend_test.exclude('test_leakyrelu_default_')
+backend_test.exclude('test_log_softmax_lastdim_')
 backend_test.exclude('test_momentum_')  # Some WEIRD stuff happens here...
 backend_test.exclude('test_operator_convtranspose_')
 backend_test.exclude('test_shape_')
