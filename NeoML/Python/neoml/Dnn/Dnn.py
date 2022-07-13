@@ -270,6 +270,15 @@ class Layer:
         else:
             self._internal.disable_learning()    
     
+    @property
+    def input_names(self):
+        """Gets the layer inputs' names as a tuple of str.
+        """
+        return tuple(
+            self._internal.get_input_name(idx)
+            for idx in range(self._internal.get_input_count())
+        )
+
     def connect(self, layer, output_index=0, input_index=0):
         """Connects this layer to another.
         

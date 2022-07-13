@@ -2340,9 +2340,13 @@ class DnnTestCase(MultithreadedTestCase):
         argmax = neoml.Dnn.Argmax(source, name="argmax")
         sink = neoml.Dnn.Sink(argmax, "sink")
 
-        self.assertTrue(len(dnn.input_layers), 1)
-        self.assertTrue(len(dnn.layers), 3)
-        self.assertTrue(len(dnn.output_layers), 1)
+        self.assertEqual(len(dnn.input_layers), 1)
+        self.assertEqual(len(dnn.layers), 3)
+        self.assertEqual(len(dnn.output_layers), 1)
+
+        self.assertEqual(len(source.input_names), 0)
+        self.assertEqual(argmax.input_names, ('source',))
+        self.assertEqual(sink.input_names, ('argmax',))
 
         dir = tempfile.mkdtemp()
 
@@ -2356,9 +2360,9 @@ class DnnTestCase(MultithreadedTestCase):
         os.rmdir(dir)
 
         self.assertTrue(isinstance(dnn_loaded.solver, neoml.Dnn.AdaptiveGradient))
-        self.assertTrue(len(dnn_loaded.input_layers), 1)
-        self.assertTrue(len(dnn_loaded.layers), 3)
-        self.assertTrue(len(dnn_loaded.output_layers), 1)
+        self.assertEqual(len(dnn_loaded.input_layers), 1)
+        self.assertEqual(len(dnn_loaded.layers), 3)
+        self.assertEqual(len(dnn_loaded.output_layers), 1)
 
     def test_solver(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)

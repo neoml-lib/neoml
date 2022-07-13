@@ -38,10 +38,30 @@ void CPyLayer::Connect( CPyLayer &layer, int outputIndex, int inputIndex )
 	baseLayer->Connect( inputIndex, *layer.baseLayer, outputIndex );
 }
 
+std::string CPyLayer::GetInputName( int idx ) const
+{
+	const int inputCount = GetInputCount();
+	if( idx >= inputCount ) {
+		return std::string();
+	} else if ( idx >= 0 ) {
+		return baseLayer->GetInputName( idx );
+	} else {
+		if( idx + inputCount >= 0 ){
+		    // negative index is valid up to -inputCount
+			return baseLayer->GetInputName( idx + inputCount );
+		} else {
+		    // negative index is less than -inputCount
+			return std::string();
+		}
+	};
+}
+
 void InitializeLayer( py::module& m )
 {
 	py::class_<CPyLayer>(m, "Layer")
 		.def( "get_name", &CPyLayer::GetName, py::return_value_policy::reference )
+		.def( "get_input_count", &CPyLayer::GetInputCount, py::return_value_policy::reference )
+		.def( "get_input_name", &CPyLayer::GetInputName, py::return_value_policy::reference )
 		.def( "create_python_object", &CPyLayer::CreatePythonObject, py::return_value_policy::reference )
 		.def( "connect", &CPyLayer::Connect, py::return_value_policy::reference )
 		.def( "is_learning_enabled", &CPyLayer::IsLearningEnabled, py::return_value_policy::reference )
