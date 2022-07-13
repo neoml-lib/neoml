@@ -184,9 +184,13 @@ py::object createLayer( CBaseLayer& layer, CPyMathEngineOwner& mathEngineOwner )
 	CPyLayer pyLayer( layer, mathEngineOwner );
 
 	CMap<CString, CPyClass, CDefaultHash<CString>, RuntimeHeap>& layers = getRegisteredPyLayers();
-	CString layerName( GetLayerClass( layer ) );
+	CString layerClass( GetLayerClass( layer ) );
 
-	CPyClass c = layers.Get( layerName );
+	if( !layers.Has( layerClass ) ) {
+		NeoML::GetMathEngineExceptionHandler()->OnAssert( "Class '" + layerClass + "' isn't known to Python module",
+			__UNICODEFILE__, __LINE__, 0 );
+	}
+	CPyClass c = layers.Get( layerClass );
 
 	CString wrapperModuleName = "neoml.PythonWrapper";
 	py::object wrapperModule = py::module::import( wrapperModuleName );
