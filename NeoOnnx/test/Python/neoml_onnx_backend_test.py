@@ -50,7 +50,6 @@ backend_test.exclude('test_hardmax_')  # HardMax
 backend_test.exclude('test_isinf_')  # IsInf
 backend_test.exclude('test_isnan_')  # IsNan
 backend_test.exclude('test_less_')  # Less
-backend_test.exclude('test_log_')  # Log
 backend_test.exclude('test_logsoftmax_')  # LogSoftmax
 backend_test.exclude('test_matmulinteger_')  # MatMulInteger
 backend_test.exclude('test_max_')  # Max
