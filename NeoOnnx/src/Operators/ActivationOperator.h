@@ -127,5 +127,11 @@ public:
 	CExpOperator( const onnx::NodeProto& exp, int opsetVersion );
 };
 
+// Log operator
+class CLogOperator : public CActivationOperatorBase {
+public:
+	CLogOperator( const onnx::NodeProto& log, int opsetVersion );
+};
+
 } // namespace NeoOnnx
 
