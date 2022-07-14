@@ -325,5 +325,27 @@ CLogOperator::CLogOperator( const onnx::NodeProto& log, int opsetVersion ) :
 	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
 }
 
+//---------------------------------------------------------------------------------------------------------------------
+
+CNegOperator::CNegOperator( const onnx::NodeProto& neg, int opsetVersion ) :
+	CActivationOperatorBase( neg, opsetVersion, AF_Linear )
+{
+	// v1 - original
+	// v6 - legacy optimization attribute is removed
+	// v13 - bfloat16 is supported
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
+
+	CheckOnnxProtocol( InputCount() == 1, "operator must have 1 input", *this );
+	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
+}
+
+void CNegOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
+{
+	CActivationOperatorBase::AddLayers( inputs, dnn, outputs );
+	CLinearLayer* linear = dynamic_cast<CLinearLayer*>( dnn.GetLayer( Name() ).Ptr() );
+	NeoAssert( linear != nullptr );
+	linear->SetMultiplier( -1.f );
+}
+
 } // namespace NeoOnnx
 
