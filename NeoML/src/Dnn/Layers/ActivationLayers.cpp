@@ -70,31 +70,43 @@ CLinearLayer::CLinearLayer( IMathEngine& mathEngine ) :
 	SetFreeTerm(0);
 }
 
+template<class T>
+static void linearRunOnce( const CTypedMemoryHandle<const T>& input, T multiplier, T freeTerm, int dataSize,
+	const CTypedMemoryHandle<T>& output )
+{
+	IMathEngine& mathEngine = *input.GetMathEngine();
+	CTypedMemoryHandle<const T> currInput = input;
+
+	if( multiplier != static_cast<T>( 1 ) ) {
+		CMemoryHandleStackVar<T> multiplierVar( mathEngine );
+		multiplierVar.SetValue( multiplier );
+		mathEngine.VectorMultiply( currInput, output, dataSize, multiplierVar );
+		currInput = output;
+	}
+
+	if( freeTerm != static_cast< T >( 0 ) ) {
+		CMemoryHandleStackVar<T> freeTermVar( mathEngine );
+		freeTermVar.SetValue( freeTerm );
+		mathEngine.VectorAddValue( currInput, output, dataSize, freeTermVar );
+		currInput = output;
+	}
+
+	if( currInput != output ) {
+		mathEngine.VectorCopy( output, currInput, dataSize );
+	}
+}
+
 void CLinearLayer::RunOnce()
 {
 	CheckInput1();
 
-	CConstFloatHandle inputPtr = inputBlobs[0]->GetData();
-	CFloatHandle outputPtr = outputBlobs[0]->GetData();
-	int dataSize = outputBlobs[0]->GetDataSize();
+	const int dataSize = outputBlobs[0]->GetDataSize();
 
-	if( multiplier != 1.f ) {
-		CFloatHandleStackVar multiplierValue( MathEngine() );
-		multiplierValue.SetValue( multiplier );
-		MathEngine().VectorMultiply( inputPtr, outputPtr, dataSize, multiplierValue );
-		inputPtr = outputPtr;
-	}
-
-	if( freeTerm != 0.f ) {
-		CFloatHandleStackVar freeTermValue( MathEngine() );
-		freeTermValue.SetValue( freeTerm );
-		MathEngine().VectorAddValue( inputPtr, outputPtr, dataSize, freeTermValue );
-		inputPtr = outputPtr;
-	}
-
-	if( inputPtr != outputPtr ) {
-		// The only case when we need to copy data is when mult == 1 && ft == 0 && !inPlace
-		MathEngine().VectorCopy( outputPtr, inputPtr, dataSize );
+	if( inputBlobs[0]->GetDataType() == CT_Float ) {
+		linearRunOnce( inputBlobs[0]->GetData<const float>(), multiplier, freeTerm, dataSize, outputBlobs[0]->GetData() );
+	} else {
+		linearRunOnce( inputBlobs[0]->GetData<const int>(), static_cast<int>( multiplier ),
+			static_cast<int>( freeTerm ), dataSize, outputBlobs[0]->GetData<int>() );
 	}
 }
 
