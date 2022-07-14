@@ -2421,3 +2421,32 @@ GTEST_TEST( SerializeFromFile, InterpolationLayerSerialization )
 {
 	checkSerializeLayer<CInterpolationLayer>( "NeoMLDnnInterpolationLayer" );
 }
+
+// ====================================================================================================================
+
+// CTransformerSourceMaskLayer
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+static void setSpecificParams( CTransformerSourceMaskLayer& layer )
+{
+	layer.SetHeadCount( 5 );
+}
+
+GTEST_TEST( SerializeToFile, TransformerSourceMaskLayerSerialization )
+{
+	serializeToFile<CTransformerSourceMaskLayer>( "NeoMLDnnTransformerSourceMaskLayer" );
+}
+
+#endif // GENERATE_SERIALIZATION_FILES
+
+template<>
+inline void checkSpecificParams<CTransformerSourceMaskLayer>( CTransformerSourceMaskLayer& layer )
+{
+	EXPECT_EQ( 5, layer.GetHeadCount() );
+}
+
+GTEST_TEST( SerializeFromFile, TransformerSourceMaskLayerSerialization )
+{
+	checkSerializeLayer<CTransformerSourceMaskLayer>( "NeoMLDnnTransformerSourceMaskLayer" );
+}
