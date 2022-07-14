@@ -157,6 +157,7 @@ CLeakyReluOperator::CLeakyReluOperator( const onnx::NodeProto& leakyRelu, int op
 {
 	// v1 - original
 	// v6 - legacy optimization attributes are removed
+	// v16 - bfloat16 is supported
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
 	CheckOnnxProtocol( InputCount() == 1, "operator must have 1 input", *this );
@@ -169,7 +170,7 @@ void CLeakyReluOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTens
 	CLeakyReLULayer* leakyReLU = dynamic_cast<CLeakyReLULayer*>( dnn.GetLayer( Name() ).Ptr() );
 	NeoAssert( leakyReLU != nullptr );
 
-	float alpha = 0;
+	float alpha = 0.01;
 	GetAttribute( "alpha", alpha );
 	leakyReLU->SetAlpha( alpha );
 }
