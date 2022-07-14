@@ -116,7 +116,7 @@ void CClipOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArr
 	CActivationOperatorBase::AddLayers( currInputs, dnn, outputs );
 	CReLULayer* relu = dynamic_cast<CReLULayer*>( dnn.GetLayer( Name() ).Ptr() );
 	NeoAssert( relu != nullptr );
-	if( maxValue != FLT_MAX && minValue != 0 ) {
+	if( maxValue != FLT_MAX ) {
 		relu->SetUpperThreshold( maxValue - minValue );
 	}
 
