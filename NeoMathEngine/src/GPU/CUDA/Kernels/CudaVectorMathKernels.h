@@ -954,8 +954,9 @@ __global__ void VectorMultiplyAndSubKernel(const float* __restrict__ first,
 }
 
 const int VectorMultiplyCombineCount = 8;
-__global__ void VectorMultiplyKernel(const float* __restrict__ first,
-	float* result, int count, const float* __restrict__ multiplier)
+template<class T>
+__global__ void VectorMultiplyKernel(const T* __restrict__ first,
+	T* result, int count, const T* __restrict__ multiplier)
 {
 	int index;
 	int step;

@@ -62,6 +62,7 @@ inline bool FloatEq(float val1, float val2, float precision = 1e-05)
 #define CARRAY_FLOAT_WRAPPER(arr) CARRAY_WRAPPER(float, arr)
 #define CARRAY_INT_WRAPPER(arr) CARRAY_WRAPPER(int, arr)
 
+#define ARR_WRAPPER(TYPE, arr) CBufferWrapper<TYPE>( MathEngine(), (arr), (int)sizeof(arr) / sizeof(TYPE) )
 #define FLOAT_WRAPPER(arr) CFloatWrapper( MathEngine(), (arr), (int)sizeof(arr) / sizeof(float) )
 #define FLOAT_WRAPPER_MATHENGINE(mathEngine, arr) CFloatWrapper( mathEngine, (arr), (int)sizeof(arr) / sizeof(float) )
 #define INT_WRAPPER(arr) CIntWrapper( MathEngine(), (arr), (int)sizeof(arr) / sizeof(int) )

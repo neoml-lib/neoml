@@ -630,6 +630,11 @@ void CVulkanMathEngine::VectorMultiply(const CConstFloatHandle& firstHandle,
 		&param, sizeof(param), 0, 0, 0, 0, bufs, sizes, 3, Ceil(vectorSize, VectorCombine));
 }
 
+void CVulkanMathEngine::VectorMultiply(const CConstIntHandle&, const CIntHandle&, int, const CConstIntHandle&)
+{
+    ASSERT_EXPR( false );
+}
+
 void CVulkanMathEngine::VectorNegMultiply(const CConstFloatHandle& firstHandle,
 	const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& multiplierHandle)
 {

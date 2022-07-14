@@ -500,6 +500,30 @@ void CCpuMathEngine::VectorMultiply(const CConstFloatHandle& firstHandle,
 	}
 }
 
+void CCpuMathEngine::VectorMultiply(const CConstIntHandle& firstHandle,
+	const CIntHandle& resultHandle, int vectorSize, const CConstIntHandle& multiplierHandle)
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( multiplierHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	CCpuExecutionScope scope;
+
+	int multiplier = *GetRaw(multiplierHandle);
+
+	const int curThreadCount = IsOmpRelevant( vectorSize, vectorSize ) ? threadCount : 1;
+
+	if( curThreadCount > 1 ) {
+		NEOML_OMP_NUM_THREADS( curThreadCount ) {
+			int index, count;
+			if( OmpGetTaskIndexAndCount( vectorSize, 16, index, count ) ) {
+				vectorMultiply( GetRaw( firstHandle + index ), GetRaw( resultHandle + index ), multiplier, count );
+			}
+		}
+	} else {
+		vectorMultiply( GetRaw( firstHandle ), GetRaw( resultHandle ), multiplier, vectorSize );
+	}
+}
+
 void CCpuMathEngine::VectorEltwiseMultiply(const CConstFloatHandle& firstHandle,
 	const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int vectorSize)
 {

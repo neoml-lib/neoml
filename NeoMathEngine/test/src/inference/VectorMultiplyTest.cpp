@@ -18,6 +18,7 @@ limitations under the License.
 using namespace NeoML;
 using namespace NeoMLTest;
 
+template<class T>
 static void vectorMultiplyImpl( const CTestParams& params, int seed )
 {
 	CRandom random( seed );
@@ -25,16 +26,16 @@ static void vectorMultiplyImpl( const CTestParams& params, int seed )
 	const CInterval vectorValuesInterval = params.GetInterval( "VectorValues" );
 	const int vectorSize = random.UniformInt( vectorSizeInterval.Begin, vectorSizeInterval.End );
 
-	float mult = static_cast<float>( random.Uniform( vectorValuesInterval.Begin, vectorValuesInterval.End ) );
-	CREATE_FILL_FLOAT_ARRAY( a, vectorValuesInterval.Begin, vectorValuesInterval.End, vectorSize, random )
+	T mult = static_cast<T>( random.Uniform( vectorValuesInterval.Begin, vectorValuesInterval.End ) );
+	CREATE_FILL_ARRAY( T, a, vectorValuesInterval.Begin, vectorValuesInterval.End, vectorSize, random )
 
-	std::vector<float> result;
+	std::vector<T> result;
 	result.resize( vectorSize );
-	MathEngine().VectorMultiply( CARRAY_FLOAT_WRAPPER( a ), CARRAY_FLOAT_WRAPPER( result ), vectorSize, FLOAT_WRAPPER( &mult ) );
+	MathEngine().VectorMultiply( CARRAY_WRAPPER( T, a ), CARRAY_WRAPPER( T, result ), vectorSize, ARR_WRAPPER( T, &mult ) );
 
 	for( int i = 0; i < vectorSize; i++ ) {
-		float expected = a[i] * mult;
-		ASSERT_NEAR( expected, result[i], 1e-3 );
+		const float expected = static_cast<float>( a[i] * mult );
+		ASSERT_NEAR( expected, static_cast<float>( result[i] ), 1e-3 );
 	}
 }
 
@@ -65,5 +66,6 @@ INSTANTIATE_TEST_CASE_P( CMathEngineVectorMultiplyTestInstantiation, CMathEngine
 
 TEST_P( CMathEngineVectorMultiplyTest, Random )
 {
-	RUN_TEST_IMPL( vectorMultiplyImpl );
+	RUN_TEST_IMPL( vectorMultiplyImpl<float> );
+	RUN_TEST_IMPL( vectorMultiplyImpl<int> );
 }
