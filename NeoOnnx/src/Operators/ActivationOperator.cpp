@@ -161,7 +161,7 @@ void CLeakyReluOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTens
 	CLeakyReLULayer* leakyReLU = dynamic_cast<CLeakyReLULayer*>( dnn.GetLayer( Name() ).Ptr() );
 	NeoAssert( leakyReLU != nullptr );
 
-	float alpha = 0.01;
+	float alpha = 0.01f;
 	GetAttribute( "alpha", alpha );
 	leakyReLU->SetAlpha( alpha );
 }
