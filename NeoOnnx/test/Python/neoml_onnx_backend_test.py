@@ -60,7 +60,6 @@ backend_test.exclude('test_mean_')  # Mean
 backend_test.exclude('test_min_')  # Min
 backend_test.exclude('test_mod_')  # Mod
 backend_test.exclude('test_mvn_')  # MeanVarianceNormalization
-backend_test.exclude('test_neg_')  # Neg
 backend_test.exclude('test_negative_log_likelihood_loss_')  # NegativeLogLikelihoodLoss
 backend_test.exclude('test_nonmaxsuppression_')  # NonMaxSuppression
 backend_test.exclude('test_not_')  # Not
@@ -189,7 +188,6 @@ backend_test.exclude('test_PReLU')  # Contains PRelu operator
 backend_test.exclude('test_ReflectionPad2d_')  # NeoML supports padding only with 'constant' mode
 backend_test.exclude('test_ReplicationPad2d_')  # NeoML supports padding only with 'constant' mode
 backend_test.exclude('test_SELU')  # Contains Selu operator
-backend_test.exclude('test_Softmin')  # Contains Neg operator
 backend_test.exclude('test_Softplus')  # Contains Softplus operator
 
 # OnnxBackendPyTorchOperatorModelTest
@@ -198,7 +196,6 @@ backend_test.exclude('test_operator_add_')  # NeoML doesn't support 64-bit data 
 backend_test.exclude('test_operator_addconstant_')  # NeoML doesn't support 64-bit data types
 # NeoML supports only specific case when it's an FC layer (with constant weights)
 backend_test.exclude('test_operator_addmm_')
-backend_test.exclude('test_operator_basic_')  # Contains Neg operator
 backend_test.exclude('test_operator_max_')  # Contains Max operator
 backend_test.exclude('test_operator_maxpool_')  # NeoOnnx supports only 2d max pooling
 backend_test.exclude('test_operator_min_')  # Contains Min operator
@@ -206,11 +203,9 @@ backend_test.exclude('test_operator_min_')  # Contains Min operator
 backend_test.exclude('test_operator_mm_')
 backend_test.exclude('test_operator_non_float_params_')  # NeoML doesn't support 64-bit data types
 backend_test.exclude('test_operator_pad_')  # NeoML supports padding only with 'constant' mode
-backend_test.exclude('test_operator_params_')  # Contains Neg operator
 backend_test.exclude('test_operator_pow_')  # NeoML doesn't support power of the exponent as input
 backend_test.exclude('test_operator_repeat_')  # Contains Tile operator
 backend_test.exclude('test_operator_selu_')  # Contains Selu operator
-backend_test.exclude('test_operator_symbolic_override_nested_')  # Contains Neg operator
 
 # TODO: ALARM!!! Some failing tests for future research (no explanation for failure yet...)
 backend_test.exclude('test_BatchNorm3d_')
