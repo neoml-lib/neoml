@@ -78,10 +78,6 @@ CClipOperator::CClipOperator( const onnx::NodeProto& clip, int opsetVersion ) :
 
 void CClipOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
-	CActivationOperatorBase::AddLayers( inputs, dnn, outputs );
-	CReLULayer* relu = dynamic_cast<CReLULayer*>( dnn.GetLayer( Name() ).Ptr() );
-	NeoAssert( relu != nullptr );
-
 	float minValue = -FLT_MAX;
 	float maxValue = FLT_MAX;
 	if( OpsetVersion < 11 ) {
@@ -109,11 +105,24 @@ void CClipOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArr
 		}
 	}
 
-	// NeoOnnx emulates Clip operator via ReLU
-	// Other Clip operations are not supported
-	CheckNeoOnnxSupport( minValue == 0, "Clip with non-zero min value", *this );
-	if( maxValue != FLT_MAX ) {
-		relu->SetUpperThreshold( maxValue );
+	CTensorArray currInputs;
+	inputs.CopyTo( currInputs );
+	if( minValue != 0 ) {
+		CPtr<const CUserTensor> userInput = AsUserTensor( *currInputs[0], Name() + "_Source", dnn );
+		CLinearLayer* preShift = Linear( 1.f, -minValue )( Name() + "_PreShift", CDnnLayerLink( userInput->Layer(), userInput->OutputIndex() ) );
+		currInputs[0] = new CUserTensor( userInput->Shape(), userInput->Layout(), CLayerOutput( preShift, 0 ) );
+	}
+
+	CActivationOperatorBase::AddLayers( currInputs, dnn, outputs );
+	CReLULayer* relu = dynamic_cast<CReLULayer*>( dnn.GetLayer( Name() ).Ptr() );
+	NeoAssert( relu != nullptr );
+	if( maxValue != FLT_MAX && minValue != 0 ) {
+		relu->SetUpperThreshold( maxValue - minValue );
+	}
+
+	if( minValue != 0 ) {
+		CLinearLayer* postShift = Linear( 1.f, minValue )( Name() + "_PostShift", relu );
+		outputs[0] = new CUserTensor( outputs[0]->Shape(), outputs[0]->Layout(), CLayerOutput( postShift, 0 ) );
 	}
 }
 
