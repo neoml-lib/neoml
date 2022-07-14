@@ -211,7 +211,6 @@ backend_test.exclude('test_operator_selu_')  # Contains Selu operator
 backend_test.exclude('test_BatchNorm3d_')
 backend_test.exclude('test_ConvTranspose2d_')
 backend_test.exclude('test_gather_negative_indices')
-backend_test.exclude('test_leakyrelu_default_')
 backend_test.exclude('test_log_softmax_lastdim_')
 backend_test.exclude('test_momentum_')  # Some WEIRD stuff happens here...
 backend_test.exclude('test_operator_convtranspose_')
