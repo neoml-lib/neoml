@@ -1,4 +1,4 @@
-/* Copyright Â© 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -93,6 +93,9 @@ void CPoolOperatorBase::AddLayersImpl( const CTensorArray& inputs, float padValu
 	dnn.AddLayer( pooling );
 
 	outputs.Add( new CUserTensor( outputShape, input->Layout(), CLayerOutput( &pooling, 0 ) ) );
+	if( OutputCount() > outputs.Size() ) {
+		outputs.Add( nullptr, OutputCount() - outputs.Size() );
+	}
 }
 
 // Gets pool strides
