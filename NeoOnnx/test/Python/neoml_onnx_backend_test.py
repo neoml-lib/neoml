@@ -131,6 +131,7 @@ backend_test.exclude('test_dropout_default_ratio_')  # NeoML doesn't support dro
 backend_test.exclude('test_edge_pad_')  # NeoML supports padding only with 'constant' mode
 backend_test.exclude('test_equal_')  # NeoOnnx supports equal operator only when tensor 'A' is constant
 backend_test.exclude('test_expand_')  # NeoML doesn't support shape as input
+backend_test.exclude('test_gather_negative_indices')  # NeoOnnx doesn't support negative indices
 backend_test.exclude('test_gemm_')  # NeoML supports only specific case when it's an FC layer (with constant weights)
 backend_test.exclude('test_instancenorm_')  # NeoML doesn't support scales as input
 backend_test.exclude('test_logsoftmax_negative_axis_')  # NeoOnnx doesn't support softmax over more than 4 dims
@@ -210,7 +211,6 @@ backend_test.exclude('test_operator_selu_')  # Contains Selu operator
 # TODO: ALARM!!! Some failing tests for future research (no explanation for failure yet...)
 backend_test.exclude('test_BatchNorm3d_')
 backend_test.exclude('test_ConvTranspose2d_')
-backend_test.exclude('test_gather_negative_indices')
 backend_test.exclude('test_log_softmax_lastdim_')
 backend_test.exclude('test_momentum_')  # Some WEIRD stuff happens here...
 backend_test.exclude('test_operator_convtranspose_')
