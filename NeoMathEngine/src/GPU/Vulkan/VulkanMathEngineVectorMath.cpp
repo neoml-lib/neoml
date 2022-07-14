@@ -632,7 +632,7 @@ void CVulkanMathEngine::VectorMultiply(const CConstFloatHandle& firstHandle,
 
 void CVulkanMathEngine::VectorMultiply(const CConstIntHandle&, const CIntHandle&, int, const CConstIntHandle&)
 {
-    ASSERT_EXPR( false );
+	ASSERT_EXPR( false );
 }
 
 void CVulkanMathEngine::VectorNegMultiply(const CConstFloatHandle& firstHandle,
