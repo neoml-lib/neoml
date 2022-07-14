@@ -2568,7 +2568,7 @@ class ClusteringTestCase(MultithreadedTestCase):
         self._test_clusterize('KMeans', dict(max_iteration_count=100, cluster_count=6, init='k++'))
 
 
-class TestPca(MultithreadedTestCase):
+class TestPca(TestCase):
     def test_full_svd(self):
         from neoml.PCA import svd
         x = np.array([[2, 1, 3, 2], [2, 4, 4, 1], [2, 4, 1, 1], [4, 4, 3, 4]], dtype=np.float32)
