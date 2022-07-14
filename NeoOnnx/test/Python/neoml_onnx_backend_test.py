@@ -121,8 +121,7 @@ backend_test.exclude('test_basic_convinteger_')  # NeoML doesn't support integer
 backend_test.exclude('test_batchnorm_')  # NeoML doesn't support trained coeffs as net input
 # NeoML supports only INT32 <-> FLOAT32 cast (which isn't tested by ONNX tests anyway...)
 backend_test.exclude('test_cast_')
-# NeoOnnx supports Clip only when lower value is an initializer with value 0 (analogue of ReLU)
-backend_test.exclude('test_clip_')
+backend_test.exclude('test_clip_')  # NeoOnnx doesn't support clip thresholds as net inputs
 backend_test.exclude('test_constant_pad_')  # NeoML doesn't support padding sizes as inputs
 backend_test.exclude('test_constantofshape_')  # NeoML doesn't support tensor size as input
 backend_test.exclude('test_conv_')  # NeoML doesn't support trained filters as input
@@ -200,8 +199,6 @@ backend_test.exclude('test_operator_addconstant_')  # NeoML doesn't support 64-b
 # NeoML supports only specific case when it's an FC layer (with constant weights)
 backend_test.exclude('test_operator_addmm_')
 backend_test.exclude('test_operator_basic_')  # Contains Neg operator
-# NeoOnnx supports Clip only when lower value is an initializer with value 0 (analogue of ReLU)
-backend_test.exclude('test_operator_clip_')
 backend_test.exclude('test_operator_max_')  # Contains Max operator
 backend_test.exclude('test_operator_maxpool_')  # NeoOnnx supports only 2d max pooling
 backend_test.exclude('test_operator_min_')  # Contains Min operator
