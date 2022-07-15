@@ -269,7 +269,7 @@ class Layer:
             self._internal.enable_learning()
         else:
             self._internal.disable_learning()    
-    
+
     @property
     def input_names(self):
         """Gets the layer inputs' names as a tuple of str.
@@ -278,6 +278,20 @@ class Layer:
             self._internal.get_input_name(idx)
             for idx in range(self._internal.get_input_count())
         )
+
+    def get_input_output_idx(self, input_idx):
+        """Gets 'output idx' of input with 'input_idx'.
+
+        :param input_idx: the idx of input, whose output_idx is returned
+        :type input_idx: int
+        """
+        have_inputs = len(self.input_names)
+        is_idx_valid = (-have_inputs <= input_idx < have_inputs)
+
+        if not is_idx_valid:
+            raise KeyError(f"idx {input_idx} is invalid, have inputs({have_inputs}):{self.input_names}")
+        return self._internal.get_input_output_idx(input_idx)
+
 
     def connect(self, layer, output_index=0, input_index=0):
         """Connects this layer to another.

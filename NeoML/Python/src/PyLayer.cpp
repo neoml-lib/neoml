@@ -38,23 +38,45 @@ void CPyLayer::Connect( CPyLayer &layer, int outputIndex, int inputIndex )
 	baseLayer->Connect( inputIndex, *layer.baseLayer, outputIndex );
 }
 
-std::string CPyLayer::GetInputName( int idx ) const
+template <typename TValue, typename TValueGetter>
+TValue safeValueGetter( int inputIdx, int inputCount, TValue invalidValue, TValueGetter valueGetter )
 {
-	const int inputCount = GetInputCount();
-	if( idx >= inputCount ) {
-		return std::string();
-	} else if ( idx >= 0 ) {
-		return baseLayer->GetInputName( idx );
+	if( inputIdx >= inputCount ) {
+		// positive index is invalid when it is greater or equal to inputCount
+		return invalidValue;
+	} else if ( inputIdx >= 0 ) {
+		return valueGetter( inputIdx );
 	} else {
-		if( idx + inputCount >= 0 ){
+		if( inputIdx + inputCount >= 0 ){
 		    // negative index is valid up to -inputCount
-			return baseLayer->GetInputName( idx + inputCount );
+			return valueGetter( inputIdx + inputCount );
 		} else {
-		    // negative index is less than -inputCount
-			return std::string();
+		    // negative index is invalid when it is less than -inputCount
+			return invalidValue;
 		}
 	};
 }
+
+std::string CPyLayer::GetInputName( int inputIdx ) const
+{
+	return safeValueGetter(
+		inputIdx,
+		GetInputCount(),
+		std::string(),
+		[this](int i){return baseLayer->GetInputName(i);}
+	);
+}
+
+int CPyLayer::GetInputOutputIdx( int inputIdx ) const
+{
+	return safeValueGetter(
+		inputIdx,
+		GetInputCount(),
+		-1,
+		[this](int i){return baseLayer->GetInputOutputNumber(i);}
+	);
+}
+
 
 void InitializeLayer( py::module& m )
 {
@@ -62,6 +84,7 @@ void InitializeLayer( py::module& m )
 		.def( "get_name", &CPyLayer::GetName, py::return_value_policy::reference )
 		.def( "get_input_count", &CPyLayer::GetInputCount, py::return_value_policy::reference )
 		.def( "get_input_name", &CPyLayer::GetInputName, py::return_value_policy::reference )
+		.def( "get_input_output_idx", &CPyLayer::GetInputOutputIdx, py::return_value_policy::reference )
 		.def( "create_python_object", &CPyLayer::CreatePythonObject, py::return_value_policy::reference )
 		.def( "connect", &CPyLayer::Connect, py::return_value_policy::reference )
 		.def( "is_learning_enabled", &CPyLayer::IsLearningEnabled, py::return_value_policy::reference )
