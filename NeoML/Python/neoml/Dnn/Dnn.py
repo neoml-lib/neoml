@@ -272,25 +272,19 @@ class Layer:
 
     @property
     def input_names(self):
-        """Gets the layer inputs' names as a tuple of str.
+        """Tuple in which i'th element contains the name of the layer, connected to the i'th inputs of `self`
+        """
+        return tuple(name for name, output_idx in self.input_links)
+
+    @property
+    def input_links(self):
+        """Tuple in which i'th element contains complete information about the link between i'th input layer
+        and `self` (layer name, output idx)
         """
         return tuple(
-            self._internal.get_input_name(idx)
+            (self._internal.get_input_name(idx), self._internal.get_input_output_idx(idx))
             for idx in range(self._internal.get_input_count())
         )
-
-    def get_input_output_idx(self, input_idx):
-        """Gets 'output idx' of input with 'input_idx'.
-
-        :param input_idx: the idx of input, whose output_idx is returned
-        :type input_idx: int
-        """
-        have_inputs = len(self.input_names)
-        is_idx_valid = (-have_inputs <= input_idx < have_inputs)
-
-        if not is_idx_valid:
-            raise KeyError(f"idx {input_idx} is invalid, have inputs({have_inputs}):{self.input_names}")
-        return self._internal.get_input_output_idx(input_idx)
 
 
     def connect(self, layer, output_index=0, input_index=0):

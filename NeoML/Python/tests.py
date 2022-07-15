@@ -2364,7 +2364,7 @@ class DnnTestCase(MultithreadedTestCase):
         self.assertEqual(len(dnn_loaded.layers), 3)
         self.assertEqual(len(dnn_loaded.output_layers), 1)
 
-    def test_input_output_idx(self):
+    def test_links(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
 
         # y[N, 2] (X[N, 4]) = X[N, 2:] - X[N, :2]
@@ -2377,11 +2377,7 @@ class DnnTestCase(MultithreadedTestCase):
         # sub both inputs come from split_chan
         self.assertEqual(sub.input_names, (split_chan.name, split_chan.name))
         # but their order is inversed
-        self.assertEqual(sub.get_input_output_idx(0), 1)
-        self.assertEqual(sub.get_input_output_idx(1), 0)
-
-        with self.assertRaises(KeyError):
-            sub.get_input_output_idx(2)
+        self.assertEqual(sub.input_links, ((split_chan.name, 1), (split_chan.name, 0)))
 
     def test_solver(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
