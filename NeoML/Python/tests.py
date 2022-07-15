@@ -1686,6 +1686,27 @@ class LayersTestCase(MultithreadedTestCase):
         outputs = dnn.run({'data': data_blob, 'kernel': kernel_blob})
         self.assertEqual(outputs['sink'].shape, (seq_len, batch_size * num_heads, 1, head_size, 1, 1, 1))
         self.assertTrue(np.equal(outputs['sink'].asarray(), np.zeros((seq_len, batch_size * num_heads, head_size), np.float32)).all())
+    
+    def test_broadcast(self):
+        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        dnn = neoml.Dnn.Dnn(math_engine)
+        first_data = neoml.Dnn.Source(dnn, 'first_data')
+        second_data = neoml.Dnn.Source(dnn, 'second_data')
+        broadcast = neoml.Dnn.Broadcast((first_data, second_data), 'broadcast')
+        first_sink = neoml.Dnn.Sink((broadcast, 0), 'first_sink')
+        second_sink = neoml.Dnn.Sink((broadcast, 1), 'second_sink')
+
+        first_blob = neoml.Blob.asblob(math_engine, np.ones(3*5*7, np.float32), [1, 3, 1, 5, 1, 7, 1])
+        second_blob = neoml.Blob.asblob(math_engine, np.zeros(2*4*6*8, np.float32), [2, 1, 4, 1, 6, 1, 8])
+        outputs = dnn.run({'first_data': first_blob, 'second_data': second_blob})
+        self.assertEqual(len(outputs), 2)
+        output_shape = (2, 3, 4, 5, 6, 7, 8)
+        self.assertTrue('first_sink' in outputs)
+        self.assertEqual(outputs['first_sink'].shape, output_shape)
+        self.assertTrue(np.equal(outputs['first_sink'].asarray(), np.ones(output_shape, np.float32)).all())
+        self.assertTrue('second_sink' in outputs)
+        self.assertEqual(outputs['second_sink'].shape, output_shape)
+        self.assertTrue(np.equal(outputs['second_sink'].asarray(), np.zeros(output_shape, np.float32)).all())
 
 
 class PoolingTestCase(MultithreadedTestCase):
