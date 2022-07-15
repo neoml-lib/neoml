@@ -748,15 +748,16 @@ inline void vectorMinMax( const float* first, float* result, const float minValu
 
 inline float32x4_t vectorTanhWorker( const float32x4_t& val, const float32x4_t& one, const CExpNeon& expObj )
 {
-	float32x4_t expVal = expObj.Execute( vaddq_f32( val, val ) );
-	return DivideNeon( vsubq_f32( expVal, one ), vaddq_f32( expVal, one ) );
+	float32x4_t expVal = expObj.Execute( vnegq_f32( vaddq_f32( val, val ) ) );
+	float32x4_t inv = InvNeon( vaddq_f32( one, expVal ) );
+	return vsubq_f32( vaddq_f32( inv, inv ), one );
 }
 
 inline void vectorTanh( const float* first, float* result, int vectorSize )
 {
 	int count = GetCount4( vectorSize );
 
-	const float32x4_t one = vdupq_n_f32( 1 );
+	const float32x4_t one = vdupq_n_f32( 1.f );
 	const CExpNeon expObj;
 
 	for( int i = 0; i < count; ++i ) {
@@ -782,7 +783,7 @@ inline void vectorSigmoid( const float* first, float* result, int vectorSize )
 {
 	int count = GetCount4( vectorSize );
 
-	const float32x4_t one = vdupq_n_f32( 1 );
+	const float32x4_t one = vdupq_n_f32( 1.f );
 	const CExpNeon expObj;
 
 	for( int i = 0; i < count; ++i ) {

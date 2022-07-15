@@ -34,6 +34,8 @@ public:
 
 	bool operator==( const CTensorLayout& other ) const;
 	bool operator!=( const CTensorLayout& other ) const { return !operator==( other ); }
+
+	static CTensorLayout IOLayout( int dimCount );
 };
 
 inline CTensorLayout::CTensorLayout( int dimCount )
@@ -110,6 +112,17 @@ inline bool IsTransposedLayout( const CTensorLayout& layout )
 		}
 	}
 	return false;
+}
+
+// Returns layout for input and output blobs with the given number of dimensions
+inline CTensorLayout CTensorLayout::IOLayout( int dimCount )
+{
+	CTensorLayout layout;
+	layout.SetSize( dimCount );
+	for( int i = 0; i < dimCount; ++i ) {
+		layout[i] = static_cast<TBlobDim>( i );
+	}
+	return layout;
 }
 
 } // namespace NeoOnnx

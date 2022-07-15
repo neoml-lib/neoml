@@ -272,6 +272,10 @@ void CDistributedTraining::RunOnce( IDistributedDataset& data )
             if( currBatchSize > 0 ) {
                 batchSize[thread] += currBatchSize;
                 cnns[thread]->RunOnce();
+                // TODO: delete CleanUp after fixing OMP problem
+                if( isCpu ) {
+                    mathEngines[thread]->CleanUp();
+                }
             }
             isFirstRun = false;
         } catch( std::exception& e ) {
@@ -311,6 +315,10 @@ void CDistributedTraining::RunAndBackwardOnce( IDistributedDataset& data )
             if( currBatchSize > 0 ) {
                 batchSize[thread] += currBatchSize;
                 cnns[thread]->RunAndBackwardOnce();
+                // TODO: delete CleanUp after fixing OMP problem
+                if( isCpu ) {
+                    mathEngines[thread]->CleanUp();
+                }
             }
             isFirstRun = false;
         } catch( std::exception& e ) {
@@ -357,6 +365,10 @@ void CDistributedTraining::Train()
         try {
             CThreadGroupSwitcher groupSwitcher( isCpu, thread, cnns.Size() );
             cnns[thread]->GetSolver()->Train( batchSize[thread] * cnns.Size() / static_cast<float>( totalBatch ) );
+            // TODO: delete CleanUp after fixing OMP problem
+            if( isCpu ) {
+                mathEngines[thread]->CleanUp();
+            }
             batchSize[thread] = 0;
         } catch( std::exception& e ) {
             if( errorMessage.IsEmpty() ) {
