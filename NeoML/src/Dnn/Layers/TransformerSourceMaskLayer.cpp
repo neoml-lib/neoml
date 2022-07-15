@@ -35,10 +35,10 @@ void CTransformerSourceMaskLayer::Reshape()
 	CheckArchitecture( inputDescs[I_Widths].BatchWidth() == inputDescs[I_Q].BatchWidth(), GetName(),
 		"mask input batchWidth mismatch" );
 
-	outputDescs[0].SetDimSize( BD_BatchWidth, inputDescs[1].BatchWidth() );
+	outputDescs[0].SetDimSize( BD_BatchWidth, inputDescs[I_Q].BatchWidth() );
 	outputDescs[0].SetDimSize( BD_ListSize, headCount );
-	outputDescs[0].SetDimSize( BD_Width, inputDescs[1].ListSize() );
-	outputDescs[0].SetDimSize( BD_Channels, inputDescs[1].ListSize() );
+	outputDescs[0].SetDimSize( BD_Width, inputDescs[I_Q].ListSize() );
+	outputDescs[0].SetDimSize( BD_Channels, inputDescs[I_Q].ListSize() );
 	outputDescs[0].SetDataType( CT_Float );
 }
 
@@ -46,27 +46,30 @@ void CTransformerSourceMaskLayer::RunOnce()
 {
 	NeoAssert( inputBlobs.Size() == 2 && outputBlobs.Size() == 1 );
 
-	CPtr<CDnnBlob> inputBlob = inputBlobs[I_Widths];
+	CDnnBlobBuffer<int> inputBuffer( *inputBlobs[I_Widths], 0,
+		inputBlobs[I_Widths]->GetDataSize(), TDnnBlobBufferAccess::Read );
 	CPtr<CDnnBlob> outputBlob = outputBlobs.First();
-	CConstIntHandle inputHandle = inputBlob->GetData<const int>();
-	CFloatHandle outputHandle = outputBlob->GetData();
 
 	outputBlob->Fill( 0.f );
 
-	int objectPosition = 0;
+	ptrdiff_t objectPosition = 0;
 	const int maxWidth = outputBlob->GetWidth();
 	for( int objectNum = 0; objectNum < outputBlob->GetBatchWidth(); ++objectNum ) {
-		const int objectWidth = min( inputHandle.GetValueAt( objectNum ), maxWidth );
+		if( inputBuffer[objectNum] == 0 ) {
+			continue;
+		}
+
+		const int objectWidth = min( inputBuffer[objectNum], maxWidth );
 		const int padding = maxWidth - objectWidth;
-		for( int head = 0; head < headCount; ++head ) {
-			for( int width = 0; width < maxWidth; ++width ) {
-				ptrdiff_t shift = 1ll * objectPosition + objectWidth;
-				if( padding > 0 ) {
-					MathEngine().VectorFill( outputHandle + shift, 1.f, padding );
-				}
-				objectPosition += maxWidth;
+		if( padding > 0 ) {
+			CFloatHandle objectHandle = outputBlob->GetData() + objectPosition;
+			MathEngine().VectorFill( objectHandle + objectWidth, 1.f, padding );
+			if( maxWidth * headCount > 1 ) {
+				MathEngine().SetVectorToMatrixRows( objectHandle + maxWidth,
+					maxWidth * headCount - 1, maxWidth, objectHandle );
 			}
 		}
+		objectPosition += 1LL * headCount * maxWidth * maxWidth;
 	}
 }
 
