@@ -134,7 +134,6 @@ backend_test.exclude('test_expand_')  # NeoML doesn't support shape as input
 backend_test.exclude('test_gather_negative_indices')  # NeoOnnx doesn't support negative indices
 backend_test.exclude('test_gemm_')  # NeoML supports only specific case when it's an FC layer (with constant weights)
 backend_test.exclude('test_instancenorm_')  # NeoML doesn't support scales as input
-backend_test.exclude('test_logsoftmax_negative_axis_')  # NeoOnnx doesn't support softmax over more than 4 dims
 backend_test.exclude('test_lstm_')  # NeoML doesn't support trained weights as inputs
 backend_test.exclude('test_maxpool_1d_')  # NeoOnnx supports only 2d max pooling
 backend_test.exclude('test_maxpool_2d_ceil_')  # NeoML doesn't support ceil in maxpool
@@ -150,7 +149,6 @@ backend_test.exclude('test_reflect_pad_')  # NeoML supports padding only with 'c
 backend_test.exclude('test_reshape_')  # NeoML doesn't support shape as input
 backend_test.exclude('test_resize_')  # NeoML doesn't support sizes or scales as inputs
 backend_test.exclude('test_slice_')  # NeoML doesn't support sizes, stars, ends or axes as inputs
-backend_test.exclude('test_softmax_negative_axis_')  # NeoOnnx doesn't support softmax over more than 4 dims
 backend_test.exclude('test_split_zero_size_')  # NeoML doesn't support tensors of size 0
 backend_test.exclude('test_upsample_')  # NeoML doesn't support scales as input
 backend_test.exclude('test_where_')  # NeoML supports Where only over constant data
@@ -210,7 +208,6 @@ backend_test.exclude('test_operator_selu_')  # Contains Selu operator
 
 # TODO: ALARM!!! Some failing tests for future research (no explanation for failure yet...)
 backend_test.exclude('test_BatchNorm3d_')
-backend_test.exclude('test_log_softmax_lastdim_')
 backend_test.exclude('test_momentum_')  # Some WEIRD stuff happens here...
 backend_test.exclude('test_shape_')
 
