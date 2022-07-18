@@ -88,7 +88,7 @@ void CConvTransposeOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, C
 	CFastArray<int, 8> totalPadding;
 	getTotalPadding( outputShape, totalPadding );
 	const int convDims = outputShape.Size() - 2;
-	// check if total padding can be fused in CTransposedConvLayer
+	// check if total padding can be fused into CTransposedConvLayer
 	bool doesConvLayerSupportPadding = true;
 	for( int i = 0; i < convDims; ++i ) {
 		if( totalPadding[i] < 0 || totalPadding[i] != totalPadding[i + convDims] ) {
@@ -130,7 +130,7 @@ void CConvTransposeOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, C
 	transposedConv->Connect( 0, *currTensor->Layer(), currTensor->OutputIndex() );
 	dnn.AddLayer( *transposedConv );
 	currTensor = new CUserTensor( outputShape, neoMLLayout, CLayerOutput( transposedConv, 0 ) );
-	// apply padding if it couldn't be applied via layer
+	// apply padding if it hasn't been applied via layer
 	if( !doesConvLayerSupportPadding ) {
 		// padding in transposed conv works in the opposite direction
 		for( int i = 0; i < 2 * convDims; ++i ) {
