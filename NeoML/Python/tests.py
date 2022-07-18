@@ -811,6 +811,10 @@ class LayersTestCase(MultithreadedTestCase):
         out = self._test_activation('Exp')
         self.assertTrue(np.isclose(out, np.exp(1)).all())
 
+    def test_activation_log(self):
+        out = self._test_activation('Log')
+        self.assertTrue(np.isclose(out, np.log(1)).all())
+
     def test_add_object(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
         dnn = neoml.Dnn.Dnn(math_engine)
@@ -1686,6 +1690,27 @@ class LayersTestCase(MultithreadedTestCase):
         outputs = dnn.run({'data': data_blob, 'kernel': kernel_blob})
         self.assertEqual(outputs['sink'].shape, (seq_len, batch_size * num_heads, 1, head_size, 1, 1, 1))
         self.assertTrue(np.equal(outputs['sink'].asarray(), np.zeros((seq_len, batch_size * num_heads, head_size), np.float32)).all())
+    
+    def test_broadcast(self):
+        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        dnn = neoml.Dnn.Dnn(math_engine)
+        first_data = neoml.Dnn.Source(dnn, 'first_data')
+        second_data = neoml.Dnn.Source(dnn, 'second_data')
+        broadcast = neoml.Dnn.Broadcast((first_data, second_data), 'broadcast')
+        first_sink = neoml.Dnn.Sink((broadcast, 0), 'first_sink')
+        second_sink = neoml.Dnn.Sink((broadcast, 1), 'second_sink')
+
+        first_blob = neoml.Blob.asblob(math_engine, np.ones(3*5*7, np.float32), [1, 3, 1, 5, 1, 7, 1])
+        second_blob = neoml.Blob.asblob(math_engine, np.zeros(2*4*6*8, np.float32), [2, 1, 4, 1, 6, 1, 8])
+        outputs = dnn.run({'first_data': first_blob, 'second_data': second_blob})
+        self.assertEqual(len(outputs), 2)
+        output_shape = (2, 3, 4, 5, 6, 7, 8)
+        self.assertTrue('first_sink' in outputs)
+        self.assertEqual(outputs['first_sink'].shape, output_shape)
+        self.assertTrue(np.equal(outputs['first_sink'].asarray(), np.ones(output_shape, np.float32)).all())
+        self.assertTrue('second_sink' in outputs)
+        self.assertEqual(outputs['second_sink'].shape, output_shape)
+        self.assertTrue(np.equal(outputs['second_sink'].asarray(), np.zeros(output_shape, np.float32)).all())
 
 
 class PoolingTestCase(MultithreadedTestCase):
@@ -2340,9 +2365,13 @@ class DnnTestCase(MultithreadedTestCase):
         argmax = neoml.Dnn.Argmax(source, name="argmax")
         sink = neoml.Dnn.Sink(argmax, "sink")
 
-        self.assertTrue(len(dnn.input_layers), 1)
-        self.assertTrue(len(dnn.layers), 3)
-        self.assertTrue(len(dnn.output_layers), 1)
+        self.assertEqual(len(dnn.input_layers), 1)
+        self.assertEqual(len(dnn.layers), 3)
+        self.assertEqual(len(dnn.output_layers), 1)
+
+        self.assertEqual(len(source.input_names), 0)
+        self.assertEqual(argmax.input_names, ('source',))
+        self.assertEqual(sink.input_names, ('argmax',))
 
         dir = tempfile.mkdtemp()
 
@@ -2356,9 +2385,24 @@ class DnnTestCase(MultithreadedTestCase):
         os.rmdir(dir)
 
         self.assertTrue(isinstance(dnn_loaded.solver, neoml.Dnn.AdaptiveGradient))
-        self.assertTrue(len(dnn_loaded.input_layers), 1)
-        self.assertTrue(len(dnn_loaded.layers), 3)
-        self.assertTrue(len(dnn_loaded.output_layers), 1)
+        self.assertEqual(len(dnn_loaded.input_layers), 1)
+        self.assertEqual(len(dnn_loaded.layers), 3)
+        self.assertEqual(len(dnn_loaded.output_layers), 1)
+
+    def test_links(self):
+        math_engine = neoml.MathEngine.CpuMathEngine(1)
+
+        # y[N, 2] (X[N, 4]) = X[N, 2:] - X[N, :2]
+        dnn = neoml.Dnn.Dnn(math_engine)
+        source = neoml.Dnn.Source(dnn, "source")
+        split_chan = neoml.Dnn.SplitChannels(source, (2, 2), name="Split_A2_B2")
+        sub = neoml.Dnn.EltwiseSub([(split_chan, 1), (split_chan, 0)], name="Sub_B2_A2")
+        sink = neoml.Dnn.Sink(sub, "sink")
+
+        # sub both inputs come from split_chan
+        self.assertEqual(sub.input_names, (split_chan.name, split_chan.name))
+        # but their order is inversed
+        self.assertEqual(sub.input_links, ((split_chan.name, 1), (split_chan.name, 0)))
 
     def test_solver(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)

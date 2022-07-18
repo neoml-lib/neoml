@@ -34,6 +34,7 @@ limitations under the License.
 #include "PyBaseConvLayer.h"
 #include "PyBertConvLayer.h"
 #include "PyBinarizationLayer.h"
+#include "PyBroadcastLayer.h"
 #include "PyCastLayer.h"
 #include "PyConvLayer.h"
 #include "PyConcatLayer.h"
@@ -108,6 +109,7 @@ PYBIND11_MODULE(PythonWrapper, m) {
 	InitializeBatchNormalizationLayer( m );
 	InitializeBertConvLayer( m );
 	InitializeBinarizationLayer( m );
+	InitializeBroadcastLayer( m );
 	InitializeCastLayer( m );
 	InitializeConvLayer( m );
 	InitializeConcatLayer( m );
