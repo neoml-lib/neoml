@@ -25,14 +25,11 @@ limitations under the License.
 namespace NeoOnnx {
 
 CSoftmaxOperator::CSoftmaxOperator( const onnx::NodeProto& softmax, int opsetVersion ) :
-	CLayerOperator( softmax, opsetVersion ),
-	axis( 1 )
+	CLayerOperator( softmax, opsetVersion )
 {
-	// The differences between versions are in negative axis support
+	// The differences between versions are in negative axis support and the default value of axis attribute
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
-	// Negative axis index supported since v11
-	GetAttribute( "axis", axis );
 	CheckOnnxProtocol( InputCount() == 1, "operator must have 1 input", *this );
 	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
 }
@@ -42,6 +39,12 @@ void CSoftmaxOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensor
 	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
 
 	const int dimCount = inputs[0]->DimCount();
+	// The default axis value has been changed in opset v11
+	int axis = OpsetVersion >= 11 ? -1 : 1;
+	GetAttribute( "axis", axis );
+	if( axis < 0 ) {
+		axis += dimCount;
+	}
 	CheckNeoOnnxSupport( axis <= 3, "more than 3 batch dimensions", *this );
 	CheckNeoOnnxSupport( dimCount - axis + 1 <= 4, "more than 4 object  dimensions", *this );
 
