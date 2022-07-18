@@ -25,7 +25,7 @@ namespace NeoML {
 
 CPtr<CBaseLayer> CreateActivationLayer( IMathEngine& mathEngine, TActivationFunction type )
 {
-	static_assert( AF_Count == 13, "AF_Count != 13" );
+	static_assert( AF_Count == 14, "AF_Count != 14" );
 	switch( type ) {
 		case AF_Linear:
 			return FINE_DEBUG_NEW CLinearLayer( mathEngine );
@@ -53,6 +53,8 @@ CPtr<CBaseLayer> CreateActivationLayer( IMathEngine& mathEngine, TActivationFunc
 			return FINE_DEBUG_NEW CGELULayer( mathEngine );
 		case AF_Exp:
 			return FINE_DEBUG_NEW CExpLayer( mathEngine );
+		case AF_Log:
+			return FINE_DEBUG_NEW CLogLayer( mathEngine );
 		default:
 			NeoAssert( false );
 	}
@@ -542,7 +544,39 @@ void CExpLayer::BackwardOnce()
 
 CLayerWrapper<CExpLayer> Exp()
 {
-	return CLayerWrapper<CExpLayer>( "Power", []( CExpLayer* ) {} );
+	return CLayerWrapper<CExpLayer>( "Exp", []( CExpLayer* ) {} );
+}
+
+//---------------------------------------------------------------------------------------------------
+
+static const int LogLayerVersion = 0;
+
+void CLogLayer::Serialize( CArchive& archive )
+{
+	archive.SerializeVersion( LogLayerVersion );
+	CBaseInPlaceLayer::Serialize( archive );
+}
+
+void CLogLayer::RunOnce()
+{
+	MathEngine().VectorLog( inputBlobs[0]->GetData(), outputBlobs[0]->GetData(), outputBlobs[0]->GetDataSize() );
+}
+
+void CLogLayer::BackwardOnce()
+{
+	if( inputBlobs[0].Ptr() == outputBlobs[0].Ptr() ) {
+		MathEngine().VectorExp( outputBlobs[0]->GetData(), inputDiffBlobs[0]->GetData(), outputBlobs[0]->GetDataSize());
+		MathEngine().VectorEltwiseDivide( outputDiffBlobs[0]->GetData(), inputDiffBlobs[0]->GetData(),
+			inputDiffBlobs[0]->GetData(), outputBlobs[0]->GetDataSize() );
+	} else {
+		MathEngine().VectorEltwiseDivide( outputDiffBlobs[0]->GetData(), inputBlobs[0]->GetData(),
+			inputDiffBlobs[0]->GetData(), inputBlobs[0]->GetDataSize() );
+	}
+}
+
+CLayerWrapper<CLogLayer> Log()
+{
+	return CLayerWrapper<CLogLayer>( "Log", []( CLogLayer* ) {} );
 }
 
 } // namespace NeoML
