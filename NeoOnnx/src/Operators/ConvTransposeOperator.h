@@ -30,8 +30,11 @@ protected:
 
 private:
 	void getStrides( const CTensorArray& inputs, CFastArray<int, 8>& strides ) const;
-	void getPads( const CTensorArray& inputs, CFastArray<int, 8>& pads ) const;
 	void getDilations( const CTensorArray& inputs, CFastArray<int, 8>& dilations ) const;
+	void getOutputPadding( const CTensorShape& convShape, CFastArray<int, 8>& outputPadding ) const;
+	void getPads( const CTensorShape& convShape, const CFastArray<int, 8>& outputPadding,
+		CFastArray<int, 8>& pads ) const;
+	void getTotalPadding( const CTensorShape& convShape, CFastArray<int, 8>& totalPadding ) const;
 };
 
 } // namespace NeoOnnx
