@@ -161,7 +161,7 @@ CPtr<const CUserTensor> CConvTransposeOperator::applyOutputPadding( const CUserT
 	return PadUserTensor( convOutput, outputPadding, 0.f ).Ptr();
 }
 
-// Applies pads on the result of the transposed conv (see ConvTranspose docs for more details)
+// Applies pads to the result of the transposed conv (see ConvTranspose docs for more details)
 CPtr<const CUserTensor> CConvTransposeOperator::applyPads( const CUserTensor& paddedOutput ) const
 {
 	const int convDims = paddedOutput.DimCount() - 2;
