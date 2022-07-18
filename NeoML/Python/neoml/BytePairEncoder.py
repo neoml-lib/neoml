@@ -90,11 +90,11 @@ class BytePairEncoder():
             raise ValueError("Encoder is not initialized.")
         self._internal.store(path)
         
-    def encode(self, word: str) -> tp.Tuple[tp.List[int], tp.List[tp.Tuple[int, int]]]:
-        """Encodes input word.
+    def encode(self, text: tp.Union[str, tp.List[str]]) -> tp.Tuple[tp.List[int], tp.List[tp.Tuple[int, int]]]:
+        """Encodes input text.
 
-        :param word: input word.
-        :type word: str
+        :param text: input word or list of words.
+        :type text: str or list of str
 
         :return:
             - **token_ids** - ids of tokens.
@@ -109,7 +109,9 @@ class BytePairEncoder():
         """
         if not self.is_loaded:
             raise ValueError("Encoder is not initialized.")
-        return self._internal.encode(word)
+        if type(text) is str:
+            text = [text]
+        return self._internal.encode(text)
 
     def decode(self, token_ids: tp.List[int]) -> tp.List[str]:
         """Decodes sequence of token ids into sequence of words.

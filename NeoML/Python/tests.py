@@ -2709,3 +2709,67 @@ class DnnDistributedTestCase(TestCase):
 
         os.remove(path)
         os.rmdir(dir)
+
+
+class TestBPE(TestCase):
+    def test_saveload(self):
+        word_dictionary = {
+            "aa": 5,
+            "bb": 4,
+            "ab": 3,
+            "a": 2,
+            "b": 1
+        }
+
+        bpe = neoml.BytePairEncoder.BytePairEncoder()
+        self.assertIsNone(bpe.size)
+        self.assertIsNone(bpe.use_sow)
+        self.assertIsNone(bpe.use_eow)
+       
+        bpe.load_from_dictionary(word_dictionary, "", "")
+        self.assertEqual(6, bpe.size)
+        self.assertFalse(bpe.use_sow)
+        self.assertFalse(bpe.use_eow)
+
+        res = bpe.encode("aabcb")
+        self.assertEqual([1, 5, 0, 5], res[0])
+
+        dir = tempfile.mkdtemp()
+        path = os.path.join(dir, 'bpe')
+        bpe.store(path)
+
+        loaded_bpe = neoml.BytePairEncoder.BytePairEncoder()
+        loaded_bpe.load(path)
+        self.assertEqual(6, loaded_bpe.size)
+        self.assertFalse(loaded_bpe.use_sow)
+        self.assertFalse(loaded_bpe.use_eow)
+
+        loaded_res = loaded_bpe.encode("aabcb")
+        self.assertEqual(res, loaded_res)
+
+    def test_train(self):
+        bpe = neoml.BytePairEncoder.BytePairEncoder()
+        with self.assertRaises(ValueError):
+            bpe.cache_period = 0
+
+        corpus_stats = {
+            "abbb": 1,
+            "bab": 2,
+            "aa": 5,
+            "bb": 4,
+            "ab": 3,
+            "a": 2
+        }
+        bpe.train(corpus_stats, 5)
+        self.assertEqual(5, bpe.size)
+        self.assertFalse(bpe.use_sow)
+        self.assertTrue(bpe.use_eow)
+
+        text = ["aabb", "baaba"]
+        encoded = bpe.encode(text)
+        print(encoded)
+        decoded = bpe.decode(encoded[0])
+        self.assertEqual(text, decoded)
+
+        bpe.cache_period = 10
+        self.assertEqual(10, bpe.cache_period)

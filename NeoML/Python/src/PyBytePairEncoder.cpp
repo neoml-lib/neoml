@@ -33,7 +33,7 @@ public:
 	void Load( const std::string& path );
 	void Store( const std::string& path );
 
-	py::tuple Encode( const std::string& word ) const;
+	py::tuple Encode( py::list text ) const;
 	py::list Decode( py::list tokenIds ) const;
 
 	int Size() const;
@@ -80,7 +80,10 @@ py::dict CPyBytePairEncoder::GetDictionary() const
 
 	py::dict result;
 	CWordDictionary dictionary;
-	encoder->GetDictionary( dictionary );
+	{
+		py::gil_scoped_release release;
+		encoder->GetDictionary( dictionary );
+	}
 	for( int i = 0; i < dictionary.Size(); ++i ) {
 		result[dictionary.GetWord( i )] = dictionary.GetWordUseCount( i );
 	}
@@ -114,13 +117,17 @@ void CPyBytePairEncoder::Store( const std::string& path )
 	Serialize( archive );
 }
 
-py::tuple CPyBytePairEncoder::Encode( const std::string& word ) const
+py::tuple CPyBytePairEncoder::Encode( py::list text ) const
 {
 	NeoAssert( encoder != nullptr );
 
 	CArray<int> tokenIds;
 	CArray<int> tokenLengths;
-	encoder->Encode( word, tokenIds, tokenLengths );
+
+	for( const auto& word : text ) {
+		auto cWord = word.cast<std::string>();
+		encoder->Encode( cWord, tokenIds, tokenLengths );
+	}
 
 	py::list tokenIdsResult;
 	py::list tokenLengthsResult;
