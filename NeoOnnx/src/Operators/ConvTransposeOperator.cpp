@@ -84,7 +84,17 @@ void CConvTransposeOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, C
 	CFastArray<int, 8> dilations;
 	getDilations( inputs, dilations );
 	CTensorShape outputShape;
-	calcOutputShape( inputs, kernelShape, strides, dilations, outputShape);
+	calcOutputShape( inputs, kernelShape, strides, dilations, outputShape );
+	CFastArray<int, 8> totalPadding;
+	getTotalPadding( outputShape, totalPadding );
+	const int convDims = outputShape.Size() - 2;
+	bool doesConvLayerSupportPadding = true;
+	for( int i = 0; i < convDims; ++i ) {
+		if( totalPadding[i] < 0 || totalPadding[i] != totalPadding[i + convDims] ) {
+			doesConvLayerSupportPadding = false;
+			break;
+		}
+	}
 
 	CTensorLayout neoMLLayout( { BD_BatchWidth, BD_Channels, BD_Height, BD_Width } );
 	CPtr<const CDataTensor> filter = dynamic_cast<const CDataTensor*>( ConvertTensor( *inputs[1], neoMLLayout ).Ptr() );
@@ -100,6 +110,12 @@ void CConvTransposeOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, C
 	transposedConv->SetStrideWidth( strides[1] );
 	transposedConv->SetDilationHeight( dilations[0] );
 	transposedConv->SetDilationWidth( dilations[1] );
+	if( doesConvLayerSupportPadding ) {
+		transposedConv->SetPaddingHeight( totalPadding[0] );
+		transposedConv->SetPaddingWidth( totalPadding[1] );
+		outputShape[2] -= 2 * totalPadding[0];
+		outputShape[3] -= 2 * totalPadding[1];
+	}
 
 	transposedConv->SetFilterData( filter->Data()->GetCopy() );
 	if( InputCount() == 3 && inputs[2] != nullptr ) {
@@ -112,8 +128,13 @@ void CConvTransposeOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, C
 	transposedConv->Connect( 0, *currTensor->Layer(), currTensor->OutputIndex() );
 	dnn.AddLayer( *transposedConv );
 	currTensor = new CUserTensor( outputShape, neoMLLayout, CLayerOutput( transposedConv, 0 ) );
-	currTensor = applyOutputPadding( *currTensor );
-	outputs.Add( applyPads( *currTensor ).Ptr() );
+	if( !doesConvLayerSupportPadding ) {
+		for( int i = 0; i < 2 * convDims; ++i ) {
+			totalPadding[i] = -totalPadding[i];
+		}
+		currTensor = PadUserTensor( *currTensor, totalPadding, 0 ).Ptr();
+	}
+	outputs.Add( currTensor.Ptr() );
 }
 
 // Gets strides
@@ -136,78 +157,61 @@ void CConvTransposeOperator::getDilations( const CTensorArray& inputs, CFastArra
 	}
 }
 
-// Applies output_padding to the result of the convolution (see ConvTranspose docs for more details)
-CPtr<const CUserTensor> CConvTransposeOperator::applyOutputPadding( const CUserTensor& convOutput ) const
+// Gets output_padding values
+void CConvTransposeOperator::getOutputPadding( const CTensorShape& convShape, CFastArray<int, 8>& outputPadding ) const
 {
-	CFastArray<int, 8> outputPadding;
-	if( !GetAttribute( "output_padding", outputPadding ) ) {
-		return &convOutput;
+	GetAttribute( "output_padding", outputPadding );
+	if( outputPadding.IsEmpty() ) {
+		const int convDims = convShape.Size() - 2;
+		outputPadding.Add( 0, convDims );
 	}
-
-	bool hasOutputPadding = false;
-	for( int i = 0; i < outputPadding.Size(); ++i ) {
-		if( outputPadding[i] != 0 ) {
-			hasOutputPadding = true;
-			break;
-		}
-	}
-
-	if( !hasOutputPadding ) {
-		return &convOutput;
-	}
-
-	NeoAssert( outputPadding.Size() == 2 );
-	outputPadding.InsertAt( { 0, 0 }, 0 );
-	return PadUserTensor( convOutput, outputPadding, 0.f ).Ptr();
 }
 
-// Applies pads to the result of the transposed conv (see ConvTranspose docs for more details)
-CPtr<const CUserTensor> CConvTransposeOperator::applyPads( const CUserTensor& paddedOutput ) const
+// Gets pads values
+void CConvTransposeOperator::getPads( const CTensorShape& convShape, const CFastArray<int, 8>& outputPadding,
+	CFastArray<int, 8>& pads ) const
 {
-	const int convDims = paddedOutput.DimCount() - 2;
+	const int convDims = convShape.Size() - 2;
 	CFastArray<int, 8> outputShape;
-	CFastArray<int, 8> pads;
 
 	// Getting pads sizes (one way, or another)
 	const bool hasPadsAttribute = GetAttribute( "pads", pads );
 	if( !hasPadsAttribute ) {
 		if( !GetAttribute( "output_shape", outputShape ) ) {
-			return &paddedOutput;
+			pads.Add( 0, 2 * convDims );
+			return;
 		}
 
 		// Pads must be automatically calculated based on the output_shape
-		NeoAssert( outputShape.Size() == paddedOutput.DimCount() );
+		NeoAssert( outputShape.Size() == convShape.Size() );
 		CString autoPad = "NOTSET";
 		GetAttribute( "auto_pad", autoPad );
 
 		pads.SetSize( 2 * convDims );
 		for( int i = 0; i < convDims; ++i ) {
-			const int totalPadding = paddedOutput.Shape()[i + 2] - outputShape[i + 2];
+			const int totalPadding = convShape[i + 2] + outputPadding[i] - outputShape[i + 2];
 			pads[i] = autoPad != "SAME_UPPER" ? totalPadding / 2 : ( totalPadding + 1 ) / 2;
 			pads[convDims + i] = totalPadding - pads[i];
 		}
 	}
+}
 
-	// Check that pads are not trivial
+// Calculates total paddings
+void CConvTransposeOperator::getTotalPadding( const CTensorShape& convShape, CFastArray<int, 8>& totalPadding ) const
+{
+	CFastArray<int, 8> outputPadding;
+	getOutputPadding( convShape, outputPadding );
+	CFastArray<int, 8> pads;
+	getPads( convShape, outputPadding, pads );
+
+	const int convDims = convShape.Size() - 2;
+	NeoAssert( outputPadding.Size() == convDims );
 	NeoAssert( pads.Size() == 2 * convDims );
-	bool hasPads = false;
-	for( int i = 0; i < pads.Size(); ++i ) {
-		if( pads[i] != 0 ) {
-			hasPads = true;
-			break;
-		}
+	totalPadding.SetSize( 2 * convDims );
+	for( int i = 0; i < convDims; ++i ) {
+		totalPadding[i] = pads[i];
+		totalPadding[i + convDims] = pads[i + convDims] - outputPadding[i];
 	}
-	if( !hasPads ) {
-		return &paddedOutput;
-	}
-
-	// Apply pads based on formula of the node output shape
-	NeoAssert( pads.Size() == 4 );
-	NeoAssert( paddedOutput.Layout()[2] == BD_Height && paddedOutput.Layout()[3] == BD_Width );
-	for( int i = 0; i < pads.Size(); ++i ) {
-		pads[i] = -pads[i];
-	}
-	return PadUserTensor( paddedOutput, pads, 0.f );
 }
 
 } // namespace NeoOnnx
