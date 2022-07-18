@@ -32,6 +32,9 @@ private:
 	void getStrides( const CTensorArray& inputs, CFastArray<int, 8>& strides ) const;
 	void getPads( const CTensorArray& inputs, CFastArray<int, 8>& pads ) const;
 	void getDilations( const CTensorArray& inputs, CFastArray<int, 8>& dilations ) const;
+
+	CPtr<const CUserTensor> applyOutputPadding( const CUserTensor& convOutput ) const;
+	CPtr<const CUserTensor> applyPads( const CUserTensor& paddedOutput ) const;
 };
 
 } // namespace NeoOnnx
