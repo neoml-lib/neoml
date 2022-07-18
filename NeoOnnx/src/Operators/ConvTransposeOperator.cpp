@@ -76,7 +76,6 @@ void CConvTransposeOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, C
 		CheckNeoOnnxSupport( inputs[2]->IsCalculated(), "user-provided bias", *this );
 	}
 
-	// Apply output_padding (in conv_transpose it's a padding which is applied before de-convolution
 	CTensorShape kernelShape;
 	getConvTransposeKernelShape( inputs, kernelShape );
 	CFastArray<int, 8> strides;
@@ -85,9 +84,11 @@ void CConvTransposeOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, C
 	getDilations( inputs, dilations );
 	CTensorShape outputShape;
 	calcOutputShape( inputs, kernelShape, strides, dilations, outputShape );
+	// total padding is a combined result of applying output_padding and pads attributes
 	CFastArray<int, 8> totalPadding;
 	getTotalPadding( outputShape, totalPadding );
 	const int convDims = outputShape.Size() - 2;
+	// check if total padding can be fused in CTransposedConvLayer
 	bool doesConvLayerSupportPadding = true;
 	for( int i = 0; i < convDims; ++i ) {
 		if( totalPadding[i] < 0 || totalPadding[i] != totalPadding[i + convDims] ) {
@@ -110,6 +111,7 @@ void CConvTransposeOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, C
 	transposedConv->SetStrideWidth( strides[1] );
 	transposedConv->SetDilationHeight( dilations[0] );
 	transposedConv->SetDilationWidth( dilations[1] );
+	// apply padding via layer (if possible)
 	if( doesConvLayerSupportPadding ) {
 		transposedConv->SetPaddingHeight( totalPadding[0] );
 		transposedConv->SetPaddingWidth( totalPadding[1] );
@@ -128,7 +130,9 @@ void CConvTransposeOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, C
 	transposedConv->Connect( 0, *currTensor->Layer(), currTensor->OutputIndex() );
 	dnn.AddLayer( *transposedConv );
 	currTensor = new CUserTensor( outputShape, neoMLLayout, CLayerOutput( transposedConv, 0 ) );
+	// apply padding if it couldn't be applied via layer
 	if( !doesConvLayerSupportPadding ) {
+		// padding in transposed conv works in the opposite direction
 		for( int i = 0; i < 2 * convDims; ++i ) {
 			totalPadding[i] = -totalPadding[i];
 		}
