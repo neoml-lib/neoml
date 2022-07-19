@@ -1284,12 +1284,13 @@ __global__ void vectorGreaterEqualToZeroKernel( const int* __restrict__ first,
 	}
 }
 
-__global__ void vectorLessKernel( const float* __restrict__ first, const float* __restrict__ second,
-	float* result, int vectorSize )
+template<class TSrc, class TDst>
+__global__ void vectorLessKernel( const TSrc* __restrict__ first, const TSrc* __restrict__ second,
+	TDst* result, int vectorSize )
 {
 	int index;
 	if( GetCudaTaskIndex( vectorSize, index ) ) {
-		result[index] = first[index] < second[index] ? 1.f : 0.f;
+		result[index] = static_cast<TDst>( first[index] < second[index] ? 1 : 0 );
 	}
 }
 
