@@ -181,7 +181,7 @@ void CBytePairEncoder::LoadDictionary( const CWordDictionary& _tokens,
 	// Start-of-Word or End-of-Word tokens must be disabled or must be present in the dictionary
 	NeoAssert( sowOk && eowOk );
 	CArray<CString> auxTokens = { startOfWordToken, endOfWordToken };
-	// Check that each token must be a letter, auxiliary or a combination of 2 other tokens
+	// Check that each token is a letter, auxiliary or a combination of 2 other tokens
 	const auto& inseparable = findInseparableToken( finalizedDictionary, auxTokens );
 	NeoAssert( inseparable.IsEmpty() );
 
@@ -194,7 +194,7 @@ void CBytePairEncoder::LoadDictionary( const CWordDictionary& _tokens,
 		if( useStartOfWordToken ) {
 			const int sowPos = token.Find( startOfWordToken );
 			if( sowPos != NotFound ) {
-				// Check that Start-of-Word isn't lokated in the middle of the token
+				// Check that Start-of-Word isn't located in the middle of the token
 				NeoAssert( token.Find( startOfWordToken, 1 ) == NotFound );
 				token.StrReplace( 0, startOfWordToken.Length(), StartOfWordTokenInternal );
 			}
@@ -202,7 +202,7 @@ void CBytePairEncoder::LoadDictionary( const CWordDictionary& _tokens,
 		if( useEndOfWordToken ) {
 			const int eowPos = token.Find( endOfWordToken );
 			if( eowPos != NotFound ) {
-				// Check that End-of-Word isn't lokated anywhere except the end of the token
+				// Check that End-of-Word isn't located anywhere except the end of the token
 				NeoAssert( eowPos == token.Length() - endOfWordToken.Length() );
 				token.StrReplace( eowPos, endOfWordToken.Length(), EndOfWordTokenInternal );
 			}
