@@ -1890,6 +1890,35 @@ void CCpuMathEngine::VectorL1DiffAdd(const CConstFloatHandle& firstHandle, const
 	}
 }
 
+void CCpuMathEngine::VectorEltwiseNot( const CConstIntHandle& firstHandle, const CIntHandle& resultHandle,
+	int vectorSize )
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	CCpuExecutionScope scope;
+
+	const int* first = GetRaw( firstHandle );
+	int* result = GetRaw( resultHandle );
+
+	int sseSize;
+	int nonSseSize;
+	checkSse( vectorSize, sseSize, nonSseSize );
+
+	const __m128i zeros = _mm_set1_epi32( 0 );
+	const __m128i ones = _mm_set1_epi32( 1 );
+
+	for( int i = 0; i < sseSize; ++i ) {
+		StoreIntSse4( _mm_and_si128( ones, _mm_cmpeq_epi32( LoadIntSse4( first ), zeros ) ), result );
+		first += 4;
+		result += 4;
+	}
+
+	if( nonSseSize > 0 ) {
+		StoreIntSse( _mm_and_si128( ones, _mm_cmpeq_epi32( LoadIntSse( first, nonSseSize ), zeros ) ),
+			result, nonSseSize );
+	}
+}
+
 void CCpuMathEngine::VectorEltwiseNotNegative( const CConstIntHandle& firstHandle, const CFloatHandle& resultHandle,
 	int vectorSize )
 {

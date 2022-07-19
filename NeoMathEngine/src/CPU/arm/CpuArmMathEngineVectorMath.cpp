@@ -1946,6 +1946,29 @@ void CCpuMathEngine::VectorL1DiffAdd(const CConstFloatHandle& firstHandle, const
 	}
 }
 
+void CCpuMathEngine::VectorEltwiseNot( const CConstIntHandle& firstHandle, const CIntHandle& resultHandle,
+	int vectorSize )
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	CCpuExecutionScope scope;
+
+	const int* first = GetRaw( firstHandle );
+	int* result = GetRaw( resultHandle );
+	int count = GetCount4( vectorSize );
+
+	const int32x4_t ones = vdupq_n_s32( 1 );
+	for( int i = 0; i < count; ++i ) {
+		StoreIntNeon4( vandq_s32( ones, vceqzq_s32( LoadIntNeon4( first ) ) ), result );
+		first += 4;
+		result += 4;
+	}
+
+	if( vectorSize > 0 ) {
+		StoreIntNeon( vandq_s32( ones, vceqzq_s32( LoadIntNeon( first, vectorSize ) ) ), result, vectorSize );
+	}
+}
+
 void CCpuMathEngine::VectorEltwiseNotNegative( const CConstIntHandle& firstHandle,
 	const CFloatHandle& resultHandle, int vectorSize )
 {
