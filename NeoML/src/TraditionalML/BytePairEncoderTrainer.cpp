@@ -1,4 +1,4 @@
-/* Copyright © 2017-2022 ABBYY Production LLC
+/* Copyright Â© 2017-2022 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,6 +20,10 @@ limitations under the License.
 #include <BytePairEncoder.h>
 
 namespace NeoML {
+
+// Special tokens.
+static const CString StartOfWordTokenInternal( "/\xFF" );
+static const CString EndOfWordTokenInternal( "\\\xFF" );
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -83,7 +87,11 @@ bool CBytePairEncoderTrainer::IsTrainingCompleted() const
 
 CPtr<IBytePairEncoder> CBytePairEncoderTrainer::GetEncoder() const
 {
-	return new CBytePairEncoder( tokensDictionary, params.UseEndOfWordToken, params.UseStartOfWordToken );
+	CPtr<IBytePairEncoder> encoder = new CBytePairEncoder();
+	encoder->LoadDictionary( tokensDictionary, 
+		params.UseEndOfWordToken ? EndOfWordTokenInternal : "", 
+		params.UseStartOfWordToken ? StartOfWordTokenInternal : "" );
+	return encoder;
 }
 
 void CBytePairEncoderTrainer::Serialize( CArchive& archive )
@@ -104,7 +112,9 @@ void CBytePairEncoderTrainer::createTrainData( const CWordDictionary& dictionary
 	trainCounts.SetSize( dictionary.Size() );
 	for( int i = 0; i < dictionary.Size(); i++ ) {
 		CBytePairEncoder::SplitWordIntoInitialTokens( dictionary.GetWord( i ), 
-			params.UseStartOfWordToken, params.UseEndOfWordToken, trainWords[i] );
+			params.UseStartOfWordToken ? StartOfWordTokenInternal : "", 
+			params.UseEndOfWordToken ? EndOfWordTokenInternal : "", 
+			trainWords[i] );
 		trainCounts[i] = dictionary.GetWordUseCount( i );
 	}
 }

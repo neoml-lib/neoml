@@ -57,6 +57,10 @@ protected:
 class CEluOperator : public CActivationOperatorBase {
 public:
 	CEluOperator( const onnx::NodeProto& elu, int opsetVersion );
+
+protected:
+	// CLayerOperator methods
+	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
 };
 
 // HardSigmoid operator
@@ -121,6 +125,12 @@ public:
 class CExpOperator : public CActivationOperatorBase {
 public:
 	CExpOperator( const onnx::NodeProto& exp, int opsetVersion );
+};
+
+// Log operator
+class CLogOperator : public CActivationOperatorBase {
+public:
+	CLogOperator( const onnx::NodeProto& log, int opsetVersion );
 };
 
 } // namespace NeoOnnx

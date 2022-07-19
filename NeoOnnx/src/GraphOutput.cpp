@@ -34,10 +34,7 @@ CPtr<const CSinkLayer> CGraphOutput::AddSinkLayer( const CUserTensor& input, CDn
 	sink->SetName( Name() );
 
 	// Sinks must return blobs ONNX-compatible order by using first dimCount axes of the blob
-	CTensorLayout outputLayout( input.DimCount() );
-	for( int dimIndex = 0; dimIndex < outputLayout.Size(); ++dimIndex ) {
-		outputLayout[dimIndex] = static_cast<TBlobDim>( dimIndex );
-	}
+	CTensorLayout outputLayout = CTensorLayout::IOLayout( input.DimCount() );
 	CPtr<const CUserTensor> outputTensor = ConvertTensor( input, outputLayout );
 	sink->Connect( 0, *outputTensor->Layer(), outputTensor->OutputIndex() );
 	dnn.AddLayer( *sink );

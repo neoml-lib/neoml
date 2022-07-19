@@ -1,4 +1,4 @@
-/* Copyright © 2017-2022 ABBYY Production LLC
+/* Copyright Â© 2017-2022 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,36 +18,33 @@ limitations under the License.
 #include <NeoML/NeoMLDefs.h>
 #include <NeoML/TraditionalML/SubwordEncoder.h>
 #include <NeoML/TraditionalML/WordDictionary.h>
-#include <NeoML/TraditionalML/Model.h>
 
 namespace NeoML {
-
-DECLARE_NEOML_MODEL_NAME( BytePairEncoderModelName, "NeoMLBytePairEncoderModel" )
 
 // Class that encodes a UTF-8 word using byte-pair-encoding.
 class NEOML_API CBytePairEncoder : public IBytePairEncoder {
 public:
-	CBytePairEncoder();
-	CBytePairEncoder( const CWordDictionary& tokens, bool useEndOfWordToken, bool useStartOfWordToken );
-
 	// ISubwordEncoder:
-	virtual void Decode( const CArray<int>& tokenIds, CArray<CString>& words ) const override;
-	virtual int Size() const override;
-	virtual void Serialize( CArchive& archive ) override;
+	void Decode( const CArray<int>& tokenIds, CArray<CString>& words ) const override;
+	int Size() const override;
+	void Serialize( CArchive& archive ) override;
 
 	// IBytePairEncoder:
-	virtual bool UseEndOfWordToken() const override { return useEndOfWordToken; }
-	virtual bool UseStartOfWordToken() const override { return useStartOfWordToken; }
+	bool UseEndOfWordToken() const override { return useEndOfWordToken; }
+	bool UseStartOfWordToken() const override { return useStartOfWordToken; }
+	void LoadDictionary( const CWordDictionary& tokens, 
+		const CString& endOfWordToken, const CString& startOfWordToken ) override;
+	void GetDictionary( CWordDictionary& output, const CString& endOfWordToken, const CString& startOfWordToken ) const override;
 
 	// Splits a word into initial tokens: single unicode characters + special tokens (optional).
-	static void SplitWordIntoInitialTokens( const CString& word, bool useStartOfWordToken,
-		bool useEndOfWordToken, CArray<CString>& initialTokens, CArray<int>* initialTokensLength = nullptr );
+	static void SplitWordIntoInitialTokens( const CString& word, const CString& startOfWordToken,
+		 const CString& endOfWordToken, CArray<CString>& initialTokens, CArray<int>* initialTokensLength = nullptr );
 	// Concatenates tokens.
 	static CString MergeTokens( const CString& first, const CString& second );
 
 protected:
 	// ISubwordEncoderWithCache:
-	virtual void DoEncode( const CString& word, CArray<int>& tokenIds,
+	void DoEncode( const CString& word, CArray<int>& tokenIds,
 		CArray<int>& tokenLengths ) const override;
 
 private:
@@ -56,16 +53,18 @@ private:
 	// Reverse Map: Token -> Token index in tokens array.
 	CMap<CString, int> tokenToId;
 
-	// Special flags usage flags.
-	bool useEndOfWordToken;
-	bool useStartOfWordToken;
+	// Special tokens usage flags.
+	bool useStartOfWordToken = false;
+	bool useEndOfWordToken = true;
 
 	int getTokenIndex( const CString& token ) const;
 	CString getToken( int tokenId ) const;
 
 	void removeSpecialTokens( CString& token, bool& hasEoW, bool& hasSoW ) const;
-	bool removeEoWToken( CString& token ) const;
-	bool removeSoWToken( CString& token ) const;
+	bool replaceEoWToken( CString& token, const CString& eowToken, const CString& replacement ) const;
+	bool replaceSoWToken( CString& token, const CString& sowToken, const CString& replacement ) const;
+
+	static CString findInseparableToken( const CWordDictionary& dictionary, const CArray<CString>& auxTokens );
 };
 
 } // namespace NeoML

@@ -255,12 +255,9 @@ static CPtr<const CTensorBase> convertToChannelLast( const CTensorBase& input, c
 
 	CPtr<const CTensorBase> currInput = &input;
 	if( currInput->Layout().Find( BD_Channels ) != NotFound ) {
-		CTensorLayout intermediateLayout( dimCount );
 		// isChannelFirstLayout( input.Layout() ) guarantees that layout[i + 1] > layout[i]
 		// The restriction dimCount < 7 guarantees that in this intermediate layout BD_Channels won't be used
-		for( int i = 0; i < dimCount; ++i ) {
-			intermediateLayout[i] = static_cast<TBlobDim>( i );
-		}
+		CTensorLayout intermediateLayout = CTensorLayout::IOLayout( dimCount );
 		currInput = renameDimensions( *currInput, intermediateLayout );
 	}
 

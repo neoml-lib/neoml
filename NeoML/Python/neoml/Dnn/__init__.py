@@ -4,13 +4,14 @@ from .Initializer import Xavier, XavierUniform, Uniform
 
 from .Accuracy import Accuracy, ConfusionMatrix
 from .AccumulativeLookup import AccumulativeLookup
-from .Activation import Linear, ELU, ReLU, LeakyReLU, HSwish, Abs, Sigmoid, Tanh, HardTanh, HardSigmoid, Power, GELU, Exp
+from .Activation import Linear, ELU, ReLU, LeakyReLU, HSwish, Abs, Sigmoid, Tanh, HardTanh, HardSigmoid, Power, GELU, Exp, Log
 from .AddToObject import AddToObject
 from .Argmax import Argmax
 from .AttentionDecoder import AttentionDecoder
 from .BatchNormalization import BatchNormalization
 from .BertConv import BertConv
 from .Binarization import EnumBinarization, BitSetVectorization
+from .Broadcast import Broadcast
 from .Cast import Cast
 from .Concat import ConcatChannels, ConcatDepth, ConcatWidth, ConcatHeight, ConcatBatchWidth, ConcatBatchLength, ConcatListSize, ConcatObject
 from .Conv import Conv, Conv3D, TransposedConv3D, TransposedConv, ChannelwiseConv, TimeConv 

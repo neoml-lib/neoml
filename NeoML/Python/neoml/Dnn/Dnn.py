@@ -269,7 +269,24 @@ class Layer:
             self._internal.enable_learning()
         else:
             self._internal.disable_learning()    
-    
+
+    @property
+    def input_names(self):
+        """Tuple in which i'th element contains the name of the layer, connected to the i'th inputs of `self`
+        """
+        return tuple(name for name, output_idx in self.input_links)
+
+    @property
+    def input_links(self):
+        """Tuple in which i'th element contains complete information about the link between i'th input layer
+        and `self` (layer name, output idx)
+        """
+        return tuple(
+            (self._internal.get_input_name(idx), self._internal.get_input_output_idx(idx))
+            for idx in range(self._internal.get_input_count())
+        )
+
+
     def connect(self, layer, output_index=0, input_index=0):
         """Connects this layer to another.
         

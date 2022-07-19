@@ -41,7 +41,7 @@ void CEltwiseOperatorBase::AddLayersImpl( const CBroadcast& broadcast, const CTe
 
 	// Corner case which doesn't violate Onnx protocol: operators with variable input count may have 1 input
 	if( inputs.Size() == 1 && argsNum < 0 ) {
-		outputs[0] = inputs[0];
+		outputs.Add( inputs[0] );
 		return;
 	}
 
