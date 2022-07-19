@@ -130,6 +130,17 @@ CEluOperator::CEluOperator( const onnx::NodeProto& elu, int opsetVersion ) :
 	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
 }
 
+void CEluOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
+{
+	CActivationOperatorBase::AddLayers( inputs, dnn, outputs );
+	CELULayer* elu = dynamic_cast<CELULayer*>( dnn.GetLayer( Name() ).Ptr() );
+	NeoAssert( elu != nullptr );
+
+	float alpha = 1;
+	GetAttribute( "alpha", alpha );
+	elu->SetAlpha( alpha );
+}
+
 //---------------------------------------------------------------------------------------------------------------------
 
 CLeakyReluOperator::CLeakyReluOperator( const onnx::NodeProto& leakyRelu, int opsetVersion ) :
@@ -137,6 +148,7 @@ CLeakyReluOperator::CLeakyReluOperator( const onnx::NodeProto& leakyRelu, int op
 {
 	// v1 - original
 	// v6 - legacy optimization attributes are removed
+	// v16 - bfloat16 is supported
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
 	CheckOnnxProtocol( InputCount() == 1, "operator must have 1 input", *this );
@@ -149,7 +161,7 @@ void CLeakyReluOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTens
 	CLeakyReLULayer* leakyReLU = dynamic_cast<CLeakyReLULayer*>( dnn.GetLayer( Name() ).Ptr() );
 	NeoAssert( leakyReLU != nullptr );
 
-	float alpha = 0;
+	float alpha = 0.01f;
 	GetAttribute( "alpha", alpha );
 	leakyReLU->SetAlpha( alpha );
 }
@@ -281,6 +293,20 @@ CTanhOperator::CTanhOperator( const onnx::NodeProto& tanh, int opsetVersion ) :
 
 CExpOperator::CExpOperator( const onnx::NodeProto& exp, int opsetVersion ) :
 	CActivationOperatorBase( exp, opsetVersion, AF_Exp )
+{
+	// v1 - original
+	// v6 - legacy optimization attribute is removed
+	// v13 - bfloat16 is supported
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
+
+	CheckOnnxProtocol( InputCount() == 1, "operator must have 1 input", *this );
+	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
+CLogOperator::CLogOperator( const onnx::NodeProto& log, int opsetVersion ) :
+	CActivationOperatorBase( log, opsetVersion, AF_Log )
 {
 	// v1 - original
 	// v6 - legacy optimization attribute is removed

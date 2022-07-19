@@ -811,6 +811,10 @@ class LayersTestCase(MultithreadedTestCase):
         out = self._test_activation('Exp')
         self.assertTrue(np.isclose(out, np.exp(1)).all())
 
+    def test_activation_log(self):
+        out = self._test_activation('Log')
+        self.assertTrue(np.isclose(out, np.log(1)).all())
+
     def test_add_object(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
         dnn = neoml.Dnn.Dnn(math_engine)
@@ -1686,6 +1690,27 @@ class LayersTestCase(MultithreadedTestCase):
         outputs = dnn.run({'data': data_blob, 'kernel': kernel_blob})
         self.assertEqual(outputs['sink'].shape, (seq_len, batch_size * num_heads, 1, head_size, 1, 1, 1))
         self.assertTrue(np.equal(outputs['sink'].asarray(), np.zeros((seq_len, batch_size * num_heads, head_size), np.float32)).all())
+    
+    def test_broadcast(self):
+        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        dnn = neoml.Dnn.Dnn(math_engine)
+        first_data = neoml.Dnn.Source(dnn, 'first_data')
+        second_data = neoml.Dnn.Source(dnn, 'second_data')
+        broadcast = neoml.Dnn.Broadcast((first_data, second_data), 'broadcast')
+        first_sink = neoml.Dnn.Sink((broadcast, 0), 'first_sink')
+        second_sink = neoml.Dnn.Sink((broadcast, 1), 'second_sink')
+
+        first_blob = neoml.Blob.asblob(math_engine, np.ones(3*5*7, np.float32), [1, 3, 1, 5, 1, 7, 1])
+        second_blob = neoml.Blob.asblob(math_engine, np.zeros(2*4*6*8, np.float32), [2, 1, 4, 1, 6, 1, 8])
+        outputs = dnn.run({'first_data': first_blob, 'second_data': second_blob})
+        self.assertEqual(len(outputs), 2)
+        output_shape = (2, 3, 4, 5, 6, 7, 8)
+        self.assertTrue('first_sink' in outputs)
+        self.assertEqual(outputs['first_sink'].shape, output_shape)
+        self.assertTrue(np.equal(outputs['first_sink'].asarray(), np.ones(output_shape, np.float32)).all())
+        self.assertTrue('second_sink' in outputs)
+        self.assertEqual(outputs['second_sink'].shape, output_shape)
+        self.assertTrue(np.equal(outputs['second_sink'].asarray(), np.zeros(output_shape, np.float32)).all())
 
 
 class PoolingTestCase(MultithreadedTestCase):
@@ -2340,9 +2365,13 @@ class DnnTestCase(MultithreadedTestCase):
         argmax = neoml.Dnn.Argmax(source, name="argmax")
         sink = neoml.Dnn.Sink(argmax, "sink")
 
-        self.assertTrue(len(dnn.input_layers), 1)
-        self.assertTrue(len(dnn.layers), 3)
-        self.assertTrue(len(dnn.output_layers), 1)
+        self.assertEqual(len(dnn.input_layers), 1)
+        self.assertEqual(len(dnn.layers), 3)
+        self.assertEqual(len(dnn.output_layers), 1)
+
+        self.assertEqual(len(source.input_names), 0)
+        self.assertEqual(argmax.input_names, ('source',))
+        self.assertEqual(sink.input_names, ('argmax',))
 
         dir = tempfile.mkdtemp()
 
@@ -2356,9 +2385,24 @@ class DnnTestCase(MultithreadedTestCase):
         os.rmdir(dir)
 
         self.assertTrue(isinstance(dnn_loaded.solver, neoml.Dnn.AdaptiveGradient))
-        self.assertTrue(len(dnn_loaded.input_layers), 1)
-        self.assertTrue(len(dnn_loaded.layers), 3)
-        self.assertTrue(len(dnn_loaded.output_layers), 1)
+        self.assertEqual(len(dnn_loaded.input_layers), 1)
+        self.assertEqual(len(dnn_loaded.layers), 3)
+        self.assertEqual(len(dnn_loaded.output_layers), 1)
+
+    def test_links(self):
+        math_engine = neoml.MathEngine.CpuMathEngine(1)
+
+        # y[N, 2] (X[N, 4]) = X[N, 2:] - X[N, :2]
+        dnn = neoml.Dnn.Dnn(math_engine)
+        source = neoml.Dnn.Source(dnn, "source")
+        split_chan = neoml.Dnn.SplitChannels(source, (2, 2), name="Split_A2_B2")
+        sub = neoml.Dnn.EltwiseSub([(split_chan, 1), (split_chan, 0)], name="Sub_B2_A2")
+        sink = neoml.Dnn.Sink(sub, "sink")
+
+        # sub both inputs come from split_chan
+        self.assertEqual(sub.input_names, (split_chan.name, split_chan.name))
+        # but their order is inversed
+        self.assertEqual(sub.input_links, ((split_chan.name, 1), (split_chan.name, 0)))
 
     def test_solver(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
@@ -2568,7 +2612,7 @@ class ClusteringTestCase(MultithreadedTestCase):
         self._test_clusterize('KMeans', dict(max_iteration_count=100, cluster_count=6, init='k++'))
 
 
-class TestPca(MultithreadedTestCase):
+class TestPca(TestCase):
     def test_full_svd(self):
         from neoml.PCA import svd
         x = np.array([[2, 1, 3, 2], [2, 4, 4, 1], [2, 4, 1, 1], [4, 4, 3, 4]], dtype=np.float32)
@@ -2709,3 +2753,67 @@ class DnnDistributedTestCase(TestCase):
 
         os.remove(path)
         os.rmdir(dir)
+
+
+class TestBPE(TestCase):
+    def test_saveload(self):
+        word_dictionary = {
+            "aa": 5,
+            "bb": 4,
+            "ab": 3,
+            "a": 2,
+            "b": 1
+        }
+
+        bpe = neoml.BytePairEncoder.BytePairEncoder()
+        self.assertIsNone(bpe.size)
+        self.assertIsNone(bpe.use_sow)
+        self.assertIsNone(bpe.use_eow)
+       
+        bpe.load_from_dictionary(word_dictionary, "", "")
+        self.assertEqual(6, bpe.size)
+        self.assertFalse(bpe.use_sow)
+        self.assertFalse(bpe.use_eow)
+
+        res = bpe.encode("aabcb")
+        self.assertEqual([1, 5, 0, 5], res[0])
+
+        dir = tempfile.mkdtemp()
+        path = os.path.join(dir, 'bpe')
+        bpe.store(path)
+
+        loaded_bpe = neoml.BytePairEncoder.BytePairEncoder()
+        loaded_bpe.load(path)
+        self.assertEqual(6, loaded_bpe.size)
+        self.assertFalse(loaded_bpe.use_sow)
+        self.assertFalse(loaded_bpe.use_eow)
+
+        loaded_res = loaded_bpe.encode("aabcb")
+        self.assertEqual(res, loaded_res)
+
+    def test_train(self):
+        bpe = neoml.BytePairEncoder.BytePairEncoder()
+        with self.assertRaises(ValueError):
+            bpe.cache_period = 0
+
+        corpus_stats = {
+            "abbb": 1,
+            "bab": 2,
+            "aa": 5,
+            "bb": 4,
+            "ab": 3,
+            "a": 2
+        }
+        bpe.train(corpus_stats, 5)
+        self.assertEqual(5, bpe.size)
+        self.assertFalse(bpe.use_sow)
+        self.assertTrue(bpe.use_eow)
+
+        text = ["aabb", "baaba"]
+        encoded = bpe.encode(text)
+        print(encoded)
+        decoded = bpe.decode(encoded[0])
+        self.assertEqual(text, decoded)
+
+        bpe.cache_period = 10
+        self.assertEqual(10, bpe.cache_period)

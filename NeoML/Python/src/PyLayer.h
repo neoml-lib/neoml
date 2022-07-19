@@ -32,6 +32,9 @@ public:
 	T* Layer() const { return dynamic_cast<T*>(baseLayer.Ptr()); }
 
 	std::string GetName() const { return std::string( baseLayer->GetName() ); }
+	int GetInputCount() const { return baseLayer->GetInputCount(); }
+	std::string GetInputName( int inputIdx ) const;
+	int GetInputOutputIdx( int inputIdx ) const;
 
 	void DisableLearning() { baseLayer->DisableLearning(); }
 	void EnableLearning() { baseLayer->EnableLearning(); }
