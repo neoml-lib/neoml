@@ -24,13 +24,17 @@ using namespace NeoMLTest;
 static void splitString( const CString& text, CArray<CString>& out, char delimiter = ' ' )
 {
 	out.DeleteAll();
-	size_t begin = 0, end;
-    while ( ( end = text.find( delimiter, begin ) ) != std::string::npos ) {
-		out.Add( text.substr( begin, end - begin ) );
-        begin = end + 1;
-    }
-	if( begin < text.size() ) {
-		out.Add( text.substr( begin, text.size() - begin ) );
+	bool newStr = true;
+	for( int i = 0; i < text.Length(); ++i ) {
+		if( newStr ) {
+			out.Append();
+			newStr = false;
+		}
+		if( text[i] == delimiter ) {
+			newStr = true;
+		} else {
+			out.Last() += text[i];
+		}
 	}
 }
 
