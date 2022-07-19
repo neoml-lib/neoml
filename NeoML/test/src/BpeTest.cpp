@@ -229,6 +229,20 @@ TEST_F( CBpeTest, Ambiguous )
 	EXPECT_EQ( 1, tokenLengths[3] );
 }
 
+#ifdef NEOML_USE_FINEOBJ
+#define BPE_TEST_ASSERT( expr ) \
+	try { \
+		( expr ); \
+		FAIL() << "No exception has been thrown during '" << #expr << "'"; \
+	} catch( CInternalError* err ) { \
+		err->Delete(); \
+	} catch( ... ) { \
+		FAIL() << "Wrong exception has been thrown during '" << #expr << "'"; \
+	}
+#else
+#define BPE_TEST_ASSERT( expr ) EXPECT_THROW( ( expr ), CInternalError )
+#endif
+
 TEST_F( CBpeTest, LoadIncorrectDictionary )
 {
 	CPtr<IBytePairEncoder> tokenizer = CheckCast<IBytePairEncoder>( CreateModel( BytePairEncoderModelName ) );
@@ -236,21 +250,21 @@ TEST_F( CBpeTest, LoadIncorrectDictionary )
 	CWordDictionary badDictionary;
 	badDictionary.AddWord( "a@a", 3 );
 	badDictionary.AddWord( "a", 2 );
-	EXPECT_THROW( tokenizer->LoadDictionary( badDictionary, "@", "" ), CCheckException );
+	BPE_TEST_ASSERT( tokenizer->LoadDictionary( badDictionary, "@", "" ) );
 
 	CWordDictionary dictionary;
 	dictionary.AddWord( "aa@@", 5 );
 	dictionary.AddWord( "a", 3 );
 	// aa@@ is inseparable
-	EXPECT_THROW( tokenizer->LoadDictionary( dictionary, "", "" ), CCheckException );
+	BPE_TEST_ASSERT( tokenizer->LoadDictionary( dictionary, "", "" ) );
 	dictionary.AddWord( "aa", 10 );
 	// no single '@@'
-	EXPECT_THROW( tokenizer->LoadDictionary( dictionary, "@@", "" ), CCheckException );
+	BPE_TEST_ASSERT( tokenizer->LoadDictionary( dictionary, "@@", "" ) );
 	dictionary.AddWord( "@@", 1 );
 	// confused BoW-EoW
-	EXPECT_THROW( tokenizer->LoadDictionary( dictionary, "", "@@" ), CCheckException );
+	BPE_TEST_ASSERT( tokenizer->LoadDictionary( dictionary, "", "@@" ) );
 	// wrong symbol
-	EXPECT_THROW( tokenizer->LoadDictionary( dictionary, "!", "" ), CCheckException );
+	BPE_TEST_ASSERT( tokenizer->LoadDictionary( dictionary, "!", "" ) );
 }
 
 TEST_F( CBpeTest, SaveLoadDictionary )
