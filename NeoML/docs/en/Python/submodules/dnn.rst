@@ -283,6 +283,12 @@ Exp
 .. autoclass:: neoml.Dnn.Exp
    :members:
 
+Log
+===
+
+.. autoclass:: neoml.Dnn.Log
+   :members:
+
 .. _py-dnn-conv:
 
 Convolutional layers
