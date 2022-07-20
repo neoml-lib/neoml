@@ -788,6 +788,19 @@ void CCudaMathEngine::VectorNegLog(const CConstFloatHandle& firstHandle, const C
 	VectorNegLogKernel<<<blockCount, threadCount>>>(GetRaw(firstHandle), GetRaw(resultHandle), vectorSize);
 }
 
+void CCudaMathEngine::VectorErf(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize)
+{
+	ASSERT_EXPR(firstHandle.GetMathEngine() == this);
+	ASSERT_EXPR(resultHandle.GetMathEngine() == this);
+	SetCudaDevice( device->DeviceNumber );
+
+	int blockCount;
+	int threadCount;
+	getCudaTaskGrid(blockCount, threadCount, vectorSize);
+
+	VectorErfKernel<<<blockCount, threadCount>>>(GetRaw(firstHandle), GetRaw(resultHandle), vectorSize);
+}
+
 void CCudaMathEngine::VectorBernulliKLDerivative(const CConstFloatHandle& firstHandle,
 	const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& targetHandle)
 {

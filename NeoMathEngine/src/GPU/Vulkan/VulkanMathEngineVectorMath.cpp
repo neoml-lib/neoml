@@ -508,6 +508,11 @@ void CVulkanMathEngine::VectorNegLog(const CConstFloatHandle& firstHandle, const
 		&param, sizeof(param), 0, 0, 0, 0, bufs, sizes, 2, Ceil(vectorSize, VectorCombine));
 }
 
+void CVulkanMathEngine::VectorErf( const CConstFloatHandle&, const CFloatHandle&, int )
+{
+	ASSERT_EXPR( false );
+}
+
 void CVulkanMathEngine::VectorBernulliKLDerivative(const CConstFloatHandle& estimationHandle,
 	const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& target)
 {
