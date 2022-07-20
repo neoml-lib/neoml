@@ -349,6 +349,7 @@ REGISTER_NEOML_LAYER( CBroadcastLayer, "NeoMLDnnBroadcastLayer" )
 REGISTER_NEOML_LAYER( CExpLayer, "NeoMLDnnExpLayer" )
 REGISTER_NEOML_LAYER( CLogLayer, "NeoMLDnnLogLayer" )
 REGISTER_NEOML_LAYER( CNotLayer, "NeoMLDnnNotLayer" )
+REGISTER_NEOML_LAYER( CLessLayer, "NeoMLDnnLessLayer" )
 
 }
 

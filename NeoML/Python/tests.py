@@ -2184,6 +2184,40 @@ class LogicalLayerTestCase(MultithreadedTestCase):
         self.assertEqual(result.dtype, np.int32)
         self.assertTrue(np.equal(result, np.vectorize(lambda x: 1 if x == 0 else 0)(input_data)).all)
 
+    def _test_less(self, is_integer):
+        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        dnn = neoml.Dnn.Dnn(math_engine)
+        first_source_name = 'source0'
+        second_source_name = 'source1'
+        less_name = 'less'
+        sink_name = 'sink'
+
+        first_source = neoml.Dnn.Source(dnn, first_source_name)
+        second_source = neoml.Dnn.Source(dnn, second_source_name)
+        less = neoml.Dnn.Less((first_source, second_source), less_name)
+        sink = neoml.Dnn.Sink(less, sink_name)
+
+        shape = (2,3,4,5,6,7,8)
+        if is_integer:
+            first_data = np.random.randint(-5, 5, shape, dtype=np.int32)
+            second_data = np.random.randint(-5, 5, shape, dtype=np.int32)
+        else:
+            first_data = np.random.uniform(-5, 5, shape).astype(np.float32)
+            second_data = np.random.uniform(-5, 5, shape).astype(np.float32)
+        first_blob = neoml.Blob.asblob(math_engine, first_data, shape)
+        second_blob = neoml.Blob.asblob(math_engine, second_data, shape)
+        outputs = dnn.run({first_source_name: first_blob, second_source_name: second_blob})
+        self.assertTrue(sink_name in outputs)
+        result = outputs[sink.name].asarray()
+
+        self.assertEqual(result.shape, shape)
+        self.assertEqual(result.dtype, np.int32)
+        self.assertTrue(np.equal(result, np.vectorize(lambda x, y: 1 if x < y else 0)(first_data, second_data)).all)
+
+    def test_less(self):
+        self._test_less(False)
+        self._test_less(True)
+
 
 class MulLossCalculator(neoml.Dnn.CustomLossCalculatorBase):
     def calc(self, data, labels):

@@ -146,6 +146,7 @@ GTEST_TEST( SerializeToFile, BaseLayerSerialization )
 	serializeToFile<CExpLayer>( "NeoMLDnnExpLayer" );
 	serializeToFile<CLogLayer>( "NeoMLDnnLogLayer" );
 	serializeToFile<CNotLayer>( "NeoMLDnnNotLayer" );
+	serializeToFile<CLessLayer>( "NeoMLDnnLessLayer" );
 }
 
 #endif // GENERATE_SERIALIZATION_FILES
@@ -250,6 +251,7 @@ GTEST_TEST( SerializeFromFile, BaseLayerSerialization )
 	checkSerializeLayer<CBaseLayer>( "NeoMLDnnExpLayer" );
 	checkSerializeLayer<CBaseLayer>( "NeoMLDnnLogLayer" );
 	checkSerializeLayer<CBaseLayer>( "NeoMLDnnNotLayer" );
+	checkSerializeLayer<CBaseLayer>( "NeoMLDnnLessLayer" );
 }
 
 // ====================================================================================================================

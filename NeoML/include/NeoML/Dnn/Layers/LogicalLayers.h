@@ -18,6 +18,7 @@ limitations under the License.
 #include <NeoML/NeoMLDefs.h>
 #include <NeoML/Dnn/Dnn.h>
 #include <NeoML/Dnn/Layers/BaseInPlaceLayer.h>
+#include <NeoML/Dnn/Layers/EltwiseLayer.h>
 #include <NeoMathEngine/NeoMathEngine.h>
 
 namespace NeoML {
@@ -39,5 +40,25 @@ protected:
 };
 
 NEOML_API CLayerWrapper<CNotLayer> Not();
+
+// --------------------------------------------------------------------------------------------------------------------
+
+// Takes 2 blobs of the same size and data type
+// The only outputs contains integer blob of the same size where
+//    outputs[i] = input0[i] < input1[i] ? 1 : 0
+class NEOML_API CLessLayer : public CEltwiseBaseLayer {
+	NEOML_DNN_LAYER( CLessLayer )
+public:
+	explicit CLessLayer( IMathEngine& mathEngine );
+
+	void Serialize( CArchive& archive ) override;
+
+protected:
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
+};
+
+NEOML_API CLayerWrapper<CLessLayer> Less();
 
 } // namespace NeoML

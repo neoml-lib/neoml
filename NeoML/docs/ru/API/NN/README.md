@@ -251,6 +251,7 @@ delete gpuMathEngine;
   - [CEltwiseNegMulLayer](EltwiseLayers/EltwiseNegMulLayer.md) - поэлементное произведение разности `1` и элементов первого блоба с элементами остальных блобов
 - Логические операции:
   - [CNotLayer](LogicalLayers/NotLayer.md) - поэлементный логический `not` над целочисленными данными
+  - [CLessLayer](LogicalLayers/LessLayer.md) - поэлементное сравнение двух блобов
 - Вспомогательные операции:
   - [CTransformLayer](TransformLayer.md) - изменение формы блоба
   - [CTransposeLayer](TransposeLayer.md) - перестановка размерностей блоба
