@@ -328,6 +328,19 @@ CLogOperator::CLogOperator( const onnx::NodeProto& log, int opsetVersion ) :
 
 //---------------------------------------------------------------------------------------------------------------------
 
+CErfOperator::CErfOperator( const onnx::NodeProto& erf, int opsetVersion ) :
+	CActivationOperatorBase( erf, opsetVersion, AF_Erf )
+{
+	// v9 - original
+	// v13 - bfloat16 is supported
+	CheckNeoOnnxSupport( OpsetVersion >= 9 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
+
+	CheckOnnxProtocol( InputCount() == 1, "operator must have 1 input", *this );
+	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
 CNegOperator::CNegOperator( const onnx::NodeProto& neg, int opsetVersion ) :
 	CActivationOperatorBase( neg, opsetVersion, AF_Linear )
 {
