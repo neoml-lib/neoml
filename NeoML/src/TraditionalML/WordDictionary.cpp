@@ -79,7 +79,6 @@ void CWordDictionary::AddWord( const CString& word, long long count )
 		NeoAssert( words[id].Count >= 0 );
 	}
 	totalWordsUseCount += count;
-	
 	NeoAssert( totalWordsUseCount >= 0 );
 }
 
@@ -96,10 +95,12 @@ void CWordDictionary::Finalize( long long minCount )
 {
 	words.QuickSort<Descending<CWordWithCount>>();
 
-	const CWordWithCount countSeparator{ "", minCount - 1 };
-	const int insertionPoint = words.FindInsertionPoint<Descending<CWordWithCount>>( countSeparator );
+	if( minCount > INT64_MIN ) {
+		const CWordWithCount countSeparator{ "", minCount - 1 };
+		const int insertionPoint = words.FindInsertionPoint<Descending<CWordWithCount>>( countSeparator );
+		RestrictSize( insertionPoint );
+	}
 
-	RestrictSize( insertionPoint );
 	buildIndex();
 }
 
