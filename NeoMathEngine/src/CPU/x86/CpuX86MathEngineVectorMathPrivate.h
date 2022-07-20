@@ -334,6 +334,23 @@ inline void alignedVectorMultiplyAndAdd( const float* first, const float* second
 }
 
 //------------------------------------------------------------------------------------------------------------
+
+// Due to SSE 2.0 requirement we can't use _mm_mullo_epi32
+inline __m128i sse2Multiply4SignedInts( const __m128i& first, const __m128i& second )
+{
+	__m128i prod02 = _mm_mul_epu32( first, second ); // multiplies 0'th and 2'nd elems
+	__m128i prod13 = _mm_mul_epu32(
+		_mm_srli_si128( first, 4 ), // shift right by one integer in order to get 1'st and 3'rd elems
+		_mm_srli_si128( second, 4 )
+	);
+	return _mm_unpacklo_epi32(
+		_mm_shuffle_epi32( prod02, _MM_SHUFFLE( 0, 0, 2, 0 ) ), // move 0'th and 2'nd productions into 2 lower integers
+		_mm_shuffle_epi32( prod13, _MM_SHUFFLE( 0, 0, 2, 0 ) ) // move 1'st adn 3'rd productions into 2 lower integers
+	);
+}
+
+//------------------------------------------------------------------------------------------------------------
+
 inline void vectorMultiply( const float* first, float* result, float multiplier, int vectorSize )
 {
 	int sseSize;
@@ -344,6 +361,26 @@ inline void vectorMultiply( const float* first, float* result, float multiplier,
 		__m128 multSse = _mm_set_ps1( multiplier );
 		for( int i = 0; i < sseSize; ++i ) {
 			_mm_storeu_ps( result, _mm_mul_ps( _mm_loadu_ps( first ), multSse ) );
+			first += 4;
+			result += 4;
+		}
+	}
+
+	for( int i = 0; i < nonSseSize; ++i ) {
+		*result++ = *first++ * multiplier;
+	}
+}
+
+inline void vectorMultiply( const int* first, int* result, int multiplier, int vectorSize )
+{
+	int sseSize;
+	int nonSseSize;
+	checkSse( vectorSize, sseSize, nonSseSize );
+
+	if( sseSize > 0 ) {
+		__m128i multSse = _mm_set1_epi32( multiplier );
+		for( int i = 0; i < sseSize; ++i ) {
+			_mm_storeu_epi32( result, sse2Multiply4SignedInts( _mm_loadu_epi32( first ), multSse ) );
 			first += 4;
 			result += 4;
 		}
@@ -413,20 +450,6 @@ inline void vectorEltwiseMultiply( const float* first, const float* second, floa
 	int nonSseSize;
 	checkSse(vectorSize, sseSize, nonSseSize);
 	vectorEltwiseMultiply( first, second, result, sseSize, nonSseSize );
-}
-
-// Due to SSE 2.0 requirement we can't use _mm_mullo_epi32
-inline __m128i sse2Multiply4SignedInts( const __m128i& first, const __m128i& second )
-{
-	__m128i prod02 = _mm_mul_epu32( first, second ); // multiplies 0'th and 2'nd elems
-	__m128i prod13 = _mm_mul_epu32(
-		_mm_srli_si128( first, 4 ), // shift right by one integer in order to get 1'st and 3'rd elems
-		_mm_srli_si128( second, 4 )
-	);
-	return _mm_unpacklo_epi32(
-		_mm_shuffle_epi32( prod02, _MM_SHUFFLE( 0, 0, 2, 0 ) ), // move 0'th and 2'nd productions into 2 lower integers
-		_mm_shuffle_epi32( prod13, _MM_SHUFFLE( 0, 0, 2, 0 ) ) // move 1'st adn 3'rd productions into 2 lower integers
-	);
 }
 
 inline void vectorEltwiseMultiply( const int* first, const int* second, int* result, int vectorSize )

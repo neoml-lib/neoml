@@ -275,6 +275,8 @@ public:
 	// result = first * multiplier
 	virtual void VectorMultiply(const CConstFloatHandle& firstHandle,
 		const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& multiplierHandle) = 0;
+	virtual void VectorMultiply(const CConstIntHandle& firstHandle,
+		const CIntHandle& resultHandle, int vectorSize, const CConstIntHandle& multiplierHandle) = 0;
 	// result = -first * multiplier
 	virtual void VectorNegMultiply(const CConstFloatHandle& firstHandle,
 		const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& multiplierHandle) = 0;

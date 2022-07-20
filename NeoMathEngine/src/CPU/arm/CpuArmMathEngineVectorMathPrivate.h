@@ -291,6 +291,25 @@ inline void vectorMultiply( const float* first, float* result, float multiplier,
 	}
 }
 
+inline void vectorMultiply( const int* first, int* result, int multiplier, int vectorSize )
+{
+	int count = GetCount4(vectorSize);
+	int32x4_t mult = vdupq_n_s32(multiplier);
+
+	for(int i = 0; i < count; ++i) {
+		int32x4_t res = vmulq_s32(LoadIntNeon4(first), mult);
+		StoreIntNeon4(res, result);
+
+		first += 4;
+		result += 4;
+	}
+
+	if(vectorSize > 0) {
+		int32x4_t res = vmulq_s32(LoadIntNeon(first, vectorSize), mult);
+		StoreIntNeon(res, result, vectorSize);
+	}
+}
+
 //------------------------------------------------------------------------------------------------------------
 
 inline void vectorEltwiseMultiply( const float* first, const float* second, float* result, int neonSize, int nonNeonSize )
