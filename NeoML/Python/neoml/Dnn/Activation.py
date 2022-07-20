@@ -654,3 +654,39 @@ class Log(Layer):
 
         internal = PythonWrapper.Log(str(name), layers[0], int(outputs[0]))
         super().__init__(internal)
+
+# ----------------------------------------------------------------------------------------------------------------------
+
+
+class Erf(Layer):
+    """The layer that calculates the error function
+    for each element of the single input.
+
+    :param input_layer: The input layer and the number of its output. If no number
+        is specified, the first output will be connected.
+    :type input_layer: object, tuple(object, int)
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) a data blob of any size
+    
+    .. rubric:: Layer outputs:
+
+    (1) a data blob of the same size as the input,
+        with error function values on each of the input elements
+
+    """
+
+    def __init__(self, input_layer, name=None):
+
+        if type(input_layer) is PythonWrapper.Erf:
+            super().__init__(input_layer)
+            return
+
+        layers, outputs = check_input_layers(input_layer, 1)
+
+        internal = PythonWrapper.Erf(str(name), layers[0], int(outputs[0]))
+        super().__init__(internal)
+

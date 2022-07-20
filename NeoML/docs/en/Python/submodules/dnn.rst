@@ -292,6 +292,12 @@ Log
 .. autoclass:: neoml.Dnn.Log
    :members:
 
+Erf
+===
+
+.. autoclass:: neoml.Dnn.Erf
+   :members:
+
 .. _py-dnn-conv:
 
 Convolutional layers
