@@ -1,4 +1,4 @@
-# CDropoutLayer Class
+# CNotLayer Class
 
 <!-- TOC -->
 
