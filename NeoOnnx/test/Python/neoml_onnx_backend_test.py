@@ -47,12 +47,10 @@ backend_test.exclude('test_eyelike_')  # EyeLike
 backend_test.exclude('test_floor_')  # Floor
 backend_test.exclude('test_gather_elements_')  # GatherElements
 backend_test.exclude('test_gathernd_')  # GatherND
-backend_test.exclude('test_greater_')  # Greater
 backend_test.exclude('test_gru_')  # GRU
 backend_test.exclude('test_hardmax_')  # HardMax
 backend_test.exclude('test_isinf_')  # IsInf
 backend_test.exclude('test_isnan_')  # IsNan
-backend_test.exclude('test_less_')  # Less
 backend_test.exclude('test_matmulinteger_')  # MatMulInteger
 backend_test.exclude('test_max_')  # Max
 backend_test.exclude('test_maxunpool_')  # MaxUnpool
@@ -132,7 +130,9 @@ backend_test.exclude('test_equal_')  # NeoOnnx supports equal operator only when
 backend_test.exclude('test_expand_')  # NeoML doesn't support shape as input
 backend_test.exclude('test_gather_negative_indices')  # NeoOnnx doesn't support negative indices
 backend_test.exclude('test_gemm_')  # NeoML supports only specific case when it's an FC layer (with constant weights)
+backend_test.exclude('test_greater_')  # NeoML doesn't support bool as dtype
 backend_test.exclude('test_instancenorm_')  # NeoML doesn't support scales as input
+backend_test.exclude('test_less_')  # NeoML doesn't support bool as dtype
 backend_test.exclude('test_lstm_')  # NeoML doesn't support trained weights as inputs
 backend_test.exclude('test_maxpool_1d_')  # NeoOnnx supports only 2d max pooling
 backend_test.exclude('test_maxpool_2d_ceil_')  # NeoML doesn't support ceil in maxpool
@@ -142,7 +142,7 @@ backend_test.exclude('test_maxpool_3d_')  # NeoOnnx supports only 2d max pooling
 backend_test.exclude('test_maxpool_with_argmax_')  # NeoML doesn't support indices as additional output
 backend_test.exclude('test_nonzero_')  # NeoOnnx supports nonzero only over constant tensors
 backend_test.exclude('test_onehot_')  # NeoOnnx supports only constant depth in OneHot
-backend_test.exclude('test_not_')  # NeoOnnx doesn't support bool as dtype
+backend_test.exclude('test_not_')  # NeoML doesn't support bool as dtype
 backend_test.exclude('test_pow_')  # NeoML doesn't support power of the exponent as input
 backend_test.exclude('test_range')  # NeoOnnx supports Range only over constant data
 backend_test.exclude('test_reflect_pad_')  # NeoML supports padding only with 'constant' mode
