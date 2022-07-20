@@ -88,6 +88,7 @@ REGISTER_NEOML_PYLAYER_EX( "Activation", "HardSigmoid", "FmlCnnSigmoidTanhLayer"
 REGISTER_NEOML_PYLAYER_EX( "Activation", "HSwish", "FmlCnnHSwishLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Activation", "Power", "FmlCnnPowerLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Activation", "Exp", "NeoMLDnnExpLayer" )
+REGISTER_NEOML_PYLAYER_EX( "Activation", "Log", "NeoMLDnnLogLayer" )
 REGISTER_NEOML_PYLAYER( "RleConv", "FmlCnnRleConvLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Pooling", "MaxPooling", "FmlCnnMaxPoolingLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Pooling", "MeanPooling", "FmlCnnMeanPoolingLayer" )
@@ -175,6 +176,7 @@ REGISTER_NEOML_PYLAYER( "Cast", "NeoMLDnnCastLayer" )
 REGISTER_NEOML_PYLAYER( "Data", "NeoMLDnnDataLayer" )
 REGISTER_NEOML_PYLAYER( "TransformerEncoder", "NeoMLDnnTransformerEncoderLayer" )
 REGISTER_NEOML_PYLAYER( "BertConv", "NeoMLDnnBertConvLayer" )
+REGISTER_NEOML_PYLAYER( "Broadcast", "NeoMLDnnBroadcastLayer" )
 
 }
 

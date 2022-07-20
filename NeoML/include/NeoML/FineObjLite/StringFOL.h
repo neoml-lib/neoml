@@ -29,15 +29,32 @@ public:
 
 	operator const char*() const { return data(); }
 
+	char operator[]( int pos ) const { return std::string::operator[]( static_cast<size_t>(pos) ); }
+	char& operator[]( int pos ) { return std::string::operator[]( static_cast<size_t>(pos) ); }
+
 	bool IsEmpty() const { return empty(); }
 	int Length() const { return static_cast<int>( size() ); }
-	int Find( const CString& other ) const;
+	int Find( const CString& other, int startPos = 0 ) const;
+
+	void StrReplace( int pos, int num, const CString& str );
+	int CompareSubstr( int from, const char* str, int strLength ) const;
 };
 
-inline int CString::Find( const CString& other ) const
+inline int CString::Find( const CString& other, int startPos ) const
 {
-	size_t found = std::string::find( other );
+	size_t found = std::string::find( other, static_cast<size_t>( startPos ) );
 	return found == std::string::npos ? -1 : static_cast<int>( found );
+}
+
+inline int CString::CompareSubstr( int from, const char* str, int strLength ) const
+{
+	return compare( static_cast< size_t >( from ), static_cast< size_t >( strLength ),
+		str );
+}
+
+inline void CString::StrReplace( int pos, int num, const CString& str )
+{
+	replace( static_cast< size_t >( pos ), static_cast< size_t >( num ), str );
 }
 
 inline CString operator+( const CString& first, const CString& second )
