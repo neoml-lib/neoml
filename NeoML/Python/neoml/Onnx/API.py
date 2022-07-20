@@ -46,6 +46,8 @@ def load_from_file(file_name, math_engine):
 
 
 def load_from_buffer(buffer, math_engine):
+	with open('D:/latest.onnx', 'wb') as file_out:
+		file_out.write(buffer)
 	dnn = neoml.Dnn.Dnn(math_engine)
 	model_info = PythonWrapper.load_onnx_from_buffer(buffer, dnn)
 	return dnn, model_info

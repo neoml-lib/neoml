@@ -209,7 +209,7 @@ backend_test.exclude('test_operator_selu_')  # Contains Selu operator
 # TODO: ALARM!!! Some failing tests for future research (no explanation for failure yet...)
 backend_test.exclude('test_BatchNorm3d_')
 backend_test.exclude('test_momentum_')  # Some WEIRD stuff happens here...
-backend_test.exclude('test_shape_')
+backend_test.exclude('test_shape_')  # Big trouble because of the way import works :-(
 
 # TODO: ALARM!!! Run ALL the failing tests and fix all the asserts (it should be replaced with some exception)...
 
