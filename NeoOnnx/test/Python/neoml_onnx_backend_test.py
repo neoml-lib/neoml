@@ -42,7 +42,6 @@ backend_test.exclude('test_dequantizelinear_')  # DequantizeLinear
 backend_test.exclude('test_det_')  # Det
 backend_test.exclude('test_dynamicquantizelinear_')  # DynamicQuantizeLinear
 backend_test.exclude('test_einsum_')  # EinSum
-backend_test.exclude('test_erf_')  # Erf
 backend_test.exclude('test_eyelike_')  # EyeLike
 backend_test.exclude('test_floor_')  # Floor
 backend_test.exclude('test_gather_elements_')  # GatherElements
