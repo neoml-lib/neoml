@@ -106,21 +106,28 @@ class Blob:
         """
         return self._internal.object_size()
 
-    def asarray(self, copy=False):
-        """Returns the contents of the blob as a multi-dimensional array, 
-        keeping only those dimensions that are more than 1 element long.
-        If all dimensions are 1, the blob will be a one-element array.
+    def asarray(self, copy=False, keep_dims=False):
+        """Returns the contents of the blob as a multi-dimensional array.
 
         :param copy: if `True`, the data will be copied. If `False`, the array may share
             the memory buffer with the blob if possible and only provide 
             more convenient access to the same data.
             Not copying may be impossible if the blob is in GPU memory.
         :type copy: bool, default=False
+
+        :param keep_dims: if `True` then the result shape will contain all the 7
+        dimensions of the blob. Otherwise it will contain only dimensions longer than 1.
+        If `False` and blob consists only of one element, then the result will be of shape (1,).
+        :type keep_dims: bool, default=False
         """
         if type(self.math_engine) is MathEngine.CpuMathEngine:
-            return np.array(self._internal, copy=copy)
-        cpu_blob = self.copy(MathEngine.default_math_engine())
-        return np.array(cpu_blob._internal, copy=False)
+            result = np.array(self._internal, copy=copy)
+        else:
+            cpu_blob = self.copy(MathEngine.default_math_engine())
+            result = np.array(cpu_blob._internal, copy=False)
+        if keep_dims:
+            result.resize(self.shape)
+        return result
 
     def copy(self, math_engine):
         """Creates a blob copy independent of this blob.
