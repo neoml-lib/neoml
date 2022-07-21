@@ -303,8 +303,7 @@ inline void vectorMultiply( const int* first, int* result, int multiplier, int v
 	}
 
 	if(vectorSize > 0) {
-		int32x4_t res = vmulq_s32(LoadIntNeon(first, vectorSize), mult);
-		StoreIntNeon(res, result, vectorSize);
+		StoreIntNeon(vmulq_s32(LoadIntNeon(first, vectorSize), mult), result, vectorSize);
 	}
 }
 
