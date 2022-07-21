@@ -268,6 +268,43 @@ inline void vectorAdd(const float* first, const float* second, float* result, in
 	}
 }
 
+inline void vectorAdd( const int* first, const int* second, int* result, int vectorSize )
+{
+	int sseSize;
+	int nonSseSize;
+	checkSse( vectorSize, sseSize, nonSseSize );
+
+	while( sseSize >= 4 ) {
+		SSE_LOAD_16_INTS( first, first );
+		first += 16;
+
+		SSE_LOAD_16_INTS( second, second );
+		second += 16;
+
+		__m128i result0 = _mm_add_epi32( first0, second0 );
+		__m128i result1 = _mm_add_epi32( first1, second1 );
+		__m128i result2 = _mm_add_epi32( first2, second2 );
+		__m128i result3 = _mm_add_epi32( first3, second3 );
+
+		SSE_STORE_16_INTS( result, result );
+
+		result += 16;
+		sseSize -= 4;
+	}
+
+	while( sseSize > 0 ) {
+		StoreIntSse4( _mm_add_epi32( LoadIntSse4( first ), LoadIntSse4( second ) ), result );
+		first += 4;
+		second += 4;
+		result += 4;
+		sseSize--;
+	}
+
+	for( int i = 0; i < nonSseSize; ++i ) {
+		result[i] = first[i] + second[i];
+	}
+}
+
 //------------------------------------------------------------------------------------------------------------
 
 inline void alignedVectorAdd( float* first, const float* second, int vectorSize )

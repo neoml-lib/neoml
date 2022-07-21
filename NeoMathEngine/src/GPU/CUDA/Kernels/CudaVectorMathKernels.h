@@ -193,8 +193,9 @@ __global__ void VectorSumAlongDimensionKernel( const float* __restrict__ input, 
 	}
 }
 
-__global__ void VectorCumSumAlongDimensionKernel( const float* __restrict__ input, int precedingDims, int dims,
-	int followingDims, float* result )
+template<class T>
+__global__ void VectorCumSumAlongDimensionKernel( const T* __restrict__ input, int precedingDims, int dims,
+	int followingDims, T* result )
 {
 	int x;
 	int y;
@@ -202,7 +203,7 @@ __global__ void VectorCumSumAlongDimensionKernel( const float* __restrict__ inpu
 		const int offset = y * dims * precedingDims + x;
 		input += offset;
 		result += offset;
-		float curSum = *input;
+		T curSum = *input;
 		*result = curSum;
 		for( int i = 1; i < dims; i++ ) {
 			input += precedingDims;

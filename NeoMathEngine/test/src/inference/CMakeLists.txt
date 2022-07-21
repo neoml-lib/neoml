@@ -52,6 +52,7 @@ target_sources(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorAddValueTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorBernulliKLDerivativeTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorConvertTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/VectorCumSumAlongDimensionTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorDotProductTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorEltwiseDivideTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorEltwiseLessTest.cpp

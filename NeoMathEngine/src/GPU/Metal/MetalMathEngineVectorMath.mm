@@ -235,6 +235,11 @@ void CMetalMathEngine::VectorCumSumAlongDimension( const CConstFloatHandle&, int
 	ASSERT_EXPR( false );
 }
 
+void CMetalMathEngine::VectorCumSumAlongDimension( const CConstIntHandle&, int, int, int, const CIntHandle& )
+{
+	ASSERT_EXPR( false );
+}
+
 void CMetalMathEngine::VectorCumSumAlongDimensionDiag(const CConstFloatHandle&, int, int,
 	int, const CFloatHandle&)
 {

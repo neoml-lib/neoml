@@ -193,18 +193,15 @@ void CCpuMathEngine::VectorSumAlongDimension( const CConstFloatHandle& firstHand
 	}
 }
 
-void CCpuMathEngine::VectorCumSumAlongDimension( const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
-	int followingDimension, const CFloatHandle& resultHandle )
+template<class T>
+static void vectorCumSumAlongDimensionImpl( const CTypedMemoryHandle<const T>& firstHandle, int precedingDimension,
+	int dimension, int followingDimension, const CTypedMemoryHandle<T>& resultHandle )
 {
-	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
-	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-	CCpuExecutionScope scope;
-
 	int firstIndex = 0;
 	int resultIndex = 0;
 
-	const float* first = GetRaw( firstHandle );
-	float* result = GetRaw( resultHandle );
+	const T* first = GetRaw( firstHandle );
+	T* result = GetRaw( resultHandle );
 
 	for( int i = 0; i < followingDimension; i++ ) {
 		dataCopy( result + resultIndex, first + firstIndex, precedingDimension );
@@ -212,11 +209,29 @@ void CCpuMathEngine::VectorCumSumAlongDimension( const CConstFloatHandle& firstH
 		resultIndex += precedingDimension;
 		for( int j = 1; j < dimension; j++ ) {
 			dataCopy( result + resultIndex, result + resultIndex - precedingDimension, precedingDimension );
-			vectorAdd(  first + firstIndex, result + resultIndex, result + resultIndex, precedingDimension );
+			vectorAdd( first + firstIndex, result + resultIndex, result + resultIndex, precedingDimension );
 			firstIndex += precedingDimension;
 			resultIndex += precedingDimension;
 		}
 	}
+}
+
+void CCpuMathEngine::VectorCumSumAlongDimension( const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
+	int followingDimension, const CFloatHandle& resultHandle )
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	CCpuExecutionScope scope;
+	vectorCumSumAlongDimensionImpl( firstHandle, precedingDimension, dimension, followingDimension, resultHandle );
+}
+
+void CCpuMathEngine::VectorCumSumAlongDimension( const CConstIntHandle& firstHandle, int precedingDimension, int dimension,
+	int followingDimension, const CIntHandle& resultHandle )
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	CCpuExecutionScope scope;
+	vectorCumSumAlongDimensionImpl( firstHandle, precedingDimension, dimension, followingDimension, resultHandle );
 }
 
 void CCpuMathEngine::VectorSumAlongDimensionDiag( const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,

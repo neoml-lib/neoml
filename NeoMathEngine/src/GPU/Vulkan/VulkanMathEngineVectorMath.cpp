@@ -1002,6 +1002,12 @@ void CVulkanMathEngine::VectorCumSumAlongDimension( const CConstFloatHandle& /*f
 	ASSERT_EXPR(false);
 }
 
+void CVulkanMathEngine::VectorCumSumAlongDimension( const CConstIntHandle& /*firstHandle*/, int /*precedingDimension*/, int /*dimension*/,
+	int /*followingDimension*/, const CIntHandle& /*resultHandle*/ )
+{
+	ASSERT_EXPR(false);
+}
+
 void CVulkanMathEngine::VectorSumAlongDimensionDiag( const CConstFloatHandle& /*firstHandle*/, int /*precedingDimension*/, int /*dimension*/,
 	int /*followingDimension*/, const CFloatHandle& /*resultHandle*/ )
 {
