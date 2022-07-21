@@ -297,9 +297,7 @@ inline void vectorMultiply( const int* first, int* result, int multiplier, int v
 	int32x4_t mult = vdupq_n_s32(multiplier);
 
 	for(int i = 0; i < count; ++i) {
-		int32x4_t res = vmulq_s32(LoadIntNeon4(first), mult);
-		StoreIntNeon4(res, result);
-
+		StoreIntNeon4(vmulq_s32(LoadIntNeon4(first), mult), result);
 		first += 4;
 		result += 4;
 	}
