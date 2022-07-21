@@ -22,6 +22,7 @@ limitations under the License.
 #include <MathEngineCommon.h>
 #include <CpuRandom.h>
 #include <CpuMathEnginePrivate.h>
+#include <cmath>
 
 namespace NeoML {
 
@@ -786,6 +787,19 @@ void CCpuMathEngine::VectorEltwiseDivide(const CConstIntHandle& firstHandle,
 	int* result = GetRaw(resultHandle);
 	for(int i = 0; i < vectorSize; ++i) {
 		*result++ = ( *first++ ) / ( *second++ );
+	}
+}
+
+void CCpuMathEngine::VectorErf( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize )
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	CCpuExecutionScope scope;
+
+	const float* first = GetRaw( firstHandle );
+	float* result = GetRaw( resultHandle );
+	for( int i = 0; i < vectorSize; ++i ) {
+		*result++ = std::erff( *first++ );
 	}
 }
 

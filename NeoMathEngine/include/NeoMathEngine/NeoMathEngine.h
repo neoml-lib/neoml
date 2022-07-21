@@ -235,6 +235,9 @@ public:
 	// result = -log(first)
 	virtual void VectorNegLog(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize) = 0;
 
+	// result = erf(first)
+	virtual void VectorErf( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize ) = 0;
+
 	// Calculates the Kullback-Leibler distance derivative for a Bernoulli distribution using the distribution parameters
 	virtual void VectorBernulliKLDerivative(const CConstFloatHandle& estimationHandle,
 		const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& target) = 0;

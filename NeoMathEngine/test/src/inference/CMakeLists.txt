@@ -63,6 +63,7 @@ target_sources(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorELUTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorEqualTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorEqualValueTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/VectorErfTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorExpTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorFillBernoulliTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorFillTest.cpp
