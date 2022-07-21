@@ -1265,6 +1265,15 @@ __global__ void VectorL1DiffAddKernel(const float* __restrict__ first, const flo
 	}
 }
 
+__global__ void vectorNotKernel( const int* __restrict__ first,
+	int* result, int vectorSize )
+{
+	int index;
+	if( GetCudaTaskIndex( vectorSize, index ) ) {
+		result[index] = first[index] == 0 ? 1 : 0;
+	}
+}
+
 __global__ void vectorGreaterEqualToZeroKernel( const int* __restrict__ first,
 	float* result, int vectorSize )
 {

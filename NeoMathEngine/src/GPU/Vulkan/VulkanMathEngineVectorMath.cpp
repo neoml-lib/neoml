@@ -875,6 +875,11 @@ void CVulkanMathEngine::VectorDotProduct(const CConstFloatHandle& firstHandle,
 	runVectorShader(shaderData, 0, 0, 0, 0, 0, 0, bufs, sizes, 3, shaderData.GetGroupSize());
 }
 
+void CVulkanMathEngine::VectorEltwiseNot( const CConstIntHandle&, const CIntHandle&, int )
+{
+	ASSERT_EXPR( false );
+}
+
 void CVulkanMathEngine::VectorEltwiseNotNegative( const CConstIntHandle&, const CFloatHandle&, int )
 {
 	ASSERT_EXPR( false );
