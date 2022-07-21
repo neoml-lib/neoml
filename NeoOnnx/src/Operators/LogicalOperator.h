@@ -23,7 +23,7 @@ namespace NeoOnnx {
 // Not operator
 class CNotOperator : public CLayerOperator {
 public:
-	CNotOperator( const onnx::NodeProto& not, int opsetVersion );
+	CNotOperator( const onnx::NodeProto& notNode, int opsetVersion );
 
 protected:
 	// CLayerOperator methods

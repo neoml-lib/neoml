@@ -20,8 +20,8 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-CNotOperator::CNotOperator( const onnx::NodeProto& not, int opsetVersion ) :
-	CLayerOperator( not, opsetVersion )
+CNotOperator::CNotOperator( const onnx::NodeProto& notNode, int opsetVersion ) :
+	CLayerOperator( notNode, opsetVersion )
 {
 	// v1 - original
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
@@ -35,8 +35,8 @@ void CNotOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArra
 	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
 	CPtr<const CUserTensor> input = AsUserTensor( *inputs[0], Name() + "_Source", dnn );
 
-	CNotLayer* not = Not()( Name(), CDnnLayerLink( input->Layer(), input->OutputIndex() ) );
-	outputs.Add( new CUserTensor( input->Shape(), input->Layout(), CLayerOutput( not, 0 ) ) );
+	CNotLayer* notLayer = Not()( Name(), CDnnLayerLink( input->Layer(), input->OutputIndex() ) );
+	outputs.Add( new CUserTensor( input->Shape(), input->Layout(), CLayerOutput( notLayer, 0 ) ) );
 }
 
 // --------------------------------------------------------------------------------------------------------------------
@@ -56,8 +56,8 @@ void CLessOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArr
 	if( Type() == "LessOrEqual" || Type() == "GreaterOrEqual" ) {
 		NeoAssert( !outputs[0]->IsCalculated() );
 		CPtr<const CUserTensor> currOutput = dynamic_cast<const CUserTensor*>( outputs[0].Ptr() );
-		CNotLayer* not = Not()( Name() + "_PostNot", CDnnLayerLink( currOutput->Layer(), currOutput->OutputIndex() ) );
-		outputs[0] = new CUserTensor( currOutput->Shape(), currOutput->Layout(), CLayerOutput( not, 0 ) );
+		CNotLayer* notLayer = Not()( Name() + "_PostNot", CDnnLayerLink( currOutput->Layer(), currOutput->OutputIndex() ) );
+		outputs[0] = new CUserTensor( currOutput->Shape(), currOutput->Layout(), CLayerOutput( notLayer, 0 ) );
 	}
 }
 
