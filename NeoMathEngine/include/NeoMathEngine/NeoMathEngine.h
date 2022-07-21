@@ -356,6 +356,12 @@ public:
 	virtual void VectorEltwiseLess( float firstHandle, const CConstFloatHandle& secondHandle,
 		const CFloatHandle& resultHandle, int vectorSize ) = 0;
 
+	// result[i] = first[i] < second[i] ? 1 : 0
+	virtual void VectorEltwiseLess( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
+		const CIntHandle& resultHandle, int vectorSize ) = 0;
+	virtual void VectorEltwiseLess( const CConstIntHandle& firstHandle, const CConstIntHandle& secondHandle,
+		const CIntHandle& resultHandle, int vectorSize ) = 0;
+
 	virtual void VectorFindMaxValueInSet(const CConstFloatHandle* vectors, int vectorCount, const CFloatHandle& resultHandle, int vectorSize) = 0;
 	virtual void VectorFindMaxValueInSet(const CConstFloatHandle* vectors, int vectorCount, const CFloatHandle& resultHandle,
 		const CIntHandle& indexHandle, int vectorSize) = 0;

@@ -726,6 +726,19 @@ void CCpuMathEngine::VectorMinMaxDiff(const CConstFloatHandle& sourceGradHandle,
 	}
 }
 
+template<class TSrc, class TDst>
+static void vectorEltwiseLessImpl( const CTypedMemoryHandle<const TSrc>& firstHandle,
+	const CTypedMemoryHandle<const TSrc>& secondHandle, const CTypedMemoryHandle<TDst>& resultHandle, int vectorSize )
+{
+	const TSrc* first = GetRaw( firstHandle );
+	const TSrc* second = GetRaw( secondHandle );
+	TDst* result = GetRaw( resultHandle );
+
+	for( int i = 0; i < vectorSize; ++i ) {
+		*result++ = static_cast<TDst>( *first++ < *second++ ? 1 : 0 );
+	}
+}
+
 void CCpuMathEngine::VectorEltwiseLess( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
 	const CFloatHandle& resultHandle, int vectorSize )
 {
@@ -734,13 +747,7 @@ void CCpuMathEngine::VectorEltwiseLess( const CConstFloatHandle& firstHandle, co
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	CCpuExecutionScope scope;
 
-	const float* first = GetRaw( firstHandle );
-	const float* second = GetRaw( secondHandle );
-	float* result = GetRaw( resultHandle );
-
-	for( int i = 0; i < vectorSize; ++i ) {
-		*result++ = *first++ < *second++ ? 1.f : 0.f;
-	}
+	vectorEltwiseLessImpl( firstHandle, secondHandle, resultHandle, vectorSize );
 }
 
 void CCpuMathEngine::VectorEltwiseLess( const CConstFloatHandle& firstHandle, float second,
@@ -771,6 +778,28 @@ void CCpuMathEngine::VectorEltwiseLess( float first, const CConstFloatHandle& se
 	for( int i = 0; i < vectorSize; ++i ) {
 		*result++ = first < *second++ ? 1.f : 0.f;
 	}
+}
+
+void CCpuMathEngine::VectorEltwiseLess( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
+	const CIntHandle& resultHandle, int vectorSize )
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	CCpuExecutionScope scope;
+
+	vectorEltwiseLessImpl( firstHandle, secondHandle, resultHandle, vectorSize );
+}
+
+void CCpuMathEngine::VectorEltwiseLess( const CConstIntHandle& firstHandle, const CConstIntHandle& secondHandle,
+	const CIntHandle& resultHandle, int vectorSize )
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	CCpuExecutionScope scope;
+
+	vectorEltwiseLessImpl( firstHandle, secondHandle, resultHandle, vectorSize );
 }
 
 void CCpuMathEngine::VectorEltwiseDivide(const CConstIntHandle& firstHandle,

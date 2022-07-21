@@ -243,6 +243,10 @@ public:
 		const CFloatHandle& resultHandle, int vectorSize ) override;
 	void VectorEltwiseLess( float firstHandle, const CConstFloatHandle& secondHandle,
 		const CFloatHandle& resultHandle, int vectorSize ) override;
+	void VectorEltwiseLess( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
+		const CIntHandle& resultHandle, int vectorSize ) override;
+	void VectorEltwiseLess( const CConstIntHandle& firstHandle, const CConstIntHandle& secondHandle,
+		const CIntHandle& resultHandle, int vectorSize ) override;
 	void VectorFindMaxValueInSet(const CConstFloatHandle* vectors, int vectorCount, const CFloatHandle& resultHandle,
 		int vectorSize) override;
 	void VectorFindMaxValueInSet(const CConstFloatHandle* vectors, int vectorCount, const CFloatHandle& resultHandle,

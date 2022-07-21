@@ -898,6 +898,18 @@ void CVulkanMathEngine::VectorEltwiseLess( float, const CConstFloatHandle&,
 	ASSERT_EXPR( false );
 }
 
+void CVulkanMathEngine::VectorEltwiseLess( const CConstFloatHandle&, const CConstFloatHandle&,
+	const CIntHandle&, int )
+{
+	ASSERT_EXPR( false );
+}
+
+void CVulkanMathEngine::VectorEltwiseLess( const CConstIntHandle&, const CConstIntHandle&,
+	const CIntHandle&, int )
+{
+	ASSERT_EXPR( false );
+}
+
 void CVulkanMathEngine::VectorFindMaxValueInSet( const CConstFloatHandle* vectors, int vectorCount, const CFloatHandle& resultHandle,
 	int vectorSize )
 {
