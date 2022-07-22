@@ -997,13 +997,13 @@ void CVulkanMathEngine::VectorSumAlongDimension( const CConstFloatHandle&, int, 
 }
 
 void CVulkanMathEngine::VectorCumSumAlongDimension( const CConstFloatHandle& /*firstHandle*/, int /*precedingDimension*/, int /*dimension*/,
-	int /*followingDimension*/, const CFloatHandle& /*resultHandle*/ )
+	int /*followingDimension*/, const CFloatHandle& /*resultHandle*/, bool /*reverse*/ )
 {
 	ASSERT_EXPR(false);
 }
 
 void CVulkanMathEngine::VectorCumSumAlongDimension( const CConstIntHandle& /*firstHandle*/, int /*precedingDimension*/, int /*dimension*/,
-	int /*followingDimension*/, const CIntHandle& /*resultHandle*/ )
+	int /*followingDimension*/, const CIntHandle& /*resultHandle*/, bool /*reverse*/ )
 {
 	ASSERT_EXPR(false);
 }

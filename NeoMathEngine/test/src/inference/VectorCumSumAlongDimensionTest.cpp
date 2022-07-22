@@ -20,19 +20,21 @@ using namespace NeoMLTest;
 
 template<class T>
 static void vectorCumSumAlongDimensionImpl( const T* input, T* output,
-	int precedingDimension, int dimension, int followingDimension )
+	int precedingDimension, int dimension, int followingDimension, bool reverse )
 {
-	int flatIndex = 0;
+	const int step = reverse ? -precedingDimension : precedingDimension;
+	const int firstObjIndex = reverse ? ( dimension - 1 ) : 0;
 	for( int b = 0; b < followingDimension; ++b ) {
+		int objIndex = ( b * dimension + firstObjIndex ) * precedingDimension; 
 		for( int dim = 0; dim < dimension; ++dim ) {
 			for( int ch = 0; ch < precedingDimension; ++ch ) {
 				if( dim == 0 ) {
-					output[flatIndex] = input[flatIndex];
+					output[objIndex + ch] = input[objIndex + ch];
 				} else {
-					output[flatIndex] = input[flatIndex] + output[flatIndex - precedingDimension];
+					output[objIndex + ch] = input[objIndex + ch] + output[objIndex + ch - step];
 				}
-				++flatIndex;
 			}
+			objIndex += step;
 		}
 	}
 }
@@ -50,14 +52,15 @@ static void vectorCumSumAlongDimensionTestImpl( const CTestParams& params, int s
 	const int preceding = random.UniformInt( precedingInterval.Begin, precedingInterval.End );
 	const int dimension = random.UniformInt( dimensionInterval.Begin, dimensionInterval.End );
 	const int following = random.UniformInt( followingInterval.Begin, followingInterval.End );
+	const bool reverse = ( random.UniformInt( 0, 9 ) % 2 == 0 );
 
 	CREATE_FILL_ARRAY( T, input, valuesInterval.Begin, valuesInterval.End, preceding * dimension * following, random );
 	std::vector<T> expected( input.size() );
-	vectorCumSumAlongDimensionImpl( input.data(), expected.data(), preceding, dimension, following );
+	vectorCumSumAlongDimensionImpl( input.data(), expected.data(), preceding, dimension, following, reverse );
 
 	std::vector<T> actual( input.size() );
 	MathEngine().VectorCumSumAlongDimension( CARRAY_WRAPPER( T, input ), preceding, dimension, following,
-		CARRAY_WRAPPER( T, actual ) );
+		CARRAY_WRAPPER( T, actual ), reverse );
 	
 	for( size_t i = 0; i < expected.size(); ++i ) {
 		ASSERT_NEAR( static_cast<float>( expected[i] ), static_cast<float>( actual[i] ), 1e-4f );

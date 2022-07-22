@@ -79,9 +79,9 @@ public:
 	void VectorSumAlongDimension( const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
 		int followingDimension, const CFloatHandle& resultHandle ) override;
 	void VectorCumSumAlongDimension( const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
-		int followingDimension, const CFloatHandle& resultHandle ) override;
+		int followingDimension, const CFloatHandle& resultHandle, bool reverse ) override;
 	void VectorCumSumAlongDimension( const CConstIntHandle& firstHandle, int precedingDimension, int dimension,
-		int followingDimension, const CIntHandle& resultHandle ) override;
+		int followingDimension, const CIntHandle& resultHandle, bool reverse ) override;
 	void VectorSumAlongDimensionDiag( const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
 		int followingDimension, const CFloatHandle& resultHandle ) override;
 	void VectorCumSumAlongDimensionDiag( const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
