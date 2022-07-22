@@ -965,6 +965,22 @@ void CCudaMathEngine::VectorMultiply(const CConstFloatHandle& firstHandle,
 		(GetRaw(firstHandle),GetRaw(resultHandle), vectorSize, GetRaw(multiplierHandle));
 }
 
+void CCudaMathEngine::VectorMultiply(const CConstIntHandle& firstHandle,
+	const CIntHandle& resultHandle, int vectorSize, const CConstIntHandle& multiplierHandle)
+{
+	ASSERT_EXPR(firstHandle.GetMathEngine() == this);
+	ASSERT_EXPR(multiplierHandle.GetMathEngine() == this);
+	ASSERT_EXPR(resultHandle.GetMathEngine() == this);
+	SetCudaDevice( device->DeviceNumber );
+
+	int blockCount;
+	int threadCount;
+	getCudaTaskGrid(blockCount, threadCount, vectorSize, VectorMultiplyCombineCount);
+
+	VectorMultiplyKernel<<<blockCount, threadCount>>>
+		(GetRaw(firstHandle),GetRaw(resultHandle), vectorSize, GetRaw(multiplierHandle));
+}
+
 void CCudaMathEngine::VectorNegMultiply(const CConstFloatHandle& firstHandle,
 	const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& multiplierHandle)
 {
