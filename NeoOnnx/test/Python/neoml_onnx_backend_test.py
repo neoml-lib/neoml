@@ -36,7 +36,6 @@ backend_test.exclude('test_celu_')  # Celu
 backend_test.exclude('test_compress_')  # Compress
 backend_test.exclude('test_cos_')  # Cos
 backend_test.exclude('test_cosh_')  # Cosh
-backend_test.exclude('test_cumsum_')  # CumSum
 backend_test.exclude('test_depthtospace_')  # DepthToSpace
 backend_test.exclude('test_dequantizelinear_')  # DequantizeLinear
 backend_test.exclude('test_det_')  # Det
@@ -122,6 +121,7 @@ backend_test.exclude('test_constantofshape_')  # NeoML doesn't support tensor si
 backend_test.exclude('test_conv_')  # NeoML doesn't support trained filters as input
 backend_test.exclude('test_convinteger_')  # NeoML doesn't support integer convolution
 backend_test.exclude('test_convtranspose_')  # NeoML doesn't support trained filters as input
+backend_test.exclude('test_cumsum_')  # NeoML doesn't suport 64-bit floating type
 backend_test.exclude('test_dropout_default_mask_')  # NeoML doesn't support dropout mask as output
 backend_test.exclude('test_dropout_default_ratio_')  # NeoML doesn't support dropout rate as input
 backend_test.exclude('test_edge_pad_')  # NeoML supports padding only with 'constant' mode
