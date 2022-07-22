@@ -32,6 +32,7 @@ limitations under the License.
 #include "Operators/ConstantOperator.h"
 #include "Operators/ConvOperator.h"
 #include "Operators/ConvTransposeOperator.h"
+#include "Operators/CumSumOperator.h"
 #include "Operators/DropoutOperator.h"
 #include "Operators/EltwiseOperator.h"
 #include "Operators/EqualOperator.h"
@@ -126,6 +127,7 @@ REGISTER_OPERATOR( CConstantOfShapeOperator, "ConstantOfShape" )
 REGISTER_OPERATOR( CConstantOperator, "Constant" )
 REGISTER_OPERATOR( CConvOperator, "Conv" )
 REGISTER_OPERATOR( CConvTransposeOperator, "ConvTranspose" )
+REGISTER_OPERATOR( CCumSumOperator, "CumSum" )
 REGISTER_OPERATOR( CDivOperator, "Div" )
 REGISTER_OPERATOR( CDropoutOperator, "Dropout" )
 REGISTER_OPERATOR( CEluOperator, "Elu" )
