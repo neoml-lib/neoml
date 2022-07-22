@@ -229,7 +229,7 @@ void CCudaMathEngine::VectorSumAlongDimension( const CConstFloatHandle& firstHan
 }
 
 void CCudaMathEngine::VectorCumSumAlongDimension( const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
-	int followingDimension, const CFloatHandle& resultHandle )
+	int followingDimension, const CFloatHandle& resultHandle, bool reverse )
 {
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
@@ -240,7 +240,22 @@ void CCudaMathEngine::VectorCumSumAlongDimension( const CConstFloatHandle& first
 	getCudaTaskGrid2D( blockCount, threadCount, precedingDimension, followingDimension );
 
 	VectorCumSumAlongDimensionKernel<<<blockCount, threadCount>>>
-		( GetRaw( firstHandle ), precedingDimension, dimension, followingDimension, GetRaw( resultHandle ) );
+		( GetRaw( firstHandle ), precedingDimension, dimension, followingDimension, GetRaw( resultHandle ), reverse );
+}
+
+void CCudaMathEngine::VectorCumSumAlongDimension( const CConstIntHandle& firstHandle, int precedingDimension, int dimension,
+	int followingDimension, const CIntHandle& resultHandle, bool reverse )
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
+
+	dim3 blockCount;
+	dim3 threadCount;
+	getCudaTaskGrid2D( blockCount, threadCount, precedingDimension, followingDimension );
+
+	VectorCumSumAlongDimensionKernel<<<blockCount, threadCount>>>
+		( GetRaw( firstHandle ), precedingDimension, dimension, followingDimension, GetRaw( resultHandle ), reverse );
 }
 
 void CCudaMathEngine::VectorSumAlongDimensionDiag( const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
