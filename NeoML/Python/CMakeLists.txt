@@ -53,6 +53,7 @@ pybind11_add_module(PythonWrapper
     src/PyClustering.cpp
     src/PyCrfLayer.cpp
     src/PyCtcLayer.cpp
+    src/PyCumSumLayer.cpp
     src/PyCustomLossLayer.cpp
     src/PyDataLayer.cpp
     src/PyDifferentialEvolution.cpp

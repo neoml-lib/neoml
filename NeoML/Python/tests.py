@@ -1716,6 +1716,48 @@ class LayersTestCase(MultithreadedTestCase):
         self.assertEqual(outputs['second_sink'].shape, output_shape)
         self.assertTrue(np.equal(outputs['second_sink'].asarray(), np.zeros(output_shape, np.float32)).all())
 
+    def _test_cumsum(self, dtype, reverse):
+        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        dnn = neoml.Dnn.Dnn(math_engine)
+        source = neoml.Dnn.Source(dnn, 'source')
+        cumsum = neoml.Dnn.CumSum(source, dimension='width', reverse=True, name='cumsum')
+        sink = neoml.Dnn.Sink(cumsum, 'sink')
+        
+        self.assertEqual('width', cumsum.dimension)
+        self.assertTrue(cumsum.reverse)
+        cumsum.dimension = 'channels'
+        cumsum.reverse = False
+        self.assertEqual('channels', cumsum.dimension)
+        self.assertFalse(cumsum.reverse)
+        cumsum.dimension = 'height'
+        cumsum.reverse = reverse
+
+        layer = dnn.layers[cumsum.name]
+        self.assertEqual(layer.name, 'cumsum')
+
+        data_shape = (2,3,4)
+        blob_shape = (1,2,1,3,1,4,1)
+        data = np.random.uniform(-100, 100, data_shape).astype(dtype)
+        blob = neoml.Blob.asblob(math_engine, data, blob_shape)
+        out_blob = dnn.run({source.name: blob})[sink.name]
+        self.assertEqual(out_blob.shape, blob_shape)
+        out_data = out_blob.asarray()
+        self.assertEqual(out_data.shape, data_shape)
+        self.assertEqual(out_data.dtype, dtype)
+
+        if reverse:
+            expected = np.flip(np.cumsum(np.flip(data, 1), 1), 1)
+        else:
+            expected = np.cumsum(data, 1)
+
+        self.assertTrue((np.abs(expected - out_data) < 1e-4).all())
+
+    def test_cumsum(self):
+        self._test_cumsum(np.int32, False)
+        self._test_cumsum(np.int32, True)
+        self._test_cumsum(np.float32, False)
+        self._test_cumsum(np.float32, True)
+
 
 class PoolingTestCase(MultithreadedTestCase):
     def _test_pooling(self, layer, init_params={}, changed_params={},

@@ -40,6 +40,7 @@ limitations under the License.
 #include "PyConcatLayer.h"
 #include "PyCrfLayer.h"
 #include "PyCtcLayer.h"
+#include "PyCumSumLayer.h"
 #include "PyCustomLossLayer.h"
 #include "PyDataLayer.h"
 #include "PyDotProductLayer.h"
@@ -117,6 +118,7 @@ PYBIND11_MODULE(PythonWrapper, m) {
 	InitializeConcatLayer( m );
 	InitializeCrfLayer( m );
 	InitializeCtcLayer( m );
+	InitializeCumSumLayer( m );
 	InitializeDataLayer( m );
 	InitializeEltwiseLayer( m );
 	InitializeDotProductLayer( m );
