@@ -175,6 +175,8 @@ public:
 		const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& multHandle) override;
 	void VectorMultiply(const CConstFloatHandle& firstHandle,
 		const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& multiplierHandle) override;
+	void VectorMultiply(const CConstIntHandle& firstHandle,
+		const CIntHandle& resultHandle, int vectorSize, const CConstIntHandle& multiplierHandle) override;
 	void VectorNegMultiply(const CConstFloatHandle& firstHandle,
 		const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& multiplierHandle) override;
 	void VectorEltwiseMultiply(const CConstIntHandle& firstHandle,
@@ -218,6 +220,7 @@ public:
 		const CConstFloatHandle& hubertThresholdHandle, const CConstFloatHandle& multHandle) override;
 	void VectorDotProduct(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle, int vectorSize,
 		const CFloatHandle& resultHandle) override;
+	void VectorEltwiseNot( const CConstIntHandle& firstHandle, const CIntHandle& resultHandle, int vectorSize ) override;
 	void VectorEltwiseNotNegative( const CConstIntHandle& firstHanle, const CFloatHandle& resultHandle, int vectorSize ) override;
 	void VectorEltwiseLess( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
 		const CFloatHandle& resultHandle, int vectorSize ) override;

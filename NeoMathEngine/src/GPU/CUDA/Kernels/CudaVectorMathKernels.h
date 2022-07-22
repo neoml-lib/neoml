@@ -954,8 +954,9 @@ __global__ void VectorMultiplyAndSubKernel(const float* __restrict__ first,
 }
 
 const int VectorMultiplyCombineCount = 8;
-__global__ void VectorMultiplyKernel(const float* __restrict__ first,
-	float* result, int count, const float* __restrict__ multiplier)
+template<class T>
+__global__ void VectorMultiplyKernel(const T* __restrict__ first,
+	T* result, int count, const T* __restrict__ multiplier)
 {
 	int index;
 	int step;
@@ -1262,6 +1263,15 @@ __global__ void VectorL1DiffAddKernel(const float* __restrict__ first, const flo
 		first += step;
 		second += step;
 		result += step;
+	}
+}
+
+__global__ void vectorNotKernel( const int* __restrict__ first,
+	int* result, int vectorSize )
+{
+	int index;
+	if( GetCudaTaskIndex( vectorSize, index ) ) {
+		result[index] = first[index] == 0 ? 1 : 0;
 	}
 }
 
