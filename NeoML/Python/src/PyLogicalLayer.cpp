@@ -41,11 +41,11 @@ void InitializeLogicalLayer( py::module& m )
 			py::gil_scoped_release release;
 			CDnn& dnn = layer.Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
-			CPtr<CNotLayer> not = new CNotLayer( mathEngine );
-			not->SetName( FindFreeLayerName( dnn, "Not", name ).c_str() );
-			dnn.AddLayer( *not );
-			not->Connect( 0, layer.BaseLayer(), outputNumber );
-			return new CPyNotLayer( *not, layer.MathEngineOwner() );
+			CPtr<CNotLayer> notLayer = new CNotLayer( mathEngine );
+			notLayer->SetName( FindFreeLayerName( dnn, "Not", name ).c_str() );
+			dnn.AddLayer( *notLayer );
+			notLayer->Connect( 0, layer.BaseLayer(), outputNumber );
+			return new CPyNotLayer( *notLayer, layer.MathEngineOwner() );
 		}) )
 	;
 }
