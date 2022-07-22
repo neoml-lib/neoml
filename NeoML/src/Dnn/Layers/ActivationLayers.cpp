@@ -618,7 +618,14 @@ void CErfLayer::RunOnce()
 
 void CErfLayer::BackwardOnce()
 {
-	NeoAssert( false );
+	const int dataSize = inputBlobs[0]->GetDataSize();
+	CFloatHandle inputDiff = inputDiffBlobs[0]->GetData();
+	MathEngine().VectorNegMultiply( inputBlobs[0]->GetData(), inputBlobs[0]->GetData(), dataSize, inputDiff );
+	MathEngine().VectorExp( inputDiff, inputDiff, dataSize );
+	CFloatHandleStackVar mult( MathEngine() );
+	mult.SetValue( 1.1283791671f ); // 2 / sqrt( pi )
+	MathEngine().VectorMultiply( inputDiff, inputDiff, dataSize, mult );
+	MathEngine().VectorEltwiseMultiply( inputDiff, outputDiffBlobs[0]->GetData(), inputDiff, dataSize );
 }
 
 CLayerWrapper<CErfLayer> Erf()
