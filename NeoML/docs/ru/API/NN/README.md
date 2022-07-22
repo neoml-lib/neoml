@@ -222,6 +222,7 @@ delete gpuMathEngine;
   - [CGELULayer](ActivationLayers/GELULayer.md) - функция активации `x * sigmoid(1.702 * x)`
   - [CExpLayer](ActivationLayers/ExpLayer.md) - функция активации `exp`
   - [CLogLayer](ActivationLayers/LogLayer.md) - функция активации `log`
+  - [CErfLayer](ActivationLayers/ExpLayer.md) - функция активации `erf`
 - Свертки:
   - [CConvLayer](ConvolutionLayers/ConvLayer.md) - двумерная свертка
     - [CRleConvLayer](ConvolutionLayers/RleConvLayer.md) - свертка двумерных изображений в формате RLE

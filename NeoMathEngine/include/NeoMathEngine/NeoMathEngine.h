@@ -46,6 +46,7 @@ enum TActivationFunction {
 	AF_GELU,
 	AF_Exp,
 	AF_Log,
+	AF_Erf,
 
 	AF_Count
 };

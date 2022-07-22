@@ -5,7 +5,7 @@ import tempfile
 import pickle
 import itertools
 import numpy as np
-from scipy import sparse
+from scipy import sparse, special
 import neoml
 import threading
 
@@ -825,6 +825,10 @@ class LayersTestCase(MultithreadedTestCase):
     def test_activation_log(self):
         out = self._test_activation('Log')
         self.assertTrue(np.isclose(out, np.log(1)).all())
+
+    def test_activation_erf(self):
+        out = self._test_activation('Erf')
+        self.assertTrue(np.isclose(out, special.erf(1)).all())
 
     def test_add_object(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)

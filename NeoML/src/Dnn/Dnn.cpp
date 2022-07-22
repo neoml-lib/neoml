@@ -347,6 +347,7 @@ REGISTER_NEOML_LAYER( CInterpolationLayer, "NeoMLDnnInterpolationLayer" )
 REGISTER_NEOML_LAYER( CBroadcastLayer, "NeoMLDnnBroadcastLayer" )
 REGISTER_NEOML_LAYER( CExpLayer, "NeoMLDnnExpLayer" )
 REGISTER_NEOML_LAYER( CLogLayer, "NeoMLDnnLogLayer" )
+REGISTER_NEOML_LAYER( CErfLayer, "NeoMLDnnErfLayer" )
 
 }
 
