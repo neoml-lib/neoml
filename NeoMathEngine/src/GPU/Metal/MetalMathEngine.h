@@ -180,6 +180,8 @@ public:
 		const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& multHandle) override;
 	void VectorMultiply(const CConstFloatHandle& firstHandle,
 		const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& multiplierHandle) override;
+	void VectorMultiply(const CConstIntHandle& firstHandle,
+		const CIntHandle& resultHandle, int vectorSize, const CConstIntHandle& multiplierHandle) override;
 	void VectorNegMultiply(const CConstFloatHandle& firstHandle,
 		const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& multiplierHandle) override;
 	void VectorEltwiseMultiply(const CConstIntHandle& firstHandle,
