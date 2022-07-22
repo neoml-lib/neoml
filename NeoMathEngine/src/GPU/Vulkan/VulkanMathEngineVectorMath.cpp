@@ -635,6 +635,11 @@ void CVulkanMathEngine::VectorMultiply(const CConstFloatHandle& firstHandle,
 		&param, sizeof(param), 0, 0, 0, 0, bufs, sizes, 3, Ceil(vectorSize, VectorCombine));
 }
 
+void CVulkanMathEngine::VectorMultiply(const CConstIntHandle&, const CIntHandle&, int, const CConstIntHandle&)
+{
+    ASSERT_EXPR( false );
+}
+
 void CVulkanMathEngine::VectorNegMultiply(const CConstFloatHandle& firstHandle,
 	const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& multiplierHandle)
 {
@@ -880,6 +885,11 @@ void CVulkanMathEngine::VectorDotProduct(const CConstFloatHandle& firstHandle,
 	runVectorShader(shaderData, 0, 0, 0, 0, 0, 0, bufs, sizes, 3, shaderData.GetGroupSize());
 }
 
+void CVulkanMathEngine::VectorEltwiseNot( const CConstIntHandle&, const CIntHandle&, int )
+{
+	ASSERT_EXPR( false );
+}
+
 void CVulkanMathEngine::VectorEltwiseNotNegative( const CConstIntHandle&, const CFloatHandle&, int )
 {
 	ASSERT_EXPR( false );
@@ -899,6 +909,18 @@ void CVulkanMathEngine::VectorEltwiseLess( const CConstFloatHandle&, float,
 
 void CVulkanMathEngine::VectorEltwiseLess( float, const CConstFloatHandle&,
 	const CFloatHandle&, int )
+{
+	ASSERT_EXPR( false );
+}
+
+void CVulkanMathEngine::VectorEltwiseLess( const CConstFloatHandle&, const CConstFloatHandle&,
+	const CIntHandle&, int )
+{
+	ASSERT_EXPR( false );
+}
+
+void CVulkanMathEngine::VectorEltwiseLess( const CConstIntHandle&, const CConstIntHandle&,
+	const CIntHandle&, int )
 {
 	ASSERT_EXPR( false );
 }
