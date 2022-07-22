@@ -833,6 +833,14 @@ __global__ void VectorNegLogKernel(const float* __restrict__ first, float* resul
 	}
 }
 
+__global__ void VectorErfKernel(const float* __restrict__ first, float* result, int count)
+{
+	int index;
+	if(GetCudaTaskIndex(count, index)) {
+		result[index] = erff(first[index]);
+	}
+}
+
 __global__ void VectorBernulliKLDerivativeKernel(const float* __restrict__ first,
 	float* result, int count, const float* __restrict__ target)
 {

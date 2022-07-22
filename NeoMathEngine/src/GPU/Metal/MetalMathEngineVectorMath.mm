@@ -669,6 +669,11 @@ void CMetalMathEngine::VectorNegLog(const CConstFloatHandle& firstHandle, const 
     ASSERT_EXPR( kernel.Run() );
 }
 
+void CMetalMathEngine::VectorErf( const CConstFloatHandle&, const CFloatHandle&, int )
+{
+    ASSERT_EXPR( false );
+}
+
 void CMetalMathEngine::VectorBernulliKLDerivative(const CConstFloatHandle& firstHandle,
     const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& targetHandle)
 {
