@@ -1306,6 +1306,19 @@ void CCudaMathEngine::VectorL1DiffAdd(const CConstFloatHandle& firstHandle, cons
 		GetRaw(resultHandle), vectorSize, GetRaw(hubertThresholdHandle), GetRaw(multHandle));
 }
 
+void CCudaMathEngine::VectorEltwiseNot( const CConstIntHandle& firstHandle, const CIntHandle& resultHandle,
+	int vectorSize )
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
+
+	int blockCount;
+	int threadCount;
+	getCudaTaskGrid( blockCount, threadCount, vectorSize );
+	vectorNotKernel<<<blockCount, threadCount>>>( GetRaw( firstHandle ), GetRaw( resultHandle ), vectorSize );
+}
+
 void CCudaMathEngine::VectorEltwiseNotNegative( const CConstIntHandle& firstHandle, const CFloatHandle& resultHandle,
 	int vectorSize )
 {

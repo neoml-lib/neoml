@@ -227,6 +227,7 @@ public:
 		const CConstFloatHandle& hubertThresholdHandle, const CConstFloatHandle& multHandle) override;
 	void VectorDotProduct(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle, int vectorSize,
 		const CFloatHandle& resultHandle) override;
+	void VectorEltwiseNot( const CConstIntHandle& firstHandle, const CIntHandle& resultHandle, int vectorSize ) override;
 	void VectorEltwiseNotNegative( const CConstIntHandle& firstHanle, const CFloatHandle& resultHandle, int vectorSize ) override;
 	void VectorEltwiseLess( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle, 
 		const CFloatHandle& resultHandle, int vectorSize ) override;

@@ -402,6 +402,11 @@ void CMetalMathEngine::VectorMultiplyAndSub(const CConstFloatHandle& firstHandle
     ASSERT_EXPR( kernel.Run() );
 }
 
+void CMetalMathEngine::VectorEltwiseNot( const CConstIntHandle&, const CIntHandle&, int )
+{
+    ASSERT_EXPR( false );
+}
+
 void CMetalMathEngine::VectorEltwiseNotNegative( const CConstIntHandle& firstHanle, const CFloatHandle& resultHandle,
     int vectorSize )
 {
