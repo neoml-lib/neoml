@@ -193,20 +193,23 @@ __global__ void VectorSumAlongDimensionKernel( const float* __restrict__ input, 
 	}
 }
 
-__global__ void VectorCumSumAlongDimensionKernel( const float* __restrict__ input, int precedingDims, int dims,
-	int followingDims, float* result )
+template<class T>
+__global__ void VectorCumSumAlongDimensionKernel( const T* __restrict__ input, int precedingDims, int dims,
+	int followingDims, T* result, bool reverse )
 {
 	int x;
 	int y;
 	if( GetCudaTaskIndex2D( precedingDims, followingDims, x, y ) ) {
-		const int offset = y * dims * precedingDims + x;
+		const int firstElemOffset = reverse ? ( dims - 1 ) * precedingDims : 0;
+		const int offset = y * dims * precedingDims + x + firstElemOffset;
 		input += offset;
 		result += offset;
-		float curSum = *input;
+		T curSum = *input;
 		*result = curSum;
+		const int step = reverse ? -precedingDims : precedingDims;
 		for( int i = 1; i < dims; i++ ) {
-			input += precedingDims;
-			result += precedingDims;
+			input += step;
+			result += step;
 			curSum += *input;
 			*result = curSum;
 		}
