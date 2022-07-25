@@ -5,7 +5,7 @@ import tempfile
 import pickle
 import itertools
 import numpy as np
-from scipy import sparse
+from scipy import sparse, special
 import neoml
 import threading
 
@@ -825,6 +825,10 @@ class LayersTestCase(MultithreadedTestCase):
     def test_activation_log(self):
         out = self._test_activation('Log')
         self.assertTrue(np.isclose(out, np.log(1)).all())
+
+    def test_activation_erf(self):
+        out = self._test_activation('Erf')
+        self.assertTrue(np.isclose(out, special.erf(1)).all())
 
     def test_add_object(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
@@ -2168,6 +2172,32 @@ class PoolingTestCase(MultithreadedTestCase):
         self.assertAlmostEqual(indrnn.dropout_rate, dropout_rate, delta=1e-5)
         self.assertEqual(indrnn.reverse_sequence, reverse)
         self.assertEqual(indrnn.activation, activation)
+
+
+class LogicalLayerTestCase(MultithreadedTestCase):
+    def test_not(self):
+        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        dnn = neoml.Dnn.Dnn(math_engine)
+        source_layer_name = 'source'
+        test_layer_name = 'not'
+        sink_layer_name = 'sink'
+
+        source = neoml.Dnn.Source(dnn, source_layer_name)
+        not_layer = neoml.Dnn.Not(source, test_layer_name)
+        sink = neoml.Dnn.Sink(not_layer, 'sink')
+        layer = dnn.layers[test_layer_name]
+        self.assertEqual(layer.name, test_layer_name)
+
+        shape = (2,3,4,5,6,7,8)
+        input_data = np.random.randint(-5, 5, shape, dtype=np.int32)
+        input_blob = neoml.Blob.asblob(math_engine, input_data, shape)
+        outputs = dnn.run({source_layer_name: input_blob})
+        self.assertTrue(sink_layer_name in outputs)
+        result = outputs[sink.name].asarray()
+
+        self.assertEqual(result.shape, shape)
+        self.assertEqual(result.dtype, np.int32)
+        self.assertTrue(np.equal(result, np.vectorize(lambda x: 1 if x == 0 else 0)(input_data)).all)
 
 
 class MulLossCalculator(neoml.Dnn.CustomLossCalculatorBase):

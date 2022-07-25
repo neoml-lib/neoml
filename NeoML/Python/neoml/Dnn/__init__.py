@@ -4,7 +4,7 @@ from .Initializer import Xavier, XavierUniform, Uniform
 
 from .Accuracy import Accuracy, ConfusionMatrix
 from .AccumulativeLookup import AccumulativeLookup
-from .Activation import Linear, ELU, ReLU, LeakyReLU, HSwish, Abs, Sigmoid, Tanh, HardTanh, HardSigmoid, Power, GELU, Exp, Log
+from .Activation import Linear, ELU, ReLU, LeakyReLU, HSwish, Abs, Sigmoid, Tanh, HardTanh, HardSigmoid, Power, GELU, Exp, Log, Erf
 from .AddToObject import AddToObject
 from .Argmax import Argmax
 from .AttentionDecoder import AttentionDecoder
@@ -27,6 +27,7 @@ from .Gru import Gru
 from .ImageConversion import ImageResize, PixelToImage, ImageToPixel  
 from .IndRnn import IndRnn
 from .Irnn import Irnn
+from .Logical import Not
 from .Loss import CrossEntropyLoss, BinaryCrossEntropyLoss, EuclideanLoss, L1Loss, HingeLoss, SquaredHingeLoss, FocalLoss, BinaryFocalLoss, CenterLoss, MultiHingeLoss, MultiSquaredHingeLoss, CustomLoss, CustomLossCalculatorBase, call_loss_calculator
 from .Lrn import Lrn
 from .Lstm import Lstm

@@ -224,6 +224,7 @@ delete gpuMathEngine;
   - [CGELULayer](ActivationLayers/GELULayer.md) - `x * sigmoid(1.702 * x)` activation function
   - [CExpLayer](ActivationLayers/ExpLayer.md) - `exp` activation function
   - [CLogLayer](ActivationLayers/LogLayer.md) - `log` activation function
+  - [CErfLayer](ActivationLayers/ErfLayer.md) - `erf` activation function
 - Convolution layers:
   - [CConvLayer](ConvolutionLayers/ConvLayer.md) - 2-dimensional convolution
     - [CRleConvLayer](ConvolutionLayers/RleConvLayer.md) - convolution for 2-dimensional images in RLE format
@@ -252,6 +253,8 @@ delete gpuMathEngine;
   - [CEltwiseDivLayer](EltwiseLayers/EltwiseDivLayer.md) - elementwise division
   - [CEltwiseMaxLayer](EltwiseLayers/EltwiseMaxLayer.md) - elementwise maximum
   - [CEltwiseNegMulLayer](EltwiseLayers/EltwiseNegMulLayer.md) calculates the elementwise product of `1 - first input` and the other inputs
+- Logical operations:
+  - [CNotLayer](LogicalLayers/NotLayer.md) - elementwise logical `not` over integer data
 - Auxiliary operations:
   - [CTransformLayer](TransformLayer.md) changes the blob shape
   - [CTransposeLayer](TransposeLayer.md) switches the blob dimensions
