@@ -1253,6 +1253,18 @@ void CMetalMathEngine::VectorEltwiseLess( const CConstIntHandle&, const CConstIn
 	ASSERT_EXPR( false );
 }
 
+void CMetalMathEngine::VectorEltwiseEqual( const CConstFloatHandle&, const CConstFloatHandle&,
+	const CIntHandle&, int )
+{
+	ASSERT_EXPR( false );
+}
+
+void CMetalMathEngine::VectorEltwiseEqual( const CConstIntHandle&, const CConstIntHandle&,
+	const CIntHandle&, int )
+{
+	ASSERT_EXPR( false );
+}
+
 } // namespace NeoML
 
 #endif // NEOML_USE_METAL

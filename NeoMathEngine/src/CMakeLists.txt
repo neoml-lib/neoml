@@ -126,6 +126,7 @@ if((DARWIN AND CMAKE_SYSTEM_PROCESSOR MATCHES "^arm64.*") OR (ANDROID AND ANDROI
     PRIVATE
         ${CPU_ARM_SOURCES}
         CPU/arm/CpuArm.h
+        CPU/arm/CpuArmFunctors.h
         CPU/arm/CpuArmMathEngineBlasPrivate.h
         CPU/arm/CpuArmMathEngineVectorMathPrivate.h
         CPU/arm/MatrixMultiplyingInterleaved/Interleavers/Interleaver_ARM64.h
@@ -155,6 +156,7 @@ else()
     PRIVATE
         ${CPU_X86_SOURCES}
         CPU/x86/CpuX86.h
+        CPU/x86/CpuX86Functors.h
         CPU/x86/CpuX86MathEngineBlasPrivate.h
         CPU/x86/CpuX86MathEngineVectorMathPrivate.h
     )
