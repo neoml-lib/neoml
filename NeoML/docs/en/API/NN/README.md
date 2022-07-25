@@ -224,6 +224,7 @@ delete gpuMathEngine;
   - [CGELULayer](ActivationLayers/GELULayer.md) - `x * sigmoid(1.702 * x)` activation function
   - [CExpLayer](ActivationLayers/ExpLayer.md) - `exp` activation function
   - [CLogLayer](ActivationLayers/LogLayer.md) - `log` activation function
+  - [CErfLayer](ActivationLayers/ErfLayer.md) - `erf` activation function
 - Convolution layers:
   - [CConvLayer](ConvolutionLayers/ConvLayer.md) - 2-dimensional convolution
     - [CRleConvLayer](ConvolutionLayers/RleConvLayer.md) - convolution for 2-dimensional images in RLE format

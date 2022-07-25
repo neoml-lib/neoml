@@ -25,7 +25,7 @@ namespace NeoML {
 
 CPtr<CBaseLayer> CreateActivationLayer( IMathEngine& mathEngine, TActivationFunction type )
 {
-	static_assert( AF_Count == 14, "AF_Count != 14" );
+	static_assert( AF_Count == 15, "AF_Count != 15" );
 	switch( type ) {
 		case AF_Linear:
 			return FINE_DEBUG_NEW CLinearLayer( mathEngine );
@@ -55,6 +55,8 @@ CPtr<CBaseLayer> CreateActivationLayer( IMathEngine& mathEngine, TActivationFunc
 			return FINE_DEBUG_NEW CExpLayer( mathEngine );
 		case AF_Log:
 			return FINE_DEBUG_NEW CLogLayer( mathEngine );
+		case AF_Erf:
+			return FINE_DEBUG_NEW CErfLayer( mathEngine );
 		default:
 			NeoAssert( false );
 	}
@@ -577,6 +579,46 @@ void CLogLayer::BackwardOnce()
 CLayerWrapper<CLogLayer> Log()
 {
 	return CLayerWrapper<CLogLayer>( "Log" );
+}
+
+//---------------------------------------------------------------------------------------------------
+
+static const int ErfLayerVersion = 0;
+
+void CErfLayer::Serialize( CArchive& archive )
+{
+	archive.SerializeVersion( ErfLayerVersion );
+	CBaseLayer::Serialize( archive );
+}
+
+void CErfLayer::Reshape()
+{
+	CheckInput1();
+	CheckOutputs();
+	CheckArchitecture( inputDescs[0].GetDataType() == CT_Float, GetName(), "Layer works only with float data" );
+	outputDescs[0] = inputDescs[0];
+}
+
+void CErfLayer::RunOnce()
+{
+	MathEngine().VectorErf( inputBlobs[0]->GetData(), outputBlobs[0]->GetData(), outputBlobs[0]->GetDataSize() );
+}
+
+void CErfLayer::BackwardOnce()
+{
+	const int dataSize = inputBlobs[0]->GetDataSize();
+	CFloatHandle inputDiff = inputDiffBlobs[0]->GetData();
+	MathEngine().VectorNegMultiply( inputBlobs[0]->GetData(), inputBlobs[0]->GetData(), dataSize, inputDiff );
+	MathEngine().VectorExp( inputDiff, inputDiff, dataSize );
+	CFloatHandleStackVar mult( MathEngine() );
+	mult.SetValue( 1.1283791671f ); // 2 / sqrt( pi )
+	MathEngine().VectorMultiply( inputDiff, inputDiff, dataSize, mult );
+	MathEngine().VectorEltwiseMultiply( inputDiff, outputDiffBlobs[0]->GetData(), inputDiff, dataSize );
+}
+
+CLayerWrapper<CErfLayer> Erf()
+{
+	return CLayerWrapper<CErfLayer>( "Erf" );
 }
 
 } // namespace NeoML
