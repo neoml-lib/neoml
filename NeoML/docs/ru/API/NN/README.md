@@ -250,6 +250,8 @@ delete gpuMathEngine;
   - [CEltwiseDivLayer](EltwiseLayers/EltwiseDivLayer.md) - поэлементное деление блобов
   - [CEltwiseMaxLayer](EltwiseLayers/EltwiseMaxLayer.md) - поэлементный максимум блобов
   - [CEltwiseNegMulLayer](EltwiseLayers/EltwiseNegMulLayer.md) - поэлементное произведение разности `1` и элементов первого блоба с элементами остальных блобов
+- Логические операции:
+  - [CNotLayer](LogicalLayers/NotLayer.md) - поэлементный логический `not` над целочисленными данными
 - Вспомогательные операции:
   - [CTransformLayer](TransformLayer.md) - изменение формы блоба
   - [CTransposeLayer](TransposeLayer.md) - перестановка размерностей блоба

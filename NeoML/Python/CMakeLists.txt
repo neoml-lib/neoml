@@ -70,6 +70,7 @@ pybind11_add_module(PythonWrapper
     src/PyIrnnLayer.cpp
     src/PyGruLayer.cpp
     src/PyLayer.cpp
+    src/PyLogicalLayer.cpp
     src/PyLossLayer.cpp
     src/PyLrnLayer.cpp
     src/PyLstmLayer.cpp
