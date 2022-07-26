@@ -34,7 +34,6 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Operators/ConvTransposeOperator.cpp
     Operators/DropoutOperator.cpp
     Operators/EltwiseOperator.cpp
-    Operators/EqualOperator.cpp
     Operators/ExpandOperator.cpp
     Operators/FlattenOperator.cpp
     Operators/GatherOperator.cpp
@@ -86,7 +85,6 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Operators/ConvTransposeOperator.h
     Operators/DropoutOperator.h
     Operators/EltwiseOperator.h
-    Operators/EqualOperator.h
     Operators/ExpandOperator.h
     Operators/FlattenOperator.h
     Operators/GatherOperator.h
