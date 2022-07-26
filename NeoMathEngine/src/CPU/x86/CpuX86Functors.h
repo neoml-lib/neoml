@@ -153,6 +153,47 @@ private:
 	CSimd4<int> ones = SimdFill<int>( 1 );
 };
 
+// Where functor
+// a != 0 ? b : c
+template<class T>
+class CWhereFunctor;
+
+template<>
+class CWhereFunctor<float> {
+public:
+	using TFirst = int;
+	using TSecond = float;
+	using TThird = float;
+	using TResult = float;
+
+	CSimd4<float> operator()( const CSimd4<int>& first, const CSimd4<float>& second, const CSimd4<float>& third )
+	{
+		const __m128 mask = _mm_castsi128_ps( _mm_cmpeq_epi32( first, zeros ) );
+		return _mm_or_ps( _mm_andnot_ps( mask, second ), _mm_and_ps( mask, third ) );
+	}
+
+private:
+	CSimd4<int> zeros = SimdFill<int>( 0 );
+};
+
+template<>
+class CWhereFunctor<int> {
+public:
+	using TFirst = int;
+	using TSecond = int;
+	using TThird = int;
+	using TResult = int;
+
+	CSimd4<int> operator()( const CSimd4<int>& first, const CSimd4<int>& second, const CSimd4<int>& third )
+	{
+		const __m128i mask = _mm_cmpeq_epi32( first, zeros );
+		return _mm_or_si128( _mm_andnot_si128( mask, second ), _mm_and_si128( mask, third ) );
+	}
+
+private:
+	CSimd4<int> zeros = SimdFill<int>( 0 );
+};
+
 } // namespace NeoML
 
 #endif // NEOML_USE_SSE

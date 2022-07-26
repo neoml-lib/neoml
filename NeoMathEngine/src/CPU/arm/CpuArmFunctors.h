@@ -151,6 +151,47 @@ private:
 	CSimd4<int> ones = SimdFill<int>( 1 );
 };
 
+// Where functor
+// a != 0 ? b : c
+template<class T>
+class CWhereFunctor;
+
+template<>
+class CWhereFunctor<float> {
+public:
+	using TFirst = int;
+	using TSecond = float;
+	using TThird = float;
+	using TResult = float;
+
+	CSimd4<float> operator()( const CSimd4<int>& first, const CSimd4<float>& second, const CSimd4<float>& third )
+	{
+		const uint32x4_t mask = vceqzq_s32( first );
+		return vreinterpretq_f32_u32( vorrq_u32( 
+			vandq_u32( vmvnq_u32( mask ), vreinterpretq_u32_f32( second ) ),
+			vandq_u32( mask, vreinterpretq_u32_f32( third ) )
+		) );
+	}
+};
+
+template<>
+class CWhereFunctor<int> {
+public:
+	using TFirst = int;
+	using TSecond = int;
+	using TThird = int;
+	using TResult = int;
+
+	CSimd4<int> operator()( const CSimd4<int>& first, const CSimd4<int>& second, const CSimd4<int>& third )
+	{
+		const uint32x4_t mask = vceqzq_s32( first );
+		return vreinterpretq_s32_u32( vorrq_u32( 
+			vandq_u32( vmvnq_u32( mask ), vreinterpretq_u32_s32( second ) ),
+			vandq_u32( mask, vreinterpretq_u32_s32( third ) )
+		) );
+	}
+};
+
 } // namespace NeoML
 
 #endif // NEOML_USE_NEON

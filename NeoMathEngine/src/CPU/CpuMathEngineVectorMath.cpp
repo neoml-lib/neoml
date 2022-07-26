@@ -135,6 +135,98 @@ private:
 	TResult* const result;
 };
 
+// Class that wraps ternary vector functor into the interface
+// which takes 4 pointers and the number of elements.
+template<class TFunctor>
+class CTernaryFunctorVectorizer {
+public:
+	using TFirst = typename TFunctor::TFirst;
+	using TSecond = typename TFunctor::TSecond;
+	using TThird = typename TFunctor::TThird;
+	using TResult = typename TFunctor::TResult;
+	CTernaryFunctorVectorizer( const TFunctor& functor = TFunctor(), TFirst firstDefaultValue = 1,
+			TSecond secondDefaultValue = 1, TThird thirdDefaultValue = 1 ) :
+		functor( functor ),
+		firstDefaultValue( firstDefaultValue ),
+		secondDefaultValue( secondDefaultValue ),
+		thirdDefaultValue( thirdDefaultValue )
+	{}
+
+	void operator()( const TFirst* first, const TSecond* second, const TThird* third, TResult* result, int vectorSize )
+	{
+		int simdSize = vectorSize / 4;
+		int nonSimdSize = vectorSize % 4;
+
+		// Ugly code for vectorization
+		while( simdSize >= 4 ) {
+			LOAD_4_SIMD4( TFirst, first, first );
+			first += 16;
+			LOAD_4_SIMD4( TSecond, second, second );
+			second += 16;
+			LOAD_4_SIMD4( TThird, third, third );
+			third += 16;
+
+			CSimd4<TResult> result0 = functor( first0, second0, third0 );
+			CSimd4<TResult> result1 = functor( first1, second1, third1 );
+			CSimd4<TResult> result2 = functor( first2, second2, third2 );
+			CSimd4<TResult> result3 = functor( first3, second3, third3 );
+
+			STORE_4_SIMD4( result, result );
+			result += 16;
+			simdSize -= 4;
+		}
+
+		while( simdSize > 0 ) {
+			SimdStore4( result, functor( SimdLoad4( first ), SimdLoad4( second ), SimdLoad4( third ) ) );
+			first += 4;
+			second += 4;
+			third += 4;
+			result += 4;
+			--simdSize;
+		}
+
+		if( nonSimdSize > 0 ) {
+			const CSimd4<TFirst> simdFirst = SimdLoad( first, nonSimdSize, firstDefaultValue );
+			const CSimd4<TSecond> simdSecond = SimdLoad( second, nonSimdSize, secondDefaultValue );
+			const CSimd4<TThird> simdThird = SimdLoad( third, nonSimdSize, thirdDefaultValue );
+			CSimd4<TResult> simdResult = functor( simdFirst, simdSecond, simdThird );
+			SimdStore( result, simdResult, nonSimdSize );
+		}
+	}
+
+private:
+	TFunctor functor; // Functor to be applied
+	TFirst firstDefaultValue; // Filler for the unused elements of the first argument SIMD
+	TSecond secondDefaultValue; // Filler for the unused elements of the second argument SIMD
+	TSecond thirdDefaultValue; // Filler for the unused elements of the third argument SIMD
+};
+
+// Class which wraps binary function vectorizer into OMP-friendly interface
+template<class TVectorizer>
+class CTernaryVectorizerOmpWrapper {
+public:
+	using TFirst = typename TVectorizer::TFirst;
+	using TSecond = typename TVectorizer::TSecond;
+	using TThird = typename TVectorizer::TThird;
+	using TResult = typename TVectorizer::TResult;
+
+	CTernaryVectorizerOmpWrapper( const TFirst* first, const TSecond* second, const TThird* third, TResult* result,
+			const TVectorizer& vectorizer = TVectorizer() ) :
+		vectorizer( vectorizer ), first( first ), second( second ), third( third ), result( result ) {}
+
+	void operator()( int index, int count )
+	{
+		vectorizer( first + index, second + index, third + index, result + index, count );
+	}
+
+private:
+	TVectorizer vectorizer;
+	const TFirst* const first;
+	const TSecond* const second;
+	const TThird* const third;
+	TResult* const result;
+};
+
 void CCpuMathEngine::VectorFill(const CFloatHandle& result, int vectorSize, const CConstFloatHandle& value)
 {
 	ASSERT_EXPR( result.GetMathEngine() == this );
@@ -971,6 +1063,34 @@ void CCpuMathEngine::VectorEltwiseEqual( const CConstIntHandle& firstHandle, con
 	const int curThreadCount = IsOmpRelevant( vectorSize, vectorSize ) ? threadCount : 1;
 	CBinaryVectorizerOmpWrapper<CBinaryFunctorVectorizer<CEqualFunctor<int>>> ompFunctor( GetRaw( firstHandle ),
 		GetRaw( secondHandle ), GetRaw( resultHandle ) );
+	applyOmpVectorFunction( curThreadCount, vectorSize, ompFunctor );
+}
+
+void CCpuMathEngine::VectorEltwiseWhere( const CConstIntHandle& firstHandle, const CConstFloatHandle& secondHandle,
+	const CConstFloatHandle& thirdHandle, const CFloatHandle& resultHandle, int vectorSize )
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
+	ASSERT_EXPR( thirdHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	CCpuExecutionScope scope;
+	const int curThreadCount = IsOmpRelevant( vectorSize, vectorSize ) ? threadCount : 1;
+	CTernaryVectorizerOmpWrapper<CTernaryFunctorVectorizer<CWhereFunctor<float>>> ompFunctor( GetRaw( firstHandle ),
+		GetRaw( secondHandle ), GetRaw( thirdHandle ), GetRaw( resultHandle ) );
+	applyOmpVectorFunction( curThreadCount, vectorSize, ompFunctor );
+}
+
+void CCpuMathEngine::VectorEltwiseWhere( const CConstIntHandle& firstHandle, const CConstIntHandle& secondHandle,
+	const CConstIntHandle& thirdHandle, const CIntHandle& resultHandle, int vectorSize )
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
+	ASSERT_EXPR( thirdHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	CCpuExecutionScope scope;
+	const int curThreadCount = IsOmpRelevant( vectorSize, vectorSize ) ? threadCount : 1;
+	CTernaryVectorizerOmpWrapper<CTernaryFunctorVectorizer<CWhereFunctor<int>>> ompFunctor( GetRaw( firstHandle ),
+		GetRaw( secondHandle ), GetRaw( thirdHandle ), GetRaw( resultHandle ) );
 	applyOmpVectorFunction( curThreadCount, vectorSize, ompFunctor );
 }
 
