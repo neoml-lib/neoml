@@ -93,4 +93,46 @@ void CLessLayer::Serialize( CArchive& archive )
 	CEltwiseBaseLayer::Serialize( archive );
 }
 
+// --------------------------------------------------------------------------------------------------------------------
+
+CEqualLayer::CEqualLayer( IMathEngine& mathEngine ) :
+	CEltwiseBaseLayer( mathEngine, "CEqualLayer" )
+{
+}
+
+void CEqualLayer::Reshape()
+{
+	CheckArchitecture( inputDescs.Size() == 2, GetName(), "Equal operation expects 2 inputs" );
+	CheckArchitecture( inputDescs[0].GetDataType() == inputDescs[1].GetDataType(), GetName(),
+		"Inputs must be of the same data type" );
+
+	CEltwiseBaseLayer::Reshape();
+
+	outputDescs[0].SetDataType( CT_Int );
+}
+
+void CEqualLayer::RunOnce()
+{
+	if( inputBlobs[0]->GetDataType() == CT_Float ) {
+		MathEngine().VectorEltwiseEqual( inputBlobs[0]->GetData(), inputBlobs[1]->GetData(),
+			outputBlobs[0]->GetData<int>(), inputBlobs[0]->GetDataSize() );
+	} else {
+		MathEngine().VectorEltwiseEqual( inputBlobs[0]->GetData<int>(), inputBlobs[1]->GetData<int>(),
+			outputBlobs[0]->GetData<int>(), inputBlobs[0]->GetDataSize() );
+	}
+}
+
+void CEqualLayer::BackwardOnce()
+{
+	NeoAssert( false );
+}
+
+static const int EqualLayerVersion = 0;
+
+void CEqualLayer::Serialize( CArchive& archive )
+{
+	archive.SerializeVersion( EqualLayerVersion );
+	CEltwiseBaseLayer::Serialize( archive );
+}
+
 } // namespace NeoML
