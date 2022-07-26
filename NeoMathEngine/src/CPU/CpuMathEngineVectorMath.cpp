@@ -23,77 +23,117 @@ limitations under the License.
 #include <CpuRandom.h>
 #include <CpuMathEnginePrivate.h>
 #include <cmath>
+#include <functional>
 
 namespace NeoML {
 
-template<class TFunctor, class TFirst, class TSecond, class TResult>
-void applyBinaryVectorFunctor( const TFirst* first, const TSecond* second, TResult* result, int vectorSize,
-	TFunctor& functor = TFunctor(), TFirst firstDefault = 0, TSecond secondDefault = 0 )
-{
+// Macro for easy vectorization-friendly load/store operations
+#define LOAD_4_SIMD4( type, varPrefix, ptr ) \
+	CSimd4<type> varPrefix##0 = SimdLoad4( ptr + 4 * 0 ); \
+	CSimd4<type> varPrefix##1 = SimdLoad4( ptr + 4 * 1 ); \
+	CSimd4<type> varPrefix##2 = SimdLoad4( ptr + 4 * 2 ); \
+	CSimd4<type> varPrefix##3 = SimdLoad4( ptr + 4 * 3 )
 
-	int simdSize = vectorSize / 4;
-	int nonSimdSize = vectorSize % 4;
+#define STORE_4_SIMD4( varPrefix, ptr ) \
+	SimdStore4( ptr + 4 * 0, varPrefix##0 ); \
+	SimdStore4( ptr + 4 * 1, varPrefix##1 ); \
+	SimdStore4( ptr + 4 * 2, varPrefix##2 ); \
+	SimdStore4( ptr + 4 * 3, varPrefix##3 )
 
-	// Ugly code for vectorization
-	while( simdSize >= 4 ) {
-		CSimd4<TFirst> first0 = SimdLoad4( first + 4 * 0 );
-		CSimd4<TFirst> first1 = SimdLoad4( first + 4 * 1 );
-		CSimd4<TFirst> first2 = SimdLoad4( first + 4 * 2 );
-		CSimd4<TFirst> first3 = SimdLoad4( first + 4 * 3 );
-		first += 16;
-
-		CSimd4<TSecond> second0 = SimdLoad4( second + 4 * 0 );
-		CSimd4<TSecond> second1 = SimdLoad4( second + 4 * 1 );
-		CSimd4<TSecond> second2 = SimdLoad4( second + 4 * 2 );
-		CSimd4<TSecond> second3 = SimdLoad4( second + 4 * 3 );
-		second += 16;
-
-		CSimd4<TResult> result0 = functor( first0, second0 );
-		CSimd4<TResult> result1 = functor( first1, second1 );
-		CSimd4<TResult> result2 = functor( first2, second2 );
-		CSimd4<TResult> result3 = functor( first3, second3 );
-
-		SimdStore4( result + 4 * 0, result0 );
-		SimdStore4( result + 4 * 1, result1 );
-		SimdStore4( result + 4 * 2, result2 );
-		SimdStore4( result + 4 * 3, result3 );
-		result += 16;
-
-		simdSize -= 4;
-	}
-
-	while( simdSize > 0 ) {
-		SimdStore4( result, functor( SimdLoad4( first ), SimdLoad4( second ) ) );
-		first += 4;
-		second += 4;
-		result += 4;
-		--simdSize;
-	}
-
-	if( nonSimdSize > 0 ) {
-		const CSimd4<TFirst> simdFirst = SimdLoad( first, nonSimdSize, firstDefault );
-		const CSimd4<TSecond> simdSecond = SimdLoad( second, nonSimdSize, secondDefault );
-		CSimd4<TResult> simdResult = functor( simdFirst, simdSecond );
-		SimdStore( result, simdResult, nonSimdSize );
-	}
-}
-
-template<class TFunctor, class TFirst, class TSecond, class TResult>
-void applyBinaryVectorFunctorOmp( int threadCount, const TFirst* first, const TSecond* second, TResult* result,
-	int vectorSize, TFunctor& functor = TFunctor(), TFirst firstDefault = 0, TSecond secondDefault = 0 )
+// Applies singleThreadFunction on the data of vectorSize by using threadCount omp threads
+template<class T>
+static void applyOmpVectorFunction( int threadCount, int vectorSize, T& singleThreadFunction )
 {
 	if( threadCount > 1 ) {
 		NEOML_OMP_NUM_THREADS( threadCount ) {
 			int index, count;
 			if( OmpGetTaskIndexAndCount( vectorSize, 16, index, count ) ) {
-				applyBinaryVectorFunctor( first + index, second + index, result + index, count, functor,
-					firstDefault, secondDefault );
+				singleThreadFunction( index, count );
 			}
 		}
 	} else {
-		applyBinaryVectorFunctor( first, second, result, vectorSize, functor, firstDefault, secondDefault );
+		singleThreadFunction( 0, vectorSize );
 	}
 }
+
+// Class that wraps binary vector functor into the interface
+// which takes 3 pointers and the number of elements.
+template<class TFunctor>
+class CBinaryFunctorVectorizer {
+public:
+	using TFirst = typename TFunctor::TFirst;
+	using TSecond = typename TFunctor::TSecond;
+	using TResult = typename TFunctor::TResult;
+	CBinaryFunctorVectorizer( const TFunctor& functor = TFunctor(), TFirst firstDefaultValue = 1, TSecond secondDefaultValue = 1 ) :
+		functor( functor ), firstDefaultValue( firstDefaultValue ), secondDefaultValue( secondDefaultValue ) {}
+
+	void operator()( const TFirst* first, const TSecond* second, TResult* result, int vectorSize )
+	{
+		int simdSize = vectorSize / 4;
+		int nonSimdSize = vectorSize % 4;
+
+		// Ugly code for vectorization
+		while( simdSize >= 4 ) {
+			LOAD_4_SIMD4( TFirst, first, first );
+			first += 16;
+			LOAD_4_SIMD4( TSecond, second, second );
+			second += 16;
+
+			CSimd4<TResult> result0 = functor( first0, second0 );
+			CSimd4<TResult> result1 = functor( first1, second1 );
+			CSimd4<TResult> result2 = functor( first2, second2 );
+			CSimd4<TResult> result3 = functor( first3, second3 );
+
+			STORE_4_SIMD4( result, result );
+			result += 16;
+			simdSize -= 4;
+		}
+
+		while( simdSize > 0 ) {
+			SimdStore4( result, functor( SimdLoad4( first ), SimdLoad4( second ) ) );
+			first += 4;
+			second += 4;
+			result += 4;
+			--simdSize;
+		}
+
+		if( nonSimdSize > 0 ) {
+			const CSimd4<TFirst> simdFirst = SimdLoad( first, nonSimdSize, firstDefaultValue );
+			const CSimd4<TSecond> simdSecond = SimdLoad( second, nonSimdSize, secondDefaultValue );
+			CSimd4<TResult> simdResult = functor( simdFirst, simdSecond );
+			SimdStore( result, simdResult, nonSimdSize );
+		}
+	}
+
+private:
+	TFunctor functor; // Functor to be applied
+	TFirst firstDefaultValue; // Filler for the unused elements of the first argument SIMD
+	TSecond secondDefaultValue; // Filler for the unused elements of the second argument SIMD
+};
+
+// Class which wraps binary function vectorizer into OMP-friendly interface
+template<class TVectorizer>
+class CBinaryVectorizerOmpWrapper {
+public:
+	using TFirst = typename TVectorizer::TFirst;
+	using TSecond = typename TVectorizer::TSecond;
+	using TResult = typename TVectorizer::TResult;
+
+	CBinaryVectorizerOmpWrapper( const TFirst* first, const TSecond* second, TResult* result,
+			const TVectorizer& vectorizer = TVectorizer() ) :
+		vectorizer( vectorizer ), first( first ), second( second ), result( result ) {}
+
+	void operator()( int index, int count )
+	{
+		vectorizer( first + index, second + index, result + index, count );
+	}
+
+private:
+	TVectorizer vectorizer;
+	const TFirst* const first;
+	const TSecond* const second;
+	TResult* const result;
+};
 
 void CCpuMathEngine::VectorFill(const CFloatHandle& result, int vectorSize, const CConstFloatHandle& value)
 {
@@ -905,7 +945,6 @@ void CCpuMathEngine::VectorEltwiseLess( const CConstIntHandle& firstHandle, cons
 	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	CCpuExecutionScope scope;
-
 	vectorEltwiseLessImpl( firstHandle, secondHandle, resultHandle, vectorSize );
 }
 
@@ -917,9 +956,9 @@ void CCpuMathEngine::VectorEltwiseEqual( const CConstFloatHandle& firstHandle, c
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	CCpuExecutionScope scope;
 	const int curThreadCount = IsOmpRelevant( vectorSize, vectorSize ) ? threadCount : 1;
-	CEqualFunctor<float> functor;
-	applyBinaryVectorFunctorOmp( curThreadCount, GetRaw( firstHandle ), GetRaw( secondHandle ), GetRaw( resultHandle ),
-		vectorSize, functor, 0.f, 0.f );
+	CBinaryVectorizerOmpWrapper<CBinaryFunctorVectorizer<CEqualFunctor<float>>> ompFunctor( GetRaw( firstHandle ),
+		GetRaw( secondHandle ), GetRaw( resultHandle ) );
+	applyOmpVectorFunction( curThreadCount, vectorSize, ompFunctor );
 }
 
 void CCpuMathEngine::VectorEltwiseEqual( const CConstIntHandle& firstHandle, const CConstIntHandle& secondHandle,
@@ -930,9 +969,9 @@ void CCpuMathEngine::VectorEltwiseEqual( const CConstIntHandle& firstHandle, con
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	CCpuExecutionScope scope;
 	const int curThreadCount = IsOmpRelevant( vectorSize, vectorSize ) ? threadCount : 1;
-	CEqualFunctor<int> functor;
-	applyBinaryVectorFunctorOmp( curThreadCount, GetRaw( firstHandle ), GetRaw( secondHandle ), GetRaw( resultHandle ),
-		vectorSize, functor, 0, 0 );
+	CBinaryVectorizerOmpWrapper<CBinaryFunctorVectorizer<CEqualFunctor<int>>> ompFunctor( GetRaw( firstHandle ),
+		GetRaw( secondHandle ), GetRaw( resultHandle ) );
+	applyOmpVectorFunction( curThreadCount, vectorSize, ompFunctor );
 }
 
 void CCpuMathEngine::VectorEltwiseDivide(const CConstIntHandle& firstHandle,

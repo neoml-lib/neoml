@@ -128,6 +128,9 @@ class CEqualFunctor;
 template<>
 class CEqualFunctor<float> {
 public:
+	using TFirst = float;
+	using TSecond = float;
+	using TResult = int;
 	CSimd4<int> operator()( const CSimd4<float>& first, const CSimd4<float>& second )
 		{ return vandq_s32( ones, vreinterpretq_s32_u32( vceqq_f32( first, second ) ) ); }
 
@@ -138,6 +141,9 @@ private:
 template<>
 class CEqualFunctor<int> {
 public:
+	using TFirst = int;
+	using TSecond = int;
+	using TResult = int;
 	CSimd4<int> operator()( const CSimd4<int>& first, const CSimd4<int>& second )
 		{ return vandq_s32( ones, vreinterpretq_s32_u32( vceqq_s32( first, second ) ) ); }
 

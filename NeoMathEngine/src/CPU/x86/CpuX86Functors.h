@@ -128,6 +128,10 @@ class CEqualFunctor;
 template<>
 class CEqualFunctor<float> {
 public:
+	using TFirst = float;
+	using TSecond = float;
+	using TResult = int;
+
 	CSimd4<int> operator()( const CSimd4<float>& first, const CSimd4<float>& second )
 		{ return _mm_and_si128( ones, _mm_castps_si128( _mm_cmpeq_ps( first, second ) ) ); }
 
@@ -138,6 +142,10 @@ private:
 template<>
 class CEqualFunctor<int> {
 public:
+	using TFirst = int;
+	using TSecond = int;
+	using TResult = int;
+
 	CSimd4<int> operator()( const CSimd4<int>& first, const CSimd4<int>& second )
 		{ return _mm_and_si128( ones, _mm_cmpeq_epi32( first, second ) ); }
 
