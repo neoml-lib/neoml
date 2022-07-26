@@ -43,4 +43,16 @@ protected:
 	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
 };
 
+// --------------------------------------------------------------------------------------------------------------------
+
+// Equal operator
+class CEqualOperator : public CEltwiseBinaryOperatorBase {
+public:
+	CEqualOperator( const onnx::NodeProto& equal, int opsetVersion ) : CEltwiseBinaryOperatorBase( equal, opsetVersion ) {}
+
+protected:
+	// CLayerOperator methods
+	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
+};
+
 } // namespace NeoOnnx

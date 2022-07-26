@@ -61,4 +61,12 @@ void CLessOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArr
 	}
 }
 
+// --------------------------------------------------------------------------------------------------------------------
+
+void CEqualOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
+{
+	CPtr<CBaseLayer> layer( new CEqualLayer( dnn.GetMathEngine() ) );
+	CEltwiseOperatorBase::AddLayersImpl( Broadcast(), inputs, *layer, dnn, outputs );
+}
+
 } // namespace NeoOnnx
