@@ -69,8 +69,8 @@ backend_test.exclude('test_quantizelinear_')  # QuantizeLinear
 backend_test.exclude('test_reciprocal_')  # Reciprocal
 backend_test.exclude('test_reduce_l1_')  # ReduceL1
 backend_test.exclude('test_reduce_l2_')  # ReduceL2
-backend_test.exclude('test_reduce_log_sum_') # ReduceLogSum
-backend_test.exclude('test_reduce_log_sum_exp_') # ReduceLogSumExp
+backend_test.exclude('test_reduce_log_sum_')  # ReduceLogSum
+backend_test.exclude('test_reduce_log_sum_exp_')  # ReduceLogSumExp
 backend_test.exclude('test_reduce_prod_')  # ReduceProd
 backend_test.exclude('test_reduce_sum_square_')  # ReduceSumSquare
 backend_test.exclude('test_reversesequence_')  # ReverseSequence
