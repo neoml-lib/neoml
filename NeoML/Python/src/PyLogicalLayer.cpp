@@ -54,6 +54,18 @@ public:
 	}
 };
 
+class CPyWhereLayer : public CPyLayer {
+public:
+	explicit CPyWhereLayer( CWhereLayer& layer, CPyMathEngineOwner& mathEngineOwner ) : CPyLayer( layer, mathEngineOwner ) {}
+
+	py::object CreatePythonObject() const
+	{
+		py::object pyModule = py::module::import( "neoml.Dnn" );
+		py::object pyConstructor = pyModule.attr( "Where" );
+		return pyConstructor( py::cast(this) );
+	}
+};
+
 void InitializeLogicalLayer( py::module& m )
 {
 	py::class_<CPyNotLayer, CPyLayer>(m, "Not")
@@ -108,6 +120,26 @@ void InitializeLogicalLayer( py::module& m )
 			equal->Connect( 0, firstLayer.BaseLayer(), firstOutputNumber );
 			equal->Connect( 1, secondLayer.BaseLayer(), secondOutputNumber );
 			return new CPyEqualLayer( *equal, firstLayer.MathEngineOwner() );
+		}) )
+	;
+
+	py::class_<CPyWhereLayer, CPyLayer>(m, "Where")
+		.def( py::init([]( const CPyLayer& layer )
+		{
+			return new CPyWhereLayer( *layer.Layer<CWhereLayer>(), layer.MathEngineOwner() );
+		}))
+		.def( py::init([]( const std::string& name, const CPyLayer& firstLayer, int firstOutputNumber,
+				const CPyLayer& secondLayer, int secondOutputNumber, const CPyLayer& thirdLayer, int thirdOutputNumber ) {
+			py::gil_scoped_release release;
+			CDnn& dnn = firstLayer.Dnn();
+			IMathEngine& mathEngine = dnn.GetMathEngine();
+			CPtr<CWhereLayer> where = new CWhereLayer( mathEngine );
+			where->SetName( FindFreeLayerName( dnn, "Where", name ).c_str() );
+			dnn.AddLayer( *where );
+			where->Connect( 0, firstLayer.BaseLayer(), firstOutputNumber );
+			where->Connect( 1, secondLayer.BaseLayer(), secondOutputNumber );
+			where->Connect( 2, thirdLayer.BaseLayer(), thirdOutputNumber );
+			return new CPyWhereLayer( *where, firstLayer.MathEngineOwner() );
 		}) )
 	;
 }

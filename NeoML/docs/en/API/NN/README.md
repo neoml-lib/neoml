@@ -258,6 +258,7 @@ delete gpuMathEngine;
   - [CNotLayer](LogicalLayers/NotLayer.md) - elementwise logical `not` over integer data
   - [CLessLayer](LogicalLayers/LessLayer.md) - elementwise comparison of 2 blobs `a < b ? 1 : 0`
   - [CEqualLayer](LogicalLayers/EqualLayer.md) - elementwise comparison of 2 blobs `a == b ? 1 : 0`
+  - [CWhereLayer](LogicalLayers/WhereLayer.md) - elementwise merge of 2 blobs based on the mask `a != 0 ? b : c`
 - Auxiliary operations:
   - [CTransformLayer](TransformLayer.md) changes the blob shape
   - [CTransposeLayer](TransposeLayer.md) switches the blob dimensions
