@@ -46,9 +46,9 @@ void CLessOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArr
 	CPtr<CBaseLayer> layer( new CLessLayer( dnn.GetMathEngine() ) );
 	CEltwiseOperatorBase::AddLayersImpl( Broadcast(), inputs, *layer, dnn, outputs );
 	if( Type() == "Greater" || Type() == "LessOrEqual" ) {
-		const char* firstName = layer->GetInputName( 0 );
+		CString firstName = layer->GetInputName( 0 );
 		int firstOutput = layer->GetInputOutputNumber( 0 );
-		const char* secondName = layer->GetInputName( 1 );
+		CString secondName = layer->GetInputName( 1 );
 		int secondOutput = layer->GetInputOutputNumber( 1 );
 		layer->Connect( 0, secondName, secondOutput );
 		layer->Connect( 1, firstName, firstOutput );
