@@ -55,4 +55,16 @@ protected:
 	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
 };
 
+// --------------------------------------------------------------------------------------------------------------------
+
+// Where operator
+class CWhereOperator : public CEltwiseOperatorBase {
+public:
+	CWhereOperator( const onnx::NodeProto& whereNode, int opsetVersion );
+
+protected:
+	// CLayerOperator methods
+	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
+};
+
 } // namespace NeoOnnx

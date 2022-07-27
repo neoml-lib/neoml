@@ -69,4 +69,21 @@ void CEqualOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorAr
 	CEltwiseOperatorBase::AddLayersImpl( Broadcast(), inputs, *layer, dnn, outputs );
 }
 
+// --------------------------------------------------------------------------------------------------------------------
+
+CWhereOperator::CWhereOperator( const onnx::NodeProto& whereNode, int opsetVersion ) :
+	CEltwiseOperatorBase( whereNode, opsetVersion, 3 )
+{
+	// v9 - original
+	// v16 - bfloat16 data type supported
+	CheckNeoOnnxSupport( OpsetVersion >= 9 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
+}
+
+void CWhereOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
+{
+	CBroadcast broadcast( BT_Numpy );
+	CPtr<CBaseLayer> layer( new CWhereLayer( dnn.GetMathEngine() ) );
+	CEltwiseOperatorBase::AddLayersImpl( broadcast, inputs, *layer, dnn, outputs );
+}
+
 } // namespace NeoOnnx
