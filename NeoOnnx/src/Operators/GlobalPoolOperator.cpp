@@ -177,6 +177,9 @@ CPtr<const CUserTensor> CGlobalPoolOperatorBase::addPoolingLayer( const CUserTen
 		case PT_Mean:
 		case PT_Sum:
 			pooling = new CGlobalMeanPoolingLayer( dnn.GetMathEngine() );
+			if( poolType == PT_Sum ) {
+				dynamic_cast<CGlobalMeanPoolingLayer*>( pooling.Ptr() )->returnSum( true );
+			}
 			break;
 		default:
 			NeoAssert( false );
@@ -250,8 +253,6 @@ CPtr<const CUserTensor> CGlobalPoolOperatorBase::addPostProcessing( const CUserT
 	linear->SetName( Name() + "_postProcess" );
 	if( poolType == PT_Min ) {
 		linear->SetMultiplier( -1 );
-	} else if( poolType == PT_Sum ) {
-		linear->SetMultiplier( static_cast<float>( pooledSize ) );
 	}
 	linear->Connect( 0, *layerOutput.Layer(), layerOutput.OutputIndex() );
 	dnn.AddLayer( *linear );

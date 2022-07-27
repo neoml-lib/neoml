@@ -23,7 +23,8 @@ namespace NeoML {
 
 CGlobalMeanPoolingLayer::CGlobalMeanPoolingLayer( IMathEngine& mathEngine ) :
 	CBaseLayer( mathEngine, "CCnnGlobalMeanPoolingLayer", false ),
-	coeff( CDnnBlob::CreateVector( mathEngine, CT_Float, 1 ) )
+	coeff( CDnnBlob::CreateVector( mathEngine, CT_Float, 1 ) ),
+	isSum( false )
 {
 }
 
@@ -54,9 +55,29 @@ void CGlobalMeanPoolingLayer::Reshape()
 
 void CGlobalMeanPoolingLayer::RunOnce()
 {
+	if( inputBlobs[0]->GetDataType() == CT_Int ) {
+		NeoAssert( isSum );
+		int inputIndex = 0;
+		int outputIndex = 0;
+		const int channels = inputBlobs[0]->GetChannelsCount();
+		outputBlobs[0]->Clear();
+		CConstIntHandle input = inputBlobs[0]->GetData<int>();
+		CIntHandle output = outputBlobs[0]->GetData<int>();
+		for( int b = 0; b < inputBlobs[0]->GetObjectCount(); ++b ) {
+			for( int row = 0; row < inputBlobs[0]->GetGeometricalSize(); ++row ) {
+				MathEngine().VectorAdd( input, output, output, channels );
+				input += channels;
+			}
+			output += channels;
+		}
+		return;
+	}
+
 	MathEngine().SumMatrixRows( inputBlobs[0]->GetObjectCount(), outputBlobs[0]->GetData(), inputBlobs[0]->GetData(), inputBlobs[0]->GetGeometricalSize(),
 		inputBlobs[0]->GetChannelsCount() );
-	MathEngine().VectorMultiply( outputBlobs[0]->GetData(), outputBlobs[0]->GetData(), outputBlobs[0]->GetDataSize(), coeff->GetData() );
+	if( !isSum ) {
+		MathEngine().VectorMultiply( outputBlobs[0]->GetData(), outputBlobs[0]->GetData(), outputBlobs[0]->GetDataSize(), coeff->GetData() );
+	}
 }
 
 void CGlobalMeanPoolingLayer::BackwardOnce()
