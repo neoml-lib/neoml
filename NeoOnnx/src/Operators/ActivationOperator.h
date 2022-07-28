@@ -133,5 +133,15 @@ public:
 	CLogOperator( const onnx::NodeProto& log, int opsetVersion );
 };
 
+// Neg operator
+class CNegOperator : public CActivationOperatorBase {
+public:
+	CNegOperator( const onnx::NodeProto& neg, int opsetVersion );
+
+protected:
+	// CLayerOperator methods
+	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
+};
+
 } // namespace NeoOnnx
 
