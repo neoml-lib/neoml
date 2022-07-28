@@ -38,13 +38,28 @@ CConcatOperator::CConcatOperator( const onnx::NodeProto& concat, int opsetVersio
 
 void CConcatOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
-	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
-	if( InputCount() == 1 ) {
-		outputs.Add( inputs[0] );
+	int firstInput = NotFound;
+	int inputCount = 0;
+	for( int i = 0; i < inputs.Size(); ++i ) {
+		if( inputs[i] != nullptr ) {
+			if( firstInput == NotFound ) {
+				firstInput = i;
+			}
+			inputCount++;
+		}
+	}
+
+	if( inputCount == 0 ) {
+		outputs.Add( nullptr );
 		return;
 	}
 
-	const int dimCount = inputs[0]->DimCount();
+	if( inputCount == 1 ) {
+		outputs.Add( inputs[firstInput] );
+		return;
+	}
+
+	const int dimCount = inputs[firstInput]->DimCount();
 
 	int axis = 1;
 	if( OpsetVersion < 4 ) {
@@ -56,19 +71,22 @@ void CConcatOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorA
 		}
 	}
 
-	const CTensorLayout& inputLayout = inputs[0]->Layout();
+	const CTensorLayout& inputLayout = inputs[firstInput]->Layout();
 	CPtr<CBaseLayer> concat = createLayer( inputLayout[axis], dnn.GetMathEngine() );
 	concat->SetName( Name() );
 
 	CTensorShape outputShape;
-	inputs[0]->Shape().CopyTo( outputShape );
+	inputs[firstInput]->Shape().CopyTo( outputShape );
 	outputShape[axis] = 0;
 
+	int connectionIndex = 0;
 	for( int inputIndex = 0; inputIndex < inputs.Size(); ++inputIndex ) {
-		CheckOnnxProtocol( inputs[inputIndex] != nullptr, "input can't be optional", *this );
+		if( inputs[inputIndex] == nullptr ) {
+			continue;
+		}
 		CPtr<const CUserTensor> preparedInput = AsUserTensor( *ConvertTensor( *inputs[inputIndex], inputLayout ),
 			Name() + "_Source" + Str( inputIndex ), dnn );
-		concat->Connect( inputIndex, *preparedInput->Layer(), preparedInput->OutputIndex() );
+		concat->Connect( connectionIndex++, *preparedInput->Layer(), preparedInput->OutputIndex() );
 		outputShape[axis] += inputs[inputIndex]->Shape()[axis];
 	}
 
