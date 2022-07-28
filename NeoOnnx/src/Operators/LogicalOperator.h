@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2022 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,22 +19,14 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-// Slice operator
-class CSliceOperator : public CLayerOperator {
+// Not operator
+class CNotOperator : public CLayerOperator {
 public:
-	CSliceOperator( const onnx::NodeProto& slice, int opsetVersion );
+	CNotOperator( const onnx::NodeProto& notNode, int opsetVersion );
 
 protected:
-	// COperator methods
+	// CLayerOperator methods
 	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
-
-private:
-	void getAxes( const CTensorArray& inputs, CFastArray<int, 8>& axes ) const;
-	void getStarts( const CTensorArray& inputs, CFastArray<int, 8>& starts ) const;
-	void getEnds( const CTensorArray& inputs, CFastArray<int, 8>& ends ) const;
-	void getSteps( const CTensorArray& inputs, CFastArray<int, 8>& steps ) const;
-	CPtr<const CTensorBase> sliceAxis( const CTensorBase& input, int axis, int start, int end, int step,
-		CDnn& dnn ) const;
 };
 
 } // namespace NeoOnnx
