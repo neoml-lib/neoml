@@ -46,6 +46,17 @@ void CShapeOperator::ProcessTensors( const CTensorArray& inputs, CDnn& dnn, CTen
 	CPtr<CDnnBlob> outputBlob = CDnnBlob::CreateBlob( dnn.GetMathEngine(), CT_Int, outputBlobDesc );
 	outputBlob->CopyFrom( inputShape.GetPtr() );
 	outputs.Add( new CDataTensor( { inputShape.Size() }, outputLayout, *outputBlob ) );
+
+	if( !inputs[0]->IsCalculated() ) {
+		// If input is a CUserTensor then there is a chance that this CUserTensor will lead to hanging layer output
+		// Connect CSinkLayer to avoid this problem
+		// TODO: find a way to detect such cases and remove all the unnecessary preceding layers instead of adding sink
+		CPtr<CSinkLayer> safeSink = new CSinkLayer( dnn.GetMathEngine() );
+		safeSink->SetName( Name() + "_Sink" );
+		const CUserTensor* userInput = dynamic_cast<const CUserTensor*>( inputs[0].Ptr() );
+		safeSink->Connect( 0, *userInput->Layer(), userInput->OutputIndex() );
+		dnn.AddLayer( *safeSink );
+	}
 }
 
 } // namespace NeoOnnx
