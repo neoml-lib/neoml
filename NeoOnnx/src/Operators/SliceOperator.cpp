@@ -58,9 +58,9 @@ void CSliceOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorAr
 	CFastArray<int, 8> steps;
 	getSteps( inputs, steps );
 
-	CPtr<const CUserTensor> currInput = AsUserTensor( *inputs[0], Name() + "_Source", dnn );
+	CPtr<const CTensorBase> currInput = inputs[0].Ptr();
 	for( int i = 0; i < axes.Size(); ++i ) {
-		currInput = sliceAxis( *currInput, axes[i], starts[i], ends[i], steps[i] );
+		currInput = sliceAxis( *currInput, axes[i], starts[i], ends[i], steps[i], dnn );
 	}
 	outputs.Add( currInput.Ptr() );
 }
@@ -141,7 +141,8 @@ void CSliceOperator::getSteps( const CTensorArray& inputs, CFastArray<int, 8>& s
 }
 
 // Adds slice along one axis
-CPtr<const CUserTensor> CSliceOperator::sliceAxis( const CUserTensor& input, int axis, int start, int end, int step ) const
+CPtr<const CTensorBase> CSliceOperator::sliceAxis( const CTensorBase& input, int axis, int start, int end, int step,
+	CDnn& dnn ) const
 {
 	CheckNeoOnnxSupport( step == 1, "Slice with step", *this );
 
@@ -159,15 +160,21 @@ CPtr<const CUserTensor> CSliceOperator::sliceAxis( const CUserTensor& input, int
 		end = dimSize;
 	}
 
-	NeoAssert( start < end );
+	NeoAssert( start <= end );
+
+	if( start == end ) {
+		// The slice results with a tensor of 0 elements
+		// NeoML doesn't support that
+		return nullptr;
+	}
 
 	if( start == 0 && end == dimSize) {
 		// No need to split
 		return &input;
 	}
 
-	CDnn& dnn = *input.Layer()->GetDnn();
-	CPtr<CBaseSplitLayer> split = CreateSplitLayer( dnn.GetMathEngine(), input.Layout()[axis] );
+	CPtr<const CUserTensor> userInput = AsUserTensor( input, Name() + "_Source", dnn );
+	CPtr<CBaseSplitLayer> split = CreateSplitLayer( dnn.GetMathEngine(), userInput->Layout()[axis] );
 	split->SetName( Name() + "_" + Str( axis ) );
 	int outputIndex = 0;
 
@@ -197,13 +204,13 @@ CPtr<const CUserTensor> CSliceOperator::sliceAxis( const CUserTensor& input, int
 		dnn.AddLayer( *sink );
 	}
 
-	split->Connect( 0, *input.Layer(), input.OutputIndex() );
+	split->Connect( 0, *userInput->Layer(), userInput->OutputIndex() );
 	dnn.AddLayer( *split );
 	
 	CTensorShape outputShape;
-	input.Shape().CopyTo( outputShape );
+	userInput->Shape().CopyTo( outputShape );
 	outputShape[axis] = end - start;
-	return new CUserTensor( outputShape, input.Layout(), CLayerOutput( split, outputIndex ) );
+	return new CUserTensor( outputShape, userInput->Layout(), CLayerOutput( split, outputIndex ) );
 }
 
 } // namespace NeoOnnx
