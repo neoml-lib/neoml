@@ -30,6 +30,18 @@ public:
 	}
 };
 
+class CPyLessLayer : public CPyLayer {
+public:
+	explicit CPyLessLayer( CLessLayer& layer, CPyMathEngineOwner& mathEngineOwner ) : CPyLayer( layer, mathEngineOwner ) {}
+
+	py::object CreatePythonObject() const
+	{
+		py::object pyModule = py::module::import( "neoml.Dnn" );
+		py::object pyConstructor = pyModule.attr( "Less" );
+		return pyConstructor( py::cast(this) );
+	}
+};
+
 void InitializeLogicalLayer( py::module& m )
 {
 	py::class_<CPyNotLayer, CPyLayer>(m, "Not")
@@ -46,6 +58,25 @@ void InitializeLogicalLayer( py::module& m )
 			dnn.AddLayer( *notLayer );
 			notLayer->Connect( 0, layer.BaseLayer(), outputNumber );
 			return new CPyNotLayer( *notLayer, layer.MathEngineOwner() );
+		}) )
+	;
+	
+	py::class_<CPyLessLayer, CPyLayer>(m, "Less")
+		.def( py::init([]( const CPyLayer& layer )
+		{
+			return new CPyLessLayer( *layer.Layer<CLessLayer>(), layer.MathEngineOwner() );
+		}))
+		.def( py::init([]( const std::string& name, const CPyLayer& firstLayer, int firstOutputNumber,
+				const CPyLayer& secondLayer, int secondOutputNumber ) {
+			py::gil_scoped_release release;
+			CDnn& dnn = firstLayer.Dnn();
+			IMathEngine& mathEngine = dnn.GetMathEngine();
+			CPtr<CLessLayer> less = new CLessLayer( mathEngine );
+			less->SetName( FindFreeLayerName( dnn, "Less", name ).c_str() );
+			dnn.AddLayer( *less );
+			less->Connect( 0, firstLayer.BaseLayer(), firstOutputNumber );
+			less->Connect( 1, secondLayer.BaseLayer(), secondOutputNumber );
+			return new CPyLessLayer( *less, firstLayer.MathEngineOwner() );
 		}) )
 	;
 }

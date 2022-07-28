@@ -256,6 +256,7 @@ delete gpuMathEngine;
   - [CEltwiseNegMulLayer](EltwiseLayers/EltwiseNegMulLayer.md) calculates the elementwise product of `1 - first input` and the other inputs
 - Logical operations:
   - [CNotLayer](LogicalLayers/NotLayer.md) - elementwise logical `not` over integer data
+  - [CLessLayer](LogicalLayers/LessLayer.md) - elementwise comparison of 2 blobs
 - Auxiliary operations:
   - [CTransformLayer](TransformLayer.md) changes the blob shape
   - [CTransposeLayer](TransposeLayer.md) switches the blob dimensions

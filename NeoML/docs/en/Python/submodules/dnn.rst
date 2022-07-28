@@ -24,6 +24,9 @@ neoml.Dnn
    - :ref:`py-dnn-qualitycontrol`
    - :ref:`py-dnn-discrete-features`
    - :ref:`py-dnn-attention`
+   - :ref:`py-dnn-logical`
+      - :ref:`py-dnn-not`
+      - :ref:`py-dnn-less`
    - :ref:`py-dnn-auxiliary`:
       - :ref:`py-dnn-transform`
       - :ref:`py-dnn-transpose`
@@ -636,6 +639,27 @@ MultiheadAttention
 ========================
 
 .. autoclass:: neoml.Dnn.MultiheadAttention
+   :members:
+
+.. _py-dnn-logical:
+
+Logical operations Layers
+*************************
+
+.. _py-dnn-not:
+
+Not
+===
+
+.. autoclass:: neoml.Dnn.Not
+   :members:
+
+.. _py-dnn-less:
+
+Less
+====
+
+.. autoclass:: neoml.Dnn.Less
    :members:
 
 .. _py-dnn-auxiliary:

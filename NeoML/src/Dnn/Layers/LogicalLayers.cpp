@@ -51,4 +51,46 @@ CLayerWrapper<CNotLayer> Not()
 	return CLayerWrapper<CNotLayer>( "Not" );
 }
 
+// --------------------------------------------------------------------------------------------------------------------
+
+CLessLayer::CLessLayer( IMathEngine& mathEngine ) :
+	CEltwiseBaseLayer( mathEngine, "CLessLayer" )
+{
+}
+
+void CLessLayer::Reshape()
+{
+	CheckArchitecture( inputDescs.Size() == 2, GetName(), "Less operation expects 2 inputs" );
+	CheckArchitecture( inputDescs[0].GetDataType() == inputDescs[1].GetDataType(), GetName(),
+		"Inputs must be of the same data type" );
+
+	CEltwiseBaseLayer::Reshape();
+
+	outputDescs[0].SetDataType( CT_Int );
+}
+
+void CLessLayer::RunOnce()
+{
+	if( inputBlobs[0]->GetDataType() == CT_Float ) {
+		MathEngine().VectorEltwiseLess( inputBlobs[0]->GetData(), inputBlobs[1]->GetData(),
+			outputBlobs[0]->GetData<int>(), inputBlobs[0]->GetDataSize() );
+	} else {
+		MathEngine().VectorEltwiseLess( inputBlobs[0]->GetData<int>(), inputBlobs[1]->GetData<int>(),
+			outputBlobs[0]->GetData<int>(), inputBlobs[0]->GetDataSize() );
+	}
+}
+
+void CLessLayer::BackwardOnce()
+{
+	NeoAssert( false );
+}
+
+static const int LessLayerVersion = 0;
+
+void CLessLayer::Serialize( CArchive& archive )
+{
+	archive.SerializeVersion( LessLayerVersion );
+	CEltwiseBaseLayer::Serialize( archive );
+}
+
 } // namespace NeoML
