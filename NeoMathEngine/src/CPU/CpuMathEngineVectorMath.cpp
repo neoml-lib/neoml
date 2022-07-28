@@ -51,8 +51,14 @@ public:
 	using TSecond = typename TFunctor::TSecond;
 	using TResult = typename TFunctor::TResult;
 
-	COmpBinaryVectorFunction( const TFirst* first, const TSecond* second, TResult* result ) :
-		first( first ), second( second ), result( result ) {}
+	COmpBinaryVectorFunction( const TFirst* first, const TSecond* second, TResult* result,
+			TFunctor& functor = TFunctor(), TFirst firstDefaultValue = 1, TSecond secondDefaultValue = 1 ) :
+		function( functor, firstDefaultValue, secondDefaultValue ),
+		first( first ),
+		second( second ),
+		result( result )
+	{
+	}
 
 	void operator()( int index, int count )
 	{
