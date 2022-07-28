@@ -20,13 +20,11 @@ limitations under the License.
 #ifdef NEOML_USE_SSE
 
 #include "CpuX86.h"
+#include "../CpuFunctorCommon.h"
 
 namespace NeoML {
 
-// data type
-template<class T>
-struct CSimd4Struct;
-
+// Data types
 template<>
 struct CSimd4Struct<float> {
 	typedef __m128 Type;
@@ -37,13 +35,7 @@ struct CSimd4Struct<int> {
 	typedef __m128i Type;
 };
 
-template<class T>
-using CSimd4 = typename CSimd4Struct<T>::Type;
-
-// Creates a single 4-element simd filled with a given value
-template<class T>
-CSimd4<T> SimdFill( T value ) = delete;
-
+// Fill functions
 template<>
 CSimd4<float> SimdFill( float value )
 {
@@ -56,10 +48,7 @@ CSimd4<int> SimdFill( int value )
 	return _mm_set1_epi32( value );
 }
 
-// Loads full simd4
-template<class T>
-CSimd4<T> SimdLoad4( const T* src ) = delete;
-
+// Load functions
 template<>
 CSimd4<float> SimdLoad4<float>( const float* src )
 {
@@ -71,10 +60,6 @@ CSimd4<int> SimdLoad4<int>( const int* src )
 {
 	return LoadIntSse4( src );
 }
-
-// Loads part of simd4
-template<class T>
-CSimd4<T> SimdLoad( const T* src, int count, T defaultValue ) = delete;
 
 template<>
 CSimd4<float> SimdLoad( const float* src, int count, float defaultValue )
@@ -88,10 +73,7 @@ CSimd4<int> SimdLoad( const int* src, int count, int defaultValue )
 	return LoadIntSse( src, count, defaultValue );
 }
 
-// Stores full simd4
-template<class T>
-void SimdStore4( T* dst, const CSimd4<T>& value ) = delete;
-
+// Store functions
 template<>
 void SimdStore4<float>( float* dst, const CSimd4<float>& value )
 {
@@ -103,10 +85,6 @@ void SimdStore4<int>( int* dst, const CSimd4<int>& value )
 {
 	StoreIntSse4( value, dst );
 }
-
-// Stores part of the simd4
-template<class T>
-void SimdStore( T* dst, const CSimd4<T>& value, int count ) = delete;
 
 template<>
 void SimdStore<float>( float* dst, const CSimd4<float>& value, int count )
@@ -120,79 +98,57 @@ void SimdStore<int>( int* dst, const CSimd4<int>& value, int count )
 	StoreIntSse( value, dst, count );
 }
 
+// --------------------------------------------------------------------------------------------------------------------
 // Equal functor
 // a == b ? 1 : 0
 template<class T>
-class CEqualFunctor;
-
-template<>
-class CEqualFunctor<float> {
+class CEqualFunctor : public CFunctorBase<int, T> {
 public:
-	using TFirst = float;
-	using TSecond = float;
-	using TResult = int;
-
-	CSimd4<int> operator()( const CSimd4<float>& first, const CSimd4<float>& second )
-		{ return _mm_and_si128( ones, _mm_castps_si128( _mm_cmpeq_ps( first, second ) ) ); }
+	CSimd4<int> operator()( const CSimd4<T>& first, const CSimd4<T>& second );
 
 private:
-	CSimd4<int> ones = SimdFill<int>( 1 );
+	CSimd4<int> ones = SimdFill( 1 );
 };
 
 template<>
-class CEqualFunctor<int> {
-public:
-	using TFirst = int;
-	using TSecond = int;
-	using TResult = int;
+CSimd4<int> CEqualFunctor<float>::operator()( const CSimd4<float>& first, const CSimd4<float>& second )
+{
+	return _mm_and_si128( ones, _mm_castps_si128( _mm_cmpeq_ps( first, second ) ) );
+}
 
-	CSimd4<int> operator()( const CSimd4<int>& first, const CSimd4<int>& second )
-		{ return _mm_and_si128( ones, _mm_cmpeq_epi32( first, second ) ); }
+template<>
+CSimd4<int> CEqualFunctor<int>::operator()( const CSimd4<int>& first, const CSimd4<int>& second )
+{
+	return _mm_and_si128( ones, _mm_cmpeq_epi32( first, second ) );
+}
 
-private:
-	CSimd4<int> ones = SimdFill<int>( 1 );
-};
-
+// --------------------------------------------------------------------------------------------------------------------
 // Where functor
 // a != 0 ? b : c
 template<class T>
-class CWhereFunctor;
-
-template<>
-class CWhereFunctor<float> {
+class CWhereFunctor : public CFunctorBase<T, int, T> {
 public:
-	using TFirst = int;
-	using TSecond = float;
-	using TThird = float;
-	using TResult = float;
-
-	CSimd4<float> operator()( const CSimd4<int>& first, const CSimd4<float>& second, const CSimd4<float>& third )
-	{
-		const __m128 mask = _mm_castsi128_ps( _mm_cmpeq_epi32( first, zeros ) );
-		return _mm_or_ps( _mm_andnot_ps( mask, second ), _mm_and_ps( mask, third ) );
-	}
+	CSimd4<T> operator()( const CSimd4<int>& first, const CSimd4<T>& second, const CSimd4<T>& third );
 
 private:
-	CSimd4<int> zeros = SimdFill<int>( 0 );
+	CSimd4<int> zeros = SimdFill( 0 );
 };
 
 template<>
-class CWhereFunctor<int> {
-public:
-	using TFirst = int;
-	using TSecond = int;
-	using TThird = int;
-	using TResult = int;
+CSimd4<float> CWhereFunctor<float>::operator()( const CSimd4<int>& first, const CSimd4<float>& second,
+	const CSimd4<float>& third )
+{
+	const __m128 mask = _mm_castsi128_ps( _mm_cmpeq_epi32( first, zeros ) );
+	return _mm_or_ps( _mm_andnot_ps( mask, second ), _mm_and_ps( mask, third ) );
+}
 
-	CSimd4<int> operator()( const CSimd4<int>& first, const CSimd4<int>& second, const CSimd4<int>& third )
-	{
-		const __m128i mask = _mm_cmpeq_epi32( first, zeros );
-		return _mm_or_si128( _mm_andnot_si128( mask, second ), _mm_and_si128( mask, third ) );
-	}
-
-private:
-	CSimd4<int> zeros = SimdFill<int>( 0 );
-};
+template<>
+CSimd4<int> CWhereFunctor<int>::operator()( const CSimd4<int>& first, const CSimd4<int>& second,
+	const CSimd4<int>& third )
+{
+	const __m128i mask = _mm_cmpeq_epi32( first, zeros );
+	return _mm_or_si128( _mm_andnot_si128( mask, second ), _mm_and_si128( mask, third ) );
+}
 
 } // namespace NeoML
 

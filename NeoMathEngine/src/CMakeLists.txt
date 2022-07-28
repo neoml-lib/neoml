@@ -58,6 +58,7 @@ target_sources(${PROJECT_NAME}
     CPU/CpuMathEngineDnnDistributed.h
     CPU/CpuMathEngineDnnLstm.h
     CPU/CpuExecutionScope.h
+    CPU/CpuFunctorCommon.h
 
     CPU/MatrixMultiplyingInterleavedCommon/CpuMemoryHelper.h
     CPU/MatrixMultiplyingInterleavedCommon/MatrixMultiplier.h
