@@ -29,64 +29,62 @@ namespace NeoML {
 
 // Applies singleThreadFunction on the data of vectorSize by using threadCount omp threads
 template<class T>
-static void applyOmpVectorFunction( int threadCount, int vectorSize, T& singleThreadFunction )
+static void applyOmpVectorFunction( int threadCount, int vectorSize, T& function )
 {
 	if( threadCount > 1 ) {
 		NEOML_OMP_NUM_THREADS( threadCount ) {
 			int index, count;
 			if( OmpGetTaskIndexAndCount( vectorSize, 16, index, count ) ) {
-				singleThreadFunction( index, count );
+				function( index, count );
 			}
 		}
 	} else {
-		singleThreadFunction( 0, vectorSize );
+		function( 0, vectorSize );
 	}
 }
 
-// Class which wraps binary function vectorizer into OMP-friendly interface
-template<class TVectorizer>
-class CBinaryVectorizerOmpWrapper {
+// Class which wraps binary vector functor into OMP-friendly interface
+template<class TFunctor>
+class COmpBinaryVectorFunction {
 public:
-	using TFirst = typename TVectorizer::TFirst;
-	using TSecond = typename TVectorizer::TSecond;
-	using TResult = typename TVectorizer::TResult;
+	using TFirst = typename TFunctor::TFirst;
+	using TSecond = typename TFunctor::TSecond;
+	using TResult = typename TFunctor::TResult;
 
-	CBinaryVectorizerOmpWrapper( const TFirst* first, const TSecond* second, TResult* result,
-			const TVectorizer& vectorizer = TVectorizer() ) :
-		vectorizer( vectorizer ), first( first ), second( second ), result( result ) {}
+	COmpBinaryVectorFunction( const TFirst* first, const TSecond* second, TResult* result ) :
+		first( first ), second( second ), result( result ) {}
 
 	void operator()( int index, int count )
 	{
-		vectorizer( first + index, second + index, result + index, count );
+		function( first + index, second + index, result + index, count );
 	}
 
 private:
-	TVectorizer vectorizer;
+	CBinaryVectorFunction<TFunctor> function;
 	const TFirst* const first;
 	const TSecond* const second;
 	TResult* const result;
 };
 
-// Class which wraps binary function vectorizer into OMP-friendly interface
-template<class TVectorizer>
-class CTernaryVectorizerOmpWrapper {
+// Class which wraps ternary vector functor into OMP-friendly interface
+template<class TFunctor>
+class COmpTernaryVectorFunction {
 public:
-	using TFirst = typename TVectorizer::TFirst;
-	using TSecond = typename TVectorizer::TSecond;
-	using TThird = typename TVectorizer::TThird;
-	using TResult = typename TVectorizer::TResult;
+	using TFirst = typename TFunctor::TFirst;
+	using TSecond = typename TFunctor::TSecond;
+	using TThird = typename TFunctor::TThird;
+	using TResult = typename TFunctor::TResult;
 
-	CTernaryVectorizerOmpWrapper( const TFirst* first, const TSecond* second, const TThird* third, TResult* result,
-			const TVectorizer& vectorizer = TVectorizer() ) :
-		vectorizer( vectorizer ), first( first ), second( second ), third( third ), result( result ) {}
+	COmpTernaryVectorFunction( const TFirst* first, const TSecond* second, const TThird* third, TResult* result ) :
+		first( first ), second( second ), third( third ), result( result ) {}
 
 	void operator()( int index, int count )
 	{
-		vectorizer( first + index, second + index, third + index, result + index, count );
+		function( first + index, second + index, third + index, result + index, count );
 	}
 
 private:
-	TVectorizer vectorizer;
+	CTernaryVectorFunction<TFunctor> function;
 	const TFirst* const first;
 	const TSecond* const second;
 	const TThird* const third;
@@ -914,9 +912,9 @@ void CCpuMathEngine::VectorEltwiseEqual( const CConstFloatHandle& firstHandle, c
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	CCpuExecutionScope scope;
 	const int curThreadCount = IsOmpRelevant( vectorSize, vectorSize ) ? threadCount : 1;
-	CBinaryVectorizerOmpWrapper<CBinaryFunctorVectorizer<CEqualFunctor<float>>> ompFunctor( GetRaw( firstHandle ),
+	COmpBinaryVectorFunction<CEqualFunctor<float>> ompFunction( GetRaw( firstHandle ),
 		GetRaw( secondHandle ), GetRaw( resultHandle ) );
-	applyOmpVectorFunction( curThreadCount, vectorSize, ompFunctor );
+	applyOmpVectorFunction( curThreadCount, vectorSize, ompFunction );
 }
 
 void CCpuMathEngine::VectorEltwiseEqual( const CConstIntHandle& firstHandle, const CConstIntHandle& secondHandle,
@@ -927,9 +925,9 @@ void CCpuMathEngine::VectorEltwiseEqual( const CConstIntHandle& firstHandle, con
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	CCpuExecutionScope scope;
 	const int curThreadCount = IsOmpRelevant( vectorSize, vectorSize ) ? threadCount : 1;
-	CBinaryVectorizerOmpWrapper<CBinaryFunctorVectorizer<CEqualFunctor<int>>> ompFunctor( GetRaw( firstHandle ),
+	COmpBinaryVectorFunction<CEqualFunctor<int>> ompFunction( GetRaw( firstHandle ),
 		GetRaw( secondHandle ), GetRaw( resultHandle ) );
-	applyOmpVectorFunction( curThreadCount, vectorSize, ompFunctor );
+	applyOmpVectorFunction( curThreadCount, vectorSize, ompFunction );
 }
 
 void CCpuMathEngine::VectorEltwiseWhere( const CConstIntHandle& firstHandle, const CConstFloatHandle& secondHandle,
@@ -941,9 +939,9 @@ void CCpuMathEngine::VectorEltwiseWhere( const CConstIntHandle& firstHandle, con
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	CCpuExecutionScope scope;
 	const int curThreadCount = IsOmpRelevant( vectorSize, vectorSize ) ? threadCount : 1;
-	CTernaryVectorizerOmpWrapper<CTernaryFunctorVectorizer<CWhereFunctor<float>>> ompFunctor( GetRaw( firstHandle ),
+	COmpTernaryVectorFunction<CWhereFunctor<float>> ompFunction( GetRaw( firstHandle ),
 		GetRaw( secondHandle ), GetRaw( thirdHandle ), GetRaw( resultHandle ) );
-	applyOmpVectorFunction( curThreadCount, vectorSize, ompFunctor );
+	applyOmpVectorFunction( curThreadCount, vectorSize, ompFunction );
 }
 
 void CCpuMathEngine::VectorEltwiseWhere( const CConstIntHandle& firstHandle, const CConstIntHandle& secondHandle,
@@ -955,9 +953,9 @@ void CCpuMathEngine::VectorEltwiseWhere( const CConstIntHandle& firstHandle, con
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	CCpuExecutionScope scope;
 	const int curThreadCount = IsOmpRelevant( vectorSize, vectorSize ) ? threadCount : 1;
-	CTernaryVectorizerOmpWrapper<CTernaryFunctorVectorizer<CWhereFunctor<int>>> ompFunctor( GetRaw( firstHandle ),
+	COmpTernaryVectorFunction<CWhereFunctor<int>> ompFunction( GetRaw( firstHandle ),
 		GetRaw( secondHandle ), GetRaw( thirdHandle ), GetRaw( resultHandle ) );
-	applyOmpVectorFunction( curThreadCount, vectorSize, ompFunctor );
+	applyOmpVectorFunction( curThreadCount, vectorSize, ompFunction );
 }
 
 void CCpuMathEngine::VectorEltwiseDivide(const CConstIntHandle& firstHandle,

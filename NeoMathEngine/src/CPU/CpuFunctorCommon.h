@@ -86,12 +86,12 @@ public:
 // Class that wraps binary vector functor into the interface
 // which takes 3 pointers and the number of elements.
 template<class TFunctor>
-class CBinaryFunctorVectorizer {
+class CBinaryVectorFunction {
 public:
 	using TFirst = typename TFunctor::TFirst;
 	using TSecond = typename TFunctor::TSecond;
 	using TResult = typename TFunctor::TResult;
-	CBinaryFunctorVectorizer( const TFunctor& functor = TFunctor(), TFirst firstDefaultValue = 1, TSecond secondDefaultValue = 1 ) :
+	CBinaryVectorFunction( const TFunctor& functor = TFunctor(), TFirst firstDefaultValue = 1, TSecond secondDefaultValue = 1 ) :
 		functor( functor ), firstDefaultValue( firstDefaultValue ), secondDefaultValue( secondDefaultValue ) {}
 
 	void operator()( const TFirst* first, const TSecond* second, TResult* result, int vectorSize )
@@ -141,13 +141,13 @@ private:
 // Class that wraps ternary vector functor into the interface
 // which takes 4 pointers and the number of elements.
 template<class TFunctor>
-class CTernaryFunctorVectorizer {
+class CTernaryVectorFunction {
 public:
 	using TFirst = typename TFunctor::TFirst;
 	using TSecond = typename TFunctor::TSecond;
 	using TThird = typename TFunctor::TThird;
 	using TResult = typename TFunctor::TResult;
-	CTernaryFunctorVectorizer( const TFunctor& functor = TFunctor(), TFirst firstDefaultValue = 1,
+	CTernaryVectorFunction( const TFunctor& functor = TFunctor(), TFirst firstDefaultValue = 1,
 		TSecond secondDefaultValue = 1, TThird thirdDefaultValue = 1 ) :
 		functor( functor ),
 		firstDefaultValue( firstDefaultValue ),
