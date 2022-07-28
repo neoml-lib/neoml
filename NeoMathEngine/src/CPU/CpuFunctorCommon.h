@@ -56,9 +56,10 @@ template<class T>
 void SimdStore( T* dst, const CSimd4<T>& value, int count ) = delete;
 
 // --------------------------------------------------------------------------------------------------------------------
-// Base class for functors which provides public aliases for argument types
+// In this context functor is an entity with () operator performing its function over single SIMD element
+// CFunctorBase provides public aliases for argument types
 // Supports up to 3 input arguments
-// When partially specialized transfers last type to the rest of the args
+// When partially specialized transfers last given argument type to the rest of the arguments
 template<class TResultArg, class TFirstArg = TResultArg, class TSecondArg = TFirstArg, class TThirdArg = TSecondArg>
 class CFunctorBase {
 public:
