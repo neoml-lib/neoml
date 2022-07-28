@@ -42,6 +42,7 @@ limitations under the License.
 #include "Operators/GlobalPoolOperator.h"
 #include "Operators/IdentityOperator.h"
 #include "Operators/InstanceNormalizationOperator.h"
+#include "Operators/LogicalOperator.h"
 #include "Operators/LrnOperator.h"
 #include "Operators/LstmOperator.h"
 #include "Operators/MatMulOperator.h"
@@ -147,6 +148,7 @@ REGISTER_OPERATOR( CLstmOperator, "LSTM" )
 REGISTER_OPERATOR( CMatMulOperator, "MatMul" )
 REGISTER_OPERATOR( CMaxPoolOperator, "MaxPool" )
 REGISTER_OPERATOR( CMulOperator, "Mul" )
+REGISTER_OPERATOR( CNotOperator, "Not" )
 REGISTER_OPERATOR( CNonZeroOperator, "NonZero" )
 REGISTER_OPERATOR( COneHotOperator, "OneHot" )
 REGISTER_OPERATOR( CPadOperator, "Pad" )
