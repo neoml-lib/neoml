@@ -18,6 +18,7 @@ neoml.Dnn
    - :ref:`py-dnn-pooling`
    - :ref:`py-dnn-softmax`
    - :ref:`py-dnn-dropout`
+   - :ref:`py-dnn-cumsum`
    - :ref:`py-dnn-normalization`
    - :ref:`py-dnn-eltwise`
    - :ref:`py-dnn-qualitycontrol`
@@ -487,6 +488,14 @@ Dropout
 *************
 
 .. autoclass:: neoml.Dnn.Dropout 
+   :members:
+
+.. _py-dnn-cumsum:
+
+CumSum
+===========
+
+.. autoclass:: neoml.Dnn.CumSum
    :members:
 
 .. _py-dnn-normalization:
