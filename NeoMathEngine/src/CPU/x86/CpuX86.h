@@ -70,22 +70,13 @@ inline __m128 LoadSse(const float* data, int count, float defVal = 0)
 	switch(count) {
 		default:
 		case 0:
-			return _mm_setzero_ps();
+			return _mm_set1_ps(defVal);
 		case 1:
 			return _mm_set_ps(defVal, defVal, defVal, data[0]);
 		case 2:
 			return _mm_set_ps(defVal, defVal, data[1], data[0]);
 		case 3:
 			return _mm_set_ps(defVal, data[2], data[1], data[0]);
-	}
-}
-
-inline __m128 LoadSseFromVector(const float* data, int count, float defVal = 0)
-{
-	if(count >= 4) {
-		return LoadSse4(data);
-	} else {
-		return LoadSse(data, count, defVal);
 	}
 }
 
@@ -99,7 +90,7 @@ inline __m128i LoadIntSse(const int* data, int count, int defVal = 0)
 	switch(count) {
 		default:
 		case 0:
-			return _mm_setzero_si128();
+			return _mm_set1_epi32(defVal);
 		case 1:
 			return _mm_set_epi32(defVal, defVal, defVal, data[0]);
 		case 2:

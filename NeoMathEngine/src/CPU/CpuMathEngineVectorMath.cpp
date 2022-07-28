@@ -23,8 +23,49 @@ limitations under the License.
 #include <CpuRandom.h>
 #include <CpuMathEnginePrivate.h>
 #include <cmath>
+#include <functional>
 
 namespace NeoML {
+
+// Applies singleThreadFunction on the data of vectorSize by using threadCount omp threads
+template<class T>
+static void applyOmpVectorFunction( int threadCount, int vectorSize, T& singleThreadFunction )
+{
+	if( threadCount > 1 ) {
+		NEOML_OMP_NUM_THREADS( threadCount ) {
+			int index, count;
+			if( OmpGetTaskIndexAndCount( vectorSize, 16, index, count ) ) {
+				singleThreadFunction( index, count );
+			}
+		}
+	} else {
+		singleThreadFunction( 0, vectorSize );
+	}
+}
+
+// Class which wraps binary function vectorizer into OMP-friendly interface
+template<class TVectorizer>
+class CBinaryVectorizerOmpWrapper {
+public:
+	using TFirst = typename TVectorizer::TFirst;
+	using TSecond = typename TVectorizer::TSecond;
+	using TResult = typename TVectorizer::TResult;
+
+	CBinaryVectorizerOmpWrapper( const TFirst* first, const TSecond* second, TResult* result,
+			const TVectorizer& vectorizer = TVectorizer() ) :
+		vectorizer( vectorizer ), first( first ), second( second ), result( result ) {}
+
+	void operator()( int index, int count )
+	{
+		vectorizer( first + index, second + index, result + index, count );
+	}
+
+private:
+	TVectorizer vectorizer;
+	const TFirst* const first;
+	const TSecond* const second;
+	TResult* const result;
+};
 
 void CCpuMathEngine::VectorFill(const CFloatHandle& result, int vectorSize, const CConstFloatHandle& value)
 {
@@ -836,8 +877,33 @@ void CCpuMathEngine::VectorEltwiseLess( const CConstIntHandle& firstHandle, cons
 	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	CCpuExecutionScope scope;
-
 	vectorEltwiseLessImpl( firstHandle, secondHandle, resultHandle, vectorSize );
+}
+
+void CCpuMathEngine::VectorEltwiseEqual( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
+	const CIntHandle& resultHandle, int vectorSize )
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	CCpuExecutionScope scope;
+	const int curThreadCount = IsOmpRelevant( vectorSize, vectorSize ) ? threadCount : 1;
+	CBinaryVectorizerOmpWrapper<CBinaryFunctorVectorizer<CEqualFunctor<float>>> ompFunctor( GetRaw( firstHandle ),
+		GetRaw( secondHandle ), GetRaw( resultHandle ) );
+	applyOmpVectorFunction( curThreadCount, vectorSize, ompFunctor );
+}
+
+void CCpuMathEngine::VectorEltwiseEqual( const CConstIntHandle& firstHandle, const CConstIntHandle& secondHandle,
+	const CIntHandle& resultHandle, int vectorSize )
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	CCpuExecutionScope scope;
+	const int curThreadCount = IsOmpRelevant( vectorSize, vectorSize ) ? threadCount : 1;
+	CBinaryVectorizerOmpWrapper<CBinaryFunctorVectorizer<CEqualFunctor<int>>> ompFunctor( GetRaw( firstHandle ),
+		GetRaw( secondHandle ), GetRaw( resultHandle ) );
+	applyOmpVectorFunction( curThreadCount, vectorSize, ompFunctor );
 }
 
 void CCpuMathEngine::VectorEltwiseDivide(const CConstIntHandle& firstHandle,
