@@ -2427,3 +2427,34 @@ GTEST_TEST( SerializeFromFile, InterpolationLayerSerialization )
 {
 	checkSerializeLayer<CInterpolationLayer>( "NeoMLDnnInterpolationLayer" );
 }
+
+// ====================================================================================================================
+
+// CCumSumLayer
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+static void setSpecificParams( CCumSumLayer& layer )
+{
+	layer.SetDimension( BD_ListSize );
+	layer.SetReverse( true );
+}
+
+GTEST_TEST( SerializeToFile, CumSumLayerSerialization )
+{
+	serializeToFile<CCumSumLayer>( "NeoMLDnnCumSumLayer" );
+}
+
+#endif
+
+template<>
+inline void checkSpecificParams<CCumSumLayer>( CCumSumLayer& layer )
+{
+	EXPECT_EQ( BD_ListSize, layer.GetDimension() );
+	EXPECT_TRUE( layer.IsReverse() );
+}
+
+GTEST_TEST( SerializeFromFile, CumSumLayerSerialization )
+{
+	checkSerializeLayer<CCumSumLayer>( "NeoMLDnnCumSumLayer" );
+}

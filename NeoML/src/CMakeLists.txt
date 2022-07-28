@@ -45,6 +45,7 @@ set(NeoML_SOURCES
     Dnn/Layers/CrfLayer.cpp
     Dnn/Layers/CrossEntropyLossLayer.cpp
     Dnn/Layers/CtcLayer.cpp
+    Dnn/Layers/CumSumLayer.cpp
     Dnn/Layers/DataLayer.cpp
     Dnn/Layers/DepthToSpaceLayer.cpp
     Dnn/Layers/DotProductLayer.cpp
@@ -239,6 +240,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/Dnn/Layers/ConvLayer.h
     ../include/NeoML/Dnn/Layers/CrfLayer.h
     ../include/NeoML/Dnn/Layers/CtcLayer.h
+    ../include/NeoML/Dnn/Layers/CumSumLayer.h
     ../include/NeoML/Dnn/Layers/DataLayer.h
     ../include/NeoML/Dnn/Layers/DepthToSpaceLayer.h
     ../include/NeoML/Dnn/Layers/DotProductLayer.h

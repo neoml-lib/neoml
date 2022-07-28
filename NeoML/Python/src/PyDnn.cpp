@@ -179,6 +179,7 @@ REGISTER_NEOML_PYLAYER( "Data", "NeoMLDnnDataLayer" )
 REGISTER_NEOML_PYLAYER( "TransformerEncoder", "NeoMLDnnTransformerEncoderLayer" )
 REGISTER_NEOML_PYLAYER( "BertConv", "NeoMLDnnBertConvLayer" )
 REGISTER_NEOML_PYLAYER( "Broadcast", "NeoMLDnnBroadcastLayer" )
+REGISTER_NEOML_PYLAYER( "CumSum", "NeoMLDnnCumSumLayer" )
 
 }
 
