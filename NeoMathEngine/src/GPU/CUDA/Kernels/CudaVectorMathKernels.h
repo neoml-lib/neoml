@@ -1323,6 +1323,16 @@ __global__ void vectorLessKernel( float first, const float* __restrict__ second,
 	}
 }
 
+template<class T>
+__global__ void vectorEqualKernel( const T* __restrict__ first, const T* __restrict__ second, int* result,
+	int vectorSize )
+{
+	int index;
+	if( GetCudaTaskIndex( vectorSize, index ) ) {
+		result[index] = first[index] == second[index] ? 1 : 0;
+	}
+}
+
 __global__ void VectorFindMaxValueInSetKernel( CCudaConstVectorArray vectors,
 	float* result, int vectorSize)
 {
