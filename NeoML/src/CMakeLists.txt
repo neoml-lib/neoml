@@ -59,6 +59,7 @@ set(NeoML_SOURCES
     Dnn/Layers/GELULayer.cpp
     Dnn/Layers/GlobalMaxPoolingLayer.cpp
     Dnn/Layers/GlobalMeanPoolingLayer.cpp
+    Dnn/Layers/GlobalSumPoolingLayer.cpp
     Dnn/Layers/GruLayer.cpp
     Dnn/Layers/HingeLossLayer.cpp
     Dnn/Layers/ImageAndPixelConversionLayer.cpp
@@ -253,6 +254,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/Dnn/Layers/GELULayer.h
     ../include/NeoML/Dnn/Layers/GlobalMaxPoolingLayer.h
     ../include/NeoML/Dnn/Layers/GlobalMeanPoolingLayer.h
+    ../include/NeoML/Dnn/Layers/GlobalSumPoolingLayer.h
     ../include/NeoML/Dnn/Layers/GruLayer.h
     ../include/NeoML/Dnn/Layers/ImageAndPixelConversionLayer.h
     ../include/NeoML/Dnn/Layers/ImageResizeLayer.h
