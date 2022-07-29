@@ -28,8 +28,6 @@ public:
 
 	void Serialize( CArchive& archive ) override;
 
-	void returnSum( bool value ) { isSum = value; }
-
 protected:
 	// CBaseLayer methods
 	void Reshape() override;
@@ -38,7 +36,6 @@ protected:
 
 private:
 	CPtr<CDnnBlob> coeff;
-	bool isSum;
 };
 
 NEOML_API CLayerWrapper<CGlobalMeanPoolingLayer> GlobalMeanPooling();
