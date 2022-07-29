@@ -83,17 +83,19 @@ void CClipOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArr
 	if( OpsetVersion < 11 ) {
 		GetAttribute( "min", minValue );
 		GetAttribute( "max", maxValue );
-	} else if( InputCount() > 1 ) {
-		const CDataTensor* minValueTensor = dynamic_cast<const CDataTensor*>( inputs[1].Ptr() );
-		CheckNeoOnnxSupport( minValueTensor != nullptr, "user-provided clip min value", *this );
-		const CDnnBlob* minValueBlob = minValueTensor->Data();
-		if( minValueBlob->GetDataType() == CT_Float ) {
-			minValue = minValueBlob->GetData<float>().GetValue();
-		} else {
-			minValue = static_cast<float>( minValueBlob->GetData<int>().GetValue() );
+	} else {
+		if( InputCount() > 1 && inputs[1] != nullptr ) {
+			const CDataTensor* minValueTensor = dynamic_cast<const CDataTensor*>( inputs[1].Ptr() );
+			CheckNeoOnnxSupport( minValueTensor != nullptr, "user-provided clip min value", *this );
+			const CDnnBlob* minValueBlob = minValueTensor->Data();
+			if( minValueBlob->GetDataType() == CT_Float ) {
+				minValue = minValueBlob->GetData<float>().GetValue();
+			} else {
+				minValue = static_cast<float>( minValueBlob->GetData<int>().GetValue() );
+			}
 		}
 
-		if( InputCount() > 2 ) {
+		if( InputCount() > 2 && inputs[2] != nullptr ) {
 			const CDataTensor* maxValueTensor = dynamic_cast<const CDataTensor*>( inputs[2].Ptr() );
 			CheckNeoOnnxSupport( maxValueTensor != nullptr, "user-provided clip max value", *this );
 			const CDnnBlob* maxValueBlob = maxValueTensor->Data();
