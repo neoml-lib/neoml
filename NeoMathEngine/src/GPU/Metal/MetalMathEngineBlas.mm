@@ -1307,6 +1307,11 @@ void CMetalMathEngine::SumMatrixRows( int batchSize, const CFloatHandle& resultH
 	SumMatrixRowsAdd(batchSize, resultHandle, matrixHandle, matrixHeight, matrixWidth);
 }
 
+void CMetalMathEngine::SumMatrixRows( int, const CIntHandle&, const CConstIntHandle&, int, int )
+{
+	ASSERT_EXPR( false );
+}
+
 void CMetalMathEngine::SingularValueDecomposition( const CFloatHandle&, int, int, const CFloatHandle&, const CFloatHandle&,
 	const CFloatHandle&, const CFloatHandle&, bool, bool )
 {
