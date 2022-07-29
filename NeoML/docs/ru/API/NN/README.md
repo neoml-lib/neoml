@@ -237,6 +237,8 @@ delete gpuMathEngine;
   - [C3dMaxPoolingLayer](PoolingLayers/3dMaxPoolingLayer.md) - трехмерный `Max Pooling`
   - [C3dMeanPoolingLayer](PoolingLayers/3dMeanPoolingLayer.md) - трехмерный `Mean Pooling`
   - [CGlobalMaxPoolingLayer](PoolingLayers/GlobalMaxPoolingLayer.md) - `Max Pooling` над объектами целиком
+  - [CGlobalMeanPoolingLayer](PoolingLayers/GlobalMeanPoolingLayer.md) - `Mean Pooling` над объектами целиком
+  - [CGlobalSumPoolingLayer](PoolingLayers/GlobalSumPoolingLayer.md) - `Sum Pooling` над объектами целиком
   - [CMaxOverTimePoolingLayer](PoolingLayers/MaxOverTimePoolingLayer.md) - `Max Pooling` над последовательностями "по времени"
   - [CProjectionPoolingLayer](PoolingLayers/ProjectionPoolingLayer.md) - `Mean Pooling` вдоль одной из размерностей блоба
 - [CSoftmaxLayer](SoftmaxLayer.md) - вычисление функции `softmax`
