@@ -440,6 +440,8 @@ public:
 		int matrixHeight, int matrixWidth) = 0;
 	virtual void SumMatrixRows(int batchSize, const CFloatHandle& resultHandle, const CConstFloatHandle& matrixHandle,
 		int matrixHeight, int matrixWidth) = 0;
+	virtual void SumMatrixRows(int batchSize, const CIntHandle& resultHandle, const CConstIntHandle& matrixHandle,
+		int matrixHeight, int matrixWidth) = 0;
 
 	// Calculates the total of matrix columns
 	virtual void SumMatrixColumns(const CFloatHandle& resultHandle, const CConstFloatHandle& matrixHandle,
