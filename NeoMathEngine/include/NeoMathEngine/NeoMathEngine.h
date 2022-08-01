@@ -1034,6 +1034,20 @@ public:
 	// result is a 3D tensor of size objectCount x int(scaledAxis * scale) x objectSize
 	virtual void LinearInterpolation( const CConstFloatHandle& dataHandle, const CFloatHandle& resultHandle,
 		TInterpolationCoords coords, TInterpolationRound round, int objectCount, int scaledAxis, int objectSize, float scale ) = 0;
+
+	// ScatterND
+	// Replaces objects in the provided indices with the values from the updates
+	// data[indices[i]] = updates[i] for i in [0; updateCount)
+	// where indices[i] means coordinates in the first indexDims dimensions of the blob
+	// Unaffected data objects remain as-is
+	//
+	// Data consists of objectCount x objectSize elements where objectCount is a production of first indexDims dimensions
+	// Indices consists of updateCount x indexDims elements
+	// Updates consists of updateCount x objectCount elements
+	virtual void ScatterND( const CConstFloatHandle& updatesHandle, const CConstIntHandle& indicesHandle,
+		const CFloatHandle& dataHandle, const CBlobDesc& dataDesc, int updateCount, int indexDims ) = 0;
+	virtual void ScatterND( const CConstIntHandle& updatesHandle, const CConstIntHandle& indicesHandle,
+		const CIntHandle& dataHandle, const CBlobDesc& dataDesc, int updateCount, int indexDims ) = 0;
 };
 
 //------------------------------------------------------------------------------------------------------------
