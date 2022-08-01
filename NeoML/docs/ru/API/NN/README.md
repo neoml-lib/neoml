@@ -291,6 +291,8 @@ delete gpuMathEngine;
   - Повторение данных:
     - [CRepeatSequenceLayer](RepeatSequenceLayer.md) - повторение последовательностей несколько раз
     - [CUpsampling2DLayer](Upsampling2DLayer.md) - увеличение размеров двумерных изображений
+  - Операции Scatter и Gather
+    - [CScatterNDLayer](ScatterGatherLayers/ScatterNDLayer.md) заменяет некоторые объекты в блобе с данными на новые
   - [CReorgLayer](ReorgLayer.md) - слой, преобразующий многоканальные изображения в изображения меньшего размера, с большим числом каналов
   - [CSpaceToDepthLayer](SpaceToDepthLayer.md) слой, разбивающий входные изображения на квадраты и записывающий содержимое таких квадратов
   в пиксели выходного изображения
