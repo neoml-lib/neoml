@@ -1792,7 +1792,7 @@ class LayersTestCase(TestCase):
         indices_blob = neoml.Blob.asblob(math_engine, indices_data, indices_blob_shape)
         outputs = dnn.run({first_source_name: orig_blob,
             second_source_name: indices_blob,
-            third_source_name: updates_blob)})
+            third_source_name: updates_blob})
         self.assertTrue(sink_name in outputs)
         result = outputs[sink.name].asarray()
 
