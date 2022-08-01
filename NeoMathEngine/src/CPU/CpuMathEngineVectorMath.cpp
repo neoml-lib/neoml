@@ -72,6 +72,39 @@ private:
 	TResult* const result;
 };
 
+// Class which wraps ternary vector functor into OMP-friendly interface
+template<class TFunctor>
+class COmpTernaryVectorFunction {
+public:
+	using TFirst = typename TFunctor::TFirst;
+	using TSecond = typename TFunctor::TSecond;
+	using TThird = typename TFunctor::TThird;
+	using TResult = typename TFunctor::TResult;
+
+	COmpTernaryVectorFunction( const TFirst* first, const TSecond* second, const TThird* third, TResult* result,
+			const TFunctor& functor = TFunctor(), TFirst firstDefaultValue = 1, TSecond secondDefaultValue = 1,
+			TThird thirdDefaultValue = 1 ) :
+		function( functor, firstDefaultValue, secondDefaultValue, thirdDefaultValue ),
+		first( first ),
+		second( second ),
+		third( third ),
+		result( result )
+	{
+	}
+
+	void operator()( int index, int count )
+	{
+		function( first + index, second + index, third + index, result + index, count );
+	}
+
+private:
+	CTernaryVectorFunction<TFunctor> function;
+	const TFirst* const first;
+	const TSecond* const second;
+	const TThird* const third;
+	TResult* const result;
+};
+
 void CCpuMathEngine::VectorFill(const CFloatHandle& result, int vectorSize, const CConstFloatHandle& value)
 {
 	ASSERT_EXPR( result.GetMathEngine() == this );
@@ -908,6 +941,34 @@ void CCpuMathEngine::VectorEltwiseEqual( const CConstIntHandle& firstHandle, con
 	const int curThreadCount = IsOmpRelevant( vectorSize, vectorSize ) ? threadCount : 1;
 	COmpBinaryVectorFunction<CEqualFunctor<int>> ompFunction( GetRaw( firstHandle ),
 		GetRaw( secondHandle ), GetRaw( resultHandle ) );
+	applyOmpVectorFunction( curThreadCount, vectorSize, ompFunction );
+}
+
+void CCpuMathEngine::VectorEltwiseWhere( const CConstIntHandle& firstHandle, const CConstFloatHandle& secondHandle,
+	const CConstFloatHandle& thirdHandle, const CFloatHandle& resultHandle, int vectorSize )
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
+	ASSERT_EXPR( thirdHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	CCpuExecutionScope scope;
+	const int curThreadCount = IsOmpRelevant( vectorSize, vectorSize ) ? threadCount : 1;
+	COmpTernaryVectorFunction<CWhereFunctor<float>> ompFunction( GetRaw( firstHandle ),
+		GetRaw( secondHandle ), GetRaw( thirdHandle ), GetRaw( resultHandle ) );
+	applyOmpVectorFunction( curThreadCount, vectorSize, ompFunction );
+}
+
+void CCpuMathEngine::VectorEltwiseWhere( const CConstIntHandle& firstHandle, const CConstIntHandle& secondHandle,
+	const CConstIntHandle& thirdHandle, const CIntHandle& resultHandle, int vectorSize )
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
+	ASSERT_EXPR( thirdHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	CCpuExecutionScope scope;
+	const int curThreadCount = IsOmpRelevant( vectorSize, vectorSize ) ? threadCount : 1;
+	COmpTernaryVectorFunction<CWhereFunctor<int>> ompFunction( GetRaw( firstHandle ),
+		GetRaw( secondHandle ), GetRaw( thirdHandle ), GetRaw( resultHandle ) );
 	applyOmpVectorFunction( curThreadCount, vectorSize, ompFunction );
 }
 

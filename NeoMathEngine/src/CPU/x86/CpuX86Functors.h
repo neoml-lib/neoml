@@ -122,6 +122,34 @@ CSimd4<int> CEqualFunctor<int>::operator()( const CSimd4<int>& first, const CSim
 	return _mm_and_si128( ones, _mm_cmpeq_epi32( first, second ) );
 }
 
+// --------------------------------------------------------------------------------------------------------------------
+// Where functor
+// a != 0 ? b : c
+template<class T>
+class CWhereFunctor : public CFunctorBase<T, int, T> {
+public:
+	CSimd4<T> operator()( const CSimd4<int>& first, const CSimd4<T>& second, const CSimd4<T>& third );
+
+private:
+	CSimd4<int> zeros = SimdFill( 0 );
+};
+
+template<>
+CSimd4<float> CWhereFunctor<float>::operator()( const CSimd4<int>& first, const CSimd4<float>& second,
+	const CSimd4<float>& third )
+{
+	const __m128 mask = _mm_castsi128_ps( _mm_cmpeq_epi32( first, zeros ) );
+	return _mm_or_ps( _mm_andnot_ps( mask, second ), _mm_and_ps( mask, third ) );
+}
+
+template<>
+CSimd4<int> CWhereFunctor<int>::operator()( const CSimd4<int>& first, const CSimd4<int>& second,
+	const CSimd4<int>& third )
+{
+	const __m128i mask = _mm_cmpeq_epi32( first, zeros );
+	return _mm_or_si128( _mm_andnot_si128( mask, second ), _mm_and_si128( mask, third ) );
+}
+
 } // namespace NeoML
 
 #endif // NEOML_USE_SSE

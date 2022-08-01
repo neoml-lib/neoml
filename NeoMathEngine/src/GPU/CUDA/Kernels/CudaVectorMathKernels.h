@@ -1333,6 +1333,16 @@ __global__ void vectorEqualKernel( const T* __restrict__ first, const T* __restr
 	}
 }
 
+template<class T>
+__global__ void vectorWhereKernel( const int* __restrict__ first, const T* __restrict__ second,
+	const T* __restrict__ third, T* result, int vectorSize )
+{
+	int index;
+	if( GetCudaTaskIndex( vectorSize, index ) ) {
+		result[index] = first[index] != 0 ? second[index] : third[index];
+	}
+}
+
 __global__ void VectorFindMaxValueInSetKernel( CCudaConstVectorArray vectors,
 	float* result, int vectorSize)
 {
