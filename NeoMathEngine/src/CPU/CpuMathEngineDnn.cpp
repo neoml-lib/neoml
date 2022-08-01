@@ -1273,7 +1273,7 @@ void CCpuMathEngine::LinearInterpolation( const CConstFloatHandle& dataHandle, c
 }
 
 template<class T>
-void scatterNDImpl( const T* updates, const int* indices, T* data, const CBlobDesc& dataDesc,
+static void scatterNDImpl( const T* updates, const int* indices, T* data, const CBlobDesc& dataDesc,
 	int updateCount, int indexDims )
 {
 	int objectSize = 1;
