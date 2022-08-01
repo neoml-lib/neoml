@@ -680,7 +680,7 @@ void CVulkanMathEngine::LinearInterpolation( const CConstFloatHandle&, const CFl
 	ASSERT_EXPR( false );
 }
 
-void CVulkanMathEngine::ScatterND( const CConstFloatHandle&, const CConstIntHandle&, const CFloatHandle&,
+void CVulkanMathEngine::ScatterND( const CConstIntHandle&, const CConstFloatHandle&, const CFloatHandle&,
 	const CBlobDesc&, int, int )
 {
 	ASSERT_EXPR( false );

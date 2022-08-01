@@ -1299,7 +1299,7 @@ static void scatterNDImpl( const T* updates, const int* indices, T* data, const 
 	}
 }
 
-void CCpuMathEngine::ScatterND( const CConstFloatHandle& updatesHandle, const CConstIntHandle& indicesHandle,
+void CCpuMathEngine::ScatterND( const CConstIntHandle& indicesHandle, const CConstFloatHandle& updatesHandle,
 	const CFloatHandle& dataHandle, const CBlobDesc& dataDesc, int updateCount, int indexDims )
 {
 	ASSERT_EXPR( updatesHandle.GetMathEngine() == this );
@@ -1312,7 +1312,7 @@ void CCpuMathEngine::ScatterND( const CConstFloatHandle& updatesHandle, const CC
 		dataDesc, updateCount, indexDims );
 }
 
-void CCpuMathEngine::ScatterND( const CConstIntHandle& updatesHandle, const CConstIntHandle& indicesHandle,
+void CCpuMathEngine::ScatterND( const CConstIntHandle& indicesHandle, const CConstIntHandle& updatesHandle,
 	const CIntHandle& dataHandle, const CBlobDesc& dataDesc, int updateCount, int indexDims )
 {
 	ASSERT_EXPR( updatesHandle.GetMathEngine() == this );

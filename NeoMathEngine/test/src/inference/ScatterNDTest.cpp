@@ -62,7 +62,7 @@ static void scatterNDTestImpl( const CTestParams& params, int seed )
 		}
 	}
 
-	MathEngine().ScatterND( CARRAY_WRAPPER( T, updates ), CARRAY_INT_WRAPPER( indices ), CARRAY_WRAPPER( T, data ),
+	MathEngine().ScatterND( CARRAY_INT_WRAPPER( indices ), CARRAY_WRAPPER( T, updates ), CARRAY_WRAPPER( T, data ),
 		dataDesc, updateCount, indexDims );
 
 	for( size_t i = 0; i < data.size(); ++i ) {
