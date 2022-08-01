@@ -1044,9 +1044,9 @@ public:
 	// Data consists of objectCount x objectSize elements where objectCount is a production of first indexDims dimensions
 	// Indices consists of updateCount x indexDims elements
 	// Updates consists of updateCount x objectCount elements
-	virtual void ScatterND( const CConstFloatHandle& updatesHandle, const CConstIntHandle& indicesHandle,
+	virtual void ScatterND( const CConstIntHandle& indicesHandle, const CConstFloatHandle& updatesHandle,
 		const CFloatHandle& dataHandle, const CBlobDesc& dataDesc, int updateCount, int indexDims ) = 0;
-	virtual void ScatterND( const CConstIntHandle& updatesHandle, const CConstIntHandle& indicesHandle,
+	virtual void ScatterND( const CConstIntHandle& indicesHandle, const CConstIntHandle& updatesHandle,
 		const CIntHandle& dataHandle, const CBlobDesc& dataDesc, int updateCount, int indexDims ) = 0;
 };
 

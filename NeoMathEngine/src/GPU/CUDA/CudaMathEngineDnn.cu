@@ -756,7 +756,7 @@ void CCudaMathEngine::LinearInterpolation( const CConstFloatHandle& dataHandle, 
 		static_cast<int>( coords ), static_cast<int>( round ), objectCount, scaledAxis, objectSize, scale );
 }
 
-void CCudaMathEngine::ScatterND( const CConstFloatHandle& updatesHandle, const CConstIntHandle& indicesHandle,
+void CCudaMathEngine::ScatterND( const CConstIntHandle& indicesHandle, const CConstFloatHandle& updatesHandle,
 	const CFloatHandle& dataHandle, const CBlobDesc& dataDesc, int updateCount, int indexDims )
 {
 	ASSERT_EXPR( updatesHandle.GetMathEngine() == this );
@@ -780,7 +780,7 @@ void CCudaMathEngine::ScatterND( const CConstFloatHandle& updatesHandle, const C
 		GetRaw( dataHandle ), cudaDataDesc, updateCount, indexDims, objectSize );
 }
 
-void CCudaMathEngine::ScatterND( const CConstIntHandle& updatesHandle, const CConstIntHandle& indicesHandle,
+void CCudaMathEngine::ScatterND( const CConstIntHandle& indicesHandle, const CConstIntHandle& updatesHandle,
 	const CIntHandle& dataHandle, const CBlobDesc& dataDesc, int updateCount, int indexDims )
 {
 	ASSERT_EXPR( updatesHandle.GetMathEngine() == this );

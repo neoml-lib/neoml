@@ -667,7 +667,7 @@ void CMetalMathEngine::LinearInterpolation( const CConstFloatHandle&, const CFlo
     ASSERT_EXPR( false );
 }
 
-void CMetalMathEngine::ScatterND( const CConstFloatHandle&, const CConstIntHandle&, const CFloatHandle&,
+void CMetalMathEngine::ScatterND( const CConstIntHandle&, const CConstFloatHandle&, const CFloatHandle&,
     const CBlobDesc&, int, int )
 {
     ASSERT_EXPR( false );
