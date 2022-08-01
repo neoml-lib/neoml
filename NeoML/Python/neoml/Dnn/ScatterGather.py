@@ -42,11 +42,11 @@ class ScatterND(Layer):
     dimensions is `ObjectCount`. The product of the rest of the dimensions
     is `ObjectSize`.
 
-    2. Updates. Blob of the same data type as the first. The total size of the
-    blob is `UpdateCount * ObjectSize`.
-
-    3. Indices. Blob of integer data type. The number of channels of this blob
+    2. Indices. Blob of integer data type. The number of channels of this blob
     is `IndexDims`. The total size must be `UpdateCount * IndexDims`.
+
+    3. Updates. Blob of the same data type as the first. The total size of the
+    blob is `UpdateCount * ObjectSize`.
 
     .. rubric:: Layer outputs:
 

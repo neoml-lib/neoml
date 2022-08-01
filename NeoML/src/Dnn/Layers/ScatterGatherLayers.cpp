@@ -64,10 +64,10 @@ void CScatterNDLayer::RunOnce()
 
 	outputBlobs[0]->CopyFrom( inputBlobs[I_Data] );
 	if( outputBlobs[0]->GetDataType() == CT_Float ) {
-		MathEngine().ScatterND( inputBlobs[I_Updates]->GetData(), inputBlobs[I_Indices]->GetData<int>(),
+		MathEngine().ScatterND( inputBlobs[I_Indices]->GetData<int>(), inputBlobs[I_Updates]->GetData(),
 			outputBlobs[0]->GetData(), outputBlobs[0]->GetDesc(), updateCount, indexDims );
 	} else {
-		MathEngine().ScatterND( inputBlobs[I_Updates]->GetData<int>(), inputBlobs[I_Indices]->GetData<int>(),
+		MathEngine().ScatterND( inputBlobs[I_Indices]->GetData<int>(), inputBlobs[I_Updates]->GetData<int>(),
 			outputBlobs[0]->GetData<int>(), outputBlobs[0]->GetDesc(), updateCount, indexDims );
 	}
 }

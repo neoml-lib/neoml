@@ -28,11 +28,11 @@ namespace NeoML {
 // 1. Original data of any data type. Contains the set of objects:
 //    - First IndexDims dimensions represent the number of objects (ObjectCount)
 //    - Rest (BD_Count - IndexDims) dimensions represent the size of the object (ObjectSize)
-// 2. Updates of the same data type as original data. Contains the set of updates:
-//    - Must contain (UpdateCount x ObjectSize) elements (the shape doesn't matter)
-// 3. Indices. Integer blob which indicate where corresponding updates must be applied to the original data.
+// 2. Indices. Integer blob which indicate where corresponding updates must be applied to the original data.
 //    - BD_Channels must be equal to IndexDims.
 //    - The product of the other dimensions must be equal to UpdateCount.
+// 3. Updates of the same data type as original data. Contains the set of updates:
+//    - Must contain (UpdateCount x ObjectSize) elements (the shape doesn't matter)
 //
 // This layer performs the following operation:
 //
@@ -52,8 +52,8 @@ public:
 
 	enum TInput {
 		I_Data,
-		I_Updates,
-		I_Indices
+		I_Indices,
+		I_Updates
 	};
 
 protected:

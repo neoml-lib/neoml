@@ -32,10 +32,10 @@ There are no trainable parameters for this layer.
 Layer has 3 inputs:
 
 1. The set of objects of any data type. The product of first `IndexDims` dimensions is `ObjectCount` and the product of the rest of dimensions is `ObjectSize`.
-2. The set of updates of the same data type as first input. It must contain `UpdateCount * ObjectSize` elements regardless of shape.
-3. The set of indices of integer data type of the following shape:
+2. The set of indices of integer data type of the following shape:
 - `BD_Channels` of the blob must be equal to the `IndexDims`
 - The product of the other dimensions must be equal to the `UpdateCount`.
+3. The set of updates of the same data type as first input. It must contain `UpdateCount * ObjectSize` elements regardless of shape.
 
 ## Outputs
 
