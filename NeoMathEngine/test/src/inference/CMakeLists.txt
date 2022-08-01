@@ -56,6 +56,7 @@ target_sources(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorCumSumAlongDimensionTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorDotProductTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorEltwiseDivideTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/VectorEltwiseEqualTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorEltwiseLessTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorEltwiseMaxTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorEltwiseMinTest.cpp
