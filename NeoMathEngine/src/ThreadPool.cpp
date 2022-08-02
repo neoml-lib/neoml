@@ -50,7 +50,7 @@ static void threadEntry( CThreadParams* parameters )
 			lock.unlock();
 
 			try {
-				task.Function(params.Count, params.Index, task.Params);
+				task.Function(params.Index, task.Params);
 			} catch(...) {
 				ASSERT_EXPR(false); // Better than nothing
 			}

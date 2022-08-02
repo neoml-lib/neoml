@@ -25,7 +25,7 @@ namespace NeoML {
 class NEOMATHENGINE_API IThreadPool : public CCrtAllocatedObject {
 public:
 	// Interface for pool task.
-	typedef void(*TFunction)(int threadCount, int threadIndex, void* params);
+	typedef void(*TFunction)(int threadIndex, void* params);
 
 	virtual ~IThreadPool();
 
@@ -51,7 +51,7 @@ inline void ExecuteTasks(IThreadPool& threadPool, void* params, IThreadPool::TFu
 {
 	int threadCount = threadPool.Size();
 	if( threadCount == 1 ) {
-		func(1, 0, params);
+		func(0, params);
 		return;
 	}
 	for (int i = 0; i < threadCount; i++) {
