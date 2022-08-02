@@ -286,7 +286,7 @@ void CDistributedTraining::RunOnce( IDistributedDataset& data )
         }
     } function_params(isFirstRun, data, cnns, batchSize, isCpu, errorMessage);
 
-    IThreadPool::TFunction f = [](int threadCount, int threadIndex, void* ptr)
+    IThreadPool::TFunction f = [](int, int threadIndex, void* ptr)
     {
         CFunctionParams& function_params = *(CFunctionParams*)ptr;
         CArray<CDnn*>& cnns = function_params.Cnns;
@@ -343,7 +343,7 @@ void CDistributedTraining::RunAndBackwardOnce( IDistributedDataset& data )
         }
     } function_params(isFirstRun, data, cnns, batchSize, isCpu, errorMessage);
 
-    IThreadPool::TFunction f = [](int threadCount, int threadIndex, void* ptr)
+    IThreadPool::TFunction f = [](int, int threadIndex, void* ptr)
     {
         CFunctionParams& function_params = *(CFunctionParams*)ptr;
         CArray<CDnn*>& cnns = function_params.Cnns;
@@ -410,7 +410,7 @@ void CDistributedTraining::Train()
         }
     } function_params(cnns, batchSize, totalBatch, isCpu, errorMessage);
 
-    IThreadPool::TFunction f = [](int threadCount, int threadIndex, void* ptr)
+    IThreadPool::TFunction f = [](int, int threadIndex, void* ptr)
     {
         CFunctionParams& function_params = *(CFunctionParams*)ptr;
         CArray<CDnn*>& cnns = function_params.Cnns;
