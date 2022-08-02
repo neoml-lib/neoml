@@ -40,15 +40,18 @@ enum class TDistributedInitializer {
 class NEOML_API CDistributedTraining {
 public:
 	// Creates `count` cpu models
-	explicit CDistributedTraining( CDnn& dnn, int count,
+	CDistributedTraining( CDnn& dnn, int count,
 		TDistributedInitializer initializer = TDistributedInitializer::Xavier, int seed = 42 );
-	explicit CDistributedTraining( CArchive& archive, int count,
+	CDistributedTraining( CArchive& archive, int count,
 		TDistributedInitializer initializer = TDistributedInitializer::Xavier, int seed = 42 );
 	// Creates gpu models, `devs` should contain numbers of using devices
-	explicit CDistributedTraining( CDnn& dnn, const CArray<int>& cudaDevs,
+	CDistributedTraining( CDnn& dnn, const CArray<int>& cudaDevs,
 		TDistributedInitializer initializer = TDistributedInitializer::Xavier, int seed = 42 );
-	explicit CDistributedTraining( CArchive& archive, const CArray<int>& cudaDevs,
+	CDistributedTraining( CArchive& archive, const CArray<int>& cudaDevs,
 		TDistributedInitializer initializer = TDistributedInitializer::Xavier, int seed = 42 );
+
+	~CDistributedTraining();
+
 	// Gets the number of models in disitrbuted traning
 	int GetModelCount() const { return cnns.Size(); }
 	// Sets the solver for all of the models
@@ -71,9 +74,10 @@ public:
 	void GetLastBlob( const CString& layerName, CObjectArray<CDnnBlob>& blobs );
 	// Save trained net
 	void Serialize( CArchive& archive );
-	~CDistributedTraining();
+
 private:
 	const bool isCpu;
+	IThreadPool* threadPool;
 	CArray<IMathEngine*> mathEngines;
 	CArray<CRandom*> rands;
 	CArray<CDnn*> cnns;
