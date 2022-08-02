@@ -79,7 +79,6 @@ backend_test.exclude('test_round_')  # Round
 backend_test.exclude('test_scan9_')  # Scan
 backend_test.exclude('test_scan_')  # Scan
 backend_test.exclude('test_scatter_')  # Scatter and ScatterElements
-backend_test.exclude('test_scatternd_')  # ScatterND
 backend_test.exclude('test_selu_')  # Selu
 backend_test.exclude('_sequence_len')  # Selu
 backend_test.exclude('test_shrink_')  # Shrink
