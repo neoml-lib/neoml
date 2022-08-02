@@ -123,7 +123,7 @@ bool CThreadPool::AddTask( int threadIndex, TFunction function, void* functionPa
 
 void CThreadPool::WaitAllTask()
 {
-	for( int i = 0; i < params.size(); i++ ) {
+	for( size_t i = 0; i < params.size(); i++ ) {
 		std::unique_lock<std::mutex> lock(params[i]->Mutex);
 		while(!params[i]->Queue.empty()) {
 			params[i]->ConditionVariable.wait(lock);
@@ -133,7 +133,7 @@ void CThreadPool::WaitAllTask()
 
 void CThreadPool::StopAndWait()
 {
-	for( int i = 0; i < threads.size(); i++ ) {
+	for( size_t i = 0; i < threads.size(); i++ ) {
 		{
 			std::unique_lock<std::mutex> lock(params[i]->Mutex);
 			params[i]->Stopped = true;
