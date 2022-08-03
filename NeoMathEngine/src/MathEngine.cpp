@@ -52,6 +52,7 @@ IDnnEngine::~IDnnEngine() = default;
 IMathEngine::~IMathEngine() = default;
 IMathEngineExceptionHandler::~IMathEngineExceptionHandler() = default;
 IGpuMathEngineManager::~IGpuMathEngineManager() = default;
+IThreadPool::~IThreadPool() = default;
 
 CTimeConvolutionDesc::~CTimeConvolutionDesc() = default;
 C3dConvolutionDesc::~C3dConvolutionDesc() = default;
