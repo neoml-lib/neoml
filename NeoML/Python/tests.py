@@ -243,6 +243,17 @@ class BlobTestCase(MultithreadedTestCase):
         self.assertEqual(float_blob.object_count, 2 * 3)
         self.assertEqual(float_blob.object_size, 4 * 5 * 6 * 7)
 
+    def test_asarray(self):
+        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        array_shape = (2, 5, 7, 16)
+        blob_shape = (1, 2, 1, 5, 7, 1, 16)
+        orig_array = np.ones(array_shape, dtype=np.float32)
+        blob = neoml.Blob.asblob(math_engine, orig_array, blob_shape, False)
+        array_default = blob.asarray()
+        self.assertEqual(array_shape, array_default.shape)
+        array_keep_dims = blob.asarray(keep_dims=True)
+        self.assertEqual(blob_shape, array_keep_dims.shape)
+
 
 class SolverTestCase(MultithreadedTestCase):
     def test_nesterov_gradient(self):
@@ -2339,7 +2350,7 @@ class LogicalLayerTestCase(MultithreadedTestCase):
     def test_equal(self):
         self._test_logical(False, 'equal')
         self._test_logical(True, 'equal')
-    
+
     def _test_where(self, is_integer):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
         dnn = neoml.Dnn.Dnn(math_engine)

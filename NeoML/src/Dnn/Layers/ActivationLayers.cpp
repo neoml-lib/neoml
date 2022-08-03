@@ -558,7 +558,7 @@ void CExpLayer::BackwardOnce()
 
 CLayerWrapper<CExpLayer> Exp()
 {
-	return CLayerWrapper<CExpLayer>( "Exp", []( CExpLayer* ) {} );
+	return CLayerWrapper<CExpLayer>( "Exp" );
 }
 
 //---------------------------------------------------------------------------------------------------
@@ -590,7 +590,7 @@ void CLogLayer::BackwardOnce()
 
 CLayerWrapper<CLogLayer> Log()
 {
-	return CLayerWrapper<CLogLayer>( "Log", []( CLogLayer* ) {} );
+	return CLayerWrapper<CLogLayer>( "Log" );
 }
 
 //---------------------------------------------------------------------------------------------------

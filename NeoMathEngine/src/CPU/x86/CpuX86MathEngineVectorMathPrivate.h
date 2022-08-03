@@ -417,7 +417,7 @@ inline void vectorMultiply( const int* first, int* result, int multiplier, int v
 	if( sseSize > 0 ) {
 		__m128i multSse = _mm_set1_epi32( multiplier );
 		for( int i = 0; i < sseSize; ++i ) {
-			_mm_storeu_epi32( result, sse2Multiply4SignedInts( _mm_loadu_epi32( first ), multSse ) );
+			StoreIntSse4( sse2Multiply4SignedInts( LoadIntSse4( first ), multSse ), result );
 			first += 4;
 			result += 4;
 		}
