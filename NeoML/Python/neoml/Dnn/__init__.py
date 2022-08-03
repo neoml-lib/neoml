@@ -39,7 +39,7 @@ from .ObjectNormalization import ObjectNormalization
 from .PositionalEmbedding import PositionalEmbedding
 from .PrecisionRecall import PrecisionRecall
 from .Qrnn import Qrnn
-from .Pooling import Pooling, MaxPooling, MeanPooling, GlobalMaxPooling, GlobalMeanPooling, MaxOverTimePooling, ProjectionPooling, Pooling3D, MaxPooling3D, MeanPooling3D
+from .Pooling import Pooling, MaxPooling, MeanPooling, GlobalMaxPooling, GlobalMeanPooling, GlobalSumPooling, MaxOverTimePooling, ProjectionPooling, Pooling3D, MaxPooling3D, MeanPooling3D
 from .Reorg import Reorg
 from .RepeatSequence import RepeatSequence
 from .SequenceSum import SequenceSum

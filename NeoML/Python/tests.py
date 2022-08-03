@@ -1772,7 +1772,7 @@ class LayersTestCase(MultithreadedTestCase):
 
 class PoolingTestCase(MultithreadedTestCase):
     def _test_pooling(self, layer, init_params={}, changed_params={},
-                      input_shape=(2, 1, 2, 3, 5, 4, 2)):
+                      input_shape=(2, 1, 2, 3, 5, 4, 2), is_integer=False):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
         dnn = neoml.Dnn.Dnn(math_engine)
         source = neoml.Dnn.Source(dnn, "source")
@@ -1792,7 +1792,7 @@ class PoolingTestCase(MultithreadedTestCase):
                                    msg='Changed param {} of {} differs'.format(k, layer))
             self.assertEqual(getattr(pooling, k), getattr(layer, k))
 
-        input = neoml.Blob.asblob(math_engine, np.ones(input_shape, dtype=np.float32), input_shape)
+        input = neoml.Blob.asblob(math_engine, np.ones(input_shape, dtype=(np.int32 if is_integer else np.float32)), input_shape)
         inputs = {"source": input}
         outputs = dnn.run(inputs)
         out = outputs["sink"].asarray()
@@ -1832,6 +1832,12 @@ class PoolingTestCase(MultithreadedTestCase):
     def test_global_mean_pooling(self):
         out = self._test_pooling('GlobalMeanPooling')
         self.assertTrue(np.equal(out, np.ones((2, 2, 2), dtype=np.float32)).all())
+    
+    def test_global_sum_pooling(self):
+        out = self._test_pooling('GlobalSumPooling')
+        self.assertTrue(np.equal(out, np.ones((2, 2, 2), dtype=np.float32) * 60).all())
+        out = self._test_pooling('GlobalSumPooling', is_integer=True)
+        self.assertTrue(np.equal(out, np.ones((2, 2, 2), dtype=np.int32) * 60).all())
 
     def test_max_over_time_pooling(self):
         out = self._test_pooling('MaxOverTimePooling',

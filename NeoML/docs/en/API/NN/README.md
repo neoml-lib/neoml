@@ -239,6 +239,8 @@ delete gpuMathEngine;
   - [C3dMaxPoolingLayer](PoolingLayers/3dMaxPoolingLayer.md) - 3-dimensional max pooling
   - [C3dMeanPoolingLayer](PoolingLayers/3dMeanPoolingLayer.md) - 3-dimensional mean pooling
   - [CGlobalMaxPoolingLayer](PoolingLayers/GlobalMaxPoolingLayer.md) - max pooling over whole objects
+  - [CGlobalMeanPoolingLayer](PoolingLayers/GlobalMeanPoolingLayer.md) - mean pooling over whole objects
+  - [CGlobalSumPoolingLayer](PoolingLayers/GlobalSumPoolingLayer.md) - sum pooling over whole objects
   - [CMaxOverTimePoolingLayer](PoolingLayers/MaxOverTimePoolingLayer.md) - max pooling over sequences along the "time" axis
   - [CProjectionPoolingLayer](PoolingLayers/ProjectionPoolingLayer.md) - mean pooling along one of the blob dimensions
 - [CSoftmaxLayer](SoftmaxLayer.md) calculates softmax function

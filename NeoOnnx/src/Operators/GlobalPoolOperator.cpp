@@ -52,11 +52,7 @@ void CGlobalPoolOperatorBase::AddLayers( const CTensorArray& inputs, CDnn& dnn, 
 	CPtr<const CUserTensor> curr = AsUserTensor( *inputs[0], Name() + "_Source", dnn );
 	curr = prepareInput( *curr, axes, dnn );
 	curr = addPoolingLayer( *curr, axes, dnn );
-	int pooledSize = 1;
-	for( int i = 0; i < axes.Size(); ++i ) {
-		pooledSize *= inputs[0]->Shape()[axes[i]];
-	}
-	curr = addPostProcessing( *curr, pooledSize, dnn );
+	curr = addPostProcessing( *curr, dnn );
 
 	outputs.Add( curr.Ptr() );
 }
@@ -175,8 +171,10 @@ CPtr<const CUserTensor> CGlobalPoolOperatorBase::addPoolingLayer( const CUserTen
 			pooling = new CGlobalMaxPoolingLayer( dnn.GetMathEngine() );
 			break;
 		case PT_Mean:
-		case PT_Sum:
 			pooling = new CGlobalMeanPoolingLayer( dnn.GetMathEngine() );
+			break;
+		case PT_Sum:
+			pooling = new CGlobalSumPoolingLayer( dnn.GetMathEngine() );
 			break;
 		default:
 			NeoAssert( false );
@@ -237,10 +235,10 @@ CTensorLayout CGlobalPoolOperatorBase::calcOutputLayout( const CTensorLayout& in
 }
 
 // Adds additional layers after pooling if needed.
-CPtr<const CUserTensor> CGlobalPoolOperatorBase::addPostProcessing( const CUserTensor& layerOutput, int pooledSize, CDnn& dnn ) const
+CPtr<const CUserTensor> CGlobalPoolOperatorBase::addPostProcessing( const CUserTensor& layerOutput, CDnn& dnn ) const
 {
 	static_assert( PT_Count == 4, "PT_Count != 4" );
-	if( poolType == PT_Max || poolType == PT_Mean ) {
+	if( poolType == PT_Max || poolType == PT_Mean || poolType == PT_Sum ) {
 		// Post-processing is needed for MinPooling and SumPooling
 		return &layerOutput;
 	}
@@ -248,11 +246,7 @@ CPtr<const CUserTensor> CGlobalPoolOperatorBase::addPostProcessing( const CUserT
 	// MinPool( x ) == -1 * MaxPool( -1 * x )
 	CPtr<CLinearLayer> linear = new CLinearLayer( dnn.GetMathEngine() );
 	linear->SetName( Name() + "_postProcess" );
-	if( poolType == PT_Min ) {
-		linear->SetMultiplier( -1 );
-	} else if( poolType == PT_Sum ) {
-		linear->SetMultiplier( static_cast<float>( pooledSize ) );
-	}
+	linear->SetMultiplier( -1 );
 	linear->Connect( 0, *layerOutput.Layer(), layerOutput.OutputIndex() );
 	dnn.AddLayer( *linear );
 	return new CUserTensor( layerOutput.Shape(), layerOutput.Layout(), CLayerOutput( linear, 0 ) );
