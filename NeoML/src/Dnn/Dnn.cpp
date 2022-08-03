@@ -353,6 +353,7 @@ REGISTER_NEOML_LAYER( CNotLayer, "NeoMLDnnNotLayer" )
 REGISTER_NEOML_LAYER( CErfLayer, "NeoMLDnnErfLayer" )
 REGISTER_NEOML_LAYER( CLessLayer, "NeoMLDnnLessLayer" )
 REGISTER_NEOML_LAYER( CCumSumLayer, "NeoMLDnnCumSumLayer" )
+REGISTER_NEOML_LAYER( CEqualLayer, "NeoMLDnnEqualLayer" )
 
 }
 
