@@ -52,11 +52,7 @@ void CGlobalPoolOperatorBase::AddLayers( const CTensorArray& inputs, CDnn& dnn, 
 	CPtr<const CUserTensor> curr = AsUserTensor( *inputs[0], Name() + "_Source", dnn );
 	curr = prepareInput( *curr, axes, dnn );
 	curr = addPoolingLayer( *curr, axes, dnn );
-	int pooledSize = 1;
-	for( int i = 0; i < axes.Size(); ++i ) {
-		pooledSize *= inputs[0]->Shape()[axes[i]];
-	}
-	curr = addPostProcessing( *curr, pooledSize, dnn );
+	curr = addPostProcessing( *curr, dnn );
 
 	outputs.Add( curr.Ptr() );
 }
@@ -239,7 +235,7 @@ CTensorLayout CGlobalPoolOperatorBase::calcOutputLayout( const CTensorLayout& in
 }
 
 // Adds additional layers after pooling if needed.
-CPtr<const CUserTensor> CGlobalPoolOperatorBase::addPostProcessing( const CUserTensor& layerOutput, int pooledSize, CDnn& dnn ) const
+CPtr<const CUserTensor> CGlobalPoolOperatorBase::addPostProcessing( const CUserTensor& layerOutput, CDnn& dnn ) const
 {
 	static_assert( PT_Count == 4, "PT_Count != 4" );
 	if( poolType == PT_Max || poolType == PT_Mean || poolType == PT_Sum ) {
