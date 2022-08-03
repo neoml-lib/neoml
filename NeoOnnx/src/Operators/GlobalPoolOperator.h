@@ -61,7 +61,7 @@ private:
 	void calcOutputShape( const CTensorShape& inputShape, const CFastArray<int, 8>& axes, CTensorShape& outputShape ) const;
 	CTensorLayout calcOutputLayout( const CTensorLayout& inputLayout, const CFastArray<int, 8>& axes ) const;
 
-	CPtr<const CUserTensor> addPostProcessing( const CUserTensor& layerOutput, int pooledSize, CDnn& dnn ) const;
+	CPtr<const CUserTensor> addPostProcessing( const CUserTensor& layerOutput, CDnn& dnn ) const;
 };
 
 // --------------------------------------------------------------------------------------------------------------------
