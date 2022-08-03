@@ -133,6 +133,12 @@ public:
 	CLogOperator( const onnx::NodeProto& log, int opsetVersion );
 };
 
+// Erf operator
+class CErfOperator : public CActivationOperatorBase {
+public:
+	CErfOperator( const onnx::NodeProto& erf, int opsetVersion );
+};
+
 // Neg operator
 class CNegOperator : public CActivationOperatorBase {
 public:
