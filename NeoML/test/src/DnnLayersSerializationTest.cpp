@@ -149,6 +149,7 @@ GTEST_TEST( SerializeToFile, BaseLayerSerialization )
 	serializeToFile<CErfLayer>( "NeoMLDnnErfLayer" );
 	serializeToFile<CLessLayer>( "NeoMLDnnLessLayer" );
 	serializeToFile<CEqualLayer>( "NeoMLDnnEqualLayer" );
+	serializeToFile<CGlobalSumPoolingLayer>( "NeoMLDnnGlobalSumPoolingLayer" );
 }
 
 #endif // GENERATE_SERIALIZATION_FILES
@@ -256,6 +257,7 @@ GTEST_TEST( SerializeFromFile, BaseLayerSerialization )
 	checkSerializeLayer<CBaseLayer>( "NeoMLDnnErfLayer" );
 	checkSerializeLayer<CBaseLayer>( "NeoMLDnnLessLayer" );
 	checkSerializeLayer<CBaseLayer>( "NeoMLDnnEqualLayer" );
+	checkSerializeLayer<CBaseLayer>( "NeoMLDnnGlobalSumPoolingLayer" );
 }
 
 // ====================================================================================================================

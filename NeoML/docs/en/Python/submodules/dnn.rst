@@ -451,6 +451,12 @@ GlobalMeanPooling
 .. autoclass:: neoml.Dnn.GlobalMeanPooling
    :members:
 
+GlobalSumPooling
+================
+
+.. autoclass:: neoml.Dnn.GlobalSumPooling
+   :members:
+
 MaxOverTimePooling
 ==================
 
