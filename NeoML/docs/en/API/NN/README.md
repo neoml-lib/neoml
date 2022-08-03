@@ -239,6 +239,8 @@ delete gpuMathEngine;
   - [C3dMaxPoolingLayer](PoolingLayers/3dMaxPoolingLayer.md) - 3-dimensional max pooling
   - [C3dMeanPoolingLayer](PoolingLayers/3dMeanPoolingLayer.md) - 3-dimensional mean pooling
   - [CGlobalMaxPoolingLayer](PoolingLayers/GlobalMaxPoolingLayer.md) - max pooling over whole objects
+  - [CGlobalMeanPoolingLayer](PoolingLayers/GlobalMeanPoolingLayer.md) - mean pooling over whole objects
+  - [CGlobalSumPoolingLayer](PoolingLayers/GlobalSumPoolingLayer.md) - sum pooling over whole objects
   - [CMaxOverTimePoolingLayer](PoolingLayers/MaxOverTimePoolingLayer.md) - max pooling over sequences along the "time" axis
   - [CProjectionPoolingLayer](PoolingLayers/ProjectionPoolingLayer.md) - mean pooling along one of the blob dimensions
 - [CSoftmaxLayer](SoftmaxLayer.md) calculates softmax function
@@ -256,7 +258,8 @@ delete gpuMathEngine;
   - [CEltwiseNegMulLayer](EltwiseLayers/EltwiseNegMulLayer.md) calculates the elementwise product of `1 - first input` and the other inputs
 - Logical operations:
   - [CNotLayer](LogicalLayers/NotLayer.md) - elementwise logical `not` over integer data
-  - [CLessLayer](LogicalLayers/LessLayer.md) - elementwise comparison of 2 blobs
+  - [CLessLayer](LogicalLayers/LessLayer.md) - elementwise comparison of 2 blobs `a < b ? 1 : 0`
+  - [CEqualLayer](LogicalLayers/EqualLayer.md) - elementwise comparison of 2 blobs `a == b ? 1 : 0`
 - Auxiliary operations:
   - [CTransformLayer](TransformLayer.md) changes the blob shape
   - [CTransposeLayer](TransposeLayer.md) switches the blob dimensions

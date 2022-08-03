@@ -42,6 +42,18 @@ public:
 	}
 };
 
+class CPyEqualLayer : public CPyLayer {
+public:
+	explicit CPyEqualLayer( CEqualLayer& layer, CPyMathEngineOwner& mathEngineOwner ) : CPyLayer( layer, mathEngineOwner ) {}
+
+	py::object CreatePythonObject() const
+	{
+		py::object pyModule = py::module::import( "neoml.Dnn" );
+		py::object pyConstructor = pyModule.attr( "Equal" );
+		return pyConstructor( py::cast(this) );
+	}
+};
+
 void InitializeLogicalLayer( py::module& m )
 {
 	py::class_<CPyNotLayer, CPyLayer>(m, "Not")
@@ -77,6 +89,25 @@ void InitializeLogicalLayer( py::module& m )
 			less->Connect( 0, firstLayer.BaseLayer(), firstOutputNumber );
 			less->Connect( 1, secondLayer.BaseLayer(), secondOutputNumber );
 			return new CPyLessLayer( *less, firstLayer.MathEngineOwner() );
+		}) )
+	;
+	
+	py::class_<CPyEqualLayer, CPyLayer>(m, "Equal")
+		.def( py::init([]( const CPyLayer& layer )
+		{
+			return new CPyEqualLayer( *layer.Layer<CEqualLayer>(), layer.MathEngineOwner() );
+		}))
+		.def( py::init([]( const std::string& name, const CPyLayer& firstLayer, int firstOutputNumber,
+				const CPyLayer& secondLayer, int secondOutputNumber ) {
+			py::gil_scoped_release release;
+			CDnn& dnn = firstLayer.Dnn();
+			IMathEngine& mathEngine = dnn.GetMathEngine();
+			CPtr<CEqualLayer> equal = new CEqualLayer( mathEngine );
+			equal->SetName( FindFreeLayerName( dnn, "Equal", name ).c_str() );
+			dnn.AddLayer( *equal );
+			equal->Connect( 0, firstLayer.BaseLayer(), firstOutputNumber );
+			equal->Connect( 1, secondLayer.BaseLayer(), secondOutputNumber );
+			return new CPyEqualLayer( *equal, firstLayer.MathEngineOwner() );
 		}) )
 	;
 }
