@@ -34,7 +34,6 @@ limitations under the License.
 #include "Operators/ConvTransposeOperator.h"
 #include "Operators/DropoutOperator.h"
 #include "Operators/EltwiseOperator.h"
-#include "Operators/EqualOperator.h"
 #include "Operators/ExpandOperator.h"
 #include "Operators/FlattenOperator.h"
 #include "Operators/GatherOperator.h"
