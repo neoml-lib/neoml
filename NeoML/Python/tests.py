@@ -2247,18 +2247,25 @@ class LogicalLayerTestCase(MultithreadedTestCase):
         self.assertEqual(result.dtype, np.int32)
         self.assertTrue(np.equal(result, np.vectorize(lambda x: 1 if x == 0 else 0)(input_data)).all)
 
-    def _test_less(self, is_integer):
+    def _test_logical(self, is_integer, op_type):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
         dnn = neoml.Dnn.Dnn(math_engine)
         first_source_name = 'source0'
         second_source_name = 'source1'
-        less_name = 'less'
+        op_layer_name = 'logical'
         sink_name = 'sink'
 
         first_source = neoml.Dnn.Source(dnn, first_source_name)
         second_source = neoml.Dnn.Source(dnn, second_source_name)
-        less = neoml.Dnn.Less((first_source, second_source), less_name)
-        sink = neoml.Dnn.Sink(less, sink_name)
+        if op_type == 'less':
+            op_layer = neoml.Dnn.Less((first_source, second_source), op_layer_name)
+        elif op_type == 'equal':
+            op_layer = neoml.Dnn.Equal((first_source, second_source), op_layer_name)
+        else:
+            self.fail('wrong op_type')
+        sink = neoml.Dnn.Sink(op_layer, sink_name)
+        layer = dnn.layers[op_layer_name]
+        self.assertEqual(layer.name, op_layer_name)
 
         shape = (2,3,4,5,6,7,8)
         if is_integer:
@@ -2267,6 +2274,9 @@ class LogicalLayerTestCase(MultithreadedTestCase):
         else:
             first_data = np.random.uniform(-5, 5, shape).astype(np.float32)
             second_data = np.random.uniform(-5, 5, shape).astype(np.float32)
+            index = np.random.choice(8, 1)
+            second_data[:,:,:,:,:,:,index] = first_data[:,:,:,:,:,:,index]
+
         first_blob = neoml.Blob.asblob(math_engine, first_data, shape)
         second_blob = neoml.Blob.asblob(math_engine, second_data, shape)
         outputs = dnn.run({first_source_name: first_blob, second_source_name: second_blob})
@@ -2275,11 +2285,21 @@ class LogicalLayerTestCase(MultithreadedTestCase):
 
         self.assertEqual(result.shape, shape)
         self.assertEqual(result.dtype, np.int32)
-        self.assertTrue(np.equal(result, np.vectorize(lambda x, y: 1 if x < y else 0)(first_data, second_data)).all)
+        if op_type == 'less':
+            func = lambda x, y: 1 if x < y else 0
+        elif op_type == 'equal':
+            func = lambda x, y: 1 if x == y else 0
+        else:
+            self.fail('wrong op_type')
+        self.assertTrue(np.equal(result, np.vectorize(func)(first_data, second_data)).all)
 
     def test_less(self):
-        self._test_less(False)
-        self._test_less(True)
+        self._test_logical(False, 'less')
+        self._test_logical(True, 'less')
+
+    def test_equal(self):
+        self._test_logical(False, 'equal')
+        self._test_logical(True, 'equal')
 
 
 class MulLossCalculator(neoml.Dnn.CustomLossCalculatorBase):
