@@ -33,7 +33,7 @@ protected:
 // --------------------------------------------------------------------------------------------------------------------
 
 // Less operator
-// (and all Greater, LessOrEqual and GreaterOrEqual)
+// (and also Greater, LessOrEqual and GreaterOrEqual)
 class CLessOperator : public CEltwiseBinaryOperatorBase {
 public:
 	CLessOperator( const onnx::NodeProto& less, int opsetVersion ) : CEltwiseBinaryOperatorBase( less, opsetVersion ) {}
