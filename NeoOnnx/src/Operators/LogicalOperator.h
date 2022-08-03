@@ -16,6 +16,7 @@ limitations under the License.
 #pragma once
 
 #include "../LayerOperator.h"
+#include "EltwiseOperator.h"
 
 namespace NeoOnnx {
 
@@ -23,6 +24,19 @@ namespace NeoOnnx {
 class CNotOperator : public CLayerOperator {
 public:
 	CNotOperator( const onnx::NodeProto& notNode, int opsetVersion );
+
+protected:
+	// CLayerOperator methods
+	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
+};
+
+// --------------------------------------------------------------------------------------------------------------------
+
+// Less operator
+// (and also Greater, LessOrEqual and GreaterOrEqual)
+class CLessOperator : public CEltwiseBinaryOperatorBase {
+public:
+	CLessOperator( const onnx::NodeProto& less, int opsetVersion ) : CEltwiseBinaryOperatorBase( less, opsetVersion ) {}
 
 protected:
 	// CLayerOperator methods
