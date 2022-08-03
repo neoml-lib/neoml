@@ -28,6 +28,7 @@ public:
 		PT_Min, // Min pooling
 		PT_Mean, // Mean pooling
 		PT_Sum, // Sum pooling
+		PT_L2, // L2 pooling
 
 		PT_Count
 	};
@@ -133,6 +134,15 @@ class CReduceSumOperator : public CReducePoolOperatorBase {
 public:
 	CReduceSumOperator( const onnx::NodeProto& onnxNode, int opsetVersion ) :
 		CReducePoolOperatorBase( CGlobalPoolOperatorBase::PT_Sum, onnxNode, opsetVersion )
+	{
+	}
+};
+
+// ReduceL2 operator
+class CReduceL2Operator : public CReducePoolOperatorBase {
+public:
+	CReduceL2Operator( const onnx::NodeProto& onnxNode, int opsetVersion ) :
+		CReducePoolOperatorBase( CGlobalPoolOperatorBase::PT_L2, onnxNode, opsetVersion )
 	{
 	}
 };
