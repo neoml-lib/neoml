@@ -256,7 +256,7 @@ GTEST_TEST( SerializeFromFile, BaseLayerSerialization )
 	checkSerializeLayer<CBaseLayer>( "NeoMLDnnNotLayer" );
 	checkSerializeLayer<CBaseLayer>( "NeoMLDnnErfLayer" );
 	checkSerializeLayer<CBaseLayer>( "NeoMLDnnLessLayer" );
-  checkSerializeLayer<CBaseLayer>( "NeoMLDnnEqualLayer" );
+	checkSerializeLayer<CBaseLayer>( "NeoMLDnnEqualLayer" );
 	checkSerializeLayer<CBaseLayer>( "NeoMLDnnGlobalSumPoolingLayer" );
 }
 
