@@ -1957,15 +1957,16 @@ void CCpuMathEngine::VectorEltwiseNot( const CConstIntHandle& firstHandle, const
 	int* result = GetRaw( resultHandle );
 	int count = GetCount4( vectorSize );
 
+	const int32x4_t zeros = vdupq_n_s32( 0 );
 	const int32x4_t ones = vdupq_n_s32( 1 );
 	for( int i = 0; i < count; ++i ) {
-		StoreIntNeon4( vandq_s32( ones, vceqzq_s32( LoadIntNeon4( first ) ) ), result );
+		StoreIntNeon4( vandq_s32( ones, vceqq_s32( LoadIntNeon4( first ), zeros ) ), result );
 		first += 4;
 		result += 4;
 	}
 
 	if( vectorSize > 0 ) {
-		StoreIntNeon( vandq_s32( ones, vceqzq_s32( LoadIntNeon( first, vectorSize ) ) ), result, vectorSize );
+		StoreIntNeon( vandq_s32( ones, vceqq_s32( LoadIntNeon( first, vectorSize ), zeros ) ), result, vectorSize );
 	}
 }
 
