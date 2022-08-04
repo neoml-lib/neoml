@@ -361,7 +361,8 @@ REGISTER_NEOML_LAYER( CEqualLayer, "NeoMLDnnEqualLayer" )
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 
-CDnn::CDnn( CRandom& _random, IMathEngine& _mathEngine ) :
+CDnn::CDnn( CRandom& _random, IMathEngine& _mathEngine, const CCompositeLayer* owner ) :
+	owner( owner ),
 	log( 0 ),
 	logFrequency( 100 ),
 	random( _random ),
@@ -694,6 +695,11 @@ size_t CDnn::getOutputBlobsSize() const
 		result += layers[i]->GetOutputBlobsSize();
 	}
 	return result;
+}
+
+CString CDnn::getPath() const
+{
+	return owner == nullptr ? CString() : owner->GetPath() + "/";
 }
 
 void CDnn::FilterLayersParams( float threshold )

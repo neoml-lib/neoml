@@ -214,6 +214,11 @@ void CBaseLayer::AllocateOutputBlobs()
 	}
 }
 
+CString CBaseLayer::GetPath() const
+{
+	return GetDnn() == nullptr ? CString( GetName() ) : GetDnn()->getPath() + GetName();
+}
+
 size_t CBaseLayer::GetOutputBlobsSize() const
 {
 	size_t result = 0;
