@@ -28,6 +28,7 @@ neoml.Dnn
       - :ref:`py-dnn-not`
       - :ref:`py-dnn-less`
       - :ref:`py-dnn-equal`
+      - :ref:`py-dnn-where`
    - :ref:`py-dnn-auxiliary`:
       - :ref:`py-dnn-transform`
       - :ref:`py-dnn-transpose`
@@ -675,6 +676,14 @@ Equal
 =====
 
 .. autoclass:: neoml.Dnn.Equal
+   :members:
+
+.. _py-dnn-where:
+
+Where
+=====
+
+.. autoclass:: neoml.Dnn.Where
    :members:
 
 .. _py-dnn-auxiliary:

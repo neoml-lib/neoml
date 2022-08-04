@@ -104,6 +104,7 @@ REGISTER_NEOML_PYLAYER( "FullyConnectedSource", "FmlCnnFullyConnectedSourceLayer
 REGISTER_NEOML_PYLAYER_EX( "Logical", "Equal", "NeoMLDnnEqualLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Logical", "Not", "NeoMLDnnNotLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Logical", "Less", "NeoMLDnnLessLayer" )
+REGISTER_NEOML_PYLAYER_EX( "Logical", "Where", "NeoMLDnnWhereLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Loss", "CrossEntropyLoss", "FmlCnnCrossEntropyLossLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Loss", "BinaryCrossEntropyLoss", "FmlCnnBinaryCrossEntropyLossLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Loss", "EuclideanLoss", "FmlCnnEuclideanLossLayer" )
