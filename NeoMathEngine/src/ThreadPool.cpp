@@ -112,7 +112,7 @@ CThreadPool::~CThreadPool()
 
 bool CThreadPool::AddTask( int threadIndex, TFunction function, void* functionParams )
 {
-	assert(0 <= threadIndex && threadIndex < params.size());
+	assert(0 <= threadIndex && threadIndex < static_cast<int>(params.size()));
 
 	std::unique_lock<std::mutex> lock(params[threadIndex]->Mutex);
 	params[threadIndex]->Queue.push({function, functionParams});
