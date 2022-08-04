@@ -667,6 +667,18 @@ void CMetalMathEngine::LinearInterpolation( const CConstFloatHandle&, const CFlo
     ASSERT_EXPR( false );
 }
 
+void CMetalMathEngine::ScatterND( const CConstIntHandle&, const CConstFloatHandle&, const CFloatHandle&,
+    const CBlobDesc&, int, int )
+{
+    ASSERT_EXPR( false );
+}
+
+void CMetalMathEngine::ScatterND( const CConstIntHandle&, const CConstIntHandle&, const CIntHandle&,
+    const CBlobDesc&, int, int )
+{
+    ASSERT_EXPR( false );
+}
+
 } // namespace NeoML
 
 #endif // NEOML_USE_METAL

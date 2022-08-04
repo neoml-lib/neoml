@@ -836,4 +836,29 @@ __global__ void LinearInterpolationKernel( const float* data, float* result, int
 	}
 }
 
+template<class T>
+__global__ void scatterNDKernel( const T* updates, const int* indices, T* data, const CCudaBlobDesc dataDesc,
+	int updateCount, int indexDims, int objectSize )
+{
+	const int taskCount = updateCount * objectSize;
+	int index;
+	if( !GetCudaTaskIndex( taskCount, index ) ) {
+		return;
+	}
+
+	const int updateIndex = index / objectSize;
+	const int elem = index % objectSize;
+
+	indices += updateIndex * indexDims;
+	updates += updateIndex * objectSize;
+
+	int dataOffset = 0;
+	int dimOffset = objectSize;
+	for( int i = indexDims - 1; i >= 0; --i ) {
+		dataOffset += indices[i] * dimOffset;
+		dimOffset *= dataDesc.DimSize( i );
+	}
+	data[dataOffset + elem] = updates[elem];
+}
+
 } // namespace NeoML

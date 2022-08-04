@@ -573,6 +573,10 @@ public:
 	void LinearInterpolation( const CConstFloatHandle& dataHandle, const CFloatHandle& resultHandle,
 		TInterpolationCoords coords, TInterpolationRound round, int objectCount, int scaledAxis,
 		int objectSize, float scale ) override;
+	void ScatterND( const CConstIntHandle& indicesHandle, const CConstFloatHandle& updatesHandle,
+		const CFloatHandle& dataHandle, const CBlobDesc& dataDesc, int updateCount, int indexDims ) override;
+	void ScatterND( const CConstIntHandle& indicesHandle, const CConstIntHandle& updatesHandle,
+		const CIntHandle& dataHandle, const CBlobDesc& dataDesc, int updateCount, int indexDims ) override;
 
 	IPerformanceCounters* CreatePerformanceCounters() const override { 	return new CPerformanceCountersDefault(); }
 	void AllReduce( const CFloatHandle& handle, int size ) override;
