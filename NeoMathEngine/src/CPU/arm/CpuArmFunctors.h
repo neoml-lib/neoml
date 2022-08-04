@@ -122,6 +122,37 @@ CSimd4<int> CEqualFunctor<int>::operator()( const CSimd4<int>& first, const CSim
 	return vandq_s32( ones, vreinterpretq_s32_u32( vceqq_s32( first, second ) ) );
 }
 
+// --------------------------------------------------------------------------------------------------------------------
+// Where functor
+// a != 0 ? b : c
+template<class T>
+class CWhereFunctor : public CFunctorBase<T, int, T> {
+public:
+	CSimd4<T> operator()( const CSimd4<int>& first, const CSimd4<T>& second, const CSimd4<T>& third );
+};
+
+template<>
+CSimd4<float> CWhereFunctor<float>::operator()( const CSimd4<int>& first, const CSimd4<float>& second,
+	const CSimd4<float>& third )
+{
+	const uint32x4_t mask = vceqzq_s32( first );
+	return vreinterpretq_f32_u32( vorrq_u32( 
+		vandq_u32( vmvnq_u32( mask ), vreinterpretq_u32_f32( second ) ),
+		vandq_u32( mask, vreinterpretq_u32_f32( third ) )
+	) );
+}
+
+template<>
+CSimd4<int> CWhereFunctor<int>::operator()( const CSimd4<int>& first, const CSimd4<int>& second,
+	const CSimd4<int>& third )
+{
+	const uint32x4_t mask = vceqzq_s32( first );
+	return vreinterpretq_s32_u32( vorrq_u32( 
+		vandq_u32( vmvnq_u32( mask ), vreinterpretq_u32_s32( second ) ),
+		vandq_u32( mask, vreinterpretq_u32_s32( third ) )
+	) );
+}
+
 } // namespace NeoML
 
 #endif // NEOML_USE_NEON

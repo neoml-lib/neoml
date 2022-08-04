@@ -63,6 +63,7 @@ target_sources(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorEltwiseMultiplyTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorEltwiseNotTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorEltwisePowerTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/VectorEltwiseWhereTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorELUDiffOpTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorELUDiffTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorELUTest.cpp

@@ -380,6 +380,12 @@ public:
 	virtual void VectorEltwiseEqual( const CConstIntHandle& firstHandle, const CConstIntHandle& secondHandle,
 		const CIntHandle& resultHandle, int vectorSize ) = 0;
 
+	// result[i] = first[i] != 0 ? second[i] : third[i]
+	virtual void VectorEltwiseWhere( const CConstIntHandle& firstHandle, const CConstFloatHandle& secondHandle,
+		const CConstFloatHandle& thirdHandle, const CFloatHandle& resultHandle, int vectorSize ) = 0;
+	virtual void VectorEltwiseWhere( const CConstIntHandle& firstHandle, const CConstIntHandle& secondHandle,
+		const CConstIntHandle& thirdHandle, const CIntHandle& resultHandle, int vectorSize ) = 0;
+
 	virtual void VectorFindMaxValueInSet(const CConstFloatHandle* vectors, int vectorCount, const CFloatHandle& resultHandle, int vectorSize) = 0;
 	virtual void VectorFindMaxValueInSet(const CConstFloatHandle* vectors, int vectorCount, const CFloatHandle& resultHandle,
 		const CIntHandle& indexHandle, int vectorSize) = 0;

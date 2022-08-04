@@ -139,4 +139,70 @@ private:
 	TSecond secondDefaultValue; // Filler for the unused elements of the second argument SIMD
 };
 
+// Class that wraps ternary vector functor into the interface
+// which takes 4 pointers and the number of elements.
+template<class TFunctor>
+class CTernaryVectorFunction {
+public:
+	using TFirst = typename TFunctor::TFirst;
+	using TSecond = typename TFunctor::TSecond;
+	using TThird = typename TFunctor::TThird;
+	using TResult = typename TFunctor::TResult;
+	CTernaryVectorFunction( const TFunctor& functor = TFunctor(), TFirst firstDefaultValue = 1,
+		TSecond secondDefaultValue = 1, TThird thirdDefaultValue = 1 ) :
+		functor( functor ),
+		firstDefaultValue( firstDefaultValue ),
+		secondDefaultValue( secondDefaultValue ),
+		thirdDefaultValue( thirdDefaultValue )
+	{}
+
+	void operator()( const TFirst* first, const TSecond* second, const TThird* third, TResult* result, int vectorSize )
+	{
+		int simdSize = vectorSize / 4;
+		int nonSimdSize = vectorSize % 4;
+
+		// Ugly code for vectorization
+		while( simdSize >= 4 ) {
+			LOAD_4_SIMD4( TFirst, first, first );
+			first += 16;
+			LOAD_4_SIMD4( TSecond, second, second );
+			second += 16;
+			LOAD_4_SIMD4( TThird, third, third );
+			third += 16;
+
+			CSimd4<TResult> result0 = functor( first0, second0, third0 );
+			CSimd4<TResult> result1 = functor( first1, second1, third1 );
+			CSimd4<TResult> result2 = functor( first2, second2, third2 );
+			CSimd4<TResult> result3 = functor( first3, second3, third3 );
+
+			STORE_4_SIMD4( result, result );
+			result += 16;
+			simdSize -= 4;
+		}
+
+		while( simdSize > 0 ) {
+			SimdStore4( result, functor( SimdLoad4( first ), SimdLoad4( second ), SimdLoad4( third ) ) );
+			first += 4;
+			second += 4;
+			third += 4;
+			result += 4;
+			--simdSize;
+		}
+
+		if( nonSimdSize > 0 ) {
+			const CSimd4<TFirst> simdFirst = SimdLoad( first, nonSimdSize, firstDefaultValue );
+			const CSimd4<TSecond> simdSecond = SimdLoad( second, nonSimdSize, secondDefaultValue );
+			const CSimd4<TThird> simdThird = SimdLoad( third, nonSimdSize, thirdDefaultValue );
+			CSimd4<TResult> simdResult = functor( simdFirst, simdSecond, simdThird );
+			SimdStore( result, simdResult, nonSimdSize );
+		}
+	}
+
+private:
+	TFunctor functor; // Functor to be applied
+	TFirst firstDefaultValue; // Filler for the unused elements of the first argument SIMD
+	TSecond secondDefaultValue; // Filler for the unused elements of the second argument SIMD
+	TSecond thirdDefaultValue; // Filler for the unused elements of the third argument SIMD
+};
+
 } // namespace NeoML
