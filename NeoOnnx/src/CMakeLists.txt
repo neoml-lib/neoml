@@ -53,6 +53,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Operators/RangeOperator.cpp
     Operators/ResizeOperator.cpp
     Operators/ReshapeOperator.cpp
+    Operators/ScatterOperator.cpp
     Operators/ShapeOperator.cpp
     Operators/SliceOperator.cpp
     Operators/SoftmaxOperator.cpp
@@ -105,6 +106,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Operators/RangeOperator.h
     Operators/ReshapeOperator.h
     Operators/ResizeOperator.h
+    Operators/ScatterOperator.h
     Operators/ShapeOperator.h
     Operators/SliceOperator.h
     Operators/SoftmaxOperator.h
