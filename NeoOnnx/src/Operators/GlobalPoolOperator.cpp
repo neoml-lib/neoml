@@ -52,11 +52,7 @@ void CGlobalPoolOperatorBase::AddLayers( const CTensorArray& inputs, CDnn& dnn, 
 	CPtr<const CUserTensor> curr = AsUserTensor( *inputs[0], Name() + "_Source", dnn );
 	curr = prepareInput( *curr, axes, dnn );
 	curr = addPoolingLayer( *curr, axes, dnn );
-	int pooledSize = 1;
-	for( int i = 0; i < axes.Size(); ++i ) {
-		pooledSize *= inputs[0]->Shape()[axes[i]];
-	}
-	curr = addPostProcessing( *curr, pooledSize, dnn );
+	curr = addPostProcessing( *curr, dnn );
 
 	outputs.Add( curr.Ptr() );
 }
@@ -68,6 +64,7 @@ CPtr<const CUserTensor> CGlobalPoolOperatorBase::prepareInput( const CUserTensor
 	CPtr<const CUserTensor> result = convertInputLayout( input, axes );
 
 	// Step 2: add pre-processing layers if needed
+	static_assert( PT_Count == 5, "PT_Count != 5" );
 	if( poolType == PT_Min ) {
 		// MinPool( x ) == -1 * MaxPool( -1 * x )
 		CPtr<CLinearLayer> linear = new CLinearLayer( dnn.GetMathEngine() );
@@ -76,6 +73,14 @@ CPtr<const CUserTensor> CGlobalPoolOperatorBase::prepareInput( const CUserTensor
 		linear->Connect( 0, *result->Layer(), result->OutputIndex() );
 		dnn.AddLayer( *linear );
 		result = new CUserTensor( result->Shape(), result->Layout(), CLayerOutput( linear, 0 ) );
+	} else if( poolType == PT_L2 ) {
+		// L2Pool = Sqrt(SumPool(x^2))
+		CPtr<CPowerLayer> sqare = new CPowerLayer( dnn.GetMathEngine() );
+		sqare->SetName( Name() + "_preProcess" );
+		sqare->SetExponent( 2.f );
+		sqare->Connect( 0, *result->Layer(), result->OutputIndex() );
+		dnn.AddLayer( *sqare );
+		result = new CUserTensor( result->Shape(), result->Layout(), CLayerOutput( sqare, 0 ) );
 	}
 
 	return result;
@@ -167,7 +172,7 @@ CPtr<const CUserTensor> CGlobalPoolOperatorBase::convertInputLayout( const CUser
 CPtr<const CUserTensor> CGlobalPoolOperatorBase::addPoolingLayer( const CUserTensor& preparedInput,
 	const CFastArray<int, 8>& axes, CDnn& dnn ) const
 {
-	static_assert( PT_Count == 4, "PT_Count != 4" );
+	static_assert( PT_Count == 5, "PT_Count != 5" );
 	CPtr<CBaseLayer> pooling;
 	switch( poolType ) {
 		case PT_Max:
@@ -175,8 +180,11 @@ CPtr<const CUserTensor> CGlobalPoolOperatorBase::addPoolingLayer( const CUserTen
 			pooling = new CGlobalMaxPoolingLayer( dnn.GetMathEngine() );
 			break;
 		case PT_Mean:
-		case PT_Sum:
 			pooling = new CGlobalMeanPoolingLayer( dnn.GetMathEngine() );
+			break;
+		case PT_Sum:
+		case PT_L2:
+			pooling = new CGlobalSumPoolingLayer( dnn.GetMathEngine() );
 			break;
 		default:
 			NeoAssert( false );
@@ -237,25 +245,28 @@ CTensorLayout CGlobalPoolOperatorBase::calcOutputLayout( const CTensorLayout& in
 }
 
 // Adds additional layers after pooling if needed.
-CPtr<const CUserTensor> CGlobalPoolOperatorBase::addPostProcessing( const CUserTensor& layerOutput, int pooledSize, CDnn& dnn ) const
+CPtr<const CUserTensor> CGlobalPoolOperatorBase::addPostProcessing( const CUserTensor& layerOutput, CDnn& dnn ) const
 {
-	static_assert( PT_Count == 4, "PT_Count != 4" );
-	if( poolType == PT_Max || poolType == PT_Mean ) {
-		// Post-processing is needed for MinPooling and SumPooling
-		return &layerOutput;
+	static_assert( PT_Count == 5, "PT_Count != 5" );
+	if( poolType == PT_Min ) {
+		// MinPool( x ) == -1 * MaxPool( -1 * x )
+		CPtr<CLinearLayer> linear = new CLinearLayer( dnn.GetMathEngine() );
+		linear->SetName( Name() + "_postProcess" );
+		linear->SetMultiplier( -1 );
+		linear->Connect( 0, *layerOutput.Layer(), layerOutput.OutputIndex() );
+		dnn.AddLayer( *linear );
+		return new CUserTensor( layerOutput.Shape(), layerOutput.Layout(), CLayerOutput( linear, 0 ) );
+	} else if( poolType == PT_L2 ) {
+		// L2Pool( x ) = Sqrt( SumPool( x^2 ) )
+		CPtr<CPowerLayer> power = new CPowerLayer( dnn.GetMathEngine() );
+		power->SetName( Name() + "_postProcess" );
+		power->SetExponent( 0.5f );
+		power->Connect( 0, *layerOutput.Layer(), layerOutput.OutputIndex() );
+		dnn.AddLayer( *power );
+		return new CUserTensor( layerOutput.Shape(), layerOutput.Layout(), CLayerOutput( power, 0 ) );
 	}
 
-	// MinPool( x ) == -1 * MaxPool( -1 * x )
-	CPtr<CLinearLayer> linear = new CLinearLayer( dnn.GetMathEngine() );
-	linear->SetName( Name() + "_postProcess" );
-	if( poolType == PT_Min ) {
-		linear->SetMultiplier( -1 );
-	} else if( poolType == PT_Sum ) {
-		linear->SetMultiplier( static_cast<float>( pooledSize ) );
-	}
-	linear->Connect( 0, *layerOutput.Layer(), layerOutput.OutputIndex() );
-	dnn.AddLayer( *linear );
-	return new CUserTensor( layerOutput.Shape(), layerOutput.Layout(), CLayerOutput( linear, 0 ) );
+	return &layerOutput;
 }
 
 // --------------------------------------------------------------------------------------------------------------------

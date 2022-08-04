@@ -85,3 +85,39 @@ class Less(Layer):
         internal = PythonWrapper.Less(str(name), layers[0], int(outputs[0]),
             layers[1], int(outputs[1]))
         super().__init__(internal)
+
+
+class Equal(Layer):
+    """The layer that compares 2 inputs element-by-element:
+
+    - :math:`equal[i] = first[i] == second[i] ? 1 : 0`
+
+    :param input_layers: The input layers to be connected. 
+        The integer in each tuple specifies the number of the output.
+        If not set, the first output will be used.
+    :type input_layers: list of object, tuple(object, int)
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    The layer must have 2 inputs of the same size and data type.
+
+    .. rubric:: Layer outputs:
+
+    A blob with integer data of the same size as the inputs.
+
+    """
+
+    def __init__(self, input_layers, name=None):
+
+        if type(input_layers) is PythonWrapper.Equal:
+            super().__init__(input_layers)
+            return
+
+        layers, outputs = check_input_layers(input_layers, 2)
+
+        internal = PythonWrapper.Equal(str(name), layers[0], int(outputs[0]),
+            layers[1], int(outputs[1]))
+        super().__init__(internal)
+

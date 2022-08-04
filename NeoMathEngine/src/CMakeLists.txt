@@ -31,6 +31,7 @@ set(CPU_COMMON_SOURCES
     MathEngine.cpp
     MathEngineHostStackAllocator.cpp
     MemoryPool.cpp
+    ThreadPool.cpp
     common.cpp
 )
 
@@ -76,6 +77,7 @@ target_sources(${PROJECT_NAME}
     ../include/NeoMathEngine/NeoMathEngine.h
     ../include/NeoMathEngine/NeoMathEngineException.h
     ../include/NeoMathEngine/SimdMathEngine.h
+    ../include/NeoMathEngine/ThreadPool.h
 )
 
 add_library(NeoML::${PROJECT_NAME} ALIAS ${PROJECT_NAME})

@@ -15,19 +15,18 @@ limitations under the License.
 
 #pragma once
 
-#include "../Operator.h"
+#include "../LayerOperator.h"
 
 namespace NeoOnnx {
 
-// Equal operator
-class CEqualOperator : public COperator {
+// CumSum operator
+class CCumSumOperator : public CLayerOperator {
 public:
-	CEqualOperator( const onnx::NodeProto& equal, int opsetVersion );
+	CCumSumOperator( const onnx::NodeProto& cumSum, int opsetVersion );
 
 protected:
-	// COpeartor methods
-	void ProcessTensors( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
+	// CLayerOperator methods
+	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
 };
 
 } // namespace NeoOnnx
-
