@@ -129,13 +129,16 @@ template<class T>
 class CWhereFunctor : public CFunctorBase<T, int, T> {
 public:
 	CSimd4<T> operator()( const CSimd4<int>& first, const CSimd4<T>& second, const CSimd4<T>& third );
+
+private:
+	CSimd4<int> zeros = SimdFill( 0 );
 };
 
 template<>
 CSimd4<float> CWhereFunctor<float>::operator()( const CSimd4<int>& first, const CSimd4<float>& second,
 	const CSimd4<float>& third )
 {
-	const uint32x4_t mask = vceqzq_s32( first );
+	const uint32x4_t mask = vceqq_s32( first, zeros );
 	return vreinterpretq_f32_u32( vorrq_u32( 
 		vandq_u32( vmvnq_u32( mask ), vreinterpretq_u32_f32( second ) ),
 		vandq_u32( mask, vreinterpretq_u32_f32( third ) )
@@ -146,7 +149,7 @@ template<>
 CSimd4<int> CWhereFunctor<int>::operator()( const CSimd4<int>& first, const CSimd4<int>& second,
 	const CSimd4<int>& third )
 {
-	const uint32x4_t mask = vceqzq_s32( first );
+	const uint32x4_t mask = vceqq_s32( first, zeros );
 	return vreinterpretq_s32_u32( vorrq_u32( 
 		vandq_u32( vmvnq_u32( mask ), vreinterpretq_u32_s32( second ) ),
 		vandq_u32( mask, vreinterpretq_u32_s32( third ) )
