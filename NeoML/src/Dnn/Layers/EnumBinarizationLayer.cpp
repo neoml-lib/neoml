@@ -50,7 +50,7 @@ void CEnumBinarizationLayer::Reshape()
 {
 	CheckInput1();
 	CheckArchitecture(inputDescs[0].Channels() == 1,
-		GetName(), "Enum binarization lookup layer must have input with size BATCHxHxWxDx1");
+		GetPath(), "Enum binarization lookup layer must have input with size BATCHxHxWxDx1");
 
 	outputDescs[0] = inputDescs[0];
 	outputDescs[0].SetDataType( CT_Float );
@@ -109,7 +109,7 @@ void CBitSetVectorizationLayer::Serialize( CArchive& archive )
 void CBitSetVectorizationLayer::Reshape()
 {
 	CheckInput1();
-	CheckArchitecture( inputDescs[0].GetDataType() == CT_Int, GetName(),
+	CheckArchitecture( inputDescs[0].GetDataType() == CT_Int, GetPath(),
 		"Bitset vectorization layer must have integer input" );
 
 	outputDescs[0] = inputDescs[0];

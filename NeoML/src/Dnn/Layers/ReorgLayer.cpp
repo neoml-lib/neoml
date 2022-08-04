@@ -33,24 +33,24 @@ void CReorgLayer::Reshape()
 	CheckOutputs();
 	// The input size should not be smaller than stride
 	CheckArchitecture( min( inputDescs[0].Height(), inputDescs[0].Width() ) >= stride,
-		GetName(), "reorg layer Too small input size" );
+		GetPath(), "reorg layer Too small input size" );
 
 	// Division by zero if count of input channels less than stride^2
-	CheckArchitecture( inputDescs[0].Channels() >= stride * stride, GetName(),
+	CheckArchitecture( inputDescs[0].Channels() >= stride * stride, GetPath(),
 		"reorg layer Too small count of input channels" );
 
-	CheckArchitecture( stride >= 1, GetName(), "reorg layer Too small stride" );
-	CheckArchitecture( inputDescs[0].Depth() == 1, GetName(), "reorg layer Too big depth" );
+	CheckArchitecture( stride >= 1, GetPath(), "reorg layer Too small stride" );
+	CheckArchitecture( inputDescs[0].Depth() == 1, GetPath(), "reorg layer Too big depth" );
 
 	// The layer needs only one input and one output
-	CheckArchitecture( GetInputCount() == 1, GetName(), "reorg layer with multiple inputs" );
-	CheckArchitecture( GetOutputCount() == 1, GetName(), "reorg layer with multiple outputs" );
+	CheckArchitecture( GetInputCount() == 1, GetPath(), "reorg layer with multiple inputs" );
+	CheckArchitecture( GetOutputCount() == 1, GetPath(), "reorg layer with multiple outputs" );
 
 	// The input size should be divisible by the window size
 	CheckArchitecture( inputDescs[0].Height() % stride == 0,
-		GetName(), "reorg layer The height of the entrance is not a multiple of the size of the window" );
+		GetPath(), "reorg layer The height of the entrance is not a multiple of the size of the window" );
 	CheckArchitecture( inputDescs[0].Width() % stride == 0,
-		GetName(), "reorg layer The width of the entrance is not a multiple of the size of the window" );
+		GetPath(), "reorg layer The width of the entrance is not a multiple of the size of the window" );
 
 	// Calculate the output size
 	outputDescs[0] = inputDescs[0];

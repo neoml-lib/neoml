@@ -414,8 +414,8 @@ CPtr<const CBaseLayer> CDnn::GetLayer( const char* name ) const
 
 void CDnn::AddLayerImpl( CBaseLayer& layer )
 {
-	CheckArchitecture( !layerMap.Has( layer.GetName() ), layer.GetName(), "layer already in this dnn" );
-	CheckArchitecture( layer.GetDnn() == 0, layer.GetName(), "layer already added to other dnn" );
+	CheckArchitecture( !layerMap.Has( layer.GetName() ), layer.GetPath(), "layer already in this dnn" );
+	CheckArchitecture( layer.GetDnn() == 0, layer.GetPath(), "layer already added to other dnn" );
 
 	// Set the flag that indicates the network must be rebuilt (configuration has changed)
 	ForceRebuild();
