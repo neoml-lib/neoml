@@ -61,6 +61,7 @@ limitations under the License.
 #include "PyQrnnLayer.h"
 #include "PyReorgLayer.h"
 #include "PyRepeatSequenceLayer.h"
+#include "PyScatterGatherLayers.h"
 #include "PySequenceSumLayer.h"
 #include "PySoftmaxLayer.h"
 #include "PySpaceAndDepthLayer.h"
@@ -143,6 +144,7 @@ PYBIND11_MODULE(PythonWrapper, m) {
 	InitializeQrnnLayer( m );
 	InitializeReorgLayer( m );
 	InitializeRepeatSequenceLayer( m );
+	InitializeScatterGatherLayers( m );
 	InitializeSequenceSumLayer( m );
 	InitializeSoftmaxLayer( m );
 	InitializeSplitLayer( m );

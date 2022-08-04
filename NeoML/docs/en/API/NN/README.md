@@ -292,6 +292,8 @@ delete gpuMathEngine;
   - Repeating data:
     - [CRepeatSequenceLayer](RepeatSequenceLayer.md) repeats sequences several times
     - [CUpsampling2DLayer](Upsampling2DLayer.md) scales up two-dimensional images
+  - Scatter & Gather operations
+    - [CScatterNDLayer](ScatterGatherLayers/ScatterNDLayer.md) scatters updates over indexed objects of data
   - [CReorgLayer](ReorgLayer.md) transforms a multi-channel image into several smaller images with more channels
   - [CSpaceToDepthLayer](SpaceToDepthLayer.md) splits images into squared blocks and flattens each block
   - [CDepthToSpaceLayer](DepthToSpaceLayer.md) transforms pixels of images into squared blocks
