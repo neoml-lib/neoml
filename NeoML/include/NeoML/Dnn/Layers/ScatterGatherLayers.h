@@ -48,7 +48,7 @@ class NEOML_API CScatterNDLayer : public CBaseLayer {
 public:
 	explicit CScatterNDLayer( IMathEngine& mathEngine );
 
-	void Serialize( CArchive& archive );
+	void Serialize( CArchive& archive ) override;
 
 	enum TInput {
 		I_Data,
