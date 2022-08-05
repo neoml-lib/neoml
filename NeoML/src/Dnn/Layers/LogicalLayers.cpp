@@ -107,7 +107,6 @@ void CEqualLayer::Reshape()
 		"Inputs must be of the same data type" );
 
 	CEltwiseBaseLayer::Reshape();
-
 	outputDescs[0].SetDataType( CT_Int );
 }
 
