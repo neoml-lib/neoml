@@ -2351,6 +2351,50 @@ class LogicalLayerTestCase(MultithreadedTestCase):
         self._test_logical(False, 'equal')
         self._test_logical(True, 'equal')
 
+    def _test_where(self, is_integer):
+        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        dnn = neoml.Dnn.Dnn(math_engine)
+        first_source_name = 'source0'
+        second_source_name = 'source1'
+        third_source_name = 'source2'
+        where_layer_name = 'where'
+        sink_name = 'sink'
+
+        first_source = neoml.Dnn.Source(dnn, first_source_name)
+        second_source = neoml.Dnn.Source(dnn, second_source_name)
+        third_source = neoml.Dnn.Source(dnn, third_source_name)
+        where_layer = neoml.Dnn.Where((first_source, second_source, third_source), where_layer_name)
+        sink = neoml.Dnn.Sink(where_layer, sink_name)
+        layer = dnn.layers[where_layer_name]
+        self.assertEqual(layer.name, where_layer_name)
+
+        shape = (2,3,4,5,6,7,8)
+        first_data = np.random.randint(0, 3, shape, dtype=np.int32)
+        if is_integer:
+            second_data = np.random.randint(-10, 10, shape, dtype=np.int32)
+            third_data = np.random.randint(-10, 10, shape, dtype=np.int32)
+        else:
+            second_data = np.random.uniform(-10, 10, shape).astype(np.float32)
+            third_data = np.random.uniform(-10, 10, shape).astype(np.float32)
+        
+        first_blob = neoml.Blob.asblob(math_engine, first_data, shape)
+        second_blob = neoml.Blob.asblob(math_engine, second_data, shape)
+        third_blob = neoml.Blob.asblob(math_engine, third_data, shape)
+        outputs = dnn.run({first_source_name: first_blob,
+            second_source_name: second_blob,
+            third_source_name: third_blob})
+        self.assertTrue(sink_name in outputs)
+        result = outputs[sink.name].asarray()
+        
+        self.assertEqual(result.shape, shape)
+        self.assertEqual(result.dtype, np.int32 if is_integer else np.float32)
+        func = lambda x, y, z: y if x != 0 else z
+        self.assertTrue(np.equal(result, np.vectorize(func)(first_data, second_data, third_data)).all)
+
+    def test_where(self):
+        self._test_where(False)
+        self._test_where(True)
+
 
 class MulLossCalculator(neoml.Dnn.CustomLossCalculatorBase):
     def calc(self, data, labels):
