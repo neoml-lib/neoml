@@ -81,4 +81,26 @@ protected:
 
 NEOML_API CLayerWrapper<CEqualLayer> Equal();
 
+// --------------------------------------------------------------------------------------------------------------------
+
+// Takes 3 blobs of the same size
+// The first input must be of integer data
+// The second and third input may be of any type (type must be the same)
+// The only outputs contains integer blob of the same size where
+//    outputs[i] = input0[i] != 0 ? input1[i] : input2[i]
+class NEOML_API CWhereLayer : public CBaseLayer {
+	NEOML_DNN_LAYER( CWhereLayer )
+public:
+	explicit CWhereLayer( IMathEngine& mathEngine );
+
+	void Serialize( CArchive& archive ) override;
+
+protected:
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
+};
+
+NEOML_API CLayerWrapper<CWhereLayer> Where();
+
 } // namespace NeoML
