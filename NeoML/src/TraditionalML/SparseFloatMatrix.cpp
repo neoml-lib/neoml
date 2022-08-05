@@ -220,7 +220,7 @@ void CSparseFloatMatrix::Serialize( CArchive& archive )
 		int elementCount = 0;
 		if( version == 0 ) {
 			// v0 just wrote body->ValuesBuf.Size() to the archive
-			// That made indistinguishable cases when body == null and when body->ValuesBuf.Size() == 0
+			// That makes cases when body == null and when body->ValuesBuf.Size() == 0 indistinguishable
 			archive >> elementCount;
 			if( elementCount == 0 ) {
 				body = nullptr;
