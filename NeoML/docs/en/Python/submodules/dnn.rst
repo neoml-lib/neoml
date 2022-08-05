@@ -40,6 +40,7 @@ neoml.Dnn
       - :ref:`py-dnn-split`
       - :ref:`py-dnn-sequences`
       - :ref:`py-dnn-imageconversion`
+      - :ref:`py-dnn-scattergather`
    - :ref:`py-dnn-crf`
    - :ref:`py-dnn-ctc`
 
@@ -891,6 +892,17 @@ Upsampling2D
 -----------------
 
 .. autoclass:: neoml.Dnn.Upsampling2D
+   :members:
+
+.. _py-dnn-scattergather:
+
+Scatter & Gather Layers
+=======================
+
+ScatterND
+---------
+
+.. autoclass:: neoml.Dnn.ScatterND
    :members:
 
 .. _py-dnn-crf:

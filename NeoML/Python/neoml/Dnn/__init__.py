@@ -42,6 +42,7 @@ from .Qrnn import Qrnn
 from .Pooling import Pooling, MaxPooling, MeanPooling, GlobalMaxPooling, GlobalMeanPooling, GlobalSumPooling, MaxOverTimePooling, ProjectionPooling, Pooling3D, MaxPooling3D, MeanPooling3D
 from .Reorg import Reorg
 from .RepeatSequence import RepeatSequence
+from .ScatterGather import ScatterND
 from .SequenceSum import SequenceSum
 from .Sink import Sink
 from .Softmax import Softmax
