@@ -121,3 +121,39 @@ class Equal(Layer):
             layers[1], int(outputs[1]))
         super().__init__(internal)
 
+
+class Where(Layer):
+    """The layer that merges 2 blobs based on a mask:
+
+    - :math:`where[i] = first[i] != 0 ? second[i] : third[i]`
+
+    :param input_layers: The input layers to be connected. 
+        The integer in each tuple specifies the number of the output.
+        If not set, the first output will be used.
+    :type input_layers: list of object, tuple(object, int)
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    The layer must have 3 inputs of the same size.
+    First input must be of integer data type.
+    Data types of second and third inputs must match.
+
+    .. rubric:: Layer outputs:
+
+    A blob with integer data of the same size and data type as the second input.
+
+    """
+
+    def __init__(self, input_layers, name=None):
+
+        if type(input_layers) is PythonWrapper.Where:
+            super().__init__(input_layers)
+            return
+
+        layers, outputs = check_input_layers(input_layers, 3)
+
+        internal = PythonWrapper.Where(str(name), layers[0], int(outputs[0]),
+            layers[1], int(outputs[1]), layers[2], int(outputs[2]))
+        super().__init__(internal)
