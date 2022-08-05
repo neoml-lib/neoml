@@ -112,6 +112,8 @@ static void blobConvolutionJitTestImpl( const CTestParams& params, int seed )
 //------------------------------------------------------------------------------------------------------------
 
 class CMathEngineBlobConvolutionJitTest : public CTestFixtureWithParams {
+public:
+	void SetUp() override { MathEngine().CleanUp(); }
 };
 
 CTestParams JitTestParams[] = {
