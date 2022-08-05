@@ -302,7 +302,7 @@ class SolverTestCase(MultithreadedTestCase):
         self.assertAlmostEqual(solver.moment_decay_rate, 0.6, delta=1e-3)
 
 
-class LayersTestCase(TestCase):
+class LayersTestCase(MultithreadedTestCase):
     def test_lstm(self):
         math_engine = neoml.MathEngine.CpuMathEngine(1)
         dnn = neoml.Dnn.Dnn(math_engine)
