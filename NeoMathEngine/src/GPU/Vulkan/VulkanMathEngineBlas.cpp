@@ -738,6 +738,11 @@ void CVulkanMathEngine::SumMatrixRows( int batchSize, const CFloatHandle& result
 		&param, sizeof(param), 0, 0, 0, 0, bufs, sizes, 2, matrixWidth, 1, batchSize);
 }
 
+void CVulkanMathEngine::SumMatrixRows( int, const CIntHandle&, const CConstIntHandle&, int, int )
+{
+	ASSERT_EXPR( false );
+}
+
 void CVulkanMathEngine::SumMatrixColumns( const CFloatHandle& resultHandle, const CConstFloatHandle& matrixHandle,
 	int matrixHeight, int matrixWidth )
 {

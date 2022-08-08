@@ -697,6 +697,7 @@ void CCudaMathEngine::BertConv( const CConstFloatHandle& dataHandle, const CCons
 	ASSERT_EXPR( dataHandle.GetMathEngine() == this );
 	ASSERT_EXPR( kernelHandle.GetMathEngine() == this );
 	ASSERT_EXPR( outputHandle.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
 
 	const int taskCount = seqLen * batchSize * numHeads * headSize;
 
@@ -717,6 +718,7 @@ void CCudaMathEngine::BertConvBackward( const CConstFloatHandle& dataHandle, con
 	ASSERT_EXPR( outputDiffHandle.GetMathEngine() == this );
 	ASSERT_EXPR( dataDiffHandle.GetMathEngine() == this );
 	ASSERT_EXPR( kernelDiffHandle.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
 
 	{
 		// dataDiff
@@ -744,6 +746,7 @@ void CCudaMathEngine::LinearInterpolation( const CConstFloatHandle& dataHandle, 
 {
 	ASSERT_EXPR( dataHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
 
 	const int taskCount = objectCount * static_cast<int>( scaledAxis * scale ) * objectSize;
 	int blockCount;
@@ -751,6 +754,54 @@ void CCudaMathEngine::LinearInterpolation( const CConstFloatHandle& dataHandle, 
 	getCudaTaskGrid( blockCount, threadCount, taskCount );
 	LinearInterpolationKernel<<<blockCount, threadCount>>>( GetRaw( dataHandle ), GetRaw( resultHandle ),
 		static_cast<int>( coords ), static_cast<int>( round ), objectCount, scaledAxis, objectSize, scale );
+}
+
+void CCudaMathEngine::ScatterND( const CConstIntHandle& indicesHandle, const CConstFloatHandle& updatesHandle,
+	const CFloatHandle& dataHandle, const CBlobDesc& dataDesc, int updateCount, int indexDims )
+{
+	ASSERT_EXPR( updatesHandle.GetMathEngine() == this );
+	ASSERT_EXPR( indicesHandle.GetMathEngine() == this );
+	ASSERT_EXPR( dataHandle.GetMathEngine() == this );
+	ASSERT_EXPR( updateCount > 0 );
+	ASSERT_EXPR( indexDims > 0 );
+	SetCudaDevice( device->DeviceNumber );
+
+	int objectSize = 1;
+	for( int i = indexDims; i < static_cast<int>( BD_Count ); ++i ) {
+		objectSize *= dataDesc.DimSize( i );
+	}
+	CCudaBlobDesc cudaDataDesc( dataDesc );
+
+	const int taskCount = updateCount * objectSize;
+	int blockCount;
+	int threadCount;
+	getCudaTaskGrid( blockCount, threadCount, taskCount );
+	scatterNDKernel<<<blockCount, threadCount>>>( GetRaw( updatesHandle ), GetRaw( indicesHandle ),
+		GetRaw( dataHandle ), cudaDataDesc, updateCount, indexDims, objectSize );
+}
+
+void CCudaMathEngine::ScatterND( const CConstIntHandle& indicesHandle, const CConstIntHandle& updatesHandle,
+	const CIntHandle& dataHandle, const CBlobDesc& dataDesc, int updateCount, int indexDims )
+{
+	ASSERT_EXPR( updatesHandle.GetMathEngine() == this );
+	ASSERT_EXPR( indicesHandle.GetMathEngine() == this );
+	ASSERT_EXPR( dataHandle.GetMathEngine() == this );
+	ASSERT_EXPR( updateCount > 0 );
+	ASSERT_EXPR( indexDims > 0 );
+	SetCudaDevice( device->DeviceNumber );
+
+	int objectSize = 1;
+	for( int i = indexDims; i < static_cast< int >( BD_Count ); ++i ) {
+		objectSize *= dataDesc.DimSize( i );
+	}
+	CCudaBlobDesc cudaDataDesc( dataDesc );
+
+	const int taskCount = updateCount * objectSize;
+	int blockCount;
+	int threadCount;
+	getCudaTaskGrid( blockCount, threadCount, taskCount );
+	scatterNDKernel<<<blockCount, threadCount>>>( GetRaw( updatesHandle ), GetRaw( indicesHandle ),
+		GetRaw( dataHandle ), cudaDataDesc, updateCount, indexDims, objectSize );
 }
 
 } // namespace NeoML

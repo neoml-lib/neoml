@@ -847,7 +847,7 @@ CPtr<CDnnBlob> CTapeCumSum::Jacobian( const CTapeBlob* var ) const
 			followingDimension, result->GetData() );
 	} else {
 		mathEngine.VectorCumSumAlongDimension( jacobian->GetData(), precedingDimension * width, dimension,
-			followingDimension, result->GetData() );
+			followingDimension, result->GetData(), false );
 	}
 	return result;
 }
@@ -867,7 +867,8 @@ CPtr<const CDnnBlob> CumSum( const CDnnBlob* first, int axis )
 	int followingDimension;
 	getSequentialAxesDimensions( first, { axis }, followingDimension, dimension, precedingDimension );
 	CPtr<CTapeBlob> result = new CTapeBlob( tape, mathEngine, first->GetDesc() );
-	mathEngine.VectorCumSumAlongDimension( first->GetData(), precedingDimension, dimension, followingDimension, result->GetData() );
+	mathEngine.VectorCumSumAlongDimension( first->GetData(), precedingDimension, dimension, followingDimension,
+		result->GetData(), false );
 
 	if( tape != 0 ) {
 		CPtr<ITapeOperation> operation( new CTapeCumSum( *tapeBlob, axis ) );

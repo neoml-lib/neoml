@@ -26,6 +26,7 @@ limitations under the License.
 #include <NeoMathEngine/PerformanceCounters.h>
 #include <NeoMathEngine/CrtAllocatedObject.h>
 #include <NeoMathEngine/NeoMathEngineException.h>
+#include <NeoMathEngine/ThreadPool.h>
 #include <climits>
 
 namespace NeoML {
@@ -46,6 +47,7 @@ enum TActivationFunction {
 	AF_GELU,
 	AF_Exp,
 	AF_Log,
+	AF_Erf,
 
 	AF_Count
 };
@@ -123,7 +125,9 @@ public:
 		int followingDimension, const CFloatHandle& resultHandle) = 0;
 	// Cumulative Sum of blob elements along dimension with size `dimension`
 	virtual void VectorCumSumAlongDimension(const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
-		int followingDimension, const CFloatHandle& resultHandle) = 0;
+		int followingDimension, const CFloatHandle& resultHandle, bool reverse) = 0;
+	virtual void VectorCumSumAlongDimension(const CConstIntHandle& firstHandle, int precedingDimension, int dimension,
+		int followingDimension, const CIntHandle& resultHandle, bool reverse) = 0;
 	// Blob `first` is assumed to be a diagonal matrix
 	virtual void VectorSumAlongDimensionDiag( const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
 		int followingDimension, const CFloatHandle& resultHandle ) = 0;
@@ -235,6 +239,9 @@ public:
 	// result = -log(first)
 	virtual void VectorNegLog(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize) = 0;
 
+	// result = erf(first)
+	virtual void VectorErf( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize ) = 0;
+
 	// Calculates the Kullback-Leibler distance derivative for a Bernoulli distribution using the distribution parameters
 	virtual void VectorBernulliKLDerivative(const CConstFloatHandle& estimationHandle,
 		const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& target) = 0;
@@ -275,6 +282,8 @@ public:
 	// result = first * multiplier
 	virtual void VectorMultiply(const CConstFloatHandle& firstHandle,
 		const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& multiplierHandle) = 0;
+	virtual void VectorMultiply(const CConstIntHandle& firstHandle,
+		const CIntHandle& resultHandle, int vectorSize, const CConstIntHandle& multiplierHandle) = 0;
 	// result = -first * multiplier
 	virtual void VectorNegMultiply(const CConstFloatHandle& firstHandle,
 		const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& multiplierHandle) = 0;
@@ -345,6 +354,9 @@ public:
 	virtual void VectorDotProduct(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle, int vectorSize,
 		const CFloatHandle& resultHandle) = 0;
 
+	// result[i] = first[i] == 0 ? 1 : 0
+	virtual void VectorEltwiseNot( const CConstIntHandle& firstHandle, const CIntHandle& resultHandle, int vectorSize ) = 0;
+
 	// result[i] = first[i] >= 0 ? 1.f : 0.f
 	virtual void VectorEltwiseNotNegative( const CConstIntHandle& firstHanle, const CFloatHandle& resultHandle, int vectorSize ) = 0;
 
@@ -355,6 +367,24 @@ public:
 		const CFloatHandle& resultHandle, int vectorSize ) = 0;
 	virtual void VectorEltwiseLess( float firstHandle, const CConstFloatHandle& secondHandle,
 		const CFloatHandle& resultHandle, int vectorSize ) = 0;
+
+	// result[i] = first[i] < second[i] ? 1 : 0
+	virtual void VectorEltwiseLess( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
+		const CIntHandle& resultHandle, int vectorSize ) = 0;
+	virtual void VectorEltwiseLess( const CConstIntHandle& firstHandle, const CConstIntHandle& secondHandle,
+		const CIntHandle& resultHandle, int vectorSize ) = 0;
+
+	// result[i] = first[i] == second[i] ? 1 : 0
+	virtual void VectorEltwiseEqual( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
+		const CIntHandle& resultHandle, int vectorSize ) = 0;
+	virtual void VectorEltwiseEqual( const CConstIntHandle& firstHandle, const CConstIntHandle& secondHandle,
+		const CIntHandle& resultHandle, int vectorSize ) = 0;
+
+	// result[i] = first[i] != 0 ? second[i] : third[i]
+	virtual void VectorEltwiseWhere( const CConstIntHandle& firstHandle, const CConstFloatHandle& secondHandle,
+		const CConstFloatHandle& thirdHandle, const CFloatHandle& resultHandle, int vectorSize ) = 0;
+	virtual void VectorEltwiseWhere( const CConstIntHandle& firstHandle, const CConstIntHandle& secondHandle,
+		const CConstIntHandle& thirdHandle, const CIntHandle& resultHandle, int vectorSize ) = 0;
 
 	virtual void VectorFindMaxValueInSet(const CConstFloatHandle* vectors, int vectorCount, const CFloatHandle& resultHandle, int vectorSize) = 0;
 	virtual void VectorFindMaxValueInSet(const CConstFloatHandle* vectors, int vectorCount, const CFloatHandle& resultHandle,
@@ -416,6 +446,8 @@ public:
 	virtual void SumMatrixRowsAdd(int batchSize, const CFloatHandle& resultHandle, const CConstFloatHandle& matrixHandle,
 		int matrixHeight, int matrixWidth) = 0;
 	virtual void SumMatrixRows(int batchSize, const CFloatHandle& resultHandle, const CConstFloatHandle& matrixHandle,
+		int matrixHeight, int matrixWidth) = 0;
+	virtual void SumMatrixRows(int batchSize, const CIntHandle& resultHandle, const CConstIntHandle& matrixHandle,
 		int matrixHeight, int matrixWidth) = 0;
 
 	// Calculates the total of matrix columns
@@ -1003,6 +1035,20 @@ public:
 	// result is a 3D tensor of size objectCount x int(scaledAxis * scale) x objectSize
 	virtual void LinearInterpolation( const CConstFloatHandle& dataHandle, const CFloatHandle& resultHandle,
 		TInterpolationCoords coords, TInterpolationRound round, int objectCount, int scaledAxis, int objectSize, float scale ) = 0;
+
+	// ScatterND
+	// Replaces objects in the provided indices with the values from the updates
+	// data[indices[i]] = updates[i] for i in [0; updateCount)
+	// where indices[i] means coordinates in the first indexDims dimensions of the blob
+	// Unaffected data objects remain as-is
+	//
+	// Data consists of objectCount x objectSize elements where objectCount is a production of first indexDims dimensions
+	// Indices consists of updateCount x indexDims elements
+	// Updates consists of updateCount x objectCount elements
+	virtual void ScatterND( const CConstIntHandle& indicesHandle, const CConstFloatHandle& updatesHandle,
+		const CFloatHandle& dataHandle, const CBlobDesc& dataDesc, int updateCount, int indexDims ) = 0;
+	virtual void ScatterND( const CConstIntHandle& indicesHandle, const CConstIntHandle& updatesHandle,
+		const CIntHandle& dataHandle, const CBlobDesc& dataDesc, int updateCount, int indexDims ) = 0;
 };
 
 //------------------------------------------------------------------------------------------------------------

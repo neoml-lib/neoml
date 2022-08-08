@@ -83,17 +83,19 @@ void CClipOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArr
 	if( OpsetVersion < 11 ) {
 		GetAttribute( "min", minValue );
 		GetAttribute( "max", maxValue );
-	} else if( InputCount() > 1 ) {
-		const CDataTensor* minValueTensor = dynamic_cast<const CDataTensor*>( inputs[1].Ptr() );
-		CheckNeoOnnxSupport( minValueTensor != nullptr, "user-provided clip min value", *this );
-		const CDnnBlob* minValueBlob = minValueTensor->Data();
-		if( minValueBlob->GetDataType() == CT_Float ) {
-			minValue = minValueBlob->GetData<float>().GetValue();
-		} else {
-			minValue = static_cast<float>( minValueBlob->GetData<int>().GetValue() );
+	} else {
+		if( InputCount() > 1 && inputs[1] != nullptr ) {
+			const CDataTensor* minValueTensor = dynamic_cast<const CDataTensor*>( inputs[1].Ptr() );
+			CheckNeoOnnxSupport( minValueTensor != nullptr, "user-provided clip min value", *this );
+			const CDnnBlob* minValueBlob = minValueTensor->Data();
+			if( minValueBlob->GetDataType() == CT_Float ) {
+				minValue = minValueBlob->GetData<float>().GetValue();
+			} else {
+				minValue = static_cast<float>( minValueBlob->GetData<int>().GetValue() );
+			}
 		}
 
-		if( InputCount() > 2 ) {
+		if( InputCount() > 2 && inputs[2] != nullptr ) {
 			const CDataTensor* maxValueTensor = dynamic_cast<const CDataTensor*>( inputs[2].Ptr() );
 			CheckNeoOnnxSupport( maxValueTensor != nullptr, "user-provided clip max value", *this );
 			const CDnnBlob* maxValueBlob = maxValueTensor->Data();
@@ -324,6 +326,41 @@ CLogOperator::CLogOperator( const onnx::NodeProto& log, int opsetVersion ) :
 
 	CheckOnnxProtocol( InputCount() == 1, "operator must have 1 input", *this );
 	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
+CErfOperator::CErfOperator( const onnx::NodeProto& erf, int opsetVersion ) :
+	CActivationOperatorBase( erf, opsetVersion, AF_Erf )
+{
+	// v9 - original
+	// v13 - bfloat16 is supported
+	CheckNeoOnnxSupport( OpsetVersion >= 9 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
+
+	CheckOnnxProtocol( InputCount() == 1, "operator must have 1 input", *this );
+	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
+CNegOperator::CNegOperator( const onnx::NodeProto& neg, int opsetVersion ) :
+	CActivationOperatorBase( neg, opsetVersion, AF_Linear )
+{
+	// v1 - original
+	// v6 - legacy optimization attribute is removed
+	// v13 - bfloat16 is supported
+	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
+
+	CheckOnnxProtocol( InputCount() == 1, "operator must have 1 input", *this );
+	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
+}
+
+void CNegOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
+{
+	CActivationOperatorBase::AddLayers( inputs, dnn, outputs );
+	CLinearLayer* linear = dynamic_cast<CLinearLayer*>( dnn.GetLayer( Name() ).Ptr() );
+	NeoAssert( linear != nullptr );
+	linear->SetMultiplier( -1.f );
 }
 
 } // namespace NeoOnnx

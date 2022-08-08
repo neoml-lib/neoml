@@ -33,8 +33,8 @@ private:
 	void getStarts( const CTensorArray& inputs, CFastArray<int, 8>& starts ) const;
 	void getEnds( const CTensorArray& inputs, CFastArray<int, 8>& ends ) const;
 	void getSteps( const CTensorArray& inputs, CFastArray<int, 8>& steps ) const;
-	CPtr<const CUserTensor> sliceAxis( const CUserTensor& input, int axis, int start, int end, int step ) const;
-	CPtr<const CUserTensor> prepareInputForSlice( const CUserTensor& input, int axis ) const;
+	CPtr<const CTensorBase> sliceAxis( const CTensorBase& input, int axis, int start, int end, int step,
+		CDnn& dnn ) const;
 };
 
 } // namespace NeoOnnx

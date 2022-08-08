@@ -292,4 +292,22 @@ protected:
 
 NEOML_API CLayerWrapper<CLogLayer> Log();
 
+//------------------------------------------------------------------------------------------------------------
+
+// The layer that calculates error function of each element of the input
+class NEOML_API CErfLayer : public CBaseLayer {
+	NEOML_DNN_LAYER( CErfLayer )
+public:
+	explicit CErfLayer( IMathEngine& mathEngine ) : CBaseLayer( mathEngine, "CErfLayer", false ) {}
+
+	void Serialize( CArchive& archive ) override;
+
+protected:
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
+};
+
+NEOML_API CLayerWrapper<CErfLayer> Erf();
+
 } // namespace NeoML

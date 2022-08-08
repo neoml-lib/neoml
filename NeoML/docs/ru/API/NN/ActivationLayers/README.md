@@ -56,4 +56,5 @@ enum TActivationFunction {
 `AF_GELU` | [CGELULayer](GELULayer.md) | функция активации `x * sigmoid(1.702 * x)`
 `AF_Exp` | [CExpLayer](ExpLayer.md) | функция активации `exp`
 `AF_Log` | [CLogLayer](LogLayer.md) | функция активации `log`
+`AF_Erf` | [CErfLayer](ErfLayer.md) | функция активации `erf`
 `AF_Count` | | Вспомогательная константа, равная числу поддержанных функций активации.

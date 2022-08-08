@@ -508,6 +508,11 @@ void CVulkanMathEngine::VectorNegLog(const CConstFloatHandle& firstHandle, const
 		&param, sizeof(param), 0, 0, 0, 0, bufs, sizes, 2, Ceil(vectorSize, VectorCombine));
 }
 
+void CVulkanMathEngine::VectorErf( const CConstFloatHandle&, const CFloatHandle&, int )
+{
+	ASSERT_EXPR( false );
+}
+
 void CVulkanMathEngine::VectorBernulliKLDerivative(const CConstFloatHandle& estimationHandle,
 	const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& target)
 {
@@ -628,6 +633,11 @@ void CVulkanMathEngine::VectorMultiply(const CConstFloatHandle& firstHandle,
 
 	runVectorShader(shaderLoader->GET_SHADER_DATA(VectorMultiplyFloat, true, 0, 0, 3),
 		&param, sizeof(param), 0, 0, 0, 0, bufs, sizes, 3, Ceil(vectorSize, VectorCombine));
+}
+
+void CVulkanMathEngine::VectorMultiply(const CConstIntHandle&, const CIntHandle&, int, const CConstIntHandle&)
+{
+    ASSERT_EXPR( false );
 }
 
 void CVulkanMathEngine::VectorNegMultiply(const CConstFloatHandle& firstHandle,
@@ -875,6 +885,11 @@ void CVulkanMathEngine::VectorDotProduct(const CConstFloatHandle& firstHandle,
 	runVectorShader(shaderData, 0, 0, 0, 0, 0, 0, bufs, sizes, 3, shaderData.GetGroupSize());
 }
 
+void CVulkanMathEngine::VectorEltwiseNot( const CConstIntHandle&, const CIntHandle&, int )
+{
+	ASSERT_EXPR( false );
+}
+
 void CVulkanMathEngine::VectorEltwiseNotNegative( const CConstIntHandle&, const CFloatHandle&, int )
 {
 	ASSERT_EXPR( false );
@@ -894,6 +909,42 @@ void CVulkanMathEngine::VectorEltwiseLess( const CConstFloatHandle&, float,
 
 void CVulkanMathEngine::VectorEltwiseLess( float, const CConstFloatHandle&,
 	const CFloatHandle&, int )
+{
+	ASSERT_EXPR( false );
+}
+
+void CVulkanMathEngine::VectorEltwiseLess( const CConstFloatHandle&, const CConstFloatHandle&,
+	const CIntHandle&, int )
+{
+	ASSERT_EXPR( false );
+}
+
+void CVulkanMathEngine::VectorEltwiseLess( const CConstIntHandle&, const CConstIntHandle&,
+	const CIntHandle&, int )
+{
+	ASSERT_EXPR( false );
+}
+
+void CVulkanMathEngine::VectorEltwiseEqual( const CConstFloatHandle&, const CConstFloatHandle&,
+	const CIntHandle&, int )
+{
+	ASSERT_EXPR( false );
+}
+
+void CVulkanMathEngine::VectorEltwiseEqual( const CConstIntHandle&, const CConstIntHandle&,
+	const CIntHandle&, int )
+{
+	ASSERT_EXPR( false );
+}
+
+void CVulkanMathEngine::VectorEltwiseWhere( const CConstIntHandle&, const CConstFloatHandle&, const CConstFloatHandle&,
+	const CFloatHandle&, int )
+{
+	ASSERT_EXPR( false );
+}
+
+void CVulkanMathEngine::VectorEltwiseWhere( const CConstIntHandle&, const CConstIntHandle&, const CConstIntHandle&,
+	const CIntHandle&, int )
 {
 	ASSERT_EXPR( false );
 }
@@ -970,7 +1021,13 @@ void CVulkanMathEngine::VectorSumAlongDimension( const CConstFloatHandle&, int, 
 }
 
 void CVulkanMathEngine::VectorCumSumAlongDimension( const CConstFloatHandle& /*firstHandle*/, int /*precedingDimension*/, int /*dimension*/,
-	int /*followingDimension*/, const CFloatHandle& /*resultHandle*/ )
+	int /*followingDimension*/, const CFloatHandle& /*resultHandle*/, bool /*reverse*/ )
+{
+	ASSERT_EXPR(false);
+}
+
+void CVulkanMathEngine::VectorCumSumAlongDimension( const CConstIntHandle& /*firstHandle*/, int /*precedingDimension*/, int /*dimension*/,
+	int /*followingDimension*/, const CIntHandle& /*resultHandle*/, bool /*reverse*/ )
 {
 	ASSERT_EXPR(false);
 }

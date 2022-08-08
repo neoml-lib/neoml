@@ -54,6 +54,7 @@ pybind11_add_module(PythonWrapper
     src/PyClustering.cpp
     src/PyCrfLayer.cpp
     src/PyCtcLayer.cpp
+    src/PyCumSumLayer.cpp
     src/PyCustomLossLayer.cpp
     src/PyDataLayer.cpp
     src/PyDifferentialEvolution.cpp
@@ -70,6 +71,7 @@ pybind11_add_module(PythonWrapper
     src/PyIrnnLayer.cpp
     src/PyGruLayer.cpp
     src/PyLayer.cpp
+    src/PyLogicalLayer.cpp
     src/PyLossLayer.cpp
     src/PyLrnLayer.cpp
     src/PyLstmLayer.cpp
@@ -87,6 +89,7 @@ pybind11_add_module(PythonWrapper
     src/PyRandom.cpp
     src/PyReorgLayer.cpp
     src/PyRepeatSequenceLayer.cpp
+    src/PyScatterGatherLayers.cpp
     src/PySequenceSumLayer.cpp
     src/PySoftmaxLayer.cpp
     src/PySplitLayer.cpp

@@ -236,6 +236,25 @@ void CCudaMathEngine::SubVectorFromMatrixColumns(const CConstFloatHandle& matrix
 		(GetRaw(matrixHandle), GetRaw(resultHandle), matrixHeight, matrixWidth, GetRaw(vectorHandle));
 }
 
+void CCudaMathEngine::SumMatrixRows( int batchSize, const CIntHandle& resultHandle,
+	const CConstIntHandle& matrixHandle, int matrixHeight, int matrixWidth )
+{
+	ASSERT_EXPR( matrixHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
+
+	VectorFill( resultHandle, 0, batchSize * matrixWidth );
+
+	const int height = ( matrixHeight + SumMatrixRowsAddCombineCount - 1 ) / SumMatrixRowsAddCombineCount;
+
+	dim3 blockCount;
+	dim3 threadCount;
+	getCudaTaskGrid3D( blockCount, threadCount, batchSize, height, matrixWidth );
+
+	SumMatrixRowsAddKernel<<<blockCount, threadCount>>>
+		( batchSize, GetRaw(resultHandle), GetRaw(matrixHandle), matrixHeight, matrixWidth );
+}
+
 void CCudaMathEngine::SumMatrixRowsAdd( 
 	int batchSize, const CFloatHandle& resultHandle, const CConstFloatHandle& matrixHandle,
 	int matrixHeight, int matrixWidth )

@@ -78,6 +78,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/SoftmaxLayer.h>
 #include <NeoML/Dnn/Layers/GlobalMeanPoolingLayer.h>
 #include <NeoML/Dnn/Layers/GlobalMaxPoolingLayer.h>
+#include <NeoML/Dnn/Layers/GlobalSumPoolingLayer.h>
 #include <NeoML/Dnn/Layers/LstmLayer.h>
 #include <NeoML/Dnn/Layers/ReorgLayer.h>
 #include <NeoML/Dnn/Layers/GruLayer.h>
@@ -129,6 +130,9 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/BertConvLayer.h>
 #include <NeoML/Dnn/Layers/InterpolationLayer.h>
 #include <NeoML/Dnn/Layers/BroadcastLayer.h>
+#include <NeoML/Dnn/Layers/LogicalLayers.h>
+#include <NeoML/Dnn/Layers/CumSumLayer.h>
+#include <NeoML/Dnn/Layers/ScatterGatherLayers.h>
 #include <NeoML/ArchiveFile.h>
 
 #ifndef NO_NEOML_NAMESPACE

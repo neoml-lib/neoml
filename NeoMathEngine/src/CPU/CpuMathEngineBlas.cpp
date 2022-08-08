@@ -401,6 +401,23 @@ void CCpuMathEngine::SumMatrixRows(int batchSize,
 	SumMatrixRowsAdd(batchSize, resultHandle, matrixHandle, matrixHeight, matrixWidth);
 }
 
+void CCpuMathEngine::SumMatrixRows(int batchSize, const CIntHandle& resultHandle, const CConstIntHandle& matrixHandle,
+	int matrixHeight, int matrixWidth)
+{
+	CCpuExecutionScope scope;
+
+	VectorFill( resultHandle, 0, batchSize * matrixWidth );
+	CConstIntHandle matrix = matrixHandle;
+	CIntHandle result = resultHandle;
+	for( int i = 0; i < batchSize; ++i ) {
+		for( int j = 0; j < matrixHeight; j++ ) {
+			VectorAdd(result, matrix, result, matrixWidth);
+			matrix += matrixWidth;
+		}
+		result += matrixWidth;
+	}
+}
+
 void CCpuMathEngine::SumMatrixRowsAdd(int batchSize,
 	const CFloatHandle& resultHandle, const CConstFloatHandle& matrixHandle, int matrixHeight, int matrixWidth)
 {

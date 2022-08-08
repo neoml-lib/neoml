@@ -19,15 +19,14 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-// Where operator
-class CWhereOperator : public COperator {
+// CumSum operator
+class CCumSumOperator : public CLayerOperator {
 public:
-	CWhereOperator( const onnx::NodeProto& where, int opsetVersion );
+	CCumSumOperator( const onnx::NodeProto& cumSum, int opsetVersion );
 
 protected:
-	// COperator methods
-	void ProcessTensors( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
+	// CLayerOperator methods
+	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
 };
 
 } // namespace NeoOnnx
-
