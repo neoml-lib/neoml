@@ -138,7 +138,6 @@ backend_test.exclude('test_maxpool_3d_')  # NeoOnnx supports only 2d max pooling
 backend_test.exclude('test_maxpool_with_argmax_')  # NeoML doesn't support indices as additional output
 backend_test.exclude('test_nonzero_')  # NeoOnnx supports nonzero only over constant tensors
 backend_test.exclude('test_onehot_')  # NeoOnnx supports only constant depth in OneHot
-backend_test.exclude('test_not_')  # NeoML doesn't support bool as dtype
 backend_test.exclude('test_pow_')  # NeoML doesn't support power of the exponent as input
 backend_test.exclude('test_range')  # NeoOnnx supports Range only over constant data
 backend_test.exclude('test_reflect_pad_')  # NeoML supports padding only with 'constant' mode
