@@ -104,7 +104,7 @@ backend_test.exclude('test_xor4d_')  # Xor
 backend_test.exclude('test_xor_')  # Xor
 # Operators partly supported (with comments, why test fails)
 # TODO: analyze nodes that are implemented but can't be tested...
-backend_test.exclude('test_argmax_')  # ONNX tests expect int64 index dtype
+backend_test.exclude('test_argmax_[a-z0-9_]*_select_last_index_')  # NeoML doesn't support last index in ArgMax
 backend_test.exclude('test_averagepool_[a-z0-9_]*_pads_')  # NeoML doesn't support pads for average pooling
 backend_test.exclude('test_averagepool_[a-z0-9_]*_same_')  # NeoML doesn't support pads for average pooling
 backend_test.exclude('test_averagepool_[a-z0-9_]*_ceil_')  # NeoML doesn't support ceiling for average pooling
