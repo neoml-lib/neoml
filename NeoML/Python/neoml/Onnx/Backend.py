@@ -18,6 +18,7 @@ from .API import load_from_buffer
 import onnx.backend.base
 import neoml.MathEngine
 import neoml.Blob
+import numpy as np
 
 class BackendRep:
 	def __init__(self, model, device):
@@ -29,7 +30,14 @@ class BackendRep:
 	
 	def run(self, inputs, **kwargs):
 		neoml_inputs = dict()
+		def _get_dtype(orig_dtype):
+			if np.issubdtype(orig_dtype, np.floating):
+				return np.float32
+			elif np.issubdtype(orig_dtype, np.integer) or orig_dtype == bool:
+				return np.int32
+			raise ValueError(f'{orig_dtype} is not supported by neoml.Onnx.BackendRep')
 		for idx, onnx_input in enumerate(inputs):
+			onnx_input = onnx_input.astype(_get_dtype(onnx_input.dtype), copy=False)
 			neoml_shape = list(onnx_input.shape) + [1] * (7 - len(onnx_input.shape))
 			neoml_blob = neoml.Blob.asblob(self.dnn.math_engine, onnx_input, neoml_shape)
 			neoml_inputs[self.info.inputs[idx].name] = neoml_blob
