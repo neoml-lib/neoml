@@ -361,6 +361,7 @@ REGISTER_NEOML_LAYER( CEqualLayer, "NeoMLDnnEqualLayer" )
 REGISTER_NEOML_LAYER( CWhereLayer, "NeoMLDnnWhereLayer" )
 REGISTER_NEOML_LAYER( CScatterNDLayer, "NeoMLDnnScatterNDLayer" )
 REGISTER_NEOML_LAYER( CTransformerSourceMaskLayer, "NeoMLDnnTransformerSourceMaskLayer" )
+
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
