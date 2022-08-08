@@ -133,7 +133,8 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/LogicalLayers.h>
 #include <NeoML/Dnn/Layers/CumSumLayer.h>
 #include <NeoML/Dnn/Layers/ScatterGatherLayers.h>
-#include <NeoML/Dnn/Layers/TransformerSourceMaskLayer.h>#include <NeoML/ArchiveFile.h>
+#include <NeoML/Dnn/Layers/TransformerSourceMaskLayer.h>
+#include <NeoML/ArchiveFile.h>
 
 #ifndef NO_NEOML_NAMESPACE
 using namespace NeoML;
