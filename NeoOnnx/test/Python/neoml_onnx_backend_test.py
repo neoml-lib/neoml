@@ -194,7 +194,6 @@ backend_test.exclude('test_operator_maxpool_')  # NeoOnnx supports only 2d max p
 backend_test.exclude('test_operator_min_')  # Contains Min operator
 # NeoML supports only specific case when it's an FC layer (with constant weights)
 backend_test.exclude('test_operator_mm_')
-backend_test.exclude('test_operator_non_float_params_')  # NeoML doesn't support 64-bit data types
 backend_test.exclude('test_operator_pad_')  # NeoML supports padding only with 'constant' mode
 backend_test.exclude('test_operator_pow_')  # NeoML doesn't support power of the exponent as input
 backend_test.exclude('test_operator_repeat_')  # Contains Tile operator
