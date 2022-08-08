@@ -112,6 +112,8 @@ static void blobGlobalMaxPoolingTestImpl( const CTestParams& params, int seed )
 //------------------------------------------------------------------------------------------------------------
 
 class CMathEngineGlobalMaxPoolingTest : public CTestFixtureWithParams {
+public:
+	void SetUp() override { MathEngine().CleanUp(); }
 };
 
 INSTANTIATE_TEST_CASE_P( CMathEngineGlobalMaxPoolingTestInstantiation, CMathEngineGlobalMaxPoolingTest,

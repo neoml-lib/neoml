@@ -218,19 +218,35 @@ public:
 	int UniformInt( int min, int max ) { return (int)(min + (unsigned int)(((static_cast<unsigned long long>(max) - min + 1) * Next()) >> 32));  }
 };
 
+class CSparseMatrix {
+public:
+	CSparseMatrix( IMathEngine& mathEngine, const std::vector<int>& _rows,
+			const std::vector<int>& _columns, const std::vector<float>& _values ) :
+		elementCount( static_cast<int>( _values.size() ) ),
+		rows( mathEngine, _rows.size() ),
+		columns( mathEngine, _columns.size() ),
+		values( mathEngine, _values.size() )
+	{
+		mathEngine.DataExchangeTyped<int>( rows, _rows.data(), _rows.size() );
+		mathEngine.DataExchangeTyped<int>( columns, _columns.data(), _columns.size() );
+		mathEngine.DataExchangeTyped<float>( values, _values.data(), _values.size() );
+	}
+
+	CSparseMatrixDesc Desc() const
+	{
+		CSparseMatrixDesc desc;
+		desc.ElementCount = elementCount;
+		desc.Rows = rows;
+		desc.Columns = columns;
+		desc.Values = values;
+		return desc;
+	}
+
+private:
+	int elementCount;
+	CIntHandleVar rows;
+	CIntHandleVar columns;
+	CFloatHandleVar values;
+};
+
 } // namespace NeoMLTest
-
-//------------------------------------------------------------------------------------------------------------
-
-inline CSparseMatrixDesc GetSparseMatrix( IMathEngine& mathEngine, const std::vector<int>& rows, const std::vector<int>& columns, const std::vector<float>& values )
-{
-	CSparseMatrixDesc matrix;
-	matrix.ElementCount = static_cast<int>( values.size() );
-	matrix.Rows = CIntHandle( mathEngine.HeapAlloc( rows.size() * sizeof( float ) ) );
-	mathEngine.DataExchangeTyped<int>( matrix.Rows, rows.data(), rows.size() );
-	matrix.Columns = CIntHandle( mathEngine.HeapAlloc( columns.size() * sizeof( float ) ) );
-	mathEngine.DataExchangeTyped<int>( matrix.Columns, columns.data(), columns.size() );
-	matrix.Values = CFloatHandle( mathEngine.HeapAlloc( values.size() * sizeof( float ) ) );
-	mathEngine.DataExchangeTyped<float>( matrix.Values, values.data(), values.size() );
-	return matrix;
-}
