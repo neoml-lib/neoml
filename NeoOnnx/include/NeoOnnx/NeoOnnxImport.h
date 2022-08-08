@@ -32,7 +32,6 @@ struct NEOONNX_API CImportedModelInfo {
 
 	struct NEOONNX_API COutputInfo {
 		CString Name;
-		int DimCount = NotFound;
 	};
 
 	CArray<CInputInfo> Inputs;

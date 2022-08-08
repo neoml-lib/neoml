@@ -25,10 +25,9 @@ class ImportedModelInputInfo:
 
 
 class ImportedModelOutputInfo:
-    __slots__ = ['name', 'dim_count']
-    def __init__(self, name, dim_count):
+    __slots__ = ['name']
+    def __init__(self, name):
         self.name = name
-        self.dim_count = dim_count
 
 
 class ImportedModelInfo:

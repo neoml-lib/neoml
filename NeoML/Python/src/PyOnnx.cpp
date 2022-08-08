@@ -35,7 +35,7 @@ py::object wrapResults( const NeoOnnx::CImportedModelInfo& cInfo )
 	}
 	py::list outputs = info.attr( "outputs" );
 	for( int i = 0; i < cInfo.Outputs.Size(); ++i ) {
-		outputs.append( pyOutputConstructor( py::str( cInfo.Outputs[i].Name ), py::int_( cInfo.Outputs[i].DimCount ) ) );
+		outputs.append( pyOutputConstructor( py::str( cInfo.Outputs[i].Name ) ) );
 	}
 	py::dict metadata = info.attr( "metadata" );
 	const CMap<CString, CString>& cMapMetadata = cInfo.Metadata;
