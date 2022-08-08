@@ -123,7 +123,6 @@ backend_test.exclude('test_cumsum_')  # NeoML doesn't axis index as input
 backend_test.exclude('test_dropout_default_mask_')  # NeoML doesn't support dropout mask as output
 backend_test.exclude('test_dropout_default_ratio_')  # NeoML doesn't support dropout rate as input
 backend_test.exclude('test_edge_pad_')  # NeoML supports padding only with 'constant' mode
-backend_test.exclude('test_equal_')  # NeoML doesn't support bool as dtype
 backend_test.exclude('test_expand_')  # NeoML doesn't support shape as input
 backend_test.exclude('test_gather_negative_indices')  # NeoOnnx doesn't support negative indices
 backend_test.exclude('test_gemm_')  # NeoML supports only specific case when it's an FC layer (with constant weights)
