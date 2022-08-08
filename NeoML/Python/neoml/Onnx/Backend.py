@@ -49,13 +49,19 @@ class BackendRep:
         else:
             math_engine = neoml.MathEngine.GpuMathEngine()
         self.dnn, self.info = load_from_buffer(model.SerializeToString(), math_engine)
-        self.onnx_output_dtypes = [None] * len(self.info.outputs)
+        self.output_dtypes = [None] * len(self.info.outputs)
+        self.output_dim_count = [None] * len(self.info.outputs)
         for value_info in model.graph.output:
             for idx, out in enumerate(self.info.outputs):
                 if out.name == value_info.name:
                     try:
-                        self.onnx_output_dtypes[idx] = \
+                        self.output_dtypes[idx] = \
                             _onnx_type_to_np[value_info.type.tensor_type.elem_type]
+                    except:
+                        pass
+                    try:
+                        self.output_dim_count[idx] = \
+                            len(value_info.type.tensor_type.shape.dim)
                     except:
                         pass
 
@@ -74,10 +80,11 @@ class BackendRep:
             neoml_inputs[self.info.inputs[idx].name] = neoml_blob
         neoml_outputs = self.dnn.run(neoml_inputs)
         result = list()
-        for output, onnx_dtype in zip(self.info.outputs, self.onnx_output_dtypes):
+        for output, onnx_dtype, dim_count in zip(self.info.outputs, self.output_dtypes, self.output_dim_count):
             out_blob = neoml_outputs[output.name]
             result.append(out_blob.asarray())
-            result[-1].resize(out_blob.shape[:output.dim_count])
+            if dim_count is not None:
+                result[-1].resize(out_blob.shape[:dim_count])
             if onnx_dtype is not None:
                 result[-1] = result[-1].astype(onnx_dtype, copy=False)
         return result
