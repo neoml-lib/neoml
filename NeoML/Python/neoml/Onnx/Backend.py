@@ -21,50 +21,50 @@ import neoml.Blob
 import numpy as np
 
 class BackendRep:
-	def __init__(self, model, device):
-		if device == 'CPU':
-			math_engine = neoml.MathEngine.CpuMathEngine(1)
-		else:
-			math_engine = neoml.MathEngine.GpuMathEngine()
-		self.dnn, self.info = load_from_buffer(model.SerializeToString(), math_engine)
-	
-	def run(self, inputs, **kwargs):
-		neoml_inputs = dict()
-		def _get_dtype(orig_dtype):
-			if np.issubdtype(orig_dtype, np.floating):
-				return np.float32
-			elif np.issubdtype(orig_dtype, np.integer) or orig_dtype == bool:
-				return np.int32
-			raise ValueError(f'{orig_dtype} is not supported by neoml.Onnx.BackendRep')
-		for idx, onnx_input in enumerate(inputs):
-			onnx_input = onnx_input.astype(_get_dtype(onnx_input.dtype), copy=False)
-			neoml_shape = list(onnx_input.shape) + [1] * (7 - len(onnx_input.shape))
-			neoml_blob = neoml.Blob.asblob(self.dnn.math_engine, onnx_input, neoml_shape)
-			neoml_inputs[self.info.inputs[idx].name] = neoml_blob
-		neoml_outputs = self.dnn.run(neoml_inputs)
-		result = list()
-		for output in self.info.outputs:
-			out_blob = neoml_outputs[output.name]
-			result.append(out_blob.asarray())
-			result[-1].resize(out_blob.shape[:output.dim_count])
-		return result
+    def __init__(self, model, device):
+        if device == 'CPU':
+            math_engine = neoml.MathEngine.CpuMathEngine(1)
+        else:
+            math_engine = neoml.MathEngine.GpuMathEngine()
+        self.dnn, self.info = load_from_buffer(model.SerializeToString(), math_engine)
+    
+    def run(self, inputs, **kwargs):
+        neoml_inputs = dict()
+        def _get_dtype(orig_dtype):
+            if np.issubdtype(orig_dtype, np.floating):
+                return np.float32
+            elif np.issubdtype(orig_dtype, np.integer) or orig_dtype == bool:
+                return np.int32
+            raise ValueError(f'{orig_dtype} is not supported by neoml.Onnx.BackendRep')
+        for idx, onnx_input in enumerate(inputs):
+            onnx_input = onnx_input.astype(_get_dtype(onnx_input.dtype), copy=False)
+            neoml_shape = list(onnx_input.shape) + [1] * (7 - len(onnx_input.shape))
+            neoml_blob = neoml.Blob.asblob(self.dnn.math_engine, onnx_input, neoml_shape)
+            neoml_inputs[self.info.inputs[idx].name] = neoml_blob
+        neoml_outputs = self.dnn.run(neoml_inputs)
+        result = list()
+        for output in self.info.outputs:
+            out_blob = neoml_outputs[output.name]
+            result.append(out_blob.asarray())
+            result[-1].resize(out_blob.shape[:output.dim_count])
+        return result
 
 
 class Backend(onnx.backend.base.Backend):
-	@classmethod
-	def prepare(cls, model, device='CPU'):
-		return BackendRep(model, device)
-	
-	@classmethod
-	def run_model(cls, model, inputs, device='CPU', **kwargs):
-		back_rep = cls.prepare(model, device)
-		assert back_rep is not NesterovGradient
-		return back_rep.run(inputs)
+    @classmethod
+    def prepare(cls, model, device='CPU'):
+        return BackendRep(model, device)
+    
+    @classmethod
+    def run_model(cls, model, inputs, device='CPU', **kwargs):
+        back_rep = cls.prepare(model, device)
+        assert back_rep is not NesterovGradient
+        return back_rep.run(inputs)
 
-	@classmethod
-	def supports_device(cls, device):
-		device = device.upper()
-		return device == 'CPU' or device == 'GPU' or device == 'CUDA'
+    @classmethod
+    def supports_device(cls, device):
+        device = device.upper()
+        return device == 'CPU' or device == 'GPU' or device == 'CUDA'
 
 
 run_model = Backend.run_model
