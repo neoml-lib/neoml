@@ -119,7 +119,7 @@ backend_test.exclude('test_constantofshape_')  # NeoML doesn't support tensor si
 backend_test.exclude('test_conv_')  # NeoML doesn't support trained filters as input
 backend_test.exclude('test_convinteger_')  # NeoML doesn't support integer convolution
 backend_test.exclude('test_convtranspose_')  # NeoML doesn't support trained filters as input
-backend_test.exclude('test_cumsum_')  # NeoML doesn't support 64-bit floating type
+backend_test.exclude('test_cumsum_')  # NeoML doesn't axis index as input
 backend_test.exclude('test_dropout_default_mask_')  # NeoML doesn't support dropout mask as output
 backend_test.exclude('test_dropout_default_ratio_')  # NeoML doesn't support dropout rate as input
 backend_test.exclude('test_edge_pad_')  # NeoML supports padding only with 'constant' mode
