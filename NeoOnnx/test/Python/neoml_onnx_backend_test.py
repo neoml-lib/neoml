@@ -146,7 +146,6 @@ backend_test.exclude('test_resize_')  # NeoML doesn't support sizes or scales as
 backend_test.exclude('test_slice_')  # NeoML doesn't support sizes, stars, ends or axes as inputs
 backend_test.exclude('test_split_zero_size_')  # NeoML doesn't support tensors of size 0
 backend_test.exclude('test_upsample_')  # NeoML doesn't support scales as input
-backend_test.exclude('test_where_long_')  # NeoML doesn't support 64-bit data types
 
 # OnnxBackendRealModelTest (a bunch of models from the model zoo)
 
