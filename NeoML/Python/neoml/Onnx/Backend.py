@@ -20,6 +20,28 @@ import neoml.MathEngine
 import neoml.Blob
 import numpy as np
 
+
+_onnx_type_to_np = [
+    None,  # onnx::TensorProto::UNDEFINED
+    np.float32,  # FLOAT
+    np.uint8,  # UINT8
+    np.int8,  # INT8
+    np.uint16,  # UINT16
+    np.int16,  # INT16
+    np.int32,  # INT32
+    np.int64,  # INT64
+    None,  # STRING
+    bool,  # BOOL
+    np.float16,  # FLOAT16
+    np.double,  # DOUBLE
+    np.uint32,  # UINT32
+    np.uint64,  # UINT64
+    None,  # COMPLEX64
+    None,  # COMPLEX64
+    None  # BFLOAT16
+]
+
+
 class BackendRep:
     def __init__(self, model, device):
         if device == 'CPU':
@@ -27,7 +49,16 @@ class BackendRep:
         else:
             math_engine = neoml.MathEngine.GpuMathEngine()
         self.dnn, self.info = load_from_buffer(model.SerializeToString(), math_engine)
-    
+        self.onnx_output_dtypes = [None] * len(self.info.outputs)
+        for value_info in model.graph.output:
+            for idx, out in enumerate(self.info.outputs):
+                if out.name == value_info.name:
+                    try:
+                        self.onnx_output_dtypes[idx] = \
+                            _onnx_type_to_np[value_info.type.tensor_type.elem_type]
+                    except:
+                        pass
+
     def run(self, inputs, **kwargs):
         neoml_inputs = dict()
         def _get_dtype(orig_dtype):
@@ -43,10 +74,12 @@ class BackendRep:
             neoml_inputs[self.info.inputs[idx].name] = neoml_blob
         neoml_outputs = self.dnn.run(neoml_inputs)
         result = list()
-        for output in self.info.outputs:
+        for output, onnx_dtype in zip(self.info.outputs, self.onnx_output_dtypes):
             out_blob = neoml_outputs[output.name]
             result.append(out_blob.asarray())
             result[-1].resize(out_blob.shape[:output.dim_count])
+            if onnx_dtype is not None:
+                result[-1] = result[-1].astype(onnx_dtype, copy=False)
         return result
 
 
@@ -58,7 +91,6 @@ class Backend(onnx.backend.base.Backend):
     @classmethod
     def run_model(cls, model, inputs, device='CPU', **kwargs):
         back_rep = cls.prepare(model, device)
-        assert back_rep is not NesterovGradient
         return back_rep.run(inputs)
 
     @classmethod
