@@ -45,6 +45,7 @@ backend_test.exclude('test_eyelike_')  # EyeLike
 backend_test.exclude('test_floor_')  # Floor
 backend_test.exclude('test_gather_elements_')  # GatherElements
 backend_test.exclude('test_gathernd_')  # GatherND
+backend_test.exclude('test_greater_[a-z0-9_]*_expanded_')  # Or
 backend_test.exclude('test_gru_')  # GRU
 backend_test.exclude('test_hardmax_')  # HardMax
 backend_test.exclude('test_isinf_')  # IsInf
@@ -126,7 +127,6 @@ backend_test.exclude('test_edge_pad_')  # NeoML supports padding only with 'cons
 backend_test.exclude('test_expand_')  # NeoML doesn't support shape as input
 backend_test.exclude('test_gather_negative_indices')  # NeoOnnx doesn't support negative indices
 backend_test.exclude('test_gemm_')  # NeoML supports only specific case when it's an FC layer (with constant weights)
-backend_test.exclude('test_greater_')  # NeoML doesn't support bool as dtype
 backend_test.exclude('test_instancenorm_')  # NeoML doesn't support scales as input
 backend_test.exclude('test_less_')  # NeoML doesn't support bool as dtype
 backend_test.exclude('test_lstm_')  # NeoML doesn't support trained weights as inputs
