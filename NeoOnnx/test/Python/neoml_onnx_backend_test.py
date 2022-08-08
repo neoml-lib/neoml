@@ -50,6 +50,7 @@ backend_test.exclude('test_gru_')  # GRU
 backend_test.exclude('test_hardmax_')  # HardMax
 backend_test.exclude('test_isinf_')  # IsInf
 backend_test.exclude('test_isnan_')  # IsNan
+backend_test.exclude('test_less_[a-z0-9_]*_expanded_')  # Or
 backend_test.exclude('test_matmulinteger_')  # MatMulInteger
 backend_test.exclude('test_max_')  # Max
 backend_test.exclude('test_maxunpool_')  # MaxUnpool
@@ -128,7 +129,6 @@ backend_test.exclude('test_expand_')  # NeoML doesn't support shape as input
 backend_test.exclude('test_gather_negative_indices')  # NeoOnnx doesn't support negative indices
 backend_test.exclude('test_gemm_')  # NeoML supports only specific case when it's an FC layer (with constant weights)
 backend_test.exclude('test_instancenorm_')  # NeoML doesn't support scales as input
-backend_test.exclude('test_less_')  # NeoML doesn't support bool as dtype
 backend_test.exclude('test_lstm_')  # NeoML doesn't support trained weights as inputs
 backend_test.exclude('test_maxpool_1d_')  # NeoOnnx supports only 2d max pooling
 backend_test.exclude('test_maxpool_2d_ceil_')  # NeoML doesn't support ceil in maxpool
