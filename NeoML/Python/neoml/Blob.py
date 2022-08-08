@@ -337,14 +337,8 @@ def asblob(math_engine, data, shape=None, copy=False):
         dtype = 'float32'
     elif np_data.dtype == np.int32:
         dtype = 'int32'
-    elif np.issubdtype(np_data.dtype, np.floating):
-        np_data = np_data.astype(np.float32)
-        dtype = 'float32'
-    elif np.issubdtype(np_data.dtype, np.integer) or np_data.dtype == bool or np_data.dtype == np.bool:
-        np_data = np_data.astype(np.int32)
-        dtype = 'int32'
     else:
-        raise ValueError('The `dtype` must be the subdtype of np.integer or np.floating.')
+        raise ValueError('The `dtype` must be one of {`float32`, `int32`}.')
 
     if type(math_engine) is MathEngine.GpuMathEngine:
         copy = True
