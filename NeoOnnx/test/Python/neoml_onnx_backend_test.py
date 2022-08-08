@@ -143,7 +143,6 @@ backend_test.exclude('test_range')  # NeoOnnx supports Range only over constant 
 backend_test.exclude('test_reflect_pad_')  # NeoML supports padding only with 'constant' mode
 backend_test.exclude('test_reshape_')  # NeoML doesn't support shape as input
 backend_test.exclude('test_resize_')  # NeoML doesn't support sizes or scales as inputs
-backend_test.exclude('test_shape_')  # NeoML doesn't support 64-bit data types
 backend_test.exclude('test_slice_')  # NeoML doesn't support sizes, stars, ends or axes as inputs
 backend_test.exclude('test_split_zero_size_')  # NeoML doesn't support tensors of size 0
 backend_test.exclude('test_upsample_')  # NeoML doesn't support scales as input
