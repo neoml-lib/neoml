@@ -18,7 +18,9 @@ limitations under the License.
 using namespace NeoML;
 using namespace NeoMLTest;
 
-static void sumMatrixRowsAddNaive( std::vector<float>& vector, const std::vector<float>& matrix, int batchSize, int height, int width )
+template<class T>
+static void sumMatrixRowsAddNaive( std::vector<T>& vector, const std::vector<T>& matrix,
+	int batchSize, int height, int width )
 {
 	for( int b = 0; b < batchSize; ++b ) {
 		for( int h = 0; h < height; ++h ) {
@@ -29,6 +31,7 @@ static void sumMatrixRowsAddNaive( std::vector<float>& vector, const std::vector
 	}
 }
 
+template<class T>
 static void sumMatrixRowsTestImpl( const CTestParams& params, int seed )
 {
 	CRandom random( seed );
@@ -42,19 +45,20 @@ static void sumMatrixRowsTestImpl( const CTestParams& params, int seed )
 	const int width = random.UniformInt( widthInterval.Begin, widthInterval.End );
 	const int batchSize = random.UniformInt( batchSizeInterval.Begin, batchSizeInterval.End );
 
-	CREATE_FILL_FLOAT_ARRAY( matrix, valuesInterval.Begin, valuesInterval.End, batchSize * height * width, random )
-	CREATE_FILL_FLOAT_ARRAY( getVector, valuesInterval.Begin, valuesInterval.End, batchSize * width, random )
-	std::vector<float> expectedVector;
+	CREATE_FILL_ARRAY( T, matrix, valuesInterval.Begin, valuesInterval.End, batchSize * height * width, random )
+	CREATE_FILL_ARRAY( T, getVector, valuesInterval.Begin, valuesInterval.End, batchSize * width, random )
+	std::vector<T> expectedVector;
 	expectedVector = getVector;
 
 	for( size_t i = 0; i < expectedVector.size(); ++i ) {
-		expectedVector[i] = 0.f;
+		expectedVector[i] = static_cast<T>( 0 );
 	}
-	MathEngine().SumMatrixRows( batchSize, CARRAY_FLOAT_WRAPPER( getVector ), CARRAY_FLOAT_WRAPPER( matrix ), height, width );
+	MathEngine().SumMatrixRows( batchSize, CARRAY_WRAPPER( T, getVector ), CARRAY_WRAPPER( T, matrix ), height, width );
 	sumMatrixRowsAddNaive( expectedVector, matrix, batchSize, height, width );
 
 	for( int i = 0; i < batchSize * width; ++i ) {
-		ASSERT_NEAR( expectedVector[i], getVector[i], 1e-3 );
+		ASSERT_NEAR( static_cast<double>( expectedVector[i] ),
+			static_cast<double>( getVector[i] ), 1e-3 );
 	}
 }
 
@@ -88,5 +92,6 @@ INSTANTIATE_TEST_CASE_P( CSumMatrixRowsTestInstantiation, CSumMatrixRowsTest,
 
 TEST_P( CSumMatrixRowsTest, Random )
 {
-	RUN_TEST_IMPL( sumMatrixRowsTestImpl )
+	RUN_TEST_IMPL( sumMatrixRowsTestImpl<float> )
+	RUN_TEST_IMPL( sumMatrixRowsTestImpl<int> )
 }

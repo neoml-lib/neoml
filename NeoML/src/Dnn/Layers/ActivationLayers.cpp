@@ -25,7 +25,7 @@ namespace NeoML {
 
 CPtr<CBaseLayer> CreateActivationLayer( IMathEngine& mathEngine, TActivationFunction type )
 {
-	static_assert( AF_Count == 13, "AF_Count != 13" );
+	static_assert( AF_Count == 15, "AF_Count != 15" );
 	switch( type ) {
 		case AF_Linear:
 			return FINE_DEBUG_NEW CLinearLayer( mathEngine );
@@ -53,6 +53,10 @@ CPtr<CBaseLayer> CreateActivationLayer( IMathEngine& mathEngine, TActivationFunc
 			return FINE_DEBUG_NEW CGELULayer( mathEngine );
 		case AF_Exp:
 			return FINE_DEBUG_NEW CExpLayer( mathEngine );
+		case AF_Log:
+			return FINE_DEBUG_NEW CLogLayer( mathEngine );
+		case AF_Erf:
+			return FINE_DEBUG_NEW CErfLayer( mathEngine );
 		default:
 			NeoAssert( false );
 	}
@@ -68,31 +72,43 @@ CLinearLayer::CLinearLayer( IMathEngine& mathEngine ) :
 	SetFreeTerm(0);
 }
 
+template<class T>
+static void linearRunOnce( const CTypedMemoryHandle<const T>& input, T multiplier, T freeTerm, int dataSize,
+	const CTypedMemoryHandle<T>& output )
+{
+	IMathEngine& mathEngine = *input.GetMathEngine();
+	CTypedMemoryHandle<const T> currInput = input;
+
+	if( multiplier != static_cast<T>( 1 ) ) {
+		CMemoryHandleStackVar<T> multiplierVar( mathEngine );
+		multiplierVar.SetValue( multiplier );
+		mathEngine.VectorMultiply( currInput, output, dataSize, multiplierVar );
+		currInput = output;
+	}
+
+	if( freeTerm != static_cast< T >( 0 ) ) {
+		CMemoryHandleStackVar<T> freeTermVar( mathEngine );
+		freeTermVar.SetValue( freeTerm );
+		mathEngine.VectorAddValue( currInput, output, dataSize, freeTermVar );
+		currInput = output;
+	}
+
+	if( currInput != output ) {
+		mathEngine.VectorCopy( output, currInput, dataSize );
+	}
+}
+
 void CLinearLayer::RunOnce()
 {
 	CheckInput1();
 
-	CConstFloatHandle inputPtr = inputBlobs[0]->GetData();
-	CFloatHandle outputPtr = outputBlobs[0]->GetData();
-	int dataSize = outputBlobs[0]->GetDataSize();
+	const int dataSize = outputBlobs[0]->GetDataSize();
 
-	if( multiplier != 1.f ) {
-		CFloatHandleStackVar multiplierValue( MathEngine() );
-		multiplierValue.SetValue( multiplier );
-		MathEngine().VectorMultiply( inputPtr, outputPtr, dataSize, multiplierValue );
-		inputPtr = outputPtr;
-	}
-
-	if( freeTerm != 0.f ) {
-		CFloatHandleStackVar freeTermValue( MathEngine() );
-		freeTermValue.SetValue( freeTerm );
-		MathEngine().VectorAddValue( inputPtr, outputPtr, dataSize, freeTermValue );
-		inputPtr = outputPtr;
-	}
-
-	if( inputPtr != outputPtr ) {
-		// The only case when we need to copy data is when mult == 1 && ft == 0 && !inPlace
-		MathEngine().VectorCopy( outputPtr, inputPtr, dataSize );
+	if( inputBlobs[0]->GetDataType() == CT_Float ) {
+		linearRunOnce( inputBlobs[0]->GetData<const float>(), multiplier, freeTerm, dataSize, outputBlobs[0]->GetData() );
+	} else {
+		linearRunOnce( inputBlobs[0]->GetData<const int>(), static_cast<int>( multiplier ),
+			static_cast<int>( freeTerm ), dataSize, outputBlobs[0]->GetData<int>() );
 	}
 }
 
@@ -542,7 +558,79 @@ void CExpLayer::BackwardOnce()
 
 CLayerWrapper<CExpLayer> Exp()
 {
-	return CLayerWrapper<CExpLayer>( "Power", []( CExpLayer* ) {} );
+	return CLayerWrapper<CExpLayer>( "Exp" );
+}
+
+//---------------------------------------------------------------------------------------------------
+
+static const int LogLayerVersion = 0;
+
+void CLogLayer::Serialize( CArchive& archive )
+{
+	archive.SerializeVersion( LogLayerVersion );
+	CBaseInPlaceLayer::Serialize( archive );
+}
+
+void CLogLayer::RunOnce()
+{
+	MathEngine().VectorLog( inputBlobs[0]->GetData(), outputBlobs[0]->GetData(), outputBlobs[0]->GetDataSize() );
+}
+
+void CLogLayer::BackwardOnce()
+{
+	if( inputBlobs[0].Ptr() == outputBlobs[0].Ptr() ) {
+		MathEngine().VectorExp( outputBlobs[0]->GetData(), inputDiffBlobs[0]->GetData(), outputBlobs[0]->GetDataSize());
+		MathEngine().VectorEltwiseDivide( outputDiffBlobs[0]->GetData(), inputDiffBlobs[0]->GetData(),
+			inputDiffBlobs[0]->GetData(), outputBlobs[0]->GetDataSize() );
+	} else {
+		MathEngine().VectorEltwiseDivide( outputDiffBlobs[0]->GetData(), inputBlobs[0]->GetData(),
+			inputDiffBlobs[0]->GetData(), inputBlobs[0]->GetDataSize() );
+	}
+}
+
+CLayerWrapper<CLogLayer> Log()
+{
+	return CLayerWrapper<CLogLayer>( "Log" );
+}
+
+//---------------------------------------------------------------------------------------------------
+
+static const int ErfLayerVersion = 0;
+
+void CErfLayer::Serialize( CArchive& archive )
+{
+	archive.SerializeVersion( ErfLayerVersion );
+	CBaseLayer::Serialize( archive );
+}
+
+void CErfLayer::Reshape()
+{
+	CheckInput1();
+	CheckOutputs();
+	CheckArchitecture( inputDescs[0].GetDataType() == CT_Float, GetName(), "Layer works only with float data" );
+	outputDescs[0] = inputDescs[0];
+}
+
+void CErfLayer::RunOnce()
+{
+	MathEngine().VectorErf( inputBlobs[0]->GetData(), outputBlobs[0]->GetData(), outputBlobs[0]->GetDataSize() );
+}
+
+void CErfLayer::BackwardOnce()
+{
+	const int dataSize = inputBlobs[0]->GetDataSize();
+	CFloatHandle inputDiff = inputDiffBlobs[0]->GetData();
+	MathEngine().VectorNegMultiply( inputBlobs[0]->GetData(), inputBlobs[0]->GetData(), dataSize, inputDiff );
+	MathEngine().VectorExp( inputDiff, inputDiff, dataSize );
+	CFloatHandleStackVar mult( MathEngine() );
+	mult.SetValue( 1.1283791671f ); // 2 / sqrt( pi )
+	MathEngine().VectorMultiply( inputDiff, inputDiff, dataSize, mult );
+	MathEngine().VectorEltwiseMultiply( inputDiff, outputDiffBlobs[0]->GetData(), inputDiff, dataSize );
+}
+
+CLayerWrapper<CErfLayer> Erf()
+{
+	return CLayerWrapper<CErfLayer>( "Erf" );
 }
 
 } // namespace NeoML

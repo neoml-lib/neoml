@@ -260,7 +260,7 @@ NEOML_API CLayerWrapper<CPowerLayer> Power( float exponent );
 
 //------------------------------------------------------------------------------------------------------------
 
-// The layer that calculates exponent of eah element
+// The layer that calculates exponent of each element of the input
 class NEOML_API CExpLayer : public CBaseInPlaceLayer {
 	NEOML_DNN_LAYER( CExpLayer )
 public:
@@ -274,5 +274,40 @@ protected:
 };
 
 NEOML_API CLayerWrapper<CExpLayer> Exp();
+
+//------------------------------------------------------------------------------------------------------------
+
+// The layer that calculates logarithm of each element of the input
+class NEOML_API CLogLayer : public CBaseInPlaceLayer {
+	NEOML_DNN_LAYER( CLogLayer )
+public:
+	explicit CLogLayer( IMathEngine& mathEngine ) : CBaseInPlaceLayer( mathEngine, "CLogLayer" ) {}
+
+	void Serialize( CArchive& archive ) override;
+
+protected:
+	void RunOnce() override;
+	void BackwardOnce() override;
+};
+
+NEOML_API CLayerWrapper<CLogLayer> Log();
+
+//------------------------------------------------------------------------------------------------------------
+
+// The layer that calculates error function of each element of the input
+class NEOML_API CErfLayer : public CBaseLayer {
+	NEOML_DNN_LAYER( CErfLayer )
+public:
+	explicit CErfLayer( IMathEngine& mathEngine ) : CBaseLayer( mathEngine, "CErfLayer", false ) {}
+
+	void Serialize( CArchive& archive ) override;
+
+protected:
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
+};
+
+NEOML_API CLayerWrapper<CErfLayer> Erf();
 
 } // namespace NeoML

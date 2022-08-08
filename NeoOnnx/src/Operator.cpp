@@ -32,9 +32,9 @@ limitations under the License.
 #include "Operators/ConstantOperator.h"
 #include "Operators/ConvOperator.h"
 #include "Operators/ConvTransposeOperator.h"
+#include "Operators/CumSumOperator.h"
 #include "Operators/DropoutOperator.h"
 #include "Operators/EltwiseOperator.h"
-#include "Operators/EqualOperator.h"
 #include "Operators/ExpandOperator.h"
 #include "Operators/FlattenOperator.h"
 #include "Operators/GatherOperator.h"
@@ -42,6 +42,7 @@ limitations under the License.
 #include "Operators/GlobalPoolOperator.h"
 #include "Operators/IdentityOperator.h"
 #include "Operators/InstanceNormalizationOperator.h"
+#include "Operators/LogicalOperator.h"
 #include "Operators/LrnOperator.h"
 #include "Operators/LstmOperator.h"
 #include "Operators/MatMulOperator.h"
@@ -52,6 +53,7 @@ limitations under the License.
 #include "Operators/RangeOperator.h"
 #include "Operators/ReshapeOperator.h"
 #include "Operators/ResizeOperator.h"
+#include "Operators/ScatterOperator.h"
 #include "Operators/ShapeOperator.h"
 #include "Operators/SliceOperator.h"
 #include "Operators/SoftmaxOperator.h"
@@ -60,7 +62,6 @@ limitations under the License.
 #include "Operators/TransposeOperator.h"
 #include "Operators/UnsqueezeOperator.h"
 #include "Operators/UpsampleOperator.h"
-#include "Operators/WhereOperator.h"
 
 namespace NeoOnnx {
 
@@ -125,10 +126,12 @@ REGISTER_OPERATOR( CConstantOfShapeOperator, "ConstantOfShape" )
 REGISTER_OPERATOR( CConstantOperator, "Constant" )
 REGISTER_OPERATOR( CConvOperator, "Conv" )
 REGISTER_OPERATOR( CConvTransposeOperator, "ConvTranspose" )
+REGISTER_OPERATOR( CCumSumOperator, "CumSum" )
 REGISTER_OPERATOR( CDivOperator, "Div" )
 REGISTER_OPERATOR( CDropoutOperator, "Dropout" )
 REGISTER_OPERATOR( CEluOperator, "Elu" )
 REGISTER_OPERATOR( CEqualOperator, "Equal" )
+REGISTER_OPERATOR( CErfOperator, "Erf" )
 REGISTER_OPERATOR( CExpOperator, "Exp" )
 REGISTER_OPERATOR( CExpandOperator, "Expand" )
 REGISTER_OPERATOR( CFlattenOperator, "Flatten" )
@@ -136,20 +139,29 @@ REGISTER_OPERATOR( CGatherOperator, "Gather" )
 REGISTER_OPERATOR( CGemmOperator, "Gemm" )
 REGISTER_OPERATOR( CGlobalAveragePoolOperator, "GlobalAveragePool" )
 REGISTER_OPERATOR( CGlobalMaxPoolOperator, "GlobalMaxPool" )
+REGISTER_OPERATOR( CLessOperator, "Greater" )
+REGISTER_OPERATOR( CLessOperator, "GreaterOrEqual" )
 REGISTER_OPERATOR( CHardSigmoidOperator, "HardSigmoid" )
 REGISTER_OPERATOR( CIdentityOperator, "Identity" )
 REGISTER_OPERATOR( CInstanceNormalizationOperator, "InstanceNormalization" )
 REGISTER_OPERATOR( CLeakyReluOperator, "LeakyRelu" )
+REGISTER_OPERATOR( CLessOperator, "Less" )
+REGISTER_OPERATOR( CLessOperator, "LessOrEqual" )
+REGISTER_OPERATOR( CLogOperator, "Log" )
+REGISTER_OPERATOR( CSoftmaxOperator, "LogSoftmax" )
 REGISTER_OPERATOR( CLrnOperator, "LRN" )
 REGISTER_OPERATOR( CLstmOperator, "LSTM" )
 REGISTER_OPERATOR( CMatMulOperator, "MatMul" )
 REGISTER_OPERATOR( CMaxPoolOperator, "MaxPool" )
 REGISTER_OPERATOR( CMulOperator, "Mul" )
+REGISTER_OPERATOR( CNegOperator, "Neg" )
+REGISTER_OPERATOR( CNotOperator, "Not" )
 REGISTER_OPERATOR( CNonZeroOperator, "NonZero" )
 REGISTER_OPERATOR( COneHotOperator, "OneHot" )
 REGISTER_OPERATOR( CPadOperator, "Pad" )
 REGISTER_OPERATOR( CPowOperator, "Pow" )
 REGISTER_OPERATOR( CRangeOperator, "Range" )
+REGISTER_OPERATOR( CReduceL2Operator, "ReduceL2" )
 REGISTER_OPERATOR( CReduceMaxOperator, "ReduceMax" )
 REGISTER_OPERATOR( CReduceMeanOperator, "ReduceMean" )
 REGISTER_OPERATOR( CReduceMinOperator, "ReduceMin" )
@@ -157,6 +169,7 @@ REGISTER_OPERATOR( CReduceSumOperator, "ReduceSum" )
 REGISTER_OPERATOR( CReluOperator, "Relu" )
 REGISTER_OPERATOR( CReshapeOperator, "Reshape" )
 REGISTER_OPERATOR( CResizeOperator, "Resize" )
+REGISTER_OPERATOR( CScatterNDOperator, "ScatterND" )
 REGISTER_OPERATOR( CShapeOperator, "Shape" )
 REGISTER_OPERATOR( CSigmoidOperator, "Sigmoid" )
 REGISTER_OPERATOR( CSliceOperator, "Slice" )

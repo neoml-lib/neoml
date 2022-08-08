@@ -32,9 +32,9 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Operators/ConstantOperator.cpp
     Operators/ConvOperator.cpp
     Operators/ConvTransposeOperator.cpp
+    Operators/CumSumOperator.cpp
     Operators/DropoutOperator.cpp
     Operators/EltwiseOperator.cpp
-    Operators/EqualOperator.cpp
     Operators/ExpandOperator.cpp
     Operators/FlattenOperator.cpp
     Operators/GatherOperator.cpp
@@ -42,6 +42,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Operators/GlobalPoolOperator.cpp
     Operators/IdentityOperator.cpp
     Operators/InstanceNormalizationOperator.cpp
+    Operators/LogicalOperator.cpp
     Operators/LrnOperator.cpp
     Operators/LstmOperator.cpp
     Operators/MatMulOperator.cpp
@@ -52,6 +53,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Operators/RangeOperator.cpp
     Operators/ResizeOperator.cpp
     Operators/ReshapeOperator.cpp
+    Operators/ScatterOperator.cpp
     Operators/ShapeOperator.cpp
     Operators/SliceOperator.cpp
     Operators/SoftmaxOperator.cpp
@@ -60,7 +62,6 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Operators/TransposeOperator.cpp
     Operators/UnsqueezeOperator.cpp
     Operators/UpsampleOperator.cpp
-    Operators/WhereOperator.cpp
     TensorUtils.cpp
 
     ../include/NeoOnnx/NeoOnnx.h
@@ -83,9 +84,9 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Operators/ConstantOperator.h
     Operators/ConvOperator.h
     Operators/ConvTransposeOperator.h
+    Operators/CumSumOperator.h
     Operators/DropoutOperator.h
     Operators/EltwiseOperator.h
-    Operators/EqualOperator.h
     Operators/ExpandOperator.h
     Operators/FlattenOperator.h
     Operators/GatherOperator.h
@@ -93,6 +94,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Operators/GlobalPoolOperator.h
     Operators/IdentityOperator.h
     Operators/InstanceNormalizationOperator.h
+    Operators/LogicalOperator.h
     Operators/LrnOperator.h
     Operators/LstmOperator.h
     Operators/MatMulOperator.h
@@ -103,6 +105,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Operators/RangeOperator.h
     Operators/ReshapeOperator.h
     Operators/ResizeOperator.h
+    Operators/ScatterOperator.h
     Operators/ShapeOperator.h
     Operators/SliceOperator.h
     Operators/SoftmaxOperator.h
@@ -111,7 +114,6 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Operators/TransposeOperator.h
     Operators/UnsqueezeOperator.h
     Operators/UpsampleOperator.h
-    Operators/WhereOperator.h
     Tensor.h
     TensorLayout.h
     TensorUtils.h
@@ -211,15 +213,9 @@ if(NOT NeoOnnx_BUILD_SHARED)
 endif()
 
 if(NeoOnnx_BUILD_SHARED AND NOT WIN32)
-    if(USE_FINE_OBJECTS)
-        set(EXPORT_SYMBOLS
-            _ZN7NeoOnnx12LoadFromOnnxEPKviRN5NeoML4CDnnERN4FObj6CArrayIPKcNS5_20CurrentMemoryManagerEEESB_RNS5_4CMapINS5_7CStringESD_NS5_12CDefaultHashISD_vEES9_EE
-            _ZN7NeoOnnx12LoadFromOnnxEPKcRN5NeoML4CDnnERN4FObj6CArrayIS1_NS5_20CurrentMemoryManagerEEES9_RNS5_4CMapINS5_7CStringESB_NS5_12CDefaultHashISB_vEES7_EE)
-    else()
-        set(EXPORT_SYMBOLS
-            _ZN7NeoOnnx12LoadFromOnnxEPKviRN5NeoML4CDnnERN4FObj6CArrayIPKcNS5_20CurrentMemoryManagerEEESB_RNS5_4CMapINS5_7CStringESD_NS5_12CDefaultHashISD_EES9_EE
-            _ZN7NeoOnnx12LoadFromOnnxEPKcRN5NeoML4CDnnERN4FObj6CArrayIS1_NS5_20CurrentMemoryManagerEEES9_RNS5_4CMapINS5_7CStringESB_NS5_12CDefaultHashISB_EES7_EE)
-    endif()
+    set(EXPORT_SYMBOLS
+        _ZN7NeoOnnx12LoadFromOnnxEPKcRKNS_15CImportSettingsERN5NeoML4CDnnERNS_18CImportedModelInfoE
+        _ZN7NeoOnnx12LoadFromOnnxEPKviRKNS_15CImportSettingsERN5NeoML4CDnnERNS_18CImportedModelInfoE)
     if(LINUX OR ANDROID)
         set(EXPORT_SYMBOLS_STR "${EXPORT_SYMBOLS};")
         configure_file(../NeoOnnx.version.in NeoOnnx.version)

@@ -36,6 +36,7 @@ enum TActivationFunction {
 	AF_HSwish,
 	AF_GELU,
 	AF_Exp,
+	AF_Log,
 
 	AF_Count
 };
@@ -56,4 +57,6 @@ TActivationFunction constant | Class name | Activation function
 `AF_HSwish` | [CHSwishLayer](HSwishLayer.md) | `h-swish` activation function
 `AF_GELU` | [CGELULayer](GELULayer.md) | `x * sigmoid(1.702 * x)` activation function
 `AF_Exp` | [CExpLayer](ExpLayer.md) | `exp` activation function
+`AF_Log` | [CLogLayer](LogLayer.md) | `log` activation function
+`AF_Erf` | [CErfLayer](ErfLayer.md) | `erf` activation function
 `AF_Count` | | This is an auxiliary constant: it contains the number of supported activation functions.

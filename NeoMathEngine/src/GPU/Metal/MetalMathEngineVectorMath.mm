@@ -230,7 +230,12 @@ void CMetalMathEngine::VectorSumAlongDimensionDiag(const CConstFloatHandle&, int
 	ASSERT_EXPR(false);
 }
 
-void CMetalMathEngine::VectorCumSumAlongDimension( const CConstFloatHandle&, int, int, int, const CFloatHandle& )
+void CMetalMathEngine::VectorCumSumAlongDimension( const CConstFloatHandle&, int, int, int, const CFloatHandle&, bool )
+{
+	ASSERT_EXPR( false );
+}
+
+void CMetalMathEngine::VectorCumSumAlongDimension( const CConstIntHandle&, int, int, int, const CIntHandle&, bool )
 {
 	ASSERT_EXPR( false );
 }
@@ -669,6 +674,11 @@ void CMetalMathEngine::VectorNegLog(const CConstFloatHandle& firstHandle, const 
     ASSERT_EXPR( kernel.Run() );
 }
 
+void CMetalMathEngine::VectorErf( const CConstFloatHandle&, const CFloatHandle&, int )
+{
+    ASSERT_EXPR( false );
+}
+
 void CMetalMathEngine::VectorBernulliKLDerivative(const CConstFloatHandle& firstHandle,
     const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& targetHandle)
 {
@@ -787,6 +797,11 @@ void CMetalMathEngine::VectorMultiply(const CConstFloatHandle& firstHandle,
     kernel.SetParam( vectorSize, 2 );
     kernel.SetParam( multiplierHandle, 3 );
     ASSERT_EXPR( kernel.Run() );
+}
+
+void CMetalMathEngine::VectorMultiply(const CConstFloatHandle&, const CFloatHandle&, int, const CConstFloatHandle&)
+{
+    ASSERT_EXPR( false );
 }
 
 void CMetalMathEngine::VectorNegMultiply(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle,
@@ -1222,6 +1237,42 @@ void CMetalMathEngine::VectorEltwiseLess( const CConstFloatHandle&, float,
 
 void CMetalMathEngine::VectorEltwiseLess( float, const CConstFloatHandle&,
 	const CFloatHandle&, int )
+{
+	ASSERT_EXPR( false );
+}
+
+void CMetalMathEngine::VectorEltwiseLess( const CConstFloatHandle&, const CConstFloatHandle&,
+	const CIntHandle&, int )
+{
+	ASSERT_EXPR( false );
+}
+
+void CMetalMathEngine::VectorEltwiseLess( const CConstIntHandle&, const CConstIntHandle&,
+	const CIntHandle&, int )
+{
+	ASSERT_EXPR( false );
+}
+
+void CMetalMathEngine::VectorEltwiseEqual( const CConstFloatHandle&, const CConstFloatHandle&,
+	const CIntHandle&, int )
+{
+	ASSERT_EXPR( false );
+}
+
+void CMetalMathEngine::VectorEltwiseEqual( const CConstIntHandle&, const CConstIntHandle&,
+	const CIntHandle&, int )
+{
+	ASSERT_EXPR( false );
+}
+
+void CMetalMathEngine::VectorEltwiseWhere( const CConstIntHandle&, const CConstFloatHandle&, const CConstFloatHandle&,
+	const CFloatHandle&, int )
+{
+	ASSERT_EXPR( false );
+}
+
+void CMetalMathEngine::VectorEltwiseWhere( const CConstIntHandle&, const CConstIntHandle&, const CConstIntHandle&,
+	const CIntHandle&, int )
 {
 	ASSERT_EXPR( false );
 }

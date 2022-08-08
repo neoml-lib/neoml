@@ -29,9 +29,6 @@ protected:
 	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
 
 private:
-	// First axis to be softmaxed
-	int axis;
-
 	CTensorLayout getCompatibleLayout( int dimCount, int axis, const CTensorLayout& inputLayout ) const;
 };
 
