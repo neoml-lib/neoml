@@ -185,8 +185,8 @@ backend_test.exclude('test_Softplus')  # Contains Softplus operator
 
 # OnnxBackendPyTorchOperatorModelTest
 
-backend_test.exclude('test_operator_add_')  # NeoML doesn't support 64-bit data types
-backend_test.exclude('test_operator_addconstant_')  # NeoML doesn't support 64-bit data types
+backend_test.exclude('test_operator_add_')  # NeoOnnx doesn't support doubles which can't be casted to float
+backend_test.exclude('test_operator_addconstant_')  # NeoOnnx doesn't support doubles which can't be casted to float
 # NeoML supports only specific case when it's an FC layer (with constant weights)
 backend_test.exclude('test_operator_addmm_')
 backend_test.exclude('test_operator_max_')  # Contains Max operator
