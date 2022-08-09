@@ -53,6 +53,7 @@ limitations under the License.
 #include "Operators/RangeOperator.h"
 #include "Operators/ReshapeOperator.h"
 #include "Operators/ResizeOperator.h"
+#include "Operators/ScatterOperator.h"
 #include "Operators/ShapeOperator.h"
 #include "Operators/SliceOperator.h"
 #include "Operators/SoftmaxOperator.h"
@@ -61,7 +62,6 @@ limitations under the License.
 #include "Operators/TransposeOperator.h"
 #include "Operators/UnsqueezeOperator.h"
 #include "Operators/UpsampleOperator.h"
-#include "Operators/WhereOperator.h"
 
 namespace NeoOnnx {
 
@@ -169,6 +169,7 @@ REGISTER_OPERATOR( CReduceSumOperator, "ReduceSum" )
 REGISTER_OPERATOR( CReluOperator, "Relu" )
 REGISTER_OPERATOR( CReshapeOperator, "Reshape" )
 REGISTER_OPERATOR( CResizeOperator, "Resize" )
+REGISTER_OPERATOR( CScatterNDOperator, "ScatterND" )
 REGISTER_OPERATOR( CShapeOperator, "Shape" )
 REGISTER_OPERATOR( CSigmoidOperator, "Sigmoid" )
 REGISTER_OPERATOR( CSliceOperator, "Slice" )

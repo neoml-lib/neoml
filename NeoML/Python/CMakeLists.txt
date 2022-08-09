@@ -89,6 +89,7 @@ pybind11_add_module(PythonWrapper
     src/PyRandom.cpp
     src/PyReorgLayer.cpp
     src/PyRepeatSequenceLayer.cpp
+    src/PyScatterGatherLayers.cpp
     src/PySequenceSumLayer.cpp
     src/PySoftmaxLayer.cpp
     src/PySplitLayer.cpp

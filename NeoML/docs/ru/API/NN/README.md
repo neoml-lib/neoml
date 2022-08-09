@@ -258,6 +258,7 @@ delete gpuMathEngine;
   - [CNotLayer](LogicalLayers/NotLayer.md) - поэлементный логический `not` над целочисленными данными
   - [CLessLayer](LogicalLayers/LessLayer.md) - поэлементное сравнение двух блобов `x < y ? 1 : 0`
   - [CEqualLayer](LogicalLayers/EqualLayer.md) - поэлементное сравнение двух блобов `x == y ? 1 : 0`
+  - [CWhereLayer](LogicalLayers/WhereLayer.md) - поэлементное слияние двух блобов на основе маски `x != 0 ? y : z`
 - Вспомогательные операции:
   - [CTransformLayer](TransformLayer.md) - изменение формы блоба
   - [CTransposeLayer](TransposeLayer.md) - перестановка размерностей блоба
@@ -290,6 +291,8 @@ delete gpuMathEngine;
   - Повторение данных:
     - [CRepeatSequenceLayer](RepeatSequenceLayer.md) - повторение последовательностей несколько раз
     - [CUpsampling2DLayer](Upsampling2DLayer.md) - увеличение размеров двумерных изображений
+  - Операции Scatter и Gather
+    - [CScatterNDLayer](ScatterGatherLayers/ScatterNDLayer.md) заменяет некоторые объекты в блобе с данными на новые
   - [CReorgLayer](ReorgLayer.md) - слой, преобразующий многоканальные изображения в изображения меньшего размера, с большим числом каналов
   - [CSpaceToDepthLayer](SpaceToDepthLayer.md) слой, разбивающий входные изображения на квадраты и записывающий содержимое таких квадратов
   в пиксели выходного изображения

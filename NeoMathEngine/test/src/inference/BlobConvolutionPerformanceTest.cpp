@@ -111,6 +111,8 @@ static void blobConvolutionPerformanceTestImpl( const CTestParams& params, int s
 //------------------------------------------------------------------------------------------------------------
 
 class CMathEngineBlobConvolutionPerformanceTest : public CTestFixtureWithParams {
+public:
+	void SetUp() override { MathEngine().CleanUp(); }
 };
 // PaddingHeight | PaddingWidth | StrideHeight | StrideWidth | DilationHeight | DilationWidth | ObjectHeight | ObjectWidth | NumChannels | ObjectCount | FiltHeight | FiltWidth | IsFreeTerm
 CTestParams TestParams[] = {
