@@ -59,15 +59,6 @@ inline float32x4_t LoadNeon(const float* data, int count, float defVal = 0)
 	return ret;
 }
 
-inline float32x4_t LoadNeonFromVector(const float* data, int count, float defVal = 0)
-{
-	if(count >= 4) {
-		return LoadNeon4(data);
-	} else {
-		return LoadNeon(data, count, defVal);
-	}
-}
-
 inline int32x4_t LoadIntNeon4(const int* data)
 {
 	return vld1q_s32(data);
@@ -86,15 +77,6 @@ inline int32x4_t LoadIntNeon(const int* data, int count, int defVal = 0)
 		}
 	}
 	return ret;
-}
-
-inline int32x4_t LoadIntNeonFromVector(const int* data, int count, int defVal = 0)
-{
-	if(count >= 4) {
-		return LoadIntNeon4(data);
-	} else {
-		return LoadIntNeon(data, count, defVal);
-	}
 }
 
 inline void StoreNeon4(const float32x4_t& val, float* data)
