@@ -9,6 +9,7 @@ target_sources(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/TestFixture.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/TestParams.h
     ${CMAKE_CURRENT_SOURCE_DIR}/TestParams.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/MlTestCommon.h
     ${CMAKE_CURRENT_SOURCE_DIR}/ClusteringTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DnnLayersSerializationTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DnnSerializationTest.cpp
@@ -25,6 +26,12 @@ target_sources(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/DnnSolverTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/CtcTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DnnDistributedTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/BpeTest.cpp
+)
+
+set_target_properties( ${PROJECT_NAME} PROPERTIES
+    UNITY_BUILD_MODE BATCH
+    UNITY_BUILD_BATCH_SIZE ${NeoML_UNITY_BUILD_BATCH_SIZE}
 )
 
 target_include_directories(${PROJECT_NAME} INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})

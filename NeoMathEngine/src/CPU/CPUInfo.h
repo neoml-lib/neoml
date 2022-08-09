@@ -152,11 +152,18 @@ struct CCPUInfo {
 		Regs regs;
 		callCpuId( regs, 1 );
 
-		const unsigned int AvxAndFmaBits = ( 1 << 28 ) + ( 1 << 12 );
-		bool AvxAndFmaAreAvailable = ( regs.ecx & AvxAndFmaBits ) == AvxAndFmaBits;
+		const unsigned int fmaBit = ( 1 << 12 );
+		const bool fmaIsAvailable = ( regs.ecx & fmaBit ) == fmaBit;
+		if( !fmaIsAvailable ) {
+			return false;
+		}
 
+		callCpuIdEx( regs, 7, 0 );
 
-		return AvxAndFmaAreAvailable;
+		const unsigned int avx2Bit = ( 1 << 5 );
+		const bool avx2IsAvailable = ( regs.ebx & avx2Bit ) == avx2Bit;
+
+		return avx2IsAvailable;
 	}
 
 	static bool IsAvx512Available()

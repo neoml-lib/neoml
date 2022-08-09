@@ -17,6 +17,30 @@ limitations under the License.
 
 #include <NeoMathEngine/Platforms.h>
 
+#if FINE_PLATFORM( FINE_WINDOWS )
+	#ifndef NEOML_LIB_VERSION_SUFFIX
+		#if defined(_DEBUG)
+			#define NEOML_CONFIGURATION_NAME "Debug"
+		#elif defined(_FINAL)
+			#define NEOML_CONFIGURATION_NAME "Final"
+		#else
+			#define NEOML_CONFIGURATION_NAME "Release"
+		#endif
+
+		#if FINE_BIT( FINE_64_BIT )
+			#define NEOML_PLATFORM_NAME "x64"
+		#elif FINE_BIT( FINE_32_BIT )
+			#define NEOML_PLATFORM_NAME "Win32"
+		#endif
+
+		#define NEOML_LIB_VERSION_SUFFIX "." NEOML_PLATFORM_NAME "." NEOML_CONFIGURATION_NAME
+	#endif
+
+	#if defined( FINEOBJ_VERSION ) && !defined( CMAKE_INTDIR )
+		#pragma comment( lib, "NeoOnnx" NEOML_LIB_VERSION_SUFFIX ".lib" )
+	#endif // FINEOBJ_VERSION
+#endif // FINE_PLATFORM( FINE_WINDOWS )
+
 #if defined( STATIC_NEOONNX )
 	#define NEOONNX_API
 #elif defined( BUILD_NEOONNX )
@@ -32,4 +56,3 @@ limitations under the License.
 		#define NEOONNX_API	__attribute__( ( visibility("default") ) )
 	#endif
 #endif
-

@@ -198,6 +198,30 @@ public:
 	}
 };
 
+class CPyLogLayer : public CPyLayer {
+public:
+	explicit CPyLogLayer(CLogLayer& layer, CPyMathEngineOwner& mathEngineOwner) : CPyLayer(layer, mathEngineOwner) {}
+
+	py::object CreatePythonObject() const
+	{
+		py::object pyModule = py::module::import( "neoml.Dnn" );
+		py::object pyConstructor = pyModule.attr( "Log" );
+		return pyConstructor( py::cast( this ) );
+	}
+};
+
+class CPyErfLayer : public CPyLayer {
+public:
+	explicit CPyErfLayer(CErfLayer& layer, CPyMathEngineOwner& mathEngineOwner) : CPyLayer(layer, mathEngineOwner) {}
+
+	py::object CreatePythonObject() const
+	{
+		py::object pyModule = py::module::import( "neoml.Dnn" );
+		py::object pyConstructor = pyModule.attr( "Erf" );
+		return pyConstructor( py::cast( this ) );
+	}
+};
+
 
 void InitializeActivationLayer( py::module& m )
 {
@@ -443,6 +467,40 @@ void InitializeActivationLayer( py::module& m )
 				dnn.AddLayer(*exp);
 				exp->Connect(0, layer.BaseLayer(), outputNumber);
 				return new CPyExpLayer(*exp, layer.MathEngineOwner());
+			}))
+	;
+
+	py::class_<CPyLogLayer, CPyLayer>(m, "Log")
+		.def(py::init([](const CPyLayer& layer)
+			{
+				return new CPyLogLayer(*layer.Layer<CLogLayer>(), layer.MathEngineOwner());
+			}))
+		.def(py::init([](const std::string& name, const CPyLayer& layer, int outputNumber) {
+				py::gil_scoped_release release;
+				CDnn& dnn = layer.Dnn();
+				IMathEngine& mathEngine = dnn.GetMathEngine();
+				CPtr<CLogLayer> log = new CLogLayer(mathEngine);
+				log->SetName( FindFreeLayerName(dnn, "Log", name).c_str() );
+				dnn.AddLayer(*log);
+				log->Connect(0, layer.BaseLayer(), outputNumber);
+				return new CPyLogLayer(*log, layer.MathEngineOwner());
+			}))
+	;
+
+	py::class_<CPyErfLayer, CPyLayer>(m, "Erf")
+		.def(py::init([](const CPyLayer& layer)
+			{
+				return new CPyErfLayer(*layer.Layer<CErfLayer>(), layer.MathEngineOwner());
+			}))
+		.def(py::init([](const std::string& name, const CPyLayer& layer, int outputNumber) {
+				py::gil_scoped_release release;
+				CDnn& dnn = layer.Dnn();
+				IMathEngine& mathEngine = dnn.GetMathEngine();
+				CPtr<CErfLayer> erf = new CErfLayer(mathEngine);
+				erf->SetName( FindFreeLayerName(dnn, "Erf", name).c_str() );
+				dnn.AddLayer(*erf);
+				erf->Connect(0, layer.BaseLayer(), outputNumber);
+				return new CPyErfLayer(*erf, layer.MathEngineOwner());
 			}))
 	;
 }

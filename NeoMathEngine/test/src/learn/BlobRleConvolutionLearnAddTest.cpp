@@ -14,6 +14,7 @@ limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
 #include <TestFixture.h>
+#include <MeTestCommon.h>
 
 using namespace NeoML;
 using namespace NeoMLTest;
@@ -58,11 +59,6 @@ static void generateRleBlob( int batchCount, int height, int width, float stroke
 		rleImage->StrokesCount = pos;
 		imageStart += height * width;
 	}
-}
-
-static inline int calcConvOutputSize( int input, int padding, int filter, int dilation, int stride )
-{
-	return  1 + ( input - ( filter - 1 ) * dilation + 2 * padding - 1 ) / stride;
 }
 
 static void blobConvolutionLearnAddNaive( int batchSize, int inputHeight, int inputWidth, int filterCount, int filterHeight, int filterWidth,

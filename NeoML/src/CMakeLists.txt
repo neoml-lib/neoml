@@ -45,6 +45,7 @@ set(NeoML_SOURCES
     Dnn/Layers/CrfLayer.cpp
     Dnn/Layers/CrossEntropyLossLayer.cpp
     Dnn/Layers/CtcLayer.cpp
+    Dnn/Layers/CumSumLayer.cpp
     Dnn/Layers/DataLayer.cpp
     Dnn/Layers/DepthToSpaceLayer.cpp
     Dnn/Layers/DotProductLayer.cpp
@@ -58,6 +59,7 @@ set(NeoML_SOURCES
     Dnn/Layers/GELULayer.cpp
     Dnn/Layers/GlobalMaxPoolingLayer.cpp
     Dnn/Layers/GlobalMeanPoolingLayer.cpp
+    Dnn/Layers/GlobalSumPoolingLayer.cpp
     Dnn/Layers/GruLayer.cpp
     Dnn/Layers/HingeLossLayer.cpp
     Dnn/Layers/ImageAndPixelConversionLayer.cpp
@@ -66,6 +68,7 @@ set(NeoML_SOURCES
     Dnn/Layers/InterpolationLayer.cpp
     Dnn/Layers/IrnnLayer.cpp
     Dnn/Layers/L1LossLayer.cpp
+    Dnn/Layers/LogicalLayers.cpp
     Dnn/Layers/LrnLayer.cpp
     Dnn/Layers/LstmLayer.cpp
     Dnn/Layers/MatrixMultiplicationLayer.cpp
@@ -85,6 +88,7 @@ set(NeoML_SOURCES
     Dnn/Layers/ReorgLayer.cpp
     Dnn/Layers/RepeatSequenceLayer.cpp
     Dnn/Layers/RleConvLayer.cpp
+    Dnn/Layers/ScatterGatherLayers.cpp
     Dnn/Layers/SequenceSumLayer.cpp
     Dnn/Layers/SinkLayer.cpp
     Dnn/Layers/SoftmaxLayer.cpp
@@ -238,6 +242,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/Dnn/Layers/ConvLayer.h
     ../include/NeoML/Dnn/Layers/CrfLayer.h
     ../include/NeoML/Dnn/Layers/CtcLayer.h
+    ../include/NeoML/Dnn/Layers/CumSumLayer.h
     ../include/NeoML/Dnn/Layers/DataLayer.h
     ../include/NeoML/Dnn/Layers/DepthToSpaceLayer.h
     ../include/NeoML/Dnn/Layers/DotProductLayer.h
@@ -250,6 +255,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/Dnn/Layers/GELULayer.h
     ../include/NeoML/Dnn/Layers/GlobalMaxPoolingLayer.h
     ../include/NeoML/Dnn/Layers/GlobalMeanPoolingLayer.h
+    ../include/NeoML/Dnn/Layers/GlobalSumPoolingLayer.h
     ../include/NeoML/Dnn/Layers/GruLayer.h
     ../include/NeoML/Dnn/Layers/ImageAndPixelConversionLayer.h
     ../include/NeoML/Dnn/Layers/ImageResizeLayer.h
@@ -257,6 +263,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/Dnn/Layers/InterpolationLayer.h
     ../include/NeoML/Dnn/Layers/IrnnLayer.h
     ../include/NeoML/Dnn/Layers/LossLayer.h
+    ../include/NeoML/Dnn/Layers/LogicalLayers.h
     ../include/NeoML/Dnn/Layers/LrnLayer.h
     ../include/NeoML/Dnn/Layers/LstmLayer.h
     ../include/NeoML/Dnn/Layers/MatrixMultiplicationLayer.h
@@ -275,6 +282,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/Dnn/Layers/RecurrentLayer.h
     ../include/NeoML/Dnn/Layers/ReorgLayer.h
     ../include/NeoML/Dnn/Layers/RepeatSequenceLayer.h
+    ../include/NeoML/Dnn/Layers/ScatterGatherLayers.h
     ../include/NeoML/Dnn/Layers/SequenceSumLayer.h
     ../include/NeoML/Dnn/Layers/SinkLayer.h
     ../include/NeoML/Dnn/Layers/SoftmaxLayer.h

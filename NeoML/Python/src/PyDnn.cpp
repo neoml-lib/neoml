@@ -88,16 +88,23 @@ REGISTER_NEOML_PYLAYER_EX( "Activation", "HardSigmoid", "FmlCnnSigmoidTanhLayer"
 REGISTER_NEOML_PYLAYER_EX( "Activation", "HSwish", "FmlCnnHSwishLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Activation", "Power", "FmlCnnPowerLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Activation", "Exp", "NeoMLDnnExpLayer" )
+REGISTER_NEOML_PYLAYER_EX( "Activation", "Log", "NeoMLDnnLogLayer" )
+REGISTER_NEOML_PYLAYER_EX( "Activation", "Erf", "NeoMLDnnErfLayer" )
 REGISTER_NEOML_PYLAYER( "RleConv", "FmlCnnRleConvLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Pooling", "MaxPooling", "FmlCnnMaxPoolingLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Pooling", "MeanPooling", "FmlCnnMeanPoolingLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Pooling", "GlobalMeanPooling", "FmlCnnGlobalMainPoolingLayer")
 REGISTER_NEOML_PYLAYER_EX( "Pooling", "GlobalMaxPooling", "FmlCnnGlobalMaxPoolingLayer")
+REGISTER_NEOML_PYLAYER_EX( "Pooling", "GlobalSumPooling", "NeoMLDnnGlobalSumPoolingLayer")
 REGISTER_NEOML_PYLAYER_EX( "Pooling", "MaxOverTimePooling", "FmlCnnMaxOverTimePoolingLayer")
 REGISTER_NEOML_PYLAYER_EX( "Pooling", "MaxPooling3D", "FmlCnn3dMaxPoolingLayer")
 REGISTER_NEOML_PYLAYER_EX( "Pooling", "MeanPooling3D", "FmlCnn3dMeanPoolingLayer")
 REGISTER_NEOML_PYLAYER( "FullyConnected", "FmlCnnFullyConnectedLayer" )
 REGISTER_NEOML_PYLAYER( "FullyConnectedSource", "FmlCnnFullyConnectedSourceLayer" )
+REGISTER_NEOML_PYLAYER_EX( "Logical", "Equal", "NeoMLDnnEqualLayer" )
+REGISTER_NEOML_PYLAYER_EX( "Logical", "Not", "NeoMLDnnNotLayer" )
+REGISTER_NEOML_PYLAYER_EX( "Logical", "Less", "NeoMLDnnLessLayer" )
+REGISTER_NEOML_PYLAYER_EX( "Logical", "Where", "NeoMLDnnWhereLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Loss", "CrossEntropyLoss", "FmlCnnCrossEntropyLossLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Loss", "BinaryCrossEntropyLoss", "FmlCnnBinaryCrossEntropyLossLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Loss", "EuclideanLoss", "FmlCnnEuclideanLossLayer" )
@@ -175,6 +182,9 @@ REGISTER_NEOML_PYLAYER( "Cast", "NeoMLDnnCastLayer" )
 REGISTER_NEOML_PYLAYER( "Data", "NeoMLDnnDataLayer" )
 REGISTER_NEOML_PYLAYER( "TransformerEncoder", "NeoMLDnnTransformerEncoderLayer" )
 REGISTER_NEOML_PYLAYER( "BertConv", "NeoMLDnnBertConvLayer" )
+REGISTER_NEOML_PYLAYER( "Broadcast", "NeoMLDnnBroadcastLayer" )
+REGISTER_NEOML_PYLAYER( "CumSum", "NeoMLDnnCumSumLayer" )
+REGISTER_NEOML_PYLAYER_EX( "ScatterGather", "ScatterND", "NeoMLDnnScatterNDLayer" )
 
 }
 
@@ -183,9 +193,13 @@ py::object createLayer( CBaseLayer& layer, CPyMathEngineOwner& mathEngineOwner )
 	CPyLayer pyLayer( layer, mathEngineOwner );
 
 	CMap<CString, CPyClass, CDefaultHash<CString>, RuntimeHeap>& layers = getRegisteredPyLayers();
-	CString layerName( GetLayerClass( layer ) );
+	CString layerClass( GetLayerClass( layer ) );
 
-	CPyClass c = layers.Get( layerName );
+	if( !layers.Has( layerClass ) ) {
+		NeoML::GetMathEngineExceptionHandler()->OnAssert( "Class '" + layerClass + "' isn't known to Python module",
+			__UNICODEFILE__, __LINE__, 0 );
+	}
+	CPyClass c = layers.Get( layerClass );
 
 	CString wrapperModuleName = "neoml.PythonWrapper";
 	py::object wrapperModule = py::module::import( wrapperModuleName );

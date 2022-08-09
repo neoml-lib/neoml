@@ -44,3 +44,11 @@ This algorithm reduces the dimensionality of a large multidimensional dataset wh
    :members:
 
 .. autofunction:: neoml.PCA.svd
+
+
+Byte-Pair Encoding
+###############################
+The implementation of a subword text tokenizing algorithm for modern Natural Language Processing models. It enables user to train BPE of a given size from scratch, encode and decode any text, import and export the subword dictionary.
+
+.. autoclass:: neoml.BytePairEncoder
+   :members:

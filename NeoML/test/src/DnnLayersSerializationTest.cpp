@@ -144,6 +144,14 @@ GTEST_TEST( SerializeToFile, BaseLayerSerialization )
 	serializeToFile<CBertConvLayer>( "NeoMLDnnBertConvLayer" );
 	serializeToFile<CBroadcastLayer>( "NeoMLDnnBroadcastLayer" );
 	serializeToFile<CExpLayer>( "NeoMLDnnExpLayer" );
+	serializeToFile<CLogLayer>( "NeoMLDnnLogLayer" );
+	serializeToFile<CNotLayer>( "NeoMLDnnNotLayer" );
+	serializeToFile<CErfLayer>( "NeoMLDnnErfLayer" );
+	serializeToFile<CLessLayer>( "NeoMLDnnLessLayer" );
+	serializeToFile<CEqualLayer>( "NeoMLDnnEqualLayer" );
+	serializeToFile<CGlobalSumPoolingLayer>( "NeoMLDnnGlobalSumPoolingLayer" );
+	serializeToFile<CWhereLayer>( "NeoMLDnnWhereLayer" );
+	serializeToFile<CScatterNDLayer>( "NeoMLDnnScatterNDLayer" );
 }
 
 #endif // GENERATE_SERIALIZATION_FILES
@@ -246,6 +254,14 @@ GTEST_TEST( SerializeFromFile, BaseLayerSerialization )
 	checkSerializeLayer<CBaseLayer>( "NeoMLDnnBertConvLayer" );
 	checkSerializeLayer<CBaseLayer>( "NeoMLDnnBroadcastLayer" );
 	checkSerializeLayer<CBaseLayer>( "NeoMLDnnExpLayer" );
+	checkSerializeLayer<CBaseLayer>( "NeoMLDnnLogLayer" );
+	checkSerializeLayer<CBaseLayer>( "NeoMLDnnNotLayer" );
+	checkSerializeLayer<CBaseLayer>( "NeoMLDnnErfLayer" );
+	checkSerializeLayer<CBaseLayer>( "NeoMLDnnLessLayer" );
+	checkSerializeLayer<CBaseLayer>( "NeoMLDnnEqualLayer" );
+	checkSerializeLayer<CBaseLayer>( "NeoMLDnnGlobalSumPoolingLayer" );
+	checkSerializeLayer<CBaseLayer>( "NeoMLDnnWhereLayer" );
+	checkSerializeLayer<CBaseLayer>( "NeoMLDnnScatterNDLayer" );
 }
 
 // ====================================================================================================================
@@ -2420,4 +2436,35 @@ inline void checkSpecificParams<CInterpolationLayer>( CInterpolationLayer& layer
 GTEST_TEST( SerializeFromFile, InterpolationLayerSerialization )
 {
 	checkSerializeLayer<CInterpolationLayer>( "NeoMLDnnInterpolationLayer" );
+}
+
+// ====================================================================================================================
+
+// CCumSumLayer
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+static void setSpecificParams( CCumSumLayer& layer )
+{
+	layer.SetDimension( BD_ListSize );
+	layer.SetReverse( true );
+}
+
+GTEST_TEST( SerializeToFile, CumSumLayerSerialization )
+{
+	serializeToFile<CCumSumLayer>( "NeoMLDnnCumSumLayer" );
+}
+
+#endif
+
+template<>
+inline void checkSpecificParams<CCumSumLayer>( CCumSumLayer& layer )
+{
+	EXPECT_EQ( BD_ListSize, layer.GetDimension() );
+	EXPECT_TRUE( layer.IsReverse() );
+}
+
+GTEST_TEST( SerializeFromFile, CumSumLayerSerialization )
+{
+	checkSerializeLayer<CCumSumLayer>( "NeoMLDnnCumSumLayer" );
 }

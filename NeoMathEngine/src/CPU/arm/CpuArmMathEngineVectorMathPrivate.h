@@ -207,6 +207,46 @@ inline void vectorAdd( const float* first, const float* second, float* result, i
 	}
 }
 
+inline void vectorAdd( const int* first, const int* second, int* result, int vectorSize )
+{
+	int coord = 0;
+
+	for( ; coord <= vectorSize - 16; coord += 16 ) {
+		NEON_LOAD_16_INTS( first, first );
+		first += 16;
+
+		NEON_LOAD_16_INTS( second, second );
+		second += 16;
+
+		int32x4_t result0 = vaddq_s32( first0, second0 );
+		int32x4_t result1 = vaddq_s32( first1, second1 );
+		int32x4_t result2 = vaddq_s32( first2, second2 );
+		int32x4_t result3 = vaddq_s32( first3, second3 );
+
+		NEON_STORE_16_INTS( result, result );
+		result += 16;
+	}
+
+	for( ; coord <= vectorSize - 4; coord += 4 ) {
+		int32x4_t first0 = LoadIntNeon4( first );
+		first += 4;
+
+		int32x4_t second0 = LoadIntNeon4( second );
+		second += 4;
+
+		int32x4_t result0 = vaddq_s32( first0, second0 );
+
+		StoreIntNeon4( result0, result );
+		result += 4;
+	}
+
+	vectorSize -= coord;
+	if( vectorSize > 0 ) {
+		int32x4_t res = vaddq_s32( LoadIntNeon( first, vectorSize ), LoadIntNeon( second, vectorSize ) );
+		StoreIntNeon( res, result, vectorSize );
+	}
+}
+
 //------------------------------------------------------------------------------------------------------------
 
 inline void alignedVectorAdd( float* first, const float* second, int vectorSize )
@@ -288,6 +328,22 @@ inline void vectorMultiply( const float* first, float* result, float multiplier,
 	if(vectorSize > 0) {
 		float32x4_t res = vmulq_f32(LoadNeon(first, vectorSize), mult);
 		StoreNeon(res, result, vectorSize);
+	}
+}
+
+inline void vectorMultiply( const int* first, int* result, int multiplier, int vectorSize )
+{
+	int count = GetCount4(vectorSize);
+	int32x4_t mult = vdupq_n_s32(multiplier);
+
+	for(int i = 0; i < count; ++i) {
+		StoreIntNeon4(vmulq_s32(LoadIntNeon4(first), mult), result);
+		first += 4;
+		result += 4;
+	}
+
+	if(vectorSize > 0) {
+		StoreIntNeon(vmulq_s32(LoadIntNeon(first, vectorSize), mult), result, vectorSize);
 	}
 }
 
@@ -748,15 +804,16 @@ inline void vectorMinMax( const float* first, float* result, const float minValu
 
 inline float32x4_t vectorTanhWorker( const float32x4_t& val, const float32x4_t& one, const CExpNeon& expObj )
 {
-	float32x4_t expVal = expObj.Execute( vaddq_f32( val, val ) );
-	return DivideNeon( vsubq_f32( expVal, one ), vaddq_f32( expVal, one ) );
+	float32x4_t expVal = expObj.Execute( vnegq_f32( vaddq_f32( val, val ) ) );
+	float32x4_t inv = InvNeon( vaddq_f32( one, expVal ) );
+	return vsubq_f32( vaddq_f32( inv, inv ), one );
 }
 
 inline void vectorTanh( const float* first, float* result, int vectorSize )
 {
 	int count = GetCount4( vectorSize );
 
-	const float32x4_t one = vdupq_n_f32( 1 );
+	const float32x4_t one = vdupq_n_f32( 1.f );
 	const CExpNeon expObj;
 
 	for( int i = 0; i < count; ++i ) {
@@ -782,7 +839,7 @@ inline void vectorSigmoid( const float* first, float* result, int vectorSize )
 {
 	int count = GetCount4( vectorSize );
 
-	const float32x4_t one = vdupq_n_f32( 1 );
+	const float32x4_t one = vdupq_n_f32( 1.f );
 	const CExpNeon expObj;
 
 	for( int i = 0; i < count; ++i ) {

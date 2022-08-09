@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright Â© 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,22 +14,18 @@ limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
 #include <TestFixture.h>
+#include <MeTestCommon.h>
 
 using namespace NeoML;
 using namespace NeoMLTest;
-
-static inline int calcConvOutputSize( int input, int padding, int filter, int stride )
-{
-	return  1 + ( input - filter + 2 * padding ) / stride;
-}
 
 static void blobChannelwiseConvolutionBackwardNaive(
 	float* input, const float* filter, const float* output,
 	int batchSize, int channels, int inputHeight, int inputWidth, int filterHeight, int filterWidth,
 	int paddingHeight, int paddingWidth, int strideHeight, int strideWidth )
 {
-	const int outputHeight = calcConvOutputSize( inputHeight, paddingHeight, filterHeight, strideHeight );
-	const int outputWidth = calcConvOutputSize( inputWidth, paddingWidth, filterWidth, strideWidth );
+	const int outputHeight = calcConvOutputSize( inputHeight, paddingHeight, filterHeight, 1, strideHeight );
+	const int outputWidth = calcConvOutputSize( inputWidth, paddingWidth, filterWidth, 1, strideWidth );
 	const int outputObjectSize = outputWidth * outputHeight * channels;
 	const int inputObjectSize = inputHeight * inputWidth * channels;
 
@@ -88,8 +84,8 @@ static void blobChannelwiseConvolutionBackwardImpl( const CTestParams& params, i
 	const int filterHeight = random.UniformInt( filterHeightInterval.Begin, filterHeightInterval.End );
 	const int filterWidth = random.UniformInt( filterWidthInterval.Begin, filterWidthInterval.End );
 
-	const int outputHeight = calcConvOutputSize( inputHeight, paddingHeight, filterHeight, strideHeight );
-	const int outputWidth = calcConvOutputSize( inputWidth, paddingWidth, filterWidth, strideWidth );
+	const int outputHeight = calcConvOutputSize( inputHeight, paddingHeight, filterHeight, 1, strideHeight );
+	const int outputWidth = calcConvOutputSize( inputWidth, paddingWidth, filterWidth, 1, strideWidth );
 
 	CREATE_FILL_FLOAT_ARRAY( outputDiffData, valuesInterval.Begin, valuesInterval.End, batchSize * outputHeight * outputWidth * channels, random )
 	CFloatBlob outputDiffBlob( MathEngine(), batchSize, outputHeight, outputWidth, 1, channels );

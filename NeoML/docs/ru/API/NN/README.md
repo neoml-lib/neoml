@@ -221,6 +221,8 @@ delete gpuMathEngine;
   - [CHSwishLayer](ActivationLayers/HSwishLayer.md) - функция активации `h-swish`
   - [CGELULayer](ActivationLayers/GELULayer.md) - функция активации `x * sigmoid(1.702 * x)`
   - [CExpLayer](ActivationLayers/ExpLayer.md) - функция активации `exp`
+  - [CLogLayer](ActivationLayers/LogLayer.md) - функция активации `log`
+  - [CErfLayer](ActivationLayers/ExpLayer.md) - функция активации `erf`
 - Свертки:
   - [CConvLayer](ConvolutionLayers/ConvLayer.md) - двумерная свертка
     - [CRleConvLayer](ConvolutionLayers/RleConvLayer.md) - свертка двумерных изображений в формате RLE
@@ -235,12 +237,15 @@ delete gpuMathEngine;
   - [C3dMaxPoolingLayer](PoolingLayers/3dMaxPoolingLayer.md) - трехмерный `Max Pooling`
   - [C3dMeanPoolingLayer](PoolingLayers/3dMeanPoolingLayer.md) - трехмерный `Mean Pooling`
   - [CGlobalMaxPoolingLayer](PoolingLayers/GlobalMaxPoolingLayer.md) - `Max Pooling` над объектами целиком
+  - [CGlobalMeanPoolingLayer](PoolingLayers/GlobalMeanPoolingLayer.md) - `Mean Pooling` над объектами целиком
+  - [CGlobalSumPoolingLayer](PoolingLayers/GlobalSumPoolingLayer.md) - `Sum Pooling` над объектами целиком
   - [CMaxOverTimePoolingLayer](PoolingLayers/MaxOverTimePoolingLayer.md) - `Max Pooling` над последовательностями "по времени"
   - [CProjectionPoolingLayer](PoolingLayers/ProjectionPoolingLayer.md) - `Mean Pooling` вдоль одной из размерностей блоба
 - [CSoftmaxLayer](SoftmaxLayer.md) - вычисление функции `softmax`
 - [CDropoutLayer](DropoutLayer.md) - реализация `dropout`
 - [CBatchNormalizationLayer](BatchNormalizationLayer.md) - батч нормализация
 - [CObjectNormalizationLayer](ObjectNormalizationLayer.md) - нормализация по объектам
+- [CCumSumLayer](CumSumLayer.md) - кумулятивная сумма вдоль определенной размерности
 - [CLrnLayer](LrnLayer.md) - Local Response Normalization
 - Поэлементные операции над блобами:
   - [CEltwiseSumLayer](EltwiseLayers/EltwiseSumLayer.md) - поэлементная сумма блобов
@@ -249,6 +254,11 @@ delete gpuMathEngine;
   - [CEltwiseDivLayer](EltwiseLayers/EltwiseDivLayer.md) - поэлементное деление блобов
   - [CEltwiseMaxLayer](EltwiseLayers/EltwiseMaxLayer.md) - поэлементный максимум блобов
   - [CEltwiseNegMulLayer](EltwiseLayers/EltwiseNegMulLayer.md) - поэлементное произведение разности `1` и элементов первого блоба с элементами остальных блобов
+- Логические операции:
+  - [CNotLayer](LogicalLayers/NotLayer.md) - поэлементный логический `not` над целочисленными данными
+  - [CLessLayer](LogicalLayers/LessLayer.md) - поэлементное сравнение двух блобов `x < y ? 1 : 0`
+  - [CEqualLayer](LogicalLayers/EqualLayer.md) - поэлементное сравнение двух блобов `x == y ? 1 : 0`
+  - [CWhereLayer](LogicalLayers/WhereLayer.md) - поэлементное слияние двух блобов на основе маски `x != 0 ? y : z`
 - Вспомогательные операции:
   - [CTransformLayer](TransformLayer.md) - изменение формы блоба
   - [CTransposeLayer](TransposeLayer.md) - перестановка размерностей блоба
@@ -281,6 +291,8 @@ delete gpuMathEngine;
   - Повторение данных:
     - [CRepeatSequenceLayer](RepeatSequenceLayer.md) - повторение последовательностей несколько раз
     - [CUpsampling2DLayer](Upsampling2DLayer.md) - увеличение размеров двумерных изображений
+  - Операции Scatter и Gather
+    - [CScatterNDLayer](ScatterGatherLayers/ScatterNDLayer.md) заменяет некоторые объекты в блобе с данными на новые
   - [CReorgLayer](ReorgLayer.md) - слой, преобразующий многоканальные изображения в изображения меньшего размера, с большим числом каналов
   - [CSpaceToDepthLayer](SpaceToDepthLayer.md) слой, разбивающий входные изображения на квадраты и записывающий содержимое таких квадратов
   в пиксели выходного изображения

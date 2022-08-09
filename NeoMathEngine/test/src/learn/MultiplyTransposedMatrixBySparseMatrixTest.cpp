@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright Â© 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -63,10 +63,12 @@ static void multiplyTransposedMatrixBySparseMatrixTestImpl( const CTestParams& p
 	std::vector<int> rows, columns;
 	std::vector<float> values;
 	rows.push_back( 0 );
+	const int presetY = random.UniformInt( 0, secondHeight - 1 );
+	const int presetX = random.UniformInt( 0, secondWidth - 1 );
 	for( int i = 0; i < secondHeight; i++ ) {
 		int elementsInRow = 0;
 		for( int j = 0; j < secondWidth; j++ ) {
-			if( random.UniformInt( 0, 2 ) != 0 ) {
+			if( ( i == presetY && j == presetX ) || random.UniformInt( 0, 2 ) != 0 ) {
 				float value = static_cast< float >( random.UniformInt( valuesInterval.Begin, valuesInterval.End ) );
 				columns.push_back( j );
 				values.push_back( value );
@@ -85,14 +87,16 @@ static void multiplyTransposedMatrixBySparseMatrixTestImpl( const CTestParams& p
 		multiplyTransposedMatrixByTransposedSparseMatrixNaive( first.data(), rows.data(), columns.data(), values.data(), expected.data(),
 			firstWidth, resultWidth );
 
+		CSparseMatrix sparseMatrix( MathEngine(), rows, columns, values );
 		MathEngine().MultiplyTransposedMatrixBySparseMatrix( firstHeight, firstWidth, resultWidth, CARRAY_FLOAT_WRAPPER( first ),
-			GetSparseMatrix( MathEngine(), rows, columns, values ), CARRAY_FLOAT_WRAPPER( actual ), true );
+			sparseMatrix.Desc(), CARRAY_FLOAT_WRAPPER( actual ), true );
 	} else {
 		multiplyTransposedMatrixBySparseMatrixNaive( first.data(), rows.data(), columns.data(), values.data(), expected.data(),
 			firstHeight, firstWidth, resultWidth );
 
+		CSparseMatrix sparseMatrix( MathEngine(), rows, columns, values );
 		MathEngine().MultiplyTransposedMatrixBySparseMatrix( firstHeight, firstWidth, resultWidth, CARRAY_FLOAT_WRAPPER( first ),
-			GetSparseMatrix( MathEngine(), rows, columns, values ), CARRAY_FLOAT_WRAPPER( actual ), false );
+			sparseMatrix.Desc(), CARRAY_FLOAT_WRAPPER( actual ), false );
 	}
 
 	for( int i = 0; i < firstWidth * resultWidth; ++i ) {

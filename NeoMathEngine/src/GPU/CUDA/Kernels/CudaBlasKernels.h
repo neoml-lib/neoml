@@ -175,8 +175,9 @@ __global__ void SubVectorFromMatrixColumnsKernel(const float* __restrict__ matri
 }
 
 const int SumMatrixRowsAddCombineCount = 128;
+template<class T>
 __global__ void SumMatrixRowsAddKernel(
-	int batchSize, float* result, const float* __restrict__ matrix,
+	int batchSize, T* result, const T* __restrict__ matrix,
 	int matrixHeight, int matrixWidth )
 {
 	const int height = ( matrixHeight + SumMatrixRowsAddCombineCount - 1 ) / SumMatrixRowsAddCombineCount;
@@ -198,7 +199,7 @@ __global__ void SumMatrixRowsAddKernel(
 	}
 
 	matrix += ( batchIndex * matrixHeight + rowIndex ) * matrixWidth + colIndex;
-	float sum = *matrix;
+	T sum = *matrix;
 	for(int j = rowIndex + 1; j < rowEndIndex; ++j) {
 		matrix += matrixWidth;
 		sum += *matrix;

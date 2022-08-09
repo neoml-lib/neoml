@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright Â© 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -49,10 +49,12 @@ static void multiplySparseMatrixByMatrixTestImpl( const CTestParams& params, int
 	std::vector<float> values;
 	rows.push_back( 0 );
 
+	const int presetY = random.UniformInt( 0, firstHeight - 1 );
+	const int presetX = random.UniformInt( 0, firstWidth - 1 );
 	for( int i = 0; i < firstHeight; i++ ) {
 		int elementsInRow = 0;
 		for( int j = 0; j < firstWidth; j++ ) {
-			if( random.UniformInt( 0, 2 ) != 0 ) {
+			if( ( i == presetY && j == presetX ) || random.UniformInt( 0, 2 ) != 0 ) {
 				float value = static_cast< float >( random.UniformInt( valuesInterval.Begin, valuesInterval.End ) );
 				columns.push_back( j );
 				values.push_back( value );
@@ -70,7 +72,8 @@ static void multiplySparseMatrixByMatrixTestImpl( const CTestParams& params, int
 	multiplySparseMatrixByMatrixNaive( rows.data(), columns.data(), values.data(), second.data(), expected.data(),
 		firstHeight, secondWidth );
 
-	MathEngine().MultiplySparseMatrixByMatrix( firstHeight, firstWidth, secondWidth, GetSparseMatrix( MathEngine(), rows, columns, values ),
+	CSparseMatrix sparseMatrix( MathEngine(), rows, columns, values );
+	MathEngine().MultiplySparseMatrixByMatrix( firstHeight, firstWidth, secondWidth, sparseMatrix.Desc(),
 		CARRAY_FLOAT_WRAPPER( second ), CARRAY_FLOAT_WRAPPER( actual ) );
 
 	for( int i = 0; i < firstHeight * secondWidth; ++i ) {

@@ -223,6 +223,8 @@ delete gpuMathEngine;
   - [CHSwishLayer](ActivationLayers/HSwishLayer.md) - `h-swish` activation function
   - [CGELULayer](ActivationLayers/GELULayer.md) - `x * sigmoid(1.702 * x)` activation function
   - [CExpLayer](ActivationLayers/ExpLayer.md) - `exp` activation function
+  - [CLogLayer](ActivationLayers/LogLayer.md) - `log` activation function
+  - [CErfLayer](ActivationLayers/ErfLayer.md) - `erf` activation function
 - Convolution layers:
   - [CConvLayer](ConvolutionLayers/ConvLayer.md) - 2-dimensional convolution
     - [CRleConvLayer](ConvolutionLayers/RleConvLayer.md) - convolution for 2-dimensional images in RLE format
@@ -237,12 +239,15 @@ delete gpuMathEngine;
   - [C3dMaxPoolingLayer](PoolingLayers/3dMaxPoolingLayer.md) - 3-dimensional max pooling
   - [C3dMeanPoolingLayer](PoolingLayers/3dMeanPoolingLayer.md) - 3-dimensional mean pooling
   - [CGlobalMaxPoolingLayer](PoolingLayers/GlobalMaxPoolingLayer.md) - max pooling over whole objects
+  - [CGlobalMeanPoolingLayer](PoolingLayers/GlobalMeanPoolingLayer.md) - mean pooling over whole objects
+  - [CGlobalSumPoolingLayer](PoolingLayers/GlobalSumPoolingLayer.md) - sum pooling over whole objects
   - [CMaxOverTimePoolingLayer](PoolingLayers/MaxOverTimePoolingLayer.md) - max pooling over sequences along the "time" axis
   - [CProjectionPoolingLayer](PoolingLayers/ProjectionPoolingLayer.md) - mean pooling along one of the blob dimensions
 - [CSoftmaxLayer](SoftmaxLayer.md) calculates softmax function
 - [CDropoutLayer](DropoutLayer.md) implements random dropout
 - [CBatchNormalizationLayer](BatchNormalizationLayer.md) implements batch normalization
 - [CObjectNormalizationLayer](ObjectNormalizationLayer.md) implements normalization over the objects
+- [CCumSumLayer](CumSumLayer.md) implements cumulative sum over the blob dimension
 - [CLrnLayer](LrnLayer.md) implements local response normalization
 - Elementwise operations with data blobs:
   - [CEltwiseSumLayer](EltwiseLayers/EltwiseSumLayer.md) - elementwise sum
@@ -251,6 +256,11 @@ delete gpuMathEngine;
   - [CEltwiseDivLayer](EltwiseLayers/EltwiseDivLayer.md) - elementwise division
   - [CEltwiseMaxLayer](EltwiseLayers/EltwiseMaxLayer.md) - elementwise maximum
   - [CEltwiseNegMulLayer](EltwiseLayers/EltwiseNegMulLayer.md) calculates the elementwise product of `1 - first input` and the other inputs
+- Logical operations:
+  - [CNotLayer](LogicalLayers/NotLayer.md) - elementwise logical `not` over integer data
+  - [CLessLayer](LogicalLayers/LessLayer.md) - elementwise comparison of 2 blobs `a < b ? 1 : 0`
+  - [CEqualLayer](LogicalLayers/EqualLayer.md) - elementwise comparison of 2 blobs `a == b ? 1 : 0`
+  - [CWhereLayer](LogicalLayers/WhereLayer.md) - elementwise merge of 2 blobs based on the mask `a != 0 ? b : c`
 - Auxiliary operations:
   - [CTransformLayer](TransformLayer.md) changes the blob shape
   - [CTransposeLayer](TransposeLayer.md) switches the blob dimensions
@@ -283,6 +293,8 @@ delete gpuMathEngine;
   - Repeating data:
     - [CRepeatSequenceLayer](RepeatSequenceLayer.md) repeats sequences several times
     - [CUpsampling2DLayer](Upsampling2DLayer.md) scales up two-dimensional images
+  - Scatter & Gather operations
+    - [CScatterNDLayer](ScatterGatherLayers/ScatterNDLayer.md) scatters updates over indexed objects of data
   - [CReorgLayer](ReorgLayer.md) transforms a multi-channel image into several smaller images with more channels
   - [CSpaceToDepthLayer](SpaceToDepthLayer.md) splits images into squared blocks and flattens each block
   - [CDepthToSpaceLayer](DepthToSpaceLayer.md) transforms pixels of images into squared blocks

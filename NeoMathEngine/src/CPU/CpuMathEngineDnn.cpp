@@ -1272,4 +1272,57 @@ void CCpuMathEngine::LinearInterpolation( const CConstFloatHandle& dataHandle, c
 	}
 }
 
+template<class T>
+static void scatterNDImpl( const T* updates, const int* indices, T* data, const CBlobDesc& dataDesc,
+	int updateCount, int indexDims )
+{
+	int objectSize = 1;
+	for( int i = indexDims; i < static_cast<int>( BD_Count ); ++i ) {
+		objectSize *= dataDesc.DimSize( i );
+	}
+	const int curThreadCount = IsOmpRelevant( updateCount * ( objectSize + indexDims ) );
+
+	static_assert( BD_Count <= 8, "BD_Count > 8" );
+	int offsets[8];
+	offsets[indexDims - 1] = objectSize;
+	for( int i = indexDims - 2; i >= 0; --i ) {
+		offsets[i] = offsets[i + 1] * dataDesc.DimSize( i + 1 );
+	}
+
+	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
+	for( int updateIndex = 0; updateIndex < updateCount; ++updateIndex ) {
+		int flatIndex = 0;
+		for( int i = 0; i < indexDims; ++i ) {
+			flatIndex += offsets[i] * indices[updateIndex * indexDims + i];
+		}
+		dataCopy( data + flatIndex, updates + updateIndex * objectSize, objectSize );
+	}
+}
+
+void CCpuMathEngine::ScatterND( const CConstIntHandle& indicesHandle, const CConstFloatHandle& updatesHandle,
+	const CFloatHandle& dataHandle, const CBlobDesc& dataDesc, int updateCount, int indexDims )
+{
+	ASSERT_EXPR( updatesHandle.GetMathEngine() == this );
+	ASSERT_EXPR( indicesHandle.GetMathEngine() == this );
+	ASSERT_EXPR( dataHandle.GetMathEngine() == this );
+	ASSERT_EXPR( updateCount > 0 );
+	ASSERT_EXPR( indexDims > 0 && indexDims < static_cast<int>( BD_Count ) );
+
+	scatterNDImpl( GetRaw( updatesHandle ), GetRaw( indicesHandle ), GetRaw( dataHandle ),
+		dataDesc, updateCount, indexDims );
+}
+
+void CCpuMathEngine::ScatterND( const CConstIntHandle& indicesHandle, const CConstIntHandle& updatesHandle,
+	const CIntHandle& dataHandle, const CBlobDesc& dataDesc, int updateCount, int indexDims )
+{
+	ASSERT_EXPR( updatesHandle.GetMathEngine() == this );
+	ASSERT_EXPR( indicesHandle.GetMathEngine() == this );
+	ASSERT_EXPR( dataHandle.GetMathEngine() == this );
+	ASSERT_EXPR( updateCount > 0 );
+	ASSERT_EXPR( indexDims > 0 && indexDims < static_cast<int>( BD_Count ) );
+
+	scatterNDImpl( GetRaw( updatesHandle ), GetRaw( indicesHandle ), GetRaw( dataHandle ),
+		dataDesc, updateCount, indexDims );
+}
+
 } // namespace NeoML

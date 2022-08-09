@@ -14,16 +14,10 @@ limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
 #include <TestFixture.h>
+#include <MeTestCommon.h>
 
 using namespace NeoML;
 using namespace NeoMLTest;
-
-static inline int getFlatIndex(const CFloatBlob& blob, int seq, int batch, int list, int channel, int depth,
-	int row, int column)
-{
-	return (list + blob.GetDesc().ListSize() * (batch + blob.GetDesc().BatchWidth() * seq)) * blob.GetDesc().ObjectSize()
-		+ channel + blob.GetDesc().Channels() * (depth + blob.GetDesc().Depth() * (column + row * blob.GetDesc().Width()));
-}
 
 static inline void fillWithUniform( std::vector<float>& data, double min, double max, CRandom& random )
 {

@@ -18,11 +18,17 @@ neoml.Dnn
    - :ref:`py-dnn-pooling`
    - :ref:`py-dnn-softmax`
    - :ref:`py-dnn-dropout`
+   - :ref:`py-dnn-cumsum`
    - :ref:`py-dnn-normalization`
    - :ref:`py-dnn-eltwise`
    - :ref:`py-dnn-qualitycontrol`
    - :ref:`py-dnn-discrete-features`
    - :ref:`py-dnn-attention`
+   - :ref:`py-dnn-logical`
+      - :ref:`py-dnn-not`
+      - :ref:`py-dnn-less`
+      - :ref:`py-dnn-equal`
+      - :ref:`py-dnn-where`
    - :ref:`py-dnn-auxiliary`:
       - :ref:`py-dnn-transform`
       - :ref:`py-dnn-transpose`
@@ -34,6 +40,7 @@ neoml.Dnn
       - :ref:`py-dnn-split`
       - :ref:`py-dnn-sequences`
       - :ref:`py-dnn-imageconversion`
+      - :ref:`py-dnn-scattergather`
    - :ref:`py-dnn-crf`
    - :ref:`py-dnn-ctc`
 
@@ -283,6 +290,18 @@ Exp
 .. autoclass:: neoml.Dnn.Exp
    :members:
 
+Log
+===
+
+.. autoclass:: neoml.Dnn.Log
+   :members:
+
+Erf
+===
+
+.. autoclass:: neoml.Dnn.Erf
+   :members:
+
 .. _py-dnn-conv:
 
 Convolutional layers
@@ -434,6 +453,12 @@ GlobalMeanPooling
 .. autoclass:: neoml.Dnn.GlobalMeanPooling
    :members:
 
+GlobalSumPooling
+================
+
+.. autoclass:: neoml.Dnn.GlobalSumPooling
+   :members:
+
 MaxOverTimePooling
 ==================
 
@@ -472,6 +497,14 @@ Dropout
 *************
 
 .. autoclass:: neoml.Dnn.Dropout 
+   :members:
+
+.. _py-dnn-cumsum:
+
+CumSum
+===========
+
+.. autoclass:: neoml.Dnn.CumSum
    :members:
 
 .. _py-dnn-normalization:
@@ -615,6 +648,43 @@ MultiheadAttention
 ========================
 
 .. autoclass:: neoml.Dnn.MultiheadAttention
+   :members:
+
+.. _py-dnn-logical:
+
+Logical operations Layers
+*************************
+
+.. _py-dnn-not:
+
+Not
+===
+
+.. autoclass:: neoml.Dnn.Not
+   :members:
+
+.. _py-dnn-less:
+
+Less
+====
+
+.. autoclass:: neoml.Dnn.Less
+   :members:
+
+.. _py-dnn-equal:
+
+Equal
+=====
+
+.. autoclass:: neoml.Dnn.Equal
+   :members:
+
+.. _py-dnn-where:
+
+Where
+=====
+
+.. autoclass:: neoml.Dnn.Where
    :members:
 
 .. _py-dnn-auxiliary:
@@ -822,6 +892,17 @@ Upsampling2D
 -----------------
 
 .. autoclass:: neoml.Dnn.Upsampling2D
+   :members:
+
+.. _py-dnn-scattergather:
+
+Scatter & Gather Layers
+=======================
+
+ScatterND
+---------
+
+.. autoclass:: neoml.Dnn.ScatterND
    :members:
 
 .. _py-dnn-crf:

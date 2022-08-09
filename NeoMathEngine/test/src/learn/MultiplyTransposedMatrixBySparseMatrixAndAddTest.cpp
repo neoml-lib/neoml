@@ -46,10 +46,12 @@ static void multiplyTransposedMatrixBySparseMatrixAndAddTestImpl( const CTestPar
 	std::vector<int> rows, columns;
 	std::vector<float> values;
 	rows.push_back( 0 );
+	const int presetY = random.UniformInt( 0, firstHeight - 1 );
+	const int presetX = random.UniformInt( 0, secondWidth - 1 );
 	for( int i = 0; i < firstHeight; i++ ) {
 		int elementsInRow = 0;
 		for( int j = 0; j < secondWidth; j++ ) {
-			if( random.UniformInt( 0, 2 ) != 0 ) {
+			if( ( i == presetY && j == presetX ) || random.UniformInt( 0, 2 ) != 0 ) {
 				float value = static_cast< float >( random.UniformInt( valuesInterval.Begin, valuesInterval.End ) );
 				columns.push_back( j );
 				values.push_back( value );
@@ -67,8 +69,9 @@ static void multiplyTransposedMatrixBySparseMatrixAndAddTestImpl( const CTestPar
 	multiplyTransposedMatrixBySparseMatrixAndAddNaive( first.data(), rows.data(), columns.data(), values.data(), expected.data(),
 		firstHeight, firstWidth, secondWidth );
 
+	CSparseMatrix sparseMatrix( MathEngine(), rows, columns, values );
 	MathEngine().MultiplyTransposedMatrixBySparseMatrixAndAdd( firstHeight, firstWidth, secondWidth, CARRAY_FLOAT_WRAPPER( first ),
-		GetSparseMatrix( MathEngine(), rows, columns, values ), CARRAY_FLOAT_WRAPPER( actual ) );
+		sparseMatrix.Desc(), CARRAY_FLOAT_WRAPPER( actual ) );
 
 	for( int i = 0; i < firstWidth * secondWidth; ++i ) {
 		ASSERT_NEAR( expected[i], actual[i], 1e-3 );

@@ -34,11 +34,13 @@ limitations under the License.
 #include "PyBaseConvLayer.h"
 #include "PyBertConvLayer.h"
 #include "PyBinarizationLayer.h"
+#include "PyBroadcastLayer.h"
 #include "PyCastLayer.h"
 #include "PyConvLayer.h"
 #include "PyConcatLayer.h"
 #include "PyCrfLayer.h"
 #include "PyCtcLayer.h"
+#include "PyCumSumLayer.h"
 #include "PyCustomLossLayer.h"
 #include "PyDataLayer.h"
 #include "PyDotProductLayer.h"
@@ -48,6 +50,7 @@ limitations under the License.
 #include "PyIndRnnLayer.h"
 #include "PyIrnnLayer.h"
 #include "PyGruLayer.h"
+#include "PyLogicalLayer.h"
 #include "PyLrnLayer.h"
 #include "PyMultichannelLookupLayer.h"
 #include "PyMatrixMultiplicationLayer.h"
@@ -58,6 +61,7 @@ limitations under the License.
 #include "PyQrnnLayer.h"
 #include "PyReorgLayer.h"
 #include "PyRepeatSequenceLayer.h"
+#include "PyScatterGatherLayers.h"
 #include "PySequenceSumLayer.h"
 #include "PySoftmaxLayer.h"
 #include "PySpaceAndDepthLayer.h"
@@ -108,11 +112,13 @@ PYBIND11_MODULE(PythonWrapper, m) {
 	InitializeBatchNormalizationLayer( m );
 	InitializeBertConvLayer( m );
 	InitializeBinarizationLayer( m );
+	InitializeBroadcastLayer( m );
 	InitializeCastLayer( m );
 	InitializeConvLayer( m );
 	InitializeConcatLayer( m );
 	InitializeCrfLayer( m );
 	InitializeCtcLayer( m );
+	InitializeCumSumLayer( m );
 	InitializeDataLayer( m );
 	InitializeEltwiseLayer( m );
 	InitializeDotProductLayer( m );
@@ -123,6 +129,7 @@ PYBIND11_MODULE(PythonWrapper, m) {
 	InitializeIndRnnLayer( m );
 	InitializeIrnnLayer( m );
 	InitializeGruLayer( m );
+	InitializeLogicalLayer( m );
 	InitializeLossLayer( m );
 	InitializeLrnLayer( m );
 	InitializeCustomLossLayer( m );
@@ -137,6 +144,7 @@ PYBIND11_MODULE(PythonWrapper, m) {
 	InitializeQrnnLayer( m );
 	InitializeReorgLayer( m );
 	InitializeRepeatSequenceLayer( m );
+	InitializeScatterGatherLayers( m );
 	InitializeSequenceSumLayer( m );
 	InitializeSoftmaxLayer( m );
 	InitializeSplitLayer( m );

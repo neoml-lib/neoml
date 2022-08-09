@@ -80,15 +80,6 @@ inline __m128 LoadSse(const float* data, int count, float defVal = 0)
 	}
 }
 
-inline __m128 LoadSseFromVector(const float* data, int count, float defVal = 0)
-{
-	if(count >= 4) {
-		return LoadSse4(data);
-	} else {
-		return LoadSse(data, count, defVal);
-	}
-}
-
 inline __m128i LoadIntSse4(const int* data)
 {
 	return _mm_loadu_si128((const __m128i*)data);
@@ -166,6 +157,30 @@ inline void StoreIntSse(__m128i val, int* data, int count)
 			break;
 	}
 }
+
+#define SSE_LOAD_16_FLOATS(varPrefix, src) \
+    __m128 varPrefix##0 = LoadSse4(src + 4 * 0); \
+    __m128 varPrefix##1 = LoadSse4(src + 4 * 1); \
+    __m128 varPrefix##2 = LoadSse4(src + 4 * 2); \
+    __m128 varPrefix##3 = LoadSse4(src + 4 * 3);
+
+#define SSE_STORE_16_FLOATS(varPrefix, dst) \
+    StoreSse4(varPrefix##0, dst + 4 * 0); \
+    StoreSse4(varPrefix##1, dst + 4 * 1); \
+    StoreSse4(varPrefix##2, dst + 4 * 2); \
+    StoreSse4(varPrefix##3, dst + 4 * 3);
+
+#define SSE_LOAD_16_INTS(varPrefix, src) \
+    __m128i varPrefix##0 = LoadIntSse4(src + 4 * 0); \
+    __m128i varPrefix##1 = LoadIntSse4(src + 4 * 1); \
+    __m128i varPrefix##2 = LoadIntSse4(src + 4 * 2); \
+    __m128i varPrefix##3 = LoadIntSse4(src + 4 * 3);
+
+#define SSE_STORE_16_INTS(varPrefix, dst) \
+    StoreIntSse4(varPrefix##0, dst + 4 * 0); \
+    StoreIntSse4(varPrefix##1, dst + 4 * 1); \
+    StoreIntSse4(varPrefix##2, dst + 4 * 2); \
+    StoreIntSse4(varPrefix##3, dst + 4 * 3);
 
 inline __m128 GetPhaseMask4(int phase)
 {

@@ -17,6 +17,7 @@ limitations under the License.
 #pragma hdrstop
 
 #include <TestFixture.h>
+#include <MlTestCommon.h>
 
 using namespace NeoML;
 using namespace NeoMLTest;
@@ -26,17 +27,6 @@ public:
 	static bool InitTestFixture() { return true; }
 	static void DeinitTestFixture() {}
 };
-
-static CSparseFloatVector generateRandomVector( CRandom& rand, int maxLength = 100,
-	float minValue = -100., float maxValue = 100. )
-{
-	CSparseFloatVector res;
-	for( int i = 0; i < maxLength; ++i ) {
-		int index = rand.UniformInt( 0, maxLength - 1 ) ;
-		res.SetAt( index, static_cast<float>( rand.Uniform( minValue, maxValue ) ) );
-	}
-	return res;
-}
 
 TEST_F( CFloatVectorTest, DotProduct )
 {

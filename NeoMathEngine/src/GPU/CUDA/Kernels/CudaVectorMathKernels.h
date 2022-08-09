@@ -1,4 +1,4 @@
-/* Copyright � 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -193,20 +193,23 @@ __global__ void VectorSumAlongDimensionKernel( const float* __restrict__ input, 
 	}
 }
 
-__global__ void VectorCumSumAlongDimensionKernel( const float* __restrict__ input, int precedingDims, int dims,
-	int followingDims, float* result )
+template<class T>
+__global__ void VectorCumSumAlongDimensionKernel( const T* __restrict__ input, int precedingDims, int dims,
+	int followingDims, T* result, bool reverse )
 {
 	int x;
 	int y;
 	if( GetCudaTaskIndex2D( precedingDims, followingDims, x, y ) ) {
-		const int offset = y * dims * precedingDims + x;
+		const int firstElemOffset = reverse ? ( dims - 1 ) * precedingDims : 0;
+		const int offset = y * dims * precedingDims + x + firstElemOffset;
 		input += offset;
 		result += offset;
-		float curSum = *input;
+		T curSum = *input;
 		*result = curSum;
+		const int step = reverse ? -precedingDims : precedingDims;
 		for( int i = 1; i < dims; i++ ) {
-			input += precedingDims;
-			result += precedingDims;
+			input += step;
+			result += step;
 			curSum += *input;
 			*result = curSum;
 		}
@@ -833,6 +836,14 @@ __global__ void VectorNegLogKernel(const float* __restrict__ first, float* resul
 	}
 }
 
+__global__ void VectorErfKernel(const float* __restrict__ first, float* result, int count)
+{
+	int index;
+	if(GetCudaTaskIndex(count, index)) {
+		result[index] = erff(first[index]);
+	}
+}
+
 __global__ void VectorBernulliKLDerivativeKernel(const float* __restrict__ first,
 	float* result, int count, const float* __restrict__ target)
 {
@@ -954,8 +965,9 @@ __global__ void VectorMultiplyAndSubKernel(const float* __restrict__ first,
 }
 
 const int VectorMultiplyCombineCount = 8;
-__global__ void VectorMultiplyKernel(const float* __restrict__ first,
-	float* result, int count, const float* __restrict__ multiplier)
+template<class T>
+__global__ void VectorMultiplyKernel(const T* __restrict__ first,
+	T* result, int count, const T* __restrict__ multiplier)
 {
 	int index;
 	int step;
@@ -1265,6 +1277,15 @@ __global__ void VectorL1DiffAddKernel(const float* __restrict__ first, const flo
 	}
 }
 
+__global__ void vectorNotKernel( const int* __restrict__ first,
+	int* result, int vectorSize )
+{
+	int index;
+	if( GetCudaTaskIndex( vectorSize, index ) ) {
+		result[index] = first[index] == 0 ? 1 : 0;
+	}
+}
+
 __global__ void vectorGreaterEqualToZeroKernel( const int* __restrict__ first,
 	float* result, int vectorSize )
 {
@@ -1274,12 +1295,13 @@ __global__ void vectorGreaterEqualToZeroKernel( const int* __restrict__ first,
 	}
 }
 
-__global__ void vectorLessKernel( const float* __restrict__ first, const float* __restrict__ second,
-	float* result, int vectorSize )
+template<class TSrc, class TDst>
+__global__ void vectorLessKernel( const TSrc* __restrict__ first, const TSrc* __restrict__ second,
+	TDst* result, int vectorSize )
 {
 	int index;
 	if( GetCudaTaskIndex( vectorSize, index ) ) {
-		result[index] = first[index] < second[index] ? 1.f : 0.f;
+		result[index] = static_cast<TDst>( first[index] < second[index] ? 1 : 0 );
 	}
 }
 
@@ -1298,6 +1320,26 @@ __global__ void vectorLessKernel( float first, const float* __restrict__ second,
 	int index;
 	if( GetCudaTaskIndex( vectorSize, index ) ) {
 		result[index] = first < second[index] ? 1.f : 0.f;
+	}
+}
+
+template<class T>
+__global__ void vectorEqualKernel( const T* __restrict__ first, const T* __restrict__ second, int* result,
+	int vectorSize )
+{
+	int index;
+	if( GetCudaTaskIndex( vectorSize, index ) ) {
+		result[index] = first[index] == second[index] ? 1 : 0;
+	}
+}
+
+template<class T>
+__global__ void vectorWhereKernel( const int* __restrict__ first, const T* __restrict__ second,
+	const T* __restrict__ third, T* result, int vectorSize )
+{
+	int index;
+	if( GetCudaTaskIndex( vectorSize, index ) ) {
+		result[index] = first[index] != 0 ? second[index] : third[index];
 	}
 }
 

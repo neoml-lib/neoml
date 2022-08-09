@@ -1,4 +1,4 @@
-/* Copyright © 2017-2022 ABBYY Production LLC
+/* Copyright Â© 2017-2022 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -36,20 +36,12 @@ ISubwordEncoderWithCache::CCache::CCachedData::CCachedData( CCachedData&& other 
 
 ///////////////////////////////////////////////////////////////////////////////
 
-ISubwordEncoderWithCache::CCache::CCache() :
-	cacheTime( 0 )
-{
-	SetCachePeriod( 1000000 );
-}
-
 void ISubwordEncoderWithCache::CCache::SetCachePeriod( int newPeriod )
 {
 	NeoAssert( newPeriod == NotFound || newPeriod > 0 );
 	cachePeriod = newPeriod;
 	if( cachePeriod == NotFound ) {
-		// Clears the cache.
-		cacheTime = 0;
-		wordCache.Empty();
+		Clear();
 	}
 }
 

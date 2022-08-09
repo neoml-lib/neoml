@@ -45,6 +45,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/SoftmaxLayer.h>
 #include <NeoML/Dnn/Layers/GlobalMeanPoolingLayer.h>
 #include <NeoML/Dnn/Layers/GlobalMaxPoolingLayer.h>
+#include <NeoML/Dnn/Layers/GlobalSumPoolingLayer.h>
 #include <NeoML/Dnn/Layers/GruLayer.h>
 #include <NeoML/Dnn/Layers/LstmLayer.h>
 #include <NeoML/Dnn/Layers/MaxOverTimePoolingLayer.h>
@@ -92,6 +93,9 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/BertConvLayer.h>
 #include <NeoML/Dnn/Layers/InterpolationLayer.h>
 #include <NeoML/Dnn/Layers/BroadcastLayer.h>
+#include <NeoML/Dnn/Layers/LogicalLayers.h>
+#include <NeoML/Dnn/Layers/CumSumLayer.h>
+#include <NeoML/Dnn/Layers/ScatterGatherLayers.h>
 
 namespace NeoML {
 
@@ -277,6 +281,7 @@ REGISTER_NEOML_LAYER( CEnumBinarizationLayer, "FmlCnnEnumBinarizationLayer" )
 REGISTER_NEOML_LAYER( CBitSetVectorizationLayer, "FmlCnnBitSetVectorizationLayerClassName" )
 REGISTER_NEOML_LAYER_EX( CSoftmaxLayer, "FmlCnnSoftmaxLayer", "FmlCCnnChannelwiseSoftmaxLayer" )
 REGISTER_NEOML_LAYER_EX( CGlobalMeanPoolingLayer, "FmlCnnGlobalMainPoolingLayer", "FmlCnnGlobalAveragePoolingLayer" )
+REGISTER_NEOML_LAYER( CGlobalSumPoolingLayer, "NeoMLDnnGlobalSumPoolingLayer" )
 REGISTER_NEOML_LAYER( CGlobalMaxPoolingLayer, "FmlCnnGlobalMaxPoolingLayer" )
 REGISTER_NEOML_LAYER( CLstmLayer, "FmlCnnLstmLayer" )
 REGISTER_NEOML_LAYER( CGruLayer, "FmlCnnGruLayer" )
@@ -346,6 +351,14 @@ REGISTER_NEOML_LAYER( CL1LossLayer, "NeoMLDnnL1LossLayer" )
 REGISTER_NEOML_LAYER( CInterpolationLayer, "NeoMLDnnInterpolationLayer" )
 REGISTER_NEOML_LAYER( CBroadcastLayer, "NeoMLDnnBroadcastLayer" )
 REGISTER_NEOML_LAYER( CExpLayer, "NeoMLDnnExpLayer" )
+REGISTER_NEOML_LAYER( CLogLayer, "NeoMLDnnLogLayer" )
+REGISTER_NEOML_LAYER( CNotLayer, "NeoMLDnnNotLayer" )
+REGISTER_NEOML_LAYER( CErfLayer, "NeoMLDnnErfLayer" )
+REGISTER_NEOML_LAYER( CLessLayer, "NeoMLDnnLessLayer" )
+REGISTER_NEOML_LAYER( CCumSumLayer, "NeoMLDnnCumSumLayer" )
+REGISTER_NEOML_LAYER( CEqualLayer, "NeoMLDnnEqualLayer" )
+REGISTER_NEOML_LAYER( CWhereLayer, "NeoMLDnnWhereLayer" )
+REGISTER_NEOML_LAYER( CScatterNDLayer, "NeoMLDnnScatterNDLayer" )
 
 }
 

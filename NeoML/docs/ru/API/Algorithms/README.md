@@ -15,7 +15,7 @@
 		- [Генератор паросочетаний CMatchingGenerator](#генератор-паросочетаний-cmatchinggenerator)
 		- [Генератор последовательностей элементов фиксированной длины CSimpleGenerator](#генератор-последовательностей-элементов-фиксированной-длины-csimplegenerator)
 	- [Кодирование подслов для языковых моделей](#кодирование-подслов-для-языковых-моделей)
-		- [Кодирование пар байтов BPE](#кодирование-пар-байтов-BPE)
+		- [Кодирование пар байтов BPE](#кодирование-пар-байтов-bpe)
 
 <!-- TOC -->
 
@@ -402,6 +402,12 @@ public:
 	// Возвращает флаги механизма кодирования.
 	virtual bool UseEndOfWordToken() const = 0;
 	virtual bool UseStartOfWordToken() const = 0;
+
+	// Прямая работа со словарем. См. ниже.
+	virtual void LoadDictionary( const CWordDictionary& tokens, 
+		const CString& endOfWordToken, const CString& startOfWordToken ) = 0;
+	virtual void GetDictionary( CWordDictionary& tokens, 
+		const CString& endOfWordToken = "</s>", const CString& startOfWordToken = "<s>" ) const = 0;
 };
 ```
 
@@ -455,3 +461,10 @@ public:
 2. Создать экземпляр класса `CBytePairEncoderTrainer` с желаемыми параметрами `CParams` и ранее созданным словарем.
 3. Вызвать метод `Train` у экземпляра `CBytePairEncoderTrainer`.
     * Воспользоваться методом `TrainSteps`, если есть необходимость создать частично обученный кодировщик. Получить его можно с помощью вызова метода `GetEncoder`.
+
+В целях отладки `IBytePairEncoder` предоставляет прямые методы загрузки и выгрузки словаря (`LoadDictionary` и `GetDictionary`). Словарь, созданный не алгоритмами NeoML, должен соответствовать следующим требованиям энкодера:
+1. Каждый токен, кроме букв, должен быть конкатенацией двух меньших токенов.
+2. End-Of-Word может располагаться только на окончании токенов. Start-Of-Word можен располагаться только в начале токенов.
+3. End-Of-Word и Start-Of-Word должны содержаться в словаре как отдельные токены (вообще говоря, это следует из вышеизложенных правил).
+
+`IBytePairEncoder` заменяет пользовательские End-Of-Word и Start-Of-Word метки специальными непечатными символами, которые не могут встретиться в произвольном тексте. Исходные метки не сохраняются и должны быть переданы агрументами `GetDictionary`.
