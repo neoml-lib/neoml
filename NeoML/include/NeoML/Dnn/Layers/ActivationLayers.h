@@ -282,6 +282,7 @@ public:
 protected:
 	void RunOnce() override;
 	void BackwardOnce() override;
+	int BlobsForBackward() const override { return TOutputBlobs; }
 };
 
 NEOML_API CLayerWrapper<CExpLayer> Exp();
@@ -299,6 +300,7 @@ public:
 protected:
 	void RunOnce() override;
 	void BackwardOnce() override;
+	int BlobsForBackward() const override { return TOutputBlobs; }
 };
 
 NEOML_API CLayerWrapper<CLogLayer> Log();
@@ -317,6 +319,7 @@ protected:
 	void Reshape() override;
 	void RunOnce() override;
 	void BackwardOnce() override;
+	int BlobsForBackward() const override { return TInputBlobs; }
 };
 
 NEOML_API CLayerWrapper<CErfLayer> Erf();

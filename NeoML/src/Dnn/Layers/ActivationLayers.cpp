@@ -576,7 +576,7 @@ void CLogLayer::RunOnce()
 
 void CLogLayer::BackwardOnce()
 {
-	if( inputBlobs[0].Ptr() == outputBlobs[0].Ptr() ) {
+	if( inputBlobs[0].Ptr() == outputBlobs[0].Ptr() || inputBlobs[0].Ptr() == nullptr ) {
 		MathEngine().VectorExp( outputBlobs[0]->GetData(), inputDiffBlobs[0]->GetData(), outputBlobs[0]->GetDataSize());
 		MathEngine().VectorEltwiseDivide( outputDiffBlobs[0]->GetData(), inputDiffBlobs[0]->GetData(),
 			inputDiffBlobs[0]->GetData(), outputBlobs[0]->GetDataSize() );

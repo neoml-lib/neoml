@@ -37,6 +37,7 @@ protected:
 	void OnReshaped() override;
 	void RunOnce() override;
 	void BackwardOnce() override;
+	int BlobsForBackward() const override { return 0; }
 };
 
 NEOML_API CLayerWrapper<CNotLayer> Not();
@@ -57,6 +58,7 @@ protected:
 	void Reshape() override;
 	void RunOnce() override;
 	void BackwardOnce() override;
+	int BlobsForBackward() const override { return 0; }
 };
 
 NEOML_API CLayerWrapper<CLessLayer> Less();
@@ -77,6 +79,7 @@ protected:
 	void Reshape() override;
 	void RunOnce() override;
 	void BackwardOnce() override;
+	int BlobsForBackward() const override { return 0; }
 };
 
 NEOML_API CLayerWrapper<CEqualLayer> Equal();
@@ -99,6 +102,7 @@ protected:
 	void Reshape() override;
 	void RunOnce() override;
 	void BackwardOnce() override;
+	int BlobsForBackward() const override { return 0; }
 };
 
 NEOML_API CLayerWrapper<CWhereLayer> Where();
