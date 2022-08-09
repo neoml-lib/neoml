@@ -80,15 +80,6 @@ inline __m128 LoadSse(const float* data, int count, float defVal = 0)
 	}
 }
 
-inline __m128 LoadSseFromVector(const float* data, int count, float defVal = 0)
-{
-	if(count >= 4) {
-		return LoadSse4(data);
-	} else {
-		return LoadSse(data, count, defVal);
-	}
-}
-
 inline __m128i LoadIntSse4(const int* data)
 {
 	return _mm_loadu_si128((const __m128i*)data);
