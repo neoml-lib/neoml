@@ -22,7 +22,7 @@ lib
 NeoML/lib
 NeoMathEngine/lib
 .vs/
-.idea/
+*/.idea/vcs.xml
 *.user
 .DS_Store
 Android.*/
