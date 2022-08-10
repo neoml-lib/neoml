@@ -58,6 +58,7 @@ struct NEOONNX_API CImportedModelInfo {
 //
 // Throw std::logic_error if failed to load network
 
+
 // Loads network "dnn" from onnx file "fileName"
 NEOONNX_API void LoadFromOnnx( const char* fileName, const CImportSettings& settings,
 	NeoML::CDnn& dnn, CImportedModelInfo& info );
