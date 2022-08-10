@@ -269,7 +269,3 @@ if(WIN32)
     enable_language(RC)
     target_sources(${PROJECT_NAME} PRIVATE ../NeoOnnx.rc)
 endif()
-
-if(USE_FINE_OBJECTS)
-    fine_unexport_symbols(${PROJECT_NAME})
-endif()
