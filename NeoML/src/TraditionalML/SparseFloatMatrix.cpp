@@ -166,7 +166,7 @@ void CSparseFloatMatrix::AddRow( const CFloatVectorDesc& row )
 		newHeight += body->Desc.Height;
 		newElementCount += body->ValuesBuf.Size();
 	}
-	
+
 	copyOnWriteAndGrow( newHeight, newElementCount );
 	body->Desc.Height = newHeight;
 	if( row.Indexes == nullptr ) {
@@ -210,16 +210,29 @@ void CSparseFloatMatrix::GetRow( int index, CFloatVectorDesc& result ) const
 	body->Desc.GetRow( index, result );
 }
 
+static const int SparseFloatMatrixVersion = 1;
+
 void CSparseFloatMatrix::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion( 0 );
+	const int version = archive.SerializeVersion( SparseFloatMatrixVersion );
 
 	if( archive.IsLoading() ) {
 		int elementCount = 0;
-		archive >> elementCount;
-		if( elementCount == 0 ) {
-			body = nullptr;
-			return;
+		if( version == 0 ) {
+			// v0 just wrote body->ValuesBuf.Size() to the archive
+			// That makes cases when body == null and when body->ValuesBuf.Size() == 0 indistinguishable
+			archive >> elementCount;
+			if( elementCount == 0 ) {
+				body = nullptr;
+				return;
+			}
+		} else {
+			const int hasBody = archive.ReadSmallValue();
+			if( hasBody == 0 ) {
+				body = nullptr;
+				return;
+			}
+			archive >> elementCount;
 		}
 		int height = 0;
 		int width = 0;
@@ -228,6 +241,10 @@ void CSparseFloatMatrix::Serialize( CArchive& archive )
 
 		int elementIndex = 0;
 		CPtr<CSparseFloatMatrixBody> newBody = FINE_DEBUG_NEW CSparseFloatMatrixBody( height, width, elementCount, height, elementCount );
+		newBody->ValuesBuf.SetSize( elementCount );
+		newBody->ColumnsBuf.SetSize( elementCount );
+		newBody->BeginPointersBuf.SetSize( height );
+		newBody->EndPointersBuf.SetSize( height );
 		for( int row = 0; row < height; row++ ) {
 			newBody->Desc.PointerB[row] = elementIndex;
 			int sign = archive.ReadSmallValue();
@@ -266,9 +283,10 @@ void CSparseFloatMatrix::Serialize( CArchive& archive )
 		body = newBody;
 	} else if( archive.IsStoring() ) {
 		if( body == nullptr ) {
-			archive << static_cast<int>( 0 );
+			archive.WriteSmallValue( 0 );
 			return;
 		}
+		archive.WriteSmallValue( 1 );
 		archive << body->ValuesBuf.Size();
 		archive << body->Desc.Height;
 		archive << body->Desc.Width;

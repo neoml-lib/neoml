@@ -28,6 +28,7 @@ neoml.Dnn
       - :ref:`py-dnn-not`
       - :ref:`py-dnn-less`
       - :ref:`py-dnn-equal`
+      - :ref:`py-dnn-where`
    - :ref:`py-dnn-auxiliary`:
       - :ref:`py-dnn-transform`
       - :ref:`py-dnn-transpose`
@@ -39,6 +40,7 @@ neoml.Dnn
       - :ref:`py-dnn-split`
       - :ref:`py-dnn-sequences`
       - :ref:`py-dnn-imageconversion`
+      - :ref:`py-dnn-scattergather`
    - :ref:`py-dnn-crf`
    - :ref:`py-dnn-ctc`
 
@@ -677,6 +679,14 @@ Equal
 .. autoclass:: neoml.Dnn.Equal
    :members:
 
+.. _py-dnn-where:
+
+Where
+=====
+
+.. autoclass:: neoml.Dnn.Where
+   :members:
+
 .. _py-dnn-auxiliary:
 
 Auxiliary operations
@@ -882,6 +892,17 @@ Upsampling2D
 -----------------
 
 .. autoclass:: neoml.Dnn.Upsampling2D
+   :members:
+
+.. _py-dnn-scattergather:
+
+Scatter & Gather Layers
+=======================
+
+ScatterND
+---------
+
+.. autoclass:: neoml.Dnn.ScatterND
    :members:
 
 .. _py-dnn-crf:

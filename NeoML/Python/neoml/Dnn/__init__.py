@@ -28,7 +28,7 @@ from .Gru import Gru
 from .ImageConversion import ImageResize, PixelToImage, ImageToPixel  
 from .IndRnn import IndRnn
 from .Irnn import Irnn
-from .Logical import Less, Not, Equal
+from .Logical import Less, Not, Equal, Where
 from .Loss import CrossEntropyLoss, BinaryCrossEntropyLoss, EuclideanLoss, L1Loss, HingeLoss, SquaredHingeLoss, FocalLoss, BinaryFocalLoss, CenterLoss, MultiHingeLoss, MultiSquaredHingeLoss, CustomLoss, CustomLossCalculatorBase, call_loss_calculator
 from .Lrn import Lrn
 from .Lstm import Lstm
@@ -42,6 +42,7 @@ from .Qrnn import Qrnn
 from .Pooling import Pooling, MaxPooling, MeanPooling, GlobalMaxPooling, GlobalMeanPooling, GlobalSumPooling, MaxOverTimePooling, ProjectionPooling, Pooling3D, MaxPooling3D, MeanPooling3D
 from .Reorg import Reorg
 from .RepeatSequence import RepeatSequence
+from .ScatterGather import ScatterND
 from .SequenceSum import SequenceSum
 from .Sink import Sink
 from .Softmax import Softmax

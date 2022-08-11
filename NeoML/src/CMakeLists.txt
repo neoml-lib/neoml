@@ -88,6 +88,7 @@ set(NeoML_SOURCES
     Dnn/Layers/ReorgLayer.cpp
     Dnn/Layers/RepeatSequenceLayer.cpp
     Dnn/Layers/RleConvLayer.cpp
+    Dnn/Layers/ScatterGatherLayers.cpp
     Dnn/Layers/SequenceSumLayer.cpp
     Dnn/Layers/SinkLayer.cpp
     Dnn/Layers/SoftmaxLayer.cpp
@@ -281,6 +282,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/Dnn/Layers/RecurrentLayer.h
     ../include/NeoML/Dnn/Layers/ReorgLayer.h
     ../include/NeoML/Dnn/Layers/RepeatSequenceLayer.h
+    ../include/NeoML/Dnn/Layers/ScatterGatherLayers.h
     ../include/NeoML/Dnn/Layers/SequenceSumLayer.h
     ../include/NeoML/Dnn/Layers/SinkLayer.h
     ../include/NeoML/Dnn/Layers/SoftmaxLayer.h

@@ -95,6 +95,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/BroadcastLayer.h>
 #include <NeoML/Dnn/Layers/LogicalLayers.h>
 #include <NeoML/Dnn/Layers/CumSumLayer.h>
+#include <NeoML/Dnn/Layers/ScatterGatherLayers.h>
 
 namespace NeoML {
 
@@ -356,6 +357,8 @@ REGISTER_NEOML_LAYER( CErfLayer, "NeoMLDnnErfLayer" )
 REGISTER_NEOML_LAYER( CLessLayer, "NeoMLDnnLessLayer" )
 REGISTER_NEOML_LAYER( CCumSumLayer, "NeoMLDnnCumSumLayer" )
 REGISTER_NEOML_LAYER( CEqualLayer, "NeoMLDnnEqualLayer" )
+REGISTER_NEOML_LAYER( CWhereLayer, "NeoMLDnnWhereLayer" )
+REGISTER_NEOML_LAYER( CScatterNDLayer, "NeoMLDnnScatterNDLayer" )
 
 }
 

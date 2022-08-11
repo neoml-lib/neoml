@@ -8,6 +8,7 @@ import numpy as np
 from scipy import sparse, special
 import neoml
 import threading
+import random
 
 
 class MultithreadedTestCase(TestCase):
@@ -1769,6 +1770,55 @@ class LayersTestCase(MultithreadedTestCase):
         self._test_cumsum(np.float32, False)
         self._test_cumsum(np.float32, True)
 
+    def _test_scatter_nd(self, is_integer):
+        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        dnn = neoml.Dnn.Dnn(math_engine)
+        first_source_name = 'source0'
+        second_source_name = 'source1'
+        third_source_name = 'source2'
+        scatter_layer_name = 'scatter_nd'
+        sink_name = 'sink'
+
+        first_source = neoml.Dnn.Source(dnn, first_source_name)
+        second_source = neoml.Dnn.Source(dnn, second_source_name)
+        third_source = neoml.Dnn.Source(dnn, third_source_name)
+        scatter_layer = neoml.Dnn.ScatterND((first_source, second_source, third_source), scatter_layer_name)
+        sink = neoml.Dnn.Sink(scatter_layer, sink_name)
+        layer = dnn.layers[scatter_layer_name]
+        self.assertEqual(layer.name, scatter_layer_name)
+
+        orig_shape = [2, 3, 4, 5]
+        updates_shape = [2, 3, 5]
+        indices_shape = [2, 3, 3]
+        indices_data = np.array([[x // 12, (x // 4) % 3, x % 4] for x in random.sample(range(24), 6)], dtype=np.int32).reshape(indices_shape)
+        if is_integer:
+            orig_data = np.random.randint(-10, 10, orig_shape, np.int32)
+            updates_data = np.random.randint(-10, 10, updates_shape, np.int32)
+        else:
+            orig_data = np.random.uniform(-10, 10, orig_shape).astype(np.float32)
+            updates_data = np.random.uniform(-10, 10, updates_shape).astype(np.float32)
+        orig_blob = neoml.Blob.asblob(math_engine, orig_data, orig_shape + [1] * (7 - len(orig_shape)))
+        updates_blob = neoml.Blob.asblob(math_engine, updates_data, updates_shape + [1] * (7 - len(updates_shape)))
+        indices_blob_shape = indices_shape[:-1] + [1] * (7 - len(indices_shape)) + indices_shape[-1:]
+        indices_blob = neoml.Blob.asblob(math_engine, indices_data, indices_blob_shape)
+        outputs = dnn.run({first_source_name: orig_blob,
+            second_source_name: indices_blob,
+            third_source_name: updates_blob})
+        self.assertTrue(sink_name in outputs)
+        result = outputs[sink.name].asarray()
+
+        self.assertEqual(result.shape, tuple(orig_shape))
+        self.assertEqual(result.dtype, np.int32 if is_integer else np.float32)
+
+        expected_data = orig_data
+        for idx in np.ndindex(indices_data.shape[:-1]):
+            expected_data[tuple(indices_data[idx])] = updates_data[idx]
+        self.assertTrue(np.equal(expected_data, result).all())
+
+    def test_scatter_nd(self):
+        self._test_scatter_nd(False)
+        self._test_scatter_nd(True)
+
 
 class PoolingTestCase(MultithreadedTestCase):
     def _test_pooling(self, layer, init_params={}, changed_params={},
@@ -2300,6 +2350,50 @@ class LogicalLayerTestCase(MultithreadedTestCase):
     def test_equal(self):
         self._test_logical(False, 'equal')
         self._test_logical(True, 'equal')
+
+    def _test_where(self, is_integer):
+        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        dnn = neoml.Dnn.Dnn(math_engine)
+        first_source_name = 'source0'
+        second_source_name = 'source1'
+        third_source_name = 'source2'
+        where_layer_name = 'where'
+        sink_name = 'sink'
+
+        first_source = neoml.Dnn.Source(dnn, first_source_name)
+        second_source = neoml.Dnn.Source(dnn, second_source_name)
+        third_source = neoml.Dnn.Source(dnn, third_source_name)
+        where_layer = neoml.Dnn.Where((first_source, second_source, third_source), where_layer_name)
+        sink = neoml.Dnn.Sink(where_layer, sink_name)
+        layer = dnn.layers[where_layer_name]
+        self.assertEqual(layer.name, where_layer_name)
+
+        shape = (2,3,4,5,6,7,8)
+        first_data = np.random.randint(0, 3, shape, dtype=np.int32)
+        if is_integer:
+            second_data = np.random.randint(-10, 10, shape, dtype=np.int32)
+            third_data = np.random.randint(-10, 10, shape, dtype=np.int32)
+        else:
+            second_data = np.random.uniform(-10, 10, shape).astype(np.float32)
+            third_data = np.random.uniform(-10, 10, shape).astype(np.float32)
+        
+        first_blob = neoml.Blob.asblob(math_engine, first_data, shape)
+        second_blob = neoml.Blob.asblob(math_engine, second_data, shape)
+        third_blob = neoml.Blob.asblob(math_engine, third_data, shape)
+        outputs = dnn.run({first_source_name: first_blob,
+            second_source_name: second_blob,
+            third_source_name: third_blob})
+        self.assertTrue(sink_name in outputs)
+        result = outputs[sink.name].asarray()
+        
+        self.assertEqual(result.shape, shape)
+        self.assertEqual(result.dtype, np.int32 if is_integer else np.float32)
+        func = lambda x, y, z: y if x != 0 else z
+        self.assertTrue(np.equal(result, np.vectorize(func)(first_data, second_data, third_data)).all)
+
+    def test_where(self):
+        self._test_where(False)
+        self._test_where(True)
 
 
 class MulLossCalculator(neoml.Dnn.CustomLossCalculatorBase):

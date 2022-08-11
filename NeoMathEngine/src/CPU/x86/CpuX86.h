@@ -30,6 +30,7 @@ limitations under the License.
 #include <tmmintrin.h>
 #include <cmath>
 #include <cfloat>
+#include <cassert>
 
 #include <NeoMathEngine/CrtAllocatedObject.h>
 
@@ -67,26 +68,14 @@ inline __m128 LoadSse4(const float* data)
 
 inline __m128 LoadSse(const float* data, int count, float defVal = 0)
 {
+	assert( count >= 1 && count <= 3 );
 	switch(count) {
-		default:
-		case 0:
-			return _mm_setzero_ps();
 		case 1:
 			return _mm_set_ps(defVal, defVal, defVal, data[0]);
 		case 2:
 			return _mm_set_ps(defVal, defVal, data[1], data[0]);
-		case 3:
-			return _mm_set_ps(defVal, data[2], data[1], data[0]);
 	}
-}
-
-inline __m128 LoadSseFromVector(const float* data, int count, float defVal = 0)
-{
-	if(count >= 4) {
-		return LoadSse4(data);
-	} else {
-		return LoadSse(data, count, defVal);
-	}
+	return _mm_set_ps(defVal, data[2], data[1], data[0]);
 }
 
 inline __m128i LoadIntSse4(const int* data)
@@ -96,17 +85,14 @@ inline __m128i LoadIntSse4(const int* data)
 
 inline __m128i LoadIntSse(const int* data, int count, int defVal = 0)
 {
+	assert( count >= 1 && count <= 3 );
 	switch(count) {
-		default:
-		case 0:
-			return _mm_setzero_si128();
 		case 1:
 			return _mm_set_epi32(defVal, defVal, defVal, data[0]);
 		case 2:
 			return _mm_set_epi32(defVal, defVal, data[1], data[0]);
-		case 3:
-			return _mm_set_epi32(defVal, data[2], data[1], data[0]);
 	}
+	return _mm_set_epi32(defVal, data[2], data[1], data[0]);
 }
 
 inline void StoreSse4(const __m128&val, float* data)

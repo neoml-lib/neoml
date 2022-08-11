@@ -194,10 +194,12 @@ static void testCusparse( IMathEngine& mathEngine, int runCount )
 		std::vector<int> rows, columns;
 		std::vector<float> values;
 		rows.push_back( 0 );
+		const int presetY = random.UniformInt( 0, firstHeight - 1 );
+		const int presetX = random.UniformInt( 0, firstWidth - 1 );
 		for( int i = 0; i < firstHeight; i++ ) {
 			int elementsInRow = 0;
 			for( int j = 0; j < firstWidth; j++ ) {
-				if( random.UniformInt( 0, 2 ) != 0 ) {
+				if( ( i == presetY && j == presetX ) || random.UniformInt( 0, 2 ) != 0 ) {
 					float value = static_cast<float>( random.Uniform( -2., 1. ) );
 					columns.push_back( j );
 					values.push_back( value );
@@ -217,8 +219,9 @@ static void testCusparse( IMathEngine& mathEngine, int runCount )
 		}
 
 		for( int run = 1; run <= runCount; ++run ) {
+			CSparseMatrix sparseMatrix( MathEngine(), rows, columns, values );
 			mathEngine.MultiplySparseMatrixByTransposedMatrix( firstHeight, firstWidth, secondHeight,
-				GetSparseMatrix( MathEngine(), rows, columns, values ), second.GetData(), result.GetData() );
+				sparseMatrix.Desc(), second.GetData(), result.GetData() );
 
 			if( run % 10 == 0 ) {
 				std::vector<float> resultData( result.GetDataSize() );
