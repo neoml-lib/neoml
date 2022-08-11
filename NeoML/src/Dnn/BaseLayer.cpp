@@ -177,7 +177,7 @@ void CBaseLayer::clearAllRuntimeBlobs()
 
 bool CBaseLayer::InputsMayBeOverwritten() const
 {
-	for(int i = 0; i < GetInputCount(); ++i) {
+	for(int i = 0; i < min( GetInputCount(), GetOutputCount() ); ++i) {
 		const CBaseLayer* inputLayer = GetInputLayer(i);
 		if(inputLayer->GetInputCount() == 0) {
 			// The previous layer is a source layer so its data may not be processed in place
