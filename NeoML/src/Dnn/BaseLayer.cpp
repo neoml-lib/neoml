@@ -449,21 +449,21 @@ void CBaseLayer::runOnce()
 	// Either this is the first runOnce after reshape
 	// or the input and output blobs are released directly after use
 	for( int i = 0; i < inputBlobs.Size(); ++i ) {
-		CBaseLayer* inputLayer = GetInputLayer( i );
-		int outputNumber = inputs[i].OutputNumber;
-		CDnnBlob* prevLayerOutput = inputLayer->outputBlobs[outputNumber].Ptr();
-
-		if( prevLayerOutput == inputBlobs[i].Ptr() ) {
-			continue;
+		CDnnBlob* prevOutput = inputLinks[i].Layer->outputBlobs[inputLinks[i].OutputNumber].Ptr();
+		if( inputBlobs[i].Ptr() != prevOutput ) {
+			inputBlobs[i] = prevOutput;
 		}
+	}
 
-		inputBlobs[i] = prevLayerOutput;
-
-		if( GetDnn()->isReuseMemoryMode && mayFreeIoBlobs
-			&& inputLayer->lastOutputUser[outputNumber] == this
-			&& ( inputLayer->blobsNeededForBackward & TOutputBlobs ) == 0 )
-		{
-			inputLayer->outputBlobs[outputNumber] = nullptr;
+	if( GetDnn()->isReuseMemoryMode && mayFreeIoBlobs ) {
+		for( int i = 0; i < inputBlobs.Size(); ++i ) {
+			CBaseLayer* inputLayer = inputLinks[i].Layer;
+			const int outputNumber = inputLinks[i].OutputNumber;
+			if( inputLayer->lastOutputUser[outputNumber] == this
+				&& ( inputLayer->blobsNeededForBackward & TOutputBlobs ) == 0 )
+			{
+				inputLayer->outputBlobs[outputNumber] = nullptr;
+			}
 		}
 	}
 
