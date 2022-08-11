@@ -49,19 +49,19 @@ void CChannelwiseConvLayer::Reshape()
 {
 	CheckInputs();
 	CheckArchitecture( GetInputCount() == GetOutputCount(),
-		GetName(), "different number of inputs and outputs in conv layer" );
+		GetPath(), "different number of inputs and outputs in conv layer" );
 	CheckArchitecture( paddingHeight < filterHeight && paddingWidth < filterWidth,
-		GetName(), "padding is more or equal to filter size" );
+		GetPath(), "padding is more or equal to filter size" );
 
 	int outputHeight = ( inputDescs[0].Height() - filterHeight + 2 * paddingHeight ) / strideHeight + 1;
 	int outputWidth = ( inputDescs[0].Width() - filterWidth + 2 * paddingWidth ) / strideWidth + 1;
 	for( int i = 0; i < GetInputCount(); i++ ) {
 		CheckArchitecture( filterHeight <= inputDescs[i].Height() + 2 * paddingHeight
 			&& filterWidth <= inputDescs[i].Width() + 2 * paddingWidth,
-			GetName(), "filter is bigger than input" );
+			GetPath(), "filter is bigger than input" );
 		CheckArchitecture( (Filter() == 0 || filterCount == inputDescs[i].Channels()),
-			GetName(), "filter count is not equal to input channels count" );
-		CheckArchitecture( inputDescs[i].Depth() == 1, GetName(), "input depth is not equal to one" );
+			GetPath(), "filter count is not equal to input channels count" );
+		CheckArchitecture( inputDescs[i].Depth() == 1, GetPath(), "input depth is not equal to one" );
 
 		if( Filter() == 0 ) {
 			filterCount = inputDescs[i].Channels();
@@ -84,7 +84,7 @@ void CChannelwiseConvLayer::Reshape()
 			FreeTerms()->Fill( 0 );
 		} else {
 			CheckArchitecture( FreeTerms()->GetDataSize() == filterCount,
-				GetName(), "number of free members in convolution is not equal to number of filters" );
+				GetPath(), "number of free members in convolution is not equal to number of filters" );
 		}
 
 		// For each layer element, there is one channel in the output blob

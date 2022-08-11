@@ -39,11 +39,11 @@ void CCrfCalculationLayer::Reshape()
 {
 	CheckInputs();
 	CheckArchitecture( GetInputCount() >= 2 && GetInputCount() == GetOutputCount(),
-		GetName(), "CRF layer with incorrect numbers of input and output" );
+		GetPath(), "CRF layer with incorrect numbers of input and output" );
 	for(int i = 1; i < GetInputCount(); i++) {
 		CheckArchitecture( inputDescs[I_ClassLogProb].BatchLength() == inputDescs[i].BatchLength()
 			&& inputDescs[I_ClassLogProb].BatchWidth() == inputDescs[i].BatchWidth(),
-			GetName(), CString("incorrect batch size at input " + Str(i)) );
+			GetPath(), CString("incorrect batch size at input " + Str(i)) );
 	}
 	int numberOfClasses = inputDescs[I_ClassLogProb].ObjectSize();
 	// Create a transition matrix
@@ -53,7 +53,7 @@ void CCrfCalculationLayer::Reshape()
 		InitializeParamBlob(0, *Transitions());
 	} else {
 		CheckArchitecture( Transitions()->DimSize(0) == numberOfClasses,
-			GetName(), "transition table size is not equal to number of classes" );
+			GetPath(), "transition table size is not equal to number of classes" );
 	}
 	// Create output blobs
 	// The optimal class sequence
@@ -73,7 +73,7 @@ void CCrfCalculationLayer::Reshape()
 	RegisterRuntimeBlob(tempSumBlob);
 
 	if(GetInputCount() > 2) {
-		CheckArchitecture( inputDescs[I_Label].GetDataType() == CT_Int, GetName(), "labels should have the integer type" );
+		CheckArchitecture( inputDescs[I_Label].GetDataType() == CT_Int, GetPath(), "labels should have the integer type" );
 		// The estimate (logit) of the correct class in this position
 		outputDescs[O_LabelLogProb] = outputDescs[O_ClassSeqLogProb];
 		outputDescs[O_LabelLogProb].SetDimSize( BD_Channels, 1 );
@@ -465,9 +465,9 @@ void CCrfLayer::Serialize( CArchive& archive )
 void CBestSequenceLayer::Reshape()
 {
 	CheckInputs();
-	CheckArchitecture( GetInputCount() == 2, GetName(), "CRF layer with incorrect numbers of input and output" );
+	CheckArchitecture( GetInputCount() == 2, GetPath(), "CRF layer with incorrect numbers of input and output" );
 	CheckArchitecture( inputDescs[I_BestPrevClass].HasEqualDimensions(inputDescs[I_ClassSeqLogProb]),
-		GetName(), "incorrect inputs size" );
+		GetPath(), "incorrect inputs size" );
 	// Create the blob that will store the best sequence
 	outputDescs[0] = CBlobDesc( CT_Int );
 	outputDescs[0].SetDimSize( BD_BatchLength, inputDescs[I_BestPrevClass].BatchLength() );

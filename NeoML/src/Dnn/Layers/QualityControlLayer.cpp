@@ -29,12 +29,12 @@ CQualityControlLayer::CQualityControlLayer( IMathEngine& mathEngine, const char*
 void CQualityControlLayer::Reshape()
 {
 	CheckInputs();
-	CheckArchitecture( inputDescs.Size() == 2, GetName(), "layer expects 2 inputs" );
-	CheckArchitecture( inputDescs[0].ObjectCount() == inputDescs[1].ObjectCount(), GetName(),
+	CheckArchitecture( inputDescs.Size() == 2, GetPath(), "layer expects 2 inputs" );
+	CheckArchitecture( inputDescs[0].ObjectCount() == inputDescs[1].ObjectCount(), GetPath(),
 		"Object count mismatch between inputs" );
 	CheckArchitecture( inputDescs[0].ObjectSize() == inputDescs[1].ObjectSize() || inputDescs[1].ObjectSize() == 1,
-		GetName(), "Inputs' object sizes must match or the second one must be equal to 1" );
-	CheckArchitecture( !outputDescs.IsEmpty(), GetName(), "There is nothing connected to this layer's output" );
+		GetPath(), "Inputs' object sizes must match or the second one must be equal to 1" );
+	CheckArchitecture( !outputDescs.IsEmpty(), GetPath(), "There is nothing connected to this layer's output" );
 }
 
 void CQualityControlLayer::BackwardOnce()

@@ -39,15 +39,15 @@ void CAddToObjectLayer::Reshape()
 	NeoAssert( inputDescs.Size() == 2 );
 
 	CheckArchitecture( inputDescs[0].Channels() == inputDescs[1].Channels(),
-		GetName(), "input Channels dimensions mismatch" );
+		GetPath(), "input Channels dimensions mismatch" );
 	CheckArchitecture( inputDescs[0].Depth() == inputDescs[1].Depth(),
-		GetName(), "input Depth dimensions mismatch" );
+		GetPath(), "input Depth dimensions mismatch" );
 	CheckArchitecture( inputDescs[0].Width() == inputDescs[1].Width(),
-		GetName(), "input Width dimensions mismatch" );
+		GetPath(), "input Width dimensions mismatch" );
 	CheckArchitecture( inputDescs[0].Height() == inputDescs[1].Height(),
-		GetName(), "input Height dimensions mismatch" );
+		GetPath(), "input Height dimensions mismatch" );
 
-	CheckArchitecture( inputDescs[1].ObjectCount() == 1, GetName(),
+	CheckArchitecture( inputDescs[1].ObjectCount() == 1, GetPath(),
 		"CAddToObjectLayer wrong input BatchLength dimension" );
 
 	outputDescs.SetSize( 1 );

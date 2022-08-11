@@ -84,6 +84,7 @@ inline CLayerClassRegistrar<T>::~CLayerClassRegistrar()
 class CDnn;
 class CDnnLayerGraph;
 class CBaseLayer;
+class CCompositeLayer;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -265,6 +266,14 @@ protected:
 	// Allocates the output blobs
 	// The default implementation creates the outputBlobs array using the output descriptions
 	virtual void AllocateOutputBlobs();
+
+	// Gets the path to this Layer
+	// If this layer directly belongs to the root CDnn then this path consists of the name of this layer only
+	// Otherwise it contains the names of all the composites from the root till this layer separated by '/'
+	//
+	// e.g. layer InputHidden" inside of CLstmLayer named "LSTM", which is inside of CCompositeLayer named "Encoder"
+	// has path "Encoder/LSTM/InputHidden"
+	CString GetPath() const;
 
 	// The following section contains interface for the memory optimization during training
 	// The key idea is that the layer may provide additional information about blobs required for backward and
@@ -464,7 +473,7 @@ NEOML_API IMathEngine* GetRecommendedGpuMathEngine( size_t memoryLimit );
 // CDnn class represents a neural network
 class NEOML_API CDnn : public CDnnLayerGraph {
 public:
-	CDnn( CRandom& random, IMathEngine& mathEngine );
+	CDnn( CRandom& random, IMathEngine& mathEngine, const CCompositeLayer* owner = nullptr );
 	~CDnn() override;
 
 	// Sets a text stream for logging processing
@@ -562,6 +571,7 @@ private:
 	void AddLayerImpl(CBaseLayer& layer) override;
 	void DeleteLayerImpl(CBaseLayer& layer) final;
 
+	const CCompositeLayer* owner; // the composite containing this CDnn (if exists)
 	CTextStream* log; // the logging stream
 	int logFrequency;	// the logging frequency
 	CPtr<CDnnSolver> solver;	// the layer parameter optimizer
@@ -605,6 +615,7 @@ private:
 	void reshape();
 	void rebuild();
 	size_t getOutputBlobsSize() const;
+	CString getPath() const;
 
 	friend class CBaseLayer;
 	friend class CCompositeLayer;

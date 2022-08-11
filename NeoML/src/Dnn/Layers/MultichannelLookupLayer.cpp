@@ -144,7 +144,7 @@ void CMultichannelLookupLayer::Reshape()
 
 	for( int i = 0; i < inputDescs.Size(); i++ ) {
 		CheckArchitecture( inputDescs[i].Channels() >= GetDimensions().Size(),
-			GetName(), "MultichannelLookup layer must have input with more channels" );
+			GetPath(), "MultichannelLookup layer must have input with more channels" );
 	}
 
 	Initialize(GetDnn()->GetInitializer());

@@ -31,9 +31,9 @@ void CTransposedConvLayer::Reshape()
 {
 	CheckInputs();
 	CheckArchitecture( GetInputCount() == GetOutputCount(),
-		GetName(), "different number of inputs and outputs in conv layer" );
+		GetPath(), "different number of inputs and outputs in conv layer" );
 	CheckArchitecture( paddingHeight < filterHeight && paddingWidth < filterWidth,
-		GetName(), "padding is more or equal to filter size" );
+		GetPath(), "padding is more or equal to filter size" );
 
 	int outputHeight, outputWidth;
 	calcOutputBlobSize(outputHeight, outputWidth);
@@ -59,7 +59,7 @@ void CTransposedConvLayer::Reshape()
 			FreeTerms()->Fill(0);
 		} else {
 			CheckArchitecture( FreeTerms()->GetDataSize() == filterCount,
-				GetName(), "number of free members in convolution is not equal to number of filters" );
+				GetPath(), "number of free members in convolution is not equal to number of filters" );
 		}
 
 		// For each layer element there is a channel in the output blob

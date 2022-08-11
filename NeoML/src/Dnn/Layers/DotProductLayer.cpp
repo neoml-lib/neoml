@@ -28,10 +28,10 @@ void CDotProductLayer::Reshape()
 {
 	CheckInputs();
 
-	CheckArchitecture( GetInputCount() == 2, GetName(), "layer must have 2 inputs" );
-	CheckArchitecture( inputDescs[0].HasEqualDimensions( inputDescs[1] ), GetName(), "input blobs size mismatch" );
+	CheckArchitecture( GetInputCount() == 2, GetPath(), "layer must have 2 inputs" );
+	CheckArchitecture( inputDescs[0].HasEqualDimensions( inputDescs[1] ), GetPath(), "input blobs size mismatch" );
 	CheckArchitecture( inputDescs[0].GetDataType() == CT_Float && inputDescs[1].GetDataType() == CT_Float,
-		GetName(), "layer supports only float blobs" );
+		GetPath(), "layer supports only float blobs" );
 
 	outputDescs[0] = inputDescs[0];
 	outputDescs[0].SetDimSize( BD_Channels, 1 );
