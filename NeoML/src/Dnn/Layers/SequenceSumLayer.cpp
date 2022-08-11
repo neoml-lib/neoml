@@ -25,7 +25,7 @@ void CSequenceSumLayer::Reshape()
 {
 	CheckInputs();
 	CheckArchitecture( GetInputCount() == 1,
-		GetName(), "Sequence sum layer must have one input" );
+		GetPath(), "Sequence sum layer must have one input" );
 
 	outputDescs[0] = inputDescs[0];
 	outputDescs[0].SetDimSize(BD_BatchLength, 1);;

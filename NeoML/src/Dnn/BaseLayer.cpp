@@ -239,6 +239,11 @@ void CBaseLayer::AllocateOutputBlobs()
 	}
 }
 
+CString CBaseLayer::GetPath() const
+{
+	return GetDnn() == nullptr ? CString( GetName() ) : GetDnn()->getPath() + GetName();
+}
+
 size_t CBaseLayer::GetOutputBlobsSize() const
 {
 	size_t result = 0;
@@ -772,17 +777,17 @@ void CBaseLayer::Serialize( CArchive& archive )
 
 void CBaseLayer::CheckInputs() const
 {
-	CheckArchitecture( !inputs.IsEmpty(), GetName(), "layer has no input" );
+	CheckArchitecture( !inputs.IsEmpty(), GetPath(), "layer has no input" );
 }
 
 void CBaseLayer::CheckInput1() const
 {
-	CheckArchitecture( inputs.Size() == 1, GetName(), "layer must have exactly 1 input" );
+	CheckArchitecture( inputs.Size() == 1, GetPath(), "layer must have exactly 1 input" );
 }
 
 void CBaseLayer::CheckOutputs() const
 {
-	CheckArchitecture( !outputs.IsEmpty(), GetName(), "layer has no output" );
+	CheckArchitecture( !outputs.IsEmpty(), GetPath(), "layer has no output" );
 }
 
 void CBaseLayer::freeUnusedBlobs( int usedBlobs )

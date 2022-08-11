@@ -1813,28 +1813,32 @@ void CCpuMathEngine::VectorPowerDiffOp(float exponent, const CConstFloatHandle& 
 
 	float exponentOp = (exponent - 1.f) / exponent;
 
-	VectorPower(exponentOp, firstHandle, resultHandle, vectorSize);
+	CFloatHandleStackVar buffVar( *this, vectorSize );
+	VectorPower(exponentOp, firstHandle, buffVar, vectorSize);
 
 	int sseSize;
 	int nonSseSize;
 	checkSse(vectorSize, sseSize, nonSseSize);
 
 	const float* second = GetRaw(secondHandle);
+	const float* buff = GetRaw(buffVar.GetHandle());
 	float* result = GetRaw(resultHandle);
 
 	if(sseSize > 0) {
 		const __m128 exponentSse = _mm_set_ps1(exponent);
 		for(int i = 0; i < sseSize; ++i) {
-			__m128 value = _mm_mul_ps(_mm_loadu_ps(second), _mm_mul_ps(exponentSse, _mm_loadu_ps(result)));
+			__m128 value = _mm_mul_ps(_mm_loadu_ps(second), _mm_mul_ps(exponentSse, _mm_loadu_ps(buff)));
 			_mm_storeu_ps(result, value);
 
+			buff += 4;
 			result += 4;
 			second += 4;
 		}
 	}
 
 	for(int i = 0; i < nonSseSize; ++i) {
-		*result = *second * exponent * *result;
+		*result = *second * exponent * *buff;
+		++buff;
 		++result;
 		++second;
 	}

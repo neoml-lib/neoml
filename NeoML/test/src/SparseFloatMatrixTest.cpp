@@ -311,12 +311,10 @@ static void testSparseFloatMatrixSerialization( CSparseFloatMatrix& original )
 
 	CSparseFloatMatrix deserialized;
 	serializeSparseFloatMatrix( deserialized, memoryFile, CArchive::load );
-	ASSERT_EQ( memoryFile.GetPosition(), memoryFile.GetLength() );
 	compareSparseFloatMatrices( original, deserialized );
 
 	serializeSparseFloatMatrix( deserialized, memoryFile, CArchive::store );
 	serializeSparseFloatMatrix( deserialized, memoryFile, CArchive::load );
-	ASSERT_EQ( memoryFile.GetPosition(), memoryFile.GetLength() );
 	compareSparseFloatMatrices( original, deserialized );
 }
 

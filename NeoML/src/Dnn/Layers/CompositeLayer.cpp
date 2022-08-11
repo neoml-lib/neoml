@@ -430,7 +430,7 @@ void CCompositeLayer::OnDnnChanged( CDnn* )
 	sources.DeleteAll();
 	sinks.DeleteAll();
 	if(GetDnn() != 0) {
-		internalDnn = FINE_DEBUG_NEW CDnn(GetDnn()->Random(), GetDnn()->GetMathEngine());
+		internalDnn = FINE_DEBUG_NEW CDnn(GetDnn()->Random(), GetDnn()->GetMathEngine(), this);
 
 		for(int i = 0; i < layers.Size(); ++i) {
 			internalDnn->AddLayer(*layers[i]);
