@@ -555,7 +555,7 @@ void CBaseLayer::backwardRunAndLearnOnce()
 		NeoAssert( inputDiffBlobs.IsEmpty() );
 		// Create blobs
 		for( int i = 0; i < inputBlobs.Size(); ++i ) {
-			if( isInPlace ) {
+			if( isInPlace && inputBlobs.Size() == outputDiffBlobs.Size() ) {
 				inputDiffBlobs.Add( outputDiffBlobs[i] );
 			} else {
 				CBlobDesc inputDiffDesc = inputDescs[i];
