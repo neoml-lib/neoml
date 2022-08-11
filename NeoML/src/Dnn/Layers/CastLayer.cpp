@@ -50,8 +50,8 @@ void CCastLayer::SetOutputType( TBlobType type )
 
 void CCastLayer::Reshape()
 {
-	CheckArchitecture( inputDescs.Size() == 1, GetName(), "CCastLayer must have 1 input" );
-	CheckArchitecture( outputDescs.Size() == 1, GetName(), "CCastLayer must have 1 output" );
+	CheckArchitecture( inputDescs.Size() == 1, GetPath(), "CCastLayer must have 1 input" );
+	CheckArchitecture( outputDescs.Size() == 1, GetPath(), "CCastLayer must have 1 output" );
 	outputDescs[0] = inputDescs[0];
 	outputDescs[0].SetDataType( outputType );
 }

@@ -87,16 +87,16 @@ void CImageResizeLayer::Reshape()
 	CheckInputs();
 
 	// Check that we are not trying to remove more pixels from any side than there are altogether
-	CheckArchitecture( deltaTop > -inputDescs[0].Height(), GetName(), "deltaTop removes whole image" );
-	CheckArchitecture( deltaBottom > -inputDescs[0].Height(), GetName(), "deltaBottom removes whole image" );
-	CheckArchitecture( deltaLeft > -inputDescs[0].Width(), GetName(), "deltaLeft removes whole image" );
-	CheckArchitecture( deltaRight > -inputDescs[0].Width(), GetName(), "deltaRight removes whole image" );
+	CheckArchitecture( deltaTop > -inputDescs[0].Height(), GetPath(), "deltaTop removes whole image" );
+	CheckArchitecture( deltaBottom > -inputDescs[0].Height(), GetPath(), "deltaBottom removes whole image" );
+	CheckArchitecture( deltaLeft > -inputDescs[0].Width(), GetPath(), "deltaLeft removes whole image" );
+	CheckArchitecture( deltaRight > -inputDescs[0].Width(), GetPath(), "deltaRight removes whole image" );
 
 	// Check that we are not trying to remove more pixels from both sides than there are altogether
 	CheckArchitecture( inputDescs[0].Height() + deltaTop + deltaBottom > 0,
-		GetName(), "deltaTop + deltaBottom remove whole image" );
+		GetPath(), "deltaTop + deltaBottom remove whole image" );
 	CheckArchitecture( inputDescs[0].Width() + deltaLeft + deltaRight > 0,
-		GetName(), "deltaLeft + deltaRight remove whole image" );
+		GetPath(), "deltaLeft + deltaRight remove whole image" );
 
 	outputDescs[0] = inputDescs[0];
 	outputDescs[0].SetDimSize( BD_Height, outputDescs[0].Height() + deltaTop + deltaBottom );

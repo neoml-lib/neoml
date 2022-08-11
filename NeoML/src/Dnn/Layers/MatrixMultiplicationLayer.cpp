@@ -37,11 +37,11 @@ void CMatrixMultiplicationLayer::Serialize( CArchive& archive )
 void CMatrixMultiplicationLayer::Reshape()
 {
 	CheckInputs();
-	CheckArchitecture( inputDescs.Size() == 2, GetName(), "layer must have 2 inputs" );
+	CheckArchitecture( inputDescs.Size() == 2, GetPath(), "layer must have 2 inputs" );
 
-	CheckArchitecture( inputDescs[0].Channels() == inputDescs[1].GeometricalSize(), GetName(),
+	CheckArchitecture( inputDescs[0].Channels() == inputDescs[1].GeometricalSize(), GetPath(),
 		"input[0].Channels must be equal to input[1].GeometricalSize" );
-	CheckArchitecture( inputDescs[0].ObjectCount() == inputDescs[1].ObjectCount(), GetName(), "object count mismatch between inputs" );
+	CheckArchitecture( inputDescs[0].ObjectCount() == inputDescs[1].ObjectCount(), GetPath(), "object count mismatch between inputs" );
 
 	outputDescs.SetSize( 1 );
 	CBlobDesc outputDesc = inputDescs[0];

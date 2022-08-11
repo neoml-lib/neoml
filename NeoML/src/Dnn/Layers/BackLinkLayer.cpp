@@ -83,7 +83,7 @@ void CBackLinkLayer::RunOnce()
 		captureSink->ClearDiffBlob();
 	}
 	CheckArchitecture(outputBlobs[0]->HasEqualDimensions( captureSink->GetBlob()),
-		GetName(), "input and output blobs have different dimensions" );
+		GetPath(), "input and output blobs have different dimensions" );
 	if( inputBlobs.IsEmpty() ) {
 		outputBlobs[0]->CopyFrom(captureSink->GetBlob());
 	} else {

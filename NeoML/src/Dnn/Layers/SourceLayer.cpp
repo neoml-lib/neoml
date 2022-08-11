@@ -45,8 +45,8 @@ void CSourceLayer::SetBlob( CDnnBlob* _blob )
 void CSourceLayer::Reshape()
 {
 	CheckOutputs();
-	CheckArchitecture( GetOutputCount() == 1, GetName(), "Source layer has more than 1 output" );
-	CheckArchitecture( blob.Ptr() != 0, GetName(), "Source layer has null data blob" );
+	CheckArchitecture( GetOutputCount() == 1, GetPath(), "Source layer has more than 1 output" );
+	CheckArchitecture( blob.Ptr() != 0, GetPath(), "Source layer has null data blob" );
 	outputDescs[0] = blob->GetDesc();
 }
 
