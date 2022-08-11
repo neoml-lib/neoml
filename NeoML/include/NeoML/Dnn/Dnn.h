@@ -279,6 +279,13 @@ protected:
 	// Blob types required for the correct work of LearnOnce
 	virtual int BlobsForLearn() const { return TInputBlobs | TOutputBlobs; }
 
+	// Indicates if the layer overwrite its inputs
+	bool InputsMayBeOverwritten() const;
+	// Enables in-place process
+	// This flag must be set from Reshape method
+	// It is reset to false right each time before the Reshape call
+	void EnableInPlace( bool enable ) { isInPlace = enable; }
+
 private:
 	// Describes an input connection
 	struct CInputInfo {
@@ -320,8 +327,8 @@ private:
 	CArray<CDnnLayerLink> inputLinks;
 	// The number of connections to each layer output
 	CArray<int> outputs;
-	// The number of times each output was processed
-	CArray<int> outputProcessedCount;
+	// The last layer which uses this outputs
+	CArray<const CBaseLayer*> lastOutputUser;
 
 	// Indicates if the layer should be reshaped
 	bool isReshapeNeeded;
@@ -385,16 +392,13 @@ private:
 	void link();
 	void addOutput(int number);
 	void unlink();
+	void buildOrder();
 	void reshape();
 	void setInputDesc(int i);
 	void runOnce();
 	void recheckBackwardNeeded();
 	void backwardRunAndLearnOnce();
 	void transferDiffBlob( CDnnBlob* diffBlob, int outputNum );
-	void onOutputProcessed( int index );
-
-	// Indicates if the layer may be used for in-place processing (the output blobs replace the input blobs)
-	bool isInPlaceProcessAvailable() const;
 
 	friend class CDnn;
 	friend class CDnnLayerGraph;

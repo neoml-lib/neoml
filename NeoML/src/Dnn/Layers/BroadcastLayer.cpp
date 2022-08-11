@@ -52,15 +52,25 @@ void CBroadcastLayer::Reshape()
 		}
 	}
 
+	bool hasSameShape = true;
 	for( int outputIndex = 0; outputIndex < GetOutputCount(); ++outputIndex ) {
 		broadcastedDesc.SetDataType( inputDescs[outputIndex].GetDataType() );
+		hasSameShape &= broadcastedDesc.HasEqualDimensions( inputDescs[outputIndex] );
 		outputDescs[outputIndex] = broadcastedDesc;
+	}
+
+	if( hasSameShape ) {
+		EnableInPlace( InputsMayBeOverwritten() );
 	}
 }
 
 void CBroadcastLayer::RunOnce()
 {
 	for( int inputIndex = 0; inputIndex < inputBlobs.Size(); ++inputIndex ) {
+		if( inputBlobs[inputIndex].Ptr() == outputBlobs[inputIndex].Ptr() ) {
+			continue;
+		}
+
 		const CDnnBlob& currInput = *inputBlobs[inputIndex];
 		CDnnBlob& currOutput = *outputBlobs[inputIndex];
 

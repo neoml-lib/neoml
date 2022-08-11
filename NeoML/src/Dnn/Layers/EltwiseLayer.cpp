@@ -39,6 +39,7 @@ void CEltwiseBaseLayer::Reshape()
 	}
 
 	outputDescs[0] = inputDescs[0];
+	EnableInPlace( InputsMayBeOverwritten() );
 }
 
 static const int EltwiseBaseLayerVersion = 2000;
