@@ -439,8 +439,9 @@ void CBaseLayer::runOnce()
 		GetInputLayer(i)->runOnce();
 	}
 
-	const bool notifyAboutOutput = !GetDnn()->isBackwardPerformed || !GetDnn()->IsRecurrentMode() || GetDnn()->IsLastSequencePos()
-		|| ( ( blobsNeededForBackward & TInputBlobs ) == 0 && ( !isInPlace || ( blobsNeededForBackward & TOutputBlobs ) == 0 ) );
+	const bool notifyAboutOutput = GetDnn()->isReuseMemoryMode
+		&& ( !GetDnn()->isBackwardPerformed || !GetDnn()->IsRecurrentMode() || GetDnn()->IsLastSequencePos()
+			|| ( ( blobsNeededForBackward & TInputBlobs ) == 0 && ( !isInPlace || ( blobsNeededForBackward & TOutputBlobs ) == 0 ) ) );
 
 	// Either this is the first runOnce after reshape
 	// or the input and output blobs are released directly after use
@@ -455,7 +456,7 @@ void CBaseLayer::runOnce()
 
 		inputBlobs[i] = prevLayerOutput;
 
-		if( GetDnn()->isReuseMemoryMode && notifyAboutOutput ) {
+		if( notifyAboutOutput ) {
 			// Notify that the output has been processed
 			inputLayer->onOutputProcessed( outputNumber );
 		}
