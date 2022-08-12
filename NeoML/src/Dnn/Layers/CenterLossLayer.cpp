@@ -54,8 +54,8 @@ void CCenterLossLayer::Serialize( CArchive& archive )
 void CCenterLossLayer::Reshape()
 {
 	CLossLayer::Reshape();
-	CheckArchitecture( inputDescs[1].GetDataType() == CT_Int, GetName(), "labels must be CT_Int" );
-	CheckArchitecture( inputDescs[1].ObjectSize() == 1, GetName(), "should be one number for one label" );
+	CheckArchitecture( inputDescs[1].GetDataType() == CT_Int, GetPath(), "labels must be CT_Int" );
+	CheckArchitecture( inputDescs[1].ObjectSize() == 1, GetPath(), "should be one number for one label" );
 }
 
 void CCenterLossLayer::BatchCalculateLossAndGradient( int batchSize, CConstFloatHandle data, int vectorSize,

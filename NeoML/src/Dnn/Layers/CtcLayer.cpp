@@ -56,11 +56,11 @@ void CCtcLossLayer::Reshape()
 {
 	CheckInputs();
 
-	CheckArchitecture(outputDescs.IsEmpty(), GetName(), "CCtcLossLayer has no output");
+	CheckArchitecture(outputDescs.IsEmpty(), GetPath(), "CCtcLossLayer has no output");
 	CheckArchitecture(!GetDnn()->IsRecurrentMode(),
-		GetName(), "ctc loss layer inside the recurrent composite layer" );
+		GetPath(), "ctc loss layer inside the recurrent composite layer" );
 	CheckArchitecture( GetInputCount() >= 2 && GetInputCount() <= 5,
-		GetName(), "CCtcLossLayer must have two to five inputs" );
+		GetPath(), "CCtcLossLayer must have two to five inputs" );
 
 	const CBlobDesc& labels = inputDescs[I_Labels];
 	const bool hasLabelsLengths = GetInputCount() > I_LabelsLengths;
@@ -70,30 +70,30 @@ void CCtcLossLayer::Reshape()
 	const int labelsMaxLength = labels.BatchLength();
 
 	CheckArchitecture( inputDescs[I_Result].BatchWidth() == inputDescs[I_Labels].BatchWidth(), 
-		GetName(), "loss layer result batch size doesn't match labels batch size" );
-	CheckArchitecture( inputDescs[I_Result].ObjectSize() >= blankLabel, GetName(),
+		GetPath(), "loss layer result batch size doesn't match labels batch size" );
+	CheckArchitecture( inputDescs[I_Result].ObjectSize() >= blankLabel, GetPath(),
 		"too small classes count" );
 	CheckArchitecture( inputDescs[I_Labels].BatchLength() >= 1 && inputDescs[I_Labels].ObjectSize() == 1, 
-		GetName(), "incorrect label size" );
+		GetPath(), "incorrect label size" );
 	CheckArchitecture( allowBlankLabelSkip || hasLabelsLengths || labelsMaxLength * 2 + 1 <= inputDescs[I_Result].BatchLength(),
-		GetName(), "too small input length" );
+		GetPath(), "too small input length" );
 	if( hasLabelsLengths ) {
 		CheckArchitecture( inputDescs[I_LabelsLengths].BatchLength() == 1 &&
 			inputDescs[I_LabelsLengths].BatchWidth() == batchWidth &&
 			inputDescs[I_LabelsLengths].ObjectSize() == 1,
-			GetName(), "CCtcLossLayer: incorrect labels lengths blob dimensions" );
+			GetPath(), "CCtcLossLayer: incorrect labels lengths blob dimensions" );
 	}
 	if( hasInputLengths ) {
 		CheckArchitecture( inputDescs[I_InputLengths].BatchLength() == 1 &&
 			inputDescs[I_InputLengths].BatchWidth() == batchWidth &&
 			inputDescs[I_InputLengths].ObjectSize() == 1,
-			GetName(), "CCtcLossLayer: incorrect inputs lengths blob dimensions" );
+			GetPath(), "CCtcLossLayer: incorrect inputs lengths blob dimensions" );
 	}
 	if( GetInputCount() > I_LabelWeights ) {
 		CheckArchitecture( inputDescs[I_Result].BatchWidth() == inputDescs[I_LabelWeights].BatchWidth(),
-			GetName(), "weights batch size doesn't match result batch size" );
+			GetPath(), "weights batch size doesn't match result batch size" );
 		CheckArchitecture( inputDescs[I_LabelWeights].BatchLength() == 1 && inputDescs[I_LabelWeights].ObjectSize() == 1,
-			GetName(), "weight's batchLength and objectSize must have be equal to 1" );
+			GetPath(), "weight's batchLength and objectSize must have be equal to 1" );
 	}
 
 	lossGradient = 0;
@@ -193,7 +193,7 @@ CCtcDecodingLayer::CCtcDecodingLayer( IMathEngine& mathEngine ) :
 void CCtcDecodingLayer::Reshape()
 {
 	CheckInputs();
-	CheckArchitecture(outputDescs.IsEmpty(), GetName(), "CCtcDecodingLayer has no output");
+	CheckArchitecture(outputDescs.IsEmpty(), GetPath(), "CCtcDecodingLayer has no output");
 	CBlobDesc transposedDesc = inputDescs[I_Result];
 	transposedDesc.SetDimSize(BD_BatchLength, inputDescs[I_Result].BatchWidth());
 	transposedDesc.SetDimSize(BD_BatchWidth, inputDescs[I_Result].BatchLength());

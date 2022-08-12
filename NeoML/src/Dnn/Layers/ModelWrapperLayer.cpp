@@ -70,9 +70,9 @@ void CProblemSourceLayer::Reshape()
 {
 	NeoAssert(!GetDnn()->IsRecurrentMode());
 
-	CheckArchitecture( problem.Ptr() != 0, GetName(), "source problem is null" );
+	CheckArchitecture( problem.Ptr() != 0, GetPath(), "source problem is null" );
 	CheckOutputs();
-	CheckArchitecture( GetOutputCount() >= 2, GetName(), "problem source layer has less than 2 outputs" );
+	CheckArchitecture( GetOutputCount() >= 2, GetPath(), "problem source layer has less than 2 outputs" );
 
 	// The data
 	outputDescs[0] = CBlobDesc( CT_Float );
