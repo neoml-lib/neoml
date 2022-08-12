@@ -439,24 +439,25 @@ void CBaseLayer::runOnce()
 		GetInputLayer(i)->runOnce();
 	}
 
+	const bool notifyAboutOutput = !GetDnn()->isBackwardPerformed || !GetDnn()->IsRecurrentMode() || GetDnn()->IsLastSequencePos()
+		|| ( ( blobsNeededForBackward & TInputBlobs ) == 0 && ( !isInPlace || ( blobsNeededForBackward & TOutputBlobs ) == 0 ) );
+
 	// Either this is the first runOnce after reshape
 	// or the input and output blobs are released directly after use
 	for( int i = 0; i < inputBlobs.Size(); ++i ) {
-		inputBlobs[i] = inputLinks[i].Layer->outputBlobs[inputLinks[i].OutputNumber].Ptr();
-	}
+		CBaseLayer* inputLayer = GetInputLayer( i );
+		int outputNumber = inputs[i].OutputNumber;
+		CDnnBlob* prevLayerOutput = inputLayer->outputBlobs[outputNumber].Ptr();
 
-	const bool mayFreeIoBlobs = !GetDnn()->isBackwardPerformed || !GetDnn()->IsRecurrentMode() || GetDnn()->IsLastSequencePos()
-		|| ( ( blobsNeededForBackward & TInputBlobs ) == 0 && ( !isInPlace || ( blobsNeededForBackward & TOutputBlobs ) == 0 ) );
+		if( prevLayerOutput == inputBlobs[i].Ptr() ) {
+			continue;
+		}
 
-	if( GetDnn()->isReuseMemoryMode && mayFreeIoBlobs ) {
-		for( int i = 0; i < inputBlobs.Size(); ++i ) {
-			CBaseLayer* inputLayer = inputLinks[i].Layer;
-			const int outputNumber = inputLinks[i].OutputNumber;
-			if( inputLayer->lastOutputUser[outputNumber] == this
-				&& ( inputLayer->blobsNeededForBackward & TOutputBlobs ) == 0 )
-			{
-				inputLayer->outputBlobs[outputNumber] = nullptr;
-			}
+		inputBlobs[i] = prevLayerOutput;
+
+		if( GetDnn()->isReuseMemoryMode && notifyAboutOutput ) {
+			// Notify that the output has been processed
+			inputLayer->onOutputProcessed( outputNumber );
 		}
 	}
 
@@ -490,6 +491,10 @@ void CBaseLayer::runOnce()
 
 	if( GetDnn()->isReuseMemoryMode ) {
 		freeUnusedBlobs( TOutputBlobs | blobsNeededForBackward );
+		outputProcessedCount.SetSize( outputs.Size() );
+		for( int i = 0; i < outputs.Size(); ++i ) {
+			outputProcessedCount[i] = 0;
+		}
 	}
 }
 
@@ -781,6 +786,19 @@ void CBaseLayer::CheckInput1() const
 void CBaseLayer::CheckOutputs() const
 {
 	CheckArchitecture( !outputs.IsEmpty(), GetPath(), "layer has no output" );
+}
+
+void CBaseLayer::onOutputProcessed( int index )
+{
+	NeoPresume( GetDnn()->isReuseMemoryMode );
+	NeoPresume( outputProcessedCount.Size() > index );
+	NeoPresume( outputProcessedCount[index] < outputs[index] );
+
+	CPtr<CDnnBlob> result = outputBlobs[index];
+	outputProcessedCount[index]++;
+	if( outputProcessedCount[index] == outputs[index] && ( blobsNeededForBackward & TOutputBlobs ) == 0 ) {
+		outputBlobs[index] = nullptr;
+	}
 }
 
 void CBaseLayer::freeUnusedBlobs( int usedBlobs )
