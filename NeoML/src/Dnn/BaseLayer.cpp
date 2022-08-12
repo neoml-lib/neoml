@@ -443,17 +443,14 @@ void CBaseLayer::runOnce()
 		GetInputLayer(i)->runOnce();
 	}
 
-	const bool mayFreeIoBlobs = !GetDnn()->isBackwardPerformed || !GetDnn()->IsRecurrentMode() || GetDnn()->IsLastSequencePos()
-		|| ( ( blobsNeededForBackward & TInputBlobs ) == 0 && ( !isInPlace || ( blobsNeededForBackward & TOutputBlobs ) == 0 ) );
-
 	// Either this is the first runOnce after reshape
 	// or the input and output blobs are released directly after use
 	for( int i = 0; i < inputBlobs.Size(); ++i ) {
-		CDnnBlob* prevOutput = inputLinks[i].Layer->outputBlobs[inputLinks[i].OutputNumber].Ptr();
-		if( inputBlobs[i].Ptr() != prevOutput ) {
-			inputBlobs[i] = prevOutput;
-		}
+		inputBlobs[i] = inputLinks[i].Layer->outputBlobs[inputLinks[i].OutputNumber].Ptr();
 	}
+
+	const bool mayFreeIoBlobs = !GetDnn()->isBackwardPerformed || !GetDnn()->IsRecurrentMode() || GetDnn()->IsLastSequencePos()
+		|| ( ( blobsNeededForBackward & TInputBlobs ) == 0 && ( !isInPlace || ( blobsNeededForBackward & TOutputBlobs ) == 0 ) );
 
 	if( GetDnn()->isReuseMemoryMode && mayFreeIoBlobs ) {
 		for( int i = 0; i < inputBlobs.Size(); ++i ) {
