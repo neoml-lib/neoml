@@ -27,6 +27,7 @@ protected:
 
 	// Called once reshape is complete
 	virtual void OnReshaped() {}
+	void AllocateOutputBlobs() override;
 
 	void Serialize( CArchive& archive ) override;
 

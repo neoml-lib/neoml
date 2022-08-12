@@ -33,6 +33,16 @@ void CBroadcastLayer::Serialize( CArchive& archive )
 	CBaseLayer::Serialize( archive );
 }
 
+void CBroadcastLayer::AllocateOutputBlobs()
+{
+	if( IsInPlace() ) {
+		inputBlobs.CopyTo( outputBlobs );
+		return;
+	}
+
+	CBaseLayer::AllocateOutputBlobs();
+}
+
 void CBroadcastLayer::Reshape()
 {
 	CheckInputs();

@@ -294,6 +294,7 @@ protected:
 	// This flag must be set from Reshape method
 	// It is reset to false right each time before the Reshape call
 	void EnableInPlace( bool enable ) { isInPlace = enable; }
+	bool IsInPlace() const { return isInPlace; }
 
 private:
 	// Describes an input connection
@@ -413,7 +414,6 @@ private:
 	friend class CDnnLayerGraph;
 	friend class CDnnSolver;
 	friend class CCompositeLayer;
-	friend class CBaseInPlaceLayer;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////

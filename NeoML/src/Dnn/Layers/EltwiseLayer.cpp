@@ -42,6 +42,16 @@ void CEltwiseBaseLayer::Reshape()
 	EnableInPlace( InputsMayBeOverwritten() );
 }
 
+void CEltwiseBaseLayer::AllocateOutputBlobs()
+{
+	if( IsInPlace() ) {
+		outputBlobs[0] = inputBlobs[0];
+		return;
+	}
+
+	CBaseLayer::AllocateOutputBlobs();
+}
+
 static const int EltwiseBaseLayerVersion = 2000;
 
 void CEltwiseBaseLayer::Serialize( CArchive& archive )

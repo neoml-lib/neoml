@@ -29,6 +29,7 @@ public:
 	void Serialize( CArchive& archive ) override;
 
 protected:
+	void AllocateOutputBlobs() override;
 	void Reshape() override;
 	void RunOnce() override;
 	void BackwardOnce() override;

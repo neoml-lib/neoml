@@ -177,7 +177,8 @@ void CBaseLayer::clearAllRuntimeBlobs()
 
 bool CBaseLayer::InputsMayBeOverwritten() const
 {
-	for(int i = 0; i < min( GetInputCount(), GetOutputCount() ); ++i) {
+	const int inputsToOverwrite = min( GetInputCount(), GetOutputCount() );
+	for(int i = 0; i < inputsToOverwrite; ++i) {
 		const CBaseLayer* inputLayer = GetInputLayer(i);
 		if(inputLayer->GetInputCount() == 0) {
 			// The previous layer is a source layer so its data may not be processed in place
@@ -223,11 +224,7 @@ void CBaseLayer::AllocateOutputBlobs()
 
 	for( int i = 0; i < outputDescs.Size(); ++i ) {
 		if( outputBlobs[i] == nullptr ) {
-			if( isInPlace && i < inputBlobs.Size() ) {
-				outputBlobs[i] = inputBlobs[i];
-			} else {
-				outputBlobs[i] = CDnnBlob::CreateBlob( MathEngine(), outputDescs[i].GetDataType(), outputDescs[i] );
-			}
+			outputBlobs[i] = CDnnBlob::CreateBlob( MathEngine(), outputDescs[i].GetDataType(), outputDescs[i] );
 		} else {
 			if( !outputBlobs[i]->GetDesc().HasEqualDimensions( outputDescs[i] ) ) {
 				// If this output can be connected to in-place transform. And on the second run outputBlob's shape can mismatch with outputDesc.
@@ -430,8 +427,7 @@ void CBaseLayer::runOnce()
 {
 	NeoPresume( inputBlobs.Size() == inputs.Size() );
 	NeoPresume( outputBlobs.Size() == outputs.Size() );
-
-	NeoAssert( dnn != 0 ); // possible only in a network
+	NeoPresume( dnn != nullptr ); // possible only in a network
 
 	if( lastRunNumber == dnn->runNumber ) {
 		return; // has run already

@@ -28,6 +28,18 @@ void CBaseInPlaceLayer::Reshape()
 	OnReshaped();
 }
 
+void CBaseInPlaceLayer::AllocateOutputBlobs()
+{
+	if( !IsInPlace() ) {
+		CBaseLayer::AllocateOutputBlobs();
+		return;
+	}
+
+	if( !outputBlobs.IsEmpty() && outputBlobs[0] == nullptr ) {
+		inputBlobs.CopyTo( outputBlobs );
+	}
+}
+
 static const int BaseInPlaceLayerVersion = 2000;
 
 void CBaseInPlaceLayer::Serialize( CArchive& archive )
