@@ -27,6 +27,16 @@ static const CString EndOfWordTokenInternal( "\\\xFF" );
 
 ///////////////////////////////////////////////////////////////////////////////
 
+void CBytePairEncoderTrainer::CParams::Serialize( CArchive& archive )
+{
+	archive.SerializeVersion( 0 );
+	archive.Serialize( MaxSize );
+	archive.Serialize( UseEndOfWordToken );
+	archive.Serialize( UseStartOfWordToken );
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 CBytePairEncoderTrainer::CBytePairEncoderTrainer( const CParams& params_, const CWordDictionary& dictionary ) :
 	params( params_ ),
 	stepsCompletedCount( 0 )
@@ -90,9 +100,14 @@ CPtr<IBytePairEncoder> CBytePairEncoderTrainer::GetEncoder() const
 	return new CBytePairEncoder( tokensDictionary, params.UseEndOfWordToken, params.UseStartOfWordToken );
 }
 
+// 1: Add CParams (bug fix).
+static const int TrainerCurrentVersion = 1;
+static const int TrainerMinSupportedVersion = 1;
+
 void CBytePairEncoderTrainer::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion( 0 );
+	archive.SerializeVersion( TrainerCurrentVersion, TrainerMinSupportedVersion );
+	params.Serialize( archive );
 	archive.Serialize( stepsCompletedCount );
 	trainWords.Serialize( archive );
 	trainCounts.Serialize( archive );
