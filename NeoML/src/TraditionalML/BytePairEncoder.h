@@ -24,6 +24,11 @@ namespace NeoML {
 // Class that encodes a UTF-8 word using byte-pair-encoding.
 class NEOML_API CBytePairEncoder : public IBytePairEncoder {
 public:
+	CBytePairEncoder() = default;
+	// Construction from dictionary of tokens without additional checks.
+	// Generally ctor is used by CBytePairEncoderTrainer.
+	CBytePairEncoder( const CWordDictionary& tokens, bool useEndOfWordToken, bool useStartOfWordToken );
+
 	// ISubwordEncoder:
 	void Decode( const CArray<int>& tokenIds, CArray<CString>& words ) const override;
 	int Size() const override;
