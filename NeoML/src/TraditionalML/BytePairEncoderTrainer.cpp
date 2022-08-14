@@ -71,7 +71,7 @@ bool CBytePairEncoderTrainer::TrainSteps( int stepsCount )
 		}
 	}
 
-	const int currentStepsCount = calcCurrentStepsCount( params.MaxSize );
+	const int currentStepsCount = calcCurrentStepsCount( stepsCount );
 
 	for( int i = 0; i < currentStepsCount; i++ ) {
 		if( !trainSingleStep() ) {
