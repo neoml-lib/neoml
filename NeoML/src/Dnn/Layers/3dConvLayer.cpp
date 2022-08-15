@@ -119,9 +119,9 @@ void C3dConvLayer::Reshape()
 {
 	CheckInputs();
 	CheckArchitecture( GetInputCount() == GetOutputCount(),
-		GetName(), "different number of inputs and outputs in conv layer" );
+		GetPath(), "different number of inputs and outputs in conv layer" );
 	CheckArchitecture( paddingHeight < filterHeight && paddingWidth < filterWidth && paddingDepth < filterDepth,
-		GetName(), "padding is more or equal to filter size" );
+		GetPath(), "padding is more or equal to filter size" );
 
 	int outputHeight, outputWidth, outputDepth;
 	calcOutputBlobSize(outputHeight, outputWidth, outputDepth);
@@ -129,7 +129,7 @@ void C3dConvLayer::Reshape()
 		CheckArchitecture( filterHeight <= inputDescs[i].Height() + 2 * paddingHeight
 			&& filterWidth <= inputDescs[i].Width() + 2 * paddingWidth
 			&& filterDepth <= inputDescs[i].Depth() + 2 * paddingDepth,
-			GetName(), "filter is bigger than input" );
+			GetPath(), "filter is bigger than input" );
 
 		if(Filter() == 0) {
 			// Create a weights matrix
@@ -151,7 +151,7 @@ void C3dConvLayer::Reshape()
 			FreeTerms()->Fill(0);
 		} else {
 			CheckArchitecture( FreeTerms()->GetDataSize() == filterCount,
-				GetName(), "number of free members in convolution is not equal to number of filters" );
+				GetPath(), "number of free members in convolution is not equal to number of filters" );
 		}
 		// For each layer element, there is a channel in the output blob
 		outputDescs[i] = inputDescs[i];

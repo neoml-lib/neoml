@@ -45,8 +45,8 @@ void CDataLayer::SetBlob( CDnnBlob* _blob )
 void CDataLayer::Reshape()
 {
 	CheckOutputs();
-	CheckArchitecture( GetOutputCount() == 1, GetName(), "Data layer has more than 1 output" );
-	CheckArchitecture( blob.Ptr() != nullptr, GetName(), "Data layer has null data blob" );
+	CheckArchitecture( GetOutputCount() == 1, GetPath(), "Data layer has more than 1 output" );
+	CheckArchitecture( blob.Ptr() != nullptr, GetPath(), "Data layer has null data blob" );
 	outputDescs[0] = blob->GetDesc();
 }
 

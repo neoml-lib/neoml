@@ -37,8 +37,8 @@ void CGlobalSumPoolingLayer::Serialize( CArchive& archive )
 void CGlobalSumPoolingLayer::Reshape()
 {
 	CheckInputs();
-	CheckArchitecture( GetInputCount() == 1, GetName(), "multiple inputs" );
-	CheckArchitecture( GetOutputCount() == 1, GetName(), "multiple outputs" );
+	CheckArchitecture( GetInputCount() == 1, GetPath(), "multiple inputs" );
+	CheckArchitecture( GetOutputCount() == 1, GetPath(), "multiple outputs" );
 
 	NeoAssert( inputDescs.Size() == 1 );
 	const CBlobDesc& inputDesc = inputDescs[0];

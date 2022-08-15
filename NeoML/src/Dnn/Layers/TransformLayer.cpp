@@ -95,8 +95,8 @@ void CTransformLayer::OnReshaped()
 {
 	CheckInput1();
 
-	CheckArchitecture( !GetDnn()->IsRecurrentMode(), GetName(), "can't be used inside of recurrent layers" );
-	CheckArchitecture( inputDescs[0].GetDataType() == CT_Float || !IsBackwardPerformed(), GetName(),
+	CheckArchitecture( !GetDnn()->IsRecurrentMode(), GetPath(), "can't be used inside of recurrent layers" );
+	CheckArchitecture( inputDescs[0].GetDataType() == CT_Float || !IsBackwardPerformed(), GetPath(),
 		"Integer blobs can't be backpropagated" );
 
 	outputDescs[0] = inputDescs[0];

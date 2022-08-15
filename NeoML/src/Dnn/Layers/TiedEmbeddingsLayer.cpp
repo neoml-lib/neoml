@@ -51,15 +51,15 @@ void CTiedEmbeddingsLayer::Reshape()
 {
 	CheckInputs();
 
-	CheckArchitecture( GetDnn()->HasLayer( embeddingsLayerName ), GetName(),
+	CheckArchitecture( GetDnn()->HasLayer( embeddingsLayerName ), GetPath(),
 		"Network does not contain embeddings layer with that name." );
 	const CMultichannelLookupLayer* embeddingsLayer = dynamic_cast<CMultichannelLookupLayer*>(
 		GetDnn()->GetLayer( embeddingsLayerName ).Ptr() );
-	CheckArchitecture( embeddingsLayer != 0, GetName(), "The layer is not an embedding layer." );
+	CheckArchitecture( embeddingsLayer != 0, GetPath(), "The layer is not an embedding layer." );
 
 	const int embeddingsChannelsCount = CheckCast<CMultichannelLookupLayer>(
 		GetDnn()->GetLayer( embeddingsLayerName ) )->GetDimensions().Size();
-	CheckArchitecture( channelIndex < embeddingsChannelsCount, GetName(),
+	CheckArchitecture( channelIndex < embeddingsChannelsCount, GetPath(),
 		"Wrong channgel index for embeddings" );
 
 	outputDescs.SetSize( inputDescs.Size() );
@@ -70,13 +70,13 @@ void CTiedEmbeddingsLayer::Reshape()
 
 	for( int i = 0; i < inputDescs.Size(); i++ ) {
 		const CBlobDesc inputDesc = inputDescs[i];
-		CheckArchitecture( inputDesc.Channels() == vectorSize, GetName(),
+		CheckArchitecture( inputDesc.Channels() == vectorSize, GetPath(),
 			"The number of channels in the input layer is incorrect." );
-		CheckArchitecture( inputDesc.Width() == 1, GetName(),
+		CheckArchitecture( inputDesc.Width() == 1, GetPath(),
 			"The width in the input layer must be 1. " );
-		CheckArchitecture( inputDesc.Height() == 1, GetName(),
+		CheckArchitecture( inputDesc.Height() == 1, GetPath(),
 			"The height in the input layer must be 1. " );
-		CheckArchitecture( inputDesc.Depth() == 1, GetName(),
+		CheckArchitecture( inputDesc.Depth() == 1, GetPath(),
 			"The depth in the input layer must be 1. " );
 
 		CBlobDesc outputDesc = inputDesc;

@@ -27,8 +27,8 @@ namespace NeoML {
 void CL1LossLayer::Reshape()
 {
 	CLossLayer::Reshape();
-	CheckArchitecture( inputDescs[1].GetDataType() == CT_Float, GetName(), "labels must be CT_Float" );
-	CheckArchitecture( inputDescs[0].ObjectSize() == inputDescs[1].ObjectSize(), GetName(),
+	CheckArchitecture( inputDescs[1].GetDataType() == CT_Float, GetPath(), "labels must be CT_Float" );
+	CheckArchitecture( inputDescs[0].ObjectSize() == inputDescs[1].ObjectSize(), GetPath(),
 		"the labels dimensions should be equal to the first input dimensions" );
 }
 

@@ -96,6 +96,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/LogicalLayers.h>
 #include <NeoML/Dnn/Layers/CumSumLayer.h>
 #include <NeoML/Dnn/Layers/ScatterGatherLayers.h>
+#include <NeoML/Dnn/Layers/TransformerSourceMaskLayer.h>
 
 namespace NeoML {
 
@@ -359,12 +360,14 @@ REGISTER_NEOML_LAYER( CCumSumLayer, "NeoMLDnnCumSumLayer" )
 REGISTER_NEOML_LAYER( CEqualLayer, "NeoMLDnnEqualLayer" )
 REGISTER_NEOML_LAYER( CWhereLayer, "NeoMLDnnWhereLayer" )
 REGISTER_NEOML_LAYER( CScatterNDLayer, "NeoMLDnnScatterNDLayer" )
+REGISTER_NEOML_LAYER( CTransformerSourceMaskLayer, "NeoMLDnnTransformerSourceMaskLayer" )
 
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 
-CDnn::CDnn( CRandom& _random, IMathEngine& _mathEngine ) :
+CDnn::CDnn( CRandom& _random, IMathEngine& _mathEngine, const CCompositeLayer* owner ) :
+	owner( owner ),
 	log( 0 ),
 	logFrequency( 100 ),
 	random( _random ),
@@ -416,8 +419,8 @@ CPtr<const CBaseLayer> CDnn::GetLayer( const char* name ) const
 
 void CDnn::AddLayerImpl( CBaseLayer& layer )
 {
-	CheckArchitecture( !layerMap.Has( layer.GetName() ), layer.GetName(), "layer already in this dnn" );
-	CheckArchitecture( layer.GetDnn() == 0, layer.GetName(), "layer already added to other dnn" );
+	CheckArchitecture( !layerMap.Has( layer.GetName() ), layer.GetPath(), "layer already in this dnn" );
+	CheckArchitecture( layer.GetDnn() == 0, layer.GetPath(), "layer already added to other dnn" );
 
 	// Set the flag that indicates the network must be rebuilt (configuration has changed)
 	ForceRebuild();
@@ -697,6 +700,11 @@ size_t CDnn::getOutputBlobsSize() const
 		result += layers[i]->GetOutputBlobsSize();
 	}
 	return result;
+}
+
+CString CDnn::getPath() const
+{
+	return owner == nullptr ? CString() : owner->GetPath() + "/";
 }
 
 void CDnn::FilterLayersParams( float threshold )
