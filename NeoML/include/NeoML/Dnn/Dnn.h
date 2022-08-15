@@ -337,8 +337,6 @@ private:
 	CArray<CDnnLayerLink> inputLinks;
 	// The number of connections to each layer output
 	CArray<int> outputs;
-	// The number oftimes each output was processed
-	CArray<int> outputProcessedCount;
 	// The last layer which uses this outputs
 	CArray<const CBaseLayer*> lastOutputUser;
 
@@ -411,7 +409,6 @@ private:
 	void recheckBackwardNeeded();
 	void backwardRunAndLearnOnce();
 	void transferDiffBlob( CDnnBlob* diffBlob, int outputNum );
-	void onOutputProcessed( int index );
 
 	friend class CDnn;
 	friend class CDnnLayerGraph;

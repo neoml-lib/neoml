@@ -42,16 +42,6 @@ void CEltwiseBaseLayer::Reshape()
 	EnableInPlace( InputsMayBeOverwritten() );
 }
 
-void CEltwiseBaseLayer::AllocateOutputBlobs()
-{
-	if( IsInPlace() ) {
-		outputBlobs[0] = inputBlobs[0];
-		return;
-	}
-
-	CBaseLayer::AllocateOutputBlobs();
-}
-
 static const int EltwiseBaseLayerVersion = 2000;
 
 void CEltwiseBaseLayer::Serialize( CArchive& archive )
@@ -87,7 +77,12 @@ void CEltwiseSumLayer::RunOnce()
 
 void CEltwiseSumLayer::BackwardOnce()
 {
-	for( int i = 0; i < inputDiffBlobs.Size(); ++i ) {
+	if( inputDiffBlobs[0]->GetData() != outputDiffBlobs[0]->GetData() ) {
+		MathEngine().VectorCopy( inputDiffBlobs[0]->GetData(), outputDiffBlobs[0]->GetData(),
+			inputDiffBlobs[0]->GetDataSize() );
+	}
+
+	for( int i = 1; i < inputDiffBlobs.Size(); ++i ) {
 		MathEngine().VectorCopy( inputDiffBlobs[i]->GetData(), outputDiffBlobs[0]->GetData(),
 			inputDiffBlobs[i]->GetDataSize() );
 	}
@@ -140,8 +135,10 @@ void CEltwiseSubLayer::RunOnce()
 
 void CEltwiseSubLayer::BackwardOnce()
 {
-	MathEngine().VectorCopy( inputDiffBlobs[0]->GetData(), outputDiffBlobs[0]->GetData(),
-		inputDiffBlobs[0]->GetDataSize() );
+	if( inputDiffBlobs[0]->GetData() != outputDiffBlobs[0]->GetData() ) {
+		MathEngine().VectorCopy( inputDiffBlobs[0]->GetData(), outputDiffBlobs[0]->GetData(),
+			inputDiffBlobs[0]->GetDataSize() );
+	}
 	MathEngine().VectorNeg( outputDiffBlobs[0]->GetData(), inputDiffBlobs[1]->GetData(),
 		inputDiffBlobs[1]->GetDataSize() );
 }
@@ -296,6 +293,7 @@ void CEltwiseMaxLayer::Reshape()
 
 	maxIndices = 0;
 	if(IsBackwardPerformed()) {
+		EnableInPlace( false );
 		maxIndices = CDnnBlob::CreateBlob( MathEngine(), CT_Int, outputDescs[0] );
 		RegisterRuntimeBlob(maxIndices);
 	}

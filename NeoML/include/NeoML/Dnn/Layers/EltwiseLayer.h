@@ -27,7 +27,6 @@ public:
 
 protected:
 	CEltwiseBaseLayer( IMathEngine& mathEngine, const char* name ) : CBaseLayer( mathEngine, name, false ) {}
-	void AllocateOutputBlobs() override;
 	void Reshape() override;
 };
 
