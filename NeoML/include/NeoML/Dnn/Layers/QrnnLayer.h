@@ -217,6 +217,7 @@ protected:
 	void Reshape() override;
 	void RunOnce() override;
 	void BackwardOnce() override;
+	int BlobsForBackward() const override { return TInputBlobs | TOutputBlobs; }
 
 private:
 	bool reverse;
@@ -253,6 +254,7 @@ protected:
 	void Reshape() override;
 	void RunOnce() override;
 	void BackwardOnce() override;
+	int BlobsForBackward() const override { return TInputBlobs | TOutputBlobs; }
 
 private:
 	bool reverse;

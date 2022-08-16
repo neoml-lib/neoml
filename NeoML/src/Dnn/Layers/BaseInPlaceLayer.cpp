@@ -22,7 +22,7 @@ namespace NeoML {
 
 void CBaseInPlaceLayer::Reshape()
 {
-	isInPlace = IsInPlaceProcessAvailable();
+	isInPlace = isInPlaceProcessAvailable();
 	inputDescs.CopyTo( outputDescs );
 
 	OnReshaped();

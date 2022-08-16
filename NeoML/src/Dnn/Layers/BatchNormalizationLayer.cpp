@@ -378,7 +378,7 @@ void CBatchNormalizationLayer::backwardWhenLearning()
 	CFloatHandleStackVar averageDiff(MathEngine(), paramBlobs[0]->GetObjectSize());
 	CFloatHandleStackVar averageNormDiff(MathEngine(), paramBlobs[0]->GetObjectSize());
 	CFloatHandleStackVar normGamma(MathEngine(), paramBlobs[0]->GetObjectSize());
-	CFloatHandleStackVar temp(MathEngine(), outputBlobs[0]->GetDataSize());
+	CFloatHandleStackVar temp(MathEngine(), outputDiffBlobs[0]->GetDataSize());
 
 	CConstFloatHandle gamma = paramBlobs[0]->GetObjectData( PN_Gamma );
 	CConstFloatHandle invSqrtVariance = internalParams->GetObjectData( IPN_InvSqrtVariance );

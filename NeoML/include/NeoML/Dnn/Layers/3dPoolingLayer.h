@@ -69,6 +69,7 @@ protected:
 	void RunOnce() override;
 	void BackwardOnce() override;
 	void Reshape() override;
+	int BlobsForBackward() const override { return 0; }
 
 private:
 	CPtr<CDnnBlob> indexBlob; // the indices of maximum elements, used for backpropagation
@@ -98,6 +99,7 @@ protected:
 	void RunOnce() override;
 	void BackwardOnce() override;
 	void Reshape() override;
+	int BlobsForBackward() const override { return 0; }
 
 private:
 	C3dMeanPoolingDesc* desc;

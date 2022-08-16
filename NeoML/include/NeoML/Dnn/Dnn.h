@@ -257,10 +257,6 @@ protected:
 
 	void SetOutputBlob(int num, CDnnBlob* blob);
 
-	// Indicates if the layer may be used for in-place processing (the output blobs replace the input blobs)
-	// May be called from Reshape method
-	bool IsInPlaceProcessAvailable() const;
-
 	// Fills with zeros the parameters that are less (but not equal) than a given threshold
 	virtual void FilterLayerParams( float /*threshold*/ ) {}
 
@@ -278,6 +274,20 @@ protected:
 	// e.g. layer InputHidden" inside of CLstmLayer named "LSTM", which is inside of CCompositeLayer named "Encoder"
 	// has path "Encoder/LSTM/InputHidden"
 	CString GetPath() const;
+
+	// The following section contains interface for the memory optimization during training
+	// The key idea is that the layer may provide additional information about blobs required
+	// for backward and for learning
+
+	// Blob types which are used by layer during backward and learn
+	static const int TInputBlobs = 1 << 0;
+	static const int TOutputBlobs = 1 << 1;
+
+	// The following methods are called during reshape stage and may use anything available in Reshape methods
+	// Blob types required for the correct work of BackwardOnce
+	virtual int BlobsForBackward() const { return TInputBlobs | TOutputBlobs; }
+	// Blob types required for the correct work of LearnOnce
+	virtual int BlobsForLearn() const { return TInputBlobs | TOutputBlobs; }
 
 private:
 	// Describes an input connection
@@ -358,6 +368,8 @@ private:
 	int runOnceCount;
 	// The total time of RunOnce calls since last Reshape in nanoseconds
 	IPerformanceCounters::CCounter::TCounterType runOnceTime;
+	// Indicates if the layer performs in-place processing (after the Reshape method call)
+	bool isInPlace;
 
 	// Switches the specified blobs into sequence processing mode
 	void switchBlobsToSequentialMode(CObjectArray<CDnnBlob>& blobs, TBlobCacheType cacheType, bool storeParent);
@@ -365,12 +377,17 @@ private:
 	void clearAllRuntimeBlobs();
 
 	// Clones a blob to store diffs
-	CDnnBlob* cloneBlobForDiff(CDnnBlob* blob);
+	CDnnBlob* cloneBlobForDiff(const CBlobDesc& desc);
 
-	// Indicates if the layer uses in-place processing (the output blobs replace the input blobs)
-	bool isInPlaceProcess() const;
 	// Indicates if the layer is composite (contains another sub-network)
 	virtual bool isComposite() const { return false; }
+
+	// Fields used for memory optimization during training
+	int allocatedBlobs; // the mask of currently allocated blobs
+	int blobsNeededForBackward; // the mask of blobs needed for backward and learn
+	// Sets the mask of allocated blobs
+	// If some some blobs are not marked as allocated, they will be freed during this call
+	void setAllocatedBlobs( int newMask );
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////
 	// The methods and data for interacting with the network
@@ -387,9 +404,14 @@ private:
 	void transferDiffBlob( CDnnBlob* diffBlob, int outputNum );
 	void onOutputProcessed( int index );
 
+	// Indicates if the layer may be used for in-place processing (the output blobs replace the input blobs)
+	bool isInPlaceProcessAvailable() const;
+
 	friend class CDnn;
 	friend class CDnnLayerGraph;
 	friend class CDnnSolver;
+	friend class CCompositeLayer;
+	friend class CBaseInPlaceLayer;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
