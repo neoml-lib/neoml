@@ -385,8 +385,9 @@ private:
 	// Fields used for memory optimization during training
 	int allocatedBlobs; // the mask of currently allocated blobs
 	int blobsNeededForBackward; // the mask of blobs needed for backward and learn
-	// Frees the blobs no longer required for the layer
-	void freeUnusedBlobs( int neededBlobs );
+	// Sets the mask of allocated blobs
+	// If some some blobs are not marked as allocated, they will be freed during this call
+	void setAllocatedBlobs( int newMask );
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////
 	// The methods and data for interacting with the network
