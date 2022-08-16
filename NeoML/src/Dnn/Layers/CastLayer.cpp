@@ -54,6 +54,10 @@ void CCastLayer::Reshape()
 	CheckArchitecture( outputDescs.Size() == 1, GetPath(), "CCastLayer must have 1 output" );
 	outputDescs[0] = inputDescs[0];
 	outputDescs[0].SetDataType( outputType );
+	if( IsBackwardPerformed() ) {
+		CheckArchitecture( inputDescs[0].GetDataType() == CT_Float && outputDescs[0].GetDataType() == CT_Float,
+			GetPath(), "Backward is possible only over float data" );
+	}
 }
 
 void CCastLayer::RunOnce()
