@@ -276,7 +276,8 @@ protected:
 	CString GetPath() const;
 
 	// The following section contains interface for the memory optimization during training
-	// The key idea is that the layer may provide additional information about blobs required for backward and
+	// The key idea is that the layer may provide additional information about blobs required
+	// for backward and for learning
 
 	// Blob types which are used by layer during backward and learn
 	static const int TInputBlobs = 1 << 0;
