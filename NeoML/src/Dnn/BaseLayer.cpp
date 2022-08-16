@@ -450,9 +450,6 @@ void CBaseLayer::runOnce()
 		GetInputLayer(i)->runOnce();
 	}
 
-	const bool notifyAboutOutput = !GetDnn()->isBackwardPerformed || !GetDnn()->IsRecurrentMode() || GetDnn()->IsLastSequencePos()
-		|| ( ( blobsNeededForBackward & TInputBlobs ) == 0 && ( !isInPlace || ( blobsNeededForBackward & TOutputBlobs ) == 0 ) );
-
 	// Either this is the first runOnce after reshape
 	// or the input and output blobs are released directly after use
 	for( int i = 0; i < inputBlobs.Size(); ++i ) {
@@ -510,7 +507,6 @@ void CBaseLayer::runOnce()
 			*runtimeBlobPtrs[i] = runtimeBlobs[i];
 		}
 	}
-
 
 	if( GetDnn()->isReuseMemoryMode ) {
 		setAllocatedBlobs( TOutputBlobs | blobsNeededForBackward );
