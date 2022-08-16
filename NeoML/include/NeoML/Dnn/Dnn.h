@@ -276,7 +276,8 @@ protected:
 	CString GetPath() const;
 
 	// The following section contains interface for the memory optimization during training
-	// The key idea is that the layer may provide additional information about blobs required for backward and
+	// The key idea is that the layer may provide additional information about blobs required
+	// for backward and for learning
 
 	// Blob types which are used by layer during backward and learn
 	static const int TInputBlobs = 1 << 0;
@@ -392,8 +393,9 @@ private:
 	// Fields used for memory optimization during training
 	int allocatedBlobs; // the mask of currently allocated blobs
 	int blobsNeededForBackward; // the mask of blobs needed for backward and learn
-	// Frees the blobs no longer required for the layer
-	void freeUnusedBlobs( int neededBlobs );
+	// Sets the mask of allocated blobs
+	// If some some blobs are not marked as allocated, they will be freed during this call
+	void setAllocatedBlobs( int newMask );
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////
 	// The methods and data for interacting with the network
@@ -409,6 +411,9 @@ private:
 	void recheckBackwardNeeded();
 	void backwardRunAndLearnOnce();
 	void transferDiffBlob( CDnnBlob* diffBlob, int outputNum );
+
+	// Indicates if the layer may be used for in-place processing (the output blobs replace the input blobs)
+	bool isInPlaceProcessAvailable() const;
 
 	friend class CDnn;
 	friend class CDnnLayerGraph;

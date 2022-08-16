@@ -450,6 +450,9 @@ void CBaseLayer::runOnce()
 		GetInputLayer(i)->runOnce();
 	}
 
+	const bool notifyAboutOutput = !GetDnn()->isBackwardPerformed || !GetDnn()->IsRecurrentMode() || GetDnn()->IsLastSequencePos()
+		|| ( ( blobsNeededForBackward & TInputBlobs ) == 0 && ( !isInPlace || ( blobsNeededForBackward & TOutputBlobs ) == 0 ) );
+
 	// Either this is the first runOnce after reshape
 	// or the input and output blobs are released directly after use
 	for( int i = 0; i < inputBlobs.Size(); ++i ) {
@@ -510,7 +513,7 @@ void CBaseLayer::runOnce()
 
 
 	if( GetDnn()->isReuseMemoryMode ) {
-		freeUnusedBlobs( TOutputBlobs | blobsNeededForBackward );
+		setAllocatedBlobs( TOutputBlobs | blobsNeededForBackward );
 	}
 }
 
@@ -557,8 +560,6 @@ void CBaseLayer::backwardRunAndLearnOnce()
 		}
 	}
 
-	const bool freeBlobs = GetDnn()->isReuseMemoryMode
-		&& ( !GetDnn()->IsRecurrentMode() || GetDnn()->IsFirstSequencePos() );
 	if( dnn->IsRecurrentMode() ) {
 		// Switch the input and output blobs to sequential mode (to the current position in sequence)
 		switchBlobsToSequentialMode(inputBlobs, BCT_Input, GetDnn()->isReuseMemoryMode);
@@ -639,8 +640,10 @@ void CBaseLayer::backwardRunAndLearnOnce()
 
 	// If layer needs its inputs or outputs for training
 	// then it needs them for all the steps of the recurrent part
+	const bool freeBlobs = GetDnn()->isReuseMemoryMode
+		&& ( !GetDnn()->IsRecurrentMode() || GetDnn()->IsFirstSequencePos() );
 	if( freeBlobs ) {
-		freeUnusedBlobs( 0 );
+		setAllocatedBlobs( 0 );
 	}
 }
 
@@ -804,16 +807,16 @@ void CBaseLayer::CheckOutputs() const
 	CheckArchitecture( !outputs.IsEmpty(), GetPath(), "layer has no output" );
 }
 
-void CBaseLayer::freeUnusedBlobs( int usedBlobs )
+void CBaseLayer::setAllocatedBlobs( int newMask )
 {
-	if( ( TInputBlobs & usedBlobs ) == 0 && ( TInputBlobs & allocatedBlobs ) != 0 ) {
+	if( ( TInputBlobs & newMask ) == 0 && ( TInputBlobs & allocatedBlobs ) != 0 ) {
 		for( int i = 0; i < inputBlobs.Size(); ++i ) {
 			inputBlobs[i] = nullptr;
 		}
 		allocatedBlobs &= ~TInputBlobs;
 	}
 
-	if( ( TOutputBlobs & usedBlobs ) == 0 && ( TOutputBlobs & allocatedBlobs ) != 0 ) {
+	if( ( TOutputBlobs & newMask ) == 0 && ( TOutputBlobs & allocatedBlobs ) != 0 ) {
 		for( int i = 0; i < outputBlobs.Size(); ++i ) {
 			outputBlobs[i] = nullptr;
 		}
