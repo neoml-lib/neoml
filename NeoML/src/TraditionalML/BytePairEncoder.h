@@ -60,8 +60,8 @@ private:
 	CMap<CString, int> tokenToId;
 
 	// Special tokens usage flags.
-	bool useStartOfWordToken = false;
 	bool useEndOfWordToken = true;
+	bool useStartOfWordToken = false;
 
 	int getTokenIndex( const CString& token ) const;
 	CString getToken( int tokenId ) const;
