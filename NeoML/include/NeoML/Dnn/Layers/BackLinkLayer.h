@@ -54,6 +54,7 @@ protected:
 	void RunOnce() override;
 	void BackwardOnce() override;
 	void OnDnnChanged( CDnn* ) override { RestartSequence(); }
+	int BlobsForBackward() const override { return 0; }
 
 private:
 	// The description of the backward link blob
@@ -90,6 +91,7 @@ protected:
 	void Reshape() override;
 	void RunOnce() override;
 	void BackwardOnce() override;
+	int BlobsForBackward() const override { return 0; }
 
 private:
 	CPtr<CDnnBlob> blob;

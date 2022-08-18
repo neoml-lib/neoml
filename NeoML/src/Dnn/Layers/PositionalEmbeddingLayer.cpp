@@ -113,8 +113,8 @@ void CPositionalEmbeddingLayer::RunOnce()
 
 void CPositionalEmbeddingLayer::BackwardOnce()
 {
-	const int objectsCount = inputBlobs[0]->GetBatchWidth();
-	const int objectSize = inputBlobs[0]->GetDataSize() / objectsCount;
+	const int objectsCount = inputDiffBlobs[0]->GetBatchWidth();
+	const int objectSize = inputDiffBlobs[0]->GetDataSize() / objectsCount;
 
 	switch( type ) {
 		case PET_Transformers:
@@ -129,8 +129,8 @@ void CPositionalEmbeddingLayer::BackwardOnce()
 
 void CPositionalEmbeddingLayer::LearnOnce()
 {
-	const int objectsCount = inputBlobs[0]->GetBatchWidth();
-	const int objectSize = inputBlobs[0]->GetDataSize() / objectsCount;
+	const int objectsCount = inputDiffBlobs[0]->GetBatchWidth();
+	const int objectSize = inputDiffBlobs[0]->GetDataSize() / objectsCount;
 
 	static_assert( PET_EnumCount == 2, "PET_EnumCount != 2" );
 	switch( type ) {

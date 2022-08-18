@@ -116,7 +116,7 @@ void CLinearLayer::BackwardOnce()
 {
 	CConstFloatHandle outputDiffPtr = outputDiffBlobs[0]->GetData();
 	CFloatHandle inputDiffPtr = inputDiffBlobs[0]->GetData();
-	int dataSize = outputBlobs[0]->GetDataSize();
+	int dataSize = outputDiffBlobs[0]->GetDataSize();
 
 	if( multiplier != 1.f ) {
 		CFloatHandleStackVar multiplierValue( MathEngine() );
@@ -484,8 +484,6 @@ CHardSigmoidLayer::CHardSigmoidLayer( IMathEngine& mathEngine ) : CBaseInPlaceLa
 
 void CHardSigmoidLayer::RunOnce()
 {
-	CheckInput1();
-
 	MathEngine().VectorHardSigmoid( inputBlobs[0]->GetData(), outputBlobs[0]->GetData(), outputBlobs[0]->GetDataSize(),
 		paramBlobs[0]->GetData(), paramBlobs[1]->GetData() );
 }
@@ -578,7 +576,7 @@ void CLogLayer::RunOnce()
 
 void CLogLayer::BackwardOnce()
 {
-	if( inputBlobs[0].Ptr() == outputBlobs[0].Ptr() ) {
+	if( inputBlobs[0].Ptr() == outputBlobs[0].Ptr() || inputBlobs[0].Ptr() == nullptr ) {
 		MathEngine().VectorExp( outputBlobs[0]->GetData(), inputDiffBlobs[0]->GetData(), outputBlobs[0]->GetDataSize());
 		MathEngine().VectorEltwiseDivide( outputDiffBlobs[0]->GetData(), inputDiffBlobs[0]->GetData(),
 			inputDiffBlobs[0]->GetData(), outputBlobs[0]->GetDataSize() );

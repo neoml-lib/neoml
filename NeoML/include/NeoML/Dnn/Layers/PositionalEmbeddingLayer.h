@@ -54,6 +54,8 @@ protected:
 	void BackwardOnce() override;
 	void LearnOnce() override;
 	void Serialize( CArchive& archive ) override;
+	int BlobsForBackward() const override { return 0; }
+	int BlobsForLearn() const override { return 0; }
 
 private:
 	// Embedding type

@@ -81,7 +81,7 @@ void CCumSumLayer::BackwardOnce()
 	int preceding = 1;
 	int dimension = 1;
 	int following = 1;
-	getDimSizes( inputBlobs[0]->GetDesc(), dim, preceding, dimension, following );
+	getDimSizes( inputDiffBlobs[0]->GetDesc(), dim, preceding, dimension, following );
 
 	MathEngine().VectorCumSumAlongDimension( outputDiffBlobs[0]->GetData(),
 		preceding, dimension, following, inputDiffBlobs[0]->GetData(), !reverse );

@@ -234,9 +234,9 @@ void CIndRnnRecurrentLayer::RunOnce()
 
 void CIndRnnRecurrentLayer::BackwardOnce()
 {
-	const int sequenceLength = inputBlobs[0]->GetBatchLength();
-	const int batchSize = inputBlobs[0]->GetBatchWidth() * inputBlobs[0]->GetListSize();
-	const int objectSize = inputBlobs[0]->GetObjectSize();
+	const int sequenceLength = inputDiffBlobs[0]->GetBatchLength();
+	const int batchSize = inputDiffBlobs[0]->GetBatchWidth() * inputDiffBlobs[0]->GetListSize();
+	const int objectSize = inputDiffBlobs[0]->GetObjectSize();
 
 	NeoPresume( ( dropoutRate <= 0.f && dropoutMask == nullptr ) ||
 		( dropoutRate > 0.f && dropoutMask != nullptr ) );
@@ -253,9 +253,9 @@ void CIndRnnRecurrentLayer::BackwardOnce()
 
 void CIndRnnRecurrentLayer::LearnOnce()
 {
-	const int sequenceLength = inputBlobs[0]->GetBatchLength();
-	const int batchSize = inputBlobs[0]->GetBatchWidth() * inputBlobs[0]->GetListSize();
-	const int objectSize = inputBlobs[0]->GetObjectSize();
+	const int sequenceLength = inputDiffBlobs[0]->GetBatchLength();
+	const int batchSize = inputDiffBlobs[0]->GetBatchWidth() * inputDiffBlobs[0]->GetListSize();
+	const int objectSize = inputDiffBlobs[0]->GetObjectSize();
 
 	NeoPresume( ( dropoutRate <= 0.f && dropoutMask == nullptr ) ||
 		( dropoutRate > 0.f && dropoutMask != nullptr ) );

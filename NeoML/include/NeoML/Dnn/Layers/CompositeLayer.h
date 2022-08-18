@@ -80,7 +80,9 @@ protected:
 	void LearnOnce() override;
 	void OnDnnChanged( CDnn* ) override;
 	void FilterLayerParams( float threshold ) override;
-	
+	int BlobsForBackward() const override { return blobsForBackward; }
+	int BlobsForLearn() const override { return blobsForLearn; }
+
 	// The network object for the internal layers
 	const CDnn* GetInternalDnn() const { return internalDnn; }
 	CDnn* GetInternalDnn() { return internalDnn; }
@@ -129,6 +131,11 @@ private:
 	CObjectArray<CCompositeSinkLayer> sinks;
 	// The output mappings
 	CArray<COutputMapping> outputMappings;
+
+	// Which of the blobs will be used during backward
+	int blobsForBackward;
+	// Which of the blobs will be used during learn
+	int blobsForLearn;
 	
 	// Indicates if the internal network logging is enabled
 	bool areInternalLogsEnabled;
@@ -144,6 +151,7 @@ private:
 	void createSinks();
 	void setInputDescs();
 	void setOutputDescs();
+	void calcBlobsForBackwardAndLearn();
 	void setInputBlobs();
 	void setOutputBlobs();
 
@@ -182,6 +190,7 @@ protected:
 	void RunOnce() override;
 	void BackwardOnce() override;
 	void AllocateOutputBlobs() override;
+	int BlobsForBackward() const override { return 0; }
 
 private:
 	CBlobDesc desc;
@@ -218,6 +227,7 @@ protected:
 	void Reshape() override;
 	void RunOnce() override;
 	void BackwardOnce() override;
+	int BlobsForBackward() const override { return 0; }
 };
 
 } // namespace NeoML

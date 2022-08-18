@@ -558,7 +558,8 @@ void CDnn::RunOnce()
 			RestartSequence();
 		}
 		reshape(); // rebuild the network if necessary
-		
+
+		// During inference we turning reuseMemoryMode on when the net is big enough
 		isReuseMemoryMode = ( getOutputBlobsSize() > MinReuseMemoryModeNetSize );
 		runOnce(0);
 	}
@@ -594,7 +595,11 @@ void CDnn::RunAndBackwardOnce()
 			RestartSequence();
 		}
 		reshape(); // rebuild the network if necessary
-		isReuseMemoryMode = false;
+
+		// During training we don't reuse memory only when training on nonDistributed CPU
+		CMathEngineInfo info;
+		mathEngine.GetMathEngineInfo( info );
+		isReuseMemoryMode = info.Type != MET_Cpu || mathEngine.IsDistributed();
 		runOnce(0);
 		backwardRunAndLearnOnce(0);
 	} catch( CCheckException* exception ) {

@@ -69,6 +69,8 @@ protected:
 	void BackwardOnce() override;
 	void LearnOnce() override;
 	void FilterLayerParams( float threshold ) override;
+	int BlobsForBackward() const override { return 0; }
+	int BlobsForLearn() const override { return TInputBlobs; }
 
 	// The filter. The pointer is valid only if the desired parameters are known (either defined externally or obtained on reshape)
 	CPtr<CDnnBlob>& WeightsDiff() { return paramDiffBlobs[0]; }

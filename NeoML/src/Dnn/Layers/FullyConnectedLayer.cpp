@@ -95,7 +95,7 @@ void CFullyConnectedLayer::RunOnce()
 void CFullyConnectedLayer::BackwardOnce()
 {
 	for( int i = 0; i < outputDiffBlobs.Size(); i++ ) {
-		MathEngine().MultiplyMatrixByMatrix(1, outputDiffBlobs[i]->GetData(), inputBlobs[i]->GetObjectCount(),
+		MathEngine().MultiplyMatrixByMatrix(1, outputDiffBlobs[i]->GetData(), inputDiffBlobs[i]->GetObjectCount(),
 			outputDiffBlobs[i]->GetObjectSize(), Weights()->GetData(), Weights()->GetObjectSize(),
 			inputDiffBlobs[i]->GetData(), inputDiffBlobs[i]->GetDataSize());
 	}

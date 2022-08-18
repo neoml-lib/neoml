@@ -110,8 +110,12 @@ void C3dConvLayer::destroyConvDesc()
 void C3dConvLayer::initConvDesc()
 {
 	if(convDesc == 0) {
-		convDesc = MathEngine().InitBlob3dConvolution(inputBlobs[0]->GetDesc(), paddingHeight, paddingWidth, paddingDepth,
-			strideHeight, strideWidth, strideDepth, Filter()->GetDesc(), outputBlobs[0]->GetDesc());
+		NeoPresume( inputBlobs[0] != nullptr || inputDiffBlobs[0] != nullptr );
+		NeoPresume( outputBlobs[0] != nullptr || outputDiffBlobs[0] != nullptr );
+		convDesc = MathEngine().InitBlob3dConvolution(
+			inputBlobs[0] != nullptr ? inputBlobs[0]->GetDesc() : inputDiffBlobs[0]->GetDesc(),
+			paddingHeight, paddingWidth, paddingDepth, strideHeight, strideWidth, strideDepth, Filter()->GetDesc(),
+			outputBlobs[0] != nullptr ? outputBlobs[0]->GetDesc() : outputDiffBlobs[0]->GetDesc());
 	}
 }
 
