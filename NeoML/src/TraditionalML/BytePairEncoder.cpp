@@ -98,6 +98,20 @@ CString CBytePairEncoder::MergeTokens( const CString& first, const CString& seco
 
 ///////////////////////////////////////////////////////////////////////////////
 
+CBytePairEncoder::CBytePairEncoder( const CWordDictionary& tokens_, bool useEndOfWordToken,
+		bool useStartOfWordToken ) :
+	useEndOfWordToken( useEndOfWordToken ),
+	useStartOfWordToken( useStartOfWordToken )
+{
+	tokens.SetBufferSize( tokens_.Size() );
+	for( int i = 0; i < tokens_.Size(); i++ ) {
+		const CString newToken = tokens_.GetWord( i );
+		NeoAssert( !tokenToId.Has( newToken ) );
+		tokenToId.Add( newToken, tokens.Size() );
+		tokens.Add( newToken );
+	}
+}
+
 void CBytePairEncoder::Decode( const CArray<int>& tokenIds,
 	CArray<CString>& words ) const
 {
@@ -185,6 +199,7 @@ void CBytePairEncoder::LoadDictionary( const CWordDictionary& _tokens,
 	const auto& inseparable = findInseparableToken( finalizedDictionary, auxTokens );
 	NeoAssert( inseparable.IsEmpty() );
 
+	tokens.SetBufferSize( finalizedDictionary.Size() );
 	// Import vocabulary
 	for( int i = 0; i < finalizedDictionary.Size(); i++ ) {
 		auto token = finalizedDictionary.GetWord( i );
@@ -272,6 +287,11 @@ void CBytePairEncoder::GetDictionary( CWordDictionary& output,
 		}
 		output.AddWord( token, tokens.Size() - i );
 	}
+}
+
+int CBytePairEncoder::GetUnknownTokenId() const
+{
+	return UnknownTokenId;
 }
 
 void CBytePairEncoder::DoEncode( const CString& word, CArray<int>& tokenIds,
