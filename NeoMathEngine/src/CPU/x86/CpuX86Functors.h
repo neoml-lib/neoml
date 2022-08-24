@@ -37,63 +37,63 @@ struct CSimd4Struct<int> {
 
 // Fill functions
 template<>
-CSimd4<float> SimdFill( float value )
+inline CSimd4<float> SimdFill( float value )
 {
 	return _mm_set1_ps( value );
 }
 
 template<>
-CSimd4<int> SimdFill( int value )
+inline CSimd4<int> SimdFill( int value )
 {
 	return _mm_set1_epi32( value );
 }
 
 // Load functions
 template<>
-CSimd4<float> SimdLoad4<float>( const float* src )
+inline CSimd4<float> SimdLoad4<float>( const float* src )
 {
 	return LoadSse4( src );
 }
 
 template<>
-CSimd4<int> SimdLoad4<int>( const int* src )
+inline CSimd4<int> SimdLoad4<int>( const int* src )
 {
 	return LoadIntSse4( src );
 }
 
 template<>
-CSimd4<float> SimdLoad( const float* src, int count, float defaultValue )
+inline CSimd4<float> SimdLoad( const float* src, int count, float defaultValue )
 {
 	return LoadSse( src, count, defaultValue );
 }
 
 template<>
-CSimd4<int> SimdLoad( const int* src, int count, int defaultValue )
+inline CSimd4<int> SimdLoad( const int* src, int count, int defaultValue )
 {
 	return LoadIntSse( src, count, defaultValue );
 }
 
 // Store functions
 template<>
-void SimdStore4<float>( float* dst, const CSimd4<float>& value )
+inline void SimdStore4<float>( float* dst, const CSimd4<float>& value )
 {
 	StoreSse4( value, dst );
 }
 
 template<>
-void SimdStore4<int>( int* dst, const CSimd4<int>& value )
+inline void SimdStore4<int>( int* dst, const CSimd4<int>& value )
 {
 	StoreIntSse4( value, dst );
 }
 
 template<>
-void SimdStore<float>( float* dst, const CSimd4<float>& value, int count )
+inline void SimdStore<float>( float* dst, const CSimd4<float>& value, int count )
 {
 	StoreSse( value, dst, count );
 }
 
 template<>
-void SimdStore<int>( int* dst, const CSimd4<int>& value, int count )
+inline void SimdStore<int>( int* dst, const CSimd4<int>& value, int count )
 {
 	StoreIntSse( value, dst, count );
 }
@@ -111,13 +111,13 @@ private:
 };
 
 template<>
-CSimd4<int> CEqualFunctor<float>::operator()( const CSimd4<float>& first, const CSimd4<float>& second )
+inline CSimd4<int> CEqualFunctor<float>::operator()( const CSimd4<float>& first, const CSimd4<float>& second )
 {
 	return _mm_and_si128( ones, _mm_castps_si128( _mm_cmpeq_ps( first, second ) ) );
 }
 
 template<>
-CSimd4<int> CEqualFunctor<int>::operator()( const CSimd4<int>& first, const CSimd4<int>& second )
+inline CSimd4<int> CEqualFunctor<int>::operator()( const CSimd4<int>& first, const CSimd4<int>& second )
 {
 	return _mm_and_si128( ones, _mm_cmpeq_epi32( first, second ) );
 }
@@ -135,7 +135,7 @@ private:
 };
 
 template<>
-CSimd4<float> CWhereFunctor<float>::operator()( const CSimd4<int>& first, const CSimd4<float>& second,
+inline CSimd4<float> CWhereFunctor<float>::operator()( const CSimd4<int>& first, const CSimd4<float>& second,
 	const CSimd4<float>& third )
 {
 	const __m128 mask = _mm_castsi128_ps( _mm_cmpeq_epi32( first, zeros ) );
@@ -143,7 +143,7 @@ CSimd4<float> CWhereFunctor<float>::operator()( const CSimd4<int>& first, const 
 }
 
 template<>
-CSimd4<int> CWhereFunctor<int>::operator()( const CSimd4<int>& first, const CSimd4<int>& second,
+inline CSimd4<int> CWhereFunctor<int>::operator()( const CSimd4<int>& first, const CSimd4<int>& second,
 	const CSimd4<int>& third )
 {
 	const __m128i mask = _mm_cmpeq_epi32( first, zeros );
