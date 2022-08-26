@@ -147,10 +147,11 @@ static std::string trim( const std::string& str )
 	return std::string( res + leftSize, static_cast<int>( len - leftSize - rightSize ) );
 }
 
-CTestParams::CTestParams( const std::string& string )
+CTestParams::CTestParams( const std::string& paramText, const std::string& testName ) :
+	testName( testName )
 {
 	std::vector<std::string> keyValue;
-	splitStringsByDelimiter( keyValue, string, ";" );
+	splitStringsByDelimiter( keyValue, paramText, ";" );
 
 	for( size_t i = 0; i < keyValue.size(); ++i ) {
 		const int equalSign = find( keyValue[i].c_str(), '=' );
@@ -163,20 +164,9 @@ CTestParams::CTestParams( const std::string& string )
 	}
 }
 
-CTestParams::CTestParams( const CTestParams& other ) :
-	flags( other.flags )
-{
-}
-
 std::string CTestParams::GetStrValue( const std::string& key ) const
 {
 	return flags.find( key )->second;
-}
-
-CTestParams& CTestParams::operator=( const CTestParams& other )
-{
-	flags = other.flags;
-	return *this;
 }
 
 CInterval CTestParams::GetInterval( const std::string& key ) const
