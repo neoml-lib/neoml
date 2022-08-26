@@ -630,24 +630,8 @@ struct BlockedConvTestNameGenerator {
 	}
 };
 
-INSTANTIATE_TEST_SUITE_P( CBlockedConvTestInstantiation, CBlockedConvTest,
+INSTANTIATE_TEST_SUITE_P( Trivial, CBlockedConvTest,
 	::testing::Values(
-		/*CTestParams(
-			"Batch = 1;"
-			"Height = 320;"
-			"Width = 640;"
-			"Channels = 32;"
-			"FilterCount = 64;"
-			"FilterHeight = 3;"
-			"FilterWidth = 3;"
-			"StrideHeight = 2;"
-			"StrideWidth = 2;"
-			"PaddingHeight = 1;"
-			"PaddingWidth = 1;"
-			"DilationHeight = 1;"
-			"DilationWidth = 1;"
-			"Seed = 348957;"
-		)*/
 		CTestParams(
 			"Batch = 1;"
 			"Height = 1;"
@@ -663,7 +647,24 @@ INSTANTIATE_TEST_SUITE_P( CBlockedConvTestInstantiation, CBlockedConvTest,
 			"DilationHeight = 1;"
 			"DilationWidth = 1;"
 			"Seed = 348;",
-			"Trivial"
+			"Minimal"
+		),
+		CTestParams(
+			"Batch = 2;"
+			"Height = 1;"
+			"Width = 1;"
+			"Channels = 8;"
+			"FilterCount = 8;"
+			"FilterHeight = 1;"
+			"FilterWidth = 1;"
+			"StrideHeight = 1;"
+			"StrideWidth = 1;"
+			"PaddingHeight = 0;"
+			"PaddingWidth = 0;"
+			"DilationHeight = 1;"
+			"DilationWidth = 1;"
+			"Seed = 348;",
+			"Batch"
 		),
 		CTestParams(
 			"Batch = 1;"
@@ -680,7 +681,7 @@ INSTANTIATE_TEST_SUITE_P( CBlockedConvTestInstantiation, CBlockedConvTest,
 			"DilationHeight = 1;"
 			"DilationWidth = 1;"
 			"Seed = 348;",
-			"TrivialInputHeight"
+			"InputHeight"
 		),
 		CTestParams(
 			"Batch = 1;"
@@ -697,7 +698,7 @@ INSTANTIATE_TEST_SUITE_P( CBlockedConvTestInstantiation, CBlockedConvTest,
 			"DilationHeight = 1;"
 			"DilationWidth = 1;"
 			"Seed = 348;",
-			"TrivialInputWidth"
+			"InputWidth"
 		),
 		CTestParams(
 			"Batch = 1;"
@@ -714,7 +715,24 @@ INSTANTIATE_TEST_SUITE_P( CBlockedConvTestInstantiation, CBlockedConvTest,
 			"DilationHeight = 1;"
 			"DilationWidth = 1;"
 			"Seed = 348;",
-			"TrivialInputChannels"
+			"InputChannels"
+		),
+		CTestParams(
+			"Batch = 1;"
+			"Height = 1;"
+			"Width = 1;"
+			"Channels = 8;"
+			"FilterCount = 16;"
+			"FilterHeight = 1;"
+			"FilterWidth = 1;"
+			"StrideHeight = 1;"
+			"StrideWidth = 1;"
+			"PaddingHeight = 0;"
+			"PaddingWidth = 0;"
+			"DilationHeight = 1;"
+			"DilationWidth = 1;"
+			"Seed = 348;",
+			"FilterCount"
 		),
 		CTestParams(
 			"Batch = 1;"
@@ -731,7 +749,7 @@ INSTANTIATE_TEST_SUITE_P( CBlockedConvTestInstantiation, CBlockedConvTest,
 			"DilationHeight = 1;"
 			"DilationWidth = 1;"
 			"Seed = 348;",
-			"TrivialFilterHeight"
+			"FilterHeight"
 		),
 		CTestParams(
 			"Batch = 1;"
@@ -748,7 +766,7 @@ INSTANTIATE_TEST_SUITE_P( CBlockedConvTestInstantiation, CBlockedConvTest,
 			"DilationHeight = 1;"
 			"DilationWidth = 1;"
 			"Seed = 348;",
-			"TrivialFilterWidth"
+			"FilterWidth"
 		),
 		CTestParams(
 			"Batch = 1;"
@@ -765,7 +783,7 @@ INSTANTIATE_TEST_SUITE_P( CBlockedConvTestInstantiation, CBlockedConvTest,
 			"DilationHeight = 1;"
 			"DilationWidth = 1;"
 			"Seed = 348;",
-			"TrivialPaddingHeight"
+			"PaddingHeight"
 		),
 		CTestParams(
 			"Batch = 1;"
@@ -782,7 +800,7 @@ INSTANTIATE_TEST_SUITE_P( CBlockedConvTestInstantiation, CBlockedConvTest,
 			"DilationHeight = 1;"
 			"DilationWidth = 1;"
 			"Seed = 348;",
-			"TrivialPaddingWidth"
+			"PaddingWidth"
 		),
 		CTestParams(
 			"Batch = 1;"
@@ -799,7 +817,7 @@ INSTANTIATE_TEST_SUITE_P( CBlockedConvTestInstantiation, CBlockedConvTest,
 			"DilationHeight = 1;"
 			"DilationWidth = 1;"
 			"Seed = 348;",
-			"TrivialStrideHeight"
+			"StrideHeight"
 		),
 		CTestParams(
 			"Batch = 1;"
@@ -816,7 +834,7 @@ INSTANTIATE_TEST_SUITE_P( CBlockedConvTestInstantiation, CBlockedConvTest,
 			"DilationHeight = 1;"
 			"DilationWidth = 1;"
 			"Seed = 348;",
-			"TrivialStrideWidth"
+			"StrideWidth"
 		),
 		CTestParams(
 			"Batch = 1;"
@@ -833,7 +851,7 @@ INSTANTIATE_TEST_SUITE_P( CBlockedConvTestInstantiation, CBlockedConvTest,
 			"DilationHeight = 2;"
 			"DilationWidth = 1;"
 			"Seed = 348;",
-			"TrivialDilationHeight"
+			"DilationHeight"
 		),
 		CTestParams(
 			"Batch = 1;"
@@ -850,6 +868,26 @@ INSTANTIATE_TEST_SUITE_P( CBlockedConvTestInstantiation, CBlockedConvTest,
 			"DilationHeight = 1;"
 			"DilationWidth = 2;"
 			"Seed = 348;",
-			"TrivialDilationWidth"
+			"DilationWidth"
 		)
 	), BlockedConvTestNameGenerator() );
+
+/*INSTANTIATE_TEST_SUITE_P(Yolox, CBlockedConvTest,
+	::testing::Values(
+		CTestParams(
+			"Batch = 1;"
+			"Height = 320;"
+			"Width = 640;"
+			"Channels = 32;"
+			"FilterCount = 64;"
+			"FilterHeight = 3;"
+			"FilterWidth = 3;"
+			"StrideHeight = 2;"
+			"StrideWidth = 2;"
+			"PaddingHeight = 1;"
+			"PaddingWidth = 1;"
+			"DilationHeight = 1;"
+			"DilationWidth = 1;"
+			"Seed = 348957;"
+		)
+	), BlockedConvTestNameGenerator() );*/
