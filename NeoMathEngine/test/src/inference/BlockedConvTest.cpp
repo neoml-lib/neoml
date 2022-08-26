@@ -330,21 +330,19 @@ void ConvKernelFunction( const KernelFrame& frame, int filterCount )
 }
 
 void RunConv( const float* Input, const float* OrigFilter, const float* OrigBias, float* Output,
-	int batch, int hIn, int wIn, int chIn, int chOut,
+	int batch, int hIn, int wIn, int chIn, int hOut, int wOut, int chOut,
 	int hKer, int wKer, int hStride, int wStride,
 	int hPad, int wPad, int hDil, int wDil )
 {
 	const int hSpan = ( hKer - 1 ) * hDil + 1;
-	const int hOut = 1 + ( hIn - hSpan ) / hStride;
 	const int hOutCountWithLeftPad = ( hIn + hPad >= hSpan ) ? ( hIn + hPad - hSpan ) / hStride + 1 : 0;
-	const int hOutCountLeftPad = ( hPad + hStride - 1 ) / hStride;
+	const int hOutCountLeftPad = std::min( hOutCountWithLeftPad, ( hPad + hStride - 1 ) / hStride );
 	const int hOutCount = hOutCountWithLeftPad - hOutCountLeftPad;
 	const int hOutCountRightPad = hOut - hOutCountWithLeftPad;
 
 	const int wSpan = ( wKer - 1 ) * wDil + 1;
-	const int wOut = 1 + ( wIn - wSpan ) / wStride;
 	const int wOutCountWithLeftPad = ( wIn + wPad >= wSpan ) ? ( wIn + wPad - wSpan ) / wStride + 1 : 0;
-	const int wOutCountLeftPad = ( wPad + wStride - 1 ) / wStride;
+	const int wOutCountLeftPad = std::min( wOutCountWithLeftPad, ( wPad + wStride - 1 ) / wStride );
 	const int wOutCount = wOutCountWithLeftPad - wOutCountLeftPad;
 	const int wOutCountRightPad = wOut - wOutCountWithLeftPad;
 
@@ -394,13 +392,13 @@ void RunConv( const float* Input, const float* OrigFilter, const float* OrigBias
 				size_t ih = ( ph + work ) * hStride - hPad;
 				size_t effectiveKernelHeight = hKer;
 
-				if( ( size_t(ph) + work ) - hOutCountLeftPad >= hOutCount ) {
+				if( ( size_t(ph) + work ) - size_t(hOutCountLeftPad) >= size_t(hOutCount) ) {
 					size_t ihStep = ih;
 					for( int kh = 0; kh < hKer; ++kh ) {
 						if( ihStep >= size_t(hIn) ) {
 							if( ihStep == ih ) {
 								ih += hDil;
-								filter += filterStride;
+								filter += 8 * 8 * wKer;
 							}
 							effectiveKernelHeight--;
 						}
@@ -580,7 +578,7 @@ TEST_P( CBlockedConvTest, Run )
 	std::vector<float> blockedFilter = PackFilter( neomlFilter.data(), filterCount, filterHeight, filterWidth, channels );
 	std::vector<float> blockedOutput( expectedOutput.size() );
 
-	RunConv( blockedInput.data(), blockedFilter.data(), bias.data(), blockedOutput.data(), batch, height, width, channels,
+	RunConv( blockedInput.data(), blockedFilter.data(), bias.data(), blockedOutput.data(), batch, height, width, channels, outputHeight, outputWidth,
 		filterCount, filterHeight, filterWidth, strideHeight, strideWidth, paddingHeight, paddingWidth, dilationHeight, dilationWidth );
 	std::vector<float> actualOutput = UnpackData( blockedOutput.data(), batch, outputHeight, outputWidth, filterCount );
 
