@@ -373,7 +373,7 @@ void RunConv( const float* Input, const float* OrigFilter, const float* OrigBias
 	const int outputStride = 8 * hOut * wOut;
 	const int inputWidth = 8 * wIn;
 	const int dilatedInputWidth = 8 * hDil * wIn;
-	const int inputStride = dilatedInputWidth - wKer;
+	const int inputStride = dilatedInputWidth - wKer * dilationWidth;
 
 	const int blockOutputWidth = 8 * wOut;
 
@@ -390,7 +390,7 @@ void RunConv( const float* Input, const float* OrigFilter, const float* OrigBias
 			float* output = Output + ph * blockOutputWidth;
 
 			for( int work = 0; work < workThisIter; ++work ) {
-				const float* filter = Filter;
+				const float* filter = Filter + 8 * ic * hKer * wKer;
 				size_t ih = ( ph + work ) * hStride - hPad;
 				size_t effectiveKernelHeight = hKer;
 
