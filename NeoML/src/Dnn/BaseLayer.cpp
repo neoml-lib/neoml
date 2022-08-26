@@ -189,6 +189,11 @@ bool CBaseLayer::InputsMayBeOverwritten() const
 			// Current input will be used later by some other layer
 			return false;
 		}
+		NeoPresume( GetDnn() != nullptr );
+		if( GetDnn()->IsBackwardPerformed() && inputLayer->outputs[inputLinks[i].OutputNumber] != 1 ) {
+			// Current input may be used for training other layers connected to this input
+			return false;
+		}
 		if( ( inputLayer->blobsNeededForBackward & TOutputBlobs ) != 0 ) {
 			// The previous layer needs its output for backward
 			return false;
