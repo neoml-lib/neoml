@@ -243,7 +243,7 @@ void ProcessOutputCountN( const KernelFrame& frame, const float* input, int filt
 	// rax = r12
 	for( int row = 0; row < frame.KernelHeight; ++row ) {
 		for( int col = 0; col < frame.KernelWidth; ++col ) {
-			if( OutputCount != 1 || input < r13 + frame.InputWidth ) {
+			if( OutputCount != 1 || size_t(input) - size_t(r13) < size_t(frame.InputWidth * sizeof(float)) ) {
 				ComputeBlock<FilterCount, OutputCount, 0 * 8, 0>(input, filter, filterStride, filter + 2 * filterStride, strideWidth, acc0, acc1, acc2, acc3, acc4, acc5, acc6, acc7, acc8, acc9, acc10, acc11);
 				ComputeBlock<FilterCount, OutputCount, 1 * 8, 1>( input, filter, filterStride, filter + 2 * filterStride, strideWidth, acc0, acc1, acc2, acc3, acc4, acc5, acc6, acc7, acc8, acc9, acc10, acc11 );
 				ComputeBlock<FilterCount, OutputCount, 2 * 8, 2>( input, filter, filterStride, filter + 2 * filterStride, strideWidth, acc0, acc1, acc2, acc3, acc4, acc5, acc6, acc7, acc8, acc9, acc10, acc11 );
@@ -298,7 +298,7 @@ void ProcessFilterCountN( const KernelFrame& frame, const float*& input, int fil
 		remOutputCount -= 3;
 	}
 
-	if( remOutputCount > 2 ) {
+	if( remOutputCount >= 2 ) {
 		ProcessOutputCountN<FilterCount, 2>( frame, input, filterStride, dilationWidth, output, strideWidth, inputStride );
 		input += 2 * strideWidth;
 		remOutputCount -= 2;
@@ -786,6 +786,23 @@ INSTANTIATE_TEST_SUITE_P( Trivial, CBlockedConvTest,
 		CTestParams(
 			"Batch = 1;"
 			"Height = 1;"
+			"Width = 1;"
+			"Channels = 8;"
+			"FilterCount = 8;"
+			"FilterHeight = 3;"
+			"FilterWidth = 1;"
+			"StrideHeight = 1;"
+			"StrideWidth = 1;"
+			"PaddingHeight = 1;"
+			"PaddingWidth = 0;"
+			"DilationHeight = 1;"
+			"DilationWidth = 1;"
+			"Seed = 348;",
+			"TrickyPaddingHeight"
+		),
+		CTestParams(
+			"Batch = 1;"
+			"Height = 1;"
 			"Width = 2;"
 			"Channels = 8;"
 			"FilterCount = 8;"
@@ -799,6 +816,23 @@ INSTANTIATE_TEST_SUITE_P( Trivial, CBlockedConvTest,
 			"DilationWidth = 1;"
 			"Seed = 348;",
 			"PaddingWidth"
+		),
+		CTestParams(
+			"Batch = 1;"
+			"Height = 1;"
+			"Width = 1;"
+			"Channels = 8;"
+			"FilterCount = 8;"
+			"FilterHeight = 1;"
+			"FilterWidth = 3;"
+			"StrideHeight = 1;"
+			"StrideWidth = 1;"
+			"PaddingHeight = 0;"
+			"PaddingWidth = 1;"
+			"DilationHeight = 1;"
+			"DilationWidth = 1;"
+			"Seed = 348;",
+			"TrickyPaddingWidth"
 		),
 		CTestParams(
 			"Batch = 1;"
@@ -870,7 +904,7 @@ INSTANTIATE_TEST_SUITE_P( Trivial, CBlockedConvTest,
 		)
 	), BlockedConvTestNameGenerator() );
 
-/*INSTANTIATE_TEST_SUITE_P(Yolox, CBlockedConvTest,
+INSTANTIATE_TEST_SUITE_P(Yolox, CBlockedConvTest,
 	::testing::Values(
 		CTestParams(
 			"Batch = 1;"
@@ -888,4 +922,4 @@ INSTANTIATE_TEST_SUITE_P( Trivial, CBlockedConvTest,
 			"DilationWidth = 1;"
 			"Seed = 348957;"
 		)
-	), BlockedConvTestNameGenerator() );*/
+	), BlockedConvTestNameGenerator() );
