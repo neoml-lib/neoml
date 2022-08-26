@@ -132,6 +132,9 @@ public:
 	// If End-of-Word and Start-of-Word are disabled, the parameter values are ignored.
 	virtual void GetDictionary( CWordDictionary& tokens, 
 		const CString& endOfWordToken = "</s>", const CString& startOfWordToken = "<s>" ) const = 0;
+
+	// Returns id of Unknown token.
+	virtual int GetUnknownTokenId() const = 0;
 };
 
 } // namespace NeoML

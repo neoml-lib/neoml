@@ -34,6 +34,8 @@ public:
 
 		CParams() = default;
 		CParams( int maxSize, bool useEndOfWordToken, bool useStartOfWordToken );
+
+		void Serialize( CArchive& archive );
 	};
 
 	CBytePairEncoderTrainer( const CParams& params, const CWordDictionary& dictionary );

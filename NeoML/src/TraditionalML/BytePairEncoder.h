@@ -24,6 +24,11 @@ namespace NeoML {
 // Class that encodes a UTF-8 word using byte-pair-encoding.
 class NEOML_API CBytePairEncoder : public IBytePairEncoder {
 public:
+	CBytePairEncoder() = default;
+	// Construction from dictionary of tokens without additional checks.
+	// Generally ctor is used by CBytePairEncoderTrainer.
+	CBytePairEncoder( const CWordDictionary& tokens, bool useEndOfWordToken, bool useStartOfWordToken );
+
 	// ISubwordEncoder:
 	void Decode( const CArray<int>& tokenIds, CArray<CString>& words ) const override;
 	int Size() const override;
@@ -35,6 +40,7 @@ public:
 	void LoadDictionary( const CWordDictionary& tokens, 
 		const CString& endOfWordToken, const CString& startOfWordToken ) override;
 	void GetDictionary( CWordDictionary& output, const CString& endOfWordToken, const CString& startOfWordToken ) const override;
+	int GetUnknownTokenId() const override;
 
 	// Splits a word into initial tokens: single unicode characters + special tokens (optional).
 	static void SplitWordIntoInitialTokens( const CString& word, const CString& startOfWordToken,
@@ -54,8 +60,8 @@ private:
 	CMap<CString, int> tokenToId;
 
 	// Special tokens usage flags.
-	bool useStartOfWordToken = false;
 	bool useEndOfWordToken = true;
+	bool useStartOfWordToken = false;
 
 	int getTokenIndex( const CString& token ) const;
 	CString getToken( int tokenId ) const;
