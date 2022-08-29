@@ -23,6 +23,8 @@ limitations under the License.
 using namespace NeoML;
 using namespace NeoMLTest;
 
+namespace NeoMLTest {
+
 struct KernelFrame {
 	int Padding;
 	const float* Input;
@@ -52,9 +54,9 @@ struct KernelFrame {
 // This macro multiplies and accumulates for FilterCount by OutputCount block of the output buffer.
 #define COMPUTE_BLOCK(FilterCount, OutputCount, VectorOffset, BroadcastOffset) \
 { \
-	if( OutputCount >= 1 )  acc13 = _mm256_broadcastss_ps( _mm_set1_ps( *( input + BroadcastOffset ) ) ); \
-	if( OutputCount >= 2 )  acc14 = _mm256_broadcastss_ps( _mm_set1_ps( *( input + strideWidth + BroadcastOffset ) ) ); \
-	if( OutputCount >= 3 )  acc15 = _mm256_broadcastss_ps( _mm_set1_ps( *( input + strideWidth * 2 + BroadcastOffset ) ) ); \
+	if( OutputCount >= 1 )  acc13 = _mm256_set1_ps( *( input + BroadcastOffset ) ); \
+	if( OutputCount >= 2 )  acc14 = _mm256_set1_ps( *( input + strideWidth + BroadcastOffset ) ); \
+	if( OutputCount >= 3 )  acc15 = _mm256_set1_ps( *( input + strideWidth * 2 + BroadcastOffset ) ); \
 	\
 	if( OutputCount == 1 ) { \
 		if( FilterCount >= 1 ) acc0 = _mm256_fmadd_ps( acc13, _mm256_loadu_ps( filter + VectorOffset ), acc0 ); \
@@ -83,9 +85,6 @@ struct KernelFrame {
 		if( FilterCount >= 4 && OutputCount >= 3 ) acc11 = _mm256_fmadd_ps( acc15, acc12, acc11 ); \
 	} \
 }
-
-namespace NeoMLTest {
-
 /*
 ;   This macro generates code to process an output block after the inner
 ;   convolution kernel has executed and then stores the output block to the
@@ -168,22 +167,20 @@ void PostProcessing( const int flags, float*& output, int outputStride, const fl
 }
 
 // This macro generates code to clear the block accumulators.
-template<int FilterCount, int OutputCount>
-void ClearBlock( __m256& acc0, __m256& acc1, __m256& acc2, __m256& acc3, __m256& acc4, __m256& acc5,
-	__m256& acc6, __m256& acc7, __m256& acc8, __m256& acc9, __m256& acc10, __m256& acc11 )
-{
-	if( FilterCount >= 1 && OutputCount >= 1 ) acc0 = _mm256_xor_ps( acc0, acc0 );
-	if( FilterCount >= 1 && OutputCount >= 2 ) acc4 = _mm256_xor_ps( acc0, acc0 );
-	if( FilterCount >= 1 && OutputCount >= 3 ) acc8 = _mm256_xor_ps( acc0, acc0 );
-	if( FilterCount >= 2 && OutputCount >= 1 ) acc1 = _mm256_xor_ps( acc0, acc0 );
-	if( FilterCount >= 2 && OutputCount >= 2 ) acc5 = _mm256_xor_ps( acc0, acc0 );
-	if( FilterCount >= 2 && OutputCount >= 3 ) acc9 = _mm256_xor_ps( acc0, acc0 );
-	if( FilterCount >= 3 && OutputCount >= 1 ) acc2 = _mm256_xor_ps( acc0, acc0 );
-	if( FilterCount >= 3 && OutputCount >= 2 ) acc6 = _mm256_xor_ps( acc0, acc0 );
-	if( FilterCount >= 3 && OutputCount >= 3 ) acc10 = _mm256_xor_ps( acc0, acc0 );
-	if( FilterCount >= 4 && OutputCount >= 1 ) acc3 = _mm256_xor_ps( acc0, acc0 );
-	if( FilterCount >= 4 && OutputCount >= 2 ) acc7 = _mm256_xor_ps( acc0, acc0 );
-	if( FilterCount >= 4 && OutputCount >= 3 ) acc11 = _mm256_xor_ps( acc0, acc0 );
+#define CLEAR_BLOCK(FilterCount, OutputCount) \
+{ \
+	if( FilterCount >= 1 && OutputCount >= 1 ) acc0 = _mm256_xor_ps( acc0, acc0 ); \
+	if( FilterCount >= 1 && OutputCount >= 2 ) acc4 = _mm256_xor_ps( acc0, acc0 ); \
+	if( FilterCount >= 1 && OutputCount >= 3 ) acc8 = _mm256_xor_ps( acc0, acc0 ); \
+	if( FilterCount >= 2 && OutputCount >= 1 ) acc1 = _mm256_xor_ps( acc0, acc0 ); \
+	if( FilterCount >= 2 && OutputCount >= 2 ) acc5 = _mm256_xor_ps( acc0, acc0 ); \
+	if( FilterCount >= 2 && OutputCount >= 3 ) acc9 = _mm256_xor_ps( acc0, acc0 ); \
+	if( FilterCount >= 3 && OutputCount >= 1 ) acc2 = _mm256_xor_ps( acc0, acc0 ); \
+	if( FilterCount >= 3 && OutputCount >= 2 ) acc6 = _mm256_xor_ps( acc0, acc0 ); \
+	if( FilterCount >= 3 && OutputCount >= 3 ) acc10 = _mm256_xor_ps( acc0, acc0 ); \
+	if( FilterCount >= 4 && OutputCount >= 1 ) acc3 = _mm256_xor_ps( acc0, acc0 ); \
+	if( FilterCount >= 4 && OutputCount >= 2 ) acc7 = _mm256_xor_ps( acc0, acc0 ); \
+	if( FilterCount >= 4 && OutputCount >= 3 ) acc11 = _mm256_xor_ps( acc0, acc0 ); \
 }
 
 /*
@@ -200,7 +197,7 @@ void ProcessOutputCountN( const KernelFrame& frame, const float* input, int filt
 	const float* filter = frame.Filter;
 
 	__m256 acc0, acc1, acc2, acc3, acc4, acc5, acc6, acc7, acc8, acc9, acc10, acc11;
-	ClearBlock<FilterCount, OutputCount>( acc0, acc1, acc2, acc3, acc4, acc5, acc6, acc7, acc8, acc9, acc10, acc11 );
+	CLEAR_BLOCK(FilterCount, OutputCount);
 
 	const float* r13;
 	if( OutputCount == 1 ) r13 = frame.InputBase;
