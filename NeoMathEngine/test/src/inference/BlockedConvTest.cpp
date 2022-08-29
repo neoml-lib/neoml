@@ -532,7 +532,7 @@ std::vector<float> PackFilter( const float* original, int filterCount, int heigh
 class CBlockedConvTest : public CTestFixtureWithParams {
 };
 
-
+static const int RUN_COUNT = 100;
 
 TEST_P( CBlockedConvTest, Run )
 {
@@ -565,22 +565,63 @@ TEST_P( CBlockedConvTest, Run )
 
 	CBlobDesc outputDesc( { 1, batch, 1, outputHeight, outputWidth, 1, filterCount } );
 	std::vector<float> expectedOutput( batch * outputHeight * outputWidth * filterCount );
+	
+	std::unique_ptr<IPerformanceCounters> counters( MathEngine().CreatePerformanceCounters() );
+
+	using CPerfStat = std::vector<IPerformanceCounters::CCounter::TCounterType>;
+
+	auto update = []( const IPerformanceCounters& counters, CPerfStat& stat )
+	{
+		for( size_t i = 0; i < counters.size(); ++i ) {
+			stat[i] += counters[i].Value;
+		}
+	};
+
+	CPerfStat neomlPerf( counters->size() );
+	CPerfStat inputConversionPerf( counters->size() );
+	CPerfStat blockedConvPerf( counters->size() );
+	CPerfStat outputConversionPerf( counters->size() );
 
 	{
 		CConvolutionDesc* convDesc = MathEngine().InitBlobConvolution( inputDesc, paddingHeight, paddingWidth, strideHeight,
 			strideWidth, dilationHeight, dilationWidth, filterDesc, outputDesc );
 		auto biasHandle = CARRAY_FLOAT_WRAPPER( bias );
-		MathEngine().BlobConvolution( *convDesc, CARRAY_FLOAT_WRAPPER( neomlInput ), CARRAY_FLOAT_WRAPPER( neomlFilter ),
-			&static_cast<CConstFloatHandle>( biasHandle ), CARRAY_FLOAT_WRAPPER( expectedOutput ) );
+		for( int run = 0; run <= RUN_COUNT; ++run ) {
+			if( run != 0 ) counters->Synchronise();
+			MathEngine().BlobConvolution( *convDesc, CARRAY_FLOAT_WRAPPER( neomlInput ), CARRAY_FLOAT_WRAPPER( neomlFilter ),
+				&static_cast< CConstFloatHandle >( biasHandle ), CARRAY_FLOAT_WRAPPER( expectedOutput ) );
+			if( run != 0 ) counters->Synchronise();
+			if( run != 0 ) update( *counters, neomlPerf );
+		}
 	}
 
-	std::vector<float> blockedInput = PackData( neomlInput.data(), batch, height, width, channels );
+	std::vector<float> blockedInput;
+	for( int run = 0; run <= RUN_COUNT; ++run ) {
+		if( run != 0 ) counters->Synchronise();
+		blockedInput = PackData( neomlInput.data(), batch, height, width, channels );
+		if( run != 0 ) counters->Synchronise();
+		if( run != 0 ) update( *counters, inputConversionPerf );
+	}
+
 	std::vector<float> blockedFilter = PackFilter( neomlFilter.data(), filterCount, filterHeight, filterWidth, channels );
 	std::vector<float> blockedOutput( expectedOutput.size() );
 
-	RunConv( blockedInput.data(), blockedFilter.data(), bias.data(), blockedOutput.data(), batch, height, width, channels, outputHeight, outputWidth,
-		filterCount, filterHeight, filterWidth, strideHeight, strideWidth, paddingHeight, paddingWidth, dilationHeight, dilationWidth );
-	std::vector<float> actualOutput = UnpackData( blockedOutput.data(), batch, outputHeight, outputWidth, filterCount );
+	for( int run = 0; run <= RUN_COUNT; ++run ) {
+		if( run != 0 ) counters->Synchronise();
+		RunConv( blockedInput.data(), blockedFilter.data(), bias.data(), blockedOutput.data(), batch, height, width, channels, outputHeight, outputWidth,
+			filterCount, filterHeight, filterWidth, strideHeight, strideWidth, paddingHeight, paddingWidth, dilationHeight, dilationWidth );
+		if( run != 0 ) counters->Synchronise();
+		if( run != 0 ) update( *counters, blockedConvPerf );
+	}
+
+	std::vector<float> actualOutput;
+	UnpackData( blockedOutput.data(), batch, outputHeight, outputWidth, filterCount );
+	for( int run = 0; run <= RUN_COUNT; ++run ) {
+		if( run != 0 ) counters->Synchronise();
+		actualOutput = UnpackData( blockedOutput.data(), batch, outputHeight, outputWidth, filterCount );
+		if( run != 0 ) counters->Synchronise();
+		if( run != 0 ) update( *counters, outputConversionPerf );
+	}
 
 	for( size_t i = 0; i < actualOutput.size(); ++i ) {
 		if( ::fabsf( actualOutput[i] - expectedOutput[i] ) > 1e-2f ) {
@@ -588,6 +629,14 @@ TEST_P( CBlockedConvTest, Run )
 		}
 		ASSERT_NEAR( actualOutput[i], expectedOutput[i], 1e-2f ) << "at #" << i;
 	}
+
+	std::cout << "NeoML\tInput\tRunCount\tOutput\tConvRatio\tFullRatio\n"
+		<< neomlPerf[0] / 1e9 << '\t'
+		<< inputConversionPerf[0] / 1e9 << '\t'
+		<< blockedConvPerf[0] / 1e9 << '\t'
+		<< outputConversionPerf[0] / 1e9 << '\t'
+		<< 100. * blockedConvPerf[0] / neomlPerf[0] << "%\t"
+		<< 100. * ( inputConversionPerf[0] + blockedConvPerf[0] + outputConversionPerf[0] ) / neomlPerf[0] << "%\n";
 }
 
 struct BlockedConvTestNameGenerator {
