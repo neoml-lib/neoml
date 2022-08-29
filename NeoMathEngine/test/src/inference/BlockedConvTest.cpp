@@ -240,49 +240,51 @@ void SingleKernel( const KernelFrame& frame, const float*& input, int filterStri
 	}
 }
 
-template<int FilterCount>
-void ProcessFilterCountN( const KernelFrame& frame, const float*& input, int filterStride,
-	int dilationWidth, float*& output, int strideWidth, int inputStride )
-{
-	if( frame.OutputCountLeftPad > 0 ) {
-		SingleKernel<FilterCount>( frame, input, filterStride, dilationWidth, output, strideWidth, inputStride, frame.OutputCountLeftPad );
-	}
-
-	int remOutputCount = frame.OutputCount;
-	while( remOutputCount > 3 ) {
-		ProcessOutputCountN<FilterCount, 3>( frame, input, filterStride, dilationWidth, output, strideWidth, inputStride );
-		input += 3 * strideWidth;
-		remOutputCount -= 3;
-	}
-
-	if( remOutputCount >= 2 ) {
-		ProcessOutputCountN<FilterCount, 2>( frame, input, filterStride, dilationWidth, output, strideWidth, inputStride );
-		input += 2 * strideWidth;
-		remOutputCount -= 2;
-	}
-
-	remOutputCount += frame.OutputCountRightPad;
-	if( remOutputCount > 0 ) {
-		SingleKernel<FilterCount>( frame, input, filterStride, dilationWidth, output, strideWidth, inputStride, remOutputCount );
-	}
+#define PROCESS_FILTER_COUNT_N(FilterCount) \
+{ \
+	if( frame.OutputCountLeftPad > 0 ) { \
+		SingleKernel<FilterCount>( frame, input, filterStride, dilationWidth, output, strideWidth, inputStride, frame.OutputCountLeftPad ); \
+	} \
+	\
+	int remOutputCount = frame.OutputCount; \
+	while( remOutputCount > 3 ) { \
+		ProcessOutputCountN<FilterCount, 3>( frame, input, filterStride, dilationWidth, output, strideWidth, inputStride ); \
+		input += 3 * strideWidth; \
+		remOutputCount -= 3; \
+	} \
+	\
+	if( remOutputCount >= 2 ) { \
+		ProcessOutputCountN<FilterCount, 2>( frame, input, filterStride, dilationWidth, output, strideWidth, inputStride ); \
+		input += 2 * strideWidth; \
+		remOutputCount -= 2; \
+	} \
+	\
+	remOutputCount += frame.OutputCountRightPad; \
+	if( remOutputCount > 0 ) { \
+		SingleKernel<FilterCount>( frame, input, filterStride, dilationWidth, output, strideWidth, inputStride, remOutputCount ); \
+	} \
 }
 
 void ConvKernelFunction( const KernelFrame& frame, int filterCount )
 {
 	const float* input = frame.Input;
 	float* output = frame.Output;
+	int filterStride = frame.FilterStride;
+	int dilationWidth = frame.DilationWidth;
+	int strideWidth = frame.StrideWidth;
+	int inputStride = frame.InputStride;
 	switch( filterCount ) {
 		case 1:
-			ProcessFilterCountN<1>( frame, input, frame.FilterStride, frame.DilationWidth, output, frame.StrideWidth, frame.InputStride );
+			PROCESS_FILTER_COUNT_N( 1 );
 			return;
 		case 2:
-			ProcessFilterCountN<2>( frame, input, frame.FilterStride, frame.DilationWidth, output, frame.StrideWidth, frame.InputStride );
+			PROCESS_FILTER_COUNT_N( 2 );
 			return;
 		case 3:
-			ProcessFilterCountN<3>( frame, input, frame.FilterStride, frame.DilationWidth, output, frame.StrideWidth, frame.InputStride );
+			PROCESS_FILTER_COUNT_N( 3 );
 			return;
 		case 4:
-			ProcessFilterCountN<4>( frame, input, frame.FilterStride, frame.DilationWidth, output, frame.StrideWidth, frame.InputStride );
+			PROCESS_FILTER_COUNT_N( 4 );
 	}
 }
 
