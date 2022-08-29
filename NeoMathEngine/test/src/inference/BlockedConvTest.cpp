@@ -190,44 +190,43 @@ void PostProcessing( const int flags, float*& output, int outputStride, const fl
 ;   OutputCount=1 generates special case code to handle padding blocks. All
 ;   other output counts assume no padding.
 */
-template<int FilterCount, int OutputCount>
-void ProcessOutputCountN( const KernelFrame& frame, const float* input, int filterStride,
-	int dilationWidth, float*& output, int strideWidth, int inputStride )
-{
-	const float* filter = frame.Filter;
-
-	__m256 acc0, acc1, acc2, acc3, acc4, acc5, acc6, acc7, acc8, acc9, acc10, acc11;
-	CLEAR_BLOCK(FilterCount, OutputCount);
-
-	const float* r13;
-	if( OutputCount == 1 ) r13 = frame.InputBase;
-
-	// rax = r12
-	for( int row = 0; row < frame.KernelHeight; ++row ) {
-		for( int col = 0; col < frame.KernelWidth; ++col ) {
-			if( OutputCount != 1 || size_t(input) - size_t(r13) < size_t(frame.InputWidth * sizeof(float)) ) {
-				const float* shiftedFilter;
-				if( FilterCount >= 3 )  shiftedFilter = filter + 2 * filterStride;
-				__m256 acc12, acc13, acc14, acc15;
-				COMPUTE_BLOCK( FilterCount, OutputCount, 0 * 8, 0 );
-				COMPUTE_BLOCK( FilterCount, OutputCount, 1 * 8, 1 );
-				COMPUTE_BLOCK( FilterCount, OutputCount, 2 * 8, 2 );
-				COMPUTE_BLOCK( FilterCount, OutputCount, 3 * 8, 3 );
-				COMPUTE_BLOCK( FilterCount, OutputCount, 4 * 8, 4 );
-				COMPUTE_BLOCK( FilterCount, OutputCount, 5 * 8, 5 );
-				COMPUTE_BLOCK( FilterCount, OutputCount, 6 * 8, 6 );
-				COMPUTE_BLOCK( FilterCount, OutputCount, 7 * 8, 7 );
-			}
-
-			input += dilationWidth;
-			filter += 8 * 8;
-		}
-		input += inputStride;
-		if( OutputCount == 1 ) r13 += frame.DilatedInputWidth;
-	}
-
-	PostProcessing<FilterCount, OutputCount>( frame.Flags, output, frame.OutputStride, frame.Bias,
-		acc0, acc1, acc2, acc3, acc4, acc5, acc6, acc7, acc8, acc9, acc10, acc11 );
+#define PROCESS_OUTPUT_COUNT_N(FilterCount, OutputCount) \
+{ \
+	const float* prevInput = input; \
+	const float* filter = frame.Filter; \
+	\
+	__m256 acc0, acc1, acc2, acc3, acc4, acc5, acc6, acc7, acc8, acc9, acc10, acc11; \
+	CLEAR_BLOCK(FilterCount, OutputCount); \
+	\
+	const float* r13; \
+	if( OutputCount == 1 ) r13 = frame.InputBase; \
+	\
+	for( int row = 0; row < frame.KernelHeight; ++row ) { \
+		for( int col = 0; col < frame.KernelWidth; ++col ) { \
+			if( OutputCount != 1 || size_t(input) - size_t(r13) < size_t(frame.InputWidth * sizeof(float)) ) { \
+				const float* shiftedFilter; \
+				if( FilterCount >= 3 )  shiftedFilter = filter + 2 * filterStride; \
+				__m256 acc12, acc13, acc14, acc15; \
+				COMPUTE_BLOCK( FilterCount, OutputCount, 0 * 8, 0 ); \
+				COMPUTE_BLOCK( FilterCount, OutputCount, 1 * 8, 1 ); \
+				COMPUTE_BLOCK( FilterCount, OutputCount, 2 * 8, 2 ); \
+				COMPUTE_BLOCK( FilterCount, OutputCount, 3 * 8, 3 ); \
+				COMPUTE_BLOCK( FilterCount, OutputCount, 4 * 8, 4 ); \
+				COMPUTE_BLOCK( FilterCount, OutputCount, 5 * 8, 5 ); \
+				COMPUTE_BLOCK( FilterCount, OutputCount, 6 * 8, 6 ); \
+				COMPUTE_BLOCK( FilterCount, OutputCount, 7 * 8, 7 ); \
+			} \
+			\
+			input += dilationWidth; \
+			filter += 8 * 8; \
+		} \
+		input += inputStride; \
+		if( OutputCount == 1 ) r13 += frame.DilatedInputWidth; \
+	} \
+	\
+	PostProcessing<FilterCount, OutputCount>( frame.Flags, output, frame.OutputStride, frame.Bias, \
+		acc0, acc1, acc2, acc3, acc4, acc5, acc6, acc7, acc8, acc9, acc10, acc11 ); \
+	input = prevInput; \
 }
 
 template<int FilterCount>
@@ -235,7 +234,7 @@ void SingleKernel( const KernelFrame& frame, const float*& input, int filterStri
 	int dilationWidth, float*& output, int strideWidth, int inputStride, int outputCount )
 {
 	for( int i = 0; i < outputCount; ++i ) {
-		ProcessOutputCountN<FilterCount, 1>( frame, input, filterStride, dilationWidth, output, strideWidth, inputStride );
+		PROCESS_OUTPUT_COUNT_N( FilterCount, 1 )
 		input += strideWidth;
 	}
 }
@@ -248,13 +247,13 @@ void SingleKernel( const KernelFrame& frame, const float*& input, int filterStri
 	\
 	int remOutputCount = frame.OutputCount; \
 	while( remOutputCount > 3 ) { \
-		ProcessOutputCountN<FilterCount, 3>( frame, input, filterStride, dilationWidth, output, strideWidth, inputStride ); \
+		PROCESS_OUTPUT_COUNT_N( FilterCount, 3 ) \
 		input += 3 * strideWidth; \
 		remOutputCount -= 3; \
 	} \
 	\
 	if( remOutputCount >= 2 ) { \
-		ProcessOutputCountN<FilterCount, 2>( frame, input, filterStride, dilationWidth, output, strideWidth, inputStride ); \
+		PROCESS_OUTPUT_COUNT_N( FilterCount, 2 ) \
 		input += 2 * strideWidth; \
 		remOutputCount -= 2; \
 	} \
