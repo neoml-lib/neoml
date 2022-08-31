@@ -413,50 +413,40 @@ void RunConv( const float* Input, const float* OrigFilter, const float* OrigBias
 	}
 }
 
-std::vector<float> PackData( const float* original, int batch, int height, int width, int channels )
+void PackData( const float* original, int batch, int height, int width, int channels, float* result )
 {
 	assert( channels % 8 == 0 );
-
-	std::vector<float> result( batch * height * width * channels );
+	const int geomSize = height * width;
 
 	for( int b = 0; b < batch; ++b ) {
-		for( int h = 0; h < height; ++h ) {
-			for( int w = 0; w < width; ++w ) {
-				for( int C = 0; C < channels / 8; ++C ) {
-					for( int c = 0; c < 8; ++c ) {
-						const int idx = c + 8 * ( w + width * ( h + height * ( C + channels / 8 * b ) ) );
-						result[idx] = *original;
-						original++;
-					}
-				}
+		for( int hw = 0; hw < geomSize; ++hw ) {
+			float* channelResult = result + hw * 8;
+			for( int C = 0; C < channels / 8; ++C ) {
+				_mm256_storeu_ps( channelResult, _mm256_loadu_ps( original ) );
+				original += 8;
+				channelResult += geomSize * 8;
 			}
 		}
+		result += channels * geomSize;
 	}
-
-	return result;
 }
 
-std::vector<float> UnpackData( const float* original, int batch, int height, int width, int channels )
+void UnpackData( const float* original, int batch, int height, int width, int channels, float* result )
 {
 	assert( channels % 8 == 0 );
-
-	std::vector<float> result( batch * height * width * channels );
+	const int geomSize = height * width;
 
 	for( int b = 0; b < batch; ++b ) {
 		for( int C = 0; C < channels / 8; ++C ) {
-			for( int h = 0; h < height; ++h ) {
-				for( int w = 0; w < width; ++w ) {
-					for( int c = 0; c < 8; ++c ) {
-						const int idx = c + 8 * ( C + channels / 8 * ( w + width * ( h + height * b ) ) );
-						result[idx] = *original;
-						original++;
-					}
-				}
+			float* geomResult = result + C * 8;
+			for( int hw = 0; hw < geomSize; ++hw ) {
+				_mm256_storeu_ps( geomResult, _mm256_loadu_ps( original ) );
+				original += 8;
+				geomResult += channels;
 			}
 		}
+		result += channels * geomSize;
 	}
-
-	return result;
 }
 
 std::vector<float> PackFilter( const float* original, int filterCount, int height, int width, int channels )
@@ -553,10 +543,10 @@ TEST_P( CBlockedConvTest, Run )
 		}
 	}
 
-	std::vector<float> blockedInput;
+	std::vector<float> blockedInput( neomlInput.size() );
 	for( int run = 0; run <= RUN_COUNT; ++run ) {
 		if( run != 0 ) counters->Synchronise();
-		blockedInput = PackData( neomlInput.data(), batch, height, width, channels );
+		PackData( neomlInput.data(), batch, height, width, channels, blockedInput.data() );
 		if( run != 0 ) counters->Synchronise();
 		if( run != 0 ) update( *counters, inputConversionPerf );
 	}
@@ -572,11 +562,10 @@ TEST_P( CBlockedConvTest, Run )
 		if( run != 0 ) update( *counters, blockedConvPerf );
 	}
 
-	std::vector<float> actualOutput;
-	UnpackData( blockedOutput.data(), batch, outputHeight, outputWidth, filterCount );
+	std::vector<float> actualOutput( blockedOutput.size() );
 	for( int run = 0; run <= RUN_COUNT; ++run ) {
 		if( run != 0 ) counters->Synchronise();
-		actualOutput = UnpackData( blockedOutput.data(), batch, outputHeight, outputWidth, filterCount );
+		UnpackData( blockedOutput.data(), batch, outputHeight, outputWidth, filterCount, actualOutput.data() );
 		if( run != 0 ) counters->Synchronise();
 		if( run != 0 ) update( *counters, outputConversionPerf );
 	}
