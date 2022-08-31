@@ -446,6 +446,10 @@ static CCudaDevice* captureSpecifiedCudaDevice( int deviceNumber, size_t deviceM
 	result->ThreadMax3DCountY = min( result->ThreadMaxCount, devProp.maxThreadsDim[1] );
 	result->ThreadMax3DCountZ = min( result->ThreadMaxCount, devProp.maxThreadsDim[2] );
 
+	result->MaxGridSizeX = static_cast<unsigned int>( devProp.maxGridSize[0] );
+	result->MaxGridSizeY = static_cast<unsigned int>( devProp.maxGridSize[1] );
+	result->MaxGridSizeZ = static_cast<unsigned int>( devProp.maxGridSize[2] );
+
 	result->WarpSize = devProp.warpSize;
 	result->Handle = handle;
 
