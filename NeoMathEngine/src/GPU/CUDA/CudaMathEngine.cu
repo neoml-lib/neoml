@@ -128,21 +128,41 @@ static inline int GetMax2ExpLess(int value)
 	return candidate;
 }
 
-static inline void CudaFixMinVals(int& minZ, int& minY, int& minX, int maxThreadCount)
+static inline void CudaFixMinVals(int& minX, int& minY, int& minZ, int maxThreadCount,
+	int gridMinX, int gridMinY, int gridMinZ)
 {
 	int nextMin = 0;
-	while(minX * minY * minZ > maxThreadCount) {
+	int lastReduce = 0;
+	while(minX * minY * minZ > maxThreadCount || nextMin >= lastReduce + 3) {
 		int candidate = nextMin++ % 3;
 		switch(candidate) {
 			case 0:
-				minZ = GetMax2ExpLess(minZ);
+			{
+				int newMinX = GetMax2ExpLess( minX );
+				if( newMinX >= gridMinX ) {
+					minX = newMinX;
+					lastReduce = nextMin;
+				}
 				break;
+			}
 			case 1:
-				minY = GetMax2ExpLess(minY);
+			{
+				int newMinY = GetMax2ExpLess( minY );
+				if( newMinY >= gridMinY ) {
+					minY = newMinY;
+					lastReduce = nextMin;
+				}
 				break;
+			}
 			case 2:
-				minX = GetMax2ExpLess(minX);
+			{
+				int newMinZ = GetMax2ExpLess( minZ );
+				if( newMinZ >= gridMinZ ) {
+					minZ = newMinZ;
+					lastReduce = nextMin;
+				}
 				break;
+			}
 		}
 	}
 }
@@ -267,8 +287,6 @@ void CCudaMathEngine::getCudaTaskGrid3DMinZYX(int minZ, int minY, int minX, dim3
 	CudaFixGeom(minY, height, geom.y);
 	CudaFixGeom(minZ, batchSize, geom.z);
 
-	CudaFixMinVals(minX, minY, minZ, maxThreadCount);
-
 	const int gridBlockMinX = CudaGridMinBlockSize( width, device->MaxGridSizeX );
 	const int gridBlockMinY = CudaGridMinBlockSize( height, device->MaxGridSizeY );
 	const int gridBlockMinZ = CudaGridMinBlockSize( batchSize, device->MaxGridSizeZ );
@@ -279,6 +297,8 @@ void CCudaMathEngine::getCudaTaskGrid3DMinZYX(int minZ, int minY, int minX, dim3
 	minX = max( gridBlockMinX, minX );
 	minY = max( gridBlockMinY, minY );
 	minZ = max( gridBlockMinZ, minZ );
+
+	CudaFixMinVals(minX, minY, minZ, maxThreadCount, gridBlockMinX, gridBlockMinY, gridBlockMinZ);
 
 	threadCount = dim3(1, 1, 1);
 	blockCount = dim3(width, height, batchSize);
