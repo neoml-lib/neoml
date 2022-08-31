@@ -534,42 +534,48 @@ TEST_P( CBlockedConvTest, Run )
 		CConvolutionDesc* convDesc = MathEngine().InitBlobConvolution( inputDesc, paddingHeight, paddingWidth, strideHeight,
 			strideWidth, dilationHeight, dilationWidth, filterDesc, outputDesc );
 		auto biasHandle = CARRAY_FLOAT_WRAPPER( bias );
-		for( int run = 0; run <= RUN_COUNT; ++run ) {
-			if( run != 0 ) counters->Synchronise();
+		MathEngine().BlobConvolution( *convDesc, CARRAY_FLOAT_WRAPPER( neomlInput ), CARRAY_FLOAT_WRAPPER( neomlFilter ),
+			&static_cast< CConstFloatHandle >( biasHandle ), CARRAY_FLOAT_WRAPPER( expectedOutput ) );
+		counters->Synchronise();
+		for( int run = 0; run < RUN_COUNT; ++run ) {
 			MathEngine().BlobConvolution( *convDesc, CARRAY_FLOAT_WRAPPER( neomlInput ), CARRAY_FLOAT_WRAPPER( neomlFilter ),
 				&static_cast< CConstFloatHandle >( biasHandle ), CARRAY_FLOAT_WRAPPER( expectedOutput ) );
-			if( run != 0 ) counters->Synchronise();
-			if( run != 0 ) update( *counters, neomlPerf );
 		}
+		counters->Synchronise();
+		update( *counters, neomlPerf );
 		delete convDesc;
 	}
 
 	std::vector<float> blockedInput( neomlInput.size() );
-	for( int run = 0; run <= RUN_COUNT; ++run ) {
-		if( run != 0 ) counters->Synchronise();
+	PackData( neomlInput.data(), batch, height, width, channels, blockedInput.data() );
+	counters->Synchronise();
+	for( int run = 0; run < RUN_COUNT; ++run ) {
 		PackData( neomlInput.data(), batch, height, width, channels, blockedInput.data() );
-		if( run != 0 ) counters->Synchronise();
-		if( run != 0 ) update( *counters, inputConversionPerf );
 	}
+	counters->Synchronise();
+	update( *counters, inputConversionPerf );
 
 	std::vector<float> blockedFilter = PackFilter( neomlFilter.data(), filterCount, filterHeight, filterWidth, channels );
 	std::vector<float> blockedOutput( expectedOutput.size() );
 
-	for( int run = 0; run <= RUN_COUNT; ++run ) {
-		if( run != 0 ) counters->Synchronise();
+	RunConv( blockedInput.data(), blockedFilter.data(), bias.data(), blockedOutput.data(), batch, height, width, channels, outputHeight, outputWidth,
+		filterCount, filterHeight, filterWidth, strideHeight, strideWidth, paddingHeight, paddingWidth, dilationHeight, dilationWidth );
+	counters->Synchronise();
+	for( int run = 0; run < RUN_COUNT; ++run ) {
 		RunConv( blockedInput.data(), blockedFilter.data(), bias.data(), blockedOutput.data(), batch, height, width, channels, outputHeight, outputWidth,
 			filterCount, filterHeight, filterWidth, strideHeight, strideWidth, paddingHeight, paddingWidth, dilationHeight, dilationWidth );
-		if( run != 0 ) counters->Synchronise();
-		if( run != 0 ) update( *counters, blockedConvPerf );
 	}
+	counters->Synchronise();
+	update( *counters, blockedConvPerf );
 
 	std::vector<float> actualOutput( blockedOutput.size() );
-	for( int run = 0; run <= RUN_COUNT; ++run ) {
-		if( run != 0 ) counters->Synchronise();
+	UnpackData( blockedOutput.data(), batch, outputHeight, outputWidth, filterCount, actualOutput.data() );
+	counters->Synchronise();
+	for( int run = 0; run < RUN_COUNT; ++run ) {
 		UnpackData( blockedOutput.data(), batch, outputHeight, outputWidth, filterCount, actualOutput.data() );
-		if( run != 0 ) counters->Synchronise();
-		if( run != 0 ) update( *counters, outputConversionPerf );
 	}
+	counters->Synchronise();
+	update( *counters, outputConversionPerf );
 
 	for( size_t i = 0; i < actualOutput.size(); ++i ) {
 		if( ::fabsf( actualOutput[i] - expectedOutput[i] ) > 1e-2f ) {
