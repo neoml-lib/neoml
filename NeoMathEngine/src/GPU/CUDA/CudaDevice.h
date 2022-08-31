@@ -33,6 +33,9 @@ struct CCudaDevice : public CCrtAllocatedObject {
 	unsigned int ThreadMax3DCountX;
 	unsigned int ThreadMax3DCountY;
 	unsigned int ThreadMax3DCountZ;
+	unsigned int MaxGridSizeX;
+	unsigned int MaxGridSizeY;
+	unsigned int MaxGridSizeZ;
 	int WarpSize;
 	void* Handle;
 
