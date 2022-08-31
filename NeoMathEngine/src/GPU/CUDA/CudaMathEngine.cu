@@ -272,13 +272,13 @@ void CCudaMathEngine::getCudaTaskGrid3DMinZYX(int minZ, int minY, int minX, dim3
 	const int gridBlockMinX = CudaGridMinBlockSize( width, device->MaxGridSizeX );
 	const int gridBlockMinY = CudaGridMinBlockSize( height, device->MaxGridSizeY );
 	const int gridBlockMinZ = CudaGridMinBlockSize( batchSize, device->MaxGridSizeZ );
+	ASSERT_EXPR( static_cast<uint64_t>( gridBlockMinX ) * gridBlockMinY * gridBlockMinZ
+		<= static_cast<uint64_t>( maxThreadCount ) );
 
 	// We cannot violate grid limits (otherwise device won't be able to execute the task)
 	minX = max( gridBlockMinX, minX );
 	minY = max( gridBlockMinY, minY );
 	minZ = max( gridBlockMinZ, minZ );
-	ASSERT_EXPR( static_cast<uint64_t>( gridBlockMinX ) * gridBlockMinY * gridBlockMinZ
-		<= static_cast<uint64_t>( maxThreadCount ) );
 
 	threadCount = dim3(1, 1, 1);
 	blockCount = dim3(width, height, batchSize);
@@ -294,13 +294,13 @@ void CCudaMathEngine::getCudaTaskGrid3DMinZYX(int minZ, int minY, int minX, dim3
 			maxThreadCount, *device, geom, threadCount, blockCount );
 	}
 
+	ASSERT_EXPR(optimalBlockSize != ULLONG_MAX);
 	ASSERT_EXPR(blockCount.x <= device->MaxGridSizeX);
 	ASSERT_EXPR(blockCount.y <= device->MaxGridSizeY);
 	ASSERT_EXPR(blockCount.z <= device->MaxGridSizeZ);
 	ASSERT_EXPR(threadCount.x <= device->ThreadMax3DCountX);
 	ASSERT_EXPR(threadCount.y <= device->ThreadMax3DCountY);
 	ASSERT_EXPR(threadCount.z <= device->ThreadMax3DCountZ);
-	ASSERT_EXPR(optimalBlockSize != ULLONG_MAX);
 }
 
 } // namespace NeoML
