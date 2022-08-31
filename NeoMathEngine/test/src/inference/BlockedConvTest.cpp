@@ -541,6 +541,7 @@ TEST_P( CBlockedConvTest, Run )
 			if( run != 0 ) counters->Synchronise();
 			if( run != 0 ) update( *counters, neomlPerf );
 		}
+		delete convDesc;
 	}
 
 	std::vector<float> blockedInput( neomlInput.size() );
