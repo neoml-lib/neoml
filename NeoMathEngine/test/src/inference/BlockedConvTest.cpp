@@ -499,6 +499,13 @@ TEST_P( CBlockedConvTest, Run )
 	const int paddingWidth = params.GetValue<int>( "PaddingWidth" );
 	const int dilationHeight = params.GetValue<int>( "DilationHeight" );
 	const int dilationWidth = params.GetValue<int>( "DilationWidth" );
+	if( filterHeight == 1 && filterWidth == 1 ) {
+		if( strideHeight == 1 && strideWidth == 1 && paddingHeight == 0 && paddingWidth == 0 ) {
+			GTEST_SKIP() << "We cannot beat MKL at this...";
+		} else {
+			GTEST_FAIL() << "We cannot beat MKL at this...";
+		}
+	}
 
 	const int outputHeight = calcConvOutputSize( height, paddingHeight, filterHeight, dilationHeight, strideHeight );
 	const int outputWidth = calcConvOutputSize( width, paddingWidth, filterWidth, dilationWidth, strideWidth );
@@ -534,48 +541,49 @@ TEST_P( CBlockedConvTest, Run )
 		CConvolutionDesc* convDesc = MathEngine().InitBlobConvolution( inputDesc, paddingHeight, paddingWidth, strideHeight,
 			strideWidth, dilationHeight, dilationWidth, filterDesc, outputDesc );
 		auto biasHandle = CARRAY_FLOAT_WRAPPER( bias );
-		MathEngine().BlobConvolution( *convDesc, CARRAY_FLOAT_WRAPPER( neomlInput ), CARRAY_FLOAT_WRAPPER( neomlFilter ),
-			&static_cast< CConstFloatHandle >( biasHandle ), CARRAY_FLOAT_WRAPPER( expectedOutput ) );
-		counters->Synchronise();
+		auto inputHandle = CARRAY_FLOAT_WRAPPER( neomlInput );
+		auto filterHandle = CARRAY_FLOAT_WRAPPER( neomlFilter );
+		auto outputHandle = CARRAY_FLOAT_WRAPPER( expectedOutput );
+		MathEngine().BlobConvolution( *convDesc, inputHandle, filterHandle, &static_cast<CConstFloatHandle>( biasHandle ), outputHandle );
 		for( int run = 0; run < RUN_COUNT; ++run ) {
-			MathEngine().BlobConvolution( *convDesc, CARRAY_FLOAT_WRAPPER( neomlInput ), CARRAY_FLOAT_WRAPPER( neomlFilter ),
-				&static_cast< CConstFloatHandle >( biasHandle ), CARRAY_FLOAT_WRAPPER( expectedOutput ) );
+			counters->Synchronise();
+			MathEngine().BlobConvolution( *convDesc, inputHandle, filterHandle, &static_cast<CConstFloatHandle>( biasHandle ), outputHandle );
+			counters->Synchronise();
+			update( *counters, neomlPerf );
 		}
-		counters->Synchronise();
-		update( *counters, neomlPerf );
 		delete convDesc;
 	}
 
 	std::vector<float> blockedInput( neomlInput.size() );
 	PackData( neomlInput.data(), batch, height, width, channels, blockedInput.data() );
-	counters->Synchronise();
 	for( int run = 0; run < RUN_COUNT; ++run ) {
+		counters->Synchronise();
 		PackData( neomlInput.data(), batch, height, width, channels, blockedInput.data() );
+		counters->Synchronise();
+		update( *counters, inputConversionPerf );
 	}
-	counters->Synchronise();
-	update( *counters, inputConversionPerf );
 
 	std::vector<float> blockedFilter = PackFilter( neomlFilter.data(), filterCount, filterHeight, filterWidth, channels );
 	std::vector<float> blockedOutput( expectedOutput.size() );
 
 	RunConv( blockedInput.data(), blockedFilter.data(), bias.data(), blockedOutput.data(), batch, height, width, channels, outputHeight, outputWidth,
 		filterCount, filterHeight, filterWidth, strideHeight, strideWidth, paddingHeight, paddingWidth, dilationHeight, dilationWidth );
-	counters->Synchronise();
 	for( int run = 0; run < RUN_COUNT; ++run ) {
+		counters->Synchronise();
 		RunConv( blockedInput.data(), blockedFilter.data(), bias.data(), blockedOutput.data(), batch, height, width, channels, outputHeight, outputWidth,
 			filterCount, filterHeight, filterWidth, strideHeight, strideWidth, paddingHeight, paddingWidth, dilationHeight, dilationWidth );
+		counters->Synchronise();
+		update( *counters, blockedConvPerf );
 	}
-	counters->Synchronise();
-	update( *counters, blockedConvPerf );
 
 	std::vector<float> actualOutput( blockedOutput.size() );
 	UnpackData( blockedOutput.data(), batch, outputHeight, outputWidth, filterCount, actualOutput.data() );
-	counters->Synchronise();
 	for( int run = 0; run < RUN_COUNT; ++run ) {
+		counters->Synchronise();
 		UnpackData( blockedOutput.data(), batch, outputHeight, outputWidth, filterCount, actualOutput.data() );
+		counters->Synchronise();
+		update( *counters, outputConversionPerf );
 	}
-	counters->Synchronise();
-	update( *counters, outputConversionPerf );
 
 	for( size_t i = 0; i < actualOutput.size(); ++i ) {
 		if( ::fabsf( actualOutput[i] - expectedOutput[i] ) > 1e-2f ) {
