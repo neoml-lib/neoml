@@ -184,6 +184,18 @@ public:
 		py::object pyConstructor = pyModule.attr( "GELU" );
 		return pyConstructor( py::cast(this) );
 	}
+
+	void SetCalculationMode(const std::string& mode)
+	{
+		auto* layer = Layer<CGELULayer>();
+		if( mode == "precise") {
+			layer->SetCalculationMode( CGELULayer::CM_Precise );
+		} else if( mode == "fast_approximate" ) {
+			layer->SetCalculationMode( CGELULayer::CM_FastApproximate );
+		} else {
+			NeoAssert( false );
+		}
+	}
 };
 
 class CPyExpLayer : public CPyLayer {
@@ -451,6 +463,7 @@ void InitializeActivationLayer( py::module& m )
 				gelu->Connect(0, layer.BaseLayer(), outputNumber);
 				return new CPyGELULayer(*gelu, layer.MathEngineOwner());
 			}))
+		.def( "set_calculation_mode", &CPyGELULayer::SetCalculationMode )
 	;
 
 	py::class_<CPyExpLayer, CPyLayer>(m, "Exp")

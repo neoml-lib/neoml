@@ -12,15 +12,22 @@
 
 This class implements a layer that calculates the `GELU` activation function for each element of a single input.
 
-The activation function formula:
+Precise formula:
+```c++
+f(x) = x * 0.5 * ( 1 + erf( x / sqrt( 2 ) ) )
+```
 
+Approximation:
 ```c++
 f(x) = x * sigmoid( 1.702 * x )
 ```
 
 ## Settings
 
-There are no settings for this layer.
+Whether to calculate the exact value using the Error function (TCalculationMode::Precise), or an approximate one (TCalculationMode::FastApproximate).
+```c++
+void SetCalculationMode( TCalculationMode );
+```
 
 ## Trainable parameters
 

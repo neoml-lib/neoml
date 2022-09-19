@@ -17,7 +17,7 @@ limitations under the License.
 import neoml.PythonWrapper as PythonWrapper
 from .Dnn import Layer
 from neoml.Utils import check_input_layers
-
+import typing as tp
 
 class Linear(Layer):
     """The layer that calculates a linear activation function
@@ -551,7 +551,6 @@ class Power(Layer):
 
 # ----------------------------------------------------------------------------------------------------------------------
 
-
 class GELU(Layer):
     """The layer that calculates the GELU activation function
     for each element of the single input:
@@ -574,7 +573,8 @@ class GELU(Layer):
 
     """
 
-    def __init__(self, input_layer, name=None):
+    def __init__(self, input_layer: tp.Union[Layer, tp.Tuple[Layer, int], PythonWrapper.GELU], name: str=None):
+        self._calculation_mode = "precise"
 
         if type(input_layer) is PythonWrapper.GELU:
             super().__init__(input_layer)
@@ -584,6 +584,19 @@ class GELU(Layer):
 
         internal = PythonWrapper.GELU(str(name), layers[0], int(outputs[0]))
         super().__init__(internal)
+
+    @property
+    def calculation_mode(self) -> tp.Literal["precise", "fast_approximate"]:
+        """ 'precise' (calculate GELU using the error function) or 'fast_approximate' (using an approximation x * sigmoid(1.702x))
+        """
+        return self._calculation_mode
+
+    @calculation_mode.setter
+    def calculation_mode(self, value: tp.Literal["precise", "fast_approximate"]):
+        if value not in ["precise", "fast_approximate"]:
+            raise ValueError("GELU. Calculation mode should be 'precise' or 'fast_approximate'.")
+        self._internal.calculation_mode(value)
+        self._calculation_mode = value
 
 # ----------------------------------------------------------------------------------------------------------------------
 
