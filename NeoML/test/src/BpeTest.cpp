@@ -324,7 +324,7 @@ TEST_F( CBpeTest, RawBytes )
 	// unk, single-bytes, all prefixes of 'allBytes' (incl. the string itself, excl. the first prefix since it is already counted)
 	EXPECT_EQ( 1 + 255 + 254, encoder->Size() );
 
-	CArray<CString> words = { "just word", "кириллица", "♥⅀", "\u20BF\u20AE\u20BD" };
+	CArray<CString> words = { "just word", "кириллица", "♥⅀" };
 	CArray<int> encoded, notUsed;
 	for( int i = 0; i < words.Size(); ++i ) {
 		encoded.DeleteAll();

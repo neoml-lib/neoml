@@ -211,7 +211,7 @@ void CBytePairEncoder::Serialize( CArchive& archive )
 	if( version >= 1 ) {
 		params.Serialize( archive );
 	} else {
-		bool buffer;
+		bool buffer{};
 		archive.Serialize( buffer );
 		if( buffer ) {
 			params.EndOfWordToken = DeprecatedEowToken;
