@@ -86,7 +86,7 @@ TEST_F( CBpeTest, DictionaryTest )
 TEST_F( CBpeTest, TrivialOneWord )
 {
 	auto dictionary = fillDictionary( "OnlyOneWord" );
-	CBytePairEncoderTrainer trainer( { 100500, false, false }, dictionary );
+	CBytePairEncoderTrainer trainer( { 100500, false, false, false }, dictionary );
 	auto tokenizer = trainer.Train();
 
 	CString correctText = "OnlyOneWord";
@@ -104,7 +104,7 @@ TEST_F( CBpeTest, TrivialOneWord )
 TEST_F( CBpeTest, TrivialUnknown )
 {
 	auto dictionary = fillDictionary( "OnlyOneWord" );
-	CBytePairEncoderTrainer trainer( { 100500, false, false }, dictionary );
+	CBytePairEncoderTrainer trainer( { 100500, false, false, false }, dictionary );
 	auto tokenizer = trainer.Train();
 
 	CString unknownText = "UNKNNSYMBLS";
@@ -127,7 +127,7 @@ TEST_F( CBpeTest, OneLetterBpe )
 {
 	CString trainText ="qwertyuiopasdfghjklzxcvbnm.";
 	auto dictionary = fillDictionary( trainText );
-	CBytePairEncoderTrainer trainer( { 28, false, false }, dictionary );
+	CBytePairEncoderTrainer trainer( { 28, false, false, false }, dictionary );
 	auto tokenizer = trainer.Train();
 
 	CString testText = "lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor"
@@ -162,9 +162,9 @@ TEST_F( CBpeTest, DecodeSequence )
 		" sint occaecat cupidatat non proident sunt in culpa qui officia deserunt mollit anim id est laborum .";
 	auto dictionary = fillDictionary( trainText );
 
-	CBytePairEncoderTrainer trainerBow( { 50, false, true }, dictionary );
-	CBytePairEncoderTrainer trainerEow( { 50, true, false }, dictionary );
-	CBytePairEncoderTrainer trainerBoth( { 50, true, true }, dictionary );
+	CBytePairEncoderTrainer trainerBow( { 50, false, true, false }, dictionary );
+	CBytePairEncoderTrainer trainerEow( { 50, true, false, false }, dictionary );
+	CBytePairEncoderTrainer trainerBoth( { 50, true, true, false }, dictionary );
 	CArray<CPtr<IBytePairEncoder>> tokenizers = { trainerBow.Train(), trainerEow.Train(), trainerBoth.Train() };
 
 	CString testText = "mattis pellentesque id nibh tortor id aliquet . tincidunt ornare massa eget egestas purus ."
@@ -193,14 +193,10 @@ TEST_F( CBpeTest, DecodeSequence )
 
 TEST_F( CBpeTest, Ambiguous )
 {
-	CWordDictionary dictionary;
-	dictionary.AddWord( "aa", 5 );
-	dictionary.AddWord( "bb", 4 );
-	dictionary.AddWord( "ab", 3 );
-	dictionary.AddWord( "a", 2 );
-	dictionary.AddWord( "b", 1 );
+	IBytePairEncoder::CBPEDictionary dictionary = { "aa", "bb", "ab", "a", "b" };
 	CPtr<IBytePairEncoder> tokenizer = CheckCast<IBytePairEncoder>( CreateModel( BytePairEncoderModelName ) );
-	tokenizer->LoadDictionary( dictionary, "", "" );
+	IBytePairEncoder::CParams params;
+	tokenizer->Initialize( dictionary, params );
 
 	CArray<int> tokenIds, tokenLengths;
 	tokenizer->Encode( "aaa", tokenIds, tokenLengths );
@@ -251,36 +247,39 @@ TEST_F( CBpeTest, LoadIncorrectDictionary )
 {
 	CPtr<IBytePairEncoder> tokenizer = CheckCast<IBytePairEncoder>( CreateModel( BytePairEncoderModelName ) );
 
-	CWordDictionary badDictionary;
-	badDictionary.AddWord( "a@a", 3 );
-	badDictionary.AddWord( "a", 2 );
-	BPE_TEST_ASSERT( tokenizer->LoadDictionary( badDictionary, "@", "" ) );
+	IBytePairEncoder::CParams params;
+	params.EndOfWordToken = "@"; 
+	IBytePairEncoder::CBPEDictionary badDictionary = { "a@a", "a" };
+	BPE_TEST_ASSERT( tokenizer->Initialize( badDictionary, params ) );
 
-	CWordDictionary dictionary;
-	dictionary.AddWord( "aa@@", 5 );
-	dictionary.AddWord( "a", 3 );
 	// aa@@ is inseparable
-	BPE_TEST_ASSERT( tokenizer->LoadDictionary( dictionary, "", "" ) );
-	dictionary.AddWord( "aa", 10 );
+	tokenizer = CheckCast<IBytePairEncoder>( CreateModel( BytePairEncoderModelName ) );
+	IBytePairEncoder::CBPEDictionary dictionary = { "aa@@", "a" };
+	params.EndOfWordToken = ""; 
+	BPE_TEST_ASSERT( tokenizer->Initialize( dictionary, params ) );
+
 	// no single '@@'
-	BPE_TEST_ASSERT( tokenizer->LoadDictionary( dictionary, "@@", "" ) );
-	dictionary.AddWord( "@@", 1 );
-	// confused BoW-EoW
-	BPE_TEST_ASSERT( tokenizer->LoadDictionary( dictionary, "", "@@" ) );
+	tokenizer = CheckCast<IBytePairEncoder>( CreateModel( BytePairEncoderModelName ) );
+	params.EndOfWordToken = "@@"; 
+	dictionary.InsertAt( "aa", 0 );
+	BPE_TEST_ASSERT( tokenizer->Initialize( dictionary, params ) );
+	dictionary.Add( "@@" );
+
 	// wrong symbol
-	BPE_TEST_ASSERT( tokenizer->LoadDictionary( dictionary, "!", "" ) );
+	tokenizer = CheckCast<IBytePairEncoder>( CreateModel( BytePairEncoderModelName ) );
+	params.StartOfWordToken = "";
+	params.EndOfWordToken = "!";
+	BPE_TEST_ASSERT( tokenizer->Initialize( dictionary, params ) );
 }
 
 TEST_F( CBpeTest, SaveLoadDictionary )
 {
 	CPtr<IBytePairEncoder> tokenizer = CheckCast<IBytePairEncoder>( CreateModel( BytePairEncoderModelName ) );
 
-	CWordDictionary dictionary;
-	dictionary.AddWord( "aa@", 4 );
-	dictionary.AddWord( "aa", 3 );
-	dictionary.AddWord( "a", 2 );
-	dictionary.AddWord( "@", 1 );
-	tokenizer->LoadDictionary( dictionary, "@", "" );
+	IBytePairEncoder::CBPEDictionary dictionary = { "aa@", "aa", "a", "@" };
+	IBytePairEncoder::CParams params;
+	params.EndOfWordToken = "@"; 
+	tokenizer->Initialize( dictionary, params );
 
 	CArray<int> tokenIds, tokenLengths;
 	tokenizer->Encode( "a", tokenIds, tokenLengths );
@@ -295,13 +294,69 @@ TEST_F( CBpeTest, SaveLoadDictionary )
 	tokenIds.DeleteAll();
 	tokenLengths.DeleteAll();	
 
-	CWordDictionary outDictionary;
-	tokenizer->GetDictionary( outDictionary );
-	EXPECT_EQ( 4, outDictionary.Size() );
-	// Default EoW is '</s>'
-	EXPECT_TRUE( outDictionary.HasWord( "aa</s>" ) );
-	EXPECT_TRUE( outDictionary.HasWord( "aa" ) );
-	EXPECT_TRUE( outDictionary.HasWord( "a" ) );
-	EXPECT_TRUE( outDictionary.HasWord( "</s>" ) );
-	EXPECT_FALSE( outDictionary.HasWord( "@" ) );
+	CMap<CString, int> outDictionary;
+	tokenizer->GetTokenToIdMapping( outDictionary );
+	EXPECT_EQ( 5, outDictionary.Size() );
+	EXPECT_TRUE( outDictionary.Has( "aa@" ) );
+	EXPECT_TRUE( outDictionary.Has( "aa" ) );
+	EXPECT_TRUE( outDictionary.Has( "a" ) );
+	EXPECT_TRUE( outDictionary.Has( "@" ) );
+	EXPECT_TRUE( outDictionary.Has( "<UNK>" ) );
+}
+
+TEST_F( CBpeTest, RawBytes )
+{
+	CBytePairEncoderTrainer::CParams params{ 100500, false, false, true };
+
+	char allBytes[256];
+	for( int i = 0; i < 256; ++i ) {
+		allBytes[i] = (char)(i + 1);
+	}
+	// btw, 0-byte is terminal, so we don't expect to see it in the dictionary
+
+	CString superWord( allBytes );
+	CWordDictionary trainingDictionary;
+	trainingDictionary.AddWord( superWord, 1 );
+
+	CBytePairEncoderTrainer trainer( params, trainingDictionary );
+	auto encoder = trainer.Train();
+
+	// unk, single-bytes, all prefixes of 'allBytes' (incl. the string itself, excl. the first prefix since it is already counted)
+	EXPECT_EQ( 1 + 255 + 254, encoder->Size() );
+
+	CArray<CString> words = { "just word", "кириллица", "♥⅀", "\u20BF\u20AE\u20BD" };
+	CArray<int> encoded, notUsed;
+	for( int i = 0; i < words.Size(); ++i ) {
+		encoded.DeleteAll();
+		encoder->Encode( words[i], encoded, notUsed );
+		EXPECT_EQ( NotFound, encoded.Find( encoder->UnknownTokenId() ) );
+	}
+}
+
+TEST_F( CBpeTest, UnknownId )
+{
+	CPtr<IBytePairEncoder> tokenizer = CheckCast<IBytePairEncoder>( CreateModel( BytePairEncoderModelName ) );
+
+	IBytePairEncoder::CBPEDictionary dictionary = { "aa@", "aa", "a", "@" };
+	IBytePairEncoder::CParams params;
+	params.EndOfWordToken = "@"; 
+	tokenizer->Initialize( dictionary, params );
+
+	CArray<int> tokenIds, tokenLengths;
+	tokenizer->Encode( "baaa", tokenIds, tokenLengths );
+	EXPECT_EQ( tokenizer->UnknownTokenId(), tokenIds.First() );
+
+	const int offset = 5;
+	tokenizer = CheckCast<IBytePairEncoder>( CreateModel( BytePairEncoderModelName ) );
+	params.UnknownTokenId = offset;
+	tokenizer->Initialize( dictionary, params );
+	ASSERT_EQ( offset, tokenizer->UnknownTokenId() );
+
+	CArray<int> newTokenIds, newTokenLengths;
+	tokenizer->Encode( "baaa", newTokenIds, newTokenLengths );
+	ASSERT_EQ( tokenIds.Size(), newTokenIds.Size() );
+	EXPECT_EQ( tokenLengths, newTokenLengths );
+	for( int i = 0; i < tokenIds.Size(); ++i ) {
+		EXPECT_EQ( tokenIds[i] + offset, newTokenIds[i] );
+	}
 }

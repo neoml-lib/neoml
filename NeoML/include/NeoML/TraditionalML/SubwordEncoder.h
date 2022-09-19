@@ -17,7 +17,6 @@ limitations under the License.
 
 #include <NeoML/NeoMLDefs.h>
 #include <NeoML/TraditionalML/Model.h>
-#include <NeoML/TraditionalML/WordDictionary.h>
 
 namespace NeoML {
 
@@ -115,26 +114,56 @@ DECLARE_NEOML_MODEL_NAME( BytePairEncoderModelName, "NeoMLBytePairEncoderModel" 
 
 class NEOML_API IBytePairEncoder : public ISubwordEncoderWithCache {
 public:
-	// Returns encoder flags.
+	static constexpr int DefaultUnknownTokenId = 0;
+
+	struct CParams {
+		// End-of-Word (EOW), a string that will be added to the end of each input word.
+		CString EndOfWordToken;
+		// Start-of-Word (SOW), a string that will be added to the beginning of each input word.
+		CString StartOfWordToken;
+		// Treat strings as arrays of raw bytes,
+		// which decreases the maximum size of the initial vocabulary to 256 and allows to completely avoid unknown symbols.
+		bool UseRawBytes = false;
+		// The id of <UNK>.
+		// All other tokens are continuously enumerated from 'UnknownTokenId' + 1. Ids [0, UnknownTokenId) are not used when encoding.
+		int UnknownTokenId = DefaultUnknownTokenId;
+
+		CParams() = default;
+		CParams( CString endOfWordToken, CString startOfWordToken, bool useRawBytes, int unknownTokenId );
+
+		void Serialize( CArchive& archive );
+	};
+
+	// A list of unique tokens ordered by order of merges during training (this is used when encoding).
+	// The Id of a token in encoded words is <Id in this array> + GetUnknownTokenId() + 1
+	using CBPEDictionary = CArray<CString>;
+	
+	// Initializes the encoder. Can be safely used only once.
+	// Every token except the letters (or bytes), EOW and SOW must be a concatenation of two other tokens.
+	// If not empty, EOW and SOW must be contained in 'tokens' exactly only once as a separate token.
+	virtual void Initialize( const CBPEDictionary& tokens, const CParams& ) = 0;
+
+	// The functions below should not be used before initialization.
+
+	// Returns BPE mappings as they are performed by the encoder
+	virtual void GetIdToTokenMapping( CMap<int, CString>& ) const = 0;
+	virtual void GetTokenToIdMapping( CMap<CString, int>& ) const = 0;
+
+	// Encoder parameters getters:
 	virtual bool UseEndOfWordToken() const = 0;
 	virtual bool UseStartOfWordToken() const = 0;
-
-	// Initializes the encoder. Can be safely used only once.
-	// Every token except the letters must be a concatenation of two smaller tokens.
-	// Start-of-Word and End-of-Word are automatically added to the input word when encoding.
-	// If not empty, startOfWordToken and endOfWordToken must be contained in 'tokens' exactly only once as a separate token.
-	// As a part of longer tokens, startOfWordToken can be located only in the beginning,
-	// endOfWordToken can be located only in the end of a token
-	virtual void LoadDictionary( const CWordDictionary& tokens, 
-		const CString& endOfWordToken, const CString& startOfWordToken ) = 0;
-
-	// Returns the BPE vocabulary. The preservation of the original frequencies and EoW/BoW symbols is not guaranteed.
-	// If End-of-Word and Start-of-Word are disabled, the parameter values are ignored.
-	virtual void GetDictionary( CWordDictionary& tokens, 
-		const CString& endOfWordToken = "</s>", const CString& startOfWordToken = "<s>" ) const = 0;
-
-	// Returns id of Unknown token.
-	virtual int GetUnknownTokenId() const = 0;
+	virtual bool UseRawBytes() const = 0;
+	virtual int UnknownTokenId() const = 0;
 };
+
+
+///////////////////////////////////////////////////////////////////////////////
+
+inline IBytePairEncoder::CParams::CParams( CString endOfWordToken, CString startOfWordToken, bool useRawBytes,	int unknownTokenId ) :
+	EndOfWordToken( std::move( endOfWordToken ) ),
+	StartOfWordToken( std::move( startOfWordToken ) ),
+	UseRawBytes( useRawBytes ),
+	UnknownTokenId( unknownTokenId )
+{}
 
 } // namespace NeoML
