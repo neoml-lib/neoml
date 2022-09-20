@@ -573,8 +573,9 @@ class GELU(Layer):
 
     """
 
-    def __init__(self, input_layer: tp.Union[Layer, tp.Tuple[Layer, int], PythonWrapper.GELU], name: str=None):
-        self._calculation_mode = "precise"
+    def __init__(self, input_layer: tp.Union[Layer, tp.Tuple[Layer, int], PythonWrapper.GELU],
+                 calculation_mode: tp.Literal["precise", "sigmoid_approximate"] = "sigmoid_approximate", 
+                 name: str=None):
 
         if type(input_layer) is PythonWrapper.GELU:
             super().__init__(input_layer)
@@ -584,19 +585,19 @@ class GELU(Layer):
 
         internal = PythonWrapper.GELU(str(name), layers[0], int(outputs[0]))
         super().__init__(internal)
+        self.calculation_mode = calculation_mode
 
     @property
-    def calculation_mode(self) -> tp.Literal["precise", "fast_approximate"]:
-        """ 'precise' (calculate GELU using the error function) or 'fast_approximate' (using an approximation x * sigmoid(1.702x))
+    def calculation_mode(self) -> tp.Literal["precise", "sigmoid_approximate"]:
+        """ 'precise' (calculate GELU using the error function) or 'sigmoid_approximate' (using an approximation x * sigmoid(1.702x))
         """
-        return self._calculation_mode
+        return self._internal.get_calculation_mode()
 
     @calculation_mode.setter
-    def calculation_mode(self, value: tp.Literal["precise", "fast_approximate"]):
-        if value not in ["precise", "fast_approximate"]:
-            raise ValueError("GELU. Calculation mode should be 'precise' or 'fast_approximate'.")
-        self._internal.calculation_mode(value)
-        self._calculation_mode = value
+    def calculation_mode(self, value: tp.Literal["precise", "sigmoid_approximate"]):
+        if value not in ["precise", "sigmoid_approximate"]:
+            raise ValueError("GELU. Calculation mode should be 'precise' or 'sigmoid_approximate'.")
+        self._internal.set_calculation_mode(value)
 
 # ----------------------------------------------------------------------------------------------------------------------
 

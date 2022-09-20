@@ -34,7 +34,7 @@ public:
 		// x * 0.5( 1 + erf( x / sqrt(2) ) )
 		CM_Precise,
 		// x * sigmoid(1.702x)
-		CM_FastApproximate
+		CM_SigmoidApproximate
 	};
 
 	// Changes GELU calculation mode
@@ -49,12 +49,12 @@ protected:
 	int BlobsForBackward() const override { return TInputBlobs; }
 
 private:
-	TCalculationMode mode = CM_Precise;
+	TCalculationMode mode = CM_SigmoidApproximate;
 
 	// 1
 	CFloatHandleVar oneVar;
 	// 0.5
-	CFloatHandleVar oneSecondVar;
+	CFloatHandleVar halfVar;
 	// 1/sqrt(2)
 	CFloatHandleVar sqrt2InvVar;
 	// 1/sqrt(2pi)

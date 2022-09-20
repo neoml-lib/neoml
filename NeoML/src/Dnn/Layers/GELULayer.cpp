@@ -22,7 +22,7 @@ namespace NeoML {
 
 // constants for the precise calculation and its backward
 static const float GELUOne = 1.0f;
-static const float GELUOneSecond = 0.5f;
+static const float GELUHalf = 0.5f;
 static const float GELUSqrt2Inv = 0.70710678f;
 static const float GELUSqrt2PiInv = 0.39894229f;
 
@@ -33,10 +33,14 @@ static const int CGELULayerVersion = 1;
 
 CGELULayer::CGELULayer( IMathEngine& mathEngine ) :
 	CBaseLayer( mathEngine, "CGELULayer", false ),
-	oneVar( mathEngine ), oneSecondVar( mathEngine ), sqrt2InvVar( mathEngine ), sqrt2PiInvVar( mathEngine ), approxScaleVar( mathEngine )
+	oneVar( mathEngine ),
+	halfVar( mathEngine ),
+	sqrt2InvVar( mathEngine ),
+	sqrt2PiInvVar( mathEngine ),
+	approxScaleVar( mathEngine )
 {
 	oneVar.SetValue( GELUOne );
-	oneSecondVar.SetValue( GELUOneSecond );
+	halfVar.SetValue( GELUHalf );
 	sqrt2InvVar.SetValue( GELUSqrt2Inv );
 	sqrt2PiInvVar.SetValue( GELUSqrt2PiInv );
 	approxScaleVar.SetValue( GELUApproximationMultiplier );
@@ -48,6 +52,8 @@ void CGELULayer::Serialize( CArchive& archive )
 	CBaseLayer::Serialize( archive );
 	if( version >= 1 ) {
 		archive.SerializeEnum( mode );
+	} else {
+		mode = CM_SigmoidApproximate;
 	}
 }
 
@@ -81,7 +87,7 @@ void CGELULayer::RunOnce()
 		case TCalculationMode::CM_Precise:
 			runPrecise();
 			break;
-		case TCalculationMode::CM_FastApproximate:
+		case TCalculationMode::CM_SigmoidApproximate:
 			runFastApproximate();
 			break;
 		default: 
@@ -95,7 +101,7 @@ void CGELULayer::BackwardOnce()
 		case TCalculationMode::CM_Precise:
 			backwardPrecise();
 			break;
-		case TCalculationMode::CM_FastApproximate:
+		case TCalculationMode::CM_SigmoidApproximate:
 			backwardFastApproximate();
 			break;
 		default: 
@@ -120,7 +126,7 @@ void CGELULayer::runPrecise()
 	MathEngine().VectorAddValue( output, output, dataSize, oneVar );
 
 	// output = 0.5( 1 + erf( input / sqrt(2) ) )
-	MathEngine().VectorMultiply( output, output, dataSize, oneSecondVar );
+	MathEngine().VectorMultiply( output, output, dataSize, halfVar );
 
 	if( IsBackwardPerformed() ) {
 		NeoAssert( erfMemoization != nullptr );
