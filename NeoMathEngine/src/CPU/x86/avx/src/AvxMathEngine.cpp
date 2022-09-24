@@ -19,6 +19,7 @@ limitations under the License.
 #include <NeoMathEngine/SimdMathEngine.h>
 #include <BlobConvolution.h>
 #include <PrimitivesJit.h>
+#include <AvxMathEngine.h>
 #include <CPUInfo.h>
 
 namespace NeoML {
@@ -47,32 +48,6 @@ CAvxConvolutionDesc::CAvxConvolutionDesc( IMathEngine* mathEngine, const CBlobDe
 		dilationHeight, dilationWidth, result.Height(), result.Width(), result.ObjectCount() ) )
 {
 }
-
-class CAvxMathEngine : public ISimdMathEngine {
-public:
-	CAvxMathEngine( IMathEngine* _mathEngine, int _threadCount ) :
-		mathEngine( _mathEngine ), threadCount( _threadCount ), primitives( _mathEngine, _threadCount ) {}
-
-	CConvolutionDesc* InitBlobConvolution( const CBlobDesc& source, int paddingHeight, int paddingWidth,
-		int strideHeight, int strideWidth, int dilationHeight, int dilationWidth, const CBlobDesc& filter,
-		const CBlobDesc& result ) const override;
-
-	void BlobConvolution( const CConvolutionDesc& convDesc, const float* source,
-		const float* filter, const float* freeTerm, float* result ) const override;
-
-	SgemmFunc GetSgemmFunction() const override;
-
-	void Tanh( float* dst, const float* src, size_t dataSize, bool isMultithread ) override;
-	void Sigmoid( float* dst, const float* src, size_t dataSize, bool isMultithread ) override;
-	void Exp( float* dst, const float* src, size_t dataSize, bool isMultithread ) override;
-	void RunOnceRestOfLstm( CMathEngineLstmDesc* desc, const CConstFloatHandle& inputStateBackLink,
-		const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink, bool isMultithread ) override;
-
-private:
-	IMathEngine* mathEngine;
-	int threadCount;
-	CPrimitivesJit primitives;
-};
 
 CConvolutionDesc* CAvxMathEngine::InitBlobConvolution( const CBlobDesc& source, int paddingHeight, int paddingWidth,
 	int strideHeight, int strideWidth, int dilationHeight, int dilationWidth, const CBlobDesc& filter,

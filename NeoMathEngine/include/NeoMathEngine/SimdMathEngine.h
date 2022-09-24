@@ -41,6 +41,12 @@ public:
 	virtual void BlobConvolution( const CConvolutionDesc& convDesc, const float* source,
 		const float* filter, const float* freeTerm, float* result ) const = 0;
 
+	/*virtual void PackBlockedData(const CBlobDesc& desc, const float* source, float* result) const = 0;
+	virtual void UnpackBlockedData( const CBlobDesc& desc, const float* source, float* result ) const = 0;
+	virtual void PackBlockedFilter( const CBlobDesc& desc, const float* source, float* result ) const = 0;
+	virtual void BlockedConvolution( const CConvolutionDesc& convDesc, const float* packedSource,
+		const float* packedFilter, const float* freeTerm, float* packedResult ) const = 0;*/
+
 	virtual SgemmFunc GetSgemmFunction() const = 0;
 
 	virtual void Tanh( float* dst, const float* src, size_t dataSize, bool isMultithread = true ) = 0;
