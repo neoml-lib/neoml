@@ -68,7 +68,7 @@ private:
 	void removeSpecialTokens( CString& token, bool& hasEow, bool& hasSow ) const;
 	bool replaceEowToken( CString& token, const CString& eowToken, const CString& replacement ) const;
 	bool replaceSowToken( CString& token, const CString& sowToken, const CString& replacement ) const;
-	CString findInseparableToken( const CArray<CString>& auxTokens );
+	bool isValidToken( const CString& token, const CArray<CString>& auxTokens ) const;
 	int getShiftedTokenIndex( const CString& token ) const;
 };
 

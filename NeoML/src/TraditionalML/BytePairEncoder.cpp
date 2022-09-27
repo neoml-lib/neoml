@@ -211,15 +211,18 @@ void CBytePairEncoder::Serialize( CArchive& archive )
 	if( version >= 1 ) {
 		params.Serialize( archive );
 	} else {
-		bool buffer{};
-		archive.Serialize( buffer );
-		if( buffer ) {
+		bool useEow{};
+		archive.Serialize( useEow );
+		if( useEow ) {
 			params.EndOfWordToken = DeprecatedEowToken;
 		}
-		archive.Serialize( buffer );
-		if( buffer ) {
+		bool useSow{};
+		archive.Serialize( useSow );
+		if( useSow ) {
 			params.StartOfWordToken = DeprecatedSowToken;
 		}
+		params.UseRawBytes = false;
+		params.UnknownTokenId = DefaultUnknownTokenId;
 	}
 	
 	tokens.Serialize( archive );
@@ -245,52 +248,38 @@ void CBytePairEncoder::Initialize( const CBPEDictionary& _tokens, const CParams&
 	bool eowOk = !UseEndOfWordToken() || tokenToId.Has( params.EndOfWordToken );
 	// Start-of-Word or End-of-Word tokens must be disabled or must be present in the dictionary
 	NeoAssert( sowOk && eowOk );
+
 	const CArray<CString> auxTokens = { params.StartOfWordToken, params.EndOfWordToken };
-	// Check that each token is a letter, auxiliary or a combination of 2 other tokens
-	const auto& inseparable = findInseparableToken( auxTokens );
-	NeoAssert( inseparable.IsEmpty() );
+	for( int i = 0; i < tokens.Size(); ++i ) {
+		NeoAssert( isValidToken( tokens[i], auxTokens ) );
+	}
 }
 
-// Returns the first inseparable token, if any
-CString CBytePairEncoder::findInseparableToken( const CArray<CString>& auxTokens )
+// Checks that token is a letter, auxiliary or a combination of 2 other tokens
+bool CBytePairEncoder::isValidToken( const CString& token, const CArray<CString>& auxTokens ) const
 {
-	CArray<bool> isSeparable;
-	isSeparable.Add( false, tokens.Size() );
+	const int charLength = UseRawBytes() ? 1 : getUtf8CharLength( token[0] );
+	if( charLength == token.Length() ) {
+		// ok, single letter
+		return true;
+	}
 
-	for( int i = 0; i < tokens.Size(); ++i ) {
-		const auto& leftToken = tokens[i];
+	if( auxTokens.Has( token ) ) {
+		// eow/bow
+		return true;
+	}
 
-		for( int j = 0; j < tokens.Size(); ++j ) {
-			const auto& rightToken = tokens[j];
-			const auto& merge = MergeTokens( leftToken, rightToken );
-
-			int mergeTokenId = NotFound;
-			tokenToId.Lookup( merge, mergeTokenId );
-			if( mergeTokenId != NotFound ) {
-				isSeparable[mergeTokenId] = true;			
+	for( int j = 1; j < token.Length(); ++j ) {
+		const CString leftPart = token.Mid( 0, j );
+		if( tokenToId.Has( leftPart ) ) {
+			const CString rightPart = token.Mid( j, token.Length() - j );
+			if( tokenToId.Has( rightPart ) ) {
+				return true;
 			}
 		}
 	}
-
-	for( int i = 0; i < tokens.Size(); ++i ) {
-		if( isSeparable[i] ) {
-			// ok, token is a combination of two other tokens
-			continue;
-		}
-
-		const auto& token = tokens[i];
-		const int charLength = UseRawBytes() ? 1 : getUtf8CharLength( token[0] );
-		if( charLength == token.Length() ) {
-			// ok, single letter
-			continue;
-		}
-
-		if( !auxTokens.Has( token ) ) {
-			// not a combination, not a single letter, not auxiliary (eow/bow)
-			return token;
-		}
-	}
-	return "";
+	// The token couldn't be generated with the BPE training procedure.
+	return false;
 }
 
 void CBytePairEncoder::GetIdToTokenMapping( CMap<int, CString>& output ) const

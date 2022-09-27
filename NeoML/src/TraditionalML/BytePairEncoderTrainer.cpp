@@ -41,6 +41,9 @@ void CBytePairEncoderTrainer::CParams::Serialize( CArchive& archive )
 	if( version >= 2 ) {
 		archive.Serialize( UseRawBytes );
 		archive.Serialize( UnknownTokenId );
+	} else {
+		UseRawBytes = false;
+		UnknownTokenId = IBytePairEncoder::DefaultUnknownTokenId;
 	}
 }
 
