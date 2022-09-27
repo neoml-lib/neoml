@@ -169,18 +169,18 @@ void PostProcessing( const int flags, float*& output, int outputStride, const fl
 // This macro generates code to clear the block accumulators.
 #define CLEAR_BLOCK(FilterCount, OutputCount) \
 { \
-	if( FilterCount >= 1 && OutputCount >= 1 ) acc0 = _mm256_xor_ps( acc0, acc0 ); \
-	if( FilterCount >= 1 && OutputCount >= 2 ) acc4 = _mm256_xor_ps( acc0, acc0 ); \
-	if( FilterCount >= 1 && OutputCount >= 3 ) acc8 = _mm256_xor_ps( acc0, acc0 ); \
-	if( FilterCount >= 2 && OutputCount >= 1 ) acc1 = _mm256_xor_ps( acc0, acc0 ); \
-	if( FilterCount >= 2 && OutputCount >= 2 ) acc5 = _mm256_xor_ps( acc0, acc0 ); \
-	if( FilterCount >= 2 && OutputCount >= 3 ) acc9 = _mm256_xor_ps( acc0, acc0 ); \
-	if( FilterCount >= 3 && OutputCount >= 1 ) acc2 = _mm256_xor_ps( acc0, acc0 ); \
-	if( FilterCount >= 3 && OutputCount >= 2 ) acc6 = _mm256_xor_ps( acc0, acc0 ); \
-	if( FilterCount >= 3 && OutputCount >= 3 ) acc10 = _mm256_xor_ps( acc0, acc0 ); \
-	if( FilterCount >= 4 && OutputCount >= 1 ) acc3 = _mm256_xor_ps( acc0, acc0 ); \
-	if( FilterCount >= 4 && OutputCount >= 2 ) acc7 = _mm256_xor_ps( acc0, acc0 ); \
-	if( FilterCount >= 4 && OutputCount >= 3 ) acc11 = _mm256_xor_ps( acc0, acc0 ); \
+	if( FilterCount >= 1 && OutputCount >= 1 ) acc0 = _mm256_set1_ps( 0 ); \
+	if( FilterCount >= 1 && OutputCount >= 2 ) acc4 = _mm256_set1_ps( 0 ); \
+	if( FilterCount >= 1 && OutputCount >= 3 ) acc8 = _mm256_set1_ps( 0 ); \
+	if( FilterCount >= 2 && OutputCount >= 1 ) acc1 = _mm256_set1_ps( 0 ); \
+	if( FilterCount >= 2 && OutputCount >= 2 ) acc5 = _mm256_set1_ps( 0 ); \
+	if( FilterCount >= 2 && OutputCount >= 3 ) acc9 = _mm256_set1_ps( 0 ); \
+	if( FilterCount >= 3 && OutputCount >= 1 ) acc2 = _mm256_set1_ps( 0 ); \
+	if( FilterCount >= 3 && OutputCount >= 2 ) acc6 = _mm256_set1_ps( 0 ); \
+	if( FilterCount >= 3 && OutputCount >= 3 ) acc10 = _mm256_set1_ps( 0 ); \
+	if( FilterCount >= 4 && OutputCount >= 1 ) acc3 = _mm256_set1_ps( 0 ); \
+	if( FilterCount >= 4 && OutputCount >= 2 ) acc7 = _mm256_set1_ps( 0 ); \
+	if( FilterCount >= 4 && OutputCount >= 3 ) acc11 = _mm256_set1_ps( 0 ); \
 }
 
 /*
@@ -374,7 +374,7 @@ void RunConv( const float* Input, const float* OrigFilter, const float* OrigBias
 				frame.InputStride = inputStride;
 				frame.FilterStride = filterStride;
 				frame.OutputStride = outputStride;
-				frame.KernelHeight = effectiveKernelHeight;
+				frame.KernelHeight = static_cast<int>( effectiveKernelHeight );
 				frame.KernelWidth = wKer;
 				frame.InputBase = input + 8 * ( ih * wIn );
 				frame.InputWidth = inputWidth;
