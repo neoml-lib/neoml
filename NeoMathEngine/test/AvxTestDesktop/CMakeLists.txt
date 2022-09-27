@@ -3,6 +3,7 @@ project(NeoAvxTestDesktop)
 include(Utils)
 
 add_executable(${PROJECT_NAME}
+    BlockedConvTest.cpp
     common.cpp
     main.cpp
 
@@ -19,8 +20,9 @@ if(MSVC)
 endif()
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
-    gtest
+    CommonTestTools
     NeoMathEngine
+    gtest
 )
 
 configure_target(${PROJECT_NAME})
