@@ -41,11 +41,14 @@ public:
 	virtual void BlobConvolution( const CConvolutionDesc& convDesc, const float* source,
 		const float* filter, const float* freeTerm, float* result ) const = 0;
 
-	/*virtual void PackBlockedData(const CBlobDesc& desc, const float* source, float* result) const = 0;
+	virtual CConvolutionDesc* InitBlockedConvolution( const CBlobDesc& source, int paddingHeight, int paddingWidth,
+		int strideHeight, int strideWidth, int dilationHeight, int dilationWidth, const CBlobDesc& filter,
+		const CBlobDesc& result ) const = 0;
+	virtual void PackBlockedData(const CBlobDesc& desc, const float* source, float* result) const = 0;
 	virtual void UnpackBlockedData( const CBlobDesc& desc, const float* source, float* result ) const = 0;
 	virtual void PackBlockedFilter( const CBlobDesc& desc, const float* source, float* result ) const = 0;
 	virtual void BlockedConvolution( const CConvolutionDesc& convDesc, const float* packedSource,
-		const float* packedFilter, const float* freeTerm, float* packedResult ) const = 0;*/
+		const float* packedFilter, const float* freeTerm, float* packedResult ) const = 0;
 
 	virtual SgemmFunc GetSgemmFunction() const = 0;
 

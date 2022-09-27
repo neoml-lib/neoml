@@ -13,6 +13,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
+#pragma once
+
 #include <NeoMathEngine/SimdMathEngine.h>
 #include <PrimitivesJit.h>
 
@@ -30,11 +32,14 @@ public:
 	void BlobConvolution( const CConvolutionDesc& convDesc, const float* source,
 		const float* filter, const float* freeTerm, float* result ) const override;
 
-	/*void PackBlockedData(const CBlobDesc& desc, const float* source, float* result) const override;
+	virtual CConvolutionDesc* InitBlockedConvolution( const CBlobDesc& source, int paddingHeight, int paddingWidth,
+		int strideHeight, int strideWidth, int dilationHeight, int dilationWidth, const CBlobDesc& filter,
+		const CBlobDesc& result ) const override;
+	void PackBlockedData( const CBlobDesc& desc, const float* source, float* result ) const override;
 	void UnpackBlockedData( const CBlobDesc& desc, const float* source, float* result ) const override;
 	void PackBlockedFilter( const CBlobDesc& desc, const float* source, float* result ) const override;
 	void BlockedConvolution( const CConvolutionDesc& convDesc, const float* packedSource,
-		const float* packedFilter, const float* freeTerm, float* packedResult ) const override;*/
+		const float* packedFilter, const float* freeTerm, float* packedResult ) const override;
 
 	SgemmFunc GetSgemmFunction() const override;
 
