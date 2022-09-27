@@ -29,7 +29,7 @@ public:
 
 	void Serialize( CArchive& archive ) override;
 
-	// CDF can be calculated using the error function (slow) or using an approximation. The precise method is used by default.
+	// CDF can be calculated using the error function (slow) or using an approximation. The approximate method is used by default.
 	enum TCalculationMode {
 		// x * 0.5( 1 + erf( x / sqrt(2) ) )
 		CM_Precise,

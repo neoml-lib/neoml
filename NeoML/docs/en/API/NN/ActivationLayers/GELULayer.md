@@ -24,7 +24,7 @@ f(x) = x * sigmoid( 1.702 * x )
 
 ## Settings
 
-Whether to calculate the exact value using the Error function (TCalculationMode::Precise), or an approximate one (TCalculationMode::FastApproximate).
+Whether to calculate the exact value using the Error function (TCalculationMode::Precise), or an approximate one (TCalculationMode::SigmoidApproximate).
 ```c++
 void SetCalculationMode( TCalculationMode );
 ```
