@@ -794,6 +794,8 @@ class LayersTestCase(MultithreadedTestCase):
     def test_activation_gelu(self):
         out = self._test_activation('GELU')
         self.assertTrue(np.isclose(out, 0.84579575).all())
+        out = self._test_activation('GELU', dict(calculation_mode='precise'))
+        self.assertTrue(np.isclose(out, 0.8413447).all())
 
     def test_activation_abs(self):
         out = self._test_activation('Abs')

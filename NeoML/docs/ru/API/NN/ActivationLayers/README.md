@@ -53,7 +53,7 @@ enum TActivationFunction {
 `AF_HardSigmoid` | [CHardSigmoidLayer](HardSigmoidLayer.md) | функция активации `HardSigmoid`
 `AF_Power` | [CPowerLayer](PowerLayer.md) | функция активации `pow(x, exp)`
 `AF_HSwish` | [CHSwishLayer](HSwishLayer.md) | функция активации `h-swish`
-`AF_GELU` | [CGELULayer](GELULayer.md) | функция активации `x * sigmoid(1.702 * x)`
+`AF_GELU` | [CGELULayer](GELULayer.md) | функция активации `x * F( X < x )`, где X ~ N(0, 1)
 `AF_Exp` | [CExpLayer](ExpLayer.md) | функция активации `exp`
 `AF_Log` | [CLogLayer](LogLayer.md) | функция активации `log`
 `AF_Erf` | [CErfLayer](ErfLayer.md) | функция активации `erf`
