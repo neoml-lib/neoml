@@ -221,7 +221,7 @@ delete gpuMathEngine;
   - [CHardSigmoidLayer](ActivationLayers/HardSigmoidLayer.md) - `HardSigmoid` activation function
   - [CPowerLayer](ActivationLayers/PowerLayer.md) - `pow(x, exp)` activation function
   - [CHSwishLayer](ActivationLayers/HSwishLayer.md) - `h-swish` activation function
-  - [CGELULayer](ActivationLayers/GELULayer.md) - `x * sigmoid(1.702 * x)` activation function
+  - [CGELULayer](ActivationLayers/GELULayer.md) - `x * F( X < x )` activation function, where X ~ N(0, 1)
   - [CExpLayer](ActivationLayers/ExpLayer.md) - `exp` activation function
   - [CLogLayer](ActivationLayers/LogLayer.md) - `log` activation function
   - [CErfLayer](ActivationLayers/ErfLayer.md) - `erf` activation function
