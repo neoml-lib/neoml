@@ -102,7 +102,7 @@ CPtr<CDnnBlob> CObjectNormalizationLayer::GetBias() const
 void CObjectNormalizationLayer::OnReshaped()
 {
 	CheckArchitecture( GetInputCount() == 1, GetPath(), "layer must have exactly 1 input" );
-	CheckArchitecture( GetOutputCount() == 1, GetPath(), "Source layer has more than 1 output" );
+	CheckArchitecture( GetOutputCount() == 1, GetPath(), "layer must have exactly 1 output" );
 
 	CBlobDesc paramDesc;
 	paramDesc.SetDimSize( BD_Channels, inputDescs[0].ObjectSize() );
