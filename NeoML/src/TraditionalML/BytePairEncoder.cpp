@@ -92,7 +92,7 @@ CString CBytePairEncoder::MergeTokens( const CString& first, const CString& seco
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void CBytePairEncoder::LoadDictionary( const CBPEDictionary& _tokens )
+void CBytePairEncoder::InitializeUnsafe( const CBPEDictionary& _tokens )
 {
 	NeoAssert( !IsInitialized() );
 
@@ -202,11 +202,14 @@ bool CBytePairEncoder::replaceSowToken( CString& token, const CString& sowToken,
 }
 
 static constexpr int BytePairEncoderImplVersion = 1;
-static const CString DeprecatedSowToken( "/\xFF" );
-static const CString DeprecatedEowToken( "\\\xFF" );
+// version 0
+static const CString LegacySowToken( "/\xFF" );
+static const CString LegacyEowToken( "\\\xFF" );
 
 void CBytePairEncoder::Serialize( CArchive& archive )
 {
+	ClearCache();
+
 	const int version = archive.SerializeVersion( BytePairEncoderImplVersion );
 	if( version >= 1 ) {
 		params.Serialize( archive );
@@ -214,12 +217,12 @@ void CBytePairEncoder::Serialize( CArchive& archive )
 		bool useEow{};
 		archive.Serialize( useEow );
 		if( useEow ) {
-			params.EndOfWordToken = DeprecatedEowToken;
+			params.EndOfWordToken = LegacyEowToken;
 		}
 		bool useSow{};
 		archive.Serialize( useSow );
 		if( useSow ) {
-			params.StartOfWordToken = DeprecatedSowToken;
+			params.StartOfWordToken = LegacySowToken;
 		}
 		params.UseRawBytes = false;
 		params.UnknownTokenId = DefaultUnknownTokenId;
@@ -240,7 +243,7 @@ void CBytePairEncoder::Initialize( const CBPEDictionary& _tokens, const CParams&
 
 	// Save parameters and fill maps
 	params = _params;
-	LoadDictionary( _tokens );
+	InitializeUnsafe( _tokens );
 
 	// Check data
 	NeoAssert( !UseStartOfWordToken() || params.StartOfWordToken != params.EndOfWordToken );

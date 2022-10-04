@@ -23,9 +23,9 @@ limitations under the License.
 namespace NeoML {
 
 // Start-of-Word token for the internal dictionary
-static const CString SowToken( "//\xFF" );
+static const CString SowToken( "/\xFF" );
 // End-of-Word token for the internal dictionary
-static const CString EowToken( "\\\\\xFF" );
+static const CString EowToken( "\\\xFF" );
 
 // 1: Add CParams (bug fix).
 // 2: Add RawBytes and UnknownTokenId.
@@ -62,10 +62,8 @@ CBytePairEncoderTrainer::CBytePairEncoderTrainer( const CParams& params_, const 
 	createTrainData( dictionary );
 }
 
-CBytePairEncoderTrainer::~CBytePairEncoderTrainer()
-{
-	// CPtr<CBytePairEncoder>
-}
+// CPtr<CBytePairEncoder>
+CBytePairEncoderTrainer::~CBytePairEncoderTrainer() = default;
 
 CPtr<IBytePairEncoder> CBytePairEncoderTrainer::Train()
 {
@@ -124,7 +122,7 @@ CPtr<IBytePairEncoder> CBytePairEncoderTrainer::GetEncoder()
 		for( int i = 0; i < tokensDictionary.Size(); ++i ) {
 			dictionary.Add( tokensDictionary.GetWord( i ) );
 		}
-		result->LoadDictionary( dictionary );
+		result->InitializeUnsafe( dictionary );
 	}
 	return result.Ptr();
 }

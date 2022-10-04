@@ -142,6 +142,8 @@ public:
 	// Every token except the letters (or bytes), EOW and SOW must be a concatenation of two other tokens.
 	// If not empty, EOW and SOW must be contained in 'tokens' exactly only once as a separate token.
 	virtual void Initialize( const CBPEDictionary& tokens, const CParams& ) = 0;
+	// Whether the encoder is ready or it needs to be initialized using Initialize() or Serialize()
+	virtual bool IsInitialized() const = 0;
 
 	// The functions below should not be used before initialization.
 
@@ -159,7 +161,7 @@ public:
 
 ///////////////////////////////////////////////////////////////////////////////
 
-inline IBytePairEncoder::CParams::CParams( CString endOfWordToken, CString startOfWordToken, bool useRawBytes,	int unknownTokenId ) :
+inline IBytePairEncoder::CParams::CParams( CString endOfWordToken, CString startOfWordToken, bool useRawBytes, int unknownTokenId ) :
 	EndOfWordToken( std::move( endOfWordToken ) ),
 	StartOfWordToken( std::move( startOfWordToken ) ),
 	UseRawBytes( useRawBytes ),

@@ -28,8 +28,7 @@ public:
 	// Construction with an empty dictionary. Generally ctor is used by CBytePairEncoderTrainer.
 	CBytePairEncoder( CParams params ) : params( std::move( params ) ) {}
 	// Loads a dictionary without additional checks. Completes the initialization for CBytePairEncoderTrainer
-	void LoadDictionary( const CBPEDictionary& );
-	bool IsInitialized() const { return !tokens.IsEmpty(); }
+	void InitializeUnsafe( const CBPEDictionary& );
 
 	// ISubwordEncoder:
 	void Decode( const CArray<int>& tokenIds, CArray<CString>& words ) const override;
@@ -38,6 +37,7 @@ public:
 
 	// IBytePairEncoder:
 	void Initialize( const CBPEDictionary& tokens, const CParams& ) override;
+	bool IsInitialized() const override { return !tokens.IsEmpty(); }
 	void GetIdToTokenMapping( CMap<int, CString>& ) const override;
 	void GetTokenToIdMapping( CMap<CString, int>& ) const override;
 	bool UseEndOfWordToken() const override { return !params.EndOfWordToken.IsEmpty(); }

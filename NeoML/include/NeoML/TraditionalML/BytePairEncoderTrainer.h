@@ -38,7 +38,7 @@ public:
 		int UnknownTokenId = IBytePairEncoder::DefaultUnknownTokenId;
 
 		CParams() = default;
-		CParams( int maxSize, bool useEndOfWordToken, bool useStartOfWordToken, bool useRawBytes );
+		CParams( int maxSize, bool useEndOfWordToken, bool useStartOfWordToken, bool useRawBytes, int unknownTokenId );
 
 		void Serialize( CArchive& archive );
 	};
@@ -95,11 +95,13 @@ private:
 	bool trainSingleStep();
 };
 
-inline CBytePairEncoderTrainer::CParams::CParams( int maxSize, bool useEndOfWordToken, bool useStartOfWordToken, bool useRawBytes ) :
+inline CBytePairEncoderTrainer::CParams::CParams( int maxSize, bool useEndOfWordToken, bool useStartOfWordToken,
+		bool useRawBytes, int unknownTokenId ) :
 	MaxSize( maxSize ),
 	UseEndOfWordToken( useEndOfWordToken ),
 	UseStartOfWordToken( useStartOfWordToken ),
-	UseRawBytes( useRawBytes )
+	UseRawBytes( useRawBytes ),
+	UnknownTokenId( unknownTokenId )
 {}
 
 } // namespace NeoML
