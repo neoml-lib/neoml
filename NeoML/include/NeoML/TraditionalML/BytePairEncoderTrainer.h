@@ -38,7 +38,8 @@ public:
 		int UnknownTokenId = IBytePairEncoder::DefaultUnknownTokenId;
 
 		CParams() = default;
-		CParams( int maxSize, bool useEndOfWordToken, bool useStartOfWordToken, bool useRawBytes, int unknownTokenId );
+		CParams( int maxSize, bool useEndOfWordToken, bool useStartOfWordToken, 
+			bool useRawBytes, int unknownTokenId = IBytePairEncoder::DefaultUnknownTokenId );
 
 		void Serialize( CArchive& archive );
 	};
