@@ -219,7 +219,7 @@ delete gpuMathEngine;
   - [CHardSigmoidLayer](ActivationLayers/HardSigmoidLayer.md) - функция активации `HardSigmoid`
   - [CPowerLayer](ActivationLayers/PowerLayer.md) - функция активации `pow(x, exp)`
   - [CHSwishLayer](ActivationLayers/HSwishLayer.md) - функция активации `h-swish`
-  - [CGELULayer](ActivationLayers/GELULayer.md) - функция активации `x * sigmoid(1.702 * x)`
+  - [CGELULayer](ActivationLayers/GELULayer.md) - функция активации `x * F( X < x )`, где X ~ N(0, 1)
   - [CExpLayer](ActivationLayers/ExpLayer.md) - функция активации `exp`
   - [CLogLayer](ActivationLayers/LogLayer.md) - функция активации `log`
   - [CErfLayer](ActivationLayers/ExpLayer.md) - функция активации `erf`
