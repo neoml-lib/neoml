@@ -55,7 +55,7 @@ TActivationFunction constant | Class name | Activation function
 `AF_HardSigmoid` | [CHardSigmoidLayer](HardSigmoidLayer.md) | `HardSigmoid` activation function
 `AF_Power` | [CPowerLayer](PowerLayer.md) | `pow(x, exp)` activation function
 `AF_HSwish` | [CHSwishLayer](HSwishLayer.md) | `h-swish` activation function
-`AF_GELU` | [CGELULayer](GELULayer.md) | `x * sigmoid(1.702 * x)` activation function
+`AF_GELU` | [CGELULayer](GELULayer.md) | `x * F( X < x )` activation function, where X ~ N(0, 1)
 `AF_Exp` | [CExpLayer](ExpLayer.md) | `exp` activation function
 `AF_Log` | [CLogLayer](LogLayer.md) | `log` activation function
 `AF_Erf` | [CErfLayer](ErfLayer.md) | `erf` activation function
