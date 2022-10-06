@@ -21,14 +21,13 @@ limitations under the License.
 
 class CPyBytePairEncoder {
 public:
-	CPyBytePairEncoder();
-	
-	void Train( py::dict dictionary, int maxVocabSize, bool useEndOfWordToken,
-		bool useStartOfWordToken );
+	void Train( py::dict dictionary, int maxVocabSize, 
+		bool useEndOfWordToken,	bool useStartOfWordToken, 
+		bool useRawBytes, int unknownTokenId );
 
-	void LoadFromDictionary( py::dict dictionary, 
-		const std::string& endOfWordToken, const std::string& startOfWordToken );
-	py::dict GetDictionary() const;
+	void Initialize( py::list words, 
+		const std::string& endOfWordToken, const std::string& startOfWordToken, 
+		bool useRawBytes, int unknownTokenId );
 
 	void Load( const std::string& path );
 	void Store( const std::string& path );
@@ -36,9 +35,12 @@ public:
 	py::tuple Encode( py::list text ) const;
 	py::list Decode( py::list tokenIds ) const;
 
+	py::dict GetDictionary() const;
 	int Size() const;
 	bool UseEoW() const;
 	bool UseSoW() const;
+	bool UseRawBytes() const;
+	int UnknownTokenId() const;
 
 	void SetCachePeriod( int period ) const;
 	int GetCachePeriod() const;
@@ -49,12 +51,8 @@ private:
 	CPtr<IBytePairEncoder> encoder;
 };
 
-CPyBytePairEncoder::CPyBytePairEncoder() :
-	encoder( nullptr )
-{}
-
 void CPyBytePairEncoder::Train( py::dict dictionary, int maxVocabSize,
-	bool useEndOfWordToken, bool useStartOfWordToken )
+	bool useEndOfWordToken, bool useStartOfWordToken, bool useRawBytes, int unknownTokenId )
 {
 	CWordDictionary dictionaryRaw;
 	for( const auto& item : dictionary ) {
@@ -68,37 +66,25 @@ void CPyBytePairEncoder::Train( py::dict dictionary, int maxVocabSize,
 		params.MaxSize = maxVocabSize;
 		params.UseEndOfWordToken = useEndOfWordToken;
 		params.UseStartOfWordToken = useStartOfWordToken;
+		params.UseRawBytes = useRawBytes;
+		params.UnknownTokenId = unknownTokenId;
 
 		CBytePairEncoderTrainer trainer( params, dictionaryRaw );
 		encoder = trainer.Train();
 	}
 }
 
-py::dict CPyBytePairEncoder::GetDictionary() const
+void CPyBytePairEncoder::Initialize( py::list words, 
+	const std::string& endOfWordToken, const std::string& startOfWordToken,
+	bool useRawBytes, int unknownTokenId )
 {
-	NeoAssert( encoder != nullptr );
-
-	py::dict result;
-	CWordDictionary dictionary;
-	{
-		py::gil_scoped_release release;
-		encoder->GetDictionary( dictionary );
-	}
-	for( int i = 0; i < dictionary.Size(); ++i ) {
-		result[dictionary.GetWord( i )] = dictionary.GetWordUseCount( i );
-	}
-	return result;
-}
-
-void CPyBytePairEncoder::LoadFromDictionary( py::dict dictionary, 
-	const std::string& useEndOfWordToken, const std::string& useStartOfWordToken )
-{
-	CWordDictionary dictionaryRaw;
-	for( const auto& item : dictionary ) {
-		dictionaryRaw.AddWord( item.first.cast<std::string>(), item.second.cast<int>() );
+	IBytePairEncoder::CBPEDictionary bpeDictionary;
+	bpeDictionary.SetBufferSize( words.size() );
+	for( const auto& item : words ) {
+		bpeDictionary.Add( item.cast<std::string>() );
 	}
 	encoder = CheckCast<IBytePairEncoder>( CreateModel( BytePairEncoderModelName ) );
-	encoder->LoadDictionary( dictionaryRaw, useEndOfWordToken, useStartOfWordToken );
+	encoder->Initialize( bpeDictionary, IBytePairEncoder::CParams{ endOfWordToken, startOfWordToken, useRawBytes, unknownTokenId } );
 }
 
 void CPyBytePairEncoder::Load( const std::string& path )
@@ -162,6 +148,22 @@ py::list CPyBytePairEncoder::Decode( py::list _tokenIds ) const
 	return resultWords;
 }
 
+py::dict CPyBytePairEncoder::GetDictionary() const
+{
+	NeoAssert( encoder != nullptr );
+
+	py::dict result;
+	CMap<CString, int> dictionary;
+	{
+		py::gil_scoped_release release;
+		encoder->GetTokenToIdMapping( dictionary );
+	}
+	for( auto pos = dictionary.GetFirstPosition(); pos != NotFound; pos = dictionary.GetNextPosition( pos ) ) {
+		result[dictionary.GetKey( pos )] = dictionary.GetValue( pos );
+	}
+	return result;
+}
+
 int CPyBytePairEncoder::Size() const
 {
 	NeoAssert( encoder != nullptr );
@@ -178,6 +180,18 @@ bool CPyBytePairEncoder::UseSoW() const
 {
 	NeoAssert( encoder != nullptr );
 	return encoder->UseStartOfWordToken(); 
+}
+
+bool CPyBytePairEncoder::UseRawBytes() const
+{
+	NeoAssert( encoder != nullptr );
+	return encoder->UseRawBytes();
+}
+
+int CPyBytePairEncoder::UnknownTokenId() const
+{
+	NeoAssert( encoder != nullptr );
+	return encoder->UnknownTokenId();
 }
 
 void CPyBytePairEncoder::SetCachePeriod( int period ) const
@@ -202,15 +216,17 @@ void InitializeBytePairEncoder( py::module& m )
 	py::class_<CPyBytePairEncoder>(m, "BytePairEncoder")
 		.def( py::init<>() )
 		.def( "train", &CPyBytePairEncoder::Train )
-		.def( "load_from_dictionary", &CPyBytePairEncoder::LoadFromDictionary, py::return_value_policy::reference )
+		.def( "initialize", &CPyBytePairEncoder::Initialize, py::return_value_policy::reference )
 		.def( "load",  &CPyBytePairEncoder::Load )
 		.def( "store",  &CPyBytePairEncoder::Store )
 		.def( "encode", &CPyBytePairEncoder::Encode )
 		.def( "decode", &CPyBytePairEncoder::Decode )
-		.def( "get_size", &CPyBytePairEncoder::Size )
 		.def( "get_dictionary", &CPyBytePairEncoder::GetDictionary )
+		.def( "get_size", &CPyBytePairEncoder::Size )
 		.def( "use_eow", &CPyBytePairEncoder::UseEoW )
 		.def( "use_sow", &CPyBytePairEncoder::UseSoW )
+		.def( "use_raw_bytes", &CPyBytePairEncoder::UseRawBytes )
+		.def( "unknown_token_id", &CPyBytePairEncoder::UnknownTokenId )
 		.def( "set_cache_period", &CPyBytePairEncoder::SetCachePeriod )
 		.def( "get_cache_period", &CPyBytePairEncoder::GetCachePeriod )
 		.def( py::pickle(

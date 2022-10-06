@@ -19,6 +19,7 @@ limitations under the License.
 #include <NeoML/TraditionalML/SubwordEncoder.h>
 
 namespace NeoML {
+class CBytePairEncoder;
 
 // Class that trains byte-pair-encoding.
 class NEOML_API CBytePairEncoderTrainer {
@@ -31,9 +32,14 @@ public:
 		bool UseEndOfWordToken = true;
 		// Add SoW token to each word.
 		bool UseStartOfWordToken = false;
+		// Treat strings as arrays of raw bytes.
+		bool UseRawBytes = false;
+		// The id of <UNK>.
+		int UnknownTokenId = IBytePairEncoder::DefaultUnknownTokenId;
 
 		CParams() = default;
-		CParams( int maxSize, bool useEndOfWordToken, bool useStartOfWordToken );
+		CParams( int maxSize, bool useEndOfWordToken, bool useStartOfWordToken, 
+			bool useRawBytes, int unknownTokenId = IBytePairEncoder::DefaultUnknownTokenId );
 
 		void Serialize( CArchive& archive );
 	};
@@ -42,6 +48,8 @@ public:
 
 	CBytePairEncoderTrainer( const CBytePairEncoderTrainer& other ) = delete;
 	CBytePairEncoderTrainer& operator=( const CBytePairEncoderTrainer& other ) = delete;
+
+	~CBytePairEncoderTrainer();
 
 	// Trains and returns a fully trained encoder.
 	CPtr<IBytePairEncoder> Train();
@@ -54,7 +62,7 @@ public:
 	bool IsTrainingCompleted() const;
 
 	// Returns encoder consisting of bpe tokens obtained from completed steps.
-	CPtr<IBytePairEncoder> GetEncoder() const;
+	CPtr<IBytePairEncoder> GetEncoder();
 
 	// Save/load checkpoint
 	void Serialize( CArchive& archive );
@@ -79,16 +87,22 @@ private:
 	typedef CMap<CString, CHashTable<int>> CPairReverseIndex;
 	CPairReverseIndex reverseIndex;
 
+	CPtr<CBytePairEncoder> encoder;
+
+	CPtr<CBytePairEncoder> createEncoder() const;
 	void createTrainData( const CWordDictionary& dictionary );
 	void buildPairDictionary();
 	int calcCurrentStepsCount( int requestedIterationsCount ) const;
 	bool trainSingleStep();
 };
 
-inline CBytePairEncoderTrainer::CParams::CParams( int maxSize, bool useEndOfWordToken, bool useStartOfWordToken ) :
+inline CBytePairEncoderTrainer::CParams::CParams( int maxSize, bool useEndOfWordToken, bool useStartOfWordToken,
+		bool useRawBytes, int unknownTokenId ) :
 	MaxSize( maxSize ),
 	UseEndOfWordToken( useEndOfWordToken ),
-	UseStartOfWordToken( useStartOfWordToken )
+	UseStartOfWordToken( useStartOfWordToken ),
+	UseRawBytes( useRawBytes ),
+	UnknownTokenId( unknownTokenId )
 {}
 
 } // namespace NeoML

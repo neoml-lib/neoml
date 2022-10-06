@@ -38,6 +38,8 @@ public:
 
 	void StrReplace( int pos, int num, const CString& str );
 	int CompareSubstr( int from, const char* str, int strLength ) const;
+
+	CString Mid( int pos, int num ) const;
 };
 
 inline int CString::Find( const CString& other, int startPos ) const
@@ -55,6 +57,11 @@ inline int CString::CompareSubstr( int from, const char* str, int strLength ) co
 inline void CString::StrReplace( int pos, int num, const CString& str )
 {
 	replace( static_cast< size_t >( pos ), static_cast< size_t >( num ), str );
+}
+
+inline CString CString::Mid( int pos, int num ) const
+{
+	return substr( static_cast< size_t >( pos ), static_cast< size_t >( num ) );
 }
 
 inline CString operator+( const CString& first, const CString& second )
