@@ -82,7 +82,7 @@ void CMultiheadAttentionLayer::SetOutputSize( int _outputSize )
 	DeleteAllLayers();
 }
 
-static const int MultiheadAttentionLayerVersion = 1;
+static const int MultiheadAttentionLayerVersion = 2;
 
 void CMultiheadAttentionLayer::Serialize( CArchive& archive )
 {
@@ -97,6 +97,11 @@ void CMultiheadAttentionLayer::Serialize( CArchive& archive )
 		archive.SerializeEnum( maskType );
 	} else {
 		maskType = MT_OneObject;
+	}
+	if( version >= 2 ) {
+		archive.Serialize( useWrongScaling );
+	} else {
+		useWrongScaling = true;
 	}
 }
 
@@ -121,14 +126,14 @@ void CMultiheadAttentionLayer::Rebuild( bool forceRebuild )
 }
 
 // Creates layer with new parameters
-// Here and further blob sizes are shown as [BathcWidth, ListSize, Width, Channels]
+// Here and further blob sizes are shown as [BatchWidth, ListSize, Width, Channels]
 void CMultiheadAttentionLayer::create()
 {
 	NeoAssert( headCount > 0 );
 	NeoAssert( hiddenSize % headCount == 0 );
 
 	// scaling factor
-	const float multiplier = static_cast<float>( 1.0 / sqrt( 1.0 * hiddenSize ) );
+	const float multiplier = static_cast<float>( 1.0 / sqrt( 1.0 * hiddenSize / ( useWrongScaling ? 1 : headCount ) ) );
 
 	// Applying W_Q, W_K and W_V to the corresponding inputs
 	// [B, seq_Q, 1, hiddenSize]
@@ -216,7 +221,7 @@ CBaseLayer* CMultiheadAttentionLayer::multiplyInputByMatrixWeights(
 	fcLayer->SetName( name );
 	AddLayer( *fcLayer );
 
-	// Вход маппится на этот слой.
+	// Connect input with this sublayer
 	SetInputMapping( input, *fcLayer, 0 );
 
 	return fcLayer;

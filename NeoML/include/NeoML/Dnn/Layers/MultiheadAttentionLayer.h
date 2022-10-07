@@ -71,7 +71,7 @@ public:
 	void SetHiddenSize( int _hiddenSize );
 
 	// Rate of dropout applied to the softmax
-	// Negaive value means no dropout
+	// Negative value means no dropout
 	// By default the dropout rate is -1
 	float GetDropoutRate() const { return dropoutRate; }
 	void SetDropoutRate( float dropoutRate ); 
@@ -110,6 +110,8 @@ private:
 	// Output size
 	int outputSize;
 
+	bool useWrongScaling = false;
+
 	void create();
 
 	// Layer inputs
@@ -135,6 +137,10 @@ private:
 	CBaseLayer* prepareK( CBaseLayer* input );
 	CBaseLayer* prepareV( CBaseLayer* input );
 	CBaseLayer* prepareOutput( CBaseLayer* input );
+
+public:
+	bool GetUseWrongScaling() const { return useWrongScaling; }
+	void SetUseWrongScaling( bool pleasedont = false ) { useWrongScaling = pleasedont; }
 };
 
 NEOML_API CLayerWrapper<CMultiheadAttentionLayer> MultiheadAttention(
