@@ -20,6 +20,7 @@ limitations under the License.
 
 #include <NeoMathEngine/SimdMathEngine.h>
 #include <AvxMathEngine.h>
+#include <JitCommon.h>
 
 namespace NeoML {
 
@@ -137,6 +138,121 @@ void CAvxMathEngine::PackBlockedFilter( const CBlobDesc& desc, const float* sour
 		}
 	}
 }
+
+// --------------------------------------------------------------------------------------------------------------------
+
+struct CJitGen {
+	CJitCommon gen;
+	std::mutex lock;
+};
+
+std::array<CJitGen, static_cast<size_t>( 4 * 3 * 8 )> computeBlockGens;
+
+static void initComputeBlock( int filterCount, int outputCount, int broadcast )
+{
+	using namespace Xbyak;
+	using namespace Xbyak::util;
+
+	const int genIndex = broadcast + 8 * ( ( outputCount - 1 ) + 3 * ( filterCount - 1 ) );
+	const int broadcastOffset = broadcast * sizeof( float );
+	const int vectorOffset = broadcast * 8 * sizeof( float );
+	CJitCommon& gen = computeBlockGens[genIndex].gen;
+	CodeGenerator& baseGen = static_cast<CodeGenerator&>( gen );
+	
+	ymmVec_t acc( 16 );
+	for( int i = 0; i < 16; ++i ) {
+		acc[i] = ymm_t( i );
+	}
+
+#ifdef _WIN32
+	reg64Vec_t preservedGPR = { rdi, rsi, r12 };
+#else
+	reg64Vec_t preservedGPR = { r12 };
+#endif
+
+	Address stackArgsPtr = gen.Prologue( preservedGPR, acc );
+	
+	const reg64_t regInput = Param1;
+	const reg64_t regStrideWidth = Param2;
+	const reg64_t regFilter = Param3;
+	const reg64_t regFilterStride = Param4;
+#ifdef _WIN32
+	const reg64_t regYmmBuff = rdi;
+	gen.mov( regYmmBuff, stackArgsPtr );
+	const reg64_t regShiftedInput = rsi;
+	gen.mov( regShiftedInput, gen.ptr[stackArgsPtr.getRegExp() + SizeofReg64] );
+	const reg64_t regShiftedFilter = r12;
+	gen.mov( regShiftedFilter, gen.ptr[stackArgsPtr.getRegExp() + 2 * SizeofReg64] );
+#else
+	const reg64_t regYmmBuff = Param5;
+	const reg64_t regShiftedInput = Param6;
+	const reg64_t regShiftedFilter = r12;
+	gen.mov( regShiftedFilter, stackArgsPtr );
+#endif
+
+	// DEBUG Load acc values from regYmmBuff
+	for( int i = 0; i < 12; ++i ) {
+		gen.vmovups( acc[i], gen.ptr[regYmmBuff + i * SizeOfYmm]);
+	}
+
+	// COMPUTE_BLOCK
+	if( outputCount >= 1 ) gen.vbroadcastss( acc[13], gen.ptr[regInput + broadcastOffset] );
+	if( outputCount >= 2 ) gen.vbroadcastss( acc[14], gen.ptr[regInput + regStrideWidth + broadcastOffset] );
+	if( outputCount >= 3 ) gen.vbroadcastss( acc[15], gen.ptr[regShiftedInput + broadcastOffset] );
+
+	if( outputCount == 1 ) {
+		if( filterCount >= 1 ) baseGen.vfmadd231ps( acc[0], acc[13], gen.ptr[regFilter + vectorOffset] );
+		if( filterCount >= 2 ) baseGen.vfmadd231ps( acc[1], acc[13], gen.ptr[regFilter + regFilterStride + vectorOffset] );
+		if( filterCount >= 3 ) baseGen.vfmadd231ps( acc[2], acc[13], gen.ptr[regShiftedFilter + vectorOffset] );
+		if( filterCount >= 4 ) baseGen.vfmadd231ps( acc[3], acc[13], gen.ptr[regShiftedFilter + regFilterStride + vectorOffset] );
+	} else {
+		if( filterCount >= 1 ) gen.vmovups( acc[12], gen.ptr[regFilter + vectorOffset] );
+		if( filterCount >= 1 && outputCount >= 1 ) baseGen.vfmadd231ps( acc[0], acc[13], acc[12] );
+		if( filterCount >= 1 && outputCount >= 2 ) baseGen.vfmadd231ps( acc[4], acc[14], acc[12] );
+		if( filterCount >= 1 && outputCount >= 3 ) baseGen.vfmadd231ps( acc[8], acc[15], acc[12] );
+	
+		if( filterCount >= 2 ) gen.vmovups( acc[12], gen.ptr[regFilter + regFilterStride + vectorOffset] );
+		if( filterCount >= 2 && outputCount >= 1 ) baseGen.vfmadd231ps( acc[1], acc[13], acc[12] );
+		if( filterCount >= 2 && outputCount >= 2 ) baseGen.vfmadd231ps( acc[5], acc[14], acc[12] );
+		if( filterCount >= 2 && outputCount >= 3 ) baseGen.vfmadd231ps( acc[9], acc[15], acc[12] );
+	
+		if( filterCount >= 3 ) gen.vmovups( acc[12], gen.ptr[regShiftedFilter + vectorOffset] );
+		if( filterCount >= 3 && outputCount >= 1 ) baseGen.vfmadd231ps( acc[2], acc[13], acc[12] );
+		if( filterCount >= 3 && outputCount >= 2 ) baseGen.vfmadd231ps( acc[6], acc[14], acc[12] );
+		if( filterCount >= 3 && outputCount >= 3 ) baseGen.vfmadd231ps( acc[10], acc[15], acc[12] );
+
+		if( filterCount >= 4 ) gen.vmovups( acc[12], gen.ptr[regShiftedFilter + regFilterStride + vectorOffset] );
+		if( filterCount >= 4 && outputCount >= 1 ) baseGen.vfmadd231ps( acc[3], acc[13], acc[12] );
+		if( filterCount >= 4 && outputCount >= 2 ) baseGen.vfmadd231ps( acc[7], acc[14], acc[12] );
+		if( filterCount >= 4 && outputCount >= 3 ) baseGen.vfmadd231ps( acc[11], acc[15], acc[12] );
+	}
+
+	// DEBUG Store acc values to regYmmBuff
+	for( size_t i = 0; i < 12; ++i ) {
+		gen.vmovups( gen.ptr[regYmmBuff + i * SizeOfYmm], acc[i] );
+	}
+
+	gen.Epilogue( preservedGPR, acc );
+	gen.ret();
+}
+
+static void runComputeBlock( int filterCount, int outputCount, int broadcast,
+	const float* input, int strideWidth, const float* filter, int filterStride, float* ymmBuff )
+{
+	const int genIndex = broadcast + 8 * ( ( outputCount - 1 ) + 3 * ( filterCount - 1 ) );
+	CJitCommon& gen = computeBlockGens[genIndex].gen;
+	if( gen.getSize() == 0 ) {
+		initComputeBlock( filterCount, outputCount, broadcast );
+	}
+
+	//gen.dump();
+	typedef void (*TComputeBlockJitFunc)( const float*, size_t, const float*, size_t, float*,
+		const float*, const float* );
+	gen.getCode<TComputeBlockJitFunc>()( input, strideWidth * sizeof( float ), filter,
+		filterStride * sizeof( float ), ymmBuff, input + 2 * strideWidth, filter + 2 * filterStride );
+}
+
+// --------------------------------------------------------------------------------------------------------------------
 
 // Main part with convolution itself
 
@@ -305,6 +421,74 @@ static void postProcessing( const int flags, float*& output, int outputStride, c
 ;   OutputCount=1 generates special case code to handle padding blocks. All
 ;   other output counts assume no padding.
 */
+#define PROCESS_OUTPUT_COUNT_JIT_N(FilterCount, OutputCount) \
+{ \
+	const float* prevInput = input; \
+	const float* filter = frame.Filter; \
+	\
+	__m256 acc0{}, acc1{}, acc2{}, acc3{}, acc4{}, acc5{}, acc6{}, acc7{}, acc8{}, acc9{}, acc10{}, acc11{}; \
+	CLEAR_BLOCK(FilterCount, OutputCount); \
+	float ymmBuff[8 * 12]; \
+	_mm256_storeu_ps( ymmBuff + 8 * 0, acc0 ); \
+	_mm256_storeu_ps( ymmBuff + 8 * 1, acc1 ); \
+	_mm256_storeu_ps( ymmBuff + 8 * 2, acc2 ); \
+	_mm256_storeu_ps( ymmBuff + 8 * 3, acc3 ); \
+	_mm256_storeu_ps( ymmBuff + 8 * 4, acc4 ); \
+	_mm256_storeu_ps( ymmBuff + 8 * 5, acc5 ); \
+	_mm256_storeu_ps( ymmBuff + 8 * 6, acc6 ); \
+	_mm256_storeu_ps( ymmBuff + 8 * 7, acc7 ); \
+	_mm256_storeu_ps( ymmBuff + 8 * 8, acc8 ); \
+	_mm256_storeu_ps( ymmBuff + 8 * 9, acc9 ); \
+	_mm256_storeu_ps( ymmBuff + 8 * 10, acc10 ); \
+	_mm256_storeu_ps( ymmBuff + 8 * 11, acc11 ); \
+	\
+	const float* r13; \
+	if( OutputCount == 1 ) r13 = frame.InputBase; \
+	\
+	for( int row = 0; row < frame.KernelHeight; ++row ) { \
+		for( int col = 0; col < frame.KernelWidth; ++col ) { \
+			if( OutputCount != 1 || size_t(input) - size_t(r13) < size_t(frame.InputWidth * sizeof(float)) ) { \
+				runComputeBlock( FilterCount, OutputCount, 0, input, strideWidth, filter, filterStride, ymmBuff ); \
+				runComputeBlock( FilterCount, OutputCount, 1, input, strideWidth, filter, filterStride, ymmBuff ); \
+				runComputeBlock( FilterCount, OutputCount, 2, input, strideWidth, filter, filterStride, ymmBuff ); \
+				runComputeBlock( FilterCount, OutputCount, 3, input, strideWidth, filter, filterStride, ymmBuff ); \
+				runComputeBlock( FilterCount, OutputCount, 4, input, strideWidth, filter, filterStride, ymmBuff ); \
+				runComputeBlock( FilterCount, OutputCount, 5, input, strideWidth, filter, filterStride, ymmBuff ); \
+				runComputeBlock( FilterCount, OutputCount, 6, input, strideWidth, filter, filterStride, ymmBuff ); \
+				runComputeBlock( FilterCount, OutputCount, 7, input, strideWidth, filter, filterStride, ymmBuff ); \
+			} \
+			\
+			input += dilationWidth; \
+			filter += 8 * 8; \
+		} \
+		input += inputStride; \
+		if( OutputCount == 1 ) r13 += frame.DilatedInputWidth; \
+	} \
+	\
+	acc0 = _mm256_loadu_ps( ymmBuff + 0 * 8 ); \
+	acc1 = _mm256_loadu_ps( ymmBuff + 1 * 8 ); \
+	acc2 = _mm256_loadu_ps( ymmBuff + 2 * 8 ); \
+	acc3 = _mm256_loadu_ps( ymmBuff + 3 * 8 ); \
+	acc4 = _mm256_loadu_ps( ymmBuff + 4 * 8 ); \
+	acc5 = _mm256_loadu_ps( ymmBuff + 5 * 8 ); \
+	acc6 = _mm256_loadu_ps( ymmBuff + 6 * 8 ); \
+	acc7 = _mm256_loadu_ps( ymmBuff + 7 * 8 ); \
+	acc8 = _mm256_loadu_ps( ymmBuff + 8 * 8 ); \
+	acc9 = _mm256_loadu_ps( ymmBuff + 9 * 8 ); \
+	acc10 = _mm256_loadu_ps( ymmBuff + 10 * 8 ); \
+	acc11 = _mm256_loadu_ps( ymmBuff + 11 * 8 ); \
+	postProcessing<FilterCount, OutputCount>( frame.Flags, output, frame.OutputStride, frame.Bias, \
+		acc0, acc1, acc2, acc3, acc4, acc5, acc6, acc7, acc8, acc9, acc10, acc11 ); \
+	input = prevInput; \
+}
+
+/*
+;   This macro generates code to compute the convolution for a vector of input
+;   blocks and a vector of filter blocks to produce a matrix of output blocks.
+;
+;   OutputCount=1 generates special case code to handle padding blocks. All
+;   other output counts assume no padding.
+*/
 #define PROCESS_OUTPUT_COUNT_N(FilterCount, OutputCount) \
 { \
 	const float* prevInput = input; \
@@ -349,7 +533,7 @@ static void singleKernel( const KernelFrame& frame, const float*& input, int fil
 	int dilationWidth, float*& output, int strideWidth, int inputStride, int outputCount )
 {
 	for( int i = 0; i < outputCount; ++i ) {
-		PROCESS_OUTPUT_COUNT_N( FilterCount, 1 )
+		PROCESS_OUTPUT_COUNT_JIT_N( FilterCount, 1 )
 			input += strideWidth;
 	}
 }
@@ -362,13 +546,13 @@ static void singleKernel( const KernelFrame& frame, const float*& input, int fil
 	\
 	int remOutputCount = frame.OutputCount; \
 	while( remOutputCount > 3 ) { \
-		PROCESS_OUTPUT_COUNT_N( FilterCount, 3 ) \
+		PROCESS_OUTPUT_COUNT_JIT_N( FilterCount, 3 ) \
 		input += 3 * strideWidth; \
 		remOutputCount -= 3; \
 	} \
 	\
 	if( remOutputCount >= 2 ) { \
-		PROCESS_OUTPUT_COUNT_N( FilterCount, 2 ) \
+		PROCESS_OUTPUT_COUNT_JIT_N( FilterCount, 2 ) \
 		input += 2 * strideWidth; \
 		remOutputCount -= 2; \
 	} \
