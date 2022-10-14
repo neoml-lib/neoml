@@ -1199,6 +1199,11 @@ void CVulkanMathEngine::QRFactorization( int, int, const CFloatHandle&, const CF
 	ASSERT_EXPR( false );
 }
 
+void CVulkanMathEngine::LUFactorization( int, int, const CFloatHandle& )
+{
+	ASSERT_EXPR( false );
+}
+
 } // namespace NeoML
 
 #endif // NEOML_USE_VULKAN
