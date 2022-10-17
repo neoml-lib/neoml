@@ -146,18 +146,15 @@ struct CJitGen {
 	std::mutex lock;
 };
 
-std::array<CJitGen, static_cast<size_t>( 4 * 3 * 8 )> computeBlockGens;
+std::array<CJitGen, static_cast<size_t>( 4 * 3 )> computeBlockGens;
 
-static void initComputeBlock( int filterCount, int outputCount, int broadcast )
+static void initComputeBlocks( int filterCount, int outputCount )
 {
 	using namespace Xbyak;
 	using namespace Xbyak::util;
 
-	const int genIndex = broadcast + 8 * ( ( outputCount - 1 ) + 3 * ( filterCount - 1 ) );
-	const int broadcastOffset = broadcast * sizeof( float );
-	const int vectorOffset = broadcast * 8 * sizeof( float );
+	const int genIndex = ( outputCount - 1 ) + 3 * ( filterCount - 1 );
 	CJitCommon& gen = computeBlockGens[genIndex].gen;
-	CodeGenerator& baseGen = static_cast<CodeGenerator&>( gen );
 	
 	ymmVec_t acc( 16 );
 	for( int i = 0; i < 16; ++i ) {
@@ -165,9 +162,9 @@ static void initComputeBlock( int filterCount, int outputCount, int broadcast )
 	}
 
 #ifdef _WIN32
-	reg64Vec_t preservedGPR = { rdi, rsi, r12 };
+	reg64Vec_t preservedGPR = { rdi, r12, r13 };
 #else
-	reg64Vec_t preservedGPR = { r12 };
+	reg64Vec_t preservedGPR = { r12, r13 };
 #endif
 
 	Address stackArgsPtr = gen.Prologue( preservedGPR, acc );
@@ -179,52 +176,65 @@ static void initComputeBlock( int filterCount, int outputCount, int broadcast )
 #ifdef _WIN32
 	const reg64_t regYmmBuff = rdi;
 	gen.mov( regYmmBuff, stackArgsPtr );
-	const reg64_t regShiftedInput = rsi;
-	gen.mov( regShiftedInput, gen.ptr[stackArgsPtr.getRegExp() + SizeofReg64] );
-	const reg64_t regShiftedFilter = r12;
-	gen.mov( regShiftedFilter, gen.ptr[stackArgsPtr.getRegExp() + 2 * SizeofReg64] );
 #else
 	const reg64_t regYmmBuff = Param5;
-	const reg64_t regShiftedInput = Param6;
-	const reg64_t regShiftedFilter = r12;
-	gen.mov( regShiftedFilter, stackArgsPtr );
 #endif
+	const reg64_t regShiftedInput = r12;
+	gen.mov( regShiftedInput, regInput );
+	gen.add( regShiftedInput, regStrideWidth );
+	gen.add( regShiftedInput, regStrideWidth );
+
+	const reg64_t regShiftedFilter = r13;
+	gen.mov( regShiftedFilter, regFilter );
+	gen.add( regShiftedFilter, regFilterStride );
+	gen.add( regShiftedFilter, regFilterStride );
 
 	// DEBUG Load acc values from regYmmBuff
 	for( int i = 0; i < 12; ++i ) {
 		gen.vmovups( acc[i], gen.ptr[regYmmBuff + i * SizeOfYmm]);
 	}
 
-	// COMPUTE_BLOCK
-	if( outputCount >= 1 ) gen.vbroadcastss( acc[13], gen.ptr[regInput + broadcastOffset] );
-	if( outputCount >= 2 ) gen.vbroadcastss( acc[14], gen.ptr[regInput + regStrideWidth + broadcastOffset] );
-	if( outputCount >= 3 ) gen.vbroadcastss( acc[15], gen.ptr[regShiftedInput + broadcastOffset] );
+	auto genSingleBlock = [&]( int broadcast )
+	{
+		const int broadcastOffset = broadcast * sizeof( float );
+		const int vectorOffset = broadcast * 8 * sizeof( float );
+		CodeGenerator& baseGen = static_cast<CodeGenerator&>( gen );
 
-	if( outputCount == 1 ) {
-		if( filterCount >= 1 ) baseGen.vfmadd231ps( acc[0], acc[13], gen.ptr[regFilter + vectorOffset] );
-		if( filterCount >= 2 ) baseGen.vfmadd231ps( acc[1], acc[13], gen.ptr[regFilter + regFilterStride + vectorOffset] );
-		if( filterCount >= 3 ) baseGen.vfmadd231ps( acc[2], acc[13], gen.ptr[regShiftedFilter + vectorOffset] );
-		if( filterCount >= 4 ) baseGen.vfmadd231ps( acc[3], acc[13], gen.ptr[regShiftedFilter + regFilterStride + vectorOffset] );
-	} else {
-		if( filterCount >= 1 ) gen.vmovups( acc[12], gen.ptr[regFilter + vectorOffset] );
-		if( filterCount >= 1 && outputCount >= 1 ) baseGen.vfmadd231ps( acc[0], acc[13], acc[12] );
-		if( filterCount >= 1 && outputCount >= 2 ) baseGen.vfmadd231ps( acc[4], acc[14], acc[12] );
-		if( filterCount >= 1 && outputCount >= 3 ) baseGen.vfmadd231ps( acc[8], acc[15], acc[12] );
-	
-		if( filterCount >= 2 ) gen.vmovups( acc[12], gen.ptr[regFilter + regFilterStride + vectorOffset] );
-		if( filterCount >= 2 && outputCount >= 1 ) baseGen.vfmadd231ps( acc[1], acc[13], acc[12] );
-		if( filterCount >= 2 && outputCount >= 2 ) baseGen.vfmadd231ps( acc[5], acc[14], acc[12] );
-		if( filterCount >= 2 && outputCount >= 3 ) baseGen.vfmadd231ps( acc[9], acc[15], acc[12] );
-	
-		if( filterCount >= 3 ) gen.vmovups( acc[12], gen.ptr[regShiftedFilter + vectorOffset] );
-		if( filterCount >= 3 && outputCount >= 1 ) baseGen.vfmadd231ps( acc[2], acc[13], acc[12] );
-		if( filterCount >= 3 && outputCount >= 2 ) baseGen.vfmadd231ps( acc[6], acc[14], acc[12] );
-		if( filterCount >= 3 && outputCount >= 3 ) baseGen.vfmadd231ps( acc[10], acc[15], acc[12] );
+		// COMPUTE_BLOCK
+		if( outputCount >= 1 ) gen.vbroadcastss( acc[13], gen.ptr[regInput + broadcastOffset] );
+		if( outputCount >= 2 ) gen.vbroadcastss( acc[14], gen.ptr[regInput + regStrideWidth + broadcastOffset] );
+		if( outputCount >= 3 ) gen.vbroadcastss( acc[15], gen.ptr[regShiftedInput + broadcastOffset] );
 
-		if( filterCount >= 4 ) gen.vmovups( acc[12], gen.ptr[regShiftedFilter + regFilterStride + vectorOffset] );
-		if( filterCount >= 4 && outputCount >= 1 ) baseGen.vfmadd231ps( acc[3], acc[13], acc[12] );
-		if( filterCount >= 4 && outputCount >= 2 ) baseGen.vfmadd231ps( acc[7], acc[14], acc[12] );
-		if( filterCount >= 4 && outputCount >= 3 ) baseGen.vfmadd231ps( acc[11], acc[15], acc[12] );
+		if( outputCount == 1 ) {
+			if( filterCount >= 1 ) baseGen.vfmadd231ps( acc[0], acc[13], gen.ptr[regFilter + vectorOffset] );
+			if( filterCount >= 2 ) baseGen.vfmadd231ps( acc[1], acc[13], gen.ptr[regFilter + regFilterStride + vectorOffset] );
+			if( filterCount >= 3 ) baseGen.vfmadd231ps( acc[2], acc[13], gen.ptr[regShiftedFilter + vectorOffset] );
+			if( filterCount >= 4 ) baseGen.vfmadd231ps( acc[3], acc[13], gen.ptr[regShiftedFilter + regFilterStride + vectorOffset] );
+		} else {
+			if( filterCount >= 1 ) gen.vmovups( acc[12], gen.ptr[regFilter + vectorOffset] );
+			if( filterCount >= 1 && outputCount >= 1 ) baseGen.vfmadd231ps( acc[0], acc[13], acc[12] );
+			if( filterCount >= 1 && outputCount >= 2 ) baseGen.vfmadd231ps( acc[4], acc[14], acc[12] );
+			if( filterCount >= 1 && outputCount >= 3 ) baseGen.vfmadd231ps( acc[8], acc[15], acc[12] );
+
+			if( filterCount >= 2 ) gen.vmovups( acc[12], gen.ptr[regFilter + regFilterStride + vectorOffset] );
+			if( filterCount >= 2 && outputCount >= 1 ) baseGen.vfmadd231ps( acc[1], acc[13], acc[12] );
+			if( filterCount >= 2 && outputCount >= 2 ) baseGen.vfmadd231ps( acc[5], acc[14], acc[12] );
+			if( filterCount >= 2 && outputCount >= 3 ) baseGen.vfmadd231ps( acc[9], acc[15], acc[12] );
+
+			if( filterCount >= 3 ) gen.vmovups( acc[12], gen.ptr[regShiftedFilter + vectorOffset] );
+			if( filterCount >= 3 && outputCount >= 1 ) baseGen.vfmadd231ps( acc[2], acc[13], acc[12] );
+			if( filterCount >= 3 && outputCount >= 2 ) baseGen.vfmadd231ps( acc[6], acc[14], acc[12] );
+			if( filterCount >= 3 && outputCount >= 3 ) baseGen.vfmadd231ps( acc[10], acc[15], acc[12] );
+
+			if( filterCount >= 4 ) gen.vmovups( acc[12], gen.ptr[regShiftedFilter + regFilterStride + vectorOffset] );
+			if( filterCount >= 4 && outputCount >= 1 ) baseGen.vfmadd231ps( acc[3], acc[13], acc[12] );
+			if( filterCount >= 4 && outputCount >= 2 ) baseGen.vfmadd231ps( acc[7], acc[14], acc[12] );
+			if( filterCount >= 4 && outputCount >= 3 ) baseGen.vfmadd231ps( acc[11], acc[15], acc[12] );
+		}
+	};
+
+	for( int broadcast = 0; broadcast < 8; ++broadcast ) {
+		genSingleBlock( broadcast );
 	}
 
 	// DEBUG Store acc values to regYmmBuff
@@ -234,22 +244,23 @@ static void initComputeBlock( int filterCount, int outputCount, int broadcast )
 
 	gen.Epilogue( preservedGPR, acc );
 	gen.ret();
+
+	printf( "code size:\t%d\n", static_cast<int>( gen.getSize() ) );
 }
 
-static void runComputeBlock( int filterCount, int outputCount, int broadcast,
-	const float* input, int strideWidth, const float* filter, int filterStride, float* ymmBuff )
+static void runComputeBlocks( int filterCount, int outputCount, const float* input, int strideWidth,
+	const float* filter, int filterStride, float* ymmBuff )
 {
-	const int genIndex = broadcast + 8 * ( ( outputCount - 1 ) + 3 * ( filterCount - 1 ) );
+	const int genIndex = ( outputCount - 1 ) + 3 * ( filterCount - 1 );
 	CJitCommon& gen = computeBlockGens[genIndex].gen;
 	if( gen.getSize() == 0 ) {
-		initComputeBlock( filterCount, outputCount, broadcast );
+		initComputeBlocks( filterCount, outputCount );
 	}
 
 	//gen.dump();
-	typedef void (*TComputeBlockJitFunc)( const float*, size_t, const float*, size_t, float*,
-		const float*, const float* );
+	typedef void (*TComputeBlockJitFunc)( const float*, size_t, const float*, size_t, float* );
 	gen.getCode<TComputeBlockJitFunc>()( input, strideWidth * sizeof( float ), filter,
-		filterStride * sizeof( float ), ymmBuff, input + 2 * strideWidth, filter + 2 * filterStride );
+		filterStride * sizeof( float ), ymmBuff );
 }
 
 // --------------------------------------------------------------------------------------------------------------------
@@ -448,14 +459,7 @@ static void postProcessing( const int flags, float*& output, int outputStride, c
 	for( int row = 0; row < frame.KernelHeight; ++row ) { \
 		for( int col = 0; col < frame.KernelWidth; ++col ) { \
 			if( OutputCount != 1 || size_t(input) - size_t(r13) < size_t(frame.InputWidth * sizeof(float)) ) { \
-				runComputeBlock( FilterCount, OutputCount, 0, input, strideWidth, filter, filterStride, ymmBuff ); \
-				runComputeBlock( FilterCount, OutputCount, 1, input, strideWidth, filter, filterStride, ymmBuff ); \
-				runComputeBlock( FilterCount, OutputCount, 2, input, strideWidth, filter, filterStride, ymmBuff ); \
-				runComputeBlock( FilterCount, OutputCount, 3, input, strideWidth, filter, filterStride, ymmBuff ); \
-				runComputeBlock( FilterCount, OutputCount, 4, input, strideWidth, filter, filterStride, ymmBuff ); \
-				runComputeBlock( FilterCount, OutputCount, 5, input, strideWidth, filter, filterStride, ymmBuff ); \
-				runComputeBlock( FilterCount, OutputCount, 6, input, strideWidth, filter, filterStride, ymmBuff ); \
-				runComputeBlock( FilterCount, OutputCount, 7, input, strideWidth, filter, filterStride, ymmBuff ); \
+				runComputeBlocks( FilterCount, OutputCount, input, strideWidth, filter, filterStride, ymmBuff ); \
 			} \
 			\
 			input += dilationWidth; \
