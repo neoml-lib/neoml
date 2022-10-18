@@ -17,6 +17,7 @@ limitations under the License.
 #pragma hdrstop
 
 #include <immintrin.h>
+#include <cstddef>
 
 #include <NeoMathEngine/SimdMathEngine.h>
 #include <AvxMathEngine.h>
@@ -141,12 +142,22 @@ void CAvxMathEngine::PackBlockedFilter( const CBlobDesc& desc, const float* sour
 
 // --------------------------------------------------------------------------------------------------------------------
 
+// Main part with convolution itself
+
 struct CJitGen {
 	CJitCommon gen;
 	std::mutex lock;
 };
 
 std::array<CJitGen, static_cast<size_t>( 4 * 3 )> computeBlockGens;
+
+struct JitCallParams {
+	const float* Input;
+	size_t StrideWidth;
+	const float* Filter;
+	size_t FilterStride;
+	float* YmmBuff;
+};
 
 static void initComputeBlocks( int filterCount, int outputCount )
 {
@@ -155,36 +166,37 @@ static void initComputeBlocks( int filterCount, int outputCount )
 
 	const int genIndex = ( outputCount - 1 ) + 3 * ( filterCount - 1 );
 	CJitCommon& gen = computeBlockGens[genIndex].gen;
-	
+
 	ymmVec_t acc( 16 );
 	for( int i = 0; i < 16; ++i ) {
 		acc[i] = ymm_t( i );
 	}
 
-#ifdef _WIN32
-	reg64Vec_t preservedGPR = { rdi, r12, r13 };
-#else
-	reg64Vec_t preservedGPR = { r12, r13 };
-#endif
+	reg64Vec_t preservedGPR = { rax, rbx, rcx, rdx, rsi, rdi, r8, r9, r10, r11, r12, r13, r14, r15 };
+	preservedGPR.erase( std::find( preservedGPR.begin(), preservedGPR.end(), Param1 ) );
+	int regUsed = 0;
 
 	Address stackArgsPtr = gen.Prologue( preservedGPR, acc );
-	
-	const reg64_t regInput = Param1;
-	const reg64_t regStrideWidth = Param2;
-	const reg64_t regFilter = Param3;
-	const reg64_t regFilterStride = Param4;
-#ifdef _WIN32
-	const reg64_t regYmmBuff = rdi;
-	gen.mov( regYmmBuff, stackArgsPtr );
-#else
-	const reg64_t regYmmBuff = Param5;
-#endif
-	const reg64_t regShiftedInput = r12;
+
+	const reg64_t regFramePtr = Param1;
+
+	const reg64_t regInput = preservedGPR[regUsed++];
+	gen.mov( regInput, ptr[regFramePtr + offsetof( JitCallParams, Input ) ] );
+	const reg64_t regStrideWidth = preservedGPR[regUsed++];
+	gen.mov( regStrideWidth, ptr[regFramePtr + offsetof( JitCallParams, StrideWidth ) ] );
+	const reg64_t regFilter = preservedGPR[regUsed++];
+	gen.mov( regFilter, ptr[regFramePtr + offsetof( JitCallParams, Filter ) ] );
+	const reg64_t regFilterStride = preservedGPR[regUsed++];
+	gen.mov( regFilterStride, ptr[regFramePtr + offsetof( JitCallParams, FilterStride ) ] );
+	const reg64_t regYmmBuff = preservedGPR[regUsed++];
+	gen.mov( regYmmBuff, ptr[regFramePtr + offsetof( JitCallParams, YmmBuff ) ] );
+
+	const reg64_t regShiftedInput = preservedGPR[regUsed++];
 	gen.mov( regShiftedInput, regInput );
 	gen.add( regShiftedInput, regStrideWidth );
 	gen.add( regShiftedInput, regStrideWidth );
 
-	const reg64_t regShiftedFilter = r13;
+	const reg64_t regShiftedFilter = preservedGPR[regUsed++];
 	gen.mov( regShiftedFilter, regFilter );
 	gen.add( regShiftedFilter, regFilterStride );
 	gen.add( regShiftedFilter, regFilterStride );
@@ -245,7 +257,7 @@ static void initComputeBlocks( int filterCount, int outputCount )
 	gen.Epilogue( preservedGPR, acc );
 	gen.ret();
 
-	printf( "code size:\t%d\n", static_cast<int>( gen.getSize() ) );
+	// printf( "code size:\t%d\n", static_cast<int>( gen.getSize() ) );
 }
 
 static void runComputeBlocks( int filterCount, int outputCount, const float* input, int strideWidth,
@@ -258,14 +270,10 @@ static void runComputeBlocks( int filterCount, int outputCount, const float* inp
 	}
 
 	//gen.dump();
-	typedef void (*TComputeBlockJitFunc)( const float*, size_t, const float*, size_t, float* );
-	gen.getCode<TComputeBlockJitFunc>()( input, strideWidth * sizeof( float ), filter,
-		filterStride * sizeof( float ), ymmBuff );
+	typedef void (*TComputeBlockJitFunc)( JitCallParams* );
+	JitCallParams callFrame = { input, strideWidth * sizeof( float ), filter, filterStride * sizeof( float ), ymmBuff };
+	gen.getCode<TComputeBlockJitFunc>()( &callFrame );
 }
-
-// --------------------------------------------------------------------------------------------------------------------
-
-// Main part with convolution itself
 
 struct KernelFrame {
 	int Padding;
@@ -292,7 +300,6 @@ struct KernelFrame {
 
 #define ACCUMULATE_OUTPUT 1
 #define ADD_BIAS 2
-
 /*
 ;   This macro generates code to process an output block after the inner
 ;   convolution kernel has executed and then stores the output block to the
