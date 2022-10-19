@@ -156,7 +156,6 @@ struct JitCallParams {
 	size_t StrideWidth;
 	const float* Filter;
 	size_t FilterStride;
-	float* YmmBuff;
 	const float* InputBase;
 	size_t InputWidth;
 	size_t KernelHeight;
@@ -164,7 +163,14 @@ struct JitCallParams {
 	size_t DilationWidth;
 	size_t DilatedInputWidth;
 	size_t InputStride;
+	const float* Bias;
+	float* Output;
+	size_t OutputStride;
+	size_t Flags;
 };
+
+#define ACCUMULATE_OUTPUT 1
+#define ADD_BIAS 2
 
 // Clears the block accumulators.
 static void clearUsedYmms( int filterCount, int outputCount, Xbyak::CodeGenerator& gen )
@@ -190,6 +196,7 @@ static void initComputeBlocks( int filterCount, int outputCount )
 
 	const int genIndex = ( outputCount - 1 ) + 3 * ( filterCount - 1 );
 	CJitCommon& gen = computeBlockGens[genIndex].gen;
+	CodeGenerator& baseGen = static_cast<CodeGenerator&>( gen );
 
 	ymmVec_t acc( 16 );
 	for( int i = 0; i < 16; ++i ) {
@@ -251,23 +258,18 @@ static void initComputeBlocks( int filterCount, int outputCount )
 
 	const reg64_t regShiftedInput = outputCount >= 3 ? preservedGPR[regUsed++] : regNotUsed;
 	if( outputCount >= 3 ) {
-		gen.mov( regShiftedInput, regInput );
-		gen.add( regShiftedInput, regStrideWidth );
-		gen.add( regShiftedInput, regStrideWidth );
+		gen.lea( regShiftedInput, ptr[regInput + 2 * regStrideWidth] );
 	}
 
 	const reg64_t regShiftedFilter = filterCount >= 3 ? preservedGPR[regUsed++] : regNotUsed;
 	if( filterCount >= 3 ) {
-		gen.mov( regShiftedFilter, regFilter );
-		gen.add( regShiftedFilter, regFilterStride );
-		gen.add( regShiftedFilter, regFilterStride );
+		gen.lea( regShiftedFilter, ptr[regFilter + 2 * regFilterStride] );
 	}
 
 	auto genSingleBlock = [&]( int broadcast )
 	{
 		const int broadcastOffset = broadcast * sizeof( float );
 		const int vectorOffset = broadcast * 8 * sizeof( float );
-		CodeGenerator& baseGen = static_cast<CodeGenerator&>( gen );
 
 		// This macro multiplies and accumulates for FilterCount by OutputCount block of the output buffer.
 		if( outputCount >= 1 ) gen.vbroadcastss( acc[13], gen.ptr[regInput + broadcastOffset] );
@@ -320,12 +322,98 @@ static void initComputeBlocks( int filterCount, int outputCount )
 	gen.dec( regRemRows );
 	gen.jnz( rowCycleStart, CodeGenerator::T_NEAR );
 
-	// DEBUG Store acc values to regYmmBuff
-	const reg64_t regYmmBuff = regInputStride;
-	gen.mov( regYmmBuff, ptr[regFramePtr + offsetof( JitCallParams, YmmBuff )] );
-	for( size_t i = 0; i < 12; ++i ) {
-		gen.vmovups( gen.ptr[regYmmBuff + i * SizeOfYmm], acc[i] );
+	/*
+	;   This macro generates code to process an output block after the inner
+	;   convolution kernel has executed and then stores the output block to the
+	;   output buffer.
+	*/
+
+	const reg64_t regOutput = regInput;
+	gen.mov( regOutput, ptr[regFramePtr + offsetof( JitCallParams, Output )] );
+	const reg64_t regOutputStride = regInputStride;
+	gen.mov( regOutputStride, ptr[regFramePtr + offsetof( JitCallParams, OutputStride )] );
+	const reg64_t regShiftedOutput = regShiftedFilter;
+	if( filterCount >= 3 ) {
+		gen.lea( regShiftedOutput, ptr[regOutput + 2 * regOutputStride] );
 	}
+	
+	const reg64_t regFlags = regRemRows;
+	gen.mov( regFlags, ptr[regFramePtr + offsetof( JitCallParams, Flags )] );
+
+	Label skipAccumulateOutput;
+	gen.test( regFlags, ACCUMULATE_OUTPUT );
+	gen.jz( skipAccumulateOutput, CodeGenerator::T_NEAR );
+
+	if( filterCount >= 1 && outputCount >= 1 ) baseGen.vaddps( acc[0], acc[0], ptr[regOutput] );
+	if( filterCount >= 1 && outputCount >= 2 ) baseGen.vaddps( acc[4], acc[4], ptr[regOutput + SizeOfYmm] );
+	if( filterCount >= 1 && outputCount >= 3 ) baseGen.vaddps( acc[8], acc[8], ptr[regOutput + 2 * SizeOfYmm] );
+
+	if( filterCount >= 2 && outputCount >= 1 ) baseGen.vaddps( acc[1], acc[1], ptr[regOutput + regOutputStride] );
+	if( filterCount >= 2 && outputCount >= 2 ) baseGen.vaddps( acc[5], acc[5], ptr[regOutput + regOutputStride + SizeOfYmm] );
+	if( filterCount >= 2 && outputCount >= 3 ) baseGen.vaddps( acc[9], acc[9], ptr[regOutput + regOutputStride + 2 * SizeOfYmm] );
+
+	if( filterCount >= 3 && outputCount >= 1 ) baseGen.vaddps( acc[2], acc[2], ptr[regShiftedOutput] );
+	if( filterCount >= 3 && outputCount >= 2 ) baseGen.vaddps( acc[6], acc[6], ptr[regShiftedOutput + SizeOfYmm] );
+	if( filterCount >= 3 && outputCount >= 3 ) baseGen.vaddps( acc[10], acc[10], ptr[regShiftedOutput + 2 * SizeOfYmm] );
+
+	if( filterCount >= 4 && outputCount >= 1 ) baseGen.vaddps( acc[3], acc[3], ptr[regShiftedOutput + regOutputStride] );
+	if( filterCount >= 4 && outputCount >= 2 ) baseGen.vaddps( acc[7], acc[7], ptr[regShiftedOutput + regOutputStride + SizeOfYmm] );
+	if( filterCount >= 4 && outputCount >= 3 ) baseGen.vaddps( acc[11], acc[11], ptr[regShiftedOutput + regOutputStride + 2 * SizeOfYmm] );
+
+	gen.L( skipAccumulateOutput );
+
+	Label skipBias;
+	gen.test( regFlags, ADD_BIAS );
+	gen.jz( skipBias, CodeGenerator::T_NEAR );
+
+	const reg64_t regBias = regFilter;
+	gen.mov( regBias, ptr[regFramePtr + offsetof( JitCallParams, Bias )] );
+
+	if( outputCount == 1 ) {
+		if( filterCount >= 1 ) baseGen.vaddps( acc[0], acc[0], ptr[regBias] );
+		if( filterCount >= 2 ) baseGen.vaddps( acc[1], acc[1], ptr[regBias + SizeOfYmm] );
+		if( filterCount >= 3 ) baseGen.vaddps( acc[2], acc[2], ptr[regBias + 2 * SizeOfYmm] );
+		if( filterCount >= 4 ) baseGen.vaddps( acc[3], acc[3], ptr[regBias + 3 * SizeOfYmm] );
+	} else {
+		if( filterCount >= 1 ) baseGen.vmovups( acc[12], ptr[regBias] );
+		if( filterCount >= 2 ) baseGen.vmovups( acc[13], ptr[regBias + SizeOfYmm] );
+		if( filterCount >= 3 ) baseGen.vmovups( acc[14], ptr[regBias + 2 * SizeOfYmm] );
+		if( filterCount >= 4 ) baseGen.vmovups( acc[15], ptr[regBias + 3 * SizeOfYmm] );
+
+		if( filterCount >= 1 && outputCount >= 1 ) baseGen.vaddps( acc[0], acc[0], acc[12] );
+		if( filterCount >= 1 && outputCount >= 2 ) baseGen.vaddps( acc[4], acc[4], acc[12] );
+		if( filterCount >= 1 && outputCount >= 3 ) baseGen.vaddps( acc[8], acc[8], acc[12] );
+
+		if( filterCount >= 2 && outputCount >= 1 ) baseGen.vaddps( acc[1], acc[1], acc[13] );
+		if( filterCount >= 2 && outputCount >= 2 ) baseGen.vaddps( acc[5], acc[5], acc[13] );
+		if( filterCount >= 2 && outputCount >= 3 ) baseGen.vaddps( acc[9], acc[9], acc[13] );
+
+		if( filterCount >= 3 && outputCount >= 1 ) baseGen.vaddps( acc[2], acc[2], acc[14] );
+		if( filterCount >= 3 && outputCount >= 2 ) baseGen.vaddps( acc[6], acc[6], acc[14] );
+		if( filterCount >= 3 && outputCount >= 3 ) baseGen.vaddps( acc[10], acc[10], acc[14] );
+
+		if( filterCount >= 4 && outputCount >= 1 ) baseGen.vaddps( acc[3], acc[3], acc[15] );
+		if( filterCount >= 4 && outputCount >= 2 ) baseGen.vaddps( acc[7], acc[7], acc[15] );
+		if( filterCount >= 4 && outputCount >= 3 ) baseGen.vaddps( acc[11], acc[11], acc[15] );
+	}
+
+	gen.L( skipBias );
+
+	if( filterCount >= 1 && outputCount >= 1 ) baseGen.vmovups( ptr[regOutput], acc[0] );
+	if( filterCount >= 1 && outputCount >= 2 ) baseGen.vmovups( ptr[regOutput + SizeOfYmm], acc[4] );
+	if( filterCount >= 1 && outputCount >= 3 ) baseGen.vmovups( ptr[regOutput + 2 * SizeOfYmm], acc[8] );
+
+	if( filterCount >= 2 && outputCount >= 1 ) baseGen.vmovups( ptr[regOutput + regOutputStride], acc[1] );
+	if( filterCount >= 2 && outputCount >= 2 ) baseGen.vmovups( ptr[regOutput + regOutputStride + SizeOfYmm], acc[5] );
+	if( filterCount >= 2 && outputCount >= 3 ) baseGen.vmovups( ptr[regOutput + regOutputStride + 2 * SizeOfYmm], acc[9] );
+
+	if( filterCount >= 3 && outputCount >= 1 ) baseGen.vmovups( ptr[regShiftedOutput], acc[2] );
+	if( filterCount >= 3 && outputCount >= 2 ) baseGen.vmovups( ptr[regShiftedOutput + SizeOfYmm], acc[6] );
+	if( filterCount >= 3 && outputCount >= 3 ) baseGen.vmovups( ptr[regShiftedOutput + 2 * SizeOfYmm], acc[10] );
+
+	if( filterCount >= 4 && outputCount >= 1 ) baseGen.vmovups( ptr[regShiftedOutput + regOutputStride], acc[3] );
+	if( filterCount >= 4 && outputCount >= 2 ) baseGen.vmovups( ptr[regShiftedOutput + regOutputStride + SizeOfYmm], acc[7] );
+	if( filterCount >= 4 && outputCount >= 3 ) baseGen.vmovups( ptr[regShiftedOutput + regOutputStride + 2 * SizeOfYmm], acc[11] );
 
 	gen.Epilogue( preservedGPR, acc );
 	gen.ret();
@@ -334,9 +422,9 @@ static void initComputeBlocks( int filterCount, int outputCount )
 }
 
 static void runComputeBlocks( int filterCount, int outputCount, const float* input, int strideWidth,
-	const float* filter, int filterStride, float* ymmBuff, const float* inputBase,
+	const float* filter, int filterStride, const float* inputBase,
 	int inputWidth, int kernelHeight, int kernelWidth, int dilationWidth, int dilatedInputWidth,
-	int inputStride )
+	int inputStride, const float* bias, float* output, int outputStride, int flags )
 {
 	const int genIndex = ( outputCount - 1 ) + 3 * ( filterCount - 1 );
 	CJitCommon& gen = computeBlockGens[genIndex].gen;
@@ -346,9 +434,10 @@ static void runComputeBlocks( int filterCount, int outputCount, const float* inp
 
 	//gen.dump();
 	typedef void (*TComputeBlockJitFunc)( JitCallParams* );
-	JitCallParams callFrame = { input, strideWidth * sizeof( float ), filter, filterStride * sizeof( float ), ymmBuff,
+	JitCallParams callFrame = { input, strideWidth * sizeof( float ), filter, filterStride * sizeof( float ),
 		inputBase, inputWidth * sizeof( float ), static_cast<size_t>( kernelHeight ), static_cast<size_t>( kernelWidth ),
-		dilationWidth * sizeof( float ), dilatedInputWidth * sizeof( float ), inputStride * sizeof( float ) };
+		dilationWidth * sizeof( float ), dilatedInputWidth * sizeof( float ), inputStride * sizeof( float ),
+		bias, output, outputStride * sizeof( float ), static_cast<size_t>( flags ) };
 	gen.getCode<TComputeBlockJitFunc>()( &callFrame );
 }
 
@@ -375,89 +464,6 @@ struct KernelFrame {
 	int Flags;
 };
 
-#define ACCUMULATE_OUTPUT 1
-#define ADD_BIAS 2
-/*
-;   This macro generates code to process an output block after the inner
-;   convolution kernel has executed and then stores the output block to the
-;   output buffer.
-*/
-template<int FilterCount, int OutputCount>
-static void postProcessing( const int flags, float*& output, int outputStride, const float* bias,
-	__m256& acc0, __m256& acc1, __m256& acc2, __m256& acc3, __m256& acc4, __m256& acc5,
-	__m256& acc6, __m256& acc7, __m256& acc8, __m256& acc9, __m256& acc10, __m256& acc11 )
-{
-	float* shiftedOutput = nullptr;
-	if( FilterCount > 2 ) shiftedOutput = output + 2 * outputStride;
-
-	if( ( flags & ACCUMULATE_OUTPUT ) != 0 ) {
-		if( FilterCount >= 1 && OutputCount >= 1 ) acc0 = _mm256_add_ps( acc0, _mm256_loadu_ps( output ) );
-		if( FilterCount >= 1 && OutputCount >= 2 ) acc4 = _mm256_add_ps( acc4, _mm256_loadu_ps( output + 8 ) );
-		if( FilterCount >= 1 && OutputCount >= 3 ) acc8 = _mm256_add_ps( acc8, _mm256_loadu_ps( output + 16 ) );
-
-		if( FilterCount >= 2 && OutputCount >= 1 ) acc1 = _mm256_add_ps( acc1, _mm256_loadu_ps( output + outputStride ) );
-		if( FilterCount >= 2 && OutputCount >= 2 ) acc5 = _mm256_add_ps( acc5, _mm256_loadu_ps( output + outputStride + 8 ) );
-		if( FilterCount >= 2 && OutputCount >= 3 ) acc9 = _mm256_add_ps( acc9, _mm256_loadu_ps( output + outputStride + 16 ) );
-
-		if( FilterCount >= 3 && OutputCount >= 1 ) acc2 = _mm256_add_ps( acc2, _mm256_loadu_ps( shiftedOutput ) );
-		if( FilterCount >= 3 && OutputCount >= 2 ) acc6 = _mm256_add_ps( acc6, _mm256_loadu_ps( shiftedOutput + 8 ) );
-		if( FilterCount >= 3 && OutputCount >= 3 ) acc10 = _mm256_add_ps( acc10, _mm256_loadu_ps( shiftedOutput + 16 ) );
-
-		if( FilterCount >= 4 && OutputCount >= 1 ) acc3 = _mm256_add_ps( acc3, _mm256_loadu_ps( shiftedOutput + outputStride ) );
-		if( FilterCount >= 4 && OutputCount >= 2 ) acc7 = _mm256_add_ps( acc7, _mm256_loadu_ps( shiftedOutput + outputStride + 8 ) );
-		if( FilterCount >= 4 && OutputCount >= 3 ) acc11 = _mm256_add_ps( acc11, _mm256_loadu_ps( shiftedOutput + outputStride + 16 ) );
-	}
-
-	if( ( flags & ADD_BIAS ) != 0 ) {
-		if( OutputCount == 1 ) {
-			if( FilterCount >= 1 ) acc0 = _mm256_add_ps( acc0, _mm256_loadu_ps( bias ) );
-			if( FilterCount >= 2 ) acc1 = _mm256_add_ps( acc1, _mm256_loadu_ps( bias + 8 ) );
-			if( FilterCount >= 3 ) acc2 = _mm256_add_ps( acc2, _mm256_loadu_ps( bias + 16 ) );
-			if( FilterCount >= 4 ) acc3 = _mm256_add_ps( acc3, _mm256_loadu_ps( bias + 24 ) );
-		} else {
-			__m256 acc12, acc13, acc14, acc15;
-			if( FilterCount >= 1 ) acc12 = _mm256_loadu_ps( bias );
-			if( FilterCount >= 2 ) acc13 = _mm256_loadu_ps( bias + 8 );
-			if( FilterCount >= 3 ) acc14 = _mm256_loadu_ps( bias + 16 );
-			if( FilterCount >= 4 ) acc15 = _mm256_loadu_ps( bias + 24 );
-
-			if( FilterCount >= 1 && OutputCount >= 1 ) acc0 = _mm256_add_ps( acc0, acc12 );
-			if( FilterCount >= 1 && OutputCount >= 2 ) acc4 = _mm256_add_ps( acc4, acc12 );
-			if( FilterCount >= 1 && OutputCount >= 3 ) acc8 = _mm256_add_ps( acc8, acc12 );
-
-			if( FilterCount >= 2 && OutputCount >= 1 ) acc1 = _mm256_add_ps( acc1, acc13 );
-			if( FilterCount >= 2 && OutputCount >= 2 ) acc5 = _mm256_add_ps( acc5, acc13 );
-			if( FilterCount >= 2 && OutputCount >= 3 ) acc9 = _mm256_add_ps( acc9, acc13 );
-
-			if( FilterCount >= 3 && OutputCount >= 1 ) acc2 = _mm256_add_ps( acc2, acc14 );
-			if( FilterCount >= 3 && OutputCount >= 2 ) acc6 = _mm256_add_ps( acc6, acc14 );
-			if( FilterCount >= 3 && OutputCount >= 3 ) acc10 = _mm256_add_ps( acc10, acc14 );
-
-			if( FilterCount >= 4 && OutputCount >= 1 ) acc3 = _mm256_add_ps( acc3, acc15 );
-			if( FilterCount >= 4 && OutputCount >= 2 ) acc7 = _mm256_add_ps( acc7, acc15 );
-			if( FilterCount >= 4 && OutputCount >= 3 ) acc11 = _mm256_add_ps( acc11, acc15 );
-		}
-	}
-
-	if( FilterCount >= 1 && OutputCount >= 1 ) _mm256_storeu_ps( output, acc0 );
-	if( FilterCount >= 1 && OutputCount >= 2 ) _mm256_storeu_ps( output + 8, acc4 );
-	if( FilterCount >= 1 && OutputCount >= 3 ) _mm256_storeu_ps( output + 16, acc8 );
-
-	if( FilterCount >= 2 && OutputCount >= 1 ) _mm256_storeu_ps( output + outputStride, acc1 );
-	if( FilterCount >= 2 && OutputCount >= 2 ) _mm256_storeu_ps( output + outputStride + 8, acc5 );
-	if( FilterCount >= 2 && OutputCount >= 3 ) _mm256_storeu_ps( output + outputStride + 16, acc9 );
-
-	if( FilterCount >= 3 && OutputCount >= 1 ) _mm256_storeu_ps( shiftedOutput, acc2 );
-	if( FilterCount >= 3 && OutputCount >= 2 ) _mm256_storeu_ps( shiftedOutput + 8, acc6 );
-	if( FilterCount >= 3 && OutputCount >= 3 ) _mm256_storeu_ps( shiftedOutput + 16, acc10 );
-
-	if( FilterCount >= 4 && OutputCount >= 1 ) _mm256_storeu_ps( shiftedOutput + outputStride, acc3 );
-	if( FilterCount >= 4 && OutputCount >= 2 ) _mm256_storeu_ps( shiftedOutput + outputStride + 8, acc7 );
-	if( FilterCount >= 4 && OutputCount >= 3 ) _mm256_storeu_ps( shiftedOutput + outputStride + 16, acc11 );
-
-	output += OutputCount * 8;
-}
-
 /*
 ;   This macro generates code to compute the convolution for a vector of input
 ;   blocks and a vector of filter blocks to produce a matrix of output blocks.
@@ -470,29 +476,12 @@ static void postProcessing( const int flags, float*& output, int outputStride, c
 	const float* prevInput = input; \
 	const float* filter = frame.Filter; \
 	\
-	float ymmBuff[8 * 12]; \
-	const float* r13; \
-	if( OutputCount == 1 ) r13 = frame.InputBase; \
-	\
-	runComputeBlocks( FilterCount, OutputCount, input, strideWidth, filter, filterStride, ymmBuff, \
+	runComputeBlocks( FilterCount, OutputCount, input, strideWidth, filter, filterStride, \
 		frame.InputBase, frame.InputWidth, frame.KernelHeight, frame.KernelWidth, \
-		frame.DilationWidth, frame.DilatedInputWidth, frame.InputStride ); \
+		frame.DilationWidth, frame.DilatedInputWidth, frame.InputStride, frame.Bias, \
+		output, frame.OutputStride, frame.Flags ); \
 	\
-	__m256 acc0{}, acc1{}, acc2{}, acc3{}, acc4{}, acc5{}, acc6{}, acc7{}, acc8{}, acc9{}, acc10{}, acc11{}; \
-	acc0 = _mm256_loadu_ps( ymmBuff + 0 * 8 ); \
-	acc1 = _mm256_loadu_ps( ymmBuff + 1 * 8 ); \
-	acc2 = _mm256_loadu_ps( ymmBuff + 2 * 8 ); \
-	acc3 = _mm256_loadu_ps( ymmBuff + 3 * 8 ); \
-	acc4 = _mm256_loadu_ps( ymmBuff + 4 * 8 ); \
-	acc5 = _mm256_loadu_ps( ymmBuff + 5 * 8 ); \
-	acc6 = _mm256_loadu_ps( ymmBuff + 6 * 8 ); \
-	acc7 = _mm256_loadu_ps( ymmBuff + 7 * 8 ); \
-	acc8 = _mm256_loadu_ps( ymmBuff + 8 * 8 ); \
-	acc9 = _mm256_loadu_ps( ymmBuff + 9 * 8 ); \
-	acc10 = _mm256_loadu_ps( ymmBuff + 10 * 8 ); \
-	acc11 = _mm256_loadu_ps( ymmBuff + 11 * 8 ); \
-	postProcessing<FilterCount, OutputCount>( frame.Flags, output, frame.OutputStride, frame.Bias, \
-		acc0, acc1, acc2, acc3, acc4, acc5, acc6, acc7, acc8, acc9, acc10, acc11 ); \
+	output += OutputCount * 8; \
 	input = prevInput; \
 }
 
@@ -502,7 +491,7 @@ static void singleKernel( const KernelFrame& frame, const float*& input, int fil
 {
 	for( int i = 0; i < outputCount; ++i ) {
 		PROCESS_OUTPUT_COUNT_JIT_N( FilterCount, 1 )
-			input += strideWidth;
+		input += strideWidth;
 	}
 }
 
