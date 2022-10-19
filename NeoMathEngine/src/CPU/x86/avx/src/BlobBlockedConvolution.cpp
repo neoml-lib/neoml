@@ -166,6 +166,23 @@ struct JitCallParams {
 	size_t InputStride;
 };
 
+// Clears the block accumulators.
+static void clearUsedYmms( int filterCount, int outputCount, Xbyak::CodeGenerator& gen )
+{
+	if( filterCount >= 1 && outputCount >= 1 ) gen.vxorps( Xbyak::Ymm( 0 ), Xbyak::Ymm( 0 ) );
+	if( filterCount >= 1 && outputCount >= 2 ) gen.vxorps( Xbyak::Ymm( 4 ), Xbyak::Ymm( 4 ) );
+	if( filterCount >= 1 && outputCount >= 3 ) gen.vxorps( Xbyak::Ymm( 8 ), Xbyak::Ymm( 8 ) );
+	if( filterCount >= 2 && outputCount >= 1 ) gen.vxorps( Xbyak::Ymm( 1 ), Xbyak::Ymm( 1 ) );
+	if( filterCount >= 2 && outputCount >= 2 ) gen.vxorps( Xbyak::Ymm( 5 ), Xbyak::Ymm( 5 ) );
+	if( filterCount >= 2 && outputCount >= 3 ) gen.vxorps( Xbyak::Ymm( 9 ), Xbyak::Ymm( 9 ) );
+	if( filterCount >= 3 && outputCount >= 1 ) gen.vxorps( Xbyak::Ymm( 2 ), Xbyak::Ymm( 2 ) );
+	if( filterCount >= 3 && outputCount >= 2 ) gen.vxorps( Xbyak::Ymm( 6 ), Xbyak::Ymm( 6 ) );
+	if( filterCount >= 3 && outputCount >= 3 ) gen.vxorps( Xbyak::Ymm( 10 ), Xbyak::Ymm( 10 ) );
+	if( filterCount >= 4 && outputCount >= 1 ) gen.vxorps( Xbyak::Ymm( 3 ), Xbyak::Ymm( 3 ) );
+	if( filterCount >= 4 && outputCount >= 2 ) gen.vxorps( Xbyak::Ymm( 7 ), Xbyak::Ymm( 7 ) );
+	if( filterCount >= 4 && outputCount >= 3 ) gen.vxorps( Xbyak::Ymm( 11 ), Xbyak::Ymm( 11 ) );
+}
+
 static void initComputeBlocks( int filterCount, int outputCount )
 {
 	using namespace Xbyak;
@@ -189,13 +206,6 @@ static void initComputeBlocks( int filterCount, int outputCount )
 
 	const reg64_t regFramePtr = Param1;
 
-	// DEBUG Load acc values from regYmmBuff
-	const reg64_t regYmmBuff = preservedGPR[regUsed++];
-	gen.mov( regYmmBuff, ptr[regFramePtr + offsetof( JitCallParams, YmmBuff )] );
-	for( int i = 0; i < 12; ++i ) {
-		gen.vmovups( acc[i], gen.ptr[regYmmBuff + i * SizeOfYmm]);
-	}
-
 	const reg64_t regInput = preservedGPR[regUsed++];
 	gen.mov( regInput, ptr[regFramePtr + offsetof( JitCallParams, Input )] );
 	const reg64_t regStrideWidth = preservedGPR[regUsed++];
@@ -208,11 +218,6 @@ static void initComputeBlocks( int filterCount, int outputCount )
 	gen.mov( regDilationWidth, ptr[regFramePtr + offsetof( JitCallParams, DilationWidth )] );
 	const reg64_t regInputStride = preservedGPR[regUsed++];
 	gen.mov( regInputStride, ptr[regFramePtr + offsetof( JitCallParams, InputStride )] );
-	// TODO: replace with preservedGPR[regUsed++] when removing regYmmBuff
-	const reg64_t regDilatedInputWidth = regYmmBuff;
-	if( outputCount == 1 ) {
-		gen.mov( regDilatedInputWidth, ptr[regFramePtr + offsetof( JitCallParams, DilatedInputWidth )] );
-	}
 
 	const reg64_t regNegInputBase = outputCount == 1 ? preservedGPR[regUsed++] : regNotUsed;
 	const reg64_t regInputWidth = outputCount == 1 ? preservedGPR[regUsed++] : regNotUsed;
@@ -221,6 +226,8 @@ static void initComputeBlocks( int filterCount, int outputCount )
 		gen.neg( regNegInputBase );
 		gen.mov( regInputWidth, ptr[regFramePtr + offsetof( JitCallParams, InputWidth )] );
 	}
+
+	clearUsedYmms( filterCount, outputCount, gen );
 
 	const reg64_t regRemRows = preservedGPR[regUsed++];
 	gen.mov( regRemRows, ptr[regFramePtr + offsetof( JitCallParams, KernelHeight )] );
@@ -314,6 +321,7 @@ static void initComputeBlocks( int filterCount, int outputCount )
 	gen.jnz( rowCycleStart, CodeGenerator::T_NEAR );
 
 	// DEBUG Store acc values to regYmmBuff
+	const reg64_t regYmmBuff = regInputStride;
 	gen.mov( regYmmBuff, ptr[regFramePtr + offsetof( JitCallParams, YmmBuff )] );
 	for( size_t i = 0; i < 12; ++i ) {
 		gen.vmovups( gen.ptr[regYmmBuff + i * SizeOfYmm], acc[i] );
@@ -450,23 +458,6 @@ static void postProcessing( const int flags, float*& output, int outputStride, c
 	output += OutputCount * 8;
 }
 
-// This macro generates code to clear the block accumulators.
-#define CLEAR_BLOCK(FilterCount, OutputCount) \
-{ \
-	if( FilterCount >= 1 && OutputCount >= 1 ) acc0 = _mm256_set1_ps( 0 ); \
-	if( FilterCount >= 1 && OutputCount >= 2 ) acc4 = _mm256_set1_ps( 0 ); \
-	if( FilterCount >= 1 && OutputCount >= 3 ) acc8 = _mm256_set1_ps( 0 ); \
-	if( FilterCount >= 2 && OutputCount >= 1 ) acc1 = _mm256_set1_ps( 0 ); \
-	if( FilterCount >= 2 && OutputCount >= 2 ) acc5 = _mm256_set1_ps( 0 ); \
-	if( FilterCount >= 2 && OutputCount >= 3 ) acc9 = _mm256_set1_ps( 0 ); \
-	if( FilterCount >= 3 && OutputCount >= 1 ) acc2 = _mm256_set1_ps( 0 ); \
-	if( FilterCount >= 3 && OutputCount >= 2 ) acc6 = _mm256_set1_ps( 0 ); \
-	if( FilterCount >= 3 && OutputCount >= 3 ) acc10 = _mm256_set1_ps( 0 ); \
-	if( FilterCount >= 4 && OutputCount >= 1 ) acc3 = _mm256_set1_ps( 0 ); \
-	if( FilterCount >= 4 && OutputCount >= 2 ) acc7 = _mm256_set1_ps( 0 ); \
-	if( FilterCount >= 4 && OutputCount >= 3 ) acc11 = _mm256_set1_ps( 0 ); \
-}
-
 /*
 ;   This macro generates code to compute the convolution for a vector of input
 ;   blocks and a vector of filter blocks to produce a matrix of output blocks.
@@ -479,22 +470,7 @@ static void postProcessing( const int flags, float*& output, int outputStride, c
 	const float* prevInput = input; \
 	const float* filter = frame.Filter; \
 	\
-	__m256 acc0{}, acc1{}, acc2{}, acc3{}, acc4{}, acc5{}, acc6{}, acc7{}, acc8{}, acc9{}, acc10{}, acc11{}; \
-	CLEAR_BLOCK(FilterCount, OutputCount); \
 	float ymmBuff[8 * 12]; \
-	_mm256_storeu_ps( ymmBuff + 8 * 0, acc0 ); \
-	_mm256_storeu_ps( ymmBuff + 8 * 1, acc1 ); \
-	_mm256_storeu_ps( ymmBuff + 8 * 2, acc2 ); \
-	_mm256_storeu_ps( ymmBuff + 8 * 3, acc3 ); \
-	_mm256_storeu_ps( ymmBuff + 8 * 4, acc4 ); \
-	_mm256_storeu_ps( ymmBuff + 8 * 5, acc5 ); \
-	_mm256_storeu_ps( ymmBuff + 8 * 6, acc6 ); \
-	_mm256_storeu_ps( ymmBuff + 8 * 7, acc7 ); \
-	_mm256_storeu_ps( ymmBuff + 8 * 8, acc8 ); \
-	_mm256_storeu_ps( ymmBuff + 8 * 9, acc9 ); \
-	_mm256_storeu_ps( ymmBuff + 8 * 10, acc10 ); \
-	_mm256_storeu_ps( ymmBuff + 8 * 11, acc11 ); \
-	\
 	const float* r13; \
 	if( OutputCount == 1 ) r13 = frame.InputBase; \
 	\
@@ -502,6 +478,7 @@ static void postProcessing( const int flags, float*& output, int outputStride, c
 		frame.InputBase, frame.InputWidth, frame.KernelHeight, frame.KernelWidth, \
 		frame.DilationWidth, frame.DilatedInputWidth, frame.InputStride ); \
 	\
+	__m256 acc0{}, acc1{}, acc2{}, acc3{}, acc4{}, acc5{}, acc6{}, acc7{}, acc8{}, acc9{}, acc10{}, acc11{}; \
 	acc0 = _mm256_loadu_ps( ymmBuff + 0 * 8 ); \
 	acc1 = _mm256_loadu_ps( ymmBuff + 1 * 8 ); \
 	acc2 = _mm256_loadu_ps( ymmBuff + 2 * 8 ); \
