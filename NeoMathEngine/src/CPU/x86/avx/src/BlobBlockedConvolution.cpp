@@ -157,6 +157,13 @@ struct JitCallParams {
 	const float* Filter;
 	size_t FilterStride;
 	float* YmmBuff;
+	const float* InputBase;
+	size_t InputWidth;
+	size_t KernelHeight;
+	size_t KernelWidth;
+	size_t DilationWidth;
+	size_t DilatedInputWidth;
+	size_t InputStride;
 };
 
 static void initComputeBlocks( int filterCount, int outputCount )
@@ -178,32 +185,75 @@ static void initComputeBlocks( int filterCount, int outputCount )
 
 	Address stackArgsPtr = gen.Prologue( preservedGPR, acc );
 
+	const reg64_t regNotUsed = rax;
+
 	const reg64_t regFramePtr = Param1;
 
-	const reg64_t regInput = preservedGPR[regUsed++];
-	gen.mov( regInput, ptr[regFramePtr + offsetof( JitCallParams, Input ) ] );
-	const reg64_t regStrideWidth = preservedGPR[regUsed++];
-	gen.mov( regStrideWidth, ptr[regFramePtr + offsetof( JitCallParams, StrideWidth ) ] );
-	const reg64_t regFilter = preservedGPR[regUsed++];
-	gen.mov( regFilter, ptr[regFramePtr + offsetof( JitCallParams, Filter ) ] );
-	const reg64_t regFilterStride = preservedGPR[regUsed++];
-	gen.mov( regFilterStride, ptr[regFramePtr + offsetof( JitCallParams, FilterStride ) ] );
-	const reg64_t regYmmBuff = preservedGPR[regUsed++];
-	gen.mov( regYmmBuff, ptr[regFramePtr + offsetof( JitCallParams, YmmBuff ) ] );
-
-	const reg64_t regShiftedInput = preservedGPR[regUsed++];
-	gen.mov( regShiftedInput, regInput );
-	gen.add( regShiftedInput, regStrideWidth );
-	gen.add( regShiftedInput, regStrideWidth );
-
-	const reg64_t regShiftedFilter = preservedGPR[regUsed++];
-	gen.mov( regShiftedFilter, regFilter );
-	gen.add( regShiftedFilter, regFilterStride );
-	gen.add( regShiftedFilter, regFilterStride );
-
 	// DEBUG Load acc values from regYmmBuff
+	const reg64_t regYmmBuff = preservedGPR[regUsed++];
+	gen.mov( regYmmBuff, ptr[regFramePtr + offsetof( JitCallParams, YmmBuff )] );
 	for( int i = 0; i < 12; ++i ) {
 		gen.vmovups( acc[i], gen.ptr[regYmmBuff + i * SizeOfYmm]);
+	}
+
+	const reg64_t regInput = preservedGPR[regUsed++];
+	gen.mov( regInput, ptr[regFramePtr + offsetof( JitCallParams, Input )] );
+	const reg64_t regStrideWidth = preservedGPR[regUsed++];
+	gen.mov( regStrideWidth, ptr[regFramePtr + offsetof( JitCallParams, StrideWidth )] );
+	const reg64_t regFilter = preservedGPR[regUsed++];
+	gen.mov( regFilter, ptr[regFramePtr + offsetof( JitCallParams, Filter )] );
+	const reg64_t regFilterStride = preservedGPR[regUsed++];
+	gen.mov( regFilterStride, ptr[regFramePtr + offsetof( JitCallParams, FilterStride )] );
+	const reg64_t regDilationWidth = preservedGPR[regUsed++];
+	gen.mov( regDilationWidth, ptr[regFramePtr + offsetof( JitCallParams, DilationWidth )] );
+	const reg64_t regInputStride = preservedGPR[regUsed++];
+	gen.mov( regInputStride, ptr[regFramePtr + offsetof( JitCallParams, InputStride )] );
+	// TODO: replace with preservedGPR[regUsed++] when removing regYmmBuff
+	const reg64_t regDilatedInputWidth = regYmmBuff;
+	if( outputCount == 1 ) {
+		gen.mov( regDilatedInputWidth, ptr[regFramePtr + offsetof( JitCallParams, DilatedInputWidth )] );
+	}
+
+	const reg64_t regNegInputBase = outputCount == 1 ? preservedGPR[regUsed++] : regNotUsed;
+	const reg64_t regInputWidth = outputCount == 1 ? preservedGPR[regUsed++] : regNotUsed;
+	if( outputCount == 1 ) {
+		gen.mov( regNegInputBase, ptr[regFramePtr + offsetof( JitCallParams, InputBase )] );
+		gen.neg( regNegInputBase );
+		gen.mov( regInputWidth, ptr[regFramePtr + offsetof( JitCallParams, InputWidth )] );
+	}
+
+	const reg64_t regRemRows = preservedGPR[regUsed++];
+	gen.mov( regRemRows, ptr[regFramePtr + offsetof( JitCallParams, KernelHeight )] );
+
+	Label rowCycleStart;
+	gen.L( rowCycleStart );
+
+	const reg64_t regRemCols = preservedGPR[regUsed++];
+	gen.mov( regRemCols, ptr[regFramePtr + offsetof( JitCallParams, KernelWidth )] );
+
+	Label colCycleStart;
+	gen.L( colCycleStart );
+
+	Label skipPadding;
+	if( outputCount == 1 ) {
+		const reg64_t tempReg = preservedGPR[regUsed++];
+		gen.lea( tempReg, ptr[regInput + regNegInputBase] );
+		gen.cmp( tempReg, regInputWidth );
+		gen.jae( skipPadding, CodeGenerator::T_NEAR );
+	}
+
+	const reg64_t regShiftedInput = outputCount >= 3 ? preservedGPR[regUsed++] : regNotUsed;
+	if( outputCount >= 3 ) {
+		gen.mov( regShiftedInput, regInput );
+		gen.add( regShiftedInput, regStrideWidth );
+		gen.add( regShiftedInput, regStrideWidth );
+	}
+
+	const reg64_t regShiftedFilter = filterCount >= 3 ? preservedGPR[regUsed++] : regNotUsed;
+	if( filterCount >= 3 ) {
+		gen.mov( regShiftedFilter, regFilter );
+		gen.add( regShiftedFilter, regFilterStride );
+		gen.add( regShiftedFilter, regFilterStride );
 	}
 
 	auto genSingleBlock = [&]( int broadcast )
@@ -249,7 +299,22 @@ static void initComputeBlocks( int filterCount, int outputCount )
 		genSingleBlock( broadcast );
 	}
 
+	gen.L( skipPadding );
+	gen.add( regInput, regDilationWidth );
+	gen.add( regFilter, 8 * 8 * sizeof( float ) );
+	gen.dec( regRemCols );
+	gen.jnz( colCycleStart, CodeGenerator::T_NEAR );
+
+	gen.add( regInput, regInputStride );
+	if( outputCount == 1 ) {
+		gen.sub( regNegInputBase, ptr[regFramePtr + offsetof( JitCallParams, DilatedInputWidth )] );
+	}
+
+	gen.dec( regRemRows );
+	gen.jnz( rowCycleStart, CodeGenerator::T_NEAR );
+
 	// DEBUG Store acc values to regYmmBuff
+	gen.mov( regYmmBuff, ptr[regFramePtr + offsetof( JitCallParams, YmmBuff )] );
 	for( size_t i = 0; i < 12; ++i ) {
 		gen.vmovups( gen.ptr[regYmmBuff + i * SizeOfYmm], acc[i] );
 	}
@@ -261,7 +326,9 @@ static void initComputeBlocks( int filterCount, int outputCount )
 }
 
 static void runComputeBlocks( int filterCount, int outputCount, const float* input, int strideWidth,
-	const float* filter, int filterStride, float* ymmBuff )
+	const float* filter, int filterStride, float* ymmBuff, const float* inputBase,
+	int inputWidth, int kernelHeight, int kernelWidth, int dilationWidth, int dilatedInputWidth,
+	int inputStride )
 {
 	const int genIndex = ( outputCount - 1 ) + 3 * ( filterCount - 1 );
 	CJitCommon& gen = computeBlockGens[genIndex].gen;
@@ -271,7 +338,9 @@ static void runComputeBlocks( int filterCount, int outputCount, const float* inp
 
 	//gen.dump();
 	typedef void (*TComputeBlockJitFunc)( JitCallParams* );
-	JitCallParams callFrame = { input, strideWidth * sizeof( float ), filter, filterStride * sizeof( float ), ymmBuff };
+	JitCallParams callFrame = { input, strideWidth * sizeof( float ), filter, filterStride * sizeof( float ), ymmBuff,
+		inputBase, inputWidth * sizeof( float ), static_cast<size_t>( kernelHeight ), static_cast<size_t>( kernelWidth ),
+		dilationWidth * sizeof( float ), dilatedInputWidth * sizeof( float ), inputStride * sizeof( float ) };
 	gen.getCode<TComputeBlockJitFunc>()( &callFrame );
 }
 
@@ -429,18 +498,9 @@ static void postProcessing( const int flags, float*& output, int outputStride, c
 	const float* r13; \
 	if( OutputCount == 1 ) r13 = frame.InputBase; \
 	\
-	for( int row = 0; row < frame.KernelHeight; ++row ) { \
-		for( int col = 0; col < frame.KernelWidth; ++col ) { \
-			if( OutputCount != 1 || size_t(input) - size_t(r13) < size_t(frame.InputWidth * sizeof(float)) ) { \
-				runComputeBlocks( FilterCount, OutputCount, input, strideWidth, filter, filterStride, ymmBuff ); \
-			} \
-			\
-			input += dilationWidth; \
-			filter += 8 * 8; \
-		} \
-		input += inputStride; \
-		if( OutputCount == 1 ) r13 += frame.DilatedInputWidth; \
-	} \
+	runComputeBlocks( FilterCount, OutputCount, input, strideWidth, filter, filterStride, ymmBuff, \
+		frame.InputBase, frame.InputWidth, frame.KernelHeight, frame.KernelWidth, \
+		frame.DilationWidth, frame.DilatedInputWidth, frame.InputStride ); \
 	\
 	acc0 = _mm256_loadu_ps( ymmBuff + 0 * 8 ); \
 	acc1 = _mm256_loadu_ps( ymmBuff + 1 * 8 ); \
