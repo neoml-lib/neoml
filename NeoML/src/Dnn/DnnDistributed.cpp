@@ -471,7 +471,15 @@ void CDistributedTraining::GetLastBlob( const CString& layerName, CObjectArray<C
 void CDistributedTraining::Serialize( CArchive& archive )
 {
     NeoAssert( archive.IsStoring() );
+    NeoAssert( !cnns.IsEmpty() && cnns[0] != nullptr );
     archive.Serialize( *cnns[0] );
+}
+
+void CDistributedTraining::SerializeCheckpoint( CArchive& archive )
+{
+    NeoAssert( archive.IsStoring() );
+    NeoAssert( !cnns.IsEmpty() && cnns[0] != nullptr );
+    cnns[0]->SerializeCheckpoint( archive );
 }
 
 } // namespace NeoML

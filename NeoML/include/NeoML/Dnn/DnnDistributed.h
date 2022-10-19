@@ -74,6 +74,8 @@ public:
 	void GetLastBlob( const CString& layerName, CObjectArray<CDnnBlob>& blobs );
 	// Save trained net
 	void Serialize( CArchive& archive );
+	// Save trained net with data required to resume training
+	void SerializeCheckpoint( CArchive& archive );
 
 private:
 	const bool isCpu;
