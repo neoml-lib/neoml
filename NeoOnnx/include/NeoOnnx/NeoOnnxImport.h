@@ -17,11 +17,17 @@ limitations under the License.
 
 #include <NeoOnnx/NeoOnnxDefs.h>
 #include <NeoML/NeoML.h>
+#include <NeoOnnx/TensorLayout.h>
 
 namespace NeoOnnx {
 
 // Additional settings for ONNX import
 struct NEOONNX_API CImportSettings {
+	// Sets the layout for the given onnx inputs and outputs
+	// Layouts[Name][i] contains the blob dim which is used as i'th axis of Name input or output
+	// If not set the default behavior is used (see LoadFromOnnx)
+	CMap<CString, CTensorLayout> InputLayouts;
+	CMap<CString, CTensorLayout> OutputLayouts;
 };
 
 // Information about imported model
@@ -55,6 +61,7 @@ struct NEOONNX_API CImportedModelInfo {
 // E.g. 4-dimensional ONNX tensor [1, 3, 224, 224] is equivalent to a NeoML blob of shape [1, 3, 224, 224, 1, 1, 1]
 // In C++ use CDnnBlob::CreateTensor( ... , onnxShape ); function
 // In Python use neomlBlobShape = onnxShape + [1] * (7 - len(onnxShape))
+// This rule may be overridden by using CImportSettings::InputLayouts and CImportSettings::OutputLayouts
 //
 // Throw std::logic_error if failed to load network
 
