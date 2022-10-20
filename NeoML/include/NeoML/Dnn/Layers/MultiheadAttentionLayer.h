@@ -88,6 +88,10 @@ public:
 	int GetOutputSize() const { return outputSize; }
 	void SetOutputSize( int _outputSize );
 
+	// Scale in attention previously depended on number of heads
+	bool IsInCompatibilityMode() const { return isInCompatibilityMode; }
+	void SetCompatibilityMode( bool value ) { isInCompatibilityMode = value; }
+
 	void Serialize( CArchive& archive ) override;
 
 	// Recreates the layer if forceRebuild is true or it doesn't contain sublayers
@@ -109,8 +113,8 @@ private:
 	TMaskType maskType;
 	// Output size
 	int outputSize;
-
-	bool useWrongScaling = false;
+	// scale in attention
+	bool isInCompatibilityMode = false;
 
 	void create();
 
@@ -137,10 +141,6 @@ private:
 	CBaseLayer* prepareK( CBaseLayer* input );
 	CBaseLayer* prepareV( CBaseLayer* input );
 	CBaseLayer* prepareOutput( CBaseLayer* input );
-
-public:
-	bool GetUseWrongScaling() const { return useWrongScaling; }
-	void SetUseWrongScaling( bool pleasedont = false ) { useWrongScaling = pleasedont; }
 };
 
 NEOML_API CLayerWrapper<CMultiheadAttentionLayer> MultiheadAttention(

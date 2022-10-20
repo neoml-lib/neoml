@@ -99,9 +99,9 @@ void CMultiheadAttentionLayer::Serialize( CArchive& archive )
 		maskType = MT_OneObject;
 	}
 	if( version >= 2 ) {
-		archive.Serialize( useWrongScaling );
+		archive.Serialize( isInCompatibilityMode );
 	} else {
-		useWrongScaling = true;
+		isInCompatibilityMode = true;
 	}
 }
 
@@ -133,7 +133,7 @@ void CMultiheadAttentionLayer::create()
 	NeoAssert( hiddenSize % headCount == 0 );
 
 	// scaling factor
-	const float multiplier = static_cast<float>( 1.0 / sqrt( 1.0 * hiddenSize / ( useWrongScaling ? 1 : headCount ) ) );
+	const float multiplier = static_cast<float>( 1.0 / sqrt( 1.0 * hiddenSize / ( isInCompatibilityMode ? 1 : headCount ) ) );
 
 	// Applying W_Q, W_K and W_V to the corresponding inputs
 	// [B, seq_Q, 1, hiddenSize]
