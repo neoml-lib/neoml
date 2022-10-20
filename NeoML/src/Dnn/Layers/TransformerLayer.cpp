@@ -160,6 +160,9 @@ void CTransformerEncoderLayer::SetActivation( TActivationFunction newFunction )
 
 void CTransformerEncoderLayer::SetMaskType( CMultiheadAttentionLayer::TMaskType type )
 {
+	if( GetMaskType() == type ) {
+		return;
+	}
 	selfAttention->SetMaskType( type );
 	ForceReshape();
 	NeoPresume( GetMaskType() == type );
