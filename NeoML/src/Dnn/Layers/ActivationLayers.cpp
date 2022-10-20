@@ -729,19 +729,19 @@ bool CActivationDesc::isTypeCompatible() const {
 	switch( type )
 	{
 		case AF_Linear:
-			return std::is_same_v<CLinearLayer::CParam, T>;
+			return std::is_same<CLinearLayer::CParam, T>::value;
 		case AF_ELU:
-			return std::is_same_v<CELULayer::CParam, T>;
+			return std::is_same<CELULayer::CParam, T>::value;
 		case AF_ReLU:
-			return std::is_same_v<CReLULayer::CParam, T>;
+			return std::is_same<CReLULayer::CParam, T>::value;
 		case AF_LeakyReLU:
-			return std::is_same_v<CLeakyReLULayer::CParam, T>;
+			return std::is_same<CLeakyReLULayer::CParam, T>::value;
 		case AF_HardSigmoid:
-			return std::is_same_v<CHardSigmoidLayer::CParam, T>;
+			return std::is_same<CHardSigmoidLayer::CParam, T>::value;
 		case AF_Power:
-			return std::is_same_v<CPowerLayer::CParam, T>;
+			return std::is_same<CPowerLayer::CParam, T>::value;
 		case AF_GELU:
-			return std::is_same_v<CGELULayer::CParam, T>;
+			return std::is_same<CGELULayer::CParam, T>::value;
 		case AF_Abs:
 		case AF_Sigmoid:
 		case AF_Tanh:
