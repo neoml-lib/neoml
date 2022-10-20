@@ -23,10 +23,16 @@ namespace NeoOnnx {
 
 // Additional settings for ONNX import
 struct NEOONNX_API CImportSettings {
-	// Sets the layout for the given onnx inputs and outputs
-	// Layouts[Name][i] contains the blob dim which is used as i'th axis of Name input or output
+	// InputLayouts[Name][i] contains the blob dim which is used as i'th axis of input with Name
+	// E.g. If ONNX has 4-dim input NCHW, and you want to feed NeoML blobs in NHWC format then add
+	//    InputLayouts.Add( Name, { BD_BatchWidth, BD_Channels, BD_Height, BD_Width } );
 	// If not set the default behavior is used (see LoadFromOnnx)
 	CMap<CString, CTensorLayout> InputLayouts;
+
+	// OutputLayouts[Name][i] contains the blob dim which is used as i'th axis of output with Name
+	// E.g. If ONNX has 2-dim output and you want to put the first dim to batch and second to channels then add
+	//    OutputLayouts.Add( Name, { BD_BatchWidth, BD_Channels } );
+	// If not set the default behavior is used (see LoadFromOnnx)
 	CMap<CString, CTensorLayout> OutputLayouts;
 };
 
