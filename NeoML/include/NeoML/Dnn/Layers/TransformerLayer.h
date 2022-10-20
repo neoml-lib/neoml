@@ -24,6 +24,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/EltwiseLayer.h>
 
 namespace NeoML {
+class CActivationDesc;
 
 // Transformer encoder layer
 //
@@ -96,7 +97,7 @@ public:
 
 	// Sets activation between fully-connected layers inside of feed-forward
 	// ReLU by default
-	void SetActivation( TActivationFunction newFunction );
+	void SetActivation( const CActivationDesc& param );
 
 protected:
 	void Reshape() override;
