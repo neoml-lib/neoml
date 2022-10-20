@@ -755,4 +755,8 @@ bool CActivationDesc::isTypeCompatible() const {
 	}
 }
 
+// All other correct instantiations are forced by GetDesc() + CParam{} in this cpp
+// All other incorrect instantiations will probably cause CE
+template bool CActivationDesc::isTypeCompatible<CGELULayer::CParam>() const;
+
 } // namespace NeoML
