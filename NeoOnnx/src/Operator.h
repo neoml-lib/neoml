@@ -17,7 +17,6 @@ limitations under the License.
 
 #include "onnx.pb.h"
 
-#include "TensorLayout.h"
 #include "Tensor.h"
 #include "AttributeGetters.h"
 

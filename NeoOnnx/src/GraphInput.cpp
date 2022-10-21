@@ -30,7 +30,7 @@ CGraphInput::CGraphInput( const onnx::ValueInfoProto& input ) :
 {
 }
 
-CPtr<const CUserTensor> CGraphInput::AddSourceLayer( CDnn& dnn ) const
+CPtr<const CUserTensor> CGraphInput::AddSourceLayer( CDnn& dnn, const CTensorLayout* layout ) const
 {
 	CPtr<CSourceLayer> source = new CSourceLayer( dnn.GetMathEngine() );
 	source->SetName( Name() );
@@ -53,7 +53,10 @@ CPtr<const CUserTensor> CGraphInput::AddSourceLayer( CDnn& dnn ) const
 	CBlobDesc outputBlobDesc(
 		GetBlobType( static_cast<onnx::TensorProto_DataType>( valueInfo.type().tensor_type().elem_type() ) ) );
 
-	CTensorLayout outputLayout = CTensorLayout::IOLayout( dimCount );
+	NeoOnnxCheck( layout == nullptr || layout->Size() == dimCount,
+		"User-provided layout has wrong number of dimensions" );
+	CTensorLayout outputLayout = layout != nullptr ? *layout : CTensorLayout::IOLayout( dimCount );
+
 	for( int dimIndex = 0; dimIndex < dimCount; ++dimIndex ) {
 		outputBlobDesc.SetDimSize( outputLayout[dimIndex], outputShape[dimIndex] );
 	}
