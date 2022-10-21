@@ -1338,6 +1338,11 @@ void CMetalMathEngine::QRFactorization( int, int, const CFloatHandle&, const CFl
     ASSERT_EXPR( false );
 }
 
+void CMetalMathEngine::LUFactorization( int, int, const CFloatHandle& )
+{
+    ASSERT_EXPR( false );
+}
+
 } // namespace NeoML
 
 #endif // NEOML_USE_METAL
