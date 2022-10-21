@@ -15,7 +15,8 @@ limitations under the License.
 
 #pragma once
 
-#include "NeoOnnxCheck.h"
+#include <NeoOnnx/NeoOnnxDefs.h>
+#include <NeoML/NeoML.h>
 
 namespace NeoOnnx {
 
@@ -71,7 +72,7 @@ inline CTensorLayout::CTensorLayout( int dimCount )
 			Add( { BD_BatchLength, BD_BatchWidth, BD_ListSize, BD_Height, BD_Width, BD_Depth, BD_Channels } );
 			break;
 		default:
-			CheckNeoOnnxSupport( false, "unsupported dimension count" );
+			NeoAssert( false );
 			break;
 	}
 }

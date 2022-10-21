@@ -15,7 +15,7 @@ limitations under the License.
 
 #pragma once
 
-#include "TensorLayout.h"
+#include <NeoOnnx/TensorLayout.h>
 
 namespace NeoOnnx {
 
