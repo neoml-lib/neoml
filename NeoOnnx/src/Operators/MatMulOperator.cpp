@@ -66,7 +66,7 @@ void CMatMulOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorA
 {
 	CheckOnnxProtocol( inputs[0] != nullptr && inputs[1] != nullptr, "input can't be optional", *this );
 
-	// NeoML doesn't support batch broadcast of the second argument in matrix multiplication
+	// NeoML doesn't support batch broadcast of the first argument in matrix multiplication
 	const int firstBatch = getBatchSize( *inputs[0] );
 	const int secondBatch = getBatchSize( *inputs[1] );
 	CheckNeoOnnxSupport( firstBatch == secondBatch || secondBatch == 1, "Second argument batch broadcast" );
