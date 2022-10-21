@@ -121,6 +121,10 @@ void CMatMulOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorA
 			transform->SetDimensionRule( dim, CTransformLayer::O_SetSize,
 				dimIndex == NotFound ? 1 : outputShape[dimIndex] );
 		}
+		if( outputShape.Size() > 2 ) {
+			// Heuristic for dynamic batch size
+			transform->SetDimensionRule( outputLayout[0], CTransformLayer::O_Remainder, 1 );
+		}
 		transform->Connect( *matmul );
 		dnn.AddLayer( *transform );
 		outputs.Add( new CUserTensor( outputShape, outputLayout, CLayerOutput( transform, 0 ) ) );
