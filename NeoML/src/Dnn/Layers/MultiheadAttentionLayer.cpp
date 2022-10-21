@@ -113,8 +113,10 @@ void CMultiheadAttentionLayer::Serialize( CArchive& archive )
 	}
 	if( version >= 2 ) {
 		archive.Serialize( isInCompatibilityMode );
+		archive.Serialize( multiplyByConstLayerName );
 	} else {
 		isInCompatibilityMode = true;
+		multiplyByConstLayerName = GetName() + CString( ".MultiplyByConst" );
 	}
 }
 
