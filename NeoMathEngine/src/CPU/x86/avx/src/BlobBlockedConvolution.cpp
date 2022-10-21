@@ -175,18 +175,11 @@ struct JitCallParams {
 // Clears the block accumulators.
 static void clearUsedYmms( int filterCount, int outputCount, Xbyak::CodeGenerator& gen )
 {
-	if( filterCount >= 1 && outputCount >= 1 ) gen.vxorps( Xbyak::Ymm( 0 ), Xbyak::Ymm( 0 ) );
-	if( filterCount >= 1 && outputCount >= 2 ) gen.vxorps( Xbyak::Ymm( 4 ), Xbyak::Ymm( 4 ) );
-	if( filterCount >= 1 && outputCount >= 3 ) gen.vxorps( Xbyak::Ymm( 8 ), Xbyak::Ymm( 8 ) );
-	if( filterCount >= 2 && outputCount >= 1 ) gen.vxorps( Xbyak::Ymm( 1 ), Xbyak::Ymm( 1 ) );
-	if( filterCount >= 2 && outputCount >= 2 ) gen.vxorps( Xbyak::Ymm( 5 ), Xbyak::Ymm( 5 ) );
-	if( filterCount >= 2 && outputCount >= 3 ) gen.vxorps( Xbyak::Ymm( 9 ), Xbyak::Ymm( 9 ) );
-	if( filterCount >= 3 && outputCount >= 1 ) gen.vxorps( Xbyak::Ymm( 2 ), Xbyak::Ymm( 2 ) );
-	if( filterCount >= 3 && outputCount >= 2 ) gen.vxorps( Xbyak::Ymm( 6 ), Xbyak::Ymm( 6 ) );
-	if( filterCount >= 3 && outputCount >= 3 ) gen.vxorps( Xbyak::Ymm( 10 ), Xbyak::Ymm( 10 ) );
-	if( filterCount >= 4 && outputCount >= 1 ) gen.vxorps( Xbyak::Ymm( 3 ), Xbyak::Ymm( 3 ) );
-	if( filterCount >= 4 && outputCount >= 2 ) gen.vxorps( Xbyak::Ymm( 7 ), Xbyak::Ymm( 7 ) );
-	if( filterCount >= 4 && outputCount >= 3 ) gen.vxorps( Xbyak::Ymm( 11 ), Xbyak::Ymm( 11 ) );
+	for( int filter = 0; filter < filterCount; ++filter ) {
+		for( int output = 0; output < outputCount; ++output ) {
+			gen.vxorps( Xbyak::Ymm( output * 4 + filter ), Xbyak::Ymm( output * 4 + filter ) );
+		}
+	}
 }
 
 static void initComputeBlocks( int filterCount, int outputCount )
@@ -272,35 +265,28 @@ static void initComputeBlocks( int filterCount, int outputCount )
 		const int vectorOffset = broadcast * 8 * sizeof( float );
 
 		// This macro multiplies and accumulates for FilterCount by OutputCount block of the output buffer.
-		if( outputCount >= 1 ) gen.vbroadcastss( acc[13], gen.ptr[regInput + broadcastOffset] );
-		if( outputCount >= 2 ) gen.vbroadcastss( acc[14], gen.ptr[regInput + regStrideWidth + broadcastOffset] );
-		if( outputCount >= 3 ) gen.vbroadcastss( acc[15], gen.ptr[regShiftedInput + broadcastOffset] );
+		Ymm inputYmm[3] = { Ymm( 13 ), Ymm( 14 ), Ymm( 15 ) };
+		Address inputAddr[3] = { gen.ptr[regInput + broadcastOffset], gen.ptr[regInput + regStrideWidth + broadcastOffset],
+			gen.ptr[regShiftedInput + broadcastOffset] };
+		for( int output = 0; output < 3; ++output ) {
+			gen.vbroadcastss( inputYmm[output], inputAddr[output] );
+		}
+
+		Address filterAddr[4] = { gen.ptr[regFilter + vectorOffset], gen.ptr[regFilter + regFilterStride + vectorOffset],
+			gen.ptr[regShiftedFilter + vectorOffset], gen.ptr[regShiftedFilter + regFilterStride + vectorOffset] };
 
 		if( outputCount == 1 ) {
-			if( filterCount >= 1 ) baseGen.vfmadd231ps( acc[0], acc[13], gen.ptr[regFilter + vectorOffset] );
-			if( filterCount >= 2 ) baseGen.vfmadd231ps( acc[1], acc[13], gen.ptr[regFilter + regFilterStride + vectorOffset] );
-			if( filterCount >= 3 ) baseGen.vfmadd231ps( acc[2], acc[13], gen.ptr[regShiftedFilter + vectorOffset] );
-			if( filterCount >= 4 ) baseGen.vfmadd231ps( acc[3], acc[13], gen.ptr[regShiftedFilter + regFilterStride + vectorOffset] );
+			for( int filter = 0; filter < filterCount; ++filter ) {
+				baseGen.vfmadd231ps( acc[filter], inputYmm[0], filterAddr[filter] );
+			}
 		} else {
-			if( filterCount >= 1 ) gen.vmovups( acc[12], gen.ptr[regFilter + vectorOffset] );
-			if( filterCount >= 1 && outputCount >= 1 ) baseGen.vfmadd231ps( acc[0], acc[13], acc[12] );
-			if( filterCount >= 1 && outputCount >= 2 ) baseGen.vfmadd231ps( acc[4], acc[14], acc[12] );
-			if( filterCount >= 1 && outputCount >= 3 ) baseGen.vfmadd231ps( acc[8], acc[15], acc[12] );
-
-			if( filterCount >= 2 ) gen.vmovups( acc[12], gen.ptr[regFilter + regFilterStride + vectorOffset] );
-			if( filterCount >= 2 && outputCount >= 1 ) baseGen.vfmadd231ps( acc[1], acc[13], acc[12] );
-			if( filterCount >= 2 && outputCount >= 2 ) baseGen.vfmadd231ps( acc[5], acc[14], acc[12] );
-			if( filterCount >= 2 && outputCount >= 3 ) baseGen.vfmadd231ps( acc[9], acc[15], acc[12] );
-
-			if( filterCount >= 3 ) gen.vmovups( acc[12], gen.ptr[regShiftedFilter + vectorOffset] );
-			if( filterCount >= 3 && outputCount >= 1 ) baseGen.vfmadd231ps( acc[2], acc[13], acc[12] );
-			if( filterCount >= 3 && outputCount >= 2 ) baseGen.vfmadd231ps( acc[6], acc[14], acc[12] );
-			if( filterCount >= 3 && outputCount >= 3 ) baseGen.vfmadd231ps( acc[10], acc[15], acc[12] );
-
-			if( filterCount >= 4 ) gen.vmovups( acc[12], gen.ptr[regShiftedFilter + regFilterStride + vectorOffset] );
-			if( filterCount >= 4 && outputCount >= 1 ) baseGen.vfmadd231ps( acc[3], acc[13], acc[12] );
-			if( filterCount >= 4 && outputCount >= 2 ) baseGen.vfmadd231ps( acc[7], acc[14], acc[12] );
-			if( filterCount >= 4 && outputCount >= 3 ) baseGen.vfmadd231ps( acc[11], acc[15], acc[12] );
+			for( int filter = 0; filter < filterCount; ++filter ) {
+				Ymm filterYmm( 12 );
+				gen.vmovups( filterYmm, filterAddr[filter] );
+				for( int output = 0; output < outputCount; ++output ) {
+					baseGen.vfmadd231ps( acc[output * 4 + filter], inputYmm[output], filterYmm );
+				}
+			}
 		}
 	};
 
@@ -344,21 +330,13 @@ static void initComputeBlocks( int filterCount, int outputCount )
 	gen.test( regFlags, ACCUMULATE_OUTPUT );
 	gen.jz( skipAccumulateOutput, CodeGenerator::T_NEAR );
 
-	if( filterCount >= 1 && outputCount >= 1 ) baseGen.vaddps( acc[0], acc[0], ptr[regOutput] );
-	if( filterCount >= 1 && outputCount >= 2 ) baseGen.vaddps( acc[4], acc[4], ptr[regOutput + SizeOfYmm] );
-	if( filterCount >= 1 && outputCount >= 3 ) baseGen.vaddps( acc[8], acc[8], ptr[regOutput + 2 * SizeOfYmm] );
-
-	if( filterCount >= 2 && outputCount >= 1 ) baseGen.vaddps( acc[1], acc[1], ptr[regOutput + regOutputStride] );
-	if( filterCount >= 2 && outputCount >= 2 ) baseGen.vaddps( acc[5], acc[5], ptr[regOutput + regOutputStride + SizeOfYmm] );
-	if( filterCount >= 2 && outputCount >= 3 ) baseGen.vaddps( acc[9], acc[9], ptr[regOutput + regOutputStride + 2 * SizeOfYmm] );
-
-	if( filterCount >= 3 && outputCount >= 1 ) baseGen.vaddps( acc[2], acc[2], ptr[regShiftedOutput] );
-	if( filterCount >= 3 && outputCount >= 2 ) baseGen.vaddps( acc[6], acc[6], ptr[regShiftedOutput + SizeOfYmm] );
-	if( filterCount >= 3 && outputCount >= 3 ) baseGen.vaddps( acc[10], acc[10], ptr[regShiftedOutput + 2 * SizeOfYmm] );
-
-	if( filterCount >= 4 && outputCount >= 1 ) baseGen.vaddps( acc[3], acc[3], ptr[regShiftedOutput + regOutputStride] );
-	if( filterCount >= 4 && outputCount >= 2 ) baseGen.vaddps( acc[7], acc[7], ptr[regShiftedOutput + regOutputStride + SizeOfYmm] );
-	if( filterCount >= 4 && outputCount >= 3 ) baseGen.vaddps( acc[11], acc[11], ptr[regShiftedOutput + regOutputStride + 2 * SizeOfYmm] );
+	reg64_t outputRegs[2] = { regOutput, regShiftedOutput };
+	for( int filter = 0; filter < filterCount; ++filter ) {
+		for( int output = 0; output < outputCount; ++output ) {
+			baseGen.vaddps( acc[output * 4 + filter], acc[output * 4 + filter],
+				ptr[outputRegs[filter / 2] + ( filter % 2 ) * regOutputStride + output * SizeOfYmm] );
+		}
+	}
 
 	gen.L( skipAccumulateOutput );
 
@@ -369,51 +347,33 @@ static void initComputeBlocks( int filterCount, int outputCount )
 	const reg64_t regBias = regFilter;
 	gen.mov( regBias, ptr[regFramePtr + offsetof( JitCallParams, Bias )] );
 
+	Address biasAddr[4] = { ptr[regBias], ptr[regBias + SizeOfYmm], ptr[regBias + 2 * SizeOfYmm],
+		ptr[regBias + 3 * SizeOfYmm] };
+
 	if( outputCount == 1 ) {
-		if( filterCount >= 1 ) baseGen.vaddps( acc[0], acc[0], ptr[regBias] );
-		if( filterCount >= 2 ) baseGen.vaddps( acc[1], acc[1], ptr[regBias + SizeOfYmm] );
-		if( filterCount >= 3 ) baseGen.vaddps( acc[2], acc[2], ptr[regBias + 2 * SizeOfYmm] );
-		if( filterCount >= 4 ) baseGen.vaddps( acc[3], acc[3], ptr[regBias + 3 * SizeOfYmm] );
+		for( int filter = 0; filter < filterCount; ++filter ) {
+			baseGen.vaddps( Ymm( filter ), Ymm( filter ), biasAddr[filter] );
+		}
 	} else {
-		if( filterCount >= 1 ) baseGen.vmovups( acc[12], ptr[regBias] );
-		if( filterCount >= 2 ) baseGen.vmovups( acc[13], ptr[regBias + SizeOfYmm] );
-		if( filterCount >= 3 ) baseGen.vmovups( acc[14], ptr[regBias + 2 * SizeOfYmm] );
-		if( filterCount >= 4 ) baseGen.vmovups( acc[15], ptr[regBias + 3 * SizeOfYmm] );
-
-		if( filterCount >= 1 && outputCount >= 1 ) baseGen.vaddps( acc[0], acc[0], acc[12] );
-		if( filterCount >= 1 && outputCount >= 2 ) baseGen.vaddps( acc[4], acc[4], acc[12] );
-		if( filterCount >= 1 && outputCount >= 3 ) baseGen.vaddps( acc[8], acc[8], acc[12] );
-
-		if( filterCount >= 2 && outputCount >= 1 ) baseGen.vaddps( acc[1], acc[1], acc[13] );
-		if( filterCount >= 2 && outputCount >= 2 ) baseGen.vaddps( acc[5], acc[5], acc[13] );
-		if( filterCount >= 2 && outputCount >= 3 ) baseGen.vaddps( acc[9], acc[9], acc[13] );
-
-		if( filterCount >= 3 && outputCount >= 1 ) baseGen.vaddps( acc[2], acc[2], acc[14] );
-		if( filterCount >= 3 && outputCount >= 2 ) baseGen.vaddps( acc[6], acc[6], acc[14] );
-		if( filterCount >= 3 && outputCount >= 3 ) baseGen.vaddps( acc[10], acc[10], acc[14] );
-
-		if( filterCount >= 4 && outputCount >= 1 ) baseGen.vaddps( acc[3], acc[3], acc[15] );
-		if( filterCount >= 4 && outputCount >= 2 ) baseGen.vaddps( acc[7], acc[7], acc[15] );
-		if( filterCount >= 4 && outputCount >= 3 ) baseGen.vaddps( acc[11], acc[11], acc[15] );
+		const int biasYmmIdx = 12;
+		for( int filter = 0; filter < filterCount; ++filter ) {
+			baseGen.vmovups( Ymm( biasYmmIdx + filter ), biasAddr[filter] );
+		}
+		for( int output = 0; output < outputCount; ++output ) {
+			for( int filter = 0; filter < filterCount; ++filter ) {
+				baseGen.vaddps( Ymm( output * 4 + filter ), Ymm( output * 4 + filter ), Ymm( biasYmmIdx + filter ) );
+			}
+		}
 	}
 
 	gen.L( skipBias );
 
-	if( filterCount >= 1 && outputCount >= 1 ) baseGen.vmovups( ptr[regOutput], acc[0] );
-	if( filterCount >= 1 && outputCount >= 2 ) baseGen.vmovups( ptr[regOutput + SizeOfYmm], acc[4] );
-	if( filterCount >= 1 && outputCount >= 3 ) baseGen.vmovups( ptr[regOutput + 2 * SizeOfYmm], acc[8] );
-
-	if( filterCount >= 2 && outputCount >= 1 ) baseGen.vmovups( ptr[regOutput + regOutputStride], acc[1] );
-	if( filterCount >= 2 && outputCount >= 2 ) baseGen.vmovups( ptr[regOutput + regOutputStride + SizeOfYmm], acc[5] );
-	if( filterCount >= 2 && outputCount >= 3 ) baseGen.vmovups( ptr[regOutput + regOutputStride + 2 * SizeOfYmm], acc[9] );
-
-	if( filterCount >= 3 && outputCount >= 1 ) baseGen.vmovups( ptr[regShiftedOutput], acc[2] );
-	if( filterCount >= 3 && outputCount >= 2 ) baseGen.vmovups( ptr[regShiftedOutput + SizeOfYmm], acc[6] );
-	if( filterCount >= 3 && outputCount >= 3 ) baseGen.vmovups( ptr[regShiftedOutput + 2 * SizeOfYmm], acc[10] );
-
-	if( filterCount >= 4 && outputCount >= 1 ) baseGen.vmovups( ptr[regShiftedOutput + regOutputStride], acc[3] );
-	if( filterCount >= 4 && outputCount >= 2 ) baseGen.vmovups( ptr[regShiftedOutput + regOutputStride + SizeOfYmm], acc[7] );
-	if( filterCount >= 4 && outputCount >= 3 ) baseGen.vmovups( ptr[regShiftedOutput + regOutputStride + 2 * SizeOfYmm], acc[11] );
+	for( int output = 0; output < outputCount; ++output ) {
+		for( int filter = 0; filter < filterCount; ++filter ) {
+			baseGen.vmovups( ptr[outputRegs[filter / 2] + ( filter % 2 ) * regOutputStride + output * SizeOfYmm],
+				Ymm( output * 4 + filter ) );
+		}
+	}
 
 	gen.Epilogue( preservedGPR, acc );
 	gen.ret();
