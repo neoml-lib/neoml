@@ -90,7 +90,7 @@ public:
 
 	// Scale in attention previously depended on number of heads
 	bool IsInCompatibilityMode() const { return isInCompatibilityMode; }
-	void SetCompatibilityMode( bool value ) { isInCompatibilityMode = value; }
+	void SetCompatibilityMode( bool value );
 
 	void Serialize( CArchive& archive ) override;
 
@@ -115,6 +115,8 @@ private:
 	int outputSize;
 	// scale in attention
 	bool isInCompatibilityMode;
+	// layer applying scale
+	CString multiplyByConstLayerName;
 
 	void create();
 
@@ -141,6 +143,10 @@ private:
 	CBaseLayer* prepareK( CBaseLayer* input );
 	CBaseLayer* prepareV( CBaseLayer* input );
 	CBaseLayer* prepareOutput( CBaseLayer* input );
+
+	// divide dot product by sqrt( d_k ) or sqrt( d_K ) in compatibility mode, where k - one key, K - concatenation of keys from all heads
+	float getScalingFactor() const
+		{ return static_cast<float>( 1.0 / sqrt( 1.0 * hiddenSize / ( isInCompatibilityMode ? 1 : headCount ) ) ); }
 };
 
 NEOML_API CLayerWrapper<CMultiheadAttentionLayer> MultiheadAttention(
