@@ -265,6 +265,11 @@ void CDistributedTraining::SetLearningRate( float newRate )
     }
 }
 
+float CDistributedTraining::GetLearningRate() const
+{
+    return cnns[0]->GetSolver()->GetLearningRate();
+}
+
 void CDistributedTraining::RunOnce( IDistributedDataset& data )
 {
     struct CFunctionParams {

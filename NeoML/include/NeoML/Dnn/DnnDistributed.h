@@ -58,6 +58,8 @@ public:
 	void SetSolver( CArchive& archive );
 	// Sets the learning rate for all of the models
 	void SetLearningRate( float rate );
+	// Returns the current learning rate
+	float GetLearningRate() const;
 	// Runs the networks without backward and training
 	void RunOnce( IDistributedDataset& data );
 	// Runs the networks and performs a backward pass
