@@ -36,7 +36,8 @@ CMultiheadAttentionLayer::CMultiheadAttentionLayer( IMathEngine& mathEngine ) :
 	dropoutRate( -1 ),
 	useMask( false ),
 	maskType( MT_OneObject ),
-	outputSize( 8 )
+	outputSize( 8 ),
+	isInCompatibilityMode( false )
 {
 }
 

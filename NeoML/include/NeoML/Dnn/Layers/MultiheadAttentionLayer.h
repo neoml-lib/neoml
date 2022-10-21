@@ -114,7 +114,7 @@ private:
 	// Output size
 	int outputSize;
 	// scale in attention
-	bool isInCompatibilityMode = false;
+	bool isInCompatibilityMode;
 
 	void create();
 
