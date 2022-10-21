@@ -347,17 +347,14 @@ static void initComputeBlocks( int filterCount, int outputCount )
 	const reg64_t regBias = regFilter;
 	gen.mov( regBias, ptr[regFramePtr + offsetof( JitCallParams, Bias )] );
 
-	Address biasAddr[4] = { ptr[regBias], ptr[regBias + SizeOfYmm], ptr[regBias + 2 * SizeOfYmm],
-		ptr[regBias + 3 * SizeOfYmm] };
-
 	if( outputCount == 1 ) {
 		for( int filter = 0; filter < filterCount; ++filter ) {
-			baseGen.vaddps( Ymm( filter ), Ymm( filter ), biasAddr[filter] );
+			baseGen.vaddps( Ymm( filter ), Ymm( filter ), ptr[regBias + filter * SizeOfYmm] );
 		}
 	} else {
 		const int biasYmmIdx = 12;
 		for( int filter = 0; filter < filterCount; ++filter ) {
-			baseGen.vmovups( Ymm( biasYmmIdx + filter ), biasAddr[filter] );
+			baseGen.vmovups( Ymm( biasYmmIdx + filter ), ptr[regBias + filter * SizeOfYmm] );
 		}
 		for( int output = 0; output < outputCount; ++output ) {
 			for( int filter = 0; filter < filterCount; ++filter ) {
