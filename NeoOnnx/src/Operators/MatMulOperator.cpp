@@ -48,18 +48,6 @@ static inline int getMatrixWidth( const CTensorBase& tensor )
 	return tensor.Shape().Last();
 }
 
-// Checks if MatMul operator can be emulated via CFullyConnectedLayer
-static inline bool isFcCompatible( const CTensorBase& secondArg )
-{
-	return secondArg.IsCalculated() && getBatchSize( secondArg ) == 1;
-}
-
-// Checks if MatMul operator can be emulated via CMatrixMultiplicationLayer
-static inline bool isMmCompatible( const CTensorBase& firstArg, const CTensorBase& secondArg )
-{
-	return getBatchSize( firstArg ) == getBatchSize( secondArg );
-}
-
 //---------------------------------------------------------------------------------------------------------------------
 
 CMatMulOperator::CMatMulOperator( const onnx::NodeProto& matMul, int opsetVersion ) :
