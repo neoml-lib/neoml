@@ -196,31 +196,28 @@ static void initComputeBlocks( int filterCount, int outputCount )
 		acc[i] = ymm_t( i );
 	}
 
-	reg64Vec_t preservedGPR = { rax, rbx, rcx, rdx, rsi, rdi, r8, r9, r10, r11, r12, r13, r14, r15 };
+	reg64Vec_t preservedGPR = { rax, rbx, rbp, rcx, rdx, rsi, rdi, r8, r9, r10, r11, r12, r13, r14, r15 };
 	preservedGPR.erase( std::find( preservedGPR.begin(), preservedGPR.end(), Param1 ) );
-	int regUsed = 0;
 
 	Address stackArgsPtr = gen.Prologue( preservedGPR, acc );
 
-	const reg64_t regNotUsed = rax;
-
 	const reg64_t regFramePtr = Param1;
 
-	const reg64_t regInput = preservedGPR[regUsed++];
+	const reg64_t regInput = r12; // TODO: replace with RCX when move to regFramePtr to RSP
 	gen.mov( regInput, ptr[regFramePtr + offsetof( JitCallParams, Input )] );
-	const reg64_t regStrideWidth = preservedGPR[regUsed++];
+	const reg64_t regStrideWidth = r9;
 	gen.mov( regStrideWidth, ptr[regFramePtr + offsetof( JitCallParams, StrideWidth )] );
-	const reg64_t regFilter = preservedGPR[regUsed++];
+	const reg64_t regFilter = rdx;
 	gen.mov( regFilter, ptr[regFramePtr + offsetof( JitCallParams, Filter )] );
-	const reg64_t regFilterStride = preservedGPR[regUsed++];
+	const reg64_t regFilterStride = rsi;
 	gen.mov( regFilterStride, ptr[regFramePtr + offsetof( JitCallParams, FilterStride )] );
-	const reg64_t regDilationWidth = preservedGPR[regUsed++];
+	const reg64_t regDilationWidth = rbp;
 	gen.mov( regDilationWidth, ptr[regFramePtr + offsetof( JitCallParams, DilationWidth )] );
-	const reg64_t regInputStride = preservedGPR[regUsed++];
+	const reg64_t regInputStride = r15;
 	gen.mov( regInputStride, ptr[regFramePtr + offsetof( JitCallParams, InputStride )] );
 
-	const reg64_t regNegInputBase = outputCount == 1 ? preservedGPR[regUsed++] : regNotUsed;
-	const reg64_t regInputWidth = outputCount == 1 ? preservedGPR[regUsed++] : regNotUsed;
+	const reg64_t regNegInputBase = r13;
+	const reg64_t regInputWidth = r14;
 	if( outputCount == 1 ) {
 		gen.mov( regNegInputBase, ptr[regFramePtr + offsetof( JitCallParams, InputBase )] );
 		gen.neg( regNegInputBase );
@@ -229,13 +226,13 @@ static void initComputeBlocks( int filterCount, int outputCount )
 
 	clearUsedYmms( filterCount, outputCount, gen );
 
-	const reg64_t regRemRows = preservedGPR[regUsed++];
+	const reg64_t regRemRows = r11;
 	gen.mov( regRemRows, ptr[regFramePtr + offsetof( JitCallParams, KernelHeight )] );
 
 	Label rowCycleStart;
 	gen.L( rowCycleStart );
 
-	const reg64_t regRemCols = preservedGPR[regUsed++];
+	const reg64_t regRemCols = rax;
 	gen.mov( regRemCols, ptr[regFramePtr + offsetof( JitCallParams, KernelWidth )] );
 
 	Label colCycleStart;
@@ -243,18 +240,18 @@ static void initComputeBlocks( int filterCount, int outputCount )
 
 	Label skipPadding;
 	if( outputCount == 1 ) {
-		const reg64_t tempReg = preservedGPR[regUsed++];
+		const reg64_t tempReg = rbx;
 		gen.lea( tempReg, ptr[regInput + regNegInputBase] );
 		gen.cmp( tempReg, regInputWidth );
 		gen.jae( skipPadding, CodeGenerator::T_NEAR );
 	}
 
-	const reg64_t regShiftedInput = outputCount >= 3 ? preservedGPR[regUsed++] : regNotUsed;
+	const reg64_t regShiftedInput = r14;
 	if( outputCount >= 3 ) {
 		gen.lea( regShiftedInput, ptr[regInput + 2 * regStrideWidth] );
 	}
 
-	const reg64_t regShiftedFilter = filterCount >= 3 ? preservedGPR[regUsed++] : regNotUsed;
+	const reg64_t regShiftedFilter = rbx;
 	if( filterCount >= 3 ) {
 		gen.lea( regShiftedFilter, ptr[regFilter + 2 * regFilterStride] );
 	}
@@ -268,7 +265,7 @@ static void initComputeBlocks( int filterCount, int outputCount )
 		Ymm inputYmm[3] = { Ymm( 13 ), Ymm( 14 ), Ymm( 15 ) };
 		Address inputAddr[3] = { gen.ptr[regInput + broadcastOffset], gen.ptr[regInput + regStrideWidth + broadcastOffset],
 			gen.ptr[regShiftedInput + broadcastOffset] };
-		for( int output = 0; output < 3; ++output ) {
+		for( int output = 0; output < outputCount; ++output ) {
 			gen.vbroadcastss( inputYmm[output], inputAddr[output] );
 		}
 
@@ -314,16 +311,16 @@ static void initComputeBlocks( int filterCount, int outputCount )
 	;   output buffer.
 	*/
 
-	const reg64_t regOutput = regInput;
+	const reg64_t regOutput = r8;
 	gen.mov( regOutput, ptr[regFramePtr + offsetof( JitCallParams, Output )] );
-	const reg64_t regOutputStride = regInputStride;
+	const reg64_t regOutputStride = rax;
 	gen.mov( regOutputStride, ptr[regFramePtr + offsetof( JitCallParams, OutputStride )] );
-	const reg64_t regShiftedOutput = regShiftedFilter;
+	const reg64_t regShiftedOutput = rbx;
 	if( filterCount >= 3 ) {
 		gen.lea( regShiftedOutput, ptr[regOutput + 2 * regOutputStride] );
 	}
 	
-	const reg64_t regFlags = regRemRows;
+	const reg64_t regFlags = rdx;
 	gen.mov( regFlags, ptr[regFramePtr + offsetof( JitCallParams, Flags )] );
 
 	Label skipAccumulateOutput;
@@ -344,12 +341,12 @@ static void initComputeBlocks( int filterCount, int outputCount )
 	gen.test( regFlags, ADD_BIAS );
 	gen.jz( skipBias, CodeGenerator::T_NEAR );
 
-	const reg64_t regBias = regFilter;
+	const reg64_t regBias = rcx;
 	gen.mov( regBias, ptr[regFramePtr + offsetof( JitCallParams, Bias )] );
 
 	if( outputCount == 1 ) {
 		for( int filter = 0; filter < filterCount; ++filter ) {
-			baseGen.vaddps( Ymm( filter ), Ymm( filter ), ptr[regBias + filter * SizeOfYmm] );
+			baseGen.vaddps( acc[filter], acc[filter], ptr[regBias + filter * SizeOfYmm] );
 		}
 	} else {
 		const int biasYmmIdx = 12;
@@ -358,7 +355,7 @@ static void initComputeBlocks( int filterCount, int outputCount )
 		}
 		for( int output = 0; output < outputCount; ++output ) {
 			for( int filter = 0; filter < filterCount; ++filter ) {
-				baseGen.vaddps( Ymm( output * 4 + filter ), Ymm( output * 4 + filter ), Ymm( biasYmmIdx + filter ) );
+				baseGen.vaddps( acc[output * 4 + filter], acc[output * 4 + filter], Ymm( biasYmmIdx + filter ) );
 			}
 		}
 	}
@@ -368,7 +365,7 @@ static void initComputeBlocks( int filterCount, int outputCount )
 	for( int output = 0; output < outputCount; ++output ) {
 		for( int filter = 0; filter < filterCount; ++filter ) {
 			baseGen.vmovups( ptr[outputRegs[filter / 2] + ( filter % 2 ) * regOutputStride + output * SizeOfYmm],
-				Ymm( output * 4 + filter ) );
+				acc[output * 4 + filter] );
 		}
 	}
 
