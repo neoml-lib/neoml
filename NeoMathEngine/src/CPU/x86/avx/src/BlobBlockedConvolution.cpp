@@ -171,11 +171,12 @@ public:
 		size_t OutputCountLeftPad;
 		size_t OutputCount;
 		size_t OutputCountRightPad;
+		size_t FilterCount;
 		float* PrevRsp;
 	};
 
 	// TODO: increase if needed
-	explicit CBlockedConvGen( int filterCount );
+	CBlockedConvGen() : CodeGenerator( 16 * 1024 ) {}
 
 	void Run( CParams& params );
 
@@ -197,10 +198,10 @@ private:
 	// ORT ProcessFilterCountN
 	void genProcessFilterCount( int filterCount );
 
+	void genConvKernel();
+
 	// Epilogue
 	void genEpilogue();
-
-	const int _filterCount;
 
 	const reg64_t regGlobalInput = rdi;
 	const reg64_t regRemOutputCount = r10;
@@ -221,17 +222,11 @@ private:
 
 };
 
-CBlockedConvGen::CBlockedConvGen( int filterCount ) :
-	CodeGenerator( 8192 * 1024 ),
-	_filterCount( filterCount )
-{
-}
-
 void CBlockedConvGen::Run( CParams& params )
 {
 	if( getSize() == 0 ) {
 		genPrologue();
-		genProcessFilterCount( _filterCount );
+		genConvKernel();
 		genEpilogue();
 	}
 
@@ -487,6 +482,37 @@ void CBlockedConvGen::genProcessFilterCount( int filterCount )
 	L( skipRightPad );
 }
 
+void CBlockedConvGen::genConvKernel()
+{
+	const reg64_t regFilterCount = r11;
+	mov( regFilterCount, ptr[rsp + offsetof( CParams, FilterCount )] );
+
+	Label processThreeFilters;
+	Label processLessThanThreeFilters;
+	Label processOneFilter;
+	Label convKernelEnd;
+
+	cmp( regFilterCount, 3 );
+	je( processThreeFilters, T_NEAR );
+	jb( processLessThanThreeFilters, T_NEAR );
+	genProcessFilterCount( 4 );
+	jmp( convKernelEnd, T_NEAR );
+
+	L( processThreeFilters );
+	genProcessFilterCount( 3 );
+	jmp( convKernelEnd, T_NEAR );
+
+	L( processLessThanThreeFilters );
+	cmp( regFilterCount, 2 );
+	jb( processOneFilter, T_NEAR );
+	genProcessFilterCount( 2 );
+	jmp( convKernelEnd, T_NEAR );
+
+	L( processOneFilter );
+	genProcessFilterCount( 1 );
+	L( convKernelEnd );
+}
+
 void CBlockedConvGen::genEpilogue()
 {
 	mov( rsp, ptr[rsp + offsetof( CParams, PrevRsp )] );
@@ -504,87 +530,7 @@ void CBlockedConvGen::genEpilogue()
 	ret();
 }
 
-std::array<std::unique_ptr<CBlockedConvGen>, 4> computeBlockGens;
-
-static void runProcessFilterCount( int filterCount, const float* input, int strideWidth,
-	const float* filter, int filterStride, const float* inputBase,
-	int inputWidth, int kernelHeight, int kernelWidth, int dilationWidth, int dilatedInputWidth,
-	int inputStride, const float* bias, float* output, int outputStride, int flags,
-	int outputCountLeftPad, int outputCount, int outputCountRightPad )
-{
-	const int genIndex = filterCount - 1;
-	if( computeBlockGens[genIndex] == nullptr ) {
-		computeBlockGens[genIndex].reset( new CBlockedConvGen( filterCount ) );
-	}
-	CBlockedConvGen::CParams callParams = { input, strideWidth * sizeof( float ), filter, filterStride * sizeof( float ),
-		inputBase, inputWidth * sizeof( float ), static_cast<size_t>( kernelHeight ), static_cast<size_t>( kernelWidth ),
-		dilationWidth * sizeof( float ), dilatedInputWidth * sizeof( float ), inputStride * sizeof( float ),
-		bias, output, outputStride * sizeof( float ), static_cast<size_t>( flags ), static_cast<size_t>( outputCountLeftPad ),
-		static_cast<size_t>( outputCount ), static_cast<size_t>( outputCountRightPad ) };
-	computeBlockGens[genIndex]->Run( callParams );
-}
-
-struct KernelFrame {
-	int Padding;
-	const float* Input;
-	const float* Filter;
-	const float* Bias;
-	float* Output;
-	int StrideWidth;
-	int DilationWidth;
-	int FilterCount;
-	int InputStride;
-	int FilterStride;
-	int OutputStride;
-	int KernelHeight;
-	int KernelWidth;
-	const float* InputBase;
-	int InputWidth;
-	int DilatedInputWidth;
-	int OutputCountLeftPad;
-	int OutputCount;
-	int OutputCountRightPad;
-	int Flags;
-};
-
-/*
-;   This macro generates code to compute the convolution for a vector of input
-;   blocks and a vector of filter blocks to produce a matrix of output blocks.
-;
-;   OutputCount=1 generates special case code to handle padding blocks. All
-;   other output counts assume no padding.
-*/
-#define PROCESS_FILTER_COUNT_JIT_N(FilterCount) \
-{ \
-	runProcessFilterCount( FilterCount, input, strideWidth, frame.Filter, filterStride, \
-		frame.InputBase, frame.InputWidth, frame.KernelHeight, frame.KernelWidth, \
-		frame.DilationWidth, frame.DilatedInputWidth, frame.InputStride, frame.Bias, \
-		output, frame.OutputStride, frame.Flags, frame.OutputCountLeftPad, frame.OutputCount, \
-		frame.OutputCountRightPad ); \
-}
-
-static void convKernelFunction( const KernelFrame& frame, int filterCount )
-{
-	const float* input = frame.Input;
-	float* output = frame.Output;
-	int filterStride = frame.FilterStride;
-	int dilationWidth = frame.DilationWidth;
-	int strideWidth = frame.StrideWidth;
-	int inputStride = frame.InputStride;
-	switch( filterCount ) {
-		case 1:
-			PROCESS_FILTER_COUNT_JIT_N( 1 );
-			return;
-		case 2:
-			PROCESS_FILTER_COUNT_JIT_N( 2 );
-			return;
-		case 3:
-			PROCESS_FILTER_COUNT_JIT_N( 3 );
-			return;
-		case 4:
-			PROCESS_FILTER_COUNT_JIT_N( 4 );
-	}
-}
+static CBlockedConvGen blockedConvGen;
 
 static void runConv( const float* Input, const float* OrigFilter, const float* OrigBias, float* Output,
 	int batch, int hIn, int wIn, int chIn, int hOut, int wOut, int chOut,
@@ -663,28 +609,14 @@ static void runConv( const float* Input, const float* OrigFilter, const float* O
 					}
 				}
 
-				KernelFrame frame;
-				frame.Input = input + 8 * ( ih * wIn - wPad );
-				frame.Filter = filter;
-				frame.Output = output;
-				frame.StrideWidth = strideWidth;
-				frame.DilationWidth = dilationWidth;
-				frame.FilterCount = filterCount;
-				frame.InputStride = inputStride;
-				frame.FilterStride = filterStride;
-				frame.OutputStride = outputStride;
-				frame.KernelHeight = static_cast<int>( effectiveKernelHeight );
-				frame.KernelWidth = wKer;
-				frame.InputBase = input + 8 * ( ih * wIn );
-				frame.InputWidth = inputWidth;
-				frame.DilatedInputWidth = dilatedInputWidth;
-				frame.OutputCountLeftPad = wOutCountLeftPad;
-				frame.OutputCount = wOutCount;
-				frame.OutputCountRightPad = wOutCountRightPad;
-				frame.Bias = Bias;
-				frame.Flags = flags;
+				CBlockedConvGen::CParams callParams = { input + 8 * ( ih * wIn - wPad ), strideWidth * sizeof( float ),
+					filter, filterStride * sizeof( float ), input + 8 * ( ih * wIn ), inputWidth * sizeof( float ),
+					effectiveKernelHeight, static_cast<size_t>( wKer ), dilationWidth * sizeof( float ),
+					dilatedInputWidth * sizeof( float ), inputStride * sizeof( float ), Bias, output,
+					outputStride * sizeof( float ), static_cast<size_t>( flags ), static_cast<size_t>( wOutCountLeftPad ),
+					static_cast<size_t>( wOutCount ), static_cast<size_t>( wOutCountRightPad ), static_cast<size_t>( filterCount ) };
 
-				convKernelFunction( frame, filterCount );
+				blockedConvGen.Run( callParams );
 
 				output += blockOutputWidth;
 			}
