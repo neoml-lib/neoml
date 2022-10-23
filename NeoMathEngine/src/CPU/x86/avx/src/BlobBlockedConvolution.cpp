@@ -167,6 +167,7 @@ struct JitCallParams {
 	float* Output;
 	size_t OutputStride;
 	size_t Flags;
+	float* PrevRsp;
 };
 
 #define ACCUMULATE_OUTPUT 1
@@ -199,41 +200,43 @@ static void initComputeBlocks( int filterCount, int outputCount )
 	reg64Vec_t preservedGPR = { rax, rbx, rbp, rcx, rdx, rsi, rdi, r8, r9, r10, r11, r12, r13, r14, r15 };
 	preservedGPR.erase( std::find( preservedGPR.begin(), preservedGPR.end(), Param1 ) );
 
-	Address stackArgsPtr = gen.Prologue( preservedGPR, acc );
+	gen.Prologue( preservedGPR, acc );
 
-	const reg64_t regFramePtr = Param1;
+	gen.mov( ptr[Param1 + offsetof( JitCallParams, PrevRsp )], rsp );
+	gen.mov( rsp, Param1 );
 
-	const reg64_t regInput = r12; // TODO: replace with RCX when move to regFramePtr to RSP
-	gen.mov( regInput, ptr[regFramePtr + offsetof( JitCallParams, Input )] );
+	const reg64_t regInput = rcx;
+	gen.mov( regInput, ptr[rsp + offsetof( JitCallParams, Input )] );
 	const reg64_t regStrideWidth = r9;
-	gen.mov( regStrideWidth, ptr[regFramePtr + offsetof( JitCallParams, StrideWidth )] );
+	gen.mov( regStrideWidth, ptr[rsp + offsetof( JitCallParams, StrideWidth )] );
 	const reg64_t regFilter = rdx;
-	gen.mov( regFilter, ptr[regFramePtr + offsetof( JitCallParams, Filter )] );
+	gen.mov( regFilter, ptr[rsp + offsetof( JitCallParams, Filter )] );
 	const reg64_t regFilterStride = rsi;
-	gen.mov( regFilterStride, ptr[regFramePtr + offsetof( JitCallParams, FilterStride )] );
+	gen.mov( regFilterStride, ptr[rsp + offsetof( JitCallParams, FilterStride )] );
 	const reg64_t regDilationWidth = rbp;
-	gen.mov( regDilationWidth, ptr[regFramePtr + offsetof( JitCallParams, DilationWidth )] );
+	gen.mov( regDilationWidth, ptr[rsp + offsetof( JitCallParams, DilationWidth )] );
 	const reg64_t regInputStride = r15;
-	gen.mov( regInputStride, ptr[regFramePtr + offsetof( JitCallParams, InputStride )] );
+	gen.mov( regInputStride, ptr[rsp + offsetof( JitCallParams, InputStride )] );
 
 	const reg64_t regNegInputBase = r13;
 	const reg64_t regInputWidth = r14;
 	if( outputCount == 1 ) {
-		gen.mov( regNegInputBase, ptr[regFramePtr + offsetof( JitCallParams, InputBase )] );
+		gen.mov( regNegInputBase, ptr[rsp + offsetof( JitCallParams, InputBase )] );
 		gen.neg( regNegInputBase );
-		gen.mov( regInputWidth, ptr[regFramePtr + offsetof( JitCallParams, InputWidth )] );
+		gen.mov( regInputWidth, ptr[rsp + offsetof( JitCallParams, InputWidth )] );
 	}
 
 	clearUsedYmms( filterCount, outputCount, gen );
 
 	const reg64_t regRemRows = r11;
-	gen.mov( regRemRows, ptr[regFramePtr + offsetof( JitCallParams, KernelHeight )] );
+	gen.mov( regRemRows, ptr[rsp + offsetof( JitCallParams, KernelHeight )] );
 
 	Label rowCycleStart;
 	gen.L( rowCycleStart );
 
 	const reg64_t regRemCols = rax;
-	gen.mov( regRemCols, ptr[regFramePtr + offsetof( JitCallParams, KernelWidth )] );
+	// TODO: remove this load when figure out how to get rid of registers
+	gen.mov( regRemCols, ptr[rsp + offsetof( JitCallParams, KernelWidth )] );
 
 	Label colCycleStart;
 	gen.L( colCycleStart );
@@ -299,7 +302,7 @@ static void initComputeBlocks( int filterCount, int outputCount )
 
 	gen.add( regInput, regInputStride );
 	if( outputCount == 1 ) {
-		gen.sub( regNegInputBase, ptr[regFramePtr + offsetof( JitCallParams, DilatedInputWidth )] );
+		gen.sub( regNegInputBase, ptr[rsp + offsetof( JitCallParams, DilatedInputWidth )] );
 	}
 
 	gen.dec( regRemRows );
@@ -312,16 +315,16 @@ static void initComputeBlocks( int filterCount, int outputCount )
 	*/
 
 	const reg64_t regOutput = r8;
-	gen.mov( regOutput, ptr[regFramePtr + offsetof( JitCallParams, Output )] );
+	gen.mov( regOutput, ptr[rsp + offsetof( JitCallParams, Output )] );
 	const reg64_t regOutputStride = rax;
-	gen.mov( regOutputStride, ptr[regFramePtr + offsetof( JitCallParams, OutputStride )] );
+	gen.mov( regOutputStride, ptr[rsp + offsetof( JitCallParams, OutputStride )] );
 	const reg64_t regShiftedOutput = rbx;
 	if( filterCount >= 3 ) {
 		gen.lea( regShiftedOutput, ptr[regOutput + 2 * regOutputStride] );
 	}
 	
 	const reg64_t regFlags = rdx;
-	gen.mov( regFlags, ptr[regFramePtr + offsetof( JitCallParams, Flags )] );
+	gen.mov( regFlags, ptr[rsp + offsetof( JitCallParams, Flags )] );
 
 	Label skipAccumulateOutput;
 	gen.test( regFlags, ACCUMULATE_OUTPUT );
@@ -342,7 +345,7 @@ static void initComputeBlocks( int filterCount, int outputCount )
 	gen.jz( skipBias, CodeGenerator::T_NEAR );
 
 	const reg64_t regBias = rcx;
-	gen.mov( regBias, ptr[regFramePtr + offsetof( JitCallParams, Bias )] );
+	gen.mov( regBias, ptr[rsp + offsetof( JitCallParams, Bias )] );
 
 	if( outputCount == 1 ) {
 		for( int filter = 0; filter < filterCount; ++filter ) {
@@ -369,6 +372,7 @@ static void initComputeBlocks( int filterCount, int outputCount )
 		}
 	}
 
+	gen.mov( rsp, ptr[rsp + offsetof( JitCallParams, PrevRsp )] );
 	gen.Epilogue( preservedGPR, acc );
 	gen.ret();
 
