@@ -431,16 +431,11 @@ struct KernelFrame {
 */
 #define PROCESS_OUTPUT_COUNT_JIT_N(FilterCount, OutputCount) \
 { \
-	const float* prevInput = input; \
-	const float* filter = frame.Filter; \
-	\
-	runComputeBlocks( FilterCount, OutputCount, input, strideWidth, filter, filterStride, \
+	runComputeBlocks( FilterCount, OutputCount, input, strideWidth, frame.Filter, filterStride, \
 		frame.InputBase, frame.InputWidth, frame.KernelHeight, frame.KernelWidth, \
 		frame.DilationWidth, frame.DilatedInputWidth, frame.InputStride, frame.Bias, \
 		output, frame.OutputStride, frame.Flags ); \
-	\
 	output += OutputCount * 8; \
-	input = prevInput; \
 }
 
 template<int FilterCount>
