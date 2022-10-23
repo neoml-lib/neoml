@@ -144,240 +144,289 @@ void CAvxMathEngine::PackBlockedFilter( const CBlobDesc& desc, const float* sour
 
 // Main part with convolution itself
 
-struct CJitGen {
-	CJitCommon gen;
-	std::mutex lock;
-};
-
-std::array<CJitGen, static_cast<size_t>( 4 * 3 )> computeBlockGens;
-
-struct JitCallParams {
-	const float* Input;
-	size_t StrideWidth;
-	const float* Filter;
-	size_t FilterStride;
-	const float* InputBase;
-	size_t InputWidth;
-	size_t KernelHeight;
-	size_t KernelWidth;
-	size_t DilationWidth;
-	size_t DilatedInputWidth;
-	size_t InputStride;
-	const float* Bias;
-	float* Output;
-	size_t OutputStride;
-	size_t Flags;
-	float* PrevRsp;
-};
+using namespace Xbyak::util;
+using namespace Xbyak;
 
 #define ACCUMULATE_OUTPUT 1
 #define ADD_BIAS 2
 
-// Clears the block accumulators.
-static void clearUsedYmms( int filterCount, int outputCount, Xbyak::CodeGenerator& gen )
+class CBlockedConvGen : public Xbyak::CodeGenerator {
+public:
+	struct CParams {
+		const float* Input;
+		size_t StrideWidth;
+		const float* Filter;
+		size_t FilterStride;
+		const float* InputBase;
+		size_t InputWidth;
+		size_t KernelHeight;
+		size_t KernelWidth;
+		size_t DilationWidth;
+		size_t DilatedInputWidth;
+		size_t InputStride;
+		const float* Bias;
+		float* Output;
+		size_t OutputStride;
+		size_t Flags;
+		float* PrevRsp;
+	};
+
+	// TODO: increase if needed
+	CBlockedConvGen( int filterCount, int outputCount );
+
+	void RunComputeBlocks( CParams& params );
+
+private:
+	void genPrologue();
+	void genComputeBlocksPrologue();
+	void genClearYmms();
+	void genComputeBlocks();
+	void genSingleComputeBlock( int broadcast );
+	void genPostProcessing();
+	void genEpilogue();
+
+	int filterCount;
+	int outputCount;
+
+	const reg64_t regInput = rcx;
+	const reg64_t regStrideWidth = r9;
+	const reg64_t regFilter = rdx;
+	const reg64_t regFilterStride = rsi;
+	const reg64_t regDilationWidth = rbp;
+	const reg64_t regInputStride = r15;
+	const reg64_t regNegInputBase = r13;
+	const reg64_t regInputWidth = r14;
+	const reg64_t regOutput = r8;
+	const reg64_t regKernelHeight = r11;
+	const reg64_t regKernelWidth = r12;
+	const reg64_t regShiftedInput = r14;
+	const reg64_t regShiftedFilter = rbx;
+};
+
+CBlockedConvGen::CBlockedConvGen( int filterCount, int outputCount ) :
+	CodeGenerator( 8192 ),
+	filterCount( filterCount ),
+	outputCount( outputCount )
+{
+}
+
+void CBlockedConvGen::RunComputeBlocks( CParams& params )
+{
+	if( getSize() == 0 ) {
+		genPrologue();
+		genComputeBlocksPrologue();
+		genClearYmms();
+		genComputeBlocks();
+		genPostProcessing();
+		genEpilogue();
+	}
+
+	typedef void (*TComputeBlockJitFunc)( CParams* );
+	getCode<TComputeBlockJitFunc>()( &params );
+}
+
+void CBlockedConvGen::genPrologue()
+{
+	push( rbp );
+	mov( rbp, rsp );
+
+	sub( rsp, static_cast< uint32_t >( 16 * SizeOfYmm ) );
+	for( int i = 0; i < 16; i++ ) {
+		vmovdqu( ptr[rsp + i * SizeOfYmm], Ymm( i ) );
+	}
+
+	reg64Vec_t gprs = { rax, rbx, rbp, rcx, rdx, rsi, rdi, r8, r9, r10, r11, r12, r13, r14, r15 };
+	for( int i = 0; i < gprs.size(); i++ ) {
+		push( gprs[i] );
+	}
+
+	mov( ptr[Param1 + offsetof( CParams, PrevRsp )], rsp );
+	mov( rsp, Param1 );
+
+	mov( regInput, ptr[rsp + offsetof( CParams, Input )] );
+	mov( regFilterStride, ptr[rsp + offsetof( CParams, FilterStride )] );
+	mov( regDilationWidth, ptr[rsp + offsetof( CParams, DilationWidth )] );
+	mov( regOutput, ptr[rsp + offsetof( CParams, Output )] );
+	mov( regStrideWidth, ptr[rsp + offsetof( CParams, StrideWidth )] );
+	mov( regInputStride, ptr[rsp + offsetof( CParams, InputStride )] );
+}
+
+void CBlockedConvGen::genComputeBlocksPrologue()
+{
+	mov( regFilter, ptr[rsp + offsetof( CParams, Filter )] );
+	mov( regKernelHeight, ptr[rsp + offsetof( CParams, KernelHeight )] );
+	mov( regKernelWidth, ptr[rsp + offsetof( CParams, KernelWidth )] );
+	if( outputCount == 1 ) {
+		mov( regNegInputBase, ptr[rsp + offsetof( CParams, InputBase )] );
+		neg( regNegInputBase );
+		mov( regInputWidth, ptr[rsp + offsetof( CParams, InputWidth )] );
+	}
+}
+
+void CBlockedConvGen::genClearYmms()
 {
 	for( int filter = 0; filter < filterCount; ++filter ) {
 		for( int output = 0; output < outputCount; ++output ) {
-			gen.vxorps( Xbyak::Ymm( output * 4 + filter ), Xbyak::Ymm( output * 4 + filter ) );
+			vxorps( Xbyak::Ymm( output * 4 + filter ), Xbyak::Ymm( output * 4 + filter ) );
 		}
 	}
 }
 
-static void initComputeBlocks( int filterCount, int outputCount )
+void CBlockedConvGen::genComputeBlocks()
 {
-	using namespace Xbyak;
-	using namespace Xbyak::util;
-
-	const int genIndex = ( outputCount - 1 ) + 3 * ( filterCount - 1 );
-	CJitCommon& gen = computeBlockGens[genIndex].gen;
-	CodeGenerator& baseGen = static_cast<CodeGenerator&>( gen );
-
-	ymmVec_t acc( 16 );
-	for( int i = 0; i < 16; ++i ) {
-		acc[i] = ymm_t( i );
-	}
-
-	reg64Vec_t preservedGPR = { rax, rbx, rbp, rcx, rdx, rsi, rdi, r8, r9, r10, r11, r12, r13, r14, r15 };
-	preservedGPR.erase( std::find( preservedGPR.begin(), preservedGPR.end(), Param1 ) );
-
-	gen.Prologue( preservedGPR, acc );
-
-	gen.mov( ptr[Param1 + offsetof( JitCallParams, PrevRsp )], rsp );
-	gen.mov( rsp, Param1 );
-
-	const reg64_t regInput = rcx;
-	gen.mov( regInput, ptr[rsp + offsetof( JitCallParams, Input )] );
-	const reg64_t regStrideWidth = r9;
-	gen.mov( regStrideWidth, ptr[rsp + offsetof( JitCallParams, StrideWidth )] );
-	const reg64_t regFilter = rdx;
-	gen.mov( regFilter, ptr[rsp + offsetof( JitCallParams, Filter )] );
-	const reg64_t regFilterStride = rsi;
-	gen.mov( regFilterStride, ptr[rsp + offsetof( JitCallParams, FilterStride )] );
-	const reg64_t regDilationWidth = rbp;
-	gen.mov( regDilationWidth, ptr[rsp + offsetof( JitCallParams, DilationWidth )] );
-	const reg64_t regInputStride = r15;
-	gen.mov( regInputStride, ptr[rsp + offsetof( JitCallParams, InputStride )] );
-
-	const reg64_t regNegInputBase = r13;
-	const reg64_t regInputWidth = r14;
-	if( outputCount == 1 ) {
-		gen.mov( regNegInputBase, ptr[rsp + offsetof( JitCallParams, InputBase )] );
-		gen.neg( regNegInputBase );
-		gen.mov( regInputWidth, ptr[rsp + offsetof( JitCallParams, InputWidth )] );
-	}
-
-	clearUsedYmms( filterCount, outputCount, gen );
-
-	const reg64_t regRemRows = r11;
-	gen.mov( regRemRows, ptr[rsp + offsetof( JitCallParams, KernelHeight )] );
+	mov( regKernelHeight, ptr[rsp + offsetof( CParams, KernelHeight )] );
 
 	Label rowCycleStart;
-	gen.L( rowCycleStart );
+	L( rowCycleStart );
 
 	const reg64_t regRemCols = rax;
 	// TODO: remove this load when figure out how to get rid of registers
-	gen.mov( regRemCols, ptr[rsp + offsetof( JitCallParams, KernelWidth )] );
+	mov( regRemCols, regKernelWidth );
 
 	Label colCycleStart;
-	gen.L( colCycleStart );
+	L( colCycleStart );
 
 	Label skipPadding;
 	if( outputCount == 1 ) {
-		const reg64_t tempReg = rbx;
-		gen.lea( tempReg, ptr[regInput + regNegInputBase] );
-		gen.cmp( tempReg, regInputWidth );
-		gen.jae( skipPadding, CodeGenerator::T_NEAR );
+		lea( rbx, ptr[regInput + regNegInputBase] );
+		cmp( rbx, regInputWidth );
+		jae( skipPadding, CodeGenerator::T_NEAR );
 	}
 
-	const reg64_t regShiftedInput = r14;
 	if( outputCount >= 3 ) {
-		gen.lea( regShiftedInput, ptr[regInput + 2 * regStrideWidth] );
+		lea( regShiftedInput, ptr[regInput + 2 * regStrideWidth] );
 	}
 
-	const reg64_t regShiftedFilter = rbx;
 	if( filterCount >= 3 ) {
-		gen.lea( regShiftedFilter, ptr[regFilter + 2 * regFilterStride] );
+		lea( regShiftedFilter, ptr[regFilter + 2 * regFilterStride] );
 	}
-
-	auto genSingleBlock = [&]( int broadcast )
-	{
-		const int broadcastOffset = broadcast * sizeof( float );
-		const int vectorOffset = broadcast * 8 * sizeof( float );
-
-		// This macro multiplies and accumulates for FilterCount by OutputCount block of the output buffer.
-		Ymm inputYmm[3] = { Ymm( 13 ), Ymm( 14 ), Ymm( 15 ) };
-		Address inputAddr[3] = { gen.ptr[regInput + broadcastOffset], gen.ptr[regInput + regStrideWidth + broadcastOffset],
-			gen.ptr[regShiftedInput + broadcastOffset] };
-		for( int output = 0; output < outputCount; ++output ) {
-			gen.vbroadcastss( inputYmm[output], inputAddr[output] );
-		}
-
-		Address filterAddr[4] = { gen.ptr[regFilter + vectorOffset], gen.ptr[regFilter + regFilterStride + vectorOffset],
-			gen.ptr[regShiftedFilter + vectorOffset], gen.ptr[regShiftedFilter + regFilterStride + vectorOffset] };
-
-		if( outputCount == 1 ) {
-			for( int filter = 0; filter < filterCount; ++filter ) {
-				baseGen.vfmadd231ps( acc[filter], inputYmm[0], filterAddr[filter] );
-			}
-		} else {
-			for( int filter = 0; filter < filterCount; ++filter ) {
-				Ymm filterYmm( 12 );
-				gen.vmovups( filterYmm, filterAddr[filter] );
-				for( int output = 0; output < outputCount; ++output ) {
-					baseGen.vfmadd231ps( acc[output * 4 + filter], inputYmm[output], filterYmm );
-				}
-			}
-		}
-	};
 
 	for( int broadcast = 0; broadcast < 8; ++broadcast ) {
-		genSingleBlock( broadcast );
+		genSingleComputeBlock( broadcast );
 	}
 
-	gen.L( skipPadding );
-	gen.add( regInput, regDilationWidth );
-	gen.add( regFilter, 8 * 8 * sizeof( float ) );
-	gen.dec( regRemCols );
-	gen.jnz( colCycleStart, CodeGenerator::T_NEAR );
+	L( skipPadding );
+	add( regInput, regDilationWidth );
+	add( regFilter, 8 * 8 * sizeof( float ) );
+	dec( regRemCols );
+	jnz( colCycleStart, CodeGenerator::T_NEAR );
 
-	gen.add( regInput, regInputStride );
+	add( regInput, regInputStride );
 	if( outputCount == 1 ) {
-		gen.sub( regNegInputBase, ptr[rsp + offsetof( JitCallParams, DilatedInputWidth )] );
+		sub( regNegInputBase, ptr[rsp + offsetof( CParams, DilatedInputWidth )] );
 	}
 
-	gen.dec( regRemRows );
-	gen.jnz( rowCycleStart, CodeGenerator::T_NEAR );
+	dec( regKernelHeight );
+	jnz( rowCycleStart, CodeGenerator::T_NEAR );
+}
 
-	/*
-	;   This macro generates code to process an output block after the inner
-	;   convolution kernel has executed and then stores the output block to the
-	;   output buffer.
-	*/
+void CBlockedConvGen::genSingleComputeBlock( int broadcast )
+{
+	const int broadcastOffset = broadcast * sizeof( float );
+	const int vectorOffset = broadcast * 8 * sizeof( float );
 
-	const reg64_t regOutput = r8;
-	gen.mov( regOutput, ptr[rsp + offsetof( JitCallParams, Output )] );
+	// This macro multiplies and accumulates for FilterCount by OutputCount block of the output buffer.
+	Ymm inputYmm[3] = { Ymm( 13 ), Ymm( 14 ), Ymm( 15 ) };
+	Address inputAddr[3] = { ptr[regInput + broadcastOffset], ptr[regInput + regStrideWidth + broadcastOffset],
+		ptr[regShiftedInput + broadcastOffset] };
+	for( int output = 0; output < outputCount; ++output ) {
+		vbroadcastss( inputYmm[output], inputAddr[output] );
+	}
+
+	Address filterAddr[4] = { ptr[regFilter + vectorOffset], ptr[regFilter + regFilterStride + vectorOffset],
+		ptr[regShiftedFilter + vectorOffset], ptr[regShiftedFilter + regFilterStride + vectorOffset] };
+
+	if( outputCount == 1 ) {
+		for( int filter = 0; filter < filterCount; ++filter ) {
+			vfmadd231ps( Ymm( filter ), inputYmm[0], filterAddr[filter]);
+		}
+	} else {
+		for( int filter = 0; filter < filterCount; ++filter ) {
+			Ymm filterYmm( 12 );
+			vmovups( filterYmm, filterAddr[filter] );
+			for( int output = 0; output < outputCount; ++output ) {
+				vfmadd231ps( Ymm( output * 4 + filter ), inputYmm[output], filterYmm );
+			}
+		}
+	}
+}
+
+void CBlockedConvGen::genPostProcessing()
+{
 	const reg64_t regOutputStride = rax;
-	gen.mov( regOutputStride, ptr[rsp + offsetof( JitCallParams, OutputStride )] );
+	mov( regOutputStride, ptr[rsp + offsetof( CParams, OutputStride )] );
 	const reg64_t regShiftedOutput = rbx;
 	if( filterCount >= 3 ) {
-		gen.lea( regShiftedOutput, ptr[regOutput + 2 * regOutputStride] );
+		lea( regShiftedOutput, ptr[regOutput + 2 * regOutputStride] );
 	}
-	
 	const reg64_t regFlags = rdx;
-	gen.mov( regFlags, ptr[rsp + offsetof( JitCallParams, Flags )] );
+	mov( regFlags, ptr[rsp + offsetof( CParams, Flags )] );
 
 	Label skipAccumulateOutput;
-	gen.test( regFlags, ACCUMULATE_OUTPUT );
-	gen.jz( skipAccumulateOutput, CodeGenerator::T_NEAR );
+	test( regFlags, ACCUMULATE_OUTPUT );
+	jz( skipAccumulateOutput, CodeGenerator::T_NEAR );
 
 	reg64_t outputRegs[2] = { regOutput, regShiftedOutput };
 	for( int filter = 0; filter < filterCount; ++filter ) {
 		for( int output = 0; output < outputCount; ++output ) {
-			baseGen.vaddps( acc[output * 4 + filter], acc[output * 4 + filter],
+			vaddps( Ymm( output * 4 + filter ), Ymm( output * 4 + filter ),
 				ptr[outputRegs[filter / 2] + ( filter % 2 ) * regOutputStride + output * SizeOfYmm] );
 		}
 	}
 
-	gen.L( skipAccumulateOutput );
+	L( skipAccumulateOutput );
 
 	Label skipBias;
-	gen.test( regFlags, ADD_BIAS );
-	gen.jz( skipBias, CodeGenerator::T_NEAR );
+	test( regFlags, ADD_BIAS );
+	jz( skipBias, CodeGenerator::T_NEAR );
 
 	const reg64_t regBias = rcx;
-	gen.mov( regBias, ptr[rsp + offsetof( JitCallParams, Bias )] );
+	mov( regBias, ptr[rsp + offsetof( CParams, Bias )] );
 
 	if( outputCount == 1 ) {
 		for( int filter = 0; filter < filterCount; ++filter ) {
-			baseGen.vaddps( acc[filter], acc[filter], ptr[regBias + filter * SizeOfYmm] );
+			vaddps( Ymm( filter ), Ymm( filter ), ptr[regBias + filter * SizeOfYmm] );
 		}
 	} else {
 		const int biasYmmIdx = 12;
 		for( int filter = 0; filter < filterCount; ++filter ) {
-			baseGen.vmovups( Ymm( biasYmmIdx + filter ), ptr[regBias + filter * SizeOfYmm] );
+			vmovups( Ymm( biasYmmIdx + filter ), ptr[regBias + filter * SizeOfYmm] );
 		}
 		for( int output = 0; output < outputCount; ++output ) {
 			for( int filter = 0; filter < filterCount; ++filter ) {
-				baseGen.vaddps( acc[output * 4 + filter], acc[output * 4 + filter], Ymm( biasYmmIdx + filter ) );
+				vaddps( Ymm( output * 4 + filter ), Ymm( output * 4 + filter ), Ymm( biasYmmIdx + filter ) );
 			}
 		}
 	}
 
-	gen.L( skipBias );
+	L( skipBias );
 
 	for( int output = 0; output < outputCount; ++output ) {
 		for( int filter = 0; filter < filterCount; ++filter ) {
-			baseGen.vmovups( ptr[outputRegs[filter / 2] + ( filter % 2 ) * regOutputStride + output * SizeOfYmm],
-				acc[output * 4 + filter] );
+			vmovups( ptr[outputRegs[filter / 2] + ( filter % 2 ) * regOutputStride + output * SizeOfYmm],
+				Ymm( output * 4 + filter ) );
 		}
 	}
-
-	gen.mov( rsp, ptr[rsp + offsetof( JitCallParams, PrevRsp )] );
-	gen.Epilogue( preservedGPR, acc );
-	gen.ret();
-
-	// printf( "code size:\t%d\n", static_cast<int>( gen.getSize() ) );
 }
+
+void CBlockedConvGen::genEpilogue()
+{
+	mov( rsp, ptr[rsp + offsetof( CParams, PrevRsp )] );
+
+	reg64Vec_t gprs = { rax, rbx, rbp, rcx, rdx, rsi, rdi, r8, r9, r10, r11, r12, r13, r14, r15 };
+	for( int i = static_cast<int>( gprs.size() - 1 ); i >= 0; i-- ) {
+		pop( gprs[i] );
+	}
+
+	for( int i = 0; i < 16; i++ ) {
+		vmovdqu( Ymm( i ), ptr[rsp + static_cast<uint32_t>( i * SizeOfYmm )]);
+	}
+
+	leave();
+	ret();
+}
+
+std::array<std::unique_ptr<CBlockedConvGen>, 12> computeBlockGens;
 
 static void runComputeBlocks( int filterCount, int outputCount, const float* input, int strideWidth,
 	const float* filter, int filterStride, const float* inputBase,
@@ -385,18 +434,14 @@ static void runComputeBlocks( int filterCount, int outputCount, const float* inp
 	int inputStride, const float* bias, float* output, int outputStride, int flags )
 {
 	const int genIndex = ( outputCount - 1 ) + 3 * ( filterCount - 1 );
-	CJitCommon& gen = computeBlockGens[genIndex].gen;
-	if( gen.getSize() == 0 ) {
-		initComputeBlocks( filterCount, outputCount );
+	if( computeBlockGens[genIndex] == nullptr ) {
+		computeBlockGens[genIndex].reset( new CBlockedConvGen( filterCount, outputCount ) );
 	}
-
-	//gen.dump();
-	typedef void (*TComputeBlockJitFunc)( JitCallParams* );
-	JitCallParams callFrame = { input, strideWidth * sizeof( float ), filter, filterStride * sizeof( float ),
+	CBlockedConvGen::CParams callParams = { input, strideWidth * sizeof( float ), filter, filterStride * sizeof( float ),
 		inputBase, inputWidth * sizeof( float ), static_cast<size_t>( kernelHeight ), static_cast<size_t>( kernelWidth ),
 		dilationWidth * sizeof( float ), dilatedInputWidth * sizeof( float ), inputStride * sizeof( float ),
 		bias, output, outputStride * sizeof( float ), static_cast<size_t>( flags ) };
-	gen.getCode<TComputeBlockJitFunc>()( &callFrame );
+	computeBlockGens[genIndex]->RunComputeBlocks( callParams );
 }
 
 struct KernelFrame {
