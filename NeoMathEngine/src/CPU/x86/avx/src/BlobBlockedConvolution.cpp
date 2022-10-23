@@ -168,28 +168,43 @@ public:
 		float* Output;
 		size_t OutputStride;
 		size_t Flags;
+		size_t OutputCountLeftPad;
+		size_t OutputCount;
+		size_t OutputCountRightPad;
 		float* PrevRsp;
 	};
 
 	// TODO: increase if needed
-	CBlockedConvGen( int filterCount, int outputCount );
+	explicit CBlockedConvGen( int filterCount );
 
 	void Run( CParams& params );
 
 private:
+	// Prologue
 	void genPrologue();
+
+	// Compute-blocks part (ORT ProcessOutputCountN)
+	void genComputeBlocks( int filterCount, int outputCount );
 	void genComputeBlocksPrologue( int outputCount );
 	void genClearYmms( int filterCount, int outputCount );
-	void genComputeBlocks( int filterCount, int outputCount );
-	void genSingleComputeBlock( int filterCount, int outputCount, int broadcast );
 	void genComputeBlockLoops( int filterCount, int outputCount );
+	void genSingleComputeBlock( int filterCount, int outputCount, int broadcast );
 	void genPostProcessing( int filterCount, int outputCount );
+
+	// Padding-processing kernel
+	void genPaddingProcessing( int filterCount );
+
+	// ORT ProcessFilterCountN
+	void genProcessFilterCount( int filterCount );
+
+	// Epilogue
 	void genEpilogue();
 
 	const int _filterCount;
-	const int _outputCount;
 
 	const reg64_t regGlobalInput = rdi;
+	const reg64_t regRemOutputCount = r10;
+
 	const reg64_t regInput = rcx;
 	const reg64_t regStrideWidth = r9;
 	const reg64_t regFilter = rdx;
@@ -203,12 +218,12 @@ private:
 	const reg64_t regKernelWidth = r12;
 	const reg64_t regShiftedInput = r14;
 	const reg64_t regShiftedFilter = rbx;
+
 };
 
-CBlockedConvGen::CBlockedConvGen( int filterCount, int outputCount ) :
+CBlockedConvGen::CBlockedConvGen( int filterCount ) :
 	CodeGenerator( 8192 * 1024 ),
-	_filterCount( filterCount ),
-	_outputCount( outputCount )
+	_filterCount( filterCount )
 {
 }
 
@@ -216,7 +231,7 @@ void CBlockedConvGen::Run( CParams& params )
 {
 	if( getSize() == 0 ) {
 		genPrologue();
-		genComputeBlocks( _filterCount, _outputCount );
+		genProcessFilterCount( _filterCount );
 		genEpilogue();
 	}
 
@@ -415,6 +430,61 @@ void CBlockedConvGen::genPostProcessing( int filterCount, int outputCount )
 				Ymm( output * 4 + filter ) );
 		}
 	}
+
+	add( regOutput, outputCount * 8 * sizeof( float ) );
+}
+
+void CBlockedConvGen::genPaddingProcessing( int filterCount )
+{
+	Label processNextOutput;
+
+	L( processNextOutput );
+	genComputeBlocks( filterCount, 1 );
+	add( regGlobalInput, regStrideWidth );
+	dec( regRemOutputCount );
+	jnz( processNextOutput, T_NEAR );
+}
+
+void CBlockedConvGen::genProcessFilterCount( int filterCount )
+{
+	Label skipLeftPad;
+	mov( regRemOutputCount, ptr[rsp + offsetof( CParams, OutputCountLeftPad )] );
+	test( regRemOutputCount, regRemOutputCount );
+	jz( skipLeftPad, T_NEAR );
+	genPaddingProcessing( filterCount );
+	L( skipLeftPad );
+
+	Label processThreeOutputs;
+	Label processRemainingOutputs;
+	Label processRemainingWithRightPad;
+
+	mov( regRemOutputCount, ptr[rsp + offsetof( CParams, OutputCount )] );
+	sub( regRemOutputCount, 3 );
+	jb( processRemainingOutputs, T_NEAR );
+
+	L( processThreeOutputs );
+	genComputeBlocks( filterCount, 3 );
+	const reg64_t regTemp = rax;
+	lea( regTemp, ptr[regStrideWidth + 2 * regStrideWidth] );
+	add( regGlobalInput, regTemp );
+	sub( regRemOutputCount, 3 );
+	jae( processThreeOutputs, T_NEAR );
+
+	L( processRemainingOutputs );
+	add( regRemOutputCount, 3 );
+	jz( processRemainingWithRightPad, T_NEAR );
+	cmp( regRemOutputCount, 2 );
+	jb( processRemainingWithRightPad, T_NEAR );
+	genComputeBlocks( filterCount, 2 );
+	lea( regGlobalInput, ptr[regGlobalInput + 2 * regStrideWidth] );
+	sub( regRemOutputCount, 2 );
+
+	Label skipRightPad;
+	L( processRemainingWithRightPad );
+	add( regRemOutputCount, ptr[rsp + offsetof( CParams, OutputCountRightPad )] );
+	jz( skipRightPad, T_NEAR );
+	genPaddingProcessing( filterCount );
+	L( skipRightPad );
 }
 
 void CBlockedConvGen::genEpilogue()
@@ -434,21 +504,23 @@ void CBlockedConvGen::genEpilogue()
 	ret();
 }
 
-std::array<std::unique_ptr<CBlockedConvGen>, 12> computeBlockGens;
+std::array<std::unique_ptr<CBlockedConvGen>, 4> computeBlockGens;
 
-static void runComputeBlocks( int filterCount, int outputCount, const float* input, int strideWidth,
+static void runProcessFilterCount( int filterCount, const float* input, int strideWidth,
 	const float* filter, int filterStride, const float* inputBase,
 	int inputWidth, int kernelHeight, int kernelWidth, int dilationWidth, int dilatedInputWidth,
-	int inputStride, const float* bias, float* output, int outputStride, int flags )
+	int inputStride, const float* bias, float* output, int outputStride, int flags,
+	int outputCountLeftPad, int outputCount, int outputCountRightPad )
 {
-	const int genIndex = ( outputCount - 1 ) + 3 * ( filterCount - 1 );
+	const int genIndex = filterCount - 1;
 	if( computeBlockGens[genIndex] == nullptr ) {
-		computeBlockGens[genIndex].reset( new CBlockedConvGen( filterCount, outputCount ) );
+		computeBlockGens[genIndex].reset( new CBlockedConvGen( filterCount ) );
 	}
 	CBlockedConvGen::CParams callParams = { input, strideWidth * sizeof( float ), filter, filterStride * sizeof( float ),
 		inputBase, inputWidth * sizeof( float ), static_cast<size_t>( kernelHeight ), static_cast<size_t>( kernelWidth ),
 		dilationWidth * sizeof( float ), dilatedInputWidth * sizeof( float ), inputStride * sizeof( float ),
-		bias, output, outputStride * sizeof( float ), static_cast<size_t>( flags ) };
+		bias, output, outputStride * sizeof( float ), static_cast<size_t>( flags ), static_cast<size_t>( outputCountLeftPad ),
+		static_cast<size_t>( outputCount ), static_cast<size_t>( outputCountRightPad ) };
 	computeBlockGens[genIndex]->Run( callParams );
 }
 
@@ -482,50 +554,13 @@ struct KernelFrame {
 ;   OutputCount=1 generates special case code to handle padding blocks. All
 ;   other output counts assume no padding.
 */
-#define PROCESS_OUTPUT_COUNT_JIT_N(FilterCount, OutputCount) \
+#define PROCESS_FILTER_COUNT_JIT_N(FilterCount) \
 { \
-	runComputeBlocks( FilterCount, OutputCount, input, strideWidth, frame.Filter, filterStride, \
+	runProcessFilterCount( FilterCount, input, strideWidth, frame.Filter, filterStride, \
 		frame.InputBase, frame.InputWidth, frame.KernelHeight, frame.KernelWidth, \
 		frame.DilationWidth, frame.DilatedInputWidth, frame.InputStride, frame.Bias, \
-		output, frame.OutputStride, frame.Flags ); \
-}
-
-template<int FilterCount>
-static void singleKernel( const KernelFrame& frame, const float*& input, int filterStride,
-	int dilationWidth, float*& output, int strideWidth, int inputStride, int outputCount )
-{
-	for( int i = 0; i < outputCount; ++i ) {
-		PROCESS_OUTPUT_COUNT_JIT_N( FilterCount, 1 )
-		output += 8;
-		input += strideWidth;
-	}
-}
-
-#define PROCESS_FILTER_COUNT_N(FilterCount) \
-{ \
-	if( frame.OutputCountLeftPad > 0 ) { \
-		singleKernel<FilterCount>( frame, input, filterStride, dilationWidth, output, strideWidth, inputStride, frame.OutputCountLeftPad ); \
-	} \
-	\
-	int remOutputCount = frame.OutputCount; \
-	while( remOutputCount > 3 ) { \
-		PROCESS_OUTPUT_COUNT_JIT_N( FilterCount, 3 ) \
-		output += 3 * 8; \
-		input += 3 * strideWidth; \
-		remOutputCount -= 3; \
-	} \
-	\
-	if( remOutputCount >= 2 ) { \
-		PROCESS_OUTPUT_COUNT_JIT_N( FilterCount, 2 ) \
-		output += 2 * 8; \
-		input += 2 * strideWidth; \
-		remOutputCount -= 2; \
-	} \
-	\
-	remOutputCount += frame.OutputCountRightPad; \
-	if( remOutputCount > 0 ) { \
-		singleKernel<FilterCount>( frame, input, filterStride, dilationWidth, output, strideWidth, inputStride, remOutputCount ); \
-	} \
+		output, frame.OutputStride, frame.Flags, frame.OutputCountLeftPad, frame.OutputCount, \
+		frame.OutputCountRightPad ); \
 }
 
 static void convKernelFunction( const KernelFrame& frame, int filterCount )
@@ -538,16 +573,16 @@ static void convKernelFunction( const KernelFrame& frame, int filterCount )
 	int inputStride = frame.InputStride;
 	switch( filterCount ) {
 		case 1:
-			PROCESS_FILTER_COUNT_N( 1 );
+			PROCESS_FILTER_COUNT_JIT_N( 1 );
 			return;
 		case 2:
-			PROCESS_FILTER_COUNT_N( 2 );
+			PROCESS_FILTER_COUNT_JIT_N( 2 );
 			return;
 		case 3:
-			PROCESS_FILTER_COUNT_N( 3 );
+			PROCESS_FILTER_COUNT_JIT_N( 3 );
 			return;
 		case 4:
-			PROCESS_FILTER_COUNT_N( 4 );
+			PROCESS_FILTER_COUNT_JIT_N( 4 );
 	}
 }
 
