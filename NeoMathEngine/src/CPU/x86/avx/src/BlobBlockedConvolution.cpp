@@ -174,20 +174,22 @@ public:
 	// TODO: increase if needed
 	CBlockedConvGen( int filterCount, int outputCount );
 
-	void RunComputeBlocks( CParams& params );
+	void Run( CParams& params );
 
 private:
 	void genPrologue();
-	void genComputeBlocksPrologue();
-	void genClearYmms();
-	void genComputeBlocks();
-	void genSingleComputeBlock( int broadcast );
-	void genPostProcessing();
+	void genComputeBlocksPrologue( int outputCount );
+	void genClearYmms( int filterCount, int outputCount );
+	void genComputeBlocks( int filterCount, int outputCount );
+	void genSingleComputeBlock( int filterCount, int outputCount, int broadcast );
+	void genComputeBlockLoops( int filterCount, int outputCount );
+	void genPostProcessing( int filterCount, int outputCount );
 	void genEpilogue();
 
-	int filterCount;
-	int outputCount;
+	const int _filterCount;
+	const int _outputCount;
 
+	const reg64_t regGlobalInput = rdi;
 	const reg64_t regInput = rcx;
 	const reg64_t regStrideWidth = r9;
 	const reg64_t regFilter = rdx;
@@ -204,20 +206,17 @@ private:
 };
 
 CBlockedConvGen::CBlockedConvGen( int filterCount, int outputCount ) :
-	CodeGenerator( 8192 ),
-	filterCount( filterCount ),
-	outputCount( outputCount )
+	CodeGenerator( 8192 * 1024 ),
+	_filterCount( filterCount ),
+	_outputCount( outputCount )
 {
 }
 
-void CBlockedConvGen::RunComputeBlocks( CParams& params )
+void CBlockedConvGen::Run( CParams& params )
 {
 	if( getSize() == 0 ) {
 		genPrologue();
-		genComputeBlocksPrologue();
-		genClearYmms();
-		genComputeBlocks();
-		genPostProcessing();
+		genComputeBlocks( _filterCount, _outputCount );
 		genEpilogue();
 	}
 
@@ -243,7 +242,7 @@ void CBlockedConvGen::genPrologue()
 	mov( ptr[Param1 + offsetof( CParams, PrevRsp )], rsp );
 	mov( rsp, Param1 );
 
-	mov( regInput, ptr[rsp + offsetof( CParams, Input )] );
+	mov( regGlobalInput, ptr[rsp + offsetof( CParams, Input )] );
 	mov( regFilterStride, ptr[rsp + offsetof( CParams, FilterStride )] );
 	mov( regDilationWidth, ptr[rsp + offsetof( CParams, DilationWidth )] );
 	mov( regOutput, ptr[rsp + offsetof( CParams, Output )] );
@@ -251,8 +250,17 @@ void CBlockedConvGen::genPrologue()
 	mov( regInputStride, ptr[rsp + offsetof( CParams, InputStride )] );
 }
 
-void CBlockedConvGen::genComputeBlocksPrologue()
+void CBlockedConvGen::genComputeBlocks( int filterCount, int outputCount )
 {
+	genComputeBlocksPrologue( outputCount );
+	genClearYmms( filterCount, outputCount );
+	genComputeBlockLoops( filterCount, outputCount );
+	genPostProcessing( filterCount, outputCount );
+}
+
+void CBlockedConvGen::genComputeBlocksPrologue( int outputCount )
+{
+	mov( regInput, regGlobalInput );
 	mov( regFilter, ptr[rsp + offsetof( CParams, Filter )] );
 	mov( regKernelHeight, ptr[rsp + offsetof( CParams, KernelHeight )] );
 	mov( regKernelWidth, ptr[rsp + offsetof( CParams, KernelWidth )] );
@@ -263,7 +271,7 @@ void CBlockedConvGen::genComputeBlocksPrologue()
 	}
 }
 
-void CBlockedConvGen::genClearYmms()
+void CBlockedConvGen::genClearYmms( int filterCount, int outputCount )
 {
 	for( int filter = 0; filter < filterCount; ++filter ) {
 		for( int output = 0; output < outputCount; ++output ) {
@@ -272,7 +280,7 @@ void CBlockedConvGen::genClearYmms()
 	}
 }
 
-void CBlockedConvGen::genComputeBlocks()
+void CBlockedConvGen::genComputeBlockLoops( int filterCount, int outputCount )
 {
 	mov( regKernelHeight, ptr[rsp + offsetof( CParams, KernelHeight )] );
 
@@ -302,7 +310,7 @@ void CBlockedConvGen::genComputeBlocks()
 	}
 
 	for( int broadcast = 0; broadcast < 8; ++broadcast ) {
-		genSingleComputeBlock( broadcast );
+		genSingleComputeBlock( filterCount, outputCount, broadcast );
 	}
 
 	L( skipPadding );
@@ -320,7 +328,7 @@ void CBlockedConvGen::genComputeBlocks()
 	jnz( rowCycleStart, CodeGenerator::T_NEAR );
 }
 
-void CBlockedConvGen::genSingleComputeBlock( int broadcast )
+void CBlockedConvGen::genSingleComputeBlock( int filterCount, int outputCount, int broadcast )
 {
 	const int broadcastOffset = broadcast * sizeof( float );
 	const int vectorOffset = broadcast * 8 * sizeof( float );
@@ -351,7 +359,7 @@ void CBlockedConvGen::genSingleComputeBlock( int broadcast )
 	}
 }
 
-void CBlockedConvGen::genPostProcessing()
+void CBlockedConvGen::genPostProcessing( int filterCount, int outputCount )
 {
 	const reg64_t regOutputStride = rax;
 	mov( regOutputStride, ptr[rsp + offsetof( CParams, OutputStride )] );
@@ -441,7 +449,7 @@ static void runComputeBlocks( int filterCount, int outputCount, const float* inp
 		inputBase, inputWidth * sizeof( float ), static_cast<size_t>( kernelHeight ), static_cast<size_t>( kernelWidth ),
 		dilationWidth * sizeof( float ), dilatedInputWidth * sizeof( float ), inputStride * sizeof( float ),
 		bias, output, outputStride * sizeof( float ), static_cast<size_t>( flags ) };
-	computeBlockGens[genIndex]->RunComputeBlocks( callParams );
+	computeBlockGens[genIndex]->Run( callParams );
 }
 
 struct KernelFrame {
@@ -480,7 +488,6 @@ struct KernelFrame {
 		frame.InputBase, frame.InputWidth, frame.KernelHeight, frame.KernelWidth, \
 		frame.DilationWidth, frame.DilatedInputWidth, frame.InputStride, frame.Bias, \
 		output, frame.OutputStride, frame.Flags ); \
-	output += OutputCount * 8; \
 }
 
 template<int FilterCount>
@@ -489,6 +496,7 @@ static void singleKernel( const KernelFrame& frame, const float*& input, int fil
 {
 	for( int i = 0; i < outputCount; ++i ) {
 		PROCESS_OUTPUT_COUNT_JIT_N( FilterCount, 1 )
+		output += 8;
 		input += strideWidth;
 	}
 }
@@ -502,12 +510,14 @@ static void singleKernel( const KernelFrame& frame, const float*& input, int fil
 	int remOutputCount = frame.OutputCount; \
 	while( remOutputCount > 3 ) { \
 		PROCESS_OUTPUT_COUNT_JIT_N( FilterCount, 3 ) \
+		output += 3 * 8; \
 		input += 3 * strideWidth; \
 		remOutputCount -= 3; \
 	} \
 	\
 	if( remOutputCount >= 2 ) { \
 		PROCESS_OUTPUT_COUNT_JIT_N( FilterCount, 2 ) \
+		output += 2 * 8; \
 		input += 2 * strideWidth; \
 		remOutputCount -= 2; \
 	} \
