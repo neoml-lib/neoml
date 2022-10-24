@@ -13,6 +13,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
+#ifndef NEOMATHENGINE_USE_FINEOBJ
+
 #include <immintrin.h>
 
 #include <TestFixture.h>
@@ -2163,3 +2165,5 @@ INSTANTIATE_TEST_SUITE_P(Yolox1, CBlockedConvTest,
 			"Conv_263_Op"
 		)
 	), BlockedConvTestNameGenerator() );
+
+#endif
