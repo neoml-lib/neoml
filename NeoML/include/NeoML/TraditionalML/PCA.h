@@ -40,6 +40,12 @@ void NEOML_API SingularValueDecomposition( const CFloatMatrixDesc& data,
 	CArray<float>& leftVectors, CArray<float>& singularValues, CArray<float>& rightVectors,
 	bool returnLeftVectors = true, bool returnRightVectors = false, int components = 0 );
 
+// The normalizer used during iterations of SVD
+enum class TRandomizedSvdNormalizer {
+	None, // Default, unstable if number of iterations is big (~ >= 5)
+	LU, // Performs additional LU factorizations during each iteration
+};
+
 // Computes the singular value decomposition of the `data` matrix, of shape height x width:
 // `data` = `leftVectors` * `singularValues` * `rightVectors`.
 // `leftVectors` is of shape height x `components`,  `rightVectors` is of shape `components` x width,
@@ -51,7 +57,8 @@ void NEOML_API SingularValueDecomposition( const CFloatMatrixDesc& data,
 void NEOML_API RandomizedSingularValueDecomposition( const CFloatMatrixDesc& data,
 	CArray<float>& leftVectors_, CArray<float>& singularValues_, CArray<float>& rightVectors_,
 	bool returnLeftVectors, bool returnRightVectors, int components,
-	int iterationCount = 3, int overSamples = 10, int seed = 42 );
+	int iterationCount = 3, int overSamples = 10, int seed = 42,
+	TRandomizedSvdNormalizer normalizer = TRandomizedSvdNormalizer::None );
 
 // PCA algorithm implementing linear dimensionality reduction
 // using Singular Value Decomposition to project the data into

@@ -486,15 +486,37 @@ Popular subword encoding algorithm.
 ```c++
 class NEOML_API IBytePairEncoder : public ISubwordEncoderWithCache {
 public:
-	// Returns encoder flags.
+	struct CParams {
+		// End-of-Word (EOW), a string that will be added to the end of each input word.
+		CString UseEndOfWordToken = "";
+		// Start-of-Word (SOW), a string that will be added to the beginning of each input word.
+		CString UseStartOfWordToken = "";
+		// Treat strings as arrays of raw bytes,
+		// which decreases the maximum size of the initial vocabulary to 256 and allows to completely avoid unknown symbols.
+		bool UseRawBytes = false;
+		// The id of <UNK>.
+		// All other tokens are continuously enumerated from 'UnknownTokenId' + 1. Ids [0, UnknownTokenId) are not used when encoding. 
+		int UnknownTokenId = 0
+	};
+
+	// Encoder parameters getters
 	virtual bool UseEndOfWordToken() const = 0;
 	virtual bool UseStartOfWordToken() const = 0;
+	virtual bool UseRawBytes() const = 0;
+	virtual int UnknownTokenId() const = 0;
 
-	// Word with vocabulary directly. See below.
-	virtual void LoadDictionary( const CWordDictionary& tokens, 
-		const CString& endOfWordToken, const CString& startOfWordToken ) = 0;
-	virtual void GetDictionary( CWordDictionary& tokens, 
-		const CString& endOfWordToken = "</s>", const CString& startOfWordToken = "<s>" ) const = 0;
+	// A list of unique tokens ordered by order of merges during training (this is used when encoding).
+	// The Id of a token in encoded words is <Id in this array> + GetUnknownTokenId() + 1
+	using CBPEDictionary = CArray<CString>;
+
+	// Initializes the encoder. Can be safely used only once.
+	// Every token except the letters (or bytes), EOW and SOW must be a concatenation of two other tokens.
+	// If not empty, EOW and SOW must be contained in 'tokens' exactly only once as a separate token.
+	virtual void Initialize( const CBPEDictionary& tokens, const CParams& ) = 0;
+
+	// Returns BPE mappings as they are performed by the encoder
+	virtual void GetIdToTokenMapping( CMap<int, CString>& ) const = 0;
+	virtual void GetTokenToIdMapping( CMap<CString, int>& ) const = 0;
 };
 ```
 
@@ -510,17 +532,15 @@ public:
 	struct CParams {
 		// Max size of encoder.
 		// The size of the trained encoder cannot exceed this value, but CAN be smaller.
-		int MaxSize;
-		// Add EoW token to each word.
-		bool UseEndOfWordToken;
-		// Add SoW token to each word.
-		bool UseStartOfWordToken;
-
-		CParams() :
-			MaxSize( 50000 ),
-			UseEndOfWordToken( true ),
-			UseStartOfWordToken( false )
-		{}
+		int MaxSize = 50000;
+		// Add EoW token to each word
+		bool UseEndOfWordToken = true;
+		// Add SoW token to each word
+		bool UseStartOfWordToken = false;
+		// Treat strings as arrays of raw bytes
+		bool UseRawBytes = false;
+		// The id of <UNK>
+		int UnknownTokenId = 0
 	};
 
 	CBytePairEncoderTrainer( const CParams& params, const CWordDictionary& dictionary );
@@ -550,9 +570,8 @@ How to use:
     * Use `TrainSteps` method if you want to perform partial training of encoder. To get partially trained encoder use `GetEncoder` method.
 
 
-For debug reasons, `IBytePairEncoder` also provides direct methods for loading an externally created dictionary or exporting its own (`LoadDictionary` and `GetDictionary`). An external dictionary must be valid for using with our encoder:
+For inference and debug reasons, `IBytePairEncoder` also provides direct method for loading an externally created dictionary (`Initialize`). An external dictionary must be valid for using with our encoder:
 1. Every token except the letters must be a concatenation of two smaller tokens.
 2. If used, End-Of-Word can be located only in the end of a token. If used, Start-Of-Word can be located only in the beginning of a token.
 3. If used, End-Of-Word and Start-Of-Word must be contained in the dictionary as separate tokens (which is just an implication from rules above).
 
-`IBytePairEncoder` replaces user-defined End-Of-Word and Start-Of-Word marks with special unreadable symbols unlikely to appear in any text. Therefore, the original marks are lost and should be given as arguments of `GetDictionary`.

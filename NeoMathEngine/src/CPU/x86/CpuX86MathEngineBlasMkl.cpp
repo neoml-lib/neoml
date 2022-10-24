@@ -27,6 +27,7 @@ limitations under the License.
 #include <MemoryHandleInternal.h>
 #include <MathEngineCommon.h>
 #include <NeoMathEngine/SimdMathEngine.h>
+#include <CpuMathEnginePrivate.h>
 
 #ifdef NEOML_USE_MKL
 #if FINE_PLATFORM( FINE_WINDOWS ) || FINE_PLATFORM( FINE_LINUX ) || FINE_PLATFORM( FINE_DARWIN )
@@ -436,6 +437,59 @@ void CCpuMathEngine::QRFactorization( int height, int width, const CFloatHandle&
 			rPtr += width;
 		}
 	}
+#else
+	ASSERT_EXPR( false );
+#endif
+}
+
+void CCpuMathEngine::LUFactorization( int height, int width, const CFloatHandle& matrixHandle )
+{
+	ASSERT_EXPR( matrixHandle.GetMathEngine() == this );
+	ASSERT_EXPR( height > 0 );
+	ASSERT_EXPR( width > 0 );
+	CCpuExecutionScope scope;
+
+#ifdef NEOML_USE_MKL
+	const int minDim = max( 1, min( height, width ) );
+	CIntHandleStackVar ipivVar( *this, minDim );
+
+	float* matrix = GetRaw( matrixHandle );
+	ASSERT_EXPR( LAPACKE_sgetrf( LAPACK_ROW_MAJOR, height, width, matrix, width, GetRaw( ipivVar.GetHandle() ) ) == 0 );
+	
+	// Fill main diagonal with 1 and upper half with zeroes
+	for( int rowIndex = 0; rowIndex < minDim; ++rowIndex ) {
+		float* row = matrix + width * rowIndex;
+		row[rowIndex] = 1.f;
+		if( rowIndex + 1 < width ) {
+			vectorFill( row + rowIndex + 1, 0.f, width - rowIndex - 1 );
+		}
+	}
+
+	// Apply permutation matrix (ipiv in reversed order)
+	const int* ipiv = GetRaw(ipivVar.GetHandle());
+	for( int rowIndex = minDim - 1; rowIndex >= 0; --rowIndex ) {
+		int origIndex = ipiv[rowIndex] - 1;
+		if( origIndex != rowIndex ) {
+			// Need to swap rows...
+			float* row = matrix + rowIndex * width;
+			float* origRow = matrix + origIndex * width;
+			int toSwap = width;
+			while( toSwap >= 4 ) {
+				__m128 curr = LoadSse4( row );
+				StoreSse4( LoadSse4( origRow ), row );
+				StoreSse4( curr, origRow );
+				row += 4;
+				origRow += 4;
+				toSwap -= 4;
+			}
+			if( toSwap > 0 ) {
+				__m128 curr = LoadSse( row, toSwap );
+				StoreSse( LoadSse( origRow, toSwap ), row, toSwap );
+				StoreSse( curr, origRow, toSwap );
+			}
+		}
+	}
+
 #else
 	ASSERT_EXPR( false );
 #endif
