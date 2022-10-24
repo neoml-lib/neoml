@@ -45,13 +45,16 @@ struct CCpuConvolutionDesc : public CCommonConvolutionDesc {
 	TConvAlgo ForwardAlgo;
 	TConvAlgo BackwardAlgo;
 	unique_ptr<CConvolutionDesc> SimdConvolutionDesc;
+	unique_ptr<CConvolutionDesc> BlockedConvolutionDesc;
 
-	CCpuConvolutionDesc( unique_ptr<CConvolutionDesc>& simdConvolutionDesc, const CBlobDesc& source, const CBlobDesc& result, const CBlobDesc& filter,
-			int paddingHeight, int paddingWidth, int strideHeight, int strideWidth, int dilationHeight, int dilationWidth ) :
+	CCpuConvolutionDesc( unique_ptr<CConvolutionDesc>& simdConvolutionDesc, unique_ptr<CConvolutionDesc>& blockedConvolutionDesc,
+			const CBlobDesc& source, const CBlobDesc& result, const CBlobDesc& filter, int paddingHeight, int paddingWidth,
+			int strideHeight, int strideWidth, int dilationHeight, int dilationWidth ) :
 		CCommonConvolutionDesc( source, result, filter, paddingHeight, paddingWidth, strideHeight, strideWidth, dilationHeight, dilationWidth ),
 		ForwardAlgo( getActualForwardAlgo() ),
 		BackwardAlgo( getActualBackwardAlgo() ),
-		SimdConvolutionDesc( std::move( simdConvolutionDesc ) )
+		SimdConvolutionDesc( std::move( simdConvolutionDesc ) ),
+		BlockedConvolutionDesc( std::move( blockedConvolutionDesc ) )
 	{
 	}
 
@@ -131,14 +134,20 @@ CConvolutionDesc* CCpuMathEngine::InitBlobConvolution( const CBlobDesc& source, 
 	ASSERT_EXPR( result.Channels() == filter.BatchWidth() );
 	ASSERT_EXPR( result.Depth() == 1 );
 
-	unique_ptr<CConvolutionDesc> simdConvolutionDesc;
+	unique_ptr<CConvolutionDesc> blockedConvolutionDesc;
 	if( simdMathEngine != nullptr ) {
+		blockedConvolutionDesc.reset( simdMathEngine->InitBlockedConvolution( source, paddingHeight, paddingWidth,
+			strideHeight, strideWidth, dilationHeight, dilationWidth, filter, result ) );
+	}
+
+	unique_ptr<CConvolutionDesc> simdConvolutionDesc;
+	if( simdMathEngine != nullptr && blockedConvolutionDesc == nullptr ) {
 		simdConvolutionDesc = unique_ptr<CConvolutionDesc>( simdMathEngine->InitBlobConvolution( source, paddingHeight, paddingWidth,
 			strideHeight, strideWidth, dilationHeight, dilationWidth, filter, result ) );
 	}
 
-	CCpuConvolutionDesc* desc = new CCpuConvolutionDesc( simdConvolutionDesc, source, result, filter,
-		paddingHeight, paddingWidth, strideHeight, strideWidth, dilationHeight, dilationWidth );
+	CCpuConvolutionDesc* desc = new CCpuConvolutionDesc( simdConvolutionDesc, blockedConvolutionDesc, source, result,
+		filter, paddingHeight, paddingWidth, strideHeight, strideWidth, dilationHeight, dilationWidth );
 	return desc;
 }
 
@@ -516,6 +525,20 @@ void CCpuMathEngine::BlobConvolution( const CConvolutionDesc& convDesc, const CC
 	float* resultRaw = GetRaw( result );
 
 	const CCpuConvolutionDesc& desc = static_cast<const CCpuConvolutionDesc&>( convDesc );
+
+	if( desc.BlockedConvolutionDesc != nullptr ) {
+		CFloatHandleStackVar packBuff( *this, desc.Source.BlobSize() + desc.Filter.BlobSize()
+			+ desc.Result.BlobSize() );
+		float* packedInput = GetRaw( packBuff.GetHandle() );
+		float* packedFilter = packedInput + desc.Source.BlobSize();
+		float* packedOutput = packedFilter + desc.Filter.BlobSize();
+		simdMathEngine->PackBlockedData( desc.Source, GetRaw( source ), packedInput );
+		simdMathEngine->PackBlockedFilter( desc.Filter, GetRaw( filter ), packedFilter );
+		simdMathEngine->BlockedConvolution( *desc.BlockedConvolutionDesc, packedInput, packedFilter,
+			freeTerm != nullptr ? GetRaw( *freeTerm ) : nullptr, packedOutput );
+		simdMathEngine->UnpackBlockedData( desc.Result, packedOutput, GetRaw( result ) );
+		return;
+	}
 
 	if( desc.SimdConvolutionDesc != nullptr ) {
 		simdMathEngine->BlobConvolution( *desc.SimdConvolutionDesc, sourceRaw, filterRaw, freeTermRaw, resultRaw );

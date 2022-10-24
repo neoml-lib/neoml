@@ -60,7 +60,7 @@ CConvolutionDesc* CAvxMathEngine::InitBlockedConvolution( const CBlobDesc& sourc
 {
 	const int filterCount = filter.ObjectCount();
 	const int inputChannels = source.Depth() * source.Channels();
-	if( filterCount % 8 == 0 && inputChannels % 8 == 0 ) {
+	if( filterCount % 8 == 0 && inputChannels % 8 == 0 && ( filter.Height() != 1 || filter.Width() != 1 ) ) {
 		return new CAvxBlockedConvDesc( source, result, filter, strideHeight, strideWidth, paddingHeight, paddingWidth,
 			dilationHeight, dilationWidth );
 	}
@@ -583,7 +583,7 @@ static void runConv( const float* Input, const float* OrigFilter, const float* O
 		for( int ic = 0; ic < chIn; ic += 8 ) {
 			int flags = ic == 0 ? 0 : ACCUMULATE_OUTPUT;
 
-			if( ic + 8 == chIn ) {
+			if( ic + 8 == chIn && OrigBias != nullptr ) {
 				flags |= ADD_BIAS;
 			}
 
