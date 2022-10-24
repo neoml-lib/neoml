@@ -695,6 +695,11 @@ void CDnn::rebuild()
 			sinkLayers.Add(layers[i]);
 		}
 	}
+
+	for( int i = 0; i < sinkLayers.Size(); ++i ) {
+		sinkLayers[i]->buildOrder();
+	}
+
 	RequestReshape(true);
 }
 

@@ -794,6 +794,8 @@ class LayersTestCase(MultithreadedTestCase):
     def test_activation_gelu(self):
         out = self._test_activation('GELU')
         self.assertTrue(np.isclose(out, 0.84579575).all())
+        out = self._test_activation('GELU', dict(calculation_mode='precise'))
+        self.assertTrue(np.isclose(out, 0.8413447).all())
 
     def test_activation_abs(self):
         out = self._test_activation('Abs')
@@ -2994,20 +2996,9 @@ class DnnDistributedTestCase(TestCase):
 
 class TestBPE(TestCase):
     def test_saveload(self):
-        word_dictionary = {
-            "aa": 5,
-            "bb": 4,
-            "ab": 3,
-            "a": 2,
-            "b": 1
-        }
+        word_dictionary = [ "aa", "bb", "ab", "a", "b" ]
 
-        bpe = neoml.BytePairEncoder.BytePairEncoder()
-        self.assertIsNone(bpe.size)
-        self.assertIsNone(bpe.use_sow)
-        self.assertIsNone(bpe.use_eow)
-       
-        bpe.load_from_dictionary(word_dictionary, "", "")
+        bpe = neoml.BytePairEncoder.BytePairEncoder(word_dictionary, eow="", sow="")
         self.assertEqual(6, bpe.size)
         self.assertFalse(bpe.use_sow)
         self.assertFalse(bpe.use_eow)
@@ -3019,8 +3010,7 @@ class TestBPE(TestCase):
         path = os.path.join(dir, 'bpe')
         bpe.store(path)
 
-        loaded_bpe = neoml.BytePairEncoder.BytePairEncoder()
-        loaded_bpe.load(path)
+        loaded_bpe = neoml.BytePairEncoder.BytePairEncoder.load(path)
         self.assertEqual(6, loaded_bpe.size)
         self.assertFalse(loaded_bpe.use_sow)
         self.assertFalse(loaded_bpe.use_eow)
@@ -3029,10 +3019,6 @@ class TestBPE(TestCase):
         self.assertEqual(res, loaded_res)
 
     def test_train(self):
-        bpe = neoml.BytePairEncoder.BytePairEncoder()
-        with self.assertRaises(ValueError):
-            bpe.cache_period = 0
-
         corpus_stats = {
             "abbb": 1,
             "bab": 2,
@@ -3041,7 +3027,7 @@ class TestBPE(TestCase):
             "ab": 3,
             "a": 2
         }
-        bpe.train(corpus_stats, 5)
+        bpe = neoml.BytePairEncoder.BytePairEncoder.train(corpus_stats, vocab_size=5)
         self.assertEqual(5, bpe.size)
         self.assertFalse(bpe.use_sow)
         self.assertTrue(bpe.use_eow)
