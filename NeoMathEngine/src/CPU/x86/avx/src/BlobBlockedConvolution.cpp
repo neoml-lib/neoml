@@ -60,12 +60,30 @@ CConvolutionDesc* CAvxMathEngine::InitBlockedConvolution( const CBlobDesc& sourc
 {
 	const int filterCount = filter.ObjectCount();
 	const int inputChannels = source.Depth() * source.Channels();
-	if( filterCount % 8 == 0 && inputChannels % 8 == 0 && ( filter.Height() != 1 || filter.Width() != 1 ) ) {
-		return new CAvxBlockedConvDesc( source, result, filter, strideHeight, strideWidth, paddingHeight, paddingWidth,
-			dilationHeight, dilationWidth );
+	if( filterCount % 8 != 0 || inputChannels % 8 != 0 || ( filter.Height() == 1 && filter.Width() == 1 ) ) {
+		// Algorithmic restrictions
+		return nullptr;
 	}
 
-	return nullptr;
+	// Heuristics tuned for better effectiveness
+	// Number of operations in convolution == outputBlobsSize * filterHeight * filterWidth * inputChannels
+	// Packing each data (input/output/filter) is linear
+	// Ratio between number of operations in convolution and different packing operations
+	const int inputRatio = result.ObjectSize() * filter.Height() * filter.Width() / ( source.Height() * source.Width() );
+	const int outputRatio = filter.Height() * filter.Width() * source.Depth() * source.Channels();
+	const int filterRatio = result.ObjectCount() * result.Height() * result.Width();
+	// If any of ratio is less than this value then packing takes too much time...
+	const int minRatio = 200;
+	if( inputRatio < minRatio || outputRatio < minRatio || filterRatio < minRatio ) {
+		return nullptr;
+	}
+	// If both input and output ratios are slightly above min value the algo is still slow
+	if( inputRatio + outputRatio < ( minRatio * 5 ) / 2 ) {
+		return nullptr;
+	}
+
+	return new CAvxBlockedConvDesc( source, result, filter, strideHeight, strideWidth, paddingHeight, paddingWidth,
+		dilationHeight, dilationWidth );
 }
 
 void CAvxMathEngine::PackBlockedData( const CBlobDesc& desc, const float* source, float* result ) const

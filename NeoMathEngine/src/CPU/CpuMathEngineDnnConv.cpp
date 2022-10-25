@@ -135,10 +135,10 @@ CConvolutionDesc* CCpuMathEngine::InitBlobConvolution( const CBlobDesc& source, 
 	ASSERT_EXPR( result.Depth() == 1 );
 
 	unique_ptr<CConvolutionDesc> blockedConvolutionDesc;
-	/*if( simdMathEngine != nullptr ) {
+	if( simdMathEngine != nullptr ) {
 		blockedConvolutionDesc.reset( simdMathEngine->InitBlockedConvolution( source, paddingHeight, paddingWidth,
 			strideHeight, strideWidth, dilationHeight, dilationWidth, filter, result ) );
-	}*/
+	}
 
 	unique_ptr<CConvolutionDesc> simdConvolutionDesc;
 	if( simdMathEngine != nullptr && blockedConvolutionDesc == nullptr ) {
