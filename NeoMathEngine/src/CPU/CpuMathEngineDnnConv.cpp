@@ -527,16 +527,17 @@ void CCpuMathEngine::BlobConvolution( const CConvolutionDesc& convDesc, const CC
 	const CCpuConvolutionDesc& desc = static_cast<const CCpuConvolutionDesc&>( convDesc );
 
 	if( desc.BlockedConvolutionDesc != nullptr ) {
-		CFloatHandleStackVar packBuff( *this, desc.Source.BlobSize() + desc.Filter.BlobSize()
-			+ desc.Result.BlobSize() );
-		float* packedInput = GetRaw( packBuff.GetHandle() );
-		float* packedFilter = packedInput + desc.Source.BlobSize();
-		float* packedOutput = packedFilter + desc.Filter.BlobSize();
-		simdMathEngine->PackBlockedData( desc.Source, GetRaw( source ), packedInput );
+		CFloatHandleStackVar packBuff( *this,
+			max( desc.Source.BlobSize(), desc.Result.BlobSize() ) + desc.Filter.BlobSize() );
+		float* packedFilter = GetRaw( packBuff.GetHandle() );
+		float* packedIO = packedFilter + desc.Filter.BlobSize();
+		float* rawResult = GetRaw( result );
+		simdMathEngine->PackBlockedData( desc.Source, GetRaw( source ), packedIO );
 		simdMathEngine->PackBlockedFilter( desc.Filter, GetRaw( filter ), packedFilter );
-		simdMathEngine->BlockedConvolution( *desc.BlockedConvolutionDesc, packedInput, packedFilter,
-			freeTerm != nullptr ? GetRaw( *freeTerm ) : nullptr, packedOutput );
-		simdMathEngine->UnpackBlockedData( desc.Result, packedOutput, GetRaw( result ) );
+		simdMathEngine->BlockedConvolution( *desc.BlockedConvolutionDesc, packedIO, packedFilter,
+			freeTerm != nullptr ? GetRaw( *freeTerm ) : nullptr, rawResult );
+		simdMathEngine->UnpackBlockedData( desc.Result, rawResult, packedIO );
+		dataCopy( rawResult, packedIO, desc.Result.BlobSize() );
 		return;
 	}
 
