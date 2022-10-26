@@ -79,7 +79,8 @@ CConvolutionDesc* CAvxMathEngine::InitBlockedConvolution( const CBlobDesc& sourc
 		return nullptr;
 	}
 	// If both input and output ratios are slightly above min value the algo is still slow
-	if( inputRatio + outputRatio < ( minRatio * 5 ) / 2 ) {
+	const size_t minIOMult = 65536;
+	if( inputRatio * outputRatio < minIOMult ) {
 		return nullptr;
 	}
 
