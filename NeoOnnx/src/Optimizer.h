@@ -38,10 +38,33 @@ protected:
 		"FmlCnnTransposeLayer"
 	};
 
+	/// Returns the poinetr to input layer of any class-type, but only
+	/// \param[in] currentLayer    the pointer to a layer in 'graph'
+	/// \param[in] i               the number of input of the 'currentLayer'
+	/// \param[in] layerSkipClass  the class-type string of a layer to skip, if it is not ""
+	/// \returns  the pointer to a layer that has any class-type (beside layerSkipClass), else  nullptr
 	CPtr<CBaseLayer> GetAnyInputLayer( CPtr<CBaseLayer>& currentLayer, int i, const char* const layerSkipClass = "" );
 
+	/// If layer is not nullptr and its class-type string equals to a required class-type 'layerClass' string, 
+	///    add this layer to array of 'layersToRemove' (only if justCheck == false)
+	/// \param[in] layer       the pointer to a layer in 'graph'
+	/// \param[in] layerClass  the class-type string of a layer
+	/// \param[in] justCheck   a flag to use this method only for check (not to add to  'layersToRemove')
+	/// \returns  true  if layer has necessary class-type, else  false
 	bool IsExactLayer( CPtr<CBaseLayer>& layer, const char* layerClass, bool justCheck = false );
 
+	/// Check all input layers of the 'currentLayer' in the 'graph' in search of 1 or 2 inputs:
+	///    the main input 'layerBase' of given class-type ('layerBaseClass' string) 
+	///    and the layer-initializer 'layerData' of given class-type ('layerDataClass' string), only if it is not "". 
+	/// If the layer of class-type 'layerSkipClass' string (is not equal "") found, the input layers of this layer will also be checked,
+	///    as the search is going through all layers of this class-type.
+	/// \param[in]  currentLayer     the pointer to a layer in 'graph', the inputs of what to check 
+	/// \param[out] layerBase        the pointer, the main input of the current layer will be stored
+	/// \param[in]  layerBaseClass   the class-type string of a main input layer
+	/// \param[out] layerData        the pointer, the layer-initializer of the current layer will be stored
+	/// \param[in]  layerDataClass   the class-type string of a layer-initializer, if it is "", so there should be no initializer
+	/// \param[in]  layerSkipClass   the class-type string of a layer to skip, if it is "", no additional skip layer-classes in this search
+	/// \returns  true  if 'currentLayer' has necessary class-type inputs, else  false
 	bool GetExactInputLayers( CPtr<CBaseLayer>& currentLayer,
 		CPtr<CBaseLayer>& layerBase, const char* const layerBaseClass,
 		CPtr<CBaseLayer>& layerData, const char* const layerDataClass, const char* const layerSkipClass );
