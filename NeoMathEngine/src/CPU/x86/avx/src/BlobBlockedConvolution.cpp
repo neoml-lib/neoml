@@ -547,7 +547,6 @@ void CBlockedConvGen::genEpilogue()
 		vmovdqu( Ymm( i ), ptr[rsp + static_cast<uint32_t>( i * SizeOfYmm )]);
 	}
 
-	vzeroupper();
 	leave();
 	ret();
 }
@@ -674,6 +673,7 @@ void CAvxMathEngine::BlockedConvolution( const CConvolutionDesc& convDesc, const
 		desc.Source.Width(), desc.Source.Depth() * desc.Source.Channels(), desc.Result.Height(), desc.Result.Width(),
 		desc.Filter.ObjectCount(), desc.Filter.Height(), desc.Filter.Width(), desc.StrideHeight, desc.StrideWidth,
 		desc.PaddingHeight, desc.PaddingWidth, desc.DilationHeight, desc.DilationWidth );
+	_mm256_zeroupper();
 }
 
 } // namespace NeoML
