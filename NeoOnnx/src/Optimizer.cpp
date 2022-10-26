@@ -21,10 +21,11 @@ CPtr<CBaseLayer> IOptimizer::GetAnyInputLayer( CPtr<CBaseLayer>& currentLayer, i
 {
 	for( int j = i; j < currentLayer->GetInputCount(); ++j ) {
 		CPtr<CBaseLayer> inputLayer = graph.GetLayer( currentLayer->GetInputName( j ) );
-		if( IsExactLayer( inputLayer, classesOfSkipLayers[0] ) )
+		if( IsExactLayer( inputLayer, classesOfSkipLayers[0] ) ) {
 			return graph.GetLayer( inputLayer->GetInputName( j ) );
-		if( layerSkipClass != CString( "" ) && IsExactLayer( inputLayer, layerSkipClass ) )
+		} else if( layerSkipClass != CString( "" ) && IsExactLayer( inputLayer, layerSkipClass ) ) {
 			return graph.GetLayer( inputLayer->GetInputName( /*inputNumber*/0 ) );
+		}
 		return inputLayer;
 	}
 	return nullptr;
@@ -56,7 +57,8 @@ bool IOptimizer::GetExactInputLayers( CPtr<CBaseLayer>& currentLayer,
 		} else if( ( layerBase == nullptr || layerData == nullptr )
 			&& ( IsExactLayer( inputLayer, classesOfSkipLayers[0] )
 			|| IsExactLayer( inputLayer, classesOfSkipLayers[1] )
-			|| IsExactLayer( inputLayer, classesOfSkipLayers[2] ) ) ) {
+			|| IsExactLayer( inputLayer, classesOfSkipLayers[2] ) ) )
+		{
 			GetExactInputLayers( inputLayer, layerBase, layerBaseClass, layerData, layerDataClass, layerSkipClass );
 		} else if( IsExactLayer( inputLayer, layerDataClass ) ) {
 			layerData = inputLayer;
