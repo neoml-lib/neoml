@@ -69,11 +69,12 @@ CConvolutionDesc* CAvxMathEngine::InitBlockedConvolution( const CBlobDesc& sourc
 	// Number of operations in convolution == outputBlobsSize * filterHeight * filterWidth * inputChannels
 	// Packing each data (input/output/filter) is linear
 	// Ratio between number of operations in convolution and different packing operations
-	const int inputRatio = result.ObjectSize() * filter.Height() * filter.Width() / ( source.Height() * source.Width() );
-	const int outputRatio = filter.Height() * filter.Width() * source.Depth() * source.Channels();
-	const int filterRatio = result.ObjectCount() * result.Height() * result.Width();
+	const size_t inputRatio = static_cast<size_t>( result.ObjectSize() ) * filter.Height() * filter.Width()
+		/ source.Height() / source.Width();
+	const size_t outputRatio = static_cast<size_t>( filter.Height() ) * filter.Width() * source.Depth() * source.Channels();
+	const size_t filterRatio = static_cast<size_t>( result.ObjectCount() * result.Height() * result.Width() );
 	// If any of ratio is less than this value then packing takes too much time...
-	const int minRatio = 200;
+	const size_t minRatio = 200;
 	if( inputRatio < minRatio || outputRatio < minRatio || filterRatio < minRatio ) {
 		return nullptr;
 	}
@@ -107,6 +108,7 @@ void CAvxMathEngine::PackBlockedData( const CBlobDesc& desc, const float* source
 		}
 		result += channels * geomSize;
 	}
+	_mm256_zeroupper();
 }
 
 void CAvxMathEngine::UnpackBlockedData( const CBlobDesc& desc, const float* source, float* result ) const
@@ -130,6 +132,7 @@ void CAvxMathEngine::UnpackBlockedData( const CBlobDesc& desc, const float* sour
 		}
 		result += channels * geomSize;
 	}
+	_mm256_zeroupper();
 }
 
 void CAvxMathEngine::PackBlockedFilter( const CBlobDesc& desc, const float* source, float* result ) const
@@ -544,6 +547,7 @@ void CBlockedConvGen::genEpilogue()
 		vmovdqu( Ymm( i ), ptr[rsp + static_cast<uint32_t>( i * SizeOfYmm )]);
 	}
 
+	vzeroupper();
 	leave();
 	ret();
 }
