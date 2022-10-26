@@ -1944,6 +1944,341 @@ INSTANTIATE_TEST_SUITE_P(Yolox1, CBlockedConvTest,
 		)
 	), BlockedConvTestNameGenerator() );
 
+INSTANTIATE_TEST_SUITE_P(DenseNetOnnx, CBlockedConvTest,
+	::testing::Values(
+		CTestParams(
+			"Batch = 1;"
+			"Height = 56;"
+			"Width = 56;"
+			"Channels = 128;"
+			"FilterCount = 32;"
+			"FilterHeight = 3;"
+			"FilterWidth = 3;"
+			"StrideHeight = 1;"
+			"StrideWidth = 1;"
+			"PaddingHeight = 1;"
+			"PaddingWidth = 1;"
+			"DilationHeight = 1;"
+			"DilationWidth = 1;"
+			"Seed = 123456;",
+			"conv2_1_x2_1_Op"
+		),
+		CTestParams(
+			"Batch = 1;"
+			"Height = 28;"
+			"Width = 28;"
+			"Channels = 128;"
+			"FilterCount = 32;"
+			"FilterHeight = 3;"
+			"FilterWidth = 3;"
+			"StrideHeight = 1;"
+			"StrideWidth = 1;"
+			"PaddingHeight = 1;"
+			"PaddingWidth = 1;"
+			"DilationHeight = 1;"
+			"DilationWidth = 1;"
+			"Seed = 123456;",
+			"conv3_1_x2_1_Op"
+		),
+		CTestParams(
+			"Batch = 1;"
+			"Height = 14;"
+			"Width = 14;"
+			"Channels = 128;"
+			"FilterCount = 32;"
+			"FilterHeight = 3;"
+			"FilterWidth = 3;"
+			"StrideHeight = 1;"
+			"StrideWidth = 1;"
+			"PaddingHeight = 1;"
+			"PaddingWidth = 1;"
+			"DilationHeight = 1;"
+			"DilationWidth = 1;"
+			"Seed = 123456;",
+			"conv4_1_x2_1_Op"
+		),
+		CTestParams(
+			"Batch = 1;"
+			"Height = 7;"
+			"Width = 7;"
+			"Channels = 128;"
+			"FilterCount = 32;"
+			"FilterHeight = 3;"
+			"FilterWidth = 3;"
+			"StrideHeight = 1;"
+			"StrideWidth = 1;"
+			"PaddingHeight = 1;"
+			"PaddingWidth = 1;"
+			"DilationHeight = 1;"
+			"DilationWidth = 1;"
+			"Seed = 123456;",
+			"conv5_1_x2_1_Op"
+		)
+	), BlockedConvTestNameGenerator() );
+
+INSTANTIATE_TEST_SUITE_P(Vgg16Onnx, CBlockedConvTest,
+	::testing::Values(
+		CTestParams(
+			"Batch = 1;"
+			"Height = 224;"
+			"Width = 224;"
+			"Channels = 64;"
+			"FilterCount = 64;"
+			"FilterHeight = 3;"
+			"FilterWidth = 3;"
+			"StrideHeight = 1;"
+			"StrideWidth = 1;"
+			"PaddingHeight = 1;"
+			"PaddingWidth = 1;"
+			"DilationHeight = 1;"
+			"DilationWidth = 1;"
+			"Seed = 123456;",
+			"vgg0_conv1_fwd_Op"
+		),
+		CTestParams(
+			"Batch = 1;"
+			"Height = 112;"
+			"Width = 112;"
+			"Channels = 64;"
+			"FilterCount = 128;"
+			"FilterHeight = 3;"
+			"FilterWidth = 3;"
+			"StrideHeight = 1;"
+			"StrideWidth = 1;"
+			"PaddingHeight = 1;"
+			"PaddingWidth = 1;"
+			"DilationHeight = 1;"
+			"DilationWidth = 1;"
+			"Seed = 123456;",
+			"vgg0_conv2_fwd_Op"
+		),
+		CTestParams(
+			"Batch = 1;"
+			"Height = 112;"
+			"Width = 112;"
+			"Channels = 128;"
+			"FilterCount = 128;"
+			"FilterHeight = 3;"
+			"FilterWidth = 3;"
+			"StrideHeight = 1;"
+			"StrideWidth = 1;"
+			"PaddingHeight = 1;"
+			"PaddingWidth = 1;"
+			"DilationHeight = 1;"
+			"DilationWidth = 1;"
+			"Seed = 123456;",
+			"vgg0_conv3_fwd_Op"
+		),
+		CTestParams(
+			"Batch = 1;"
+			"Height = 56;"
+			"Width = 56;"
+			"Channels = 128;"
+			"FilterCount = 256;"
+			"FilterHeight = 3;"
+			"FilterWidth = 3;"
+			"StrideHeight = 1;"
+			"StrideWidth = 1;"
+			"PaddingHeight = 1;"
+			"PaddingWidth = 1;"
+			"DilationHeight = 1;"
+			"DilationWidth = 1;"
+			"Seed = 123456;",
+			"vgg0_conv4_fwd_Op"
+		),
+		CTestParams(
+			"Batch = 1;"
+			"Height = 56;"
+			"Width = 56;"
+			"Channels = 256;"
+			"FilterCount = 256;"
+			"FilterHeight = 3;"
+			"FilterWidth = 3;"
+			"StrideHeight = 1;"
+			"StrideWidth = 1;"
+			"PaddingHeight = 1;"
+			"PaddingWidth = 1;"
+			"DilationHeight = 1;"
+			"DilationWidth = 1;"
+			"Seed = 123456;",
+			"vgg0_conv5_fwd_Op"
+		),
+		CTestParams(
+			"Batch = 1;"
+			"Height = 28;"
+			"Width = 28;"
+			"Channels = 256;"
+			"FilterCount = 512;"
+			"FilterHeight = 3;"
+			"FilterWidth = 3;"
+			"StrideHeight = 1;"
+			"StrideWidth = 1;"
+			"PaddingHeight = 1;"
+			"PaddingWidth = 1;"
+			"DilationHeight = 1;"
+			"DilationWidth = 1;"
+			"Seed = 123456;",
+			"vgg0_conv7_fwd_Op"
+		),
+		CTestParams(
+			"Batch = 1;"
+			"Height = 28;"
+			"Width = 28;"
+			"Channels = 512;"
+			"FilterCount = 512;"
+			"FilterHeight = 3;"
+			"FilterWidth = 3;"
+			"StrideHeight = 1;"
+			"StrideWidth = 1;"
+			"PaddingHeight = 1;"
+			"PaddingWidth = 1;"
+			"DilationHeight = 1;"
+			"DilationWidth = 1;"
+			"Seed = 123456;",
+			"vgg0_conv8_fwd_Op"
+		),
+		CTestParams(
+			"Batch = 1;"
+			"Height = 14;"
+			"Width = 14;"
+			"Channels = 512;"
+			"FilterCount = 512;"
+			"FilterHeight = 3;"
+			"FilterWidth = 3;"
+			"StrideHeight = 1;"
+			"StrideWidth = 1;"
+			"PaddingHeight = 1;"
+			"PaddingWidth = 1;"
+			"DilationHeight = 1;"
+			"DilationWidth = 1;"
+			"Seed = 123456;",
+			"vgg0_conv10_fwd_Op"
+		)
+	), BlockedConvTestNameGenerator() );
+
+INSTANTIATE_TEST_SUITE_P(YoloV2CocoOnnx, CBlockedConvTest,
+	::testing::Values(
+		CTestParams(
+			"Batch = 1;"
+			"Height = 208;"
+			"Width = 208;"
+			"Channels = 32;"
+			"FilterCount = 64;"
+			"FilterHeight = 3;"
+			"FilterWidth = 3;"
+			"StrideHeight = 1;"
+			"StrideWidth = 1;"
+			"PaddingHeight = 1;"
+			"PaddingWidth = 1;"
+			"DilationHeight = 1;"
+			"DilationWidth = 1;"
+			"Seed = 123456;",
+			"139_Op"
+		),
+		CTestParams(
+			"Batch = 1;"
+			"Height = 104;"
+			"Width = 104;"
+			"Channels = 64;"
+			"FilterCount = 128;"
+			"FilterHeight = 3;"
+			"FilterWidth = 3;"
+			"StrideHeight = 1;"
+			"StrideWidth = 1;"
+			"PaddingHeight = 1;"
+			"PaddingWidth = 1;"
+			"DilationHeight = 1;"
+			"DilationWidth = 1;"
+			"Seed = 123456;",
+			"143_Op"
+		),
+		CTestParams(
+			"Batch = 1;"
+			"Height = 52;"
+			"Width = 52;"
+			"Channels = 128;"
+			"FilterCount = 256;"
+			"FilterHeight = 3;"
+			"FilterWidth = 3;"
+			"StrideHeight = 1;"
+			"StrideWidth = 1;"
+			"PaddingHeight = 1;"
+			"PaddingWidth = 1;"
+			"DilationHeight = 1;"
+			"DilationWidth = 1;"
+			"Seed = 123456;",
+			"153_Op"
+		),
+		CTestParams(
+			"Batch = 1;"
+			"Height = 26;"
+			"Width = 26;"
+			"Channels = 256;"
+			"FilterCount = 512;"
+			"FilterHeight = 3;"
+			"FilterWidth = 3;"
+			"StrideHeight = 1;"
+			"StrideWidth = 1;"
+			"PaddingHeight = 1;"
+			"PaddingWidth = 1;"
+			"DilationHeight = 1;"
+			"DilationWidth = 1;"
+			"Seed = 123456;",
+			"163_Op"
+		),
+		CTestParams(
+			"Batch = 1;"
+			"Height = 13;"
+			"Width = 13;"
+			"Channels = 512;"
+			"FilterCount = 1024;"
+			"FilterHeight = 3;"
+			"FilterWidth = 3;"
+			"StrideHeight = 1;"
+			"StrideWidth = 1;"
+			"PaddingHeight = 1;"
+			"PaddingWidth = 1;"
+			"DilationHeight = 1;"
+			"DilationWidth = 1;"
+			"Seed = 123456;",
+			"179_Op"
+		),
+		CTestParams(
+			"Batch = 1;"
+			"Height = 13;"
+			"Width = 13;"
+			"Channels = 1024;"
+			"FilterCount = 1024;"
+			"FilterHeight = 3;"
+			"FilterWidth = 3;"
+			"StrideHeight = 1;"
+			"StrideWidth = 1;"
+			"PaddingHeight = 1;"
+			"PaddingWidth = 1;"
+			"DilationHeight = 1;"
+			"DilationWidth = 1;"
+			"Seed = 123456;",
+			"194_Op"
+		),
+		CTestParams(
+			"Batch = 1;"
+			"Height = 13;"
+			"Width = 13;"
+			"Channels = 1280;"
+			"FilterCount = 1024;"
+			"FilterHeight = 3;"
+			"FilterWidth = 3;"
+			"StrideHeight = 1;"
+			"StrideWidth = 1;"
+			"PaddingHeight = 1;"
+			"PaddingWidth = 1;"
+			"DilationHeight = 1;"
+			"DilationWidth = 1;"
+			"Seed = 123456;",
+			"215_Op"
+		)
+	), BlockedConvTestNameGenerator() );
+
 INSTANTIATE_TEST_SUITE_P(DANet, CBlockedConvTest,
 	::testing::Values(
 		CTestParams(
