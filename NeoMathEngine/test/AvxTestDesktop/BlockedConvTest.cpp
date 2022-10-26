@@ -364,7 +364,7 @@ TEST_P( CBlockedConvTest, Real )
 		}
 	}
 
-	std::cout << "NeoML\tAlloc\tInput\tFilter\tBlocked\tOutput\tFree\tConvRatio\tFullRatio\n"
+	std::cout << "NeoML\tAlloc\tInput\tFilter\tBlocked\tOutput\tFree\tInputSize\tOutputSize\tTotalOperations\tCoeffI\tCoeffO\tCoeffF\n"
 		<< neomlPerf[0] / 1e9 << '\t'
 		<< allocPerf[0] / 1e9 << '\t'
 		<< inputConversionPerf[0] / 1e9 << '\t'
@@ -372,8 +372,13 @@ TEST_P( CBlockedConvTest, Real )
 		<< blockedConvPerf[0] / 1e9 << '\t'
 		<< outputConversionPerf[0] / 1e9 << '\t'
 		<< freePerf[0] / 1e9 << '\t'
-		<< 100. * blockedConvPerf[0] / neomlPerf[0] << "%\t"
-		<< 100. * ( allocPerf[0] + inputConversionPerf[0] + filterConversionPerf[0] + blockedConvPerf[0] + freePerf[0] + outputConversionPerf[0] ) / neomlPerf[0] << "%\n";
+		<< inputDesc.BlobSize() << '\t'
+		<< outputDesc.BlobSize() << '\t'
+		<< outputDesc.BlobSize() * channels * filterHeight * filterWidth << '\t'
+		<< outputDesc.Height() * outputDesc.Width() * filterCount * filterHeight * filterWidth / ( height * width ) << '\t'
+		<< channels * filterHeight * filterWidth << '\t'
+		<< batch * outputDesc.Height() * outputDesc.Width()
+		<< '\n';
 }
 
 struct BlockedConvTestNameGenerator {
