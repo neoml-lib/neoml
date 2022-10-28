@@ -25,6 +25,15 @@ limitations under the License.
 
 namespace NeoML {
 
+// Blocked convolution is a special algo when input and output channels are divided into blocks of size, used in SIMD
+// In our case (AVX) the block size is 8
+// This algo requires data to be packed from
+// N H W C_orig -> N C H W c
+// where c == BlockSize and C == C_Orig / BlockSize
+// This applies to both input and output
+// As a result this algo requires both C_Input and C_Output to be a multiple of BlockSize
+
+// Descriptor for blocked convolution
 struct CAvxBlockedConvDesc : public CConvolutionDesc {
 	CAvxBlockedConvDesc( const CBlobDesc& source, const CBlobDesc& result, const CBlobDesc& filter, int strideHeight,
 			int strideWidth, int paddingHeight, int paddingWidth, int dilationHeight, int dilationWidth ) :
@@ -43,15 +52,15 @@ struct CAvxBlockedConvDesc : public CConvolutionDesc {
 
 	~CAvxBlockedConvDesc() override = default;
 
-	const CBlobDesc Source;
-	const CBlobDesc Result;
-	const CBlobDesc Filter;
-	const int StrideHeight;
-	const int StrideWidth;
-	const int PaddingHeight;
-	const int PaddingWidth;
-	const int DilationHeight;
-	const int DilationWidth;
+	const CBlobDesc Source; // Input blob size
+	const CBlobDesc Result; // Output blob size
+	const CBlobDesc Filter; // Filter blob size
+	const int StrideHeight; // Step along height
+	const int StrideWidth; // Step along width
+	const int PaddingHeight; // Padding rows
+	const int PaddingWidth; // Paddinc columns
+	const int DilationHeight; // Dilation along height
+	const int DilationWidth; // Dilation along width
 };
 
 CConvolutionDesc* CAvxMathEngine::InitBlockedConvolution( const CBlobDesc& source, int paddingHeight, int paddingWidth,
@@ -60,14 +69,20 @@ CConvolutionDesc* CAvxMathEngine::InitBlockedConvolution( const CBlobDesc& sourc
 {
 	const int filterCount = filter.ObjectCount();
 	const int inputChannels = source.Depth() * source.Channels();
-	if( filterCount % 8 != 0 || inputChannels % 8 != 0 || ( filter.Height() == 1 && filter.Width() == 1 ) ) {
+	if( filterCount % 8 != 0 || inputChannels % 8 != 0 ) {
 		// Algorithmic restrictions
+		return nullptr;
+	}
+
+	/*if( filter.Height() == 1 && filter.Width() == 1 ) {
+		// We can't outperform matrix multiplication
 		return nullptr;
 	}
 
 	// Heuristics tuned for better effectiveness
 	// Number of operations in convolution == outputBlobsSize * filterHeight * filterWidth * inputChannels
 	// Packing each data (input/output/filter) is linear
+
 	// Ratio between number of operations in convolution and different packing operations
 	const size_t inputRatio = static_cast<size_t>( result.ObjectSize() ) * filter.Height() * filter.Width()
 		/ source.Height() / source.Width();
@@ -78,16 +93,19 @@ CConvolutionDesc* CAvxMathEngine::InitBlockedConvolution( const CBlobDesc& sourc
 	if( inputRatio < minRatio || outputRatio < minRatio || filterRatio < minRatio ) {
 		return nullptr;
 	}
+	
 	// If both input and output ratios are slightly above min value the algo is still slow
 	const size_t minIOMult = 65536;
 	if( inputRatio * outputRatio < minIOMult ) {
 		return nullptr;
-	}
+	}*/
 
 	return new CAvxBlockedConvDesc( source, result, filter, strideHeight, strideWidth, paddingHeight, paddingWidth,
 		dilationHeight, dilationWidth );
 }
 
+// Packs NHWC data from source into NCHWc result
+// The desc must contain data dims in NHWC format
 void CAvxMathEngine::PackBlockedData( const CBlobDesc& desc, const float* source, float* result ) const
 {
 	const int channels = desc.Depth() * desc.Channels();
@@ -112,6 +130,8 @@ void CAvxMathEngine::PackBlockedData( const CBlobDesc& desc, const float* source
 	_mm256_zeroupper();
 }
 
+// Unpacks NCHWc data from source into NHWC result
+// The desc must contain data dims in NHWC format
 void CAvxMathEngine::UnpackBlockedData( const CBlobDesc& desc, const float* source, float* result ) const
 {
 	const int channels = desc.Depth() * desc.Channels();
@@ -136,6 +156,10 @@ void CAvxMathEngine::UnpackBlockedData( const CBlobDesc& desc, const float* sour
 	_mm256_zeroupper();
 }
 
+// This algo requires special pack for filters from O_Orig x H x W x I_Orig into O x I x H x W x i x o
+// where O_Orig and I_Orig are the output and input channels in convolution
+// O = O_Orig / BlockSize, I = I_Orig / BlockSize, and i = o = BlockSize
+// The desc must contain filter data dims in OHWI format
 void CAvxMathEngine::PackBlockedFilter( const CBlobDesc& desc, const float* source, float* result ) const
 {
 	const int filterCount = desc.ObjectCount();
@@ -150,11 +174,12 @@ void CAvxMathEngine::PackBlockedFilter( const CBlobDesc& desc, const float* sour
 			for( int h = 0; h < height; ++h ) {
 				for( int w = 0; w < width; ++w ) {
 					for( int I = 0; I < channels / 8; ++I ) {
+						__m256 simdSource = _mm256_loadu_ps( source );
 						for( int i = 0; i < 8; ++i ) {
 							const int idx = o + 8 * ( i + 8 * ( w + width * ( h + height * ( I + channels / 8 * O ) ) ) );
-							result[idx] = *source;
-							source++;
+							result[idx] = simdSource.m256_f32[i];
 						}
+						source += 8;
 					}
 				}
 			}
@@ -174,6 +199,7 @@ using namespace Xbyak;
 
 class CBlockedConvGen : public Xbyak::CodeGenerator {
 public:
+	// JIT call parameters and their order
 	struct CParams {
 		const float* Input;
 		size_t StrideWidth;
@@ -197,9 +223,9 @@ public:
 		float* PrevRsp;
 	};
 
-	// TODO: increase if needed
 	CBlockedConvGen() : CodeGenerator( 16 * 1024 ) {}
 
+	// Runs generated code with the given parameters
 	void Run( CParams& params );
 
 private:
@@ -225,10 +251,10 @@ private:
 	// Epilogue
 	void genEpilogue();
 
-	const reg64_t regGlobalInput = rdi;
+	const reg64_t regInput = rdi;
 	const reg64_t regRemOutputCount = r10;
 
-	const reg64_t regInput = rcx;
+	const reg64_t regBlockInput = rcx;
 	const reg64_t regStrideWidth = r9;
 	const reg64_t regFilter = rdx;
 	const reg64_t regFilterStride = rsi;
@@ -261,7 +287,7 @@ void CBlockedConvGen::genPrologue()
 	push( rbp );
 	mov( rbp, rsp );
 
-	sub( rsp, static_cast< uint32_t >( 16 * SizeOfYmm ) );
+	sub( rsp, static_cast<uint32_t>( 16 * SizeOfYmm ) );
 	for( int i = 0; i < 16; i++ ) {
 		vmovdqu( ptr[rsp + i * SizeOfYmm], Ymm( i ) );
 	}
@@ -274,7 +300,7 @@ void CBlockedConvGen::genPrologue()
 	mov( ptr[Param1 + offsetof( CParams, PrevRsp )], rsp );
 	mov( rsp, Param1 );
 
-	mov( regGlobalInput, ptr[rsp + offsetof( CParams, Input )] );
+	mov( regInput, ptr[rsp + offsetof( CParams, Input )] );
 	mov( regFilterStride, ptr[rsp + offsetof( CParams, FilterStride )] );
 	mov( regDilationWidth, ptr[rsp + offsetof( CParams, DilationWidth )] );
 	mov( regOutput, ptr[rsp + offsetof( CParams, Output )] );
@@ -292,7 +318,7 @@ void CBlockedConvGen::genComputeBlocks( int filterCount, int outputCount )
 
 void CBlockedConvGen::genComputeBlocksPrologue( int outputCount )
 {
-	mov( regInput, regGlobalInput );
+	mov( regBlockInput, regInput );
 	mov( regFilter, ptr[rsp + offsetof( CParams, Filter )] );
 	mov( regKernelHeight, ptr[rsp + offsetof( CParams, KernelHeight )] );
 	mov( regKernelWidth, ptr[rsp + offsetof( CParams, KernelWidth )] );
@@ -328,13 +354,13 @@ void CBlockedConvGen::genComputeBlockLoops( int filterCount, int outputCount )
 
 	Label skipPadding;
 	if( outputCount == 1 ) {
-		lea( rbx, ptr[regInput + regNegInputBase] );
+		lea( rbx, ptr[regBlockInput + regNegInputBase] );
 		cmp( rbx, regInputWidth );
 		jae( skipPadding, CodeGenerator::T_NEAR );
 	}
 
 	if( outputCount >= 3 ) {
-		lea( regShiftedInput, ptr[regInput + 2 * regStrideWidth] );
+		lea( regShiftedInput, ptr[regBlockInput + 2 * regStrideWidth] );
 	}
 
 	if( filterCount >= 3 ) {
@@ -346,12 +372,12 @@ void CBlockedConvGen::genComputeBlockLoops( int filterCount, int outputCount )
 	}
 
 	L( skipPadding );
-	add( regInput, regDilationWidth );
+	add( regBlockInput, regDilationWidth );
 	add( regFilter, 8 * 8 * sizeof( float ) );
 	dec( regRemCols );
 	jnz( colCycleStart, CodeGenerator::T_NEAR );
 
-	add( regInput, regInputStride );
+	add( regBlockInput, regInputStride );
 	if( outputCount == 1 ) {
 		sub( regNegInputBase, ptr[rsp + offsetof( CParams, DilatedInputWidth )] );
 	}
@@ -367,7 +393,7 @@ void CBlockedConvGen::genSingleComputeBlock( int filterCount, int outputCount, i
 
 	// This macro multiplies and accumulates for FilterCount by OutputCount block of the output buffer.
 	Ymm inputYmm[3] = { Ymm( 13 ), Ymm( 14 ), Ymm( 15 ) };
-	Address inputAddr[3] = { ptr[regInput + broadcastOffset], ptr[regInput + regStrideWidth + broadcastOffset],
+	Address inputAddr[3] = { ptr[regBlockInput + broadcastOffset], ptr[regBlockInput + regStrideWidth + broadcastOffset],
 		ptr[regShiftedInput + broadcastOffset] };
 	for( int output = 0; output < outputCount; ++output ) {
 		vbroadcastss( inputYmm[output], inputAddr[output] );
@@ -457,7 +483,7 @@ void CBlockedConvGen::genPaddingProcessing( int filterCount )
 
 	L( processNextOutput );
 	genComputeBlocks( filterCount, 1 );
-	add( regGlobalInput, regStrideWidth );
+	add( regInput, regStrideWidth );
 	dec( regRemOutputCount );
 	jnz( processNextOutput, T_NEAR );
 }
@@ -476,14 +502,14 @@ void CBlockedConvGen::genProcessFilterCount( int filterCount )
 	Label processRemainingWithRightPad;
 
 	mov( regRemOutputCount, ptr[rsp + offsetof( CParams, OutputCount )] );
-	sub( regRemOutputCount, 3 );
+	sub( regRemOutputCount, 3 ); // Initially subtract 3 for jumping via comparison with 0 (jz, jb, jae, etc.)
 	jb( processRemainingOutputs, T_NEAR );
 
 	L( processThreeOutputs );
 	genComputeBlocks( filterCount, 3 );
 	const reg64_t regTemp = rax;
 	lea( regTemp, ptr[regStrideWidth + 2 * regStrideWidth] );
-	add( regGlobalInput, regTemp );
+	add( regInput, regTemp );
 	sub( regRemOutputCount, 3 );
 	jae( processThreeOutputs, T_NEAR );
 
@@ -493,7 +519,7 @@ void CBlockedConvGen::genProcessFilterCount( int filterCount )
 	cmp( regRemOutputCount, 2 );
 	jb( processRemainingWithRightPad, T_NEAR );
 	genComputeBlocks( filterCount, 2 );
-	lea( regGlobalInput, ptr[regGlobalInput + 2 * regStrideWidth] );
+	lea( regInput, ptr[regInput + 2 * regStrideWidth] );
 	sub( regRemOutputCount, 2 );
 
 	Label skipRightPad;
@@ -554,16 +580,24 @@ void CBlockedConvGen::genEpilogue()
 
 static CBlockedConvGen blockedConvGen;
 
+static void calcOutputPad( int inputSize, int filterSize, int outputSize, int stride, int padding, int dilation,
+	size_t& outputFrontPad, size_t& outputNoPad, size_t& outputBackPad )
+{
+	const int filterCoverage = ( filterSize - 1 ) * dilation + 1;
+	const int unaffectedByBackPad = ( inputSize + padding >= filterCoverage )
+		? ( inputSize + padding - filterCoverage ) / stride + 1 : 0;
+	outputFrontPad = static_cast<size_t>( min( unaffectedByBackPad, ( padding + stride - 1 ) / stride ) );
+	outputNoPad = static_cast<size_t>( unaffectedByBackPad ) - outputFrontPad;
+	outputBackPad = static_cast<size_t>( outputSize - unaffectedByBackPad );
+}
+
 static void runConv( const float* Input, const float* OrigFilter, const float* OrigBias, float* Output,
 	int batch, int hIn, int wIn, int chIn, int hOut, int wOut, int chOut,
 	int hKer, int wKer, int hStride, int wStride,
 	int hPad, int wPad, int hDil, int wDil )
 {
-	const int hSpan = ( hKer - 1 ) * hDil + 1;
-	const int hOutCountWithLeftPad = ( hIn + hPad >= hSpan ) ? ( hIn + hPad - hSpan ) / hStride + 1 : 0;
-	const int hOutCountLeftPad = min( hOutCountWithLeftPad, ( hPad + hStride - 1 ) / hStride );
-	const int hOutCount = hOutCountWithLeftPad - hOutCountLeftPad;
-	const int hOutCountRightPad = hOut - hOutCountWithLeftPad;
+	size_t outputRowTopPad = 0, outputRowNoPad = 0, outputRowBottomPad = 0;
+	calcOutputPad( hIn, hKer, hOut, hStride, hPad, hDil, outputRowTopPad, outputRowNoPad, outputRowBottomPad );
 
 	const int wSpan = ( wKer - 1 ) * wDil + 1;
 	const int wOutCountWithLeftPad = ( wIn + wPad >= wSpan ) ? ( wIn + wPad - wSpan ) / wStride + 1 : 0;
@@ -573,6 +607,7 @@ static void runConv( const float* Input, const float* OrigFilter, const float* O
 
 	const int filterSetCount = ( chOut + 31 ) / 32;
 	const int totalWork = batch * filterSetCount * hOut;
+	// TODO: distribute work between threads
 	int workIndex = 0;
 	int workRem = totalWork;
 	int ph = workIndex % hOut;
@@ -617,7 +652,7 @@ static void runConv( const float* Input, const float* OrigFilter, const float* O
 				size_t ih = ( ph + work ) * hStride - hPad;
 				size_t effectiveKernelHeight = hKer;
 
-				if( ( size_t(ph) + work ) - size_t(hOutCountLeftPad) >= size_t(hOutCount) ) {
+				if( ( size_t(ph) + work ) - outputRowTopPad >= outputRowNoPad ) {
 					size_t ihStep = ih;
 					for( int kh = 0; kh < hKer; ++kh ) {
 						if( ihStep >= size_t(hIn) ) {
