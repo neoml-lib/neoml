@@ -580,7 +580,7 @@ void CBlockedConvGen::genEpilogue()
 
 static CBlockedConvGen blockedConvGen;
 
-// Calculates the number of output padding affected by front or back padding
+// Calculates the number of output elements affected by front or back padding
 static void calcOutputPad( int inputSize, int filterSize, int outputSize, int stride, int padding, int dilation,
 	size_t& outputFrontPad, size_t& outputNoPad, size_t& outputBackPad )
 {
