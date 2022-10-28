@@ -409,7 +409,7 @@ void CBlockedConvGen::genSingleComputeBlock( int filterCount, int outputCount, i
 
 	if( outputCount == 1 ) {
 		for( int filter = 0; filter < filterCount; ++filter ) {
-			vfmadd231ps( acc[0][filter], inputYmm[0], filterAddr[filter]);
+			vfmadd231ps( acc[0][filter], inputYmm[0], filterAddr[filter] );
 		}
 	} else {
 		for( int filter = 0; filter < filterCount; ++filter ) {
@@ -459,13 +459,13 @@ void CBlockedConvGen::genPostProcessing( int filterCount, int outputCount )
 			vaddps( acc[0][filter], acc[0][filter], ptr[regBias + filter * SizeOfYmm]);
 		}
 	} else {
-		const int biasYmmIdx = 12;
+		const Ymm biasYmm[4] = { Ymm( 12 ), Ymm( 13 ), Ymm( 14 ), Ymm( 15 ) };
 		for( int filter = 0; filter < filterCount; ++filter ) {
-			vmovups( Ymm( biasYmmIdx + filter ), ptr[regBias + filter * SizeOfYmm] );
+			vmovups( biasYmm[filter], ptr[regBias + filter * SizeOfYmm]);
 		}
 		for( int output = 0; output < outputCount; ++output ) {
 			for( int filter = 0; filter < filterCount; ++filter ) {
-				vaddps( acc[output][filter], acc[output][filter], Ymm( biasYmmIdx + filter ) );
+				vaddps( acc[output][filter], acc[output][filter], biasYmm[filter] );
 			}
 		}
 	}
