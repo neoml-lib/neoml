@@ -580,6 +580,7 @@ void CBlockedConvGen::genEpilogue()
 
 static CBlockedConvGen blockedConvGen;
 
+// Calculates the number of output padding affected by front or back padding
 static void calcOutputPad( int inputSize, int filterSize, int outputSize, int stride, int padding, int dilation,
 	size_t& outputFrontPad, size_t& outputNoPad, size_t& outputBackPad )
 {
@@ -599,11 +600,8 @@ static void runConv( const float* Input, const float* OrigFilter, const float* O
 	size_t outputRowTopPad = 0, outputRowNoPad = 0, outputRowBottomPad = 0;
 	calcOutputPad( hIn, hKer, hOut, hStride, hPad, hDil, outputRowTopPad, outputRowNoPad, outputRowBottomPad );
 
-	const int wSpan = ( wKer - 1 ) * wDil + 1;
-	const int wOutCountWithLeftPad = ( wIn + wPad >= wSpan ) ? ( wIn + wPad - wSpan ) / wStride + 1 : 0;
-	const int wOutCountLeftPad = min( wOutCountWithLeftPad, ( wPad + wStride - 1 ) / wStride );
-	const int wOutCount = wOutCountWithLeftPad - wOutCountLeftPad;
-	const int wOutCountRightPad = wOut - wOutCountWithLeftPad;
+	size_t outputColLeftPad = 0, outputColNoPad = 0, outputColRightPad = 0;
+	calcOutputPad( wIn, wKer, wOut, wStride, wPad, wDil, outputColLeftPad, outputColNoPad, outputColRightPad );
 
 	const int filterSetCount = ( chOut + 31 ) / 32;
 	const int totalWork = batch * filterSetCount * hOut;
@@ -670,8 +668,8 @@ static void runConv( const float* Input, const float* OrigFilter, const float* O
 					filter, filterStride * sizeof( float ), input + 8 * ( ih * wIn ), inputWidth * sizeof( float ),
 					effectiveKernelHeight, static_cast<size_t>( wKer ), dilationWidth * sizeof( float ),
 					dilatedInputWidth * sizeof( float ), inputStride * sizeof( float ), Bias, output,
-					outputStride * sizeof( float ), static_cast<size_t>( flags ), static_cast<size_t>( wOutCountLeftPad ),
-					static_cast<size_t>( wOutCount ), static_cast<size_t>( wOutCountRightPad ), static_cast<size_t>( filterCount ) };
+					outputStride * sizeof( float ), static_cast<size_t>( flags ), outputColLeftPad,
+					outputColNoPad, outputColRightPad, static_cast<size_t>( filterCount ) };
 
 				blockedConvGen.Run( callParams );
 
