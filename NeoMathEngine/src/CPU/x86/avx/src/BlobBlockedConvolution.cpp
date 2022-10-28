@@ -664,12 +664,26 @@ static void runConv( const float* Input, const float* OrigFilter, const float* O
 					}
 				}
 
-				CBlockedConvGen::CParams callParams = { input + 8 * ( ih * wIn - wPad ), strideWidth * sizeof( float ),
-					filter, filterStride * sizeof( float ), input + 8 * ( ih * wIn ), inputWidth * sizeof( float ),
-					effectiveKernelHeight, static_cast<size_t>( wKer ), dilationWidth * sizeof( float ),
-					dilatedInputWidth * sizeof( float ), inputStride * sizeof( float ), Bias, output,
-					outputStride * sizeof( float ), static_cast<size_t>( flags ), outputColLeftPad,
-					outputColNoPad, outputColRightPad, static_cast<size_t>( filterCount ) };
+				CBlockedConvGen::CParams callParams;
+				callParams.Input = input + 8 * ( ih * wIn - wPad );
+				callParams.StrideWidth = strideWidth * sizeof( float );
+				callParams.Filter = filter;
+				callParams.FilterStride = filterStride * sizeof( float );
+				callParams.InputBase = input + 8 * ( ih * wIn );
+				callParams.InputWidth = inputWidth * sizeof( float );
+				callParams.KernelHeight = effectiveKernelHeight;
+				callParams.KernelWidth = static_cast<size_t>( wKer );
+				callParams.DilationWidth = dilationWidth * sizeof( float );
+				callParams.DilatedInputWidth = dilatedInputWidth * sizeof( float );
+				callParams.InputStride = inputStride * sizeof( float );
+				callParams.Bias = Bias;
+				callParams.Output = output;
+				callParams.OutputStride = outputStride * sizeof( float );
+				callParams.Flags = static_cast<size_t>( flags );
+				callParams.OutputCountLeftPad = outputColLeftPad;
+				callParams.OutputCount = outputColNoPad;
+				callParams.OutputCountRightPad = outputColRightPad;
+				callParams.FilterCount = static_cast<size_t>( filterCount );
 
 				blockedConvGen.Run( callParams );
 
