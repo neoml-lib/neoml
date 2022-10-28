@@ -268,6 +268,11 @@ private:
 	const reg64_t regShiftedInput = r14;
 	const reg64_t regShiftedFilter = rbx;
 
+	const Ymm acc[3][4] = {
+		{ Ymm( 0 ), Ymm( 1 ), Ymm( 2 ), Ymm( 3 ) },
+		{ Ymm( 4 ), Ymm( 5 ), Ymm( 6 ), Ymm( 7 ) },
+		{ Ymm( 8 ), Ymm( 9 ), Ymm( 10 ), Ymm( 11 ) }
+	};
 };
 
 void CBlockedConvGen::Run( CParams& params )
@@ -333,7 +338,7 @@ void CBlockedConvGen::genClearYmms( int filterCount, int outputCount )
 {
 	for( int filter = 0; filter < filterCount; ++filter ) {
 		for( int output = 0; output < outputCount; ++output ) {
-			vxorps( Xbyak::Ymm( output * 4 + filter ), Xbyak::Ymm( output * 4 + filter ) );
+			vxorps( acc[output][filter], acc[output][filter] );
 		}
 	}
 }
@@ -404,14 +409,14 @@ void CBlockedConvGen::genSingleComputeBlock( int filterCount, int outputCount, i
 
 	if( outputCount == 1 ) {
 		for( int filter = 0; filter < filterCount; ++filter ) {
-			vfmadd231ps( Ymm( filter ), inputYmm[0], filterAddr[filter]);
+			vfmadd231ps( acc[0][filter], inputYmm[0], filterAddr[filter]);
 		}
 	} else {
 		for( int filter = 0; filter < filterCount; ++filter ) {
 			Ymm filterYmm( 12 );
 			vmovups( filterYmm, filterAddr[filter] );
 			for( int output = 0; output < outputCount; ++output ) {
-				vfmadd231ps( Ymm( output * 4 + filter ), inputYmm[output], filterYmm );
+				vfmadd231ps( acc[output][filter], inputYmm[output], filterYmm);
 			}
 		}
 	}
@@ -435,7 +440,7 @@ void CBlockedConvGen::genPostProcessing( int filterCount, int outputCount )
 	reg64_t outputRegs[2] = { regOutput, regShiftedOutput };
 	for( int filter = 0; filter < filterCount; ++filter ) {
 		for( int output = 0; output < outputCount; ++output ) {
-			vaddps( Ymm( output * 4 + filter ), Ymm( output * 4 + filter ),
+			vaddps( acc[output][filter], acc[output][filter],
 				ptr[outputRegs[filter / 2] + ( filter % 2 ) * regOutputStride + output * SizeOfYmm] );
 		}
 	}
@@ -451,7 +456,7 @@ void CBlockedConvGen::genPostProcessing( int filterCount, int outputCount )
 
 	if( outputCount == 1 ) {
 		for( int filter = 0; filter < filterCount; ++filter ) {
-			vaddps( Ymm( filter ), Ymm( filter ), ptr[regBias + filter * SizeOfYmm] );
+			vaddps( acc[0][filter], acc[0][filter], ptr[regBias + filter * SizeOfYmm]);
 		}
 	} else {
 		const int biasYmmIdx = 12;
@@ -460,7 +465,7 @@ void CBlockedConvGen::genPostProcessing( int filterCount, int outputCount )
 		}
 		for( int output = 0; output < outputCount; ++output ) {
 			for( int filter = 0; filter < filterCount; ++filter ) {
-				vaddps( Ymm( output * 4 + filter ), Ymm( output * 4 + filter ), Ymm( biasYmmIdx + filter ) );
+				vaddps( acc[output][filter], acc[output][filter], Ymm( biasYmmIdx + filter ) );
 			}
 		}
 	}
@@ -470,7 +475,7 @@ void CBlockedConvGen::genPostProcessing( int filterCount, int outputCount )
 	for( int output = 0; output < outputCount; ++output ) {
 		for( int filter = 0; filter < filterCount; ++filter ) {
 			vmovups( ptr[outputRegs[filter / 2] + ( filter % 2 ) * regOutputStride + output * SizeOfYmm],
-				Ymm( output * 4 + filter ) );
+				acc[output][filter] );
 		}
 	}
 
