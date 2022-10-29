@@ -347,6 +347,11 @@ void CBlockedConvGen::genComputeBlockLoops( int filterCount, int outputCount )
 {
 	mov( regKernelHeight, ptr[rsp + offsetof( CParams, KernelHeight )] );
 
+	// In case if whole kernel is in padding
+	Label emptyKernelSkip;
+	test( regKernelHeight, regKernelHeight );
+	jz( emptyKernelSkip, T_NEAR );
+
 	Label rowCycleStart;
 	L( rowCycleStart );
 
@@ -389,6 +394,8 @@ void CBlockedConvGen::genComputeBlockLoops( int filterCount, int outputCount )
 
 	dec( regKernelHeight );
 	jnz( rowCycleStart, CodeGenerator::T_NEAR );
+
+	L( emptyKernelSkip );
 }
 
 void CBlockedConvGen::genSingleComputeBlock( int filterCount, int outputCount, int broadcast )
@@ -507,7 +514,8 @@ void CBlockedConvGen::genProcessFilterCount( int filterCount )
 	Label processRemainingWithRightPad;
 
 	mov( regRemOutputCount, ptr[rsp + offsetof( CParams, OutputCount )] );
-	sub( regRemOutputCount, 3 ); // Initially subtract 3 for jumping via comparison with 0 (jz, jb, jae, etc.)
+	// Initially subtract 3 for jumping via comparison with 0 (jz, jb, jae, etc.)
+	sub( regRemOutputCount, 3 );
 	jb( processRemainingOutputs, T_NEAR );
 
 	L( processThreeOutputs );
@@ -599,36 +607,37 @@ static void calcOutputPad( int inputSize, int filterSize, int outputSize, int st
 
 static void runConv( const float* Input, const float* OrigFilter, const float* OrigBias, float* Output,
 	const CAvxBlockedConvDesc& desc,
-	int batch, int hIn, int wIn, int chIn, int hOut, int wOut, int chOut,
+	int batchSize, int hIn, int wIn, int chIn, int hOut, int wOut, int chOut,
 	int hKer, int wKer, int hStride, int wStride,
 	int hPad, int wPad, int hDil, int wDil )
 {
-	size_t outputRowTopPad = 0, outputRowNoPad = 0, outputRowBottomPad = 0;
-	calcOutputPad( hIn, hKer, hOut, hStride, hPad, hDil, outputRowTopPad, outputRowNoPad, outputRowBottomPad );
-
 	size_t outputColLeftPad = 0, outputColNoPad = 0, outputColRightPad = 0;
 	calcOutputPad( wIn, wKer, wOut, wStride, wPad, wDil, outputColLeftPad, outputColNoPad, outputColRightPad );
 
-	const int filterSetCount = ( chOut + 31 ) / 32;
-	const int totalWork = batch * filterSetCount * hOut;
+	// AVX allows to process 8 floats via single instruction
+	const int blockSize = 8;
+	// JIT function may process up to 4 filter block at one time
+	const int filterSetSize = 4 * blockSize;
+
+	const int filterSetCount = ( chOut + filterSetSize - 1 ) / filterSetSize;
+	const int totalWork = batchSize * filterSetCount * hOut;
 	// TODO: distribute work between threads
 	int workIndex = 0;
 	int workRem = totalWork;
-	int ph = workIndex % hOut;
-	int filterSet = ( workIndex / hOut ) % filterSetCount;
-	int b = ( workIndex / hOut ) / filterSetCount;
+	int outputRowIndex = workIndex % hOut;
+	int filterSetIndex = ( workIndex / hOut ) % filterSetCount;
+	int batchIndex = ( workIndex / hOut ) / filterSetCount;
 
-	Input += b * desc.Source.ObjectSize();
+	Input += batchIndex * desc.Source.ObjectSize();
 
-	Output += b * desc.Result.ObjectSize();
-	Output += 8 * filterSet * 4 * hOut * wOut;
+	Output += batchIndex * desc.Result.ObjectSize();
+	Output += 8 * filterSetIndex * 4 * hOut * wOut;
 
-	const float* Filter = OrigFilter + 8 * filterSet * 4 * desc.Filter.ObjectSize();
-
+	const float* Filter = OrigFilter + 8 * filterSetIndex * 4 * desc.Filter.ObjectSize();
 
 	CBlockedConvGen::CParams callParams;
 
-	callParams.Bias = OrigBias != nullptr ? OrigBias + 8 * filterSet * 4 : OrigBias;
+	callParams.Bias = OrigBias != nullptr ? OrigBias + 8 * filterSetIndex * 4 : OrigBias;
 	callParams.StrideWidthBytes = sizeof( float ) * 8 * wStride;
 	callParams.DilationWidthBytes = sizeof( float ) * 8 * wDil;
 	callParams.FilterStrideBytes = sizeof( float ) * 8 * desc.Filter.ObjectSize();
@@ -640,12 +649,12 @@ static void runConv( const float* Input, const float* OrigFilter, const float* O
 	callParams.OutputCountLeftPad = outputColLeftPad;
 	callParams.OutputCount = outputColNoPad;
 	callParams.OutputCountRightPad = outputColRightPad;
-	callParams.FilterCount = static_cast<size_t>( min( 4, ( chOut / 8 ) - filterSet * 4 ) );
+	callParams.FilterCount = static_cast<size_t>( min( 4, ( chOut / 8 ) - filterSetIndex * 4 ) );
 
 	const int blockOutputWidth = 8 * wOut;
 
 	while( workRem > 0 ) {
-		const int workThisIter = min( workRem, hOut - ph );
+		const int workThisIter = min( workRem, hOut - outputRowIndex );
 		for( int ic = 0; ic < chIn; ic += 8 ) {
 			callParams.Flags = ic == 0 ? 0 : ACCUMULATE_OUTPUT;
 
@@ -654,29 +663,27 @@ static void runConv( const float* Input, const float* OrigFilter, const float* O
 			}
 
 			const float* input = Input + ic * hIn * wIn;
-			callParams.Output = Output + ph * blockOutputWidth;
+			callParams.Output = Output + outputRowIndex * blockOutputWidth;
 
 			for( int work = 0; work < workThisIter; ++work ) {
 				callParams.Filter = Filter + 8 * ic * hKer * wKer;
-				size_t ih = ( ph + work ) * hStride - hPad;
 				callParams.KernelHeight = static_cast<size_t>( hKer );
 
-				if( ( size_t(ph) + work ) - outputRowTopPad >= outputRowNoPad ) {
-					size_t ihStep = ih;
-					for( int kh = 0; kh < hKer; ++kh ) {
-						if( ihStep >= size_t(hIn) ) {
-							if( ihStep == ih ) {
-								ih += hDil;
-								callParams.Filter += 8 * 8 * wKer;
-							}
-							callParams.KernelHeight--;
-						}
-						ihStep += hDil;
-					}
-				}
+				// Calculate filter intersection with top and bottom padding
+				const int firstInputRowIndex = ( outputRowIndex + work ) * hStride - hPad;
+				const int topPaddingFilterRows = min( hKer, firstInputRowIndex < 0 ? ( -firstInputRowIndex + hDil - 1 ) / hDil : 0 );
+				const int lastInputRowIndex = firstInputRowIndex + ( hKer - 1 ) * hDil;
+				const int bottomPaddingFilterRows = min( hKer, lastInputRowIndex >= hIn ? ( lastInputRowIndex - hIn ) / hDil + 1 : 0 );
 
-				callParams.Input = input + 8 * ( ih * wIn - wPad );
-				callParams.InputBase = input + 8 * ( ih * wIn );
+				// Don't process paddings
+				callParams.KernelHeight -= topPaddingFilterRows + bottomPaddingFilterRows;
+				// Skip filter rows which are covering top padding 
+				callParams.Filter += topPaddingFilterRows * blockSize * blockSize * wKer;
+
+				// Calculate input pointers accordingly (skip top padding)
+				const int inputRowOffset = firstInputRowIndex + topPaddingFilterRows * hDil;
+				callParams.Input = input + 8 * ( inputRowOffset * wIn - wPad );
+				callParams.InputBase = input + 8 * ( inputRowOffset * wIn );
 
 				blockedConvGen.Run( callParams );
 
@@ -685,7 +692,7 @@ static void runConv( const float* Input, const float* OrigFilter, const float* O
 		}
 
 		workRem -= workThisIter;
-		if( ph + workThisIter == hOut ) {
+		if( outputRowIndex + workThisIter == hOut ) {
 			size_t blockedFilterCount = 8 * callParams.FilterCount;
 			Output += blockedFilterCount * hOut * wOut;
 			Filter += blockedFilterCount * chIn * hKer * wKer;
@@ -693,15 +700,15 @@ static void runConv( const float* Input, const float* OrigFilter, const float* O
 				callParams.Bias += blockedFilterCount;
 			}
 
-			if( ++filterSet == filterSetCount ) {
+			if( ++filterSetIndex == filterSetCount ) {
 				Input += chIn * hIn * wIn;
 				Filter = OrigFilter;
 				callParams.Bias = OrigBias;
-				filterSet = 0;
+				filterSetIndex = 0;
 			}
 
-			callParams.FilterCount = min( 4, ( chOut / 8 ) - filterSet * 4 );
-			ph = 0;
+			callParams.FilterCount = min( 4, ( chOut / 8 ) - filterSetIndex * 4 );
+			outputRowIndex = 0;
 		}
 	}
 }
