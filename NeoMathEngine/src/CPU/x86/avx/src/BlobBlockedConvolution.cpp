@@ -205,10 +205,10 @@ public:
 		size_t StrideWidthBytes;
 		const float* Filter;
 		size_t FilterStrideBytes;
-		const float* InputDataPtr;
+		const float* InputAfterLeftPad;
 		size_t InputWidthBytes;
-		size_t KernelHeight;
-		size_t KernelWidth;
+		size_t FilterHeight;
+		size_t FilterWidth;
 		size_t DilationWidthBytes;
 		size_t DilatedInputWidthBytes;
 		size_t InputStrideBytes;
@@ -260,11 +260,11 @@ private:
 	const reg64_t regFilterStride = rsi;
 	const reg64_t regDilationWidth = rbp;
 	const reg64_t regInputStride = r15;
-	const reg64_t regNegInputDataPtr = r13;
+	const reg64_t regNegInputAfterLeftPad = r13;
 	const reg64_t regInputWidth = r14;
 	const reg64_t regOutput = r8;
-	const reg64_t regKernelHeight = r11;
-	const reg64_t regKernelWidth = r12;
+	const reg64_t regFilterHeight = r11;
+	const reg64_t regFilterWidth = r12;
 	const reg64_t regShiftedInput = r14;
 	const reg64_t regShiftedFilter = rbx;
 
@@ -325,11 +325,11 @@ void CBlockedConvGen::genComputeBlocksPrologue( int outputCount )
 {
 	mov( regBlockInput, regInput );
 	mov( regFilter, ptr[rsp + offsetof( CParams, Filter )] );
-	mov( regKernelHeight, ptr[rsp + offsetof( CParams, KernelHeight )] );
-	mov( regKernelWidth, ptr[rsp + offsetof( CParams, KernelWidth )] );
+	mov( regFilterHeight, ptr[rsp + offsetof( CParams, FilterHeight )] );
+	mov( regFilterWidth, ptr[rsp + offsetof( CParams, FilterWidth )] );
 	if( outputCount == 1 ) {
-		mov( regNegInputDataPtr, ptr[rsp + offsetof( CParams, InputDataPtr )] );
-		neg( regNegInputDataPtr );
+		mov( regNegInputAfterLeftPad, ptr[rsp + offsetof( CParams, InputAfterLeftPad )] );
+		neg( regNegInputAfterLeftPad );
 		mov( regInputWidth, ptr[rsp + offsetof( CParams, InputWidthBytes )] );
 	}
 }
@@ -345,11 +345,11 @@ void CBlockedConvGen::genClearYmms( int filterCount, int outputCount )
 
 void CBlockedConvGen::genComputeBlockLoops( int filterCount, int outputCount )
 {
-	mov( regKernelHeight, ptr[rsp + offsetof( CParams, KernelHeight )] );
+	mov( regFilterHeight, ptr[rsp + offsetof( CParams, FilterHeight )] );
 
 	// In case if whole kernel is in padding
 	Label emptyKernelSkip;
-	test( regKernelHeight, regKernelHeight );
+	test( regFilterHeight, regFilterHeight );
 	jz( emptyKernelSkip, T_NEAR );
 
 	Label rowCycleStart;
@@ -357,14 +357,14 @@ void CBlockedConvGen::genComputeBlockLoops( int filterCount, int outputCount )
 
 	const reg64_t regRemCols = rax;
 	// TODO: remove this load when figure out how to get rid of registers
-	mov( regRemCols, regKernelWidth );
+	mov( regRemCols, regFilterWidth );
 
 	Label colCycleStart;
 	L( colCycleStart );
 
 	Label skipPadding;
 	if( outputCount == 1 ) {
-		lea( rbx, ptr[regBlockInput + regNegInputDataPtr] );
+		lea( rbx, ptr[regBlockInput + regNegInputAfterLeftPad] );
 		cmp( rbx, regInputWidth );
 		jae( skipPadding, CodeGenerator::T_NEAR );
 	}
@@ -389,10 +389,10 @@ void CBlockedConvGen::genComputeBlockLoops( int filterCount, int outputCount )
 
 	add( regBlockInput, regInputStride );
 	if( outputCount == 1 ) {
-		sub( regNegInputDataPtr, ptr[rsp + offsetof( CParams, DilatedInputWidthBytes )] );
+		sub( regNegInputAfterLeftPad, ptr[rsp + offsetof( CParams, DilatedInputWidthBytes )] );
 	}
 
-	dec( regKernelHeight );
+	dec( regFilterHeight );
 	jnz( rowCycleStart, CodeGenerator::T_NEAR );
 
 	L( emptyKernelSkip );
@@ -606,84 +606,94 @@ static void calcOutputPad( int inputSize, int filterSize, int outputSize, int st
 }
 
 static void runConv( const float* Input, const float* OrigFilter, const float* OrigBias, float* Output,
-	const CAvxBlockedConvDesc& desc,
-	int batchSize, int hIn, int wIn, int chIn, int hOut, int wOut, int chOut,
-	int hKer, int wKer, int hStride, int wStride,
-	int hPad, int wPad, int hDil, int wDil )
+	const CAvxBlockedConvDesc& desc )
 {
+	const int inputHeight = desc.Source.Height();
+	const int inputWidth = desc.Source.Width();
+	const int inputChannels = desc.Source.Depth() * desc.Source.Channels();
+	const int outputHeight = desc.Result.Height();
+	const int outputWidth = desc.Result.Width();
+	const int filterCount = desc.Filter.ObjectCount();
+	const int filterHeight = desc.Filter.Height();
+	const int filterWidth = desc.Filter.Width();
+	const int dilationHeight = desc.DilationHeight;
+
 	size_t outputColLeftPad = 0, outputColNoPad = 0, outputColRightPad = 0;
-	calcOutputPad( wIn, wKer, wOut, wStride, wPad, wDil, outputColLeftPad, outputColNoPad, outputColRightPad );
+	calcOutputPad( inputWidth, filterWidth, outputWidth, desc.StrideWidth, desc.PaddingWidth, desc.DilationWidth,
+		outputColLeftPad, outputColNoPad, outputColRightPad );
 
 	// AVX allows to process 8 floats via single instruction
 	const int blockSize = 8;
-	// JIT function may process up to 4 filter block at one time
+	// JIT function may process up to 4 filter blocks at one time
 	const int filterSetBlocks = 4;
 	const int filterSetSize = filterSetBlocks * blockSize;
 
-	const int filterSetCount = ( chOut + filterSetSize - 1 ) / filterSetSize;
-	const int totalWork = batchSize * filterSetCount * hOut;
+	const int filterSetCount = ( filterCount + filterSetSize - 1 ) / filterSetSize;
+	const int totalWork = desc.Source.ObjectCount() * filterSetCount * outputHeight;
 	// TODO: distribute work between threads
 	int workIndex = 0;
 	int workRem = totalWork;
-	int outputRowIndex = workIndex % hOut;
-	int filterSetIndex = ( workIndex / hOut ) % filterSetCount;
-	int batchIndex = ( workIndex / hOut ) / filterSetCount;
+	int outputRowIndex = workIndex % outputHeight;
+	int filterSetIndex = ( workIndex / outputHeight ) % filterSetCount;
+	int batchIndex = ( workIndex / outputHeight ) / filterSetCount;
 
 	Input += batchIndex * desc.Source.ObjectSize();
 
-	Output += batchIndex * desc.Result.ObjectSize() + filterSetIndex * filterSetSize * hOut * wOut;
+	Output += batchIndex * desc.Result.ObjectSize() + filterSetIndex * filterSetSize * outputHeight * outputWidth;
 
 	const float* Filter = OrigFilter + filterSetIndex * filterSetSize * desc.Filter.ObjectSize();
 
 	CBlockedConvGen::CParams callParams;
 
 	callParams.Bias = OrigBias != nullptr ? OrigBias + filterSetIndex * filterSetSize : OrigBias;
-	callParams.StrideWidthBytes = sizeof( float ) * blockSize * wStride;
-	callParams.DilationWidthBytes = sizeof( float ) * blockSize * wDil;
+	callParams.StrideWidthBytes = sizeof( float ) * blockSize * desc.StrideWidth;
+	callParams.DilationWidthBytes = sizeof( float ) * blockSize * desc.DilationWidth;
 	callParams.FilterStrideBytes = sizeof( float ) * blockSize * desc.Filter.ObjectSize();
-	callParams.OutputStrideBytes = sizeof( float ) * blockSize * hOut * wOut;
-	callParams.InputWidthBytes = sizeof( float ) * blockSize * wIn;
-	callParams.DilatedInputWidthBytes = sizeof( float ) * blockSize * hDil * wIn;
-	callParams.InputStrideBytes = callParams.DilatedInputWidthBytes - wKer * callParams.DilationWidthBytes;
-	callParams.KernelWidth = wKer;
+	callParams.OutputStrideBytes = sizeof( float ) * blockSize * outputHeight * outputWidth;
+	callParams.InputWidthBytes = sizeof( float ) * blockSize * inputWidth;
+	callParams.DilatedInputWidthBytes = sizeof( float ) * blockSize * dilationHeight * inputWidth;
+	callParams.InputStrideBytes = callParams.DilatedInputWidthBytes - filterWidth * callParams.DilationWidthBytes;
+	callParams.FilterWidth = filterWidth;
 	callParams.OutputCountLeftPad = outputColLeftPad;
 	callParams.OutputCount = outputColNoPad;
 	callParams.OutputCountRightPad = outputColRightPad;
-	callParams.FilterCount = min( filterSetBlocks, ( chOut / blockSize ) - filterSetIndex * filterSetBlocks );
+	callParams.FilterCount = min( filterSetBlocks, ( filterCount / blockSize ) - filterSetIndex * filterSetBlocks );
 
-	const int blockedOutputWidth = blockSize * wOut;
+	const int blockedOutputWidth = blockSize * outputWidth;
 
 	while( workRem > 0 ) {
-		const int workThisIter = min( workRem, hOut - outputRowIndex );
-		for( int ic = 0; ic < chIn; ic += blockSize ) {
+		const int workThisIter = min( workRem, outputHeight - outputRowIndex );
+		for( int ic = 0; ic < inputChannels; ic += blockSize ) {
 			callParams.Flags = ic == 0 ? 0 : ACCUMULATE_OUTPUT;
 
-			if( ic + blockSize == chIn && callParams.Bias != nullptr ) {
+			if( ic + blockSize == inputChannels && callParams.Bias != nullptr ) {
 				callParams.Flags |= ADD_BIAS;
 			}
 
-			const float* input = Input + ic * hIn * wIn;
+			const float* input = Input + ic * inputHeight * inputWidth;
 			callParams.Output = Output + outputRowIndex * blockedOutputWidth;
 
 			for( int work = 0; work < workThisIter; ++work ) {
-				callParams.Filter = Filter + blockSize * ic * hKer * wKer;
-				callParams.KernelHeight = static_cast<size_t>( hKer );
+				callParams.Filter = Filter + blockSize * ic * filterHeight * filterWidth;
+				callParams.FilterHeight = static_cast<size_t>( filterHeight );
 
 				// Calculate filter intersection with top and bottom padding
-				const int firstInputRowIndex = ( outputRowIndex + work ) * hStride - hPad;
-				const int topPaddingFilterRows = min( hKer, firstInputRowIndex < 0 ? ( -firstInputRowIndex + hDil - 1 ) / hDil : 0 );
-				const int lastInputRowIndex = firstInputRowIndex + ( hKer - 1 ) * hDil;
-				const int bottomPaddingFilterRows = min( hKer, lastInputRowIndex >= hIn ? ( lastInputRowIndex - hIn ) / hDil + 1 : 0 );
+				const int firstInputRowIndex = ( outputRowIndex + work ) * desc.StrideHeight - desc.PaddingHeight;
+				const int topPaddingFilterRows = min( filterHeight, firstInputRowIndex < 0
+					? ( -firstInputRowIndex + dilationHeight - 1 ) / dilationHeight : 0 );
+				const int lastInputRowIndex = firstInputRowIndex + ( filterHeight - 1 ) * dilationHeight;
+				const int bottomPaddingFilterRows = min( filterHeight, lastInputRowIndex >= inputHeight
+					? ( lastInputRowIndex - inputHeight ) / dilationHeight + 1 : 0 );
 
 				// Don't process paddings
-				callParams.KernelHeight -= topPaddingFilterRows + bottomPaddingFilterRows;
+				callParams.FilterHeight -= topPaddingFilterRows + bottomPaddingFilterRows;
 				// Skip filter rows which are covering top padding 
-				callParams.Filter += topPaddingFilterRows * blockSize * blockSize * wKer;
+				callParams.Filter += topPaddingFilterRows * blockSize * blockSize * filterWidth;
 
 				// Calculate input pointers accordingly (skip top padding)
-				const int inputRowOffset = firstInputRowIndex + topPaddingFilterRows * hDil;
-				callParams.Input = input + blockSize * ( inputRowOffset * wIn - wPad );
-				callParams.InputDataPtr = input + blockSize * ( inputRowOffset * wIn );
+				const int inputRowOffset = firstInputRowIndex + topPaddingFilterRows * dilationHeight;
+				callParams.Input = input + blockSize * ( inputRowOffset * inputWidth - desc.PaddingWidth );
+				callParams.InputAfterLeftPad = input + blockSize * ( inputRowOffset * inputWidth );
 
 				blockedConvGen.Run( callParams );
 
@@ -692,22 +702,23 @@ static void runConv( const float* Input, const float* OrigFilter, const float* O
 		}
 
 		workRem -= workThisIter;
-		if( outputRowIndex + workThisIter == hOut ) {
+		if( outputRowIndex + workThisIter == outputHeight ) {
+			// All of the rows are processed. Switch to next image
 			size_t blockedFilterCount = blockSize * callParams.FilterCount;
-			Output += blockedFilterCount * hOut * wOut;
-			Filter += blockedFilterCount * chIn * hKer * wKer;
+			Output += blockedFilterCount * outputHeight * outputWidth;
+			Filter += blockedFilterCount * inputChannels * filterHeight * filterWidth;
 			if( callParams.Bias != nullptr ) {
 				callParams.Bias += blockedFilterCount;
 			}
 
 			if( ++filterSetIndex == filterSetCount ) {
-				Input += chIn * hIn * wIn;
+				Input += inputChannels * inputHeight * inputWidth;
 				Filter = OrigFilter;
 				callParams.Bias = OrigBias;
 				filterSetIndex = 0;
 			}
 
-			callParams.FilterCount = min( filterSetBlocks, ( chOut / blockSize ) - filterSetIndex * filterSetBlocks );
+			callParams.FilterCount = min( filterSetBlocks, ( filterCount / blockSize ) - filterSetIndex * filterSetBlocks );
 			outputRowIndex = 0;
 		}
 	}
@@ -717,10 +728,7 @@ void CAvxMathEngine::BlockedConvolution( const CConvolutionDesc& convDesc, const
 	const float* packedFilter, const float* freeTerm, float* packedResult ) const
 {
 	const CAvxBlockedConvDesc& desc = static_cast<const CAvxBlockedConvDesc&>( convDesc );
-	runConv( packedSource, packedFilter, freeTerm, packedResult, desc, desc.Source.ObjectCount(), desc.Source.Height(),
-		desc.Source.Width(), desc.Source.Depth() * desc.Source.Channels(), desc.Result.Height(), desc.Result.Width(),
-		desc.Filter.ObjectCount(), desc.Filter.Height(), desc.Filter.Width(), desc.StrideHeight, desc.StrideWidth,
-		desc.PaddingHeight, desc.PaddingWidth, desc.DilationHeight, desc.DilationWidth );
+	runConv( packedSource, packedFilter, freeTerm, packedResult, desc );
 	_mm256_zeroupper();
 }
 
