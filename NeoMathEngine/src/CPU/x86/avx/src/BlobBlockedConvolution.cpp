@@ -205,7 +205,7 @@ public:
 		size_t StrideWidthBytes;
 		const float* Filter;
 		size_t FilterStrideBytes;
-		const float* InputBase;
+		const float* InputDataPtr;
 		size_t InputWidthBytes;
 		size_t KernelHeight;
 		size_t KernelWidth;
@@ -260,7 +260,7 @@ private:
 	const reg64_t regFilterStride = rsi;
 	const reg64_t regDilationWidth = rbp;
 	const reg64_t regInputStride = r15;
-	const reg64_t regNegInputBase = r13;
+	const reg64_t regNegInputDataPtr = r13;
 	const reg64_t regInputWidth = r14;
 	const reg64_t regOutput = r8;
 	const reg64_t regKernelHeight = r11;
@@ -328,8 +328,8 @@ void CBlockedConvGen::genComputeBlocksPrologue( int outputCount )
 	mov( regKernelHeight, ptr[rsp + offsetof( CParams, KernelHeight )] );
 	mov( regKernelWidth, ptr[rsp + offsetof( CParams, KernelWidth )] );
 	if( outputCount == 1 ) {
-		mov( regNegInputBase, ptr[rsp + offsetof( CParams, InputBase )] );
-		neg( regNegInputBase );
+		mov( regNegInputDataPtr, ptr[rsp + offsetof( CParams, InputDataPtr )] );
+		neg( regNegInputDataPtr );
 		mov( regInputWidth, ptr[rsp + offsetof( CParams, InputWidthBytes )] );
 	}
 }
@@ -364,7 +364,7 @@ void CBlockedConvGen::genComputeBlockLoops( int filterCount, int outputCount )
 
 	Label skipPadding;
 	if( outputCount == 1 ) {
-		lea( rbx, ptr[regBlockInput + regNegInputBase] );
+		lea( rbx, ptr[regBlockInput + regNegInputDataPtr] );
 		cmp( rbx, regInputWidth );
 		jae( skipPadding, CodeGenerator::T_NEAR );
 	}
@@ -389,7 +389,7 @@ void CBlockedConvGen::genComputeBlockLoops( int filterCount, int outputCount )
 
 	add( regBlockInput, regInputStride );
 	if( outputCount == 1 ) {
-		sub( regNegInputBase, ptr[rsp + offsetof( CParams, DilatedInputWidthBytes )] );
+		sub( regNegInputDataPtr, ptr[rsp + offsetof( CParams, DilatedInputWidthBytes )] );
 	}
 
 	dec( regKernelHeight );
@@ -617,7 +617,8 @@ static void runConv( const float* Input, const float* OrigFilter, const float* O
 	// AVX allows to process 8 floats via single instruction
 	const int blockSize = 8;
 	// JIT function may process up to 4 filter block at one time
-	const int filterSetSize = 4 * blockSize;
+	const int filterSetBlocks = 4;
+	const int filterSetSize = filterSetBlocks * blockSize;
 
 	const int filterSetCount = ( chOut + filterSetSize - 1 ) / filterSetSize;
 	const int totalWork = batchSize * filterSetCount * hOut;
@@ -630,43 +631,42 @@ static void runConv( const float* Input, const float* OrigFilter, const float* O
 
 	Input += batchIndex * desc.Source.ObjectSize();
 
-	Output += batchIndex * desc.Result.ObjectSize();
-	Output += 8 * filterSetIndex * 4 * hOut * wOut;
+	Output += batchIndex * desc.Result.ObjectSize() + filterSetIndex * filterSetSize * hOut * wOut;
 
-	const float* Filter = OrigFilter + 8 * filterSetIndex * 4 * desc.Filter.ObjectSize();
+	const float* Filter = OrigFilter + filterSetIndex * filterSetSize * desc.Filter.ObjectSize();
 
 	CBlockedConvGen::CParams callParams;
 
-	callParams.Bias = OrigBias != nullptr ? OrigBias + 8 * filterSetIndex * 4 : OrigBias;
-	callParams.StrideWidthBytes = sizeof( float ) * 8 * wStride;
-	callParams.DilationWidthBytes = sizeof( float ) * 8 * wDil;
-	callParams.FilterStrideBytes = sizeof( float ) * 8 * desc.Filter.ObjectSize();
-	callParams.OutputStrideBytes = sizeof( float ) * 8 * hOut * wOut;
-	callParams.InputWidthBytes = sizeof( float ) * 8 * wIn;
-	callParams.DilatedInputWidthBytes = sizeof( float ) * 8 * hDil * wIn;
+	callParams.Bias = OrigBias != nullptr ? OrigBias + filterSetIndex * filterSetSize : OrigBias;
+	callParams.StrideWidthBytes = sizeof( float ) * blockSize * wStride;
+	callParams.DilationWidthBytes = sizeof( float ) * blockSize * wDil;
+	callParams.FilterStrideBytes = sizeof( float ) * blockSize * desc.Filter.ObjectSize();
+	callParams.OutputStrideBytes = sizeof( float ) * blockSize * hOut * wOut;
+	callParams.InputWidthBytes = sizeof( float ) * blockSize * wIn;
+	callParams.DilatedInputWidthBytes = sizeof( float ) * blockSize * hDil * wIn;
 	callParams.InputStrideBytes = callParams.DilatedInputWidthBytes - wKer * callParams.DilationWidthBytes;
-	callParams.KernelWidth = static_cast<size_t>( wKer );
+	callParams.KernelWidth = wKer;
 	callParams.OutputCountLeftPad = outputColLeftPad;
 	callParams.OutputCount = outputColNoPad;
 	callParams.OutputCountRightPad = outputColRightPad;
-	callParams.FilterCount = static_cast<size_t>( min( 4, ( chOut / 8 ) - filterSetIndex * 4 ) );
+	callParams.FilterCount = min( filterSetBlocks, ( chOut / blockSize ) - filterSetIndex * filterSetBlocks );
 
-	const int blockOutputWidth = 8 * wOut;
+	const int blockedOutputWidth = blockSize * wOut;
 
 	while( workRem > 0 ) {
 		const int workThisIter = min( workRem, hOut - outputRowIndex );
-		for( int ic = 0; ic < chIn; ic += 8 ) {
+		for( int ic = 0; ic < chIn; ic += blockSize ) {
 			callParams.Flags = ic == 0 ? 0 : ACCUMULATE_OUTPUT;
 
-			if( ic + 8 == chIn && callParams.Bias != nullptr ) {
+			if( ic + blockSize == chIn && callParams.Bias != nullptr ) {
 				callParams.Flags |= ADD_BIAS;
 			}
 
 			const float* input = Input + ic * hIn * wIn;
-			callParams.Output = Output + outputRowIndex * blockOutputWidth;
+			callParams.Output = Output + outputRowIndex * blockedOutputWidth;
 
 			for( int work = 0; work < workThisIter; ++work ) {
-				callParams.Filter = Filter + 8 * ic * hKer * wKer;
+				callParams.Filter = Filter + blockSize * ic * hKer * wKer;
 				callParams.KernelHeight = static_cast<size_t>( hKer );
 
 				// Calculate filter intersection with top and bottom padding
@@ -682,18 +682,18 @@ static void runConv( const float* Input, const float* OrigFilter, const float* O
 
 				// Calculate input pointers accordingly (skip top padding)
 				const int inputRowOffset = firstInputRowIndex + topPaddingFilterRows * hDil;
-				callParams.Input = input + 8 * ( inputRowOffset * wIn - wPad );
-				callParams.InputBase = input + 8 * ( inputRowOffset * wIn );
+				callParams.Input = input + blockSize * ( inputRowOffset * wIn - wPad );
+				callParams.InputDataPtr = input + blockSize * ( inputRowOffset * wIn );
 
 				blockedConvGen.Run( callParams );
 
-				callParams.Output += blockOutputWidth;
+				callParams.Output += blockedOutputWidth;
 			}
 		}
 
 		workRem -= workThisIter;
 		if( outputRowIndex + workThisIter == hOut ) {
-			size_t blockedFilterCount = 8 * callParams.FilterCount;
+			size_t blockedFilterCount = blockSize * callParams.FilterCount;
 			Output += blockedFilterCount * hOut * wOut;
 			Filter += blockedFilterCount * chIn * hKer * wKer;
 			if( callParams.Bias != nullptr ) {
@@ -707,7 +707,7 @@ static void runConv( const float* Input, const float* OrigFilter, const float* O
 				filterSetIndex = 0;
 			}
 
-			callParams.FilterCount = min( 4, ( chOut / 8 ) - filterSetIndex * 4 );
+			callParams.FilterCount = min( filterSetBlocks, ( chOut / blockSize ) - filterSetIndex * filterSetBlocks );
 			outputRowIndex = 0;
 		}
 	}
