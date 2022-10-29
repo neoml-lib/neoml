@@ -223,7 +223,7 @@ public:
 		float* PrevRsp;
 	};
 
-	CBlockedConvGen() : CodeGenerator( 16 * 1024 ) {}
+	CBlockedConvGen();
 
 	// Runs generated code with the given parameters
 	void Run( CParams& params );
@@ -275,14 +275,15 @@ private:
 	};
 };
 
+CBlockedConvGen::CBlockedConvGen() : CodeGenerator( 16 * 1024 )
+{
+	genPrologue();
+	genConvKernel();
+	genEpilogue();
+}
+
 void CBlockedConvGen::Run( CParams& params )
 {
-	if( getSize() == 0 ) {
-		genPrologue();
-		genConvKernel();
-		genEpilogue();
-	}
-
 	typedef void (*TComputeBlockJitFunc)( CParams* );
 	getCode<TComputeBlockJitFunc>()( &params );
 }
@@ -605,9 +606,11 @@ static void calcOutputPad( int inputSize, int filterSize, int outputSize, int st
 	outputBackPad = static_cast<size_t>( outputSize - unaffectedByBackPad );
 }
 
-static void runConv( const float* Input, const float* OrigFilter, const float* OrigBias, float* Output,
-	const CAvxBlockedConvDesc& desc )
+void CAvxMathEngine::BlockedConvolution( const CConvolutionDesc& convDesc, const float* packedSource,
+	const float* packedFilter, const float* freeTerm, float* packedResult ) const
 {
+	const CAvxBlockedConvDesc& desc = static_cast<const CAvxBlockedConvDesc&>( convDesc );
+	
 	const int inputHeight = desc.Source.Height();
 	const int inputWidth = desc.Source.Width();
 	const int inputChannels = desc.Source.Depth() * desc.Source.Channels();
@@ -631,105 +634,105 @@ static void runConv( const float* Input, const float* OrigFilter, const float* O
 	const int filterSetCount = ( filterCount + filterSetSize - 1 ) / filterSetSize;
 	const int totalWork = desc.Source.ObjectCount() * filterSetCount * outputHeight;
 	// TODO: distribute work between threads
-	int workIndex = 0;
-	int workRem = totalWork;
-	int outputRowIndex = workIndex % outputHeight;
-	int filterSetIndex = ( workIndex / outputHeight ) % filterSetCount;
-	int batchIndex = ( workIndex / outputHeight ) / filterSetCount;
+	const int curThreadCount = IsOmpRelevant( totalWork,
+		static_cast<int64_t>( desc.Result.BlobSize() ) * desc.Filter.ObjectSize() ) ? threadCount : 1;
 
-	Input += batchIndex * desc.Source.ObjectSize();
+	NEOML_OMP_NUM_THREADS( curThreadCount )
+	{
+		int workIndex, workRem;
+		if( OmpGetTaskIndexAndCount( totalWork, workIndex, workRem ) ) {
+			int outputRowIndex = workIndex % outputHeight;
+			int filterSetIndex = ( workIndex / outputHeight ) % filterSetCount;
+			int batchIndex = ( workIndex / outputHeight ) / filterSetCount;
 
-	Output += batchIndex * desc.Result.ObjectSize() + filterSetIndex * filterSetSize * outputHeight * outputWidth;
+			const float* inputImage = packedSource + batchIndex * desc.Source.ObjectSize();
+			const float* filter = packedFilter + filterSetIndex * filterSetSize * desc.Filter.ObjectSize();
+			float* output = packedResult + batchIndex * desc.Result.ObjectSize()
+				+ filterSetIndex * filterSetSize * outputHeight * outputWidth;
 
-	const float* Filter = OrigFilter + filterSetIndex * filterSetSize * desc.Filter.ObjectSize();
+			CBlockedConvGen::CParams callParams;
 
-	CBlockedConvGen::CParams callParams;
-
-	callParams.Bias = OrigBias != nullptr ? OrigBias + filterSetIndex * filterSetSize : OrigBias;
-	callParams.StrideWidthBytes = sizeof( float ) * blockSize * desc.StrideWidth;
-	callParams.DilationWidthBytes = sizeof( float ) * blockSize * desc.DilationWidth;
-	callParams.FilterStrideBytes = sizeof( float ) * blockSize * desc.Filter.ObjectSize();
-	callParams.OutputStrideBytes = sizeof( float ) * blockSize * outputHeight * outputWidth;
-	callParams.InputWidthBytes = sizeof( float ) * blockSize * inputWidth;
-	callParams.DilatedInputWidthBytes = sizeof( float ) * blockSize * dilationHeight * inputWidth;
-	callParams.InputStrideBytes = callParams.DilatedInputWidthBytes - filterWidth * callParams.DilationWidthBytes;
-	callParams.FilterWidth = filterWidth;
-	callParams.OutputCountLeftPad = outputColLeftPad;
-	callParams.OutputCount = outputColNoPad;
-	callParams.OutputCountRightPad = outputColRightPad;
-	callParams.FilterCount = min( filterSetBlocks, ( filterCount / blockSize ) - filterSetIndex * filterSetBlocks );
-
-	const int blockedOutputWidth = blockSize * outputWidth;
-
-	while( workRem > 0 ) {
-		const int workThisIter = min( workRem, outputHeight - outputRowIndex );
-		for( int ic = 0; ic < inputChannels; ic += blockSize ) {
-			callParams.Flags = ic == 0 ? 0 : ACCUMULATE_OUTPUT;
-
-			if( ic + blockSize == inputChannels && callParams.Bias != nullptr ) {
-				callParams.Flags |= ADD_BIAS;
-			}
-
-			const float* input = Input + ic * inputHeight * inputWidth;
-			callParams.Output = Output + outputRowIndex * blockedOutputWidth;
-
-			for( int work = 0; work < workThisIter; ++work ) {
-				callParams.Filter = Filter + blockSize * ic * filterHeight * filterWidth;
-				callParams.FilterHeight = static_cast<size_t>( filterHeight );
-
-				// Calculate filter intersection with top and bottom padding
-				const int firstInputRowIndex = ( outputRowIndex + work ) * desc.StrideHeight - desc.PaddingHeight;
-				const int topPaddingFilterRows = min( filterHeight, firstInputRowIndex < 0
-					? ( -firstInputRowIndex + dilationHeight - 1 ) / dilationHeight : 0 );
-				const int lastInputRowIndex = firstInputRowIndex + ( filterHeight - 1 ) * dilationHeight;
-				const int bottomPaddingFilterRows = min( filterHeight, lastInputRowIndex >= inputHeight
-					? ( lastInputRowIndex - inputHeight ) / dilationHeight + 1 : 0 );
-
-				// Don't process paddings
-				callParams.FilterHeight -= topPaddingFilterRows + bottomPaddingFilterRows;
-				// Skip filter rows which are covering top padding 
-				callParams.Filter += topPaddingFilterRows * blockSize * blockSize * filterWidth;
-
-				// Calculate input pointers accordingly (skip top padding)
-				const int inputRowOffset = firstInputRowIndex + topPaddingFilterRows * dilationHeight;
-				callParams.Input = input + blockSize * ( inputRowOffset * inputWidth - desc.PaddingWidth );
-				callParams.InputAfterLeftPad = input + blockSize * ( inputRowOffset * inputWidth );
-
-				blockedConvGen.Run( callParams );
-
-				callParams.Output += blockedOutputWidth;
-			}
-		}
-
-		workRem -= workThisIter;
-		if( outputRowIndex + workThisIter == outputHeight ) {
-			// All of the rows are processed. Switch to next image
-			size_t blockedFilterCount = blockSize * callParams.FilterCount;
-			Output += blockedFilterCount * outputHeight * outputWidth;
-			Filter += blockedFilterCount * inputChannels * filterHeight * filterWidth;
-			if( callParams.Bias != nullptr ) {
-				callParams.Bias += blockedFilterCount;
-			}
-
-			if( ++filterSetIndex == filterSetCount ) {
-				Input += inputChannels * inputHeight * inputWidth;
-				Filter = OrigFilter;
-				callParams.Bias = OrigBias;
-				filterSetIndex = 0;
-			}
-
+			callParams.Bias = freeTerm != nullptr ? freeTerm + filterSetIndex * filterSetSize : freeTerm;
+			callParams.StrideWidthBytes = sizeof( float ) * blockSize * desc.StrideWidth;
+			callParams.DilationWidthBytes = sizeof( float ) * blockSize * desc.DilationWidth;
+			callParams.FilterStrideBytes = sizeof( float ) * blockSize * desc.Filter.ObjectSize();
+			callParams.OutputStrideBytes = sizeof( float ) * blockSize * outputHeight * outputWidth;
+			callParams.InputWidthBytes = sizeof( float ) * blockSize * inputWidth;
+			callParams.DilatedInputWidthBytes = sizeof( float ) * blockSize * dilationHeight * inputWidth;
+			callParams.InputStrideBytes = callParams.DilatedInputWidthBytes - filterWidth * callParams.DilationWidthBytes;
+			callParams.FilterWidth = filterWidth;
+			callParams.OutputCountLeftPad = outputColLeftPad;
+			callParams.OutputCount = outputColNoPad;
+			callParams.OutputCountRightPad = outputColRightPad;
 			callParams.FilterCount = min( filterSetBlocks, ( filterCount / blockSize ) - filterSetIndex * filterSetBlocks );
-			outputRowIndex = 0;
+
+			const int blockedOutputWidth = blockSize * outputWidth;
+
+			while( workRem > 0 ) {
+				const int workThisIter = min( workRem, outputHeight - outputRowIndex );
+				for( int ic = 0; ic < inputChannels; ic += blockSize ) {
+					callParams.Flags = ic == 0 ? 0 : ACCUMULATE_OUTPUT;
+
+					if( ic + blockSize == inputChannels && callParams.Bias != nullptr ) {
+						callParams.Flags |= ADD_BIAS;
+					}
+
+					const float* input = inputImage + ic * inputHeight * inputWidth;
+					callParams.Output = output + outputRowIndex * blockedOutputWidth;
+
+					for( int work = 0; work < workThisIter; ++work ) {
+						callParams.Filter = filter + blockSize * ic * filterHeight * filterWidth;
+						callParams.FilterHeight = static_cast< size_t >( filterHeight );
+
+						// Calculate filter intersection with top and bottom padding
+						const int firstInputRowIndex = ( outputRowIndex + work ) * desc.StrideHeight - desc.PaddingHeight;
+						const int topPaddingFilterRows = min( filterHeight, firstInputRowIndex < 0
+							? ( -firstInputRowIndex + dilationHeight - 1 ) / dilationHeight : 0 );
+						const int lastInputRowIndex = firstInputRowIndex + ( filterHeight - 1 ) * dilationHeight;
+						const int bottomPaddingFilterRows = min( filterHeight, lastInputRowIndex >= inputHeight
+							? ( lastInputRowIndex - inputHeight ) / dilationHeight + 1 : 0 );
+
+						// Don't process paddings
+						callParams.FilterHeight -= topPaddingFilterRows + bottomPaddingFilterRows;
+						// Skip filter rows which are covering top padding 
+						callParams.Filter += topPaddingFilterRows * blockSize * blockSize * filterWidth;
+
+						// Calculate input pointers accordingly (skip top padding)
+						const int inputRowOffset = firstInputRowIndex + topPaddingFilterRows * dilationHeight;
+						callParams.Input = input + blockSize * ( inputRowOffset * inputWidth - desc.PaddingWidth );
+						callParams.InputAfterLeftPad = input + blockSize * ( inputRowOffset * inputWidth );
+
+						blockedConvGen.Run( callParams );
+
+						callParams.Output += blockedOutputWidth;
+					}
+				}
+
+				workRem -= workThisIter;
+				if( outputRowIndex + workThisIter == outputHeight ) {
+					// All of the rows are processed. Switch to next image
+					size_t blockedFilterCount = blockSize * callParams.FilterCount;
+					output += blockedFilterCount * outputHeight * outputWidth;
+					filter += blockedFilterCount * inputChannels * filterHeight * filterWidth;
+					if( callParams.Bias != nullptr ) {
+						callParams.Bias += blockedFilterCount;
+					}
+
+					if( ++filterSetIndex == filterSetCount ) {
+						inputImage += desc.Source.ObjectSize();
+						filter = packedFilter;
+						callParams.Bias = freeTerm;
+						filterSetIndex = 0;
+					}
+
+					callParams.FilterCount = min( filterSetBlocks, ( filterCount / blockSize ) - filterSetIndex * filterSetBlocks );
+					outputRowIndex = 0;
+				}
+			}
+
+			_mm256_zeroupper();
 		}
 	}
-}
-
-void CAvxMathEngine::BlockedConvolution( const CConvolutionDesc& convDesc, const float* packedSource,
-	const float* packedFilter, const float* freeTerm, float* packedResult ) const
-{
-	const CAvxBlockedConvDesc& desc = static_cast<const CAvxBlockedConvDesc&>( convDesc );
-	runConv( packedSource, packedFilter, freeTerm, packedResult, desc );
-	_mm256_zeroupper();
 }
 
 } // namespace NeoML
