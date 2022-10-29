@@ -633,7 +633,6 @@ void CAvxMathEngine::BlockedConvolution( const CConvolutionDesc& convDesc, const
 
 	const int filterSetCount = ( filterCount + filterSetSize - 1 ) / filterSetSize;
 	const int totalWork = desc.Source.ObjectCount() * filterSetCount * outputHeight;
-	// TODO: distribute work between threads
 	const int curThreadCount = IsOmpRelevant( totalWork,
 		static_cast<int64_t>( desc.Result.BlobSize() ) * desc.Filter.ObjectSize() ) ? threadCount : 1;
 
