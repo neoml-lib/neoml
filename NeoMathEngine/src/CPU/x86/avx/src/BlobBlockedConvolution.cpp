@@ -202,24 +202,24 @@ public:
 	// JIT call parameters and their order
 	struct CParams {
 		const float* Input;
-		size_t StrideWidthBytes;
-		const float* Filter;
-		size_t FilterStrideBytes;
 		const float* InputAfterLeftPad;
 		size_t InputWidthBytes;
-		size_t FilterHeight;
-		size_t FilterWidth;
 		size_t DilationWidthBytes;
 		size_t DilatedInputWidthBytes;
+		size_t StrideWidthBytes;
 		size_t InputStrideBytes;
+		const float* Filter;
+		size_t FilterCount;
+		size_t FilterHeight;
+		size_t FilterWidth;
+		size_t FilterStrideBytes;
 		const float* FreeTerm;
 		float* Output;
 		size_t OutputStrideBytes;
-		size_t Flags;
 		size_t OutputCountLeftPad;
 		size_t OutputCount;
 		size_t OutputCountRightPad;
-		size_t FilterCount;
+		size_t Flags;
 		float* PrevRsp;
 	};
 
@@ -708,7 +708,6 @@ void CAvxMathEngine::BlockedConvolution( const CConvolutionDesc& convDesc, const
 
 				workRem -= workThisIter;
 				if( outputRowIndex + workThisIter == outputHeight ) {
-					// All of the rows are processed. Switch to next image
 					size_t blockedFilterCount = blockSize * callParams.FilterCount;
 					output += blockedFilterCount * outputHeight * outputWidth;
 					filter += blockedFilterCount * inputChannels * filterHeight * filterWidth;
