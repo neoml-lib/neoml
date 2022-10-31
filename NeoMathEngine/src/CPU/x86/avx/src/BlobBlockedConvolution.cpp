@@ -194,8 +194,8 @@ void CAvxMathEngine::PackBlockedFilter( const CBlobDesc& desc, const float* sour
 using namespace Xbyak::util;
 using namespace Xbyak;
 
-#define ACCUMULATE_OUTPUT 1
-#define ADD_BIAS 2
+#define ACCUMULATE_OUTPUT_FLAG 1
+#define ADD_FREE_TERM_FLAG 2
 
 class CBlockedConvGen : public Xbyak::CodeGenerator {
 public:
@@ -212,7 +212,7 @@ public:
 		size_t DilationWidthBytes;
 		size_t DilatedInputWidthBytes;
 		size_t InputStrideBytes;
-		const float* Bias;
+		const float* FreeTerm;
 		float* Output;
 		size_t OutputStrideBytes;
 		size_t Flags;
@@ -240,7 +240,7 @@ private:
 	void genSingleComputeBlock( int filterCount, int outputCount, int broadcast );
 	void genPostProcessing( int filterCount, int outputCount );
 
-	// Padding-processing kernel
+	// Padding-processing filter
 	void genPaddingProcessing( int filterCount );
 
 	// ORT ProcessFilterCountN
@@ -348,7 +348,7 @@ void CBlockedConvGen::genComputeBlockLoops( int filterCount, int outputCount )
 {
 	mov( regFilterHeight, ptr[rsp + offsetof( CParams, FilterHeight )] );
 
-	// In case if whole kernel is in padding
+	// In case if whole filter is in padding
 	Label emptyKernelSkip;
 	test( regFilterHeight, regFilterHeight );
 	jz( emptyKernelSkip, T_NEAR );
@@ -441,7 +441,7 @@ void CBlockedConvGen::genPostProcessing( int filterCount, int outputCount )
 	mov( regFlags, ptr[rsp + offsetof( CParams, Flags )] );
 
 	Label skipAccumulateOutput;
-	test( regFlags, ACCUMULATE_OUTPUT );
+	test( regFlags, ACCUMULATE_OUTPUT_FLAG );
 	jz( skipAccumulateOutput, CodeGenerator::T_NEAR );
 
 	reg64_t outputRegs[2] = { regOutput, regShiftedOutput };
@@ -454,30 +454,30 @@ void CBlockedConvGen::genPostProcessing( int filterCount, int outputCount )
 
 	L( skipAccumulateOutput );
 
-	Label skipBias;
-	test( regFlags, ADD_BIAS );
-	jz( skipBias, CodeGenerator::T_NEAR );
+	Label skipFreeTerm;
+	test( regFlags, ADD_FREE_TERM_FLAG );
+	jz( skipFreeTerm, CodeGenerator::T_NEAR );
 
-	const reg64_t regBias = rcx;
-	mov( regBias, ptr[rsp + offsetof( CParams, Bias )] );
+	const reg64_t regFreeTerm = rcx;
+	mov( regFreeTerm, ptr[rsp + offsetof( CParams, FreeTerm )] );
 
 	if( outputCount == 1 ) {
 		for( int filter = 0; filter < filterCount; ++filter ) {
-			vaddps( acc[0][filter], acc[0][filter], ptr[regBias + filter * SizeOfYmm]);
+			vaddps( acc[0][filter], acc[0][filter], ptr[regFreeTerm + filter * SizeOfYmm]);
 		}
 	} else {
-		const Ymm biasYmm[4] = { Ymm( 12 ), Ymm( 13 ), Ymm( 14 ), Ymm( 15 ) };
+		const Ymm freeTermYmm[4] = { Ymm( 12 ), Ymm( 13 ), Ymm( 14 ), Ymm( 15 ) };
 		for( int filter = 0; filter < filterCount; ++filter ) {
-			vmovups( biasYmm[filter], ptr[regBias + filter * SizeOfYmm]);
+			vmovups( freeTermYmm[filter], ptr[regFreeTerm + filter * SizeOfYmm]);
 		}
 		for( int output = 0; output < outputCount; ++output ) {
 			for( int filter = 0; filter < filterCount; ++filter ) {
-				vaddps( acc[output][filter], acc[output][filter], biasYmm[filter] );
+				vaddps( acc[output][filter], acc[output][filter], freeTermYmm[filter] );
 			}
 		}
 	}
 
-	L( skipBias );
+	L( skipFreeTerm );
 
 	for( int output = 0; output < outputCount; ++output ) {
 		for( int filter = 0; filter < filterCount; ++filter ) {
@@ -650,7 +650,7 @@ void CAvxMathEngine::BlockedConvolution( const CConvolutionDesc& convDesc, const
 
 			CBlockedConvGen::CParams callParams;
 
-			callParams.Bias = freeTerm != nullptr ? freeTerm + filterSetIndex * filterSetSize : freeTerm;
+			callParams.FreeTerm = freeTerm != nullptr ? freeTerm + filterSetIndex * filterSetSize : freeTerm;
 			callParams.StrideWidthBytes = sizeof( float ) * blockSize * desc.StrideWidth;
 			callParams.DilationWidthBytes = sizeof( float ) * blockSize * desc.DilationWidth;
 			callParams.FilterStrideBytes = sizeof( float ) * blockSize * desc.Filter.ObjectSize();
@@ -669,10 +669,10 @@ void CAvxMathEngine::BlockedConvolution( const CConvolutionDesc& convDesc, const
 			while( workRem > 0 ) {
 				const int workThisIter = min( workRem, outputHeight - outputRowIndex );
 				for( int ic = 0; ic < inputChannels; ic += blockSize ) {
-					callParams.Flags = ic == 0 ? 0 : ACCUMULATE_OUTPUT;
+					callParams.Flags = ic == 0 ? 0 : ACCUMULATE_OUTPUT_FLAG;
 
-					if( ic + blockSize == inputChannels && callParams.Bias != nullptr ) {
-						callParams.Flags |= ADD_BIAS;
+					if( ic + blockSize == inputChannels && callParams.FreeTerm != nullptr ) {
+						callParams.Flags |= ADD_FREE_TERM_FLAG;
 					}
 
 					const float* input = inputImage + ic * inputHeight * inputWidth;
@@ -712,14 +712,14 @@ void CAvxMathEngine::BlockedConvolution( const CConvolutionDesc& convDesc, const
 					size_t blockedFilterCount = blockSize * callParams.FilterCount;
 					output += blockedFilterCount * outputHeight * outputWidth;
 					filter += blockedFilterCount * inputChannels * filterHeight * filterWidth;
-					if( callParams.Bias != nullptr ) {
-						callParams.Bias += blockedFilterCount;
+					if( callParams.FreeTerm != nullptr ) {
+						callParams.FreeTerm += blockedFilterCount;
 					}
 
 					if( ++filterSetIndex == filterSetCount ) {
 						inputImage += desc.Source.ObjectSize();
 						filter = packedFilter;
-						callParams.Bias = freeTerm;
+						callParams.FreeTerm = freeTerm;
 						filterSetIndex = 0;
 					}
 
