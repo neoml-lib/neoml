@@ -74,7 +74,7 @@ CConvolutionDesc* CAvxMathEngine::InitBlockedConvolution( const CBlobDesc& sourc
 		return nullptr;
 	}
 
-	/*if( filter.Height() == 1 && filter.Width() == 1 ) {
+	if( filter.Height() == 1 && filter.Width() == 1 ) {
 		// We can't outperform matrix multiplication
 		return nullptr;
 	}
@@ -98,7 +98,7 @@ CConvolutionDesc* CAvxMathEngine::InitBlockedConvolution( const CBlobDesc& sourc
 	const size_t minIOMult = 65536;
 	if( inputRatio * outputRatio < minIOMult ) {
 		return nullptr;
-	}*/
+	}
 
 	return new CAvxBlockedConvDesc( source, result, filter, strideHeight, strideWidth, paddingHeight, paddingWidth,
 		dilationHeight, dilationWidth );
@@ -357,7 +357,6 @@ void CBlockedConvGen::genComputeBlockLoops( int filterCount, int outputCount )
 	L( rowCycleStart );
 
 	const reg64_t regRemCols = rax;
-	// TODO: remove this load when figure out how to get rid of registers
 	mov( regRemCols, regFilterWidth );
 
 	Label colCycleStart;
