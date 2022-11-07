@@ -392,7 +392,7 @@ NEOML_API CLayerWrapper<CErfLayer> Erf();
 //------------------------------------------------------------------------------------------------------------
 
 // Name of activation and its parameters (if any)
-class CActivationDesc {
+class NEOML_API CActivationDesc {
 public:
 	// For non-parametrized activations or default parameters
 	CActivationDesc( TActivationFunction _type ) : type( _type ), isParamStored( false ) {}
@@ -431,24 +431,75 @@ private:
 	bool isParamStored;
 
 	template<class T>
-	bool isTypeCompatible() const;
+	void assertIsTypeCompatible() const;
 };
 
 template <class Param>
 void CActivationDesc::SetParam( const Param& param ) {
-	NeoAssert( isTypeCompatible<Param>() );
+	assertIsTypeCompatible<Param>();
 	new( &paramValue ) Param( param );
 	isParamStored = true;
 }
 
 template <class Param>
 Param CActivationDesc::GetParam() const {
-	NeoAssert( isTypeCompatible<Param>() );
+	assertIsTypeCompatible<Param>();
 	if( isParamStored ) {
 		return *reinterpret_cast<const Param*>( &paramValue );
 	} else {
 		return Param{};
 	}
+}
+
+template <class T>
+void CActivationDesc::assertIsTypeCompatible() const {
+	static_assert( AF_Count == 15, "AF_Count != 15" );
+
+	// compile-time check: something not even looking like CParam is given.
+	static_assert( std::is_same<CLinearLayer::CParam, T>::value || 
+		std::is_same<CELULayer::CParam, T>::value || 
+		std::is_same<CReLULayer::CParam, T>::value ||
+		std::is_same<CLeakyReLULayer::CParam, T>::value ||
+		std::is_same<CHardSigmoidLayer::CParam, T>::value || 
+		std::is_same<CPowerLayer::CParam, T>::value || 
+		std::is_same<CGELULayer::CParam, T>::value, "Not CParam is given." );
+
+	bool isSame = false;
+	switch( type )
+	{
+		case AF_Linear:
+			isSame = std::is_same<CLinearLayer::CParam, T>::value;
+			break;
+		case AF_ELU:
+			isSame = std::is_same<CELULayer::CParam, T>::value;
+			break;
+		case AF_ReLU:
+			isSame = std::is_same<CReLULayer::CParam, T>::value;
+			break;
+		case AF_LeakyReLU:
+			isSame = std::is_same<CLeakyReLULayer::CParam, T>::value;
+			break;
+		case AF_HardSigmoid:
+			isSame = std::is_same<CHardSigmoidLayer::CParam, T>::value;
+			break;
+		case AF_Power:
+			isSame = std::is_same<CPowerLayer::CParam, T>::value;
+			break;
+		case AF_GELU:
+			isSame = std::is_same<CGELULayer::CParam, T>::value;
+			break;
+		case AF_Abs:
+		case AF_Sigmoid:
+		case AF_Tanh:
+		case AF_HardTanh:
+		case AF_HSwish:
+		case AF_Exp:
+		case AF_Log:
+		case AF_Erf:
+		default:
+			isSame = false;
+	}
+	NeoAssert( isSame );
 }
 
 // Creates an activation layer using the specified activation function

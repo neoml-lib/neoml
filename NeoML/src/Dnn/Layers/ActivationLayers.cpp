@@ -721,42 +721,4 @@ CLayerWrapper<CErfLayer> Erf()
 	return CLayerWrapper<CErfLayer>( "Erf" );
 }
 
-//---------------------------------------------------------------------------------------------------
-
-template <class T>
-bool CActivationDesc::isTypeCompatible() const {
-	static_assert( AF_Count == 15, "AF_Count != 15" );
-	switch( type )
-	{
-		case AF_Linear:
-			return std::is_same<CLinearLayer::CParam, T>::value;
-		case AF_ELU:
-			return std::is_same<CELULayer::CParam, T>::value;
-		case AF_ReLU:
-			return std::is_same<CReLULayer::CParam, T>::value;
-		case AF_LeakyReLU:
-			return std::is_same<CLeakyReLULayer::CParam, T>::value;
-		case AF_HardSigmoid:
-			return std::is_same<CHardSigmoidLayer::CParam, T>::value;
-		case AF_Power:
-			return std::is_same<CPowerLayer::CParam, T>::value;
-		case AF_GELU:
-			return std::is_same<CGELULayer::CParam, T>::value;
-		case AF_Abs:
-		case AF_Sigmoid:
-		case AF_Tanh:
-		case AF_HardTanh:
-		case AF_HSwish:
-		case AF_Exp:
-		case AF_Log:
-		case AF_Erf:
-		default:
-			return false;
-	}
-}
-
-// All other correct instantiations are forced by GetDesc() + CParam{} in this cpp
-// All other incorrect instantiations will probably cause CE
-template bool CActivationDesc::isTypeCompatible<CGELULayer::CParam>() const;
-
 } // namespace NeoML
