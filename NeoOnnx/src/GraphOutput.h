@@ -36,7 +36,10 @@ public:
 	const CString& Name() const { return name; }
 
 	// Adds corresponding sink layer to the dnn
-	CPtr<const CSinkLayer> AddSinkLayer( const CUserTensor& input, CDnn& dnn ) const;
+	// If layout is given, it will be used as a layout for this tensor
+	// If layout is not given then CTensorLayout::IOLayout( dimCount ) is used
+	CPtr<const CSinkLayer> AddSinkLayer( const CUserTensor& input, const CTensorLayout* layout,
+		CDnn& dnn ) const;
 
 private:
 	// Graph output name

@@ -36,7 +36,9 @@ public:
 	const CString& Name() const { return name; }
 
 	// Adds corresponding source layer to the dnn and returns its output as a user tensor
-	CPtr<const CUserTensor> AddSourceLayer( CDnn& dnn ) const;
+	// If layout is given, it will be used as a layout for this tensor
+	// If layout is not given then CTensorLayout::IOLayout( dimCount ) is used
+	CPtr<const CUserTensor> AddSourceLayer( CDnn& dnn, const CTensorLayout* layout ) const;
 
 private:
 	// Input name

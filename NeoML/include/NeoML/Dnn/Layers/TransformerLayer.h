@@ -64,8 +64,15 @@ class CActivationDesc;
 //          - ListSize - length of sequences
 //          - Channels - size of the elements in sequences
 //      2. (optional) input mask - float blob containing 1.f or 0.f where 1.f means IGNORED object
-//          - Width(seq_Q) and Channels(seq_V) must be equal to the ListSize of the first input
-//          - Other dimensions must be equal to 1
+//			if GetMaskType() == MT_OneObject:
+//				- Width(seq_Q) and Channels(seq_V) must be equal to the ListSize of the first input
+//				- Other dimensions must be equal to 1
+//			if GetMaskType() == MT_Eltwise:
+//				- Width(seq_Q) and Channels(seq_V) must be equal to the ListSize of the first input
+//				- BatchWidth must be equal to the BatchWidth of the first input
+//				- ListSize - equal to the number of head counts
+//				- Other dimensions must be equal to 1
+//				- it can be easily created with TransformerSourceMaskLayer
 // Outputs:
 //      1. output data - float blob of size:
 //          - BatchWidth and ListSize are equal to the corresponding dims of the first input
@@ -98,6 +105,11 @@ public:
 	// Sets activation between fully-connected layers inside of feed-forward
 	// ReLU by default
 	void SetActivation( const CActivationDesc& param );
+
+	// Mask used in self-attention
+	// MT_OneObject by default
+	void SetMaskType( CMultiheadAttentionLayer::TMaskType type );
+	CMultiheadAttentionLayer::TMaskType GetMaskType() const { return selfAttention->GetMaskType(); }
 
 protected:
 	void Reshape() override;
