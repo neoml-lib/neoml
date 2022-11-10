@@ -173,8 +173,10 @@ void CRecurrentLayer::SetInternalDnnParams()
 // Runs the forward pass of the internal network (overloaded in children)
 void CRecurrentLayer::RunInternalDnn()
 {
-	CheckArchitecture( outputBlobs[0]->GetOwner()->GetBatchLength() == inputBlobs[0]->GetOwner()->GetBatchLength() * repeatCount, 
-		GetPath(), "incorrect batch length of outputBlobs[0]" );
+	// Avoid calling GetPath on every run
+	if( outputBlobs[0]->GetOwner()->GetBatchLength() != inputBlobs[0]->GetOwner()->GetBatchLength() * repeatCount ) {
+		CheckArchitecture( false, GetPath(), "incorrect batch length of outputBlobs[0]" );
+	}
 	CDnn* internalDnn = GetInternalDnn();
 	internalDnn->isReuseMemoryMode = GetDnn()->isReuseMemoryMode;
 	if(!GetDnn()->IsRecurrentMode()) {
