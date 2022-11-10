@@ -795,17 +795,23 @@ void CBaseLayer::Serialize( CArchive& archive )
 
 void CBaseLayer::CheckInputs() const
 {
-	CheckArchitecture( !inputs.IsEmpty(), GetPath(), "layer has no input" );
+	if( inputs.IsEmpty() ) {
+		CheckArchitecture( false, GetPath(), "layer has no input" );
+	}
 }
 
 void CBaseLayer::CheckInput1() const
 {
-	CheckArchitecture( inputs.Size() == 1, GetPath(), "layer must have exactly 1 input" );
+	if( inputs.Size() != 1 ) {
+		CheckArchitecture( false, GetPath(), "layer must have exactly 1 input" );
+	}
 }
 
 void CBaseLayer::CheckOutputs() const
 {
-	CheckArchitecture( !outputs.IsEmpty(), GetPath(), "layer has no output" );
+	if( outputs.IsEmpty() ) {
+		CheckArchitecture( false, GetPath(), "layer has no output" );
+	}
 }
 
 void CBaseLayer::setAllocatedBlobs( int newMask )
