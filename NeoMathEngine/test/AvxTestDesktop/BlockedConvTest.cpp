@@ -135,13 +135,6 @@ TEST_P( CBlockedConvTest, Ideal )
 	const int paddingWidth = params.GetValue<int>( "PaddingWidth" );
 	const int dilationHeight = params.GetValue<int>( "DilationHeight" );
 	const int dilationWidth = params.GetValue<int>( "DilationWidth" );
-	if( filterHeight == 1 && filterWidth == 1 ) {
-		if( strideHeight == 1 && strideWidth == 1 && paddingHeight == 0 && paddingWidth == 0 ) {
-			GTEST_SKIP() << "We cannot beat MKL at this...";
-		} else {
-			GTEST_FAIL() << "We cannot beat MKL at this...";
-		}
-	}
 
 	const int outputHeight = calcConvOutputSize( height, paddingHeight, filterHeight, dilationHeight, strideHeight );
 	const int outputWidth = calcConvOutputSize( width, paddingWidth, filterWidth, dilationWidth, strideWidth );
@@ -203,19 +196,22 @@ TEST_P( CBlockedConvTest, Ideal )
 	SimdMathEngine().PackBlockedFilter( filterDesc, neomlFilter.data(), blockedFilter.data() );
 	std::vector<float> blockedOutput( expectedOutput.size() );
 
-	CConvolutionDesc* simdConvDesc = SimdMathEngine().InitBlockedConvolution( inputDesc, paddingHeight, paddingWidth,
+	CConvolutionDesc* blockedConvDesc = SimdMathEngine().InitBlockedConvolution( inputDesc, paddingHeight, paddingWidth,
 		strideHeight, strideWidth, dilationHeight, dilationWidth, filterDesc, outputDesc );
-	ASSERT_TRUE( simdConvDesc != nullptr );
-	SimdMathEngine().BlockedConvolution( *simdConvDesc, blockedInput.data(), blockedFilter.data(),
+	if( blockedConvDesc == nullptr ) {
+		GTEST_SKIP() << "Config not supported by SIMD";
+	}
+
+	SimdMathEngine().BlockedConvolution( *blockedConvDesc, blockedInput.data(), blockedFilter.data(),
 		bias.data(), blockedOutput.data() );
 	for( int run = 0; run < RUN_COUNT; ++run ) {
 		counters->Synchronise();
-		SimdMathEngine().BlockedConvolution( *simdConvDesc, blockedInput.data(), blockedFilter.data(),
+		SimdMathEngine().BlockedConvolution( *blockedConvDesc, blockedInput.data(), blockedFilter.data(),
 			bias.data(), blockedOutput.data() );
 		counters->Synchronise();
 		update( *counters, blockedConvPerf );
 	}
-	delete simdConvDesc;
+	delete blockedConvDesc;
 
 	std::vector<float> actualOutput( blockedOutput.size() );
 	SimdMathEngine().UnpackBlockedData( outputDesc, blockedOutput.data(), actualOutput.data() );
@@ -259,9 +255,6 @@ TEST_P( CBlockedConvTest, Real )
 	const int paddingWidth = params.GetValue<int>( "PaddingWidth" );
 	const int dilationHeight = params.GetValue<int>( "DilationHeight" );
 	const int dilationWidth = params.GetValue<int>( "DilationWidth" );
-	if( filterHeight == 1 && filterWidth == 1 ) {
-		GTEST_SKIP() << "We cannot beat MKL at this...";
-	}
 
 	const int outputHeight = calcConvOutputSize( height, paddingHeight, filterHeight, dilationHeight, strideHeight );
 	const int outputWidth = calcConvOutputSize( width, paddingWidth, filterWidth, dilationWidth, strideWidth );
@@ -334,14 +327,16 @@ TEST_P( CBlockedConvTest, Real )
 		counters->Synchronise();
 		if( run != 0 ) update( *counters, filterConversionPerf );
 
-		CConvolutionDesc* simdConvDesc = SimdMathEngine().InitBlockedConvolution( inputDesc, paddingHeight, paddingWidth,
+		CConvolutionDesc* blockedConvDesc = SimdMathEngine().InitBlockedConvolution( inputDesc, paddingHeight, paddingWidth,
 			strideHeight, strideWidth, dilationHeight, dilationWidth, filterDesc, outputDesc );
-		ASSERT_TRUE( simdConvDesc != nullptr );
+		if( blockedConvDesc == nullptr ) {
+			GTEST_SKIP() << "Config is not supported by SIMD";
+		}
 		counters->Synchronise();
-		SimdMathEngine().BlockedConvolution( *simdConvDesc, blockedInput, blockedFilter, bias.data(), blockedOutput );
+		SimdMathEngine().BlockedConvolution( *blockedConvDesc, blockedInput, blockedFilter, bias.data(), blockedOutput );
 		counters->Synchronise();
 		if( run != 0 ) update( *counters, blockedConvPerf );
-		delete simdConvDesc;
+		delete blockedConvDesc;
 
 		std::vector<float> actualOutput( expectedOutput.size() );
 		counters->Synchronise();
