@@ -176,11 +176,18 @@ void CAvxMathEngine::PackBlockedFilter( const CBlobDesc& desc, const float* sour
 			for( int h = 0; h < height; ++h ) {
 				for( int w = 0; w < width; ++w ) {
 					for( int I = 0; I < channels / BlockSize; ++I ) {
+#ifdef _MSC_VER 
 						__m256 simdSource = _mm256_loadu_ps( source );
 						for( int i = 0; i < BlockSize; ++i ) {
 							const int idx = o + BlockSize * ( i + BlockSize * ( w + width * ( h + height * ( I + channels / BlockSize * O ) ) ) );
 							result[idx] = simdSource.m256_f32[i];
 						}
+#else
+						for( int i = 0; i < BlockSize; ++i ) {
+							const int idx = o + BlockSize * ( i + BlockSize * ( w + width * ( h + height * ( I + channels / BlockSize * O ) ) ) );
+							result[idx] = source[i];
+						}
+#endif
 						source += BlockSize;
 					}
 				}
