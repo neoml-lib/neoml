@@ -467,8 +467,8 @@ void CBlockedConvGen::genFilterGeometryLoops( int filterSetSize, int outputColCo
 	L( skilpWholeFilterInPadding );
 }
 
-// This macro mutilplies one column of one filter set by outputColCount input elements
-// inBlockPos is an index of the channel in a block of input channels
+// Generates code which mutilplies one column of one filter set by outputColCount input elements
+// inBlockPos is an index of the used input channel inside of a block
 //
 // It takes outputColCount input elements belonging to the inBlockPos'th input channel inside the block of input channels
 // and affected by the same filter elements when filter moves along image width
@@ -560,8 +560,8 @@ void CBlockedConvGen::genComputeOutputColumnsEpilogue( int filterSetSize, int ou
 
 	L( skipFreeTerm );
 
-	for( int outputColIdx = 0; outputColIdx < outputColCount; ++outputColIdx ) {
-		for( int filterBlockIdx = 0; filterBlockIdx < filterSetSize; ++filterBlockIdx ) {
+	for( int filterBlockIdx = 0; filterBlockIdx < filterSetSize; ++filterBlockIdx ) {
+		for( int outputColIdx = 0; outputColIdx < outputColCount; ++outputColIdx ) {
 			vmovups( ptr[outputRegExp[filterBlockIdx] + outputColIdx * SizeOfYmm],
 				acc[outputColIdx][filterBlockIdx] );
 		}
@@ -570,11 +570,13 @@ void CBlockedConvGen::genComputeOutputColumnsEpilogue( int filterSetSize, int ou
 	add( regOutput, outputColCount * BlockSize * sizeof( float ) );
 }
 
+// Generates code which processes output columns affected by padding
 void CBlockedConvGen::genPaddingProcessing( int filterSetSize )
 {
 	Label processNextOutput;
 
 	L( processNextOutput );
+	// Current algo generates padding processing only when 1 output column is processed
 	genComputeOutputColumns( filterSetSize, 1 );
 	add( regInput, regStrideWidth );
 	dec( regRemOutputColCount );
@@ -629,7 +631,6 @@ void CBlockedConvGen::genProcessFilterSet( int filterSetSize )
 	L( skipRightPad );
 }
 
-// Generates a code which 
 void CBlockedConvGen::genConvKernel()
 {
 	const reg64_t regFilterSetSize = r11;
