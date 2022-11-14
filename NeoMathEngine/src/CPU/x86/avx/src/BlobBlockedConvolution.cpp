@@ -253,11 +253,17 @@ public:
 		const float* FreeTerm;
 		// Output pointer
 		float* Output;
+		// Distance between different channel blocks belonging to the same "original" output channel
 		size_t OutputStrideBytes;
-		size_t OutputCountLeftPad;
-		size_t OutputCountNoPad;
-		size_t OutputCountRightPad;
+		// Number of output elements in row affected by left padding
+		size_t OutputColCountLeftPad;
+		// Number of output elements not affected by any padding
+		size_t OutputColCountNoPad;
+		// Number of output elements in row affected by right padding
+		size_t OutputColCountRightPad;
+		// Special flags for the correct processing of first/last input channel block
 		size_t Flags;
+		// Special field used to store stack pointer during JIT call
 		float* PrevRsp;
 	};
 
@@ -270,12 +276,12 @@ private:
 	// Prologue
 	void genPrologue();
 
-	void genComputeBlocks( int filterSetSize, int outputCount );
-	void genComputeBlocksPrologue( int outputCount );
-	void genClearAccumulators( int filterSetSize, int outputCount );
-	void genComputeBlockLoops( int filterSetSize, int outputCount );
-	void genSingleComputeBlock( int filterSetSize, int outputCount, int broadcast );
-	void genPostProcessing( int filterSetSize, int outputCount );
+	void genComputeOutputColumns( int filterSetSize, int outputColCount );
+	void genComputeOutputColumnsPrologue( int outputColCount );
+	void genClearAccumulators( int filterSetSize, int outputColCount );
+	void genFilterGeometryLoops( int filterSetSize, int outputColCount );
+	void genProcessSingleInputChannel( int filterSetSize, int outputColCount, int inBlockPos );
+	void genComputeOutputColumnsEpilogue( int filterSetSize, int outputColCount );
 	void genPaddingProcessing( int filterSetSize );
 	void genProcessFilterSet( int filterSetSize );
 	void genConvKernel();
@@ -284,7 +290,7 @@ private:
 	void genEpilogue();
 
 	const reg64_t regInput = rdi;
-	const reg64_t regRemOutputCount = r10;
+	const reg64_t regRemOutputColCount = r10;
 
 	const reg64_t regBlockInput = rcx;
 	const reg64_t regStrideWidth = r9;
@@ -325,16 +331,24 @@ void CBlockedConvGen::genPrologue()
 	push( rbp );
 	mov( rbp, rsp );
 
+	// Store all the YMM registers
 	sub( rsp, static_cast<uint32_t>( 16 * SizeOfYmm ) );
 	for( int i = 0; i < 16; i++ ) {
 		vmovdqu( ptr[rsp + i * SizeOfYmm], Ymm( i ) );
 	}
 
+	// Store all the general purpose registers
 	reg64Vec_t gprs = { rax, rbx, rbp, rcx, rdx, rsi, rdi, r8, r9, r10, r11, r12, r13, r14, r15 };
 	for( int i = 0; i < gprs.size(); i++ ) {
 		push( gprs[i] );
 	}
 
+	// At this moment Param1 register contains a pointer to the CBlockedConvGen::CParams
+	// The idea is to
+	//    1. Write current stack pointer (rsp) to a special field (CParams::PrevRsp)
+	//    2. Move stack pointer to the beginning of the CParams
+	//    3. Exract params via rsp + offsetof(CParams, ParamName)
+	//    4. Later (in epilogue) restore original rsp from this special field (CParams::PrevRsp)
 	mov( ptr[Param1 + offsetof( CParams, PrevRsp )], rsp );
 	mov( rsp, Param1 );
 
@@ -346,62 +360,78 @@ void CBlockedConvGen::genPrologue()
 	mov( regInputStride, ptr[rsp + offsetof( CParams, InputStrideBytes )] );
 }
 
-void CBlockedConvGen::genComputeBlocks( int filterSetSize, int outputCount )
+// Generates code which computes outputColCount neighboring output columns
+// for the given filter set over current input channels block
+void CBlockedConvGen::genComputeOutputColumns( int filterSetSize, int outputColCount )
 {
-	genComputeBlocksPrologue( outputCount );
-	genClearAccumulators( filterSetSize, outputCount );
-	genComputeBlockLoops( filterSetSize, outputCount );
-	genPostProcessing( filterSetSize, outputCount );
+	genComputeOutputColumnsPrologue( outputColCount );
+	genClearAccumulators( filterSetSize, outputColCount );
+	genFilterGeometryLoops( filterSetSize, outputColCount );
+	genComputeOutputColumnsEpilogue( filterSetSize, outputColCount );
 }
 
-void CBlockedConvGen::genComputeBlocksPrologue( int outputCount )
+// Generates code which fills registers used during computing output columns
+void CBlockedConvGen::genComputeOutputColumnsPrologue( int outputColCount )
 {
 	mov( regBlockInput, regInput );
 	mov( regFilter, ptr[rsp + offsetof( CParams, Filter )] );
 	mov( regFilterHeight, ptr[rsp + offsetof( CParams, FilterHeight )] );
 	mov( regFilterWidth, ptr[rsp + offsetof( CParams, FilterWidth )] );
-	if( outputCount == 1 ) {
+	if( outputColCount == 1 ) {
 		mov( regNegInputAfterLeftPad, ptr[rsp + offsetof( CParams, InputAfterLeftPad )] );
 		neg( regNegInputAfterLeftPad );
 		mov( regInputWidth, ptr[rsp + offsetof( CParams, InputWidthBytes )] );
 	}
 }
 
-void CBlockedConvGen::genClearAccumulators( int filterSetSize, int outputCount )
+ // Generates code which zeroes ymm accumulators used during computing output columns
+void CBlockedConvGen::genClearAccumulators( int filterSetSize, int outputColCount )
 {
 	for( int filterBlockIdx = 0; filterBlockIdx < filterSetSize; ++filterBlockIdx ) {
-		for( int output = 0; output < outputCount; ++output ) {
-			vxorps( acc[output][filterBlockIdx], acc[output][filterBlockIdx] );
+		for( int outputColIdx = 0; outputColIdx < outputColCount; ++outputColIdx ) {
+			vxorps( acc[outputColIdx][filterBlockIdx], acc[outputColIdx][filterBlockIdx] );
 		}
 	}
 }
 
-void CBlockedConvGen::genComputeBlockLoops( int filterSetSize, int outputCount )
+// Generates loops processing whole filter geometry (filterHeight x filterWidth) in current call
+void CBlockedConvGen::genFilterGeometryLoops( int filterSetSize, int outputColCount )
 {
+	// Cycle over filter rows
+	//   for( regFilterHeight = filterHeight; regFilterHeight > 0; --regFilterHeight )
 	mov( regFilterHeight, ptr[rsp + offsetof( CParams, FilterHeight )] );
 
 	// Corner case: whole filter is in padding
-	Label emptyKernelSkip;
+	Label skilpWholeFilterInPadding;
 	test( regFilterHeight, regFilterHeight );
-	jz( emptyKernelSkip, T_NEAR );
+	jz( skilpWholeFilterInPadding, T_NEAR );
 
 	Label rowCycleStart;
 	L( rowCycleStart );
 
+	// Inner cycle over filter columns
+	//    for( regRemCols = filterWidth; regRemCols > 0; --regRemCols )
 	const reg64_t regRemCols = rax;
 	mov( regRemCols, regFilterWidth );
 
 	Label colCycleStart;
 	L( colCycleStart );
 
+	// The padding check is performed only while process 1 output column at a time
 	Label skipPadding;
-	if( outputCount == 1 ) {
+	if( outputColCount == 1 ) {
+		// regNegInputAfterLeftPad contains negative value of the pointer to first element after padding
+		// regBlockInput contains current pointer
+		// Due to the fact that used types are unsigned we can check both left and right padding by
+		// checking the value of (currInput - inputAfterLeftPad)
+		// In case of right padding the value will be >= inputWidth
+		// In case of left padding the value will be very large (overflow of unsigned type)
 		lea( rbx, ptr[regBlockInput + regNegInputAfterLeftPad] );
 		cmp( rbx, regInputWidth );
 		jae( skipPadding, CodeGenerator::T_NEAR );
 	}
 
-	if( outputCount >= 3 ) {
+	if( outputColCount >= 3 ) {
 		lea( regShiftedInput, ptr[regBlockInput + 2 * regStrideWidth] );
 	}
 
@@ -409,45 +439,62 @@ void CBlockedConvGen::genComputeBlockLoops( int filterSetSize, int outputCount )
 		lea( regShiftedFilter, ptr[regFilter + 2 * regFilterStride] );
 	}
 
-	for( int broadcast = 0; broadcast < BlockSize; ++broadcast ) {
-		genSingleComputeBlock( filterSetSize, outputCount, broadcast );
+	// (Reminder: this code is inside cycles over filterHeight and filterWidth)
+	// Generate code for processing each input channel in this block
+	for( int inBlockPos = 0; inBlockPos < BlockSize; ++inBlockPos ) {
+		genProcessSingleInputChannel( filterSetSize, outputColCount, inBlockPos );
 	}
 
 	L( skipPadding );
 	add( regBlockInput, regDilationWidth );
+	// Move filter pointer to the next columns
+	// Due to the OIHWio packing it moves the filter pointer to the beginning of the next row
+	// when current filter column is the last one
 	add( regFilter, BlockSize * BlockSize * sizeof( float ) );
 	dec( regRemCols );
 	jnz( colCycleStart, CodeGenerator::T_NEAR );
+	// Cycle over filter columns ends
 
 	add( regBlockInput, regInputStride );
-	if( outputCount == 1 ) {
+	if( outputColCount == 1 ) {
+		// Move pointer used for padding detection to the next input line covered by this filter set
 		sub( regNegInputAfterLeftPad, ptr[rsp + offsetof( CParams, DilatedInputWidthBytes )] );
 	}
 
 	dec( regFilterHeight );
 	jnz( rowCycleStart, CodeGenerator::T_NEAR );
 
-	L( emptyKernelSkip );
+	L( skilpWholeFilterInPadding );
 }
 
-void CBlockedConvGen::genSingleComputeBlock( int filterSetSize, int outputCount, int broadcast )
+// This macro mutilplies one column of one filter set by outputColCount input elements
+// inBlockPos is an index of the channel in a block of input channels
+//
+// It takes outputColCount input elements belonging to the inBlockPos'th input channel inside the block of input channels
+// and affected by the same filter elements when filter moves along image width
+// The results of applying current filter set to this channel are added to neighboring output columns
+void CBlockedConvGen::genProcessSingleInputChannel( int filterSetSize, int outputColCount, int inBlockPos )
 {
-	const int broadcastOffset = broadcast * sizeof( float );
-	const int vectorOffset = broadcast * BlockSize * sizeof( float );
+	const int inBlockInputOffset = inBlockPos * sizeof( float );
+	const int inBlockFilerOffset = inBlockPos * BlockSize * sizeof( float );
 
-	// This macro multiplies and accumulates for FilterSetSize by outputCount block of the output buffer.
 	Ymm inputYmm[3] = { Ymm( 13 ), Ymm( 14 ), Ymm( 15 ) };
-	Address inputAddr[3] = { ptr[regBlockInput + broadcastOffset], ptr[regBlockInput + regStrideWidth + broadcastOffset],
-		ptr[regShiftedInput + broadcastOffset] };
-	for( int output = 0; output < outputCount; ++output ) {
-		vbroadcastss( inputYmm[output], inputAddr[output] );
+	// Calculate address of input elements for current filter position,
+	// and for (outputColCount - 1) neighboring filter position
+	Address inputAddr[3] = { ptr[regBlockInput + inBlockInputOffset],
+		ptr[regBlockInput + regStrideWidth + inBlockInputOffset], ptr[regShiftedInput + inBlockInputOffset] };
+
+	// Fill input ymms with the values from input from the current channel
+	// corresponding to given output columns
+	for( int outputColIdx = 0; outputColIdx < outputColCount; ++outputColIdx ) {
+		vbroadcastss( inputYmm[outputColIdx], inputAddr[outputColIdx] );
 	}
 
-	Address filterAddr[MaxFilterSetSize] = { ptr[regFilter + vectorOffset],
-		ptr[regFilter + regFilterStride + vectorOffset], ptr[regShiftedFilter + vectorOffset],
-		ptr[regShiftedFilter + regFilterStride + vectorOffset] };
+	Address filterAddr[MaxFilterSetSize] = { ptr[regFilter + inBlockFilerOffset],
+		ptr[regFilter + regFilterStride + inBlockFilerOffset], ptr[regShiftedFilter + inBlockFilerOffset],
+		ptr[regShiftedFilter + regFilterStride + inBlockFilerOffset] };
 
-	if( outputCount == 1 ) {
+	if( outputColCount == 1 ) {
 		for( int filterBlockIdx = 0; filterBlockIdx < filterSetSize; ++filterBlockIdx ) {
 			vfmadd231ps( acc[0][filterBlockIdx], inputYmm[0], filterAddr[filterBlockIdx] );
 		}
@@ -455,14 +502,14 @@ void CBlockedConvGen::genSingleComputeBlock( int filterSetSize, int outputCount,
 		for( int filterBlockIdx = 0; filterBlockIdx < filterSetSize; ++filterBlockIdx ) {
 			Ymm filterYmm( 12 );
 			vmovups( filterYmm, filterAddr[filterBlockIdx] );
-			for( int output = 0; output < outputCount; ++output ) {
-				vfmadd231ps( acc[output][filterBlockIdx], inputYmm[output], filterYmm);
+			for( int outputColIdx = 0; outputColIdx < outputColCount; ++outputColIdx ) {
+				vfmadd231ps( acc[outputColIdx][filterBlockIdx], inputYmm[outputColIdx], filterYmm);
 			}
 		}
 	}
 }
 
-void CBlockedConvGen::genPostProcessing( int filterSetSize, int outputCount )
+void CBlockedConvGen::genComputeOutputColumnsEpilogue( int filterSetSize, int outputColCount )
 {
 	const reg64_t regOutputStride = rax;
 	mov( regOutputStride, ptr[rsp + offsetof( CParams, OutputStrideBytes )] );
@@ -480,9 +527,9 @@ void CBlockedConvGen::genPostProcessing( int filterSetSize, int outputCount )
 	RegExp outputRegExp[4] = { regOutput, regOutput + regOutputStride,
 		regShiftedOutput, regShiftedOutput + regOutputStride };
 	for( int filterBlockIdx = 0; filterBlockIdx < filterSetSize; ++filterBlockIdx ) {
-		for( int output = 0; output < outputCount; ++output ) {
-			vaddps( acc[output][filterBlockIdx], acc[output][filterBlockIdx],
-				ptr[outputRegExp[filterBlockIdx] + output * SizeOfYmm] );
+		for( int outputColIdx = 0; outputColIdx < outputColCount; ++outputColIdx ) {
+			vaddps( acc[outputColIdx][filterBlockIdx], acc[outputColIdx][filterBlockIdx],
+				ptr[outputRegExp[filterBlockIdx] + outputColIdx * SizeOfYmm] );
 		}
 	}
 
@@ -495,7 +542,7 @@ void CBlockedConvGen::genPostProcessing( int filterSetSize, int outputCount )
 	const reg64_t regFreeTerm = rcx;
 	mov( regFreeTerm, ptr[rsp + offsetof( CParams, FreeTerm )] );
 
-	if( outputCount == 1 ) {
+	if( outputColCount == 1 ) {
 		for( int filterBlockIdx = 0; filterBlockIdx < filterSetSize; ++filterBlockIdx ) {
 			vaddps( acc[0][filterBlockIdx], acc[0][filterBlockIdx], ptr[regFreeTerm + filterBlockIdx * SizeOfYmm]);
 		}
@@ -504,23 +551,23 @@ void CBlockedConvGen::genPostProcessing( int filterSetSize, int outputCount )
 		for( int filterBlockIdx = 0; filterBlockIdx < filterSetSize; ++filterBlockIdx ) {
 			vmovups( freeTermYmm[filterBlockIdx], ptr[regFreeTerm + filterBlockIdx * SizeOfYmm]);
 		}
-		for( int output = 0; output < outputCount; ++output ) {
+		for( int outputColIdx = 0; outputColIdx < outputColCount; ++outputColIdx ) {
 			for( int filterBlockIdx = 0; filterBlockIdx < filterSetSize; ++filterBlockIdx ) {
-				vaddps( acc[output][filterBlockIdx], acc[output][filterBlockIdx], freeTermYmm[filterBlockIdx] );
+				vaddps( acc[outputColIdx][filterBlockIdx], acc[outputColIdx][filterBlockIdx], freeTermYmm[filterBlockIdx] );
 			}
 		}
 	}
 
 	L( skipFreeTerm );
 
-	for( int output = 0; output < outputCount; ++output ) {
+	for( int outputColIdx = 0; outputColIdx < outputColCount; ++outputColIdx ) {
 		for( int filterBlockIdx = 0; filterBlockIdx < filterSetSize; ++filterBlockIdx ) {
-			vmovups( ptr[outputRegExp[filterBlockIdx] + output * SizeOfYmm],
-				acc[output][filterBlockIdx] );
+			vmovups( ptr[outputRegExp[filterBlockIdx] + outputColIdx * SizeOfYmm],
+				acc[outputColIdx][filterBlockIdx] );
 		}
 	}
 
-	add( regOutput, outputCount * BlockSize * sizeof( float ) );
+	add( regOutput, outputColCount * BlockSize * sizeof( float ) );
 }
 
 void CBlockedConvGen::genPaddingProcessing( int filterSetSize )
@@ -528,9 +575,9 @@ void CBlockedConvGen::genPaddingProcessing( int filterSetSize )
 	Label processNextOutput;
 
 	L( processNextOutput );
-	genComputeBlocks( filterSetSize, 1 );
+	genComputeOutputColumns( filterSetSize, 1 );
 	add( regInput, regStrideWidth );
-	dec( regRemOutputCount );
+	dec( regRemOutputColCount );
 	jnz( processNextOutput, T_NEAR );
 }
 
@@ -539,9 +586,9 @@ void CBlockedConvGen::genProcessFilterSet( int filterSetSize )
 {
 	assert( filterSetSize >= 1 && filterSetSize <= MaxFilterSetSize );
 	Label skipLeftPad;
-	mov( regRemOutputCount, ptr[rsp + offsetof( CParams, OutputCountLeftPad )] );
+	mov( regRemOutputColCount, ptr[rsp + offsetof( CParams, OutputColCountLeftPad )] );
 	// Process left padding (if needed)
-	test( regRemOutputCount, regRemOutputCount );
+	test( regRemOutputColCount, regRemOutputColCount );
 	jz( skipLeftPad, T_NEAR );
 	genPaddingProcessing( filterSetSize );
 	L( skipLeftPad );
@@ -550,33 +597,33 @@ void CBlockedConvGen::genProcessFilterSet( int filterSetSize )
 	Label processRemainingOutputs;
 	Label processRemainingWithRightPad;
 
-	mov( regRemOutputCount, ptr[rsp + offsetof( CParams, OutputCountNoPad )] );
+	mov( regRemOutputColCount, ptr[rsp + offsetof( CParams, OutputColCountNoPad )] );
 	// Initially subtract 3 for jumping via comparison with 0 (jz, jb, jae, etc.)
-	sub( regRemOutputCount, 3 );
+	sub( regRemOutputColCount, 3 );
 	jb( processRemainingOutputs, T_NEAR );
 
 	L( processThreeOutputs );
-	genComputeBlocks( filterSetSize, 3 );
+	genComputeOutputColumns( filterSetSize, 3 );
 	const reg64_t regTemp = rax;
 	lea( regTemp, ptr[regStrideWidth + 2 * regStrideWidth] );
 	add( regInput, regTemp );
-	sub( regRemOutputCount, 3 );
+	sub( regRemOutputColCount, 3 );
 	jae( processThreeOutputs, T_NEAR );
 
 	L( processRemainingOutputs );
 	// Compensate subtraction above
-	add( regRemOutputCount, 3 );
+	add( regRemOutputColCount, 3 );
 	jz( processRemainingWithRightPad, T_NEAR );
-	cmp( regRemOutputCount, 2 );
+	cmp( regRemOutputColCount, 2 );
 	jb( processRemainingWithRightPad, T_NEAR );
-	genComputeBlocks( filterSetSize, 2 );
+	genComputeOutputColumns( filterSetSize, 2 );
 	lea( regInput, ptr[regInput + 2 * regStrideWidth] );
-	sub( regRemOutputCount, 2 );
+	sub( regRemOutputColCount, 2 );
 
 	// Process irhgt padding (if needed)
 	Label skipRightPad;
 	L( processRemainingWithRightPad );
-	add( regRemOutputCount, ptr[rsp + offsetof( CParams, OutputCountRightPad )] );
+	add( regRemOutputColCount, ptr[rsp + offsetof( CParams, OutputColCountRightPad )] );
 	jz( skipRightPad, T_NEAR );
 	genPaddingProcessing( filterSetSize );
 	L( skipRightPad );
@@ -616,6 +663,7 @@ void CBlockedConvGen::genConvKernel()
 
 void CBlockedConvGen::genEpilogue()
 {
+	// Restore stack pointer from the special field
 	mov( rsp, ptr[rsp + offsetof( CParams, PrevRsp )] );
 
 	reg64Vec_t gprs = { rax, rbx, rbp, rcx, rdx, rsi, rdi, r8, r9, r10, r11, r12, r13, r14, r15 };
@@ -694,9 +742,9 @@ void CAvxMathEngine::BlockedConvolution( const CConvolutionDesc& convDesc, const
 			callParams.DilatedInputWidthBytes = sizeof( float ) * BlockSize * dilationHeight * inputWidth;
 			callParams.InputStrideBytes = callParams.DilatedInputWidthBytes - filterWidth * callParams.DilationWidthBytes;
 			callParams.FilterWidth = filterWidth;
-			callParams.OutputCountLeftPad = outputColLeftPad;
-			callParams.OutputCountNoPad = outputColNoPad;
-			callParams.OutputCountRightPad = outputColRightPad;
+			callParams.OutputColCountLeftPad = outputColLeftPad;
+			callParams.OutputColCountNoPad = outputColNoPad;
+			callParams.OutputColCountRightPad = outputColRightPad;
 			callParams.FilterSetSize = min( MaxFilterSetSize, ( filterCount / BlockSize ) - filterSetIndex * MaxFilterSetSize );
 
 			const int blockedOutputWidth = BlockSize * outputWidth;
