@@ -82,6 +82,16 @@ CConvolutionDesc* CAvxMathEngine::InitBlockedConvolution( const CBlobDesc& sourc
 	}
 
 	// Heuristics tuned for better effectiveness
+	if( inputChannels < 32 || filterCount < 32 ) {
+		// All the packing doesn't improve performance if there's not enough channels to pack
+		return nullptr;
+	}
+
+	if( dilationWidth > 1 ) {
+		// The cycle in JIT part is very sensitive to dilated convolutions
+		return nullptr;
+	}
+
 	// Number of operations in convolution == outputBlobsSize * filterHeight * filterWidth * inputChannels
 	// Packing each data (input/output/filter) is linear
 
