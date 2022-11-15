@@ -118,7 +118,7 @@ class CBlockedConvTest : public ::testing::Test, public ::testing::WithParamInte
 
 static const int RUN_COUNT = 100;
 
-TEST_P( CBlockedConvTest, Ideal )
+TEST_P( CBlockedConvTest, Run )
 {
 	const CTestParams& params = GetParam();
 	CRandom random( params.GetValue<int>( "Seed" ) );
@@ -139,136 +139,20 @@ TEST_P( CBlockedConvTest, Ideal )
 	const int outputHeight = calcConvOutputSize( height, paddingHeight, filterHeight, dilationHeight, strideHeight );
 	const int outputWidth = calcConvOutputSize( width, paddingWidth, filterWidth, dilationWidth, strideWidth );
 
-	CREATE_FILL_FLOAT_ARRAY( neomlInput, -2.f, 2.f, batch * height * width * channels, random );
 	CBlobDesc inputDesc( { 1, batch, 1, height, width, 1, channels } );
-
-	CREATE_FILL_FLOAT_ARRAY( neomlFilter, -2.f, 2.f, filterCount * filterHeight * filterWidth * channels, random );
 	CBlobDesc filterDesc( { 1, filterCount, 1, filterHeight, filterWidth, 1, channels } );
-
-	CREATE_FILL_FLOAT_ARRAY( bias, -5.f, 5.f, filterCount, random );
-
 	CBlobDesc outputDesc( { 1, batch, 1, outputHeight, outputWidth, 1, filterCount } );
-	std::vector<float> expectedOutput( batch * outputHeight * outputWidth * filterCount );
-	
-	std::unique_ptr<IPerformanceCounters> counters( MathEngine().CreatePerformanceCounters() );
 
-	using CPerfStat = std::vector<IPerformanceCounters::CCounter::TCounterType>;
-
-	auto update = []( const IPerformanceCounters& counters, CPerfStat& stat )
-	{
-		for( size_t i = 0; i < counters.size(); ++i ) {
-			stat[i] += counters[i].Value;
-		}
-	};
-
-	CPerfStat neomlPerf( counters->size() );
-	CPerfStat inputConversionPerf( counters->size() );
-	CPerfStat blockedConvPerf( counters->size() );
-	CPerfStat outputConversionPerf( counters->size() );
-
-	{
-		CConvolutionDesc* convDesc = MathEngine().InitBlobConvolution( inputDesc, paddingHeight, paddingWidth, strideHeight,
-			strideWidth, dilationHeight, dilationWidth, filterDesc, outputDesc );
-		auto biasHandle = CARRAY_FLOAT_WRAPPER( bias );
-		auto inputHandle = CARRAY_FLOAT_WRAPPER( neomlInput );
-		auto filterHandle = CARRAY_FLOAT_WRAPPER( neomlFilter );
-		auto outputHandle = CARRAY_FLOAT_WRAPPER( expectedOutput );
-		MathEngine().BlobConvolution( *convDesc, inputHandle, filterHandle, &static_cast<CConstFloatHandle>( biasHandle ), outputHandle );
-		for( int run = 0; run < RUN_COUNT; ++run ) {
-			counters->Synchronise();
-			MathEngine().BlobConvolution( *convDesc, inputHandle, filterHandle, &static_cast<CConstFloatHandle>( biasHandle ), outputHandle );
-			counters->Synchronise();
-			update( *counters, neomlPerf );
-		}
-		delete convDesc;
-	}
-
-	std::vector<float> blockedInput( neomlInput.size() );
-	SimdMathEngine().PackBlockedData( inputDesc, neomlInput.data(), blockedInput.data() );
-	for( int run = 0; run < RUN_COUNT; ++run ) {
-		counters->Synchronise();
-		SimdMathEngine().PackBlockedData( inputDesc, neomlInput.data(), blockedInput.data() );
-		counters->Synchronise();
-		update( *counters, inputConversionPerf );
-	}
-
-	std::vector<float> blockedFilter( neomlFilter.size() );
-	SimdMathEngine().PackBlockedFilter( filterDesc, neomlFilter.data(), blockedFilter.data() );
-	std::vector<float> blockedOutput( expectedOutput.size() );
-
-	CConvolutionDesc* blockedConvDesc = SimdMathEngine().InitBlockedConvolution( inputDesc, paddingHeight, paddingWidth,
-		strideHeight, strideWidth, dilationHeight, dilationWidth, filterDesc, outputDesc );
+	std::unique_ptr<CConvolutionDesc> blockedConvDesc( SimdMathEngine().InitBlockedConvolution( inputDesc, paddingHeight, paddingWidth,
+		strideHeight, strideWidth, dilationHeight, dilationWidth, filterDesc, outputDesc ) );
 	if( blockedConvDesc == nullptr ) {
-		GTEST_SKIP() << "Config not supported by SIMD";
+		GTEST_SKIP() << "Config is not supported by SIMD";
 	}
 
-	SimdMathEngine().BlockedConvolution( *blockedConvDesc, blockedInput.data(), blockedFilter.data(),
-		bias.data(), blockedOutput.data() );
-	for( int run = 0; run < RUN_COUNT; ++run ) {
-		counters->Synchronise();
-		SimdMathEngine().BlockedConvolution( *blockedConvDesc, blockedInput.data(), blockedFilter.data(),
-			bias.data(), blockedOutput.data() );
-		counters->Synchronise();
-		update( *counters, blockedConvPerf );
-	}
-	delete blockedConvDesc;
-
-	std::vector<float> actualOutput( blockedOutput.size() );
-	SimdMathEngine().UnpackBlockedData( outputDesc, blockedOutput.data(), actualOutput.data() );
-	for( int run = 0; run < RUN_COUNT; ++run ) {
-		counters->Synchronise();
-		SimdMathEngine().UnpackBlockedData( outputDesc, blockedOutput.data(), actualOutput.data() );
-		counters->Synchronise();
-		update( *counters, outputConversionPerf );
-	}
-
-	for( size_t i = 0; i < actualOutput.size(); ++i ) {
-		if( ::fabsf( actualOutput[i] - expectedOutput[i] ) > 1e-2f ) {
-			//__debugbreak();
-		}
-		ASSERT_NEAR( actualOutput[i], expectedOutput[i], 1e-2f ) << "at #" << i;
-	}
-
-	std::cout << "NeoML\tInput\tRunCount\tOutput\tConvRatio\tFullRatio\n"
-		<< neomlPerf[0] / 1e9 << '\t'
-		<< inputConversionPerf[0] / 1e9 << '\t'
-		<< blockedConvPerf[0] / 1e9 << '\t'
-		<< outputConversionPerf[0] / 1e9 << '\t'
-		<< 100. * blockedConvPerf[0] / neomlPerf[0] << "%\t"
-		<< 100. * ( inputConversionPerf[0] + blockedConvPerf[0] + outputConversionPerf[0] ) / neomlPerf[0] << "%\n";
-}
-
-TEST_P( CBlockedConvTest, Real )
-{
-	const CTestParams& params = GetParam();
-	CRandom random( params.GetValue<int>( "Seed" ) );
-	const int batch = params.GetValue<int>( "Batch" );
-	const int height = params.GetValue<int>( "Height" );
-	const int width = params.GetValue<int>( "Width" );
-	const int channels = params.GetValue<int>( "Channels" );
-	const int filterCount = params.GetValue<int>( "FilterCount" );
-	const int filterHeight = params.GetValue<int>( "FilterHeight" );
-	const int filterWidth = params.GetValue<int>( "FilterWidth" );
-	const int strideHeight = params.GetValue<int>( "StrideHeight" );
-	const int strideWidth = params.GetValue<int>( "StrideWidth" );
-	const int paddingHeight = params.GetValue<int>( "PaddingHeight" );
-	const int paddingWidth = params.GetValue<int>( "PaddingWidth" );
-	const int dilationHeight = params.GetValue<int>( "DilationHeight" );
-	const int dilationWidth = params.GetValue<int>( "DilationWidth" );
-
-	const int outputHeight = calcConvOutputSize( height, paddingHeight, filterHeight, dilationHeight, strideHeight );
-	const int outputWidth = calcConvOutputSize( width, paddingWidth, filterWidth, dilationWidth, strideWidth );
-
-	CREATE_FILL_FLOAT_ARRAY( neomlInput, -2.f, 2.f, batch * height * width * channels, random );
-	CBlobDesc inputDesc( { 1, batch, 1, height, width, 1, channels } );
-
-	CREATE_FILL_FLOAT_ARRAY( neomlFilter, -2.f, 2.f, filterCount * filterHeight * filterWidth * channels, random );
-	CBlobDesc filterDesc( { 1, filterCount, 1, filterHeight, filterWidth, 1, channels } );
-
+	CREATE_FILL_FLOAT_ARRAY( neomlInput, -2.f, 2.f, inputDesc.BlobSize(), random );
+	CREATE_FILL_FLOAT_ARRAY( neomlFilter, -2.f, 2.f, filterDesc.BlobSize(), random );
 	CREATE_FILL_FLOAT_ARRAY( bias, -5.f, 5.f, filterCount, random );
-
-	CBlobDesc outputDesc( { 1, batch, 1, outputHeight, outputWidth, 1, filterCount } );
-	std::vector<float> expectedOutput( batch * outputHeight * outputWidth * filterCount );
+	std::vector<float> expectedOutput( outputDesc.BlobSize() );
 
 	std::unique_ptr<IPerformanceCounters> counters( MathEngine().CreatePerformanceCounters() );
 
@@ -287,6 +171,7 @@ TEST_P( CBlockedConvTest, Real )
 	CPerfStat filterConversionPerf( counters->size() );
 	CPerfStat blockedConvPerf( counters->size() );
 	CPerfStat outputConversionPerf( counters->size() );
+	CPerfStat outputCopyPerf( counters->size() );
 	CPerfStat freePerf( counters->size() );
 
 	{
@@ -310,15 +195,17 @@ TEST_P( CBlockedConvTest, Real )
 	for( int run = 0; run <= RUN_COUNT; ++run ) {
 		CFloatHandleStackVar* stackVar;
 		counters->Synchronise();
-		stackVar = new CFloatHandleStackVar( MathEngine(), neomlInput.size() + neomlFilter.size() + expectedOutput.size() );
-		float* blockedInput = static_cast<float*>( MathEngine().GetBuffer( stackVar->GetHandle(), 0, stackVar->Size(), false ) );
-		float* blockedFilter = blockedInput + neomlInput.size();
-		float* blockedOutput = blockedFilter + neomlFilter.size();
+		stackVar = new CFloatHandleStackVar( MathEngine(), neomlFilter.size() + std::max( neomlInput.size(), expectedOutput.size() ) );
+		float* blockedFilter = static_cast<float*>( MathEngine().GetBuffer( stackVar->GetHandle(), 0, stackVar->Size(), false ) );
+		float* ioBuff = blockedFilter + neomlFilter.size();
 		counters->Synchronise();
 		if( run != 0 ) update( *counters, allocPerf );
 
+		CFloatHandleStackVar* actualOutputVar = new CFloatHandleStackVar( MathEngine(), expectedOutput.size() );
+		float* actualOutputBuff = static_cast<float*>( MathEngine().GetBuffer( actualOutputVar->GetHandle(), 0, actualOutputVar->Size(), false ) );
+
 		counters->Synchronise();
-		SimdMathEngine().PackBlockedData( inputDesc, neomlInput.data(), blockedInput );
+		SimdMathEngine().PackBlockedData( inputDesc, neomlInput.data(), ioBuff );
 		counters->Synchronise();
 		if( run != 0 ) update( *counters, inputConversionPerf );
 
@@ -327,22 +214,28 @@ TEST_P( CBlockedConvTest, Real )
 		counters->Synchronise();
 		if( run != 0 ) update( *counters, filterConversionPerf );
 
-		CConvolutionDesc* blockedConvDesc = SimdMathEngine().InitBlockedConvolution( inputDesc, paddingHeight, paddingWidth,
-			strideHeight, strideWidth, dilationHeight, dilationWidth, filterDesc, outputDesc );
-		if( blockedConvDesc == nullptr ) {
-			GTEST_SKIP() << "Config is not supported by SIMD";
-		}
 		counters->Synchronise();
-		SimdMathEngine().BlockedConvolution( *blockedConvDesc, blockedInput, blockedFilter, bias.data(), blockedOutput );
+		SimdMathEngine().BlockedConvolution( *blockedConvDesc, ioBuff, blockedFilter, bias.data(), actualOutputBuff );
 		counters->Synchronise();
 		if( run != 0 ) update( *counters, blockedConvPerf );
-		delete blockedConvDesc;
 
-		std::vector<float> actualOutput( expectedOutput.size() );
 		counters->Synchronise();
-		SimdMathEngine().UnpackBlockedData( outputDesc, blockedOutput, actualOutput.data() );
+		SimdMathEngine().UnpackBlockedData( outputDesc, actualOutputBuff, ioBuff );
 		counters->Synchronise();
 		if( run != 0 ) update( *counters, outputConversionPerf );
+
+		MathEngine().ReleaseBuffer( actualOutputVar->GetHandle(), actualOutputBuff, true );
+		MathEngine().ReleaseBuffer( stackVar->GetHandle(), blockedFilter, true );
+
+		counters->Synchronise();
+		MathEngine().VectorCopy( actualOutputVar->GetHandle(), stackVar->GetHandle() + neomlFilter.size(),
+			static_cast<int>( expectedOutput.size() ) );
+		counters->Synchronise();
+		if( run != 0 ) update( *counters, outputCopyPerf );
+
+		std::vector<float> actualOutput( expectedOutput.size() );
+		MathEngine().DataExchangeTyped<float>( actualOutput.data(), actualOutputVar->GetHandle(), actualOutput.size() );
+		delete actualOutputVar;
 
 		counters->Synchronise();
 		delete stackVar;
@@ -351,25 +244,24 @@ TEST_P( CBlockedConvTest, Real )
 
 		if( run == 0 ) {
 			for( size_t i = 0; i < actualOutput.size(); ++i ) {
-				if( ::fabsf( actualOutput[i] - expectedOutput[i] ) > 1e-2f ) {
-					//__debugbreak();
-				}
 				ASSERT_NEAR( actualOutput[i], expectedOutput[i], 1e-2f ) << "at #" << i;
 			}
 		}
 	}
 
-	std::cout << "NeoML\tAlloc\tInput\tFilter\tBlocked\tOutput\tFree\tInputSize\tOutputSize\tTotalOperations\tCoeffI\tCoeffO\tCoeffF\n"
+	std::cout << "NeoML\tAlloc\tInput\tFilter\tBlocked\tOutput\tCopy\tFree\tInputSize\tDilationWidth\tInputChannels\tOutputChannels\tCoeffI\tCoeffO\tCoeffF\n"
 		<< neomlPerf[0] / 1e9 << '\t'
 		<< allocPerf[0] / 1e9 << '\t'
 		<< inputConversionPerf[0] / 1e9 << '\t'
 		<< filterConversionPerf[0] / 1e9 << '\t'
 		<< blockedConvPerf[0] / 1e9 << '\t'
 		<< outputConversionPerf[0] / 1e9 << '\t'
+		<< outputCopyPerf[0] / 1e9 << '\t'
 		<< freePerf[0] / 1e9 << '\t'
 		<< inputDesc.BlobSize() << '\t'
-		<< outputDesc.BlobSize() << '\t'
-		<< outputDesc.BlobSize() * channels * filterHeight * filterWidth << '\t'
+		<< dilationWidth << '\t'
+		<< channels << '\t'
+		<< filterCount << '\t'
 		<< outputDesc.Height() * outputDesc.Width() * filterCount * filterHeight * filterWidth / ( height * width ) << '\t'
 		<< channels * filterHeight * filterWidth << '\t'
 		<< batch * outputDesc.Height() * outputDesc.Width()
