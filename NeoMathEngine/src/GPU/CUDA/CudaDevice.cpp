@@ -467,7 +467,7 @@ CCudaDevice* CaptureCudaDevice( int deviceNumber, size_t deviceMemoryLimit )
 	ASSERT_CUDA( cudaGetDeviceCount( &deviceCount ) );
 
 	// Detect the devices and their processing load
-	vector<CCudaDevUsage> devs;
+	std::vector<CCudaDevUsage> devs;
 	for( int i = 0; i < deviceCount; ++i ) {
 		cudaDeviceProp devProp;
 		ASSERT_CUDA( cudaGetDeviceProperties( &devProp, i ) );

@@ -44,9 +44,9 @@ const int BlobConvolutionCacheSize = 256 * 1024;
 struct CCpuConvolutionDesc : public CCommonConvolutionDesc {
 	TConvAlgo ForwardAlgo;
 	TConvAlgo BackwardAlgo;
-	unique_ptr<CConvolutionDesc> SimdConvolutionDesc;
+	std::unique_ptr<CConvolutionDesc> SimdConvolutionDesc;
 
-	CCpuConvolutionDesc( unique_ptr<CConvolutionDesc>& simdConvolutionDesc, const CBlobDesc& source, const CBlobDesc& result, const CBlobDesc& filter,
+	CCpuConvolutionDesc( std::unique_ptr<CConvolutionDesc>& simdConvolutionDesc, const CBlobDesc& source, const CBlobDesc& result, const CBlobDesc& filter,
 			int paddingHeight, int paddingWidth, int strideHeight, int strideWidth, int dilationHeight, int dilationWidth ) :
 		CCommonConvolutionDesc( source, result, filter, paddingHeight, paddingWidth, strideHeight, strideWidth, dilationHeight, dilationWidth ),
 		ForwardAlgo( getActualForwardAlgo() ),
@@ -131,9 +131,9 @@ CConvolutionDesc* CCpuMathEngine::InitBlobConvolution( const CBlobDesc& source, 
 	ASSERT_EXPR( result.Channels() == filter.BatchWidth() );
 	ASSERT_EXPR( result.Depth() == 1 );
 
-	unique_ptr<CConvolutionDesc> simdConvolutionDesc;
+	std::unique_ptr<CConvolutionDesc> simdConvolutionDesc;
 	if( simdMathEngine != nullptr ) {
-		simdConvolutionDesc = unique_ptr<CConvolutionDesc>( simdMathEngine->InitBlobConvolution( source, paddingHeight, paddingWidth,
+		simdConvolutionDesc = std::unique_ptr<CConvolutionDesc>( simdMathEngine->InitBlobConvolution( source, paddingHeight, paddingWidth,
 			strideHeight, strideWidth, dilationHeight, dilationWidth, filter, result ) );
 	}
 
@@ -925,8 +925,8 @@ void CCpuMathEngine::blobConvolutionLearnAlgo1( const CCpuConvolutionDesc& desc,
 	COmpReduction1DData filterDiffItem( mathEngine(), filterDiffData, filterDiff.BlobSize() );
 	COmpReduction<COmpReduction1DData> filterDiffReduction( curThreadCount, filterDiffItem );
 
-	unique_ptr<COmpReduction1DData> freeTermDiffItem( nullptr );
-	unique_ptr<COmpReduction<COmpReduction1DData>> freeTermDiffReduction( nullptr );
+	std::unique_ptr<COmpReduction1DData> freeTermDiffItem( nullptr );
+	std::unique_ptr<COmpReduction<COmpReduction1DData>> freeTermDiffReduction( nullptr );
 
 	if( freeTermDiffData != nullptr ) {
 		freeTermDiffItem.reset( new COmpReduction1DData( mathEngine(), *freeTermDiffData, freeTermDiffSize ) );
@@ -1018,8 +1018,8 @@ void CCpuMathEngine::blobConvolutionLearnAlgo2( const CCpuConvolutionDesc& desc,
 	COmpReduction1DData filterDiffItem( mathEngine(), filterDiffData, filterDiff.BlobSize() );
 	COmpReduction<COmpReduction1DData> filterDiffReduction( curThreadCount, filterDiffItem );
 
-	unique_ptr<COmpReduction1DData> freeTermDiffItem( nullptr );
-	unique_ptr<COmpReduction<COmpReduction1DData>> freeTermDiffReduction( nullptr );
+	std::unique_ptr<COmpReduction1DData> freeTermDiffItem( nullptr );
+	std::unique_ptr<COmpReduction<COmpReduction1DData>> freeTermDiffReduction( nullptr );
 
 	if( freeTermDiffData != nullptr ) {
 		freeTermDiffItem.reset( new COmpReduction1DData( mathEngine(), *freeTermDiffData, freeTermDiffSize ) );
@@ -1277,8 +1277,8 @@ void CCpuMathEngine::BlobChannelwiseConvolutionLearnAdd( const CChannelwiseConvo
 	COmpReduction1DData filterDiffItem( mathEngine(), filterDiffTransposedHolder.GetHandle(), filterDiffTransposed.BlobSize() );
 	COmpReduction<COmpReduction1DData> filterDiffReduction( curThreadCount, filterDiffItem );
 
-	unique_ptr<COmpReduction1DData> freeTermDiffItem( nullptr );
-	unique_ptr<COmpReduction<COmpReduction1DData>> freeTermDiffReduction( nullptr );
+	std::unique_ptr<COmpReduction1DData> freeTermDiffItem( nullptr );
+	std::unique_ptr<COmpReduction<COmpReduction1DData>> freeTermDiffReduction( nullptr );
 
 	if( freeTermDiffData != nullptr ) {
 		freeTermDiffItem.reset( new COmpReduction1DData( mathEngine(), *freeTermDiffData, filterDiff.Channels() ) );

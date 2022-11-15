@@ -29,4 +29,3 @@ limitations under the License.
 #include <windows.h>
 #endif
 
-using namespace std;

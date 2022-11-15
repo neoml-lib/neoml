@@ -543,8 +543,8 @@ void CCpuMathEngine::blob3dConvolutionLearnAdd( const CCommon3dConvolutionDesc& 
 	COmpReduction1DData filterDiffItem( mathEngine(), filterDiffData, desc.Filter.BlobSize() );
 	COmpReduction<COmpReduction1DData> filterDiffReduction( curThreadCount, filterDiffItem );
 	
-	unique_ptr<COmpReduction1DData> freeTermDiffItem( nullptr );
-	unique_ptr<COmpReduction<COmpReduction1DData>> freeTermDiffReduction( nullptr );
+	std::unique_ptr<COmpReduction1DData> freeTermDiffItem( nullptr );
+	std::unique_ptr<COmpReduction<COmpReduction1DData>> freeTermDiffReduction( nullptr );
 	
 	if( freeTermDiffData != nullptr ) {
 		freeTermDiffItem.reset( new COmpReduction1DData( mathEngine(), *freeTermDiffData, freeTermDiffSize ) );

@@ -311,8 +311,8 @@ void CCpuMathEngine::BlobRleConvolutionLearnAdd( const CRleConvolutionDesc& conv
 
 	const int curThreadCount = IsOmpRelevant( objectCount ) ? threadCount : 1;
 
-	unique_ptr<COmpReduction1DData> freeTermDiffItem( nullptr );
-	unique_ptr<COmpReduction<COmpReduction1DData>> freeTermDiffReduction( nullptr );
+	std::unique_ptr<COmpReduction1DData> freeTermDiffItem( nullptr );
+	std::unique_ptr<COmpReduction<COmpReduction1DData>> freeTermDiffReduction( nullptr );
 
 	if( freeTermDiffData != nullptr ) {
 		freeTermDiffItem.reset( new COmpReduction1DData( mathEngine(), *freeTermDiffData, desc.Filter.ObjectCount() ) );
