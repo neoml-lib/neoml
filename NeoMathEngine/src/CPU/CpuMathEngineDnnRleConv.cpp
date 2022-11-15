@@ -260,7 +260,7 @@ void CCpuMathEngine::BlobRleConvolution( const CRleConvolutionDesc& convDesc, co
 
 			// Traverse all filters that have this row
 			float* output = outputObj + firstJFilter * outputRowSize;
-			int filterLineNumber = max( 0, lineNumber - firstJFilter * strideHeight );
+			int filterLineNumber = std::max( 0, lineNumber - firstJFilter * strideHeight );
 			const float* filterConvData = filterConvPtr + ( filterHeight - filterLineNumber - 1 ) * filterCount;
 
 			for( int i = 0; i < outputWidth; ++i ) {

@@ -369,8 +369,8 @@ void CCpuMathEngine::BlobChannelwiseConvolution( const CChannelwiseConvolutionDe
 						NeoML::vectorFill(resultRow, 0, resultDesc.Width() * channels);
 					}
 
-					const int filterFirstRow = max( 0, -firstFilteredRow );
-					const int filterLastRow = min( filterDesc.Height(), sourceDesc.Height() - firstFilteredRow );
+					const int filterFirstRow = std::max( 0, -firstFilteredRow );
+					const int filterLastRow = std::min( filterDesc.Height(), sourceDesc.Height() - firstFilteredRow );
 					const float* filterRow = filter + filterFirstRow * filterRowSize;
 					const float* filterRowEnd = filter + filterLastRow * filterRowSize;
 					const float* srcRow = src + (firstFilteredRow + filterFirstRow) * inputRowSize;
@@ -380,8 +380,8 @@ void CCpuMathEngine::BlobChannelwiseConvolution( const CChannelwiseConvolutionDe
 						float* resultPos = resultRow;
 						float* resultPosEnd = resultPos + channels * resultDesc.Width();
 						for( ; resultPos < resultPosEnd; resultPos += channels, firstFilteredCol += desc.StrideWidth ) {
-							const int filterFirstCol = max( 0, -firstFilteredCol );
-							const int filterLastCol = min( filterDesc.Width(), sourceDesc.Width() - firstFilteredCol );
+							const int filterFirstCol = std::max( 0, -firstFilteredCol );
+							const int filterLastCol = std::min( filterDesc.Width(), sourceDesc.Width() - firstFilteredCol );
 							const float* filterPos = filterRow + filterFirstCol * channels;
 							const float* filterPosEnd = filterRow + filterLastCol * channels;
 							const float* srcPos = srcRow + (firstFilteredCol + filterFirstCol) * channels;

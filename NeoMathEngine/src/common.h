@@ -25,6 +25,10 @@ limitations under the License.
 #include <vector>
 
 #include <NeoMathEngine/Platforms.h>
+
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
 #if FINE_PLATFORM( FINE_WINDOWS )
 #include <windows.h>
 #endif

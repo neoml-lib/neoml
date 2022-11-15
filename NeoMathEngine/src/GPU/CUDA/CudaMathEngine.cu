@@ -237,7 +237,7 @@ int CCudaMathEngine::getCudaTempMatrixMaxHeight(int matrixHeight, int matrixWidt
 {
 	const int maxTempMatrixSizeConst = 256 * 1024 * 1024;
 	const int maxPossibleMatrixHeight = min( maxTempMatrixSizeConst,
-		static_cast<int>( max( (size_t)1, ( GetFreeMemorySize() / ( 2 * sizeof(float) * static_cast<size_t>( matrixWidth ) ) ) ) ) );
+		static_cast<int>( std::max( (size_t)1, ( GetFreeMemorySize() / ( 2 * sizeof(float) * static_cast<size_t>( matrixWidth ) ) ) ) ) );
 	return min( matrixHeight, maxPossibleMatrixHeight );
 }
 

@@ -300,7 +300,7 @@ void CCpuMathEngine::blob3dConvolution( const CCommon3dConvolutionDesc& desc, co
 
 	const int curThreadCount = IsOmpRelevant( objectCount * result.Width() * result.Depth(),
 		static_cast<int64_t>( source.BlobSize() ) * filter.BlobSize() ) ? threadCount : 1;
-	const int tempObjectCount = min( source.ObjectCount(), curThreadCount );
+	const int tempObjectCount = std::min( source.ObjectCount(), curThreadCount );
 
 	const int inputPreparedObjectSize = result.Width() * result.Depth() * result.Height() * preparedWidth * source.Channels();
 	CFloatHandleStackVar inputPreparedData( mathEngine(), tempObjectCount * inputPreparedObjectSize );
