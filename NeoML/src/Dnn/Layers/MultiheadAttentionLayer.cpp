@@ -21,6 +21,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/ActivationLayers.h>
 #include <NeoML/Dnn/Layers/AddToObjectLayer.h>
 #include <NeoML/Dnn/Layers/DropoutLayer.h>
+#include <NeoML/Dnn/Layers/EltwiseLayer.h>
 #include <NeoML/Dnn/Layers/FullyConnectedLayer.h>
 #include <NeoML/Dnn/Layers/TransformLayer.h>
 #include <NeoML/Dnn/Layers/TransposeLayer.h>
@@ -34,7 +35,9 @@ CMultiheadAttentionLayer::CMultiheadAttentionLayer( IMathEngine& mathEngine ) :
 	hiddenSize( 8 ),
 	dropoutRate( -1 ),
 	useMask( false ),
-	outputSize( 8 )
+	maskType( MT_OneObject ),
+	outputSize( 8 ),
+	isInCompatibilityMode( false )
 {
 }
 
@@ -66,6 +69,12 @@ void CMultiheadAttentionLayer::SetUseMask( bool newValue )
 	DeleteAllLayers();
 }
 
+void CMultiheadAttentionLayer::SetMaskType( TMaskType _maskType )
+{
+	maskType = _maskType;
+	DeleteAllLayers();
+}
+
 void CMultiheadAttentionLayer::SetOutputSize( int _outputSize )
 {
 	NeoAssert( _outputSize > 0 );
@@ -74,17 +83,41 @@ void CMultiheadAttentionLayer::SetOutputSize( int _outputSize )
 	DeleteAllLayers();
 }
 
-static const int MultiheadAttentionLayerVersion = 0;
+void CMultiheadAttentionLayer::SetCompatibilityMode( bool value )
+{
+	if( value == isInCompatibilityMode ) {
+		return;
+	}
+
+	isInCompatibilityMode = value;
+	if( HasLayer( multiplyByConstLayerName ) ) {
+		CheckCast<CLinearLayer>( GetLayer( multiplyByConstLayerName ) )->SetMultiplier( getScalingFactor() );
+	}
+}
+
+static const int MultiheadAttentionLayerVersion = 2;
 
 void CMultiheadAttentionLayer::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion( MultiheadAttentionLayerVersion );
+	const int version = archive.SerializeVersion( MultiheadAttentionLayerVersion );
 	CCompositeLayer::Serialize( archive );
 	archive.Serialize( headCount );
 	archive.Serialize( hiddenSize );
 	archive.Serialize( dropoutRate );
 	archive.Serialize( useMask );
 	archive.Serialize( outputSize );
+	if( version >= 1 ) {
+		archive.SerializeEnum( maskType );
+	} else {
+		maskType = MT_OneObject;
+	}
+	if( version >= 2 ) {
+		archive.Serialize( isInCompatibilityMode );
+		archive.Serialize( multiplyByConstLayerName );
+	} else {
+		isInCompatibilityMode = true;
+		multiplyByConstLayerName = GetName() + CString( ".MultiplyByConst" );
+	}
 }
 
 void CMultiheadAttentionLayer::Reshape()
@@ -96,15 +129,23 @@ void CMultiheadAttentionLayer::Reshape()
 	CCompositeLayer::Reshape();
 }
 
+// Recreates the layer if forceRebuild is true or it doesn't contain sublayers
+void CMultiheadAttentionLayer::Rebuild( bool forceRebuild )
+{
+	if( forceRebuild && HasLayer( "Q" ) ) {
+		DeleteAllLayers();
+	}
+	if ( !HasLayer( "Q" ) ) {
+		create();
+	}
+}
+
 // Creates layer with new parameters
-// Here and further blob sizes are shown as [BathcWidth, ListSize, Width, Channels]
+// Here and further blob sizes are shown as [BatchWidth, ListSize, Width, Channels]
 void CMultiheadAttentionLayer::create()
 {
 	NeoAssert( headCount > 0 );
 	NeoAssert( hiddenSize % headCount == 0 );
-
-	// scaling factor
-	const float multiplier = static_cast<float>( 1.0 / sqrt( 1.0 * hiddenSize ) );
 
 	// Applying W_Q, W_K and W_V to the corresponding inputs
 	// [B, seq_Q, 1, hiddenSize]
@@ -134,9 +175,10 @@ void CMultiheadAttentionLayer::create()
 	// Applying scaling factor
 	// [B, n_head, seq_Q, seq_to]
 	CPtr<CLinearLayer> multiplierLayer = new CLinearLayer( MathEngine() );
-	multiplierLayer->SetName( GetName() + CString( ".MultiplyByConst" ) );
+	multiplyByConstLayerName = GetName() + CString( ".MultiplyByConst" );
+	multiplierLayer->SetName( multiplyByConstLayerName );
 	multiplierLayer->Connect( *QKt );
-	multiplierLayer->SetMultiplier( multiplier );
+	multiplierLayer->SetMultiplier( getScalingFactor() );
 	multiplierLayer->SetFreeTerm( 0 );
 	AddLayer( *multiplierLayer );
 
@@ -192,7 +234,7 @@ CBaseLayer* CMultiheadAttentionLayer::multiplyInputByMatrixWeights(
 	fcLayer->SetName( name );
 	AddLayer( *fcLayer );
 
-	// Вход маппится на этот слой.
+	// Connect input with this sublayer
 	SetInputMapping( input, *fcLayer, 0 );
 
 	return fcLayer;
@@ -268,8 +310,21 @@ CBaseLayer* CMultiheadAttentionLayer::applyMask( CBaseLayer* layer )
 	AddLayer( *multiplierLayer );
 	SetInputMapping( I_Mask, *multiplierLayer, 0 );
 
-	CPtr<CAddToObjectLayer> sumLayer = new CAddToObjectLayer( MathEngine() );
-	sumLayer->SetName( GetName() + CString( ".Mask.ObjEltwiseSum" ) );
+	CPtr<CBaseLayer> sumLayer;
+	CString sumLayerName;
+	switch( maskType ) {
+		case MT_OneObject:
+			sumLayer = new CAddToObjectLayer( MathEngine() );
+			sumLayerName = CString( ".Mask.ObjEltwiseSum" );
+			break;
+		case MT_Eltwise:
+			sumLayer = new CEltwiseSumLayer( MathEngine() );
+			sumLayerName = CString( ".Mask.EltwiseSum" );
+			break;
+		default:
+			NeoAssert( false );
+	}
+	sumLayer->SetName( GetName() + sumLayerName );
 	sumLayer->Connect( 0, *layer );
 	sumLayer->Connect( 1, *multiplierLayer );
 	AddLayer( *sumLayer );

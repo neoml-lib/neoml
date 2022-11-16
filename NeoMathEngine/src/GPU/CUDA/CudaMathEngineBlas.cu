@@ -784,6 +784,11 @@ void CCudaMathEngine::QRFactorization( int height, int width, const CFloatHandle
 	ASSERT_EXPR( false );
 }
 
+void CCudaMathEngine::LUFactorization( int, int, const CFloatHandle& )
+{
+	ASSERT_EXPR( false );
+}
+
 void CCudaMathEngine::LookupAndSum( const CConstIntHandle& indicesHandle, int batchSize, int indexCount,
 	const CConstFloatHandle& tableHandle, int vectorSize, const CFloatHandle& result )
 {

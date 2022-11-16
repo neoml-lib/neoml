@@ -206,10 +206,24 @@ static CSparseFloatMatrix transform( const CFloatMatrixDesc& data, const CArray<
 
 namespace NeoML {
 
+static void normalize( TRandomizedSvdNormalizer type, int height, int width, const CFloatHandle& matrix)
+{
+	IMathEngine& mathEngine = *matrix.GetMathEngine();
+	switch( type ) {
+		case TRandomizedSvdNormalizer::None:
+			break;
+		case TRandomizedSvdNormalizer::LU:
+			mathEngine.LUFactorization( height, width, matrix );
+			break;
+		default:
+			NeoAssert( false );
+	}
+}
+
 void RandomizedSingularValueDecomposition( const CFloatMatrixDesc& data,
 	CArray<float>& leftVectors_, CArray<float>& singularValues_, CArray<float>& rightVectors_,
 	bool returnLeftVectors, bool returnRightVectors, int components,
-	int iterationCount, int overSamples, int seed )
+	int iterationCount, int overSamples, int seed, TRandomizedSvdNormalizer normalizer )
 {
 	NeoAssert( components > 0 );
 	NeoAssert( components <= min( data.Height, data.Width ) );
@@ -237,7 +251,9 @@ void RandomizedSingularValueDecomposition( const CFloatMatrixDesc& data,
 	if( transpose ) {
 		for( int i = 0; i < iterationCount; i++ ) {
 			mathEngine->MultiplyTransposedSparseMatrixByMatrix( data.Height, data.Width, reducedSide, dataDesc, tempIterationMatrix[0]->GetData(), tempIterationMatrix[1]->GetData() );
+			normalize( normalizer, data.Width, reducedSide, tempIterationMatrix[1]->GetData() );
 			mathEngine->MultiplySparseMatrixByMatrix( data.Height, data.Width, reducedSide, dataDesc, tempIterationMatrix[1]->GetData(), tempIterationMatrix[0]->GetData() );
+			normalize( normalizer, data.Height, reducedSide, tempIterationMatrix[0]->GetData() );
 		}
 		mathEngine->MultiplyTransposedSparseMatrixByMatrix( data.Height, data.Width, reducedSide, dataDesc, tempIterationMatrix[0]->GetData(), tempIterationMatrix[1]->GetData() );
 		CFloatHandle qHandle = tempIterationMatrix[0]->GetData();
@@ -246,7 +262,9 @@ void RandomizedSingularValueDecomposition( const CFloatMatrixDesc& data,
 	} else {
 		for( int i = 0; i < iterationCount; i++ ) {
 			mathEngine->MultiplySparseMatrixByMatrix( data.Height, data.Width, reducedSide, dataDesc, tempIterationMatrix[0]->GetData(), tempIterationMatrix[1]->GetData() );
+			normalize( normalizer, data.Height, reducedSide, tempIterationMatrix[1]->GetData() );
 			mathEngine->MultiplyTransposedSparseMatrixByMatrix( data.Height, data.Width, reducedSide, dataDesc, tempIterationMatrix[1]->GetData(), tempIterationMatrix[0]->GetData() );
+			normalize( normalizer, data.Width, reducedSide, tempIterationMatrix[0]->GetData() );
 		}
 		mathEngine->MultiplySparseMatrixByMatrix( data.Height, data.Width, reducedSide, dataDesc, tempIterationMatrix[0]->GetData(), tempIterationMatrix[1]->GetData() );
 		CFloatHandle qHandle = tempIterationMatrix[0]->GetData();

@@ -157,6 +157,8 @@ void CCompositeSinkLayer::Serialize( CArchive& archive )
 CCompositeLayer::CCompositeLayer( IMathEngine& mathEngine, const char* name ) :
 	CBaseLayer( mathEngine, name == nullptr ? "CCnnCompositeLayer" : name, true ),
 	internalDnn( 0 ),
+	blobsForBackward( 0 ),
+	blobsForLearn( 0 ),
 	areInternalLogsEnabled( true )
 {
 }
@@ -323,6 +325,51 @@ void CCompositeLayer::setOutputDescs()
 	}
 }
 
+void CCompositeLayer::calcBlobsForBackwardAndLearn()
+{
+	blobsForBackward = 0;
+	blobsForLearn = 0;
+	const bool hasBackward = IsBackwardPerformed();
+	const bool hasLearn = IsLearningPerformed();
+
+	if( !hasBackward && !hasLearn ) {
+		return;
+	}
+
+	for( int layerIndex = 0; layerIndex < layers.Size(); ++layerIndex ) {
+		if( ( !hasBackward || blobsForBackward != 0 ) && ( !hasLearn || blobsForLearn != 0 ) ) {
+			break;
+		}
+		const CBaseLayer& layer = *layers[layerIndex];
+		for( int inputIndex = 0; inputIndex < layer.GetInputCount(); ++inputIndex ) {
+			if( dynamic_cast<const CCompositeSourceLayer*>( layer.GetInputLayer( inputIndex ) ) != nullptr ) {
+				if( hasBackward && layer.IsBackwardPerformed() && ( layer.BlobsForBackward() & TInputBlobs ) != 0 ) {
+					blobsForBackward |= TInputBlobs;
+				}
+				if( hasLearn && layer.IsLearningPerformed() && ( layer.BlobsForLearn() & TInputBlobs ) != 0 ) {
+					blobsForLearn |= TInputBlobs;
+				}
+				break;
+			}
+		}
+	}
+
+	for( int outputIndex = 0; outputIndex < outputMappings.Size(); ++outputIndex ) {
+		if( ( !hasBackward || ( blobsForBackward & TOutputBlobs ) != 0 )
+			&& ( !hasLearn || ( blobsForLearn & TOutputBlobs ) != 0 ) )
+		{
+			break;
+		}
+		const CBaseLayer& layer = *GetLayer( outputMappings[outputIndex].InternalLayerName );
+		if( hasBackward && layer.IsBackwardPerformed() && ( layer.BlobsForBackward() & TOutputBlobs ) != 0 ) {
+			blobsForBackward |= TOutputBlobs;
+		}
+		if( hasLearn && layer.IsLearningPerformed() && ( layer.BlobsForLearn() & TOutputBlobs ) != 0 ) {
+			blobsForLearn |= TOutputBlobs;
+		}
+	}
+}
+
 // Sets the input blobs
 void CCompositeLayer::setInputBlobs()
 {
@@ -383,7 +430,7 @@ void CCompositeLayer::OnDnnChanged( CDnn* )
 	sources.DeleteAll();
 	sinks.DeleteAll();
 	if(GetDnn() != 0) {
-		internalDnn = FINE_DEBUG_NEW CDnn(GetDnn()->Random(), GetDnn()->GetMathEngine());
+		internalDnn = FINE_DEBUG_NEW CDnn(GetDnn()->Random(), GetDnn()->GetMathEngine(), this);
 
 		for(int i = 0; i < layers.Size(); ++i) {
 			internalDnn->AddLayer(*layers[i]);
@@ -476,6 +523,8 @@ void CCompositeLayer::Reshape()
 	internalDnn->reshape();
 	// Get the output descriptors
 	setOutputDescs();
+	// Determine which blobs will be used during backward and learn
+	calcBlobsForBackwardAndLearn();
 }
 
 // Runs the internal network forward pass as defined in children
@@ -489,6 +538,7 @@ void CCompositeLayer::RunOnce()
 {
 	NeoAssert(GetDnn() != 0 && internalDnn != 0);
 	NeoAssert(internalDnn->IsBackwardPerformed() == GetDnn()->IsBackwardPerformed());
+	internalDnn->isReuseMemoryMode = GetDnn()->isReuseMemoryMode;
 
 	if(internalDnn->GetLog() != 0) {
 		*internalDnn->GetLog() << "\n";

@@ -22,22 +22,10 @@ namespace NeoML {
 
 void CBaseInPlaceLayer::Reshape()
 {
-	isInPlace = IsInPlaceProcessAvailable();
+	EnableInPlace( InputsMayBeOverwritten() );
 	inputDescs.CopyTo( outputDescs );
 
 	OnReshaped();
-}
-
-void CBaseInPlaceLayer::AllocateOutputBlobs()
-{
-	if( !isInPlace ) {
-		CBaseLayer::AllocateOutputBlobs();
-		return;
-	}
-
-	if( !outputBlobs.IsEmpty() && outputBlobs[0] == 0 ) {
-		inputBlobs.CopyTo( outputBlobs );
-	}
 }
 
 static const int BaseInPlaceLayerVersion = 2000;

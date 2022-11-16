@@ -96,6 +96,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/LogicalLayers.h>
 #include <NeoML/Dnn/Layers/CumSumLayer.h>
 #include <NeoML/Dnn/Layers/ScatterGatherLayers.h>
+#include <NeoML/Dnn/Layers/TransformerSourceMaskLayer.h>
 
 namespace NeoML {
 
@@ -359,12 +360,14 @@ REGISTER_NEOML_LAYER( CCumSumLayer, "NeoMLDnnCumSumLayer" )
 REGISTER_NEOML_LAYER( CEqualLayer, "NeoMLDnnEqualLayer" )
 REGISTER_NEOML_LAYER( CWhereLayer, "NeoMLDnnWhereLayer" )
 REGISTER_NEOML_LAYER( CScatterNDLayer, "NeoMLDnnScatterNDLayer" )
+REGISTER_NEOML_LAYER( CTransformerSourceMaskLayer, "NeoMLDnnTransformerSourceMaskLayer" )
 
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 
-CDnn::CDnn( CRandom& _random, IMathEngine& _mathEngine ) :
+CDnn::CDnn( CRandom& _random, IMathEngine& _mathEngine, const CCompositeLayer* owner ) :
+	owner( owner ),
 	log( 0 ),
 	logFrequency( 100 ),
 	random( _random ),
@@ -416,8 +419,8 @@ CPtr<const CBaseLayer> CDnn::GetLayer( const char* name ) const
 
 void CDnn::AddLayerImpl( CBaseLayer& layer )
 {
-	CheckArchitecture( !layerMap.Has( layer.GetName() ), layer.GetName(), "layer already in this dnn" );
-	CheckArchitecture( layer.GetDnn() == 0, layer.GetName(), "layer already added to other dnn" );
+	CheckArchitecture( !layerMap.Has( layer.GetName() ), layer.GetPath(), "layer already in this dnn" );
+	CheckArchitecture( layer.GetDnn() == 0, layer.GetPath(), "layer already added to other dnn" );
 
 	// Set the flag that indicates the network must be rebuilt (configuration has changed)
 	ForceRebuild();
@@ -555,7 +558,8 @@ void CDnn::RunOnce()
 			RestartSequence();
 		}
 		reshape(); // rebuild the network if necessary
-		
+
+		// During inference we turning reuseMemoryMode on when the net is big enough
 		isReuseMemoryMode = ( getOutputBlobsSize() > MinReuseMemoryModeNetSize );
 		runOnce(0);
 	}
@@ -591,7 +595,11 @@ void CDnn::RunAndBackwardOnce()
 			RestartSequence();
 		}
 		reshape(); // rebuild the network if necessary
-		isReuseMemoryMode = false;
+
+		// During training we don't reuse memory only when training on nonDistributed CPU
+		CMathEngineInfo info;
+		mathEngine.GetMathEngineInfo( info );
+		isReuseMemoryMode = info.Type != MET_Cpu || mathEngine.IsDistributed();
 		runOnce(0);
 		backwardRunAndLearnOnce(0);
 	} catch( CCheckException* exception ) {
@@ -687,6 +695,11 @@ void CDnn::rebuild()
 			sinkLayers.Add(layers[i]);
 		}
 	}
+
+	for( int i = 0; i < sinkLayers.Size(); ++i ) {
+		sinkLayers[i]->buildOrder();
+	}
+
 	RequestReshape(true);
 }
 
@@ -697,6 +710,11 @@ size_t CDnn::getOutputBlobsSize() const
 		result += layers[i]->GetOutputBlobsSize();
 	}
 	return result;
+}
+
+CString CDnn::getPath() const
+{
+	return owner == nullptr ? CString() : owner->GetPath() + "/";
 }
 
 void CDnn::FilterLayersParams( float threshold )

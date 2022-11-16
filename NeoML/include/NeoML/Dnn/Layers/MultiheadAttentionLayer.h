@@ -48,6 +48,17 @@ class NEOML_API CMultiheadAttentionLayer : public CCompositeLayer {
 public:
 	explicit CMultiheadAttentionLayer( IMathEngine& mathEngine );
 
+	// Mask type
+	enum TMaskType {
+		// One mask for all objects
+		// Its shape is (1 x 1 x 1 x 1 x ListSize_Q x 1 x ListSize_V)
+		MT_OneObject = 0,
+
+		// Different masks for different objects
+		// Its shape is (1 x BatchWidth x headCount x 1 x ListSize_Q x 1 x ListSize_V)
+		MT_Eltwise = 1
+	};
+
 	// The number of heads in attention
 	// The GetHiddenSize() must be a multiple of this value
 	// By default attention consist of 1 head
@@ -60,7 +71,7 @@ public:
 	void SetHiddenSize( int _hiddenSize );
 
 	// Rate of dropout applied to the softmax
-	// Negaive value means no dropout
+	// Negative value means no dropout
 	// By default the dropout rate is -1
 	float GetDropoutRate() const { return dropoutRate; }
 	void SetDropoutRate( float dropoutRate ); 
@@ -69,11 +80,22 @@ public:
 	bool GetUseMask() const { return useMask; }
 	void SetUseMask( bool newValue );
 
+	// Mask type
+	TMaskType GetMaskType() const { return maskType; }
+	void SetMaskType( TMaskType _maskType );
+
 	// The size of output
 	int GetOutputSize() const { return outputSize; }
 	void SetOutputSize( int _outputSize );
 
+	// Scale in attention previously depended on number of heads
+	bool IsInCompatibilityMode() const { return isInCompatibilityMode; }
+	void SetCompatibilityMode( bool value );
+
 	void Serialize( CArchive& archive ) override;
+
+	// Recreates the layer if forceRebuild is true or it doesn't contain sublayers
+	void Rebuild( bool forceRebuild );
 
 protected:
 	void Reshape() override;
@@ -87,8 +109,14 @@ private:
 	float dropoutRate;
 	// Mask usage
 	bool useMask;
+	// Type of mask used
+	TMaskType maskType;
 	// Output size
 	int outputSize;
+	// scale in attention
+	bool isInCompatibilityMode;
+	// layer applying scale
+	CString multiplyByConstLayerName;
 
 	void create();
 
@@ -115,6 +143,10 @@ private:
 	CBaseLayer* prepareK( CBaseLayer* input );
 	CBaseLayer* prepareV( CBaseLayer* input );
 	CBaseLayer* prepareOutput( CBaseLayer* input );
+
+	// divide dot product by sqrt( d_k ) or sqrt( d_K ) in compatibility mode, where k - one key, K - concatenation of keys from all heads
+	float getScalingFactor() const
+		{ return static_cast<float>( 1.0 / sqrt( 1.0 * hiddenSize / ( isInCompatibilityMode ? 1 : headCount ) ) ); }
 };
 
 NEOML_API CLayerWrapper<CMultiheadAttentionLayer> MultiheadAttention(

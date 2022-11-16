@@ -37,6 +37,8 @@ protected:
 	void BackwardOnce() override;
 	void LearnOnce() override;
 	bool IsFilterTransposed() const override { return true; }
+	int BlobsForBackward() const override { return 0; }
+	int BlobsForLearn() const override { return TInputBlobs; }
 
 private:
 	C3dConvolutionDesc* convDesc;

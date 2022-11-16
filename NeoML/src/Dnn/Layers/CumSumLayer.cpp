@@ -57,7 +57,7 @@ void CCumSumLayer::Reshape()
 	NeoAssert( dim >= 0 && dim < BD_Count );
 	inputDescs.CopyTo( outputDescs );
 	CheckArchitecture( inputDescs[0].GetDataType() == CT_Float || !IsBackwardPerformed(),
-		GetName(), "Backward over integer data" );
+		GetPath(), "Backward over integer data" );
 }
 
 void CCumSumLayer::RunOnce()
@@ -81,7 +81,7 @@ void CCumSumLayer::BackwardOnce()
 	int preceding = 1;
 	int dimension = 1;
 	int following = 1;
-	getDimSizes( inputBlobs[0]->GetDesc(), dim, preceding, dimension, following );
+	getDimSizes( inputDiffBlobs[0]->GetDesc(), dim, preceding, dimension, following );
 
 	MathEngine().VectorCumSumAlongDimension( outputDiffBlobs[0]->GetData(),
 		preceding, dimension, following, inputDiffBlobs[0]->GetData(), !reverse );

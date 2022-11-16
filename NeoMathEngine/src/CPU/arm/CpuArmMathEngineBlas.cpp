@@ -508,6 +508,11 @@ void CCpuMathEngine::QRFactorization( int, int, const CFloatHandle&, const CFloa
     ASSERT_EXPR( false );
 }
 
+void CCpuMathEngine::LUFactorization( int, int, const CFloatHandle& )
+{
+    ASSERT_EXPR( false );
+}
+
 } // namespace NeoML
 
 #endif // NEOML_USE_NEON

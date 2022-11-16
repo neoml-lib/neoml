@@ -44,7 +44,8 @@ CBaseLayer::CBaseLayer( IMathEngine& _mathEngine, const char* _name, bool _isLea
 	graphCount( 0 ),
 	useTimer( false ),
 	runOnceCount( 0 ),
-	runOnceTime( 0 )
+	runOnceTime( 0 ),
+	isInPlace( false )
 {
 }
 
@@ -91,6 +92,7 @@ void CBaseLayer::unlink()
 	
 	inputLinks.DeleteAll();
 	outputs.DeleteAll();
+	lastOutputUser.DeleteAll();
 
 	inputDiffBlobs.DeleteAll();
 	outputDiffBlobs.DeleteAll();
@@ -100,6 +102,23 @@ void CBaseLayer::unlink()
 	readyOutputDiffs.DeleteAll();
 
 	clearAllRuntimeBlobs();
+}
+
+void CBaseLayer::buildOrder()
+{
+	if( !lastOutputUser.IsEmpty() ) {
+		return;
+	}
+
+	for( int i = 0; i < inputLinks.Size(); ++i ) {
+		inputLinks[i].Layer->buildOrder();
+	}
+
+	for( int i = 0; i < inputLinks.Size(); ++i ) {
+		inputLinks[i].Layer->lastOutputUser[inputLinks[i].OutputNumber] = this;
+	}
+
+	lastOutputUser.Add( nullptr, outputs.Size() );
 }
 
 // Establish connections
@@ -156,23 +175,31 @@ void CBaseLayer::clearAllRuntimeBlobs()
 	runtimeBlobPtrs.DeleteAll();
 }
 
-bool CBaseLayer::IsInPlaceProcessAvailable() const
+bool CBaseLayer::InputsMayBeOverwritten() const
 {
-	for(int i = 0; i < GetInputCount(); ++i) {
+	const int inputsToOverwrite = min( GetInputCount(), GetOutputCount() );
+	for(int i = 0; i < inputsToOverwrite; ++i) {
 		const CBaseLayer* inputLayer = GetInputLayer(i);
 		if(inputLayer->GetInputCount() == 0) {
 			// The previous layer is a source layer so its data may not be processed in place
 			// as it belongs to the user code
 			return false;
 		}
-		if(inputLayer->outputs[inputLinks[i].OutputNumber] > 1) {
-			// The previous layer output is connected to several different layer inputs
-			// so its data is shared by several layers and may not be processed in place
+		if( inputLayer->lastOutputUser[inputLinks[i].OutputNumber] != this ) {
+			// Current input will be used later by some other layer
 			return false;
 		}
-		if(dynamic_cast<const CBaseInPlaceLayer*>(inputLayer) != 0) {
-			// The previous layer is itself processing in-place, so it may be counting on not having its output blobs changed
-			// So the data may not be processed in place because that would change the outputs of the previous layer
+		NeoPresume( GetDnn() != nullptr );
+		if( GetDnn()->IsBackwardPerformed() && inputLayer->outputs[inputLinks[i].OutputNumber] != 1 ) {
+			// Current input may be used for training other layers connected to this input
+			return false;
+		}
+		if( ( inputLayer->blobsNeededForBackward & TOutputBlobs ) != 0 ) {
+			// The previous layer needs its output for backward
+			return false;
+		}
+		if( inputLayer->isInPlace && ( inputLayer->blobsNeededForBackward & TInputBlobs ) != 0 ) {
+			// The previous layer is working inPlace and needs its input to function properly
 			return false;
 		}
 	}
@@ -198,10 +225,21 @@ public:
 
 void CBaseLayer::AllocateOutputBlobs()
 {
+	if( isInPlace ) {
+		NeoPresume( outputBlobs.Size() <= inputBlobs.Size() );
+		if( !outputBlobs.IsEmpty() && outputBlobs[0] == nullptr ) {
+			for( int i = 0; i < outputBlobs.Size(); ++i ) {
+				outputBlobs[i] = inputBlobs[i];
+			}
+		}
+
+		return;
+	}
+
 	CMemoryModeSwitcher switcher( MathEngine(), GetDnn()->isReuseMemoryMode );
 
 	for( int i = 0; i < outputDescs.Size(); ++i ) {
-		if( outputBlobs[i] == 0 ) {
+		if( outputBlobs[i] == nullptr ) {
 			outputBlobs[i] = CDnnBlob::CreateBlob( MathEngine(), outputDescs[i].GetDataType(), outputDescs[i] );
 		} else {
 			if( !outputBlobs[i]->GetDesc().HasEqualDimensions( outputDescs[i] ) ) {
@@ -212,6 +250,11 @@ void CBaseLayer::AllocateOutputBlobs()
 			}
 		}
 	}
+}
+
+CString CBaseLayer::GetPath() const
+{
+	return GetDnn() == nullptr ? CString( GetName() ) : GetDnn()->getPath() + GetName();
 }
 
 size_t CBaseLayer::GetOutputBlobsSize() const
@@ -315,7 +358,7 @@ void CBaseLayer::reshape()
 	forcedReshape = forcedReshape
 		|| inputDescs.Size() != prevInputDescs.Size()
 		|| outputDescs.Size() != outputs.Size()
-		|| isInPlaceProcess()
+		|| isInPlace
 		|| isComposite();
 
 	if(!forcedReshape) {
@@ -343,6 +386,7 @@ void CBaseLayer::reshape()
 	inputDiffBlobs.DeleteAll();
 	outputDiffBlobs.DeleteAll();
 	clearAllRuntimeBlobs();
+	isInPlace = false;
 
 	if( MathEngine().GetType() == MET_Cpu && !GetDnn()->IsBackwardPerformed()
 		&& !MathEngine().IsDistributed() && MathEngine().GetMemoryInPools() > MaxMemoryInPools )
@@ -351,6 +395,8 @@ void CBaseLayer::reshape()
 	}
 
 	Reshape();
+	blobsNeededForBackward = ( IsBackwardPerformed() ? BlobsForBackward() : 0 )
+		| ( IsLearningPerformed() ? BlobsForLearn() : 0 );
 
 	NeoPresume( inputBlobs.IsEmpty() );
 	NeoPresume( outputBlobs.IsEmpty() );
@@ -397,8 +443,7 @@ void CBaseLayer::runOnce()
 {
 	NeoPresume( inputBlobs.Size() == inputs.Size() );
 	NeoPresume( outputBlobs.Size() == outputs.Size() );
-
-	NeoAssert( dnn != 0 ); // possible only in a network
+	NeoPresume( dnn != nullptr ); // possible only in a network
 
 	if( lastRunNumber == dnn->runNumber ) {
 		return; // has run already
@@ -414,7 +459,7 @@ void CBaseLayer::runOnce()
 	// or the input and output blobs are released directly after use
 	for( int i = 0; i < inputBlobs.Size(); ++i ) {
 		CBaseLayer* inputLayer = GetInputLayer( i );
-		int outputNumber = inputs[i].OutputNumber;
+		const int outputNumber = inputs[i].OutputNumber;
 		CDnnBlob* prevLayerOutput = inputLayer->outputBlobs[outputNumber].Ptr();
 
 		if( prevLayerOutput == inputBlobs[i].Ptr() ) {
@@ -422,19 +467,32 @@ void CBaseLayer::runOnce()
 		}
 
 		inputBlobs[i] = prevLayerOutput;
+	}
 
-		if( GetDnn()->isReuseMemoryMode ) {
-			// Notify that the output has been processed
-			inputLayer->onOutputProcessed( outputNumber );
+	const bool mayFreeIoBlobs = GetDnn()->isReuseMemoryMode
+		&& ( !GetDnn()->isBackwardPerformed || !GetDnn()->IsRecurrentMode() || GetDnn()->IsLastSequencePos()
+			|| ( ( blobsNeededForBackward & TInputBlobs ) == 0 && ( !isInPlace || ( blobsNeededForBackward & TOutputBlobs ) == 0 ) ) );
+
+	if( mayFreeIoBlobs ) {
+		for( int i = 0; i < inputBlobs.Size(); ++i ) {
+			CBaseLayer* inputLayer = GetInputLayer( i );
+			const int outputNumber = inputs[i].OutputNumber;
+
+			if( inputLayer->lastOutputUser[outputNumber] == this
+				&& ( inputLayer->blobsNeededForBackward & TOutputBlobs ) == 0 )
+			{
+				inputLayer->outputBlobs[outputNumber] = nullptr;
+			}
 		}
 	}
 
 	AllocateOutputBlobs();
+	allocatedBlobs = TInputBlobs | TOutputBlobs;
 
 	// Create window blobs for the inputs and outputs
 	if( dnn->IsRecurrentMode() ) {
-		switchBlobsToSequentialMode(inputBlobs, BCT_Input, GetDnn()->isReuseMemoryMode);
-		switchBlobsToSequentialMode(outputBlobs, BCT_Output, GetDnn()->isReuseMemoryMode);
+		switchBlobsToSequentialMode(inputBlobs, BCT_Input, GetDnn()->isReuseMemoryMode );
+		switchBlobsToSequentialMode(outputBlobs, BCT_Output, GetDnn()->isReuseMemoryMode );
 		switchBlobsToSequentialMode(runtimeBlobs, BCT_Runtime, false);
 		for(int i = 0; i < runtimeBlobs.Size(); i++) {
 			*runtimeBlobPtrs[i] = runtimeBlobs[i];
@@ -447,8 +505,8 @@ void CBaseLayer::runOnce()
 	}
 
 	if( dnn->IsRecurrentMode() ) {
-		switchBlobsToNonSequentialMode(inputBlobs, BCT_Input, GetDnn()->isReuseMemoryMode);
-		switchBlobsToNonSequentialMode(outputBlobs, BCT_Output, GetDnn()->isReuseMemoryMode);
+		switchBlobsToNonSequentialMode(inputBlobs, BCT_Input, GetDnn()->isReuseMemoryMode );
+		switchBlobsToNonSequentialMode(outputBlobs, BCT_Output, GetDnn()->isReuseMemoryMode );
 		switchBlobsToNonSequentialMode(runtimeBlobs, BCT_Runtime, false);
 		for(int i = 0; i < runtimeBlobs.Size(); i++) {
 			*runtimeBlobPtrs[i] = runtimeBlobs[i];
@@ -456,14 +514,7 @@ void CBaseLayer::runOnce()
 	}
 
 	if( GetDnn()->isReuseMemoryMode ) {
-		for( int i = 0; i < inputs.Size(); ++i ) {
-			inputBlobs[i] = 0;
-		}
-
-		outputProcessedCount.SetSize( outputs.Size() );
-		for( int i = 0; i < outputs.Size(); ++i ) {
-			outputProcessedCount[i] = 0;
-		}
+		setAllocatedBlobs( TOutputBlobs | blobsNeededForBackward );
 	}
 }
 
@@ -491,11 +542,9 @@ void CBaseLayer::recheckBackwardNeeded()
 	}
 }
 
-CDnnBlob* CBaseLayer::cloneBlobForDiff(CDnnBlob* blob)
+CDnnBlob* CBaseLayer::cloneBlobForDiff(const CBlobDesc& desc)
 {
-	NeoAssert( blob != 0 );
-
-	CDnnBlob* ret = blob->GetClone();
+	CDnnBlob* ret = CDnnBlob::CreateBlob( MathEngine(), desc );
 	ret->Clear();
 	return ret;
 }
@@ -512,13 +561,10 @@ void CBaseLayer::backwardRunAndLearnOnce()
 		}
 	}
 
-	// Check for in-place processing before processing in sequential mode
-	bool isInPlace = isInPlaceProcess();
-
 	if( dnn->IsRecurrentMode() ) {
 		// Switch the input and output blobs to sequential mode (to the current position in sequence)
-		switchBlobsToSequentialMode(inputBlobs, BCT_Input, false);
-		switchBlobsToSequentialMode(outputBlobs, BCT_Output, false);
+		switchBlobsToSequentialMode(inputBlobs, BCT_Input, GetDnn()->isReuseMemoryMode);
+		switchBlobsToSequentialMode(outputBlobs, BCT_Output, GetDnn()->isReuseMemoryMode);
 		switchBlobsToSequentialMode(runtimeBlobs, BCT_Runtime, false);
 		for(int i = 0; i < runtimeBlobs.Size(); i++) {
 			*runtimeBlobPtrs[i] = runtimeBlobs[i];
@@ -530,10 +576,14 @@ void CBaseLayer::backwardRunAndLearnOnce()
 		NeoAssert( inputDiffBlobs.IsEmpty() );
 		// Create blobs
 		for( int i = 0; i < inputBlobs.Size(); ++i ) {
-			if( isInPlace ) {
+			if( isInPlace && i < outputDiffBlobs.Size() ) {
 				inputDiffBlobs.Add( outputDiffBlobs[i] );
 			} else {
-				inputDiffBlobs.Add( cloneBlobForDiff( inputBlobs[i] ) );
+				CBlobDesc inputDiffDesc = inputDescs[i];
+				if( GetDnn()->IsRecurrentMode() ) {
+					inputDiffDesc.SetDimSize( BD_BatchLength, 1 );
+				}
+				inputDiffBlobs.Add( cloneBlobForDiff( inputDiffDesc ) );
 			}
 		}
 
@@ -581,12 +631,20 @@ void CBaseLayer::backwardRunAndLearnOnce()
 		readyOutputDiffs[out] = 0;
 	}
 	if( dnn->IsRecurrentMode() ) {
-		switchBlobsToNonSequentialMode(inputBlobs, BCT_Input, false);
-		switchBlobsToNonSequentialMode(outputBlobs, BCT_Output, false);
+		switchBlobsToNonSequentialMode(inputBlobs, BCT_Input, GetDnn()->isReuseMemoryMode);
+		switchBlobsToNonSequentialMode(outputBlobs, BCT_Output, GetDnn()->isReuseMemoryMode);
 		switchBlobsToNonSequentialMode(runtimeBlobs, BCT_Runtime, false);
 		for(int i = 0; i < runtimeBlobs.Size(); i++) {
 			*runtimeBlobPtrs[i] = runtimeBlobs[i];
 		}
+	}
+
+	// If layer needs its inputs or outputs for training
+	// then it needs them for all the steps of the recurrent part
+	const bool freeBlobs = GetDnn()->isReuseMemoryMode
+		&& ( !GetDnn()->IsRecurrentMode() || GetDnn()->IsFirstSequencePos() );
+	if( freeBlobs ) {
+		setAllocatedBlobs( 0 );
 	}
 }
 
@@ -611,7 +669,7 @@ void CBaseLayer::transferDiffBlob( CDnnBlob* diffBlob, int outputNum )
 		// If an output is connected to several inputs, create a copy of the diff blob and then add it to the others
 		if(readyOutputDiffs[outputNum] == 0) {
 			if( outputDiffBlobs[outputNum] == 0 ) {
-				outputDiffBlobs[outputNum] = cloneBlobForDiff(diffBlob);
+				outputDiffBlobs[outputNum] = cloneBlobForDiff(diffBlob->GetDesc());
 			}
 			outputDiffBlobs[outputNum]->CopyFrom( diffBlob );
 		} else {
@@ -646,6 +704,7 @@ void CBaseLayer::setDnn( CDnn* newDnn )
 	}
 	outputBlobs.DeleteAll();
 	outputs.DeleteAll();
+	lastOutputUser.DeleteAll();
 	outputDiffBlobs.DeleteAll();
 	inputDiffBlobs.DeleteAll();
 	readyOutputDiffs.DeleteAll();
@@ -736,32 +795,33 @@ void CBaseLayer::Serialize( CArchive& archive )
 
 void CBaseLayer::CheckInputs() const
 {
-	CheckArchitecture( !inputs.IsEmpty(), GetName(), "layer has no input" );
+	CheckArchitecture( !inputs.IsEmpty(), GetPath(), "layer has no input" );
 }
 
 void CBaseLayer::CheckInput1() const
 {
-	CheckArchitecture( inputs.Size() == 1, GetName(), "layer must have exactly 1 input" );
+	CheckArchitecture( inputs.Size() == 1, GetPath(), "layer must have exactly 1 input" );
 }
 
 void CBaseLayer::CheckOutputs() const
 {
-	CheckArchitecture( !outputs.IsEmpty(), GetName(), "layer has no output" );
+	CheckArchitecture( !outputs.IsEmpty(), GetPath(), "layer has no output" );
 }
 
-void CBaseLayer::onOutputProcessed( int index )
+void CBaseLayer::setAllocatedBlobs( int newMask )
 {
-	if( !GetDnn()->isReuseMemoryMode ) {
-		return;
+	if( ( TInputBlobs & newMask ) == 0 && ( TInputBlobs & allocatedBlobs ) != 0 ) {
+		for( int i = 0; i < inputBlobs.Size(); ++i ) {
+			inputBlobs[i] = nullptr;
+		}
+		allocatedBlobs &= ~TInputBlobs;
 	}
 
-	NeoPresume( outputProcessedCount.Size() > index );
-	NeoPresume( outputProcessedCount[index] < outputs[index] );
-
-	CPtr<CDnnBlob> result = outputBlobs[index];
-	outputProcessedCount[index]++;
-	if( outputProcessedCount[index] == outputs[index] ) {
-		outputBlobs[index] = 0;
+	if( ( TOutputBlobs & newMask ) == 0 && ( TOutputBlobs & allocatedBlobs ) != 0 ) {
+		for( int i = 0; i < outputBlobs.Size(); ++i ) {
+			outputBlobs[i] = nullptr;
+		}
+		allocatedBlobs &= ~TOutputBlobs;
 	}
 }
 

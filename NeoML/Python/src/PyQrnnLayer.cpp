@@ -37,7 +37,7 @@ public:
 	void SetPaddingBack( int value ) { Layer<CQrnnLayer>()->SetPaddingBack(value); }
 
 	void SetActivation(int value) { Layer<CQrnnLayer>()->SetActivation(static_cast<TActivationFunction>(value)); }
-	int GetActivation() const { return static_cast<int>(Layer<CQrnnLayer>()->GetActivation()); }
+	int GetActivation() const { return static_cast<int>(Layer<CQrnnLayer>()->GetActivation().GetType()); }
 
 	void SetDropout(float value) { Layer<CQrnnLayer>()->SetDropout(value); }
 	float GetDropout() const { return Layer<CQrnnLayer>()->GetDropout(); }

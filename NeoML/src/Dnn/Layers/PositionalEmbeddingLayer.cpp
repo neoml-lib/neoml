@@ -50,6 +50,12 @@ void CPositionalEmbeddingLayer::SetAddends( CDnnBlob* newAddends, bool copy )
 	}
 }
 
+void CPositionalEmbeddingLayer::SetMaxListSize( int value )
+{
+	NeoAssert( type == PET_LearnableAddition );
+	maxSequenceLength = value;
+}
+
 void CPositionalEmbeddingLayer::Reshape()
 {
 	checkDimensions();
@@ -61,8 +67,16 @@ void CPositionalEmbeddingLayer::Reshape()
 	switch( type ) {
 		case PET_LearnableAddition:
 		{
-			if( paramBlobs.Size() == 1 && paramBlobs[0] != nullptr && paramBlobs[0]->GetDesc().HasEqualDimensions( paramsDesc ) ) {
+			if( paramBlobs.Size() == 1 && paramBlobs[0] != nullptr &&  // initialized
+				maxSequenceLength == paramBlobs[0]->GetListSize() )  // setting not changed
+			{
 				break;
+			}
+
+			if( maxSequenceLength == NotFound ) {
+				maxSequenceLength = paramsDesc.ListSize();
+			} else {
+				paramsDesc.SetDimSize( BD_ListSize, maxSequenceLength );
 			}
 
 			paramBlobs.SetSize( 1 );
@@ -85,7 +99,6 @@ void CPositionalEmbeddingLayer::Reshape()
 		}
 		default:
 			break;
-
 	}
 
 	outputDescs.SetSize( 1 );
@@ -113,8 +126,8 @@ void CPositionalEmbeddingLayer::RunOnce()
 
 void CPositionalEmbeddingLayer::BackwardOnce()
 {
-	const int objectsCount = inputBlobs[0]->GetBatchWidth();
-	const int objectSize = inputBlobs[0]->GetDataSize() / objectsCount;
+	const int objectsCount = inputDiffBlobs[0]->GetBatchWidth();
+	const int objectSize = inputDiffBlobs[0]->GetDataSize() / objectsCount;
 
 	switch( type ) {
 		case PET_Transformers:
@@ -129,13 +142,14 @@ void CPositionalEmbeddingLayer::BackwardOnce()
 
 void CPositionalEmbeddingLayer::LearnOnce()
 {
-	const int objectsCount = inputBlobs[0]->GetBatchWidth();
-	const int objectSize = inputBlobs[0]->GetDataSize() / objectsCount;
+	const int objectsCount = inputDiffBlobs[0]->GetBatchWidth();
+	const int objectSize = inputDiffBlobs[0]->GetDataSize() / objectsCount;
 
 	static_assert( PET_EnumCount == 2, "PET_EnumCount != 2" );
 	switch( type ) {
 		case PET_LearnableAddition:
-			MathEngine().SumMatrixRowsAdd( 1, paramDiffBlobs[0]->GetData(), outputDiffBlobs[0]->GetData(), objectsCount, objectSize );
+			MathEngine().SumMatrixRowsAdd( 1, paramDiffBlobs[0]->GetData(), outputDiffBlobs[0]->GetData(),
+				objectsCount, objectSize );
 			break;
 		case PET_Transformers:
 			break;
@@ -144,13 +158,21 @@ void CPositionalEmbeddingLayer::LearnOnce()
 	}
 }
 
-static const int PositionalEmbeddingLayerVersion = 0;
+static const int PositionalEmbeddingLayerVersion = 1;
 
 void CPositionalEmbeddingLayer::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion( PositionalEmbeddingLayerVersion );
+	const int version = archive.SerializeVersion( PositionalEmbeddingLayerVersion );
 	CBaseLayer::Serialize( archive );
 	archive.SerializeEnum( type );
+	if( version >= 1 ) {
+		archive.Serialize( maxSequenceLength );
+	} else {
+		maxSequenceLength = NotFound;
+		if( !paramBlobs.IsEmpty() ) {
+			maxSequenceLength = paramBlobs[0]->GetListSize();
+		}
+	}
 }
 
 // Checks input dimensions
@@ -161,14 +183,17 @@ void CPositionalEmbeddingLayer::checkDimensions()
 
 	const CBlobDesc& inputDesc = inputDescs[0];
 
-	CheckArchitecture( inputDesc.GetDataType() == CT_Float, GetName(), "wrong input data type" );
-	CheckArchitecture( inputDesc.BatchLength() == 1, GetName(), "wrong input BatchLength dimension" );
+	CheckArchitecture( inputDesc.GetDataType() == CT_Float, GetPath(), "wrong input data type" );
+	CheckArchitecture( inputDesc.BatchLength() == 1, GetPath(), "wrong input BatchLength dimension" );
 
 	if( type == PET_Transformers ) {
-		CheckArchitecture( inputDesc.Height() == 1, GetName(), "wrong input Height dimension" );
-		CheckArchitecture( inputDesc.Width() == 1, GetName(), "wrong input Width dimension" );
-		CheckArchitecture( inputDesc.Depth() == 1, GetName(), "wrong input Depth dimension" );
+		CheckArchitecture( inputDesc.Height() == 1, GetPath(), "wrong input Height dimension" );
+		CheckArchitecture( inputDesc.Width() == 1, GetPath(), "wrong input Width dimension" );
+		CheckArchitecture( inputDesc.Depth() == 1, GetPath(), "wrong input Depth dimension" );
 	}
+
+	CheckArchitecture( maxSequenceLength == NotFound || inputDesc.ListSize() <= maxSequenceLength,
+		GetPath(), "sequence is too long" );
 }
 
 // Initializes learnable addition

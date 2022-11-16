@@ -67,6 +67,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoOnnx/NeoOnnx.h
     ../include/NeoOnnx/NeoOnnxDefs.h
     ../include/NeoOnnx/NeoOnnxImport.h
+    ../include/NeoOnnx/TensorLayout.h
     AttributeGetters.h
     GraphInput.h
     GraphInitializer.h
@@ -115,7 +116,6 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Operators/UnsqueezeOperator.h
     Operators/UpsampleOperator.h
     Tensor.h
-    TensorLayout.h
     TensorUtils.h
 )
 

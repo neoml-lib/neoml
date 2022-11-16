@@ -37,7 +37,7 @@ void CBroadcastLayer::Reshape()
 {
 	CheckInputs();
 	CheckOutputs();
-	CheckArchitecture( GetInputCount() == GetOutputCount(), GetName(),
+	CheckArchitecture( GetInputCount() == GetOutputCount(), GetPath(),
 		"#inputs != #outputs in CBroadcastLayer" );
 
 	CBlobDesc broadcastedDesc = inputDescs[0];
@@ -46,21 +46,31 @@ void CBroadcastLayer::Reshape()
 		const CBlobDesc& currInput = inputDescs[inputIndex];
 		for( int dim = 0; dim < static_cast<int>( BD_Count ); dim++ ) {
 			if( currInput.DimSize( dim ) != 1 && currInput.DimSize( dim ) != broadcastedDesc.DimSize( dim ) ) {
-				CheckArchitecture( broadcastedDesc.DimSize( dim ) == 1, GetName(), "inputs can't be broadcasted" );
+				CheckArchitecture( broadcastedDesc.DimSize( dim ) == 1, GetPath(), "inputs can't be broadcasted" );
 				broadcastedDesc.SetDimSize( dim, currInput.DimSize( dim ) );
 			}
 		}
 	}
 
+	bool hasSameShape = true;
 	for( int outputIndex = 0; outputIndex < GetOutputCount(); ++outputIndex ) {
 		broadcastedDesc.SetDataType( inputDescs[outputIndex].GetDataType() );
+		hasSameShape &= broadcastedDesc.HasEqualDimensions( inputDescs[outputIndex] );
 		outputDescs[outputIndex] = broadcastedDesc;
+	}
+
+	if( hasSameShape ) {
+		EnableInPlace( InputsMayBeOverwritten() );
 	}
 }
 
 void CBroadcastLayer::RunOnce()
 {
 	for( int inputIndex = 0; inputIndex < inputBlobs.Size(); ++inputIndex ) {
+		if( inputBlobs[inputIndex].Ptr() == outputBlobs[inputIndex].Ptr() ) {
+			continue;
+		}
+
 		const CDnnBlob& currInput = *inputBlobs[inputIndex];
 		CDnnBlob& currOutput = *outputBlobs[inputIndex];
 

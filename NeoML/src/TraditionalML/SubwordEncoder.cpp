@@ -122,4 +122,16 @@ void ISubwordEncoderWithCache::Encode( const CString& word, CArray<int>& tokenId
 	cache.Add( word, wordTokenIds, wordTokenLengths );
 }
 
+//////////////////////////////////////
+static constexpr int BytePairEncoderCurrentVersion = 0;
+
+void IBytePairEncoder::CParams::Serialize( CArchive& archive )
+{
+	archive.SerializeVersion( BytePairEncoderCurrentVersion );
+	archive.Serialize( EndOfWordToken );
+	archive.Serialize( StartOfWordToken );
+	archive.Serialize( UseRawBytes );
+	archive.Serialize( UnknownTokenId );
+}
+
 } // namespace NeoML

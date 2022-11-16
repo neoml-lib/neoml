@@ -80,7 +80,7 @@ void CUpsampling2DLayer::BackwardOnce()
 {
 	NeoAssert( inputDiffBlobs.Size() == outputDiffBlobs.Size() );
 	for( int i = 0; i < inputDiffBlobs.Size(); ++i ) {
-		NeoAssert( inputBlobs[i]->GetDataType() == CT_Float );
+		NeoAssert( inputDescs[i].GetDataType() == CT_Float );
 		MathEngine().Upsampling2DBackward( outputDiffBlobs[i]->GetDesc(), outputDiffBlobs[i]->GetData(),
 			heightCopyCount, widthCopyCount, inputDiffBlobs[i]->GetDesc(), inputDiffBlobs[i]->GetData() );
 	}

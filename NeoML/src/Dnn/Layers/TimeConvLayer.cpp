@@ -84,16 +84,16 @@ void CTimeConvLayer::SetFreeTermData(const CPtr<CDnnBlob>& newFreeTerms)
 void CTimeConvLayer::Reshape()
 {
 	CheckInputs();
-	CheckArchitecture( GetInputCount() == GetOutputCount(), GetName(), "different number of inputs and outputs in time-conv layer" );
-	CheckArchitecture( filterCount > 0, GetName(), "Filter count must be positive" );
-	CheckArchitecture( filterSize > 0, GetName(), "Filter size must be positive" );
-	CheckArchitecture( stride > 0, GetName(), "Stride must be positive" );
+	CheckArchitecture( GetInputCount() == GetOutputCount(), GetPath(), "different number of inputs and outputs in time-conv layer" );
+	CheckArchitecture( filterCount > 0, GetPath(), "Filter count must be positive" );
+	CheckArchitecture( filterSize > 0, GetPath(), "Filter size must be positive" );
+	CheckArchitecture( stride > 0, GetPath(), "Stride must be positive" );
 
 	for(int i = 0; i < GetInputCount(); ++i) {
 		const int outputSize = (inputDescs[i].BatchLength() - ( filterSize - 1 ) * dilation - 1 + paddingFront + paddingBack) / stride + 1;
 
 		CheckArchitecture( filterSize <= inputDescs[i].BatchLength() + paddingFront + paddingBack,
-			GetName(), "Filter is bigger than input" );
+			GetPath(), "Filter is bigger than input" );
 		if(filter() == 0) {
 			filter() = CDnnBlob::Create2DImageBlob( MathEngine(), CT_Float, 1, filterCount, filterSize, 1,
 				inputDescs[i].ObjectSize() );
@@ -117,7 +117,7 @@ void CTimeConvLayer::Reshape()
 		freeTerms()->Fill(0);
 	} else {
 		CheckArchitecture( freeTerms()->GetDataSize() == filterCount,
-			GetName(), "number of free members in conv-time layer is not equal to number of filters" );
+			GetPath(), "number of free members in conv-time layer is not equal to number of filters" );
 	}
 	destroyDesc();
 }
@@ -200,8 +200,12 @@ void CTimeConvLayer::FilterLayerParams( float threshold )
 void CTimeConvLayer::initDesc()
 {
 	if( desc == 0 && !inputBlobs.IsEmpty() && !outputBlobs.IsEmpty() ) {
-		desc = MathEngine().InitTimeConvolution( inputBlobs[0]->GetDesc(), stride, paddingFront, paddingBack,
-			dilation, filter()->GetDesc(), outputBlobs[0]->GetDesc() );
+		NeoPresume( inputBlobs[0] != nullptr || inputDiffBlobs[0] != nullptr );
+		NeoPresume( outputBlobs[0] != nullptr || outputDiffBlobs[0] != nullptr );
+		desc = MathEngine().InitTimeConvolution(
+			inputBlobs[0] != nullptr ? inputBlobs[0]->GetDesc() : inputDiffBlobs[0]->GetDesc(),
+			stride, paddingFront, paddingBack, dilation, filter()->GetDesc(),
+			outputBlobs[0] != nullptr ? outputBlobs[0]->GetDesc() : outputDiffBlobs[0]->GetDesc() );
 	}
 }
 

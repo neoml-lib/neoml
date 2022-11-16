@@ -72,6 +72,22 @@ INSTANTIATE_TEST_CASE_P( CMathEngineAddVectorToMatrixRowsTestInstantiation, CMat
 	)
 );
 
+#if FINE_BIT( FINE_64_BIT )
+// this test is too big for 32-bit
+// but it is crucial for CUDA so we leave it for 64-bit
+INSTANTIATE_TEST_CASE_P( CMathEngineAddVectorToMatrixRowsLargeTestInstantiation, CMathEngineAddVectorToMatrixRowsTest,
+	::testing::Values(
+		CTestParams(
+			"BatchSize = (2..2);"
+			"MatrixHeight = (1089536..1089536);"
+			"MatrixWidth = (64..64);"
+			"Values = (-50..50);"
+			"TestCount = 1;"
+		)
+	)
+);
+#endif
+
 TEST_P(CMathEngineAddVectorToMatrixRowsTest, Random)
 {
 	RUN_TEST_IMPL(batchAddVectorToMatrixRowsTestImpl)

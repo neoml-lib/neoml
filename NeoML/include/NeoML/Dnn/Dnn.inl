@@ -39,14 +39,6 @@ inline bool CBaseLayer::IsBackwardNeeded() const
 	return isBackwardNeeded == BS_NeedsBackward;
 }
 
-inline bool CBaseLayer::isInPlaceProcess() const
-{
-	if(inputBlobs.Size() == 0 || inputBlobs.Size() != outputBlobs.Size()) {
-		return false;
-	}
-	return inputBlobs[0] == outputBlobs[0];
-}
-
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // CDnnLayerGraph

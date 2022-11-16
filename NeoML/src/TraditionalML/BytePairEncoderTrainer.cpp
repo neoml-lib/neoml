@@ -17,13 +17,35 @@ limitations under the License.
 #pragma hdrstop
 
 #include <NeoML/TraditionalML/BytePairEncoderTrainer.h>
+#include <NeoML/TraditionalML/SubwordEncoder.h>
 #include <BytePairEncoder.h>
 
 namespace NeoML {
 
-// Special tokens.
-static const CString StartOfWordTokenInternal( "/\xFF" );
-static const CString EndOfWordTokenInternal( "\\\xFF" );
+// Start-of-Word token for the internal dictionary
+static const CString SowToken( "/\xFF" );
+// End-of-Word token for the internal dictionary
+static const CString EowToken( "\\\xFF" );
+
+// 1: Add CParams (bug fix).
+// 2: Add RawBytes and UnknownTokenId.
+static const int TrainerCurrentVersion = 2;
+static const int TrainerMinSupportedVersion = 1;
+
+void CBytePairEncoderTrainer::CParams::Serialize( CArchive& archive )
+{
+	const int version = archive.SerializeVersion( TrainerCurrentVersion );
+	archive.Serialize( MaxSize );
+	archive.Serialize( UseEndOfWordToken );
+	archive.Serialize( UseStartOfWordToken );
+	if( version >= 2 ) {
+		archive.Serialize( UseRawBytes );
+		archive.Serialize( UnknownTokenId );
+	} else {
+		UseRawBytes = false;
+		UnknownTokenId = IBytePairEncoder::DefaultUnknownTokenId;
+	}
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -36,8 +58,12 @@ CBytePairEncoderTrainer::CBytePairEncoderTrainer( const CParams& params_, const 
 	// Reserve 1 for 'Unknown' token.
 	params.MaxSize--;
 
+	encoder = createEncoder();
 	createTrainData( dictionary );
 }
+
+// CPtr<CBytePairEncoder>
+CBytePairEncoderTrainer::~CBytePairEncoderTrainer() = default;
 
 CPtr<IBytePairEncoder> CBytePairEncoderTrainer::Train()
 {
@@ -61,7 +87,7 @@ bool CBytePairEncoderTrainer::TrainSteps( int stepsCount )
 		}
 	}
 
-	const int currentStepsCount = calcCurrentStepsCount( params.MaxSize );
+	const int currentStepsCount = calcCurrentStepsCount( stepsCount );
 
 	for( int i = 0; i < currentStepsCount; i++ ) {
 		if( !trainSingleStep() ) {
@@ -85,18 +111,26 @@ bool CBytePairEncoderTrainer::IsTrainingCompleted() const
 		|| isTotalStepsCountAchieved;
 }
 
-CPtr<IBytePairEncoder> CBytePairEncoderTrainer::GetEncoder() const
+CPtr<IBytePairEncoder> CBytePairEncoderTrainer::GetEncoder()
 {
-	CPtr<IBytePairEncoder> encoder = new CBytePairEncoder();
-	encoder->LoadDictionary( tokensDictionary, 
-		params.UseEndOfWordToken ? EndOfWordTokenInternal : "", 
-		params.UseStartOfWordToken ? StartOfWordTokenInternal : "" );
-	return encoder;
+	// If training is completed, the member encoder is ready-to-use, otherwise we create an intermediate one.
+	CPtr<CBytePairEncoder> result = IsTrainingCompleted() ? encoder : createEncoder();
+
+	if( !result->IsInitialized() ) {
+		IBytePairEncoder::CBPEDictionary dictionary;
+		dictionary.SetBufferSize( tokensDictionary.Size() );
+		for( int i = 0; i < tokensDictionary.Size(); ++i ) {
+			dictionary.Add( tokensDictionary.GetWord( i ) );
+		}
+		result->InitializeUnsafe( dictionary );
+	}
+	return result.Ptr();
 }
 
 void CBytePairEncoderTrainer::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion( 0 );
+	archive.SerializeVersion( TrainerCurrentVersion, TrainerMinSupportedVersion );
+	params.Serialize( archive );
 	archive.Serialize( stepsCompletedCount );
 	trainWords.Serialize( archive );
 	trainCounts.Serialize( archive );
@@ -105,16 +139,24 @@ void CBytePairEncoderTrainer::Serialize( CArchive& archive )
 	archive.Serialize( reverseIndex );
 }
 
+CPtr<CBytePairEncoder> CBytePairEncoderTrainer::createEncoder() const
+{
+	return new CBytePairEncoder( IBytePairEncoder::CParams{
+			params.UseEndOfWordToken ? EowToken : "",
+			params.UseStartOfWordToken ? SowToken : "",
+			params.UseRawBytes,
+			params.UnknownTokenId
+		}
+	);
+}
+
 // Creates train data for CBpeIterativeTrainer.
 void CBytePairEncoderTrainer::createTrainData( const CWordDictionary& dictionary )
 {
 	trainWords.SetSize( dictionary.Size() );
 	trainCounts.SetSize( dictionary.Size() );
 	for( int i = 0; i < dictionary.Size(); i++ ) {
-		CBytePairEncoder::SplitWordIntoInitialTokens( dictionary.GetWord( i ), 
-			params.UseStartOfWordToken ? StartOfWordTokenInternal : "", 
-			params.UseEndOfWordToken ? EndOfWordTokenInternal : "", 
-			trainWords[i] );
+		encoder->SplitWordIntoInitialTokens( dictionary.GetWord( i ), trainWords[i] );
 		trainCounts[i] = dictionary.GetWordUseCount( i );
 	}
 }

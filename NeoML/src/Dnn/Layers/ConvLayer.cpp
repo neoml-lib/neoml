@@ -35,9 +35,12 @@ CConvLayer::~CConvLayer()
 void CConvLayer::initConvDesc()
 {
 	if( convDesc == 0 ) {
-		convDesc = MathEngine().InitBlobConvolution( inputBlobs[0]->GetDesc(),
-			paddingHeight, paddingWidth, strideHeight, strideWidth, dilationHeight, dilationWidth,
-			Filter()->GetDesc(), outputBlobs[0]->GetDesc() );
+		NeoPresume( inputBlobs[0] != nullptr || inputDiffBlobs[0] != nullptr );
+		NeoPresume( outputBlobs[0] != nullptr || outputDiffBlobs[0] != nullptr );
+		convDesc = MathEngine().InitBlobConvolution(
+			inputBlobs[0] != nullptr ? inputBlobs[0]->GetDesc() : inputDiffBlobs[0]->GetDesc(),
+			paddingHeight, paddingWidth, strideHeight, strideWidth, dilationHeight, dilationWidth, Filter()->GetDesc(),
+			outputBlobs[0] != nullptr ? outputBlobs[0]->GetDesc() : outputDiffBlobs[0]->GetDesc() );
 	}
 }
 void CConvLayer::destroyConvDesc()
@@ -63,16 +66,16 @@ void CConvLayer::Reshape()
 {
 	CheckInputs();
 	CheckArchitecture( GetInputCount() == GetOutputCount(),
-		GetName(), "different number of inputs and outputs in conv layer" );
+		GetPath(), "different number of inputs and outputs in conv layer" );
 	CheckArchitecture( paddingHeight < filterHeight * dilationHeight && paddingWidth < filterWidth * dilationWidth,
-		GetName(), "padding is more or equal to receptive field size" );
+		GetPath(), "padding is more or equal to receptive field size" );
 
 	int outputHeight, outputWidth;
 	calcOutputBlobSize(outputHeight, outputWidth);
 	for(int i = 0; i < GetInputCount(); i++) {
 		CheckArchitecture( filterHeight <= inputDescs[i].Height() + 2 * paddingHeight
 			&& filterWidth <= inputDescs[i].Width() + 2 * paddingWidth,
-			GetName(), "filter is bigger than input" );
+			GetPath(), "filter is bigger than input" );
 
 		if(Filter() == 0) {
 			// Create a weights matrix
@@ -94,7 +97,7 @@ void CConvLayer::Reshape()
 			FreeTerms()->Fill(0);
 		} else {
 			CheckArchitecture( FreeTerms()->GetDataSize() == filterCount,
-				GetName(), "number of free members in convolution is not equal to number of filters" );
+				GetPath(), "number of free members in convolution is not equal to number of filters" );
 		}
 
 		// For each layer element there is one channel in the output blob

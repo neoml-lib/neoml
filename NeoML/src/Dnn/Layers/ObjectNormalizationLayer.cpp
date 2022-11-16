@@ -101,8 +101,8 @@ CPtr<CDnnBlob> CObjectNormalizationLayer::GetBias() const
 
 void CObjectNormalizationLayer::OnReshaped()
 {
-	CheckArchitecture( GetInputCount() == 1, GetName(), "layer must have exactly 1 input" );
-	CheckArchitecture( GetOutputCount() == 1, GetName(), "Source layer has more than 1 output" );
+	CheckArchitecture( GetInputCount() == 1, GetPath(), "layer must have exactly 1 input" );
+	CheckArchitecture( GetOutputCount() == 1, GetPath(), "layer must have exactly 1 output" );
 
 	CBlobDesc paramDesc;
 	paramDesc.SetDimSize( BD_Channels, inputDescs[0].ObjectSize() );
@@ -243,8 +243,8 @@ void CObjectNormalizationLayer::applyScaleAndBias( const CConstFloatHandle& inpu
 
 void CObjectNormalizationLayer::BackwardOnce()
 {
-	const int objectCount = inputBlobs[0]->GetObjectCount();
-	const int objectSize = inputBlobs[0]->GetObjectSize();
+	const int objectCount = inputDiffBlobs[0]->GetObjectCount();
+	const int objectSize = inputDiffBlobs[0]->GetObjectSize();
 	const int dataSize = objectCount * objectSize;
 
 	CConstFloatHandle input = normalizedInput->GetData();
@@ -290,8 +290,8 @@ void CObjectNormalizationLayer::BackwardOnce()
 
 void CObjectNormalizationLayer::LearnOnce()
 {
-	const int objectCount = inputBlobs[0]->GetObjectCount();
-	const int objectSize = inputBlobs[0]->GetObjectSize();
+	const int objectCount = outputDiffBlobs[0]->GetObjectCount();
+	const int objectSize = outputDiffBlobs[0]->GetObjectSize();
 	const int dataSize = objectCount * objectSize;
 
 	CFloatHandle outDiff = outputDiffBackup == nullptr ? outputDiffBlobs[0]->GetData() : outputDiffBackup->GetData();

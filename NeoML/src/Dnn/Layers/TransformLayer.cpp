@@ -95,8 +95,8 @@ void CTransformLayer::OnReshaped()
 {
 	CheckInput1();
 
-	CheckArchitecture( !GetDnn()->IsRecurrentMode(), GetName(), "can't be used inside of recurrent layers" );
-	CheckArchitecture( inputDescs[0].GetDataType() == CT_Float || !IsBackwardPerformed(), GetName(),
+	CheckArchitecture( !GetDnn()->IsRecurrentMode(), GetPath(), "can't be used inside of recurrent layers" );
+	CheckArchitecture( inputDescs[0].GetDataType() == CT_Float || !IsBackwardPerformed(), GetPath(),
 		"Integer blobs can't be backpropagated" );
 
 	outputDescs[0] = inputDescs[0];
@@ -162,13 +162,11 @@ void CTransformLayer::RunOnce()
 
 void CTransformLayer::BackwardOnce()
 {
-	NeoAssert( inputBlobs[0]->GetDataType() == CT_Float );
 	if( inputDiffBlobs[0]->GetData() != outputDiffBlobs[0]->GetData() ) {
 		MathEngine().VectorCopy( inputDiffBlobs[0]->GetData(), outputDiffBlobs[0]->GetData(),
 			inputDiffBlobs[0]->GetDataSize() );
 	} else {
 		inputDiffBlobs[0]->ReinterpretDimensions( inputDesc );
-		inputBlobs[0]->ReinterpretDimensions( inputDesc );
 	}
 }
 

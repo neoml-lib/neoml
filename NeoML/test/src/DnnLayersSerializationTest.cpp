@@ -2041,7 +2041,7 @@ GTEST_TEST( SerializeToFile, QrnnLayerSerialization )
 template<>
 inline void checkSpecificParams<CQrnnLayer>( CQrnnLayer& layer )
 {
-	EXPECT_EQ( AF_HardSigmoid, layer.GetActivation() );
+	EXPECT_EQ( AF_HardSigmoid, layer.GetActivation().GetType() );
 	EXPECT_EQ( 0.05f, layer.GetDropout() );
 	EXPECT_EQ( 15, layer.GetHiddenSize() );
 	EXPECT_EQ( 4, layer.GetPaddingFront() );
@@ -2467,4 +2467,33 @@ inline void checkSpecificParams<CCumSumLayer>( CCumSumLayer& layer )
 GTEST_TEST( SerializeFromFile, CumSumLayerSerialization )
 {
 	checkSerializeLayer<CCumSumLayer>( "NeoMLDnnCumSumLayer" );
+}
+
+// ====================================================================================================================
+
+// CTransformerSourceMaskLayer
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+static void setSpecificParams( CTransformerSourceMaskLayer& layer )
+{
+	layer.SetHeadCount( 5 );
+}
+
+GTEST_TEST( SerializeToFile, TransformerSourceMaskLayerSerialization )
+{
+	serializeToFile<CTransformerSourceMaskLayer>( "NeoMLDnnTransformerSourceMaskLayer" );
+}
+
+#endif // GENERATE_SERIALIZATION_FILES
+
+template<>
+inline void checkSpecificParams<CTransformerSourceMaskLayer>( CTransformerSourceMaskLayer& layer )
+{
+	EXPECT_EQ( 5, layer.GetHeadCount() );
+}
+
+GTEST_TEST( SerializeFromFile, TransformerSourceMaskLayerSerialization )
+{
+	checkSerializeLayer<CTransformerSourceMaskLayer>( "NeoMLDnnTransformerSourceMaskLayer" );
 }

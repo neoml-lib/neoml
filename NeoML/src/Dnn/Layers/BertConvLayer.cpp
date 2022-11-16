@@ -36,29 +36,29 @@ void CBertConvLayer::Serialize( CArchive& archive )
 
 void CBertConvLayer::Reshape()
 {
-	CheckArchitecture( inputDescs.Size() == 2, GetName(), "Layer must have 2 inputs" );
-	CheckArchitecture( outputDescs.Size() == 1, GetName(), "Layer must have 1 output" );
+	CheckArchitecture( inputDescs.Size() == 2, GetPath(), "Layer must have 2 inputs" );
+	CheckArchitecture( outputDescs.Size() == 1, GetPath(), "Layer must have 1 output" );
 
-	CheckArchitecture( inputDescs[0].ListSize() == 1, GetName(), "Data input's list size must be 1" );
-	CheckArchitecture( inputDescs[0].Height() == 1, GetName(), "Data input's height must be 1" );
-	CheckArchitecture( inputDescs[0].Width() == 1, GetName(), "Data input's width must be 1" );
-	CheckArchitecture( inputDescs[0].Depth() == 1, GetName(), "Data input's depth must be 1" );
+	CheckArchitecture( inputDescs[0].ListSize() == 1, GetPath(), "Data input's list size must be 1" );
+	CheckArchitecture( inputDescs[0].Height() == 1, GetPath(), "Data input's height must be 1" );
+	CheckArchitecture( inputDescs[0].Width() == 1, GetPath(), "Data input's width must be 1" );
+	CheckArchitecture( inputDescs[0].Depth() == 1, GetPath(), "Data input's depth must be 1" );
 
 	const int seqLen = inputDescs[0].BatchLength();
 	const int batchSize = inputDescs[0].BatchWidth();
 
-	CheckArchitecture( inputDescs[1].ListSize() == 1, GetName(), "Kernel input's list size must be 1" );
-	CheckArchitecture( inputDescs[1].Width() == 1, GetName(), "Kernel input's width must be 1" );
-	CheckArchitecture( inputDescs[1].Depth() == 1, GetName(), "Kernel input's depth must be 1" );
-	CheckArchitecture( inputDescs[1].Channels() == 1, GetName(), "Kernel input's channels must be 1" );
+	CheckArchitecture( inputDescs[1].ListSize() == 1, GetPath(), "Kernel input's list size must be 1" );
+	CheckArchitecture( inputDescs[1].Width() == 1, GetPath(), "Kernel input's width must be 1" );
+	CheckArchitecture( inputDescs[1].Depth() == 1, GetPath(), "Kernel input's depth must be 1" );
+	CheckArchitecture( inputDescs[1].Channels() == 1, GetPath(), "Kernel input's channels must be 1" );
 
-	CheckArchitecture( inputDescs[1].BatchLength() == seqLen, GetName(), "Inputs' batch length mismatch" );
-	CheckArchitecture( inputDescs[1].BatchWidth() % batchSize == 0, GetName(),
+	CheckArchitecture( inputDescs[1].BatchLength() == seqLen, GetPath(), "Inputs' batch length mismatch" );
+	CheckArchitecture( inputDescs[1].BatchWidth() % batchSize == 0, GetPath(),
 		"Kernel input's batch width must be a multiple of Data input's batch width" );
 
 	const int numHeads = inputDescs[1].BatchWidth() / batchSize;
 
-	CheckArchitecture( inputDescs[0].Channels() % numHeads == 0, GetName(),
+	CheckArchitecture( inputDescs[0].Channels() % numHeads == 0, GetPath(),
 		"Data input's channels must be a multiple of number of heads" );
 
 	const int headSize = inputDescs[0].Channels() / numHeads;

@@ -137,7 +137,7 @@ void CBatchNormalizationLayer::SetSlowConvergenceRate(float rate)
 void CBatchNormalizationLayer::Reshape()
 {
 	CheckInputs();
-	CheckArchitecture( inputDescs.Size() == 1, GetName(), "batch normalization with more than 1 input" );
+	CheckArchitecture( inputDescs.Size() == 1, GetPath(), "batch normalization with more than 1 input" );
 
 	int fullBatchSize;
 	int objectSize;
@@ -162,9 +162,9 @@ void CBatchNormalizationLayer::Reshape()
 		MathEngine().VectorFill(finalParams->GetObjectData( PN_Beta), 0.0, finalParams->GetObjectSize());
 	} else {
 		CheckArchitecture( finalParams->GetObjectCount() == PN_Count,
-			GetName(), "Parameters batch size must be 2" );
+			GetPath(), "Parameters batch size must be 2" );
 		CheckArchitecture( finalParams->GetObjectSize() == objectSize, 
-			GetName(), "Object data size from params must be equal to actual object size" );
+			GetPath(), "Object data size from params must be equal to actual object size" );
 	}
 
 	fullBatchInv->GetData().SetValue(1.f / fullBatchSize);
@@ -188,7 +188,7 @@ void CBatchNormalizationLayer::RunOnce()
 		int objectSize;
 		getFullBatchAndObjectSize(fullBatchSize, objectSize);
 		CheckArchitecture( fullBatchSize >= MinBatchSize,
-			GetName(), "in batch normalization fullBatchSize is more than MinBatchSize" );
+			GetPath(), "in batch normalization fullBatchSize is more than MinBatchSize" );
 
 		runWhenLearning();
 	} else {
@@ -378,7 +378,7 @@ void CBatchNormalizationLayer::backwardWhenLearning()
 	CFloatHandleStackVar averageDiff(MathEngine(), paramBlobs[0]->GetObjectSize());
 	CFloatHandleStackVar averageNormDiff(MathEngine(), paramBlobs[0]->GetObjectSize());
 	CFloatHandleStackVar normGamma(MathEngine(), paramBlobs[0]->GetObjectSize());
-	CFloatHandleStackVar temp(MathEngine(), outputBlobs[0]->GetDataSize());
+	CFloatHandleStackVar temp(MathEngine(), outputDiffBlobs[0]->GetDataSize());
 
 	CConstFloatHandle gamma = paramBlobs[0]->GetObjectData( PN_Gamma );
 	CConstFloatHandle invSqrtVariance = internalParams->GetObjectData( IPN_InvSqrtVariance );

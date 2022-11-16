@@ -84,6 +84,7 @@ inline CLayerClassRegistrar<T>::~CLayerClassRegistrar()
 class CDnn;
 class CDnnLayerGraph;
 class CBaseLayer;
+class CCompositeLayer;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -256,10 +257,6 @@ protected:
 
 	void SetOutputBlob(int num, CDnnBlob* blob);
 
-	// Indicates if the layer may be used for in-place processing (the output blobs replace the input blobs)
-	// May be called from Reshape method
-	bool IsInPlaceProcessAvailable() const;
-
 	// Fills with zeros the parameters that are less (but not equal) than a given threshold
 	virtual void FilterLayerParams( float /*threshold*/ ) {}
 
@@ -269,6 +266,36 @@ protected:
 	// Allocates the output blobs
 	// The default implementation creates the outputBlobs array using the output descriptions
 	virtual void AllocateOutputBlobs();
+
+	// Gets the path to this Layer
+	// If this layer directly belongs to the root CDnn then this path consists of the name of this layer only
+	// Otherwise it contains the names of all the composites from the root till this layer separated by '/'
+	//
+	// e.g. layer InputHidden" inside of CLstmLayer named "LSTM", which is inside of CCompositeLayer named "Encoder"
+	// has path "Encoder/LSTM/InputHidden"
+	CString GetPath() const;
+
+	// The following section contains interface for the memory optimization during training
+	// The key idea is that the layer may provide additional information about blobs required
+	// for backward and for learning
+
+	// Blob types which are used by layer during backward and learn
+	static const int TInputBlobs = 1 << 0;
+	static const int TOutputBlobs = 1 << 1;
+
+	// The following methods are called during reshape stage and may use anything available in Reshape methods
+	// Blob types required for the correct work of BackwardOnce
+	virtual int BlobsForBackward() const { return TInputBlobs | TOutputBlobs; }
+	// Blob types required for the correct work of LearnOnce
+	virtual int BlobsForLearn() const { return TInputBlobs | TOutputBlobs; }
+
+	// Indicates if the layer overwrite its inputs
+	bool InputsMayBeOverwritten() const;
+	// Enables in-place process
+	// This flag must be set from Reshape method
+	// It is reset to false right each time before the Reshape call
+	void EnableInPlace( bool enable ) { isInPlace = enable; }
+	bool IsInPlace() const { return isInPlace; }
 
 private:
 	// Describes an input connection
@@ -311,8 +338,8 @@ private:
 	CArray<CDnnLayerLink> inputLinks;
 	// The number of connections to each layer output
 	CArray<int> outputs;
-	// The number of times each output was processed
-	CArray<int> outputProcessedCount;
+	// The last layer which uses this outputs
+	CArray<const CBaseLayer*> lastOutputUser;
 
 	// Indicates if the layer should be reshaped
 	bool isReshapeNeeded;
@@ -349,6 +376,8 @@ private:
 	int runOnceCount;
 	// The total time of RunOnce calls since last Reshape in nanoseconds
 	IPerformanceCounters::CCounter::TCounterType runOnceTime;
+	// Indicates if the layer performs in-place processing (after the Reshape method call)
+	bool isInPlace;
 
 	// Switches the specified blobs into sequence processing mode
 	void switchBlobsToSequentialMode(CObjectArray<CDnnBlob>& blobs, TBlobCacheType cacheType, bool storeParent);
@@ -356,12 +385,17 @@ private:
 	void clearAllRuntimeBlobs();
 
 	// Clones a blob to store diffs
-	CDnnBlob* cloneBlobForDiff(CDnnBlob* blob);
+	CDnnBlob* cloneBlobForDiff(const CBlobDesc& desc);
 
-	// Indicates if the layer uses in-place processing (the output blobs replace the input blobs)
-	bool isInPlaceProcess() const;
 	// Indicates if the layer is composite (contains another sub-network)
 	virtual bool isComposite() const { return false; }
+
+	// Fields used for memory optimization during training
+	int allocatedBlobs; // the mask of currently allocated blobs
+	int blobsNeededForBackward; // the mask of blobs needed for backward and learn
+	// Sets the mask of allocated blobs
+	// If some some blobs are not marked as allocated, they will be freed during this call
+	void setAllocatedBlobs( int newMask );
 
 	//////////////////////////////////////////////////////////////////////////////////////////////////
 	// The methods and data for interacting with the network
@@ -370,17 +404,32 @@ private:
 	void link();
 	void addOutput(int number);
 	void unlink();
+	void buildOrder();
 	void reshape();
 	void setInputDesc(int i);
 	void runOnce();
 	void recheckBackwardNeeded();
 	void backwardRunAndLearnOnce();
 	void transferDiffBlob( CDnnBlob* diffBlob, int outputNum );
-	void onOutputProcessed( int index );
+
+	// Indicates if the layer may be used for in-place processing (the output blobs replace the input blobs)
+	bool isInPlaceProcessAvailable() const;
 
 	friend class CDnn;
 	friend class CDnnLayerGraph;
 	friend class CDnnSolver;
+	friend class CCompositeLayer;
+};
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+class CActivationDesc;
+// Common interface for all activation functions
+class NEOML_API IActivationLayer {
+public:
+	virtual ~IActivationLayer() = default;
+	// Get the name and settings of the activation
+	virtual CActivationDesc GetDesc() const = 0;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -444,7 +493,7 @@ NEOML_API IMathEngine* GetRecommendedGpuMathEngine( size_t memoryLimit );
 // CDnn class represents a neural network
 class NEOML_API CDnn : public CDnnLayerGraph {
 public:
-	CDnn( CRandom& random, IMathEngine& mathEngine );
+	CDnn( CRandom& random, IMathEngine& mathEngine, const CCompositeLayer* owner = nullptr );
 	~CDnn() override;
 
 	// Sets a text stream for logging processing
@@ -542,6 +591,7 @@ private:
 	void AddLayerImpl(CBaseLayer& layer) override;
 	void DeleteLayerImpl(CBaseLayer& layer) final;
 
+	const CCompositeLayer* owner; // the composite containing this CDnn (if exists)
 	CTextStream* log; // the logging stream
 	int logFrequency;	// the logging frequency
 	CPtr<CDnnSolver> solver;	// the layer parameter optimizer
@@ -585,6 +635,7 @@ private:
 	void reshape();
 	void rebuild();
 	size_t getOutputBlobsSize() const;
+	CString getPath() const;
 
 	friend class CBaseLayer;
 	friend class CCompositeLayer;

@@ -24,7 +24,7 @@ CNotLayer::CNotLayer( IMathEngine& mathEngine ) :
 
 void CNotLayer::OnReshaped()
 {
-	CheckArchitecture( inputDescs[0].GetDataType() == CT_Int, GetName(), "layer works only with integer data" );
+	CheckArchitecture( inputDescs[0].GetDataType() == CT_Int, GetPath(), "layer works only with integer data" );
 }
 
 void CNotLayer::RunOnce()
@@ -60,13 +60,16 @@ CLessLayer::CLessLayer( IMathEngine& mathEngine ) :
 
 void CLessLayer::Reshape()
 {
-	CheckArchitecture( inputDescs.Size() == 2, GetName(), "Less operation expects 2 inputs" );
-	CheckArchitecture( inputDescs[0].GetDataType() == inputDescs[1].GetDataType(), GetName(),
+	CheckArchitecture( inputDescs.Size() == 2, GetPath(), "Less operation expects 2 inputs" );
+	CheckArchitecture( inputDescs[0].GetDataType() == inputDescs[1].GetDataType(), GetPath(),
 		"Inputs must be of the same data type" );
 
 	CEltwiseBaseLayer::Reshape();
 
 	outputDescs[0].SetDataType( CT_Int );
+	if( inputDescs[0].GetDataType() == CT_Float ) {
+		EnableInPlace( false );
+	}
 }
 
 void CLessLayer::RunOnce()
@@ -102,12 +105,16 @@ CEqualLayer::CEqualLayer( IMathEngine& mathEngine ) :
 
 void CEqualLayer::Reshape()
 {
-	CheckArchitecture( inputDescs.Size() == 2, GetName(), "Equal operation expects 2 inputs" );
-	CheckArchitecture( inputDescs[0].GetDataType() == inputDescs[1].GetDataType(), GetName(),
+	CheckArchitecture( inputDescs.Size() == 2, GetPath(), "Equal operation expects 2 inputs" );
+	CheckArchitecture( inputDescs[0].GetDataType() == inputDescs[1].GetDataType(), GetPath(),
 		"Inputs must be of the same data type" );
 
 	CEltwiseBaseLayer::Reshape();
+
 	outputDescs[0].SetDataType( CT_Int );
+	if( inputDescs[0].GetDataType() == CT_Float ) {
+		EnableInPlace( false );
+	}
 }
 
 void CEqualLayer::RunOnce()

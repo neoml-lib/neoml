@@ -17,28 +17,37 @@ limitations under the License.
 
 #include <NeoML/NeoMLDefs.h>
 #include <NeoML/TraditionalML/SubwordEncoder.h>
-#include <NeoML/TraditionalML/WordDictionary.h>
 
 namespace NeoML {
 
 // Class that encodes a UTF-8 word using byte-pair-encoding.
 class NEOML_API CBytePairEncoder : public IBytePairEncoder {
 public:
+	// For creating with CreateModel( BytePairEncoderModelName ). Initialize(...) should be used to complete the setup.
+	CBytePairEncoder() = default;
+	// Construction with an empty dictionary. Generally ctor is used by CBytePairEncoderTrainer.
+	CBytePairEncoder( CParams params ) : params( std::move( params ) ) {}
+	// Loads a dictionary without additional checks. Completes the initialization for CBytePairEncoderTrainer
+	void InitializeUnsafe( const CBPEDictionary& );
+
 	// ISubwordEncoder:
 	void Decode( const CArray<int>& tokenIds, CArray<CString>& words ) const override;
-	int Size() const override;
+	int Size() const override { return tokens.Size() + 1; } // One extra for 'Unknown'
 	void Serialize( CArchive& archive ) override;
 
 	// IBytePairEncoder:
-	bool UseEndOfWordToken() const override { return useEndOfWordToken; }
-	bool UseStartOfWordToken() const override { return useStartOfWordToken; }
-	void LoadDictionary( const CWordDictionary& tokens, 
-		const CString& endOfWordToken, const CString& startOfWordToken ) override;
-	void GetDictionary( CWordDictionary& output, const CString& endOfWordToken, const CString& startOfWordToken ) const override;
-
+	void Initialize( const CBPEDictionary& tokens, const CParams& ) override;
+	bool IsInitialized() const override { return !tokens.IsEmpty(); }
+	void GetIdToTokenMapping( CMap<int, CString>& ) const override;
+	void GetTokenToIdMapping( CMap<CString, int>& ) const override;
+	bool UseEndOfWordToken() const override { return !params.EndOfWordToken.IsEmpty(); }
+	bool UseStartOfWordToken() const override { return !params.StartOfWordToken.IsEmpty(); }
+	bool UseRawBytes() const override { return params.UseRawBytes; }
+	int UnknownTokenId() const override { return params.UnknownTokenId; }
+	
 	// Splits a word into initial tokens: single unicode characters + special tokens (optional).
-	static void SplitWordIntoInitialTokens( const CString& word, const CString& startOfWordToken,
-		 const CString& endOfWordToken, CArray<CString>& initialTokens, CArray<int>* initialTokensLength = nullptr );
+	void SplitWordIntoInitialTokens( const CString& word, 
+		CArray<CString>& initialTokens, CArray<int>* initialTokensLength = nullptr ) const;
 	// Concatenates tokens.
 	static CString MergeTokens( const CString& first, const CString& second );
 
@@ -48,23 +57,19 @@ protected:
 		CArray<int>& tokenLengths ) const override;
 
 private:
-	// BPE tokens.
-	CArray<CString> tokens;
-	// Reverse Map: Token -> Token index in tokens array.
+	// Index map Id -> Token. Note that the ids are being shifted by UnknownTokenId() + 1 while encoding.
+	CBPEDictionary tokens;
+	// Reverse Map: Token -> Id. It is an unshifted index (matches 'tokens' array).
 	CMap<CString, int> tokenToId;
+	// Encoder parameters
+	CParams params;
 
-	// Special tokens usage flags.
-	bool useStartOfWordToken = false;
-	bool useEndOfWordToken = true;
-
-	int getTokenIndex( const CString& token ) const;
-	CString getToken( int tokenId ) const;
-
-	void removeSpecialTokens( CString& token, bool& hasEoW, bool& hasSoW ) const;
-	bool replaceEoWToken( CString& token, const CString& eowToken, const CString& replacement ) const;
-	bool replaceSoWToken( CString& token, const CString& sowToken, const CString& replacement ) const;
-
-	static CString findInseparableToken( const CWordDictionary& dictionary, const CArray<CString>& auxTokens );
+	CString getToken( int shiftedTokenId ) const;
+	void removeSpecialTokens( CString& token, bool& hasEow, bool& hasSow ) const;
+	bool replaceEowToken( CString& token, const CString& eowToken, const CString& replacement ) const;
+	bool replaceSowToken( CString& token, const CString& sowToken, const CString& replacement ) const;
+	bool isValidToken( const CString& token, const CArray<CString>& auxTokens ) const;
+	int getShiftedTokenIndex( const CString& token ) const;
 };
 
 } // namespace NeoML

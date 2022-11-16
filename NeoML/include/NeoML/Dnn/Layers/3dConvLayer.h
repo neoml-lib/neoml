@@ -66,6 +66,8 @@ protected:
 	void RunOnce() override;
 	void BackwardOnce() override;
 	void LearnOnce() override;
+	int BlobsForBackward() const override { return 0; }
+	int BlobsForLearn() const override { return TInputBlobs; }
 
 private:
 	void calcOutputBlobSize(int& outputHeight, int& outputWidth, int& outputDepth) const;

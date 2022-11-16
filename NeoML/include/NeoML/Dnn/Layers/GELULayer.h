@@ -20,24 +20,61 @@ limitations under the License.
 
 namespace NeoML {
 
-// Activation layer with formual x * Ф(x),
-// where Ф(x) - cumulative distribution function for the normal distribution N(0, 1)
-// This layer uses next approximation: x * sigmoid(1.702 * x)
-class NEOML_API CGELULayer : public CBaseLayer {
+// Activation layer with formula x * Ф(x),
+// where Ф(x) - cumulative distribution function of the standard normal distribution N(0, 1)
+class NEOML_API CGELULayer : public CBaseLayer, public IActivationLayer {
 	NEOML_DNN_LAYER( CGELULayer )
 public:
+	// CDF can be calculated using the error function (slow) or using an approximation. The approximate method is used by default.
+	enum TCalculationMode {
+		// x * 0.5( 1 + erf( x / sqrt(2) ) )
+		CM_Precise,
+		// x * sigmoid(1.702x)
+		CM_SigmoidApproximate
+	};
+	static const TCalculationMode DefaultCalculationMode = CM_SigmoidApproximate;
+	struct CParam {
+		TCalculationMode Mode = DefaultCalculationMode;
+	};
+
 	explicit CGELULayer( IMathEngine& mathEngine );
 
 	void Serialize( CArchive& archive ) override;
+
+	// Changes GELU calculation mode
+	void SetCalculationMode( TCalculationMode );
+	// Returns current calculation mode
+	TCalculationMode GetCalculationMode() const { return mode; }
+
+	void ApplyParam( CParam param ) { SetCalculationMode( param.Mode ); }
+	CActivationDesc GetDesc() const override;
 
 protected:
 	void Reshape() override;
 	void RunOnce() override;
 	void BackwardOnce() override;
+	int BlobsForBackward() const override { return TInputBlobs; }
 
 private:
-	// Constant 1.702f
-	CFloatHandleVar multiplierVar;
+	TCalculationMode mode = DefaultCalculationMode;
+
+	// 1
+	CFloatHandleVar oneVar;
+	// 0.5
+	CFloatHandleVar halfVar;
+	// 1/sqrt(2)
+	CFloatHandleVar sqrt2InvVar;
+	// 1/sqrt(2pi)
+	CFloatHandleVar sqrt2PiInvVar;
+	// 1.702f
+	CFloatHandleVar approxScaleVar;
+
+	CPtr<CDnnBlob> erfMemoization;
+
+	void runPrecise();
+	void runFastApproximate();
+	void backwardPrecise();
+	void backwardFastApproximate();
 };
 
 NEOML_API CLayerWrapper<CGELULayer> Gelu();

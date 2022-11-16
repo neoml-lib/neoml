@@ -37,7 +37,7 @@ void CFullyConnectedLayer::Reshape()
 {
 	CheckInputs();
 	CheckArchitecture( GetInputCount() == GetOutputCount(),
-		GetName(), "fully connected layer with different numbers of input and output" );
+		GetPath(), "fully connected layer with different numbers of input and output" );
 	for(int i = 0; i < GetInputCount(); i++) {
 		if(Weights() == 0) {
 			// Create a weights matrix
@@ -50,9 +50,9 @@ void CFullyConnectedLayer::Reshape()
 			InitializeParamBlob(i, *Weights());
 		} else {
 			CheckArchitecture( Weights()->GetObjectCount() == numberOfElements,
-				GetName(), "weights number is not equal to number of elements" );
+				GetPath(), "weights number is not equal to number of elements" );
 			CheckArchitecture( Weights()->GetObjectSize() == inputDescs[i].ObjectSize(),
-				GetName(), "weights size mismatch" );
+				GetPath(), "weights size mismatch" );
 		}
 
 		if(FreeTerms() == 0) {
@@ -61,7 +61,7 @@ void CFullyConnectedLayer::Reshape()
 			FreeTerms()->Fill(0);
 		} else {
 			CheckArchitecture( FreeTerms()->GetDataSize() == numberOfElements,
-				GetName(), "free terms num is not equal to number of elements" );
+				GetPath(), "free terms num is not equal to number of elements" );
 		}
 
 		// For each layer element there is a channel in the output blob
@@ -95,7 +95,7 @@ void CFullyConnectedLayer::RunOnce()
 void CFullyConnectedLayer::BackwardOnce()
 {
 	for( int i = 0; i < outputDiffBlobs.Size(); i++ ) {
-		MathEngine().MultiplyMatrixByMatrix(1, outputDiffBlobs[i]->GetData(), inputBlobs[i]->GetObjectCount(),
+		MathEngine().MultiplyMatrixByMatrix(1, outputDiffBlobs[i]->GetData(), inputDiffBlobs[i]->GetObjectCount(),
 			outputDiffBlobs[i]->GetObjectSize(), Weights()->GetData(), Weights()->GetObjectSize(),
 			inputDiffBlobs[i]->GetData(), inputDiffBlobs[i]->GetDataSize());
 	}

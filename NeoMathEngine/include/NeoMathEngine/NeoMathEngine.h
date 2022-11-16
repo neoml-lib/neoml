@@ -635,6 +635,16 @@ public:
 	// If inplace is true then the matrixHandle will be overwritten with a content of matrix R.
 	virtual void QRFactorization( int height, int width, const CFloatHandle& matrixHandle, const CFloatHandle* qHandle, const CFloatHandle* rHandle,
 		bool inplace, bool returnQ, bool returnR ) = 0;
+
+	// Computes the LU-factorization in the following manner
+	//   P * A = L * U
+	// where
+	//   - P - permutation matrix
+	//   - A - the data matrix, to be factorized
+	//   - L - lower diagonal matrix with units (1.f) on the diagonal
+	//   - U - upper diagonal matrix with non-trivial elements on the diagonal
+	// This function overwrites matrixHandle with "permuted L" = P^(-1) * L .
+	virtual void LUFactorization( int height, int width, const CFloatHandle& matrixHandle ) = 0;
 };
 
 // Blob operations descriptors

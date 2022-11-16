@@ -25,20 +25,21 @@ namespace NeoML {
 void CEltwiseBaseLayer::Reshape()
 {
 	CheckInputs();
-	CheckArchitecture( inputDescs.Size() > 1, GetName(), "eltwise layer with single input" );
-	CheckArchitecture( !IsBackwardPerformed() || inputDescs[0].GetDataType() == CT_Float, GetName(), "integer eltwise backward" );
+	CheckArchitecture( inputDescs.Size() > 1, GetPath(), "eltwise layer with single input" );
+	CheckArchitecture( !IsBackwardPerformed() || inputDescs[0].GetDataType() == CT_Float, GetPath(), "integer eltwise backward" );
 
 	for( int i = 1; i < inputDescs.Size(); ++i ) {
 		CheckArchitecture( inputDescs[i].HasEqualDimensions(inputDescs[0]),
-			GetName(), "eltwise input size mismatch (batchSize mismatch)" );
+			GetPath(), "eltwise input size mismatch (batchSize mismatch)" );
 		const CBlobDesc& blobDesc = inputDescs[i];
 		CheckArchitecture( blobDesc.GetDataType() == inputDescs[0].GetDataType(),
-			GetName(), "input types mismatch" );
+			GetPath(), "input types mismatch" );
 		CheckArchitecture( inputDescs[i].GetDataType() == inputDescs[0].GetDataType(),
-			GetName(), "input types mismatch" );
+			GetPath(), "input types mismatch" );
 	}
 
 	outputDescs[0] = inputDescs[0];
+	EnableInPlace( InputsMayBeOverwritten() );
 }
 
 static const int EltwiseBaseLayerVersion = 2000;
@@ -76,8 +77,12 @@ void CEltwiseSumLayer::RunOnce()
 
 void CEltwiseSumLayer::BackwardOnce()
 {
-	NeoAssert( inputBlobs[0]->GetDataType() == CT_Float );
-	for( int i = 0; i < inputDiffBlobs.Size(); ++i ) {
+	if( inputDiffBlobs[0]->GetData() != outputDiffBlobs[0]->GetData() ) {
+		MathEngine().VectorCopy( inputDiffBlobs[0]->GetData(), outputDiffBlobs[0]->GetData(),
+			inputDiffBlobs[0]->GetDataSize() );
+	}
+
+	for( int i = 1; i < inputDiffBlobs.Size(); ++i ) {
 		MathEngine().VectorCopy( inputDiffBlobs[i]->GetData(), outputDiffBlobs[0]->GetData(),
 			inputDiffBlobs[i]->GetDataSize() );
 	}
@@ -102,7 +107,7 @@ CLayerWrapper<CEltwiseSumLayer> Sum()
 void CEltwiseSubLayer::Reshape()
 {
 	// This layer must have 2 inputs
-	CheckArchitecture( inputDescs.Size() == 2, GetName(), "EltwiseSub layer must have 2 inputs" );
+	CheckArchitecture( inputDescs.Size() == 2, GetPath(), "EltwiseSub layer must have 2 inputs" );
 	CEltwiseBaseLayer::Reshape();
 }
 
@@ -130,8 +135,10 @@ void CEltwiseSubLayer::RunOnce()
 
 void CEltwiseSubLayer::BackwardOnce()
 {
-	MathEngine().VectorCopy( inputDiffBlobs[0]->GetData(), outputDiffBlobs[0]->GetData(),
-		inputDiffBlobs[0]->GetDataSize() );
+	if( inputDiffBlobs[0]->GetData() != outputDiffBlobs[0]->GetData() ) {
+		MathEngine().VectorCopy( inputDiffBlobs[0]->GetData(), outputDiffBlobs[0]->GetData(),
+			inputDiffBlobs[0]->GetDataSize() );
+	}
 	MathEngine().VectorNeg( outputDiffBlobs[0]->GetData(), inputDiffBlobs[1]->GetData(),
 		inputDiffBlobs[1]->GetDataSize() );
 }
@@ -286,6 +293,7 @@ void CEltwiseMaxLayer::Reshape()
 
 	maxIndices = 0;
 	if(IsBackwardPerformed()) {
+		EnableInPlace( false );
 		maxIndices = CDnnBlob::CreateBlob( MathEngine(), CT_Int, outputDescs[0] );
 		RegisterRuntimeBlob(maxIndices);
 	}
@@ -350,7 +358,7 @@ CLayerWrapper<CEltwiseMaxLayer> Max()
 void CEltwiseDivLayer::Reshape()
 {
 	// This layer must have 2 inputs
-	CheckArchitecture( inputDescs.Size() == 2, GetName(), "EltwiseDiv layer must have 2 inputs" );
+	CheckArchitecture( inputDescs.Size() == 2, GetPath(), "EltwiseDiv layer must have 2 inputs" );
 	CEltwiseBaseLayer::Reshape();
 }
 
