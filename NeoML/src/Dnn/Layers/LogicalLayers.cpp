@@ -67,6 +67,9 @@ void CLessLayer::Reshape()
 	CEltwiseBaseLayer::Reshape();
 
 	outputDescs[0].SetDataType( CT_Int );
+	if( inputDescs[0].GetDataType() == CT_Float ) {
+		EnableInPlace( false );
+	}
 }
 
 void CLessLayer::RunOnce()
@@ -107,7 +110,11 @@ void CEqualLayer::Reshape()
 		"Inputs must be of the same data type" );
 
 	CEltwiseBaseLayer::Reshape();
+
 	outputDescs[0].SetDataType( CT_Int );
+	if( inputDescs[0].GetDataType() == CT_Float ) {
+		EnableInPlace( false );
+	}
 }
 
 void CEqualLayer::RunOnce()

@@ -397,6 +397,7 @@ public:
 		const CFloatHandle& vt, const CFloatHandle& superb, bool returnLeftVectors, bool returnRightVectors ) override;
 	void QRFactorization( int height, int width, const CFloatHandle& matrixHandle, const CFloatHandle* qHandle, const CFloatHandle* rHandle,
 		bool inplace, bool returnQ, bool returnR ) override;
+	void LUFactorization( int height, int width, const CFloatHandle& matrixHandle ) override;
 
 
 	// IDnnEngine interface methods

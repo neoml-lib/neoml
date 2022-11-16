@@ -17,6 +17,7 @@ limitations under the License.
 #pragma hdrstop
 
 #include <NeoML/Dnn/Layers/GELULayer.h>
+#include <NeoML/Dnn/Layers/ActivationLayers.h>
 
 namespace NeoML {
 
@@ -61,6 +62,11 @@ void CGELULayer::SetCalculationMode( TCalculationMode _mode )
 {
 	mode = _mode;
 	ForceReshape();
+}
+
+CActivationDesc CGELULayer::GetDesc() const
+{
+	return { AF_GELU, CParam{ mode } };
 }
 
 void CGELULayer::Reshape()

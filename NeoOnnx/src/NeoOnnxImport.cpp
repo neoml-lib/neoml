@@ -102,7 +102,7 @@ static void processOperator( const COperator& op, CTensorCache& tensors, CDnn& d
 }
 
 // Builds dnn based on GraphProto
-static void buildDnnFromGraphProto( const onnx::GraphProto& onnxGraph, int opsetVersion,
+static void buildDnnFromGraphProto( const onnx::GraphProto& onnxGraph, int opsetVersion, const CImportSettings& settings,
 	CDnn& dnn, CArray<CImportedModelInfo::CInputInfo>& inputs, CArray<CImportedModelInfo::COutputInfo>& outputs)
 {
 	CheckOnnxProtocol( opsetVersion > 0, "Wrong onnx version: " + Str( opsetVersion ) );
@@ -124,13 +124,19 @@ static void buildDnnFromGraphProto( const onnx::GraphProto& onnxGraph, int opset
 
 	// Add graph inputs
 	for( const onnx::ValueInfoProto& onnxInput : onnxGraph.input() ) {
-		if( initializers.Has( onnxInput.name().c_str() ) ) {
+		const CString inputName = onnxInput.name().c_str();
+		if( initializers.Has( inputName ) ) {
 			// Networks from PyTorch can have separate inputs for every initializer (every weight/filter etc.)
 			// In case of NeoML inputs like these won't be needed because all the weights must be calculated from initializers
 			continue;
 		}
 		CGraphInput graphInput( onnxInput );
-		CPtr<const CUserTensor> inputTensor = graphInput.AddSourceLayer( dnn ).Ptr();
+		CPtr<const CUserTensor> inputTensor;
+		if( settings.InputLayouts.Has( inputName ) ) {
+			inputTensor = graphInput.AddSourceLayer( dnn, &settings.InputLayouts[inputName] ).Ptr();
+		} else {
+			inputTensor = graphInput.AddSourceLayer( dnn, nullptr ).Ptr();
+		}
 		tensors.Add( graphInput.Name(), inputTensor.Ptr() );
 		CImportedModelInfo::CInputInfo& inputInfo = inputs.Append();
 		inputInfo.Name = CString( inputTensor->Layer()->GetName() );
@@ -159,7 +165,13 @@ static void buildDnnFromGraphProto( const onnx::GraphProto& onnxGraph, int opset
 			baseTensor = new CUserTensor( baseTensor->Shape(), baseTensor->Layout(), CLayerOutput( dataLayer.Ptr(), 0));
 		}
 		NeoAssert( !baseTensor->IsCalculated() );
-		CPtr<const CSinkLayer> sink = output.AddSinkLayer( dynamic_cast<const CUserTensor&>( *baseTensor ), dnn );
+		CPtr<const CSinkLayer> sink;
+		if( settings.OutputLayouts.Has( output.Name() ) ) {
+			sink = output.AddSinkLayer( dynamic_cast<const CUserTensor&>( *baseTensor ),
+				&settings.OutputLayouts[output.Name()], dnn );
+		} else {
+			sink = output.AddSinkLayer( dynamic_cast<const CUserTensor&>( *baseTensor ), nullptr, dnn );
+		}
 		CImportedModelInfo::COutputInfo& outputInfo = outputs.Append();
 		outputInfo.Name = CString( sink->GetName() );
 	}
@@ -174,7 +186,7 @@ static void extractMetadata( const onnx::ModelProto& model, CMap<CString, CStrin
 	}
 }
 
-void LoadFromOnnx( const char* fileName, const CImportSettings&,
+void LoadFromOnnx( const char* fileName, const CImportSettings& importSettings,
 	CDnn& dnn, CImportedModelInfo& info )
 {
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
@@ -191,7 +203,8 @@ void LoadFromOnnx( const char* fileName, const CImportSettings&,
 			NeoOnnxCheck( false, CString( "Failed to parse model from file " ) + fileName );
 		}
 
-		buildDnnFromGraphProto( model.graph(), getOpsetVersion( model ), dnn, info.Inputs, info.Outputs );
+		buildDnnFromGraphProto( model.graph(), getOpsetVersion( model ), importSettings,
+			dnn, info.Inputs, info.Outputs );
 		extractMetadata( model, info.Metadata );
 	} catch( ... ) {
 		input.close();
@@ -203,7 +216,7 @@ void LoadFromOnnx( const char* fileName, const CImportSettings&,
 	google::protobuf::ShutdownProtobufLibrary();
 }
 
-void LoadFromOnnx( const void* buffer, int bufferSize, const CImportSettings&,
+void LoadFromOnnx( const void* buffer, int bufferSize, const CImportSettings& importSettings,
 	CDnn& dnn, CImportedModelInfo& info )
 {
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
@@ -217,7 +230,8 @@ void LoadFromOnnx( const void* buffer, int bufferSize, const CImportSettings&,
 			NeoOnnxCheck( false, "Failed to parse model from buffer" );
 		}
 
-		buildDnnFromGraphProto( model.graph(), getOpsetVersion( model ), dnn, info.Inputs, info.Outputs );
+		buildDnnFromGraphProto( model.graph(), getOpsetVersion( model ), importSettings,
+			dnn, info.Inputs, info.Outputs );
 		extractMetadata( model, info.Metadata );
 	} catch( ... ) {
 		google::protobuf::ShutdownProtobufLibrary();

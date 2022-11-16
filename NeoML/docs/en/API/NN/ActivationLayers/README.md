@@ -3,8 +3,9 @@
 <!-- TOC -->
 
 - [Activation functions](#activation-functions)
-    - [Creating a layer](#creating-a-layer)
-    - [Layer types](#layer-types)
+	- [Creating a layer](#creating-a-layer)
+		- [Activation parameters holder](#activation-parameters-holder)
+	- [Layer types](#layer-types)
 
 <!-- /TOC -->
 
@@ -14,10 +15,32 @@ This section describes the layers that calculate the value of specified activati
 ## Creating a layer
 
 ```c++
-CPtr<CBaseLayer> NEOML_API CreateActivationLayer( TActivationFunction type );
+CPtr<CBaseLayer> NEOML_API CreateActivationLayer( const CActivationDesc& activation );
 ```
 
-Creates a layer that calculates the activation function specified by the `type` parameter.
+Creates a layer that calculates the activation function specified by the `activation` parameter.
+
+### Activation parameters holder
+To create a layer, one must specify its type and, optionally, parameters. All configurable activation layers have a `CParam` structure with all possible settings.
+
+```c++
+class CActivationDesc {
+public:
+	// For non-parametrized activations or default parameters
+	CActivationDesc( TActivationFunction type );
+
+	// For explicitly setting activation parameters. 'Param' must be a 'CParam' struct from the correspondent layer
+	template<class Param>
+	CActivationDesc( TActivationFunction type, const Param& param );
+
+	// Changing/setting parameters of the selected activation.
+	// 'Param' must be a 'CParam' struct from the correspondent layer.
+	template<class Param>
+	void SetParam( const Param& param );
+
+	/// etc.
+};
+```
 
 ## Layer types
 
