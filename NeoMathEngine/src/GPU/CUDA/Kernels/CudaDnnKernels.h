@@ -129,8 +129,9 @@ __global__ void BlobResizeImageKernel( const CCudaBlobDesc from, const float* __
 }
 
 const int BlobGetSubSequenceCombine = 16;
-__global__ void BlobGetSubSequenceKernel( CCudaBlobDesc from, const float* fromData, int* index, CCudaBlobDesc to,
-	float* toData, int startPos, bool isRev, int objectSizeNorm )
+template<class T>
+__global__ void BlobGetSubSequenceKernel( CCudaBlobDesc from, const T* fromData, int* index, CCudaBlobDesc to,
+	T* toData, int startPos, bool isRev, int objectSizeNorm )
 {
 	int seqPos;
 	int seqNum;
@@ -146,9 +147,9 @@ __global__ void BlobGetSubSequenceKernel( CCudaBlobDesc from, const float* fromD
 
 	int fromSeqPos = isRev ? startPos - seqPos : startPos + seqPos;
 	int fromPos = fromSeqPos * from.BatchWidth() + seqNum;
-	const float* curFromData = fromData + fromPos * objectSize;
+	const T* curFromData = fromData + fromPos * objectSize;
 	int toPos = seqPos * to.BatchWidth() + seqNum;
-	float* curToData = toData + toPos * objectSize;
+	T* curToData = toData + toPos * objectSize;
 
 	int step;
 	int count = GetCudaTaskCountAndIndex(objectSize, BlobGetSubSequenceCombine, i, step);

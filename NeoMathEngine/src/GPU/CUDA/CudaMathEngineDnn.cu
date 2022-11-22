@@ -175,8 +175,28 @@ void CCudaMathEngine::BlobResizeImage( const CBlobDesc& from, const CFloatHandle
 		GetRaw(toData) );
 }
 
-void CCudaMathEngine::BlobGetSubSequence( const CBlobDesc& from, const CFloatHandle& fromData, const CIntHandle& indexHandle, const CBlobDesc& to,
-	const CFloatHandle& toData, int startPos, bool isRev )
+void CCudaMathEngine::BlobGetSubSequence( const CBlobDesc& from, const CConstFloatHandle& fromData,
+	const CIntHandle& indexHandle, const CBlobDesc& to, const CFloatHandle& toData, int startPos, bool isRev )
+{
+	ASSERT_EXPR( fromData.GetMathEngine() == this );
+	ASSERT_EXPR( indexHandle.IsNull() || indexHandle.GetMathEngine() == this );
+	ASSERT_EXPR( toData.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
+
+	int objectSize = from.ObjectSize() * from.ListSize();
+	int objectSizeNorm = (objectSize + BlobGetSubSequenceCombine - 1) / BlobGetSubSequenceCombine;
+
+	dim3 blockCount;
+	dim3 threadCount;
+
+	getCudaTaskGrid3D(blockCount, threadCount, to.BatchLength(), to.BatchWidth(), objectSizeNorm);
+
+	BlobGetSubSequenceKernel<<<blockCount, threadCount>>>(from, GetRaw(fromData), GetRaw(indexHandle),
+		to, GetRaw( toData ), startPos, isRev, objectSizeNorm);
+}
+
+void CCudaMathEngine::BlobGetSubSequence( const CBlobDesc& from, const CConstIntHandle& fromData,
+	const CIntHandle& indexHandle, const CBlobDesc& to, const CIntHandle& toData, int startPos, bool isRev )
 {
 	ASSERT_EXPR( fromData.GetMathEngine() == this );
 	ASSERT_EXPR( indexHandle.IsNull() || indexHandle.GetMathEngine() == this );

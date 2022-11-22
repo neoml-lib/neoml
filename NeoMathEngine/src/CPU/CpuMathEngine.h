@@ -403,8 +403,10 @@ public:
 		const CBlobDesc* to, const CIntHandle* toData, int toCount) override;
 	void BlobResizeImage( const CBlobDesc& from, const CFloatHandle& fromData, int deltaLeft, int deltaRight,
 		int deltaTop, int deltaBottom, float defaultValue, const CBlobDesc& to, const CFloatHandle& toData ) override;
-	void BlobGetSubSequence( const CBlobDesc& from, const CFloatHandle& fromData, const CIntHandle& indexHandle,
+	void BlobGetSubSequence( const CBlobDesc& from, const CConstFloatHandle& fromData, const CIntHandle& indexHandle,
 		const CBlobDesc& to, const CFloatHandle& toData, int startPos, bool isRev ) override;
+	void BlobGetSubSequence( const CBlobDesc& from, const CConstIntHandle& fromData, const CIntHandle& indexHandle,
+		const CBlobDesc& to, const CIntHandle& toData, int startPos, bool isRev ) override;
 	CTimeConvolutionDesc* InitTimeConvolution( const CBlobDesc& source, int stride, int paddingFront, int paddingBack,
 		int dilation, const CBlobDesc& filter, const CBlobDesc& result ) override;
 	void BlobTimeConvolution( const CTimeConvolutionDesc& desc, const CConstFloatHandle& source,
@@ -660,6 +662,8 @@ private:
 		const CBlobDesc* to, const CTypedMemoryHandle<T>* toData, int toCount );
 	template<class T>
 	void blobSplitByDim( int dim, const CBlobDesc& from, const CTypedMemoryHandle<T>& fromData, const CBlobDesc* to, const CTypedMemoryHandle<T>* toData, int toCount );
+	template<class T>
+	void blobGetSubSequence( const T* from, T* to, int* indices, int objectCount, int objectSize, int start, int length, bool isRev );
 
 	template<typename T>
 	void transposeMatrixImpl( int batchSize, const T* firstHandle,

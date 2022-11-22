@@ -175,9 +175,9 @@ void CMetalMathEngine::BlobResizeImage( const CBlobDesc& from, const CFloatHandl
 }
 
 static const int BlobGetSubSequenceCombine = 16;
-    
-void CMetalMathEngine::BlobGetSubSequence( const CBlobDesc& from, const CFloatHandle& fromData, const CIntHandle& indexHandle,
-	const CBlobDesc& to, const CFloatHandle& toData, int startPos, bool isRev )
+
+void CMetalMathEngine::BlobGetSubSequence( const CBlobDesc& from, const CConstFloatHandle& fromData,
+    const CIntHandle& indexHandle, const CBlobDesc& to, const CFloatHandle& toData, int startPos, bool isRev )
 {
     ASSERT_EXPR( fromData.GetMathEngine() == this );
 	ASSERT_EXPR( indexHandle.IsNull() || indexHandle.GetMathEngine() == this );
@@ -195,6 +195,12 @@ void CMetalMathEngine::BlobGetSubSequence( const CBlobDesc& from, const CFloatHa
         kernel.SetParam( indexHandle, 6 );
     }
     ASSERT_EXPR( kernel.Run() );
+}
+
+void CMetalMathEngine::BlobGetSubSequence( const CBlobDesc&, const CConstIntHandle&, const CIntHandle&,
+    const CBlobDesc&, const CIntHandle&, int, bool )
+{
+    ASSERT_EXPR( false );
 }
 
 void CMetalMathEngine::Upsampling2DForward( const CBlobDesc& input, const CConstIntHandle& inputData, int heightCopyCount,

@@ -284,7 +284,27 @@ void CCpuMathEngine::BlobResizeImage( const CBlobDesc& from, const CFloatHandle&
 	}
 }
 
-void CCpuMathEngine::BlobGetSubSequence( const CBlobDesc& from, const CFloatHandle& fromData,
+template<class T>
+void CCpuMathEngine::blobGetSubSequence( const T* from, T* to, int* indices, int objectCount, int objectSize,
+	int start, int length, bool isRev )
+{
+	const int currThreadCount = IsOmpRelevant( length, length * objectCount * objectSize ) ? threadCount : 1;
+	NEOML_OMP_FOR_NUM_THREADS( currThreadCount )
+	for( int pos = 0; pos < length; ++pos ) {
+		T* curToData = to + pos * objectCount * objectSize;
+		const int baseIndex = ( isRev ? start - pos : start + pos ) * objectCount;
+		for( int seq = 0; seq < objectCount; ++seq ) {
+			const int index = baseIndex + seq;
+			dataCopy( curToData, from + index * objectSize, objectSize );
+			if( indices != 0 ) {
+				*indices++ = index;
+			}
+			curToData += objectSize;
+		}
+	}
+}
+
+void CCpuMathEngine::BlobGetSubSequence( const CBlobDesc& from, const CConstFloatHandle& fromData,
 	const CIntHandle& indexHandle, const CBlobDesc& to, const CFloatHandle& toData,
 	int startPos, bool isRev )
 {
@@ -292,29 +312,20 @@ void CCpuMathEngine::BlobGetSubSequence( const CBlobDesc& from, const CFloatHand
 		&& from.ListSize() == to.ListSize() );
 	CCpuExecutionScope scope;
 
-	int* indices = GetRaw( indexHandle );
-	int batchWidth = from.BatchWidth();
-	int objectSize = from.ObjectSize() * from.ListSize();
-	int subSequenceLen = to.BatchLength();
+	blobGetSubSequence( GetRaw( fromData ), GetRaw( toData ), GetRaw( indexHandle ), from.BatchWidth(),
+		from.ObjectSize() * from.ListSize(), startPos, to.BatchLength(), isRev );
+}
 
-	float* rawToData = GetRaw( toData );
-	const float* rawFrom = GetRaw( fromData );
+void CCpuMathEngine::BlobGetSubSequence( const CBlobDesc& from, const CConstIntHandle& fromData,
+	const CIntHandle& indexHandle, const CBlobDesc& to, const CIntHandle& toData,
+	int startPos, bool isRev )
+{
+	ASSERT_EXPR( from.BatchWidth() == to.BatchWidth() && from.ObjectSize() == to.ObjectSize()
+		&& from.ListSize() == to.ListSize() );
+	CCpuExecutionScope scope;
 
-	// Calculate the subsequence using sequenceLen
-	const int currThreadCount = IsOmpRelevant( subSequenceLen, subSequenceLen * batchWidth * objectSize ) ? threadCount : 1;
-	NEOML_OMP_FOR_NUM_THREADS( currThreadCount )
-	for( int pos = 0; pos < subSequenceLen; ++pos ) {
-		float* curToData = rawToData + pos * batchWidth * objectSize;
-		const int baseIndex = ( isRev ? startPos - pos : startPos + pos ) * batchWidth;
-		for( int seq = 0; seq < batchWidth; ++seq ) {
-			const int index = baseIndex + seq;
-			dataCopy( curToData, rawFrom + index * objectSize, objectSize );
-			if( indices != 0 ) {
-				*indices++ = index;
-			}
-			curToData += objectSize;
-		}
-	}
+	blobGetSubSequence( GetRaw( fromData ), GetRaw( toData ), GetRaw( indexHandle ), from.BatchWidth(),
+		from.ObjectSize() * from.ListSize(), startPos, to.BatchLength(), isRev );
 }
 
 //------------------------------------------------------------------------------------------------------------

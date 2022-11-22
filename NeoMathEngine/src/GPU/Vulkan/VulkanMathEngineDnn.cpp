@@ -198,8 +198,8 @@ void CVulkanMathEngine::BlobResizeImage( const CBlobDesc& from, const CFloatHand
 		&param, sizeof(param), 0, 0, 0, 0, bufs, sizes, 2, Ceil(geom, BlobResizeImageCombine), totalChannels, to.ObjectCount() );
 }
 
-void CVulkanMathEngine::BlobGetSubSequence( const CBlobDesc& from, const CFloatHandle& fromData, const CIntHandle& indexHandle,
-	const CBlobDesc& to, const CFloatHandle& toData, int startPos, bool isRev )
+void CVulkanMathEngine::BlobGetSubSequence( const CBlobDesc& from, const CConstFloatHandle& fromData,
+	const CIntHandle& indexHandle, const CBlobDesc& to, const CFloatHandle& toData, int startPos, bool isRev )
 {
 	if( indexHandle.IsNull() ) {
 		CMemoryHandle bufs[2] = { fromData, toData };
@@ -220,6 +220,12 @@ void CVulkanMathEngine::BlobGetSubSequence( const CBlobDesc& from, const CFloatH
 		runShader( shaderLoader->GET_SHADER_DATA(BlobGetSubSequence, true, 0, 0, 3),
 			&param, sizeof(param), 0, 0, 0, 0, bufs, sizes, 3, Ceil(to.ObjectSize(), 16), to.BatchWidth() * to.ListSize(), to.BatchLength() );
 	}
+}
+
+void CVulkanMathEngine::BlobGetSubSequence( const CBlobDesc&, const CConstIntHandle&, const CIntHandle&,
+	const CBlobDesc&, const CIntHandle&, int, bool )
+{
+	ASSERT_EXPR( false );
 }
 
 void CVulkanMathEngine::Upsampling2DForward( const CBlobDesc& input, const CConstIntHandle& inputData, int heightCopyCount,

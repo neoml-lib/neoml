@@ -712,8 +712,10 @@ public:
 		int deltaTop, int deltaBottom, float defaultValue, const CBlobDesc& to, const CFloatHandle& toData ) = 0;
 
 	// Retrieves subsequences from the blob sequences and, if necessary, reverses them
-	virtual void BlobGetSubSequence( const CBlobDesc& from, const CFloatHandle& fromData, const CIntHandle& indexHandle,
+	virtual void BlobGetSubSequence( const CBlobDesc& from, const CConstFloatHandle& fromData, const CIntHandle& indexHandle,
 		const CBlobDesc& to, const CFloatHandle& toData, int startPos, bool isRev ) = 0;
+	virtual void BlobGetSubSequence( const CBlobDesc& from, const CConstIntHandle& fromData, const CIntHandle& indexHandle,
+		const CBlobDesc& to, const CIntHandle& toData, int startPos, bool isRev ) = 0;
 
 	// Time convolution
 	// The descriptor should be destroyed using the standard delete operator after use.
