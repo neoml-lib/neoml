@@ -93,13 +93,8 @@ void CSubSequenceLayer::RunOnce()
 	NeoAssert(subSequenceLength == outputBlobs[0]->GetBatchLength());
 
 	CIntHandle indexHandle = (indices == 0) ? CIntHandle() : indices->GetData<int>();
-	if( inputBlobs[0]->GetDataType() == CT_Float ) {
-		MathEngine().BlobGetSubSequence( inputBlobs[0]->GetDesc(), inputBlobs[0]->GetData(), indexHandle,
-			outputBlobs[0]->GetDesc(), outputBlobs[0]->GetData(), sequenceStart, length < 0 );
-	} else {
-		MathEngine().BlobGetSubSequence( inputBlobs[0]->GetDesc(), inputBlobs[0]->GetData<int>(), indexHandle,
-			outputBlobs[0]->GetDesc(), outputBlobs[0]->GetData<int>(), sequenceStart, length < 0 );
-	}
+	MathEngine().BlobGetSubSequence( inputBlobs[0]->GetDesc(), inputBlobs[0]->GetData(), indexHandle,
+		outputBlobs[0]->GetDesc(), outputBlobs[0]->GetData(), sequenceStart, length < 0 );
 }
 
 void CSubSequenceLayer::BackwardOnce()
