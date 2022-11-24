@@ -100,8 +100,8 @@ public:
 
 	// Activation function applied to the update gate
 	// Tanh by default
-	TActivationFunction GetActivation() const { return activation; }
-	void SetActivation( TActivationFunction newActivation );
+	CActivationDesc GetActivation() const;
+	void SetActivation( const CActivationDesc& activation );
 
 	// Hidden state size
 	int GetHiddenSize() const { return timeConv->GetFilterCount() / gateCount(); }
@@ -156,7 +156,6 @@ private:
 	// Layer config
 	TPoolingType poolingType; // pooling type used after time convolution
 	TRecurrentMode recurrentMode; // method used for processing sequences
-	TActivationFunction activation; // update gate activation function
 	// Conv + split
 	CPtr<CTimeConvLayer> timeConv; // time convolution
 	CPtr<CSplitChannelsLayer> split; // split layer
@@ -168,7 +167,7 @@ private:
 	CPtr<CBaseLayer> firstPooling;
 	CPtr<CBaseLayer> secondPooling; // used when recurrent mode is bidirection
 
-	void buildLayer( float dropoutRate, int hiddenSize, int windowSize, int stride, int padFront, int padBack );
+	void buildLayer( float dropoutRate, int hiddenSize, int windowSize, int stride, int padFront, int padBack, const CActivationDesc& );
 	CPtr<CSigmoidLayer> addSigmoid( CBaseLayer& inputLayer, int outputIndex, const char* sigmoidName );
 	CPtr<CBaseLayer> addPoolingLayer( const char* name, bool reverse );
 	CPtr<CEltwiseMulLayer> addMulLayer( CBaseLayer& first, CBaseLayer& second, const char* mulLayerName );
