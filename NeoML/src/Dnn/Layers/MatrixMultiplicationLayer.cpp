@@ -41,23 +41,52 @@ void CMatrixMultiplicationLayer::Reshape()
 
 	CheckArchitecture( inputDescs[0].Channels() == inputDescs[1].GeometricalSize(), GetPath(),
 		"input[0].Channels must be equal to input[1].GeometricalSize" );
-	CheckArchitecture( inputDescs[0].ObjectCount() == inputDescs[1].ObjectCount(), GetPath(), "object count mismatch between inputs" );
+	if( IsBackwardPerformed() ) {
+		CheckArchitecture( inputDescs[0].ObjectCount() == inputDescs[1].ObjectCount(),
+			GetPath(), "object count mismatch between inputs" );
+	} else {
+		CheckArchitecture( inputDescs[0].ObjectCount() == inputDescs[1].ObjectCount() || inputDescs[0].ObjectCount() == 1
+			|| inputDescs[1].ObjectCount() == 1, GetPath(), "object count mismatch between inputs" );
+	}
 
 	outputDescs.SetSize( 1 );
 	CBlobDesc outputDesc = inputDescs[0];
 	outputDesc.SetDimSize( BD_Channels, inputDescs[1].Channels() );
+	if( inputDescs[1].ObjectCount() > inputDescs[0].ObjectCount() ) {
+		outputDesc.SetDimSize( BD_BatchLength, inputDescs[1].BatchLength() );
+		outputDesc.SetDimSize( BD_BatchWidth, inputDescs[1].BatchWidth() );
+		outputDesc.SetDimSize( BD_ListSize, inputDescs[1].ListSize() );
+	}
+
 	outputDescs[0] = outputDesc;
 }
 
 void CMatrixMultiplicationLayer::RunOnce()
 {
-	MathEngine().MultiplyMatrixByMatrix( inputBlobs[0]->GetObjectCount(), inputBlobs[0]->GetData(),
-		inputBlobs[0]->GetGeometricalSize(), inputBlobs[0]->GetChannelsCount(), inputBlobs[1]->GetData(),
-		inputBlobs[1]->GetChannelsCount(), outputBlobs[0]->GetData(), outputBlobs[0]->GetDataSize() );
+	if( inputBlobs[0]->GetObjectCount() == inputBlobs[1]->GetObjectCount() ) {
+		MathEngine().MultiplyMatrixByMatrix( inputBlobs[0]->GetObjectCount(), inputBlobs[0]->GetData(),
+			inputBlobs[0]->GetGeometricalSize(), inputBlobs[0]->GetChannelsCount(), inputBlobs[1]->GetData(),
+			inputBlobs[1]->GetChannelsCount(), outputBlobs[0]->GetData(), outputBlobs[0]->GetDataSize() );
+	} else if( inputBlobs[1]->GetObjectCount() == 1 ) {
+		for( int i = 0; i < inputBlobs[0]->GetObjectCount(); ++i ) {
+			MathEngine().MultiplyMatrixByMatrix( 1, inputBlobs[0]->GetObjectData( i ),
+				inputBlobs[0]->GetGeometricalSize(), inputBlobs[0]->GetChannelsCount(), inputBlobs[1]->GetData(),
+				inputBlobs[1]->GetChannelsCount(), outputBlobs[0]->GetObjectData( i ), outputBlobs[0]->GetObjectSize() );
+		}
+	} else if( inputBlobs[0]->GetObjectCount() == 1 ) {
+		for( int i = 0; i < inputBlobs[1]->GetObjectCount(); ++i ) {
+			MathEngine().MultiplyMatrixByMatrix( 1, inputBlobs[0]->GetData(),
+				inputBlobs[0]->GetGeometricalSize(), inputBlobs[0]->GetChannelsCount(), inputBlobs[1]->GetObjectData( i ),
+				inputBlobs[1]->GetChannelsCount(), outputBlobs[0]->GetObjectData( i ), outputBlobs[0]->GetObjectSize() );
+		}
+	} else {
+		NeoAssert( false );
+	}
 }
 
 void CMatrixMultiplicationLayer::BackwardOnce()
 {
+	NeoAssert( inputBlobs[0]->GetObjectCount() == inputBlobs[1]->GetObjectCount() );
 	NeoAssert( outputDiffBlobs[0]->GetChannelsCount() == inputBlobs[1]->GetChannelsCount() );
 	NeoAssert( outputDiffBlobs[0]->GetGeometricalSize() == inputBlobs[0]->GetGeometricalSize() );
 

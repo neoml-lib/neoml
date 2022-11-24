@@ -84,6 +84,15 @@ void CReshapeOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensor
 
 	if( remainderIndex != NotFound ) {
 		outputShape[remainderIndex] = remainder;
+	} else {
+		// In order to be more friendly to dynamic axes let's try to set one of the dims of size 1 as a remainder
+		for( int dimIndex = 0; dimIndex < outputShape.Size(); ++dimIndex ) {
+			if( outputShape[dimIndex] == 1 ) {
+				transform->SetDimensionRule( outputLayout[dimIndex],
+					CTransformLayer::CDimensionRule( CTransformLayer::O_Remainder, 1 ) );
+				break;
+			}
+		}
 	}
 
 	for( TBlobDim dim = BD_BatchLength; dim < BD_Count; ++dim ) {
