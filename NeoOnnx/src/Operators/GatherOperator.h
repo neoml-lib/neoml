@@ -32,8 +32,8 @@ private:
 	// axis value from attributes
 	int axisAttr;
 
+	// void processDataTensors( const CDataTensor& data, const CDataTensor& indices, CTensorArray& outputs ) const;
 	void addImageToPixelLayer( const CUserTensor& data, const CUserTensor& indices, CDnn& dnn, CTensorArray& outputs ) const;
-	void addSubSequenceLayer( const CUserTensor& data, const CDataTensor& indices, CDnn& dnn, CTensorArray& outputs ) const;
 };
 
 } // namespace NeoOnnx

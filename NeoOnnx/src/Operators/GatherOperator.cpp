@@ -23,22 +23,6 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-// Checks that operator can be emulated by CSubSequenceLayer
-static bool canBeEmulatedBySubSequence( const CTensorBase& indices )
-{
-	if( !indices.IsCalculated() ) {
-		return false;
-	}
-
-	for( int i = 0; i < indices.DimCount(); ++i ) {
-		if( indices.Shape()[i] != 1 ) {
-			return false;
-		}
-	}
-
-	return true;
-}
-
 // Converts tensor to onnx-compatible layout
 static CPtr<const CUserTensor> convertToOnnx( const CUserTensor& data )
 {
@@ -102,14 +86,12 @@ void CGatherOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorA
 	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
 	CheckOnnxProtocol( inputs[1] != nullptr, "input can't be optional", *this );
 
-	CPtr<const CUserTensor> data = AsUserTensor( *inputs[0], Name() + "_Source_Data", dnn );
-
-	if( canBeEmulatedBySubSequence( *inputs[1] ) ) {
-		addSubSequenceLayer( *data, dynamic_cast<const CDataTensor&>( *inputs[1] ), dnn, outputs );
-	} else {
-		CPtr<const CUserTensor> indices = AsUserTensor( *inputs[1], Name() + "_Source_Indices", dnn );
-		addImageToPixelLayer( *data, *indices, dnn, outputs );
+	CObjectArray<const CUserTensor> convertedInputs;
+	for( int i = 0; i < inputs.Size(); ++i ) {
+		convertedInputs.Add( AsUserTensor( *inputs[i], Name() + "_Source" + Str( i ), dnn ).Ptr() );
 	}
+
+	addImageToPixelLayer( *convertedInputs[0], *convertedInputs[1], dnn, outputs );
 }
 
 void CGatherOperator::addImageToPixelLayer( const CUserTensor& data, const CUserTensor& indices,
@@ -190,63 +172,6 @@ void CGatherOperator::addImageToPixelLayer( const CUserTensor& data, const CUser
 		outputLayout.Add( currOutput->Layout()[indices.DimCount() + dataDim - 1] );
 	}
 	outputs.Add( new CUserTensor( outputShape, outputLayout, currOutput->LayerOutput() ) );
-}
-
-void CGatherOperator::addSubSequenceLayer( const CUserTensor& data, const CDataTensor& indices,
-	CDnn& dnn, CTensorArray& outputs ) const
-{
-	CPtr<const CUserTensor> currData = &data;
-
-	const int axis = axisAttr < 0 ? axisAttr + data.DimCount() : axisAttr;
-	CheckOnnxProtocol( axis >= 0 && axis < currData->DimCount(), "axis out of range", *this );
-
-	// For the proper work of CSubSequenceLayer first axis of data must be in BD_BatchLength
-	if( currData->Layout()[axis] != BD_BatchLength ) {
-		CTensorLayout newLayout = currData->Layout();
-		const int batchLenIndex = newLayout.Find( BD_BatchLength );
-		if( batchLenIndex != NotFound ) {
-			swap( newLayout[axis], newLayout[batchLenIndex] );
-		} else {
-			newLayout[axis] = BD_BatchLength;
-		}
-		currData = ConvertTensor( *currData, newLayout );
-	}
-
-	CheckOnnxProtocol( indices.Data()->GetDataType() == CT_Int, "non-integer indices", *this );
-	const int gatherIndex = indices.Data()->GetData<int>().GetValue();
-
-	CPtr<CSubSequenceLayer> subSeqLayer = new CSubSequenceLayer( dnn.GetMathEngine() );
-	subSeqLayer->SetName( Name() );
-	subSeqLayer->SetStartPos( gatherIndex );
-	subSeqLayer->SetLength( 1 );
-	subSeqLayer->Connect( 0, *currData->Layer(), currData->OutputIndex() );
-	dnn.AddLayer( *subSeqLayer );
-
-	const int outputDimCount = currData->DimCount() + indices.DimCount() - 1;
-	CTensorShape outputShape;
-	CTensorLayout outputLayout;
-
-	for( int i = 0; i < axis; ++i ) {
-		outputShape.Add( currData->Shape()[i] );
-		outputLayout.Add( currData->Layout()[i] );
-	}
-
-	TBlobDim unusedDim = BD_BatchLength;
-	for( int i = 0; i < indices.DimCount(); ++i ) {
-		outputShape.Add( indices.Shape()[i] );
-		while( currData->Layout().Find( unusedDim ) != NotFound ) {
-			++unusedDim;
-		}
-		outputLayout.Add( unusedDim );
-		++unusedDim;
-	}
-
-	for( int i = axis + 1; i < currData->DimCount(); ++i ) {
-		outputShape.Add( currData->Shape()[i] );
-		outputLayout.Add( currData->Layout()[i] );
-	}
-
-	outputs.Add( new CUserTensor( outputShape, outputLayout, CLayerOutput( subSeqLayer.Ptr(), 0 ) ) );
 }
 
 } // namespace NeoOnnx
