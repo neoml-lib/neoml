@@ -106,6 +106,10 @@ void CBaseLayer::unlink()
 
 void CBaseLayer::buildOrder()
 {
+	const CBaseLayer* uninitializedValue = nullptr;
+	// Special value which is used when we want to disable inplace processing over specific blob
+	const CBaseLayer* disabledValue = reinterpret_cast<const CBaseLayer*>( static_cast<const char*>( nullptr ) + 1 );
+
 	if( !lastOutputUser.IsEmpty() ) {
 		return;
 	}
@@ -114,11 +118,18 @@ void CBaseLayer::buildOrder()
 		inputLinks[i].Layer->buildOrder();
 	}
 
+	const bool isSink = outputs.IsEmpty();
 	for( int i = 0; i < inputLinks.Size(); ++i ) {
-		inputLinks[i].Layer->lastOutputUser[inputLinks[i].OutputNumber] = this;
+		const CBaseLayer*& value = inputLinks[i].Layer->lastOutputUser[inputLinks[i].OutputNumber];
+		// 2 rules:
+		//    1. do not overwrite disabledValue
+		//    2. if we're sink then write disabledValue (in order to avoid overwriting of CDnn output blobs)
+		if( value != disabledValue ) {
+			value = isSink ? disabledValue : this;
+		}
 	}
 
-	lastOutputUser.Add( nullptr, outputs.Size() );
+	lastOutputUser.Add( uninitializedValue, outputs.Size() );
 }
 
 // Establish connections
