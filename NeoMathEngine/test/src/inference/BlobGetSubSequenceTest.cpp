@@ -18,7 +18,6 @@ limitations under the License.
 using namespace NeoML;
 using namespace NeoMLTest;
 
-template<class T>
 static void blobSubSequenceTestImpl( const CTestParams& params, int seed )
 {
 	CRandom random( seed );
@@ -40,20 +39,20 @@ static void blobSubSequenceTestImpl( const CTestParams& params, int seed )
 
 	const int seqElemSize = batchWidth * listSize * channels;
 
-	CBlob<T> input( MathEngine(), batchLength, batchWidth, listSize, 1, 1, 1, channels );
-	CBlob<T> output( MathEngine(), subseqLength, batchWidth, listSize, 1, 1, 1, channels );
+	CFloatBlob input( MathEngine(), batchLength, batchWidth, listSize, 1, 1, 1, channels );
+	CFloatBlob output( MathEngine(), subseqLength, batchWidth, listSize, 1, 1, 1, channels );
 
-	std::vector<T> inputBuff;
+	std::vector<float> inputBuff;
 	inputBuff.resize( input.GetDataSize() );
-	std::vector<T> expected;
+	std::vector<float> expected;
 	expected.resize( output.GetDataSize() );
-	std::vector<T> actual;
+	std::vector<float> actual;
 	actual.resize( output.GetDataSize() );
 	for( int s = 0; s < batchLength; ++s ) {
 		const int outputSeq = isRev ? subseqLength - 1 - ( s - subseqStart ) : s - subseqStart;
 		for( int rest = 0; rest < seqElemSize; ++rest ) {
 			const int inputIndex = s * seqElemSize + rest;
-			inputBuff[inputIndex] = static_cast<T>( random.Uniform( -10, 10 ) );
+			inputBuff[inputIndex] = static_cast<float>( random.Uniform( -10, 10 ) );
 			if( outputSeq >= 0 && outputSeq < subseqLength ) {
 				const int outputIndex = outputSeq * seqElemSize + rest;
 				expected[outputIndex] = inputBuff[inputIndex];
@@ -110,6 +109,5 @@ INSTANTIATE_TEST_CASE_P( CMathEngineGetSubsequenceTestInstantiation, CMathEngine
 
 TEST_P(CMathEngineGetSubsequenceTest, Random)
 {
-	RUN_TEST_IMPL(blobSubSequenceTestImpl<float>)
-	RUN_TEST_IMPL(blobSubSequenceTestImpl<int>)
+	RUN_TEST_IMPL(blobSubSequenceTestImpl)
 }
