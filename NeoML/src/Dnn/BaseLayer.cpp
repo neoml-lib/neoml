@@ -108,7 +108,7 @@ void CBaseLayer::buildOrder()
 {
 	const CBaseLayer* uninitializedValue = nullptr;
 	// Special value which is used when we want to disable inplace processing over specific blob
-	const CBaseLayer* disabledValue = reinterpret_cast<const CBaseLayer*>( static_cast<const char*>( nullptr ) + 1 );
+	const CBaseLayer* disabledValue = reinterpret_cast<const CBaseLayer*>( static_cast<const char*>( 0 ) + 1 );
 
 	if( !lastOutputUser.IsEmpty() ) {
 		return;
