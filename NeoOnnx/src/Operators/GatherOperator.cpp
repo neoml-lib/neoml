@@ -222,6 +222,7 @@ void CGatherOperator::addSubSequenceLayer( const CUserTensor& data, const CDataT
 	subSeqLayer->Connect( 0, *currData->Layer(), currData->OutputIndex() );
 	dnn.AddLayer( *subSeqLayer );
 
+	const int outputDimCount = currData->DimCount() + indices.DimCount() - 1;
 	CTensorShape outputShape;
 	CTensorLayout outputLayout;
 
