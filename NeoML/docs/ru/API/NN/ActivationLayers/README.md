@@ -13,10 +13,10 @@
 ## Создание слоя
 
 ```c++
-CPtr<CBaseLayer> NEOML_API CreateActivationLayer( TActivationFunction type );
+CPtr<CBaseLayer> NEOML_API CreateActivationLayer( const CActivationDesc& activation );
 ```
 
-Создаёт слой, вычисляющий функцию активации `type`.
+Создаёт слой, вычисляющий функцию активации `activation`.
 
 ## Виды слоёв
 

@@ -18,23 +18,32 @@ limitations under the License.
 
 #include <NeoML/Dnn/Dnn.h>
 #include <NeoML/Dnn/Layers/ActivationLayers.h>
-#include <NeoML/Dnn/Layers/GELULayer.h>
 #include <NeoMathEngine/NeoMathEngine.h>
 
 namespace NeoML {
 
-CPtr<CBaseLayer> CreateActivationLayer( IMathEngine& mathEngine, TActivationFunction type )
+template<class CActivationLayer>
+static CPtr<CBaseLayer> createActivationWithParam( IMathEngine& mathEngine, const CActivationDesc& desc )
+{
+	CPtr<CActivationLayer> result = FINE_DEBUG_NEW CActivationLayer( mathEngine );
+	if( desc.HasParam() ) {
+		result->ApplyParam( desc.GetParam<typename CActivationLayer::CParam>() );
+	}
+	return result.Ptr();
+}
+
+CPtr<CBaseLayer> CreateActivationLayer( IMathEngine& mathEngine, const CActivationDesc& desc )
 {
 	static_assert( AF_Count == 15, "AF_Count != 15" );
-	switch( type ) {
+	switch( desc.GetType() ) {
 		case AF_Linear:
-			return FINE_DEBUG_NEW CLinearLayer( mathEngine );
+			return createActivationWithParam<CLinearLayer>( mathEngine, desc );
 		case AF_ELU:
-			return FINE_DEBUG_NEW CELULayer( mathEngine );
+			return createActivationWithParam<CELULayer>( mathEngine, desc );
 		case AF_ReLU:
-			return FINE_DEBUG_NEW CReLULayer( mathEngine );
+			return createActivationWithParam<CReLULayer>( mathEngine, desc );
 		case AF_LeakyReLU:
-			return FINE_DEBUG_NEW CLeakyReLULayer( mathEngine );
+			return createActivationWithParam<CLeakyReLULayer>( mathEngine, desc );
 		case AF_Abs:
 			return FINE_DEBUG_NEW CAbsLayer( mathEngine );
 		case AF_Sigmoid:
@@ -44,13 +53,13 @@ CPtr<CBaseLayer> CreateActivationLayer( IMathEngine& mathEngine, TActivationFunc
 		case AF_HardTanh:
 			return FINE_DEBUG_NEW CHardTanhLayer( mathEngine );
 		case AF_HardSigmoid:
-			return FINE_DEBUG_NEW CHardSigmoidLayer( mathEngine );
+			return createActivationWithParam<CHardSigmoidLayer>( mathEngine, desc );
 		case AF_Power:
-			return FINE_DEBUG_NEW CPowerLayer( mathEngine );
+			return createActivationWithParam<CPowerLayer>( mathEngine, desc );
 		case AF_HSwish:
 			return FINE_DEBUG_NEW CHSwishLayer( mathEngine );
 		case AF_GELU:
-			return FINE_DEBUG_NEW CGELULayer( mathEngine );
+			return createActivationWithParam<CGELULayer>( mathEngine, desc );
 		case AF_Exp:
 			return FINE_DEBUG_NEW CExpLayer( mathEngine );
 		case AF_Log:
@@ -68,8 +77,6 @@ CPtr<CBaseLayer> CreateActivationLayer( IMathEngine& mathEngine, TActivationFunc
 CLinearLayer::CLinearLayer( IMathEngine& mathEngine ) :
 	CBaseInPlaceLayer( mathEngine, "CCnnLinearLayer" )
 {
-	SetMultiplier(1.f);
-	SetFreeTerm(0);
 }
 
 template<class T>
@@ -96,6 +103,12 @@ static void linearRunOnce( const CTypedMemoryHandle<const T>& input, T multiplie
 	if( currInput != output ) {
 		mathEngine.VectorCopy( output, currInput, dataSize );
 	}
+}
+
+CActivationDesc CLinearLayer::GetDesc() const
+{
+	CParam param{ multiplier, freeTerm };
+	return { AF_Linear, param };
 }
 
 void CLinearLayer::RunOnce()
@@ -160,7 +173,7 @@ CELULayer::CELULayer( IMathEngine& mathEngine ) :
 	CBaseInPlaceLayer( mathEngine, "CCnnELULayer" )
 {
 	paramBlobs.Add( CDnnBlob::CreateVector( mathEngine, CT_Float, 1 ) );
-	SetAlpha( 0.01f );
+	SetAlpha( DefaultAlpha );
 }
 
 static const int ELULayerVersion = 2000;
@@ -179,6 +192,11 @@ float CELULayer::GetAlpha() const
 void CELULayer::SetAlpha( float alpha )
 {
 	paramBlobs[0]->GetData().SetValue( alpha );
+}
+
+CActivationDesc CELULayer::GetDesc() const
+{
+	return { AF_ELU, CParam{ GetAlpha() } };
 }
 
 void CELULayer::RunOnce()
@@ -206,6 +224,13 @@ CLayerWrapper<CELULayer> Elu( float alpha )
 
 static const int ReLULayerVersion = 2000;
 
+CReLULayer::CReLULayer( IMathEngine& mathEngine ) :
+	CBaseInPlaceLayer( mathEngine, "CCnnReLULayer" ),
+	upperThreshold( CDnnBlob::CreateVector( mathEngine, CT_Float, 1 ) )
+{
+	SetUpperThreshold( DefaultUpperThreshold );
+}
+
 void CReLULayer::Serialize( CArchive& archive )
 {
 	archive.SerializeVersion( ReLULayerVersion, CDnn::ArchiveMinSupportedVersion );
@@ -220,6 +245,11 @@ void CReLULayer::Serialize( CArchive& archive )
 	} else {
 		NeoAssert( false );
 	}
+}
+
+CActivationDesc CReLULayer::GetDesc() const
+{
+	return { AF_ReLU, CParam{ GetUpperThreshold() } };
 }
 
 void CReLULayer::RunOnce()
@@ -270,7 +300,12 @@ CLeakyReLULayer::CLeakyReLULayer( IMathEngine& mathEngine ) :
 	CBaseInPlaceLayer( mathEngine, "CCnnLeakyReLULayer" )
 {
 	paramBlobs.Add( CDnnBlob::CreateVector( mathEngine, CT_Float, 1 ) );
-	SetAlpha( 0.01f );
+	SetAlpha( DefaultAlpha );
+}
+
+CActivationDesc CLeakyReLULayer::GetDesc() const
+{
+	return { AF_LeakyReLU, CParam{ GetAlpha() } };
 }
 
 void CLeakyReLULayer::RunOnce()
@@ -305,6 +340,11 @@ void CHSwishLayer::Serialize( CArchive& archive )
 {
 	archive.SerializeVersion( HSwishLayerVersion, CDnn::ArchiveMinSupportedVersion );
 	CBaseLayer::Serialize( archive );
+}
+
+CActivationDesc CHSwishLayer::GetDesc() const
+{
+	return { AF_HSwish };
 }
 
 void CHSwishLayer::Reshape()
@@ -344,6 +384,11 @@ void CAbsLayer::Serialize( CArchive& archive )
 	CBaseLayer::Serialize( archive );
 }
 
+CActivationDesc CAbsLayer::GetDesc() const
+{
+	return { AF_Abs };
+}
+
 void CAbsLayer::Reshape()
 {
 	CheckInput1();
@@ -381,6 +426,11 @@ void CSigmoidLayer::Serialize( CArchive& archive )
 	CBaseInPlaceLayer::Serialize( archive );
 }
 
+CActivationDesc CSigmoidLayer::GetDesc() const
+{
+	return { AF_Sigmoid };
+}
+
 void CSigmoidLayer::RunOnce()
 {
 	CheckInput1();
@@ -407,6 +457,11 @@ void CTanhLayer::Serialize( CArchive& archive )
 {
 	archive.SerializeVersion( TanhLayerVersion, CDnn::ArchiveMinSupportedVersion );
 	CBaseInPlaceLayer::Serialize( archive );
+}
+
+CActivationDesc CTanhLayer::GetDesc() const
+{
+	return { AF_Tanh };
 }
 
 void CTanhLayer::RunOnce()
@@ -437,6 +492,11 @@ void CHardTanhLayer::Serialize( CArchive& archive )
 	CBaseInPlaceLayer::Serialize( archive );
 }
 
+CActivationDesc CHardTanhLayer::GetDesc() const
+{
+	return { AF_HardTanh };
+}
+
 void CHardTanhLayer::RunOnce()
 {
 	CheckInput1();
@@ -462,9 +522,9 @@ static const int HardSigmoidLayerVersion = 2001;
 void CHardSigmoidLayer::setDefaultParamBlobs( IMathEngine& mathEngine )
 {
 	paramBlobs.Add( CDnnBlob::CreateVector( mathEngine, CT_Float, 1 ) );
-	SetSlope( 0.5f );
+	SetSlope( DefaultSlope );
 	paramBlobs.Add( CDnnBlob::CreateVector( mathEngine, CT_Float, 1 ) );
-	SetBias( 0.5f );
+	SetBias( DefaultBias );
 }
 
 void CHardSigmoidLayer::Serialize( CArchive& archive )
@@ -480,6 +540,11 @@ void CHardSigmoidLayer::Serialize( CArchive& archive )
 CHardSigmoidLayer::CHardSigmoidLayer( IMathEngine& mathEngine ) : CBaseInPlaceLayer( mathEngine, "CCnnHardSigmoidLayer" )
 {
 	setDefaultParamBlobs( mathEngine );
+}
+
+CActivationDesc CHardSigmoidLayer::GetDesc() const
+{
+	return { AF_HardSigmoid, CParam{ GetSlope(), GetBias() } };
 }
 
 void CHardSigmoidLayer::RunOnce()
@@ -506,11 +571,21 @@ CLayerWrapper<CHardSigmoidLayer> HardSigmoid( float slope, float bias )
 
 static const int PowerLayerVersion = 2000;
 
+CPowerLayer::CPowerLayer( IMathEngine& mathEngine ) :
+	CBaseInPlaceLayer( mathEngine, "CCnnPowerLayer" )
+{
+}
+
 void CPowerLayer::Serialize( CArchive& archive )
 {
 	archive.SerializeVersion( PowerLayerVersion, CDnn::ArchiveMinSupportedVersion );
 	CBaseInPlaceLayer::Serialize( archive );
 	archive.Serialize( exponent );
+}
+
+CActivationDesc CPowerLayer::GetDesc() const
+{
+	return { AF_Power, CParam{ exponent } };
 }
 
 void CPowerLayer::RunOnce()
@@ -543,6 +618,11 @@ void CExpLayer::Serialize( CArchive& archive )
 	CBaseInPlaceLayer::Serialize( archive );
 }
 
+CActivationDesc CExpLayer::GetDesc() const
+{
+	return { AF_Exp };
+}
+
 void CExpLayer::RunOnce()
 {
 	MathEngine().VectorExp( inputBlobs[0]->GetData(), outputBlobs[0]->GetData(), outputBlobs[0]->GetDataSize() );
@@ -567,6 +647,11 @@ void CLogLayer::Serialize( CArchive& archive )
 {
 	archive.SerializeVersion( LogLayerVersion );
 	CBaseInPlaceLayer::Serialize( archive );
+}
+
+CActivationDesc CLogLayer::GetDesc() const
+{
+	return { AF_Log };
 }
 
 void CLogLayer::RunOnce()
@@ -599,6 +684,11 @@ void CErfLayer::Serialize( CArchive& archive )
 {
 	archive.SerializeVersion( ErfLayerVersion );
 	CBaseLayer::Serialize( archive );
+}
+
+CActivationDesc CErfLayer::GetDesc() const
+{
+	return { AF_Erf };
 }
 
 void CErfLayer::Reshape()
