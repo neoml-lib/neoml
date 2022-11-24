@@ -33,25 +33,26 @@ static std::string getModuleDir()
 	Dl_info dlInfo;
 	auto returnValue = dladdr( reinterpret_cast<void*>( getModuleDir ), &dlInfo );
 	ASSERT_EXPR( returnValue != 0 );
-		
+
 	constexpr char separator[] = { '/' };
 	const auto* dllPath = dlInfo.dli_fname;
 	auto it = std::find_end( dllPath, dllPath + strlen( dllPath ), separator, separator + 1 );
-		
-	result.assign( dllPath, it + 1 );
+	if( it != dllPath + strlen( dllPath ) ) {
+		result.assign( dllPath, it + 1 );
+	}
 
 #elif FINE_PLATFORM( FINE_WINDOWS )
 
 	static_assert( sizeof( TCHAR ) == sizeof( char ), "TCHAR is wide char type!" );
-		
+
 	std::vector<char> buffer;
 	DWORD copiedChars = 0;
-		
+
 	HMODULE handle;
 	auto returnValue = GetModuleHandleEx( GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, 
 		reinterpret_cast<LPCSTR>( getModuleDir ), &handle );
 	PRESUME_EXPR( returnValue != 0 );
-		
+
 	do {
 		buffer.resize( buffer.size() + MAX_PATH );
 		copiedChars = GetModuleFileName( handle, buffer.data(), static_cast<DWORD>( buffer.size() ) );
@@ -60,7 +61,9 @@ static std::string getModuleDir()
 	constexpr char separator[] = {'\\'};
 	auto it = std::find_end( buffer.cbegin(), buffer.cbegin() + copiedChars, separator, separator + 1 );
 
-	result.assign( buffer.cbegin(), it + 1 );
+	if( it != buffer.cbegin() + copiedChars ) {
+		result.assign( buffer.cbegin(), it + 1 );
+	}
 
 #else
 	#error "Platform isn't supported!"
