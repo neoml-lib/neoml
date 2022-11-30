@@ -475,16 +475,20 @@ void CDistributedTraining::GetLastBlob( const CString& layerName, CObjectArray<C
 
 void CDistributedTraining::Serialize( CArchive& archive )
 {
-    NeoAssert( archive.IsStoring() );
-    NeoAssert( !cnns.IsEmpty() && cnns[0] != nullptr );
-    archive.Serialize( *cnns[0] );
+    // save the first dnn without solver data
+    StoreDnn( archive, 0, false );
 }
 
-void CDistributedTraining::SerializeCheckpoint( CArchive& archive )
+void CDistributedTraining::StoreDnn( CArchive& archive, int index, bool storeSolver )
 {
     NeoAssert( archive.IsStoring() );
-    NeoAssert( !cnns.IsEmpty() && cnns[0] != nullptr );
-    cnns[0]->SerializeCheckpoint( archive );
+    NeoAssert( cnns.IsValidIndex( index ) && cnns[index] != nullptr );
+
+    if( storeSolver ) {
+        cnns[index]->SerializeCheckpoint( archive );
+    } else {
+        cnns[index]->Serialize( archive );
+    }
 }
 
 } // namespace NeoML
