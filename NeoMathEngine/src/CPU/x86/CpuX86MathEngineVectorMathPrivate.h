@@ -221,7 +221,7 @@ inline void vectorEltwiseMax( const float* first, const float* second, float* re
 	}
 
 	for( int i = 0; i < nonSseSize; ++i ) {
-		*result++ = max(*first, *second);
+		*result++ = std::max<float>(*first, *second);
 		first++;
 		second++;
 	}
@@ -623,7 +623,7 @@ inline void vectorReLU( const float* first, float* result, int vectorSize )
 	}
 
 	for(int i = 0; i < nonSseSize; ++i) {
-		*result = max(*first, 0.f);
+		*result = std::max<float>(*first, 0.f);
 		result++;
 		first++;
 	}
@@ -662,7 +662,7 @@ inline void vectorReLU( const float* first, float* result, int vectorSize, float
 	}
 
 	for( int i = 0; i < nonSseSize; ++i ) {
-		*result = min(max(*first, 0.f), threshold);
+		*result = std::min<float>( std::max<float>(*first, 0.f), threshold );
 		result++;
 		first++;
 	}

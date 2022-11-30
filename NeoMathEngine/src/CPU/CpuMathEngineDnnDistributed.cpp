@@ -57,7 +57,7 @@ void CMultiThreadDistributedCommunicator::AllReduce( const CFloatHandle& handle,
 
     int perThread = ( size + n_threads - 1 ) / n_threads;
     float buf;
-    for( int i = thread * perThread; i < min( ( thread + 1 ) * perThread, size ); i++ ){
+    for( int i = thread * perThread; i < std::min( ( thread + 1 ) * perThread, size ); i++ ){
         buf = 0;
         for( int j = 0; j < n_threads; j++ ){
             buf += handles[j][i];

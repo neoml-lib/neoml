@@ -31,7 +31,7 @@ limitations under the License.
 namespace NeoML {
 
 static std::mutex deviceMapMutex;
-static std::unordered_map<thread::id, int> deviceMap;
+static std::unordered_map<std::thread::id, int> deviceMap;
 
 void SetCudaDevice( int deviceNum )
 {

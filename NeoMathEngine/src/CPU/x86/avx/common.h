@@ -23,4 +23,3 @@ limitations under the License.
 #include <NeoMathEngine/NeoMathEngine.h>
 #include <immintrin.h>
 
-using namespace std;
