@@ -554,7 +554,7 @@ class Power(Layer):
 class GELU(Layer):
     """The layer that calculates the GELU activation function
     for each element of the single input:
-    :math:`f(x) = x / (1 + e^{-1.702 * x})`
+    :math:`f(x) = x * 0.5 * ( 1 + erf( x / sqrt(2) ) )` or approx.: `f(x) = x * sigmoid( 1.702 * x )`
     
     :param input_layer: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
