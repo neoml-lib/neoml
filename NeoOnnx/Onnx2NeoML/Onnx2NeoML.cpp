@@ -12,6 +12,9 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
 #ifdef NEOML_USE_FINEOBJ
 #include <FineObj.h>
 #endif

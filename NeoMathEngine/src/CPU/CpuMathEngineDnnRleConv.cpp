@@ -260,7 +260,7 @@ void CCpuMathEngine::BlobRleConvolution( const CRleConvolutionDesc& convDesc, co
 
 			// Traverse all filters that have this row
 			float* output = outputObj + firstJFilter * outputRowSize;
-			int filterLineNumber = max( 0, lineNumber - firstJFilter * strideHeight );
+			int filterLineNumber = std::max( 0, lineNumber - firstJFilter * strideHeight );
 			const float* filterConvData = filterConvPtr + ( filterHeight - filterLineNumber - 1 ) * filterCount;
 
 			for( int i = 0; i < outputWidth; ++i ) {
@@ -311,8 +311,8 @@ void CCpuMathEngine::BlobRleConvolutionLearnAdd( const CRleConvolutionDesc& conv
 
 	const int curThreadCount = IsOmpRelevant( objectCount ) ? threadCount : 1;
 
-	unique_ptr<COmpReduction1DData> freeTermDiffItem( nullptr );
-	unique_ptr<COmpReduction<COmpReduction1DData>> freeTermDiffReduction( nullptr );
+	std::unique_ptr<COmpReduction1DData> freeTermDiffItem( nullptr );
+	std::unique_ptr<COmpReduction<COmpReduction1DData>> freeTermDiffReduction( nullptr );
 
 	if( freeTermDiffData != nullptr ) {
 		freeTermDiffItem.reset( new COmpReduction1DData( mathEngine(), *freeTermDiffData, desc.Filter.ObjectCount() ) );

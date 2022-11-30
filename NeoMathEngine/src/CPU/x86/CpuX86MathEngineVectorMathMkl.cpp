@@ -77,7 +77,7 @@ void CCpuMathEngine::VectorLog(const CConstFloatHandle& firstHandle, const CFloa
 	const float* first = GetRaw(firstHandle);
 	float* result = GetRaw(resultHandle);
 	for(int i = 0; i < vectorSize; ++i) {
-		*result++ = logf(min(max(*first, FLT_MIN), FLT_MAX));
+		*result++ = std::logf( std::min(std::max(*first, FLT_MIN), FLT_MAX));
 		first++;
 	}
 #endif
@@ -242,7 +242,7 @@ void CCpuMathEngine::vectorEltwiseLogSumExp(const CConstFloatHandle& firstHandle
 	vsLog1p(vectorSize, temp, temp);
 #else
 	for( int i = 0; i < vectorSize; ++i ) {
-		*temp = logf( min( 1.f + max( *temp, FLT_MIN ), FLT_MAX ) );
+		*temp = std::logf( std::min( 1.f + std::max( *temp, FLT_MIN ), FLT_MAX ) );
 		temp++;
 	}
 #endif
