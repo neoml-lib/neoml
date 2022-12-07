@@ -1,0 +1,55 @@
+/* Copyright © 2017-2022 ABBYY Production LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+--------------------------------------------------------------------------------------------------------------*/
+
+#include <common.h>
+#pragma hdrstop
+
+#include <NeoML/Dnn/Layers/Onnx/BaseReshaper.h>
+
+namespace NeoML {
+
+static const int BaseReshaperVersion = 0;
+
+void CBaseReshaper::Serialize( CArchive& archive )
+{
+	archive.SerializeVersion( BaseReshaperVersion );
+	CBaseLayer::Serialize( archive );
+}
+
+void CBaseReshaper::Reshape()
+{
+	inputShapeTensors.SetSize( GetInputCount() );
+	for( int inputIndex = 0; inputIndex < GetInputCount(); ++inputIndex ) {
+		CBaseReshaper* reshaper = dynamic_cast<CBaseReshaper*>( GetInputLayer( inputIndex ) );
+		if( reshaper == nullptr ) {
+			inputShapeTensors[inputIndex] = nullptr;
+		} else {
+			CShapeTensor& inputTensor = reshaper->outputShapeTensors[GetInputOutputNumber( inputIndex )];
+			inputShapeTensors[inputIndex] = inputTensor.IsInitialized() ? &inputTensor : nullptr;
+		}
+	}
+
+	outputShapeTensors.Empty();
+	outputShapeTensors.SetSize( GetOutputCount() );
+
+	CalculateShapes();
+
+	// Fill the outputs with the blobs consisting of 1 integer
+	for( int outputIndex = 0; outputIndex < GetOutputCount(); ++outputIndex ) {
+		outputDescs[outputIndex] = CBlobDesc( CT_Int );
+	}
+}
+
+} // namespace NeoML
