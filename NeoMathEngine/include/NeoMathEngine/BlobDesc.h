@@ -19,6 +19,7 @@ limitations under the License.
 #include <NeoMathEngine/MemoryHandle.h>
 #include <NeoMathEngine/BlobType.h>
 #include <initializer_list>
+#include <cstdio>
 
 namespace NeoML {
 
@@ -128,6 +129,9 @@ public:
 	TBlobType GetDataType() const { return type; }
 	void SetDataType( TBlobType dataType ) { type = dataType; }
 
+	bool GetShortStr( char* buffer, int size ) const;
+	bool GetLongStr( char* buffer, int size, const char* intend = "\t", const char* separator = "\n" ) const;
+
 private:
 	int dimensions[MaxDimensions];
 	TBlobType type;
@@ -165,4 +169,46 @@ inline bool CBlobDesc::HasEqualDimensions( const CBlobDesc& other,
 	return true;
 }
 
+inline bool CBlobDesc::GetShortStr( char *buffer, int size ) const
+{
+	const int result = std::snprintf( buffer, size, "%d x %d x %d x %d x %d x %d x %d" ,
+		BatchLength(),
+		BatchWidth(),
+		ListSize(),
+		Height(),
+		Width(),
+		Depth(),
+		Channels() );
+	return result > 0 && result < size;
+}
+
+inline bool CBlobDesc::GetLongStr( char* buffer, int size, const char* intend, const char* separator ) const
+{
+	const int result = std::snprintf( buffer, size,
+		"%s%s%d%s"
+		"%s%s%d%s"
+		"%s%s%d%s"
+		"%s%s%d%s"
+		"%s%s%d%s"
+		"%s%s%d%s"
+		"%s%s%d%s"
+		"%s%s%d%s"
+		"%s%s%d%s"
+		"%s%s%d%s"
+		"%s%s%d%s",
+		intend, "BatchLength=", BatchLength(), separator,
+		intend, "BatchWidth=", BatchWidth(), separator,
+		intend, "ListSize=", ListSize(), separator,
+		intend, "Height=", Height(), separator,
+		intend, "Width=", Width(), separator,
+		intend, "Depth=", Depth(), separator,
+		intend, "Channels=", Channels(), separator,
+		intend, "BlobSize=", BlobSize(), separator,
+		intend, "ObjectSize=", ObjectSize(), separator,
+		intend, "ObjectCount=", ObjectCount(), separator,
+		intend, "GeometricalSize=", GeometricalSize(), separator );
+	return result > 0 && result < size;
+}
+
 } // namespace NeoML
+
