@@ -73,8 +73,8 @@ endif()
 if(NeoML_BUILD_TESTS AND NOT IS_SUBPROJECT AND NOT ANDROID AND NOT IOS)
     enable_testing()
     add_subdirectory(test/desktop)
-    if(USE_FINE_OBJECTS)
-        add_subdirectory(${ROOT_PATH}/NeoMLTest/test ${CMAKE_BINARY_DIR}/test)
+    if(NeoMLTest_DIR)
+        add_subdirectory(${NeoMLTest_DIR}/test ${CMAKE_BINARY_DIR}/test)
     endif()
 endif()
 
@@ -101,6 +101,9 @@ if(NeoML_INSTALL)
         )
 
         install(DIRECTORY include/NeoML DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+        foreach(INSTALL_TARGET ${INSTALLED_TARGETS})
+            install(FILES $<TARGET_PDB_FILE:${INSTALL_TARGET}> DESTINATION bin OPTIONAL)
+        endforeach()
 
         install(EXPORT NeoMLConfig
             NAMESPACE Neo::

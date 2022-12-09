@@ -98,5 +98,6 @@ if(NeoMathEngine_INSTALL)
             TARGETS ${PROJECT_NAME}
             LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
             )
+        install(FILES $<TARGET_PDB_FILE:${PROJECT_NAME}> DESTINATION bin OPTIONAL)
     endif()
 endif()
