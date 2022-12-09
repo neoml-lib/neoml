@@ -599,18 +599,22 @@ inline void vectorReLU( const float* first, float* result, int vectorSize )
 
 	const __m128 zeroSse = _mm_setzero_ps();
 	while( sseSize >= 4 ) {
-		_mm_storeu_ps(result, _mm_max_ps(_mm_loadu_ps(first), zeroSse));
-		first += 4;
-		result += 4;
-		_mm_storeu_ps(result, _mm_max_ps(_mm_loadu_ps(first), zeroSse));
-		first += 4;
-		result += 4;
-		_mm_storeu_ps(result, _mm_max_ps(_mm_loadu_ps(first), zeroSse));
-		first += 4;
-		result += 4;
-		_mm_storeu_ps(result, _mm_max_ps(_mm_loadu_ps(first), zeroSse));
-		first += 4;
-		result += 4;
+		__m128 first0 = _mm_loadu_ps( first );
+		__m128 first1 = _mm_loadu_ps( first + 4 );
+		__m128 first2 = _mm_loadu_ps( first + 8 );
+		__m128 first3 = _mm_loadu_ps( first + 12 );
+		first += 16;
+
+		__m128 res0 = _mm_max_ps( first0, zeroSse );
+		__m128 res1 = _mm_max_ps( first1, zeroSse );
+		__m128 res2 = _mm_max_ps( first2, zeroSse );
+		__m128 res3 = _mm_max_ps( first3, zeroSse );
+
+		_mm_storeu_ps( result, res0 );
+		_mm_storeu_ps( result + 4, res1 );
+		_mm_storeu_ps( result + 8, res2 );
+		_mm_storeu_ps( result + 12, res3 );
+		result += 16;
 
 		sseSize -= 4;
 	}
@@ -638,18 +642,22 @@ inline void vectorReLU( const float* first, float* result, int vectorSize, float
 	const __m128 zeroSse = _mm_setzero_ps();
 	const __m128 thresholdSse = _mm_set_ps1(threshold);
 	while( sseSize >= 4 ) {
-		_mm_storeu_ps(result, _mm_min_ps(_mm_max_ps(_mm_loadu_ps(first), zeroSse), thresholdSse));
-		first += 4;
-		result += 4;
-		_mm_storeu_ps(result, _mm_min_ps(_mm_max_ps(_mm_loadu_ps(first), zeroSse), thresholdSse));
-		first += 4;
-		result += 4;
-		_mm_storeu_ps(result, _mm_min_ps(_mm_max_ps(_mm_loadu_ps(first), zeroSse), thresholdSse));
-		first += 4;
-		result += 4;
-		_mm_storeu_ps(result, _mm_min_ps(_mm_max_ps(_mm_loadu_ps(first), zeroSse), thresholdSse));
-		first += 4;
-		result += 4;
+		__m128 first0 = _mm_loadu_ps( first );
+		__m128 first1 = _mm_loadu_ps( first + 4 );
+		__m128 first2 = _mm_loadu_ps( first + 8 );
+		__m128 first3 = _mm_loadu_ps( first + 12 );
+		first += 16;
+
+		__m128 res0 = _mm_min_ps( _mm_max_ps( first0, zeroSse ), thresholdSse );
+		__m128 res1 = _mm_min_ps( _mm_max_ps( first1, zeroSse ), thresholdSse );
+		__m128 res2 = _mm_min_ps( _mm_max_ps( first2, zeroSse ), thresholdSse );
+		__m128 res3 = _mm_min_ps( _mm_max_ps( first3, zeroSse ), thresholdSse );
+
+		_mm_storeu_ps( result, res0 );
+		_mm_storeu_ps( result + 4, res1 );
+		_mm_storeu_ps( result + 8, res2 );
+		_mm_storeu_ps( result + 12, res3 );
+		result += 16;
 
 		sseSize -= 4;
 	}
