@@ -528,7 +528,7 @@ void CCpuMathEngine::BlobConvolution( const CConvolutionDesc& convDesc, const CC
 
 	if( desc.BlockedConvolutionDesc != nullptr ) {
 		CFloatHandleStackVar packBuff( *this,
-			max( desc.Source.BlobSize(), desc.Result.BlobSize() ) + desc.Filter.BlobSize() );
+			std::max<int>( desc.Source.BlobSize(), desc.Result.BlobSize() ) + desc.Filter.BlobSize() );
 		float* packedFilter = GetRaw( packBuff.GetHandle() );
 		float* packedIO = packedFilter + desc.Filter.BlobSize();
 		float* rawResult = GetRaw( result );
