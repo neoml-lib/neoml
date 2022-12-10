@@ -29,7 +29,7 @@ namespace NeoOnnx {
 
 static bool isInputPresent( const CTensorArray& inputs, int index )
 {
-	return inputs.Size() > index && inputs[index] != nullptr && !inputs[index]->IsEmpty();
+	return inputs.Size() > index && inputs[index] != nullptr;
 }
 
 // --------------------------------------------------------------------------------------------------------------------
