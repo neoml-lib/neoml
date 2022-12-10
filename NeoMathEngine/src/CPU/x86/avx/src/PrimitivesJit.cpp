@@ -159,7 +159,7 @@ Xbyak::Address CPrimitivesJit::getAddr( TTableKey key, uint32_t offset ) const
 	return Xbyak::util::ptr[regTablePtr + getOfft( key ) + offset * sizeof( float ) ];
 }
 
-void CPrimitivesJit::addVector( TTableKey key, initializer_list<uint32_t>&& data, size_t repeatNum )
+void CPrimitivesJit::addVector( TTableKey key, std::initializer_list<uint32_t>&& data, size_t repeatNum )
 {
 	assert( tableOffsets.find( key ) == tableOffsets.end() );
 	size_t currentSize = table.size();
@@ -167,10 +167,10 @@ void CPrimitivesJit::addVector( TTableKey key, initializer_list<uint32_t>&& data
 	table.resize( currentSize + data.size() * repeatNum );
 	uint32_t* pTable = &table[currentSize];
 	if( repeatNum == 1 ) {
-		copy( data.begin(), data.end(), pTable );
+		std::copy( data.begin(), data.end(), pTable );
 	} else {
 		for( auto& val : data ) {
-			fill_n( pTable, repeatNum, val );
+			std::fill_n( pTable, repeatNum, val );
 			pTable += repeatNum;
 		}
 	}
@@ -183,7 +183,7 @@ void CPrimitivesJit::addVal( TTableKey key, uint32_t val, size_t repeatNum )
 	tableOffsets.emplace( key, currentSize );
 	table.resize( currentSize + repeatNum );
 	uint32_t* pTable = &table[currentSize];
-	fill_n( pTable, repeatNum, val );
+	std::fill_n( pTable, repeatNum, val );
 }
 
 template<>
@@ -580,7 +580,7 @@ void CPrimitivesJit::insertPrimitive<CPrimitivesJit::TPrimitive::Tanh>( CJitComm
 	// To simplify the logic, we will also put a) in the table.
 	auto gather_coefficient = [&]( ymmVec_t& ymmCoeff, int coeff_idx,
 		ymmVec_t& vmm_pol_idx ) {
-			vector<Xbyak::Address> idx_addr( vmm_pol_idx.size(), Xbyak::Address( 0 ) );
+			std::vector<Xbyak::Address> idx_addr( vmm_pol_idx.size(), Xbyak::Address( 0 ) );
 			for( int i = 0; i < idx_addr.size(); i++ ) {
 				idx_addr[i] = gen.ptr[regTablePtr
 					+ getOfft( TTableKey::TanhPolyCoeff, coeff_idx * PolynomialNum )

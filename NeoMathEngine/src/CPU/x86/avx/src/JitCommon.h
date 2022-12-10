@@ -14,6 +14,9 @@ limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 #pragma once
 
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
 #include <xbyak/xbyak.h>
 #include <stack>
 #include <vector>

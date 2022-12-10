@@ -2041,7 +2041,7 @@ GTEST_TEST( SerializeToFile, QrnnLayerSerialization )
 template<>
 inline void checkSpecificParams<CQrnnLayer>( CQrnnLayer& layer )
 {
-	EXPECT_EQ( AF_HardSigmoid, layer.GetActivation() );
+	EXPECT_EQ( AF_HardSigmoid, layer.GetActivation().GetType() );
 	EXPECT_EQ( 0.05f, layer.GetDropout() );
 	EXPECT_EQ( 15, layer.GetHiddenSize() );
 	EXPECT_EQ( 4, layer.GetPaddingFront() );

@@ -106,6 +106,10 @@ void CBaseLayer::unlink()
 
 void CBaseLayer::buildOrder()
 {
+	const CBaseLayer* uninitializedValue = nullptr;
+	// Special value which is used when we want to disable inplace processing over specific blob
+	const CBaseLayer* disabledValue = reinterpret_cast<const CBaseLayer*>( reinterpret_cast<const char*>( uninitializedValue ) - 1 );
+
 	if( !lastOutputUser.IsEmpty() ) {
 		return;
 	}
@@ -114,11 +118,18 @@ void CBaseLayer::buildOrder()
 		inputLinks[i].Layer->buildOrder();
 	}
 
+	const bool isSink = outputs.IsEmpty();
 	for( int i = 0; i < inputLinks.Size(); ++i ) {
-		inputLinks[i].Layer->lastOutputUser[inputLinks[i].OutputNumber] = this;
+		const CBaseLayer*& value = inputLinks[i].Layer->lastOutputUser[inputLinks[i].OutputNumber];
+		// 2 rules:
+		//    1. do not overwrite disabledValue
+		//    2. if we're sink then write disabledValue (in order to avoid overwriting of CDnn output blobs)
+		if( value != disabledValue ) {
+			value = isSink ? disabledValue : this;
+		}
 	}
 
-	lastOutputUser.Add( nullptr, outputs.Size() );
+	lastOutputUser.Add( uninitializedValue, outputs.Size() );
 }
 
 // Establish connections
@@ -795,17 +806,23 @@ void CBaseLayer::Serialize( CArchive& archive )
 
 void CBaseLayer::CheckInputs() const
 {
-	CheckArchitecture( !inputs.IsEmpty(), GetPath(), "layer has no input" );
+	if( inputs.IsEmpty() ) {
+		CheckArchitecture( false, GetPath(), "layer has no input" );
+	}
 }
 
 void CBaseLayer::CheckInput1() const
 {
-	CheckArchitecture( inputs.Size() == 1, GetPath(), "layer must have exactly 1 input" );
+	if( inputs.Size() != 1 ) {
+		CheckArchitecture( false, GetPath(), "layer must have exactly 1 input" );
+	}
 }
 
 void CBaseLayer::CheckOutputs() const
 {
-	CheckArchitecture( !outputs.IsEmpty(), GetPath(), "layer has no output" );
+	if( outputs.IsEmpty() ) {
+		CheckArchitecture( false, GetPath(), "layer has no output" );
+	}
 }
 
 void CBaseLayer::setAllocatedBlobs( int newMask )

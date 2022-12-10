@@ -44,10 +44,10 @@ const int BlobConvolutionCacheSize = 256 * 1024;
 struct CCpuConvolutionDesc : public CCommonConvolutionDesc {
 	TConvAlgo ForwardAlgo;
 	TConvAlgo BackwardAlgo;
-	unique_ptr<CConvolutionDesc> SimdConvolutionDesc;
-	unique_ptr<CConvolutionDesc> BlockedConvolutionDesc;
+	std::unique_ptr<CConvolutionDesc> SimdConvolutionDesc;
+	std::unique_ptr<CConvolutionDesc> BlockedConvolutionDesc;
 
-	CCpuConvolutionDesc( unique_ptr<CConvolutionDesc>& simdConvolutionDesc, unique_ptr<CConvolutionDesc>& blockedConvolutionDesc,
+	CCpuConvolutionDesc( std::unique_ptr<CConvolutionDesc>& simdConvolutionDesc, std::unique_ptr<CConvolutionDesc>& blockedConvolutionDesc,
 			const CBlobDesc& source, const CBlobDesc& result, const CBlobDesc& filter, int paddingHeight, int paddingWidth,
 			int strideHeight, int strideWidth, int dilationHeight, int dilationWidth ) :
 		CCommonConvolutionDesc( source, result, filter, paddingHeight, paddingWidth, strideHeight, strideWidth, dilationHeight, dilationWidth ),
@@ -134,15 +134,15 @@ CConvolutionDesc* CCpuMathEngine::InitBlobConvolution( const CBlobDesc& source, 
 	ASSERT_EXPR( result.Channels() == filter.BatchWidth() );
 	ASSERT_EXPR( result.Depth() == 1 );
 
-	unique_ptr<CConvolutionDesc> blockedConvolutionDesc;
+	std::unique_ptr<CConvolutionDesc> blockedConvolutionDesc;
 	if( simdMathEngine != nullptr ) {
 		blockedConvolutionDesc.reset( simdMathEngine->InitBlockedConvolution( source, paddingHeight, paddingWidth,
 			strideHeight, strideWidth, dilationHeight, dilationWidth, filter, result ) );
 	}
 
-	unique_ptr<CConvolutionDesc> simdConvolutionDesc;
+	std::unique_ptr<CConvolutionDesc> simdConvolutionDesc;
 	if( simdMathEngine != nullptr && blockedConvolutionDesc == nullptr ) {
-		simdConvolutionDesc = unique_ptr<CConvolutionDesc>( simdMathEngine->InitBlobConvolution( source, paddingHeight, paddingWidth,
+		simdConvolutionDesc = std::unique_ptr<CConvolutionDesc>( simdMathEngine->InitBlobConvolution( source, paddingHeight, paddingWidth,
 			strideHeight, strideWidth, dilationHeight, dilationWidth, filter, result ) );
 	}
 
@@ -280,9 +280,9 @@ void CCpuMathEngine::createTemporaryBlob( const TConvolutionDesc& desc, const fl
 				// If this number is smaller than 0, the filter does not intersect with the bottom padding
 				paddingBottom = 0;
 			}
-			if(paddingBottom > min(desc.StrideHeight, filter.Height())) {
+			if(paddingBottom > std::min(desc.StrideHeight, filter.Height())) {
 				// The whole area to be copied next belongs to the bottom padding
-				paddingBottom = min(desc.StrideHeight, filter.Height());
+				paddingBottom = std::min(desc.StrideHeight, filter.Height());
 			}
 			// The paddingBottom now has only the bottom padding rows that are in the filter area
 
@@ -293,7 +293,7 @@ void CCpuMathEngine::createTemporaryBlob( const TConvolutionDesc& desc, const fl
 			// and we need to copy filterHeight lower rows
 			// The intersection with the bottom padding does not need copying 
 			// because we've already filled temporaryBlob with the padding value
-			for(int l = 0; l < min(desc.StrideHeight, filter.Height()) - paddingBottom; l++) {
+			for(int l = 0; l < std::min(desc.StrideHeight, filter.Height()) - paddingBottom; l++) {
 				dataCopy(tempBlobPtr + paddingLeft, currentWindowStart + paddingLeft,
 					(windowRowSize - paddingLeft - paddingRight));
 				currentWindowStart += inputRowSize;
@@ -330,11 +330,11 @@ void CCpuMathEngine::transposeResult( const CCpuConvolutionDesc& desc, const flo
 static inline void calcPaddings( const CCpuConvolutionDesc& desc, int width, int& startPaddingSize, int& endPaddingSize )
 {
 	int startPos = -desc.PaddingWidth + width * desc.StrideWidth;
-	startPaddingSize = min( desc.Filter.Width(), ( startPos < 0 ) ? 1 + ( -startPos - 1 ) / desc.DilationWidth : 0 );
+	startPaddingSize = std::min( desc.Filter.Width(), ( startPos < 0 ) ? 1 + ( -startPos - 1 ) / desc.DilationWidth : 0 );
 
 	int endPos = -desc.PaddingWidth + width * desc.StrideWidth + desc.DilationWidth * ( desc.Filter.Width() - 1 );
 	endPaddingSize = ( desc.Source.Width() > endPos ) ? 0 :
-		min( ( endPos - desc.Source.Width() ) / desc.DilationWidth + 1, desc.Filter.Width() );
+		std::min( ( endPos - desc.Source.Width() ) / desc.DilationWidth + 1, desc.Filter.Width() );
 }
 
 void CCpuMathEngine::fillTempData( const float* sourceData, float* tempData, const CCpuConvolutionDesc& desc, int start, int count )
@@ -405,7 +405,7 @@ void CCpuMathEngine::blobConvolutionForwardAlgo0( const CCpuConvolutionDesc& des
 {
 	const int resultItemCount = desc.Result.ObjectCount() * desc.Result.Width() * desc.Result.Height();
 	const int curThreadCount = IsOmpRelevant( resultItemCount, static_cast< int64_t >( desc.Result.BlobSize() ) * desc.Filter.ObjectSize() ) ? threadCount : 1;
-	const int cacheItemCount = max( 1, min( ceilTo( BlobConvolutionCacheSize / desc.Filter.ObjectSize(), 16 ), resultItemCount / curThreadCount ) );
+	const int cacheItemCount = std::max( 1, std::min( ceilTo( BlobConvolutionCacheSize / desc.Filter.ObjectSize(), 16 ), resultItemCount / curThreadCount ) );
 	const int tempDataSize = curThreadCount * cacheItemCount * desc.Filter.ObjectSize();
 
 	CFloatHandleStackVar tempData( mathEngine(), tempDataSize );
@@ -422,7 +422,7 @@ void CCpuMathEngine::blobConvolutionForwardAlgo0( const CCpuConvolutionDesc& des
 		if( OmpGetTaskIndexAndCount( resultItemCount, start, count ) ) {
 			int index = 0;
 			while( index < count ) {
-				const int size = min( count - index, cacheItemCount );
+				const int size = std::min( count - index, cacheItemCount );
 
 				fillTempData( sourceData, tempDataPtr, desc, start + index, size );
 
@@ -460,7 +460,7 @@ void CCpuMathEngine::blobConvolutionForwardAlgo1( const CCpuConvolutionDesc& des
 
 	const int curThreadCount = IsOmpRelevant( src.ObjectCount() * res.Width(),
 		static_cast<int64_t>( src.BlobSize() ) * fil.BlobSize() ) ? threadCount : 1;
-	const int tempObjectCount = min( src.ObjectCount(), curThreadCount );
+	const int tempObjectCount = std::min( src.ObjectCount(), curThreadCount );
 
 	const int outputTransposedDataSize = tempObjectCount * outputTransposedDataObjectSize;
 	const int tempBlobDataSize = tempObjectCount * tempBlobDataObjectSize;
@@ -557,7 +557,7 @@ void CCpuMathEngine::BlobConvolution( const CConvolutionDesc& convDesc, const CC
 				static_cast<int64_t>( desc.Result.BlobSize() ) * desc.Filter.ObjectSize() ) ? threadCount : 1;
 			const int64_t algo1DataSize = static_cast<int64_t>( desc.Result.Width() ) * desc.Result.Height() * desc.Filter.ObjectSize() + desc.Result.ObjectSize();
 
-			if( min( desc.Result.ObjectCount(), algo1ThreadCount ) * algo1DataSize <= algo0ThreadCount * BlobConvolutionCacheSize ) {
+			if( std::min( desc.Result.ObjectCount(), algo1ThreadCount ) * algo1DataSize <= algo0ThreadCount * BlobConvolutionCacheSize ) {
 				blobConvolutionForwardAlgo1( desc, sourceRaw, filterRaw, freeTerm, resultRaw );
 			} else {
 				blobConvolutionForwardAlgo0( desc, sourceRaw, filterRaw, freeTerm, resultRaw );
@@ -694,8 +694,8 @@ void CCpuMathEngine::backwardDilationConvolutionAddFilterToOutput( const CCpuCon
 		}
 
 		// Iterate through the filter top positions, starting to apply the filter once we intersect with the current row
-		int topPosMinVal = max( outputRow - totalFilterHeight + 1, -desc.PaddingHeight );
-		int topPosMaxVal = min( outputRow, output.Height() + desc.PaddingHeight - totalFilterHeight );
+		int topPosMinVal = std::max( outputRow - totalFilterHeight + 1, -desc.PaddingHeight );
+		int topPosMaxVal = std::min( outputRow, output.Height() + desc.PaddingHeight - totalFilterHeight );
 		for( int topPos = topPosMinVal; topPos <= topPosMaxVal; topPos++ ) {
 			if( ( topPos + desc.PaddingHeight ) % desc.StrideHeight != 0 ) {
 				// This position couldn't have been the filter top row
@@ -949,8 +949,8 @@ void CCpuMathEngine::blobConvolutionLearnAlgo1( const CCpuConvolutionDesc& desc,
 	COmpReduction1DData filterDiffItem( mathEngine(), filterDiffData, filterDiff.BlobSize() );
 	COmpReduction<COmpReduction1DData> filterDiffReduction( curThreadCount, filterDiffItem );
 
-	unique_ptr<COmpReduction1DData> freeTermDiffItem( nullptr );
-	unique_ptr<COmpReduction<COmpReduction1DData>> freeTermDiffReduction( nullptr );
+	std::unique_ptr<COmpReduction1DData> freeTermDiffItem( nullptr );
+	std::unique_ptr<COmpReduction<COmpReduction1DData>> freeTermDiffReduction( nullptr );
 
 	if( freeTermDiffData != nullptr ) {
 		freeTermDiffItem.reset( new COmpReduction1DData( mathEngine(), *freeTermDiffData, freeTermDiffSize ) );
@@ -1042,8 +1042,8 @@ void CCpuMathEngine::blobConvolutionLearnAlgo2( const CCpuConvolutionDesc& desc,
 	COmpReduction1DData filterDiffItem( mathEngine(), filterDiffData, filterDiff.BlobSize() );
 	COmpReduction<COmpReduction1DData> filterDiffReduction( curThreadCount, filterDiffItem );
 
-	unique_ptr<COmpReduction1DData> freeTermDiffItem( nullptr );
-	unique_ptr<COmpReduction<COmpReduction1DData>> freeTermDiffReduction( nullptr );
+	std::unique_ptr<COmpReduction1DData> freeTermDiffItem( nullptr );
+	std::unique_ptr<COmpReduction<COmpReduction1DData>> freeTermDiffReduction( nullptr );
 
 	if( freeTermDiffData != nullptr ) {
 		freeTermDiffItem.reset( new COmpReduction1DData( mathEngine(), *freeTermDiffData, freeTermDiffSize ) );
@@ -1301,8 +1301,8 @@ void CCpuMathEngine::BlobChannelwiseConvolutionLearnAdd( const CChannelwiseConvo
 	COmpReduction1DData filterDiffItem( mathEngine(), filterDiffTransposedHolder.GetHandle(), filterDiffTransposed.BlobSize() );
 	COmpReduction<COmpReduction1DData> filterDiffReduction( curThreadCount, filterDiffItem );
 
-	unique_ptr<COmpReduction1DData> freeTermDiffItem( nullptr );
-	unique_ptr<COmpReduction<COmpReduction1DData>> freeTermDiffReduction( nullptr );
+	std::unique_ptr<COmpReduction1DData> freeTermDiffItem( nullptr );
+	std::unique_ptr<COmpReduction<COmpReduction1DData>> freeTermDiffReduction( nullptr );
 
 	if( freeTermDiffData != nullptr ) {
 		freeTermDiffItem.reset( new COmpReduction1DData( mathEngine(), *freeTermDiffData, filterDiff.Channels() ) );

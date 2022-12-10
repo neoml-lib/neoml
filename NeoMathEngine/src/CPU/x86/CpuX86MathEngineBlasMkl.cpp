@@ -410,7 +410,7 @@ void CCpuMathEngine::QRFactorization( int height, int width, const CFloatHandle&
 		memcpy( r, matrix, height * width * sizeof( float ) );
 	}
 
-	const int reflectors = min( height, width );
+	const int reflectors = std::min( height, width );
 	CFloatHandleStackVar tau( mathEngine(), reflectors );
 	LAPACKE_sgeqrf( LAPACK_ROW_MAJOR, height, width, r, width, GetRaw( tau.GetHandle() ) );
 	if( returnQ ) {
@@ -430,7 +430,7 @@ void CCpuMathEngine::QRFactorization( int height, int width, const CFloatHandle&
 	if( returnR ) {
 		float* rPtr = r;
 		for( int i = 0; i < height; i++ ) {
-			const int diag = min( i, width );
+			const int diag = std::min( i, width );
 			for( int j = 0; j < diag; j++ ) {
 				rPtr[j] = 0.f;
 			}
@@ -450,7 +450,7 @@ void CCpuMathEngine::LUFactorization( int height, int width, const CFloatHandle&
 	CCpuExecutionScope scope;
 
 #ifdef NEOML_USE_MKL
-	const int minDim = max( 1, min( height, width ) );
+	const int minDim = std::max( 1, std::min( height, width ) );
 	CIntHandleStackVar ipivVar( *this, minDim );
 
 	float* matrix = GetRaw( matrixHandle );
@@ -555,7 +555,7 @@ void CCpuMathEngine::SingularValueDecomposition( const CFloatHandle& a, int heig
 	ASSERT_EXPR( width > 0 );
 
 #ifdef NEOML_USE_MKL
-	const int ldu = min( height, width );
+	const int ldu = std::min( height, width );
 	ASSERT_EXPR( LAPACKE_sgesvd( LAPACK_ROW_MAJOR, returnLeftVectors ? 'S' : 'N', returnRightVectors ? 'S' : 'N',
 		height, width, GetRaw( a ), width, GetRaw( s ), GetRaw(u), ldu, GetRaw( vt ), width, GetRaw( superb ) ) == 0 );
 #else

@@ -265,6 +265,11 @@ void CDistributedTraining::SetLearningRate( float newRate )
     }
 }
 
+float CDistributedTraining::GetLearningRate() const
+{
+    return cnns[0]->GetSolver()->GetLearningRate();
+}
+
 void CDistributedTraining::RunOnce( IDistributedDataset& data )
 {
     struct CFunctionParams {
@@ -470,8 +475,20 @@ void CDistributedTraining::GetLastBlob( const CString& layerName, CObjectArray<C
 
 void CDistributedTraining::Serialize( CArchive& archive )
 {
+    // save the first dnn without solver data
+    StoreDnn( archive, 0, false );
+}
+
+void CDistributedTraining::StoreDnn( CArchive& archive, int index, bool storeSolver )
+{
     NeoAssert( archive.IsStoring() );
-    archive.Serialize( *cnns[0] );
+    NeoAssert( cnns.IsValidIndex( index ) && cnns[index] != nullptr );
+
+    if( storeSolver ) {
+        cnns[index]->SerializeCheckpoint( archive );
+    } else {
+        cnns[index]->Serialize( archive );
+    }
 }
 
 } // namespace NeoML

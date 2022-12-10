@@ -140,12 +140,12 @@ void CTransformerEncoderLayer::SetFeedForwardSize( int size )
 	NeoPresume( GetFeedForwardSize() == size );
 }
 
-void CTransformerEncoderLayer::SetActivation( TActivationFunction newFunction )
+void CTransformerEncoderLayer::SetActivation( const CActivationDesc& param )
 {
 	NeoAssert( HasLayer( activationName ) );
 
 	DeleteLayer( activationName );
-	CPtr<CBaseLayer> activation = CreateActivationLayer( MathEngine(), newFunction );
+	CPtr<CBaseLayer> activation = CreateActivationLayer( MathEngine(), param );
 	activation->SetName( activationName );
 	activation->Connect( *fc1 );
 	if( dropoutFc1 == nullptr ) {
