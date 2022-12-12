@@ -197,16 +197,14 @@ static void testCusparse( IMathEngine& mathEngine, int runCount )
 		const int presetY = random.UniformInt( 0, firstHeight - 1 );
 		const int presetX = random.UniformInt( 0, firstWidth - 1 );
 		for( int i = 0; i < firstHeight; i++ ) {
-			int elementsInRow = 0;
 			for( int j = 0; j < firstWidth; j++ ) {
 				if( ( i == presetY && j == presetX ) || random.UniformInt( 0, 2 ) != 0 ) {
 					float value = static_cast<float>( random.Uniform( -2., 1. ) );
 					columns.push_back( j );
 					values.push_back( value );
-					elementsInRow++;
 				}
 			}
-			rows.push_back( elementsInRow );
+			rows.push_back( static_cast<int>( values.size() ) );
 		}
 
 		CFloatBlob second( mathEngine, 1, secondHeight, firstWidth, 1 );
