@@ -66,16 +66,14 @@ static void multiplyTransposedMatrixBySparseMatrixTestImpl( const CTestParams& p
 	const int presetY = random.UniformInt( 0, secondHeight - 1 );
 	const int presetX = random.UniformInt( 0, secondWidth - 1 );
 	for( int i = 0; i < secondHeight; i++ ) {
-		int elementsInRow = 0;
 		for( int j = 0; j < secondWidth; j++ ) {
 			if( ( i == presetY && j == presetX ) || random.UniformInt( 0, 2 ) != 0 ) {
 				float value = static_cast< float >( random.UniformInt( valuesInterval.Begin, valuesInterval.End ) );
 				columns.push_back( j );
 				values.push_back( value );
-				elementsInRow++;
 			}
 		}
-		rows.push_back( elementsInRow );
+		rows.push_back( static_cast<int>( values.size() ) );
 	}
 
 	CREATE_FILL_FLOAT_ARRAY( first, valuesInterval.Begin, valuesInterval.End, firstWidth * firstHeight, random )
