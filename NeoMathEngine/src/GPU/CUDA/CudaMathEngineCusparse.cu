@@ -65,7 +65,7 @@ void CCudaMathEngine::MultiplySparseMatrixByTransposedMatrix( int firstHeight, i
 		CUSPARSE_OPERATION_NON_TRANSPOSE, static_cast<void*>( &alpha ), firstCuDesc, secondDesc, static_cast<void*>( &beta ),
 		resultDesc, CUDA_R_32F, CUSPARSE_SPMM_ALG_DEFAULT, &bufferSize ) );
 	
-	CFloatHandleStackVar buffer( mathEngine(), bufferSize / sizeof( float ) );
+	CFloatHandleStackVar buffer( mathEngine(), ( bufferSize + sizeof( float ) - 1 ) / sizeof( float ) );
 	ASSERT_CUSPARSE( cusparse->SpMM( cusparseHandle, CUSPARSE_OPERATION_NON_TRANSPOSE, CUSPARSE_OPERATION_NON_TRANSPOSE,
 		&alpha, firstCuDesc, secondDesc, &beta, resultDesc, CUDA_R_32F, CUSPARSE_SPMM_ALG_DEFAULT, GetRaw( buffer ) ) );
 
@@ -91,7 +91,7 @@ void CCudaMathEngine::MultiplyTransposedMatrixBySparseMatrixAndAdd( int firstHei
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	SetCudaDevice( device->DeviceNumber );
 
-	// C = A * B = T( T(B) * A )
+	// C = T(A) * B = T( T(B) * A )
 
 	// Transpose first
 	CFloatHandleStackVar tFirst( mathEngine(), firstHeight * firstWidth );
@@ -122,7 +122,7 @@ void CCudaMathEngine::MultiplyTransposedMatrixBySparseMatrixAndAdd( int firstHei
 	ASSERT_CUSPARSE( cusparse->SpMM_bufferSize( cusparseHandle, CUSPARSE_OPERATION_TRANSPOSE, CUSPARSE_OPERATION_NON_TRANSPOSE,
 		&alpha, secondCuDesc, tFirstDesc, &beta, resultDesc, CUDA_R_32F, CUSPARSE_SPMM_ALG_DEFAULT, &bufferSize ) );
 
-	CFloatHandleStackVar buffer( mathEngine(), bufferSize / sizeof( float ) );
+	CFloatHandleStackVar buffer( mathEngine(), ( bufferSize + sizeof( float ) - 1 ) / sizeof( float ) );
 	ASSERT_CUSPARSE( cusparse->SpMM( cusparseHandle, CUSPARSE_OPERATION_TRANSPOSE, CUSPARSE_OPERATION_NON_TRANSPOSE,
 		&alpha, secondCuDesc, tFirstDesc, &beta, resultDesc, CUDA_R_32F, CUSPARSE_SPMM_ALG_DEFAULT, GetRaw( buffer ) ) );
 
