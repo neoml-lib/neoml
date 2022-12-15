@@ -238,6 +238,12 @@ void CVulkanMathEngine::MultiplyTransposedMatrixByMatrixAndAdd( const CConstFloa
 	}
 }
 
+void CVulkanMathEngine::MultiplyMatrixByTransposedMatrixAndAdd( const CConstFloatHandle&,
+	int, int, int, const CConstFloatHandle&, int, int, const CFloatHandle&, int )
+{
+	ASSERT_EXPR( false );
+}
+
 void CVulkanMathEngine::MultiplyTransposedMatrixByMatrix(int batchSize, const CConstFloatHandle& firstHandle, int firstHeight,
 	int firstWidth, const CConstFloatHandle& secondHandle, int secondWidth, const CFloatHandle& resultHandle, int resultBufferSize)
 {
