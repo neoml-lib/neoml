@@ -138,7 +138,7 @@ void CCudaMathEngine::MultiplyMatrixByMatrix( int batchSize, const CConstFloatHa
 	}
 }
 
-void CCudaMathEngine::multiplyMatrixByTransposedMatrixAndAdd(const CConstFloatHandle& firstHandle,
+void CCudaMathEngine::MultiplyMatrixByTransposedMatrixAndAdd(const CConstFloatHandle& firstHandle,
 	int firstHeight, int firstWidth, int firstRowSize,
 	const CConstFloatHandle& secondHandle, int secondHeight, int secondRowSize,
 	const CFloatHandle& resultHandle, int resultRowSize)

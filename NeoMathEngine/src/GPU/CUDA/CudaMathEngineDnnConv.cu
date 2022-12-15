@@ -96,7 +96,7 @@ void CCudaMathEngine::BlobConvolution( const CConvolutionDesc& convDesc,
 			SetVectorToMatrixRows( resultData, result.ObjectCount() * result.Height() * result.Width(),
 				filter.ObjectCount(), *freeTermData );
 
-			multiplyMatrixByTransposedMatrixAndAdd( sourceData,
+			MultiplyMatrixByTransposedMatrixAndAdd( sourceData,
 				source.ObjectCount() * result.Height() * result.Width(),
 				filter.ObjectSize(), filter.ObjectSize(), filterData,
 				filter.ObjectCount(), filter.ObjectSize(), resultData,

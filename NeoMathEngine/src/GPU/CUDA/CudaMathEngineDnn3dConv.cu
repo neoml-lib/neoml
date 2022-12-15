@@ -77,7 +77,7 @@ void CCudaMathEngine::Blob3dConvolution( const C3dConvolutionDesc& convDesc,
 	{
 		// Convolution is a matrix product without building a temporary matrix
 		if( freeTerm != 0 ) {
-			multiplyMatrixByTransposedMatrixAndAdd( source,
+			MultiplyMatrixByTransposedMatrixAndAdd( source,
 				desc.Source.ObjectCount() * desc.Result.Height() * desc.Result.Width() * desc.Result.Depth(),
 				desc.Filter.ObjectSize(), desc.Filter.ObjectSize(), filter,
 				desc.Filter.ObjectCount(), desc.Filter.ObjectSize(), result,
@@ -111,7 +111,7 @@ void CCudaMathEngine::Blob3dConvolution( const C3dConvolutionDesc& convDesc,
 	
 		// Multiply the temporary matrix by the filter
 		if( freeTerm != 0 ) {
-			multiplyMatrixByTransposedMatrixAndAdd( tempMatrix,
+			MultiplyMatrixByTransposedMatrixAndAdd( tempMatrix,
 				curTempMatrixHeight, desc.Filter.ObjectSize(), desc.Filter.ObjectSize(),
 				filter, desc.Filter.ObjectCount(), desc.Filter.ObjectSize(),
 				result + tempMatrixHeightIndex * desc.Filter.ObjectCount(), desc.Filter.ObjectCount() );

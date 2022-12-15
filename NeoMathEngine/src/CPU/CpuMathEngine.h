@@ -572,6 +572,9 @@ public:
 	void ScatterND( const CConstIntHandle& indicesHandle, const CConstIntHandle& updatesHandle,
 		const CIntHandle& dataHandle, const CBlobDesc& dataDesc, int updateCount, int indexDims ) override;
 
+	void MultiplyMatrixByTransposedMatrixAndAdd( const CConstFloatHandle& first, int firstHeight, int firstWidth, int firstRowSize,
+		const CConstFloatHandle& second, int secondHeight, int secondRowSize, const CFloatHandle& result, int resultRowSize ) override;
+
 	IPerformanceCounters* CreatePerformanceCounters() const override;
 	void AllReduce( const CFloatHandle& handle, int size ) override;
 	void Broadcast( const CFloatHandle& handle, int size, int root ) override;

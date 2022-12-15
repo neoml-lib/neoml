@@ -985,6 +985,14 @@ void CCpuMathEngine::MultiplyMatrixByTransposedMatrix( int batchSize, const CCon
 	}
 }
 
+void CCpuMathEngine::MultiplyMatrixByTransposedMatrixAndAdd( const CConstFloatHandle& first, int firstHeight,
+	int firstWidth, int firstRowSize, const CConstFloatHandle& second, int secondHeight, int secondRowSize,
+	const CFloatHandle& result, int resultRowSize )
+{
+	multiplyMatrixByTransposedMatrixAndAdd( GetRaw( first ), firstHeight, firstWidth, firstRowSize,
+		GetRaw( second ), secondHeight, secondRowSize, GetRaw( result ), resultRowSize );
+}
+
 void CCpuMathEngine::batchMultiplyTransposedMatrixByMatrix( int batchSize,
 	const float* first, int firstHeight, int firstWidth,
 	const float* second, int secondWidth,
