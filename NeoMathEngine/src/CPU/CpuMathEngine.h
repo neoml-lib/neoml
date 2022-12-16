@@ -574,6 +574,13 @@ public:
 
 	void MultiplyMatrixByTransposedMatrixAndAdd( const CConstFloatHandle& first, int firstHeight, int firstWidth, int firstRowSize,
 		const CConstFloatHandle& second, int secondHeight, int secondRowSize, const CFloatHandle& result, int resultRowSize ) override;
+	void RunMobileNetBlock( const CBlobDesc& inputDesc, const CBlobDesc& outputDesc,
+		const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& inputHandle,
+		const CConstFloatHandle& expandFilter, const CConstFloatHandle* expandFreeTerm,
+		const CConstFloatHandle& expandReLUThreshold, const CConstFloatHandle& channelwiseFilter,
+		const CConstFloatHandle* channelwiseFreeTerm, const CConstFloatHandle& channelwiseReLUThreshold,
+		const CConstFloatHandle& downFilter, const CConstFloatHandle* downFreeTerm, bool residual,
+		const CFloatHandle& outputHandle ) override;
 
 	IPerformanceCounters* CreatePerformanceCounters() const override;
 	void AllReduce( const CFloatHandle& handle, int size ) override;

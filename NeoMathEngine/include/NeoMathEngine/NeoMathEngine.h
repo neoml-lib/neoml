@@ -1061,6 +1061,14 @@ public:
 		const CFloatHandle& dataHandle, const CBlobDesc& dataDesc, int updateCount, int indexDims ) = 0;
 	virtual void ScatterND( const CConstIntHandle& indicesHandle, const CConstIntHandle& updatesHandle,
 		const CIntHandle& dataHandle, const CBlobDesc& dataDesc, int updateCount, int indexDims ) = 0;
+
+	virtual void RunMobileNetBlock( const CBlobDesc& inputDesc, const CBlobDesc& outputDesc,
+		const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& inputHandle,
+		const CConstFloatHandle& expandFilter, const CConstFloatHandle* expandFreeTerm,
+		const CConstFloatHandle& expandReLUThreshold, const CConstFloatHandle& channelwiseFilter,
+		const CConstFloatHandle* channelwiseFreeTerm, const CConstFloatHandle& channelwiseReLUThreshold,
+		const CConstFloatHandle& downFilter, const CConstFloatHandle* downFreeTerm, bool residual,
+		const CFloatHandle& outputHandle ) = 0;
 };
 
 //------------------------------------------------------------------------------------------------------------

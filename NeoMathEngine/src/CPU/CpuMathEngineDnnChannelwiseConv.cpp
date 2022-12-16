@@ -396,4 +396,93 @@ void CCpuMathEngine::BlobChannelwiseConvolution( const CChannelwiseConvolutionDe
 	}
 }
 
+void CCpuMathEngine::RunMobileNetBlock( const CBlobDesc& inputDesc, const CBlobDesc& outputDesc,
+	const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& inputHandle,
+	const CConstFloatHandle& expandFilter, const CConstFloatHandle* expandFreeTerm,
+	const CConstFloatHandle& expandReLUThreshold, const CConstFloatHandle& channelwiseFilter,
+	const CConstFloatHandle* channelwiseFreeTerm, const CConstFloatHandle& channelwiseReLUThreshold,
+	const CConstFloatHandle& downFilter, const CConstFloatHandle* downFreeTerm, bool residual,
+	const CFloatHandle& outputHandle )
+{
+	CCpuExecutionScope scope;
+	const CCommonChannelwiseConvolutionDesc& desc = static_cast<const CCommonChannelwiseConvolutionDesc&>( convDesc );
+
+	const int cacheSize = 32 * 1024;
+	const bool isInPlace = inputHandle == outputHandle;
+	const int inputChannels = inputDesc.Channels();
+	const int expandedChannels = desc.Filter.Channels();
+	const int outputChannels = outputDesc.Channels();
+
+	CFloatHandleStackVar channelwiseInput( *this, desc.Source.BlobSize() );
+	CFloatHandleStackVar channelwiseOutput( *this, desc.Result.BlobSize() );
+
+	// Step 1: before channelwise conv
+	{
+		const int maxRowsPerStep = std::max<int>( 1, ( cacheSize / std::max<int>( inputChannels, expandedChannels ) & ~15 ) );
+		const int rowsTotal = inputDesc.BlobSize() / inputChannels;
+		CConstFloatHandle inputPtr = inputHandle;
+		CFloatHandle outputPtr = channelwiseInput;
+		int rowIndex = 0;
+		while( rowIndex < rowsTotal ) {
+			const int rowsThisStep = std::min<int>( maxRowsPerStep, rowsTotal - rowIndex );
+
+			MultiplyMatrixByTransposedMatrix( 1, inputPtr, rowsThisStep, inputChannels, expandFilter, expandedChannels,
+				outputPtr, rowsThisStep * expandedChannels );
+
+			if( expandFreeTerm != nullptr ) {
+				AddVectorToMatrixRows( 1, outputPtr, outputPtr, rowsThisStep, expandedChannels, *expandFreeTerm );
+			}
+
+			VectorReLU( outputPtr, outputPtr, rowsThisStep * expandedChannels, expandReLUThreshold );
+
+			rowIndex += rowsThisStep;
+			inputPtr += rowsThisStep * inputChannels;
+			outputPtr += rowsThisStep * expandedChannels;
+		}
+	}
+
+	// Step 2: channelwise conv
+	BlobChannelwiseConvolution( convDesc, channelwiseInput, channelwiseFilter, nullptr, channelwiseOutput );
+
+	// Step 3: after channelwise conv
+	{
+		const int maxRowsPerStep = std::max<int>( 1, ( cacheSize / std::max<int>( outputChannels, expandedChannels ) & ~15 ) );
+		const int rowsTotal = outputDesc.BlobSize() / outputChannels;
+		CFloatHandle inputPtr = channelwiseOutput;
+		CFloatHandle outputPtr = outputHandle;
+		CConstFloatHandle origInputPtr = ( residual && !isInPlace ) ? inputHandle : CFloatHandle();
+		int rowIndex = 0;
+		while( rowIndex < rowsTotal ) {
+			const int rowsThisStep = std::min<int>( maxRowsPerStep, rowsTotal - rowIndex );
+
+			if( channelwiseFreeTerm != nullptr ) {
+				AddVectorToMatrixRows( 1, inputPtr, inputPtr, rowsThisStep, expandedChannels, *channelwiseFreeTerm );
+			}
+
+			VectorReLU( inputPtr, inputPtr, rowsThisStep * expandedChannels, channelwiseReLUThreshold );
+
+			if( residual && isInPlace ) {
+				MultiplyMatrixByTransposedMatrixAndAdd( inputPtr, rowsThisStep, expandedChannels, expandedChannels,
+					downFilter, outputChannels, expandedChannels, outputPtr, outputChannels );
+			} else {
+				MultiplyMatrixByTransposedMatrix( 1, inputPtr, rowsThisStep, expandedChannels, downFilter,
+					outputChannels, outputPtr, rowsThisStep * outputChannels );
+			}
+
+			if( downFreeTerm != nullptr ) {
+				AddVectorToMatrixRows( 1, outputPtr, outputPtr, rowsThisStep, outputChannels, *downFreeTerm );
+			}
+
+			if( residual && !isInPlace ) {
+				VectorAdd( outputPtr, origInputPtr, outputPtr, rowsThisStep * outputChannels );
+				origInputPtr += rowsThisStep * inputChannels;
+			}
+
+			rowIndex += rowsThisStep;
+			inputPtr += rowsThisStep * expandedChannels;
+			outputPtr += rowsThisStep * outputChannels;
+		}
+	}
+}
+
 } // namespace NeoML
