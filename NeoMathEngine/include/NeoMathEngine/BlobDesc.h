@@ -82,21 +82,21 @@ public:
 	}
 
 	// The maximum possible sequence length for a recurrent network
-	int BatchLength() const { return dimensions[BD_BatchLength]; }
+	inline int BatchLength() const noexcept { return dimensions[BD_BatchLength]; }
 	// The number of sequences in the blob
-	int BatchWidth() const { return dimensions[BD_BatchWidth]; }
+	inline int BatchWidth() const noexcept { return dimensions[BD_BatchWidth]; }
 	// The object list length
-	int ListSize() const { return dimensions[BD_ListSize]; }
+	inline int ListSize() const noexcept { return dimensions[BD_ListSize]; }
 	// The "image" height
-	int Height() const { return dimensions[BD_Height]; }
+	inline int Height() const noexcept { return dimensions[BD_Height]; }
 	// The "image" width
-	int Width() const { return dimensions[BD_Width]; }
+	inline int Width() const noexcept { return dimensions[BD_Width]; }
 	// The "image" depth
-	int Depth() const { return dimensions[BD_Depth]; }
+	inline int Depth() const noexcept { return dimensions[BD_Depth]; }
 	// The number of "color" channels
-	int Channels() const { return dimensions[BD_Channels]; }
+	inline int Channels() const noexcept { return dimensions[BD_Channels]; }
 	// The blob size
-	int BlobSize() const
+	inline int BlobSize() const noexcept
 	{
 		int blobSize = 1;
 		for( int i = 0; i < MaxDimensions; i++ ) {
@@ -105,22 +105,22 @@ public:
 		return blobSize;
 	}
 	// The size of one object in the blob
-	int ObjectSize() const { return Height() * Width() * Depth() * Channels(); }
+	inline int ObjectSize() const noexcept { return Height() * Width() * Depth() * Channels(); }
 	// The number of objects in the blob
-	int ObjectCount() const { return BatchLength() * BatchWidth() * ListSize(); }
+	inline int ObjectCount() const noexcept { return BatchLength() * BatchWidth() * ListSize(); }
 	// The geometrical dimensions of one object
-	int GeometricalSize() const { return Height() * Width() * Depth(); }
+	inline int GeometricalSize() const noexcept { return Height() * Width() * Depth(); }
 
 	// The size of the dimension with a given index
-	int DimSize( int d ) const { return dimensions[d]; }
+	inline int DimSize( int d ) const noexcept { return dimensions[d]; }
 	// Sets the size of the dimension with a given index
-	void SetDimSize( int d, int size ) { dimensions[d] = size; }
+	inline void SetDimSize( int d, int size ) noexcept { dimensions[d] = size; }
 
 	// Checks if the described blob has the same dimensions
-	bool HasEqualDimensions( const CBlobDesc& other ) const;
-	bool HasEqualDimensions( const CBlobDesc& other, std::initializer_list<int> dimensions ) const;
+	bool HasEqualDimensions( const CBlobDesc& other ) const noexcept;
+	bool HasEqualDimensions( const CBlobDesc& other, std::initializer_list<int> dimensions ) const noexcept;
 	// Gets the dimensions of the blob
-	void GetDimSizes( int s[MaxDimensions] ) const
+	void GetDimSizes( int s[MaxDimensions] ) const noexcept
 	{
 		for( int i = 0; i < MaxDimensions; i++ ) { s[i] = dimensions[i]; }
 	}
@@ -144,7 +144,7 @@ private:
 	}
 };
 
-inline bool CBlobDesc::HasEqualDimensions( const CBlobDesc& other ) const
+inline bool CBlobDesc::HasEqualDimensions( const CBlobDesc& other ) const noexcept
 {
 	for( TBlobDim d = TBlobDim( 0 ); d < BD_Count; ++d ) {
 		if( dimensions[d] != other.dimensions[d] ) {
@@ -155,7 +155,7 @@ inline bool CBlobDesc::HasEqualDimensions( const CBlobDesc& other ) const
 }
 
 inline bool CBlobDesc::HasEqualDimensions( const CBlobDesc& other,
-	std::initializer_list<int> otherDimensions ) const
+	std::initializer_list<int> otherDimensions ) const noexcept
 {
 	for( const int* d = otherDimensions.begin(); d < otherDimensions.end(); ++d ) {
 		if( dimensions[*d] != other.dimensions[*d] ) {
@@ -166,3 +166,5 @@ inline bool CBlobDesc::HasEqualDimensions( const CBlobDesc& other,
 }
 
 } // namespace NeoML
+
+
