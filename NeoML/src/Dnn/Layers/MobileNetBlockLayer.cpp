@@ -305,11 +305,9 @@ static void replaceLayers( CDnn& dnn, const CArray<CBlockInfo>& blocksToReplace 
 		dnn.AddLayer( *mobileNetBlock );
 		mobileNetBlock->Connect( 0, info.InputName, info.InputOutputIndex );
 	}
-
-	if( debugPrint ) ::printf( "Replaced %d layers with %d blocks\n", layersDeleted, blocksToReplace.Size() );
 }
 
-void ReplaceMobileNetBlocks( CDnn& dnn )
+int ReplaceMobileNetBlocks( CDnn& dnn )
 {
 	// Step 1: replacing residual blocks because non-residual blocks are part of residual
 	CArray<CBlockInfo> blocksToReplace;
@@ -323,6 +321,7 @@ void ReplaceMobileNetBlocks( CDnn& dnn )
 		}
 	}
 	replaceLayers( dnn, blocksToReplace );
+	const int residualBlocksReplaced = blocksToReplace.Size();
 	blocksToReplace.DeleteAll();
 
 	layerList.DeleteAll();
@@ -336,6 +335,7 @@ void ReplaceMobileNetBlocks( CDnn& dnn )
 	replaceLayers( dnn, blocksToReplace );
 
 	debugPrint = false;
+	return residualBlocksReplaced + blocksToReplace.Size();
 }
 
 } // namespace NeoML

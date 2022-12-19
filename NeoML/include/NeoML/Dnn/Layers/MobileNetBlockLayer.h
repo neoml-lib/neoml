@@ -65,6 +65,6 @@ private:
 	CFloatHandleVar channelwiseReLUThreshold;
 };
 
-void NEOML_API ReplaceMobileNetBlocks( CDnn& dnn );
+int NEOML_API ReplaceMobileNetBlocks( CDnn& dnn );
 
 } // namespace NeoML
