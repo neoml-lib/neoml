@@ -23,17 +23,19 @@ namespace NeoMLTest {
 class CCompositeTestBlock : public CCompositeLayer {
 public:
 	CCompositeTestBlock( IMathEngine& mathEngine, CPtr<CDnnBlob> expandFilter, CPtr<CDnnBlob> expandFreeTerm,
-		CPtr<CDnnBlob> channelwiseFilter, CPtr<CDnnBlob> channelwiseFreeTerm,
-		CPtr<CDnnBlob> downFilter, CPtr<CDnnBlob> downFreeTerm, int stride, bool residual );
+		float expandReLUThreshold, CPtr<CDnnBlob> channelwiseFilter, CPtr<CDnnBlob> channelwiseFreeTerm,
+		float channelwiseReLUThreshold, CPtr<CDnnBlob> downFilter, CPtr<CDnnBlob> downFreeTerm,
+		int stride, bool residual );
 
 	CPtr<CConvLayer> ExpandConv;
 	CPtr<CChannelwiseConvLayer> Channelwise;
 	CPtr<CConvLayer> DownConv;
 };
 
-CCompositeTestBlock::CCompositeTestBlock( IMathEngine& mathEngine, CPtr<CDnnBlob> expandFilter, CPtr<CDnnBlob> expandFreeTerm,
-		CPtr<CDnnBlob> channelwiseFilter, CPtr<CDnnBlob> channelwiseFreeTerm,
-		CPtr<CDnnBlob> downFilter, CPtr<CDnnBlob> downFreeTerm, int stride, bool residual ) :
+CCompositeTestBlock::CCompositeTestBlock( IMathEngine& mathEngine, CPtr<CDnnBlob> expandFilter,
+		CPtr<CDnnBlob> expandFreeTerm, float expandReLUThreshold, CPtr<CDnnBlob> channelwiseFilter,
+		CPtr<CDnnBlob> channelwiseFreeTerm, float channelwiseReLUThreshold, CPtr<CDnnBlob> downFilter,
+		CPtr<CDnnBlob> downFreeTerm, int stride, bool residual ) :
 	CCompositeLayer( mathEngine, "CompositeTestBlock" )
 {
 	ExpandConv = new CConvLayer( mathEngine );
@@ -51,6 +53,7 @@ CCompositeTestBlock::CCompositeTestBlock( IMathEngine& mathEngine, CPtr<CDnnBlob
 
 	CPtr<CReLULayer> expandReLU = new CReLULayer( mathEngine );
 	expandReLU->SetName( "expandReLU" );
+	expandReLU->SetUpperThreshold( expandReLUThreshold );
 	expandReLU->Connect( *ExpandConv );
 	AddLayer( *expandReLU );
 
@@ -74,6 +77,7 @@ CCompositeTestBlock::CCompositeTestBlock( IMathEngine& mathEngine, CPtr<CDnnBlob
 
 	CPtr<CReLULayer> channelwiseReLU = new CReLULayer( mathEngine );
 	channelwiseReLU->SetName( "channelwiseReLU" );
+	channelwiseReLU->SetUpperThreshold( channelwiseReLUThreshold );
 	channelwiseReLU->Connect( *Channelwise );
 	AddLayer( *channelwiseReLU );
 
@@ -114,7 +118,8 @@ static CPtr<CDnnBlob> createBlob( const std::initializer_list<int>& dims, CRando
 	return blob;
 }
 
-static void mobileNetBlockTestImpl( unsigned int seed, int freeTermMask, int stride, bool residual )
+static void mobileNetBlockTestImpl( unsigned int seed, int freeTermMask, float expandReLUThreshold,
+	float channelwiseReLUThreshold, int stride, bool residual )
 {
 	NeoAssert( stride == 1 || stride == 2 );
 	NeoAssert( freeTermMask >= 0 && freeTermMask < 8 );
@@ -155,15 +160,17 @@ static void mobileNetBlockTestImpl( unsigned int seed, int freeTermMask, int str
 	CPtr<CSourceLayer> data = AddLayer<CSourceLayer>( "Data", dnn );
 
 	CPtr<CCompositeTestBlock> expectedBlock = AddLayer<CCompositeTestBlock>( new CCompositeTestBlock( MathEngine(),
-		expandFilter, expandFreeTerm, channelwiseFilter, channelwiseFreeTerm, downFilter, downFreeTerm, stride,
-		residual ), "expectedBlock", { data } );
+		expandFilter, expandFreeTerm, expandReLUThreshold, channelwiseFilter, channelwiseFreeTerm,
+		channelwiseReLUThreshold, downFilter, downFreeTerm, stride, residual ), "expectedBlock", { data } );
 	CPtr<CSinkLayer> expectedSink = AddLayer<CSinkLayer>( "expectedSink", { expectedBlock } );
 
 	CPtr<CMobileNetBlockLayer> actualBlock = AddLayer<CMobileNetBlockLayer>( "actualBlock", { data } );
 	actualBlock->ExpandFilter() = expandFilter;
 	actualBlock->ExpandFreeTerm() = expandFreeTerm;
+	actualBlock->ExpandReLUThreshold().SetValue( expandReLUThreshold );
 	actualBlock->ChannelwiseFilter() = channelwiseFilter;
 	actualBlock->ChannelwiseFreeTerm() = channelwiseFreeTerm;
+	actualBlock->ChannelwiseReLUThreshold().SetValue( channelwiseReLUThreshold );
 	actualBlock->DownFilter() = downFilter;
 	actualBlock->DownFreeTerm() = downFreeTerm;
 	actualBlock->Residual() = residual;
@@ -191,9 +198,13 @@ TEST( MobileNetBlockLayerTest, Run )
 {
 	CRandom seedRandom( 0x654 );
 	for( int ftMask = 0; ftMask < 8; ++ftMask ) {
-		mobileNetBlockTestImpl( seedRandom.Next(), ftMask, 1, false );
-		mobileNetBlockTestImpl( seedRandom.Next(), ftMask, 2, false );
-		mobileNetBlockTestImpl( seedRandom.Next(), ftMask, 1, true );
+		for( float expandReLU : { 0.f, 6.f } ) {
+			for( float channelwiseReLU : { 0.f, 1.f } ) {
+				mobileNetBlockTestImpl( seedRandom.Next(), ftMask, expandReLU, channelwiseReLU, 1, false );
+				mobileNetBlockTestImpl( seedRandom.Next(), ftMask, expandReLU, channelwiseReLU, 2, false );
+				mobileNetBlockTestImpl( seedRandom.Next(), ftMask, expandReLU, channelwiseReLU, 1, true );
+			}
+		}
 	}
 }
 
