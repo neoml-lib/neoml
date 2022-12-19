@@ -22,6 +22,7 @@ limitations under the License.
 #include <NeoMathEngine/SimdMathEngine.h>
 #include <AvxMathEngine.h>
 #include <JitCommon.h>
+#include <CPUInfo.h>
 
 namespace NeoML {
 
@@ -73,6 +74,11 @@ CConvolutionDesc* CAvxMathEngine::InitBlockedConvolution( const CBlobDesc& sourc
 	const int inputChannels = source.Depth() * source.Channels();
 	if( filterCount % BlockSize != 0 || inputChannels % BlockSize != 0 ) {
 		// Algorithmic restrictions
+		return nullptr;
+	}
+
+	if( CCPUInfo::IsAvx512Available() ) {
+		// This algo isn't tuned for AVX512 (yet)
 		return nullptr;
 	}
 
