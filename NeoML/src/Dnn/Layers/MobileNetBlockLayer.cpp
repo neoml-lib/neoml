@@ -147,7 +147,37 @@ struct CBlockInfo {
 	CEltwiseSumLayer* Residual;
 };
 
-static bool getMobileNetBlock( struct CBlockInfo& info, CDnn& dnn, CBaseLayer* lastLayer )
+static void markLayersAsDeleted( const CBlockInfo& info,
+	CHashTable<CString>& layersToDelete )
+{
+	layersToDelete.Add( info.ExpandConv->GetName() );
+	layersToDelete.Add( info.ExpandReLU->GetName() );
+	layersToDelete.Add( info.Channelwise->GetName() );
+	layersToDelete.Add( info.ChannelwiseReLU->GetName() );
+	layersToDelete.Add( info.DownConv->GetName() );
+	if( info.Residual != nullptr ) {
+		layersToDelete.Add( info.Residual->GetName() );
+	}
+}
+
+static void calculateOutputConnections( const CDnn& dnn, CMap<CString, int>& outputConnections )
+{
+	outputConnections.DeleteAll();
+	CArray<const char*> layerList;
+	dnn.GetLayerList( layerList );
+	for( int i = 0; i < layerList.Size(); ++i ) {
+		outputConnections.GetOrCreateValue( layerList[i] ) = 0;
+	}
+	for( int i = 0; i < layerList.Size(); ++i ) {
+		const CBaseLayer* layer = dnn.GetLayer( layerList[i] );
+		for( int inputIndex = 0; inputIndex < layer->GetInputCount(); ++inputIndex ) {
+			outputConnections[layer->GetInputName( inputIndex )]++;
+		}
+	}
+}
+
+static bool getMobileNetBlock( const CMap<CString, int>& outputConnections, const CHashTable<CString>& layersToDelete,
+	CBlockInfo& info, CDnn& dnn, CBaseLayer* lastLayer )
 {
 	CEltwiseSumLayer* residual = dynamic_cast<CEltwiseSumLayer*>( lastLayer );
 	if( residual != nullptr ) {
@@ -155,12 +185,18 @@ static bool getMobileNetBlock( struct CBlockInfo& info, CDnn& dnn, CBaseLayer* l
 			return false;
 		}
 
+		if( layersToDelete.Has( lastLayer->GetName() ) ) {
+			return false;
+		}
+
 		for( int input = 0; input < 2; ++input ) {
 			const int otherInput = 1 - input;
-			if( getMobileNetBlock( info, dnn, dnn.GetLayer( lastLayer->GetInputName( input ) ).Ptr() )
+			if( getMobileNetBlock( outputConnections, layersToDelete, info, dnn,
+					dnn.GetLayer( lastLayer->GetInputName( input ) ).Ptr() )
 				&& info.InputName == lastLayer->GetInputName( otherInput )
 				&& info.InputOutputIndex == lastLayer->GetInputOutputNumber( otherInput )
-				&& info.Residual == nullptr )
+				&& info.Residual == nullptr
+				&& outputConnections[info.DownConv->GetName()] == 1 )
 			{
 				info.Residual = residual;
 				return true;
@@ -170,9 +206,13 @@ static bool getMobileNetBlock( struct CBlockInfo& info, CDnn& dnn, CBaseLayer* l
 		return false;
 	}
 
-	auto isValid1x1Conv = [] ( const CConvLayer* conv ) -> bool
+	auto isValid1x1Conv = [&layersToDelete] ( const CConvLayer* conv ) -> bool
 	{
 		if( conv == nullptr ) {
+			return false;
+		}
+
+		if( layersToDelete.Has( conv->GetName() ) ) {
 			return false;
 		}
 
@@ -204,18 +244,34 @@ static bool getMobileNetBlock( struct CBlockInfo& info, CDnn& dnn, CBaseLayer* l
 		return true;
 	};
 
-	auto isValidReLU = [] ( const CReLULayer* relu ) -> bool 
+	auto isValidReLU = [&layersToDelete, &outputConnections] ( const CReLULayer* relu ) -> bool 
 	{
 		if( relu == nullptr ) {
+			return false;
+		}
+
+		if( layersToDelete.Has( relu->GetName() ) ) {
+			return false;
+		}
+
+		if( outputConnections[relu->GetName()] != 1 ) {
 			return false;
 		}
 
 		return true;
 	};
 
-	auto isValidChannelwiseConv = [] ( const CChannelwiseConvLayer* channelwise ) -> bool
+	auto isValidChannelwiseConv = [&layersToDelete, &outputConnections] ( const CChannelwiseConvLayer* channelwise ) -> bool
 	{
 		if( channelwise == nullptr ) {
+			return false;
+		}
+
+		if( outputConnections[channelwise->GetName()] != 1 ) {
+			return false;
+		}
+
+		if( layersToDelete.Has( channelwise->GetName() ) ) {
 			return false;
 		}
 
@@ -267,7 +323,7 @@ static bool getMobileNetBlock( struct CBlockInfo& info, CDnn& dnn, CBaseLayer* l
 		return false;
 	}
 	info.ExpandConv = dynamic_cast<CConvLayer*>( dnn.GetLayer( info.ExpandReLU->GetInputName( 0 ) ).Ptr() );
-	if( !isValid1x1Conv( info.ExpandConv ) ) {
+	if( !isValid1x1Conv( info.ExpandConv ) || outputConnections[info.ExpandConv->GetName()] != 1 ) {
 		return false;
 	}
 	info.InputName = info.ExpandConv->GetInputName( 0 );
@@ -311,26 +367,37 @@ static void replaceLayers( CDnn& dnn, const CArray<CBlockInfo>& blocksToReplace 
 
 int ReplaceMobileNetBlocks( CDnn& dnn )
 {
-	// Step 1: replacing residual blocks because non-residual blocks are part of residual
 	CArray<CBlockInfo> blocksToReplace;
+	CHashTable<CString> layersToDelete;
+	CMap<CString, int> outputConnections;
 	CArray<const char*> layerList;
+
+	// Step 1: replace residual blocks only because non-residual blocks are part of residual
+	calculateOutputConnections( dnn, outputConnections );
 	dnn.GetLayerList( layerList );
 	for( int i = 0; i < layerList.Size(); ++i ) {
 		CEltwiseSumLayer* residual = dynamic_cast<CEltwiseSumLayer*>( dnn.GetLayer( layerList[i] ).Ptr() );
 		CBlockInfo info;
-		if( residual != nullptr && getMobileNetBlock( info, dnn, residual ) ) {
+		if( residual != nullptr
+			&& getMobileNetBlock( outputConnections, layersToDelete, info, dnn, residual ) )
+		{
+			markLayersAsDeleted( info, layersToDelete );
 			blocksToReplace.Add( info );
 		}
 	}
 	replaceLayers( dnn, blocksToReplace );
 	const int residualBlocksReplaced = blocksToReplace.Size();
-	blocksToReplace.DeleteAll();
 
+	// Step 2: replace any blocks
+	calculateOutputConnections( dnn, outputConnections );
+	blocksToReplace.DeleteAll();
 	layerList.DeleteAll();
+	layersToDelete.DeleteAll();
 	dnn.GetLayerList( layerList );
 	for( int i = 0; i < layerList.Size(); ++i ) {
 		CBlockInfo info;
-		if( getMobileNetBlock( info, dnn, dnn.GetLayer( layerList[i] ).Ptr() ) ) {
+		if( getMobileNetBlock( outputConnections, layersToDelete, info, dnn, dnn.GetLayer( layerList[i] ).Ptr() ) ) {
+			markLayersAsDeleted( info, layersToDelete );
 			blocksToReplace.Add( info );
 		}
 	}
