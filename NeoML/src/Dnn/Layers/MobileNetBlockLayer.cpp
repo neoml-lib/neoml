@@ -305,6 +305,8 @@ static void replaceLayers( CDnn& dnn, const CArray<CBlockInfo>& blocksToReplace 
 		dnn.AddLayer( *mobileNetBlock );
 		mobileNetBlock->Connect( 0, info.InputName, info.InputOutputIndex );
 	}
+
+	if( debugPrint ) ::printf( "Replaced %d layers with %d blocks\n", layersDeleted, blocksToReplace.Size() );
 }
 
 int ReplaceMobileNetBlocks( CDnn& dnn )
