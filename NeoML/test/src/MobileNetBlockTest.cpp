@@ -135,8 +135,8 @@ static void mobileNetBlockTestImpl( unsigned int seed, int freeTermMask, float e
 	const int inputChannels = 8;
 	const int outputChannels = residual ? inputChannels : 12;
 	const int expandedChannels = 16;
-	const int imageHeight = 16;
-	const int imageWidth = 32;
+	const int imageHeight = 26;
+	const int imageWidth = 31;
 
 	CPtr<CDnnBlob> expandFilter = createBlob( { 1, expandedChannels, 1, 1, 1, 1, inputChannels }, random );
 	CPtr<CDnnBlob> expandFreeTerm;
