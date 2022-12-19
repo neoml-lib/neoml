@@ -450,6 +450,7 @@ void CCpuMathEngine::RunMobileNetBlock( const CBlobDesc& inputDesc, const CBlobD
 	for( int b = 0; b < inputDesc.ObjectCount(); ++b ) {
 		const float* chLastValidFilterPos = chInputStart + chInputVar.Size() - 3 * chInputRowSize;
 		const float* input = inputObject;
+		const float* residualInput = input;
 		float* chInput = chInputStart;
 		float* chOutput = chOutputStart;
 		float* output = outputObject;
@@ -477,7 +478,6 @@ void CCpuMathEngine::RunMobileNetBlock( const CBlobDesc& inputDesc, const CBlobD
 			const int outputRowsCanBeProcesed = inputRowsProcessed == inputHeight ? outputHeight
 				: ( inputRowsProcessed - 2 ) / stride + 1;
 
-			const float* residualInput = input;
 			while( outputRowsProcessed < outputRowsCanBeProcesed ) {
 				const int outputRowsThisStep = std::min<int>( maxOutputRowsPerStep, outputRowsCanBeProcesed - outputRowsProcessed );
 
