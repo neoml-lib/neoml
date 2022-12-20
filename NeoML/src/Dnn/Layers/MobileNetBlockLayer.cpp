@@ -52,7 +52,22 @@ void CMobileNetBlockLayer::Serialize( CArchive& archive )
 {
 	archive.SerializeVersion( MobileNetBlockLayerVersion );
 	CBaseLayer::Serialize( archive );
+
 	archive.Serialize( residual );
+	archive.Serialize( stride );
+
+	float expandReLU = 0;
+	float channelwiseReLU = 0;
+	if( archive.IsStoring() ) {
+		expandReLU = expandReLUThreshold.GetValue();
+		channelwiseReLU = channelwiseReLUThreshold.GetValue();
+	}
+	archive.Serialize( expandReLU );
+	archive.Serialize( channelwiseReLU );
+	if( archive.IsLoading() ) {
+		expandReLUThreshold.SetValue( expandReLU );
+		channelwiseReLUThreshold.SetValue( channelwiseReLU );
+	}
 }
 
 void CMobileNetBlockLayer::Reshape()
@@ -226,11 +241,6 @@ static bool getMobileNetBlock( const CMap<CString, int>& outputConnections, cons
 			return false;
 		}
 
-		if( conv->GetDilationHeight() != 1 || conv->GetDilationWidth() != 1 ) {
-			if( debugPrint ) ::printf( "1x1 conv with dilation: %s\n", conv->GetName() );
-			return false;
-		}
-
 		if( conv->GetPaddingHeight() != 0 || conv->GetPaddingWidth() != 0 ) {
 			if( debugPrint ) ::printf( "1x1 conv with padding: %s\n", conv->GetName() );
 			return false;
@@ -254,6 +264,11 @@ static bool getMobileNetBlock( const CMap<CString, int>& outputConnections, cons
 			return false;
 		}
 
+		if( relu->GetInputCount() > 1 ) {
+			if( debugPrint ) ::printf( "relu with multiple inputs: %s\n", relu->GetName() );
+			return false;
+		}
+
 		if( outputConnections[relu->GetName()] != 1 ) {
 			return false;
 		}
@@ -272,6 +287,11 @@ static bool getMobileNetBlock( const CMap<CString, int>& outputConnections, cons
 		}
 
 		if( layersToDelete.Has( channelwise->GetName() ) ) {
+			return false;
+		}
+
+		if( channelwise->GetInputCount() > 1 ) {
+			if( debugPrint ) ::printf( "channelwise with multiple inputs: %s\n", channelwise->GetName() );
 			return false;
 		}
 
