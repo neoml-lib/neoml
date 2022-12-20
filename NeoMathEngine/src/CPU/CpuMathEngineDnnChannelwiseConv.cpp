@@ -435,24 +435,23 @@ void CCpuMathEngine::RunMobileNetBlock( const CBlobDesc& inputDesc, const CBlobD
 	const float* downFilter = GetRaw( downFilterData );
 	const float* downFreeTerm = downFreeTermData == nullptr ? nullptr : GetRaw( *downFreeTermData );
 
-	CFloatHandleStackVar chInputVar( *this, desc.Source.ObjectSize() );
-	CFloatHandleStackVar chOutputVar( *this, desc.Result.ObjectSize() );
-
-	float* chInputStart = GetRaw( chInputVar.GetHandle() );
-	float* chOutputStart = GetRaw( chOutputVar.GetHandle() );
-	float* outputObject = GetRaw( outputHandle );
-
 	const int maxInputRowsPerStep = std::max<int>( 1,
 		( cacheSize / ( std::max<int>( inputChannels, expandedChannels ) * inputWidth ) ) );
 	const int maxOutputRowsPerStep = std::max<int>( 1,
 		( cacheSize / ( std::max<int>( outputChannels, expandedChannels ) * outputWidth ) ) );
+
+	CFloatHandleStackVar chInputVar( *this, desc.Source.ObjectSize() );
+	CFloatHandleStackVar chOutputVar( *this, maxOutputRowsPerStep * chOutputRowSize );
+
+	float* chInputStart = GetRaw( chInputVar.GetHandle() );
+	float* chOutput = GetRaw( chOutputVar.GetHandle() );
+	float* outputObject = GetRaw( outputHandle );
 
 	for( int b = 0; b < inputDesc.ObjectCount(); ++b ) {
 		const float* chLastValidFilterPos = chInputStart + chInputVar.Size() - 3 * chInputRowSize;
 		const float* input = inputObject;
 		const float* residualInput = input;
 		float* chInput = chInputStart;
-		float* chOutput = chOutputStart;
 		float* output = outputObject;
 
 		int inputRowsProcessed = 0;
@@ -557,7 +556,6 @@ void CCpuMathEngine::RunMobileNetBlock( const CBlobDesc& inputDesc, const CBlobD
 				}
 
 				output += outputRowsThisStep * outputRowSize;
-				chOutput += outputRowsThisStep * chOutputRowSize;
 				outputRowsProcessed += outputRowsThisStep;
 			}
 
