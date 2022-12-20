@@ -504,9 +504,7 @@ if(NeoMathEngine_INSTALL)
                 RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
                 FRAMEWORK DESTINATION ${CMAKE_INSTALL_LIBDIR}
             )
-
-            install(FILES $<TARGET_PDB_FILE:${PROJECT_NAME}> DESTINATION bin OPTIONAL)
-
+        
             install(EXPORT NeoMathEngineConfig
                 NAMESPACE NeoML::
                 DESTINATION ${CMAKE_INSTALL_PREFIX}/cmake
