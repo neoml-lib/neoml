@@ -164,7 +164,7 @@ void CCudaMathEngine::MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobD
 	VectorReLU( channelwiseOutput, channelwiseOutput, channelwiseOutput.Size(), channelwiseReLUThreshold );
 
 	if( residual ) {
-		MultiplyMatrixByTransposedMatrixAndAdd( channelwiseOutput, channelwiseOutput.Size() / expandedChannels,
+		multiplyMatrixByTransposedMatrixAndAdd( channelwiseOutput, channelwiseOutput.Size() / expandedChannels,
 			expandedChannels, expandedChannels, downFilter, outputDesc.Channels(), expandedChannels, outputHandle,
 			outputDesc.Channels() );
 	} else {
