@@ -440,7 +440,7 @@ void CCpuMathEngine::RunMobileNetBlock( const CBlobDesc& inputDesc, const CBlobD
 	const int maxOutputRowsPerStep = std::max<int>( 1,
 		( cacheSize / ( std::max<int>( outputChannels, expandedChannels ) * outputWidth ) ) );
 
-	CFloatHandleStackVar chInputVar( *this, desc.Source.ObjectSize() );
+	CFloatHandleStackVar chInputVar( *this, std::min<int>( inputHeight, maxInputRowsPerStep + 2 ) * chInputRowSize );
 	CFloatHandleStackVar chOutputVar( *this, maxOutputRowsPerStep * chOutputRowSize );
 
 	float* chInputStart = GetRaw( chInputVar.GetHandle() );
@@ -450,14 +450,15 @@ void CCpuMathEngine::RunMobileNetBlock( const CBlobDesc& inputDesc, const CBlobD
 	for( int b = 0; b < inputDesc.ObjectCount(); ++b ) {
 		const float* input = inputObject;
 		const float* residualInput = input;
-		float* chInput = chInputStart;
 		float* output = outputObject;
 
 		int inputRowsProcessed = 0;
 		int outputRowsProcessed = 0;
+		int firstInputRowInBuffer = 0;
 
 		while( inputRowsProcessed < inputHeight ) {
 			const int inputRowsThisStep = std::min<int>( maxInputRowsPerStep, inputHeight - inputRowsProcessed );
+			float* chInput = chInputStart + ( inputRowsProcessed - firstInputRowInBuffer ) * chInputRowSize;
 
 			multiplyMatrixByTransposedMatrix( input, inputRowsThisStep * inputWidth, inputChannels, inputChannels,
 				expandFilter, expandedChannels, inputChannels, chInput, expandedChannels );
@@ -489,7 +490,8 @@ void CCpuMathEngine::RunMobileNetBlock( const CBlobDesc& inputDesc, const CBlobD
 						--remOutputRowsThisStep;
 					}
 
-					const float* currChInput = chInputStart + ( outputRowsProcessed * stride - 1 ) * chInputRowSize;
+					const float* currChInput = chInputStart
+						+ ( outputRowsProcessed * stride - 1 - firstInputRowInBuffer ) * chInputRowSize;
 					if( outputRowsProcessed == 0 ) {
 						// Process top padding
 						if( channelwiseFreeTerm == nullptr ) {
@@ -565,7 +567,20 @@ void CCpuMathEngine::RunMobileNetBlock( const CBlobDesc& inputDesc, const CBlobD
 			}
 
 			input += inputRowsThisStep * inputRowSize;
-			chInput += inputRowsThisStep * chInputRowSize;
+
+			if( outputRowsProcessed < outputHeight ) {
+				const int firstInputRowNeeded = outputRowsProcessed * stride - 1;
+				if( firstInputRowNeeded > firstInputRowInBuffer ) {
+					// Buffer for channelwise input contains rows that won't be used in future
+					const int rowsToDelete = firstInputRowNeeded - firstInputRowInBuffer;
+					const int rowsToMove = inputRowsProcessed - firstInputRowNeeded;
+					if( rowsToMove > 0 ) {
+						dataCopy( chInputStart, chInputStart + rowsToDelete * chInputRowSize,
+							rowsToMove * chInputRowSize );
+					}
+					firstInputRowInBuffer = firstInputRowNeeded;
+				}
+			}
 		}
 
 		inputObject += inputDesc.ObjectSize();
