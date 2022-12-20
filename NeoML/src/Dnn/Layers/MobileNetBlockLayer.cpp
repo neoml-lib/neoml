@@ -138,7 +138,7 @@ void CMobileNetBlockLayer::Reshape()
 
 void CMobileNetBlockLayer::RunOnce()
 {
-	MathEngine().RunMobileNetBlock( inputBlobs[0]->GetDesc(), outputBlobs[0]->GetDesc(), *convDesc,
+	MathEngine().MobileNetV2Block( inputBlobs[0]->GetDesc(), outputBlobs[0]->GetDesc(), *convDesc,
 		inputBlobs[0]->GetData(), paramBlobs[P_ExpandFilter]->GetData(),
 		paramBlobs[P_ExpandFreeTerm] != nullptr ? &paramBlobs[P_ExpandFreeTerm]->GetData<const float>() : nullptr,
 		expandReLUThreshold, paramBlobs[P_ChannelwiseFilter]->GetData(),

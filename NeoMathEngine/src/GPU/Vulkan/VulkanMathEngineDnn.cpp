@@ -692,7 +692,7 @@ void CVulkanMathEngine::ScatterND( const CConstIntHandle&, const CConstIntHandle
 	ASSERT_EXPR( false );
 }
 
-void CVulkanMathEngine::RunMobileNetBlock( const CBlobDesc&, const CBlobDesc&, const CChannelwiseConvolutionDesc&,
+void CVulkanMathEngine::MobileNetV2Block( const CBlobDesc&, const CBlobDesc&, const CChannelwiseConvolutionDesc&,
 	const CConstFloatHandle&, const CConstFloatHandle&, const CConstFloatHandle*, const CConstFloatHandle&,
 	const CConstFloatHandle&, const CConstFloatHandle*, const CConstFloatHandle&, const CConstFloatHandle&,
 	const CConstFloatHandle*, bool, const CFloatHandle& ) override

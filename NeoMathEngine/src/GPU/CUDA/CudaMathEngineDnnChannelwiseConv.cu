@@ -131,7 +131,7 @@ void CCudaMathEngine::BlobChannelwiseConvolutionLearnAdd( const CChannelwiseConv
 	BlobChannelwiseConvolutionLearnAddKernel<<<blockCount, threadCount>>>( desc, GetRaw(inputData), GetRaw(outputDiffData), GetRaw(filterDiffData) );
 }
 
-void CCudaMathEngine::RunMobileNetBlock( const CBlobDesc& inputDesc, const CBlobDesc& outputDesc,
+void CCudaMathEngine::MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobDesc& outputDesc,
 	const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& inputHandle,
 	const CConstFloatHandle& expandFilter, const CConstFloatHandle* expandFreeTerm,
 	const CConstFloatHandle& expandReLUThreshold, const CConstFloatHandle& channelwiseFilter,
