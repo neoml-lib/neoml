@@ -2497,3 +2497,65 @@ GTEST_TEST( SerializeFromFile, TransformerSourceMaskLayerSerialization )
 {
 	checkSerializeLayer<CTransformerSourceMaskLayer>( "NeoMLDnnTransformerSourceMaskLayer" );
 }
+
+// ====================================================================================================================
+
+// CMobileNetV2BlockLayer
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+static void setSpecificParams( CMobileNetV2BlockLayer& layer )
+{
+	const int inputChannels = 2;
+	const int expandChannels = 4;
+	const int outputChannels = 3;
+	
+	layer.SetExpandFilter( generateBlob( expandChannels, 1, 1, 1, inputChannels ) );
+	layer.SetExpandFreeTerm( generateBlob( 1, 1, 1, 1, expandChannels ) );
+	layer.SetExpandReLUThreshold( 666.f );
+
+	layer.SetStride( 2 );
+	layer.SetChannelwiseFilter( generateBlob( 1, 3, 3, 1, expandChannels ) );
+	layer.SetChannelwiseFreeTerm( nullptr );
+	layer.SetChannelwiseReLUThreshold( 777.f );
+
+	layer.SetDownFilter( generateBlob( outputChannels, 1, 1, 1, expandChannels ) );
+	layer.SetDownFreeTerm( generateBlob( 1, 1, 1, 1, outputChannels ) );
+
+	// inputChannnels != outputChannels and stride == 2
+	layer.SetResidual( false );
+}
+
+GTEST_TEST( SerializeToFile, MobileNetV2BlockLayerSerialization )
+{
+	serializeToFile<CMobileNetV2BlockLayer>( "NeoMLDnnMobileNetV2BlockLayer" );
+}
+
+#endif // GENERATE_SERIALIZATION_FILES
+
+template<>
+inline void checkSpecificParams<CMobileNetV2BlockLayer>( CMobileNetV2BlockLayer& layer )
+{
+	const int inputChannels = 2;
+	const int expandChannels = 4;
+	const int outputChannels = 3;
+
+	checkBlob( *layer.GetExpandFilter(), expandChannels * inputChannels );
+	checkBlob( *layer.GetExpandFreeTerm(), expandChannels );
+	EXPECT_FLOAT_EQ( 666.f, layer.GetExpandReLUThreshold() );
+
+	EXPECT_EQ( 2, layer.GetStride() );
+	checkBlob( *layer.GetChannelwiseFilter(), 3 * 3 * expandChannels );
+	EXPECT_EQ( nullptr, layer.GetChannelwiseFreeTerm() );
+	EXPECT_FLOAT_EQ( 777.f, layer.GetChannelwiseReLUThreshold() );
+
+	checkBlob( *layer.GetDownFilter(), outputChannels * expandChannels );
+	checkBlob( *layer.GetDownFreeTerm(), outputChannels );
+
+	EXPECT_FALSE( layer.HasResidual() );
+}
+
+GTEST_TEST( SerializeFromFile, MobileNetV2BlockLayerSerialization )
+{
+	checkSerializeLayer<CMobileNetV2BlockLayer>( "NeoMLDnnMobileNetV2BlockLayer" );
+}

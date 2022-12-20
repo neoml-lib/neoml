@@ -362,7 +362,7 @@ REGISTER_NEOML_LAYER( CEqualLayer, "NeoMLDnnEqualLayer" )
 REGISTER_NEOML_LAYER( CWhereLayer, "NeoMLDnnWhereLayer" )
 REGISTER_NEOML_LAYER( CScatterNDLayer, "NeoMLDnnScatterNDLayer" )
 REGISTER_NEOML_LAYER( CTransformerSourceMaskLayer, "NeoMLDnnTransformerSourceMaskLayer" )
-REGISTER_NEOML_LAYER( CMobileNetV2BlockLayer, "NeoMLDnnMobileNetV2BlockLayerClass" )
+REGISTER_NEOML_LAYER( CMobileNetV2BlockLayer, "NeoMLDnnMobileNetV2BlockLayer" )
 
 }
 
