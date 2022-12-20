@@ -602,7 +602,7 @@ public:
 		const CConstFloatHandle& expandReLUThreshold, const CConstFloatHandle& channelwiseFilter,
 		const CConstFloatHandle* channelwiseFreeTerm, const CConstFloatHandle& channelwiseReLUThreshold,
 		const CConstFloatHandle& downFilter, const CConstFloatHandle* downFreeTerm, bool residual,
-		const CFloatHandle& outputHandle ) override { ASSERT_EXPR( false ); }
+		const CFloatHandle& outputHandle ) override;
 
 	IPerformanceCounters* CreatePerformanceCounters() const override { 	return new CPerformanceCountersDefault(); }
 	void AllReduce( const CFloatHandle& /*handle*/, int /*size*/ ) override {};

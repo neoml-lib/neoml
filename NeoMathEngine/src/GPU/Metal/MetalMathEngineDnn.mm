@@ -679,6 +679,14 @@ void CMetalMathEngine::ScatterND( const CConstIntHandle&, const CConstIntHandle&
     ASSERT_EXPR( false );
 }
 
+void CMetalMathEngine::RunMobileNetBlock( const CBlobDesc&, const CBlobDesc&, const CChannelwiseConvolutionDesc&,
+	const CConstFloatHandle&, const CConstFloatHandle&, const CConstFloatHandle*, const CConstFloatHandle&,
+	const CConstFloatHandle&, const CConstFloatHandle*, const CConstFloatHandle&, const CConstFloatHandle&,
+	const CConstFloatHandle*, bool, const CFloatHandle& ) override
+{
+	ASSERT_EXPR( false );
+}
+
 } // namespace NeoML
 
 #endif // NEOML_USE_METAL
