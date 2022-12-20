@@ -16,7 +16,7 @@ limitations under the License.
 #include <common.h>
 #pragma hdrstop
 
-#include <NeoML/Dnn/Layers/MobileNetBlockLayer.h>
+#include <NeoML/Dnn/Layers/MobileNetV2BlockLayer.h>
 #include <NeoML/Dnn/Layers/ConvLayer.h>
 #include <NeoML/Dnn/Layers/ChannelwiseConvLayer.h>
 #include <NeoML/Dnn/Layers/ActivationLayers.h>
@@ -26,8 +26,8 @@ namespace NeoML {
 
 static const int CacheSize = 32 * 1024;
 
-CMobileNetBlockLayer::CMobileNetBlockLayer( IMathEngine& mathEngine ) :
-	CBaseLayer( mathEngine, "MobileNetBlock", false ),
+CMobileNetV2BlockLayer::CMobileNetV2BlockLayer( IMathEngine& mathEngine ) :
+	CBaseLayer( mathEngine, "MobileNetV2Block", false ),
 	residual( false ),
 	stride( 0 ),
 	convDesc( nullptr ),
@@ -39,18 +39,18 @@ CMobileNetBlockLayer::CMobileNetBlockLayer( IMathEngine& mathEngine ) :
 	paramBlobs.SetSize( P_Count );
 }
 
-CMobileNetBlockLayer::~CMobileNetBlockLayer()
+CMobileNetV2BlockLayer::~CMobileNetV2BlockLayer()
 {
 	if( convDesc != nullptr ) {
 		delete convDesc;
 	}
 }
 
-static const int MobileNetBlockLayerVersion = 0;
+static const int MobileNetV2BlockLayerVersion = 0;
 
-void CMobileNetBlockLayer::Serialize( CArchive& archive )
+void CMobileNetV2BlockLayer::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion( MobileNetBlockLayerVersion );
+	archive.SerializeVersion( MobileNetV2BlockLayerVersion );
 	CBaseLayer::Serialize( archive );
 
 	archive.Serialize( residual );
@@ -70,7 +70,7 @@ void CMobileNetBlockLayer::Serialize( CArchive& archive )
 	}
 }
 
-void CMobileNetBlockLayer::Reshape()
+void CMobileNetV2BlockLayer::Reshape()
 {
 	CheckInput1();
 
@@ -136,7 +136,7 @@ void CMobileNetBlockLayer::Reshape()
 	}
 }
 
-void CMobileNetBlockLayer::RunOnce()
+void CMobileNetV2BlockLayer::RunOnce()
 {
 	MathEngine().MobileNetV2Block( inputBlobs[0]->GetDesc(), outputBlobs[0]->GetDesc(), *convDesc,
 		inputBlobs[0]->GetData(), paramBlobs[P_ExpandFilter]->GetData(),
@@ -148,7 +148,7 @@ void CMobileNetBlockLayer::RunOnce()
 		outputBlobs[0]->GetData() );
 }
 
-CPtr<CDnnBlob> CMobileNetBlockLayer::getParamBlob( TParam param ) const
+CPtr<CDnnBlob> CMobileNetV2BlockLayer::getParamBlob( TParam param ) const
 {
 	if( paramBlobs[param] == nullptr ) {
 		return nullptr;
@@ -157,7 +157,7 @@ CPtr<CDnnBlob> CMobileNetBlockLayer::getParamBlob( TParam param ) const
 	return paramBlobs[param]->GetCopy();
 }
 
-void CMobileNetBlockLayer::setParamBlob( TParam param, const CPtr<CDnnBlob>& blob )
+void CMobileNetV2BlockLayer::setParamBlob( TParam param, const CPtr<CDnnBlob>& blob )
 {
 	paramBlobs[param] = blob == nullptr ? nullptr : blob->GetCopy();
 }
@@ -207,7 +207,7 @@ static void calculateOutputConnections( const CDnn& dnn, CMap<CString, int>& out
 	}
 }
 
-static bool getMobileNetBlock( const CMap<CString, int>& outputConnections, const CHashTable<CString>& layersToDelete,
+static bool getMobileNetV2Block( const CMap<CString, int>& outputConnections, const CHashTable<CString>& layersToDelete,
 	CBlockInfo& info, CDnn& dnn, CBaseLayer* lastLayer )
 {
 	CEltwiseSumLayer* residual = dynamic_cast<CEltwiseSumLayer*>( lastLayer );
@@ -222,7 +222,7 @@ static bool getMobileNetBlock( const CMap<CString, int>& outputConnections, cons
 
 		for( int input = 0; input < 2; ++input ) {
 			const int otherInput = 1 - input;
-			if( getMobileNetBlock( outputConnections, layersToDelete, info, dnn,
+			if( getMobileNetV2Block( outputConnections, layersToDelete, info, dnn,
 					dnn.GetLayer( lastLayer->GetInputName( input ) ).Ptr() )
 				&& info.InputName == lastLayer->GetInputName( otherInput )
 				&& info.InputOutputIndex == lastLayer->GetInputOutputNumber( otherInput )
@@ -372,18 +372,18 @@ static void replaceLayers( CDnn& dnn, const CArray<CBlockInfo>& blocksToReplace 
 	int layersDeleted = 0;
 	for( int blockIndex = 0; blockIndex < blocksToReplace.Size(); ++blockIndex ) {
 		const CBlockInfo& info = blocksToReplace[blockIndex];
-		CPtr<CMobileNetBlockLayer> mobileNetBlock = new CMobileNetBlockLayer( dnn.GetMathEngine() );
-		mobileNetBlock->SetExpandFilter( info.ExpandConv->GetFilterData() );
-		mobileNetBlock->SetExpandFreeTerm( !info.ExpandConv->IsZeroFreeTerm() ? info.ExpandConv->GetFreeTermData() : nullptr );
-		mobileNetBlock->SetExpandReLUThreshold( info.ExpandReLU->GetUpperThreshold() );
-		mobileNetBlock->SetChannelwiseFilter( info.Channelwise->GetFilterData() );
-		mobileNetBlock->SetChannelwiseFreeTerm( !info.Channelwise->IsZeroFreeTerm() ? info.Channelwise->GetFreeTermData() : nullptr );
-		mobileNetBlock->SetChannelwiseReLUThreshold( info.ChannelwiseReLU->GetUpperThreshold() );
-		mobileNetBlock->SetDownFilter( info.DownConv->GetFilterData() );
-		mobileNetBlock->SetDownFreeTerm( !info.DownConv->IsZeroFreeTerm() ? info.DownConv->GetFreeTermData() : nullptr );
-		mobileNetBlock->SetStride( info.Channelwise->GetStrideHeight() );
-		mobileNetBlock->SetResidual( info.Residual != nullptr );
-		mobileNetBlock->SetName( info.Residual != nullptr ? info.Residual->GetName() : info.DownConv->GetName() );
+		CPtr<CMobileNetV2BlockLayer> mobileNetV2Block = new CMobileNetV2BlockLayer( dnn.GetMathEngine() );
+		mobileNetV2Block->SetExpandFilter( info.ExpandConv->GetFilterData() );
+		mobileNetV2Block->SetExpandFreeTerm( !info.ExpandConv->IsZeroFreeTerm() ? info.ExpandConv->GetFreeTermData() : nullptr );
+		mobileNetV2Block->SetExpandReLUThreshold( info.ExpandReLU->GetUpperThreshold() );
+		mobileNetV2Block->SetChannelwiseFilter( info.Channelwise->GetFilterData() );
+		mobileNetV2Block->SetChannelwiseFreeTerm( !info.Channelwise->IsZeroFreeTerm() ? info.Channelwise->GetFreeTermData() : nullptr );
+		mobileNetV2Block->SetChannelwiseReLUThreshold( info.ChannelwiseReLU->GetUpperThreshold() );
+		mobileNetV2Block->SetDownFilter( info.DownConv->GetFilterData() );
+		mobileNetV2Block->SetDownFreeTerm( !info.DownConv->IsZeroFreeTerm() ? info.DownConv->GetFreeTermData() : nullptr );
+		mobileNetV2Block->SetStride( info.Channelwise->GetStrideHeight() );
+		mobileNetV2Block->SetResidual( info.Residual != nullptr );
+		mobileNetV2Block->SetName( info.Residual != nullptr ? info.Residual->GetName() : info.DownConv->GetName() );
 		dnn.DeleteLayer( *info.ExpandConv );
 		dnn.DeleteLayer( *info.ExpandReLU );
 		dnn.DeleteLayer( *info.Channelwise );
@@ -394,14 +394,14 @@ static void replaceLayers( CDnn& dnn, const CArray<CBlockInfo>& blocksToReplace 
 			dnn.DeleteLayer( *info.Residual );
 			layersDeleted++;
 		}
-		dnn.AddLayer( *mobileNetBlock );
-		mobileNetBlock->Connect( 0, info.InputName, info.InputOutputIndex );
+		dnn.AddLayer( *mobileNetV2Block );
+		mobileNetV2Block->Connect( 0, info.InputName, info.InputOutputIndex );
 	}
 
 	if( debugPrint ) ::printf( "Replaced %d layers with %d blocks\n", layersDeleted, blocksToReplace.Size() );
 }
 
-int ReplaceMobileNetBlocks( CDnn& dnn )
+int ReplaceMobileNetV2Blocks( CDnn& dnn )
 {
 	CArray<CBlockInfo> blocksToReplace;
 	CHashTable<CString> layersToDelete;
@@ -415,7 +415,7 @@ int ReplaceMobileNetBlocks( CDnn& dnn )
 		CEltwiseSumLayer* residual = dynamic_cast<CEltwiseSumLayer*>( dnn.GetLayer( layerList[i] ).Ptr() );
 		CBlockInfo info;
 		if( residual != nullptr
-			&& getMobileNetBlock( outputConnections, layersToDelete, info, dnn, residual ) )
+			&& getMobileNetV2Block( outputConnections, layersToDelete, info, dnn, residual ) )
 		{
 			markLayersAsDeleted( info, layersToDelete );
 			blocksToReplace.Add( info );
@@ -432,7 +432,7 @@ int ReplaceMobileNetBlocks( CDnn& dnn )
 	dnn.GetLayerList( layerList );
 	for( int i = 0; i < layerList.Size(); ++i ) {
 		CBlockInfo info;
-		if( getMobileNetBlock( outputConnections, layersToDelete, info, dnn, dnn.GetLayer( layerList[i] ).Ptr() ) ) {
+		if( getMobileNetV2Block( outputConnections, layersToDelete, info, dnn, dnn.GetLayer( layerList[i] ).Ptr() ) ) {
 			markLayersAsDeleted( info, layersToDelete );
 			blocksToReplace.Add( info );
 		}

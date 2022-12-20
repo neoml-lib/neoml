@@ -73,7 +73,7 @@ set(NeoML_SOURCES
     Dnn/Layers/LstmLayer.cpp
     Dnn/Layers/MatrixMultiplicationLayer.cpp
     Dnn/Layers/MaxOverTimePoolingLayer.cpp
-    Dnn/Layers/MobileNetBlockLayer.cpp
+    Dnn/Layers/MobileNetV2BlockLayer.cpp
     Dnn/Layers/ModelWrapperLayer.cpp
     Dnn/Layers/MultichannelLookupLayer.cpp
     Dnn/Layers/MultiheadAttentionLayer.cpp
@@ -270,7 +270,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/Dnn/Layers/LstmLayer.h
     ../include/NeoML/Dnn/Layers/MatrixMultiplicationLayer.h
     ../include/NeoML/Dnn/Layers/MaxOverTimePoolingLayer.h
-    ../include/NeoML/Dnn/Layers/MobileNetBlockLayer.h
+    ../include/NeoML/Dnn/Layers/MobileNetV2BlockLayer.h
     ../include/NeoML/Dnn/Layers/ModelWrapperLayer.h
     ../include/NeoML/Dnn/Layers/MultichannelLookupLayer.h
     ../include/NeoML/Dnn/Layers/MultiheadAttentionLayer.h

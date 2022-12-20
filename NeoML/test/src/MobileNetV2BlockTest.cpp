@@ -118,7 +118,7 @@ static CPtr<CDnnBlob> createBlob( const std::initializer_list<int>& dims, CRando
 	return blob;
 }
 
-static void mobileNetBlockTestImpl( unsigned int seed, int freeTermMask, float expandReLUThreshold,
+static void mobileNetV2BlockTestImpl( unsigned int seed, int freeTermMask, float expandReLUThreshold,
 	float channelwiseReLUThreshold, int stride, bool residual )
 {
 	NeoAssert( stride == 1 || stride == 2 );
@@ -164,7 +164,7 @@ static void mobileNetBlockTestImpl( unsigned int seed, int freeTermMask, float e
 		channelwiseReLUThreshold, downFilter, downFreeTerm, stride, residual ), "expectedBlock", { data } );
 	CPtr<CSinkLayer> expectedSink = AddLayer<CSinkLayer>( "expectedSink", { expectedBlock } );
 
-	CPtr<CMobileNetBlockLayer> actualBlock = AddLayer<CMobileNetBlockLayer>( "actualBlock", { data } );
+	CPtr<CMobileNetV2BlockLayer> actualBlock = AddLayer<CMobileNetV2BlockLayer>( "actualBlock", { data } );
 	actualBlock->SetExpandFilter( expandFilter );
 	actualBlock->SetExpandFreeTerm( expandFreeTerm );
 	actualBlock->SetExpandReLUThreshold( expandReLUThreshold );
@@ -194,15 +194,15 @@ static void mobileNetBlockTestImpl( unsigned int seed, int freeTermMask, float e
 	}
 }
 
-TEST( MobileNetBlockLayerTest, Run )
+TEST( MobileNetV2BlockLayerTest, Run )
 {
 	CRandom seedRandom( 0x654 );
 	for( int ftMask = 0; ftMask < 8; ++ftMask ) {
 		for( float expandReLU : { 0.f, 6.f } ) {
 			for( float channelwiseReLU : { 0.f, 1.f } ) {
-				mobileNetBlockTestImpl( seedRandom.Next(), ftMask, expandReLU, channelwiseReLU, 1, false );
-				mobileNetBlockTestImpl( seedRandom.Next(), ftMask, expandReLU, channelwiseReLU, 2, false );
-				mobileNetBlockTestImpl( seedRandom.Next(), ftMask, expandReLU, channelwiseReLU, 1, true );
+				mobileNetV2BlockTestImpl( seedRandom.Next(), ftMask, expandReLU, channelwiseReLU, 1, false );
+				mobileNetV2BlockTestImpl( seedRandom.Next(), ftMask, expandReLU, channelwiseReLU, 2, false );
+				mobileNetV2BlockTestImpl( seedRandom.Next(), ftMask, expandReLU, channelwiseReLU, 1, true );
 			}
 		}
 	}
@@ -220,7 +220,7 @@ TEST( MobileNetConversionTest, SimpleNonResidual )
 	CReLULayer* channelwiseReLU = Relu( 6.f )( "channelwiseReLU", channelwiseConv );
 	CConvLayer* downConv = Conv( 8, CConvAxisParams( 1 ), CConvAxisParams( 1 ) )( "downConv", channelwiseReLU );
 	CSinkLayer* sink = Sink( downConv, "sink" );
-	ASSERT_EQ( 1, ReplaceMobileNetBlocks( dnn ) );
+	ASSERT_EQ( 1, ReplaceMobileNetV2Blocks( dnn ) );
 	ASSERT_EQ( 3, dnn.GetLayerCount() );
 }
 
@@ -237,7 +237,7 @@ TEST( MobileNetConversionTest, SimpleResidual )
 	CConvLayer* downConv = Conv( 8, CConvAxisParams( 1 ), CConvAxisParams( 1 ) )( "downConv", channelwiseReLU );
 	CEltwiseSumLayer* residual = Sum()( "residual", data, downConv );
 	CSinkLayer* sink = Sink( residual, "sink" );
-	ASSERT_EQ( 1, ReplaceMobileNetBlocks( dnn ) );
+	ASSERT_EQ( 1, ReplaceMobileNetV2Blocks( dnn ) );
 	ASSERT_EQ( 3, dnn.GetLayerCount() );
 }
 
@@ -255,7 +255,7 @@ TEST( MobileNetConversionTest, ResidualResidual )
 	CEltwiseSumLayer* residual = Sum()( "residual", data, downConv );
 	CEltwiseSumLayer* doubleResidual = Sum()( "doubleResidual", data, residual );
 	CSinkLayer* sink = Sink( doubleResidual, "sink" );
-	ASSERT_EQ( 1, ReplaceMobileNetBlocks( dnn ) );
+	ASSERT_EQ( 1, ReplaceMobileNetV2Blocks( dnn ) );
 	ASSERT_EQ( 4, dnn.GetLayerCount() );
 }
 
@@ -274,7 +274,7 @@ TEST( MobileNetConversionTest, NeighboringResiduals )
 	CSinkLayer* sink = Sink( residual, "sink" );
 	CEltwiseSumLayer* secondResidual = Sum()( "secondResidual", data, downConv );
 	CSinkLayer* secondSingk = Sink( secondResidual, "secondSink" );
-	ASSERT_EQ( 1, ReplaceMobileNetBlocks( dnn ) );
+	ASSERT_EQ( 1, ReplaceMobileNetV2Blocks( dnn ) );
 	ASSERT_EQ( 6, dnn.GetLayerCount() );
 }
 
@@ -292,7 +292,7 @@ TEST( MobileNetConversionTest, SinkFromTheMiddle )
 	CConvLayer* downConv = Conv( 8, CConvAxisParams( 1 ), CConvAxisParams( 1 ) )( "downConv", channelwiseReLU );
 	CEltwiseSumLayer* residual = Sum()( "residual", data, downConv );
 	CSinkLayer* sink = Sink( residual, "sink" );
-	ASSERT_EQ( 0, ReplaceMobileNetBlocks( dnn ) );
+	ASSERT_EQ( 0, ReplaceMobileNetV2Blocks( dnn ) );
 	ASSERT_EQ( 9, dnn.GetLayerCount() );
 }
 
@@ -310,6 +310,6 @@ TEST( MobileNetConversionTest, SinkDisablesResidual )
 	CSinkLayer* downConvSink = Sink( downConv, "downConvSink" );
 	CEltwiseSumLayer* residual = Sum()( "residual", data, downConv );
 	CSinkLayer* sink = Sink( residual, "sink" );
-	ASSERT_EQ( 1, ReplaceMobileNetBlocks( dnn ) );
+	ASSERT_EQ( 1, ReplaceMobileNetV2Blocks( dnn ) );
 	ASSERT_EQ( 5, dnn.GetLayerCount() );
 }

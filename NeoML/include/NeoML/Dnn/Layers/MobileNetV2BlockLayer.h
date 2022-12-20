@@ -20,11 +20,11 @@ limitations under the License.
 
 namespace NeoML {
 
-class NEOML_API CMobileNetBlockLayer : public CBaseLayer {
-	NEOML_DNN_LAYER( CMobileNetBlockLayer )
+class NEOML_API CMobileNetV2BlockLayer : public CBaseLayer {
+	NEOML_DNN_LAYER( CMobileNetV2BlockLayer )
 public:
-	explicit CMobileNetBlockLayer( IMathEngine& mathEngine );
-	~CMobileNetBlockLayer();
+	explicit CMobileNetV2BlockLayer( IMathEngine& mathEngine );
+	~CMobileNetV2BlockLayer();
 
 	CPtr<CDnnBlob> GetExpandFilter() const { return getParamBlob( P_ExpandFilter ); }
 	void SetExpandFilter( const CPtr<CDnnBlob>& blob ) { setParamBlob( P_ExpandFilter, blob ); }
@@ -81,6 +81,6 @@ private:
 	void setParamBlob( TParam param, const CPtr<CDnnBlob>& blob );
 };
 
-int NEOML_API ReplaceMobileNetBlocks( CDnn& dnn );
+int NEOML_API ReplaceMobileNetV2Blocks( CDnn& dnn );
 
 } // namespace NeoML
