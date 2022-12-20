@@ -571,9 +571,6 @@ public:
 		const CFloatHandle& dataHandle, const CBlobDesc& dataDesc, int updateCount, int indexDims ) override;
 	void ScatterND( const CConstIntHandle& indicesHandle, const CConstIntHandle& updatesHandle,
 		const CIntHandle& dataHandle, const CBlobDesc& dataDesc, int updateCount, int indexDims ) override;
-
-	void MultiplyMatrixByTransposedMatrixAndAdd( const CConstFloatHandle& first, int firstHeight, int firstWidth, int firstRowSize,
-		const CConstFloatHandle& second, int secondHeight, int secondRowSize, const CFloatHandle& result, int resultRowSize ) override;
 	void RunMobileNetBlock( const CBlobDesc& inputDesc, const CBlobDesc& outputDesc,
 		const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& inputHandle,
 		const CConstFloatHandle& expandFilter, const CConstFloatHandle* expandFreeTerm,

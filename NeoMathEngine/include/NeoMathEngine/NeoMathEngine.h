@@ -548,8 +548,6 @@ public:
 	virtual void MultiplyMatrixByTransposedMatrix(int batchSize, const CConstFloatHandle& firstHandle, int firstHeight,
 		int firstWidth, const CConstFloatHandle& secondHandle, int secondHeight, const CFloatHandle& resultHandle,
 		int resultBufferSize) = 0;
-	virtual void MultiplyMatrixByTransposedMatrixAndAdd( const CConstFloatHandle& first, int firstHeight, int firstWidth, int firstRowSize,
-		const CConstFloatHandle& second, int secondHeight, int secondRowSize, const CFloatHandle& result, int resultRowSize ) = 0;
 
 	// Operations on sparse matrices
 

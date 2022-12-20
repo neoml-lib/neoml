@@ -578,11 +578,6 @@ public:
 		const CFloatHandle& dataHandle, const CBlobDesc& dataDesc, int updateCount, int indexDims ) override;
 	void ScatterND( const CConstIntHandle& indicesHandle, const CConstIntHandle& updatesHandle,
 		const CIntHandle& dataHandle, const CBlobDesc& dataDesc, int updateCount, int indexDims ) override;
-
-	void MultiplyMatrixByTransposedMatrixAndAdd( const CConstFloatHandle& firstHandle,
-		int firstHeight, int firstWidth, int firstRowSize,
-		const CConstFloatHandle& secondHandle, int secondHeight, int secondRowSize,
-		const CFloatHandle& resultHandle, int resultRowSize ) override;
 	void RunMobileNetBlock( const CBlobDesc& inputDesc, const CBlobDesc& outputDesc,
 		const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& inputHandle,
 		const CConstFloatHandle& expandFilter, const CConstFloatHandle* expandFreeTerm,
@@ -675,6 +670,11 @@ private:
 	void blobSplitByDim( int dim, const CBlobDesc& from, const CTypedMemoryHandle<T>& fromData, const CBlobDesc* to, const CTypedMemoryHandle<T>* toData, int toCount );
 
 	void blobConvertFromRle( const CCudaRleConvolutionDesc& desc, const CConstFloatHandle& source, const CFloatHandle& result );
+
+	void multiplyMatrixByTransposedMatrixAndAdd( const CConstFloatHandle& firstHandle,
+		int firstHeight, int firstWidth, int firstRowSize,
+		const CConstFloatHandle& secondHandle, int secondHeight, int secondRowSize,
+		const CFloatHandle& resultHandle, int resultRowSize );
 	
 	void setVectorToMatrixElements( const CFloatHandle& matrix, int height, int width,
 		const CConstIntHandle& rowIndices, const CConstIntHandle& columnIndices,
