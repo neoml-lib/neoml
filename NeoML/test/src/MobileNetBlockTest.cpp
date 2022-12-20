@@ -165,16 +165,16 @@ static void mobileNetBlockTestImpl( unsigned int seed, int freeTermMask, float e
 	CPtr<CSinkLayer> expectedSink = AddLayer<CSinkLayer>( "expectedSink", { expectedBlock } );
 
 	CPtr<CMobileNetBlockLayer> actualBlock = AddLayer<CMobileNetBlockLayer>( "actualBlock", { data } );
-	actualBlock->ExpandFilter() = expandFilter;
-	actualBlock->ExpandFreeTerm() = expandFreeTerm;
-	actualBlock->ExpandReLUThreshold().SetValue( expandReLUThreshold );
-	actualBlock->ChannelwiseFilter() = channelwiseFilter;
-	actualBlock->ChannelwiseFreeTerm() = channelwiseFreeTerm;
-	actualBlock->ChannelwiseReLUThreshold().SetValue( channelwiseReLUThreshold );
-	actualBlock->DownFilter() = downFilter;
-	actualBlock->DownFreeTerm() = downFreeTerm;
-	actualBlock->Residual() = residual;
-	actualBlock->Stride() = stride;
+	actualBlock->SetExpandFilter( expandFilter );
+	actualBlock->SetExpandFreeTerm( expandFreeTerm );
+	actualBlock->SetExpandReLUThreshold( expandReLUThreshold );
+	actualBlock->SetChannelwiseFilter( channelwiseFilter );
+	actualBlock->SetChannelwiseFreeTerm( channelwiseFreeTerm );
+	actualBlock->SetChannelwiseReLUThreshold( channelwiseReLUThreshold );
+	actualBlock->SetDownFilter( downFilter );
+	actualBlock->SetDownFreeTerm( downFreeTerm );
+	actualBlock->SetResidual( residual );
+	actualBlock->SetStride( stride );
 
 	CPtr<CSinkLayer> actualSink = AddLayer<CSinkLayer>( "actualSink", { actualBlock } );
 

@@ -125,8 +125,10 @@ void CMobileNetBlockLayer::Reshape()
 	channelwiseInputDesc.SetDimSize( BD_Channels, expandedChannels );
 	channelwiseOutputDesc = outputDescs[0];
 	channelwiseOutputDesc.SetDimSize( BD_Channels, expandedChannels );
-	convDesc = MathEngine().InitBlobChannelwiseConvolution( channelwiseInputDesc, 1, 1, stride, stride, ChannelwiseFilter()->GetDesc(),
-		ChannelwiseFreeTerm() != nullptr ? &ChannelwiseFreeTerm()->GetDesc() : nullptr, channelwiseOutputDesc );
+	convDesc = MathEngine().InitBlobChannelwiseConvolution( channelwiseInputDesc, 1, 1, stride, stride,
+		paramBlobs[P_ChannelwiseFilter]->GetDesc(),
+		paramBlobs[P_ChannelwiseFreeTerm] != nullptr ? &paramBlobs[P_ChannelwiseFreeTerm]->GetDesc() : nullptr,
+		channelwiseOutputDesc );
 
 	if( InputsMayBeOverwritten() && inputDescs[0].HasEqualDimensions( outputDescs[0] ) ) {
 		NeoAssert( stride == 1 );
@@ -137,13 +139,27 @@ void CMobileNetBlockLayer::Reshape()
 void CMobileNetBlockLayer::RunOnce()
 {
 	MathEngine().RunMobileNetBlock( inputBlobs[0]->GetDesc(), outputBlobs[0]->GetDesc(), *convDesc,
-		inputBlobs[0]->GetData(), ExpandFilter()->GetData(),
-		ExpandFreeTerm() != nullptr ? &ExpandFreeTerm()->GetData<const float>() : nullptr,
-		expandReLUThreshold, ChannelwiseFilter()->GetData(),
-		ChannelwiseFreeTerm() != nullptr ? &ChannelwiseFreeTerm()->GetData<const float>() : nullptr,
-		channelwiseReLUThreshold, DownFilter()->GetData(),
-		DownFreeTerm() != nullptr ? &DownFreeTerm()->GetData<const float>() : nullptr, residual,
+		inputBlobs[0]->GetData(), paramBlobs[P_ExpandFilter]->GetData(),
+		paramBlobs[P_ExpandFreeTerm] != nullptr ? &paramBlobs[P_ExpandFreeTerm]->GetData<const float>() : nullptr,
+		expandReLUThreshold, paramBlobs[P_ChannelwiseFilter]->GetData(),
+		paramBlobs[P_ChannelwiseFreeTerm] != nullptr ? &paramBlobs[P_ChannelwiseFreeTerm]->GetData<const float>() : nullptr,
+		channelwiseReLUThreshold, paramBlobs[P_DownFilter]->GetData(),
+		paramBlobs[P_DownFreeTerm] != nullptr ? &paramBlobs[P_DownFreeTerm]->GetData<const float>() : nullptr, residual,
 		outputBlobs[0]->GetData() );
+}
+
+CPtr<CDnnBlob> CMobileNetBlockLayer::getParamBlob( TParam param ) const
+{
+	if( paramBlobs[param] == nullptr ) {
+		return nullptr;
+	}
+
+	return paramBlobs[param]->GetCopy();
+}
+
+void CMobileNetBlockLayer::setParamBlob( TParam param, const CPtr<CDnnBlob>& blob )
+{
+	paramBlobs[param] = blob == nullptr ? nullptr : blob->GetCopy();
 }
 
 // --------------------------------------------------------------------------------------------------------------------
@@ -357,16 +373,16 @@ static void replaceLayers( CDnn& dnn, const CArray<CBlockInfo>& blocksToReplace 
 	for( int blockIndex = 0; blockIndex < blocksToReplace.Size(); ++blockIndex ) {
 		const CBlockInfo& info = blocksToReplace[blockIndex];
 		CPtr<CMobileNetBlockLayer> mobileNetBlock = new CMobileNetBlockLayer( dnn.GetMathEngine() );
-		mobileNetBlock->ExpandFilter() = info.ExpandConv->GetFilterData();
-		mobileNetBlock->ExpandFreeTerm() = !info.ExpandConv->IsZeroFreeTerm() ? info.ExpandConv->GetFreeTermData() : nullptr;
-		mobileNetBlock->ExpandReLUThreshold().SetValue( info.ExpandReLU->GetUpperThreshold() );
-		mobileNetBlock->ChannelwiseFilter() = info.Channelwise->GetFilterData();
-		mobileNetBlock->ChannelwiseFreeTerm() = !info.Channelwise->IsZeroFreeTerm() ? info.Channelwise->GetFreeTermData() : nullptr;
-		mobileNetBlock->ChannelwiseReLUThreshold().SetValue( info.ChannelwiseReLU->GetUpperThreshold() );
-		mobileNetBlock->DownFilter() = info.DownConv->GetFilterData();
-		mobileNetBlock->DownFreeTerm() = !info.DownConv->IsZeroFreeTerm() ? info.DownConv->GetFreeTermData() : nullptr;
-		mobileNetBlock->Stride() = info.Channelwise->GetStrideHeight();
-		mobileNetBlock->Residual() = info.Residual != nullptr;
+		mobileNetBlock->SetExpandFilter( info.ExpandConv->GetFilterData() );
+		mobileNetBlock->SetExpandFreeTerm( !info.ExpandConv->IsZeroFreeTerm() ? info.ExpandConv->GetFreeTermData() : nullptr );
+		mobileNetBlock->SetExpandReLUThreshold( info.ExpandReLU->GetUpperThreshold() );
+		mobileNetBlock->SetChannelwiseFilter( info.Channelwise->GetFilterData() );
+		mobileNetBlock->SetChannelwiseFreeTerm( !info.Channelwise->IsZeroFreeTerm() ? info.Channelwise->GetFreeTermData() : nullptr );
+		mobileNetBlock->SetChannelwiseReLUThreshold( info.ChannelwiseReLU->GetUpperThreshold() );
+		mobileNetBlock->SetDownFilter( info.DownConv->GetFilterData() );
+		mobileNetBlock->SetDownFreeTerm( !info.DownConv->IsZeroFreeTerm() ? info.DownConv->GetFreeTermData() : nullptr );
+		mobileNetBlock->SetStride( info.Channelwise->GetStrideHeight() );
+		mobileNetBlock->SetResidual( info.Residual != nullptr );
 		mobileNetBlock->SetName( info.Residual != nullptr ? info.Residual->GetName() : info.DownConv->GetName() );
 		dnn.DeleteLayer( *info.ExpandConv );
 		dnn.DeleteLayer( *info.ExpandReLU );

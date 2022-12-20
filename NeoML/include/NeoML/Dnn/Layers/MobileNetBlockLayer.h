@@ -26,16 +26,29 @@ public:
 	explicit CMobileNetBlockLayer( IMathEngine& mathEngine );
 	~CMobileNetBlockLayer();
 
-	CPtr<CDnnBlob>& ExpandFilter() { return paramBlobs[P_ExpandFilter]; }
-	CPtr<CDnnBlob>& ExpandFreeTerm() { return paramBlobs[P_ExpandFreeTerm]; }
-	CPtr<CDnnBlob>& ChannelwiseFilter() { return paramBlobs[P_ChannelwiseFilter]; }
-	CPtr<CDnnBlob>& ChannelwiseFreeTerm() { return paramBlobs[P_ChannelwiseFreeTerm]; }
-	CPtr<CDnnBlob>& DownFilter() { return paramBlobs[P_DownFilter]; }
-	CPtr<CDnnBlob>& DownFreeTerm() { return paramBlobs[P_DownFreeTerm]; }
-	CFloatHandleVar& ExpandReLUThreshold() { return expandReLUThreshold; }
-	CFloatHandleVar& ChannelwiseReLUThreshold() { return channelwiseReLUThreshold; }
-	bool& Residual() { return residual; }
-	int& Stride() { return stride; }
+	CPtr<CDnnBlob> GetExpandFilter() const { return getParamBlob( P_ExpandFilter ); }
+	void SetExpandFilter( const CPtr<CDnnBlob>& blob ) { setParamBlob( P_ExpandFilter, blob ); }
+	CPtr<CDnnBlob> GetExpandFreeTerm() const { return getParamBlob( P_ExpandFreeTerm ); }
+	void SetExpandFreeTerm( const CPtr<CDnnBlob>& blob ) { setParamBlob( P_ExpandFreeTerm, blob ); }
+	float GetExpandReLUThreshold() const { return expandReLUThreshold.GetValue(); }
+	void SetExpandReLUThreshold( float newValue ) { expandReLUThreshold.SetValue( newValue ); }
+
+	int GetStride() const { return stride; }
+	void SetStride( int newValue ) { NeoAssert( newValue == 1 || newValue == 2 ); stride = newValue; }
+	CPtr<CDnnBlob> GetChannelwiseFilter() const { return getParamBlob( P_ChannelwiseFilter ); }
+	void SetChannelwiseFilter( const CPtr<CDnnBlob>& blob ) { setParamBlob( P_ChannelwiseFilter, blob ); }
+	CPtr<CDnnBlob> GetChannelwiseFreeTerm() const { return getParamBlob( P_ChannelwiseFreeTerm ); }
+	void SetChannelwiseFreeTerm( const CPtr<CDnnBlob>& blob ) { setParamBlob( P_ChannelwiseFreeTerm, blob ); }
+	float GetChannelwiseReLUThreshold() const { return channelwiseReLUThreshold.GetValue(); }
+	void SetChannelwiseReLUThreshold( float newValue ) { channelwiseReLUThreshold.SetValue( newValue ); }
+
+	CPtr<CDnnBlob> GetDownFilter() const { return getParamBlob( P_DownFilter ); }
+	void SetDownFilter( const CPtr<CDnnBlob>& blob ) { setParamBlob( P_DownFilter, blob ); }
+	CPtr<CDnnBlob> GetDownFreeTerm() const { return getParamBlob( P_DownFreeTerm ); }
+	void SetDownFreeTerm( const CPtr<CDnnBlob>& blob ) { setParamBlob( P_DownFreeTerm, blob ); }
+
+	bool HasResidual() const { return residual; }
+	void SetResidual( bool newValue ) { residual = newValue; }
 
 	void Serialize( CArchive& archive ) override;
 
@@ -45,7 +58,7 @@ protected:
 	void BackwardOnce() override { NeoAssert( false ); }
 
 private:
-	enum TParams {
+	enum TParam {
 		P_ExpandFilter,
 		P_ExpandFreeTerm,
 		P_ChannelwiseFilter,
@@ -63,6 +76,9 @@ private:
 	CBlobDesc channelwiseOutputDesc;
 	CFloatHandleVar expandReLUThreshold;
 	CFloatHandleVar channelwiseReLUThreshold;
+
+	CPtr<CDnnBlob> getParamBlob( TParam param ) const;
+	void setParamBlob( TParam param, const CPtr<CDnnBlob>& blob );
 };
 
 int NEOML_API ReplaceMobileNetBlocks( CDnn& dnn );
