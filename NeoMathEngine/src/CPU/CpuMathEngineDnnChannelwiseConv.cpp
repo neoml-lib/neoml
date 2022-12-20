@@ -448,7 +448,6 @@ void CCpuMathEngine::RunMobileNetBlock( const CBlobDesc& inputDesc, const CBlobD
 	float* outputObject = GetRaw( outputHandle );
 
 	for( int b = 0; b < inputDesc.ObjectCount(); ++b ) {
-		const float* chLastValidFilterPos = chInputStart + chInputVar.Size() - 3 * chInputRowSize;
 		const float* input = inputObject;
 		const float* residualInput = input;
 		float* chInput = chInputStart;
@@ -482,11 +481,17 @@ void CCpuMathEngine::RunMobileNetBlock( const CBlobDesc& inputDesc, const CBlobD
 
 				// Channelwise conv
 				{
-					const float* currChInput = chInputStart + ( outputRowsProcessed * stride - 1 ) * chInputRowSize;
 					float* currChOutput = chOutput;
 					int remOutputRowsThisStep = outputRowsThisStep;
+					const bool processBottomPadding = ( stride == 1 || inputHeight % 2 == 1 )
+						&& outputRowsProcessed + outputRowsThisStep == outputHeight;
+					if( processBottomPadding ) {
+						--remOutputRowsThisStep;
+					}
 
-					if( currChInput < chInputStart ) {
+					const float* currChInput = chInputStart + ( outputRowsProcessed * stride - 1 ) * chInputRowSize;
+					if( outputRowsProcessed == 0 ) {
+						// Process top padding
 						if( channelwiseFreeTerm == nullptr ) {
 							vectorFill0( currChOutput, chOutputRowSize );
 						} else {
@@ -504,7 +509,7 @@ void CCpuMathEngine::RunMobileNetBlock( const CBlobDesc& inputDesc, const CBlobD
 						currChOutput += chOutputRowSize;
 					}
 
-					while( remOutputRowsThisStep > 0 && currChInput <= chLastValidFilterPos ) {
+					while( remOutputRowsThisStep > 0 ) {
 						// Process all 3 rows without padding checks
 						if( channelwiseFreeTerm == nullptr ) {
 							vectorFill0( currChOutput, chOutputRowSize );
@@ -519,7 +524,7 @@ void CCpuMathEngine::RunMobileNetBlock( const CBlobDesc& inputDesc, const CBlobD
 						currChOutput += chOutputRowSize;
 					}
 
-					if( remOutputRowsThisStep > 0 ) {
+					if( processBottomPadding ) {
 						// Process bottom padding
 						if( channelwiseFreeTerm == nullptr ) {
 							vectorFill0( currChOutput, chOutputRowSize );
