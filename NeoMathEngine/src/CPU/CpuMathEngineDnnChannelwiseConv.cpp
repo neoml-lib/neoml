@@ -476,7 +476,7 @@ void CCpuMathEngine::RunMobileNetBlock( const CBlobDesc& inputDesc, const CBlobD
 			inputRowsProcessed += inputRowsThisStep;
 
 			const int outputRowsCanBeProcesed = inputRowsProcessed == inputHeight ? outputHeight
-				: ( inputRowsProcessed - 2 ) / stride + 1;
+				: ( inputRowsProcessed < 2 ? 0 : ( inputRowsProcessed - 2 ) / stride + 1 );
 
 			while( outputRowsProcessed < outputRowsCanBeProcesed ) {
 				const int outputRowsThisStep = std::min<int>( maxOutputRowsPerStep, outputRowsCanBeProcesed - outputRowsProcessed );
