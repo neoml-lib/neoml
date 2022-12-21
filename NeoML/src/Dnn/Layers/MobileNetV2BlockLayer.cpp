@@ -30,9 +30,9 @@ CMobileNetV2BlockLayer::CMobileNetV2BlockLayer( IMathEngine& mathEngine ) :
 	CBaseLayer( mathEngine, "MobileNetV2Block", false ),
 	residual( false ),
 	stride( 0 ),
-	convDesc( nullptr ),
 	expandReLUThreshold( mathEngine, 1 ),
-	channelwiseReLUThreshold( mathEngine, 1 )
+	channelwiseReLUThreshold( mathEngine, 1 ),
+	convDesc( nullptr )
 {
 	expandReLUThreshold.SetValue( -1.f );
 	channelwiseReLUThreshold.SetValue( -1.f );
@@ -121,9 +121,9 @@ void CMobileNetV2BlockLayer::Reshape()
 		delete convDesc;
 		convDesc = nullptr;
 	}
-	channelwiseInputDesc = inputDescs[0];
+	CBlobDesc channelwiseInputDesc = inputDescs[0];
 	channelwiseInputDesc.SetDimSize( BD_Channels, expandedChannels );
-	channelwiseOutputDesc = outputDescs[0];
+	CBlobDesc channelwiseOutputDesc = outputDescs[0];
 	channelwiseOutputDesc.SetDimSize( BD_Channels, expandedChannels );
 	CBlobDesc freeTermDesc = paramBlobs[P_ChannelwiseFreeTerm] != nullptr
 		? paramBlobs[P_ChannelwiseFreeTerm]->GetDesc() : CBlobDesc();
@@ -169,20 +169,21 @@ void CMobileNetV2BlockLayer::setParamBlob( TParam param, const CPtr<CDnnBlob>& b
 
 // --------------------------------------------------------------------------------------------------------------------
 
-static bool debugPrint = true;
-
+// Information about mobile net block detected in CDnn
 struct CBlockInfo {
-	CString InputName;
-	int InputOutputIndex;
+	CString InputName; // Name of the layer connected to ExpandConv (and Residual if present)
+	int InputOutputIndex; // Output index if layer
 	
-	CConvLayer* ExpandConv;
-	CReLULayer* ExpandReLU;
-	CChannelwiseConvLayer* Channelwise;
-	CReLULayer* ChannelwiseReLU;
-	CConvLayer* DownConv;
-	CEltwiseSumLayer* Residual;
+	CConvLayer* ExpandConv; // Expand 1x1 convolution
+	CReLULayer* ExpandReLU; // ReLU after Expand convolution
+	CChannelwiseConvLayer* Channelwise; // Channelwise 3x3 convolution
+	CReLULayer* ChannelwiseReLU; // ReLU after Channelwise convolution
+	CConvLayer* DownConv; // Down 1x1 convolution
+	CEltwiseSumLayer* Residual; // Residual (nullptr if block doesn't have residual connection)
 };
 
+// Marks layers from the block as deleted
+// Allows to avoid adding one layer to 2 different blocks
 static void markLayersAsDeleted( const CBlockInfo& info,
 	CHashTable<CString>& layersToDelete )
 {
@@ -196,6 +197,8 @@ static void markLayersAsDeleted( const CBlockInfo& info,
 	}
 }
 
+// Fills map with pairs:
+//     layerName : number of inputs connected to its outputs
 static void calculateOutputConnections( const CDnn& dnn, CMap<CString, int>& outputConnections )
 {
 	outputConnections.DeleteAll();
@@ -212,20 +215,22 @@ static void calculateOutputConnections( const CDnn& dnn, CMap<CString, int>& out
 	}
 }
 
+// Checks that there is a block ending with lastLayer
+// If block is detected returns true and fills the info with details
+// Otherwise returns false
 static bool getMobileNetV2Block( const CMap<CString, int>& outputConnections, const CHashTable<CString>& layersToDelete,
 	CBlockInfo& info, CDnn& dnn, CBaseLayer* lastLayer )
 {
 	CEltwiseSumLayer* residual = dynamic_cast<CEltwiseSumLayer*>( lastLayer );
 	if( residual != nullptr ) {
-		if( lastLayer->GetInputCount() != 2 ) {
-			return false;
-		}
-
-		if( layersToDelete.Has( lastLayer->GetName() ) ) {
+		if( lastLayer->GetInputCount() != 2
+			|| layersToDelete.Has( lastLayer->GetName() ) )
+		{
 			return false;
 		}
 
 		for( int input = 0; input < 2; ++input ) {
+			// Try to interpret input as non-residual block and other as residual connection
 			const int otherInput = 1 - input;
 			if( getMobileNetV2Block( outputConnections, layersToDelete, info, dnn,
 					dnn.GetLayer( lastLayer->GetInputName( input ) ).Ptr() )
@@ -244,108 +249,48 @@ static bool getMobileNetV2Block( const CMap<CString, int>& outputConnections, co
 
 	auto isValid1x1Conv = [&layersToDelete] ( const CConvLayer* conv ) -> bool
 	{
-		if( conv == nullptr ) {
+		if( conv == nullptr
+			|| layersToDelete.Has( conv->GetName() )
+			|| conv->GetInputCount() > 1
+			|| conv->GetFilterHeight() != 1 || conv->GetFilterWidth() != 1
+			|| conv->GetPaddingHeight() != 0 || conv->GetPaddingWidth() != 0
+			|| conv->GetStrideHeight() != 1 || conv->GetStrideWidth() != 1 )
+		{
 			return false;
 		}
-
-		if( layersToDelete.Has( conv->GetName() ) ) {
-			return false;
-		}
-
-		if( conv->GetInputCount() > 1 ) {
-			if( debugPrint ) ::printf( "conv with multiple inputs: %s\n", conv->GetName() );
-			return false;
-		}
-
-		if( conv->GetFilterHeight() != 1 || conv->GetFilterWidth() != 1 ) {
-			if( debugPrint ) ::printf( "not 1x1 conv: %s\n", conv->GetName() );
-			return false;
-		}
-
-		if( conv->GetPaddingHeight() != 0 || conv->GetPaddingWidth() != 0 ) {
-			if( debugPrint ) ::printf( "1x1 conv with padding: %s\n", conv->GetName() );
-			return false;
-		}
-
-		if( conv->GetStrideHeight() != 1 || conv->GetStrideWidth() != 1 ) {
-			if( debugPrint ) ::printf( "1x1 conv with strides: %s\n", conv->GetName() );
-			return false;
-		}
-
 		return true;
 	};
 
 	auto isValidReLU = [&layersToDelete, &outputConnections] ( const CReLULayer* relu ) -> bool 
 	{
-		if( relu == nullptr ) {
+		if( relu == nullptr
+			|| layersToDelete.Has( relu->GetName() )
+			|| relu->GetInputCount() > 1
+			|| outputConnections[relu->GetName()] != 1 )
+		{
 			return false;
 		}
-
-		if( layersToDelete.Has( relu->GetName() ) ) {
-			return false;
-		}
-
-		if( relu->GetInputCount() > 1 ) {
-			if( debugPrint ) ::printf( "relu with multiple inputs: %s\n", relu->GetName() );
-			return false;
-		}
-
-		if( outputConnections[relu->GetName()] != 1 ) {
-			return false;
-		}
-
 		return true;
 	};
 
 	auto isValidChannelwiseConv = [&layersToDelete, &outputConnections] ( const CChannelwiseConvLayer* channelwise ) -> bool
 	{
-		if( channelwise == nullptr ) {
-			return false;
-		}
-
-		if( outputConnections[channelwise->GetName()] != 1 ) {
-			return false;
-		}
-
-		if( layersToDelete.Has( channelwise->GetName() ) ) {
-			return false;
-		}
-
-		if( channelwise->GetInputCount() > 1 ) {
-			if( debugPrint ) ::printf( "channelwise with multiple inputs: %s\n", channelwise->GetName() );
-			return false;
-		}
-
-		if( channelwise->GetInputCount() > 1 ) {
-			if( debugPrint ) ::printf( "conv with multiple inputs: %s\n", channelwise->GetName() );
-			return false;
-		}
-
-		if( channelwise->GetFilterHeight() != 3 || channelwise->GetFilterWidth() != 3 ) {
-			if( debugPrint ) ::printf( "channelwise with wrong filter size: %s\n", channelwise->GetName() );
-			return false;
-		}
-
-		if( channelwise->GetDilationHeight() != 1 || channelwise->GetDilationWidth() != 1 ) {
-			if( debugPrint ) ::printf( "channelwise with dilation: %s\n", channelwise->GetName() );
-			return false;
-		}
-
-		if( channelwise->GetPaddingHeight() != 1 || channelwise->GetPaddingWidth() != 1 ) {
-			if( debugPrint ) ::printf( "channelwise with wrong padding: %s\n", channelwise->GetName() );
-			return false;
-		}
-
-		if( channelwise->GetStrideHeight() != channelwise->GetStrideWidth()
-			&& channelwise->GetStrideHeight() > 2 )
+		if( channelwise == nullptr
+			|| outputConnections[channelwise->GetName()] != 1
+			|| layersToDelete.Has( channelwise->GetName() )
+			|| channelwise->GetInputCount() > 1
+			|| channelwise->GetInputCount() > 1
+			|| channelwise->GetFilterHeight() != 3 || channelwise->GetFilterWidth() != 3
+			|| channelwise->GetDilationHeight() != 1 || channelwise->GetDilationWidth() != 1
+			|| channelwise->GetPaddingHeight() != 1 || channelwise->GetPaddingWidth() != 1
+			|| ( channelwise->GetStrideHeight() != channelwise->GetStrideWidth() && channelwise->GetStrideHeight() > 2 ) )
 		{
-			if( debugPrint ) ::printf( "channelwise with wrong strides: %s\n", channelwise->GetName() );
 			return false;
 		}
-
 		return true;
 	};
 
+	// Try to find non-residual block
 	info.Residual = nullptr;
 	info.DownConv = dynamic_cast<CConvLayer*>( lastLayer );
 	if( !isValid1x1Conv( info.DownConv ) ) {
@@ -402,8 +347,6 @@ static void replaceLayers( CDnn& dnn, const CArray<CBlockInfo>& blocksToReplace 
 		dnn.AddLayer( *mobileNetV2Block );
 		mobileNetV2Block->Connect( 0, info.InputName, info.InputOutputIndex );
 	}
-
-	if( debugPrint ) ::printf( "Replaced %d layers with %d blocks\n", layersDeleted, blocksToReplace.Size() );
 }
 
 int OptimizeMobileNetV2( CDnn& dnn )
@@ -413,7 +356,7 @@ int OptimizeMobileNetV2( CDnn& dnn )
 	CMap<CString, int> outputConnections;
 	CArray<const char*> layerList;
 
-	// Step 1: replace residual blocks only because non-residual blocks are part of residual
+	// Step 1: replace residual blocks only
 	calculateOutputConnections( dnn, outputConnections );
 	dnn.GetLayerList( layerList );
 	for( int i = 0; i < layerList.Size(); ++i ) {
@@ -443,8 +386,6 @@ int OptimizeMobileNetV2( CDnn& dnn )
 		}
 	}
 	replaceLayers( dnn, blocksToReplace );
-
-	debugPrint = false;
 	return residualBlocksReplaced + blocksToReplace.Size();
 }
 
