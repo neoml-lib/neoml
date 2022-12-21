@@ -219,7 +219,7 @@ TEST( MobileNetConversionTest, SimpleNonResidual )
 		( "channewlseConv", expandReLU );
 	CReLULayer* channelwiseReLU = Relu( 6.f )( "channelwiseReLU", channelwiseConv );
 	CConvLayer* downConv = Conv( 8, CConvAxisParams( 1 ), CConvAxisParams( 1 ) )( "downConv", channelwiseReLU );
-	CSinkLayer* sink = Sink( downConv, "sink" );
+	Sink( downConv, "sink" );
 	ASSERT_EQ( 1, ReplaceMobileNetV2Blocks( dnn ) );
 	ASSERT_EQ( 3, dnn.GetLayerCount() );
 }
@@ -236,7 +236,7 @@ TEST( MobileNetConversionTest, SimpleResidual )
 	CReLULayer* channelwiseReLU = Relu( 6.f )( "channelwiseReLU", channelwiseConv );
 	CConvLayer* downConv = Conv( 8, CConvAxisParams( 1 ), CConvAxisParams( 1 ) )( "downConv", channelwiseReLU );
 	CEltwiseSumLayer* residual = Sum()( "residual", data, downConv );
-	CSinkLayer* sink = Sink( residual, "sink" );
+	Sink( residual, "sink" );
 	ASSERT_EQ( 1, ReplaceMobileNetV2Blocks( dnn ) );
 	ASSERT_EQ( 3, dnn.GetLayerCount() );
 }
@@ -254,7 +254,7 @@ TEST( MobileNetConversionTest, ResidualResidual )
 	CConvLayer* downConv = Conv( 8, CConvAxisParams( 1 ), CConvAxisParams( 1 ) )( "downConv", channelwiseReLU );
 	CEltwiseSumLayer* residual = Sum()( "residual", data, downConv );
 	CEltwiseSumLayer* doubleResidual = Sum()( "doubleResidual", data, residual );
-	CSinkLayer* sink = Sink( doubleResidual, "sink" );
+	Sink( doubleResidual, "sink" );
 	ASSERT_EQ( 1, ReplaceMobileNetV2Blocks( dnn ) );
 	ASSERT_EQ( 4, dnn.GetLayerCount() );
 }
@@ -271,9 +271,9 @@ TEST( MobileNetConversionTest, NeighboringResiduals )
 	CReLULayer* channelwiseReLU = Relu( 6.f )( "channelwiseReLU", channelwiseConv );
 	CConvLayer* downConv = Conv( 8, CConvAxisParams( 1 ), CConvAxisParams( 1 ) )( "downConv", channelwiseReLU );
 	CEltwiseSumLayer* residual = Sum()( "residual", data, downConv );
-	CSinkLayer* sink = Sink( residual, "sink" );
+	Sink( residual, "sink" );
 	CEltwiseSumLayer* secondResidual = Sum()( "secondResidual", data, downConv );
-	CSinkLayer* secondSingk = Sink( secondResidual, "secondSink" );
+	Sink( secondResidual, "secondSink" );
 	ASSERT_EQ( 1, ReplaceMobileNetV2Blocks( dnn ) );
 	ASSERT_EQ( 6, dnn.GetLayerCount() );
 }
@@ -287,11 +287,11 @@ TEST( MobileNetConversionTest, SinkFromTheMiddle )
 	CReLULayer* expandReLU = Relu()( "expandReLU", expandConv );
 	CChannelwiseConvLayer* channelwiseConv = ChannelwiseConv( 32, CConvAxisParams( 3, 1, 1 ), CConvAxisParams( 3, 1, 1 ) )
 		( "channewlseConv", expandReLU );
-	CSinkLayer* channelwiseSink = Sink( channelwiseConv, "channelwiseSink" );
+	Sink( channelwiseConv, "channelwiseSink" );
 	CReLULayer* channelwiseReLU = Relu( 6.f )( "channelwiseReLU", channelwiseConv );
 	CConvLayer* downConv = Conv( 8, CConvAxisParams( 1 ), CConvAxisParams( 1 ) )( "downConv", channelwiseReLU );
 	CEltwiseSumLayer* residual = Sum()( "residual", data, downConv );
-	CSinkLayer* sink = Sink( residual, "sink" );
+	Sink( residual, "sink" );
 	ASSERT_EQ( 0, ReplaceMobileNetV2Blocks( dnn ) );
 	ASSERT_EQ( 9, dnn.GetLayerCount() );
 }
@@ -307,9 +307,9 @@ TEST( MobileNetConversionTest, SinkDisablesResidual )
 		( "channewlseConv", expandReLU );
 	CReLULayer* channelwiseReLU = Relu( 6.f )( "channelwiseReLU", channelwiseConv );
 	CConvLayer* downConv = Conv( 8, CConvAxisParams( 1 ), CConvAxisParams( 1 ) )( "downConv", channelwiseReLU );
-	CSinkLayer* downConvSink = Sink( downConv, "downConvSink" );
+	Sink( downConv, "downConvSink" );
 	CEltwiseSumLayer* residual = Sum()( "residual", data, downConv );
-	CSinkLayer* sink = Sink( residual, "sink" );
+	Sink( residual, "sink" );
 	ASSERT_EQ( 1, ReplaceMobileNetV2Blocks( dnn ) );
 	ASSERT_EQ( 5, dnn.GetLayerCount() );
 }
