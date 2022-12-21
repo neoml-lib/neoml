@@ -125,10 +125,11 @@ void CMobileNetV2BlockLayer::Reshape()
 	channelwiseInputDesc.SetDimSize( BD_Channels, expandedChannels );
 	channelwiseOutputDesc = outputDescs[0];
 	channelwiseOutputDesc.SetDimSize( BD_Channels, expandedChannels );
+	CBlobDesc freeTermDesc = paramBlobs[P_ChannelwiseFreeTerm] != nullptr
+		? paramBlobs[P_ChannelwiseFreeTerm]->GetDesc() : CBlobDesc();
 	convDesc = MathEngine().InitBlobChannelwiseConvolution( channelwiseInputDesc, 1, 1, stride, stride,
 		paramBlobs[P_ChannelwiseFilter]->GetDesc(),
-		paramBlobs[P_ChannelwiseFreeTerm] != nullptr ? &paramBlobs[P_ChannelwiseFreeTerm]->GetDesc() : nullptr,
-		channelwiseOutputDesc );
+		paramBlobs[P_ChannelwiseFreeTerm] != nullptr ? &freeTermDesc : nullptr, channelwiseOutputDesc );
 
 	if( InputsMayBeOverwritten() && inputDescs[0].HasEqualDimensions( outputDescs[0] ) ) {
 		NeoAssert( stride == 1 );
@@ -138,13 +139,17 @@ void CMobileNetV2BlockLayer::Reshape()
 
 void CMobileNetV2BlockLayer::RunOnce()
 {
+	const CConstFloatHandle expandFt = paramBlobs[P_ExpandFreeTerm] == nullptr ? CConstFloatHandle()
+		: paramBlobs[P_ExpandFreeTerm]->GetData<const float>();
+	const CConstFloatHandle channelwiseFt = paramBlobs[P_ChannelwiseFreeTerm] == nullptr ? CConstFloatHandle()
+		: paramBlobs[P_ChannelwiseFreeTerm]->GetData<const float>();
+	const CConstFloatHandle downFt = paramBlobs[P_DownFreeTerm] == nullptr ? CConstFloatHandle()
+		: paramBlobs[P_DownFreeTerm]->GetData<const float>();
 	MathEngine().MobileNetV2Block( inputBlobs[0]->GetDesc(), outputBlobs[0]->GetDesc(), *convDesc,
-		inputBlobs[0]->GetData(), paramBlobs[P_ExpandFilter]->GetData(),
-		paramBlobs[P_ExpandFreeTerm] != nullptr ? &paramBlobs[P_ExpandFreeTerm]->GetData<const float>() : nullptr,
+		inputBlobs[0]->GetData(), paramBlobs[P_ExpandFilter]->GetData(), expandFt.IsNull() ? nullptr : &expandFt,
 		expandReLUThreshold, paramBlobs[P_ChannelwiseFilter]->GetData(),
-		paramBlobs[P_ChannelwiseFreeTerm] != nullptr ? &paramBlobs[P_ChannelwiseFreeTerm]->GetData<const float>() : nullptr,
-		channelwiseReLUThreshold, paramBlobs[P_DownFilter]->GetData(),
-		paramBlobs[P_DownFreeTerm] != nullptr ? &paramBlobs[P_DownFreeTerm]->GetData<const float>() : nullptr, residual,
+		channelwiseFt.IsNull() ? nullptr : &channelwiseFt, channelwiseReLUThreshold, 
+		paramBlobs[P_DownFilter]->GetData(), downFt.IsNull() ? nullptr : &downFt, residual,
 		outputBlobs[0]->GetData() );
 }
 
