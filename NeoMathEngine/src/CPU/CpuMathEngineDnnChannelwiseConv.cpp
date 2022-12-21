@@ -440,11 +440,14 @@ void CCpuMathEngine::MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobDe
 	const int maxOutputRowsPerStep = std::max<int>( 1,
 		( cacheSize / ( std::max<int>( outputChannels, expandedChannels ) * outputWidth ) ) );
 
-	CFloatHandleStackVar chInputVar( *this, std::min<int>( inputHeight, maxInputRowsPerStep + 2 ) * chInputRowSize );
-	CFloatHandleStackVar chOutputVar( *this, maxOutputRowsPerStep * chOutputRowSize );
+	// Buffer for the input rows of channelwise convolution
+	CFloatHandleStackVar chInputBuffVar( *this,
+		std::min<int>( inputHeight, maxInputRowsPerStep + 2 ) * chInputRowSize );
+	// Buffer for the output rows of channelwise convolution
+	CFloatHandleStackVar chOutputBuffVar( *this, maxOutputRowsPerStep * chOutputRowSize );
 
-	float* chInputStart = GetRaw( chInputVar.GetHandle() );
-	float* chOutput = GetRaw( chOutputVar.GetHandle() );
+	float* chInputBuff = GetRaw( chInputBuffVar.GetHandle() );
+	float* chOutputBuff = GetRaw( chOutputBuffVar.GetHandle() );
 	float* outputObject = GetRaw( outputHandle );
 
 	for( int b = 0; b < inputDesc.ObjectCount(); ++b ) {
@@ -454,12 +457,16 @@ void CCpuMathEngine::MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobDe
 
 		int inputRowsProcessed = 0;
 		int outputRowsProcessed = 0;
+		// The channelwise input row buffer can't hold the full image
+		// That's why the buffer on each step contains [firstInputRowInBuffer, inputRowsProcessed) rows
 		int firstInputRowInBuffer = 0;
 
 		while( inputRowsProcessed < inputHeight ) {
+			// Process a bunch of rows of input image (till channelwise convolution: expandConv + expandReLU)
 			const int inputRowsThisStep = std::min<int>( maxInputRowsPerStep, inputHeight - inputRowsProcessed );
-			float* chInput = chInputStart + ( inputRowsProcessed - firstInputRowInBuffer ) * chInputRowSize;
+			float* chInput = chInputBuff + ( inputRowsProcessed - firstInputRowInBuffer ) * chInputRowSize;
 
+			// Apply expand convolution
 			multiplyMatrixByTransposedMatrix( input, inputRowsThisStep * inputWidth, inputChannels, inputChannels,
 				expandFilter, expandedChannels, inputChannels, chInput, expandedChannels );
 			if( expandFreeTerm != nullptr ) {
@@ -467,6 +474,7 @@ void CCpuMathEngine::MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobDe
 					expandedChannels, expandFreeTerm );
 			}
 
+			// Apply expand ReLU
 			if( expandReLUThreshold > 0 ) {
 				vectorReLU( chInput, chInput, inputRowsThisStep * chInputRowSize, expandReLUThreshold );
 			} else {
@@ -474,15 +482,18 @@ void CCpuMathEngine::MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobDe
 			}
 			inputRowsProcessed += inputRowsThisStep;
 
+			// Calculate how many output rows we can calculate with the processed input rows
 			const int outputRowsCanBeProcesed = inputRowsProcessed == inputHeight ? outputHeight
 				: ( inputRowsProcessed < 2 ? 0 : ( inputRowsProcessed - 2 ) / stride + 1 );
 
 			while( outputRowsProcessed < outputRowsCanBeProcesed ) {
-				const int outputRowsThisStep = std::min<int>( maxOutputRowsPerStep, outputRowsCanBeProcesed - outputRowsProcessed );
+				// Process channelwise output rows (while there are any)
+				const int outputRowsThisStep = std::min<int>( maxOutputRowsPerStep,
+					outputRowsCanBeProcesed - outputRowsProcessed );
 
 				// Channelwise conv
 				{
-					float* currChOutput = chOutput;
+					float* chOutputRow = chOutputBuff;
 					int remOutputRowsThisStep = outputRowsThisStep;
 					const bool processBottomPadding = ( stride == 1 || inputHeight % 2 == 1 )
 						&& outputRowsProcessed + outputRowsThisStep == outputHeight;
@@ -490,74 +501,87 @@ void CCpuMathEngine::MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobDe
 						--remOutputRowsThisStep;
 					}
 
-					const float* currChInput = chInputStart
+					const float* currChInput = chInputBuff
 						+ ( outputRowsProcessed * stride - 1 - firstInputRowInBuffer ) * chInputRowSize;
 					if( outputRowsProcessed == 0 ) {
 						// Process top padding
 						if( channelwiseFreeTerm == nullptr ) {
-							vectorFill0( currChOutput, chOutputRowSize );
+							vectorFill0( chOutputRow, chOutputRowSize );
 						} else {
-							fillResultRow( desc, channelwiseFreeTerm, currChOutput );
+							fillResultRow( desc, channelwiseFreeTerm, chOutputRow );
 						}
 
-						// Process top padding
-						processFilterRow( desc, channelwiseFilter + filterRowSize, chInputStart, currChOutput );
+						// Omit first filter row (it's in padding)
+						// Processing second and third rows
+						processFilterRow( desc, channelwiseFilter + filterRowSize,
+							currChInput + chInputRowSize, chOutputRow );
 						// Check corner case: 1x1 input to 3x3 conv with 1x1 padding
 						if( inputHeight > 1 ) {
-							processFilterRow( desc, channelwiseFilter + 2 * filterRowSize, chInputStart + chInputRowSize, currChOutput );
+							processFilterRow( desc, channelwiseFilter + 2 * filterRowSize,
+								currChInput + 2 * chInputRowSize, chOutputRow );
 						}
 						--remOutputRowsThisStep;
 						currChInput += stride * chInputRowSize;
-						currChOutput += chOutputRowSize;
+						chOutputRow += chOutputRowSize;
 					}
 
 					while( remOutputRowsThisStep > 0 ) {
-						// Process all 3 rows without padding checks
 						if( channelwiseFreeTerm == nullptr ) {
-							vectorFill0( currChOutput, chOutputRowSize );
+							vectorFill0( chOutputRow, chOutputRowSize );
 						} else {
-							fillResultRow( desc, channelwiseFreeTerm, currChOutput );
+							fillResultRow( desc, channelwiseFreeTerm, chOutputRow );
 						}
-						processFilterRow( desc, channelwiseFilter, currChInput, currChOutput );
-						processFilterRow( desc, channelwiseFilter + filterRowSize, currChInput + chInputRowSize, currChOutput );
-						processFilterRow( desc, channelwiseFilter + 2 * filterRowSize, currChInput + 2 * chInputRowSize, currChOutput );
+						// Process all 3 rows without padding checks
+						processFilterRow( desc, channelwiseFilter, currChInput, chOutputRow );
+						processFilterRow( desc, channelwiseFilter + filterRowSize,
+							currChInput + chInputRowSize, chOutputRow );
+						processFilterRow( desc, channelwiseFilter + 2 * filterRowSize,
+							currChInput + 2 * chInputRowSize, chOutputRow );
 						--remOutputRowsThisStep;
 						currChInput += stride * chInputRowSize;
-						currChOutput += chOutputRowSize;
+						chOutputRow += chOutputRowSize;
 					}
 
 					if( processBottomPadding ) {
 						// Process bottom padding
 						if( channelwiseFreeTerm == nullptr ) {
-							vectorFill0( currChOutput, chOutputRowSize );
+							vectorFill0( chOutputRow, chOutputRowSize );
 						} else {
-							fillResultRow( desc, channelwiseFreeTerm, currChOutput );
+							fillResultRow( desc, channelwiseFreeTerm, chOutputRow );
 						}
-						processFilterRow( desc, channelwiseFilter, currChInput, currChOutput );
-						processFilterRow( desc, channelwiseFilter + filterRowSize, currChInput + chInputRowSize, currChOutput );
+						processFilterRow( desc, channelwiseFilter, currChInput, chOutputRow );
+						processFilterRow( desc, channelwiseFilter + filterRowSize,
+							currChInput + chInputRowSize, chOutputRow );
+						// Omit last filter row (it's in bottom padding)
 					}
 				}
 
 				if( channelwiseReLUThreshold > 0 ) {
-					vectorReLU( chOutput, chOutput, outputRowsThisStep * chOutputRowSize, channelwiseReLUThreshold );
+					vectorReLU( chOutputBuff, chOutputBuff, outputRowsThisStep * chOutputRowSize,
+						channelwiseReLUThreshold );
 				} else {
-					vectorReLU( chOutput, chOutput, outputRowsThisStep * chOutputRowSize );
+					vectorReLU( chOutputBuff, chOutputBuff, outputRowsThisStep * chOutputRowSize );
 				}
 
 				if( residual && isInPlace ) {
-					multiplyMatrixByTransposedMatrixAndAdd( chOutput, outputRowsThisStep * outputWidth, expandedChannels, expandedChannels,
-						downFilter, outputChannels, expandedChannels, output, outputChannels );
+					// Block input and output are located in the same memory
+					// It's possible to simultaneously calculate down conv output and add the residual connection
+					multiplyMatrixByTransposedMatrixAndAdd( chOutputBuff, outputRowsThisStep * outputWidth,
+						expandedChannels, expandedChannels, downFilter, outputChannels, expandedChannels, output,
+						outputChannels );
 				} else {
-					multiplyMatrixByTransposedMatrix( chOutput, outputRowsThisStep * outputWidth, expandedChannels, expandedChannels,
-						downFilter, outputChannels, expandedChannels, output, outputChannels );
+					multiplyMatrixByTransposedMatrix( chOutputBuff, outputRowsThisStep * outputWidth, expandedChannels,
+						expandedChannels, downFilter, outputChannels, expandedChannels, output, outputChannels );
 				}
 
 				if( downFreeTerm != nullptr ) {
-					addVectorToMatrixRows( output, output, outputRowsThisStep * outputWidth, outputChannels, outputChannels,
-						outputChannels, downFreeTerm );
+					addVectorToMatrixRows( output, output, outputRowsThisStep * outputWidth, outputChannels,
+						outputChannels, outputChannels, downFreeTerm );
 				}
 
 				if( residual && !isInPlace ) {
+					// Input and output are located in different memory regions
+					// Add residual connection
 					vectorAdd( output, residualInput, output, outputRowsThisStep * outputWidth * outputChannels );
 					residualInput += outputRowsThisStep * inputWidth * inputChannels;
 				}
@@ -575,9 +599,12 @@ void CCpuMathEngine::MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobDe
 					const int rowsToDelete = firstInputRowNeeded - firstInputRowInBuffer;
 					const int rowsToMove = inputRowsProcessed - firstInputRowNeeded;
 					if( rowsToMove > 0 ) {
-						dataCopy( chInputStart, chInputStart + rowsToDelete * chInputRowSize,
+						// There are rows which should be saved between iteration over input
+						// Move them to the beginning of the buffer
+						dataCopy( chInputBuff, chInputBuff + rowsToDelete * chInputRowSize,
 							rowsToMove * chInputRowSize );
 					}
+					// Mark that channelwise input buffer now starts with a new row
 					firstInputRowInBuffer = firstInputRowNeeded;
 				}
 			}
