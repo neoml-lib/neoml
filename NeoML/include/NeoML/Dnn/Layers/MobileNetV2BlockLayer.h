@@ -81,6 +81,6 @@ private:
 	void setParamBlob( TParam param, const CPtr<CDnnBlob>& blob );
 };
 
-int NEOML_API ReplaceMobileNetV2Blocks( CDnn& dnn );
+int NEOML_API OptimizeMobileNetV2( CDnn& dnn );
 
 } // namespace NeoML

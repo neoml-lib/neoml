@@ -406,7 +406,7 @@ static void replaceLayers( CDnn& dnn, const CArray<CBlockInfo>& blocksToReplace 
 	if( debugPrint ) ::printf( "Replaced %d layers with %d blocks\n", layersDeleted, blocksToReplace.Size() );
 }
 
-int ReplaceMobileNetV2Blocks( CDnn& dnn )
+int OptimizeMobileNetV2( CDnn& dnn )
 {
 	CArray<CBlockInfo> blocksToReplace;
 	CHashTable<CString> layersToDelete;
