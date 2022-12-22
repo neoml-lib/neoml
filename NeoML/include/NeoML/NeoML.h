@@ -43,6 +43,7 @@ limitations under the License.
 #include <NeoML/Dnn/AutoDiffFunctions.h>
 #include <NeoML/Dnn/Dnn.h>
 #include <NeoML/Dnn/DnnDistributed.h>
+#include <NeoML/Dnn/DnnOptimization.h>
 #include <NeoML/Dnn/Layers/BaseInPlaceLayer.h>
 #include <NeoML/Dnn/Layers/SourceLayer.h>
 #include <NeoML/Dnn/Layers/SinkLayer.h>

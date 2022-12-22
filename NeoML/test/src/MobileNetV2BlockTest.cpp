@@ -220,7 +220,9 @@ TEST( MobileNetConversionTest, SimpleNonResidual )
 	CReLULayer* channelwiseReLU = Relu( 6.f )( "channelwiseReLU", channelwiseConv );
 	CConvLayer* downConv = Conv( 8, CConvAxisParams( 1 ), CConvAxisParams( 1 ) )( "downConv", channelwiseReLU );
 	Sink( downConv, "sink" );
-	ASSERT_EQ( 1, OptimizeMobileNetV2( dnn ) );
+	CDnnOptimizationReport report = OptimizeDnn( dnn );
+	ASSERT_EQ( 1, report.MobileNetV2NonResidualBlocks );
+	ASSERT_EQ( 0, report.MobileNetV2ResidualBlocks );
 	ASSERT_EQ( 3, dnn.GetLayerCount() );
 }
 
@@ -237,7 +239,9 @@ TEST( MobileNetConversionTest, SimpleResidual )
 	CConvLayer* downConv = Conv( 8, CConvAxisParams( 1 ), CConvAxisParams( 1 ) )( "downConv", channelwiseReLU );
 	CEltwiseSumLayer* residual = Sum()( "residual", data, downConv );
 	Sink( residual, "sink" );
-	ASSERT_EQ( 1, OptimizeMobileNetV2( dnn ) );
+	CDnnOptimizationReport report = OptimizeDnn( dnn );
+	ASSERT_EQ( 0, report.MobileNetV2NonResidualBlocks );
+	ASSERT_EQ( 1, report.MobileNetV2ResidualBlocks );
 	ASSERT_EQ( 3, dnn.GetLayerCount() );
 }
 
@@ -255,7 +259,9 @@ TEST( MobileNetConversionTest, ResidualResidual )
 	CEltwiseSumLayer* residual = Sum()( "residual", data, downConv );
 	CEltwiseSumLayer* doubleResidual = Sum()( "doubleResidual", data, residual );
 	Sink( doubleResidual, "sink" );
-	ASSERT_EQ( 1, OptimizeMobileNetV2( dnn ) );
+	CDnnOptimizationReport report = OptimizeDnn( dnn );
+	ASSERT_EQ( 0, report.MobileNetV2NonResidualBlocks );
+	ASSERT_EQ( 1, report.MobileNetV2ResidualBlocks );
 	ASSERT_EQ( 4, dnn.GetLayerCount() );
 }
 
@@ -274,7 +280,9 @@ TEST( MobileNetConversionTest, NeighboringResiduals )
 	Sink( residual, "sink" );
 	CEltwiseSumLayer* secondResidual = Sum()( "secondResidual", data, downConv );
 	Sink( secondResidual, "secondSink" );
-	ASSERT_EQ( 1, OptimizeMobileNetV2( dnn ) );
+	CDnnOptimizationReport report = OptimizeDnn( dnn );
+	ASSERT_EQ( 1, report.MobileNetV2NonResidualBlocks );
+	ASSERT_EQ( 0, report.MobileNetV2ResidualBlocks );
 	ASSERT_EQ( 6, dnn.GetLayerCount() );
 }
 
@@ -292,7 +300,9 @@ TEST( MobileNetConversionTest, SinkFromTheMiddle )
 	CConvLayer* downConv = Conv( 8, CConvAxisParams( 1 ), CConvAxisParams( 1 ) )( "downConv", channelwiseReLU );
 	CEltwiseSumLayer* residual = Sum()( "residual", data, downConv );
 	Sink( residual, "sink" );
-	ASSERT_EQ( 0, OptimizeMobileNetV2( dnn ) );
+	CDnnOptimizationReport report = OptimizeDnn( dnn );
+	ASSERT_EQ( 0, report.MobileNetV2NonResidualBlocks );
+	ASSERT_EQ( 0, report.MobileNetV2ResidualBlocks );
 	ASSERT_EQ( 9, dnn.GetLayerCount() );
 }
 
@@ -310,6 +320,8 @@ TEST( MobileNetConversionTest, SinkDisablesResidual )
 	Sink( downConv, "downConvSink" );
 	CEltwiseSumLayer* residual = Sum()( "residual", data, downConv );
 	Sink( residual, "sink" );
-	ASSERT_EQ( 1, OptimizeMobileNetV2( dnn ) );
+	CDnnOptimizationReport report = OptimizeDnn( dnn );
+	ASSERT_EQ( 1, report.MobileNetV2NonResidualBlocks );
+	ASSERT_EQ( 0, report.MobileNetV2ResidualBlocks );
 	ASSERT_EQ( 5, dnn.GetLayerCount() );
 }

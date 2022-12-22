@@ -101,8 +101,4 @@ private:
 	void setParamBlob( TParam param, const CPtr<CDnnBlob>& blob );
 };
 
-// Optimizes MobileNetV2-like net by replacing blocks of layers with CMobileNetV2BlockLayer
-// Improves inference performance but make net untraninable
-int NEOML_API OptimizeMobileNetV2( CDnn& dnn );
-
 } // namespace NeoML
