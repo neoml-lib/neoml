@@ -17,7 +17,7 @@ limitations under the License.
 
 namespace NeoML {
 
-// Struct which is returned by OptimizeDnn function
+// Struct which contains the details of optimization result
 struct NEOML_API CDnnOptimizationReport {
 	// Number of optimized MobileNetV2 blocks without residual connection
 	int MobileNetV2NonResidualBlocks;
