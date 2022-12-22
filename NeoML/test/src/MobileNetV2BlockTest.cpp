@@ -164,18 +164,10 @@ static void mobileNetV2BlockTestImpl( unsigned int seed, int freeTermMask, float
 		channelwiseReLUThreshold, downFilter, downFreeTerm, stride, residual ), "expectedBlock", { data } );
 	CPtr<CSinkLayer> expectedSink = AddLayer<CSinkLayer>( "expectedSink", { expectedBlock } );
 
-	CPtr<CMobileNetV2BlockLayer> actualBlock = AddLayer<CMobileNetV2BlockLayer>( "actualBlock", { data } );
-	actualBlock->SetExpandFilter( expandFilter );
-	actualBlock->SetExpandFreeTerm( expandFreeTerm );
-	actualBlock->SetExpandReLUThreshold( expandReLUThreshold );
-	actualBlock->SetChannelwiseFilter( channelwiseFilter );
-	actualBlock->SetChannelwiseFreeTerm( channelwiseFreeTerm );
-	actualBlock->SetChannelwiseReLUThreshold( channelwiseReLUThreshold );
-	actualBlock->SetDownFilter( downFilter );
-	actualBlock->SetDownFreeTerm( downFreeTerm );
-	actualBlock->SetResidual( residual );
-	actualBlock->SetStride( stride );
-
+	CPtr<CMobileNetV2BlockLayer> actualBlock = new CMobileNetV2BlockLayer( MathEngine(), expandFilter, expandFreeTerm,
+		expandReLUThreshold, stride, channelwiseFilter, channelwiseFreeTerm, channelwiseReLUThreshold, downFilter,
+		downFreeTerm, residual );
+	AddLayer( actualBlock, "actualBlock", { data } );
 	CPtr<CSinkLayer> actualSink = AddLayer<CSinkLayer>( "actualSink", { actualBlock } );
 
 	data->SetBlob( createBlob( { 1, batch, 1, imageHeight, imageWidth, 1, inputChannels }, random ) );

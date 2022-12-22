@@ -180,17 +180,13 @@ static void replaceLayers( CDnn& dnn, const CArray<CBlockInfo>& blocksToReplace 
 	int layersDeleted = 0;
 	for( int blockIndex = 0; blockIndex < blocksToReplace.Size(); ++blockIndex ) {
 		const CBlockInfo& info = blocksToReplace[blockIndex];
-		CPtr<CMobileNetV2BlockLayer> mobileNetV2Block = new CMobileNetV2BlockLayer( dnn.GetMathEngine() );
-		mobileNetV2Block->SetExpandFilter( info.ExpandConv->GetFilterData() );
-		mobileNetV2Block->SetExpandFreeTerm( !info.ExpandConv->IsZeroFreeTerm() ? info.ExpandConv->GetFreeTermData() : nullptr );
-		mobileNetV2Block->SetExpandReLUThreshold( info.ExpandReLU->GetUpperThreshold() );
-		mobileNetV2Block->SetChannelwiseFilter( info.Channelwise->GetFilterData() );
-		mobileNetV2Block->SetChannelwiseFreeTerm( !info.Channelwise->IsZeroFreeTerm() ? info.Channelwise->GetFreeTermData() : nullptr );
-		mobileNetV2Block->SetChannelwiseReLUThreshold( info.ChannelwiseReLU->GetUpperThreshold() );
-		mobileNetV2Block->SetDownFilter( info.DownConv->GetFilterData() );
-		mobileNetV2Block->SetDownFreeTerm( !info.DownConv->IsZeroFreeTerm() ? info.DownConv->GetFreeTermData() : nullptr );
-		mobileNetV2Block->SetStride( info.Channelwise->GetStrideHeight() );
-		mobileNetV2Block->SetResidual( info.Residual != nullptr );
+		CPtr<CMobileNetV2BlockLayer> mobileNetV2Block = new CMobileNetV2BlockLayer( dnn.GetMathEngine(),
+			info.ExpandConv->GetFilterData(),
+			!info.ExpandConv->IsZeroFreeTerm() ? info.ExpandConv->GetFreeTermData() : nullptr,
+			info.ExpandReLU->GetUpperThreshold(), info.Channelwise->GetStrideWidth(), info.Channelwise->GetFilterData(),
+			!info.Channelwise->IsZeroFreeTerm() ? info.Channelwise->GetFreeTermData() : nullptr,
+			info.ChannelwiseReLU->GetUpperThreshold(), info.DownConv->GetFilterData(),
+			!info.DownConv->IsZeroFreeTerm() ? info.DownConv->GetFreeTermData() : nullptr, info.Residual != nullptr );
 		mobileNetV2Block->SetName( info.Residual != nullptr ? info.Residual->GetName() : info.DownConv->GetName() );
 		dnn.DeleteLayer( *info.ExpandConv );
 		dnn.DeleteLayer( *info.ExpandReLU );

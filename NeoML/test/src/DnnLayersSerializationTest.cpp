@@ -2540,19 +2540,19 @@ inline void checkSpecificParams<CMobileNetV2BlockLayer>( CMobileNetV2BlockLayer&
 	const int expandChannels = 4;
 	const int outputChannels = 3;
 
-	checkBlob( *layer.GetExpandFilter(), expandChannels * inputChannels );
-	checkBlob( *layer.GetExpandFreeTerm(), expandChannels );
-	EXPECT_FLOAT_EQ( 666.f, layer.GetExpandReLUThreshold() );
+	checkBlob( *layer.ExpandFilter(), expandChannels * inputChannels );
+	checkBlob( *layer.ExpandFreeTerm(), expandChannels );
+	EXPECT_FLOAT_EQ( 666.f, layer.ExpandReLUThreshold() );
 
-	EXPECT_EQ( 2, layer.GetStride() );
-	checkBlob( *layer.GetChannelwiseFilter(), 3 * 3 * expandChannels );
-	EXPECT_EQ( nullptr, layer.GetChannelwiseFreeTerm() );
-	EXPECT_FLOAT_EQ( 777.f, layer.GetChannelwiseReLUThreshold() );
+	EXPECT_EQ( 2, layer.Stride() );
+	checkBlob( *layer.ChannelwiseFilter(), 3 * 3 * expandChannels );
+	EXPECT_EQ( nullptr, layer.ChannelwiseFreeTerm() );
+	EXPECT_FLOAT_EQ( 777.f, layer.ChannelwiseReLUThreshold() );
 
-	checkBlob( *layer.GetDownFilter(), outputChannels * expandChannels );
-	checkBlob( *layer.GetDownFreeTerm(), outputChannels );
+	checkBlob( *layer.DownFilter(), outputChannels * expandChannels );
+	checkBlob( *layer.DownFreeTerm(), outputChannels );
 
-	EXPECT_FALSE( layer.HasResidual() );
+	EXPECT_FALSE( layer.Residual() );
 }
 
 GTEST_TEST( SerializeFromFile, MobileNetV2BlockLayerSerialization )

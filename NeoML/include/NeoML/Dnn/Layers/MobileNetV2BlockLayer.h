@@ -38,36 +38,29 @@ namespace NeoML {
 class NEOML_API CMobileNetV2BlockLayer : public CBaseLayer {
 	NEOML_DNN_LAYER( CMobileNetV2BlockLayer )
 public:
+	CMobileNetV2BlockLayer( IMathEngine& mathEngine, const CPtr<CDnnBlob>& expandFilter, const CPtr<CDnnBlob>& expandFreeTerm,
+		float expandReLUThreshold, int stride, const CPtr<CDnnBlob>& channelwiseFilter, const CPtr<CDnnBlob>& channelwiseFreeTerm,
+		float channelwiseReLUThreshold, const CPtr<CDnnBlob>& downFilter, const CPtr<CDnnBlob>& downFreeTerm, bool residual );
 	explicit CMobileNetV2BlockLayer( IMathEngine& mathEngine );
 	~CMobileNetV2BlockLayer();
 
 	// Expand convolution and RelU parameters
-	CPtr<CDnnBlob> GetExpandFilter() const { return getParamBlob( P_ExpandFilter ); }
-	void SetExpandFilter( const CPtr<CDnnBlob>& blob ) { setParamBlob( P_ExpandFilter, blob ); }
-	CPtr<CDnnBlob> GetExpandFreeTerm() const { return getParamBlob( P_ExpandFreeTerm ); }
-	void SetExpandFreeTerm( const CPtr<CDnnBlob>& blob ) { setParamBlob( P_ExpandFreeTerm, blob ); }
-	float GetExpandReLUThreshold() const { return expandReLUThreshold.GetValue(); }
-	void SetExpandReLUThreshold( float newValue ) { expandReLUThreshold.SetValue( newValue ); }
+	CPtr<CDnnBlob> ExpandFilter() const { return getParamBlob( P_ExpandFilter ); }
+	CPtr<CDnnBlob> ExpandFreeTerm() const { return getParamBlob( P_ExpandFreeTerm ); }
+	float ExpandReLUThreshold() const { return expandReLUVar.GetValue(); }
 
 	// Channelwise convolution and ReLU parameters
-	int GetStride() const { return stride; }
-	void SetStride( int newValue ) { NeoAssert( newValue == 1 || newValue == 2 ); stride = newValue; }
-	CPtr<CDnnBlob> GetChannelwiseFilter() const { return getParamBlob( P_ChannelwiseFilter ); }
-	void SetChannelwiseFilter( const CPtr<CDnnBlob>& blob ) { setParamBlob( P_ChannelwiseFilter, blob ); }
-	CPtr<CDnnBlob> GetChannelwiseFreeTerm() const { return getParamBlob( P_ChannelwiseFreeTerm ); }
-	void SetChannelwiseFreeTerm( const CPtr<CDnnBlob>& blob ) { setParamBlob( P_ChannelwiseFreeTerm, blob ); }
-	float GetChannelwiseReLUThreshold() const { return channelwiseReLUThreshold.GetValue(); }
-	void SetChannelwiseReLUThreshold( float newValue ) { channelwiseReLUThreshold.SetValue( newValue ); }
+	int Stride() const { return stride; }
+	CPtr<CDnnBlob> ChannelwiseFilter() const { return getParamBlob( P_ChannelwiseFilter ); }
+	CPtr<CDnnBlob> ChannelwiseFreeTerm() const { return getParamBlob( P_ChannelwiseFreeTerm ); }
+	float ChannelwiseReLUThreshold() const { return channelwiseReLUVar.GetValue(); }
 
 	// Down convolution parameters
-	CPtr<CDnnBlob> GetDownFilter() const { return getParamBlob( P_DownFilter ); }
-	void SetDownFilter( const CPtr<CDnnBlob>& blob ) { setParamBlob( P_DownFilter, blob ); }
-	CPtr<CDnnBlob> GetDownFreeTerm() const { return getParamBlob( P_DownFreeTerm ); }
-	void SetDownFreeTerm( const CPtr<CDnnBlob>& blob ) { setParamBlob( P_DownFreeTerm, blob ); }
+	CPtr<CDnnBlob> DownFilter() const { return getParamBlob( P_DownFilter ); }
+	CPtr<CDnnBlob> DownFreeTerm() const { return getParamBlob( P_DownFreeTerm ); }
 
 	// Residual connection
-	bool HasResidual() const { return residual; }
-	void SetResidual( bool newValue ) { residual = newValue; }
+	bool Residual() const { return residual; }
 
 	// Serialization
 	void Serialize( CArchive& archive ) override;
@@ -93,8 +86,8 @@ private:
 
 	bool residual; // Does block have residual connection?
 	int stride; // stride of channnelwise convolution
-	CFloatHandleVar expandReLUThreshold; // threshold of expand convolution ReLU
-	CFloatHandleVar channelwiseReLUThreshold; // threshold of channelwise convolution ReLU
+	CFloatHandleVar expandReLUVar; // threshold of expand convolution ReLU
+	CFloatHandleVar channelwiseReLUVar; // threshold of channelwise convolution ReLU
 	CChannelwiseConvolutionDesc* convDesc; // descriptor of channelwise convolution
 
 	CPtr<CDnnBlob> getParamBlob( TParam param ) const;
