@@ -89,8 +89,6 @@ if(WIN32)
     target_sources(${PROJECT_NAME} PRIVATE ./NeoMathEngineAvx.rc)
 endif()
 
-configure_target(${PROJECT_NAME})
-
 # Install
 if(NeoMathEngine_INSTALL)
     if(USE_FINE_OBJECTS)
