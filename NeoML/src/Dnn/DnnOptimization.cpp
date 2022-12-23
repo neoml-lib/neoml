@@ -17,6 +17,7 @@ limitations under the License.
 #pragma hdrstop
 
 #include <NeoML/Dnn/DnnOptimization.h>
+#include <NeoML/Dnn/Dnn.h>
 #include <NeoML/Dnn/Layers/MobileNetV2BlockLayer.h>
 #include <NeoML/Dnn/Layers/ConvLayer.h>
 #include <NeoML/Dnn/Layers/ChannelwiseConvLayer.h>

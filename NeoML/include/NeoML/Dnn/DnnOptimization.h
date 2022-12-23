@@ -15,7 +15,11 @@ limitations under the License.
 
 #pragma once
 
+#include <NeoML/NeoMLDefs.h>
+
 namespace NeoML {
+
+class CDnn;
 
 // Struct which contains the details of optimization result
 struct NEOML_API CDnnOptimizationReport {
