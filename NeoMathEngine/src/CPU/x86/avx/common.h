@@ -15,11 +15,4 @@ limitations under the License.
 
 #pragma once
 
-#include <cmath>
-#include <memory>
-#include <vector>
-#include <algorithm>
-
 #include <NeoMathEngine/NeoMathEngine.h>
-#include <immintrin.h>
-

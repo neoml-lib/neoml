@@ -21,6 +21,8 @@ limitations under the License.
 
 #ifdef NEOML_USE_SSE
 
+#include <algorithm>
+
 #include "CpuX86.h"
 
 #ifdef NEOML_USE_MKL
@@ -31,8 +33,11 @@ limitations under the License.
 #endif
 #endif
 
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
 #if FINE_PLATFORM( FINE_WINDOWS )
-#include <winnt.h>
+#include <windows.h>
 #endif
 
 namespace NeoML {
