@@ -20,6 +20,8 @@ limitations under the License.
 #include <CpuMathEnginePrivate.h>
 #include <MemoryHandleInternal.h>
 
+#include <cstring>
+
 namespace NeoML {
 
 struct CMathEngineLstmDesc : public CLstmDesc {
