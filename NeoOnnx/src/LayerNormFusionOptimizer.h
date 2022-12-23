@@ -84,7 +84,9 @@ namespace NeoOnnx {
  **/
 class CLayerNormFusionOptimizer final : public IOptimizer {
 public:
-	explicit CLayerNormFusionOptimizer( CDnn& graph ) : IOptimizer( graph ) {}
+	static const char* const classesOfSkipLayers[];
+
+	explicit CLayerNormFusionOptimizer( CDnn& graph ) : IOptimizer( graph, classesOfSkipLayers ) {}
 
 	void Apply() override;
 };

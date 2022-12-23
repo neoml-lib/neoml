@@ -17,14 +17,14 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-CPtr<CBaseLayer> IOptimizer::GetAnyInputLayer( const CPtr<CBaseLayer>& currentLayer, int i, const char* const layerSkipClass )
+CPtr<CBaseLayer> IOptimizer::GetAnyInputLayer( const CPtr<CBaseLayer>& currentLayer, int inputNum, const char* const layerSkipClass )
 {
-	for( int j = i; j < currentLayer->GetInputCount(); ++j ) {
-		CPtr<CBaseLayer> inputLayer = graph.GetLayer( currentLayer->GetInputName( j ) );
-		if( IsExactLayer( inputLayer, classesOfSkipLayers[0] ) ) {
-			return graph.GetLayer( inputLayer->GetInputName( j ) );
+	for( int j = inputNum; j < currentLayer->GetInputCount(); ++j ) {
+		CPtr<CBaseLayer> inputLayer = Graph.GetLayer( currentLayer->GetInputName( j ) );
+		if( IsExactLayer( inputLayer, ClassesOfSkipLayers[0] ) ) {
+			return Graph.GetLayer( inputLayer->GetInputName( j ) );
 		} else if( layerSkipClass != CString( "" ) && IsExactLayer( inputLayer, layerSkipClass ) ) {
-			return graph.GetLayer( inputLayer->GetInputName( /*inputNumber*/0 ) );
+			return Graph.GetLayer( inputLayer->GetInputName( /*inputNumber*/0 ) );
 		}
 		return inputLayer;
 	}
@@ -32,11 +32,11 @@ CPtr<CBaseLayer> IOptimizer::GetAnyInputLayer( const CPtr<CBaseLayer>& currentLa
 }
 
 //--------------------------------------------------------------------------------------------------------------
-bool IOptimizer::IsExactLayer( const CPtr<CBaseLayer>& layer, const char* layerClass, bool justCheck )
+bool IOptimizer::IsExactLayer( const CPtr<CBaseLayer>& layer, const char* const layerClass, bool addToLayersSelected )
 {
 	if( layer != nullptr && layer->GetClassType() == layerClass ) {
-		if( !justCheck ) {
-			layersToRemove.Add( layer );
+		if( addToLayersSelected ) {
+			AddToLayersSelected( layer );
 		}
 		return true;
 	}
@@ -49,15 +49,15 @@ bool IOptimizer::GetExactInputLayers( const CPtr<CBaseLayer>& currentLayer,
 	CPtr<CBaseLayer>& layerData, const char* const layerDataClass, const char* const layerSkipClass )
 {
 	for( int j = 0; j < currentLayer->GetInputCount(); ++j ) {
-		CPtr<CBaseLayer> inputLayer = graph.GetLayer( currentLayer->GetInputName( j ) );
+		CPtr<CBaseLayer> inputLayer = Graph.GetLayer( currentLayer->GetInputName( j ) );
 		if( IsExactLayer( inputLayer, layerBaseClass ) ) {
 			layerBase = inputLayer;
 		} else if( layerBase == nullptr && IsExactLayer( inputLayer, layerSkipClass ) ) {
 			GetExactInputLayers( inputLayer, layerBase, layerBaseClass, layerData, layerDataClass, /*layerSkipClass*/"" );
 		} else if( ( layerBase == nullptr || layerData == nullptr )
-			&& ( IsExactLayer( inputLayer, classesOfSkipLayers[0] )
-			|| IsExactLayer( inputLayer, classesOfSkipLayers[1] )
-			|| IsExactLayer( inputLayer, classesOfSkipLayers[2] ) ) )
+			&& ( IsExactLayer( inputLayer, ClassesOfSkipLayers[0] )
+			|| IsExactLayer( inputLayer, ClassesOfSkipLayers[1] )
+			|| IsExactLayer( inputLayer, ClassesOfSkipLayers[2] ) ) )
 		{
 			GetExactInputLayers( inputLayer, layerBase, layerBaseClass, layerData, layerDataClass, layerSkipClass );
 		} else if( IsExactLayer( inputLayer, layerDataClass ) ) {

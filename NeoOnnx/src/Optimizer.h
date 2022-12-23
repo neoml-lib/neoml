@@ -22,53 +22,40 @@ namespace NeoOnnx {
 
 class IOptimizer : public IObject {
 public:
-	explicit IOptimizer( CDnn& graph ) : graph( graph ) {}
+	explicit IOptimizer( CDnn& graph, const char* const classesOfSkipLayers[] ) : Graph( graph ), ClassesOfSkipLayers( classesOfSkipLayers ) {}
 	IOptimizer( IOptimizer&& ) = delete;
 	IOptimizer( const IOptimizer& ) = delete;
 
 	virtual void Apply() = 0;
 
 protected:
-	CDnn& graph;
-	CArray<CPtr<CBaseLayer>> layersToRemove{};
+	CDnn& Graph;
+	const char * const * ClassesOfSkipLayers{};
 
-	static constexpr const char* const classesOfSkipLayers[]{
-		"NeoMLDnnBroadcastLayer",
-		"FmlCnnTransformWithoutTransposeLayer",
-		"FmlCnnTransposeLayer"
-	};
+	// Operations on 'layersSelected' array
+	auto GetLayerSelectedSize() const { return layersSelected.Size(); }
+	CPtr<CBaseLayer> GetLayerSelected( int i ) { return layersSelected[i]; }
+	void ClearLayersSelected() { layersSelected.DeleteAll(); }
+	void AddToLayersSelected( const CPtr<CBaseLayer>& layer ) { layersSelected.Add( layer ); }
 
-	/// Returns the pointer to input layer of the 'currentLayer' of any class-type, but if this input layer's class-type is 'layerSkipClass'
-	///     then get the input layer of this input layer (so go through the layers with the class-type of 'layerSkipClass')
-	/// \param[in] currentLayer    the pointer to a layer in 'graph'
-	/// \param[in] i               the number of input of the 'currentLayer'
-	/// \param[in] layerSkipClass  the class-type string of a layer to skip, if it is not ""
-	/// \returns  the pointer to a layer that has any class-type (beside layerSkipClass), else  nullptr
-	CPtr<CBaseLayer> GetAnyInputLayer( const CPtr<CBaseLayer>& currentLayer, int i, const char* const layerSkipClass = "" );
+	// Returns the pointer to input layer of the 'currentLayer' of any class-type except 'layerSkipClass' class-type and adds to 'layersSelected'.
+	// All found layers of class-type is equal to 'layerSkipClass' also be added to 'layersSelected', they would not be returned.
+	CPtr<CBaseLayer> GetAnyInputLayer( const CPtr<CBaseLayer>& currentLayer, int inputNum, const char* const layerSkipClass = "" );
 
-	/// If layer is not nullptr and its class-type string equals to a required class-type 'layerClass' string, 
-	///    add this layer to array of 'layersToRemove' (only if justCheck == false)
-	/// \param[in] layer       the pointer to a layer in 'graph'
-	/// \param[in] layerClass  the class-type string of a layer
-	/// \param[in] justCheck   a flag to use this method only for check (not to add to  'layersToRemove')
-	/// \returns  true  if layer has necessary class-type, else  false
-	bool IsExactLayer( const CPtr<CBaseLayer>& layer, const char* layerClass, bool justCheck = false );
+	// If layer is not nullptr and its class-type is equal to a required class-type 'layerClass', return true
+	// and if addToLayersSelected == true also add this layer to 'layersSelected' array.
+	bool IsExactLayer( const CPtr<CBaseLayer>& layer, const char* const layerClass, bool addToLayersSelected = true );
 
-	/// Check all input layers of the 'currentLayer' in the 'graph' in search of 1 or 2 inputs:
-	///    the main input 'layerBase' of given class-type ('layerBaseClass' string) 
-	///    and the layer-initializer 'layerData' of given class-type ('layerDataClass' string), only if it is not "". 
-	/// If the layer of class-type 'layerSkipClass' string (is not equal "") found, the input layers of this layer will also be checked,
-	///    as the search is going through all layers of this class-type.
-	/// \param[in]  currentLayer     the pointer to a layer in 'graph', the inputs of what to check 
-	/// \param[out] layerBase        the pointer, the main input of the current layer will be stored
-	/// \param[in]  layerBaseClass   the class-type string of a main input layer
-	/// \param[out] layerData        the pointer, the layer-initializer of the current layer will be stored
-	/// \param[in]  layerDataClass   the class-type string of a layer-initializer, if it is "", so there should be no initializer
-	/// \param[in]  layerSkipClass   the class-type string of a layer to skip, if it is "", no additional skip layer-classes in this search
-	/// \returns  true  if 'currentLayer' has necessary class-type inputs, else  false
+	// Check all input layers of the 'currentLayer' in the 'graph' to select 1 or 2 layers.
+	// It adds to 'layersSelected' the first input layer  if its class-type equals 'layerBaseClass', returns it as 'layerBase'.
+	// It adds to 'layersSelected' the layer-initializer  if its class-type equals 'layerDataClass' (and that is not ""), returns it as 'layerData'. 
+	// All found layers of class-type is equal to 'layerSkipClass' also would be added to 'layersSelected', but would not be returned as in arguments.
 	bool GetExactInputLayers( const CPtr<CBaseLayer>& currentLayer,
 		CPtr<CBaseLayer>& layerBase, const char* const layerBaseClass,
 		CPtr<CBaseLayer>& layerData, const char* const layerDataClass, const char* const layerSkipClass );
+
+private:
+	CArray<CPtr<CBaseLayer>> layersSelected{};
 };
 
 } // namespace NeoOnnx

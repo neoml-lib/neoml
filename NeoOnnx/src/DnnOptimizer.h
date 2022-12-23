@@ -20,29 +20,28 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-/**  @class CDnnOptimizer provides a reconstruction of the CDnn.
-  *  @remarks The underlying CDnn would be changed
-  */
+// CDnnOptimizer provides a reconstruction of the CDnn.
+// NOTE: The underlying CDnn would be changed
 class CDnnOptimizer final : public IObject {
 public:
 	explicit CDnnOptimizer( CDnn& graph ) :
-		optimizers{
-			CPtr<IOptimizer>( new CLayerNormFusionOptimizer( graph ) )
-	}
+		optimizers{ CPtr<IOptimizer>( new CLayerNormFusionOptimizer( graph ) ) }
 	{}
 	CDnnOptimizer( CDnnOptimizer&& ) = delete;
 	CDnnOptimizer( const CDnnOptimizer& ) = delete;
 
-	inline void Optimize()
-	{
-		for( int i = 0; i < optimizers.Size(); ++i ) {
-			optimizers[i]->Apply();
-		}
-	}
+	void Optimize();
 
 private:
 	CArray<CPtr<IOptimizer>> optimizers{};
 };
+
+inline void CDnnOptimizer::Optimize()
+{
+	for( int i = 0; i < optimizers.Size(); ++i ) {
+		optimizers[i]->Apply();
+	}
+}
 
 } // namespace NeoOnnx
 

@@ -20,17 +20,22 @@ limitations under the License.
 
 namespace NeoOnnx {
 
+const char* const CLayerNormFusionOptimizer::classesOfSkipLayers[]{
+	"NeoMLDnnBroadcastLayer",
+	"FmlCnnTransformWithoutTransposeLayer",
+	"FmlCnnTransposeLayer"
+};
+
 void CLayerNormFusionOptimizer::Apply()
 {
-	//graph.Reshape(); // be sure, the all BLOBs' sizes are inited in the graph
-
 	int normLayersCount = 0;
 	CArray<const char*> layersList{};
-	graph.GetLayerList( layersList );
-	for( int i = 0; i < layersList.Size(); ++i ) {
-		layersToRemove.DeleteAll();
+	Graph.GetLayerList( layersList );
 
-		CPtr<CBaseLayer> addLayerLast = graph.GetLayer( layersList[i] );
+	for( int i = 0; i < layersList.Size(); ++i ) {
+		ClearLayersSelected();
+
+		CPtr<CBaseLayer> addLayerLast = Graph.GetLayer( layersList[i] );
 		if( !IsExactLayer( addLayerLast, "FmlCnnEltwiseSumLayer" ) )
 			continue;
 
@@ -66,9 +71,9 @@ void CLayerNormFusionOptimizer::Apply()
 		if( !GetExactInputLayers( subLayer, reduceMeanLayer, "FmlCnnGlobalMainPoolingLayer", unusedLayer, "", /*layerSkipClass*/"" ) )
 			continue;
 
-		CPtr<CObjectNormalizationLayer> normLayer( new CObjectNormalizationLayer( graph.GetMathEngine() ) );
+		CPtr<CObjectNormalizationLayer> normLayer( new CObjectNormalizationLayer( Graph.GetMathEngine() ) );
 		normLayer->SetName( "myObjNorm" + Str( normLayersCount ) );
-		graph.AddLayer( *normLayer );
+		Graph.AddLayer( *normLayer );
 
 		const auto& epsBlob = dynamic_cast<CDataLayer*>( epsilontLayer.Ptr() )->GetBlob();
 		const auto& scaleBlob = dynamic_cast<CDataLayer*>( scaleLayer.Ptr() )->GetBlob();
@@ -85,39 +90,37 @@ void CLayerNormFusionOptimizer::Apply()
 			normLayer->Connect( *reduceMeanInputLayer );
 		}
 
-		CPtr<CTransposeLayer> transpose1Layer( new CTransposeLayer( graph.GetMathEngine() ) );
+		CPtr<CTransposeLayer> transpose1Layer( new CTransposeLayer( Graph.GetMathEngine() ) );
 		transpose1Layer->SetName( "myTranspose1_" + Str( normLayersCount ) );
 		transpose1Layer->SetTransposedDimensions( TBlobDim::BD_Height, TBlobDim::BD_Channels );
-		graph.AddLayer( *transpose1Layer );
+		Graph.AddLayer( *transpose1Layer );
 		transpose1Layer->Connect(/*input number*/0, *normLayer, /*output number*/0 );
 
-		CPtr<CTransposeLayer> transpose2Layer( new CTransposeLayer( graph.GetMathEngine() ) );
+		CPtr<CTransposeLayer> transpose2Layer( new CTransposeLayer( Graph.GetMathEngine() ) );
 		transpose2Layer->SetName( "myTranspose2_" + Str( normLayersCount ) );
 		transpose2Layer->SetTransposedDimensions( TBlobDim::BD_Height, TBlobDim::BD_BatchLength );
-		graph.AddLayer( *transpose2Layer );
+		Graph.AddLayer( *transpose2Layer );
 		transpose2Layer->Connect(/*input number*/0, *transpose1Layer, /*output number*/0 );
 
 		const CBaseLayer& newLayer = static_cast<const CBaseLayer&>( *transpose2Layer );
 
 		for( int ii = i; ii < layersList.Size(); ++ii ) {
 			const char* const nameOutputLayer = layersList[ii];
-			auto layerDnn = graph.GetLayer( nameOutputLayer );
-			for( int j = 0; j < layerDnn->GetInputCount(); ++j ) {
-				if( std::strcmp( layerDnn->GetInputName( j ), addLayerLast->GetName() ) == 0 ) {
-					layerDnn->Connect(/*input number*/j, newLayer, /*output number*/0 );
+			auto layerDnn = Graph.GetLayer( nameOutputLayer );
+			for( int inputNum = 0; inputNum < layerDnn->GetInputCount(); ++inputNum ) {
+				if( std::strcmp( layerDnn->GetInputName( inputNum ), addLayerLast->GetName() ) == 0 ) {
+					layerDnn->Connect(inputNum, newLayer, /*output number*/0 );
 				}
 			}
 		}
 
-		for( int ii = 0; ii < layersToRemove.Size(); ++ii ) {
-			auto& layer = layersToRemove[ii];
-			if( graph.HasLayer( layer->GetName() ) ) {
-				graph.DeleteLayer( *layer );
+		for( int ii = 0; ii < GetLayerSelectedSize(); ++ii ) {
+			auto layer = GetLayerSelected(ii);
+			if( Graph.HasLayer( layer->GetName() ) ) {
+				Graph.DeleteLayer( *layer );
 			}
 		}
 		++normLayersCount;
-
-		//graph.Reshape(); // check for architecture correctness
 	}
 }
 
