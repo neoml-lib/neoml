@@ -31,6 +31,10 @@ limitations under the License.
 #endif
 #endif
 
+#if FINE_PLATFORM( FINE_WINDOWS )
+#include <winnt.h>
+#endif
+
 namespace NeoML {
 
 inline void channelwiseConvolution1x3Kernel( const float* source0, const float* source1, const float* source2, const float* source3,
