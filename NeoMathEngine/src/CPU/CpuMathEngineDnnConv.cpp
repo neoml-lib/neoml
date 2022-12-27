@@ -537,121 +537,38 @@ void CCpuMathEngine::BlobConvolution( const CConvolutionDesc& convDesc, const CC
 	}
 }
 
-void CCpuMathEngine::backwardConvolutionAddFilterToOutput( const CCpuConvolutionDesc& desc, const CConstFloatHandle& temp,
-	const CConstFloatHandle* freeTerm, const CFloatHandle& resultData )
-{
-	const float* tempRaw = GetRaw( temp );
-	float* resultDataRaw = GetRaw( resultData );
+//------------------------------------------------------------------------------------------------------------
 
-	const CBlobDesc& source = desc.Result;
-	const CBlobDesc& filter = desc.Filter;
-	const CBlobDesc& result = desc.Source;
+class CRoundRobinBuffer final {
+public:
+	explicit CRoundRobinBuffer( IMathEngine& mathEngine, int numItems, int itemSize ) :
+		temp( mathEngine, /*bytes-size*/numItems * itemSize), raw(GetRaw(temp.GetHandle())),
+		numItems( numItems ), itemSize( itemSize ), currPos( 0 ),
+		prevBatchedSourceRowStart( -1 ), prevTempSourceHeightLines( 0 ), sourceRowSavedStart( 0 )
+	{}
 
-	const int filterChannels = filter.Depth() * filter.Channels();
-	const int resultRowSize = result.Width() * result.Depth() * result.Channels();
-
-	int resultLineStart = 0, resultLineEnd = result.ObjectCount() * result.Height();
-	OmpGetTaskIndexAndCount( result.ObjectCount() * result.Height(), resultLineStart, resultLineEnd );
-	resultLineEnd += resultLineStart;
-
-	for( int resultRow = resultLineStart; resultRow < resultLineEnd; ++resultRow ) {
-		float* resultDataPtr = resultDataRaw + resultRow * resultRowSize;
-		if( freeTerm != nullptr ) { // Set the free term
-			setVectorToMatrixRows( resultDataPtr, result.Width(), result.Depth() * result.Channels(), GetRaw( *freeTerm ) );
-		} else {
-			vectorFill0( resultDataPtr, resultRowSize );
-		}
-		const int batch = resultRow / result.Height();
-		const int row = resultRow % result.Height();
-		const int sourceRowStart = std::max( 0, ( row + desc.PaddingHeight - filter.Height() + desc.StrideHeight ) / desc.StrideHeight );
-		const int filterRowBackStart = row - sourceRowStart * desc.StrideHeight + desc.PaddingHeight;
-		if( 0 > filterRowBackStart || filterRowBackStart >= filter.Height() ) {
-			continue;
-		}
-		const int filterRowBackEnd = std::max( 0, filter.Height() + row - result.Height() - desc.PaddingHeight );
-		int sourceRow = sourceRowStart;
-		for( int filterRow = filterRowBackStart; filterRow >= filterRowBackEnd; filterRow -= desc.StrideHeight, ++sourceRow ) {
-			// The temp blob stores the filter rows multiplied by source; add them to the result rows in correct positions
-			const float* tempRowData = tempRaw + ( ( batch * source.Height() + sourceRow ) * source.Width() * filter.Height() + filterRow ) * filter.Width() * filterChannels;
-			for( int col = -desc.PaddingWidth; col <= result.Width() + desc.PaddingWidth - filter.Width(); col += desc.StrideWidth ) {
-				const int toCopy = std::min( filter.Width() + std::min( 0, col ), result.Width() - std::max( 0, col ) ) * filterChannels;
-				if( toCopy > 0 ) {
-					float* resultVec = resultDataPtr + std::max( 0, col ) * filterChannels;
-					const int tempRowDataShift = std::max( 0, -col ) * filterChannels;
-					vectorAdd( resultVec, tempRowData + tempRowDataShift, resultVec, toCopy );
-				}
-				tempRowData += filter.Height() * filter.Width() * filterChannels;
-			}
-		}
+	int Move( int batchedSourceRowStart, int sourceHeightLines /*, float* tempRaw = nullptr, int sourceRowStart = 0, int batch = 0, int resultRow = 0*/ )
+	{
+		const int numItemsToAdd = std::max( 0, prevBatchedSourceRowStart + prevTempSourceHeightLines - batchedSourceRowStart );
+		sourceRowSavedStart = numItemsToAdd ? (( sourceRowSavedStart + batchedSourceRowStart - prevBatchedSourceRowStart ) % numItems ) : 0;
+		prevBatchedSourceRowStart = sourceHeightLines ? batchedSourceRowStart : prevBatchedSourceRowStart;
+		prevTempSourceHeightLines = sourceHeightLines;
+		return numItemsToAdd;
 	}
-}
-
-void CCpuMathEngine::backwardDilationConvolutionAddFilterToOutput( const CCpuConvolutionDesc& desc, const CConstFloatHandle& temp,
-	const CConstFloatHandle* freeTerm, const CFloatHandle& resultData )
-{
-	ASSERT_EXPR( desc.DilationHeight >= 1 && desc.DilationWidth >= 1 );
-	ASSERT_EXPR( desc.DilationHeight + desc.DilationWidth > 2 );
-
-	const CBlobDesc& source = desc.Result;
-	const CBlobDesc& filter = desc.Filter;
-	const CBlobDesc& result = desc.Source;
-
-	const int resultItemSize = result.Depth() * result.Channels();
-	const int resultRowSize = result.Width() * result.Depth() * result.Channels();
-
-	const int totalFilterHeight = ( filter.Height() - 1 ) * desc.DilationHeight + 1;
-	const int totalFilterWidth = ( filter.Width() - 1 ) * desc.DilationWidth + 1;
-
-	const float* tempRaw = GetRaw( temp );
-	float* resultDataRaw = GetRaw( resultData );
-
-	int resultRowStart = 0, resultRowEnd = result.ObjectCount() * result.Height();
-	OmpGetTaskIndexAndCount( result.ObjectCount() * result.Height(), resultRowStart, resultRowEnd );
-	resultRowEnd += resultRowStart;
-
-	// Separate calculations for each row
-	for( int resultRow = resultRowStart; resultRow < resultRowEnd; ++resultRow ) {
-		// Find all filters that affect the row
-		const int batch = resultRow / result.Height();
-		const int row = resultRow % result.Height();
-		float* resultDataPtr = resultDataRaw + batch * result.ObjectSize();
-		if( freeTerm != nullptr ) { // Set the free term
-			setVectorToMatrixRows( resultDataPtr + row * resultRowSize, result.Width(), resultItemSize, GetRaw( *freeTerm ) );
-		} else {
-			vectorFill0( resultDataPtr + row * resultRowSize, resultRowSize );
-		}
-		// Iterate through the filter top positions, starting to apply the filter once we intersect with the current row
-		int topPosMinVal = std::max( row - totalFilterHeight + 1, -desc.PaddingHeight );
-		int topPosMaxVal = std::min( row, result.Height() + desc.PaddingHeight - totalFilterHeight );
-		for( int topPos = topPosMinVal; topPos <= topPosMaxVal; ++topPos ) {
-			if( ( topPos + desc.PaddingHeight ) % desc.StrideHeight != 0 ) {
-				// This position couldn't have been the filter top row
-				continue;
-			}
-			if( ( row - topPos ) % desc.DilationHeight != 0 ) {
-				// The filter that starts here doesn't intersect with the current row
-				continue;
-			}
-			const int filterRow = ( row - topPos ) / desc.DilationHeight; // the current filter row
-			const int sourceVPos = ( topPos + desc.PaddingHeight ) / desc.StrideHeight;
-			int sourceHPos = 0;
-			// Iterate through the filter left positions
-			for( int leftPos = -desc.PaddingWidth; leftPos + totalFilterWidth <= result.Width() + desc.PaddingWidth; leftPos += desc.StrideWidth, ++sourceHPos ) {
-				// The pointer to the filter data at (topPos, leftPos) position
-				const float* tempData = tempRaw + ( batch * source.Height() * source.Width() + sourceVPos * source.Width() + sourceHPos ) * filter.ObjectSize();
-				// Apply the filter row starting at (topPos, leftPos) to the current row
-				for( int filterColumn = 0; filterColumn < filter.Width(); ++filterColumn ) {
-					const int resultColumn = leftPos + filterColumn * desc.DilationWidth;
-					if( 0 <= resultColumn && resultColumn < result.Width() ) {
-						float* resultVector = resultDataPtr + ( row * result.Width() + resultColumn ) * resultItemSize;
-						const float* tempVector = tempData + ( filterRow * filter.Width() + filterColumn ) * resultItemSize;
-						vectorAdd( resultVector, tempVector, resultVector, resultItemSize );
-					}
-				}
-			}
-		}
+	int GetSourceRow( int sourceRow ) const { return /*sourceRow;*/ ( sourceRow + sourceRowSavedStart ) % numItems; }
+	float* GetBufPtr( int numItemsToAdd, int sourceHeightLines )
+	{
+		auto ptr = raw + ( numItemsToAdd ? currPos : 0 ) * itemSize;
+		currPos = numItemsToAdd ? ( ( currPos + sourceHeightLines - numItemsToAdd ) % numItems ) : 0;
+		return ptr;
 	}
-}
+
+//private:
+	CFloatHandleStackVar temp;
+	float* const raw;
+	const int numItems, itemSize;
+	int currPos, prevBatchedSourceRowStart, prevTempSourceHeightLines, sourceRowSavedStart;
+};
 
 void CCpuMathEngine::blobConvolutionBackwardAlgo1( const CCpuConvolutionDesc& desc, const CConstFloatHandle& sourceData,
 	const CConstFloatHandle& filterData, const CConstFloatHandle* freeTerm, const CFloatHandle& resultData )
@@ -665,40 +582,127 @@ void CCpuMathEngine::blobConvolutionBackwardAlgo1( const CCpuConvolutionDesc& de
 
 	const int filterObjectSize = filter.ObjectSize();
 	const int sourceChannelsCount = filter.BatchWidth();
+	const int filterChannels = filter.Depth() * filter.Channels();
+	const int filterRowSize = filter.Width() * filterChannels;
+	const int resultItemSize = result.Depth() * result.Channels();
+	const int resultRowSize = result.Width() * resultItemSize;
+	const int rrBufRowSize = source.Width() * filterObjectSize;
 
 	const float* filterRaw = GetRaw( filterData );
 	const float* sourceRaw = GetRaw( sourceData );
+	float* resultRaw = GetRaw( resultData );
 
-	// The results of inverse filter application
-	const int tempHeight = source.ObjectCount() * source.Height() * source.Width();
-	CFloatHandleStackVar temp( mathEngine(), tempHeight * /*tempWidth*/filterObjectSize );
-	float* tempRaw = GetRaw( temp.GetHandle() );
+	if( desc.DilationHeight == 1 && desc.DilationWidth == 1 ) {
+		const int numLines = std::max( 1, ( filter.Height() + desc.StrideHeight - 1 ) / desc.StrideHeight );
+		CRoundRobinBuffer rrBuf( mathEngine(), numLines, rrBufRowSize );
 
-	const int curThreadCount = IsOmpRelevant( result.ObjectCount() * result.Height(),
-		static_cast<int64_t>( source.BlobSize() * filter.BlobSize() ) ) ? threadCount : 1;
+		const int resultLineStart1 = 0, resultLineEnd1 = result.ObjectCount() * result.Height();
+		for( int resultRow = resultLineStart1; resultRow < resultLineEnd1; ++resultRow ) {
+			float* resultDataPtr = resultRaw/*1*/ + resultRow * resultRowSize;
+			if( freeTerm != nullptr ) { // Set the free term
+				setVectorToMatrixRows( resultDataPtr, result.Width(), resultItemSize, GetRaw( *freeTerm ) );
+			} else {
+				vectorFill0( resultDataPtr, resultRowSize );
+			}
+			const int batch = resultRow / result.Height();
+			const int row = resultRow % result.Height();
+			const int sourceRowStart = std::max( 0, ( row + desc.PaddingHeight - filter.Height() + desc.StrideHeight ) / desc.StrideHeight );
+			const int filterRowEnd = row - sourceRowStart * desc.StrideHeight + desc.PaddingHeight;
+			if( 0 > filterRowEnd || filterRowEnd >= filter.Height() ) {
+				continue;
+			}
+			const int filterRowStart = std::max( 0, row + filter.Height() - result.Height() - desc.PaddingHeight );
+			const int batchedSourceRowStart = batch * source.Height() + sourceRowStart;
+			if( rrBuf.prevBatchedSourceRowStart < batchedSourceRowStart ) {
+				const int sourceHeightLines = std::min( source.Height() - sourceRowStart, numLines );
+				const int existedHeighLines = rrBuf.Move( batchedSourceRowStart, sourceHeightLines /*, tempRaw, sourceRowStart, batch, resultRow*/ );
+				multiplyMatrixByMatrix(
+					/*handle*/sourceRaw + ( batchedSourceRowStart + existedHeighLines ) * source.Width() * sourceChannelsCount,
+					/*height*/( sourceHeightLines - existedHeighLines ) * source.Width(), /*width*/sourceChannelsCount, /*row-size*/sourceChannelsCount,
+					/*handle*/filterRaw, /*width*/filterObjectSize, /*row-size*/filterObjectSize,
+					/*handle*/rrBuf.GetBufPtr( existedHeighLines, sourceHeightLines ), /*row-size*/filterObjectSize);
+			}
+			int sourceRow = 0;// sourceRowSavedStart;
+			for( int filterRow = filterRowEnd; filterRow >= filterRowStart; filterRow -= desc.StrideHeight, ++sourceRow) {
+				// The temp blob stores the filter rows multiplied by source; add them to the result rows in correct positions
+				const float* tempRowData = rrBuf.raw + ( rrBuf.GetSourceRow( sourceRow ) * source.Width() * filter.Height() + filterRow ) * filterRowSize;
+				for( int col = -desc.PaddingWidth; col <= result.Width() + desc.PaddingWidth - filter.Width(); col += desc.StrideWidth ) {
+					const int toCopy = std::min( filter.Width() + std::min( 0, col ), result.Width() - std::max( 0, col ) ) * filterChannels;
+					if( toCopy > 0 ) {
+						float* resultVec = resultDataPtr + std::max( 0, col ) * filterChannels;
+						const int tempRowDataShift = std::max( 0, -col ) * filterChannels;
+						vectorAdd( resultVec, tempRowData + tempRowDataShift, resultVec, toCopy );
+					}
+					tempRowData += filterObjectSize;
+				} //col
+			} //filterRow
+		} //resultRow
+	} else { //dilation
+		const int totalFilterHeight = ( filter.Height() - 1 ) * desc.DilationHeight + 1;
+		const int totalFilterWidth = ( filter.Width() - 1 ) * desc.DilationWidth + 1;
 
-	NEOML_OMP_NUM_THREADS( curThreadCount )
-	{
-		// Step 1: multiply the input and filter matrices
-		int sourceStart = 0, sourceCount = tempHeight;
-		if( OmpGetTaskIndexAndCount( tempHeight, sourceStart, sourceCount ) ) {
-			multiplyMatrixByMatrix(
-				/*handle*/sourceRaw + sourceStart * sourceChannelsCount, /*height*/sourceCount, /*width*/sourceChannelsCount, /*row-size*/sourceChannelsCount,
-				/*handle*/filterRaw, /*width*/filterObjectSize, /*row-size*/filterObjectSize,
-				/*handle*/tempRaw + sourceStart * filterObjectSize, /*row-size*/filterObjectSize );
-		}
+		const int numLines = std::max( 1, ( filter.Height() * desc.DilationHeight + desc.StrideHeight - 1 ) / desc.StrideHeight );
+		CRoundRobinBuffer rrBuf( mathEngine(), numLines, rrBufRowSize );
 
-		if( curThreadCount > 1 ) {
-			#pragma omp barrier
-		}
+		int resultRowStart = 0, resultRowEnd = result.ObjectCount() * result.Height();
+		// Separate calculations for each row
+		for( int resultRow = resultRowStart; resultRow < resultRowEnd; ++resultRow ) {
+			// Find all filters that affect the row
+			float* resultDataPtr = resultRaw/*1*/ + resultRow * resultRowSize;
+			if( freeTerm != nullptr ) { // Set the free term
+				setVectorToMatrixRows( resultDataPtr, result.Width(), resultItemSize, GetRaw( *freeTerm ) );
+			} else {
+				vectorFill0( resultDataPtr, resultRowSize );
+			}
+			const int batch = resultRow / result.Height();
+			const int row = resultRow % result.Height();
 
-		// Step 2: add the subvectors from the resulting matrix to the required positions in the output
-		if( desc.DilationHeight > 1 || desc.DilationWidth > 1 ) {
-			backwardDilationConvolutionAddFilterToOutput( desc, temp.GetHandle(), freeTerm, resultData );
-		} else {
-			backwardConvolutionAddFilterToOutput( desc, temp.GetHandle(), freeTerm, resultData );
-		}
-	}
+			const int topPosMinVal = std::max( row - totalFilterHeight + 1, -desc.PaddingHeight );
+			const int topPosMaxVal = std::min( row, result.Height() + desc.PaddingHeight - totalFilterHeight );
+
+			const int sourceRowStart = std::max( 0, ( topPosMinVal + desc.PaddingHeight ) / desc.StrideHeight );
+			const int batchedSourceRowStart = batch * source.Height() + sourceRowStart;
+			if( rrBuf.prevBatchedSourceRowStart < batchedSourceRowStart ) {
+				const int sourceHeightLines = std::min( source.Height() - sourceRowStart, numLines );
+				const int existedHeighLines = rrBuf.Move( batchedSourceRowStart, sourceHeightLines/*, tempRaw, sourceRowStart, batch, resultRow*/ );
+				multiplyMatrixByMatrix(
+					/*handle*/sourceRaw + ( batchedSourceRowStart + existedHeighLines ) * source.Width() * sourceChannelsCount,
+					/*height*/( sourceHeightLines - existedHeighLines ) * source.Width(), /*width*/sourceChannelsCount, /*row-size*/sourceChannelsCount,
+					/*handle*/filterRaw, /*width*/filterObjectSize, /*row-size*/filterObjectSize,
+					/*handle*/rrBuf.GetBufPtr( existedHeighLines, sourceHeightLines ), /*row-size*/filterObjectSize );
+			}
+
+			// Iterate through the filter top positions, starting to apply the filter once we intersect with the current row
+			for( int topPos = topPosMinVal; topPos <= topPosMaxVal; ++topPos ) {
+				if( ( topPos + desc.PaddingHeight ) % desc.StrideHeight != 0 ) {
+					// This position couldn't have been the filter top row
+					continue;
+				}
+				if( ( row - topPos ) % desc.DilationHeight != 0 ) {
+					// The filter that starts here doesn't intersect with the current row
+					continue;
+				}
+				const int filterRow = ( row - topPos ) / desc.DilationHeight; // the current filter row
+				const int sourceVPos = ( topPos + desc.PaddingHeight ) / desc.StrideHeight;
+				const int newSourceVPos = std::max( 0, sourceVPos ) - sourceRowStart;
+				int sourceHPos = 0;
+				// Iterate through the filter left positions
+				for( int leftPos = -desc.PaddingWidth; leftPos + totalFilterWidth <= result.Width() + desc.PaddingWidth; leftPos += desc.StrideWidth, ++sourceHPos ) {
+					// The pointer to the filter data at (topPos, leftPos) position
+					const float* tempData = rrBuf.raw + ( rrBuf.GetSourceRow( newSourceVPos ) * source.Width() + sourceHPos ) * filterObjectSize;
+					// Apply the filter row starting at (topPos, leftPos) to the current row
+					for( int filterColumn = 0; filterColumn < filter.Width(); ++filterColumn ) {
+						const int resultColumn = leftPos + filterColumn * desc.DilationWidth;
+						if( 0 <= resultColumn && resultColumn < result.Width() ) {
+							float* resultVector = resultDataPtr + resultColumn * resultItemSize;
+							const float* tempVector = tempData + ( filterRow * filter.Width() + filterColumn ) * resultItemSize;
+							vectorAdd( resultVector, tempVector, resultVector, resultItemSize );
+						}
+					} //filterColumn
+				} //leftPos
+			} //topPos
+		} //resultRow
+	} //else dilation
 }
 
 // Creates a temporary outputDiff blob using the #2 algorithm
