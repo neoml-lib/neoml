@@ -369,8 +369,8 @@ void CCpuMathEngine::BlobChannelwiseConvolution( const CChannelwiseConvolutionDe
 						NeoML::vectorFill(resultRow, 0, resultDesc.Width() * channels);
 					}
 
-					const int filterFirstRow = max( 0, -firstFilteredRow );
-					const int filterLastRow = min( filterDesc.Height(), sourceDesc.Height() - firstFilteredRow );
+					const int filterFirstRow = std::max( 0, -firstFilteredRow );
+					const int filterLastRow = std::min( filterDesc.Height(), sourceDesc.Height() - firstFilteredRow );
 					const float* filterRow = filter + filterFirstRow * filterRowSize;
 					const float* filterRowEnd = filter + filterLastRow * filterRowSize;
 					const float* srcRow = src + (firstFilteredRow + filterFirstRow) * inputRowSize;
@@ -380,8 +380,8 @@ void CCpuMathEngine::BlobChannelwiseConvolution( const CChannelwiseConvolutionDe
 						float* resultPos = resultRow;
 						float* resultPosEnd = resultPos + channels * resultDesc.Width();
 						for( ; resultPos < resultPosEnd; resultPos += channels, firstFilteredCol += desc.StrideWidth ) {
-							const int filterFirstCol = max( 0, -firstFilteredCol );
-							const int filterLastCol = min( filterDesc.Width(), sourceDesc.Width() - firstFilteredCol );
+							const int filterFirstCol = std::max( 0, -firstFilteredCol );
+							const int filterLastCol = std::min( filterDesc.Width(), sourceDesc.Width() - firstFilteredCol );
 							const float* filterPos = filterRow + filterFirstCol * channels;
 							const float* filterPosEnd = filterRow + filterLastCol * channels;
 							const float* srcPos = srcRow + (firstFilteredCol + filterFirstCol) * channels;
@@ -393,6 +393,225 @@ void CCpuMathEngine::BlobChannelwiseConvolution( const CChannelwiseConvolutionDe
 				}
 			}
 		}
+	}
+}
+
+void CCpuMathEngine::MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobDesc& outputDesc,
+	const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& inputHandle,
+	const CConstFloatHandle& expandFilterData, const CConstFloatHandle* expandFreeTermData,
+	const CConstFloatHandle& expandReLUThresholdData, const CConstFloatHandle& channelwiseFilterData,
+	const CConstFloatHandle* channelwiseFreeTermData, const CConstFloatHandle& channelwiseReLUThresholdData,
+	const CConstFloatHandle& downFilterData, const CConstFloatHandle* downFreeTermData, bool residual,
+	const CFloatHandle& outputHandle )
+{
+	CCpuExecutionScope scope;
+	const CCommonChannelwiseConvolutionDesc& desc = static_cast<const CCommonChannelwiseConvolutionDesc&>( convDesc );
+
+	const int cacheSize = 32 * 1024;
+	const bool isInPlace = inputHandle == outputHandle;
+	const int inputChannels = inputDesc.Channels();
+	const int expandedChannels = desc.Filter.Channels();
+	const int outputChannels = outputDesc.Channels();
+	const int inputHeight = desc.Source.Height();
+	const int inputWidth = desc.Source.Width();
+	const int chInputRowSize = expandedChannels * inputWidth;
+	const int inputRowSize = inputChannels * inputWidth;
+	const int outputHeight = desc.Result.Height();
+	const int outputWidth = desc.Result.Width();
+	const int chOutputRowSize = expandedChannels * outputWidth;
+	const int outputRowSize = outputChannels * outputWidth;
+	const int filterRowSize = desc.Filter.Channels() * desc.Filter.Width();
+	const int stride = desc.StrideHeight;
+
+	auto processFilterRow = stride == 1 ? processFilterRowStride1 : processFilterRowStride2;
+
+	const float* inputObject = GetRaw( inputHandle );
+	const float* expandFilter = GetRaw( expandFilterData );
+	const float* expandFreeTerm = expandFreeTermData == nullptr ? nullptr : GetRaw( *expandFreeTermData );
+	const float expandReLUThreshold = *GetRaw( expandReLUThresholdData );
+	const float* channelwiseFilter = GetRaw( channelwiseFilterData );
+	const float* channelwiseFreeTerm = channelwiseFreeTermData == nullptr ? nullptr : GetRaw( *channelwiseFreeTermData );
+	const float channelwiseReLUThreshold = *GetRaw( channelwiseReLUThresholdData );
+	const float* downFilter = GetRaw( downFilterData );
+	const float* downFreeTerm = downFreeTermData == nullptr ? nullptr : GetRaw( *downFreeTermData );
+
+	const int maxInputRowsPerStep = std::max<int>( 1,
+		( cacheSize / ( std::max<int>( inputChannels, expandedChannels ) * inputWidth ) ) );
+	const int maxOutputRowsPerStep = std::max<int>( 1,
+		( cacheSize / ( std::max<int>( outputChannels, expandedChannels ) * outputWidth ) ) );
+
+	// Buffer for the input rows of channelwise convolution
+	CFloatHandleStackVar chInputBuffVar( *this,
+		std::min<int>( inputHeight, maxInputRowsPerStep + 2 ) * chInputRowSize );
+	// Buffer for the output rows of channelwise convolution
+	CFloatHandleStackVar chOutputBuffVar( *this, maxOutputRowsPerStep * chOutputRowSize );
+
+	float* chInputBuff = GetRaw( chInputBuffVar.GetHandle() );
+	float* chOutputBuff = GetRaw( chOutputBuffVar.GetHandle() );
+	float* outputObject = GetRaw( outputHandle );
+
+	for( int b = 0; b < inputDesc.ObjectCount(); ++b ) {
+		const float* input = inputObject;
+		const float* residualInput = input;
+		float* output = outputObject;
+
+		int inputRowsProcessed = 0;
+		int outputRowsProcessed = 0;
+		// The channelwise input row buffer can't hold the full image
+		// That's why the buffer on each step contains [firstInputRowInBuffer, inputRowsProcessed) rows
+		int firstInputRowInBuffer = 0;
+
+		while( inputRowsProcessed < inputHeight ) {
+			// Process a bunch of rows of input image (till channelwise convolution: expandConv + expandReLU)
+			const int inputRowsThisStep = std::min<int>( maxInputRowsPerStep, inputHeight - inputRowsProcessed );
+			float* chInput = chInputBuff + ( inputRowsProcessed - firstInputRowInBuffer ) * chInputRowSize;
+
+			// Apply expand convolution
+			multiplyMatrixByTransposedMatrix( input, inputRowsThisStep * inputWidth, inputChannels, inputChannels,
+				expandFilter, expandedChannels, inputChannels, chInput, expandedChannels );
+			if( expandFreeTerm != nullptr ) {
+				addVectorToMatrixRows( chInput, chInput, inputRowsThisStep * inputWidth, expandedChannels, expandedChannels,
+					expandedChannels, expandFreeTerm );
+			}
+
+			// Apply expand ReLU
+			if( expandReLUThreshold > 0 ) {
+				vectorReLU( chInput, chInput, inputRowsThisStep * chInputRowSize, expandReLUThreshold );
+			} else {
+				vectorReLU( chInput, chInput, inputRowsThisStep * chInputRowSize );
+			}
+			inputRowsProcessed += inputRowsThisStep;
+
+			// Calculate how many output rows we can calculate with the processed input rows
+			const int outputRowsCanBeProcesed = inputRowsProcessed == inputHeight ? outputHeight
+				: ( inputRowsProcessed < 2 ? 0 : ( inputRowsProcessed - 2 ) / stride + 1 );
+
+			while( outputRowsProcessed < outputRowsCanBeProcesed ) {
+				// Process channelwise output rows (while there are any)
+				const int outputRowsThisStep = std::min<int>( maxOutputRowsPerStep,
+					outputRowsCanBeProcesed - outputRowsProcessed );
+
+				// Channelwise conv
+				{
+					float* chOutputRow = chOutputBuff;
+					int remOutputRowsThisStep = outputRowsThisStep;
+					const bool processBottomPadding = ( stride == 1 || inputHeight % 2 == 1 )
+						&& outputRowsProcessed + outputRowsThisStep == outputHeight;
+					if( processBottomPadding ) {
+						--remOutputRowsThisStep;
+					}
+
+					const float* currChInput = chInputBuff
+						+ ( outputRowsProcessed * stride - 1 - firstInputRowInBuffer ) * chInputRowSize;
+					if( outputRowsProcessed == 0 ) {
+						// Process top padding
+						if( channelwiseFreeTerm == nullptr ) {
+							vectorFill0( chOutputRow, chOutputRowSize );
+						} else {
+							fillResultRow( desc, channelwiseFreeTerm, chOutputRow );
+						}
+
+						// Omit first filter row (it's in padding)
+						// Processing second and third rows
+						processFilterRow( desc, channelwiseFilter + filterRowSize,
+							currChInput + chInputRowSize, chOutputRow );
+						// Check corner case: 1x1 input to 3x3 conv with 1x1 padding
+						if( inputHeight > 1 ) {
+							processFilterRow( desc, channelwiseFilter + 2 * filterRowSize,
+								currChInput + 2 * chInputRowSize, chOutputRow );
+						}
+						--remOutputRowsThisStep;
+						currChInput += stride * chInputRowSize;
+						chOutputRow += chOutputRowSize;
+					}
+
+					while( remOutputRowsThisStep > 0 ) {
+						if( channelwiseFreeTerm == nullptr ) {
+							vectorFill0( chOutputRow, chOutputRowSize );
+						} else {
+							fillResultRow( desc, channelwiseFreeTerm, chOutputRow );
+						}
+						// Process all 3 rows without padding checks
+						processFilterRow( desc, channelwiseFilter, currChInput, chOutputRow );
+						processFilterRow( desc, channelwiseFilter + filterRowSize,
+							currChInput + chInputRowSize, chOutputRow );
+						processFilterRow( desc, channelwiseFilter + 2 * filterRowSize,
+							currChInput + 2 * chInputRowSize, chOutputRow );
+						--remOutputRowsThisStep;
+						currChInput += stride * chInputRowSize;
+						chOutputRow += chOutputRowSize;
+					}
+
+					if( processBottomPadding ) {
+						// Process bottom padding
+						if( channelwiseFreeTerm == nullptr ) {
+							vectorFill0( chOutputRow, chOutputRowSize );
+						} else {
+							fillResultRow( desc, channelwiseFreeTerm, chOutputRow );
+						}
+						processFilterRow( desc, channelwiseFilter, currChInput, chOutputRow );
+						processFilterRow( desc, channelwiseFilter + filterRowSize,
+							currChInput + chInputRowSize, chOutputRow );
+						// Omit last filter row (it's in bottom padding)
+					}
+				}
+
+				if( channelwiseReLUThreshold > 0 ) {
+					vectorReLU( chOutputBuff, chOutputBuff, outputRowsThisStep * chOutputRowSize,
+						channelwiseReLUThreshold );
+				} else {
+					vectorReLU( chOutputBuff, chOutputBuff, outputRowsThisStep * chOutputRowSize );
+				}
+
+				if( residual && isInPlace ) {
+					// Block input and output are located in the same memory
+					// It's possible to simultaneously calculate down conv output and add the residual connection
+					multiplyMatrixByTransposedMatrixAndAdd( chOutputBuff, outputRowsThisStep * outputWidth,
+						expandedChannels, expandedChannels, downFilter, outputChannels, expandedChannels, output,
+						outputChannels );
+				} else {
+					multiplyMatrixByTransposedMatrix( chOutputBuff, outputRowsThisStep * outputWidth, expandedChannels,
+						expandedChannels, downFilter, outputChannels, expandedChannels, output, outputChannels );
+				}
+
+				if( downFreeTerm != nullptr ) {
+					addVectorToMatrixRows( output, output, outputRowsThisStep * outputWidth, outputChannels,
+						outputChannels, outputChannels, downFreeTerm );
+				}
+
+				if( residual && !isInPlace ) {
+					// Input and output are located in different memory regions
+					// Add residual connection
+					vectorAdd( output, residualInput, output, outputRowsThisStep * outputWidth * outputChannels );
+					residualInput += outputRowsThisStep * inputWidth * inputChannels;
+				}
+
+				output += outputRowsThisStep * outputRowSize;
+				outputRowsProcessed += outputRowsThisStep;
+			}
+
+			input += inputRowsThisStep * inputRowSize;
+
+			if( outputRowsProcessed < outputHeight ) {
+				const int firstInputRowNeeded = outputRowsProcessed * stride - 1;
+				if( firstInputRowNeeded > firstInputRowInBuffer ) {
+					// Buffer for channelwise input contains rows that won't be used in future
+					const int rowsToDelete = firstInputRowNeeded - firstInputRowInBuffer;
+					const int rowsToMove = inputRowsProcessed - firstInputRowNeeded;
+					if( rowsToMove > 0 ) {
+						// There are rows which should be saved between iteration over input
+						// Move them to the beginning of the buffer
+						dataCopy( chInputBuff, chInputBuff + rowsToDelete * chInputRowSize,
+							rowsToMove * chInputRowSize );
+					}
+					// Mark that channelwise input buffer now starts with a new row
+					firstInputRowInBuffer = firstInputRowNeeded;
+				}
+			}
+		}
+
+		inputObject += inputDesc.ObjectSize();
+		outputObject += outputDesc.ObjectSize();
 	}
 }
 

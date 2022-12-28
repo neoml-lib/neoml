@@ -78,7 +78,7 @@ CVulkanMathEngine::CVulkanMathEngine( std::unique_ptr<const CVulkanDevice>& _dev
 	ASSERT_EXPR( device != 0 ); // failed to create the device
 	shaderLoader = std::unique_ptr<CVulkanShaderLoader>( new CVulkanShaderLoader( *device ) );
 	commandQueue = std::unique_ptr<CVulkanCommandQueue>( new CVulkanCommandQueue( *device ) );
-	memoryLimit = min( memoryLimit == 0 ? SIZE_MAX : memoryLimit, device->AvailableMemory );
+	memoryLimit = std::min<size_t>( memoryLimit == 0 ? SIZE_MAX : memoryLimit, device->AvailableMemory );
 	memoryPool = std::unique_ptr<CMemoryPool>( new CMemoryPool( memoryLimit, this, false ) );
 	deviceStackAllocator = std::unique_ptr<CDeviceStackAllocator>( new CDeviceStackAllocator( *memoryPool, VulkanMemoryAlignment ) );
 	hostStackAllocator = std::unique_ptr<CHostStackAllocator>( new CHostStackAllocator( VulkanMemoryAlignment ) );
@@ -407,7 +407,7 @@ void CVulkanMathEngine::runVectorShader( const CVulkanShaderData& shader, const 
 {
 	int groupCountX = Ceil(count, shader.GroupSizeX);
 	int groupCountY = Ceil(groupCountX, VulkanMaxVectorXGroupCount);
-	groupCountX = min(groupCountX, VulkanMaxVectorXGroupCount);
+	groupCountX = std::min<int>(groupCountX, VulkanMaxVectorXGroupCount);
 
 	ASSERT_EXPR(shader.GroupSizeY == 1 && shader.GroupSizeZ == 1);
 

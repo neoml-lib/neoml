@@ -504,7 +504,7 @@ void CCpuMathEngine::VectorTopK(const CConstFloatHandle& firstHandle, int firstS
 		int pos = 0;
 		for( pos = 0; pos < size; pos++ ) {
 			if( *first > result[pos] ) {
-				for( int j = min(size + 1, k) - 1; j >= pos + 1; j-- ) {
+				for( int j = std::min(size + 1, k) - 1; j >= pos + 1; j-- ) {
 					result[j] = result[j - 1];
 					indices[j] = indices[j - 1];
 				}
@@ -514,7 +514,7 @@ void CCpuMathEngine::VectorTopK(const CConstFloatHandle& firstHandle, int firstS
 		if( pos < k ) {
 			result[pos] = *first;
 			indices[pos] = i;
-			size = min( size + 1, k );
+			size = std::min( size + 1, k );
 		}
 		first++;
 	}

@@ -64,7 +64,7 @@ CCpuMathEngine::CCpuMathEngine( int _threadCount, size_t _memoryLimit,
 {
 #ifdef NEOML_USE_AVX
 	if( dllLoader.IsLoaded( CDllLoader::AVX_DLL ) ) {
-		simdMathEngine = unique_ptr<ISimdMathEngine>( CDllLoader::avxDll->CreateSimdMathEngine( this, threadCount ) );
+		simdMathEngine = std::unique_ptr<ISimdMathEngine>( CDllLoader::avxDll->CreateSimdMathEngine( this, threadCount ) );
 		// Don't use custom sgemm function when we are compiled with MKL and when we are on Intel CPU.
 		if( CPUArch == CCPUInfo::TCpuArch::Intel ) {
 #ifndef NEOML_USE_MKL

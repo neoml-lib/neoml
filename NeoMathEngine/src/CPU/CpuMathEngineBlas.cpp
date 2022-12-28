@@ -109,12 +109,12 @@ inline void CCpuMathEngine::transposeMatrixImpl( int batchSize, const T* first,
 	// Transpose B x 1 x M x W x C -> B x W x M x 1 x C
 	// is equivalent to B x M x 1 x W x C -> B x W x 1 x M x C
 	if( medium != 1 && height == 1 ) {
-		swap( medium, height );
+		std::swap( medium, height );
 	}
 
 	// Same goes for W == 1 && H != 1
 	if( medium != 1 && width == 1 ) {
-		swap( medium, width );
+		std::swap( medium, width );
 	}
 
 	if( medium == 1 && ( height == 1 || width == 1 ) ) {
@@ -1292,7 +1292,7 @@ void CCpuMathEngine::BitSetBinarization( int batchSize, int bitSetSize,
 				element = ( element >> enabledBit ) >> 1;
 				offset += ( enabledBit + 1 );
 			}
-			result += min( BitsPerElement, outputVectorSize - elementIndex );
+			result += std::min( BitsPerElement, outputVectorSize - elementIndex );
 		}
 	}
 }

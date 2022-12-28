@@ -25,6 +25,8 @@ limitations under the License.
 #include <string>
 #include <memory>
 
+using namespace std;
+
 namespace NeoML {
 
 #define LOAD_VULKAN_FUNC_PROC_NAME(Type, Name, NameStr) if((Name = CDll::GetProcAddress<Type>(NameStr)) == 0) return false

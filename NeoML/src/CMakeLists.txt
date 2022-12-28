@@ -18,6 +18,7 @@ set(NeoML_SOURCES
     Dnn/DnnInitializer.cpp
     Dnn/DnnSparseMatrix.cpp
     Dnn/DnnDistributed.cpp
+    Dnn/DnnOptimization.cpp
     Dnn/Layers/3dConvLayer.cpp
     Dnn/Layers/3dPoolingLayer.cpp
     Dnn/Layers/3dTransposedConvLayer.cpp
@@ -73,6 +74,7 @@ set(NeoML_SOURCES
     Dnn/Layers/LstmLayer.cpp
     Dnn/Layers/MatrixMultiplicationLayer.cpp
     Dnn/Layers/MaxOverTimePoolingLayer.cpp
+    Dnn/Layers/MobileNetV2BlockLayer.cpp
     Dnn/Layers/ModelWrapperLayer.cpp
     Dnn/Layers/MultichannelLookupLayer.cpp
     Dnn/Layers/MultiheadAttentionLayer.cpp
@@ -226,6 +228,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/Dnn/DnnSparseMatrix.h
     ../include/NeoML/Dnn/DnnLambdaHolder.h
     ../include/NeoML/Dnn/DnnDistributed.h
+    ../include/NeoML/Dnn/DnnOptimization.h
     ../include/NeoML/Dnn/Layers/3dConvLayer.h
     ../include/NeoML/Dnn/Layers/3dPoolingLayer.h
     ../include/NeoML/Dnn/Layers/3dTransposedConvLayer.h
@@ -275,6 +278,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/Dnn/Layers/LstmLayer.h
     ../include/NeoML/Dnn/Layers/MatrixMultiplicationLayer.h
     ../include/NeoML/Dnn/Layers/MaxOverTimePoolingLayer.h
+    ../include/NeoML/Dnn/Layers/MobileNetV2BlockLayer.h
     ../include/NeoML/Dnn/Layers/ModelWrapperLayer.h
     ../include/NeoML/Dnn/Layers/MultichannelLookupLayer.h
     ../include/NeoML/Dnn/Layers/MultiheadAttentionLayer.h

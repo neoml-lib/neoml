@@ -117,10 +117,10 @@ static void channelwisePool( const float* input, float* output, int vectorCount,
 					const int padCeil = windowSize / 2;
 					const int padFloor = ( windowSize - 1 ) / 2;
 
-					const int firstC = max( 0, ch - ( isForward ? padFloor : padCeil ) );
+					const int firstC = std::max( 0, ch - ( isForward ? padFloor : padCeil ) );
 					const float* windowStart = currInput + firstC;
 
-					const int lastC = min( vectorSize - 1, ch + ( isForward ? padCeil : padFloor ) );
+					const int lastC = std::min( vectorSize - 1, ch + ( isForward ? padCeil : padFloor ) );
 					const int currWindowSize = lastC - firstC + 1;
 
 					int sseSize, nonSseSize;
@@ -169,10 +169,10 @@ static void channelwisePool( const float* input, float* output, int vectorCount,
 					const int padCeil = windowSize / 2;
 					const int padFloor = ( windowSize - 1 ) / 2;
 
-					const int firstC = max( 0, ch - ( isForward ? padFloor : padCeil ) );
+					const int firstC = std::max( 0, ch - ( isForward ? padFloor : padCeil ) );
 					const float* windowStart = currInput + firstC;
 
-					const int lastC = min( vectorSize - 1, ch + ( isForward ? padCeil : padFloor ) );
+					const int lastC = std::min( vectorSize - 1, ch + ( isForward ? padCeil : padFloor ) );
 					int nonSseSize = lastC - firstC + 1;
 					int sseSize = GetCount4( nonSseSize );
 
