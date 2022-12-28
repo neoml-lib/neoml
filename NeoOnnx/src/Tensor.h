@@ -51,6 +51,9 @@ public:
 	// Used for optimization (avoid unnecessary dynamic_cast)
 	bool IsCalculated() const { return isCalculated; }
 
+	// Returns true if tensor has no elements (shape has zero)
+	bool IsEmpty() const;
+	
 protected:
 	CTensorBase( const CTensorShape& _shape, const CTensorLayout& _layout, bool _isCalculated );
 	CTensorBase( const CTensorBase& other ) = delete;
@@ -76,6 +79,21 @@ inline CTensorBase::CTensorBase( const CTensorShape& _shape, const CTensorLayout
 {
 	_shape.CopyTo( shape );
 	NeoPresume( checkTensorLayout() );
+}
+
+inline bool CTensorBase::IsEmpty() const
+{
+	if( DimCount() == 0 ) {
+		return true;
+	}
+
+	for( int dimIndex = 0; dimIndex < DimCount(); ++dimIndex ) {
+		if( shape[dimIndex] == 0 ) {
+			return true;
+		}
+	}
+
+	return false;
 }
 
 // Checks that layout is consistent with tensor shape (for debug)
