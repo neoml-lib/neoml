@@ -32,11 +32,11 @@ CPtr<CBaseLayer> IOptimizer::GetAnyInputLayer( const CPtr<CBaseLayer>& currentLa
 }
 
 //--------------------------------------------------------------------------------------------------------------
-bool IOptimizer::IsExactLayer( const CPtr<CBaseLayer>& layer, const char* const layerClass, bool addToLayersSelected )
+bool IOptimizer::IsExactLayer( const CPtr<CBaseLayer>& layer, const char* const layerClass, bool addToSelectedLayers )
 {
 	if( layer != nullptr && layer->GetClassType() == layerClass ) {
-		if( addToLayersSelected ) {
-			AddToLayersSelected( layer );
+		if( addToSelectedLayers ) {
+			AddToSelectedLayers( layer );
 		}
 		return true;
 	}

@@ -19,8 +19,7 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-/**
- *  Layer Normalization will fuse ObjectLayerNormalization into one layer:
+/*  Layer Normalization will fuse ObjectLayerNormalization into one layer:
  *
  *  (x - mean(x, axis)) / sqrt(var(x, axis)) * scale + bias  , where 'x' is the input and var(x) = mean((x-mean)^2).
  *
@@ -67,9 +66,7 @@ namespace NeoOnnx {
  *                        |                                               ^
  *                        |                                               |
  *                        +-----------------------------------------------+
- *
  *  OR
- *
  *           +---------------------+
  *           |                     |
  *           |                     v
@@ -77,11 +74,10 @@ namespace NeoOnnx {
  *                                 |                                               ^
  *                                 |                                               |
  *                                 +-----------------------------------------------+
- *
  *  Logically since LayerNormalization supports input and scale/bias in different data types, and during the kernel execution,
  *  data are casted to float/double to calculate for precision, so if there is any Cast Ops in the sub-graph, we can remove it.
  *  Such Cast Op can be the input of the sub-graph, or an Cast Op between the Div and Mul layers.
- **/
+ */
 class CLayerNormFusionOptimizer final : public IOptimizer {
 public:
 	static const char* const classesOfSkipLayers[];

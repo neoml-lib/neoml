@@ -33,7 +33,10 @@ void CLayerNormFusionOptimizer::Apply()
 	Graph.GetLayerList( layersList );
 
 	for( int i = 0; i < layersList.Size(); ++i ) {
-		ClearLayersSelected();
+		ClearSelectedLayers();
+
+		if ( layersList[i] == nullptr )
+			continue;
 
 		CPtr<CBaseLayer> addLayerLast = Graph.GetLayer( layersList[i] );
 		if( !IsExactLayer( addLayerLast, "FmlCnnEltwiseSumLayer" ) )
@@ -112,10 +115,13 @@ void CLayerNormFusionOptimizer::Apply()
 					layerDnn->Connect(inputNum, newLayer, /*output number*/0 );
 				}
 			}
+			if( HasSelectedLayer( layerDnn ) ) {
+				layersList[ii] = nullptr;
+			}
 		}
 
-		for( int ii = 0; ii < GetLayerSelectedSize(); ++ii ) {
-			auto layer = GetLayerSelected(ii);
+		for( int ii = 0; ii < GetSelectedLayersSize(); ++ii ) {
+			auto layer = GetSelectedLayer( ii );
 			if( Graph.HasLayer( layer->GetName() ) ) {
 				Graph.DeleteLayer( *layer );
 			}
