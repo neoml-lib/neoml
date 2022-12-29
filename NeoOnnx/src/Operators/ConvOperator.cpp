@@ -81,9 +81,9 @@ void CConvOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArr
 		"groupped convolution (3d or non-channelwise)", *this );
 
 	CheckOnnxProtocol( inputs[1] != nullptr, "input can't be optional", *this );
-	CheckNeoOnnxSupport( inputs[1]->IsCalculated(), "user-provided weights", *this );
+	CheckNeoOnnxSupport( inputs[1]->Type() == TTensorType::Data, "user-provided weights", *this );
 	if( InputCount() == 3 && inputs[2] != nullptr ) {
-		CheckNeoOnnxSupport( inputs[2]->IsCalculated(), "user-provided bias", *this );
+		CheckNeoOnnxSupport( inputs[2]->Type() == TTensorType::Data, "user-provided bias", *this );
 	}
 
 	if( inputShape.Size() == 4 ) {

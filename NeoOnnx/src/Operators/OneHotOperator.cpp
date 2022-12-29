@@ -52,8 +52,8 @@ void COneHotOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorA
 {
 	CheckOnnxProtocol( inputs[0] != nullptr && inputs[1] != nullptr && inputs[2] != nullptr,
 		"inputs can't be optional", *this );
-	CheckNeoOnnxSupport( inputs[1]->IsCalculated(), "user-provided depth", *this );
-	CheckNeoOnnxSupport( inputs[2]->IsCalculated(), "user-provided values", *this );
+	CheckNeoOnnxSupport( inputs[1]->Type() == TTensorType::Data, "user-provided depth", *this );
+	CheckNeoOnnxSupport( inputs[2]->Type() == TTensorType::Data, "user-provided values", *this );
 
 	CPtr<const CUserTensor> indices = AsUserTensor( *inputs[0], Name() + "_indices", dnn );
 

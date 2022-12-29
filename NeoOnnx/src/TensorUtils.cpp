@@ -154,7 +154,7 @@ static CPtr<const CTensorBase> renameDimensions( const CTensorBase& input, const
 		return &input;
 	}
 
-	if( input.IsCalculated() ) {
+	if( input.Type() == TTensorType::Data ) {
 		CPtr<const CDnnBlob> blob = renameDimensions( *dynamic_cast<const CDataTensor&>( input ).Data(),
 			input.Shape(), outputLayout );
 		return new CDataTensor( input.Shape(), outputLayout, *blob );
@@ -207,7 +207,7 @@ static CPtr<const CTensorBase> swapDimensions( const CTensorBase& input, TBlobDi
 		outputLayout[secondDimIndex] = firstDim;
 	}
 
-	if( input.IsCalculated() ) {
+	if( input.Type() == TTensorType::Data ) {
 		CPtr<const CDnnBlob> blob = swapDimensions( *dynamic_cast<const CDataTensor&>( input ).Data(),
 			firstDim, secondDim );
 		return new CDataTensor( input.Shape(), outputLayout, *blob );
@@ -596,7 +596,7 @@ CPtr<const CTensorBase> PrepareForBroadcast( const CTensorBase& input, const CBr
 		++currDim;
 	}
 
-	if( input.IsCalculated() ) {
+	if( input.Type() == TTensorType::Data ) {
 		return new CDataTensor( outputShape, outputLayout, *dynamic_cast<const CDataTensor&>( input ).Data() );
 	}
 	return new CUserTensor( outputShape, outputLayout, dynamic_cast<const CUserTensor&>( input ).LayerOutput() );
@@ -703,7 +703,7 @@ static CPtr<const CDataTensor> broadcastDataTensor( const CDataTensor& input, co
 CPtr<const CTensorBase> BroadcastTensor( const CTensorBase& input, const CBroadcast& broadcast,
 	const CTensorShape& outputShape )
 {
-	if( input.IsCalculated() ) {
+	if( input.Type() == TTensorType::Data ) {
 		return broadcastDataTensor( dynamic_cast<const CDataTensor&>( input ), broadcast, outputShape ).Ptr();
 	}
 	return broadcastUserTensor( dynamic_cast<const CUserTensor&>( input ), broadcast, outputShape ).Ptr();
@@ -713,7 +713,7 @@ CPtr<const CTensorBase> BroadcastTensor( const CTensorBase& input, const CBroadc
 
 CPtr<const CUserTensor> AsUserTensor( const CTensorBase& tensor, const CString& layerName, CDnn& dnn )
 {
-	if( !tensor.IsCalculated() ) {
+	if( tensor.Type() == TTensorType::User ) {
 		// No conversion needed
 		return dynamic_cast<const CUserTensor*>( &tensor );
 	}

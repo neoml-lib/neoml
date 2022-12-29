@@ -115,7 +115,8 @@ void CReshapeOperator::getShape( const CTensorArray& inputs, CTensorShape& shape
 		return;
 	}
 
-	CheckNeoOnnxSupport( inputs[1] != nullptr && inputs[1]->IsCalculated(), "User-provided output shape", *this );
+	CheckNeoOnnxSupport( inputs[1] != nullptr && inputs[1]->Type() == TTensorType::Data,
+		"User-provided output shape", *this );
 	const CDnnBlob* shapeBlob = dynamic_cast<const CDataTensor*>( inputs[1].Ptr() )->Data();
 	CheckOnnxProtocol( shapeBlob->GetDataType() == CT_Int, "Non-integer shape", *this );
 	shape.SetSize( shapeBlob->GetDataSize() );

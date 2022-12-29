@@ -22,6 +22,21 @@ namespace NeoOnnx {
 // Tensor shape
 typedef CFastArray<int, 8> CTensorShape;
 
+// All tensors during Onnx processing can be divided into 2 groups:
+//
+// 1. The tensors whose data depend on the user input. These tensors can't be calculated during import.
+// In that case the tensor is an output of a layer in dnn.
+//
+// 2. The tensors whose data doesn't depend on user input.
+// These tensors' data will be calculated during import.
+// Usually these tensors contain trained weights of the model.
+enum class TTensorType {
+	User,
+	Data,
+
+	Count
+};
+
 // NeoML layer's output
 struct CLayerOutput {
 	CLayerOutput() : Layer( nullptr ), OutputIndex( NotFound ) {}
@@ -49,13 +64,13 @@ public:
 
 	// Returns true if tensor's data doesn't depend on user data and was calculated during import
 	// Used for optimization (avoid unnecessary dynamic_cast)
-	bool IsCalculated() const { return isCalculated; }
+	TTensorType Type() const { return type; }
 
 	// Returns true if tensor has no elements (shape has zero)
 	bool IsEmpty() const;
 	
 protected:
-	CTensorBase( const CTensorShape& _shape, const CTensorLayout& _layout, bool _isCalculated );
+	CTensorBase( const CTensorShape& _shape, const CTensorLayout& layout, TTensorType type );
 	CTensorBase( const CTensorBase& other ) = delete;
 	CTensorBase& operator=( const CTensorBase& other ) = delete;
 	virtual ~CTensorBase() = default;
@@ -68,14 +83,14 @@ private:
 	const CTensorLayout layout;
 
 	// Indicates whether tensor's data was calculated during import or not
-	const bool isCalculated;
+	const TTensorType type;
 
 	bool checkTensorLayout() const;
 };
 
-inline CTensorBase::CTensorBase( const CTensorShape& _shape, const CTensorLayout& _layout, bool _isCalculated ) :
-	layout( _layout ),
-	isCalculated( _isCalculated )
+inline CTensorBase::CTensorBase( const CTensorShape& _shape, const CTensorLayout& layout, TTensorType type ) :
+	layout( layout ),
+	type( type )
 {
 	_shape.CopyTo( shape );
 	NeoPresume( checkTensorLayout() );
@@ -122,15 +137,6 @@ inline bool CTensorBase::checkTensorLayout() const
 
 //---------------------------------------------------------------------------------------------------------------------
 
-// All tensors during Onnx processing can be divided into 2 groups:
-//
-// 1. The tensors whose data depend on the user input. These tensors can't be calculated during import.
-// In that case the tensor is an output of a layer in dnn.
-//
-// 2. The tensors whose data doesn't depend on user input.
-// These tensors' data will be calculated during import.
-// Usually these tensors contain trained weights of the model.
-
 // Tensor whose data depends on user input
 class CUserTensor : public CTensorBase {
 public:
@@ -147,7 +153,7 @@ private:
 };
 
 inline CUserTensor::CUserTensor( const CTensorShape& shape, const CTensorLayout& layout, const CLayerOutput& output ) :
-	CTensorBase( shape, layout, false ),
+	CTensorBase( shape, layout, TTensorType::User ),
 	layerOutput( output )
 {
 	NeoPresume( output.Layer != nullptr );
@@ -175,14 +181,14 @@ private:
 };
 
 inline CDataTensor::CDataTensor( IMathEngine& mathEngine ) :
-	CTensorBase( CTensorShape(), CTensorLayout(), true ),
+	CTensorBase( CTensorShape(), CTensorLayout(), TTensorType::Data ),
 	data( CDnnBlob::CreateVector( mathEngine, CT_Float, 1 ) )
 {
 	NeoPresume( checkTensorLayout() );
 }
 
 inline CDataTensor::CDataTensor( const CTensorShape& shape, const CTensorLayout& layout, const CDnnBlob& _data ) :
-	CTensorBase( shape, layout, true ),
+	CTensorBase( shape, layout, TTensorType::Data ),
 	data( &_data )
 {
 	NeoPresume( checkTensorLayout() );

@@ -71,9 +71,9 @@ void CConvTransposeOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, C
 	const CTensorShape& inputShape = inputs[0]->Shape();
 	CheckNeoOnnxSupport( inputShape.Size() == 4, "non-2d convTranspose", *this );
 	CheckOnnxProtocol( inputs[1] != nullptr, "input can't be optional", *this );
-	CheckNeoOnnxSupport( inputs[1]->IsCalculated(), "user-provided weights", *this );
+	CheckNeoOnnxSupport( inputs[1]->Type() == TTensorType::Data, "user-provided weights", *this );
 	if( InputCount() == 3 && inputs[2] != nullptr ) {
-		CheckNeoOnnxSupport( inputs[2]->IsCalculated(), "user-provided bias", *this );
+		CheckNeoOnnxSupport( inputs[2]->Type() == TTensorType::Data, "user-provided bias", *this );
 	}
 
 	CTensorShape kernelShape;

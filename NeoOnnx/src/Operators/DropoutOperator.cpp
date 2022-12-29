@@ -73,7 +73,7 @@ float CDropoutOperator::getRatio( const CTensorArray& inputs ) const
 	}
 
 	// Extracting data from input
-	CheckNeoOnnxSupport( inputs[1]->IsCalculated(), "User-provided ratio", *this );
+	CheckNeoOnnxSupport( inputs[1]->Type() == TTensorType::Data, "User-provided ratio", *this );
 	return dynamic_cast<const CDataTensor*>( inputs[1].Ptr() )->Data()->GetData().GetValue();
 }
 

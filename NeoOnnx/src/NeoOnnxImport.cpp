@@ -157,7 +157,7 @@ static void buildDnnFromGraphProto( const onnx::GraphProto& onnxGraph, int opset
 		CheckOnnxProtocol( tensors.Has( output.Name() ), "output tensor is missing" );
 		CPtr<const CTensorBase> baseTensor = tensors[output.Name()];
 		CheckNeoOnnxSupport( baseTensor != nullptr, "output tensor can't be calculated" );
-		if( baseTensor->IsCalculated() ) {
+		if( baseTensor->Type() == TTensorType::Data ) {
 			// All of the operations for this output were calculated during import
 			// Converting the blob to the output layout and add it to CDataLayer
 			baseTensor = ConvertTensor( *baseTensor, CTensorLayout::IOLayout( baseTensor->DimCount() ) );
@@ -167,7 +167,7 @@ static void buildDnnFromGraphProto( const onnx::GraphProto& onnxGraph, int opset
 			dataLayer->SetBlob( dynamic_cast< const CDataTensor& >( *baseTensor ).Data()->GetCopy() );
 			baseTensor = new CUserTensor( baseTensor->Shape(), baseTensor->Layout(), CLayerOutput( dataLayer.Ptr(), 0));
 		}
-		NeoAssert( !baseTensor->IsCalculated() );
+		NeoAssert( baseTensor->Type() == TTensorType::User );
 		CPtr<const CSinkLayer> sink;
 		if( settings.OutputLayouts.Has( output.Name() ) ) {
 			sink = output.AddSinkLayer( dynamic_cast<const CUserTensor&>( *baseTensor ),

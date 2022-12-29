@@ -228,7 +228,8 @@ void CPowOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArra
 	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
 
 	CheckOnnxProtocol( inputs[1] != nullptr, "input can't be optional", *this );
-	CheckNeoOnnxSupport( inputs[1]->IsCalculated(), "user-provided power of the exponent", *this );
+	CheckNeoOnnxSupport( inputs[1]->Type() == TTensorType::Data,
+		"user-provided power of the exponent", *this );
 	CPtr<const CDnnBlob> powerValue = dynamic_cast<const CDataTensor*>( inputs[1].Ptr() )->Data();
 	CheckNeoOnnxSupport( powerValue->GetDataSize() == 1, "non-scalar power of the exponent", *this );
 	CheckNeoOnnxSupport( powerValue->GetDataType() == CT_Float, "non-float power of the exponent", *this );

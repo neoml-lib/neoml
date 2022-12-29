@@ -40,7 +40,7 @@ void CCumSumOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorA
 	CheckOnnxProtocol( inputs[0] != nullptr && inputs[1] != nullptr, "inputs can't be optional", *this );
 	CPtr<const CUserTensor> input = AsUserTensor( *inputs[0], Name() + "_Source", dnn );
 
-	CheckNeoOnnxSupport( inputs[1]->IsCalculated(), "user-provided axis", *this );
+	CheckNeoOnnxSupport( inputs[1]->Type() == TTensorType::Data, "user-provided axis", *this );
 	const CDnnBlob* axisBlob = dynamic_cast<const CDataTensor*>( inputs[1].Ptr() )->Data();
 	CheckOnnxProtocol( axisBlob->GetDataSize() == 1, "wrong size of axis tensor", *this );
 	CheckOnnxProtocol( axisBlob->GetDataType() == CT_Int, "wrong data type of axis tensor", *this );

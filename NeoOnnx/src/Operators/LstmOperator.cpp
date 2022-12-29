@@ -50,7 +50,7 @@ void CLstmOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArr
 
 	CPtr<CDnnBlob> bias = nullptr;
 	if( InputCount() > 3 && inputs[3] != nullptr ) {
-		CheckNeoOnnxSupport( inputs[3]->IsCalculated(), "User-provided bias", *this );
+		CheckNeoOnnxSupport( inputs[3]->Type() == TTensorType::Data, "User-provided bias", *this );
 		bias = dynamic_cast<const CDataTensor*>( inputs[3].Ptr() )->Data()->GetCopy();
 	}
 
@@ -68,7 +68,8 @@ void CLstmOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArr
 	CPtr<CLstmLayer> lstmLayer = new CLstmLayer( mathEngine );
 	lstmLayer->SetName( Name() );
 
-	CheckNeoOnnxSupport( inputs[1] != nullptr && inputs[1]->IsCalculated(), "User-provided weight", *this );
+	CheckNeoOnnxSupport( inputs[1] != nullptr && inputs[1]->Type() == TTensorType::Data,
+		"User-provided weight", *this );
 	CPtr<CDnnBlob> weights = dynamic_cast<const CDataTensor*>( inputs[1].Ptr() )->Data()->GetCopy();
 
 	const int inputObjectSize = inputs[1]->Shape()[2];
@@ -79,7 +80,8 @@ void CLstmOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArr
 	weights->ReinterpretDimensions( blobDesc );
 	blobDesc.SetDimSize( BD_Channels, hiddenSize );
 	
-	CheckNeoOnnxSupport( inputs[2] != nullptr && inputs[2]->IsCalculated(), "User-provided recurrent weight", *this );
+	CheckNeoOnnxSupport( inputs[2] != nullptr && inputs[2]->Type() == TTensorType::Data,
+		"User-provided recurrent weight", *this );
 	CPtr<CDnnBlob> recurWeights = dynamic_cast<const CDataTensor*>( inputs[2].Ptr() )->Data()->GetCopy();
 	recurWeights->ReinterpretDimensions( blobDesc );
 

@@ -24,7 +24,7 @@ namespace NeoOnnx {
 static bool hasUserInputs( const CTensorArray& inputs )
 {
 	for( int inputIndex = 0; inputIndex < inputs.Size(); ++inputIndex ) {
-		if( inputs[inputIndex] != nullptr && !inputs[inputIndex]->IsCalculated() ) {
+		if( inputs[inputIndex] != nullptr && inputs[inputIndex]->Type() == TTensorType::User ) {
 			return true;
 		}
 	}
@@ -40,7 +40,7 @@ static void addInternalDnnSinks( const CTensorArray& internalOutputs,
 	IMathEngine& mathEngine = internalDnn.GetMathEngine();
 
 	for( int outputIndex = 0; outputIndex < internalOutputs.Size(); ++outputIndex ) {
-		if( internalOutputs[outputIndex] == nullptr || internalOutputs[outputIndex]->IsCalculated() ) {
+		if( internalOutputs[outputIndex] == nullptr || internalOutputs[outputIndex]->Type() == TTensorType::Data ) {
 			sinks.Add( nullptr );
 		} else {
 			CPtr<CSinkLayer> sink = new CSinkLayer( mathEngine );
@@ -58,7 +58,7 @@ static void extractOutputs( const CTensorArray& internalOutputs, const CArray<CS
 	CTensorArray& outputs )
 {
 	for( int outputIndex = 0; outputIndex < internalOutputs.Size(); ++outputIndex ) {
-		if( internalOutputs[outputIndex] != nullptr && internalOutputs[outputIndex]->IsCalculated() ) {
+		if( internalOutputs[outputIndex] != nullptr && internalOutputs[outputIndex]->Type() == TTensorType::Data ) {
 			// This data was calculated prior to the net
 			outputs.Add( internalOutputs[outputIndex] );
 		} else if( sinks[outputIndex] != nullptr ) {

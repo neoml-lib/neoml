@@ -116,8 +116,8 @@ void CInstanceNormalizationOperator::AddLayers( const CTensorArray& inputs, CDnn
 	CheckOnnxProtocol( inputs[1] != nullptr, "scale can't be optional", *this );
 	CheckOnnxProtocol( inputs[2] != nullptr, "B can't be optional", *this );
 
-	CheckNeoOnnxSupport( inputs[1]->IsCalculated(), "User-provided scale", *this );
-	CheckNeoOnnxSupport( inputs[2]->IsCalculated(), "User-provided B", *this );
+	CheckNeoOnnxSupport( inputs[1]->Type() == TTensorType::Data, "User-provided scale", *this );
+	CheckNeoOnnxSupport( inputs[2]->Type() == TTensorType::Data, "User-provided B", *this );
 	CheckNeoOnnxSupport( inputs[0]->DimCount() < 6, "6+ dimensional input", *this );
 
 	CPtr<const CUserTensor> currInput = AsUserTensor( *inputs[0], Name() + "_Source", dnn );

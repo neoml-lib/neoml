@@ -86,7 +86,7 @@ int CSplitOperator::getAxis( const CTensorBase& firstInput ) const
 void CSplitOperator::getSplits( const CTensorArray& inputs, int axis, CArray<int>& splits ) const
 {
 	if( inputs.Size() > 1 && inputs[1] != nullptr ) {
-		CheckNeoOnnxSupport( inputs[1]->IsCalculated(), "User-provided 'split'", *this );
+		CheckNeoOnnxSupport( inputs[1]->Type() == TTensorType::Data, "User-provided 'split'", *this );
 		const CDnnBlob* blob = dynamic_cast<const CDataTensor&>( *inputs[1] ).Data();
 		CheckNeoOnnxSupport( blob->GetDataType() == CT_Int, "Non-integer 'split' values", *this );
 		splits.SetSize( blob->GetDataSize() );

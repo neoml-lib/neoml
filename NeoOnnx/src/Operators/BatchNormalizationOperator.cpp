@@ -126,9 +126,11 @@ void CBatchNormalizationOperator::AddLayers( const CTensorArray& inputs, CDnn& d
 	const int batchNormReqInputCount = 5;
 	for( int inputIndex = 1; inputIndex < batchNormReqInputCount; ++inputIndex ) {
 		CheckOnnxProtocol( inputs[inputIndex] != nullptr, "input can't be optional", *this );
-		CheckNeoOnnxSupport( inputs[inputIndex]->IsCalculated(), "non-constant weights", *this );
+		CheckNeoOnnxSupport( inputs[inputIndex]->Type() == TTensorType::Data,
+			"non-constant weights", *this );
 		CheckOnnxProtocol( inputs[inputIndex]->DimCount() == 1, "weights must be 1-dimensional", *this );
-		CheckOnnxProtocol( inputs[inputIndex]->Shape()[0] == channels, "weights must have 'channels' length", *this );
+		CheckOnnxProtocol( inputs[inputIndex]->Shape()[0] == channels,
+			"weights must have 'channels' length", *this );
 	}
 
 	CPtr<CBatchNormalizationLayer> bnLayer = new CBatchNormalizationLayer( dnn.GetMathEngine() );

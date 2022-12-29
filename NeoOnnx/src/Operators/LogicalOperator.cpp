@@ -54,7 +54,7 @@ void CLessOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArr
 		layer->Connect( 1, firstName, firstOutput );
 	}
 	if( Type() == "LessOrEqual" || Type() == "GreaterOrEqual" ) {
-		NeoAssert( !outputs[0]->IsCalculated() );
+		NeoAssert( outputs[0]->Type() == TTensorType::User );
 		CPtr<const CUserTensor> currOutput = dynamic_cast<const CUserTensor*>( outputs[0].Ptr() );
 		CNotLayer* notLayer = Not()( Name() + "_PostNot", CDnnLayerLink( currOutput->Layer(), currOutput->OutputIndex() ) );
 		outputs[0] = new CUserTensor( currOutput->Shape(), currOutput->Layout(), CLayerOutput( notLayer, 0 ) );

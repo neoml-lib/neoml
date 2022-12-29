@@ -71,7 +71,7 @@ CNonZeroOperator::CNonZeroOperator( const onnx::NodeProto& nonZero, int opsetVer
 void CNonZeroOperator::ProcessTensors( const CTensorArray& inputs, CDnn& /* dnn */, CTensorArray& outputs ) const
 {
 	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
-	CheckNeoOnnxSupport( inputs[0]->IsCalculated(), "user-provided input", *this );
+	CheckNeoOnnxSupport( inputs[0]->Type() == TTensorType::Data, "user-provided input", *this );
 
 	CPtr<const CDataTensor> currInput = dynamic_cast<const CDataTensor*>( inputs[0].Ptr() );
 	if( IsTransposedLayout( currInput->Layout() ) ) {

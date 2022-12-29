@@ -74,7 +74,7 @@ void CSliceOperator::getAxes( const CTensorArray& inputs, CFastArray<int, 8>& ax
 		// Successfully extracted from the attribute
 		return;
 	} else if( OpsetVersion >= 10 && inputs.Size() >= 4 && inputs[3] != nullptr ) {
-		CheckNeoOnnxSupport( inputs[3]->IsCalculated(), "User-provided axes", *this );
+		CheckNeoOnnxSupport( inputs[3]->Type() == TTensorType::Data, "User-provided axes", *this );
 		const CDnnBlob* axesBlob = dynamic_cast<const CDataTensor*>( inputs[3].Ptr() )->Data();
 		CheckOnnxProtocol( axesBlob->GetDataType() == CT_Int, "Non-integer axes", *this );
 		axes.SetSize( axesBlob->GetDataSize() );
@@ -95,7 +95,8 @@ void CSliceOperator::getStarts( const CTensorArray& inputs, CFastArray<int, 8>& 
 		// Extracting from attributes
 		CheckOnnxProtocol( GetAttribute( "starts", starts ), "'starts' attribute is missing", *this );
 	} else {
-		CheckNeoOnnxSupport( inputs[1] != nullptr && inputs[1]->IsCalculated(), "User-provided starts", *this );
+		CheckNeoOnnxSupport( inputs[1] != nullptr && inputs[1]->Type() == TTensorType::Data,
+			"User-provided starts", *this );
 		const CDnnBlob* startsBlob = dynamic_cast<const CDataTensor*>( inputs[1].Ptr() )->Data();
 		CheckOnnxProtocol( startsBlob->GetDataType() == CT_Int, "Non-integer starts", *this );
 		starts.SetSize( startsBlob->GetDataSize() );
@@ -110,7 +111,8 @@ void CSliceOperator::getEnds( const CTensorArray& inputs, CFastArray<int, 8>& en
 		// Extracting from attributes
 		CheckOnnxProtocol( GetAttribute( "ends", ends ), "'ends' attribute is missing", *this );
 	} else {
-		CheckNeoOnnxSupport( inputs[2] != nullptr && inputs[2]->IsCalculated(), "User-provided ends", *this );
+		CheckNeoOnnxSupport( inputs[2] != nullptr && inputs[2]->Type() == TTensorType::Data,
+			"User-provided ends", *this );
 		const CDnnBlob* endsBlob = dynamic_cast<const CDataTensor*>( inputs[2].Ptr() )->Data();
 		CheckOnnxProtocol( endsBlob->GetDataType() == CT_Int, "Non-integer ends", *this );
 		ends.SetSize( endsBlob->GetDataSize() );
@@ -128,7 +130,7 @@ void CSliceOperator::getSteps( const CTensorArray& inputs, CFastArray<int, 8>& s
 		return;
 	} else if( OpsetVersion >= 10 && inputs.Size() >= 5 && inputs[4] != nullptr ) {
 		// Extracting from the input
-		CheckNeoOnnxSupport( inputs[4]->IsCalculated(), "User-provided steps", *this );
+		CheckNeoOnnxSupport( inputs[4]->Type() == TTensorType::Data, "User-provided steps", *this );
 		const CDnnBlob* stepsBlob = dynamic_cast<const CDataTensor*>( inputs[4].Ptr() )->Data();
 		CheckOnnxProtocol( stepsBlob->GetDataType() == CT_Int, "Non-integer steps", *this );
 		steps.SetSize( stepsBlob->GetDataSize() );

@@ -145,7 +145,8 @@ TInterpolationRound CResizeOperator::getInterpolationRound() const
 void CResizeOperator::getScales( const CTensorArray& inputs, CFastArray<float, 8>& scales ) const
 {
 	const int scalesInputIndex = OpsetVersion == 10 ? 1 : 2;
-	CheckNeoOnnxSupport( inputs[scalesInputIndex]->IsCalculated(), "User-provided scales", *this );
+	CheckNeoOnnxSupport( inputs[scalesInputIndex]->Type() == TTensorType::Data,
+		"User-provided scales", *this );
 	const CDnnBlob& scalesBlob = *( dynamic_cast<const CDataTensor*>( inputs[scalesInputIndex].Ptr() )->Data() );
 	CheckOnnxProtocol( scalesBlob.GetDataType() == CT_Float, "scales are not float", *this );
 	scales.SetSize( scalesBlob.GetDataSize() );
@@ -156,7 +157,8 @@ void CResizeOperator::getSizes( const CTensorArray& inputs, CFastArray<int, 8>& 
 {
 	NeoAssert( OpsetVersion > 10 );
 	const int sizesInputIndex = 3;
-	CheckNeoOnnxSupport( inputs[sizesInputIndex]->IsCalculated(), "User-provided sizes", *this );
+	CheckNeoOnnxSupport( inputs[sizesInputIndex]->Type() == TTensorType::Data,
+		"User-provided sizes", *this );
 	const CDnnBlob& sizesBlob = *( dynamic_cast<const CDataTensor*>( inputs[sizesInputIndex].Ptr() )->Data() );
 	CheckOnnxProtocol( sizesBlob.GetDataType() == CT_Int, "sizes are not integer", *this );
 	sizes.SetSize( sizesBlob.GetDataSize() );

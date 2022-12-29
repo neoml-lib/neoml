@@ -84,7 +84,7 @@ void CRangeOperator::ProcessTensors( const CTensorArray& inputs, CDnn& /* dnn */
 	inputBlobs.SetBufferSize( ROI_Count );
 	for( int i = 0; i < ROI_Count; ++i ) {
 		CheckOnnxProtocol( inputs[i] != nullptr, "input can't be optional", *this );
-		CheckNeoOnnxSupport( inputs[i]->IsCalculated(), "user-provided input", *this );
+		CheckNeoOnnxSupport( inputs[i]->Type() == TTensorType::Data, "user-provided input", *this );
 		inputBlobs.Add( dynamic_cast<const CDataTensor*>( inputs[i].Ptr() )->Data() );
 		CheckOnnxProtocol( inputBlobs[i]->GetDataSize() == 1, "input must be a scalar", *this );
 	}

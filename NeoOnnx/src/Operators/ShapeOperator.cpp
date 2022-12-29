@@ -47,7 +47,7 @@ void CShapeOperator::ProcessTensors( const CTensorArray& inputs, CDnn& dnn, CTen
 	outputBlob->CopyFrom( inputShape.GetPtr() );
 	outputs.Add( new CDataTensor( { inputShape.Size() }, outputLayout, *outputBlob ) );
 
-	if( !inputs[0]->IsCalculated() ) {
+	if( inputs[0]->Type() == TTensorType::User ) {
 		// If input is a CUserTensor then there is a chance that this CUserTensor will lead to hanging layer output
 		// Connect CSinkLayer to avoid this problem
 		// TODO: find a way to detect such cases and remove all the unnecessary preceding layers instead of adding sink

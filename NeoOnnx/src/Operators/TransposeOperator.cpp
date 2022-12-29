@@ -62,7 +62,8 @@ void CTransposeOperator::AddLayers( const CTensorArray& inputs, CDnn& /* dnn */,
 		outputShape.Add( inputShape[perm[i]] );
 	}
 
-	if( inputs[0]->IsCalculated() ) {
+	static_assert( static_cast<int>( TTensorType::Count ) == 2, "TTensorType::Count != 2" );
+	if( inputs[0]->Type() == TTensorType::Data ) {
 		outputs.Add( new CDataTensor( outputShape, outputLayout,
 			*dynamic_cast<const CDataTensor*>( inputs[0].Ptr() )->Data() ) );
 	} else {

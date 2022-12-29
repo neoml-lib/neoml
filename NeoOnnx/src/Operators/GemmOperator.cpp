@@ -70,14 +70,14 @@ void CGemmOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArr
 		inputObjectSize *= inputShape[i];
 	}
 
-	CheckNeoOnnxSupport( inputs[1]->IsCalculated(), "user-provided weights", *this );
+	CheckNeoOnnxSupport( inputs[1]->Type() == TTensorType::Data, "user-provided weights", *this );
 	const CTensorShape& matrixShape = inputs[1]->Shape();
 	CheckOnnxProtocol( matrixShape.Size() == 2, "weights must be 2-dimensional", *this );
 	CheckOnnxProtocol( matrixShape[transB == 0 ? 0 : 1] == inputObjectSize, "wrong weight size", *this );
 	const int numberOfElements = matrixShape[transB == 0 ? 1 : 0];
 
 	if( InputCount() == 3 ) {
-		CheckNeoOnnxSupport( inputs[2]->IsCalculated(), "user-provided bias", *this );
+		CheckNeoOnnxSupport( inputs[2]->Type() == TTensorType::Data, "user-provided bias", *this );
 		const CTensorShape& biasShape = inputs[2]->Shape();
 		CheckOnnxProtocol( biasShape.Size() == 1, "bias must be 1-dimensional", *this );
 		CheckOnnxProtocol( biasShape[0] == numberOfElements, "wrong bias size", *this );

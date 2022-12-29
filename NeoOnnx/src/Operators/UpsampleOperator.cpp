@@ -88,7 +88,7 @@ void CUpsampleOperator::getScales( const CTensorArray& inputs, CFastArray<float,
 		CheckOnnxProtocol( GetAttribute( "scales", scales ), "scales attribute is missing", *this );
 	} else {
 		CheckOnnxProtocol( inputs[1] != nullptr, "scales can't be optional", *this );
-		CheckNeoOnnxSupport( inputs[1]->IsCalculated(), "user-provided scales", *this );
+		CheckNeoOnnxSupport( inputs[1]->Type() == TTensorType::Data, "user-provided scales", *this );
 		const CDnnBlob& scalesBlob = *( dynamic_cast<const CDataTensor*>( inputs[1].Ptr() )->Data() );
 		CheckOnnxProtocol( scalesBlob.GetDataType() == CT_Float, "non-float scales", *this );
 		scales.SetSize( scalesBlob.GetDataSize() );
