@@ -594,6 +594,40 @@ void CCpuMathEngine::blobConvolutionBackwardAlgo1( const CCpuConvolutionDesc& de
 	const float* sourceRaw = GetRaw( sourceData );
 	float* resultRaw = GetRaw( resultData );
 
+	if( filter.Height() == 1 && desc.DilationHeight == 1 && desc.DilationWidth == 1
+		&& desc.PaddingWidth == 0 && ( desc.PaddingHeight == 0 || source.ObjectCount() == 1 )
+		&& desc.StrideHeight == 1 && ( result.Width() / desc.StrideWidth == filter.Width() * source.Width() ) )
+	{
+		const int sourceHeight = source.ObjectCount() * ( source.Height() - 2 * desc.PaddingHeight );
+		const int resultHeight = result.ObjectCount() * result.Height();
+
+		ASSERT_EXPR( resultHeight == sourceHeight );
+
+		const int curThreadCount = IsOmpRelevant( result.ObjectCount() * result.Height(),
+			static_cast<int64_t>( source.BlobSize() * filter.BlobSize() ) ) ? threadCount : 1;
+
+		NEOML_OMP_NUM_THREADS( curThreadCount )
+		{
+			int resultStart = 0, resultCount = resultHeight;
+			if( OmpGetTaskIndexAndCount( resultHeight, resultStart, resultCount ) ) {
+				for( int resultLine = resultStart; resultLine < resultStart + resultCount; ++resultLine ) {
+					float* resultDataPtr = resultRaw + resultLine * resultRowSize;
+					if( freeTerm != nullptr ) { // Set the free term
+						setVectorToMatrixRows( resultDataPtr, result.Width(), resultItemSize, GetRaw( *freeTerm ) );
+					} else {
+						vectorFill0( resultDataPtr, resultRowSize );
+					}
+				}
+				multiplyMatrixByMatrixAndAdd(
+					/*handle*/sourceRaw + ( resultStart + desc.PaddingHeight ) * source.Width() * sourceChannelsCount,
+					/*height*/resultCount * source.Width(), /*width*/ sourceChannelsCount, /*row-size*/sourceChannelsCount,
+					/*handle*/filterRaw, /*width*/filterObjectSize, /*row-size*/filterObjectSize,
+					/*handle*/resultRaw + resultStart * resultRowSize, /*row-size*/filterObjectSize );
+			}
+		}
+		return;
+	}
+
 	const int curThreadCount = 1; // IsOmpRelevant( result.ObjectCount()* result.Height(),
 	//	static_cast<int64_t>( source.BlobSize() * filter.BlobSize() ) ) ? threadCount : 1;
 
