@@ -46,6 +46,10 @@ public:
 
 	// Accessors
 
+	// Raw pointer access
+	int* Ptr() { return data.GetPtr(); }
+	const int* Ptr() const { return data.GetPtr(); }
+
 	// Raw flat accessor
 	// Does not support negative indices nor broadcasting
 	int& operator[]( int x );
