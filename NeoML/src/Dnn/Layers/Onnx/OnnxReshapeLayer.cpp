@@ -27,7 +27,8 @@ void COnnxReshapeLayer::Serialize( CArchive& archive )
 {
 	archive.SerializeVersion( OnnxReshapeLayerVersion );
 	CBaseLayer::Serialize( archive );
-	tensorLayout.Serialize( archive );
+	inputLayout.Serialize( archive );
+	outputLayout.Serialize( archive );
 }
 
 void COnnxReshapeLayer::Reshape()
@@ -39,12 +40,34 @@ void COnnxReshapeLayer::Reshape()
 	CheckArchitecture( shapeProvider->GetoutputShapeTensors().IsValidIndex( GetInputOutputNumber( 1 ) ), GetPath(),
 		"Wrong input number" );
 	const CShapeTensor& newShape = shapeProvider->GetoutputShapeTensors()[GetInputOutputNumber( 1 )];
-	CheckArchitecture( newShape.ElementCount() == tensorLayout.Size(), GetPath(), "Dimension number mismatch" );
+	CheckArchitecture( newShape.ElementCount() == outputLayout.Size(), GetPath(), "Dimension number mismatch" );
 
+	int remIndex = NotFound;
+	int remSize = inputDescs[0].BlobSize();
 	outputDescs[0] = CBlobDesc( inputDescs[0].GetDataType() );
-	for( int dimIndex = 0; dimIndex < tensorLayout.Size(); ++dimIndex ) {
-		outputDescs[0].SetDimSize( tensorLayout[dimIndex], newShape[dimIndex] );
+	for( int dimIndex = 0; dimIndex < outputLayout.Size(); ++dimIndex ) {
+		if( newShape[dimIndex] == -1 ) {
+			CheckArchitecture( remIndex == NotFound, GetPath(), "Two remainders" );
+			remIndex = dimIndex;
+		} else if( newShape[dimIndex] == 0 ) {
+			CheckArchitecture( dimIndex < inputLayout.Size(), GetPath(),
+				"Attempt to save the dimension of missing input axis" );
+			outputDescs[0].SetDimSize( outputLayout[dimIndex],
+				inputDescs[0].DimSize( inputLayout[dimIndex] ) );
+		} else {
+			CheckArchitecture( newShape[dimIndex] > 0, GetPath(), "Negative axis size");
+			outputDescs[0].SetDimSize( outputLayout[dimIndex], newShape[dimIndex] );
+		}
+		remSize /= outputDescs[0].DimSize( outputLayout[dimIndex] );
 	}
+
+	if( remIndex != NotFound ) {
+		CheckArchitecture( remSize > 0, GetPath(), "Output remainder isn't positive" );
+		outputDescs[0].SetDimSize( outputLayout[remIndex], remSize );
+		remSize = 1;
+	}
+
+	CheckArchitecture( remSize == 1, GetPath(), "Reshape didn't cover all of the data" );
 }
 
 void COnnxReshapeLayer::RunOnce()

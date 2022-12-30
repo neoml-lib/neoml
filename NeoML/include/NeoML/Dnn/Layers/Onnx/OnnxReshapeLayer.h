@@ -30,8 +30,10 @@ public:
 	// Onnx tensor layout
 	// Its size determines the rank of the tensor
 	// TensorLayout()[i] contains the blob dimension which contains i'th dimension of Onnx tensor
-	const CFastArray<TBlobDim, 8>& TensorLayout() const { return tensorLayout; }
-	CFastArray<TBlobDim, 8>& TensorLayout() { return tensorLayout; }
+	const CFastArray<TBlobDim, 8>& InputLayout() const { return inputLayout; }
+	CFastArray<TBlobDim, 8>& InputLayout() { return inputLayout; }
+	const CFastArray<TBlobDim, 8>& OutputLayout() const { return outputLayout; }
+	CFastArray<TBlobDim, 8>& OutputLayout() { return outputLayout; }
 
 	void Serialize( CArchive& archive );
 
@@ -41,7 +43,8 @@ protected:
 	void BackwardOnce() override { NeoAssert( false ); }
 
 private:
-	CFastArray<TBlobDim, 8> tensorLayout;
+	CFastArray<TBlobDim, 8> inputLayout;
+	CFastArray<TBlobDim, 8> outputLayout;
 };
 
 } // namespace NeoML
