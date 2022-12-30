@@ -43,6 +43,7 @@ CDropoutOperator::CDropoutOperator( const onnx::NodeProto& dropout, int opsetVer
 
 void CDropoutOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
+	CheckNoShapeInputs( inputs );
 	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
 	CPtr<const CUserTensor> userInput = AsUserTensor( *inputs[0], Name() + "_Source", dnn );
 
@@ -52,7 +53,7 @@ void CDropoutOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensor
 	dropout->Connect( 0, *userInput->Layer(), userInput->OutputIndex() );
 	dnn.AddLayer( *dropout );
 
-	outputs.Add( new CUserTensor( userInput->Shape(), userInput->Layout(), CLayerOutput( dropout, 0 ) ) );
+	outputs.Add( new CUserTensor( userInput->Layout(), CLayerOutput( dropout, 0 ) ) );
 	if( OutputCount() == 2 ) {
 		// neoml::CDropoutLayer doesn't support mask as output
 		outputs.Add( nullptr );

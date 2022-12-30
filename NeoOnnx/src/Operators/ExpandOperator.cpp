@@ -16,6 +16,8 @@ limitations under the License.
 #include "../common.h"
 #pragma hdrstop
 
+#ifdef TODO
+
 #include "onnx.pb.h"
 
 #include "ExpandOperator.h"
@@ -34,7 +36,8 @@ CExpandOperator::CExpandOperator( const onnx::NodeProto& expand, int opsetVersio
 
 void CExpandOperator::AddLayers( const CTensorArray& inputs, CDnn& /* dnn */, CTensorArray& outputs ) const
 {
-	CheckOnnxProtocol( inputs[0] != nullptr && inputs[1] != nullptr, "inputs can't be optional", *this );
+	CheckNoNullInputs( inputs );
+	CheckNoShapeInputs( inputs );
 	CheckNeoOnnxSupport( inputs[1]->Type() == TTensorType::Data, "user-provided shape", *this );
 
 	const CDnnBlob* shapeBlob = dynamic_cast<const CDataTensor&>( *inputs[1] ).Data();
@@ -56,3 +59,5 @@ void CExpandOperator::AddLayers( const CTensorArray& inputs, CDnn& /* dnn */, CT
 }
 
 } // namespace NeoOnnx
+
+#endif

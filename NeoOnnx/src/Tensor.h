@@ -32,6 +32,7 @@ typedef CFastArray<int, 8> CTensorShape;
 // Usually these tensors contain trained weights of the model.
 enum class TTensorType {
 	User,
+	Shape,
 	Data,
 
 	Count
@@ -52,11 +53,7 @@ struct CLayerOutput {
 class CTensorBase : public virtual IObject {
 public:
 	// Number of tensors dimensions
-	int DimCount() const { return shape.Size(); }
-
-	// Tensor's shape
-	// The shape always describes Onnx axes
-	const CTensorShape& Shape() const { return shape; }
+	int DimCount() const { return layout.Size(); }
 
 	// Tensor's layout
 	// Contains info about how the tensor is represented in memory
@@ -66,19 +63,13 @@ public:
 	// Used for optimization (avoid unnecessary dynamic_cast)
 	TTensorType Type() const { return type; }
 
-	// Returns true if tensor has no elements (shape has zero)
-	bool IsEmpty() const;
-	
 protected:
-	CTensorBase( const CTensorShape& _shape, const CTensorLayout& layout, TTensorType type );
+	CTensorBase( const CTensorLayout& layout, TTensorType type );
 	CTensorBase( const CTensorBase& other ) = delete;
 	CTensorBase& operator=( const CTensorBase& other ) = delete;
 	virtual ~CTensorBase() = default;
 
 private:
-	// Tensor's shape. Always on Onnx order
-	CTensorShape shape;
-
 	// Information about how tensor is represented in memory
 	const CTensorLayout layout;
 
@@ -88,38 +79,18 @@ private:
 	bool checkTensorLayout() const;
 };
 
-inline CTensorBase::CTensorBase( const CTensorShape& _shape, const CTensorLayout& layout, TTensorType type ) :
+inline CTensorBase::CTensorBase( const CTensorLayout& layout, TTensorType type ) :
 	layout( layout ),
 	type( type )
 {
-	_shape.CopyTo( shape );
 	NeoPresume( checkTensorLayout() );
 }
 
-inline bool CTensorBase::IsEmpty() const
-{
-	if( DimCount() == 0 ) {
-		return true;
-	}
-
-	for( int dimIndex = 0; dimIndex < DimCount(); ++dimIndex ) {
-		if( shape[dimIndex] == 0 ) {
-			return true;
-		}
-	}
-
-	return false;
-}
-
-// Checks that layout is consistent with tensor shape (for debug)
+// Checks that layout is consistent (for debug)
 // Returns false if inconsistency was found
 inline bool CTensorBase::checkTensorLayout() const
 {
 	const CTensorLayout& layout = Layout();
-
-	if( layout.Size() != Shape().Size() ) {
-		return false;
-	}
 
 	// Check that every dimension is valid and used only once
 	int mask = 0;
@@ -140,7 +111,7 @@ inline bool CTensorBase::checkTensorLayout() const
 // Tensor whose data depends on user input
 class CUserTensor : public CTensorBase {
 public:
-	CUserTensor( const CTensorShape& shape, const CTensorLayout& layout, const CLayerOutput& output );
+	CUserTensor( const CTensorLayout& layout, const CLayerOutput& output );
 
 	// Information about corresponding layer and its' output index
 	const CLayerOutput& LayerOutput() const { return layerOutput; }
@@ -152,10 +123,40 @@ private:
 	const CLayerOutput layerOutput;
 };
 
-inline CUserTensor::CUserTensor( const CTensorShape& shape, const CTensorLayout& layout, const CLayerOutput& output ) :
-	CTensorBase( shape, layout, TTensorType::User ),
+inline CUserTensor::CUserTensor( const CTensorLayout& layout, const CLayerOutput& output ) :
+	CTensorBase( layout, TTensorType::User ),
 	layerOutput( output )
 {
+	NeoPresume( output.Layer != nullptr );
+	NeoPresume( output.Layer->GetDnn() != nullptr );
+	NeoPresume( output.OutputIndex >= 0 );
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
+class CShapeTensor : public CTensorBase {
+public:
+	explicit CShapeTensor( const CTensorShape& shape, const CLayerOutput& output );
+
+	const CTensorShape& Shape() const { return shape; }
+
+	// Information about corresponding layer and its' output index
+	const CLayerOutput& LayerOutput() const { return layerOutput; }
+	CBaseLayer* Layer() const { return layerOutput.Layer; }
+	int OutputIndex() const { return layerOutput.OutputIndex; }
+
+private:
+	// The shape of this tensor (!!!not the shape contained in tensor!!!)
+	CTensorShape shape;
+	// Information about corresponding layer and its' output index
+	const CLayerOutput layerOutput;
+};
+
+inline CShapeTensor::CShapeTensor( const CTensorShape& _shape, const CLayerOutput& output ) :
+	CTensorBase( CTensorLayout::IOLayout( _shape.Size() ), TTensorType::Shape ),
+	layerOutput( output )
+{
+	_shape.CopyTo( shape );
 	NeoPresume( output.Layer != nullptr );
 	NeoPresume( output.Layer->GetDnn() != nullptr );
 	NeoPresume( output.OutputIndex >= 0 );
@@ -167,11 +168,14 @@ inline CUserTensor::CUserTensor( const CTensorShape& shape, const CTensorLayout&
 class CDataTensor : public CTensorBase {
 public:
 	explicit CDataTensor( IMathEngine& mathEngine );
-	CDataTensor( const CTensorShape& shape, const CTensorLayout& layout, const CDnnBlob& data );
+	CDataTensor( const CTensorLayout& layout, const CDnnBlob& data );
 
 	// Blob with data
 	// Data ordering depends on CTensorBase::GetLayout
 	const CDnnBlob* Data() const { return data.Ptr(); }
+
+	// Returns the size of i'th ONNX dimension
+	int DimSize( int index ) const { return data->DimSize( Layout()[index] ); }
 
 private:
 	// Blob with data
@@ -181,14 +185,14 @@ private:
 };
 
 inline CDataTensor::CDataTensor( IMathEngine& mathEngine ) :
-	CTensorBase( CTensorShape(), CTensorLayout(), TTensorType::Data ),
+	CTensorBase( CTensorLayout(), TTensorType::Data ),
 	data( CDnnBlob::CreateVector( mathEngine, CT_Float, 1 ) )
 {
 	NeoPresume( checkTensorLayout() );
 }
 
-inline CDataTensor::CDataTensor( const CTensorShape& shape, const CTensorLayout& layout, const CDnnBlob& _data ) :
-	CTensorBase( shape, layout, TTensorType::Data ),
+inline CDataTensor::CDataTensor( const CTensorLayout& layout, const CDnnBlob& _data ) :
+	CTensorBase( layout, TTensorType::Data ),
 	data( &_data )
 {
 	NeoPresume( checkTensorLayout() );
@@ -202,8 +206,6 @@ inline bool CDataTensor::checkTensorLayout() const
 	for( TBlobDim i = BD_BatchLength; i < BD_Count; ++i ) {
 		const int index = Layout().Find( i );
 		if( index == NotFound && data->DimSize( i ) != 1 ) {
-			return false;
-		} else if( index != NotFound && Shape()[index] != data->DimSize( i ) ) {
 			return false;
 		}
 	}

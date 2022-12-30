@@ -19,6 +19,8 @@ limitations under the License.
 #include "ReshapeOperator.h"
 #include "NeoOnnxCheck.h"
 #include "TensorUtils.h"
+#include <NeoML/Dnn/Layers/Onnx/OnnxReshapeLayer.h>
+#include <NeoML/Dnn/Layers/Onnx/SourceReshaper.h>
 
 #include "onnx.pb.h"
 
@@ -41,86 +43,60 @@ CReshapeOperator::CReshapeOperator( const onnx::NodeProto& reshape, int opsetVer
 
 void CReshapeOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
-	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
-
-	CTensorShape outputShape;
-	getShape( inputs, outputShape );
+	CheckNoNullInputs( inputs );
 
 	// In order to process tensors correctly reshape is not allowed in transposed layouts
 	CPtr<const CUserTensor> input = AsUserTensor( *inputs[0], Name() + "_InputSource", dnn );
 	if( IsTransposedLayout( input->Layout() ) ) {
 		input = ConvertTensor( *input, CTensorLayout( input->DimCount() ) );
 	}
-	const CTensorShape& inputShape = input->Shape();
 
-	CPtr<CTransformLayer> transform = new CTransformLayer( dnn.GetMathEngine() );
-	transform->SetName( Name() );
+	CPtr<const CShapeTensor> newShape = getShape( inputs, dnn );
+	CheckNeoOnnxSupport( newShape->DimCount() == 1, "shape must have 1 dimension", *this );
+	
+	CTensorLayout outputLayout( newShape->Shape()[0] );
+	CPtr<COnnxReshapeLayer> reshapeLayer = new COnnxReshapeLayer( dnn.GetMathEngine() );
+	reshapeLayer->SetName( Name() );
+	input->Layout().CopyTo( reshapeLayer->InputLayout() );
+	outputLayout.CopyTo( reshapeLayer->OutputLayout() );
+	reshapeLayer->Connect( 0, *input->Layer(), input->OutputIndex() );
+	reshapeLayer->Connect( 1, *newShape->Layer(), newShape->OutputIndex() );
+	dnn.AddLayer( *reshapeLayer );
 
-	int tensorSize = 1;
-	for( int i = 0; i < inputShape.Size(); ++i ) {
-		tensorSize *= inputs[0]->Shape()[i];
-	}
-
-	int remainder = tensorSize;
-	int remainderIndex = NotFound;
-	CTensorLayout outputLayout( outputShape.Size() );
-	for( int dimIndex = 0; dimIndex < outputShape.Size(); ++dimIndex ) {
-		CTransformLayer::CDimensionRule rule;
-		if( outputShape[dimIndex] > 0 ) {
-			rule = CTransformLayer::CDimensionRule( CTransformLayer::O_SetSize, outputShape[dimIndex] );
-			remainder /= outputShape[dimIndex];
-		} else if( outputShape[dimIndex] == 0 ) {
-			rule = CTransformLayer::CDimensionRule( CTransformLayer::O_Multiply, 1 );
-			outputShape[dimIndex] = inputShape[dimIndex];
-			remainder /= outputShape[dimIndex];
-		} else if( outputShape[dimIndex] == -1 ) {
-			rule = CTransformLayer::CDimensionRule( CTransformLayer::O_Remainder, outputShape[dimIndex] );
-			remainderIndex = dimIndex;
-		} else {
-			CheckOnnxProtocol( false, "Wrong shape value", *this );
-		}
-		transform->SetDimensionRule( outputLayout[dimIndex], rule );
-	}
-
-	if( remainderIndex != NotFound ) {
-		outputShape[remainderIndex] = remainder;
-	} else {
-		// In order to be more friendly to dynamic axes let's try to set one of the dims of size 1 as a remainder
-		for( int dimIndex = 0; dimIndex < outputShape.Size(); ++dimIndex ) {
-			if( outputShape[dimIndex] == 1 ) {
-				transform->SetDimensionRule( outputLayout[dimIndex],
-					CTransformLayer::CDimensionRule( CTransformLayer::O_Remainder, 1 ) );
-				break;
-			}
-		}
-	}
-
-	for( TBlobDim dim = BD_BatchLength; dim < BD_Count; ++dim ) {
-		if( outputLayout.Find( dim ) == NotFound ) {
-			transform->SetDimensionRule( dim, CTransformLayer::CDimensionRule( CTransformLayer::O_SetSize, 1 ) );
-		}
-	}
-
-	transform->Connect( 0, *input->Layer(), input->OutputIndex() );
-	dnn.AddLayer( *transform );
-
-	outputs.Add( new CUserTensor( outputShape, outputLayout, CLayerOutput( transform, 0 ) ) );
+	outputs.Add( new CUserTensor( outputLayout, CLayerOutput( reshapeLayer.Ptr(), 0)));
 }
 
 // Gets output shape
-void CReshapeOperator::getShape( const CTensorArray& inputs, CTensorShape& shape ) const
+CPtr<const CShapeTensor> CReshapeOperator::getShape( const CTensorArray& inputs, CDnn& dnn ) const
 {
 	if( OpsetVersion < 5 ) {
-		CheckOnnxProtocol( GetAttribute( "shape", shape ), "'shape' attribute is missing", *this );
-		return;
+		CTensorShape shapeArray;
+		CheckOnnxProtocol( GetAttribute( "shape", shapeArray ), "'shape' attribute is missing", *this );
+		CPtr<CSourceReshaper> source = new CSourceReshaper( dnn.GetMathEngine() );
+		source->SetName( Name() + "_ShapeSource" );
+		source->Tensor().Resize( { shapeArray.Size() } );
+		for( int i = 0; i < shapeArray.Size(); ++i ) {
+			source->Tensor()[i] = shapeArray[i];
+		}
+		dnn.AddLayer( *source );
+		return new CShapeTensor( { shapeArray.Size() }, CLayerOutput( source.Ptr(), 0 ) );
 	}
 
-	CheckNeoOnnxSupport( inputs[1] != nullptr && inputs[1]->Type() == TTensorType::Data,
+	CheckNeoOnnxSupport( inputs[1] != nullptr && inputs[1]->Type() != TTensorType::User,
 		"User-provided output shape", *this );
+
+	if( inputs[1]->Type() == TTensorType::Shape ) {
+		return CheckCast<const CShapeTensor>( inputs[1] );
+	}
+
 	const CDnnBlob* shapeBlob = dynamic_cast<const CDataTensor*>( inputs[1].Ptr() )->Data();
 	CheckOnnxProtocol( shapeBlob->GetDataType() == CT_Int, "Non-integer shape", *this );
-	shape.SetSize( shapeBlob->GetDataSize() );
-	shapeBlob->CopyTo( shape.GetPtr() );
+	CPtr<CSourceReshaper> source = new CSourceReshaper( dnn.GetMathEngine() );
+	source->SetName( Name() + "_ShapeSource" );
+	source->Tensor().Resize( { shapeBlob->GetDataSize() } );
+	shapeBlob->CopyTo( source->Tensor().Ptr() );
+	dnn.AddLayer( *source );
+	return new CShapeTensor( { shapeBlob->GetDataSize() }, CLayerOutput( source.Ptr(), 0 ) );
 }
 
 } // namespace NeoOnnx

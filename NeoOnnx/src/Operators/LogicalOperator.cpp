@@ -32,11 +32,12 @@ CNotOperator::CNotOperator( const onnx::NodeProto& notNode, int opsetVersion ) :
 
 void CNotOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
-	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
+	CheckNoNullInputs( inputs );
+	CheckNoShapeInputs( inputs );
 	CPtr<const CUserTensor> input = AsUserTensor( *inputs[0], Name() + "_Source", dnn );
 
 	CNotLayer* notLayer = Not()( Name(), CDnnLayerLink( input->Layer(), input->OutputIndex() ) );
-	outputs.Add( new CUserTensor( input->Shape(), input->Layout(), CLayerOutput( notLayer, 0 ) ) );
+	outputs.Add( new CUserTensor( input->Layout(), CLayerOutput( notLayer, 0 ) ) );
 }
 
 // --------------------------------------------------------------------------------------------------------------------
@@ -57,7 +58,7 @@ void CLessOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArr
 		NeoAssert( outputs[0]->Type() == TTensorType::User );
 		CPtr<const CUserTensor> currOutput = dynamic_cast<const CUserTensor*>( outputs[0].Ptr() );
 		CNotLayer* notLayer = Not()( Name() + "_PostNot", CDnnLayerLink( currOutput->Layer(), currOutput->OutputIndex() ) );
-		outputs[0] = new CUserTensor( currOutput->Shape(), currOutput->Layout(), CLayerOutput( notLayer, 0 ) );
+		outputs[0] = new CUserTensor( currOutput->Layout(), CLayerOutput( notLayer, 0 ) );
 	}
 }
 

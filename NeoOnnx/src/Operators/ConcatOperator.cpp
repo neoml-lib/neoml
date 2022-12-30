@@ -38,6 +38,8 @@ CConcatOperator::CConcatOperator( const onnx::NodeProto& concat, int opsetVersio
 
 void CConcatOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
+	CheckNoShapeInputs( inputs );
+
 	int firstInput = NotFound;
 	int inputCount = 0;
 	for( int i = 0; i < inputs.Size(); ++i ) {
@@ -75,10 +77,6 @@ void CConcatOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorA
 	CPtr<CBaseLayer> concat = createLayer( inputLayout[axis], dnn.GetMathEngine() );
 	concat->SetName( Name() );
 
-	CTensorShape outputShape;
-	inputs[firstInput]->Shape().CopyTo( outputShape );
-	outputShape[axis] = 0;
-
 	int connectionIndex = 0;
 	for( int inputIndex = 0; inputIndex < inputs.Size(); ++inputIndex ) {
 		if( inputs[inputIndex] == nullptr ) {
@@ -87,12 +85,11 @@ void CConcatOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorA
 		CPtr<const CUserTensor> preparedInput = AsUserTensor( *ConvertTensor( *inputs[inputIndex], inputLayout ),
 			Name() + "_Source" + Str( inputIndex ), dnn );
 		concat->Connect( connectionIndex++, *preparedInput->Layer(), preparedInput->OutputIndex() );
-		outputShape[axis] += inputs[inputIndex]->Shape()[axis];
 	}
 
 	dnn.AddLayer( *concat );
 
-	outputs.Add( new CUserTensor( outputShape, inputLayout, CLayerOutput( concat, 0 ) ) );
+	outputs.Add( new CUserTensor( inputLayout, CLayerOutput( concat, 0 ) ) );
 }
 
 // Creates corresponding CConcat*Layer

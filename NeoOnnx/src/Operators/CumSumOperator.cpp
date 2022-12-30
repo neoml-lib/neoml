@@ -37,7 +37,9 @@ CCumSumOperator::CCumSumOperator( const onnx::NodeProto& cumSum, int opsetVersio
 
 void CCumSumOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
-	CheckOnnxProtocol( inputs[0] != nullptr && inputs[1] != nullptr, "inputs can't be optional", *this );
+	CheckNoNullInputs( inputs );
+	CheckNoShapeInputs( inputs );
+
 	CPtr<const CUserTensor> input = AsUserTensor( *inputs[0], Name() + "_Source", dnn );
 
 	CheckNeoOnnxSupport( inputs[1]->Type() == TTensorType::Data, "user-provided axis", *this );
@@ -55,7 +57,7 @@ void CCumSumOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorA
 
 	CCumSumLayer* cumSum = CumSum( inputs[0]->Layout()[axis], reverse != 0 )
 		( Name(), CDnnLayerLink( input->Layer(), input->OutputIndex() ) );
-	outputs.Add( new CUserTensor( input->Shape(), input->Layout(), CLayerOutput( cumSum, 0 ) ) );
+	outputs.Add( new CUserTensor( input->Layout(), CLayerOutput( cumSum, 0 ) ) );
 }
 
 } // namespace NeoOnnx

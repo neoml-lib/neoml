@@ -64,7 +64,7 @@ CPtr<const CUserTensor> CGraphInput::AddSourceLayer( CDnn& dnn, const CTensorLay
 	source->SetBlob( inputBlob );
 
 	dnn.AddLayer( *source );
-	return new CUserTensor( outputShape, outputLayout, CLayerOutput( source, 0 ) );
+	return new CUserTensor( outputLayout, CLayerOutput( source, 0 ) );
 }
 
 } // namespace NeoOnnx

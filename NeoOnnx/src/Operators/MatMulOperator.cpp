@@ -16,6 +16,8 @@ limitations under the License.
 #include "../common.h"
 #pragma hdrstop
 
+#ifdef TODO
+
 #include "MatMulOperator.h"
 #include "NeoOnnxCheck.h"
 #include "TensorUtils.h"
@@ -64,7 +66,8 @@ CMatMulOperator::CMatMulOperator( const onnx::NodeProto& matMul, int opsetVersio
 
 void CMatMulOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
-	CheckOnnxProtocol( inputs[0] != nullptr && inputs[1] != nullptr, "input can't be optional", *this );
+	CheckNoNullInputs( inputs );
+	CheckNoShapeInputs( inputs );
 
 	// NeoML doesn't support batch broadcast of the first argument in matrix multiplication
 	const int firstBatch = getBatchSize( *inputs[0] );
@@ -208,3 +211,5 @@ CPtr<const CUserTensor> CMatMulOperator::prepareTensor( const CTensorBase& tenso
 }
 
 } // namespace NeoOnnx
+
+#endif

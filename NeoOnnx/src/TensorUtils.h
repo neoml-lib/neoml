@@ -192,7 +192,7 @@ bool BroadcastTensorShape( const CTensorShape& first, const CTensorShape& second
 CPtr<const CTensorBase> PrepareForBroadcast( const CTensorBase& input, const CBroadcast& broadcast, int outputDims );
 
 // Broadcasts the given tensor to the given outputShape according to given broadcast
-CPtr<const CTensorBase> BroadcastTensor( const CTensorBase& input, const CBroadcast& broadcast, const CTensorShape& outputShape );
+// CPtr<const CTensorBase> BroadcastTensor( const CTensorBase& input, const CBroadcast& broadcast, const CTensorShape& outputShape );
 
 //---------------------------------------------------------------------------------------------------------------------
 

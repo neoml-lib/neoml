@@ -16,6 +16,8 @@ limitations under the License.
 #include "../common.h"
 #pragma hdrstop
 
+#ifdef TODO
+
 #include "SliceOperator.h"
 #include "LayerUtils.h"
 #include "NeoOnnxCheck.h"
@@ -68,8 +70,6 @@ void CSliceOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorAr
 // Fills array with axes, affected by slice
 void CSliceOperator::getAxes( const CTensorArray& inputs, CFastArray<int, 8>& axes ) const
 {
-	const CTensorShape& inputShape = inputs[0]->Shape();
-
 	if( OpsetVersion < 10 && GetAttribute( "axes", axes ) ) {
 		// Successfully extracted from the attribute
 		return;
@@ -81,8 +81,8 @@ void CSliceOperator::getAxes( const CTensorArray& inputs, CFastArray<int, 8>& ax
 		axesBlob->CopyTo( axes.GetPtr() );
 	} else {
 		// Fill with default value
-		axes.SetBufferSize( inputShape.Size() );
-		for( int i = 0; i < inputShape.Size(); ++i ) {
+		axes.SetBufferSize( inputs[0]->DimCount() );
+		for( int i = 0; i < inputs[0]->DimCount(); ++i ) {
 			axes.Add( i );
 		}
 	}
@@ -123,8 +123,6 @@ void CSliceOperator::getEnds( const CTensorArray& inputs, CFastArray<int, 8>& en
 // Fills array with slice steps
 void CSliceOperator::getSteps( const CTensorArray& inputs, CFastArray<int, 8>& steps ) const
 {
-	const CTensorShape& inputShape = inputs[0]->Shape();
-
 	if( OpsetVersion < 10 && GetAttribute( "steps", steps ) ) {
 		// Successfully extracted from the attribute
 		return;
@@ -137,8 +135,8 @@ void CSliceOperator::getSteps( const CTensorArray& inputs, CFastArray<int, 8>& s
 		stepsBlob->CopyTo( steps.GetPtr() );
 	} else {
 		// Fill with default value
-		steps.SetBufferSize( inputShape.Size() );
-		steps.Add( 1, inputShape.Size() );
+		steps.SetBufferSize( inputs[0]->DimCount );
+		steps.Add( 1, inputs[0]->DimCount );
 	}
 }
 
@@ -209,10 +207,9 @@ CPtr<const CTensorBase> CSliceOperator::sliceAxis( const CTensorBase& input, int
 	split->Connect( 0, *userInput->Layer(), userInput->OutputIndex() );
 	dnn.AddLayer( *split );
 	
-	CTensorShape outputShape;
-	userInput->Shape().CopyTo( outputShape );
-	outputShape[axis] = end - start;
-	return new CUserTensor( outputShape, userInput->Layout(), CLayerOutput( split, outputIndex ) );
+	return new CUserTensor( userInput->Layout(), CLayerOutput( split, outputIndex ) );
 }
 
 } // namespace NeoOnnx
+
+#endif

@@ -31,23 +31,24 @@ CGlobalPoolOperatorBase::CGlobalPoolOperatorBase( TPoolType _poolType, const onn
 	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
 }
 
-void CGlobalPoolOperatorBase::PoolAxes( const CTensorShape& inputShape, CFastArray<int, 8>& axes ) const
+void CGlobalPoolOperatorBase::PoolAxes( int inputDimCount, CFastArray<int, 8>& axes ) const
 {
 	// Global pooling interpret tensor as (B x C x D0 x D1 x .. x DN)
 	// Where D0 ... DN are pooled dimensions
-	CheckOnnxProtocol( inputShape.Size() >= 2, "Global pool input must be at least 2-dimensional", *this );
-	axes.SetBufferSize( inputShape.Size() - 2 );
-	for( int i = 2; i < inputShape.Size(); ++i ) {
+	CheckOnnxProtocol( inputDimCount >= 2, "Global pool input must be at least 2-dimensional", *this );
+	axes.SetBufferSize( inputDimCount - 2 );
+	for( int i = 2; i < inputDimCount; ++i ) {
 		axes.Add( i );
 	}
 }
 
 void CGlobalPoolOperatorBase::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
-	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
+	CheckNoNullInputs( inputs );
+	CheckNoShapeInputs( inputs );
 
 	CFastArray<int, 8> axes;
-	PoolAxes( inputs[0]->Shape(), axes );
+	PoolAxes( inputs[0]->DimCount(), axes );
 
 	CPtr<const CUserTensor> curr = AsUserTensor( *inputs[0], Name() + "_Source", dnn );
 	curr = prepareInput( *curr, axes, dnn );
@@ -72,7 +73,7 @@ CPtr<const CUserTensor> CGlobalPoolOperatorBase::prepareInput( const CUserTensor
 		linear->SetMultiplier( -1 );
 		linear->Connect( 0, *result->Layer(), result->OutputIndex() );
 		dnn.AddLayer( *linear );
-		result = new CUserTensor( result->Shape(), result->Layout(), CLayerOutput( linear, 0 ) );
+		result = new CUserTensor( result->Layout(), CLayerOutput( linear, 0 ) );
 	} else if( poolType == PT_L2 ) {
 		// L2Pool = Sqrt(SumPool(x^2))
 		CPtr<CPowerLayer> sqare = new CPowerLayer( dnn.GetMathEngine() );
@@ -80,7 +81,7 @@ CPtr<const CUserTensor> CGlobalPoolOperatorBase::prepareInput( const CUserTensor
 		sqare->SetExponent( 2.f );
 		sqare->Connect( 0, *result->Layer(), result->OutputIndex() );
 		dnn.AddLayer( *sqare );
-		result = new CUserTensor( result->Shape(), result->Layout(), CLayerOutput( sqare, 0 ) );
+		result = new CUserTensor( result->Layout(), CLayerOutput( sqare, 0 ) );
 	}
 
 	return result;
@@ -111,21 +112,18 @@ static bool isCompatibleLayout( const CTensorLayout& layout, const CFastArray<in
 CPtr<const CUserTensor> CGlobalPoolOperatorBase::convertInputLayout( const CUserTensor& input,
 	const CFastArray<int, 8>& axes ) const
 {
-	const CTensorShape& inputShape = input.Shape();
 	const CTensorLayout& inputLayout = input.Layout();
 
 	// Non-trivial dims to be pooled
 	CFastArray<int, 8> pooledDims;
 	// Non-trivial dims not to be pooled
 	CFastArray<int, 8> remainingDims;
-	int axeIndex = 0;
-	for( int dimIndex = 0; dimIndex < inputShape.Size(); ++dimIndex ) {
-		if( axeIndex < axes.Size() && dimIndex == axes[axeIndex] ) {
-			if( inputShape[dimIndex] > 1 ) {
-				pooledDims.Add( dimIndex );
-			}
-			axeIndex++;
-		} else if( inputShape[dimIndex] > 1 ) {
+	int axisIndex = 0;
+	for( int dimIndex = 0; dimIndex < input.DimCount(); ++dimIndex ) {
+		if( axisIndex < axes.Size() && dimIndex == axes[axisIndex] ) {
+			pooledDims.Add( dimIndex );
+			axisIndex++;
+		} else {
 			remainingDims.Add( dimIndex );
 		}
 	}
@@ -137,7 +135,7 @@ CPtr<const CUserTensor> CGlobalPoolOperatorBase::convertInputLayout( const CUser
 	}
 
 	CTensorLayout convertedLayout;
-	convertedLayout.Add( BD_Count, inputShape.Size() );
+	convertedLayout.Add( BD_Count, input.DimCount() );
 
 	// Distribute dimensions which can be pooled between non-trivial pooled dims
 	for( int i = 0; i < pooledDims.Size(); ++i ) {
@@ -194,31 +192,7 @@ CPtr<const CUserTensor> CGlobalPoolOperatorBase::addPoolingLayer( const CUserTen
 	pooling->Connect( 0, *preparedInput.Layer(), preparedInput.OutputIndex() );
 	dnn.AddLayer( *pooling );
 
-	CTensorShape outputShape;
-	calcOutputShape( preparedInput.Shape(), axes, outputShape );
-
-	return new CUserTensor( outputShape, calcOutputLayout( preparedInput.Layout(), axes ), CLayerOutput( pooling, 0 ) );
-}
-
-// Calculate this operator's output shape
-void CGlobalPoolOperatorBase::calcOutputShape( const CTensorShape& inputShape, const CFastArray<int, 8>& axes, CTensorShape& outputShape ) const
-{
-	const bool keepDims = KeepDims();
-
-	outputShape.DeleteAll();
-	outputShape.SetBufferSize( keepDims ? inputShape.Size() : inputShape.Size() - axes.Size() );
-
-	int axeIndex = 0;
-	for( int dimIndex = 0; dimIndex < inputShape.Size(); ++dimIndex ) {
-		if( axeIndex < axes.Size() && dimIndex == axes[axeIndex] ) {
-			if( keepDims ) {
-				outputShape.Add( 1 );
-			}
-			axeIndex++;
-		} else {
-			outputShape.Add( inputShape[dimIndex] );
-		}
-	}
+	return new CUserTensor( calcOutputLayout( preparedInput.Layout(), axes ), CLayerOutput( pooling, 0 ) );
 }
 
 // Calculate this operator's output shape
@@ -255,7 +229,7 @@ CPtr<const CUserTensor> CGlobalPoolOperatorBase::addPostProcessing( const CUserT
 		linear->SetMultiplier( -1 );
 		linear->Connect( 0, *layerOutput.Layer(), layerOutput.OutputIndex() );
 		dnn.AddLayer( *linear );
-		return new CUserTensor( layerOutput.Shape(), layerOutput.Layout(), CLayerOutput( linear, 0 ) );
+		return new CUserTensor( layerOutput.Layout(), CLayerOutput( linear, 0 ) );
 	} else if( poolType == PT_L2 ) {
 		// L2Pool( x ) = Sqrt( SumPool( x^2 ) )
 		CPtr<CPowerLayer> power = new CPowerLayer( dnn.GetMathEngine() );
@@ -263,7 +237,7 @@ CPtr<const CUserTensor> CGlobalPoolOperatorBase::addPostProcessing( const CUserT
 		power->SetExponent( 0.5f );
 		power->Connect( 0, *layerOutput.Layer(), layerOutput.OutputIndex() );
 		dnn.AddLayer( *power );
-		return new CUserTensor( layerOutput.Shape(), layerOutput.Layout(), CLayerOutput( power, 0 ) );
+		return new CUserTensor( layerOutput.Layout(), CLayerOutput( power, 0 ) );
 	}
 
 	return &layerOutput;
@@ -279,14 +253,14 @@ bool CReducePoolOperatorBase::KeepDims() const
 	return keepDims != 0;
 }
 
-void CReducePoolOperatorBase::PoolAxes( const CTensorShape& inputShape, CFastArray<int, 8>& axes ) const
+void CReducePoolOperatorBase::PoolAxes( int inputDimCount, CFastArray<int, 8>& axes ) const
 {
 	GetAttribute( "axes", axes );
 
 	// If axes attribute is missing then all dimensions must be pooled
 	if( axes.IsEmpty() ) {
-		axes.SetBufferSize( inputShape.Size() );
-		for( int i = 0; i < inputShape.Size(); ++i ) {
+		axes.SetBufferSize( inputDimCount );
+		for( int i = 0; i < inputDimCount; ++i ) {
 			axes.Add( i );
 		}
 		return;
@@ -294,7 +268,7 @@ void CReducePoolOperatorBase::PoolAxes( const CTensorShape& inputShape, CFastArr
 
 	for( int i = 0; i < axes.Size(); ++i ) {
 		if( axes[i] < 0 ) {
-			axes[i] += inputShape.Size();
+			axes[i] += inputDimCount;
 		}
 	}
 

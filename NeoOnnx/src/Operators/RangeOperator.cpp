@@ -58,7 +58,7 @@ static CPtr<const CDataTensor> generateRange( const CObjectArray<const CDnnBlob>
 		// ONNX doesn't clarify what to do in this case
 		// But tensor without shape is considered to be a scalar
 		// That's why return start value
-		return new CDataTensor( {}, {}, *inputBlobs[ROI_Start] );
+		return new CDataTensor( {}, *inputBlobs[ROI_Start] );
 	}
 
 	TBlobType blobType = CBlobType<T>::GetType();
@@ -73,17 +73,18 @@ static CPtr<const CDataTensor> generateRange( const CObjectArray<const CDnnBlob>
 		currValue += delta;
 	}
 	resultBlob->ReleaseBuffer( buffer, true );
-	return new CDataTensor( { numberOfElements }, resultLayout, *resultBlob );
+	return new CDataTensor( resultLayout, *resultBlob );
 }
 
 void CRangeOperator::ProcessTensors( const CTensorArray& inputs, CDnn& /* dnn */, CTensorArray& outputs ) const
 {
+	CheckNoNullInputs( inputs );
+	CheckNoShapeInputs( inputs );
 	// NeoML doesn't have alternative to Range operator
 	// That's why the only scenario is supported: when all of the input arguments are calculated
 	CObjectArray<const CDnnBlob> inputBlobs;
 	inputBlobs.SetBufferSize( ROI_Count );
 	for( int i = 0; i < ROI_Count; ++i ) {
-		CheckOnnxProtocol( inputs[i] != nullptr, "input can't be optional", *this );
 		CheckNeoOnnxSupport( inputs[i]->Type() == TTensorType::Data, "user-provided input", *this );
 		inputBlobs.Add( dynamic_cast<const CDataTensor*>( inputs[i].Ptr() )->Data() );
 		CheckOnnxProtocol( inputBlobs[i]->GetDataSize() == 1, "input must be a scalar", *this );

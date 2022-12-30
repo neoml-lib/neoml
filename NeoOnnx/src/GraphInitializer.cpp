@@ -56,7 +56,7 @@ CPtr<const CDataTensor> CGraphInitializer::GetDataTensor( IMathEngine& mathEngin
 		LoadBlobData<int>( initializer, *outputBlob );
 	}
 
-	return new CDataTensor( outputShape, outputLayout, *outputBlob );
+	return new CDataTensor( outputLayout, *outputBlob );
 }
 
 } // namespace NeoOnnx

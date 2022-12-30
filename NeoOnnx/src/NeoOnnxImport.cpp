@@ -165,7 +165,7 @@ static void buildDnnFromGraphProto( const onnx::GraphProto& onnxGraph, int opset
 			dataLayer->SetName( output.Name() + "_Data" );
 			dnn.AddLayer( *dataLayer );
 			dataLayer->SetBlob( dynamic_cast< const CDataTensor& >( *baseTensor ).Data()->GetCopy() );
-			baseTensor = new CUserTensor( baseTensor->Shape(), baseTensor->Layout(), CLayerOutput( dataLayer.Ptr(), 0));
+			baseTensor = new CUserTensor( baseTensor->Layout(), CLayerOutput( dataLayer.Ptr(), 0));
 		}
 		NeoAssert( baseTensor->Type() == TTensorType::User );
 		CPtr<const CSinkLayer> sink;
@@ -209,8 +209,8 @@ void LoadFromOnnx( const char* fileName, const CImportSettings& importSettings,
 		buildDnnFromGraphProto( model.graph(), getOpsetVersion( model ), importSettings,
 			dnn, info.Inputs, info.Outputs );
 		extractMetadata( model, info.Metadata );
-		CDnnOptimizer dnnOptimizer( dnn );
-		dnnOptimizer.Optimize();
+		// CDnnOptimizer dnnOptimizer( dnn );
+		// dnnOptimizer.Optimize();
 	} catch( ... ) {
 		input.close();
 		google::protobuf::ShutdownProtobufLibrary();
@@ -237,8 +237,8 @@ void LoadFromOnnx( const void* buffer, int bufferSize, const CImportSettings& im
 		buildDnnFromGraphProto( model.graph(), getOpsetVersion( model ), importSettings,
 			dnn, info.Inputs, info.Outputs );
 		extractMetadata( model, info.Metadata );
-		CDnnOptimizer dnnOptimizer( dnn );
-		dnnOptimizer.Optimize();
+		// CDnnOptimizer dnnOptimizer( dnn );
+		// dnnOptimizer.Optimize();
 	} catch( ... ) {
 		google::protobuf::ShutdownProtobufLibrary();
 		throw;

@@ -40,7 +40,9 @@ CCastOperator::CCastOperator( const onnx::NodeProto& cast, int opsetVersion ) :
 
 void CCastOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
-	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
+	CheckNoNullInputs( inputs );
+	CheckNoShapeInputs( inputs );
+
 	CPtr<const CUserTensor> inputTensor = AsUserTensor( *inputs[0], Name() + "_Source", dnn );
 
 	CPtr<CCastLayer> cast = new CCastLayer( dnn.GetMathEngine() );
@@ -49,7 +51,7 @@ void CCastOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArr
 	cast->Connect( 0, *inputTensor->Layer(), inputTensor->OutputIndex() );
 	dnn.AddLayer( *cast );
 
-	outputs.Add( new CUserTensor( inputs[0]->Shape(), inputs[0]->Layout(), CLayerOutput( cast, 0 ) ) );
+	outputs.Add( new CUserTensor( inputs[0]->Layout(), CLayerOutput( cast, 0 ) ) );
 }
 
 } // namespace NeoOnnx

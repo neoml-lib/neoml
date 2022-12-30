@@ -16,6 +16,8 @@ limitations under the License.
 #include "../common.h"
 #pragma hdrstop
 
+#ifdef TODO
+
 #include "SplitOperator.h"
 #include "LayerUtils.h"
 #include "NeoOnnxCheck.h"
@@ -56,14 +58,10 @@ void CSplitOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorAr
 	splitLayer->Connect( 0, *currInput->Layer(), currInput->OutputIndex() );
 	dnn.AddLayer( *splitLayer );
 
-	CTensorShape outputShape;
-	currInput->Shape().CopyTo( outputShape );
-
 	outputs.SetBufferSize( OutputCount() );
 	for( int i = 0; i < OutputCount(); ++i ) {
 		CheckNeoOnnxSupport( splits[i] > 0, "Non-positive split size", *this );
-		outputShape[axis] = splits[i];
-		outputs.Add( new CUserTensor( outputShape, currInput->Layout(), CLayerOutput( splitLayer.Ptr(), i ) ) );
+		outputs.Add( new CUserTensor( currInput->Layout(), CLayerOutput( splitLayer.Ptr(), i ) ) );
 	}
 }
 
@@ -102,3 +100,5 @@ void CSplitOperator::getSplits( const CTensorArray& inputs, int axis, CArray<int
 }
 
 } // namespace NeoOnnx
+
+#endif

@@ -44,7 +44,7 @@ void CPoolOperatorBase::GetPads( const CTensorArray& inputs, CFastArray<int, 8>&
 	GetAttribute( "pads", pads );
 
 	if( pads.IsEmpty() ) {
-		pads.Add( 0, 2 * ( inputs[0]->Shape().Size() - 2 ) );
+		pads.Add( 0, 2 * ( inputs[0]->DimCount() - 2 ) );
 	}
 
 	if( autoPad == "SAME_UPPER" || autoPad == "SAME_LOWER" ) {
@@ -55,12 +55,12 @@ void CPoolOperatorBase::GetPads( const CTensorArray& inputs, CFastArray<int, 8>&
 void CPoolOperatorBase::AddLayersImpl( const CTensorArray& inputs, float padValue,
 	CPoolingLayer& pooling, CDnn& dnn, CTensorArray& outputs ) const
 {
+	CheckNoNullInputs( inputs );
+	CheckNoShapeInputs( inputs );
 	// Check input
-	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
-	const CTensorShape& inputShape = inputs[0]->Shape();
-	CheckNeoOnnxSupport( inputShape.Size() > 2 && inputShape.Size() <= 4,
+	CheckNeoOnnxSupport( inputs[0]->DimCount() > 2 && inputs[0]->DimCount() <= 4,
 		"wrong input tensor's dimensions number", *this );
-	const int poolDims = inputShape.Size() - 2;
+	const int poolDims = inputs[0]->DimCount() - 2;
 
 	// Initialize strides and pads(if not given)
 	CFastArray<int, 8> strides;
@@ -68,18 +68,10 @@ void CPoolOperatorBase::AddLayersImpl( const CTensorArray& inputs, float padValu
 	CFastArray<int, 8> pads;
 	GetPads( inputs, pads );
 
-	// Calculate output shape
-	CTensorShape outputShape;
-	inputShape.CopyTo( outputShape );
-	for( int dimIndex = 0; dimIndex < poolDims; ++dimIndex ) {
-		outputShape[dimIndex + 2] = ( inputShape[dimIndex + 2] + pads[dimIndex] + pads[dimIndex + poolDims]
-			- kernelShape[dimIndex] ) / strides[dimIndex] + 1;
-	}
-
 	pooling.SetName( Name() );
 
 	CTensorLayout expectedLayout( { BD_BatchWidth, BD_Channels, BD_Height, BD_Width } );
-	expectedLayout.SetSize( inputShape.Size() );
+	expectedLayout.SetSize( inputs[0]->DimCount() );
 	CPtr<const CUserTensor> input = AsUserTensor( *ConvertTensor( *inputs[0], expectedLayout ), Name() + "_Source", dnn );
 	input = PadUserTensor( *input, pads, padValue );
 
@@ -92,7 +84,7 @@ void CPoolOperatorBase::AddLayersImpl( const CTensorArray& inputs, float padValu
 	pooling.Connect( 0, *input->Layer(), input->OutputIndex() );
 	dnn.AddLayer( pooling );
 
-	outputs.Add( new CUserTensor( outputShape, input->Layout(), CLayerOutput( &pooling, 0 ) ) );
+	outputs.Add( new CUserTensor( input->Layout(), CLayerOutput( &pooling, 0 ) ) );
 	if( OutputCount() > outputs.Size() ) {
 		outputs.Add( nullptr, OutputCount() - outputs.Size() );
 	}
@@ -104,7 +96,7 @@ void CPoolOperatorBase::getStrides( const CTensorArray& inputs, CFastArray<int, 
 	GetAttribute( "strides", strides );
 
 	if( strides.IsEmpty() ) {
-		strides.Add( 1, inputs[0]->Shape().Size() - 2 );
+		strides.Add( 1, inputs[0]->DimCount() - 2 );
 	}
 }
 

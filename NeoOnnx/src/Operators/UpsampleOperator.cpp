@@ -51,13 +51,6 @@ void CUpsampleOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTenso
 	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
 	CFastArray<float, 8> scales;
 	getScales( inputs, scales );
-	CTensorShape outputShape;
-	inputs[0]->Shape().CopyTo( outputShape );
-	CheckOnnxProtocol( outputShape.Size() == scales.Size(), "number of scales must be equal to the input dimensions", *this );
-	for( int i = 0; i < outputShape.Size(); ++i ) {
-		outputShape[i] = static_cast<int>( outputShape[i] * scales[i] );
-		CheckOnnxProtocol( outputShape[i] >= 1, "empty shape after scaling", *this );
-	}
 
 	CPtr<CInterpolationLayer> interpolation = new CInterpolationLayer( dnn.GetMathEngine() );
 	interpolation->SetName( Name() );
@@ -72,7 +65,7 @@ void CUpsampleOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTenso
 	}
 	interpolation->Connect( 0, *input->Layer(), input->OutputIndex() );
 	dnn.AddLayer( *interpolation );
-	outputs.Add( new CUserTensor( outputShape, input->Layout(), CLayerOutput( interpolation.Ptr(), 0 ) ) );
+	outputs.Add( new CUserTensor( input->Layout(), CLayerOutput( interpolation.Ptr(), 0 ) ) );
 }
 
 // Gets scales

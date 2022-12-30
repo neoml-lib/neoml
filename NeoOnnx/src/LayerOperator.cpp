@@ -64,8 +64,8 @@ static void extractOutputs( const CTensorArray& internalOutputs, const CArray<CS
 		} else if( sinks[outputIndex] != nullptr ) {
 			// Add network result as data tensor
 			// Shape and layout remain unchanged
-			outputs.Add( new CDataTensor( internalOutputs[outputIndex]->Shape(),
-				internalOutputs[outputIndex]->Layout(), *( sinks[outputIndex]->GetBlob() ) ) );
+			outputs.Add( new CDataTensor( internalOutputs[outputIndex]->Layout(),
+				*( sinks[outputIndex]->GetBlob() ) ) );
 		} else {
 			// otherwise leave internalOutputs[outputIndex] as nullptr
 			outputs.Add( nullptr );

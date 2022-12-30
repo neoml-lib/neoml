@@ -37,7 +37,8 @@ CEltwiseOperatorBase::CEltwiseOperatorBase( const onnx::NodeProto& eltwise, int 
 void CEltwiseOperatorBase::AddLayersImpl( const CBroadcast& broadcast, const CTensorArray& inputs,
 	CBaseLayer& eltwiseLayer, CDnn& dnn, CTensorArray& outputs ) const
 {
-	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
+	CheckNoNullInputs( inputs );
+	CheckNoShapeInputs( inputs );
 
 	// Corner case which doesn't violate Onnx protocol: operators with variable input count may have 1 input
 	if( inputs.Size() == 1 && argsNum < 0 ) {
@@ -46,16 +47,8 @@ void CEltwiseOperatorBase::AddLayersImpl( const CBroadcast& broadcast, const CTe
 	}
 
 	// Calculate outputShape
-	CTensorShape outputShape;
-	inputs[0]->Shape().CopyTo( outputShape );
 	CTensorLayout outputLayout = inputs[0]->Layout();
-
 	for( int i = 1; i < inputs.Size(); ++i ) {
-		CheckOnnxProtocol( inputs[i] != nullptr, "input can't be optional", *this );
-		CTensorShape buff;
-		CheckNeoOnnxSupport( BroadcastTensorShape( outputShape, inputs[i]->Shape(), broadcast, buff ),
-			"Can't broadcast tensors shape", *this );
-		buff.CopyTo( outputShape );
 		if( inputs[i]->DimCount() > outputLayout.Size() ) {
 			outputLayout = inputs[i]->Layout();
 		}
@@ -67,7 +60,7 @@ void CEltwiseOperatorBase::AddLayersImpl( const CBroadcast& broadcast, const CTe
 	eltwiseLayer.SetName( Name() );
 
 	for( int i = 0; i < inputs.Size(); ++i ) {
-		CPtr<const CTensorBase> tensor = PrepareForBroadcast( *inputs[i], broadcast, outputShape.Size() );
+		CPtr<const CTensorBase> tensor = PrepareForBroadcast( *inputs[i], broadcast, outputLayout.Size() );
 		tensor = ConvertTensor( *tensor, outputLayout );
 		CPtr<const CUserTensor> userTensor = AsUserTensor( *tensor, Name() + "_input_" + Str( i ), dnn );
 		broadcastLayer->Connect( i, *userTensor->Layer(), userTensor->OutputIndex() );
@@ -75,7 +68,7 @@ void CEltwiseOperatorBase::AddLayersImpl( const CBroadcast& broadcast, const CTe
 	}
 
 	dnn.AddLayer( eltwiseLayer );
-	outputs.Add( new CUserTensor( outputShape, outputLayout, CLayerOutput( &eltwiseLayer, 0 ) ) );
+	outputs.Add( new CUserTensor( outputLayout, CLayerOutput( &eltwiseLayer, 0 ) ) );
 }
 
 // --------------------------------------------------------------------------------------------------------------------

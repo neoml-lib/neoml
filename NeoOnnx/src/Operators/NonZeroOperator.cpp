@@ -45,16 +45,15 @@ static void nonZeroImpl( const CDataTensor& input, CTensorArray& outputs )
 		if( inputBuffer[i] != 0 ) {
 			int flatIndex = i;
 			for( int dim = input.DimCount() - 1; dim >= 0; --dim ) {
-				outputBuffer[outIndex + dim * nonZeroElements] = flatIndex % input.Shape()[dim];
-				flatIndex /= input.Shape()[dim];
+				outputBuffer[outIndex + dim * nonZeroElements] = flatIndex % input.DimSize( dim );
+				flatIndex /= input.DimSize( dim );
 			}
 			outIndex++;
 		}
 	}
 
 	NeoAssert( outIndex == nonZeroElements );
-	outputs.Add( new CDataTensor( CTensorShape{ input.DimCount(), nonZeroElements },
-		CTensorLayout{ BD_BatchLength, BD_BatchWidth }, *outputBlob ) );
+	outputs.Add( new CDataTensor( CTensorLayout{ BD_BatchLength, BD_BatchWidth }, *outputBlob ) );
 }
 
 // --------------------------------------------------------------------------------------------------------------------
@@ -70,7 +69,8 @@ CNonZeroOperator::CNonZeroOperator( const onnx::NodeProto& nonZero, int opsetVer
 
 void CNonZeroOperator::ProcessTensors( const CTensorArray& inputs, CDnn& /* dnn */, CTensorArray& outputs ) const
 {
-	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
+	CheckNoNullInputs( inputs );
+	CheckNoShapeInputs( inputs );
 	CheckNeoOnnxSupport( inputs[0]->Type() == TTensorType::Data, "user-provided input", *this );
 
 	CPtr<const CDataTensor> currInput = dynamic_cast<const CDataTensor*>( inputs[0].Ptr() );

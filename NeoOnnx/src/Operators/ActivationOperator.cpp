@@ -32,7 +32,9 @@ CActivationOperatorBase::CActivationOperatorBase( const onnx::NodeProto& onnxNod
 
 void CActivationOperatorBase::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
-	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
+	CheckNoNullInputs( inputs );
+	CheckNoShapeInputs( inputs );
+
 	CPtr<const CUserTensor> userInput = AsUserTensor( *inputs[0], Name() + "_Source", dnn );
 
 	CPtr<CBaseLayer> activationLayer = CreateActivationLayer( dnn.GetMathEngine(), activation );
@@ -40,7 +42,7 @@ void CActivationOperatorBase::AddLayers( const CTensorArray& inputs, CDnn& dnn, 
 	activationLayer->Connect( 0, *userInput->Layer(), userInput->OutputIndex() );
 	dnn.AddLayer( *activationLayer );
 
-	outputs.Add( new CUserTensor( userInput->Shape(), userInput->Layout(), CLayerOutput( activationLayer, 0 ) ) );
+	outputs.Add( new CUserTensor( userInput->Layout(), CLayerOutput( activationLayer, 0 ) ) );
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -112,7 +114,7 @@ void CClipOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArr
 	if( minValue != 0 ) {
 		CPtr<const CUserTensor> userInput = AsUserTensor( *currInputs[0], Name() + "_Source", dnn );
 		CLinearLayer* preShift = Linear( 1.f, -minValue )( Name() + "_PreShift", CDnnLayerLink( userInput->Layer(), userInput->OutputIndex() ) );
-		currInputs[0] = new CUserTensor( userInput->Shape(), userInput->Layout(), CLayerOutput( preShift, 0 ) );
+		currInputs[0] = new CUserTensor( userInput->Layout(), CLayerOutput( preShift, 0 ) );
 	}
 
 	CActivationOperatorBase::AddLayers( currInputs, dnn, outputs );
@@ -124,7 +126,7 @@ void CClipOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArr
 
 	if( minValue != 0 ) {
 		CLinearLayer* postShift = Linear( 1.f, minValue )( Name() + "_PostShift", relu );
-		outputs[0] = new CUserTensor( outputs[0]->Shape(), outputs[0]->Layout(), CLayerOutput( postShift, 0 ) );
+		outputs[0] = new CUserTensor( outputs[0]->Layout(), CLayerOutput( postShift, 0 ) );
 	}
 }
 

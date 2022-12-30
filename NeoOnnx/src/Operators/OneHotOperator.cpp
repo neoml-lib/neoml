@@ -50,8 +50,8 @@ COneHotOperator::COneHotOperator( const onnx::NodeProto& oneHot, int opsetVersio
 
 void COneHotOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
-	CheckOnnxProtocol( inputs[0] != nullptr && inputs[1] != nullptr && inputs[2] != nullptr,
-		"inputs can't be optional", *this );
+	CheckNoNullInputs( inputs );
+	CheckNoShapeInputs( inputs );
 	CheckNeoOnnxSupport( inputs[1]->Type() == TTensorType::Data, "user-provided depth", *this );
 	CheckNeoOnnxSupport( inputs[2]->Type() == TTensorType::Data, "user-provided values", *this );
 
@@ -110,10 +110,7 @@ void COneHotOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorA
 		axis += indices->DimCount() + 1;
 	}
 	outputLayout.InsertAt( BD_Channels, axis );
-	CTensorShape outputShape;
-	indices->Shape().CopyTo( outputShape );
-	outputShape.InsertAt( depth, axis );
-	outputs.Add( new CUserTensor( outputShape, outputLayout, CLayerOutput( outputLayer, 0 ) ) );
+	outputs.Add( new CUserTensor( outputLayout, CLayerOutput( outputLayer, 0 ) ) );
 }
 
 } // namespace NeoOnnx

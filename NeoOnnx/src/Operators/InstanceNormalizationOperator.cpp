@@ -52,20 +52,9 @@ static CPtr<const CUserTensor> applyNormalization( const CUserTensor& input, flo
 	CPtr<CObjectNormalizationLayer> objNormLayer = new CObjectNormalizationLayer( dnn.GetMathEngine() );
 	objNormLayer->SetName( layerName );
 	objNormLayer->SetEpsilon( eps );
-
-	int spatialSize = 1;
-	for( int dimIndex = 2; dimIndex < input.DimCount(); ++dimIndex ) {
-		spatialSize *= input.Shape()[dimIndex];
-	}
-	CPtr<CDnnBlob> objNormParam = CDnnBlob::CreateVector( dnn.GetMathEngine(), CT_Float, spatialSize );
-	objNormParam->Fill( 1.f );
-	objNormLayer->SetScale( objNormParam );
-	objNormParam->Clear();
-	objNormLayer->SetBias( objNormParam );
-
 	objNormLayer->Connect( 0, *currInput->Layer(), currInput->OutputIndex() );
 	dnn.AddLayer( *objNormLayer );
-	return new CUserTensor( currInput->Shape(), currInput->Layout(), CLayerOutput( objNormLayer.Ptr(), 0 ) );
+	return new CUserTensor( currInput->Layout(), CLayerOutput( objNormLayer.Ptr(), 0 ) );
 }
 
 // Applies scale and bias to the normalized InstanceNormalization input
@@ -83,7 +72,7 @@ static CPtr<const CUserTensor> applyScaleAndBias( const CUserTensor& input, cons
 	batchNormLayer->SetName( layerName );
 	batchNormLayer->SetChannelBased( true );
 
-	const int channels = currInput->Shape()[1];
+	const int channels = scale.Data()->GetDataSize();
 	CPtr<CDnnBlob> finalParams = CDnnBlob::CreateDataBlob( mathEngine, CT_Float, 1, 2, channels );
 	mathEngine.VectorCopy( finalParams->GetObjectData( 0 ), scale.Data()->GetData(), channels );
 	mathEngine.VectorCopy( finalParams->GetObjectData( 1 ), bias.Data()->GetData(), channels );
@@ -91,7 +80,7 @@ static CPtr<const CUserTensor> applyScaleAndBias( const CUserTensor& input, cons
 
 	batchNormLayer->Connect( 0, *currInput->Layer(), currInput->OutputIndex() );
 	dnn.AddLayer( *batchNormLayer );
-	return new CUserTensor( currInput->Shape(), currInput->Layout(), CLayerOutput( batchNormLayer.Ptr(), 0 ) );
+	return new CUserTensor( currInput->Layout(), CLayerOutput( batchNormLayer.Ptr(), 0 ) );
 }
 
 // --------------------------------------------------------------------------------------------------------------------
@@ -112,9 +101,8 @@ CInstanceNormalizationOperator::CInstanceNormalizationOperator( const onnx::Node
 
 void CInstanceNormalizationOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
-	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
-	CheckOnnxProtocol( inputs[1] != nullptr, "scale can't be optional", *this );
-	CheckOnnxProtocol( inputs[2] != nullptr, "B can't be optional", *this );
+	CheckNoNullInputs( inputs );
+	CheckNoShapeInputs( inputs );
 
 	CheckNeoOnnxSupport( inputs[1]->Type() == TTensorType::Data, "User-provided scale", *this );
 	CheckNeoOnnxSupport( inputs[2]->Type() == TTensorType::Data, "User-provided B", *this );

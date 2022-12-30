@@ -35,10 +35,10 @@ CTransposeOperator::CTransposeOperator( const onnx::NodeProto& transpose, int op
 
 void CTransposeOperator::AddLayers( const CTensorArray& inputs, CDnn& /* dnn */, CTensorArray& outputs ) const
 {
-	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
+	CheckNoNullInputs( inputs );
+	CheckNoShapeInputs( inputs );
 
-	const CTensorShape& inputShape = inputs[0]->Shape();
-	const int dimCount = inputShape.Size();
+	const int dimCount = inputs[0]->DimCount();
 
 	CFastArray<int, 8> perm;
 	GetAttribute( "perm", perm );
@@ -54,20 +54,18 @@ void CTransposeOperator::AddLayers( const CTensorArray& inputs, CDnn& /* dnn */,
 	const CTensorLayout& inputLayout = inputs[0]->Layout();
 	CTensorLayout outputLayout;
 	outputLayout.SetBufferSize( dimCount );
-	CTensorShape outputShape;
-	outputShape.SetBufferSize( dimCount );
 
 	for( int i = 0; i < dimCount; ++i ) {
 		outputLayout.Add( inputLayout[perm[i]] );
-		outputShape.Add( inputShape[perm[i]] );
 	}
 
-	static_assert( static_cast<int>( TTensorType::Count ) == 2, "TTensorType::Count != 2" );
+	// TODO: process shape tensors properly
+	// static_assert( static_cast<int>( TTensorType::Count ) == 2, "TTensorType::Count != 2" );
 	if( inputs[0]->Type() == TTensorType::Data ) {
-		outputs.Add( new CDataTensor( outputShape, outputLayout,
+		outputs.Add( new CDataTensor( outputLayout,
 			*dynamic_cast<const CDataTensor*>( inputs[0].Ptr() )->Data() ) );
 	} else {
-		outputs.Add( new CUserTensor( outputShape, outputLayout,
+		outputs.Add( new CUserTensor( outputLayout,
 			dynamic_cast<const CUserTensor*>( inputs[0].Ptr() )->LayerOutput() ) );
 	}
 }

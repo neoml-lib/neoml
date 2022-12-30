@@ -36,7 +36,9 @@ CConstantOfShapeOperator::CConstantOfShapeOperator( const onnx::NodeProto& const
 
 void CConstantOfShapeOperator::ProcessTensors( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
-	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
+	CheckNoNullInputs( inputs );
+	CheckNoShapeInputs( inputs );
+
 	CheckNeoOnnxSupport( inputs[0]->Type() == TTensorType::Data, "user-provided input", *this );
 	const CDnnBlob* inputShapeBlob = dynamic_cast<const CDataTensor*>( inputs[0].Ptr() )->Data();
 	CheckNeoOnnxSupport( inputShapeBlob->GetDataType() == CT_Int, "non-integer input tensor", *this );
@@ -72,7 +74,7 @@ void CConstantOfShapeOperator::ProcessTensors( const CTensorArray& inputs, CDnn&
 		outputBlob->Fill<int>( valueBlob->GetData<int>().GetValue() );
 	}
 	
-	outputs.Add( new CDataTensor( outputShape, outputLayout, *outputBlob ) );
+	outputs.Add( new CDataTensor( outputLayout, *outputBlob ) );
 }
 
 } // namespace NeoOnnx

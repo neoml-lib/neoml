@@ -29,7 +29,7 @@ namespace NeoOnnx {
 
 static bool isInputPresent( const CTensorArray& inputs, int index )
 {
-	return inputs.Size() > index && inputs[index] != nullptr && !inputs[index]->IsEmpty();
+	return inputs.Size() > index && inputs[index] != nullptr;
 }
 
 // --------------------------------------------------------------------------------------------------------------------
@@ -51,6 +51,8 @@ CResizeOperator::CResizeOperator( const onnx::NodeProto& resize, int opsetVersio
 
 void CResizeOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
+	CheckNoShapeInputs( inputs );
+
 	CString mode = "nearest";
 	GetAttribute( "mode", mode );
 	CheckNeoOnnxSupport( mode == "nearest" || mode == "linear", "mode is not 'nearest' nor 'linear'", *this );
@@ -64,8 +66,6 @@ void CResizeOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorA
 	}
 
 	CPtr<const CUserTensor> x = AsUserTensor( *inputs[0], Name() + "_source", dnn );
-	CTensorShape outputShape;
-	x->Shape().CopyTo( outputShape );
 
 	const int scalesInputIndex = OpsetVersion == 10 ? 1 : 2;
 	const int sizesInputIndex = OpsetVersion == 10 ? INT_MAX : 3;
@@ -77,7 +77,6 @@ void CResizeOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorA
 		CheckOnnxProtocol( scales.Size() == x->DimCount(), "size(scales) != rank(X)", *this );
 		for( int dimIndex = 0; dimIndex < scales.Size(); ++dimIndex ) {
 			interpolation->SetRule( x->Layout()[dimIndex], CInterpolationLayer::CRule::Scale( scales[dimIndex] ) );
-			outputShape[dimIndex] = static_cast<int>( x->Shape()[dimIndex] * scales[dimIndex] );
 		}
 	} else if( isInputPresent( inputs, sizesInputIndex ) ) {
 		CFastArray<int, 8> sizes;
@@ -85,7 +84,6 @@ void CResizeOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorA
 		CheckOnnxProtocol( sizes.Size() == x->DimCount(), "size(sizes) != rank(X)", *this );
 		for( int dimIndex = 0; dimIndex < sizes.Size(); ++dimIndex ) {
 			interpolation->SetRule( x->Layout()[dimIndex], CInterpolationLayer::CRule::Resize( sizes[dimIndex] ) );
-			outputShape[dimIndex] = sizes[dimIndex];
 		}
 	} else {
 		CheckOnnxProtocol( false, "'sizes' or 'scales' must be present", *this );
@@ -93,7 +91,7 @@ void CResizeOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorA
 
 	interpolation->Connect( 0, *x->Layer(), x->OutputIndex() );
 	dnn.AddLayer( *interpolation );
-	outputs.Add( new CUserTensor( outputShape, x->Layout(), CLayerOutput( interpolation.Ptr(), 0 ) ) );
+	outputs.Add( new CUserTensor( x->Layout(), CLayerOutput( interpolation.Ptr(), 0 ) ) );
 }
 
 TInterpolationCoords CResizeOperator::getInterpolationCoords() const

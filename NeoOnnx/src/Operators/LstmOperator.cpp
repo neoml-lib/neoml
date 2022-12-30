@@ -44,9 +44,8 @@ CLstmOperator::CLstmOperator( const onnx::NodeProto& lstm, int opsetVersion ) :
 
 void CLstmOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
+	CheckNoShapeInputs( inputs );
 	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
-
-	const CTensorShape& inputShape = inputs[0]->Shape();
 
 	CPtr<CDnnBlob> bias = nullptr;
 	if( InputCount() > 3 && inputs[3] != nullptr ) {
@@ -72,7 +71,7 @@ void CLstmOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArr
 		"User-provided weight", *this );
 	CPtr<CDnnBlob> weights = dynamic_cast<const CDataTensor*>( inputs[1].Ptr() )->Data()->GetCopy();
 
-	const int inputObjectSize = inputs[1]->Shape()[2];
+	const int inputObjectSize = weights->DimSize( 2 );
 
 	CBlobDesc blobDesc( CT_Float );
 	blobDesc.SetDimSize( BD_BatchWidth, 4 * hiddenSize );
@@ -109,8 +108,7 @@ void CLstmOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArr
 	lstmLayer->Connect( 0, *inputData->Layer(), inputData->OutputIndex() );
 	dnn.AddLayer( *lstmLayer );
 
-	outputs.Add( new CUserTensor( { inputShape[0], 1, inputShape[1], hiddenSize },
-		CTensorLayout( { BD_BatchLength, BD_ListSize, BD_BatchWidth, BD_Channels } ),
+	outputs.Add( new CUserTensor( CTensorLayout( { BD_BatchLength, BD_ListSize, BD_BatchWidth, BD_Channels } ),
 		CLayerOutput( lstmLayer, 0 ) ) );
 	outputs.Add( nullptr, OutputCount() - 1 );
 }

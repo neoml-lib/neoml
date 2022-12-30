@@ -133,7 +133,7 @@ REGISTER_OPERATOR( CEluOperator, "Elu" )
 REGISTER_OPERATOR( CEqualOperator, "Equal" )
 REGISTER_OPERATOR( CErfOperator, "Erf" )
 REGISTER_OPERATOR( CExpOperator, "Exp" )
-REGISTER_OPERATOR( CExpandOperator, "Expand" )
+// REGISTER_OPERATOR( CExpandOperator, "Expand" )
 REGISTER_OPERATOR( CFlattenOperator, "Flatten" )
 REGISTER_OPERATOR( CGatherOperator, "Gather" )
 REGISTER_OPERATOR( CGemmOperator, "Gemm" )
@@ -151,7 +151,7 @@ REGISTER_OPERATOR( CLogOperator, "Log" )
 REGISTER_OPERATOR( CSoftmaxOperator, "LogSoftmax" )
 REGISTER_OPERATOR( CLrnOperator, "LRN" )
 REGISTER_OPERATOR( CLstmOperator, "LSTM" )
-REGISTER_OPERATOR( CMatMulOperator, "MatMul" )
+// REGISTER_OPERATOR( CMatMulOperator, "MatMul" )
 REGISTER_OPERATOR( CMaxPoolOperator, "MaxPool" )
 REGISTER_OPERATOR( CMulOperator, "Mul" )
 REGISTER_OPERATOR( CNegOperator, "Neg" )
@@ -172,9 +172,9 @@ REGISTER_OPERATOR( CResizeOperator, "Resize" )
 REGISTER_OPERATOR( CScatterNDOperator, "ScatterND" )
 REGISTER_OPERATOR( CShapeOperator, "Shape" )
 REGISTER_OPERATOR( CSigmoidOperator, "Sigmoid" )
-REGISTER_OPERATOR( CSliceOperator, "Slice" )
+// REGISTER_OPERATOR( CSliceOperator, "Slice" )
 REGISTER_OPERATOR( CSoftmaxOperator, "Softmax" )
-REGISTER_OPERATOR( CSplitOperator, "Split" )
+// REGISTER_OPERATOR( CSplitOperator, "Split" )
 REGISTER_OPERATOR( CSqrtOperator, "Sqrt" )
 REGISTER_OPERATOR( CSqueezeOperator, "Squeeze" )
 REGISTER_OPERATOR( CSubOperator, "Sub" )
@@ -228,6 +228,24 @@ bool COperator::IsSupportedOperator( const CString& operatorType )
 {
 	TMapPosition pos = getRegisteredOperators().GetFirstPosition( operatorType );
 	return pos != NotFound;
+}
+
+void COperator::CheckNoNullInputs( const CTensorArray& inputs ) const
+{
+	for( int i = 0; i < inputs.Size(); ++i ) {
+		if( inputs[i] == nullptr ) {
+			CheckNeoOnnxSupport( false, "NULL at input #" + Str( i ), *this );
+		}
+	}
+}
+
+void COperator::CheckNoShapeInputs( const CTensorArray& inputs ) const
+{
+	for( int i = 0; i < inputs.Size(); ++i ) {
+		if( inputs[i] != nullptr && inputs[i]->Type() == TTensorType::Shape ) {
+			CheckNeoOnnxSupport( false, "CShapeTensor at input #" + Str( i ), *this );
+		}
+	}
 }
 
 } // namespace NeoOnnx

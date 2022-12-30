@@ -39,57 +39,33 @@ void CUnsqueezeOperator::AddLayers( const CTensorArray& inputs, CDnn& /* dnn */,
 	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
 
 	CFastArray<int, 8> axes;
-	getAxes( inputs[0]->Shape(), axes );
-
-	CTensorShape outputShape;
-	calcOutputShape( inputs[0]->Shape(), axes, outputShape );
+	getAxes( inputs[0]->DimCount(), axes );
 
 	CTensorLayout outputLayout = calcOutputLayout( inputs[0]->Layout(), axes );
 
-	static_assert( static_cast<int>( TTensorType::Count ) == 2, "TTensorType::Count != 2" );
+	// TODO: process shape tensors properly
+	// static_assert( static_cast<int>( TTensorType::Count ) == 2, "TTensorType::Count != 2" );
 	if( inputs[0]->Type() == TTensorType::Data ) {
-		outputs.Add( new CDataTensor( outputShape, outputLayout,
+		outputs.Add( new CDataTensor( outputLayout,
 			*dynamic_cast<const CDataTensor*>( inputs[0].Ptr() )->Data() ) );
 	} else {
-		outputs.Add( new CUserTensor( outputShape, outputLayout,
+		outputs.Add( new CUserTensor( outputLayout,
 			dynamic_cast<const CUserTensor*>( inputs[0].Ptr() )->LayerOutput() ) );
 	}
 }
 
 // Fills array with axes indices to be squeezed
 // Returns array of positive indices in sorted order
-void CUnsqueezeOperator::getAxes( const CTensorShape& inputShape, CFastArray<int, 8>& axes ) const
+void CUnsqueezeOperator::getAxes( int inputDimCount, CFastArray<int, 8>& axes ) const
 {
 	axes.Empty();
 	GetAttribute( "axes", axes );
 	for( int i = 0; i < axes.Size(); ++i ) {
 		if( axes[i] < 0 ) {
-			axes[i] += inputShape.Size() + axes.Size();
+			axes[i] += inputDimCount + axes.Size();
 		}
 	}
 	axes.QuickSort<Ascending<int>>();
-}
-
-// Calculates output tensor's shape
-void CUnsqueezeOperator::calcOutputShape( const CTensorShape& inputShape, const CFastArray<int, 8>& axes, CTensorShape& outputShape ) const
-{
-	outputShape.Empty();
-	outputShape.SetBufferSize( inputShape.Size() + axes.Size() );
-
-	int axeIndex = 0;
-	int inputDimIndex = 0;
-	outputShape.SetBufferSize( axes.Size() + inputShape.Size() );
-
-	for( int i = 0; i < axes.Size() + inputShape.Size(); ++i ) {
-		if( axeIndex < axes.Size() && i == axes[axeIndex] ) {
-			outputShape.Add( 1 );
-			++axeIndex;
-		} else {
-			NeoAssert( inputDimIndex < inputShape.Size() );
-			outputShape.Add( inputShape[inputDimIndex] );
-			++inputDimIndex;
-		}
-	}
 }
 
 // Calculates output tensor's layout
