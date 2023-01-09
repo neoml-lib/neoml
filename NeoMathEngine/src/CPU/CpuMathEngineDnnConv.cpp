@@ -541,35 +541,34 @@ void CCpuMathEngine::BlobConvolution( const CConvolutionDesc& convDesc, const CC
 class CRoundRobinBuffer final {
 public:
 	explicit CRoundRobinBuffer( IMathEngine& mathEngine, int numItems, int itemSize ) :
-		temp( mathEngine, /*bytes-size*/numItems * itemSize), raw(GetRaw(temp.GetHandle())),
+		temp( mathEngine, /*bytes-size*/numItems * itemSize ), raw( NeoML::GetRaw( temp.GetHandle() ) ),
 		numItems( numItems ), itemSize( itemSize ), currPos( 0 ),
-		prevBatchedSourceRowStart( -1 ), prevTempSourceHeightLines( 0 ), sourceRowSavedStart( 0 )
+		prevBatchedSourceRowStart( -1 ), prevAddLines( 0 ), startItem( 0 )
 	{}
 
-	int Move( int batchedSourceRowStart, int sourceHeightLines )
+	int Move( int batchedSourceRowStart, int addLines )
 	{
-		const int numItemsToAdd = std::max( 0, prevBatchedSourceRowStart + prevTempSourceHeightLines - batchedSourceRowStart );
-		sourceRowSavedStart = numItemsToAdd ? (( sourceRowSavedStart + batchedSourceRowStart - prevBatchedSourceRowStart ) % numItems ) : 0;
-		prevBatchedSourceRowStart = sourceHeightLines ? batchedSourceRowStart : prevBatchedSourceRowStart;
-		prevTempSourceHeightLines = sourceHeightLines;
+		const int numItemsToAdd = std::max( 0, prevBatchedSourceRowStart + prevAddLines - batchedSourceRowStart );
+		startItem = numItemsToAdd ? ( ( startItem + batchedSourceRowStart - prevBatchedSourceRowStart ) % numItems ) : 0;
+		prevBatchedSourceRowStart = addLines ? batchedSourceRowStart : prevBatchedSourceRowStart;
+		prevAddLines = addLines;
 		return numItemsToAdd;
 	}
-	int GetSourceRow( int sourceRow ) const
-	{
-		return ( sourceRow + sourceRowSavedStart ) % numItems;
-	}
-	float* GetBufPtr( int numItemsToAdd, int sourceHeightLines )
+	int GetSourceRowNum( int sourceRow ) const { return ( sourceRow + startItem ) % numItems; }
+	float* GetBufPtr( int numItemsToAdd, int addLines )
 	{
 		float* const ptr = raw + ( numItemsToAdd ? currPos : 0 ) * itemSize;
-		currPos = numItemsToAdd ? ( ( currPos + sourceHeightLines - numItemsToAdd ) % numItems ) : 0;
+		currPos = numItemsToAdd ? ( ( currPos + addLines - numItemsToAdd ) % numItems ) : 0;
 		return ptr;
 	}
+	const float* GetRaw( int offset ) const { return raw + offset; }
+	int GetPrevBatchedSourceRowStart() const { return prevBatchedSourceRowStart; }
 
-//private:
+private:
 	CFloatHandleStackVar temp;
 	float* const raw;
 	const int numItems, itemSize;
-	int currPos, prevBatchedSourceRowStart, prevTempSourceHeightLines, sourceRowSavedStart;
+	int currPos, prevBatchedSourceRowStart, prevAddLines, startItem;
 };
 
 void CCpuMathEngine::blobConvolutionBackwardAlgo1( const CCpuConvolutionDesc& desc, const CConstFloatHandle& sourceData,
@@ -584,11 +583,8 @@ void CCpuMathEngine::blobConvolutionBackwardAlgo1( const CCpuConvolutionDesc& de
 
 	const int filterObjectSize = filter.ObjectSize();
 	const int sourceChannelsCount = filter.BatchWidth();
-	const int filterChannels = filter.Depth() * filter.Channels();
-	const int filterRowSize = filter.Width() * filterChannels;
 	const int resultItemSize = result.Depth() * result.Channels();
 	const int resultRowSize = result.Width() * resultItemSize;
-	const int rrBufRowSize = source.Width() * filterObjectSize;
 
 	const float* filterRaw = GetRaw( filterData );
 	const float* sourceRaw = GetRaw( sourceData );
@@ -598,15 +594,18 @@ void CCpuMathEngine::blobConvolutionBackwardAlgo1( const CCpuConvolutionDesc& de
 		&& desc.PaddingWidth == 0 && ( desc.PaddingHeight == 0 || source.ObjectCount() == 1 )
 		&& desc.StrideHeight == 1 && ( result.Width() / desc.StrideWidth == filter.Width() * source.Width() ) )
 	{
+		// Special case -- if Result size equals size of Source by Filter matrix multiplication.
+		// This case is wider than CA_1x1, because it accounts filter.depth != 1 and StrideWidth may != 1.
+		// NOTE: No additional memory is needed.
 		const int sourceHeight = source.ObjectCount() * ( source.Height() - 2 * desc.PaddingHeight );
 		const int resultHeight = result.ObjectCount() * result.Height();
 
 		ASSERT_EXPR( resultHeight == sourceHeight );
 
-		const int curThreadCount = IsOmpRelevant( result.ObjectCount() * result.Height(),
+		const int curThreadsCount = IsOmpRelevant( result.ObjectCount() * result.Height(),
 			static_cast<int64_t>( source.BlobSize() * filter.BlobSize() ) ) ? threadCount : 1;
 
-		NEOML_OMP_NUM_THREADS( curThreadCount )
+		NEOML_OMP_NUM_THREADS( curThreadsCount )
 		{
 			int resultStart = 0, resultCount = resultHeight;
 			if( OmpGetTaskIndexAndCount( resultHeight, resultStart, resultCount ) ) {
@@ -620,7 +619,7 @@ void CCpuMathEngine::blobConvolutionBackwardAlgo1( const CCpuConvolutionDesc& de
 				}
 				multiplyMatrixByMatrixAndAdd(
 					/*handle*/sourceRaw + ( resultStart + desc.PaddingHeight ) * source.Width() * sourceChannelsCount,
-					/*height*/resultCount * source.Width(), /*width*/ sourceChannelsCount, /*row-size*/sourceChannelsCount,
+					/*height*/resultCount * source.Width(), /*width*/sourceChannelsCount, /*row-size*/sourceChannelsCount,
 					/*handle*/filterRaw, /*width*/filterObjectSize, /*row-size*/filterObjectSize,
 					/*handle*/resultRaw + resultStart * resultRowSize, /*row-size*/filterObjectSize );
 			}
@@ -628,17 +627,35 @@ void CCpuMathEngine::blobConvolutionBackwardAlgo1( const CCpuConvolutionDesc& de
 		return;
 	}
 
-	const int curThreadCount = 1; // IsOmpRelevant( result.ObjectCount()* result.Height(),
-	//	static_cast<int64_t>( source.BlobSize() * filter.BlobSize() ) ) ? threadCount : 1;
-
 	const int numLines = std::max( 1, ( filter.Height() * desc.DilationHeight + desc.StrideHeight - 1 ) / desc.StrideHeight );
-	CRoundRobinBuffer rrBuf( mathEngine(), numLines, rrBufRowSize );
+	const int rrBufRowSize = source.Width() * filterObjectSize;
 
-	NEOML_OMP_NUM_THREADS( curThreadCount )
+	constexpr int MaxThreadsCount = 4;
+	const int curThreadsCount = IsOmpRelevant( result.ObjectCount() * result.Height(),
+		static_cast<int64_t>( source.ObjectCount() * filter.ObjectSize() ) ) ? std::min( MaxThreadsCount, threadCount ) : 1;
+
+	ASSERT_EXPR( curThreadsCount <= MaxThreadsCount );
+
+	// Apply each own CRoundRobinBuffer for each Thread
+	char rrBufsStaticMemory[MaxThreadsCount * sizeof( CRoundRobinBuffer )]; //CArray is unavailable
+	CRoundRobinBuffer *rrBufs = (CRoundRobinBuffer*)rrBufsStaticMemory;
+	for( int thread = 0; thread < curThreadsCount; ++thread ) {
+		new(rrBufs + thread) CRoundRobinBuffer( mathEngine(), numLines, rrBufRowSize ); //construct in place
+	}
+
+	// The round-robin buffer is needed for temporal memory reduction.
+	// It stores the Source by Filter matrix-multiplication lines, which are need for calculations of 1 Result line only.
+	// Filter.height and StrideHeight defines the number of lines ('numLines') is needed for these calculations.
+	// For neighbor Result lines may be needed the same lines, except some first (no more need) and some last (should be newly prepared).
+	// This is reason why the round-robin buffer is used, it avoids coping lines if used repeatedly (the begining pointer moves, no underlying data moved).
+	// NOTE: For dilation != 1 more temporal memory is needed. In some cases the whole Source by Filter matrix-multiplication is needed.
+
+	NEOML_OMP_NUM_THREADS( curThreadsCount )
 	{
-		const int resultLineStart = 0, resultLineEnd = result.ObjectCount() * result.Height();
-		//OmpGetTaskIndexAndCount( result.ObjectCount() * result.Height(), resultRowStart, resultRowEnd );
-		//resultRowEnd += resultRowStart;
+		int resultLineStart = 0, resultLineEnd = result.ObjectCount() * result.Height();
+		OmpGetTaskIndexAndCount( result.ObjectCount() * result.Height(), resultLineStart, resultLineEnd );
+		resultLineEnd += resultLineStart;
+		const int curThread = OmpGetThreadNum();
 
 		// Separate calculations for each row
 		for( int resultRow = resultLineStart; resultRow < resultLineEnd; ++resultRow ) {
@@ -652,6 +669,9 @@ void CCpuMathEngine::blobConvolutionBackwardAlgo1( const CCpuConvolutionDesc& de
 			const int row = resultRow % result.Height();
 
 			if( desc.DilationHeight == 1 && desc.DilationWidth == 1 ) {
+				const int filterChannels = filter.Depth() * filter.Channels();
+				const int filterRowSize = filter.Width() * filterChannels;
+
 				// Find all filters that affect the row
 				const int sourceRowStart = std::max( 0, ( row + desc.PaddingHeight - filter.Height() + desc.StrideHeight ) / desc.StrideHeight );
 				const int filterRowEnd = row - sourceRowStart * desc.StrideHeight + desc.PaddingHeight;
@@ -660,19 +680,21 @@ void CCpuMathEngine::blobConvolutionBackwardAlgo1( const CCpuConvolutionDesc& de
 				}
 				const int filterRowStart = std::max( 0, row + filter.Height() - result.Height() - desc.PaddingHeight );
 				const int batchedSourceRowStart = batch * source.Height() + sourceRowStart;
-				if( rrBuf.prevBatchedSourceRowStart < batchedSourceRowStart ) {
-					const int sourceHeightLines = std::min( source.Height() - sourceRowStart, numLines );
-					const int existedHeighLines = rrBuf.Move( batchedSourceRowStart, sourceHeightLines );
+				if( rrBufs[curThread].GetPrevBatchedSourceRowStart() < batchedSourceRowStart ) {
+					const int sourceHeightLines = std::min( source.Height() - sourceRowStart, numLines ); //max number of lines to prepare
+					// Move the begining pointer of rrBuf in number of no-need lines
+					const int existHeightLines = rrBufs[curThread].Move( batchedSourceRowStart, sourceHeightLines );
+					// Prepare only last newly lines
 					multiplyMatrixByMatrix(
-						/*handle*/sourceRaw + ( batchedSourceRowStart + existedHeighLines ) * source.Width() * sourceChannelsCount,
-						/*height*/( sourceHeightLines - existedHeighLines ) * source.Width(), /*width*/sourceChannelsCount, /*row-size*/sourceChannelsCount,
+						/*handle*/sourceRaw + ( batchedSourceRowStart + existHeightLines ) * source.Width() * sourceChannelsCount,
+						/*height*/( sourceHeightLines - existHeightLines ) * source.Width(), /*width*/sourceChannelsCount, /*row-size*/sourceChannelsCount,
 						/*handle*/filterRaw, /*width*/filterObjectSize, /*row-size*/filterObjectSize,
-						/*handle*/rrBuf.GetBufPtr( existedHeighLines, sourceHeightLines ), /*row-size*/filterObjectSize );
+						/*handle*/rrBufs[curThread].GetBufPtr( existHeightLines, sourceHeightLines ), /*row-size*/filterObjectSize );
 				}
 				int sourceRow = 0;
 				for( int filterRow = filterRowEnd; filterRow >= filterRowStart; filterRow -= desc.StrideHeight, ++sourceRow ) {
 					// The temp blob stores the filter rows multiplied by source; add them to the result rows in correct positions
-					const float* tempRowData = rrBuf.raw + ( rrBuf.GetSourceRow( sourceRow ) * source.Width() * filter.Height() + filterRow ) * filterRowSize;
+					const float* tempRowData = rrBufs[curThread].GetRaw( ( rrBufs[curThread].GetSourceRowNum( sourceRow ) * source.Width() * filter.Height() + filterRow ) * filterRowSize );
 					for( int filterColumn = -desc.PaddingWidth; filterColumn <= result.Width() + desc.PaddingWidth - filter.Width(); filterColumn += desc.StrideWidth ) {
 						const int toCopy = std::min( filter.Width() + std::min( 0, filterColumn ), result.Width() - std::max( 0, filterColumn ) ) * filterChannels;
 						if( toCopy > 0 ) {
@@ -692,14 +714,16 @@ void CCpuMathEngine::blobConvolutionBackwardAlgo1( const CCpuConvolutionDesc& de
 
 				const int sourceRowStart = std::max( 0, ( topPosMinVal + desc.PaddingHeight ) / desc.StrideHeight );
 				const int batchedSourceRowStart = batch * source.Height() + sourceRowStart;
-				if( rrBuf.prevBatchedSourceRowStart < batchedSourceRowStart ) {
-					const int sourceHeightLines = std::min( source.Height() - sourceRowStart, numLines );
-					const int existedHeighLines = rrBuf.Move( batchedSourceRowStart, sourceHeightLines );
+				if( rrBufs[curThread].GetPrevBatchedSourceRowStart() < batchedSourceRowStart ) {
+					const int sourceHeightLines = std::min( source.Height() - sourceRowStart, numLines ); //max number of lines to prepare
+					// Move the begining pointer of rrBuf in number of no-need lines
+					const int existHeightLines = rrBufs[curThread].Move( batchedSourceRowStart, sourceHeightLines );
+					// Prepare only last newly lines
 					multiplyMatrixByMatrix(
-						/*handle*/sourceRaw + ( batchedSourceRowStart + existedHeighLines ) * source.Width() * sourceChannelsCount,
-						/*height*/( sourceHeightLines - existedHeighLines ) * source.Width(), /*width*/sourceChannelsCount, /*row-size*/sourceChannelsCount,
+						/*handle*/sourceRaw + ( batchedSourceRowStart + existHeightLines ) * source.Width() * sourceChannelsCount,
+						/*height*/( sourceHeightLines - existHeightLines ) * source.Width(), /*width*/sourceChannelsCount, /*row-size*/sourceChannelsCount,
 						/*handle*/filterRaw, /*width*/filterObjectSize, /*row-size*/filterObjectSize,
-						/*handle*/rrBuf.GetBufPtr( existedHeighLines, sourceHeightLines ), /*row-size*/filterObjectSize );
+						/*handle*/rrBufs[curThread].GetBufPtr( existHeightLines, sourceHeightLines ), /*row-size*/filterObjectSize );
 				}
 				// Iterate through the filter top positions, starting to apply the filter once we intersect with the current row
 				for( int topPos = topPosMinVal; topPos <= topPosMaxVal; ++topPos ) {
@@ -719,7 +743,7 @@ void CCpuMathEngine::blobConvolutionBackwardAlgo1( const CCpuConvolutionDesc& de
 					// Iterate through the filter left positions
 					for( int leftPos = -desc.PaddingWidth; leftPos + totalFilterWidth <= result.Width() + desc.PaddingWidth; leftPos += desc.StrideWidth, ++sourceHPos ) {
 						// The pointer to the filter data at (topPos, leftPos) position
-						const float* tempData = rrBuf.raw + ( rrBuf.GetSourceRow( newSourceVPos ) * source.Width() + sourceHPos ) * filterObjectSize;
+						const float* tempData = rrBufs[curThread].GetRaw( ( rrBufs[curThread].GetSourceRowNum( newSourceVPos ) * source.Width() + sourceHPos ) * filterObjectSize );
 						// Apply the filter row starting at (topPos, leftPos) to the current row
 						for( int filterColumn = 0; filterColumn < filter.Width(); ++filterColumn ) {
 							const int resultColumn = leftPos + filterColumn * desc.DilationWidth;
@@ -734,6 +758,11 @@ void CCpuMathEngine::blobConvolutionBackwardAlgo1( const CCpuConvolutionDesc& de
 			} //else dilation
 		} //resultRow
 	} //threads
+
+	// Inplaced constructors should be manually destructed
+	for( int thread = 0; thread < curThreadsCount; ++thread ) {
+		rrBufs[thread].~CRoundRobinBuffer(); //destruct in place
+	}
 }
 
 // Creates a temporary outputDiff blob using the #2 algorithm
