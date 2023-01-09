@@ -16,7 +16,7 @@ limitations under the License.
 #pragma once
 
 #include "MatrixMultiplyingInterleavedCommon/MicroKernels/MicroKernelBase.h"
-// The micro-kernel size is 4*12. The temporary variables are stored in q8-q11, q16-q19, q24-q2 registers
+// The micro-kernel size is 4*12. The temporary variables are stored in q8-q11, q16-q19, q24-q27 registers
 // The A input matrix is stored column-by-column
 // The B input matrix is stored row-by-row
 // When iterating by K, each row from B is written into q2, q3, q4
@@ -179,13 +179,8 @@ struct CMicroKernel4x12 : public CMicroKernelBase<4, 12> {
 			"add    %[cPtr],%[cPtr], %[ldc]\n"
 			"fmla   v27.4s, v4.4s, v0.s[3]\n"
 			"str    q11,    [%[cPtr], #0x0]\n"
-
-			"fmla   v12.4s, v2.4s, v1.s[0]\n"
 			"str    q19,    [%[cPtr], #0x10]\n"
-			"fmla   v20.4s, v3.4s, v1.s[0]\n"
 			"str    q27,    [%[cPtr], #0x20]\n"
-			"add    %[cPtr],%[cPtr], %[ldc]\n"
-			"fmla   v28.4s, v4.4s, v1.s[0]\n"
 		: [aPtr]"+r"(aPtr), [bPtr]"+r"(bPtr), [cPtr]"+r"(cPtr), [cLdr]"+r"(cLdr),
 		  [ldc]"+r"(ldc), [k]"+r"(k)
 		:
