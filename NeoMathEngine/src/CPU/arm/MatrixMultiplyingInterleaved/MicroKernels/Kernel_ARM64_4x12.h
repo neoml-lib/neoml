@@ -190,7 +190,9 @@ struct CMicroKernel4x12 : public CMicroKernelBase<4, 12> {
 		  [ldc]"+r"(ldc), [k]"+r"(k)
 		:
 		: "v0", "v2", "v3", "v4", "v5",
-		  "v8", "v9", "v10", "v11", "v16", "v17", "v18", "v19", "v24", "v25", "v26", "v27",
+		  "v8", "v9", "v10", "v11", "v12",
+		  "v16", "v17", "v18", "v19", "v20",
+		  "v24", "v25", "v26", "v27", "v28",
 		  "cc", "memory"
 		);
 	}
