@@ -22,13 +22,9 @@ namespace NeoML {
 
 // Activation layer with formula x * Ф(x),
 // where Ф(x) - cumulative distribution function of the standard normal distribution N(0, 1)
-class NEOML_API CGELULayer : public CBaseLayer {
+class NEOML_API CGELULayer : public CBaseLayer, public IActivationLayer {
 	NEOML_DNN_LAYER( CGELULayer )
 public:
-	explicit CGELULayer( IMathEngine& mathEngine );
-
-	void Serialize( CArchive& archive ) override;
-
 	// CDF can be calculated using the error function (slow) or using an approximation. The approximate method is used by default.
 	enum TCalculationMode {
 		// x * 0.5( 1 + erf( x / sqrt(2) ) )
@@ -36,11 +32,22 @@ public:
 		// x * sigmoid(1.702x)
 		CM_SigmoidApproximate
 	};
+	static const TCalculationMode DefaultCalculationMode = CM_SigmoidApproximate;
+	struct CParam {
+		TCalculationMode Mode = DefaultCalculationMode;
+	};
+
+	explicit CGELULayer( IMathEngine& mathEngine );
+
+	void Serialize( CArchive& archive ) override;
 
 	// Changes GELU calculation mode
 	void SetCalculationMode( TCalculationMode );
 	// Returns current calculation mode
 	TCalculationMode GetCalculationMode() const { return mode; }
+
+	void ApplyParam( CParam param ) { SetCalculationMode( param.Mode ); }
+	CActivationDesc GetDesc() const override;
 
 protected:
 	void Reshape() override;
@@ -49,7 +56,7 @@ protected:
 	int BlobsForBackward() const override { return TInputBlobs; }
 
 private:
-	TCalculationMode mode = CM_SigmoidApproximate;
+	TCalculationMode mode = DefaultCalculationMode;
 
 	// 1
 	CFloatHandleVar oneVar;

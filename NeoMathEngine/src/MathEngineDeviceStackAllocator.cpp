@@ -187,7 +187,7 @@ CDeviceStackAllocator::~CDeviceStackAllocator()
 
 void CDeviceStackAllocator::CleanUp()
 {
-	thread::id id = this_thread::get_id();
+	std::thread::id id = std::this_thread::get_id();
 
 	auto iterator = stackManagers.find( id );
 	if( iterator != stackManagers.end() ) {
@@ -200,7 +200,7 @@ CMemoryHandle CDeviceStackAllocator::Alloc( size_t size )
 	// Align size to keep correct data alignment
 	size = ( ( size + memoryAlignment - 1 ) / memoryAlignment ) * memoryAlignment;
 	CDeviceStackMemoryManager* deviceManager = 0;
-	thread::id id = this_thread::get_id();
+	std::thread::id id = std::this_thread::get_id();
 
 	{
 		auto result = stackManagers.find( id );
@@ -220,7 +220,7 @@ void CDeviceStackAllocator::Free( const CMemoryHandle& ptr )
 	}
 
 	CDeviceStackMemoryManager* deviceManager = 0;
-	thread::id id = this_thread::get_id();
+	std::thread::id id = std::this_thread::get_id();
 
 	{
 		deviceManager = stackManagers.find( id )->second;

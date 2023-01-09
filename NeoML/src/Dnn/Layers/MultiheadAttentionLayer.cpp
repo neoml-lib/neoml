@@ -36,7 +36,8 @@ CMultiheadAttentionLayer::CMultiheadAttentionLayer( IMathEngine& mathEngine ) :
 	dropoutRate( -1 ),
 	useMask( false ),
 	maskType( MT_OneObject ),
-	outputSize( 8 )
+	outputSize( 8 ),
+	isInCompatibilityMode( false )
 {
 }
 
@@ -82,7 +83,19 @@ void CMultiheadAttentionLayer::SetOutputSize( int _outputSize )
 	DeleteAllLayers();
 }
 
-static const int MultiheadAttentionLayerVersion = 1;
+void CMultiheadAttentionLayer::SetCompatibilityMode( bool value )
+{
+	if( value == isInCompatibilityMode ) {
+		return;
+	}
+
+	isInCompatibilityMode = value;
+	if( HasLayer( multiplyByConstLayerName ) ) {
+		CheckCast<CLinearLayer>( GetLayer( multiplyByConstLayerName ) )->SetMultiplier( getScalingFactor() );
+	}
+}
+
+static const int MultiheadAttentionLayerVersion = 2;
 
 void CMultiheadAttentionLayer::Serialize( CArchive& archive )
 {
@@ -97,6 +110,13 @@ void CMultiheadAttentionLayer::Serialize( CArchive& archive )
 		archive.SerializeEnum( maskType );
 	} else {
 		maskType = MT_OneObject;
+	}
+	if( version >= 2 ) {
+		archive.Serialize( isInCompatibilityMode );
+		archive.Serialize( multiplyByConstLayerName );
+	} else {
+		isInCompatibilityMode = true;
+		multiplyByConstLayerName = GetName() + CString( ".MultiplyByConst" );
 	}
 }
 
@@ -121,14 +141,11 @@ void CMultiheadAttentionLayer::Rebuild( bool forceRebuild )
 }
 
 // Creates layer with new parameters
-// Here and further blob sizes are shown as [BathcWidth, ListSize, Width, Channels]
+// Here and further blob sizes are shown as [BatchWidth, ListSize, Width, Channels]
 void CMultiheadAttentionLayer::create()
 {
 	NeoAssert( headCount > 0 );
 	NeoAssert( hiddenSize % headCount == 0 );
-
-	// scaling factor
-	const float multiplier = static_cast<float>( 1.0 / sqrt( 1.0 * hiddenSize ) );
 
 	// Applying W_Q, W_K and W_V to the corresponding inputs
 	// [B, seq_Q, 1, hiddenSize]
@@ -158,9 +175,10 @@ void CMultiheadAttentionLayer::create()
 	// Applying scaling factor
 	// [B, n_head, seq_Q, seq_to]
 	CPtr<CLinearLayer> multiplierLayer = new CLinearLayer( MathEngine() );
-	multiplierLayer->SetName( GetName() + CString( ".MultiplyByConst" ) );
+	multiplyByConstLayerName = GetName() + CString( ".MultiplyByConst" );
+	multiplierLayer->SetName( multiplyByConstLayerName );
 	multiplierLayer->Connect( *QKt );
-	multiplierLayer->SetMultiplier( multiplier );
+	multiplierLayer->SetMultiplier( getScalingFactor() );
 	multiplierLayer->SetFreeTerm( 0 );
 	AddLayer( *multiplierLayer );
 
@@ -216,7 +234,7 @@ CBaseLayer* CMultiheadAttentionLayer::multiplyInputByMatrixWeights(
 	fcLayer->SetName( name );
 	AddLayer( *fcLayer );
 
-	// Вход маппится на этот слой.
+	// Connect input with this sublayer
 	SetInputMapping( input, *fcLayer, 0 );
 
 	return fcLayer;

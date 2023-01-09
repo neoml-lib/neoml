@@ -655,7 +655,7 @@ void CCpuMathEngine::VectorEltwiseMin(const CConstFloatHandle& firstHandle,
 	}
 
 	for(int i = 0; i < nonSseSize; ++i) {
-		*result++ = min(*first, *second);
+		*result++ = std::min(*first, *second);
 		first++;
 		second++;
 	}
@@ -748,7 +748,7 @@ void CCpuMathEngine::VectorHinge(const CConstFloatHandle& firstHandle, const CFl
 	}
 
 	for(int i = 0; i < nonSseSize; ++i) {
-		*result = max(0.f, 1 - *first);
+		*result = std::max(0.f, 1.f - *first);
 		result++;
 		first++;
 	}
@@ -830,7 +830,7 @@ void CCpuMathEngine::VectorSquaredHinge(const CConstFloatHandle& firstHandle, co
 		if(*first < -1) {
 			*result++ = -4 * *first;
 		} else {
-			float tmp = max(0.f, 1 - *first);
+			float tmp = std::max(0.f, 1.f - *first);
 			*result++ = tmp * tmp;
 		}
 		++first;
@@ -1201,7 +1201,7 @@ void CCpuMathEngine::VectorSquaredHingeDiff(const CConstFloatHandle& firstHandle
 		if(*first < -1) {
 			*result++ = -4 * *second;
 		} else {
-			float hinge = max(0.f, 1 - *first);
+			float hinge = std::max(0.f, 1.f - *first);
 			*result++ = -2 * hinge * *second;
 		}
 		++first;
@@ -1249,7 +1249,7 @@ void CCpuMathEngine::VectorBernulliKLDerivative(const CConstFloatHandle& estimat
 
 	for(int i = 0; i < nonSseSize; ++i) {
 		float value = - target / *estimation + (1 - target) / (1 - *estimation);
-		*result++ = min(MaxKLDerivative, max(-MaxKLDerivative, value));
+		*result++ = std::min(MaxKLDerivative, std::max(-MaxKLDerivative, value));
 		++estimation;
 	}
 }

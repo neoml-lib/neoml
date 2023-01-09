@@ -2041,7 +2041,7 @@ GTEST_TEST( SerializeToFile, QrnnLayerSerialization )
 template<>
 inline void checkSpecificParams<CQrnnLayer>( CQrnnLayer& layer )
 {
-	EXPECT_EQ( AF_HardSigmoid, layer.GetActivation() );
+	EXPECT_EQ( AF_HardSigmoid, layer.GetActivation().GetType() );
 	EXPECT_EQ( 0.05f, layer.GetDropout() );
 	EXPECT_EQ( 15, layer.GetHiddenSize() );
 	EXPECT_EQ( 4, layer.GetPaddingFront() );
@@ -2496,4 +2496,66 @@ inline void checkSpecificParams<CTransformerSourceMaskLayer>( CTransformerSource
 GTEST_TEST( SerializeFromFile, TransformerSourceMaskLayerSerialization )
 {
 	checkSerializeLayer<CTransformerSourceMaskLayer>( "NeoMLDnnTransformerSourceMaskLayer" );
+}
+
+// ====================================================================================================================
+
+// CMobileNetV2BlockLayer
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+static void setSpecificParams( CMobileNetV2BlockLayer& layer )
+{
+	const int inputChannels = 2;
+	const int expandChannels = 4;
+	const int outputChannels = 3;
+	
+	layer.SetExpandFilter( generateBlob( expandChannels, 1, 1, 1, inputChannels ) );
+	layer.SetExpandFreeTerm( generateBlob( 1, 1, 1, 1, expandChannels ) );
+	layer.SetExpandReLUThreshold( 666.f );
+
+	layer.SetStride( 2 );
+	layer.SetChannelwiseFilter( generateBlob( 1, 3, 3, 1, expandChannels ) );
+	layer.SetChannelwiseFreeTerm( nullptr );
+	layer.SetChannelwiseReLUThreshold( 777.f );
+
+	layer.SetDownFilter( generateBlob( outputChannels, 1, 1, 1, expandChannels ) );
+	layer.SetDownFreeTerm( generateBlob( 1, 1, 1, 1, outputChannels ) );
+
+	// inputChannnels != outputChannels and stride == 2
+	layer.SetResidual( false );
+}
+
+GTEST_TEST( SerializeToFile, MobileNetV2BlockLayerSerialization )
+{
+	serializeToFile<CMobileNetV2BlockLayer>( "NeoMLDnnMobileNetV2BlockLayer" );
+}
+
+#endif // GENERATE_SERIALIZATION_FILES
+
+template<>
+inline void checkSpecificParams<CMobileNetV2BlockLayer>( CMobileNetV2BlockLayer& layer )
+{
+	const int inputChannels = 2;
+	const int expandChannels = 4;
+	const int outputChannels = 3;
+
+	checkBlob( *layer.ExpandFilter(), expandChannels * inputChannels );
+	checkBlob( *layer.ExpandFreeTerm(), expandChannels );
+	EXPECT_FLOAT_EQ( 666.f, layer.ExpandReLUThreshold() );
+
+	EXPECT_EQ( 2, layer.Stride() );
+	checkBlob( *layer.ChannelwiseFilter(), 3 * 3 * expandChannels );
+	EXPECT_EQ( nullptr, layer.ChannelwiseFreeTerm() );
+	EXPECT_FLOAT_EQ( 777.f, layer.ChannelwiseReLUThreshold() );
+
+	checkBlob( *layer.DownFilter(), outputChannels * expandChannels );
+	checkBlob( *layer.DownFreeTerm(), outputChannels );
+
+	EXPECT_FALSE( layer.Residual() );
+}
+
+GTEST_TEST( SerializeFromFile, MobileNetV2BlockLayerSerialization )
+{
+	checkSerializeLayer<CMobileNetV2BlockLayer>( "NeoMLDnnMobileNetV2BlockLayer" );
 }

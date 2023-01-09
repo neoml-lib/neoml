@@ -22,15 +22,15 @@ limitations under the License.
 
 namespace NeoML {
 
-static const char* selfAttentionName = "SelfAttention";
-static const char* selfAttentionSumName = "SelfAttentionSum";
-static const char* dropoutSelfAttentionName = "DropoutSelfAttention";
-static const char* fc1Name = "FullyConnected1";
-static const char* activationName = "Activation";
-static const char* dropoutFc1Name = "DropoutFc1";
-static const char* fc2Name = "FullyConnected2";
-static const char* dropoutFc2Name = "DropoutFc2";
-static const char* feedForwardSumName = "FeedForwardSum";
+static const char* const selfAttentionName = "SelfAttention";
+static const char* const selfAttentionSumName = "SelfAttentionSum";
+static const char* const dropoutSelfAttentionName = "DropoutSelfAttention";
+static const char* const fc1Name = "FullyConnected1";
+static const char* const activationName = "Activation";
+static const char* const dropoutFc1Name = "DropoutFc1";
+static const char* const fc2Name = "FullyConnected2";
+static const char* const dropoutFc2Name = "DropoutFc2";
+static const char* const feedForwardSumName = "FeedForwardSum";
 
 static CPtr<CDropoutLayer> getOptionalDropout( CDnnLayerGraph& dnn, const char* name )
 {
@@ -140,12 +140,12 @@ void CTransformerEncoderLayer::SetFeedForwardSize( int size )
 	NeoPresume( GetFeedForwardSize() == size );
 }
 
-void CTransformerEncoderLayer::SetActivation( TActivationFunction newFunction )
+void CTransformerEncoderLayer::SetActivation( const CActivationDesc& param )
 {
 	NeoAssert( HasLayer( activationName ) );
 
 	DeleteLayer( activationName );
-	CPtr<CBaseLayer> activation = CreateActivationLayer( MathEngine(), newFunction );
+	CPtr<CBaseLayer> activation = CreateActivationLayer( MathEngine(), param );
 	activation->SetName( activationName );
 	activation->Connect( *fc1 );
 	if( dropoutFc1 == nullptr ) {
@@ -158,6 +158,16 @@ void CTransformerEncoderLayer::SetActivation( TActivationFunction newFunction )
 	NeoPresume( HasLayer( activationName ) );
 }
 
+void CTransformerEncoderLayer::SetMaskType( CMultiheadAttentionLayer::TMaskType type )
+{
+	if( GetMaskType() == type ) {
+		return;
+	}
+	selfAttention->SetMaskType( type );
+	ForceReshape();
+	NeoPresume( GetMaskType() == type );
+}
+
 void CTransformerEncoderLayer::Reshape()
 {
 	CheckArchitecture( GetHiddenSize() % GetHeadCount() == 0, GetPath(), "HiddenSize must be a multiple of HeadCount" );
@@ -165,7 +175,18 @@ void CTransformerEncoderLayer::Reshape()
 	checkBlob( inputDescs[0], GetPath(), "input data", -1, -1, 1, -1 );
 
 	if( GetInputCount() == 2 ) {
-		checkBlob( inputDescs[1], GetPath(), "input mask", 1, 1, inputDescs[0].ListSize(), inputDescs[0].ListSize() );
+		switch( GetMaskType() ) {
+			case CMultiheadAttentionLayer::MT_OneObject:
+				checkBlob( inputDescs[1], GetPath(), "input mask",
+					1, 1, inputDescs[0].ListSize(), inputDescs[0].ListSize() );
+				break;
+			case CMultiheadAttentionLayer::MT_Eltwise:
+				checkBlob( inputDescs[1], GetPath(), "input mask",
+					inputDescs[0].BatchWidth(), GetHeadCount(), inputDescs[0].ListSize(), inputDescs[0].ListSize() );
+				break;
+			default:
+				NeoAssert( false );
+		}
 	}
 
 	if( selfAttention->GetOutputSize() != inputDescs[0].Channels() ) {

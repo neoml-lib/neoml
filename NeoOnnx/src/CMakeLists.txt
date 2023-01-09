@@ -20,6 +20,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     NeoOnnx.cpp
     NeoOnnxImport.cpp
     NeoOnnxCheck.cpp
+    LayerNormFusionOptimizer.cpp
     LayerOperator.cpp
     LayerUtils.cpp
     Operator.cpp
@@ -62,15 +63,19 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Operators/TransposeOperator.cpp
     Operators/UnsqueezeOperator.cpp
     Operators/UpsampleOperator.cpp
+    Optimizer.cpp
     TensorUtils.cpp
 
     ../include/NeoOnnx/NeoOnnx.h
     ../include/NeoOnnx/NeoOnnxDefs.h
     ../include/NeoOnnx/NeoOnnxImport.h
+    ../include/NeoOnnx/TensorLayout.h
     AttributeGetters.h
+    DnnOptimizer.h
     GraphInput.h
     GraphInitializer.h
     GraphOutput.h
+    LayerNormFusionOptimizer.h
     LayerOperator.h
     LayerUtils.h
     NeoOnnxCheck.h
@@ -114,8 +119,8 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Operators/TransposeOperator.h
     Operators/UnsqueezeOperator.h
     Operators/UpsampleOperator.h
+    Optimizer.h
     Tensor.h
-    TensorLayout.h
     TensorUtils.h
 )
 

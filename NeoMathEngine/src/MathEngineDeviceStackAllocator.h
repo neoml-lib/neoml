@@ -23,7 +23,6 @@ limitations under the License.
 #include <unordered_map>
 #include <thread>
 
-using namespace std;
 
 namespace NeoML {
 
@@ -43,8 +42,9 @@ public:
 private:
 	CMemoryPool& memoryPool;
 	const int memoryAlignment;
-	std::unordered_map< thread::id, CDeviceStackMemoryManager*,
-		hash<thread::id>, equal_to<thread::id>, CrtAllocator< pair<const thread::id, CDeviceStackMemoryManager*> > > stackManagers;
+	std::unordered_map< std::thread::id, CDeviceStackMemoryManager*,
+		std::hash<std::thread::id>, std::equal_to<std::thread::id>, 
+		CrtAllocator< std::pair<const std::thread::id, CDeviceStackMemoryManager*> > > stackManagers;
 };
 
 } // namespace NeoML

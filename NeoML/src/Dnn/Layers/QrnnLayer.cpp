@@ -40,10 +40,9 @@ static const char* bidirectionalMergeName = "BidirectionalMergeName";
 CQrnnLayer::CQrnnLayer( IMathEngine& mathEngine ) :
 	CCompositeLayer( mathEngine ),
 	poolingType( PT_FPooling ),
-	recurrentMode( RM_Direct ),
-	activation( AF_Tanh )
+	recurrentMode( RM_Direct )
 {
-	buildLayer( 0.f, 1, 1, 1, 0, 0 );
+	buildLayer( 0.f, 1, 1, 1, 0, 0, AF_Tanh );
 }
 
 void CQrnnLayer::SetPoolingType( TPoolingType newPoolingType )
@@ -115,14 +114,16 @@ void CQrnnLayer::SetPaddingBack( int padding )
 	ForceReshape();
 }
 
-void CQrnnLayer::SetActivation( TActivationFunction newActivation )
+void CQrnnLayer::SetActivation( const CActivationDesc& activation )
 {
-	if( activation == newActivation ) {
-		return;
+	if( HasLayer( updateActivationName ) ) {
+		DeleteLayer( updateActivationName );
 	}
 
-	activation = newActivation;
-	rebuildLayer( gateCount() );
+	CPtr<CBaseLayer> activationLayer = CreateActivationLayer( MathEngine(), activation );
+	activationLayer->SetName( updateActivationName );
+	activationLayer->Connect( 0, *split, G_Update );
+	AddLayer( *activationLayer );
 }
 
 void CQrnnLayer::SetDropout( float rate )
@@ -155,12 +156,18 @@ void CQrnnLayer::SetRecurrentMode( CQrnnLayer::TRecurrentMode newMode )
 	rebuildLayer( gateCount() );
 }
 
-static const int QrnnLayerVersion = 1;
+CActivationDesc CQrnnLayer::GetActivation() const
+{
+	auto activation = CheckCast<IActivationLayer>( GetLayer( updateActivationName ) );
+	return activation->GetDesc();
+}
+
+static const int QrnnLayerVersion = 2;
 
 void CQrnnLayer::Serialize( CArchive& archive )
 {
 	// During move from v0 to v1 the backward compatibility was broken
-	archive.SerializeVersion( QrnnLayerVersion, 1 );
+	const int version = archive.SerializeVersion( QrnnLayerVersion, 1 );
 	CCompositeLayer::Serialize( archive );
 
 	int poolingTypeInt = static_cast<int>( poolingType );
@@ -170,10 +177,11 @@ void CQrnnLayer::Serialize( CArchive& archive )
 	int recurrentModeInt = static_cast<int>( recurrentMode );
 	archive.Serialize( recurrentModeInt );
 	recurrentMode = static_cast<TRecurrentMode>( recurrentModeInt );
-	
-	int activationInt = static_cast<int>( activation );
-	archive.Serialize( activationInt );
-	activation = static_cast<TActivationFunction>( activationInt );
+
+	if( version < 2 ) {
+		int activationInt{};
+		archive.Serialize( activationInt );
+	}
 
 	if( archive.IsLoading() ) {
 		timeConv = CheckCast<CTimeConvLayer>( GetLayer( timeConvName ) );
@@ -194,7 +202,8 @@ void CQrnnLayer::Serialize( CArchive& archive )
 	}
 }
 
-void CQrnnLayer::buildLayer( float dropoutRate, int hiddenSize, int windowSize, int stride, int padFront, int padBack )
+void CQrnnLayer::buildLayer( float dropoutRate, int hiddenSize, int windowSize, int stride, int padFront, int padBack, 
+	const CActivationDesc& activation )
 {
 	// Add time conv
 	timeConv = new CTimeConvLayer( MathEngine() );
@@ -217,10 +226,7 @@ void CQrnnLayer::buildLayer( float dropoutRate, int hiddenSize, int windowSize, 
 	AddLayer( *split );
 
 	// Apply activation to every gate
-	CPtr<CBaseLayer> activationLayer = CreateActivationLayer( MathEngine(), activation );
-	activationLayer->SetName( updateActivationName );
-	activationLayer->Connect( 0, *split, G_Update );
-	AddLayer( *activationLayer );
+	SetActivation( activation );
 
 	forgetSigmoid = addSigmoid( *split, G_Forget, forgetSigmoidName );
 
@@ -402,10 +408,11 @@ void CQrnnLayer::rebuildLayer( int prevGateCount )
 	const int stride = timeConv->GetStride();
 	const int padFront = timeConv->GetPaddingFront();
 	const int padBack = timeConv->GetPaddingBack();
+	const auto prevActivation = GetActivation();
 
 	DeleteAllLayers();
 
-	buildLayer( dropoutRate, hiddenSize, windowSize, stride, padFront, padBack );
+	buildLayer( dropoutRate, hiddenSize, windowSize, stride, padFront, padBack, prevActivation );
 }
 
 bool CQrnnLayer::isBidirectional() const

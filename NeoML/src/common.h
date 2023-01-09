@@ -17,6 +17,9 @@ limitations under the License.
 
 #include <NeoMathEngine/Platforms.h>
 
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
 #ifdef NEOML_USE_FINEOBJ
 #include <FineObj.h>
 #endif
