@@ -15,8 +15,6 @@ limitations under the License.
 
 #pragma once
 
-#ifdef TODO
-
 #include "../LayerOperator.h"
 
 namespace NeoOnnx {
@@ -32,6 +30,4 @@ protected:
 };
 
 } // namespace NeoOnnx
-
-#endif
 

@@ -456,87 +456,6 @@ CPtr<const CUserTensor> PadUserTensor( const CUserTensor& input, const CFastArra
 
 //---------------------------------------------------------------------------------------------------------------------
 
-// Returns true if shapes are equal
-static bool areShapesEqual( const CTensorShape& first, const CTensorShape& second )
-{
-	if( first.Size() != second.Size() ) {
-		return false;
-	}
-
-	for( int i = 0; i < first.Size(); ++i ) {
-		if( first[i] != second[i] ) {
-			return false;
-		}
-	}
-
-	return true;
-}
-
-bool BroadcastTensorShape( const CTensorShape& first, const CTensorShape& second, const CBroadcast& broadcast, CTensorShape& result )
-{
-	if( broadcast.Type == BT_None ) {
-		// No broadcast, the shape must match
-		if( areShapesEqual( first, second ) ) {
-			first.CopyTo( result );
-			return true;
-		}
-		return false;
-	}
-
-	int axis = NotFound;
-	if( broadcast.Type == BT_Onnx ) {
-		axis = broadcast.Axis;
-		CheckNeoOnnxSupport( second.Size() <= first.Size(), "second tensor has more dimensions" );
-		if( axis < 0 ) {
-			axis = abs( first.Size() - second.Size() );
-		}
-	} else {
-		// Numpy-style broadcast is similar to the Onnx-broadcast with axis equal to difference
-		// in number of dimensions
-		axis = abs( first.Size() - second.Size() );
-	}
-
-	// The shape with lesser number of dimensions must be padded
-	const CTensorShape& lesserShape = first.Size() <= second.Size() ? first : second;
-	const CTensorShape& biggerShape = first.Size() > second.Size() ? first  : second;
-	CTensorShape paddedShape;
-	paddedShape.Add( 1, axis );
-	paddedShape.Add( lesserShape );
-	if( paddedShape.Size() > biggerShape.Size() ) {
-		// Wrong broadcast parameters (axis value is too big)
-		return false;
-	}
-	NeoAssert( broadcast.Type == BT_Onnx || paddedShape.Size() == biggerShape.Size() );
-
-	// This will add ones only in case of BT_Onnx and axis != abs( first.Size() - second.Size() )
-	paddedShape.Add( 1, biggerShape.Size() - paddedShape.Size() );
-
-	result.SetSize( paddedShape.Size() );
-	for( int dim = 0; dim < result.Size(); ++dim ) {
-		if( paddedShape[dim] == biggerShape[dim] || min( paddedShape[dim], biggerShape[dim] ) == 1 ) {
-			result[dim] = max( paddedShape[dim], biggerShape[dim] );
-		} else {
-			result.DeleteAll();
-			return false;
-		}
-	}
-
-	return true;
-}
-
-// Adds upsample layer to the dnn
-static CPtr<const CUserTensor> addUpsample2dLayer( CUpsampling2DLayer& upsample, CDnn& dnn, const CUserTensor& input,
-	int heightDimIndex, int widthDimIndex )
-{
-	// Add imageResize layer
-	CPtr<const CUserTensor> result = convertTensorToHw( input, heightDimIndex, widthDimIndex );
-	upsample.Connect( 0, *result->Layer(), result->OutputIndex() );
-	dnn.AddLayer( upsample );
-
-	// Construct new CUserTensor which is provided by imageResize layer
-	return new CUserTensor( result->Layout(), CLayerOutput( &upsample, 0 ) );
-}
-
 CPtr<const CTensorBase> PrepareForBroadcast( const CTensorBase& input, const CBroadcast& broadcast, int outputDims )
 {
 	int axis = outputDims - input.DimCount();
@@ -576,137 +495,6 @@ CPtr<const CTensorBase> PrepareForBroadcast( const CTensorBase& input, const CBr
 	}
 	return new CUserTensor( outputLayout, dynamic_cast<const CUserTensor&>( input ).LayerOutput() );
 }
-/*
-// Broadcasts user tensor into outputShape via broadcastInfo
-static CPtr<const CUserTensor> broadcastUserTensor( const CUserTensor& input, const CBroadcast& broadcast,
-	const CTensorShape& outputShape )
-{
-	if( areShapesEqual( input.Shape(), outputShape ) ) {
-		return &input;
-	}
-
-	NeoAssert( broadcast.Type != BT_None );
-	NeoAssert( input.DimCount() <= outputShape.Size() );
-	NeoAssert( broadcast.Type != BT_Upsample || input.DimCount() == outputShape.Size() );
-
-	// Prefix for upsample layer names
-	const CString upsampleNamePrefix = input.Layer()->GetName() + CString( "_upsample_" );
-	// Used network
-	CDnn& dnn = *( input.Layer()->GetDnn() );
-	// Used mathEngine
-	IMathEngine& mathEngine = dnn.GetMathEngine();
-
-	CPtr<const CUserTensor> currData = dynamic_cast<const CUserTensor*>( PrepareForBroadcast( input, broadcast, outputShape.Size() ).Ptr() );
-	CPtr<CUpsampling2DLayer> upsample = nullptr;
-	int heightDimIndex = NotFound;
-	int widthDimIndex = NotFound;
-	CTensorShape inputShape;
-	currData->Shape().CopyTo( inputShape );
-
-	for( int i = 0; i < inputShape.Size(); ++i ) {
-		if( inputShape[i] == outputShape[i] ) {
-			continue;
-		}
-		NeoAssert( broadcast.Type == BT_Upsample || inputShape[i] == 1 );
-		NeoAssert( outputShape[i] % inputShape[i] == 0 );
-
-		if( upsample == nullptr ) {
-			upsample = new CUpsampling2DLayer( mathEngine );
-			upsample->SetName( getUniqueLayerName( dnn, upsampleNamePrefix ) );
-		}
-
-		if( heightDimIndex == NotFound ) {
-			heightDimIndex = i;
-			upsample->SetHeightCopyCount( outputShape[i] / inputShape[i] );
-		} else {
-			widthDimIndex = i;
-			upsample->SetWidthCopyCount( outputShape[i] / inputShape[i] );
-			currData = addUpsample2dLayer( *upsample, dnn, *currData, heightDimIndex, widthDimIndex );
-			upsample = nullptr;
-			heightDimIndex = NotFound;
-			widthDimIndex = NotFound;
-		}
-	}
-
-	// In case of broadcasting odd number of dimensions by this moment upsample != nullptr
-	// widthDimIndex is equal to NotFound
-	if( upsample != nullptr ) {
-		// Default value is 0 which is invalid
-		upsample->SetWidthCopyCount( 1 );
-		currData = addUpsample2dLayer( *upsample, dnn, *currData, heightDimIndex, widthDimIndex );
-	}
-
-	return currData;
-}
-
-// Broadcasts data tensor into outputShape via broadcastInfo
-static CPtr<const CDataTensor> broadcastDataTensor( const CDataTensor& input, const CBroadcast& broadcast,
-	const CTensorShape& outputShape )
-{
-	if( areShapesEqual( input.Shape(), outputShape ) ) {
-		return &input;
-	}
-
-	NeoAssert( broadcast.Type != BT_None );
-
-	// The broadcast of data tensor is done by building temporary dnn which broadcasts user tensor
-	// and running this dnn on the data from the input
-	IMathEngine& mathEngine = input.Data()->GetMathEngine();
-	CRandom random( 0x32456 );
-
-	CDnn internalDnn( random, mathEngine );
-	// Create user tensor of the same shape linked to the source layer of the internal dnn
-	CPtr<const CUserTensor> internalInput = AsUserTensor( input, "BroadcastSource", internalDnn );
-
-	// Broadcast user tensor
-	// This step adds broadcasting layers to the internal dnn
-	CPtr<const CUserTensor> internalOutput = broadcastUserTensor( *internalInput, broadcast, outputShape );
-	NeoPresume( areShapesEqual( internalOutput->Shape(), outputShape ) );
-
-	// Add sink which will be used to extract broadcasted data from the internal dnn
-	CPtr<CSinkLayer> sink = new CSinkLayer( mathEngine );
-	sink->Connect( 0, *internalOutput->Layer(), internalOutput->OutputIndex() );
-	internalDnn.AddLayer( *sink );
-
-	// Run dnn on the data from the input
-	internalDnn.RunOnce();
-
-	// Create new data tensor with the blob from the internal dnn sink
-	return new CDataTensor( outputShape, internalOutput->Layout(), *sink->GetBlob() );
-}
-
-CPtr<const CTensorBase> BroadcastTensor( const CTensorBase& input, const CBroadcast& broadcast,
-	const CTensorShape& outputShape )
-{
-	if( input.Type() == TTensorType::Data ) {
-		return broadcastDataTensor( dynamic_cast<const CDataTensor&>( input ), broadcast, outputShape ).Ptr();
-	}
-	return broadcastUserTensor( dynamic_cast<const CUserTensor&>( input ), broadcast, outputShape ).Ptr();
-}
-*/
-//---------------------------------------------------------------------------------------------------------------------
-
-CPtr<const CShapeTensor> AsShapeTensor( const CTensorBase& tensor, const CString& layerName, CDnn& dnn )
-{
-	static_assert( static_cast<int>( TTensorType::Count ) == 3, "TTensorType::Count != 3" );
-	CheckNeoOnnxSupport( tensor.Type() != TTensorType::User, "User tensor can't be converted to Shape" );
-
-	if( tensor.Type() == TTensorType::Shape ) {
-		return dynamic_cast<const CShapeTensor*>( &tensor );
-	}
-
-	const CDataTensor& data = dynamic_cast<const CDataTensor&>( tensor );
-	CPtr<CSourceReshaper> source = new CSourceReshaper( dnn.GetMathEngine() );
-	source->SetName( layerName );
-	CTensorShape shape;
-	for( int dimIndex = 0; dimIndex < data.DimCount(); ++dimIndex ) {
-		shape.Add( data.DimSize( dimIndex ) );
-	}
-	source->Tensor().Resize( { shape.Size() } );
-	data.Data()->CopyTo( source->Tensor().Ptr() );
-	dnn.AddLayer( *source );
-	return new CShapeTensor( shape, CLayerOutput( source.Ptr(), 0 ) );
-}
 
 //---------------------------------------------------------------------------------------------------------------------
 
@@ -729,6 +517,34 @@ CPtr<const CUserTensor> AsUserTensor( const CTensorBase& tensor, const CString& 
 	dataLayer->SetName( layerName );
 	dnn.AddLayer( *dataLayer );
 	return new CUserTensor( dataTensor.Layout(), CLayerOutput( dataLayer, 0 ) );
+}
+
+CPtr<const CShapeTensor> AsShapeTensor( const CTensorBase& tensor, const CString& layerName, CDnn& dnn )
+{
+	if( tensor.Type() == TTensorType::Shape ) {
+		return CheckCast<const CShapeTensor>( &tensor );
+	}
+
+	CheckNeoOnnxSupport( tensor.Type() != TTensorType::User, "User tensor can't be converted to Shape" );
+
+	CPtr<const CDataTensor> dataTensor = CheckCast<const CDataTensor>( &tensor );
+	if( IsTransposedLayout( dataTensor->Layout() ) ) {
+		dataTensor = ConvertTensor( *dataTensor, CTensorLayout( dataTensor->DimCount() ) );
+	}
+
+	CTensorShape resultShape;
+	for( int dimIndex = 0; dimIndex < dataTensor->DimCount(); ++dimIndex ) {
+		resultShape.Add( dataTensor->DimSize( dimIndex ) );
+	}
+
+	const CDnnBlob* dataBlob = dataTensor->Data();
+	CheckNeoOnnxSupport( dataBlob->GetDataType() == CT_Int, "Float blob can't be convereted to Shape" );
+	CPtr<CSourceReshaper> source = new CSourceReshaper( dnn.GetMathEngine() );
+	source->SetName( layerName );
+	source->Tensor().Resize( resultShape );
+	dataBlob->CopyTo( source->Tensor().Ptr() );
+	dnn.AddLayer( *source );
+	return new CShapeTensor( resultShape, CLayerOutput( source.Ptr(), 0 ) );
 }
 
 } // namespace NeoOnnx

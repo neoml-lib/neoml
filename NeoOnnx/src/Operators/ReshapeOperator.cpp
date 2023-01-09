@@ -63,7 +63,7 @@ void CReshapeOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensor
 	reshapeLayer->Connect( 1, *newShape->Layer(), newShape->OutputIndex() );
 	dnn.AddLayer( *reshapeLayer );
 
-	outputs.Add( new CUserTensor( outputLayout, CLayerOutput( reshapeLayer.Ptr(), 0)));
+	outputs.Add( new CUserTensor( outputLayout, CLayerOutput( reshapeLayer.Ptr(), 0 ) ) );
 }
 
 // Gets output shape
@@ -85,18 +85,7 @@ CPtr<const CShapeTensor> CReshapeOperator::getShape( const CTensorArray& inputs,
 	CheckNeoOnnxSupport( inputs[1] != nullptr && inputs[1]->Type() != TTensorType::User,
 		"User-provided output shape", *this );
 
-	if( inputs[1]->Type() == TTensorType::Shape ) {
-		return CheckCast<const CShapeTensor>( inputs[1] );
-	}
-
-	const CDnnBlob* shapeBlob = dynamic_cast<const CDataTensor*>( inputs[1].Ptr() )->Data();
-	CheckOnnxProtocol( shapeBlob->GetDataType() == CT_Int, "Non-integer shape", *this );
-	CPtr<CSourceReshaper> source = new CSourceReshaper( dnn.GetMathEngine() );
-	source->SetName( Name() + "_ShapeSource" );
-	source->Tensor().Resize( { shapeBlob->GetDataSize() } );
-	shapeBlob->CopyTo( source->Tensor().Ptr() );
-	dnn.AddLayer( *source );
-	return new CShapeTensor( { shapeBlob->GetDataSize() }, CLayerOutput( source.Ptr(), 0 ) );
+	return AsShapeTensor( *inputs[1], Name() + "_ShapeSource", dnn );
 }
 
 } // namespace NeoOnnx
