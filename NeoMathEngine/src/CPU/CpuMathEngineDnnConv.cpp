@@ -540,13 +540,13 @@ void CCpuMathEngine::BlobConvolution( const CConvolutionDesc& convDesc, const CC
 
 class CRoundRobinBuffer final {
 public:
-	explicit CRoundRobinBuffer( IMathEngine& mathEngine, int numItems, int itemSize ) noexcept :
+	explicit CRoundRobinBuffer( IMathEngine& mathEngine, int numItems, int itemSize ) :
 		temp( mathEngine, /*bytes-size*/numItems * itemSize ), raw( NeoML::GetRaw( temp.GetHandle() ) ),
 		numItems( numItems ), itemSize( itemSize ), currPos( 0 ),
 		prevBatchedSourceRowStart( -1 ), prevNumItemsToAdd( 0 ), startItem( 0 )
 	{}
 
-	inline int GetExistItemsNum( int batchedSourceRowStart, int numItemsToAdd )
+	int GetExistItemsNum( int batchedSourceRowStart, int numItemsToAdd )
 	{
 		const int numItemsExist = std::max( 0, prevBatchedSourceRowStart + prevNumItemsToAdd - batchedSourceRowStart );
 		startItem = numItemsExist ? ( ( startItem + batchedSourceRowStart - prevBatchedSourceRowStart ) % numItems ) : 0;
@@ -556,15 +556,15 @@ public:
 		ASSERT_EXPR( numItemsExist == 0 || ( numItemsToAdd - numItemsExist ) <= ( numItems - currPos ) );
 		return numItemsExist;
 	}
-	inline int GetSourceRowNum( int sourceRow ) const noexcept { return ( sourceRow + startItem ) % numItems; }
-	inline float* GetBufPtr( int numItemsExist, int numItemsToAdd ) noexcept
+	int GetSourceRowNum( int sourceRow ) const { return ( sourceRow + startItem ) % numItems; }
+	float* GetBufPtr( int numItemsExist, int numItemsToAdd )
 	{
 		float* const ptr = raw + ( numItemsExist ? currPos : 0 ) * itemSize; //if there are no lines to keep, start buffer from the scratch
 		currPos = numItemsExist ? ( ( currPos + numItemsToAdd - numItemsExist ) % numItems ) : 0;
 		return ptr;
 	}
-	inline const float* GetRaw( int offset ) const noexcept { return raw + offset; }
-	inline int GetPrevBatchedSourceRowStart() const noexcept { return prevBatchedSourceRowStart; }
+	const float* GetRaw( int offset ) const { return raw + offset; }
+	int GetPrevBatchedSourceRowStart() const { return prevBatchedSourceRowStart; }
 
 private:
 	CFloatHandleStackVar temp;
