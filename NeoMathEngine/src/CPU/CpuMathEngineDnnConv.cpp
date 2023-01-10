@@ -540,35 +540,37 @@ void CCpuMathEngine::BlobConvolution( const CConvolutionDesc& convDesc, const CC
 
 class CRoundRobinBuffer final {
 public:
-	explicit CRoundRobinBuffer( IMathEngine& mathEngine, int numItems, int itemSize ) :
+	explicit CRoundRobinBuffer( IMathEngine& mathEngine, int numItems, int itemSize ) noexcept :
 		temp( mathEngine, /*bytes-size*/numItems * itemSize ), raw( NeoML::GetRaw( temp.GetHandle() ) ),
 		numItems( numItems ), itemSize( itemSize ), currPos( 0 ),
-		prevBatchedSourceRowStart( -1 ), prevAddLines( 0 ), startItem( 0 )
+		prevBatchedSourceRowStart( -1 ), prevNumItemsToAdd( 0 ), startItem( 0 )
 	{}
 
-	int Move( int batchedSourceRowStart, int addLines )
+	inline int GetExistItemsNum( int batchedSourceRowStart, int numItemsToAdd )
 	{
-		const int numItemsToAdd = std::max( 0, prevBatchedSourceRowStart + prevAddLines - batchedSourceRowStart );
-		startItem = numItemsToAdd ? ( ( startItem + batchedSourceRowStart - prevBatchedSourceRowStart ) % numItems ) : 0;
-		prevBatchedSourceRowStart = addLines ? batchedSourceRowStart : prevBatchedSourceRowStart;
-		prevAddLines = addLines;
-		return numItemsToAdd;
+		const int numItemsExist = std::max( 0, prevBatchedSourceRowStart + prevNumItemsToAdd - batchedSourceRowStart );
+		startItem = numItemsExist ? ( ( startItem + batchedSourceRowStart - prevBatchedSourceRowStart ) % numItems ) : 0;
+		prevBatchedSourceRowStart = numItemsToAdd ? batchedSourceRowStart : prevBatchedSourceRowStart;
+		prevNumItemsToAdd = numItemsToAdd;
+		// It is forbidden to divide appending matrix lines in two chunks (in the buffer's beginning and end)!
+		ASSERT_EXPR( numItemsExist == 0 || ( numItemsToAdd - numItemsExist ) <= ( numItems - currPos ) );
+		return numItemsExist;
 	}
-	int GetSourceRowNum( int sourceRow ) const { return ( sourceRow + startItem ) % numItems; }
-	float* GetBufPtr( int numItemsToAdd, int addLines )
+	inline int GetSourceRowNum( int sourceRow ) const noexcept { return ( sourceRow + startItem ) % numItems; }
+	inline float* GetBufPtr( int numItemsExist, int numItemsToAdd ) noexcept
 	{
-		float* const ptr = raw + ( numItemsToAdd ? currPos : 0 ) * itemSize;
-		currPos = numItemsToAdd ? ( ( currPos + addLines - numItemsToAdd ) % numItems ) : 0;
+		float* const ptr = raw + ( numItemsExist ? currPos : 0 ) * itemSize; //if there are no lines to keep, start buffer from the scratch
+		currPos = numItemsExist ? ( ( currPos + numItemsToAdd - numItemsExist ) % numItems ) : 0;
 		return ptr;
 	}
-	const float* GetRaw( int offset ) const { return raw + offset; }
-	int GetPrevBatchedSourceRowStart() const { return prevBatchedSourceRowStart; }
+	inline const float* GetRaw( int offset ) const noexcept { return raw + offset; }
+	inline int GetPrevBatchedSourceRowStart() const noexcept { return prevBatchedSourceRowStart; }
 
 private:
 	CFloatHandleStackVar temp;
 	float* const raw;
 	const int numItems, itemSize;
-	int currPos, prevBatchedSourceRowStart, prevAddLines, startItem;
+	int currPos /*start possition to add the buffer*/, prevBatchedSourceRowStart, prevNumItemsToAdd, startItem /*start of usefull data in buffer*/;
 };
 
 void CCpuMathEngine::blobConvolutionBackwardAlgo1( const CCpuConvolutionDesc& desc, const CConstFloatHandle& sourceData,
@@ -683,7 +685,7 @@ void CCpuMathEngine::blobConvolutionBackwardAlgo1( const CCpuConvolutionDesc& de
 				if( rrBufs[curThread].GetPrevBatchedSourceRowStart() < batchedSourceRowStart ) {
 					const int sourceHeightLines = std::min( source.Height() - sourceRowStart, numLines ); //max number of lines to prepare
 					// Move the begining pointer of rrBuf in number of no-need lines
-					const int existHeightLines = rrBufs[curThread].Move( batchedSourceRowStart, sourceHeightLines );
+					const int existHeightLines = rrBufs[curThread].GetExistItemsNum( batchedSourceRowStart, sourceHeightLines );
 					// Prepare only last newly lines
 					multiplyMatrixByMatrix(
 						/*handle*/sourceRaw + ( batchedSourceRowStart + existHeightLines ) * source.Width() * sourceChannelsCount,
@@ -717,7 +719,7 @@ void CCpuMathEngine::blobConvolutionBackwardAlgo1( const CCpuConvolutionDesc& de
 				if( rrBufs[curThread].GetPrevBatchedSourceRowStart() < batchedSourceRowStart ) {
 					const int sourceHeightLines = std::min( source.Height() - sourceRowStart, numLines ); //max number of lines to prepare
 					// Move the begining pointer of rrBuf in number of no-need lines
-					const int existHeightLines = rrBufs[curThread].Move( batchedSourceRowStart, sourceHeightLines );
+					const int existHeightLines = rrBufs[curThread].GetExistItemsNum( batchedSourceRowStart, sourceHeightLines );
 					// Prepare only last newly lines
 					multiplyMatrixByMatrix(
 						/*handle*/sourceRaw + ( batchedSourceRowStart + existHeightLines ) * source.Width() * sourceChannelsCount,
