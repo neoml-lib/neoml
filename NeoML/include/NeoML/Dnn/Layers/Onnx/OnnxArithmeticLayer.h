@@ -21,8 +21,8 @@ limitations under the License.
 namespace NeoML {
 
 // Layer which emulates basic Onnx arithmetic operators operator over shape tensors
-class NEOML_API CArithmeticReshaper : public CBaseReshaper {
-	NEOML_DNN_LAYER( CArithmeticReshaper )
+class NEOML_API COnnxArithmeticLayer : public CBaseReshaper {
+	NEOML_DNN_LAYER( COnnxArithmeticLayer )
 public:
 	enum class TOperation : char {
 		Add,
@@ -33,7 +33,7 @@ public:
 		Count
 	};
 
-	explicit CArithmeticReshaper( IMathEngine& mathEngine ) :
+	explicit COnnxArithmeticLayer( IMathEngine& mathEngine ) :
 		CBaseReshaper( mathEngine, "AddReshaper" ), operation( TOperation::Count ) {}
 
 	TOperation GetOperation() const { return operation; }
@@ -43,6 +43,7 @@ public:
 
 protected:
 	void CalculateShapes() override;
+	void RunOnce() override;
 
 private:
 	TOperation operation;

@@ -80,9 +80,10 @@ set(NeoML_SOURCES
     Dnn/Layers/MultiheadAttentionLayer.cpp
     Dnn/Layers/MultiHingeLossLayer.cpp
     Dnn/Layers/ObjectNormalizationLayer.cpp
-    Dnn/Layers/Onnx/ArithmeticReshaper.cpp
+    Dnn/Layers/Onnx/OnnxArithmeticLayer.cpp
     Dnn/Layers/Onnx/BaseReshaper.cpp
     Dnn/Layers/Onnx/OnnxLayers.cpp
+    Dnn/Layers/Onnx/OnnxExpandLayer.cpp
     Dnn/Layers/Onnx/OnnxReshapeLayer.cpp
     Dnn/Layers/Onnx/OnnxShapeLayer.cpp
     Dnn/Layers/Onnx/SourceReshaper.cpp
@@ -284,11 +285,11 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/Dnn/Layers/MultiheadAttentionLayer.h
     ../include/NeoML/Dnn/Layers/MultiHingeLossLayer.h
     ../include/NeoML/Dnn/Layers/ObjectNormalizationLayer.h
-    ../include/NeoML/Dnn/Layers/Onnx/ArithmeticReshaper.h
+    ../include/NeoML/Dnn/Layers/Onnx/OnnxArithmeticLayer.h
     ../include/NeoML/Dnn/Layers/Onnx/BaseReshaper.h
+    ../include/NeoML/Dnn/Layers/Onnx/OnnxExpandLayer.h
     ../include/NeoML/Dnn/Layers/Onnx/OnnxReshapeLayer.h
     ../include/NeoML/Dnn/Layers/Onnx/OnnxShapeLayer.h
-    ../include/NeoML/Dnn/Layers/Onnx/ShapeTensor.h
     ../include/NeoML/Dnn/Layers/Onnx/SourceReshaper.h
     ../include/NeoML/Dnn/Layers/PoolingLayer.h
     ../include/NeoML/Dnn/Layers/PositionalEmbeddingLayer.h

@@ -17,14 +17,13 @@ limitations under the License.
 
 #include <NeoML/NeoMLDefs.h>
 #include <NeoML/Dnn/Dnn.h>
-#include <NeoML/Dnn/Layers/Onnx/ShapeTensor.h>
 
 namespace NeoML {
 
 // Base class for reshapers: special layers whose purpose is to compute special shape tensors during Reshape phase
 class NEOML_API CBaseReshaper : public CBaseLayer {
 public:
-	const CArray<CShapeTensor>& GetoutputShapeTensors() const { return outputShapeTensors; }
+	const CObjectArray<CDnnBlob>& GetOutputShapeBlobs() const { return outputShapeBlobs; }
 
 	void Serialize( CArchive& archive ) override;
 
@@ -32,17 +31,19 @@ protected:
 	CBaseReshaper( IMathEngine& mathEngine, const char* name ) :
 		CBaseLayer( mathEngine, name, false ) {}
 
-	// Shape tensors from input layers
+	// Shape blobs from input layers
 	// nullptr if input layer is not a reshaper
-	CArray<CShapeTensor*> inputShapeTensors;
-	// Shape tensors of this layer
-	CArray<CShapeTensor> outputShapeTensors;
+	CObjectArray<CDnnBlob> inputShapeBlobs;
+	// Shape blobs of this layer
+	CObjectArray<CDnnBlob> outputShapeBlobs;
 
 	// This method must contain the calculation of OutputShape based on inputShapeTensors (called from CBaseLayer::Reshape)
 	// When called the following fields are set to following:
 	//  inputShapeTensors is filled with the shape tensors from corresponding inputs
 	//  OutputShape filled with CBaseLayer::GetOutputCount() unintialized shape tensors
 	virtual void CalculateShapes() = 0;
+
+	bool HasShapeInputs() const;
 
 private:
 	void Reshape() final;

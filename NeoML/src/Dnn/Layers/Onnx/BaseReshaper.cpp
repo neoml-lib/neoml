@@ -28,28 +28,38 @@ void CBaseReshaper::Serialize( CArchive& archive )
 	CBaseLayer::Serialize( archive );
 }
 
-void CBaseReshaper::Reshape()
+bool CBaseReshaper::HasShapeInputs() const
 {
-	inputShapeTensors.SetSize( GetInputCount() );
-	for( int inputIndex = 0; inputIndex < GetInputCount(); ++inputIndex ) {
-		CBaseReshaper* reshaper = dynamic_cast<CBaseReshaper*>( GetInputLayer( inputIndex ) );
-		if( reshaper == nullptr ) {
-			inputShapeTensors[inputIndex] = nullptr;
-		} else {
-			CShapeTensor& inputTensor = reshaper->outputShapeTensors[GetInputOutputNumber( inputIndex )];
-			inputShapeTensors[inputIndex] = inputTensor.IsInitialized() ? &inputTensor : nullptr;
+	for( int i = 0; i < inputShapeBlobs.Size(); ++i ) {
+		if( inputShapeBlobs[i] != nullptr ) {
+			return true;
 		}
 	}
 
-	outputShapeTensors.Empty();
-	outputShapeTensors.SetSize( GetOutputCount() );
+	return false;
+}
 
-	CalculateShapes();
-
+void CBaseReshaper::Reshape()
+{
 	// Fill the outputs with the blobs consisting of 1 integer
 	for( int outputIndex = 0; outputIndex < GetOutputCount(); ++outputIndex ) {
 		outputDescs[outputIndex] = CBlobDesc( CT_Int );
 	}
+
+	inputShapeBlobs.SetSize( GetInputCount() );
+	for( int inputIndex = 0; inputIndex < GetInputCount(); ++inputIndex ) {
+		CBaseReshaper* reshaper = dynamic_cast<CBaseReshaper*>( GetInputLayer( inputIndex ) );
+		if( reshaper == nullptr ) {
+			inputShapeBlobs[inputIndex] = nullptr;
+		} else {
+			inputShapeBlobs[inputIndex] = reshaper->outputShapeBlobs[GetInputOutputNumber( inputIndex )];
+		}
+	}
+
+	outputShapeBlobs.Empty();
+	outputShapeBlobs.SetSize( GetOutputCount() );
+
+	CalculateShapes();
 }
 
 } // namespace NeoML

@@ -36,15 +36,18 @@ void COnnxExpandLayer::Reshape()
 	CheckArchitecture( GetOutputCount() == 1, GetPath(), "Layer must have 1 output" );
 	const CBaseReshaper* shapeProvider = dynamic_cast<const CBaseReshaper*>( GetInputLayer( 1 ) );
 	CheckArchitecture( shapeProvider != nullptr, GetPath(), "Second input must contain shape" );
-	CheckArchitecture( shapeProvider->GetoutputShapeTensors().IsValidIndex( GetInputOutputNumber( 1 ) ), GetPath(),
+	CheckArchitecture( shapeProvider->GetOutputShapeBlobs().IsValidIndex( GetInputOutputNumber( 1 ) ), GetPath(),
 		"Wrong input number" );
-	const CShapeTensor& newShape = shapeProvider->GetoutputShapeTensors()[GetInputOutputNumber( 1 )];
-	CheckArchitecture( newShape.ElementCount() <= tensorLayout.Size(), GetPath(), "Dimension number mismatch" );
+	CPtr<CDnnBlob> newShapeBlob = shapeProvider->GetOutputShapeBlobs()[GetInputOutputNumber( 1 )];
+	CheckArchitecture( newShapeBlob->GetDataSize() <= tensorLayout.Size(), GetPath(), "Dimension number mismatch" );
+	CheckArchitecture( newShapeBlob->GetDataType() == CT_Int, GetPath(), "Non-integer shape" );
 
-	const int preservedDims = tensorLayout.Size() - newShape.ElementCount();
+	const int preservedDims = tensorLayout.Size() - newShapeBlob->GetDataSize();
 
 	outputDescs[0] = inputDescs[0];
-	for( int dimIndex = 0; dimIndex < newShape.ElementCount(); ++dimIndex ) {
+
+	CDnnBlobBuffer<int> newShape( *newShapeBlob, TDnnBlobBufferAccess::Read );
+	for( int dimIndex = 0; dimIndex < newShape.Size(); ++dimIndex ) {
 		CheckArchitecture( newShape[dimIndex] > 0, GetPath(), "Negative axis size" );
 		outputDescs[0].SetDimSize( tensorLayout[preservedDims + dimIndex], newShape[dimIndex] );
 	}

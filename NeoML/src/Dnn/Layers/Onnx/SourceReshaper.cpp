@@ -26,16 +26,16 @@ void CSourceReshaper::Serialize( CArchive& archive )
 {
 	archive.SerializeVersion( SourceReshaperVersion );
 	CBaseReshaper::Serialize( archive );
-	tensor.Serialize( archive );
+	SerializeBlob( GetDefaultCpuMathEngine(), archive, blob );
 }
 
 void CSourceReshaper::CalculateShapes()
 {
 	CheckArchitecture( GetInputCount() == 0, GetPath(), "SourceReshaper must have no inputs" );
 	CheckArchitecture( GetOutputCount() == 1, GetPath(), "SourceReshaper must have 1 output" );
-	CheckArchitecture( tensor.IsInitialized(), GetPath(), "SourceReshaper with uninitialized tensor" );
+	CheckArchitecture( blob != nullptr, GetPath(), "SourceReshaper with null blob" );
 
-	tensor.CopyTo( outputShapeTensors[0] );
+	outputShapeBlobs[0] = blob;
 }
 
 } // namespace NeoML

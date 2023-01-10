@@ -537,12 +537,9 @@ CPtr<const CShapeTensor> AsShapeTensor( const CTensorBase& tensor, const CString
 		resultShape.Add( dataTensor->DimSize( dimIndex ) );
 	}
 
-	const CDnnBlob* dataBlob = dataTensor->Data();
-	CheckNeoOnnxSupport( dataBlob->GetDataType() == CT_Int, "Float blob can't be convereted to Shape" );
 	CPtr<CSourceReshaper> source = new CSourceReshaper( dnn.GetMathEngine() );
 	source->SetName( layerName );
-	source->Tensor().Resize( resultShape );
-	dataBlob->CopyTo( source->Tensor().Ptr() );
+	source->Blob() = dataTensor->Data()->GetCopy();
 	dnn.AddLayer( *source );
 	return new CShapeTensor( resultShape, CLayerOutput( source.Ptr(), 0 ) );
 }

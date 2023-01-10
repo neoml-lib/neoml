@@ -37,14 +37,16 @@ void COnnxReshapeLayer::Reshape()
 	CheckArchitecture( GetOutputCount() == 1, GetPath(), "Layer must have 1 output" );
 	const CBaseReshaper* shapeProvider = dynamic_cast<const CBaseReshaper*>( GetInputLayer( 1 ) );
 	CheckArchitecture( shapeProvider != nullptr, GetPath(), "Second input must contain shape" );
-	CheckArchitecture( shapeProvider->GetoutputShapeTensors().IsValidIndex( GetInputOutputNumber( 1 ) ), GetPath(),
+	CheckArchitecture( shapeProvider->GetOutputShapeBlobs().IsValidIndex( GetInputOutputNumber( 1 ) ), GetPath(),
 		"Wrong input number" );
-	const CShapeTensor& newShape = shapeProvider->GetoutputShapeTensors()[GetInputOutputNumber( 1 )];
-	CheckArchitecture( newShape.ElementCount() == outputLayout.Size(), GetPath(), "Dimension number mismatch" );
+	CPtr<CDnnBlob> newShapeBlob = shapeProvider->GetOutputShapeBlobs()[GetInputOutputNumber( 1 )];
+	CheckArchitecture( newShapeBlob->GetDataSize() == outputLayout.Size(), GetPath(), "Dimension number mismatch" );
+	CheckArchitecture( newShapeBlob->GetDataType() == CT_Int, GetPath(), "Non-integer shape" );
 
 	int remIndex = NotFound;
 	int remSize = inputDescs[0].BlobSize();
 	outputDescs[0] = CBlobDesc( inputDescs[0].GetDataType() );
+	CDnnBlobBuffer<int> newShape( *newShapeBlob, TDnnBlobBufferAccess::Read );
 	for( int dimIndex = 0; dimIndex < outputLayout.Size(); ++dimIndex ) {
 		if( newShape[dimIndex] == -1 ) {
 			CheckArchitecture( remIndex == NotFound, GetPath(), "Two remainders" );

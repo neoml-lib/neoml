@@ -74,10 +74,8 @@ CPtr<const CShapeTensor> CReshapeOperator::getShape( const CTensorArray& inputs,
 		CheckOnnxProtocol( GetAttribute( "shape", shapeArray ), "'shape' attribute is missing", *this );
 		CPtr<CSourceReshaper> source = new CSourceReshaper( dnn.GetMathEngine() );
 		source->SetName( Name() + "_ShapeSource" );
-		source->Tensor().Resize( { shapeArray.Size() } );
-		for( int i = 0; i < shapeArray.Size(); ++i ) {
-			source->Tensor()[i] = shapeArray[i];
-		}
+		source->Blob() = CDnnBlob::CreateDataBlob( GetSingleThreadCpuMathEngine(), CT_Int,  1, 1, shapeArray.Size() );
+		source->Blob()->CopyFrom( shapeArray.GetPtr() );
 		dnn.AddLayer( *source );
 		return new CShapeTensor( { shapeArray.Size() }, CLayerOutput( source.Ptr(), 0 ) );
 	}

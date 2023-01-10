@@ -27,15 +27,15 @@ public:
 
 	void Serialize( CArchive& archive ) override;
 
-	// Shape tensor to be feeded to CDnn
-	CShapeTensor& Tensor() { return tensor; }
-	const CShapeTensor& Tensor() const { return tensor; }
+	// Shape blob to be feeded to CDnn
+	CPtr<CDnnBlob>& Blob() { return blob; }
+	const CPtr<CDnnBlob>& Blob() const { return blob; }
 
 protected:
 	void CalculateShapes() override;
 
 private:
-	CShapeTensor tensor;
+	CPtr<CDnnBlob> blob;
 };
 
 } // namespace NeoML
