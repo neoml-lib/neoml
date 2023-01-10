@@ -705,7 +705,7 @@ void CCpuMathEngine::blobConvolutionBackwardAlgo1( const CCpuConvolutionDesc& de
 							vectorAdd( resultVec, tempRowData + tempRowDataShift, resultVec, toCopy );
 						}
 						tempRowData += filterObjectSize;
-					} //col
+					} //filterColumn
 				} //filterRow
 			} else { //dilation
 				const int totalFilterHeight = ( filter.Height() - 1 ) * desc.DilationHeight + 1;
