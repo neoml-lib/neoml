@@ -46,8 +46,7 @@ void CTransformerSourceMaskLayer::RunOnce()
 {
 	NeoAssert( inputBlobs.Size() == 2 && outputBlobs.Size() == 1 );
 
-	CDnnBlobBuffer<int> inputBuffer( *inputBlobs[I_Widths], 0,
-		inputBlobs[I_Widths]->GetDataSize(), TDnnBlobBufferAccess::Read );
+	CDnnBlobBuffer<int> inputBuffer( *inputBlobs[I_Widths], TDnnBlobBufferAccess::Read );
 	CPtr<CDnnBlob> outputBlob = outputBlobs.First();
 
 	outputBlob->Fill( 0.f );

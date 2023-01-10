@@ -39,7 +39,7 @@ static void nonZeroImpl( const CDataTensor& input, CTensorArray& outputs )
 
 	IMathEngine& mathEngine = input.Data()->GetMathEngine();
 	CPtr<CDnnBlob> outputBlob = CDnnBlob::CreateTensor( mathEngine, CT_Int, { input.DimCount(), nonZeroElements});
-	CDnnBlobBuffer<int> outputBuffer( *outputBlob, 0, outputBlob->GetDataSize(), TDnnBlobBufferAccess::Write );
+	CDnnBlobBuffer<int> outputBuffer( *outputBlob, TDnnBlobBufferAccess::Write );
 	int outIndex = 0;
 	for( int i = 0; i < inputBuffer.Size(); ++i ) {
 		if( inputBuffer[i] != 0 ) {
