@@ -86,6 +86,7 @@ set(NeoML_SOURCES
     Dnn/Layers/Onnx/OnnxExpandLayer.cpp
     Dnn/Layers/Onnx/OnnxReshapeLayer.cpp
     Dnn/Layers/Onnx/OnnxShapeLayer.cpp
+    Dnn/Layers/Onnx/OnnxSliceLayer.cpp
     Dnn/Layers/Onnx/SourceReshaper.cpp
     Dnn/Layers/PoolingLayer.cpp
     Dnn/Layers/PositionalEmbeddingLayer.cpp
@@ -290,6 +291,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/Dnn/Layers/Onnx/OnnxExpandLayer.h
     ../include/NeoML/Dnn/Layers/Onnx/OnnxReshapeLayer.h
     ../include/NeoML/Dnn/Layers/Onnx/OnnxShapeLayer.h
+    ../include/NeoML/Dnn/Layers/Onnx/OnnxSliceLayer.h
     ../include/NeoML/Dnn/Layers/Onnx/SourceReshaper.h
     ../include/NeoML/Dnn/Layers/PoolingLayer.h
     ../include/NeoML/Dnn/Layers/PositionalEmbeddingLayer.h

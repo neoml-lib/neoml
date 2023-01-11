@@ -16,16 +16,22 @@ limitations under the License.
 #include <common.h>
 #pragma hdrstop
 
+#include <NeoML/Dnn/Layers/Onnx/OnnxArithmeticLayer.h>
+#include <NeoML/Dnn/Layers/Onnx/OnnxExpandLayer.h>
 #include <NeoML/Dnn/Layers/Onnx/OnnxReshapeLayer.h>
 #include <NeoML/Dnn/Layers/Onnx/OnnxShapeLayer.h>
+#include <NeoML/Dnn/Layers/Onnx/OnnxSliceLayer.h>
 #include <NeoML/Dnn/Layers/Onnx/SourceReshaper.h>
 
 namespace NeoML {
 
 namespace {
 
+REGISTER_NEOML_LAYER( COnnxArithmeticLayer, "NeoMLDnnOnnxArithmeticLayer" )
+REGISTER_NEOML_LAYER( COnnxExpandLayer, "NeoMLDnnOnnxExpandLayer" )
 REGISTER_NEOML_LAYER( COnnxReshapeLayer, "NeoMLDnnOnnxReshapeLayer" )
 REGISTER_NEOML_LAYER( COnnxShapeLayer, "NeoMLDnnOnnxShapeLayer" )
+REGISTER_NEOML_LAYER( COnnxSliceLayer, "NeoMLDnnOnnxSliceLayer" )
 REGISTER_NEOML_LAYER( CSourceReshaper, "NeoMLDnnOnnxSourceReshaper" )
 
 }

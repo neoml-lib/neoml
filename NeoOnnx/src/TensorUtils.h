@@ -189,8 +189,11 @@ CPtr<const CTensorBase> PrepareForBroadcast( const CTensorBase& input, const CBr
 // Converts the given tensor to user tensor by adding corresponding data layer to the dnn (if needed)
 CPtr<const CUserTensor> AsUserTensor( const CTensorBase& tensor, const CString& layerName, CDnn& dnn );
 
-// Converts the given tensor to shape tensor by adding corresponding SourceRehspae to the dnn (if needed)
+// Converts the given tensor to shape tensor by adding corresponding layers to the dnn (if needed)
 CPtr<const CShapeTensor> AsShapeTensor( const CTensorBase& tensor, const CString& layerName, CDnn& dnn );
+
+// Converts the given integer array to shape tensor by adding corresponding layers to the dnn (if needed)
+CPtr<const CShapeTensor> AsShapeTensor( const CFastArray<int, 8>& data, const CString& layerName, CDnn& dnn );
 
 } // namespace NeoOnnx
 
