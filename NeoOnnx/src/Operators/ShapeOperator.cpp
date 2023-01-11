@@ -62,7 +62,8 @@ void CShapeOperator::ProcessTensors( const CTensorArray& inputs, CDnn& dnn, CTen
 	userInput->Layout().CopyTo( shapeLayer->TensorLayout() );
 	shapeLayer->Connect( 0, *userInput->Layer(), userInput->OutputIndex() );
 	dnn.AddLayer( *shapeLayer );
-	outputs.Add( new CShapeTensor( { inputs[0]->DimCount() }, CLayerOutput( shapeLayer.Ptr(), 0 ) ) );
+	outputs.Add( new CShapeTensor( CTensorLayout::IOLayout( 1 ), { inputs[0]->DimCount() },
+		CLayerOutput( shapeLayer.Ptr(), 0 ) ) );
 }
 
 } // namespace NeoOnnx

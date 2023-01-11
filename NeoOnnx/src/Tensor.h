@@ -136,7 +136,7 @@ inline CUserTensor::CUserTensor( const CTensorLayout& layout, const CLayerOutput
 
 class CShapeTensor : public CTensorBase {
 public:
-	explicit CShapeTensor( const CTensorShape& shape, const CLayerOutput& output );
+	explicit CShapeTensor( const CTensorLayout& layout, const CTensorShape& shape, const CLayerOutput& output );
 
 	const CTensorShape& Shape() const { return shape; }
 
@@ -152,11 +152,13 @@ private:
 	const CLayerOutput layerOutput;
 };
 
-inline CShapeTensor::CShapeTensor( const CTensorShape& _shape, const CLayerOutput& output ) :
-	CTensorBase( CTensorLayout::IOLayout( _shape.Size() ), TTensorType::Shape ),
+inline CShapeTensor::CShapeTensor( const CTensorLayout& layout, const CTensorShape& _shape,
+		const CLayerOutput& output ) :
+	CTensorBase( layout, TTensorType::Shape ),
 	layerOutput( output )
 {
 	_shape.CopyTo( shape );
+	NeoPresume( shape.Size() == DimCount() );
 	NeoPresume( output.Layer != nullptr );
 	NeoPresume( output.Layer->GetDnn() != nullptr );
 	NeoPresume( output.OutputIndex >= 0 );

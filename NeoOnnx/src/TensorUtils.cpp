@@ -539,7 +539,8 @@ CPtr<const CShapeTensor> AsShapeTensor( const CTensorBase& tensor, const CString
 	source->SetName( layerName );
 	source->Blob() = dataTensor->Data()->GetCopy();
 	dnn.AddLayer( *source );
-	return new CShapeTensor( resultShape, CLayerOutput( source.Ptr(), 0 ) );
+	return new CShapeTensor( CTensorLayout::IOLayout( resultShape.Size() ), resultShape,
+		CLayerOutput( source.Ptr(), 0 ) );
 }
 
 } // namespace NeoOnnx

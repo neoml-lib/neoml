@@ -77,7 +77,8 @@ CPtr<const CShapeTensor> CReshapeOperator::getShape( const CTensorArray& inputs,
 		source->Blob() = CDnnBlob::CreateTensor( GetSingleThreadCpuMathEngine(), CT_Int, { shapeArray.Size() } );
 		source->Blob()->CopyFrom( shapeArray.GetPtr() );
 		dnn.AddLayer( *source );
-		return new CShapeTensor( { shapeArray.Size() }, CLayerOutput( source.Ptr(), 0 ) );
+		return new CShapeTensor( CTensorLayout::IOLayout( 1 ), { shapeArray.Size() },
+			CLayerOutput( source.Ptr(), 0 ) );
 	}
 
 	CheckNeoOnnxSupport( inputs[1] != nullptr && inputs[1]->Type() != TTensorType::User,
