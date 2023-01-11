@@ -528,9 +528,7 @@ CPtr<const CShapeTensor> AsShapeTensor( const CTensorBase& tensor, const CString
 	CheckNeoOnnxSupport( tensor.Type() != TTensorType::User, "User tensor can't be converted to Shape" );
 
 	CPtr<const CDataTensor> dataTensor = CheckCast<const CDataTensor>( &tensor );
-	if( IsTransposedLayout( dataTensor->Layout() ) ) {
-		dataTensor = ConvertTensor( *dataTensor, CTensorLayout( dataTensor->DimCount() ) );
-	}
+	dataTensor = ConvertTensor( *dataTensor, CTensorLayout::IOLayout( dataTensor->DimCount() ) );
 
 	CTensorShape resultShape;
 	for( int dimIndex = 0; dimIndex < dataTensor->DimCount(); ++dimIndex ) {

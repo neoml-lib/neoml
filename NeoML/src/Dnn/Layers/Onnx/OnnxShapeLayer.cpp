@@ -35,7 +35,7 @@ void COnnxShapeLayer::CalculateShapes()
 	CheckArchitecture( GetOutputCount() == 1, GetPath(), "layer must have 1 output" );
 
 	outputShapeBlobs[0] = CDnnBlob::CreateDataBlob( GetSingleThreadCpuMathEngine(), CT_Int, 1, 1, tensorLayout.Size() );
-	CDnnBlobBuffer<int> outputBuff( *outputBlobs[0], TDnnBlobBufferAccess::Write );
+	CDnnBlobBuffer<int> outputBuff( *outputShapeBlobs[0], TDnnBlobBufferAccess::Write );
 	for( int dimIndex = 0; dimIndex < tensorLayout.Size(); ++dimIndex ) {
 		outputBuff[dimIndex] = inputDescs[0].DimSize( tensorLayout[dimIndex] );
 	}
