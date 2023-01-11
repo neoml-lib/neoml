@@ -287,6 +287,9 @@ public:
 		size( _size ),
 		ptr( blob.GetBuffer<TBufferType>( pos, size, access == TDnnBlobBufferAccess::Read || access == TDnnBlobBufferAccess::ReadWrite ) )
 	{}
+	CDnnBlobBuffer( CDnnBlob& _blob, TDnnBlobBufferAccess _access ) :
+		CDnnBlobBuffer( _blob, 0, _blob.GetDataSize(), _access )
+	{}
 	CDnnBlobBuffer( const CDnnBlobBuffer& ) = delete;
 	~CDnnBlobBuffer();
 

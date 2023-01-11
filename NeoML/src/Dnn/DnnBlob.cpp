@@ -229,7 +229,7 @@ void CDnnBlob::CopyFrom(const CDnnBlob* other)
 			if( &mathEngine == &other->GetMathEngine() ) {
 				mathEngine.VectorCopy( GetData<float>(), other->GetData<float>(), GetDataSize() );
 			} else {
-				CDnnBlobBuffer<float> buffer( const_cast<CDnnBlob&>( *other ), 0, other->GetDataSize(), TDnnBlobBufferAccess::Read );
+				CDnnBlobBuffer<float> buffer( const_cast<CDnnBlob&>( *other ), TDnnBlobBufferAccess::Read );
 				CopyFrom( buffer.Ptr() );
 			}
 			break;
@@ -237,7 +237,7 @@ void CDnnBlob::CopyFrom(const CDnnBlob* other)
 			if( &mathEngine == &other->GetMathEngine() ) {
 				mathEngine.VectorCopy( GetData<int>(), other->GetData<int>(), GetDataSize() );
 			} else {
-				CDnnBlobBuffer<int> buffer( const_cast<CDnnBlob&>( *other ), 0, other->GetDataSize(), TDnnBlobBufferAccess::Read );
+				CDnnBlobBuffer<int> buffer( const_cast<CDnnBlob&>( *other ), TDnnBlobBufferAccess::Read );
 				CopyFrom( buffer.Ptr() );
 			}
 			break;
