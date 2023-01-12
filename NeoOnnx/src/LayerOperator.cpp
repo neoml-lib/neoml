@@ -21,10 +21,11 @@ limitations under the License.
 namespace NeoOnnx {
 
 // Returns true if some of the inputs are depending on user data
-static bool hasUserInputs( const CTensorArray& inputs )
+static bool hasUserOrShapeInputs( const CTensorArray& inputs )
 {
+	static_assert( static_cast<int>( TTensorType::Count ) == 3, "TTensorType::Count != 3" );
 	for( int inputIndex = 0; inputIndex < inputs.Size(); ++inputIndex ) {
-		if( inputs[inputIndex] != nullptr && inputs[inputIndex]->Type() == TTensorType::User ) {
+		if( inputs[inputIndex] != nullptr && inputs[inputIndex]->Type() != TTensorType::Data ) {
 			return true;
 		}
 	}
@@ -43,11 +44,12 @@ static void addInternalDnnSinks( const CTensorArray& internalOutputs,
 		if( internalOutputs[outputIndex] == nullptr || internalOutputs[outputIndex]->Type() == TTensorType::Data ) {
 			sinks.Add( nullptr );
 		} else {
+			CPtr<const CUserTensor> userOutput = AsUserTensor( *internalOutputs[outputIndex],
+				Str( internalDnn.GetLayerCount() ), internalDnn );
 			CPtr<CSinkLayer> sink = new CSinkLayer( mathEngine );
 			sink->SetName( Str( internalDnn.GetLayerCount() ) );
 			internalDnn.AddLayer( *sink );
-			const CLayerOutput& connectedOutput = dynamic_cast<const CUserTensor*>( internalOutputs[outputIndex].Ptr() )->LayerOutput();
-			sink->Connect( 0, *connectedOutput.Layer, connectedOutput.OutputIndex );
+			sink->Connect( 0, *userOutput->Layer(), userOutput->OutputIndex() );
 			sinks.Add( sink.Ptr() );
 		}
 	}
@@ -77,7 +79,7 @@ static void extractOutputs( const CTensorArray& internalOutputs, const CArray<CS
 
 void CLayerOperator::ProcessTensors( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
-	if( hasUserInputs( inputs ) ) {
+	if( hasUserOrShapeInputs( inputs ) ) {
 		AddLayers( inputs, dnn, outputs );
 		return;
 	}

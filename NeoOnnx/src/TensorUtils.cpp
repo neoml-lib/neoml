@@ -22,6 +22,7 @@ limitations under the License.
 #include "NeoOnnxCheck.h"
 #include "TensorUtils.h"
 #include <NeoML/Dnn/Layers/Onnx/SourceReshaper.h>
+#include <NeoML/Dnn/Layers/Onnx/ShapeToBlobLayer.h>
 
 namespace NeoOnnx {
 
@@ -502,12 +503,19 @@ CPtr<const CUserTensor> AsUserTensor( const CTensorBase& tensor, const CString& 
 {
 	static_assert( static_cast<int>( TTensorType::Count ) == 3, "TTensorType::Count != 3" );
 
-	// TODO: Add conversion from Shape to user
-	CheckNeoOnnxSupport( tensor.Type() != TTensorType::Shape, "Shape tensor can't be converted to User" );
-
 	if( tensor.Type() == TTensorType::User ) {
 		// No conversion needed
 		return dynamic_cast<const CUserTensor*>( &tensor );
+	}
+
+	if( tensor.Type() == TTensorType::Shape ) {
+		// Convert shape to usual blob via special layer
+		CPtr<CShapeToBlobLayer> conversionLayer = new CShapeToBlobLayer( dnn.GetMathEngine() );
+		conversionLayer->SetName( layerName );
+		const CShapeTensor& input = dynamic_cast<const CShapeTensor&>( tensor );
+		conversionLayer->Connect( 0, *input.Layer(), input.OutputIndex() );
+		dnn.AddLayer( *conversionLayer );
+		return new CUserTensor( input.Layout(), CLayerOutput( conversionLayer, 0 ) );
 	}
 
 	const CDataTensor& dataTensor = dynamic_cast<const CDataTensor&>( tensor );
@@ -539,8 +547,7 @@ CPtr<const CShapeTensor> AsShapeTensor( const CTensorBase& tensor, const CString
 	source->SetName( layerName );
 	source->Blob() = dataTensor->Data()->GetCopy();
 	dnn.AddLayer( *source );
-	return new CShapeTensor( CTensorLayout::IOLayout( resultShape.Size() ), resultShape,
-		CLayerOutput( source.Ptr(), 0 ) );
+	return new CShapeTensor( dataTensor->Layout(), resultShape, CLayerOutput( source.Ptr(), 0 ) );
 }
 
 CPtr<const CShapeTensor> AsShapeTensor( const CFastArray<int, 8>& data, const CString& layerName, CDnn& dnn )
