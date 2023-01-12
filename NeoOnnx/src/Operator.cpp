@@ -248,5 +248,16 @@ void COperator::CheckNoShapeInputs( const CTensorArray& inputs ) const
 	}
 }
 
+bool COperator::HasUserInput( const CTensorArray& inputs ) const
+{
+	for( int i = 0; i < inputs.Size(); ++i ) {
+		if( inputs[i] != nullptr && inputs[i]->Type() == TTensorType::User ) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
 } // namespace NeoOnnx
 

@@ -81,6 +81,9 @@ protected:
 	// Throws an exception if operator has CShapeTensor among its inputs
 	void CheckNoShapeInputs( const CTensorArray& inputs ) const;
 
+	// Returns true if any of inputs is a CUserTensor
+	bool HasUserInput( const CTensorArray& inputs ) const;
+
 private:
 	// Operator name
 	const CString name;
