@@ -89,6 +89,8 @@ set(NeoML_SOURCES
     Dnn/Layers/Onnx/OnnxSliceLayer.cpp
     Dnn/Layers/Onnx/ShapeToBlobLayer.cpp
     Dnn/Layers/Onnx/SourceReshaper.cpp
+    Dnn/Layers/Onnx/TransformReshaper.cpp
+    Dnn/Layers/Onnx/TransposeReshaper.cpp
     Dnn/Layers/PoolingLayer.cpp
     Dnn/Layers/PositionalEmbeddingLayer.cpp
     Dnn/Layers/PrecisionRecallLayer.cpp
@@ -295,6 +297,8 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/Dnn/Layers/Onnx/OnnxSliceLayer.h
     ../include/NeoML/Dnn/Layers/Onnx/ShapeToBlobLayer.h
     ../include/NeoML/Dnn/Layers/Onnx/SourceReshaper.h
+    ../include/NeoML/Dnn/Layers/Onnx/TransformReshaper.h
+    ../include/NeoML/Dnn/Layers/Onnx/TransposeReshaper.h
     ../include/NeoML/Dnn/Layers/PoolingLayer.h
     ../include/NeoML/Dnn/Layers/PositionalEmbeddingLayer.h
     ../include/NeoML/Dnn/Layers/PrecisionRecallLayer.h

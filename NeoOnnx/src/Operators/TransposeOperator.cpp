@@ -59,14 +59,16 @@ void CTransposeOperator::AddLayers( const CTensorArray& inputs, CDnn& /* dnn */,
 		outputLayout.Add( inputLayout[perm[i]] );
 	}
 
-	// TODO: process shape tensors properly
-	// static_assert( static_cast<int>( TTensorType::Count ) == 2, "TTensorType::Count != 2" );
+	static_assert( static_cast<int>( TTensorType::Count ) == 3, "TTensorType::Count != 3" );
 	if( inputs[0]->Type() == TTensorType::Data ) {
 		outputs.Add( new CDataTensor( outputLayout,
 			*dynamic_cast<const CDataTensor*>( inputs[0].Ptr() )->Data() ) );
-	} else {
+	} else if( inputs[0]->Type() == TTensorType::User ) {
 		outputs.Add( new CUserTensor( outputLayout,
 			dynamic_cast<const CUserTensor*>( inputs[0].Ptr() )->LayerOutput() ) );
+	} else if( inputs[0]->Type() == TTensorType::Shape ) {
+		const CShapeTensor* shapeTensor = dynamic_cast<const CShapeTensor*>( inputs[0].Ptr() );
+		outputs.Add( new CShapeTensor( outputLayout, shapeTensor->Shape(), shapeTensor->LayerOutput() ) );
 	}
 }
 

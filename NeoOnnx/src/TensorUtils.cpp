@@ -23,6 +23,8 @@ limitations under the License.
 #include "TensorUtils.h"
 #include <NeoML/Dnn/Layers/Onnx/SourceReshaper.h>
 #include <NeoML/Dnn/Layers/Onnx/ShapeToBlobLayer.h>
+#include <NeoML/Dnn/Layers/Onnx/TransformReshaper.h>
+#include <NeoML/Dnn/Layers/Onnx/TransposeReshaper.h>
 
 namespace NeoOnnx {
 
@@ -111,7 +113,7 @@ static CPtr<const CUserTensor> convertTensorToHw( const CUserTensor& input, int 
 //---------------------------------------------------------------------------------------------------------------------
 
 // Renames dimensions of data blob (without any reordering in memory)
-static CPtr<const CDnnBlob> renameDimensions( const CDnnBlob& input, const CTensorLayout& inputLayout, const CTensorLayout& outputLayout )
+static CPtr<const CDnnBlob> renameDataDimensions( const CDnnBlob& input, const CTensorLayout& inputLayout, const CTensorLayout& outputLayout )
 {
 	NeoAssert( inputLayout.Size() == outputLayout.Size() );
 	// We have to copy data here because multiple tensors may be connected to the input tensor
@@ -129,8 +131,8 @@ static CPtr<const CDnnBlob> renameDimensions( const CDnnBlob& input, const CTens
 	return result.Ptr();
 }
 
-// Renames dimensions of layer output (without any reordering in memory)
-static CLayerOutput renameDimensions( const CLayerOutput& input, const CTensorLayout& inputLayout, const CTensorLayout& outputLayout )
+// Renames dimensions of user layer output (without any reordering in memory)
+static CLayerOutput renameUserDimensions( const CLayerOutput& input, const CTensorLayout& inputLayout, const CTensorLayout& outputLayout )
 {
 	NeoAssert( inputLayout.Size() == outputLayout.Size() );
 	CDnn& dnn = *( input.Layer->GetDnn() );
@@ -149,6 +151,21 @@ static CLayerOutput renameDimensions( const CLayerOutput& input, const CTensorLa
 	return CLayerOutput( transformLayer.Ptr(), 0 );
 }
 
+// Renames dimensions of shape layer output (without any reordering in memory)
+static CLayerOutput renameShapeDimensions( const CLayerOutput& input, const CTensorLayout& inputLayout, const CTensorLayout& outputLayout )
+{
+	NeoPresume( inputLayout.Size() == outputLayout.Size() );
+	CDnn& dnn = *( input.Layer->GetDnn() );
+	CPtr<CTransformReshaper> transformLayer = new CTransformReshaper( dnn.GetMathEngine() );
+	transformLayer->SetName( getUniqueLayerName( dnn, "transform_" ) );
+	for( int dimIndex = 0; dimIndex < outputLayout.Size(); ++dimIndex ) {
+		transformLayer->SetRule( inputLayout[dimIndex], outputLayout[dimIndex] );
+	}
+	dnn.AddLayer( *transformLayer );
+	transformLayer->Connect( 0, *input.Layer, input.OutputIndex );
+	return CLayerOutput( transformLayer.Ptr(), 0 );
+}
+
 // Renames dimensions of tensor (without any reordering in memory)
 static CPtr<const CTensorBase> renameDimensions( const CTensorBase& input, const CTensorLayout& outputLayout )
 {
@@ -157,18 +174,24 @@ static CPtr<const CTensorBase> renameDimensions( const CTensorBase& input, const
 	}
 
 	if( input.Type() == TTensorType::Data ) {
-		CPtr<const CDnnBlob> blob = renameDimensions( *dynamic_cast<const CDataTensor&>( input ).Data(),
+		CPtr<const CDnnBlob> blob = renameDataDimensions( *dynamic_cast<const CDataTensor&>( input ).Data(),
 			input.Layout(), outputLayout );
 		return new CDataTensor( outputLayout, *blob );
 	}
 
-	CLayerOutput layerOutput = renameDimensions( dynamic_cast<const CUserTensor&>( input ).LayerOutput(),
+	if( input.Type() == TTensorType::Shape ) {
+		const CShapeTensor& shapeInput = dynamic_cast<const CShapeTensor&>( input );
+		CLayerOutput layerOutput = renameShapeDimensions( shapeInput.LayerOutput(), shapeInput.Layout(), outputLayout );
+		return new CShapeTensor( outputLayout, shapeInput.Shape(), layerOutput );
+	}
+
+	CLayerOutput layerOutput = renameUserDimensions( dynamic_cast<const CUserTensor&>( input ).LayerOutput(),
 		input.Layout(), outputLayout );
 	return new CUserTensor( outputLayout, layerOutput );
 }
 
 // Swaps 2 dimensions of data blob
-static CPtr<const CDnnBlob> swapDimensions( const CDnnBlob& inputBlob, TBlobDim firstDim, TBlobDim secondDim )
+static CPtr<const CDnnBlob> swapDataDimensions( const CDnnBlob& inputBlob, TBlobDim firstDim, TBlobDim secondDim )
 {
 	CBlobDesc outputDesc = inputBlob.GetDesc();
 	const int firstDimSize = outputDesc.DimSize( firstDim );
@@ -182,13 +205,25 @@ static CPtr<const CDnnBlob> swapDimensions( const CDnnBlob& inputBlob, TBlobDim 
 	return outputBlob.Ptr();
 }
 
-// Swaps 2 dimensions of given layer output
-static CLayerOutput swapDimensions( const CLayerOutput& input, TBlobDim firstDim, TBlobDim secondDim )
+// Swaps 2 dimensions of given user layer output
+static CLayerOutput swapUserDimensions( const CLayerOutput& input, TBlobDim firstDim, TBlobDim secondDim )
 {
 	CDnn& dnn = *( input.Layer->GetDnn() );
 	CPtr<CTransposeLayer> transposeLayer = new CTransposeLayer( dnn.GetMathEngine() );
 	transposeLayer->SetName( getUniqueLayerName( dnn, "transpose_" ) );
 	transposeLayer->SetTransposedDimensions( firstDim, secondDim );
+	dnn.AddLayer( *transposeLayer );
+	transposeLayer->Connect( 0, *input.Layer, input.OutputIndex );
+	return CLayerOutput( transposeLayer.Ptr(), 0 );
+}
+
+// Swaps 2 dimensions of given shape layer output
+static CLayerOutput swapShapeDimensions( const CLayerOutput& input, TBlobDim firstDim, TBlobDim secondDim )
+{
+	CDnn& dnn = *( input.Layer->GetDnn() );
+	CPtr<CTransposeReshaper> transposeLayer = new CTransposeReshaper( dnn.GetMathEngine() );
+	transposeLayer->SetName( getUniqueLayerName( dnn, "transpose_" ) );
+	transposeLayer->SetDims( firstDim, secondDim );
 	dnn.AddLayer( *transposeLayer );
 	transposeLayer->Connect( 0, *input.Layer, input.OutputIndex );
 	return CLayerOutput( transposeLayer.Ptr(), 0 );
@@ -210,12 +245,18 @@ static CPtr<const CTensorBase> swapDimensions( const CTensorBase& input, TBlobDi
 	}
 
 	if( input.Type() == TTensorType::Data ) {
-		CPtr<const CDnnBlob> blob = swapDimensions( *dynamic_cast<const CDataTensor&>( input ).Data(),
+		CPtr<const CDnnBlob> blob = swapDataDimensions( *dynamic_cast<const CDataTensor&>( input ).Data(),
 			firstDim, secondDim );
 		return new CDataTensor( outputLayout, *blob );
 	}
 
-	CLayerOutput layerOutput = swapDimensions( dynamic_cast<const CUserTensor&>( input ).LayerOutput(),
+	if( input.Type() == TTensorType::Shape ) {
+		const CShapeTensor& shapeInput = dynamic_cast<const CShapeTensor&>( input );
+		CLayerOutput layerOutput = swapShapeDimensions( shapeInput.LayerOutput(), firstDim, secondDim );
+		return new CShapeTensor( outputLayout, shapeInput.Shape(), layerOutput );
+	}
+
+	CLayerOutput layerOutput = swapUserDimensions( dynamic_cast<const CUserTensor&>( input ).LayerOutput(),
 		firstDim, secondDim );
 	return new CUserTensor( outputLayout, layerOutput );
 }
@@ -361,9 +402,14 @@ CPtr<const CDataTensor> ConvertTensor( const CDataTensor& dataTensor, const CTen
 	return dynamic_cast<const CDataTensor*>( ConvertTensor( static_cast<const CTensorBase&>( dataTensor ), destLayout ).Ptr() );
 }
 
-CPtr<const CUserTensor> ConvertTensor( const CUserTensor& dataTensor, const CTensorLayout& destLayout )
+CPtr<const CUserTensor> ConvertTensor( const CUserTensor& userTensor, const CTensorLayout& destLayout )
 {
-	return dynamic_cast<const CUserTensor*>( ConvertTensor( static_cast<const CTensorBase&>( dataTensor ), destLayout ).Ptr() );
+	return dynamic_cast<const CUserTensor*>( ConvertTensor( static_cast<const CTensorBase&>( userTensor ), destLayout ).Ptr() );
+}
+
+CPtr<const CShapeTensor> ConvertTensor( const CShapeTensor& shapeTensor, const CTensorLayout& destLayout )
+{
+	return dynamic_cast<const CShapeTensor*>( ConvertTensor( static_cast<const CTensorBase&>( shapeTensor ), destLayout ).Ptr() );
 }
 
 // --------------------------------------------------------------------------------------------------------------------
