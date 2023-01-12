@@ -22,6 +22,7 @@ namespace NeoML {
 
 // Class which provides shape tensor to CDnn
 class NEOML_API CSourceReshaper : public CBaseReshaper {
+	NEOML_DNN_LAYER( CSourceReshaper )
 public:
 	explicit CSourceReshaper( IMathEngine& mathEngine ) : CBaseReshaper( mathEngine, "SourceReshaper" ) {}
 
