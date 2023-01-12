@@ -37,11 +37,6 @@ CPtr<const CDataTensor> CGraphInitializer::GetDataTensor( IMathEngine& mathEngin
 		outputShape.Add( static_cast<int>( initializer.dims( dimIndex ) ) );
 	}
 
-	if( outputShape.IsEmpty() ) {
-		// Tensor without dims is a scalar
-		outputShape.Add( 1 );
-	}
-
 	CTensorLayout outputLayout( outputShape.Size() );
 	CBlobDesc blobDesc;
 	blobDesc.SetDataType( GetBlobType( static_cast<onnx::TensorProto_DataType>( initializer.data_type() ) ) );
