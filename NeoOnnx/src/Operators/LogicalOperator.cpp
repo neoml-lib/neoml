@@ -40,46 +40,4 @@ void CNotOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArra
 	outputs.Add( new CUserTensor( input->Layout(), CLayerOutput( notLayer, 0 ) ) );
 }
 
-// --------------------------------------------------------------------------------------------------------------------
-
-void CLessOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
-{
-	CPtr<CBaseLayer> layer( new CLessLayer( dnn.GetMathEngine() ) );
-	if( Type() == "Less" ) {
-		CEltwiseOperatorBase::AddLayersImpl( Broadcast(), inputs, COnnxEltwiseLayer::TOperation::Less, dnn, outputs );
-	} else if( Type() == "Greater" ) {
-		CEltwiseOperatorBase::AddLayersImpl( Broadcast(), inputs, COnnxEltwiseLayer::TOperation::Greater, dnn, outputs );
-	} else if( Type() == "LessOrEqual" ) {
-		CEltwiseOperatorBase::AddLayersImpl( Broadcast(), inputs, COnnxEltwiseLayer::TOperation::LessOrEqual,
-			dnn, outputs );
-	} else {
-		CEltwiseOperatorBase::AddLayersImpl( Broadcast(), inputs, COnnxEltwiseLayer::TOperation::GreaterOrEqual,
-			dnn, outputs );
-	}
-}
-
-// --------------------------------------------------------------------------------------------------------------------
-
-void CEqualOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
-{
-	CEltwiseOperatorBase::AddLayersImpl( Broadcast(), inputs, COnnxEltwiseLayer::TOperation::Equal, dnn, outputs );
-}
-
-// --------------------------------------------------------------------------------------------------------------------
-
-CWhereOperator::CWhereOperator( const onnx::NodeProto& whereNode, int opsetVersion ) :
-	CEltwiseOperatorBase( whereNode, opsetVersion, 3 )
-{
-	// v9 - original
-	// v16 - bfloat16 data type supported
-	CheckNeoOnnxSupport( OpsetVersion >= 9 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
-}
-
-void CWhereOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
-{
-	CBroadcast broadcast( BT_Numpy );
-	CPtr<CBaseLayer> layer( new CWhereLayer( dnn.GetMathEngine() ) );
-	CEltwiseOperatorBase::AddLayersImpl( broadcast, inputs, COnnxEltwiseLayer::TOperation::Where, dnn, outputs );
-}
-
 } // namespace NeoOnnx

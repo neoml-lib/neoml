@@ -24,88 +24,150 @@ limitations under the License.
 namespace NeoOnnx {
 
 // Base class for operators which perform eltwise operations
-class CEltwiseOperatorBase : public CLayerOperator {
-protected:
-	CEltwiseOperatorBase( const onnx::NodeProto& eltwise, int opsetVersion, int argsNum = -1 );
+template<COnnxEltwiseLayer::TOperation Operation>
+class CEltwiseOperator : public CLayerOperator {
+public:
+	CEltwiseOperator( const onnx::NodeProto& eltwise, int opsetVersion );
 
+protected:
 	// AddLayers implementation for the given broadcast and layer
 	// The derivatives should call this method from their AddLayers
-	void AddLayersImpl( const CBroadcast& broadcast, const CTensorArray& inputs,
-		COnnxEltwiseLayer::TOperation operation, CDnn& dnn, CTensorArray& outputs ) const;
+	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
 
 private:
 	// Expected number of arguments (-1 if any number is supported)
-	const int argsNum;
-};
-
-//---------------------------------------------------------------------------------------------------------------------
-
-// Eltwise operators with 2 inputs
-
-// Base class
-class CEltwiseBinaryOperatorBase : public CEltwiseOperatorBase {
-protected:
-	CEltwiseBinaryOperatorBase( const onnx::NodeProto& eltwise, int opsetVersion ) :
-		CEltwiseOperatorBase( eltwise, opsetVersion, 2 ) {}
+	int getArgsNum() const;
 
 	// Returns broadcast
 	// The broadcast logic is similar for all of the eltwise binary operators in onnx
-	CBroadcast Broadcast() const;
-};
-
-// Add operator
-class CAddOperator : public CEltwiseBinaryOperatorBase {
-public:
-	CAddOperator( const onnx::NodeProto& add, int opsetVersion ) : CEltwiseBinaryOperatorBase( add, opsetVersion ) {}
-
-protected:
-	// CLayerOperator methods
-	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
-};
-
-// Sub operator
-class CSubOperator : public CEltwiseBinaryOperatorBase {
-public:
-	CSubOperator( const onnx::NodeProto& sub, int opsetVersion ) : CEltwiseBinaryOperatorBase( sub, opsetVersion ) {}
-
-protected:
-	// CLayerOperator methods
-	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
-};
-
-// Mul operator
-class CMulOperator : public CEltwiseBinaryOperatorBase {
-public:
-	CMulOperator( const onnx::NodeProto& mul, int opsetVersion ) : CEltwiseBinaryOperatorBase( mul, opsetVersion ) {}
-
-protected:
-	// CLayerOperator methods
-	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
-};
-
-// Div operator
-class CDivOperator : public CEltwiseBinaryOperatorBase {
-public:
-	CDivOperator( const onnx::NodeProto& div, int opsetVersion ) : CEltwiseBinaryOperatorBase( div, opsetVersion ) {}
-
-protected:
-	// CLayerOperator methods
-	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
+	CBroadcast getBroadcast() const;
 };
 
 //---------------------------------------------------------------------------------------------------------------------
 
-// Eltwise operators with any number of inputs
+template<COnnxEltwiseLayer::TOperation Operation>
+CEltwiseOperator<Operation>::CEltwiseOperator( const onnx::NodeProto& eltwise, int opsetVersion ) :
+	CLayerOperator( eltwise, opsetVersion )
+{
+	const int argsNum = getArgsNum();
+	if( argsNum > 0 ) {
+		CheckOnnxProtocol( InputCount() == argsNum, "expected " + Str( argsNum ) + " arguments", *this );
+	}
+	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
+}
 
-// Sum operator
-class CSumOperator : public CEltwiseOperatorBase {
-public:
-	CSumOperator( const onnx::NodeProto& sum, int opsetVersion ) : CEltwiseOperatorBase( sum, opsetVersion ) {}
+template<COnnxEltwiseLayer::TOperation Operation>
+inline void CEltwiseOperator<Operation>::AddLayers( const CTensorArray& inputs, CDnn& dnn,
+	CTensorArray& outputs ) const
+{
+	CheckNoNullInputs( inputs );
+	const bool hasUserInput = HasUserInput( inputs );
 
-protected:
-	// CLayerOperator methods
-	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
-};
+	// Corner case which doesn't violate Onnx protocol: operators with variable input count may have 1 input
+	if( inputs.Size() == 1 && getArgsNum() < 0 ) {
+		outputs.Add( inputs[0] );
+		return;
+	}
+
+	auto getEltwiseOperatorInputShape = [] ( const CTensorBase& input, CTensorShape& inputShape ) -> void
+	{
+		NeoPresume( input.Type() != TTensorType::User );
+		if( input.Type() == TTensorType::Data ) {
+			inputShape.SetSize( input.DimCount() );
+			const CDataTensor& inputData = dynamic_cast<const CDataTensor&>( input );
+			for( int i = 0; i < inputData.DimCount(); ++i ) {
+				inputShape[i] = inputData.DimSize( i );
+			}
+		} else {
+			dynamic_cast<const CShapeTensor&>( input ).Shape().CopyTo( inputShape );
+		}
+	};
+
+	// Calculate output layout and shape (if needed)
+	CTensorLayout outputLayout = inputs[0]->Layout();
+	CTensorShape outputShape;
+	if( !hasUserInput ) {
+		getEltwiseOperatorInputShape( *inputs[0], outputShape );
+	}
+
+	const CBroadcast broadcast = getBroadcast();
+	for( int i = 1; i < inputs.Size(); ++i ) {
+		if( inputs[i]->DimCount() > outputLayout.Size() ) {
+			outputLayout = inputs[i]->Layout();
+		}
+		if( !hasUserInput ) {
+			CTensorShape inputShape;
+			getEltwiseOperatorInputShape( *inputs[i], inputShape );
+			CTensorShape buff;
+			CheckNeoOnnxSupport( BroadcastTensorShape( outputShape, inputShape, broadcast, buff ),
+				"Can't broadcast tensors shape", *this );
+			buff.CopyTo( outputShape );
+		}
+	}
+
+	CPtr<COnnxEltwiseLayer> layer = new COnnxEltwiseLayer( dnn.GetMathEngine() );
+	layer->SetName( Name() );
+	layer->SetOperation( Operation );
+	dnn.AddLayer( *layer );
+
+	for( int i = 0; i < inputs.Size(); ++i ) {
+		CPtr<const CTensorBase> tensor = PrepareForBroadcast( *inputs[i], broadcast, outputLayout.Size() );
+		tensor = ConvertTensor( *tensor, outputLayout );
+		if( HasUserInput( inputs ) ) {
+			CPtr<const CUserTensor> userTensor = AsUserTensor( *tensor, Name() + "_input_" + Str( i ), dnn );
+			layer->Connect( i, *userTensor->Layer(), userTensor->OutputIndex() );
+		} else {
+			CPtr<const CShapeTensor> shapeTensor = AsShapeTensor( *tensor, Name() + "_input_" + Str( i ), dnn );
+			layer->Connect( i, *shapeTensor->Layer(), shapeTensor->OutputIndex() );
+		}
+	}
+
+	if( hasUserInput ) {
+		outputs.Add( new CUserTensor( outputLayout, CLayerOutput( layer, 0 ) ) );
+	} else {
+		outputs.Add( new CShapeTensor( outputLayout, outputShape, CLayerOutput( layer, 0 ) ) );
+	}
+}
+
+template<COnnxEltwiseLayer::TOperation Operation>
+inline int CEltwiseOperator<Operation>::getArgsNum() const
+{
+	if( Type() == "Sum" ) {
+		return -1;
+	} else if( Type() == "Where" ) {
+		return 3;
+	}
+
+	return 2;
+}
+
+template<COnnxEltwiseLayer::TOperation Operation>
+inline CBroadcast CEltwiseOperator<Operation>::getBroadcast() const
+{
+	CBroadcast broadcast( BT_Numpy, NotFound );
+	
+	if( Type() == "Where" ) {
+		return broadcast;
+	} else if( Type() == "Sum" ) {
+		if( OpsetVersion < 8 ) {
+			broadcast.Type = BT_None;
+		}
+		return broadcast;
+	}
+
+	if( OpsetVersion < 7 ) {
+		int broadcastAttr = 0;
+		GetAttribute( "broadcast", broadcastAttr );
+		if( broadcastAttr != 0 ) {
+			broadcast.Type = BT_Onnx;
+			GetAttribute( "axis", broadcast.Axis );
+		} else {
+			broadcast.Type = BT_None;
+		}
+	}
+
+	return broadcast;
+}
 
 } // namespace NeoOnnx
 
