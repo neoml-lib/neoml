@@ -101,6 +101,65 @@ static void processOperator( const COperator& op, CTensorCache& tensors, CDnn& d
 		const CString& outputName = op.OutputName( outputIndex );
 		CheckOnnxProtocol( !tensors.Has( outputName ), "Output already exist: " + outputName );
 		tensors.Add( outputName, outputs[outputIndex] );
+
+#define ONNX_DEBUG_LOG
+#ifdef ONNX_DEBUG_LOG
+		::printf( "%s", static_cast<const char*>( outputName ) );
+		if( outputs[outputIndex] == nullptr ) {
+			::printf( "\tNULL" );
+		} else {
+			const CTensorBase& output = *outputs[outputIndex];
+			::printf( "\t%s", output.Type() == TTensorType::Data ? "DATA" :
+				( output.Type() == TTensorType::Shape ? "SHAPE" : "USER" ) );
+			if( output.Type() != TTensorType::User ) {
+				::printf( "\t[" );
+				if( output.DimCount() > 0 ) {
+					if( output.Type() == TTensorType::Shape ) {
+						const CShapeTensor& outputShapeTensor = dynamic_cast<const CShapeTensor&>( output );
+						::printf( "%d", outputShapeTensor.Shape()[0] );
+						for( int dimIndex = 1; dimIndex < output.DimCount(); ++dimIndex ) {
+							::printf( ",%d", outputShapeTensor.Shape()[dimIndex] );
+						}
+					} else {
+						const CDataTensor& outputDataTensor = dynamic_cast<const CDataTensor&>( output );
+						::printf( "%d", outputDataTensor.DimSize( 0 ) );
+						for( int dimIndex = 1; dimIndex < output.DimCount(); ++dimIndex ) {
+							::printf( ",%d", outputDataTensor.DimSize( dimIndex ) );
+						}
+
+					}
+				}
+				::printf( "]" );
+			}
+			const char* neomlDimNames[BD_Count] = { "BL", "BW", "LS", "H", "W", "D", "C" };
+			::printf( "\t[" );
+			if( output.DimCount() > 0 ) {
+				::printf( "%s", neomlDimNames[output.Layout()[0]] );
+				for( int dimIndex = 1; dimIndex < output.DimCount(); ++dimIndex ) {
+					::printf( ",%s", neomlDimNames[output.Layout()[dimIndex]] );
+				}
+			}
+			::printf( "]" );
+			if( output.Type() == TTensorType::Data ) {
+				const CDnnBlob& blob = *dynamic_cast<const CDataTensor&>( output ).Data();
+				::printf( blob.GetDataType() == CT_Float ? "\tF{" : "\tI{" );
+				if( blob.GetDataType() == CT_Float ) {
+					::printf( "%f", blob.GetData().GetValue() );
+					for( int i = 1; i < std::min<int>( 5, blob.GetDataSize() ); ++i ) {
+						::printf( ", %f", blob.GetData().GetValueAt( i ) );
+					}
+					::printf( blob.GetDataSize() > 5 ? ", ...}" : "}" );
+				} else {
+					::printf( "%d", blob.GetData<int>().GetValue() );
+					for( int i = 1; i < std::min<int>( 5, blob.GetDataSize() ); ++i ) {
+						::printf( ", %d", blob.GetData<int>().GetValueAt( i ) );
+					}
+					::printf( blob.GetDataSize() > 5 ? ", ...}" : "}" );
+				}
+			}
+		}
+		::printf( "\n" );
+#endif
 	}
 }
 
