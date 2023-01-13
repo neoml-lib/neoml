@@ -102,7 +102,7 @@ static void processOperator( const COperator& op, CTensorCache& tensors, CDnn& d
 		CheckOnnxProtocol( !tensors.Has( outputName ), "Output already exist: " + outputName );
 		tensors.Add( outputName, outputs[outputIndex] );
 
-#define ONNX_DEBUG_LOG
+// #define ONNX_DEBUG_LOG
 #ifdef ONNX_DEBUG_LOG
 		::printf( "%s", static_cast<const char*>( outputName ) );
 		if( outputs[outputIndex] == nullptr ) {
