@@ -1,10 +1,10 @@
-/* Copyright © 2017-2021 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,18 +15,22 @@ limitations under the License.
 
 #pragma once
 
-#include "../LayerOperator.h"
+#include <NeoML/NeoMLDefs.h>
+#include <NeoML/Dnn/Layers/Onnx/BaseReshaper.h>
 
-namespace NeoOnnx {
+namespace NeoML {
 
-// Range operator
-class CRangeOperator : public CLayerOperator {
+// Layer which emulates Onnx Range operator
+class NEOML_API COnnxRangeLayer : public CBaseReshaper {
+	NEOML_DNN_LAYER( COnnxRangeLayer )
 public:
-	CRangeOperator( const onnx::NodeProto& range, int opsetVersion );
+	explicit COnnxRangeLayer( IMathEngine& mathEngine ) : CBaseReshaper( mathEngine, "OnnxRangeLayer" ) {}
+
+	void Serialize( CArchive& archive );
 
 protected:
-	// COperator methods
-	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
+	void CalculateShapes() override;
+	void RunOnce() override;
 };
 
-} // namespace NeoOnnx
+} // namespace NeoML

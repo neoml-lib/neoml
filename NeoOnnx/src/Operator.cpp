@@ -239,6 +239,15 @@ void COperator::CheckNoNullInputs( const CTensorArray& inputs ) const
 	}
 }
 
+void COperator::CheckNoUserInputs( const CTensorArray& inputs ) const
+{
+	for( int i = 0; i < inputs.Size(); ++i ) {
+		if( inputs[i] != nullptr && inputs[i]->Type() == TTensorType::User ) {
+			CheckNeoOnnxSupport( false, "CUserTensor at input #" + Str( i ), *this );
+		}
+	}
+}
+
 void COperator::CheckNoShapeInputs( const CTensorArray& inputs ) const
 {
 	for( int i = 0; i < inputs.Size(); ++i ) {

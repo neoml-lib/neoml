@@ -78,6 +78,9 @@ protected:
 	// Throws an exception if operator has nullptr among its inputs
 	void CheckNoNullInputs( const CTensorArray& inputs ) const;
 
+	// Throws an exception if operator has CUserTensor among its inputs
+	void CheckNoUserInputs( const CTensorArray& inputs ) const;
+
 	// Throws an exception if operator has CShapeTensor among its inputs
 	void CheckNoShapeInputs( const CTensorArray& inputs ) const;
 
