@@ -21,6 +21,8 @@ limitations under the License.
 
 #include "onnx.pb.h"
 
+#include <NeoML/Dnn/Layers/Onnx/OnnxCastLayer.h>
+
 namespace NeoOnnx {
 
 CCastOperator::CCastOperator( const onnx::NodeProto& cast, int opsetVersion ) :
@@ -41,17 +43,27 @@ CCastOperator::CCastOperator( const onnx::NodeProto& cast, int opsetVersion ) :
 void CCastOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
 	CheckNoNullInputs( inputs );
-	CheckNoShapeInputs( inputs );
 
-	CPtr<const CUserTensor> inputTensor = AsUserTensor( *inputs[0], Name() + "_Source", dnn );
+	CLayerOutput layerOutput;
+	CPtr<const CShapeTensor> inputShapeTensor = nullptr;
+	if( HasUserInput( inputs ) ) {
+		layerOutput = AsUserTensor( *inputs[0], Name() + "_Source", dnn )->LayerOutput();
+	} else {
+		inputShapeTensor = AsShapeTensor( *inputs[0], Name() + "_Source", dnn );
+		layerOutput = inputShapeTensor->LayerOutput();
+	}
 
-	CPtr<CCastLayer> cast = new CCastLayer( dnn.GetMathEngine() );
+	CPtr<COnnxCastLayer> cast = new COnnxCastLayer( dnn.GetMathEngine() );
 	cast->SetName( Name() );
 	cast->SetOutputType( GetBlobType( static_cast<onnx::TensorProto_DataType>( outputType ) ) );
-	cast->Connect( 0, *inputTensor->Layer(), inputTensor->OutputIndex() );
+	cast->Connect( 0, *layerOutput.Layer, layerOutput.OutputIndex );
 	dnn.AddLayer( *cast );
 
-	outputs.Add( new CUserTensor( inputs[0]->Layout(), CLayerOutput( cast, 0 ) ) );
+	if( HasUserInput( inputs ) ) {
+		outputs.Add( new CUserTensor( inputs[0]->Layout(), CLayerOutput( cast, 0 ) ) );
+	} else {
+		outputs.Add( new CShapeTensor( inputs[0]->Layout(), inputShapeTensor->Shape(), CLayerOutput( cast, 0 ) ) );
+	}
 }
 
 } // namespace NeoOnnx
