@@ -29,7 +29,29 @@ namespace NeoOnnx {
 
 static bool isInputPresent( const CTensorArray& inputs, int index )
 {
-	return inputs.Size() > index && inputs[index] != nullptr;
+	const bool initialCheck = inputs.Size() > index && inputs[index] != nullptr;
+	if( !initialCheck ) {
+		return false;
+	}
+	if( inputs[index]->Type() == TTensorType::User ) {
+		return true;
+	} else if( inputs[index]->Type() == TTensorType::Data ) {
+		const CDataTensor& dataTensor = dynamic_cast<const CDataTensor&>( *inputs[index] );
+		for( int dimIndex = 0; dimIndex < dataTensor.DimCount(); ++dimIndex ) {
+			if( dataTensor.DimSize( dimIndex ) == 0 ) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	const CShapeTensor& shapeTensor = dynamic_cast<const CShapeTensor&>( *inputs[index] );
+	for( int dimIndex = 0; dimIndex < shapeTensor.DimCount(); ++dimIndex ) {
+		if( shapeTensor.Shape()[dimIndex] == 0 ) {
+			return false;
+		}
+	}
+	return true;
 }
 
 // --------------------------------------------------------------------------------------------------------------------
@@ -51,8 +73,6 @@ CResizeOperator::CResizeOperator( const onnx::NodeProto& resize, int opsetVersio
 
 void CResizeOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
-	CheckNoShapeInputs( inputs );
-
 	CString mode = "nearest";
 	GetAttribute( "mode", mode );
 	CheckNeoOnnxSupport( mode == "nearest" || mode == "linear", "mode is not 'nearest' nor 'linear'", *this );
