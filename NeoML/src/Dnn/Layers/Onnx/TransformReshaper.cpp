@@ -39,10 +39,9 @@ void CTransformReshaper::CalculateShapes()
 {
 	CheckArchitecture( GetInputCount() == 1, GetPath(), "Layer must have 1 input" );
 	CheckArchitecture( GetOutputCount() == 1, GetPath(), "Layer must have 1 output" );
-	CheckArchitecture( inputShapeBlobs[0] != nullptr, GetPath(), "Input shape blob missing" );
 
-	const CBlobDesc inputDesc = inputShapeBlobs[0]->GetDesc();
-	CBlobDesc outputDesc = inputDesc;
+	const CBlobDesc& inputDesc = inputShapeBlobs[0] == nullptr ? inputDescs[0] : inputShapeBlobs[0]->GetDesc();
+	outputDesc = inputDesc;
 
 	NeoPresume( transformInfo.Size() == BD_Count );
 	for( int i = 0; i < transformInfo.Size(); ++i ) {
@@ -54,8 +53,29 @@ void CTransformReshaper::CalculateShapes()
 		}
 	}
 
-	outputShapeBlobs[0] = inputShapeBlobs[0]->GetCopy();
-	outputShapeBlobs[0]->ReinterpretDimensions( outputDesc );
+	if( inputShapeBlobs[0] != nullptr ) {
+		outputShapeBlobs[0] = inputShapeBlobs[0]->GetCopy();
+		outputShapeBlobs[0]->ReinterpretDimensions( outputDesc );
+	} else {
+		NeoPresume( inputDescs[0].BlobSize() == outputDesc.BlobSize() );
+		outputDescs[0] = outputDesc;
+		EnableInPlace( InputsMayBeOverwritten() );
+	}
+}
+
+void CTransformReshaper::RunOnce()
+{
+	if( inputShapeBlobs[0] != nullptr ) {
+		return;
+	}
+
+	if( inputBlobs[0]->GetDataType() == CT_Float && inputBlobs[0]->GetData() != outputBlobs[0]->GetData() ) {
+		MathEngine().VectorCopy( outputBlobs[0]->GetData(), inputBlobs[0]->GetData(), outputBlobs[0]->GetDataSize() );
+	} else if( inputBlobs[0]->GetDataType() == CT_Int && inputBlobs[0]->GetData<int>() != outputBlobs[0]->GetData<int>() ) {
+		MathEngine().VectorCopy( outputBlobs[0]->GetData<int>(), inputBlobs[0]->GetData<int>(), outputBlobs[0]->GetDataSize() );
+	} else {
+		outputBlobs[0]->ReinterpretDimensions( outputDesc );
+	}
 }
 
 } // namespace NeoML

@@ -35,9 +35,11 @@ public:
 
 protected:
 	void CalculateShapes() override;
+	void RunOnce();
 
 private:
 	CFastArray<TBlobDim, 8> transformInfo;
+	CBlobDesc outputDesc;
 };
 
 } // namespace NeoML
