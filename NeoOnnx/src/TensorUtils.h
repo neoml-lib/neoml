@@ -182,6 +182,12 @@ struct CBroadcast {
 	explicit CBroadcast( TBroadcastType type, int axis = NotFound ) : Type( type ), Axis( axis ) {}
 };
 
+// Calculates shape of the result of the broadcast operation
+// If shapes can be broadcasted then it writes broadcasted shape to the result and returns true
+// Returns false if shapes can't be broadcasted (in this case result will be empty)
+bool BroadcastTensorShape( const CTensorShape& first, const CTensorShape& second, const CBroadcast& broadcast,
+	CTensorShape& result );
+
 // Prepares user tensor for CBroadcastLayer
 CPtr<const CTensorBase> PrepareForBroadcast( const CTensorBase& input, const CBroadcast& broadcast, int outputDims );
 

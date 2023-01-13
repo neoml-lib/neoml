@@ -473,13 +473,91 @@ CPtr<const CUserTensor> PadUserTensor( const CUserTensor& input, const CFastArra
 
 //---------------------------------------------------------------------------------------------------------------------
 
+// Returns true if shapes are equal
+static bool areShapesEqual( const CTensorShape& first, const CTensorShape& second )
+{
+	if( first.Size() != second.Size() ) {
+		return false;
+	}
+
+	for( int i = 0; i < first.Size(); ++i ) {
+		if( first[i] != second[i] ) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+bool BroadcastTensorShape( const CTensorShape& first, const CTensorShape& second, const CBroadcast& broadcast, CTensorShape& result )
+{
+	if( broadcast.Type == BT_None ) {
+		// No broadcast, the shape must match
+		if( areShapesEqual( first, second ) ) {
+			first.CopyTo( result );
+			return true;
+		}
+		return false;
+	}
+
+	int axis = NotFound;
+	if( broadcast.Type == BT_Onnx ) {
+		axis = broadcast.Axis;
+		CheckNeoOnnxSupport( second.Size() <= first.Size(), "second tensor has more dimensions" );
+		if( axis < 0 ) {
+			axis = abs( first.Size() - second.Size() );
+		}
+	} else {
+		// Numpy-style broadcast is similar to the Onnx-broadcast with axis equal to difference
+		// in number of dimensions
+		axis = abs( first.Size() - second.Size() );
+	}
+
+	// The shape with lesser number of dimensions must be padded
+	const CTensorShape& lesserShape = first.Size() <= second.Size() ? first : second;
+	const CTensorShape& biggerShape = first.Size() > second.Size() ? first  : second;
+	CTensorShape paddedShape;
+	paddedShape.Add( 1, axis );
+	paddedShape.Add( lesserShape );
+	if( paddedShape.Size() > biggerShape.Size() ) {
+		// Wrong broadcast parameters (axis value is too big)
+		return false;
+	}
+	NeoAssert( broadcast.Type == BT_Onnx || paddedShape.Size() == biggerShape.Size() );
+
+	// This will add ones only in case of BT_Onnx and axis != abs( first.Size() - second.Size() )
+	paddedShape.Add( 1, biggerShape.Size() - paddedShape.Size() );
+
+	result.SetSize( paddedShape.Size() );
+	for( int dim = 0; dim < result.Size(); ++dim ) {
+		if( paddedShape[dim] == biggerShape[dim] || min( paddedShape[dim], biggerShape[dim] ) == 1 ) {
+			result[dim] = max( paddedShape[dim], biggerShape[dim] );
+		} else {
+			result.DeleteAll();
+			return false;
+		}
+	}
+
+	return true;
+}
+
 CPtr<const CTensorBase> PrepareForBroadcast( const CTensorBase& input, const CBroadcast& broadcast, int outputDims )
 {
+	const bool isShapeTensor = input.Type() == TTensorType::Shape;
+
 	int axis = outputDims - input.DimCount();
 	if( broadcast.Type == BT_Onnx && broadcast.Axis >= 0 && axis > broadcast.Axis ) {
 		axis = broadcast.Axis;
 	}
-	NeoAssert( axis + input.DimCount() <= outputDims );
+
+	CTensorShape outputShape;
+	if( isShapeTensor ) {
+		const CTensorShape& inputShape = dynamic_cast<const CShapeTensor&>( input ).Shape();
+		NeoAssert( axis + inputShape.Size() <= outputDims );
+		outputShape.Add( 1, axis );
+		outputShape.Add( inputShape );
+		outputShape.Add( 1, outputDims - outputShape.Size() );
+	}
 
 	const CTensorLayout& inputLayout = input.Layout();
 
@@ -509,6 +587,9 @@ CPtr<const CTensorBase> PrepareForBroadcast( const CTensorBase& input, const CBr
 
 	if( input.Type() == TTensorType::Data ) {
 		return new CDataTensor( outputLayout, *dynamic_cast<const CDataTensor&>( input ).Data() );
+	} else if( isShapeTensor ) {
+		return new CShapeTensor( outputLayout, outputShape,
+			dynamic_cast<const CShapeTensor&>( input ).LayerOutput() );
 	}
 	return new CUserTensor( outputLayout, dynamic_cast<const CUserTensor&>( input ).LayerOutput() );
 }
