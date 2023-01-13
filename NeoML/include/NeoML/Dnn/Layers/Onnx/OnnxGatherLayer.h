@@ -27,7 +27,6 @@ public:
 	explicit COnnxGatherLayer( IMathEngine& mathEngine ) : CBaseReshaper( mathEngine, "OnnxGatherLayer" ),
 		gatherDim( BD_BatchLength ) {}
 
-	// Set Gather dim
 	void SetGatherDim( TBlobDim dim ) { gatherDim = dim; }
 	TBlobDim GetGatherDim() const { return gatherDim; }
 
