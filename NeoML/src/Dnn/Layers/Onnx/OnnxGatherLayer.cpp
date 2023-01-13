@@ -29,16 +29,15 @@ static CBlobDesc getOutputDesc( const CBlobDesc& dataDesc, const CBlobDesc& indi
 	return resultDesc;
 }
 
-static void shiftIndices( TBlobDim gatherDim, const CDnnBlob& indices, CDnnBlob& result )
+static void shiftIndices( int gatherDimSize, const CDnnBlob& indices, CDnnBlob& result )
 {
 	IMathEngine& mathEngine = indices.GetMathEngine();
-	const int dimSize = result.DimSize( gatherDim );
 
 	mathEngine.VectorFill( result.GetData<int>(), 0, result.GetDataSize() );
 	// Add imageSize value to negative indices
 	mathEngine.VectorEltwiseLess( indices.GetData<int>(), result.GetData<int>(), result.GetData<int>(), result.GetDataSize() );
 	CIntHandleStackVar imageSizeVar( mathEngine );
-	imageSizeVar.SetValue( dimSize );
+	imageSizeVar.SetValue( gatherDimSize );
 	mathEngine.VectorMultiply( result.GetData<int>(), result.GetData<int>(), result.GetDataSize(), imageSizeVar );
 	mathEngine.VectorAdd( result.GetData<int>(), indices.GetData<int>(), result.GetData<int>(), result.GetDataSize() );
 }
@@ -47,7 +46,7 @@ template<class T>
 static void runGather( const CDnnBlob& data, const CDnnBlob& indices, CDnnBlob& result, TBlobDim gatherDim )
 {
 	CPtr<CDnnBlob> shiftedIndices = indices.GetClone();
-	shiftIndices( gatherDim, indices, *shiftedIndices );
+	shiftIndices( data.DimSize( gatherDim ), indices, *shiftedIndices);
 
 	CLookupDimension lookupDim( 1, 1 );
 	lookupDim.VectorCount = data.DimSize( gatherDim );
