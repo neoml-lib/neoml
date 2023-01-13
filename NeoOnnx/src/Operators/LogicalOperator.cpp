@@ -45,20 +45,16 @@ void CNotOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArra
 void CLessOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
 	CPtr<CBaseLayer> layer( new CLessLayer( dnn.GetMathEngine() ) );
-	CEltwiseOperatorBase::AddLayersImpl( Broadcast(), inputs, *layer, dnn, outputs );
-	if( Type() == "Greater" || Type() == "LessOrEqual" ) {
-		CString firstName = layer->GetInputName( 0 );
-		int firstOutput = layer->GetInputOutputNumber( 0 );
-		CString secondName = layer->GetInputName( 1 );
-		int secondOutput = layer->GetInputOutputNumber( 1 );
-		layer->Connect( 0, secondName, secondOutput );
-		layer->Connect( 1, firstName, firstOutput );
-	}
-	if( Type() == "LessOrEqual" || Type() == "GreaterOrEqual" ) {
-		NeoAssert( outputs[0]->Type() == TTensorType::User );
-		CPtr<const CUserTensor> currOutput = dynamic_cast<const CUserTensor*>( outputs[0].Ptr() );
-		CNotLayer* notLayer = Not()( Name() + "_PostNot", CDnnLayerLink( currOutput->Layer(), currOutput->OutputIndex() ) );
-		outputs[0] = new CUserTensor( currOutput->Layout(), CLayerOutput( notLayer, 0 ) );
+	if( Type() == "Less" ) {
+		CEltwiseOperatorBase::AddLayersImpl( Broadcast(), inputs, COnnxEltwiseLayer::TOperation::Less, dnn, outputs );
+	} else if( Type() == "Greater" ) {
+		CEltwiseOperatorBase::AddLayersImpl( Broadcast(), inputs, COnnxEltwiseLayer::TOperation::Greater, dnn, outputs );
+	} else if( Type() == "LessOrEqual" ) {
+		CEltwiseOperatorBase::AddLayersImpl( Broadcast(), inputs, COnnxEltwiseLayer::TOperation::LessOrEqual,
+			dnn, outputs );
+	} else {
+		CEltwiseOperatorBase::AddLayersImpl( Broadcast(), inputs, COnnxEltwiseLayer::TOperation::GreaterOrEqual,
+			dnn, outputs );
 	}
 }
 
@@ -66,8 +62,7 @@ void CLessOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArr
 
 void CEqualOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
-	CPtr<CBaseLayer> layer( new CEqualLayer( dnn.GetMathEngine() ) );
-	CEltwiseOperatorBase::AddLayersImpl( Broadcast(), inputs, *layer, dnn, outputs );
+	CEltwiseOperatorBase::AddLayersImpl( Broadcast(), inputs, COnnxEltwiseLayer::TOperation::Equal, dnn, outputs );
 }
 
 // --------------------------------------------------------------------------------------------------------------------
@@ -84,7 +79,7 @@ void CWhereOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorAr
 {
 	CBroadcast broadcast( BT_Numpy );
 	CPtr<CBaseLayer> layer( new CWhereLayer( dnn.GetMathEngine() ) );
-	CEltwiseOperatorBase::AddLayersImpl( broadcast, inputs, *layer, dnn, outputs );
+	CEltwiseOperatorBase::AddLayersImpl( broadcast, inputs, COnnxEltwiseLayer::TOperation::Where, dnn, outputs );
 }
 
 } // namespace NeoOnnx

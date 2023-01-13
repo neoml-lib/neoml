@@ -35,7 +35,7 @@ CEltwiseOperatorBase::CEltwiseOperatorBase( const onnx::NodeProto& eltwise, int 
 }
 
 void CEltwiseOperatorBase::AddLayersImpl( const CBroadcast& broadcast, const CTensorArray& inputs,
-	CBaseLayer& eltwiseLayer, CDnn& dnn, CTensorArray& outputs ) const
+	COnnxEltwiseLayer::TOperation operation, CDnn& dnn, CTensorArray& outputs ) const
 {
 	CheckNoNullInputs( inputs );
 	CheckNoShapeInputs( inputs );
@@ -54,21 +54,19 @@ void CEltwiseOperatorBase::AddLayersImpl( const CBroadcast& broadcast, const CTe
 		}
 	}
 
-	CPtr<CBroadcastLayer> broadcastLayer = new CBroadcastLayer( dnn.GetMathEngine() );
-	broadcastLayer->SetName( Name() + "_Broadcast" );
-	dnn.AddLayer( *broadcastLayer );
-	eltwiseLayer.SetName( Name() );
+	CPtr<COnnxEltwiseLayer> layer = new COnnxEltwiseLayer( dnn.GetMathEngine() );
+	layer->SetName( Name() );
+	layer->SetOperation( operation );
+	dnn.AddLayer( *layer );
 
 	for( int i = 0; i < inputs.Size(); ++i ) {
 		CPtr<const CTensorBase> tensor = PrepareForBroadcast( *inputs[i], broadcast, outputLayout.Size() );
 		tensor = ConvertTensor( *tensor, outputLayout );
 		CPtr<const CUserTensor> userTensor = AsUserTensor( *tensor, Name() + "_input_" + Str( i ), dnn );
-		broadcastLayer->Connect( i, *userTensor->Layer(), userTensor->OutputIndex() );
-		eltwiseLayer.Connect( i, *broadcastLayer, i );
+		layer->Connect( i, *userTensor->Layer(), userTensor->OutputIndex() );
 	}
 
-	dnn.AddLayer( eltwiseLayer );
-	outputs.Add( new CUserTensor( outputLayout, CLayerOutput( &eltwiseLayer, 0 ) ) );
+	outputs.Add( new CUserTensor( outputLayout, CLayerOutput( layer, 0 ) ) );
 }
 
 // --------------------------------------------------------------------------------------------------------------------
@@ -94,32 +92,28 @@ CBroadcast CEltwiseBinaryOperatorBase::Broadcast() const
 
 void CAddOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
-	CPtr<CBaseLayer> layer( new CEltwiseSumLayer( dnn.GetMathEngine() ) );
-	CEltwiseOperatorBase::AddLayersImpl( Broadcast(), inputs, *layer, dnn, outputs );
+	CEltwiseOperatorBase::AddLayersImpl( Broadcast(), inputs, COnnxEltwiseLayer::TOperation::Add, dnn, outputs );
 }
 
 // --------------------------------------------------------------------------------------------------------------------
 
 void CSubOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
-	CPtr<CBaseLayer> layer( new CEltwiseSubLayer( dnn.GetMathEngine() ) );
-	CEltwiseOperatorBase::AddLayersImpl( Broadcast(), inputs, *layer, dnn, outputs );
+	CEltwiseOperatorBase::AddLayersImpl( Broadcast(), inputs, COnnxEltwiseLayer::TOperation::Sub, dnn, outputs );
 }
 
 // --------------------------------------------------------------------------------------------------------------------
 
 void CMulOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
-	CPtr<CBaseLayer> layer( new CEltwiseMulLayer( dnn.GetMathEngine() ) );
-	CEltwiseOperatorBase::AddLayersImpl( Broadcast(), inputs, *layer, dnn, outputs );
+	CEltwiseOperatorBase::AddLayersImpl( Broadcast(), inputs, COnnxEltwiseLayer::TOperation::Mul, dnn, outputs );
 }
 
 // --------------------------------------------------------------------------------------------------------------------
 
 void CDivOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
-	CPtr<CBaseLayer> layer( new CEltwiseDivLayer( dnn.GetMathEngine() ) );
-	CEltwiseOperatorBase::AddLayersImpl( Broadcast(), inputs, *layer, dnn, outputs );
+	CEltwiseOperatorBase::AddLayersImpl( Broadcast(), inputs, COnnxEltwiseLayer::TOperation::Div, dnn, outputs );
 }
 
 // --------------------------------------------------------------------------------------------------------------------
@@ -131,8 +125,7 @@ void CSumOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArra
 		broadcast.Type = BT_None;
 	}
 
-	CPtr<CBaseLayer> layer( new CEltwiseSumLayer( dnn.GetMathEngine() ) );
-	CEltwiseOperatorBase::AddLayersImpl( broadcast, inputs, *layer, dnn, outputs );
+	CEltwiseOperatorBase::AddLayersImpl( broadcast, inputs, COnnxEltwiseLayer::TOperation::Add, dnn, outputs );
 }
 
 } // namespace NeoOnnx

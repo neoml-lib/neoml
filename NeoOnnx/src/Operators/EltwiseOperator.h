@@ -19,6 +19,8 @@ limitations under the License.
 
 #include "TensorUtils.h"
 
+#include <NeoML/Dnn/Layers/Onnx/OnnxEltwiseLayer.h>
+
 namespace NeoOnnx {
 
 // Base class for operators which perform eltwise operations
@@ -29,7 +31,7 @@ protected:
 	// AddLayers implementation for the given broadcast and layer
 	// The derivatives should call this method from their AddLayers
 	void AddLayersImpl( const CBroadcast& broadcast, const CTensorArray& inputs,
-		CBaseLayer& eltwiseLayer, CDnn& dnn, CTensorArray& outputs ) const;
+		COnnxEltwiseLayer::TOperation operation, CDnn& dnn, CTensorArray& outputs ) const;
 
 private:
 	// Expected number of arguments (-1 if any number is supported)

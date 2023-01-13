@@ -80,7 +80,7 @@ set(NeoML_SOURCES
     Dnn/Layers/MultiheadAttentionLayer.cpp
     Dnn/Layers/MultiHingeLossLayer.cpp
     Dnn/Layers/ObjectNormalizationLayer.cpp
-    Dnn/Layers/Onnx/OnnxArithmeticLayer.cpp
+    Dnn/Layers/Onnx/OnnxEltwiseLayer.cpp
     Dnn/Layers/Onnx/BaseReshaper.cpp
     Dnn/Layers/Onnx/OnnxConcatLayer.cpp
     Dnn/Layers/Onnx/OnnxExpandLayer.cpp
@@ -291,7 +291,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/Dnn/Layers/MultiheadAttentionLayer.h
     ../include/NeoML/Dnn/Layers/MultiHingeLossLayer.h
     ../include/NeoML/Dnn/Layers/ObjectNormalizationLayer.h
-    ../include/NeoML/Dnn/Layers/Onnx/OnnxArithmeticLayer.h
+    ../include/NeoML/Dnn/Layers/Onnx/OnnxEltwiseLayer.h
     ../include/NeoML/Dnn/Layers/Onnx/BaseReshaper.h
     ../include/NeoML/Dnn/Layers/Onnx/OnnxConcatLayer.h
     ../include/NeoML/Dnn/Layers/Onnx/OnnxExpandLayer.h
