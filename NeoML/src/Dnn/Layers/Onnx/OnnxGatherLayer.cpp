@@ -50,13 +50,8 @@ static void runGather( const CDnnBlob& data, const CDnnBlob& indices, CDnnBlob& 
 	shiftIndices( gatherDim, indices, *shiftedIndices );
 
 	CLookupDimension lookupDim( 1, 1 );
-	for( TBlobDim dim = BD_BatchLength; dim < BD_Count; ++dim ) {
-		if( dim <= gatherDim ) {
-			lookupDim.VectorCount *= data.DimSize( dim );
-		} else {
-			lookupDim.VectorSize *= data.DimSize( dim );
-		}
-	}
+	lookupDim.VectorCount = data.DimSize( gatherDim );
+	lookupDim.VectorSize = data.GetDataSize() / data.DimSize( gatherDim );
 
 	CTypedMemoryHandle<const T> lookupTable = data.GetData<T>();
 
