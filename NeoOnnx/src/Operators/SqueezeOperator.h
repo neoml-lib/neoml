@@ -30,6 +30,7 @@ protected:
 
 private:
 	void getAxes( int inputDimCount, CFastArray<int, 8>& axes ) const;
+	void calcOutputShape( const CTensorShape& inputShape, const CFastArray<int, 8>& axes, CTensorShape& outputShape ) const;
 	CTensorLayout calcOutputLayout( const CTensorLayout& inputLayout, const CFastArray<int, 8>& axes ) const;
 };
 

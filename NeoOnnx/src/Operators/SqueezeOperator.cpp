@@ -37,20 +37,39 @@ CSqueezeOperator::CSqueezeOperator( const onnx::NodeProto& squeeze, int opsetVer
 void CSqueezeOperator::AddLayers( const CTensorArray& inputs, CDnn& /* dnn */, CTensorArray& outputs ) const
 {
 	CheckNoNullInputs( inputs );
-	CheckNoShapeInputs( inputs );
 
 	CFastArray<int, 8> axes;
 	getAxes( inputs[0]->DimCount(), axes );
 
 	const CTensorLayout outputLayout = calcOutputLayout( inputs[0]->Layout(), axes );
-	// TODO: process shape tensors properly
-	// static_assert( static_cast<int>( TTensorType::Count ) == 2, "TTensorType::Count != 2" );
+	static_assert( static_cast<int>( TTensorType::Count ) == 3, "TTensorType::Count != 3" );
 	if( inputs[0]->Type() == TTensorType::Data ) {
 		outputs.Add( new CDataTensor( outputLayout,
 			*dynamic_cast<const CDataTensor*>( inputs[0].Ptr() )->Data() ) );
+	} else if( inputs[0]->Type() == TTensorType::Shape ) {
+		const CShapeTensor& input = dynamic_cast<const CShapeTensor&>( *inputs[0] );
+		CTensorShape outputShape;
+		calcOutputShape( input.Shape(), axes, outputShape );
+		outputs.Add( new CShapeTensor( outputLayout, outputShape, input.LayerOutput() ) );
 	} else {
 		outputs.Add( new CUserTensor( outputLayout,
 			dynamic_cast<const CUserTensor*>( inputs[0].Ptr() )->LayerOutput() ) );
+	}
+}
+
+// Calculates output tensor's shape
+void CSqueezeOperator::calcOutputShape( const CTensorShape& inputShape, const CFastArray<int, 8>& axes, CTensorShape& outputShape ) const
+{
+	outputShape.Empty();
+	outputShape.SetBufferSize( inputShape.Size() - axes.Size() );
+
+	int axeIndex = 0;
+	for( int i = 0; i < inputShape.Size(); ++i ) {
+		if( axeIndex < axes.Size() && i == axes[axeIndex] ) {
+			++axeIndex;
+		} else {
+			outputShape.Add( inputShape[i] );
+		}
 	}
 }
 
