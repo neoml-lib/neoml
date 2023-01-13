@@ -64,7 +64,8 @@ void CConstantOfShapeOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn,
 	layer->Connect( 0, *inputShapeTensor->Layer(), inputShapeTensor->OutputIndex() );
 	dnn.AddLayer( *layer );
 
-	const CTensorLayout outputLayout( inputShapeTensor->DimCount() == 0 ? 0 : inputShapeTensor->Shape()[0] );
+	const CTensorLayout outputLayout = CTensorLayout::IOLayout( inputShapeTensor->DimCount() == 0 ? 0
+		: inputShapeTensor->Shape()[0] );
 	outputs.Add( new CUserTensor( outputLayout, CLayerOutput( layer, 0 ) ) );
 }
 
