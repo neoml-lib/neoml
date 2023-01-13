@@ -72,37 +72,29 @@ void CGatherOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorA
 		CPtr<const CShapeTensor> indicesShapeTensor = AsShapeTensor( *indices, Name() + "_Indices", dnn);
 		indicesOutput = indicesShapeTensor->LayerOutput();
 
-		indicesShapeTensor->Shape().CopyTo( outputShape );
-		if( !outputShape.IsEmpty() ) {
-			outputShape.DeleteLast();
+		for( int i = 0; i < axis; ++i ) {
+			outputShape.Add( dataShapeTensor->Shape()[i] );
 		}
-
-		for( int i = 0; i < dataShapeTensor->DimCount(); ++i ) {
-			if( i == axis ) {
-				if( indicesShapeTensor->DimCount() > 0 ) {
-					outputShape.Add( indicesShapeTensor->Shape().Last() );
-				}
-			} else {
-				outputShape.Add( dataShapeTensor->Shape()[i] );
-			}
+		outputShape.Add( indicesShapeTensor->Shape() );
+		for( int i = axis + 1; i < dataShapeTensor->DimCount(); ++i ) {
+			outputShape.Add( dataShapeTensor->Shape()[i] );
 		}
 	}
 
 	CPtr<COnnxGatherLayer> gatherLayer = new COnnxGatherLayer( dnn.GetMathEngine() );
 	gatherLayer->SetName( Name() );
-	gatherLayer->SetGatherDim( dataLayout[0] );
+	gatherLayer->SetGatherDim( dataLayout[axis] );
 	gatherLayer->Connect( 0, *dataOutput.Layer, dataOutput.OutputIndex );
 	gatherLayer->Connect( 1, *indicesOutput.Layer, indicesOutput.OutputIndex );
 	dnn.AddLayer( *gatherLayer );
 
 	CTensorLayout outputLayout;
-	indices->Layout().CopyTo( outputLayout );
-	if( !outputLayout.IsEmpty() ) {
-		outputLayout.DeleteLast();
+	for( int i = 0; i < axis; ++i ) {
+		outputLayout.Add( data->Layout()[i] );
 	}
-	outputLayout.Add( data->Layout() );
-	if( indices->DimCount() == 0 ) {
-		outputLayout.DeleteAt( axis );
+	outputLayout.Add( indices->Layout() );
+	for( int i = axis + 1; i < data->DimCount(); ++i ) {
+		outputLayout.Add( data->Layout()[i] );
 	}
 
 	if( HasUserInput( inputs ) ) {
