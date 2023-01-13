@@ -82,9 +82,10 @@ set(NeoML_SOURCES
     Dnn/Layers/ObjectNormalizationLayer.cpp
     Dnn/Layers/Onnx/OnnxArithmeticLayer.cpp
     Dnn/Layers/Onnx/BaseReshaper.cpp
-    Dnn/Layers/Onnx/OnnxLayers.cpp
+    Dnn/Layers/Onnx/OnnxConcatLayer.cpp
     Dnn/Layers/Onnx/OnnxExpandLayer.cpp
     Dnn/Layers/Onnx/OnnxGatherLayer.cpp
+    Dnn/Layers/Onnx/OnnxLayers.cpp
     Dnn/Layers/Onnx/OnnxReshapeLayer.cpp
     Dnn/Layers/Onnx/OnnxShapeLayer.cpp
     Dnn/Layers/Onnx/OnnxSliceLayer.cpp
@@ -292,6 +293,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/Dnn/Layers/ObjectNormalizationLayer.h
     ../include/NeoML/Dnn/Layers/Onnx/OnnxArithmeticLayer.h
     ../include/NeoML/Dnn/Layers/Onnx/BaseReshaper.h
+    ../include/NeoML/Dnn/Layers/Onnx/OnnxConcatLayer.h
     ../include/NeoML/Dnn/Layers/Onnx/OnnxExpandLayer.h
     ../include/NeoML/Dnn/Layers/Onnx/OnnxGatherLayer.h
     ../include/NeoML/Dnn/Layers/Onnx/OnnxReshapeLayer.h

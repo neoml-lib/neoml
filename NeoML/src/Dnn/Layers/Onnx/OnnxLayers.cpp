@@ -17,6 +17,7 @@ limitations under the License.
 #pragma hdrstop
 
 #include <NeoML/Dnn/Layers/Onnx/OnnxArithmeticLayer.h>
+#include <NeoML/Dnn/Layers/Onnx/OnnxConcatLayer.h>
 #include <NeoML/Dnn/Layers/Onnx/OnnxExpandLayer.h>
 #include <NeoML/Dnn/Layers/Onnx/OnnxGatherLayer.h>
 #include <NeoML/Dnn/Layers/Onnx/OnnxReshapeLayer.h>
@@ -32,6 +33,7 @@ namespace NeoML {
 namespace {
 
 REGISTER_NEOML_LAYER( COnnxArithmeticLayer, "NeoMLDnnOnnxArithmeticLayer" )
+REGISTER_NEOML_LAYER( COnnxConcatLayer, "NeoMLDnnOnnxConcatLayer" )
 REGISTER_NEOML_LAYER( COnnxExpandLayer, "NeoMLDnnOnnxExpandLayer" )
 REGISTER_NEOML_LAYER( COnnxGatherLayer, "NeoMLDnnOnnxGatherLayer" )
 REGISTER_NEOML_LAYER( COnnxReshapeLayer, "NeoMLDnnOnnxReshapeLayer" )

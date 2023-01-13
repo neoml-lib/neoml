@@ -27,9 +27,6 @@ public:
 protected:
 	// CLayerOperator methods
 	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
-
-private:
-	CPtr<CBaseLayer> createLayer( TBlobDim concatDim, IMathEngine& mathEngine ) const;
 };
 
 } // namespace NeoOnnx

@@ -22,6 +22,8 @@ limitations under the License.
 
 #include "onnx.pb.h"
 
+#include <NeoML/Dnn/Layers/Onnx/OnnxConcatLayer.h>
+
 namespace NeoOnnx {
 
 CConcatOperator::CConcatOperator( const onnx::NodeProto& concat, int opsetVersion ) :
@@ -38,30 +40,9 @@ CConcatOperator::CConcatOperator( const onnx::NodeProto& concat, int opsetVersio
 
 void CConcatOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
-	CheckNoShapeInputs( inputs );
+	CheckNoNullInputs( inputs );
 
-	int firstInput = NotFound;
-	int inputCount = 0;
-	for( int i = 0; i < inputs.Size(); ++i ) {
-		if( inputs[i] != nullptr ) {
-			if( firstInput == NotFound ) {
-				firstInput = i;
-			}
-			inputCount++;
-		}
-	}
-
-	if( inputCount == 0 ) {
-		outputs.Add( nullptr );
-		return;
-	}
-
-	if( inputCount == 1 ) {
-		outputs.Add( inputs[firstInput] );
-		return;
-	}
-
-	const int dimCount = inputs[firstInput]->DimCount();
+	const int dimCount = inputs[0]->DimCount();
 
 	int axis = 1;
 	if( OpsetVersion < 4 ) {
@@ -73,48 +54,52 @@ void CConcatOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorA
 		}
 	}
 
-	const CTensorLayout& inputLayout = inputs[firstInput]->Layout();
-	CPtr<CBaseLayer> concat = createLayer( inputLayout[axis], dnn.GetMathEngine() );
+	const CTensorLayout& inputLayout = inputs[0]->Layout();
+
+	CPtr<COnnxConcatLayer> concat = new COnnxConcatLayer( dnn.GetMathEngine() );
 	concat->SetName( Name() );
+	concat->SetConcatDim( inputLayout[axis] );
 
 	int connectionIndex = 0;
 	for( int inputIndex = 0; inputIndex < inputs.Size(); ++inputIndex ) {
-		if( inputs[inputIndex] == nullptr ) {
-			continue;
+		CLayerOutput layerOutput;
+		if( HasUserInput( inputs ) ) {
+			layerOutput = AsUserTensor( *ConvertTensor( *inputs[inputIndex], inputLayout ),
+				Name() + "_Source" + Str( inputIndex ), dnn )->LayerOutput();
+		} else {
+			layerOutput = AsShapeTensor( *ConvertTensor( *inputs[inputIndex], inputLayout ),
+				Name() + "_Source" + Str( inputIndex ), dnn )->LayerOutput();
 		}
-		CPtr<const CUserTensor> preparedInput = AsUserTensor( *ConvertTensor( *inputs[inputIndex], inputLayout ),
-			Name() + "_Source" + Str( inputIndex ), dnn );
-		concat->Connect( connectionIndex++, *preparedInput->Layer(), preparedInput->OutputIndex() );
+		concat->Connect( connectionIndex++, *layerOutput.Layer, layerOutput.OutputIndex );
 	}
 
 	dnn.AddLayer( *concat );
 
-	outputs.Add( new CUserTensor( inputLayout, CLayerOutput( concat, 0 ) ) );
-}
+	if( HasUserInput( inputs ) ) {
+		outputs.Add( new CUserTensor( inputLayout, CLayerOutput( concat, 0 ) ) );
+	} else {
+		CTensorShape outputShape;
+		NeoPresume( inputs[0]->Type() != TTensorType::User );
+		if( inputs[0]->Type() == TTensorType::Data ) {
+			const CDataTensor& dataTensor = dynamic_cast<const CDataTensor&>( *inputs[0] );
+			for( int i = 0; i < dataTensor.DimCount(); ++i ) {
+				outputShape.Add( dataTensor.DimSize( i ) );
+			}
+		} else {
+			dynamic_cast<const CShapeTensor&>( *inputs[0] ).Shape().CopyTo( outputShape );
+		}
 
-// Creates corresponding CConcat*Layer
-CPtr<CBaseLayer> CConcatOperator::createLayer( TBlobDim concatDim, IMathEngine& mathEngine ) const
-{
-	switch( concatDim ) {
-		case BD_BatchWidth:
-			return new CConcatBatchWidthLayer( mathEngine );
-		case BD_Height:
-			return new CConcatHeightLayer( mathEngine );
-		case BD_Width:
-			return new CConcatWidthLayer( mathEngine );
-		case BD_Depth:
-			return new CConcatDepthLayer( mathEngine );
-		case BD_Channels:
-			return new CConcatChannelsLayer( mathEngine );
-		case BD_BatchLength:
-			return new CConcatBatchLengthLayer( mathEngine );
-		case BD_ListSize:
-			return new CConcatListSizeLayer( mathEngine );
-		default:
-			CheckNeoOnnxSupport( false, "unsupported Concat dimension", *this );
+		int& concatDimSize = outputShape[axis];
+		for( int i = 1; i < inputs.Size(); ++i ) {
+			if( inputs[i]->Type() == TTensorType::Data ) {
+				concatDimSize += dynamic_cast<const CDataTensor&>( *inputs[i] ).DimSize( axis );
+			} else {
+				concatDimSize += dynamic_cast<const CShapeTensor&>( *inputs[i] ).Shape()[axis];
+			}
+		}
+
+		outputs.Add( new CShapeTensor( inputLayout, outputShape, CLayerOutput( concat, 0 ) ) );
 	}
-
-	return nullptr;
 }
 
 } // namespace NeoOnnx
