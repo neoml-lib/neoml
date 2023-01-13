@@ -64,12 +64,12 @@ void CGatherOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorA
 	CLayerOutput indicesOutput;
 	CTensorShape outputShape;
 	if( HasUserInput( inputs ) ) {
-		dataOutput = AsUserTensor( *inputs[0], Name() + "_Data", dnn )->LayerOutput();
-		indicesOutput = AsUserTensor( *inputs[1], Name() + "_Indices", dnn )->LayerOutput();
+		dataOutput = AsUserTensor( *data, Name() + "_Data", dnn )->LayerOutput();
+		indicesOutput = AsUserTensor( *indices, Name() + "_Indices", dnn )->LayerOutput();
 	} else {
-		CPtr<const CShapeTensor> dataShapeTensor = AsShapeTensor( *inputs[0], Name() + "_Data", dnn );
+		CPtr<const CShapeTensor> dataShapeTensor = AsShapeTensor( *data, Name() + "_Data", dnn );
 		dataOutput = dataShapeTensor->LayerOutput();
-		CPtr<const CShapeTensor> indicesShapeTensor = AsShapeTensor( *inputs[1], Name() + "_Indices", dnn);
+		CPtr<const CShapeTensor> indicesShapeTensor = AsShapeTensor( *indices, Name() + "_Indices", dnn);
 		indicesOutput = indicesShapeTensor->LayerOutput();
 
 		indicesShapeTensor->Shape().CopyTo( outputShape );
@@ -90,7 +90,7 @@ void CGatherOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorA
 
 	CPtr<COnnxGatherLayer> gatherLayer = new COnnxGatherLayer( dnn.GetMathEngine() );
 	gatherLayer->SetName( Name() );
-	gatherLayer->SetGatherDim( inputs[0]->Layout()[axis] );
+	gatherLayer->SetGatherDim( dataLayout[0] );
 	gatherLayer->Connect( 0, *dataOutput.Layer, dataOutput.OutputIndex );
 	gatherLayer->Connect( 1, *indicesOutput.Layer, indicesOutput.OutputIndex );
 	dnn.AddLayer( *gatherLayer );
