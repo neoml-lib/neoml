@@ -35,16 +35,16 @@ void CShapeToBlobLayer::Reshape()
 	CheckArchitecture( GetOutputCount() == 1, GetPath(), "Layer must have 1 output" );
 	const CBaseReshaper* shapeProvider = dynamic_cast<const CBaseReshaper*>( GetInputLayer( 0 ) );
 	CheckArchitecture( shapeProvider != nullptr, GetPath(), "Input must contain shape" );
-	CheckArchitecture( shapeProvider->GetOutputShapeBlobs().IsValidIndex( GetInputOutputNumber( 1 ) ), GetPath(),
+	CheckArchitecture( shapeProvider->GetOutputShapeBlobs().IsValidIndex( GetInputOutputNumber( 0 ) ), GetPath(),
 		"Wrong input number" );
-	outputDescs[0] = shapeProvider->GetOutputShapeBlobs()[GetInputOutputNumber( 1 )]->GetDesc();
+	outputDescs[0] = shapeProvider->GetOutputShapeBlobs()[GetInputOutputNumber( 0 )]->GetDesc();
 }
 
 void CShapeToBlobLayer::RunOnce()
 {
 	const CBaseReshaper* shapeProvider = dynamic_cast<const CBaseReshaper*>( GetInputLayer( 0 ) );
 	NeoPresume( shapeProvider != nullptr );
-	CPtr<CDnnBlob> inputShapeBlob = shapeProvider->GetOutputShapeBlobs()[GetInputOutputNumber( 1 )];
+	CPtr<CDnnBlob> inputShapeBlob = shapeProvider->GetOutputShapeBlobs()[GetInputOutputNumber( 0 )];
 	NeoPresume( outputBlobs[0]->HasEqualDimensions( inputShapeBlob.Ptr() ) );
 	outputBlobs[0]->CopyFrom( inputShapeBlob );
 }
