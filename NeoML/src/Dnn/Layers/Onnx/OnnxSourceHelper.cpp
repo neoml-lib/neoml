@@ -16,24 +16,24 @@ limitations under the License.
 #include <common.h>
 #pragma hdrstop
 
-#include <NeoML/Dnn/Layers/Onnx/SourceReshaper.h>
+#include <NeoML/Dnn/Layers/Onnx/OnnxSourceHelper.h>
 
 namespace NeoML {
 
-static const int SourceReshaperVersion = 0;
+static const int OnnxSourceHelperVersion = 0;
 
-void CSourceReshaper::Serialize( CArchive& archive )
+void COnnxSourceHelper::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion( SourceReshaperVersion );
+	archive.SerializeVersion( OnnxSourceHelperVersion );
 	COnnxLayerBase::Serialize( archive );
 	SerializeBlob( GetDefaultCpuMathEngine(), archive, blob );
 }
 
-void CSourceReshaper::CalculateShapes()
+void COnnxSourceHelper::CalculateShapes()
 {
-	CheckArchitecture( GetInputCount() == 0, GetPath(), "SourceReshaper must have no inputs" );
-	CheckArchitecture( GetOutputCount() == 1, GetPath(), "SourceReshaper must have 1 output" );
-	CheckArchitecture( blob != nullptr, GetPath(), "SourceReshaper with null blob" );
+	CheckArchitecture( GetInputCount() == 0, GetPath(), "OnnxSourceHelper must have no inputs" );
+	CheckArchitecture( GetOutputCount() == 1, GetPath(), "OnnxSourceHelper must have 1 output" );
+	CheckArchitecture( blob != nullptr, GetPath(), "OnnxSourceHelper with null blob" );
 
 	if( &blob->GetMathEngine() != &GetSingleThreadCpuMathEngine() ) {
 		outputShapeBlobs[0] = CDnnBlob::CreateBlob( GetSingleThreadCpuMathEngine(),

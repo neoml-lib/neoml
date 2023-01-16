@@ -21,9 +21,9 @@ limitations under the License.
 
 #include "NeoOnnxCheck.h"
 #include "TensorUtils.h"
+#include <NeoML/Dnn/Layers/Onnx/OnnxSourceHelper.h>
 #include <NeoML/Dnn/Layers/Onnx/OnnxTransformHelper.h>
 #include <NeoML/Dnn/Layers/Onnx/OnnxTransposeHelper.h>
-#include <NeoML/Dnn/Layers/Onnx/SourceReshaper.h>
 #include <NeoML/Dnn/Layers/Onnx/ShapeToBlobLayer.h>
 
 namespace NeoOnnx {
@@ -640,7 +640,7 @@ CPtr<const CShapeTensor> AsShapeTensor( const CTensorBase& tensor, const CString
 		resultShape.Add( dataTensor->DimSize( dimIndex ) );
 	}
 
-	CPtr<CSourceReshaper> source = new CSourceReshaper( dnn.GetMathEngine() );
+	CPtr<COnnxSourceHelper> source = new COnnxSourceHelper( dnn.GetMathEngine() );
 	source->SetName( layerName );
 	source->Blob() = dataTensor->Data()->GetCopy();
 	dnn.AddLayer( *source );
@@ -649,7 +649,7 @@ CPtr<const CShapeTensor> AsShapeTensor( const CTensorBase& tensor, const CString
 
 CPtr<const CShapeTensor> AsShapeTensor( const CFastArray<int, 8>& data, const CString& layerName, CDnn& dnn )
 {
-	CPtr<CSourceReshaper> source = new CSourceReshaper( dnn.GetMathEngine() );
+	CPtr<COnnxSourceHelper> source = new COnnxSourceHelper( dnn.GetMathEngine() );
 	source->SetName( layerName );
 	source->Blob() = CDnnBlob::CreateTensor( GetSingleThreadCpuMathEngine(), CT_Int, { data.Size() } );
 	source->Blob()->CopyFrom( data.GetPtr() );

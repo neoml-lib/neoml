@@ -21,10 +21,10 @@ limitations under the License.
 namespace NeoML {
 
 // Class which provides shape tensor to CDnn
-class NEOML_API CSourceReshaper : public COnnxLayerBase {
-	NEOML_DNN_LAYER( CSourceReshaper )
+class NEOML_API COnnxSourceHelper : public COnnxLayerBase {
+	NEOML_DNN_LAYER( COnnxSourceHelper )
 public:
-	explicit CSourceReshaper( IMathEngine& mathEngine ) : COnnxLayerBase( mathEngine, "SourceReshaper" ) {}
+	explicit COnnxSourceHelper( IMathEngine& mathEngine ) : COnnxLayerBase( mathEngine, "OnnxSourceHelper" ) {}
 
 	void Serialize( CArchive& archive ) override;
 

@@ -20,7 +20,6 @@ limitations under the License.
 #include "NeoOnnxCheck.h"
 #include "TensorUtils.h"
 #include <NeoML/Dnn/Layers/Onnx/OnnxReshapeLayer.h>
-#include <NeoML/Dnn/Layers/Onnx/SourceReshaper.h>
 
 #include "onnx.pb.h"
 
