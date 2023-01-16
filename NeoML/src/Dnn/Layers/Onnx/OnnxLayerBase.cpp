@@ -48,11 +48,11 @@ void COnnxLayerBase::Reshape()
 
 	inputShapeBlobs.SetSize( GetInputCount() );
 	for( int inputIndex = 0; inputIndex < GetInputCount(); ++inputIndex ) {
-		COnnxLayerBase* reshaper = dynamic_cast<COnnxLayerBase*>( GetInputLayer( inputIndex ) );
-		if( reshaper == nullptr ) {
+		COnnxLayerBase* onnxLayer = dynamic_cast<COnnxLayerBase*>( GetInputLayer( inputIndex ) );
+		if( onnxLayer == nullptr ) {
 			inputShapeBlobs[inputIndex] = nullptr;
 		} else {
-			inputShapeBlobs[inputIndex] = reshaper->outputShapeBlobs[GetInputOutputNumber( inputIndex )];
+			inputShapeBlobs[inputIndex] = onnxLayer->outputShapeBlobs[GetInputOutputNumber( inputIndex )];
 		}
 	}
 

@@ -41,7 +41,7 @@ public:
 	};
 
 	explicit COnnxEltwiseLayer( IMathEngine& mathEngine ) :
-		COnnxLayerBase( mathEngine, "AddReshaper" ), operation( TOperation::Count ) {}
+		COnnxLayerBase( mathEngine, "OnnxEltwiseLayer" ), operation( TOperation::Count ) {}
 
 	TOperation GetOperation() const { return operation; }
 	void SetOperation( TOperation newOperation ) { operation = newOperation; }
