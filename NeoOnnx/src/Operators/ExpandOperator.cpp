@@ -45,12 +45,22 @@ void CExpandOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorA
 
 	CPtr<COnnxExpandLayer> expandLayer = new COnnxExpandLayer( dnn.GetMathEngine() );
 	expandLayer->SetName( Name() );
-	input->Layout().CopyTo( expandLayer->TensorLayout() );
 	expandLayer->Connect( 0, *input->Layer(), input->OutputIndex() );
 	expandLayer->Connect( 1, *shape->Layer(), shape->OutputIndex() );
 	dnn.AddLayer( *expandLayer );
 
-	outputs.Add( new CUserTensor( input->Layout(), CLayerOutput( expandLayer.Ptr(), 0 ) ) );
+	CTensorLayout outputLayout = input->Layout();
+	TBlobDim newDim = BD_BatchLength;
+	while( outputLayout.Size() < shape->Shape()[0] ) {
+		while( outputLayout.Find( newDim ) != NotFound ) {
+			++newDim;
+		}
+		outputLayout.Add( newDim );
+	}
+	CheckNeoOnnxSupport( newDim < BD_Count, "Too many dimensions", *this );
+	outputLayout.CopyTo( expandLayer->TensorLayout() );
+
+	outputs.Add( new CUserTensor( outputLayout, CLayerOutput( expandLayer.Ptr(), 0 ) ) );
 }
 
 } // namespace NeoOnnx
