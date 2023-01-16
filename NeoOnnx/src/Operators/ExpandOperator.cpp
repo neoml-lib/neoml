@@ -49,14 +49,17 @@ void CExpandOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorA
 	expandLayer->Connect( 1, *shape->Layer(), shape->OutputIndex() );
 	dnn.AddLayer( *expandLayer );
 
-	CTensorLayout outputLayout = input->Layout();
+	CTensorLayout outputLayout;
+	outputLayout.SetBufferSize( shape->Shape()[0] );
 	TBlobDim newDim = BD_BatchLength;
-	while( outputLayout.Size() < shape->Shape()[0] ) {
-		while( outputLayout.Find( newDim ) != NotFound ) {
+	while( outputLayout.Size() < shape->Shape()[0] - input->DimCount() ) {
+		while( input->Layout().Find( newDim ) != NotFound ) {
 			++newDim;
 		}
 		outputLayout.Add( newDim );
+		++newDim;
 	}
+	outputLayout.Add( input->Layout() );
 	CheckNeoOnnxSupport( newDim < BD_Count, "Too many dimensions", *this );
 	outputLayout.CopyTo( expandLayer->TensorLayout() );
 
