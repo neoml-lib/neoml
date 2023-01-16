@@ -17,7 +17,6 @@ limitations under the License.
 #pragma hdrstop
 
 #include "SliceOperator.h"
-#include "LayerUtils.h"
 #include "NeoOnnxCheck.h"
 #include "TensorUtils.h"
 
