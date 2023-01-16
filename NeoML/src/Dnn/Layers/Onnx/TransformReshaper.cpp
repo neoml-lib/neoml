@@ -23,7 +23,7 @@ namespace NeoML {
 static const int TransformReshaperVersion = 0;
 
 CTransformReshaper::CTransformReshaper( IMathEngine& mathEngine ) :
-	CBaseReshaper( mathEngine, "TransformReshaper" )
+	COnnxLayerBase( mathEngine, "TransformReshaper" )
 {
 	transformInfo.Add( BD_Count, BD_Count );
 }
@@ -31,7 +31,7 @@ CTransformReshaper::CTransformReshaper( IMathEngine& mathEngine ) :
 void CTransformReshaper::Serialize( CArchive& archive )
 {
 	archive.SerializeVersion( TransformReshaperVersion );
-	CBaseReshaper::Serialize( archive );
+	COnnxLayerBase::Serialize( archive );
 	transformInfo.Serialize( archive );
 }
 

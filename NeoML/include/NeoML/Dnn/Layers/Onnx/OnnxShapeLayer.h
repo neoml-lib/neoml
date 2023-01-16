@@ -16,16 +16,16 @@ limitations under the License.
 #pragma once
 
 #include <NeoML/NeoMLDefs.h>
-#include <NeoML/Dnn/Layers/Onnx/BaseReshaper.h>
+#include <NeoML/Dnn/Layers/Onnx/OnnxLayerBase.h>
 
 namespace NeoML {
 
 // Layer which emulates Onnx Shape operator
 // It writes the shape of Onnx tensor to its output shape tensor
-class NEOML_API COnnxShapeLayer : public CBaseReshaper {
+class NEOML_API COnnxShapeLayer : public COnnxLayerBase {
 	NEOML_DNN_LAYER( COnnxShapeLayer )
 public:
-	explicit COnnxShapeLayer( IMathEngine& mathEngine ) : CBaseReshaper( mathEngine, "OnnxShapeLayer" ) {}
+	explicit COnnxShapeLayer( IMathEngine& mathEngine ) : COnnxLayerBase( mathEngine, "OnnxShapeLayer" ) {}
 
 	void Serialize( CArchive& archive ) override;
 

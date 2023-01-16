@@ -15,15 +15,15 @@ limitations under the License.
 
 #pragma once
 
-#include <NeoML/Dnn/Layers/Onnx/BaseReshaper.h>
+#include <NeoML/Dnn/Layers/Onnx/OnnxLayerBase.h>
 
 namespace NeoML {
 
 // Layer which emulates Onnx Concat operator
-class NEOML_API COnnxConcatLayer : public CBaseReshaper {
+class NEOML_API COnnxConcatLayer : public COnnxLayerBase {
 	NEOML_DNN_LAYER( COnnxConcatLayer )
 public:
-	explicit COnnxConcatLayer( IMathEngine& mathEngine ) : CBaseReshaper( mathEngine, "OnnxConcatLayer" ),
+	explicit COnnxConcatLayer( IMathEngine& mathEngine ) : COnnxLayerBase( mathEngine, "OnnxConcatLayer" ),
 		concatDim( BD_BatchLength ) {}
 
 	void SetConcatDim( TBlobDim dim ) { concatDim = dim; }

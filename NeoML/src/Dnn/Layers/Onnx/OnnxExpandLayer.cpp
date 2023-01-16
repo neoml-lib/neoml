@@ -17,7 +17,7 @@ limitations under the License.
 #pragma hdrstop
 
 #include <NeoML/Dnn/Layers/Onnx/OnnxExpandLayer.h>
-#include <NeoML/Dnn/Layers/Onnx/BaseReshaper.h>
+#include <NeoML/Dnn/Layers/Onnx/OnnxLayerBase.h>
 
 namespace NeoML {
 
@@ -34,7 +34,7 @@ void COnnxExpandLayer::Reshape()
 {
 	CheckArchitecture( GetInputCount() == 2, GetPath(), "Layer must have 2 inputs" );
 	CheckArchitecture( GetOutputCount() == 1, GetPath(), "Layer must have 1 output" );
-	const CBaseReshaper* shapeProvider = dynamic_cast<const CBaseReshaper*>( GetInputLayer( 1 ) );
+	const COnnxLayerBase* shapeProvider = dynamic_cast<const COnnxLayerBase*>( GetInputLayer( 1 ) );
 	CheckArchitecture( shapeProvider != nullptr, GetPath(), "Second input must contain shape" );
 	CheckArchitecture( shapeProvider->GetOutputShapeBlobs().IsValidIndex( GetInputOutputNumber( 1 ) ), GetPath(),
 		"Wrong input number" );

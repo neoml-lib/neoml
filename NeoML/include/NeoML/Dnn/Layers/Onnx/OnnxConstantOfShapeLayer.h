@@ -16,12 +16,12 @@ limitations under the License.
 #pragma once
 
 #include <NeoML/NeoMLDefs.h>
-#include <NeoML/Dnn/Layers/Onnx/BaseReshaper.h>
+#include <NeoML/Dnn/Layers/Onnx/OnnxLayerBase.h>
 
 namespace NeoML {
 
 // Layer which emulates Onnx ConstantOfShape operator
-class NEOML_API COnnxConstantOfShapeLayer : public CBaseReshaper {
+class NEOML_API COnnxConstantOfShapeLayer : public COnnxLayerBase {
 	NEOML_DNN_LAYER( COnnxConstantOfShapeLayer )
 public:
 	explicit COnnxConstantOfShapeLayer( IMathEngine& mathEngine );

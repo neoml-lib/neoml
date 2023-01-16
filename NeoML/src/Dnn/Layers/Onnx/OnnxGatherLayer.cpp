@@ -67,7 +67,7 @@ static const int OnnxGatherLayerVersion = 0;
 void COnnxGatherLayer::Serialize( CArchive& archive )
 {
 	archive.SerializeVersion( OnnxGatherLayerVersion );
-	CBaseReshaper::Serialize( archive );
+	COnnxLayerBase::Serialize( archive );
 	archive.SerializeEnum( gatherDim );
 }
 

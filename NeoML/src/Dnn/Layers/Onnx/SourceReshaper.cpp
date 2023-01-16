@@ -25,7 +25,7 @@ static const int SourceReshaperVersion = 0;
 void CSourceReshaper::Serialize( CArchive& archive )
 {
 	archive.SerializeVersion( SourceReshaperVersion );
-	CBaseReshaper::Serialize( archive );
+	COnnxLayerBase::Serialize( archive );
 	SerializeBlob( GetDefaultCpuMathEngine(), archive, blob );
 }
 
@@ -35,7 +35,13 @@ void CSourceReshaper::CalculateShapes()
 	CheckArchitecture( GetOutputCount() == 1, GetPath(), "SourceReshaper must have 1 output" );
 	CheckArchitecture( blob != nullptr, GetPath(), "SourceReshaper with null blob" );
 
-	outputShapeBlobs[0] = blob;
+	if( &blob->GetMathEngine() != &GetSingleThreadCpuMathEngine() ) {
+		outputShapeBlobs[0] = CDnnBlob::CreateBlob( GetSingleThreadCpuMathEngine(),
+			blob->GetDataType(), blob->GetDesc() );
+		outputShapeBlobs[0]->CopyFrom( blob );
+	} else {
+		outputShapeBlobs[0] = blob->GetCopy();
+	}
 }
 
 } // namespace NeoML

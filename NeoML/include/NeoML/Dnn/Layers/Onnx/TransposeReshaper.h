@@ -16,12 +16,12 @@ limitations under the License.
 #pragma once
 
 #include <NeoML/NeoMLDefs.h>
-#include <NeoML/Dnn/Layers/Onnx/BaseReshaper.h>
+#include <NeoML/Dnn/Layers/Onnx/OnnxLayerBase.h>
 
 namespace NeoML {
 
 // Swaps 2 dimensions of inputShapeBlob (with data rearranging)
-class NEOML_API CTransposeReshaper : public CBaseReshaper {
+class NEOML_API CTransposeReshaper : public COnnxLayerBase {
 	NEOML_DNN_LAYER( CTransposeReshaper )
 public:
 	explicit CTransposeReshaper( IMathEngine& mathEngine );

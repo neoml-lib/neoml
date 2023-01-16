@@ -16,15 +16,15 @@ limitations under the License.
 #pragma once
 
 #include <NeoML/NeoMLDefs.h>
-#include <NeoML/Dnn/Layers/Onnx/BaseReshaper.h>
+#include <NeoML/Dnn/Layers/Onnx/OnnxLayerBase.h>
 
 namespace NeoML {
 
 // Layer which emulates Onnx Gather operator
-class NEOML_API COnnxGatherLayer : public CBaseReshaper {
+class NEOML_API COnnxGatherLayer : public COnnxLayerBase {
 	NEOML_DNN_LAYER( COnnxGatherLayer )
 public:
-	explicit COnnxGatherLayer( IMathEngine& mathEngine ) : CBaseReshaper( mathEngine, "OnnxGatherLayer" ),
+	explicit COnnxGatherLayer( IMathEngine& mathEngine ) : COnnxLayerBase( mathEngine, "OnnxGatherLayer" ),
 		gatherDim( BD_BatchLength ) {}
 
 	void SetGatherDim( TBlobDim dim ) { gatherDim = dim; }

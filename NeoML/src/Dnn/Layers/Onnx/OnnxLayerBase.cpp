@@ -16,19 +16,19 @@ limitations under the License.
 #include <common.h>
 #pragma hdrstop
 
-#include <NeoML/Dnn/Layers/Onnx/BaseReshaper.h>
+#include <NeoML/Dnn/Layers/Onnx/OnnxLayerBase.h>
 
 namespace NeoML {
 
-static const int BaseReshaperVersion = 0;
+static const int OnnxLayerBaseVersion = 0;
 
-void CBaseReshaper::Serialize( CArchive& archive )
+void COnnxLayerBase::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion( BaseReshaperVersion );
+	archive.SerializeVersion( OnnxLayerBaseVersion );
 	CBaseLayer::Serialize( archive );
 }
 
-bool CBaseReshaper::HasShapeInputs() const
+bool COnnxLayerBase::HasShapeInputs() const
 {
 	for( int i = 0; i < inputShapeBlobs.Size(); ++i ) {
 		if( inputShapeBlobs[i] != nullptr ) {
@@ -39,7 +39,7 @@ bool CBaseReshaper::HasShapeInputs() const
 	return false;
 }
 
-void CBaseReshaper::Reshape()
+void COnnxLayerBase::Reshape()
 {
 	// Fill the outputs with the blobs consisting of 1 integer
 	for( int outputIndex = 0; outputIndex < GetOutputCount(); ++outputIndex ) {
@@ -48,7 +48,7 @@ void CBaseReshaper::Reshape()
 
 	inputShapeBlobs.SetSize( GetInputCount() );
 	for( int inputIndex = 0; inputIndex < GetInputCount(); ++inputIndex ) {
-		CBaseReshaper* reshaper = dynamic_cast<CBaseReshaper*>( GetInputLayer( inputIndex ) );
+		COnnxLayerBase* reshaper = dynamic_cast<COnnxLayerBase*>( GetInputLayer( inputIndex ) );
 		if( reshaper == nullptr ) {
 			inputShapeBlobs[inputIndex] = nullptr;
 		} else {

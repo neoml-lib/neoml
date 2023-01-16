@@ -23,7 +23,7 @@ namespace NeoML {
 static const int OnnxConstantOfShapeLayerVersion = 0;
 
 COnnxConstantOfShapeLayer::COnnxConstantOfShapeLayer( IMathEngine& mathEngine ) :
-	CBaseReshaper( mathEngine, "OnnxConstantOfShapeLayer" )
+	COnnxLayerBase( mathEngine, "OnnxConstantOfShapeLayer" )
 {
 	value = CDnnBlob::CreateVector( GetSingleThreadCpuMathEngine(), CT_Float, 1 );
 	value->Clear();
@@ -41,7 +41,7 @@ void COnnxConstantOfShapeLayer::SetValue( const CDnnBlob& blob )
 void COnnxConstantOfShapeLayer::Serialize( CArchive& archive )
 {
 	archive.SerializeVersion( OnnxConstantOfShapeLayerVersion );
-	CBaseReshaper::Serialize( archive );
+	COnnxLayerBase::Serialize( archive );
 	SerializeBlob( GetSingleThreadCpuMathEngine(), archive, value );
 }
 

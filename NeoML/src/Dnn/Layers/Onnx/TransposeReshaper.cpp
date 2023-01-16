@@ -35,7 +35,7 @@ static CBlobDesc getTransposedDesc( const CBlobDesc& inputDesc, TBlobDim firstDi
 static const int TransposeReshaperVersion = 0;
 
 CTransposeReshaper::CTransposeReshaper( IMathEngine& mathEngine ) :
-	CBaseReshaper( mathEngine, "TransposeReshaper" )
+	COnnxLayerBase( mathEngine, "TransposeReshaper" )
 {
 	dims[0] = BD_Count;
 	dims[1] = BD_Count;
@@ -59,7 +59,7 @@ void CTransposeReshaper::GetDims( TBlobDim& firstDim, TBlobDim& secondDim ) cons
 void CTransposeReshaper::Serialize( CArchive& archive )
 {
 	archive.SerializeVersion( TransposeReshaperVersion );
-	CBaseReshaper::Serialize( archive );
+	COnnxLayerBase::Serialize( archive );
 	archive.SerializeEnum( dims[0] );
 	archive.SerializeEnum( dims[1] );
 }

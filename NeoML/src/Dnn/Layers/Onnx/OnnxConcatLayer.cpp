@@ -26,7 +26,7 @@ static const int OnnxConcatLayerVersion = 0;
 void COnnxConcatLayer::Serialize( CArchive& archive )
 {
 	archive.SerializeVersion( OnnxConcatLayerVersion );
-	CBaseReshaper::Serialize( archive );
+	COnnxLayerBase::Serialize( archive );
 	archive.SerializeEnum( concatDim );
 }
 

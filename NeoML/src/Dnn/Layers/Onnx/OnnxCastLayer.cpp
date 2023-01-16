@@ -35,7 +35,7 @@ static void onnxCastImpl( const CDnnBlob& input, CDnnBlob& output )
 //---------------------------------------------------------------------------------------------------------------------
 
 COnnxCastLayer::COnnxCastLayer( IMathEngine& mathEngine ) :
-	CBaseReshaper( mathEngine, "OnnxCastLayer" ),
+	COnnxLayerBase( mathEngine, "OnnxCastLayer" ),
 	outputType( CT_Float )
 {
 }
@@ -45,7 +45,7 @@ static const int OnnxCastLayerVersion = 0;
 void COnnxCastLayer::Serialize( CArchive& archive )
 {
 	archive.SerializeVersion( OnnxCastLayerVersion );
-	CBaseReshaper::Serialize( archive );
+	COnnxLayerBase::Serialize( archive );
 
 	int outputTypeInt = static_cast<int>( outputType );
 	archive.Serialize( outputTypeInt );

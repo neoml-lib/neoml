@@ -190,7 +190,7 @@ static const int OnnxEltwiseLayerVersion = 0;
 void COnnxEltwiseLayer::Serialize( CArchive& archive )
 {
 	archive.SerializeVersion( OnnxEltwiseLayerVersion );
-	CBaseReshaper::Serialize( archive );
+	COnnxLayerBase::Serialize( archive );
 	archive.SerializeEnum( operation );
 }
 

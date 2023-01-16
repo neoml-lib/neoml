@@ -16,12 +16,12 @@ limitations under the License.
 #pragma once
 
 #include <NeoML/NeoMLDefs.h>
-#include <NeoML/Dnn/Layers/Onnx/BaseReshaper.h>
+#include <NeoML/Dnn/Layers/Onnx/OnnxLayerBase.h>
 
 namespace NeoML {
 
 // Layer which emulates basic Onnx arithmetic operators operator over shape tensors
-class NEOML_API COnnxEltwiseLayer : public CBaseReshaper {
+class NEOML_API COnnxEltwiseLayer : public COnnxLayerBase {
 	NEOML_DNN_LAYER( COnnxEltwiseLayer )
 public:
 	enum class TOperation : char {
@@ -41,7 +41,7 @@ public:
 	};
 
 	explicit COnnxEltwiseLayer( IMathEngine& mathEngine ) :
-		CBaseReshaper( mathEngine, "AddReshaper" ), operation( TOperation::Count ) {}
+		COnnxLayerBase( mathEngine, "AddReshaper" ), operation( TOperation::Count ) {}
 
 	TOperation GetOperation() const { return operation; }
 	void SetOperation( TOperation newOperation ) { operation = newOperation; }

@@ -25,7 +25,7 @@ static const int OnnxShapeLayerVersion = 0;
 void COnnxShapeLayer::Serialize( CArchive& archive )
 {
 	archive.SerializeVersion( OnnxShapeLayerVersion );
-	CBaseReshaper::Serialize( archive );
+	COnnxLayerBase::Serialize( archive );
 	tensorLayout.Serialize( archive );
 }
 

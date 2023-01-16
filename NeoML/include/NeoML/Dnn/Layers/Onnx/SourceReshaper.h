@@ -16,15 +16,15 @@ limitations under the License.
 #pragma once
 
 #include <NeoML/NeoMLDefs.h>
-#include <NeoML/Dnn/Layers/Onnx/BaseReshaper.h>
+#include <NeoML/Dnn/Layers/Onnx/OnnxLayerBase.h>
 
 namespace NeoML {
 
 // Class which provides shape tensor to CDnn
-class NEOML_API CSourceReshaper : public CBaseReshaper {
+class NEOML_API CSourceReshaper : public COnnxLayerBase {
 	NEOML_DNN_LAYER( CSourceReshaper )
 public:
-	explicit CSourceReshaper( IMathEngine& mathEngine ) : CBaseReshaper( mathEngine, "SourceReshaper" ) {}
+	explicit CSourceReshaper( IMathEngine& mathEngine ) : COnnxLayerBase( mathEngine, "SourceReshaper" ) {}
 
 	void Serialize( CArchive& archive ) override;
 

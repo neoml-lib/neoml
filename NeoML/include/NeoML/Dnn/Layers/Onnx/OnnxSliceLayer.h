@@ -16,15 +16,15 @@ limitations under the License.
 #pragma once
 
 #include <NeoML/NeoMLDefs.h>
-#include <NeoML/Dnn/Layers/Onnx/BaseReshaper.h>
+#include <NeoML/Dnn/Layers/Onnx/OnnxLayerBase.h>
 
 namespace NeoML {
 
 // Layer which emulates Onnx Slice operator
-class NEOML_API COnnxSliceLayer : public CBaseReshaper {
+class NEOML_API COnnxSliceLayer : public COnnxLayerBase {
 	NEOML_DNN_LAYER( COnnxSliceLayer )
 public:
-	explicit COnnxSliceLayer( IMathEngine& mathEngine ) : CBaseReshaper( mathEngine, "OnnxSliceLayer" ),
+	explicit COnnxSliceLayer( IMathEngine& mathEngine ) : COnnxLayerBase( mathEngine, "OnnxSliceLayer" ),
 		outputHasElements( true ) {}
 
 	// Input onnx tensor layout

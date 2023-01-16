@@ -81,12 +81,12 @@ set(NeoML_SOURCES
     Dnn/Layers/MultiHingeLossLayer.cpp
     Dnn/Layers/ObjectNormalizationLayer.cpp
     Dnn/Layers/Onnx/OnnxEltwiseLayer.cpp
-    Dnn/Layers/Onnx/BaseReshaper.cpp
     Dnn/Layers/Onnx/OnnxCastLayer.cpp
     Dnn/Layers/Onnx/OnnxConcatLayer.cpp
     Dnn/Layers/Onnx/OnnxConstantOfShapeLayer.cpp
     Dnn/Layers/Onnx/OnnxExpandLayer.cpp
     Dnn/Layers/Onnx/OnnxGatherLayer.cpp
+    Dnn/Layers/Onnx/OnnxLayerBase.cpp
     Dnn/Layers/Onnx/OnnxLayers.cpp
     Dnn/Layers/Onnx/OnnxRangeLayer.cpp
     Dnn/Layers/Onnx/OnnxReshapeLayer.cpp
@@ -295,12 +295,12 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/Dnn/Layers/MultiHingeLossLayer.h
     ../include/NeoML/Dnn/Layers/ObjectNormalizationLayer.h
     ../include/NeoML/Dnn/Layers/Onnx/OnnxEltwiseLayer.h
-    ../include/NeoML/Dnn/Layers/Onnx/BaseReshaper.h
     ../include/NeoML/Dnn/Layers/Onnx/OnnxCastLayer.h
     ../include/NeoML/Dnn/Layers/Onnx/OnnxConcatLayer.h
     ../include/NeoML/Dnn/Layers/Onnx/OnnxConstantOfShapeLayer.h
     ../include/NeoML/Dnn/Layers/Onnx/OnnxExpandLayer.h
     ../include/NeoML/Dnn/Layers/Onnx/OnnxGatherLayer.h
+    ../include/NeoML/Dnn/Layers/Onnx/OnnxLayerBase.h
     ../include/NeoML/Dnn/Layers/Onnx/OnnxRangeLayer.h
     ../include/NeoML/Dnn/Layers/Onnx/OnnxReshapeLayer.h
     ../include/NeoML/Dnn/Layers/Onnx/OnnxShapeLayer.h

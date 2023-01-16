@@ -53,7 +53,7 @@ static const int OnnxRangeLayerVersion = 0;
 void COnnxRangeLayer::Serialize( CArchive& archive )
 {
 	archive.SerializeVersion( OnnxRangeLayerVersion );
-	CBaseReshaper::Serialize( archive );
+	COnnxLayerBase::Serialize( archive );
 }
 
 void COnnxRangeLayer::CalculateShapes()

@@ -16,15 +16,15 @@ limitations under the License.
 #pragma once
 
 #include <NeoML/NeoMLDefs.h>
-#include <NeoML/Dnn/Layers/Onnx/BaseReshaper.h>
+#include <NeoML/Dnn/Layers/Onnx/OnnxLayerBase.h>
 
 namespace NeoML {
 
 // Layer which emulates Onnx Range operator
-class NEOML_API COnnxRangeLayer : public CBaseReshaper {
+class NEOML_API COnnxRangeLayer : public COnnxLayerBase {
 	NEOML_DNN_LAYER( COnnxRangeLayer )
 public:
-	explicit COnnxRangeLayer( IMathEngine& mathEngine ) : CBaseReshaper( mathEngine, "OnnxRangeLayer" ) {}
+	explicit COnnxRangeLayer( IMathEngine& mathEngine ) : COnnxLayerBase( mathEngine, "OnnxRangeLayer" ) {}
 
 	void Serialize( CArchive& archive );
 

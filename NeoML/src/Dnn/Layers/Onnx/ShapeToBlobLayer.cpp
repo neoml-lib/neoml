@@ -17,7 +17,7 @@ limitations under the License.
 #pragma hdrstop
 
 #include <NeoML/Dnn/Layers/Onnx/ShapeToBlobLayer.h>
-#include <NeoML/Dnn/Layers/Onnx/BaseReshaper.h>
+#include <NeoML/Dnn/Layers/Onnx/OnnxLayerBase.h>
 
 namespace NeoML {
 
@@ -33,7 +33,7 @@ void CShapeToBlobLayer::Reshape()
 {
 	CheckArchitecture( GetInputCount() == 1, GetPath(), "Layer must have 1 input" );
 	CheckArchitecture( GetOutputCount() == 1, GetPath(), "Layer must have 1 output" );
-	const CBaseReshaper* shapeProvider = dynamic_cast<const CBaseReshaper*>( GetInputLayer( 0 ) );
+	const COnnxLayerBase* shapeProvider = dynamic_cast<const COnnxLayerBase*>( GetInputLayer( 0 ) );
 	CheckArchitecture( shapeProvider != nullptr, GetPath(), "Input must contain shape" );
 	CheckArchitecture( shapeProvider->GetOutputShapeBlobs().IsValidIndex( GetInputOutputNumber( 0 ) ), GetPath(),
 		"Wrong input number" );
@@ -42,7 +42,7 @@ void CShapeToBlobLayer::Reshape()
 
 void CShapeToBlobLayer::RunOnce()
 {
-	const CBaseReshaper* shapeProvider = dynamic_cast<const CBaseReshaper*>( GetInputLayer( 0 ) );
+	const COnnxLayerBase* shapeProvider = dynamic_cast<const COnnxLayerBase*>( GetInputLayer( 0 ) );
 	NeoPresume( shapeProvider != nullptr );
 	CPtr<CDnnBlob> inputShapeBlob = shapeProvider->GetOutputShapeBlobs()[GetInputOutputNumber( 0 )];
 	NeoPresume( outputBlobs[0]->HasEqualDimensions( inputShapeBlob.Ptr() ) );

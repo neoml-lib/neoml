@@ -21,14 +21,14 @@ limitations under the License.
 namespace NeoML {
 
 // Base class for reshapers: special layers whose purpose is to compute special shape tensors during Reshape phase
-class NEOML_API CBaseReshaper : public CBaseLayer {
+class NEOML_API COnnxLayerBase : public CBaseLayer {
 public:
 	const CObjectArray<CDnnBlob>& GetOutputShapeBlobs() const { return outputShapeBlobs; }
 
 	void Serialize( CArchive& archive ) override;
 
 protected:
-	CBaseReshaper( IMathEngine& mathEngine, const char* name ) :
+	COnnxLayerBase( IMathEngine& mathEngine, const char* name ) :
 		CBaseLayer( mathEngine, name, false ) {}
 
 	// Shape blobs from input layers
