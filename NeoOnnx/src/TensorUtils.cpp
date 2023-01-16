@@ -22,9 +22,9 @@ limitations under the License.
 #include "NeoOnnxCheck.h"
 #include "TensorUtils.h"
 #include <NeoML/Dnn/Layers/Onnx/OnnxTransformHelper.h>
+#include <NeoML/Dnn/Layers/Onnx/OnnxTransposeHelper.h>
 #include <NeoML/Dnn/Layers/Onnx/SourceReshaper.h>
 #include <NeoML/Dnn/Layers/Onnx/ShapeToBlobLayer.h>
-#include <NeoML/Dnn/Layers/Onnx/TransposeReshaper.h>
 
 namespace NeoOnnx {
 
@@ -190,7 +190,7 @@ static CPtr<const CDnnBlob> swapDimensions( const CDnnBlob& inputBlob, TBlobDim 
 static CLayerOutput swapDimensions( const CLayerOutput& input, TBlobDim firstDim, TBlobDim secondDim )
 {
 	CDnn& dnn = *( input.Layer->GetDnn() );
-	CPtr<CTransposeReshaper> transposeLayer = new CTransposeReshaper( dnn.GetMathEngine() );
+	CPtr<COnnxTransposeHelper> transposeLayer = new COnnxTransposeHelper( dnn.GetMathEngine() );
 	transposeLayer->SetName( getUniqueLayerName( dnn, "transpose_" ) );
 	transposeLayer->SetDims( firstDim, secondDim );
 	dnn.AddLayer( *transposeLayer );

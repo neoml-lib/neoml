@@ -16,7 +16,7 @@ limitations under the License.
 #include <common.h>
 #pragma hdrstop
 
-#include <NeoML/Dnn/Layers/Onnx/TransposeReshaper.h>
+#include <NeoML/Dnn/Layers/Onnx/OnnxTransposeHelper.h>
 
 namespace NeoML {
 
@@ -32,16 +32,16 @@ static CBlobDesc getTransposedDesc( const CBlobDesc& inputDesc, TBlobDim firstDi
 
 //---------------------------------------------------------------------------------------------------------------------
 
-static const int TransposeReshaperVersion = 0;
+static const int OnnxTransposeHelperVersion = 0;
 
-CTransposeReshaper::CTransposeReshaper( IMathEngine& mathEngine ) :
-	COnnxLayerBase( mathEngine, "TransposeReshaper" )
+COnnxTransposeHelper::COnnxTransposeHelper( IMathEngine& mathEngine ) :
+	COnnxLayerBase( mathEngine, "OnnxTransposeHelper" )
 {
 	dims[0] = BD_Count;
 	dims[1] = BD_Count;
 }
 
-void CTransposeReshaper::SetDims( TBlobDim firstDim, TBlobDim secondDim )
+void COnnxTransposeHelper::SetDims( TBlobDim firstDim, TBlobDim secondDim )
 {
 	NeoPresume( firstDim >= BD_BatchLength && firstDim < BD_Count );
 	NeoPresume( secondDim >= BD_BatchLength && secondDim < BD_Count );
@@ -50,21 +50,21 @@ void CTransposeReshaper::SetDims( TBlobDim firstDim, TBlobDim secondDim )
 	dims[1] = secondDim;
 }
 
-void CTransposeReshaper::GetDims( TBlobDim& firstDim, TBlobDim& secondDim ) const
+void COnnxTransposeHelper::GetDims( TBlobDim& firstDim, TBlobDim& secondDim ) const
 {
 	firstDim = dims[0];
 	secondDim = dims[1];
 }
 
-void CTransposeReshaper::Serialize( CArchive& archive )
+void COnnxTransposeHelper::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion( TransposeReshaperVersion );
+	archive.SerializeVersion( OnnxTransposeHelperVersion );
 	COnnxLayerBase::Serialize( archive );
 	archive.SerializeEnum( dims[0] );
 	archive.SerializeEnum( dims[1] );
 }
 
-void CTransposeReshaper::CalculateShapes()
+void COnnxTransposeHelper::CalculateShapes()
 {
 	if( inputShapeBlobs[0] == nullptr ) {
 		outputDescs[0] = getTransposedDesc( inputDescs[0], dims[0], dims[1] );
@@ -76,7 +76,7 @@ void CTransposeReshaper::CalculateShapes()
 	outputShapeBlobs[0]->TransposeFrom( inputShapeBlobs[0], dims[0], dims[1] );
 }
 
-void CTransposeReshaper::RunOnce()
+void COnnxTransposeHelper::RunOnce()
 {
 	if( inputShapeBlobs[0] == nullptr ) {
 		outputBlobs[0]->TransposeFrom( inputBlobs[0], dims[0], dims[1] );

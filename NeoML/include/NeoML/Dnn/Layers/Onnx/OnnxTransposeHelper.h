@@ -21,10 +21,10 @@ limitations under the License.
 namespace NeoML {
 
 // Swaps 2 dimensions of inputShapeBlob (with data rearranging)
-class NEOML_API CTransposeReshaper : public COnnxLayerBase {
-	NEOML_DNN_LAYER( CTransposeReshaper )
+class NEOML_API COnnxTransposeHelper : public COnnxLayerBase {
+	NEOML_DNN_LAYER( COnnxTransposeHelper )
 public:
-	explicit CTransposeReshaper( IMathEngine& mathEngine );
+	explicit COnnxTransposeHelper( IMathEngine& mathEngine );
 
 	// Dimensions to be transposed
 	void SetDims( TBlobDim firstDim, TBlobDim secondDim );

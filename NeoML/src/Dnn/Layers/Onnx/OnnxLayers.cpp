@@ -27,9 +27,9 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/Onnx/OnnxShapeLayer.h>
 #include <NeoML/Dnn/Layers/Onnx/OnnxSliceLayer.h>
 #include <NeoML/Dnn/Layers/Onnx/OnnxTransformHelper.h>
+#include <NeoML/Dnn/Layers/Onnx/OnnxTransposeHelper.h>
 #include <NeoML/Dnn/Layers/Onnx/ShapeToBlobLayer.h>
 #include <NeoML/Dnn/Layers/Onnx/SourceReshaper.h>
-#include <NeoML/Dnn/Layers/Onnx/TransposeReshaper.h>
 
 namespace NeoML {
 
@@ -46,9 +46,9 @@ REGISTER_NEOML_LAYER( COnnxReshapeLayer, "NeoMLDnnOnnxReshapeLayer" )
 REGISTER_NEOML_LAYER( COnnxShapeLayer, "NeoMLDnnOnnxShapeLayer" )
 REGISTER_NEOML_LAYER( COnnxSliceLayer, "NeoMLDnnOnnxSliceLayer" )
 REGISTER_NEOML_LAYER( COnnxTransformHelper, "NeoMLDnnOnnxTransformHelper" )
+REGISTER_NEOML_LAYER( COnnxTransposeHelper, "NeoMLDnnOnnxTransposeHelper" )
 REGISTER_NEOML_LAYER( CShapeToBlobLayer, "NeoMLDnnShapeToBlobLayer" )
 REGISTER_NEOML_LAYER( CSourceReshaper, "NeoMLDnnSourceReshaper" )
-REGISTER_NEOML_LAYER( CTransposeReshaper, "NeoMLDnnTransposeReshaper" )
 
 }
 
