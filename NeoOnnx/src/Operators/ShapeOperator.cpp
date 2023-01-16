@@ -37,19 +37,21 @@ CShapeOperator::CShapeOperator( const onnx::NodeProto& shape, int opsetVersion )
 void CShapeOperator::ProcessTensors( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
 	CheckNoNullInputs( inputs );
-	// Shape of shape is not supported
-	CheckNoShapeInputs( inputs );
 
-	if( inputs[0]->Type() == TTensorType::Data ) {
-		// Lets calculate the shape as CDataTensor
+	if( inputs[0]->Type() != TTensorType::User ) {
+		// Lets calculate the shape as CDataTensor (if we can)
 		// If needed it could be converted to CShapeTensor at any time
-		CPtr<const CDataTensor> data = CheckCast<const CDataTensor>( inputs[0] );
-		CPtr<CDnnBlob> shapeBlob = CDnnBlob::CreateVector( dnn.GetMathEngine(), CT_Int, data->DimCount() );
-		{
-			CDnnBlobBuffer<int> buffer( *shapeBlob, 0, shapeBlob->GetDataSize(), TDnnBlobBufferAccess::Write );
-			for( int i = 0; i < data->DimCount(); ++i ) {
-				buffer[i] = data->DimSize( i );
+		CPtr<CDnnBlob> shapeBlob = CDnnBlob::CreateVector( dnn.GetMathEngine(), CT_Int, inputs[0]->DimCount() );
+		if( inputs[0]->Type() == TTensorType::Data ) {
+			const CDataTensor& dataTensor = dynamic_cast<const CDataTensor&>( *inputs[0] );
+			CDnnBlobBuffer<int> buff( *shapeBlob, TDnnBlobBufferAccess::Write );
+			for( int i = 0; i < dataTensor.DimCount(); ++i ) {
+				buff[i] = dataTensor.DimSize( i );
 			}
+		} else {
+			const CShapeTensor& shapeTensor = dynamic_cast<const CShapeTensor&>( *inputs[0] );
+			shapeBlob->CopyFrom( shapeTensor.Shape().GetPtr() );
+			Sink( CDnnLayerLink( shapeTensor.Layer(), shapeTensor.OutputIndex() ), Name() + "_SafeSink" );
 		}
 		outputs.Add( new CDataTensor( CTensorLayout( { BD_BatchLength } ), *shapeBlob ) );
 		return;
