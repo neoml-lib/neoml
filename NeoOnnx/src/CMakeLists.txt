@@ -22,7 +22,6 @@ target_sources( ${PROJECT_NAME} PRIVATE
     NeoOnnxCheck.cpp
     LayerNormFusionOptimizer.cpp
     LayerOperator.cpp
-    LayerUtils.cpp
     Operator.cpp
     Operators/ActivationOperator.cpp
     Operators/ArgMaxOperator.cpp
@@ -76,7 +75,6 @@ target_sources( ${PROJECT_NAME} PRIVATE
     GraphOutput.h
     LayerNormFusionOptimizer.h
     LayerOperator.h
-    LayerUtils.h
     NeoOnnxCheck.h
     Operator.h
     Operators/ActivationOperator.h
