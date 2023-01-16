@@ -46,7 +46,6 @@ static CBlobDesc getOnnxEltwiseOutputDesc( COnnxEltwiseLayer::TOperation operati
 	CBlobDesc resultDesc = inputDescs.Size() == 1 ? inputDescs[0] : inputDescs[1];
 	NeoPresume( resultDesc.GetDataType() != CT_Invalid );
 	for( int i = 0; i < inputDescs.Size(); ++i ) {
-		NeoPresume( inputDescs[i].GetDataType() == resultDesc.GetDataType() );
 		for( int dim = 0; dim < static_cast<int>( BD_Count ); ++dim ) {
 			const int inputDimSize = inputDescs[i].DimSize( dim );
 			const int resultDimSize = resultDesc.DimSize( dim );
