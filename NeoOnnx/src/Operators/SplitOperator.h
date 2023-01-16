@@ -15,8 +15,6 @@ limitations under the License.
 
 #pragma once
 
-#ifdef TODO
-
 #include "../LayerOperator.h"
 
 namespace NeoOnnx {
@@ -32,9 +30,7 @@ protected:
 
 private:
 	int getAxis( const CTensorBase& firstInput ) const;
-	void getSplits( const CTensorArray& inputs, int axis, CArray<int>& splits ) const;
+	CPtr<const CTensorBase> getSplits( const CTensorArray& inputs ) const;
 };
 
 } // namespace NeoOnnx
-
-#endif

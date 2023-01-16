@@ -93,6 +93,7 @@ set(NeoML_SOURCES
     Dnn/Layers/Onnx/OnnxShapeLayer.cpp
     Dnn/Layers/Onnx/OnnxSliceLayer.cpp
     Dnn/Layers/Onnx/OnnxSourceHelper.cpp
+    Dnn/Layers/Onnx/OnnxSplitLayer.cpp
     Dnn/Layers/Onnx/OnnxTransformHelper.cpp
     Dnn/Layers/Onnx/OnnxTransposeHelper.cpp
     Dnn/Layers/Onnx/ShapeToBlobLayer.cpp
@@ -306,6 +307,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/Dnn/Layers/Onnx/OnnxShapeLayer.h
     ../include/NeoML/Dnn/Layers/Onnx/OnnxSliceLayer.h
     ../include/NeoML/Dnn/Layers/Onnx/OnnxSourceHelper.h
+    ../include/NeoML/Dnn/Layers/Onnx/OnnxSplitLayer.h
     ../include/NeoML/Dnn/Layers/Onnx/OnnxTransformHelper.h
     ../include/NeoML/Dnn/Layers/Onnx/OnnxTransposeHelper.h
     ../include/NeoML/Dnn/Layers/Onnx/ShapeToBlobLayer.h
