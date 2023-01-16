@@ -54,8 +54,8 @@ void COnnxReshapeLayer::CalculateShapes()
 	CheckArchitecture( newShapeBlob->GetDataSize() == outputLayout.Size(), GetPath(), "Dimension number mismatch" );
 	CheckArchitecture( newShapeBlob->GetDataType() == CT_Int, GetPath(), "Non-integer shape" );
 
-	CBlobDesc outputDesc = CBlobDesc( inputShapeBlobs[0] == nullptr ? inputDescs[0].GetDataType()
-		: inputShapeBlobs[0]->GetDataType() );
+	const CBlobDesc& inputDesc = inputShapeBlobs[0] == nullptr ? inputDescs[0] : inputShapeBlobs[0]->GetDesc();
+	CBlobDesc outputDesc = CBlobDesc( inputDesc.GetDataType() );
 
 	int remIndex = NotFound;
 	int remSize = inputDescs[0].BlobSize();
@@ -67,13 +67,12 @@ void COnnxReshapeLayer::CalculateShapes()
 		} else if( newShape[dimIndex] == 0 ) {
 			CheckArchitecture( dimIndex < inputLayout.Size(), GetPath(),
 				"Attempt to save the dimension of missing input axis" );
-			outputDescs[0].SetDimSize( outputLayout[dimIndex],
-				inputDescs[0].DimSize( inputLayout[dimIndex] ) );
+			outputDesc.SetDimSize( outputLayout[dimIndex], inputDesc.DimSize( inputLayout[dimIndex] ) );
 		} else {
 			CheckArchitecture( newShape[dimIndex] > 0, GetPath(), "Negative axis size");
-			outputDescs[0].SetDimSize( outputLayout[dimIndex], newShape[dimIndex] );
+			outputDesc.SetDimSize( outputLayout[dimIndex], newShape[dimIndex] );
 		}
-		remSize /= outputDescs[0].DimSize( outputLayout[dimIndex] );
+		remSize /= outputDesc.DimSize( outputLayout[dimIndex] );
 	}
 
 	if( remIndex != NotFound ) {
