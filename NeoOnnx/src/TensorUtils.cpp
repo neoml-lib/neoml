@@ -21,9 +21,9 @@ limitations under the License.
 
 #include "NeoOnnxCheck.h"
 #include "TensorUtils.h"
+#include <NeoML/Dnn/Layers/Onnx/OnnxTransformHelper.h>
 #include <NeoML/Dnn/Layers/Onnx/SourceReshaper.h>
 #include <NeoML/Dnn/Layers/Onnx/ShapeToBlobLayer.h>
-#include <NeoML/Dnn/Layers/Onnx/TransformReshaper.h>
 #include <NeoML/Dnn/Layers/Onnx/TransposeReshaper.h>
 
 namespace NeoOnnx {
@@ -136,7 +136,7 @@ static CLayerOutput renameDimensions( const CLayerOutput& input, const CTensorLa
 {
 	NeoPresume( inputLayout.Size() == outputLayout.Size() );
 	CDnn& dnn = *( input.Layer->GetDnn() );
-	CPtr<CTransformReshaper> transformLayer = new CTransformReshaper( dnn.GetMathEngine() );
+	CPtr<COnnxTransformHelper> transformLayer = new COnnxTransformHelper( dnn.GetMathEngine() );
 	transformLayer->SetName( getUniqueLayerName( dnn, "transform_" ) );
 	for( int dimIndex = 0; dimIndex < outputLayout.Size(); ++dimIndex ) {
 		transformLayer->SetRule( inputLayout[dimIndex], outputLayout[dimIndex] );

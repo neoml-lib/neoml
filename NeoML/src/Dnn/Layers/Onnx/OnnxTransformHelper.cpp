@@ -16,26 +16,26 @@ limitations under the License.
 #include <common.h>
 #pragma hdrstop
 
-#include <NeoML/Dnn/Layers/Onnx/TransformReshaper.h>
+#include <NeoML/Dnn/Layers/Onnx/OnnxTransformHelper.h>
 
 namespace NeoML {
 
-static const int TransformReshaperVersion = 0;
+static const int OnnxTransformHelperVersion = 0;
 
-CTransformReshaper::CTransformReshaper( IMathEngine& mathEngine ) :
-	COnnxLayerBase( mathEngine, "TransformReshaper" )
+COnnxTransformHelper::COnnxTransformHelper( IMathEngine& mathEngine ) :
+	COnnxLayerBase( mathEngine, "OnnxTransformHelper" )
 {
 	transformInfo.Add( BD_Count, BD_Count );
 }
 
-void CTransformReshaper::Serialize( CArchive& archive )
+void COnnxTransformHelper::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion( TransformReshaperVersion );
+	archive.SerializeVersion( OnnxTransformHelperVersion );
 	COnnxLayerBase::Serialize( archive );
 	transformInfo.Serialize( archive );
 }
 
-void CTransformReshaper::CalculateShapes()
+void COnnxTransformHelper::CalculateShapes()
 {
 	CheckArchitecture( GetInputCount() == 1, GetPath(), "Layer must have 1 input" );
 	CheckArchitecture( GetOutputCount() == 1, GetPath(), "Layer must have 1 output" );
@@ -63,7 +63,7 @@ void CTransformReshaper::CalculateShapes()
 	}
 }
 
-void CTransformReshaper::RunOnce()
+void COnnxTransformHelper::RunOnce()
 {
 	if( inputShapeBlobs[0] != nullptr ) {
 		return;
