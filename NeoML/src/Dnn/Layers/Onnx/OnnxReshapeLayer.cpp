@@ -58,7 +58,7 @@ void COnnxReshapeLayer::CalculateShapes()
 	CBlobDesc outputDesc = CBlobDesc( inputDesc.GetDataType() );
 
 	int remIndex = NotFound;
-	int remSize = inputDescs[0].BlobSize();
+	int remSize = inputDesc.BlobSize();
 	CDnnBlobBuffer<int> newShape( *newShapeBlob, TDnnBlobBufferAccess::Read );
 	for( int dimIndex = 0; dimIndex < outputLayout.Size(); ++dimIndex ) {
 		if( newShape[dimIndex] == -1 ) {
@@ -77,7 +77,7 @@ void COnnxReshapeLayer::CalculateShapes()
 
 	if( remIndex != NotFound ) {
 		CheckArchitecture( remSize > 0, GetPath(), "Output remainder isn't positive" );
-		outputDescs[0].SetDimSize( outputLayout[remIndex], remSize );
+		outputDesc.SetDimSize( outputLayout[remIndex], remSize );
 		remSize = 1;
 	}
 
