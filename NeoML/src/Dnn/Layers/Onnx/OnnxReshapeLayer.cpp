@@ -21,6 +21,17 @@ limitations under the License.
 
 namespace NeoML {
 
+static void onnxReshapeImpl( const CDnnBlob& input, CDnnBlob& output )
+{
+	if( input.GetDataType() == CT_Float ) {
+		input.GetMathEngine().VectorCopy( output.GetData(), input.GetData(), input.GetDataSize() );
+	} else {
+		input.GetMathEngine().VectorCopy( output.GetData<int>(), input.GetData<int>(), input.GetDataSize() );
+	}
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
 static const int OnnxReshapeLayerVersion = 0;
 
 void COnnxReshapeLayer::Serialize( CArchive& archive )
@@ -31,7 +42,7 @@ void COnnxReshapeLayer::Serialize( CArchive& archive )
 	outputLayout.Serialize( archive );
 }
 
-void COnnxReshapeLayer::Reshape()
+void COnnxReshapeLayer::CalculateShapes()
 {
 	CheckArchitecture( GetInputCount() == 2, GetPath(), "Layer must have 2 inputs" );
 	CheckArchitecture( GetOutputCount() == 1, GetPath(), "Layer must have 1 output" );
@@ -43,9 +54,11 @@ void COnnxReshapeLayer::Reshape()
 	CheckArchitecture( newShapeBlob->GetDataSize() == outputLayout.Size(), GetPath(), "Dimension number mismatch" );
 	CheckArchitecture( newShapeBlob->GetDataType() == CT_Int, GetPath(), "Non-integer shape" );
 
+	CBlobDesc outputDesc = CBlobDesc( inputShapeBlobs[0] == nullptr ? inputDescs[0].GetDataType()
+		: inputShapeBlobs[0]->GetDataType() );
+
 	int remIndex = NotFound;
 	int remSize = inputDescs[0].BlobSize();
-	outputDescs[0] = CBlobDesc( inputDescs[0].GetDataType() );
 	CDnnBlobBuffer<int> newShape( *newShapeBlob, TDnnBlobBufferAccess::Read );
 	for( int dimIndex = 0; dimIndex < outputLayout.Size(); ++dimIndex ) {
 		if( newShape[dimIndex] == -1 ) {
@@ -70,16 +83,23 @@ void COnnxReshapeLayer::Reshape()
 	}
 
 	CheckArchitecture( remSize == 1, GetPath(), "Reshape didn't cover all of the data" );
+
+	if( inputShapeBlobs[0] == nullptr ) {
+		outputDescs[0] = outputDesc;
+	} else {
+		outputShapeBlobs[0] = CDnnBlob::CreateBlob( inputShapeBlobs[0]->GetMathEngine(), outputDesc.GetDataType(),
+			outputDesc );
+		onnxReshapeImpl( *inputShapeBlobs[0], *outputShapeBlobs[0] );
+	}
 }
 
 void COnnxReshapeLayer::RunOnce()
 {
-	if( inputBlobs[0]->GetDataType() == CT_Float ) {
-		MathEngine().VectorCopy( outputBlobs[0]->GetData(), inputBlobs[0]->GetData(), inputBlobs[0]->GetDataSize() );
-	} else {
-		MathEngine().VectorCopy( outputBlobs[0]->GetData<int>(), inputBlobs[0]->GetData<int>(),
-			inputBlobs[0]->GetDataSize() );
+	if( inputShapeBlobs[0] != nullptr ) {
+		return;
 	}
+
+	onnxReshapeImpl( *inputBlobs[0], *outputBlobs[0] );
 }
 
 } // namespace NeoML

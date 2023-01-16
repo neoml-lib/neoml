@@ -16,16 +16,16 @@ limitations under the License.
 #pragma once
 
 #include <NeoML/NeoMLDefs.h>
-#include <NeoML/Dnn/Dnn.h>
+#include <NeoML/Dnn/Layers/Onnx/OnnxLayerBase.h>
 
 namespace NeoML {
 
 // Layer which emulates Onnx Reshape operator
 // It reshapes blob from the first input according to shape from the second input
-class NEOML_API COnnxReshapeLayer : public CBaseLayer {
+class NEOML_API COnnxReshapeLayer : public COnnxLayerBase {
 	NEOML_DNN_LAYER( COnnxReshapeLayer )
 public:
-	explicit COnnxReshapeLayer( IMathEngine& mathEngine ) : CBaseLayer( mathEngine, "OnnxReshapeLayer", false) {}
+	explicit COnnxReshapeLayer( IMathEngine& mathEngine ) : COnnxLayerBase( mathEngine, "OnnxReshapeLayer" ) {}
 
 	// Onnx tensor layout
 	// Its size determines the rank of the tensor
@@ -38,9 +38,8 @@ public:
 	void Serialize( CArchive& archive );
 
 protected:
-	void Reshape() override;
+	void CalculateShapes() override;
 	void RunOnce() override;
-	void BackwardOnce() override { NeoAssert( false ); }
 
 private:
 	CFastArray<TBlobDim, 8> inputLayout;

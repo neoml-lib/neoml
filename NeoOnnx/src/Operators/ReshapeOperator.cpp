@@ -25,6 +25,36 @@ limitations under the License.
 
 namespace NeoOnnx {
 
+static void calcReshapeOperatorOutputShape( const CShapeTensor& input, const CDnnBlob& newShape,
+	CTensorShape& outputShape )
+{
+	outputShape.SetSize( newShape.GetDataSize() );
+	int remSize = 1;
+	for( int i = 0; i < input.DimCount(); ++i ) {
+		remSize *= input.Shape()[i];
+	}
+
+	int remIndex = -1;
+	for( int i = 0; i < outputShape.Size(); ++i ) {
+		int dimSize = newShape.GetData<int>().GetValueAt( i );
+		if( dimSize == -1 ) {
+			remIndex = i;
+		} else if( dimSize == 0 ) {
+			remSize /= input.Shape()[i];
+			outputShape[i] = input.Shape()[i];
+		} else {
+			remSize /= dimSize;
+			outputShape[i] = dimSize;
+		}
+	}
+
+	if( remIndex != -1 ) {
+		outputShape[remIndex] = remSize;
+	}
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
 CReshapeOperator::CReshapeOperator( const onnx::NodeProto& reshape, int opsetVersion ) :
 	CLayerOperator( reshape, opsetVersion )
 {
@@ -44,40 +74,59 @@ void CReshapeOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensor
 {
 	CheckNoNullInputs( inputs );
 
-	// In order to process tensors correctly reshape is not allowed in transposed layouts
-	CPtr<const CUserTensor> input = AsUserTensor( *inputs[0], Name() + "_InputSource", dnn );
-	if( IsTransposedLayout( input->Layout() ) ) {
-		input = ConvertTensor( *input, CTensorLayout( input->DimCount() ) );
-	}
+	CPtr<const CTensorBase> newShapeTensor = getShape( inputs, dnn );
+	CheckNeoOnnxSupport( newShapeTensor->DimCount() == 1, "shape must have 1 dimension", *this );
 
-	CPtr<const CShapeTensor> newShape = getShape( inputs, dnn );
-	CheckNeoOnnxSupport( newShape->DimCount() == 1, "shape must have 1 dimension", *this );
+	const bool hasShapeOutput = inputs[0]->Type() != TTensorType::User && newShapeTensor->Type() == TTensorType::Data;
+
+	// In order to process tensors correctly reshape is not allowed in transposed layouts
+	CPtr<const CTensorBase> inputBaseTensor = inputs[0];
+	if( IsTransposedLayout( inputBaseTensor->Layout() ) ) {
+		inputBaseTensor = ConvertTensor( *inputBaseTensor, CTensorLayout( inputBaseTensor->DimCount() ) );
+	}
 	
-	CTensorLayout outputLayout( newShape->Shape()[0] );
 	CPtr<COnnxReshapeLayer> reshapeLayer = new COnnxReshapeLayer( dnn.GetMathEngine() );
 	reshapeLayer->SetName( Name() );
-	input->Layout().CopyTo( reshapeLayer->InputLayout() );
-	outputLayout.CopyTo( reshapeLayer->OutputLayout() );
-	reshapeLayer->Connect( 0, *input->Layer(), input->OutputIndex() );
-	reshapeLayer->Connect( 1, *newShape->Layer(), newShape->OutputIndex() );
+	inputBaseTensor->Layout().CopyTo( reshapeLayer->InputLayout() );
 	dnn.AddLayer( *reshapeLayer );
 
-	outputs.Add( new CUserTensor( outputLayout, CLayerOutput( reshapeLayer.Ptr(), 0 ) ) );
+	CPtr<const CShapeTensor> secondInput = AsShapeTensor( *newShapeTensor, Name() + "_NewShapeSource", dnn );
+	CTensorLayout outputLayout( secondInput->Shape()[0] );
+	reshapeLayer->Connect( 1, *secondInput->Layer(), secondInput->OutputIndex() );
+	outputLayout.CopyTo( reshapeLayer->OutputLayout() );
+
+	if( hasShapeOutput ) {
+		CPtr<const CShapeTensor> inputShapeTensor = AsShapeTensor( *inputBaseTensor, Name() + "_InputSource", dnn );
+		reshapeLayer->Connect( 0, *inputShapeTensor->Layer(), inputShapeTensor->OutputIndex() );
+
+		const CDataTensor& newShapeData = dynamic_cast<const CDataTensor&>( *newShapeTensor );
+		const CDnnBlob& newShapeBlob = *newShapeData.Data();
+		CTensorShape outputShape;
+		calcReshapeOperatorOutputShape( *inputShapeTensor, newShapeBlob, outputShape );
+
+		outputs.Add( new CShapeTensor( outputLayout, outputShape, CLayerOutput( reshapeLayer, 0 ) ) );
+	} else {
+		CPtr<const CUserTensor> inputUserTensor = AsUserTensor( *inputBaseTensor, Name() + "_InputSource", dnn );
+		reshapeLayer->Connect( 0, *inputUserTensor->Layer(), inputUserTensor->OutputIndex() );
+
+		outputs.Add( new CUserTensor( outputLayout, CLayerOutput( reshapeLayer, 0 ) ) );
+	}
 }
 
 // Gets output shape
-CPtr<const CShapeTensor> CReshapeOperator::getShape( const CTensorArray& inputs, CDnn& dnn ) const
+CPtr<const CTensorBase> CReshapeOperator::getShape( const CTensorArray& inputs, CDnn& dnn ) const
 {
 	if( OpsetVersion < 5 ) {
 		CTensorShape shapeArray;
 		CheckOnnxProtocol( GetAttribute( "shape", shapeArray ), "'shape' attribute is missing", *this );
-		return AsShapeTensor( shapeArray, Name() + "_ShapeSource", dnn );
+		CPtr<CDnnBlob> shapeBlob = CDnnBlob::CreateVector( GetSingleThreadCpuMathEngine(), CT_Int, shapeArray.Size() );
+		shapeBlob->CopyFrom( shapeArray.GetPtr() );
+		return new CDataTensor( CTensorLayout( { BD_BatchLength } ), *shapeBlob );
 	}
 
 	CheckNeoOnnxSupport( inputs[1] != nullptr && inputs[1]->Type() != TTensorType::User,
 		"User-provided output shape", *this );
-
-	return AsShapeTensor( *inputs[1], Name() + "_ShapeSource", dnn );
+	return inputs[1];
 }
 
 } // namespace NeoOnnx
