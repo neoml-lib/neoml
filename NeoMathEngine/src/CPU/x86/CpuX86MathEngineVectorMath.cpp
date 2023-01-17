@@ -1631,8 +1631,7 @@ void CCpuMathEngine::VectorSigmoidDiff(const CConstFloatHandle& firstHandle, con
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	CCpuExecutionScope scope;
 
-	VectorNeg(firstHandle, resultHandle, vectorSize);
-	VectorExp(resultHandle, resultHandle, vectorSize);
+	VectorExp(firstHandle, resultHandle, vectorSize);
 
 	int sseSize;
 	int nonSseSize;
@@ -1643,10 +1642,10 @@ void CCpuMathEngine::VectorSigmoidDiff(const CConstFloatHandle& firstHandle, con
 
 	if(sseSize > 0) {
 		const __m128 oneSse = _mm_set_ps1(1);
-		const __m128 twoSse = _mm_set_ps1(2);
 		for(int i = 0; i < sseSize; ++i) {
 			__m128 value = _mm_loadu_ps(result);
-			value = _mm_div_ps(_mm_loadu_ps(second), _mm_add_ps(twoSse, _mm_add_ps(value, _mm_div_ps(oneSse, value))));
+			__m128 value1 = _mm_add_ps(value, oneSse);
+			value = _mm_div_ps(_mm_mul_ps(value, _mm_loadu_ps(second)), _mm_mul_ps(value1, value1));
 			_mm_storeu_ps(result, value);
 
 			second += 4;
@@ -1655,7 +1654,8 @@ void CCpuMathEngine::VectorSigmoidDiff(const CConstFloatHandle& firstHandle, con
 	}
 
 	for(int i = 0; i < nonSseSize; ++i) {
-		*result = *second / (2 + *result + 1.f / *result);
+		float result1 = (*result + 1);
+		*result = *second * *result / (result1 * result1);
 		++second;
 		++result;
 	}
