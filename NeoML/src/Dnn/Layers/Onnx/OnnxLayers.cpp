@@ -22,6 +22,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/Onnx/OnnxEltwiseLayer.h>
 #include <NeoML/Dnn/Layers/Onnx/OnnxExpandLayer.h>
 #include <NeoML/Dnn/Layers/Onnx/OnnxGatherLayer.h>
+#include <NeoML/Dnn/Layers/Onnx/OnnxNonZeroLayer.h>
 #include <NeoML/Dnn/Layers/Onnx/OnnxRangeLayer.h>
 #include <NeoML/Dnn/Layers/Onnx/OnnxReshapeLayer.h>
 #include <NeoML/Dnn/Layers/Onnx/OnnxResizeLayer.h>
@@ -43,6 +44,7 @@ REGISTER_NEOML_LAYER( COnnxConstantOfShapeLayer, "NeoMLDnnOnnxConstantOfShapeLay
 REGISTER_NEOML_LAYER( COnnxEltwiseLayer, "NeoMLDnnOnnxEltwiseLayer" );
 REGISTER_NEOML_LAYER( COnnxExpandLayer, "NeoMLDnnOnnxExpandLayer" )
 REGISTER_NEOML_LAYER( COnnxGatherLayer, "NeoMLDnnOnnxGatherLayer" )
+REGISTER_NEOML_LAYER( COnnxNonZeroLayer, "NeoMLDnnOnnxNonZeroLayer" )
 REGISTER_NEOML_LAYER( COnnxRangeLayer, "NeoMLDnnOnnxRangeLayer" )
 REGISTER_NEOML_LAYER( COnnxReshapeLayer, "NeoMLDnnOnnxReshapeLayer" )
 REGISTER_NEOML_LAYER( COnnxResizeLayer, "NeoMLDnnOnnxResizeLayer" )
