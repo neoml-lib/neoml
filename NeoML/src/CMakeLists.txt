@@ -90,6 +90,7 @@ set(NeoML_SOURCES
     Dnn/Layers/Onnx/OnnxLayers.cpp
     Dnn/Layers/Onnx/OnnxRangeLayer.cpp
     Dnn/Layers/Onnx/OnnxReshapeLayer.cpp
+    Dnn/Layers/Onnx/OnnxResizeLayer.cpp
     Dnn/Layers/Onnx/OnnxShapeLayer.cpp
     Dnn/Layers/Onnx/OnnxSliceLayer.cpp
     Dnn/Layers/Onnx/OnnxSourceHelper.cpp
@@ -304,6 +305,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/Dnn/Layers/Onnx/OnnxLayerBase.h
     ../include/NeoML/Dnn/Layers/Onnx/OnnxRangeLayer.h
     ../include/NeoML/Dnn/Layers/Onnx/OnnxReshapeLayer.h
+    ../include/NeoML/Dnn/Layers/Onnx/OnnxResizeLayer.h
     ../include/NeoML/Dnn/Layers/Onnx/OnnxShapeLayer.h
     ../include/NeoML/Dnn/Layers/Onnx/OnnxSliceLayer.h
     ../include/NeoML/Dnn/Layers/Onnx/OnnxSourceHelper.h
