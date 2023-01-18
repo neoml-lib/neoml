@@ -49,7 +49,8 @@ void COnnxExpandLayer::Reshape()
 	CDnnBlobBuffer<int> newShape( *newShapeBlob, TDnnBlobBufferAccess::Read );
 	for( int dimIndex = 0; dimIndex < newShape.Size(); ++dimIndex ) {
 		CheckArchitecture( newShape[dimIndex] > 0, GetPath(), "Negative axis size" );
-		outputDescs[0].SetDimSize( tensorLayout[preservedDims + dimIndex], newShape[dimIndex] );
+		const TBlobDim& dim = tensorLayout[preservedDims + dimIndex];
+		outputDescs[0].SetDimSize( dim, newShape[dimIndex] == 1 ? inputDescs[0].DimSize( dim ) : newShape[dimIndex] );
 	}
 }
 
