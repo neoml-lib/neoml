@@ -21,23 +21,9 @@ limitations under the License.
 #include "OneHotOperator.h"
 #include "NeoOnnxCheck.h"
 
+#include <NeoML/Dnn/Layers/Onnx/OnnxOneHotLayer.h>
+
 namespace NeoOnnx {
-
-// Multiplies and shifts data from input (if needed)
-template<class T>
-static CBaseLayer* multiplyAndShift( CBaseLayer* input, const CDnnBlob& values, const CString& linearName )
-{
-	const float offValue = static_cast<float>( values.GetData<T>().GetValue() );
-	const float onValue = static_cast<float>( values.GetData<T>().GetValueAt( 1 ) );
-	if( offValue == 0.f && onValue == 1.f ) {
-		// No shift needed
-		return input;
-	}
-
-	return Linear( onValue - offValue, offValue )( linearName, input );
-}
-
-// --------------------------------------------------------------------------------------------------------------------
 
 COneHotOperator::COneHotOperator( const onnx::NodeProto& oneHot, int opsetVersion ) :
 	CLayerOperator( oneHot, opsetVersion )
@@ -51,66 +37,64 @@ COneHotOperator::COneHotOperator( const onnx::NodeProto& oneHot, int opsetVersio
 void COneHotOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
 	CheckNoNullInputs( inputs );
-	CheckNoShapeInputs( inputs );
-	CheckNeoOnnxSupport( inputs[1]->Type() == TTensorType::Data, "user-provided depth", *this );
-	CheckNeoOnnxSupport( inputs[2]->Type() == TTensorType::Data, "user-provided values", *this );
+	CheckNeoOnnxSupport( inputs[1]->Type() != TTensorType::User, "user-provided depth", *this );
+	CheckNeoOnnxSupport( inputs[2]->Type() == TTensorType::Data, "non-fixed values", *this );
 
-	CPtr<const CUserTensor> indices = AsUserTensor( *inputs[0], Name() + "_indices", dnn );
-
-	// The CEnumBinarizationLayer always puts its enum into BD_Channels
-	// Replace BD_Channels with anything else
-	CheckNeoOnnxSupport( indices->DimCount() < 7, "OneHot with 7-dimensional input", *this );
-	CTensorLayout outputLayout = indices->Layout();
-	const int channelIndex = indices->Layout().Find( BD_Channels );
-	if( channelIndex != NotFound ) {
-		for( int dim = static_cast<int>( BD_Channels ) - 1; dim >= 0; --dim ) {
-			if( outputLayout.Find( static_cast<TBlobDim>( dim ) ) == NotFound ) {
-				outputLayout[channelIndex] = static_cast<TBlobDim>( dim );
-				indices = ConvertTensor( *indices, outputLayout );
-				break;
-			}
-		}
-	}
-
-	// Extracting depth value
-	int depth = 0;
-	const CDnnBlob* depthBlob = dynamic_cast<const CDataTensor*>( inputs[1].Ptr() )->Data();
-	CheckOnnxProtocol( depthBlob->GetDataSize() == 1, "size of depth isn't equal to 1", *this );
-	if( depthBlob->GetDataType() == CT_Float ) {
-		depth = static_cast<int>( depthBlob->GetData().GetValue() );
+	const CDnnBlob& valuesBlob = *dynamic_cast<const CDataTensor&>( *inputs[2] ).Data();
+	CheckNeoOnnxSupport( valuesBlob.GetDataSize() == 2, "values must contain 2 elements", *this );
+	if( valuesBlob.GetDataType() == CT_Float ) {
+		CheckNeoOnnxSupport( valuesBlob.GetData().GetValueAt( 0 ) == 0.f, "off value must be 0", *this );
+		CheckNeoOnnxSupport( valuesBlob.GetData().GetValueAt( 1 ) == 1.f, "on value must be 1", *this );
 	} else {
-		depth = depthBlob->GetData<int>().GetValue();
-	}
-	CheckOnnxProtocol( depth > 0, "non-positive depth", *this );
-
-	// The ONNX protocol says that if indices are not integer they should be casted to integer
-	// But CEnumBinarizationLayer handles float indices in the same way
-	// That's why we can omit the cast here
-	// TODO: figure out how to support [-depth;depth-1] indices (at the moment only [0;depth-1] are supported)
-	CBaseLayer* outputLayer = EnumBinarization( depth )( Name(), CDnnLayerLink( indices->Layer(), indices->OutputIndex() ) );
-
-	// Add multiplication and shift (if onn/off values are not 1 and 0)
-	const CDnnBlob* valuesBlob = dynamic_cast<const CDataTensor*>( inputs[2].Ptr() )->Data();
-	CheckOnnxProtocol( valuesBlob->GetDataSize() == 2, "size of values isn't equal to 2", *this );
-	if( valuesBlob->GetDataType() == CT_Float ) {
-		outputLayer = multiplyAndShift<float>( outputLayer, *valuesBlob, Name() + "_linear" );
-	} else {
-		outputLayer = multiplyAndShift<int>( outputLayer, *valuesBlob, Name() + "_linear" );
+		CheckNeoOnnxSupport( valuesBlob.GetData<int>().GetValueAt( 0 ) == 0, "off value must be 0", *this );
+		CheckNeoOnnxSupport( valuesBlob.GetData<int>().GetValueAt( 1 ) == 1, "on value must be 1", *this );
 	}
 
-	// The output type of ONNX OneHot is equal to the type of values
-	// The output type of CEnumBinarizationLayer is always float
-	if( valuesBlob->GetDataType() == CT_Int ) {
-		outputLayer = Cast( CT_Int )( Name() + "_output_cast", outputLayer );
+	CPtr<const CTensorBase> baseIndices = inputs[0];
+	if( baseIndices->Layout().Find( BD_Channels ) != NotFound ) {
+		baseIndices = ConvertTensor( *baseIndices, CTensorLayout::IOLayout( baseIndices->DimCount() ) );
 	}
+	CheckNeoOnnxSupport( baseIndices->DimCount() < 7, "OneHot with 7-dimensional input", *this );
 
+	CPtr<COnnxOneHotLayer> oneHotLayer = new COnnxOneHotLayer( dnn.GetMathEngine() );
+	oneHotLayer->SetName( Name() );
+	CPtr<const CShapeTensor> depthTensor = AsShapeTensor( *inputs[1], Name() + "_depth", dnn );
+	oneHotLayer->Connect( 1, *depthTensor->Layer(), depthTensor->OutputIndex() );
+	dnn.AddLayer( *oneHotLayer );
+
+	CTensorLayout outputLayout = baseIndices->Layout();
 	int axis = -1;
 	GetAttribute( "axis", axis );
 	if( axis < 0 ) {
-		axis += indices->DimCount() + 1;
+		axis += baseIndices->DimCount() + 1;
 	}
 	outputLayout.InsertAt( BD_Channels, axis );
-	outputs.Add( new CUserTensor( outputLayout, CLayerOutput( outputLayer, 0 ) ) );
+
+	if( baseIndices->Type() != TTensorType::User && inputs[1]->Type() == TTensorType::Data ) {
+		CPtr<const CShapeTensor> indices = AsShapeTensor( *baseIndices, Name() + "_data", dnn );
+		oneHotLayer->Connect( 0, *indices->Layer(), indices->OutputIndex() );
+
+		// Extract depth value
+		int depth = 0;
+		const CDnnBlob* depthBlob = dynamic_cast<const CDataTensor*>( inputs[1].Ptr() )->Data();
+		CheckOnnxProtocol( depthBlob->GetDataSize() == 1, "size of depth isn't equal to 1", *this );
+		if( depthBlob->GetDataType() == CT_Float ) {
+			depth = static_cast<int>( depthBlob->GetData().GetValue() );
+		} else {
+			depth = depthBlob->GetData<int>().GetValue();
+		}
+		CheckOnnxProtocol( depth > 0, "non-positive depth", *this );
+
+		CTensorShape outputShape;
+		indices->Shape().CopyTo( outputShape );
+		outputShape.InsertAt( depth, axis );
+
+		outputs.Add( new CShapeTensor( outputLayout, outputShape, CLayerOutput( oneHotLayer, 0 ) ) );
+	} else {
+		CPtr<const CUserTensor> indices = AsUserTensor( *baseIndices, Name() + "_data", dnn );
+		oneHotLayer->Connect( 0, *indices->Layer(), indices->OutputIndex() );
+		outputs.Add( new CUserTensor( outputLayout, CLayerOutput( oneHotLayer, 0 ) ) );
+	}
 }
 
 } // namespace NeoOnnx
