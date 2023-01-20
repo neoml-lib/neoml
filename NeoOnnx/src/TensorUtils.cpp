@@ -646,15 +646,26 @@ CPtr<const CShapeTensor> AsShapeTensor( const CTensorBase& tensor, const CString
 	return new CShapeTensor( dataTensor->Layout(), resultShape, CLayerOutput( source.Ptr(), 0 ) );
 }
 
-CPtr<const CShapeTensor> AsShapeTensor( const CFastArray<int, 8>& data, const CString& layerName, CDnn& dnn )
+template<class T>
+static CPtr<const CShapeTensor> asShapeTensor( const CFastArray<T, 8>& data, const CString& layerName, CDnn& dnn )
 {
 	CPtr<COnnxSourceHelper> source = new COnnxSourceHelper( dnn.GetMathEngine() );
 	source->SetName( layerName );
-	source->Blob() = CDnnBlob::CreateTensor( GetSingleThreadCpuMathEngine(), CT_Int, { data.Size() } );
+	source->Blob() = CDnnBlob::CreateTensor( GetSingleThreadCpuMathEngine(), CBlobType<T>::GetType(), { data.Size() } );
 	source->Blob()->CopyFrom( data.GetPtr() );
 	dnn.AddLayer( *source );
 	return new CShapeTensor( CTensorLayout::IOLayout( 1 ), { data.Size() },
 		CLayerOutput( source.Ptr(), 0 ) );
+}
+
+CPtr<const CShapeTensor> AsShapeTensor( const CFastArray<int, 8>& data, const CString& layerName, CDnn& dnn )
+{
+	return asShapeTensor( data, layerName, dnn );
+}
+
+CPtr<const CShapeTensor> AsShapeTensor( const CFastArray<float, 8>& data, const CString& layerName, CDnn& dnn )
+{
+	return asShapeTensor( data, layerName, dnn );
 }
 
 } // namespace NeoOnnx

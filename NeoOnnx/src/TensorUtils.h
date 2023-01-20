@@ -199,8 +199,9 @@ CPtr<const CUserTensor> AsUserTensor( const CTensorBase& tensor, const CString& 
 // Converts the given tensor to shape tensor by adding corresponding layers to the dnn (if needed)
 CPtr<const CShapeTensor> AsShapeTensor( const CTensorBase& tensor, const CString& layerName, CDnn& dnn );
 
-// Converts the given integer array to shape tensor by adding corresponding layers to the dnn (if needed)
+// Converts the given array to shape tensor by adding corresponding layers to the dnn (if needed)
 CPtr<const CShapeTensor> AsShapeTensor( const CFastArray<int, 8>& data, const CString& layerName, CDnn& dnn );
+CPtr<const CShapeTensor> AsShapeTensor( const CFastArray<float, 8>& data, const CString& layerName, CDnn& dnn );
 
 } // namespace NeoOnnx
 
