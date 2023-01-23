@@ -29,9 +29,6 @@ limitations under the License.
 #include "GraphInput.h"
 #include "GraphOutput.h"
 
-#include "LayerNormFusionOptimizer.h"
-#include "DnnOptimizer.h"
-
 namespace NeoOnnx {
 
 // Checks if all of the operators are supported by NeoOnnx
@@ -256,8 +253,6 @@ void LoadFromOnnx( const char* fileName, const CImportSettings& importSettings,
 		buildDnnFromGraphProto( model.graph(), getOpsetVersion( model ), importSettings,
 			dnn, info.Inputs, info.Outputs );
 		extractMetadata( model, info.Metadata );
-		// CDnnOptimizer dnnOptimizer( dnn );
-		// dnnOptimizer.Optimize();
 	} catch( ... ) {
 		input.close();
 		google::protobuf::ShutdownProtobufLibrary();
@@ -281,11 +276,10 @@ void LoadFromOnnx( const void* buffer, int bufferSize, const CImportSettings& im
 		if( !model.ParseFromString( strBuffer ) ) {
 			NeoOnnxCheck( false, "Failed to parse model from buffer" );
 		}
+
 		buildDnnFromGraphProto( model.graph(), getOpsetVersion( model ), importSettings,
 			dnn, info.Inputs, info.Outputs );
 		extractMetadata( model, info.Metadata );
-		// CDnnOptimizer dnnOptimizer( dnn );
-		// dnnOptimizer.Optimize();
 	} catch( ... ) {
 		google::protobuf::ShutdownProtobufLibrary();
 		throw;
@@ -294,5 +288,4 @@ void LoadFromOnnx( const void* buffer, int bufferSize, const CImportSettings& im
 	google::protobuf::ShutdownProtobufLibrary();
 }
 
-} //NeoOnnx
-
+}

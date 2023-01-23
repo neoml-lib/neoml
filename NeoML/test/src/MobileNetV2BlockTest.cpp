@@ -177,8 +177,8 @@ static void mobileNetV2BlockTestImpl( unsigned int seed, int freeTermMask, float
 	CPtr<CDnnBlob> expectedBlob = expectedSink->GetBlob();
 	CPtr<CDnnBlob> actualBlob = actualSink->GetBlob();
 
-	CDnnBlobBuffer<float> expected( *expectedBlob, 0, expectedBlob->GetDataSize(), TDnnBlobBufferAccess::Read );
-	CDnnBlobBuffer<float> actual( *actualBlob, 0, actualBlob->GetDataSize(), TDnnBlobBufferAccess::Read );
+	CDnnBlobBuffer<float> expected( *expectedBlob, TDnnBlobBufferAccess::Read );
+	CDnnBlobBuffer<float> actual( *actualBlob, TDnnBlobBufferAccess::Read );
 
 	ASSERT_EQ( expected.Size(), actual.Size() ) << "output size mismatch";
 	for( int i = 0; i < expected.Size(); ++i ) {
