@@ -37,7 +37,7 @@ static const int OnnxReshapeLayerVersion = 0;
 void COnnxReshapeLayer::Serialize( CArchive& archive )
 {
 	archive.SerializeVersion( OnnxReshapeLayerVersion );
-	CBaseLayer::Serialize( archive );
+	COnnxLayerBase::Serialize( archive );
 	inputLayout.Serialize( archive );
 	outputLayout.Serialize( archive );
 }
@@ -46,25 +46,24 @@ void COnnxReshapeLayer::CalculateShapes()
 {
 	CheckArchitecture( GetInputCount() == 2, GetPath(), "Layer must have 2 inputs" );
 	CheckArchitecture( GetOutputCount() == 1, GetPath(), "Layer must have 1 output" );
-	const COnnxLayerBase* shapeProvider = dynamic_cast<const COnnxLayerBase*>( GetInputLayer( 1 ) );
-	CheckArchitecture( shapeProvider != nullptr, GetPath(), "Second input must contain shape" );
-	CheckArchitecture( shapeProvider->GetOutputShapeBlobs().IsValidIndex( GetInputOutputNumber( 1 ) ), GetPath(),
-		"Wrong input number" );
-	CPtr<CDnnBlob> newShapeBlob = shapeProvider->GetOutputShapeBlobs()[GetInputOutputNumber( 1 )];
-	CheckArchitecture( newShapeBlob->GetDataSize() == outputLayout.Size(), GetPath(), "Dimension number mismatch" );
-	CheckArchitecture( newShapeBlob->GetDataType() == CT_Int, GetPath(), "Non-integer shape" );
+	CheckArchitecture( inputShapeBlobs[1] != nullptr, GetPath(), "New shape is missing" );
+	CheckArchitecture( inputShapeBlobs[1]->GetDataSize() == outputLayout.Size(), GetPath(), "Dimension number mismatch" );
+	CheckArchitecture( inputShapeBlobs[1]->GetDataType() == CT_Int, GetPath(), "Non-integer shape" );
 
 	const CBlobDesc& inputDesc = inputShapeBlobs[0] == nullptr ? inputDescs[0] : inputShapeBlobs[0]->GetDesc();
 	CBlobDesc outputDesc = CBlobDesc( inputDesc.GetDataType() );
 
+	// rem (remainder) - special dimension used for the rest of the blob size (not covered by other dims)
 	int remIndex = NotFound;
 	int remSize = inputDesc.BlobSize();
-	CDnnBlobBuffer<int> newShape( *newShapeBlob, TDnnBlobBufferAccess::Read );
+	CDnnBlobBuffer<int> newShape( *inputShapeBlobs[1], TDnnBlobBufferAccess::Read );
 	for( int dimIndex = 0; dimIndex < outputLayout.Size(); ++dimIndex ) {
 		if( newShape[dimIndex] == -1 ) {
 			CheckArchitecture( remIndex == NotFound, GetPath(), "Two remainders" );
 			remIndex = dimIndex;
 		} else if( newShape[dimIndex] == 0 ) {
+			// 0 at index i in new shape means that i'th dimension of output
+			// is equal to i'th dimension of input
 			CheckArchitecture( dimIndex < inputLayout.Size(), GetPath(),
 				"Attempt to save the dimension of missing input axis" );
 			outputDesc.SetDimSize( outputLayout[dimIndex], inputDesc.DimSize( inputLayout[dimIndex] ) );
@@ -84,6 +83,7 @@ void COnnxReshapeLayer::CalculateShapes()
 	CheckArchitecture( remSize == 1, GetPath(), "Reshape didn't cover all of the data" );
 
 	if( inputShapeBlobs[0] == nullptr ) {
+		// The layer will reshape inputBlobs[0] to outputBlobs[0] during RunOnce()
 		outputDescs[0] = outputDesc;
 	} else {
 		outputShapeBlobs[0] = CDnnBlob::CreateBlob( inputShapeBlobs[0]->GetMathEngine(), outputDesc.GetDataType(),
@@ -95,6 +95,7 @@ void COnnxReshapeLayer::CalculateShapes()
 void COnnxReshapeLayer::RunOnce()
 {
 	if( inputShapeBlobs[0] != nullptr ) {
+		// The layer has already reshaped blob from inputShapeBlobs[0] into outputShapeBlobs[0]
 		return;
 	}
 
