@@ -37,9 +37,9 @@ void COnnxResizeLayer::Reshape()
 
 	const COnnxLayerBase* secondInputLayer = dynamic_cast<const COnnxLayerBase*>( GetInputLayer( 1 ) );
 	CheckArchitecture( secondInputLayer != nullptr, GetPath(), "Second input must be an Onnx layer" );
-	CheckArchitecture( secondInputLayer->GetOutputShapeBlobs().IsValidIndex( GetInputOutputNumber( 1 ) ),
+	CheckArchitecture( secondInputLayer->outputShapeBlobs.IsValidIndex( GetInputOutputNumber( 1 ) ),
 		GetPath(), "Wrong input number" );
-	CPtr<CDnnBlob> newShapeBlob = secondInputLayer->GetOutputShapeBlobs()[GetInputOutputNumber( 1 )];
+	CPtr<CDnnBlob> newShapeBlob = secondInputLayer->outputShapeBlobs[GetInputOutputNumber( 1 )];
 	CheckArchitecture( newShapeBlob != nullptr, GetPath(), "Second input blob missing" );
 	CheckArchitecture( newShapeBlob->GetDataSize() == tensorLayout.Size(), GetPath(), "Dimension number mismatch" );
 

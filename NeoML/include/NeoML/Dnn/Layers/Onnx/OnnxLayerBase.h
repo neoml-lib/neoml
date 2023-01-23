@@ -20,6 +20,8 @@ limitations under the License.
 
 namespace NeoML {
 
+class COnnxResizeLayer;
+
 // Base class for reshapers: special layers whose purpose is to compute special shape tensors during Reshape phase
 class NEOML_API COnnxLayerBase : public CBaseLayer {
 public:
@@ -49,6 +51,8 @@ private:
 	void Reshape() final;
 	void RunOnce() override {}
 	void BackwardOnce() final { NeoAssert( false ); }
+
+	friend class COnnxResizeLayer;
 };
 
 } // namespace NeoML
