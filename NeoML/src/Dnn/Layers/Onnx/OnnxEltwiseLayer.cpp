@@ -50,7 +50,7 @@ static CBlobDesc getOnnxEltwiseOutputDesc( COnnxEltwiseLayer::TOperation operati
 			const int inputDimSize = inputDescs[i].DimSize( dim );
 			const int resultDimSize = resultDesc.DimSize( dim );
 			if( inputDimSize != resultDimSize ) {
-				NeoPresume( std::min<int>( inputDimSize, resultDimSize ) == 1 );
+				NeoAssert( std::min<int>( inputDimSize, resultDimSize ) == 1 );
 				resultDesc.SetDimSize( dim, std::max<int>( inputDimSize, resultDimSize ) );
 			}
 		}
