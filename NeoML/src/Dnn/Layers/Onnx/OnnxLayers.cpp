@@ -44,7 +44,7 @@ REGISTER_NEOML_LAYER( COnnxCastLayer, "NeoMLDnnOnnxCastLayer" )
 REGISTER_NEOML_LAYER( COnnxConcatLayer, "NeoMLDnnOnnxConcatLayer" )
 REGISTER_NEOML_LAYER( COnnxConstantOfShapeLayer, "NeoMLDnnOnnxConstantOfShapeLayer" )
 REGISTER_NEOML_LAYER( COnnxConvTransposeLayer, "NeoMLDnnOnnxConvTransposeLayer" )
-REGISTER_NEOML_LAYER( COnnxEltwiseLayer, "NeoMLDnnOnnxEltwiseLayer" );
+REGISTER_NEOML_LAYER( COnnxEltwiseLayer, "NeoMLDnnOnnxEltwiseLayer" )
 REGISTER_NEOML_LAYER( COnnxExpandLayer, "NeoMLDnnOnnxExpandLayer" )
 REGISTER_NEOML_LAYER( COnnxGatherLayer, "NeoMLDnnOnnxGatherLayer" )
 REGISTER_NEOML_LAYER( COnnxNonZeroLayer, "NeoMLDnnOnnxNonZeroLayer" )

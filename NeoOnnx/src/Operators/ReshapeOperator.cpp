@@ -74,7 +74,7 @@ void CReshapeOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensor
 {
 	CheckNoNullInputs( inputs );
 
-	CPtr<const CTensorBase> newShapeTensor = getShape( inputs, dnn );
+	CPtr<const CTensorBase> newShapeTensor = getShape( inputs );
 	CheckNeoOnnxSupport( newShapeTensor->DimCount() == 1, "shape must have 1 dimension", *this );
 
 	const bool hasShapeOutput = inputs[0]->Type() != TTensorType::User && newShapeTensor->Type() == TTensorType::Data;
@@ -114,7 +114,7 @@ void CReshapeOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensor
 }
 
 // Gets output shape
-CPtr<const CTensorBase> CReshapeOperator::getShape( const CTensorArray& inputs, CDnn& dnn ) const
+CPtr<const CTensorBase> CReshapeOperator::getShape( const CTensorArray& inputs ) const
 {
 	if( OpsetVersion < 5 ) {
 		CTensorShape shapeArray;

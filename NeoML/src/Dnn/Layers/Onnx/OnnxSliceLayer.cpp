@@ -16,6 +16,8 @@ limitations under the License.
 #include <common.h>
 #pragma hdrstop
 
+#include <memory>
+
 #include <NeoML/Dnn/Layers/Onnx/OnnxSliceLayer.h>
 
 namespace NeoML {
@@ -120,7 +122,7 @@ CBlobDesc COnnxSliceLayer::sliceDesc( const CBlobDesc& inputDesc ) const
 		const int start = getStart( sliceIndex, inputDesc.DimSize( blobDim ) );
 		const int end = getEnd( sliceIndex, inputDesc.DimSize( blobDim ) );
 		const int step = getStep( sliceIndex );
-		NeoPresume( step == 1 );
+		CheckArchitecture( step == 1, GetPath(), "step != 1" );
 		resultDesc.SetDimSize( blobDim, end - start );
 	}
 	return resultDesc;
@@ -136,8 +138,6 @@ CPtr<CDnnBlob> COnnxSliceLayer::sliceBlob( const CDnnBlob& inputBlob ) const
 		const int dimSize = resultBlob->DimSize( blobDim );
 		const int start = getStart( sliceIndex, dimSize );
 		const int end = getEnd( sliceIndex, dimSize );
-		const int step = getStep( sliceIndex );
-		NeoPresume( step == 1 );
 		NeoPresume( start < end );
 
 		if( start == 0 && end == dimSize ) {

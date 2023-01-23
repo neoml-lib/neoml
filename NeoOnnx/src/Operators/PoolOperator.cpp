@@ -60,7 +60,6 @@ void CPoolOperatorBase::AddLayersImpl( const CTensorArray& inputs, float padValu
 	// Check input
 	CheckNeoOnnxSupport( inputs[0]->DimCount() > 2 && inputs[0]->DimCount() <= 4,
 		"wrong input tensor's dimensions number", *this );
-	const int poolDims = inputs[0]->DimCount() - 2;
 
 	// Initialize strides and pads(if not given)
 	CFastArray<int, 8> strides;
