@@ -26,30 +26,34 @@ static const int OnnxExpandLayerVersion = 0;
 void COnnxExpandLayer::Serialize( CArchive& archive )
 {
 	archive.SerializeVersion( OnnxExpandLayerVersion );
-	CBaseLayer::Serialize( archive );
+	COnnxLayerBase::Serialize( archive );
 	tensorLayout.Serialize( archive );
 }
 
-void COnnxExpandLayer::Reshape()
+void COnnxExpandLayer::CalculateShapes()
 {
 	CheckArchitecture( GetInputCount() == 2, GetPath(), "Layer must have 2 inputs" );
 	CheckArchitecture( GetOutputCount() == 1, GetPath(), "Layer must have 1 output" );
-	const COnnxLayerBase* shapeProvider = dynamic_cast<const COnnxLayerBase*>( GetInputLayer( 1 ) );
-	CheckArchitecture( shapeProvider != nullptr, GetPath(), "Second input must contain shape" );
-	CheckArchitecture( shapeProvider->GetOutputShapeBlobs().IsValidIndex( GetInputOutputNumber( 1 ) ), GetPath(),
-		"Wrong input number" );
-	CPtr<CDnnBlob> newShapeBlob = shapeProvider->GetOutputShapeBlobs()[GetInputOutputNumber( 1 )];
-	CheckArchitecture( newShapeBlob->GetDataSize() <= tensorLayout.Size(), GetPath(), "Dimension number mismatch" );
-	CheckArchitecture( newShapeBlob->GetDataType() == CT_Int, GetPath(), "Non-integer shape" );
+	CheckArchitecture( inputShapeBlobs[0] == nullptr, GetPath(), "First input must be a blob" );
+	CheckArchitecture( inputShapeBlobs[1] != nullptr, GetPath(), "Shape input missing" );
+	CheckArchitecture( inputShapeBlobs[1]->GetDataSize() <= tensorLayout.Size(), GetPath(), "Dimension number mismatch" );
+	CheckArchitecture( inputShapeBlobs[1]->GetDataType() == CT_Int, GetPath(), "Non-integer shape" );
 
-	const int preservedDims = tensorLayout.Size() - newShapeBlob->GetDataSize();
+	// Expand operator expands tensor from the first input to the size from the second
+	// If the second input contains less elements than rank of the expanded tensor
+	// then last |input[1]| dimensions are expanded
+
+	// Number of dimensions not affected by expand
+	const int preservedDims = tensorLayout.Size() - inputShapeBlobs[1]->GetDataSize();
 
 	outputDescs[0] = inputDescs[0];
 
-	CDnnBlobBuffer<int> newShape( *newShapeBlob, TDnnBlobBufferAccess::Read );
+	CDnnBlobBuffer<int> newShape( *inputShapeBlobs[1], TDnnBlobBufferAccess::Read );
 	for( int dimIndex = 0; dimIndex < newShape.Size(); ++dimIndex ) {
 		CheckArchitecture( newShape[dimIndex] > 0, GetPath(), "Negative axis size" );
 		const TBlobDim& dim = tensorLayout[preservedDims + dimIndex];
+		// Corner-case: if expanded size is 1 but the original size is more than one
+		// then the dimension remains as-is
 		outputDescs[0].SetDimSize( dim, newShape[dimIndex] == 1 ? inputDescs[0].DimSize( dim ) : newShape[dimIndex] );
 	}
 }

@@ -16,29 +16,32 @@ limitations under the License.
 #pragma once
 
 #include <NeoML/NeoMLDefs.h>
-#include <NeoML/Dnn/Dnn.h>
+#include <NeoML/Dnn/Layers/Onnx/OnnxLayerBase.h>
 
 namespace NeoML {
 
 // Layer which emulates Onnx Expand operator
 // It broadcasts blob from the first input to shape from the second input
-class NEOML_API COnnxExpandLayer : public CBaseLayer {
+// First input must be a blob of any data type (inputBlobs[0])
+// Second input must be an integer shape-blob from another COnnxLayerBase (inputShapeBlobs[1])
+// The only output is an usual blob of the same data type as first input
+class NEOML_API COnnxExpandLayer : public COnnxLayerBase {
 	NEOML_DNN_LAYER( COnnxExpandLayer )
 public:
-	explicit COnnxExpandLayer( IMathEngine& mathEngine ) : CBaseLayer( mathEngine, "OnnxExpandLayer", false) {}
+	explicit COnnxExpandLayer( IMathEngine& mathEngine ) : COnnxLayerBase( mathEngine, "OnnxExpandLayer" ) {}
 
 	// Onnx tensor layout
-	// Its size determines the rank of the tensor
-	// TensorLayout()[i] contains the blob dimension which contains i'th dimension of Onnx tensor
+	// Its size determines the rank of onnx tensor
+	// TensorLayout()[i] contains the blob dimension which contains i'th dimension of onnx tensor from the first input
+	// It is used to determine which dimensions of the NeoML blob must be expanded
 	const CFastArray<TBlobDim, 8>& TensorLayout() const { return tensorLayout; }
 	CFastArray<TBlobDim, 8>& TensorLayout() { return tensorLayout; }
 
 	void Serialize( CArchive& archive );
 
 protected:
-	void Reshape() override;
+	void CalculateShapes() override;
 	void RunOnce() override;
-	void BackwardOnce() override { NeoAssert( false ); }
 
 private:
 	CFastArray<TBlobDim, 8> tensorLayout;
