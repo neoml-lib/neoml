@@ -84,6 +84,7 @@ set(NeoML_SOURCES
     Dnn/Layers/Onnx/OnnxCastLayer.cpp
     Dnn/Layers/Onnx/OnnxConcatLayer.cpp
     Dnn/Layers/Onnx/OnnxConstantOfShapeLayer.cpp
+    Dnn/Layers/Onnx/OnnxConvTransposeLayer.cpp
     Dnn/Layers/Onnx/OnnxExpandLayer.cpp
     Dnn/Layers/Onnx/OnnxGatherLayer.cpp
     Dnn/Layers/Onnx/OnnxLayerBase.cpp
@@ -302,6 +303,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoML/Dnn/Layers/Onnx/OnnxCastLayer.h
     ../include/NeoML/Dnn/Layers/Onnx/OnnxConcatLayer.h
     ../include/NeoML/Dnn/Layers/Onnx/OnnxConstantOfShapeLayer.h
+    ../include/NeoML/Dnn/Layers/Onnx/OnnxConvTransposeLayer.h
     ../include/NeoML/Dnn/Layers/Onnx/OnnxExpandLayer.h
     ../include/NeoML/Dnn/Layers/Onnx/OnnxGatherLayer.h
     ../include/NeoML/Dnn/Layers/Onnx/OnnxLayerBase.h

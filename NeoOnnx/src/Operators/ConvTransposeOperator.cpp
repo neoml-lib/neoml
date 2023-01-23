@@ -22,6 +22,8 @@ limitations under the License.
 #include "NeoOnnxCheck.h"
 #include "TensorUtils.h"
 
+#include <NeoML/Dnn/Layers/Onnx/OnnxConvTransposeLayer.h>
+
 namespace NeoOnnx {
 
 // Gets kernel shape
@@ -32,7 +34,6 @@ static void getConvTransposeKernelShape( int dimCount, const CDataTensor& filter
 		kernelShape.Add( filter.DimSize( dimIndex ) );
 	}
 }
-
 // --------------------------------------------------------------------------------------------------------------------
 
 CConvTransposeOperator::CConvTransposeOperator( const onnx::NodeProto& convTranspose, int opsetVersion ) :
@@ -67,18 +68,15 @@ void CConvTransposeOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, C
 	const int filterCount = filter->DimSize( 1 );
 
 	CTensorShape kernelShape;
-	getConvTransposeKernelShape( inputs[0]->DimCount(), *filter, kernelShape);
+	getConvTransposeKernelShape( inputs[0]->DimCount(), *filter, kernelShape );
 	CFastArray<int, 8> strides;
 	getStrides( inputs, strides );
 	CFastArray<int, 8> dilations;
 	getDilations( inputs, dilations );
-	// total padding is a combined result of applying output_padding and pads attributes
-	CFastArray<int, 8> totalPadding;
-	getTotalPadding( inputs[0]->DimCount(), totalPadding);
 	const int convDims = inputs[0]->DimCount() - 2;
 
 	IMathEngine& mathEngine = dnn.GetMathEngine();
-	CPtr<CTransposedConvLayer> transposedConv = new CTransposedConvLayer( mathEngine );
+	CPtr<COnnxConvTransposeLayer> transposedConv = new COnnxConvTransposeLayer( mathEngine );
 	transposedConv->SetName( Name() );
 	transposedConv->SetFilterCount( filterCount );
 	transposedConv->SetFilterHeight( kernelShape[0] );
@@ -87,8 +85,20 @@ void CConvTransposeOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, C
 	transposedConv->SetStrideWidth( strides[1] );
 	transposedConv->SetDilationHeight( dilations[0] );
 	transposedConv->SetDilationWidth( dilations[1] );
-	transposedConv->SetPaddingHeight( totalPadding[0] );
-	transposedConv->SetPaddingWidth( totalPadding[1] );
+
+	CFastArray<int, 8> pads;
+	GetAttribute( "pads", pads );
+	pads.CopyTo( transposedConv->Pads() );
+
+	CFastArray<int, 8> outputPadding;
+	if( !GetAttribute( "output_padding", outputPadding ) ) {
+		outputPadding.Add( 0, convDims );
+	}
+	outputPadding.CopyTo( transposedConv->OutputPadding() );
+
+	CFastArray<int, 8> outputShape;
+	GetAttribute( "output_shape", outputShape );
+	outputShape.CopyTo( transposedConv->OutputShape() );
 
 	transposedConv->SetFilterData( filter->Data()->GetCopy() );
 	if( InputCount() == 3 && inputs[2] != nullptr ) {
@@ -121,49 +131,6 @@ void CConvTransposeOperator::getDilations( const CTensorArray& inputs, CFastArra
 	if( dilations.IsEmpty() ) {
 		const int convDims = inputs[0]->DimCount() - 2;
 		dilations.Add( 1, convDims );
-	}
-}
-
-// Gets output_padding values
-void CConvTransposeOperator::getOutputPadding( int dimCount, CFastArray<int, 8>& outputPadding ) const
-{
-	GetAttribute( "output_padding", outputPadding );
-	if( outputPadding.IsEmpty() ) {
-		const int convDims = dimCount - 2;
-		outputPadding.Add( 0, convDims );
-	}
-}
-
-// Gets pads values
-void CConvTransposeOperator::getPads( int dimCount, const CFastArray<int, 8>& outputPadding,
-	CFastArray<int, 8>& pads ) const
-{
-	// Getting pads sizes (one way, or another)
-	const bool hasPadsAttribute = GetAttribute( "pads", pads );
-	if( !hasPadsAttribute ) {
-		CFastArray<int, 8> outputShape;
-		CheckNeoOnnxSupport( !GetAttribute( "output_shape", outputShape ),
-			"output_shape attribute", *this );
-		const int convDims = dimCount - 2;
-		pads.Add( 0, 2 * convDims );
-	}
-}
-
-// Calculates total paddings
-void CConvTransposeOperator::getTotalPadding( int dimCount, CFastArray<int, 8>& totalPadding ) const
-{
-	CFastArray<int, 8> outputPadding;
-	getOutputPadding( dimCount, outputPadding );
-	CFastArray<int, 8> pads;
-	getPads( dimCount, outputPadding, pads );
-
-	const int convDims = dimCount - 2;
-	NeoAssert( outputPadding.Size() == convDims );
-	NeoAssert( pads.Size() == 2 * convDims );
-	totalPadding.SetSize( 2 * convDims );
-	for( int i = 0; i < convDims; ++i ) {
-		totalPadding[i] = pads[i];
-		totalPadding[i + convDims] = pads[i + convDims] - outputPadding[i];
 	}
 }
 

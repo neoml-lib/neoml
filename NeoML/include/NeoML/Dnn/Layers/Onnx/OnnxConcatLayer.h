@@ -15,6 +15,7 @@ limitations under the License.
 
 #pragma once
 
+#include <NeoML/NeoMLDefs.h>
 #include <NeoML/Dnn/Layers/Onnx/OnnxLayerBase.h>
 
 namespace NeoML {

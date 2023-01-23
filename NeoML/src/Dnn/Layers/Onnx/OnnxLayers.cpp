@@ -19,6 +19,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/Onnx/OnnxCastLayer.h>
 #include <NeoML/Dnn/Layers/Onnx/OnnxConcatLayer.h>
 #include <NeoML/Dnn/Layers/Onnx/OnnxConstantOfShapeLayer.h>
+#include <NeoML/Dnn/Layers/Onnx/OnnxConvTransposeLayer.h>
 #include <NeoML/Dnn/Layers/Onnx/OnnxEltwiseLayer.h>
 #include <NeoML/Dnn/Layers/Onnx/OnnxExpandLayer.h>
 #include <NeoML/Dnn/Layers/Onnx/OnnxGatherLayer.h>
@@ -42,6 +43,7 @@ namespace {
 REGISTER_NEOML_LAYER( COnnxCastLayer, "NeoMLDnnOnnxCastLayer" )
 REGISTER_NEOML_LAYER( COnnxConcatLayer, "NeoMLDnnOnnxConcatLayer" )
 REGISTER_NEOML_LAYER( COnnxConstantOfShapeLayer, "NeoMLDnnOnnxConstantOfShapeLayer" )
+REGISTER_NEOML_LAYER( COnnxConvTransposeLayer, "NeoMLDnnOnnxConvTransposeLayer" )
 REGISTER_NEOML_LAYER( COnnxEltwiseLayer, "NeoMLDnnOnnxEltwiseLayer" );
 REGISTER_NEOML_LAYER( COnnxExpandLayer, "NeoMLDnnOnnxExpandLayer" )
 REGISTER_NEOML_LAYER( COnnxGatherLayer, "NeoMLDnnOnnxGatherLayer" )
