@@ -26,27 +26,21 @@ static const int ShapeToBlobLayerVersion = 0;
 void CShapeToBlobLayer::Serialize( CArchive& archive )
 {
 	archive.SerializeVersion( ShapeToBlobLayerVersion );
-	CBaseLayer::Serialize( archive );
+	COnnxLayerBase::Serialize( archive );
 }
 
-void CShapeToBlobLayer::Reshape()
+void CShapeToBlobLayer::CalculateShapes()
 {
 	CheckArchitecture( GetInputCount() == 1, GetPath(), "Layer must have 1 input" );
 	CheckArchitecture( GetOutputCount() == 1, GetPath(), "Layer must have 1 output" );
+	CheckArchitecture( inputShapeBlobs[0] != nullptr, GetPath(), "Input must contain shape" );
 	const COnnxLayerBase* shapeProvider = dynamic_cast<const COnnxLayerBase*>( GetInputLayer( 0 ) );
-	CheckArchitecture( shapeProvider != nullptr, GetPath(), "Input must contain shape" );
-	CheckArchitecture( shapeProvider->GetOutputShapeBlobs().IsValidIndex( GetInputOutputNumber( 0 ) ), GetPath(),
-		"Wrong input number" );
-	outputDescs[0] = shapeProvider->GetOutputShapeBlobs()[GetInputOutputNumber( 0 )]->GetDesc();
+	outputDescs[0] = inputShapeBlobs[0]->GetDesc();
 }
 
 void CShapeToBlobLayer::RunOnce()
 {
-	const COnnxLayerBase* shapeProvider = dynamic_cast<const COnnxLayerBase*>( GetInputLayer( 0 ) );
-	NeoPresume( shapeProvider != nullptr );
-	CPtr<CDnnBlob> inputShapeBlob = shapeProvider->GetOutputShapeBlobs()[GetInputOutputNumber( 0 )];
-	NeoPresume( outputBlobs[0]->HasEqualDimensions( inputShapeBlob.Ptr() ) );
-	outputBlobs[0]->CopyFrom( inputShapeBlob );
+	outputBlobs[0]->CopyFrom( inputShapeBlobs[0] );
 }
 
 } // namespace NeoML

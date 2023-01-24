@@ -16,21 +16,20 @@ limitations under the License.
 #pragma once
 
 #include <NeoML/NeoMLDefs.h>
-#include <NeoML/Dnn/Dnn.h>
+#include <NeoML/Dnn/Layers/Onnx/OnnxLayerBase.h>
 
 namespace NeoML {
 
-// Class which takes the inputShapeBlob and returns it as output blob
-class NEOML_API CShapeToBlobLayer : public CBaseLayer {
+// Special layer which takes shape-blob from its only input and returns it as a usual blob
+class NEOML_API CShapeToBlobLayer : public COnnxLayerBase {
 public:
-	explicit CShapeToBlobLayer( IMathEngine& mathEngine ) : CBaseLayer( mathEngine, "ShapeToBlobLayer", false ) {}
+	explicit CShapeToBlobLayer( IMathEngine& mathEngine ) : COnnxLayerBase( mathEngine, "ShapeToBlobLayer" ) {}
 
 	void Serialize( CArchive& archive );
 
 protected:
-	void Reshape() override;
+	void CalculateShapes() override;
 	void RunOnce() override;
-	void BackwardOnce() override { NeoAssert( false ); }
 };
 
 } // namespace NeoML
