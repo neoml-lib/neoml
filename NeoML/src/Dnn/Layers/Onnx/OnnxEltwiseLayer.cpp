@@ -199,7 +199,7 @@ void COnnxEltwiseLayer::CalculateShapes()
 	CheckOutputs();
 	CheckArchitecture( GetOutputCount() == 1, GetPath(), "arithmetic operator with multiple outputs" );
 
-	if( HasShapeInputs() ) {
+	if( inputShapeBlobs[0] != nullptr ) {
 		CArray<CBlobDesc> inputShapeDescs;
 		for( int i = 0; i < inputShapeBlobs.Size(); ++i ) {
 			CheckArchitecture( inputShapeBlobs[i] != nullptr, GetPath(), "Missing shape blob" );
@@ -222,7 +222,7 @@ void COnnxEltwiseLayer::CalculateShapes()
 
 void COnnxEltwiseLayer::RunOnce()
 {
-	if( !HasShapeInputs() ) {
+	if( inputShapeBlobs[0] == nullptr ) {
 		if( getOnnxEltwiseOperationType( inputBlobs ) == CT_Float ) {
 			onnxEltwiseOperationImpl<float>( operation, inputBlobs, *outputBlobs[0] );
 		} else {

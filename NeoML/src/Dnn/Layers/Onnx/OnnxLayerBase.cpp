@@ -28,24 +28,16 @@ void COnnxLayerBase::Serialize( CArchive& archive )
 	CBaseLayer::Serialize( archive );
 }
 
-bool COnnxLayerBase::HasShapeInputs() const
-{
-	for( int i = 0; i < inputShapeBlobs.Size(); ++i ) {
-		if( inputShapeBlobs[i] != nullptr ) {
-			return true;
-		}
-	}
-
-	return false;
-}
-
 void COnnxLayerBase::Reshape()
 {
 	// Fill the outputs with the blobs consisting of 1 integer
+	// It's done in order to avoid nullptr dereferencing problems
+	// If layer wants to return an usual blob it will override these outputDescs during CalculateShapes
 	for( int outputIndex = 0; outputIndex < GetOutputCount(); ++outputIndex ) {
 		outputDescs[outputIndex] = CBlobDesc( CT_Int );
 	}
 
+	// Transfer shape-blobs between layers
 	inputShapeBlobs.SetSize( GetInputCount() );
 	for( int inputIndex = 0; inputIndex < GetInputCount(); ++inputIndex ) {
 		COnnxLayerBase* onnxLayer = dynamic_cast<COnnxLayerBase*>( GetInputLayer( inputIndex ) );
@@ -56,8 +48,9 @@ void COnnxLayerBase::Reshape()
 		}
 	}
 
+	// Allocate outputShapeBlobs
 	outputShapeBlobs.Empty();
-	outputShapeBlobs.SetSize( GetOutputCount() );
+	outputShapeBlobs.Add( nullptr, GetOutputCount() );
 
 	CalculateShapes();
 }

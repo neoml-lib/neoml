@@ -22,7 +22,31 @@ namespace NeoML {
 
 class COnnxResizeLayer;
 
-// Base class for reshapers: special layers whose purpose is to compute special shape tensors during Reshape phase
+// Base class for Onnx layers
+
+// One of the biggest incompatibilities between NeoML and Onnx is the fact that in NeoML shape inference
+// and data inference are separated. As a result, operators like 'Range' whose output size depends on the
+// values from inputs become almost impossible.
+
+// This class uses special shape-blobs to work around this problem. These are CDnnBlob calculated during
+// shape inference (CDnnBaseLayer::Reshape). Because of the size of these blobs (just a few elements in
+// most of the cases) they are always allocated on single-threaded CPU MathEngine.
+
+// This class finalizes CBaseLayer::Reshape and provides virtual COnnxLayerBase::CalculateShapes
+
+// Input shape-blobs are given in CObjectArray<CDnnBlob> inputShapeBlobs
+// Its size is equal to the number of inputs
+// If i'th input is not a shape-blob then inputShapeBlobs[i] == nullptr
+
+// If layer returns a shape-blob at outputIndex then it must allocate and calculate it during
+// CalculateShapes() and store it at outputShapeBlobs[outputIndex]
+
+// If layer returns an usual blob at outputIndex then it must:
+//    1. during CalculateShapes() leave outputShapeBlobs[outputIndex] as-is (it will be nullptr)
+//    2. during CalculateShapes() fill outputDescs[outputIndex] with expected shape
+//    3. override RunOnce() and fill outputBlobs[outputIndex] with the data during it
+//       inputShapeBlobs will be available during RunOnce()
+
 class NEOML_API COnnxLayerBase : public CBaseLayer {
 public:
 	const CObjectArray<CDnnBlob>& GetOutputShapeBlobs() const { return outputShapeBlobs; }
@@ -34,24 +58,24 @@ protected:
 		CBaseLayer( mathEngine, name, false ) {}
 
 	// Shape blobs from input layers
-	// nullptr if input layer is not a reshaper
+	// inputShapeBlobs[i] == nullptr means that i'th input doesn't contain shape-blob
 	CObjectArray<CDnnBlob> inputShapeBlobs;
 	// Shape blobs of this layer
 	CObjectArray<CDnnBlob> outputShapeBlobs;
 
-	// This method must contain the calculation of OutputShape based on inputShapeTensors (called from CBaseLayer::Reshape)
-	// When called the following fields are set to following:
-	//  inputShapeTensors is filled with the shape tensors from corresponding inputs
-	//  OutputShape filled with CBaseLayer::GetOutputCount() unintialized shape tensors
+	// This method must contain the calculation of outputShapeBlobs or outputDescs
+	// See large comment above for more info
 	virtual void CalculateShapes() = 0;
 
-	bool HasShapeInputs() const;
-
-private:
 	void Reshape() final;
+	
+	// RunOnce must be overridden if layer wants to return some outputs as usual blobs (not shape-blobs)
+	// See large comment above for more info
 	void RunOnce() override {}
+
 	void BackwardOnce() final { NeoAssert( false ); }
 
+private:
 	friend class COnnxResizeLayer;
 };
 
