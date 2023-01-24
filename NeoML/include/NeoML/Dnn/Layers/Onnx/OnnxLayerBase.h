@@ -49,8 +49,6 @@ class COnnxResizeLayer;
 
 class NEOML_API COnnxLayerBase : public CBaseLayer {
 public:
-	const CObjectArray<CDnnBlob>& GetOutputShapeBlobs() const { return outputShapeBlobs; }
-
 	void Serialize( CArchive& archive ) override;
 
 protected:
