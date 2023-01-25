@@ -21,7 +21,8 @@ limitations under the License.
 namespace NeoML {
 
 // Layer which emulates Onnx Shape operator
-// It writes the shape of Onnx tensor to its output shape tensor
+// Accepts shape-blob or blob as its only input
+// Always returns shape-blob as its only output
 class NEOML_API COnnxShapeLayer : public COnnxLayerBase {
 	NEOML_DNN_LAYER( COnnxShapeLayer )
 public:
