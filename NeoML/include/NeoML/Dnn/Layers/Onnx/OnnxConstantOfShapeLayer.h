@@ -21,11 +21,16 @@ limitations under the License.
 namespace NeoML {
 
 // Layer which emulates Onnx ConstantOfShape operator
+// It expects single integer shape-blob as input
+// It's only output contains usual blob where:
+//    1. First N dimensions are equal to the shape from first input
+//    2. Value and data type are derived from value blob (see SetValue and GetValue)
 class NEOML_API COnnxConstantOfShapeLayer : public COnnxLayerBase {
 	NEOML_DNN_LAYER( COnnxConstantOfShapeLayer )
 public:
 	explicit COnnxConstantOfShapeLayer( IMathEngine& mathEngine );
 
+	// The value used for filling the output (its type determines the type of output)
 	void SetValue( const CDnnBlob& blob );
 	const CDnnBlob& GetValue() const { return *value; }
 
