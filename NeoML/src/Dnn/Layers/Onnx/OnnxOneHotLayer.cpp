@@ -20,6 +20,7 @@ limitations under the License.
 
 namespace NeoML {
 
+// Calculates output data of OneHot based on the given input
 void onnxOneHotImpl( const CDnnBlob& input, CDnnBlob& output )
 {
 	IMathEngine& mathEngine = input.GetMathEngine();
@@ -44,6 +45,7 @@ void onnxOneHotImpl( const CDnnBlob& input, CDnnBlob& output )
 	}
 }
 
+// Calculates output size of OneHot based on the given input size and depth value
 CBlobDesc onnxOneHotOutputDesc( const CBlobDesc& inputDesc, const CDnnBlob& depthBlob )
 {
 	CBlobDesc outputDesc = inputDesc;
@@ -83,11 +85,9 @@ void COnnxOneHotLayer::CalculateShapes()
 
 void COnnxOneHotLayer::RunOnce()
 {
-	if( inputShapeBlobs[0] != nullptr ) {
-		return;
+	if( inputShapeBlobs[0] == nullptr ) {
+		onnxOneHotImpl( *inputBlobs[0], *outputBlobs[0] );
 	}
-
-	onnxOneHotImpl( *inputBlobs[0], *outputBlobs[0] );
 }
 
 } // namespace NeoML
