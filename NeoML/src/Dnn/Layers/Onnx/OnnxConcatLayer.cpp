@@ -39,6 +39,7 @@ void COnnxConcatLayer::CalculateShapes()
 		CBlobDesc outputDesc = inputDescs[0];
 		outputDesc.SetDimSize( concatDim, 0 );
 		for( int i = 0; i < GetInputCount(); ++i ) {
+			CheckArchitecture( inputShapeBlobs[i] == nullptr, GetPath(), "Mixed shape-blobs and blobs" );
 			if( inputHasElements( i ) ) {
 				outputDesc.SetDimSize( concatDim,
 					outputDesc.DimSize( concatDim ) + inputDescs[i].DimSize( concatDim ) );
@@ -51,11 +52,13 @@ void COnnxConcatLayer::CalculateShapes()
 	CBlobDesc outputDesc = inputShapeBlobs[0]->GetDesc();
 	outputDesc.SetDimSize( concatDim, 0 );
 	for( int i = 0; i < GetInputCount(); ++i ) {
+		CheckArchitecture( inputShapeBlobs[i] != nullptr, GetPath(), "Mixed shape-blobs and blobs" );
 		if( inputHasElements( i ) ) {
 			outputDesc.SetDimSize( concatDim,
 				outputDesc.DimSize( concatDim ) + inputShapeBlobs[i]->DimSize( concatDim ) );
 		}
 	}
+
 	outputShapeBlobs[0] = CDnnBlob::CreateBlob( inputShapeBlobs[0]->GetMathEngine(),
 		outputDesc.GetDataType(), outputDesc );
 	calcOutput( inputShapeBlobs, outputShapeBlobs[0] );
@@ -63,13 +66,13 @@ void COnnxConcatLayer::CalculateShapes()
 
 void COnnxConcatLayer::RunOnce()
 {
-	if( inputShapeBlobs[0] != nullptr ) {
-		return;
+	if( inputShapeBlobs[0] == nullptr ) {
+		calcOutput( inputBlobs, outputBlobs[0] );
 	}
-
-	calcOutput( inputBlobs, outputBlobs[0] );
 }
 
+// Sometimes Onnx Slice operator produces tensor of 0 elements
+// Returns true if index'th input contains elements
 bool COnnxConcatLayer::inputHasElements( int index ) const
 {
 	NeoPresume( index >= 0 );
@@ -83,6 +86,7 @@ bool COnnxConcatLayer::inputHasElements( int index ) const
 	return slice->DoesOutputHaveElements();
 }
 
+// Writes concatenation of given inputs to given output
 void COnnxConcatLayer::calcOutput( const CObjectArray<CDnnBlob>& inputs, const CPtr<CDnnBlob>& output )
 {
 	CObjectArray<CDnnBlob> filteredInputs;

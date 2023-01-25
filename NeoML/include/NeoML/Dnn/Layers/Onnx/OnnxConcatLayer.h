@@ -27,6 +27,7 @@ public:
 	explicit COnnxConcatLayer( IMathEngine& mathEngine ) : COnnxLayerBase( mathEngine, "OnnxConcatLayer" ),
 		concatDim( BD_BatchLength ) {}
 
+	// Dimension along which concat must be performed
 	void SetConcatDim( TBlobDim dim ) { concatDim = dim; }
 	TBlobDim GetConcatDim() const { return concatDim; }
 
