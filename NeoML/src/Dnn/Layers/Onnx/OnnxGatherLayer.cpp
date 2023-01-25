@@ -20,6 +20,7 @@ limitations under the License.
 
 namespace NeoML {
 
+// Calculates the CBlobDesc of output
 static CBlobDesc getOutputDesc( const CBlobDesc& dataDesc, const CBlobDesc& indicesDesc, TBlobDim gatherDim )
 {
 	CBlobDesc resultDesc = dataDesc;
@@ -29,6 +30,7 @@ static CBlobDesc getOutputDesc( const CBlobDesc& dataDesc, const CBlobDesc& indi
 	return resultDesc;
 }
 
+// Shifts indices from [-gatherDimSize;gatherDimSize-1] to [0;gatherDimSize-1]
 static void shiftIndices( int gatherDimSize, const CDnnBlob& indices, CDnnBlob& result )
 {
 	IMathEngine& mathEngine = indices.GetMathEngine();
@@ -42,6 +44,7 @@ static void shiftIndices( int gatherDimSize, const CDnnBlob& indices, CDnnBlob& 
 	mathEngine.VectorAdd( result.GetData<int>(), indices.GetData<int>(), result.GetData<int>(), result.GetDataSize() );
 }
 
+// Runs Gather operation over given blobs where data type is T
 template<class T>
 static void runGather( const CDnnBlob& data, const CDnnBlob& indices, CDnnBlob& result, TBlobDim gatherDim )
 {
@@ -77,6 +80,9 @@ void COnnxGatherLayer::CalculateShapes()
 	CheckArchitecture( GetOutputCount() == 1, GetPath(), "Layer must have 1 output" );
 
 	if( inputShapeBlobs[0] == nullptr ) {
+		// No shape-blobs
+		// Gather will be executed over inputBlobs/outputBlobs during RunOnce
+		CheckArchitecture( inputShapeBlobs[1] == nullptr, GetPath(), "Mixed shape-blobs and blobs" );
 		outputDescs[0] = getOutputDesc( inputDescs[0], inputDescs[1], gatherDim );
 		return;
 	}
@@ -92,14 +98,12 @@ void COnnxGatherLayer::CalculateShapes()
 
 void COnnxGatherLayer::RunOnce()
 {
-	if( inputShapeBlobs[0] != nullptr ) {
-		return;
-	}
-
-	if( outputBlobs[0]->GetDataType() == CT_Float ) {
-		runGather<float>( *inputBlobs[0], *inputBlobs[1], *outputBlobs[0], gatherDim );
-	} else {
-		runGather<int>( *inputBlobs[0], *inputBlobs[1], *outputBlobs[0], gatherDim );
+	if( inputShapeBlobs[0] == nullptr ) {
+		if( outputBlobs[0]->GetDataType() == CT_Float ) {
+			runGather<float>( *inputBlobs[0], *inputBlobs[1], *outputBlobs[0], gatherDim );
+		} else {
+			runGather<int>( *inputBlobs[0], *inputBlobs[1], *outputBlobs[0], gatherDim );
+		}
 	}
 }
 

@@ -21,6 +21,17 @@ limitations under the License.
 namespace NeoML {
 
 // Layer which emulates Onnx Gather operator
+// Expect 2 blobs or 2 shape-blobs as input
+//    1. Data to select from. Any data type. Data.DimSize(GatherDim) is a number of object to gather from
+//       All the dimensions before GatherDim must be 1
+//       All the dimensions after GatherDim are interpreted as dimensions of gathered objects
+//       Values must be in [-Data.DimSize(GatherDim); Data.DimSize(GatherDim) - 1] interval
+//    2. Indices. Integer data type. All the dimensions after GatherDim must be 1.
+//       All the dimensions before GatherDim (including GatherDim itself) is the number of indices
+// Has 1 output blob or shape-blob of the same type as Data input.
+// All dimensions before GatherDim (including GatherDim itself) are equal to corresponding dimensions
+// of Indices input.
+// All dimensions after GatherDim are equal to corresponding dimensions of Data input.
 class NEOML_API COnnxGatherLayer : public COnnxLayerBase {
 	NEOML_DNN_LAYER( COnnxGatherLayer )
 public:
