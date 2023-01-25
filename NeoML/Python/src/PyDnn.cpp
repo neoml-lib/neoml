@@ -196,11 +196,13 @@ py::object createLayer( CBaseLayer& layer, CPyMathEngineOwner& mathEngineOwner )
 	CString layerClass( GetLayerClass( layer ) );
 
 	const int pos = layers.GetFirstPosition( layerClass );
-	const CString layerPyClass = pos == NotFound ? "Layer" : layers.GetValue( pos ).ClassName;
+	if( pos == NotFound ) {
+		return pyLayer.CreatePythonObject();
+	}
 
 	CString wrapperModuleName = "neoml.PythonWrapper";
 	py::object wrapperModule = py::module::import( wrapperModuleName );
-	py::object wrapperConstructor = wrapperModule.attr( layerPyClass );
+	py::object wrapperConstructor = wrapperModule.attr( layers.GetValue( pos ).ClassName );
 	py::object wrapper = wrapperConstructor( pyLayer );
 
 	return wrapper.attr("create_python_object")();
