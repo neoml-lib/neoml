@@ -21,24 +21,29 @@ limitations under the License.
 namespace NeoML {
 
 // Layer which emulates Onnx ConvTranspose layer
+
+// It doesn't use shape-blobs or anything else from COnnxLayerBase
+// It's purpose is to wrap NeoML::CTransposedConvLayer into Onnx-compatible interface
+// That's why it's derived from CTransposedConvLayer
 class NEOML_API COnnxConvTransposeLayer : public CTransposedConvLayer {
 	NEOML_DNN_LAYER( COnnxConvTransposeLayer )
 public:
 	explicit COnnxConvTransposeLayer( IMathEngine& mathEngine ) : CTransposedConvLayer( mathEngine ),
 		useExternalPadding( false ) {}
 
+	// Onnx "auto_pad" attribute
 	CString& AutoPad() { return autoPad; }
 	const CString& AutoPad() const { return autoPad; }
 
-	// Onnx pads attribute
+	// Onnx "pads" attribute
 	CFastArray<int, 8>& Pads() { return pads; }
 	const CFastArray<int, 8>& Pads() const { return pads; }
 
-	// Onnx output_pads attribute
+	// Onnx "output_pads" attribute
 	CFastArray<int, 8>& OutputPadding() { return outputPadding; }
 	const CFastArray<int, 8>& OutputPadding() const { return outputPadding; }
 
-	// Onnx outputShape attribute
+	// Onnx "output_shape" attribute
 	CFastArray<int, 8>& OutputShape() { return outputShape; }
 	const CFastArray<int, 8>& OutputShape() const { return outputShape; }
 
@@ -60,8 +65,9 @@ private:
 	// the result padding based on attributes and the size of input
 	CFastArray<int, 8> totalPadding;
 	// true if padding can't be done by NeoML convolution
-	// otherwise the padding must be done manually without
+	// otherwise the padding must be done manually after NeoML::CTransposedConvLayer
 	bool useExternalPadding;
+	// the desc of NeoML::CTransposedConvLayer prior to external padding
 	CBlobDesc neomlConvOutputDesc;
 
 	void calcTotalPadding();

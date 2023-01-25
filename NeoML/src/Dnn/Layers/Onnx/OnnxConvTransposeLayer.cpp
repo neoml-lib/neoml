@@ -68,6 +68,8 @@ void COnnxConvTransposeLayer::RunOnce()
 	}
 }
 
+// Calculates the result padding based on all the padding-related attributes
+// and determines whether padding must be done manually or CTransposedConvLayer can calculated it itself
 void COnnxConvTransposeLayer::calcTotalPadding()
 {
 	const int convDims = 2;
@@ -80,7 +82,7 @@ void COnnxConvTransposeLayer::calcTotalPadding()
 		int startPad = Pads().IsEmpty() ? 0 : Pads()[i];
 		int endPad = Pads().IsEmpty() ? 0 : Pads()[i];
 		if( Pads().IsEmpty() && !OutputShape().IsEmpty() ) {
-			const int axisPad = outputDescs[0].DimSize( static_cast< int >( BD_Height ) + i )
+			const int axisPad = outputDescs[0].DimSize( static_cast<int>( BD_Height ) + i )
 				+ OutputPadding()[i] - OutputShape()[i + 2];
 			startPad = autoPad != "SAME_UPPER" ? axisPad / 2 : ( axisPad + 1 ) / 2;
 			endPad = axisPad - startPad;
@@ -93,6 +95,7 @@ void COnnxConvTransposeLayer::calcTotalPadding()
 	}
 }
 
+// Calculates the desc after the external padding
 CBlobDesc COnnxConvTransposeLayer::getPaddedDesc( const CBlobDesc& inputDesc )
 {
 	CBlobDesc paddedDesc = inputDesc;
