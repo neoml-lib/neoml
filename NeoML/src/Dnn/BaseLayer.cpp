@@ -222,6 +222,13 @@ IMathEngine& CBaseLayer::MathEngine() const
 	return mathEngine;
 }
 
+void CBaseLayer::CheckLayerArchitecture( bool expr, const char* message ) const
+{
+	if( !expr ) {
+		CheckArchitecture( expr, GetPath(), message );
+	}
+}
+
 // The class that switches memory reuse mode
 class CMemoryModeSwitcher {
 public:
@@ -265,7 +272,7 @@ void CBaseLayer::AllocateOutputBlobs()
 
 CString CBaseLayer::GetPath() const
 {
-	return GetDnn() == nullptr ? CString( GetName() ) : GetDnn()->getPath() + GetName();
+	return dnn == nullptr || dnn->owner == nullptr ? name : dnn->owner->GetPath() + "/" + name;
 }
 
 size_t CBaseLayer::GetOutputBlobsSize() const

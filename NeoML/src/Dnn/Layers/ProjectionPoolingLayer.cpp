@@ -93,9 +93,9 @@ void CProjectionPoolingLayer::Reshape()
 {
 	CheckInputs();
 	CheckOutputs();
-	CheckArchitecture( GetInputCount() == 1, GetPath(), "Pooling with multiple inputs" );
-	CheckArchitecture( GetOutputCount() == 1, GetPath(), "Pooling with multiple outputs" );
-	CheckArchitecture( inputDescs[0].Depth() == 1 && inputDescs[0].BatchLength() == 1, GetPath(),
+	CheckLayerArchitecture( GetInputCount() == 1, "Pooling with multiple inputs" );
+	CheckLayerArchitecture( GetOutputCount() == 1, "Pooling with multiple outputs" );
+	CheckLayerArchitecture( inputDescs[0].Depth() == 1 && inputDescs[0].BatchLength() == 1,
 		"Bad input blob dimensions: input.Depth() != 1 or input.BatchLength() != 1" );
 
 	outputDescs[0] = inputDescs[0];

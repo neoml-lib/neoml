@@ -199,7 +199,7 @@ void CIndRnnRecurrentLayer::SetWeights( const CDnnBlob* newWeights )
 void CIndRnnRecurrentLayer::Reshape()
 {
 	CheckInputs();
-	CheckArchitecture( inputDescs.Size() == 1, GetPath(), "IndRNN recurrent with more than 1 input" );
+	CheckLayerArchitecture( inputDescs.Size() == 1, "IndRNN recurrent with more than 1 input" );
 
 	outputDescs[0] = inputDescs[0];
 

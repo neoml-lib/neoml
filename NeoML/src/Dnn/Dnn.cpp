@@ -421,8 +421,8 @@ CPtr<const CBaseLayer> CDnn::GetLayer( const char* name ) const
 
 void CDnn::AddLayerImpl( CBaseLayer& layer )
 {
-	CheckArchitecture( !layerMap.Has( layer.GetName() ), layer.GetPath(), "layer already in this dnn" );
-	CheckArchitecture( layer.GetDnn() == 0, layer.GetPath(), "layer already added to other dnn" );
+	layer.CheckLayerArchitecture( !layerMap.Has( layer.GetName() ), "layer already in this dnn" );
+	layer.CheckLayerArchitecture( layer.GetDnn() == 0, "layer already added to other dnn" );
 
 	// Set the flag that indicates the network must be rebuilt (configuration has changed)
 	ForceRebuild();
@@ -444,8 +444,7 @@ void CDnn::ForceRebuild()
 
 void CDnn::DeleteLayerImpl( CBaseLayer& layer )
 {
-	CheckArchitecture( HasLayer( layer.GetName() ),
-		layer.GetName(), "deletion of the layer which is not in this dnn" );
+	layer.CheckLayerArchitecture( HasLayer( layer.GetName() ), "deletion of the layer which is not in this dnn" );
 
 	// Set the flag that indicates the network should be rebuilt (configuration has changed)
 	ForceRebuild();
@@ -712,11 +711,6 @@ size_t CDnn::getOutputBlobsSize() const
 		result += layers[i]->GetOutputBlobsSize();
 	}
 	return result;
-}
-
-CString CDnn::getPath() const
-{
-	return owner == nullptr ? CString() : owner->GetPath() + "/";
 }
 
 void CDnn::FilterLayersParams( float threshold )

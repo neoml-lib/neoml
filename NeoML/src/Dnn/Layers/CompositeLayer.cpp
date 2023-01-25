@@ -209,7 +209,7 @@ bool CCompositeLayer::HasLayer(const char* name) const
 
 void CCompositeLayer::AddLayerImpl(CBaseLayer& layer)
 {
-	CheckArchitecture( !layerMap.Has(layer.GetName()), layer.GetName(), "Layer already in this composite layer" );
+	layer.CheckLayerArchitecture( !layerMap.Has(layer.GetName()), "Layer already in this composite layer" );
 
 	// Add the layer
 	layerMap.Add(layer.GetName(), &layer);
@@ -268,7 +268,7 @@ void CCompositeLayer::createSources()
 void CCompositeLayer::createSinks()
 {
 	int count = GetOutputCount();
-	CheckArchitecture( count <= outputMappings.Size(), GetName(), "composite layer has too many ouputs" );
+	CheckLayerArchitecture( count <= outputMappings.Size(), "composite layer has too many ouputs" );
 	for( int i = 0; i < min( count, sinks.Size() ); ++i ) {
 		const char* inputInfoName = sinks[i]->GetInputName( 0 );
 		int inputInfoOutputNumber = sinks[i]->GetInputOutputNumber( 0 );

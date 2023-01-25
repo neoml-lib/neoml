@@ -59,8 +59,8 @@ void CCumSumLayer::Reshape()
 {
 	NeoAssert( dim >= 0 && dim < BD_Count );
 	inputDescs.CopyTo( outputDescs );
-	CheckArchitecture( inputDescs[0].GetDataType() == CT_Float || !IsBackwardPerformed(),
-		GetPath(), "Backward over integer data" );
+	CheckLayerArchitecture( inputDescs[0].GetDataType() == CT_Float || !IsBackwardPerformed(),
+		"Backward over integer data" );
 }
 
 void CCumSumLayer::RunOnce()

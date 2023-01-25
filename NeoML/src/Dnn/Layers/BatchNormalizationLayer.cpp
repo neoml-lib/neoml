@@ -137,7 +137,7 @@ void CBatchNormalizationLayer::SetSlowConvergenceRate(float rate)
 void CBatchNormalizationLayer::Reshape()
 {
 	CheckInputs();
-	CheckArchitecture( inputDescs.Size() == 1, GetPath(), "batch normalization with more than 1 input" );
+	CheckLayerArchitecture( inputDescs.Size() == 1, "batch normalization with more than 1 input" );
 
 	int fullBatchSize;
 	int objectSize;
@@ -161,10 +161,9 @@ void CBatchNormalizationLayer::Reshape()
 		MathEngine().VectorFill(finalParams->GetObjectData( PN_Gamma), 1.0, finalParams->GetObjectSize());
 		MathEngine().VectorFill(finalParams->GetObjectData( PN_Beta), 0.0, finalParams->GetObjectSize());
 	} else {
-		CheckArchitecture( finalParams->GetObjectCount() == PN_Count,
-			GetPath(), "Parameters batch size must be 2" );
-		CheckArchitecture( finalParams->GetObjectSize() == objectSize, 
-			GetPath(), "Object data size from params must be equal to actual object size" );
+		CheckLayerArchitecture( finalParams->GetObjectCount() == PN_Count, "Parameters batch size must be 2" );
+		CheckLayerArchitecture( finalParams->GetObjectSize() == objectSize, 
+			"Object data size from params must be equal to actual object size" );
 	}
 
 	fullBatchInv->GetData().SetValue(1.f / fullBatchSize);
@@ -187,8 +186,8 @@ void CBatchNormalizationLayer::RunOnce()
 		int fullBatchSize;
 		int objectSize;
 		getFullBatchAndObjectSize(fullBatchSize, objectSize);
-		CheckArchitecture( fullBatchSize >= MinBatchSize,
-			GetPath(), "in batch normalization fullBatchSize is more than MinBatchSize" );
+		CheckLayerArchitecture( fullBatchSize >= MinBatchSize,
+			"in batch normalization fullBatchSize is more than MinBatchSize" );
 
 		runWhenLearning();
 	} else {

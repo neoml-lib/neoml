@@ -84,9 +84,9 @@ void CInterpolationLayer::Reshape()
 {
 	CheckInput1();
 	CheckOutputs();
-	CheckArchitecture( GetInputCount() == 1, GetPath(), "CInterpolationLayer must have 1 input" );
-	CheckArchitecture( GetOutputCount() == 1, GetPath(), "CInterpolationLayer must have 1 output" );
-	CheckArchitecture( inputDescs[0].GetDataType() == CT_Float, GetPath(), "CInterpolationLayer supports only float data" );
+	CheckLayerArchitecture( GetInputCount() == 1, "CInterpolationLayer must have 1 input" );
+	CheckLayerArchitecture( GetOutputCount() == 1, "CInterpolationLayer must have 1 output" );
+	CheckLayerArchitecture( inputDescs[0].GetDataType() == CT_Float, "CInterpolationLayer supports only float data" );
 
 	outputDescs[0] = inputDescs[0];
 
@@ -103,7 +103,7 @@ void CInterpolationLayer::Reshape()
 			default:
 				NeoAssert( false );
 		}
-		CheckArchitecture( outputDescs[0].DimSize( dim ) > 0, GetPath(), "Zero or negative dim size" );
+		CheckLayerArchitecture( outputDescs[0].DimSize( dim ) > 0, "Zero or negative dim size" );
 	}
 }
 

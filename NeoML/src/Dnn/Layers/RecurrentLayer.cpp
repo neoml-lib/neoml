@@ -159,8 +159,7 @@ void CRecurrentLayer::SetInternalDnnParams()
 	if(!GetDnn()->IsRecurrentMode()) {
 		GetInternalDnn()->setProcessingParams(true, sequenceLength, isReverseSequence, GetDnn()->IsBackwardPerformed());
 	} else {
-		CheckArchitecture( repeatCount == 1,
-			GetPath(), "repeat count should be 1 for internal recurrent layers" );
+		CheckLayerArchitecture( repeatCount == 1, "repeat count should be 1 for internal recurrent layers" );
 	}
 	// Set the parameters for the back link
 	for(int i = 0; i < backLinks.Size(); ++i) {
@@ -175,7 +174,7 @@ void CRecurrentLayer::RunInternalDnn()
 {
 	// Avoid calling GetPath on every run
 	if( outputBlobs[0]->GetOwner()->GetBatchLength() != inputBlobs[0]->GetOwner()->GetBatchLength() * repeatCount ) {
-		CheckArchitecture( false, GetPath(), "incorrect batch length of outputBlobs[0]" );
+		CheckLayerArchitecture( false, "incorrect batch length of outputBlobs[0]" );
 	}
 	CDnn* internalDnn = GetInternalDnn();
 	internalDnn->isReuseMemoryMode = GetDnn()->isReuseMemoryMode;
