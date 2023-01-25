@@ -21,6 +21,22 @@ limitations under the License.
 namespace NeoML {
 
 // Layer which emulates Onnx Slice operator
+// Has from 3 up to 5 inputs
+//    1. Data - blob or shape-blob of any data type, which will be sliced
+//    2. Starts - coordinates of starts of slices, integer shape-blob
+//                Its' size is equal to the number of slices
+//    3. Ends - coordinates of ends of slices, integer shape-blob
+//              Its' size is equal to the number of slices
+//    4. Axes - [optional] axes indices along which each of slices should be performed, integer shape-blob
+//              Its' size is equal to the number of slices
+//              [0, 1, 2, ..., N-1] where N is the size of Starts and Ends
+//              Indices are relative to Onnx dim number and layout
+//    5. Steps - [optional] step of each slice performed
+//              Its' size is equal to the number of slices
+// Has 1 output: sliced blob or shape of any data type (the same as Data input)
+
+// Onnx sometimes makes slice of size 0 (Starts[i] == Ends[i])
+// In that case CDnnBlob will be allocated of wrong size and special flag will be set (DoesOutputHaveElements())
 class NEOML_API COnnxSliceLayer : public COnnxLayerBase {
 	NEOML_DNN_LAYER( COnnxSliceLayer )
 public:
@@ -30,6 +46,7 @@ public:
 	// Input onnx tensor layout
 	// Its size determines the rank of the tensor
 	// TensorLayout()[i] contains the blob dimension which contains i'th dimension of Onnx tensor
+	// It's used for determining which blob dims are sliced, because Axes input are 
 	const CFastArray<TBlobDim, 8>& TensorLayout() const { return tensorLayout; }
 	CFastArray<TBlobDim, 8>& TensorLayout() { return tensorLayout; }
 
@@ -54,7 +71,7 @@ private:
 	int getEnd( int index, int dimSize ) const;
 	int getStep( int index ) const;
 	CBlobDesc sliceDesc( const CBlobDesc& inputDesc ) const;
-	CPtr<CDnnBlob> sliceBlob( const CDnnBlob& inputBlob ) const;
+	void sliceBlob( const CDnnBlob& inputBlob, CDnnBlob& output ) const;
 };
 
 } // namespace NeoML
