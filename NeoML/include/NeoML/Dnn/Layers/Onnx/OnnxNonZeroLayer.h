@@ -21,6 +21,10 @@ limitations under the License.
 namespace NeoML {
 
 // Layer which emulates Onnx NonZero operator
+// Accepts shape-blob of any data type as the only input
+// Returns usual integer blob as the only output
+// BD_BatchLength of output is equal to the number of nonzero elements
+// BD_BathcWidth of output is equal to the number of dimensions of input Onnx tensor
 class NEOML_API COnnxNonZeroLayer : public COnnxLayerBase {
 	NEOML_DNN_LAYER( COnnxNonZeroLayer )
 public:

@@ -20,6 +20,7 @@ limitations under the License.
 
 namespace NeoML {
 
+// Calculates output size based on the input blob of data type T
 template<class T>
 static CBlobDesc onnxNonZeroOutputSize( const CFastArray<TBlobDim, 8>& inputLayout, CDnnBlob& input )
 {
@@ -37,6 +38,7 @@ static CBlobDesc onnxNonZeroOutputSize( const CFastArray<TBlobDim, 8>& inputLayo
 	return result;
 }
 
+// Calculates output data based on the input blob of data type T
 template<class T>
 static void onnxNonZeroImpl( const CFastArray<TBlobDim, 8>& inputLayout, CDnnBlob& input, CDnnBlob& output )
 {
@@ -84,10 +86,6 @@ void COnnxNonZeroLayer::CalculateShapes()
 
 void COnnxNonZeroLayer::RunOnce()
 {
-	if( inputShapeBlobs[0] != nullptr ) {
-		return;
-	}
-
 	if( inputBlobs[0]->GetDataType() == CT_Float ) {
 		onnxNonZeroImpl<float>( inputLayout, *inputShapeBlobs[0], *outputBlobs[0] );
 	} else {
