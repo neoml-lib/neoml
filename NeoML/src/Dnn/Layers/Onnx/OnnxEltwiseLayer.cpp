@@ -20,6 +20,8 @@ limitations under the License.
 
 namespace NeoML {
 
+// Checks whether operation is arithmetics or logical
+// Where operation is considered logical
 static bool isOnnxEltwiseLogicalOperation( COnnxEltwiseLayer::TOperation operation )
 {
 	static_assert( static_cast<int>( COnnxEltwiseLayer::TOperation::Count ) == 10, "TOperation::Count != 10" );
@@ -31,15 +33,18 @@ static bool isOnnxEltwiseLogicalOperation( COnnxEltwiseLayer::TOperation operati
 		|| operation == COnnxEltwiseLayer::TOperation::Where;
 }
 
+// Returns the type of inputs during the calculation
 static TBlobType getOnnxEltwiseOperationType( const CObjectArray<CDnnBlob>& inputs )
 {
 	NeoPresume( !inputs.IsEmpty() );
 	if( inputs.Size() == 1 ) {
 		return inputs[0]->GetDataType();
 	}
+	// We try to not use the first input as an indicator because of Where operation (mask in Where is always integer)
 	return inputs[1]->GetDataType();
 }
 
+// Calculates the output desc of eltwise operation including all the broadcasts required
 static CBlobDesc getOnnxEltwiseOutputDesc( COnnxEltwiseLayer::TOperation operation, const CArray<CBlobDesc>& inputDescs )
 {
 	NeoPresume( !inputDescs.IsEmpty() );
@@ -64,6 +69,7 @@ static CBlobDesc getOnnxEltwiseOutputDesc( COnnxEltwiseLayer::TOperation operati
 	return resultDesc;
 }
 
+// Performs arithmetic operation over the blobs of data type T
 template<class T>
 static void onnxArithmeticOperationImpl( COnnxEltwiseLayer::TOperation operation,
 	CObjectArray<CDnnBlob>& inputs, CDnnBlob& output )
@@ -76,6 +82,7 @@ static void onnxArithmeticOperationImpl( COnnxEltwiseLayer::TOperation operation
 	for( int inputIndex = 1; inputIndex < inputs.Size(); ++inputIndex ) {
 		CPtr<CDnnBlob> buff = nullptr;
 		CPtr<CDnnBlob> broadcastedInput = inputs[inputIndex];
+		// Allocate broadcast buffef only if needed
 		if( !inputs[inputIndex]->HasEqualDimensions( &output ) ) {
 			if( buff == nullptr ) {
 				buff = output.GetClone();
@@ -108,7 +115,8 @@ static void onnxArithmeticOperationImpl( COnnxEltwiseLayer::TOperation operation
 	}
 }
 
-static CPtr<CDnnBlob> prepareOnnxLogicalInput( CDnnBlob& input, const CDnnBlob& output )
+// Broadcasts input for logical operation (if needed)
+static CPtr<CDnnBlob> broadcastOnnxLogicalInput( CDnnBlob& input, const CDnnBlob& output )
 {
 	if( input.HasEqualDimensions( &output ) ) {
 		return &input;
@@ -126,14 +134,15 @@ static CPtr<CDnnBlob> prepareOnnxLogicalInput( CDnnBlob& input, const CDnnBlob& 
 	return preparedInput;
 }
 
+// Performs logical operation over the blobs of data type T
 template<class T>
 static void onnxLogicalOperationImpl( COnnxEltwiseLayer::TOperation operation,
 	CObjectArray<CDnnBlob>& inputs, CDnnBlob& output )
 {
 	NeoPresume( inputs.Size() == 2 || inputs.Size() == 3 );
-	CPtr<CDnnBlob> firstArg = prepareOnnxLogicalInput( *inputs[0], output );
-	CPtr<CDnnBlob> secondArg = prepareOnnxLogicalInput( *inputs[1], output );
-	CPtr<CDnnBlob> thirdArg = inputs.Size() == 2 ? nullptr : prepareOnnxLogicalInput( *inputs[2], output );
+	CPtr<CDnnBlob> firstArg = broadcastOnnxLogicalInput( *inputs[0], output );
+	CPtr<CDnnBlob> secondArg = broadcastOnnxLogicalInput( *inputs[1], output );
+	CPtr<CDnnBlob> thirdArg = inputs.Size() == 2 ? nullptr : broadcastOnnxLogicalInput( *inputs[2], output );
 
 	IMathEngine& mathEngine = output.GetMathEngine();
 	const int dataSize = output.GetDataSize();
@@ -172,6 +181,7 @@ static void onnxLogicalOperationImpl( COnnxEltwiseLayer::TOperation operation,
 	}
 }
 
+// Performs eltwise operation over the blobs of data type T
 template<class T>
 static void onnxEltwiseOperationImpl( COnnxEltwiseLayer::TOperation operation,
 	CObjectArray<CDnnBlob>& inputs, CDnnBlob& output )
@@ -183,6 +193,8 @@ static void onnxEltwiseOperationImpl( COnnxEltwiseLayer::TOperation operation,
 
 	onnxArithmeticOperationImpl<T>( operation, inputs, output );
 }
+
+//---------------------------------------------------------------------------------------------------------------------
 
 static const int OnnxEltwiseLayerVersion = 0;
 
@@ -200,6 +212,7 @@ void COnnxEltwiseLayer::CalculateShapes()
 	CheckArchitecture( GetOutputCount() == 1, GetPath(), "arithmetic operator with multiple outputs" );
 
 	if( inputShapeBlobs[0] != nullptr ) {
+		// The output is a shape-blob, that's why it's needed to be calculated here
 		CArray<CBlobDesc> inputShapeDescs;
 		for( int i = 0; i < inputShapeBlobs.Size(); ++i ) {
 			CheckArchitecture( inputShapeBlobs[i] != nullptr, GetPath(), "Missing shape blob" );
@@ -208,12 +221,14 @@ void COnnxEltwiseLayer::CalculateShapes()
 		CBlobDesc outputDesc = getOnnxEltwiseOutputDesc( operation, inputShapeDescs );
 		outputShapeBlobs[0] = CDnnBlob::CreateBlob( inputShapeBlobs[0]->GetMathEngine(),
 			outputDesc.GetDataType(), outputDesc );
+
 		if( getOnnxEltwiseOperationType( inputShapeBlobs ) == CT_Float ) {
 			onnxEltwiseOperationImpl<float>( operation, inputShapeBlobs, *outputShapeBlobs[0] );
 		} else {
 			onnxEltwiseOperationImpl<int>( operation, inputShapeBlobs, *outputShapeBlobs[0] );
 		}
 	} else {
+		// The output will be calculated during RunOnce
 		outputDescs[0] = getOnnxEltwiseOutputDesc( operation, inputDescs );
 		EnableInPlace( inputDescs[0].HasEqualDimensions( outputDescs[0] )
 			&& inputDescs[0].GetDataType() == outputDescs[0].GetDataType() && InputsMayBeOverwritten() );

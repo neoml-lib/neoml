@@ -21,20 +21,27 @@ limitations under the License.
 namespace NeoML {
 
 // Layer which emulates basic Onnx arithmetic operators operator over shape tensors
+// Expects all inputs to be blobs or shape-blobs simultaneously
+// Returns shape-blob or blob based on inputs
 class NEOML_API COnnxEltwiseLayer : public COnnxLayerBase {
 	NEOML_DNN_LAYER( COnnxEltwiseLayer )
 public:
 	enum class TOperation : char {
-		Add,
-		Sub,
-		Mul,
-		Div,
+		// Arithmetics, any number of inputs, return data type is the same as input datatype
+		Add, // +
+		Sub, // -
+		Mul, // *
+		Div, // /
 
+		// Comparison, 2 inputs, return data type is always integere
 		Less,
 		Greater,
 		Equal,
 		LessOrEqual,
 		GreaterOrEqual,
+
+		// Masking, 3 inputs, first input is integer, second and third are of the same data type
+		// return type is equal to type of second and third inputs
 		Where,
 
 		Count
