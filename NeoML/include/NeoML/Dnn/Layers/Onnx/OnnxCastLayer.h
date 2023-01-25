@@ -21,6 +21,8 @@ limitations under the License.
 namespace NeoML {
 
 // Layer which emulates Onnx Cast operator
+// Takes blob or shape-blob from single input and returns blob or shape-blob
+// converted to OutputType as the only output
 class NEOML_API COnnxCastLayer : public COnnxLayerBase {
 	NEOML_DNN_LAYER( COnnxCastLayer )
 public:
@@ -34,7 +36,6 @@ public:
 	TBlobType GetOutputType() const { return outputType; }
 
 protected:
-	// CBaseLayer methods
 	void CalculateShapes() override;
 	void RunOnce() override;
 
