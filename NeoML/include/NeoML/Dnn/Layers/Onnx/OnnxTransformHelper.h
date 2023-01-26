@@ -35,7 +35,7 @@ public:
 
 protected:
 	void CalculateShapes() override;
-	void RunOnce();
+	void RunOnce() override;
 
 private:
 	CFastArray<TBlobDim, 8> transformInfo;
