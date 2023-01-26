@@ -56,7 +56,7 @@ void CSplitOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorAr
 
 	CPtr<COnnxSplitLayer> splitLayer = new COnnxSplitLayer( dnn.GetMathEngine() );
 	splitLayer->SetName( Name() );
-	splitLayer->SetDim( inputs[0]->Layout()[axis] );
+	splitLayer->SetSplitDim( inputs[0]->Layout()[axis] );
 	dnn.AddLayer( *splitLayer );
 	outputs.SetBufferSize( OutputCount() );
 

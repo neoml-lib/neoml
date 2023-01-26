@@ -38,8 +38,8 @@ public:
 
 	void Serialize( CArchive& archive );
 
-	TBlobDim GetDim() const { return splitDim; }
-	void SetDim( TBlobDim newDim ) { splitDim = newDim; }
+	TBlobDim GetSplitDim() const { return splitDim; }
+	void SetSplitDim( TBlobDim newDim ) { splitDim = newDim; }
 
 protected:
 	void CalculateShapes() override;
