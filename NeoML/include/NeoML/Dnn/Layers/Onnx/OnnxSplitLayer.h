@@ -21,6 +21,15 @@ limitations under the License.
 namespace NeoML {
 
 // Layer which emulates Onnx Split operator
+// The dimension along which split is performed must be set via SetDim.
+// It may have 1 or 2 inputs
+//    Data - blob or shape-blob of any data type and size
+//    [optional] Sizes - integer shape-blob with number of elements equal to the number of outputs
+//                 If missing, the blob will be split evenly into OutputCount() parts
+// Each output will contain blob or shape-blob of the same data type as Data
+// If Sizes input is present, splitDim of i'th output is equal to the Sizes[i]
+// Otherwise splitDim of i'th output is equal to Data.DimSize(splitDim) / OutputCount
+// Other dimensions of output are equal to the corresponding dimensions of Data input
 class NEOML_API COnnxSplitLayer : public COnnxLayerBase {
 	NEOML_DNN_LAYER( COnnxSplitLayer )
 public:

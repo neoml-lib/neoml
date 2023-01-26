@@ -68,11 +68,9 @@ void COnnxSplitLayer::CalculateShapes()
 
 void COnnxSplitLayer::RunOnce()
 {
-	if( inputShapeBlobs[0] != nullptr ) {
-		return;
+	if( inputShapeBlobs[0] == nullptr ) {
+		CDnnBlob::SplitByDim( MathEngine(), splitDim, inputBlobs[0], outputBlobs );
 	}
-
-	CDnnBlob::SplitByDim( MathEngine(), splitDim, inputBlobs[0], outputBlobs );
 }
 
 } // namespace NeoML

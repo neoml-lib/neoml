@@ -16,25 +16,7 @@ limitations under the License.
 #include <common.h>
 #pragma hdrstop
 
-#include <NeoML/Dnn/Layers/Onnx/OnnxCastLayer.h>
-#include <NeoML/Dnn/Layers/Onnx/OnnxConcatLayer.h>
-#include <NeoML/Dnn/Layers/Onnx/OnnxConstantOfShapeLayer.h>
-#include <NeoML/Dnn/Layers/Onnx/OnnxConvTransposeLayer.h>
-#include <NeoML/Dnn/Layers/Onnx/OnnxEltwiseLayer.h>
-#include <NeoML/Dnn/Layers/Onnx/OnnxExpandLayer.h>
-#include <NeoML/Dnn/Layers/Onnx/OnnxGatherLayer.h>
-#include <NeoML/Dnn/Layers/Onnx/OnnxNonZeroLayer.h>
-#include <NeoML/Dnn/Layers/Onnx/OnnxOneHotLayer.h>
-#include <NeoML/Dnn/Layers/Onnx/OnnxRangeLayer.h>
-#include <NeoML/Dnn/Layers/Onnx/OnnxReshapeLayer.h>
-#include <NeoML/Dnn/Layers/Onnx/OnnxResizeLayer.h>
-#include <NeoML/Dnn/Layers/Onnx/OnnxShapeLayer.h>
-#include <NeoML/Dnn/Layers/Onnx/OnnxSliceLayer.h>
-#include <NeoML/Dnn/Layers/Onnx/OnnxSourceHelper.h>
-#include <NeoML/Dnn/Layers/Onnx/OnnxSplitLayer.h>
-#include <NeoML/Dnn/Layers/Onnx/OnnxTransformHelper.h>
-#include <NeoML/Dnn/Layers/Onnx/OnnxTransposeHelper.h>
-#include <NeoML/Dnn/Layers/Onnx/ShapeToBlobLayer.h>
+#include <NeoML/Dnn/Layers/Onnx/OnnxLayers.h>
 
 namespace NeoML {
 

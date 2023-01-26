@@ -20,7 +20,7 @@ limitations under the License.
 
 namespace NeoML {
 
-// Class which provides shape tensor to CDnn
+// Auxiliary layer which provides shape-blob to CDnn
 class NEOML_API COnnxSourceHelper : public COnnxLayerBase {
 	NEOML_DNN_LAYER( COnnxSourceHelper )
 public:

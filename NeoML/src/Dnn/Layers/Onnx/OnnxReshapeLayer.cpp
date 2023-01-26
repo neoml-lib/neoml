@@ -21,6 +21,7 @@ limitations under the License.
 
 namespace NeoML {
 
+// Copies the data into reshaped blob
 static void onnxReshapeImpl( const CDnnBlob& input, CDnnBlob& output )
 {
 	if( input.GetDataType() == CT_Float ) {
@@ -94,12 +95,9 @@ void COnnxReshapeLayer::CalculateShapes()
 
 void COnnxReshapeLayer::RunOnce()
 {
-	if( inputShapeBlobs[0] != nullptr ) {
-		// The layer has already reshaped blob from inputShapeBlobs[0] into outputShapeBlobs[0]
-		return;
+	if( inputShapeBlobs[0] == nullptr ) {
+		onnxReshapeImpl( *inputBlobs[0], *outputBlobs[0] );
 	}
-
-	onnxReshapeImpl( *inputBlobs[0], *outputBlobs[0] );
 }
 
 } // namespace NeoML

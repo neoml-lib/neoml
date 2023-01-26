@@ -22,9 +22,10 @@ namespace NeoML {
 
 // Layer which emulates Onnx Reshape operator
 // It reshapes blob from the first input according to the shape from the second input
-// The first input may be a blob or shape-blob of any data type
-// The second input must be a shape-blob
+// The first input may be a blob or shape-blob of any data type. Its layout is defined via InputLayout()
+// The second input must be a shape-blob, see Shape operator specs for more 
 // The only output contains transformed first input (blob or shape-blob of the same data type)
+// Its layout is defined via OutputLayout()
 class NEOML_API COnnxReshapeLayer : public COnnxLayerBase {
 	NEOML_DNN_LAYER( COnnxReshapeLayer )
 public:

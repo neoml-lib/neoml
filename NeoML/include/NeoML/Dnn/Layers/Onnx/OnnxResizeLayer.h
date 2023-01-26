@@ -21,6 +21,15 @@ limitations under the License.
 namespace NeoML {
 
 // Layer which emulates Onnx Resize operator
+// It is a wrapper around CInterpolationLayer with Onnx-friendly interface
+// It has 2 inputs
+//    Data - an usual float blob
+//           All the dimensions not mentioned in TensorLayout must be 1
+//    NewShape - shape-blob of any data type of total size equal to TensorLayout().Size()
+// The only output contains blob filled with interpolation
+// If NewShape is an integer shape-blob then OutputShape[TensorLayout[i]] == NewShape[i]
+// If NewShape is a float shape-blob then OutputShape[TensorLayout[i]] == NewShape[i] * InputShape[TensorLayout[i]]
+// Output dimensions not mentioned in TensorLayout are equal to 1
 class NEOML_API COnnxResizeLayer : public CInterpolationLayer {
 	NEOML_DNN_LAYER( COnnxResizeLayer )
 public:

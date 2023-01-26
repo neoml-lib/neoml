@@ -22,6 +22,7 @@ limitations under the License.
 
 namespace NeoML {
 
+// Calculates the range length
 template<class T>
 static int calcOnnxRangeOutputSize( const CDnnBlob& startBlob, const CDnnBlob& limitBlob, const CDnnBlob& deltaBlob )
 {
@@ -32,6 +33,7 @@ static int calcOnnxRangeOutputSize( const CDnnBlob& startBlob, const CDnnBlob& l
 	return static_cast<int>( std::max( T( std::ceil( ( limit - start ) / delta ) ), T( 0 ) ) );
 }
 
+// Fills output blob with range
 template<class T>
 static void calcOnnxRangeOutput( const CDnnBlob& startBlob, const CDnnBlob& deltaBlob, CDnnBlob& outputBlob )
 {

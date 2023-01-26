@@ -21,6 +21,13 @@ limitations under the License.
 namespace NeoML {
 
 // Layer which emulates Onnx Range operator
+// It takes 3 single-element shape-blobs of the same type as inputs:
+//    Start - the first value in range
+//    Limit - the max value in range (excluding)
+//    Step - the difference between consecutive
+// The only output contains an usual blob filled with range of the same data type as inputs
+// Its BD_BatchLength is equal to max( 0, ceil( ( Limit - Start ) / Delta ) )
+// All the other dimensions are equal to 1
 class NEOML_API COnnxRangeLayer : public COnnxLayerBase {
 	NEOML_DNN_LAYER( COnnxRangeLayer )
 public:

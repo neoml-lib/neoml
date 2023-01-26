@@ -20,14 +20,14 @@ limitations under the License.
 
 namespace NeoML {
 
-// Reinterprets dimensions of inputShapeBlob or inputBlob without any changes to data
+// Reinterprets dimensions of input blob or shape-blob without any changes to data
 class NEOML_API COnnxTransformHelper : public COnnxLayerBase {
 	NEOML_DNN_LAYER( COnnxTransformHelper )
 public:
 	explicit COnnxTransformHelper( IMathEngine& mathEngine );
 
-	// Puts the size of inputDim from to outputDim to
-	// If from == BD_Count then the following output dimension will be 1 (default)
+	// Puts the size of input's inputDim to output's outputDim
+	// If inputDim == BD_Count then the following outputDim will be set to 1 (default)
 	void SetRule( TBlobDim inputDim, TBlobDim outputDim ) { transformInfo[outputDim] = inputDim; }
 	TBlobDim GetRule( TBlobDim outputDim ) const { return transformInfo[outputDim]; }
 

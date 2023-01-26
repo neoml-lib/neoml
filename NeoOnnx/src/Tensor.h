@@ -113,13 +113,13 @@ class CUserTensor : public CTensorBase {
 public:
 	CUserTensor( const CTensorLayout& layout, const CLayerOutput& output );
 
-	// Information about corresponding layer and its' output index
+	// Information about corresponding layer and its output index
 	const CLayerOutput& LayerOutput() const { return layerOutput; }
 	CBaseLayer* Layer() const { return layerOutput.Layer; }
 	int OutputIndex() const { return layerOutput.OutputIndex; }
 
 private:
-	// Information about corresponding layer and its' output index
+	// Information about corresponding layer and its output index
 	const CLayerOutput layerOutput;
 };
 
@@ -140,7 +140,7 @@ public:
 
 	const CTensorShape& Shape() const { return shape; }
 
-	// Information about corresponding layer and its' output index
+	// Information about corresponding layer and its output index
 	const CLayerOutput& LayerOutput() const { return layerOutput; }
 	CBaseLayer* Layer() const { return layerOutput.Layer; }
 	int OutputIndex() const { return layerOutput.OutputIndex; }
@@ -148,7 +148,7 @@ public:
 private:
 	// The shape of this tensor (!!!not the shape contained in tensor!!!)
 	CTensorShape shape;
-	// Information about corresponding layer and its' output index
+	// Information about corresponding layer and its output index
 	const CLayerOutput layerOutput;
 };
 

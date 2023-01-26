@@ -21,6 +21,7 @@ limitations under the License.
 namespace NeoML {
 
 // Layer which emulates Onnx Concat operator
+// Takes multiple shape-blobs (or multiple blobs) from inputs and returns their concatenation as its only output
 class NEOML_API COnnxConcatLayer : public COnnxLayerBase {
 	NEOML_DNN_LAYER( COnnxConcatLayer )
 public:
