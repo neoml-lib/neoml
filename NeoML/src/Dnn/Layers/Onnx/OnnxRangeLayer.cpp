@@ -47,7 +47,6 @@ static void calcOnnxRangeOutput( const CDnnBlob& startBlob, const CDnnBlob& delt
 	}
 }
 
-
 //---------------------------------------------------------------------------------------------------------------------
 
 static const int OnnxRangeLayerVersion = 0;
