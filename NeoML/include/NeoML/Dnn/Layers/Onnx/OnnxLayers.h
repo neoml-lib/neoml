@@ -30,9 +30,9 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/Onnx/OnnxReshapeLayer.h>
 #include <NeoML/Dnn/Layers/Onnx/OnnxResizeLayer.h>
 #include <NeoML/Dnn/Layers/Onnx/OnnxShapeLayer.h>
+#include <NeoML/Dnn/Layers/Onnx/OnnxShapeToBlobLayer.h>
 #include <NeoML/Dnn/Layers/Onnx/OnnxSliceLayer.h>
 #include <NeoML/Dnn/Layers/Onnx/OnnxSourceHelper.h>
 #include <NeoML/Dnn/Layers/Onnx/OnnxSplitLayer.h>
 #include <NeoML/Dnn/Layers/Onnx/OnnxTransformHelper.h>
 #include <NeoML/Dnn/Layers/Onnx/OnnxTransposeHelper.h>
-#include <NeoML/Dnn/Layers/Onnx/ShapeToBlobLayer.h>

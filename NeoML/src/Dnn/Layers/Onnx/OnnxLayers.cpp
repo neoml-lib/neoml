@@ -35,12 +35,12 @@ REGISTER_NEOML_LAYER( COnnxRangeLayer, "NeoMLDnnOnnxRangeLayer" )
 REGISTER_NEOML_LAYER( COnnxReshapeLayer, "NeoMLDnnOnnxReshapeLayer" )
 REGISTER_NEOML_LAYER( COnnxResizeLayer, "NeoMLDnnOnnxResizeLayer" )
 REGISTER_NEOML_LAYER( COnnxShapeLayer, "NeoMLDnnOnnxShapeLayer" )
+REGISTER_NEOML_LAYER( COnnxShapeToBlobLayer, "NeoMLDnnOnnxShapeToBlobLayer" )
 REGISTER_NEOML_LAYER( COnnxSliceLayer, "NeoMLDnnOnnxSliceLayer" )
 REGISTER_NEOML_LAYER( COnnxSourceHelper, "NeoMLDnnOnnxSourceHelper" )
 REGISTER_NEOML_LAYER( COnnxSplitLayer, "NeoMLDnnOnnxSplitLayer" )
 REGISTER_NEOML_LAYER( COnnxTransformHelper, "NeoMLDnnOnnxTransformHelper" )
 REGISTER_NEOML_LAYER( COnnxTransposeHelper, "NeoMLDnnOnnxTransposeHelper" )
-REGISTER_NEOML_LAYER( CShapeToBlobLayer, "NeoMLDnnShapeToBlobLayer" )
 
 }
 

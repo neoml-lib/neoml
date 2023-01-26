@@ -24,7 +24,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/Onnx/OnnxSourceHelper.h>
 #include <NeoML/Dnn/Layers/Onnx/OnnxTransformHelper.h>
 #include <NeoML/Dnn/Layers/Onnx/OnnxTransposeHelper.h>
-#include <NeoML/Dnn/Layers/Onnx/ShapeToBlobLayer.h>
+#include <NeoML/Dnn/Layers/Onnx/OnnxShapeToBlobLayer.h>
 
 namespace NeoOnnx {
 
@@ -607,7 +607,7 @@ CPtr<const CUserTensor> AsUserTensor( const CTensorBase& tensor, const CString& 
 
 	if( tensor.Type() == TTensorType::Shape ) {
 		// Convert shape to usual blob via special layer
-		CPtr<CShapeToBlobLayer> conversionLayer = new CShapeToBlobLayer( dnn.GetMathEngine() );
+		CPtr<COnnxShapeToBlobLayer> conversionLayer = new COnnxShapeToBlobLayer( dnn.GetMathEngine() );
 		conversionLayer->SetName( layerName );
 		const CShapeTensor& input = dynamic_cast<const CShapeTensor&>( tensor );
 		conversionLayer->Connect( 0, *input.Layer(), input.OutputIndex() );

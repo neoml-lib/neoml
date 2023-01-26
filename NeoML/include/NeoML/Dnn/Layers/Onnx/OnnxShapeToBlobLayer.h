@@ -21,9 +21,9 @@ limitations under the License.
 namespace NeoML {
 
 // Special layer which takes shape-blob from its only input and returns it as a usual blob
-class NEOML_API CShapeToBlobLayer : public COnnxLayerBase {
+class NEOML_API COnnxShapeToBlobLayer : public COnnxLayerBase {
 public:
-	explicit CShapeToBlobLayer( IMathEngine& mathEngine ) : COnnxLayerBase( mathEngine, "ShapeToBlobLayer" ) {}
+	explicit COnnxShapeToBlobLayer( IMathEngine& mathEngine ) : COnnxLayerBase( mathEngine, "OnnxShapeToBlobLayer" ) {}
 
 	void Serialize( CArchive& archive );
 

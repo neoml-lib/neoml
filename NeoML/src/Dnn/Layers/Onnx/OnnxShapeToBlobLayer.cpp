@@ -16,20 +16,20 @@ limitations under the License.
 #include <common.h>
 #pragma hdrstop
 
-#include <NeoML/Dnn/Layers/Onnx/ShapeToBlobLayer.h>
+#include <NeoML/Dnn/Layers/Onnx/OnnxShapeToBlobLayer.h>
 #include <NeoML/Dnn/Layers/Onnx/OnnxLayerBase.h>
 
 namespace NeoML {
 
-static const int ShapeToBlobLayerVersion = 0;
+static const int OnnxShapeToBlobLayerVersion = 0;
 
-void CShapeToBlobLayer::Serialize( CArchive& archive )
+void COnnxShapeToBlobLayer::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion( ShapeToBlobLayerVersion );
+	archive.SerializeVersion( OnnxShapeToBlobLayerVersion );
 	COnnxLayerBase::Serialize( archive );
 }
 
-void CShapeToBlobLayer::CalculateShapes()
+void COnnxShapeToBlobLayer::CalculateShapes()
 {
 	CheckArchitecture( GetInputCount() == 1, GetPath(), "Layer must have 1 input" );
 	CheckArchitecture( GetOutputCount() == 1, GetPath(), "Layer must have 1 output" );
@@ -38,7 +38,7 @@ void CShapeToBlobLayer::CalculateShapes()
 	outputDescs[0] = inputShapeBlobs[0]->GetDesc();
 }
 
-void CShapeToBlobLayer::RunOnce()
+void COnnxShapeToBlobLayer::RunOnce()
 {
 	outputBlobs[0]->CopyFrom( inputShapeBlobs[0] );
 }
