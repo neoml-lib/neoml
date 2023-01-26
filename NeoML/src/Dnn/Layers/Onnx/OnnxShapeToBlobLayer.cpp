@@ -34,7 +34,6 @@ void COnnxShapeToBlobLayer::CalculateShapes()
 	CheckArchitecture( GetInputCount() == 1, GetPath(), "Layer must have 1 input" );
 	CheckArchitecture( GetOutputCount() == 1, GetPath(), "Layer must have 1 output" );
 	CheckArchitecture( inputShapeBlobs[0] != nullptr, GetPath(), "Input must contain shape" );
-	const COnnxLayerBase* shapeProvider = dynamic_cast<const COnnxLayerBase*>( GetInputLayer( 0 ) );
 	outputDescs[0] = inputShapeBlobs[0]->GetDesc();
 }
 

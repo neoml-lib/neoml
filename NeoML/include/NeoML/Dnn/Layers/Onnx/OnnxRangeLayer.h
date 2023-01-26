@@ -33,7 +33,7 @@ class NEOML_API COnnxRangeLayer : public COnnxLayerBase {
 public:
 	explicit COnnxRangeLayer( IMathEngine& mathEngine ) : COnnxLayerBase( mathEngine, "OnnxRangeLayer" ) {}
 
-	void Serialize( CArchive& archive );
+	void Serialize( CArchive& archive ) override;
 
 protected:
 	void CalculateShapes() override;

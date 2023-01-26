@@ -30,7 +30,7 @@ public:
 	void SetDims( TBlobDim firstDim, TBlobDim secondDim );
 	void GetDims( TBlobDim& firstDim, TBlobDim& secondDim ) const;
 
-	void Serialize( CArchive& archive );
+	void Serialize( CArchive& archive ) override;
 
 protected:
 	void CalculateShapes() override;

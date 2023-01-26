@@ -41,7 +41,7 @@ public:
 	void SetGatherDim( TBlobDim dim ) { gatherDim = dim; }
 	TBlobDim GetGatherDim() const { return gatherDim; }
 
-	void Serialize( CArchive& archive );
+	void Serialize( CArchive& archive ) override;
 
 protected:
 	void CalculateShapes() override;

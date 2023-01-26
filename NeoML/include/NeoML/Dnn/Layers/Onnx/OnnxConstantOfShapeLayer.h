@@ -34,7 +34,7 @@ public:
 	void SetValue( const CDnnBlob& blob );
 	const CDnnBlob& GetValue() const { return *value; }
 
-	void Serialize( CArchive& archive );
+	void Serialize( CArchive& archive ) override;
 
 protected:
 	void CalculateShapes() override;

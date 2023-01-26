@@ -37,7 +37,7 @@ public:
 	const CFastArray<TBlobDim, 8>& TensorLayout() const { return tensorLayout; }
 	CFastArray<TBlobDim, 8>& TensorLayout() { return tensorLayout; }
 
-	void Serialize( CArchive& archive );
+	void Serialize( CArchive& archive ) override;
 
 protected:
 	void CalculateShapes() override;

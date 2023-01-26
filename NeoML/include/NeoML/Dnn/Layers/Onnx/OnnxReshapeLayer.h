@@ -43,7 +43,7 @@ public:
 	const CFastArray<TBlobDim, 8>& OutputLayout() const { return outputLayout; }
 	CFastArray<TBlobDim, 8>& OutputLayout() { return outputLayout; }
 
-	void Serialize( CArchive& archive );
+	void Serialize( CArchive& archive ) override;
 
 protected:
 	void CalculateShapes() override;

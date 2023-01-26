@@ -55,7 +55,7 @@ public:
 	// This can be called during the CBaseLayer::Reshape of layers after this one
 	bool DoesOutputHaveElements() const { return outputHasElements; }
 
-	void Serialize( CArchive& archive );
+	void Serialize( CArchive& archive ) override;
 
 protected:
 	void CalculateShapes() override;

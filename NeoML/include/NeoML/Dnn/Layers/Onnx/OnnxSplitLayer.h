@@ -36,7 +36,7 @@ public:
 	explicit COnnxSplitLayer( IMathEngine& mathEngine ) : COnnxLayerBase( mathEngine, "OnnxSplitLayer" ),
 		splitDim( BD_Count ) {}
 
-	void Serialize( CArchive& archive );
+	void Serialize( CArchive& archive ) override;
 
 	TBlobDim GetSplitDim() const { return splitDim; }
 	void SetSplitDim( TBlobDim newDim ) { splitDim = newDim; }

@@ -32,7 +32,7 @@ public:
 	void SetConcatDim( TBlobDim dim ) { concatDim = dim; }
 	TBlobDim GetConcatDim() const { return concatDim; }
 
-	void Serialize( CArchive& archive );
+	void Serialize( CArchive& archive ) override;
 
 protected:
 	void CalculateShapes() override;

@@ -33,7 +33,7 @@ public:
 	CFastArray<TBlobDim, 8>& InputLayout() { return inputLayout; }
 	const CFastArray<TBlobDim, 8>& InputLayout() const { return inputLayout; }
 
-	void Serialize( CArchive& archive );
+	void Serialize( CArchive& archive ) override;
 
 protected:
 	void CalculateShapes() override;

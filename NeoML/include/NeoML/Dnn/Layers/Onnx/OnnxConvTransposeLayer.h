@@ -47,7 +47,7 @@ public:
 	CFastArray<int, 8>& OutputShape() { return outputShape; }
 	const CFastArray<int, 8>& OutputShape() const { return outputShape; }
 
-	void Serialize( CArchive& archive );
+	void Serialize( CArchive& archive ) override;
 
 protected:
 	void Reshape() override;

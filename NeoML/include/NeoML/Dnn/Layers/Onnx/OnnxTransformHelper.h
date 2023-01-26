@@ -31,7 +31,7 @@ public:
 	void SetRule( TBlobDim inputDim, TBlobDim outputDim ) { transformInfo[outputDim] = inputDim; }
 	TBlobDim GetRule( TBlobDim outputDim ) const { return transformInfo[outputDim]; }
 
-	void Serialize( CArchive& archive );
+	void Serialize( CArchive& archive ) override;
 
 protected:
 	void CalculateShapes() override;

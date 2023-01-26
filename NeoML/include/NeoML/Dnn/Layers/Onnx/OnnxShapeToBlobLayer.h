@@ -25,7 +25,7 @@ class NEOML_API COnnxShapeToBlobLayer : public COnnxLayerBase {
 public:
 	explicit COnnxShapeToBlobLayer( IMathEngine& mathEngine ) : COnnxLayerBase( mathEngine, "OnnxShapeToBlobLayer" ) {}
 
-	void Serialize( CArchive& archive );
+	void Serialize( CArchive& archive ) override;
 
 protected:
 	void CalculateShapes() override;

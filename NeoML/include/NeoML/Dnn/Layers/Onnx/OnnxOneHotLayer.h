@@ -36,7 +36,7 @@ class NEOML_API COnnxOneHotLayer : public COnnxLayerBase {
 public:
 	explicit COnnxOneHotLayer( IMathEngine& mathEngine ) : COnnxLayerBase( mathEngine, "OnnxOneHotLayer" ) {}
 
-	void Serialize( CArchive& archive );
+	void Serialize( CArchive& archive ) override;
 
 private:
 	void CalculateShapes() override;
