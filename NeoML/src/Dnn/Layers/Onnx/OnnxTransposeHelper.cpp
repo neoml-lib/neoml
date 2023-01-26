@@ -20,7 +20,8 @@ limitations under the License.
 
 namespace NeoML {
 
-static CBlobDesc getTransposedDesc( const CBlobDesc& inputDesc, TBlobDim firstDim, TBlobDim secondDim )
+// Calculates output size of Onnx transpose helper
+static CBlobDesc calcOnnxTransposeHelperDesc( const CBlobDesc& inputDesc, TBlobDim firstDim, TBlobDim secondDim )
 {
 	CBlobDesc outputDesc = inputDesc;
 	const int firstDimSize = inputDesc.DimSize( firstDim );
@@ -67,11 +68,11 @@ void COnnxTransposeHelper::Serialize( CArchive& archive )
 void COnnxTransposeHelper::CalculateShapes()
 {
 	if( inputShapeBlobs[0] == nullptr ) {
-		outputDescs[0] = getTransposedDesc( inputDescs[0], dims[0], dims[1] );
+		outputDescs[0] = calcOnnxTransposeHelperDesc( inputDescs[0], dims[0], dims[1] );
 		return;
 	}
 
-	CBlobDesc outputDesc = getTransposedDesc( inputShapeBlobs[0]->GetDesc(), dims[0], dims[1] );
+	CBlobDesc outputDesc = calcOnnxTransposeHelperDesc( inputShapeBlobs[0]->GetDesc(), dims[0], dims[1] );
 	outputShapeBlobs[0] = CDnnBlob::CreateBlob( inputShapeBlobs[0]->GetMathEngine(), outputDesc );
 	outputShapeBlobs[0]->TransposeFrom( inputShapeBlobs[0], dims[0], dims[1] );
 }

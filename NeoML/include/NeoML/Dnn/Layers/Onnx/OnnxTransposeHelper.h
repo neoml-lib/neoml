@@ -20,7 +20,7 @@ limitations under the License.
 
 namespace NeoML {
 
-// Swaps 2 dimensions of inputShapeBlob (with data rearranging)
+// Swaps 2 dimensions of input blob or shape-blob (with data rearranging)
 class NEOML_API COnnxTransposeHelper : public COnnxLayerBase {
 	NEOML_DNN_LAYER( COnnxTransposeHelper )
 public:
