@@ -46,6 +46,8 @@ void CCastOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArr
 
 	CLayerOutput layerOutput;
 	CPtr<const CShapeTensor> inputShapeTensor = nullptr;
+
+	// COnnxCastLayer works with both Shape tensors and User tensors
 	if( HasUserInput( inputs ) ) {
 		layerOutput = AsUserTensor( *inputs[0], Name() + "_Source", dnn )->LayerOutput();
 	} else {
@@ -59,7 +61,9 @@ void CCastOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArr
 	cast->Connect( 0, *layerOutput.Layer, layerOutput.OutputIndex );
 	dnn.AddLayer( *cast );
 
-	if( HasUserInput( inputs ) ) {
+	// COnnxCastLayer returns blob when input is a blob
+	// and it returns shape-blob when input is a shape-blob
+	if( inputShapeTensor == nullptr ) {
 		outputs.Add( new CUserTensor( inputs[0]->Layout(), CLayerOutput( cast, 0 ) ) );
 	} else {
 		outputs.Add( new CShapeTensor( inputs[0]->Layout(), inputShapeTensor->Shape(), CLayerOutput( cast, 0 ) ) );
