@@ -125,7 +125,6 @@ void CBatchNormalizationOperator::AddLayers( const CTensorArray& inputs, CDnn& d
 	// The number of required inputs of BatchNormalization operator
 	const int batchNormReqInputCount = 5;
 	for( int inputIndex = 1; inputIndex < batchNormReqInputCount; ++inputIndex ) {
-		CheckOnnxProtocol( inputs[inputIndex] != nullptr, "input can't be optional", *this );
 		CheckNeoOnnxSupport( inputs[inputIndex]->Type() == TTensorType::Data,
 			"non-constant weights", *this );
 		CheckOnnxProtocol( inputs[inputIndex]->DimCount() == 1, "weights must be 1-dimensional", *this );
