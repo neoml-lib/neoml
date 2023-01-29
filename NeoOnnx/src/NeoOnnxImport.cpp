@@ -98,65 +98,6 @@ static void processOperator( const COperator& op, CTensorCache& tensors, CDnn& d
 		const CString& outputName = op.OutputName( outputIndex );
 		CheckOnnxProtocol( !tensors.Has( outputName ), "Output already exist: " + outputName );
 		tensors.Add( outputName, outputs[outputIndex] );
-
-// #define ONNX_DEBUG_LOG
-#ifdef ONNX_DEBUG_LOG
-		::printf( "%s", static_cast<const char*>( outputName ) );
-		if( outputs[outputIndex] == nullptr ) {
-			::printf( "\tNULL" );
-		} else {
-			const CTensorBase& output = *outputs[outputIndex];
-			::printf( "\t%s", output.Type() == TTensorType::Data ? "DATA" :
-				( output.Type() == TTensorType::Shape ? "SHAPE" : "USER" ) );
-			if( output.Type() != TTensorType::User ) {
-				::printf( "\t[" );
-				if( output.DimCount() > 0 ) {
-					if( output.Type() == TTensorType::Shape ) {
-						const CShapeTensor& outputShapeTensor = dynamic_cast<const CShapeTensor&>( output );
-						::printf( "%d", outputShapeTensor.Shape()[0] );
-						for( int dimIndex = 1; dimIndex < output.DimCount(); ++dimIndex ) {
-							::printf( ",%d", outputShapeTensor.Shape()[dimIndex] );
-						}
-					} else {
-						const CDataTensor& outputDataTensor = dynamic_cast<const CDataTensor&>( output );
-						::printf( "%d", outputDataTensor.DimSize( 0 ) );
-						for( int dimIndex = 1; dimIndex < output.DimCount(); ++dimIndex ) {
-							::printf( ",%d", outputDataTensor.DimSize( dimIndex ) );
-						}
-
-					}
-				}
-				::printf( "]" );
-			}
-			const char* neomlDimNames[BD_Count] = { "BL", "BW", "LS", "H", "W", "D", "C" };
-			::printf( "\t[" );
-			if( output.DimCount() > 0 ) {
-				::printf( "%s", neomlDimNames[output.Layout()[0]] );
-				for( int dimIndex = 1; dimIndex < output.DimCount(); ++dimIndex ) {
-					::printf( ",%s", neomlDimNames[output.Layout()[dimIndex]] );
-				}
-			}
-			::printf( "]" );
-			if( output.Type() == TTensorType::Data ) {
-				const CDnnBlob& blob = *dynamic_cast<const CDataTensor&>( output ).Data();
-				::printf( blob.GetDataType() == CT_Float ? "\tF{" : "\tI{" );
-				if( blob.GetDataType() == CT_Float ) {
-					::printf( "%f", blob.GetData().GetValue() );
-					for( int i = 1; i < std::min<int>( 5, blob.GetDataSize() ); ++i ) {
-						::printf( ", %f", blob.GetData().GetValueAt( i ) );
-					}
-					::printf( blob.GetDataSize() > 5 ? ", ...}" : "}" );
-				} else {
-					::printf( "%d", blob.GetData<int>().GetValue() );
-					for( int i = 1; i < std::min<int>( 5, blob.GetDataSize() ); ++i ) {
-						::printf( ", %d", blob.GetData<int>().GetValueAt( i ) );
-					}
-					::printf( blob.GetDataSize() > 5 ? ", ...}" : "}" );
-				}
-			}
-		}
-		::printf( "\n" );
-#endif
 	}
 }
 
@@ -212,13 +153,25 @@ static void buildDnnFromGraphProto( const onnx::GraphProto& onnxGraph, int opset
 		CGraphOutput output( onnxOutput );
 		CheckOnnxProtocol( tensors.Has( output.Name() ), "output tensor is missing" );
 		CheckNeoOnnxSupport( tensors[output.Name()] != nullptr, "output tensor can't be calculated" );
-		CPtr<const CUserTensor> userTensor = AsUserTensor( *tensors[output.Name()], output.Name() + "_UserSource", dnn );
+
+		// API obliges us to return output tensors in layout from settings
+		// or (if settings don't have layout) in the IOLayout
+		const CTensorBase& currTensor = *tensors[output.Name()];
+		const int layoutPos = settings.OutputLayouts.GetFirstPosition( output.Name() );
+		const CTensorLayout outputLayout = layoutPos == NotFound ? CTensorLayout::IOLayout( currTensor.DimCount() )
+			: settings.OutputLayouts.GetValue( layoutPos );
+		CPtr<const CTensorBase> convertedTensor = ConvertTensor( currTensor, outputLayout );
+
+		// API obliges us to return CDnn outputs in the corresponding CSinkLayer
+		// Which is why convert any tensor to CUserTensor and connect it to CSinkLayer
+		CPtr<const CUserTensor> userTensor = AsUserTensor( *convertedTensor, output.Name() + "_UserSource", dnn );
 		CPtr<const CSinkLayer> sink;
 		if( settings.OutputLayouts.Has( output.Name() ) ) {
-			sink = output.AddSinkLayer( *userTensor, &settings.OutputLayouts[output.Name()], dnn );
+			sink = output.AddSinkLayer( *userTensor, dnn );
 		} else {
-			sink = output.AddSinkLayer( *userTensor, nullptr, dnn );
+			sink = output.AddSinkLayer( *userTensor, dnn );
 		}
+
 		CImportedModelInfo::COutputInfo& outputInfo = outputs.Append();
 		outputInfo.Name = CString( sink->GetName() );
 	}
