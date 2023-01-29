@@ -59,8 +59,8 @@ void CLstmOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArr
 	// NeoML doesn't support peepholes
 	CheckNeoOnnxSupport( InputCount() <= 7 || inputs[7] == nullptr, "peepholes", *this );
 
-	CPtr<const CUserTensor> inputData = AsUserTensor(
-		*ConvertTensor( *inputs[0], CTensorLayout( { BD_BatchLength, BD_BatchWidth, BD_Channels } ) ),
+	const CTensorLayout neomlLayout( { BD_BatchLength, BD_BatchWidth, BD_Channels } );
+	CPtr<const CUserTensor> inputData = AsUserTensor( *ConvertTensor( *inputs[0], neomlLayout ),
 		Name() + "_Source", dnn );
 
 	IMathEngine& mathEngine = dnn.GetMathEngine();
@@ -75,7 +75,7 @@ void CLstmOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArr
 
 	CBlobDesc blobDesc( CT_Float );
 	blobDesc.SetDimSize( BD_BatchWidth, 4 * hiddenSize );
-	blobDesc.SetDimSize( BD_Channels, inputObjectSize );
+	blobDesc.SetDimSize( BD_Channels, weights->GetDataSize() / blobDesc.BatchWidth() );
 	weights->ReinterpretDimensions( blobDesc );
 	blobDesc.SetDimSize( BD_Channels, hiddenSize );
 	
@@ -106,6 +106,19 @@ void CLstmOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArr
 	}
 
 	lstmLayer->Connect( 0, *inputData->Layer(), inputData->OutputIndex() );
+
+	if( inputs.Size() > 6 && inputs[6] != nullptr ) {
+		CPtr<const CUserTensor> initialC = AsUserTensor( *ConvertTensor( *inputs[6], neomlLayout ),
+			Name() + "_InitialC", dnn );
+		lstmLayer->Connect( 1, *initialC->Layer(), initialC->OutputIndex() );
+	}
+
+	if( inputs.Size() > 5 && inputs[5] != nullptr ) {
+		CPtr<const CUserTensor> initialH = AsUserTensor( *ConvertTensor( *inputs[5], neomlLayout ),
+			Name() + "_InitialH", dnn );
+		lstmLayer->Connect( 2, *initialH->Layer(), initialH->OutputIndex() );
+	}
+
 	dnn.AddLayer( *lstmLayer );
 
 	outputs.Add( new CUserTensor( CTensorLayout( { BD_BatchLength, BD_ListSize, BD_BatchWidth, BD_Channels } ),
