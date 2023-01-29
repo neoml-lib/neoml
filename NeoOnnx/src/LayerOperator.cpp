@@ -44,6 +44,7 @@ static void addInternalDnnSinks( const CTensorArray& internalOutputs,
 		if( internalOutputs[outputIndex] == nullptr || internalOutputs[outputIndex]->Type() == TTensorType::Data ) {
 			sinks.Add( nullptr );
 		} else {
+			// internalOutputs[outputIndex] is a CShapeTensor or CUserTensor
 			CPtr<const CUserTensor> userOutput = AsUserTensor( *internalOutputs[outputIndex],
 				Str( internalDnn.GetLayerCount() ), internalDnn );
 			CPtr<CSinkLayer> sink = new CSinkLayer( mathEngine );
