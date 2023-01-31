@@ -359,4 +359,4 @@ CPtr<IModel> CDnnTrainingModelWrapper::Train(const IProblem& trainingClassificat
 	return model.Ptr();
 }
 
-}
+} //namespace NeoML

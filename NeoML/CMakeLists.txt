@@ -5,6 +5,9 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
 endif()
 
 project(NeoML LANGUAGES CXX)
+if(ANDROID OR IOS)
+    add_compile_definitions(NEOML_COMPACT)
+endif()
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../cmake)
 if(USE_FINE_OBJECTS)
