@@ -222,13 +222,6 @@ IMathEngine& CBaseLayer::MathEngine() const
 	return mathEngine;
 }
 
-void CBaseLayer::CheckLayerArchitecture( bool expr, const char* message ) const
-{
-	if( !expr ) {
-		CheckArchitecture( expr, GetPath(), message );
-	}
-}
-
 // The class that switches memory reuse mode
 class CMemoryModeSwitcher {
 public:
