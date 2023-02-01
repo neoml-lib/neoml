@@ -39,6 +39,11 @@ inline bool CBaseLayer::IsBackwardNeeded() const
 	return isBackwardNeeded == BS_NeedsBackward;
 }
 
+inline CString CBaseLayer::GetPath() const
+{
+	return dnn == nullptr || dnn->owner == nullptr ? name : dnn->owner->GetPath() + "/" + name;
+}
+
 inline void CBaseLayer::CheckLayerArchitecture( bool expr, const char* message ) const
 {
 	if( !expr ) {

@@ -594,7 +594,7 @@ private:
 	void AddLayerImpl(CBaseLayer& layer) override;
 	void DeleteLayerImpl(CBaseLayer& layer) final;
 
-	const CCompositeLayer* owner; // the composite containing this CDnn (if exists)
+	const CBaseLayer* owner; // the composite containing this CDnn (if exists)
 	CTextStream* log; // the logging stream
 	int logFrequency;	// the logging frequency
 	CPtr<CDnnSolver> solver;	// the layer parameter optimizer
