@@ -77,6 +77,10 @@ int CPyLayer::GetInputOutputIdx( int inputIdx ) const
 	);
 }
 
+std::string CPyLayer::GetLayerClass() const
+{
+	return std::string( NeoML::GetLayerClass( *baseLayer ) );
+}
 
 void InitializeLayer( py::module& m )
 {
@@ -90,5 +94,6 @@ void InitializeLayer( py::module& m )
 		.def( "is_learning_enabled", &CPyLayer::IsLearningEnabled, py::return_value_policy::reference )
 		.def( "enable_learning", &CPyLayer::EnableLearning, py::return_value_policy::reference )
 		.def( "disable_learning", &CPyLayer::DisableLearning, py::return_value_policy::reference )
+		.def( "get_class_name", &CPyLayer::GetLayerClass, py::return_value_policy::reference )
 	;
 }
