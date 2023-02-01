@@ -89,4 +89,4 @@ void CDnnDistributedInitializer::InitializeLayerParams( CDnnBlob& blob, int inpu
 	mathEngine->Broadcast( blob.GetData(), blob.GetDataSize(), 0 );
 }
 
-}
+} // namespace NeoML
