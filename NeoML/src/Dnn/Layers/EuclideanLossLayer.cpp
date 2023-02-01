@@ -63,4 +63,4 @@ CLayerWrapper<CEuclideanLossLayer> EuclideanLoss( float lossWeight )
 	} );
 }
 
-}
+} // namespace NeoML

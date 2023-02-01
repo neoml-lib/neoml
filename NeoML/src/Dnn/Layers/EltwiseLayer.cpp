@@ -396,4 +396,4 @@ CLayerWrapper<CEltwiseDivLayer> Div()
 	return CLayerWrapper<CEltwiseDivLayer>( "Div" );
 }
 
-}
+} // namespace NeoML

@@ -377,4 +377,4 @@ CLayerWrapper<CMultichannelLookupLayer> Embeddings( int count, int size )
 	} );
 }
 
-}
+} //namespace NeoML
