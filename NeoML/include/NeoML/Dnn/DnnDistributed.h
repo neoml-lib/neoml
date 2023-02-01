@@ -93,5 +93,5 @@ private:
 	void initialize( CArchive& archive, int count, TDistributedInitializer initializer, int seed );
 };
 
-
 } // namespace NeoML
+

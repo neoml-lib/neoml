@@ -144,4 +144,4 @@ CLayerWrapper<CBinaryFocalLossLayer> BinaryFocalLoss( float focalForce, float lo
 	} );
 }
 
-}
+} // namespace NeoML
