@@ -20,6 +20,7 @@ limitations under the License.
 #include <NeoML/Dnn/Dnn.h>
 #include <NeoML/Dnn/Layers/3dConvLayer.h>
 #include <NeoML/Dnn/Layers/ActivationLayers.h>
+#include <NeoML/Dnn/Layers/AddToObjectLayer.h>
 #include <NeoML/Dnn/Layers/BackLinkLayer.h>
 #include <NeoML/Dnn/Layers/BaseInPlaceLayer.h>
 #include <NeoML/Dnn/Layers/BatchNormalizationLayer.h>
@@ -35,14 +36,22 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/FullyConnectedLayer.h>
 #include <NeoML/Dnn/Layers/GELULayer.h>
 #include <NeoML/Dnn/Layers/GlobalMeanPoolingLayer.h>
+#include <NeoML/Dnn/Layers/IndRnnLayer.h>
 #include <NeoML/Dnn/Layers/LossLayer.h>
+#include <NeoML/Dnn/Layers/LstmLayer.h>
+#include <NeoML/Dnn/Layers/MatrixMultiplicationLayer.h>
 #include <NeoML/Dnn/Layers/MobileNetV2BlockLayer.h>
+#include <NeoML/Dnn/Layers/MultichannelLookupLayer.h>
+#include <NeoML/Dnn/Layers/MultiheadAttentionLayer.h>
 #include <NeoML/Dnn/Layers/ObjectNormalizationLayer.h>
 #include <NeoML/Dnn/Layers/PoolingLayer.h>
 #include <NeoML/Dnn/Layers/RecurrentLayer.h>
+#include <NeoML/Dnn/Layers/QrnnLayer.h>
+#include <NeoML/Dnn/Layers/QualityControlLayer.h>
 #include <NeoML/Dnn/Layers/SinkLayer.h>
 #include <NeoML/Dnn/Layers/SoftmaxLayer.h>
 #include <NeoML/Dnn/Layers/SourceLayer.h>
+#include <NeoML/Dnn/Layers/SplitLayer.h>
 #include <NeoML/Dnn/Layers/TimeConvLayer.h>
 #include <NeoML/Dnn/Layers/TransformLayer.h>
 #include <NeoML/Dnn/Layers/TransposeLayer.h>
@@ -52,7 +61,6 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/3dTransposedConvLayer.h>
 #include <NeoML/Dnn/Layers/AccumulativeLookupLayer.h>
 #include <NeoML/Dnn/Layers/AccuracyLayer.h>
-#include <NeoML/Dnn/Layers/AddToObjectLayer.h>
 #include <NeoML/Dnn/Layers/ArgmaxLayer.h>
 #include <NeoML/Dnn/Layers/AttentionLayer.h>
 #include <NeoML/Dnn/Layers/BertConvLayer.h>
@@ -71,23 +79,16 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/GruLayer.h>
 #include <NeoML/Dnn/Layers/ImageAndPixelConversionLayer.h>
 #include <NeoML/Dnn/Layers/ImageResizeLayer.h>
-#include <NeoML/Dnn/Layers/IndRnnLayer.h>
 #include <NeoML/Dnn/Layers/InterpolationLayer.h>
 #include <NeoML/Dnn/Layers/IrnnLayer.h>
 #include <NeoML/Dnn/Layers/LogicalLayers.h>
 #include <NeoML/Dnn/Layers/LrnLayer.h>
-#include <NeoML/Dnn/Layers/LstmLayer.h>
-#include <NeoML/Dnn/Layers/MatrixMultiplicationLayer.h>
 #include <NeoML/Dnn/Layers/MaxOverTimePoolingLayer.h>
 #include <NeoML/Dnn/Layers/ModelWrapperLayer.h>
-#include <NeoML/Dnn/Layers/MultiheadAttentionLayer.h>
 #include <NeoML/Dnn/Layers/MultiHingeLossLayer.h>
-#include <NeoML/Dnn/Layers/MultichannelLookupLayer.h>
 #include <NeoML/Dnn/Layers/PositionalEmbeddingLayer.h>
 #include <NeoML/Dnn/Layers/PrecisionRecallLayer.h>
 #include <NeoML/Dnn/Layers/ProjectionPoolingLayer.h>
-#include <NeoML/Dnn/Layers/QrnnLayer.h>
-#include <NeoML/Dnn/Layers/QualityControlLayer.h>
 #include <NeoML/Dnn/Layers/ReorgLayer.h>
 #include <NeoML/Dnn/Layers/RepeatSequenceLayer.h>
 #include <NeoML/Dnn/Layers/SubSequenceLayer.h>
@@ -95,7 +96,6 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/Upsampling2DLayer.h>
 #include <NeoML/Dnn/Layers/ScatterGatherLayers.h>
 #include <NeoML/Dnn/Layers/SpaceToDepthLayer.h>
-#include <NeoML/Dnn/Layers/SplitLayer.h>
 #include <NeoML/Dnn/Layers/TiedEmbeddingsLayer.h>
 #include <NeoML/Dnn/Layers/TransformerLayer.h>
 #include <NeoML/Dnn/Layers/TransformerSourceMaskLayer.h>
@@ -248,13 +248,20 @@ REGISTER_NEOML_LAYER( CEltwiseSumLayer, "FmlCnnEltwiseSumLayer" )
 REGISTER_NEOML_LAYER( CFullyConnectedLayer, "FmlCnnFullyConnectedLayer" )
 REGISTER_NEOML_LAYER_EX( CGlobalMeanPoolingLayer, "FmlCnnGlobalMainPoolingLayer", "FmlCnnGlobalAveragePoolingLayer" )
 REGISTER_NEOML_LAYER( CLinearLayer, "FmlCnnLinearLayer" )
+REGISTER_NEOML_LAYER( CLstmLayer, "FmlCnnLstmLayer" )
 REGISTER_NEOML_LAYER( CMaxPoolingLayer, "FmlCnnMaxPoolingLayer" )
 REGISTER_NEOML_LAYER( CMeanPoolingLayer, "FmlCnnMeanPoolingLayer" )
+REGISTER_NEOML_LAYER( CMultichannelLookupLayer, "FmlCnnMultychannelLookupLayer" )
 REGISTER_NEOML_LAYER( CRecurrentLayer, "FmlCnnRecurrentLayer" )
 REGISTER_NEOML_LAYER( CRleConvLayer, "FmlCnnRleConvLayer" )
 REGISTER_NEOML_LAYER( CSinkLayer, "FmlCnnSinkLayer" )
 REGISTER_NEOML_LAYER_EX( CSoftmaxLayer, "FmlCnnSoftmaxLayer", "FmlCCnnChannelwiseSoftmaxLayer" )
 REGISTER_NEOML_LAYER( CSourceLayer, "FmlCnnSourceLayer" )
+REGISTER_NEOML_LAYER( CSplitBatchWidthLayer, "FmlCnnSplitBatchWidthLayer" )
+REGISTER_NEOML_LAYER( CSplitChannelsLayer, "FmlCnnSplitChannelsLayer" )
+REGISTER_NEOML_LAYER( CSplitDepthLayer, "FmlCnnSplitDepthLayer" )
+REGISTER_NEOML_LAYER( CSplitHeightLayer, "FmlCnnSplitHeightLayer" )
+REGISTER_NEOML_LAYER( CSplitWidthLayer, "FmlCnnSplitWidthLayer" )
 REGISTER_NEOML_LAYER( CTimeConvLayer, "FmlCnnTimeConvLayer" )
 REGISTER_NEOML_LAYER( CTransformLayer, "FmlCnnTransformWithoutTransposeLayer" )
 REGISTER_NEOML_LAYER( CTransposeLayer, "FmlCnnTransposeLayer" )
@@ -262,14 +269,24 @@ REGISTER_NEOML_LAYER( CTransposedConvLayer, "FmlCnnTransposedConvLayer" )
 // }} CNN
 
 // {{ DNN
+REGISTER_NEOML_LAYER( CAddToObjectLayer, "NeoMLDnnAddToObjectLayer" )
 REGISTER_NEOML_LAYER( CBroadcastLayer, "NeoMLDnnBroadcastLayer" )
 REGISTER_NEOML_LAYER( CCastLayer, "NeoMLDnnCastLayer" )
 REGISTER_NEOML_LAYER( CDataLayer, "NeoMLDnnDataLayer" )
 REGISTER_NEOML_LAYER( CEltwiseSubLayer, "NeoMLDnnEltwiseSubLayer" )
 REGISTER_NEOML_LAYER( CEltwiseDivLayer, "NeoMLDnnEltwiseDivLayer" )
 REGISTER_NEOML_LAYER( CGELULayer, "NeoMLDnnGELULayer" )
+REGISTER_NEOML_LAYER( CIndRnnLayer, "NeoMLDnnIndRnnLayer" )
+REGISTER_NEOML_LAYER( CIndRnnRecurrentLayer, "NeoMLDnnIndRnnRecurrentLayer" )
+REGISTER_NEOML_LAYER( CMatrixMultiplicationLayer, "NeoMLDnnMatrixMultiplicationLayer" )
 REGISTER_NEOML_LAYER( CMobileNetV2BlockLayer, "NeoMLDnnMobileNetV2BlockLayer" )
+REGISTER_NEOML_LAYER( CMultiheadAttentionLayer, "NeoMLDnnMultiheadAttentionLayer" )
 REGISTER_NEOML_LAYER( CObjectNormalizationLayer, "NeoMLDnnObjectNormalizationLayer" )
+REGISTER_NEOML_LAYER( CQrnnFPoolingLayer, "NeoMLDnnQrnnFPoolingLayer" )
+REGISTER_NEOML_LAYER( CQrnnIfPoolingLayer, "NeoMLDnnQrnnIfPoolingLayer" )
+REGISTER_NEOML_LAYER( CQrnnLayer, "NeoMLDnnQrnnLayer" )
+REGISTER_NEOML_LAYER( CSplitBatchLengthLayer, "NeoMLDnnSplitBatchLengthLayer" )
+REGISTER_NEOML_LAYER( CSplitListSizeLayer, "NeoMLDnnSplitListSizeLayer" )
 // }} DNN
 
 // {{ Activation Layers
@@ -334,9 +351,7 @@ REGISTER_NEOML_LAYER( CImageResizeLayer, "FmlCnnImageResizeLayer" )
 REGISTER_NEOML_LAYER( CImageToPixelLayer, "FmlCnnImageToPixelLayerClass" )
 REGISTER_NEOML_LAYER( CFocalLossLayer, "FmlCnnFocalLossLayer" )
 REGISTER_NEOML_LAYER( CFullyConnectedSourceLayer, "FmlCnnFullyConnectedSourceLayer" )
-REGISTER_NEOML_LAYER( CLstmLayer, "FmlCnnLstmLayer" )
 REGISTER_NEOML_LAYER( CMaxOverTimePoolingLayer, "FmlCnnMaxOverTimePoolingLayer" )
-REGISTER_NEOML_LAYER( CMultichannelLookupLayer, "FmlCnnMultychannelLookupLayer" )
 REGISTER_NEOML_LAYER( CMultiHingeLossLayer, "FmlCnnMultyHingeLossLayer" )
 REGISTER_NEOML_LAYER( CMultiSquaredHingeLossLayer, "FmlCnnMultySquaredHingeLossLayer" )
 REGISTER_NEOML_LAYER( CPixelToImageLayer, "FmlCnnPixelToImageLayerClass" )
@@ -346,40 +361,25 @@ REGISTER_NEOML_LAYER( CProjectionPoolingLayer, "FmlCnnProjectionPoolingLayerClas
 REGISTER_NEOML_LAYER( CReorgLayer, "FmlCnnReorgLayerClass" )
 REGISTER_NEOML_LAYER( CRepeatSequenceLayer, "FmlCnnRepeatSequenceLayer" )
 REGISTER_NEOML_LAYER( CSequenceSumLayer, "FmlCnnSequenceSumLayer" )
-REGISTER_NEOML_LAYER( CSplitBatchWidthLayer, "FmlCnnSplitBatchWidthLayer" )
-REGISTER_NEOML_LAYER( CSplitChannelsLayer, "FmlCnnSplitChannelsLayer" )
-REGISTER_NEOML_LAYER( CSplitDepthLayer, "FmlCnnSplitDepthLayer" )
-REGISTER_NEOML_LAYER( CSplitHeightLayer, "FmlCnnSplitHeightLayer" )
-REGISTER_NEOML_LAYER( CSplitWidthLayer, "FmlCnnSplitWidthLayer" )
 REGISTER_NEOML_LAYER( CSubSequenceLayer, "FmlCnnSubSequenceLayer" )
 REGISTER_NEOML_LAYER( CTiedEmbeddingsLayer, "TiedEmbeddingsLayer" )
 REGISTER_NEOML_LAYER( CUpsampling2DLayer, "FmlCnnUpsampling2DLayer" )
 // }} CNN
 
 // {{ DNN
-REGISTER_NEOML_LAYER( CAddToObjectLayer, "NeoMLDnnAddToObjectLayer" )
 REGISTER_NEOML_LAYER( CBertConvLayer, "NeoMLDnnBertConvLayer" )
 REGISTER_NEOML_LAYER( CCumSumLayer, "NeoMLDnnCumSumLayer" )
 REGISTER_NEOML_LAYER( CDepthToSpaceLayer, "NeoMLDnnDepthToSpaceLayer" )
 REGISTER_NEOML_LAYER( CEqualLayer, "NeoMLDnnEqualLayer" )
 REGISTER_NEOML_LAYER( CGlobalSumPoolingLayer, "NeoMLDnnGlobalSumPoolingLayer" )
-REGISTER_NEOML_LAYER( CIndRnnRecurrentLayer, "NeoMLDnnIndRnnRecurrentLayer" )
-REGISTER_NEOML_LAYER( CIndRnnLayer, "NeoMLDnnIndRnnLayer" )
 REGISTER_NEOML_LAYER( CInterpolationLayer, "NeoMLDnnInterpolationLayer" )
 REGISTER_NEOML_LAYER( CIrnnLayer, "NeoMLDnnIrnnLayer" )
 REGISTER_NEOML_LAYER( CLessLayer, "NeoMLDnnLessLayer" )
 REGISTER_NEOML_LAYER( CLrnLayer, "NeoMLDnnLrnLayer" )
-REGISTER_NEOML_LAYER( CMatrixMultiplicationLayer, "NeoMLDnnMatrixMultiplicationLayer" )
-REGISTER_NEOML_LAYER( CMultiheadAttentionLayer, "NeoMLDnnMultiheadAttentionLayer" )
 REGISTER_NEOML_LAYER( CNotLayer, "NeoMLDnnNotLayer" )
 REGISTER_NEOML_LAYER( CPositionalEmbeddingLayer, "NeoMLDnnPositionalEmbeddingLayer" )
-REGISTER_NEOML_LAYER( CQrnnLayer, "NeoMLDnnQrnnLayer" )
-REGISTER_NEOML_LAYER( CQrnnFPoolingLayer, "NeoMLDnnQrnnFPoolingLayer" )
-REGISTER_NEOML_LAYER( CQrnnIfPoolingLayer, "NeoMLDnnQrnnIfPoolingLayer" )
 REGISTER_NEOML_LAYER( CScatterNDLayer, "NeoMLDnnScatterNDLayer" )
 REGISTER_NEOML_LAYER( CSpaceToDepthLayer, "NeoMLDnnSpaceToDepthLayer" )
-REGISTER_NEOML_LAYER( CSplitBatchLengthLayer, "NeoMLDnnSplitBatchLengthLayer" )
-REGISTER_NEOML_LAYER( CSplitListSizeLayer, "NeoMLDnnSplitListSizeLayer" )
 REGISTER_NEOML_LAYER( CTransformerEncoderLayer, "NeoMLDnnTransformerEncoderLayer" )
 REGISTER_NEOML_LAYER( CTransformerSourceMaskLayer, "NeoMLDnnTransformerSourceMaskLayer" )
 REGISTER_NEOML_LAYER( CWhereLayer, "NeoMLDnnWhereLayer" )
