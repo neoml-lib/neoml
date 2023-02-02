@@ -32,7 +32,7 @@ void CTransformerSourceMaskLayer::Reshape()
 
 	NeoAssert( inputDescs.Size() == 2 && outputDescs.Size() == 1 );
 
-	CheckArchitecture( inputDescs[I_Widths].BatchWidth() == inputDescs[I_Q].BatchWidth(), GetName(),
+	CheckLayerArchitecture( inputDescs[I_Widths].BatchWidth() == inputDescs[I_Q].BatchWidth(),
 		"mask input batchWidth mismatch" );
 
 	outputDescs[0].SetDimSize( BD_BatchWidth, inputDescs[I_Q].BatchWidth() );

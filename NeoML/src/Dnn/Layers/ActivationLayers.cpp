@@ -680,7 +680,7 @@ void CErfLayer::Reshape()
 {
 	CheckInput1();
 	CheckOutputs();
-	CheckArchitecture( inputDescs[0].GetDataType() == CT_Float, GetPath(), "Layer works only with float data" );
+	CheckLayerArchitecture( inputDescs[0].GetDataType() == CT_Float, "Layer works only with float data" );
 	outputDescs[0] = inputDescs[0];
 }
 

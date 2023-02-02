@@ -70,9 +70,11 @@ CFocalLossLayer::CFocalLossLayer( IMathEngine& mathEngine ) :
 void CFocalLossLayer::Reshape()
 {
 	CLossLayer::Reshape();
-	CheckArchitecture( inputDescs[1].GetDataType() == CT_Float, GetPath(), "labels must be CT_Float" );
-	CheckArchitecture( inputDescs[0].ObjectSize() == inputDescs[1].ObjectSize(), GetPath(), "the labels dimensions should be equal to the first input dimensions" );
-	CheckArchitecture( inputDescs[0].ObjectSize() >= 2, GetPath(), "FocalLoss layer works only with multi-class classification" );
+	CheckLayerArchitecture( inputDescs[1].GetDataType() == CT_Float, "labels must be CT_Float" );
+	CheckLayerArchitecture( inputDescs[0].ObjectSize() == inputDescs[1].ObjectSize(),
+		"the labels dimensions should be equal to the first input dimensions" );
+	CheckLayerArchitecture( inputDescs[0].ObjectSize() >= 2,
+		"FocalLoss layer works only with multi-class classification" );
 }
 
 void CFocalLossLayer::BatchCalculateLossAndGradient( int batchSize, CConstFloatHandle data, int vectorSize,
