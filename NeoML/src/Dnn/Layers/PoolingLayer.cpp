@@ -75,8 +75,8 @@ void CPoolingLayer::Reshape()
 {
 	CheckInputs();
 	CheckOutputs();
-	CheckArchitecture( GetInputCount() == 1, GetPath(), "pooling with multiple inputs" );
-	CheckArchitecture( GetOutputCount() == 1, GetPath(), "pooling with multiple outputs" );
+	CheckLayerArchitecture( GetInputCount() == 1, "pooling with multiple inputs" );
+	CheckLayerArchitecture( GetOutputCount() == 1, "pooling with multiple outputs" );
 
 	outputDescs[0] = inputDescs[0];
 	outputDescs[0].SetDimSize( BD_Height, ( inputDescs[0].Height() - filterHeight ) / strideHeight + 1 );

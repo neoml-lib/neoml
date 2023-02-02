@@ -65,17 +65,17 @@ void CConvLayer::calcOutputBlobSize(int& outputHeight, int& outputWidth) const
 void CConvLayer::Reshape()
 {
 	CheckInputs();
-	CheckArchitecture( GetInputCount() == GetOutputCount(),
-		GetPath(), "different number of inputs and outputs in conv layer" );
-	CheckArchitecture( paddingHeight < filterHeight * dilationHeight && paddingWidth < filterWidth * dilationWidth,
-		GetPath(), "padding is more or equal to receptive field size" );
+	CheckLayerArchitecture( GetInputCount() == GetOutputCount(),
+		"different number of inputs and outputs in conv layer" );
+	CheckLayerArchitecture( paddingHeight < filterHeight * dilationHeight && paddingWidth < filterWidth * dilationWidth,
+		"padding is more or equal to receptive field size" );
 
 	int outputHeight, outputWidth;
 	calcOutputBlobSize(outputHeight, outputWidth);
 	for(int i = 0; i < GetInputCount(); i++) {
-		CheckArchitecture( filterHeight <= inputDescs[i].Height() + 2 * paddingHeight
+		CheckLayerArchitecture( filterHeight <= inputDescs[i].Height() + 2 * paddingHeight
 			&& filterWidth <= inputDescs[i].Width() + 2 * paddingWidth,
-			GetPath(), "filter is bigger than input" );
+			"filter is bigger than input" );
 
 		if(Filter() == 0) {
 			// Create a weights matrix
@@ -96,8 +96,8 @@ void CConvLayer::Reshape()
 			// Initialize
 			FreeTerms()->Fill(0);
 		} else {
-			CheckArchitecture( FreeTerms()->GetDataSize() == filterCount,
-				GetPath(), "number of free members in convolution is not equal to number of filters" );
+			CheckLayerArchitecture( FreeTerms()->GetDataSize() == filterCount,
+				"number of free members in convolution is not equal to number of filters" );
 		}
 
 		// For each layer element there is one channel in the output blob

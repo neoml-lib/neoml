@@ -38,11 +38,12 @@ void CCrossEntropyLossLayer::BatchCalculateLossAndGradient( int batchSize, CCons
 void CCrossEntropyLossLayer::BatchCalculateLossAndGradient( int batchSize, CConstFloatHandle data, int vectorSize,
 	CConstFloatHandle label, int labelSize, CFloatHandle lossValue, CFloatHandle lossGradient, CFloatHandle labelLossGradient )
 {
-	CheckArchitecture( labelSize == vectorSize, GetPath(), "for float labels the dimensions should be equal to the first input dimensions" );
+	CheckLayerArchitecture( labelSize == vectorSize,
+		"for float labels the dimensions should be equal to the first input dimensions" );
 
 	int totalSize = batchSize * vectorSize;
 
-	CheckArchitecture( vectorSize >= 2, GetPath(), "CrossEntropyLoss layer works only with multi-class classification" );
+	CheckLayerArchitecture( vectorSize >= 2, "CrossEntropyLoss layer works only with multi-class classification" );
 
 	CFloatHandleStackVar activation( MathEngine(), totalSize );
 	CFloatHandleStackVar activationEltwiseMul( MathEngine(), totalSize );
@@ -91,11 +92,12 @@ void CCrossEntropyLossLayer::BatchCalculateLossAndGradient( int batchSize, CCons
 void CCrossEntropyLossLayer::BatchCalculateLossAndGradient( int batchSize, CConstFloatHandle data, int vectorSize,
 	CConstIntHandle label, int labelSize, CFloatHandle lossValue, CFloatHandle lossGradient )
 {
-	CheckArchitecture( labelSize == 1, GetPath(), "for int labels each object in the blob should contain the number of the class" );
+	CheckLayerArchitecture( labelSize == 1,
+		"for int labels each object in the blob should contain the number of the class" );
 
 	int totalSize = batchSize * vectorSize;
 
-	CheckArchitecture( vectorSize >= 2, GetPath(), "CrossEntropyLoss layer works only with multi-class classification" );
+	CheckLayerArchitecture( vectorSize >= 2, "CrossEntropyLoss layer works only with multi-class classification" );
 
 	CFloatHandleStackVar activationMul( MathEngine(), batchSize );
 	CFloatHandleStackVar activation( MathEngine(), totalSize );

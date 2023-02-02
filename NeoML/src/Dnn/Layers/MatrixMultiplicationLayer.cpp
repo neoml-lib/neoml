@@ -37,16 +37,17 @@ void CMatrixMultiplicationLayer::Serialize( CArchive& archive )
 void CMatrixMultiplicationLayer::Reshape()
 {
 	CheckInputs();
-	CheckArchitecture( inputDescs.Size() == 2, GetPath(), "layer must have 2 inputs" );
+	CheckLayerArchitecture( inputDescs.Size() == 2, "layer must have 2 inputs" );
 
-	CheckArchitecture( inputDescs[0].Channels() == inputDescs[1].GeometricalSize(), GetPath(),
+	CheckLayerArchitecture( inputDescs[0].Channels() == inputDescs[1].GeometricalSize(),
 		"input[0].Channels must be equal to input[1].GeometricalSize" );
 	if( IsBackwardPerformed() ) {
-		CheckArchitecture( inputDescs[0].ObjectCount() == inputDescs[1].ObjectCount(),
-			GetPath(), "object count mismatch between inputs" );
+		CheckLayerArchitecture( inputDescs[0].ObjectCount() == inputDescs[1].ObjectCount(),
+			"object count mismatch between inputs" );
 	} else {
-		CheckArchitecture( inputDescs[0].ObjectCount() == inputDescs[1].ObjectCount() || inputDescs[0].ObjectCount() == 1
-			|| inputDescs[1].ObjectCount() == 1, GetPath(), "object count mismatch between inputs" );
+		CheckLayerArchitecture( inputDescs[0].ObjectCount() == inputDescs[1].ObjectCount()
+			|| inputDescs[0].ObjectCount() == 1 || inputDescs[1].ObjectCount() == 1,
+			"object count mismatch between inputs" );
 	}
 
 	outputDescs.SetSize( 1 );

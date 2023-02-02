@@ -27,7 +27,7 @@ CNotLayer::CNotLayer( IMathEngine& mathEngine ) :
 
 void CNotLayer::OnReshaped()
 {
-	CheckArchitecture( inputDescs[0].GetDataType() == CT_Int, GetPath(), "layer works only with integer data" );
+	CheckLayerArchitecture( inputDescs[0].GetDataType() == CT_Int, "layer works only with integer data" );
 }
 
 void CNotLayer::RunOnce()
@@ -63,8 +63,8 @@ CLessLayer::CLessLayer( IMathEngine& mathEngine ) :
 
 void CLessLayer::Reshape()
 {
-	CheckArchitecture( inputDescs.Size() == 2, GetPath(), "Less operation expects 2 inputs" );
-	CheckArchitecture( inputDescs[0].GetDataType() == inputDescs[1].GetDataType(), GetPath(),
+	CheckLayerArchitecture( inputDescs.Size() == 2, "Less operation expects 2 inputs" );
+	CheckLayerArchitecture( inputDescs[0].GetDataType() == inputDescs[1].GetDataType(),
 		"Inputs must be of the same data type" );
 
 	CEltwiseBaseLayer::Reshape();
@@ -108,8 +108,8 @@ CEqualLayer::CEqualLayer( IMathEngine& mathEngine ) :
 
 void CEqualLayer::Reshape()
 {
-	CheckArchitecture( inputDescs.Size() == 2, GetPath(), "Equal operation expects 2 inputs" );
-	CheckArchitecture( inputDescs[0].GetDataType() == inputDescs[1].GetDataType(), GetPath(),
+	CheckLayerArchitecture( inputDescs.Size() == 2, "Equal operation expects 2 inputs" );
+	CheckLayerArchitecture( inputDescs[0].GetDataType() == inputDescs[1].GetDataType(),
 		"Inputs must be of the same data type" );
 
 	CEltwiseBaseLayer::Reshape();
@@ -161,15 +161,15 @@ void CWhereLayer::Serialize( CArchive& archive )
 
 void CWhereLayer::Reshape()
 {
-	CheckArchitecture( inputDescs.Size() == 3, GetName(), "Layer expects 3 inputs" );
-	CheckArchitecture( inputDescs[0].GetDataType() == CT_Int, GetName(), "First input must be integer" );
-	CheckArchitecture( inputDescs[1].HasEqualDimensions( inputDescs[0] ), GetName(),
+	CheckLayerArchitecture( inputDescs.Size() == 3, "Layer expects 3 inputs" );
+	CheckLayerArchitecture( inputDescs[0].GetDataType() == CT_Int, "First input must be integer" );
+	CheckLayerArchitecture( inputDescs[1].HasEqualDimensions( inputDescs[0] ),
 		"Second input size must match with the first" );
-	CheckArchitecture( inputDescs[2].HasEqualDimensions( inputDescs[0] ), GetName(),
+	CheckLayerArchitecture( inputDescs[2].HasEqualDimensions( inputDescs[0] ),
 		"Third input size must match with the first" );
-	CheckArchitecture( inputDescs[1].GetDataType() == inputDescs[2].GetDataType(), GetName(),
+	CheckLayerArchitecture( inputDescs[1].GetDataType() == inputDescs[2].GetDataType(),
 		"Data type mismatch between the second and the third inputs" );
-	CheckArchitecture( outputDescs.Size() == 1, GetName(), "Layer expects 1 output" );
+	CheckLayerArchitecture( outputDescs.Size() == 1, "Layer expects 1 output" );
 	outputDescs[0] = inputDescs[1];
 }
 

@@ -67,13 +67,13 @@ void CMaxOverTimePoolingLayer::Reshape()
 {
 	CheckInputs();
 	CheckOutputs();
-	CheckArchitecture( GetInputCount() == 1, GetPath(), "max-over-time pooling with multiple inputs" );
-	CheckArchitecture( GetOutputCount() == 1, GetPath(), "max-over-time pooling with multiple outputs" );
+	CheckLayerArchitecture( GetInputCount() == 1, "max-over-time pooling with multiple inputs" );
+	CheckLayerArchitecture( GetOutputCount() == 1, "max-over-time pooling with multiple outputs" );
 
 	int batchLength = 1;
 	if(filterLength > 0 && strideLength > 0) {
-		CheckArchitecture( filterLength <= inputDescs[0].BatchLength(),
-			GetPath(), "max-over-time pooling filter length is greater than input length" );
+		CheckLayerArchitecture( filterLength <= inputDescs[0].BatchLength(),
+			"max-over-time pooling filter length is greater than input length" );
 		batchLength = (inputDescs[0].BatchLength() - filterLength) / strideLength + 1;
 	}
 	outputDescs[0] = inputDescs[0];

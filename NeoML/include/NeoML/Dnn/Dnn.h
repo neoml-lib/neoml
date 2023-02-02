@@ -297,6 +297,9 @@ protected:
 	void EnableInPlace( bool enable ) { isInPlace = enable; }
 	bool IsInPlace() const { return isInPlace; }
 
+	// Throw check exception if expr is false
+	void CheckLayerArchitecture( bool expr, const char* message ) const;
+
 private:
 	// Describes an input connection
 	struct CInputInfo {
@@ -591,7 +594,7 @@ private:
 	void AddLayerImpl(CBaseLayer& layer) override;
 	void DeleteLayerImpl(CBaseLayer& layer) final;
 
-	const CCompositeLayer* owner; // the composite containing this CDnn (if exists)
+	const CBaseLayer* owner; // the composite containing this CDnn (if exists)
 	CTextStream* log; // the logging stream
 	int logFrequency;	// the logging frequency
 	CPtr<CDnnSolver> solver;	// the layer parameter optimizer
@@ -635,7 +638,6 @@ private:
 	void reshape();
 	void rebuild();
 	size_t getOutputBlobsSize() const;
-	CString getPath() const;
 
 	friend class CBaseLayer;
 	friend class CCompositeLayer;

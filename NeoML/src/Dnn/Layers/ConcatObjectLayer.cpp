@@ -30,8 +30,8 @@ void CConcatObjectLayer::Reshape()
 	int objectSize = inputDescs[0].ObjectSize();
 
 	for(int i = 1; i < inputDescs.Size(); ++i) {
-		CheckArchitecture( inputDescs[i].BatchLength() == batchLength, GetPath(), "input batch length mismatch" );
-		CheckArchitecture( inputDescs[i].BatchWidth() == batchWidth, GetPath(), "input batch width mismatch" );
+		CheckLayerArchitecture( inputDescs[i].BatchLength() == batchLength, "input batch length mismatch" );
+		CheckLayerArchitecture( inputDescs[i].BatchWidth() == batchWidth, "input batch width mismatch" );
 		objectSize += inputDescs[i].ObjectSize();
 	}
 

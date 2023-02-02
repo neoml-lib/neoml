@@ -45,7 +45,7 @@ void CBaseConcatLayer::Reshape()
 	for( int i = 1; i < inputDescs.Size(); ++i ) {
 		CBlobDesc pattern1 = inputDescs[i];
 		pattern1.SetDimSize(dimension, outputDimSize);
-		CheckArchitecture( outputDescs[0].HasEqualDimensions(pattern1), GetPath(), "Incompatible blobs size" );
+		CheckLayerArchitecture( outputDescs[0].HasEqualDimensions(pattern1), "Incompatible blobs size" );
 	}
 }
 

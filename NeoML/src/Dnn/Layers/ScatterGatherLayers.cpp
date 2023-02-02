@@ -35,24 +35,24 @@ void CScatterNDLayer::Serialize( CArchive& archive )
 
 void CScatterNDLayer::Reshape()
 {
-	CheckArchitecture( GetInputCount() == 3, GetName(), "Layer must have 3 inputs" );
-	CheckArchitecture( GetOutputCount() == 1, GetName(), "Layer must have 1 output" );
-	CheckArchitecture( inputDescs[I_Data].GetDataType() == inputDescs[I_Updates].GetDataType(), GetName(),
+	CheckLayerArchitecture( GetInputCount() == 3, "Layer must have 3 inputs" );
+	CheckLayerArchitecture( GetOutputCount() == 1, "Layer must have 1 output" );
+	CheckLayerArchitecture( inputDescs[I_Data].GetDataType() == inputDescs[I_Updates].GetDataType(),
 		"Data and updates must have similar data types" );
-	CheckArchitecture( inputDescs[I_Indices].GetDataType() == CT_Int, GetName(), "Indices must be integer" );
+	CheckLayerArchitecture( inputDescs[I_Indices].GetDataType() == CT_Int, "Indices must be integer" );
 
 	const int indexDims = inputDescs[I_Indices].Channels();
 	const int updateCount = inputDescs[I_Indices].BlobSize() / indexDims;
-	CheckArchitecture( inputDescs[I_Updates].BlobSize() % updateCount == 0, GetName(),
+	CheckLayerArchitecture( inputDescs[I_Updates].BlobSize() % updateCount == 0,
 		"Updates must contain UpdateCount x ObjectSize elemnts" );
 	const int objectSize = inputDescs[I_Updates].BlobSize() / updateCount;
-	CheckArchitecture( inputDescs[I_Data].BlobSize() % objectSize == 0, GetName(),
+	CheckLayerArchitecture( inputDescs[I_Data].BlobSize() % objectSize == 0,
 		"Data must containt ObjectCount x ObjectSize elements" );
 	int actualObjectSize = 1;
 	for( int dim = indexDims; dim < static_cast<int>( BD_Count ); ++dim ) {
 		actualObjectSize *= inputDescs[I_Data].DimSize( dim );
 	}
-	CheckArchitecture( actualObjectSize == objectSize, GetName(),
+	CheckLayerArchitecture( actualObjectSize == objectSize,
 		"Last (BD_Count - N) dimensions of Data blob must have product of ObjectSize" );
 	outputDescs[0] = inputDescs[I_Data];
 }

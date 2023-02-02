@@ -337,42 +337,32 @@ void CLstmLayer::Reshape() {
 // Checks layer input and output descs
 void CLstmLayer::checkBlobDescs() const
 {
-	CheckArchitecture( inputDescs.Size() >= 1 && inputDescs.Size() <= 3, GetPath(),
-		"LSTM must have 1 to 3 inputs" );
-	CheckArchitecture( outputDescs.Size() == 1 || outputDescs.Size() == 2, GetPath(),
-		"LSTM must have 1 or 2 outputs" );
+	CheckLayerArchitecture( inputDescs.Size() >= 1 && inputDescs.Size() <= 3, "LSTM must have 1 to 3 inputs" );
+	CheckLayerArchitecture( outputDescs.Size() == 1 || outputDescs.Size() == 2, "LSTM must have 1 or 2 outputs" );
 
 	const int batchSize = inputDescs[0].BatchWidth();
 	const int hiddenSize = GetHiddenSize();
 
-	CheckArchitecture( inputDescs[0].GetDataType() == CT_Float, GetPath(),
-		"LSTM's data input must be CT_Float" );
-	CheckArchitecture( inputDescs[0].ListSize() == 1, GetPath(),
-		"LSTM's data input's BD_ListSize must be 1" );
+	CheckLayerArchitecture( inputDescs[0].GetDataType() == CT_Float, "LSTM's data input must be CT_Float" );
+	CheckLayerArchitecture( inputDescs[0].ListSize() == 1, "LSTM's data input's BD_ListSize must be 1" );
 
 	if( inputDescs.Size() > 1 ) {
-		CheckArchitecture( inputDescs[1].GetDataType() == CT_Float, GetPath(),
-			"LSTM's initial state must be CT_Float" );
-		CheckArchitecture( inputDescs[1].BatchLength() == 1, GetPath(),
-			"LSTM's initial state's BD_BatchLength must be 1" );
-		CheckArchitecture( inputDescs[1].BatchWidth() == batchSize, GetPath(),
+		CheckLayerArchitecture( inputDescs[1].GetDataType() == CT_Float, "LSTM's initial state must be CT_Float" );
+		CheckLayerArchitecture( inputDescs[1].BatchLength() == 1, "LSTM's initial state's BD_BatchLength must be 1" );
+		CheckLayerArchitecture( inputDescs[1].BatchWidth() == batchSize,
 			"LSTM's initial state's BD_BatchWidth must be equal to the BD_BatchWidth of the data input" );
-		CheckArchitecture( inputDescs[1].ListSize() == 1, GetPath(),
-			"LSTM's initial state's BD_ListSize must be 1" );
-		CheckArchitecture( inputDescs[1].ObjectSize() == hiddenSize, GetPath(),
+		CheckLayerArchitecture( inputDescs[1].ListSize() == 1, "LSTM's initial state's BD_ListSize must be 1" );
+		CheckLayerArchitecture( inputDescs[1].ObjectSize() == hiddenSize,
 			"LSTM's initial state's object size must be equal to the hidden size" );
 	}
 
 	if( inputDescs.Size() > 2 ) {
-		CheckArchitecture( inputDescs[2].GetDataType() == CT_Float, GetPath(),
-			"LSTM's initial story must be CT_Float" );
-		CheckArchitecture( inputDescs[2].BatchLength() == 1, GetPath(),
-			"LSTM's initial story's BD_BatchLength must be 1" );
-		CheckArchitecture( inputDescs[2].BatchWidth() == batchSize, GetPath(),
+		CheckLayerArchitecture( inputDescs[2].GetDataType() == CT_Float, "LSTM's initial story must be CT_Float" );
+		CheckLayerArchitecture( inputDescs[2].BatchLength() == 1, "LSTM's initial story's BD_BatchLength must be 1" );
+		CheckLayerArchitecture( inputDescs[2].BatchWidth() == batchSize,
 			"LSTM's initial story's BD_BatchWidth must be equal to the BD_BatchWidth of the data input" );
-		CheckArchitecture( inputDescs[2].ListSize() == 1, GetPath(),
-			"LSTM's initial story's BD_ListSize must be 1" );
-		CheckArchitecture( inputDescs[2].ObjectSize() == hiddenSize, GetPath(),
+		CheckLayerArchitecture( inputDescs[2].ListSize() == 1, "LSTM's initial story's BD_ListSize must be 1" );
+		CheckLayerArchitecture( inputDescs[2].ObjectSize() == hiddenSize,
 			"LSTM's initial story's object size must be equal to the hidden size" );
 	}
 }
