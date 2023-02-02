@@ -31,9 +31,9 @@ void COnnxShapeToBlobLayer::Serialize( CArchive& archive )
 
 void COnnxShapeToBlobLayer::CalculateShapes()
 {
-	CheckArchitecture( GetInputCount() == 1, GetPath(), "Layer must have 1 input" );
-	CheckArchitecture( GetOutputCount() == 1, GetPath(), "Layer must have 1 output" );
-	CheckArchitecture( inputShapeBlobs[0] != nullptr, GetPath(), "Input must contain shape" );
+	CheckLayerArchitecture( GetInputCount() == 1, "Layer must have 1 input" );
+	CheckLayerArchitecture( GetOutputCount() == 1, "Layer must have 1 output" );
+	CheckLayerArchitecture( inputShapeBlobs[0] != nullptr, "Input must contain shape" );
 	outputDescs[0] = inputShapeBlobs[0]->GetDesc();
 }
 

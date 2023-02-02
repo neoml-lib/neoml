@@ -32,16 +32,16 @@ void COnnxResizeLayer::Serialize( CArchive& archive )
 
 void COnnxResizeLayer::Reshape()
 {
-	CheckArchitecture( GetInputCount() == 2, GetPath(), "Layer must have 2 inputs" );
-	CheckArchitecture( GetOutputCount() == 1, GetPath(), "Layer must have 1 output" );
+	CheckLayerArchitecture( GetInputCount() == 2, "Layer must have 2 inputs" );
+	CheckLayerArchitecture( GetOutputCount() == 1, "Layer must have 1 output" );
 
 	const COnnxLayerBase* secondInputLayer = dynamic_cast<const COnnxLayerBase*>( GetInputLayer( 1 ) );
-	CheckArchitecture( secondInputLayer != nullptr, GetPath(), "Second input must be an Onnx layer" );
-	CheckArchitecture( secondInputLayer->outputShapeBlobs.IsValidIndex( GetInputOutputNumber( 1 ) ),
-		GetPath(), "Wrong input number" );
+	CheckLayerArchitecture( secondInputLayer != nullptr, "Second input must be an Onnx layer" );
+	CheckLayerArchitecture( secondInputLayer->outputShapeBlobs.IsValidIndex( GetInputOutputNumber( 1 ) ),
+		"Wrong input number" );
 	CPtr<CDnnBlob> newShapeBlob = secondInputLayer->outputShapeBlobs[GetInputOutputNumber( 1 )];
-	CheckArchitecture( newShapeBlob != nullptr, GetPath(), "Second input blob missing" );
-	CheckArchitecture( newShapeBlob->GetDataSize() == tensorLayout.Size(), GetPath(), "Dimension number mismatch" );
+	CheckLayerArchitecture( newShapeBlob != nullptr, "Second input blob missing" );
+	CheckLayerArchitecture( newShapeBlob->GetDataSize() == tensorLayout.Size(), "Dimension number mismatch" );
 
 	if( newShapeBlob->GetDataType() == CT_Int ) {
 		// Resize mode

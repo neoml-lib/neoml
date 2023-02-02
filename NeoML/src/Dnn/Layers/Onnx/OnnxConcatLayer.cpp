@@ -32,14 +32,14 @@ void COnnxConcatLayer::Serialize( CArchive& archive )
 
 void COnnxConcatLayer::CalculateShapes()
 {
-	CheckArchitecture( GetInputCount() >= 1, GetPath(), "Layer must have inputs" );
-	CheckArchitecture( GetOutputCount() == 1, GetPath(), "Layer must have 1 output" );
+	CheckLayerArchitecture( GetInputCount() >= 1, "Layer must have inputs" );
+	CheckLayerArchitecture( GetOutputCount() == 1, "Layer must have 1 output" );
 
 	if( inputShapeBlobs[0] == nullptr ) {
 		CBlobDesc outputDesc = inputDescs[0];
 		outputDesc.SetDimSize( concatDim, 0 );
 		for( int i = 0; i < GetInputCount(); ++i ) {
-			CheckArchitecture( inputShapeBlobs[i] == nullptr, GetPath(), "Mixed shape-blobs and blobs" );
+			CheckLayerArchitecture( inputShapeBlobs[i] == nullptr, "Mixed shape-blobs and blobs" );
 			if( inputHasElements( i ) ) {
 				outputDesc.SetDimSize( concatDim,
 					outputDesc.DimSize( concatDim ) + inputDescs[i].DimSize( concatDim ) );
@@ -52,7 +52,7 @@ void COnnxConcatLayer::CalculateShapes()
 	CBlobDesc outputDesc = inputShapeBlobs[0]->GetDesc();
 	outputDesc.SetDimSize( concatDim, 0 );
 	for( int i = 0; i < GetInputCount(); ++i ) {
-		CheckArchitecture( inputShapeBlobs[i] != nullptr, GetPath(), "Mixed shape-blobs and blobs" );
+		CheckLayerArchitecture( inputShapeBlobs[i] != nullptr, "Mixed shape-blobs and blobs" );
 		if( inputHasElements( i ) ) {
 			outputDesc.SetDimSize( concatDim,
 				outputDesc.DimSize( concatDim ) + inputShapeBlobs[i]->DimSize( concatDim ) );

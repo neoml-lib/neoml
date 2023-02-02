@@ -129,7 +129,7 @@ CBlobDesc COnnxSliceLayer::sliceDesc( const CBlobDesc& inputDesc ) const
 		const int start = getStart( sliceIndex, inputDesc.DimSize( blobDim ) );
 		const int end = getEnd( sliceIndex, inputDesc.DimSize( blobDim ) );
 		const int step = getStep( sliceIndex );
-		CheckArchitecture( step == 1, GetPath(), "step != 1" );
+		CheckLayerArchitecture( step == 1, "step != 1" );
 		resultDesc.SetDimSize( blobDim, end - start );
 	}
 	return resultDesc;

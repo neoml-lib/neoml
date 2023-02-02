@@ -73,9 +73,9 @@ void COnnxNonZeroLayer::Serialize( CArchive& archive )
 
 void COnnxNonZeroLayer::CalculateShapes()
 {
-	CheckArchitecture( GetInputCount() == 1, GetPath(), "Layer must have 1 input" );
-	CheckArchitecture( GetOutputCount() == 1, GetPath(), "Layer must have 1 output" );
-	CheckArchitecture( inputShapeBlobs[0] != nullptr, GetPath(), "Input data missing" );
+	CheckLayerArchitecture( GetInputCount() == 1, "Layer must have 1 input" );
+	CheckLayerArchitecture( GetOutputCount() == 1, "Layer must have 1 output" );
+	CheckLayerArchitecture( inputShapeBlobs[0] != nullptr, "Input data missing" );
 
 	if( inputShapeBlobs[0]->GetDataType() == CT_Float ) {
 		outputDescs[0] = onnxNonZeroOutputSize<float>( inputLayout, *inputShapeBlobs[0] );

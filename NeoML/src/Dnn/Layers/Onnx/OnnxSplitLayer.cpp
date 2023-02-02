@@ -31,18 +31,17 @@ void COnnxSplitLayer::Serialize( CArchive& archive )
 
 void COnnxSplitLayer::CalculateShapes()
 {
-	CheckArchitecture( GetInputCount() >= 1, GetPath(), "Layer must have at least 1 input" );
-	CheckArchitecture( GetInputCount() <= 2, GetPath(), "Layer must have at most 2 inputs" );
-	CheckArchitecture( GetOutputCount() >= 1, GetPath(), "Layer must have at least 1 output" );
-	CheckArchitecture( inputShapeBlobs.Size() == 1 || inputShapeBlobs[1] != nullptr,
-		GetPath(), "splits input is missing" );
+	CheckLayerArchitecture( GetInputCount() >= 1, "Layer must have at least 1 input" );
+	CheckLayerArchitecture( GetInputCount() <= 2, "Layer must have at most 2 inputs" );
+	CheckLayerArchitecture( GetOutputCount() >= 1, "Layer must have at least 1 output" );
+	CheckLayerArchitecture( inputShapeBlobs.Size() == 1 || inputShapeBlobs[1] != nullptr, "splits input is missing" );
 
 	std::unique_ptr<CDnnBlobBuffer<int>> buff( inputShapeBlobs.Size() == 1 ? nullptr
 		: new CDnnBlobBuffer<int>( *inputShapeBlobs[1], TDnnBlobBufferAccess::Read ) );
 
 	if( inputShapeBlobs[0] == nullptr ) {
-		CheckArchitecture( buff != nullptr || inputDescs[0].DimSize( splitDim ) % GetOutputCount() == 0,
-			GetPath(), "Can't split dimension evenly" );
+		CheckLayerArchitecture( buff != nullptr || inputDescs[0].DimSize( splitDim ) % GetOutputCount() == 0,
+			"Can't split dimension evenly" );
 		for( int i = 0; i < GetOutputCount(); ++i ) {
 			outputDescs[i] = inputDescs[0];
 			outputDescs[i].SetDimSize( splitDim, buff == nullptr ?
@@ -51,8 +50,8 @@ void COnnxSplitLayer::CalculateShapes()
 		return;
 	}
 
-	CheckArchitecture( buff != nullptr || inputShapeBlobs[0]->DimSize( splitDim ) % GetOutputCount() == 0,
-		GetPath(), "Can't split dimension evenly" );
+	CheckLayerArchitecture( buff != nullptr || inputShapeBlobs[0]->DimSize( splitDim ) % GetOutputCount() == 0,
+		"Can't split dimension evenly" );
 
 	for( int i = 0; i < GetOutputCount(); ++i ) {
 		CBlobDesc outputDesc = inputShapeBlobs[0]->GetDesc();

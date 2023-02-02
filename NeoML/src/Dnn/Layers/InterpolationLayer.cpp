@@ -83,7 +83,6 @@ void CInterpolationLayer::Serialize( CArchive& archive )
 void CInterpolationLayer::Reshape()
 {
 	CheckOutputs();
-	CheckArchitecture( inputDescs[0].GetDataType() == CT_Float, GetPath(), "CInterpolationLayer supports only float data" );
 	CheckLayerArchitecture( GetOutputCount() == 1, "CInterpolationLayer must have 1 output" );
 	CheckLayerArchitecture( inputDescs[0].GetDataType() == CT_Float, "CInterpolationLayer supports only float data" );
 

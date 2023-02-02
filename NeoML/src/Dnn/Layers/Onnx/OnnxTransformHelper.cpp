@@ -37,8 +37,8 @@ void COnnxTransformHelper::Serialize( CArchive& archive )
 
 void COnnxTransformHelper::CalculateShapes()
 {
-	CheckArchitecture( GetInputCount() == 1, GetPath(), "Layer must have 1 input" );
-	CheckArchitecture( GetOutputCount() == 1, GetPath(), "Layer must have 1 output" );
+	CheckLayerArchitecture( GetInputCount() == 1, "Layer must have 1 input" );
+	CheckLayerArchitecture( GetOutputCount() == 1, "Layer must have 1 output" );
 
 	const CBlobDesc& inputDesc = inputShapeBlobs[0] == nullptr ? inputDescs[0] : inputShapeBlobs[0]->GetDesc();
 	outputDesc = inputDesc;

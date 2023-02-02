@@ -65,19 +65,19 @@ void COnnxOneHotLayer::Serialize( CArchive& archive )
 
 void COnnxOneHotLayer::CalculateShapes()
 {
-	CheckArchitecture( GetInputCount() == 2, GetPath(), "Layer must have 2 inputs" );
-	CheckArchitecture( GetOutputCount() == 1, GetPath(), "Layer must have 1 output" );
-	CheckArchitecture( inputShapeBlobs[1] != nullptr, GetPath(), "Depth shape input is missing" );
-	CheckArchitecture( inputShapeBlobs[1]->GetDataType() == CT_Int, GetPath(), "Depth shape must be integer" );
-	CheckArchitecture( inputShapeBlobs[1]->GetDataSize() == 1, GetPath(), "Depth shape must contain 1 element" );
+	CheckLayerArchitecture( GetInputCount() == 2, "Layer must have 2 inputs" );
+	CheckLayerArchitecture( GetOutputCount() == 1, "Layer must have 1 output" );
+	CheckLayerArchitecture( inputShapeBlobs[1] != nullptr, "Depth shape input is missing" );
+	CheckLayerArchitecture( inputShapeBlobs[1]->GetDataType() == CT_Int, "Depth shape must be integer" );
+	CheckLayerArchitecture( inputShapeBlobs[1]->GetDataSize() == 1, "Depth shape must contain 1 element" );
 
 	if( inputShapeBlobs[0] == nullptr ) {
-		CheckArchitecture( inputDescs[0].Channels() == 1, GetPath(), "Input data must have 1 channel" );
+		CheckLayerArchitecture( inputDescs[0].Channels() == 1, "Input data must have 1 channel" );
 		outputDescs[0] = onnxOneHotOutputDesc( inputDescs[0], *inputShapeBlobs[1] );
 		return;
 	}
 
-	CheckArchitecture( inputShapeBlobs[0]->GetChannelsCount() == 1, GetPath(), "Input data must have 1 channel" );
+	CheckLayerArchitecture( inputShapeBlobs[0]->GetChannelsCount() == 1, "Input data must have 1 channel" );
 	CBlobDesc outputDesc = onnxOneHotOutputDesc( inputShapeBlobs[0]->GetDesc(), *inputShapeBlobs[1] );
 	outputShapeBlobs[0] = CDnnBlob::CreateBlob( inputShapeBlobs[1]->GetMathEngine(), outputDesc.GetDataType(), outputDesc );
 	onnxOneHotImpl( *inputShapeBlobs[0], *outputShapeBlobs[0] );

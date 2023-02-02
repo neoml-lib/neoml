@@ -76,13 +76,13 @@ void COnnxGatherLayer::Serialize( CArchive& archive )
 
 void COnnxGatherLayer::CalculateShapes()
 {
-	CheckArchitecture( GetInputCount() == 2, GetPath(), "Layer must have 2 inputs" );
-	CheckArchitecture( GetOutputCount() == 1, GetPath(), "Layer must have 1 output" );
+	CheckLayerArchitecture( GetInputCount() == 2, "Layer must have 2 inputs" );
+	CheckLayerArchitecture( GetOutputCount() == 1, "Layer must have 1 output" );
 
 	if( inputShapeBlobs[0] == nullptr ) {
 		// No shape-blobs
 		// Gather will be executed over inputBlobs/outputBlobs during RunOnce
-		CheckArchitecture( inputShapeBlobs[1] == nullptr, GetPath(), "Mixed shape-blobs and blobs" );
+		CheckLayerArchitecture( inputShapeBlobs[1] == nullptr, "Mixed shape-blobs and blobs" );
 		outputDescs[0] = getOutputDesc( inputDescs[0], inputDescs[1], gatherDim );
 		return;
 	}

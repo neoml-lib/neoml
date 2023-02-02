@@ -31,9 +31,9 @@ void COnnxSourceHelper::Serialize( CArchive& archive )
 
 void COnnxSourceHelper::CalculateShapes()
 {
-	CheckArchitecture( GetInputCount() == 0, GetPath(), "OnnxSourceHelper must have no inputs" );
-	CheckArchitecture( GetOutputCount() == 1, GetPath(), "OnnxSourceHelper must have 1 output" );
-	CheckArchitecture( blob != nullptr, GetPath(), "OnnxSourceHelper with null blob" );
+	CheckLayerArchitecture( GetInputCount() == 0, "OnnxSourceHelper must have no inputs" );
+	CheckLayerArchitecture( GetOutputCount() == 1, "OnnxSourceHelper must have 1 output" );
+	CheckLayerArchitecture( blob != nullptr, "OnnxSourceHelper with null blob" );
 
 	if( &blob->GetMathEngine() != &GetSingleThreadCpuMathEngine() ) {
 		outputShapeBlobs[0] = CDnnBlob::CreateBlob( GetSingleThreadCpuMathEngine(),

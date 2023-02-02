@@ -209,13 +209,13 @@ void COnnxEltwiseLayer::CalculateShapes()
 {
 	CheckInputs();
 	CheckOutputs();
-	CheckArchitecture( GetOutputCount() == 1, GetPath(), "arithmetic operator with multiple outputs" );
+	CheckLayerArchitecture( GetOutputCount() == 1, "arithmetic operator with multiple outputs" );
 
 	if( inputShapeBlobs[0] != nullptr ) {
 		// The output is a shape-blob, that's why it's needed to be calculated here
 		CArray<CBlobDesc> inputShapeDescs;
 		for( int i = 0; i < inputShapeBlobs.Size(); ++i ) {
-			CheckArchitecture( inputShapeBlobs[i] != nullptr, GetPath(), "Missing shape blob" );
+			CheckLayerArchitecture( inputShapeBlobs[i] != nullptr, "Missing shape blob" );
 			inputShapeDescs.Add( inputShapeBlobs[i]->GetDesc() );
 		}
 		CBlobDesc outputDesc = getOnnxEltwiseOutputDesc( operation, inputShapeDescs );

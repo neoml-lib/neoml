@@ -47,10 +47,10 @@ void COnnxConstantOfShapeLayer::Serialize( CArchive& archive )
 
 void COnnxConstantOfShapeLayer::CalculateShapes()
 {
-	CheckArchitecture( GetInputCount() == 1, GetPath(), "Layer must have 2 input" );
-	CheckArchitecture( GetOutputCount() == 1, GetPath(), "Layer must have 1 output" );
-	CheckArchitecture( inputShapeBlobs[0] != nullptr, GetPath(), "Input must contain shape" );
-	CheckArchitecture( inputShapeBlobs[0]->GetDataSize() <= BD_Count, GetPath(), "Shape contains too many dims" );
+	CheckLayerArchitecture( GetInputCount() == 1, "Layer must have 2 input" );
+	CheckLayerArchitecture( GetOutputCount() == 1, "Layer must have 1 output" );
+	CheckLayerArchitecture( inputShapeBlobs[0] != nullptr, "Input must contain shape" );
+	CheckLayerArchitecture( inputShapeBlobs[0]->GetDataSize() <= BD_Count, "Shape contains too many dims" );
 
 	CBlobDesc desc( value->GetDataType() );
 	CDnnBlobBuffer<int> buff( *inputShapeBlobs[0], TDnnBlobBufferAccess::Read );

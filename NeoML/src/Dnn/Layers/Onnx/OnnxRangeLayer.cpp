@@ -59,11 +59,11 @@ void COnnxRangeLayer::Serialize( CArchive& archive )
 
 void COnnxRangeLayer::CalculateShapes()
 {
-	CheckArchitecture( GetInputCount() == 3, GetPath(), "Layer must have 3 inputs" );
-	CheckArchitecture( GetOutputCount() == 1, GetPath(), "Layer must have 1 output" );
-	CheckArchitecture( inputShapeBlobs[0] != nullptr, GetPath(), "'start' shape tensor missing" );
-	CheckArchitecture( inputShapeBlobs[1] != nullptr, GetPath(), "'limit' shape tensor missing" );
-	CheckArchitecture( inputShapeBlobs[2] != nullptr, GetPath(), "'delta' shape tensor missing" );
+	CheckLayerArchitecture( GetInputCount() == 3, "Layer must have 3 inputs" );
+	CheckLayerArchitecture( GetOutputCount() == 1, "Layer must have 1 output" );
+	CheckLayerArchitecture( inputShapeBlobs[0] != nullptr, "'start' shape tensor missing" );
+	CheckLayerArchitecture( inputShapeBlobs[1] != nullptr, "'limit' shape tensor missing" );
+	CheckLayerArchitecture( inputShapeBlobs[2] != nullptr, "'delta' shape tensor missing" );
 
 	outputDescs[0] = CBlobDesc( inputShapeBlobs[0]->GetDataType() );
 	if( outputDescs[0].GetDataType() == CT_Float ) {

@@ -32,12 +32,12 @@ void COnnxExpandLayer::Serialize( CArchive& archive )
 
 void COnnxExpandLayer::CalculateShapes()
 {
-	CheckArchitecture( GetInputCount() == 2, GetPath(), "Layer must have 2 inputs" );
-	CheckArchitecture( GetOutputCount() == 1, GetPath(), "Layer must have 1 output" );
-	CheckArchitecture( inputShapeBlobs[0] == nullptr, GetPath(), "First input must be a blob" );
-	CheckArchitecture( inputShapeBlobs[1] != nullptr, GetPath(), "Shape input missing" );
-	CheckArchitecture( inputShapeBlobs[1]->GetDataSize() <= tensorLayout.Size(), GetPath(), "Dimension number mismatch" );
-	CheckArchitecture( inputShapeBlobs[1]->GetDataType() == CT_Int, GetPath(), "Non-integer shape" );
+	CheckLayerArchitecture( GetInputCount() == 2, "Layer must have 2 inputs" );
+	CheckLayerArchitecture( GetOutputCount() == 1, "Layer must have 1 output" );
+	CheckLayerArchitecture( inputShapeBlobs[0] == nullptr, "First input must be a blob" );
+	CheckLayerArchitecture( inputShapeBlobs[1] != nullptr, "Shape input missing" );
+	CheckLayerArchitecture( inputShapeBlobs[1]->GetDataSize() <= tensorLayout.Size(), "Dimension number mismatch" );
+	CheckLayerArchitecture( inputShapeBlobs[1]->GetDataType() == CT_Int, "Non-integer shape" );
 
 	// Expand operator expands tensor from the first input to the size from the second
 	// If the second input contains less elements than rank of the expanded tensor
@@ -50,7 +50,7 @@ void COnnxExpandLayer::CalculateShapes()
 
 	CDnnBlobBuffer<int> newShape( *inputShapeBlobs[1], TDnnBlobBufferAccess::Read );
 	for( int dimIndex = 0; dimIndex < newShape.Size(); ++dimIndex ) {
-		CheckArchitecture( newShape[dimIndex] > 0, GetPath(), "Negative axis size" );
+		CheckLayerArchitecture( newShape[dimIndex] > 0, "Negative axis size" );
 		const TBlobDim& dim = tensorLayout[preservedDims + dimIndex];
 		// Corner-case: if expanded size is 1 but the original size is more than one
 		// then the dimension remains as-is

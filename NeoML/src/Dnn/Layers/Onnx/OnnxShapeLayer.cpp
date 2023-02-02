@@ -32,7 +32,7 @@ void COnnxShapeLayer::Serialize( CArchive& archive )
 void COnnxShapeLayer::CalculateShapes()
 {
 	CheckInput1();
-	CheckArchitecture( GetOutputCount() == 1, GetPath(), "layer must have 1 output" );
+	CheckLayerArchitecture( GetOutputCount() == 1, "layer must have 1 output" );
 
 	outputShapeBlobs[0] = CDnnBlob::CreateVector( GetSingleThreadCpuMathEngine(), CT_Int, tensorLayout.Size() );
 	CDnnBlobBuffer<int> outputBuff( *outputShapeBlobs[0], TDnnBlobBufferAccess::Write );

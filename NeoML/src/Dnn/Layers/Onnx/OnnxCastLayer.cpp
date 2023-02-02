@@ -64,8 +64,8 @@ void COnnxCastLayer::SetOutputType( TBlobType type )
 
 void COnnxCastLayer::CalculateShapes()
 {
-	CheckArchitecture( inputDescs.Size() == 1, GetPath(), "CCastLayer must have 1 input" );
-	CheckArchitecture( outputDescs.Size() == 1, GetPath(), "CCastLayer must have 1 output" );
+	CheckLayerArchitecture( inputDescs.Size() == 1, "CCastLayer must have 1 input" );
+	CheckLayerArchitecture( outputDescs.Size() == 1, "CCastLayer must have 1 output" );
 
 	if( inputShapeBlobs[0] == nullptr ) {
 		outputDescs[0] = inputDescs[0];

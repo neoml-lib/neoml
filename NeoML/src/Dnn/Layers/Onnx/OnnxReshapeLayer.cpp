@@ -45,11 +45,11 @@ void COnnxReshapeLayer::Serialize( CArchive& archive )
 
 void COnnxReshapeLayer::CalculateShapes()
 {
-	CheckArchitecture( GetInputCount() == 2, GetPath(), "Layer must have 2 inputs" );
-	CheckArchitecture( GetOutputCount() == 1, GetPath(), "Layer must have 1 output" );
-	CheckArchitecture( inputShapeBlobs[1] != nullptr, GetPath(), "New shape is missing" );
-	CheckArchitecture( inputShapeBlobs[1]->GetDataSize() == outputLayout.Size(), GetPath(), "Dimension number mismatch" );
-	CheckArchitecture( inputShapeBlobs[1]->GetDataType() == CT_Int, GetPath(), "Non-integer shape" );
+	CheckLayerArchitecture( GetInputCount() == 2, "Layer must have 2 inputs" );
+	CheckLayerArchitecture( GetOutputCount() == 1, "Layer must have 1 output" );
+	CheckLayerArchitecture( inputShapeBlobs[1] != nullptr, "New shape is missing" );
+	CheckLayerArchitecture( inputShapeBlobs[1]->GetDataSize() == outputLayout.Size(), "Dimension number mismatch" );
+	CheckLayerArchitecture( inputShapeBlobs[1]->GetDataType() == CT_Int, "Non-integer shape" );
 
 	const CBlobDesc& inputDesc = inputShapeBlobs[0] == nullptr ? inputDescs[0] : inputShapeBlobs[0]->GetDesc();
 	CBlobDesc outputDesc = CBlobDesc( inputDesc.GetDataType() );
@@ -60,28 +60,28 @@ void COnnxReshapeLayer::CalculateShapes()
 	CDnnBlobBuffer<int> newShape( *inputShapeBlobs[1], TDnnBlobBufferAccess::Read );
 	for( int dimIndex = 0; dimIndex < outputLayout.Size(); ++dimIndex ) {
 		if( newShape[dimIndex] == -1 ) {
-			CheckArchitecture( remIndex == NotFound, GetPath(), "Two remainders" );
+			CheckLayerArchitecture( remIndex == NotFound, "Two remainders" );
 			remIndex = dimIndex;
 		} else if( newShape[dimIndex] == 0 ) {
 			// 0 at index i in new shape means that i'th dimension of output
 			// is equal to i'th dimension of input
-			CheckArchitecture( dimIndex < inputLayout.Size(), GetPath(),
+			CheckLayerArchitecture( dimIndex < inputLayout.Size(),
 				"Attempt to save the dimension of missing input axis" );
 			outputDesc.SetDimSize( outputLayout[dimIndex], inputDesc.DimSize( inputLayout[dimIndex] ) );
 		} else {
-			CheckArchitecture( newShape[dimIndex] > 0, GetPath(), "Negative axis size");
+			CheckLayerArchitecture( newShape[dimIndex] > 0, "Negative axis size");
 			outputDesc.SetDimSize( outputLayout[dimIndex], newShape[dimIndex] );
 		}
 		remSize /= outputDesc.DimSize( outputLayout[dimIndex] );
 	}
 
 	if( remIndex != NotFound ) {
-		CheckArchitecture( remSize > 0, GetPath(), "Output remainder isn't positive" );
+		CheckLayerArchitecture( remSize > 0, "Output remainder isn't positive" );
 		outputDesc.SetDimSize( outputLayout[remIndex], remSize );
 		remSize = 1;
 	}
 
-	CheckArchitecture( remSize == 1, GetPath(), "Reshape didn't cover all of the data" );
+	CheckLayerArchitecture( remSize == 1, "Reshape didn't cover all of the data" );
 
 	if( inputShapeBlobs[0] == nullptr ) {
 		// The layer will reshape inputBlobs[0] to outputBlobs[0] during RunOnce()
