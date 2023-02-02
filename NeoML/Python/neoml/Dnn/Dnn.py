@@ -286,6 +286,11 @@ class Layer:
             for idx in range(self._internal.get_input_count())
         )
 
+    @property
+    def class_name(self):
+        """String containing NeoML class of the layer
+        """
+        return self._internal.get_class_name()
 
     def connect(self, layer, output_index=0, input_index=0):
         """Connects this layer to another.
