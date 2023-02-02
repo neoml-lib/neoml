@@ -71,8 +71,6 @@ void CLstmOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArr
 		"User-provided weight", *this );
 	CPtr<CDnnBlob> weights = dynamic_cast<const CDataTensor*>( inputs[1].Ptr() )->Data()->GetCopy();
 
-	const int inputObjectSize = weights->DimSize( 2 );
-
 	CBlobDesc blobDesc( CT_Float );
 	blobDesc.SetDimSize( BD_BatchWidth, 4 * hiddenSize );
 	blobDesc.SetDimSize( BD_Channels, weights->GetDataSize() / blobDesc.BatchWidth() );
