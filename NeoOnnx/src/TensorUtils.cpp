@@ -668,4 +668,27 @@ CPtr<const CShapeTensor> AsShapeTensor( const CFastArray<float, 8>& data, const 
 	return asShapeTensor( data, layerName, dnn );
 }
 
+//---------------------------------------------------------------------------------------------------------------------
+
+void GetTensorShape( const CTensorBase& tensor, CTensorShape& shape )
+{
+	switch( tensor.Type() ) {
+		case TTensorType::Shape:
+			dynamic_cast<const CShapeTensor&>( tensor ).Shape().CopyTo( shape );
+			return;
+		case TTensorType::Data:
+		{
+			const CDataTensor& dataTensor = dynamic_cast<const CDataTensor&>( tensor );
+			shape.SetSize( tensor.DimCount() );
+			for( int dimIndex = 0; dimIndex < tensor.DimCount(); ++dimIndex ) {
+				shape[dimIndex] = dataTensor.DimSize( dimIndex );
+			}
+			return;
+		}
+		case TTensorType::User:
+		default:
+			CheckNeoOnnxSupport( false, "Can't extract tensor shape" );
+	}
+}
+
 } // namespace NeoOnnx

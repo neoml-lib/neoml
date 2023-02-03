@@ -41,18 +41,10 @@ void CShapeOperator::ProcessTensors( const CTensorArray& inputs, CDnn& dnn, CTen
 	if( inputs[0]->Type() != TTensorType::User ) {
 		// Lets calculate the shape as CDataTensor (if we can)
 		// If needed it could be converted to CShapeTensor at any time
+		CTensorShape shapeArray;
+		GetTensorShape( *inputs[0], shapeArray );
 		CPtr<CDnnBlob> shapeBlob = CDnnBlob::CreateVector( dnn.GetMathEngine(), CT_Int, inputs[0]->DimCount() );
-		if( inputs[0]->Type() == TTensorType::Data ) {
-			const CDataTensor& dataTensor = dynamic_cast<const CDataTensor&>( *inputs[0] );
-			CDnnBlobBuffer<int> buff( *shapeBlob, TDnnBlobBufferAccess::Write );
-			for( int i = 0; i < dataTensor.DimCount(); ++i ) {
-				buff[i] = dataTensor.DimSize( i );
-			}
-		} else {
-			const CShapeTensor& shapeTensor = dynamic_cast<const CShapeTensor&>( *inputs[0] );
-			shapeBlob->CopyFrom( shapeTensor.Shape().GetPtr() );
-			Sink( CDnnLayerLink( shapeTensor.Layer(), shapeTensor.OutputIndex() ), Name() + "_SafeSink" );
-		}
+		shapeBlob->CopyFrom( shapeArray.GetPtr() );
 		outputs.Add( new CDataTensor( CTensorLayout( { BD_BatchLength } ), *shapeBlob ) );
 		return;
 	}

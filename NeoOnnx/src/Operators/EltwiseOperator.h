@@ -69,20 +69,6 @@ inline void CEltwiseOperator<Operation>::AddLayers( const CTensorArray& inputs, 
 		return;
 	}
 
-	auto getEltwiseOperatorInputShape = [] ( const CTensorBase& input, CTensorShape& inputShape ) -> void
-	{
-		NeoPresume( input.Type() != TTensorType::User );
-		if( input.Type() == TTensorType::Data ) {
-			inputShape.SetSize( input.DimCount() );
-			const CDataTensor& inputData = dynamic_cast<const CDataTensor&>( input );
-			for( int i = 0; i < inputData.DimCount(); ++i ) {
-				inputShape[i] = inputData.DimSize( i );
-			}
-		} else {
-			dynamic_cast<const CShapeTensor&>( input ).Shape().CopyTo( inputShape );
-		}
-	};
-
 	// Calculate output layout and shape (if needed)
 	CTensorLayout outputLayout = inputs[0]->Layout();
 	CTensorShape outputShape;
@@ -97,7 +83,7 @@ inline void CEltwiseOperator<Operation>::AddLayers( const CTensorArray& inputs, 
 		}
 		if( !hasUserInput ) {
 			CTensorShape inputShape;
-			getEltwiseOperatorInputShape( *inputs[i], inputShape );
+			GetTensorShape( *inputs[i], inputShape );
 			CTensorShape buff;
 			CheckNeoOnnxSupport( BroadcastTensorShape( outputShape, inputShape, broadcast, buff ),
 				"Can't broadcast tensors shape", *this );

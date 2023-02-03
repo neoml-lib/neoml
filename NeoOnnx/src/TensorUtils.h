@@ -203,5 +203,11 @@ CPtr<const CShapeTensor> AsShapeTensor( const CTensorBase& tensor, const CString
 CPtr<const CShapeTensor> AsShapeTensor( const CFastArray<int, 8>& data, const CString& layerName, CDnn& dnn );
 CPtr<const CShapeTensor> AsShapeTensor( const CFastArray<float, 8>& data, const CString& layerName, CDnn& dnn );
 
+//---------------------------------------------------------------------------------------------------------------------
+
+// Extracts shape to the given array
+// Throws an exception if CUserTensor is provided (CUserTensor doesn't have shape)
+void GetTensorShape( const CTensorBase& tensor, CTensorShape& shape );
+
 } // namespace NeoOnnx
 

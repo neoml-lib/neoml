@@ -42,19 +42,9 @@ void CConcatOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorA
 {
 	CheckNoNullInputs( inputs );
 
-	const int dimCount = inputs[0]->DimCount();
-
-	int axis = 1;
-	if( OpsetVersion < 4 ) {
-		GetAttribute( "axis", axis );
-	} else {
-		CheckOnnxProtocol( GetAttribute( "axis", axis ), "axis attribute is missing", *this );
-		if( axis < 0 ) {
-			axis += dimCount;
-		}
-	}
-
+	const int axis = getAxis( inputs[0]->DimCount() );
 	const CTensorLayout& inputLayout = inputs[0]->Layout();
+	const bool returnUserTensor = HasUserInput( inputs );
 
 	CPtr<COnnxConcatLayer> concat = new COnnxConcatLayer( dnn.GetMathEngine() );
 	concat->SetName( Name() );
@@ -63,7 +53,7 @@ void CConcatOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorA
 	int connectionIndex = 0;
 	for( int inputIndex = 0; inputIndex < inputs.Size(); ++inputIndex ) {
 		CLayerOutput layerOutput;
-		if( HasUserInput( inputs ) ) {
+		if( returnUserTensor ) {
 			layerOutput = AsUserTensor( *ConvertTensor( *inputs[inputIndex], inputLayout ),
 				Name() + "_Source" + Str( inputIndex ), dnn )->LayerOutput();
 		} else {
@@ -75,20 +65,14 @@ void CConcatOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorA
 
 	dnn.AddLayer( *concat );
 
-	if( HasUserInput( inputs ) ) {
+	if( returnUserTensor ) {
 		outputs.Add( new CUserTensor( inputLayout, CLayerOutput( concat, 0 ) ) );
 	} else {
-		CTensorShape outputShape;
 		NeoPresume( inputs[0]->Type() != TTensorType::User );
-		if( inputs[0]->Type() == TTensorType::Data ) {
-			const CDataTensor& dataTensor = dynamic_cast<const CDataTensor&>( *inputs[0] );
-			for( int i = 0; i < dataTensor.DimCount(); ++i ) {
-				outputShape.Add( dataTensor.DimSize( i ) );
-			}
-		} else {
-			dynamic_cast<const CShapeTensor&>( *inputs[0] ).Shape().CopyTo( outputShape );
-		}
+		CTensorShape outputShape;
+		GetTensorShape( *inputs[0], outputShape );
 
+		// Calculate total size of axis along all inputs
 		int& concatDimSize = outputShape[axis];
 		for( int i = 1; i < inputs.Size(); ++i ) {
 			if( inputs[i]->Type() == TTensorType::Data ) {
@@ -100,6 +84,22 @@ void CConcatOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorA
 
 		outputs.Add( new CShapeTensor( inputLayout, outputShape, CLayerOutput( concat, 0 ) ) );
 	}
+}
+
+// Returns non-negative axis index along which Concat is performing
+// Takes into account opset version and number of input dimensions
+int CConcatOperator::getAxis( int dimCount ) const
+{
+	int axis = 1;
+	if( OpsetVersion < 4 ) {
+		GetAttribute( "axis", axis );
+	} else {
+		CheckOnnxProtocol( GetAttribute( "axis", axis ), "axis attribute is missing", *this );
+		if( axis < 0 ) {
+			axis += dimCount;
+		}
+	}
+	return axis;
 }
 
 } // namespace NeoOnnx
