@@ -73,7 +73,7 @@ inline void CEltwiseOperator<Operation>::AddLayers( const CTensorArray& inputs, 
 	CTensorLayout outputLayout = inputs[0]->Layout();
 	CTensorShape outputShape;
 	if( !hasUserInput ) {
-		getEltwiseOperatorInputShape( *inputs[0], outputShape );
+		GetTensorShape( *inputs[0], outputShape );
 	}
 
 	const CBroadcast broadcast = getBroadcast();
