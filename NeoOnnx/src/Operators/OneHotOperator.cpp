@@ -37,24 +37,8 @@ COneHotOperator::COneHotOperator( const onnx::NodeProto& oneHot, int opsetVersio
 void COneHotOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
 	CheckNoNullInputs( inputs );
-	CheckNeoOnnxSupport( inputs[1]->Type() != TTensorType::User, "user-provided depth", *this );
-	CheckNeoOnnxSupport( inputs[2]->Type() == TTensorType::Data, "non-fixed values", *this );
-
-	const CDnnBlob& valuesBlob = *dynamic_cast<const CDataTensor&>( *inputs[2] ).Data();
-	CheckNeoOnnxSupport( valuesBlob.GetDataSize() == 2, "values must contain 2 elements", *this );
-	if( valuesBlob.GetDataType() == CT_Float ) {
-		CheckNeoOnnxSupport( valuesBlob.GetData().GetValueAt( 0 ) == 0.f, "off value must be 0", *this );
-		CheckNeoOnnxSupport( valuesBlob.GetData().GetValueAt( 1 ) == 1.f, "on value must be 1", *this );
-	} else {
-		CheckNeoOnnxSupport( valuesBlob.GetData<int>().GetValueAt( 0 ) == 0, "off value must be 0", *this );
-		CheckNeoOnnxSupport( valuesBlob.GetData<int>().GetValueAt( 1 ) == 1, "on value must be 1", *this );
-	}
-
-	CPtr<const CTensorBase> baseIndices = inputs[0];
-	if( baseIndices->Layout().Find( BD_Channels ) != NotFound ) {
-		baseIndices = ConvertTensor( *baseIndices, CTensorLayout::IOLayout( baseIndices->DimCount() ) );
-	}
-	CheckNeoOnnxSupport( baseIndices->DimCount() < 7, "OneHot with 7-dimensional input", *this );
+	CheckNeoOnnxSupport( inputs[I_Depth]->Type() != TTensorType::User, "user-provided depth", *this );
+	checkValuesSupport( *inputs[I_Values] );
 
 	CPtr<COnnxOneHotLayer> oneHotLayer = new COnnxOneHotLayer( dnn.GetMathEngine() );
 	oneHotLayer->SetName( Name() );
@@ -62,12 +46,9 @@ void COneHotOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorA
 	oneHotLayer->Connect( 1, *depthTensor->Layer(), depthTensor->OutputIndex() );
 	dnn.AddLayer( *oneHotLayer );
 
+	CPtr<const CTensorBase> baseIndices = prepareIndices( *inputs[I_Indices] );
+	const int axis = getAxis( baseIndices->DimCount() );
 	CTensorLayout outputLayout = baseIndices->Layout();
-	int axis = -1;
-	GetAttribute( "axis", axis );
-	if( axis < 0 ) {
-		axis += baseIndices->DimCount() + 1;
-	}
 	outputLayout.InsertAt( BD_Channels, axis );
 
 	if( baseIndices->Type() != TTensorType::User && inputs[1]->Type() == TTensorType::Data ) {
@@ -95,6 +76,60 @@ void COneHotOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorA
 		oneHotLayer->Connect( 0, *indices->Layer(), indices->OutputIndex() );
 		outputs.Add( new CUserTensor( outputLayout, CLayerOutput( oneHotLayer, 0 ) ) );
 	}
+}
+
+// Checks that values input contains tensor supported by NeoOnnx
+void COneHotOperator::checkValuesSupport( const CTensorBase& values ) const
+{
+	CheckNeoOnnxSupport( values.Type() == TTensorType::Data, "non-fixed values", *this );
+	const CDnnBlob& valuesBlob = *dynamic_cast<const CDataTensor&>( values ).Data();
+	CheckNeoOnnxSupport( valuesBlob.GetDataSize() == 2, "values must contain 2 elements", *this );
+	if( valuesBlob.GetDataType() == CT_Float ) {
+		CheckNeoOnnxSupport( valuesBlob.GetData().GetValueAt( 0 ) == 0.f, "off value must be 0", *this );
+		CheckNeoOnnxSupport( valuesBlob.GetData().GetValueAt( 1 ) == 1.f, "on value must be 1", *this );
+	} else {
+		CheckNeoOnnxSupport( valuesBlob.GetData<int>().GetValueAt( 0 ) == 0, "off value must be 0", *this );
+		CheckNeoOnnxSupport( valuesBlob.GetData<int>().GetValueAt( 1 ) == 1, "on value must be 1", *this );
+	}
+}
+
+// Converts indices into layout, compatible with NeoOnnx
+CPtr<const CTensorBase> COneHotOperator::prepareIndices( const CTensorBase& indicesInput ) const
+{
+	// COnnxOneHotLayer always puts one-hot vector dimension into BD_Channels
+	// That's why indices must not use BD_Channels prior to this layer
+
+	// Try to find the latest of dimensions not used in layout
+	// Because even if BD_Channel was used, it's more effective to replace it with closest dim available
+	// (it reduces chances of additional Transpose operations during conversion)
+	TBlobDim unusedDim = BD_Count;
+	for( int dim = static_cast<int>( BD_Channels ); dim >= static_cast<int>( BD_BatchLength ); --dim ) {
+		if( indicesInput.Layout().Find( static_cast<TBlobDim>( dim ) ) == NotFound ) {
+			unusedDim = static_cast<TBlobDim>( dim );
+		}
+	}
+
+	if( unusedDim == BD_Channels ) {
+		// BD_Channels isn't used by indices already
+		// No conversion needed
+		return &indicesInput;
+	}
+
+	// Convert tensor to layout, which doesn't use BD_Channels
+	CTensorLayout newLayout = indicesInput.Layout();
+	newLayout.ReplaceAt( unusedDim, newLayout.Find( BD_Channels ) );
+	return ConvertTensor( indicesInput, newLayout );
+}
+
+// Returns non-negative axis index, which is used for one-hot vector
+int COneHotOperator::getAxis( const int indicesDimCount ) const
+{
+	int axis = -1;
+	GetAttribute( "axis", axis );
+	if( axis < 0 ) {
+		axis += indicesDimCount + 1;
+	}
+	return axis;
 }
 
 } // namespace NeoOnnx

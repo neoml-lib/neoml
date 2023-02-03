@@ -27,6 +27,18 @@ public:
 protected:
 	// CLayerOperator methods
 	void AddLayers( const CTensorArray& input, CDnn& dnn, CTensorArray& outputs ) const override;
+
+private:
+	// Operator inputs
+	enum TInput {
+		I_Indices = 0, // Indices in which on-values must be set
+		I_Depth = 1, // The depth of the output blob
+		I_Values = 2 // off-value and on-value
+	};
+
+	void checkValuesSupport( const CTensorBase& values ) const;
+	CPtr<const CTensorBase> prepareIndices( const CTensorBase& indicesInput ) const;
+	int getAxis( int indicesDimCount ) const;
 };
 
 } // namespace NeoOnnx
