@@ -113,7 +113,7 @@ void CReshapeOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensor
 	}
 }
 
-// Gets output shape
+// Gets tensor with new shape
 CPtr<const CTensorBase> CReshapeOperator::getShape( const CTensorArray& inputs ) const
 {
 	if( OpsetVersion < 5 ) {
