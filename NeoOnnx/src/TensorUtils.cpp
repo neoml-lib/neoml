@@ -131,7 +131,7 @@ static CPtr<const CDnnBlob> renameDimensions( const CDnnBlob& input, const CTens
 	return result.Ptr();
 }
 
-// Renames dimensions of shape layer output (without any reordering in memory)
+// Renames dimensions of layer output (without any reordering in memory)
 static CLayerOutput renameDimensions( const CLayerOutput& input, const CTensorLayout& inputLayout, const CTensorLayout& outputLayout )
 {
 	NeoPresume( inputLayout.Size() == outputLayout.Size() );
