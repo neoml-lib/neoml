@@ -101,6 +101,7 @@ CTensorLayout CGatherOperator::getOutputLayout( int axis, const CTensorLayout& d
 	for( int i = axis + 1; i < dataLayout.Size(); ++i ) {
 		outputLayout.Add( dataLayout[i] );
 	}
+	return outputLayout;
 }
 
 // Output shape based on data and indices shapes
