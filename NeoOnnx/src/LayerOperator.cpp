@@ -20,7 +20,7 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-// Returns true if some of the inputs are depending on user data
+// Returns true if some of the inputs are CUserTensor
 static bool hasUserOrShapeInputs( const CTensorArray& inputs )
 {
 	static_assert( static_cast<int>( TTensorType::Count ) == 3, "TTensorType::Count != 3" );
