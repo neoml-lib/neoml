@@ -71,6 +71,25 @@ void CUnsqueezeOperator::getAxes( int inputDimCount, CFastArray<int, 8>& axes ) 
 	axes.QuickSort<Ascending<int>>();
 }
 
+// Calculates output tensor's shape
+void CUnsqueezeOperator::calcOutputShape( const CTensorShape& inputShape, const CFastArray<int, 8>& axes,
+	CTensorShape& outputShape ) const
+{
+	outputShape.DeleteAll();
+	int axeIndex = 0;
+	int inputDimIndex = 0;
+	for( int i = 0; i < axes.Size() + inputShape.Size(); ++i ) {
+		if( axeIndex < axes.Size() && i == axes[axeIndex] ) {
+			outputShape.Add( 1 );
+			++axeIndex;
+		} else {
+			NeoAssert( inputDimIndex < inputShape.Size() );
+			outputShape.Add( inputShape[inputDimIndex] );
+			++inputDimIndex;
+		}
+	}
+}
+
 // Calculates output tensor's layout
 CTensorLayout CUnsqueezeOperator::calcOutputLayout( const CTensorLayout& inputLayout, const CFastArray<int, 8>& axes ) const
 {
@@ -100,25 +119,6 @@ CTensorLayout CUnsqueezeOperator::calcOutputLayout( const CTensorLayout& inputLa
 	}
 
 	return outputLayout;
-}
-
-// Calculates output tensor's shape
-void CUnsqueezeOperator::calcOutputShape( const CTensorShape& inputShape, const CFastArray<int, 8>& axes,
-	CTensorShape& outputShape ) const
-{
-	outputShape.DeleteAll();
-	int axeIndex = 0;
-	int inputDimIndex = 0;
-	for( int i = 0; i < axes.Size() + inputShape.Size(); ++i ) {
-		if( axeIndex < axes.Size() && i == axes[axeIndex] ) {
-			outputShape.Add( 1 );
-			++axeIndex;
-		} else {
-			NeoAssert( inputDimIndex < inputShape.Size() );
-			outputShape.Add( inputShape[inputDimIndex] );
-			++inputDimIndex;
-		}
-	}
 }
 
 } // namespace NeoOnnx
