@@ -37,7 +37,7 @@ protected:
 private:
 	int getArgsNum() const;
 	CBroadcast getBroadcast() const;
-	void getOutputShape( const CTensorArray& inputs, CTensorShape& outputShape );
+	void getOutputShape( const CTensorArray& inputs, CTensorShape& outputShape ) const;
 };
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -146,7 +146,7 @@ inline CBroadcast CEltwiseOperator<Operation>::getBroadcast() const
 
 // Calculates output shape based on shape of inputs and broadcast rule
 template<COnnxEltwiseLayer::TOperation Operation>
-inline void CEltwiseOperator<Operation>::getOutputShape( const CTensorArray& inputs, CTensorShape& outputShape )
+inline void CEltwiseOperator<Operation>::getOutputShape( const CTensorArray& inputs, CTensorShape& outputShape ) const
 {
 	NeoPresume( !HasUserInput( inputs ) );
 	GetTensorShape( *inputs[0], outputShape );
