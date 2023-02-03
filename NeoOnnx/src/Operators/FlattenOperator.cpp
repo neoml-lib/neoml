@@ -56,7 +56,6 @@ void CFlattenOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensor
 		input = AsUserTensor( *inputs[0], Name() + "_Source", dnn );
 	}
 
-
 	// Flatten operator reshapes tensor into 2-dimensional matrix of size
 	// [ dim_0 * ... * dim_(axis-1) ; dim_axis * ... * dim_(n-1) ]
 	// Corner case: if axis == 0 then output shape is [ 1 ; tensorSize ]
