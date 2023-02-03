@@ -35,12 +35,9 @@ protected:
 	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
 
 private:
-	// Expected number of arguments (-1 if any number is supported)
 	int getArgsNum() const;
-
-	// Returns broadcast
-	// The broadcast logic is similar for all of the eltwise binary operators in onnx
 	CBroadcast getBroadcast() const;
+	void getOutputShape( const CTensorArray& inputs, CTensorShape& outputShape );
 };
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -69,25 +66,11 @@ inline void CEltwiseOperator<Operation>::AddLayers( const CTensorArray& inputs, 
 		return;
 	}
 
-	// Calculate output layout and shape (if needed)
+	// Calculate output layout
 	CTensorLayout outputLayout = inputs[0]->Layout();
-	CTensorShape outputShape;
-	if( !hasUserInput ) {
-		GetTensorShape( *inputs[0], outputShape );
-	}
-
-	const CBroadcast broadcast = getBroadcast();
 	for( int i = 1; i < inputs.Size(); ++i ) {
 		if( inputs[i]->DimCount() > outputLayout.Size() ) {
 			outputLayout = inputs[i]->Layout();
-		}
-		if( !hasUserInput ) {
-			CTensorShape inputShape;
-			GetTensorShape( *inputs[i], inputShape );
-			CTensorShape buff;
-			CheckNeoOnnxSupport( BroadcastTensorShape( outputShape, inputShape, broadcast, buff ),
-				"Can't broadcast tensors shape", *this );
-			buff.CopyTo( outputShape );
 		}
 	}
 
@@ -111,10 +94,13 @@ inline void CEltwiseOperator<Operation>::AddLayers( const CTensorArray& inputs, 
 	if( hasUserInput ) {
 		outputs.Add( new CUserTensor( outputLayout, CLayerOutput( layer, 0 ) ) );
 	} else {
+		CTensorShape outputShape;
+		getOutputShape( inputs, outputShape );
 		outputs.Add( new CShapeTensor( outputLayout, outputShape, CLayerOutput( layer, 0 ) ) );
 	}
 }
 
+// Expected number of arguments (-1 if any number is supported)
 template<COnnxEltwiseLayer::TOperation Operation>
 inline int CEltwiseOperator<Operation>::getArgsNum() const
 {
@@ -127,9 +113,11 @@ inline int CEltwiseOperator<Operation>::getArgsNum() const
 	return 2;
 }
 
+// Broadcast rule according to operator type and opset version
 template<COnnxEltwiseLayer::TOperation Operation>
 inline CBroadcast CEltwiseOperator<Operation>::getBroadcast() const
 {
+	NeoPresume( !HasUserInput( inputs ) );
 	CBroadcast broadcast( BT_Numpy, NotFound );
 	
 	if( Type() == "Where" ) {
@@ -153,6 +141,24 @@ inline CBroadcast CEltwiseOperator<Operation>::getBroadcast() const
 	}
 
 	return broadcast;
+}
+
+// Calculates output shape based on shape of inputs and broadcast rule
+template<COnnxEltwiseLayer::TOperation Operation>
+inline void CEltwiseOperator<Operation>::getOutputShape( const CTensorArray& inputs, CTensorShape& outputShape )
+{
+	NeoPresume( !HasUserInput( inputs ) );
+	GetTensorShape( *inputs[0], outputShape );
+
+	const CBroadcast broadcast = getBroadcast();
+	for( int i = 1; i < inputs.Size(); ++i ) {
+		CTensorShape inputShape;
+		GetTensorShape( *inputs[i], inputShape );
+		CTensorShape buff;
+		CheckNeoOnnxSupport( BroadcastTensorShape( outputShape, inputShape, broadcast, buff ),
+			"Can't broadcast tensors shape", *this );
+		buff.CopyTo( outputShape );
+	}
 }
 
 } // namespace NeoOnnx
