@@ -79,6 +79,7 @@ inline void CEltwiseOperator<Operation>::AddLayers( const CTensorArray& inputs, 
 	layer->SetOperation( Operation );
 	dnn.AddLayer( *layer );
 
+	const CBroadcast broadcast = getBroadcast();
 	for( int i = 0; i < inputs.Size(); ++i ) {
 		CPtr<const CTensorBase> tensor = PrepareForBroadcast( *inputs[i], broadcast, outputLayout.Size() );
 		tensor = ConvertTensor( *tensor, outputLayout );
