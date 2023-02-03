@@ -31,6 +31,11 @@ protected:
 private:
 	// axis value from attributes
 	int axisAttr;
+
+	CTensorLayout getOutputLayout( int axis, const CTensorLayout& dataLayout,
+		const CTensorLayout& indicesLayout ) const;
+	void getOutputShape( int axis, const CTensorShape& dataShape, const CTensorShape& indicesShape,
+		CTensorShape& outputShape ) const;
 };
 
 } // namespace NeoOnnx

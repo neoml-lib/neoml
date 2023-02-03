@@ -71,14 +71,7 @@ void CGatherOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorA
 		dataOutput = dataShapeTensor->LayerOutput();
 		CPtr<const CShapeTensor> indicesShapeTensor = AsShapeTensor( *indices, Name() + "_Indices", dnn);
 		indicesOutput = indicesShapeTensor->LayerOutput();
-
-		for( int i = 0; i < axis; ++i ) {
-			outputShape.Add( dataShapeTensor->Shape()[i] );
-		}
-		outputShape.Add( indicesShapeTensor->Shape() );
-		for( int i = axis + 1; i < dataShapeTensor->DimCount(); ++i ) {
-			outputShape.Add( dataShapeTensor->Shape()[i] );
-		}
+		getOutputShape( axis, dataShapeTensor->Shape(), indicesShapeTensor->Shape(), outputShape );
 	}
 
 	CPtr<COnnxGatherLayer> gatherLayer = new COnnxGatherLayer( dnn.GetMathEngine() );
@@ -88,19 +81,38 @@ void CGatherOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorA
 	gatherLayer->Connect( 1, *indicesOutput.Layer, indicesOutput.OutputIndex );
 	dnn.AddLayer( *gatherLayer );
 
-	CTensorLayout outputLayout;
-	for( int i = 0; i < axis; ++i ) {
-		outputLayout.Add( data->Layout()[i] );
-	}
-	outputLayout.Add( indices->Layout() );
-	for( int i = axis + 1; i < data->DimCount(); ++i ) {
-		outputLayout.Add( data->Layout()[i] );
-	}
-
+	CTensorLayout outputLayout = getOutputLayout( axis, dataLayout, indices->Layout() );
 	if( HasUserInput( inputs ) ) {
 		outputs.Add( new CUserTensor( outputLayout, CLayerOutput( gatherLayer, 0 ) ) );
 	} else {
 		outputs.Add( new CShapeTensor( outputLayout, outputShape, CLayerOutput( gatherLayer, 0 ) ) );
+	}
+}
+
+// Output layout based on data and indices layouts
+CTensorLayout CGatherOperator::getOutputLayout( int axis, const CTensorLayout& dataLayout,
+	const CTensorLayout& indicesLayout ) const
+{
+	CTensorLayout outputLayout;
+	for( int i = 0; i < axis; ++i ) {
+		outputLayout.Add( dataLayout[i] );
+	}
+	outputLayout.Add( indicesLayout );
+	for( int i = axis + 1; i < dataLayout.Size(); ++i ) {
+		outputLayout.Add( dataLayout[i] );
+	}
+}
+
+// Output shape based on data and indices shapes
+void CGatherOperator::getOutputShape( int axis, const CTensorShape& dataShape,
+	const CTensorShape& indicesShape, CTensorShape& outputShape ) const
+{
+	for( int i = 0; i < axis; ++i ) {
+		outputShape.Add( dataShape[i] );
+	}
+	outputShape.Add( indicesShape );
+	for( int i = axis + 1; i < dataShape.Size(); ++i ) {
+		outputShape.Add( dataShape[i] );
 	}
 }
 
