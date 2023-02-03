@@ -36,6 +36,7 @@ public:
 	const CString& Name() const { return name; }
 
 	// Adds corresponding sink layer to the dnn
+	// Doesn't change the layout of given input
 	CPtr<const CSinkLayer> AddSinkLayer( const CUserTensor& input, CDnn& dnn ) const;
 
 private:
