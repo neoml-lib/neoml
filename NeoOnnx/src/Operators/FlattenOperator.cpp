@@ -63,9 +63,14 @@ void CFlattenOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensor
 	CheckNeoOnnxSupport( axisIndex == 0 || axisIndex == 1 || axisIndex == inputs[0]->DimCount() - 1,
 		"NeoOnnx supports only flatten which can be calculated without input shape", *this );
 	CTensorLayout outputLayout( 2 );
-
 	CPtr<CTransformLayer> transform = new CTransformLayer( dnn.GetMathEngine() );
 	transform->SetName( Name() );
+
+	for( TBlobDim dim = BD_BatchLength; dim < BD_Count; ++dim ) {
+		// All unaffected dimensions must be 1
+		transform->SetDimensionRule( static_cast<TBlobDim>( dim ),
+			CTransformLayer::CDimensionRule( CTransformLayer::O_SetSize, 1 ) );
+	}
 
 	if( axis == 0 ) {
 		transform->SetDimensionRule( outputLayout[1],
@@ -80,14 +85,6 @@ void CFlattenOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensor
 			CTransformLayer::CDimensionRule( CTransformLayer::O_Remainder, 1 ) );
 		transform->SetDimensionRule( outputLayout[1],
 			CTransformLayer::CDimensionRule( CTransformLayer::O_InputDim, input->Layout().Last() ) );
-	}
-
-	for( TBlobDim dim = BD_BatchLength; dim < BD_Count; ++dim ) {
-		// Other dimensions must be 1
-		if( outputLayout.Find( dim ) == NotFound ) {
-			transform->SetDimensionRule( static_cast< TBlobDim >( dim ),
-				CTransformLayer::CDimensionRule( CTransformLayer::O_SetSize, 1 ) );
-		}
 	}
 
 	transform->Connect( 0, *input->Layer(), input->OutputIndex() );
