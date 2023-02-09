@@ -84,16 +84,17 @@ void CTimeConvLayer::SetFreeTermData(const CPtr<CDnnBlob>& newFreeTerms)
 void CTimeConvLayer::Reshape()
 {
 	CheckInputs();
-	CheckArchitecture( GetInputCount() == GetOutputCount(), GetPath(), "different number of inputs and outputs in time-conv layer" );
-	CheckArchitecture( filterCount > 0, GetPath(), "Filter count must be positive" );
-	CheckArchitecture( filterSize > 0, GetPath(), "Filter size must be positive" );
-	CheckArchitecture( stride > 0, GetPath(), "Stride must be positive" );
+	CheckLayerArchitecture( GetInputCount() == GetOutputCount(),
+		"different number of inputs and outputs in time-conv layer" );
+	CheckLayerArchitecture( filterCount > 0, "Filter count must be positive" );
+	CheckLayerArchitecture( filterSize > 0, "Filter size must be positive" );
+	CheckLayerArchitecture( stride > 0, "Stride must be positive" );
 
 	for(int i = 0; i < GetInputCount(); ++i) {
 		const int outputSize = (inputDescs[i].BatchLength() - ( filterSize - 1 ) * dilation - 1 + paddingFront + paddingBack) / stride + 1;
 
-		CheckArchitecture( filterSize <= inputDescs[i].BatchLength() + paddingFront + paddingBack,
-			GetPath(), "Filter is bigger than input" );
+		CheckLayerArchitecture( filterSize <= inputDescs[i].BatchLength() + paddingFront + paddingBack,
+			"Filter is bigger than input" );
 		if(filter() == 0) {
 			filter() = CDnnBlob::Create2DImageBlob( MathEngine(), CT_Float, 1, filterCount, filterSize, 1,
 				inputDescs[i].ObjectSize() );
@@ -116,8 +117,8 @@ void CTimeConvLayer::Reshape()
 		freeTerms() = CDnnBlob::CreateVector( MathEngine(), CT_Float, filterCount );
 		freeTerms()->Fill(0);
 	} else {
-		CheckArchitecture( freeTerms()->GetDataSize() == filterCount,
-			GetPath(), "number of free members in conv-time layer is not equal to number of filters" );
+		CheckLayerArchitecture( freeTerms()->GetDataSize() == filterCount,
+			"number of free members in conv-time layer is not equal to number of filters" );
 	}
 	destroyDesc();
 }

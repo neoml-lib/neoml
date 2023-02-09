@@ -32,14 +32,14 @@ void CDepthToSpaceLayer::Reshape()
 	CheckInput1();
 	CheckOutputs();
 
-	CheckArchitecture( blockSize > 1, GetPath(), "block size must be more than 1" );
-	CheckArchitecture( inputDescs[0].Depth() == 1, GetPath(), "input depth must be 1" );
+	CheckLayerArchitecture( blockSize > 1, "block size must be more than 1" );
+	CheckLayerArchitecture( inputDescs[0].Depth() == 1, "input depth must be 1" );
 
 	// The layer needs only one output
-	CheckArchitecture( GetOutputCount() == 1, GetPath(), "Multiple outputs" );
+	CheckLayerArchitecture( GetOutputCount() == 1, "Multiple outputs" );
 
 	// The input channels must be a multiple of squared block size
-	CheckArchitecture( inputDescs[0].Channels() % ( blockSize * blockSize ) == 0, GetPath(),
+	CheckLayerArchitecture( inputDescs[0].Channels() % ( blockSize * blockSize ) == 0,
 		"input channels must be a multiple of squared block size" );
 
 	// Calculate the output size

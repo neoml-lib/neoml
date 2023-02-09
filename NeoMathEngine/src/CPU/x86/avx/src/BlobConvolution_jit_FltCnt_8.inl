@@ -95,7 +95,7 @@ inline void CBlobConvolution<8>::CJitConvolution::fillSingleProcessingKernel( CB
         const int InnerBatchStepSize = 5;
         int offset = 0;
         for( int batchStep = channelCount; batchStep > 0; batchStep -= InnerBatchStepSize ) {
-            const int innerChannelCount = min( InnerBatchStepSize, batchStep );
+            const int innerChannelCount = std::min( InnerBatchStepSize, batchStep );
             size_t fltOffset = offset * FltCntM8 * sizeof( float );
             size_t srcOffset = offset * sizeof( float );
 

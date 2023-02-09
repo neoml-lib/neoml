@@ -37,8 +37,7 @@ void CBroadcastLayer::Reshape()
 {
 	CheckInputs();
 	CheckOutputs();
-	CheckArchitecture( GetInputCount() == GetOutputCount(), GetPath(),
-		"#inputs != #outputs in CBroadcastLayer" );
+	CheckLayerArchitecture( GetInputCount() == GetOutputCount(), "#inputs != #outputs in CBroadcastLayer" );
 
 	CBlobDesc broadcastedDesc = inputDescs[0];
 
@@ -46,7 +45,7 @@ void CBroadcastLayer::Reshape()
 		const CBlobDesc& currInput = inputDescs[inputIndex];
 		for( int dim = 0; dim < static_cast<int>( BD_Count ); dim++ ) {
 			if( currInput.DimSize( dim ) != 1 && currInput.DimSize( dim ) != broadcastedDesc.DimSize( dim ) ) {
-				CheckArchitecture( broadcastedDesc.DimSize( dim ) == 1, GetPath(), "inputs can't be broadcasted" );
+				CheckLayerArchitecture( broadcastedDesc.DimSize( dim ) == 1, "inputs can't be broadcasted" );
 				broadcastedDesc.SetDimSize( dim, currInput.DimSize( dim ) );
 			}
 		}

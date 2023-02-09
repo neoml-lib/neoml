@@ -20,6 +20,7 @@ limitations under the License.
 
 #include "ExpandOperator.h"
 #include "NeoOnnxCheck.h"
+#include <NeoML/Dnn/Layers/Onnx/OnnxExpandLayer.h>
 
 namespace NeoOnnx {
 
@@ -32,27 +33,37 @@ CExpandOperator::CExpandOperator( const onnx::NodeProto& expand, int opsetVersio
 	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
 }
 
-void CExpandOperator::AddLayers( const CTensorArray& inputs, CDnn& /* dnn */, CTensorArray& outputs ) const
+void CExpandOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
-	CheckOnnxProtocol( inputs[0] != nullptr && inputs[1] != nullptr, "inputs can't be optional", *this );
-	CheckNeoOnnxSupport( inputs[1]->IsCalculated(), "user-provided shape", *this );
+	CheckNoNullInputs( inputs );
+	CheckNeoOnnxSupport( inputs[1]->Type() != TTensorType::User, "user-provided shape", *this );
 
-	const CDnnBlob* shapeBlob = dynamic_cast<const CDataTensor&>( *inputs[1] ).Data();
-	CTensorShape shapeData;
+	CPtr<const CUserTensor> input = AsUserTensor( *inputs[0], Name() + "_InputSource", dnn );
 
-	const int preservedInputDims = inputs[0]->DimCount() - shapeBlob->GetDataSize();
-	for( int i = 0; i < preservedInputDims; ++i ) {
-		shapeData.Add( inputs[0]->Shape()[i]);
+	CPtr<const CShapeTensor> shape = AsShapeTensor( *inputs[1], Name() + "_ShapeSource", dnn );
+	CheckNeoOnnxSupport( shape->DimCount() == 1, "shape must have 1 dimension", *this );
+
+	CPtr<COnnxExpandLayer> expandLayer = new COnnxExpandLayer( dnn.GetMathEngine() );
+	expandLayer->SetName( Name() );
+	expandLayer->Connect( 0, *input->Layer(), input->OutputIndex() );
+	expandLayer->Connect( 1, *shape->Layer(), shape->OutputIndex() );
+	dnn.AddLayer( *expandLayer );
+
+	CTensorLayout outputLayout;
+	outputLayout.SetBufferSize( shape->Shape()[0] );
+	TBlobDim newDim = BD_BatchLength;
+	while( outputLayout.Size() < shape->Shape()[0] - input->DimCount() ) {
+		while( input->Layout().Find( newDim ) != NotFound ) {
+			++newDim;
+		}
+		outputLayout.Add( newDim );
+		++newDim;
 	}
+	outputLayout.Add( input->Layout() );
+	CheckNeoOnnxSupport( newDim < BD_Count, "Too many dimensions", *this );
+	outputLayout.CopyTo( expandLayer->TensorLayout() );
 
-	shapeData.SetSize( shapeData.Size() + shapeBlob->GetDataSize() );
-	shapeBlob->CopyTo( shapeData.GetPtr() + max( 0, preservedInputDims ) );
-
-	CBroadcast broadcast( BT_Numpy );
-	CTensorShape outputShape;
-	BroadcastTensorShape( inputs[0]->Shape(), shapeData, broadcast, outputShape );
-
-	outputs.Add( BroadcastTensor( *inputs[0], CBroadcast( BT_Numpy ), outputShape ) );
+	outputs.Add( new CUserTensor( outputLayout, CLayerOutput( expandLayer.Ptr(), 0 ) ) );
 }
 
 } // namespace NeoOnnx

@@ -173,7 +173,7 @@ void CGELULayer::backwardPrecise()
 	MathEngine().VectorMultiply( input, inputDiff, dataSize, sqrt2InvVar );
 
 	// inputDiff = -(input^2 / 2)
-	MathEngine().VectorNegMultiply( inputDiff, inputDiff, dataSize, inputDiff );
+	MathEngine().VectorEltwiseNegMultiply( inputDiff, inputDiff, inputDiff, dataSize );
 
 	// inputDiff = e^( -( input^2 / 2) )
 	MathEngine().VectorExp( inputDiff, inputDiff, dataSize );

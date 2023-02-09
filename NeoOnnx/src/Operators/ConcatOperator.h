@@ -29,7 +29,7 @@ protected:
 	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
 
 private:
-	CPtr<CBaseLayer> createLayer( TBlobDim concatDim, IMathEngine& mathEngine ) const;
+	int getAxis( int inputDimCount ) const;
 };
 
 } // namespace NeoOnnx

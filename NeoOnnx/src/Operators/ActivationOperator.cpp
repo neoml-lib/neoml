@@ -32,7 +32,9 @@ CActivationOperatorBase::CActivationOperatorBase( const onnx::NodeProto& onnxNod
 
 void CActivationOperatorBase::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
-	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
+	CheckNeoOnnxSupport( inputs[0] != nullptr, "Missing input", *this );
+	CheckNoShapeInputs( inputs );
+
 	CPtr<const CUserTensor> userInput = AsUserTensor( *inputs[0], Name() + "_Source", dnn );
 
 	CPtr<CBaseLayer> activationLayer = CreateActivationLayer( dnn.GetMathEngine(), activation );
@@ -40,7 +42,7 @@ void CActivationOperatorBase::AddLayers( const CTensorArray& inputs, CDnn& dnn, 
 	activationLayer->Connect( 0, *userInput->Layer(), userInput->OutputIndex() );
 	dnn.AddLayer( *activationLayer );
 
-	outputs.Add( new CUserTensor( userInput->Shape(), userInput->Layout(), CLayerOutput( activationLayer, 0 ) ) );
+	outputs.Add( new CUserTensor( userInput->Layout(), CLayerOutput( activationLayer, 0 ) ) );
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -50,6 +52,7 @@ CAbsOperator::CAbsOperator( const onnx::NodeProto& abs, int opsetVersion ) :
 {
 	// v1 - original
 	// v6 - legacy optimization attributes are removed and new data types are supported
+	// v13 - bfloat16 data type is supported
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
 	CheckOnnxProtocol( InputCount() == 1, "operator must have 1 input", *this );
@@ -65,6 +68,7 @@ CClipOperator::CClipOperator( const onnx::NodeProto& clip, int opsetVersion ) :
 	// v6 - legacy optimization attributes are removed
 	// v11 - min/max values are moved from attributes to additional inputs
 	// v12 - new data types are supported
+	// v13 - bfloat16 data type is supported
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
 	if( OpsetVersion < 11 ) {
@@ -112,7 +116,7 @@ void CClipOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArr
 	if( minValue != 0 ) {
 		CPtr<const CUserTensor> userInput = AsUserTensor( *currInputs[0], Name() + "_Source", dnn );
 		CLinearLayer* preShift = Linear( 1.f, -minValue )( Name() + "_PreShift", CDnnLayerLink( userInput->Layer(), userInput->OutputIndex() ) );
-		currInputs[0] = new CUserTensor( userInput->Shape(), userInput->Layout(), CLayerOutput( preShift, 0 ) );
+		currInputs[0] = new CUserTensor( userInput->Layout(), CLayerOutput( preShift, 0 ) );
 	}
 
 	CActivationOperatorBase::AddLayers( currInputs, dnn, outputs );
@@ -124,7 +128,7 @@ void CClipOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArr
 
 	if( minValue != 0 ) {
 		CLinearLayer* postShift = Linear( 1.f, minValue )( Name() + "_PostShift", relu );
-		outputs[0] = new CUserTensor( outputs[0]->Shape(), outputs[0]->Layout(), CLayerOutput( postShift, 0 ) );
+		outputs[0] = new CUserTensor( outputs[0]->Layout(), CLayerOutput( postShift, 0 ) );
 	}
 }
 
@@ -228,7 +232,8 @@ void CPowOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArra
 	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
 
 	CheckOnnxProtocol( inputs[1] != nullptr, "input can't be optional", *this );
-	CheckNeoOnnxSupport( inputs[1]->IsCalculated(), "user-provided power of the exponent", *this );
+	CheckNeoOnnxSupport( inputs[1]->Type() == TTensorType::Data,
+		"user-provided power of the exponent", *this );
 	CPtr<const CDnnBlob> powerValue = dynamic_cast<const CDataTensor*>( inputs[1].Ptr() )->Data();
 	CheckNeoOnnxSupport( powerValue->GetDataSize() == 1, "non-scalar power of the exponent", *this );
 	CheckNeoOnnxSupport( powerValue->GetDataType() == CT_Float, "non-float power of the exponent", *this );
@@ -246,6 +251,8 @@ CReluOperator::CReluOperator( const onnx::NodeProto& relu, int opsetVersion ) :
 {
 	// v1 - original
 	// v6 - legacy optimization attributes are removed
+	// v13 - bfloat16 is supported
+	// v14 - integer data types are supported
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
 	CheckOnnxProtocol( InputCount() == 1, "operator must have 1 input", *this );
@@ -259,6 +266,7 @@ CSigmoidOperator::CSigmoidOperator( const onnx::NodeProto& sigmoid, int opsetVer
 {
 	// v1 - original
 	// v6 - legacy optimization attributes are removed
+	// v13 - bfloat16 is supported
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
 	CheckOnnxProtocol( InputCount() == 1, "operator must have 1 input", *this );
@@ -294,6 +302,7 @@ CTanhOperator::CTanhOperator( const onnx::NodeProto& tanh, int opsetVersion ) :
 {
 	// v1 - original
 	// v6 - legacy optimization attributes are removed
+	// v13 - bfloat16 is supported
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
 	CheckOnnxProtocol( InputCount() == 1, "operator must have 1 input", *this );

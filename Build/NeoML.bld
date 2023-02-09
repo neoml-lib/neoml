@@ -65,7 +65,7 @@ group;para;RunCommonTests
 	end_configuration
 end_group
 
-group;para;RunNeoMLTests
+group;seq;RunNeoMLTests
 	configuration;x86
 		runx;%ROOT%\WinFinal\NeoMLTest.exe;--TestDataPath=%ROOT%\WinFinal\ --MathEngine=cpu
 	end_configuration

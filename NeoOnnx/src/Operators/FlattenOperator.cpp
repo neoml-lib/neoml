@@ -30,6 +30,7 @@ CFlattenOperator::CFlattenOperator( const onnx::NodeProto& flatten, int opsetVer
 	// v1 - original
 	// v9 - added different data types support
 	// v11 - added negative axis index support
+	// v13 - bfloat16 is supported
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
 	CheckOnnxProtocol( InputCount() == 1, "operator must have 1 input", *this );
@@ -43,13 +44,15 @@ CFlattenOperator::CFlattenOperator( const onnx::NodeProto& flatten, int opsetVer
 
 void CFlattenOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
-	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
+	CheckNoNullInputs( inputs );
+	CheckNoShapeInputs( inputs );
 
 	// Every operator which somehow changes Onnx tensor's shape or dimensions works only with Onnx dim type
 	// Otherwise it'll lead to hardly fixable troubles with data-ordering
 	CPtr<const CUserTensor> input;
 	if( IsTransposedLayout( inputs[0]->Layout() ) ) {
-		input = AsUserTensor( *ConvertTensor( *inputs[0], CTensorLayout( inputs[0]->DimCount() ) ), Name() + "_Source", dnn );
+		input = AsUserTensor( *ConvertTensor( *inputs[0], CTensorLayout( inputs[0]->DimCount() ) ),
+			Name() + "_Source", dnn );
 	} else {
 		input = AsUserTensor( *inputs[0], Name() + "_Source", dnn );
 	}
@@ -58,31 +61,30 @@ void CFlattenOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensor
 	// [ dim_0 * ... * dim_(axis-1) ; dim_axis * ... * dim_(n-1) ]
 	// Corner case: if axis == 0 then output shape is [ 1 ; tensorSize ]
 	const int axisIndex = axis < 0 ? axis + input->DimCount() : axis;
-	CTensorShape outputShape( { 1, 1 } );
-	for( int dimIndex = 0; dimIndex < input->DimCount(); ++dimIndex ) {
-		outputShape[dimIndex < axisIndex ? 0 : 1] *= input->Shape()[dimIndex];
-	}
-
+	CheckNeoOnnxSupport( axisIndex == 0 || axisIndex == 1 || axisIndex == inputs[0]->DimCount() - 1,
+		"NeoOnnx supports only flatten which can be calculated without input shape", *this );
 	CTensorLayout outputLayout( 2 );
+
 	CPtr<CTransformLayer> transform = new CTransformLayer( dnn.GetMathEngine() );
 	transform->SetName( Name() );
-	transform->SetDimensionRule( outputLayout[0], 
-		CTransformLayer::CDimensionRule( CTransformLayer::O_SetSize, outputShape[0] ) );
-	transform->SetDimensionRule( outputLayout[1], 
-		CTransformLayer::CDimensionRule( CTransformLayer::O_SetSize, outputShape[1] ) );
-
-	for( TBlobDim dim = BD_BatchLength; dim < BD_Count; ++dim ) {
-		// Other dimensions must be 1
-		if( outputLayout.Find( dim ) == NotFound ) {
-			transform->SetDimensionRule( static_cast< TBlobDim >( dim ),
-				CTransformLayer::CDimensionRule( CTransformLayer::O_SetSize, 1 ) );
-		}
+	if( axis == 0 ) {
+		transform->SetDimensionRule( outputLayout[1],
+			CTransformLayer::CDimensionRule( CTransformLayer::O_Remainder, 1 ) );
+	} else if( axis == 1 ) {
+		transform->SetDimensionRule( outputLayout[0],
+			CTransformLayer::CDimensionRule( CTransformLayer::O_InputDim, input->Layout()[0] ) );
+		transform->SetDimensionRule( outputLayout[1],
+			CTransformLayer::CDimensionRule( CTransformLayer::O_Remainder, 1 ) );
+	} else {
+		transform->SetDimensionRule( outputLayout[0],
+			CTransformLayer::CDimensionRule( CTransformLayer::O_Remainder, 1 ) );
+		transform->SetDimensionRule( outputLayout[1],
+			CTransformLayer::CDimensionRule( CTransformLayer::O_InputDim, input->Layout().Last() ) );
 	}
 
 	transform->Connect( 0, *input->Layer(), input->OutputIndex() );
 	dnn.AddLayer( *transform );
-
-	outputs.Add( new CUserTensor( outputShape, outputLayout, CLayerOutput( transform, 0 ) ) );
+	outputs.Add( new CUserTensor( outputLayout, CLayerOutput( transform, 0 ) ) );
 }
 
 } // namespace NeoOnnx

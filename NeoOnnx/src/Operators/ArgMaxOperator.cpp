@@ -36,7 +36,9 @@ CArgMaxOperator::CArgMaxOperator( const onnx::NodeProto& argMax, int opsetVersio
 
 void CArgMaxOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
-	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional" );
+	CheckNoNullInputs( inputs );
+	CheckNoShapeInputs( inputs );
+
 	CPtr<const CUserTensor> input = AsUserTensor( *inputs[0], Name() + "_data", dnn );
 
 	// In ONNX ArgMax supports any data type
@@ -50,20 +52,15 @@ void CArgMaxOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorA
 	}
 	outputLayer = Argmax( input->Layout()[axis] )( Name(), outputLayer );
 
-	CTensorShape outputShape;
-	input->Shape().CopyTo( outputShape );
-	outputShape[axis] = 1;
-
 	CTensorLayout outputLayout = input->Layout();
 
 	int keepDims = 1;
 	GetAttribute( "keepdims", keepDims );
 	if( keepDims == 0 ) {
 		outputLayout.DeleteAt( axis );
-		outputShape.DeleteAt( axis );
 	}
 
-	outputs.Add( new CUserTensor( outputShape, outputLayout, CLayerOutput( outputLayer, 0 ) ) );
+	outputs.Add( new CUserTensor( outputLayout, CLayerOutput( outputLayer, 0 ) ) );
 }
 
 } // namespace NeoOnnx

@@ -131,6 +131,53 @@ void CCudaMathEngine::BlobChannelwiseConvolutionLearnAdd( const CChannelwiseConv
 	BlobChannelwiseConvolutionLearnAddKernel<<<blockCount, threadCount>>>( desc, GetRaw(inputData), GetRaw(outputDiffData), GetRaw(filterDiffData) );
 }
 
+void CCudaMathEngine::MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobDesc& outputDesc,
+	const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& inputHandle,
+	const CConstFloatHandle& expandFilter, const CConstFloatHandle* expandFreeTerm,
+	const CConstFloatHandle& expandReLUThreshold, const CConstFloatHandle& channelwiseFilter,
+	const CConstFloatHandle* channelwiseFreeTerm, const CConstFloatHandle& channelwiseReLUThreshold,
+	const CConstFloatHandle& downFilter, const CConstFloatHandle* downFreeTerm, bool residual,
+	const CFloatHandle& outputHandle )
+{
+	SetCudaDevice( device->DeviceNumber );
+	const CCudaChannelwiseConvolutionDescInternal& desc = static_cast<const CCudaChannelwiseConvolutionDesc&>( convDesc ).Internal;
+
+	CFloatHandleStackVar channelwiseInput( *this, desc.Source.BlobSize() );
+	CFloatHandleStackVar channelwiseOutput( *this, desc.Result.BlobSize() );
+
+	const int expandedChannels = desc.Filter.Channels();
+
+	if( residual && inputHandle != outputHandle ) {
+		VectorCopy( outputHandle, inputHandle, inputDesc.BlobSize() );
+	}
+
+	MultiplyMatrixByTransposedMatrix( 1, inputHandle, inputDesc.ObjectCount() * inputDesc.GeometricalSize(),
+		inputDesc.Channels(), expandFilter, expandedChannels, channelwiseInput, channelwiseInput.Size() );
+
+	if( expandFreeTerm != nullptr ) {
+		AddVectorToMatrixRows( 1, channelwiseInput, channelwiseInput, channelwiseInput.Size() / expandedChannels,
+			expandedChannels, *expandFreeTerm );
+	}
+	VectorReLU( channelwiseInput, channelwiseInput, channelwiseInput.Size(), expandReLUThreshold );
+
+	BlobChannelwiseConvolution( convDesc, channelwiseInput, channelwiseFilter, channelwiseFreeTerm, channelwiseOutput );
+	VectorReLU( channelwiseOutput, channelwiseOutput, channelwiseOutput.Size(), channelwiseReLUThreshold );
+
+	if( residual ) {
+		multiplyMatrixByTransposedMatrixAndAdd( channelwiseOutput, channelwiseOutput.Size() / expandedChannels,
+			expandedChannels, expandedChannels, downFilter, outputDesc.Channels(), expandedChannels, outputHandle,
+			outputDesc.Channels() );
+	} else {
+		MultiplyMatrixByTransposedMatrix( 1, channelwiseOutput, channelwiseOutput.Size() / expandedChannels,
+			expandedChannels, downFilter, outputDesc.Channels(), outputHandle, outputDesc.BlobSize() );
+	}
+
+	if( downFreeTerm != nullptr ) {
+		AddVectorToMatrixRows( 1, outputHandle, outputHandle, outputDesc.BlobSize() / outputDesc.Channels(),
+			outputDesc.Channels(), *downFreeTerm );
+	}
+}
+
 } // namespace NeoML
 
 #endif // NEOML_USE_CUDA

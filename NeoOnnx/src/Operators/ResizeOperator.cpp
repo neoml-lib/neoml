@@ -25,11 +25,35 @@ limitations under the License.
 #include "NeoOnnxCheck.h"
 #include "TensorUtils.h"
 
+#include <NeoML/Dnn/Layers/Onnx/OnnxResizeLayer.h>
+
 namespace NeoOnnx {
 
 static bool isInputPresent( const CTensorArray& inputs, int index )
 {
-	return inputs.Size() > index && inputs[index] != nullptr && !inputs[index]->IsEmpty();
+	const bool initialCheck = inputs.Size() > index && inputs[index] != nullptr;
+	if( !initialCheck ) {
+		return false;
+	}
+	if( inputs[index]->Type() == TTensorType::User ) {
+		return true;
+	} else if( inputs[index]->Type() == TTensorType::Data ) {
+		const CDataTensor& dataTensor = dynamic_cast<const CDataTensor&>( *inputs[index] );
+		for( int dimIndex = 0; dimIndex < dataTensor.DimCount(); ++dimIndex ) {
+			if( dataTensor.DimSize( dimIndex ) == 0 ) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	const CShapeTensor& shapeTensor = dynamic_cast<const CShapeTensor&>( *inputs[index] );
+	for( int dimIndex = 0; dimIndex < shapeTensor.DimCount(); ++dimIndex ) {
+		if( shapeTensor.Shape()[dimIndex] == 0 ) {
+			return false;
+		}
+	}
+	return true;
 }
 
 // --------------------------------------------------------------------------------------------------------------------
@@ -55,45 +79,33 @@ void CResizeOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorA
 	GetAttribute( "mode", mode );
 	CheckNeoOnnxSupport( mode == "nearest" || mode == "linear", "mode is not 'nearest' nor 'linear'", *this );
 
-	CPtr<CInterpolationLayer> interpolation( new CInterpolationLayer( dnn.GetMathEngine() ) );
-	interpolation->SetName( Name() );
+	CPtr<COnnxResizeLayer> resizeLayer( new COnnxResizeLayer( dnn.GetMathEngine() ) );
+	resizeLayer->SetName( Name() );
 
-	interpolation->SetCoords( getInterpolationCoords() );
+	resizeLayer->SetCoords( getInterpolationCoords() );
 	if( mode == "nearest" ) {
-		interpolation->SetRound( getInterpolationRound() );
+		resizeLayer->SetRound( getInterpolationRound() );
 	}
 
 	CPtr<const CUserTensor> x = AsUserTensor( *inputs[0], Name() + "_source", dnn );
-	CTensorShape outputShape;
-	x->Shape().CopyTo( outputShape );
+	resizeLayer->Connect( 0, *x->Layer(), x->OutputIndex() );
+	x->Layout().CopyTo( resizeLayer->TensorLayout() );
 
 	const int scalesInputIndex = OpsetVersion == 10 ? 1 : 2;
 	const int sizesInputIndex = OpsetVersion == 10 ? INT_MAX : 3;
 
 	if( isInputPresent( inputs, scalesInputIndex ) ) {
-		CheckOnnxProtocol( !isInputPresent( inputs, sizesInputIndex ), "Both 'sizes' and 'scales' are provided", *this );
-		CFastArray<float, 8> scales;
-		getScales( inputs, scales );
-		CheckOnnxProtocol( scales.Size() == x->DimCount(), "size(scales) != rank(X)", *this );
-		for( int dimIndex = 0; dimIndex < scales.Size(); ++dimIndex ) {
-			interpolation->SetRule( x->Layout()[dimIndex], CInterpolationLayer::CRule::Scale( scales[dimIndex] ) );
-			outputShape[dimIndex] = static_cast<int>( x->Shape()[dimIndex] * scales[dimIndex] );
-		}
+		CPtr<const CShapeTensor> scales = AsShapeTensor( *inputs[scalesInputIndex], Name() + "_scales", dnn );
+		resizeLayer->Connect( 1, *scales->Layer(), scales->OutputIndex() );
 	} else if( isInputPresent( inputs, sizesInputIndex ) ) {
-		CFastArray<int, 8> sizes;
-		getSizes( inputs, sizes );
-		CheckOnnxProtocol( sizes.Size() == x->DimCount(), "size(sizes) != rank(X)", *this );
-		for( int dimIndex = 0; dimIndex < sizes.Size(); ++dimIndex ) {
-			interpolation->SetRule( x->Layout()[dimIndex], CInterpolationLayer::CRule::Resize( sizes[dimIndex] ) );
-			outputShape[dimIndex] = sizes[dimIndex];
-		}
+		CPtr<const CShapeTensor> sizes = AsShapeTensor( *inputs[sizesInputIndex], Name() + "_sizes", dnn );
+		resizeLayer->Connect( 1, *sizes->Layer(), sizes->OutputIndex() );
 	} else {
 		CheckOnnxProtocol( false, "'sizes' or 'scales' must be present", *this );
 	}
 
-	interpolation->Connect( 0, *x->Layer(), x->OutputIndex() );
-	dnn.AddLayer( *interpolation );
-	outputs.Add( new CUserTensor( outputShape, x->Layout(), CLayerOutput( interpolation.Ptr(), 0 ) ) );
+	dnn.AddLayer( *resizeLayer );
+	outputs.Add( new CUserTensor( x->Layout(), CLayerOutput( resizeLayer, 0 ) ) );
 }
 
 TInterpolationCoords CResizeOperator::getInterpolationCoords() const
@@ -140,27 +152,6 @@ TInterpolationRound CResizeOperator::getInterpolationRound() const
 	}
 	CheckOnnxProtocol( false, "unknown 'nearest_mode'", *this );
 	return TInterpolationRound::Count;
-}
-
-void CResizeOperator::getScales( const CTensorArray& inputs, CFastArray<float, 8>& scales ) const
-{
-	const int scalesInputIndex = OpsetVersion == 10 ? 1 : 2;
-	CheckNeoOnnxSupport( inputs[scalesInputIndex]->IsCalculated(), "User-provided scales", *this );
-	const CDnnBlob& scalesBlob = *( dynamic_cast<const CDataTensor*>( inputs[scalesInputIndex].Ptr() )->Data() );
-	CheckOnnxProtocol( scalesBlob.GetDataType() == CT_Float, "scales are not float", *this );
-	scales.SetSize( scalesBlob.GetDataSize() );
-	scalesBlob.CopyTo( scales.GetPtr() );
-}
-
-void CResizeOperator::getSizes( const CTensorArray& inputs, CFastArray<int, 8>& sizes ) const
-{
-	NeoAssert( OpsetVersion > 10 );
-	const int sizesInputIndex = 3;
-	CheckNeoOnnxSupport( inputs[sizesInputIndex]->IsCalculated(), "User-provided sizes", *this );
-	const CDnnBlob& sizesBlob = *( dynamic_cast<const CDataTensor*>( inputs[sizesInputIndex].Ptr() )->Data() );
-	CheckOnnxProtocol( sizesBlob.GetDataType() == CT_Int, "sizes are not integer", *this );
-	sizes.SetSize( sizesBlob.GetDataSize() );
-	sizesBlob.CopyTo( sizes.GetPtr() );
 }
 
 } // namespace NeoOnnx

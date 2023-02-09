@@ -152,26 +152,26 @@ static void buildDnnFromGraphProto( const onnx::GraphProto& onnxGraph, int opset
 	for( const onnx::ValueInfoProto& onnxOutput : onnxGraph.output() ) {
 		CGraphOutput output( onnxOutput );
 		CheckOnnxProtocol( tensors.Has( output.Name() ), "output tensor is missing" );
-		CPtr<const CTensorBase> baseTensor = tensors[output.Name()];
-		CheckNeoOnnxSupport( baseTensor != nullptr, "output tensor can't be calculated" );
-		if( baseTensor->IsCalculated() ) {
-			// All of the operations for this output were calculated during import
-			// Converting the blob to the output layout and add it to CDataLayer
-			baseTensor = ConvertTensor( *baseTensor, CTensorLayout::IOLayout( baseTensor->DimCount() ) );
-			CPtr<CDataLayer> dataLayer = new CDataLayer( dnn.GetMathEngine() );
-			dataLayer->SetName( output.Name() + "_Data" );
-			dnn.AddLayer( *dataLayer );
-			dataLayer->SetBlob( dynamic_cast< const CDataTensor& >( *baseTensor ).Data()->GetCopy() );
-			baseTensor = new CUserTensor( baseTensor->Shape(), baseTensor->Layout(), CLayerOutput( dataLayer.Ptr(), 0));
-		}
-		NeoAssert( !baseTensor->IsCalculated() );
+		CheckNeoOnnxSupport( tensors[output.Name()] != nullptr, "output tensor can't be calculated" );
+
+		// API obliges us to return output tensors in layout from settings
+		// or (if settings don't have layout) in the IOLayout
+		const CTensorBase& currTensor = *tensors[output.Name()];
+		const int layoutPos = settings.OutputLayouts.GetFirstPosition( output.Name() );
+		const CTensorLayout outputLayout = layoutPos == NotFound ? CTensorLayout::IOLayout( currTensor.DimCount() )
+			: settings.OutputLayouts.GetValue( layoutPos );
+		CPtr<const CTensorBase> convertedTensor = ConvertTensor( currTensor, outputLayout );
+
+		// API obliges us to return CDnn outputs in the corresponding CSinkLayer
+		// Which is why convert any tensor to CUserTensor and connect it to CSinkLayer
+		CPtr<const CUserTensor> userTensor = AsUserTensor( *convertedTensor, output.Name() + "_UserSource", dnn );
 		CPtr<const CSinkLayer> sink;
 		if( settings.OutputLayouts.Has( output.Name() ) ) {
-			sink = output.AddSinkLayer( dynamic_cast<const CUserTensor&>( *baseTensor ),
-				&settings.OutputLayouts[output.Name()], dnn );
+			sink = output.AddSinkLayer( *userTensor, dnn );
 		} else {
-			sink = output.AddSinkLayer( dynamic_cast<const CUserTensor&>( *baseTensor ), nullptr, dnn );
+			sink = output.AddSinkLayer( *userTensor, dnn );
 		}
+
 		CImportedModelInfo::COutputInfo& outputInfo = outputs.Append();
 		outputInfo.Name = CString( sink->GetName() );
 	}

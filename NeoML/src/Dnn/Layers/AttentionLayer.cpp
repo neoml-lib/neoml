@@ -46,10 +46,10 @@ void CAttentionWeightedSumLayer::Reshape()
 {
 	CheckInputs();
 
-	CheckArchitecture( inputDescs.Size() == 2, GetPath(), "Weighted sum layer must have 2 inputs (objects, coeffs)" );
-	CheckArchitecture( inputDescs[0].BatchWidth() == inputDescs[1].BatchWidth(), GetPath(), "Batch width mismatch" );
-	CheckArchitecture( inputDescs[0].ListSize() == inputDescs[1].ListSize(), GetPath(), "List size mismatch" );
-	CheckArchitecture( inputDescs[1].BatchLength() == 1 || GetDnn()->IsRecurrentMode(), GetPath(),
+	CheckLayerArchitecture( inputDescs.Size() == 2, "Weighted sum layer must have 2 inputs (objects, coeffs)" );
+	CheckLayerArchitecture( inputDescs[0].BatchWidth() == inputDescs[1].BatchWidth(), "Batch width mismatch" );
+	CheckLayerArchitecture( inputDescs[0].ListSize() == inputDescs[1].ListSize(), "List size mismatch" );
+	CheckLayerArchitecture( inputDescs[1].BatchLength() == 1 || GetDnn()->IsRecurrentMode(),
 		"Layer must be used inside of recurrent decoder or inputDescs[1].BatchLength must be equal to 1" );
 
 	outputDescs[0] = inputDescs[0];
@@ -92,10 +92,10 @@ void CAttentionDotProductLayer::Reshape()
 {
 	CheckInputs();
 
-	CheckArchitecture( inputDescs.Size() == 2, GetPath(), "Weighted sum layer must have 2 inputs (objects, coeffs)" );
-	CheckArchitecture( inputDescs[0].BatchWidth() == inputDescs[1].BatchWidth(), GetPath(), "Batch width mismatch" );
-	CheckArchitecture( inputDescs[0].ObjectSize() == inputDescs[1].ObjectSize(), GetPath(), "Object size mismatch" );
-	CheckArchitecture( inputDescs[1].BatchLength() == 1 || GetDnn()->IsRecurrentMode(), GetPath(),
+	CheckLayerArchitecture( inputDescs.Size() == 2, "Weighted sum layer must have 2 inputs (objects, coeffs)" );
+	CheckLayerArchitecture( inputDescs[0].BatchWidth() == inputDescs[1].BatchWidth(), "Batch width mismatch" );
+	CheckLayerArchitecture( inputDescs[0].ObjectSize() == inputDescs[1].ObjectSize(), "Object size mismatch" );
+	CheckLayerArchitecture( inputDescs[1].BatchLength() == 1 || GetDnn()->IsRecurrentMode(),
 		"Layer must be used inside of recurrent decoder or inputDescs[1].BatchLength must be equal to 1" );
 
 	outputDescs[0] = inputDescs[1];
@@ -139,10 +139,10 @@ void CAttentionSumLayer::Reshape()
 {
 	CheckInputs();
 
-	CheckArchitecture( inputDescs.Size() == 2, GetPath(), "Weighted sum layer must have 2 inputs (objects, coeffs)" );
-	CheckArchitecture( inputDescs[0].BatchWidth() == inputDescs[1].BatchWidth(), GetPath(), "Batch width mismatch" );
-	CheckArchitecture( inputDescs[0].ObjectSize() == inputDescs[1].ObjectSize(), GetPath(), "Object size mismatch" );
-	CheckArchitecture( inputDescs[1].BatchLength() == 1 || GetDnn()->IsRecurrentMode(), GetPath(),
+	CheckLayerArchitecture( inputDescs.Size() == 2, "Weighted sum layer must have 2 inputs (objects, coeffs)" );
+	CheckLayerArchitecture( inputDescs[0].BatchWidth() == inputDescs[1].BatchWidth(), "Batch width mismatch" );
+	CheckLayerArchitecture( inputDescs[0].ObjectSize() == inputDescs[1].ObjectSize(), "Object size mismatch" );
+	CheckLayerArchitecture( inputDescs[1].BatchLength() == 1 || GetDnn()->IsRecurrentMode(),
 		"Layer must be used inside of recurrent decoder or inputDescs[1].BatchLength must be equal to 1" );
 
 	outputDescs[0] = inputDescs[0];

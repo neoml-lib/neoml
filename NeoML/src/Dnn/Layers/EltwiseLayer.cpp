@@ -25,17 +25,16 @@ namespace NeoML {
 void CEltwiseBaseLayer::Reshape()
 {
 	CheckInputs();
-	CheckArchitecture( inputDescs.Size() > 1, GetPath(), "eltwise layer with single input" );
-	CheckArchitecture( !IsBackwardPerformed() || inputDescs[0].GetDataType() == CT_Float, GetPath(), "integer eltwise backward" );
+	CheckLayerArchitecture( inputDescs.Size() > 1, "eltwise layer with single input" );
+	CheckLayerArchitecture( !IsBackwardPerformed() || inputDescs[0].GetDataType() == CT_Float,
+		"integer eltwise backward" );
 
 	for( int i = 1; i < inputDescs.Size(); ++i ) {
-		CheckArchitecture( inputDescs[i].HasEqualDimensions(inputDescs[0]),
-			GetPath(), "eltwise input size mismatch (batchSize mismatch)" );
+		CheckLayerArchitecture( inputDescs[i].HasEqualDimensions(inputDescs[0]),
+			"eltwise input size mismatch (batchSize mismatch)" );
 		const CBlobDesc& blobDesc = inputDescs[i];
-		CheckArchitecture( blobDesc.GetDataType() == inputDescs[0].GetDataType(),
-			GetPath(), "input types mismatch" );
-		CheckArchitecture( inputDescs[i].GetDataType() == inputDescs[0].GetDataType(),
-			GetPath(), "input types mismatch" );
+		CheckLayerArchitecture( blobDesc.GetDataType() == inputDescs[0].GetDataType(), "input types mismatch" );
+		CheckLayerArchitecture( inputDescs[i].GetDataType() == inputDescs[0].GetDataType(), "input types mismatch" );
 	}
 
 	outputDescs[0] = inputDescs[0];
@@ -107,7 +106,7 @@ CLayerWrapper<CEltwiseSumLayer> Sum()
 void CEltwiseSubLayer::Reshape()
 {
 	// This layer must have 2 inputs
-	CheckArchitecture( inputDescs.Size() == 2, GetPath(), "EltwiseSub layer must have 2 inputs" );
+	CheckLayerArchitecture( inputDescs.Size() == 2, "EltwiseSub layer must have 2 inputs" );
 	CEltwiseBaseLayer::Reshape();
 }
 
@@ -358,7 +357,7 @@ CLayerWrapper<CEltwiseMaxLayer> Max()
 void CEltwiseDivLayer::Reshape()
 {
 	// This layer must have 2 inputs
-	CheckArchitecture( inputDescs.Size() == 2, GetPath(), "EltwiseDiv layer must have 2 inputs" );
+	CheckLayerArchitecture( inputDescs.Size() == 2, "EltwiseDiv layer must have 2 inputs" );
 	CEltwiseBaseLayer::Reshape();
 }
 
@@ -397,4 +396,4 @@ CLayerWrapper<CEltwiseDivLayer> Div()
 	return CLayerWrapper<CEltwiseDivLayer>( "Div" );
 }
 
-}
+} // namespace NeoML

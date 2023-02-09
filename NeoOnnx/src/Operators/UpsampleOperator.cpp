@@ -25,6 +25,8 @@ limitations under the License.
 #include "NeoOnnxCheck.h"
 #include "TensorUtils.h"
 
+#include <NeoML/Dnn/Layers/Onnx/OnnxResizeLayer.h>
+
 namespace NeoOnnx {
 
 CUpsampleOperator::CUpsampleOperator( const onnx::NodeProto& upsample, int opsetVersion ) :
@@ -48,52 +50,45 @@ CUpsampleOperator::CUpsampleOperator( const onnx::NodeProto& upsample, int opset
 
 void CUpsampleOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs) const
 {
-	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
-	CFastArray<float, 8> scales;
-	getScales( inputs, scales );
-	CTensorShape outputShape;
-	inputs[0]->Shape().CopyTo( outputShape );
-	CheckOnnxProtocol( outputShape.Size() == scales.Size(), "number of scales must be equal to the input dimensions", *this );
-	for( int i = 0; i < outputShape.Size(); ++i ) {
-		outputShape[i] = static_cast<int>( outputShape[i] * scales[i] );
-		CheckOnnxProtocol( outputShape[i] >= 1, "empty shape after scaling", *this );
-	}
+	CheckNoNullInputs( inputs );
 
-	CPtr<CInterpolationLayer> interpolation = new CInterpolationLayer( dnn.GetMathEngine() );
-	interpolation->SetName( Name() );
-	interpolation->SetCoords( TInterpolationCoords::Asymmetric );
+	CPtr<COnnxResizeLayer> onnxResize = new COnnxResizeLayer( dnn.GetMathEngine() );
+	onnxResize->SetName( Name() );
+	onnxResize->SetCoords( TInterpolationCoords::Asymmetric );
 	if( mode == "nearest" ) {
-		interpolation->SetRound( TInterpolationRound::Floor );
+		onnxResize->SetRound( TInterpolationRound::Floor );
 	}
+	inputs[0]->Layout().CopyTo( onnxResize->TensorLayout() );
 
 	CPtr<const CUserTensor> input = AsUserTensor( *inputs[0], Name() + "_Source", dnn );
-	for( int i = 0; i < scales.Size(); ++i ) {
-		interpolation->SetRule( input->Layout()[i], CInterpolationLayer::CRule::Scale( scales[i] ) );
-	}
-	interpolation->Connect( 0, *input->Layer(), input->OutputIndex() );
-	dnn.AddLayer( *interpolation );
-	outputs.Add( new CUserTensor( outputShape, input->Layout(), CLayerOutput( interpolation.Ptr(), 0 ) ) );
+	onnxResize->Connect( 0, *input->Layer(), input->OutputIndex() );
+
+	CPtr<const CShapeTensor> scales = getScales( inputs, dnn );
+	onnxResize->Connect( 1, *scales->Layer(), scales->OutputIndex() );
+
+	dnn.AddLayer( *onnxResize );
+	outputs.Add( new CUserTensor( input->Layout(), CLayerOutput( onnxResize.Ptr(), 0 ) ) );
 }
 
 // Gets scales
-void CUpsampleOperator::getScales( const CTensorArray& inputs, CFastArray<float, 8>& scales ) const
+CPtr<const CShapeTensor> CUpsampleOperator::getScales( const CTensorArray& inputs, CDnn& dnn ) const
 {
-	if( OpsetVersion < 7 ) {
-		float heightScale = 1.f;
-		CheckOnnxProtocol( GetAttribute( "height_scale", heightScale ), "height_scale attribute is missing", *this );
-		float widthScale = 1.f;
-		CheckOnnxProtocol( GetAttribute( "width_scale", widthScale ), "width_scale attribute is missing", *this );
-		scales = { 1.f, 1.f, heightScale, widthScale };
-	} else if( OpsetVersion < 9 ) {
-		CheckOnnxProtocol( GetAttribute( "scales", scales ), "scales attribute is missing", *this );
-	} else {
-		CheckOnnxProtocol( inputs[1] != nullptr, "scales can't be optional", *this );
-		CheckNeoOnnxSupport( inputs[1]->IsCalculated(), "user-provided scales", *this );
-		const CDnnBlob& scalesBlob = *( dynamic_cast<const CDataTensor*>( inputs[1].Ptr() )->Data() );
-		CheckOnnxProtocol( scalesBlob.GetDataType() == CT_Float, "non-float scales", *this );
-		scales.SetSize( scalesBlob.GetDataSize() );
-		scalesBlob.CopyTo( scales.GetPtr() );
+	if( OpsetVersion < 9 ) {
+		CFastArray<float, 8> scalesArray;
+		if( OpsetVersion < 7 ) {
+			float heightScale = 1.f;
+			CheckOnnxProtocol( GetAttribute( "height_scale", heightScale ), "height_scale attribute is missing", *this );
+			float widthScale = 1.f;
+			CheckOnnxProtocol( GetAttribute( "width_scale", widthScale ), "width_scale attribute is missing", *this );
+			scalesArray = { 1.f, 1.f, heightScale, widthScale };
+		} else {
+			CheckOnnxProtocol( GetAttribute( "scales", scalesArray ), "scales attribute is missing", *this );
+		}
+		return AsShapeTensor( scalesArray, Name() + "_Scales", dnn );
 	}
+
+	CheckNeoOnnxSupport( inputs[1]->Type() != TTensorType::User, "user-provided scales", *this );
+	return AsShapeTensor( *inputs[1], Name() + "_Scales", dnn );
 }
 
 } // namespace NeoOnnx

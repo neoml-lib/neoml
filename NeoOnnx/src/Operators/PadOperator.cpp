@@ -46,6 +46,7 @@ CPadOperator::CPadOperator( const onnx::NodeProto& pad, int opsetVersion ) :
 
 void CPadOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
+	CheckNoShapeInputs( inputs );
 	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
 	CFastArray<int, 8> pads;
 	getPads( inputs, pads );
@@ -61,7 +62,7 @@ void CPadOperator::getPads( const CTensorArray& inputs, CFastArray<int, 8>& pads
 		CheckOnnxProtocol( GetAttribute( padAttributeName, pads ),
 			"'pads' attribute is missing", *this );
 	} else {
-		CheckNeoOnnxSupport( inputs[1]->IsCalculated(), "user-provided pad sizes", *this );
+		CheckNeoOnnxSupport( inputs[1]->Type() == TTensorType::Data, "user-provided pad sizes", *this );
 		const CDnnBlob& padsBlob = *( dynamic_cast<const CDataTensor*>( inputs[1].Ptr() )->Data() );
 		CheckOnnxProtocol( padsBlob.GetDataType() == CT_Int, "non-integer pad sizes", *this );
 		pads.SetSize( padsBlob.GetDataSize() );
@@ -76,7 +77,7 @@ float CPadOperator::getPadValue( const CTensorArray& inputs ) const
 	if( OpsetVersion < 11 ) {
 		GetAttribute( "value", padValue );
 	} else if( InputCount() == 3 ) {
-		CheckNeoOnnxSupport( inputs[2]->IsCalculated(), "user-provided pad value", *this );
+		CheckNeoOnnxSupport( inputs[2]->Type() == TTensorType::Data, "user-provided pad value", *this );
 		const CDnnBlob& valueBlob = *( dynamic_cast<const CDataTensor*>( inputs[2].Ptr() )->Data() );
 		if( valueBlob.GetDataType() == CT_Float ) {
 			padValue = valueBlob.GetData<float>().GetValue();

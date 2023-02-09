@@ -22,6 +22,8 @@ limitations under the License.
 
 #include "onnx.pb.h"
 
+#include <algorithm>
+
 namespace NeoOnnx {
 
 CLstmOperator::CLstmOperator( const onnx::NodeProto& lstm, int opsetVersion ) :
@@ -31,6 +33,7 @@ CLstmOperator::CLstmOperator( const onnx::NodeProto& lstm, int opsetVersion ) :
 {
 	// v1 - original
 	// v7 - added initial state and peephole weight inputs
+	// v14 - layout attribute added
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
 	CheckOnnxProtocol( InputCount() >= 3 && InputCount() <= 8, "operator must have from 3 upto 8 inputs", *this );
@@ -44,13 +47,12 @@ CLstmOperator::CLstmOperator( const onnx::NodeProto& lstm, int opsetVersion ) :
 
 void CLstmOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
+	CheckNoShapeInputs( inputs );
 	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
-
-	const CTensorShape& inputShape = inputs[0]->Shape();
 
 	CPtr<CDnnBlob> bias = nullptr;
 	if( InputCount() > 3 && inputs[3] != nullptr ) {
-		CheckNeoOnnxSupport( inputs[3]->IsCalculated(), "User-provided bias", *this );
+		CheckNeoOnnxSupport( inputs[3]->Type() == TTensorType::Data, "User-provided bias", *this );
 		bias = dynamic_cast<const CDataTensor*>( inputs[3].Ptr() )->Data()->GetCopy();
 	}
 
@@ -60,26 +62,32 @@ void CLstmOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArr
 	// NeoML doesn't support peepholes
 	CheckNeoOnnxSupport( InputCount() <= 7 || inputs[7] == nullptr, "peepholes", *this );
 
-	CPtr<const CUserTensor> inputData = AsUserTensor(
-		*ConvertTensor( *inputs[0], CTensorLayout( { BD_BatchLength, BD_BatchWidth, BD_Channels } ) ),
+	int layoutAttr = 0;
+	GetAttribute( "layout", layoutAttr );
+
+	CTensorLayout neomlLayout( { BD_BatchLength, BD_BatchWidth, BD_Channels } );
+	if( layoutAttr != 0 ) {
+		std::swap<TBlobDim>( neomlLayout[0], neomlLayout[1] );
+	}
+	CPtr<const CUserTensor> inputData = AsUserTensor( *ConvertTensor( *inputs[0], neomlLayout ),
 		Name() + "_Source", dnn );
 
 	IMathEngine& mathEngine = dnn.GetMathEngine();
 	CPtr<CLstmLayer> lstmLayer = new CLstmLayer( mathEngine );
 	lstmLayer->SetName( Name() );
 
-	CheckNeoOnnxSupport( inputs[1] != nullptr && inputs[1]->IsCalculated(), "User-provided weight", *this );
+	CheckNeoOnnxSupport( inputs[1] != nullptr && inputs[1]->Type() == TTensorType::Data,
+		"User-provided weight", *this );
 	CPtr<CDnnBlob> weights = dynamic_cast<const CDataTensor*>( inputs[1].Ptr() )->Data()->GetCopy();
-
-	const int inputObjectSize = inputs[1]->Shape()[2];
 
 	CBlobDesc blobDesc( CT_Float );
 	blobDesc.SetDimSize( BD_BatchWidth, 4 * hiddenSize );
-	blobDesc.SetDimSize( BD_Channels, inputObjectSize );
+	blobDesc.SetDimSize( BD_Channels, weights->GetDataSize() / blobDesc.BatchWidth() );
 	weights->ReinterpretDimensions( blobDesc );
 	blobDesc.SetDimSize( BD_Channels, hiddenSize );
 	
-	CheckNeoOnnxSupport( inputs[2] != nullptr && inputs[2]->IsCalculated(), "User-provided recurrent weight", *this );
+	CheckNeoOnnxSupport( inputs[2] != nullptr && inputs[2]->Type() == TTensorType::Data,
+		"User-provided recurrent weight", *this );
 	CPtr<CDnnBlob> recurWeights = dynamic_cast<const CDataTensor*>( inputs[2].Ptr() )->Data()->GetCopy();
 	recurWeights->ReinterpretDimensions( blobDesc );
 
@@ -105,11 +113,26 @@ void CLstmOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArr
 	}
 
 	lstmLayer->Connect( 0, *inputData->Layer(), inputData->OutputIndex() );
+
+	if( inputs.Size() > 6 && inputs[6] != nullptr ) {
+		CPtr<const CUserTensor> initialC = AsUserTensor( *ConvertTensor( *inputs[6], neomlLayout ),
+			Name() + "_InitialC", dnn );
+		lstmLayer->Connect( 1, *initialC->Layer(), initialC->OutputIndex() );
+	}
+
+	if( inputs.Size() > 5 && inputs[5] != nullptr ) {
+		CPtr<const CUserTensor> initialH = AsUserTensor( *ConvertTensor( *inputs[5], neomlLayout ),
+			Name() + "_InitialH", dnn );
+		lstmLayer->Connect( 2, *initialH->Layer(), initialH->OutputIndex() );
+	}
+
 	dnn.AddLayer( *lstmLayer );
 
-	outputs.Add( new CUserTensor( { inputShape[0], 1, inputShape[1], hiddenSize },
-		CTensorLayout( { BD_BatchLength, BD_ListSize, BD_BatchWidth, BD_Channels } ),
-		CLayerOutput( lstmLayer, 0 ) ) );
+	CTensorLayout outputLayout( { BD_BatchLength, BD_ListSize, BD_BatchWidth, BD_Channels } );
+	if( layoutAttr != 0 ) {
+		outputLayout = { BD_BatchWidth, BD_BatchLength, BD_ListSize, BD_Channels };
+	}
+	outputs.Add( new CUserTensor( outputLayout, CLayerOutput( lstmLayer, 0 ) ) );
 	outputs.Add( nullptr, OutputCount() - 1 );
 }
 

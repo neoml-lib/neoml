@@ -655,7 +655,7 @@ void CCpuMathEngine::VectorEltwiseMin(const CConstFloatHandle& firstHandle,
 	}
 
 	for(int i = 0; i < nonSseSize; ++i) {
-		*result++ = min(*first, *second);
+		*result++ = std::min(*first, *second);
 		first++;
 		second++;
 	}
@@ -748,7 +748,7 @@ void CCpuMathEngine::VectorHinge(const CConstFloatHandle& firstHandle, const CFl
 	}
 
 	for(int i = 0; i < nonSseSize; ++i) {
-		*result = max(0.f, 1 - *first);
+		*result = std::max(0.f, 1.f - *first);
 		result++;
 		first++;
 	}
@@ -830,7 +830,7 @@ void CCpuMathEngine::VectorSquaredHinge(const CConstFloatHandle& firstHandle, co
 		if(*first < -1) {
 			*result++ = -4 * *first;
 		} else {
-			float tmp = max(0.f, 1 - *first);
+			float tmp = std::max(0.f, 1.f - *first);
 			*result++ = tmp * tmp;
 		}
 		++first;
@@ -1201,7 +1201,7 @@ void CCpuMathEngine::VectorSquaredHingeDiff(const CConstFloatHandle& firstHandle
 		if(*first < -1) {
 			*result++ = -4 * *second;
 		} else {
-			float hinge = max(0.f, 1 - *first);
+			float hinge = std::max(0.f, 1.f - *first);
 			*result++ = -2 * hinge * *second;
 		}
 		++first;
@@ -1249,7 +1249,7 @@ void CCpuMathEngine::VectorBernulliKLDerivative(const CConstFloatHandle& estimat
 
 	for(int i = 0; i < nonSseSize; ++i) {
 		float value = - target / *estimation + (1 - target) / (1 - *estimation);
-		*result++ = min(MaxKLDerivative, max(-MaxKLDerivative, value));
+		*result++ = std::min(MaxKLDerivative, std::max(-MaxKLDerivative, value));
 		++estimation;
 	}
 }
@@ -1631,7 +1631,8 @@ void CCpuMathEngine::VectorSigmoidDiff(const CConstFloatHandle& firstHandle, con
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	CCpuExecutionScope scope;
 
-	VectorExp(firstHandle, resultHandle, vectorSize);
+	VectorNeg(firstHandle, resultHandle, vectorSize);
+	VectorExp(resultHandle, resultHandle, vectorSize);
 
 	int sseSize;
 	int nonSseSize;
@@ -1642,10 +1643,10 @@ void CCpuMathEngine::VectorSigmoidDiff(const CConstFloatHandle& firstHandle, con
 
 	if(sseSize > 0) {
 		const __m128 oneSse = _mm_set_ps1(1);
+		const __m128 twoSse = _mm_set_ps1(2);
 		for(int i = 0; i < sseSize; ++i) {
 			__m128 value = _mm_loadu_ps(result);
-			__m128 value1 = _mm_add_ps(value, oneSse);
-			value = _mm_div_ps(_mm_mul_ps(value, _mm_loadu_ps(second)), _mm_mul_ps(value1, value1));
+			value = _mm_div_ps(_mm_loadu_ps(second), _mm_add_ps(twoSse, _mm_add_ps(value, _mm_div_ps(oneSse, value))));
 			_mm_storeu_ps(result, value);
 
 			second += 4;
@@ -1654,8 +1655,7 @@ void CCpuMathEngine::VectorSigmoidDiff(const CConstFloatHandle& firstHandle, con
 	}
 
 	for(int i = 0; i < nonSseSize; ++i) {
-		float result1 = (*result + 1);
-		*result = *second * *result / (result1 * result1);
+		*result = *second / (2 + *result + 1.f / *result);
 		++second;
 		++result;
 	}

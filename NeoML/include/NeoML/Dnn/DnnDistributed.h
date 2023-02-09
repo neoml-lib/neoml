@@ -58,6 +58,8 @@ public:
 	void SetSolver( CArchive& archive );
 	// Sets the learning rate for all of the models
 	void SetLearningRate( float rate );
+	// Returns the current learning rate
+	float GetLearningRate() const;
 	// Runs the networks without backward and training
 	void RunOnce( IDistributedDataset& data );
 	// Runs the networks and performs a backward pass
@@ -74,6 +76,9 @@ public:
 	void GetLastBlob( const CString& layerName, CObjectArray<CDnnBlob>& blobs );
 	// Save trained net
 	void Serialize( CArchive& archive );
+	// Save the trained net with the given `index` with its solver state (optional)
+	// An archive with solver state can later be passed to CDnn::SerializeCheckpoint to resume training
+	void StoreDnn( CArchive& archive, int index, bool storeSolver );
 
 private:
 	const bool isCpu;
@@ -88,5 +93,5 @@ private:
 	void initialize( CArchive& archive, int count, TDistributedInitializer initializer, int seed );
 };
 
-
 } // namespace NeoML
+

@@ -20,11 +20,12 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-// Returns true if some of the inputs are depending on user data
-static bool hasUserInputs( const CTensorArray& inputs )
+// Returns true if some of the inputs are CUserTensor
+static bool hasUserOrShapeInputs( const CTensorArray& inputs )
 {
+	static_assert( static_cast<int>( TTensorType::Count ) == 3, "TTensorType::Count != 3" );
 	for( int inputIndex = 0; inputIndex < inputs.Size(); ++inputIndex ) {
-		if( inputs[inputIndex] != nullptr && !inputs[inputIndex]->IsCalculated() ) {
+		if( inputs[inputIndex] != nullptr && inputs[inputIndex]->Type() != TTensorType::Data ) {
 			return true;
 		}
 	}
@@ -40,14 +41,16 @@ static void addInternalDnnSinks( const CTensorArray& internalOutputs,
 	IMathEngine& mathEngine = internalDnn.GetMathEngine();
 
 	for( int outputIndex = 0; outputIndex < internalOutputs.Size(); ++outputIndex ) {
-		if( internalOutputs[outputIndex] == nullptr || internalOutputs[outputIndex]->IsCalculated() ) {
+		if( internalOutputs[outputIndex] == nullptr || internalOutputs[outputIndex]->Type() == TTensorType::Data ) {
 			sinks.Add( nullptr );
 		} else {
+			// internalOutputs[outputIndex] is a CShapeTensor or CUserTensor
+			CPtr<const CUserTensor> userOutput = AsUserTensor( *internalOutputs[outputIndex],
+				Str( internalDnn.GetLayerCount() ), internalDnn );
 			CPtr<CSinkLayer> sink = new CSinkLayer( mathEngine );
 			sink->SetName( Str( internalDnn.GetLayerCount() ) );
 			internalDnn.AddLayer( *sink );
-			const CLayerOutput& connectedOutput = dynamic_cast<const CUserTensor*>( internalOutputs[outputIndex].Ptr() )->LayerOutput();
-			sink->Connect( 0, *connectedOutput.Layer, connectedOutput.OutputIndex );
+			sink->Connect( 0, *userOutput->Layer(), userOutput->OutputIndex() );
 			sinks.Add( sink.Ptr() );
 		}
 	}
@@ -58,14 +61,14 @@ static void extractOutputs( const CTensorArray& internalOutputs, const CArray<CS
 	CTensorArray& outputs )
 {
 	for( int outputIndex = 0; outputIndex < internalOutputs.Size(); ++outputIndex ) {
-		if( internalOutputs[outputIndex] != nullptr && internalOutputs[outputIndex]->IsCalculated() ) {
+		if( internalOutputs[outputIndex] != nullptr && internalOutputs[outputIndex]->Type() == TTensorType::Data ) {
 			// This data was calculated prior to the net
 			outputs.Add( internalOutputs[outputIndex] );
 		} else if( sinks[outputIndex] != nullptr ) {
 			// Add network result as data tensor
 			// Shape and layout remain unchanged
-			outputs.Add( new CDataTensor( internalOutputs[outputIndex]->Shape(),
-				internalOutputs[outputIndex]->Layout(), *( sinks[outputIndex]->GetBlob() ) ) );
+			outputs.Add( new CDataTensor( internalOutputs[outputIndex]->Layout(),
+				*( sinks[outputIndex]->GetBlob() ) ) );
 		} else {
 			// otherwise leave internalOutputs[outputIndex] as nullptr
 			outputs.Add( nullptr );
@@ -77,7 +80,7 @@ static void extractOutputs( const CTensorArray& internalOutputs, const CArray<CS
 
 void CLayerOperator::ProcessTensors( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
-	if( hasUserInputs( inputs ) ) {
+	if( hasUserOrShapeInputs( inputs ) ) {
 		AddLayers( inputs, dnn, outputs );
 		return;
 	}

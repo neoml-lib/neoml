@@ -5,6 +5,9 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
 endif()
 
 project(NeoML LANGUAGES CXX)
+if(ANDROID OR IOS)
+    add_compile_definitions(NEOML_COMPACT)
+endif()
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../cmake)
 if(USE_FINE_OBJECTS)
@@ -73,9 +76,8 @@ endif()
 if(NeoML_BUILD_TESTS AND NOT IS_SUBPROJECT AND NOT ANDROID AND NOT IOS)
     enable_testing()
     add_subdirectory(test/desktop)
-    if(USE_FINE_OBJECTS)
-        add_subdirectory(${ROOT_PATH}/NeoMLTest/test ${CMAKE_BINARY_DIR}/test)
-    endif()
+    add_subdirectory(../../NeoMLTest/test ${CMAKE_BINARY_DIR}/test)
+    add_subdirectory(../../NeoOnnxModelTest/src ${CMAKE_BINARY_DIR}/NeoOnnxModelTest)
 endif()
 
 # Install

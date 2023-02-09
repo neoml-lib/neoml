@@ -29,8 +29,7 @@ protected:
 	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
 
 private:
-	CPtr<const CUserTensor> prepareTensor( const CTensorBase& tensor, bool isFirstArg,
-		bool mergeBatchWithHeight, CDnn& dnn ) const;
+	CPtr<const CUserTensor> prepareTensor( const CTensorBase& tensor, bool isFirstArg, CDnn& dnn ) const;
 };
 
 } // namespace NeoOnnx

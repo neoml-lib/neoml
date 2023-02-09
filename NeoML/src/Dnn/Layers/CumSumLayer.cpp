@@ -13,6 +13,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
+#include <common.h>
+#pragma hdrstop
+
 #include <NeoML/Dnn/Layers/CumSumLayer.h>
 
 namespace NeoML {
@@ -56,8 +59,8 @@ void CCumSumLayer::Reshape()
 {
 	NeoAssert( dim >= 0 && dim < BD_Count );
 	inputDescs.CopyTo( outputDescs );
-	CheckArchitecture( inputDescs[0].GetDataType() == CT_Float || !IsBackwardPerformed(),
-		GetPath(), "Backward over integer data" );
+	CheckLayerArchitecture( inputDescs[0].GetDataType() == CT_Float || !IsBackwardPerformed(),
+		"Backward over integer data" );
 }
 
 void CCumSumLayer::RunOnce()

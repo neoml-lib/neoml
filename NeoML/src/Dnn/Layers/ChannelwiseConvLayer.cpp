@@ -48,20 +48,19 @@ void CChannelwiseConvLayer::SetFilterData(const CPtr<CDnnBlob>& newFilter)
 void CChannelwiseConvLayer::Reshape()
 {
 	CheckInputs();
-	CheckArchitecture( GetInputCount() == GetOutputCount(),
-		GetPath(), "different number of inputs and outputs in conv layer" );
-	CheckArchitecture( paddingHeight < filterHeight && paddingWidth < filterWidth,
-		GetPath(), "padding is more or equal to filter size" );
+	CheckLayerArchitecture( GetInputCount() == GetOutputCount(),
+		"different number of inputs and outputs in conv layer" );
+	CheckLayerArchitecture( paddingHeight < filterHeight && paddingWidth < filterWidth,
+		"padding is more or equal to filter size" );
 
 	int outputHeight = ( inputDescs[0].Height() - filterHeight + 2 * paddingHeight ) / strideHeight + 1;
 	int outputWidth = ( inputDescs[0].Width() - filterWidth + 2 * paddingWidth ) / strideWidth + 1;
 	for( int i = 0; i < GetInputCount(); i++ ) {
-		CheckArchitecture( filterHeight <= inputDescs[i].Height() + 2 * paddingHeight
-			&& filterWidth <= inputDescs[i].Width() + 2 * paddingWidth,
-			GetPath(), "filter is bigger than input" );
-		CheckArchitecture( (Filter() == 0 || filterCount == inputDescs[i].Channels()),
-			GetPath(), "filter count is not equal to input channels count" );
-		CheckArchitecture( inputDescs[i].Depth() == 1, GetPath(), "input depth is not equal to one" );
+		CheckLayerArchitecture( filterHeight <= inputDescs[i].Height() + 2 * paddingHeight
+			&& filterWidth <= inputDescs[i].Width() + 2 * paddingWidth, "filter is bigger than input" );
+		CheckLayerArchitecture( (Filter() == 0 || filterCount == inputDescs[i].Channels()),
+			"filter count is not equal to input channels count" );
+		CheckLayerArchitecture( inputDescs[i].Depth() == 1, "input depth is not equal to one" );
 
 		if( Filter() == 0 ) {
 			filterCount = inputDescs[i].Channels();
@@ -83,8 +82,8 @@ void CChannelwiseConvLayer::Reshape()
 			// Initialize
 			FreeTerms()->Fill( 0 );
 		} else {
-			CheckArchitecture( FreeTerms()->GetDataSize() == filterCount,
-				GetPath(), "number of free members in convolution is not equal to number of filters" );
+			CheckLayerArchitecture( FreeTerms()->GetDataSize() == filterCount,
+				"number of free members in convolution is not equal to number of filters" );
 		}
 
 		// For each layer element, there is one channel in the output blob

@@ -266,15 +266,15 @@ void CCpuMathEngine::BlobResizeImage( const CBlobDesc& from, const CFloatHandle&
 		if( deltaLeft == 0 && deltaRight == 0 ) {
 			ASSERT_EXPR( inputRowSize == outputRowSize );
 			// If the image width isn't changed, copy together
-			dataCopy( outputImage + outputRowSize * max( 0, deltaTop ),
-				inputImage + inputRowSize * max( 0, -deltaTop ),
-				inputRowSize * ( from.Height() + min( 0, deltaTop ) + min( 0, deltaBottom ) ) );
+			dataCopy( outputImage + outputRowSize * std::max( 0, deltaTop ),
+				inputImage + inputRowSize * std::max( 0, -deltaTop ),
+				inputRowSize * ( from.Height() + std::min( 0, deltaTop ) + std::min( 0, deltaBottom ) ) );
 		} else {
 			// Otherwise copy the necessary parts row by row
-			const int horizontalInputOffset = max( 0, -deltaLeft ) * totalChannels;
-			const int horizontalOutputOffset = max( 0, deltaLeft ) * totalChannels;
-			const int rowSizeToCopy = ( from.Width() + min( 0, deltaLeft ) + min( 0, deltaRight ) ) * totalChannels;
-			for( int rowIndex = max( 0, -deltaTop ); rowIndex < from.Height() + min( 0, deltaBottom );
+			const int horizontalInputOffset = std::max( 0, -deltaLeft ) * totalChannels;
+			const int horizontalOutputOffset = std::max( 0, deltaLeft ) * totalChannels;
+			const int rowSizeToCopy = ( from.Width() + std::min( 0, deltaLeft ) + std::min( 0, deltaRight ) ) * totalChannels;
+			for( int rowIndex = std::max( 0, -deltaTop ); rowIndex < from.Height() + std::min( 0, deltaBottom );
 				++rowIndex ) {
 				dataCopy( outputImage + outputRowSize * ( rowIndex + deltaTop ) + horizontalOutputOffset,
 					inputImage + inputRowSize * rowIndex + horizontalInputOffset,
@@ -1111,8 +1111,8 @@ void CCpuMathEngine::BertConv( const CConstFloatHandle& dataHandle, const CConst
 		int outputOffset = i * headSize;
 		const int kernelOffset = i * kernelSize;
 
-		const int kernelStart = max( 0, pad - seq );
-		const int kernelEnd = min( kernelSize, seqLen + pad - seq );
+		const int kernelStart = std::max( 0, pad - seq );
+		const int kernelEnd = std::min( kernelSize, seqLen + pad - seq );
 
 		vectorFill( output + outputOffset, 0.f, headSize );
 
@@ -1155,8 +1155,8 @@ void CCpuMathEngine::BertConvBackward( const CConstFloatHandle& dataHandle, cons
 			int outputOffset = ( seq * batchSize * numHeads + b ) * headSize;
 			const int kernelOffset = ( seq * batchSize * numHeads + b ) * kernelSize;
 
-			const int kernelStart = max( 0, pad - seq );
-			const int kernelEnd = min( kernelSize, seqLen + pad - seq );
+			const int kernelStart = std::max( 0, pad - seq );
+			const int kernelEnd = std::min( kernelSize, seqLen + pad - seq );
 
 			for( int h = 0; h < headSize; ++h ) {
 				int dataOffset = h + b * headSize + ( seq - pad + kernelStart ) * dataSeqStep;

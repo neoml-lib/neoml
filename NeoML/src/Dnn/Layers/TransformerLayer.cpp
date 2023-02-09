@@ -170,8 +170,8 @@ void CTransformerEncoderLayer::SetMaskType( CMultiheadAttentionLayer::TMaskType 
 
 void CTransformerEncoderLayer::Reshape()
 {
-	CheckArchitecture( GetHiddenSize() % GetHeadCount() == 0, GetPath(), "HiddenSize must be a multiple of HeadCount" );
-	CheckArchitecture( GetInputCount() == 1 || GetInputCount() == 2, GetPath(), "Layer must have 1 or 2 inputs" );
+	CheckLayerArchitecture( GetHiddenSize() % GetHeadCount() == 0, "HiddenSize must be a multiple of HeadCount" );
+	CheckLayerArchitecture( GetInputCount() == 1 || GetInputCount() == 2, "Layer must have 1 or 2 inputs" );
 	checkBlob( inputDescs[0], GetPath(), "input data", -1, -1, 1, -1 );
 
 	if( GetInputCount() == 2 ) {

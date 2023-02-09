@@ -143,8 +143,8 @@ void CMultichannelLookupLayer::Reshape()
 	CheckInputs();
 
 	for( int i = 0; i < inputDescs.Size(); i++ ) {
-		CheckArchitecture( inputDescs[i].Channels() >= GetDimensions().Size(),
-			GetPath(), "MultichannelLookup layer must have input with more channels" );
+		CheckLayerArchitecture( inputDescs[i].Channels() >= GetDimensions().Size(),
+			"MultichannelLookup layer must have input with more channels" );
 	}
 
 	Initialize(GetDnn()->GetInitializer());
@@ -377,4 +377,4 @@ CLayerWrapper<CMultichannelLookupLayer> Embeddings( int count, int size )
 	} );
 }
 
-}
+} //namespace NeoML

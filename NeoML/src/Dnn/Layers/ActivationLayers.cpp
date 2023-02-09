@@ -113,8 +113,6 @@ CActivationDesc CLinearLayer::GetDesc() const
 
 void CLinearLayer::RunOnce()
 {
-	CheckInput1();
-
 	const int dataSize = outputBlobs[0]->GetDataSize();
 
 	if( inputBlobs[0]->GetDataType() == CT_Float ) {
@@ -201,8 +199,6 @@ CActivationDesc CELULayer::GetDesc() const
 
 void CELULayer::RunOnce()
 {
-	CheckInput1();
-
 	MathEngine().VectorELU( inputBlobs[0]->GetData(), outputBlobs[0]->GetData(),
 		outputBlobs[0]->GetDataSize(), paramBlobs[0]->GetData() );
 }
@@ -254,8 +250,6 @@ CActivationDesc CReLULayer::GetDesc() const
 
 void CReLULayer::RunOnce()
 {
-	CheckInput1();
-
 	CConstFloatHandle inputPtr = inputBlobs[0]->GetData();
 	CFloatHandle outputPtr = outputBlobs[0]->GetData();
 	int dataSize = outputBlobs[0]->GetDataSize();
@@ -310,7 +304,6 @@ CActivationDesc CLeakyReLULayer::GetDesc() const
 
 void CLeakyReLULayer::RunOnce()
 {
-	CheckInput1();
 	CConstFloatHandle inputPtr = inputBlobs[0]->GetData();
 	CConstFloatHandle alpha = paramBlobs[0]->GetData();
 	CFloatHandle outputPtr = outputBlobs[0]->GetData();
@@ -433,8 +426,6 @@ CActivationDesc CSigmoidLayer::GetDesc() const
 
 void CSigmoidLayer::RunOnce()
 {
-	CheckInput1();
-
 	MathEngine().VectorSigmoid(inputBlobs[0]->GetData(), outputBlobs[0]->GetData(), outputBlobs[0]->GetDataSize());
 }
 
@@ -466,8 +457,6 @@ CActivationDesc CTanhLayer::GetDesc() const
 
 void CTanhLayer::RunOnce()
 {
-	CheckInput1();
-
 	MathEngine().VectorTanh(inputBlobs[0]->GetData(), outputBlobs[0]->GetData(), outputBlobs[0]->GetDataSize());
 }
 
@@ -499,8 +488,6 @@ CActivationDesc CHardTanhLayer::GetDesc() const
 
 void CHardTanhLayer::RunOnce()
 {
-	CheckInput1();
-
 	MathEngine().VectorHardTanh(inputBlobs[0]->GetData(), outputBlobs[0]->GetData(), outputBlobs[0]->GetDataSize());
 }
 
@@ -590,8 +577,6 @@ CActivationDesc CPowerLayer::GetDesc() const
 
 void CPowerLayer::RunOnce()
 {
-	CheckInput1();
-
 	MathEngine().VectorPower(exponent, inputBlobs[0]->GetData(), outputBlobs[0]->GetData(), outputBlobs[0]->GetDataSize());
 }
 
@@ -695,7 +680,7 @@ void CErfLayer::Reshape()
 {
 	CheckInput1();
 	CheckOutputs();
-	CheckArchitecture( inputDescs[0].GetDataType() == CT_Float, GetPath(), "Layer works only with float data" );
+	CheckLayerArchitecture( inputDescs[0].GetDataType() == CT_Float, "Layer works only with float data" );
 	outputDescs[0] = inputDescs[0];
 }
 

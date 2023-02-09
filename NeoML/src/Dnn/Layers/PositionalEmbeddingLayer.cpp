@@ -183,17 +183,17 @@ void CPositionalEmbeddingLayer::checkDimensions()
 
 	const CBlobDesc& inputDesc = inputDescs[0];
 
-	CheckArchitecture( inputDesc.GetDataType() == CT_Float, GetPath(), "wrong input data type" );
-	CheckArchitecture( inputDesc.BatchLength() == 1, GetPath(), "wrong input BatchLength dimension" );
+	CheckLayerArchitecture( inputDesc.GetDataType() == CT_Float, "wrong input data type" );
+	CheckLayerArchitecture( inputDesc.BatchLength() == 1, "wrong input BatchLength dimension" );
 
 	if( type == PET_Transformers ) {
-		CheckArchitecture( inputDesc.Height() == 1, GetPath(), "wrong input Height dimension" );
-		CheckArchitecture( inputDesc.Width() == 1, GetPath(), "wrong input Width dimension" );
-		CheckArchitecture( inputDesc.Depth() == 1, GetPath(), "wrong input Depth dimension" );
+		CheckLayerArchitecture( inputDesc.Height() == 1, "wrong input Height dimension" );
+		CheckLayerArchitecture( inputDesc.Width() == 1, "wrong input Width dimension" );
+		CheckLayerArchitecture( inputDesc.Depth() == 1, "wrong input Depth dimension" );
 	}
 
-	CheckArchitecture( maxSequenceLength == NotFound || inputDesc.ListSize() <= maxSequenceLength,
-		GetPath(), "sequence is too long" );
+	CheckLayerArchitecture( maxSequenceLength == NotFound || inputDesc.ListSize() <= maxSequenceLength,
+		"sequence is too long" );
 }
 
 // Initializes learnable addition
