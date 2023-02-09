@@ -23,9 +23,22 @@ limitations under the License.
 
 namespace NeoOnnx {
 
+CTransformLayer* createTransformLayer( const CLayerOutput& link, const CString& name )
+{
+	CTransformLayer* transform = Transform( 1, 1, 1, 1, 1, 1, 1 )
+		( name, CDnnLayerLink( link.Layer, link.OutputIndex ) );
+	for( int dim = 0; dim < BD_Count; ++dim ) {
+		transform->SetDimensionRule( static_cast<TBlobDim>( dim ),
+			CTransformLayer::CDimensionRule( CTransformLayer::O_InputDim, dim ) );
+	}
+	return transform;
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
 CFlattenOperator::CFlattenOperator( const onnx::NodeProto& flatten, int opsetVersion ) :
 	CLayerOperator( flatten, opsetVersion ),
-	axis( 1 )
+	axisAttr( 1 )
 {
 	// v1 - original
 	// v9 - added different data types support
@@ -36,9 +49,9 @@ CFlattenOperator::CFlattenOperator( const onnx::NodeProto& flatten, int opsetVer
 	CheckOnnxProtocol( InputCount() == 1, "operator must have 1 input", *this );
 	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
 
-	GetAttribute( "axis", axis );
+	GetAttribute( "axis", axisAttr );
 	if( opsetVersion < 11 ) {
-		CheckOnnxProtocol( axis >= 0, "negative axis index", *this );
+		CheckOnnxProtocol( axisAttr >= 0, "negative axis index", *this );
 	}
 }
 
@@ -60,37 +73,50 @@ void CFlattenOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensor
 	// Flatten operator reshapes tensor into 2-dimensional matrix of size
 	// [ dim_0 * ... * dim_(axis-1) ; dim_axis * ... * dim_(n-1) ]
 	// Corner case: if axis == 0 then output shape is [ 1 ; tensorSize ]
-	const int axisIndex = axis < 0 ? axis + input->DimCount() : axis;
-	CheckNeoOnnxSupport( axisIndex == 0 || axisIndex == 1 || axisIndex == inputs[0]->DimCount() - 1,
-		"NeoOnnx supports only flatten which can be calculated without input shape", *this );
-	CTensorLayout outputLayout( 2 );
-	CPtr<CTransformLayer> transform = new CTransformLayer( dnn.GetMathEngine() );
-	transform->SetName( Name() );
+	const int axis = axisAttr < 0 ? axisAttr + input->DimCount() : axisAttr;
+	NeoPresume( axis >= 0 && axis < inputs[0]->DimCount() );
 
-	for( TBlobDim dim = BD_BatchLength; dim < BD_Count; ++dim ) {
-		// All unaffected dimensions must be 1
-		transform->SetDimensionRule( static_cast<TBlobDim>( dim ),
-			CTransformLayer::CDimensionRule( CTransformLayer::O_SetSize, 1 ) );
+	CTensorLayout layout = input->Layout();
+	CLayerOutput output = input->LayerOutput();
+
+	// Merge all dimension after axis'th into axis'th (if needed)
+	if( axis != 0 && axis < input->DimCount() - 1 ) {
+		CTransformLayer* secondTransform = createTransformLayer( output, Name() + "_SecondAxis" );
+		secondTransform->SetDimensionRule( layout[axis],
+			CTransformLayer::CDimensionRule( CTransformLayer::O_Remainder, 1 ) );
+		for( int i = axis + 1; i < input->DimCount(); ++i ) {
+			secondTransform->SetDimensionRule( layout[i],
+				CTransformLayer::CDimensionRule( CTransformLayer::O_SetSize, 1 ) );
+		}
+		layout.DeleteAt( axis + 1, layout.Size() - axis - 1 );
+		output = CLayerOutput( secondTransform, 0 );
 	}
 
+	// Merge all dimension before axis'th into 0'th (if needed)
+	if( axis > 1 ) {
+		CTransformLayer* firstTransform = createTransformLayer( output, Name() + "_FirstAxis" );
+		firstTransform->SetDimensionRule( layout[0],
+			CTransformLayer::CDimensionRule( CTransformLayer::O_Remainder, 1 ) );
+		for( int i = 1; i < axis; ++i ) {
+			firstTransform->SetDimensionRule( layout[i],
+				CTransformLayer::CDimensionRule( CTransformLayer::O_SetSize, 1 ) );
+		}
+		output = CLayerOutput( firstTransform, 0 );
+		layout.DeleteAt( 1, axis - 1 );
+	}
+
+	// Corner-case when axis == 0
 	if( axis == 0 ) {
-		transform->SetDimensionRule( outputLayout[1],
-			CTransformLayer::CDimensionRule( CTransformLayer::O_Remainder, 1 ) );
-	} else if( axis == 1 ) {
-		transform->SetDimensionRule( outputLayout[0],
-			CTransformLayer::CDimensionRule( CTransformLayer::O_InputDim, input->Layout()[0] ) );
-		transform->SetDimensionRule( outputLayout[1],
-			CTransformLayer::CDimensionRule( CTransformLayer::O_Remainder, 1 ) );
-	} else {
-		transform->SetDimensionRule( outputLayout[0],
-			CTransformLayer::CDimensionRule( CTransformLayer::O_Remainder, 1 ) );
-		transform->SetDimensionRule( outputLayout[1],
-			CTransformLayer::CDimensionRule( CTransformLayer::O_InputDim, input->Layout().Last() ) );
+		CTransformLayer* transform = createTransformLayer( output, Name() );
+		for( int i = 0; i < layout.Size(); ++i ) {
+			CTransformLayer::TOperation operation = i == 1 ? CTransformLayer::O_Remainder : CTransformLayer::O_SetSize;
+			transform->SetDimensionRule( layout[i], CTransformLayer::CDimensionRule( operation, 1 ) );
+		}
+		output = CLayerOutput( transform, 0 );
+		layout.SetSize( 2 );
 	}
 
-	transform->Connect( 0, *input->Layer(), input->OutputIndex() );
-	dnn.AddLayer( *transform );
-	outputs.Add( new CUserTensor( outputLayout, CLayerOutput( transform, 0 ) ) );
+	outputs.Add( new CUserTensor( layout, output ) );
 }
 
 } // namespace NeoOnnx
