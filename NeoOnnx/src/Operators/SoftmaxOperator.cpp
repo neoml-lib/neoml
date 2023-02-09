@@ -28,6 +28,7 @@ CSoftmaxOperator::CSoftmaxOperator( const onnx::NodeProto& softmax, int opsetVer
 	CLayerOperator( softmax, opsetVersion )
 {
 	// The differences between versions are in negative axis support and the default value of axis attribute
+	// v13 - bfloat16 is supported
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
 	CheckOnnxProtocol( InputCount() == 1, "operator must have 1 input", *this );

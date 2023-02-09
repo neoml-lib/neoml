@@ -23,7 +23,7 @@ limitations under the License.
 namespace NeoOnnx {
 
 // Opset versioning support
-const int MaxOpsetVersion = 12;
+const int MaxOpsetVersion = 16;
 
 // onnx operator
 class COperator {

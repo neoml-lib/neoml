@@ -97,9 +97,15 @@ CBatchNormalizationOperator::CBatchNormalizationOperator( const onnx::NodeProto&
 	// v6 - legacy optimization attributes are removed
 	// v7 - 'is_test' attribute is removed
 	// v9 - 'spatial' attribute is removed
+	// v14 - 'training_mode' attribute is added, bfloat16 is supported, 'saved_mean' and 'saved_var' outputs are removed
+	// v15 - some data type restrictions are loosened
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
-	CheckOnnxProtocol( InputCount() == 5 || InputCount() == 6, "operator must have 5 or 6 inputs", *this );
+	if( OpsetVersion < 14 ) {
+		CheckOnnxProtocol( InputCount() == 5 || InputCount() == 6, "operator must have 5 or 6 inputs", *this );
+	} else {
+		CheckOnnxProtocol( InputCount() == 3, "operator must have 5 or 6 inputs", *this );
+	}
 	CheckNeoOnnxSupport( OutputCount() == 1, "operator must have 1 output", *this );
 
 	GetAttribute( "epsilon", eps );
@@ -114,6 +120,12 @@ CBatchNormalizationOperator::CBatchNormalizationOperator( const onnx::NodeProto&
 		int spatial = 1;
 		GetAttribute( "spatial", spatial );
 		CheckNeoOnnxSupport( spatial != 0, "non-spatial batch norm", *this );
+	}
+
+	if( OpsetVersion >= 14 ) {
+		int trainingMode = 0;
+		GetAttribute( "training_mode", trainingMode );
+		CheckNeoOnnxSupport( trainingMode == 0, "traning_mode", *this );
 	}
 }
 

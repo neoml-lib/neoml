@@ -60,6 +60,8 @@ CReshapeOperator::CReshapeOperator( const onnx::NodeProto& reshape, int opsetVer
 {
 	// v1 - original
 	// v5 - removed legacy optimization attribute, "shape" moved from attributes to inputs, supported new data types
+	// v13 - bfloat16 is supported
+	// v14 - allowzer attribute is added
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
 	if( OpsetVersion < 5 ) {
@@ -68,6 +70,14 @@ CReshapeOperator::CReshapeOperator( const onnx::NodeProto& reshape, int opsetVer
 		CheckOnnxProtocol( InputCount() == 2, "operator must have 2 inputs", *this );
 	}
 	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
+
+	// allowzero means that 0 in shape input means actual dimSize is zero, not "preserve previous"
+	// not supported by NeoOnnx
+	if( OpsetVersion >= 14 ) {
+		int allowZero = 0;
+		GetAttribute( "allowzero", allowZero );
+		CheckNeoOnnxSupport( allowZero == 0, "allowzero enabled" );
+	}
 }
 
 void CReshapeOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
