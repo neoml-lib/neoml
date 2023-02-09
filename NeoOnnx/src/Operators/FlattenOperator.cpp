@@ -66,6 +66,7 @@ void CFlattenOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensor
 
 	CPtr<CTransformLayer> transform = new CTransformLayer( dnn.GetMathEngine() );
 	transform->SetName( Name() );
+
 	if( axis == 0 ) {
 		transform->SetDimensionRule( outputLayout[1],
 			CTransformLayer::CDimensionRule( CTransformLayer::O_Remainder, 1 ) );
@@ -79,6 +80,14 @@ void CFlattenOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensor
 			CTransformLayer::CDimensionRule( CTransformLayer::O_Remainder, 1 ) );
 		transform->SetDimensionRule( outputLayout[1],
 			CTransformLayer::CDimensionRule( CTransformLayer::O_InputDim, input->Layout().Last() ) );
+	}
+
+	for( TBlobDim dim = BD_BatchLength; dim < BD_Count; ++dim ) {
+		// Other dimensions must be 1
+		if( outputLayout.Find( dim ) == NotFound ) {
+			transform->SetDimensionRule( static_cast< TBlobDim >( dim ),
+				CTransformLayer::CDimensionRule( CTransformLayer::O_SetSize, 1 ) );
+		}
 	}
 
 	transform->Connect( 0, *input->Layer(), input->OutputIndex() );
