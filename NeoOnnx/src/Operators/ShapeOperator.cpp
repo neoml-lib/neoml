@@ -50,7 +50,7 @@ void CShapeOperator::ProcessTensors( const CTensorArray& inputs, CDnn& dnn, CTen
 		GetAttribute( "start", startAttr );
 		GetAttribute( "end", endAttr );
 	}
-	const int start = startAttr >= 0 ? startAttr : startAttr + inputs[0]->DimCount();
+	const int start = std::max<int>( 0, startAttr >= 0 ? startAttr : startAttr + inputs[0]->DimCount() );
 	const int end = std::min<int>( inputs[0]->DimCount(), endAttr >= 0 ? endAttr : endAttr + inputs[0]->DimCount() );
 	CheckNeoOnnxSupport( end > start, "end <= start", *this );
 

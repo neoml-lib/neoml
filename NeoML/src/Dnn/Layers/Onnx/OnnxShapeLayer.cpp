@@ -54,7 +54,7 @@ void COnnxShapeLayer::CalculateShapes()
 	CheckInput1();
 	CheckLayerArchitecture( GetOutputCount() == 1, "layer must have 1 output" );
 
-	const int start = startAttr < 0 ? startAttr + tensorLayout.Size() : startAttr;
+	const int start = std::max<int>( 0, startAttr < 0 ? startAttr + tensorLayout.Size() : startAttr );
 	const int end = std::min<int>( endAttr < 0 ? endAttr + tensorLayout.Size() : endAttr, tensorLayout.Size() );
 	outputShapeBlobs[0] = CDnnBlob::CreateVector( GetSingleThreadCpuMathEngine(), CT_Int, end - start );
 	CDnnBlobBuffer<int> outputBuff( *outputShapeBlobs[0], TDnnBlobBufferAccess::Write );
