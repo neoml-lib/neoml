@@ -56,6 +56,7 @@ backend_test.exclude('test_if_')  # If
 backend_test.exclude('test_isinf_')  # IsInf
 backend_test.exclude('test_isnan_')  # IsNan
 backend_test.exclude('test_less_[a-z0-9_]*_expanded_')  # Or
+backend_test.exclude('test_loop')  # Loop
 backend_test.exclude('test_matmulinteger_')  # MatMulInteger
 backend_test.exclude('test_max_')  # Max
 backend_test.exclude('test_maxunpool_')  # MaxUnpool
@@ -65,6 +66,9 @@ backend_test.exclude('test_mod_')  # Mod
 backend_test.exclude('test_mvn_')  # MeanVarianceNormalization
 backend_test.exclude('test_negative_log_likelihood_loss_')  # NegativeLogLikelihoodLoss
 backend_test.exclude('test_nonmaxsuppression_')  # NonMaxSuppression
+backend_test.exclude('test_nllloss_')  # NegativeLogLikelihoodLoss, GatherElements
+backend_test.exclude('test_optional_get_element_')  # OptionalGetElement
+backend_test.exclude('test_optional_has_element_')  # OptionalHasElement
 backend_test.exclude('test_or2d_')  # Or
 backend_test.exclude('test_or3d_')  # Or
 backend_test.exclude('test_or4d_')  # Or
@@ -86,7 +90,9 @@ backend_test.exclude('test_round_')  # Round
 backend_test.exclude('test_scan9_')  # Scan
 backend_test.exclude('test_scan_')  # Scan
 backend_test.exclude('test_scatter_')  # Scatter and ScatterElements
+backend_test.exclude('test_sce_')  # SoftmaxCrossEntropyLoss, NegativeLogLikelihoodLoss
 backend_test.exclude('test_selu_')  # Selu
+backend_test.exclude('test_sequence_insert_')  # SequenceInsert
 backend_test.exclude('_sequence_len')  # Selu
 backend_test.exclude('test_shrink_')  # Shrink
 backend_test.exclude('test_sign_')  # Sign
@@ -96,12 +102,15 @@ backend_test.exclude('test_size_')  # Size
 backend_test.exclude('test_softmax_cross_entropy_')  # SoftmaxCrossEntropyLoss or NegativeLogLikelihoodLoss
 backend_test.exclude('test_softplus_')  # Softplus
 backend_test.exclude('test_softsign_')  # Softsign
+backend_test.exclude('test_spacetodepth_')  # SpaceToDepth
 backend_test.exclude('test_strnormalizer_')  # StringNormalizer
 backend_test.exclude('test_tan_')  # Tan
 backend_test.exclude('test_tfidfvectorizer_')  # TfIdfVectorizer
 backend_test.exclude('test_thresholdedrelu_')  # ThreasholdedRelu
 backend_test.exclude('test_tile_')  # Tile
 backend_test.exclude('test_top_k_')  # TopK
+backend_test.exclude('test_tril_')  # Trilu
+backend_test.exclude('test_triu_')  # Trilu
 backend_test.exclude('test_unique_')  # Unique
 backend_test.exclude('test_xor2d_')  # Xor
 backend_test.exclude('test_xor3d_')  # Xor
@@ -133,6 +142,8 @@ backend_test.exclude('test_edge_pad_')  # NeoML supports padding only with 'cons
 backend_test.exclude('test_expand_')  # NeoML doesn't support shape as input
 backend_test.exclude('test_gather_negative_indices')  # NeoOnnx doesn't support negative indices
 backend_test.exclude('test_gemm_')  # NeoML supports only specific case when it's an FC layer (with constant weights)
+backend_test.exclude('test_identity_opt_')  # NeoML doesn't support optional values as inputs
+backend_test.exclude('test_identity_sequence_')  # NeoML doesn't support sequences values as inputs
 backend_test.exclude('test_instancenorm_')  # NeoML doesn't support scales as input
 backend_test.exclude('test_lstm_')  # NeoML doesn't support trained weights as inputs
 backend_test.exclude('test_maxpool_1d_')  # NeoOnnx supports only 2d max pooling
@@ -158,6 +169,12 @@ backend_test.exclude('test_bvlc_alexnet_')  # Contains groupped convolution
 backend_test.exclude('test_inception_v1_')  # Contains average pooling with padding
 backend_test.exclude('test_inception_v2_')  # Contains average pooling with padding
 backend_test.exclude('test_shufflenet_')  # Contains groupped convolution
+# TODO: temporarily disable (download links are broken :-( )
+backend_test.exclude('test_densenet121_')
+backend_test.exclude('test_resnet50_')
+backend_test.exclude('test_squeezenet_')
+backend_test.exclude('test_vgg19_')
+backend_test.exclude('test_zfnet512_')
 
 # OnnxBackendSimpleModelTest (some synthetic test models)
 
