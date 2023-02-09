@@ -30,7 +30,9 @@ backend_test.exclude('test_asin_')  # Asin
 backend_test.exclude('test_asinh_')  # Asinh
 backend_test.exclude('test_atan_')  # Atan
 backend_test.exclude('test_atanh_')  # Atanh
+backend_test.exclude('test_bernoulli_')  # Bernoulli, RandomUniformLike
 backend_test.exclude('test_bitshift_')  # BitShift
+backend_test.exclude('test_castlike_')  # CastLike
 backend_test.exclude('test_ceil_')  # Ceil
 backend_test.exclude('test_celu_')  # Celu
 backend_test.exclude('test_compress_')  # Compress
@@ -46,8 +48,11 @@ backend_test.exclude('test_floor_')  # Floor
 backend_test.exclude('test_gather_elements_')  # GatherElements
 backend_test.exclude('test_gathernd_')  # GatherND
 backend_test.exclude('test_greater_[a-z0-9_]*_expanded_')  # Or
+backend_test.exclude('test_gridsample_') # GridSample
 backend_test.exclude('test_gru_')  # GRU
 backend_test.exclude('test_hardmax_')  # HardMax
+backend_test.exclude('test_hardswish_')  # HardSwish
+backend_test.exclude('test_if_')  # If
 backend_test.exclude('test_isinf_')  # IsInf
 backend_test.exclude('test_isnan_')  # IsNan
 backend_test.exclude('test_less_[a-z0-9_]*_expanded_')  # Or
