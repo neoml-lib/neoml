@@ -320,6 +320,13 @@ void CReduceSumOperator::PoolAxes( const CTensorArray& inputs, CFastArray<int, 8
 	const CDnnBlob& axesBlob = *dynamic_cast<const CDataTensor&>( *inputs[1] ).Data();
 	axes.SetSize( axesBlob.GetDataSize() );
 	axesBlob.CopyTo( axes.GetPtr() );
+
+	for( int i = 0; i < axes.Size(); ++i ) {
+		if( axes[i] < 0 ) {
+			axes[i] += inputDimCount;
+		}
+	}
+	axes.QuickSort<Ascending<int>>();
 }
 
 } // namespace NeoOnnx
