@@ -127,7 +127,7 @@ backend_test.exclude('test_argmax_[a-z0-9_]*_select_last_index_')  # NeoML doesn
 backend_test.exclude('test_averagepool_1d_')  # NeoOnnx supports only 2d average pooling
 backend_test.exclude('test_averagepool_3d_')  # NeoOnnx supports only 2d average pooling
 backend_test.exclude('test_basic_conv_')  # NeoML doesn't support trained filters as input
-# backend_test.exclude('test_batchnorm_')  # NeoML doesn't support trained coeffs as net input
+backend_test.exclude('test_batchnorm_')  # NeoML doesn't support trained coeffs as net input
 # NeoML supports only INT32 <-> FLOAT32 cast (which isn't tested by ONNX tests anyway...)
 backend_test.exclude('test_cast_')
 # backend_test.exclude('test_clip_')  # NeoOnnx doesn't support clip thresholds as net inputs
