@@ -121,50 +121,52 @@ backend_test.exclude('test_xor_')  # Xor
 # TODO: analyze nodes that are implemented but can't be tested...
 
 backend_test.exclude('test_argmax_[a-z0-9_]*_select_last_index_')  # NeoML doesn't support last index in ArgMax
-# backend_test.exclude('test_averagepool_[a-z0-9_]*_pads_')  # NeoML doesn't support pads for average pooling
-# backend_test.exclude('test_averagepool_[a-z0-9_]*_same_')  # NeoML doesn't support pads for average pooling
-# backend_test.exclude('test_averagepool_[a-z0-9_]*_ceil_')  # NeoML doesn't support ceiling for average pooling
+backend_test.exclude('test_averagepool_[a-z0-9_]*_pads_')  # NeoML doesn't support pads for average pooling
+backend_test.exclude('test_averagepool_[a-z0-9_]*_same_')  # NeoML doesn't support pads for average pooling
+backend_test.exclude('test_averagepool_[a-z0-9_]*_ceil_')  # NeoML doesn't support ceiling for average pooling
 backend_test.exclude('test_averagepool_1d_')  # NeoOnnx supports only 2d average pooling
 backend_test.exclude('test_averagepool_3d_')  # NeoOnnx supports only 2d average pooling
 backend_test.exclude('test_basic_conv_')  # NeoML doesn't support trained filters as input
 backend_test.exclude('test_batchnorm_')  # NeoML doesn't support trained coeffs as net input
 # NeoML supports only INT32 <-> FLOAT32 cast (which isn't tested by ONNX tests anyway...)
 backend_test.exclude('test_cast_')
-# backend_test.exclude('test_clip_')  # NeoOnnx doesn't support clip thresholds as net inputs
+backend_test.exclude('test_clip_')  # NeoOnnx doesn't support clip thresholds as net inputs
 backend_test.exclude('test_constant_pad_')  # NeoML doesn't support padding sizes as inputs
-# backend_test.exclude('test_constantofshape_')  # NeoML doesn't support tensor size as input
+backend_test.exclude('test_constantofshape_')  # NeoML doesn't support tensor size as input
 backend_test.exclude('test_conv_')  # NeoML doesn't support trained filters as input
 backend_test.exclude('test_convtranspose_')  # NeoML doesn't support trained filters as input
-# backend_test.exclude('test_cumsum_')  # NeoML doesn't axis index as input
+backend_test.exclude('test_cumsum_')  # NeoML doesn't support axis index as input
 backend_test.exclude('test_dropout_default_mask_')  # NeoML doesn't support dropout mask as output
 backend_test.exclude('test_dropout_default_ratio_')  # NeoML doesn't support dropout rate as input
 backend_test.exclude('test_edge_pad_')  # NeoML supports padding only with 'constant' mode
-# backend_test.exclude('test_expand_')  # NeoML doesn't support shape as input
+backend_test.exclude('test_expand_')  # NeoML doesn't support shape as input
 # backend_test.exclude('test_gather_negative_indices')  # NeoOnnx doesn't support negative indices
 backend_test.exclude('test_gemm_')  # NeoML supports only specific case when it's an FC layer (with constant weights)
 backend_test.exclude('test_identity_opt_')  # NeoML doesn't support optional values as inputs
 backend_test.exclude('test_identity_sequence_')  # NeoML doesn't support sequences values as inputs
-# backend_test.exclude('test_instancenorm_')  # NeoML doesn't support scales as input
+backend_test.exclude('test_instancenorm_')  # NeoML doesn't support scales as input
 backend_test.exclude('test_lstm_')  # NeoML doesn't support trained weights as inputs
 backend_test.exclude('test_maxpool_1d_')  # NeoOnnx supports only 2d max pooling
 backend_test.exclude('test_maxpool_2d_ceil_')  # NeoML doesn't support ceil in maxpool
 backend_test.exclude('test_maxpool_2d_dilations_')  # NeoML doesn't support dilations in maxpool
 backend_test.exclude('test_maxpool_2d_uint8_')  # NeoML doesn't support maxpool over integer data
 backend_test.exclude('test_maxpool_3d_')  # NeoOnnx supports only 2d max pooling
-# backend_test.exclude('test_maxpool_with_argmax_')  # NeoML doesn't support indices as additional output
-# backend_test.exclude('test_nonzero_')  # NeoOnnx supports nonzero only over constant tensors
+backend_test.exclude('test_maxpool_with_argmax_')  # NeoML doesn't support indices as additional output
+backend_test.exclude('test_nonzero_')  # NeoOnnx supports nonzero only over constant tensors
 backend_test.exclude('test_onehot_')  # NeoOnnx supports only constant depth in OneHot
 backend_test.exclude('test_pow_')  # NeoML doesn't support power of the exponent as input
-# backend_test.exclude('test_range')  # NeoOnnx supports Range only over constant data
+backend_test.exclude('test_range')  # NeoOnnx supports Range only over constant data
 backend_test.exclude('test_reduce_sum_')  # NeoOnnx support ReduceSum only when axes are fixed within data
 backend_test.exclude('test_reflect_pad_')  # NeoML supports padding only with 'constant' mode
-# backend_test.exclude('test_reshape_')  # NeoML doesn't support shape as input
-# backend_test.exclude('test_resize_')  # NeoML doesn't support sizes or scales as inputs
+backend_test.exclude('test_reshape_')  # NeoML doesn't support shape as input
+backend_test.exclude('test_resize_')  # NeoML doesn't support sizes or scales as inputs
 backend_test.exclude('test_scatternd_add_')  # NeoML doesn't support non-trivial reduction in ScatterND
 backend_test.exclude('test_scatternd_multiply_')  # NeoML doesn't support non-trivial reduction in ScatterND
-# backend_test.exclude('test_slice_')  # NeoML doesn't support sizes, stars, ends or axes as inputs
-# backend_test.exclude('test_split_zero_size_')  # NeoML doesn't support tensors of size 0
-# backend_test.exclude('test_upsample_')  # NeoML doesn't support scales as input
+backend_test.exclude('test_slice_')  # NeoML doesn't support sizes, stars, ends or axes as inputs
+backend_test.exclude('test_split_')  # NeoML doesn't support tensors splits as inputs
+backend_test.exclude('test_squeeze_')  # NeoML doesn't support axes as inputs
+backend_test.exclude('test_unsqueeze_')  # NeoML doesn't support axes as inputs
+backend_test.exclude('test_upsample_')  # NeoML doesn't support scales as input
 
 # OnnxBackendRealModelTest (a bunch of models from the model zoo)
 backend_test.exclude('test_bvlc_alexnet_')  # Contains groupped convolution
@@ -194,18 +196,19 @@ backend_test.exclude('test_strnorm_model_')  # StringNormalizer
 
 # OnnxBackendPyTorchConvertedModelTest
 
-# backend_test.exclude('_sparse_')  # NeoML doesn't support sparse data
-# backend_test.exclude('test_AvgPool3d_')  # NeoOnnx supports only 2d avg pooling
-# backend_test.exclude('test_Conv[a-z0-9_]*group')  # NeoML doesn't support groupped convolution
-# backend_test.exclude('test_Conv[a-z0-9_]*multiplier')  # NeoML doesn't support groupped convolution
-# backend_test.exclude('test_Conv3d[a-z0-9_]*dilated')  # NeoML doesn't support dilation in 3d convolution
-# backend_test.exclude('test_MaxPool1d_')  # NeoOnnx supports only 2d max pooling
-# backend_test.exclude('test_MaxPool3d_')  # NeoOnnx supports only 2d max pooling
-# backend_test.exclude('test_PReLU')  # Contains PRelu operator
-# backend_test.exclude('test_ReflectionPad2d_')  # NeoML supports padding only with 'constant' mode
-# backend_test.exclude('test_ReplicationPad2d_')  # NeoML supports padding only with 'constant' mode
-# backend_test.exclude('test_SELU')  # Contains Selu operator
-# backend_test.exclude('test_Softplus')  # Contains Softplus operator
+backend_test.exclude('_sparse_')  # NeoML doesn't support sparse data
+backend_test.exclude('test_AvgPool3d_')  # NeoOnnx supports only 2d avg pooling
+backend_test.exclude('test_Conv[a-z0-9_]*group')  # NeoML doesn't support groupped convolution
+backend_test.exclude('test_Conv[a-z0-9_]*multiplier')  # NeoML doesn't support groupped convolution
+backend_test.exclude('test_Conv3d[a-z0-9_]*dilated')  # NeoML doesn't support dilation in 3d convolution
+backend_test.exclude('test_MaxPool1d_')  # NeoOnnx supports only 2d max pooling
+backend_test.exclude('test_MaxPool2d[a-z0-9_]*dilation')  # NeoOnnx doesn't support dilation in MaxPool
+backend_test.exclude('test_MaxPool3d_')  # NeoOnnx supports only 2d max pooling
+backend_test.exclude('test_PReLU')  # Contains PRelu operator
+backend_test.exclude('test_ReflectionPad2d_')  # NeoML supports padding only with 'constant' mode
+backend_test.exclude('test_ReplicationPad2d_')  # NeoML supports padding only with 'constant' mode
+backend_test.exclude('test_SELU')  # Contains Selu operator
+backend_test.exclude('test_Softplus')  # Contains Softplus operator
 
 # OnnxBackendPyTorchOperatorModelTest
 backend_test.exclude('test_operator_add_')  # NeoOnnx doesn't support doubles which can't be casted to float
@@ -224,7 +227,6 @@ backend_test.exclude('test_operator_selu_')  # Contains Selu operator
 
 # TODO: ALARM!!! Some failing tests for future research (no explanation for failure yet...)
 
-# backend_test.exclude('test_BatchNorm3d_')
 backend_test.exclude('test_momentum_')  # Some WEIRD stuff happens here...
 
 # TODO: ALARM!!! Run ALL the failing tests and fix all the asserts (it should be replaced with some exception)...
