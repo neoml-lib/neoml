@@ -25,7 +25,7 @@ limitations under the License.
 namespace NeoOnnx {
 
 // Converts layer input to the layout, supported by batch normalization layer
-static CPtr<const CUserTensor> convertInput( const CUserTensor& input )
+static CPtr<const CTensorBase> convertInput( const CTensorBase& input )
 {
 	const CTensorLayout& inputLayout = input.Layout();
 	bool needConversion = false;
@@ -143,7 +143,7 @@ void CBatchNormalizationOperator::AddLayers( const CTensorArray& inputs, CDnn& d
 	bnLayer->SetChannelBased( true );
 	bnLayer->SetFinalParams( calculateFinalParams( eps, inputs ) );
 
-	CPtr<const CUserTensor> userData = convertInput( *AsUserTensor( *inputs[0], Name() + "_Source", dnn ) );
+	CPtr<const CUserTensor> userData = AsUserTensor( *convertInput( *inputs[0] ), Name() + "_Source", dnn );
 	bnLayer->Connect( 0, *userData->Layer(), userData->OutputIndex() );
 	dnn.AddLayer( *bnLayer );
 
