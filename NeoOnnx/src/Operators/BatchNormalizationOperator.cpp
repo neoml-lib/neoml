@@ -101,11 +101,7 @@ CBatchNormalizationOperator::CBatchNormalizationOperator( const onnx::NodeProto&
 	// v15 - some data type restrictions are loosened
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
-	if( OpsetVersion < 14 ) {
-		CheckOnnxProtocol( InputCount() == 5 || InputCount() == 6, "operator must have 5 or 6 inputs", *this );
-	} else {
-		CheckOnnxProtocol( InputCount() == 3, "operator must have 5 or 6 inputs", *this );
-	}
+	CheckOnnxProtocol( InputCount() == 5 || InputCount() == 6, "operator must have 5 or 6 inputs", *this );
 	CheckNeoOnnxSupport( OutputCount() == 1, "operator must have 1 output", *this );
 
 	GetAttribute( "epsilon", eps );
