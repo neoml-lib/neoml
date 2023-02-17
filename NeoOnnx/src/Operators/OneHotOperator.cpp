@@ -38,12 +38,13 @@ void COneHotOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorA
 {
 	CheckNoNullInputs( inputs );
 	CheckNeoOnnxSupport( inputs[I_Depth]->Type() != TTensorType::User, "user-provided depth", *this );
-	checkValuesSupport( *inputs[I_Values] );
 
 	CPtr<COnnxOneHotLayer> oneHotLayer = new COnnxOneHotLayer( dnn.GetMathEngine() );
 	oneHotLayer->SetName( Name() );
-	CPtr<const CShapeTensor> depthTensor = AsShapeTensor( *inputs[1], Name() + "_depth", dnn );
+	CPtr<const CShapeTensor> depthTensor = AsShapeTensor( *inputs[I_Depth], Name() + "_depth", dnn );
 	oneHotLayer->Connect( 1, *depthTensor->Layer(), depthTensor->OutputIndex() );
+	CPtr<const CShapeTensor> valuesTensor = AsShapeTensor( *inputs[I_Values], Name() + "_values", dnn );
+	oneHotLayer->Connect( 2, *valuesTensor->Layer(), valuesTensor->OutputIndex() );
 	dnn.AddLayer( *oneHotLayer );
 
 	CPtr<const CTensorBase> baseIndices = prepareIndices( *inputs[I_Indices] );
@@ -75,21 +76,6 @@ void COneHotOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorA
 		CPtr<const CUserTensor> indices = AsUserTensor( *baseIndices, Name() + "_data", dnn );
 		oneHotLayer->Connect( 0, *indices->Layer(), indices->OutputIndex() );
 		outputs.Add( new CUserTensor( outputLayout, CLayerOutput( oneHotLayer, 0 ) ) );
-	}
-}
-
-// Checks that values input contains tensor supported by NeoOnnx
-void COneHotOperator::checkValuesSupport( const CTensorBase& values ) const
-{
-	CheckNeoOnnxSupport( values.Type() == TTensorType::Data, "non-fixed values", *this );
-	const CDnnBlob& valuesBlob = *dynamic_cast<const CDataTensor&>( values ).Data();
-	CheckNeoOnnxSupport( valuesBlob.GetDataSize() == 2, "values must contain 2 elements", *this );
-	if( valuesBlob.GetDataType() == CT_Float ) {
-		CheckNeoOnnxSupport( valuesBlob.GetData().GetValueAt( 0 ) == 0.f, "off value must be 0", *this );
-		CheckNeoOnnxSupport( valuesBlob.GetData().GetValueAt( 1 ) == 1.f, "on value must be 1", *this );
-	} else {
-		CheckNeoOnnxSupport( valuesBlob.GetData<int>().GetValueAt( 0 ) == 0, "off value must be 0", *this );
-		CheckNeoOnnxSupport( valuesBlob.GetData<int>().GetValueAt( 1 ) == 1, "on value must be 1", *this );
 	}
 }
 

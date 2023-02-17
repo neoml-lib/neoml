@@ -36,7 +36,6 @@ private:
 		I_Values = 2 // off-value and on-value
 	};
 
-	void checkValuesSupport( const CTensorBase& values ) const;
 	CPtr<const CTensorBase> prepareIndices( const CTensorBase& indicesInput ) const;
 	int getAxis( int indicesDimCount ) const;
 };

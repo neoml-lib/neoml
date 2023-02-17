@@ -20,8 +20,29 @@ limitations under the License.
 
 namespace NeoML {
 
+// Applies scale and shift if needed
+template<class T>
+void onnxOneHotShiftAndScale( const CDnnBlob& valuesBlob, CDnnBlob& outputBlob )
+{
+	IMathEngine& mathEngine = outputBlob.GetMathEngine();
+	CTypedMemoryHandle<const T> values = valuesBlob.GetData<const T>();
+	const T offValue = values.GetValueAt( 0 );
+	const T onValue = values.GetValueAt( 1 );
+	CTypedMemoryHandle<T> output = outputBlob.GetData<T>();
+	if( onValue - offValue != 1 ) {
+		CMemoryHandleVar<T> scale( mathEngine );
+		scale.SetValue( onValue - offValue );
+		mathEngine.VectorMultiply( output, output, outputBlob.GetDataSize(), scale );
+	}
+	if( offValue != 0 ) {
+		CMemoryHandleVar<T> shift( mathEngine );
+		shift.SetValue( offValue );
+		mathEngine.VectorAddValue( output, output, outputBlob.GetDataSize(), shift );
+	}
+}
+
 // Calculates output data of OneHot based on the given input
-void onnxOneHotImpl( const CDnnBlob& input, CDnnBlob& output )
+void onnxOneHotImpl( const CDnnBlob& input, const CDnnBlob& values, CDnnBlob& output )
 {
 	IMathEngine& mathEngine = input.GetMathEngine();
 
@@ -43,13 +64,24 @@ void onnxOneHotImpl( const CDnnBlob& input, CDnnBlob& output )
 	if( output.GetDataType() == CT_Int ) {
 		mathEngine.VectorConvert( enumBinarizationOutput->GetData(), output.GetData<int>(), output.GetDataSize() );
 	}
+
+	if( output.GetDataType() == CT_Float ) {
+		onnxOneHotShiftAndScale<float>( values, output );
+	} else {
+		onnxOneHotShiftAndScale<int>( values, output );
+	}
 }
 
 // Calculates output size of OneHot based on the given input size and depth value
-CBlobDesc onnxOneHotOutputDesc( const CBlobDesc& inputDesc, const CDnnBlob& depthBlob )
+CBlobDesc onnxOneHotOutputDesc( const CBlobDesc& inputDesc, const CDnnBlob& depthBlob, const CDnnBlob& valuesBlob )
 {
 	CBlobDesc outputDesc = inputDesc;
-	outputDesc.SetDimSize( BD_Channels, depthBlob.GetData<int>().GetValue() );
+	outputDesc.SetDataType( valuesBlob.GetDataType() );
+	if( depthBlob.GetDataType() == CT_Int ) {
+		outputDesc.SetDimSize( BD_Channels, depthBlob.GetData<int>().GetValue() );
+	} else {
+		outputDesc.SetDimSize( BD_Channels, static_cast<int>( depthBlob.GetData<float>().GetValue() ) );
+	}
 	return outputDesc;
 }
 
@@ -65,28 +97,29 @@ void COnnxOneHotLayer::Serialize( CArchive& archive )
 
 void COnnxOneHotLayer::CalculateShapes()
 {
-	CheckLayerArchitecture( GetInputCount() == 2, "Layer must have 2 inputs" );
+	CheckLayerArchitecture( GetInputCount() == 3, "Layer must have 2 inputs" );
 	CheckLayerArchitecture( GetOutputCount() == 1, "Layer must have 1 output" );
 	CheckLayerArchitecture( inputShapeBlobs[1] != nullptr, "Depth shape input is missing" );
-	CheckLayerArchitecture( inputShapeBlobs[1]->GetDataType() == CT_Int, "Depth shape must be integer" );
 	CheckLayerArchitecture( inputShapeBlobs[1]->GetDataSize() == 1, "Depth shape must contain 1 element" );
+	CheckLayerArchitecture( inputShapeBlobs[2] != nullptr, "Values shape input is missing" );
+	CheckLayerArchitecture( inputShapeBlobs[2]->GetDataSize() == 2, "Values shape input contain 2 elements" );
 
 	if( inputShapeBlobs[0] == nullptr ) {
 		CheckLayerArchitecture( inputDescs[0].Channels() == 1, "Input data must have 1 channel" );
-		outputDescs[0] = onnxOneHotOutputDesc( inputDescs[0], *inputShapeBlobs[1] );
+		outputDescs[0] = onnxOneHotOutputDesc( inputDescs[0], *inputShapeBlobs[1], *inputShapeBlobs[2]);
 		return;
 	}
 
 	CheckLayerArchitecture( inputShapeBlobs[0]->GetChannelsCount() == 1, "Input data must have 1 channel" );
-	CBlobDesc outputDesc = onnxOneHotOutputDesc( inputShapeBlobs[0]->GetDesc(), *inputShapeBlobs[1] );
+	CBlobDesc outputDesc = onnxOneHotOutputDesc( inputShapeBlobs[0]->GetDesc(), *inputShapeBlobs[1], *inputShapeBlobs[2] );
 	outputShapeBlobs[0] = CDnnBlob::CreateBlob( inputShapeBlobs[1]->GetMathEngine(), outputDesc.GetDataType(), outputDesc );
-	onnxOneHotImpl( *inputShapeBlobs[0], *outputShapeBlobs[0] );
+	onnxOneHotImpl( *inputShapeBlobs[0], *inputShapeBlobs[2], *outputShapeBlobs[0] );
 }
 
 void COnnxOneHotLayer::RunOnce()
 {
 	if( inputShapeBlobs[0] == nullptr ) {
-		onnxOneHotImpl( *inputBlobs[0], *outputBlobs[0] );
+		onnxOneHotImpl( *inputBlobs[0], *inputShapeBlobs[2], *outputBlobs[0] );
 	}
 }
 
