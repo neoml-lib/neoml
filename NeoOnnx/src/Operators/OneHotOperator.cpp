@@ -106,6 +106,7 @@ CPtr<const CTensorBase> COneHotOperator::prepareIndices( const CTensorBase& indi
 	for( int dim = static_cast<int>( BD_Channels ); dim >= static_cast<int>( BD_BatchLength ); --dim ) {
 		if( indicesInput.Layout().Find( static_cast<TBlobDim>( dim ) ) == NotFound ) {
 			unusedDim = static_cast<TBlobDim>( dim );
+			break;
 		}
 	}
 
