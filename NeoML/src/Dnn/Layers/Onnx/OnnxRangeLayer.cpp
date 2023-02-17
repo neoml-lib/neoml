@@ -30,7 +30,7 @@ static int calcOnnxRangeOutputSize( const CDnnBlob& startBlob, const CDnnBlob& l
 	const T limit = limitBlob.GetData<T>().GetValue();
 	const T delta = deltaBlob.GetData<T>().GetValue();
 
-	return static_cast<int>( std::max( T( std::ceil( ( limit - start ) / delta ) ), T( 0 ) ) );
+	return static_cast<int>( std::max( T( std::ceil( static_cast<float>( limit - start ) / delta ) ), T( 0 ) ) );
 }
 
 // Fills output blob with range
