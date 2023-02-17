@@ -17,7 +17,6 @@ limitations under the License.
 #pragma hdrstop
 
 #include <NeoML/Dnn/Layers/Onnx/OnnxShapeToBlobLayer.h>
-#include <NeoML/Dnn/Layers/Onnx/OnnxLayerBase.h>
 
 namespace NeoML {
 
