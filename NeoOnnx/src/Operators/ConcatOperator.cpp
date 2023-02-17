@@ -40,28 +40,29 @@ CConcatOperator::CConcatOperator( const onnx::NodeProto& concat, int opsetVersio
 
 void CConcatOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
-	int firstInputIndex = 0;
-	while( firstInputIndex < inputs.Size() && inputs[firstInputIndex] == nullptr ) {
-		++firstInputIndex;
+	int firstInput = NotFound;
+	int inputCount = 0;
+	for( int i = 0; i < inputs.Size(); ++i ) {
+		if( inputs[i] != nullptr ) {
+			if( firstInput == NotFound ) {
+				firstInput = i;
+			}
+			inputCount++;
+		}
 	}
-	if( firstInputIndex == inputs.Size() ) {
+
+	if( inputCount == 0 ) {
 		outputs.Add( nullptr );
 		return;
 	}
 
-	int notNullInputs = 1;
-	for( int i = firstInputIndex + 1; i < inputs.Size(); ++i ) {
-		if( inputs[i] != nullptr ) {
-			++notNullInputs;
-		}
-	}
-	if( notNullInputs == 1 ) {
-		outputs.Add( inputs[firstInputIndex] );
+	if( inputCount == 1 ) {
+		outputs.Add( inputs[firstInput] );
 		return;
 	}
 
-	const int axis = getAxis( inputs[firstInputIndex]->DimCount() );
-	const CTensorLayout& inputLayout = inputs[firstInputIndex]->Layout();
+	const int axis = getAxis( inputs[firstInput]->DimCount() );
+	const CTensorLayout& inputLayout = inputs[firstInput]->Layout();
 	const bool returnUserTensor = HasUserInput( inputs );
 
 	CPtr<COnnxConcatLayer> concat = new COnnxConcatLayer( dnn.GetMathEngine() );
