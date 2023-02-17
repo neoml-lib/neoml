@@ -73,7 +73,7 @@ void COnnxTransposeHelper::CalculateShapes()
 	}
 
 	CBlobDesc outputDesc = calcOnnxTransposeHelperDesc( inputShapeBlobs[0]->GetDesc(), dims[0], dims[1] );
-	outputShapeBlobs[0] = CDnnBlob::CreateBlob( inputShapeBlobs[0]->GetMathEngine(), outputDesc );
+	outputShapeBlobs[0] = CDnnBlob::CreateBlob( inputShapeBlobs[0]->GetMathEngine(), outputDesc.GetDataType(), outputDesc );
 	outputShapeBlobs[0]->TransposeFrom( inputShapeBlobs[0], dims[0], dims[1] );
 }
 
