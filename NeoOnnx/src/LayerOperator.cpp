@@ -33,6 +33,24 @@ static bool hasUserOrShapeInputs( const CTensorArray& inputs )
 	return false;
 }
 
+// Returns true if tensor has elements
+static bool tensorHasElements( const CTensorBase& tensor )
+{
+	// The only scenario when tensor has no elements is CShapeTensor with one of dimensions equal to 0
+	if( tensor.Type() != TTensorType::Shape ) {
+		return true;
+	}
+
+	const CShapeTensor& shapeTensor = dynamic_cast<const CShapeTensor&>( tensor );
+	for( int i = 0; i < shapeTensor.DimCount(); ++i ) {
+		if( shapeTensor.Shape()[i] == 0 ) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
 // Builds an array of sinks (corresponding to the operator outputs)
 // Also adds those layers to the dnn
 static void addInternalDnnSinks( const CTensorArray& internalOutputs,
@@ -51,7 +69,13 @@ static void addInternalDnnSinks( const CTensorArray& internalOutputs,
 			sink->SetName( Str( internalDnn.GetLayerCount() ) );
 			internalDnn.AddLayer( *sink );
 			sink->Connect( 0, *userOutput->Layer(), userOutput->OutputIndex() );
-			sinks.Add( sink.Ptr() );
+			if( tensorHasElements( *internalOutputs[outputIndex] ) ) {
+				sinks.Add( sink.Ptr() );
+			} else {
+				// Let this sink be in order to avoid hanging layers
+				// But don't register it (the resulting tensor will be nullptr)
+				sinks.Add( nullptr );
+			}
 		}
 	}
 }
