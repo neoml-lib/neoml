@@ -40,10 +40,28 @@ CConcatOperator::CConcatOperator( const onnx::NodeProto& concat, int opsetVersio
 
 void CConcatOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
-	CheckNoNullInputs( inputs );
+	int firstInputIndex = 0;
+	while( firstInputIndex < inputs.Size() && inputs[firstInputIndex] == nullptr ) {
+		++firstInputIndex;
+	}
+	if( firstInputIndex == inputs.Size() ) {
+		outputs.Add( nullptr );
+		return;
+	}
 
-	const int axis = getAxis( inputs[0]->DimCount() );
-	const CTensorLayout& inputLayout = inputs[0]->Layout();
+	int notNullInputs = 1;
+	for( int i = firstInputIndex + 1; i < inputs.Size(); ++i ) {
+		if( inputs[i] != nullptr ) {
+			++notNullInputs;
+		}
+	}
+	if( notNullInputs == 1 ) {
+		outputs.Add( inputs[firstInputIndex] );
+		return;
+	}
+
+	const int axis = getAxis( inputs[firstInputIndex]->DimCount() );
+	const CTensorLayout& inputLayout = inputs[firstInputIndex]->Layout();
 	const bool returnUserTensor = HasUserInput( inputs );
 
 	CPtr<COnnxConcatLayer> concat = new COnnxConcatLayer( dnn.GetMathEngine() );
@@ -52,6 +70,10 @@ void CConcatOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorA
 
 	int connectionIndex = 0;
 	for( int inputIndex = 0; inputIndex < inputs.Size(); ++inputIndex ) {
+		if( inputs[inputIndex] == nullptr ) {
+			continue;
+		}
+
 		CLayerOutput layerOutput;
 		if( returnUserTensor ) {
 			layerOutput = AsUserTensor( *ConvertTensor( *inputs[inputIndex], inputLayout ),
