@@ -33,8 +33,12 @@ static CBlobDesc onnxNonZeroOutputSize( const CFastArray<TBlobDim, 8>& inputLayo
 	}
 
 	CBlobDesc result = CBlobDesc( CT_Int );
-	result.SetDimSize( 0, nonZeroElements );
-	result.SetDimSize( 1, inputLayout.Size() );
+	if( inputLayout.Size() > 1 ) {
+		result.SetDimSize( inputLayout[0], inputLayout.Size() );
+		result.SetDimSize( inputLayout[1], nonZeroElements );
+	} else {
+		result.SetDimSize( inputLayout[0], nonZeroElements );
+	}
 	return result;
 }
 
@@ -42,8 +46,8 @@ static CBlobDesc onnxNonZeroOutputSize( const CFastArray<TBlobDim, 8>& inputLayo
 template<class T>
 static void onnxNonZeroImpl( const CFastArray<TBlobDim, 8>& inputLayout, CDnnBlob& input, CDnnBlob& output )
 {
-	const int nonZeroElements = output.DimSize( BD_BatchLength );
-	const int inputDims = output.DimSize( BD_BatchWidth );
+	const int nonZeroElements = output.DimSize( inputLayout.Last() );
+	const int inputDims = output.GetDataSize() / nonZeroElements;
 
 	CDnnBlobBuffer<T> inputBuffer( input, TDnnBlobBufferAccess::Read );
 	CDnnBlobBuffer<int> outputBuffer( output, TDnnBlobBufferAccess::Write );
