@@ -36,7 +36,6 @@ CTransposeOperator::CTransposeOperator( const onnx::NodeProto& transpose, int op
 void CTransposeOperator::AddLayers( const CTensorArray& inputs, CDnn& /* dnn */, CTensorArray& outputs ) const
 {
 	CheckNoNullInputs( inputs );
-	CheckNoShapeInputs( inputs );
 
 	const int dimCount = inputs[0]->DimCount();
 
@@ -67,8 +66,13 @@ void CTransposeOperator::AddLayers( const CTensorArray& inputs, CDnn& /* dnn */,
 		outputs.Add( new CUserTensor( outputLayout,
 			dynamic_cast<const CUserTensor*>( inputs[0].Ptr() )->LayerOutput() ) );
 	} else if( inputs[0]->Type() == TTensorType::Shape ) {
-		const CShapeTensor* shapeTensor = dynamic_cast<const CShapeTensor*>( inputs[0].Ptr() );
-		outputs.Add( new CShapeTensor( outputLayout, shapeTensor->Shape(), shapeTensor->LayerOutput() ) );
+		const CShapeTensor& shapeTensor = dynamic_cast<const CShapeTensor&>( *inputs[0] );
+		CTensorShape outputShape;
+		outputShape.SetBufferSize( perm.Size() );
+		for( int i = 0; i < dimCount; ++i ) {
+			outputShape.Add( shapeTensor.Shape()[perm[i]] );
+		}
+		outputs.Add( new CShapeTensor( outputLayout, outputShape, shapeTensor.LayerOutput() ) );
 	}
 }
 
