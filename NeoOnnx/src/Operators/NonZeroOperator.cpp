@@ -95,9 +95,16 @@ void CNonZeroOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensor
 	inputs[0]->Layout().CopyTo( nonZeroLayer->InputLayout() );
 	dnn.AddLayer( *nonZeroLayer );
 
-	CPtr<const CShapeTensor> input = AsShapeTensor( *inputs[0], Name() + "_Source", dnn );
+	CTensorLayout inputLayout = IsTransposedLayout( inputs[0]->Layout() ) ? CTensorLayout( inputs[0]->DimCount() )
+		: inputs[0]->Layout();
+	CTensorLayout outputLayout = inputLayout;
+	if( outputLayout.Size() > 2 ) {
+		outputLayout.SetSize( 2 );
+	}
+
+	CPtr<const CShapeTensor> input = AsShapeTensor( *ConvertTensor( *inputs[0], inputLayout ), Name() + "_Source", dnn );
 	nonZeroLayer->Connect( 0, *input->Layer(), input->OutputIndex() );
-	outputs.Add( new CUserTensor( input->Layout(), CLayerOutput( nonZeroLayer, 0 ) ) );
+	outputs.Add( new CUserTensor( outputLayout, CLayerOutput( nonZeroLayer, 0 ) ) );
 }
 
 } // namespace NeoOnnx
