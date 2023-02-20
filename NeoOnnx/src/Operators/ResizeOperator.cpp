@@ -102,7 +102,7 @@ TInterpolationCoords CResizeOperator::getInterpolationCoords() const
 		return TInterpolationCoords::Asymmetric;
 	}
 
-	static_assert( static_cast<int>( TInterpolationCoords::Count ) == 4, "TInterpolationCoords::Count != 4" );
+	static_assert( static_cast<int>( TInterpolationCoords::Count ) == 5, "TInterpolationCoords::Count != 4" );
 	CString coordMode = "half_pixel";
 	GetAttribute( "coordinate_transformation_mode", coordMode );
 	if( coordMode == "half_pixel" ) {
@@ -110,7 +110,7 @@ TInterpolationCoords CResizeOperator::getInterpolationCoords() const
 	} else if( coordMode == "pytorch_half_pixel" ) {
 		return TInterpolationCoords::PytorchHalfPixel;
 	} else if( coordMode == "align_corners" ) {
-		return TInterpolationCoords::AlignCorners;
+		return TInterpolationCoords::AlignCornersOnnx;
 	} else if( coordMode == "asymmetric" ) {
 		return TInterpolationCoords::Asymmetric;
 	} else if( coordMode == "tf_half_pixel_for_nn" || coordMode == "tf_crop_and_resize" ) {
