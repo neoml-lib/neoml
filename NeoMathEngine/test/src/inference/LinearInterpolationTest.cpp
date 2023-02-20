@@ -47,11 +47,14 @@ static void naiveLinearInterpolation( TInterpolationCoords coords, TInterpolatio
 				case TInterpolationCoords::PytorchHalfPixel:
 					xOld = newSize > 1 ? ( xNew + 0.5f ) / scale - 0.5f : 0;
 					break;
-				case TInterpolationCoords::AlignCorners:
-					xOld = static_cast<float>( xNew * ( scaledAxis - 1 ) ) / ( newSize - 1 );
+				case TInterpolationCoords::AlignCornersPyTorch:
+					xOld = newSize > 1 ? static_cast<float>( xNew * ( scaledAxis - 1 ) ) / ( newSize - 1 ) : 0.f;
 					break;
 				case TInterpolationCoords::Asymmetric:
 					xOld = xNew / scale;
+					break;
+				case TInterpolationCoords::AlignCornersOnnx:
+					xOld = scaledAxis * scale > 1.f ? xNew * ( scaledAxis - 1 ) / ( scaledAxis * scale - 1.f ) : 0.f;
 					break;
 				default:
 					ASSERT_TRUE( false ) << "Unknown coordinate system";
