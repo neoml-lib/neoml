@@ -26,6 +26,7 @@ limitations under the License.
 #include "internal/FastArrayFOL.h"
 #include "ObjectFOL.h"
 #include "ArrayFOL.h"
+#include "ArrayIteratorFOL.h"
 #include "internal/PointerArrayFOL.h"
 #include "internal/HashTableAllocatorFOL.h"
 #include "internal/HashTableFOL.h"

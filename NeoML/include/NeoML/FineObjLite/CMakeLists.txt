@@ -11,6 +11,7 @@ set(${PROJECT_NAME}_SOURCES
     AllocFOL.h
     ArchiveFOL.h
     ArrayFOL.h
+    ArrayIteratorFOL.h
     AscendingFOL.h
     BaseFileFOL.h
     internal/CriticalSectionFOL.h
