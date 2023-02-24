@@ -825,7 +825,7 @@ void CCpuMathEngine::blobConvolutionBackwardAlgo2( const CCpuConvolutionDesc& de
 	// Repack the filter: switch batch & height, and reorder rows backward: end->start
 	const int tempFilterObjectSize = filter.Width() * filter.BatchWidth() * filter.Depth() * filter.Channels();
 	const int tempFilterDataSize = filter.Height() * tempFilterObjectSize;
-	CFloatHandleVar tempFilter( mathEngine(), tempFilterDataSize );
+	CFloatHandleStackVar tempFilter( mathEngine(), tempFilterDataSize );
 	float* tempFilterRaw = GetRaw( tempFilter.GetHandle() );
 
 	const float* filterRawPtr = GetRaw( filterData );
