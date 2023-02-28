@@ -44,6 +44,10 @@ CPtr<const CDataTensor> CGraphInitializer::GetDataTensor( IMathEngine& mathEngin
 		blobDesc.SetDimSize( outputLayout[dimIndex], outputShape[dimIndex] );
 	}
 
+	if( blobDesc.BlobSize() == 0 ) {
+		return nullptr;
+	}
+
 	CPtr<CDnnBlob> outputBlob = CDnnBlob::CreateBlob( mathEngine, blobDesc.GetDataType(), blobDesc );
 	if( blobDesc.GetDataType() == CT_Float ) {
 		LoadBlobData<float>( initializer, *outputBlob );
