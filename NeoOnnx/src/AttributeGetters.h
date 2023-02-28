@@ -107,6 +107,10 @@ inline void GetAttributeValue<CPtr<CDataTensor>>( const onnx::AttributeProto& at
 	for( int i = 0; i < attribute.t().dims().size(); ++i ) {
 		desc.SetDimSize( resultLayout[i], static_cast<int>( attribute.t().dims( i ) ) );
 	}
+	if( desc.BlobSize() == 0 ) {
+		value = nullptr;
+		return;
+	}
 	CPtr<CDnnBlob> resultBlob = CDnnBlob::CreateBlob( value->Data()->GetMathEngine(), resultDataType, desc );
 
 	if( resultDataType == CT_Float ) {
