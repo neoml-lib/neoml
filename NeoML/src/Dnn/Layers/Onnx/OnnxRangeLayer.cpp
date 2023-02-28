@@ -40,7 +40,7 @@ static void calcOnnxRangeOutput( const CDnnBlob& startBlob, const CDnnBlob& delt
 	T currValue = startBlob.GetData<T>().GetValue();
 	const T delta = deltaBlob.GetData<T>().GetValue();
 
-	CDnnBlobBuffer<T> output( outputBlob, TDnnBlobBufferAccess::Read );
+	CDnnBlobBuffer<T> output( outputBlob, TDnnBlobBufferAccess::Write );
 	for( int i = 0; i < output.Size(); ++i ) {
 		output[i] = currValue;
 		currValue += delta;
