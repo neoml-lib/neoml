@@ -118,7 +118,6 @@ inline int CEltwiseOperator<Operation>::getArgsNum() const
 template<COnnxEltwiseLayer::TOperation Operation>
 inline CBroadcast CEltwiseOperator<Operation>::getBroadcast() const
 {
-	//NeoPresume( !HasUserInput( inputs ) );
 	CBroadcast broadcast( BT_Numpy, NotFound );
 	
 	if( Type() == "Where" ) {
