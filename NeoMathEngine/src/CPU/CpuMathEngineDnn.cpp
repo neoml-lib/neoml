@@ -1189,15 +1189,10 @@ static TCoordTransformer getCoordTransformer( TInterpolationCoords coords )
 				const int newSize = static_cast<int>( oldSize * scale );
 				return newSize > 1 ? ( newCoord + 0.5f ) / scale - 0.5f : 0.f;
 			};
-		case TInterpolationCoords::AlignCornersPyTorch:
+		case TInterpolationCoords::AlignCorners:
 			return []( int oldSize, float scale, int newCoord ) {
 				const int newSize = static_cast<int>( oldSize * scale );
-				return newSize > 1 ? static_cast<float>( newCoord * ( oldSize - 1 ) ) / ( newSize - 1 ) : 0.f;
-			};
-		case TInterpolationCoords::AlignCornersOnnx:
-			return []( int oldSize, float scale, int newCoord ) {
-				const float newSize = oldSize * scale;
-				return newSize > 1.f ? newCoord * ( oldSize - 1 ) / ( newSize - 1.f ) : 0.f;
+				return static_cast<float>( newCoord * ( oldSize - 1 ) ) / ( newSize - 1 );
 			};
 		default:
 			ASSERT_EXPR( false );
