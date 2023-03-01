@@ -20,6 +20,7 @@ set(NeoML_SOURCES_COMPACT
     Dnn/DnnSparseMatrix.cpp
     Dnn/Layers/3dConvLayer.cpp
     Dnn/Layers/ActivationLayers.cpp
+    Dnn/Layers/AddToObjectLayer.cpp
     Dnn/Layers/BackLinkLayer.cpp
     Dnn/Layers/BaseConvLayer.cpp
     Dnn/Layers/BaseInPlaceLayer.cpp
@@ -42,15 +43,19 @@ set(NeoML_SOURCES_COMPACT
     Dnn/Layers/GlobalMeanPoolingLayer.cpp
     Dnn/Layers/HingeLossLayer.cpp
     Dnn/Layers/L1LossLayer.cpp
+    Dnn/Layers/MatrixMultiplicationLayer.cpp
     Dnn/Layers/MobileNetV2BlockLayer.cpp
+    Dnn/Layers/MultiheadAttentionLayer.cpp
     Dnn/Layers/ObjectNormalizationLayer.cpp
     Dnn/Layers/MultiHingeLossLayer.cpp
     Dnn/Layers/PoolingLayer.cpp
     Dnn/Layers/RecurrentLayer.cpp
     Dnn/Layers/RleConvLayer.cpp
+    Dnn/Layers/QualityControlLayer.cpp
     Dnn/Layers/SinkLayer.cpp
     Dnn/Layers/SoftmaxLayer.cpp
     Dnn/Layers/SourceLayer.cpp
+    Dnn/Layers/SplitLayer.cpp
     Dnn/Layers/TimeConvLayer.cpp
     Dnn/Layers/TransformLayer.cpp
     Dnn/Layers/TransposedConvLayer.cpp
@@ -93,7 +98,6 @@ set(NeoML_SOURCES
     Dnn/Layers/3dTransposedConvLayer.cpp
     Dnn/Layers/AccumulativeLookupLayer.cpp
     Dnn/Layers/AccuracyLayer.cpp
-    Dnn/Layers/AddToObjectLayer.cpp
     Dnn/Layers/ArgmaxLayer.cpp
     Dnn/Layers/AttentionLayer.cpp
     Dnn/Layers/BertConvLayer.cpp
@@ -118,22 +122,18 @@ set(NeoML_SOURCES
     Dnn/Layers/LogicalLayers.cpp
     Dnn/Layers/LrnLayer.cpp
     Dnn/Layers/LstmLayer.cpp
-    Dnn/Layers/MatrixMultiplicationLayer.cpp
     Dnn/Layers/MaxOverTimePoolingLayer.cpp
     Dnn/Layers/ModelWrapperLayer.cpp
     Dnn/Layers/MultichannelLookupLayer.cpp
-    Dnn/Layers/MultiheadAttentionLayer.cpp
     Dnn/Layers/PositionalEmbeddingLayer.cpp
     Dnn/Layers/PrecisionRecallLayer.cpp
     Dnn/Layers/ProjectionPoolingLayer.cpp
     Dnn/Layers/QrnnLayer.cpp
-    Dnn/Layers/QualityControlLayer.cpp
     Dnn/Layers/ReorgLayer.cpp
     Dnn/Layers/RepeatSequenceLayer.cpp
     Dnn/Layers/ScatterGatherLayers.cpp
     Dnn/Layers/SequenceSumLayer.cpp
     Dnn/Layers/SpaceToDepthLayer.cpp
-    Dnn/Layers/SplitLayer.cpp
     Dnn/Layers/SubSequenceLayer.cpp
     Dnn/Layers/TiedEmbeddingsLayer.cpp
     Dnn/Layers/TransformerLayer.cpp
@@ -220,6 +220,7 @@ set(NeoML_HEADERS_COMPACT
     ../include/NeoML/Dnn/DnnSparseMatrix.h
     ../include/NeoML/Dnn/Layers/3dConvLayer.h
     ../include/NeoML/Dnn/Layers/ActivationLayers.h
+    ../include/NeoML/Dnn/Layers/AddToObjectLayer.h
     ../include/NeoML/Dnn/Layers/BackLinkLayer.h
     ../include/NeoML/Dnn/Layers/BaseInPlaceLayer.h
     ../include/NeoML/Dnn/Layers/BatchNormalizationLayer.h
@@ -236,17 +237,22 @@ set(NeoML_HEADERS_COMPACT
     ../include/NeoML/Dnn/Layers/GELULayer.h
     ../include/NeoML/Dnn/Layers/GlobalMeanPoolingLayer.h
     ../include/NeoML/Dnn/Layers/LossLayer.h
+    ../include/NeoML/Dnn/Layers/MatrixMultiplicationLayer.h
     ../include/NeoML/Dnn/Layers/MobileNetV2BlockLayer.h
+    ../include/NeoML/Dnn/Layers/MultiheadAttentionLayer.h
     ../include/NeoML/Dnn/Layers/ObjectNormalizationLayer.h
     ../include/NeoML/Dnn/Layers/PoolingLayer.h
     ../include/NeoML/Dnn/Layers/RecurrentLayer.h
+    ../include/NeoML/Dnn/Layers/QualityControlLayer.h
     ../include/NeoML/Dnn/Layers/SinkLayer.h
     ../include/NeoML/Dnn/Layers/SoftmaxLayer.h
     ../include/NeoML/Dnn/Layers/SourceLayer.h
+    ../include/NeoML/Dnn/Layers/SplitLayer.h
     ../include/NeoML/Dnn/Layers/TimeConvLayer.h
     ../include/NeoML/Dnn/Layers/TransformLayer.h
     ../include/NeoML/Dnn/Layers/TransposedConvLayer.h
     ../include/NeoML/Dnn/Layers/TransposeLayer.h
+
     ../include/NeoML/TraditionalML/ClassificationProbability.h
     ../include/NeoML/TraditionalML/ClassificationResult.h
     ../include/NeoML/TraditionalML/CrossValidationSubProblem.h
@@ -292,7 +298,6 @@ set(NeoML_HEADERS
     ../include/NeoML/Dnn/Layers/3dTransposedConvLayer.h
     ../include/NeoML/Dnn/Layers/AccumulativeLookupLayer.h
     ../include/NeoML/Dnn/Layers/AccuracyLayer.h
-    ../include/NeoML/Dnn/Layers/AddToObjectLayer.h
     ../include/NeoML/Dnn/Layers/ArgmaxLayer.h
     ../include/NeoML/Dnn/Layers/AttentionLayer.h
     ../include/NeoML/Dnn/Layers/BertConvLayer.h
@@ -317,28 +322,25 @@ set(NeoML_HEADERS
     ../include/NeoML/Dnn/Layers/LogicalLayers.h
     ../include/NeoML/Dnn/Layers/LrnLayer.h
     ../include/NeoML/Dnn/Layers/LstmLayer.h
-    ../include/NeoML/Dnn/Layers/MatrixMultiplicationLayer.h
     ../include/NeoML/Dnn/Layers/MaxOverTimePoolingLayer.h
     ../include/NeoML/Dnn/Layers/ModelWrapperLayer.h
     ../include/NeoML/Dnn/Layers/MultichannelLookupLayer.h
-    ../include/NeoML/Dnn/Layers/MultiheadAttentionLayer.h
     ../include/NeoML/Dnn/Layers/MultiHingeLossLayer.h
     ../include/NeoML/Dnn/Layers/PositionalEmbeddingLayer.h
     ../include/NeoML/Dnn/Layers/PrecisionRecallLayer.h
     ../include/NeoML/Dnn/Layers/ProjectionPoolingLayer.h
     ../include/NeoML/Dnn/Layers/QrnnLayer.h
-    ../include/NeoML/Dnn/Layers/QualityControlLayer.h
     ../include/NeoML/Dnn/Layers/ReorgLayer.h
     ../include/NeoML/Dnn/Layers/RepeatSequenceLayer.h
     ../include/NeoML/Dnn/Layers/ScatterGatherLayers.h
     ../include/NeoML/Dnn/Layers/SequenceSumLayer.h
     ../include/NeoML/Dnn/Layers/SpaceToDepthLayer.h
-    ../include/NeoML/Dnn/Layers/SplitLayer.h
     ../include/NeoML/Dnn/Layers/SubSequenceLayer.h
     ../include/NeoML/Dnn/Layers/TiedEmbeddingsLayer.h
     ../include/NeoML/Dnn/Layers/TransformerLayer.h
     ../include/NeoML/Dnn/Layers/TransformerSourceMaskLayer.h
     ../include/NeoML/Dnn/Layers/Upsampling2DLayer.h
+
     ../include/NeoML/TraditionalML/BytePairEncoderTrainer.h
     ../include/NeoML/TraditionalML/ClusterCenter.h
     ../include/NeoML/TraditionalML/Clustering.h
@@ -352,9 +354,9 @@ set(NeoML_HEADERS
     ../include/NeoML/TraditionalML/LdGraph.h
     ../include/NeoML/TraditionalML/MatchingGenerator.h
     ../include/NeoML/TraditionalML/PCA.h
+    ../include/NeoML/TraditionalML/SubwordEncoder.h
     ../include/NeoML/TraditionalML/Svm.h
     ../include/NeoML/TraditionalML/SvmKernel.h
-    ../include/NeoML/TraditionalML/SubwordEncoder.h
     ../include/NeoML/TraditionalML/WordDictionary.h
 )
 
