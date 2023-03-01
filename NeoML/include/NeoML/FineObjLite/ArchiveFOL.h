@@ -527,6 +527,13 @@ inline CArchive& operator>>( CArchive& stream, CString& string )
 	return stream;
 }
 
+template<typename T, typename std::enable_if<std::is_enum<T>::value, int>::type = 0>
+inline CArchive& operator<<( CArchive& archive, T variable )
+{
+	archive << static_cast<typename std::underlying_type_t<T>>( variable );
+	return archive;
+}
+
 inline CArchive& operator>>( CArchive& archive, char& variable )
 {
 	archive.readSimpleType( variable );
@@ -608,6 +615,15 @@ inline CArchive& operator>>( CArchive& archive, unsigned __int64& variable )
 	return archive;
 }
 
+template<typename T, typename std::enable_if<std::is_enum<T>::value, int>::type = 0>
+inline CArchive& operator>>( CArchive& archive, T& variable )
+{
+	typename std::underlying_type_t<T> integralValue = 0;
+	archive >> integralValue;
+	variable = static_cast<T>( integralValue );
+	return archive;
+}
+
 template<class T>
 inline void CArchive::Serialize( T& variable )
 {
@@ -624,7 +640,7 @@ inline void CArchive::SerializeEnum( T& variable )
 	if( IsLoading() ) {
 		variable = static_cast<T>( ReadSmallValue() );
 	} else {
-		WriteSmallValue( variable );
+		WriteSmallValue( static_cast<int>( variable ) );
 	}
 }
 
