@@ -58,18 +58,14 @@ enum TActivationFunction {
 //     - x_old - coordinate in array before the interpolation 
 //     - x_new - coordinate in array after the interpolation
 //     - old_size - size before the transformation
-//     - new_size - size after the transformation  (int(scale * old_size))
+//     - new_size - size after the transformation  (int(ratio * old_size))
 enum class TInterpolationCoords : int {
 	HalfPixel, // x_old = ( x_new + 0.5 ) / scale - 0.5
 	PytorchHalfPixel, // x_old = ( new_size > 1 ) ? ( x_new + 0.5 ) / scale - 0.5 : 0
-	AlignCornersPyTorch, // x_old = x_new * ( old_size - 1) / ( new_size - 1 )
+	AlignCorners, // x_old = x_new * ( old_size - 1) / ( new_size - 1 )
 	Asymmetric, // x_old = x_new / scale
-	AlignCornersOnnx, // x_old = x_new * ( old_size - 1 ) / ( scale * old_size - 1 )
 
-	Count,
-
-	// Backward compatibility
-	AlignCorners = AlignCornersPyTorch
+	Count
 };
 
 // Suppported rounding for coordinates

@@ -794,14 +794,11 @@ __global__ void LinearInterpolationKernel( const float* data, float* result, int
 		case 1: // PytorchHalfPixel
 			xOld = ( newSize > 1 ) ? ( xNew + 0.5f ) / scale - 0.5f : 0.f;
 			break;
-		case 2: // AlignCornersPyTorch
-			xOld = newSize > 1 ? static_cast<float>( xNew * ( scaledAxis - 1 ) ) / ( newSize - 1 ) : 0.f;
+		case 2: // AlignCorners
+			xOld = static_cast<float>( xNew * ( scaledAxis - 1 ) ) / ( newSize - 1 );
 			break;
-		case 3: // Asymmetric
+		case 3:
 			xOld = xNew / scale;
-			break;
-		case 4:
-			xOld = scaledAxis * scale > 1.f ? xNew * ( scaledAxis - 1 ) / ( scaledAxis * scale - 1.f ) : 0.f;
 			break;
 	}
 
