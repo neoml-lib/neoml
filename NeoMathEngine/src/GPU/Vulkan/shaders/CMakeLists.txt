@@ -222,7 +222,7 @@ macro(register_shader SHADER IS_IB)
     if(${CMAKE_HOST_SYSTEM_NAME} MATCHES "Windows" AND NOT ${NeoML_WINDOWS_11})
         add_custom_command(
             OUTPUT ${FULL_SOURCE_FILE}
-            COMMAND type "${HEADER_FILE}" "${STRUCTS_FILE}" "${FOOTER_FILE}" "${SHADER_FILE}" > "${FULL_SOURCE_FILE}" 2> error_log.txt
+            COMMAND type "${HEADER_FILE}" "${STRUCTS_FILE}" "${FOOTER_FILE}" "${SHADER_FILE}" > "${FULL_SOURCE_FILE}" 2>nul
             DEPENDS ${SHADER_FILE} ${HEADER_FILE} ${STRUCTS_FILE} ${FOOTER_FILE}
         )
     else()
