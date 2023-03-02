@@ -180,14 +180,13 @@ file(MAKE_DIRECTORY ${RESULTS_DIR})
 set(HEADER_FILE "${COMMON_DIR}/CommonHeader.comph")
 set(STRUCTS_FILE "${COMMON_DIR}/CommonStruct.h")
 set(FOOTER_FILE "${COMMON_DIR}/CommonFooter.comph")
-set(WINDOWS_11 0)
+set(NeoML_WINDOWS_11 FALSE)
 
 if(${CMAKE_HOST_SYSTEM_NAME} MATCHES "Windows")
-    execute_process(
-        COMMAND wmic os get Caption | findstr /i /c:"windows 11" > nul
-        OUTPUT_VARIABLE WINDOWS_11 
-    )
-    if(NOT ${WINDOWS_11})
+    if(${CMAKE_HOST_SYSTEM_VERSION} VERSION_GREATER_EQUAL "11")
+        set(NeoML_WINDOWS_11 TRUE)
+    endif()
+    if(NOT ${NeoML_WINDOWS_11})
         string(REPLACE / \\ HEADER_FILE "${HEADER_FILE}")
         string(REPLACE / \\ STRUCTS_FILE "${STRUCTS_FILE}")
         string(REPLACE / \\ FOOTER_FILE "${FOOTER_FILE}")
@@ -199,7 +198,7 @@ set(RESULTS)
 # Macro for compiling 1 shader.
 macro(register_shader SHADER IS_IB)
     set(SHADER_FILE "${CMAKE_CURRENT_SOURCE_DIR}/${SHADER}")
-    if(${CMAKE_HOST_SYSTEM_NAME} MATCHES "Windows" AND NOT ${WINDOWS_11})
+    if(${CMAKE_HOST_SYSTEM_NAME} MATCHES "Windows" AND NOT ${NeoML_WINDOWS_11})
         string(REPLACE / \\ SHADER_FILE "${SHADER_FILE}")
     endif()
 
@@ -220,7 +219,7 @@ macro(register_shader SHADER IS_IB)
         set(FULL_SOURCE_FILE "${RESULTS_DIR}/${SHADER_NAME}_source.tmp")
     endif()
 
-    if(${CMAKE_HOST_SYSTEM_NAME} MATCHES "Windows" AND NOT ${WINDOWS_11})
+    if(${CMAKE_HOST_SYSTEM_NAME} MATCHES "Windows" AND NOT ${NeoML_WINDOWS_11})
         add_custom_command(
             OUTPUT ${FULL_SOURCE_FILE}
             COMMAND type "${HEADER_FILE}" "${STRUCTS_FILE}" "${FOOTER_FILE}" "${SHADER_FILE}" > "${FULL_SOURCE_FILE}" 2> error_log.txt
