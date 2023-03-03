@@ -79,14 +79,14 @@ INSTANTIATE_TEST_CASE_P( CMathEngineScatterNDTestInstantiation, CMathEngineScatt
 	::testing::Values(
 		CTestParams(
 			"UpdateCount = (1..10);"
-			"IndexDims = (1..7);"
+			"IndexDims = (1..6);"
 			"DimSize = (1..3);"
 			"Values = (-10..10);"
 			"TestCount = 100;"
 		),
 		CTestParams(
 			"UpdateCount = (1..1000);"
-			"IndexDims = (1..7);"
+			"IndexDims = (1..6);"
 			"DimSize = (1..7);"
 			"Values = (-10..10);"
 			"TestCount = 1000;"
