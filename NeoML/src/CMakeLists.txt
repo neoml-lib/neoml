@@ -42,15 +42,19 @@ set(NeoML_SOURCES_COMPACT
     Dnn/Layers/GELULayer.cpp
     Dnn/Layers/GlobalMeanPoolingLayer.cpp
     Dnn/Layers/HingeLossLayer.cpp
+    Dnn/Layers/IndRnnLayer.cpp
     Dnn/Layers/L1LossLayer.cpp
+    Dnn/Layers/LstmLayer.cpp
     Dnn/Layers/MatrixMultiplicationLayer.cpp
     Dnn/Layers/MobileNetV2BlockLayer.cpp
+    Dnn/Layers/MultichannelLookupLayer.cpp
     Dnn/Layers/MultiheadAttentionLayer.cpp
-    Dnn/Layers/ObjectNormalizationLayer.cpp
     Dnn/Layers/MultiHingeLossLayer.cpp
+    Dnn/Layers/ObjectNormalizationLayer.cpp
     Dnn/Layers/PoolingLayer.cpp
     Dnn/Layers/RecurrentLayer.cpp
     Dnn/Layers/RleConvLayer.cpp
+    Dnn/Layers/QrnnLayer.cpp
     Dnn/Layers/QualityControlLayer.cpp
     Dnn/Layers/SinkLayer.cpp
     Dnn/Layers/SoftmaxLayer.cpp
@@ -116,15 +120,12 @@ set(NeoML_SOURCES
     Dnn/Layers/GruLayer.cpp
     Dnn/Layers/ImageAndPixelConversionLayer.cpp
     Dnn/Layers/ImageResizeLayer.cpp
-    Dnn/Layers/IndRnnLayer.cpp
     Dnn/Layers/InterpolationLayer.cpp
     Dnn/Layers/IrnnLayer.cpp
     Dnn/Layers/LogicalLayers.cpp
     Dnn/Layers/LrnLayer.cpp
-    Dnn/Layers/LstmLayer.cpp
     Dnn/Layers/MaxOverTimePoolingLayer.cpp
     Dnn/Layers/ModelWrapperLayer.cpp
-    Dnn/Layers/MultichannelLookupLayer.cpp
     Dnn/Layers/ObjectNormalizationLayer.cpp
     Dnn/Layers/Onnx/OnnxEltwiseLayer.cpp
     Dnn/Layers/Onnx/OnnxCastLayer.cpp
@@ -150,7 +151,6 @@ set(NeoML_SOURCES
     Dnn/Layers/PositionalEmbeddingLayer.cpp
     Dnn/Layers/PrecisionRecallLayer.cpp
     Dnn/Layers/ProjectionPoolingLayer.cpp
-    Dnn/Layers/QrnnLayer.cpp
     Dnn/Layers/ReorgLayer.cpp
     Dnn/Layers/RepeatSequenceLayer.cpp
     Dnn/Layers/ScatterGatherLayers.cpp
@@ -182,6 +182,7 @@ set(NeoML_SOURCES
 set(NeoML_NON_UNITY_SOURCES_COMPACT
     Dnn/DnnSolver.cpp
     Dnn/Layers/LossLayer.cpp
+    Dnn/Layers/LstmLayer.cpp
     TraditionalML/CompactRegressionTree.cpp
     TraditionalML/DecisionTreeClassificationModel.cpp
     TraditionalML/GradientBoost.cpp
@@ -196,7 +197,6 @@ set(NeoML_NON_UNITY_SOURCES_COMPACT
 
 set(NeoML_NON_UNITY_SOURCES
     ${NeoML_NON_UNITY_SOURCES_COMPACT}
-    Dnn/Layers/LstmLayer.cpp
     TraditionalML/BytePairEncoder.cpp
     TraditionalML/SvmBinaryModel.cpp
 )
@@ -258,13 +258,17 @@ set(NeoML_HEADERS_COMPACT
     ../include/NeoML/Dnn/Layers/FullyConnectedLayer.h
     ../include/NeoML/Dnn/Layers/GELULayer.h
     ../include/NeoML/Dnn/Layers/GlobalMeanPoolingLayer.h
+    ../include/NeoML/Dnn/Layers/IndRnnLayer.h
     ../include/NeoML/Dnn/Layers/LossLayer.h
+    ../include/NeoML/Dnn/Layers/LstmLayer.h
     ../include/NeoML/Dnn/Layers/MatrixMultiplicationLayer.h
     ../include/NeoML/Dnn/Layers/MobileNetV2BlockLayer.h
+    ../include/NeoML/Dnn/Layers/MultichannelLookupLayer.h
     ../include/NeoML/Dnn/Layers/MultiheadAttentionLayer.h
     ../include/NeoML/Dnn/Layers/ObjectNormalizationLayer.h
     ../include/NeoML/Dnn/Layers/PoolingLayer.h
     ../include/NeoML/Dnn/Layers/RecurrentLayer.h
+    ../include/NeoML/Dnn/Layers/QrnnLayer.h
     ../include/NeoML/Dnn/Layers/QualityControlLayer.h
     ../include/NeoML/Dnn/Layers/SinkLayer.h
     ../include/NeoML/Dnn/Layers/SoftmaxLayer.h
@@ -338,15 +342,12 @@ set(NeoML_HEADERS
     ../include/NeoML/Dnn/Layers/GruLayer.h
     ../include/NeoML/Dnn/Layers/ImageAndPixelConversionLayer.h
     ../include/NeoML/Dnn/Layers/ImageResizeLayer.h
-    ../include/NeoML/Dnn/Layers/IndRnnLayer.h
     ../include/NeoML/Dnn/Layers/InterpolationLayer.h
     ../include/NeoML/Dnn/Layers/IrnnLayer.h
     ../include/NeoML/Dnn/Layers/LogicalLayers.h
     ../include/NeoML/Dnn/Layers/LrnLayer.h
-    ../include/NeoML/Dnn/Layers/LstmLayer.h
     ../include/NeoML/Dnn/Layers/MaxOverTimePoolingLayer.h
     ../include/NeoML/Dnn/Layers/ModelWrapperLayer.h
-    ../include/NeoML/Dnn/Layers/MultichannelLookupLayer.h
     ../include/NeoML/Dnn/Layers/MultiHingeLossLayer.h
     ../include/NeoML/Dnn/Layers/ObjectNormalizationLayer.h
     ../include/NeoML/Dnn/Layers/Onnx/OnnxEltwiseLayer.h
@@ -374,7 +375,6 @@ set(NeoML_HEADERS
     ../include/NeoML/Dnn/Layers/PositionalEmbeddingLayer.h
     ../include/NeoML/Dnn/Layers/PrecisionRecallLayer.h
     ../include/NeoML/Dnn/Layers/ProjectionPoolingLayer.h
-    ../include/NeoML/Dnn/Layers/QrnnLayer.h
     ../include/NeoML/Dnn/Layers/ReorgLayer.h
     ../include/NeoML/Dnn/Layers/RepeatSequenceLayer.h
     ../include/NeoML/Dnn/Layers/ScatterGatherLayers.h
