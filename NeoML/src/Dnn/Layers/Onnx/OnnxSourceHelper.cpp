@@ -35,12 +35,11 @@ void COnnxSourceHelper::CalculateShapes()
 	CheckLayerArchitecture( GetOutputCount() == 1, "OnnxSourceHelper must have 1 output" );
 	CheckLayerArchitecture( blob != nullptr, "OnnxSourceHelper with null blob" );
 
-	if( &blob->GetMathEngine() != &GetSingleThreadCpuMathEngine() ) {
-		outputShapeBlobs[0] = CDnnBlob::CreateBlob( GetSingleThreadCpuMathEngine(),
-			blob->GetDataType(), blob->GetDesc() );
+	if( &blob->GetMathEngine() != &MathEngine() ) {
+		outputShapeBlobs[0] = CDnnBlob::CreateBlob( MathEngine(), blob->GetDataType(), blob->GetDesc() );
 		outputShapeBlobs[0]->CopyFrom( blob );
 	} else {
-		outputShapeBlobs[0] = blob->GetCopy();
+		outputShapeBlobs[0] = blob;
 	}
 }
 

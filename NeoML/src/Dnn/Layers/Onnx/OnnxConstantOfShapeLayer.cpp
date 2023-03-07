@@ -25,7 +25,7 @@ static const int OnnxConstantOfShapeLayerVersion = 0;
 COnnxConstantOfShapeLayer::COnnxConstantOfShapeLayer( IMathEngine& mathEngine ) :
 	COnnxLayerBase( mathEngine, "OnnxConstantOfShapeLayer" )
 {
-	value = CDnnBlob::CreateVector( GetSingleThreadCpuMathEngine(), CT_Float, 1 );
+	value = CDnnBlob::CreateVector( mathEngine, CT_Float, 1 );
 	value->Clear();
 }
 
@@ -33,7 +33,7 @@ void COnnxConstantOfShapeLayer::SetValue( const CDnnBlob& blob )
 {
 	NeoAssert( blob.GetDataSize() == 1 );
 	if( blob.GetDataType() != value->GetDataType() ) {
-		value = CDnnBlob::CreateVector( GetSingleThreadCpuMathEngine(), blob.GetDataType(), 1 );
+		value = CDnnBlob::CreateVector( MathEngine(), blob.GetDataType(), 1 );
 	}
 	value->CopyFrom( &blob );
 }
@@ -42,7 +42,7 @@ void COnnxConstantOfShapeLayer::Serialize( CArchive& archive )
 {
 	archive.SerializeVersion( OnnxConstantOfShapeLayerVersion );
 	COnnxLayerBase::Serialize( archive );
-	SerializeBlob( GetSingleThreadCpuMathEngine(), archive, value );
+	SerializeBlob( MathEngine(), archive, value);
 }
 
 void COnnxConstantOfShapeLayer::CalculateShapes()

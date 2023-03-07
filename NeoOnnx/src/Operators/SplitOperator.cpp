@@ -47,7 +47,7 @@ void CSplitOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorAr
 	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
 	const int axis = getAxis( *inputs[0] );
 
-	CPtr<const CTensorBase> splitsInput = getSplits( inputs );
+	CPtr<const CTensorBase> splitsInput = getSplits( inputs, dnn.GetMathEngine() );
 
 	// If we want to provide output of this operator as CShapeTensor then we need to calculate its shape
 	// We can calculate its shape only when both the shape of first input and the data of second input are known
@@ -103,7 +103,7 @@ int CSplitOperator::getAxis( const CTensorBase& firstInput ) const
 }
 
 // Gets the splits sizes for the current configuration of OpsetVersion, inputs and attributes
-CPtr<const CTensorBase> CSplitOperator::getSplits( const CTensorArray& inputs ) const
+CPtr<const CTensorBase> CSplitOperator::getSplits( const CTensorArray& inputs, IMathEngine& mathEngine ) const
 {
 	if( inputs.Size() > 1 ) {
 		CheckNeoOnnxSupport( inputs[1] == nullptr || inputs[1]->Type() != TTensorType::User,
@@ -116,7 +116,7 @@ CPtr<const CTensorBase> CSplitOperator::getSplits( const CTensorArray& inputs ) 
 		return nullptr;
 	}
 
-	CPtr<CDnnBlob> blob = CDnnBlob::CreateVector( GetSingleThreadCpuMathEngine(), CT_Int, splits.Size() );
+	CPtr<CDnnBlob> blob = CDnnBlob::CreateVector( mathEngine, CT_Int, splits.Size() );
 	blob->CopyFrom( splits.GetPtr() );
 	return new CDataTensor( CTensorLayout( { BD_BatchLength } ), *blob );
 }
