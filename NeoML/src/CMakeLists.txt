@@ -126,7 +126,6 @@ set(NeoML_SOURCES
     Dnn/Layers/LrnLayer.cpp
     Dnn/Layers/MaxOverTimePoolingLayer.cpp
     Dnn/Layers/ModelWrapperLayer.cpp
-    Dnn/Layers/MultiHingeLossLayer.cpp
     Dnn/Layers/ObjectNormalizationLayer.cpp
     Dnn/Layers/Onnx/OnnxEltwiseLayer.cpp
     Dnn/Layers/Onnx/OnnxCastLayer.cpp
@@ -149,7 +148,6 @@ set(NeoML_SOURCES
     Dnn/Layers/Onnx/OnnxSplitLayer.cpp
     Dnn/Layers/Onnx/OnnxTransformHelper.cpp
     Dnn/Layers/Onnx/OnnxTransposeHelper.cpp
-    Dnn/Layers/PoolingLayer.cpp
     Dnn/Layers/PositionalEmbeddingLayer.cpp
     Dnn/Layers/PrecisionRecallLayer.cpp
     Dnn/Layers/ProjectionPoolingLayer.cpp
@@ -280,6 +278,7 @@ set(NeoML_HEADERS_COMPACT
     ../include/NeoML/Dnn/Layers/TransformLayer.h
     ../include/NeoML/Dnn/Layers/TransposedConvLayer.h
     ../include/NeoML/Dnn/Layers/TransposeLayer.h
+
     ../include/NeoML/TraditionalML/ClassificationProbability.h
     ../include/NeoML/TraditionalML/ClassificationResult.h
     ../include/NeoML/TraditionalML/CrossValidationSubProblem.h
@@ -386,6 +385,7 @@ set(NeoML_HEADERS
     ../include/NeoML/Dnn/Layers/TransformerLayer.h
     ../include/NeoML/Dnn/Layers/TransformerSourceMaskLayer.h
     ../include/NeoML/Dnn/Layers/Upsampling2DLayer.h
+
     ../include/NeoML/TraditionalML/BytePairEncoderTrainer.h
     ../include/NeoML/TraditionalML/ClusterCenter.h
     ../include/NeoML/TraditionalML/Clustering.h
@@ -399,9 +399,9 @@ set(NeoML_HEADERS
     ../include/NeoML/TraditionalML/LdGraph.h
     ../include/NeoML/TraditionalML/MatchingGenerator.h
     ../include/NeoML/TraditionalML/PCA.h
+    ../include/NeoML/TraditionalML/SubwordEncoder.h
     ../include/NeoML/TraditionalML/Svm.h
     ../include/NeoML/TraditionalML/SvmKernel.h
-    ../include/NeoML/TraditionalML/SubwordEncoder.h
     ../include/NeoML/TraditionalML/WordDictionary.h
 )
 

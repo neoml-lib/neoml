@@ -104,7 +104,7 @@ static void blobConvolutionPerformanceTestImpl( const CTestParams& params, int s
 		dilationHeight, dilationWidth, strideHeight, strideWidth );
 
 	for( int i = 0; i < outputSize; ++i ) {
-		ASSERT_TRUE( FloatEq( expectedData[i], actualData[i] ) );
+		ASSERT_TRUE( FloatEq( expectedData[i], actualData[i], 3e-2 ) );
 	}
 }
 

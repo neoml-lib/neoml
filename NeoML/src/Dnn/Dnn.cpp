@@ -54,8 +54,8 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/SplitLayer.h>
 #include <NeoML/Dnn/Layers/TimeConvLayer.h>
 #include <NeoML/Dnn/Layers/TransformLayer.h>
-#include <NeoML/Dnn/Layers/TransposeLayer.h>
 #include <NeoML/Dnn/Layers/TransposedConvLayer.h>
+#include <NeoML/Dnn/Layers/TransposeLayer.h>
 #ifndef NEOML_COMPACT
 #include <NeoML/Dnn/Layers/3dPoolingLayer.h>
 #include <NeoML/Dnn/Layers/3dTransposedConvLayer.h>
@@ -91,14 +91,14 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/ProjectionPoolingLayer.h>
 #include <NeoML/Dnn/Layers/ReorgLayer.h>
 #include <NeoML/Dnn/Layers/RepeatSequenceLayer.h>
-#include <NeoML/Dnn/Layers/SubSequenceLayer.h>
-#include <NeoML/Dnn/Layers/SequenceSumLayer.h>
-#include <NeoML/Dnn/Layers/Upsampling2DLayer.h>
 #include <NeoML/Dnn/Layers/ScatterGatherLayers.h>
+#include <NeoML/Dnn/Layers/SequenceSumLayer.h>
 #include <NeoML/Dnn/Layers/SpaceToDepthLayer.h>
+#include <NeoML/Dnn/Layers/SubSequenceLayer.h>
 #include <NeoML/Dnn/Layers/TiedEmbeddingsLayer.h>
 #include <NeoML/Dnn/Layers/TransformerLayer.h>
 #include <NeoML/Dnn/Layers/TransformerSourceMaskLayer.h>
+#include <NeoML/Dnn/Layers/Upsampling2DLayer.h>
 #endif //!NEOML_COMPACT
 
 namespace NeoML {
