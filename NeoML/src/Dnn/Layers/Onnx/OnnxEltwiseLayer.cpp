@@ -75,11 +75,14 @@ static void onnxArithmeticOperationImpl( COnnxEltwiseLayer::TOperation operation
 	CObjectArray<CDnnBlob>& inputs, CDnnBlob& output )
 {
 	int initialInputIndex = 0;
+	const bool isInPlace = &output == inputs[0].Ptr();
 
 	// In order to reduce number of copies during initial broadcast
 	// let's choose the biggest input as an initializer
 	static_assert( static_cast<int>( COnnxEltwiseLayer::TOperation::Count ) == 10, "TOperation::Count != 10" );
-	if( operation == COnnxEltwiseLayer::TOperation::Add || operation == COnnxEltwiseLayer::TOperation::Mul ) {
+	if( ( operation == COnnxEltwiseLayer::TOperation::Add || operation == COnnxEltwiseLayer::TOperation::Mul )
+		&& !isInPlace )
+	{
 		for( int i = 1; i < inputs.Size(); ++i ) {
 			if( inputs[i]->GetDataSize() > inputs[initialInputIndex]->GetDataSize() ) {
 				initialInputIndex = i;
@@ -89,7 +92,9 @@ static void onnxArithmeticOperationImpl( COnnxEltwiseLayer::TOperation operation
 
 	IMathEngine& mathEngine = output.GetMathEngine();
 	if( output.HasEqualDimensions( inputs[initialInputIndex] ) ) {
-		output.CopyFrom( inputs[initialInputIndex] );
+		if( !isInPlace ) {
+			output.CopyFrom( inputs[initialInputIndex] );
+		}
 	} else {
 		mathEngine.BroadcastCopy( output.GetData<T>(), inputs[initialInputIndex]->GetData<T>(),
 			output.GetDesc(), inputs[initialInputIndex]->GetDesc(), 1 );
@@ -107,8 +112,8 @@ static void onnxArithmeticOperationImpl( COnnxEltwiseLayer::TOperation operation
 			continue;
 		}
 
-		CPtr<CDnnBlob> broadcastedInput = inputs[inputIndex];
-		// Allocate broadcast buffef only if needed
+		CPtr<CDnnBlob> preparedInput = inputs[inputIndex];
+		// Allocate broadcast buffer only if needed
 		const bool useScalarVersion = hasScalarVersion && output.GetDataSize() != 1
 			&& inputs[inputIndex]->GetDataSize() == 1;
 		if( !inputs[inputIndex]->HasEqualDimensions( &output ) && !useScalarVersion ) {
@@ -117,7 +122,7 @@ static void onnxArithmeticOperationImpl( COnnxEltwiseLayer::TOperation operation
 			}
 			mathEngine.BroadcastCopy( buff->GetData<T>(), inputs[inputIndex]->GetData<T>(),
 				buff->GetDesc(), inputs[inputIndex]->GetDesc(), 1 );
-			broadcastedInput = buff;
+			preparedInput = buff;
 		}
 
 		static_assert( static_cast<int>( COnnxEltwiseLayer::TOperation::Count ) == 10, "TOperation::Count != 10" );
@@ -125,29 +130,29 @@ static void onnxArithmeticOperationImpl( COnnxEltwiseLayer::TOperation operation
 			case COnnxEltwiseLayer::TOperation::Add:
 				if( useScalarVersion ) {
 					mathEngine.VectorAddValue( output.GetData<T>(), output.GetData<T>(),
-						output.GetDataSize(), broadcastedInput->GetData<T>() );
+						output.GetDataSize(), preparedInput->GetData<T>() );
 				} else {
-					mathEngine.VectorAdd( output.GetData<T>(), broadcastedInput->GetData<T>(),
+					mathEngine.VectorAdd( output.GetData<T>(), preparedInput->GetData<T>(),
 						output.GetData<T>(), output.GetDataSize() );
 				}
 				break;
 			case COnnxEltwiseLayer::TOperation::Sub:
 				if( useScalarVersion ) {
 					CMemoryHandleStackVar<T> negValue( mathEngine );
-					negValue.SetValue( -broadcastedInput->GetData<T>().GetValue() );
+					negValue.SetValue( -preparedInput->GetData<T>().GetValue() );
 					mathEngine.VectorAddValue( output.GetData<T>(), output.GetData<T>(),
 						output.GetDataSize(), negValue );
 				} else {
-					mathEngine.VectorSub( output.GetData<T>(), broadcastedInput->GetData<T>(),
+					mathEngine.VectorSub( output.GetData<T>(), preparedInput->GetData<T>(),
 						output.GetData<T>(), output.GetDataSize() );
 				}
 				break;
 			case COnnxEltwiseLayer::TOperation::Mul:
 				if( useScalarVersion ) {
 					mathEngine.VectorMultiply( output.GetData<T>(), output.GetData<T>(),
-						output.GetDataSize(), broadcastedInput->GetData<T>() );
+						output.GetDataSize(), preparedInput->GetData<T>() );
 				} else {
-					mathEngine.VectorEltwiseMultiply( output.GetData<T>(), broadcastedInput->GetData<T>(),
+					mathEngine.VectorEltwiseMultiply( output.GetData<T>(), preparedInput->GetData<T>(),
 						output.GetData<T>(), output.GetDataSize() );
 				}
 				break;
@@ -155,11 +160,11 @@ static void onnxArithmeticOperationImpl( COnnxEltwiseLayer::TOperation operation
 				if( useScalarVersion ) {
 					// Div with scalar can be emulated only for float data
 					CMemoryHandleStackVar<float> invValue( mathEngine );
-					invValue.SetValue( 1.f / broadcastedInput->GetData<float>().GetValue() );
+					invValue.SetValue( 1.f / preparedInput->GetData<float>().GetValue() );
 					mathEngine.VectorMultiply( output.GetData<float>(), output.GetData<float>(),
 						output.GetDataSize(), invValue );
 				} else {
-					mathEngine.VectorEltwiseDivide( output.GetData<T>(), broadcastedInput->GetData<T>(),
+					mathEngine.VectorEltwiseDivide( output.GetData<T>(), preparedInput->GetData<T>(),
 						output.GetData<T>(), output.GetDataSize() );
 				}
 				break;
