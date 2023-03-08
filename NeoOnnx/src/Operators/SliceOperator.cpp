@@ -16,6 +16,8 @@ limitations under the License.
 #include "../common.h"
 #pragma hdrstop
 
+#include <algorithm>
+
 #include "SliceOperator.h"
 #include "NeoOnnxCheck.h"
 #include "TensorUtils.h"
