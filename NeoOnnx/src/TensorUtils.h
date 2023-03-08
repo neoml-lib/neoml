@@ -139,6 +139,7 @@ inline void LoadBlobData( const onnx::TensorProto& src, CDnnBlob& dest )
 CPtr<const CTensorBase> ConvertTensor( const CTensorBase& inputTensor, const CTensorLayout& destLayout );
 CPtr<const CUserTensor> ConvertTensor( const CUserTensor& inputTensor, const CTensorLayout& destLayout );
 CPtr<const CDataTensor> ConvertTensor( const CDataTensor& inputTensor, const CTensorLayout& destLayout );
+CPtr<const CShapeTensor> ConvertTensor( const CShapeTensor& inputTensor, const CTensorLayout& destLayout );
 
 //---------------------------------------------------------------------------------------------------------------------
 // Auxiliary tensor padding functions
@@ -188,16 +189,25 @@ bool BroadcastTensorShape( const CTensorShape& first, const CTensorShape& second
 	CTensorShape& result );
 
 // Prepares user tensor for CBroadcastLayer
-// You don't need to use this function if you're gonna use BroadcastTensor(...) function below
 CPtr<const CTensorBase> PrepareForBroadcast( const CTensorBase& input, const CBroadcast& broadcast, int outputDims );
-
-// Broadcasts the given tensor to the given outputShape according to given broadcast
-CPtr<const CTensorBase> BroadcastTensor( const CTensorBase& input, const CBroadcast& broadcast, const CTensorShape& outputShape );
 
 //---------------------------------------------------------------------------------------------------------------------
 
 // Converts the given tensor to user tensor by adding corresponding data layer to the dnn (if needed)
 CPtr<const CUserTensor> AsUserTensor( const CTensorBase& tensor, const CString& layerName, CDnn& dnn );
+
+// Converts the given tensor to shape tensor by adding corresponding layers to the dnn (if needed)
+CPtr<const CShapeTensor> AsShapeTensor( const CTensorBase& tensor, const CString& layerName, CDnn& dnn );
+
+// Converts the given array to shape tensor by adding corresponding layers to the dnn (if needed)
+CPtr<const CShapeTensor> AsShapeTensor( const CFastArray<int, 8>& data, const CString& layerName, CDnn& dnn );
+CPtr<const CShapeTensor> AsShapeTensor( const CFastArray<float, 8>& data, const CString& layerName, CDnn& dnn );
+
+//---------------------------------------------------------------------------------------------------------------------
+
+// Extracts shape to the given array
+// Throws an exception if CUserTensor is provided (CUserTensor doesn't have shape)
+void GetTensorShape( const CTensorBase& tensor, CTensorShape& shape );
 
 } // namespace NeoOnnx
 

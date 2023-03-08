@@ -36,7 +36,8 @@ CSoftmaxOperator::CSoftmaxOperator( const onnx::NodeProto& softmax, int opsetVer
 
 void CSoftmaxOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
-	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
+	CheckNoNullInputs( inputs );
+	CheckNoShapeInputs( inputs );
 
 	const int dimCount = inputs[0]->DimCount();
 	// The default axis value has been changed in opset v11
@@ -65,7 +66,7 @@ void CSoftmaxOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensor
 		outLayer = log.Ptr();
 	}
 
-	outputs.Add( new CUserTensor( input->Shape(), input->Layout(), CLayerOutput( outLayer, 0 ) ) );
+	outputs.Add( new CUserTensor( input->Layout(), CLayerOutput( outLayer, 0 ) ) );
 }
 
 CTensorLayout CSoftmaxOperator::getCompatibleLayout( int dimCount, int axis, const CTensorLayout& inputLayout ) const

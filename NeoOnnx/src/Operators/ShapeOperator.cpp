@@ -18,6 +18,7 @@ limitations under the License.
 
 #include "ShapeOperator.h"
 #include "NeoOnnxCheck.h"
+#include <NeoML/Dnn/Layers/Onnx/OnnxShapeLayer.h>
 
 #include "onnx.pb.h"
 
@@ -35,28 +36,28 @@ CShapeOperator::CShapeOperator( const onnx::NodeProto& shape, int opsetVersion )
 
 void CShapeOperator::ProcessTensors( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
-	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
-	// This operator returns input's shape as an 1-dimensional tensor of integers
-	// Due to the fact that tensor's shape doesn't depend on the actual values of tensor elements
-	// this operator always returns CDataTensor
-	const CTensorShape& inputShape = inputs[0]->Shape();
-	CTensorLayout outputLayout( 1 );
-	CBlobDesc outputBlobDesc( CT_Int );
-	outputBlobDesc.SetDimSize( outputLayout[0], inputShape.Size() );
-	CPtr<CDnnBlob> outputBlob = CDnnBlob::CreateBlob( dnn.GetMathEngine(), CT_Int, outputBlobDesc );
-	outputBlob->CopyFrom( inputShape.GetPtr() );
-	outputs.Add( new CDataTensor( { inputShape.Size() }, outputLayout, *outputBlob ) );
+	CheckNoNullInputs( inputs );
 
-	if( !inputs[0]->IsCalculated() ) {
-		// If input is a CUserTensor then there is a chance that this CUserTensor will lead to hanging layer output
-		// Connect CSinkLayer to avoid this problem
-		// TODO: find a way to detect such cases and remove all the unnecessary preceding layers instead of adding sink
-		CPtr<CSinkLayer> safeSink = new CSinkLayer( dnn.GetMathEngine() );
-		safeSink->SetName( Name() + "_Sink" );
-		const CUserTensor* userInput = dynamic_cast<const CUserTensor*>( inputs[0].Ptr() );
-		safeSink->Connect( 0, *userInput->Layer(), userInput->OutputIndex() );
-		dnn.AddLayer( *safeSink );
+	if( inputs[0]->Type() != TTensorType::User ) {
+		// Lets calculate the shape as CDataTensor (if we can)
+		// If needed it could be converted to CShapeTensor at any time
+		CTensorShape shapeArray;
+		GetTensorShape( *inputs[0], shapeArray );
+		CPtr<CDnnBlob> shapeBlob = CDnnBlob::CreateVector( dnn.GetMathEngine(), CT_Int, inputs[0]->DimCount() );
+		shapeBlob->CopyFrom( shapeArray.GetPtr() );
+		outputs.Add( new CDataTensor( CTensorLayout( { BD_BatchLength } ), *shapeBlob ) );
+		return;
 	}
+
+	NeoAssert( inputs[0]->Type() == TTensorType::User );
+	CPtr<const CUserTensor> userInput = CheckCast<const CUserTensor>( inputs[0] );
+	CPtr<COnnxShapeLayer> shapeLayer = new COnnxShapeLayer( dnn.GetMathEngine() );
+	shapeLayer->SetName( Name() );
+	userInput->Layout().CopyTo( shapeLayer->TensorLayout() );
+	shapeLayer->Connect( 0, *userInput->Layer(), userInput->OutputIndex() );
+	dnn.AddLayer( *shapeLayer );
+	outputs.Add( new CShapeTensor( CTensorLayout::IOLayout( 1 ), { inputs[0]->DimCount() },
+		CLayerOutput( shapeLayer.Ptr(), 0 ) ) );
 }
 
 } // namespace NeoOnnx

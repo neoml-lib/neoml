@@ -104,10 +104,12 @@ inline void GetAttributeValue<CPtr<CDataTensor>>( const onnx::AttributeProto& at
 	TBlobType resultDataType = GetBlobType( static_cast<onnx::TensorProto_DataType>( attribute.t().data_type() ) );
 	CTensorLayout resultLayout( attribute.t().dims().size() );
 	CBlobDesc desc( resultDataType );
-	CTensorShape resultShape;
 	for( int i = 0; i < attribute.t().dims().size(); ++i ) {
 		desc.SetDimSize( resultLayout[i], static_cast<int>( attribute.t().dims( i ) ) );
-		resultShape.Add( static_cast<int>( attribute.t().dims( i ) ) );
+	}
+	if( desc.BlobSize() == 0 ) {
+		value = nullptr;
+		return;
 	}
 	CPtr<CDnnBlob> resultBlob = CDnnBlob::CreateBlob( value->Data()->GetMathEngine(), resultDataType, desc );
 
@@ -116,7 +118,7 @@ inline void GetAttributeValue<CPtr<CDataTensor>>( const onnx::AttributeProto& at
 	} else {
 		LoadBlobData<int>( attribute.t(), *resultBlob );
 	}
-	value = new CDataTensor( resultShape, resultLayout, *resultBlob );
+	value = new CDataTensor( resultLayout, *resultBlob );
 }
 
 } // namespace NeoOnnx

@@ -43,8 +43,8 @@ CScatterNDOperator::CScatterNDOperator( const onnx::NodeProto& scatterND, int op
 
 void CScatterNDOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
-	CheckNeoOnnxSupport( inputs[0] != nullptr && inputs[1] != nullptr && inputs[2] != nullptr,
-		"optional inputs", *this );
+	CheckNoNullInputs( inputs );
+	CheckNoShapeInputs( inputs );
 
 	CPtr<const CUserTensor> dataTensor = AsUserTensor( *ConvertTensor( *inputs[0], CTensorLayout::IOLayout( inputs[0]->DimCount() ) ),
 		Name() + "_Data", dnn );
@@ -67,8 +67,7 @@ void CScatterNDOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTens
 	scatterND->Connect( CScatterNDLayer::I_Indices, *indicesTensor->Layer(), indicesTensor->OutputIndex() );
 	scatterND->Connect( CScatterNDLayer::I_Updates, *updatesTensor->Layer(), updatesTensor->OutputIndex() );
 	dnn.AddLayer( *scatterND );
-	outputs.Add( new CUserTensor( dataTensor->Shape(), dataTensor->Layout(),
-		CLayerOutput( scatterND.Ptr(), 0 ) ) );
+	outputs.Add( new CUserTensor( dataTensor->Layout(), CLayerOutput( scatterND.Ptr(), 0 ) ) );
 }
 
 } // namespace NeoOnnx

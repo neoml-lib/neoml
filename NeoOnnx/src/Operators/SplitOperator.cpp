@@ -17,11 +17,12 @@ limitations under the License.
 #pragma hdrstop
 
 #include "SplitOperator.h"
-#include "LayerUtils.h"
 #include "NeoOnnxCheck.h"
 #include "TensorUtils.h"
 
 #include "onnx.pb.h"
+
+#include <NeoML/Dnn/Layers/Onnx/OnnxSplitLayer.h>
 
 namespace NeoOnnx {
 
@@ -46,24 +47,43 @@ void CSplitOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorAr
 	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
 	const int axis = getAxis( *inputs[0] );
 
-	CArray<int> splits;
-	getSplits( inputs, axis, splits );
+	CPtr<const CTensorBase> splitsInput = getSplits( inputs, dnn.GetMathEngine() );
 
-	CPtr<const CUserTensor> currInput = AsUserTensor( *inputs[0], Name() + "_Source", dnn );
-	CPtr<CBaseSplitLayer> splitLayer = CreateSplitLayer( dnn.GetMathEngine(), currInput->Layout()[axis] );
+	// If we want to provide output of this operator as CShapeTensor then we need to calculate its shape
+	// We can calculate its shape only when both the shape of first input and the data of second input are known
+	const bool hasShapeOutput = inputs[0]->Type() != TTensorType::User
+		&& ( splitsInput == nullptr || splitsInput->Type() == TTensorType::Data );
+
+	CPtr<COnnxSplitLayer> splitLayer = new COnnxSplitLayer( dnn.GetMathEngine() );
 	splitLayer->SetName( Name() );
-	splitLayer->SetOutputCounts( splits );
-	splitLayer->Connect( 0, *currInput->Layer(), currInput->OutputIndex() );
+	splitLayer->SetSplitDim( inputs[0]->Layout()[axis] );
 	dnn.AddLayer( *splitLayer );
-
-	CTensorShape outputShape;
-	currInput->Shape().CopyTo( outputShape );
-
 	outputs.SetBufferSize( OutputCount() );
-	for( int i = 0; i < OutputCount(); ++i ) {
-		CheckNeoOnnxSupport( splits[i] > 0, "Non-positive split size", *this );
-		outputShape[axis] = splits[i];
-		outputs.Add( new CUserTensor( outputShape, currInput->Layout(), CLayerOutput( splitLayer.Ptr(), i ) ) );
+
+	if( hasShapeOutput ) {
+		CPtr<const CShapeTensor> shapeInput = AsShapeTensor( *inputs[0], Name() + "_Source", dnn );
+		splitLayer->Connect( 0, *shapeInput->Layer(), shapeInput->OutputIndex() );
+
+		CTensorShape outputShape;
+		shapeInput->Shape().CopyTo( outputShape );
+		for( int i = 0; i < OutputCount(); ++i ) {
+			// If no 'split' provided, then split evenly
+			outputShape[axis] = splitsInput == nullptr ? shapeInput->Shape()[axis] / OutputCount()
+				: dynamic_cast<const CDataTensor&>( *splitsInput ).Data()->GetData<int>().GetValueAt( i );
+			outputs.Add( new CShapeTensor( inputs[0]->Layout(), outputShape, CLayerOutput( splitLayer, i ) ) );
+		}
+	} else {
+		CPtr<const CUserTensor> shapeInput = AsUserTensor( *inputs[0], Name() + "_Source", dnn );
+		splitLayer->Connect( 0, *shapeInput->Layer(), shapeInput->OutputIndex() );
+
+		for( int i = 0; i < OutputCount(); ++i ) {
+			outputs.Add( new CUserTensor( inputs[0]->Layout(), CLayerOutput( splitLayer, i ) ) );
+		}
+	}
+
+	if( splitsInput != nullptr ) {
+		CPtr<const CShapeTensor> splitsShape = AsShapeTensor( *splitsInput, Name() + "_Splits", dnn );
+		splitLayer->Connect( 1, *splitsShape->Layer(), splitsShape->OutputIndex() );
 	}
 }
 
@@ -83,22 +103,22 @@ int CSplitOperator::getAxis( const CTensorBase& firstInput ) const
 }
 
 // Gets the splits sizes for the current configuration of OpsetVersion, inputs and attributes
-void CSplitOperator::getSplits( const CTensorArray& inputs, int axis, CArray<int>& splits ) const
+CPtr<const CTensorBase> CSplitOperator::getSplits( const CTensorArray& inputs, IMathEngine& mathEngine ) const
 {
-	if( inputs.Size() > 1 && inputs[1] != nullptr ) {
-		CheckNeoOnnxSupport( inputs[1]->IsCalculated(), "User-provided 'split'", *this );
-		const CDnnBlob* blob = dynamic_cast<const CDataTensor&>( *inputs[1] ).Data();
-		CheckNeoOnnxSupport( blob->GetDataType() == CT_Int, "Non-integer 'split' values", *this );
-		splits.SetSize( blob->GetDataSize() );
-		blob->CopyTo( splits.GetPtr() );
-		return;
+	if( inputs.Size() > 1 ) {
+		CheckNeoOnnxSupport( inputs[1] == nullptr || inputs[1]->Type() != TTensorType::User,
+			"User-provided 'split'", *this );
+		return inputs[1];
 	}
 
+	CFastArray<int, 8> splits;
 	if( !GetAttribute( "split", splits ) ) {
-		// If no 'split' provided, then split evenly
-		CheckNeoOnnxSupport( inputs[0]->Shape()[axis] % OutputCount() == 0, "Shape can't be split evenly", *this );
-		splits.Add( inputs[0]->Shape()[axis] / OutputCount(), OutputCount() );
+		return nullptr;
 	}
+
+	CPtr<CDnnBlob> blob = CDnnBlob::CreateVector( mathEngine, CT_Int, splits.Size() );
+	blob->CopyFrom( splits.GetPtr() );
+	return new CDataTensor( CTensorLayout( { BD_BatchLength } ), *blob );
 }
 
 } // namespace NeoOnnx

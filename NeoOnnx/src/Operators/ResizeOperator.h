@@ -31,8 +31,6 @@ protected:
 private:
 	TInterpolationCoords getInterpolationCoords() const;
 	TInterpolationRound getInterpolationRound() const;
-	void getScales( const CTensorArray& inputs, CFastArray<float, 8>& scales ) const;
-	void getSizes( const CTensorArray& inputs, CFastArray<int, 8>& sizes ) const;
 };
 
 } // namespace NeoOnnx

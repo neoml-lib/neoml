@@ -29,12 +29,18 @@ protected:
 	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
 
 private:
-	void getAxes( const CTensorArray& inputs, CFastArray<int, 8>& axes ) const;
+	bool hasShapeOutput( const CTensorArray& inputs ) const;
+	void calcOutputShape( const CTensorArray& inputs, CTensorShape& outputShape ) const;
+
 	void getStarts( const CTensorArray& inputs, CFastArray<int, 8>& starts ) const;
 	void getEnds( const CTensorArray& inputs, CFastArray<int, 8>& ends ) const;
+	void getAxes( const CTensorArray& inputs, CFastArray<int, 8>& axes ) const;
 	void getSteps( const CTensorArray& inputs, CFastArray<int, 8>& steps ) const;
-	CPtr<const CTensorBase> sliceAxis( const CTensorBase& input, int axis, int start, int end, int step,
-		CDnn& dnn ) const;
+
+	CPtr<const CShapeTensor> getStarts( const CTensorArray& inputs, CDnn& dnn ) const;
+	CPtr<const CShapeTensor> getEnds( const CTensorArray& inputs, CDnn& dnn ) const;
+	CPtr<const CShapeTensor> getAxes( const CTensorArray& inputs, CDnn& dnn ) const;
+	CPtr<const CShapeTensor> getSteps( const CTensorArray& inputs, CDnn& dnn ) const;
 };
 
 } // namespace NeoOnnx

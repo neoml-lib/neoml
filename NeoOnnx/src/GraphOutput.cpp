@@ -28,17 +28,11 @@ CGraphOutput::CGraphOutput( const onnx::ValueInfoProto& output ) :
 {
 }
 
-CPtr<const CSinkLayer> CGraphOutput::AddSinkLayer( const CUserTensor& input, const CTensorLayout* layout, CDnn& dnn ) const
+CPtr<const CSinkLayer> CGraphOutput::AddSinkLayer( const CUserTensor& input, CDnn& dnn ) const
 {
 	CPtr<CSinkLayer> sink = new CSinkLayer( dnn.GetMathEngine() );
 	sink->SetName( Name() );
-
-	NeoOnnxCheck( layout == nullptr || layout->Size() == input.DimCount(),
-		"User-provided layout has wrong number of dimensions" );
-	CTensorLayout outputLayout = layout != nullptr ? *layout : CTensorLayout::IOLayout( input.DimCount() );
-
-	CPtr<const CUserTensor> outputTensor = ConvertTensor( input, outputLayout );
-	sink->Connect( 0, *outputTensor->Layer(), outputTensor->OutputIndex() );
+	sink->Connect( 0, *input.Layer(), input.OutputIndex() );
 	dnn.AddLayer( *sink );
 	return sink.Ptr();
 }

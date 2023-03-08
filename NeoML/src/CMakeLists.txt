@@ -126,6 +126,28 @@ set(NeoML_SOURCES
     Dnn/Layers/LrnLayer.cpp
     Dnn/Layers/MaxOverTimePoolingLayer.cpp
     Dnn/Layers/ModelWrapperLayer.cpp
+    Dnn/Layers/ObjectNormalizationLayer.cpp
+    Dnn/Layers/Onnx/OnnxEltwiseLayer.cpp
+    Dnn/Layers/Onnx/OnnxCastLayer.cpp
+    Dnn/Layers/Onnx/OnnxConcatLayer.cpp
+    Dnn/Layers/Onnx/OnnxConstantOfShapeLayer.cpp
+    Dnn/Layers/Onnx/OnnxConvTransposeLayer.cpp
+    Dnn/Layers/Onnx/OnnxExpandLayer.cpp
+    Dnn/Layers/Onnx/OnnxGatherLayer.cpp
+    Dnn/Layers/Onnx/OnnxLayerBase.cpp
+    Dnn/Layers/Onnx/OnnxLayers.cpp
+    Dnn/Layers/Onnx/OnnxNonZeroLayer.cpp
+    Dnn/Layers/Onnx/OnnxOneHotLayer.cpp
+    Dnn/Layers/Onnx/OnnxRangeLayer.cpp
+    Dnn/Layers/Onnx/OnnxReshapeLayer.cpp
+    Dnn/Layers/Onnx/OnnxResizeLayer.cpp
+    Dnn/Layers/Onnx/OnnxShapeLayer.cpp
+    Dnn/Layers/Onnx/OnnxShapeToBlobLayer.cpp
+    Dnn/Layers/Onnx/OnnxSliceLayer.cpp
+    Dnn/Layers/Onnx/OnnxSourceHelper.cpp
+    Dnn/Layers/Onnx/OnnxSplitLayer.cpp
+    Dnn/Layers/Onnx/OnnxTransformHelper.cpp
+    Dnn/Layers/Onnx/OnnxTransposeHelper.cpp
     Dnn/Layers/PositionalEmbeddingLayer.cpp
     Dnn/Layers/PrecisionRecallLayer.cpp
     Dnn/Layers/ProjectionPoolingLayer.cpp
@@ -327,6 +349,29 @@ set(NeoML_HEADERS
     ../include/NeoML/Dnn/Layers/MaxOverTimePoolingLayer.h
     ../include/NeoML/Dnn/Layers/ModelWrapperLayer.h
     ../include/NeoML/Dnn/Layers/MultiHingeLossLayer.h
+    ../include/NeoML/Dnn/Layers/ObjectNormalizationLayer.h
+    ../include/NeoML/Dnn/Layers/Onnx/OnnxEltwiseLayer.h
+    ../include/NeoML/Dnn/Layers/Onnx/OnnxCastLayer.h
+    ../include/NeoML/Dnn/Layers/Onnx/OnnxConcatLayer.h
+    ../include/NeoML/Dnn/Layers/Onnx/OnnxConstantOfShapeLayer.h
+    ../include/NeoML/Dnn/Layers/Onnx/OnnxConvTransposeLayer.h
+    ../include/NeoML/Dnn/Layers/Onnx/OnnxExpandLayer.h
+    ../include/NeoML/Dnn/Layers/Onnx/OnnxGatherLayer.h
+    ../include/NeoML/Dnn/Layers/Onnx/OnnxLayerBase.h
+    ../include/NeoML/Dnn/Layers/Onnx/OnnxLayers.h
+    ../include/NeoML/Dnn/Layers/Onnx/OnnxNonZeroLayer.h
+    ../include/NeoML/Dnn/Layers/Onnx/OnnxOneHotLayer.h
+    ../include/NeoML/Dnn/Layers/Onnx/OnnxRangeLayer.h
+    ../include/NeoML/Dnn/Layers/Onnx/OnnxReshapeLayer.h
+    ../include/NeoML/Dnn/Layers/Onnx/OnnxResizeLayer.h
+    ../include/NeoML/Dnn/Layers/Onnx/OnnxShapeLayer.h
+    ../include/NeoML/Dnn/Layers/Onnx/OnnxShapeToBlobLayer.h
+    ../include/NeoML/Dnn/Layers/Onnx/OnnxSliceLayer.h
+    ../include/NeoML/Dnn/Layers/Onnx/OnnxSourceHelper.h
+    ../include/NeoML/Dnn/Layers/Onnx/OnnxSplitLayer.h
+    ../include/NeoML/Dnn/Layers/Onnx/OnnxTransformHelper.h
+    ../include/NeoML/Dnn/Layers/Onnx/OnnxTransposeHelper.h
+    ../include/NeoML/Dnn/Layers/PoolingLayer.h
     ../include/NeoML/Dnn/Layers/PositionalEmbeddingLayer.h
     ../include/NeoML/Dnn/Layers/PrecisionRecallLayer.h
     ../include/NeoML/Dnn/Layers/ProjectionPoolingLayer.h

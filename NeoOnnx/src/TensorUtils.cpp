@@ -21,6 +21,10 @@ limitations under the License.
 
 #include "NeoOnnxCheck.h"
 #include "TensorUtils.h"
+#include <NeoML/Dnn/Layers/Onnx/OnnxSourceHelper.h>
+#include <NeoML/Dnn/Layers/Onnx/OnnxTransformHelper.h>
+#include <NeoML/Dnn/Layers/Onnx/OnnxTransposeHelper.h>
+#include <NeoML/Dnn/Layers/Onnx/OnnxShapeToBlobLayer.h>
 
 namespace NeoOnnx {
 
@@ -109,13 +113,13 @@ static CPtr<const CUserTensor> convertTensorToHw( const CUserTensor& input, int 
 //---------------------------------------------------------------------------------------------------------------------
 
 // Renames dimensions of data blob (without any reordering in memory)
-static CPtr<const CDnnBlob> renameDimensions( const CDnnBlob& input, const CTensorShape& shape, const CTensorLayout& outputLayout )
+static CPtr<const CDnnBlob> renameDimensions( const CDnnBlob& input, const CTensorLayout& inputLayout, const CTensorLayout& outputLayout )
 {
-	NeoAssert( shape.Size() == outputLayout.Size() );
+	NeoAssert( inputLayout.Size() == outputLayout.Size() );
 	// We have to copy data here because multiple tensors may be connected to the input tensor
 	CBlobDesc outputBlobDesc( input.GetDataType() );
-	for( int dimIndex = 0; dimIndex < shape.Size(); ++dimIndex ) {
-		outputBlobDesc.SetDimSize( outputLayout[dimIndex], shape[dimIndex] );
+	for( int dimIndex = 0; dimIndex < inputLayout.Size(); ++dimIndex ) {
+		outputBlobDesc.SetDimSize( outputLayout[dimIndex], input.DimSize( inputLayout[dimIndex] ) );
 	}
 	IMathEngine& mathEngine = input.GetMathEngine();
 	CPtr<CDnnBlob> result = CDnnBlob::CreateBlob( mathEngine, input.GetDataType(), outputBlobDesc );
@@ -130,17 +134,12 @@ static CPtr<const CDnnBlob> renameDimensions( const CDnnBlob& input, const CTens
 // Renames dimensions of layer output (without any reordering in memory)
 static CLayerOutput renameDimensions( const CLayerOutput& input, const CTensorLayout& inputLayout, const CTensorLayout& outputLayout )
 {
-	NeoAssert( inputLayout.Size() == outputLayout.Size() );
+	NeoPresume( inputLayout.Size() == outputLayout.Size() );
 	CDnn& dnn = *( input.Layer->GetDnn() );
-	CPtr<CTransformLayer> transformLayer = new CTransformLayer( dnn.GetMathEngine() );
+	CPtr<COnnxTransformHelper> transformLayer = new COnnxTransformHelper( dnn.GetMathEngine() );
 	transformLayer->SetName( getUniqueLayerName( dnn, "transform_" ) );
-	for( TBlobDim dim = BD_BatchLength; dim < BD_Count; ++dim ) {
-		const int dimIndex = outputLayout.Find( dim );
-		if( dimIndex == NotFound ) {
-			transformLayer->SetDimensionRule( dim, CTransformLayer::CDimensionRule( CTransformLayer::O_SetSize, 1 ) );
-		} else {
-			transformLayer->SetDimensionRule( dim, CTransformLayer::CDimensionRule( CTransformLayer::O_InputDim, inputLayout[dimIndex] ) );
-		}
+	for( int dimIndex = 0; dimIndex < outputLayout.Size(); ++dimIndex ) {
+		transformLayer->SetRule( inputLayout[dimIndex], outputLayout[dimIndex] );
 	}
 	dnn.AddLayer( *transformLayer );
 	transformLayer->Connect( 0, *input.Layer, input.OutputIndex );
@@ -154,15 +153,22 @@ static CPtr<const CTensorBase> renameDimensions( const CTensorBase& input, const
 		return &input;
 	}
 
-	if( input.IsCalculated() ) {
+	if( input.Type() == TTensorType::Data ) {
 		CPtr<const CDnnBlob> blob = renameDimensions( *dynamic_cast<const CDataTensor&>( input ).Data(),
-			input.Shape(), outputLayout );
-		return new CDataTensor( input.Shape(), outputLayout, *blob );
+			input.Layout(), outputLayout );
+		return new CDataTensor( outputLayout, *blob );
 	}
 
-	CLayerOutput layerOutput = renameDimensions( dynamic_cast<const CUserTensor&>( input ).LayerOutput(),
-		input.Layout(), outputLayout );
-	return new CUserTensor( input.Shape(), outputLayout, layerOutput );
+	CLayerOutput layerOutput = input.Type() == TTensorType::User
+		? dynamic_cast<const CUserTensor&>( input ).LayerOutput()
+		: dynamic_cast<const CShapeTensor&>( input ).LayerOutput();
+	layerOutput = renameDimensions( layerOutput, input.Layout(), outputLayout );
+
+	if( input.Type() == TTensorType::User ) {
+		return new CUserTensor( outputLayout, layerOutput );
+	}
+
+	return new CShapeTensor( outputLayout, dynamic_cast<const CShapeTensor&>( input ).Shape(), layerOutput );
 }
 
 // Swaps 2 dimensions of data blob
@@ -184,9 +190,9 @@ static CPtr<const CDnnBlob> swapDimensions( const CDnnBlob& inputBlob, TBlobDim 
 static CLayerOutput swapDimensions( const CLayerOutput& input, TBlobDim firstDim, TBlobDim secondDim )
 {
 	CDnn& dnn = *( input.Layer->GetDnn() );
-	CPtr<CTransposeLayer> transposeLayer = new CTransposeLayer( dnn.GetMathEngine() );
+	CPtr<COnnxTransposeHelper> transposeLayer = new COnnxTransposeHelper( dnn.GetMathEngine() );
 	transposeLayer->SetName( getUniqueLayerName( dnn, "transpose_" ) );
-	transposeLayer->SetTransposedDimensions( firstDim, secondDim );
+	transposeLayer->SetDims( firstDim, secondDim );
 	dnn.AddLayer( *transposeLayer );
 	transposeLayer->Connect( 0, *input.Layer, input.OutputIndex );
 	return CLayerOutput( transposeLayer.Ptr(), 0 );
@@ -207,15 +213,22 @@ static CPtr<const CTensorBase> swapDimensions( const CTensorBase& input, TBlobDi
 		outputLayout[secondDimIndex] = firstDim;
 	}
 
-	if( input.IsCalculated() ) {
+	if( input.Type() == TTensorType::Data ) {
 		CPtr<const CDnnBlob> blob = swapDimensions( *dynamic_cast<const CDataTensor&>( input ).Data(),
 			firstDim, secondDim );
-		return new CDataTensor( input.Shape(), outputLayout, *blob );
+		return new CDataTensor( outputLayout, *blob );
 	}
 
-	CLayerOutput layerOutput = swapDimensions( dynamic_cast<const CUserTensor&>( input ).LayerOutput(),
-		firstDim, secondDim );
-	return new CUserTensor( input.Shape(), outputLayout, layerOutput );
+	CLayerOutput layerOutput = input.Type() == TTensorType::User
+		? dynamic_cast<const CUserTensor&>( input ).LayerOutput()
+		: dynamic_cast<const CShapeTensor&>( input ).LayerOutput();
+	layerOutput = swapDimensions( layerOutput, firstDim, secondDim );
+
+	if( input.Type() == TTensorType::User ) {
+		return new CUserTensor( outputLayout, layerOutput );
+	}
+
+	return new CShapeTensor( outputLayout, dynamic_cast<const CShapeTensor&>( input ).Shape(), layerOutput );
 }
 
 // Checks that layout is a channel-last-like (NeoML compatible)
@@ -359,9 +372,14 @@ CPtr<const CDataTensor> ConvertTensor( const CDataTensor& dataTensor, const CTen
 	return dynamic_cast<const CDataTensor*>( ConvertTensor( static_cast<const CTensorBase&>( dataTensor ), destLayout ).Ptr() );
 }
 
-CPtr<const CUserTensor> ConvertTensor( const CUserTensor& dataTensor, const CTensorLayout& destLayout )
+CPtr<const CUserTensor> ConvertTensor( const CUserTensor& userTensor, const CTensorLayout& destLayout )
 {
-	return dynamic_cast<const CUserTensor*>( ConvertTensor( static_cast<const CTensorBase&>( dataTensor ), destLayout ).Ptr() );
+	return dynamic_cast<const CUserTensor*>( ConvertTensor( static_cast<const CTensorBase&>( userTensor ), destLayout ).Ptr() );
+}
+
+CPtr<const CShapeTensor> ConvertTensor( const CShapeTensor& shapeTensor, const CTensorLayout& destLayout )
+{
+	return dynamic_cast<const CShapeTensor*>( ConvertTensor( static_cast<const CTensorBase&>( shapeTensor ), destLayout ).Ptr() );
 }
 
 // --------------------------------------------------------------------------------------------------------------------
@@ -392,18 +410,8 @@ static CPtr<const CUserTensor> addImageResizeLayer( CImageResizeLayer& imageResi
 	imageResize.Connect( 0, *result->Layer(), result->OutputIndex() );
 	dnn.AddLayer( imageResize );
 
-	// Calculate output shape
-	CTensorShape outputShape;
-	result->Shape().CopyTo( outputShape );
-	outputShape[heightDimIndex] += imageResize.GetDelta( CImageResizeLayer::IS_Top )
-		+ imageResize.GetDelta( CImageResizeLayer::IS_Bottom );
-	if( widthDimIndex != NotFound ) {
-		outputShape[widthDimIndex] += imageResize.GetDelta( CImageResizeLayer::IS_Left )
-			+ imageResize.GetDelta( CImageResizeLayer::IS_Right );
-	}
-
 	// Construct new CUserTensor which is provided by imageResize layer
-	return new CUserTensor( outputShape, result->Layout(), CLayerOutput( &imageResize, 0 ) );
+	return new CUserTensor( result->Layout(), CLayerOutput( &imageResize, 0 ) );
 }
 
 CPtr<const CUserTensor> PadUserTensor( const CUserTensor& input, const CFastArray<int, 8>& pads, float padValue )
@@ -533,42 +541,23 @@ bool BroadcastTensorShape( const CTensorShape& first, const CTensorShape& second
 	return true;
 }
 
-// Adds upsample layer to the dnn
-static CPtr<const CUserTensor> addUpsample2dLayer( CUpsampling2DLayer& upsample, CDnn& dnn, const CUserTensor& input,
-	int heightDimIndex, int widthDimIndex )
-{
-	// Add imageResize layer
-	CPtr<const CUserTensor> result = convertTensorToHw( input, heightDimIndex, widthDimIndex );
-	upsample.Connect( 0, *result->Layer(), result->OutputIndex() );
-	dnn.AddLayer( upsample );
-
-	// Calculate output shape
-	CTensorShape outputShape;
-	result->Shape().CopyTo( outputShape );
-
-	outputShape[heightDimIndex] *= upsample.GetHeightCopyCount();
-	if( widthDimIndex != NotFound ) {
-		outputShape[widthDimIndex] *= upsample.GetWidthCopyCount();
-	}
-
-	// Construct new CUserTensor which is provided by imageResize layer
-	return new CUserTensor( outputShape, result->Layout(), CLayerOutput( &upsample, 0 ) );
-}
-
 CPtr<const CTensorBase> PrepareForBroadcast( const CTensorBase& input, const CBroadcast& broadcast, int outputDims )
 {
+	const bool isShapeTensor = input.Type() == TTensorType::Shape;
+
 	int axis = outputDims - input.DimCount();
 	if( broadcast.Type == BT_Onnx && broadcast.Axis >= 0 && axis > broadcast.Axis ) {
 		axis = broadcast.Axis;
 	}
 
-	const CTensorShape& inputShape = input.Shape();
-	NeoAssert( axis + inputShape.Size() <= outputDims );
-
 	CTensorShape outputShape;
-	outputShape.Add( 1, axis );
-	outputShape.Add( inputShape );
-	outputShape.Add( 1, outputDims - outputShape.Size() );
+	if( isShapeTensor ) {
+		const CTensorShape& inputShape = dynamic_cast<const CShapeTensor&>( input ).Shape();
+		NeoAssert( axis + inputShape.Size() <= outputDims );
+		outputShape.Add( 1, axis );
+		outputShape.Add( inputShape );
+		outputShape.Add( 1, outputDims - outputShape.Size() );
+	}
 
 	const CTensorLayout& inputLayout = input.Layout();
 
@@ -596,126 +585,34 @@ CPtr<const CTensorBase> PrepareForBroadcast( const CTensorBase& input, const CBr
 		++currDim;
 	}
 
-	if( input.IsCalculated() ) {
-		return new CDataTensor( outputShape, outputLayout, *dynamic_cast<const CDataTensor&>( input ).Data() );
+	if( input.Type() == TTensorType::Data ) {
+		return new CDataTensor( outputLayout, *dynamic_cast<const CDataTensor&>( input ).Data() );
+	} else if( isShapeTensor ) {
+		return new CShapeTensor( outputLayout, outputShape,
+			dynamic_cast<const CShapeTensor&>( input ).LayerOutput() );
 	}
-	return new CUserTensor( outputShape, outputLayout, dynamic_cast<const CUserTensor&>( input ).LayerOutput() );
-}
-
-// Broadcasts user tensor into outputShape via broadcastInfo
-static CPtr<const CUserTensor> broadcastUserTensor( const CUserTensor& input, const CBroadcast& broadcast,
-	const CTensorShape& outputShape )
-{
-	if( areShapesEqual( input.Shape(), outputShape ) ) {
-		return &input;
-	}
-
-	NeoAssert( broadcast.Type != BT_None );
-	NeoAssert( input.DimCount() <= outputShape.Size() );
-	NeoAssert( broadcast.Type != BT_Upsample || input.DimCount() == outputShape.Size() );
-
-	// Prefix for upsample layer names
-	const CString upsampleNamePrefix = input.Layer()->GetName() + CString( "_upsample_" );
-	// Used network
-	CDnn& dnn = *( input.Layer()->GetDnn() );
-	// Used mathEngine
-	IMathEngine& mathEngine = dnn.GetMathEngine();
-
-	CPtr<const CUserTensor> currData = dynamic_cast<const CUserTensor*>( PrepareForBroadcast( input, broadcast, outputShape.Size() ).Ptr() );
-	CPtr<CUpsampling2DLayer> upsample = nullptr;
-	int heightDimIndex = NotFound;
-	int widthDimIndex = NotFound;
-	CTensorShape inputShape;
-	currData->Shape().CopyTo( inputShape );
-
-	for( int i = 0; i < inputShape.Size(); ++i ) {
-		if( inputShape[i] == outputShape[i] ) {
-			continue;
-		}
-		NeoAssert( broadcast.Type == BT_Upsample || inputShape[i] == 1 );
-		NeoAssert( outputShape[i] % inputShape[i] == 0 );
-
-		if( upsample == nullptr ) {
-			upsample = new CUpsampling2DLayer( mathEngine );
-			upsample->SetName( getUniqueLayerName( dnn, upsampleNamePrefix ) );
-		}
-
-		if( heightDimIndex == NotFound ) {
-			heightDimIndex = i;
-			upsample->SetHeightCopyCount( outputShape[i] / inputShape[i] );
-		} else {
-			widthDimIndex = i;
-			upsample->SetWidthCopyCount( outputShape[i] / inputShape[i] );
-			currData = addUpsample2dLayer( *upsample, dnn, *currData, heightDimIndex, widthDimIndex );
-			upsample = nullptr;
-			heightDimIndex = NotFound;
-			widthDimIndex = NotFound;
-		}
-	}
-
-	// In case of broadcasting odd number of dimensions by this moment upsample != nullptr
-	// widthDimIndex is equal to NotFound
-	if( upsample != nullptr ) {
-		// Default value is 0 which is invalid
-		upsample->SetWidthCopyCount( 1 );
-		currData = addUpsample2dLayer( *upsample, dnn, *currData, heightDimIndex, widthDimIndex );
-	}
-
-	return currData;
-}
-
-// Broadcasts data tensor into outputShape via broadcastInfo
-static CPtr<const CDataTensor> broadcastDataTensor( const CDataTensor& input, const CBroadcast& broadcast,
-	const CTensorShape& outputShape )
-{
-	if( areShapesEqual( input.Shape(), outputShape ) ) {
-		return &input;
-	}
-
-	NeoAssert( broadcast.Type != BT_None );
-
-	// The broadcast of data tensor is done by building temporary dnn which broadcasts user tensor
-	// and running this dnn on the data from the input
-	IMathEngine& mathEngine = input.Data()->GetMathEngine();
-	CRandom random( 0x32456 );
-
-	CDnn internalDnn( random, mathEngine );
-	// Create user tensor of the same shape linked to the source layer of the internal dnn
-	CPtr<const CUserTensor> internalInput = AsUserTensor( input, "BroadcastSource", internalDnn );
-
-	// Broadcast user tensor
-	// This step adds broadcasting layers to the internal dnn
-	CPtr<const CUserTensor> internalOutput = broadcastUserTensor( *internalInput, broadcast, outputShape );
-	NeoPresume( areShapesEqual( internalOutput->Shape(), outputShape ) );
-
-	// Add sink which will be used to extract broadcasted data from the internal dnn
-	CPtr<CSinkLayer> sink = new CSinkLayer( mathEngine );
-	sink->Connect( 0, *internalOutput->Layer(), internalOutput->OutputIndex() );
-	internalDnn.AddLayer( *sink );
-
-	// Run dnn on the data from the input
-	internalDnn.RunOnce();
-
-	// Create new data tensor with the blob from the internal dnn sink
-	return new CDataTensor( outputShape, internalOutput->Layout(), *sink->GetBlob() );
-}
-
-CPtr<const CTensorBase> BroadcastTensor( const CTensorBase& input, const CBroadcast& broadcast,
-	const CTensorShape& outputShape )
-{
-	if( input.IsCalculated() ) {
-		return broadcastDataTensor( dynamic_cast<const CDataTensor&>( input ), broadcast, outputShape ).Ptr();
-	}
-	return broadcastUserTensor( dynamic_cast<const CUserTensor&>( input ), broadcast, outputShape ).Ptr();
+	return new CUserTensor( outputLayout, dynamic_cast<const CUserTensor&>( input ).LayerOutput() );
 }
 
 //---------------------------------------------------------------------------------------------------------------------
 
 CPtr<const CUserTensor> AsUserTensor( const CTensorBase& tensor, const CString& layerName, CDnn& dnn )
 {
-	if( !tensor.IsCalculated() ) {
+	static_assert( static_cast<int>( TTensorType::Count ) == 3, "TTensorType::Count != 3" );
+
+	if( tensor.Type() == TTensorType::User ) {
 		// No conversion needed
 		return dynamic_cast<const CUserTensor*>( &tensor );
+	}
+
+	if( tensor.Type() == TTensorType::Shape ) {
+		// Convert shape to usual blob via special layer
+		CPtr<COnnxShapeToBlobLayer> conversionLayer = new COnnxShapeToBlobLayer( dnn.GetMathEngine() );
+		conversionLayer->SetName( layerName );
+		const CShapeTensor& input = dynamic_cast<const CShapeTensor&>( tensor );
+		conversionLayer->Connect( 0, *input.Layer(), input.OutputIndex() );
+		dnn.AddLayer( *conversionLayer );
+		return new CUserTensor( input.Layout(), CLayerOutput( conversionLayer, 0 ) );
 	}
 
 	const CDataTensor& dataTensor = dynamic_cast<const CDataTensor&>( tensor );
@@ -724,7 +621,74 @@ CPtr<const CUserTensor> AsUserTensor( const CTensorBase& tensor, const CString& 
 	// Guarantee that serialization won't lead to data loss
 	dataLayer->SetName( layerName );
 	dnn.AddLayer( *dataLayer );
-	return new CUserTensor( dataTensor.Shape(), dataTensor.Layout(), CLayerOutput( dataLayer, 0 ) );
+	return new CUserTensor( dataTensor.Layout(), CLayerOutput( dataLayer, 0 ) );
+}
+
+CPtr<const CShapeTensor> AsShapeTensor( const CTensorBase& tensor, const CString& layerName, CDnn& dnn )
+{
+	if( tensor.Type() == TTensorType::Shape ) {
+		return CheckCast<const CShapeTensor>( &tensor );
+	}
+
+	CheckNeoOnnxSupport( tensor.Type() != TTensorType::User, "User tensor can't be converted to Shape" );
+
+	CPtr<const CDataTensor> dataTensor = CheckCast<const CDataTensor>( &tensor );
+
+	CTensorShape resultShape;
+	for( int dimIndex = 0; dimIndex < dataTensor->DimCount(); ++dimIndex ) {
+		resultShape.Add( dataTensor->DimSize( dimIndex ) );
+	}
+
+	CPtr<COnnxSourceHelper> source = new COnnxSourceHelper( dnn.GetMathEngine() );
+	source->SetName( layerName );
+	source->Blob() = dataTensor->Data()->GetCopy();
+	dnn.AddLayer( *source );
+	return new CShapeTensor( dataTensor->Layout(), resultShape, CLayerOutput( source.Ptr(), 0 ) );
+}
+
+template<class T>
+static CPtr<const CShapeTensor> asShapeTensor( const CFastArray<T, 8>& data, const CString& layerName, CDnn& dnn )
+{
+	CPtr<COnnxSourceHelper> source = new COnnxSourceHelper( dnn.GetMathEngine() );
+	source->SetName( layerName );
+	source->Blob() = CDnnBlob::CreateTensor( dnn.GetMathEngine(), CBlobType<T>::GetType(), { data.Size() } );
+	source->Blob()->CopyFrom( data.GetPtr() );
+	dnn.AddLayer( *source );
+	return new CShapeTensor( CTensorLayout::IOLayout( 1 ), { data.Size() },
+		CLayerOutput( source.Ptr(), 0 ) );
+}
+
+CPtr<const CShapeTensor> AsShapeTensor( const CFastArray<int, 8>& data, const CString& layerName, CDnn& dnn )
+{
+	return asShapeTensor( data, layerName, dnn );
+}
+
+CPtr<const CShapeTensor> AsShapeTensor( const CFastArray<float, 8>& data, const CString& layerName, CDnn& dnn )
+{
+	return asShapeTensor( data, layerName, dnn );
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
+void GetTensorShape( const CTensorBase& tensor, CTensorShape& shape )
+{
+	switch( tensor.Type() ) {
+		case TTensorType::Shape:
+			dynamic_cast<const CShapeTensor&>( tensor ).Shape().CopyTo( shape );
+			return;
+		case TTensorType::Data:
+		{
+			const CDataTensor& dataTensor = dynamic_cast<const CDataTensor&>( tensor );
+			shape.SetSize( tensor.DimCount() );
+			for( int dimIndex = 0; dimIndex < tensor.DimCount(); ++dimIndex ) {
+				shape[dimIndex] = dataTensor.DimSize( dimIndex );
+			}
+			return;
+		}
+		case TTensorType::User:
+		default:
+			CheckNeoOnnxSupport( false, "Can't extract tensor shape" );
+	}
 }
 
 } // namespace NeoOnnx

@@ -21,50 +21,9 @@ limitations under the License.
 
 #include "onnx.pb.h"
 
+#include <NeoML/Dnn/Layers/Onnx/OnnxGatherLayer.h>
+
 namespace NeoOnnx {
-
-// Converts tensor to onnx-compatible layout
-static CPtr<const CUserTensor> convertToOnnx( const CUserTensor& data )
-{
-	if( !IsTransposedLayout( data.Layout() ) ) {
-		return &data;
-	}
-
-	return ConvertTensor( data, CTensorLayout( data.DimCount() ) );
-}
-
-// Returns the shape after the image to pixel layer
-static void getImageToPixelShape( const CTensorShape& dataShape, int axis, const CTensorShape& indicesShape,
-	CTensorShape& resultShape )
-{
-	NeoAssert( dataShape.Size() > axis && axis >= 0 );
-	const int resultDimCount = indicesShape.Size() + dataShape.Size() - 1;
-	indicesShape.CopyTo( resultShape );
-	resultShape.SetBufferSize( resultDimCount );
-	for( int i = 0; i < dataShape.Size() - 1; ++i ) {
-		resultShape.Add( i < axis ? dataShape[i] : dataShape[i + 1] );
-	}
-	NeoAssert( resultShape.Size() == resultDimCount );
-}
-
-// Transforms layer output into layout, expected by onnx
-static CPtr<const CUserTensor> transformOutput( const CBaseLayer& layer, const CTensorShape& resultShape, CDnn& dnn )
-{
-	CTensorLayout resultLayout( resultShape.Size() );
-	CPtr<CTransformLayer> transform = new CTransformLayer( dnn.GetMathEngine() );
-	transform->SetName( CString( layer.GetName() ) + "_transformOutput" );
-	NeoAssert( layer.GetDnn() != nullptr );
-	for( TBlobDim dim = BD_BatchLength; dim < BD_Count; ++dim ) {
-		const int dimIndex = resultLayout.Find( dim );
-		transform->SetDimensionRule( dim, CTransformLayer::O_SetSize,
-			dimIndex == NotFound ? 1 : resultShape[dimIndex] );
-	}
-	transform->Connect( layer );
-	dnn.AddLayer( *transform );
-	return new CUserTensor( resultShape, resultLayout, CLayerOutput( transform, 0 ) );
-}
-
-//---------------------------------------------------------------------------------------------------------------------
 
 CGatherOperator::CGatherOperator( const onnx::NodeProto& gather, int opsetVersion ) :
 	CLayerOperator( gather, opsetVersion ),
@@ -83,95 +42,79 @@ CGatherOperator::CGatherOperator( const onnx::NodeProto& gather, int opsetVersio
 
 void CGatherOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
-	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
-	CheckOnnxProtocol( inputs[1] != nullptr, "input can't be optional", *this );
+	CheckNoNullInputs( inputs );
+	const int axis = axisAttr < 0 ? axisAttr + inputs[0]->DimCount() : axisAttr;
+	CheckOnnxProtocol( axis >= 0 && axis < inputs[0]->DimCount(), "axis out of range", *this );
+	CheckNeoOnnxSupport( inputs[0]->DimCount() + inputs[1]->DimCount() - 1 <= BD_Count,
+		"Too much dimensions", *this );
 
-	CObjectArray<const CUserTensor> convertedInputs;
-	for( int i = 0; i < inputs.Size(); ++i ) {
-		convertedInputs.Add( AsUserTensor( *inputs[i], Name() + "_Source" + Str( i ), dnn ).Ptr() );
+	CPtr<const CTensorBase> indices = ConvertTensor( *inputs[1], CTensorLayout::IOLayout( inputs[1]->DimCount() ) );
+
+	CPtr<const CTensorBase> data = inputs[0];
+	CTensorLayout dataLayout;
+	for( int i = 0; i < data->DimCount(); ++i ) {
+		dataLayout.Add( static_cast<TBlobDim>( std::max( 0, indices->DimCount() - 1 ) + i ) );
+	}
+	if( axis != 0 ) {
+		std::swap( dataLayout[0], dataLayout[axis] );
+	}
+	data = ConvertTensor( *data, dataLayout );
+
+	CLayerOutput dataOutput;
+	CLayerOutput indicesOutput;
+	CTensorShape outputShape;
+	if( HasUserInput( inputs ) ) {
+		dataOutput = AsUserTensor( *data, Name() + "_Data", dnn )->LayerOutput();
+		indicesOutput = AsUserTensor( *indices, Name() + "_Indices", dnn )->LayerOutput();
+	} else {
+		CPtr<const CShapeTensor> dataShapeTensor = AsShapeTensor( *data, Name() + "_Data", dnn );
+		dataOutput = dataShapeTensor->LayerOutput();
+		CPtr<const CShapeTensor> indicesShapeTensor = AsShapeTensor( *indices, Name() + "_Indices", dnn);
+		indicesOutput = indicesShapeTensor->LayerOutput();
+		getOutputShape( axis, dataShapeTensor->Shape(), indicesShapeTensor->Shape(), outputShape );
 	}
 
-	addImageToPixelLayer( *convertedInputs[0], *convertedInputs[1], dnn, outputs );
+	CPtr<COnnxGatherLayer> gatherLayer = new COnnxGatherLayer( dnn.GetMathEngine() );
+	gatherLayer->SetName( Name() );
+	gatherLayer->SetGatherDim( dataLayout[axis] );
+	gatherLayer->Connect( 0, *dataOutput.Layer, dataOutput.OutputIndex );
+	gatherLayer->Connect( 1, *indicesOutput.Layer, indicesOutput.OutputIndex );
+	dnn.AddLayer( *gatherLayer );
+
+	CTensorLayout outputLayout = getOutputLayout( axis, dataLayout, indices->Layout() );
+	if( HasUserInput( inputs ) ) {
+		outputs.Add( new CUserTensor( outputLayout, CLayerOutput( gatherLayer, 0 ) ) );
+	} else {
+		outputs.Add( new CShapeTensor( outputLayout, outputShape, CLayerOutput( gatherLayer, 0 ) ) );
+	}
 }
 
-void CGatherOperator::addImageToPixelLayer( const CUserTensor& data, const CUserTensor& indices,
-	CDnn& dnn, CTensorArray& outputs ) const
+// Output layout based on data and indices layouts
+CTensorLayout CGatherOperator::getOutputLayout( int axis, const CTensorLayout& dataLayout,
+	const CTensorLayout& indicesLayout ) const
 {
-	const int axis = axisAttr < 0 ? axisAttr + data.DimCount() : axisAttr;
-	CheckOnnxProtocol( axis >= 0 && axis < data.DimCount(), "axis out of range", *this );
-
-	// Prepare data blob
-	CPtr<const CUserTensor> currData = &data;
-	// Step 1: move axis to BD_BatchLength with rest of dims ordered in onnx-compatible way
-	CTensorLayout requiredLayout = data.Layout();
-	for( int i = 0; i < requiredLayout.Size(); ++i ) {
-		requiredLayout[i] = i == axis ? BD_BatchLength : static_cast<TBlobDim>( i + 1 );
-	}
-	currData = ConvertTensor( *currData, requiredLayout );
-	// CImageLookupLayer gathers pixel of BD_Channels size from the set of BD_Height x BD_Width size
-	// Step 2: move BD_BatchLength to BD_Height and the rest of the blob to the BD_Channels
-	CPtr<CTransformLayer> transformToImage = new CTransformLayer( dnn.GetMathEngine() );
-	transformToImage->SetName( Name() + "_TransformToImage" );
-	for( TBlobDim dim = BD_BatchLength; dim < BD_Count; ++dim ) {
-		if( dim == BD_Height ) {
-			transformToImage->SetDimensionRule( dim, CTransformLayer::O_SetSize, data.Shape()[axis] );
-		} else if( dim == BD_Channels ) {
-			transformToImage->SetDimensionRule( dim, CTransformLayer::O_Remainder, 1 );
-		} else {
-			transformToImage->SetDimensionRule( dim, CTransformLayer::O_SetSize, 1 );
-		}
-	}
-	transformToImage->Connect( 0, *currData->Layer(), currData->OutputIndex() );
-	dnn.AddLayer( *transformToImage );
-
-	// Prepare indices blob
-	// CImageLookupLayer expects indices of single image to be in BD_Channels
-	CPtr<const CUserTensor> currIndices = convertToOnnx( indices );
-	CPtr<CTransformLayer> transformIndices = new CTransformLayer( dnn.GetMathEngine() );
-	transformIndices->SetName( Name() + "_TransformIndices" );
-	for( TBlobDim dim = BD_BatchLength; dim < BD_Channels; ++dim ) {
-		transformIndices->SetDimensionRule( dim, CTransformLayer::O_SetSize, 1 );
-	}
-	transformIndices->SetDimensionRule( BD_Channels, CTransformLayer::O_Remainder, 1 );
-	transformIndices->Connect( 0, *currIndices->Layer(), currIndices->OutputIndex() );
-	dnn.AddLayer( *transformIndices );
-
-	// Perform gather
-	CPtr<CImageToPixelLayer> imageToPixel = new CImageToPixelLayer( dnn.GetMathEngine() );
-	imageToPixel->SetName( Name() );
-	imageToPixel->Connect( 0, *transformToImage );
-	imageToPixel->Connect( 1, *transformIndices );
-	dnn.AddLayer( *imageToPixel );
-
-	// All the indices dims are compressed in BD_ListSize (in onnx-compatible order)
-	// All the data dims are compressed in BD_Channels (in onnx-compatible order)
-	// Unpack them into onnx user tensor
-	CTensorShape imageToPixelShape;
-	getImageToPixelShape( data.Shape(), axis, indices.Shape(), imageToPixelShape );
-	CPtr<const CUserTensor> currOutput = transformOutput( *imageToPixel, imageToPixelShape, dnn ).Ptr();
-
-	// currOutput contains output with dims in the following order:
-	// indices_dim_0, ... , indices_dim_q-1, data_dim_0, ... , data_dim_r-1
-	// Now we have to transpose dims in the following way:
-	// data_dim_0, ... , data_dim_axis-1, indices_dim_0, ... , indices_dim_q-1, data_dim_axis+1, ... , data_dim_r-1
-	// For optimization purposes here we just reinterpret current tensor (by changing shape and layout)
-	CTensorShape outputShape;
-	outputShape.SetBufferSize( data.DimCount() + indices.DimCount() - 1 );
 	CTensorLayout outputLayout;
-	outputLayout.SetBufferSize( data.DimCount() + indices.DimCount() - 1 );
-	for( int dataDim = 0; dataDim < axis; ++dataDim ) {
-		outputShape.Add( currOutput->Shape()[indices.DimCount() + dataDim] );
-		outputLayout.Add( currOutput->Layout()[indices.DimCount() + dataDim] );
+	for( int i = 0; i < axis; ++i ) {
+		outputLayout.Add( dataLayout[i] );
 	}
-	for( int indicesDim = 0; indicesDim < indices.DimCount(); ++indicesDim ) {
-		outputShape.Add( currOutput->Shape()[indicesDim] );
-		outputLayout.Add( currOutput->Layout()[indicesDim] );
+	outputLayout.Add( indicesLayout );
+	for( int i = axis + 1; i < dataLayout.Size(); ++i ) {
+		outputLayout.Add( dataLayout[i] );
 	}
-	for( int dataDim = axis + 1; dataDim < data.DimCount(); ++dataDim ) {
-		outputShape.Add( currOutput->Shape()[indices.DimCount() + dataDim - 1] );
-		outputLayout.Add( currOutput->Layout()[indices.DimCount() + dataDim - 1] );
+	return outputLayout;
+}
+
+// Output shape based on data and indices shapes
+void CGatherOperator::getOutputShape( int axis, const CTensorShape& dataShape,
+	const CTensorShape& indicesShape, CTensorShape& outputShape ) const
+{
+	for( int i = 0; i < axis; ++i ) {
+		outputShape.Add( dataShape[i] );
 	}
-	outputs.Add( new CUserTensor( outputShape, outputLayout, currOutput->LayerOutput() ) );
+	outputShape.Add( indicesShape );
+	for( int i = axis + 1; i < dataShape.Size(); ++i ) {
+		outputShape.Add( dataShape[i] );
+	}
 }
 
 } // namespace NeoOnnx
