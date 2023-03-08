@@ -74,16 +74,44 @@ template<class T>
 static void onnxArithmeticOperationImpl( COnnxEltwiseLayer::TOperation operation,
 	CObjectArray<CDnnBlob>& inputs, CDnnBlob& output )
 {
-	IMathEngine& mathEngine = output.GetMathEngine();
-	mathEngine.BroadcastCopy( output.GetData<T>(), inputs[0]->GetData<T>(),
-		output.GetDesc(), inputs[0]->GetDesc(), 1 );
-	CPtr<CDnnBlob> buff = nullptr;
+	int initialInputIndex = 0;
 
-	for( int inputIndex = 1; inputIndex < inputs.Size(); ++inputIndex ) {
-		CPtr<CDnnBlob> buff = nullptr;
+	// In order to reduce number of copies during initial broadcast
+	// let's choose the biggest input as an initializer
+	static_assert( static_cast<int>( COnnxEltwiseLayer::TOperation::Count ) == 10, "TOperation::Count != 10" );
+	if( operation == COnnxEltwiseLayer::TOperation::Add || operation == COnnxEltwiseLayer::TOperation::Mul ) {
+		for( int i = 1; i < inputs.Size(); ++i ) {
+			if( inputs[i]->GetDataSize() > inputs[initialInputIndex]->GetDataSize() ) {
+				initialInputIndex = i;
+			}
+		}
+	}
+
+	IMathEngine& mathEngine = output.GetMathEngine();
+	if( output.HasEqualDimensions( inputs[initialInputIndex] ) ) {
+		output.CopyFrom( inputs[initialInputIndex] );
+	} else {
+		mathEngine.BroadcastCopy( output.GetData<T>(), inputs[initialInputIndex]->GetData<T>(),
+			output.GetDesc(), inputs[initialInputIndex]->GetDesc(), 1 );
+	}
+
+	// The only arithmetic operation which can't be done in case of tensor vs. scalar is integer division
+	static_assert( static_cast<int>( COnnxEltwiseLayer::TOperation::Count ) == 10, "TOperation::Count != 10" );
+	const bool hasScalarVersion = operation != COnnxEltwiseLayer::TOperation::Div
+		|| output.GetDataType() != CT_Int;
+
+	CPtr<CDnnBlob> buff = nullptr;
+	for( int inputIndex = 0; inputIndex < inputs.Size(); ++inputIndex ) {
+		if( inputIndex == initialInputIndex ) {
+			// This data has already been added to output
+			continue;
+		}
+
 		CPtr<CDnnBlob> broadcastedInput = inputs[inputIndex];
 		// Allocate broadcast buffef only if needed
-		if( !inputs[inputIndex]->HasEqualDimensions( &output ) ) {
+		const bool useScalarVersion = hasScalarVersion && output.GetDataSize() != 1
+			&& inputs[inputIndex]->GetDataSize() == 1;
+		if( !inputs[inputIndex]->HasEqualDimensions( &output ) && !useScalarVersion ) {
 			if( buff == nullptr ) {
 				buff = output.GetClone();
 			}
@@ -91,23 +119,49 @@ static void onnxArithmeticOperationImpl( COnnxEltwiseLayer::TOperation operation
 				buff->GetDesc(), inputs[inputIndex]->GetDesc(), 1 );
 			broadcastedInput = buff;
 		}
+
 		static_assert( static_cast<int>( COnnxEltwiseLayer::TOperation::Count ) == 10, "TOperation::Count != 10" );
 		switch( operation ) {
 			case COnnxEltwiseLayer::TOperation::Add:
-				mathEngine.VectorAdd( output.GetData<T>(), broadcastedInput->GetData<T>(),
-					output.GetData<T>(), output.GetDataSize() );
+				if( useScalarVersion ) {
+					mathEngine.VectorAddValue( output.GetData<T>(), output.GetData<T>(),
+						output.GetDataSize(), broadcastedInput->GetData<T>() );
+				} else {
+					mathEngine.VectorAdd( output.GetData<T>(), broadcastedInput->GetData<T>(),
+						output.GetData<T>(), output.GetDataSize() );
+				}
 				break;
 			case COnnxEltwiseLayer::TOperation::Sub:
-				mathEngine.VectorSub( output.GetData<T>(), broadcastedInput->GetData<T>(),
-					output.GetData<T>(), output.GetDataSize() );
+				if( useScalarVersion ) {
+					CMemoryHandleStackVar<T> negValue( mathEngine );
+					negValue.SetValue( -broadcastedInput->GetData<T>().GetValue() );
+					mathEngine.VectorAddValue( output.GetData<T>(), output.GetData<T>(),
+						output.GetDataSize(), negValue );
+				} else {
+					mathEngine.VectorSub( output.GetData<T>(), broadcastedInput->GetData<T>(),
+						output.GetData<T>(), output.GetDataSize() );
+				}
 				break;
 			case COnnxEltwiseLayer::TOperation::Mul:
-				mathEngine.VectorEltwiseMultiply( output.GetData<T>(), broadcastedInput->GetData<T>(),
-					output.GetData<T>(), output.GetDataSize() );
+				if( useScalarVersion ) {
+					mathEngine.VectorMultiply( output.GetData<T>(), output.GetData<T>(),
+						output.GetDataSize(), broadcastedInput->GetData<T>() );
+				} else {
+					mathEngine.VectorEltwiseMultiply( output.GetData<T>(), broadcastedInput->GetData<T>(),
+						output.GetData<T>(), output.GetDataSize() );
+				}
 				break;
 			case COnnxEltwiseLayer::TOperation::Div:
-				mathEngine.VectorEltwiseDivide( output.GetData<T>(), broadcastedInput->GetData<T>(),
-					output.GetData<T>(), output.GetDataSize() );
+				if( useScalarVersion ) {
+					// Div with scalar can be emulated only for float data
+					CMemoryHandleStackVar<float> invValue( mathEngine );
+					invValue.SetValue( 1.f / broadcastedInput->GetData<float>().GetValue() );
+					mathEngine.VectorMultiply( output.GetData<float>(), output.GetData<float>(),
+						output.GetDataSize(), invValue );
+				} else {
+					mathEngine.VectorEltwiseDivide( output.GetData<T>(), broadcastedInput->GetData<T>(),
+						output.GetData<T>(), output.GetDataSize() );
+				}
 				break;
 			default:
 				NeoAssert( false );
