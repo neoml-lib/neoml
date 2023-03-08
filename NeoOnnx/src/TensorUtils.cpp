@@ -651,7 +651,7 @@ static CPtr<const CShapeTensor> asShapeTensor( const CFastArray<T, 8>& data, con
 {
 	CPtr<COnnxSourceHelper> source = new COnnxSourceHelper( dnn.GetMathEngine() );
 	source->SetName( layerName );
-	source->Blob() = CDnnBlob::CreateTensor( GetSingleThreadCpuMathEngine(), CBlobType<T>::GetType(), { data.Size() } );
+	source->Blob() = CDnnBlob::CreateTensor( dnn.GetMathEngine(), CBlobType<T>::GetType(), { data.Size() } );
 	source->Blob()->CopyFrom( data.GetPtr() );
 	dnn.AddLayer( *source );
 	return new CShapeTensor( CTensorLayout::IOLayout( 1 ), { data.Size() },

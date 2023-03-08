@@ -30,7 +30,7 @@ protected:
 
 private:
 	int getAxis( const CTensorBase& firstInput ) const;
-	CPtr<const CTensorBase> getSplits( const CTensorArray& inputs ) const;
+	CPtr<const CTensorBase> getSplits( const CTensorArray& inputs, IMathEngine& mathEngine ) const;
 };
 
 } // namespace NeoOnnx

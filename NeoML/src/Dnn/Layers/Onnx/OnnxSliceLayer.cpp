@@ -47,10 +47,10 @@ void COnnxSliceLayer::CalculateShapes()
 	CBlobDesc outputDesc = sliceDesc( inputShapeBlobs[0]->GetDesc() );
 	if( outputDesc.BlobSize() == 0 ) {
 		outputHasElements = false;
-		outputShapeBlobs[0] = CDnnBlob::CreateVector( GetSingleThreadCpuMathEngine(), outputDesc.GetDataType(), 1 );
+		outputShapeBlobs[0] = CDnnBlob::CreateVector( MathEngine(), outputDesc.GetDataType(), 1 );
 	} else {
 		outputHasElements = true;
-		outputShapeBlobs[0] = CDnnBlob::CreateBlob( inputShapeBlobs[0]->GetMathEngine(),
+		outputShapeBlobs[0] = CDnnBlob::CreateBlob( MathEngine(),
 			inputShapeBlobs[0]->GetDataType(), outputDesc );
 		sliceBlob( *inputShapeBlobs[0], *outputShapeBlobs[0] );
 	}

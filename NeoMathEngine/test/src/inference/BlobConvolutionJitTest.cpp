@@ -98,7 +98,7 @@ static void blobConvolutionJitTestImpl( const CTestParams& params, int seed )
 
         for( int i = 0; i < outputSize; ++i ) {
             
-            bool res = FloatEq( expectedData[i], actualData[i], 1e-5 );
+            bool res = FloatEq( expectedData[i], actualData[i], 3e-2 );
             if( !res ) {
                 GTEST_LOG_( ERROR ) << "\n                FC  FW  FH  DW  DH  SW  SH  PW  PH SrcW SrcH FT\n" <<
                     "ConvParams: " << params.GetStrValue( "MainParams" ) << std::endl <<

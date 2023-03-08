@@ -29,7 +29,7 @@ protected:
 	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
 
 private:
-	CPtr<const CTensorBase> getShape( const CTensorArray& inputs ) const;
+	CPtr<const CTensorBase> getShape( const CTensorArray& inputs, IMathEngine& mathEngine ) const;
 };
 
 } // namespace NeoOnnx

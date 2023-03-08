@@ -84,7 +84,7 @@ void CReshapeOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensor
 {
 	CheckNoNullInputs( inputs );
 
-	CPtr<const CTensorBase> newShapeTensor = getShape( inputs );
+	CPtr<const CTensorBase> newShapeTensor = getShape( inputs, dnn.GetMathEngine() );
 	CheckNeoOnnxSupport( newShapeTensor->DimCount() == 1, "shape must have 1 dimension", *this );
 
 	const bool hasShapeOutput = inputs[0]->Type() != TTensorType::User && newShapeTensor->Type() == TTensorType::Data;
@@ -124,12 +124,12 @@ void CReshapeOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensor
 }
 
 // Gets tensor with new shape
-CPtr<const CTensorBase> CReshapeOperator::getShape( const CTensorArray& inputs ) const
+CPtr<const CTensorBase> CReshapeOperator::getShape( const CTensorArray& inputs, IMathEngine& mathEngine ) const
 {
 	if( OpsetVersion < 5 ) {
 		CTensorShape shapeArray;
 		CheckOnnxProtocol( GetAttribute( "shape", shapeArray ), "'shape' attribute is missing", *this );
-		CPtr<CDnnBlob> shapeBlob = CDnnBlob::CreateVector( GetSingleThreadCpuMathEngine(), CT_Int, shapeArray.Size() );
+		CPtr<CDnnBlob> shapeBlob = CDnnBlob::CreateVector( mathEngine, CT_Int, shapeArray.Size() );
 		shapeBlob->CopyFrom( shapeArray.GetPtr() );
 		return new CDataTensor( CTensorLayout( { BD_BatchLength } ), *shapeBlob );
 	}

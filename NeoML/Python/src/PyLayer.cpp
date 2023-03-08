@@ -85,6 +85,10 @@ std::string CPyLayer::GetLayerClass() const
 void InitializeLayer( py::module& m )
 {
 	py::class_<CPyLayer>(m, "Layer")
+		.def( py::init([]( const CPyLayer& layer )
+		{
+			return new CPyLayer( *layer.Layer<CBaseLayer>(), layer.MathEngineOwner() );
+		} ) )
 		.def( "get_name", &CPyLayer::GetName, py::return_value_policy::reference )
 		.def( "get_input_count", &CPyLayer::GetInputCount, py::return_value_policy::reference )
 		.def( "get_input_name", &CPyLayer::GetInputName, py::return_value_policy::reference )
