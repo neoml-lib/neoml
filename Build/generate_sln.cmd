@@ -50,11 +50,11 @@ if not defined DIR (
 )
 
 if not defined CMAKE_GENERATOR (
-	set "CMAKE_GENERATOR=Visual Studio 16 2019"
+	set "CMAKE_GENERATOR=Visual Studio 17 2022"
 )
 
 if not defined CMAKE_GENERATOR_TOOLSET (
-	set "CMAKE_GENERATOR_TOOLSET=v142,version=14.28,host=x64"
+	set "CMAKE_GENERATOR_TOOLSET=v143,version=14.33,host=x64"
 )
 if "%CMAKE_GENERATOR_TOOLSET:cuda=%" == "%CMAKE_GENERATOR_TOOLSET%" (
 	set "CMAKE_GENERATOR_TOOLSET=%CMAKE_GENERATOR_TOOLSET%,cuda=%ROOT%/ThirdParty/CUDA/Windows"
