@@ -45,7 +45,6 @@ void CHardSigmoidOptimizer::Apply()
 		CReLULayer* clipLayer = nullptr;
 		float slopeValue = 0;
 		if( !isValidSlopeLayer( *slopeLayer, slopeDataLayer, clipLayer, slopeValue ) ) {
-			::printf( "%s is a bad slope layer\n", slopeLayer->GetName() );
 			continue;
 		}
 
@@ -53,12 +52,10 @@ void CHardSigmoidOptimizer::Apply()
 		COnnxEltwiseLayer* biasLayer = nullptr;
 		float clipThreshold = 0;
 		if( !isValidClipLayer( *clipLayer, biasLayer, clipThreshold ) ) {
-			::printf( "%s is a bad clip layer\n", clipLayer->GetName() );
 			continue;
 		}
 		if( std::fabsf( clipThreshold * slopeValue - 1.f ) > 1e-4 ) {
 			// Hard sigmoid can only return values in [0;1]
-			::printf( "clip & slope mismatch: %f %f\n", clipThreshold, slopeValue );
 			continue;
 		}
 
@@ -67,19 +64,16 @@ void CHardSigmoidOptimizer::Apply()
 		CDnnGraphLink hardSigmoidInput;
 		float biasValue = 0;
 		if( !isValidBiasLayer( *biasLayer, biasDataLayer, hardSigmoidInput, biasValue ) ) {
-			::printf( "%s is a bad bias layer\n", biasLayer->GetName() );
 			continue;
 		}
 		// Hard sigmoid firstly applies slope, then bias
-		biasValue /= slopeValue;
+		biasValue *= slopeValue;
 
 		CPtr<CHardSigmoidLayer> hardSigmoid = new CHardSigmoidLayer( graph.MathEngine() );
 		hardSigmoid->SetName( graph.GetUniqueName( "HardSigmoid" ) );
 		hardSigmoid->SetSlope( slopeValue );
 		hardSigmoid->SetBias( biasValue );
 		graph.AddLayer( *hardSigmoid );
-
-		::printf( "replace %s with %s\n", clipLayer->GetName(), hardSigmoid->GetName() );
 
 		graph.Connect( { hardSigmoid, 0 }, hardSigmoidInput );
 		graph.SwitchOutputs( { slopeLayer, 0 }, { hardSigmoid, 0 } );
@@ -149,6 +143,16 @@ bool CHardSigmoidOptimizer::isValidClipLayer( const CReLULayer& clipLayer, COnnx
 
 	// If ReLU is used by some other layer then we can't replace it with CHardSigmoid
 	if( graph.GetOutputLinkCount( clipLayer, 0 ) != 1 ) {
+		return false;
+	}
+
+	const CDnnGraphLink& biasOutput = graph.GetInputLink( clipLayer, 0 );
+	if( biasOutput.Index != 0 ) {
+		return false;
+	}
+
+	biasLayer = dynamic_cast<COnnxEltwiseLayer*>( biasOutput.Layer );
+	if( biasLayer == nullptr ) {
 		return false;
 	}
 
