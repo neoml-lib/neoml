@@ -183,6 +183,9 @@ public:
 
 	// Returns the total size of all output blobs together
 	virtual size_t GetOutputBlobsSize() const;
+	virtual const CBlobDesc& GetOutputBlobsDesc(int i) const { return outputDescs[i]; }
+	virtual size_t GetOutputBlobsCount() const { return outputDescs.Size(); }
+	inline CString GetClassType() const { return GetLayerClass( *this ); }
 
 	// Releases all temporary resources allocated for the layer
 	virtual void CleanUp();
