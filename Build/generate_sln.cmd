@@ -76,6 +76,7 @@ echo   Directory = "%DIR%"
 echo   Generator = "%CMAKE_GENERATOR%"
 echo   Toolset = "%CMAKE_GENERATOR_TOOLSET%"
 echo   Target version = "%CMAKE_SYSTEM_VERSION%"
+echo   Path = "%PATH%"
 echo.
 
 cmake -A %ARCH% -DUSE_FINE_OBJECTS=ON -DNeoML_BUILD_TESTS=%ENABLE_TEST% -DNeoMathEngine_BUILD_TESTS=%ENABLE_TEST% -DCMAKE_SYSTEM_VERSION="%CMAKE_SYSTEM_VERSION%" -B "%DIR%" "%ROOT%/NeoML/NeoML" || exit /b !ERRORLEVEL!
