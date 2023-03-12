@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
+#include <cstring>
 #include "Optimization/Optimizer.h"
 
 namespace NeoOnnx {
@@ -20,9 +21,11 @@ namespace NeoOnnx {
 CPtr<CBaseLayer> IOptimizer::GetAnyInputLayer( const CPtr<CBaseLayer>& currentLayer, int inputNum, const char* const layerSkipClass )
 {
 	for( int j = inputNum; j < currentLayer->GetInputCount(); ++j ) {
-		CPtr<CBaseLayer> inputLayer = Graph.GetLayer( currentLayer->GetInputName( j ) );
-		if( IsExactLayer( inputLayer, ClassesOfSkipLayers[0] ) ) {
-			return Graph.GetLayer( inputLayer->GetInputName( j ) );
+		const CPtr<CBaseLayer> inputLayer = Graph.GetLayer( currentLayer->GetInputName( j ) );
+		if( IsExactLayer( inputLayer, ClassesOfSkipLayers[0] )
+			|| IsExactLayer( inputLayer, ClassesOfSkipLayers[1] ) )
+		{
+			return Graph.GetLayer( inputLayer->GetInputName( /*inputNumber*/0 ) );
 		} else if( layerSkipClass != CString( "" ) && IsExactLayer( inputLayer, layerSkipClass ) ) {
 			return Graph.GetLayer( inputLayer->GetInputName( /*inputNumber*/0 ) );
 		}
@@ -34,7 +37,10 @@ CPtr<CBaseLayer> IOptimizer::GetAnyInputLayer( const CPtr<CBaseLayer>& currentLa
 //--------------------------------------------------------------------------------------------------------------
 bool IOptimizer::IsExactLayer( const CPtr<CBaseLayer>& layer, const char* const layerClass, bool addToSelectedLayers )
 {
-	if( layer != nullptr && layer->GetClassType() == layerClass ) {
+	if( layer != nullptr
+		&& layer->GetClassType() == layerClass
+		&& std::strncmp( layer->GetName(), "my", 2 ) != 0 )
+	{
 		if( addToSelectedLayers ) {
 			AddToSelectedLayers( layer );
 		}

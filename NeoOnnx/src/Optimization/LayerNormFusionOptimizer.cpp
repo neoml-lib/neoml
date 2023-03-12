@@ -28,6 +28,8 @@ const char* const CLayerNormFusionOptimizer::classesOfSkipLayers[]{
 
 void CLayerNormFusionOptimizer::Apply()
 {
+	Graph.Reshape(); // be sure, the all BLOBs' sizes are inited in the graph
+
 	int normLayersCount = 0;
 	CArray<const char*> layersList{};
 	Graph.GetLayerList( layersList );
@@ -35,7 +37,7 @@ void CLayerNormFusionOptimizer::Apply()
 	for( int i = 0; i < layersList.Size(); ++i ) {
 		ClearSelectedLayers();
 
-		if ( layersList[i] == nullptr )
+		if( layersList[i] == nullptr )
 			continue;
 
 		CPtr<CBaseLayer> addLayerLast = Graph.GetLayer( layersList[i] );
@@ -74,45 +76,68 @@ void CLayerNormFusionOptimizer::Apply()
 		if( !GetExactInputLayers( subLayer, reduceMeanLayer, "FmlCnnGlobalMainPoolingLayer", unusedLayer, "", /*layerSkipClass*/"" ) )
 			continue;
 
-		CPtr<CObjectNormalizationLayer> normLayer( new CObjectNormalizationLayer( Graph.GetMathEngine() ) );
-		normLayer->SetName( "myObjNorm" + Str( normLayersCount ) );
-		Graph.AddLayer( *normLayer );
+		CPtr<CBaseLayer> reduceMeanInputLayer{}, inputNormLayer{};
+		for( int j = 0; ( reduceMeanInputLayer = GetAnyInputLayer( reduceMeanLayer, j, "NeoMLDnnCastLayer" ) ) != nullptr; ++j ) {
+			ASSERT_EXPR( j == 0 );
+			inputNormLayer = reduceMeanInputLayer;
+		}
 
 		const auto& epsBlob = dynamic_cast<CDataLayer*>( epsilontLayer.Ptr() )->GetBlob();
 		const auto& scaleBlob = dynamic_cast<CDataLayer*>( scaleLayer.Ptr() )->GetBlob();
 		const auto& biasBlob = dynamic_cast<CDataLayer*>( biasLayer.Ptr() )->GetBlob();
 
-		normLayer->SetEpsilon( epsBlob->GetData().GetValue() );
-		normLayer->SetScale( scaleBlob );
-		normLayer->SetBias( biasBlob );
+		CPtr<CObjectNormalizationLayer> normLayer{};
+		CPtr<CBaseLayer> newNormLayer{}; //layer wrapper to connect further
+		if( inputNormLayer->GetOutputBlobsDesc( 0 ).ObjectSize() == 1 ) {
+			if( inputNormLayer->GetOutputBlobsDesc( 0 ).ListSize() > 1 ) {
+				normLayer = new CObjectNormalizationLayer( Graph.GetMathEngine() );
+				normLayer->SetName( "myObjNorm_" + Str( normLayersCount ) );
+				normLayer->SetScale( scaleBlob->GetTransposed( BD_ListSize, BD_Height ) );
+				normLayer->SetBias( biasBlob->GetTransposed( BD_ListSize, BD_Height ) );
+				Graph.AddLayer( *normLayer );
 
-		CPtr<CBaseLayer> subCheckLayer = ( sub2Layer == subLayer ) ? subLayer : sub2Layer;
+				CPtr<CTransposeLayer> layerTransposeBefore( new CTransposeLayer( Graph.GetMathEngine() ) );
+				layerTransposeBefore->SetName( "myTransposeBefore_" + Str( normLayersCount ) );
+				layerTransposeBefore->SetTransposedDimensions( BD_ListSize, BD_Height );
+				Graph.AddLayer( *layerTransposeBefore );
+				layerTransposeBefore->Connect( *inputNormLayer );
+				normLayer->Connect( /*input number*/0, *layerTransposeBefore, /*output number*/0 );
 
-		CPtr<CBaseLayer> reduceMeanInputLayer;
-		for( int j = 0; ( reduceMeanInputLayer = GetAnyInputLayer( reduceMeanLayer, j, "NeoMLDnnCastLayer" ) ) != nullptr; ++j ) {
-			normLayer->Connect( *reduceMeanInputLayer );
+				CPtr<CTransposeLayer> layerTransposeAfter( new CTransposeLayer( Graph.GetMathEngine() ) );
+				layerTransposeAfter->SetName( "myTransposeAfter_" + Str( normLayersCount ) );
+				layerTransposeAfter->SetTransposedDimensions( BD_ListSize, BD_Height );
+				Graph.AddLayer( *layerTransposeAfter );
+				layerTransposeAfter->Connect( *normLayer );
+				newNormLayer = layerTransposeAfter;
+			} else {
+				continue;
+			}
+		} else {
+			normLayer = new CObjectNormalizationLayer( Graph.GetMathEngine() );
+			normLayer->SetName( "myObjNorm_" + Str( normLayersCount ) );
+			normLayer->SetScale( scaleBlob );
+			normLayer->SetBias( biasBlob );
+			Graph.AddLayer( *normLayer );
+			normLayer->Connect( *inputNormLayer );
+			newNormLayer = normLayer;
 		}
+		normLayer->SetEpsilon( epsBlob->GetData().GetValue() );
 
-		CPtr<CTransposeLayer> transpose1Layer( new CTransposeLayer( Graph.GetMathEngine() ) );
-		transpose1Layer->SetName( "myTranspose1_" + Str( normLayersCount ) );
-		transpose1Layer->SetTransposedDimensions( TBlobDim::BD_Height, TBlobDim::BD_Channels );
-		Graph.AddLayer( *transpose1Layer );
-		transpose1Layer->Connect(/*input number*/0, *normLayer, /*output number*/0 );
-
-		CPtr<CTransposeLayer> transpose2Layer( new CTransposeLayer( Graph.GetMathEngine() ) );
-		transpose2Layer->SetName( "myTranspose2_" + Str( normLayersCount ) );
-		transpose2Layer->SetTransposedDimensions( TBlobDim::BD_Height, TBlobDim::BD_BatchLength );
-		Graph.AddLayer( *transpose2Layer );
-		transpose2Layer->Connect(/*input number*/0, *transpose1Layer, /*output number*/0 );
-
-		const CBaseLayer& newLayer = static_cast<const CBaseLayer&>( *transpose2Layer );
+		CPtr<CTransformLayer> transformLayer( new CTransformLayer( Graph.GetMathEngine() ) );
+		transformLayer->SetName( "myTransform_" + Str( normLayersCount ) );
+		transformLayer->SetDimensionRule( TBlobDim::BD_Channels, CTransformLayer::O_InputDim, TBlobDim::BD_Height );
+		transformLayer->SetDimensionRule( TBlobDim::BD_Height, CTransformLayer::O_InputDim, TBlobDim::BD_BatchLength );
+		transformLayer->SetDimensionRule( TBlobDim::BD_BatchLength, CTransformLayer::O_InputDim, TBlobDim::BD_Channels );
+		Graph.AddLayer( *transformLayer );
+		transformLayer->Connect( /*input number*/0, *newNormLayer, /*output number*/0 );
+		const CBaseLayer& newLayer = static_cast<const CBaseLayer&>( *transformLayer );
 
 		for( int ii = i; ii < layersList.Size(); ++ii ) {
 			const char* const nameOutputLayer = layersList[ii];
 			auto layerDnn = Graph.GetLayer( nameOutputLayer );
 			for( int inputNum = 0; inputNum < layerDnn->GetInputCount(); ++inputNum ) {
 				if( std::strcmp( layerDnn->GetInputName( inputNum ), addLayerLast->GetName() ) == 0 ) {
-					layerDnn->Connect(inputNum, newLayer, /*output number*/0 );
+					layerDnn->Connect( inputNum, newLayer, /*output number*/0 );
 				}
 			}
 			if( HasSelectedLayer( layerDnn ) ) {
@@ -127,6 +152,8 @@ void CLayerNormFusionOptimizer::Apply()
 			}
 		}
 		++normLayersCount;
+
+		Graph.Reshape(); // check for architecture correctness
 	}
 }
 

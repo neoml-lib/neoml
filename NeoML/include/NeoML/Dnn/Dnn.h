@@ -183,7 +183,7 @@ public:
 
 	// Returns the total size of all output blobs together
 	virtual size_t GetOutputBlobsSize() const;
-	virtual const CBlobDesc& GetOutputBlobsDesc(int i) const { return outputDescs[i]; }
+	virtual const CBlobDesc& GetOutputBlobsDesc( int i ) const { return outputDescs[i]; }
 	virtual size_t GetOutputBlobsCount() const { return outputDescs.Size(); }
 	inline CString GetClassType() const { return GetLayerClass( *this ); }
 
@@ -592,6 +592,7 @@ public:
 	// Enables profiling for all the layers in the network
 	void EnableProfile( bool profile );
 
+	void Reshape() { return reshape(); }
 private:
 	// Adds or deletes a layer
 	void AddLayerImpl(CBaseLayer& layer) override;
