@@ -29,6 +29,7 @@ limitations under the License.
 #include "GraphInput.h"
 #include "GraphOutput.h"
 
+#include "Optimization/LayerNormFusionOptimizer.h"
 #include "Optimization/DnnOptimizer.h"
 
 namespace NeoOnnx {
@@ -204,7 +205,6 @@ void LoadFromOnnx( const char* fileName, const CImportSettings& importSettings,
 		if( !model.ParseFromIstream( &input ) ) {
 			NeoOnnxCheck( false, CString( "Failed to parse model from file " ) + fileName );
 		}
-
 		buildDnnFromGraphProto( model.graph(), getOpsetVersion( model ), importSettings,
 			dnn, info.Inputs, info.Outputs );
 		extractMetadata( model, info.Metadata );

@@ -20,6 +20,9 @@ limitations under the License.
 #include "HSwishOptimizer.h"
 #include "SqueezeAndExciteOptimizer.h"
 
+#include "Optimization/Optimizer.h"
+#include "Optimization/LayerNormFusionOptimizer.h"
+
 namespace NeoOnnx {
 
 namespace optimization {
@@ -30,8 +33,7 @@ class CDnnOptimizer final {
 public:
 	explicit CDnnOptimizer( CDnn& dnn ) :
 		graph( dnn )
-	{
-	}
+	{}
 	CDnnOptimizer( CDnnOptimizer&& ) = delete;
 	CDnnOptimizer( const CDnnOptimizer& ) = delete;
 
@@ -46,6 +48,7 @@ inline void CDnnOptimizer::Optimize()
 	CHardSigmoidOptimizer( graph ).Apply();
 	CHSwishOptimizer( graph ).Apply();
 	CSqueezeAndExciteOptimizer( graph ).Apply();
+	CLayerNormFusionOptimizer( graph ).Apply();
 }
 
 } // namespace optimization
