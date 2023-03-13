@@ -19,11 +19,14 @@ limitations under the License.
 #include <cmath>
 
 #include "HardSigmoidOptimizer.h"
+#include "DnnGraphWrapper.h"
 
 namespace NeoOnnx {
 
 void CHardSigmoidOptimizer::Apply()
 {
+	graph.Build();
+
 	CArray<CBaseLayer*> layers;
 	graph.GetLayers( layers );
 
@@ -54,7 +57,7 @@ void CHardSigmoidOptimizer::Apply()
 		if( !isValidClipLayer( *clipLayer, biasLayer, clipThreshold ) ) {
 			continue;
 		}
-		if( std::fabsf( clipThreshold * slopeValue - 1.f ) > 1e-4 ) {
+		if( std::fabsf( clipThreshold * slopeValue - 1.f ) > 1e-4f ) {
 			// Hard sigmoid can only return values in [0;1]
 			continue;
 		}
@@ -69,14 +72,14 @@ void CHardSigmoidOptimizer::Apply()
 		// Hard sigmoid firstly applies slope, then bias
 		biasValue *= slopeValue;
 
-		CPtr<CHardSigmoidLayer> hardSigmoid = new CHardSigmoidLayer( graph.MathEngine() );
-		hardSigmoid->SetName( graph.GetUniqueName( "HardSigmoid" ) );
-		hardSigmoid->SetSlope( slopeValue );
-		hardSigmoid->SetBias( biasValue );
-		graph.AddLayer( *hardSigmoid );
+		CPtr<CHardSigmoidLayer> hardSigmoidLayer = new CHardSigmoidLayer( graph.MathEngine() );
+		hardSigmoidLayer->SetName( graph.GetUniqueName( "HardSigmoid" ) );
+		hardSigmoidLayer->SetSlope( slopeValue );
+		hardSigmoidLayer->SetBias( biasValue );
+		graph.AddLayer( *hardSigmoidLayer );
 
-		graph.Connect( { hardSigmoid, 0 }, hardSigmoidInput );
-		graph.SwitchOutputs( { slopeLayer, 0 }, { hardSigmoid, 0 } );
+		graph.Connect( { hardSigmoidLayer, 0 }, hardSigmoidInput );
+		graph.SwitchOutputs( { slopeLayer, 0 }, { hardSigmoidLayer, 0 } );
 
 		graph.DeleteLayer( *slopeLayer );
 		graph.DeleteLayer( *slopeDataLayer );
@@ -141,7 +144,7 @@ bool CHardSigmoidOptimizer::isValidClipLayer( const CReLULayer& clipLayer, COnnx
 	NeoAssert( graph.GetInputCount( clipLayer ) == 1 );
 	NeoAssert( graph.GetOutputCount( clipLayer ) == 1 );
 
-	// If ReLU is used by some other layer then we can't replace it with CHardSigmoid
+	// If ReLU is used by some other layer then we can't replace it with CHardSigmoidLayer
 	if( graph.GetOutputLinkCount( clipLayer, 0 ) != 1 ) {
 		return false;
 	}

@@ -62,6 +62,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Operators/UpsampleOperator.cpp
     Optimization/DnnGraphWrapper.cpp
     Optimization/HardSigmoidOptimizer.cpp
+    Optimization/HardSwishOptimizer.cpp
     Optimization/Optimizer.cpp
     TensorUtils.cpp
 
@@ -118,6 +119,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Operators/UpsampleOperator.h
     Optimization/DnnGraphWrapper.h
     Optimization/HardSigmoidOptimizer.h
+    Optimization/HardSwishOptimizer.h
     Optimization/Optimizer.h
     Tensor.h
     TensorUtils.h

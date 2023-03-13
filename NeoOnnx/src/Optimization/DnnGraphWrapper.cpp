@@ -23,6 +23,10 @@ namespace NeoOnnx {
 CDnnGraphWrapper::CDnnGraphWrapper( CDnn& _dnn ) :
 	dnn( _dnn )
 {
+}
+
+void CDnnGraphWrapper::Build()
+{
 	CArray<const char*> layerNames;
 	dnn.GetLayerList( layerNames );
 
@@ -140,12 +144,7 @@ void CDnnGraphWrapper::DeleteLayer( CBaseLayer& layer )
 	const int layerLinksPos = graphLinks.GetFirstPosition( &layer );
 	NeoAssert( layerLinksPos != NotFound );
 	NeoAssert( graphLinks.GetNextPosition( &layer, layerLinksPos ) == NotFound );
-
-	// Check that there are no layers connected to outputs of deleted layer
 	const CLayerLinks& layerLinks = graphLinks.GetValue( layerLinksPos );
-	for( const CArray<CDnnGraphLink>& connectedInputs : layerLinks.Outputs ) {
-		NeoAssert( connectedInputs.IsEmpty() );
-	}
 
 	// Disconnect all the inputs of deleted layer
 	CArray<CDnnGraphLink> usedOutputs;
@@ -154,6 +153,17 @@ void CDnnGraphWrapper::DeleteLayer( CBaseLayer& layer )
 	inputLink.Layer = &layer;
 	for( inputLink.Index = 0; inputLink.Index < usedOutputs.Size(); ++inputLink.Index ) {
 		Disconnect( inputLink, usedOutputs[inputLink.Index] );
+	}
+
+	const int outputCount = GetOutputCount( layer );
+	CDnnGraphLink outputLink;
+	outputLink.Layer = &layer;
+	for( outputLink.Index = 0; outputLink.Index < outputCount; ++outputLink.Index ) {
+		CArray<CDnnGraphLink> usedInputs;
+		layerLinks.Outputs[outputLink.Index].CopyTo( usedInputs );
+		for( const CDnnGraphLink& usedInput : usedInputs ) {
+			Disconnect( usedInput, outputLink );
+		}
 	}
 
 	// Delete layer from CDnn and graphLinks

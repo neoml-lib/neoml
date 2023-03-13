@@ -17,6 +17,7 @@ limitations under the License.
 
 #include "Optimizer.h"
 #include "HardSigmoidOptimizer.h"
+#include "HardSwishOptimizer.h"
 
 namespace NeoOnnx {
 
@@ -25,7 +26,8 @@ namespace NeoOnnx {
 class CDnnOptimizer final {
 public:
 	explicit CDnnOptimizer( CDnn& dnn ) :
-		optimizers{ new CHardSigmoidOptimizer( dnn ) }
+		optimizers{ new CHardSigmoidOptimizer( dnn ),
+			new CHardSwishOptimizer( dnn ) }
 	{
 	}
 	CDnnOptimizer( CDnnOptimizer&& ) = delete;

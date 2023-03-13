@@ -35,6 +35,8 @@ public:
 	CDnnGraphWrapper( const CDnnGraphWrapper& ) = delete;
 	CDnnGraphWrapper& operator=( const CDnnGraphWrapper& ) = delete;
 
+	void Build();
+
 	void GetLayers( CArray<CBaseLayer*>& layers ) const;
 
 	bool HasLayer( const CBaseLayer* layer ) const { return graphLinks.Has( layer ); }
