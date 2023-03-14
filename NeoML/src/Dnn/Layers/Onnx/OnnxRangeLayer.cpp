@@ -17,6 +17,7 @@ limitations under the License.
 #pragma hdrstop
 
 #include <cmath>
+#include <algorithm>
 
 #include <NeoML/Dnn/Layers/Onnx/OnnxRangeLayer.h>
 

@@ -16,6 +16,8 @@ limitations under the License.
 #include "../common.h"
 #pragma hdrstop
 
+#include <algorithm>
+
 #include "GatherOperator.h"
 #include "NeoOnnxCheck.h"
 
