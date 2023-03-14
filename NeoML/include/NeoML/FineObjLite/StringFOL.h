@@ -26,7 +26,6 @@ public:
 	CString( const char* str ) : std::string( str ) {}
 	CString( const char* str, int len ) : std::string( str, len ) {}
 	CString( const std::string& str ) : std::string( str ) {}
-	CString( std::string&& str ) : std::string( std::move(str) ) {}
 
 	operator const char*() const { return data(); }
 
