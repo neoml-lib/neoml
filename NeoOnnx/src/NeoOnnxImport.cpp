@@ -209,6 +209,7 @@ void LoadFromOnnx( const char* fileName, const CImportSettings& importSettings,
 			dnn, info.Inputs, info.Outputs );
 		extractMetadata( model, info.Metadata );
 		CDnnOptimizer( dnn ).Optimize();
+		NeoML::OptimizeDnn( dnn );
 	} catch( ... ) {
 		input.close();
 		google::protobuf::ShutdownProtobufLibrary();
@@ -236,6 +237,7 @@ void LoadFromOnnx( const void* buffer, int bufferSize, const CImportSettings& im
 			dnn, info.Inputs, info.Outputs );
 		extractMetadata( model, info.Metadata );
 		CDnnOptimizer( dnn ).Optimize();
+		NeoML::OptimizeDnn( dnn );
 	} catch( ... ) {
 		google::protobuf::ShutdownProtobufLibrary();
 		throw;
