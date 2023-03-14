@@ -166,5 +166,3 @@ inline bool CBlobDesc::HasEqualDimensions( const CBlobDesc& other,
 }
 
 } // namespace NeoML
-
-
