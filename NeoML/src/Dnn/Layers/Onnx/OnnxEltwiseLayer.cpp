@@ -16,6 +16,8 @@ limitations under the License.
 #include <common.h>
 #pragma hdrstop
 
+#include <algorithm>
+
 #include <NeoML/Dnn/Layers/Onnx/OnnxEltwiseLayer.h>
 
 namespace NeoML {
