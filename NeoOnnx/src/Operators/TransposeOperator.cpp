@@ -26,7 +26,8 @@ namespace NeoOnnx {
 CTransposeOperator::CTransposeOperator( const onnx::NodeProto& transpose, int opsetVersion ) :
 	CLayerOperator( transpose, opsetVersion )
 {
-	// The differences between versions are in supported data types and legacy optimization attributes
+	// v1 - original
+	// v13 - bfloat16 is supported
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
 	CheckOnnxProtocol( InputCount() == 1, "operator must have 1 input", *this );

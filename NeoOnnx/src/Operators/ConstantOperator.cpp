@@ -30,6 +30,7 @@ CConstantOperator::CConstantOperator( const onnx::NodeProto& constant, int opset
 	// v9 - supported new data types
 	// v11 - "sparse_value" attribute are added
 	// v12 - new attributes are added: "value_float", "value_ints" etc.
+	// v13 - bfloat16 is supported
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
 	CheckOnnxProtocol( InputCount() == 0, "operator must have no inputs", *this );
