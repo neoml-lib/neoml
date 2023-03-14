@@ -23,6 +23,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/ChannelwiseConvLayer.h>
 #include <NeoML/Dnn/Layers/ActivationLayers.h>
 #include <NeoML/Dnn/Layers/EltwiseLayer.h>
+#include <NeoML/Dnn/Layers/Onnx/OnnxEltwiseLayer.h>
 
 namespace NeoML {
 
@@ -38,7 +39,7 @@ struct CBlockInfo {
 	CChannelwiseConvLayer* Channelwise; // Channelwise 3x3 convolution
 	CReLULayer* ChannelwiseReLU; // ReLU after Channelwise convolution
 	CConvLayer* DownConv; // Down 1x1 convolution
-	CEltwiseSumLayer* Residual; // Residual (nullptr if block doesn't have residual connection)
+	CBaseLayer* Residual; // Residual (nullptr if block doesn't have residual connection)
 };
 
 // Marks layers from the block as deleted
@@ -81,7 +82,8 @@ static bool getMobileNetV2Block( const CMap<CString, int>& outputConnections, co
 	CBlockInfo& info, CDnn& dnn, CBaseLayer* lastLayer )
 {
 	CEltwiseSumLayer* residual = dynamic_cast<CEltwiseSumLayer*>( lastLayer );
-	if( residual != nullptr ) {
+	COnnxEltwiseLayer* onnxResidual = dynamic_cast<COnnxEltwiseLayer*>( lastLayer );
+	if( residual != nullptr || onnxResidual != nullptr ) {
 		if( lastLayer->GetInputCount() != 2
 			|| layersToDelete.Has( lastLayer->GetName() ) )
 		{
@@ -98,7 +100,7 @@ static bool getMobileNetV2Block( const CMap<CString, int>& outputConnections, co
 				&& info.Residual == nullptr
 				&& outputConnections[info.DownConv->GetName()] == 1 )
 			{
-				info.Residual = residual;
+				info.Residual = lastLayer;
 				return true;
 			}
 		}
@@ -219,6 +221,14 @@ static void optimizeDnn( CDnn& dnn, CDnnOptimizationReport& report )
 		CBlockInfo info;
 		if( residual != nullptr
 			&& getMobileNetV2Block( outputConnections, layersToDelete, info, dnn, residual ) )
+		{
+			markLayersAsDeleted( info, layersToDelete );
+			blocksToReplace.Add( info );
+		}
+
+		COnnxEltwiseLayer* onnxResidual = dynamic_cast<COnnxEltwiseLayer*>( dnn.GetLayer( layerList[i] ).Ptr() );
+		if( onnxResidual != nullptr && onnxResidual->GetOperation() == COnnxEltwiseLayer::TOperation::Add
+			&& getMobileNetV2Block( outputConnections, layersToDelete, info, dnn, onnxResidual ) )
 		{
 			markLayersAsDeleted( info, layersToDelete );
 			blocksToReplace.Add( info );
