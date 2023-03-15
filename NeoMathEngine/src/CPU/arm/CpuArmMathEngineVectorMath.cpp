@@ -1052,43 +1052,6 @@ void CCpuMathEngine::VectorLeakyReLUDiff(const CConstFloatHandle& firstHandle, c
 	}
 }
 
-static inline float32x4_t vectorHSwishWorker( const float32x4_t& first, const float32x4_t& three,
-	const float32x4_t& minusThree, const float32x4_t& oneSixth )
-{
-	uint32x4_t middleMask = vandq_u32( vcgtq_f32( first, minusThree ), vcltq_f32( first, three ) );
-	float32x4_t middleValue = vmulq_f32( vaddq_f32( first, three ), vmulq_f32( first, oneSixth ) );
-	middleValue = vreinterpretq_f32_u32( vandq_u32( vreinterpretq_u32_f32( middleValue ), middleMask ) );
-	float32x4_t rightValue = vandq_u32( vreinterpretq_u32_f32( first ), vcgeq_f32( first, three ) );
-	return vaddq_f32( middleValue, rightValue );
-}
-
-void CCpuMathEngine::VectorHSwish( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize )
-{
-	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
-	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-	CCpuExecutionScope scope;
-
-	const float* first = GetRaw( firstHandle );
-	float* result = GetRaw( resultHandle );
-	int count = GetCount4( vectorSize );
-
-	const float32x4_t three = vdupq_n_f32( 3 );
-	const float32x4_t minusThree = vdupq_n_f32( -3 );
-	const float32x4_t oneSixth = vdupq_n_f32( 1.f / 6 );
-
-	for( int i = 0; i < count; ++i ) {
-		float32x4_t res = vectorHSwishWorker( LoadNeon4( first ), three, minusThree, oneSixth );
-		StoreNeon4( res, result );
-
-		first += 4;
-		result += 4;
-	}
-
-	if( vectorSize > 0 ) {
-		float32x4_t res = vectorHSwishWorker( LoadNeon( first, vectorSize ), three, minusThree, oneSixth );
-		StoreNeon( res, result, vectorSize );
-	}
-}
 static inline float32x4_t vectorHSwishDiffWorker( const float32x4_t& first, const float32x4_t& second, const float32x4_t& three,
 	const float32x4_t& minusThree, const float32x4_t& oneThird, const float32x4_t& half)
 {

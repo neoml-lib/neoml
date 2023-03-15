@@ -1001,4 +1001,14 @@ void CCpuMathEngine::VectorErf( const CConstFloatHandle& firstHandle, const CFlo
 	}
 }
 
+void CCpuMathEngine::VectorHSwish( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, 
+	int vectorSize )
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	CCpuExecutionScope scope;
+	
+	vectorHSwish( GetRaw( firstHandle ), GetRaw( resultHandle ), vectorSize );
+}
+
 } // namespace NeoML
