@@ -35,9 +35,9 @@ struct CBlockInfo {
 	int InputOutputIndex; // Output index if layer
 	
 	CConvLayer* ExpandConv; // Expand 1x1 convolution
-	CReLULayer* ExpandReLU; // ReLU after Expand convolution
+	CBaseLayer* ExpandActivation; // Activation after Expand convolution
 	CChannelwiseConvLayer* Channelwise; // Channelwise 3x3 convolution
-	CReLULayer* ChannelwiseReLU; // ReLU after Channelwise convolution
+	CBaseLayer* ChannelwiseActivation; // Activation after Channelwise convolution
 	CConvLayer* DownConv; // Down 1x1 convolution
 	CBaseLayer* Residual; // Residual (nullptr if block doesn't have residual connection)
 };
@@ -48,9 +48,9 @@ static void markLayersAsDeleted( const CBlockInfo& info,
 	CHashTable<CString>& layersToDelete )
 {
 	layersToDelete.Add( info.ExpandConv->GetName() );
-	layersToDelete.Add( info.ExpandReLU->GetName() );
+	layersToDelete.Add( info.ExpandActivation->GetName() );
 	layersToDelete.Add( info.Channelwise->GetName() );
-	layersToDelete.Add( info.ChannelwiseReLU->GetName() );
+	layersToDelete.Add( info.ChannelwiseActivation->GetName() );
 	layersToDelete.Add( info.DownConv->GetName() );
 	if( info.Residual != nullptr ) {
 		layersToDelete.Add( info.Residual->GetName() );
@@ -122,12 +122,14 @@ static bool getMobileNetV2Block( const CMap<CString, int>& outputConnections, co
 		return true;
 	};
 
-	auto isValidReLU = [&layersToDelete, &outputConnections] ( const CReLULayer* relu ) -> bool 
+	auto isValidActivation = [&layersToDelete, &outputConnections] ( const CBaseLayer* layer ) -> bool
 	{
-		if( relu == nullptr
-			|| layersToDelete.Has( relu->GetName() )
-			|| relu->GetInputCount() > 1
-			|| outputConnections[relu->GetName()] != 1 )
+		const CReLULayer* relu = dynamic_cast<const CReLULayer*>( layer );
+		const CHSwishLayer* hswish = dynamic_cast<const CHSwishLayer*>( layer );
+		if( ( relu == nullptr && hswish == nullptr )
+			|| layersToDelete.Has( layer->GetName() )
+			|| layer->GetInputCount() > 1
+			|| outputConnections[layer->GetName()] != 1 )
 		{
 			return false;
 		}
@@ -157,19 +159,19 @@ static bool getMobileNetV2Block( const CMap<CString, int>& outputConnections, co
 	if( !isValid1x1Conv( info.DownConv ) ) {
 		return false;
 	}
-	info.ChannelwiseReLU = dynamic_cast<CReLULayer*>( dnn.GetLayer( info.DownConv->GetInputName( 0 ) ).Ptr() );
-	if( !isValidReLU( info.ChannelwiseReLU ) ) {
+	info.ChannelwiseActivation = dnn.GetLayer( info.DownConv->GetInputName( 0 ) ).Ptr();
+	if( !isValidActivation( info.ChannelwiseActivation ) ) {
 		return false;
 	}
-	info.Channelwise = dynamic_cast<CChannelwiseConvLayer*>( dnn.GetLayer( info.ChannelwiseReLU->GetInputName( 0 ) ).Ptr() );
+	info.Channelwise = dynamic_cast<CChannelwiseConvLayer*>( dnn.GetLayer( info.ChannelwiseActivation->GetInputName( 0 ) ).Ptr() );
 	if( !isValidChannelwiseConv( info.Channelwise ) ) {
 		return false;
 	}
-	info.ExpandReLU = dynamic_cast<CReLULayer*>( dnn.GetLayer( info.Channelwise->GetInputName( 0 ) ).Ptr() );
-	if( !isValidReLU( info.ExpandReLU ) ) {
+	info.ExpandActivation = dnn.GetLayer( info.Channelwise->GetInputName( 0 ) ).Ptr();
+	if( !isValidActivation( info.ExpandActivation ) ) {
 		return false;
 	}
-	info.ExpandConv = dynamic_cast<CConvLayer*>( dnn.GetLayer( info.ExpandReLU->GetInputName( 0 ) ).Ptr() );
+	info.ExpandConv = dynamic_cast<CConvLayer*>( dnn.GetLayer( info.ExpandActivation->GetInputName( 0 ) ).Ptr() );
 	if( !isValid1x1Conv( info.ExpandConv ) || outputConnections[info.ExpandConv->GetName()] != 1 ) {
 		return false;
 	}
@@ -186,15 +188,17 @@ static void replaceLayers( CDnn& dnn, const CArray<CBlockInfo>& blocksToReplace 
 		CPtr<CMobileNetV2BlockLayer> mobileNetV2Block = new CMobileNetV2BlockLayer( dnn.GetMathEngine(),
 			info.ExpandConv->GetFilterData(),
 			!info.ExpandConv->IsZeroFreeTerm() ? info.ExpandConv->GetFreeTermData() : nullptr,
-			info.ExpandReLU->GetUpperThreshold(), info.Channelwise->GetStrideWidth(), info.Channelwise->GetFilterData(),
+			dynamic_cast<IActivationLayer*>( info.ExpandActivation )->GetDesc(),
+			info.Channelwise->GetStrideWidth(), info.Channelwise->GetFilterData(),
 			!info.Channelwise->IsZeroFreeTerm() ? info.Channelwise->GetFreeTermData() : nullptr,
-			info.ChannelwiseReLU->GetUpperThreshold(), info.DownConv->GetFilterData(),
+			dynamic_cast<IActivationLayer*>( info.ChannelwiseActivation )->GetDesc(),
+			info.DownConv->GetFilterData(),
 			!info.DownConv->IsZeroFreeTerm() ? info.DownConv->GetFreeTermData() : nullptr, info.Residual != nullptr );
 		mobileNetV2Block->SetName( info.Residual != nullptr ? info.Residual->GetName() : info.DownConv->GetName() );
 		dnn.DeleteLayer( *info.ExpandConv );
-		dnn.DeleteLayer( *info.ExpandReLU );
+		dnn.DeleteLayer( *info.ExpandActivation );
 		dnn.DeleteLayer( *info.Channelwise );
-		dnn.DeleteLayer( *info.ChannelwiseReLU );
+		dnn.DeleteLayer( *info.ChannelwiseActivation );
 		dnn.DeleteLayer( *info.DownConv );
 		layersDeleted += 5;
 		if( info.Residual != nullptr ) {

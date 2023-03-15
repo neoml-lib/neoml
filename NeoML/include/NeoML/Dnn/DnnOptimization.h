@@ -36,7 +36,7 @@ struct NEOML_API CDnnOptimizationReport {
 //     1. MobileNetV2 block optimizations.
 //        Replaces the non-residual blocks of layers
 //
-//            conv1x1 (expand) -> relu (expandReLU) -> channelwiseConv3x3 -> relu (channelwiseReLU) -> conv1x1 (down)
+//            conv1x1 (expand) -> expandActivation -> channelwiseConv3x3 -> channelwiseActivation -> conv1x1 (down)
 //
 //        and residual blocks of layers
 //
@@ -45,6 +45,7 @@ struct NEOML_API CDnnOptimizationReport {
 //             +------------------------------+
 //
 //        with optimized CMobileNetV2BlockLayer
+//        ReLU and HSwish activations are supported.
 //
 CDnnOptimizationReport NEOML_API OptimizeDnn( CDnn& dnn );
 

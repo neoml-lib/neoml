@@ -62,7 +62,7 @@ struct CFloatDescArray {
 void CVulkanMathEngine::blobMergeByDim(int dimNum, const CBlobDesc* from, const CFloatHandle* fromData, int fromCount,
 	const CBlobDesc& to, const CFloatHandle& toData)
 {
-    ASSERT_EXPR( toData.GetMathEngine() == this );
+	ASSERT_EXPR( toData.GetMathEngine() == this );
 	ASSERT_EXPR( fromCount <= MaxBlobDescs );
 	ASSERT_EXPR( 0 < dimNum && dimNum < CBlobDesc::MaxDimensions );
 
@@ -71,7 +71,7 @@ void CVulkanMathEngine::blobMergeByDim(int dimNum, const CBlobDesc* from, const 
 	fromArr.Count = fromCount;
 	for(int i = 0; i < fromCount; ++i) {
 		fromArr.Descs[i] = from[i];
-        ASSERT_EXPR( fromData[i].GetMathEngine() == this );
+		ASSERT_EXPR( fromData[i].GetMathEngine() == this );
 		fromArr.Data[i] = fromData[i];
 		from[i].GetDimSizes(s);
  		fromArr.Widths[i] = 1;
@@ -84,12 +84,12 @@ void CVulkanMathEngine::blobMergeByDim(int dimNum, const CBlobDesc* from, const 
 	for(int z  = 0; z < dimNum; z++) {
 		height *= s[z];
 	}
- 	int width = to.BlobSize() / height;
-    
-    const int heightNorm = Ceil( height, 16 );
-    int wStart = 0;
-    for( int i = 0; i < fromArr.Count; i++ ) {
-    	CMemoryHandle bufs[2] = { fromData[i], toData };
+	int width = to.BlobSize() / height;
+	
+	const int heightNorm = Ceil( height, 16 );
+	int wStart = 0;
+	for( int i = 0; i < fromArr.Count; i++ ) {
+		CMemoryHandle bufs[2] = { fromData[i], toData };
 		size_t sizes[2] = { from[i].BlobSize() * sizeof(float), to.BlobSize() * sizeof(float) };
 
 		PARAM_STRUCT(BlobMergeByDim) param = { 
@@ -103,15 +103,15 @@ void CVulkanMathEngine::blobMergeByDim(int dimNum, const CBlobDesc* from, const 
 		runShader( shaderLoader->GET_SHADER_DATA(BlobMergeByDim, true, 0, 0, 2),
 			&param, sizeof(param), 0, 0, 0, 0, bufs, sizes, 2, fromArr.Widths[i], heightNorm, 1 );
 
-        wStart += fromArr.Widths[i];
-    }
+		wStart += fromArr.Widths[i];
+	}
 }
 
 void CVulkanMathEngine::blobSplitByDim(int dimNum, const CBlobDesc& from, const CFloatHandle& fromData,
 	const CBlobDesc* to, const CFloatHandle* toData, int toCount)
 {
-    ASSERT_EXPR( fromData.GetMathEngine() == this );
-    ASSERT_EXPR( toCount <= MaxBlobDescs );
+	ASSERT_EXPR( fromData.GetMathEngine() == this );
+	ASSERT_EXPR( toCount <= MaxBlobDescs );
 	ASSERT_EXPR( 0 < dimNum && dimNum < CBlobDesc::MaxDimensions );
 
 	CFloatDescArray toArr;
@@ -119,7 +119,7 @@ void CVulkanMathEngine::blobSplitByDim(int dimNum, const CBlobDesc& from, const 
 	int s[CBlobDesc::MaxDimensions];
 	for(int i = 0; i < toCount; ++i) {
 		toArr.Descs[i] = to[i];
-        ASSERT_EXPR( toData[i].GetMathEngine() == this );
+		ASSERT_EXPR( toData[i].GetMathEngine() == this );
 		toArr.Data[i] = toData[i];
 
 		to[i].GetDimSizes(s);
@@ -133,12 +133,12 @@ void CVulkanMathEngine::blobSplitByDim(int dimNum, const CBlobDesc& from, const 
 	for(int z  = 0; z < dimNum; z++) {
 		height *= s[z];
 	}
- 	int width = from.BlobSize() / height;
-    
-    const int heightNorm = Ceil( height, 16 );
-    int wStart = 0;
-    for( int i = 0; i < toArr.Count; i++ ) {
-    	CMemoryHandle bufs[2] = { fromData, toData[i] };
+	int width = from.BlobSize() / height;
+	
+	const int heightNorm = Ceil( height, 16 );
+	int wStart = 0;
+	for( int i = 0; i < toArr.Count; i++ ) {
+		CMemoryHandle bufs[2] = { fromData, toData[i] };
 		size_t sizes[2] = { from.BlobSize() * sizeof(float), to[i].BlobSize() * sizeof(float) };
 
 		PARAM_STRUCT(BlobSplitByDim) param = { 
@@ -152,8 +152,8 @@ void CVulkanMathEngine::blobSplitByDim(int dimNum, const CBlobDesc& from, const 
 		runShader( shaderLoader->GET_SHADER_DATA(BlobSplitByDim, true, 0, 0, 2),
 			&param, sizeof(param), 0, 0, 0, 0, bufs, sizes, 2, toArr.Widths[i], heightNorm, 1 );
 
-        wStart += toArr.Widths[i];
-    }
+		wStart += toArr.Widths[i];
+	}
 }
 
 void CVulkanMathEngine::BlobMergeByDim( TBlobDim dim, const CBlobDesc* from, const CFloatHandle* fromData,
@@ -457,7 +457,7 @@ void CVulkanMathEngine::Dropout( const CDropoutDesc& dropoutDesc, const CFloatHa
 
 	const CMathEngineDropoutDesc& desc = static_cast<const CMathEngineDropoutDesc&>( dropoutDesc );
 	const CBlobDesc& input = desc.Input;
-    const CBlobDesc& output = desc.Output;
+	const CBlobDesc& output = desc.Output;
 
 	if( desc.ForwardRate == 1.f ) {
 		VectorCopy( outputData, inputData, input.BlobSize() );
@@ -693,8 +693,8 @@ void CVulkanMathEngine::ScatterND( const CConstIntHandle&, const CConstIntHandle
 }
 
 void CVulkanMathEngine::MobileNetV2Block( const CBlobDesc&, const CBlobDesc&, const CChannelwiseConvolutionDesc&,
-	const CConstFloatHandle&, const CConstFloatHandle&, const CConstFloatHandle*, const CConstFloatHandle&,
-	const CConstFloatHandle&, const CConstFloatHandle*, const CConstFloatHandle&, const CConstFloatHandle&,
+	const CConstFloatHandle&, const CConstFloatHandle&, const CConstFloatHandle*, TActivationFunction, float,
+	const CConstFloatHandle&, const CConstFloatHandle*, TActivationFunction, float, const CConstFloatHandle&,
 	const CConstFloatHandle*, bool, const CFloatHandle& )
 {
 	ASSERT_EXPR( false );

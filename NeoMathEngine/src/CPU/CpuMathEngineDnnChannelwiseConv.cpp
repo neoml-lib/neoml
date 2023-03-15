@@ -399,10 +399,10 @@ void CCpuMathEngine::BlobChannelwiseConvolution( const CChannelwiseConvolutionDe
 void CCpuMathEngine::MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobDesc& outputDesc,
 	const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& inputHandle,
 	const CConstFloatHandle& expandFilterData, const CConstFloatHandle* expandFreeTermData,
-	const CConstFloatHandle& expandReLUThresholdData, const CConstFloatHandle& channelwiseFilterData,
-	const CConstFloatHandle* channelwiseFreeTermData, const CConstFloatHandle& channelwiseReLUThresholdData,
-	const CConstFloatHandle& downFilterData, const CConstFloatHandle* downFreeTermData, bool residual,
-	const CFloatHandle& outputHandle )
+	TActivationFunction expandActivation, float expandActivationParam, const CConstFloatHandle& channelwiseFilterData,
+	const CConstFloatHandle* channelwiseFreeTermData, TActivationFunction channelwiseActivation,
+	float channelwiseActivationParam, const CConstFloatHandle& downFilterData, const CConstFloatHandle* downFreeTermData,
+	bool residual, const CFloatHandle& outputHandle )
 {
 	CCpuExecutionScope scope;
 	const CCommonChannelwiseConvolutionDesc& desc = static_cast<const CCommonChannelwiseConvolutionDesc&>( convDesc );
@@ -428,10 +428,8 @@ void CCpuMathEngine::MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobDe
 	const float* inputObject = GetRaw( inputHandle );
 	const float* expandFilter = GetRaw( expandFilterData );
 	const float* expandFreeTerm = expandFreeTermData == nullptr ? nullptr : GetRaw( *expandFreeTermData );
-	const float expandReLUThreshold = *GetRaw( expandReLUThresholdData );
 	const float* channelwiseFilter = GetRaw( channelwiseFilterData );
 	const float* channelwiseFreeTerm = channelwiseFreeTermData == nullptr ? nullptr : GetRaw( *channelwiseFreeTermData );
-	const float channelwiseReLUThreshold = *GetRaw( channelwiseReLUThresholdData );
 	const float* downFilter = GetRaw( downFilterData );
 	const float* downFreeTerm = downFreeTermData == nullptr ? nullptr : GetRaw( *downFreeTermData );
 
@@ -474,11 +472,15 @@ void CCpuMathEngine::MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobDe
 					expandedChannels, expandFreeTerm );
 			}
 
-			// Apply expand ReLU
-			if( expandReLUThreshold > 0 ) {
-				vectorReLU( chInput, chInput, inputRowsThisStep * chInputRowSize, expandReLUThreshold );
+			// Apply expand activation
+			if( expandActivation == AF_HSwish ) {
+				vectorHSwish( chInput, chInput, inputRowsThisStep * chInputRowSize );
 			} else {
-				vectorReLU( chInput, chInput, inputRowsThisStep * chInputRowSize );
+				if( expandActivationParam > 0 ) {
+					vectorReLU( chInput, chInput, inputRowsThisStep * chInputRowSize, expandActivationParam );
+				} else {
+					vectorReLU( chInput, chInput, inputRowsThisStep * chInputRowSize );
+				}
 			}
 			inputRowsProcessed += inputRowsThisStep;
 
@@ -556,11 +558,15 @@ void CCpuMathEngine::MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobDe
 					}
 				}
 
-				if( channelwiseReLUThreshold > 0 ) {
-					vectorReLU( chOutputBuff, chOutputBuff, outputRowsThisStep * chOutputRowSize,
-						channelwiseReLUThreshold );
+				if( channelwiseActivation == AF_HSwish ) {
+					vectorHSwish( chOutputBuff, chOutputBuff, outputRowsThisStep * chOutputRowSize );
 				} else {
-					vectorReLU( chOutputBuff, chOutputBuff, outputRowsThisStep * chOutputRowSize );
+					if( channelwiseActivationParam > 0 ) {
+						vectorReLU( chOutputBuff, chOutputBuff, outputRowsThisStep * chOutputRowSize,
+							channelwiseActivationParam );
+					} else {
+						vectorReLU( chOutputBuff, chOutputBuff, outputRowsThisStep * chOutputRowSize );
+					}
 				}
 
 				if( residual && isInPlace ) {

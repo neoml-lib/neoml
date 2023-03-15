@@ -2558,12 +2558,12 @@ inline void checkSpecificParams<CMobileNetV2BlockLayer>( CMobileNetV2BlockLayer&
 
 	checkBlob( *layer.ExpandFilter(), expandChannels * inputChannels );
 	checkBlob( *layer.ExpandFreeTerm(), expandChannels );
-	EXPECT_FLOAT_EQ( 666.f, layer.ExpandReLUThreshold() );
+	EXPECT_FLOAT_EQ( 666.f, layer.ExpandActivation().GetParam<CReLULayer::CParam>().UpperThreshold );
 
 	EXPECT_EQ( 2, layer.Stride() );
 	checkBlob( *layer.ChannelwiseFilter(), 3 * 3 * expandChannels );
 	EXPECT_EQ( nullptr, layer.ChannelwiseFreeTerm() );
-	EXPECT_FLOAT_EQ( 777.f, layer.ChannelwiseReLUThreshold() );
+	EXPECT_FLOAT_EQ( 777.f, layer.ChannelwiseActivation().GetParam<CReLULayer::CParam>().UpperThreshold );
 
 	checkBlob( *layer.DownFilter(), outputChannels * expandChannels );
 	checkBlob( *layer.DownFreeTerm(), outputChannels );

@@ -174,7 +174,7 @@ public:
 		int vectorSize, const CConstFloatHandle& alpha ) = 0;
 
 	// H-Swish. f(x) = x * relu6(x + 3) / 6
-	virtual void VectorHSwish( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, 
+	virtual void VectorHSwish( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle,
 		int vectorSize ) = 0;
 	virtual void VectorHSwishDiff( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
 		const CFloatHandle& resultHandle, int vectorSize ) = 0;
@@ -1063,10 +1063,10 @@ public:
 	virtual void MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobDesc& outputDesc,
 		const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& inputHandle,
 		const CConstFloatHandle& expandFilter, const CConstFloatHandle* expandFreeTerm,
-		const CConstFloatHandle& expandReLUThreshold, const CConstFloatHandle& channelwiseFilter,
-		const CConstFloatHandle* channelwiseFreeTerm, const CConstFloatHandle& channelwiseReLUThreshold,
-		const CConstFloatHandle& downFilter, const CConstFloatHandle* downFreeTerm, bool residual,
-		const CFloatHandle& outputHandle ) = 0;
+		TActivationFunction expandActivation, float expandActivationParam, const CConstFloatHandle& channelwiseFilter,
+		const CConstFloatHandle* channelwiseFreeTerm, TActivationFunction channelwiseActivation,
+		float channelwiseActivationParam, const CConstFloatHandle& downFilter, const CConstFloatHandle* downFreeTerm,
+		bool residual, const CFloatHandle& outputHandle ) = 0;
 };
 
 //------------------------------------------------------------------------------------------------------------
