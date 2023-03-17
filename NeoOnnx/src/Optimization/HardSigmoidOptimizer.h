@@ -43,11 +43,11 @@ class CGraph;
 //
 // with the next one:
 //
-//    *input*
-//       |
+//        *input*
+//           |
 // HardSigmoid(slope, bias)
-//       |
-//    *output*
+//           |
+//        *output*
 
 class CHardSigmoidOptimizer : public IOptimizer {
 public:
