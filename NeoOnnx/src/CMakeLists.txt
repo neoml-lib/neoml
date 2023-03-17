@@ -119,7 +119,6 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Optimization/Graph.h
     Optimization/HardSigmoidOptimizer.h
     Optimization/HSwishOptimizer.h
-    Optimization/Optimizer.h
     Tensor.h
     TensorUtils.h
 )

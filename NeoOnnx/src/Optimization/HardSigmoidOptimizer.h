@@ -15,8 +15,6 @@ limitations under the License.
 
 #pragma once
 
-#include "Optimizer.h"
-
 // Forward declaration(s)
 namespace NeoML {
 class COnnxEltwiseLayer;
@@ -49,14 +47,14 @@ class CGraph;
 //           |
 //        *output*
 
-class CHardSigmoidOptimizer : public IOptimizer {
+class CHardSigmoidOptimizer {
 public:
 	explicit CHardSigmoidOptimizer( CGraph& graph ) :
 		graph( graph )
 	{
 	}
 
-	void Apply() override;
+	void Apply();
 
 private:
 	CGraph& graph;

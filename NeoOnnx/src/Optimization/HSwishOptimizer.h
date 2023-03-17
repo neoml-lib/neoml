@@ -15,7 +15,6 @@ limitations under the License.
 
 #pragma once
 
-#include "Optimizer.h"
 #include "Graph.h"
 
 namespace NeoOnnx {
@@ -36,14 +35,14 @@ namespace optimization {
 //
 // with the hard swish (hswish) layer
 
-class CHSwishOptimizer : public IOptimizer {
+class CHSwishOptimizer {
 public:
 	explicit CHSwishOptimizer( CGraph& graph ) :
 		graph( graph )
 	{
 	}
 
-	void Apply() override;
+	void Apply();
 
 private:
 	CGraph& graph;
