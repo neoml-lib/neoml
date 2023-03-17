@@ -60,7 +60,6 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Operators/TransposeOperator.cpp
     Operators/UnsqueezeOperator.cpp
     Operators/UpsampleOperator.cpp
-    Optimization/Graph.cpp
     Optimization/HardSigmoidOptimizer.cpp
     Optimization/HSwishOptimizer.cpp
     TensorUtils.cpp
@@ -116,7 +115,6 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Operators/TransposeOperator.h
     Operators/UnsqueezeOperator.h
     Operators/UpsampleOperator.h
-    Optimization/Graph.h
     Optimization/HardSigmoidOptimizer.h
     Optimization/HSwishOptimizer.h
     Tensor.h

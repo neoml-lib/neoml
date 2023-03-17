@@ -15,7 +15,7 @@ limitations under the License.
 
 #pragma once
 
-#include "Graph.h"
+#include <NeoML/Dnn/Optimization/Graph.h>
 #include "HardSigmoidOptimizer.h"
 #include "HSwishOptimizer.h"
 
@@ -37,7 +37,7 @@ public:
 	void Optimize();
 
 private:
-	CGraph graph;
+	NeoML::optimization::CGraph graph;
 };
 
 inline void CDnnOptimizer::Optimize()

@@ -15,7 +15,7 @@ limitations under the License.
 
 #pragma once
 
-#include "Graph.h"
+#include <NeoML/Dnn/Optimization/Graph.h>
 
 namespace NeoOnnx {
 
@@ -37,7 +37,7 @@ namespace optimization {
 
 class CHSwishOptimizer {
 public:
-	explicit CHSwishOptimizer( CGraph& graph ) :
+	explicit CHSwishOptimizer( NeoML::optimization::CGraph& graph ) :
 		graph( graph )
 	{
 	}
@@ -45,10 +45,10 @@ public:
 	void Apply();
 
 private:
-	CGraph& graph;
+	NeoML::optimization::CGraph& graph;
 
 	bool isValidHardSigmoidLayer( CHardSigmoidLayer& hardSigmoidLayer,
-		const CLayerOutput<>& hSwishInputData ) const;
+		const NeoML::optimization::CLayerOutput<>& hSwishInputData ) const;
 };
 
 } // namesapce optimization

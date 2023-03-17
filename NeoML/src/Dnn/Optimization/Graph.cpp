@@ -16,9 +16,9 @@ limitations under the License.
 #include "common.h"
 #pragma once
 
-#include "Graph.h"
+#include <NeoML/Dnn/Optimization/Graph.h>
 
-namespace NeoOnnx {
+namespace NeoML {
 
 namespace optimization {
 
@@ -154,4 +154,4 @@ CString CGraph::GetUniqueName( const CString& prefix ) const
 
 } // namespace optimization
 
-} // namespace NeoOnnx
+} // namespace NeoML

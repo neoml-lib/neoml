@@ -18,14 +18,14 @@ limitations under the License.
 // Forward declaration(s)
 namespace NeoML {
 class COnnxEltwiseLayer;
+namespace optimization {
+class CGraph;
+} // namespace optimization
 } // namespace NeoML
 
 namespace NeoOnnx {
 
 namespace optimization {
-
-// Forward declaration(s)
-class CGraph;
 
 // Replaces the following construction
 //
@@ -49,7 +49,7 @@ class CGraph;
 
 class CHardSigmoidOptimizer {
 public:
-	explicit CHardSigmoidOptimizer( CGraph& graph ) :
+	explicit CHardSigmoidOptimizer( NeoML::optimization::CGraph& graph ) :
 		graph( graph )
 	{
 	}
@@ -57,7 +57,7 @@ public:
 	void Apply();
 
 private:
-	CGraph& graph;
+	NeoML::optimization::CGraph& graph;
 
 	bool isValidDataLayer( CDataLayer& dataLayer, float& value ) const;
 };

@@ -15,20 +15,19 @@ limitations under the License.
 
 #pragma once
 
-#include <NeoOnnx/NeoOnnxDefs.h>
-#include <NeoML/NeoML.h>
+#include <NeoML/NeoMLDefs.h>
+#include <NeoML/Dnn/Dnn.h>
 
 #include <type_traits>
 
-namespace NeoOnnx {
+namespace NeoML {
 
 namespace optimization {
 
 // Input of a layer
 template<typename TLayer = CBaseLayer,
 	std::enable_if_t<std::is_base_of<CBaseLayer, TLayer>::value, int> = 0>
-struct CLayerInput
-{
+struct CLayerInput {
 	TLayer* Layer = nullptr; // layer which this input belongs to
 	int Index = NotFound; // index of this input
 
@@ -40,8 +39,7 @@ struct CLayerInput
 // Output of a layer
 template<typename TLayer = CBaseLayer,
 	std::enable_if_t<std::is_base_of<CBaseLayer, TLayer>::value, int> = 0>
-struct CLayerOutput
-{
+struct CLayerOutput {
 	TLayer* Layer = nullptr; // layer which this output belongs to
 	int Index = NotFound; // index of this output
 
@@ -52,8 +50,7 @@ struct CLayerOutput
 
 // This representation of CDnn as a graph
 // Provides better interface for traversing over the graph and graph modifications
-class CGraph
-{
+class NEOML_API CGraph {
 public:
 	explicit CGraph( CDnn& dnn );
 	CGraph( const CGraph& ) = delete;
@@ -338,4 +335,4 @@ inline CLayerOutput<TOutputLayer> CGraph::SelectConnectedOutput( const CLayerInp
 
 } // namespace optimization
 
-} // namespace NeoOnnx
+} // namespace NeoML
