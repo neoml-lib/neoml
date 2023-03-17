@@ -36,9 +36,9 @@ namespace optimization {
 //
 // with the hard swish (hswish) layer
 
-class CHardSwishOptimizer : public IOptimizer {
+class CHSwishOptimizer : public IOptimizer {
 public:
-	explicit CHardSwishOptimizer( CGraph& graph ) :
+	explicit CHSwishOptimizer( CGraph& graph ) :
 		graph( graph )
 	{
 	}
@@ -49,7 +49,7 @@ private:
 	CGraph& graph;
 
 	bool isValidHardSigmoidLayer( CHardSigmoidLayer& hardSigmoidLayer,
-		const CLayerOutput<>& hardSwishInputData ) const;
+		const CLayerOutput<>& hSwishInputData ) const;
 };
 
 } // namesapce optimization

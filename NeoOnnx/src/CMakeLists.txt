@@ -62,7 +62,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Operators/UpsampleOperator.cpp
     Optimization/Graph.cpp
     Optimization/HardSigmoidOptimizer.cpp
-    Optimization/HardSwishOptimizer.cpp
+    Optimization/HSwishOptimizer.cpp
     TensorUtils.cpp
 
     ../include/NeoOnnx/NeoOnnx.h
@@ -118,7 +118,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Operators/UpsampleOperator.h
     Optimization/Graph.h
     Optimization/HardSigmoidOptimizer.h
-    Optimization/HardSwishOptimizer.h
+    Optimization/HSwishOptimizer.h
     Optimization/Optimizer.h
     Tensor.h
     TensorUtils.h

@@ -18,14 +18,14 @@ limitations under the License.
 
 #include <cmath>
 
-#include "HardSwishOptimizer.h"
+#include "HSwishOptimizer.h"
 #include <NeoML/Dnn/Layers/Onnx/OnnxEltwiseLayer.h>
 
 namespace NeoOnnx {
 
 namespace optimization {
 
-void CHardSwishOptimizer::Apply()
+void CHSwishOptimizer::Apply()
 {
 	CArray<CBaseLayer*> layers;
 	graph.GetLayers( layers );
@@ -52,16 +52,16 @@ void CHardSwishOptimizer::Apply()
 			if( hardSigmoidOutput.Layer == nullptr ) {
 				continue;
 			}
-			CLayerOutput<> hardSwishInputData = graph.GetConnectedOutput<CBaseLayer>( CLayerInput<>{ mulLayer, 1 - i } );
+			CLayerOutput<> hSwishInputData = graph.GetConnectedOutput<CBaseLayer>( CLayerInput<>{ mulLayer, 1 - i } );
 
-			if( isValidHardSigmoidLayer( *hardSigmoidOutput.Layer, hardSwishInputData ) ) {
-				CPtr<CHSwishLayer> hardSwishLayer = new CHSwishLayer( graph.MathEngine() );
-				hardSwishLayer->SetName( graph.GetUniqueName( "HardSwish" ) );
-				graph.AddLayer( *hardSwishLayer );
-				::printf( "[HARDSWISH] replace '%s' with '%s'\n", mulLayer->GetName(), hardSwishLayer->GetName() );
+			if( isValidHardSigmoidLayer( *hardSigmoidOutput.Layer, hSwishInputData ) ) {
+				CPtr<CHSwishLayer> hSwishLayer = new CHSwishLayer( graph.MathEngine() );
+				hSwishLayer->SetName( graph.GetUniqueName( "HSwish" ) );
+				graph.AddLayer( *hSwishLayer );
+				::printf( "[HARDSWISH] replace '%s' with '%s'\n", mulLayer->GetName(), hSwishLayer->GetName() );
 
-				graph.Connect( CLayerInput<>{ hardSwishLayer, 0 }, hardSwishInputData );
-				graph.SwitchOutputs( CLayerOutput<>{ mulLayer, 0 }, CLayerOutput<>{ hardSwishLayer, 0 } );
+				graph.Connect( CLayerInput<>{ hSwishLayer, 0 }, hSwishInputData );
+				graph.SwitchOutputs( CLayerOutput<>{ mulLayer, 0 }, CLayerOutput<>{ hSwishLayer, 0 } );
 
 				graph.DeleteLayer( *mulLayer );
 				graph.DeleteLayer( *hardSigmoidOutput.Layer );
@@ -72,8 +72,8 @@ void CHardSwishOptimizer::Apply()
 }
 
 // Checks if CHardSigmoidLayer is valid for CHSwishLayer conversion
-bool CHardSwishOptimizer::isValidHardSigmoidLayer( CHardSigmoidLayer& hardSigmoidLayer,
-	const CLayerOutput<>& hardSwishInputData ) const
+bool CHSwishOptimizer::isValidHardSigmoidLayer( CHardSigmoidLayer& hardSigmoidLayer,
+	const CLayerOutput<>& hSwishInputData ) const
 {
 	// HardSigmoid layer always has 1 input and 1 output
 	NeoAssert( graph.GetInputCount( hardSigmoidLayer ) == 1 );
@@ -91,7 +91,7 @@ bool CHardSwishOptimizer::isValidHardSigmoidLayer( CHardSigmoidLayer& hardSigmoi
 	}
 
 	// Check that hard sigmoid is connected to the same input, as other connection of mulLayer
-	return graph.GetConnectedOutput<CBaseLayer>( CLayerInput<>{ &hardSigmoidLayer, 0 } ) == hardSwishInputData;
+	return graph.GetConnectedOutput<CBaseLayer>( CLayerInput<>{ &hardSigmoidLayer, 0 } ) == hSwishInputData;
 }
 
 } // namespace optimization

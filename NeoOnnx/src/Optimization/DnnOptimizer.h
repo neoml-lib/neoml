@@ -17,7 +17,7 @@ limitations under the License.
 
 #include "Graph.h"
 #include "HardSigmoidOptimizer.h"
-#include "HardSwishOptimizer.h"
+#include "HSwishOptimizer.h"
 
 namespace NeoOnnx {
 
@@ -43,7 +43,7 @@ private:
 inline void CDnnOptimizer::Optimize()
 {
 	CHardSigmoidOptimizer( graph ).Apply();
-	CHardSwishOptimizer( graph ).Apply();
+	CHSwishOptimizer( graph ).Apply();
 }
 
 } // namespace optimization
