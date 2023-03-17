@@ -16,10 +16,18 @@ limitations under the License.
 #pragma once
 
 #include "Optimizer.h"
-#include "DnnGraphWrapper.h"
-#include <NeoML/Dnn/Layers/Onnx/OnnxEltwiseLayer.h>
+
+// Forward declaration(s)
+namespace NeoML {
+class COnnxEltwiseLayer;
+} // namespace NeoML
 
 namespace NeoOnnx {
+
+namespace optimization {
+
+// Forward declaration(s)
+class CGraph;
 
 // Replaces the following construction
 //
@@ -43,24 +51,19 @@ namespace NeoOnnx {
 
 class CHardSigmoidOptimizer : public IOptimizer {
 public:
-	explicit CHardSigmoidOptimizer( CDnn& dnn ) :
-		IOptimizer( dnn, nullptr ),
-		graph( dnn )
+	explicit CHardSigmoidOptimizer( CGraph& graph ) :
+		graph( graph )
 	{
 	}
 
 	void Apply() override;
 
 private:
-	CDnnGraphWrapper graph;
+	CGraph& graph;
 
-	bool isValidSlopeLayer( const COnnxEltwiseLayer& slopeLayer, CDataLayer*& slopeDataLayer,
-		CReLULayer*& clipLayer, float& slopeValue ) const;
-	bool isValidClipLayer( const CReLULayer& clipLayer, COnnxEltwiseLayer*& biasLayer,
-		float& clipThreshold ) const;
-	bool isValidBiasLayer( const COnnxEltwiseLayer& biasLayer, CDataLayer*& biasDataLayer,
-		CDnnGraphLink& hardSigmoidInput, float& biasValue ) const;
-	bool isValidDataLayer( const CDataLayer& dataLayer, float& value ) const;
+	bool isValidDataLayer( CDataLayer& dataLayer, float& value ) const;
 };
+
+} // namespace optimization
 
 } // namespace NeoOnnx

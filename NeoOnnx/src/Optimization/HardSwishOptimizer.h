@@ -16,10 +16,11 @@ limitations under the License.
 #pragma once
 
 #include "Optimizer.h"
-#include "DnnGraphWrapper.h"
-#include <NeoML/Dnn/Layers/Onnx/OnnxEltwiseLayer.h>
+#include "Graph.h"
 
 namespace NeoOnnx {
+
+namespace optimization {
 
 // Replaces the following construction
 //
@@ -37,21 +38,20 @@ namespace NeoOnnx {
 
 class CHardSwishOptimizer : public IOptimizer {
 public:
-	explicit CHardSwishOptimizer( CDnn& dnn ) :
-		IOptimizer( dnn, nullptr ),
-		graph( dnn )
+	explicit CHardSwishOptimizer( CGraph& graph ) :
+		graph( graph )
 	{
 	}
 
 	void Apply() override;
 
 private:
-	CDnnGraphWrapper graph;
+	CGraph& graph;
 
-	bool isValidHardSwish( const COnnxEltwiseLayer& mulLayer, CHardSigmoidLayer*& hardSigmoidLayer,
-		CDnnGraphLink& hardSwishInput ) const;
-	bool isValidHardSigmoidLayer( const CHardSigmoidLayer& hardSigmoidLayer,
-		const CDnnGraphLink& hardSwishInput ) const;
+	bool isValidHardSigmoidLayer( CHardSigmoidLayer& hardSigmoidLayer,
+		const CLayerOutput<>& hardSwishInputData ) const;
 };
+
+} // namesapce optimization
 
 } // namespace NeoOnnx

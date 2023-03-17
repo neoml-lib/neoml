@@ -208,7 +208,7 @@ void LoadFromOnnx( const char* fileName, const CImportSettings& importSettings,
 		buildDnnFromGraphProto( model.graph(), getOpsetVersion( model ), importSettings,
 			dnn, info.Inputs, info.Outputs );
 		extractMetadata( model, info.Metadata );
-		CDnnOptimizer( dnn ).Optimize();
+		optimization::CDnnOptimizer( dnn ).Optimize();
 		NeoML::OptimizeDnn( dnn );
 	} catch( ... ) {
 		input.close();
@@ -236,7 +236,7 @@ void LoadFromOnnx( const void* buffer, int bufferSize, const CImportSettings& im
 		buildDnnFromGraphProto( model.graph(), getOpsetVersion( model ), importSettings,
 			dnn, info.Inputs, info.Outputs );
 		extractMetadata( model, info.Metadata );
-		CDnnOptimizer( dnn ).Optimize();
+		optimization::CDnnOptimizer( dnn ).Optimize();
 		NeoML::OptimizeDnn( dnn );
 	} catch( ... ) {
 		google::protobuf::ShutdownProtobufLibrary();

@@ -19,13 +19,14 @@ limitations under the License.
 #include <cmath>
 
 #include "HardSwishOptimizer.h"
+#include <NeoML/Dnn/Layers/Onnx/OnnxEltwiseLayer.h>
 
 namespace NeoOnnx {
 
+namespace optimization {
+
 void CHardSwishOptimizer::Apply()
 {
-	graph.Build();
-
 	CArray<CBaseLayer*> layers;
 	graph.GetLayers( layers );
 
@@ -38,69 +39,48 @@ void CHardSwishOptimizer::Apply()
 
 		// Find the last mul layer
 		COnnxEltwiseLayer* mulLayer = dynamic_cast<COnnxEltwiseLayer*>( layer );
-		if( mulLayer == nullptr ) {
+		if( mulLayer == nullptr || graph.GetInputCount( *mulLayer ) != 2
+			|| mulLayer->GetOperation() != COnnxEltwiseLayer::TOperation::Mul )
+		{
 			continue;
 		}
 
 		// Check mulLayer's inputs
-		CHardSigmoidLayer* hardSigmoidLayer = nullptr;
-		CDnnGraphLink hardSwishInput;
-		if( !isValidHardSwish( *mulLayer, hardSigmoidLayer, hardSwishInput ) ) {
-			continue;
-		}
+		for( int i = 0; i < 2; ++i ) {
+			CLayerOutput<CHardSigmoidLayer> hardSigmoidOutput = graph.GetConnectedOutput<CHardSigmoidLayer>(
+				CLayerInput<>{ mulLayer, i } );
+			if( hardSigmoidOutput.Layer == nullptr ) {
+				continue;
+			}
+			CLayerOutput<> hardSwishInputData = graph.GetConnectedOutput<CBaseLayer>( CLayerInput<>{ mulLayer, 1 - i } );
 
-		CPtr<CHSwishLayer> hardSwishLayer = new CHSwishLayer( graph.MathEngine() );
-		hardSwishLayer->SetName( graph.GetUniqueName( "HardSwish" ) );
-		graph.AddLayer( *hardSwishLayer );
+			if( isValidHardSigmoidLayer( *hardSigmoidOutput.Layer, hardSwishInputData ) ) {
+				CPtr<CHSwishLayer> hardSwishLayer = new CHSwishLayer( graph.MathEngine() );
+				hardSwishLayer->SetName( graph.GetUniqueName( "HardSwish" ) );
+				graph.AddLayer( *hardSwishLayer );
+				::printf( "[HARDSWISH] replace '%s' with '%s'\n", mulLayer->GetName(), hardSwishLayer->GetName() );
 
-		graph.Connect( { hardSwishLayer, 0 }, hardSwishInput );
-		graph.SwitchOutputs( { mulLayer, 0 }, { hardSwishLayer, 0 } );
+				graph.Connect( CLayerInput<>{ hardSwishLayer, 0 }, hardSwishInputData );
+				graph.SwitchOutputs( CLayerOutput<>{ mulLayer, 0 }, CLayerOutput<>{ hardSwishLayer, 0 } );
 
-		graph.DeleteLayer( *mulLayer );
-		graph.DeleteLayer( *hardSigmoidLayer );
-	}
-}
-
-// Checks if mul layer is valid for CHSwishLayer conversion
-bool CHardSwishOptimizer::isValidHardSwish( const COnnxEltwiseLayer& mulLayer,
-	CHardSigmoidLayer*& hardSigmoidLayer, CDnnGraphLink& hardSwishInput ) const
-{
-	// Eltwise layer always has 1 output
-	NeoAssert( graph.GetOutputCount( mulLayer ) == 1 );
-
-	if( mulLayer.GetOperation() != COnnxEltwiseLayer::TOperation::Mul ) {
-		return false;
-	}
-
-	if( graph.GetInputCount( mulLayer ) != 2 ) {
-		return false;
-	}
-
-	for( int i = 0; i < 2; ++i ) {
-		const CDnnGraphLink& hardSigmoidOutput = graph.GetInputLink( mulLayer, i );
-		hardSwishInput = graph.GetInputLink( mulLayer, 1 - i );
-		hardSigmoidLayer = dynamic_cast<CHardSigmoidLayer*>( hardSigmoidOutput.Layer );
-		if( hardSigmoidLayer == nullptr ) {
-			continue;
-		}
-		if( isValidHardSigmoidLayer( *hardSigmoidLayer, hardSwishInput ) ) {
-			return true;
+				graph.DeleteLayer( *mulLayer );
+				graph.DeleteLayer( *hardSigmoidOutput.Layer );
+				break;
+			}
 		}
 	}
-
-	return false;
 }
 
 // Checks if CHardSigmoidLayer is valid for CHSwishLayer conversion
-bool CHardSwishOptimizer::isValidHardSigmoidLayer( const CHardSigmoidLayer& hardSigmoidLayer,
-	const CDnnGraphLink& hardSwishInput ) const
+bool CHardSwishOptimizer::isValidHardSigmoidLayer( CHardSigmoidLayer& hardSigmoidLayer,
+	const CLayerOutput<>& hardSwishInputData ) const
 {
 	// HardSigmoid layer always has 1 input and 1 output
 	NeoAssert( graph.GetInputCount( hardSigmoidLayer ) == 1 );
 	NeoAssert( graph.GetOutputCount( hardSigmoidLayer ) == 1 );
 
 	// If HardSigmoid is used by some other layer then we can't replace it with CHSwishLayer
-	if( graph.GetOutputLinkCount( hardSigmoidLayer, 0 ) != 1 ) {
+	if( graph.GetConnectedInputsCount( CLayerOutput<>{ &hardSigmoidLayer, 0 } ) != 1 ) {
 		return false;
 	}
 
@@ -111,8 +91,9 @@ bool CHardSwishOptimizer::isValidHardSigmoidLayer( const CHardSigmoidLayer& hard
 	}
 
 	// Check that hard sigmoid is connected to the same input, as other connection of mulLayer
-	const CDnnGraphLink& currInput = graph.GetInputLink( hardSigmoidLayer, 0 );
-	return currInput.Layer == hardSwishInput.Layer && currInput.Index == hardSwishInput.Index;
+	return graph.GetConnectedOutput<CBaseLayer>( CLayerInput<>{ &hardSigmoidLayer, 0 } ) == hardSwishInputData;
 }
+
+} // namespace optimization
 
 } // namespace NeoOnnx

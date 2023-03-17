@@ -19,18 +19,21 @@ limitations under the License.
 #include <cmath>
 
 #include "HardSigmoidOptimizer.h"
-#include "DnnGraphWrapper.h"
+#include "Graph.h"
+#include <NeoML/Dnn/Layers/Onnx/OnnxEltwiseLayer.h>
 
 namespace NeoOnnx {
 
+namespace optimization {
+
 void CHardSigmoidOptimizer::Apply()
 {
-	graph.Build();
-
 	CArray<CBaseLayer*> layers;
 	graph.GetLayers( layers );
 
 	for( CBaseLayer* layer : layers ) {
+		graph.ClearSelection();
+
 		if( !graph.HasLayer( layer ) ) {
 			// There is a risk that layer has already been deleted
 			// and 'layer' points to an invalid object
@@ -39,37 +42,74 @@ void CHardSigmoidOptimizer::Apply()
 
 		// Find the last mul/div layer
 		COnnxEltwiseLayer* slopeLayer = dynamic_cast<COnnxEltwiseLayer*>( layer );
-		if( slopeLayer == nullptr ) {
+		if( slopeLayer == nullptr || graph.GetInputCount( *slopeLayer ) != 2 ||
+			( slopeLayer->GetOperation() != COnnxEltwiseLayer::TOperation::Mul
+				&& slopeLayer->GetOperation() != COnnxEltwiseLayer::TOperation::Div ) )
+		{
 			continue;
 		}
+		graph.SelectLayer( *slopeLayer );
 
 		// Check slopeLayer's inputs
-		CDataLayer* slopeDataLayer = nullptr;
-		CReLULayer* clipLayer = nullptr;
-		float slopeValue = 0;
-		if( !isValidSlopeLayer( *slopeLayer, slopeDataLayer, clipLayer, slopeValue ) ) {
+		CLayerOutput<CDataLayer> slopeDataOutput = graph.SelectConnectedOutput<CDataLayer>(
+			CLayerInput<>{ slopeLayer, 0 }, true );
+		CLayerOutput<CReLULayer> clipOutput = graph.SelectConnectedOutput<CReLULayer>(
+			CLayerInput<>{ slopeLayer, 1 }, true );
+		if( slopeDataOutput.Layer == nullptr && clipOutput.Layer == nullptr ) {
+			// May be the inputs are in another order
+			slopeDataOutput = graph.SelectConnectedOutput<CDataLayer>( CLayerInput<>{ slopeLayer, 1 }, true );
+			clipOutput = graph.SelectConnectedOutput<CReLULayer>( CLayerInput<>{ slopeLayer, 0 }, true );
+		}
+		if( slopeDataOutput.Layer == nullptr || clipOutput.Layer == nullptr ) {
 			continue;
 		}
 
-		// Check clip layer and find bias layer
-		COnnxEltwiseLayer* biasLayer = nullptr;
-		float clipThreshold = 0;
-		if( !isValidClipLayer( *clipLayer, biasLayer, clipThreshold ) ) {
+		// Extract slope coefficient
+		float slopeValue = 0;
+		if( !isValidDataLayer( *slopeDataOutput.Layer, slopeValue ) ) {
 			continue;
 		}
-		if( std::fabsf( clipThreshold * slopeValue - 1.f ) > 1e-4f ) {
+		if( slopeLayer->GetOperation() == COnnxEltwiseLayer::TOperation::Div ) {
+			slopeValue = 1.f / slopeValue;
+		}
+		if( std::fabsf( clipOutput.Layer->GetUpperThreshold() * slopeValue - 1.f ) > 1e-4f ) {
 			// Hard sigmoid can only return values in [0;1]
 			continue;
 		}
 
-		// Check bias layer inputs
-		CDataLayer* biasDataLayer = nullptr;
-		CDnnGraphLink hardSigmoidInput;
-		float biasValue = 0;
-		if( !isValidBiasLayer( *biasLayer, biasDataLayer, hardSigmoidInput, biasValue ) ) {
+		// Find bias layer
+		CLayerOutput<COnnxEltwiseLayer> biasOutput = graph.SelectConnectedOutput<COnnxEltwiseLayer>(
+			CLayerInput<>{ clipOutput.Layer, 0 }, true );
+		if( biasOutput.Layer == nullptr || graph.GetInputCount( *biasOutput.Layer ) != 2
+			|| ( biasOutput.Layer->GetOperation() != COnnxEltwiseLayer::TOperation::Add
+				&& biasOutput.Layer->GetOperation() != COnnxEltwiseLayer::TOperation::Sub ) )
+		{
 			continue;
 		}
+
+		// Check bias layer inputs
+		CLayerOutput<CDataLayer> biasDataOutput;
+		CLayerOutput<> hardSigmoidInputData;
+		float biasValue = 0.f;
+		for( int i = 0; i < 2; ++i ) {
+			biasDataOutput = graph.GetConnectedOutput<CDataLayer>( CLayerInput<>{ biasOutput.Layer, i } );
+			if( biasDataOutput.Layer != nullptr && isValidDataLayer( *biasDataOutput.Layer, biasValue ) ) {
+				hardSigmoidInputData = graph.GetConnectedOutput<CBaseLayer>( CLayerInput<>{ biasOutput.Layer, 1 - i } );
+				graph.SelectLayer( *biasDataOutput.Layer );
+				break;
+			} else {
+				biasDataOutput.Layer = nullptr;
+			}
+		}
+
+		if( biasDataOutput.Layer == nullptr ) {
+			continue;
+		}
+
 		// Hard sigmoid firstly applies slope, then bias
+		if( biasOutput.Layer->GetOperation() == COnnxEltwiseLayer::TOperation::Sub ) {
+			biasValue = -biasValue;
+		}
 		biasValue *= slopeValue;
 
 		CPtr<CHardSigmoidLayer> hardSigmoidLayer = new CHardSigmoidLayer( graph.MathEngine() );
@@ -77,144 +117,24 @@ void CHardSigmoidOptimizer::Apply()
 		hardSigmoidLayer->SetSlope( slopeValue );
 		hardSigmoidLayer->SetBias( biasValue );
 		graph.AddLayer( *hardSigmoidLayer );
+		::printf( "[HARDSIGMOID] replace '%s' with '%s'\n", slopeLayer->GetName(), hardSigmoidLayer->GetName() );
 
-		graph.Connect( { hardSigmoidLayer, 0 }, hardSigmoidInput );
-		graph.SwitchOutputs( { slopeLayer, 0 }, { hardSigmoidLayer, 0 } );
+		graph.Connect( CLayerInput<>{ hardSigmoidLayer, 0 }, hardSigmoidInputData );
+		graph.SwitchOutputs( CLayerOutput<>{ slopeLayer, 0 }, CLayerOutput<>{ hardSigmoidLayer, 0 } );
 
-		graph.DeleteLayer( *slopeLayer );
-		graph.DeleteLayer( *slopeDataLayer );
-		graph.DeleteLayer( *clipLayer );
-		graph.DeleteLayer( *biasLayer );
-		graph.DeleteLayer( *biasDataLayer );
-	}
-}
-
-// Checks if slope layer is valid for CHardSigmoid conversion
-bool CHardSigmoidOptimizer::isValidSlopeLayer( const COnnxEltwiseLayer& slopeLayer,
-	CDataLayer*& slopeDataLayer, CReLULayer*& clipLayer, float& slopeValue ) const
-{
-	// Eltwise layer always has 1 output
-	NeoAssert( graph.GetOutputCount( slopeLayer ) == 1 );
-
-	if( slopeLayer.GetOperation() != COnnxEltwiseLayer::TOperation::Mul
-		&& slopeLayer.GetOperation() != COnnxEltwiseLayer::TOperation::Div )
-	{
-		return false;
+		graph.DeleteSelectedLayers();
 	}
 
-	if( graph.GetInputCount( slopeLayer ) != 2 ) {
-		return false;
-	}
-
-	slopeDataLayer = nullptr;
-	clipLayer = nullptr;
-	for( int i = 0; i < 2; ++i ) {
-		const CDnnGraphLink& input = graph.GetInputLink( slopeLayer, i );
-		if( input.Index != 0 ) {
-			// slope layer must be connected to the only output of its inputs
-			return false;
-		}
-
-		CDataLayer* dataLayerCandidate = dynamic_cast<CDataLayer*>( input.Layer );
-		if( dataLayerCandidate != nullptr && isValidDataLayer( *dataLayerCandidate, slopeValue ) ) {
-			slopeDataLayer = dataLayerCandidate;
-		} else if( dynamic_cast<CReLULayer*>( input.Layer ) != nullptr ) {
-			clipLayer = dynamic_cast<CReLULayer*>( input.Layer );
-		} else {
-			return false;
-		}
-	}
-
-	if( slopeDataLayer == nullptr || clipLayer == nullptr ) {
-		return false;
-	}
-
-	if( slopeLayer.GetOperation() == COnnxEltwiseLayer::TOperation::Div ) {
-		slopeValue = 1.f / slopeValue;
-	}
-	
-	return true;
-}
-
-// Checks if clip layer is valid for CHardSigmoid conversion
-bool CHardSigmoidOptimizer::isValidClipLayer( const CReLULayer& clipLayer, COnnxEltwiseLayer*& biasLayer,
-	float& clipThreshold ) const
-{
-	// ReLU layer always has 1 input and 1 output
-	NeoAssert( graph.GetInputCount( clipLayer ) == 1 );
-	NeoAssert( graph.GetOutputCount( clipLayer ) == 1 );
-
-	// If ReLU is used by some other layer then we can't replace it with CHardSigmoidLayer
-	if( graph.GetOutputLinkCount( clipLayer, 0 ) != 1 ) {
-		return false;
-	}
-
-	const CDnnGraphLink& biasOutput = graph.GetInputLink( clipLayer, 0 );
-	if( biasOutput.Index != 0 ) {
-		return false;
-	}
-
-	biasLayer = dynamic_cast<COnnxEltwiseLayer*>( biasOutput.Layer );
-	if( biasLayer == nullptr ) {
-		return false;
-	}
-
-	clipThreshold = clipLayer.GetUpperThreshold();
-	// CHardSigmoid must have upper threshold
-	return clipThreshold > 0;
-}
-
-// Checks if bias layer is valid for CHardSigmoid conversion
-bool CHardSigmoidOptimizer::isValidBiasLayer( const COnnxEltwiseLayer& biasLayer, CDataLayer*& biasDataLayer,
-	CDnnGraphLink& hardSigmoidInput, float& biasValue ) const
-{
-	// Eltwise layer always has 1 output
-	NeoAssert( graph.GetOutputCount( biasLayer ) == 1 );
-
-	if( biasLayer.GetOperation() != COnnxEltwiseLayer::TOperation::Add
-		&& biasLayer.GetOperation() != COnnxEltwiseLayer::TOperation::Sub )
-	{
-		return false;
-	}
-
-	if( graph.GetInputCount( biasLayer ) != 2 ) {
-		return false;
-	}
-
-	if( graph.GetOutputLinkCount( biasLayer, 0 ) != 1 ) {
-		// Its output is used by some other layer
-		return false;
-	}
-
-	biasDataLayer = nullptr;
-	for( int i = 0; i < 2; ++i ) {
-		const CDnnGraphLink& currInput = graph.GetInputLink( biasLayer, i );
-		CDataLayer* dataLayerCandidate = dynamic_cast<CDataLayer*>( currInput.Layer );
-		if( dataLayerCandidate != nullptr && isValidDataLayer( *dataLayerCandidate, biasValue ) ) {
-			biasDataLayer = dataLayerCandidate;
-			hardSigmoidInput = graph.GetInputLink( biasLayer, 1 - i );
-			break;
-		}
-	}
-
-	if( biasDataLayer == nullptr ) {
-		return false;
-	}
-
-	if( biasLayer.GetOperation() == COnnxEltwiseLayer::TOperation::Sub ) {
-		biasValue = -biasValue;
-	}
-
-	return true;
+	graph.ClearSelection();
 }
 
 // Checks if data layer is valid for CHardSigmoid conversion
-bool CHardSigmoidOptimizer::isValidDataLayer( const CDataLayer& dataLayer, float& value ) const
+bool CHardSigmoidOptimizer::isValidDataLayer( CDataLayer& dataLayer, float& value ) const
 {
 	NeoAssert( graph.GetInputCount( dataLayer ) == 0 );
 	NeoAssert( graph.GetOutputCount( dataLayer ) == 1 );
-	if( graph.GetOutputLinkCount( dataLayer, 0 ) != 1 ) {
-		// This data layer is used by other layers, can't replace
+
+	if( graph.GetConnectedInputsCount( CLayerOutput<>{ &dataLayer, 0 } ) != 1 ) {
 		return false;
 	}
 
@@ -226,5 +146,7 @@ bool CHardSigmoidOptimizer::isValidDataLayer( const CDataLayer& dataLayer, float
 	value = valueBlob->GetData().GetValue();
 	return true;
 }
+
+} // namespace optimization
 
 } // namespace NeoOnnx

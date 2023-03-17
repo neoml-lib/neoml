@@ -15,51 +15,16 @@ limitations under the License.
 
 #pragma once
 
-#include "common.h"
-#include <NeoOnnx/NeoOnnxImport.h>
-
 namespace NeoOnnx {
 
-class IOptimizer : public IObject {
+namespace optimization {
+
+class IOptimizer {
 public:
-	explicit IOptimizer( CDnn& graph, const char* const classesOfSkipLayers[] ) :
-		Graph( graph ), ClassesOfSkipLayers( classesOfSkipLayers )
-	{}
-	IOptimizer( IOptimizer&& ) = delete;
-	IOptimizer( const IOptimizer& ) = delete;
-
 	virtual void Apply() = 0;
-
-protected:
-	CDnn& Graph;
-	const char * const * ClassesOfSkipLayers{};
-
-	// Operations on 'layersSelected' array
-	auto GetSelectedLayersSize() const { return layersSelected.Size(); }
-	bool HasSelectedLayer( const CPtr<CBaseLayer> layer ) { return layersSelected.Find( layer ) != NotFound; }
-	CPtr<CBaseLayer> GetSelectedLayer( int i ) { return layersSelected[i]; }
-	void ClearSelectedLayers() { layersSelected.DeleteAll(); }
-	void AddToSelectedLayers( const CPtr<CBaseLayer>& layer ) { layersSelected.Add( layer ); }
-
-	// Returns the pointer to input layer of the 'currentLayer' of any class-type except 'layerSkipClass' class-type and adds to 'layersSelected'.
-	// All found layers of class-type is equal to 'layerSkipClass' also be added to 'layersSelected', they would not be returned.
-	CPtr<CBaseLayer> GetAnyInputLayer( const CPtr<CBaseLayer>& currentLayer, int inputNum, const char* const layerSkipClass = "" );
-
-	// If layer is not nullptr and its class-type is equal to a required class-type 'layerClass', return true
-	// and if addToSelectedLayers == true also add this layer to 'layersSelected' array.
-	bool IsExactLayer( const CPtr<CBaseLayer>& layer, const char* const layerClass, bool addToSelectedLayers = true );
-
-	// Check all input layers of the 'currentLayer' in the 'graph' to select 1 or 2 layers.
-	// It adds to 'layersSelected' the first input layer  if its class-type equals 'layerBaseClass', returns it as 'layerBase'.
-	// It adds to 'layersSelected' the layer-initializer  if its class-type equals 'layerDataClass' (and that is not ""), returns it as 'layerData'. 
-	// All found layers of class-type is equal to 'layerSkipClass' also would be added to 'layersSelected', but would not be returned as in arguments.
-	bool GetExactInputLayers( const CPtr<CBaseLayer>& currentLayer,
-		CPtr<CBaseLayer>& layerBase, const char* const layerBaseClass,
-		CPtr<CBaseLayer>& layerData, const char* const layerDataClass, const char* const layerSkipClass );
-
-private:
-	CArray<CPtr<CBaseLayer>> layersSelected{};
 };
+
+} // namespace optimization
 
 } // namespace NeoOnnx
 

@@ -15,19 +15,20 @@ limitations under the License.
 
 #pragma once
 
-#include "Optimizer.h"
+#include "Graph.h"
 #include "HardSigmoidOptimizer.h"
 #include "HardSwishOptimizer.h"
 
 namespace NeoOnnx {
+
+namespace optimization {
 
 // CDnnOptimizer provides a reconstruction of the CDnn.
 // NOTE: The underlying CDnn would be changed
 class CDnnOptimizer final {
 public:
 	explicit CDnnOptimizer( CDnn& dnn ) :
-		optimizers{ new CHardSigmoidOptimizer( dnn ),
-			new CHardSwishOptimizer( dnn ) }
+		graph( dnn )
 	{
 	}
 	CDnnOptimizer( CDnnOptimizer&& ) = delete;
@@ -36,15 +37,16 @@ public:
 	void Optimize();
 
 private:
-	CObjectArray<IOptimizer> optimizers;
+	CGraph graph;
 };
 
 inline void CDnnOptimizer::Optimize()
 {
-	for( int i = 0; i < optimizers.Size(); ++i ) {
-		optimizers[i]->Apply();
-	}
+	CHardSigmoidOptimizer( graph ).Apply();
+	CHardSwishOptimizer( graph ).Apply();
 }
+
+} // namespace optimization
 
 } // namespace NeoOnnx
 
