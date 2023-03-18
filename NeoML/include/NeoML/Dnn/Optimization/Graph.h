@@ -144,10 +144,8 @@ public:
 	// It's recommended to use this method when some layer in the selected construction
 	// must have 2 inputs of the specific type
 	template<typename TLayer, typename TFirstType, typename TSecondType>
-	bool SelectBothConnectedOutputs( TLayer& layer,
-		CLayerOutput<TFirstType>& firstConnectedOutput,
-		CLayerOutput<TSecondType>& secondConnectedOutput,
-		bool checkOutOfSelectionLinks );
+	bool SelectBothConnectedOutputs( TLayer& layer, CLayerOutput<TFirstType>& firstConnectedOutput,
+		CLayerOutput<TSecondType>& secondConnectedOutput, bool checkOutOfSelectionLinks );
 
 	// Clears the current selection
 	void ClearSelection() { selection.DeleteAll(); }
@@ -340,10 +338,8 @@ inline CLayerOutput<TOutputLayer> CGraph::SelectConnectedOutput( const CLayerInp
 }
 
 template<typename TLayer, typename TFirstType, typename TSecondType>
-inline bool CGraph::SelectBothConnectedOutputs( TLayer& layer,
-	CLayerOutput<TFirstType>& firstConnectedOutput,
-	CLayerOutput<TSecondType>& secondConnectedOutput,
-	bool checkOutOfSelectionLinks )
+inline bool CGraph::SelectBothConnectedOutputs( TLayer& layer, CLayerOutput<TFirstType>& firstConnectedOutput,
+	CLayerOutput<TSecondType>& secondConnectedOutput, bool checkOutOfSelectionLinks )
 {
 	if( GetInputCount( layer ) != 2 ) {
 		return false;
