@@ -64,6 +64,7 @@ public:
 
 	// Residual connection
 	bool Residual() const { return residual; }
+	void SetResidual( bool newValue );
 
 	// Serialization
 	void Serialize( CArchive& archive ) override;

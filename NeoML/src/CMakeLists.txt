@@ -162,6 +162,7 @@ set(NeoML_SOURCES
     Dnn/Layers/TransformerSourceMaskLayer.cpp
     Dnn/Layers/Upsampling2DLayer.cpp
     Dnn/Optimization/Graph.cpp
+    Dnn/Optimization/MobileNetV2Optimizer.cpp
     TraditionalML/BytePairEncoderTrainer.cpp
     TraditionalML/ClusterCenter.cpp
     TraditionalML/CommonCluster.cpp
@@ -203,6 +204,7 @@ set(NeoML_NON_UNITY_SOURCES
 )
 
 set(NeoML_HEADERS_COMPACT
+    Dnn/Optimization/MobileNetV2Optimizer.h
     TraditionalML/CompactRegressionTree.h
     TraditionalML/DecisionTreeClassificationModel.h
     TraditionalML/DecisionTreeNodeBase.h

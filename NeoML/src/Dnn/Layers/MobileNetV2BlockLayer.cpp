@@ -99,6 +99,16 @@ CMobileNetV2BlockLayer::~CMobileNetV2BlockLayer()
 	}
 }
 
+void CMobileNetV2BlockLayer::SetResidual( bool newValue )
+{
+	if( newValue == residual ) {
+		return;
+	}
+
+	residual = newValue;
+	ForceReshape();
+}
+
 static const int MobileNetV2BlockLayerVersion = 1;
 
 void CMobileNetV2BlockLayer::Serialize( CArchive& archive )

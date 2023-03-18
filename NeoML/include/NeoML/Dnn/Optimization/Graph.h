@@ -31,6 +31,9 @@ struct CLayerInput {
 	TLayer* Layer = nullptr; // layer which this input belongs to
 	int Index = NotFound; // index of this input
 
+	CLayerInput( TLayer* layer, int index ) : Layer( layer ), Index( index ) {}
+	CLayerInput() = default;
+
 	template<typename TOtherLayer>
 	bool operator==( const CLayerInput<TOtherLayer>& other ) const
 		{ return static_cast<CBaseLayer*>( Layer ) == static_cast<CBaseLayer*>( other.Layer ) && Index == other.Index; }
@@ -42,6 +45,9 @@ template<typename TLayer = CBaseLayer,
 struct CLayerOutput {
 	TLayer* Layer = nullptr; // layer which this output belongs to
 	int Index = NotFound; // index of this output
+
+	CLayerOutput( TLayer* layer, int index ) : Layer( layer ), Index( index ) {}
+	CLayerOutput() = default;
 
 	template<typename TOtherLayer>
 	bool operator==( const CLayerOutput<TOtherLayer>& other ) const
@@ -252,7 +258,8 @@ inline void CGraph::Connect( const CLayerInput<TInputLayer>& input, const CLayer
 		// Disconnect previous link
 		Disconnect( input, inputLayerLinks.Inputs[input.Index] );
 	}
-	inputLayerLinks.Inputs[input.Index] = output;
+	inputLayerLinks.Inputs[input.Index].Layer = output.Layer;
+	inputLayerLinks.Inputs[input.Index].Index = output.Index;
 
 	// Update output link info
 	const int outputLayerLinksPos = graphLinks.GetFirstPosition( output.Layer );

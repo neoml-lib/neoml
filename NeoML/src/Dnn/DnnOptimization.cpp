@@ -17,6 +17,8 @@ limitations under the License.
 #pragma hdrstop
 
 #include <NeoML/Dnn/DnnOptimization.h>
+#include <NeoML/Dnn/Optimization/Graph.h>
+#include "Optimization/MobileNetV2Optimizer.h"
 #include <NeoML/Dnn/Dnn.h>
 #include <NeoML/Dnn/Layers/MobileNetV2BlockLayer.h>
 #include <NeoML/Dnn/Layers/ConvLayer.h>
@@ -263,7 +265,11 @@ static void optimizeDnn( CDnn& dnn, CDnnOptimizationReport& report )
 CDnnOptimizationReport OptimizeDnn( CDnn& dnn )
 {
 	CDnnOptimizationReport report;
-	MobileNetV2::optimizeDnn( dnn, report );
+	// MobileNetV2::optimizeDnn( dnn, report );
+	optimization::CGraph graph( dnn );
+	optimization::CMobileNetV2Optimizer( graph ).Apply( report );
+	::printf( "MobileNetV2 opt: %d residual, %d non-residual\n", report.MobileNetV2ResidualBlocks,
+		report.MobileNetV2NonResidualBlocks );
 	return report;
 }
 
