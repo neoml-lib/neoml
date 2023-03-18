@@ -134,6 +134,21 @@ public:
 	CLayerOutput<TOutputLayer> SelectConnectedOutput( const CLayerInput<TInputLayer>& input,
 		bool checkOutOfSelectionLinks );
 
+	// Checks that the layer has 2 inputs, and that those inputs are connected
+	// to outputs of TFirstLayer and TSecondLayer (in any order)
+	// If checkOutOfSelectionLinks == true then it performs additional check
+	// (see SelectConnectedOutput)
+	// If all checks are passed then adds both CLayerOutput<>.Layer to selection
+	// and returns true
+	// Otherwise returns false and doesn't add any layers to selection
+	// It's recommended to use this method when some layer in the selected construction
+	// must have 2 inputs of the specific type
+	template<typename TLayer, typename TFirstType, typename TSecondType>
+	bool SelectBothConnectedOutputs( TLayer& layer,
+		CLayerOutput<TFirstType>& firstConnectedOutput,
+		CLayerOutput<TSecondType>& secondConnectedOutput,
+		bool checkOutOfSelectionLinks );
+
 	// Clears the current selection
 	void ClearSelection() { selection.DeleteAll(); }
 
@@ -170,6 +185,8 @@ private:
 	CMap<const CBaseLayer*, CLayerLinks> graphLinks;
 	// Currently selected layers
 	CHashTable<CBaseLayer*> selection;
+
+	bool checkOutOfSelectionConnectedInputs( const CBaseLayer& layer ) const;
 };
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -313,24 +330,47 @@ inline CLayerOutput<TOutputLayer> CGraph::SelectConnectedOutput( const CLayerInp
 		return result;
 	}
 
-	if( checkOutOfSelectionLinks ) {
-		const int layerPos = graphLinks.GetFirstPosition( result.Layer );
-		NeoAssert( layerPos != NotFound );
-		NeoAssert( graphLinks.GetNextPosition( result.Layer, layerPos ) == NotFound );
-
-		// Check that every input connected to any of the outputs is selected
-		for( const CArray<CLayerInput<>>& connectedInputs : graphLinks.GetValue( layerPos ).Outputs ) {
-			for( const CLayerInput<>& connectedInput : connectedInputs ) {
-				if( !IsLayerSelected( *connectedInput.Layer ) ) {
-					result.Layer = nullptr;
-					return result;
-				}
-			}
-		}
+	if( checkOutOfSelectionLinks && !checkOutOfSelectionConnectedInputs( *result.Layer ) ) {
+		result.Layer = nullptr;
+		return result;
 	}
 
 	SelectLayer( *result.Layer );
 	return result;
+}
+
+template<typename TLayer, typename TFirstType, typename TSecondType>
+inline bool CGraph::SelectBothConnectedOutputs( TLayer& layer,
+	CLayerOutput<TFirstType>& firstConnectedOutput,
+	CLayerOutput<TSecondType>& secondConnectedOutput,
+	bool checkOutOfSelectionLinks )
+{
+	if( GetInputCount( layer ) != 2 ) {
+		return false;
+	}
+
+	for( int i = 0; i < 2; ++i ) {
+		firstConnectedOutput = GetConnectedOutput<TFirstType>( CLayerInput<>{ &layer, i } );
+		secondConnectedOutput = GetConnectedOutput<TSecondType>( CLayerInput<>{ &layer, 1 - i } );
+		if( firstConnectedOutput.Layer == nullptr || secondConnectedOutput.Layer == nullptr
+			|| IsLayerSelected( *firstConnectedOutput.Layer ) || IsLayerSelected( *secondConnectedOutput.Layer ) )
+		{
+			continue;
+		}
+
+		if( checkOutOfSelectionLinks
+			&& ( !checkOutOfSelectionConnectedInputs( *firstConnectedOutput.Layer )
+				|| !checkOutOfSelectionConnectedInputs( *secondConnectedOutput.Layer ) ) )
+		{
+			continue;
+		}
+
+		SelectLayer( *firstConnectedOutput.Layer );
+		SelectLayer( *secondConnectedOutput.Layer );
+		return true;
+	}
+
+	return false;
 }
 
 } // namespace optimization

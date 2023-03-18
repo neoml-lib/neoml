@@ -57,16 +57,9 @@ void CHardSigmoidOptimizer::Apply()
 		graph.SelectLayer( *slopeLayer );
 
 		// Check slopeLayer's inputs
-		CLayerOutput<CDataLayer> slopeDataOutput = graph.SelectConnectedOutput<CDataLayer>(
-			CLayerInput<>{ slopeLayer, 0 }, true );
-		CLayerOutput<CReLULayer> clipOutput = graph.SelectConnectedOutput<CReLULayer>(
-			CLayerInput<>{ slopeLayer, 1 }, true );
-		if( slopeDataOutput.Layer == nullptr && clipOutput.Layer == nullptr ) {
-			// May be the inputs are in another order
-			slopeDataOutput = graph.SelectConnectedOutput<CDataLayer>( CLayerInput<>{ slopeLayer, 1 }, true );
-			clipOutput = graph.SelectConnectedOutput<CReLULayer>( CLayerInput<>{ slopeLayer, 0 }, true );
-		}
-		if( slopeDataOutput.Layer == nullptr || clipOutput.Layer == nullptr ) {
+		CLayerOutput<CDataLayer> slopeDataOutput;
+		CLayerOutput<CReLULayer> clipOutput;
+		if( !graph.SelectBothConnectedOutputs( *slopeLayer, slopeDataOutput, clipOutput, true ) ) {
 			continue;
 		}
 

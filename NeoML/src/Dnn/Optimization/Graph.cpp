@@ -152,6 +152,26 @@ CString CGraph::GetUniqueName( const CString& prefix ) const
 	return result;
 }
 
+// Checks that every input connected to any outputs of the layer
+// has already been selected
+bool CGraph::checkOutOfSelectionConnectedInputs( const CBaseLayer& layer ) const
+{
+	const int layerLinksPos = graphLinks.GetFirstPosition( &layer );
+	NeoAssert( layerLinksPos != NotFound );
+	NeoAssert( graphLinks.GetNextPosition( &layer, layerLinksPos ) == NotFound );
+
+	const CLayerLinks& layerLinks = graphLinks.GetValue( layerLinksPos );
+	for( const CArray<CLayerInput<>>& connectedInputs : layerLinks.Outputs ) {
+		for( const CLayerInput<>& connectedInput : connectedInputs ) {
+			if( !IsLayerSelected( *connectedInput.Layer ) ) {
+				return false;
+			}
+		}
+	}
+
+	return true;
+}
+
 } // namespace optimization
 
 } // namespace NeoML
