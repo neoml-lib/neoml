@@ -19,6 +19,7 @@ limitations under the License.
 #include <NeoML/Dnn/DnnOptimization.h>
 #include <NeoML/Dnn/Optimization/Graph.h>
 #include "Optimization/MobileNetV2Optimizer.h"
+#include "Optimization/MobileNetV3Optimizer.h"
 #include <NeoML/Dnn/Dnn.h>
 
 namespace NeoML {
@@ -30,6 +31,9 @@ CDnnOptimizationReport OptimizeDnn( CDnn& dnn )
 	optimization::CMobileNetV2Optimizer( graph ).Apply( report );
 	::printf( "MobileNetV2 opt: %d residual, %d non-residual\n", report.MobileNetV2ResidualBlocks,
 		report.MobileNetV2NonResidualBlocks );
+	optimization::CMobileNetV3Optimizer( graph ).Apply( report );
+	::printf( "MobileNetV3 opt: %d residual, %d non-residual\n", report.MobileNetV3ResidualBlocks,
+		report.MobileNetV3NonResidualBlocks );
 	return report;
 }
 

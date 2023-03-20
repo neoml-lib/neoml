@@ -27,6 +27,10 @@ struct NEOML_API CDnnOptimizationReport {
 	int MobileNetV2NonResidualBlocks;
 	// Number of optimized MobileNetV2 blocks with residual connection
 	int MobileNetV2ResidualBlocks;
+	// Number of optimized MobileNetV3 blocks without residual connection
+	int MobileNetV3NonResidualBlocks;
+	// Number of optimized MobileNetV3 blocks with residual connection
+	int MobileNetV3ResidualBlocks;
 };
 
 // Optimizes inference of given CDnn at the cost of trainability

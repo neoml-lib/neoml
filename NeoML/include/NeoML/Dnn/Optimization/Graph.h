@@ -109,11 +109,11 @@ public:
 
 	// Connects the given input to the given output
 	template<typename TInputLayer, typename TOutputLayer>
-	void Connect( const CLayerInput<TInputLayer>& input, const CLayerOutput<TOutputLayer>& output );
+	void Connect( const CLayerInput<TInputLayer> input, const CLayerOutput<TOutputLayer> output );
 
 	// Destroys connection between input.Index'th input of input.Layer to the output.Index'th output of output.Layer
 	template<typename TInputLayer, typename TOutputLayer>
-	void Disconnect( const CLayerInput<TInputLayer>& input, const CLayerOutput<TOutputLayer>& output );
+	void Disconnect( const CLayerInput<TInputLayer> input, const CLayerOutput<TOutputLayer> output );
 
 	// Layer selection mechanism
 	
@@ -123,6 +123,9 @@ public:
 	// The idea is to iterate over the graph layer-by-layer detecting the whole construction
 	// If somewhere during this iteration construction was not found then ClearSelection without any modifications
 	// If the whole construction has been found then add the replacement, reconnect everything and DeleteSelectedLayers
+
+	// Returns the number of selected layers
+	int SelectionSize() const { return selection.Size(); }
 
 	// Checks whether the layer has already been selected
 	bool IsLayerSelected( CBaseLayer& layer ) const { return selection.Has( &layer ); }
@@ -239,7 +242,7 @@ inline CLayerInput<TInputLayer> CGraph::GetConnectedInput( const CLayerOutput<TO
 }
 
 template<typename TInputLayer, typename TOutputLayer>
-inline void CGraph::Connect( const CLayerInput<TInputLayer>& input, const CLayerOutput<TOutputLayer>& output )
+inline void CGraph::Connect( const CLayerInput<TInputLayer> input, const CLayerOutput<TOutputLayer> output )
 {
 	NeoAssert( input.Layer != nullptr );
 	NeoAssert( input.Index >= 0 );
@@ -258,6 +261,8 @@ inline void CGraph::Connect( const CLayerInput<TInputLayer>& input, const CLayer
 		// Disconnect previous link
 		Disconnect( input, inputLayerLinks.Inputs[input.Index] );
 	}
+	NeoAssert( inputLayerLinks.Inputs[input.Index].Layer == nullptr );
+	NeoAssert( inputLayerLinks.Inputs[input.Index].Index == NotFound );
 	inputLayerLinks.Inputs[input.Index].Layer = output.Layer;
 	inputLayerLinks.Inputs[input.Index].Index = output.Index;
 
@@ -277,7 +282,7 @@ inline void CGraph::Connect( const CLayerInput<TInputLayer>& input, const CLayer
 }
 
 template<typename TInputLayer, typename TOutputLayer>
-inline void CGraph::Disconnect( const CLayerInput<TInputLayer>& input, const CLayerOutput<TOutputLayer>& output )
+inline void CGraph::Disconnect( const CLayerInput<TInputLayer> input, const CLayerOutput<TOutputLayer> output )
 {
 	NeoAssert( input.Layer != nullptr );
 	NeoAssert( input.Index >= 0 );
