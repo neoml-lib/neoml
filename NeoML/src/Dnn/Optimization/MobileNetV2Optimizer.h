@@ -39,14 +39,14 @@ public:
 	void Apply( CDnnOptimizationReport& report );
 
 private:
+	CGraph& graph;
+
 	int optimizeNonResidualBlocks();
 	int optimizeResidualConnections();
 
 	bool isValid1x1Conv( CConvLayer& conv ) const;
 	bool isValidActivation( CBaseLayer& layer ) const;
 	bool isValidChannelwise( CChannelwiseConvLayer& channelwise ) const;
-
-	CGraph& graph;
 };
 
 } // namespace optimization
