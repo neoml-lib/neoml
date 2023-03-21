@@ -17,6 +17,7 @@ limitations under the License.
 #pragma hdrstop
 
 #include <cmath>
+#include <cstdlib>
 
 #include "HSwishOptimizer.h"
 #include <NeoML/Dnn/Layers/Onnx/OnnxEltwiseLayer.h>

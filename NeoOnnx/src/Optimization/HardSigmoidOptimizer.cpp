@@ -17,6 +17,7 @@ limitations under the License.
 #pragma hdrstop
 
 #include <cmath>
+#include <cstdlib>
 
 #include "HardSigmoidOptimizer.h"
 #include <NeoML/Dnn/Optimization/Graph.h>
