@@ -37,7 +37,7 @@ static void storeActivationDesc( const CActivationDesc& desc, CArchive& archive 
 
 static CActivationDesc loadActivationDesc( CArchive& archive )
 {
-	TActivationFunction type;
+	TActivationFunction type = AF_HSwish;
 	archive.SerializeEnum( type );
 	check( type == AF_ReLU || type == AF_HSwish, ERR_BAD_ARCHIVE, archive.Name() );
 
