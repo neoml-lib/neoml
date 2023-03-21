@@ -31,6 +31,7 @@ CDropoutOperator::CDropoutOperator( const onnx::NodeProto& dropout, int opsetVer
 	// v7 - removed "is_test" attribute
 	// v10 - changed second output data type
 	// v12 - added "seed" attribute, "ratio" moved from attributes to inputs, "training_mode" added
+	// v13 - bfloat16 is supported
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
 	if( OpsetVersion < 12 ) {

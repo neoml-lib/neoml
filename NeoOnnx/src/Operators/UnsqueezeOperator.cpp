@@ -28,18 +28,23 @@ CUnsqueezeOperator::CUnsqueezeOperator( const onnx::NodeProto& unsqueeze, int op
 {
 	// v1 - original
 	// v11 - supported negative axes values
+	// v13 - axes are moved from attributes to inputs
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
-	CheckOnnxProtocol( InputCount() == 1, "operator must have 1 input", *this );
+	if( OpsetVersion < 13 ) {
+		CheckOnnxProtocol( InputCount() == 1, "operator must have 1 input", *this );
+	} else {
+		CheckOnnxProtocol( InputCount() == 2, "operator must have 2 inputs", *this );
+	}
 	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
 }
 
 void CUnsqueezeOperator::AddLayers( const CTensorArray& inputs, CDnn& /* dnn */, CTensorArray& outputs ) const
 {
-	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
+	CheckNoNullInputs( inputs );
 
 	CFastArray<int, 8> axes;
-	getAxes( inputs[0]->DimCount(), axes );
+	getAxes( inputs, axes );
 
 	CTensorLayout outputLayout = calcOutputLayout( inputs[0]->Layout(), axes );
 
@@ -59,10 +64,20 @@ void CUnsqueezeOperator::AddLayers( const CTensorArray& inputs, CDnn& /* dnn */,
 
 // Fills array with axes indices to be squeezed
 // Returns array of positive indices in sorted order
-void CUnsqueezeOperator::getAxes( int inputDimCount, CFastArray<int, 8>& axes ) const
+void CUnsqueezeOperator::getAxes( const CTensorArray& inputs, CFastArray<int, 8>& axes ) const
 {
 	axes.Empty();
-	GetAttribute( "axes", axes );
+	if( OpsetVersion >= 13 ) {
+		CheckNeoOnnxSupport( inputs.Size() == 2 && inputs[1] != nullptr && inputs[1]->Type() == TTensorType::Data,
+			"axes input must be constant", *this );
+		const CDataTensor& axesData = dynamic_cast<const CDataTensor&>( *inputs[1] );
+		axes.SetSize( axesData.Data()->GetDataSize() );
+		axesData.Data()->CopyTo( axes.GetPtr() );
+	} else {
+		GetAttribute( "axes", axes );
+	}
+
+	const int inputDimCount = inputs[0]->DimCount();
 	for( int i = 0; i < axes.Size(); ++i ) {
 		if( axes[i] < 0 ) {
 			axes[i] += inputDimCount + axes.Size();

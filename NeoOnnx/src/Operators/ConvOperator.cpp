@@ -41,7 +41,7 @@ CConvOperator::CConvOperator( const onnx::NodeProto& conv, int opsetVersion ) :
 	autoPad( "NOTSET" )
 {
 	// v1 - original
-	// v6 - default values for 'strides' and 'dilations' attributes are added
+	// v11 - default values for 'strides' and 'dilations' attributes are added
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
 	CheckOnnxProtocol( InputCount() == 2 || InputCount() == 3, "operator must have 2 or 3 inputs", *this );

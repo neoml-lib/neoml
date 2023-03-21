@@ -52,6 +52,7 @@ CAbsOperator::CAbsOperator( const onnx::NodeProto& abs, int opsetVersion ) :
 {
 	// v1 - original
 	// v6 - legacy optimization attributes are removed and new data types are supported
+	// v13 - bfloat16 data type is supported
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
 	CheckOnnxProtocol( InputCount() == 1, "operator must have 1 input", *this );
@@ -67,6 +68,7 @@ CClipOperator::CClipOperator( const onnx::NodeProto& clip, int opsetVersion ) :
 	// v6 - legacy optimization attributes are removed
 	// v11 - min/max values are moved from attributes to additional inputs
 	// v12 - new data types are supported
+	// v13 - bfloat16 data type is supported
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
 	if( OpsetVersion < 11 ) {
@@ -249,6 +251,8 @@ CReluOperator::CReluOperator( const onnx::NodeProto& relu, int opsetVersion ) :
 {
 	// v1 - original
 	// v6 - legacy optimization attributes are removed
+	// v13 - bfloat16 is supported
+	// v14 - integer data types are supported
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
 	CheckOnnxProtocol( InputCount() == 1, "operator must have 1 input", *this );
@@ -262,6 +266,7 @@ CSigmoidOperator::CSigmoidOperator( const onnx::NodeProto& sigmoid, int opsetVer
 {
 	// v1 - original
 	// v6 - legacy optimization attributes are removed
+	// v13 - bfloat16 is supported
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
 	CheckOnnxProtocol( InputCount() == 1, "operator must have 1 input", *this );
@@ -297,6 +302,7 @@ CTanhOperator::CTanhOperator( const onnx::NodeProto& tanh, int opsetVersion ) :
 {
 	// v1 - original
 	// v6 - legacy optimization attributes are removed
+	// v13 - bfloat16 is supported
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
 	CheckOnnxProtocol( InputCount() == 1, "operator must have 1 input", *this );

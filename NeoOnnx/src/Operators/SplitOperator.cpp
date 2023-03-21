@@ -33,6 +33,7 @@ CSplitOperator::CSplitOperator( const onnx::NodeProto& split, int opsetVersion )
 	// v2 - default 'axis' value added + 'split' can be obtained only via attribute
 	// v11 - negative axis supported
 	// v13 - 'split' can be obtained only via input + bfloat16 supported
+	// V18 - implicit even split is disabled (in this case new 'num_output' attribute must be set)
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
 	if( OpsetVersion == 1 ) {

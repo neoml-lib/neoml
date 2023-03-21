@@ -32,6 +32,7 @@ CConcatOperator::CConcatOperator( const onnx::NodeProto& concat, int opsetVersio
 	// v1 - original
 	// v4 - supported new data types and axis becomes required attributes
 	// v11 - supported negative axis index
+	// v13 - bfloat16 is supported
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
 	CheckOnnxProtocol( InputCount() >= 1, "operator must have at least 1 input", *this );
