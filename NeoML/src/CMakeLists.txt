@@ -16,7 +16,6 @@ set(NeoML_SOURCES_COMPACT
     Dnn/Dnn.cpp
     Dnn/DnnBlob.cpp
     Dnn/DnnInitializer.cpp
-    Dnn/DnnOptimization.cpp
     Dnn/DnnSparseMatrix.cpp
     Dnn/Layers/3dConvLayer.cpp
     Dnn/Layers/ActivationLayers.cpp
@@ -98,6 +97,7 @@ set(NeoML_SOURCES_COMPACT
 set(NeoML_SOURCES
     ${NeoML_SOURCES_COMPACT}
     Dnn/DnnDistributed.cpp
+    Dnn/DnnOptimization.cpp
     Dnn/Layers/3dPoolingLayer.cpp
     Dnn/Layers/3dTransposedConvLayer.cpp
     Dnn/Layers/AccumulativeLookupLayer.cpp
@@ -240,7 +240,6 @@ set(NeoML_HEADERS_COMPACT
     ../include/NeoML/Dnn/DnnBlob.h
     ../include/NeoML/Dnn/DnnInitializer.h
     ../include/NeoML/Dnn/DnnLambdaHolder.h
-    ../include/NeoML/Dnn/DnnOptimization.h
     ../include/NeoML/Dnn/DnnSolver.h
     ../include/NeoML/Dnn/DnnSparseMatrix.h
     ../include/NeoML/Dnn/Layers/3dConvLayer.h
@@ -323,6 +322,7 @@ set(NeoML_HEADERS
 
     # Headers
     ../include/NeoML/Dnn/DnnDistributed.h
+    ../include/NeoML/Dnn/DnnOptimization.h
     ../include/NeoML/Dnn/Layers/3dPoolingLayer.h
     ../include/NeoML/Dnn/Layers/3dTransposedConvLayer.h
     ../include/NeoML/Dnn/Layers/AccumulativeLookupLayer.h
