@@ -628,41 +628,72 @@ void CCpuMathEngine::MobileNetV3PostSEBlock( const CBlobDesc& channelwiseOutputD
 	const CFloatHandle& outputHandle )
 {
 	CCpuExecutionScope scope;
-	const int batchSize = channelwiseOutputDesc.ObjectCount();
-	const int geomSize = channelwiseOutputDesc.GeometricalSize();
 	const int inputChannels = channelwiseOutputDesc.Channels();
-	const int inputObjectSize = geomSize * inputChannels;
-	const int inputSize = inputObjectSize * batchSize;
-	const int outputSize = batchSize * geomSize * outputChannels;
+	const int width = channelwiseOutputDesc.Width();
+	const int rowCount = channelwiseOutputDesc.Height();
+	const int inputRowSize = inputChannels * width;
+	const int inputObjectSize = inputRowSize * rowCount;
+	const int outputRowSize = outputChannels * width;
+	const int outputObjectSize = outputRowSize * rowCount;
+	const int batchSize = channelwiseOutputDesc.ObjectCount();
 
-	CFloatHandleStackVar squeezedAndExcited( *this, inputSize );
+	const int cacheSize = 32 * 1024;
+	const int maxRowsPerStep = std::max( 1, ( cacheSize / ( std::max( inputChannels, outputChannels ) * width ) ) );
+
+	CFloatHandleStackVar buffVar( *this, std::min( rowCount, maxRowsPerStep ) * inputRowSize );
+	const float* inputObject = GetRaw( channelwiseOutputHandle );
+	const float* squeezeVector = GetRaw( squeezeAndExciteHandle );
+	const float* residualObject = residualHandle != nullptr ? GetRaw( *residualHandle ) : nullptr;
+	const float* downFilter = GetRaw( downFilterHandle );
+	const float* downFreeTerm = downFreeTermHandle != nullptr ? GetRaw( *downFreeTermHandle ) : nullptr;
+	float* squeezed = GetRaw( buffVar.GetHandle() );
+	float* outputObject = GetRaw( outputHandle );
 
 	for( int b = 0; b < batchSize; ++b ) {
-		MultiplyMatrixByDiagMatrix( channelwiseOutputHandle + b * inputObjectSize, geomSize, inputChannels,
-			squeezeAndExciteHandle + b * inputChannels, squeezedAndExcited + b * inputObjectSize, inputObjectSize );
-	}
+		int rowsProcessed = 0;
+		const float* input = inputObject;
+		float* output = outputObject;
+		const float* residual = residualObject;
+		while( rowsProcessed < rowCount ) {
+			const int rowsThisStep = std::min( rowCount - rowsProcessed, maxRowsPerStep );
 
-	if( activation == AF_HSwish ) {
-		VectorHSwish( squeezedAndExcited, squeezedAndExcited, inputSize );
-	} else {
-		CFloatHandleStackVar reLUThreshold( *this );
-		reLUThreshold.GetHandle().SetValue( activationParam );
-		VectorReLU( squeezedAndExcited, squeezedAndExcited, inputSize, reLUThreshold );
-	}
+			multiplyMatrixByDiagMatrix( input, rowsThisStep * width, inputChannels,
+				squeezeVector, squeezed );
 
-	if( residualHandle != nullptr ) {
-		VectorCopy( outputHandle, *residualHandle, outputSize );
-		multiplyMatrixByTransposedMatrixAndAdd( GetRaw( squeezedAndExcited.GetHandle() ), batchSize * geomSize,
-			inputChannels, inputChannels, GetRaw( downFilterHandle ), outputChannels, outputChannels,
-			GetRaw( outputHandle ), outputChannels );
-	} else {
-		MultiplyMatrixByTransposedMatrix( 1, squeezedAndExcited, batchSize * geomSize, inputChannels,
-			downFilterHandle, outputChannels, outputHandle, outputSize );
-	}
+			if( activation == AF_HSwish ) {
+				vectorHSwish( squeezed, squeezed, rowsThisStep * inputRowSize );
+			} else {
+				if( activationParam > 0 ) {
+					vectorReLU( squeezed, squeezed, rowsThisStep * inputRowSize, activationParam );
+				} else {
+					vectorReLU( squeezed, squeezed, rowsThisStep * inputRowSize );
+				}
+			}
 
-	if( downFreeTermHandle != nullptr ) {
-		AddVectorToMatrixRows( 1, outputHandle, outputHandle, batchSize * geomSize,
-			outputChannels, *downFreeTermHandle );
+			multiplyMatrixByTransposedMatrix( squeezed, rowsThisStep * width, inputChannels,
+				inputChannels, downFilter, outputChannels, inputChannels, output, outputChannels );
+
+			if( downFreeTerm != nullptr ) {
+				addVectorToMatrixRows( output, output, rowsThisStep * width, outputChannels,
+					outputChannels, outputChannels, downFreeTerm );
+			}
+
+			if( residual != nullptr ) {
+				vectorAdd( output, residual, output, rowsThisStep * width * outputChannels );
+				residual += rowsThisStep * outputRowSize;
+			}
+
+			rowsProcessed += rowsThisStep;
+			input += rowsThisStep * inputRowSize;
+			output += rowsThisStep * outputRowSize;
+		}
+
+		inputObject += inputObjectSize;
+		squeezeVector += inputChannels;
+		if( residualObject != nullptr ) {
+			residualObject += outputObjectSize;
+		}
+		outputObject += outputObjectSize;
 	}
 }
 
