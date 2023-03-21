@@ -65,7 +65,7 @@ public:
 	// Layers in CDnn
 
 	// Checks whether 'layer' points to an existing layer in the graph
-	// Works correctly even if 'layer' is invalid
+	// Works correctly even if 'layer' is invalid or nullptr
 	bool HasLayer( const CBaseLayer* layer ) const { return graphLinks.Has( layer ); }
 
 	// Writes pointers of all of the layers of this graph
@@ -87,7 +87,7 @@ public:
 	template<typename TOutputLayer = CBaseLayer>
 	CLayerOutput<TOutputLayer> GetConnectedOutput( CBaseLayer& inputLayer, int inputIndex ) const;
 
-	// Number of different inputs connected to the output
+	// Number of different inputs connected to the outputLayer's outputIndex'th output
 	int GetConnectedInputsCount( const CBaseLayer& outputLayer, int outputIndex ) const;
 
 	// Addition/removal of the layers
@@ -101,10 +101,10 @@ public:
 
 	// Addition/removal of connections
 
-	// Connects the given input to the given output
+	// Connects the given inputLayer's inputIndex'th input to the outputLayer's outputIndex'th output
 	void Connect( CBaseLayer& inputLayer, int inputIndex, CBaseLayer& outputLayer, int outputIndex );
 
-	// Destroys connection between input.Index'th input of input.Layer to the output.Index'th output of output.Layer
+	// Destroys connection between inputIndex'th input of inputLayer and the outputIndex'th output of outputLayer
 	void Disconnect( CBaseLayer& inputLayer, int inputIndex, CBaseLayer& outputLayer, int outputIndex );
 
 	// Layer selection mechanism
