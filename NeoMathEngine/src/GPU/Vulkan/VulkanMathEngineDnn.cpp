@@ -85,7 +85,7 @@ void CVulkanMathEngine::blobMergeByDim(int dimNum, const CBlobDesc* from, const 
 		height *= s[z];
 	}
 	int width = to.BlobSize() / height;
-	
+
 	const int heightNorm = Ceil( height, 16 );
 	int wStart = 0;
 	for( int i = 0; i < fromArr.Count; i++ ) {
@@ -134,7 +134,7 @@ void CVulkanMathEngine::blobSplitByDim(int dimNum, const CBlobDesc& from, const 
 		height *= s[z];
 	}
 	int width = from.BlobSize() / height;
-	
+
 	const int heightNorm = Ceil( height, 16 );
 	int wStart = 0;
 	for( int i = 0; i < toArr.Count; i++ ) {
