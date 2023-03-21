@@ -41,6 +41,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/LstmLayer.h>
 #include <NeoML/Dnn/Layers/MatrixMultiplicationLayer.h>
 #include <NeoML/Dnn/Layers/MobileNetV2BlockLayer.h>
+#include <NeoML/Dnn/Layers/MobileNetV3BlockLayer.h>
 #include <NeoML/Dnn/Layers/MultichannelLookupLayer.h>
 #include <NeoML/Dnn/Layers/MultiheadAttentionLayer.h>
 #include <NeoML/Dnn/Layers/ObjectNormalizationLayer.h>
@@ -280,6 +281,7 @@ REGISTER_NEOML_LAYER( CIndRnnLayer, "NeoMLDnnIndRnnLayer" )
 REGISTER_NEOML_LAYER( CIndRnnRecurrentLayer, "NeoMLDnnIndRnnRecurrentLayer" )
 REGISTER_NEOML_LAYER( CMatrixMultiplicationLayer, "NeoMLDnnMatrixMultiplicationLayer" )
 REGISTER_NEOML_LAYER( CMobileNetV2BlockLayer, "NeoMLDnnMobileNetV2BlockLayer" )
+REGISTER_NEOML_LAYER( CMobileNetV3PostSEBlockLayer, "NeoMLDnnMobileNetV3PostSEBlockLayer" )
 REGISTER_NEOML_LAYER( CMultiheadAttentionLayer, "NeoMLDnnMultiheadAttentionLayer" )
 REGISTER_NEOML_LAYER( CObjectNormalizationLayer, "NeoMLDnnObjectNormalizationLayer" )
 REGISTER_NEOML_LAYER( CQrnnFPoolingLayer, "NeoMLDnnQrnnFPoolingLayer" )

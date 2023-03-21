@@ -28,7 +28,7 @@ static const float TestFloatValue = 4.;
 static const CString LayerName = "LAYER";
 static const int TestSize = 20;
 
-// #define GENERATE_SERIALIZATION_FILES
+#define GENERATE_SERIALIZATION_FILES
 
 static const CString getFileName( const CString& name )
 {
@@ -3057,5 +3057,49 @@ inline void checkSpecificParams<COnnxTransposeHelper>( COnnxTransposeHelper& lay
 GTEST_TEST( SerializeFromFile, OnnxTransposeHelperSerialization )
 {
 	checkSerializeLayer<COnnxTransposeHelper>( "NeoMLDnnOnnxTransposeHelper" );
+}
+
+// ====================================================================================================================
+
+// CMobileNetV3PostSEBlockLayer
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+static void setSpecificParams( CMobileNetV3PostSEBlockLayer& layer )
+{
+	const int expandChannels = 4;
+	const int outputChannels = 3;
+
+	layer.SetDownFilter( generateBlob( outputChannels, 1, 1, 1, expandChannels ) );
+	layer.SetDownFreeTerm( generateBlob( 1, 1, 1, 1, outputChannels ) );
+
+	layer.SetActivation( CActivationDesc( AF_ReLU, CReLULayer::CParam{ 456.f } ) );
+}
+
+GTEST_TEST( SerializeToFile, MobileNetV3PostSEBlockLayerSerialization )
+{
+	serializeToFile<CMobileNetV3PostSEBlockLayer>( "NeoMLDnnMobileNetV3PostSEBlockLayer" );
+}
+
+#endif // GENERATE_SERIALIZATION_FILES
+
+template<>
+inline void checkSpecificParams<CMobileNetV3PostSEBlockLayer>( CMobileNetV3PostSEBlockLayer& layer )
+{
+	const int expandChannels = 4;
+	const int outputChannels = 3;
+
+	checkBlob( *layer.DownFilter(), outputChannels * expandChannels );
+	checkBlob( *layer.DownFreeTerm(), outputChannels );
+
+	const CActivationDesc& activation = layer.Activation();
+	ASSERT_EQ( AF_ReLU, activation.GetType() );
+	ASSERT_TRUE( activation.HasParam() );
+	ASSERT_EQ( 456.f, activation.GetParam<CReLULayer::CParam>().UpperThreshold );
+}
+
+GTEST_TEST( SerializeFromFile, MobileNetV3PostSEBlockLayerSerialization )
+{
+	checkSerializeLayer<CMobileNetV3PostSEBlockLayer>( "NeoMLDnnMobileNetV3PostSEBlockLayer" );
 }
 

@@ -23,6 +23,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/ChannelwiseConvLayer.h>
 #include <NeoML/Dnn/Layers/FullyConnectedLayer.h>
 #include <NeoML/Dnn/Layers/GlobalMeanPoolingLayer.h>
+#include <NeoML/Dnn/Layers/MobileNetV3BlockLayer.h>
 #include <NeoML/Dnn/Layers/Onnx/OnnxEltwiseLayer.h>
 #include <NeoML/Dnn/Layers/Onnx/OnnxReshapeLayer.h>
 #include <NeoML/Dnn/Layers/Onnx/OnnxSourceHelper.h>
@@ -39,7 +40,7 @@ void CMobileNetV3Optimizer::Apply( CDnnOptimizationReport& report )
 	report.MobileNetV3NonResidualBlocks = optimizeNonResidualBlocks();
 }
 
-// Optimizes MobiletNetV3 blocks with residual connections
+// Optimizes MobileNetV3 blocks with residual connections
 int CMobileNetV3Optimizer::optimizeResidualBlocks()
 {
 	NeoAssert( graph.SelectionSize() == 0 );
@@ -69,7 +70,7 @@ int CMobileNetV3Optimizer::optimizeResidualBlocks()
 	return blocksOptimized;
 }
 
-// Optimizes MobiletNetV3 blocks without residual connections
+// Optimizes MobileNetV3 blocks without residual connections
 int CMobileNetV3Optimizer::optimizeNonResidualBlocks()
 {
 	NeoAssert( graph.SelectionSize() == 0 );
@@ -106,7 +107,7 @@ int CMobileNetV3Optimizer::optimizeNonResidualBlocks()
 bool CMobileNetV3Optimizer::detectMNv3Residual( CBaseLayer& residual, CMNv3BlockInfo& detectedBlock )
 {
 	COnnxEltwiseLayer* onnxSum = dynamic_cast<COnnxEltwiseLayer*>( &residual );
-	if( onnxSum == nullptr || graph.GetInputCount( *onnxSum ) != 2
+	if( onnxSum == nullptr || graph.GetInputCount( residual ) != 2
 		|| onnxSum->GetOperation() != COnnxEltwiseLayer::TOperation::Add )
 	{
 		return false;
@@ -120,6 +121,7 @@ bool CMobileNetV3Optimizer::detectMNv3Residual( CBaseLayer& residual, CMNv3Block
 		CLayerOutput<> blockData = graph.GetConnectedOutput<CBaseLayer>( CLayerInput<>( &residual, 1 - i ) );
 		if( detectMNv3NonResidual( *downConvOutput, detectedBlock ) && blockData == detectedBlock.InputData ) {
 			detectedBlock.Residual = &residual;
+			graph.SelectLayer( residual );
 			return true;
 		} else {
 			graph.ClearSelection();
@@ -148,15 +150,17 @@ bool CMobileNetV3Optimizer::detectMNv3PostSE( CConvLayer& downConv, CMNv3BlockIn
 		return false;
 	}
 	detectedBlock.DownConv = &downConv;
+	graph.SelectLayer( downConv );
 
-	CBaseLayer* channelwiseActvation = graph.GetConnectedOutput<CBaseLayer>( CLayerInput<>( &downConv, 0 ) ).Layer;
+	CBaseLayer* channelwiseActvation = graph.SelectConnectedOutput<CBaseLayer>(
+		CLayerInput<>( &downConv, 0 ), true ).Layer;
 	if( channelwiseActvation == nullptr || !isValidBlockActivation( *channelwiseActvation ) ) {
 		return false;
 	}
 	detectedBlock.ChannelwiseActivation = dynamic_cast<IActivationLayer&>( *channelwiseActvation ).GetDesc();
 
-	detectedBlock.SEMulVectorInput.Layer
-		= graph.GetConnectedOutput<CBaseLayer>( CLayerInput<>( channelwiseActvation, 0 ) ).Layer;
+	detectedBlock.SEMulVectorInput.Layer = graph.SelectConnectedOutput<CBaseLayer>(
+		CLayerInput<>( channelwiseActvation, 0 ), true ).Layer;
 	return true;
 }
 
@@ -180,7 +184,7 @@ bool CMobileNetV3Optimizer::detectMNv3SE( CMNv3BlockInfo& detectedBlock )
 		detectedBlock.SEMulVectorInput.Index = 1 - mulInput;
 
 		COnnxTransformHelper* thirdTransform = graph.SelectConnectedOutput<COnnxTransformHelper>(
-			detectedBlock.SEMulVectorInput, false ).Layer;
+			detectedBlock.SEMulVectorInput, true ).Layer;
 		if( thirdTransform == nullptr ||
 			!isValidOnnxTransform( *thirdTransform,
 				{ BD_Count, BD_BatchLength, BD_Count, BD_ListSize, BD_Height, BD_Count, BD_Channels } ) )
@@ -308,7 +312,7 @@ bool CMobileNetV3Optimizer::detectMNv3PreSE( CMNv3BlockInfo& detectedBlock )
 	return detectedBlock.InputData.Layer != nullptr;
 }
 
-// Checks that CConvLayer meets the criteria of 1x1 convolution inside MobiletNetV3 block
+// Checks that CConvLayer meets the criteria of 1x1 convolution inside MobileNetV3 block
 bool CMobileNetV3Optimizer::isValid1x1Conv( CConvLayer& conv ) const
 {
 	return graph.GetInputCount( conv ) == 1 && conv.GetFilterHeight() == 1 && conv.GetFilterWidth() == 1
@@ -316,7 +320,7 @@ bool CMobileNetV3Optimizer::isValid1x1Conv( CConvLayer& conv ) const
 		&& conv.GetStrideWidth() == 1;
 }
 
-// Checks that layer meets the criteria for activation function inside MobiletNetV3 block
+// Checks that layer meets the criteria for activation function inside MobileNetV3 block
 bool CMobileNetV3Optimizer::isValidBlockActivation( CBaseLayer& layer ) const
 {
 	return ( dynamic_cast<CReLULayer*>( &layer ) != nullptr || dynamic_cast<CHSwishLayer*>( &layer ) != nullptr )
@@ -398,6 +402,21 @@ void CMobileNetV3Optimizer::optimizeDetectedBlock( const CMNv3BlockInfo& detecte
 		CLayerOutput<>( detectedBlock.SEPooling, 0 ) );
 	graph.Connect( detectedBlock.SEMulVectorInput,
 		CLayerOutput<>( detectedBlock.SESecondActivation, 0 ) );
+
+	// optimzie post Squeeze-and-Excite part
+	CPtr<CMobileNetV3PostSEBlockLayer> postSEBlock = new CMobileNetV3PostSEBlockLayer( graph.MathEngine(),
+		detectedBlock.ChannelwiseActivation, detectedBlock.DownConv->GetFilterData(),
+		!detectedBlock.DownConv->IsZeroFreeTerm() ? detectedBlock.DownConv->GetFreeTermData() : nullptr );
+	postSEBlock->SetName( graph.GetUniqueName( "MobileNetV3PostSEBlock" ) );
+	graph.AddLayer( *postSEBlock );
+	graph.Connect( CLayerInput<>( postSEBlock, 0 ), CLayerOutput<>( detectedBlock.Channelwise, 0 ) );
+	graph.Connect( CLayerInput<>( postSEBlock, 1 ), CLayerOutput<>( detectedBlock.SESecondActivation, 0 ) );
+	if( detectedBlock.Residual != nullptr ) {
+		graph.Connect( CLayerInput<>( postSEBlock, 2 ), detectedBlock.InputData );
+		graph.SwitchOutputs( CLayerOutput<>( detectedBlock.Residual, 0 ), CLayerOutput<>( postSEBlock, 0 ) );
+	} else {
+		graph.SwitchOutputs( CLayerOutput<>( detectedBlock.DownConv, 0 ), CLayerOutput<>( postSEBlock, 0 ) );
+	}
 
 	graph.DeleteSelectedLayers();
 }

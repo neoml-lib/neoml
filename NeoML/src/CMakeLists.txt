@@ -47,6 +47,7 @@ set(NeoML_SOURCES_COMPACT
     Dnn/Layers/LstmLayer.cpp
     Dnn/Layers/MatrixMultiplicationLayer.cpp
     Dnn/Layers/MobileNetV2BlockLayer.cpp
+    Dnn/Layers/MobileNetV3BlockLayer.cpp
     Dnn/Layers/MultichannelLookupLayer.cpp
     Dnn/Layers/MultiheadAttentionLayer.cpp
     Dnn/Layers/MultiHingeLossLayer.cpp
@@ -268,6 +269,7 @@ set(NeoML_HEADERS_COMPACT
     ../include/NeoML/Dnn/Layers/LstmLayer.h
     ../include/NeoML/Dnn/Layers/MatrixMultiplicationLayer.h
     ../include/NeoML/Dnn/Layers/MobileNetV2BlockLayer.h
+    ../include/NeoML/Dnn/Layers/MobileNetV3BlockLayer.h
     ../include/NeoML/Dnn/Layers/MultichannelLookupLayer.h
     ../include/NeoML/Dnn/Layers/MultiheadAttentionLayer.h
     ../include/NeoML/Dnn/Layers/ObjectNormalizationLayer.h

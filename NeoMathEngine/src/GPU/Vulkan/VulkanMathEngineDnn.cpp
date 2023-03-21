@@ -700,6 +700,13 @@ void CVulkanMathEngine::MobileNetV2Block( const CBlobDesc&, const CBlobDesc&, co
 	ASSERT_EXPR( false );
 }
 
+void CVulkanMathEngine::MobileNetV3PostSEBlock( const CBlobDesc&, int, const CConstFloatHandle&,
+	const CConstFloatHandle&, const CConstFloatHandle*, TActivationFunction, float, const CConstFloatHandle&,
+	const CConstFloatHandle*, const CFloatHandle& )
+{
+	ASSERT_EXPR( false );
+}
+
 } // namespace NeoML
 
 #endif // NEOML_USE_VULKAN

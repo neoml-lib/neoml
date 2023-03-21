@@ -57,7 +57,7 @@ private:
 		CLayerInput<> SEMulVectorInput{};
 		CActivationDesc ChannelwiseActivation{ AF_ReLU };
 		CConvLayer* DownConv = nullptr;
-		bool Residual = false;
+		CBaseLayer* Residual = nullptr;
 	};
 
 	int optimizeNonResidualBlocks();

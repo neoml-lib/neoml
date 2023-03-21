@@ -1067,6 +1067,11 @@ public:
 		const CConstFloatHandle* channelwiseFreeTerm, TActivationFunction channelwiseActivation,
 		float channelwiseActivationParam, const CConstFloatHandle& downFilter, const CConstFloatHandle* downFreeTerm,
 		bool residual, const CFloatHandle& outputHandle ) = 0;
+	virtual void MobileNetV3PostSEBlock( const CBlobDesc& channelwiseOutputDesc, int outputChannels,
+		const CConstFloatHandle& channelwiseOutputHandle, const CConstFloatHandle& squeezeAndExciteHandle,
+		const CConstFloatHandle* residualHandle, TActivationFunction activation, float activationParam,
+		const CConstFloatHandle& downFilterHandle, const CConstFloatHandle* downFreeTermHandle,
+		const CFloatHandle& outputHandle ) = 0;
 };
 
 //------------------------------------------------------------------------------------------------------------

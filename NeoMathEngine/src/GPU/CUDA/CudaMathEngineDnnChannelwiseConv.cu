@@ -191,6 +191,49 @@ void CCudaMathEngine::MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobD
 	}
 }
 
+void CCudaMathEngine::MobileNetV3PostSEBlock( const CBlobDesc& channelwiseOutputDesc, int outputChannels,
+	const CConstFloatHandle& channelwiseOutputHandle, const CConstFloatHandle& squeezeAndExciteHandle,
+	const CConstFloatHandle* residualHandle, TActivationFunction activation, float activationParam,
+	const CConstFloatHandle& downFilterHandle, const CConstFloatHandle* downFreeTermHandle,
+	const CFloatHandle& outputHandle )
+{
+	const int batchSize = channelwiseOutputDesc.ObjectCount();
+	const int geomSize = channelwiseOutputDesc.GeometricalSize();
+	const int inputChannels = channelwiseOutputDesc.Channels();
+	const int inputObjectSize = geomSize * inputChannels;
+	const int inputSize = inputObjectSize * batchSize;
+	const int outputSize = batchSize * geomSize * outputChannels;
+
+	CFloatHandleStackVar squeezedAndExcited( *this, inputSize );
+
+	for( int b = 0; b < batchSize; ++b ) {
+		MultiplyMatrixByDiagMatrix( channelwiseOutputHandle + b * inputObjectSize, geomSize, inputChannels,
+			squeezeAndExciteHandle + b * inputChannels, squeezedAndExcited + b * inputObjectSize, inputObjectSize );
+	}
+
+	if( activation == AF_HSwish ) {
+		VectorHSwish( squeezedAndExcited, squeezedAndExcited, inputSize );
+	} else {
+		CFloatHandleStackVar reLUThreshold( *this );
+		reLUThreshold.GetHandle().SetValue( activationParam );
+		VectorReLU( squeezedAndExcited, squeezedAndExcited, inputSize, reLUThreshold );
+	}
+
+	if( residualHandle != nullptr ) {
+		VectorCopy( outputHandle, *residualHandle, outputSize );
+		multiplyMatrixByTransposedMatrixAndAdd( squeezedAndExcited, batchSize * geomSize, inputChannels,
+			inputChannels, downFilterHandle, outputChannels, outputChannels, outputHandle, outputChannels );
+	} else {
+		MultiplyMatrixByTransposedMatrix( 1, squeezedAndExcited, batchSize * geomSize, inputChannels,
+			downFilterHandle, outputChannels, outputHandle, outputSize );
+	}
+
+	if( downFreeTermHandle != nullptr ) {
+		AddVectorToMatrixRows( 1, outputHandle, outputHandle, batchSize * geomSize,
+			outputChannels, *downFreeTermHandle );
+	}
+}
+
 } // namespace NeoML
 
 #endif // NEOML_USE_CUDA
