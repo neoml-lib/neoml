@@ -77,11 +77,10 @@ void CHardSigmoidOptimizer::Apply()
 		}
 
 		// Find bias layer
-		CLayerOutput<COnnxEltwiseLayer> biasOutput = graph.SelectConnectedOutput<COnnxEltwiseLayer>(
-			CLayerInput<>{ clipOutput.Layer, 0 }, true );
-		if( biasOutput.Layer == nullptr || graph.GetInputCount( *biasOutput.Layer ) != 2
-			|| ( biasOutput.Layer->GetOperation() != COnnxEltwiseLayer::TOperation::Add
-				&& biasOutput.Layer->GetOperation() != COnnxEltwiseLayer::TOperation::Sub ) )
+		COnnxEltwiseLayer* bias = graph.SelectConnectedOutput<COnnxEltwiseLayer>( *clipOutput.Layer, 0, true ).Layer;
+		if( bias == nullptr || graph.GetInputCount( *bias ) != 2
+			|| ( bias->GetOperation() != COnnxEltwiseLayer::TOperation::Add
+				&& bias->GetOperation() != COnnxEltwiseLayer::TOperation::Sub ) )
 		{
 			continue;
 		}
@@ -91,9 +90,9 @@ void CHardSigmoidOptimizer::Apply()
 		CLayerOutput<> hardSigmoidInputData;
 		float biasValue = 0.f;
 		for( int i = 0; i < 2; ++i ) {
-			biasDataOutput = graph.GetConnectedOutput<CDataLayer>( CLayerInput<>{ biasOutput.Layer, i } );
+			biasDataOutput = graph.GetConnectedOutput<CDataLayer>( *bias, i );
 			if( biasDataOutput.Layer != nullptr && isValidDataLayer( *biasDataOutput.Layer, biasValue ) ) {
-				hardSigmoidInputData = graph.GetConnectedOutput<CBaseLayer>( CLayerInput<>{ biasOutput.Layer, 1 - i } );
+				hardSigmoidInputData = graph.GetConnectedOutput<>( *bias, 1 - i );
 				graph.SelectLayer( *biasDataOutput.Layer );
 				break;
 			} else {
@@ -106,7 +105,7 @@ void CHardSigmoidOptimizer::Apply()
 		}
 
 		// Hard sigmoid firstly applies slope, then bias
-		if( biasOutput.Layer->GetOperation() == COnnxEltwiseLayer::TOperation::Sub ) {
+		if( bias->GetOperation() == COnnxEltwiseLayer::TOperation::Sub ) {
 			biasValue = -biasValue;
 		}
 		biasValue *= slopeValue;
@@ -118,8 +117,8 @@ void CHardSigmoidOptimizer::Apply()
 		graph.AddLayer( *hardSigmoidLayer );
 		::printf( "[HARDSIGMOID] replace '%s' with '%s'\n", slopeLayer->GetName(), hardSigmoidLayer->GetName() );
 
-		graph.Connect( CLayerInput<>{ hardSigmoidLayer, 0 }, hardSigmoidInputData );
-		graph.SwitchOutputs( CLayerOutput<>{ slopeLayer, 0 }, CLayerOutput<>{ hardSigmoidLayer, 0 } );
+		graph.Connect( *hardSigmoidLayer, 0, *hardSigmoidInputData.Layer, hardSigmoidInputData.Index );
+		graph.SwitchOutputs( *slopeLayer, 0, *hardSigmoidLayer, 0 );
 
 		graph.DeleteSelectedLayers();
 	}
@@ -133,7 +132,7 @@ bool CHardSigmoidOptimizer::isValidDataLayer( CDataLayer& dataLayer, float& valu
 	NeoAssert( graph.GetInputCount( dataLayer ) == 0 );
 	NeoAssert( graph.GetOutputCount( dataLayer ) == 1 );
 
-	if( graph.GetConnectedInputsCount( CLayerOutput<>{ &dataLayer, 0 } ) != 1 ) {
+	if( graph.GetConnectedInputsCount( dataLayer, 0 ) != 1 ) {
 		return false;
 	}
 

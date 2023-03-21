@@ -53,24 +53,23 @@ void CHSwishOptimizer::Apply()
 
 		// Check mulLayer's inputs
 		for( int i = 0; i < 2; ++i ) {
-			CLayerOutput<CHardSigmoidLayer> hardSigmoidOutput = graph.GetConnectedOutput<CHardSigmoidLayer>(
-				CLayerInput<>{ mulLayer, i } );
-			if( hardSigmoidOutput.Layer == nullptr ) {
+			CHardSigmoidLayer* hardSigmoid = graph.GetConnectedOutput<CHardSigmoidLayer>( *mulLayer, i ).Layer;
+			if( hardSigmoid == nullptr ) {
 				continue;
 			}
-			CLayerOutput<> hSwishInputData = graph.GetConnectedOutput<CBaseLayer>( CLayerInput<>{ mulLayer, 1 - i } );
+			CLayerOutput<> hSwishInputData = graph.GetConnectedOutput<>( *mulLayer, 1 - i );
 
-			if( isValidHardSigmoidLayer( *hardSigmoidOutput.Layer, hSwishInputData ) ) {
+			if( isValidHardSigmoidLayer( *hardSigmoid, hSwishInputData ) ) {
 				CPtr<CHSwishLayer> hSwishLayer = new CHSwishLayer( graph.MathEngine() );
 				hSwishLayer->SetName( graph.GetUniqueName( "HSwish" ) );
 				graph.AddLayer( *hSwishLayer );
 				::printf( "[HARDSWISH] replace '%s' with '%s'\n", mulLayer->GetName(), hSwishLayer->GetName() );
 
-				graph.Connect( CLayerInput<>{ hSwishLayer, 0 }, hSwishInputData );
-				graph.SwitchOutputs( CLayerOutput<>{ mulLayer, 0 }, CLayerOutput<>{ hSwishLayer, 0 } );
+				graph.Connect( *hSwishLayer, 0, *hSwishInputData.Layer, hSwishInputData.Index );
+				graph.SwitchOutputs( *mulLayer, 0, *hSwishLayer, 0 );
 
 				graph.DeleteLayer( *mulLayer );
-				graph.DeleteLayer( *hardSigmoidOutput.Layer );
+				graph.DeleteLayer( *hardSigmoid );
 				break;
 			}
 		}
@@ -86,7 +85,7 @@ bool CHSwishOptimizer::isValidHardSigmoidLayer( CHardSigmoidLayer& hardSigmoidLa
 	NeoAssert( graph.GetOutputCount( hardSigmoidLayer ) == 1 );
 
 	// If HardSigmoid is used by some other layer then we can't replace it with CHSwishLayer
-	if( graph.GetConnectedInputsCount( CLayerOutput<>{ &hardSigmoidLayer, 0 } ) != 1 ) {
+	if( graph.GetConnectedInputsCount( hardSigmoidLayer, 0 ) != 1 ) {
 		return false;
 	}
 
@@ -97,7 +96,7 @@ bool CHSwishOptimizer::isValidHardSigmoidLayer( CHardSigmoidLayer& hardSigmoidLa
 	}
 
 	// Check that hard sigmoid is connected to the same input, as other connection of mulLayer
-	return graph.GetConnectedOutput<CBaseLayer>( CLayerInput<>{ &hardSigmoidLayer, 0 } ) == hSwishInputData;
+	return graph.GetConnectedOutput<>( hardSigmoidLayer, 0 ) == hSwishInputData;
 }
 
 } // namespace optimization
