@@ -28,8 +28,6 @@ CDnnOptimizationReport OptimizeDnn( CDnn& dnn )
 	CDnnOptimizationReport report;
 	optimization::CGraph graph( dnn );
 	optimization::CMobileNetV2Optimizer( graph ).Apply( report );
-	::printf( "MobileNetV2 opt: %d residual, %d non-residual\n", report.MobileNetV2ResidualBlocks,
-		report.MobileNetV2NonResidualBlocks );
 	return report;
 }
 

@@ -116,7 +116,6 @@ void CHardSigmoidOptimizer::Apply()
 		hardSigmoidLayer->SetSlope( slopeValue );
 		hardSigmoidLayer->SetBias( biasValue );
 		graph.AddLayer( *hardSigmoidLayer );
-		::printf( "[HARDSIGMOID] replace '%s' with '%s'\n", slopeLayer->GetName(), hardSigmoidLayer->GetName() );
 
 		graph.Connect( *hardSigmoidLayer, 0, *hardSigmoidInputData.Layer, hardSigmoidInputData.Index );
 		graph.SwitchOutputs( *slopeLayer, 0, *hardSigmoidLayer, 0 );
