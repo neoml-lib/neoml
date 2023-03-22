@@ -16,7 +16,6 @@ set(NeoML_SOURCES_COMPACT
     Dnn/Dnn.cpp
     Dnn/DnnBlob.cpp
     Dnn/DnnInitializer.cpp
-    Dnn/DnnOptimization.cpp
     Dnn/DnnSparseMatrix.cpp
     Dnn/Layers/3dConvLayer.cpp
     Dnn/Layers/ActivationLayers.cpp
@@ -98,6 +97,7 @@ set(NeoML_SOURCES_COMPACT
 set(NeoML_SOURCES
     ${NeoML_SOURCES_COMPACT}
     Dnn/DnnDistributed.cpp
+    Dnn/DnnOptimization.cpp
     Dnn/Layers/3dPoolingLayer.cpp
     Dnn/Layers/3dTransposedConvLayer.cpp
     Dnn/Layers/AccumulativeLookupLayer.cpp
@@ -161,6 +161,8 @@ set(NeoML_SOURCES
     Dnn/Layers/TransformerLayer.cpp
     Dnn/Layers/TransformerSourceMaskLayer.cpp
     Dnn/Layers/Upsampling2DLayer.cpp
+    Dnn/Optimization/Graph.cpp
+    Dnn/Optimization/MobileNetV2Optimizer.cpp
     TraditionalML/BytePairEncoderTrainer.cpp
     TraditionalML/ClusterCenter.cpp
     TraditionalML/CommonCluster.cpp
@@ -202,6 +204,7 @@ set(NeoML_NON_UNITY_SOURCES
 )
 
 set(NeoML_HEADERS_COMPACT
+    Dnn/Optimization/MobileNetV2Optimizer.h
     TraditionalML/CompactRegressionTree.h
     TraditionalML/DecisionTreeClassificationModel.h
     TraditionalML/DecisionTreeNodeBase.h
@@ -237,7 +240,6 @@ set(NeoML_HEADERS_COMPACT
     ../include/NeoML/Dnn/DnnBlob.h
     ../include/NeoML/Dnn/DnnInitializer.h
     ../include/NeoML/Dnn/DnnLambdaHolder.h
-    ../include/NeoML/Dnn/DnnOptimization.h
     ../include/NeoML/Dnn/DnnSolver.h
     ../include/NeoML/Dnn/DnnSparseMatrix.h
     ../include/NeoML/Dnn/Layers/3dConvLayer.h
@@ -320,6 +322,7 @@ set(NeoML_HEADERS
 
     # Headers
     ../include/NeoML/Dnn/DnnDistributed.h
+    ../include/NeoML/Dnn/DnnOptimization.h
     ../include/NeoML/Dnn/Layers/3dPoolingLayer.h
     ../include/NeoML/Dnn/Layers/3dTransposedConvLayer.h
     ../include/NeoML/Dnn/Layers/AccumulativeLookupLayer.h
@@ -371,6 +374,7 @@ set(NeoML_HEADERS
     ../include/NeoML/Dnn/Layers/Onnx/OnnxSplitLayer.h
     ../include/NeoML/Dnn/Layers/Onnx/OnnxTransformHelper.h
     ../include/NeoML/Dnn/Layers/Onnx/OnnxTransposeHelper.h
+    ../include/NeoML/Dnn/Optimization/Graph.h
     ../include/NeoML/Dnn/Layers/PoolingLayer.h
     ../include/NeoML/Dnn/Layers/PositionalEmbeddingLayer.h
     ../include/NeoML/Dnn/Layers/PrecisionRecallLayer.h

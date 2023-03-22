@@ -134,10 +134,10 @@ void CCudaMathEngine::BlobChannelwiseConvolutionLearnAdd( const CChannelwiseConv
 void CCudaMathEngine::MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobDesc& outputDesc,
 	const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& inputHandle,
 	const CConstFloatHandle& expandFilter, const CConstFloatHandle* expandFreeTerm,
-	const CConstFloatHandle& expandReLUThreshold, const CConstFloatHandle& channelwiseFilter,
-	const CConstFloatHandle* channelwiseFreeTerm, const CConstFloatHandle& channelwiseReLUThreshold,
-	const CConstFloatHandle& downFilter, const CConstFloatHandle* downFreeTerm, bool residual,
-	const CFloatHandle& outputHandle )
+	TActivationFunction expandActivation, float expandActivationParam, const CConstFloatHandle& channelwiseFilter,
+	const CConstFloatHandle* channelwiseFreeTerm, TActivationFunction channelwiseActivation,
+	float channelwiseActivationParam, const CConstFloatHandle& downFilter, const CConstFloatHandle* downFreeTerm,
+	bool residual, const CFloatHandle& outputHandle )
 {
 	SetCudaDevice( device->DeviceNumber );
 	const CCudaChannelwiseConvolutionDescInternal& desc = static_cast<const CCudaChannelwiseConvolutionDesc&>( convDesc ).Internal;
@@ -158,10 +158,23 @@ void CCudaMathEngine::MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobD
 		AddVectorToMatrixRows( 1, channelwiseInput, channelwiseInput, channelwiseInput.Size() / expandedChannels,
 			expandedChannels, *expandFreeTerm );
 	}
-	VectorReLU( channelwiseInput, channelwiseInput, channelwiseInput.Size(), expandReLUThreshold );
+
+	if( expandActivation == AF_HSwish ) {
+		VectorHSwish( channelwiseInput, channelwiseInput, channelwiseInput.Size() );
+	} else {
+		CFloatHandleStackVar expandReLUThreshold( *this );
+		expandReLUThreshold.GetHandle().SetValue( expandActivationParam );
+		VectorReLU( channelwiseInput, channelwiseInput, channelwiseInput.Size(), expandReLUThreshold );
+	}
 
 	BlobChannelwiseConvolution( convDesc, channelwiseInput, channelwiseFilter, channelwiseFreeTerm, channelwiseOutput );
-	VectorReLU( channelwiseOutput, channelwiseOutput, channelwiseOutput.Size(), channelwiseReLUThreshold );
+	if( channelwiseActivation == AF_HSwish ) {
+		VectorHSwish( channelwiseOutput, channelwiseOutput, channelwiseInput.Size() );
+	} else {
+		CFloatHandleStackVar channelwiseReLUThreshold( *this );
+		channelwiseReLUThreshold.GetHandle().SetValue( channelwiseActivationParam );
+		VectorReLU( channelwiseOutput, channelwiseOutput, channelwiseOutput.Size(), channelwiseReLUThreshold );
+	}
 
 	if( residual ) {
 		multiplyMatrixByTransposedMatrixAndAdd( channelwiseOutput, channelwiseOutput.Size() / expandedChannels,

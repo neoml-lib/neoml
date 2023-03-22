@@ -37,7 +37,6 @@ limitations under the License.
 #include <NeoML/Dnn/Dnn.h>
 #include <NeoML/Dnn/DnnBlob.h>
 #include <NeoML/Dnn/DnnInitializer.h>
-#include <NeoML/Dnn/DnnOptimization.h>
 #include <NeoML/Dnn/DnnSolver.h>
 #include <NeoML/Dnn/DnnSparseMatrix.h>
 #include <NeoML/Dnn/Layers/3dConvLayer.h>
@@ -98,6 +97,7 @@ limitations under the License.
 #include <NeoML/TraditionalML/WordDictionary.h>
 
 #include <NeoML/Dnn/DnnDistributed.h>
+#include <NeoML/Dnn/DnnOptimization.h>
 #include <NeoML/Dnn/Layers/3dPoolingLayer.h>
 #include <NeoML/Dnn/Layers/3dTransposedConvLayer.h>
 #include <NeoML/Dnn/Layers/AccumulativeLookupLayer.h>

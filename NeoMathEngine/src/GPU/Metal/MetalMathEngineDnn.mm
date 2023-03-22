@@ -680,9 +680,9 @@ void CMetalMathEngine::ScatterND( const CConstIntHandle&, const CConstIntHandle&
 }
 
 void CMetalMathEngine::MobileNetV2Block( const CBlobDesc&, const CBlobDesc&, const CChannelwiseConvolutionDesc&,
-	const CConstFloatHandle&, const CConstFloatHandle&, const CConstFloatHandle*, const CConstFloatHandle&,
-	const CConstFloatHandle&, const CConstFloatHandle*, const CConstFloatHandle&, const CConstFloatHandle&,
-	const CConstFloatHandle*, bool, const CFloatHandle& ) override
+    const CConstFloatHandle&, const CConstFloatHandle&, const CConstFloatHandle*, TActivationFunction, float,
+    const CConstFloatHandle&, const CConstFloatHandle*, TActivationFunction, float, const CConstFloatHandle&,
+    const CConstFloatHandle*, bool, const CFloatHandle& ) override
 {
 	ASSERT_EXPR( false );
 }

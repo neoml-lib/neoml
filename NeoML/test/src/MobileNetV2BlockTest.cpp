@@ -165,8 +165,9 @@ static void mobileNetV2BlockTestImpl( unsigned int seed, int freeTermMask, float
 	CPtr<CSinkLayer> expectedSink = AddLayer<CSinkLayer>( "expectedSink", { expectedBlock } );
 
 	CPtr<CMobileNetV2BlockLayer> actualBlock = new CMobileNetV2BlockLayer( MathEngine(), expandFilter, expandFreeTerm,
-		expandReLUThreshold, stride, channelwiseFilter, channelwiseFreeTerm, channelwiseReLUThreshold, downFilter,
-		downFreeTerm, residual );
+		CActivationDesc( AF_ReLU, CReLULayer::CParam{ expandReLUThreshold } ), stride, channelwiseFilter,
+		channelwiseFreeTerm, CActivationDesc( AF_ReLU, CReLULayer::CParam{ channelwiseReLUThreshold } ),
+		downFilter, downFreeTerm, residual );
 	AddLayer( actualBlock, "actualBlock", { data } );
 	CPtr<CSinkLayer> actualSink = AddLayer<CSinkLayer>( "actualSink", { actualBlock } );
 

@@ -17,13 +17,14 @@ limitations under the License.
 
 #include <NeoML/NeoMLDefs.h>
 #include <NeoML/Dnn/Dnn.h>
+#include <NeoML/Dnn/Layers/ActivationLayers.h>
 
 namespace NeoML {
 
 // This layer computes a block in a MobileNetV2 architecture
 //
 // The block may be without residual connection
-//     conv1x1 (expand) -> relu (expandReLU) -> channelwiseConv3x3 -> relu (channelwiseReLU) -> conv1x1 (down)
+//     conv1x1 (expand) -> expandActivation -> channelwiseConv3x3 -> chanenlwiseActivation -> conv1x1 (down)
 // or it may be with residual connection
 //     -+--> block without residual ----> sum ->
 //      |                                  |
@@ -33,27 +34,29 @@ namespace NeoML {
 //     - this layer is untrainable
 //     - all 1x1 convolutions must have no paddings and stride == 1
 //     - channelwise convolution must have stride 1 or 2, padding == 1 and dilation == 1
-//     - only ReLU activation is supported (upper thresholds in ReLU are supported)
-//     - free terms are supported (but may be nullptr) for all the convolutions i nblock
+//     - only ReLU and HSwish activations are supported (upper thresholds in ReLU are supported)
+//     - free terms are supported (but may be nullptr) for all the convolutions in nblock
 class NEOML_API CMobileNetV2BlockLayer : public CBaseLayer {
 	NEOML_DNN_LAYER( CMobileNetV2BlockLayer )
 public:
-	CMobileNetV2BlockLayer( IMathEngine& mathEngine, const CPtr<CDnnBlob>& expandFilter, const CPtr<CDnnBlob>& expandFreeTerm,
-		float expandReLUThreshold, int stride, const CPtr<CDnnBlob>& channelwiseFilter, const CPtr<CDnnBlob>& channelwiseFreeTerm,
-		float channelwiseReLUThreshold, const CPtr<CDnnBlob>& downFilter, const CPtr<CDnnBlob>& downFreeTerm, bool residual );
+	CMobileNetV2BlockLayer( IMathEngine& mathEngine, const CPtr<CDnnBlob>& expandFilter,
+		const CPtr<CDnnBlob>& expandFreeTerm, const CActivationDesc& expandActivation, int stride,
+		const CPtr<CDnnBlob>& channelwiseFilter, const CPtr<CDnnBlob>& channelwiseFreeTerm,
+		const CActivationDesc& channelwiseActivation, const CPtr<CDnnBlob>& downFilter,
+		const CPtr<CDnnBlob>& downFreeTerm, bool residual );
 	explicit CMobileNetV2BlockLayer( IMathEngine& mathEngine );
 	~CMobileNetV2BlockLayer();
 
 	// Expand convolution and RelU parameters
 	CPtr<CDnnBlob> ExpandFilter() const { return getParamBlob( P_ExpandFilter ); }
 	CPtr<CDnnBlob> ExpandFreeTerm() const { return getParamBlob( P_ExpandFreeTerm ); }
-	float ExpandReLUThreshold() const { return expandReLUVar.GetValue(); }
+	CActivationDesc ExpandActivation() const { return expandActivation; }
 
 	// Channelwise convolution and ReLU parameters
 	int Stride() const { return stride; }
 	CPtr<CDnnBlob> ChannelwiseFilter() const { return getParamBlob( P_ChannelwiseFilter ); }
 	CPtr<CDnnBlob> ChannelwiseFreeTerm() const { return getParamBlob( P_ChannelwiseFreeTerm ); }
-	float ChannelwiseReLUThreshold() const { return channelwiseReLUVar.GetValue(); }
+	CActivationDesc ChannelwiseActivation() const { return channelwiseActivation; }
 
 	// Down convolution parameters
 	CPtr<CDnnBlob> DownFilter() const { return getParamBlob( P_DownFilter ); }
@@ -61,6 +64,7 @@ public:
 
 	// Residual connection
 	bool Residual() const { return residual; }
+	void SetResidual( bool newValue );
 
 	// Serialization
 	void Serialize( CArchive& archive ) override;
@@ -86,8 +90,8 @@ private:
 
 	bool residual; // Does block have residual connection?
 	int stride; // stride of channnelwise convolution
-	CFloatHandleVar expandReLUVar; // threshold of expand convolution ReLU
-	CFloatHandleVar channelwiseReLUVar; // threshold of channelwise convolution ReLU
+	CActivationDesc expandActivation; // expand convolution activation
+	CActivationDesc channelwiseActivation; // channelwise convolution activation
 	CChannelwiseConvolutionDesc* convDesc; // descriptor of channelwise convolution
 
 	CPtr<CDnnBlob> getParamBlob( TParam param ) const;

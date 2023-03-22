@@ -19,24 +19,59 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/MobileNetV2BlockLayer.h>
 #include <NeoML/Dnn/Layers/ConvLayer.h>
 #include <NeoML/Dnn/Layers/ChannelwiseConvLayer.h>
-#include <NeoML/Dnn/Layers/ActivationLayers.h>
 #include <NeoML/Dnn/Layers/EltwiseLayer.h>
 
 namespace NeoML {
 
+static void storeActivationDesc( const CActivationDesc& desc, CArchive& archive )
+{
+	TActivationFunction type = desc.GetType();
+	NeoAssert( type == AF_ReLU || type == AF_HSwish );
+
+	archive.SerializeEnum( type );
+	if( type == AF_ReLU ) {
+		float threshold = desc.GetParam<CReLULayer::CParam>().UpperThreshold;
+		archive.Serialize( threshold );
+	}
+}
+
+static CActivationDesc loadActivationDesc( CArchive& archive )
+{
+	TActivationFunction type = AF_HSwish;
+	archive.SerializeEnum( type );
+	check( type == AF_ReLU || type == AF_HSwish, ERR_BAD_ARCHIVE, archive.Name() );
+
+	switch( type ) {
+		case AF_HSwish:
+			return CActivationDesc( type );
+		case AF_ReLU:
+		{
+			float threshold = 0;
+			archive.Serialize( threshold );
+			return CActivationDesc( AF_ReLU, CReLULayer::CParam{ threshold } );
+		}
+		default:
+			NeoAssert( false );
+	}
+
+	// Avoid possible compiler warnings
+	return CActivationDesc( type );
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
 CMobileNetV2BlockLayer::CMobileNetV2BlockLayer( IMathEngine& mathEngine, const CPtr<CDnnBlob>& expandFilter,
-		const CPtr<CDnnBlob>& expandFreeTerm, float expandReLUThreshold, int stride, const CPtr<CDnnBlob>& channelwiseFilter,
-		const CPtr<CDnnBlob>& channelwiseFreeTerm, float channelwiseReLUThreshold, const CPtr<CDnnBlob>& downFilter,
+		const CPtr<CDnnBlob>& expandFreeTerm, const CActivationDesc& expandActivation, int stride,
+		const CPtr<CDnnBlob>& channelwiseFilter, const CPtr<CDnnBlob>& channelwiseFreeTerm,
+		const CActivationDesc& channelwiseActivation, const CPtr<CDnnBlob>& downFilter,
 		const CPtr<CDnnBlob>& downFreeTerm, bool residual ) :
 	CBaseLayer( mathEngine, "MobileNetV2Block", false ),
 	residual( residual ),
 	stride( stride ),
-	expandReLUVar( mathEngine, 1 ),
-	channelwiseReLUVar( mathEngine, 1 ),
+	expandActivation( expandActivation ),
+	channelwiseActivation( channelwiseActivation ),
 	convDesc( nullptr )
 {
-	expandReLUVar.SetValue( expandReLUThreshold );
-	channelwiseReLUVar.SetValue( channelwiseReLUThreshold );
 	paramBlobs.SetSize( P_Count );
 	setParamBlob( P_ExpandFilter, expandFilter );
 	setParamBlob( P_ExpandFreeTerm, expandFreeTerm );
@@ -50,12 +85,10 @@ CMobileNetV2BlockLayer::CMobileNetV2BlockLayer( IMathEngine& mathEngine ) :
 	CBaseLayer( mathEngine, "MobileNetV2Block", false ),
 	residual( false ),
 	stride( 0 ),
-	expandReLUVar( mathEngine, 1 ),
-	channelwiseReLUVar( mathEngine, 1 ),
+	expandActivation( AF_HSwish ),
+	channelwiseActivation( AF_HSwish ),
 	convDesc( nullptr )
 {
-	expandReLUVar.SetValue( -1.f );
-	channelwiseReLUVar.SetValue( -1.f );
 	paramBlobs.SetSize( P_Count );
 }
 
@@ -66,27 +99,43 @@ CMobileNetV2BlockLayer::~CMobileNetV2BlockLayer()
 	}
 }
 
-static const int MobileNetV2BlockLayerVersion = 0;
+void CMobileNetV2BlockLayer::SetResidual( bool newValue )
+{
+	if( newValue == residual ) {
+		return;
+	}
+
+	residual = newValue;
+	ForceReshape();
+}
+
+static const int MobileNetV2BlockLayerVersion = 1;
 
 void CMobileNetV2BlockLayer::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion( MobileNetV2BlockLayerVersion );
+	const int version = archive.SerializeVersion( MobileNetV2BlockLayerVersion );
 	CBaseLayer::Serialize( archive );
 
 	archive.Serialize( residual );
 	archive.Serialize( stride );
 
-	float expandReLU = 0;
-	float channelwiseReLU = 0;
-	if( archive.IsStoring() ) {
-		expandReLU = expandReLUVar.GetValue();
-		channelwiseReLU = channelwiseReLUVar.GetValue();
+	if( version == 0 ) {
+		// In v0 only ReLU activation was supported
+		float expandReLUParam = 0;
+		float channelwiseReLUParam = 0;
+		archive.Serialize( expandReLUParam );
+		archive.Serialize( channelwiseReLUParam );
+		expandActivation = CActivationDesc( AF_ReLU, CReLULayer::CParam{ expandReLUParam } );
+		channelwiseActivation = CActivationDesc( AF_ReLU, CReLULayer::CParam{ channelwiseReLUParam } );
+		return;
 	}
-	archive.Serialize( expandReLU );
-	archive.Serialize( channelwiseReLU );
+
 	if( archive.IsLoading() ) {
-		expandReLUVar.SetValue( expandReLU );
-		channelwiseReLUVar.SetValue( channelwiseReLU );
+		expandActivation = loadActivationDesc( archive );
+		channelwiseActivation = loadActivationDesc( archive );
+	} else {
+		storeActivationDesc( expandActivation, archive );
+		storeActivationDesc( channelwiseActivation, archive );
 	}
 }
 
@@ -166,10 +215,16 @@ void CMobileNetV2BlockLayer::RunOnce()
 	const CConstFloatHandle downFt = paramBlobs[P_DownFreeTerm] == nullptr ? CConstFloatHandle()
 		: paramBlobs[P_DownFreeTerm]->GetData<const float>();
 	MathEngine().MobileNetV2Block( inputBlobs[0]->GetDesc(), outputBlobs[0]->GetDesc(), *convDesc,
-		inputBlobs[0]->GetData(), paramBlobs[P_ExpandFilter]->GetData(), expandFt.IsNull() ? nullptr : &expandFt,
-		expandReLUVar, paramBlobs[P_ChannelwiseFilter]->GetData(),
-		channelwiseFt.IsNull() ? nullptr : &channelwiseFt, channelwiseReLUVar, paramBlobs[P_DownFilter]->GetData(),
-		downFt.IsNull() ? nullptr : &downFt, residual, outputBlobs[0]->GetData() );
+		inputBlobs[0]->GetData(), paramBlobs[P_ExpandFilter]->GetData(),
+		expandFt.IsNull() ? nullptr : &expandFt,
+		expandActivation.GetType(),
+		expandActivation.GetType() == AF_HSwish ? 0.f : expandActivation.GetParam<CReLULayer::CParam>().UpperThreshold,
+		paramBlobs[P_ChannelwiseFilter]->GetData(), channelwiseFt.IsNull() ? nullptr : &channelwiseFt,
+		channelwiseActivation.GetType(),
+		channelwiseActivation.GetType() == AF_HSwish ? 0.f : channelwiseActivation.GetParam<CReLULayer::CParam>().UpperThreshold,
+		paramBlobs[P_DownFilter]->GetData(),
+		downFt.IsNull() ? nullptr : &downFt,
+		residual, outputBlobs[0]->GetData() );
 }
 
 CPtr<CDnnBlob> CMobileNetV2BlockLayer::getParamBlob( TParam param ) const
