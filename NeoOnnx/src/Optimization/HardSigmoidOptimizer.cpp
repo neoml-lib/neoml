@@ -17,7 +17,6 @@ limitations under the License.
 #pragma hdrstop
 
 #include <cmath>
-#include <cstdlib>
 
 #include "HardSigmoidOptimizer.h"
 #include <NeoML/Dnn/Optimization/Graph.h>
@@ -72,7 +71,7 @@ void CHardSigmoidOptimizer::Apply()
 		if( slopeLayer->GetOperation() == COnnxEltwiseLayer::TOperation::Div ) {
 			slopeValue = 1.f / slopeValue;
 		}
-		if( std::fabsf( clipOutput.Layer->GetUpperThreshold() * slopeValue - 1.f ) > 1e-4f ) {
+		if( std::abs( clipOutput.Layer->GetUpperThreshold() * slopeValue - 1.f ) > 1e-4f ) {
 			// Hard sigmoid can only return values in [0;1]
 			continue;
 		}

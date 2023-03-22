@@ -17,7 +17,6 @@ limitations under the License.
 #pragma hdrstop
 
 #include <cmath>
-#include <cstdlib>
 
 #include "HSwishOptimizer.h"
 #include <NeoML/Dnn/Layers/Onnx/OnnxEltwiseLayer.h>
@@ -89,8 +88,8 @@ bool CHSwishOptimizer::isValidHardSigmoidLayer( CHardSigmoidLayer& hardSigmoidLa
 		return false;
 	}
 
-	if( std::fabsf( hardSigmoidLayer.GetSlope() - 1.f / 6 ) > 1e-4f
-		|| std::fabsf( hardSigmoidLayer.GetBias() - 0.5f ) > 1e-4f )
+	if( std::abs( hardSigmoidLayer.GetSlope() - 1.f / 6 ) > 1e-4f
+		|| std::abs( hardSigmoidLayer.GetBias() - 0.5f ) > 1e-4f )
 	{
 		return false;
 	}
