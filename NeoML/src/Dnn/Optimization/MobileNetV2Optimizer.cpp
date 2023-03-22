@@ -149,6 +149,7 @@ int CMobileNetV2Optimizer::optimizeResidualConnections()
 				mobileNetV2Block->SetResidual( true );
 				graph.DeleteLayer( *layer );
 				++blocksOptimized;
+				break;
 			}
 		}
 	}
