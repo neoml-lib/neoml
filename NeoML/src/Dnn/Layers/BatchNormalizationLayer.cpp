@@ -121,7 +121,7 @@ void CBatchNormalizationLayer::getFullBatchAndObjectSize(int& fullBatchSize, int
 {
 	fullBatchSize = inputDescs[0].ObjectCount();
 	if(isChannelBased) {
-		fullBatchSize *= inputDescs[0].Width() * inputDescs[0].Height();
+		fullBatchSize *= inputDescs[0].Width() * inputDescs[0].Height() * inputDescs[0].Depth();
 	}
 
 	objectSize = inputDescs[0].BlobSize() / fullBatchSize;

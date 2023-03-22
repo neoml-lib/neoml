@@ -23,49 +23,13 @@ limitations under the License.
 
 namespace NeoML {
 
-static void storeActivationDesc( const CActivationDesc& desc, CArchive& archive )
-{
-	TActivationFunction type = desc.GetType();
-	NeoAssert( type == AF_ReLU || type == AF_HSwish );
-
-	archive.SerializeEnum( type );
-	if( type == AF_ReLU ) {
-		float threshold = desc.GetParam<CReLULayer::CParam>().UpperThreshold;
-		archive.Serialize( threshold );
-	}
-}
-
-static CActivationDesc loadActivationDesc( CArchive& archive )
-{
-	TActivationFunction type;
-	archive.SerializeEnum( type );
-	check( type == AF_ReLU || type == AF_HSwish, ERR_BAD_ARCHIVE, archive.Name() );
-
-	switch( type ) {
-		case AF_HSwish:
-			return CActivationDesc( type );
-		case AF_ReLU:
-		{
-			float threshold = 0;
-			archive.Serialize( threshold );
-			return CActivationDesc( AF_ReLU, CReLULayer::CParam{ threshold } );
-		}
-		default:
-			NeoAssert( false );
-	}
-
-	// Avoid possible compiler warnings
-	return CActivationDesc( type );
-}
-
-//---------------------------------------------------------------------------------------------------------------------
-
 CMobileNetV3PostSEBlockLayer::CMobileNetV3PostSEBlockLayer( IMathEngine& mathEngine,
 		const CActivationDesc& activation, const CPtr<CDnnBlob>& downFilter,
 		const CPtr<CDnnBlob>& downFreeTerm ) :
 	CBaseLayer( mathEngine, "MobileNetV3PostSEBlock", false ),
 	activation( activation )
 {
+	NeoAssert( activation.GetType() == AF_ReLU || activation.GetType() == AF_HSwish );
 	paramBlobs.SetSize( P_Count );
 	setParamBlob( P_DownFilter, downFilter );
 	setParamBlob( P_DownFreeTerm, downFreeTerm );
@@ -86,9 +50,11 @@ void CMobileNetV3PostSEBlockLayer::Serialize( CArchive& archive )
 	CBaseLayer::Serialize( archive );
 
 	if( archive.IsLoading() ) {
-		activation = loadActivationDesc( archive );
+		activation = LoadActivationDesc( archive );
+		check( activation.GetType() == AF_ReLU || activation.GetType() == AF_HSwish,
+			ERR_BAD_ARCHIVE, archive.Name() );
 	} else {
-		storeActivationDesc( activation, archive );
+		StoreActivationDesc( activation, archive );
 	}
 }
 

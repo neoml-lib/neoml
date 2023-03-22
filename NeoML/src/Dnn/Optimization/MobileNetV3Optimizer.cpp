@@ -114,11 +114,11 @@ bool CMobileNetV3Optimizer::detectMNv3Residual( CBaseLayer& residual, CMNv3Block
 	}
 
 	for( int i = 0; i < 2; ++i ) {
-		CConvLayer* downConvOutput = graph.GetConnectedOutput<CConvLayer>( CLayerInput<>( &residual, i ) ).Layer;
+		CConvLayer* downConvOutput = graph.GetConnectedOutput<CConvLayer>( residual, i ).Layer;
 		if( downConvOutput == nullptr ) {
 			continue;
 		}
-		CLayerOutput<> blockData = graph.GetConnectedOutput<CBaseLayer>( CLayerInput<>( &residual, 1 - i ) );
+		CLayerOutput<> blockData = graph.GetConnectedOutput<>( residual, 1 - i );
 		if( detectMNv3NonResidual( *downConvOutput, detectedBlock ) && blockData == detectedBlock.InputData ) {
 			detectedBlock.Residual = &residual;
 			graph.SelectLayer( residual );
@@ -152,15 +152,13 @@ bool CMobileNetV3Optimizer::detectMNv3PostSE( CConvLayer& downConv, CMNv3BlockIn
 	detectedBlock.DownConv = &downConv;
 	graph.SelectLayer( downConv );
 
-	CBaseLayer* channelwiseActvation = graph.SelectConnectedOutput<CBaseLayer>(
-		CLayerInput<>( &downConv, 0 ), true ).Layer;
+	CBaseLayer* channelwiseActvation = graph.SelectConnectedOutput<>( downConv, 0, true ).Layer;
 	if( channelwiseActvation == nullptr || !isValidBlockActivation( *channelwiseActvation ) ) {
 		return false;
 	}
 	detectedBlock.ChannelwiseActivation = dynamic_cast<IActivationLayer&>( *channelwiseActvation ).GetDesc();
 
-	detectedBlock.SEMulVectorInput.Layer = graph.SelectConnectedOutput<CBaseLayer>(
-		CLayerInput<>( channelwiseActvation, 0 ), true ).Layer;
+	detectedBlock.SEMulVectorInput.Layer = graph.SelectConnectedOutput<>( *channelwiseActvation, 0, true ).Layer;
 	return true;
 }
 
@@ -176,7 +174,7 @@ bool CMobileNetV3Optimizer::detectMNv3SE( CMNv3BlockInfo& detectedBlock )
 
 	for( int mulInput = 0; mulInput < 2; ++mulInput ) {
 		CLayerOutput<CChannelwiseConvLayer> channelwiseOutput = graph.GetConnectedOutput<CChannelwiseConvLayer>(
-			CLayerInput<>( detectedBlock.SEMulVectorInput.Layer, mulInput ) );
+			*detectedBlock.SEMulVectorInput.Layer, mulInput );
 		if( channelwiseOutput.Layer == nullptr ) {
 			continue;
 		}
@@ -184,7 +182,7 @@ bool CMobileNetV3Optimizer::detectMNv3SE( CMNv3BlockInfo& detectedBlock )
 		detectedBlock.SEMulVectorInput.Index = 1 - mulInput;
 
 		COnnxTransformHelper* thirdTransform = graph.SelectConnectedOutput<COnnxTransformHelper>(
-			detectedBlock.SEMulVectorInput, true ).Layer;
+			*detectedBlock.SEMulVectorInput.Layer, detectedBlock.SEMulVectorInput.Index, true ).Layer;
 		if( thirdTransform == nullptr ||
 			!isValidOnnxTransform( *thirdTransform,
 				{ BD_Count, BD_BatchLength, BD_Count, BD_ListSize, BD_Height, BD_Count, BD_Channels } ) )
@@ -193,13 +191,13 @@ bool CMobileNetV3Optimizer::detectMNv3SE( CMNv3BlockInfo& detectedBlock )
 		}
 
 		COnnxTransposeHelper* secondTranspose = graph.SelectConnectedOutput<COnnxTransposeHelper>(
-			CLayerInput<>( thirdTransform, 0 ), true ).Layer;
+			*thirdTransform, 0, true ).Layer;
 		if( secondTranspose == nullptr || !isValidOnnxTranspose( *secondTranspose, BD_BatchWidth, BD_Channels ) ) {
 			return false;
 		}
 
 		COnnxTransformHelper* secondTransform = graph.SelectConnectedOutput<COnnxTransformHelper>(
-			CLayerInput<>( secondTranspose, 0 ), true ).Layer;
+			*secondTranspose, 0, true ).Layer;
 		if( secondTransform == nullptr || !isValidOnnxTransform( *secondTransform,
 			{ BD_BatchWidth, BD_Height, BD_Width, BD_Channels, BD_Count, BD_Count, BD_Count } ) )
 		{
@@ -207,7 +205,7 @@ bool CMobileNetV3Optimizer::detectMNv3SE( CMNv3BlockInfo& detectedBlock )
 		}
 
 		COnnxReshapeLayer* secondReshape = graph.SelectConnectedOutput<COnnxReshapeLayer>(
-			CLayerInput<>( secondTransform, 0 ), true ).Layer;
+			*secondTransform, 0, true ).Layer;
 		if( secondReshape == nullptr ) {
 			return false;
 		}
@@ -215,7 +213,7 @@ bool CMobileNetV3Optimizer::detectMNv3SE( CMNv3BlockInfo& detectedBlock )
 		detectedBlock.SESecondActivation = nullptr;
 		for( int reshapeInput = 0; reshapeInput < 2; ++reshapeInput ) {
 			COnnxSourceHelper* shapeSource = graph.SelectConnectedOutput<COnnxSourceHelper>(
-				CLayerInput<>( secondReshape, reshapeInput ), true ).Layer;
+				*secondReshape, reshapeInput, true ).Layer;
 			if( shapeSource == nullptr ) {
 				continue;
 			}
@@ -223,8 +221,7 @@ bool CMobileNetV3Optimizer::detectMNv3SE( CMNv3BlockInfo& detectedBlock )
 				return false;
 			}
 
-			detectedBlock.SESecondActivation = graph.GetConnectedOutput<CBaseLayer>(
-				CLayerInput<>( secondReshape, 1 - reshapeInput ) ).Layer;
+			detectedBlock.SESecondActivation = graph.GetConnectedOutput<>( *secondReshape, 1 - reshapeInput ).Layer;
 			if( !isValidSEActivation( *detectedBlock.SESecondActivation ) ) {
 				return false;
 			}
@@ -232,24 +229,23 @@ bool CMobileNetV3Optimizer::detectMNv3SE( CMNv3BlockInfo& detectedBlock )
 		}
 
 		CFullyConnectedLayer* secondFc = graph.GetConnectedOutput<CFullyConnectedLayer>(
-			CLayerInput<>( detectedBlock.SESecondActivation, 0 ) ).Layer;
+			*detectedBlock.SESecondActivation, 0 ).Layer;
 		if( secondFc == nullptr ) {
 			return false;
 		}
 
-		CBaseLayer* firstActivation = graph.GetConnectedOutput<CBaseLayer>( CLayerInput<>( secondFc, 0 ) ).Layer;
+		CBaseLayer* firstActivation = graph.GetConnectedOutput<>( *secondFc, 0 ).Layer;
 		if( !isValidSEActivation( *firstActivation ) ) {
 			return false;
 		}
 
-		detectedBlock.SEFirstFc = graph.GetConnectedOutput<CFullyConnectedLayer>(
-			CLayerInput<>( firstActivation, 0 ) ).Layer;
+		detectedBlock.SEFirstFc = graph.GetConnectedOutput<CFullyConnectedLayer>( *firstActivation, 0 ).Layer;
 		if( detectedBlock.SEFirstFc == nullptr ) {
 			return false;
 		}
 
 		CLayerOutput<COnnxReshapeLayer> firstReshape = graph.SelectConnectedOutput<COnnxReshapeLayer>(
-			CLayerInput<>( detectedBlock.SEFirstFc, 0 ), false );
+			*detectedBlock.SEFirstFc, 0, false );
 		if( firstReshape.Layer == nullptr ) {
 			return false;
 		}
@@ -263,21 +259,19 @@ bool CMobileNetV3Optimizer::detectMNv3SE( CMNv3BlockInfo& detectedBlock )
 			return false;
 		}
 
-		CLayerOutput<COnnxTransposeHelper> firstTranspose = graph.SelectConnectedOutput<COnnxTransposeHelper>(
-			CLayerInput<>( firstTransform.Layer, 0 ), true );
-		if( firstTranspose.Layer == nullptr
-			|| !isValidOnnxTranspose( *firstTranspose.Layer, BD_Channels, BD_ListSize ) )
+		COnnxTransposeHelper* firstTranspose = graph.SelectConnectedOutput<COnnxTransposeHelper>(
+			*firstTransform.Layer, 0, true ).Layer;
+		if( firstTranspose == nullptr || !isValidOnnxTranspose( *firstTranspose, BD_Channels, BD_ListSize ) )
 		{
 			return false;
 		}
 
-		detectedBlock.SEPooling = graph.GetConnectedOutput<CGlobalMeanPoolingLayer>(
-			CLayerInput<>( firstTranspose.Layer, 0 ) ).Layer;
+		detectedBlock.SEPooling = graph.GetConnectedOutput<CGlobalMeanPoolingLayer>( *firstTranspose, 0 ).Layer;
 		if( detectedBlock.SEPooling == nullptr ) {
 			return false;
 		}
 
-		CLayerOutput<> poolData = graph.GetConnectedOutput<CBaseLayer>( CLayerInput<>( detectedBlock.SEPooling, 0 ) );
+		CLayerOutput<> poolData = graph.GetConnectedOutput<>( *detectedBlock.SEPooling, 0 );
 		if( poolData == channelwiseOutput ) {
 			return true;
 		}
@@ -296,19 +290,18 @@ bool CMobileNetV3Optimizer::detectMNv3PreSE( CMNv3BlockInfo& detectedBlock )
 		return false;
 	}
 
-	CBaseLayer* expandActivation = graph.GetConnectedOutput<CBaseLayer>(
-		CLayerInput<>( detectedBlock.Channelwise, 0 ) ).Layer;
+	CBaseLayer* expandActivation = graph.GetConnectedOutput<>( *detectedBlock.Channelwise, 0 ).Layer;
 	if( expandActivation == nullptr || !isValidBlockActivation( *expandActivation ) ) {
 		return false;
 	}
 	detectedBlock.ExpandActivation = dynamic_cast<IActivationLayer&>( *expandActivation ).GetDesc();
 
-	detectedBlock.ExpandConv = graph.GetConnectedOutput<CConvLayer>( CLayerInput<>( expandActivation, 0 ) ).Layer;
+	detectedBlock.ExpandConv = graph.GetConnectedOutput<CConvLayer>( *expandActivation, 0 ).Layer;
 	if( detectedBlock.ExpandConv == nullptr || !isValid1x1Conv( *detectedBlock.ExpandConv ) ) {
 		return false;
 	}
 
-	detectedBlock.InputData = graph.GetConnectedOutput<CBaseLayer>( CLayerInput<>( detectedBlock.ExpandConv, 0 ) );
+	detectedBlock.InputData = graph.GetConnectedOutput<>( *detectedBlock.ExpandConv, 0 );
 	return detectedBlock.InputData.Layer != nullptr;
 }
 
@@ -398,10 +391,9 @@ bool CMobileNetV3Optimizer::isValidChannelwise( CChannelwiseConvLayer& channelwi
 void CMobileNetV3Optimizer::optimizeDetectedBlock( const CMNv3BlockInfo& detectedBlock )
 {
 	// optimize Squeeze-and-Excite
-	graph.Connect( CLayerInput<>( detectedBlock.SEFirstFc, 0 ),
-		CLayerOutput<>( detectedBlock.SEPooling, 0 ) );
-	graph.Connect( detectedBlock.SEMulVectorInput,
-		CLayerOutput<>( detectedBlock.SESecondActivation, 0 ) );
+	graph.Connect( *detectedBlock.SEFirstFc, 0, *detectedBlock.SEPooling, 0 );
+	graph.Connect( *detectedBlock.SEMulVectorInput.Layer, detectedBlock.SEMulVectorInput.Index,
+		*detectedBlock.SESecondActivation, 0 );
 
 	// optimzie post Squeeze-and-Excite part
 	CPtr<CMobileNetV3PostSEBlockLayer> postSEBlock = new CMobileNetV3PostSEBlockLayer( graph.MathEngine(),
@@ -409,13 +401,14 @@ void CMobileNetV3Optimizer::optimizeDetectedBlock( const CMNv3BlockInfo& detecte
 		!detectedBlock.DownConv->IsZeroFreeTerm() ? detectedBlock.DownConv->GetFreeTermData() : nullptr );
 	postSEBlock->SetName( graph.GetUniqueName( "MobileNetV3PostSEBlock" ) );
 	graph.AddLayer( *postSEBlock );
-	graph.Connect( CLayerInput<>( postSEBlock, 0 ), CLayerOutput<>( detectedBlock.Channelwise, 0 ) );
-	graph.Connect( CLayerInput<>( postSEBlock, 1 ), CLayerOutput<>( detectedBlock.SESecondActivation, 0 ) );
+	graph.Connect( *postSEBlock, 0, *detectedBlock.Channelwise, 0 );
+	graph.Connect( *postSEBlock, 1, *detectedBlock.SESecondActivation, 0 );
 	if( detectedBlock.Residual != nullptr ) {
-		graph.Connect( CLayerInput<>( postSEBlock, 2 ), detectedBlock.InputData );
-		graph.SwitchOutputs( CLayerOutput<>( detectedBlock.Residual, 0 ), CLayerOutput<>( postSEBlock, 0 ) );
+		graph.Connect( *postSEBlock, 2, *detectedBlock.InputData.Layer,
+			detectedBlock.InputData.Index );
+		graph.SwitchOutputs( *detectedBlock.Residual, 0, *postSEBlock, 0 );
 	} else {
-		graph.SwitchOutputs( CLayerOutput<>( detectedBlock.DownConv, 0 ), CLayerOutput<>( postSEBlock, 0 ) );
+		graph.SwitchOutputs( *detectedBlock.DownConv, 0, *postSEBlock, 0 );
 	}
 
 	graph.DeleteSelectedLayers();

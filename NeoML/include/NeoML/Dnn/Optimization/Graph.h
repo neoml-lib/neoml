@@ -65,7 +65,7 @@ public:
 	// Layers in CDnn
 
 	// Checks whether 'layer' points to an existing layer in the graph
-	// Works correctly even if 'layer' is invalid
+	// Works correctly even if 'layer' is invalid or nullptr
 	bool HasLayer( const CBaseLayer* layer ) const { return graphLinks.Has( layer ); }
 
 	// Writes pointers of all of the layers of this graph
@@ -82,19 +82,13 @@ public:
 
 	// Connections between layers
 
-	// Returns the output to which the input is connected
+	// Returns the output to which the inputLayer's inputIndex'th input is connected
 	// If output layer can't be casted to TOutputLayer then CLayerOutput::Layer == nullptr
-	template<typename TOutputLayer, typename TInputLayer>
-	CLayerOutput<TOutputLayer> GetConnectedOutput( const CLayerInput<TInputLayer>& input ) const;
+	template<typename TOutputLayer = CBaseLayer>
+	CLayerOutput<TOutputLayer> GetConnectedOutput( CBaseLayer& inputLayer, int inputIndex ) const;
 
-	// Number of different inputs connected to the output
-	template<typename TOutputLayer>
-	int GetConnectedInputsCount( const CLayerOutput<TOutputLayer>& output ) const;
-
-	// Returns index'th input connected to the output
-	// index must be between 0 and GetConnectedInputsCount(output)-1
-	template<typename TInputLayer, typename TOutputLayer>
-	CLayerInput<TInputLayer> GetConnectedInput( const CLayerOutput<TOutputLayer>& output, int index ) const;
+	// Number of different inputs connected to the outputLayer's outputIndex'th output
+	int GetConnectedInputsCount( const CBaseLayer& outputLayer, int outputIndex ) const;
 
 	// Addition/removal of the layers
 
@@ -107,13 +101,11 @@ public:
 
 	// Addition/removal of connections
 
-	// Connects the given input to the given output
-	template<typename TInputLayer, typename TOutputLayer>
-	void Connect( const CLayerInput<TInputLayer> input, const CLayerOutput<TOutputLayer> output );
+	// Connects the given inputLayer's inputIndex'th input to the outputLayer's outputIndex'th output
+	void Connect( CBaseLayer& inputLayer, int inputIndex, CBaseLayer& outputLayer, int outputIndex );
 
-	// Destroys connection between input.Index'th input of input.Layer to the output.Index'th output of output.Layer
-	template<typename TInputLayer, typename TOutputLayer>
-	void Disconnect( const CLayerInput<TInputLayer> input, const CLayerOutput<TOutputLayer> output );
+	// Destroys connection between inputIndex'th input of inputLayer and the outputIndex'th output of outputLayer
+	void Disconnect( CBaseLayer& inputLayer, int inputIndex, CBaseLayer& outputLayer, int outputIndex );
 
 	// Layer selection mechanism
 	
@@ -124,7 +116,7 @@ public:
 	// If somewhere during this iteration construction was not found then ClearSelection without any modifications
 	// If the whole construction has been found then add the replacement, reconnect everything and DeleteSelectedLayers
 
-	// Returns the number of selected layers
+	// Number of layers in selection
 	int SelectionSize() const { return selection.Size(); }
 
 	// Checks whether the layer has already been selected
@@ -139,8 +131,8 @@ public:
 	// If checkOutOfSelectionLinks == false then the additional check is skipped
 	// If all of the performed checks are succeeded then it adds CLayerOutput<>.Layer to selection
 	// Otherwise CLayerOutput<>.Layer is set to nullptr
-	template<typename TOutputLayer, typename TInputLayer>
-	CLayerOutput<TOutputLayer> SelectConnectedOutput( const CLayerInput<TInputLayer>& input,
+	template<typename TOutputLayer = CBaseLayer>
+	CLayerOutput<TOutputLayer> SelectConnectedOutput( CBaseLayer& inputLayer, int inputIndex,
 		bool checkOutOfSelectionLinks );
 
 	// Checks that the layer has 2 inputs, and that those inputs are connected
@@ -152,8 +144,8 @@ public:
 	// Otherwise returns false and doesn't add any layers to selection
 	// It's recommended to use this method when some layer in the selected construction
 	// must have 2 inputs of the specific type
-	template<typename TLayer, typename TFirstType, typename TSecondType>
-	bool SelectBothConnectedOutputs( TLayer& layer, CLayerOutput<TFirstType>& firstConnectedOutput,
+	template<typename TFirstType, typename TSecondType>
+	bool SelectBothConnectedOutputs( CBaseLayer& layer, CLayerOutput<TFirstType>& firstConnectedOutput,
 		CLayerOutput<TSecondType>& secondConnectedOutput, bool checkOutOfSelectionLinks );
 
 	// Clears the current selection
@@ -173,8 +165,8 @@ public:
 
 	// Switches all the inputs which are connected to the oldOutput
 	// to the newOutput
-	template<typename TOldLayer, typename TNewLayer>
-	void SwitchOutputs( const CLayerOutput<TOldLayer>& oldOutput, const CLayerOutput<TNewLayer>& newOutput );
+	void SwitchOutputs( CBaseLayer& oldOutputLayer, int oldOutputIndex,
+		CBaseLayer& newOutputLayer, int newOutputIndex );
 
 private:
 	// Information about all connections of one layer
@@ -198,144 +190,26 @@ private:
 
 //---------------------------------------------------------------------------------------------------------------------
 
-template<typename TOutputLayer, typename TInputLayer>
-inline CLayerOutput<TOutputLayer> CGraph::GetConnectedOutput( const CLayerInput<TInputLayer>& input ) const
+template<typename TOutputLayer>
+inline CLayerOutput<TOutputLayer> CGraph::GetConnectedOutput( CBaseLayer& inputLayer, int inputIndex ) const
 {
-	const int layerLinksPos = graphLinks.GetFirstPosition( input.Layer );
+	const int layerLinksPos = graphLinks.GetFirstPosition( &inputLayer );
 	NeoAssert( layerLinksPos != NotFound );
-	NeoAssert( graphLinks.GetNextPosition( input.Layer, layerLinksPos ) == NotFound );
+	NeoAssert( graphLinks.GetNextPosition( &inputLayer, layerLinksPos ) == NotFound );
 
 	const CLayerLinks& layerLinks = graphLinks.GetValue( layerLinksPos );
-	NeoAssert( input.Index < layerLinks.Inputs.Size() );
+	NeoAssert( inputIndex < layerLinks.Inputs.Size() );
 	CLayerOutput<TOutputLayer> result;
-	result.Layer = dynamic_cast<TOutputLayer*>( layerLinks.Inputs[input.Index].Layer );
-	result.Index = layerLinks.Inputs[input.Index].Index;
+	result.Layer = dynamic_cast<TOutputLayer*>( layerLinks.Inputs[inputIndex].Layer );
+	result.Index = layerLinks.Inputs[inputIndex].Index;
 	return result;
 }
 
 template<typename TOutputLayer>
-inline int CGraph::GetConnectedInputsCount( const CLayerOutput<TOutputLayer>& output ) const
-{
-	const int layerLinksPos = graphLinks.GetFirstPosition( output.Layer );
-	NeoAssert( layerLinksPos != NotFound );
-	NeoAssert( graphLinks.GetNextPosition( output.Layer, layerLinksPos ) == NotFound );
-
-	const CLayerLinks& layerLinks = graphLinks.GetValue( layerLinksPos );
-	NeoAssert( output.Index < layerLinks.Outputs.Size() );
-	return layerLinks.Outputs[output.Index].Size();
-}
-
-template<typename TInputLayer, typename TOutputLayer>
-inline CLayerInput<TInputLayer> CGraph::GetConnectedInput( const CLayerOutput<TOutputLayer>& output, int index ) const
-{
-	const int layerLinksPos = graphLinks.GetFirstPosition( output.Layer );
-	NeoAssert( layerLinksPos != NotFound );
-	NeoAssert( graphLinks.GetNextPosition( output.Layer, layerLinksPos ) == NotFound );
-
-	const CLayerLinks& layerLinks = graphLinks.GetValue( layerLinksPos );
-	NeoAssert( output.Index < layerLinks.Outputs.Size() );
-	NeoAssert( index < layerLinks.Outputs[output.Index].Size() );
-	CLayerInput<TInputLayer> result;
-	result.Layer = dynamic_cast<TInputLayer*>( layerLinks.Outputs[output.Index][index].Layer );
-	result.Index = layerLinks.Outputs[output.Index][index].Index;
-	return result;
-}
-
-template<typename TInputLayer, typename TOutputLayer>
-inline void CGraph::Connect( const CLayerInput<TInputLayer> input, const CLayerOutput<TOutputLayer> output )
-{
-	NeoAssert( input.Layer != nullptr );
-	NeoAssert( input.Index >= 0 );
-	NeoAssert( output.Layer != nullptr );
-	NeoAssert( output.Index >= 0 );
-
-	// Update input link info
-	const int inputLayerLinksPos = graphLinks.GetFirstPosition( input.Layer );
-	NeoAssert( inputLayerLinksPos != NotFound );
-	NeoAssert( graphLinks.GetNextPosition( input.Layer, inputLayerLinksPos ) == NotFound );
-	CLayerLinks& inputLayerLinks = graphLinks.GetValue( inputLayerLinksPos );
-	if( inputLayerLinks.Inputs.Size() <= input.Index ) {
-		// Allocate inputs which have never been used before
-		inputLayerLinks.Inputs.SetSize( input.Index + 1 );
-	} else if( inputLayerLinks.Inputs[input.Index].Layer != nullptr ) {
-		// Disconnect previous link
-		Disconnect( input, inputLayerLinks.Inputs[input.Index] );
-	}
-	NeoAssert( inputLayerLinks.Inputs[input.Index].Layer == nullptr );
-	NeoAssert( inputLayerLinks.Inputs[input.Index].Index == NotFound );
-	inputLayerLinks.Inputs[input.Index].Layer = output.Layer;
-	inputLayerLinks.Inputs[input.Index].Index = output.Index;
-
-	// Update output link info
-	const int outputLayerLinksPos = graphLinks.GetFirstPosition( output.Layer );
-	NeoAssert( outputLayerLinksPos != NotFound );
-	NeoAssert( graphLinks.GetNextPosition( output.Layer, outputLayerLinksPos ) == NotFound );
-	CLayerLinks& outputLayerLinks = graphLinks.GetValue( outputLayerLinksPos );
-	if( outputLayerLinks.Outputs.Size() <= output.Index ) {
-		// Allocate outputs which have never been used before
-		outputLayerLinks.Outputs.SetSize( output.Index + 1 );
-	}
-	outputLayerLinks.Outputs[output.Index].Add( input );
-
-	// Connect inside CDnn
-	input.Layer->Connect( input.Index, *output.Layer, output.Index );
-}
-
-template<typename TInputLayer, typename TOutputLayer>
-inline void CGraph::Disconnect( const CLayerInput<TInputLayer> input, const CLayerOutput<TOutputLayer> output )
-{
-	NeoAssert( input.Layer != nullptr );
-	NeoAssert( input.Index >= 0 );
-	NeoAssert( output.Layer != nullptr );
-	NeoAssert( output.Index >= 0 );
-
-	// Update input link info
-	const int inputLayerLinksPos = graphLinks.GetFirstPosition( input.Layer );
-	NeoAssert( inputLayerLinksPos != NotFound );
-	NeoAssert( graphLinks.GetNextPosition( input.Layer, inputLayerLinksPos ) == NotFound );
-	CLayerLinks& inputLayerLinks = graphLinks.GetValue( inputLayerLinksPos );
-	NeoAssert( input.Index < inputLayerLinks.Inputs.Size() );
-	NeoAssert( inputLayerLinks.Inputs[input.Index] == output );
-	inputLayerLinks.Inputs[input.Index].Layer = nullptr;
-	inputLayerLinks.Inputs[input.Index].Index = NotFound;
-
-	// Update output link info
-	const int outputLayerLinksPos = graphLinks.GetFirstPosition( output.Layer );
-	NeoAssert( outputLayerLinksPos != NotFound );
-	NeoAssert( graphLinks.GetNextPosition( output.Layer, outputLayerLinksPos ) == NotFound );
-	CLayerLinks& outputLayerLinks = graphLinks.GetValue( outputLayerLinksPos );
-	NeoAssert( output.Index < outputLayerLinks.Outputs.Size() );
-	const int inputLinkPos = outputLayerLinks.Outputs[output.Index].Find( input );
-	NeoAssert( inputLinkPos != NotFound );
-	NeoAssert( outputLayerLinks.Outputs[output.Index].Find( input, inputLinkPos + 1 ) == NotFound );
-	outputLayerLinks.Outputs[output.Index].DeleteAt( inputLinkPos );
-
-	// TODO: implement proper disconnect for CDnn and CDnnBaseLayer
-}
-
-template<typename TOldLayer, typename TNewLayer>
-inline void CGraph::SwitchOutputs( const CLayerOutput<TOldLayer>& oldOutput, const CLayerOutput<TNewLayer>& newOutput )
-{
-	const int oldLayerPos = graphLinks.GetFirstPosition( oldOutput.Layer );
-	NeoAssert( oldLayerPos != NotFound );
-	NeoAssert( graphLinks.GetNextPosition( oldOutput.Layer, oldLayerPos ) == NotFound );
-	CLayerLinks& oldLayerLinks = graphLinks.GetValue( oldLayerPos );
-	NeoAssert( oldOutput.Index < oldLayerLinks.Outputs.Size() );
-
-	// Making local copy of inputs because of graph modifications during Disconnect/Connect calls
-	CArray<CLayerInput<>> inputsToSwitch;
-	oldLayerLinks.Outputs[oldOutput.Index].CopyTo( inputsToSwitch );
-	for( const CLayerInput<>& inputToSwitch : inputsToSwitch ) {
-		Disconnect( inputToSwitch, oldOutput );
-		Connect( inputToSwitch, newOutput );
-	}
-}
-
-template<typename TOutputLayer, typename TInputLayer>
-inline CLayerOutput<TOutputLayer> CGraph::SelectConnectedOutput( const CLayerInput<TInputLayer>& input,
+inline CLayerOutput<TOutputLayer> CGraph::SelectConnectedOutput( CBaseLayer& inputLayer, int inputIndex,
 	bool checkOutOfSelectionLinks )
 {
-	CLayerOutput<TOutputLayer> result = GetConnectedOutput<TOutputLayer>( input );
+	CLayerOutput<TOutputLayer> result = GetConnectedOutput<TOutputLayer>( inputLayer, inputIndex );
 	if( result.Layer == nullptr ) {
 		return result;
 	}
@@ -349,8 +223,8 @@ inline CLayerOutput<TOutputLayer> CGraph::SelectConnectedOutput( const CLayerInp
 	return result;
 }
 
-template<typename TLayer, typename TFirstType, typename TSecondType>
-inline bool CGraph::SelectBothConnectedOutputs( TLayer& layer, CLayerOutput<TFirstType>& firstConnectedOutput,
+template<typename TFirstType, typename TSecondType>
+inline bool CGraph::SelectBothConnectedOutputs( CBaseLayer& layer, CLayerOutput<TFirstType>& firstConnectedOutput,
 	CLayerOutput<TSecondType>& secondConnectedOutput, bool checkOutOfSelectionLinks )
 {
 	if( GetInputCount( layer ) != 2 ) {
@@ -358,8 +232,8 @@ inline bool CGraph::SelectBothConnectedOutputs( TLayer& layer, CLayerOutput<TFir
 	}
 
 	for( int i = 0; i < 2; ++i ) {
-		firstConnectedOutput = GetConnectedOutput<TFirstType>( CLayerInput<>{ &layer, i } );
-		secondConnectedOutput = GetConnectedOutput<TSecondType>( CLayerInput<>{ &layer, 1 - i } );
+		firstConnectedOutput = GetConnectedOutput<TFirstType>( layer, i );
+		secondConnectedOutput = GetConnectedOutput<TSecondType>( layer, 1 - i );
 		if( firstConnectedOutput.Layer == nullptr || secondConnectedOutput.Layer == nullptr
 			|| IsLayerSelected( *firstConnectedOutput.Layer ) || IsLayerSelected( *secondConnectedOutput.Layer ) )
 		{

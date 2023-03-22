@@ -42,7 +42,7 @@ public:
 
 	// Get indices of dimensions to be pooled (in Onnx order)
 	// Result shouldn't contain negative indices and must be in sorted order
-	virtual void PoolAxes( int inputDimCount, CFastArray<int, 8>& axes ) const;
+	virtual void PoolAxes( const CTensorArray& inputs, CFastArray<int, 8>& axes ) const;
 
 protected:
 	CGlobalPoolOperatorBase( TPoolType poolType, const onnx::NodeProto& onnxNode, int opsetVersion );
@@ -92,7 +92,7 @@ class CReducePoolOperatorBase : public CGlobalPoolOperatorBase {
 public:
 	// CGlobalPoolOperatorBase methods
 	bool KeepDims() const override;
-	void PoolAxes( int inputDimCount, CFastArray<int, 8>& axes ) const override;
+	void PoolAxes( const CTensorArray& inputs, CFastArray<int, 8>& axes ) const override;
 
 protected:
 	CReducePoolOperatorBase( TPoolType poolType, const onnx::NodeProto& onnxNode, int opsetVersion ) :
@@ -135,6 +135,8 @@ public:
 		CReducePoolOperatorBase( CGlobalPoolOperatorBase::PT_Sum, onnxNode, opsetVersion )
 	{
 	}
+
+	void PoolAxes( const CTensorArray& inputs, CFastArray<int, 8>& axes ) const override;
 };
 
 // ReduceL2 operator

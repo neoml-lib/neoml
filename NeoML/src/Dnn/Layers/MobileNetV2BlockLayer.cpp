@@ -23,43 +23,6 @@ limitations under the License.
 
 namespace NeoML {
 
-static void storeActivationDesc( const CActivationDesc& desc, CArchive& archive )
-{
-	TActivationFunction type = desc.GetType();
-	NeoAssert( type == AF_ReLU || type == AF_HSwish );
-
-	archive.SerializeEnum( type );
-	if( type == AF_ReLU ) {
-		float threshold = desc.GetParam<CReLULayer::CParam>().UpperThreshold;
-		archive.Serialize( threshold );
-	}
-}
-
-static CActivationDesc loadActivationDesc( CArchive& archive )
-{
-	TActivationFunction type;
-	archive.SerializeEnum( type );
-	check( type == AF_ReLU || type == AF_HSwish, ERR_BAD_ARCHIVE, archive.Name() );
-
-	switch( type ) {
-		case AF_HSwish:
-			return CActivationDesc( type );
-		case AF_ReLU:
-		{
-			float threshold = 0;
-			archive.Serialize( threshold );
-			return CActivationDesc( AF_ReLU, CReLULayer::CParam{ threshold } );
-		}
-		default:
-			NeoAssert( false );
-	}
-
-	// Avoid possible compiler warnings
-	return CActivationDesc( type );
-}
-
-//---------------------------------------------------------------------------------------------------------------------
-
 CMobileNetV2BlockLayer::CMobileNetV2BlockLayer( IMathEngine& mathEngine, const CPtr<CDnnBlob>& expandFilter,
 		const CPtr<CDnnBlob>& expandFreeTerm, const CActivationDesc& expandActivation, int stride,
 		const CPtr<CDnnBlob>& channelwiseFilter, const CPtr<CDnnBlob>& channelwiseFreeTerm,
@@ -72,6 +35,8 @@ CMobileNetV2BlockLayer::CMobileNetV2BlockLayer( IMathEngine& mathEngine, const C
 	channelwiseActivation( channelwiseActivation ),
 	convDesc( nullptr )
 {
+	NeoAssert( expandActivation.GetType() == AF_ReLU || expandActivation.GetType() == AF_HSwish );
+	NeoAssert( channelwiseActivation.GetType() == AF_ReLU || channelwiseActivation.GetType() == AF_HSwish );
 	paramBlobs.SetSize( P_Count );
 	setParamBlob( P_ExpandFilter, expandFilter );
 	setParamBlob( P_ExpandFreeTerm, expandFreeTerm );
@@ -131,11 +96,13 @@ void CMobileNetV2BlockLayer::Serialize( CArchive& archive )
 	}
 
 	if( archive.IsLoading() ) {
-		expandActivation = loadActivationDesc( archive );
-		channelwiseActivation = loadActivationDesc( archive );
+		expandActivation = LoadActivationDesc( archive );
+		channelwiseActivation = LoadActivationDesc( archive );
+		NeoAssert( expandActivation.GetType() == AF_ReLU || expandActivation.GetType() == AF_HSwish );
+		NeoAssert( channelwiseActivation.GetType() == AF_ReLU || channelwiseActivation.GetType() == AF_HSwish );
 	} else {
-		storeActivationDesc( expandActivation, archive );
-		storeActivationDesc( channelwiseActivation, archive );
+		StoreActivationDesc( expandActivation, archive );
+		StoreActivationDesc( channelwiseActivation, archive );
 	}
 }
 

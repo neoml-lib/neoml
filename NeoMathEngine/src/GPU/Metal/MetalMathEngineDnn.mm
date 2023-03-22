@@ -684,14 +684,14 @@ void CMetalMathEngine::MobileNetV2Block( const CBlobDesc&, const CBlobDesc&, con
     const CConstFloatHandle&, const CConstFloatHandle*, TActivationFunction, float, const CConstFloatHandle&,
     const CConstFloatHandle*, bool, const CFloatHandle& ) override
 {
-	ASSERT_EXPR( false );
+    ASSERT_EXPR( false );
 }
 
 void CMetalMathEngine::MobileNetV3PostSEBlock( const CBlobDesc&, int, const CConstFloatHandle&,
-	const CConstFloatHandle&, const CConstFloatHandle*, TActivationFunction, float, const CConstFloatHandle&,
-	const CConstFloatHandle*, const CFloatHandle& )
+    const CConstFloatHandle&, const CConstFloatHandle*, TActivationFunction, float, const CConstFloatHandle&,
+    const CConstFloatHandle*, const CFloatHandle& )
 {
-	ASSERT_EXPR( false );
+    ASSERT_EXPR( false );
 }
 
 } // namespace NeoML

@@ -22,12 +22,15 @@ limitations under the License.
 
 #include "onnx.pb.h"
 
+#include <algorithm>
+
 namespace NeoOnnx {
 
 CSoftmaxOperator::CSoftmaxOperator( const onnx::NodeProto& softmax, int opsetVersion ) :
 	CLayerOperator( softmax, opsetVersion )
 {
-	// The differences between versions are in negative axis support and the default value of axis attribute
+	// The differences between versions are in negative axis support
+	// v13 - bfloat16 is supported, default axis value is changed, axis behavior is changed
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
 	CheckOnnxProtocol( InputCount() == 1, "operator must have 1 input", *this );
@@ -40,8 +43,8 @@ void CSoftmaxOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensor
 	CheckNoShapeInputs( inputs );
 
 	const int dimCount = inputs[0]->DimCount();
-	// The default axis value has been changed in opset v11
-	int axis = OpsetVersion >= 11 ? -1 : 1;
+	// The default axis value has been changed in opset v13
+	int axis = OpsetVersion >= 13 ? -1 : 1;
 	GetAttribute( "axis", axis );
 	if( axis < 0 ) {
 		axis += dimCount;
@@ -56,6 +59,22 @@ void CSoftmaxOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensor
 	softmax->SetName( Name() );
 	softmax->Connect( 0, *input->Layer(), input->OutputIndex() );
 	dnn.AddLayer( *softmax );
+
+	if( OpsetVersion >= 13 ) {
+		switch( compatibleLayout[axis] ) {
+			case BD_Channels:
+				softmax->SetNormalizationArea( CSoftmaxLayer::NA_Channel );
+				break;
+			case BD_BatchLength:
+				softmax->SetNormalizationArea( CSoftmaxLayer::NA_BatchLength );
+				break;
+			case BD_ListSize:
+				softmax->SetNormalizationArea( CSoftmaxLayer::NA_ListSize );
+				break;
+			default:
+				NeoAssert( false );
+		}
+	}
 
 	CBaseLayer* outLayer = softmax.Ptr();
 	if( Type() == "LogSoftmax" ) {
@@ -73,13 +92,18 @@ CTensorLayout CSoftmaxOperator::getCompatibleLayout( int dimCount, int axis, con
 {
 	// Check whether input layout is compatible with softmax
 	bool isCompatible = true;
-	for( int i = 0; i < inputLayout.Size(); ++i ) {
-		if( ( i < axis && inputLayout[i] >= BD_Height ) // object dimension before axis
-			|| ( i >= axis && inputLayout[i] < BD_Height ) ) // batch dimension after axis
-		{
-			isCompatible = false;
-			break;
+	if( OpsetVersion < 13 ) {
+		for( int i = 0; i < inputLayout.Size(); ++i ) {
+			if( ( i < axis && inputLayout[i] >= BD_Height ) // object dimension before axis
+				|| ( i >= axis && inputLayout[i] < BD_Height ) ) // batch dimension after axis
+			{
+				isCompatible = false;
+				break;
+			}
 		}
+	} else {
+		isCompatible = inputLayout[axis] == BD_Channels || inputLayout[axis] == BD_ListSize
+			|| inputLayout[axis] == BD_BatchLength;
 	}
 
 	if( isCompatible ) {
@@ -88,11 +112,21 @@ CTensorLayout CSoftmaxOperator::getCompatibleLayout( int dimCount, int axis, con
 
 	CTensorLayout compatibleLayout;
 	compatibleLayout.SetBufferSize( dimCount );
-	for( int i = 0; i < dimCount; ++i ) {
-		if( i < axis ) {
-			compatibleLayout.Add( static_cast<TBlobDim>( i ) );
+	if( OpsetVersion < 13 ) {
+		for( int i = 0; i < dimCount; ++i ) {
+			if( i < axis ) {
+				compatibleLayout.Add( static_cast<TBlobDim>( i ) );
+			} else {
+				compatibleLayout.Add( static_cast<TBlobDim>( BD_Height + i - axis ) );
+			}
+		}
+	} else {
+		compatibleLayout = inputLayout;
+		const int channelIndex = inputLayout.Find( BD_Channels );
+		if( channelIndex == NotFound ) {
+			compatibleLayout[axis] = BD_Channels;
 		} else {
-			compatibleLayout.Add( static_cast<TBlobDim>( BD_Height + i - axis ) );
+			std::swap<TBlobDim>( compatibleLayout[channelIndex], compatibleLayout[axis] );
 		}
 	}
 	return compatibleLayout;
