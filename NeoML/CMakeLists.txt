@@ -76,7 +76,9 @@ endif()
 if(NeoML_BUILD_TESTS AND NOT IS_SUBPROJECT AND NOT ANDROID AND NOT IOS)
     enable_testing()
     add_subdirectory(test/desktop)
-    add_subdirectory(../../NeoMLTest/test ${CMAKE_BINARY_DIR}/test)
+    if(USE_FINE_OBJECTS)
+        add_subdirectory(${ROOT_PATH}/NeoMLTest/test ${CMAKE_BINARY_DIR}/test)
+    endif()
 endif()
 
 # Install
