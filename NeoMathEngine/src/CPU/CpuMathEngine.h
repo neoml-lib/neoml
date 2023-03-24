@@ -709,6 +709,8 @@ private:
 		const float* filter, const float* freeTerm, float* result );
 	void blobChannelwiseConvolutionFilter3x3Padding1Stride2( const CCommonChannelwiseConvolutionDesc& desc, const float* source,
 		const float* filter, const float* freeTerm, float* result );
+	void blobChannelwiseConvolutionFilter5x5Padding2Stride1( const CCommonChannelwiseConvolutionDesc& desc, const float* source,
+		const float* filter, const float* freeTerm, float* result );
 	void blobChannelwiseConvolutionFilter5x5Padding2Stride2( const CCommonChannelwiseConvolutionDesc& desc, const float* source,
 		const float* filter, const float* freeTerm, float* result );
 
