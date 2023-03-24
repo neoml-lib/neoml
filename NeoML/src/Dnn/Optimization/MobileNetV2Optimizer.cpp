@@ -85,13 +85,11 @@ int CMobileNetV2Optimizer::optimizeNonResidualBlocks()
 
 		CLayerOutput<> mobileNetBlockData = graph.GetConnectedOutput<>( *expandConv, 0 );
 		CPtr<CMobileNetV2BlockLayer> mobileNetV2Block = new CMobileNetV2BlockLayer( graph.MathEngine(),
-			expandConv->GetFilterData(),
-			!expandConv->IsZeroFreeTerm() ? expandConv->GetFreeTermData() : nullptr,
+			expandConv->GetFilterData(), expandConv->GetFreeTermData(),
 			dynamic_cast<IActivationLayer*>( expandActivation )->GetDesc(),
-			channelwise->GetStrideHeight(), channelwise->GetFilterData(),
-			!channelwise->IsZeroFreeTerm() ? channelwise->GetFreeTermData() : nullptr,
+			channelwise->GetStrideHeight(), channelwise->GetFilterData(), channelwise->GetFreeTermData(),
 			dynamic_cast<IActivationLayer*>( channelwiseActivation )->GetDesc(), downConv->GetFilterData(),
-			!downConv->IsZeroFreeTerm() ? downConv->GetFreeTermData() : nullptr, false );
+			downConv->GetFreeTermData(), false );
 		mobileNetV2Block->SetName( graph.GetUniqueName( "MobiletNetV2Block" ) );
 		graph.AddLayer( *mobileNetV2Block );
 		graph.Connect( *mobileNetV2Block, 0, *mobileNetBlockData.Layer, mobileNetBlockData.Index );
