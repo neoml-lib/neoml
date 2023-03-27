@@ -191,6 +191,38 @@ void CCudaMathEngine::MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobD
 	}
 }
 
+void CCudaMathEngine::MobileNetV3PreSEBlock( const CBlobDesc& inputDesc, const CBlobDesc& outputDesc,
+	const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& inputHandle,
+	const CConstFloatHandle& expandFilter, const CConstFloatHandle* expandFreeTerm,
+	TActivationFunction expandActivation, float expandActivationParam, const CConstFloatHandle& channelwiseFilter,
+	const CConstFloatHandle* channelwiseFreeTerm, const CFloatHandle& outputHandle )
+{
+	SetCudaDevice( device->DeviceNumber );
+	const CCudaChannelwiseConvolutionDescInternal& desc = static_cast<const CCudaChannelwiseConvolutionDesc&>( convDesc ).Internal;
+
+	CFloatHandleStackVar channelwiseInput( *this, desc.Source.BlobSize() );
+
+	const int expandedChannels = desc.Filter.Channels();
+
+	MultiplyMatrixByTransposedMatrix( 1, inputHandle, inputDesc.ObjectCount() * inputDesc.GeometricalSize(),
+		inputDesc.Channels(), expandFilter, expandedChannels, channelwiseInput, channelwiseInput.Size() );
+
+	if( expandFreeTerm != nullptr ) {
+		AddVectorToMatrixRows( 1, channelwiseInput, channelwiseInput, channelwiseInput.Size() / expandedChannels,
+			expandedChannels, *expandFreeTerm );
+	}
+
+	if( expandActivation == AF_HSwish ) {
+		VectorHSwish( channelwiseInput, channelwiseInput, channelwiseInput.Size() );
+	} else {
+		CFloatHandleStackVar expandReLUThreshold( *this );
+		expandReLUThreshold.GetHandle().SetValue( expandActivationParam );
+		VectorReLU( channelwiseInput, channelwiseInput, channelwiseInput.Size(), expandReLUThreshold );
+	}
+
+	BlobChannelwiseConvolution( convDesc, channelwiseInput, channelwiseFilter, channelwiseFreeTerm, outputHandle );
+}
+
 void CCudaMathEngine::MobileNetV3PostSEBlock( const CBlobDesc& channelwiseOutputDesc, int outputChannels,
 	const CConstFloatHandle& channelwiseOutputHandle, const CConstFloatHandle& squeezeAndExciteHandle,
 	const CConstFloatHandle* residualHandle, TActivationFunction activation, float activationParam,
@@ -222,7 +254,7 @@ void CCudaMathEngine::MobileNetV3PostSEBlock( const CBlobDesc& channelwiseOutput
 	if( residualHandle != nullptr ) {
 		VectorCopy( outputHandle, *residualHandle, outputSize );
 		multiplyMatrixByTransposedMatrixAndAdd( squeezedAndExcited, batchSize * geomSize, inputChannels,
-			inputChannels, downFilterHandle, outputChannels, outputChannels, outputHandle, outputChannels );
+			inputChannels, downFilterHandle, outputChannels, inputChannels, outputHandle, outputChannels );
 	} else {
 		MultiplyMatrixByTransposedMatrix( 1, squeezedAndExcited, batchSize * geomSize, inputChannels,
 			downFilterHandle, outputChannels, outputHandle, outputSize );

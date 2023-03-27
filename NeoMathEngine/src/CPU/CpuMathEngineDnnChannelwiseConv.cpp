@@ -621,6 +621,165 @@ void CCpuMathEngine::MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobDe
 	}
 }
 
+void CCpuMathEngine::MobileNetV3PreSEBlock( const CBlobDesc& inputDesc, const CBlobDesc& outputDesc,
+	const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& inputHandle,
+	const CConstFloatHandle& expandFilterData, const CConstFloatHandle* expandFreeTermData,
+	TActivationFunction expandActivation, float expandActivationParam, const CConstFloatHandle& channelwiseFilterData,
+	const CConstFloatHandle* channelwiseFreeTermData, const CFloatHandle& outputHandle )
+{
+	CCpuExecutionScope scope;
+	const CCommonChannelwiseConvolutionDesc& desc = static_cast<const CCommonChannelwiseConvolutionDesc&>( convDesc );
+
+	const int cacheSize = 32 * 1024;
+	const bool isInPlace = inputHandle == outputHandle;
+	const int inputChannels = inputDesc.Channels();
+	const int expandedChannels = desc.Filter.Channels();
+	const int outputChannels = outputDesc.Channels();
+	const int inputHeight = desc.Source.Height();
+	const int inputWidth = desc.Source.Width();
+	const int chInputRowSize = expandedChannels * inputWidth;
+	const int inputRowSize = inputChannels * inputWidth;
+	const int outputHeight = desc.Result.Height();
+	const int outputWidth = desc.Result.Width();
+	const int chOutputRowSize = expandedChannels * outputWidth;
+	const int outputRowSize = outputChannels * outputWidth;
+	const int padding = desc.PaddingHeight;
+	const int filterSize = desc.Filter.Width();
+	const int filterRowSize = desc.Filter.Channels() * filterSize;
+	const int stride = desc.StrideHeight;
+
+	auto processFilterRow = stride == 1 ? processFilterRowStride1 : processFilterRowStride2;
+
+	const float* inputObject = GetRaw( inputHandle );
+	const float* expandFilter = GetRaw( expandFilterData );
+	const float* expandFreeTerm = expandFreeTermData == nullptr ? nullptr : GetRaw( *expandFreeTermData );
+	const float* channelwiseFilter = GetRaw( channelwiseFilterData );
+	const float* channelwiseFreeTerm = channelwiseFreeTermData == nullptr ? nullptr : GetRaw( *channelwiseFreeTermData );
+
+	const int maxInputRowsPerStep = std::max<int>( 1,
+		( cacheSize / ( std::max<int>( inputChannels, expandedChannels ) * inputWidth ) ) );
+	const int maxOutputRowsPerStep = std::max<int>( 1,
+		( cacheSize / ( std::max<int>( outputChannels, expandedChannels ) * outputWidth ) ) );
+
+	// Buffer for the input rows of channelwise convolution
+	CFloatHandleStackVar chInputBuffVar( *this,
+		std::min<int>( inputHeight, maxInputRowsPerStep + 2 ) * chInputRowSize );
+
+	float* chInputBuff = GetRaw( chInputBuffVar.GetHandle() );
+	float* outputObject = GetRaw( outputHandle );
+
+	for( int b = 0; b < inputDesc.ObjectCount(); ++b ) {
+		const float* input = inputObject;
+		const float* residualInput = input;
+		float* output = outputObject;
+
+		int inputRowsProcessed = 0;
+		int outputRowsProcessed = 0;
+		// The channelwise input row buffer can't hold the full image
+		// That's why the buffer on each step contains [firstInputRowInBuffer, inputRowsProcessed) rows
+		int firstInputRowInBuffer = 0;
+
+		while( inputRowsProcessed < inputHeight ) {
+			// Process a bunch of rows of input image (till channelwise convolution: expandConv + expandReLU)
+			const int inputRowsThisStep = std::min<int>( maxInputRowsPerStep, inputHeight - inputRowsProcessed );
+			float* chInput = chInputBuff + ( inputRowsProcessed - firstInputRowInBuffer ) * chInputRowSize;
+
+			// Apply expand convolution
+			multiplyMatrixByTransposedMatrix( input, inputRowsThisStep * inputWidth, inputChannels, inputChannels,
+				expandFilter, expandedChannels, inputChannels, chInput, expandedChannels );
+			if( expandFreeTerm != nullptr ) {
+				addVectorToMatrixRows( chInput, chInput, inputRowsThisStep * inputWidth, expandedChannels, expandedChannels,
+					expandedChannels, expandFreeTerm );
+			}
+
+			// Apply expand activation
+			if( expandActivation == AF_HSwish ) {
+				vectorHSwish( chInput, chInput, inputRowsThisStep * chInputRowSize );
+			} else {
+				if( expandActivationParam > 0 ) {
+					vectorReLU( chInput, chInput, inputRowsThisStep * chInputRowSize, expandActivationParam );
+				} else {
+					vectorReLU( chInput, chInput, inputRowsThisStep * chInputRowSize );
+				}
+			}
+			inputRowsProcessed += inputRowsThisStep;
+
+			// Calculate how many output rows we can calculate with the processed input rows
+			const int outputRowsCanBeProcesed = inputRowsProcessed == inputHeight ? outputHeight
+				: ( inputRowsProcessed < ( filterSize - padding ) ? 0 : ( inputRowsProcessed - filterSize + padding ) / stride + 1 );
+
+			while( outputRowsProcessed < outputRowsCanBeProcesed ) {
+				// Process channelwise output rows (while there are any)
+				const int outputRowsThisStep = std::min<int>( maxOutputRowsPerStep,
+					outputRowsCanBeProcesed - outputRowsProcessed );
+
+				// Channelwise conv
+				{
+					if( channelwiseFreeTerm != nullptr ) {
+						for( int i = 0; i < outputRowsThisStep; ++i ) {
+							fillResultRow( desc, channelwiseFreeTerm, output + i * outputRowSize );
+						}
+					} else {
+						NeoML::vectorFill( output, 0, outputRowsThisStep * outputRowSize );
+					}
+
+					float* resultRow = output;
+					float* resultRowEnd = resultRow + outputRowsThisStep * outputRowSize;
+					int firstFilteredRow = outputRowsProcessed * stride - padding;
+					for( ; resultRow < resultRowEnd; resultRow += outputRowSize, firstFilteredRow += stride ) {
+						const int filterFirstRow = std::max( 0, -firstFilteredRow );
+						const int filterLastRow = std::min( filterSize, inputHeight - firstFilteredRow );
+						const float* filterRow = channelwiseFilter + filterFirstRow * filterRowSize;
+						const float* filterRowEnd = channelwiseFilter + filterLastRow * filterRowSize;
+						const float* srcRow = chInputBuff + (firstFilteredRow + filterFirstRow - firstInputRowInBuffer) * chInputRowSize;
+
+						for( ; filterRow < filterRowEnd; filterRow += filterRowSize, srcRow += chInputRowSize ) {
+							int firstFilteredCol = -padding;
+							float* resultPos = resultRow;
+							float* resultPosEnd = resultPos + outputRowSize;
+							for( ; resultPos < resultPosEnd; resultPos += expandedChannels, firstFilteredCol += stride ) {
+								const int filterFirstCol = std::max( 0, -firstFilteredCol );
+								const int filterLastCol = std::min( filterSize, inputWidth - firstFilteredCol );
+								const float* filterPos = filterRow + filterFirstCol * expandedChannels;
+								const float* filterPosEnd = filterRow + filterLastCol * expandedChannels;
+								const float* srcPos = srcRow + (firstFilteredCol + filterFirstCol) * expandedChannels;
+								for( ; filterPos < filterPosEnd; filterPos += expandedChannels, srcPos += expandedChannels ) {
+									NeoML::vectorEltwiseMultiplyAdd(filterPos, srcPos, resultPos, expandedChannels);
+								}
+							}
+						}
+					}
+				}
+
+				output += outputRowsThisStep * outputRowSize;
+				outputRowsProcessed += outputRowsThisStep;
+			}
+
+			input += inputRowsThisStep * inputRowSize;
+
+			if( outputRowsProcessed < outputHeight ) {
+				const int firstInputRowNeeded = outputRowsProcessed * stride - padding;
+				if( firstInputRowNeeded > firstInputRowInBuffer ) {
+					// Buffer for channelwise input contains rows that won't be used in future
+					const int rowsToDelete = firstInputRowNeeded - firstInputRowInBuffer;
+					const int rowsToMove = inputRowsProcessed - firstInputRowNeeded;
+					if( rowsToMove > 0 ) {
+						// There are rows which should be saved between iteration over input
+						// Move them to the beginning of the buffer
+						dataCopy( chInputBuff, chInputBuff + rowsToDelete * chInputRowSize,
+							rowsToMove * chInputRowSize );
+					}
+					// Mark that channelwise input buffer now starts with a new row
+					firstInputRowInBuffer = firstInputRowNeeded;
+				}
+			}
+		}
+
+		inputObject += inputDesc.ObjectSize();
+		outputObject += outputDesc.ObjectSize();
+	}
+}
+
 void CCpuMathEngine::MobileNetV3PostSEBlock( const CBlobDesc& channelwiseOutputDesc, int outputChannels,
 	const CConstFloatHandle& channelwiseOutputHandle, const CConstFloatHandle& squeezeAndExciteHandle,
 	const CConstFloatHandle* residualHandle, TActivationFunction activation, float activationParam,

@@ -23,6 +23,158 @@ limitations under the License.
 
 namespace NeoML {
 
+static CPtr<CDnnBlob> nullifyFreeTermMNv3( CDnnBlob* freeTerm )
+{
+	if( freeTerm == nullptr ) {
+		return freeTerm;
+	}
+
+	CDnnBlobBuffer<> buffer( *freeTerm, TDnnBlobBufferAccess::Read );
+	for( int i = 0; i < buffer.Size(); ++i ) {
+		if( buffer[i] != 0 ) {
+			return freeTerm;
+		}
+	}
+
+	return nullptr;
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
+CMobileNetV3PreSEBlockLayer::CMobileNetV3PreSEBlockLayer( IMathEngine& mathEngine, const CPtr<CDnnBlob>& expandFilter,
+		const CPtr<CDnnBlob>& expandFreeTerm, const CActivationDesc& activation, int stride,
+		const CPtr<CDnnBlob>& channelwiseFilter, const CPtr<CDnnBlob>& channelwiseFreeTerm ) :
+	CBaseLayer( mathEngine, "MobileNetV3PreSEBlock", false ),
+	activation( activation ),
+	stride( stride ),
+	convDesc( nullptr )
+{
+	NeoAssert( activation.GetType() == AF_ReLU || activation.GetType() == AF_HSwish );
+	paramBlobs.SetSize( P_Count );
+	setParamBlob( P_ExpandFilter, expandFilter );
+	setParamBlob( P_ExpandFreeTerm, nullifyFreeTermMNv3( expandFreeTerm ) );
+	setParamBlob( P_ChannelwiseFilter, channelwiseFilter );
+	setParamBlob( P_ChannelwiseFreeTerm, nullifyFreeTermMNv3( channelwiseFreeTerm ) );
+}
+
+CMobileNetV3PreSEBlockLayer::CMobileNetV3PreSEBlockLayer( IMathEngine& mathEngine ) :
+	CBaseLayer( mathEngine, "MobileNetV3PreSEBlock", false ),
+	activation( AF_HSwish ),
+	stride( stride ),
+	convDesc( nullptr )
+{
+	paramBlobs.SetSize( P_Count );
+}
+
+CMobileNetV3PreSEBlockLayer::~CMobileNetV3PreSEBlockLayer()
+{
+	if( convDesc != nullptr ) {
+		delete convDesc;
+	}
+}
+
+static const int MobileNetV3PreSEBlockLayerVersion = 0;
+
+void CMobileNetV3PreSEBlockLayer::Serialize( CArchive& archive )
+{
+	archive.SerializeVersion( MobileNetV3PreSEBlockLayerVersion );
+	CBaseLayer::Serialize( archive );
+
+	archive.Serialize( stride );
+
+	if( archive.IsLoading() ) {
+		activation = LoadActivationDesc( archive );
+		NeoAssert( activation.GetType() == AF_ReLU || activation.GetType() == AF_HSwish );
+	} else {
+		StoreActivationDesc( activation, archive );
+	}
+}
+
+void CMobileNetV3PreSEBlockLayer::Reshape()
+{
+	CheckInput1();
+
+	NeoAssert( inputDescs[0].Depth() == 1 );
+	const int inputChannels = inputDescs[0].Channels();
+
+	NeoAssert( paramBlobs[P_ExpandFilter] != nullptr );
+	const int expandedChannels = paramBlobs[P_ExpandFilter]->GetObjectCount();
+	NeoAssert( paramBlobs[P_ExpandFilter]->GetHeight() == 1 );
+	NeoAssert( paramBlobs[P_ExpandFilter]->GetWidth() == 1 );
+	NeoAssert( paramBlobs[P_ExpandFilter]->GetDepth() == 1 );
+	NeoAssert( paramBlobs[P_ExpandFilter]->GetChannelsCount() == inputChannels );
+	if( paramBlobs[P_ExpandFreeTerm] != nullptr ) {
+		NeoAssert( paramBlobs[P_ExpandFreeTerm]->GetDataSize() == expandedChannels );
+	}
+
+	NeoAssert( stride == 1 || stride == 2 );
+	NeoAssert( paramBlobs[P_ChannelwiseFilter] != nullptr );
+	NeoAssert( paramBlobs[P_ChannelwiseFilter]->GetObjectCount() == 1 );
+	NeoAssert( paramBlobs[P_ChannelwiseFilter]->GetHeight() == paramBlobs[P_ChannelwiseFilter]->GetWidth() );
+	NeoAssert( paramBlobs[P_ChannelwiseFilter]->GetWidth() == 3 || paramBlobs[P_ChannelwiseFilter]->GetWidth() == 5 );
+	NeoAssert( paramBlobs[P_ChannelwiseFilter]->GetDepth() == 1 );
+	NeoAssert( paramBlobs[P_ChannelwiseFilter]->GetChannelsCount() == expandedChannels );
+	if( paramBlobs[P_ChannelwiseFreeTerm] != nullptr ) {
+		NeoAssert( paramBlobs[P_ChannelwiseFreeTerm]->GetDataSize() == expandedChannels );
+	}
+
+	outputDescs[0] = inputDescs[0];
+	if( stride == 2 ) {
+		outputDescs[0].SetDimSize( BD_Height, ( inputDescs[0].Height() + 1 ) / 2 );
+		outputDescs[0].SetDimSize( BD_Width, ( inputDescs[0].Width() + 1 ) / 2 );
+	}
+	outputDescs[0].SetDimSize( BD_Channels, expandedChannels );
+
+	if( convDesc != nullptr ) {
+		delete convDesc;
+		convDesc = nullptr;
+	}
+
+	CBlobDesc channelwiseInputDesc = inputDescs[0];
+	channelwiseInputDesc.SetDimSize( BD_Channels, expandedChannels );
+	CBlobDesc channelwiseOutputDesc = outputDescs[0];
+	channelwiseOutputDesc.SetDimSize( BD_Channels, expandedChannels );
+	CBlobDesc freeTermDesc = paramBlobs[P_ChannelwiseFreeTerm] != nullptr
+		? paramBlobs[P_ChannelwiseFreeTerm]->GetDesc() : CBlobDesc();
+	const int padding = paramBlobs[P_ChannelwiseFilter]->GetWidth() == 3 ? 1 : 2;
+	convDesc = MathEngine().InitBlobChannelwiseConvolution( channelwiseInputDesc, padding, padding, stride, stride,
+		paramBlobs[P_ChannelwiseFilter]->GetDesc(),
+		paramBlobs[P_ChannelwiseFreeTerm] != nullptr ? &freeTermDesc : nullptr,
+		channelwiseOutputDesc );
+}
+
+void CMobileNetV3PreSEBlockLayer::RunOnce()
+{
+	const CConstFloatHandle expandFt = paramBlobs[P_ExpandFreeTerm] == nullptr ? CConstFloatHandle()
+		: paramBlobs[P_ExpandFreeTerm]->GetData<const float>();
+	const CConstFloatHandle channelwiseFt = paramBlobs[P_ChannelwiseFreeTerm] == nullptr ? CConstFloatHandle()
+		: paramBlobs[P_ChannelwiseFreeTerm]->GetData<const float>();
+	MathEngine().MobileNetV3PreSEBlock( inputBlobs[0]->GetDesc(), outputBlobs[0]->GetDesc(), *convDesc,
+		inputBlobs[0]->GetData(), paramBlobs[P_ExpandFilter]->GetData(),
+		expandFt.IsNull() ? nullptr : &expandFt,
+		activation.GetType(),
+		activation.GetType() == AF_HSwish ? 0.f : activation.GetParam<CReLULayer::CParam>().UpperThreshold,
+		paramBlobs[P_ChannelwiseFilter]->GetData(),
+		channelwiseFt.IsNull() ? nullptr : &channelwiseFt,
+		outputBlobs[0]->GetData() );
+}
+
+CPtr<CDnnBlob> CMobileNetV3PreSEBlockLayer::getParamBlob( TParam param ) const
+{
+	if( paramBlobs[param] == nullptr ) {
+		return nullptr;
+	}
+
+	return paramBlobs[param]->GetCopy();
+}
+
+void CMobileNetV3PreSEBlockLayer::setParamBlob( TParam param, const CPtr<CDnnBlob>& blob )
+{
+	paramBlobs[param] = blob == nullptr ? nullptr : blob->GetCopy();
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
 CMobileNetV3PostSEBlockLayer::CMobileNetV3PostSEBlockLayer( IMathEngine& mathEngine,
 		const CActivationDesc& activation, const CPtr<CDnnBlob>& downFilter,
 		const CPtr<CDnnBlob>& downFreeTerm ) :
@@ -32,7 +184,7 @@ CMobileNetV3PostSEBlockLayer::CMobileNetV3PostSEBlockLayer( IMathEngine& mathEng
 	NeoAssert( activation.GetType() == AF_ReLU || activation.GetType() == AF_HSwish );
 	paramBlobs.SetSize( P_Count );
 	setParamBlob( P_DownFilter, downFilter );
-	setParamBlob( P_DownFreeTerm, downFreeTerm );
+	setParamBlob( P_DownFreeTerm, nullifyFreeTermMNv3( downFreeTerm ) );
 }
 
 CMobileNetV3PostSEBlockLayer::CMobileNetV3PostSEBlockLayer( IMathEngine& mathEngine ) :

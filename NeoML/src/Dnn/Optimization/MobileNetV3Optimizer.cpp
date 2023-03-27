@@ -173,8 +173,8 @@ bool CMobileNetV3Optimizer::detectMNv3SE( CMNv3BlockInfo& detectedBlock )
 	}
 
 	for( int mulInput = 0; mulInput < 2; ++mulInput ) {
-		CLayerOutput<CChannelwiseConvLayer> channelwiseOutput = graph.GetConnectedOutput<CChannelwiseConvLayer>(
-			*detectedBlock.SEMulVectorInput.Layer, mulInput );
+		CLayerOutput<CChannelwiseConvLayer> channelwiseOutput = graph.SelectConnectedOutput<CChannelwiseConvLayer>(
+			*detectedBlock.SEMulVectorInput.Layer, mulInput, false );
 		if( channelwiseOutput.Layer == nullptr ) {
 			continue;
 		}
@@ -290,13 +290,13 @@ bool CMobileNetV3Optimizer::detectMNv3PreSE( CMNv3BlockInfo& detectedBlock )
 		return false;
 	}
 
-	CBaseLayer* expandActivation = graph.GetConnectedOutput<>( *detectedBlock.Channelwise, 0 ).Layer;
+	CBaseLayer* expandActivation = graph.SelectConnectedOutput<>( *detectedBlock.Channelwise, 0, true ).Layer;
 	if( expandActivation == nullptr || !isValidBlockActivation( *expandActivation ) ) {
 		return false;
 	}
 	detectedBlock.ExpandActivation = dynamic_cast<IActivationLayer&>( *expandActivation ).GetDesc();
 
-	detectedBlock.ExpandConv = graph.GetConnectedOutput<CConvLayer>( *expandActivation, 0 ).Layer;
+	detectedBlock.ExpandConv = graph.SelectConnectedOutput<CConvLayer>( *expandActivation, 0, true ).Layer;
 	if( detectedBlock.ExpandConv == nullptr || !isValid1x1Conv( *detectedBlock.ExpandConv ) ) {
 		return false;
 	}
@@ -390,6 +390,16 @@ bool CMobileNetV3Optimizer::isValidChannelwise( CChannelwiseConvLayer& channelwi
 
 void CMobileNetV3Optimizer::optimizeDetectedBlock( const CMNv3BlockInfo& detectedBlock )
 {
+	// optimize pre Squeeze-and-Excite part
+	CPtr<CMobileNetV3PreSEBlockLayer> preSEBlock = new CMobileNetV3PreSEBlockLayer( graph.MathEngine(),
+		detectedBlock.ExpandConv->GetFilterData(), detectedBlock.ExpandConv->GetFreeTermData(),
+		detectedBlock.ExpandActivation, detectedBlock.Channelwise->GetStrideHeight(),
+		detectedBlock.Channelwise->GetFilterData(), detectedBlock.Channelwise->GetFreeTermData() );
+	preSEBlock->SetName( graph.GetUniqueName( "MobileNetV3PreSEBlock" ) );
+	graph.AddLayer( *preSEBlock );
+	graph.Connect( *preSEBlock, 0, *detectedBlock.InputData.Layer, detectedBlock.InputData.Index );
+	graph.Connect( *detectedBlock.SEPooling, 0, *preSEBlock, 0 );
+
 	// optimize Squeeze-and-Excite
 	graph.Connect( *detectedBlock.SEFirstFc, 0, *detectedBlock.SEPooling, 0 );
 	graph.Connect( *detectedBlock.SEMulVectorInput.Layer, detectedBlock.SEMulVectorInput.Index,
@@ -398,10 +408,10 @@ void CMobileNetV3Optimizer::optimizeDetectedBlock( const CMNv3BlockInfo& detecte
 	// optimzie post Squeeze-and-Excite part
 	CPtr<CMobileNetV3PostSEBlockLayer> postSEBlock = new CMobileNetV3PostSEBlockLayer( graph.MathEngine(),
 		detectedBlock.ChannelwiseActivation, detectedBlock.DownConv->GetFilterData(),
-		!detectedBlock.DownConv->IsZeroFreeTerm() ? detectedBlock.DownConv->GetFreeTermData() : nullptr );
+		detectedBlock.DownConv->GetFreeTermData() );
 	postSEBlock->SetName( graph.GetUniqueName( "MobileNetV3PostSEBlock" ) );
 	graph.AddLayer( *postSEBlock );
-	graph.Connect( *postSEBlock, 0, *detectedBlock.Channelwise, 0 );
+	graph.Connect( *postSEBlock, 0, *preSEBlock, 0 );
 	graph.Connect( *postSEBlock, 1, *detectedBlock.SESecondActivation, 0 );
 	if( detectedBlock.Residual != nullptr ) {
 		graph.Connect( *postSEBlock, 2, *detectedBlock.InputData.Layer,

@@ -21,6 +21,51 @@ limitations under the License.
 
 namespace NeoML {
 
+// Emulates the part of the block which goes before Squeeze-and-Excite
+//
+// The only input accepts the input of the block
+// The only output contains the output of channelwise convolution
+//
+// Replaces the following construction:
+//     ExpandConv -> Activation -> Channelwise
+//
+// Possible activations: ReLU and HSwish
+// Channelwise support stride 1 and 2, and filters 3x3 or 5x5 with paddings 1 and 2 correspondingly
+class NEOML_API CMobileNetV3PreSEBlockLayer : public CBaseLayer {
+	NEOML_DNN_LAYER( CMobileNetV3PreSEBlockLayer )
+public:
+	CMobileNetV3PreSEBlockLayer( IMathEngine& mathEngine, const CPtr<CDnnBlob>& expandFilter,
+		const CPtr<CDnnBlob>& expandFreeTerm, const CActivationDesc& activation, int stride,
+		const CPtr<CDnnBlob>& channelwiseFilter, const CPtr<CDnnBlob>& channelwiseFreeTerm );
+	explicit CMobileNetV3PreSEBlockLayer( IMathEngine& mathEngine );
+	~CMobileNetV3PreSEBlockLayer();
+
+	void Serialize( CArchive& archive ) override;
+
+private:
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override { NeoAssert( false ); }
+
+private:
+	// paramBlobs indices
+	enum TParam {
+		P_ExpandFilter,
+		P_ExpandFreeTerm,
+		P_ChannelwiseFilter,
+		P_ChannelwiseFreeTerm,
+
+		P_Count
+	};
+
+	CActivationDesc activation; // activation applied after expand 1x1 convolution
+	int stride; // stride of channelwise convolution
+	CChannelwiseConvolutionDesc* convDesc; // descriptor of channelwise convolution
+
+	CPtr<CDnnBlob> getParamBlob( TParam param ) const;
+	void setParamBlob( TParam param, const CPtr<CDnnBlob>& blob );
+};
+
 // Emulates the part of the block which goes after Squeeze-and-Excite
 //
 // 2 or 3 inputs:
@@ -28,8 +73,9 @@ namespace NeoML {
 //     2. Squeeze-and-Excite result
 //     3. (optional) Residual input
 //
-// Replaces the follwoing construction:
+// Replaces the following construction:
 //     Mul -> Activation -> DownConv -> [Residual ->]
+//
 // Possible activations: ReLU and HSwish
 class NEOML_API CMobileNetV3PostSEBlockLayer : public CBaseLayer {
 	NEOML_DNN_LAYER( CMobileNetV3PostSEBlockLayer )
