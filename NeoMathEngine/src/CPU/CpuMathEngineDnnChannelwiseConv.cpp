@@ -663,7 +663,7 @@ void CCpuMathEngine::MobileNetV3PreSEBlock( const CBlobDesc& inputDesc, const CB
 
 	// Buffer for the input rows of channelwise convolution
 	CFloatHandleStackVar chInputBuffVar( *this,
-		std::min<int>( inputHeight, maxInputRowsPerStep + 2 ) * chInputRowSize );
+		std::min<int>( inputHeight, maxInputRowsPerStep + filterSize - 1 ) * chInputRowSize );
 
 	float* chInputBuff = GetRaw( chInputBuffVar.GetHandle() );
 	float* outputObject = GetRaw( outputHandle );
