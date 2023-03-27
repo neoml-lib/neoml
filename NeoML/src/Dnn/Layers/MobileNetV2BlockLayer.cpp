@@ -23,6 +23,24 @@ limitations under the License.
 
 namespace NeoML {
 
+static CPtr<CDnnBlob> nullifyFreeTerm( CDnnBlob* freeTerm )
+{
+	if( freeTerm == nullptr ) {
+		return freeTerm;
+	}
+
+	CDnnBlobBuffer<> buffer( *freeTerm, TDnnBlobBufferAccess::Read );
+	for( int i = 0; i < buffer.Size(); ++i ) {
+		if( buffer[i] != 0 ) {
+			return freeTerm;
+		}
+	}
+
+	return nullptr;
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
 CMobileNetV2BlockLayer::CMobileNetV2BlockLayer( IMathEngine& mathEngine, const CPtr<CDnnBlob>& expandFilter,
 		const CPtr<CDnnBlob>& expandFreeTerm, const CActivationDesc& expandActivation, int stride,
 		const CPtr<CDnnBlob>& channelwiseFilter, const CPtr<CDnnBlob>& channelwiseFreeTerm,
@@ -39,11 +57,11 @@ CMobileNetV2BlockLayer::CMobileNetV2BlockLayer( IMathEngine& mathEngine, const C
 	NeoAssert( channelwiseActivation.GetType() == AF_ReLU || channelwiseActivation.GetType() == AF_HSwish );
 	paramBlobs.SetSize( P_Count );
 	setParamBlob( P_ExpandFilter, expandFilter );
-	setParamBlob( P_ExpandFreeTerm, expandFreeTerm );
+	setParamBlob( P_ExpandFreeTerm, nullifyFreeTerm( expandFreeTerm ) );
 	setParamBlob( P_ChannelwiseFilter, channelwiseFilter );
-	setParamBlob( P_ChannelwiseFreeTerm, channelwiseFreeTerm );
+	setParamBlob( P_ChannelwiseFreeTerm, nullifyFreeTerm( channelwiseFreeTerm ) );
 	setParamBlob( P_DownFilter, downFilter );
-	setParamBlob( P_DownFreeTerm, downFreeTerm );
+	setParamBlob( P_DownFreeTerm, nullifyFreeTerm( downFreeTerm ) );
 }
 
 CMobileNetV2BlockLayer::CMobileNetV2BlockLayer( IMathEngine& mathEngine ) :
