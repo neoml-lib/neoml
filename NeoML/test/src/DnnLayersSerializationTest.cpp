@@ -3112,7 +3112,7 @@ GTEST_TEST( SerializeFromFile, MobileNetV3PreSEBlockLayerSerialization )
 
 #ifdef GENERATE_SERIALIZATION_FILES
 
-/*static void setSpecificParams( CMobileNetV3PostSEBlockLayer& layer )
+static void setSpecificParams( CMobileNetV3PostSEBlockLayer& layer )
 {
 	const int expandChannels = 4;
 	const int outputChannels = 3;
@@ -3126,7 +3126,7 @@ GTEST_TEST( SerializeFromFile, MobileNetV3PreSEBlockLayerSerialization )
 GTEST_TEST( SerializeToFile, MobileNetV3PostSEBlockLayerSerialization )
 {
 	serializeToFile<CMobileNetV3PostSEBlockLayer>( "NeoMLDnnMobileNetV3PostSEBlockLayer" );
-}*/
+}
 
 #endif // GENERATE_SERIALIZATION_FILES
 
