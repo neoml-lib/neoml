@@ -16,9 +16,10 @@ limitations under the License.
 #include <common.h>
 #pragma hdrstop
 
-#include "MobileNetV2Optimizer.h"
+#include "ChannelwiseWith1x1Optimizer.h"
 #include <NeoML/Dnn/Optimization/Graph.h>
 #include <NeoML/Dnn/DnnOptimization.h>
+#include <NeoML/Dnn/Layers/ChannelwiseConvLayer.h>
 #include <NeoML/Dnn/Layers/ChannelwiseWith1x1Layer.h>
 #include <NeoML/Dnn/Layers/EltwiseLayer.h>
 #include <NeoML/Dnn/Layers/MobileNetV2BlockLayer.h>
@@ -28,16 +29,16 @@ namespace NeoML {
 
 namespace optimization {
 
-void CMobileNetV2Optimizer::Apply( CDnnOptimizationReport& report )
+void CChannelwiseWith1x1Optimizer::Apply( CDnnOptimizationReport& report )
 {
-	// Step 1: merge basic layers into non-residual CMobileNetV2BlockLayer
-	report.MobileNetV2NonResidualBlocks = optimizeNonResidualBlocks();
-	// Step 2: add residual connections to the CMobileNetV2BlockLayer which are already in the graph
-	report.MobileNetV2ResidualBlocks = optimizeResidualConnections();
+	// Step 1: merge basic layers into non-residual CChannelwiseWith1x1Layer
+	report.ChannelwiseWith1x1NonResidual = optimizeNonResidualBlocks();
+	// Step 2: add residual connections to the CChannelwiseWith1x1Layer which are already in the graph
+	report.ChannelwiseWith1x1Residual = optimizeResidualConnections();
 }
 
 // Replaces layers which are equivalent to non-residual mobilenetv2 block
-int CMobileNetV2Optimizer::optimizeNonResidualBlocks()
+int CChannelwiseWith1x1Optimizer::optimizeNonResidualBlocks()
 {
 	int blocksOptimized = 0;
 
@@ -46,38 +47,38 @@ int CMobileNetV2Optimizer::optimizeNonResidualBlocks()
 
 	for( CBaseLayer* layer : layers ) {
 		graph.ClearSelection();
-		
+
 		if( !graph.HasLayer( layer ) ) {
 			// Layer has already been deleted from the graph
 			continue;
 		}
 
-		CChannelwiseWith1x1Layer* channelwise = dynamic_cast<CChannelwiseWith1x1Layer*>( layer );
-		if( channelwise == nullptr || channelwise->Residual() ) {
+		CConvLayer* downConv = dynamic_cast<CConvLayer*>( layer );
+		if( downConv == nullptr || !isValid1x1Conv( *downConv ) ) {
 			continue;
 		}
-		graph.SelectLayer( *channelwise );
+		graph.SelectLayer( *downConv );
 
-		CBaseLayer* expandActivation = graph.SelectConnectedOutput<>( *channelwise, 0, true ).Layer;
-		if( expandActivation == nullptr || !isValidActivation( *expandActivation ) ) {
-			continue;
-		}
-
-		CConvLayer* expandConv = graph.SelectConnectedOutput<CConvLayer>( *expandActivation, 0, true ).Layer;
-		if( expandConv == nullptr || !isValid1x1Conv( *expandConv ) ) {
+		CBaseLayer* channelwiseActivation = graph.SelectConnectedOutput<>( *downConv, 0 , true ).Layer;
+		if( channelwiseActivation == nullptr || !isValidActivation( *channelwiseActivation ) ) {
 			continue;
 		}
 
-		CLayerOutput<> mobileNetBlockData = graph.GetConnectedOutput<>( *expandConv, 0 );
-		CPtr<CMobileNetV2BlockLayer> mobileNetV2Block = new CMobileNetV2BlockLayer( graph.MathEngine(),
-			expandConv->GetFilterData(), expandConv->GetFreeTermData(),
-			dynamic_cast<IActivationLayer*>( expandActivation )->GetDesc(),
-			channelwise->Stride(), channelwise->ChannelwiseFilter(), channelwise->ChannelwiseFreeTerm(),
-			channelwise->Activation(), channelwise->ConvFilter(), channelwise->ConvFreeTerm(), false );
+		CChannelwiseConvLayer* channelwise = graph.SelectConnectedOutput<CChannelwiseConvLayer>(
+			*channelwiseActivation, 0, true ).Layer;
+		if( channelwise == nullptr || !isValidChannelwise( *channelwise ) ) {
+			continue;
+		}
+
+		CLayerOutput<> mobileNetBlockData = graph.GetConnectedOutput<>( *channelwise, 0 );
+		CPtr<CChannelwiseWith1x1Layer> mobileNetV2Block = new CChannelwiseWith1x1Layer( graph.MathEngine(),
+			channelwise->GetStrideHeight(), channelwise->GetFilterData(), channelwise->GetFreeTermData(),
+			dynamic_cast<IActivationLayer*>( channelwiseActivation )->GetDesc(), downConv->GetFilterData(),
+			downConv->GetFreeTermData(), false );
 		mobileNetV2Block->SetName( graph.GetUniqueName( "MobiletNetV2Block" ) );
 		graph.AddLayer( *mobileNetV2Block );
 		graph.Connect( *mobileNetV2Block, 0, *mobileNetBlockData.Layer, mobileNetBlockData.Index );
-		graph.SwitchOutputs( *channelwise, 0, *mobileNetV2Block, 0 );
+		graph.SwitchOutputs( *downConv, 0, *mobileNetV2Block, 0 );
 		graph.DeleteSelectedLayers();
 		blocksOptimized++;
 	}
@@ -88,7 +89,7 @@ int CMobileNetV2Optimizer::optimizeNonResidualBlocks()
 }
 
 // Merges residual connection layers into non-residual mobilenetv2 blocks
-int CMobileNetV2Optimizer::optimizeResidualConnections()
+int CChannelwiseWith1x1Optimizer::optimizeResidualConnections()
 {
 	int blocksOptimized = 0;
 
@@ -114,7 +115,7 @@ int CMobileNetV2Optimizer::optimizeResidualConnections()
 		}
 
 		for( int i = 0; i < 2; ++i ) {
-			CMobileNetV2BlockLayer* mobileNetV2Block = graph.GetConnectedOutput<CMobileNetV2BlockLayer>(
+			CChannelwiseWith1x1Layer* mobileNetV2Block = graph.GetConnectedOutput<CChannelwiseWith1x1Layer>(
 				*layer, i ).Layer;
 			if( mobileNetV2Block == nullptr || graph.GetInputCount( *mobileNetV2Block ) != 1
 				|| graph.GetOutputCount( *mobileNetV2Block ) != 1
@@ -140,7 +141,7 @@ int CMobileNetV2Optimizer::optimizeResidualConnections()
 }
 
 // Checks that CConvLayer meets the criteria of 1x1 convolution inside MobiletNetV2 block
-bool CMobileNetV2Optimizer::isValid1x1Conv( CConvLayer& conv ) const
+bool CChannelwiseWith1x1Optimizer::isValid1x1Conv( CConvLayer& conv ) const
 {
 	return graph.GetInputCount( conv ) == 1 && conv.GetFilterHeight() == 1 && conv.GetFilterWidth() == 1
 		&& conv.GetPaddingHeight() == 0 && conv.GetPaddingWidth() == 0 && conv.GetStrideHeight() == 1
@@ -148,10 +149,21 @@ bool CMobileNetV2Optimizer::isValid1x1Conv( CConvLayer& conv ) const
 }
 
 // Checks that layer meets the criteria for activation function inside MobiletNetV2 block
-bool CMobileNetV2Optimizer::isValidActivation( CBaseLayer& layer ) const
+bool CChannelwiseWith1x1Optimizer::isValidActivation( CBaseLayer& layer ) const
 {
 	return ( dynamic_cast<CReLULayer*>( &layer ) != nullptr || dynamic_cast<CHSwishLayer*>( &layer ) != nullptr )
 		&& graph.GetInputCount( layer ) == 1;
+}
+
+// Checks that channelwise layer meets the criteria for channelwise inside MobileNetV2 block
+bool CChannelwiseWith1x1Optimizer::isValidChannelwise( CChannelwiseConvLayer& channelwise ) const
+{
+	return graph.GetInputCount( channelwise ) == 1
+		&& channelwise.GetFilterHeight() == 3 && channelwise.GetFilterWidth() == 3
+		&& channelwise.GetDilationHeight() == 1 && channelwise.GetDilationWidth() == 1
+		&& channelwise.GetPaddingHeight() == 1 && channelwise.GetPaddingWidth() == 1
+		&& channelwise.GetStrideHeight() == channelwise.GetStrideWidth()
+		&& ( channelwise.GetStrideHeight() == 1 || channelwise.GetStrideHeight() == 2 );
 }
 
 } // namespace optimization

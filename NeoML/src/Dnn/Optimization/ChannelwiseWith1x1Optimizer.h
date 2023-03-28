@@ -28,9 +28,9 @@ namespace optimization {
 // Forward declaration(s)
 class CGraph;
 
-class CMobileNetV2Optimizer {
+class CChannelwiseWith1x1Optimizer {
 public:
-	explicit CMobileNetV2Optimizer( CGraph& graph ) :
+	explicit CChannelwiseWith1x1Optimizer( CGraph& graph ) :
 		graph( graph )
 	{
 	}
@@ -46,6 +46,7 @@ private:
 
 	bool isValid1x1Conv( CConvLayer& conv ) const;
 	bool isValidActivation( CBaseLayer& layer ) const;
+	bool isValidChannelwise( CChannelwiseConvLayer& channelwise ) const;
 };
 
 } // namespace optimization

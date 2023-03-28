@@ -163,6 +163,7 @@ set(NeoML_SOURCES
     Dnn/Layers/TransformerLayer.cpp
     Dnn/Layers/TransformerSourceMaskLayer.cpp
     Dnn/Layers/Upsampling2DLayer.cpp
+    Dnn/Optimization/ChannelwiseWith1x1Optimizer.cpp
     Dnn/Optimization/Graph.cpp
     Dnn/Optimization/MobileNetV2Optimizer.cpp
     Dnn/Optimization/MobileNetV3Optimizer.cpp
@@ -207,6 +208,7 @@ set(NeoML_NON_UNITY_SOURCES
 )
 
 set(NeoML_HEADERS_COMPACT
+    Dnn/Optimization/ChannelwiseWith1x1Optimizer.h
     Dnn/Optimization/MobileNetV2Optimizer.h
     Dnn/Optimization/MobileNetV3Optimizer.h
     TraditionalML/CompactRegressionTree.h
