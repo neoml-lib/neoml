@@ -20,26 +20,9 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/ConvLayer.h>
 #include <NeoML/Dnn/Layers/ChannelwiseConvLayer.h>
 #include <NeoML/Dnn/Layers/EltwiseLayer.h>
+#include "MobileNetBlockUtils.h"
 
 namespace NeoML {
-
-static CPtr<CDnnBlob> nullifyFreeTermMNv3( CDnnBlob* freeTerm )
-{
-	if( freeTerm == nullptr ) {
-		return freeTerm;
-	}
-
-	CDnnBlobBuffer<> buffer( *freeTerm, TDnnBlobBufferAccess::Read );
-	for( int i = 0; i < buffer.Size(); ++i ) {
-		if( buffer[i] != 0 ) {
-			return freeTerm;
-		}
-	}
-
-	return nullptr;
-}
-
-//---------------------------------------------------------------------------------------------------------------------
 
 CMobileNetV3PreSEBlockLayer::CMobileNetV3PreSEBlockLayer( IMathEngine& mathEngine, const CPtr<CDnnBlob>& expandFilter,
 		const CPtr<CDnnBlob>& expandFreeTerm, const CActivationDesc& activation, int stride,
@@ -51,10 +34,10 @@ CMobileNetV3PreSEBlockLayer::CMobileNetV3PreSEBlockLayer( IMathEngine& mathEngin
 {
 	NeoAssert( activation.GetType() == AF_ReLU || activation.GetType() == AF_HSwish );
 	paramBlobs.SetSize( P_Count );
-	setParamBlob( P_ExpandFilter, expandFilter );
-	setParamBlob( P_ExpandFreeTerm, nullifyFreeTermMNv3( expandFreeTerm ) );
-	setParamBlob( P_ChannelwiseFilter, channelwiseFilter );
-	setParamBlob( P_ChannelwiseFreeTerm, nullifyFreeTermMNv3( channelwiseFreeTerm ) );
+	paramBlobs[P_ExpandFilter] = MobileNetParam( expandFilter );
+	paramBlobs[P_ExpandFreeTerm] = MobileNetFreeTerm( expandFreeTerm );
+	paramBlobs[P_ChannelwiseFilter] = MobileNetParam( channelwiseFilter );
+	paramBlobs[P_ChannelwiseFreeTerm] = MobileNetFreeTerm( channelwiseFreeTerm );
 }
 
 CMobileNetV3PreSEBlockLayer::CMobileNetV3PreSEBlockLayer( IMathEngine& mathEngine ) :
@@ -71,6 +54,26 @@ CMobileNetV3PreSEBlockLayer::~CMobileNetV3PreSEBlockLayer()
 	if( convDesc != nullptr ) {
 		delete convDesc;
 	}
+}
+
+CPtr<CDnnBlob> CMobileNetV3PreSEBlockLayer::ExpandFilter() const
+{
+	return MobileNetParam( paramBlobs[P_ExpandFilter] );
+}
+
+CPtr<CDnnBlob> CMobileNetV3PreSEBlockLayer::ExpandFreeTerm() const
+{
+	return MobileNetParam( paramBlobs[P_ExpandFreeTerm] );
+}
+
+CPtr<CDnnBlob> CMobileNetV3PreSEBlockLayer::ChannelwiseFilter() const
+{
+	return MobileNetParam( paramBlobs[P_ChannelwiseFilter] );
+}
+
+CPtr<CDnnBlob> CMobileNetV3PreSEBlockLayer::ChannelwiseFreeTerm() const
+{
+	return MobileNetParam( paramBlobs[P_ChannelwiseFreeTerm] );
 }
 
 static const int MobileNetV3PreSEBlockLayerVersion = 0;
@@ -159,20 +162,6 @@ void CMobileNetV3PreSEBlockLayer::RunOnce()
 		outputBlobs[0]->GetData() );
 }
 
-CPtr<CDnnBlob> CMobileNetV3PreSEBlockLayer::getParamBlob( TParam param ) const
-{
-	if( paramBlobs[param] == nullptr ) {
-		return nullptr;
-	}
-
-	return paramBlobs[param]->GetCopy();
-}
-
-void CMobileNetV3PreSEBlockLayer::setParamBlob( TParam param, const CPtr<CDnnBlob>& blob )
-{
-	paramBlobs[param] = blob == nullptr ? nullptr : blob->GetCopy();
-}
-
 //---------------------------------------------------------------------------------------------------------------------
 
 CMobileNetV3PostSEBlockLayer::CMobileNetV3PostSEBlockLayer( IMathEngine& mathEngine,
@@ -183,8 +172,8 @@ CMobileNetV3PostSEBlockLayer::CMobileNetV3PostSEBlockLayer( IMathEngine& mathEng
 {
 	NeoAssert( activation.GetType() == AF_ReLU || activation.GetType() == AF_HSwish );
 	paramBlobs.SetSize( P_Count );
-	setParamBlob( P_DownFilter, downFilter );
-	setParamBlob( P_DownFreeTerm, nullifyFreeTermMNv3( downFreeTerm ) );
+	paramBlobs[P_DownFilter] = MobileNetParam( downFilter );
+	paramBlobs[P_DownFreeTerm] = MobileNetFreeTerm( downFreeTerm );
 }
 
 CMobileNetV3PostSEBlockLayer::CMobileNetV3PostSEBlockLayer( IMathEngine& mathEngine ) :
@@ -192,6 +181,16 @@ CMobileNetV3PostSEBlockLayer::CMobileNetV3PostSEBlockLayer( IMathEngine& mathEng
 	activation( AF_HSwish )
 {
 	paramBlobs.SetSize( P_Count );
+}
+
+CPtr<CDnnBlob> CMobileNetV3PostSEBlockLayer::DownFilter() const
+{
+	return MobileNetParam( paramBlobs[P_DownFilter] );
+}
+
+CPtr<CDnnBlob> CMobileNetV3PostSEBlockLayer::DownFreeTerm() const
+{
+	return MobileNetParam( paramBlobs[P_DownFreeTerm] );
 }
 
 static const int MobileNetV3PostSEBlockLayerVersion = 0;
@@ -257,20 +256,6 @@ void CMobileNetV3PostSEBlockLayer::RunOnce()
 		paramBlobs[P_DownFilter]->GetData(),
 		downFt.IsNull() ? nullptr : &downFt,
 		outputBlobs[0]->GetData() );
-}
-
-CPtr<CDnnBlob> CMobileNetV3PostSEBlockLayer::getParamBlob( TParam param ) const
-{
-	if( paramBlobs[param] == nullptr ) {
-		return nullptr;
-	}
-
-	return paramBlobs[param]->GetCopy();
-}
-
-void CMobileNetV3PostSEBlockLayer::setParamBlob( TParam param, const CPtr<CDnnBlob>& blob )
-{
-	paramBlobs[param] = blob == nullptr ? nullptr : blob->GetCopy();
 }
 
 } // namespace NeoML

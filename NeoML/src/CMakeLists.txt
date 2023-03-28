@@ -108,6 +108,7 @@ set(NeoML_SOURCES
     Dnn/Layers/BertConvLayer.cpp
     Dnn/Layers/BinaryFocalLossLayer.cpp
     Dnn/Layers/CenterLossLayer.cpp
+    Dnn/Layers/ChannelwiseWith1x1Layer.cpp
     Dnn/Layers/CrfLayer.cpp
     Dnn/Layers/CtcLayer.cpp
     Dnn/Layers/CumSumLayer.cpp
@@ -318,6 +319,7 @@ set(NeoML_HEADERS_COMPACT
 
 set(NeoML_HEADERS
     ${NeoML_HEADERS_COMPACT}
+    Dnn/Layers/MobileNetBlockUtils.h
     TraditionalML/BytePairEncoder.h
     TraditionalML/NaiveHierarchicalClustering.h
     TraditionalML/NnChainHierarchicalClustering.h
@@ -336,6 +338,7 @@ set(NeoML_HEADERS
     ../include/NeoML/Dnn/Layers/BertConvLayer.h
     ../include/NeoML/Dnn/Layers/BinaryFocalLossLayer.h
     ../include/NeoML/Dnn/Layers/CenterLossLayer.h
+    ../include/NeoML/Dnn/Layers/ChannelwiseWith1x1Layer.h
     ../include/NeoML/Dnn/Layers/CrfLayer.h
     ../include/NeoML/Dnn/Layers/CtcLayer.h
     ../include/NeoML/Dnn/Layers/CumSumLayer.h

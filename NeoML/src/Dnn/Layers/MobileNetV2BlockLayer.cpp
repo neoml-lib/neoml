@@ -20,26 +20,9 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/ConvLayer.h>
 #include <NeoML/Dnn/Layers/ChannelwiseConvLayer.h>
 #include <NeoML/Dnn/Layers/EltwiseLayer.h>
+#include "MobileNetBlockUtils.h"
 
 namespace NeoML {
-
-static CPtr<CDnnBlob> nullifyFreeTerm( CDnnBlob* freeTerm )
-{
-	if( freeTerm == nullptr ) {
-		return freeTerm;
-	}
-
-	CDnnBlobBuffer<> buffer( *freeTerm, TDnnBlobBufferAccess::Read );
-	for( int i = 0; i < buffer.Size(); ++i ) {
-		if( buffer[i] != 0 ) {
-			return freeTerm;
-		}
-	}
-
-	return nullptr;
-}
-
-//---------------------------------------------------------------------------------------------------------------------
 
 CMobileNetV2BlockLayer::CMobileNetV2BlockLayer( IMathEngine& mathEngine, const CPtr<CDnnBlob>& expandFilter,
 		const CPtr<CDnnBlob>& expandFreeTerm, const CActivationDesc& expandActivation, int stride,
@@ -56,12 +39,12 @@ CMobileNetV2BlockLayer::CMobileNetV2BlockLayer( IMathEngine& mathEngine, const C
 	NeoAssert( expandActivation.GetType() == AF_ReLU || expandActivation.GetType() == AF_HSwish );
 	NeoAssert( channelwiseActivation.GetType() == AF_ReLU || channelwiseActivation.GetType() == AF_HSwish );
 	paramBlobs.SetSize( P_Count );
-	setParamBlob( P_ExpandFilter, expandFilter );
-	setParamBlob( P_ExpandFreeTerm, nullifyFreeTerm( expandFreeTerm ) );
-	setParamBlob( P_ChannelwiseFilter, channelwiseFilter );
-	setParamBlob( P_ChannelwiseFreeTerm, nullifyFreeTerm( channelwiseFreeTerm ) );
-	setParamBlob( P_DownFilter, downFilter );
-	setParamBlob( P_DownFreeTerm, nullifyFreeTerm( downFreeTerm ) );
+	paramBlobs[P_ExpandFilter] = MobileNetParam( expandFilter );
+	paramBlobs[P_ExpandFreeTerm] = MobileNetFreeTerm( expandFreeTerm );
+	paramBlobs[P_ChannelwiseFilter] = MobileNetParam( channelwiseFilter );
+	paramBlobs[P_ChannelwiseFreeTerm] = MobileNetFreeTerm( channelwiseFreeTerm );
+	paramBlobs[P_DownFilter] = MobileNetParam( downFilter );
+	paramBlobs[P_DownFreeTerm] = MobileNetFreeTerm( downFreeTerm );
 }
 
 CMobileNetV2BlockLayer::CMobileNetV2BlockLayer( IMathEngine& mathEngine ) :
@@ -80,6 +63,36 @@ CMobileNetV2BlockLayer::~CMobileNetV2BlockLayer()
 	if( convDesc != nullptr ) {
 		delete convDesc;
 	}
+}
+
+CPtr<CDnnBlob> CMobileNetV2BlockLayer::ExpandFilter() const
+{
+	return MobileNetParam( paramBlobs[P_ExpandFilter] );
+}
+
+CPtr<CDnnBlob> CMobileNetV2BlockLayer::ExpandFreeTerm() const
+{
+	return MobileNetParam( paramBlobs[P_ExpandFreeTerm] );
+}
+
+CPtr<CDnnBlob> CMobileNetV2BlockLayer::ChannelwiseFilter() const
+{
+	return MobileNetParam( paramBlobs[P_ChannelwiseFilter] );
+}
+
+CPtr<CDnnBlob> CMobileNetV2BlockLayer::ChannelwiseFreeTerm() const
+{
+	return MobileNetParam( paramBlobs[P_ChannelwiseFreeTerm] );
+}
+
+CPtr<CDnnBlob> CMobileNetV2BlockLayer::DownFilter() const
+{
+	return MobileNetParam( paramBlobs[P_DownFilter] );
+}
+
+CPtr<CDnnBlob> CMobileNetV2BlockLayer::DownFreeTerm() const
+{
+	return MobileNetParam( paramBlobs[P_DownFreeTerm] );
 }
 
 void CMobileNetV2BlockLayer::SetResidual( bool newValue )
@@ -211,166 +224,5 @@ void CMobileNetV2BlockLayer::RunOnce()
 		downFt.IsNull() ? nullptr : &downFt,
 		residual, outputBlobs[0]->GetData() );
 }
-
-CPtr<CDnnBlob> CMobileNetV2BlockLayer::getParamBlob( TParam param ) const
-{
-	if( paramBlobs[param] == nullptr ) {
-		return nullptr;
-	}
-
-	return paramBlobs[param]->GetCopy();
-}
-
-void CMobileNetV2BlockLayer::setParamBlob( TParam param, const CPtr<CDnnBlob>& blob )
-{
-	paramBlobs[param] = blob == nullptr ? nullptr : blob->GetCopy();
-}
-
-//---------------------------------------------------------------------------------------------------------------------
-
-CChannelwiseWith1x1Layer::CChannelwiseWith1x1Layer( IMathEngine& mathEngine, int stride,
-		const CPtr<CDnnBlob>& channelwiseFilter, const CPtr<CDnnBlob>& channelwiseFreeTerm,
-		const CActivationDesc& activation, const CPtr<CDnnBlob>& convFilter, const CPtr<CDnnBlob>& convFreeTerm,
-		bool residual ) :
-	CBaseLayer( mathEngine, "ChannelwiseWith1x1", false ),
-	stride( stride ),
-	activation( activation ),
-	residual( residual ),
-	convDesc( nullptr )
-{
-	NeoAssert( activation.GetType() == AF_ReLU || activation.GetType() == AF_HSwish );
-	paramBlobs.SetSize( P_Count );
-	setParamBlob( P_ChannelwiseFilter, channelwiseFilter );
-	setParamBlob( P_ChannelwiseFreeTerm, nullifyFreeTerm( channelwiseFreeTerm ) );
-	setParamBlob( P_ConvFilter, convFilter );
-	setParamBlob( P_ConvFreeTerm, nullifyFreeTerm( convFreeTerm ) );
-}
-
-CChannelwiseWith1x1Layer::CChannelwiseWith1x1Layer( IMathEngine& mathEngine ) :
-	CBaseLayer( mathEngine, "ChannelwiseWith1x1", false ),
-	stride( 1 ),
-	activation( AF_HSwish ),
-	residual( false ),
-	convDesc( nullptr )
-{
-}
-
-CChannelwiseWith1x1Layer::~CChannelwiseWith1x1Layer()
-{
-	if( convDesc != nullptr ) {
-		delete convDesc;
-		convDesc = nullptr;
-	}
-}
-
-void CChannelwiseWith1x1Layer::SetResidual( bool newValue )
-{
-	if( newValue == residual ) {
-		return;
-	}
-
-	residual = newValue;
-	ForceReshape();
-}
-
-static const int ChannelwiseWith1x1LayerVersion = 0;
-
-void CChannelwiseWith1x1Layer::Serialize( CArchive& archive )
-{
-	archive.SerializeVersion( ChannelwiseWith1x1LayerVersion );
-	CBaseLayer::Serialize( archive );
-
-	archive.Serialize( residual );
-	archive.Serialize( stride );
-
-	if( archive.IsLoading() ) {
-		activation = LoadActivationDesc( archive );
-		NeoAssert( activation.GetType() == AF_ReLU || activation.GetType() == AF_HSwish );
-	} else {
-		StoreActivationDesc( activation, archive );
-	}
-}
-
-void CChannelwiseWith1x1Layer::Reshape()
-{
-	CheckInput1();
-
-	NeoAssert( inputDescs[0].Depth() == 1 );
-	const int inputChannels = inputDescs[0].Channels();
-
-	NeoAssert( stride == 1 || stride == 2 );
-	NeoAssert( paramBlobs[P_ChannelwiseFilter] != nullptr );
-	NeoAssert( paramBlobs[P_ChannelwiseFilter]->GetObjectCount() == 1 );
-	NeoAssert( paramBlobs[P_ChannelwiseFilter]->GetHeight() == 3 );
-	NeoAssert( paramBlobs[P_ChannelwiseFilter]->GetWidth() == 3 );
-	NeoAssert( paramBlobs[P_ChannelwiseFilter]->GetDepth() == 1 );
-	NeoAssert( paramBlobs[P_ChannelwiseFilter]->GetChannelsCount() == inputChannels );
-	if( paramBlobs[P_ChannelwiseFreeTerm] != nullptr ) {
-		NeoAssert( paramBlobs[P_ChannelwiseFreeTerm]->GetDataSize() == inputChannels );
-	}
-
-	NeoAssert( paramBlobs[P_ConvFilter] != nullptr );
-	const int outputChannels = paramBlobs[P_ConvFilter]->GetObjectCount();
-	NeoAssert( paramBlobs[P_ConvFilter]->GetHeight() == 1 );
-	NeoAssert( paramBlobs[P_ConvFilter]->GetWidth() == 1 );
-	NeoAssert( paramBlobs[P_ConvFilter]->GetDepth() == 1 );
-	NeoAssert( paramBlobs[P_ConvFilter]->GetChannelsCount() == inputChannels );
-	if( paramBlobs[P_ConvFreeTerm] != nullptr ) {
-		NeoAssert( paramBlobs[P_ConvFreeTerm]->GetDataSize() == outputChannels );
-	}
-
-	NeoAssert( !residual || ( inputChannels == outputChannels && stride == 1 ) );
-
-	outputDescs[0] = inputDescs[0];
-	if( stride == 2 ) {
-		outputDescs[0].SetDimSize( BD_Height, ( inputDescs[0].Height() + 1 ) / 2 );
-		outputDescs[0].SetDimSize( BD_Width, ( inputDescs[0].Width() + 1 ) / 2 );
-	}
-	outputDescs[0].SetDimSize( BD_Channels, outputChannels );
-
-	if( convDesc != nullptr ) {
-		delete convDesc;
-		convDesc = nullptr;
-	}
-	CBlobDesc channelwiseOutputDesc = outputDescs[0];
-	channelwiseOutputDesc.SetDimSize( BD_Channels, inputChannels );
-	CBlobDesc freeTermDesc = paramBlobs[P_ChannelwiseFreeTerm] != nullptr
-		? paramBlobs[P_ChannelwiseFreeTerm]->GetDesc() : CBlobDesc();
-	convDesc = MathEngine().InitBlobChannelwiseConvolution( inputDescs[0], 1, 1, stride, stride,
-		paramBlobs[P_ChannelwiseFilter]->GetDesc(),
-		paramBlobs[P_ChannelwiseFreeTerm] != nullptr ? &freeTermDesc : nullptr, channelwiseOutputDesc );
-}
-
-void CChannelwiseWith1x1Layer::RunOnce()
-{
-	const CConstFloatHandle channelwiseFt = paramBlobs[P_ChannelwiseFreeTerm] == nullptr ? CConstFloatHandle()
-		: paramBlobs[P_ChannelwiseFreeTerm]->GetData<const float>();
-	const CConstFloatHandle convFt = paramBlobs[P_ConvFreeTerm] == nullptr ? CConstFloatHandle()
-		: paramBlobs[P_ConvFreeTerm]->GetData<const float>();
-	MathEngine().ChannelwiseWith1x1( inputBlobs[0]->GetDesc(), outputBlobs[0]->GetDesc(), *convDesc,
-		inputBlobs[0]->GetData(), paramBlobs[P_ChannelwiseFilter]->GetData(),
-		channelwiseFt.IsNull() ? nullptr : &channelwiseFt,
-		activation.GetType(),
-		activation.GetType() == AF_HSwish ? 0.f : activation.GetParam<CReLULayer::CParam>().UpperThreshold,
-		paramBlobs[P_ConvFilter]->GetData(),
-		convFt.IsNull() ? nullptr : &convFt,
-		residual, outputBlobs[0]->GetData() );
-}
-
-CPtr<CDnnBlob> CChannelwiseWith1x1Layer::getParamBlob( TParam param ) const
-{
-	if( paramBlobs[param] == nullptr ) {
-		return nullptr;
-	}
-
-	return paramBlobs[param]->GetCopy();
-}
-
-void CChannelwiseWith1x1Layer::setParamBlob( TParam param, const CPtr<CDnnBlob>& blob )
-{
-	paramBlobs[param] = blob == nullptr ? nullptr : blob->GetCopy();
-}
-
-REGISTER_NEOML_LAYER( CChannelwiseWith1x1Layer, "NeoMLDnnChannelwiseWith1x1Layer" )
 
 } // namespace NeoML

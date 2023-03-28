@@ -40,6 +40,24 @@ public:
 	explicit CMobileNetV3PreSEBlockLayer( IMathEngine& mathEngine );
 	~CMobileNetV3PreSEBlockLayer();
 
+	// Expand convolution and activation parameters
+	CPtr<CDnnBlob> ExpandFilter() const;
+	CPtr<CDnnBlob> ExpandFreeTerm() const;
+	CActivationDesc Activation() const { return activation; }
+
+	// Channelwise convolution
+	int Stride() const { return stride; }
+	CPtr<CDnnBlob> ChannelwiseFilter() const;
+	CPtr<CDnnBlob> ChannelwiseFreeTerm() const;
+
+	// TODO: delete
+	void SetExpandFilter( const CPtr<CDnnBlob>& blob ) { paramBlobs[P_ExpandFilter] = blob == nullptr ? nullptr : blob->GetCopy(); }
+	void SetExpandFreeTerm( const CPtr<CDnnBlob>& blob ) { paramBlobs[P_ExpandFreeTerm] = blob == nullptr ? nullptr : blob->GetCopy(); }
+	void SetActivation( const CActivationDesc& desc ) { activation = desc; }
+	void SetStride( int newStride ) { stride = newStride; }
+	void SetChannelwiseFilter( const CPtr<CDnnBlob>& blob ) { paramBlobs[P_ChannelwiseFilter] = blob == nullptr ? nullptr : blob->GetCopy(); }
+	void SetChannelwiseFreeTerm( const CPtr<CDnnBlob>& blob ) { paramBlobs[P_ChannelwiseFreeTerm] = blob == nullptr ? nullptr : blob->GetCopy(); }
+
 	void Serialize( CArchive& archive ) override;
 
 private:
@@ -61,9 +79,6 @@ private:
 	CActivationDesc activation; // activation applied after expand 1x1 convolution
 	int stride; // stride of channelwise convolution
 	CChannelwiseConvolutionDesc* convDesc; // descriptor of channelwise convolution
-
-	CPtr<CDnnBlob> getParamBlob( TParam param ) const;
-	void setParamBlob( TParam param, const CPtr<CDnnBlob>& blob );
 };
 
 // Emulates the part of the block which goes after Squeeze-and-Excite
@@ -90,10 +105,8 @@ public:
 	void SetActivation( const CActivationDesc& newActivation ) { activation = newActivation; }
 
 	// Down convolution parameters
-	CPtr<CDnnBlob> DownFilter() const { return getParamBlob( P_DownFilter ); }
-	CPtr<CDnnBlob> DownFreeTerm() const { return getParamBlob( P_DownFreeTerm ); }
-	void SetDownFilter( const CPtr<CDnnBlob>& value ) { setParamBlob( P_DownFilter, value ); }
-	void SetDownFreeTerm( const CPtr<CDnnBlob>& value ) { setParamBlob( P_DownFreeTerm, value ); }
+	CPtr<CDnnBlob> DownFilter() const;
+	CPtr<CDnnBlob> DownFreeTerm() const;
 
 	// Serialization
 	void Serialize( CArchive& archive ) override;
@@ -122,10 +135,7 @@ private:
 		I_Count
 	};
 
-	CActivationDesc activation;
-
-	CPtr<CDnnBlob> getParamBlob( TParam param ) const;
-	void setParamBlob( TParam param, const CPtr<CDnnBlob>& blob );
+	CActivationDesc activation; // activation applied after channelwise convolution
 };
 
 } // namespace NeoML
