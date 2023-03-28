@@ -86,8 +86,8 @@ TEST_F( CBpeTest, DictionaryTest )
 TEST_F( CBpeTest, TrivialOneWord )
 {
 	auto dictionary = fillDictionary( "OnlyOneWord" );
-	CBytePairEncoderTrainer trainer( { 100500, false, false, false }, dictionary );
-	auto tokenizer = trainer.Train();
+	CBytePairEncoderTrainer trainer( 100500, CBytePairEncoderTrainer::TBorderHandling::None );
+	auto tokenizer = trainer.Train( dictionary );
 
 	CString correctText = "OnlyOneWord";
 	CArray<int> tokenIds, tokenLengths;
@@ -104,8 +104,8 @@ TEST_F( CBpeTest, TrivialOneWord )
 TEST_F( CBpeTest, TrivialUnknown )
 {
 	auto dictionary = fillDictionary( "OnlyOneWord" );
-	CBytePairEncoderTrainer trainer( { 100500, false, false, false }, dictionary );
-	auto tokenizer = trainer.Train();
+	CBytePairEncoderTrainer trainer( 100500, CBytePairEncoderTrainer::TBorderHandling::None );
+	auto tokenizer = trainer.Train( dictionary );
 
 	CString unknownText = "UNKNNSYMBLS";
 	CArray<int> tokenIds, tokenLengths;
@@ -127,8 +127,8 @@ TEST_F( CBpeTest, OneLetterBpe )
 {
 	CString trainText ="qwertyuiopasdfghjklzxcvbnm.";
 	auto dictionary = fillDictionary( trainText );
-	CBytePairEncoderTrainer trainer( { 28, false, false, false }, dictionary );
-	auto tokenizer = trainer.Train();
+	CBytePairEncoderTrainer trainer( 28, CBytePairEncoderTrainer::TBorderHandling::None );
+	auto tokenizer = trainer.Train( dictionary );
 
 	CString testText = "lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor"
 	" incididunt ut labore et dolore magna aliqua ut enim ad minim veniam quis nostrud exercitation ullamco laboris nisi ut aliquip ex"
@@ -162,10 +162,9 @@ TEST_F( CBpeTest, DecodeSequence )
 		" sint occaecat cupidatat non proident sunt in culpa qui officia deserunt mollit anim id est laborum .";
 	auto dictionary = fillDictionary( trainText );
 
-	CBytePairEncoderTrainer trainerBow( { 50, false, true, false }, dictionary );
-	CBytePairEncoderTrainer trainerEow( { 50, true, false, false }, dictionary );
-	CBytePairEncoderTrainer trainerBoth( { 50, true, true, false }, dictionary );
-	CArray<CPtr<IBytePairEncoder>> tokenizers = { trainerBow.Train(), trainerEow.Train(), trainerBoth.Train() };
+	CBytePairEncoderTrainer trainerBow( 50, CBytePairEncoderTrainer::TBorderHandling::BeginOfWord );
+	CBytePairEncoderTrainer trainerEow( 50, CBytePairEncoderTrainer::TBorderHandling::EndOfWord );
+	CArray<CPtr<IBytePairEncoder>> tokenizers = { trainerBow.Train( dictionary ), trainerEow.Train( dictionary ) };
 
 	CString testText = "mattis pellentesque id nibh tortor id aliquet . tincidunt ornare massa eget egestas purus ."
 		" orci phasellus egestas tellus rutrum tellus pellentesque eu tincidunt tortor . et malesuada fames ac turpis ."
@@ -306,8 +305,6 @@ TEST_F( CBpeTest, SaveLoadDictionary )
 
 TEST_F( CBpeTest, RawBytes )
 {
-	CBytePairEncoderTrainer::CParams params{ 100500, false, false, true };
-
 	char allBytes[256];
 	for( int i = 0; i < 256; ++i ) {
 		allBytes[i] = (char)(i + 1);
@@ -318,8 +315,8 @@ TEST_F( CBpeTest, RawBytes )
 	CWordDictionary trainingDictionary;
 	trainingDictionary.AddWord( superWord, 1 );
 
-	CBytePairEncoderTrainer trainer( params, trainingDictionary );
-	auto encoder = trainer.Train();
+	CBytePairEncoderTrainer trainer( 100500, CBytePairEncoderTrainer::TBorderHandling::None, CBytePairEncoderTrainer::TVocabPruning::ByteBPE );
+	auto encoder = trainer.Train( trainingDictionary );
 
 	// unk, single-bytes, all prefixes of 'allBytes' (incl. the string itself, excl. the first prefix since it is already counted)
 	EXPECT_EQ( 1 + 255 + 254, encoder->Size() );

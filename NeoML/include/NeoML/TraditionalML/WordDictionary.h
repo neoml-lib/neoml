@@ -53,7 +53,7 @@ public:
 	
 	// Returns word by id.
 	// id must be valid.
-	CString GetWord( int id ) const;
+	const CString& GetWord( int id ) const;
 
 	// Returns accumulated value of counts from all AddWord calls for the given word.
 	long long GetWordUseCount( const CString& word ) const;

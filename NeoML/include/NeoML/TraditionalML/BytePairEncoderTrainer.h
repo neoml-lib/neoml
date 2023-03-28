@@ -24,85 +24,152 @@ class CBytePairEncoder;
 // Class that trains byte-pair-encoding.
 class NEOML_API CBytePairEncoderTrainer {
 public:
-	struct CParams {
-		// Max size of encoder.
-		// The size of the trained encoder cannot exceed this value, but CAN be smaller.
-		int MaxSize = 50000;
-		// Add EoW token to each word.
-		bool UseEndOfWordToken = true;
-		// Add SoW token to each word.
-		bool UseStartOfWordToken = false;
-		// Treat strings as arrays of raw bytes.
-		bool UseRawBytes = false;
-		// The id of <UNK>.
-		int UnknownTokenId = IBytePairEncoder::DefaultUnknownTokenId;
-
-		CParams() = default;
-		CParams( int maxSize, bool useEndOfWordToken, bool useStartOfWordToken, 
-			bool useRawBytes, int unknownTokenId = IBytePairEncoder::DefaultUnknownTokenId );
-
-		void Serialize( CArchive& archive );
+	enum class TBorderHandling {
+		// Add special EndOfWord symbol (</s>) to all words
+		EndOfWord,
+		// Add special BeginOfWord symbol <s> to all words
+		BeginOfWord,
+		// Same as BeginOfWord, but with U+2581 as <s>.
+		// Note that our encoder has no special mode to handle this option. It is a user responsibility to place U+2581.
+		SentencePiece,
+		// No preprocessing
+		None
 	};
 
-	CBytePairEncoderTrainer( const CParams& params, const CWordDictionary& dictionary );
+	enum class TVocabPruning {
+		// Restrict a single-letter vocabulary based on their frequency. Default coverage is 1, all symbols will be included into the vocabulary.
+		Coverage,
+		// Treat training data as raw bytes. Initial vocabulary size is 255, no <UNK> symbols will appear.
+		ByteBPE
+	};
+
+	CBytePairEncoderTrainer( int vocabSize, TBorderHandling, TVocabPruning = TVocabPruning::Coverage );
+	~CBytePairEncoderTrainer();
+
+	// Prune single-letter vocabulary so that it covers 'fraction' of the training data. Useful when text contains many rare unicode symbols.
+	// By default initial vocabulary contains all found chars (fraction = 1)
+	void SetCharacterCoverage( double fraction );
+	// Explicitly define required letters that cannot be deleted while pruning
+	void AddMandatoryChars( const CArray<CString>& );
+	// 0 by default. All other tokens will have contiguous numbers from ( UnknownTokenId + 1 )
+	void SetUnknownTokenId( int value );
+
+	// Trains and returns a fully trained encoder.
+	CPtr<IBytePairEncoder> Train( const CWordDictionary& frequencyDict );
 
 	CBytePairEncoderTrainer( const CBytePairEncoderTrainer& other ) = delete;
 	CBytePairEncoderTrainer& operator=( const CBytePairEncoderTrainer& other ) = delete;
 
-	~CBytePairEncoderTrainer();
-
-	// Trains and returns a fully trained encoder.
-	CPtr<IBytePairEncoder> Train();
-
-	// Trains additional #stepsCount tokens.
-	// Returns true if no additional steps can be performed.
-	bool TrainSteps( int stepsCount );
-
-	// Returns true if training has been completed.
-	bool IsTrainingCompleted() const;
-
-	// Returns encoder consisting of bpe tokens obtained from completed steps.
-	CPtr<IBytePairEncoder> GetEncoder();
-
-	// Save/load checkpoint
-	void Serialize( CArchive& archive );
-
 private:
-	// Encoder trainer params.
-	CParams params;
+	struct CToken {
+		// Token itself
+		CString Text;
+		// Flag. <UNK> cannot be merged
+		bool IsUnk = false;
+	};
 
-	// The number of completed steps.
-	int stepsCompletedCount;
+	struct CWordWithCount {
+		CArray<int> Text;
+		int64_t Count = 0;
+	};
 
-	// The dictionary of pairs of neighbour tokens.
-	CWordDictionary pairDictionary;
-	// The dictionary of bpe tokens.
-	CWordDictionary tokensDictionary;
+	// Just a bigram
+	struct CCandidatePair {
+		int Left = NotFound;
+		int Right = NotFound;
 
-	// Train data.
-	CArray<CArray<CString>> trainWords;
-	CArray<long long> trainCounts;
+		CCandidatePair() = default;
+		CCandidatePair( int left, int right );
+		int HashKey() const;
+		bool operator ==( const CCandidatePair& other ) const;
+		bool operator !=( const CCandidatePair& other ) const { return !( *this == other ); }
+	};
 
-	// Map: pair of neighbour tokens -> set of ids of words containing this pair of tokens.
-	typedef CMap<CString, CHashTable<int>> CPairReverseIndex;
-	CPairReverseIndex reverseIndex;
+	// Extended information about the token-pair
+	struct CCandidateData {
+		CCandidatePair Pair;
+		// Word IDs where this pair was found and a number of copies there.
+		CMap<int, int> WordOccurrences;
+		// Joint text of a candidate
+		CString Text;
+		// Total number of occurrences in training corpus.
+		int64_t RealCount = 0;
+		// This value may be outdated since we don't update values in queue. It is stored for internal comparisons in queue only.
+		int64_t QueueCount = 0;
+	};
 
-	CPtr<CBytePairEncoder> encoder;
+	// Comparator for CCandidateData
+	class CCandidateDataComparator {
+	public:
+		CCandidateDataComparator( bool inQueue );
+		bool Predicate( const CCandidateData* first, const CCandidateData* second ) const;
+		bool IsEqual( const CCandidateData*, const CCandidateData* ) const { return false; }
+		void Swap( CCandidateData*& first, CCandidateData*& second ) const { swap( first, second ); }
+	private:
+		// In queue: use different member, reverse predicate
+		bool inQueue;
+	};
 
-	CPtr<CBytePairEncoder> createEncoder() const;
-	void createTrainData( const CWordDictionary& dictionary );
-	void buildPairDictionary();
-	int calcCurrentStepsCount( int requestedIterationsCount ) const;
-	bool trainSingleStep();
+	// Trainer and encoder params
+	int desiredVocabSize;
+	TBorderHandling borderHandling;
+	TVocabPruning vocabPruning;
+	double coverage = 1.;
+	int encoderUnkTokenId = 0;
+
+	// bpe-vocabulary
+	CArray<CToken> vocabulary;
+	// no need to search for complex tokens. Mapping only for chars
+	CMap<const char*, int> charTokenIndex;
+	CPointerArray<CString> charTokenStorage;
+	// ids of some useful tokens
+	int unkToken = NotFound;
+	int bowToken = NotFound;
+	int eowToken = NotFound;
+
+	// training data
+	CArray<CWordWithCount> dataset;
+
+	// pairs of tokens to their extended training information
+	// OWNS CCandidateData* used in queue and newCandidates
+	CMap<CCandidatePair, CCandidateData> candidates;
+	// Max-heap of candidates. 'Ascending' is ok, a queue is MAX-queue by default.
+	CPriorityQueue<CArray<CCandidateData*>, CCandidateDataComparator> queue;
+	// temp storage for new pairs appeared during the last merge
+	CArray<CCandidateData*> newCandidates;
+
+	void addCharToken( CToken&& token );
+	CWordDictionary getInitialDictionary( const CWordDictionary& trainData ) const;
+	static CWordDictionary getAllBytesDictionary();
+
+	void prepareDataset( const CWordDictionary& trainData );
+	void addAllBigrams();
+
+	void addPair( const CCandidatePair& pair, int wordId, int64_t wordCount );
+	CString mergeText( const CCandidatePair& pair ) const;
+
+	void deletePair( const CCandidatePair& pair, int wordId, int64_t wordCount );
+	void updateStatistics( const CCandidateData& newTokenData, int newTokenId );
+	void updateOneWordStatistics( const CCandidateData& newTokenData, int newTokenId,
+		CArray<int>& word, int wordId, int newTokenCountInThisWord );
+
+	void enqueueNewCandidates();
+	void dropCandidates( int desiredSize );
+
+	CPtr<IBytePairEncoder> createEncoder();
+
+	int64_t checkNaive( CCandidateData* );
+
+	friend void ArrayMemMoveElement( CWordWithCount* dest, CWordWithCount* src );
 };
 
-inline CBytePairEncoderTrainer::CParams::CParams( int maxSize, bool useEndOfWordToken, bool useStartOfWordToken,
-		bool useRawBytes, int unknownTokenId ) :
-	MaxSize( maxSize ),
-	UseEndOfWordToken( useEndOfWordToken ),
-	UseStartOfWordToken( useStartOfWordToken ),
-	UseRawBytes( useRawBytes ),
-	UnknownTokenId( unknownTokenId )
-{}
+inline void ArrayMemMoveElement( CBytePairEncoderTrainer::CWordWithCount* dest, CBytePairEncoderTrainer::CWordWithCount* src )
+{
+	NeoPresume( dest != src );
+	::new( dest ) CBytePairEncoderTrainer::CWordWithCount;
+	src->Text.MoveTo( dest->Text );
+	dest->Count = src->Count;
+	src->~CWordWithCount();
+}
 
 } // namespace NeoML

@@ -154,6 +154,7 @@ set(NeoML_SOURCES
     TraditionalML/SubwordEncoder.cpp
     TraditionalML/Svm.cpp
     TraditionalML/SvmKernel.cpp
+    TraditionalML/Utf8Tools.cpp
     TraditionalML/WordDictionary.cpp
 )
 
@@ -295,6 +296,7 @@ set(NeoML_HEADERS
     TraditionalML/NnChainHierarchicalClustering.h
     TraditionalML/SMOptimizer.h
     TraditionalML/SvmBinaryModel.h
+    TraditionalML/Utf8Tools.h
 
     # Headers
     ../include/NeoML/Dnn/DnnDistributed.h
