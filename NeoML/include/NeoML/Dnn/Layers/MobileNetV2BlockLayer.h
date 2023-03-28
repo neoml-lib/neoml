@@ -98,4 +98,45 @@ private:
 	void setParamBlob( TParam param, const CPtr<CDnnBlob>& blob );
 };
 
+class NEOML_API CChannelwiseWith1x1Layer : public CBaseLayer {
+public:
+	CChannelwiseWith1x1Layer( IMathEngine& mathEngine, int stride, const CPtr<CDnnBlob>& channelwiseFilter,
+		const CPtr<CDnnBlob>& channelwiseFreeTerm, const CActivationDesc& activation,
+		const CPtr<CDnnBlob>& convFilter, const CPtr<CDnnBlob>& convFreeTerm, bool residual );
+	explicit CChannelwiseWith1x1Layer( IMathEngine& mathEngine );
+	~CChannelwiseWith1x1Layer();
+
+	// Residual connection
+	bool Residual() const { return residual; }
+	void SetResidual( bool newValue );
+
+	// Serialization
+	void Serialize( CArchive& archive ) override;
+
+protected:
+	// CBaseLayer methods
+	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override { NeoAssert( false ); }
+
+private:
+	// paramBlobs indices
+	enum TParam {
+		P_ChannelwiseFilter,
+		P_ChannelwiseFreeTerm,
+		P_ConvFilter,
+		P_ConvFreeTerm,
+
+		P_Count
+	};
+
+	int stride; // stride of channnelwise convolution
+	CActivationDesc activation; // activation after channelwise convolution
+	bool residual; // Does block have residual connection?
+	CChannelwiseConvolutionDesc* convDesc; // descriptor of channelwise convolution
+
+	CPtr<CDnnBlob> getParamBlob( TParam param ) const;
+	void setParamBlob( TParam param, const CPtr<CDnnBlob>& blob );
+};
+
 } // namespace NeoML

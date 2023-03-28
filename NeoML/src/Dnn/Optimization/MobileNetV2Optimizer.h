@@ -44,6 +44,9 @@ private:
 	int optimizeNonResidualBlocks();
 	int optimizeResidualConnections();
 
+	int chOptimizeNonResidual();
+	int chOptimizeResidual();
+
 	bool isValid1x1Conv( CConvLayer& conv ) const;
 	bool isValidActivation( CBaseLayer& layer ) const;
 	bool isValidChannelwise( CChannelwiseConvLayer& channelwise ) const;

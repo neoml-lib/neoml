@@ -679,6 +679,13 @@ void CMetalMathEngine::ScatterND( const CConstIntHandle&, const CConstIntHandle&
     ASSERT_EXPR( false );
 }
 
+void CMetalMathEngine::ChannelwiseWith1x1( const CBlobDesc&, const CBlobDesc&, const CChannelwiseConvolutionDesc&,
+    const CConstFloatHandle&, const CConstFloatHandle&, const CConstFloatHandle*, TActivationFunction, float,
+    const CConstFloatHandle&, const CConstFloatHandle*, bool, const CFloatHandle& )
+{
+    ASSERT_EXPR( false );
+}
+
 void CMetalMathEngine::MobileNetV2Block( const CBlobDesc&, const CBlobDesc&, const CChannelwiseConvolutionDesc&,
     const CConstFloatHandle&, const CConstFloatHandle&, const CConstFloatHandle*, TActivationFunction, float,
     const CConstFloatHandle&, const CConstFloatHandle*, TActivationFunction, float, const CConstFloatHandle&,

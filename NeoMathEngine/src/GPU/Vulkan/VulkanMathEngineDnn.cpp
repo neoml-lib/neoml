@@ -692,6 +692,13 @@ void CVulkanMathEngine::ScatterND( const CConstIntHandle&, const CConstIntHandle
 	ASSERT_EXPR( false );
 }
 
+void CVulkanMathEngine::ChannelwiseWith1x1( const CBlobDesc&, const CBlobDesc&, const CChannelwiseConvolutionDesc&,
+	const CConstFloatHandle&, const CConstFloatHandle&, const CConstFloatHandle*, TActivationFunction, float,
+	const CConstFloatHandle&, const CConstFloatHandle*, bool, const CFloatHandle& )
+{
+	ASSERT_EXPR( false );
+}
+
 void CVulkanMathEngine::MobileNetV2Block( const CBlobDesc&, const CBlobDesc&, const CChannelwiseConvolutionDesc&,
 	const CConstFloatHandle&, const CConstFloatHandle&, const CConstFloatHandle*, TActivationFunction, float,
 	const CConstFloatHandle&, const CConstFloatHandle*, TActivationFunction, float, const CConstFloatHandle&,
