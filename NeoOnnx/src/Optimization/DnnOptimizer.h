@@ -18,6 +18,7 @@ limitations under the License.
 #include <NeoML/Dnn/Optimization/Graph.h>
 #include "HardSigmoidOptimizer.h"
 #include "HSwishOptimizer.h"
+#include "SqueezeAndExciteOptimizer.h"
 
 namespace NeoOnnx {
 
@@ -44,6 +45,7 @@ inline void CDnnOptimizer::Optimize()
 {
 	CHardSigmoidOptimizer( graph ).Apply();
 	CHSwishOptimizer( graph ).Apply();
+	CSqueezeAndExciteOptimizer( graph ).Apply();
 }
 
 } // namespace optimization

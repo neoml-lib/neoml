@@ -24,7 +24,6 @@ namespace NeoML {
 class CBaseLayer;
 class CChannelwiseConvLayer;
 class CConvLayer;
-class CFullyConnectedLayer;
 struct CDnnOptimizationReport;
 class COnnxSourceHelper;
 class COnnxTransformHelper;
@@ -44,21 +43,21 @@ public:
 	void Apply( CDnnOptimizationReport& report );
 
 private:
-	CGraph& graph;
-
 	struct CMNv3BlockInfo {
 		CLayerOutput<> InputData{};
 		CConvLayer* ExpandConv = nullptr;
 		CActivationDesc ExpandActivation{ AF_ReLU };
 		CChannelwiseConvLayer* Channelwise = nullptr;
 		CGlobalMeanPoolingLayer* SEPooling = nullptr;
-		CFullyConnectedLayer* SEFirstFc = nullptr;
+		CBaseLayer* SEFirstFc = nullptr;
 		CBaseLayer* SESecondActivation = nullptr;
 		CLayerInput<> SEMulVectorInput{};
 		CActivationDesc ChannelwiseActivation{ AF_ReLU };
 		CConvLayer* DownConv = nullptr;
 		CBaseLayer* Residual = nullptr;
 	};
+
+	CGraph& graph;
 
 	int optimizeNonResidualBlocks();
 	int optimizeResidualBlocks();
@@ -69,11 +68,9 @@ private:
 	bool detectMNv3SE( CMNv3BlockInfo& detectedBlock );
 	bool detectMNv3PreSE( CMNv3BlockInfo& detectedBlock );
 
-	bool isValid1x1Conv( CConvLayer& conv ) const;
+	bool isValidSEMul( CBaseLayer& layer ) const;
+	bool isValid1x1Conv( CBaseLayer* conv ) const;
 	bool isValidBlockActivation( CBaseLayer& layer ) const;
-	bool isValidOnnxTransform( COnnxTransformHelper& transform, std::initializer_list<TBlobDim> expectedRules ) const;
-	bool isValidOnnxTranspose( COnnxTransposeHelper& transpose, TBlobDim firstDim, TBlobDim secondDim ) const;
-	bool isValidOnnxSource( COnnxSourceHelper& source, std::initializer_list<int> expectedData ) const;
 	bool isValidSEActivation( CBaseLayer& layer ) const;
 	bool isValidChannelwise( CChannelwiseConvLayer& channelwise ) const;
 

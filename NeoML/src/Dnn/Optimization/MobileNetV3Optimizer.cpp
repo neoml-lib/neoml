@@ -146,7 +146,7 @@ bool CMobileNetV3Optimizer::detectMNv3NonResidual( CConvLayer& downConv, CMNv3Bl
 // If it isn't then returns false (in this case detectedBlock and graph's selection may be in any state)
 bool CMobileNetV3Optimizer::detectMNv3PostSE( CConvLayer& downConv, CMNv3BlockInfo& detectedBlock )
 {
-	if( !isValid1x1Conv( downConv ) ) {
+	if( !isValid1x1Conv( &downConv ) ) {
 		return false;
 	}
 	detectedBlock.DownConv = &downConv;
@@ -167,70 +167,27 @@ bool CMobileNetV3Optimizer::detectMNv3PostSE( CConvLayer& downConv, CMNv3BlockIn
 // If it isn't then returns false (in this case detectedBlock and graph's selection may be in any state)
 bool CMobileNetV3Optimizer::detectMNv3SE( CMNv3BlockInfo& detectedBlock )
 {
-	COnnxEltwiseLayer* onnxMul = dynamic_cast<COnnxEltwiseLayer*>( detectedBlock.SEMulVectorInput.Layer );
-	if( onnxMul == nullptr || onnxMul->GetOperation() != COnnxEltwiseLayer::TOperation::Mul ) {
+	CBaseLayer* mulLayer = detectedBlock.SEMulVectorInput.Layer;
+	if( !isValidSEMul( *mulLayer ) ) {
 		return false;
 	}
 
 	for( int mulInput = 0; mulInput < 2; ++mulInput ) {
 		CLayerOutput<CChannelwiseConvLayer> channelwiseOutput = graph.SelectConnectedOutput<CChannelwiseConvLayer>(
-			*detectedBlock.SEMulVectorInput.Layer, mulInput, false );
+			*mulLayer, mulInput, false );
 		if( channelwiseOutput.Layer == nullptr ) {
 			continue;
 		}
 		detectedBlock.Channelwise = channelwiseOutput.Layer;
 		detectedBlock.SEMulVectorInput.Index = 1 - mulInput;
 
-		COnnxTransformHelper* thirdTransform = graph.SelectConnectedOutput<COnnxTransformHelper>(
-			*detectedBlock.SEMulVectorInput.Layer, detectedBlock.SEMulVectorInput.Index, true ).Layer;
-		if( thirdTransform == nullptr ||
-			!isValidOnnxTransform( *thirdTransform,
-				{ BD_Count, BD_BatchLength, BD_Count, BD_ListSize, BD_Height, BD_Count, BD_Channels } ) )
-		{
-			return false;
+		detectedBlock.SESecondActivation = graph.GetConnectedOutput<>( *mulLayer, 1 - mulInput ).Layer;
+		if( !isValidSEActivation( *detectedBlock.SESecondActivation ) ) {
+			continue;
 		}
 
-		COnnxTransposeHelper* secondTranspose = graph.SelectConnectedOutput<COnnxTransposeHelper>(
-			*thirdTransform, 0, true ).Layer;
-		if( secondTranspose == nullptr || !isValidOnnxTranspose( *secondTranspose, BD_BatchWidth, BD_Channels ) ) {
-			return false;
-		}
-
-		COnnxTransformHelper* secondTransform = graph.SelectConnectedOutput<COnnxTransformHelper>(
-			*secondTranspose, 0, true ).Layer;
-		if( secondTransform == nullptr || !isValidOnnxTransform( *secondTransform,
-			{ BD_BatchWidth, BD_Height, BD_Width, BD_Channels, BD_Count, BD_Count, BD_Count } ) )
-		{
-			return false;
-		}
-
-		COnnxReshapeLayer* secondReshape = graph.SelectConnectedOutput<COnnxReshapeLayer>(
-			*secondTransform, 0, true ).Layer;
-		if( secondReshape == nullptr ) {
-			return false;
-		}
-
-		detectedBlock.SESecondActivation = nullptr;
-		for( int reshapeInput = 0; reshapeInput < 2; ++reshapeInput ) {
-			COnnxSourceHelper* shapeSource = graph.SelectConnectedOutput<COnnxSourceHelper>(
-				*secondReshape, reshapeInput, true ).Layer;
-			if( shapeSource == nullptr ) {
-				continue;
-			}
-			if( !isValidOnnxSource( *shapeSource, { 1, 0, 1, 1 } ) ) {
-				return false;
-			}
-
-			detectedBlock.SESecondActivation = graph.GetConnectedOutput<>( *secondReshape, 1 - reshapeInput ).Layer;
-			if( !isValidSEActivation( *detectedBlock.SESecondActivation ) ) {
-				return false;
-			}
-			break;
-		}
-
-		CFullyConnectedLayer* secondFc = graph.GetConnectedOutput<CFullyConnectedLayer>(
-			*detectedBlock.SESecondActivation, 0 ).Layer;
-		if( secondFc == nullptr ) {
+		CBaseLayer* secondFc = graph.GetConnectedOutput<>( *detectedBlock.SESecondActivation, 0 ).Layer;
+		if( !isValid1x1Conv( secondFc ) ) {
 			return false;
 		}
 
@@ -239,34 +196,12 @@ bool CMobileNetV3Optimizer::detectMNv3SE( CMNv3BlockInfo& detectedBlock )
 			return false;
 		}
 
-		detectedBlock.SEFirstFc = graph.GetConnectedOutput<CFullyConnectedLayer>( *firstActivation, 0 ).Layer;
-		if( detectedBlock.SEFirstFc == nullptr ) {
+		detectedBlock.SEFirstFc = graph.GetConnectedOutput<>( *firstActivation, 0 ).Layer;
+		if( !isValid1x1Conv( detectedBlock.SEFirstFc ) ) {
 			return false;
 		}
 
-		CLayerOutput<COnnxReshapeLayer> firstReshape = graph.SelectConnectedOutput<COnnxReshapeLayer>(
-			*detectedBlock.SEFirstFc, 0, false );
-		if( firstReshape.Layer == nullptr ) {
-			return false;
-		}
-
-		CLayerOutput<COnnxTransformHelper> firstTransform;
-		CLayerOutput<COnnxSourceHelper> firstSource;
-		if( !graph.SelectBothConnectedOutputs( *firstReshape.Layer, firstTransform, firstSource, true )
-			|| !isValidOnnxTransform( *firstTransform.Layer, { BD_Count, BD_BatchWidth, BD_Count, BD_ListSize, BD_Height, BD_Count, BD_Width } )
-			|| !isValidOnnxSource( *firstSource.Layer, { 1, 0 } ) )
-		{
-			return false;
-		}
-
-		COnnxTransposeHelper* firstTranspose = graph.SelectConnectedOutput<COnnxTransposeHelper>(
-			*firstTransform.Layer, 0, true ).Layer;
-		if( firstTranspose == nullptr || !isValidOnnxTranspose( *firstTranspose, BD_Channels, BD_ListSize ) )
-		{
-			return false;
-		}
-
-		detectedBlock.SEPooling = graph.GetConnectedOutput<CGlobalMeanPoolingLayer>( *firstTranspose, 0 ).Layer;
+		detectedBlock.SEPooling = graph.GetConnectedOutput<CGlobalMeanPoolingLayer>( *detectedBlock.SEFirstFc, 0 ).Layer;
 		if( detectedBlock.SEPooling == nullptr ) {
 			return false;
 		}
@@ -297,7 +232,7 @@ bool CMobileNetV3Optimizer::detectMNv3PreSE( CMNv3BlockInfo& detectedBlock )
 	detectedBlock.ExpandActivation = dynamic_cast<IActivationLayer&>( *expandActivation ).GetDesc();
 
 	detectedBlock.ExpandConv = graph.SelectConnectedOutput<CConvLayer>( *expandActivation, 0, true ).Layer;
-	if( detectedBlock.ExpandConv == nullptr || !isValid1x1Conv( *detectedBlock.ExpandConv ) ) {
+	if( detectedBlock.ExpandConv == nullptr || !isValid1x1Conv( detectedBlock.ExpandConv ) ) {
 		return false;
 	}
 
@@ -305,12 +240,39 @@ bool CMobileNetV3Optimizer::detectMNv3PreSE( CMNv3BlockInfo& detectedBlock )
 	return detectedBlock.InputData.Layer != nullptr;
 }
 
-// Checks that CConvLayer meets the criteria of 1x1 convolution inside MobileNetV3 block
-bool CMobileNetV3Optimizer::isValid1x1Conv( CConvLayer& conv ) const
+bool CMobileNetV3Optimizer::isValidSEMul( CBaseLayer& layer ) const
 {
-	return graph.GetInputCount( conv ) == 1 && conv.GetFilterHeight() == 1 && conv.GetFilterWidth() == 1
-		&& conv.GetPaddingHeight() == 0 && conv.GetPaddingWidth() == 0 && conv.GetStrideHeight() == 1
-		&& conv.GetStrideWidth() == 1;
+	if( graph.GetInputCount( layer ) != 2 || graph.GetOutputCount( layer ) != 1
+		|| graph.GetConnectedInputsCount( layer, 0 ) != 1 )
+	{
+		return false;
+	}
+
+	COnnxEltwiseLayer* onnxMul = dynamic_cast<COnnxEltwiseLayer*>( &layer );
+	if( onnxMul != nullptr && onnxMul->GetOperation() == COnnxEltwiseLayer::TOperation::Mul ) {
+		return true;
+	}
+
+	// Workaround for a layer which is outside of NeoML :-(
+	if( GetLayerClass( layer ) == "CnnChannelwiseMultiplicationLayer" ) {
+		return true;
+	}
+
+	return false;
+}
+
+// Checks that CConvLayer meets the criteria of 1x1 convolution inside MobileNetV3 block
+bool CMobileNetV3Optimizer::isValid1x1Conv( CBaseLayer* layer) const
+{
+	if( dynamic_cast<CFullyConnectedLayer*>( layer ) != nullptr ) {
+		// CFullyConnectedLayer is an equivalent of Conv1x1 with Stride == 1 and Padding == 0
+		return true;
+	}
+
+	CConvLayer* conv = dynamic_cast<CConvLayer*>( layer );
+	return conv != nullptr && graph.GetInputCount( *conv ) == 1 && conv->GetFilterHeight() == 1
+		&& conv->GetFilterWidth() == 1 && conv->GetPaddingHeight() == 0 && conv->GetPaddingWidth() == 0
+		&& conv->GetStrideHeight() == 1 && conv->GetStrideWidth() == 1;
 }
 
 // Checks that layer meets the criteria for activation function inside MobileNetV3 block
@@ -318,49 +280,6 @@ bool CMobileNetV3Optimizer::isValidBlockActivation( CBaseLayer& layer ) const
 {
 	return ( dynamic_cast<CReLULayer*>( &layer ) != nullptr || dynamic_cast<CHSwishLayer*>( &layer ) != nullptr )
 		&& graph.GetInputCount( layer ) == 1;
-}
-
-// Checks that ONNX transform has the expected rules
-bool CMobileNetV3Optimizer::isValidOnnxTransform( COnnxTransformHelper& transform,
-	std::initializer_list<TBlobDim> expectedRules ) const
-{
-	NeoAssert( expectedRules.size() == 7 );
-	auto it = expectedRules.begin();
-	for( int i = 0; i < 7; ++i ) {
-		if( *it != transform.GetRule( TBlobDim( i ) ) ) {
-			return false;
-		}
-		++it;
-	}
-	return graph.GetInputCount( transform ) == 1;
-}
-
-// Checks that ONNX transposes swaps the expected dimensions
-bool CMobileNetV3Optimizer::isValidOnnxTranspose( COnnxTransposeHelper& transpose, TBlobDim firstDim, TBlobDim secondDim ) const
-{
-	TBlobDim dim0, dim1;
-	transpose.GetDims( dim0, dim1 );
-	return graph.GetInputCount( transpose ) == 1
-		&& ( ( dim0 == firstDim && dim1 == secondDim ) || ( dim1 == firstDim && dim0 == secondDim ) );
-}
-
-// Checks that ONNX source contains the expected data
-bool CMobileNetV3Optimizer::isValidOnnxSource( COnnxSourceHelper& source,
-	std::initializer_list<int> expectedData ) const
-{
-	CPtr<CDnnBlob> blob = source.Blob();
-	if( blob->GetDataType() != CT_Int || blob->GetDataSize() != expectedData.size() ) {
-		return false;
-	}
-	CDnnBlobBuffer<int> buff( *blob, TDnnBlobBufferAccess::Read );
-	auto it = expectedData.begin();
-	for( int i = 0; i < buff.Size(); ++i ) {
-		if( *it != 0 && buff[i] != *it ) {
-			return false;
-		}
-		++it;
-	}
-	return graph.GetInputCount( source ) == 0;
 }
 
 // Checks that layer meets the criteria for activation function inside Squeeze-and-Excite
