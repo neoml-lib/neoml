@@ -31,8 +31,8 @@ CMobileNetV3PreSEBlockLayer::CMobileNetV3PreSEBlockLayer( IMathEngine& mathEngin
 	CBaseLayer( mathEngine, "MobileNetV3PreSEBlock", false ),
 	expandActivation( expandActivation ),
 	stride( stride ),
-	convDesc( nullptr ),
-	channelwiseActivation( channelwiseActivation )
+	channelwiseActivation( channelwiseActivation ),
+	convDesc( nullptr )
 {
 	NeoAssert( expandActivation.GetType() == AF_ReLU || expandActivation.GetType() == AF_HSwish
 		|| expandActivation.GetType() == AF_Linear );
