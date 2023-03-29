@@ -25,14 +25,19 @@ limitations under the License.
 namespace NeoML {
 
 CMobileNetV3PreSEBlockLayer::CMobileNetV3PreSEBlockLayer( IMathEngine& mathEngine, const CPtr<CDnnBlob>& expandFilter,
-		const CPtr<CDnnBlob>& expandFreeTerm, const CActivationDesc& activation, int stride,
-		const CPtr<CDnnBlob>& channelwiseFilter, const CPtr<CDnnBlob>& channelwiseFreeTerm ) :
+		const CPtr<CDnnBlob>& expandFreeTerm, const CActivationDesc& expandActivation, int stride,
+		const CPtr<CDnnBlob>& channelwiseFilter, const CPtr<CDnnBlob>& channelwiseFreeTerm,
+		const CActivationDesc& channelwiseActivation ) :
 	CBaseLayer( mathEngine, "MobileNetV3PreSEBlock", false ),
-	activation( activation ),
+	expandActivation( expandActivation ),
 	stride( stride ),
-	convDesc( nullptr )
+	convDesc( nullptr ),
+	channelwiseActivation( channelwiseActivation )
 {
-	NeoAssert( activation.GetType() == AF_ReLU || activation.GetType() == AF_HSwish );
+	NeoAssert( expandActivation.GetType() == AF_ReLU || expandActivation.GetType() == AF_HSwish
+		|| expandActivation.GetType() == AF_Linear );
+	NeoAssert( channelwiseActivation.GetType() == AF_ReLU || channelwiseActivation.GetType() == AF_HSwish
+		|| channelwiseActivation.GetType() == AF_Linear );
 	paramBlobs.SetSize( P_Count );
 	paramBlobs[P_ExpandFilter] = MobileNetParam( expandFilter );
 	paramBlobs[P_ExpandFreeTerm] = MobileNetFreeTerm( expandFreeTerm );
@@ -42,8 +47,9 @@ CMobileNetV3PreSEBlockLayer::CMobileNetV3PreSEBlockLayer( IMathEngine& mathEngin
 
 CMobileNetV3PreSEBlockLayer::CMobileNetV3PreSEBlockLayer( IMathEngine& mathEngine ) :
 	CBaseLayer( mathEngine, "MobileNetV3PreSEBlock", false ),
-	activation( AF_HSwish ),
+	expandActivation( AF_HSwish ),
 	stride( stride ),
+	channelwiseActivation( AF_HSwish ),
 	convDesc( nullptr )
 {
 	paramBlobs.SetSize( P_Count );
@@ -86,10 +92,15 @@ void CMobileNetV3PreSEBlockLayer::Serialize( CArchive& archive )
 	archive.Serialize( stride );
 
 	if( archive.IsLoading() ) {
-		activation = LoadActivationDesc( archive );
-		NeoAssert( activation.GetType() == AF_ReLU || activation.GetType() == AF_HSwish );
+		expandActivation = LoadActivationDesc( archive );
+		channelwiseActivation = LoadActivationDesc( archive );
+		NeoAssert( expandActivation.GetType() == AF_ReLU || expandActivation.GetType() == AF_HSwish
+			|| expandActivation.GetType() == AF_Linear );
+		NeoAssert( channelwiseActivation.GetType() == AF_ReLU || channelwiseActivation.GetType() == AF_HSwish
+			|| channelwiseActivation.GetType() == AF_Linear );
 	} else {
-		StoreActivationDesc( activation, archive );
+		StoreActivationDesc( expandActivation, archive );
+		StoreActivationDesc( channelwiseActivation, archive );
 	}
 }
 
@@ -155,10 +166,12 @@ void CMobileNetV3PreSEBlockLayer::RunOnce()
 	MathEngine().MobileNetV3PreSEBlock( inputBlobs[0]->GetDesc(), outputBlobs[0]->GetDesc(), *convDesc,
 		inputBlobs[0]->GetData(), paramBlobs[P_ExpandFilter]->GetData(),
 		expandFt.IsNull() ? nullptr : &expandFt,
-		activation.GetType(),
-		activation.GetType() == AF_HSwish ? 0.f : activation.GetParam<CReLULayer::CParam>().UpperThreshold,
+		expandActivation.GetType(),
+		expandActivation.GetType() == AF_ReLU ? expandActivation.GetParam<CReLULayer::CParam>().UpperThreshold : 0.f,
 		paramBlobs[P_ChannelwiseFilter]->GetData(),
 		channelwiseFt.IsNull() ? nullptr : &channelwiseFt,
+		channelwiseActivation.GetType(),
+		channelwiseActivation.GetType() == AF_ReLU ? channelwiseActivation.GetParam<CReLULayer::CParam>().UpperThreshold : 0.f,
 		outputBlobs[0]->GetData() );
 }
 
@@ -252,7 +265,7 @@ void CMobileNetV3PostSEBlockLayer::RunOnce()
 		inputBlobs[I_Channelwise]->GetData(), inputBlobs[I_SqueezeAndExcite]->GetData(),
 		residual.IsNull() ? nullptr : &residual,
 		activation.GetType(),
-		activation.GetType() == AF_HSwish ? 0.f : activation.GetParam<CReLULayer::CParam>().UpperThreshold,
+		activation.GetType() == AF_ReLU ? activation.GetParam<CReLULayer::CParam>().UpperThreshold : 0.f,
 		paramBlobs[P_DownFilter]->GetData(),
 		downFt.IsNull() ? nullptr : &downFt,
 		outputBlobs[0]->GetData() );

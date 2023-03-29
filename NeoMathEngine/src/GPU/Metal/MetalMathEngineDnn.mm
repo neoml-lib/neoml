@@ -696,7 +696,7 @@ void CMetalMathEngine::MobileNetV2Block( const CBlobDesc&, const CBlobDesc&, con
 
 void CMetalMathEngine::MobileNetV3PreSEBlock( const CBlobDesc&, const CBlobDesc&, const CChannelwiseConvolutionDesc&,
     const CConstFloatHandle&, const CConstFloatHandle&, const CConstFloatHandle*, TActivationFunction, float,
-    const CConstFloatHandle&, const CConstFloatHandle*, const CFloatHandle& )
+    const CConstFloatHandle&, const CConstFloatHandle*, TActivationFunction, float, const CFloatHandle& )
 {
     ASSERT_EXPR( false );
 }

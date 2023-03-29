@@ -152,13 +152,16 @@ bool CMobileNetV3Optimizer::detectMNv3PostSE( CConvLayer& downConv, CMNv3BlockIn
 	detectedBlock.DownConv = &downConv;
 	graph.SelectLayer( downConv );
 
-	CBaseLayer* channelwiseActvation = graph.SelectConnectedOutput<>( downConv, 0, true ).Layer;
-	if( channelwiseActvation == nullptr || !isValidBlockActivation( *channelwiseActvation ) ) {
+	CBaseLayer* nextLayer = graph.SelectConnectedOutput<>( downConv, 0, true ).Layer;
+	if( nextLayer == nullptr ) {
 		return false;
+	} else if( isValidBlockActivation( *nextLayer ) ) {
+		detectedBlock.ChannelwisePostSEActivation = dynamic_cast<IActivationLayer&>( *nextLayer ).GetDesc();
+		detectedBlock.SEMulVectorInput.Layer = graph.SelectConnectedOutput<>( *nextLayer, 0, true ).Layer;
+	} else {
+		detectedBlock.SEMulVectorInput.Layer = nextLayer;
 	}
-	detectedBlock.ChannelwiseActivation = dynamic_cast<IActivationLayer&>( *channelwiseActvation ).GetDesc();
 
-	detectedBlock.SEMulVectorInput.Layer = graph.SelectConnectedOutput<>( *channelwiseActvation, 0, true ).Layer;
 	return true;
 }
 
@@ -173,14 +176,6 @@ bool CMobileNetV3Optimizer::detectMNv3SE( CMNv3BlockInfo& detectedBlock )
 	}
 
 	for( int mulInput = 0; mulInput < 2; ++mulInput ) {
-		CLayerOutput<CChannelwiseConvLayer> channelwiseOutput = graph.SelectConnectedOutput<CChannelwiseConvLayer>(
-			*mulLayer, mulInput, false );
-		if( channelwiseOutput.Layer == nullptr ) {
-			continue;
-		}
-		detectedBlock.Channelwise = channelwiseOutput.Layer;
-		detectedBlock.SEMulVectorInput.Index = 1 - mulInput;
-
 		detectedBlock.SESecondActivation = graph.GetConnectedOutput<>( *mulLayer, 1 - mulInput ).Layer;
 		if( !isValidSEActivation( *detectedBlock.SESecondActivation ) ) {
 			continue;
@@ -207,8 +202,13 @@ bool CMobileNetV3Optimizer::detectMNv3SE( CMNv3BlockInfo& detectedBlock )
 		}
 
 		CLayerOutput<> poolData = graph.GetConnectedOutput<>( *detectedBlock.SEPooling, 0 );
-		if( poolData == channelwiseOutput ) {
+		CLayerOutput<> seData = graph.SelectConnectedOutput<>( *mulLayer, mulInput, false );
+		if( poolData == seData ) {
+			detectedBlock.PreSELayer = seData.Layer;
+			detectedBlock.SEMulVectorInput.Index = 1 - mulInput;
 			return true;
+		} else {
+			return false;
 		}
 	}
 
@@ -220,8 +220,19 @@ bool CMobileNetV3Optimizer::detectMNv3SE( CMNv3BlockInfo& detectedBlock )
 // If it isn't then returns false (in this case detectedBlock and graph's selection may be in any state)
 bool CMobileNetV3Optimizer::detectMNv3PreSE( CMNv3BlockInfo& detectedBlock )
 {
-	NeoAssert( detectedBlock.Channelwise != nullptr );
-	if( !isValidChannelwise( *detectedBlock.Channelwise ) ) {
+	NeoAssert( detectedBlock.PreSELayer != nullptr );
+	detectedBlock.Channelwise = dynamic_cast<CChannelwiseConvLayer*>( detectedBlock.PreSELayer );
+	if( detectedBlock.Channelwise == nullptr ) {
+		if( isValidBlockActivation( *detectedBlock.PreSELayer ) ) {
+			detectedBlock.ChannelwisePreSEActivation =
+				dynamic_cast<IActivationLayer*>( detectedBlock.PreSELayer )->GetDesc();
+			detectedBlock.Channelwise = graph.SelectConnectedOutput<CChannelwiseConvLayer>( *detectedBlock.PreSELayer, 0, true ).Layer;
+		} else {
+			return false;
+		}
+	}
+	
+	if( detectedBlock.Channelwise == nullptr || !isValidChannelwise( *detectedBlock.Channelwise ) ) {
 		return false;
 	}
 
@@ -262,7 +273,7 @@ bool CMobileNetV3Optimizer::isValidSEMul( CBaseLayer& layer ) const
 }
 
 // Checks that CConvLayer meets the criteria of 1x1 convolution inside MobileNetV3 block
-bool CMobileNetV3Optimizer::isValid1x1Conv( CBaseLayer* layer) const
+bool CMobileNetV3Optimizer::isValid1x1Conv( CBaseLayer* layer ) const
 {
 	if( dynamic_cast<CFullyConnectedLayer*>( layer ) != nullptr ) {
 		// CFullyConnectedLayer is an equivalent of Conv1x1 with Stride == 1 and Padding == 0
@@ -278,8 +289,16 @@ bool CMobileNetV3Optimizer::isValid1x1Conv( CBaseLayer* layer) const
 // Checks that layer meets the criteria for activation function inside MobileNetV3 block
 bool CMobileNetV3Optimizer::isValidBlockActivation( CBaseLayer& layer ) const
 {
-	return ( dynamic_cast<CReLULayer*>( &layer ) != nullptr || dynamic_cast<CHSwishLayer*>( &layer ) != nullptr )
-		&& graph.GetInputCount( layer ) == 1;
+	if( graph.GetInputCount( layer ) != 1 ) {
+		return false;
+	}
+
+	if( dynamic_cast<CReLULayer*>( &layer ) != nullptr || dynamic_cast<CHSwishLayer*>( &layer ) != nullptr ) {
+		return true;
+	}
+
+	CLinearLayer* linear = dynamic_cast<CLinearLayer*>( &layer );
+	return linear != nullptr && linear->GetFreeTerm() == 0 && linear->GetMultiplier() == 1;
 }
 
 // Checks that layer meets the criteria for activation function inside Squeeze-and-Excite
@@ -313,7 +332,8 @@ void CMobileNetV3Optimizer::optimizeDetectedBlock( const CMNv3BlockInfo& detecte
 	CPtr<CMobileNetV3PreSEBlockLayer> preSEBlock = new CMobileNetV3PreSEBlockLayer( graph.MathEngine(),
 		detectedBlock.ExpandConv->GetFilterData(), detectedBlock.ExpandConv->GetFreeTermData(),
 		detectedBlock.ExpandActivation, detectedBlock.Channelwise->GetStrideHeight(),
-		detectedBlock.Channelwise->GetFilterData(), detectedBlock.Channelwise->GetFreeTermData() );
+		detectedBlock.Channelwise->GetFilterData(), detectedBlock.Channelwise->GetFreeTermData(),
+		detectedBlock.ChannelwisePreSEActivation );
 	preSEBlock->SetName( graph.GetUniqueName( "MobileNetV3PreSEBlock" ) );
 	graph.AddLayer( *preSEBlock );
 	graph.Connect( *preSEBlock, 0, *detectedBlock.InputData.Layer, detectedBlock.InputData.Index );
@@ -326,7 +346,7 @@ void CMobileNetV3Optimizer::optimizeDetectedBlock( const CMNv3BlockInfo& detecte
 
 	// optimzie post Squeeze-and-Excite part
 	CPtr<CMobileNetV3PostSEBlockLayer> postSEBlock = new CMobileNetV3PostSEBlockLayer( graph.MathEngine(),
-		detectedBlock.ChannelwiseActivation, detectedBlock.DownConv->GetFilterData(),
+		detectedBlock.ChannelwisePostSEActivation, detectedBlock.DownConv->GetFilterData(),
 		detectedBlock.DownConv->GetFreeTermData() );
 	postSEBlock->SetName( graph.GetUniqueName( "MobileNetV3PostSEBlock" ) );
 	graph.AddLayer( *postSEBlock );

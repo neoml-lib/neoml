@@ -21,7 +21,6 @@ limitations under the License.
 namespace NeoML {
 
 // Forward declaration(s)
-class CBaseLayer;
 class CChannelwiseConvLayer;
 class CConvLayer;
 struct CDnnOptimizationReport;
@@ -46,13 +45,15 @@ private:
 	struct CMNv3BlockInfo {
 		CLayerOutput<> InputData{};
 		CConvLayer* ExpandConv = nullptr;
-		CActivationDesc ExpandActivation{ AF_ReLU };
+		CActivationDesc ExpandActivation{ AF_Linear, CLinearLayer::CParam{ 1.f, 0.f } };
+		CBaseLayer* PreSELayer = nullptr;
 		CChannelwiseConvLayer* Channelwise = nullptr;
+		CActivationDesc ChannelwisePreSEActivation{ AF_Linear, CLinearLayer::CParam{ 1.f, 0.f } };
 		CGlobalMeanPoolingLayer* SEPooling = nullptr;
 		CBaseLayer* SEFirstFc = nullptr;
 		CBaseLayer* SESecondActivation = nullptr;
 		CLayerInput<> SEMulVectorInput{};
-		CActivationDesc ChannelwiseActivation{ AF_ReLU };
+		CActivationDesc ChannelwisePostSEActivation{ AF_Linear, CLinearLayer::CParam{ 1.f, 0.f } };
 		CConvLayer* DownConv = nullptr;
 		CBaseLayer* Residual = nullptr;
 	};

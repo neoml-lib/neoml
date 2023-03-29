@@ -20,6 +20,7 @@ limitations under the License.
 #include <NeoML/Dnn/Optimization/Graph.h>
 #include <NeoML/Dnn/DnnOptimization.h>
 #include <NeoML/Dnn/Layers/ChannelwiseWith1x1Layer.h>
+#include <NeoML/Dnn/Layers/ConvLayer.h>
 #include <NeoML/Dnn/Layers/EltwiseLayer.h>
 #include <NeoML/Dnn/Layers/MobileNetV2BlockLayer.h>
 #include <NeoML/Dnn/Layers/Onnx/OnnxEltwiseLayer.h>
@@ -150,8 +151,16 @@ bool CMobileNetV2Optimizer::isValid1x1Conv( CConvLayer& conv ) const
 // Checks that layer meets the criteria for activation function inside MobiletNetV2 block
 bool CMobileNetV2Optimizer::isValidActivation( CBaseLayer& layer ) const
 {
-	return ( dynamic_cast<CReLULayer*>( &layer ) != nullptr || dynamic_cast<CHSwishLayer*>( &layer ) != nullptr )
-		&& graph.GetInputCount( layer ) == 1;
+	if( graph.GetInputCount( layer ) != 1 ) {
+		return false;
+	}
+
+	if( dynamic_cast<CReLULayer*>( &layer ) != nullptr || dynamic_cast<CHSwishLayer*>( &layer ) != nullptr ) {
+		return true;
+	}
+
+	CLinearLayer* linear = dynamic_cast<CLinearLayer*>( &layer );
+	return linear != nullptr && linear->GetFreeTerm() == 0 && linear->GetMultiplier() == 1;
 }
 
 } // namespace optimization

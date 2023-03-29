@@ -150,7 +150,7 @@ void CCudaMathEngine::ChannelwiseWith1x1( const CBlobDesc& inputDesc, const CBlo
 	BlobChannelwiseConvolution( convDesc, inputHandle, channelwiseFilter, channelwiseFreeTerm, channelwiseOutput );
 	if( activation == AF_HSwish ) {
 		VectorHSwish( channelwiseOutput, channelwiseOutput, desc.Source.BlobSize() );
-	} else {
+	} else if( activation == AF_ReLU ) {
 		CFloatHandleStackVar reLUThreshold( *this );
 		reLUThreshold.GetHandle().SetValue( activationParam );
 		VectorReLU( channelwiseOutput, channelwiseOutput, channelwiseOutput.Size(), reLUThreshold );
@@ -201,7 +201,7 @@ void CCudaMathEngine::MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobD
 
 	if( expandActivation == AF_HSwish ) {
 		VectorHSwish( channelwiseInput, channelwiseInput, channelwiseInput.Size() );
-	} else {
+	} else if( expandActivation == AF_ReLU ) {
 		CFloatHandleStackVar expandReLUThreshold( *this );
 		expandReLUThreshold.GetHandle().SetValue( expandActivationParam );
 		VectorReLU( channelwiseInput, channelwiseInput, channelwiseInput.Size(), expandReLUThreshold );
@@ -210,7 +210,7 @@ void CCudaMathEngine::MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobD
 	BlobChannelwiseConvolution( convDesc, channelwiseInput, channelwiseFilter, channelwiseFreeTerm, channelwiseOutput );
 	if( channelwiseActivation == AF_HSwish ) {
 		VectorHSwish( channelwiseOutput, channelwiseOutput, channelwiseInput.Size() );
-	} else {
+	} else if( channelwiseActivation == AF_ReLU ) {
 		CFloatHandleStackVar channelwiseReLUThreshold( *this );
 		channelwiseReLUThreshold.GetHandle().SetValue( channelwiseActivationParam );
 		VectorReLU( channelwiseOutput, channelwiseOutput, channelwiseOutput.Size(), channelwiseReLUThreshold );
@@ -235,7 +235,8 @@ void CCudaMathEngine::MobileNetV3PreSEBlock( const CBlobDesc& inputDesc, const C
 	const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& inputHandle,
 	const CConstFloatHandle& expandFilter, const CConstFloatHandle* expandFreeTerm,
 	TActivationFunction expandActivation, float expandActivationParam, const CConstFloatHandle& channelwiseFilter,
-	const CConstFloatHandle* channelwiseFreeTerm, const CFloatHandle& outputHandle )
+	const CConstFloatHandle* channelwiseFreeTerm, TActivationFunction channelwiseActivation,
+	float channelwiseActivationParam, const CFloatHandle& outputHandle )
 {
 	SetCudaDevice( device->DeviceNumber );
 	const CCudaChannelwiseConvolutionDescInternal& desc = static_cast<const CCudaChannelwiseConvolutionDesc&>( convDesc ).Internal;
@@ -254,13 +255,21 @@ void CCudaMathEngine::MobileNetV3PreSEBlock( const CBlobDesc& inputDesc, const C
 
 	if( expandActivation == AF_HSwish ) {
 		VectorHSwish( channelwiseInput, channelwiseInput, channelwiseInput.Size() );
-	} else {
+	} else if( expandActivation == AF_ReLU ) {
 		CFloatHandleStackVar expandReLUThreshold( *this );
 		expandReLUThreshold.GetHandle().SetValue( expandActivationParam );
 		VectorReLU( channelwiseInput, channelwiseInput, channelwiseInput.Size(), expandReLUThreshold );
 	}
 
 	BlobChannelwiseConvolution( convDesc, channelwiseInput, channelwiseFilter, channelwiseFreeTerm, outputHandle );
+
+	if( channelwiseActivation == AF_HSwish ) {
+		VectorHSwish( outputHandle, outputHandle, desc.Result.BlobSize() );
+	} else if( channelwiseActivation == AF_ReLU ) {
+		CFloatHandleStackVar channelwiseReLUThreshold( *this );
+		channelwiseReLUThreshold.GetHandle().SetValue( channelwiseActivationParam );
+		VectorReLU( outputHandle, outputHandle, desc.Result.BlobSize(), channelwiseReLUThreshold);
+	}
 }
 
 void CCudaMathEngine::MobileNetV3PostSEBlock( const CBlobDesc& channelwiseOutputDesc, int outputChannels,
@@ -285,7 +294,7 @@ void CCudaMathEngine::MobileNetV3PostSEBlock( const CBlobDesc& channelwiseOutput
 
 	if( activation == AF_HSwish ) {
 		VectorHSwish( squeezedAndExcited, squeezedAndExcited, inputSize );
-	} else {
+	} else if( activation == AF_ReLU ) {
 		CFloatHandleStackVar reLUThreshold( *this );
 		reLUThreshold.GetHandle().SetValue( activationParam );
 		VectorReLU( squeezedAndExcited, squeezedAndExcited, inputSize, reLUThreshold );

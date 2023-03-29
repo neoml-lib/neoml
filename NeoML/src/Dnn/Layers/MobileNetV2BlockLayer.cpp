@@ -36,8 +36,10 @@ CMobileNetV2BlockLayer::CMobileNetV2BlockLayer( IMathEngine& mathEngine, const C
 	channelwiseActivation( channelwiseActivation ),
 	convDesc( nullptr )
 {
-	NeoAssert( expandActivation.GetType() == AF_ReLU || expandActivation.GetType() == AF_HSwish );
-	NeoAssert( channelwiseActivation.GetType() == AF_ReLU || channelwiseActivation.GetType() == AF_HSwish );
+	NeoAssert( expandActivation.GetType() == AF_ReLU || expandActivation.GetType() == AF_HSwish
+		|| expandActivation.GetType() == AF_Linear );
+	NeoAssert( channelwiseActivation.GetType() == AF_ReLU || channelwiseActivation.GetType() == AF_HSwish
+		|| channelwiseActivation.GetType() == AF_Linear );
 	paramBlobs.SetSize( P_Count );
 	paramBlobs[P_ExpandFilter] = MobileNetParam( expandFilter );
 	paramBlobs[P_ExpandFreeTerm] = MobileNetFreeTerm( expandFreeTerm );
@@ -129,8 +131,10 @@ void CMobileNetV2BlockLayer::Serialize( CArchive& archive )
 	if( archive.IsLoading() ) {
 		expandActivation = LoadActivationDesc( archive );
 		channelwiseActivation = LoadActivationDesc( archive );
-		NeoAssert( expandActivation.GetType() == AF_ReLU || expandActivation.GetType() == AF_HSwish );
-		NeoAssert( channelwiseActivation.GetType() == AF_ReLU || channelwiseActivation.GetType() == AF_HSwish );
+		NeoAssert( expandActivation.GetType() == AF_ReLU || expandActivation.GetType() == AF_HSwish
+			|| channelwiseActivation.GetType() == AF_Linear );
+		NeoAssert( channelwiseActivation.GetType() == AF_ReLU || channelwiseActivation.GetType() == AF_HSwish
+			|| channelwiseActivation.GetType() == AF_Linear );
 	} else {
 		StoreActivationDesc( expandActivation, archive );
 		StoreActivationDesc( channelwiseActivation, archive );
@@ -216,10 +220,10 @@ void CMobileNetV2BlockLayer::RunOnce()
 		inputBlobs[0]->GetData(), paramBlobs[P_ExpandFilter]->GetData(),
 		expandFt.IsNull() ? nullptr : &expandFt,
 		expandActivation.GetType(),
-		expandActivation.GetType() == AF_HSwish ? 0.f : expandActivation.GetParam<CReLULayer::CParam>().UpperThreshold,
+		expandActivation.GetType() == AF_ReLU ? expandActivation.GetParam<CReLULayer::CParam>().UpperThreshold : 0.f,
 		paramBlobs[P_ChannelwiseFilter]->GetData(), channelwiseFt.IsNull() ? nullptr : &channelwiseFt,
 		channelwiseActivation.GetType(),
-		channelwiseActivation.GetType() == AF_HSwish ? 0.f : channelwiseActivation.GetParam<CReLULayer::CParam>().UpperThreshold,
+		channelwiseActivation.GetType() == AF_ReLU ? channelwiseActivation.GetParam<CReLULayer::CParam>().UpperThreshold : 0.f,
 		paramBlobs[P_DownFilter]->GetData(),
 		downFt.IsNull() ? nullptr : &downFt,
 		residual, outputBlobs[0]->GetData() );

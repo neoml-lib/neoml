@@ -27,36 +27,39 @@ namespace NeoML {
 // The only output contains the output of channelwise convolution
 //
 // Replaces the following construction:
-//     ExpandConv -> Activation -> Channelwise
+//     ExpandConv -> Activation -> Channelwise [-> Activation]
 //
-// Possible activations: ReLU and HSwish
+// Possible activations: ReLU and HSwish (or no activation)
 // Channelwise support stride 1 and 2, and filters 3x3 or 5x5 with paddings 1 and 2 correspondingly
 class NEOML_API CMobileNetV3PreSEBlockLayer : public CBaseLayer {
 	NEOML_DNN_LAYER( CMobileNetV3PreSEBlockLayer )
 public:
 	CMobileNetV3PreSEBlockLayer( IMathEngine& mathEngine, const CPtr<CDnnBlob>& expandFilter,
-		const CPtr<CDnnBlob>& expandFreeTerm, const CActivationDesc& activation, int stride,
-		const CPtr<CDnnBlob>& channelwiseFilter, const CPtr<CDnnBlob>& channelwiseFreeTerm );
+		const CPtr<CDnnBlob>& expandFreeTerm, const CActivationDesc& expandActivation, int stride,
+		const CPtr<CDnnBlob>& channelwiseFilter, const CPtr<CDnnBlob>& channelwiseFreeTerm,
+		const CActivationDesc& channelwiseActivation );
 	explicit CMobileNetV3PreSEBlockLayer( IMathEngine& mathEngine );
 	~CMobileNetV3PreSEBlockLayer();
 
 	// Expand convolution and activation parameters
 	CPtr<CDnnBlob> ExpandFilter() const;
 	CPtr<CDnnBlob> ExpandFreeTerm() const;
-	CActivationDesc Activation() const { return activation; }
+	CActivationDesc ExpandActivation() const { return expandActivation; }
 
 	// Channelwise convolution
 	int Stride() const { return stride; }
 	CPtr<CDnnBlob> ChannelwiseFilter() const;
 	CPtr<CDnnBlob> ChannelwiseFreeTerm() const;
+	CActivationDesc ChannelwiseActivation() const { return channelwiseActivation; }
 
 	// TODO: delete
 	void SetExpandFilter( const CPtr<CDnnBlob>& blob ) { paramBlobs[P_ExpandFilter] = blob == nullptr ? nullptr : blob->GetCopy(); }
 	void SetExpandFreeTerm( const CPtr<CDnnBlob>& blob ) { paramBlobs[P_ExpandFreeTerm] = blob == nullptr ? nullptr : blob->GetCopy(); }
-	void SetActivation( const CActivationDesc& desc ) { activation = desc; }
+	void SetExpandActivation( const CActivationDesc& desc ) { expandActivation = desc; }
 	void SetStride( int newStride ) { stride = newStride; }
 	void SetChannelwiseFilter( const CPtr<CDnnBlob>& blob ) { paramBlobs[P_ChannelwiseFilter] = blob == nullptr ? nullptr : blob->GetCopy(); }
 	void SetChannelwiseFreeTerm( const CPtr<CDnnBlob>& blob ) { paramBlobs[P_ChannelwiseFreeTerm] = blob == nullptr ? nullptr : blob->GetCopy(); }
+	void SetChannelwiseActivation( const CActivationDesc& desc ) { channelwiseActivation = desc; }
 
 	void Serialize( CArchive& archive ) override;
 
@@ -76,8 +79,9 @@ private:
 		P_Count
 	};
 
-	CActivationDesc activation; // activation applied after expand 1x1 convolution
+	CActivationDesc expandActivation; // activation applied after expand 1x1 convolution
 	int stride; // stride of channelwise convolution
+	CActivationDesc channelwiseActivation; // activation applied after channelwise convolution
 	CChannelwiseConvolutionDesc* convDesc; // descriptor of channelwise convolution
 };
 
@@ -89,7 +93,7 @@ private:
 //     3. (optional) Residual input
 //
 // Replaces the following construction:
-//     Mul -> Activation -> DownConv -> [Residual ->]
+//     Mul [-> Activation] -> DownConv -> [Residual ->]
 //
 // Possible activations: ReLU and HSwish
 class NEOML_API CMobileNetV3PostSEBlockLayer : public CBaseLayer {

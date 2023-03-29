@@ -3065,18 +3065,19 @@ GTEST_TEST( SerializeFromFile, OnnxTransposeHelperSerialization )
 
 #ifdef GENERATE_SERIALIZATION_FILES
 
-static void setSpecificParams( CMobileNetV3PreSEBlockLayer& layer )
+static void setSpecificParams(CMobileNetV3PreSEBlockLayer& layer)
 {
 	const int inputChannels = 2;
 	const int expandChannels = 4;
 	
 	layer.SetExpandFilter( generateBlob( expandChannels, 1, 1, 1, inputChannels ) );
 	layer.SetExpandFreeTerm( generateBlob( 1, 1, 1, 1, expandChannels ) );
-	layer.SetActivation( CActivationDesc( AF_ReLU, CReLULayer::CParam{ 666.f } ) );
+	layer.SetExpandActivation( CActivationDesc( AF_ReLU, CReLULayer::CParam{ 666.f } ) );
 
 	layer.SetStride( 2 );
 	layer.SetChannelwiseFilter( generateBlob( 1, 3, 3, 1, expandChannels ) );
 	layer.SetChannelwiseFreeTerm( nullptr );
+	layer.SetChannelwiseActivation( CActivationDesc( AF_Linear, CLinearLayer::CParam{ 1.f, 0.f } ) );
 }
 
 GTEST_TEST( SerializeToFile, MobileNetV3PreSEBlockLayerSerialization )
@@ -3094,11 +3095,15 @@ inline void checkSpecificParams<CMobileNetV3PreSEBlockLayer>( CMobileNetV3PreSEB
 
 	checkBlob( *layer.ExpandFilter(), expandChannels * inputChannels );
 	checkBlob( *layer.ExpandFreeTerm(), expandChannels );
-	EXPECT_FLOAT_EQ( 666.f, layer.Activation().GetParam<CReLULayer::CParam>().UpperThreshold );
+	EXPECT_FLOAT_EQ( AF_ReLU, layer.ExpandActivation().GetType() );
+	EXPECT_FLOAT_EQ( 666.f, layer.ExpandActivation().GetParam<CReLULayer::CParam>().UpperThreshold );
 
 	EXPECT_EQ( 2, layer.Stride() );
 	checkBlob( *layer.ChannelwiseFilter(), 3 * 3 * expandChannels );
 	EXPECT_EQ( nullptr, layer.ChannelwiseFreeTerm() );
+	EXPECT_FLOAT_EQ( AF_Linear, layer.ChannelwiseActivation().GetType() );
+	EXPECT_FLOAT_EQ( 1.f, layer.ChannelwiseActivation().GetParam<CLinearLayer::CParam>().Multiplier );
+	EXPECT_FLOAT_EQ( 0.f, layer.ChannelwiseActivation().GetParam<CLinearLayer::CParam>().FreeTerm );
 }
 
 GTEST_TEST( SerializeFromFile, MobileNetV3PreSEBlockLayerSerialization )

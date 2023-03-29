@@ -34,7 +34,8 @@ CChannelwiseWith1x1Layer::CChannelwiseWith1x1Layer( IMathEngine& mathEngine, int
 	residual( residual ),
 	convDesc( nullptr )
 {
-	NeoAssert( activation.GetType() == AF_ReLU || activation.GetType() == AF_HSwish );
+	NeoAssert( activation.GetType() == AF_ReLU || activation.GetType() == AF_HSwish
+		|| activation.GetType() == AF_Linear );
 	paramBlobs.SetSize( P_Count );
 	paramBlobs[P_ChannelwiseFilter] = MobileNetParam( channelwiseFilter );
 	paramBlobs[P_ChannelwiseFreeTerm] = MobileNetFreeTerm( channelwiseFreeTerm );
@@ -102,7 +103,8 @@ void CChannelwiseWith1x1Layer::Serialize( CArchive& archive )
 
 	if( archive.IsLoading() ) {
 		activation = LoadActivationDesc( archive );
-		NeoAssert( activation.GetType() == AF_ReLU || activation.GetType() == AF_HSwish );
+		NeoAssert( activation.GetType() == AF_ReLU || activation.GetType() == AF_HSwish
+			|| activation.GetType() == AF_Linear );
 	} else {
 		StoreActivationDesc( activation, archive );
 	}
@@ -168,7 +170,7 @@ void CChannelwiseWith1x1Layer::RunOnce()
 		inputBlobs[0]->GetData(), paramBlobs[P_ChannelwiseFilter]->GetData(),
 		channelwiseFt.IsNull() ? nullptr : &channelwiseFt,
 		activation.GetType(),
-		activation.GetType() == AF_HSwish ? 0.f : activation.GetParam<CReLULayer::CParam>().UpperThreshold,
+		activation.GetType() == AF_ReLU ? activation.GetParam<CReLULayer::CParam>().UpperThreshold : 0.f,
 		paramBlobs[P_ConvFilter]->GetData(),
 		convFt.IsNull() ? nullptr : &convFt,
 		residual, outputBlobs[0]->GetData() );

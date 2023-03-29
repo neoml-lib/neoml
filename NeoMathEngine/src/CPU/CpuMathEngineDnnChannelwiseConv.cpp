@@ -523,7 +523,7 @@ void CCpuMathEngine::ChannelwiseWith1x1( const CBlobDesc& inputDesc, const CBlob
 
 				if( activation == AF_HSwish ) {
 					vectorHSwish( chOutputBuff, chOutputBuff, outputRowsThisStep * chOutputRowSize );
-				} else {
+				} else if( activation == AF_ReLU ) {
 					if( activationParam > 0 ) {
 						vectorReLU( chOutputBuff, chOutputBuff, outputRowsThisStep * chOutputRowSize,
 							activationParam );
@@ -636,7 +636,7 @@ void CCpuMathEngine::MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobDe
 			// Apply expand activation
 			if( expandActivation == AF_HSwish ) {
 				vectorHSwish( chInput, chInput, inputRowsThisStep * chInputRowSize );
-			} else {
+			} else if( expandActivation == AF_ReLU ) {
 				if( expandActivationParam > 0 ) {
 					vectorReLU( chInput, chInput, inputRowsThisStep * chInputRowSize, expandActivationParam );
 				} else {
@@ -721,7 +721,7 @@ void CCpuMathEngine::MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobDe
 
 				if( channelwiseActivation == AF_HSwish ) {
 					vectorHSwish( chOutputBuff, chOutputBuff, outputRowsThisStep * chOutputRowSize );
-				} else {
+				} else if( channelwiseActivation == AF_ReLU ) {
 					if( channelwiseActivationParam > 0 ) {
 						vectorReLU( chOutputBuff, chOutputBuff, outputRowsThisStep * chOutputRowSize,
 							channelwiseActivationParam );
@@ -786,7 +786,8 @@ void CCpuMathEngine::MobileNetV3PreSEBlock( const CBlobDesc& inputDesc, const CB
 	const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& inputHandle,
 	const CConstFloatHandle& expandFilterData, const CConstFloatHandle* expandFreeTermData,
 	TActivationFunction expandActivation, float expandActivationParam, const CConstFloatHandle& channelwiseFilterData,
-	const CConstFloatHandle* channelwiseFreeTermData, const CFloatHandle& outputHandle )
+	const CConstFloatHandle* channelwiseFreeTermData, TActivationFunction channelwiseActivation,
+	float channelwiseActivationParam, const CFloatHandle& outputHandle )
 {
 	CCpuExecutionScope scope;
 	const CCommonChannelwiseConvolutionDesc& desc = static_cast<const CCommonChannelwiseConvolutionDesc&>( convDesc );
@@ -856,7 +857,7 @@ void CCpuMathEngine::MobileNetV3PreSEBlock( const CBlobDesc& inputDesc, const CB
 			// Apply expand activation
 			if( expandActivation == AF_HSwish ) {
 				vectorHSwish( chInput, chInput, inputRowsThisStep * chInputRowSize );
-			} else {
+			} else if( expandActivation == AF_ReLU ) {
 				if( expandActivationParam > 0 ) {
 					vectorReLU( chInput, chInput, inputRowsThisStep * chInputRowSize, expandActivationParam );
 				} else {
@@ -909,6 +910,17 @@ void CCpuMathEngine::MobileNetV3PreSEBlock( const CBlobDesc& inputDesc, const CB
 								}
 							}
 						}
+					}
+				}
+
+				// Apply expand activation
+				if( channelwiseActivation == AF_HSwish ) {
+					vectorHSwish( output, output, outputRowsThisStep * outputRowSize );
+				} else if( channelwiseActivation == AF_ReLU ) {
+					if( channelwiseActivationParam > 0 ) {
+						vectorReLU( output, output, outputRowsThisStep * outputRowSize, channelwiseActivationParam );
+					} else {
+						vectorReLU( output, output, outputRowsThisStep * outputRowSize );
 					}
 				}
 
@@ -982,7 +994,7 @@ void CCpuMathEngine::MobileNetV3PostSEBlock( const CBlobDesc& channelwiseOutputD
 
 			if( activation == AF_HSwish ) {
 				vectorHSwish( squeezed, squeezed, rowsThisStep * inputRowSize );
-			} else {
+			} else if( activation == AF_ReLU ) {
 				if( activationParam > 0 ) {
 					vectorReLU( squeezed, squeezed, rowsThisStep * inputRowSize, activationParam );
 				} else {
