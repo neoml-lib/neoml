@@ -31,10 +31,14 @@ namespace optimization {
 
 void CMobileNetV2Optimizer::Apply( CDnnOptimizationReport& report )
 {
-	// Step 1: merge basic layers into non-residual CMobileNetV2BlockLayer
-	report.MobileNetV2NonResidualBlocks = optimizeNonResidualBlocks();
-	// Step 2: add residual connections to the CMobileNetV2BlockLayer which are already in the graph
+	// Step 1: add residual connections to the CMobileNetV2BlockLayer which are already in the graph
 	report.MobileNetV2ResidualBlocks = optimizeResidualConnections();
+	// Step 2: merge basic layers into non-residual CMobileNetV2BlockLayer
+	report.MobileNetV2NonResidualBlocks = optimizeNonResidualBlocks();
+	// Step 3: add residual connections to the block from Step 2 (where possible)
+	const int newResidualBlocks = optimizeResidualConnections();
+	report.MobileNetV2ResidualBlocks += newResidualBlocks;
+	report.MobileNetV2NonResidualBlocks -= newResidualBlocks;
 }
 
 // Replaces layers which are equivalent to non-residual mobilenetv2 block

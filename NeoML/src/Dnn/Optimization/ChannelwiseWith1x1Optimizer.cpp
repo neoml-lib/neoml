@@ -31,10 +31,14 @@ namespace optimization {
 
 void CChannelwiseWith1x1Optimizer::Apply( CDnnOptimizationReport& report )
 {
-	// Step 1: merge basic layers into non-residual CChannelwiseWith1x1Layer
-	report.ChannelwiseWith1x1NonResidual = optimizeNonResidualBlocks();
-	// Step 2: add residual connections to the CChannelwiseWith1x1Layer which are already in the graph
+	// Step 1: add residual connections to the CChannelwiseWith1x1Layer which are already in the graph
 	report.ChannelwiseWith1x1Residual = optimizeResidualConnections();
+	// Step 2: merge basic layers into non-residual CChannelwiseWith1x1Layer
+	report.ChannelwiseWith1x1NonResidual = optimizeNonResidualBlocks();
+	// Step 3: add residual connections to the blocks from Step 2 (where possible)
+	const int newResidualBlocks = optimizeResidualConnections();
+	report.ChannelwiseWith1x1Residual += newResidualBlocks;
+	report.ChannelwiseWith1x1NonResidual -= newResidualBlocks;
 }
 
 // Replaces layers which are equivalent to non-residual mobilenetv2 block
