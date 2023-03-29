@@ -51,6 +51,6 @@ private:
 		const NeoML::optimization::CLayerOutput<>& hSwishInputData ) const;
 };
 
-} // namesapce optimization
+} // namespace optimization
 
 } // namespace NeoOnnx
