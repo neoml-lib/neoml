@@ -222,14 +222,10 @@ bool CMobileNetV3Optimizer::detectMNv3PreSE( CMNv3BlockInfo& detectedBlock )
 {
 	NeoAssert( detectedBlock.PreSELayer != nullptr );
 	detectedBlock.Channelwise = dynamic_cast<CChannelwiseConvLayer*>( detectedBlock.PreSELayer );
-	if( detectedBlock.Channelwise == nullptr ) {
-		if( isValidBlockActivation( *detectedBlock.PreSELayer ) ) {
-			detectedBlock.ChannelwisePreSEActivation =
-				dynamic_cast<IActivationLayer*>( detectedBlock.PreSELayer )->GetDesc();
-			detectedBlock.Channelwise = graph.SelectConnectedOutput<CChannelwiseConvLayer>( *detectedBlock.PreSELayer, 0, true ).Layer;
-		} else {
-			return false;
-		}
+	if( detectedBlock.Channelwise == nullptr && isValidBlockActivation( *detectedBlock.PreSELayer ) ) {
+		detectedBlock.ChannelwisePreSEActivation =
+			dynamic_cast<IActivationLayer*>( detectedBlock.PreSELayer )->GetDesc();
+		detectedBlock.Channelwise = graph.SelectConnectedOutput<CChannelwiseConvLayer>( *detectedBlock.PreSELayer, 0, true ).Layer;
 	}
 	
 	if( detectedBlock.Channelwise == nullptr || !isValidChannelwise( *detectedBlock.Channelwise ) ) {
