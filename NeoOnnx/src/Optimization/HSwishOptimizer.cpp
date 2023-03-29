@@ -63,7 +63,6 @@ void CHSwishOptimizer::Apply()
 				CPtr<CHSwishLayer> hSwishLayer = new CHSwishLayer( graph.MathEngine() );
 				hSwishLayer->SetName( graph.GetUniqueName( "HSwish" ) );
 				graph.AddLayer( *hSwishLayer );
-				::printf( "[HARDSWISH] replace '%s' with '%s'\n", mulLayer->GetName(), hSwishLayer->GetName() );
 
 				graph.Connect( *hSwishLayer, 0, *hSwishInputData.Layer, hSwishInputData.Index );
 				graph.SwitchOutputs( *mulLayer, 0, *hSwishLayer, 0 );

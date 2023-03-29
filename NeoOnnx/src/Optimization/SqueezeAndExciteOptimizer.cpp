@@ -40,7 +40,7 @@ using CLayerOutput = NeoML::optimization::CLayerOutput<TLayer>;
 
 void CSqueezeAndExciteOptimizer::Apply()
 {
-	::printf( "CSqueezeAndExciteOptimizer: %d blocks\n", optimizeSEBlocks() );
+	( void ) optimizeSEBlocks();
 }
 
 int CSqueezeAndExciteOptimizer::optimizeSEBlocks()
