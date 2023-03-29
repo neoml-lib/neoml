@@ -52,15 +52,6 @@ public:
 	CPtr<CDnnBlob> ChannelwiseFreeTerm() const;
 	CActivationDesc ChannelwiseActivation() const { return channelwiseActivation; }
 
-	// TODO: delete
-	void SetExpandFilter( const CPtr<CDnnBlob>& blob ) { paramBlobs[P_ExpandFilter] = blob == nullptr ? nullptr : blob->GetCopy(); }
-	void SetExpandFreeTerm( const CPtr<CDnnBlob>& blob ) { paramBlobs[P_ExpandFreeTerm] = blob == nullptr ? nullptr : blob->GetCopy(); }
-	void SetExpandActivation( const CActivationDesc& desc ) { expandActivation = desc; }
-	void SetStride( int newStride ) { stride = newStride; }
-	void SetChannelwiseFilter( const CPtr<CDnnBlob>& blob ) { paramBlobs[P_ChannelwiseFilter] = blob == nullptr ? nullptr : blob->GetCopy(); }
-	void SetChannelwiseFreeTerm( const CPtr<CDnnBlob>& blob ) { paramBlobs[P_ChannelwiseFreeTerm] = blob == nullptr ? nullptr : blob->GetCopy(); }
-	void SetChannelwiseActivation( const CActivationDesc& desc ) { channelwiseActivation = desc; }
-
 	void Serialize( CArchive& archive ) override;
 
 private:

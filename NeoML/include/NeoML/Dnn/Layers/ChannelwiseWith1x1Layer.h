@@ -52,14 +52,6 @@ public:
 	// Serialization
 	void Serialize( CArchive& archive ) override;
 
-	// TODO: delete
-	void SetConvFilter( const CPtr<CDnnBlob>& blob ) { paramBlobs[P_ConvFilter] = blob == nullptr ? nullptr : blob->GetCopy(); }
-	void SetConvFreeTerm( const CPtr<CDnnBlob>& blob ) { paramBlobs[P_ConvFreeTerm] = blob == nullptr ? nullptr : blob->GetCopy(); }
-	void SetActivation( const CActivationDesc& desc ) { activation = desc; }
-	void SetStride( int newStride ) { stride = newStride; }
-	void SetChannelwiseFilter( const CPtr<CDnnBlob>& blob ) { paramBlobs[P_ChannelwiseFilter] = blob == nullptr ? nullptr : blob->GetCopy(); }
-	void SetChannelwiseFreeTerm( const CPtr<CDnnBlob>& blob ) { paramBlobs[P_ChannelwiseFreeTerm] = blob == nullptr ? nullptr : blob->GetCopy(); }
-
 protected:
 	// CBaseLayer methods
 	void Reshape() override;
