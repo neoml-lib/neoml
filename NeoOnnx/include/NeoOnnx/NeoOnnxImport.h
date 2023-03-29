@@ -49,6 +49,7 @@ struct NEOONNX_API CImportedModelInfo {
 	CArray<CInputInfo> Inputs;
 	CArray<COutputInfo> Outputs;
 	CMap<CString, CString> Metadata; // metadata_props
+	CDnnOptimizationReport OptimizationReport;
 };
 
 // The load functions build CDnn based on ONNX in the following way:
