@@ -183,7 +183,7 @@ CMobileNetV3PostSEBlockLayer::CMobileNetV3PostSEBlockLayer( IMathEngine& mathEng
 	CBaseLayer( mathEngine, "MobileNetV3PostSEBlock", false ),
 	activation( activation )
 {
-	NeoAssert( activation.GetType() == AF_ReLU || activation.GetType() == AF_HSwish );
+	NeoAssert( activation.GetType() == AF_ReLU || activation.GetType() == AF_HSwish || activation.GetType() == AF_Linear );
 	paramBlobs.SetSize( P_Count );
 	paramBlobs[P_DownFilter] = MobileNetParam( downFilter );
 	paramBlobs[P_DownFreeTerm] = MobileNetFreeTerm( downFreeTerm );
@@ -215,8 +215,8 @@ void CMobileNetV3PostSEBlockLayer::Serialize( CArchive& archive )
 
 	if( archive.IsLoading() ) {
 		activation = LoadActivationDesc( archive );
-		check( activation.GetType() == AF_ReLU || activation.GetType() == AF_HSwish,
-			ERR_BAD_ARCHIVE, archive.Name() );
+		check( activation.GetType() == AF_ReLU || activation.GetType() == AF_HSwish
+			|| activation.GetType() == AF_Linear, ERR_BAD_ARCHIVE, archive.Name() );
 	} else {
 		StoreActivationDesc( activation, archive );
 	}
