@@ -35,7 +35,6 @@ namespace NeoOnnx {
 namespace optimization {
 
 // Removes unnenecessary trasnforms, transposes and reshapes from Squeeze-and-Excite part of MobileNetV3
-
 class CSqueezeAndExciteOptimizer {
 public:
 	explicit CSqueezeAndExciteOptimizer( CGraph& graph ) :
