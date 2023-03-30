@@ -36,7 +36,7 @@ CPtr<CDnnBlob> bnFusionData( CRandom& random )
 	return dataBlob;
 }
 
-void checkBnFusion( CDnn& dnn, CSourceLayer* data, CSinkLayer* sink, int expectedFusions )
+void checkBnFusion( CDnn& dnn, CSinkLayer* sink, int expectedFusions )
 {
 	dnn.RunOnce();
 	CPtr<CDnnBlob> expected = sink->GetBlob()->GetCopy();
@@ -66,7 +66,7 @@ TEST( BatchNormFusionTest, SimpleFusion )
 	CSinkLayer* sink = Sink( lastLayer, "sink" );
 
 	data->SetBlob( bnFusionData( random ) );
-	checkBnFusion( dnn, data, sink, 5 );
+	checkBnFusion( dnn, sink, 5 );
 }
 
 TEST( BatchNormFusionTest, DoubleFusion )
@@ -81,7 +81,7 @@ TEST( BatchNormFusionTest, DoubleFusion )
 	CSinkLayer* sink = Sink( lastLayer, "sink" );
 
 	data->SetBlob( bnFusionData( random ) );
-	checkBnFusion( dnn, data, sink, 2 );
+	checkBnFusion( dnn, sink, 2 );
 }
 
 TEST( BatchNormFusionTest, ImpossibleFusion )
@@ -101,5 +101,5 @@ TEST( BatchNormFusionTest, ImpossibleFusion )
 	( void ) Sink( lastLayer, "secondSink" );
 
 	data->SetBlob( bnFusionData( random ) );
-	checkBnFusion( dnn, data, sink, 0 );
+	checkBnFusion( dnn, sink, 0 );
 }
