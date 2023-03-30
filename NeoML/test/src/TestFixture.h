@@ -140,6 +140,37 @@ inline bool FloatEq( float val1, float val2, float precision = 1e-05 )
 	return ret;
 }
 
+inline bool CompareBlobs( CDnnBlob& first, CDnnBlob& second, float precision = 1e-5f )
+{
+	if( first.GetDataType() != second.GetDataType() ) {
+		return false;
+	}
+
+	if( !first.HasEqualDimensions( &second ) ) {
+		return false;
+	}
+
+	if( first.GetDataType() == CT_Float ) {
+		CDnnBlobBuffer<> firstBuff( first, TDnnBlobBufferAccess::Read );
+		CDnnBlobBuffer<> secondBuff( second, TDnnBlobBufferAccess::Read );
+		for( int i = 0; i < firstBuff.Size(); ++i ) {
+			if( !FloatEq( firstBuff[i], secondBuff[i], precision ) ) {
+				return false;
+			}
+		}
+	} else {
+		CDnnBlobBuffer<int> firstBuff( first, TDnnBlobBufferAccess::Read );
+		CDnnBlobBuffer<int> secondBuff( second, TDnnBlobBufferAccess::Read );
+		for( int i = 0; i < firstBuff.Size(); ++i ) {
+			if( firstBuff[i] != secondBuff[i] ) {
+				return false;
+			}
+		}
+	}
+
+	return true;
+}
+
 //------------------------------------------------------------------------------------------------------------
 
 // Создает слой с данным именем и добавляет его к сети.

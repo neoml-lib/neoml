@@ -868,50 +868,6 @@ static CPtr<CTC> buildDnn( int resultLen, int batchSize, int classCount, int lab
 	return ctc;
 }
 
-static void compareBlobs( const CDnnBlob* expected, const CDnnBlob* actual, const float eps=1e-4f )
-{
-	if( expected == actual ) {
-		return;
-	}
-
-	ASSERT_EQ( expected->GetDataType(), actual->GetDataType() );
-	ASSERT_TRUE( expected->HasEqualDimensions( actual ) );
-
-	const int dataSize = expected->GetDataSize();
-
-	if( expected->GetDataType() == CT_Float ) {
-		CArray<float> expectedData;
-		expectedData.SetSize( dataSize );
-		expected->CopyTo( expectedData.GetPtr() );
-
-		CArray<float> actualData;
-		actualData.SetSize( dataSize );
-		actual->CopyTo( actualData.GetPtr() );
-
-		for( int i = 0; i < expectedData.Size(); ++i ) {
-			if( fabsf( expectedData[i] - actualData[i] ) >= eps ) {
-				FineDebugBreak();
-			}
-			ASSERT_NEAR( expectedData[i], actualData[i], eps );
-		}
-	} else {
-		CArray<int> expectedData;
-		expectedData.SetSize( dataSize );
-		expected->CopyTo( expectedData.GetPtr() );
-
-		CArray<int> actualData;
-		actualData.SetSize( dataSize );
-		actual->CopyTo( actualData.GetPtr() );
-
-		for( int i = 0; i < expectedData.Size(); ++i ) {
-			if( expectedData[i] != actualData[i] ) {
-				FineDebugBreak();
-			}
-			ASSERT_EQ( expectedData[i], actualData[i] );
-		}
-	}
-}
-
 namespace FObj {
 	inline void swap( FObj::CArray<int>*& a, FObj::CArray<int>*& b ) {
 		std::swap( a, b );
@@ -983,8 +939,8 @@ static void ctcTestImpl( const CTestParams& params, int seed )
 	actualDnn.RunAndBackwardOnce();
 
 	ASSERT_NEAR( naiveLoss->GetLastLoss(), actualLoss->GetLastLoss(), 1e-4f );
-	compareBlobs( naiveLoss->GetLastGradient(), actualLoss->GetLastGradient(), 1e-4f );
-	compareBlobs( naiveLearn->ActualDiff, actualLearn->ActualDiff, 1e-4f );
+	CompareBlobs( *naiveLoss->GetLastGradient(), *actualLoss->GetLastGradient(), 1e-4f );
+	CompareBlobs( *naiveLearn->ActualDiff, *actualLearn->ActualDiff, 1e-4f );
 }
 
 TEST_P( CCtcTest, Random )

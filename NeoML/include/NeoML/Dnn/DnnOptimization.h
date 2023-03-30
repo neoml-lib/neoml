@@ -23,6 +23,8 @@ class CDnn;
 
 // Struct which contains the details of optimization result
 struct NEOML_API CDnnOptimizationReport {
+	// Number of batch normalizations fused into other layers
+	int FusedBatchNormalizations;
 	// Number of optimized MobileNetV2 blocks without residual connection
 	int MobileNetV2NonResidualBlocks;
 	// Number of optimized MobileNetV2 blocks with residual connection

@@ -161,6 +161,7 @@ set(NeoML_SOURCES
     Dnn/Layers/TransformerLayer.cpp
     Dnn/Layers/TransformerSourceMaskLayer.cpp
     Dnn/Layers/Upsampling2DLayer.cpp
+    Dnn/Optimization/BatchNormFusionOptimizer.cpp
     Dnn/Optimization/Graph.cpp
     Dnn/Optimization/MobileNetV2Optimizer.cpp
     TraditionalML/BytePairEncoderTrainer.cpp
@@ -314,6 +315,7 @@ set(NeoML_HEADERS_COMPACT
 
 set(NeoML_HEADERS
     ${NeoML_HEADERS_COMPACT}
+    Dnn/Optimization/BatchNormFusionOptimizer.h
     TraditionalML/BytePairEncoder.h
     TraditionalML/NaiveHierarchicalClustering.h
     TraditionalML/NnChainHierarchicalClustering.h
