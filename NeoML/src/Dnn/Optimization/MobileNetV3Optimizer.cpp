@@ -25,10 +25,6 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/GlobalMeanPoolingLayer.h>
 #include <NeoML/Dnn/Layers/MobileNetV3BlockLayer.h>
 #include <NeoML/Dnn/Layers/Onnx/OnnxEltwiseLayer.h>
-#include <NeoML/Dnn/Layers/Onnx/OnnxReshapeLayer.h>
-#include <NeoML/Dnn/Layers/Onnx/OnnxSourceHelper.h>
-#include <NeoML/Dnn/Layers/Onnx/OnnxTransformHelper.h>
-#include <NeoML/Dnn/Layers/Onnx/OnnxTransposeHelper.h>
 
 namespace NeoML {
 

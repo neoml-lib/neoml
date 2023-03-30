@@ -24,9 +24,6 @@ namespace NeoML {
 class CChannelwiseConvLayer;
 class CConvLayer;
 struct CDnnOptimizationReport;
-class COnnxSourceHelper;
-class COnnxTransformHelper;
-class COnnxTransposeHelper;
 class CGlobalMeanPoolingLayer;
 
 namespace optimization {
