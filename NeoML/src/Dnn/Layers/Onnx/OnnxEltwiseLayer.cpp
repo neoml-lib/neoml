@@ -35,7 +35,9 @@ static bool isOnnxEltwiseLogicalOperation( COnnxEltwiseLayer::TOperation operati
 		|| operation == COnnxEltwiseLayer::TOperation::Where;
 }
 
-// Checks whether input blob is a vector (has more than 1 element and only one non-trivial dim)
+// Checks that input has only one non-trivial (not equal to 1) dimension
+// And that the same dimension is the last non-trivial dimension of output
+// This allows to use MultiplyMatByDiag or AddVectorToMatrixRows instead of broadcasting
 static bool onnxEltwiseCanUseVectorVersion( const CDnnBlob& input, const CDnnBlob& output )
 {
 	const int vectorSize = input.GetDataSize();
