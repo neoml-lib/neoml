@@ -54,13 +54,13 @@ struct NEOML_API CDnnOptimizationReport {
 //             +------------------------------+
 //
 //        with optimized CChannelwiseWith1x1Layer
-//        ReLU and HSwish activations are supported.
+//        ReLU and HSwish activations are supported (or trivial Linear{mul=1, ft=0}).
 //
 //
 //     2. MobileNetV2 block optimizations.
 //        Replaces the non-residual blocks of layers
 //
-//            conv1x1 (expand) -> expandActivation -> channelwisex3 -> channelwiseActivation -> conv1x1 (down)
+//            conv1x1 (expand) -> expandActivation -> channelwise3x3 -> channelwiseActivation -> conv1x1 (down)
 //
 //        and residual blocks of layers
 //
@@ -69,14 +69,18 @@ struct NEOML_API CDnnOptimizationReport {
 //             +------------------------------+
 //
 //        with optimized CMobileNetV2BlockLayer
-//        ReLU and HSwish activations are supported.
+//        ReLU and HSwish activations are supported (or trivial Linear{mul=1, ft=0}).
 //
 //
 //     3. MobileNetV3 block optimizations.
 //        Replaces the non-residual blocks of layers
 //
-//            conv1x1 (expand) -> expandActivation -> channelwisex3 -> channelwiseActivation ->
+//            conv1x1 (expand) -> expandActivation -> channelwise(3x3 or 5x5) -> channelwiseActivation ->
 //                -> Squeeze-and-Excite -> conv1x1 (down)
+//        or
+//            conv1x1 (expand) -> expandActivation -> channelwise(3x3 or 5x5) -> Squeeze-and-Excite ->
+//                -> channelwiseActivation -> conv1x1 (down)
+//
 //
 //        and residual blocks of layers
 //
@@ -85,7 +89,7 @@ struct NEOML_API CDnnOptimizationReport {
 //             +------------------------------+
 //
 //        with optimized CMobileNetV3BlockLayer
-//        ReLU and HSwish activations are supported (or trivial activation Linear{mul=1, ft=0}).
+//        ReLU and HSwish activations are supported (or trivial Linear{mul=1, ft=0}).
 //
 CDnnOptimizationReport NEOML_API OptimizeDnn( CDnn& dnn );
 
