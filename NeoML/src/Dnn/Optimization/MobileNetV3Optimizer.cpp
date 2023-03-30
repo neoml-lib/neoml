@@ -21,6 +21,7 @@ limitations under the License.
 #include <NeoML/Dnn/DnnOptimization.h>
 #include <NeoML/Dnn/Layers/ConvLayer.h>
 #include <NeoML/Dnn/Layers/ChannelwiseConvLayer.h>
+#include <NeoML/Dnn/Layers/EltwiseLayer.h>
 #include <NeoML/Dnn/Layers/FullyConnectedLayer.h>
 #include <NeoML/Dnn/Layers/GlobalMeanPoolingLayer.h>
 #include <NeoML/Dnn/Layers/MobileNetV3BlockLayer.h>
@@ -102,22 +103,39 @@ int CMobileNetV3Optimizer::optimizeNonResidualBlocks()
 // If it isn't then returns false (in this case detectedBlock and graph's selection may be in any state)
 bool CMobileNetV3Optimizer::detectMNv3Residual( CBaseLayer& residual, CMNv3BlockInfo& detectedBlock )
 {
-	COnnxEltwiseLayer* onnxSum = dynamic_cast<COnnxEltwiseLayer*>( &residual );
-	if( onnxSum == nullptr || graph.GetInputCount( residual ) != 2
-		|| onnxSum->GetOperation() != COnnxEltwiseLayer::TOperation::Add )
-	{
+	if( graph.GetInputCount( residual ) != 2 ) {
 		return false;
 	}
 
-	for( int i = 0; i < 2; ++i ) {
-		CConvLayer* downConvOutput = graph.GetConnectedOutput<CConvLayer>( residual, i ).Layer;
-		if( downConvOutput == nullptr ) {
-			continue;
+	if( dynamic_cast<CEltwiseSumLayer*>( &residual ) == nullptr ) {
+		COnnxEltwiseLayer* onnxSum = dynamic_cast<COnnxEltwiseLayer*>( &residual );
+		if( onnxSum == nullptr || onnxSum->GetOperation() != COnnxEltwiseLayer::TOperation::Add ) {
+			return false;
 		}
+	}
+
+	for( int i = 0; i < 2; ++i ) {
+		CConvLayer* downConv = graph.GetConnectedOutput<CConvLayer>( residual, i ).Layer;
+
+		// Workaround for some networks which have Linear{1.f, 0.f} between downConv and residual
+		CLinearLayer* linear = nullptr;
+		if( downConv == nullptr ) {
+			linear = graph.GetConnectedOutput<CLinearLayer>( residual, i ).Layer;
+			if( linear == nullptr || linear->GetFreeTerm() != 0.f || linear->GetMultiplier() != 1.f ) {
+				continue;
+			}
+			downConv = graph.GetConnectedOutput<CConvLayer>( *linear, 0 ).Layer;
+		}
+
 		CLayerOutput<> blockData = graph.GetConnectedOutput<>( residual, 1 - i );
-		if( detectMNv3NonResidual( *downConvOutput, detectedBlock ) && blockData == detectedBlock.InputData ) {
+		if( downConv != nullptr && detectMNv3NonResidual( *downConv, detectedBlock )
+			&& blockData == detectedBlock.InputData )
+		{
 			detectedBlock.Residual = &residual;
 			graph.SelectLayer( residual );
+			if( linear != nullptr ) {
+				graph.SelectLayer( *linear );
+			}
 			return true;
 		} else {
 			graph.ClearSelection();

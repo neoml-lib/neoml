@@ -121,6 +121,17 @@ int CMobileNetV2Optimizer::optimizeResidualConnections()
 		for( int i = 0; i < 2; ++i ) {
 			CMobileNetV2BlockLayer* mobileNetV2Block = graph.GetConnectedOutput<CMobileNetV2BlockLayer>(
 				*layer, i ).Layer;
+
+			// Workaround for some networks which have Linear{1.f, 0.f} between downConv and residual
+			CLinearLayer* linear = nullptr;
+			if( mobileNetV2Block == nullptr ) {
+				linear = graph.GetConnectedOutput<CLinearLayer>( *layer, i ).Layer;
+				if( linear == nullptr || linear->GetFreeTerm() != 0.f || linear->GetMultiplier() != 1.f ) {
+					continue;
+				}
+				mobileNetV2Block = graph.GetConnectedOutput<CMobileNetV2BlockLayer>( *linear, 0 ).Layer;
+			}
+
 			if( mobileNetV2Block == nullptr || graph.GetInputCount( *mobileNetV2Block ) != 1
 				|| graph.GetOutputCount( *mobileNetV2Block ) != 1
 				|| graph.GetConnectedInputsCount( *mobileNetV2Block, 0 ) != 1
@@ -135,6 +146,9 @@ int CMobileNetV2Optimizer::optimizeResidualConnections()
 				graph.SwitchOutputs( *layer, 0, *mobileNetV2Block, 0 );
 				mobileNetV2Block->SetResidual( true );
 				graph.DeleteLayer( *layer );
+				if( linear != nullptr ) {
+					graph.DeleteLayer( *linear );
+				}
 				++blocksOptimized;
 				break;
 			}
