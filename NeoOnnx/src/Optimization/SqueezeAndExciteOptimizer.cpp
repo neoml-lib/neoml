@@ -32,12 +32,6 @@ namespace NeoOnnx {
 
 namespace optimization {
 
-using CGraph = NeoML::optimization::CGraph;
-template<typename TLayer = CBaseLayer>
-using CLayerInput = NeoML::optimization::CLayerInput<TLayer>;
-template<typename TLayer = CBaseLayer>
-using CLayerOutput = NeoML::optimization::CLayerOutput<TLayer>;
-
 void CSqueezeAndExciteOptimizer::Apply()
 {
 	( void ) optimizeSEBlocks();
@@ -263,7 +257,7 @@ bool CSqueezeAndExciteOptimizer::isValidOnnxSource( COnnxSourceHelper& source,
 	std::initializer_list<int> expectedData ) const
 {
 	CPtr<CDnnBlob> blob = source.Blob();
-	if( blob->GetDataType() != CT_Int || blob->GetDataSize() != expectedData.size() ) {
+	if( blob->GetDataType() != CT_Int || blob->GetDataSize() != static_cast<int>( expectedData.size() ) ) {
 		return false;
 	}
 	CDnnBlobBuffer<int> buff( *blob, TDnnBlobBufferAccess::Read );
