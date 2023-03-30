@@ -48,7 +48,7 @@ CMobileNetV3PreSEBlockLayer::CMobileNetV3PreSEBlockLayer( IMathEngine& mathEngin
 CMobileNetV3PreSEBlockLayer::CMobileNetV3PreSEBlockLayer( IMathEngine& mathEngine ) :
 	CBaseLayer( mathEngine, "MobileNetV3PreSEBlock", false ),
 	expandActivation( AF_HSwish ),
-	stride( stride ),
+	stride( 1 ),
 	channelwiseActivation( AF_HSwish ),
 	convDesc( nullptr )
 {
