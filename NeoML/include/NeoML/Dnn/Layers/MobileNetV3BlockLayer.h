@@ -29,7 +29,7 @@ namespace NeoML {
 // Replaces the following construction:
 //     ExpandConv -> Activation -> Channelwise [-> Activation]
 //
-// Possible activations: ReLU and HSwish (or no activation)
+// Possible activations: ReLU and HSwish (or trivial Linear{mul=1, ft=0})
 // Channelwise support stride 1 and 2, and filters 3x3 or 5x5 with paddings 1 and 2 correspondingly
 class NEOML_API CMobileNetV3PreSEBlockLayer : public CBaseLayer {
 	NEOML_DNN_LAYER( CMobileNetV3PreSEBlockLayer )
@@ -86,7 +86,7 @@ private:
 // Replaces the following construction:
 //     Mul [-> Activation] -> DownConv -> [Residual ->]
 //
-// Possible activations: ReLU and HSwish
+// Possible activations: ReLU and HSwish (or trivial Linear{mul=1, ft=0})
 class NEOML_API CMobileNetV3PostSEBlockLayer : public CBaseLayer {
 	NEOML_DNN_LAYER( CMobileNetV3PostSEBlockLayer )
 public:
