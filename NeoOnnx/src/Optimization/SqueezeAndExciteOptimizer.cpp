@@ -33,9 +33,9 @@ namespace NeoOnnx {
 namespace optimization {
 
 using CGraph = NeoML::optimization::CGraph;
-template<typename TLayer>
+template<typename TLayer = CBaseLayer>
 using CLayerInput = NeoML::optimization::CLayerInput<TLayer>;
-template<typename TLayer>
+template<typename TLayer = CBaseLayer>
 using CLayerOutput = NeoML::optimization::CLayerOutput<TLayer>;
 
 void CSqueezeAndExciteOptimizer::Apply()
