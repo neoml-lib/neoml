@@ -21,35 +21,12 @@ namespace NeoOnnx {
 
 namespace optimization {
 
-// Replaces the following construction
-//
-//       *input*
-//          |
-//  +-------+--------+
-//  |                |
-//  |   HardSigmoid(slope=1/6, bias=1/2)
-//  |                |
-// OnnxEltwiseLayer(Mul)
-//          |
-//       *output*
-//
-// with the hard swish (hswish) layer
-
-class CHSwishOptimizer {
-public:
-	explicit CHSwishOptimizer( NeoML::optimization::CGraph& graph ) :
-		graph( graph )
-	{
-	}
-
-	void Apply();
-
-private:
-	NeoML::optimization::CGraph& graph;
-
-	bool isValidHardSigmoidLayer( CHardSigmoidLayer& hardSigmoidLayer,
-		const NeoML::optimization::CLayerOutput<>& hSwishInputData ) const;
-};
+// NeoOnnx::optimization aliases for NeoML::optimization
+using CGraph = NeoML::optimization::CGraph;
+template<typename TLayer = CBaseLayer>
+using CLayerInput = NeoML::optimization::CLayerInput<TLayer>;
+template<typename TLayer = CBaseLayer>
+using CLayerOutput = NeoML::optimization::CLayerOutput<TLayer>;
 
 } // namespace optimization
 

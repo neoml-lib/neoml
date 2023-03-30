@@ -20,61 +20,9 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/ConvLayer.h>
 #include <NeoML/Dnn/Layers/ChannelwiseConvLayer.h>
 #include <NeoML/Dnn/Layers/EltwiseLayer.h>
+#include "MobileNetBlockUtils.h"
 
 namespace NeoML {
-
-static void storeActivationDesc( const CActivationDesc& desc, CArchive& archive )
-{
-	TActivationFunction type = desc.GetType();
-	NeoAssert( type == AF_ReLU || type == AF_HSwish );
-
-	archive.SerializeEnum( type );
-	if( type == AF_ReLU ) {
-		float threshold = desc.GetParam<CReLULayer::CParam>().UpperThreshold;
-		archive.Serialize( threshold );
-	}
-}
-
-static CActivationDesc loadActivationDesc( CArchive& archive )
-{
-	TActivationFunction type = AF_HSwish;
-	archive.SerializeEnum( type );
-	check( type == AF_ReLU || type == AF_HSwish, ERR_BAD_ARCHIVE, archive.Name() );
-
-	switch( type ) {
-		case AF_HSwish:
-			return CActivationDesc( type );
-		case AF_ReLU:
-		{
-			float threshold = 0;
-			archive.Serialize( threshold );
-			return CActivationDesc( AF_ReLU, CReLULayer::CParam{ threshold } );
-		}
-		default:
-			NeoAssert( false );
-	}
-
-	// Avoid possible compiler warnings
-	return CActivationDesc( type );
-}
-
-static CPtr<CDnnBlob> nullifyFreeTerm( CDnnBlob* freeTerm )
-{
-	if( freeTerm == nullptr ) {
-		return freeTerm;
-	}
-
-	CDnnBlobBuffer<> buffer( *freeTerm, TDnnBlobBufferAccess::Read );
-	for( int i = 0; i < buffer.Size(); ++i ) {
-		if( buffer[i] != 0 ) {
-			return freeTerm;
-		}
-	}
-
-	return nullptr;
-}
-
-//---------------------------------------------------------------------------------------------------------------------
 
 CMobileNetV2BlockLayer::CMobileNetV2BlockLayer( IMathEngine& mathEngine, const CPtr<CDnnBlob>& expandFilter,
 		const CPtr<CDnnBlob>& expandFreeTerm, const CActivationDesc& expandActivation, int stride,
@@ -88,13 +36,17 @@ CMobileNetV2BlockLayer::CMobileNetV2BlockLayer( IMathEngine& mathEngine, const C
 	channelwiseActivation( channelwiseActivation ),
 	convDesc( nullptr )
 {
+	NeoAssert( expandActivation.GetType() == AF_ReLU || expandActivation.GetType() == AF_HSwish
+		|| expandActivation.GetType() == AF_Linear );
+	NeoAssert( channelwiseActivation.GetType() == AF_ReLU || channelwiseActivation.GetType() == AF_HSwish
+		|| channelwiseActivation.GetType() == AF_Linear );
 	paramBlobs.SetSize( P_Count );
-	setParamBlob( P_ExpandFilter, expandFilter );
-	setParamBlob( P_ExpandFreeTerm, nullifyFreeTerm( expandFreeTerm ) );
-	setParamBlob( P_ChannelwiseFilter, channelwiseFilter );
-	setParamBlob( P_ChannelwiseFreeTerm, nullifyFreeTerm( channelwiseFreeTerm ) );
-	setParamBlob( P_DownFilter, downFilter );
-	setParamBlob( P_DownFreeTerm, nullifyFreeTerm( downFreeTerm ) );
+	paramBlobs[P_ExpandFilter] = MobileNetParam( expandFilter );
+	paramBlobs[P_ExpandFreeTerm] = MobileNetFreeTerm( expandFreeTerm );
+	paramBlobs[P_ChannelwiseFilter] = MobileNetParam( channelwiseFilter );
+	paramBlobs[P_ChannelwiseFreeTerm] = MobileNetFreeTerm( channelwiseFreeTerm );
+	paramBlobs[P_DownFilter] = MobileNetParam( downFilter );
+	paramBlobs[P_DownFreeTerm] = MobileNetFreeTerm( downFreeTerm );
 }
 
 CMobileNetV2BlockLayer::CMobileNetV2BlockLayer( IMathEngine& mathEngine ) :
@@ -113,6 +65,36 @@ CMobileNetV2BlockLayer::~CMobileNetV2BlockLayer()
 	if( convDesc != nullptr ) {
 		delete convDesc;
 	}
+}
+
+CPtr<CDnnBlob> CMobileNetV2BlockLayer::ExpandFilter() const
+{
+	return MobileNetParam( paramBlobs[P_ExpandFilter] );
+}
+
+CPtr<CDnnBlob> CMobileNetV2BlockLayer::ExpandFreeTerm() const
+{
+	return MobileNetParam( paramBlobs[P_ExpandFreeTerm] );
+}
+
+CPtr<CDnnBlob> CMobileNetV2BlockLayer::ChannelwiseFilter() const
+{
+	return MobileNetParam( paramBlobs[P_ChannelwiseFilter] );
+}
+
+CPtr<CDnnBlob> CMobileNetV2BlockLayer::ChannelwiseFreeTerm() const
+{
+	return MobileNetParam( paramBlobs[P_ChannelwiseFreeTerm] );
+}
+
+CPtr<CDnnBlob> CMobileNetV2BlockLayer::DownFilter() const
+{
+	return MobileNetParam( paramBlobs[P_DownFilter] );
+}
+
+CPtr<CDnnBlob> CMobileNetV2BlockLayer::DownFreeTerm() const
+{
+	return MobileNetParam( paramBlobs[P_DownFreeTerm] );
 }
 
 void CMobileNetV2BlockLayer::SetResidual( bool newValue )
@@ -147,11 +129,15 @@ void CMobileNetV2BlockLayer::Serialize( CArchive& archive )
 	}
 
 	if( archive.IsLoading() ) {
-		expandActivation = loadActivationDesc( archive );
-		channelwiseActivation = loadActivationDesc( archive );
+		expandActivation = LoadActivationDesc( archive );
+		channelwiseActivation = LoadActivationDesc( archive );
+		NeoAssert( expandActivation.GetType() == AF_ReLU || expandActivation.GetType() == AF_HSwish
+			|| channelwiseActivation.GetType() == AF_Linear );
+		NeoAssert( channelwiseActivation.GetType() == AF_ReLU || channelwiseActivation.GetType() == AF_HSwish
+			|| channelwiseActivation.GetType() == AF_Linear );
 	} else {
-		storeActivationDesc( expandActivation, archive );
-		storeActivationDesc( channelwiseActivation, archive );
+		StoreActivationDesc( expandActivation, archive );
+		StoreActivationDesc( channelwiseActivation, archive );
 	}
 }
 
@@ -234,27 +220,13 @@ void CMobileNetV2BlockLayer::RunOnce()
 		inputBlobs[0]->GetData(), paramBlobs[P_ExpandFilter]->GetData(),
 		expandFt.IsNull() ? nullptr : &expandFt,
 		expandActivation.GetType(),
-		expandActivation.GetType() == AF_HSwish ? 0.f : expandActivation.GetParam<CReLULayer::CParam>().UpperThreshold,
+		expandActivation.GetType() == AF_ReLU ? expandActivation.GetParam<CReLULayer::CParam>().UpperThreshold : 0.f,
 		paramBlobs[P_ChannelwiseFilter]->GetData(), channelwiseFt.IsNull() ? nullptr : &channelwiseFt,
 		channelwiseActivation.GetType(),
-		channelwiseActivation.GetType() == AF_HSwish ? 0.f : channelwiseActivation.GetParam<CReLULayer::CParam>().UpperThreshold,
+		channelwiseActivation.GetType() == AF_ReLU ? channelwiseActivation.GetParam<CReLULayer::CParam>().UpperThreshold : 0.f,
 		paramBlobs[P_DownFilter]->GetData(),
 		downFt.IsNull() ? nullptr : &downFt,
 		residual, outputBlobs[0]->GetData() );
-}
-
-CPtr<CDnnBlob> CMobileNetV2BlockLayer::getParamBlob( TParam param ) const
-{
-	if( paramBlobs[param] == nullptr ) {
-		return nullptr;
-	}
-
-	return paramBlobs[param]->GetCopy();
-}
-
-void CMobileNetV2BlockLayer::setParamBlob( TParam param, const CPtr<CDnnBlob>& blob )
-{
-	paramBlobs[param] = blob == nullptr ? nullptr : blob->GetCopy();
 }
 
 } // namespace NeoML

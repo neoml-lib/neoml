@@ -4,7 +4,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,39 +15,30 @@ limitations under the License.
 
 #pragma once
 
+#include <NeoML/NeoMLDefs.h>
+#include <NeoML/Dnn/Dnn.h>
+
 namespace NeoML {
 
-// Forward declaration(s)
-class CBaseLayer;
-class CConvLayer;
-class CChannelwiseConvLayer;
-struct CDnnOptimizationReport;
+inline CPtr<CDnnBlob> MobileNetParam( const CPtr<CDnnBlob>& blob )
+{
+	return blob == nullptr ? nullptr : blob->GetCopy();
+}
 
-namespace optimization {
-
-// Forward declaration(s)
-class CGraph;
-
-class CMobileNetV2Optimizer {
-public:
-	explicit CMobileNetV2Optimizer( CGraph& graph ) :
-		graph( graph )
-	{
+inline CPtr<CDnnBlob> MobileNetFreeTerm( CDnnBlob* freeTerm )
+{
+	if( freeTerm == nullptr ) {
+		return nullptr;
 	}
 
-	// Optimizes the graph and writes the result to the report
-	void Apply( CDnnOptimizationReport& report );
+	CDnnBlobBuffer<> buffer( *freeTerm, TDnnBlobBufferAccess::Read );
+	for( int i = 0; i < buffer.Size(); ++i ) {
+		if( buffer[i] != 0 ) {
+			return freeTerm;
+		}
+	}
 
-private:
-	CGraph& graph;
-
-	int optimizeNonResidualBlocks();
-	int optimizeResidualConnections();
-
-	bool isValid1x1Conv( CConvLayer& conv ) const;
-	bool isValidActivation( CBaseLayer& layer ) const;
-};
-
-} // namespace optimization
+	return nullptr;
+}
 
 } // namespace NeoML

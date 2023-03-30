@@ -1000,20 +1000,23 @@ void CCpuMathEngine::batchMultiplyTransposedMatrixByMatrix( int batchSize,
 	}
 }
 
+void CCpuMathEngine::multiplyMatrixByDiagMatrix( const float* first, int firstHeight, int firstWidth,
+	const float* second, float* result )
+{
+	for( int i = 0; i < firstHeight; ++i ) {
+		NeoML::vectorEltwiseMultiply( first, second, result, firstWidth );
+		first += firstWidth;
+		result += firstWidth;
+	}
+}
+
 void CCpuMathEngine::MultiplyMatrixByDiagMatrix( const CConstFloatHandle& firstHandle, int firstHeight, int firstWidth,
 	const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int resultBufferSize )
 {
 	ASSERT_EXPR( resultBufferSize >= firstHeight * firstWidth );
 	CCpuExecutionScope scope;
-
-	CConstFloatHandle first = firstHandle;
-	CFloatHandle result = resultHandle;
-
-	for( int j = 0; j < firstHeight; ++j ) {
-		VectorEltwiseMultiply( first, secondHandle, result, firstWidth );
-		first += firstWidth;
-		result += firstWidth;
-	}
+	multiplyMatrixByDiagMatrix( GetRaw( firstHandle ), firstHeight, firstWidth,
+		GetRaw( secondHandle ), GetRaw( resultHandle ) );
 }
 
 void CCpuMathEngine::MatrixSpreadRows( const CConstFloatHandle& sourceHandle, int height, int width,
