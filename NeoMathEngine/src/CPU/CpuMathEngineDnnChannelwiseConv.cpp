@@ -793,24 +793,19 @@ void CCpuMathEngine::MobileNetV3PreSEBlock( const CBlobDesc& inputDesc, const CB
 	const CCommonChannelwiseConvolutionDesc& desc = static_cast<const CCommonChannelwiseConvolutionDesc&>( convDesc );
 
 	const int cacheSize = 32 * 1024;
-	const bool isInPlace = inputHandle == outputHandle;
 	const int inputChannels = inputDesc.Channels();
-	const int expandedChannels = desc.Filter.Channels();
 	const int outputChannels = outputDesc.Channels();
 	const int inputHeight = desc.Source.Height();
 	const int inputWidth = desc.Source.Width();
-	const int chInputRowSize = expandedChannels * inputWidth;
+	const int chInputRowSize = outputChannels * inputWidth;
 	const int inputRowSize = inputChannels * inputWidth;
 	const int outputHeight = desc.Result.Height();
 	const int outputWidth = desc.Result.Width();
-	const int chOutputRowSize = expandedChannels * outputWidth;
 	const int outputRowSize = outputChannels * outputWidth;
 	const int padding = desc.PaddingHeight;
 	const int filterSize = desc.Filter.Width();
 	const int filterRowSize = desc.Filter.Channels() * filterSize;
 	const int stride = desc.StrideHeight;
-
-	auto processFilterRow = stride == 1 ? processFilterRowStride1 : processFilterRowStride2;
 
 	const float* inputObject = GetRaw( inputHandle );
 	const float* expandFilter = GetRaw( expandFilterData );
@@ -819,9 +814,8 @@ void CCpuMathEngine::MobileNetV3PreSEBlock( const CBlobDesc& inputDesc, const CB
 	const float* channelwiseFreeTerm = channelwiseFreeTermData == nullptr ? nullptr : GetRaw( *channelwiseFreeTermData );
 
 	const int maxInputRowsPerStep = std::max<int>( 1,
-		( cacheSize / ( std::max<int>( inputChannels, expandedChannels ) * inputWidth ) ) );
-	const int maxOutputRowsPerStep = std::max<int>( 1,
-		( cacheSize / ( std::max<int>( outputChannels, expandedChannels ) * outputWidth ) ) );
+		( cacheSize / ( std::max<int>( inputChannels, outputChannels ) * inputWidth ) ) );
+	const int maxOutputRowsPerStep = std::max<int>( 1, ( cacheSize / ( outputChannels * outputWidth ) ) );
 
 	// Buffer for the input rows of channelwise convolution
 	CFloatHandleStackVar chInputBuffVar( *this,
@@ -832,7 +826,6 @@ void CCpuMathEngine::MobileNetV3PreSEBlock( const CBlobDesc& inputDesc, const CB
 
 	for( int b = 0; b < inputDesc.ObjectCount(); ++b ) {
 		const float* input = inputObject;
-		const float* residualInput = input;
 		float* output = outputObject;
 
 		int inputRowsProcessed = 0;
@@ -848,10 +841,10 @@ void CCpuMathEngine::MobileNetV3PreSEBlock( const CBlobDesc& inputDesc, const CB
 
 			// Apply expand convolution
 			multiplyMatrixByTransposedMatrix( input, inputRowsThisStep * inputWidth, inputChannels, inputChannels,
-				expandFilter, expandedChannels, inputChannels, chInput, expandedChannels );
+				expandFilter, outputChannels, inputChannels, chInput, outputChannels );
 			if( expandFreeTerm != nullptr ) {
-				addVectorToMatrixRows( chInput, chInput, inputRowsThisStep * inputWidth, expandedChannels, expandedChannels,
-					expandedChannels, expandFreeTerm );
+				addVectorToMatrixRows( chInput, chInput, inputRowsThisStep * inputWidth, outputChannels,
+					outputChannels, outputChannels, expandFreeTerm );
 			}
 
 			// Apply expand activation
@@ -899,14 +892,14 @@ void CCpuMathEngine::MobileNetV3PreSEBlock( const CBlobDesc& inputDesc, const CB
 							int firstFilteredCol = -padding;
 							float* resultPos = resultRow;
 							float* resultPosEnd = resultPos + outputRowSize;
-							for( ; resultPos < resultPosEnd; resultPos += expandedChannels, firstFilteredCol += stride ) {
+							for( ; resultPos < resultPosEnd; resultPos += outputChannels, firstFilteredCol += stride ) {
 								const int filterFirstCol = std::max( 0, -firstFilteredCol );
 								const int filterLastCol = std::min( filterSize, inputWidth - firstFilteredCol );
-								const float* filterPos = filterRow + filterFirstCol * expandedChannels;
-								const float* filterPosEnd = filterRow + filterLastCol * expandedChannels;
-								const float* srcPos = srcRow + (firstFilteredCol + filterFirstCol) * expandedChannels;
-								for( ; filterPos < filterPosEnd; filterPos += expandedChannels, srcPos += expandedChannels ) {
-									NeoML::vectorEltwiseMultiplyAdd(filterPos, srcPos, resultPos, expandedChannels);
+								const float* filterPos = filterRow + filterFirstCol * outputChannels;
+								const float* filterPosEnd = filterRow + filterLastCol * outputChannels;
+								const float* srcPos = srcRow + (firstFilteredCol + filterFirstCol) * outputChannels;
+								for( ; filterPos < filterPosEnd; filterPos += outputChannels, srcPos += outputChannels ) {
+									NeoML::vectorEltwiseMultiplyAdd(filterPos, srcPos, resultPos, outputChannels);
 								}
 							}
 						}
