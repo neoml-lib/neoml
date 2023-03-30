@@ -3095,13 +3095,13 @@ inline void checkSpecificParams<CMobileNetV3PreSEBlockLayer>( CMobileNetV3PreSEB
 
 	checkBlob( *layer.ExpandFilter(), expandChannels * inputChannels );
 	checkBlob( *layer.ExpandFreeTerm(), expandChannels );
-	EXPECT_FLOAT_EQ( AF_ReLU, layer.ExpandActivation().GetType() );
+	EXPECT_EQ( AF_ReLU, layer.ExpandActivation().GetType() );
 	EXPECT_FLOAT_EQ( 666.f, layer.ExpandActivation().GetParam<CReLULayer::CParam>().UpperThreshold );
 
 	EXPECT_EQ( 2, layer.Stride() );
 	checkBlob( *layer.ChannelwiseFilter(), 3 * 3 * expandChannels );
 	EXPECT_EQ( nullptr, layer.ChannelwiseFreeTerm() );
-	EXPECT_FLOAT_EQ( AF_Linear, layer.ChannelwiseActivation().GetType() );
+	EXPECT_EQ( AF_Linear, layer.ChannelwiseActivation().GetType() );
 	EXPECT_FLOAT_EQ( 1.f, layer.ChannelwiseActivation().GetParam<CLinearLayer::CParam>().Multiplier );
 	EXPECT_FLOAT_EQ( 0.f, layer.ChannelwiseActivation().GetParam<CLinearLayer::CParam>().FreeTerm );
 }
@@ -3194,6 +3194,7 @@ inline void checkSpecificParams<CChannelwiseWith1x1Layer>( CChannelwiseWith1x1La
 	EXPECT_EQ( 2, layer.Stride() );
 	checkBlob( *layer.ChannelwiseFilter(), 3 * 3 * expandChannels );
 	EXPECT_EQ( nullptr, layer.ChannelwiseFreeTerm() );
+	EXPECT_EQ( AF_ReLU, layer.Activation().GetType() );
 	EXPECT_FLOAT_EQ( 777.f, layer.Activation().GetParam<CReLULayer::CParam>().UpperThreshold );
 
 	checkBlob( *layer.ConvFilter(), outputChannels * expandChannels );
