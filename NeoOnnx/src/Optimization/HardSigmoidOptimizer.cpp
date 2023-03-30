@@ -27,9 +27,9 @@ namespace NeoOnnx {
 namespace optimization {
 
 using CGraph = NeoML::optimization::CGraph;
-template<typename TLayer = CBaseLayer>
+template<typename TLayer>
 using CLayerInput = NeoML::optimization::CLayerInput<TLayer>;
-template<typename TLayer = CBaseLayer>
+template<typename TLayer>
 using CLayerOutput = NeoML::optimization::CLayerOutput<TLayer>;
 
 void CHardSigmoidOptimizer::Apply()
