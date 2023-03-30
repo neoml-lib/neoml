@@ -117,7 +117,7 @@ void StoreActivationDesc( const CActivationDesc& desc, CArchive& archive )
 
 CActivationDesc LoadActivationDesc( CArchive& archive )
 {
-	TActivationFunction type;
+	TActivationFunction type = AF_Count;
 	archive.SerializeEnum( type );
 	CActivationDesc result = CActivationDesc( type );
 
