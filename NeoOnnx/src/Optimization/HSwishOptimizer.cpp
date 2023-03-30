@@ -18,18 +18,13 @@ limitations under the License.
 
 #include <cmath>
 
+#include "Graph.h"
 #include "HSwishOptimizer.h"
 #include <NeoML/Dnn/Layers/Onnx/OnnxEltwiseLayer.h>
 
 namespace NeoOnnx {
 
 namespace optimization {
-
-using CGraph = NeoML::optimization::CGraph;
-template<typename TLayer>
-using CLayerInput = NeoML::optimization::CLayerInput<TLayer>;
-template<typename TLayer>
-using CLayerOutput = NeoML::optimization::CLayerOutput<TLayer>;
 
 void CHSwishOptimizer::Apply()
 {

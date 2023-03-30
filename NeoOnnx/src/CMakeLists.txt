@@ -71,6 +71,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoOnnx/TensorLayout.h
     AttributeGetters.h
     Optimization/DnnOptimizer.h
+    Optimization/Graph.h
     GraphInput.h
     GraphInitializer.h
     GraphOutput.h

@@ -15,7 +15,7 @@ limitations under the License.
 
 #pragma once
 
-#include <NeoML/Dnn/Optimization/Graph.h>
+#include "Graph.h"
 
 namespace NeoML {
 
@@ -38,7 +38,7 @@ namespace optimization {
 
 class CSqueezeAndExciteOptimizer {
 public:
-	explicit CSqueezeAndExciteOptimizer( NeoML::optimization::CGraph& graph ) :
+	explicit CSqueezeAndExciteOptimizer( CGraph& graph ) :
 		graph( graph )
 	{
 	}
@@ -47,14 +47,14 @@ public:
 
 private:
 	struct CSEBlockInfo {
-		NeoML::optimization::CLayerOutput<> InputData{};
+		CLayerOutput<> InputData{};
 		CGlobalMeanPoolingLayer* SEPooling = nullptr;
 		CBaseLayer* SEFirstFc = nullptr;
 		CBaseLayer* SESecondActivation = nullptr;
-		NeoML::optimization::CLayerInput<> SEMulVectorInput{};
+		CLayerInput<> SEMulVectorInput{};
 	};
 
-	NeoML::optimization::CGraph& graph;
+	CGraph& graph;
 
 	int optimizeSEBlocks();
 
