@@ -1,4 +1,4 @@
-/* Copyright © 2017-2022 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,26 +13,32 @@ See the License for the specific language governing permissions and
 limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
-#include <common.h>
-#pragma hdrstop
+#pragma once
 
-#include <NeoML/Dnn/DnnOptimization.h>
-#include <NeoML/Dnn/Optimization/Graph.h>
-#include "Optimization/ChannelwiseWith1x1Optimizer.h"
-#include "Optimization/MobileNetV2Optimizer.h"
-#include "Optimization/MobileNetV3Optimizer.h"
+#include <NeoML/NeoMLDefs.h>
 #include <NeoML/Dnn/Dnn.h>
 
 namespace NeoML {
 
-CDnnOptimizationReport OptimizeDnn( CDnn& dnn )
+inline CPtr<CDnnBlob> MobileNetParam( const CPtr<CDnnBlob>& blob )
 {
-	CDnnOptimizationReport report;
-	optimization::CGraph graph( dnn );
-	optimization::CChannelwiseWith1x1Optimizer( graph ).Apply( report );
-	optimization::CMobileNetV2Optimizer( graph ).Apply( report );
-	optimization::CMobileNetV3Optimizer( graph ).Apply( report );
-	return report;
+	return blob == nullptr ? nullptr : blob->GetCopy();
+}
+
+inline CPtr<CDnnBlob> MobileNetFreeTerm( CDnnBlob* freeTerm )
+{
+	if( freeTerm == nullptr ) {
+		return nullptr;
+	}
+
+	CDnnBlobBuffer<> buffer( *freeTerm, TDnnBlobBufferAccess::Read );
+	for( int i = 0; i < buffer.Size(); ++i ) {
+		if( buffer[i] != 0 ) {
+			return freeTerm;
+		}
+	}
+
+	return nullptr;
 }
 
 } // namespace NeoML

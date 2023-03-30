@@ -18,19 +18,13 @@ limitations under the License.
 
 #include <cmath>
 
+#include "Graph.h"
 #include "HardSigmoidOptimizer.h"
-#include <NeoML/Dnn/Optimization/Graph.h>
 #include <NeoML/Dnn/Layers/Onnx/OnnxEltwiseLayer.h>
 
 namespace NeoOnnx {
 
 namespace optimization {
-
-using CGraph = NeoML::optimization::CGraph;
-template<typename TLayer = CBaseLayer>
-using CLayerInput = NeoML::optimization::CLayerInput<TLayer>;
-template<typename TLayer = CBaseLayer>
-using CLayerOutput = NeoML::optimization::CLayerOutput<TLayer>;
 
 void CHardSigmoidOptimizer::Apply()
 {

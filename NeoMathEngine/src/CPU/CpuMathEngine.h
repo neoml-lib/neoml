@@ -571,6 +571,11 @@ public:
 		const CFloatHandle& dataHandle, const CBlobDesc& dataDesc, int updateCount, int indexDims ) override;
 	void ScatterND( const CConstIntHandle& indicesHandle, const CConstIntHandle& updatesHandle,
 		const CIntHandle& dataHandle, const CBlobDesc& dataDesc, int updateCount, int indexDims ) override;
+	void ChannelwiseWith1x1( const CBlobDesc& inputDesc, const CBlobDesc& outputDesc,
+		const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& inputHandle,
+		const CConstFloatHandle& channelwiseFilter, const CConstFloatHandle* channelwiseFreeTerm,
+		TActivationFunction activation, float activationParam, const CConstFloatHandle& convFilter,
+		const CConstFloatHandle* convFreeTerm, bool residual, const CFloatHandle& outputHandle ) override;
 	void MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobDesc& outputDesc,
 		const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& inputHandle,
 		const CConstFloatHandle& expandFilter, const CConstFloatHandle* expandFreeTerm,
@@ -578,6 +583,17 @@ public:
 		const CConstFloatHandle* channelwiseFreeTerm, TActivationFunction channelwiseActivation,
 		float channelwiseActivationParam, const CConstFloatHandle& downFilter, const CConstFloatHandle* downFreeTerm,
 		bool residual, const CFloatHandle& outputHandle ) override;
+	void MobileNetV3PreSEBlock( const CBlobDesc& inputDesc, const CBlobDesc& outputDesc,
+		const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& inputHandle,
+		const CConstFloatHandle& expandFilter, const CConstFloatHandle* expandFreeTerm,
+		TActivationFunction expandActivation, float expandActivationParam, const CConstFloatHandle& channelwiseFilter,
+		const CConstFloatHandle* channelwiseFreeTerm, TActivationFunction channelwiseActivation,
+		float channelwiseActivationParam, const CFloatHandle& outputHandle ) override;
+	void MobileNetV3PostSEBlock( const CBlobDesc& channelwiseOutputDesc, int outputChannels,
+		const CConstFloatHandle& channelwiseOutputHandle, const CConstFloatHandle& squeezeAndExciteHandle,
+		const CConstFloatHandle* residualHandle, TActivationFunction activation, float activationParam,
+		const CConstFloatHandle& downFilterHandle, const CConstFloatHandle* downFreeTermHandle,
+		const CFloatHandle& outputHandle ) override;
 
 	IPerformanceCounters* CreatePerformanceCounters() const override;
 	void AllReduce( const CFloatHandle& handle, int size ) override;
@@ -651,6 +667,8 @@ private:
 		int firstWidth, const CConstFloatHandle& secondHandle, int secondHeight, const CFloatHandle& resultHandle );
 	void multiplyMatrixByTransposedMatrixAndAdd( const float* first, int firstHeight, int firstWidth, int firstRowSize,
 		const float* second, int secondHeight, int secondRowSize, float* result, int resultRowSize );
+	void multiplyMatrixByDiagMatrix( const float* first, int firstHeight, int firstWidth,
+		const float* second, float* result );
 
 	template<class T>
 	void blobMergeByDimCommon( int dimNum, const CBlobDesc* from, const CTypedMemoryHandle<T>* fromData, int fromCount,

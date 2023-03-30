@@ -46,7 +46,6 @@ private:
 
 	bool isValid1x1Conv( CConvLayer& conv ) const;
 	bool isValidActivation( CBaseLayer& layer ) const;
-	bool isValidChannelwise( CChannelwiseConvLayer& channelwise ) const;
 };
 
 } // namespace optimization

@@ -62,6 +62,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/LstmLayer.h>
 #include <NeoML/Dnn/Layers/MatrixMultiplicationLayer.h>
 #include <NeoML/Dnn/Layers/MobileNetV2BlockLayer.h>
+#include <NeoML/Dnn/Layers/MobileNetV3BlockLayer.h>
 #include <NeoML/Dnn/Layers/MultichannelLookupLayer.h>
 #include <NeoML/Dnn/Layers/MultiheadAttentionLayer.h>
 #include <NeoML/Dnn/Layers/ObjectNormalizationLayer.h>
@@ -107,6 +108,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/BertConvLayer.h>
 #include <NeoML/Dnn/Layers/BinaryFocalLossLayer.h>
 #include <NeoML/Dnn/Layers/CenterLossLayer.h>
+#include <NeoML/Dnn/Layers/ChannelwiseWith1x1Layer.h>
 #include <NeoML/Dnn/Layers/CrfLayer.h>
 #include <NeoML/Dnn/Layers/CtcLayer.h>
 #include <NeoML/Dnn/Layers/CumSumLayer.h>

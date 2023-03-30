@@ -107,6 +107,7 @@ set(NeoML_SOURCES
     Dnn/Layers/BertConvLayer.cpp
     Dnn/Layers/BinaryFocalLossLayer.cpp
     Dnn/Layers/CenterLossLayer.cpp
+    Dnn/Layers/ChannelwiseWith1x1Layer.cpp
     Dnn/Layers/CrfLayer.cpp
     Dnn/Layers/CtcLayer.cpp
     Dnn/Layers/CumSumLayer.cpp
@@ -125,6 +126,7 @@ set(NeoML_SOURCES
     Dnn/Layers/LogicalLayers.cpp
     Dnn/Layers/LrnLayer.cpp
     Dnn/Layers/MaxOverTimePoolingLayer.cpp
+    Dnn/Layers/MobileNetV3BlockLayer.cpp
     Dnn/Layers/ModelWrapperLayer.cpp
     Dnn/Layers/ObjectNormalizationLayer.cpp
     Dnn/Layers/Onnx/OnnxEltwiseLayer.cpp
@@ -161,8 +163,10 @@ set(NeoML_SOURCES
     Dnn/Layers/TransformerLayer.cpp
     Dnn/Layers/TransformerSourceMaskLayer.cpp
     Dnn/Layers/Upsampling2DLayer.cpp
+    Dnn/Optimization/ChannelwiseWith1x1Optimizer.cpp
     Dnn/Optimization/Graph.cpp
     Dnn/Optimization/MobileNetV2Optimizer.cpp
+    Dnn/Optimization/MobileNetV3Optimizer.cpp
     TraditionalML/BytePairEncoderTrainer.cpp
     TraditionalML/ClusterCenter.cpp
     TraditionalML/CommonCluster.cpp
@@ -204,7 +208,6 @@ set(NeoML_NON_UNITY_SOURCES
 )
 
 set(NeoML_HEADERS_COMPACT
-    Dnn/Optimization/MobileNetV2Optimizer.h
     TraditionalML/CompactRegressionTree.h
     TraditionalML/DecisionTreeClassificationModel.h
     TraditionalML/DecisionTreeNodeBase.h
@@ -314,6 +317,10 @@ set(NeoML_HEADERS_COMPACT
 
 set(NeoML_HEADERS
     ${NeoML_HEADERS_COMPACT}
+    Dnn/Layers/MobileNetBlockUtils.h
+    Dnn/Optimization/ChannelwiseWith1x1Optimizer.h
+    Dnn/Optimization/MobileNetV2Optimizer.h
+    Dnn/Optimization/MobileNetV3Optimizer.h
     TraditionalML/BytePairEncoder.h
     TraditionalML/NaiveHierarchicalClustering.h
     TraditionalML/NnChainHierarchicalClustering.h
@@ -332,6 +339,7 @@ set(NeoML_HEADERS
     ../include/NeoML/Dnn/Layers/BertConvLayer.h
     ../include/NeoML/Dnn/Layers/BinaryFocalLossLayer.h
     ../include/NeoML/Dnn/Layers/CenterLossLayer.h
+    ../include/NeoML/Dnn/Layers/ChannelwiseWith1x1Layer.h
     ../include/NeoML/Dnn/Layers/CrfLayer.h
     ../include/NeoML/Dnn/Layers/CtcLayer.h
     ../include/NeoML/Dnn/Layers/CumSumLayer.h
@@ -350,6 +358,7 @@ set(NeoML_HEADERS
     ../include/NeoML/Dnn/Layers/LogicalLayers.h
     ../include/NeoML/Dnn/Layers/LrnLayer.h
     ../include/NeoML/Dnn/Layers/MaxOverTimePoolingLayer.h
+    ../include/NeoML/Dnn/Layers/MobileNetV3BlockLayer.h
     ../include/NeoML/Dnn/Layers/ModelWrapperLayer.h
     ../include/NeoML/Dnn/Layers/MultiHingeLossLayer.h
     ../include/NeoML/Dnn/Layers/ObjectNormalizationLayer.h
@@ -374,7 +383,6 @@ set(NeoML_HEADERS
     ../include/NeoML/Dnn/Layers/Onnx/OnnxSplitLayer.h
     ../include/NeoML/Dnn/Layers/Onnx/OnnxTransformHelper.h
     ../include/NeoML/Dnn/Layers/Onnx/OnnxTransposeHelper.h
-    ../include/NeoML/Dnn/Optimization/Graph.h
     ../include/NeoML/Dnn/Layers/PoolingLayer.h
     ../include/NeoML/Dnn/Layers/PositionalEmbeddingLayer.h
     ../include/NeoML/Dnn/Layers/PrecisionRecallLayer.h
@@ -389,6 +397,8 @@ set(NeoML_HEADERS
     ../include/NeoML/Dnn/Layers/TransformerLayer.h
     ../include/NeoML/Dnn/Layers/TransformerSourceMaskLayer.h
     ../include/NeoML/Dnn/Layers/Upsampling2DLayer.h
+
+    ../include/NeoML/Dnn/Optimization/Graph.h
 
     ../include/NeoML/TraditionalML/BytePairEncoderTrainer.h
     ../include/NeoML/TraditionalML/ClusterCenter.h

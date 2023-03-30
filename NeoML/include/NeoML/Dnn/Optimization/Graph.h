@@ -116,6 +116,9 @@ public:
 	// If somewhere during this iteration construction was not found then ClearSelection without any modifications
 	// If the whole construction has been found then add the replacement, reconnect everything and DeleteSelectedLayers
 
+	// Number of layers in selection
+	int SelectionSize() const { return selection.Size(); }
+
 	// Checks whether the layer has already been selected
 	bool IsLayerSelected( CBaseLayer& layer ) const { return selection.Has( &layer ); }
 
