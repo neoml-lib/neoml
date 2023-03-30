@@ -153,13 +153,15 @@ bool CMobileNetV3Optimizer::detectMNv3PostSE( CConvLayer& downConv, CMNv3BlockIn
 	graph.SelectLayer( downConv );
 
 	CBaseLayer* nextLayer = graph.SelectConnectedOutput<>( downConv, 0, true ).Layer;
-	if( nextLayer == nullptr ) {
-		return false;
-	} else if( isValidBlockActivation( *nextLayer ) ) {
+	if( nextLayer != nullptr && isValidBlockActivation( *nextLayer ) ) {
 		detectedBlock.ChannelwisePostSEActivation = dynamic_cast<IActivationLayer&>( *nextLayer ).GetDesc();
 		detectedBlock.SEMulVectorInput.Layer = graph.SelectConnectedOutput<>( *nextLayer, 0, true ).Layer;
 	} else {
 		detectedBlock.SEMulVectorInput.Layer = nextLayer;
+	}
+
+	if( detectedBlock.SEMulVectorInput.Layer == nullptr ) {
+		return false;
 	}
 
 	return true;
