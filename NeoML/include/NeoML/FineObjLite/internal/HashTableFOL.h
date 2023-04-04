@@ -146,7 +146,20 @@ inline int CDefaultHash<CString>::HashKey( const CString& str )
 		ptr++;
 	}
 	return result;
+	// Why not GetMBCStringHash( string ) here?
 }
+
+template<> 
+struct CDefaultHash<const char*> {
+	static int HashKey( const char* string )
+	{ 
+		return GetMBCStringHash( string );
+	}
+	static bool IsEqual( const char* first, const char* second ) 
+	{ 
+		return ::strcmp( first, second ) == 0;
+	}
+};
 
 //------------------------------------------------------------------------------------------------------------
 

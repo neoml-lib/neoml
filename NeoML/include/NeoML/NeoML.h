@@ -80,7 +80,6 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/TransposeLayer.h>
 
 #ifndef NEOML_COMPACT
-#include <NeoML/TraditionalML/BytePairEncoderTrainer.h>
 #include <NeoML/TraditionalML/ClusterCenter.h>
 #include <NeoML/TraditionalML/Clustering.h>
 #include <NeoML/TraditionalML/CommonCluster.h>
@@ -94,6 +93,7 @@ limitations under the License.
 #include <NeoML/TraditionalML/MatchingGenerator.h>
 #include <NeoML/TraditionalML/PCA.h>
 #include <NeoML/TraditionalML/SubwordEncoder.h>
+#include <NeoML/TraditionalML/SubwordEncoderTrainer.h>
 #include <NeoML/TraditionalML/Svm.h>
 #include <NeoML/TraditionalML/WordDictionary.h>
 
