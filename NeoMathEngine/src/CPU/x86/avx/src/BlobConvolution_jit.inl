@@ -137,9 +137,13 @@ inline void CBlobConvolution<FltCnt>::CJitConvolution::prologue()
 #endif
     push( regNumSteps );
     push( retTemp );
+    if( stackAlignment != 0 ) {
+        sub( rsp, stackAlignment );
+    }
     for( int i = 6; i <= 15; i++ ) {
         // '-16' - place for first xmm
-        vmovaps( ptr[rsp - stackAlignment - 16 - ( i - 6 ) * 16], Xmm( i ) );
+        sub( rsp, 16 );
+        vmovaps( ptr[rsp], Xmm( i ) );
     }
 }
 
@@ -155,7 +159,11 @@ inline void CBlobConvolution<FltCnt>::CJitConvolution::epilogue()
 #endif
 
     for( int i = 15; i >= 6; i-- ) {
-        vmovaps( Xmm( i ), ptr[rsp - stackAlignment - 16  - ( i - 6 ) * 16] );
+        vmovaps( Xmm( i ), ptr[rsp] );
+        add( rsp, 16 );
+    }
+    if( stackAlignment != 0 ) {
+        add( rsp, stackAlignment );
     }
     pop( retTemp );
     pop( regNumSteps );
