@@ -52,9 +52,16 @@ inline void batchMultiplyMatrixByMatrixAndAddNaive( int batchSize, const std::ve
 
 // 2d Conv test helpers
 
+inline int calcConvInputSize( int input_init, int padding, int filter, int dilation, int stride )
+{
+	return std::max( input_init, ( filter - 1 ) * dilation - 2 * padding + 1 + stride );
+}
+
 inline int calcConvOutputSize( int input, int padding, int filter, int dilation, int stride )
 {
-	return  1 + ( input - ( filter - 1 ) * dilation + 2 * padding - 1 ) / stride;
+	const auto output = 1 + ( input - ( filter - 1 ) * dilation + 2 * padding - 1 ) / stride;
+	ASSERT_EXPR( output >= 0 );
+	return output;
 }
 
 inline void batchConvolutionForward( const float* input, const float* filter, const float* freeTerms, float* output,
@@ -191,7 +198,9 @@ inline float* getInputElem( const CConv3dTestParams& params, int h, int w, int d
 	if( h < 0 || w < 0 || d < 0 || h >= params.InputHeight || w >= params.InputWidth || d >= params.InputDepth ) {
 		return 0;
 	}
-	return input + ( h * params.InputWidth * params.InputDepth * channels + w * params.InputDepth * channels + d * channels + ch );
+	const auto offset = ( h * params.InputWidth * params.InputDepth * channels + w * params.InputDepth * channels + d * channels + ch );
+	ASSERT_EXPR( offset >= 0 );
+	return input + offset;
 }
 
 // 2d pooling test helpers
