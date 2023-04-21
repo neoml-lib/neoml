@@ -348,8 +348,9 @@ static inline void processChannelwise5x5Stride1( const CCommonChannelwiseConvolu
 		switchToNextOutputRow();
 	}
 
+	auto hasRowsWithoutPadding = [&] { return outputRowsToProcess > 0 && currOutputRowIndex < outputHeight - 2; };
 	for( const float* firstInputUnderFilter = currInput + ( currOutputRowIndex - 2 - currInputRowIndex ) * inputRowSize;
-		outputRowsToProcess > 0 && currOutputRowIndex < outputHeight - 2;
+		hasRowsWithoutPadding();
 		firstInputUnderFilter += inputRowSize )
 	{
 		initOutputRow();
@@ -418,8 +419,9 @@ static inline void processChannelwise5x5Stride2( const CCommonChannelwiseConvolu
 		switchToNextOutputRow();
 	}
 
+	auto hasRowsWithoutPadding = [&] { return outputRowsToProcess > 0 && currOutputRowIndex < outputHeight - 1; };
 	for( const float* firstInputUnderFilter = currInput + ( currOutputRowIndex * 2 - 2 - currInputRowIndex ) * inputRowSize;
-		outputRowsToProcess > 0 && currOutputRowIndex < outputHeight - 1;
+		hasRowsWithoutPadding();
 		firstInputUnderFilter += 2 * inputRowSize )
 	{
 		initOutputRow();
@@ -639,22 +641,11 @@ void CCpuMathEngine::blobChannelwiseConvolutionFilter3x3Padding1Stride1( const C
 void CCpuMathEngine::blobChannelwiseConvolutionFilter5x5Padding2Stride1Or2( const CCommonChannelwiseConvolutionDesc& desc,
 	const float* source, const float* filter, const float* freeTerm, float* result )
 {
-	const CBlobDesc& sourceDesc = desc.Source;
-	const CBlobDesc& filterDesc = desc.Filter;
 	const CBlobDesc& resultDesc = desc.Result;
-
-	const int curThreadCount = IsOmpRelevant( sourceDesc.ObjectCount() * resultDesc.Height(),
-		static_cast<int64_t>( sourceDesc.BlobSize() ) * filterDesc.BlobSize() ) ? threadCount : 1;
-
-	const int channels = sourceDesc.Channels() * sourceDesc.Depth();
-
-	const int inputHeight = sourceDesc.Height();
-	const int inputRowSize = sourceDesc.Width() * channels;
-	const int outputRowSize = resultDesc.Width() * channels;
-	const int filterRowSize = filterDesc.Width() * channels;
-
-	const int inputObjectSize = inputRowSize * sourceDesc.Height();
-	const int outputObjectSize = outputRowSize * resultDesc.Height();
+	const int curThreadCount = IsOmpRelevant( resultDesc.ObjectCount() * resultDesc.Height(),
+		static_cast<int64_t>( desc.Source.BlobSize() ) * desc.Filter.BlobSize() ) ? threadCount : 1;
+	const int inputObjectSize = desc.Source.ObjectSize();
+	const int outputObjectSize = resultDesc.ObjectSize();
 
 	auto processChannelwise5x5 = desc.StrideHeight == 1 ? processChannelwise5x5Stride1 : processChannelwise5x5Stride2;
 
@@ -664,9 +655,9 @@ void CCpuMathEngine::blobChannelwiseConvolutionFilter5x5Padding2Stride1Or2( cons
 		int batchCount;
 		int resultStart;
 		int resultCount;
-		if( OmpGetTaskIndexAndCount2D( sourceDesc.ObjectCount(), resultDesc.Height(), batchStart, batchCount, resultStart, resultCount ) ) {
+		if( OmpGetTaskIndexAndCount2D( resultDesc.ObjectCount(), resultDesc.Height(), batchStart, batchCount, resultStart, resultCount ) ) {
 			const float* src = source + batchStart * inputObjectSize;
-			float* resultRow = result + batchStart * outputObjectSize + resultStart * outputRowSize;
+			float* resultRow = result + batchStart * outputObjectSize + resultStart * resultDesc.Width() * resultDesc.Channels();
 			for( int b = 0; b < batchCount; ++b ) {
 				processChannelwise5x5( desc, resultCount, src, 0, filter, freeTerm, resultRow, resultStart );
 				src += inputObjectSize;
@@ -1046,7 +1037,6 @@ void CCpuMathEngine::MobileNetV3PreSEBlock( const CBlobDesc& inputDesc, const CB
 	const int outputRowSize = outputChannels * desc.Result.Width();
 	const int padding = desc.PaddingHeight;
 	const int filterSize = desc.Filter.Width();
-	const int filterRowSize = desc.Filter.Channels() * filterSize;
 	const int stride = desc.StrideHeight;
 
 	const float* inputObject = GetRaw( inputHandle );
