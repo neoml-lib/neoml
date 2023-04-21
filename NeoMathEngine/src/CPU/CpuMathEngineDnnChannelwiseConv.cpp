@@ -37,7 +37,7 @@ static inline void fillResultRow( const CCommonChannelwiseConvolutionDesc& desc,
 	}
 }
 
-static inline void processFilterRowStride1( const CCommonChannelwiseConvolutionDesc& desc, const float* filter, const float* source, float* result )
+static inline void process3x3RowStride1( const CCommonChannelwiseConvolutionDesc& desc, const float* filter, const float* source, float* result )
 {
 	PRESUME_EXPR( desc.PaddingWidth == 1 );
 	PRESUME_EXPR( desc.Filter.Width() == 3 );
@@ -80,7 +80,7 @@ static inline void processFilterRowStride1( const CCommonChannelwiseConvolutionD
 	}
 }
 
-static inline void processFilterRowStride2( const CCommonChannelwiseConvolutionDesc& desc, const float* filter, const float* source, float* result )
+static inline void process3x3RowStride2( const CCommonChannelwiseConvolutionDesc& desc, const float* filter, const float* source, float* result )
 {
 	PRESUME_EXPR( desc.PaddingWidth == 1 );
 	PRESUME_EXPR( desc.Filter.Width() == 3 );
@@ -111,6 +111,117 @@ static inline void processFilterRowStride2( const CCommonChannelwiseConvolutionD
 	if( desc.Source.Width() % 2 == 1 && resultWidth > 1 ) {
 		NeoML::vectorEltwiseMultiplyAdd( filter, sourcePos, resultPos, channels );
 		NeoML::vectorEltwiseMultiplyAdd( filter + channels, sourcePos + channels, resultPos, channels );
+	}
+}
+
+static inline void process5x5RowStride1( const CCommonChannelwiseConvolutionDesc& desc, const float* filter, const float* source, float* result )
+{
+	PRESUME_EXPR( desc.PaddingWidth == 2 );
+	PRESUME_EXPR( desc.Filter.Width() == 5 );
+
+	const int resultWidth = desc.Result.Width();
+	int width = resultWidth - 4;
+	int channels = desc.Result.Channels();
+	const float* filter1 = filter + channels;
+	const float* filter2 = filter1 + channels;
+	const float* filter3 = filter2 + channels;
+	const float* filter4 = filter3 + channels;
+
+	NeoML::vectorEltwiseMultiplyAdd( filter2, source, result, channels );
+	if( resultWidth > 1 ) {
+		NeoML::vectorEltwiseMultiplyAdd( filter1, source, result + channels, channels );
+		NeoML::vectorEltwiseMultiplyAdd( filter3, source + channels, result, channels );
+		NeoML::vectorEltwiseMultiplyAdd( filter2, source + channels, result + channels, channels );
+		if( resultWidth > 2 ) {
+			NeoML::vectorEltwiseMultiplyAdd( filter4, source + 2 * channels, result, channels );
+			NeoML::vectorEltwiseMultiplyAdd( filter3, source + 2 * channels, result + channels, channels );
+			if( resultWidth > 3 ) {
+				NeoML::vectorEltwiseMultiplyAdd( filter4, source + 3 * channels, result + channels, channels );
+			}
+		}
+	}
+
+	const float* sourcePos = source;
+	float* resultPos = result + 2 * channels;
+#ifdef NEOML_USE_SSE
+	if( channels % 4 == 0 ) {
+		while( width >= 2 ) {
+			channelwise1x5( sourcePos, filter, filter1, filter2, filter3, filter4, resultPos, channels );
+
+			resultPos += 2 * channels;
+			sourcePos += 2 * channels;
+			width -= 2;
+		}
+	}
+#endif
+
+	while( width > 0 ) {
+		NeoML::vectorEltwiseMultiplyAdd( filter, sourcePos, resultPos, channels );
+		NeoML::vectorEltwiseMultiplyAdd( filter + channels, sourcePos + channels, resultPos, channels );
+		NeoML::vectorEltwiseMultiplyAdd( filter + 2 * channels, sourcePos + 2 * channels, resultPos, channels );
+		NeoML::vectorEltwiseMultiplyAdd( filter + 3 * channels, sourcePos + 3 * channels, resultPos, channels );
+		NeoML::vectorEltwiseMultiplyAdd( filter + 4 * channels, sourcePos + 4 * channels, resultPos, channels );
+		resultPos += channels;
+		sourcePos += channels;
+		width--;
+	}
+
+	if( resultWidth > 2 ) {
+		NeoML::vectorEltwiseMultiplyAdd( filter, sourcePos, resultPos, channels );
+		NeoML::vectorEltwiseMultiplyAdd( filter + channels, sourcePos + channels, resultPos, channels );
+		NeoML::vectorEltwiseMultiplyAdd( filter + 2 * channels, sourcePos + 2 * channels, resultPos, channels );
+		if( resultWidth > 3 ) {
+			NeoML::vectorEltwiseMultiplyAdd( filter + 3 * channels, sourcePos + 3 * channels, resultPos, channels );
+			sourcePos += channels;
+			resultPos += channels;
+			NeoML::vectorEltwiseMultiplyAdd( filter, sourcePos, resultPos, channels );
+			NeoML::vectorEltwiseMultiplyAdd( filter + channels, sourcePos + channels, resultPos, channels );
+			NeoML::vectorEltwiseMultiplyAdd( filter + 2 * channels, sourcePos + 2 * channels, resultPos, channels );
+		}
+	}
+}
+
+static inline void process5x5RowStride2( const CCommonChannelwiseConvolutionDesc& desc, const float* filter, const float* source, float* result )
+{
+	PRESUME_EXPR( desc.PaddingWidth == 2 );
+	PRESUME_EXPR( desc.Filter.Width() == 5 );
+
+	const int resultWidth = desc.Result.Width();
+	int width = resultWidth - 2;
+	int channels = desc.Result.Channels();
+	const float* filter1 = filter + channels;
+	const float* filter2 = filter1 + channels;
+	const float* filter3 = filter2 + channels;
+	const float* filter4 = filter3 + channels;
+
+	NeoML::vectorEltwiseMultiplyAdd( filter2, source, result, channels );
+	if( desc.Source.Width() > 1 ) {
+		NeoML::vectorEltwiseMultiplyAdd( filter3, source + channels, result, channels );
+		if( desc.Source.Width() > 2 ) {
+			NeoML::vectorEltwiseMultiplyAdd( filter4, source + 2 * channels, result, channels );
+		}
+	}
+
+	result += channels;
+
+	while( width > 0 ) {
+		NeoML::vectorEltwiseMultiplyAdd( filter, source, result, channels );
+		NeoML::vectorEltwiseMultiplyAdd( filter1, source + channels, result, channels );
+		NeoML::vectorEltwiseMultiplyAdd( filter2, source + 2 * channels, result, channels );
+		NeoML::vectorEltwiseMultiplyAdd( filter3, source + 3 * channels, result, channels );
+		NeoML::vectorEltwiseMultiplyAdd( filter4, source + 4 * channels, result, channels );
+		result += channels;
+		source += 2 * channels;
+		width--;
+	}
+
+	if( resultWidth > 1 ) {
+		NeoML::vectorEltwiseMultiplyAdd( filter, source, result, channels );
+		NeoML::vectorEltwiseMultiplyAdd( filter1, source + channels, result, channels );
+		NeoML::vectorEltwiseMultiplyAdd( filter2, source + 2 * channels, result, channels );
+		if( desc.Source.Width() % 2 == 0 ) {
+			NeoML::vectorEltwiseMultiplyAdd( filter3, source + 3 * channels, result, channels );
+		}
 	}
 }
 
@@ -185,6 +296,155 @@ static inline void processChannelwise3x3( const CCommonChannelwiseConvolutionDes
 	}
 }
 
+// Calculates `outputRowsToProcess` rows of output of channelwise conv 5x5 with pad 2 and stride 1
+// currInput points to currInputRowIndex'th row of input image
+// currOutput points to currOutputRowIndex'th row of output image
+static inline void processChannelwise5x5Stride1( const CCommonChannelwiseConvolutionDesc& desc, int outputRowsToProcess,
+	const float* currInput, int currInputRowIndex, const float* filter, const float* freeTerm, float* currOutput, int currOutputRowIndex )
+{
+	const int inputHeight = desc.Source.Height();
+	const int outputHeight = desc.Result.Height();
+	const int inputRowSize = desc.Source.Width() * desc.Source.Channels();
+	const int filterRowSize = desc.Filter.Width() * desc.Filter.Channels();
+	const int outputRowSize = desc.Result.Width() * desc.Result.Channels();
+
+	auto initOutputRow = [&] () {
+		if( freeTerm != nullptr ) {
+			fillResultRow( desc, freeTerm, currOutput );
+		} else {
+			NeoML::vectorFill( currOutput, 0, outputRowSize );
+		}
+	};
+	auto switchToNextOutputRow = [&] () {
+		currOutput += outputRowSize;
+		currOutputRowIndex++;
+		outputRowsToProcess--;
+	};
+
+	if( currOutputRowIndex == 0 ) {
+		PRESUME_EXPR( currInputRowIndex == 0 );
+		initOutputRow();
+		process5x5RowStride1( desc, filter + 2 * filterRowSize, currInput, currOutput );
+		if( inputHeight > 1 ) {
+			process5x5RowStride1( desc, filter + 3 * filterRowSize, currInput + inputRowSize, currOutput );
+			if( inputHeight > 2 ) {
+				process5x5RowStride1( desc, filter + 4 * filterRowSize, currInput + 2 * inputRowSize, currOutput );
+			}
+		}
+		switchToNextOutputRow();
+	}
+
+	if( currOutputRowIndex == 1 && outputRowsToProcess > 0 ) {
+		PRESUME_EXPR( currInputRowIndex == 0 );
+		initOutputRow();
+		process5x5RowStride1( desc, filter + filterRowSize, currInput, currOutput );
+		process5x5RowStride1( desc, filter + 2 * filterRowSize, currInput + inputRowSize, currOutput );
+		if( inputHeight > 2 ) {
+			process5x5RowStride1( desc, filter + 3 * filterRowSize, currInput + 2 * inputRowSize, currOutput );
+			if( inputHeight > 3 ) {
+				process5x5RowStride1( desc, filter + 4 * filterRowSize, currInput + 3 * inputRowSize, currOutput );
+			}
+		}
+		switchToNextOutputRow();
+	}
+
+	auto hasRowsWithoutPadding = [&] { return outputRowsToProcess > 0 && currOutputRowIndex < outputHeight - 2; };
+	for( const float* firstInputUnderFilter = currInput + ( currOutputRowIndex - 2 - currInputRowIndex ) * inputRowSize;
+		hasRowsWithoutPadding();
+		firstInputUnderFilter += inputRowSize )
+	{
+		initOutputRow();
+		process5x5RowStride1( desc, filter + 0 * filterRowSize, firstInputUnderFilter + 0 * inputRowSize, currOutput );
+		process5x5RowStride1( desc, filter + 1 * filterRowSize, firstInputUnderFilter + 1 * inputRowSize, currOutput );
+		process5x5RowStride1( desc, filter + 2 * filterRowSize, firstInputUnderFilter + 2 * inputRowSize, currOutput );
+		process5x5RowStride1( desc, filter + 3 * filterRowSize, firstInputUnderFilter + 3 * inputRowSize, currOutput );
+		process5x5RowStride1( desc, filter + 4 * filterRowSize, firstInputUnderFilter + 4 * inputRowSize, currOutput );
+		switchToNextOutputRow();
+	}
+
+	if( outputRowsToProcess > 0 && inputHeight > 3 && currOutputRowIndex == outputHeight - 2 ) {
+		initOutputRow();
+		const float* firstInputUnderFilter = currInput + ( currOutputRowIndex - 2 - currInputRowIndex ) * inputRowSize;
+		process5x5RowStride1( desc, filter + 0 * filterRowSize, firstInputUnderFilter + 0 * inputRowSize, currOutput );
+		process5x5RowStride1( desc, filter + 1 * filterRowSize, firstInputUnderFilter + 1 * inputRowSize, currOutput );
+		process5x5RowStride1( desc, filter + 2 * filterRowSize, firstInputUnderFilter + 2 * inputRowSize, currOutput );
+		process5x5RowStride1( desc, filter + 3 * filterRowSize, firstInputUnderFilter + 3 * inputRowSize, currOutput );
+		switchToNextOutputRow();
+	}
+
+	if( outputRowsToProcess > 0 && inputHeight > 2 && currOutputRowIndex == outputHeight - 1 ) {
+		initOutputRow();
+		const float* firstInputUnderFilter = currInput + ( currOutputRowIndex - 2 - currInputRowIndex ) * inputRowSize;
+		process5x5RowStride1( desc, filter + 0 * filterRowSize, firstInputUnderFilter + 0 * inputRowSize, currOutput );
+		process5x5RowStride1( desc, filter + 1 * filterRowSize, firstInputUnderFilter + 1 * inputRowSize, currOutput );
+		process5x5RowStride1( desc, filter + 2 * filterRowSize, firstInputUnderFilter + 2 * inputRowSize, currOutput );
+	}
+}
+
+// Calculates `outputRowsToProcess` rows of output of channelwise conv 5x5 with pad 2 and stride 2
+// currInput points to currInputRowIndex'th row of input image
+// currOutput points to currOutputRowIndex'th row of output image
+static inline void processChannelwise5x5Stride2( const CCommonChannelwiseConvolutionDesc& desc, int outputRowsToProcess,
+	const float* currInput, int currInputRowIndex, const float* filter, const float* freeTerm, float* currOutput, int currOutputRowIndex )
+{
+	const int inputHeight = desc.Source.Height();
+	const int outputHeight = desc.Result.Height();
+	const int inputRowSize = desc.Source.Width() * desc.Source.Channels();
+	const int filterRowSize = desc.Filter.Width() * desc.Filter.Channels();
+	const int outputRowSize = desc.Result.Width() * desc.Result.Channels();
+
+	auto initOutputRow = [&] () {
+		if( freeTerm != nullptr ) {
+			fillResultRow( desc, freeTerm, currOutput );
+		} else {
+			NeoML::vectorFill( currOutput, 0, outputRowSize );
+		}
+	};
+	auto switchToNextOutputRow = [&] () {
+		currOutput += outputRowSize;
+		currOutputRowIndex++;
+		outputRowsToProcess--;
+	};
+
+	if( currOutputRowIndex == 0 ) {
+		PRESUME_EXPR( currInputRowIndex == 0 );
+		initOutputRow();
+		process5x5RowStride2( desc, filter + 2 * filterRowSize, currInput, currOutput );
+		if( inputHeight > 1 ) {
+			process5x5RowStride2( desc, filter + 3 * filterRowSize, currInput + inputRowSize, currOutput );
+			if( inputHeight > 2 ) {
+				process5x5RowStride2( desc, filter + 4 * filterRowSize, currInput + 2 * inputRowSize, currOutput );
+			}
+		}
+		switchToNextOutputRow();
+	}
+
+	auto hasRowsWithoutPadding = [&] { return outputRowsToProcess > 0 && currOutputRowIndex < outputHeight - 1; };
+	for( const float* firstInputUnderFilter = currInput + ( currOutputRowIndex * 2 - 2 - currInputRowIndex ) * inputRowSize;
+		hasRowsWithoutPadding();
+		firstInputUnderFilter += 2 * inputRowSize )
+	{
+		initOutputRow();
+		process5x5RowStride2( desc, filter + 0 * filterRowSize, firstInputUnderFilter + 0 * inputRowSize, currOutput );
+		process5x5RowStride2( desc, filter + 1 * filterRowSize, firstInputUnderFilter + 1 * inputRowSize, currOutput );
+		process5x5RowStride2( desc, filter + 2 * filterRowSize, firstInputUnderFilter + 2 * inputRowSize, currOutput );
+		process5x5RowStride2( desc, filter + 3 * filterRowSize, firstInputUnderFilter + 3 * inputRowSize, currOutput );
+		process5x5RowStride2( desc, filter + 4 * filterRowSize, firstInputUnderFilter + 4 * inputRowSize, currOutput );
+		switchToNextOutputRow();
+	}
+
+	if( outputRowsToProcess > 0 && currOutputRowIndex == outputHeight - 1 ) {
+		initOutputRow();
+		const float* firstInputUnderFilter = currInput + ( currOutputRowIndex * 2 - 2 - currInputRowIndex ) * inputRowSize;
+		process5x5RowStride2( desc, filter + 0 * filterRowSize, firstInputUnderFilter + 0 * inputRowSize, currOutput );
+		process5x5RowStride2( desc, filter + 1 * filterRowSize, firstInputUnderFilter + 1 * inputRowSize, currOutput );
+		process5x5RowStride2( desc, filter + 2 * filterRowSize, firstInputUnderFilter + 2 * inputRowSize, currOutput );
+		if( inputHeight % 2 == 0 ) {
+			process5x5RowStride2( desc, filter + 3 * filterRowSize, firstInputUnderFilter + 3 * inputRowSize, currOutput );
+		}
+	}
+}
+
 void CCpuMathEngine::blobChannelwiseConvolutionFilter3x3Padding1Stride2( const CCommonChannelwiseConvolutionDesc& desc,
 	const float* source, const float* filter, const float* freeTerm, float* result )
 {
@@ -242,9 +502,9 @@ void CCpuMathEngine::blobChannelwiseConvolutionFilter3x3Padding1Stride2( const C
 						NeoML::vectorFill( resultFirstRow, 0, resultDesc.Width() * channels );
 					}
 
-					processFilterRowStride2( desc, filter + filterRowSize, sourceFirstRow, resultFirstRow );
+					process3x3RowStride2( desc, filter + filterRowSize, sourceFirstRow, resultFirstRow );
 					if( resultCount >= 0 ) {
-						processFilterRowStride2( desc, filter + 2 * filterRowSize, sourceFirstRow + inputRowSize, resultFirstRow );
+						process3x3RowStride2( desc, filter + 2 * filterRowSize, sourceFirstRow + inputRowSize, resultFirstRow );
 					}
 					resultFirstRow += outputObjectSize;
 					sourceFirstRow += inputObjectSize;
@@ -257,9 +517,9 @@ void CCpuMathEngine::blobChannelwiseConvolutionFilter3x3Padding1Stride2( const C
 						NeoML::vectorFill( resRow, 0, resultDesc.Width() * channels );
 					}
 
-					processFilterRowStride2( desc, filter, srcRow, resRow );
-					processFilterRowStride2( desc, filter + filterRowSize, srcRow + inputRowSize, resRow );
-					processFilterRowStride2( desc, filter + 2 * filterRowSize, srcRow + 2 * inputRowSize, resRow );
+					process3x3RowStride2( desc, filter, srcRow, resRow );
+					process3x3RowStride2( desc, filter + filterRowSize, srcRow + inputRowSize, resRow );
+					process3x3RowStride2( desc, filter + 2 * filterRowSize, srcRow + 2 * inputRowSize, resRow );
 				}
 
 				if( resultLastRow != 0 && resultCount >= 0 ) {
@@ -269,8 +529,8 @@ void CCpuMathEngine::blobChannelwiseConvolutionFilter3x3Padding1Stride2( const C
 						NeoML::vectorFill( resultLastRow, 0, resultDesc.Width() * channels );
 					}
 
-					processFilterRowStride2( desc, filter, sourceLastRow, resultLastRow );
-					processFilterRowStride2( desc, filter + filterRowSize, sourceLastRow + inputRowSize, resultLastRow );
+					process3x3RowStride2( desc, filter, sourceLastRow, resultLastRow );
+					process3x3RowStride2( desc, filter + filterRowSize, sourceLastRow + inputRowSize, resultLastRow );
 					resultLastRow += outputObjectSize;
 					sourceLastRow += inputObjectSize;
 				}
@@ -338,9 +598,9 @@ void CCpuMathEngine::blobChannelwiseConvolutionFilter3x3Padding1Stride1( const C
 					} else {
 						NeoML::vectorFill( resultFirstRow, 0, resultDesc.Width() * channels );
 					}
-					processFilterRowStride1( desc, filter + filterRowSize, sourceFirstRow, resultFirstRow );
+					process3x3RowStride1( desc, filter + filterRowSize, sourceFirstRow, resultFirstRow );
 					if( resultCount >= 0 ) {
-						processFilterRowStride1( desc, filter + 2 * filterRowSize, sourceFirstRow + inputRowSize, resultFirstRow );
+						process3x3RowStride1( desc, filter + 2 * filterRowSize, sourceFirstRow + inputRowSize, resultFirstRow );
 					}
 					resultFirstRow += outputObjectSize;
 					sourceFirstRow += inputObjectSize;
@@ -353,9 +613,9 @@ void CCpuMathEngine::blobChannelwiseConvolutionFilter3x3Padding1Stride1( const C
 						NeoML::vectorFill( resRow, 0, resultDesc.Width() * channels );
 					}
 
-					processFilterRowStride1( desc, filter, srcRow, resRow );
-					processFilterRowStride1( desc, filter + filterRowSize, srcRow + inputRowSize, resRow );
-					processFilterRowStride1( desc, filter + 2 * filterRowSize, srcRow + 2 * inputRowSize, resRow );
+					process3x3RowStride1( desc, filter, srcRow, resRow );
+					process3x3RowStride1( desc, filter + filterRowSize, srcRow + inputRowSize, resRow );
+					process3x3RowStride1( desc, filter + 2 * filterRowSize, srcRow + 2 * inputRowSize, resRow );
 				}
 
 				if( resultLastRow != 0 && resultCount >= 0 ) {
@@ -365,14 +625,43 @@ void CCpuMathEngine::blobChannelwiseConvolutionFilter3x3Padding1Stride1( const C
 						NeoML::vectorFill( resultLastRow, 0, resultDesc.Width() * channels );
 					}
 
-					processFilterRowStride1( desc, filter, sourceLastRow, resultLastRow );
-					processFilterRowStride1( desc, filter + filterRowSize, sourceLastRow + inputRowSize, resultLastRow );
+					process3x3RowStride1( desc, filter, sourceLastRow, resultLastRow );
+					process3x3RowStride1( desc, filter + filterRowSize, sourceLastRow + inputRowSize, resultLastRow );
 					resultLastRow += outputObjectSize;
 					sourceLastRow += inputObjectSize;
 				}
 
 				resultRow += outputObjectSize;
 				resultRowEnd += outputObjectSize;
+			}
+		}
+	}
+}
+
+void CCpuMathEngine::blobChannelwiseConvolutionFilter5x5Padding2Stride1Or2( const CCommonChannelwiseConvolutionDesc& desc,
+	const float* source, const float* filter, const float* freeTerm, float* result )
+{
+	const CBlobDesc& resultDesc = desc.Result;
+	const int curThreadCount = IsOmpRelevant( resultDesc.ObjectCount() * resultDesc.Height(),
+		static_cast<int64_t>( desc.Source.BlobSize() ) * desc.Filter.BlobSize() ) ? threadCount : 1;
+	const int inputObjectSize = desc.Source.ObjectSize();
+	const int outputObjectSize = resultDesc.ObjectSize();
+
+	auto processChannelwise5x5 = desc.StrideHeight == 1 ? processChannelwise5x5Stride1 : processChannelwise5x5Stride2;
+
+	NEOML_OMP_NUM_THREADS( curThreadCount )
+	{
+		int batchStart;
+		int batchCount;
+		int resultStart;
+		int resultCount;
+		if( OmpGetTaskIndexAndCount2D( resultDesc.ObjectCount(), resultDesc.Height(), batchStart, batchCount, resultStart, resultCount ) ) {
+			const float* src = source + batchStart * inputObjectSize;
+			float* resultRow = result + batchStart * outputObjectSize + resultStart * resultDesc.Width() * resultDesc.Channels();
+			for( int b = 0; b < batchCount; ++b ) {
+				processChannelwise5x5( desc, resultCount, src, 0, filter, freeTerm, resultRow, resultStart );
+				src += inputObjectSize;
+				resultRow += outputObjectSize;
 			}
 		}
 	}
@@ -389,7 +678,7 @@ void CCpuMathEngine::BlobChannelwiseConvolution( const CChannelwiseConvolutionDe
 	const float* freeTerm = freeTermData != 0 ? GetRaw( *freeTermData ) : 0;
 	float* result = GetRaw( resultData );
 
-	if( desc.Filter.Height() == 3 && desc.Filter.Width() == 3 && desc.PaddingHeight == 1 && desc.PaddingWidth == 1 && desc.Filter.Channels() % 4 == 0 ) {
+	if( desc.Filter.Height() == 3 && desc.Filter.Width() == 3 && desc.PaddingHeight == 1 && desc.PaddingWidth == 1 ) {
 		if( desc.StrideHeight == 1 && desc.StrideWidth == 1 ) {
 			blobChannelwiseConvolutionFilter3x3Padding1Stride1( desc, source, filter, freeTerm, result );
 			return;
@@ -398,6 +687,13 @@ void CCpuMathEngine::BlobChannelwiseConvolution( const CChannelwiseConvolutionDe
 			blobChannelwiseConvolutionFilter3x3Padding1Stride2( desc, source, filter, freeTerm, result );
 			return;
 		}
+	}
+
+	if( desc.Filter.Height() == 5 && desc.Filter.Width() == 5 && desc.PaddingHeight == 2 && desc.PaddingWidth == 2
+		&& desc.StrideHeight == desc.StrideWidth && desc.StrideHeight <= 2 )
+	{
+		blobChannelwiseConvolutionFilter5x5Padding2Stride1Or2( desc, source, filter, freeTerm, result );
+		return;
 	}
 
 	const CBlobDesc& sourceDesc = desc.Source;
@@ -486,7 +782,7 @@ void CCpuMathEngine::ChannelwiseWith1x1( const CBlobDesc& inputDesc, const CBlob
 	const int outputWidth = desc.Result.Width();
 	const int chOutputRowSize = inputChannels * outputWidth;
 
-	TProcessFilterRow processFilterRow = desc.StrideHeight == 1 ? processFilterRowStride1 : processFilterRowStride2;
+	TProcessFilterRow processFilterRow = desc.StrideHeight == 1 ? process3x3RowStride1 : process3x3RowStride2;
 
 	const float* inputObject = GetRaw( inputHandle );
 	const float* channelwiseFilter = GetRaw( channelwiseFilterData );
@@ -584,7 +880,7 @@ void CCpuMathEngine::MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobDe
 	const int chInputRowSize = expandedChannels * inputWidth;
 	const int outputWidth = desc.Result.Width();
 	const int chOutputRowSize = expandedChannels * outputWidth;
-	TProcessFilterRow processFilterRow = desc.StrideHeight == 1 ? processFilterRowStride1 : processFilterRowStride2;
+	TProcessFilterRow processFilterRow = desc.StrideHeight == 1 ? process3x3RowStride1 : process3x3RowStride2;
 
 	const float* inputObject = GetRaw( inputHandle );
 	const float* expandFilter = GetRaw( expandFilterData );
@@ -741,7 +1037,6 @@ void CCpuMathEngine::MobileNetV3PreSEBlock( const CBlobDesc& inputDesc, const CB
 	const int outputRowSize = outputChannels * desc.Result.Width();
 	const int padding = desc.PaddingHeight;
 	const int filterSize = desc.Filter.Width();
-	const int filterRowSize = desc.Filter.Channels() * filterSize;
 	const int stride = desc.StrideHeight;
 
 	const float* inputObject = GetRaw( inputHandle );
@@ -749,7 +1044,7 @@ void CCpuMathEngine::MobileNetV3PreSEBlock( const CBlobDesc& inputDesc, const CB
 	const float* expandFreeTerm = expandFreeTermData == nullptr ? nullptr : GetRaw( *expandFreeTermData );
 	const float* channelwiseFilter = GetRaw( channelwiseFilterData );
 	const float* channelwiseFreeTerm = channelwiseFreeTermData == nullptr ? nullptr : GetRaw( *channelwiseFreeTermData );
-	TProcessFilterRow processFilterRow = stride == 1 ? processFilterRowStride1 : processFilterRowStride2;
+	TProcessFilterRow processFilterRow = stride == 1 ? process3x3RowStride1 : process3x3RowStride2;
 
 	const int maxInputRowsPerStep = std::max<int>( 1,
 		( cacheSize / ( std::max<int>( inputChannels, outputChannels ) * inputWidth ) ) );
@@ -810,41 +1105,12 @@ void CCpuMathEngine::MobileNetV3PreSEBlock( const CBlobDesc& inputDesc, const CB
 				if( filterSize == 3 ) {
 					processChannelwise3x3( desc, outputRowsThisStep, processFilterRow, chInputBuff, firstInputRowInBuffer,
 						channelwiseFilter, channelwiseFreeTerm, output, outputRowsProcessed );
+				} else if( stride == 1 ) {
+					processChannelwise5x5Stride1( desc, outputRowsThisStep, chInputBuff, firstInputRowInBuffer,
+						channelwiseFilter, channelwiseFreeTerm, output, outputRowsProcessed );
 				} else {
-					if( channelwiseFreeTerm != nullptr ) {
-						for( int i = 0; i < outputRowsThisStep; ++i ) {
-							fillResultRow( desc, channelwiseFreeTerm, output + i * outputRowSize );
-						}
-					} else {
-						NeoML::vectorFill( output, 0, outputRowsThisStep * outputRowSize );
-					}
-
-					float* resultRow = output;
-					float* resultRowEnd = resultRow + outputRowsThisStep * outputRowSize;
-					int firstFilteredRow = outputRowsProcessed * stride - padding;
-					for( ; resultRow < resultRowEnd; resultRow += outputRowSize, firstFilteredRow += stride ) {
-						const int filterFirstRow = std::max( 0, -firstFilteredRow );
-						const int filterLastRow = std::min( filterSize, inputHeight - firstFilteredRow );
-						const float* filterRow = channelwiseFilter + filterFirstRow * filterRowSize;
-						const float* filterRowEnd = channelwiseFilter + filterLastRow * filterRowSize;
-						const float* srcRow = chInputBuff + (firstFilteredRow + filterFirstRow - firstInputRowInBuffer) * chInputRowSize;
-
-						for( ; filterRow < filterRowEnd; filterRow += filterRowSize, srcRow += chInputRowSize ) {
-							int firstFilteredCol = -padding;
-							float* resultPos = resultRow;
-							float* resultPosEnd = resultPos + outputRowSize;
-							for( ; resultPos < resultPosEnd; resultPos += outputChannels, firstFilteredCol += stride ) {
-								const int filterFirstCol = std::max( 0, -firstFilteredCol );
-								const int filterLastCol = std::min( filterSize, inputWidth - firstFilteredCol );
-								const float* filterPos = filterRow + filterFirstCol * outputChannels;
-								const float* filterPosEnd = filterRow + filterLastCol * outputChannels;
-								const float* srcPos = srcRow + (firstFilteredCol + filterFirstCol) * outputChannels;
-								for( ; filterPos < filterPosEnd; filterPos += outputChannels, srcPos += outputChannels ) {
-									NeoML::vectorEltwiseMultiplyAdd(filterPos, srcPos, resultPos, outputChannels);
-								}
-							}
-						}
-					}
+					processChannelwise5x5Stride2( desc, outputRowsThisStep, chInputBuff, firstInputRowInBuffer,
+						channelwiseFilter, channelwiseFreeTerm, output, outputRowsProcessed );
 				}
 
 				// Apply expand activation
