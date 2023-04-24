@@ -64,7 +64,6 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Optimization/HSwishOptimizer.cpp
     Optimization/LayerNormFusionOptimizer.cpp
     Optimization/SqueezeAndExciteOptimizer.cpp
-    Optimization/Optimizer.cpp
     TensorUtils.cpp
 
     ../include/NeoOnnx/NeoOnnx.h
@@ -123,7 +122,6 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Optimization/HSwishOptimizer.h
     Optimization/LayerNormFusionOptimizer.h
     Optimization/SqueezeAndExciteOptimizer.h
-    Optimization/Optimizer.h
     Tensor.h
     TensorUtils.h
 )

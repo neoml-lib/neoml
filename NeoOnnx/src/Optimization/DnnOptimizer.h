@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,10 +18,8 @@ limitations under the License.
 #include <NeoML/Dnn/Optimization/Graph.h>
 #include "HardSigmoidOptimizer.h"
 #include "HSwishOptimizer.h"
+#include "LayerNormFusionOptimizer.h"
 #include "SqueezeAndExciteOptimizer.h"
-
-#include "Optimization/Optimizer.h"
-#include "Optimization/LayerNormFusionOptimizer.h"
 
 namespace NeoOnnx {
 
@@ -48,7 +46,7 @@ inline void CDnnOptimizer::Optimize()
 	CHardSigmoidOptimizer( graph ).Apply();
 	CHSwishOptimizer( graph ).Apply();
 	CSqueezeAndExciteOptimizer( graph ).Apply();
-	CLayerNormFusionOptimizer( graph ).Apply();
+	//CLayerNormFusionOptimizer( graph, dnn ).Apply();
 }
 
 } // namespace optimization
