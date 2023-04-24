@@ -1,4 +1,4 @@
-/* Copyright © 2017-2022 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -26,11 +26,11 @@ class NEOML_API COnnxSourceHelper : public COnnxLayerBase {
 public:
 	explicit COnnxSourceHelper( IMathEngine& mathEngine ) : COnnxLayerBase( mathEngine, "OnnxSourceHelper" ) {}
 
-	void Serialize( CArchive& archive ) override;
-
 	// Shape blob to be feeded to CDnn
-	CPtr<CDnnBlob>& Blob() { return blob; }
+	CPtr<CDnnBlob>& Blob();
 	const CPtr<CDnnBlob>& Blob() const { return blob; }
+
+	void Serialize( CArchive& archive ) override;
 
 protected:
 	void CalculateShapes() override;
