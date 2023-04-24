@@ -46,7 +46,7 @@ inline void CDnnOptimizer::Optimize()
 	CHardSigmoidOptimizer( graph ).Apply();
 	CHSwishOptimizer( graph ).Apply();
 	CSqueezeAndExciteOptimizer( graph ).Apply();
-	//CLayerNormFusionOptimizer( graph, dnn ).Apply();
+	CLayerNormFusionOptimizer( graph ).Apply();
 }
 
 } // namespace optimization

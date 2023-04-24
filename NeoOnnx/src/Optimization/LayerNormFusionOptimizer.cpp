@@ -15,280 +15,282 @@ limitations under the License.
 
 #pragma once
 
-#include <cstring>
 #include <NeoOnnx/NeoOnnxImport.h>
+#include <NeoML/Dnn/Layers/Onnx/OnnxEltwiseLayer.h>
 #include "Optimization/LayerNormFusionOptimizer.h"
 
 namespace NeoOnnx {
 
 namespace optimization {
 
-CPtr<CBaseLayer> CLayerNormFusionOptimizer::GetAnyInputLayer( const CPtr<CBaseLayer>& currentLayer, int inputNum, const char* const layerSkipClass )
+bool CLayerNormFusionOptimizer::isValidDataLayer( const CDataLayer& dataLayer, TBlobType blobType, int blobSize ) const
 {
-	for( int j = inputNum; j < currentLayer->GetInputCount(); ++j ) {
-		const CPtr<CBaseLayer> inputLayer = Graph.GetLayer( currentLayer->GetInputName( j ) );
-		if( IsExactLayer( inputLayer, ClassesOfSkipLayers[0] )
-			|| IsExactLayer( inputLayer, ClassesOfSkipLayers[1] )
-			) {
-			return Graph.GetLayer( inputLayer->GetInputName( /*inputNumber*/0 ) );
-		} else if( layerSkipClass != CString( "" ) && IsExactLayer( inputLayer, layerSkipClass ) ) {
-			return Graph.GetLayer( inputLayer->GetInputName( /*inputNumber*/0 ) );
-		}
-		return inputLayer;
+	NeoAssert( graph.GetInputCount( dataLayer ) == 0 );
+	NeoAssert( graph.GetOutputCount( dataLayer ) == 1 );
+
+	if( graph.GetConnectedInputsCount( dataLayer, /*outputIndex*/0 ) != 1 ) {
+		return false;
 	}
-	return nullptr;
+
+	CPtr<CDnnBlob> blob = dataLayer.GetBlob();
+	return ( blob->GetDataType() == blobType
+		&& ( blobSize == NotFound || blob->GetDataSize() == blobSize ) );
 }
 
 //--------------------------------------------------------------------------------------------------------------
-bool CLayerNormFusionOptimizer::IsExactLayer( const CPtr<CBaseLayer>& layer, const char* const layerClass, bool addToSelectedLayers )
+bool CLayerNormFusionOptimizer::isValidTransformLayer( const COnnxTransformHelper& transformHelperLayer ) const
 {
-	if( layer != nullptr
-		&& layer->GetClassType() == layerClass
-		&& std::strncmp( layer->GetName(), "my", 2 ) != 0 ) {
-		if( addToSelectedLayers ) {
-			AddToSelectedLayers( layer );
-		}
-		return true;
-	}
-	return false;
-}
+	NeoAssert( graph.GetInputCount( transformHelperLayer ) == 1 );
+	NeoAssert( graph.GetOutputCount( transformHelperLayer ) == 1 );
 
-//--------------------------------------------------------------------------------------------------------------
-bool CLayerNormFusionOptimizer::GetExactInputLayers( const CPtr<CBaseLayer>& currentLayer,
-	CPtr<CBaseLayer>& layerBase, const char* const layerBaseClass,
-	CPtr<CBaseLayer>& layerData, const char* const layerDataClass, const char* const layerSkipClass )
-{
-	for( int j = 0; j < currentLayer->GetInputCount(); ++j ) {
-		CPtr<CBaseLayer> inputLayer = Graph.GetLayer( currentLayer->GetInputName( j ) );
-		if( IsExactLayer( inputLayer, layerBaseClass ) ) {
-			layerBase = inputLayer;
-		} else if( layerBase == nullptr && IsExactLayer( inputLayer, layerSkipClass ) ) {
-			GetExactInputLayers( inputLayer, layerBase, layerBaseClass, layerData, layerDataClass, /*layerSkipClass*/"" );
-		} else if( ( layerBase == nullptr || layerData == nullptr )
-			&& ( IsExactLayer( inputLayer, ClassesOfSkipLayers[0] )
-			|| IsExactLayer( inputLayer, ClassesOfSkipLayers[1] )
-			|| IsExactLayer( inputLayer, ClassesOfSkipLayers[2] ) ) ) {
-			GetExactInputLayers( inputLayer, layerBase, layerBaseClass, layerData, layerDataClass, layerSkipClass );
-		} else if( IsExactLayer( inputLayer, layerDataClass ) ) {
-			layerData = inputLayer;
-		}
-	}
-	return ( layerBase != nullptr
-		&& ( layerDataClass == CString( "" ) || layerData != nullptr ) ); // skip check initializer type or found
-}
+	auto isEmptyRule = [&transformHelperLayer]( TBlobDim index ) -> bool {
+		const TBlobDim value = transformHelperLayer.GetRule( index );
+		return value == index || ( /* invalid-value */ value < 0 || value >= BD_Count );
+	};
 
-//--------------------------------------------------------------------------------------------------------------
-const char* const CLayerNormFusionOptimizer::ClassesOfSkipLayers[]{
-	"NeoMLDnnBroadcastLayer",
-	"FmlCnnTransformWithoutTransposeLayer",
-	"FmlCnnTransposeLayer"
-};
+	const bool success =
+		( isEmptyRule( BD_BatchLength )
+		&& isEmptyRule( BD_BatchWidth )
+		&& transformHelperLayer.GetRule( BD_ListSize ) == BD_Height
+		&& isEmptyRule( BD_Height )
+		&& isEmptyRule( BD_Width )
+		&& isEmptyRule( BD_Depth )
+		&& isEmptyRule( BD_Channels ) )
+		||
+		( isEmptyRule( BD_BatchLength )
+		&& isEmptyRule( BD_BatchWidth )
+		&& isEmptyRule( BD_ListSize )
+		&& transformHelperLayer.GetRule( BD_Height ) == BD_ListSize
+		&& isEmptyRule( BD_Width )
+		&& isEmptyRule( BD_Depth )
+		&& isEmptyRule( BD_Channels ) )
+		||
+		( transformHelperLayer.GetRule( BD_BatchLength ) == BD_ListSize
+		&& transformHelperLayer.GetRule( BD_BatchWidth ) == BD_Height
+		&& isEmptyRule( BD_ListSize )
+		&& transformHelperLayer.GetRule( BD_Height ) == BD_Channels
+		&& isEmptyRule( BD_Width )
+		&& isEmptyRule( BD_Depth )
+		&& isEmptyRule( BD_Channels ) )
+		||
+		( isEmptyRule( BD_BatchLength )
+		&& isEmptyRule( BD_BatchWidth )
+		&& transformHelperLayer.GetRule( BD_ListSize ) == BD_BatchLength
+		&& transformHelperLayer.GetRule( BD_Height ) == BD_BatchWidth
+		&& isEmptyRule( BD_Width )
+		&& isEmptyRule( BD_Depth )
+		&& transformHelperLayer.GetRule( BD_Channels ) == BD_Height );
+	return success;
+}
 
 //--------------------------------------------------------------------------------------------------------------
 void CLayerNormFusionOptimizer::Apply()
 {
-	Graph.Reshape(); // For the all of BLOBs' sizes be initialized in the graph
+	NeoAssert( graph.SelectionSize() == 0 );
 
-	int normLayersCount = 0;
-	CArray<const char*> layersList{};
-	Graph.GetLayerList( layersList );
+	CArray<CBaseLayer*> layers{};
+	graph.GetLayers( layers );
+	for( auto& layer : layers ) {
+		graph.ClearSelection();
 
-	int configureLayerConnection = 0; // Defines the way of connection once, all other connections are the same
-	for( int i = 0; i < layersList.Size(); ++i ) {
-		ClearSelectedLayers();
-
-		if( layersList[i] == nullptr ) { // Skip already replaced layers
+		if( !graph.HasLayer( layer ) ) { // Skip already replaced layers
 			continue;
 		}
 
 		// Searching for a group of layers to replace by an object normalization layer in the backward direction through the graph
-		CPtr<CBaseLayer> addLayerLast = Graph.GetLayer( layersList[i] );
-		if( !IsExactLayer( addLayerLast, "FmlCnnEltwiseSumLayer" ) ) {
-			continue;
-		}
-		if( addLayerLast->GetInputCount() != 2 ) {
-			continue;
-		}
-
-		CPtr<CBaseLayer> biasLayer = nullptr, mulLayer = nullptr;
-		if( !GetExactInputLayers( addLayerLast, mulLayer, "FmlCnnEltwiseMulLayer", biasLayer, "NeoMLDnnDataLayer", /*layerSkipClass*/"" ) ) {
-			continue;
-		}
-		if( mulLayer->GetInputCount() != 2 ) {
-			continue;
+		// From bottom to upside for graph
+		auto* addLayerLast = getExactLayer<COnnxEltwiseLayer>( layer, /*addToSelection*/true );
+		if( addLayerLast == nullptr
+			|| addLayerLast->GetOperation() != COnnxEltwiseLayer::TOperation::Add
+			|| graph.GetInputCount( *addLayerLast ) != 2
+			|| graph.GetOutputCount( *addLayerLast ) != 1 )
+		{
+			continue; // fail this Fusion
 		}
 
-		CPtr<CBaseLayer> scaleLayer = nullptr, divLayer = nullptr;
-		if( !GetExactInputLayers( mulLayer, divLayer, "NeoMLDnnEltwiseDivLayer", scaleLayer, "NeoMLDnnDataLayer", "NeoMLDnnCastLayer" ) ) {
-			continue;
-		}
-		if( divLayer->GetInputCount() != 2 ) {
-			continue;
-		}
-
-		CPtr<CBaseLayer> sqrtLayer = nullptr, sub2Layer = nullptr;
-		if( !GetExactInputLayers( divLayer, sqrtLayer, "FmlCnnPowerLayer", sub2Layer, "NeoMLDnnEltwiseSubLayer", /*layerSkipClass*/"" ) ) {
-			continue;
-		}
-		const auto* sqrt = dynamic_cast<CPowerLayer*>( sqrtLayer.Ptr() );
-		if( !sqrt || sqrtLayer->GetInputCount() != 1 || sqrt->GetExponent() != 0.5f ) {
-			continue;
+		CDataLayer* biasLayer = nullptr;
+		COnnxEltwiseLayer* mulLayer = nullptr;
+		if( !selectTwoExactInputLayersRecursive<COnnxEltwiseLayer, CDataLayer>( *addLayerLast, &mulLayer, &biasLayer )
+			|| mulLayer->GetOperation() != COnnxEltwiseLayer::TOperation::Mul
+			|| graph.GetInputCount( *mulLayer ) != 2
+			|| !isValidDataLayer( *biasLayer, CT_Float, /*size*/NotFound ) )
+		{
+			continue; // fail this Fusion
 		}
 
-		CPtr<CBaseLayer> addLayer = nullptr, unusedLayer = nullptr;
-		if( !GetExactInputLayers( sqrtLayer, addLayer, "FmlCnnEltwiseSumLayer", unusedLayer, "", /*layerSkipClass*/"" ) ) {
-			continue;
-		}
-		if( addLayer->GetInputCount() != 2 ) {
-			continue;
-		}
-
-		CPtr<CBaseLayer> reduceMean2Layer = nullptr, epsilontLayer = nullptr;
-		if( !GetExactInputLayers( addLayer, reduceMean2Layer, "FmlCnnGlobalMainPoolingLayer", epsilontLayer, "NeoMLDnnDataLayer", /*layerSkipClass*/"" ) ) {
-			continue;
-		}
-		if( reduceMean2Layer->GetInputCount() != 1 ) {
-			continue;
-		}
-
-		CPtr<CBaseLayer> powLayer = nullptr;
-		if( !GetExactInputLayers( reduceMean2Layer, powLayer, "FmlCnnPowerLayer", unusedLayer, "", /*layerSkipClass*/"" ) ) {
-			continue;
-		}
-		const auto* pow = dynamic_cast<CPowerLayer*>( powLayer.Ptr() );
-		if( !pow || pow->GetInputCount() != 1 || pow->GetExponent() != 2.f ) {
-			continue;
-		}
-
-		CPtr<CBaseLayer> subLayer = nullptr;
-		if( !GetExactInputLayers( powLayer, subLayer, "NeoMLDnnEltwiseSubLayer", unusedLayer, "", "NeoMLDnnCastLayer" ) ) {
-			continue;
-		}
-		if( subLayer->GetInputCount() != 2 ) {
-			continue;
-		}
-		if( unusedLayer ) {
-			const auto* cast = dynamic_cast<CCastLayer*>( unusedLayer.Ptr() );
-			if( !cast || cast->GetOutputType() != CT_Float ) {
-				continue;
-			}
-		}
-
-		CPtr<CBaseLayer> reduceMeanLayer = nullptr;
-		if( !GetExactInputLayers( subLayer, reduceMeanLayer, "FmlCnnGlobalMainPoolingLayer", unusedLayer, "", /*layerSkipClass*/"" ) ) {
-			continue;
-		}
-		if( reduceMeanLayer->GetInputCount() != 1 ) {
-			continue;
-		}
-
-		CPtr<CBaseLayer> reduceMeanInputLayer{}, inputNormLayer{};
-		for( int j = 0; ( reduceMeanInputLayer = GetAnyInputLayer( reduceMeanLayer, j, "NeoMLDnnCastLayer" ) ) != nullptr; ++j ) {
-			ASSERT_EXPR( j == 0 );
-			inputNormLayer = reduceMeanInputLayer;
-		}
-
-		if( sub2Layer != subLayer ) { // Duplicated sub-layers exported from older version of PyTorch
-			if(    std::strcmp( subLayer->GetInputName( 0 ), inputNormLayer->GetName() ) != 0
-				&& std::strcmp( subLayer->GetInputName( 1 ), inputNormLayer->GetName() ) != 0 )
+		CDataLayer* scaleLayer = nullptr;
+		COnnxEltwiseLayer* divLayer = nullptr;
+		CCastLayer* uselessCastLayer = nullptr; // try to skip CAST layer as operand (1)
+		if( !selectTwoExactInputLayersRecursive<CCastLayer, CDataLayer>( *mulLayer, &uselessCastLayer, &scaleLayer )
+			|| uselessCastLayer->GetOutputType() != CT_Float
+			|| graph.GetInputCount( *uselessCastLayer ) != 1
+			|| graph.GetOutputCount( *uselessCastLayer ) != 1
+			|| !isValidDataLayer( *scaleLayer, CT_Float, /*size*/NotFound ) )
+		{
+			scaleLayer = nullptr;
+			uselessCastLayer = nullptr; // try to skip CAST layer as operand (2)
+			if( !selectTwoExactInputLayersRecursive<COnnxEltwiseLayer, CCastLayer>( *mulLayer, &divLayer, &uselessCastLayer )
+				|| divLayer->GetOperation() != COnnxEltwiseLayer::TOperation::Div
+				|| graph.GetInputCount( *divLayer ) != 2
+				|| uselessCastLayer->GetOutputType() != CT_Float
+				|| graph.GetInputCount( *uselessCastLayer ) != 1
+				|| graph.GetOutputCount( *uselessCastLayer ) != 1 )
 			{
-				continue; // If there no correct cyclic reference, skip
-			}
-			if(    !( std::strcmp( sub2Layer->GetInputName( 0 ), inputNormLayer->GetName()  ) == 0
-				&&    std::strcmp( sub2Layer->GetInputName( 1 ), reduceMeanLayer->GetName() ) == 0 )
-				&& !( std::strcmp( sub2Layer->GetInputName( 0 ), reduceMeanLayer->GetName() ) == 0
-				&&    std::strcmp( sub2Layer->GetInputName( 1 ), inputNormLayer->GetName()  ) == 0 ) )
-			{
-				continue; // If there no correct cyclic reference, skip
-			}
-		}
-
-		const auto& epsBlob = dynamic_cast<CDataLayer*>( epsilontLayer.Ptr() )->GetBlob();
-		const auto& scaleBlob = dynamic_cast<CDataLayer*>( scaleLayer.Ptr() )->GetBlob();
-		const auto& biasBlob = dynamic_cast<CDataLayer*>( biasLayer.Ptr() )->GetBlob();
-
-		CPtr<CObjectNormalizationLayer> normLayer{};
-		CPtr<CBaseLayer> newNormLayer{}; // Norm layer's wrapper to connect further
-
-		if( configureLayerConnection == 1 || inputNormLayer->GetOutputBlobsDesc( 0 ).ObjectSize() == 1 ) {
-			if( configureLayerConnection == 1 || inputNormLayer->GetOutputBlobsDesc( 0 ).ListSize() > 1 ) {
-				ASSERT_EXPR( configureLayerConnection == 1
-					|| ( configureLayerConnection == 0
-					&& inputNormLayer->GetOutputBlobsDesc( 0 ).ObjectSize() == 1
-					&& inputNormLayer->GetOutputBlobsDesc( 0 ).ListSize() > 1 ) );
-
-				normLayer = new CObjectNormalizationLayer( Graph.GetMathEngine() );
-				normLayer->SetName( "myObjNorm_" + Str( normLayersCount ) );
-				normLayer->SetScale( scaleBlob->GetTransposed( BD_ListSize, BD_Height ) );
-				normLayer->SetBias( biasBlob->GetTransposed( BD_ListSize, BD_Height ) );
-				Graph.AddLayer( *normLayer );
-
-				CPtr<CTransposeLayer> layerTransposeBefore( new CTransposeLayer( Graph.GetMathEngine() ) );
-				layerTransposeBefore->SetName( "myTransposeBefore_" + Str( normLayersCount ) );
-				layerTransposeBefore->SetTransposedDimensions( BD_ListSize, BD_Height );
-				Graph.AddLayer( *layerTransposeBefore );
-				layerTransposeBefore->Connect( *inputNormLayer );
-				normLayer->Connect( /*input number*/0, *layerTransposeBefore, /*output number*/0 );
-
-				CPtr<CTransposeLayer> layerTransposeAfter( new CTransposeLayer( Graph.GetMathEngine() ) );
-				layerTransposeAfter->SetName( "myTransposeAfter_" + Str( normLayersCount ) );
-				layerTransposeAfter->SetTransposedDimensions( BD_ListSize, BD_Height );
-				Graph.AddLayer( *layerTransposeAfter );
-				layerTransposeAfter->Connect( *normLayer );
-				newNormLayer = layerTransposeAfter;
-				configureLayerConnection = 1;
-			} else {
-				//continue;
-				return; // Not fit for the whole ANN
-			}
-		} else {
-			ASSERT_EXPR( configureLayerConnection == 2
-				|| ( configureLayerConnection == 0 && inputNormLayer->GetOutputBlobsDesc( 0 ).ObjectSize() > 1 ) );
-			normLayer = new CObjectNormalizationLayer( Graph.GetMathEngine() );
-			normLayer->SetName( "myObjNorm_" + Str( normLayersCount ) );
-			normLayer->SetScale( scaleBlob );
-			normLayer->SetBias( biasBlob );
-			Graph.AddLayer( *normLayer );
-			normLayer->Connect( *inputNormLayer );
-			newNormLayer = normLayer;
-			configureLayerConnection = 2;
-		}
-		normLayer->SetEpsilon( epsBlob->GetData().GetValue() );
-
-		CPtr<CTransformLayer> transformLayer( new CTransformLayer( Graph.GetMathEngine() ) );
-		transformLayer->SetName( "myTransform_" + Str( normLayersCount ) );
-		transformLayer->SetDimensionRule( TBlobDim::BD_Channels, CTransformLayer::O_InputDim, TBlobDim::BD_Height );
-		transformLayer->SetDimensionRule( TBlobDim::BD_Height, CTransformLayer::O_InputDim, TBlobDim::BD_Channels );
-		transformLayer->SetDimensionRule( TBlobDim::BD_BatchWidth, CTransformLayer::O_InputDim, TBlobDim::BD_BatchLength );
-		transformLayer->SetDimensionRule( TBlobDim::BD_BatchLength, CTransformLayer::O_InputDim, TBlobDim::BD_BatchWidth );
-		Graph.AddLayer( *transformLayer );
-		transformLayer->Connect( /*input number*/0, *newNormLayer, /*output number*/0 );
-		const CBaseLayer& newLayer = static_cast<const CBaseLayer&>( *transformLayer );
-
-		for( int ii = i; ii < layersList.Size(); ++ii ) {
-			const char* const nameOutputLayer = layersList[ii];
-			auto layerDnn = Graph.GetLayer( nameOutputLayer );
-			for( int inputNum = 0; inputNum < layerDnn->GetInputCount(); ++inputNum ) {
-				if( std::strcmp( layerDnn->GetInputName( inputNum ), addLayerLast->GetName() ) == 0 ) {
-					layerDnn->Connect( inputNum, newLayer, /*output number*/0 );
+				divLayer = nullptr;
+				uselessCastLayer = nullptr; // no CAST layer as both of operands (3)
+				if( !selectTwoExactInputLayersRecursive<COnnxEltwiseLayer, CDataLayer>( *mulLayer, &divLayer, &scaleLayer )
+					|| divLayer->GetOperation() != COnnxEltwiseLayer::TOperation::Div
+					|| graph.GetInputCount( *divLayer ) != 2
+					|| !isValidDataLayer( *scaleLayer, CT_Float, /*size*/NotFound ) )
+				{
+					continue; // fail this Fusion
+				}
+			} else { // success to find the CAST layer as operand (2)
+				scaleLayer = selectOneExactInputLayerRecursive<CDataLayer>( *uselessCastLayer );
+				if( scaleLayer == nullptr
+					|| !isValidDataLayer( *scaleLayer, CT_Float, /*size*/NotFound ) )
+				{
+					continue; // fail this Fusion
 				}
 			}
-			if( HasSelectedLayer( layerDnn ) ) {
-				layersList[ii] = nullptr;
+		} else { // success to find the CAST layer as operand (1)
+			divLayer = selectOneExactInputLayerRecursive<COnnxEltwiseLayer>( *uselessCastLayer );
+			if( divLayer == nullptr
+				|| divLayer->GetOperation() != COnnxEltwiseLayer::TOperation::Div
+				|| graph.GetInputCount( *divLayer ) != 2 )
+			{
+				continue; // fail this Fusion
 			}
 		}
 
-		for( int ii = 0; ii < GetSelectedLayersSize(); ++ii ) {
-			auto layer = GetSelectedLayer( ii );
-			if( Graph.HasLayer( layer->GetName() ) ) {
-				Graph.DeleteLayer( *layer );
+		CPowerLayer* sqrtLayer = nullptr;
+		COnnxEltwiseLayer* sub2Layer = nullptr;
+		if( !selectTwoExactInputLayersRecursive<COnnxEltwiseLayer, CPowerLayer>( *divLayer, &sub2Layer, &sqrtLayer )
+			|| sqrtLayer->GetExponent() != 0.5f
+			|| graph.GetInputCount( *sqrtLayer ) != 1 )
+		{
+			continue; // fail this Fusion
+		}
+
+		auto* addLayer = selectOneExactInputLayerRecursive<COnnxEltwiseLayer>( *sqrtLayer );
+		if( addLayer == nullptr
+			|| addLayer->GetOperation() != COnnxEltwiseLayer::TOperation::Add
+			|| graph.GetInputCount( *addLayer ) != 2 )
+		{
+			continue; // fail this Fusion
+		}
+
+		CGlobalMeanPoolingLayer* reduceMean2Layer = nullptr;
+		CDataLayer* epsilontLayer = nullptr;
+		if( !selectTwoExactInputLayersRecursive<CGlobalMeanPoolingLayer, CDataLayer>( *addLayer, &reduceMean2Layer, &epsilontLayer )
+			|| graph.GetInputCount( *reduceMean2Layer ) != 1
+			|| !isValidDataLayer( *epsilontLayer, CT_Float, /*size*/1 ) )
+		{
+			continue; // fail this Fusion
+		}
+
+		auto* powLayer = selectOneExactInputLayerRecursive<CPowerLayer>( *reduceMean2Layer );
+		if( powLayer == nullptr
+			|| powLayer->GetExponent() != 2.f
+			|| graph.GetInputCount( *powLayer ) != 1 )
+		{
+			continue; // fail this Fusion
+		}
+
+		COnnxEltwiseLayer* subLayer = nullptr;
+		CCastLayer* unusedCastLayer = selectOneExactInputLayerRecursive<CCastLayer>( *powLayer ); // try to skip CAST layer in operand (1)
+		if( unusedCastLayer != nullptr ) { // success to find the CAST layer as operand (1)
+			if( unusedCastLayer->GetOutputType() != CT_Float
+				|| graph.GetInputCount( *unusedCastLayer ) != 1
+				|| graph.GetOutputCount( *unusedCastLayer ) != 1 )
+			{
+				continue; // fail this Fusion
+			}
+			subLayer = selectOneExactInputLayerRecursive<COnnxEltwiseLayer>( *unusedCastLayer );
+		} else { // fail to find the CAST layer as operand (1)
+			subLayer = selectOneExactInputLayerRecursive<COnnxEltwiseLayer>( *powLayer );
+		}
+		if( subLayer == nullptr
+			|| subLayer->GetOperation() != COnnxEltwiseLayer::TOperation::Sub
+			|| graph.GetInputCount( *subLayer ) != 2 )
+		{
+			continue; // fail this Fusion
+		}
+
+		CGlobalMeanPoolingLayer* reduceMeanLayer = nullptr;
+		CBaseLayer* inputNormLayerX = nullptr;
+		if( !selectTwoExactInputLayersRecursive<CGlobalMeanPoolingLayer, CBaseLayer>( *subLayer, &reduceMeanLayer, &inputNormLayerX )
+			|| graph.GetInputCount( *reduceMeanLayer ) != 1 )
+		{
+			continue; // fail this Fusion
+		}
+
+		// Handle cyclic edges check (1)
+		if( sub2Layer != subLayer ) { // Duplicated sub-layers exported from older version of PyTorch
+			CGlobalMeanPoolingLayer* in1 = nullptr;
+			CBaseLayer *in2 = nullptr;
+			if( !selectTwoExactInputLayersRecursive<CGlobalMeanPoolingLayer, CBaseLayer>( *sub2Layer, &in1, &in2 )
+				|| in1 != reduceMeanLayer
+				|| in2 != inputNormLayerX )
+			{
+				continue; // fail this Fusion
 			}
 		}
-		++normLayersCount;
 
-		// Use 'configureLayerConnection' once to find out the ANN architecture and speed-up the procedure, instead of 'Reshape' each time
-		//Graph.Reshape(); // Check for architecture correctness
-	}
+		// Throw away from the dnn excess transforms as many as I could
+		if ( inputNormLayerX->GetInputCount() == 1 ) {
+			CBaseLayer* transformLayer = inputNormLayerX;
+			while( ( transformLayer = graph.SelectTheOnlyConnectedOutput<COnnxTransformHelper>( *transformLayer ) ) != nullptr ) {
+				inputNormLayerX = transformLayer;
+			}
+		}
+		// Handle cyclic edges check (2)
+		auto* inputReduceMeanLayer = graph.GetConnectedOutput( *reduceMeanLayer, /*inputIndex*/0 ).Layer;
+		if( inputReduceMeanLayer != inputNormLayerX ) {
+			CBaseLayer* transformLayer = reduceMeanLayer;
+			while( ( transformLayer = graph.SelectTheOnlyConnectedOutput<COnnxTransformHelper>( *transformLayer ) ) != nullptr ) {
+				inputReduceMeanLayer = graph.GetConnectedOutput( *transformLayer, /*inputIndex*/0 ).Layer;
+			}
+			if ( inputReduceMeanLayer != inputNormLayerX ) {
+				continue; // fail this Fusion
+			}
+		}
+		// Current Fusion succeed!
+
+		const auto& biasBlob = biasLayer->GetBlob();
+		const auto& scaleBlob = scaleLayer->GetBlob();
+		const auto& epsBlob = epsilontLayer->GetBlob();
+
+		CPtr<CObjectNormalizationLayer> normLayer{ new CObjectNormalizationLayer( graph.MathEngine() ) };
+		normLayer->SetName( graph.GetUniqueName( CString( FusionNamePrefix ) + "ObjNorm_" ) );
+		normLayer->SetBias( biasBlob->GetTransposed( BD_ListSize, BD_Height ) );
+		normLayer->SetScale( scaleBlob->GetTransposed( BD_ListSize, BD_Height ) );
+		normLayer->SetEpsilon( epsBlob->GetData().GetValue() );
+		graph.AddLayer( *normLayer );
+
+		// Layer ObjectNormalization should have some number of objects to reduction ( ObjectCount > 1 && ObjectSize >= 1 ).
+		// Mostly in given ANNs X layer (input of ObjNorm) has Height > 1, so it used to increase the ObjectCount.
+
+		CPtr<CTransposeLayer> layerTransposeBefore{ new CTransposeLayer( graph.MathEngine() ) };
+		layerTransposeBefore->SetName( graph.GetUniqueName( CString( FusionNamePrefix ) + "TransposeBefore_" ) );
+		layerTransposeBefore->SetTransposedDimensions( BD_ListSize, BD_Height );
+		graph.AddLayer( *layerTransposeBefore );
+
+		CPtr<CTransposeLayer> layerTransposeAfter{ new CTransposeLayer( graph.MathEngine() ) };
+		layerTransposeAfter->SetName( graph.GetUniqueName( CString( FusionNamePrefix ) + "TransposeAfter_" ) );
+		layerTransposeAfter->SetTransposedDimensions( BD_ListSize, BD_Height );
+		graph.AddLayer( *layerTransposeAfter );
+
+		graph.Connect( *layerTransposeBefore,/*inputIndex*/0, *inputNormLayerX, /*outputIndex*/0 );
+		graph.Connect( *normLayer, /*inputIndex*/0, *layerTransposeBefore, /*outputIndex*/0 );
+		graph.Connect( *layerTransposeAfter,/*inputIndex*/0, *normLayer, /*outputIndex*/0 );
+
+		// Search for the output-layers of addLayerLast for new added ObjNorm layer
+		graph.SwitchOutputs( *addLayerLast, /*outputIndex*/0, *layerTransposeAfter, /*outputIndex*/0 );
+
+		// All selected layers would be removed from the dnn
+		graph.DeleteSelectedLayers();
+	} //for layers
 }
 
 } // namespace optimization

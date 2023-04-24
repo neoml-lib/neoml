@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -183,9 +183,6 @@ public:
 
 	// Returns the total size of all output blobs together
 	virtual size_t GetOutputBlobsSize() const;
-	virtual const CBlobDesc& GetOutputBlobsDesc( int i ) const { return outputDescs[i]; }
-	virtual size_t GetOutputBlobsCount() const { return outputDescs.Size(); }
-	inline CString GetClassType() const { return GetLayerClass( *this ); }
 
 	// Releases all temporary resources allocated for the layer
 	virtual void CleanUp();
@@ -592,7 +589,6 @@ public:
 	// Enables profiling for all the layers in the network
 	void EnableProfile( bool profile );
 
-	void Reshape() { return reshape(); }
 private:
 	// Adds or deletes a layer
 	void AddLayerImpl(CBaseLayer& layer) override;
