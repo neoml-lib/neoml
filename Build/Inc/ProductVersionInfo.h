@@ -91,7 +91,7 @@
 #endif
 
 #ifndef VERINFO_LEGAL_COPYRIGHT
-#define VERINFO_LEGAL_COPYRIGHT "Copyright © 2016-2020 ABBYY Production LLC. Licensed under the Apache License, Version 2.0\0"
+#define VERINFO_LEGAL_COPYRIGHT "Copyright © 2016-2023 ABBYY. Licensed under the Apache License, Version 2.0\0"
 #endif
 
 #ifndef VERINFO_LEGAL_TRADEMARKS
