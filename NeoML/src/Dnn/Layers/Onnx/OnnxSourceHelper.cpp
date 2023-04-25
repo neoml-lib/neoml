@@ -1,4 +1,4 @@
-/* Copyright © 2017-2022 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,6 +19,12 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/Onnx/OnnxSourceHelper.h>
 
 namespace NeoML {
+
+CPtr<CDnnBlob>& COnnxSourceHelper::Blob()
+{
+	ForceReshape();
+	return blob;
+}
 
 static const int OnnxSourceHelperVersion = 0;
 
