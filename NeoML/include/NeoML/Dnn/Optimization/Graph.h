@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@ namespace optimization {
 // Input of a layer
 template<typename TLayer = CBaseLayer,
 	std::enable_if_t<std::is_base_of<CBaseLayer, TLayer>::value, int> = 0>
-struct CLayerInput {
+struct CLayerInput final {
 	TLayer* Layer = nullptr; // layer which this input belongs to
 	int Index = NotFound; // index of this input
 
@@ -36,13 +36,13 @@ struct CLayerInput {
 
 	template<typename TOtherLayer>
 	bool operator==( const CLayerInput<TOtherLayer>& other ) const
-		{ return static_cast<CBaseLayer*>( Layer ) == static_cast<CBaseLayer*>( other.Layer ) && Index == other.Index; }
+	{ return static_cast<CBaseLayer*>( Layer ) == static_cast<CBaseLayer*>( other.Layer ) && Index == other.Index; }
 };
 
 // Output of a layer
 template<typename TLayer = CBaseLayer,
 	std::enable_if_t<std::is_base_of<CBaseLayer, TLayer>::value, int> = 0>
-struct CLayerOutput {
+struct CLayerOutput final {
 	TLayer* Layer = nullptr; // layer which this output belongs to
 	int Index = NotFound; // index of this output
 
@@ -51,12 +51,12 @@ struct CLayerOutput {
 
 	template<typename TOtherLayer>
 	bool operator==( const CLayerOutput<TOtherLayer>& other ) const
-		{ return static_cast<CBaseLayer*>( Layer ) == static_cast<CBaseLayer*>( other.Layer ) && Index == other.Index; }
+	{ return static_cast<CBaseLayer*>( Layer ) == static_cast<CBaseLayer*>( other.Layer ) && Index == other.Index; }
 };
 
 // This representation of CDnn as a graph
 // Provides better interface for traversing over the graph and graph modifications
-class NEOML_API CGraph {
+class NEOML_API CGraph final {
 public:
 	explicit CGraph( CDnn& dnn );
 	CGraph( const CGraph& ) = delete;
@@ -69,7 +69,7 @@ public:
 	bool HasLayer( const CBaseLayer* layer ) const { return graphLinks.Has( layer ); }
 
 	// Writes pointers of all of the layers of this graph
-	// Be cautious that after graph modification pointers may lead to deleted objects
+	// NOTE: Be cautious that after graph modification pointers may lead to deleted objects
 	void GetLayers( CArray<CBaseLayer*>& layers ) const;
 
 	// Properties of a layer
@@ -82,10 +82,10 @@ public:
 
 	// Connections between layers
 
-	// Returns the output to which the inputLayer's inputIndex'th input is connected
-	// If output layer can't be casted to TOutputLayer then CLayerOutput::Layer == nullptr
+	// Returns the output to which the inputLayer's inputIndex'th input is connected.
+	// If output layer can't be casted to TOutputLayer, then CLayerOutput::Layer == nullptr.
 	template<typename TOutputLayer = CBaseLayer>
-	CLayerOutput<TOutputLayer> GetConnectedOutput( CBaseLayer& inputLayer, int inputIndex ) const;
+	CLayerOutput<TOutputLayer> GetConnectedOutput( const CBaseLayer& inputLayer, int inputIndex ) const;
 
 	// Number of different inputs connected to the outputLayer's outputIndex'th output
 	int GetConnectedInputsCount( const CBaseLayer& outputLayer, int outputIndex ) const;
@@ -135,6 +135,9 @@ public:
 	CLayerOutput<TOutputLayer> SelectConnectedOutput( CBaseLayer& inputLayer, int inputIndex,
 		bool checkOutOfSelectionLinks );
 
+	template<typename TOutLayer>
+	TOutLayer* SelectTheOnlyConnectedOutput( const CBaseLayer& layer, bool checkOutOfSelectionLinks = false );
+
 	// Checks that the layer has 2 inputs, and that those inputs are connected
 	// to outputs of TFirstLayer and TSecondLayer (in any order)
 	// If checkOutOfSelectionLinks == true then it performs additional check
@@ -163,19 +166,18 @@ public:
 	// May return prefix itself (if such name is not used in graph)
 	CString GetUniqueName( const CString& prefix ) const;
 
-	// Switches all the inputs which are connected to the oldOutput
-	// to the newOutput
+	// Switches all the inputs which are connected to the oldOutput to the newOutput
 	void SwitchOutputs( CBaseLayer& oldOutputLayer, int oldOutputIndex,
 		CBaseLayer& newOutputLayer, int newOutputIndex );
 
 private:
 	// Information about all connections of one layer
-	struct CLayerLinks
+	struct CLayerLinks final
 	{
 		// Inputs[i] contains CLayerOutput to which i'th input is connected to
-		CArray<CLayerOutput<>> Inputs;
+		CArray<CLayerOutput<>> Inputs{};
 		// Outputs[i] contains array of CLayerInput connected to i'th output
-		CArray<CArray<CLayerInput<>>> Outputs;
+		CArray<CArray<CLayerInput<>>> Outputs{};
 	};
 
 	// Dnn graph to be modified
@@ -191,7 +193,7 @@ private:
 //---------------------------------------------------------------------------------------------------------------------
 
 template<typename TOutputLayer>
-inline CLayerOutput<TOutputLayer> CGraph::GetConnectedOutput( CBaseLayer& inputLayer, int inputIndex ) const
+inline CLayerOutput<TOutputLayer> CGraph::GetConnectedOutput( const CBaseLayer& inputLayer, int inputIndex ) const
 {
 	const int layerLinksPos = graphLinks.GetFirstPosition( &inputLayer );
 	NeoAssert( layerLinksPos != NotFound );
@@ -201,7 +203,7 @@ inline CLayerOutput<TOutputLayer> CGraph::GetConnectedOutput( CBaseLayer& inputL
 	NeoAssert( inputIndex < layerLinks.Inputs.Size() );
 	CLayerOutput<TOutputLayer> result;
 	result.Layer = dynamic_cast<TOutputLayer*>( layerLinks.Inputs[inputIndex].Layer );
-	result.Index = layerLinks.Inputs[inputIndex].Index;
+	result.Index = result.Layer ? layerLinks.Inputs[inputIndex].Index : NotFound;
 	return result;
 }
 
@@ -213,14 +215,29 @@ inline CLayerOutput<TOutputLayer> CGraph::SelectConnectedOutput( CBaseLayer& inp
 	if( result.Layer == nullptr ) {
 		return result;
 	}
-
 	if( checkOutOfSelectionLinks && !checkOutOfSelectionConnectedInputs( *result.Layer ) ) {
 		result.Layer = nullptr;
 		return result;
 	}
-
 	SelectLayer( *result.Layer );
 	return result;
+}
+
+template<typename TOutLayer>
+inline TOutLayer* CGraph::SelectTheOnlyConnectedOutput( const CBaseLayer& layer, bool checkOutOfSelectionLinks )
+{
+	if( GetInputCount( layer ) != 1 ) {
+		return nullptr;
+	}
+	CLayerOutput<TOutLayer> connectedOutput = GetConnectedOutput<TOutLayer>( layer, /*inputIndex*/0 );
+	if( connectedOutput.Layer == nullptr || IsLayerSelected( *connectedOutput.Layer ) ) {
+		return nullptr;
+	}
+	if( checkOutOfSelectionLinks && !checkOutOfSelectionConnectedInputs( *connectedOutput.Layer ) ) {
+		return nullptr;
+	}
+	SelectLayer( *connectedOutput.Layer );
+	return connectedOutput.Layer;
 }
 
 template<typename TFirstType, typename TSecondType>

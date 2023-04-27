@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -47,18 +47,18 @@ namespace optimization {
 //           |
 //        *output*
 
-class CHardSigmoidOptimizer {
+class CHardSigmoidOptimizer final {
 public:
 	explicit CHardSigmoidOptimizer( NeoML::optimization::CGraph& graph ) :
 		graph( graph )
-	{
-	}
+	{}
 
 	void Apply();
 
 private:
 	NeoML::optimization::CGraph& graph;
 
+	// Checks if data layer is valid for CHardSigmoid conversion
 	bool isValidDataLayer( CDataLayer& dataLayer, float& value ) const;
 };
 
