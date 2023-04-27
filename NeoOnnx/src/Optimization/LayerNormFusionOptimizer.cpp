@@ -15,8 +15,6 @@ limitations under the License.
 
 #pragma once
 
-#include <NeoOnnx/NeoOnnxImport.h>
-#include <NeoML/Dnn/Layers/Onnx/OnnxEltwiseLayer.h>
 #include "Optimization/LayerNormFusionOptimizer.h"
 
 namespace NeoOnnx {
@@ -37,50 +35,49 @@ bool CLayerNormFusionOptimizer::isValidDataLayer( const CDataLayer& dataLayer, T
 		&& ( blobSize == NotFound || blob->GetDataSize() == blobSize ) );
 }
 
-//--------------------------------------------------------------------------------------------------------------
 bool CLayerNormFusionOptimizer::isValidTransformLayer( const COnnxTransformHelper& transformHelperLayer ) const
 {
 	NeoAssert( graph.GetInputCount( transformHelperLayer ) == 1 );
 	NeoAssert( graph.GetOutputCount( transformHelperLayer ) == 1 );
 
-	auto isEmptyRule = [&transformHelperLayer]( TBlobDim index ) -> bool {
-		const TBlobDim value = transformHelperLayer.GetRule( index );
-		return value == index || ( /* invalid-value */ value < 0 || value >= BD_Count );
+	auto checkTransformRule = [&transformHelperLayer]( const int rule[BD_Count] ) -> bool
+	{
+		auto isEmpty = []( int index, int rule ) -> bool { return rule == index || ( /*invalid*/ rule < 0 || rule >= BD_Count ); };
+
+		for( int index = 0; index < BD_Count; ++index ) {
+			const TBlobDim value = transformHelperLayer.GetRule( TBlobDim( index ) );
+			if( value != rule[index] && ( !isEmpty( index, value ) || !isEmpty( index, rule[index] ) ) ) {
+				return false;
+			}
+		}
+		return true;
 	};
 
-	const bool success =
-		( isEmptyRule( BD_BatchLength )
-		&& isEmptyRule( BD_BatchWidth )
-		&& transformHelperLayer.GetRule( BD_ListSize ) == BD_Height
-		&& isEmptyRule( BD_Height )
-		&& isEmptyRule( BD_Width )
-		&& isEmptyRule( BD_Depth )
-		&& isEmptyRule( BD_Channels ) )
-		||
-		( isEmptyRule( BD_BatchLength )
-		&& isEmptyRule( BD_BatchWidth )
-		&& isEmptyRule( BD_ListSize )
-		&& transformHelperLayer.GetRule( BD_Height ) == BD_ListSize
-		&& isEmptyRule( BD_Width )
-		&& isEmptyRule( BD_Depth )
-		&& isEmptyRule( BD_Channels ) )
-		||
-		( transformHelperLayer.GetRule( BD_BatchLength ) == BD_ListSize
-		&& transformHelperLayer.GetRule( BD_BatchWidth ) == BD_Height
-		&& isEmptyRule( BD_ListSize )
-		&& transformHelperLayer.GetRule( BD_Height ) == BD_Channels
-		&& isEmptyRule( BD_Width )
-		&& isEmptyRule( BD_Depth )
-		&& isEmptyRule( BD_Channels ) )
-		||
-		( isEmptyRule( BD_BatchLength )
-		&& isEmptyRule( BD_BatchWidth )
-		&& transformHelperLayer.GetRule( BD_ListSize ) == BD_BatchLength
-		&& transformHelperLayer.GetRule( BD_Height ) == BD_BatchWidth
-		&& isEmptyRule( BD_Width )
-		&& isEmptyRule( BD_Depth )
-		&& transformHelperLayer.GetRule( BD_Channels ) == BD_Height );
-	return success;
+	constexpr int Ls_to_H[BD_Count]{ -1, -1, /*ListSize*/ BD_Height, -1, -1, -1, -1 };
+	constexpr int H_to_Ls[BD_Count]{ -1,  -1,  -1, /*Height*/ BD_ListSize,  -1,  -1,  -1 };
+
+	constexpr int BlBwH_to_LsHC[BD_Count]{ /*BatchLength*/ BD_ListSize, /*BatchWidth*/ BD_Height, -1, /*Height*/ BD_Channels, -1, -1, -1 };
+	constexpr int LsHC_to_BlBwH[BD_Count]{ -1, -1, /*ListSize*/ BD_BatchLength, /*Height*/ BD_BatchWidth, -1, -1, /*Channels*/ BD_Height };
+
+	return checkTransformRule( Ls_to_H )
+		|| checkTransformRule( H_to_Ls )
+		|| checkTransformRule( BlBwH_to_LsHC )
+		|| checkTransformRule( LsHC_to_BlBwH );
+}
+
+bool CLayerNormFusionOptimizer::isValidCastLayer( const CCastLayer& castLayer ) const
+{
+	NeoAssert( graph.GetInputCount( castLayer ) == 1 );
+	NeoAssert( graph.GetOutputCount( castLayer ) == 1 );
+
+	return castLayer.GetOutputType() == CT_Float;
+}
+
+bool CLayerNormFusionOptimizer::isValidArithmeticLayer( const COnnxEltwiseLayer& layer, COnnxEltwiseLayer::TOperation operation ) const
+{
+	return graph.GetInputCount( layer ) == 2
+		&& graph.GetOutputCount( layer ) == 1
+		&& layer.GetOperation() == operation;
 }
 
 //--------------------------------------------------------------------------------------------------------------
@@ -101,9 +98,7 @@ void CLayerNormFusionOptimizer::Apply()
 		// From bottom to upside for graph
 		auto* addLayerLast = getExactLayer<COnnxEltwiseLayer>( layer, /*addToSelection*/true );
 		if( addLayerLast == nullptr
-			|| addLayerLast->GetOperation() != COnnxEltwiseLayer::TOperation::Add
-			|| graph.GetInputCount( *addLayerLast ) != 2
-			|| graph.GetOutputCount( *addLayerLast ) != 1 )
+			|| !isValidArithmeticLayer( *addLayerLast, COnnxEltwiseLayer::TOperation::Add ) )
 		{
 			continue; // fail this Fusion
 		}
@@ -111,8 +106,7 @@ void CLayerNormFusionOptimizer::Apply()
 		CDataLayer* biasLayer = nullptr;
 		COnnxEltwiseLayer* mulLayer = nullptr;
 		if( !selectTwoExactInputLayersRecursive<COnnxEltwiseLayer, CDataLayer>( *addLayerLast, &mulLayer, &biasLayer )
-			|| mulLayer->GetOperation() != COnnxEltwiseLayer::TOperation::Mul
-			|| graph.GetInputCount( *mulLayer ) != 2
+			|| !isValidArithmeticLayer( *mulLayer, COnnxEltwiseLayer::TOperation::Mul )
 			|| !isValidDataLayer( *biasLayer, CT_Float, /*size*/NotFound ) )
 		{
 			continue; // fail this Fusion
@@ -122,25 +116,19 @@ void CLayerNormFusionOptimizer::Apply()
 		COnnxEltwiseLayer* divLayer = nullptr;
 		CCastLayer* uselessCastLayer = nullptr; // try to skip CAST layer as operand (1)
 		if( !selectTwoExactInputLayersRecursive<CCastLayer, CDataLayer>( *mulLayer, &uselessCastLayer, &scaleLayer )
-			|| uselessCastLayer->GetOutputType() != CT_Float
-			|| graph.GetInputCount( *uselessCastLayer ) != 1
-			|| graph.GetOutputCount( *uselessCastLayer ) != 1
+			|| !isValidCastLayer( *uselessCastLayer )
 			|| !isValidDataLayer( *scaleLayer, CT_Float, /*size*/NotFound ) )
 		{
 			scaleLayer = nullptr;
 			uselessCastLayer = nullptr; // try to skip CAST layer as operand (2)
 			if( !selectTwoExactInputLayersRecursive<COnnxEltwiseLayer, CCastLayer>( *mulLayer, &divLayer, &uselessCastLayer )
-				|| divLayer->GetOperation() != COnnxEltwiseLayer::TOperation::Div
-				|| graph.GetInputCount( *divLayer ) != 2
-				|| uselessCastLayer->GetOutputType() != CT_Float
-				|| graph.GetInputCount( *uselessCastLayer ) != 1
-				|| graph.GetOutputCount( *uselessCastLayer ) != 1 )
+				|| !isValidArithmeticLayer( *divLayer, COnnxEltwiseLayer::TOperation::Div )
+				|| !isValidCastLayer( *uselessCastLayer ) )
 			{
 				divLayer = nullptr;
 				uselessCastLayer = nullptr; // no CAST layer as both of operands (3)
 				if( !selectTwoExactInputLayersRecursive<COnnxEltwiseLayer, CDataLayer>( *mulLayer, &divLayer, &scaleLayer )
-					|| divLayer->GetOperation() != COnnxEltwiseLayer::TOperation::Div
-					|| graph.GetInputCount( *divLayer ) != 2
+					|| !isValidArithmeticLayer( *divLayer, COnnxEltwiseLayer::TOperation::Div )
 					|| !isValidDataLayer( *scaleLayer, CT_Float, /*size*/NotFound ) )
 				{
 					continue; // fail this Fusion
@@ -156,8 +144,7 @@ void CLayerNormFusionOptimizer::Apply()
 		} else { // success to find the CAST layer as operand (1)
 			divLayer = selectOneExactInputLayerRecursive<COnnxEltwiseLayer>( *uselessCastLayer );
 			if( divLayer == nullptr
-				|| divLayer->GetOperation() != COnnxEltwiseLayer::TOperation::Div
-				|| graph.GetInputCount( *divLayer ) != 2 )
+				|| !isValidArithmeticLayer( *divLayer, COnnxEltwiseLayer::TOperation::Div ) )
 			{
 				continue; // fail this Fusion
 			}
@@ -174,8 +161,7 @@ void CLayerNormFusionOptimizer::Apply()
 
 		auto* addLayer = selectOneExactInputLayerRecursive<COnnxEltwiseLayer>( *sqrtLayer );
 		if( addLayer == nullptr
-			|| addLayer->GetOperation() != COnnxEltwiseLayer::TOperation::Add
-			|| graph.GetInputCount( *addLayer ) != 2 )
+			|| !isValidArithmeticLayer( *addLayer, COnnxEltwiseLayer::TOperation::Add ) )
 		{
 			continue; // fail this Fusion
 		}
@@ -200,10 +186,7 @@ void CLayerNormFusionOptimizer::Apply()
 		COnnxEltwiseLayer* subLayer = nullptr;
 		CCastLayer* unusedCastLayer = selectOneExactInputLayerRecursive<CCastLayer>( *powLayer ); // try to skip CAST layer in operand (1)
 		if( unusedCastLayer != nullptr ) { // success to find the CAST layer as operand (1)
-			if( unusedCastLayer->GetOutputType() != CT_Float
-				|| graph.GetInputCount( *unusedCastLayer ) != 1
-				|| graph.GetOutputCount( *unusedCastLayer ) != 1 )
-			{
+			if( !isValidCastLayer( *unusedCastLayer ) ) {
 				continue; // fail this Fusion
 			}
 			subLayer = selectOneExactInputLayerRecursive<COnnxEltwiseLayer>( *unusedCastLayer );
@@ -211,8 +194,7 @@ void CLayerNormFusionOptimizer::Apply()
 			subLayer = selectOneExactInputLayerRecursive<COnnxEltwiseLayer>( *powLayer );
 		}
 		if( subLayer == nullptr
-			|| subLayer->GetOperation() != COnnxEltwiseLayer::TOperation::Sub
-			|| graph.GetInputCount( *subLayer ) != 2 )
+			|| !isValidArithmeticLayer( *subLayer, COnnxEltwiseLayer::TOperation::Sub ) )
 		{
 			continue; // fail this Fusion
 		}

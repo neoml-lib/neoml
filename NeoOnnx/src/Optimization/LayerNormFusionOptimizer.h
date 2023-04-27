@@ -17,6 +17,7 @@ limitations under the License.
 
 #include <type_traits>
 #include "Optimization/Graph.h"
+#include <NeoML/Dnn/Layers/Onnx/OnnxEltwiseLayer.h>
 #include <NeoML/Dnn/Layers/Onnx/OnnxTransformHelper.h>
 
 namespace NeoOnnx {
@@ -97,6 +98,10 @@ private:
 	bool isValidDataLayer( const CDataLayer& dataLayer, TBlobType blobType, int blobSize = NotFound ) const;
 	// Checks if TransformHelperLayer is valid for CLayerNormFusionOptimizer conversion
 	bool isValidTransformLayer( const COnnxTransformHelper& transformHelperLayer ) const;
+	// Checks if CastLayer is valid for CLayerNormFusionOptimizer conversion
+	bool isValidCastLayer( const CCastLayer& castLayer ) const;
+	// Checks if COnnxEltwiseLayer is valid for CLayerNormFusionOptimizer conversion
+	bool isValidArithmeticLayer( const COnnxEltwiseLayer& layer, COnnxEltwiseLayer::TOperation operation ) const;
 
 	// Get typed pointer to current 'layer' in the 'graph' (only if its typ is 'TLayer'), else returns nullptr.
 	// If 'addToSelectedLayers' is true, also it adds this layer to 'graph.selection'.
