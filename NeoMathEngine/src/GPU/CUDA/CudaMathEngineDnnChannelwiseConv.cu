@@ -149,7 +149,7 @@ void CCudaMathEngine::ChannelwiseWith1x1( const CBlobDesc& inputDesc, const CBlo
 
 	BlobChannelwiseConvolution( convDesc, inputHandle, channelwiseFilter, channelwiseFreeTerm, channelwiseOutput );
 	if( activation == AF_HSwish ) {
-		VectorHSwish( channelwiseOutput, channelwiseOutput, desc.Source.BlobSize() );
+		VectorHSwish( channelwiseOutput, channelwiseOutput, channelwiseOutput.Size() );
 	} else if( activation == AF_ReLU ) {
 		CFloatHandleStackVar reLUThreshold( *this );
 		reLUThreshold.GetHandle().SetValue( activationParam );
@@ -209,7 +209,7 @@ void CCudaMathEngine::MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobD
 
 	BlobChannelwiseConvolution( convDesc, channelwiseInput, channelwiseFilter, channelwiseFreeTerm, channelwiseOutput );
 	if( channelwiseActivation == AF_HSwish ) {
-		VectorHSwish( channelwiseOutput, channelwiseOutput, channelwiseInput.Size() );
+		VectorHSwish( channelwiseOutput, channelwiseOutput, channelwiseOutput.Size() );
 	} else if( channelwiseActivation == AF_ReLU ) {
 		CFloatHandleStackVar channelwiseReLUThreshold( *this );
 		channelwiseReLUThreshold.GetHandle().SetValue( channelwiseActivationParam );
