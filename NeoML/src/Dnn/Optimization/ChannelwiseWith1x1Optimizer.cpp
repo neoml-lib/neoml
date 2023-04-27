@@ -79,7 +79,7 @@ int CChannelwiseWith1x1Optimizer::optimizeNonResidualBlocks()
 			channelwise->GetStrideHeight(), channelwise->GetFilterData(), channelwise->GetFreeTermData(),
 			dynamic_cast<IActivationLayer*>( channelwiseActivation )->GetDesc(), downConv->GetFilterData(),
 			downConv->GetFreeTermData(), false );
-		mobileNetV2Block->SetName( graph.GetUniqueName( "MobiletNetV2Block" ) );
+		mobileNetV2Block->SetName( graph.GetUniqueName( "MobileNetV2Block" ) );
 		graph.AddLayer( *mobileNetV2Block );
 		graph.Connect( *mobileNetV2Block, 0, *mobileNetBlockData.Layer, mobileNetBlockData.Index );
 		graph.SwitchOutputs( *downConv, 0, *mobileNetV2Block, 0 );
@@ -144,7 +144,7 @@ int CChannelwiseWith1x1Optimizer::optimizeResidualConnections()
 	return blocksOptimized;
 }
 
-// Checks that CConvLayer meets the criteria of 1x1 convolution inside MobiletNetV2 block
+// Checks that CConvLayer meets the criteria of 1x1 convolution inside MobileNetV2 block
 bool CChannelwiseWith1x1Optimizer::isValid1x1Conv( CConvLayer& conv ) const
 {
 	return graph.GetInputCount( conv ) == 1 && conv.GetFilterHeight() == 1 && conv.GetFilterWidth() == 1
@@ -152,7 +152,7 @@ bool CChannelwiseWith1x1Optimizer::isValid1x1Conv( CConvLayer& conv ) const
 		&& conv.GetStrideWidth() == 1;
 }
 
-// Checks that layer meets the criteria for activation function inside MobiletNetV2 block
+// Checks that layer meets the criteria for activation function inside MobileNetV2 block
 bool CChannelwiseWith1x1Optimizer::isValidActivation( CBaseLayer& layer ) const
 {
 	return ( dynamic_cast<CReLULayer*>( &layer ) != nullptr || dynamic_cast<CHSwishLayer*>( &layer ) != nullptr )

@@ -269,7 +269,7 @@ INSTANTIATE_TEST_CASE_P( CMathEngineBlobChannelwiseConvolutionTestInstantiation,
 	)
 );
 
-INSTANTIATE_TEST_CASE_P(CMobiletNetV3Channelwise5x5, CMathEngineBlobChannelwiseConvolutionTest,
+INSTANTIATE_TEST_CASE_P(CMobileNetV3Channelwise5x5, CMathEngineBlobChannelwiseConvolutionTest,
 	::testing::Values(
 		CTestParams(
 			"InputHeight = 8;"
