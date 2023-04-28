@@ -588,11 +588,7 @@ void CRingBuffer::PopFront( int numItemsToPop )
 
 int CRingBuffer::GetNumItemsToAdd( int maxNeedItems ) const
 {
-	if( size == 0 ) {
-		ASSERT_EXPR( maxNeedItems > 0 && maxNeedItems <= capacity );
-		return maxNeedItems;
-	}
-	const auto numItemsToAdd = ( endPos >= startPos ) ? ( capacity - endPos ) : ( startPos - endPos );
+	const auto numItemsToAdd = ( size == 0 ) ? maxNeedItems : ( ( endPos >= startPos ) ? ( capacity - endPos ) : ( startPos - endPos ) );
 	ASSERT_EXPR( numItemsToAdd > 0 && numItemsToAdd <= ( capacity - size ) );
 	return std::min( maxNeedItems, numItemsToAdd );
 }
@@ -625,17 +621,34 @@ void CCpuMathEngine::blobConvolutionBackwardAlgo1( const CCpuConvolutionDesc& de
 	const int resultRowSize = result.Width() * resultItemSize;
 	const int resultRowsCount = result.ObjectCount() * result.Height();
 
+	// dilation == 1
+	const int filterChannels = filter.Depth() * filter.Channels();
+	const int filterRowSize = filter.Width() * filterChannels;
+	const int filterColMin = -desc.PaddingWidth;
+	const int filterColMax = result.Width() + desc.PaddingWidth - filter.Width();
+	const int sourceRowStartShift = desc.PaddingHeight - filter.Height() + desc.StrideHeight;
+	const int filterRowStartShift = filter.Height() - result.Height() - desc.PaddingHeight;
+
+	// dilation > 1
+	const int totalFilterHeight = ( filter.Height() - 1 ) * desc.DilationHeight + 1;
+	const int totalFilterWidth = ( filter.Width() - 1 ) * desc.DilationWidth + 1;
+	const int leftPosMin = -desc.PaddingWidth;
+	const int leftPosMax = result.Width() + desc.PaddingWidth - totalFilterWidth;
+	const int topPosMaxValShift = result.Height() + desc.PaddingHeight - totalFilterHeight;
+	const int filterRowShift = filter.Width() * resultItemSize;
+
+	// Raw data
 	const float* filterRaw = GetRaw( filterData );
 	const float* sourceRaw = GetRaw( sourceData );
 	float* resultRaw = GetRaw( resultData );
 
 	const int ringBufRowSize = source.Width() * filterObjectSize;
 	// Minimum possible size of the ring-buffer
-	const int ringBufNeedNumRows = std::max( 1, ( filter.Height() * desc.DilationHeight + desc.StrideHeight - 1 ) / desc.StrideHeight );
+	const int ringBufNeedNumRows = std::max( 1, ( filter.Height() * desc.DilationHeight + desc.StrideHeight ) / desc.StrideHeight );
 
-	constexpr int MaxCacheFitSize = 16 * 1024; // Empirical evaluated constant
+	constexpr int maxCacheFitSize = 16 * 1024; // Empirical evaluated constant
 	// Recommended size of the ring-buffer to cache-fit
-	const int ringBufRealNumRows = std::max( ringBufNeedNumRows, std::min( source.Height(), MaxCacheFitSize / ringBufRowSize ) );
+	const int ringBufRealNumRows = std::max( ringBufNeedNumRows, std::min( source.Height(), maxCacheFitSize / ringBufRowSize ) );
 
 	auto updateRingBuf = [&]( CRingBuffer& ringBuf, int batch, int sourceRowStart, int& prevBatchedSourceRowStart )
 	{
@@ -669,7 +682,7 @@ void CCpuMathEngine::blobConvolutionBackwardAlgo1( const CCpuConvolutionDesc& de
 		}
 	}; //updateRingBuf
 
-	const int curThreadsCount = IsOmpRelevant( resultRowsCount, static_cast<int64_t>( source.ObjectCount() ) * filter.ObjectSize() ) ? threadCount : 1;
+	const int curThreadsCount = IsOmpRelevant( resultRowsCount, static_cast<int64_t>( source.ObjectCount() ) * filterObjectSize ) ? threadCount : 1;
 
 	// Container of temporal memory in stack
 	const int ringBufBytesSize = ringBufRealNumRows * ringBufRowSize;
@@ -699,11 +712,8 @@ void CCpuMathEngine::blobConvolutionBackwardAlgo1( const CCpuConvolutionDesc& de
 			const int row = resultRow % result.Height();
 
 			if( desc.DilationHeight == 1 && desc.DilationWidth == 1 ) {
-				const int filterChannels = filter.Depth() * filter.Channels();
-				const int filterRowSize = filter.Width() * filterChannels;
-
 				// Find all filters that affect the row
-				const int sourceRowStart = std::max( 0, ( row + desc.PaddingHeight - filter.Height() + desc.StrideHeight ) / desc.StrideHeight );
+				const int sourceRowStart = std::max( 0, ( row + sourceRowStartShift ) / desc.StrideHeight );
 				const int filterRowEnd = row - sourceRowStart * desc.StrideHeight + desc.PaddingHeight;
 				if( 0 > filterRowEnd || filterRowEnd >= filter.Height() ) {
 					continue;
@@ -711,56 +721,55 @@ void CCpuMathEngine::blobConvolutionBackwardAlgo1( const CCpuConvolutionDesc& de
 
 				updateRingBuf( ringBuf, batch, sourceRowStart, prevBatchedSourceRowStart );
 
-				const int filterRowStart = std::max( 0, row + filter.Height() - result.Height() - desc.PaddingHeight );
+				const int filterRowStart = std::max( 0, row + filterRowStartShift );
 				int sourceRow = 0;
 				for( int filterRow = filterRowEnd; filterRow >= filterRowStart; filterRow -= desc.StrideHeight, ++sourceRow ) {
+					const int tempOffset = ringBuf.GetSourceRowOffset( sourceRow ) * ringBufRowSize + filterRow * filterRowSize;
 					// The temp blob stores the filter rows multiplied by source; add them to the result rows in correct positions
-					const float* tempRowData = ringBuf.GetRaw( ( ringBuf.GetSourceRowOffset( sourceRow ) * source.Width() * filter.Height() + filterRow ) * filterRowSize );
-					for( int filterColumn = -desc.PaddingWidth; filterColumn <= result.Width() + desc.PaddingWidth - filter.Width(); filterColumn += desc.StrideWidth ) {
-						const int toCopy = std::min( filter.Width() + std::min( 0, filterColumn ), result.Width() - std::max( 0, filterColumn ) ) * filterChannels;
+					const float* tempRowData = ringBuf.GetRaw( tempOffset );
+					for( int filterColumn = filterColMin; filterColumn <= filterColMax; filterColumn += desc.StrideWidth, tempRowData += filterObjectSize ) {
+						const int minFilterColumn0 = std::min( 0, filterColumn );
+						const int maxFilterColumn0 = std::max( 0, filterColumn );
+						const int toCopy = std::min( filter.Width() + minFilterColumn0, result.Width() - maxFilterColumn0 );
 						if( toCopy > 0 ) {
-							float* resultPtr = resultDataPtr + std::max( 0, filterColumn ) * filterChannels;
-							const int tempRowDataShift = std::max( 0, -filterColumn ) * filterChannels;
-							vectorAdd( resultPtr, tempRowData + tempRowDataShift, resultPtr, toCopy * filterChannels );
+							float* resultPtr = resultDataPtr + maxFilterColumn0 * filterChannels;
+							vectorAdd( resultPtr, tempRowData - minFilterColumn0 * filterChannels, resultPtr, toCopy * filterChannels );
 						}
-						tempRowData += filterObjectSize;
 					} //filterColumn
 				} //filterRow
 			} else { //dilation
-				const int totalFilterHeight = ( filter.Height() - 1 ) * desc.DilationHeight + 1;
-				const int totalFilterWidth = ( filter.Width() - 1 ) * desc.DilationWidth + 1;
-
 				const int topPosMin = std::max( row - totalFilterHeight + 1, -desc.PaddingHeight );
-				const int topPosMax = std::min( row, result.Height() + desc.PaddingHeight - totalFilterHeight );
+				const int topPosMax = std::min( row, topPosMaxValShift );
 				const int sourceRowStart = std::max( 0, ( topPosMin + desc.PaddingHeight ) / desc.StrideHeight );
 
 				updateRingBuf( ringBuf, batch, sourceRowStart, prevBatchedSourceRowStart );
 
 				// Iterate through the filter top positions, starting to apply the filter once we intersect with the current row
 				for( int topPos = topPosMin; topPos <= topPosMax; ++topPos ) {
-					if( ( topPos + desc.PaddingHeight ) % desc.StrideHeight != 0 ) {
+					const int topPosPlusPaddingH = topPos + desc.PaddingHeight;
+					if( topPosPlusPaddingH % desc.StrideHeight != 0 ) {
 						// This position couldn't have been the filter top row
 						continue;
 					}
-					if( ( row - topPos ) % desc.DilationHeight != 0 ) {
+					const int rowMinusTopPos = row - topPos;
+					if( rowMinusTopPos % desc.DilationHeight != 0 ) {
 						// The filter that starts here doesn't intersect with the current row
 						continue;
 					}
 					// Find all filters that affect the row
-					const int filterRow = ( row - topPos ) / desc.DilationHeight; // The current filter row
-					const int sourceVPos = std::max( 0, ( topPos + desc.PaddingHeight ) / desc.StrideHeight ) - sourceRowStart;
-					int sourceHPos = 0;
+					const int filterRow = rowMinusTopPos / desc.DilationHeight; // The current filter row
+					const int sourceRow = std::max( 0, topPosPlusPaddingH / desc.StrideHeight ) - sourceRowStart;
+					// The pointer to the filter data at (topPos, leftPos) position
+					const int tempOffset = ringBuf.GetSourceRowOffset( sourceRow ) * ringBufRowSize + filterRow * filterRowShift;
+					const float* tempRowData = ringBuf.GetRaw( tempOffset );
 					// Iterate through the filter left positions
-					for( int leftPos = -desc.PaddingWidth; leftPos + totalFilterWidth <= result.Width() + desc.PaddingWidth; leftPos += desc.StrideWidth, ++sourceHPos ) {
-						// The pointer to the filter data at (topPos, leftPos) position
-						const float* tempData = ringBuf.GetRaw( ( ringBuf.GetSourceRowOffset( sourceVPos ) * source.Width() + sourceHPos ) * filterObjectSize );
+					for( int leftPos = leftPosMin; leftPos <= leftPosMax; leftPos += desc.StrideWidth, tempRowData += filterObjectSize ) {
 						// Apply the filter row starting at (topPos, leftPos) to the current row
 						for( int filterColumn = 0; filterColumn < filter.Width(); ++filterColumn ) {
 							const int resultColumn = leftPos + filterColumn * desc.DilationWidth;
 							if( 0 <= resultColumn && resultColumn < result.Width() ) {
-								float* resultVector = resultDataPtr + resultColumn * resultItemSize;
-								const float* tempVector = tempData + ( filterRow * filter.Width() + filterColumn ) * resultItemSize;
-								vectorAdd( resultVector, tempVector, resultVector, resultItemSize );
+								float* resultPtr = resultDataPtr + resultColumn * resultItemSize;
+								vectorAdd( resultPtr, tempRowData + filterColumn * resultItemSize, resultPtr, resultItemSize );
 							}
 						} //filterColumn
 					} //leftPos
@@ -808,16 +817,16 @@ void CCpuMathEngine::fillTempBlobsForLearnAlgo2( const CCpuConvolutionDesc& desc
 void CCpuMathEngine::blobConvolutionBackwardAlgo2( const CCpuConvolutionDesc& desc, const CConstFloatHandle& sourceData,
 	const CConstFloatHandle& filterData, const CConstFloatHandle* freeTerm, const CFloatHandle& resultData )
 {
+	const CBlobDesc& filter = desc.Filter;
+	const CBlobDesc& result = desc.Source;
+	const CBlobDesc& source = desc.Result;
+
 	ASSERT_EXPR( desc.StrideHeight == 1 );
 	ASSERT_EXPR( desc.StrideWidth == 1 );
 	ASSERT_EXPR( desc.PaddingHeight == 0 );
 	ASSERT_EXPR( desc.PaddingWidth == 0 );
 	ASSERT_EXPR( desc.DilationHeight == 1 );
 	ASSERT_EXPR( desc.DilationWidth == 1 );
-
-	const CBlobDesc& filter = desc.Filter;
-	const CBlobDesc& result = desc.Source;
-	const CBlobDesc& source = desc.Result;
 
 	CBlobDesc tempBlobDesc( CT_Float );
 	createTempBlobsLearnAlgo2( source, filter, tempBlobDesc );
