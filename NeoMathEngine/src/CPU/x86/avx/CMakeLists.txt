@@ -25,8 +25,10 @@ target_sources(${PROJECT_NAME}
     ./src/BlobConvolution_jit_FltCnt_18.inl
     ./src/BlobConvolution_jit_FltCnt_24.inl
     ./src/BlobConvolution_jit_FltCnt_32.inl
+    ./src/BlobBlockedConvolution.cpp
     ./src/PrimitivesJit.h
     ./src/AvxCommon.h
+    ./src/AvxMathEngine.h
     ./src/JitCommon.h
     ./src/MatrixMultiplyingInterleaved/Interleavers/Interleavers.h
     ./src/MatrixMultiplyingInterleaved/MicroKernels/Kernel_AVX_6x16.h

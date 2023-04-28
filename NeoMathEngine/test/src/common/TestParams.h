@@ -31,10 +31,12 @@ struct CInterval {
 
 class CTestParams {
 public:
-	explicit CTestParams( const std::string& str );
-	CTestParams( const CTestParams& other );
+	explicit CTestParams( const std::string& str, const std::string& testName = "");
+	CTestParams( const CTestParams& other ) = default;
 
-	CTestParams& operator=( const CTestParams& other );
+	CTestParams& operator=( const CTestParams& other ) = default;
+
+	const std::string& Name() const { return testName; }
 
 	std::string GetStrValue( const std::string& key ) const;
 
@@ -49,6 +51,7 @@ public:
 	friend ::std::ostream& operator<<( ::std::ostream& os, const CTestParams& params );
 
 private:
+	std::string testName;
 	std::unordered_map<std::string, std::string> flags;
 
 	CInterval parseInterval( const std::string& stringValue ) const;
