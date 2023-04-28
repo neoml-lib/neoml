@@ -140,14 +140,14 @@ void CInterpolationLayer::RunOnce()
 				--nontrivialDims;
 				const float scale = rules[i].Type == TRuleType::Scale ? rules[i].ScaleCoeff
 					: static_cast<float>( newSize ) / oldSize;
-				MathEngine().LinearInterpolation( currInput, currOutput, coords, round,
-					objectCount, oldSize, objectSize, scale );
+				MathEngine().LinearInterpolation( currInput,
+					nontrivialDims != 0 ? currOutput : outputBlobs[0]->GetData(),
+					coords, round, objectCount, oldSize, objectSize, scale );
 				currInput = currOutput;
 				currOutput = nontrivialDims % 2 == 0 ? buffer.GetHandle() : buffer.GetHandle() + halfBuffer;
 			}
 			objectCount *= newSize;
 		}
-		MathEngine().VectorCopy( outputBlobs[0]->GetData(), currInput, outputBlobs[0]->GetDataSize() );
 	}
 }
 
