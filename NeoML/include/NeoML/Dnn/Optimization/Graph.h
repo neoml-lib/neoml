@@ -37,6 +37,9 @@ struct CLayerInput final {
 	template<typename TOtherLayer>
 	bool operator==( const CLayerInput<TOtherLayer>& other ) const
 	{ return static_cast<CBaseLayer*>( Layer ) == static_cast<CBaseLayer*>( other.Layer ) && Index == other.Index; }
+	template<typename TOtherLayer>
+	bool operator!=( const CLayerInput<TOtherLayer>& other ) const
+	{ return !( *this == other ); }
 };
 
 // Output of a layer
@@ -49,9 +52,15 @@ struct CLayerOutput final {
 	CLayerOutput( TLayer* layer, int index ) : Layer( layer ), Index( index ) {}
 	CLayerOutput() = default;
 
+	void Clear()
+	{ Layer = nullptr; Index = NotFound; }
+
 	template<typename TOtherLayer>
 	bool operator==( const CLayerOutput<TOtherLayer>& other ) const
 	{ return static_cast<CBaseLayer*>( Layer ) == static_cast<CBaseLayer*>( other.Layer ) && Index == other.Index; }
+	template<typename TOtherLayer>
+	bool operator!=( const CLayerOutput<TOtherLayer>& other ) const
+	{ return !( *this == other ); }
 };
 
 // This representation of CDnn as a graph
