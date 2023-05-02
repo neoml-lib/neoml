@@ -74,15 +74,15 @@ int CChannelwiseWith1x1Optimizer::optimizeNonResidualBlocks()
 			continue;
 		}
 
-		CLayerOutput<> mobileNetBlockData = graph.GetConnectedOutput<>( *channelwise, 0 );
-		CPtr<CChannelwiseWith1x1Layer> mobileNetV2Block = new CChannelwiseWith1x1Layer( graph.MathEngine(),
+		CLayerOutput<> channelwiseWith1x1Data = graph.GetConnectedOutput<>( *channelwise, 0 );
+		CPtr<CChannelwiseWith1x1Layer> channelwiseWith1x1 = new CChannelwiseWith1x1Layer( graph.MathEngine(),
 			channelwise->GetStrideHeight(), channelwise->GetFilterData(), channelwise->GetFreeTermData(),
 			dynamic_cast<IActivationLayer*>( channelwiseActivation )->GetDesc(), downConv->GetFilterData(),
 			downConv->GetFreeTermData(), false );
-		mobileNetV2Block->SetName( graph.GetUniqueName( "MobileNetV2Block" ) );
-		graph.AddLayer( *mobileNetV2Block );
-		graph.Connect( *mobileNetV2Block, 0, *mobileNetBlockData.Layer, mobileNetBlockData.Index );
-		graph.SwitchOutputs( *downConv, 0, *mobileNetV2Block, 0 );
+		channelwiseWith1x1->SetName( graph.GetUniqueName( "ChannelwiseWith1x1" ) );
+		graph.AddLayer( *channelwiseWith1x1 );
+		graph.Connect( *channelwiseWith1x1, 0, *channelwiseWith1x1Data.Layer, channelwiseWith1x1Data.Index );
+		graph.SwitchOutputs( *downConv, 0, *channelwiseWith1x1, 0 );
 		graph.DeleteSelectedLayers();
 		blocksOptimized++;
 	}
@@ -119,21 +119,21 @@ int CChannelwiseWith1x1Optimizer::optimizeResidualConnections()
 		}
 
 		for( int i = 0; i < 2; ++i ) {
-			CChannelwiseWith1x1Layer* mobileNetV2Block = graph.GetConnectedOutput<CChannelwiseWith1x1Layer>(
+			CChannelwiseWith1x1Layer* channelwiseWith1x1 = graph.GetConnectedOutput<CChannelwiseWith1x1Layer>(
 				*layer, i ).Layer;
-			if( mobileNetV2Block == nullptr || graph.GetInputCount( *mobileNetV2Block ) != 1
-				|| graph.GetOutputCount( *mobileNetV2Block ) != 1
-				|| graph.GetConnectedInputsCount( *mobileNetV2Block, 0 ) != 1
-				|| mobileNetV2Block->Residual() )
+			if( channelwiseWith1x1 == nullptr || graph.GetInputCount( *channelwiseWith1x1 ) != 1
+				|| graph.GetOutputCount( *channelwiseWith1x1 ) != 1
+				|| graph.GetConnectedInputsCount( *channelwiseWith1x1, 0 ) != 1
+				|| channelwiseWith1x1->Residual() )
 			{
 				continue;
 			}
 
-			CLayerOutput<> mobileNetBlockData = graph.GetConnectedOutput<>( *mobileNetV2Block, 0 );
+			CLayerOutput<> channelwiseWith1x1Data = graph.GetConnectedOutput<>( *channelwiseWith1x1, 0 );
 			CLayerOutput<> otherResidualData = graph.GetConnectedOutput<>( *layer, 1 - i );
-			if( mobileNetBlockData == otherResidualData ) {
-				graph.SwitchOutputs( *layer, 0, *mobileNetV2Block, 0 );
-				mobileNetV2Block->SetResidual( true );
+			if( channelwiseWith1x1Data == otherResidualData ) {
+				graph.SwitchOutputs( *layer, 0, *channelwiseWith1x1, 0 );
+				channelwiseWith1x1->SetResidual( true );
 				graph.DeleteLayer( *layer );
 				++blocksOptimized;
 				break;
