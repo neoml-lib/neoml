@@ -79,7 +79,7 @@ void CPyBytePairEncoder::Train( py::dict dictionary, int maxVocabSize,
 		
 		CSubwordEncoderTrainer trainer( maxVocabSize, CSubwordEncoderTrainer::TAlgorithm::BPE, border, pruning );
 		trainer.SetUnknownTokenId( unknownTokenId );
-		encoder = trainer.Train( dictionaryRaw );
+		encoder = CheckCast<IBytePairEncoder>( trainer.Train( dictionaryRaw ) );
 	}
 }
 

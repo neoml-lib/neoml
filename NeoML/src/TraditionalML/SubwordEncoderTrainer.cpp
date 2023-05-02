@@ -37,11 +37,11 @@ CSubwordEncoderTrainer::~CSubwordEncoderTrainer()
 	delete bpeTrainer;
 }
 
-void CSubwordEncoderTrainer::SetCharacterCoverage( double fraction )
+void CSubwordEncoderTrainer::SetCharacterCoverage( double value )
 {
 	NeoAssert( vocabPruning == TVocabPruning::Coverage );
-	NeoAssert( fraction > 0 );
-	coverage = fraction;
+	NeoAssert( value > 0 );
+	coverage = value;
 }
 
 void CSubwordEncoderTrainer::SetMandatoryChars( const CArray<CString>& chars )
@@ -69,6 +69,7 @@ CPtr<ISubwordEncoder> CSubwordEncoderTrainer::Train( const CWordDictionary& freq
 	for( const auto& token : mandatoryTokens ) {
 		charDict.AddWord( token );
 	}
+	NeoAssert( charDict.Size() < desiredVocabSize );
 
 	bpeTrainer = new CBpeTrainer( desiredVocabSize, borderHandling, vocabPruning == TVocabPruning::ByteBPE, encoderUnkTokenId );
 	return bpeTrainer->Train( frequencyDict, charDict ).Ptr();

@@ -268,6 +268,9 @@ CString CBpeTrainer::mergeText( const CCandidatePair& pair ) const
 // subtract pair from the statistics
 void CBpeTrainer::deletePair( const CCandidatePair& pair, int wordId, int64_t wordCount )
 {
+	if( vocabulary[pair.Left].IsUnk || vocabulary[pair.Right].IsUnk ) {
+		return;
+	}
 	const auto mpData = candidates.GetFirstPosition( pair );
 	NeoAssert( mpData != NotFound );
 	CCandidateData& pairData = candidates.GetValue( mpData );
@@ -301,7 +304,7 @@ void CBpeTrainer::updateStatistics( const CCandidateData& newTokenData, int newT
 	}
 }
 
-// O(len(word)): walk and find new token positions, update counts
+// O(len(word) ^ 2): find and replace pairs with new token, update counts
 // Words are usually not really long, and become shorter during training. Furthermore, CMap is memory-expensive.
 void CBpeTrainer::updateOneWordStatistics( const CCandidateData& newTokenData, int newTokenId,
 	CArray<int>& word, int wordId, int newTokenCountInThisWord )
