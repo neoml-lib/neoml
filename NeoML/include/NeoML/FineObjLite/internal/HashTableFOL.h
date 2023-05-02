@@ -146,7 +146,6 @@ inline int CDefaultHash<CString>::HashKey( const CString& str )
 		ptr++;
 	}
 	return result;
-	// Why not GetMBCStringHash( string ) here?
 }
 
 template<> 

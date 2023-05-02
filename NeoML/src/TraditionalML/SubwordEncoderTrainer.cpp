@@ -39,13 +39,14 @@ CSubwordEncoderTrainer::~CSubwordEncoderTrainer()
 
 void CSubwordEncoderTrainer::SetCharacterCoverage( double fraction )
 {
+	NeoAssert( vocabPruning == TVocabPruning::Coverage );
 	NeoAssert( fraction > 0 );
 	coverage = fraction;
 }
 
 void CSubwordEncoderTrainer::SetMandatoryChars( const CArray<CString>& chars )
 {
-	NeoAssert( vocabPruning== TVocabPruning::Coverage );
+	NeoAssert( vocabPruning == TVocabPruning::Coverage );
 	NeoAssert( chars.Size() < desiredVocabSize );
 	for( const CString& s : chars ) {
 		NeoAssert( GetUtf8CharLength( s[0] ) == s.Length() );
@@ -59,7 +60,7 @@ void CSubwordEncoderTrainer::SetUnknownTokenId( int value )
 	encoderUnkTokenId = value;
 }
 
-CPtr<IBytePairEncoder> CSubwordEncoderTrainer::Train( const CWordDictionary& frequencyDict )
+CPtr<ISubwordEncoder> CSubwordEncoderTrainer::Train( const CWordDictionary& frequencyDict )
 {
 	CWordDictionary charDict = ( vocabPruning == TVocabPruning::ByteBPE ) ?
 		getAllBytesDictionary() :
@@ -70,7 +71,7 @@ CPtr<IBytePairEncoder> CSubwordEncoderTrainer::Train( const CWordDictionary& fre
 	}
 
 	bpeTrainer = new CBpeTrainer( desiredVocabSize, borderHandling, vocabPruning == TVocabPruning::ByteBPE, encoderUnkTokenId );
-	return bpeTrainer->Train( frequencyDict, charDict );
+	return bpeTrainer->Train( frequencyDict, charDict ).Ptr();
 }
 
 // returns a dictionary of single letters found in 'trainData'

@@ -21,4 +21,3 @@ namespace NeoML {
 int GetUtf8CharLength( char c );
 
 } // namespace NeoML
-

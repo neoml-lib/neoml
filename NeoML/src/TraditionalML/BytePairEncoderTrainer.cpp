@@ -31,7 +31,8 @@ static const CString SpSpaceStr( "\xE2\x96\x81" );
 //--------------------
 
 CBpeTrainer::CCandidatePair::CCandidatePair( int left, int right ) :
-	Left( left ), Right( right )
+	Left( left ),
+	Right( right )
 {
 	NeoAssert( left != NotFound );
 	NeoAssert( right != NotFound );
@@ -63,7 +64,6 @@ bool CBpeTrainer::CCandidateDataComparator::Predicate( const CCandidateData* fir
 		return first->QueueCount < second->QueueCount;
 	}
 
-
 	// < by length
 	const int firstLength = first->Text.Length();
 	const int secondLength = second->Text.Length();
@@ -80,7 +80,10 @@ bool CBpeTrainer::CCandidateDataComparator::Predicate( const CCandidateData* fir
 //--------------------
 
 CBpeTrainer::CBpeTrainer( int vocabSize, CSubwordEncoderTrainer::TBorderHandling b, bool useByteBpe, int unknownTokenId ) :
-	desiredVocabSize( vocabSize ), borderHandling( b ), useByteBpe( useByteBpe ), encoderUnkTokenId( unknownTokenId )
+	desiredVocabSize( vocabSize ),
+	borderHandling( b ),
+	useByteBpe( useByteBpe ),
+	encoderUnkTokenId( unknownTokenId )
 {
 	using TBorderHandling = CSubwordEncoderTrainer::TBorderHandling;
 
@@ -88,7 +91,7 @@ CBpeTrainer::CBpeTrainer( int vocabSize, CSubwordEncoderTrainer::TBorderHandling
 	vocabulary.Add( { "<UNK>", true } );
 
 	switch( borderHandling ) {
-	case TBorderHandling::EndOfWord:
+		case TBorderHandling::EndOfWord:
 			eowToken = vocabulary.Size();
 			vocabulary.Add( { EowTokenStr, false } );
 			break;
@@ -128,7 +131,7 @@ CPtr<IBytePairEncoder> CBpeTrainer::Train( const CWordDictionary& frequencyDict,
 			break;
 		}
 
-		// Find the most frequent pair taking into account that a (real) count might be decreased during previous merges.
+		// Find the most frequent pair taking into account that the pair's real count might be decreased during previous merges.
 		auto* bestCandidate = queue.Peek();
 		NeoPresume( checkNaive( bestCandidate ) == bestCandidate->RealCount );
 		if( bestCandidate->QueueCount == 0 ) {
@@ -153,6 +156,7 @@ CPtr<IBytePairEncoder> CBpeTrainer::Train( const CWordDictionary& frequencyDict,
 	return createEncoder();
 }
 
+// add a single letter to the vocabulary
 void CBpeTrainer::addCharToken( const CString& tokenText, bool isUnk )
 {
 	if( charTokenIndex.Has( tokenText ) ) {
@@ -164,7 +168,7 @@ void CBpeTrainer::addCharToken( const CString& tokenText, bool isUnk )
 	vocabulary.Add( { tokenText, isUnk } );
 }
 
-// translates set of CStrings (trainData) to array of Words (dataset)
+// translate set of CStrings (trainData) to array of Words (dataset)
 void CBpeTrainer::prepareDataset( const CWordDictionary& trainData )
 {
 	using TBorderHandling = CSubwordEncoderTrainer::TBorderHandling;
@@ -174,18 +178,22 @@ void CBpeTrainer::prepareDataset( const CWordDictionary& trainData )
 	// Buffer to avoid creation of millions of strings. Max length of a utf-8 symbol is 4. +1 for zero-byte.
 	char charToken[5]{};
 
+	const bool addBow = borderHandling == TBorderHandling::BeginOfWord ||
+		borderHandling == TBorderHandling::SentencePiece ||
+		borderHandling == TBorderHandling::BeginAndEndOfWord;
+	const bool addEow = borderHandling == TBorderHandling::EndOfWord ||
+		borderHandling == TBorderHandling::BeginAndEndOfWord;
+	const int auxTokens = static_cast<int>( addBow ) + static_cast<int>( addEow );
+
 	for( int i = 0; i < trainData.Size(); ++i ) {
 		const CString& wordStr = trainData.GetWord( i );
 
 		CWordWithCount& word = dataset.Append();
 		word.Count = trainData.GetWordUseCount( i );
 
-		word.Text.SetBufferSize( wordStr.Length() + 1 );
+		word.Text.SetBufferSize( wordStr.Length() + auxTokens );
 
-		if( borderHandling == TBorderHandling::BeginOfWord ||
-			borderHandling == TBorderHandling::SentencePiece ||
-			borderHandling == TBorderHandling::BeginAndEndOfWord ) 
-		{
+		if( addBow ) {
 			word.Text.Add( bowToken );
 		}
 
@@ -205,15 +213,13 @@ void CBpeTrainer::prepareDataset( const CWordDictionary& trainData )
 			curPos += charLength;
 		}
 
-		if( borderHandling == TBorderHandling::EndOfWord ||
-			borderHandling == TBorderHandling::BeginAndEndOfWord )
-		{
+		if( addEow ) {
 			word.Text.Add( eowToken );
 		}
 	}
 }
 
-// generates initial statistics for training based on all possible pairs
+// generate initial statistics for training based on all possible pairs
 void CBpeTrainer::addAllBigrams()
 {
 	for( int wordId = 0; wordId < dataset.Size(); ++wordId ) {
@@ -232,7 +238,7 @@ void CBpeTrainer::addAllBigrams()
 	}
 }
 
-// adds pair to statistics
+// add pair to the statistics
 void CBpeTrainer::addPair( const CCandidatePair& pair, int wordId, int64_t wordCount )
 {
 	if( vocabulary[pair.Left].IsUnk || vocabulary[pair.Right].IsUnk ) {
@@ -259,13 +265,11 @@ CString CBpeTrainer::mergeText( const CCandidatePair& pair ) const
 	return vocabulary[pair.Left].Text + vocabulary[pair.Right].Text;
 }
 
-// adds pair from statistics
+// subtract pair from the statistics
 void CBpeTrainer::deletePair( const CCandidatePair& pair, int wordId, int64_t wordCount )
 {
 	const auto mpData = candidates.GetFirstPosition( pair );
-	if( mpData == NotFound ) {
-		return;
-	}
+	NeoAssert( mpData != NotFound );
 	CCandidateData& pairData = candidates.GetValue( mpData );
 	pairData.RealCount -= wordCount;
 
@@ -297,11 +301,12 @@ void CBpeTrainer::updateStatistics( const CCandidateData& newTokenData, int newT
 	}
 }
 
+// O(len(word)): walk and find new token positions, update counts
+// Words are usually not really long, and become shorter during training. Furthermore, CMap is memory-expensive.
 void CBpeTrainer::updateOneWordStatistics( const CCandidateData& newTokenData, int newTokenId,
 	CArray<int>& word, int wordId, int newTokenCountInThisWord )
 {
 	const int64_t wordCount = dataset[wordId].Count;
-	int events{};
 	bool evenSameTokensLeftwards = true;
 	for( int i = 0; i < word.Size() - 1; ++i ) {
 		// Found the new token. Merging...
@@ -318,8 +323,6 @@ void CBpeTrainer::updateOneWordStatistics( const CCandidateData& newTokenData, i
 				if( adjacentLeft != mergedLeft || evenSameTokensLeftwards ) {
 					const CCandidatePair oldLeftPair{ adjacentLeft, mergedLeft };
 					deletePair( oldLeftPair, wordId, wordCount );
-				} else {
-					++events;
 				}
 				// 'LR' -> N
 				// ...X'LR'...: always add pair (XN)
@@ -328,8 +331,6 @@ void CBpeTrainer::updateOneWordStatistics( const CCandidateData& newTokenData, i
 				if( adjacentLeft != newTokenId || evenSameTokensLeftwards ) {
 					const CCandidatePair newLeftPair{ adjacentLeft, newTokenId };
 					addPair( newLeftPair, wordId, wordCount );
-				} else {
-					++events;
 				}
 			}
 			// Process right pair
@@ -350,8 +351,6 @@ void CBpeTrainer::updateOneWordStatistics( const CCandidateData& newTokenData, i
 				if( mergedRight != adjacentRight || oddSameTokensRightwards ) {
 					const CCandidatePair oldRightPair{ mergedRight, adjacentRight };
 					deletePair( oldRightPair, wordId, wordCount );
-				} else {
-					++events;
 				}
 
 				const CCandidatePair newRightPair{ newTokenId, adjacentRight };

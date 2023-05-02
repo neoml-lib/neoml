@@ -1,4 +1,4 @@
-/* Copyright © 2017-2022 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -42,8 +42,6 @@ public:
 
 		void Serialize( CArchive& archive );
 	};
-
-	virtual ~ISubwordEncoder() override = default;
 
 	// Encodes a word as a sequence of token ids with corresponding token lengths.
 	// TokenId range = [0, ... , Size() - 1].
@@ -103,8 +101,7 @@ private:
 	// Internal cache for encoding requests.
 	class CCache {
 	public:
-		CCache() :
-			cacheTime( 0 ), cachePeriod( 50000 ) {}
+		CCache() : cacheTime( 0 ), cachePeriod( 50000 ) {}
 		// Cache cleanup period
 		int GetCachePeriod() const { return cachePeriod; }
 		// Sets the cache cleanup period
@@ -116,11 +113,7 @@ private:
 		void Add( const CString& word, const CArray<int>& tokenIds,
 			const CArray<int>& tokenLengths );
 		// Clears cache.
-		void Clear()
-		{
-			cacheTime = 0;
-			wordCache.DeleteAll();
-		}
+		void Clear() { cacheTime = 0; wordCache.DeleteAll(); }
 
 	private:
 		// Data stored in cache: token ids and their unicode lengths and the latest request time.
@@ -129,8 +122,7 @@ private:
 			CFastArray<int, 4> TokenLengths;
 			long long Time;
 
-			CCachedData() :
-				Time( 0 ) {}
+			CCachedData() : Time( 0 ) {}
 			CCachedData( const CCachedData& other );
 			CCachedData( CCachedData&& other );
 		};

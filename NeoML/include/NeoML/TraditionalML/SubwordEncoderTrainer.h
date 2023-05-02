@@ -25,8 +25,8 @@ class CBpeTrainer;
 class NEOML_API CSubwordEncoderTrainer {
 public:
 	enum class TAlgorithm {
-		BPE,
-		Unigram
+		BPE
+		// work in progress: Unigram algorithm
 	};
 
 	enum class TBorderHandling {
@@ -55,14 +55,14 @@ public:
 
 	// Prune single-letter vocabulary so that it covers 'fraction' of the training data. Useful when text contains many rare unicode symbols.
 	// By default initial vocabulary contains all found chars (fraction = 1)
-	void SetCharacterCoverage( double fraction );
+	void SetCharacterCoverage( double value );
 	// Explicitly define required letters that cannot be deleted while pruning
 	void SetMandatoryChars( const CArray<CString>& );
 	// 0 by default. All other tokens will have contiguous numbers from ( UnknownTokenId + 1 )
 	void SetUnknownTokenId( int value );
 
 	// Trains and returns a fully trained encoder.
-	CPtr<IBytePairEncoder> Train( const CWordDictionary& frequencyDict );
+	CPtr<ISubwordEncoder> Train( const CWordDictionary& frequencyDict );
 
 	CSubwordEncoderTrainer( const CSubwordEncoderTrainer& other ) = delete;
 	CSubwordEncoderTrainer& operator=( const CSubwordEncoderTrainer& other ) = delete;
@@ -77,7 +77,6 @@ private:
 
 	CArray<CString> mandatoryTokens;
 	CBpeTrainer* bpeTrainer = nullptr;
-	// CPtrOwner<CUnigramTrainer> unigramTrainer;
 
 	CWordDictionary getInitialDictionary( const CWordDictionary& trainData ) const;
 	static CWordDictionary getAllBytesDictionary();

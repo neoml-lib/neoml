@@ -165,7 +165,7 @@ TEST_F( CBpeTest, DecodeSequence )
 	CSubwordEncoderTrainer trainerBow( 50, CSubwordEncoderTrainer::TAlgorithm::BPE, CSubwordEncoderTrainer::TBorderHandling::BeginOfWord );
 	CSubwordEncoderTrainer trainerEow( 50, CSubwordEncoderTrainer::TAlgorithm::BPE, CSubwordEncoderTrainer::TBorderHandling::EndOfWord );
 	CSubwordEncoderTrainer trainerBoth( 50, CSubwordEncoderTrainer::TAlgorithm::BPE, CSubwordEncoderTrainer::TBorderHandling::BeginAndEndOfWord );
-	const CArray<CPtr<IBytePairEncoder>> tokenizers = {
+	const CArray<CPtr<ISubwordEncoder>> tokenizers = {
 		trainerBow.Train( dictionary ),
 		trainerEow.Train( dictionary ),
 		trainerBoth.Train( dictionary )
