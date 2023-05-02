@@ -42,6 +42,8 @@ struct CLayerInput final {
 	{ return !( *this == other ); }
 };
 
+//---------------------------------------------------------------------------------------------------------------------
+
 // Output of a layer
 template<typename TLayer = CBaseLayer,
 	std::enable_if_t<std::is_base_of<CBaseLayer, TLayer>::value, int> = 0>
@@ -52,8 +54,7 @@ struct CLayerOutput final {
 	CLayerOutput( TLayer* layer, int index ) : Layer( layer ), Index( index ) {}
 	CLayerOutput() = default;
 
-	void Clear()
-	{ Layer = nullptr; Index = NotFound; }
+	void Clear();
 
 	template<typename TOtherLayer>
 	bool operator==( const CLayerOutput<TOtherLayer>& other ) const
@@ -62,6 +63,16 @@ struct CLayerOutput final {
 	bool operator!=( const CLayerOutput<TOtherLayer>& other ) const
 	{ return !( *this == other ); }
 };
+
+template<typename TLayer,
+	std::enable_if_t<std::is_base_of<CBaseLayer, TLayer>::value, int> Enabler>
+inline void CLayerOutput<TLayer, Enabler>::Clear()
+{
+	Layer = nullptr;
+	Index = NotFound;
+}
+
+//---------------------------------------------------------------------------------------------------------------------
 
 // This representation of CDnn as a graph
 // Provides better interface for traversing over the graph and graph modifications

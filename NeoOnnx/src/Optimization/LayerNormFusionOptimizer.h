@@ -94,8 +94,18 @@ private:
 	CGraph& graph;
 	static constexpr const char* const FusionNamePrefix{ "NormFusion_" };
 
+	static bool isValidBlobDim( int dim )
+	{ return dim >= 0 && dim < BD_Count; }
+	static bool isEmptyBlobDim( int index, int dim )
+	{ return dim == index || !isValidBlobDim( dim ); };
+
+	void getTransformRule( const COnnxTransformHelper& transformLayer, const bool opposite, int rule[BD_Count] ) const;
+
 	// Checks if TransformHelperLayer is valid for CLayerNormFusionOptimizer conversion
-	bool isValidTransformLayer( const COnnxTransformHelper& transformHelperLayer ) const;
+	bool isValidTransformLayer( const COnnxTransformHelper& transformLayer,
+		const COnnxTransformHelper* transformLayerPrevious,
+		bool opposite,
+		bool& objTransform ) const;
 	// Checks if DataLayer is valid for CLayerNormFusionOptimizer conversion
 	bool isValidDataLayer( const CDataLayer& dataLayer, TBlobType blobType, int blobSize = NotFound ) const;
 	// Checks if CastLayer is valid for CLayerNormFusionOptimizer conversion
