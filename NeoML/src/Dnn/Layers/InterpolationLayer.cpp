@@ -131,7 +131,6 @@ void CInterpolationLayer::RunOnce()
 		int objectCount = 1;
 		int objectSize = inputBlobs[0]->GetDataSize();
 		std::unique_ptr<CFloatHandleStackVar> buff;
-		bool isFirstDim = true;
 		for( int i = 0; i < static_cast<int>( BD_Count ); ++i ) {
 			const int oldSize = inputBlobs[0]->DimSize( i );
 			const int newSize = outputBlobs[0]->DimSize( i );
@@ -139,16 +138,13 @@ void CInterpolationLayer::RunOnce()
 			if( oldSize != newSize ) {
 				const float scale = rules[i].Type == TRuleType::Scale ? rules[i].ScaleCoeff
 					: static_cast<float>( newSize ) / oldSize;
-				if( isFirstDim ) {
+				if( buff == nullptr ) {
 					// First of 2 interpolations: interpolate from inputBlobs[0] to intermediate buffer
-					NeoPresume( buff == nullptr );
 					buff.reset( new CFloatHandleStackVar( MathEngine(), inputBlobs[0]->GetDataSize() / oldSize * newSize ) );
 					MathEngine().LinearInterpolation( inputBlobs[0]->GetData(), buff->GetHandle(), coords, round,
 						objectCount, oldSize, objectSize, scale );
-					isFirstDim = false;
 				} else {
 					// Second of 2 interpolations: interpolate from intermediate buffer to outputBlobs[0]
-					NeoPresume( buff != nullptr );
 					MathEngine().LinearInterpolation( buff->GetHandle(), outputBlobs[0]->GetData(), coords, round,
 						objectCount, oldSize, objectSize, scale );
 					break;
