@@ -90,9 +90,7 @@ void CAvxMathEngine::BlobConvolution( const CConvolutionDesc& convDesc, const fl
 	const float* filter, const float* freeTerm, float* result ) const
 {
 	const CAvxConvolutionDesc& desc = static_cast<const CAvxConvolutionDesc&>( convDesc );
-	
 	desc.BlobConvolution->ProcessConvolution( threadCount, source, filter, freeTerm, result );
-
 }
 
 SgemmFunc CAvxMathEngine::GetSgemmFunction() const

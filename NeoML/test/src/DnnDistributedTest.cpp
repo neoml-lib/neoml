@@ -16,6 +16,8 @@ limitations under the License.
 #include <common.h>
 #pragma hdrstop
 
+#include <memory>
+
 #include <TestFixture.h>
 
 #ifdef NEOML_USE_OMP
@@ -84,7 +86,7 @@ static void buildDnn( CDnn& cnn, int outputSize )
 
 TEST( CDnnDistributedTest, DnnDistributedNoArchiveTest )
 {
-    IMathEngine* mathEngine = CreateCpuMathEngine( 1, 0 );
+    std::unique_ptr<IMathEngine> mathEngine( CreateCpuMathEngine( 1, 0 ) );
     CRandom rand( 42 );
 
     int inputSize = 1000;
@@ -112,7 +114,7 @@ TEST( CDnnDistributedTest, DnnDistributedNoArchiveTest )
 
 TEST( CDnnDistributedTest, DnnDistributedArchiveTest )
 {
-    IMathEngine* mathEngine = CreateCpuMathEngine( 1, 0 );
+    std::unique_ptr<IMathEngine> mathEngine( CreateCpuMathEngine( 1, 0 ) );
     CRandom rand( 42 );
 
     int inputSize = 1000;
@@ -160,7 +162,7 @@ TEST( CDnnDistributedTest, DnnDistributedArchiveTest )
 
 TEST( CDnnDistributedTest, DnnDistributedSerializeTest )
 {
-    IMathEngine* mathEngine = CreateCpuMathEngine( 1, 0 );
+    std::unique_ptr<IMathEngine> mathEngine( CreateCpuMathEngine( 1, 0 ) );
     CRandom rand( 42 );
 
     int inputSize = 1000;

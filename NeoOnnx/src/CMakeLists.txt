@@ -62,6 +62,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Operators/UpsampleOperator.cpp
     Optimization/HardSigmoidOptimizer.cpp
     Optimization/HSwishOptimizer.cpp
+    Optimization/LayerNormFusionOptimizer.cpp
     Optimization/SqueezeAndExciteOptimizer.cpp
     TensorUtils.cpp
 
@@ -70,8 +71,6 @@ target_sources( ${PROJECT_NAME} PRIVATE
     ../include/NeoOnnx/NeoOnnxImport.h
     ../include/NeoOnnx/TensorLayout.h
     AttributeGetters.h
-    Optimization/DnnOptimizer.h
-    Optimization/Graph.h
     GraphInput.h
     GraphInitializer.h
     GraphOutput.h
@@ -117,8 +116,11 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Operators/TransposeOperator.h
     Operators/UnsqueezeOperator.h
     Operators/UpsampleOperator.h
+    Optimization/DnnOptimizer.h
+    Optimization/Graph.h
     Optimization/HardSigmoidOptimizer.h
     Optimization/HSwishOptimizer.h
+    Optimization/LayerNormFusionOptimizer.h
     Optimization/SqueezeAndExciteOptimizer.h
     Tensor.h
     TensorUtils.h

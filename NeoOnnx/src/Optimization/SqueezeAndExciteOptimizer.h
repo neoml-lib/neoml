@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -35,17 +35,16 @@ namespace NeoOnnx {
 namespace optimization {
 
 // Removes unnenecessary trasnforms, transposes and reshapes from Squeeze-and-Excite part of MobileNetV3
-class CSqueezeAndExciteOptimizer {
+class CSqueezeAndExciteOptimizer final {
 public:
 	explicit CSqueezeAndExciteOptimizer( CGraph& graph ) :
 		graph( graph )
-	{
-	}
+	{}
 
 	void Apply();
 
 private:
-	struct CSEBlockInfo {
+	struct CSEBlockInfo final {
 		CLayerOutput<> InputData{};
 		CGlobalMeanPoolingLayer* SEPooling = nullptr;
 		CBaseLayer* SEFirstFc = nullptr;
