@@ -17,8 +17,12 @@ limitations under the License.
 
 #include <NeoML/NeoMLDefs.h>
 #include <NeoML/TraditionalML/SubwordEncoder.h>
+#include <SubwordDecoder.h>
+#include <memory>
 
 namespace NeoML {
+
+class CSubwordDecoder;
 
 // Class that encodes a UTF-8 word using byte-pair-encoding.
 class NEOML_API CBytePairEncoder : public IBytePairEncoder {
@@ -34,24 +38,19 @@ public:
 	void Decode( const CArray<int>& tokenIds, CArray<CString>& words ) const override;
 	int Size() const override { return tokens.Size() + 1; } // One extra for 'Unknown'
 	void Serialize( CArchive& archive ) override;
-
-	// IBytePairEncoder:
-	void Initialize( const CBPEDictionary& tokens, const CParams& ) override;
-	bool IsInitialized() const override { return !tokens.IsEmpty(); }
 	void GetIdToTokenMapping( CMap<int, CString>& ) const override;
 	void GetTokenToIdMapping( CMap<CString, int>& ) const override;
 	bool UseEndOfWordToken() const override { return !params.EndOfWordToken.IsEmpty(); }
 	bool UseStartOfWordToken() const override { return !params.StartOfWordToken.IsEmpty(); }
 	bool UseRawBytes() const override { return params.UseRawBytes; }
 	int UnknownTokenId() const override { return params.UnknownTokenId; }
-	
-	// Splits a word into initial tokens: single unicode characters + special tokens (optional).
-	void SplitWordIntoInitialTokens( const CString& word, 
-		CArray<CString>& initialTokens, CArray<int>* initialTokensLength = nullptr ) const;
-	// Concatenates tokens.
-	static CString MergeTokens( const CString& first, const CString& second );
+
+	// IBytePairEncoder:
+	void Initialize( const CBPEDictionary& tokens, const CParams& ) override;
+	bool IsInitialized() const override { return !tokens.IsEmpty(); }
 
 protected:
+	~CBytePairEncoder() override = default;
 	// ISubwordEncoderWithCache:
 	void DoEncode( const CString& word, CArray<int>& tokenIds,
 		CArray<int>& tokenLengths ) const override;
@@ -63,13 +62,14 @@ private:
 	CMap<CString, int> tokenToId;
 	// Encoder parameters
 	CParams params;
+	// Lazy-initialized mechanism for Decode() function
+	mutable std::unique_ptr<CSubwordDecoder> decoder;
 
-	CString getToken( int shiftedTokenId ) const;
-	void removeSpecialTokens( CString& token, bool& hasEow, bool& hasSow ) const;
-	bool replaceEowToken( CString& token, const CString& eowToken, const CString& replacement ) const;
-	bool replaceSowToken( CString& token, const CString& sowToken, const CString& replacement ) const;
 	bool isValidToken( const CString& token, const CArray<CString>& auxTokens ) const;
 	int getShiftedTokenIndex( const CString& token ) const;
+	void splitWordIntoInitialTokens( const CString& word, 
+		CArray<CString>& initialTokens, CArray<int>* initialTokensLength = nullptr ) const;
+	static CString mergeTokens( const CString& first, const CString& second );
 };
 
 } // namespace NeoML

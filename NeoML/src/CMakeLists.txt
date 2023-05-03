@@ -180,6 +180,7 @@ set(NeoML_SOURCES
     TraditionalML/NnChainHierarchicalClustering.cpp
     TraditionalML/PCA.cpp
     TraditionalML/SMOptimizer.cpp
+    TraditionalML/SubwordDecoder.cpp
     TraditionalML/SubwordEncoder.cpp
     TraditionalML/SubwordEncoderTrainer.cpp
     TraditionalML/Svm.cpp
@@ -208,6 +209,7 @@ set(NeoML_NON_UNITY_SOURCES
     ${NeoML_NON_UNITY_SOURCES_COMPACT}
     TraditionalML/BytePairEncoder.cpp
     TraditionalML/SvmBinaryModel.cpp
+    TraditionalML/UnigramEncoder.cpp
 )
 
 set(NeoML_HEADERS_COMPACT
@@ -331,7 +333,9 @@ set(NeoML_HEADERS
     TraditionalML/NnChainHierarchicalClustering.h
     TraditionalML/SMOptimizer.h
     TraditionalML/SvmBinaryModel.h
+    TraditionalML/SubwordDecoder.h
     TraditionalML/Utf8Tools.h
+    TraditionalML/UnigramEncoder.h
 
     # Headers
     ../include/NeoML/Dnn/DnnDistributed.h

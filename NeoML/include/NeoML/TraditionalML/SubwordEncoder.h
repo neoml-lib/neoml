@@ -156,6 +156,32 @@ public:
 	virtual bool IsInitialized() const = 0;
 };
 
+DECLARE_NEOML_MODEL_NAME( UnigramEncoderModelName, "NeoMLUnigramEncoderModel" )
+
+// Subword encoder using Unigram algorithm
+class NEOML_API IUnigramEncoder : public ISubwordEncoderWithCache {
+public:
+	// Unigram vocabulary entry
+	struct CSubtoken {
+		CSubtoken() = default;
+		CSubtoken( CString text, double score ) : Text( std::move( text ) ), Score( score ) {}
+
+		CString Text;
+		double Score = 0.0;
+	};
+
+	// A list of unique tokens
+	using CUnigramDictionary = CArray<CSubtoken>;
+
+	// Initializes the encoder. Can be safely used only once.
+	virtual void Initialize( const CUnigramDictionary& tokens, const CParams& ) = 0;
+	// Whether the encoder is ready or it needs to be initialized using Initialize() or Serialize()
+	virtual bool IsInitialized() const = 0;
+
+	// Returns a list of subtokens with their scores
+	virtual void GetDictionary( CUnigramDictionary& tokens ) const = 0;
+};
+
 ///////////////////////////////////////////////////////////////////////////////
 
 inline ISubwordEncoder::CParams::CParams( CString endOfWordToken, CString startOfWordToken, bool useRawBytes, int unknownTokenId ) :
