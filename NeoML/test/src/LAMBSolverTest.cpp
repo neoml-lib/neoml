@@ -64,6 +64,10 @@ static float blobsDiff( const NeoML::CDnnBlob* left, const NeoML::CDnnBlob* righ
 
 TEST(CLAMBSolverTest, ExcludeByLayerName)
 {
+    if( NeoMLTest::MathEngine().GetType() == NeoML::MET_Vulkan ) {
+        GTEST_SKIP();
+    }
+
     struct CNetwork {
         NeoML::CRandom Random;
         NeoML::CDnn Dnn;

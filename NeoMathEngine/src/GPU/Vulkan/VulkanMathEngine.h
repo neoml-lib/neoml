@@ -19,13 +19,16 @@ limitations under the License.
 
 #ifdef NEOML_USE_VULKAN
 
+#include <array>
 #include <vector>
 #include <mutex>
 #include <memory>
 #include <vulkan/vulkan.h>
 #include <NeoMathEngine/NeoMathEngine.h>
+#include <MathEngineCommon.h>
 #include <MathEngineAllocator.h>
 #include <VulkanImage.h>
+#include <VulkanMemory.h>
 #include <RawMemoryManager.h>
 #include <PerformanceCountersDefault.h>
 #include <DllLoader.h>
@@ -51,7 +54,7 @@ bool LoadVulkanEngineInfo( const CVulkanDll& dll, std::vector< CMathEngineInfo, 
 //------------------------------------------------------------------------------------------------------------
 
 // The math engine on vulkan
-class CVulkanMathEngine : public IMathEngine, public IRawMemoryManager {
+class CVulkanMathEngine final: public IMathEngine, private IRawMemoryManager {
 public:
 	CVulkanMathEngine( std::unique_ptr<const CVulkanDevice>& device, size_t memoryLimit );
 	~CVulkanMathEngine() override;
@@ -624,7 +627,7 @@ public:
 	void AllReduce( const CFloatHandle& /*handle*/, int /*size*/ ) override {};
 	void Broadcast( const CFloatHandle& /*handle*/, int /*size*/, int /*root*/ ) override {};
 
-protected:
+private:
 	// IRawMemoryManager interface methods
 	CMemoryHandle Alloc( size_t size ) override;
 	void Free( const CMemoryHandle& handle ) override;
@@ -638,9 +641,9 @@ private:
 	std::unique_ptr<CMemoryPool> memoryPool; // memory manager
 	std::unique_ptr<CDeviceStackAllocator> deviceStackAllocator; // stack allocator for GPU memory
 	std::unique_ptr<CHostStackAllocator> hostStackAllocator; // stack allocator for host memory
-	std::vector< CVulkanImage*, CrtAllocator<CVulkanImage*> > tmpImages; // temporary images
+	CThreadDataPtr<std::array<std::unique_ptr<CVulkanImage>, TVI_Count>> tmpImages; // temporary images
 
-	IMathEngine& mathEngine() { IMathEngine* engine = this; return *engine; }
+	IMathEngine& mathEngine() { return *this; }
 	int getChannelGroupSize( int height, int channels ) const;
 	const CVulkanImage* getTmpImage( TTmpVulkanImage imageId, int width, int height );
 	const CVulkanImage* getTmpImage( TTmpVulkanImage imageId );
