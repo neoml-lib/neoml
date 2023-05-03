@@ -660,7 +660,7 @@ void CCpuMathEngine::blobConvolutionBackwardAlgo1( const CCpuConvolutionDesc& de
 			const int sourceRowExistShift = ringBuf.GetNumExistItems();
 			prevBatchedSourceRowStart = sourceNeedHeight ? batchedSourceRowStart : prevBatchedSourceRowStart;
 			if( sourceRowExistShift < sourceNeedHeight ) { // Prepare only new last rows
-				const int sourceRealHeight = ringBuf.GetNumItemsToAdd( std::min( source.Height() - sourceRowStart, ringBufRealNumRows ) );
+				const int sourceRealHeight = ringBuf.GetNumItemsToAdd( std::min( source.Height() - sourceRowStart - sourceRowExistShift, ringBufRealNumRows ) );
 				multiplyMatrixByMatrix(
 					/*handle*/sourceRaw + ( batchedSourceRowStart + sourceRowExistShift ) * sourceRowSize,
 					/*height*/sourceRealHeight * source.Width(), /*width*/sourceChannelsCount, /*row-size*/sourceChannelsCount,
@@ -669,8 +669,8 @@ void CCpuMathEngine::blobConvolutionBackwardAlgo1( const CCpuConvolutionDesc& de
 
 				// Make twice because of Ring-buffer, from end to start
 				if( sourceNeedHeight > ( sourceRowExistShift + sourceRealHeight ) ) {
-					const int sourceRealHeightRest = ringBuf.GetNumItemsToAdd( std::min( source.Height() - sourceRowStart, ringBufRealNumRows ) );
 					const int sourceRowExistShiftRest = ringBuf.GetNumExistItems();
+					const int sourceRealHeightRest = ringBuf.GetNumItemsToAdd( std::min( source.Height() - sourceRowStart - sourceRowExistShiftRest, ringBufRealNumRows ) );
 					multiplyMatrixByMatrix(
 						/*handle*/sourceRaw + ( batchedSourceRowStart + sourceRowExistShiftRest ) * sourceRowSize,
 						/*height*/sourceRealHeightRest * source.Width(), /*width*/sourceChannelsCount, /*row-size*/sourceChannelsCount,
