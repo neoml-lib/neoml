@@ -69,7 +69,7 @@ public:
 
 	// Clusterizes the input data 
 	// and returns true if successful with the given parameters
-	virtual bool Clusterize( IClusteringData* data, CClusteringResult& result ) = 0;
+	virtual bool Clusterize( const IClusteringData* data, CClusteringResult& result ) = 0;
 };
 ```
 

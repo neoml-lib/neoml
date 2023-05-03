@@ -28,7 +28,7 @@ The clustering parameters are described by the  `CFirstComeClustering::CParam` s
 This sample shows how to use the first come clustering algorithm to clusterize the [Iris Data Set](http://archive.ics.uci.edu/ml/datasets/Iris):
 
 ```c++
-void Clusterize( IClusteringData& irisDataSet, CClusteringResult& result )
+void Clusterize( const IClusteringData& irisDataSet, CClusteringResult& result )
 {
 	CFirstComeClustering::CParam params;
 	params.Threshold = 5;

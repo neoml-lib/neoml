@@ -60,7 +60,7 @@ public:
 	// IClustering interface methods:
 	// Returns true if the specified distance between the clusters was reached AND
 	// there are more than MinClustersCount clusters
-	bool Clusterize( IClusteringData* input, CClusteringResult& result ) override;
+	bool Clusterize( const IClusteringData* input, CClusteringResult& result ) override;
 
 	// Information about one step of the clustering
 	struct CMergeInfo {
@@ -85,7 +85,7 @@ public:
 	// - InitialClusters means dendrogram[0]
 	// - InitialClusters+1 means dendrogram[1]
 	// - etc. till InitialClusters+DendrogramSize-1
-	bool ClusterizeEx( IClusteringData* input, CClusteringResult& result,
+	bool ClusterizeEx( const IClusteringData* input, CClusteringResult& result,
 		CArray<CMergeInfo>& dendrogram, CArray<int>& dendrogramIndices );
 
 private:
@@ -93,7 +93,7 @@ private:
 	CTextStream* log; // the logging stream
 	CArray<CClusterCenter> initialClusters; // the initial cluster centers
 
-	bool clusterizeImpl( IClusteringData* input, CClusteringResult& result,
+	bool clusterizeImpl( const IClusteringData* input, CClusteringResult& result,
 		CArray<CMergeInfo>* dendrogram, CArray<int>* dendrogramIndices ) const;
 	bool naiveAlgo( const CFloatMatrixDesc& matrix, const CArray<double>& weights,
 		CClusteringResult& result, CArray<CMergeInfo>* dendrogram, CArray<int>* dendrogramIndices ) const;

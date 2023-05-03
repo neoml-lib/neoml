@@ -69,7 +69,7 @@ public:
 
 	// Выполнить разбиение выборки на кластеры.
 	// Возвращает true, если удалось успешно разбить данные на кластеры с заданными параметрами.
-	virtual bool Clusterize( IClusteringData* data, CClusteringResult& result ) = 0;
+	virtual bool Clusterize( const IClusteringData* data, CClusteringResult& result ) = 0;
 };
 ```
 
