@@ -156,6 +156,11 @@ void CBaseConvLayer::ApplyBatchNormalization(CBatchNormalizationLayer& batchNorm
 	// use the external representation of the filter and free term
 	CPtr<CDnnBlob> newFilter = GetFilterData();
 	CPtr<CDnnBlob> newFreeTerm = GetFreeTermData();
+	if( newFreeTerm == nullptr ) {
+		SetZeroFreeTerm( false );
+		newFreeTerm = CDnnBlob::CreateVector( MathEngine(), CT_Float, filterCount );
+		newFreeTerm->Clear();
+	}
 
 	CFloatHandle filterData = newFilter->GetData();
 	CFloatHandle freeTermData = newFreeTerm->GetData();

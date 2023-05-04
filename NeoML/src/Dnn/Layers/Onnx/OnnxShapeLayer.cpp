@@ -1,4 +1,4 @@
-/* Copyright © 2017-2022 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,15 +18,35 @@ limitations under the License.
 
 #include <NeoML/Dnn/Layers/Onnx/OnnxShapeLayer.h>
 
+#include <limits.h>
+#include <algorithm>
+
 namespace NeoML {
 
-static const int OnnxShapeLayerVersion = 0;
+COnnxShapeLayer::COnnxShapeLayer( IMathEngine& mathEngine ) :
+	COnnxLayerBase( mathEngine, "OnnxShapeLayer" ),
+	startAttr( 0 ),
+	endAttr( INT_MAX )
+{
+}
+
+static const int OnnxShapeLayerVersion = 1;
 
 void COnnxShapeLayer::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion( OnnxShapeLayerVersion );
+	const int version = archive.SerializeVersion( OnnxShapeLayerVersion );
 	COnnxLayerBase::Serialize( archive );
 	tensorLayout.Serialize( archive );
+	
+	if( version == 0 && archive.IsLoading() ) {
+		startAttr = 0;
+		endAttr = INT_MAX;
+	}
+
+	if( version > 0 ) {
+		archive.Serialize( startAttr );
+		archive.Serialize( endAttr );
+	}
 }
 
 void COnnxShapeLayer::CalculateShapes()
@@ -34,10 +54,12 @@ void COnnxShapeLayer::CalculateShapes()
 	CheckInput1();
 	CheckLayerArchitecture( GetOutputCount() == 1, "layer must have 1 output" );
 
-	outputShapeBlobs[0] = CDnnBlob::CreateVector( MathEngine(), CT_Int, tensorLayout.Size());
+	const int start = std::max<int>( 0, startAttr < 0 ? startAttr + tensorLayout.Size() : startAttr );
+	const int end = std::min<int>( endAttr < 0 ? endAttr + tensorLayout.Size() : endAttr, tensorLayout.Size() );
+	outputShapeBlobs[0] = CDnnBlob::CreateVector( MathEngine(), CT_Int, end - start );
 	CDnnBlobBuffer<int> outputBuff( *outputShapeBlobs[0], TDnnBlobBufferAccess::Write );
-	for( int dimIndex = 0; dimIndex < tensorLayout.Size(); ++dimIndex ) {
-		outputBuff[dimIndex] = inputDescs[0].DimSize( tensorLayout[dimIndex] );
+	for( int dimIndex = start; dimIndex < end; ++dimIndex ) {
+		outputBuff[dimIndex - start] = inputDescs[0].DimSize( tensorLayout[dimIndex] );
 	}
 }
 

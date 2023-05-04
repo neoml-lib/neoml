@@ -27,7 +27,8 @@ namespace NeoOnnx {
 CLrnOperator::CLrnOperator( const onnx::NodeProto& lrn, int opsetVersion ) :
 	CLayerOperator( lrn, opsetVersion )
 {
-	// Introduce in opset v1
+	// v1 - original
+	// v13 - bfloat16 is supported
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
 	CheckOnnxProtocol( InputCount() == 1, "operator must have 1 input", *this );

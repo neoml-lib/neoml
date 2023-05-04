@@ -148,6 +148,18 @@ inline int CDefaultHash<CString>::HashKey( const CString& str )
 	return result;
 }
 
+template<> 
+struct CDefaultHash<const char*> {
+	static int HashKey( const char* string )
+	{ 
+		return GetMBCStringHash( string );
+	}
+	static bool IsEqual( const char* first, const char* second ) 
+	{ 
+		return ::strcmp( first, second ) == 0;
+	}
+};
+
 //------------------------------------------------------------------------------------------------------------
 
 template<class VALUE, class HASHINFO = CDefaultHash<VALUE>, class ALLOCATOR = CurrentMemoryManager>

@@ -37,7 +37,6 @@ limitations under the License.
 #include <NeoML/Dnn/Dnn.h>
 #include <NeoML/Dnn/DnnBlob.h>
 #include <NeoML/Dnn/DnnInitializer.h>
-#include <NeoML/Dnn/DnnOptimization.h>
 #include <NeoML/Dnn/DnnSolver.h>
 #include <NeoML/Dnn/DnnSparseMatrix.h>
 #include <NeoML/Dnn/Layers/3dConvLayer.h>
@@ -63,6 +62,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/LstmLayer.h>
 #include <NeoML/Dnn/Layers/MatrixMultiplicationLayer.h>
 #include <NeoML/Dnn/Layers/MobileNetV2BlockLayer.h>
+#include <NeoML/Dnn/Layers/MobileNetV3BlockLayer.h>
 #include <NeoML/Dnn/Layers/MultichannelLookupLayer.h>
 #include <NeoML/Dnn/Layers/MultiheadAttentionLayer.h>
 #include <NeoML/Dnn/Layers/ObjectNormalizationLayer.h>
@@ -80,7 +80,6 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/TransposeLayer.h>
 
 #ifndef NEOML_COMPACT
-#include <NeoML/TraditionalML/BytePairEncoderTrainer.h>
 #include <NeoML/TraditionalML/ClusterCenter.h>
 #include <NeoML/TraditionalML/Clustering.h>
 #include <NeoML/TraditionalML/CommonCluster.h>
@@ -94,10 +93,12 @@ limitations under the License.
 #include <NeoML/TraditionalML/MatchingGenerator.h>
 #include <NeoML/TraditionalML/PCA.h>
 #include <NeoML/TraditionalML/SubwordEncoder.h>
+#include <NeoML/TraditionalML/SubwordEncoderTrainer.h>
 #include <NeoML/TraditionalML/Svm.h>
 #include <NeoML/TraditionalML/WordDictionary.h>
 
 #include <NeoML/Dnn/DnnDistributed.h>
+#include <NeoML/Dnn/DnnOptimization.h>
 #include <NeoML/Dnn/Layers/3dPoolingLayer.h>
 #include <NeoML/Dnn/Layers/3dTransposedConvLayer.h>
 #include <NeoML/Dnn/Layers/AccumulativeLookupLayer.h>
@@ -107,6 +108,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/BertConvLayer.h>
 #include <NeoML/Dnn/Layers/BinaryFocalLossLayer.h>
 #include <NeoML/Dnn/Layers/CenterLossLayer.h>
+#include <NeoML/Dnn/Layers/ChannelwiseWith1x1Layer.h>
 #include <NeoML/Dnn/Layers/CrfLayer.h>
 #include <NeoML/Dnn/Layers/CtcLayer.h>
 #include <NeoML/Dnn/Layers/CumSumLayer.h>

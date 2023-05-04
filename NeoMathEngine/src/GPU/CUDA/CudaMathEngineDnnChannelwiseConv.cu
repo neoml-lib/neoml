@@ -131,13 +131,53 @@ void CCudaMathEngine::BlobChannelwiseConvolutionLearnAdd( const CChannelwiseConv
 	BlobChannelwiseConvolutionLearnAddKernel<<<blockCount, threadCount>>>( desc, GetRaw(inputData), GetRaw(outputDiffData), GetRaw(filterDiffData) );
 }
 
+void CCudaMathEngine::ChannelwiseWith1x1( const CBlobDesc& inputDesc, const CBlobDesc& outputDesc,
+	const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& inputHandle,
+	const CConstFloatHandle& channelwiseFilter, const CConstFloatHandle* channelwiseFreeTerm,
+	TActivationFunction activation, float activationParam, const CConstFloatHandle& convFilter,
+	const CConstFloatHandle* convFreeTerm, bool residual, const CFloatHandle& outputHandle )
+{
+	SetCudaDevice( device->DeviceNumber );
+	const CCudaChannelwiseConvolutionDescInternal& desc = static_cast<const CCudaChannelwiseConvolutionDesc&>( convDesc ).Internal;
+	const int inputChannels = desc.Source.Channels();
+
+	if( residual ) {
+		VectorCopy( outputHandle, inputHandle, inputDesc.BlobSize() );
+	}
+
+	CFloatHandleStackVar channelwiseOutput( *this, desc.Result.BlobSize() );
+
+	BlobChannelwiseConvolution( convDesc, inputHandle, channelwiseFilter, channelwiseFreeTerm, channelwiseOutput );
+	if( activation == AF_HSwish ) {
+		VectorHSwish( channelwiseOutput, channelwiseOutput, channelwiseOutput.Size() );
+	} else if( activation == AF_ReLU ) {
+		CFloatHandleStackVar reLUThreshold( *this );
+		reLUThreshold.GetHandle().SetValue( activationParam );
+		VectorReLU( channelwiseOutput, channelwiseOutput, channelwiseOutput.Size(), reLUThreshold );
+	}
+
+	if( residual ) {
+		multiplyMatrixByTransposedMatrixAndAdd( channelwiseOutput, channelwiseOutput.Size() / inputChannels,
+			inputChannels, inputChannels, convFilter, outputDesc.Channels(), inputChannels, outputHandle,
+			outputDesc.Channels() );
+	} else {
+		MultiplyMatrixByTransposedMatrix( 1, channelwiseOutput, channelwiseOutput.Size() / inputChannels,
+			inputChannels, convFilter, outputDesc.Channels(), outputHandle, outputDesc.BlobSize() );
+	}
+
+	if( convFreeTerm != nullptr ) {
+		AddVectorToMatrixRows( 1, outputHandle, outputHandle, outputDesc.BlobSize() / outputDesc.Channels(),
+			outputDesc.Channels(), *convFreeTerm );
+	}
+}
+
 void CCudaMathEngine::MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobDesc& outputDesc,
 	const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& inputHandle,
 	const CConstFloatHandle& expandFilter, const CConstFloatHandle* expandFreeTerm,
-	const CConstFloatHandle& expandReLUThreshold, const CConstFloatHandle& channelwiseFilter,
-	const CConstFloatHandle* channelwiseFreeTerm, const CConstFloatHandle& channelwiseReLUThreshold,
-	const CConstFloatHandle& downFilter, const CConstFloatHandle* downFreeTerm, bool residual,
-	const CFloatHandle& outputHandle )
+	TActivationFunction expandActivation, float expandActivationParam, const CConstFloatHandle& channelwiseFilter,
+	const CConstFloatHandle* channelwiseFreeTerm, TActivationFunction channelwiseActivation,
+	float channelwiseActivationParam, const CConstFloatHandle& downFilter, const CConstFloatHandle* downFreeTerm,
+	bool residual, const CFloatHandle& outputHandle )
 {
 	SetCudaDevice( device->DeviceNumber );
 	const CCudaChannelwiseConvolutionDescInternal& desc = static_cast<const CCudaChannelwiseConvolutionDesc&>( convDesc ).Internal;
@@ -158,10 +198,23 @@ void CCudaMathEngine::MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobD
 		AddVectorToMatrixRows( 1, channelwiseInput, channelwiseInput, channelwiseInput.Size() / expandedChannels,
 			expandedChannels, *expandFreeTerm );
 	}
-	VectorReLU( channelwiseInput, channelwiseInput, channelwiseInput.Size(), expandReLUThreshold );
+
+	if( expandActivation == AF_HSwish ) {
+		VectorHSwish( channelwiseInput, channelwiseInput, channelwiseInput.Size() );
+	} else if( expandActivation == AF_ReLU ) {
+		CFloatHandleStackVar expandReLUThreshold( *this );
+		expandReLUThreshold.GetHandle().SetValue( expandActivationParam );
+		VectorReLU( channelwiseInput, channelwiseInput, channelwiseInput.Size(), expandReLUThreshold );
+	}
 
 	BlobChannelwiseConvolution( convDesc, channelwiseInput, channelwiseFilter, channelwiseFreeTerm, channelwiseOutput );
-	VectorReLU( channelwiseOutput, channelwiseOutput, channelwiseOutput.Size(), channelwiseReLUThreshold );
+	if( channelwiseActivation == AF_HSwish ) {
+		VectorHSwish( channelwiseOutput, channelwiseOutput, channelwiseOutput.Size() );
+	} else if( channelwiseActivation == AF_ReLU ) {
+		CFloatHandleStackVar channelwiseReLUThreshold( *this );
+		channelwiseReLUThreshold.GetHandle().SetValue( channelwiseActivationParam );
+		VectorReLU( channelwiseOutput, channelwiseOutput, channelwiseOutput.Size(), channelwiseReLUThreshold );
+	}
 
 	if( residual ) {
 		multiplyMatrixByTransposedMatrixAndAdd( channelwiseOutput, channelwiseOutput.Size() / expandedChannels,
@@ -175,6 +228,90 @@ void CCudaMathEngine::MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobD
 	if( downFreeTerm != nullptr ) {
 		AddVectorToMatrixRows( 1, outputHandle, outputHandle, outputDesc.BlobSize() / outputDesc.Channels(),
 			outputDesc.Channels(), *downFreeTerm );
+	}
+}
+
+void CCudaMathEngine::MobileNetV3PreSEBlock( const CBlobDesc& inputDesc, const CBlobDesc& outputDesc,
+	const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& inputHandle,
+	const CConstFloatHandle& expandFilter, const CConstFloatHandle* expandFreeTerm,
+	TActivationFunction expandActivation, float expandActivationParam, const CConstFloatHandle& channelwiseFilter,
+	const CConstFloatHandle* channelwiseFreeTerm, TActivationFunction channelwiseActivation,
+	float channelwiseActivationParam, const CFloatHandle& outputHandle )
+{
+	SetCudaDevice( device->DeviceNumber );
+	const CCudaChannelwiseConvolutionDescInternal& desc = static_cast<const CCudaChannelwiseConvolutionDesc&>( convDesc ).Internal;
+
+	CFloatHandleStackVar channelwiseInput( *this, desc.Source.BlobSize() );
+
+	const int expandedChannels = desc.Filter.Channels();
+
+	MultiplyMatrixByTransposedMatrix( 1, inputHandle, inputDesc.ObjectCount() * inputDesc.GeometricalSize(),
+		inputDesc.Channels(), expandFilter, expandedChannels, channelwiseInput, channelwiseInput.Size() );
+
+	if( expandFreeTerm != nullptr ) {
+		AddVectorToMatrixRows( 1, channelwiseInput, channelwiseInput, channelwiseInput.Size() / expandedChannels,
+			expandedChannels, *expandFreeTerm );
+	}
+
+	if( expandActivation == AF_HSwish ) {
+		VectorHSwish( channelwiseInput, channelwiseInput, channelwiseInput.Size() );
+	} else if( expandActivation == AF_ReLU ) {
+		CFloatHandleStackVar expandReLUThreshold( *this );
+		expandReLUThreshold.GetHandle().SetValue( expandActivationParam );
+		VectorReLU( channelwiseInput, channelwiseInput, channelwiseInput.Size(), expandReLUThreshold );
+	}
+
+	BlobChannelwiseConvolution( convDesc, channelwiseInput, channelwiseFilter, channelwiseFreeTerm, outputHandle );
+
+	if( channelwiseActivation == AF_HSwish ) {
+		VectorHSwish( outputHandle, outputHandle, desc.Result.BlobSize() );
+	} else if( channelwiseActivation == AF_ReLU ) {
+		CFloatHandleStackVar channelwiseReLUThreshold( *this );
+		channelwiseReLUThreshold.GetHandle().SetValue( channelwiseActivationParam );
+		VectorReLU( outputHandle, outputHandle, desc.Result.BlobSize(), channelwiseReLUThreshold);
+	}
+}
+
+void CCudaMathEngine::MobileNetV3PostSEBlock( const CBlobDesc& channelwiseOutputDesc, int outputChannels,
+	const CConstFloatHandle& channelwiseOutputHandle, const CConstFloatHandle& squeezeAndExciteHandle,
+	const CConstFloatHandle* residualHandle, TActivationFunction activation, float activationParam,
+	const CConstFloatHandle& downFilterHandle, const CConstFloatHandle* downFreeTermHandle,
+	const CFloatHandle& outputHandle )
+{
+	const int batchSize = channelwiseOutputDesc.ObjectCount();
+	const int geomSize = channelwiseOutputDesc.GeometricalSize();
+	const int inputChannels = channelwiseOutputDesc.Channels();
+	const int inputObjectSize = geomSize * inputChannels;
+	const int inputSize = inputObjectSize * batchSize;
+	const int outputSize = batchSize * geomSize * outputChannels;
+
+	CFloatHandleStackVar squeezedAndExcited( *this, inputSize );
+
+	for( int b = 0; b < batchSize; ++b ) {
+		MultiplyMatrixByDiagMatrix( channelwiseOutputHandle + b * inputObjectSize, geomSize, inputChannels,
+			squeezeAndExciteHandle + b * inputChannels, squeezedAndExcited + b * inputObjectSize, inputObjectSize );
+	}
+
+	if( activation == AF_HSwish ) {
+		VectorHSwish( squeezedAndExcited, squeezedAndExcited, inputSize );
+	} else if( activation == AF_ReLU ) {
+		CFloatHandleStackVar reLUThreshold( *this );
+		reLUThreshold.GetHandle().SetValue( activationParam );
+		VectorReLU( squeezedAndExcited, squeezedAndExcited, inputSize, reLUThreshold );
+	}
+
+	if( residualHandle != nullptr ) {
+		VectorCopy( outputHandle, *residualHandle, outputSize );
+		multiplyMatrixByTransposedMatrixAndAdd( squeezedAndExcited, batchSize * geomSize, inputChannels,
+			inputChannels, downFilterHandle, outputChannels, inputChannels, outputHandle, outputChannels );
+	} else {
+		MultiplyMatrixByTransposedMatrix( 1, squeezedAndExcited, batchSize * geomSize, inputChannels,
+			downFilterHandle, outputChannels, outputHandle, outputSize );
+	}
+
+	if( downFreeTermHandle != nullptr ) {
+		AddVectorToMatrixRows( 1, outputHandle, outputHandle, batchSize * geomSize,
+			outputChannels, *downFreeTermHandle );
 	}
 }
 

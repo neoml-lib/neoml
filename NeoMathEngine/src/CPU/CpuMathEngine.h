@@ -425,7 +425,7 @@ public:
 		const CFloatHandle* freeTermDiff, bool isFreeTermDiffFromInput ) override;
 	CConvolutionDesc* InitBlobConvolution( const CBlobDesc& input, int paddingHeight, int paddingWidth,
 		int strideHeight, int strideWidth, int dilationHeight, int dilationWidth, const CBlobDesc& filter, const CBlobDesc& output ) override;
-	void BlobConvolution( const CConvolutionDesc& desc,
+	void BlobConvolution( const CConvolutionDesc& convDesc,
 		const CConstFloatHandle& source, const CConstFloatHandle& filter, const CConstFloatHandle* freeTerm,
 		const CFloatHandle& result ) override;
 	void BlobConvolutionBackward( const CConvolutionDesc& desc, const CConstFloatHandle& outputDiff,
@@ -571,12 +571,28 @@ public:
 		const CFloatHandle& dataHandle, const CBlobDesc& dataDesc, int updateCount, int indexDims ) override;
 	void ScatterND( const CConstIntHandle& indicesHandle, const CConstIntHandle& updatesHandle,
 		const CIntHandle& dataHandle, const CBlobDesc& dataDesc, int updateCount, int indexDims ) override;
+	void ChannelwiseWith1x1( const CBlobDesc& inputDesc, const CBlobDesc& outputDesc,
+		const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& inputHandle,
+		const CConstFloatHandle& channelwiseFilter, const CConstFloatHandle* channelwiseFreeTerm,
+		TActivationFunction activation, float activationParam, const CConstFloatHandle& convFilter,
+		const CConstFloatHandle* convFreeTerm, bool residual, const CFloatHandle& outputHandle ) override;
 	void MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobDesc& outputDesc,
 		const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& inputHandle,
 		const CConstFloatHandle& expandFilter, const CConstFloatHandle* expandFreeTerm,
-		const CConstFloatHandle& expandReLUThreshold, const CConstFloatHandle& channelwiseFilter,
-		const CConstFloatHandle* channelwiseFreeTerm, const CConstFloatHandle& channelwiseReLUThreshold,
-		const CConstFloatHandle& downFilter, const CConstFloatHandle* downFreeTerm, bool residual,
+		TActivationFunction expandActivation, float expandActivationParam, const CConstFloatHandle& channelwiseFilter,
+		const CConstFloatHandle* channelwiseFreeTerm, TActivationFunction channelwiseActivation,
+		float channelwiseActivationParam, const CConstFloatHandle& downFilter, const CConstFloatHandle* downFreeTerm,
+		bool residual, const CFloatHandle& outputHandle ) override;
+	void MobileNetV3PreSEBlock( const CBlobDesc& inputDesc, const CBlobDesc& outputDesc,
+		const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& inputHandle,
+		const CConstFloatHandle& expandFilter, const CConstFloatHandle* expandFreeTerm,
+		TActivationFunction expandActivation, float expandActivationParam, const CConstFloatHandle& channelwiseFilter,
+		const CConstFloatHandle* channelwiseFreeTerm, TActivationFunction channelwiseActivation,
+		float channelwiseActivationParam, const CFloatHandle& outputHandle ) override;
+	void MobileNetV3PostSEBlock( const CBlobDesc& channelwiseOutputDesc, int outputChannels,
+		const CConstFloatHandle& channelwiseOutputHandle, const CConstFloatHandle& squeezeAndExciteHandle,
+		const CConstFloatHandle* residualHandle, TActivationFunction activation, float activationParam,
+		const CConstFloatHandle& downFilterHandle, const CConstFloatHandle* downFreeTermHandle,
 		const CFloatHandle& outputHandle ) override;
 
 	IPerformanceCounters* CreatePerformanceCounters() const override;
@@ -651,6 +667,8 @@ private:
 		int firstWidth, const CConstFloatHandle& secondHandle, int secondHeight, const CFloatHandle& resultHandle );
 	void multiplyMatrixByTransposedMatrixAndAdd( const float* first, int firstHeight, int firstWidth, int firstRowSize,
 		const float* second, int secondHeight, int secondRowSize, float* result, int resultRowSize );
+	void multiplyMatrixByDiagMatrix( const float* first, int firstHeight, int firstWidth,
+		const float* second, float* result );
 
 	template<class T>
 	void blobMergeByDimCommon( int dimNum, const CBlobDesc* from, const CTypedMemoryHandle<T>* fromData, int fromCount,
@@ -687,17 +705,13 @@ private:
 		const float* filterData, const CConstFloatHandle* freeTermData, float* resultData );
 	void blobConvolutionForwardAlgo1( const CCpuConvolutionDesc& desc, const float* sourceData,
 		const float* filterData, const CConstFloatHandle* freeTermData, float* resultData );
-	void backwardConvolutionAddFilterToOutput( const CCpuConvolutionDesc& desc, const CConstFloatHandle& temp,
-		const CConstFloatHandle* freeTerm, const CFloatHandle& output );
-	void backwardDilationConvolutionAddFilterToOutput( const CCpuConvolutionDesc& desc, const CConstFloatHandle& temp,
-		const CConstFloatHandle* freeTermData, const CFloatHandle& outputData );
 	void blobConvolutionBackwardAlgo1( const CCpuConvolutionDesc& desc,
 		const CConstFloatHandle& sourceData, const CConstFloatHandle& filterData, const CConstFloatHandle* freeTerm,
 		const CFloatHandle& resultData );
-	void fillTempBlobsForLearnAlgo2( const CCpuConvolutionDesc& desc, const CConstFloatHandle& outputDiff,
-		const CBlobDesc& tempBlob, const CFloatHandle& tempHandle );
-	void blobConvolutionBackwardAlgo2( const CCpuConvolutionDesc& desc, const CConstFloatHandle& outputDiffData,
-		const CConstFloatHandle& filterData, const CConstFloatHandle* freeTermData, const CFloatHandle& inputDiffData );
+	void fillTempBlobsForLearnAlgo2( const CCpuConvolutionDesc& desc, const CConstFloatHandle& sourceData,
+		const CBlobDesc& tempDesc, const CFloatHandle& tempHandle );
+	void blobConvolutionBackwardAlgo2( const CCpuConvolutionDesc& desc, const CConstFloatHandle& sourceData,
+		const CConstFloatHandle& filterData, const CConstFloatHandle* freeTerm, const CFloatHandle& resultData );
 	void blobConvolutionLearnAlgo1( const CCpuConvolutionDesc& desc,
 		const CConstFloatHandle& input, const CConstFloatHandle& outputDiff, const CFloatHandle& filterDiff,
 		const CFloatHandle* freeTermDiff, bool isFreeTermDiffFromInput );
@@ -708,6 +722,8 @@ private:
 	void blobChannelwiseConvolutionFilter3x3Padding1Stride1( const CCommonChannelwiseConvolutionDesc& desc, const float* source,
 		const float* filter, const float* freeTerm, float* result );
 	void blobChannelwiseConvolutionFilter3x3Padding1Stride2( const CCommonChannelwiseConvolutionDesc& desc, const float* source,
+		const float* filter, const float* freeTerm, float* result );
+	void blobChannelwiseConvolutionFilter5x5Padding2Stride1Or2( const CCommonChannelwiseConvolutionDesc& desc, const float* source,
 		const float* filter, const float* freeTerm, float* result );
 
 	void findMaxValueInColumns( float* result, const float* matrixHandle,

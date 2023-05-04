@@ -26,7 +26,7 @@ namespace NeoML {
 class NEOML_API COnnxShapeLayer : public COnnxLayerBase {
 	NEOML_DNN_LAYER( COnnxShapeLayer )
 public:
-	explicit COnnxShapeLayer( IMathEngine& mathEngine ) : COnnxLayerBase( mathEngine, "OnnxShapeLayer" ) {}
+	explicit COnnxShapeLayer( IMathEngine& mathEngine );
 
 	void Serialize( CArchive& archive ) override;
 
@@ -36,11 +36,23 @@ public:
 	const CFastArray<TBlobDim, 8>& TensorLayout() const { return tensorLayout; }
 	CFastArray<TBlobDim, 8>& TensorLayout() { return tensorLayout; }
 
+	// Start attribute value of Onnx Shape operator
+	// 0 if not set
+	int& StartAttr() { return startAttr; }
+	const int& StartAttr() const { return startAttr; }
+
+	// Start attribute value of Onnx Shape operator
+	// INT_MAX if not set
+	int& EndAttr() { return endAttr; }
+	const int& EndAttr() const { return endAttr; }
+
 protected:
 	void CalculateShapes() override;
 
 private:
 	CFastArray<TBlobDim, 8> tensorLayout;
+	int startAttr;
+	int endAttr;
 };
 
 } // namespace NeoML

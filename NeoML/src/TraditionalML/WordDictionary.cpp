@@ -118,7 +118,7 @@ bool CWordDictionary::HasWord( const CString& word ) const
 	return GetWordId( word ) != NotFound;
 }
 
-CString CWordDictionary::GetWord( int id ) const
+const CString& CWordDictionary::GetWord( int id ) const
 {
 	checkId( id );
 	return words[id].Word;

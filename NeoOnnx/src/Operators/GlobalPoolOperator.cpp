@@ -27,14 +27,19 @@ CGlobalPoolOperatorBase::CGlobalPoolOperatorBase( TPoolType _poolType, const onn
 	CLayerOperator( onnxNode, opsetVersion ),
 	poolType( _poolType )
 {
-	CheckOnnxProtocol( InputCount() == 1, "operator must have 1 input", *this );
+	if( OpsetVersion < 13 || Type() != "ReduceSum" ) {
+		CheckOnnxProtocol( InputCount() == 1, "operator must have 1 input", *this );
+	} else {
+		CheckOnnxProtocol( InputCount() == 1 || InputCount() == 2, "operator must have 1 or 2 inputs", *this );
+	}
 	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
 }
 
-void CGlobalPoolOperatorBase::PoolAxes( int inputDimCount, CFastArray<int, 8>& axes ) const
+void CGlobalPoolOperatorBase::PoolAxes( const CTensorArray& inputs, CFastArray<int, 8>& axes ) const
 {
 	// Global pooling interpret tensor as (B x C x D0 x D1 x .. x DN)
 	// Where D0 ... DN are pooled dimensions
+	const int inputDimCount = inputs[0]->DimCount();
 	CheckOnnxProtocol( inputDimCount >= 2, "Global pool input must be at least 2-dimensional", *this );
 	axes.SetBufferSize( inputDimCount - 2 );
 	for( int i = 2; i < inputDimCount; ++i ) {
@@ -44,11 +49,16 @@ void CGlobalPoolOperatorBase::PoolAxes( int inputDimCount, CFastArray<int, 8>& a
 
 void CGlobalPoolOperatorBase::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
-	CheckNoNullInputs( inputs );
+	CheckNeoOnnxSupport( inputs[0] != nullptr, "data input must be present", *this );
 	CheckNoShapeInputs( inputs );
 
 	CFastArray<int, 8> axes;
-	PoolAxes( inputs[0]->DimCount(), axes );
+	PoolAxes( inputs, axes );
+
+	if( axes.IsEmpty() ) {
+		outputs.Add( inputs[0] );
+		return;
+	}
 
 	CPtr<const CUserTensor> curr = AsUserTensor( *inputs[0], Name() + "_Source", dnn );
 	curr = prepareInput( *curr, axes, dnn );
@@ -253,8 +263,9 @@ bool CReducePoolOperatorBase::KeepDims() const
 	return keepDims != 0;
 }
 
-void CReducePoolOperatorBase::PoolAxes( int inputDimCount, CFastArray<int, 8>& axes ) const
+void CReducePoolOperatorBase::PoolAxes( const CTensorArray& inputs, CFastArray<int, 8>& axes ) const
 {
+	const int inputDimCount = inputs[0]->DimCount();
 	GetAttribute( "axes", axes );
 
 	// If axes attribute is missing then all dimensions must be pooled
@@ -272,6 +283,49 @@ void CReducePoolOperatorBase::PoolAxes( int inputDimCount, CFastArray<int, 8>& a
 		}
 	}
 
+	axes.QuickSort<Ascending<int>>();
+}
+
+// --------------------------------------------------------------------------------------------------------------------
+
+void CReduceSumOperator::PoolAxes( const CTensorArray& inputs, CFastArray<int, 8>& axes ) const
+{
+	// Since v13 ReduceSum axes moved from attributes to inputs
+	// But the rest of Reduce* operators will be changed in this way only in v18
+	if( OpsetVersion < 13 ) {
+		// Before v13 the axis rules were the same for all the operators
+		CReducePoolOperatorBase::PoolAxes( inputs, axes );
+		return;
+	}
+
+	const int inputDimCount = inputs[0]->DimCount();
+
+	// Process case when axes input is missing
+	if( inputs.Size() == 1 || inputs[1] == nullptr ) {
+		axes.Empty();
+
+		int noOpWithEmptyAxes = 0;
+		GetAttribute( "noop_with_empty_axes", noOpWithEmptyAxes );
+		if( noOpWithEmptyAxes == 0 ) {
+			// Reduce all axes when special flag is not set
+			axes.SetSize( inputDimCount );
+			for( int i = 0; i < inputDimCount; ++i ) {
+				axes[i] = i;
+			}
+		}
+	}
+
+	// Copy axes from the second input
+	CheckNeoOnnxSupport( inputs[1]->Type() == TTensorType::Data, "non-constant axes", *this );
+	const CDnnBlob& axesBlob = *dynamic_cast<const CDataTensor&>( *inputs[1] ).Data();
+	axes.SetSize( axesBlob.GetDataSize() );
+	axesBlob.CopyTo( axes.GetPtr() );
+
+	for( int i = 0; i < axes.Size(); ++i ) {
+		if( axes[i] < 0 ) {
+			axes[i] += inputDimCount;
+		}
+	}
 	axes.QuickSort<Ascending<int>>();
 }
 

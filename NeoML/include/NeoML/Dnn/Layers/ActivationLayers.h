@@ -505,6 +505,10 @@ void CActivationDesc::assertIsTypeCompatible() const {
 // Creates an activation layer using the specified activation function
 CPtr<CBaseLayer> NEOML_API CreateActivationLayer( IMathEngine& mathEngine, const CActivationDesc& activation );
 
+void NEOML_API StoreActivationDesc( const CActivationDesc& desc, CArchive& archive );
+
+CActivationDesc NEOML_API LoadActivationDesc( CArchive& archive );
+
 //------------------------------------------------------------------------------------------------------------
 
 } // namespace NeoML

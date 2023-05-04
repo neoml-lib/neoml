@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -28,6 +28,7 @@ limitations under the License.
 #include "GraphInitializer.h"
 #include "GraphInput.h"
 #include "GraphOutput.h"
+#include "Optimization/DnnOptimizer.h"
 
 namespace NeoOnnx {
 
@@ -202,10 +203,11 @@ void LoadFromOnnx( const char* fileName, const CImportSettings& importSettings,
 		if( !model.ParseFromIstream( &input ) ) {
 			NeoOnnxCheck( false, CString( "Failed to parse model from file " ) + fileName );
 		}
-
 		buildDnnFromGraphProto( model.graph(), getOpsetVersion( model ), importSettings,
 			dnn, info.Inputs, info.Outputs );
 		extractMetadata( model, info.Metadata );
+		optimization::CDnnOptimizer( dnn ).Optimize();
+		info.OptimizationReport = NeoML::OptimizeDnn( dnn );
 	} catch( ... ) {
 		input.close();
 		google::protobuf::ShutdownProtobufLibrary();
@@ -229,10 +231,11 @@ void LoadFromOnnx( const void* buffer, int bufferSize, const CImportSettings& im
 		if( !model.ParseFromString( strBuffer ) ) {
 			NeoOnnxCheck( false, "Failed to parse model from buffer" );
 		}
-
 		buildDnnFromGraphProto( model.graph(), getOpsetVersion( model ), importSettings,
 			dnn, info.Inputs, info.Outputs );
 		extractMetadata( model, info.Metadata );
+		optimization::CDnnOptimizer( dnn ).Optimize();
+		info.OptimizationReport = NeoML::OptimizeDnn( dnn );
 	} catch( ... ) {
 		google::protobuf::ShutdownProtobufLibrary();
 		throw;
@@ -241,4 +244,5 @@ void LoadFromOnnx( const void* buffer, int bufferSize, const CImportSettings& im
 	google::protobuf::ShutdownProtobufLibrary();
 }
 
-}
+} //NeoOnnx
+

@@ -22,6 +22,8 @@ limitations under the License.
 
 #include "onnx.pb.h"
 
+#include <algorithm>
+
 namespace NeoOnnx {
 
 CLstmOperator::CLstmOperator( const onnx::NodeProto& lstm, int opsetVersion ) :
@@ -31,6 +33,7 @@ CLstmOperator::CLstmOperator( const onnx::NodeProto& lstm, int opsetVersion ) :
 {
 	// v1 - original
 	// v7 - added initial state and peephole weight inputs
+	// v14 - layout attribute added
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
 	CheckOnnxProtocol( InputCount() >= 3 && InputCount() <= 8, "operator must have from 3 upto 8 inputs", *this );
@@ -59,7 +62,13 @@ void CLstmOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArr
 	// NeoML doesn't support peepholes
 	CheckNeoOnnxSupport( InputCount() <= 7 || inputs[7] == nullptr, "peepholes", *this );
 
-	const CTensorLayout neomlLayout( { BD_BatchLength, BD_BatchWidth, BD_Channels } );
+	int layoutAttr = 0;
+	GetAttribute( "layout", layoutAttr );
+
+	CTensorLayout neomlLayout( { BD_BatchLength, BD_BatchWidth, BD_Channels } );
+	if( layoutAttr != 0 ) {
+		std::swap<TBlobDim>( neomlLayout[0], neomlLayout[1] );
+	}
 	CPtr<const CUserTensor> inputData = AsUserTensor( *ConvertTensor( *inputs[0], neomlLayout ),
 		Name() + "_Source", dnn );
 
@@ -119,8 +128,11 @@ void CLstmOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArr
 
 	dnn.AddLayer( *lstmLayer );
 
-	outputs.Add( new CUserTensor( CTensorLayout( { BD_BatchLength, BD_ListSize, BD_BatchWidth, BD_Channels } ),
-		CLayerOutput( lstmLayer, 0 ) ) );
+	CTensorLayout outputLayout( { BD_BatchLength, BD_ListSize, BD_BatchWidth, BD_Channels } );
+	if( layoutAttr != 0 ) {
+		outputLayout = { BD_BatchWidth, BD_BatchLength, BD_ListSize, BD_Channels };
+	}
+	outputs.Add( new CUserTensor( outputLayout, CLayerOutput( lstmLayer, 0 ) ) );
 	outputs.Add( nullptr, OutputCount() - 1 );
 }
 

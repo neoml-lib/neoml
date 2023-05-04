@@ -16,7 +16,6 @@ set(NeoML_SOURCES_COMPACT
     Dnn/Dnn.cpp
     Dnn/DnnBlob.cpp
     Dnn/DnnInitializer.cpp
-    Dnn/DnnOptimization.cpp
     Dnn/DnnSparseMatrix.cpp
     Dnn/Layers/3dConvLayer.cpp
     Dnn/Layers/ActivationLayers.cpp
@@ -98,6 +97,7 @@ set(NeoML_SOURCES_COMPACT
 set(NeoML_SOURCES
     ${NeoML_SOURCES_COMPACT}
     Dnn/DnnDistributed.cpp
+    Dnn/DnnOptimization.cpp
     Dnn/Layers/3dPoolingLayer.cpp
     Dnn/Layers/3dTransposedConvLayer.cpp
     Dnn/Layers/AccumulativeLookupLayer.cpp
@@ -107,6 +107,7 @@ set(NeoML_SOURCES
     Dnn/Layers/BertConvLayer.cpp
     Dnn/Layers/BinaryFocalLossLayer.cpp
     Dnn/Layers/CenterLossLayer.cpp
+    Dnn/Layers/ChannelwiseWith1x1Layer.cpp
     Dnn/Layers/CrfLayer.cpp
     Dnn/Layers/CtcLayer.cpp
     Dnn/Layers/CumSumLayer.cpp
@@ -125,6 +126,7 @@ set(NeoML_SOURCES
     Dnn/Layers/LogicalLayers.cpp
     Dnn/Layers/LrnLayer.cpp
     Dnn/Layers/MaxOverTimePoolingLayer.cpp
+    Dnn/Layers/MobileNetV3BlockLayer.cpp
     Dnn/Layers/ModelWrapperLayer.cpp
     Dnn/Layers/ObjectNormalizationLayer.cpp
     Dnn/Layers/Onnx/OnnxEltwiseLayer.cpp
@@ -161,6 +163,11 @@ set(NeoML_SOURCES
     Dnn/Layers/TransformerLayer.cpp
     Dnn/Layers/TransformerSourceMaskLayer.cpp
     Dnn/Layers/Upsampling2DLayer.cpp
+    Dnn/Optimization/BatchNormFusionOptimizer.cpp
+    Dnn/Optimization/ChannelwiseWith1x1Optimizer.cpp
+    Dnn/Optimization/Graph.cpp
+    Dnn/Optimization/MobileNetV2Optimizer.cpp
+    Dnn/Optimization/MobileNetV3Optimizer.cpp
     TraditionalML/BytePairEncoderTrainer.cpp
     TraditionalML/ClusterCenter.cpp
     TraditionalML/CommonCluster.cpp
@@ -174,8 +181,10 @@ set(NeoML_SOURCES
     TraditionalML/PCA.cpp
     TraditionalML/SMOptimizer.cpp
     TraditionalML/SubwordEncoder.cpp
+    TraditionalML/SubwordEncoderTrainer.cpp
     TraditionalML/Svm.cpp
     TraditionalML/SvmKernel.cpp
+    TraditionalML/Utf8Tools.cpp
     TraditionalML/WordDictionary.cpp
 )
 
@@ -237,7 +246,6 @@ set(NeoML_HEADERS_COMPACT
     ../include/NeoML/Dnn/DnnBlob.h
     ../include/NeoML/Dnn/DnnInitializer.h
     ../include/NeoML/Dnn/DnnLambdaHolder.h
-    ../include/NeoML/Dnn/DnnOptimization.h
     ../include/NeoML/Dnn/DnnSolver.h
     ../include/NeoML/Dnn/DnnSparseMatrix.h
     ../include/NeoML/Dnn/Layers/3dConvLayer.h
@@ -312,14 +320,22 @@ set(NeoML_HEADERS_COMPACT
 
 set(NeoML_HEADERS
     ${NeoML_HEADERS_COMPACT}
+    Dnn/Layers/MobileNetBlockUtils.h
+    Dnn/Optimization/BatchNormFusionOptimizer.h
+    Dnn/Optimization/ChannelwiseWith1x1Optimizer.h
+    Dnn/Optimization/MobileNetV2Optimizer.h
+    Dnn/Optimization/MobileNetV3Optimizer.h
     TraditionalML/BytePairEncoder.h
+    TraditionalML/BytePairEncoderTrainer.h
     TraditionalML/NaiveHierarchicalClustering.h
     TraditionalML/NnChainHierarchicalClustering.h
     TraditionalML/SMOptimizer.h
     TraditionalML/SvmBinaryModel.h
+    TraditionalML/Utf8Tools.h
 
     # Headers
     ../include/NeoML/Dnn/DnnDistributed.h
+    ../include/NeoML/Dnn/DnnOptimization.h
     ../include/NeoML/Dnn/Layers/3dPoolingLayer.h
     ../include/NeoML/Dnn/Layers/3dTransposedConvLayer.h
     ../include/NeoML/Dnn/Layers/AccumulativeLookupLayer.h
@@ -329,6 +345,7 @@ set(NeoML_HEADERS
     ../include/NeoML/Dnn/Layers/BertConvLayer.h
     ../include/NeoML/Dnn/Layers/BinaryFocalLossLayer.h
     ../include/NeoML/Dnn/Layers/CenterLossLayer.h
+    ../include/NeoML/Dnn/Layers/ChannelwiseWith1x1Layer.h
     ../include/NeoML/Dnn/Layers/CrfLayer.h
     ../include/NeoML/Dnn/Layers/CtcLayer.h
     ../include/NeoML/Dnn/Layers/CumSumLayer.h
@@ -347,6 +364,7 @@ set(NeoML_HEADERS
     ../include/NeoML/Dnn/Layers/LogicalLayers.h
     ../include/NeoML/Dnn/Layers/LrnLayer.h
     ../include/NeoML/Dnn/Layers/MaxOverTimePoolingLayer.h
+    ../include/NeoML/Dnn/Layers/MobileNetV3BlockLayer.h
     ../include/NeoML/Dnn/Layers/ModelWrapperLayer.h
     ../include/NeoML/Dnn/Layers/MultiHingeLossLayer.h
     ../include/NeoML/Dnn/Layers/ObjectNormalizationLayer.h
@@ -386,7 +404,8 @@ set(NeoML_HEADERS
     ../include/NeoML/Dnn/Layers/TransformerSourceMaskLayer.h
     ../include/NeoML/Dnn/Layers/Upsampling2DLayer.h
 
-    ../include/NeoML/TraditionalML/BytePairEncoderTrainer.h
+    ../include/NeoML/Dnn/Optimization/Graph.h
+
     ../include/NeoML/TraditionalML/ClusterCenter.h
     ../include/NeoML/TraditionalML/Clustering.h
     ../include/NeoML/TraditionalML/CommonCluster.h
@@ -400,6 +419,7 @@ set(NeoML_HEADERS
     ../include/NeoML/TraditionalML/MatchingGenerator.h
     ../include/NeoML/TraditionalML/PCA.h
     ../include/NeoML/TraditionalML/SubwordEncoder.h
+    ../include/NeoML/TraditionalML/SubwordEncoderTrainer.h
     ../include/NeoML/TraditionalML/Svm.h
     ../include/NeoML/TraditionalML/SvmKernel.h
     ../include/NeoML/TraditionalML/WordDictionary.h

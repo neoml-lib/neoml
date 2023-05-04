@@ -1,4 +1,4 @@
-/* Copyright © 2017-2022 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -33,6 +33,36 @@ static bool isOnnxEltwiseLogicalOperation( COnnxEltwiseLayer::TOperation operati
 		|| operation == COnnxEltwiseLayer::TOperation::LessOrEqual
 		|| operation == COnnxEltwiseLayer::TOperation::GreaterOrEqual
 		|| operation == COnnxEltwiseLayer::TOperation::Where;
+}
+
+// Checks that input has only one non-trivial (not equal to 1) dimension
+// And that the same dimension is the last non-trivial dimension of output
+// This allows to use MultiplyMatByDiag or AddVectorToMatrixRows instead of broadcasting
+static bool onnxEltwiseCanUseVectorVersion( const CDnnBlob& input, const CDnnBlob& output )
+{
+	const int vectorSize = input.GetDataSize();
+	if( vectorSize == 1 ) {
+		return false; // input is a scalar
+	}
+
+	int vectorDim = 0;
+	for( ; vectorDim < static_cast<int>( BD_Count ); ++vectorDim ) {
+		const int dimSize = input.DimSize( vectorDim );
+		if( dimSize == vectorSize ) {
+			break;
+		} else if( dimSize != 1 ) {
+			return false; // input is not a vector
+		}
+	}
+
+	// Check that all output dimensions after vectorDim are equal to 1
+	for( int tensorDim = vectorDim + 1; tensorDim < static_cast<int>( BD_Count ); ++tensorDim ) {
+		if( output.DimSize( tensorDim ) != 1 ) {
+			return false;
+		}
+	}
+
+	return true;
 }
 
 // Returns the type of inputs during the calculation
@@ -106,6 +136,9 @@ static void onnxArithmeticOperationImpl( COnnxEltwiseLayer::TOperation operation
 	static_assert( static_cast<int>( COnnxEltwiseLayer::TOperation::Count ) == 10, "TOperation::Count != 10" );
 	const bool hasScalarVersion = operation != COnnxEltwiseLayer::TOperation::Div
 		|| output.GetDataType() != CT_Int;
+	// Tensor by vector can be done for float addition and multiplication
+	const bool hasVectorVersion = ( operation == COnnxEltwiseLayer::TOperation::Mul
+		|| operation == COnnxEltwiseLayer::TOperation::Add ) && output.GetDataType() == CT_Float;
 
 	CPtr<CDnnBlob> buff = nullptr;
 	for( int inputIndex = 0; inputIndex < inputs.Size(); ++inputIndex ) {
@@ -118,7 +151,10 @@ static void onnxArithmeticOperationImpl( COnnxEltwiseLayer::TOperation operation
 		// Allocate broadcast buffer only if needed
 		const bool useScalarVersion = hasScalarVersion && output.GetDataSize() != 1
 			&& inputs[inputIndex]->GetDataSize() == 1;
-		if( !inputs[inputIndex]->HasEqualDimensions( &output ) && !useScalarVersion ) {
+		const bool useVectorVersion = hasVectorVersion && !useScalarVersion
+			&& output.GetDataSize() != inputs[inputIndex]->GetDataSize()
+			&& onnxEltwiseCanUseVectorVersion( *inputs[inputIndex], output );
+		if( !inputs[inputIndex]->HasEqualDimensions( &output ) && !useScalarVersion && !useVectorVersion ) {
 			if( buff == nullptr ) {
 				buff = output.GetClone();
 			}
@@ -133,6 +169,10 @@ static void onnxArithmeticOperationImpl( COnnxEltwiseLayer::TOperation operation
 				if( useScalarVersion ) {
 					mathEngine.VectorAddValue( output.GetData<T>(), output.GetData<T>(),
 						output.GetDataSize(), preparedInput->GetData<T>() );
+				} else if( useVectorVersion ) {
+					const int vectorSize = preparedInput->GetDataSize();
+					mathEngine.AddVectorToMatrixRows( 1, output.GetData(), output.GetData(),
+						output.GetDataSize() / vectorSize, vectorSize, preparedInput->GetData() );
 				} else {
 					mathEngine.VectorAdd( output.GetData<T>(), preparedInput->GetData<T>(),
 						output.GetData<T>(), output.GetDataSize() );
@@ -153,6 +193,10 @@ static void onnxArithmeticOperationImpl( COnnxEltwiseLayer::TOperation operation
 				if( useScalarVersion ) {
 					mathEngine.VectorMultiply( output.GetData<T>(), output.GetData<T>(),
 						output.GetDataSize(), preparedInput->GetData<T>() );
+				} else if( useVectorVersion ) {
+					const int vectorSize = preparedInput->GetDataSize();
+					mathEngine.MultiplyMatrixByDiagMatrix( output.GetData(), output.GetDataSize() / vectorSize, vectorSize,
+						preparedInput->GetData(), output.GetData(), output.GetDataSize() );
 				} else {
 					mathEngine.VectorEltwiseMultiply( output.GetData<T>(), preparedInput->GetData<T>(),
 						output.GetData<T>(), output.GetDataSize() );
@@ -161,9 +205,9 @@ static void onnxArithmeticOperationImpl( COnnxEltwiseLayer::TOperation operation
 			case COnnxEltwiseLayer::TOperation::Div:
 				if( useScalarVersion ) {
 					// Div with scalar can be emulated only for float data
-					CMemoryHandleStackVar<float> invValue( mathEngine );
-					invValue.SetValue( 1.f / preparedInput->GetData<float>().GetValue() );
-					mathEngine.VectorMultiply( output.GetData<float>(), output.GetData<float>(),
+					CFloatHandleStackVar invValue( mathEngine );
+					invValue.SetValue( 1.f / preparedInput->GetData().GetValue() );
+					mathEngine.VectorMultiply( output.GetData(), output.GetData(),
 						output.GetDataSize(), invValue );
 				} else {
 					mathEngine.VectorEltwiseDivide( output.GetData<T>(), preparedInput->GetData<T>(),
@@ -256,6 +300,12 @@ static void onnxEltwiseOperationImpl( COnnxEltwiseLayer::TOperation operation,
 }
 
 //---------------------------------------------------------------------------------------------------------------------
+
+void COnnxEltwiseLayer::SetOperation( TOperation newOperation )
+{
+	operation = newOperation;
+	ForceReshape();
+}
 
 static const int OnnxEltwiseLayerVersion = 0;
 

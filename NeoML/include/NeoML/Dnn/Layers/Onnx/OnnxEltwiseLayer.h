@@ -1,4 +1,4 @@
-/* Copyright © 2017-2022 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -51,7 +51,7 @@ public:
 		COnnxLayerBase( mathEngine, "OnnxEltwiseLayer" ), operation( TOperation::Count ) {}
 
 	TOperation GetOperation() const { return operation; }
-	void SetOperation( TOperation newOperation ) { operation = newOperation; }
+	void SetOperation( TOperation newOperation );
 
 	void Serialize( CArchive& archive ) override;
 

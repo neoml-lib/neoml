@@ -2558,12 +2558,12 @@ inline void checkSpecificParams<CMobileNetV2BlockLayer>( CMobileNetV2BlockLayer&
 
 	checkBlob( *layer.ExpandFilter(), expandChannels * inputChannels );
 	checkBlob( *layer.ExpandFreeTerm(), expandChannels );
-	EXPECT_FLOAT_EQ( 666.f, layer.ExpandReLUThreshold() );
+	EXPECT_FLOAT_EQ( 666.f, layer.ExpandActivation().GetParam<CReLULayer::CParam>().UpperThreshold );
 
 	EXPECT_EQ( 2, layer.Stride() );
 	checkBlob( *layer.ChannelwiseFilter(), 3 * 3 * expandChannels );
 	EXPECT_EQ( nullptr, layer.ChannelwiseFreeTerm() );
-	EXPECT_FLOAT_EQ( 777.f, layer.ChannelwiseReLUThreshold() );
+	EXPECT_FLOAT_EQ( 777.f, layer.ChannelwiseActivation().GetParam<CReLULayer::CParam>().UpperThreshold );
 
 	checkBlob( *layer.DownFilter(), outputChannels * expandChannels );
 	checkBlob( *layer.DownFreeTerm(), outputChannels );
@@ -3057,5 +3057,154 @@ inline void checkSpecificParams<COnnxTransposeHelper>( COnnxTransposeHelper& lay
 GTEST_TEST( SerializeFromFile, OnnxTransposeHelperSerialization )
 {
 	checkSerializeLayer<COnnxTransposeHelper>( "NeoMLDnnOnnxTransposeHelper" );
+}
+
+// ====================================================================================================================
+
+// CMobileNetV3PreSEBlockLayer
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+static void setSpecificParams(CMobileNetV3PreSEBlockLayer& layer)
+{
+	const int inputChannels = 2;
+	const int expandChannels = 4;
+	
+	layer.SetExpandFilter( generateBlob( expandChannels, 1, 1, 1, inputChannels ) );
+	layer.SetExpandFreeTerm( generateBlob( 1, 1, 1, 1, expandChannels ) );
+	layer.SetExpandActivation( CActivationDesc( AF_ReLU, CReLULayer::CParam{ 666.f } ) );
+
+	layer.SetStride( 2 );
+	layer.SetChannelwiseFilter( generateBlob( 1, 3, 3, 1, expandChannels ) );
+	layer.SetChannelwiseFreeTerm( nullptr );
+	layer.SetChannelwiseActivation( CActivationDesc( AF_Linear, CLinearLayer::CParam{ 1.f, 0.f } ) );
+}
+
+GTEST_TEST( SerializeToFile, MobileNetV3PreSEBlockLayerSerialization )
+{
+	serializeToFile<CMobileNetV3PreSEBlockLayer>( "NeoMLDnnMobileNetV3PreSEBlockLayer" );
+}
+
+#endif // GENERATE_SERIALIZATION_FILES
+
+template<>
+inline void checkSpecificParams<CMobileNetV3PreSEBlockLayer>( CMobileNetV3PreSEBlockLayer& layer )
+{
+	const int inputChannels = 2;
+	const int expandChannels = 4;
+
+	checkBlob( *layer.ExpandFilter(), expandChannels * inputChannels );
+	checkBlob( *layer.ExpandFreeTerm(), expandChannels );
+	EXPECT_EQ( AF_ReLU, layer.ExpandActivation().GetType() );
+	EXPECT_FLOAT_EQ( 666.f, layer.ExpandActivation().GetParam<CReLULayer::CParam>().UpperThreshold );
+
+	EXPECT_EQ( 2, layer.Stride() );
+	checkBlob( *layer.ChannelwiseFilter(), 3 * 3 * expandChannels );
+	EXPECT_EQ( nullptr, layer.ChannelwiseFreeTerm() );
+	EXPECT_EQ( AF_Linear, layer.ChannelwiseActivation().GetType() );
+	EXPECT_FLOAT_EQ( 1.f, layer.ChannelwiseActivation().GetParam<CLinearLayer::CParam>().Multiplier );
+	EXPECT_FLOAT_EQ( 0.f, layer.ChannelwiseActivation().GetParam<CLinearLayer::CParam>().FreeTerm );
+}
+
+GTEST_TEST( SerializeFromFile, MobileNetV3PreSEBlockLayerSerialization )
+{
+	checkSerializeLayer<CMobileNetV3PreSEBlockLayer>( "NeoMLDnnMobileNetV3PreSEBlockLayer" );
+}
+
+// ====================================================================================================================
+
+// CMobileNetV3PostSEBlockLayer
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+static void setSpecificParams( CMobileNetV3PostSEBlockLayer& layer )
+{
+	const int expandChannels = 4;
+	const int outputChannels = 3;
+
+	layer.SetDownFilter( generateBlob( outputChannels, 1, 1, 1, expandChannels ) );
+	layer.SetDownFreeTerm( generateBlob( 1, 1, 1, 1, outputChannels ) );
+
+	layer.SetActivation( CActivationDesc( AF_ReLU, CReLULayer::CParam{ 456.f } ) );
+}
+
+GTEST_TEST( SerializeToFile, MobileNetV3PostSEBlockLayerSerialization )
+{
+	serializeToFile<CMobileNetV3PostSEBlockLayer>( "NeoMLDnnMobileNetV3PostSEBlockLayer" );
+}
+
+#endif // GENERATE_SERIALIZATION_FILES
+
+template<>
+inline void checkSpecificParams<CMobileNetV3PostSEBlockLayer>( CMobileNetV3PostSEBlockLayer& layer )
+{
+	const int expandChannels = 4;
+	const int outputChannels = 3;
+
+	checkBlob( *layer.DownFilter(), outputChannels * expandChannels );
+	checkBlob( *layer.DownFreeTerm(), outputChannels );
+
+	const CActivationDesc& activation = layer.Activation();
+	ASSERT_EQ( AF_ReLU, activation.GetType() );
+	ASSERT_TRUE( activation.HasParam() );
+	ASSERT_EQ( 456.f, activation.GetParam<CReLULayer::CParam>().UpperThreshold );
+}
+
+GTEST_TEST( SerializeFromFile, MobileNetV3PostSEBlockLayerSerialization )
+{
+	checkSerializeLayer<CMobileNetV3PostSEBlockLayer>( "NeoMLDnnMobileNetV3PostSEBlockLayer" );
+}
+
+// ====================================================================================================================
+
+// CChannelwiseWith1x1Layer
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+static void setSpecificParams( CChannelwiseWith1x1Layer& layer)
+{
+	const int expandChannels = 4;
+	const int outputChannels = 3;
+
+	layer.SetStride( 2 );
+	layer.SetChannelwiseFilter( generateBlob( 1, 3, 3, 1, expandChannels ) );
+	layer.SetChannelwiseFreeTerm( nullptr );
+	layer.SetActivation( CActivationDesc( AF_ReLU, CReLULayer::CParam{ 777.f } ) );
+
+	layer.SetConvFilter( generateBlob( outputChannels, 1, 1, 1, expandChannels ) );
+	layer.SetConvFreeTerm( generateBlob( 1, 1, 1, 1, outputChannels ) );
+
+	// stride == 2
+	layer.SetResidual( false );
+}
+
+GTEST_TEST( SerializeToFile, ChannelwiseWith1x1LayerSerialization )
+{
+	serializeToFile<CChannelwiseWith1x1Layer>( "NeoMLDnnChannelwiseWith1x1Layer" );
+}
+
+#endif // GENERATE_SERIALIZATION_FILES
+
+template<>
+inline void checkSpecificParams<CChannelwiseWith1x1Layer>( CChannelwiseWith1x1Layer& layer )
+{
+	const int expandChannels = 4;
+	const int outputChannels = 3;
+
+	EXPECT_EQ( 2, layer.Stride() );
+	checkBlob( *layer.ChannelwiseFilter(), 3 * 3 * expandChannels );
+	EXPECT_EQ( nullptr, layer.ChannelwiseFreeTerm() );
+	EXPECT_EQ( AF_ReLU, layer.Activation().GetType() );
+	EXPECT_FLOAT_EQ( 777.f, layer.Activation().GetParam<CReLULayer::CParam>().UpperThreshold );
+
+	checkBlob( *layer.ConvFilter(), outputChannels * expandChannels );
+	checkBlob( *layer.ConvFreeTerm(), outputChannels );
+
+	EXPECT_FALSE( layer.Residual() );
+}
+
+GTEST_TEST( SerializeFromFile, ChannelwiseWith1x1LayerSerialization )
+{
+	checkSerializeLayer<CChannelwiseWith1x1Layer>( "NeoMLDnnChannelwiseWith1x1Layer" );
 }
 
