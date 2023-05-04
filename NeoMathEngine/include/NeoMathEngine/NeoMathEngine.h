@@ -663,6 +663,7 @@ struct NEOMATHENGINE_API CGlobalMaxOverTimePoolingDesc : public CCrtAllocatedObj
 struct NEOMATHENGINE_API CMaxOverTimePoolingDesc : public CCrtAllocatedObject { public: virtual ~CMaxOverTimePoolingDesc(); };
 struct NEOMATHENGINE_API CLrnDesc : public CCrtAllocatedObject { public: virtual ~CLrnDesc(); };
 struct NEOMATHENGINE_API CLstmDesc : public CCrtAllocatedObject { public: virtual ~CLstmDesc(); };
+struct NEOMATHENGINE_API CRowwiseOperationDesc : public CCrtAllocatedObject { public: virtual ~CRowwiseOperationDesc(); };
 
 //------------------------------------------------------------------------------------------------------------
 // RLE format
@@ -1083,6 +1084,15 @@ public:
 		const CConstFloatHandle* residualHandle, TActivationFunction activation, float activationParam,
 		const CConstFloatHandle& downFilterHandle, const CConstFloatHandle* downFreeTermHandle,
 		const CFloatHandle& outputHandle ) = 0;
+
+	//virtual CRowwiseOperationDesc* InitChannelwiseWith1x1Rowwise( int stride, const CConstFloatHandle& channelwiseFilter,
+	//	const CConstFloatHandle* channelwiseFreeTerm, TActivationFunction activation, float activationParam,
+	//	const CConstFloatHandle& convFilter, const CConstFloatHandle* convFreeTerm, bool residual ) = 0;
+
+	virtual CBlobDesc RowwiseReshape( CRowwiseOperationDesc* operations, int operationCount,
+		const CBlobDesc& input ) = 0;
+	virtual void RowwiseExecute( const CBlobDesc& inputDesc, CRowwiseOperationDesc* operations, int operationCount,
+		const CFloatHandle& input, const CFloatHandle& output ) = 0;
 };
 
 //------------------------------------------------------------------------------------------------------------

@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -594,6 +594,10 @@ public:
 		const CConstFloatHandle* residualHandle, TActivationFunction activation, float activationParam,
 		const CConstFloatHandle& downFilterHandle, const CConstFloatHandle* downFreeTermHandle,
 		const CFloatHandle& outputHandle ) override;
+	CBlobDesc RowwiseReshape( CRowwiseOperationDesc* operations, int operationCount,
+		const CBlobDesc& input ) override;
+	void RowwiseExecute( const CBlobDesc& inputDesc, CRowwiseOperationDesc* operations, int operationCount,
+		const CFloatHandle& input, const CFloatHandle& output ) override;
 
 	IPerformanceCounters* CreatePerformanceCounters() const override;
 	void AllReduce( const CFloatHandle& handle, int size ) override;
@@ -601,6 +605,12 @@ public:
 	void AbortDistributed() override;
 	CMathEngineDistributedInfo GetDistributedInfo() override { return distributedInfo; }
 	bool IsDistributed() override { return distributedInfo.Threads > 1; }
+
+	void multiplyMatrixByTransposedMatrix( const float* first, int firstHeight,
+		int firstWidth, int firstRowSize, const float* second, int secondHeight, int secondRowSize,
+		float* result, int resultRowSize );
+	void addVectorToMatrixRows( const float* matrix, float* result,
+		int matrixHeight, int matrixWidth, int matrixRowSize, int resultRowSize, const float* vector );
 protected:
 	// IRawMemoryManager interface methods
 	CMemoryHandle Alloc( size_t size ) override;
@@ -640,8 +650,6 @@ private:
 		const float* inputBlobData, int inputObject, int outputHeight, int outputWidthExStart, int outputWidthExCount );
 
 	void setVectorToMatrixRows( float* result, int matrixHeight, int matrixWidth, const float* vector );
-	void addVectorToMatrixRows( const float* matrix, float* result,
-		int matrixHeight, int matrixWidth, int matrixRowSize, int resultRowSize, const float* vector );
 	void addMatrixToMatrix( float* first, int height,
 		int width, int firstRowSize, const float* second, int secondRowSize );
 	void sumMatrixRowsAdd( float* result, const float* matrix,
@@ -660,9 +668,6 @@ private:
 		const float* second, int secondWidth, float* result );
 	void multiplyTransposedMatrixByMatrixAndAdd( const float* first, int firstHeight, int firstWidth, int firstRowSize,
 		const float* second, int secondWidth, int secondRowSize, float* result, int resultRowSize );
-	void multiplyMatrixByTransposedMatrix( const float* first, int firstHeight,
-		int firstWidth, int firstRowSize, const float* second, int secondHeight, int secondRowSize,
-		float* result, int resultRowSize );
 	void batchMultiplyMatrixByTransposedMatrix( int batchSize, const CConstFloatHandle& firstHandle, int firstHeight,
 		int firstWidth, const CConstFloatHandle& secondHandle, int secondHeight, const CFloatHandle& resultHandle );
 	void multiplyMatrixByTransposedMatrixAndAdd( const float* first, int firstHeight, int firstWidth, int firstRowSize,

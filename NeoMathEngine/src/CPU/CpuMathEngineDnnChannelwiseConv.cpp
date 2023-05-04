@@ -16,6 +16,8 @@ limitations under the License.
 #include <common.h>
 #pragma hdrstop
 
+#include <algorithm>
+
 #include <NeoMathEngine/NeoMathEngineDefs.h>
 #include <CpuMathEngine.h>
 #include <CpuExecutionScope.h>
@@ -23,6 +25,7 @@ limitations under the License.
 #include <MathEngineCommon.h>
 #include <MathEngineDnnConv.h>
 #include <CpuMathEnginePrivate.h>
+#include <CpuMathEngineDnnRowwise.h>
 
 namespace NeoML {
 
@@ -765,100 +768,6 @@ void CCpuMathEngine::BlobChannelwiseConvolution( const CChannelwiseConvolutionDe
 	}
 }
 
-void CCpuMathEngine::ChannelwiseWith1x1( const CBlobDesc& inputDesc, const CBlobDesc& outputDesc,
-	const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& inputHandle,
-	const CConstFloatHandle& channelwiseFilterData, const CConstFloatHandle* channelwiseFreeTermData,
-	TActivationFunction activation, float activationParam, const CConstFloatHandle& convFilterData,
-	const CConstFloatHandle* convFreeTermData, bool residual, const CFloatHandle& outputHandle )
-{
-	CCpuExecutionScope scope;
-	const CCommonChannelwiseConvolutionDesc& desc = static_cast<const CCommonChannelwiseConvolutionDesc&>( convDesc );
-
-	const int cacheSize = 32 * 1024;
-	const int inputChannels = inputDesc.Channels();
-	const int outputChannels = outputDesc.Channels();
-	const int inputHeight = desc.Source.Height();
-	const int inputRowSize = desc.Source.Width() * inputChannels;
-	const int outputWidth = desc.Result.Width();
-	const int chOutputRowSize = inputChannels * outputWidth;
-
-	TProcessFilterRow processFilterRow = desc.StrideHeight == 1 ? process3x3RowStride1 : process3x3RowStride2;
-
-	const float* inputObject = GetRaw( inputHandle );
-	const float* channelwiseFilter = GetRaw( channelwiseFilterData );
-	const float* channelwiseFreeTerm = channelwiseFreeTermData == nullptr ? nullptr : GetRaw( *channelwiseFreeTermData );
-	const float* convFilter = GetRaw( convFilterData );
-	const float* convFreeTerm = convFreeTermData == nullptr ? nullptr : GetRaw( *convFreeTermData );
-
-	const int maxInputRowsPerStep = std::max<int>( 1, ( cacheSize / inputRowSize ) );
-	const int maxOutputRowsPerStep = std::max<int>( 1,
-		( cacheSize / ( std::max<int>( outputChannels, inputChannels ) * outputWidth ) ) );
-
-	// Buffer for the output rows of channelwise convolution
-	CFloatHandleStackVar chOutputBuffVar( *this, maxOutputRowsPerStep * chOutputRowSize );
-
-	float* chOutputBuff = GetRaw( chOutputBuffVar.GetHandle() );
-	float* outputObject = GetRaw( outputHandle );
-
-	for( int b = 0; b < inputDesc.ObjectCount(); ++b ) {
-		const float* residualInput = inputObject;
-		float* output = outputObject;
-
-		int inputRowsProcessed = 0;
-		int outputRowsProcessed = 0;
-
-		while( inputRowsProcessed < inputHeight ) {
-			// Process a bunch of rows of input image (till channelwise convolution: expandConv + expandReLU)
-			inputRowsProcessed += std::min<int>( maxInputRowsPerStep, inputHeight - inputRowsProcessed );
-
-			// Calculate how many output rows we can calculate with the processed input rows
-			const int outputRowsCanBeProcesed = inputRowsProcessed == inputHeight ? desc.Result.Height()
-				: ( inputRowsProcessed < 2 ? 0 : ( inputRowsProcessed - 2 ) / desc.StrideHeight + 1 );
-
-			while( outputRowsProcessed < outputRowsCanBeProcesed ) {
-				// Process channelwise output rows (while there are any)
-				const int outputRowsThisStep = std::min<int>( maxOutputRowsPerStep,
-					outputRowsCanBeProcesed - outputRowsProcessed );
-
-				processChannelwise3x3( desc, outputRowsThisStep, processFilterRow, inputObject, 0, channelwiseFilter,
-					channelwiseFreeTerm, chOutputBuff, outputRowsProcessed );
-
-				if( activation == AF_HSwish ) {
-					vectorHSwish( chOutputBuff, chOutputBuff, outputRowsThisStep * chOutputRowSize );
-				} else if( activation == AF_ReLU ) {
-					if( activationParam > 0 ) {
-						vectorReLU( chOutputBuff, chOutputBuff, outputRowsThisStep * chOutputRowSize,
-							activationParam );
-					} else {
-						vectorReLU( chOutputBuff, chOutputBuff, outputRowsThisStep * chOutputRowSize );
-					}
-				}
-
-				multiplyMatrixByTransposedMatrix( chOutputBuff, outputRowsThisStep * outputWidth, inputChannels,
-					inputChannels, convFilter, outputChannels, inputChannels, output, outputChannels );
-
-				if( convFreeTerm != nullptr ) {
-					addVectorToMatrixRows( output, output, outputRowsThisStep * outputWidth, outputChannels,
-						outputChannels, outputChannels, convFreeTerm );
-				}
-
-				if( residual ) {
-					// Input and output are located in different memory regions
-					// Add residual connection
-					vectorAdd( output, residualInput, output, outputRowsThisStep * outputWidth * outputChannels );
-					residualInput += outputRowsThisStep * inputRowSize;
-				}
-
-				output += outputRowsThisStep * outputChannels * outputWidth;
-				outputRowsProcessed += outputRowsThisStep;
-			}
-		}
-
-		inputObject += inputDesc.ObjectSize();
-		outputObject += outputDesc.ObjectSize();
-	}
-}
-
 void CCpuMathEngine::MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobDesc& outputDesc,
 	const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& inputHandle,
 	const CConstFloatHandle& expandFilterData, const CConstFloatHandle* expandFreeTermData,
@@ -899,10 +808,10 @@ void CCpuMathEngine::MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobDe
 	CFloatHandleStackVar chInputBuffVar( *this,
 		std::min<int>( inputHeight, maxInputRowsPerStep + 2 ) * chInputRowSize );
 	// Buffer for the output rows of channelwise convolution
-	CFloatHandleStackVar chOutputBuffVar( *this, maxOutputRowsPerStep * chOutputRowSize );
+	CFloatHandleStackVar bufferVar( *this, maxOutputRowsPerStep * chOutputRowSize );
 
 	float* chInputBuff = GetRaw( chInputBuffVar.GetHandle() );
-	float* chOutputBuff = GetRaw( chOutputBuffVar.GetHandle() );
+	float* buffer = GetRaw( bufferVar.GetHandle() );
 	float* outputObject = GetRaw( outputHandle );
 
 	for( int b = 0; b < inputDesc.ObjectCount(); ++b ) {
@@ -951,27 +860,27 @@ void CCpuMathEngine::MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobDe
 					outputRowsCanBeProcesed - outputRowsProcessed );
 
 				processChannelwise3x3( desc, outputRowsThisStep, processFilterRow, chInputBuff, firstInputRowInBuffer,
-					channelwiseFilter, channelwiseFreeTerm, chOutputBuff, outputRowsProcessed );
+					channelwiseFilter, channelwiseFreeTerm, buffer, outputRowsProcessed );
 
 				if( channelwiseActivation == AF_HSwish ) {
-					vectorHSwish( chOutputBuff, chOutputBuff, outputRowsThisStep * chOutputRowSize );
+					vectorHSwish( buffer, buffer, outputRowsThisStep * chOutputRowSize );
 				} else if( channelwiseActivation == AF_ReLU ) {
 					if( channelwiseActivationParam > 0 ) {
-						vectorReLU( chOutputBuff, chOutputBuff, outputRowsThisStep * chOutputRowSize,
+						vectorReLU( buffer, buffer, outputRowsThisStep * chOutputRowSize,
 							channelwiseActivationParam );
 					} else {
-						vectorReLU( chOutputBuff, chOutputBuff, outputRowsThisStep * chOutputRowSize );
+						vectorReLU( buffer, buffer, outputRowsThisStep * chOutputRowSize );
 					}
 				}
 
 				if( residual && isInPlace ) {
 					// Block input and output are located in the same memory
 					// It's possible to simultaneously calculate down conv output and add the residual connection
-					multiplyMatrixByTransposedMatrixAndAdd( chOutputBuff, outputRowsThisStep * outputWidth,
+					multiplyMatrixByTransposedMatrixAndAdd( buffer, outputRowsThisStep * outputWidth,
 						expandedChannels, expandedChannels, downFilter, outputChannels, expandedChannels, output,
 						outputChannels );
 				} else {
-					multiplyMatrixByTransposedMatrix( chOutputBuff, outputRowsThisStep * outputWidth, expandedChannels,
+					multiplyMatrixByTransposedMatrix( buffer, outputRowsThisStep * outputWidth, expandedChannels,
 						expandedChannels, downFilter, outputChannels, expandedChannels, output, outputChannels );
 				}
 
@@ -1224,6 +1133,172 @@ void CCpuMathEngine::MobileNetV3PostSEBlock( const CBlobDesc& channelwiseOutputD
 			residualObject += outputObjectSize;
 		}
 		outputObject += outputObjectSize;
+	}
+}
+
+//=====================================================================================================================
+
+class CChannelwiseWith1x1CpuImpl : public IRowwiseCpuImpl, public CRowwiseOperationDesc {
+public:
+	CChannelwiseWith1x1CpuImpl( CCpuMathEngine& mathEngine, int stride, const float* chFilter, const float* chFreeTerm,
+			TActivationFunction activation, float activationParam, const float* convFilter,
+			const float* convFreeTerm, int outputChannels, bool residual ) :
+		mathEngine( mathEngine ),
+		chFilter( chFilter ),
+		chFreeTerm( chFreeTerm ),
+		activation( activation ),
+		activationParam( activationParam ),
+		convFilter( convFilter ),
+		convFreeTerm( convFreeTerm ),
+		residual( residual ),
+		outputChannels( outputChannels ),
+		desc( 1, 1, stride, stride, CBlobDesc(), CBlobDesc(), CBlobDesc() )
+	{
+	}
+
+	int RequiredRowsCount() const { return 3; }
+	CBlobDesc Reshape( const CBlobDesc& inputSize ) override;
+	int InOperationBufferSize() const override
+		{ return desc.Result.Channels() * desc.Result.Width() * maxOutputRowsPerStep(); }
+	int OutputHeight() const override { return desc.Result.Height(); }
+	int OutputRowSize() const override { return desc.Result.Width() * outputChannels; }
+	CProcessingReport Process( const float* input, int inputRowIndex, int inputRowsAvailable,
+		float* output, int outputRowIndex, int outputRowsAvailable, float* buffer ) const override;
+
+private:
+	CCpuMathEngine& mathEngine;
+	const float* chFilter;
+	const float* chFreeTerm;
+	TActivationFunction activation;
+	float activationParam;
+	const float* convFilter;
+	const float* convFreeTerm;
+	int outputChannels;
+	bool residual;
+	CCommonChannelwiseConvolutionDesc desc;
+
+	int maxOutputRowsPerStep() const;
+};
+
+CBlobDesc CChannelwiseWith1x1CpuImpl::Reshape( const CBlobDesc& inputSize )
+{
+	CBlobDesc outputSize = inputSize;
+	outputSize.SetDimSize( BD_Height, 1 + ( outputSize.Height() - 1 ) / desc.StrideHeight );
+	outputSize.SetDimSize( BD_Width, 1 + ( outputSize.Width() - 1 ) / desc.StrideWidth );
+	CBlobDesc filterSize( CT_Float );
+	filterSize.SetDimSize( BD_Height, 3 );
+	filterSize.SetDimSize( BD_Width, 3 );
+	filterSize.SetDimSize( BD_Channels, inputSize.Channels() );
+	desc = CCommonChannelwiseConvolutionDesc( desc.PaddingHeight, desc.PaddingWidth, desc.StrideHeight,
+		desc.StrideWidth, inputSize, filterSize, outputSize );
+	outputSize.SetDimSize( BD_Channels, outputChannels );
+	return outputSize;
+}
+
+int CChannelwiseWith1x1CpuImpl::maxOutputRowsPerStep() const
+{
+	const int cacheSize = 32 * 1024;
+	const int maxRowSize = std::max( desc.Result.Channels(), desc.Source.Channels() ) * desc.Result.Width();
+	return std::min( std::max( cacheSize / maxRowSize, 1 ), desc.Result.Height() );
+}
+
+IRowwiseCpuImpl::CProcessingReport CChannelwiseWith1x1CpuImpl::Process( const float* input, int inputRowIndex,
+	int inputRowsAvailable, float* output, int outputRowIndex, int outputRowsAvailable, float* buffer ) const
+{
+	auto outputRowsCalculatable = [] ( int inputRows, int stride ) -> int {
+		return inputRows < 2 ? 0 : 1 + ( inputRows - 2 ) / stride;
+	};
+
+	PRESUME_EXPR( !residual || inputRowIndex == outputRowIndex );
+	PRESUME_EXPR( outputRowIndex == outputRowsCalculatable( inputRowIndex, desc.StrideHeight ) );
+	const int outputRowsThisCall = std::min( outputRowIndex + outputRowsAvailable,
+		outputRowsCalculatable( inputRowIndex + inputRowsAvailable, desc.StrideHeight ) );
+	const int maxRowsPerStep = maxOutputRowsPerStep();
+	const int chOutputRowSize = desc.Result.Channels() * desc.Result.Width();
+	const int outputWidth = desc.Result.Width();
+	const int inputChannels = desc.Source.Channels();
+
+	TProcessFilterRow processFilterRow = desc.StrideHeight == 1 ? process3x3RowStride1 : process3x3RowStride2;
+	const float* residualInput = input;
+	int outputRowsProcessed = outputRowIndex;
+	while( outputRowsProcessed < outputRowsThisCall ) {
+		// Process channelwise output rows (while there are any)
+		const int outputRowsThisStep = std::min<int>( maxRowsPerStep,
+			desc.Result.Height() - outputRowsProcessed );
+
+		processChannelwise3x3( desc, outputRowsThisStep, processFilterRow, input, inputRowIndex, chFilter,
+			chFreeTerm, buffer, outputRowsProcessed );
+
+		if( activation == AF_HSwish ) {
+			vectorHSwish( buffer, buffer, outputRowsThisStep * chOutputRowSize );
+		} else if( activation == AF_ReLU ) {
+			if( activationParam > 0 ) {
+				vectorReLU( buffer, buffer, outputRowsThisStep * chOutputRowSize,
+					activationParam );
+			} else {
+				vectorReLU( buffer, buffer, outputRowsThisStep * chOutputRowSize );
+			}
+		}
+
+		mathEngine.multiplyMatrixByTransposedMatrix( buffer, outputRowsThisStep * outputWidth, inputChannels,
+			inputChannels, convFilter, outputChannels, inputChannels, output, outputChannels );
+
+		if( convFreeTerm != nullptr ) {
+			mathEngine.addVectorToMatrixRows( output, output, outputRowsThisStep * outputWidth, outputChannels,
+				outputChannels, outputChannels, convFreeTerm );
+		}
+
+		if( residual ) {
+			// Input and output are located in different memory regions
+			// Add residual connection
+			vectorAdd( output, residualInput, output, outputRowsThisStep * outputWidth * outputChannels );
+			residualInput += outputRowsThisStep * desc.Source.Width() * inputChannels;
+		}
+
+		output += outputRowsThisStep * outputChannels * outputWidth;
+		outputRowsProcessed += outputRowsThisStep;
+	}
+
+	CProcessingReport report;
+	report.OutputRowsCalculated = outputRowsProcessed - outputRowIndex;
+	const int firstInputRowNeeded = outputRowsProcessed == desc.Result.Height() ? desc.Source.Height()
+		: outputRowsProcessed * desc.StrideHeight - 1;
+	report.InputRowsMayBeRemoved = firstInputRowNeeded - inputRowIndex;
+	return report;
+}
+
+void CCpuMathEngine::ChannelwiseWith1x1( const CBlobDesc& inputDesc, const CBlobDesc& outputDesc,
+	const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& inputHandle,
+	const CConstFloatHandle& channelwiseFilterData, const CConstFloatHandle* channelwiseFreeTermData,
+	TActivationFunction activation, float activationParam, const CConstFloatHandle& convFilterData,
+	const CConstFloatHandle* convFreeTermData, bool residual, const CFloatHandle& outputHandle )
+{
+	CCpuExecutionScope scope;
+	const CCommonChannelwiseConvolutionDesc& desc = static_cast<const CCommonChannelwiseConvolutionDesc&>( convDesc );
+
+	CChannelwiseWith1x1CpuImpl impl( *this, desc.StrideHeight, GetRaw( channelwiseFilterData ),
+		channelwiseFreeTermData == nullptr ? nullptr : GetRaw( *channelwiseFreeTermData ),
+		activation, activationParam, GetRaw( convFilterData ),
+		convFreeTermData == nullptr ? nullptr : GetRaw( *convFreeTermData ),
+		outputDesc.Channels(), residual );
+	(void)impl.Reshape( inputDesc );
+
+	// Buffer for the output rows of channelwise convolution
+	CFloatHandleStackVar bufferVar( *this, static_cast<size_t>( impl.InOperationBufferSize() ) );
+
+	float* buffer = GetRaw( bufferVar.GetHandle() );
+	const float* input = GetRaw( inputHandle );
+	float* output = GetRaw( outputHandle );
+
+	for( int b = 0; b < inputDesc.ObjectCount(); ++b ) {
+		IRowwiseCpuImpl::CProcessingReport report = impl.Process( input, 0, desc.Source.Height(),
+			output, 0, desc.Result.Height(), buffer );
+		( void ) report; // Avoid compiler warning in release configuration
+		PRESUME_EXPR( report.InputRowsMayBeRemoved == desc.Source.Height() );
+		PRESUME_EXPR( report.OutputRowsCalculated == desc.Result.Height() );
+
+		input += inputDesc.ObjectSize();
+		output += outputDesc.ObjectSize();
 	}
 }
 

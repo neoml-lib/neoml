@@ -20,6 +20,7 @@ set(CPU_COMMON_SOURCES
     CPU/CpuMathEngineDnn.cpp
     CPU/CpuMathEngineDnnPooling.cpp
     CPU/CpuMathEngineDnnRleConv.cpp
+    CPU/CpuMathEngineDnnRowwise.cpp
     CPU/CpuMathEngineDnnTimeConv.cpp
     CPU/CpuMathEngine.cpp
     CPU/CpuMathEngineVectorMath.cpp
@@ -58,6 +59,7 @@ target_sources(${PROJECT_NAME}
     CPU/CpuMathEngineOmp.h
     CPU/CpuMathEngineDnnDistributed.h
     CPU/CpuMathEngineDnnLstm.h
+    CPU/CpuMathEngineDnnRowwise.h
     CPU/CpuExecutionScope.h
     CPU/CpuFunctorCommon.h
 
@@ -179,7 +181,7 @@ else()
 endif()
 
 # GPU specific source and settings
-if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
+if(FALSE) # if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
 
     if(USE_FINE_OBJECTS)
         # The CUDA must exist at $ENV{ROOT}/ThirdParty
@@ -339,7 +341,7 @@ elseif(IOS)
     endif()
 endif()
 
-if(NeoMathEngine_ENABLE_VULKAN)
+if(FALSE) # if(NeoMathEngine_ENABLE_VULKAN)
     if(WIN32 OR ANDROID)
         # Vulkan
         if(USE_FINE_OBJECTS)

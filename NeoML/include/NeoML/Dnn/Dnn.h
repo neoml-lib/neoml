@@ -126,6 +126,9 @@ class NEOML_API CBaseLayer : public virtual IObject {
 public:
 	CBaseLayer( IMathEngine& mathEngine, const char* name, bool isLearnable );
 
+	// Retrieves the reference to the IMathEngine with which the layer was created
+	IMathEngine& MathEngine() const;
+
 	// The current network (described by a CDnn class) to which the layer belongs
 	// While a layer is connected to a network, you may not change its basic configuration,
 	// such as its name, the list of inputs, the size of a convolution window, etc.
@@ -259,9 +262,6 @@ protected:
 
 	// Fills with zeros the parameters that are less (but not equal) than a given threshold
 	virtual void FilterLayerParams( float /*threshold*/ ) {}
-
-	// Retrieves the reference to the IMathEngine with which the layer was created
-	IMathEngine& MathEngine() const;
 
 	// Allocates the output blobs
 	// The default implementation creates the outputBlobs array using the output descriptions

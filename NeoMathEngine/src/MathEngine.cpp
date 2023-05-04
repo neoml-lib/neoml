@@ -69,6 +69,7 @@ CGlobalMaxOverTimePoolingDesc::~CGlobalMaxOverTimePoolingDesc() = default;
 CMaxOverTimePoolingDesc::~CMaxOverTimePoolingDesc() = default;
 CLrnDesc::~CLrnDesc() = default;
 CLstmDesc::~CLstmDesc() = default;
+CRowwiseOperationDesc::~CRowwiseOperationDesc() = default;
 
 // GPU manager implementation
 class CGpuMathEngineManager : public IGpuMathEngineManager {
