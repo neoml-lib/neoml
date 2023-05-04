@@ -20,6 +20,7 @@ limitations under the License.
 #include <SubwordDecoder.h>
 #include <NeoML/TraditionalML/GraphGenerator.h>
 #include <NeoML/TraditionalML/LdGraph.h>
+#include <cfloat>
 
 namespace NeoML {
 
@@ -198,7 +199,12 @@ void CUnigramEncoder::DoEncode( const CString& word, CArray<int>& tokenIds, CArr
 {
 	NeoAssert( IsInitialized() );
 
+	const int firstTokenPos = tokenLengths.Size();
+
 	const CString inputWithBorders = params.StartOfWordToken + word + params.EndOfWordToken;
+	if( inputWithBorders.IsEmpty() ) {
+		return;
+	}
 	CPointerArray<CTokenLdGraphArc> tokenSegments;
 	CTokenLdGraph tokenStructure( inputWithBorders );
 	fillTokenLdGraphFromTrie( inputWithBorders, &tokenTrie, tokenSegments, tokenStructure );
@@ -213,6 +219,8 @@ void CUnigramEncoder::DoEncode( const CString& word, CArray<int>& tokenIds, CArr
 		tokenIds.Add( getShiftedTokenIndex( tokenText ) );
 		tokenLengths.Add( tokenText.Length() );
 	}
+	tokenLengths[firstTokenPos] -= params.StartOfWordToken.Length();
+	tokenLengths.Last() -= params.EndOfWordToken.Length();
 }
 
 // Returns index of token for encoding.
