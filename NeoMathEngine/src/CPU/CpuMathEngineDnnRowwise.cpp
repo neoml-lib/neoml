@@ -184,7 +184,7 @@ void CRowwiseBuffer::AddRows( int count )
 {
 	PRESUME_EXPR( count > 0 );
 	dataRowsCount += count;
-	PRESUME_EXPR( dataRowsCount < rowCount );
+	PRESUME_EXPR( dataRowsCount <= rowCount );
 }
 
 void CRowwiseBuffer::RemoveRows( int count )
@@ -208,12 +208,12 @@ void CRowwiseBuffer::Reset()
 
 //---------------------------------------------------------------------------------------------------------------------
 
-CBlobDesc CCpuMathEngine::RowwiseReshape( CRowwiseOperationDesc* operations, int operationCount,
+CBlobDesc CCpuMathEngine::RowwiseReshape( CRowwiseOperationDesc** operations, int operationCount,
 	const CBlobDesc& input )
 {
 	CBlobDesc output = input;
 	for( int i = 0; i < operationCount; ++i ) {
-		output = dynamic_cast<IRowwiseCpuImpl*>( operations )->Reshape( output );
+		output = dynamic_cast<IRowwiseCpuImpl*>( *operations )->Reshape( output );
 		++operations;
 	}
 	return output;
@@ -221,7 +221,7 @@ CBlobDesc CCpuMathEngine::RowwiseReshape( CRowwiseOperationDesc* operations, int
 
 static constexpr int RowwiseMaxBuffSize = 32 * 1024;
 
-void CCpuMathEngine::RowwiseExecute( const CBlobDesc& inputDesc, CRowwiseOperationDesc* operationDescs,
+void CCpuMathEngine::RowwiseExecute( const CBlobDesc& inputDesc, CRowwiseOperationDesc** operationDescs,
 	int operationCount, const CFloatHandle& input, const CFloatHandle& output )
 {
 	PRESUME_EXPR( operationCount > 0 );
@@ -232,7 +232,7 @@ void CCpuMathEngine::RowwiseExecute( const CBlobDesc& inputDesc, CRowwiseOperati
 	std::vector<IRowwiseCpuImpl*> operations;
 	operations.reserve( static_cast<size_t>( operationCount ) );
 	for( int i = 0; i < operationCount; ++i ) {
-		operations.push_back( dynamic_cast<IRowwiseCpuImpl*>( operationDescs + i ) );
+		operations.push_back( dynamic_cast<IRowwiseCpuImpl*>( *( operationDescs + i ) ) );
 	}
 
 	std::vector<std::unique_ptr<IRowwiseBuffer>> buffers;

@@ -40,7 +40,7 @@ public:
 
 // Registration macro
 #define REGISTER_NEOML_ROWWISE_OPERATION( classType, name ) \
-	static CRowwiseOperationRegistrar<classType> __merge__1( _RegisterModel, __LINE__ )( modelName );
+	static CRowwiseOperationRegistrar<classType> __merge__1( _RegisterRowwise, __LINE__ )( name );
 
 // Get registered name from the object
 NEOML_API const char* GetRowwiseOperationName( const IObject* rowwiseOperation );
@@ -51,7 +51,7 @@ NEOML_API CPtr<IObject> CreateRowwiseOperation( const char* className, IMathEngi
 template<class T>
 inline CPtr<T> CreateRowwiseOperation( const char* className, IMathEngine& mathEngine )
 {
-	return dynamic_cast<T*>( CreateRowwiseOperation( modelName ).Ptr() );
+	return dynamic_cast<T*>( CreateRowwiseOperation( className, mathEngine ).Ptr() );
 }
 
 //=====================================================================================================================

@@ -20,8 +20,17 @@ limitations under the License.
 
 namespace NeoML {
 
-static CMap<CString, TCreateRowwiseOperationFunction, CDefaultHash<CString>, RuntimeHeap> registeredRowwise;
-static CMap<const std::type_info*, CString, CDefaultHash<const std::type_info*>, RuntimeHeap> rowwiseNames;
+static CMap<CString, TCreateRowwiseOperationFunction, CDefaultHash<CString>, RuntimeHeap>& getRegisteredRowwise()
+{
+	static CMap<CString, TCreateRowwiseOperationFunction, CDefaultHash<CString>, RuntimeHeap> registeredRowwise;
+	return registeredRowwise;
+}
+
+static CMap<const std::type_info*, CString, CDefaultHash<const std::type_info*>, RuntimeHeap>& getRowwiseNames()
+{
+	static CMap<const std::type_info*, CString, CDefaultHash<const std::type_info*>, RuntimeHeap> rowwiseNames;
+	return rowwiseNames;
+}
 
 IRowwiseOperation::~IRowwiseOperation() = default;
 
@@ -32,34 +41,34 @@ const char* GetRowwiseOperationName( const IObject* rowwiseOperation )
 	}
 
 	const std::type_info& rowwiseType = typeid( *rowwiseOperation );
-	TMapPosition pos = rowwiseNames.GetFirstPosition( &rowwiseType );
+	TMapPosition pos = getRowwiseNames().GetFirstPosition( &rowwiseType );
 	if( pos == NotFound ) {
 		return "";
 	}
-	return rowwiseNames.GetValue( pos );
+	return getRowwiseNames().GetValue( pos );
 }
 
 CPtr<IObject> CreateRowwiseOperation( const char* className, IMathEngine& mathEngine )
 {
-	TMapPosition pos = registeredRowwise.GetFirstPosition( className );
+	TMapPosition pos = getRegisteredRowwise().GetFirstPosition(className);
 	if( pos == NotFound ) {
 		return 0;
 	}
-	return registeredRowwise.GetValue( pos )( mathEngine ).Ptr();
+	return getRegisteredRowwise().GetValue( pos )( mathEngine ).Ptr();
 }
 
 void RegisterRowwiseOperation( const char* className, const std::type_info& typeInfo,
 	TCreateRowwiseOperationFunction function )
 {
-	NeoAssert( !registeredRowwise.Has( className ) );
-	registeredRowwise.Add( className, function );
-	rowwiseNames.Add( &typeInfo, className );
+	NeoAssert( !getRegisteredRowwise().Has( className ) );
+	getRegisteredRowwise().Add( className, function );
+	getRowwiseNames().Add( &typeInfo, className );
 }
 
 void UnregisterRowwiseOperation( const std::type_info& typeInfo )
 {
-	registeredRowwise.Delete( rowwiseNames.Get( &typeInfo ) );
-	rowwiseNames.Delete( &typeInfo );
+	getRegisteredRowwise().Delete( getRowwiseNames().Get( &typeInfo ) );
+	getRowwiseNames().Delete( &typeInfo );
 }
 
 } // namespace NeoML

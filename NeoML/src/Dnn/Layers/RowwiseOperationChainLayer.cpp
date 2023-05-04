@@ -18,6 +18,10 @@ limitations under the License.
 
 #include <NeoML/Dnn/Layers/RowwiseOperationChainLayer.h>
 
+#include <NeoML/Dnn/Layers/ChannelwiseWith1x1Layer.h>
+#include <NeoML/Dnn/Optimization/Graph.h>
+#include <NeoML/Dnn/Rowwise/ChannelwiseWith1x1.h>
+
 namespace NeoML {
 
 CRowwiseOperationChainLayer::CRowwiseOperationChainLayer( IMathEngine& mathEngine ) :
@@ -31,7 +35,24 @@ void CRowwiseOperationChainLayer::Serialize( CArchive& archive )
 {
 	archive.SerializeVersion( RowwiseOperationChainLayerVersion );
 	CBaseLayer::Serialize( archive );
-	// TODO: add serialization
+
+	if( archive.IsStoring() ) {
+		archive << operations.Size();
+		for( IRowwiseOperation* operation : operations ) {
+			archive << CString( GetRowwiseOperationName( operation ) );
+			operation->Serialize( archive );
+		}
+	} else {
+		operations.DeleteAll();
+		int operationCount = 0;
+		archive >> operationCount;
+		operations.SetBufferSize( operationCount );
+		for( int i = 0; i < operationCount; ++i ) {
+			CString operationName;
+			archive >> operationName;
+			operations.Add( CreateRowwiseOperation<IRowwiseOperation>( operationName, MathEngine() ) );
+		}
+	}
 }
 
 void CRowwiseOperationChainLayer::Reshape()
@@ -46,19 +67,82 @@ void CRowwiseOperationChainLayer::Reshape()
 		operationDescs.Add( operation->GetDesc( inputDescs[0] ) );
 	}
 
-	outputDescs[0] = MathEngine().RowwiseReshape( operationDescs[0], operations.Size(), outputDescs[0]);
+	outputDescs[0] = MathEngine().RowwiseReshape( operationDescs.GetPtr(), operations.Size(), outputDescs[0]);
 	// TODO: support in-place
 }
 
 void CRowwiseOperationChainLayer::RunOnce()
 {
-	MathEngine().RowwiseExecute( inputBlobs[0]->GetDesc(), operationDescs[0], operations.Size(),
+	MathEngine().RowwiseExecute( inputBlobs[0]->GetDesc(), operationDescs.GetPtr(), operations.Size(),
 		inputBlobs[0]->GetData(), outputBlobs[0]->GetData() );
 }
 
 void CRowwiseOperationChainLayer::BackwardOnce()
 {
 	NeoAssert( false );
+}
+
+//=====================================================================================================================
+
+void OptimizeRowwiseChains( CDnn& dnn, CArray<int>& chains )
+{
+	chains.DeleteAll();
+	optimization::CGraph graph( dnn );
+
+	auto isChainLayer = [] ( const CBaseLayer* layer ) -> bool {
+		return dynamic_cast<const CRowwiseOperationChainLayer*>( layer ) != nullptr;
+	};
+
+	auto isRowwiseLayer = [] ( const CBaseLayer* layer ) -> bool {
+		return dynamic_cast<const CChannelwiseWith1x1Layer*>( layer ) != nullptr;
+	};
+
+	auto createOperation = [] ( const CBaseLayer* layer ) -> CPtr<IRowwiseOperation> {
+		auto channelwiseWith1x1 = dynamic_cast<const CChannelwiseWith1x1Layer*>( layer );
+		if( channelwiseWith1x1 != nullptr ) {
+			return new CChannelwiseWith1x1Rowwise( *channelwiseWith1x1 );
+		}
+		NeoAssert( false );
+		return nullptr;
+	};
+
+	CArray<CBaseLayer*> layers;
+	graph.GetLayers( layers );
+
+	for( CBaseLayer* layer : layers ) {
+		graph.ClearSelection();
+
+		if( !isRowwiseLayer( layer ) ) {
+			continue;
+		}
+
+		graph.SelectLayer( *layer );
+		CBaseLayer* prevLayer = graph.SelectTheOnlyConnectedOutput<CBaseLayer>( *layer, true );
+		if( isChainLayer( prevLayer ) ) {
+			dynamic_cast<CRowwiseOperationChainLayer*>( prevLayer )->AddOperation( createOperation( layer ) );
+			graph.SwitchOutputs( *layer, 0, *prevLayer, 0 );
+			graph.DeleteLayer( *layer );
+		} else if( isRowwiseLayer( prevLayer ) ) {
+			CPtr<CRowwiseOperationChainLayer> chainLayer = new CRowwiseOperationChainLayer( dnn.GetMathEngine() );
+			chainLayer->SetName( graph.GetUniqueName( "RowwiseChain" ) );
+			chainLayer->AddOperation( createOperation( prevLayer ) );
+			chainLayer->AddOperation( createOperation( layer ) );
+			graph.AddLayer( *chainLayer );
+			optimization::CLayerOutput<> chainInput = graph.GetConnectedOutput( *prevLayer, 0 );
+			graph.Connect( *chainLayer, 0, *chainInput.Layer, chainInput.Index );
+			graph.SwitchOutputs( *layer, 0, *chainLayer, 0 );
+			graph.DeleteSelectedLayers();
+		}
+	}
+
+	graph.ClearSelection();
+
+	graph.GetLayers( layers );
+	for( CBaseLayer* layer : layers ) {
+		if( isChainLayer( layer ) ) {
+			chains.Add( dynamic_cast<const CRowwiseOperationChainLayer*>( layer )->OperationCount() );
+		}
+	}
 }
 
 } // namespace NeoML

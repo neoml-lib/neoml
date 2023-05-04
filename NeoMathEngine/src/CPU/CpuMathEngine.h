@@ -425,7 +425,7 @@ public:
 		const CFloatHandle* freeTermDiff, bool isFreeTermDiffFromInput ) override;
 	CConvolutionDesc* InitBlobConvolution( const CBlobDesc& input, int paddingHeight, int paddingWidth,
 		int strideHeight, int strideWidth, int dilationHeight, int dilationWidth, const CBlobDesc& filter, const CBlobDesc& output ) override;
-	void BlobConvolution( const CConvolutionDesc& desc,
+	void BlobConvolution( const CConvolutionDesc& convDesc,
 		const CConstFloatHandle& source, const CConstFloatHandle& filter, const CConstFloatHandle* freeTerm,
 		const CFloatHandle& result ) override;
 	void BlobConvolutionBackward( const CConvolutionDesc& desc, const CConstFloatHandle& outputDiff,
@@ -594,9 +594,13 @@ public:
 		const CConstFloatHandle* residualHandle, TActivationFunction activation, float activationParam,
 		const CConstFloatHandle& downFilterHandle, const CConstFloatHandle* downFreeTermHandle,
 		const CFloatHandle& outputHandle ) override;
-	CBlobDesc RowwiseReshape( CRowwiseOperationDesc* operations, int operationCount,
+	CRowwiseOperationDesc* InitChannelwiseWith1x1Rowwise( int stride, const CConstFloatHandle& channelwiseFilter,
+		const CConstFloatHandle* channelwiseFreeTerm, TActivationFunction activation, float activationParam,
+		const CConstFloatHandle& convFilter, const CConstFloatHandle* convFreeTerm,
+		int outputChannels, bool residual ) override;
+	CBlobDesc RowwiseReshape( CRowwiseOperationDesc** operations, int operationCount,
 		const CBlobDesc& input ) override;
-	void RowwiseExecute( const CBlobDesc& inputDesc, CRowwiseOperationDesc* operations, int operationCount,
+	void RowwiseExecute( const CBlobDesc& inputDesc, CRowwiseOperationDesc** operations, int operationCount,
 		const CFloatHandle& input, const CFloatHandle& output ) override;
 
 	IPerformanceCounters* CreatePerformanceCounters() const override;
@@ -710,17 +714,13 @@ private:
 		const float* filterData, const CConstFloatHandle* freeTermData, float* resultData );
 	void blobConvolutionForwardAlgo1( const CCpuConvolutionDesc& desc, const float* sourceData,
 		const float* filterData, const CConstFloatHandle* freeTermData, float* resultData );
-	void backwardConvolutionAddFilterToOutput( const CCpuConvolutionDesc& desc, const CConstFloatHandle& temp,
-		const CConstFloatHandle* freeTerm, const CFloatHandle& output );
-	void backwardDilationConvolutionAddFilterToOutput( const CCpuConvolutionDesc& desc, const CConstFloatHandle& temp,
-		const CConstFloatHandle* freeTermData, const CFloatHandle& outputData );
 	void blobConvolutionBackwardAlgo1( const CCpuConvolutionDesc& desc,
 		const CConstFloatHandle& sourceData, const CConstFloatHandle& filterData, const CConstFloatHandle* freeTerm,
 		const CFloatHandle& resultData );
-	void fillTempBlobsForLearnAlgo2( const CCpuConvolutionDesc& desc, const CConstFloatHandle& outputDiff,
-		const CBlobDesc& tempBlob, const CFloatHandle& tempHandle );
-	void blobConvolutionBackwardAlgo2( const CCpuConvolutionDesc& desc, const CConstFloatHandle& outputDiffData,
-		const CConstFloatHandle& filterData, const CConstFloatHandle* freeTermData, const CFloatHandle& inputDiffData );
+	void fillTempBlobsForLearnAlgo2( const CCpuConvolutionDesc& desc, const CConstFloatHandle& sourceData,
+		const CBlobDesc& tempDesc, const CFloatHandle& tempHandle );
+	void blobConvolutionBackwardAlgo2( const CCpuConvolutionDesc& desc, const CConstFloatHandle& sourceData,
+		const CConstFloatHandle& filterData, const CConstFloatHandle* freeTerm, const CFloatHandle& resultData );
 	void blobConvolutionLearnAlgo1( const CCpuConvolutionDesc& desc,
 		const CConstFloatHandle& input, const CConstFloatHandle& outputDiff, const CFloatHandle& filterDiff,
 		const CFloatHandle* freeTermDiff, bool isFreeTermDiffFromInput );

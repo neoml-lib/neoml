@@ -184,8 +184,10 @@ set(NeoML_SOURCES
     TraditionalML/PCA.cpp
     TraditionalML/SMOptimizer.cpp
     TraditionalML/SubwordEncoder.cpp
+    TraditionalML/SubwordEncoderTrainer.cpp
     TraditionalML/Svm.cpp
     TraditionalML/SvmKernel.cpp
+    TraditionalML/Utf8Tools.cpp
     TraditionalML/WordDictionary.cpp
 )
 
@@ -327,10 +329,12 @@ set(NeoML_HEADERS
     Dnn/Optimization/MobileNetV2Optimizer.h
     Dnn/Optimization/MobileNetV3Optimizer.h
     TraditionalML/BytePairEncoder.h
+    TraditionalML/BytePairEncoderTrainer.h
     TraditionalML/NaiveHierarchicalClustering.h
     TraditionalML/NnChainHierarchicalClustering.h
     TraditionalML/SMOptimizer.h
     TraditionalML/SvmBinaryModel.h
+    TraditionalML/Utf8Tools.h
 
     # Headers
     ../include/NeoML/Dnn/DnnDistributed.h
@@ -409,7 +413,6 @@ set(NeoML_HEADERS
     ../include/NeoML/Dnn/Rowwise/ChannelwiseWith1x1.h
     ../include/NeoML/Dnn/Rowwise/RowwiseOperation.h
 
-    ../include/NeoML/TraditionalML/BytePairEncoderTrainer.h
     ../include/NeoML/TraditionalML/ClusterCenter.h
     ../include/NeoML/TraditionalML/Clustering.h
     ../include/NeoML/TraditionalML/CommonCluster.h
@@ -423,6 +426,7 @@ set(NeoML_HEADERS
     ../include/NeoML/TraditionalML/MatchingGenerator.h
     ../include/NeoML/TraditionalML/PCA.h
     ../include/NeoML/TraditionalML/SubwordEncoder.h
+    ../include/NeoML/TraditionalML/SubwordEncoderTrainer.h
     ../include/NeoML/TraditionalML/Svm.h
     ../include/NeoML/TraditionalML/SvmKernel.h
     ../include/NeoML/TraditionalML/WordDictionary.h

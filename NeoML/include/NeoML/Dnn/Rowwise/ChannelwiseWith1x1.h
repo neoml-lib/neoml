@@ -31,13 +31,9 @@ public:
 	// Constructor for serialization
 	explicit CChannelwiseWith1x1Rowwise( IMathEngine& mathEngine );
 
-	~CChannelwiseWith1x1Rowwise() override;
-
 	// IRowwiseOperation implementation
 	CRowwiseOperationDesc* GetDesc( const CBlobDesc& inputDesc ) override;
-	void Serialize( CArchive& archive ) override
-	{
-	} // TODO: realization
+	void Serialize( CArchive& archive ) override;
 
 private:
 	IMathEngine& mathEngine; // math engine used for calculations
@@ -48,7 +44,6 @@ private:
 	CPtr<CDnnBlob> convFilter; // filter of 1x1 convolution
 	CPtr<CDnnBlob> convFreeTerm; // free term of 1x1 convolution (if present)
 	bool residual; // Does block have residual connection?
-	CChannelwiseConvolutionDesc* convDesc{}; // descriptor of channelwise convolution
 };
 
 } // namespace NeoML

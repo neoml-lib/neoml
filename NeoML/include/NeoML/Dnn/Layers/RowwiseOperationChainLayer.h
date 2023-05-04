@@ -43,8 +43,13 @@ protected:
 private:
 	// Rowwise operations
 	CObjectArray<IRowwiseOperation> operations;
-	// MathEngine descriptors of operations in chaing
+	// MathEngine descriptors of operations in chain
 	CPointerArray<CRowwiseOperationDesc> operationDescs;
 };
+
+//=====================================================================================================================
+
+// TODO: add this to OptimizeDnn?
+void NEOML_API OptimizeRowwiseChains( CDnn& dnn, CArray<int>& chains );
 
 } // namespace NeoML

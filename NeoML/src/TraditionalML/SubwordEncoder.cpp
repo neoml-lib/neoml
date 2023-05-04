@@ -20,6 +20,19 @@ limitations under the License.
 
 namespace NeoML {
 
+static constexpr int SubwordEncoderParamsCurrentVersion = 0;
+
+void ISubwordEncoder::CParams::Serialize( CArchive& archive )
+{
+	archive.SerializeVersion( SubwordEncoderParamsCurrentVersion );
+	archive.Serialize( EndOfWordToken );
+	archive.Serialize( StartOfWordToken );
+	archive.Serialize( UseRawBytes );
+	archive.Serialize( UnknownTokenId );
+}
+
+//////////////////////////////////////
+
 ISubwordEncoderWithCache::CCache::CCachedData::CCachedData( const CCachedData& other ) :
 	Time( other.Time )
 {
@@ -93,7 +106,7 @@ void ISubwordEncoderWithCache::CCache::Add( const CString& word,
 {
 	NeoAssert( !wordCache.Has( word ) );
 	NeoAssert( tokenIds.Size() == tokenLengths.Size() );
-	
+
 	CCachedData wordData;
 	wordData.Time = cacheTime;
 	for( int i = 0; i < tokenIds.Size(); i++ ) {
@@ -121,17 +134,4 @@ void ISubwordEncoderWithCache::Encode( const CString& word, CArray<int>& tokenId
 
 	cache.Add( word, wordTokenIds, wordTokenLengths );
 }
-
-//////////////////////////////////////
-static constexpr int BytePairEncoderCurrentVersion = 0;
-
-void IBytePairEncoder::CParams::Serialize( CArchive& archive )
-{
-	archive.SerializeVersion( BytePairEncoderCurrentVersion );
-	archive.Serialize( EndOfWordToken );
-	archive.Serialize( StartOfWordToken );
-	archive.Serialize( UseRawBytes );
-	archive.Serialize( UnknownTokenId );
-}
-
 } // namespace NeoML

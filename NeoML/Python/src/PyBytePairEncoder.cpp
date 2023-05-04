@@ -62,15 +62,24 @@ void CPyBytePairEncoder::Train( py::dict dictionary, int maxVocabSize,
 	{
 		py::gil_scoped_release release;
 
-		CBytePairEncoderTrainer::CParams params;
-		params.MaxSize = maxVocabSize;
-		params.UseEndOfWordToken = useEndOfWordToken;
-		params.UseStartOfWordToken = useStartOfWordToken;
-		params.UseRawBytes = useRawBytes;
-		params.UnknownTokenId = unknownTokenId;
+		CSubwordEncoderTrainer::TBorderHandling border = CSubwordEncoderTrainer::TBorderHandling::None;
+		if( useStartOfWordToken ) {
+			if( useEndOfWordToken ) {
+				border = CSubwordEncoderTrainer::TBorderHandling::BeginAndEndOfWord;
+			} else {
+				border = CSubwordEncoderTrainer::TBorderHandling::BeginOfWord;
+			}
+		} else if( useEndOfWordToken ) {
+			border = CSubwordEncoderTrainer::TBorderHandling::EndOfWord;
+		}
 
-		CBytePairEncoderTrainer trainer( params, dictionaryRaw );
-		encoder = trainer.Train();
+		CSubwordEncoderTrainer::TVocabPruning pruning = useRawBytes ? 
+			CSubwordEncoderTrainer::TVocabPruning::ByteBPE :
+			CSubwordEncoderTrainer::TVocabPruning::Coverage;
+		
+		CSubwordEncoderTrainer trainer( maxVocabSize, CSubwordEncoderTrainer::TAlgorithm::BPE, border, pruning );
+		trainer.SetUnknownTokenId( unknownTokenId );
+		encoder = CheckCast<IBytePairEncoder>( trainer.Train( dictionaryRaw ) );
 	}
 }
 

@@ -1205,26 +1205,29 @@ int CChannelwiseWith1x1CpuImpl::maxOutputRowsPerStep() const
 IRowwiseCpuImpl::CProcessingReport CChannelwiseWith1x1CpuImpl::Process( const float* input, int inputRowIndex,
 	int inputRowsAvailable, float* output, int outputRowIndex, int outputRowsAvailable, float* buffer ) const
 {
-	auto outputRowsCalculatable = [] ( int inputRows, int stride ) -> int {
+	auto outputRowsCalculatable = [] ( int inputRows, int stride, int height ) -> int {
+		if( inputRows == height ) {
+			return 1 + ( height - 1 ) / stride;
+		}
 		return inputRows < 2 ? 0 : 1 + ( inputRows - 2 ) / stride;
 	};
 
-	PRESUME_EXPR( !residual || inputRowIndex == outputRowIndex );
-	PRESUME_EXPR( outputRowIndex == outputRowsCalculatable( inputRowIndex, desc.StrideHeight ) );
-	const int outputRowsThisCall = std::min( outputRowIndex + outputRowsAvailable,
-		outputRowsCalculatable( inputRowIndex + inputRowsAvailable, desc.StrideHeight ) );
+	PRESUME_EXPR( !residual || inputRowIndex <= outputRowIndex );
+	// PRESUME_EXPR( outputRowIndex == outputRowsCalculatable( inputRowIndex, desc.StrideHeight ) );
+	int outputRowsThisCall = std::min( outputRowIndex + outputRowsAvailable,
+		outputRowsCalculatable( inputRowIndex + inputRowsAvailable, desc.StrideHeight, desc.Source.Height() ) );
 	const int maxRowsPerStep = maxOutputRowsPerStep();
 	const int chOutputRowSize = desc.Result.Channels() * desc.Result.Width();
 	const int outputWidth = desc.Result.Width();
 	const int inputChannels = desc.Source.Channels();
 
 	TProcessFilterRow processFilterRow = desc.StrideHeight == 1 ? process3x3RowStride1 : process3x3RowStride2;
-	const float* residualInput = input;
+	const float* residualInput = input + ( outputRowIndex - inputRowIndex ) * desc.Source.Width() * desc.Source.Channels();
 	int outputRowsProcessed = outputRowIndex;
 	while( outputRowsProcessed < outputRowsThisCall ) {
 		// Process channelwise output rows (while there are any)
 		const int outputRowsThisStep = std::min<int>( maxRowsPerStep,
-			desc.Result.Height() - outputRowsProcessed );
+			outputRowsThisCall - outputRowsProcessed );
 
 		processChannelwise3x3( desc, outputRowsThisStep, processFilterRow, input, inputRowIndex, chFilter,
 			chFreeTerm, buffer, outputRowsProcessed );
@@ -1263,7 +1266,7 @@ IRowwiseCpuImpl::CProcessingReport CChannelwiseWith1x1CpuImpl::Process( const fl
 	report.OutputRowsCalculated = outputRowsProcessed - outputRowIndex;
 	const int firstInputRowNeeded = outputRowsProcessed == desc.Result.Height() ? desc.Source.Height()
 		: outputRowsProcessed * desc.StrideHeight - 1;
-	report.InputRowsMayBeRemoved = firstInputRowNeeded - inputRowIndex;
+	report.InputRowsMayBeRemoved = std::max( 0, firstInputRowNeeded - inputRowIndex );
 	return report;
 }
 
@@ -1300,6 +1303,17 @@ void CCpuMathEngine::ChannelwiseWith1x1( const CBlobDesc& inputDesc, const CBlob
 		input += inputDesc.ObjectSize();
 		output += outputDesc.ObjectSize();
 	}
+}
+
+CRowwiseOperationDesc* CCpuMathEngine::InitChannelwiseWith1x1Rowwise( int stride, const CConstFloatHandle& channelwiseFilter,
+	const CConstFloatHandle* channelwiseFreeTerm, TActivationFunction activation, float activationParam,
+	const CConstFloatHandle& convFilter, const CConstFloatHandle* convFreeTerm, int outputChannels, bool residual )
+{
+	return new CChannelwiseWith1x1CpuImpl( *this, stride, GetRaw( channelwiseFilter ),
+		channelwiseFreeTerm == nullptr ? nullptr : GetRaw( *channelwiseFreeTerm ),
+		activation, activationParam, GetRaw( convFilter ),
+		convFreeTerm == nullptr ? nullptr : GetRaw( *convFreeTerm ),
+		outputChannels, residual );
 }
 
 } // namespace NeoML

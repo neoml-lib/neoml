@@ -41,14 +41,33 @@ CChannelwiseWith1x1Rowwise::CChannelwiseWith1x1Rowwise( IMathEngine& mathEngine 
 {
 }
 
-CChannelwiseWith1x1Rowwise::~CChannelwiseWith1x1Rowwise()
-{
-	delete convDesc;
-}
-
 CRowwiseOperationDesc* CChannelwiseWith1x1Rowwise::GetDesc( const CBlobDesc& inputDesc )
 {
-	return nullptr;
+	return mathEngine.InitChannelwiseWith1x1Rowwise( stride, channelwiseFilter->GetData(),
+		channelwiseFreeTerm == nullptr ? nullptr : &channelwiseFreeTerm->GetData<const float>(),
+		activation.GetType(),
+		activation.GetType() == AF_ReLU ? activation.GetParam<CReLULayer::CParam>().UpperThreshold : 0,
+		convFilter->GetData(),
+		convFreeTerm == nullptr ? nullptr : &convFreeTerm->GetData<const float>(),
+		convFilter->GetObjectCount(), residual );
 }
+
+void CChannelwiseWith1x1Rowwise::Serialize( CArchive& archive )
+{
+	(void) archive.SerializeVersion( 0 ); // version
+	archive.Serialize( stride );
+	SerializeBlob( mathEngine, archive, channelwiseFilter );
+	SerializeBlob( mathEngine, archive, channelwiseFreeTerm );
+	if( archive.IsStoring() ) {
+		StoreActivationDesc( activation, archive );
+	} else {
+		activation = LoadActivationDesc( archive );
+	}
+	SerializeBlob( mathEngine, archive, convFilter );
+	SerializeBlob( mathEngine, archive, convFreeTerm );
+	archive.Serialize( residual );
+}
+
+REGISTER_NEOML_ROWWISE_OPERATION( CChannelwiseWith1x1Rowwise, "ChannelwiseWith1x1RowwiseOperation" )
 
 } // namespace NeoML
