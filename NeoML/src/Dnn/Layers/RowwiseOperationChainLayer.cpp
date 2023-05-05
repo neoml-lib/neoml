@@ -21,10 +21,12 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/ActivationLayers.h>
 #include <NeoML/Dnn/Layers/ChannelwiseWith1x1Layer.h>
 #include <NeoML/Dnn/Layers/ConvLayer.h>
+#include <NeoML/Dnn/Layers/MobileNetV2BlockLayer.h>
 #include <NeoML/Dnn/Optimization/Graph.h>
 #include <NeoML/Dnn/Rowwise/Activation.h>
 #include <NeoML/Dnn/Rowwise/ChannelwiseWith1x1.h>
 #include <NeoML/Dnn/Rowwise/Conv.h>
+#include <NeoML/Dnn/Rowwise/MobileNetV2.h>
 
 namespace NeoML {
 
@@ -101,6 +103,7 @@ void OptimizeRowwiseChains( CDnn& dnn, CArray<int>& chains )
 		return dynamic_cast<const CChannelwiseWith1x1Layer*>( layer ) != nullptr
 			|| dynamic_cast<const CConvLayer*>( layer ) != nullptr
 			|| dynamic_cast<const CHSwishLayer*>( layer ) != nullptr
+			|| dynamic_cast<const CMobileNetV2BlockLayer*>( layer ) != nullptr
 			|| dynamic_cast<const CReLULayer*>( layer ) != nullptr
 			|| dynamic_cast<const CSigmoidLayer*>( layer ) != nullptr;
 	};
@@ -120,6 +123,10 @@ void OptimizeRowwiseChains( CDnn& dnn, CArray<int>& chains )
 		if( hSwish != nullptr || relu != nullptr || sigmoid != nullptr ) {
 			return new CActivationRowwise( layer->MathEngine(),
 				dynamic_cast<const IActivationLayer*>( layer )->GetDesc() );
+		}
+		auto mobileNetV2 = dynamic_cast<const CMobileNetV2BlockLayer*>( layer );
+		if( mobileNetV2 != nullptr ) {
+			return new CMobileNetV2Rowwise( *mobileNetV2 );
 		}
 		NeoAssert( false );
 		return nullptr;

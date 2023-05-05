@@ -1094,6 +1094,13 @@ public:
 	virtual CRowwiseOperationDesc* InitConvRowwise( int paddingHeight, int paddingWidth, int strideHeight,
 		int strideWidth, int dilationHeight, int dilationWidth, const CBlobDesc& filterDesc,
 		const CConstFloatHandle& filter, const CConstFloatHandle* freeTerm ) = 0;
+	virtual CRowwiseOperationDesc* InitMobileNetV2Rowwise( int inputChannels,
+		const CConstFloatHandle& expandFilter, const CConstFloatHandle* expandFreeTerm, int expandedChannels,
+		TActivationFunction expandActivation, float expandActivationParam,
+		const CConstFloatHandle& channelwiseFilter, const CConstFloatHandle* channelwiseFreeTerm, int stride,
+		TActivationFunction channelwiseActivation, float channelwiseActivationParam,
+		const CConstFloatHandle& downFilter, const CConstFloatHandle* downFreeTerm,
+		int outputChannels, bool residual ) = 0;
 
 	virtual CBlobDesc RowwiseReshape( CRowwiseOperationDesc** operations, int operationCount,
 		const CBlobDesc& input ) = 0;
