@@ -29,6 +29,8 @@ limitations under the License.
 
 namespace NeoML {
 
+static constexpr int RowwiseCacheSize = 32 * 1024;
+
 static inline void fillResultRow( const CCommonChannelwiseConvolutionDesc& desc, const float* freeTerm, float* result )
 {
 	const int channels = desc.Result.Channels();
@@ -768,6 +770,8 @@ void CCpuMathEngine::BlobChannelwiseConvolution( const CChannelwiseConvolutionDe
 	}
 }
 
+//=====================================================================================================================
+
 void CCpuMathEngine::MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobDesc& outputDesc,
 	const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& inputHandle,
 	const CConstFloatHandle& expandFilterData, const CConstFloatHandle* expandFreeTermData,
@@ -779,7 +783,6 @@ void CCpuMathEngine::MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobDe
 	CCpuExecutionScope scope;
 	const CCommonChannelwiseConvolutionDesc& desc = static_cast<const CCommonChannelwiseConvolutionDesc&>( convDesc );
 
-	const int cacheSize = 32 * 1024;
 	const bool isInPlace = inputHandle == outputHandle;
 	const int inputChannels = inputDesc.Channels();
 	const int expandedChannels = desc.Filter.Channels();
@@ -800,9 +803,9 @@ void CCpuMathEngine::MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobDe
 	const float* downFreeTerm = downFreeTermData == nullptr ? nullptr : GetRaw( *downFreeTermData );
 
 	const int maxInputRowsPerStep = std::max<int>( 1,
-		( cacheSize / ( std::max<int>( inputChannels, expandedChannels ) * inputWidth ) ) );
+		( RowwiseCacheSize / ( std::max<int>( inputChannels, expandedChannels ) * inputWidth ) ) );
 	const int maxOutputRowsPerStep = std::max<int>( 1,
-		( cacheSize / ( std::max<int>( outputChannels, expandedChannels ) * outputWidth ) ) );
+		( RowwiseCacheSize / ( std::max<int>( outputChannels, expandedChannels ) * outputWidth ) ) );
 
 	// Buffer for the input rows of channelwise convolution
 	CFloatHandleStackVar chInputBuffVar( *this,
@@ -935,7 +938,6 @@ void CCpuMathEngine::MobileNetV3PreSEBlock( const CBlobDesc& inputDesc, const CB
 	CCpuExecutionScope scope;
 	const CCommonChannelwiseConvolutionDesc& desc = static_cast<const CCommonChannelwiseConvolutionDesc&>( convDesc );
 
-	const int cacheSize = 32 * 1024;
 	const int inputChannels = inputDesc.Channels();
 	const int outputChannels = outputDesc.Channels();
 	const int inputHeight = desc.Source.Height();
@@ -956,8 +958,8 @@ void CCpuMathEngine::MobileNetV3PreSEBlock( const CBlobDesc& inputDesc, const CB
 	TProcessFilterRow processFilterRow = stride == 1 ? process3x3RowStride1 : process3x3RowStride2;
 
 	const int maxInputRowsPerStep = std::max<int>( 1,
-		( cacheSize / ( std::max<int>( inputChannels, outputChannels ) * inputWidth ) ) );
-	const int maxOutputRowsPerStep = std::max<int>( 1, ( cacheSize / ( outputChannels * desc.Result.Width() ) ) );
+		( RowwiseCacheSize / ( std::max<int>( inputChannels, outputChannels ) * inputWidth ) ) );
+	const int maxOutputRowsPerStep = std::max<int>( 1, ( RowwiseCacheSize / ( outputChannels * desc.Result.Width() ) ) );
 
 	// Buffer for the input rows of channelwise convolution
 	CFloatHandleStackVar chInputBuffVar( *this,
@@ -1076,8 +1078,7 @@ void CCpuMathEngine::MobileNetV3PostSEBlock( const CBlobDesc& channelwiseOutputD
 	const int outputRowSize = outputChannels * width;
 	const int outputObjectSize = outputRowSize * rowCount;
 
-	const int cacheSize = 32 * 1024;
-	const int maxRowsPerStep = std::max( 1, ( cacheSize / ( std::max( inputChannels, outputChannels ) * width ) ) );
+	const int maxRowsPerStep = std::max( 1, ( RowwiseCacheSize / ( std::max( inputChannels, outputChannels ) * width ) ) );
 
 	CFloatHandleStackVar buffVar( *this, std::min( rowCount, maxRowsPerStep ) * inputRowSize );
 	const float* inputObject = GetRaw( channelwiseOutputHandle );
@@ -1197,9 +1198,8 @@ CBlobDesc CChannelwiseWith1x1CpuImpl::Reshape( const CBlobDesc& inputSize )
 
 int CChannelwiseWith1x1CpuImpl::maxOutputRowsPerStep() const
 {
-	const int cacheSize = 32 * 1024;
 	const int maxRowSize = std::max( desc.Result.Channels(), desc.Source.Channels() ) * desc.Result.Width();
-	return std::min( std::max( cacheSize / maxRowSize, 1 ), desc.Result.Height() );
+	return std::min( std::max( RowwiseCacheSize / maxRowSize, 1 ), desc.Result.Height() );
 }
 
 IRowwiseCpuImpl::CProcessingReport CChannelwiseWith1x1CpuImpl::Process( const float* input, int inputRowIndex,

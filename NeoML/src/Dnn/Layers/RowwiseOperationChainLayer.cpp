@@ -18,9 +18,13 @@ limitations under the License.
 
 #include <NeoML/Dnn/Layers/RowwiseOperationChainLayer.h>
 
+#include <NeoML/Dnn/Layers/ActivationLayers.h>
 #include <NeoML/Dnn/Layers/ChannelwiseWith1x1Layer.h>
+#include <NeoML/Dnn/Layers/ConvLayer.h>
 #include <NeoML/Dnn/Optimization/Graph.h>
+#include <NeoML/Dnn/Rowwise/Activation.h>
 #include <NeoML/Dnn/Rowwise/ChannelwiseWith1x1.h>
+#include <NeoML/Dnn/Rowwise/Conv.h>
 
 namespace NeoML {
 
@@ -94,13 +98,28 @@ void OptimizeRowwiseChains( CDnn& dnn, CArray<int>& chains )
 	};
 
 	auto isRowwiseLayer = [] ( const CBaseLayer* layer ) -> bool {
-		return dynamic_cast<const CChannelwiseWith1x1Layer*>( layer ) != nullptr;
+		return dynamic_cast<const CChannelwiseWith1x1Layer*>( layer ) != nullptr
+			|| dynamic_cast<const CConvLayer*>( layer ) != nullptr
+			|| dynamic_cast<const CHSwishLayer*>( layer ) != nullptr
+			|| dynamic_cast<const CReLULayer*>( layer ) != nullptr
+			|| dynamic_cast<const CSigmoidLayer*>( layer ) != nullptr;
 	};
 
 	auto createOperation = [] ( const CBaseLayer* layer ) -> CPtr<IRowwiseOperation> {
 		auto channelwiseWith1x1 = dynamic_cast<const CChannelwiseWith1x1Layer*>( layer );
 		if( channelwiseWith1x1 != nullptr ) {
 			return new CChannelwiseWith1x1Rowwise( *channelwiseWith1x1 );
+		}
+		auto conv = dynamic_cast<const CConvLayer*>( layer );
+		if( conv != nullptr ) {
+			return new CConvRowwise( *conv );
+		}
+		auto hSwish = dynamic_cast<const CHSwishLayer*>( layer );
+		auto relu = dynamic_cast<const CReLULayer*>( layer );
+		auto sigmoid = dynamic_cast<const CSigmoidLayer*>( layer );
+		if( hSwish != nullptr || relu != nullptr || sigmoid != nullptr ) {
+			return new CActivationRowwise( layer->MathEngine(),
+				dynamic_cast<const IActivationLayer*>( layer )->GetDesc() );
 		}
 		NeoAssert( false );
 		return nullptr;

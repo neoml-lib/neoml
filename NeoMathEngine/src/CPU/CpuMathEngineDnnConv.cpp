@@ -25,6 +25,7 @@ limitations under the License.
 #include <MathEngineDnnConv.h>
 #include <CpuMathEnginePrivate.h>
 #include <NeoMathEngine/SimdMathEngine.h>
+#include <CpuMathEngineDnnRowwise.h>
 
 namespace NeoML {
 
@@ -389,7 +390,7 @@ void CCpuMathEngine::blobConvolutionForwardAlgo0( const CCpuConvolutionDesc& des
 	CFloatHandleStackVar tempData( mathEngine(), tempDataSize );
 	float* tempDataRaw = GetRaw( tempData.GetHandle() );
 
-	NEOML_OMP_NUM_THREADS( curThreadCount )
+	NEOML_OMP_NUM_THREADS(curThreadCount)
 	{
 		const int filterObjectCount = desc.Filter.ObjectCount();
 		const int filterObjectSize = desc.Filter.ObjectSize();
@@ -1353,6 +1354,165 @@ void CCpuMathEngine::BlobChannelwiseConvolutionLearnAdd( const CChannelwiseConvo
 	TransposeMatrix( 1, filterDiffTransposedHolder.GetHandle(),
 		filterDiff.Channels(), 1, filterDiff.Height() * filterDiff.Width(), 1, filterDiffData, filterDiff.BlobSize() );
 }
+
+//------------------------------------------------------------------------------------------------------------
+
+class CConvCpuImpl : public IRowwiseCpuImpl, public CRowwiseOperationDesc {
+public:
+	CConvCpuImpl( CCpuMathEngine& mathEngine, int inputChannels, int padH, int padW, int strideH, int strideW,
+		int dilH, int dilW, int fC, int fH, int fW, const float* filter, const float* freeTerm ) :
+		mathEngine( mathEngine ),
+		desc( std::unique_ptr<CConvolutionDesc>(), CBlobDesc(), CBlobDesc(), CBlobDesc( { 1, fC, 1, fH, fW, 1, inputChannels } ),
+			padH, padW, strideH, strideW, dilH, dilW ),
+		filter( filter ),
+		freeTerm( freeTerm )
+	{
+	}
+
+	int RequiredRowsCount() const { return 1 + ( desc.Filter.Height() - 1 ) * desc.DilationHeight; }
+
+	CBlobDesc Reshape( const CBlobDesc& inputSize ) override;
+	int InOperationBufferSize() const override;
+	int OutputHeight() const override { return desc.Result.Height(); }
+	int OutputRowSize() const override { return desc.Result.Width() * desc.Result.Channels(); }
+	CProcessingReport Process( const float* input, int inputRowIndex, int inputRowsAvailable,
+		float* output, int outputRowIndex, int outputRowsAvailable, float* buffer ) const override;
+
+private:
+	CCpuMathEngine& mathEngine;
+	CCpuConvolutionDesc desc;
+	const float* filter;
+	const float* freeTerm;
+
+	bool is1x1Conv() const { return desc.Filter.GeometricalSize() == 1 && desc.PaddingHeight == 0
+		&& desc.PaddingWidth == 0 && desc.StrideHeight == 1 && desc.StrideWidth == 1; }
+	int getCacheItemCount() const;
+};
+
+CBlobDesc CConvCpuImpl::Reshape( const CBlobDesc& inputSize )
+{
+	auto convOutputSize = [] ( int input, int filter, int padding,
+		int stride, int dilation ) -> int
+	{
+		return 1 + ( input - ( filter - 1 ) * dilation + 2 * padding - 1 ) / stride;
+	};
+
+	CBlobDesc outputSize = inputSize;
+	outputSize.SetDimSize( BD_Height, convOutputSize( inputSize.Height(), desc.Filter.Height(), desc.PaddingHeight,
+		desc.StrideHeight, desc.DilationHeight ) );
+	outputSize.SetDimSize( BD_Width, convOutputSize( inputSize.Width(), desc.Filter.Width(), desc.PaddingWidth,
+		desc.StrideWidth, desc.DilationWidth ) );
+	outputSize.SetDimSize( BD_Channels, desc.Filter.ObjectCount() );
+	desc = CCpuConvolutionDesc( std::unique_ptr<CConvolutionDesc>(), inputSize, outputSize, desc.Filter,
+		desc.PaddingHeight, desc.PaddingWidth, desc.StrideHeight, desc.StrideWidth,
+		desc.DilationHeight, desc.DilationWidth );
+	return outputSize;
+}
+
+int CConvCpuImpl::InOperationBufferSize() const
+{
+	if( is1x1Conv() ) {
+		return 0;
+	}
+
+	return getCacheItemCount() * desc.Filter.ObjectSize();
+}
+
+IRowwiseCpuImpl::CProcessingReport CConvCpuImpl::Process( const float* input, int inputRowIndex, int inputRowsAvailable,
+	float* output, int outputRowIndex, int outputRowsAvailable, float* buffer ) const
+{
+	CProcessingReport result;
+	result.InputRowsMayBeRemoved = 0;
+	result.OutputRowsCalculated = 0;
+
+	const int firstInputRowMissing = inputRowIndex + inputRowsAvailable;
+	const int effectiveFilterArea = ( desc.Filter.Height() - 1 ) * desc.DilationHeight + 1;
+	if( firstInputRowMissing + desc.PaddingHeight < effectiveFilterArea ) {
+		return result;
+	}
+	int outputRowsCalculatable = firstInputRowMissing == desc.Source.Height() ? desc.Result.Height()
+		: 1 + ( firstInputRowMissing + desc.PaddingHeight - effectiveFilterArea ) / desc.StrideHeight;
+	PRESUME_EXPR( outputRowIndex <= outputRowsCalculatable );
+	if( outputRowsCalculatable == outputRowIndex ) {
+		return result;
+	}
+
+	result.OutputRowsCalculated = std::min( outputRowsAvailable, outputRowsCalculatable - outputRowIndex );
+	auto firstInputRowUsed = [] ( const CCpuConvolutionDesc& desc, int outRowIndex ) -> int {
+		return std::max( 0, outRowIndex * desc.StrideHeight - desc.PaddingHeight );
+	};
+	result.InputRowsMayBeRemoved = outputRowIndex + result.OutputRowsCalculated == desc.Result.Height()
+		? desc.Source.Height() - inputRowIndex
+		: firstInputRowUsed( desc, outputRowIndex + result.OutputRowsCalculated ) - inputRowIndex;
+
+	const int inputRowSize = desc.Source.Width() * desc.Source.Channels();
+	const int firstInputRowNeeded = firstInputRowUsed( desc, outputRowIndex );
+	if( inputRowIndex < firstInputRowNeeded ) {
+		const int diff = firstInputRowNeeded - inputRowIndex;
+		input += diff * inputRowSize;
+		inputRowIndex += diff;
+		inputRowsAvailable -= diff;
+	}
+
+	if( is1x1Conv() ) {
+		mathEngine.multiplyMatrixByTransposedMatrix( input, result.OutputRowsCalculated * desc.Result.Width(),
+			desc.Source.Channels(), desc.Source.Channels(), filter, desc.Result.Channels(),
+			desc.Source.Channels(), output, desc.Result.Channels() );
+		if( freeTerm != nullptr ) {
+			mathEngine.addVectorToMatrixRows( output, output, result.OutputRowsCalculated * desc.Result.Width(),
+				desc.Result.Channels(), desc.Result.Channels(), desc.Result.Channels(),
+				freeTerm );
+		}
+		return result;
+	}
+
+	const int filterObjectCount = desc.Filter.ObjectCount();
+	const int filterObjectSize = desc.Filter.ObjectSize();
+	const int cacheItemCount = getCacheItemCount();
+
+	const int imageStartOffset = inputRowIndex * desc.Source.Width() * desc.Source.Channels();
+
+	int index = 0;
+	const int count = result.OutputRowsCalculated * desc.Result.Width();
+	const int start = outputRowIndex * desc.Result.Width();
+	while( index < count ) {
+		const int size = std::min( count - index, cacheItemCount );
+
+		mathEngine.fillTempData( input - imageStartOffset, buffer, desc, start + index, size );
+
+		float* resultDataPtr = output + index * filterObjectCount;
+
+		mathEngine.multiplyMatrixByTransposedMatrix( buffer, size, filterObjectSize,
+			filterObjectSize, filter, filterObjectCount, filterObjectSize, resultDataPtr,
+			filterObjectCount );
+
+		if( freeTerm!= nullptr ) {
+			mathEngine.addVectorToMatrixRows( resultDataPtr, resultDataPtr, size, filterObjectCount, filterObjectCount,
+				filterObjectCount, freeTerm );
+		}
+
+		index += size;
+	}
+
+	return result;
+}
+
+int CConvCpuImpl::getCacheItemCount() const
+{
+	const int resultItemCount = desc.Result.Width() * desc.Result.Height();
+	return std::max( 1, std::min( ceilTo( BlobConvolutionCacheSize / desc.Filter.ObjectSize(), 16 ),
+		resultItemCount ) );
+}
+
+CRowwiseOperationDesc* CCpuMathEngine::InitConvRowwise( int paddingHeight, int paddingWidth, int strideHeight,
+	int strideWidth, int dilationHeight, int dilationWidth, const CBlobDesc& filterDesc,
+	const CConstFloatHandle& filter, const CConstFloatHandle* freeTerm )
+{
+	return new CConvCpuImpl( *this, filterDesc.Channels(), paddingHeight, paddingWidth, strideHeight, strideWidth,
+		dilationHeight, dilationWidth, filterDesc.ObjectCount(), filterDesc.Height(), filterDesc.Width(),
+		GetRaw( filter ), freeTerm == nullptr ? nullptr : GetRaw( *freeTerm ) );
+}
+
 
 } // namespace NeoML
 

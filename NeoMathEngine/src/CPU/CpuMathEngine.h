@@ -594,10 +594,14 @@ public:
 		const CConstFloatHandle* residualHandle, TActivationFunction activation, float activationParam,
 		const CConstFloatHandle& downFilterHandle, const CConstFloatHandle* downFreeTermHandle,
 		const CFloatHandle& outputHandle ) override;
+	CRowwiseOperationDesc* InitActivationRowwise( TActivationFunction activation, float param0, float param1 ) override;
 	CRowwiseOperationDesc* InitChannelwiseWith1x1Rowwise( int stride, const CConstFloatHandle& channelwiseFilter,
 		const CConstFloatHandle* channelwiseFreeTerm, TActivationFunction activation, float activationParam,
 		const CConstFloatHandle& convFilter, const CConstFloatHandle* convFreeTerm,
 		int outputChannels, bool residual ) override;
+	CRowwiseOperationDesc* InitConvRowwise( int paddingHeight, int paddingWidth, int strideHeight,
+		int strideWidth, int dilationHeight, int dilationWidth, const CBlobDesc& filterDesc,
+		const CConstFloatHandle& filter, const CConstFloatHandle* freeTerm ) override;
 	CBlobDesc RowwiseReshape( CRowwiseOperationDesc** operations, int operationCount,
 		const CBlobDesc& input ) override;
 	void RowwiseExecute( const CBlobDesc& inputDesc, CRowwiseOperationDesc** operations, int operationCount,
@@ -615,6 +619,7 @@ public:
 		float* result, int resultRowSize );
 	void addVectorToMatrixRows( const float* matrix, float* result,
 		int matrixHeight, int matrixWidth, int matrixRowSize, int resultRowSize, const float* vector );
+	void fillTempData( const float* sourceData, float* filterData, const CCpuConvolutionDesc& desc, int start, int count );
 protected:
 	// IRawMemoryManager interface methods
 	CMemoryHandle Alloc( size_t size ) override;
@@ -709,7 +714,6 @@ private:
 		int inputBatch, int outputRowStart, int outputRowCount, float* tempBlob );
 	void transposeResult( const CCpuConvolutionDesc& desc, const float* outputTransposedData,
 		int batch, int resultStart, int resultCount, float* result );
-	void fillTempData( const float* sourceData, float* filterData, const CCpuConvolutionDesc& desc, int start, int count );
 	void blobConvolutionForwardAlgo0( const CCpuConvolutionDesc& desc, const float* sourceData,
 		const float* filterData, const CConstFloatHandle* freeTermData, float* resultData );
 	void blobConvolutionForwardAlgo1( const CCpuConvolutionDesc& desc, const float* sourceData,

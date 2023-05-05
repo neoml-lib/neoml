@@ -1085,10 +1085,15 @@ public:
 		const CConstFloatHandle& downFilterHandle, const CConstFloatHandle* downFreeTermHandle,
 		const CFloatHandle& outputHandle ) = 0;
 
+	virtual CRowwiseOperationDesc* InitActivationRowwise( TActivationFunction activation,
+		float param0, float param1 ) = 0;
 	virtual CRowwiseOperationDesc* InitChannelwiseWith1x1Rowwise( int stride, const CConstFloatHandle& channelwiseFilter,
 		const CConstFloatHandle* channelwiseFreeTerm, TActivationFunction activation, float activationParam,
 		const CConstFloatHandle& convFilter, const CConstFloatHandle* convFreeTerm,
 		int outputChannels, bool residual ) = 0;
+	virtual CRowwiseOperationDesc* InitConvRowwise( int paddingHeight, int paddingWidth, int strideHeight,
+		int strideWidth, int dilationHeight, int dilationWidth, const CBlobDesc& filterDesc,
+		const CConstFloatHandle& filter, const CConstFloatHandle* freeTerm ) = 0;
 
 	virtual CBlobDesc RowwiseReshape( CRowwiseOperationDesc** operations, int operationCount,
 		const CBlobDesc& input ) = 0;

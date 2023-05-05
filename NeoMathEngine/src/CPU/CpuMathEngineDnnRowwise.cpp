@@ -244,7 +244,7 @@ void CCpuMathEngine::RowwiseExecute( const CBlobDesc& inputDesc, CRowwiseOperati
 	for( size_t i = 0; i < operations.size() - 1; ++i ) {
 		inOperationBufferSize = std::max( inOperationBufferSize, operations[i]->InOperationBufferSize() );
 		const int rowSize = operations[i]->OutputRowSize();
-		const int maxRowCount = std::min( std::max( operations[i]->RequiredRowsCount(), RowwiseMaxBuffSize / rowSize ),
+		const int maxRowCount = std::min( std::max( operations[i + 1]->RequiredRowsCount(), RowwiseMaxBuffSize / rowSize ),
 			operations[i]->OutputHeight() );
 		buffers.emplace_back( new CRowwiseBuffer( *this, maxRowCount, rowSize ) );
 	}
