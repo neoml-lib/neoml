@@ -1025,7 +1025,7 @@ public:
 	{
 	}
 
-	int RequiredRowsCount() const { return 1; }
+	int RequiredRowsCount() const override { return 1; }
 
 	CBlobDesc Reshape( const CBlobDesc& inputSize ) override;
 	int InOperationBufferSize() const override { return 0; }
