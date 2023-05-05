@@ -1438,17 +1438,17 @@ IRowwiseCpuImpl::CProcessingReport CConvCpuImpl::Process( const float* input, in
 	}
 
 	result.OutputRowsCalculated = std::min( outputRowsAvailable, outputRowsCalculatable - outputRowIndex );
-	auto firstInputRowUsed = [] ( const CCpuConvolutionDesc& desc, int outRowIndex ) -> int {
+	auto calcFirstInputRowUsed = [] ( const CCpuConvolutionDesc& desc, int outRowIndex ) -> int {
 		return std::max( 0, outRowIndex * desc.StrideHeight - desc.PaddingHeight );
 	};
 	result.InputRowsMayBeRemoved = outputRowIndex + result.OutputRowsCalculated == desc.Result.Height()
 		? desc.Source.Height() - inputRowIndex
-		: firstInputRowUsed( desc, outputRowIndex + result.OutputRowsCalculated ) - inputRowIndex;
+		: calcFirstInputRowUsed( desc, outputRowIndex + result.OutputRowsCalculated ) - inputRowIndex;
 
 	const int inputRowSize = desc.Source.Width() * desc.Source.Channels();
-	const int firstInputRowNeeded = firstInputRowUsed( desc, outputRowIndex );
-	if( inputRowIndex < firstInputRowNeeded ) {
-		const int diff = firstInputRowNeeded - inputRowIndex;
+	const int firstInputRowUsed = calcFirstInputRowUsed( desc, outputRowIndex );
+	if( inputRowIndex < firstInputRowUsed ) {
+		const int diff = firstInputRowUsed - inputRowIndex;
 		input += diff * inputRowSize;
 		inputRowIndex += diff;
 		inputRowsAvailable -= diff;
