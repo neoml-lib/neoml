@@ -57,6 +57,7 @@ void CRowwiseOperationChainLayer::Serialize( CArchive& archive )
 			CString operationName;
 			archive >> operationName;
 			operations.Add( CreateRowwiseOperation<IRowwiseOperation>( operationName, MathEngine() ) );
+			operations.Last()->Serialize( archive );
 		}
 	}
 }
@@ -73,13 +74,14 @@ void CRowwiseOperationChainLayer::Reshape()
 		operationDescs.Add( operation->GetDesc( inputDescs[0] ) );
 	}
 
-	outputDescs[0] = MathEngine().RowwiseReshape( operationDescs.GetPtr(), operations.Size(), outputDescs[0]);
+	// TODO: FIX const_cast
+	outputDescs[0] = MathEngine().RowwiseReshape( const_cast<CRowwiseOperationDesc**>( operationDescs.GetAllPointers().GetPtr() ), operations.Size(), outputDescs[0]);
 	// TODO: support in-place
 }
 
 void CRowwiseOperationChainLayer::RunOnce()
 {
-	MathEngine().RowwiseExecute( inputBlobs[0]->GetDesc(), operationDescs.GetPtr(), operations.Size(),
+	MathEngine().RowwiseExecute( inputBlobs[0]->GetDesc(), const_cast<CRowwiseOperationDesc**>( operationDescs.GetAllPointers().GetPtr() ), operations.Size(),
 		inputBlobs[0]->GetData(), outputBlobs[0]->GetData() );
 }
 
