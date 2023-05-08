@@ -199,6 +199,8 @@ void CCpuMathEngine::RowwiseExecute( const CBlobDesc& inputDesc, CRowwiseOperati
 				}
 			}
 		}
+
+		buffers.back()->RemoveRows( operations.back()->OutputHeight() );
 	}
 }
 
