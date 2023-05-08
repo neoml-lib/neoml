@@ -1427,7 +1427,7 @@ IRowwiseCpuImpl::CProcessingReport CConvCpuImpl::Process( const float* input, in
 
 	const int firstInputRowMissing = inputRowIndex + inputRowsAvailable;
 	const int effectiveFilterArea = ( desc.Filter.Height() - 1 ) * desc.DilationHeight + 1;
-	if( firstInputRowMissing + desc.PaddingHeight < effectiveFilterArea ) {
+	if( firstInputRowMissing < desc.Source.Height() && firstInputRowMissing + desc.PaddingHeight < effectiveFilterArea ) {
 		return result;
 	}
 	int outputRowsCalculatable = firstInputRowMissing == desc.Source.Height() ? desc.Result.Height()
