@@ -247,7 +247,8 @@ static inline void processChannelwise3x3( const CCommonChannelwiseConvolutionDes
 	float* outputRow = currOutput;
 	int remOutputRowsThisStep = outputRowsToProcess;
 	const bool processBottomPadding = ( stride == 1 || inputHeight % 2 == 1 )
-		&& currOutputRowIndex + outputRowsToProcess == desc.Result.Height();
+		&& currOutputRowIndex + outputRowsToProcess == desc.Result.Height()
+		&& desc.Result.Height() > 1;
 	if( processBottomPadding ) {
 		--remOutputRowsThisStep;
 	}
@@ -1405,7 +1406,7 @@ IRowwiseCpuImpl::CProcessingReport CMobileNetV2CpuImpl::Process( const float* in
 	result.OutputRowsCalculated = 0;
 
 	const int firstInputRowMissing = inputRowIndex + inputRowsAvailable;
-	if( firstInputRowMissing < 2 ) {
+	if( firstInputRowMissing != desc.Source.Height() && firstInputRowMissing < 2 ) {
 		return result;
 	}
 	int outputRowsCalculatable = firstInputRowMissing == desc.Source.Height() ? desc.Result.Height()
@@ -1438,11 +1439,11 @@ IRowwiseCpuImpl::CProcessingReport CMobileNetV2CpuImpl::Process( const float* in
 
 	while( chOutput->DataRowsProcessed() < outputRowIndex + result.OutputRowsCalculated ) {
 		// Process a bunch of rows of input image (till channelwise convolution: expandConv + expandReLU)
-		const int inputRowsThisStep = std::min<int>( getMaxInputRowsPerStep(),
+		const int inputRowsThisStep = std::min( std::min( getMaxInputRowsPerStep(), chInput->EmptyRowsCount() ),
 			inputRowIndex + inputRowsAvailable - chInput->DataRowsProcessed() );
-		PRESUME_EXPR( inputRowsThisStep <= chInput->EmptyRowsCount() );
+		// PRESUME_EXPR( inputRowsThisStep > 0 );
 
-		{
+		if( inputRowsThisStep > 0 ) {
 			const float* expandConvInput = input + ( chInput->DataRowsProcessed() - inputRowIndex ) * inputRowSize;
 			// Apply expand convolution
 			mathEngine.multiplyMatrixByTransposedMatrix( expandConvInput, inputRowsThisStep * inputWidth, inputChannels,
