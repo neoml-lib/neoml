@@ -1074,6 +1074,7 @@ IRowwiseCpuImpl::CProcessingReport CActivationCpuImpl::Process( const float* inp
 			break;
 		case AF_Sigmoid:
 			vectorSigmoid( input, output, dataSize );
+			break;
 		default:
 			ASSERT_EXPR( false );
 	}
