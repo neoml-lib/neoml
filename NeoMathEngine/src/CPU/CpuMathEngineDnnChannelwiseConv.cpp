@@ -1405,28 +1405,38 @@ IRowwiseCpuImpl::CProcessingReport CMobileNetV2CpuImpl::Process( const float* in
 	result.InputRowsMayBeRemoved = 0;
 	result.OutputRowsCalculated = 0;
 
-	const int firstInputRowMissing = inputRowIndex + inputRowsAvailable;
-	if( firstInputRowMissing != desc.Source.Height() && firstInputRowMissing < 2 ) {
+	// Total number of input rows available during this call
+	const int inputRowsCanBeProcessed = inputRowIndex + inputRowsAvailable;
+
+	// Number of output rows which have input data required for them to be calculated
+	const int outputRowsWithInputData = ( inputRowsCanBeProcessed == desc.Source.Height() ) ? desc.Result.Height()
+		: ( inputRowsCanBeProcessed < 2 ? 0 : 1 + ( inputRowsCanBeProcessed - 2 ) / desc.StrideHeight );
+	PRESUME_EXPR( outputRowIndex <= outputRowsWithInputData );
+	if( outputRowsWithInputData == outputRowIndex ) {
 		return result;
 	}
-	int outputRowsCalculatable = firstInputRowMissing == desc.Source.Height() ? desc.Result.Height()
-		: 1 + ( firstInputRowMissing - 2 ) / desc.StrideHeight;
-	PRESUME_EXPR( outputRowIndex <= outputRowsCalculatable );
-	if( outputRowIndex == outputRowsCalculatable ) {
-		return result;
-	}
+
+	// Number of output rows which will be calculated during this call
+	result.OutputRowsCalculated = std::min( outputRowsAvailable, outputRowsWithInputData - outputRowIndex );
+
+	// Total number of output rows calculated after this call
+	const int outputRowsCalculatedAfterThisCall = outputRowIndex + result.OutputRowsCalculated;
+
+	auto calcFirstInputRowNeeded = [] ( const CCommonChannelwiseConvolutionDesc& desc, int outputRowIndex ) -> int {
+		return std::max( 0, outputRowIndex * desc.StrideHeight - desc.PaddingHeight );
+	};
+	result.InputRowsMayBeRemoved = outputRowsCalculatedAfterThisCall == desc.Result.Height()
+		? desc.Source.Height() - inputRowIndex
+		: calcFirstInputRowNeeded( desc, outputRowsCalculatedAfterThisCall ) - inputRowIndex;
+	PRESUME_EXPR( result.InputRowsMayBeRemoved <= inputRowsAvailable );
+	PRESUME_EXPR( result.InputRowsMayBeRemoved >= 0 );
 
 	allocBuffers();
 	PRESUME_EXPR( chOutput->DataRowsProcessed() == outputRowIndex );
 	PRESUME_EXPR( chInput->DataRowsProcessed() >= inputRowIndex );
-
-	result.OutputRowsCalculated = std::min( outputRowsAvailable, outputRowsCalculatable - outputRowIndex );
-	auto calcFirstInputRowUsed = [] ( int stride, int outputRowIndex ) -> int {
-		return std::max( 0, outputRowIndex * stride - 1 );
-	};
-	result.InputRowsMayBeRemoved = outputRowIndex + result.OutputRowsCalculated == desc.Result.Height()
-		? desc.Source.Height() - inputRowIndex
-		: calcFirstInputRowUsed( desc.StrideHeight, outputRowIndex + result.OutputRowsCalculated ) - inputRowIndex;
+	PRESUME_EXPR( chInput->DataRowsProcessed() <= inputRowIndex + inputRowsAvailable );
+	PRESUME_EXPR( chInput->DataRowsCount() <= 3 - desc.StrideHeight );
+	PRESUME_EXPR( chInput->DataRowIndex() == calcFirstInputRowNeeded( desc, outputRowIndex ) );
 
 	const int inputWidth = desc.Source.Width();
 	const int outputWidth = desc.Result.Width();
@@ -1437,41 +1447,44 @@ IRowwiseCpuImpl::CProcessingReport CMobileNetV2CpuImpl::Process( const float* in
 	TProcessFilterRow processFilterRow = desc.StrideHeight == 1 ? process3x3RowStride1 : process3x3RowStride2;
 	const float* residualInput = input + ( outputRowIndex - inputRowIndex ) * inputRowSize;
 
-	while( chOutput->DataRowsProcessed() < outputRowIndex + result.OutputRowsCalculated ) {
+	// Total number of input rows used during this call
+	const int inputRowsUsedThisCall = std::min( desc.Source.Height(),
+		( outputRowsCalculatedAfterThisCall - 1 ) * desc.StrideHeight + 2 );
+
+	while( chInput->DataRowsProcessed() < inputRowsUsedThisCall ) {
 		// Process a bunch of rows of input image (till channelwise convolution: expandConv + expandReLU)
-		const int inputRowsThisStep = std::min( std::min( getMaxInputRowsPerStep(), chInput->EmptyRowsCount() ),
-			inputRowIndex + inputRowsAvailable - chInput->DataRowsProcessed() );
-		// PRESUME_EXPR( inputRowsThisStep > 0 );
+		const int inputRowsThisStep = std::min( getMaxInputRowsPerStep(),
+			inputRowsUsedThisCall - chInput->DataRowsProcessed() );
+		PRESUME_EXPR( inputRowsThisStep > 0 );
+		PRESUME_EXPR( inputRowsThisStep <= chInput->EmptyRowsCount() );
 
-		if( inputRowsThisStep > 0 ) {
-			const float* expandConvInput = input + ( chInput->DataRowsProcessed() - inputRowIndex ) * inputRowSize;
-			// Apply expand convolution
-			mathEngine.multiplyMatrixByTransposedMatrix( expandConvInput, inputRowsThisStep * inputWidth, inputChannels,
-				inputChannels, expandFilter, expandedChannels, inputChannels,
-				chInput->EmptyRows(), expandedChannels );
-			if( expandFreeTerm != nullptr ) {
-				mathEngine.addVectorToMatrixRows( chInput->EmptyRows(), chInput->EmptyRows(),
-					inputRowsThisStep * inputWidth, expandedChannels, expandedChannels,
-					expandedChannels, expandFreeTerm );
-			}
-
-			// Apply expand activation
-			if( expandActivation == AF_HSwish ) {
-				vectorHSwish( chInput->EmptyRows(), chInput->EmptyRows(), inputRowsThisStep * chInputRowSize );
-			} else if( expandActivation == AF_ReLU ) {
-				if( expandActivationParam > 0 ) {
-					vectorReLU( chInput->EmptyRows(), chInput->EmptyRows(),
-						inputRowsThisStep * chInputRowSize, expandActivationParam );
-				} else {
-					vectorReLU( chInput->EmptyRows(), chInput->EmptyRows(),
-						inputRowsThisStep * chInputRowSize );
-				}
-			}
-			chInput->AddRows( inputRowsThisStep );
+		const float* expandConvInput = input + ( chInput->DataRowsProcessed() - inputRowIndex ) * inputRowSize;
+		// Apply expand convolution
+		mathEngine.multiplyMatrixByTransposedMatrix( expandConvInput, inputRowsThisStep * inputWidth, inputChannels,
+			inputChannels, expandFilter, expandedChannels, inputChannels,
+			chInput->EmptyRows(), expandedChannels );
+		if( expandFreeTerm != nullptr ) {
+			mathEngine.addVectorToMatrixRows( chInput->EmptyRows(), chInput->EmptyRows(),
+				inputRowsThisStep * inputWidth, expandedChannels, expandedChannels,
+				expandedChannels, expandFreeTerm );
 		}
 
+		// Apply expand activation
+		if( expandActivation == AF_HSwish ) {
+			vectorHSwish( chInput->EmptyRows(), chInput->EmptyRows(), inputRowsThisStep * chInputRowSize );
+		} else if( expandActivation == AF_ReLU ) {
+			if( expandActivationParam > 0 ) {
+				vectorReLU( chInput->EmptyRows(), chInput->EmptyRows(),
+					inputRowsThisStep * chInputRowSize, expandActivationParam );
+			} else {
+				vectorReLU( chInput->EmptyRows(), chInput->EmptyRows(),
+					inputRowsThisStep * chInputRowSize );
+			}
+		}
+		chInput->AddRows( inputRowsThisStep );
+
 		// Calculate how many output rows we can calculate with the processed input rows
-		const int outputRowsCanBeProcesed = std::min( outputRowIndex + outputRowsAvailable,
+		const int outputRowsCanBeProcesed = std::min( outputRowsCalculatedAfterThisCall,
 			chInput->DataRowsProcessed() == desc.Source.Height() ? desc.Result.Height()
 			: ( chInput->DataRowsProcessed() < 2 ? 0 : ( chInput->DataRowsProcessed() - 2 ) / desc.StrideHeight + 1 ) );
 
@@ -1519,7 +1532,7 @@ IRowwiseCpuImpl::CProcessingReport CMobileNetV2CpuImpl::Process( const float* in
 		}
 
 		if( chOutput->DataRowsProcessed() < desc.Result.Height() ) {
-			const int firstInputRowNeeded = chOutput->DataRowsProcessed() * desc.StrideHeight - 1;
+			const int firstInputRowNeeded = calcFirstInputRowNeeded( desc, chOutput->DataRowsProcessed() );
 			if( firstInputRowNeeded > chInput->DataRowIndex() ) {
 				chInput->RemoveRows( firstInputRowNeeded - chInput->DataRowIndex() );
 			}
