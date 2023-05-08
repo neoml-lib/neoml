@@ -23,6 +23,7 @@ namespace NeoML {
 
 // Layer which executes chain of rowwise operations
 class NEOML_API CRowwiseOperationChainLayer : public CBaseLayer {
+	NEOML_DNN_LAYER( CRowwiseOperationChainLayer )
 public:
 	explicit CRowwiseOperationChainLayer( IMathEngine& mathEngine );
 
