@@ -18,22 +18,22 @@ limitations under the License.
 using namespace NeoML;
 using namespace NeoMLTest;
 
-static void blobGlobalMaxPoolingBackwardNaive( float* inputDiff, const float* outputDiff, const int* indices,
+static void blobGlobalMaxPoolingBackwardNaive( float* sourceDiff, const float* resultDiff, const int* indices,
 	int batchSize, int maxCount, int channels, int objectSize )
 {
 	for( int b = 0; b < batchSize; ++b ) {
 		for( int i = 0; i < maxCount; ++i ) {
-			float* inputDiffChannelData = inputDiff;
+			float* sourceDiffChannelData = sourceDiff;
 			for( int c = 0; c < channels; ++c ) {
 				int index = *indices++;
 				if( index >= 0 ) {
-					inputDiffChannelData[index * channels] = *outputDiff;
+					sourceDiffChannelData[index * channels] = *resultDiff;
 				}
-				++outputDiff;
-				++inputDiffChannelData;
+				++resultDiff;
+				++sourceDiffChannelData;
 			}
 		}
-		inputDiff += objectSize;
+		sourceDiff += objectSize;
 	}
 }
 

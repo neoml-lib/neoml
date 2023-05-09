@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -61,15 +61,15 @@ void CVulkanMathEngine::BlobMaxPooling( const CMaxPoolingDesc& poolingDesc, cons
 	const CBlobDesc& result = desc.Result;
 
 	CMemoryHandle bufs[2] = { sourceData, resultData };
-	size_t sizes[2] = { source.BlobSize() * sizeof(float), result.BlobSize() * sizeof(float) };
+	size_t sizes[2] = { source.BlobSize() * sizeof( float ), result.BlobSize() * sizeof( float ) };
 
-	PARAM_STRUCT(BlobMaxPooling) param = { { desc.StrideWidth, desc.StrideHeight }, { desc.FilterWidth, desc.FilterHeight },
+	PARAM_STRUCT( BlobMaxPooling ) param = { { desc.StrideWidth, desc.StrideHeight }, { desc.FilterWidth, desc.FilterHeight },
 		result.ObjectCount(), result.Channels() * result.Depth(), result.Height(), result.Width(),
 		source.Height(), source.Width() };
 
-	runShader(shaderLoader->GET_SHADER_DATA(BlobMaxPooling, true, 0, 0, 2),
-		&param, sizeof(param), 0, 0, 0, 0, bufs, sizes, 2,
-		result.Width(), result.ObjectCount() * result.Height(), result.Channels() * result.Depth());
+	runShader( shaderLoader->GET_SHADER_DATA( BlobMaxPooling, true, 0, 0, 2 ),
+		&param, sizeof( param ), 0, 0, 0, 0, bufs, sizes, 2,
+		result.Width(), result.ObjectCount() * result.Height(), result.Channels() * result.Depth() );
 }
 
 void CVulkanMathEngine::BlobMaxPoolingBackward( const CMaxPoolingDesc&, const CFloatHandle&, const CIntHandle&,
@@ -103,19 +103,19 @@ void CVulkanMathEngine::Blob3dMaxPooling( const C3dMaxPoolingDesc& poolingDesc, 
 	const CBlobDesc& result = desc.Result;
 
 	CMemoryHandle bufs[2] = { sourceData, resultData };
-	size_t sizes[2] = { source.BlobSize() * sizeof(float), source.BlobSize() * sizeof(float) };
+	size_t sizes[2] = { source.BlobSize() * sizeof( float ), source.BlobSize() * sizeof( float ) };
 
-	PARAM_STRUCT(Blob3dMaxPoolingNoIndices) param = { 
+	PARAM_STRUCT( Blob3dMaxPoolingNoIndices ) param = {
 		desc.StrideHeight, desc.StrideWidth, desc.StrideDepth,
 		desc.FilterHeight, desc.FilterWidth, desc.FilterDepth,
 		source.Height(), source.Width(), source.Depth(),
-		result.Height(), result.Width(), result.Depth(), 
+		result.Height(), result.Width(), result.Depth(),
 		result.Channels(), result.ObjectCount()
 	};
 
-	runShader(shaderLoader->GET_SHADER_DATA(Blob3dMaxPoolingNoIndices, true, 0, 0, 2),
-		&param, sizeof(param), 0, 0, 0, 0, bufs, sizes, 2,
-		result.Width() * result.Height() * result.Depth(), result.Channels(), result.ObjectCount());
+	runShader( shaderLoader->GET_SHADER_DATA( Blob3dMaxPoolingNoIndices, true, 0, 0, 2 ),
+		&param, sizeof( param ), 0, 0, 0, 0, bufs, sizes, 2,
+		result.Width() * result.Height() * result.Depth(), result.Channels(), result.ObjectCount() );
 }
 
 void CVulkanMathEngine::Blob3dMaxPoolingBackward( const C3dMaxPoolingDesc&, const CFloatHandle&, const CIntHandle&,
@@ -148,18 +148,18 @@ void CVulkanMathEngine::Blob3dMeanPooling( const C3dMeanPoolingDesc& poolingDesc
 	const CBlobDesc& result = desc.Result;
 
 	CMemoryHandle bufs[2] = { sourceData, resultData };
-	size_t sizes[2] = { source.BlobSize() * sizeof(float), source.BlobSize() * sizeof(float) };
+	size_t sizes[2] = { source.BlobSize() * sizeof( float ), source.BlobSize() * sizeof( float ) };
 
-	PARAM_STRUCT(Blob3dMeanPooling) param = { 
+	PARAM_STRUCT( Blob3dMeanPooling ) param = {
 		desc.StrideHeight, desc.StrideWidth, desc.StrideDepth,
 		desc.FilterHeight, desc.FilterWidth, desc.FilterDepth,
 		source.Height(), source.Width(), source.Depth(),
-		result.Height(), result.Width(), result.Depth(), 
+		result.Height(), result.Width(), result.Depth(),
 		result.Channels(), result.ObjectCount()
 	};
 
-	runShader( shaderLoader->GET_SHADER_DATA(Blob3dMeanPooling, true, 0, 0, 2),
-		&param, sizeof(param), 0, 0, 0, 0, bufs, sizes, 2,
+	runShader( shaderLoader->GET_SHADER_DATA( Blob3dMeanPooling, true, 0, 0, 2 ),
+		&param, sizeof( param ), 0, 0, 0, 0, bufs, sizes, 2,
 		result.Width() * result.Height() * result.Depth(), result.Channels(), result.ObjectCount() );
 }
 
@@ -196,14 +196,14 @@ void CVulkanMathEngine::BlobMaxOverTimePooling( const CMaxOverTimePoolingDesc& p
 	const CBlobDesc& result = desc.Result;
 
 	CMemoryHandle bufs[2] = { sourceData, resultData };
-	size_t sizes[2] = { source.BlobSize() * sizeof(float), source.BlobSize() * sizeof(float) };
+	size_t sizes[2] = { source.BlobSize() * sizeof( float ), source.BlobSize() * sizeof( float ) };
 
-	PARAM_STRUCT(BlobMaxOverTimePoolingNoIndices) param = { 
+	PARAM_STRUCT( BlobMaxOverTimePoolingNoIndices ) param = {
 		result.BlobSize(), result.BatchWidth(), result.ObjectSize(), desc.FilterLen, desc.StrideLen
 	};
 
-	runShader( shaderLoader->GET_SHADER_DATA(BlobMaxOverTimePoolingNoIndices, true, 0, 0, 2),
-		&param, sizeof(param), 0, 0, 0, 0, bufs, sizes, 2,
+	runShader( shaderLoader->GET_SHADER_DATA( BlobMaxOverTimePoolingNoIndices, true, 0, 0, 2 ),
+		&param, sizeof( param ), 0, 0, 0, 0, bufs, sizes, 2,
 		result.BlobSize(), 1, 1 );
 }
 
@@ -236,20 +236,20 @@ void CVulkanMathEngine::BlobGlobalMaxPooling( const CGlobalMaxPoolingDesc& pooli
 	const CBlobDesc& source = desc.Source;
 	const CBlobDesc& result = desc.Result;
 
-	VectorFill(resultData, -FLT_MAX, result.BlobSize());
-	VectorFill(maxIndicesData, -1, result.BlobSize());
+	VectorFill( resultData, -FLT_MAX, result.BlobSize() );
+	VectorFill( maxIndicesData, -1, result.BlobSize() );
 
 	CMemoryHandle bufs[3] = { sourceData, maxIndicesData, resultData };
-	size_t sizes[3] = { source.BlobSize() * sizeof(float), result.BlobSize() * sizeof(int), result.BlobSize() * sizeof(float) };
+	size_t sizes[3] = { source.BlobSize() * sizeof( float ), result.BlobSize() * sizeof( int ), result.BlobSize() * sizeof( float ) };
 
 	int poolSize = source.Height() * source.Width() * source.Depth();
 	int maxCount = result.Height() * result.Width() * result.Depth();
 
-	PARAM_STRUCT(BlobGlobalMaxPooling) param =
-		{ maxCount, source.ObjectCount(), source.Channels(), poolSize * source.Channels(), maxCount * result.Channels(), poolSize };
+	PARAM_STRUCT( BlobGlobalMaxPooling ) param =
+	{ maxCount, source.ObjectCount(), source.Channels(), poolSize * source.Channels(), maxCount * result.Channels(), poolSize };
 
-	runShader( shaderLoader->GET_SHADER_DATA(BlobGlobalMaxPooling, true, 0, 0, 3),
-		&param, sizeof(param), 0, 0, 0, 0, bufs, sizes, 3, result.ObjectCount(), result.Channels(), 1 );
+	runShader( shaderLoader->GET_SHADER_DATA( BlobGlobalMaxPooling, true, 0, 0, 3 ),
+		&param, sizeof( param ), 0, 0, 0, 0, bufs, sizes, 3, result.ObjectCount(), result.Channels(), 1 );
 }
 
 void CVulkanMathEngine::BlobGlobalMaxPoolingBackward( const CGlobalMaxPoolingDesc&, const CFloatHandle&, const CIntHandle&,
@@ -274,19 +274,19 @@ void CVulkanMathEngine::BlobMeanPooling( const CMeanPoolingDesc& poolingDesc, co
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
 
-	CCommonMeanPoolingDesc desc = static_cast<const CCommonMeanPoolingDesc &>( poolingDesc );
+	CCommonMeanPoolingDesc desc = static_cast<const CCommonMeanPoolingDesc&>( poolingDesc );
 	const CBlobDesc& source = desc.Source;
 	const CBlobDesc& result = desc.Result;
 
 	CMemoryHandle bufs[2] = { sourceData, resultData };
-	size_t sizes[2] = { source.BlobSize() * sizeof(float), result.BlobSize() * sizeof(float) };
+	size_t sizes[2] = { source.BlobSize() * sizeof( float ), result.BlobSize() * sizeof( float ) };
 
-	PARAM_STRUCT(BlobMeanPooling) param = { { desc.StrideWidth, desc.StrideHeight}, { desc.FilterWidth, desc.FilterHeight },
+	PARAM_STRUCT( BlobMeanPooling ) param = { { desc.StrideWidth, desc.StrideHeight}, { desc.FilterWidth, desc.FilterHeight },
 		result.ObjectCount(), result.Channels() * result.Depth(), result.Height(), result.Width(),
 		source.Height(), source.Width() };
 
-	runShader( shaderLoader->GET_SHADER_DATA(BlobMeanPooling, true, 0, 0, 2),
-		&param, sizeof(param), 0, 0, 0, 0, bufs, sizes, 2,
+	runShader( shaderLoader->GET_SHADER_DATA( BlobMeanPooling, true, 0, 0, 2 ),
+		&param, sizeof( param ), 0, 0, 0, 0, bufs, sizes, 2,
 		result.Width(), result.ObjectCount() * result.Height(), result.Channels() * result.Depth() );
 }
 
