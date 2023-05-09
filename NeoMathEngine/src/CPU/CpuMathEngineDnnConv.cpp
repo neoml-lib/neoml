@@ -1406,12 +1406,19 @@ CBlobDesc CConvCpuImpl::Reshape( const CBlobDesc& inputSize )
 	desc = CCpuConvolutionDesc( std::unique_ptr<CConvolutionDesc>(), inputSize, outputSize, desc.Filter,
 		desc.PaddingHeight, desc.PaddingWidth, desc.StrideHeight, desc.StrideWidth,
 		desc.DilationHeight, desc.DilationWidth );
+
+	std::unique_ptr<CConvolutionDesc> simdConvolutionDesc;
+	if( mathEngine.simdMathEngine != nullptr ) {
+		desc.SimdConvolutionDesc = std::unique_ptr<CConvolutionDesc>( mathEngine.simdMathEngine->InitBlobConvolution(
+			desc.Source, desc.PaddingHeight, desc.PaddingWidth, desc.StrideHeight, desc.StrideWidth,
+			desc.DilationHeight, desc.DilationWidth, desc.Filter, desc.Result ) );
+	}
 	return outputSize;
 }
 
 int CConvCpuImpl::InOperationBufferSize() const
 {
-	if( is1x1Conv() ) {
+	if( is1x1Conv() || desc.SimdConvolutionDesc != nullptr ) {
 		return 0;
 	}
 
@@ -1444,6 +1451,13 @@ IRowwiseCpuImpl::CProcessingReport CConvCpuImpl::Process( const float* input, in
 	result.InputRowsMayBeRemoved = outputRowIndex + result.OutputRowsCalculated == desc.Result.Height()
 		? desc.Source.Height() - inputRowIndex
 		: calcFirstInputRowUsed( desc, outputRowIndex + result.OutputRowsCalculated ) - inputRowIndex;
+
+	if( desc.SimdConvolutionDesc != nullptr ) {
+		mathEngine.simdMathEngine->BlobConvolutionRowwise( *desc.SimdConvolutionDesc,
+			input, inputRowIndex, filter, freeTerm,
+			output, outputRowIndex, outputRowsAvailable );
+		return result;
+	}
 
 	const int inputRowSize = desc.Source.Width() * desc.Source.Channels();
 	const int firstInputRowUsed = calcFirstInputRowUsed( desc, outputRowIndex );

@@ -32,6 +32,9 @@ class CBlobConvolutionBase : public CCrtAllocatedObject {
 public:
     virtual ~CBlobConvolutionBase() = default;
     virtual void ProcessConvolution( int threadCount, const float* sourceData, const float* filterData, const float* freeTermData, float* resultData ) = 0;
+    virtual void ProcessConvolutionRowwise( const float* sourceData, int sourceRowIndex,
+        const float* filterData, const float* freeTermData, float* resultData,
+        int rowIdx, int rowCount ) = 0;
 };
 
 template<int FltCnt>
@@ -46,6 +49,8 @@ public:
 
     void ProcessConvolution( int threadCount,
         const float* sourceData, const float* filterData, const float* freeTermData, float* resultData ) override;
+    void ProcessConvolutionRowwise( const float* sourceData, int sourceRowIndex, const float* filterData,
+        const float* freeTermData, float* resultData, int resultRowIndex, int resultRowCount ) override;
 
 private:
     struct CSize {

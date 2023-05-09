@@ -32,6 +32,7 @@ struct CCommonChannelwiseConvolutionDesc;
 class CDeviceStackAllocator;
 class CMemoryPool;
 class ISimdMathEngine;
+class CConvCpuImpl;
 
 // Math engine that uses a CPU for calculations
 class CCpuMathEngine : public IMathEngine, public IRawMemoryManager {
@@ -763,6 +764,8 @@ private:
 		const CConstIntHandle& rowIndices, const CConstIntHandle& padLabels, const CConstFloatHandle& blankSkipMask,
 		const CConstFloatHandle& resultLogProb, const CConstIntHandle& resultLens, const CConstIntHandle& labelLens,
 		const CFloatHandle& logBeta );
+
+	friend class CConvCpuImpl;
 };
 
 inline void CCpuMathEngine::VectorReLUDiffOp(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,

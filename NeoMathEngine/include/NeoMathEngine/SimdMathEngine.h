@@ -40,6 +40,9 @@ public:
 
 	virtual void BlobConvolution( const CConvolutionDesc& convDesc, const float* source,
 		const float* filter, const float* freeTerm, float* result ) const = 0;
+	virtual void BlobConvolutionRowwise( const CConvolutionDesc& convDesc, const float* source,
+		int sourceRowIndex, const float* filter, const float* freeTerm, float* result,
+		int resultRowIndex, int resultRowCount ) const = 0;
 
 	virtual SgemmFunc GetSgemmFunction() const = 0;
 
