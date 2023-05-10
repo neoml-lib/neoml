@@ -55,6 +55,9 @@ public:
 	virtual int DataRowIndex() const = 0;
 	// Number of rows in buffer filled with data
 	virtual int DataRowsCount() const = 0;
+	// Number of data rows ever appeared in this buffer
+	virtual int DataRowsProcessed() const { return DataRowIndex() + DataRowsCount(); }
+
 	// Pointer to the beginning of rows with data
 	virtual const float* DataRows() const = 0;
 
@@ -103,8 +106,6 @@ private:
 class CRowwiseBuffer : public IRowwiseBuffer {
 public:
 	CRowwiseBuffer( IMathEngine& mathEngine, int rowCount, int rowSize );
-
-	int DataRowsProcessed() const { return dataRowIndex + dataRowsCount; }
 
 	// IRowwiseBuffer implementation
 	int DataRowIndex() const override { return dataRowIndex; }

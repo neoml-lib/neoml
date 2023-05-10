@@ -190,13 +190,23 @@ void CCpuMathEngine::RowwiseExecute( const CBlobDesc& inputDesc, CRowwiseOperati
 					buffers[i]->DataRowIndex(), buffers[i]->DataRowsCount(), buffers[i + 1]->EmptyRows(),
 					buffers[i + 1]->DataRowIndex() + buffers[i + 1]->DataRowsCount(), buffers[i + 1]->EmptyRowsCount(),
 					inOperationBuffer == nullptr ? nullptr : GetRaw( inOperationBuffer->GetHandle() ) );
-				
+
 				if( report.OutputRowsCalculated > 0 ) {
 					buffers[i + 1]->AddRows( report.OutputRowsCalculated );
 				}
 
 				if( report.InputRowsMayBeRemoved > 0 ) {
 					buffers[i]->RemoveRows( report.InputRowsMayBeRemoved );
+				}
+
+				// Try to fill as much of output as possible
+				// Significanlty reduces a number of calls with report.OutputRowsCalculated == 0
+				if( buffers[i + 1]->EmptyRowsCount() > 0
+					&& buffers[i + 1]->DataRowsProcessed() < operations[i]->OutputHeight()
+					&& ( ( i == 0 && buffers[i]->DataRowsCount() > 0 )
+						|| ( i > 0 && buffers[i]->DataRowsProcessed() < operations[i - 1]->OutputHeight() ) ) )
+				{
+					break;
 				}
 			}
 		}
