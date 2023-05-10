@@ -168,6 +168,7 @@ void CCpuMathEngine::RowwiseExecute( const CBlobDesc& inputDesc, CRowwiseOperati
 	buffers.emplace_back( new CRowwiseWrapper( GetRaw( output ), operations.back()->OutputHeight(),
 			operations.back()->OutputRowSize() ) );
 
+	inOperationBufferSize = std::max( inOperationBufferSize, operations.back()->InOperationBufferSize() );
 	std::unique_ptr<CFloatHandleStackVar> inOperationBuffer;
 	if( inOperationBufferSize > 0 ) {
 		inOperationBuffer.reset( new CFloatHandleStackVar( *this, static_cast<size_t>( inOperationBufferSize ) ) );

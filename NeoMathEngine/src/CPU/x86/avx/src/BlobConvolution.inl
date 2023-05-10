@@ -208,13 +208,16 @@ template<int FltCnt>
 void CBlobConvolution<FltCnt>::ProcessConvolutionRowwise( const float* sourceData, int sourceRowIndex,
     const float* filterData, const float* freeTermData, float* resultData, int resultRowIndex, int resultRowCount )
 {
-    CFloatHandleStackVar filterTempBuffer( *mathEngine, FltW * FltH * FltCntM8 * ChCnt );
-    CFloatHandleStackVar freeTermTempBuffer( *mathEngine, FltCntM8 );
-
     src = sourceData;
+
     // Filter offset also are calculated from center
-    flt = rearrangeFilter( filterData, filterTempBuffer ) + ( FltW * FltH ) / 2 * ChCnt * FltCntM8;
-    freeTerm = rearrangeFreeTerm( freeTermData, freeTermTempBuffer );
+    if( rowwiseFlt == nullptr ) {
+        rowwiseFlt.reset( new CFloatHandleVar( *mathEngine, FltW * FltH * FltCntM8 * ChCnt ) );
+        rowwiseFreeTerm.reset( new CFloatHandleVar( *mathEngine, FltCntM8 ) );
+        flt = rearrangeFilter( filterData, *rowwiseFlt ) + ( FltW * FltH ) / 2 * ChCnt * FltCntM8;
+        freeTerm = rearrangeFreeTerm( freeTermData, *rowwiseFreeTerm );
+    }
+
     res = resultData;
 
     if( !jitIsInited ) {
@@ -260,7 +263,7 @@ void CBlobConvolution<FltCnt>::ProcessConvolutionRowwise( const float* sourceDat
             // Process up to current step or up to and of current butch
             int ryEnd = std::min( yStep, currentRH );
             for( ; ry < ryEnd; ) {
-                const float* srcPtr = realSrcStart + ( srcYOffset - sourceRowIndex )* SrcLineStride + ry * SrcYStep;
+                const float* srcPtr = realSrcStart + ( srcYOffset - sourceRowIndex ) * SrcLineStride + ry * SrcYStep;
                 float* resPtr = realResStart + ( ry - resultRowIndex ) * ResLineStride;
                 bool useNarrowProcessing = ryEnd - ry >= NarrowBatchProcessSize.Height;
 
@@ -296,7 +299,7 @@ inline void CBlobConvolution<FltCnt>::initJitCodes()
 }
 
 template<int FltCnt>
-const float* CBlobConvolution<FltCnt>::rearrangeFilter( const float* filterData, CFloatHandleStackVar& filterTempBuffer )
+const float* CBlobConvolution<FltCnt>::rearrangeFilter( const float* filterData, CMemoryHandleVarBase<float>& filterTempBuffer )
 {
     // Rearrange filter data.
     // Initial packing:
@@ -349,7 +352,7 @@ const float* CBlobConvolution<FltCnt>::rearrangeFilter( const float* filterData,
 }
 
 template<int FltCnt>
-const float* CBlobConvolution<FltCnt>::rearrangeFreeTerm( const float* freeTermData, CFloatHandleStackVar& freeTermTempBuffer )
+const float* CBlobConvolution<FltCnt>::rearrangeFreeTerm( const float* freeTermData, CMemoryHandleVarBase<float>& freeTermTempBuffer )
 {
     if( freeTermData == nullptr ) {
         return nullptr;

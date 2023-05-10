@@ -20,6 +20,7 @@ limitations under the License.
 #include <memory>
 #include <cstring>
 #include <functional>
+#include <memory>
 
 #include <NeoMathEngine/NeoMathEngine.h>
 #include <JitCommon.h>
@@ -138,6 +139,8 @@ private:
     const float* src;
     const float* flt;
     const float* freeTerm;
+    std::unique_ptr<CFloatHandleVar> rowwiseFlt;
+    std::unique_ptr<CFloatHandleVar> rowwiseFreeTerm;
     float* res;
 
     // !!! SrcXStep, SrcYStep and ResLineStride are read from JIT as 8-byte values, hence they must have 8 byte length.
@@ -183,8 +186,8 @@ private:
     void initJitCodes();
 
     // Rearrange filter and fill 'Filter' and 'FreeTerm' members.
-    const float* rearrangeFilter( const float* filterData, CFloatHandleStackVar& Filter );
-    const float* rearrangeFreeTerm( const float* freeTermData, CFloatHandleStackVar& FreeTerm );
+    const float* rearrangeFilter( const float* filterData, CMemoryHandleVarBase<float>& Filter );
+    const float* rearrangeFreeTerm( const float* freeTermData, CMemoryHandleVarBase<float>& FreeTerm );
     // Function calculates offsets of center of filter window over the source image, where intersection over
     // them is changed. This function helps to calculate further PixelOffsetResStepsWidthX/Y, SrcPixelsOffset and FltPixelsOffset.
     // Src (source), F(filter), D(dilation), S(stride) and P(padding) linear dimention by X or Y axis.

@@ -1455,7 +1455,7 @@ IRowwiseCpuImpl::CProcessingReport CConvCpuImpl::Process( const float* input, in
 	if( desc.SimdConvolutionDesc != nullptr ) {
 		mathEngine.simdMathEngine->BlobConvolutionRowwise( *desc.SimdConvolutionDesc,
 			input, inputRowIndex, filter, freeTerm,
-			output, outputRowIndex, outputRowsAvailable );
+			output, outputRowIndex, result.OutputRowsCalculated );
 		return result;
 	}
 
