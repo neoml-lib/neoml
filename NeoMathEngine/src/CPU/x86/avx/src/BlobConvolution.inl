@@ -239,16 +239,18 @@ void CBlobConvolution<FltCnt>::ProcessConvolutionRowwise( const float* sourceDat
     int rowCount = resultRowCount;
 
     while( rowCount > 0 ) {
+        // Index of result image in output batch
+        int resIdx = rowIdx / ResH;
         // Offset in current result image
-        int ryStart = rowIdx;
+        int ryStart = rowIdx % ResH;
         // Number of rows for processing ( or number of rows till the end of current result image ).
         int ryCount = std::min( ResH - ryStart, rowCount );
         rowIdx += ryCount;
         rowCount -= ryCount;
 
         // Pointers to src and res for current thread
-        const float* realSrcStart = src + srcXOffset * ChCnt;
-        float* realResStart = res;
+        const float* realSrcStart = src + resIdx * SrcObjSize + srcXOffset * ChCnt;
+        float* realResStart = res + resIdx * ResObjSize;
 
         // Iterate through result, left->right, top->bottom
         const int currentRH = std::min( ResH, ryStart + ryCount );

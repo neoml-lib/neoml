@@ -36,7 +36,7 @@ CRowwiseWrapper::CRowwiseWrapper( float* data, int rowCount, int rowSize ) :
 	removedRows( 0 )
 {}
 
-int CRowwiseWrapper::DataRowsCount() const
+int CRowwiseWrapper::DataRowCount() const
 {
 	PRESUME_EXPR( addedRows >= removedRows );
 	return addedRows - removedRows;
@@ -44,14 +44,14 @@ int CRowwiseWrapper::DataRowsCount() const
 
 const float* CRowwiseWrapper::DataRows() const
 {
-	PRESUME_EXPR( DataRowsCount() > 0 );
+	PRESUME_EXPR( DataRowCount() > 0 );
 	return firstDataRow;
 }
 
 float* CRowwiseWrapper::EmptyRows()
 {
 	PRESUME_EXPR( addedRows < rowCount );
-	return firstDataRow + DataRowsCount() * rowSize;
+	return firstDataRow + DataRowCount() * rowSize;
 }
 
 void CRowwiseWrapper::AddRows( int count )
@@ -64,15 +64,9 @@ void CRowwiseWrapper::AddRows( int count )
 void CRowwiseWrapper::RemoveRows( int count )
 {
 	PRESUME_EXPR( count > 0 );
-	PRESUME_EXPR( count <= DataRowsCount() );
+	PRESUME_EXPR( count <= DataRowCount() );
 	removedRows += count;
 	firstDataRow += count * rowSize;
-}
-
-void CRowwiseWrapper::Reset()
-{
-	removedRows = 0;
-	addedRows = 0;
 }
 
 CRowwiseBuffer::CRowwiseBuffer( IMathEngine& mathEngine, int rowCount, int rowSize ) :
@@ -93,7 +87,7 @@ const float* CRowwiseBuffer::DataRows() const
 
 float* CRowwiseBuffer::EmptyRows()
 {
-	PRESUME_EXPR( EmptyRowsCount() > 0 );
+	PRESUME_EXPR( EmptyRowCount() > 0 );
 	return bufferPtr + dataRowsCount * rowSize;
 }
 
@@ -115,12 +109,6 @@ void CRowwiseBuffer::RemoveRows( int count )
 		// HACK: we know that data copying work sequentially that's why we don't need to check for the overlap
 		dataCopy( bufferPtr, bufferPtr + count * rowSize, dataRowsCount * rowSize );
 	}
-}
-
-void CRowwiseBuffer::Reset()
-{
-	dataRowsCount = 0;
-	dataRowIndex = 0;
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -155,18 +143,19 @@ void CCpuMathEngine::RowwiseExecute( const CBlobDesc& inputDesc, CRowwiseOperati
 	std::vector<std::unique_ptr<IRowwiseBuffer>> buffers;
 	buffers.reserve( static_cast<size_t>( operationCount + 1 ) );
 
-	buffers.emplace_back( new CRowwiseWrapper( GetRaw( input ), inputDesc.Height(),
+	const int inputRowsCount = inputDesc.ObjectCount() * inputDesc.Height();
+	buffers.emplace_back( new CRowwiseWrapper( GetRaw( input ), inputRowsCount,
 		inputDesc.Width() * inputDesc.Channels() ) );
 	int inOperationBufferSize = 0;
 	for( size_t i = 0; i < operations.size() - 1; ++i ) {
 		inOperationBufferSize = std::max( inOperationBufferSize, operations[i]->InOperationBufferSize() );
 		const int rowSize = operations[i]->OutputRowSize();
-		const int maxRowCount = std::min( std::max( operations[i + 1]->RequiredRowsCount(), RowwiseMaxBuffSize / rowSize ),
-			operations[i]->OutputHeight() );
+		const int maxRowCount = std::min( std::max( operations[i + 1]->MinInputRowCount(), RowwiseMaxBuffSize / rowSize ),
+			operations[i]->OutputRowCount() );
 		buffers.emplace_back( new CRowwiseBuffer( *this, maxRowCount, rowSize ) );
 	}
-	buffers.emplace_back( new CRowwiseWrapper( GetRaw( output ), operations.back()->OutputHeight(),
-			operations.back()->OutputRowSize() ) );
+	buffers.emplace_back( new CRowwiseWrapper( GetRaw( output ), operations.back()->OutputRowCount(),
+		operations.back()->OutputRowSize() ) );
 
 	inOperationBufferSize = std::max( inOperationBufferSize, operations.back()->InOperationBufferSize() );
 	std::unique_ptr<CFloatHandleStackVar> inOperationBuffer;
@@ -174,44 +163,37 @@ void CCpuMathEngine::RowwiseExecute( const CBlobDesc& inputDesc, CRowwiseOperati
 		inOperationBuffer.reset( new CFloatHandleStackVar( *this, static_cast<size_t>( inOperationBufferSize ) ) );
 	}
 
-	for( int b = 0; b < inputDesc.ObjectCount(); ++b ) {
-		for( std::unique_ptr<IRowwiseBuffer>& buffer : buffers ) {
-			buffer->Reset();
-		}
-		buffers.front()->AddRows( inputDesc.Height() );
+	buffers.front()->AddRows( inputDesc.ObjectCount() * inputDesc.Height() );
 
-		while( buffers.back()->EmptyRowsCount() > 0 ) {
-			for( size_t i = 0; i < operations.size(); ++i ) {
-				if( buffers[i]->DataRowsCount() == 0 || buffers[i + 1]->EmptyRowsCount() == 0 ) {
-					continue;
-				}
+	while( buffers.back()->EmptyRowCount() > 0 ) {
+		for( size_t i = 0; i < operations.size(); ++i ) {
+			if( buffers[i]->DataRowCount() == 0 || buffers[i + 1]->EmptyRowCount() == 0 ) {
+				continue;
+			}
 
-				IRowwiseCpuImpl::CProcessingReport report = operations[i]->Process( buffers[i]->DataRows(),
-					buffers[i]->DataRowIndex(), buffers[i]->DataRowsCount(), buffers[i + 1]->EmptyRows(),
-					buffers[i + 1]->DataRowIndex() + buffers[i + 1]->DataRowsCount(), buffers[i + 1]->EmptyRowsCount(),
-					inOperationBuffer == nullptr ? nullptr : GetRaw( inOperationBuffer->GetHandle() ) );
+			IRowwiseCpuImpl::CProcessingReport report = operations[i]->Process( buffers[i]->DataRows(),
+				buffers[i]->DataRowIndex(), buffers[i]->DataRowCount(), buffers[i + 1]->EmptyRows(),
+				buffers[i + 1]->DataRowIndex() + buffers[i + 1]->DataRowCount(), buffers[i + 1]->EmptyRowCount(),
+				inOperationBuffer == nullptr ? nullptr : GetRaw( inOperationBuffer->GetHandle() ) );
 
-				if( report.OutputRowsCalculated > 0 ) {
-					buffers[i + 1]->AddRows( report.OutputRowsCalculated );
-				}
+			if( report.OutputRowsCalculated > 0 ) {
+				buffers[i + 1]->AddRows( report.OutputRowsCalculated );
+			}
 
-				if( report.InputRowsMayBeRemoved > 0 ) {
-					buffers[i]->RemoveRows( report.InputRowsMayBeRemoved );
-				}
+			if( report.InputRowsMayBeRemoved > 0 ) {
+				buffers[i]->RemoveRows( report.InputRowsMayBeRemoved );
+			}
 
-				// Try to fill as much of output as possible
-				// Significanlty reduces a number of calls with report.OutputRowsCalculated == 0
-				if( buffers[i + 1]->EmptyRowsCount() > 0
-					&& buffers[i + 1]->DataRowsProcessed() < operations[i]->OutputHeight()
-					&& ( ( i == 0 && buffers[i]->DataRowsCount() > 0 )
-						|| ( i > 0 && buffers[i]->DataRowsProcessed() < operations[i - 1]->OutputHeight() ) ) )
-				{
-					break;
-				}
+			// Try to fill as much of output as possible
+			// Significanlty reduces a number of calls with report.OutputRowsCalculated == 0
+			if( buffers[i + 1]->EmptyRowCount() > 0
+				&& buffers[i + 1]->DataRowProcessed() < operations[i]->OutputRowCount()
+				&& ( ( i == 0 && buffers[i]->DataRowCount() > 0 )
+					|| ( i > 0 && buffers[i]->DataRowProcessed() < operations[i - 1]->OutputRowCount() ) ) )
+			{
+				break;
 			}
 		}
-
-		buffers.back()->RemoveRows( operations.back()->OutputHeight() );
 	}
 }
 

@@ -1025,11 +1025,11 @@ public:
 	{
 	}
 
-	int RequiredRowsCount() const override { return 1; }
+	int MinInputRowCount() const override { return 1; }
 
 	CBlobDesc Reshape( const CBlobDesc& inputSize ) override;
 	int InOperationBufferSize() const override { return 0; }
-	int OutputHeight() const override { return rowCount; }
+	int OutputRowCount() const override { return rowCount; }
 	int OutputRowSize() const override { return rowSize; }
 	CProcessingReport Process( const float* input, int inputRowIndex, int inputRowsAvailable,
 		float* output, int outputRowIndex, int outputRowsAvailable, float* buffer ) const override;
@@ -1044,7 +1044,7 @@ private:
 
 CBlobDesc CActivationCpuImpl::Reshape( const CBlobDesc& inputSize )
 {
-	rowCount = inputSize.Height();
+	rowCount = inputSize.ObjectCount() * inputSize.Height();
 	rowSize = inputSize.Width() * inputSize.Channels();
 	return inputSize;
 }

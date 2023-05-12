@@ -1357,6 +1357,59 @@ void CCpuMathEngine::BlobChannelwiseConvolutionLearnAdd( const CChannelwiseConvo
 
 //------------------------------------------------------------------------------------------------------------
 
+// Gets the index of firsst input row required to calculate outputRowIndex'th row of output
+static int getFirstRequiredInputRow( int outputRowIndex, const CCpuConvolutionDesc& desc )
+{
+	const int imageIndex = outputRowIndex / desc.Result.Height();
+	const int outputImageRowIndex = outputRowIndex % desc.Result.Height();
+
+	const int inputImageRowIndex = std::max( 0, outputImageRowIndex * desc.StrideHeight - desc.PaddingHeight );
+
+	return imageIndex * desc.Source.Height() + inputImageRowIndex;
+}
+
+// Calculates the CProcessingReport for the given amount of data
+// It contains the number of output rows calculated during this call
+// and the number of input rows which can be discarded after this call
+static IRowwiseCpuImpl::CProcessingReport getReport( int inputRowIndex, int inputRowsAvailable,
+	int outputRowIndex, int outputRowsAvailable, const CCpuConvolutionDesc& desc )
+{
+	const int processedInputRows = inputRowIndex + inputRowsAvailable;
+	const int lastAvailableInputImageIndex = processedInputRows == 0 ? 0
+		: ( processedInputRows - 1 ) / desc.Source.Height();
+
+	const int maxOutputRows = outputRowIndex + outputRowsAvailable;
+	const int lastAvailableOutputImageIndex = maxOutputRows == 0 ? 0 : ( maxOutputRows - 1 ) / desc.Result.Height();
+
+	const int lastImageIndex = std::min( lastAvailableInputImageIndex, lastAvailableOutputImageIndex );
+	PRESUME_EXPR( lastImageIndex >= 0 && lastImageIndex < desc.Source.ObjectCount() );
+
+	const int lastImageProcessedInputRows = std::min( desc.Source.Height(),
+		processedInputRows - lastImageIndex * desc.Source.Height() );
+	PRESUME_EXPR( lastImageProcessedInputRows > 0 && lastImageProcessedInputRows <= desc.Source.Height() );
+
+	const int lastImageMaxOutputRows = std::min( desc.Result.Height(),
+		maxOutputRows - lastImageIndex * desc.Result.Height() );
+	PRESUME_EXPR( lastImageMaxOutputRows > 0 && lastImageMaxOutputRows <= desc.Result.Height() );
+
+	const int effectiveFilterHeight = 1 + ( desc.Filter.Height() - 1 ) * desc.DilationHeight;
+	const int lastImageOutputRowWithData = lastImageProcessedInputRows == desc.Source.Height() ? desc.Result.Height()
+		: std::max( 0, 1 + ( lastImageProcessedInputRows + desc.PaddingHeight - effectiveFilterHeight ) / desc.StrideHeight );
+
+	const int calculatedOutputRows = lastImageIndex * desc.Result.Height()
+		+ std::min( lastImageOutputRowWithData, lastImageMaxOutputRows );
+	IRowwiseCpuImpl::CProcessingReport report;
+	report.OutputRowsCalculated = calculatedOutputRows - outputRowIndex;
+	PRESUME_EXPR( report.OutputRowsCalculated >= 0 && report.OutputRowsCalculated <= outputRowsAvailable );
+
+	report.InputRowsMayBeRemoved = getFirstRequiredInputRow( calculatedOutputRows, desc ) - inputRowIndex;
+	PRESUME_EXPR( report.InputRowsMayBeRemoved >= 0 && report.InputRowsMayBeRemoved <= inputRowsAvailable );
+
+	return report;
+}
+
+//------------------------------------------------------------------------------------------------------------
+
 class CConvCpuImpl : public IRowwiseCpuImpl, public CRowwiseOperationDesc {
 public:
 	CConvCpuImpl( CCpuMathEngine& mathEngine, int inputChannels, int padH, int padW, int strideH, int strideW,
@@ -1369,11 +1422,11 @@ public:
 	{
 	}
 
-	int RequiredRowsCount() const { return 1 + ( desc.Filter.Height() - 1 ) * desc.DilationHeight; }
+	int MinInputRowCount() const { return 1 + ( desc.Filter.Height() - 1 ) * desc.DilationHeight; }
 
 	CBlobDesc Reshape( const CBlobDesc& inputSize ) override;
 	int InOperationBufferSize() const override;
-	int OutputHeight() const override { return desc.Result.Height(); }
+	int OutputRowCount() const override { return desc.Result.ObjectCount() * desc.Result.Height(); }
 	int OutputRowSize() const override { return desc.Result.Width() * desc.Result.Channels(); }
 	CProcessingReport Process( const float* input, int inputRowIndex, int inputRowsAvailable,
 		float* output, int outputRowIndex, int outputRowsAvailable, float* buffer ) const override;
@@ -1428,29 +1481,11 @@ int CConvCpuImpl::InOperationBufferSize() const
 IRowwiseCpuImpl::CProcessingReport CConvCpuImpl::Process( const float* input, int inputRowIndex, int inputRowsAvailable,
 	float* output, int outputRowIndex, int outputRowsAvailable, float* buffer ) const
 {
-	CProcessingReport result;
-	result.InputRowsMayBeRemoved = 0;
-	result.OutputRowsCalculated = 0;
-
-	const int firstInputRowMissing = inputRowIndex + inputRowsAvailable;
-	const int effectiveFilterArea = ( desc.Filter.Height() - 1 ) * desc.DilationHeight + 1;
-	if( firstInputRowMissing < desc.Source.Height() && firstInputRowMissing + desc.PaddingHeight < effectiveFilterArea ) {
+	CProcessingReport result = getReport( inputRowIndex, inputRowsAvailable, outputRowIndex, outputRowsAvailable, desc );
+	if( result.OutputRowsCalculated == 0 ) {
+		PRESUME_EXPR( result.InputRowsMayBeRemoved == 0 );
 		return result;
 	}
-	int outputRowsCalculatable = firstInputRowMissing == desc.Source.Height() ? desc.Result.Height()
-		: 1 + ( firstInputRowMissing + desc.PaddingHeight - effectiveFilterArea ) / desc.StrideHeight;
-	PRESUME_EXPR( outputRowIndex <= outputRowsCalculatable );
-	if( outputRowsCalculatable == outputRowIndex ) {
-		return result;
-	}
-
-	result.OutputRowsCalculated = std::min( outputRowsAvailable, outputRowsCalculatable - outputRowIndex );
-	auto calcFirstInputRowUsed = [] ( const CCpuConvolutionDesc& desc, int outRowIndex ) -> int {
-		return std::max( 0, outRowIndex * desc.StrideHeight - desc.PaddingHeight );
-	};
-	result.InputRowsMayBeRemoved = outputRowIndex + result.OutputRowsCalculated == desc.Result.Height()
-		? desc.Source.Height() - inputRowIndex
-		: calcFirstInputRowUsed( desc, outputRowIndex + result.OutputRowsCalculated ) - inputRowIndex;
 
 	if( desc.SimdConvolutionDesc != nullptr ) {
 		mathEngine.simdMathEngine->BlobConvolutionRowwise( *desc.SimdConvolutionDesc,
@@ -1460,7 +1495,7 @@ IRowwiseCpuImpl::CProcessingReport CConvCpuImpl::Process( const float* input, in
 	}
 
 	const int inputRowSize = desc.Source.Width() * desc.Source.Channels();
-	const int firstInputRowUsed = calcFirstInputRowUsed( desc, outputRowIndex );
+	const int firstInputRowUsed = getFirstRequiredInputRow( outputRowIndex, desc );
 	if( inputRowIndex < firstInputRowUsed ) {
 		const int diff = firstInputRowUsed - inputRowIndex;
 		input += diff * inputRowSize;

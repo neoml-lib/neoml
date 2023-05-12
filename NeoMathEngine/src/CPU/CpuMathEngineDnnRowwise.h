@@ -24,11 +24,11 @@ class IRowwiseCpuImpl {
 public:
 	virtual ~IRowwiseCpuImpl() = default;
 
-	virtual int RequiredRowsCount() const = 0;
+	virtual int MinInputRowCount() const = 0;
 
 	virtual CBlobDesc Reshape( const CBlobDesc& inputSize ) = 0;
 	virtual int InOperationBufferSize() const = 0;
-	virtual int OutputHeight() const = 0;
+	virtual int OutputRowCount() const = 0;
 	virtual int OutputRowSize() const = 0;
 
 	// The result of single rowwise processing
@@ -42,7 +42,7 @@ public:
 };
 
 // Interface for buffers for rowwise operations
-// First DataRowsCount() rows in buffer are filled with actual data
+// First DataRowCount() rows in buffer are filled with actual data
 // Rest of the rows are considered empty
 class IRowwiseBuffer {
 public:
@@ -54,15 +54,16 @@ public:
 	// Index of first data row in buffer
 	virtual int DataRowIndex() const = 0;
 	// Number of rows in buffer filled with data
-	virtual int DataRowsCount() const = 0;
+	virtual int DataRowCount() const = 0;
 	// Number of data rows ever appeared in this buffer
-	virtual int DataRowsProcessed() const { return DataRowIndex() + DataRowsCount(); }
-
+	virtual int DataRowProcessed() const { return DataRowIndex() + DataRowCount(); }
 	// Pointer to the beginning of rows with data
 	virtual const float* DataRows() const = 0;
 
+	// Empty rows are the rows which go immediately after the data
+	// Their number depends on the size of memory allocated for this buffer
 	// Number of empty rows in buffer
-	virtual int EmptyRowsCount() const = 0;
+	virtual int EmptyRowCount() const = 0;
 	// Pointer after data rows
 	virtual float* EmptyRows() = 0;
 
@@ -70,8 +71,6 @@ public:
 	virtual void AddRows( int count ) = 0;
 	// Frees first `count` of data rows
 	virtual void RemoveRows( int count ) = 0;
-	// Resets buffer to fully empty and sets data row index to 0
-	virtual void Reset() = 0;
 };
 
 // Rowwise buffer over fully allocated data
@@ -85,13 +84,12 @@ public:
 	// IRowwiseBuffer implementation
 	int RowSize() const override { return rowSize; }
 	int DataRowIndex() const override { return removedRows; }
-	int DataRowsCount() const override;
+	int DataRowCount() const override;
 	const float* DataRows() const override;
-	int EmptyRowsCount() const override { return rowCount - addedRows; }
+	int EmptyRowCount() const override { return rowCount - addedRows; }
 	float* EmptyRows() override;
 	void AddRows( int count ) override;
 	void RemoveRows( int count ) override;
-	void Reset() override;
 
 private:
 	float* firstDataRow;
@@ -110,13 +108,12 @@ public:
 	// IRowwiseBuffer implementation
 	int DataRowIndex() const override { return dataRowIndex; }
 	int RowSize() const override { return rowSize; }
-	int DataRowsCount() const override { return dataRowsCount; }
+	int DataRowCount() const override { return dataRowsCount; }
 	const float* DataRows() const override;
-	int EmptyRowsCount() const override { return rowCount - dataRowsCount; }
+	int EmptyRowCount() const override { return rowCount - dataRowsCount; }
 	float* EmptyRows() override;
 	void AddRows( int count ) override;
 	void RemoveRows( int count ) override;
-	void Reset() override;
 
 private:
 	const int rowCount;
