@@ -30,6 +30,7 @@ public:
 	virtual int InOperationBufferSize() const = 0;
 	virtual int OutputRowCount() const = 0;
 	virtual int OutputRowSize() const = 0;
+	virtual bool IsInPlace() const = 0;
 
 	// The result of single rowwise processing
 	struct CProcessingReport {

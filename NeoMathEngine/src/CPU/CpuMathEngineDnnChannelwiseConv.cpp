@@ -1218,6 +1218,7 @@ public:
 		{ return desc.Result.Channels() * desc.Result.Width() * maxOutputRowsPerStep(); }
 	int OutputRowCount() const override { return desc.Result.ObjectCount() * desc.Result.Height(); }
 	int OutputRowSize() const override { return desc.Result.Width() * outputChannels; }
+	bool IsInPlace() const override { return false; }
 	CProcessingReport Process( const float* input, int inputRowIndex, int inputRowsAvailable,
 		float* output, int outputRowIndex, int outputRowsAvailable, float* buffer ) const override;
 
@@ -1405,6 +1406,7 @@ public:
 	int InOperationBufferSize() const override { return 0; }
 	int OutputRowCount() const override { return desc.Result.Height(); }
 	int OutputRowSize() const override { return desc.Result.Width() * outputChannels; }
+	bool IsInPlace() const override { return false; }
 	CProcessingReport Process( const float* input, int inputRowIndex, int inputRowsAvailable,
 		float* output, int outputRowIndex, int outputRowsAvailable, float* buffer ) const override;
 

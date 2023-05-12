@@ -1031,6 +1031,7 @@ public:
 	int InOperationBufferSize() const override { return 0; }
 	int OutputRowCount() const override { return rowCount; }
 	int OutputRowSize() const override { return rowSize; }
+	bool IsInPlace() const override { return true; }
 	CProcessingReport Process( const float* input, int inputRowIndex, int inputRowsAvailable,
 		float* output, int outputRowIndex, int outputRowsAvailable, float* buffer ) const override;
 

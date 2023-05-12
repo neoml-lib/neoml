@@ -1428,6 +1428,7 @@ public:
 	int InOperationBufferSize() const override;
 	int OutputRowCount() const override { return desc.Result.ObjectCount() * desc.Result.Height(); }
 	int OutputRowSize() const override { return desc.Result.Width() * desc.Result.Channels(); }
+	bool IsInPlace() const override { return false; }
 	CProcessingReport Process( const float* input, int inputRowIndex, int inputRowsAvailable,
 		float* output, int outputRowIndex, int outputRowsAvailable, float* buffer ) const override;
 
