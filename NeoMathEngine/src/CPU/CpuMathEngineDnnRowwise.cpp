@@ -91,9 +91,7 @@ const float* CRowwiseBuffer::DataRows() const
 
 int CRowwiseBuffer::EmptyRowCount() const
 {
-	const int emptyRowCount = rowCount - dataRowsCount;
-	PRESUME_EXPR( dataPtrIndex + dataRowsCount + emptyRowCount <= realHeight );
-	return emptyRowCount;
+	return std::min( rowCount - dataRowsCount, realHeight - ( dataPtrIndex + dataRowsCount ) );
 }
 
 float* CRowwiseBuffer::EmptyRows()
