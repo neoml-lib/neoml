@@ -69,11 +69,15 @@ void CRowwiseWrapper::RemoveRows( int count )
 	firstDataRow += count * rowSize;
 }
 
-CRowwiseBuffer::CRowwiseBuffer( IMathEngine& mathEngine, int rowCount, int rowSize ) :
+CRowwiseBuffer::CRowwiseBuffer( IMathEngine& mathEngine, int rowCount, int rowSize, int fullHeight ) :
 	rowCount( rowCount ),
 	rowSize( rowSize ),
-	bufferVar( mathEngine, rowCount * rowSize ),
+	fullHeight( fullHeight ),
+	realHeight( std::min( fullHeight, 2 * rowCount ) ),
+	bufferVar( mathEngine, realHeight * rowSize ),
 	bufferPtr( GetRaw( bufferVar.GetHandle() ) ),
+	dataPtr( bufferPtr ),
+	dataPtrIndex( 0 ),
 	dataRowsCount( 0 ),
 	dataRowIndex( 0 )
 {
@@ -82,20 +86,29 @@ CRowwiseBuffer::CRowwiseBuffer( IMathEngine& mathEngine, int rowCount, int rowSi
 const float* CRowwiseBuffer::DataRows() const
 {
 	PRESUME_EXPR( dataRowsCount > 0 );
-	return bufferPtr;
+	return dataPtr;
+}
+
+int CRowwiseBuffer::EmptyRowCount() const
+{
+	const int emptyRowCount = rowCount - dataRowsCount;
+	PRESUME_EXPR( dataPtrIndex + dataRowsCount + emptyRowCount <= realHeight );
+	return emptyRowCount;
 }
 
 float* CRowwiseBuffer::EmptyRows()
 {
 	PRESUME_EXPR( EmptyRowCount() > 0 );
-	return bufferPtr + dataRowsCount * rowSize;
+	return dataPtr + dataRowsCount * rowSize;
 }
 
 void CRowwiseBuffer::AddRows( int count )
 {
 	PRESUME_EXPR( count > 0 );
+	PRESUME_EXPR( count <= EmptyRowCount() );
 	dataRowsCount += count;
 	PRESUME_EXPR( dataRowsCount <= rowCount );
+	PRESUME_EXPR( dataRowsCount + dataPtrIndex <= realHeight );
 }
 
 void CRowwiseBuffer::RemoveRows( int count )
@@ -104,10 +117,16 @@ void CRowwiseBuffer::RemoveRows( int count )
 	PRESUME_EXPR( count <= dataRowsCount );
 	dataRowsCount -= count;
 	dataRowIndex += count;
-	if( dataRowsCount > 0 ) {
-		// Move remaining data rows to the beginning of buffer
-		// HACK: we know that data copying work sequentially that's why we don't need to check for the overlap
-		dataCopy( bufferPtr, bufferPtr + count * rowSize, dataRowsCount * rowSize );
+	dataPtr += count * rowSize;
+	dataPtrIndex += count;
+	if( dataPtrIndex + rowCount > realHeight && dataRowIndex + ( rowCount - dataPtrIndex ) < fullHeight ) {
+		if( dataRowsCount > 0 ) {
+			// Move remaining data rows to the beginning of buffer
+			// HACK: we know that data copying work sequentially that's why we don't need to check for the overlap
+			dataCopy( bufferPtr, dataPtr, dataRowsCount * rowSize );
+		}
+		dataPtr = bufferPtr;
+		dataPtrIndex = 0;
 	}
 }
 
@@ -155,7 +174,7 @@ void CCpuMathEngine::RowwiseExecute( const CBlobDesc& inputDesc, CRowwiseOperati
 		const int rowSize = operations[i][0]->OutputRowSize();
 		const int maxRowCount = std::min( std::max( operations[i + 1][0]->MinInputRowCount(), RowwiseMaxBuffSize / rowSize ),
 			operations[i][0]->OutputRowCount() );
-		buffers.emplace_back( new CRowwiseBuffer( *this, maxRowCount, rowSize ) );
+		buffers.emplace_back( new CRowwiseBuffer( *this, maxRowCount, rowSize, operations[i][0]->OutputRowCount() ) );
 	}
 	buffers.emplace_back( new CRowwiseWrapper( GetRaw( output ), operations.back().back()->OutputRowCount(),
 		operations.back().back()->OutputRowSize() ) );

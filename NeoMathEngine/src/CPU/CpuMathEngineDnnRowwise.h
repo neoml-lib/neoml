@@ -104,14 +104,14 @@ private:
 // Always stores data in the beginning of the buffer (moves memory if needed)
 class CRowwiseBuffer : public IRowwiseBuffer {
 public:
-	CRowwiseBuffer( IMathEngine& mathEngine, int rowCount, int rowSize );
+	CRowwiseBuffer( IMathEngine& mathEngine, int rowCount, int rowSize, int fullHeight );
 
 	// IRowwiseBuffer implementation
 	int DataRowIndex() const override { return dataRowIndex; }
 	int RowSize() const override { return rowSize; }
 	int DataRowCount() const override { return dataRowsCount; }
 	const float* DataRows() const override;
-	int EmptyRowCount() const override { return rowCount - dataRowsCount; }
+	int EmptyRowCount() const override;
 	float* EmptyRows() override;
 	void AddRows( int count ) override;
 	void RemoveRows( int count ) override;
@@ -119,8 +119,12 @@ public:
 private:
 	const int rowCount;
 	const int rowSize;
+	const int fullHeight;
+	const int realHeight;
 	CFloatHandleVar bufferVar;
 	float* bufferPtr;
+	float* dataPtr;
+	int dataPtrIndex;
 	int dataRowsCount;
 	int dataRowIndex;
 };

@@ -1464,9 +1464,9 @@ IRowwiseCpuImpl::CProcessingReport CMobileNetV2CpuImpl::Process( const float* in
 	if( chInput == nullptr ) {
 		chInput.reset( new CRowwiseBuffer( mathEngine,
 			std::min( desc.Source.Height(), getMaxInputRowsPerStep() + 2 ),
-			desc.Source.Width() * expandedChannels ) );
+			desc.Source.Width() * expandedChannels, desc.Source.Height() * desc.Source.ObjectCount() ) );
 		chOutput.reset( new CRowwiseBuffer( mathEngine, getMaxOutputRowsPerStep(),
-			desc.Result.Width() * expandedChannels ) );
+			desc.Result.Width() * expandedChannels, desc.Result.Height() * desc.Result.ObjectCount() ) );
 	}
 
 	PRESUME_EXPR( chOutput->DataRowProcessed() == outputRowIndex );
