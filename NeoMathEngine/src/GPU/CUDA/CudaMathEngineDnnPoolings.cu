@@ -138,10 +138,12 @@ void CCudaMathEngine::BlobMeanPoolingBackward( const CMeanPoolingDesc& poolingDe
 	SetCudaDevice( device->DeviceNumber );
 
 	const CCudaMeanPoolingDescInternal& desc = static_cast<const CCudaMeanPoolingDesc&>( poolingDesc ).Internal;
+	const CCudaBlobDesc& source = desc.Source;
 	const CCudaBlobDesc& result = desc.Result;
+
 	const bool isAtomic = desc.FilterHeight > desc.StrideHeight || desc.FilterWidth > desc.StrideWidth;
 
-	VectorFill( sourceDiff, 0, desc.Source.BlobSize() );
+	VectorFill( sourceDiff, 0, source.BlobSize() );
 
 	dim3 blockCount;
 	dim3 threadCount;
@@ -238,7 +240,8 @@ void CCudaMathEngine::BlobGlobalMaxPooling( const CGlobalMaxPoolingDesc& pooling
 
 	const int heapSharedMemoryPerThread = 2 * maxCount * sizeof( float );
 	const int heapMaxThreadCount = device->SharedMemoryLimit / heapSharedMemoryPerThread;
-	if( heapMaxThreadCount > 32 || device->MemoryLimit < 4 * source.BlobSize() * sizeof( float ) ) {
+	const int deviceMaxMemoryLimit = 4 * source.BlobSize() * sizeof( float );
+	if( heapMaxThreadCount > 32 || device->MemoryLimit < deviceMaxMemoryLimit ) {
 		dim3 blockCount;
 		dim3 threadCount;
 		getCudaTaskGrid2DMinYX( 1, device->ThreadMax3DCountX, blockCount, threadCount,
@@ -251,9 +254,9 @@ void CCudaMathEngine::BlobGlobalMaxPooling( const CGlobalMaxPoolingDesc& pooling
 		BlobGlobalMaxPoolingHeapKernel<<<blockCount, threadCount, sharedSize>>>( desc, GetRaw( sourceData ),
 			GetRaw( maxIndicesData ), GetRaw( resultData ), poolSize, maxCount );
 	} else {
-		const int bitsPerBin = 8;
-		const int histSize = ( 1 << bitsPerBin );
-		const int memoryPerThread = histSize * sizeof( int );
+		constexpr int bitsPerBin = 8;
+		constexpr int histSize = ( 1 << bitsPerBin );
+		constexpr int memoryPerThread = histSize * sizeof( int );
 		const int maxThreadCount = device->SharedMemoryLimit / memoryPerThread;
 
 		int height = 1;
@@ -482,7 +485,6 @@ void CCudaMathEngine::BlobMaxOverTimePooling( const CMaxOverTimePoolingDesc& poo
 	blockCount.x = 1; // in any case there may only one block along the X coordinate so that we can calculate the maximum inside one block
 
 	const int sharedSize = threadCount.x * threadCount.y * threadCount.z;
-
 	if( maxIndices != 0 ) {
 		BlobMaxOverTimePoolingKernel<<<blockCount, threadCount, sharedSize * sizeof( CValueWithIndex )>>>( desc,
 			GetRaw( sourceDiff ), GetRaw( *maxIndices ), GetRaw( resultDiff ) );
@@ -505,7 +507,7 @@ void CCudaMathEngine::BlobMaxOverTimePoolingBackward( const CMaxOverTimePoolingD
 	const CCudaBlobDesc& result = desc.Result;
 
 	// Set diff to 0
-	CCudaMathEngine::VectorFill( sourceDiff, 0, source.BlobSize() );
+	VectorFill( sourceDiff, 0, source.BlobSize() );
 
 	int blockCount;
 	int threadCount;

@@ -469,45 +469,45 @@ public:
 	void BlobGlobalMaxPooling( const CGlobalMaxPoolingDesc& desc,
 		const CConstFloatHandle& source, const CIntHandle& maxIndices, const CFloatHandle& result ) override;
 	void BlobGlobalMaxPoolingBackward( const CGlobalMaxPoolingDesc& desc,
-		const CFloatHandle& outputDiff, const CIntHandle& maxIndices, const CFloatHandle& inputDiff ) override;
+		const CFloatHandle& resultDiff, const CIntHandle& maxIndices, const CFloatHandle& sourceDiff ) override;
 	C3dMaxPoolingDesc* Init3dMaxPooling( const CBlobDesc& source,
 		int filterHeight, int filterWidth, int filterDepth,
 		int strideHeight, int strideWidth, int strideDepth, const CBlobDesc& result ) override;
 	void Blob3dMaxPooling( const C3dMaxPoolingDesc& desc, const CFloatHandle& source,
 		const CIntHandle* maxIndices, const CFloatHandle& result ) override;
-	void Blob3dMaxPoolingBackward( const C3dMaxPoolingDesc& desc, const CFloatHandle& outputDiff,
-		const CIntHandle& maxIndices, const CFloatHandle& inputDiff ) override;
+	void Blob3dMaxPoolingBackward( const C3dMaxPoolingDesc& desc, const CFloatHandle& resultDiff,
+		const CIntHandle& maxIndices, const CFloatHandle& sourceDiff ) override;
 	C3dMeanPoolingDesc* Init3dMeanPooling( const CBlobDesc& source,
 		int filterHeight, int filterWidth, int filterDepth,
 		int strideHeight, int strideWidth, int strideDepth,
 		const CBlobDesc& result ) override;
 	void Blob3dMeanPooling( const C3dMeanPoolingDesc& desc, const CFloatHandle& source, const CFloatHandle& result ) override;
-	void Blob3dMeanPoolingBackward( const C3dMeanPoolingDesc& desc, const CFloatHandle& outputDiff,
-		const CFloatHandle& inputDiff ) override;
+	void Blob3dMeanPoolingBackward( const C3dMeanPoolingDesc& desc, const CFloatHandle& resultDiff,
+		const CFloatHandle& sourceDiff ) override;
 	CMaxPoolingDesc* InitMaxPooling( const CBlobDesc& source,
 		int filterHeight, int filterWidth, int strideHeight, int strideWidth,
 		const CBlobDesc& result ) override;
 	void BlobMaxPooling( const CMaxPoolingDesc& desc, const CFloatHandle& source,
 		const CIntHandle* maxIndices, const CFloatHandle& result ) override;
-	void BlobMaxPoolingBackward( const CMaxPoolingDesc& desc, const CFloatHandle& outputDiff,
-		const CIntHandle& maxIndices, const CFloatHandle& inputDiff ) override;
+	void BlobMaxPoolingBackward( const CMaxPoolingDesc& desc, const CFloatHandle& resultDiff,
+		const CIntHandle& maxIndices, const CFloatHandle& sourceDiff ) override;
 	CMaxOverTimePoolingDesc* InitMaxOverTimePooling( const CBlobDesc& source, int filterLen, int strideLen,
 		const CBlobDesc& result ) override;
 	void BlobMaxOverTimePooling( const CMaxOverTimePoolingDesc& desc, const CFloatHandle& source,
 		const CIntHandle* maxIndices, const CFloatHandle& result ) override;
-	void BlobMaxOverTimePoolingBackward( const CMaxOverTimePoolingDesc& desc, const CFloatHandle& outputDiff,
-		const CIntHandle& maxIndices, const CFloatHandle& inputDiff ) override;
+	void BlobMaxOverTimePoolingBackward( const CMaxOverTimePoolingDesc& desc, const CFloatHandle& resultDiff,
+		const CIntHandle& maxIndices, const CFloatHandle& sourceDiff ) override;
 	CMeanPoolingDesc* InitMeanPooling( const CBlobDesc& source,
 		int filterHeight, int filterWidth, int strideHeight, int strideWidth,
 		const CBlobDesc& result ) override;
 	void BlobMeanPooling( const CMeanPoolingDesc& desc, const CFloatHandle& source, const CFloatHandle& result ) override;
-	void BlobMeanPoolingBackward( const CMeanPoolingDesc& desc, const CFloatHandle& outputDiff,
-		const CFloatHandle& inputDiff ) override;
+	void BlobMeanPoolingBackward( const CMeanPoolingDesc& desc, const CFloatHandle& resultDiff,
+		const CFloatHandle& sourceDiff ) override;
 	CGlobalMaxOverTimePoolingDesc* InitGlobalMaxOverTimePooling( const CBlobDesc& source, const CBlobDesc& result ) override;
 	void BlobGlobalMaxOverTimePooling( const CGlobalMaxOverTimePoolingDesc& desc, const CFloatHandle& source,
 		const CIntHandle* maxIndices, const CFloatHandle& result ) override;
-	void BlobGlobalMaxOverTimePoolingBackward( const CGlobalMaxOverTimePoolingDesc& desc, const CFloatHandle& source,
-		const CIntHandle& maxIndices, const CFloatHandle& result ) override;
+	void BlobGlobalMaxOverTimePoolingBackward( const CGlobalMaxOverTimePoolingDesc& desc, const CFloatHandle& sourceDiff,
+		const CIntHandle& maxIndices, const CFloatHandle& resultDiff ) override;
 	void Upsampling2DForward( const CBlobDesc& input, const CConstIntHandle& inputData, int heightCopyCount,
 		int widthCopyCount, const CBlobDesc& result, const CIntHandle& resultData ) override;
 	void Upsampling2DForward( const CBlobDesc& input, const CConstFloatHandle& inputData, int heightCopyCount,

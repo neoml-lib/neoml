@@ -114,21 +114,20 @@ void CCpuMathEngine::blobMaxPoolingWithoutIndices( const CCommonMaxPoolingDesc& 
 }
 
 void CCpuMathEngine::BlobMaxPooling( const CMaxPoolingDesc& poolingDesc, const CFloatHandle& sourceData,
-	const CIntHandle* maxIndicesData, const CFloatHandle& resultData )
+	const CIntHandle* maxIndices, const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
-	ASSERT_EXPR( maxIndicesData == 0 || maxIndicesData->GetMathEngine() == this );
+	ASSERT_EXPR( maxIndices == 0 || maxIndices->GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
 	CCpuExecutionScope scope;
 
 	const float* sourceDataRaw = GetRaw( sourceData );
-	int* maxIndicesDataRaw = maxIndicesData == nullptr ? nullptr : GetRaw( *maxIndicesData );
 	float* resultDataRaw = GetRaw( resultData );
 
 	const CCommonMaxPoolingDesc& desc = static_cast<const CCommonMaxPoolingDesc&>( poolingDesc );
 
-	if( maxIndicesData != nullptr ) {
-		blobMaxPoolingWithIndices( desc, sourceDataRaw, maxIndicesDataRaw, resultDataRaw );
+	if( maxIndices != nullptr ) {
+		blobMaxPoolingWithIndices( desc, sourceDataRaw, GetRaw( *maxIndices ), resultDataRaw );
 	} else {
 		blobMaxPoolingWithoutIndices( desc, sourceDataRaw, resultDataRaw );
 	}
@@ -259,22 +258,21 @@ CGlobalMaxOverTimePoolingDesc* CCpuMathEngine::InitGlobalMaxOverTimePooling( con
 }
 
 void CCpuMathEngine::BlobGlobalMaxOverTimePooling( const CGlobalMaxOverTimePoolingDesc& poolingDesc,
-	const CFloatHandle& sourceData, const CIntHandle* maxIndicesData, const CFloatHandle& resultData )
+	const CFloatHandle& sourceData, const CIntHandle* maxIndices, const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
-	ASSERT_EXPR( maxIndicesData == 0 || maxIndicesData->GetMathEngine() == this );
+	ASSERT_EXPR( maxIndices == 0 || maxIndices->GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
 	CCpuExecutionScope scope;
 
 	const float* sourceDataRaw = GetRaw( sourceData );
-	int* maxIndicesDataRaw = maxIndicesData == nullptr ? nullptr : GetRaw( *maxIndicesData );
 	float* resultDataRaw = GetRaw( resultData );
 
 	const CCommonGlobalMaxOverTimePoolingDesc& desc = static_cast<const CCommonGlobalMaxOverTimePoolingDesc&>( poolingDesc );
 	const CBlobDesc& source = desc.Source;
 
-	if( maxIndicesData != 0 ) {
-		findMaxValueInColumns( resultDataRaw, maxIndicesDataRaw, sourceDataRaw, source.BatchLength(), source.BatchWidth() * source.ObjectSize() );
+	if( maxIndices != 0 ) {
+		findMaxValueInColumns( resultDataRaw, GetRaw( *maxIndices ), sourceDataRaw, source.BatchLength(), source.BatchWidth() * source.ObjectSize() );
 	} else {
 		findMaxValueInColumns( resultDataRaw, sourceDataRaw, source.BatchLength(), source.BatchWidth() * source.ObjectSize() );
 	}
@@ -318,9 +316,9 @@ CGlobalMaxPoolingDesc* CCpuMathEngine::InitGlobalMaxPooling( const CBlobDesc& so
 void CCpuMathEngine::BlobGlobalMaxPoolingBackward( const CGlobalMaxPoolingDesc& poolingDesc,
 	const CFloatHandle& resultDiff, const CIntHandle& maxIndices, const CFloatHandle& sourceDiff )
 {
-	ASSERT_EXPR( resultDiff.GetMathEngine() == this );
-	ASSERT_EXPR( maxIndices.GetMathEngine() == this );
 	ASSERT_EXPR( sourceDiff.GetMathEngine() == this );
+	ASSERT_EXPR( maxIndices.GetMathEngine() == this );
+	ASSERT_EXPR( resultDiff.GetMathEngine() == this );
 	CCpuExecutionScope scope;
 
 	const CCommonGlobalMaxPoolingDesc& desc = static_cast<const CCommonGlobalMaxPoolingDesc&>( poolingDesc );

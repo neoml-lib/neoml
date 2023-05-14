@@ -150,12 +150,11 @@ __global__ void BlobMeanPoolingKernel( const CCudaMeanPoolingDescInternal desc, 
 		}
 		sourcePtr += sourceRowSize;
 	}
-
 	*resultPtr /= desc.FilterHeight * desc.FilterWidth;
 }
 
-__global__ void BlobMeanPoolingBackwardKernel( const CCudaMeanPoolingDescInternal desc, const float* resultData,
-	float* sourceData, bool isAtomic )
+__global__ void BlobMeanPoolingBackwardKernel( const CCudaMeanPoolingDescInternal desc, const float* resultDiff,
+	float* sourceDiff, bool isAtomic )
 {
 	const CCudaBlobDesc& result = desc.Result;
 	const CCudaBlobDesc& source = desc.Source;
@@ -171,7 +170,7 @@ __global__ void BlobMeanPoolingBackwardKernel( const CCudaMeanPoolingDescInterna
 	}
 
 	const int resultShift = ( b * resultGeomSize + pos ) * totalChannels + channel;
-	const float value = __ldg( resultData + resultShift ) / desc.FilterHeight / desc.FilterWidth;
+	const float value = __ldg( resultDiff + resultShift ) / desc.FilterHeight / desc.FilterWidth;
 
 	// result position
 	const int iOut = pos % result.Width();
@@ -181,7 +180,7 @@ __global__ void BlobMeanPoolingBackwardKernel( const CCudaMeanPoolingDescInterna
 	const int jStart = jOut * desc.StrideHeight;
 	const int iStart = iOut * desc.StrideWidth;
 
-	float* sourcePtr = sourceData + ( ( b * source.Height() + jStart ) * source.Width() + iStart ) * totalChannels + channel;
+	float* sourcePtr = sourceDiff + ( ( b * source.Height() + jStart ) * source.Width() + iStart ) * totalChannels + channel;
 
 	const int sourceRowSize = source.Width() * totalChannels;
 

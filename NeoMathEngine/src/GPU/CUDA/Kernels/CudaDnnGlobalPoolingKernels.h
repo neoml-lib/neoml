@@ -46,7 +46,11 @@ template<HeapType T>
 struct Heap {
 	IndexedValue* data;
 	int size;
-	__device__ Heap( float* _data, int maxCount ) : data( reinterpret_cast<IndexedValue*>( _data ) ), size( maxCount ) {}
+
+	__device__ Heap( float* _data, int maxCount ) :
+		data( reinterpret_cast<IndexedValue*>( _data ) ),
+		size( maxCount )
+	{}
 
 	__device__ bool isLess( int left, int right ) {
 		if( T == HeapType::MinHeap ) {
@@ -64,7 +68,7 @@ struct Heap {
 			if( left < size && isLess( left, smallest ) ) {
 				smallest = left;
 			}
-			if( right < size&& isLess( right, smallest ) ) {
+			if( right < size && isLess( right, smallest ) ) {
 				smallest = right;
 			}
 			if( smallest == node ) {
@@ -76,13 +80,13 @@ struct Heap {
 	}
 
 	__device__ void buildHeap() {
-		for( int node = ( size - 1 ) / 2; node >= 0; node-- ) {
+		for( int node = ( size - 1 ) / 2; node >= 0; --node ) {
 			heapify( node, size );
 		}
 	}
 
 	__device__ void sort() {
-		for( int cnt = size - 1; cnt > 0; cnt-- ) {
+		for( int cnt = size - 1; cnt > 0; --cnt ) {
 			data[0].swap( data[cnt] );
 			heapify( 0, cnt );
 		}
@@ -128,7 +132,6 @@ __global__ void BlobGlobalMaxPoolingHeapKernel( const CCudaGlobalMaxPoolingDescI
 	}
 
 	Heap<HeapType::MinHeap> heap( localHeap, maxCount );
-
 	if( b < source.ObjectCount() && c < totalChannels ) {
 		const float* curSourceData = sourceData + ( b * poolSize + threadIdx.x ) * totalChannels + c;
 		for( int ind = threadIdx.x; ind < poolSize; ind += threadCountX ) {
@@ -157,7 +160,7 @@ __global__ void BlobGlobalMaxPoolingHeapKernel( const CCudaGlobalMaxPoolingDescI
 		for( int i = 0, resIndex = b * maxCount * totalChannels + c; i < maxCount; ++i, resIndex += totalChannels ) {
 			const IndexedValue& root = maxHeap.root();
 			resultData[resIndex] = root.val;
-			int rootIndex = ( int )root.ind;
+			const int rootIndex = ( int )root.ind;
 			if( rootIndex == -1 ) {
 				maxIndicesData[resIndex] = -1;
 			} else {
@@ -173,7 +176,7 @@ __global__ void BlobGlobalMaxPoolingHeapKernel( const CCudaGlobalMaxPoolingDescI
 __device__ inline unsigned FloatToUnsigned( const float* ptr )
 {
 	unsigned res = *( unsigned* )ptr;
-	unsigned sign = 1U << ( sizeof( float ) * 8 - 1 );
+	constexpr unsigned sign = 1U << ( sizeof( float ) * 8 - 1 );
 	if( res & sign ) {
 		res = ~res;
 	} else {
@@ -413,21 +416,21 @@ __global__ void BlobGlobalMaxPoolingGlobalShuffleKernel( const CCudaGlobalMaxPoo
 }
 
 const int BlobGlobalMaxPoolingBackwardCombine = 8;
-__global__ void BlobGlobalMaxPoolingBackwardKernel( const CCudaGlobalMaxPoolingDescInternal desc, const float* __restrict__ outputDiffData,
-	const int* maxIndicesData, float* inputDiffData, int poolSize, int maxCount, int fullSize )
+__global__ void BlobGlobalMaxPoolingBackwardKernel( const CCudaGlobalMaxPoolingDescInternal desc, const float* __restrict__ resultDiff,
+	const int* maxIndices, float* sourceDiff, int poolSize, int maxCount, int fullSize )
 {
 	int index;
 	int step;
-	const int count = GetCudaTaskCountAndIndex(fullSize, BlobGlobalMaxPoolingBackwardCombine, index, step);
+	const int count = GetCudaTaskCountAndIndex( fullSize, BlobGlobalMaxPoolingBackwardCombine, index, step );
 
 	const int totalChannels = desc.Result.Channels();
 
-	for(int i = 0; i < count; ++i) {
+	for( int i = 0; i < count; ++i ) {
 		const int channel = index % totalChannels;
 		const int batchNum = index / totalChannels / maxCount;
-		const int inputIndex = maxIndicesData[index];
+		const int inputIndex = maxIndices[index];
 		if( inputIndex >= 0 ) {
-			inputDiffData[(batchNum * poolSize + inputIndex ) * totalChannels + channel] = __ldg(outputDiffData + index);
+			sourceDiff[( batchNum * poolSize + inputIndex ) * totalChannels + channel] = __ldg( resultDiff + index );
 		}
 		index += step;
 	}
