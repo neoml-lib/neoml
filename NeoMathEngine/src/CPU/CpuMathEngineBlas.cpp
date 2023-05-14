@@ -397,8 +397,9 @@ void CCpuMathEngine::SumMatrixRows(int batchSize,
 {
 	CCpuExecutionScope scope;
 
-	VectorFill(resultHandle, 0.f, batchSize * matrixWidth);
-	SumMatrixRowsAdd(batchSize, resultHandle, matrixHandle, matrixHeight, matrixWidth);
+	vectorFill0( GetRaw( resultHandle ), batchSize * matrixWidth );
+
+	SumMatrixRowsAdd( batchSize, resultHandle, matrixHandle, matrixHeight, matrixWidth );
 }
 
 void CCpuMathEngine::SumMatrixRows(int batchSize, const CIntHandle& resultHandle, const CConstIntHandle& matrixHandle,
@@ -406,7 +407,8 @@ void CCpuMathEngine::SumMatrixRows(int batchSize, const CIntHandle& resultHandle
 {
 	CCpuExecutionScope scope;
 
-	VectorFill( resultHandle, 0, batchSize * matrixWidth );
+	vectorFill( GetRaw( resultHandle ), 0, batchSize * matrixWidth );
+
 	CConstIntHandle matrix = matrixHandle;
 	CIntHandle result = resultHandle;
 	for( int i = 0; i < batchSize; ++i ) {
@@ -606,7 +608,7 @@ void CCpuMathEngine::EnumBinarization(int batchSize,
 	const float* input = GetRaw(inputHandle);
 	float* result = GetRaw(resultHandle);
 
-	VectorFill(resultHandle, 0, batchSize * enumSize);
+	vectorFill0( result, batchSize * enumSize );
 
 	for(int i = 0; i < batchSize; ++i) {
 		int enumValue = (int)(*input++);
@@ -626,7 +628,7 @@ void CCpuMathEngine::EnumBinarization(int batchSize,
 	const int* input = GetRaw(inputHandle);
 	float* result = GetRaw(resultHandle);
 
-	VectorFill(resultHandle, 0, batchSize * enumSize);
+	vectorFill0( result, batchSize * enumSize );
 
 	for(int i = 0; i < batchSize; ++i) {
 		int enumValue = *input++;
@@ -772,7 +774,7 @@ void CCpuMathEngine::LookupAndSum(const CConstIntHandle& indicesHandle, int batc
 		if(index >= 0) {
 			dataCopy(output, table + vectorSize * index, vectorSize);
 		} else {
-			vectorFill(output, 0.f, vectorSize);
+			vectorFill0( output, vectorSize );
 		}
 		for(int elem = 1; elem < indexCount; ++elem) {
 			index = *indices;
@@ -796,7 +798,7 @@ void CCpuMathEngine::LookupAndAddToTable(const CConstIntHandle& indicesHandle, i
 	const float* additions = GetRaw( additionsHandle );
 	float* table = GetRaw( tableHandle );
 
-	vectorFill( table, 0.f, vectorCount * vectorSize );
+	vectorFill0( table, vectorCount * vectorSize );
 
 	for( int b = 0; b < batchSize; ++b ) {
 		for( int elem = 0; elem < indexCount; ++elem ) {
@@ -818,17 +820,18 @@ void CCpuMathEngine::findMaxValueInColumns( float* result, int* rowIndices,
 	memset( rowIndices, 0, matrixWidth * sizeof( *rowIndices ) );
 	matrix += matrixWidth;
 	// Process the rest
-	for( int i = 0; i < matrixHeight - 1; i++ ) {
+	--matrixHeight;
+	for( int i = 0; i < matrixHeight; ++i ) {
 		float* vectorPtr = result;
 		int* indicesPtr = rowIndices;
-		for( int j = 0; j < matrixWidth; j++ ) {
+		for( int j = 0; j < matrixWidth; ++j ) {
 			if( *matrix > *vectorPtr ) {
 				*vectorPtr = *matrix;
 				*indicesPtr = i + 1;
 			}
-			matrix += 1;
-			vectorPtr += 1;
-			indicesPtr += 1;
+			++matrix;
+			++vectorPtr;
+			++indicesPtr;
 		}
 	}
 }
@@ -1274,7 +1277,7 @@ void CCpuMathEngine::BitSetBinarization( int batchSize, int bitSetSize,
 	const int* input = GetRaw( inputHandle );
 	float* result = GetRaw( resultHandle );
 
-	VectorFill( resultHandle, 0, batchSize * outputVectorSize );
+	vectorFill0( result, batchSize * outputVectorSize );
 
 	for( int batchIndex = 0; batchIndex < batchSize; ++batchIndex ) {
 		const int* batchBegin = input + batchIndex * bitSetSize;
