@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -424,22 +424,22 @@ void CVulkanMathEngine::DepthToSpace( const CBlobDesc& source, const CConstIntHa
 		blockSize * ( source.Width() * blockSize ) * result.Channels(), source.ObjectCount() * source.Height(), 1 );
 }
 
-void CVulkanMathEngine::AddWidthIndex( const CBlobDesc&, const CFloatHandle&, bool, const CFloatHandle& )
+void CVulkanMathEngine::AddWidthIndex( const CBlobDesc&, const CConstFloatHandle&, bool, const CFloatHandle& )
 {
 	ASSERT_EXPR( false );
 }
 
-void CVulkanMathEngine::AddWidthIndex( const CBlobDesc&, const CIntHandle&, bool, const CIntHandle& )
+void CVulkanMathEngine::AddWidthIndex( const CBlobDesc&, const CConstIntHandle&, bool, const CIntHandle& )
 {
 	ASSERT_EXPR( false );
 }
 
-void CVulkanMathEngine::AddHeightIndex( const CBlobDesc&, const CFloatHandle&, bool, const CFloatHandle& )
+void CVulkanMathEngine::AddHeightIndex( const CBlobDesc&, const CConstFloatHandle&, bool, const CFloatHandle& )
 {
 	ASSERT_EXPR( false );
 }
 
-void CVulkanMathEngine::AddHeightIndex( const CBlobDesc&, const CIntHandle&, bool, const CIntHandle& )
+void CVulkanMathEngine::AddHeightIndex( const CBlobDesc&, const CConstIntHandle&, bool, const CIntHandle& )
 {
 	ASSERT_EXPR( false );
 }

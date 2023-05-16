@@ -113,7 +113,7 @@ void CCpuMathEngine::blobMaxPoolingWithoutIndices( const CCommonMaxPoolingDesc& 
 	}
 }
 
-void CCpuMathEngine::BlobMaxPooling( const CMaxPoolingDesc& poolingDesc, const CFloatHandle& sourceData,
+void CCpuMathEngine::BlobMaxPooling( const CMaxPoolingDesc& poolingDesc, const CConstFloatHandle& sourceData,
 	const CIntHandle* maxIndices, const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
@@ -133,8 +133,8 @@ void CCpuMathEngine::BlobMaxPooling( const CMaxPoolingDesc& poolingDesc, const C
 	}
 }
 
-void CCpuMathEngine::BlobMaxPoolingBackward( const CMaxPoolingDesc& poolingDesc, const CFloatHandle& resultDiff,
-	const CIntHandle& maxIndices, const CFloatHandle& sourceDiff )
+void CCpuMathEngine::BlobMaxPoolingBackward( const CMaxPoolingDesc& poolingDesc, const CConstFloatHandle& resultDiff,
+	const CConstIntHandle& maxIndices, const CFloatHandle& sourceDiff )
 {
 	ASSERT_EXPR( sourceDiff.GetMathEngine() == this );
 	ASSERT_EXPR( maxIndices.GetMathEngine() == this );
@@ -171,7 +171,7 @@ CMeanPoolingDesc* CCpuMathEngine::InitMeanPooling( const CBlobDesc& source,
 	return desc;
 }
 
-void CCpuMathEngine::BlobMeanPooling( const CMeanPoolingDesc& poolingDesc, const CFloatHandle& sourceData, const CFloatHandle& resultData )
+void CCpuMathEngine::BlobMeanPooling( const CMeanPoolingDesc& poolingDesc, const CConstFloatHandle& sourceData, const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
@@ -208,7 +208,8 @@ void CCpuMathEngine::BlobMeanPooling( const CMeanPoolingDesc& poolingDesc, const
 	VectorMultiply( resultData, resultData, result.BlobSize(), filterSize );
 }
 
-void CCpuMathEngine::BlobMeanPoolingBackward( const CMeanPoolingDesc& poolingDesc, const CFloatHandle& resultDiff, const CFloatHandle& sourceDiff )
+void CCpuMathEngine::BlobMeanPoolingBackward( const CMeanPoolingDesc& poolingDesc,
+	const CConstFloatHandle& resultDiff, const CFloatHandle& sourceDiff )
 {
 	ASSERT_EXPR( resultDiff.GetMathEngine() == this );
 	ASSERT_EXPR( sourceDiff.GetMathEngine() == this );
@@ -258,7 +259,7 @@ CGlobalMaxOverTimePoolingDesc* CCpuMathEngine::InitGlobalMaxOverTimePooling( con
 }
 
 void CCpuMathEngine::BlobGlobalMaxOverTimePooling( const CGlobalMaxOverTimePoolingDesc& poolingDesc,
-	const CFloatHandle& sourceData, const CIntHandle* maxIndices, const CFloatHandle& resultData )
+	const CConstFloatHandle& sourceData, const CIntHandle* maxIndices, const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( maxIndices == 0 || maxIndices->GetMathEngine() == this );
@@ -314,7 +315,7 @@ CGlobalMaxPoolingDesc* CCpuMathEngine::InitGlobalMaxPooling( const CBlobDesc& so
 }
 
 void CCpuMathEngine::BlobGlobalMaxPoolingBackward( const CGlobalMaxPoolingDesc& poolingDesc,
-	const CFloatHandle& resultDiff, const CIntHandle& maxIndices, const CFloatHandle& sourceDiff )
+	const CConstFloatHandle& resultDiff, const CConstIntHandle& maxIndices, const CFloatHandle& sourceDiff )
 {
 	ASSERT_EXPR( sourceDiff.GetMathEngine() == this );
 	ASSERT_EXPR( maxIndices.GetMathEngine() == this );
@@ -365,8 +366,8 @@ C3dMaxPoolingDesc* CCpuMathEngine::Init3dMaxPooling( const CBlobDesc& source,
 	return desc;
 }
 
-void CCpuMathEngine::Blob3dMaxPoolingBackward( const C3dMaxPoolingDesc& poolingDesc, const CFloatHandle& resultDiff,
-	const CIntHandle& maxIndices, const CFloatHandle& sourceDiff )
+void CCpuMathEngine::Blob3dMaxPoolingBackward( const C3dMaxPoolingDesc& poolingDesc, const CConstFloatHandle& resultDiff,
+	const CConstIntHandle& maxIndices, const CFloatHandle& sourceDiff )
 {
 	ASSERT_EXPR( resultDiff.GetMathEngine() == this );
 	ASSERT_EXPR( maxIndices.GetMathEngine() == this );
@@ -425,7 +426,7 @@ CMaxOverTimePoolingDesc* CCpuMathEngine::InitMaxOverTimePooling( const CBlobDesc
 }
 
 void CCpuMathEngine::BlobMaxOverTimePoolingBackward( const CMaxOverTimePoolingDesc& poolingDesc,
-	const CFloatHandle& resultDiff, const CIntHandle& maxIndices, const CFloatHandle& sourceDiff )
+	const CConstFloatHandle& resultDiff, const CConstIntHandle& maxIndices, const CFloatHandle& sourceDiff )
 {
 	ASSERT_EXPR( resultDiff.GetMathEngine() == this );
 	ASSERT_EXPR( maxIndices.GetMathEngine() == this );

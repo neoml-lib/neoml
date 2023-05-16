@@ -49,7 +49,7 @@ CMaxPoolingDesc* CVulkanMathEngine::InitMaxPooling( const CBlobDesc& source,
 	return desc;
 }
 
-void CVulkanMathEngine::BlobMaxPooling( const CMaxPoolingDesc& poolingDesc, const CFloatHandle& sourceData,
+void CVulkanMathEngine::BlobMaxPooling( const CMaxPoolingDesc& poolingDesc, const CConstFloatHandle& sourceData,
 	const CIntHandle* maxIndicesData, const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
@@ -72,7 +72,7 @@ void CVulkanMathEngine::BlobMaxPooling( const CMaxPoolingDesc& poolingDesc, cons
 		result.Width(), result.ObjectCount() * result.Height(), result.Channels() * result.Depth() );
 }
 
-void CVulkanMathEngine::BlobMaxPoolingBackward( const CMaxPoolingDesc&, const CFloatHandle&, const CIntHandle&,
+void CVulkanMathEngine::BlobMaxPoolingBackward( const CMaxPoolingDesc&, const CConstFloatHandle&, const CConstIntHandle&,
 	const CFloatHandle& )
 {
 	ASSERT_EXPR( false );
@@ -91,7 +91,7 @@ C3dMaxPoolingDesc* CVulkanMathEngine::Init3dMaxPooling( const CBlobDesc& source,
 	return desc;
 }
 
-void CVulkanMathEngine::Blob3dMaxPooling( const C3dMaxPoolingDesc& poolingDesc, const CFloatHandle& sourceData,
+void CVulkanMathEngine::Blob3dMaxPooling( const C3dMaxPoolingDesc& poolingDesc, const CConstFloatHandle& sourceData,
 	const CIntHandle* maxIndicesData, const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
@@ -118,7 +118,7 @@ void CVulkanMathEngine::Blob3dMaxPooling( const C3dMaxPoolingDesc& poolingDesc, 
 		result.Width() * result.Height() * result.Depth(), result.Channels(), result.ObjectCount() );
 }
 
-void CVulkanMathEngine::Blob3dMaxPoolingBackward( const C3dMaxPoolingDesc&, const CFloatHandle&, const CIntHandle&,
+void CVulkanMathEngine::Blob3dMaxPoolingBackward( const C3dMaxPoolingDesc&, const CConstFloatHandle&, const CConstIntHandle&,
 	const CFloatHandle& )
 {
 	ASSERT_EXPR( false );
@@ -137,7 +137,7 @@ C3dMeanPoolingDesc* CVulkanMathEngine::Init3dMeanPooling( const CBlobDesc& sourc
 	return desc;
 }
 
-void CVulkanMathEngine::Blob3dMeanPooling( const C3dMeanPoolingDesc& poolingDesc, const CFloatHandle& sourceData,
+void CVulkanMathEngine::Blob3dMeanPooling( const C3dMeanPoolingDesc& poolingDesc, const CConstFloatHandle& sourceData,
 	const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
@@ -163,7 +163,7 @@ void CVulkanMathEngine::Blob3dMeanPooling( const C3dMeanPoolingDesc& poolingDesc
 		result.Width() * result.Height() * result.Depth(), result.Channels(), result.ObjectCount() );
 }
 
-void CVulkanMathEngine::Blob3dMeanPoolingBackward( const C3dMeanPoolingDesc&, const CFloatHandle&, const CFloatHandle& )
+void CVulkanMathEngine::Blob3dMeanPoolingBackward( const C3dMeanPoolingDesc&, const CConstFloatHandle&, const CFloatHandle& )
 {
 	ASSERT_EXPR( false );
 }
@@ -183,7 +183,7 @@ CMaxOverTimePoolingDesc* CVulkanMathEngine::InitMaxOverTimePooling( const CBlobD
 	return desc;
 }
 
-void CVulkanMathEngine::BlobMaxOverTimePooling( const CMaxOverTimePoolingDesc& poolingDesc, const CFloatHandle& sourceData,
+void CVulkanMathEngine::BlobMaxOverTimePooling( const CMaxOverTimePoolingDesc& poolingDesc, const CConstFloatHandle& sourceData,
 	const CIntHandle* maxIndicesData, const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( maxIndicesData == 0 );
@@ -207,8 +207,8 @@ void CVulkanMathEngine::BlobMaxOverTimePooling( const CMaxOverTimePoolingDesc& p
 		result.BlobSize(), 1, 1 );
 }
 
-void CVulkanMathEngine::BlobMaxOverTimePoolingBackward( const CMaxOverTimePoolingDesc&, const CFloatHandle&,
-	const CIntHandle&, const CFloatHandle& )
+void CVulkanMathEngine::BlobMaxOverTimePoolingBackward( const CMaxOverTimePoolingDesc&, const CConstFloatHandle&,
+	const CConstIntHandle&, const CFloatHandle& )
 {
 	ASSERT_EXPR( false );
 }
@@ -252,7 +252,7 @@ void CVulkanMathEngine::BlobGlobalMaxPooling( const CGlobalMaxPoolingDesc& pooli
 		&param, sizeof( param ), 0, 0, 0, 0, bufs, sizes, 3, result.ObjectCount(), result.Channels(), 1 );
 }
 
-void CVulkanMathEngine::BlobGlobalMaxPoolingBackward( const CGlobalMaxPoolingDesc&, const CFloatHandle&, const CIntHandle&,
+void CVulkanMathEngine::BlobGlobalMaxPoolingBackward( const CGlobalMaxPoolingDesc&, const CConstFloatHandle&, const CConstIntHandle&,
 	const CFloatHandle& )
 {
 	ASSERT_EXPR( false );
@@ -269,7 +269,7 @@ CMeanPoolingDesc* CVulkanMathEngine::InitMeanPooling( const CBlobDesc& source,
 	return desc;
 }
 
-void CVulkanMathEngine::BlobMeanPooling( const CMeanPoolingDesc& poolingDesc, const CFloatHandle& sourceData, const CFloatHandle& resultData )
+void CVulkanMathEngine::BlobMeanPooling( const CMeanPoolingDesc& poolingDesc, const CConstFloatHandle& sourceData, const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
@@ -290,7 +290,7 @@ void CVulkanMathEngine::BlobMeanPooling( const CMeanPoolingDesc& poolingDesc, co
 		result.Width(), result.ObjectCount() * result.Height(), result.Channels() * result.Depth() );
 }
 
-void CVulkanMathEngine::BlobMeanPoolingBackward( const CMeanPoolingDesc&, const CFloatHandle&, const CFloatHandle& )
+void CVulkanMathEngine::BlobMeanPoolingBackward( const CMeanPoolingDesc&, const CConstFloatHandle&, const CFloatHandle& )
 {
 	ASSERT_EXPR( false );
 }
@@ -304,8 +304,8 @@ CGlobalMaxOverTimePoolingDesc* CVulkanMathEngine::InitGlobalMaxOverTimePooling( 
 	return desc;
 }
 
-void CVulkanMathEngine::BlobGlobalMaxOverTimePooling( const CGlobalMaxOverTimePoolingDesc& poolingDesc, const CFloatHandle& sourceData,
-	const CIntHandle* maxIndicesData, const CFloatHandle& resultData )
+void CVulkanMathEngine::BlobGlobalMaxOverTimePooling( const CGlobalMaxOverTimePoolingDesc& poolingDesc, 
+	const CConstFloatHandle& sourceData, const CIntHandle* maxIndicesData, const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( maxIndicesData == 0 );
@@ -317,8 +317,8 @@ void CVulkanMathEngine::BlobGlobalMaxOverTimePooling( const CGlobalMaxOverTimePo
 	findMaxValueInColumns( resultData, sourceData, source.BatchLength(), source.BatchWidth() * source.ObjectSize() );
 }
 
-void CVulkanMathEngine::BlobGlobalMaxOverTimePoolingBackward( const CGlobalMaxOverTimePoolingDesc&, const CFloatHandle&,
-	const CIntHandle&, const CFloatHandle& )
+void CVulkanMathEngine::BlobGlobalMaxOverTimePoolingBackward( const CGlobalMaxOverTimePoolingDesc&, const CConstFloatHandle&,
+	const CConstIntHandle&, const CFloatHandle& )
 {
 	ASSERT_EXPR( false );
 }

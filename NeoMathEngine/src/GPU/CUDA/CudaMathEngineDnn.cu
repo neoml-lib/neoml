@@ -456,7 +456,7 @@ void CCudaMathEngine::DepthToSpace( const CBlobDesc& source, const CConstIntHand
 		source.Width(), result.Channels(), blockSize, false, GetRaw( resultData ) );
 }
 
-void CCudaMathEngine::AddWidthIndex( const CBlobDesc& source, const CFloatHandle& sourceData, bool isForward, const CFloatHandle& resultData )
+void CCudaMathEngine::AddWidthIndex( const CBlobDesc& source, const CConstFloatHandle& sourceData, bool isForward, const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
@@ -471,7 +471,7 @@ void CCudaMathEngine::AddWidthIndex( const CBlobDesc& source, const CFloatHandle
 		source.Channels(), source.ObjectCount(), isForward, GetRaw( resultData ) );
 }
 
-void CCudaMathEngine::AddWidthIndex( const CBlobDesc& source, const CIntHandle& sourceData, bool isForward, const CIntHandle& resultData )
+void CCudaMathEngine::AddWidthIndex( const CBlobDesc& source, const CConstIntHandle& sourceData, bool isForward, const CIntHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
@@ -486,7 +486,7 @@ void CCudaMathEngine::AddWidthIndex( const CBlobDesc& source, const CIntHandle& 
 		source.Channels(), source.ObjectCount(), isForward, GetRaw( resultData ) );
 }
 
-void CCudaMathEngine::AddHeightIndex( const CBlobDesc& source, const CFloatHandle& sourceData, bool isForward, const CFloatHandle& resultData )
+void CCudaMathEngine::AddHeightIndex( const CBlobDesc& source, const CConstFloatHandle& sourceData, bool isForward, const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
@@ -501,7 +501,7 @@ void CCudaMathEngine::AddHeightIndex( const CBlobDesc& source, const CFloatHandl
 		source.Channels(), source.ObjectCount(), isForward, GetRaw(resultData) );
 }
 
-void CCudaMathEngine::AddHeightIndex( const CBlobDesc& source, const CIntHandle& sourceData, bool isForward,
+void CCudaMathEngine::AddHeightIndex( const CBlobDesc& source, const CConstIntHandle& sourceData, bool isForward,
 	const CIntHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );

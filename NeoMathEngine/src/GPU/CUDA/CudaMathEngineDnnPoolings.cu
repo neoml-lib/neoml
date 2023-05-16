@@ -45,7 +45,7 @@ CMaxPoolingDesc* CCudaMathEngine::InitMaxPooling( const CBlobDesc& source,
 	return desc;
 }
 
-void CCudaMathEngine::BlobMaxPooling( const CMaxPoolingDesc& poolingDesc, const CFloatHandle& sourceData,
+void CCudaMathEngine::BlobMaxPooling( const CMaxPoolingDesc& poolingDesc, const CConstFloatHandle& sourceData,
 	const CIntHandle* maxIndicesData, const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
@@ -69,8 +69,8 @@ void CCudaMathEngine::BlobMaxPooling( const CMaxPoolingDesc& poolingDesc, const 
 	BlobMaxPoolingKernel<<<blockCount, threadCount>>>( desc, GetRaw( sourceData ), maxIndexPtr, GetRaw( resultData ) );
 }
 
-void CCudaMathEngine::BlobMaxPoolingBackward( const CMaxPoolingDesc& poolingDesc, const CFloatHandle& resultDiff,
-	const CIntHandle& maxIndices, const CFloatHandle& sourceDiff )
+void CCudaMathEngine::BlobMaxPoolingBackward( const CMaxPoolingDesc& poolingDesc, const CConstFloatHandle& resultDiff,
+	const CConstIntHandle& maxIndices, const CFloatHandle& sourceDiff )
 {
 	ASSERT_EXPR( resultDiff.GetMathEngine() == this );
 	ASSERT_EXPR( maxIndices.GetMathEngine() == this );
@@ -111,7 +111,7 @@ CMeanPoolingDesc* CCudaMathEngine::InitMeanPooling( const CBlobDesc& source,
 }
 
 void CCudaMathEngine::BlobMeanPooling( const CMeanPoolingDesc& poolingDesc,
-	const CFloatHandle& sourceData, const CFloatHandle& resultData )
+	const CConstFloatHandle& sourceData, const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
@@ -130,7 +130,7 @@ void CCudaMathEngine::BlobMeanPooling( const CMeanPoolingDesc& poolingDesc,
 	BlobMeanPoolingKernel<<<blockCount, threadCount>>>( desc, GetRaw( sourceData ), GetRaw( resultData ) );
 }
 
-void CCudaMathEngine::BlobMeanPoolingBackward( const CMeanPoolingDesc& poolingDesc, const CFloatHandle& resultDiff,
+void CCudaMathEngine::BlobMeanPoolingBackward( const CMeanPoolingDesc& poolingDesc, const CConstFloatHandle& resultDiff,
 	const CFloatHandle& sourceDiff )
 {
 	ASSERT_EXPR( resultDiff.GetMathEngine() == this );
@@ -163,7 +163,7 @@ CGlobalMaxOverTimePoolingDesc* CCudaMathEngine::InitGlobalMaxOverTimePooling( co
 }
 
 void CCudaMathEngine::BlobGlobalMaxOverTimePooling( const CGlobalMaxOverTimePoolingDesc& poolingDesc,
-	const CFloatHandle& sourceData, const CIntHandle* maxIndicesData, const CFloatHandle& resultData )
+	const CConstFloatHandle& sourceData, const CIntHandle* maxIndicesData, const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( maxIndicesData == 0 || maxIndicesData->GetMathEngine() == this );
@@ -302,7 +302,7 @@ void CCudaMathEngine::BlobGlobalMaxPooling( const CGlobalMaxPoolingDesc& pooling
 }
 
 void CCudaMathEngine::BlobGlobalMaxPoolingBackward( const CGlobalMaxPoolingDesc& poolingDesc,
-	const CFloatHandle& resultDiff, const CIntHandle& maxIndices, const CFloatHandle& sourceDiff )
+	const CConstFloatHandle& resultDiff, const CConstIntHandle& maxIndices, const CFloatHandle& sourceDiff )
 {
 	ASSERT_EXPR( resultDiff.GetMathEngine() == this );
 	ASSERT_EXPR( maxIndices.GetMathEngine() == this );
@@ -346,7 +346,7 @@ C3dMaxPoolingDesc* CCudaMathEngine::Init3dMaxPooling( const CBlobDesc& source,
 	return desc;
 }
 
-void CCudaMathEngine::Blob3dMaxPooling( const C3dMaxPoolingDesc& poolingDesc, const CFloatHandle& sourceData,
+void CCudaMathEngine::Blob3dMaxPooling( const C3dMaxPoolingDesc& poolingDesc, const CConstFloatHandle& sourceData,
 	const CIntHandle* maxIndicesData, const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
@@ -366,8 +366,8 @@ void CCudaMathEngine::Blob3dMaxPooling( const C3dMaxPoolingDesc& poolingDesc, co
 		maxIndicesData == 0 ? 0 : GetRaw( *maxIndicesData ), GetRaw( resultData ) );
 }
 
-void CCudaMathEngine::Blob3dMaxPoolingBackward( const C3dMaxPoolingDesc& poolingDesc, const CFloatHandle& resultDiff,
-	const CIntHandle& maxIndices, const CFloatHandle& sourceDiff )
+void CCudaMathEngine::Blob3dMaxPoolingBackward( const C3dMaxPoolingDesc& poolingDesc, const CConstFloatHandle& resultDiff,
+	const CConstIntHandle& maxIndices, const CFloatHandle& sourceDiff )
 {
 	ASSERT_EXPR( resultDiff.GetMathEngine() == this );
 	ASSERT_EXPR( maxIndices.GetMathEngine() == this );
@@ -407,7 +407,7 @@ C3dMeanPoolingDesc* CCudaMathEngine::Init3dMeanPooling( const CBlobDesc& source,
 	return desc;
 }
 
-void CCudaMathEngine::Blob3dMeanPooling( const C3dMeanPoolingDesc& poolingDesc, const CFloatHandle& sourceData,
+void CCudaMathEngine::Blob3dMeanPooling( const C3dMeanPoolingDesc& poolingDesc, const CConstFloatHandle& sourceData,
 	const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
@@ -426,7 +426,7 @@ void CCudaMathEngine::Blob3dMeanPooling( const C3dMeanPoolingDesc& poolingDesc, 
 }
 
 void CCudaMathEngine::Blob3dMeanPoolingBackward( const C3dMeanPoolingDesc& poolingDesc,
-	const CFloatHandle& resultDiff, const CFloatHandle& sourceDiff )
+	const CConstFloatHandle& resultDiff, const CFloatHandle& sourceDiff )
 {
 	ASSERT_EXPR( resultDiff.GetMathEngine() == this );
 	ASSERT_EXPR( sourceDiff.GetMathEngine() == this );
@@ -465,12 +465,12 @@ CMaxOverTimePoolingDesc* CCudaMathEngine::InitMaxOverTimePooling( const CBlobDes
 	return desc;
 }
 
-void CCudaMathEngine::BlobMaxOverTimePooling( const CMaxOverTimePoolingDesc& poolingDesc, const CFloatHandle& sourceDiff,
-	const CIntHandle* maxIndices, const CFloatHandle& resultDiff )
+void CCudaMathEngine::BlobMaxOverTimePooling( const CMaxOverTimePoolingDesc& poolingDesc, const CConstFloatHandle& sourceData,
+	const CIntHandle* maxIndices, const CFloatHandle& resultData )
 {
-	ASSERT_EXPR( sourceDiff.GetMathEngine() == this );
+	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( maxIndices == 0 || maxIndices->GetMathEngine() == this );
-	ASSERT_EXPR( resultDiff.GetMathEngine() == this );
+	ASSERT_EXPR( resultData.GetMathEngine() == this );
 	SetCudaDevice( device->DeviceNumber );
 
 	const CCudaMaxOverTimePoolingDescInternal& desc = static_cast<const CCudaMaxOverTimePoolingDesc&>( poolingDesc ).Internal;
@@ -487,15 +487,15 @@ void CCudaMathEngine::BlobMaxOverTimePooling( const CMaxOverTimePoolingDesc& poo
 	const int sharedSize = threadCount.x * threadCount.y * threadCount.z;
 	if( maxIndices != 0 ) {
 		BlobMaxOverTimePoolingKernel<<<blockCount, threadCount, sharedSize * sizeof( CValueWithIndex )>>>( desc,
-			GetRaw( sourceDiff ), GetRaw( *maxIndices ), GetRaw( resultDiff ) );
+			GetRaw( sourceData ), GetRaw( *maxIndices ), GetRaw( resultData ) );
 	} else {
 		BlobMaxOverTimePoolingKernel<<<blockCount, threadCount, sharedSize * sizeof( float )>>>( desc,
-			GetRaw( sourceDiff ), GetRaw( resultDiff ) );
+			GetRaw( sourceData ), GetRaw( resultData ) );
 	}
 }
 
-void CCudaMathEngine::BlobMaxOverTimePoolingBackward( const CMaxOverTimePoolingDesc& poolingDesc, const CFloatHandle& resultDiff,
-	const CIntHandle& maxIndices, const CFloatHandle& sourceDiff )
+void CCudaMathEngine::BlobMaxOverTimePoolingBackward( const CMaxOverTimePoolingDesc& poolingDesc, const CConstFloatHandle& resultDiff,
+	const CConstIntHandle& maxIndices, const CFloatHandle& sourceDiff )
 {
 	ASSERT_EXPR( resultDiff.GetMathEngine() == this );
 	ASSERT_EXPR( maxIndices.GetMathEngine() == this );
