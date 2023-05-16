@@ -280,7 +280,7 @@ void CCpuMathEngine::BlobGlobalMaxOverTimePooling( const CGlobalMaxOverTimePooli
 }
 
 void CCpuMathEngine::BlobGlobalMaxOverTimePoolingBackward( const CGlobalMaxOverTimePoolingDesc& poolingDesc,
-	const CFloatHandle& sourceDiff, const CIntHandle& maxIndices, const CFloatHandle& resultDiff )
+	const CConstFloatHandle& resultDiff, const CConstIntHandle& maxIndices, const CFloatHandle& sourceDiff )
 {
 	ASSERT_EXPR( sourceDiff.GetMathEngine() == this );
 	ASSERT_EXPR( maxIndices.GetMathEngine() == this );
@@ -288,17 +288,17 @@ void CCpuMathEngine::BlobGlobalMaxOverTimePoolingBackward( const CGlobalMaxOverT
 	CCpuExecutionScope scope;
 
 	const CCommonGlobalMaxOverTimePoolingDesc& desc = static_cast<const CCommonGlobalMaxOverTimePoolingDesc&>( poolingDesc );
-	const CBlobDesc& result = desc.Source;
+	const CBlobDesc& source = desc.Source;
 
+	float* sourcePtr = GetRaw( sourceDiff );
 	const int* maxIndicesPtr = GetRaw( maxIndices );
-	const float* sourcePtr = GetRaw( sourceDiff );
-	float* resultPtr = GetRaw( resultDiff );
+	const float* resultPtr = GetRaw( resultDiff );
 
-	vectorFill0( resultPtr, result.BlobSize() );
+	vectorFill0( sourcePtr, source.BlobSize() );
 
-	const int objectSize = result.BatchWidth() * result.ObjectSize();
-	for( int i = 0; i < objectSize; ++i ) {
-		resultPtr[i + objectSize * *maxIndicesPtr++] = *sourcePtr++;
+	const int sourceObjectSize = source.BatchWidth() * source.ObjectSize();
+	for( int i = 0; i < sourceObjectSize; ++i ) {
+		sourcePtr[i + sourceObjectSize * *maxIndicesPtr++] = *resultPtr++;
 	}
 }
 

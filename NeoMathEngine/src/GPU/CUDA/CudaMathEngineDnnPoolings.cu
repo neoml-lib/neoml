@@ -188,7 +188,7 @@ void CCudaMathEngine::BlobGlobalMaxOverTimePooling( const CGlobalMaxOverTimePool
 }
 
 void CCudaMathEngine::BlobGlobalMaxOverTimePoolingBackward( const CGlobalMaxOverTimePoolingDesc& poolingDesc,
-	const CFloatHandle& sourceDiff, const CIntHandle& maxIndices, const CFloatHandle& resultDiff )
+	const CConstFloatHandle& resultDiff, const CConstIntHandle& maxIndices, const CFloatHandle& sourceDiff )
 {
 	ASSERT_EXPR( sourceDiff.GetMathEngine() == this );
 	ASSERT_EXPR( maxIndices.GetMathEngine() == this );
@@ -199,13 +199,13 @@ void CCudaMathEngine::BlobGlobalMaxOverTimePoolingBackward( const CGlobalMaxOver
 	const CCudaBlobDesc& source = desc.Source;
 	const CCudaBlobDesc& result = desc.Result;
 
-	VectorFill( resultDiff, 0, result.BlobSize() );
+	VectorFill( sourceDiff, 0, source.BlobSize() );
 
 	int blockCount;
 	int threadCount;
-	getCudaTaskGrid( blockCount, threadCount, source.BlobSize() );
+	getCudaTaskGrid( blockCount, threadCount, result.BlobSize() );
 
-	BlobGlobalMaxOverTimePoolingBackwardKernel<<<blockCount, threadCount>>>( desc, GetRaw( sourceDiff ), GetRaw( maxIndices ), GetRaw( resultDiff ) );
+	BlobGlobalMaxOverTimePoolingBackwardKernel<<<blockCount, threadCount>>>( desc, GetRaw( resultDiff ), GetRaw( maxIndices ), GetRaw( sourceDiff ) );
 }
 
 //-----------------------------------------------------------------------------------------------------------------------

@@ -80,14 +80,14 @@ __global__ void BlobGlobalMaxOverTimePoolingKernel( const CCudaGlobalMaxOverTime
 }
 
 __global__ void BlobGlobalMaxOverTimePoolingBackwardKernel( const CCudaGlobalMaxOverTimePoolingDescInternal desc,
-	const float* __restrict__ sourceDiff, const int* __restrict__ maxIndicesData, float* resultDiff )
+	const float* __restrict__ resultDiff, const int* __restrict__ maxIndicesData, float* sourceDiff )
 {
 	const CCudaBlobDesc& result = desc.Result;
 	int pos;
 	if( !GetCudaTaskIndex( result.BlobSize(), pos ) ) {
 		return;
 	}
-	resultDiff[__ldg( maxIndicesData + pos ) * result.BlobSize() + pos] = __ldg( sourceDiff + pos );
+	sourceDiff[__ldg( maxIndicesData + pos ) * result.BlobSize() + pos] = __ldg( resultDiff + pos );
 }
 
 } // namespace NeoML
