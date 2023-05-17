@@ -276,10 +276,10 @@ void CCudaMathEngine::BlobGlobalMaxPooling( const CGlobalMaxPoolingDesc& pooling
 			blockCount.y, source.ObjectCount() * source.Channels(), maxThreadCount );
 		scanBlockCount.y = 1;
 
-		CIntHandleVar indicesSorted1( mathEngine(), source.BlobSize() );
-		CIntHandleVar indicesSorted2( mathEngine(), source.BlobSize() );
-		CIntHandleVar localSums( mathEngine(), blockCount.x * threadCount.x * blockCount.y * histSize );
-		CIntHandleVar globalSums( mathEngine(), blockCount.x * threadCount.x * ( blockCount.y + 1 ) * histSize );
+		CIntHandleStackVar indicesSorted1( mathEngine(), source.BlobSize() );
+		CIntHandleStackVar indicesSorted2( mathEngine(), source.BlobSize() );
+		CIntHandleStackVar localSums( mathEngine(), blockCount.x * threadCount.x * blockCount.y * histSize );
+		CIntHandleStackVar globalSums( mathEngine(), blockCount.x * threadCount.x * ( blockCount.y + 1 ) * histSize );
 		const int localSortSharedSize = threadCount.y * threadCount.x * memoryPerThread;
 		const int scanSharedSize = scanThreadCount.x * scanThreadCount.y * memoryPerThread;
 

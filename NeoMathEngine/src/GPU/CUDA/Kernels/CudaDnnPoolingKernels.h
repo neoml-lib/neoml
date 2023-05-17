@@ -102,17 +102,28 @@ __global__ void BlobMaxPoolingBackwardKernel( const CCudaMaxPoolingDescInternal 
 	const int sourceObjectSize = source.ObjectSize();
 	sourceDiff += b * sourceObjectSize;
 
-	for( int k = 0; k < count; ++k ) {
-		const int i = *indicesPtr;
-		const float value = __ldg( resultPtr );
-		if( isAtomic ) {
+	if( isAtomic ) {
+		for( int k = 0; k < count; ++k ) {
+			const int i = *indicesPtr;
+			const float value = __ldg( resultPtr );
+
 			atomicAdd( sourceDiff + i, value );
-		} else {
-			sourceDiff[i] = value;
+
+			resultPtr += batchStep;
+			indicesPtr += batchStep;
+			sourceDiff += sourceObjectSize;
 		}
-		resultPtr += batchStep;
-		indicesPtr += batchStep;
-		sourceDiff += sourceObjectSize;
+	} else {
+		for( int k = 0; k < count; ++k ) {
+			const int i = *indicesPtr;
+			const float value = __ldg( resultPtr );
+
+			sourceDiff[i] = value;
+
+			resultPtr += batchStep;
+			indicesPtr += batchStep;
+			sourceDiff += sourceObjectSize;
+		}
 	}
 }
 
