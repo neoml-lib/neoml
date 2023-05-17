@@ -1,4 +1,4 @@
-/* Copyright © 2017-2022 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -33,8 +33,11 @@ void COnnxLayerBase::Reshape()
 	// Fill the outputs with the blobs consisting of 1 integer
 	// It's done in order to avoid nullptr dereferencing problems
 	// If layer wants to return an usual blob it will override these outputDescs during CalculateShapes
-	for( int outputIndex = 0; outputIndex < GetOutputCount(); ++outputIndex ) {
-		outputDescs[outputIndex] = CBlobDesc( CT_Int );
+	for( CBlobDesc& outputDesc : outputDescs ) {
+		outputDesc.SetDataType( CT_Int );
+		// Change the BD_Channels dimension in order to enforce Reshape call of any layers connected to this one
+		// When not needed this method won't be called
+		outputDesc.SetDimSize( BD_Channels, outputDesc.Channels() == 1 ? 2 : 1 );
 	}
 
 	// Transfer shape-blobs between layers

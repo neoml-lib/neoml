@@ -36,6 +36,7 @@ from .MatrixMultiplication import MatrixMultiplication
 from .MultichannelLookup import MultichannelLookup
 from .MultiheadAttention import MultiheadAttention
 from .ObjectNormalization import ObjectNormalization
+from .Onnx import OnnxTransform, OnnxTranspose
 from .PositionalEmbedding import PositionalEmbedding
 from .PrecisionRecall import PrecisionRecall
 from .Qrnn import Qrnn

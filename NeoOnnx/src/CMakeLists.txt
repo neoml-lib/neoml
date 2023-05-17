@@ -60,6 +60,10 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Operators/TransposeOperator.cpp
     Operators/UnsqueezeOperator.cpp
     Operators/UpsampleOperator.cpp
+    Optimization/HardSigmoidOptimizer.cpp
+    Optimization/HSwishOptimizer.cpp
+    Optimization/LayerNormFusionOptimizer.cpp
+    Optimization/SqueezeAndExciteOptimizer.cpp
     TensorUtils.cpp
 
     ../include/NeoOnnx/NeoOnnx.h
@@ -112,6 +116,12 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Operators/TransposeOperator.h
     Operators/UnsqueezeOperator.h
     Operators/UpsampleOperator.h
+    Optimization/DnnOptimizer.h
+    Optimization/Graph.h
+    Optimization/HardSigmoidOptimizer.h
+    Optimization/HSwishOptimizer.h
+    Optimization/LayerNormFusionOptimizer.h
+    Optimization/SqueezeAndExciteOptimizer.h
     Tensor.h
     TensorUtils.h
 )

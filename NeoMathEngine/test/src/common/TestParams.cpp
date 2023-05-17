@@ -213,9 +213,8 @@ CInterval CTestParams::parseInterval( const std::string& valueString ) const
 ::std::ostream& operator<<( ::std::ostream& os, const CTestParams& params )
 {
 	os << "\n";
-	const std::unordered_map<std::string, std::string>& flags = params.flags;
-	for( auto i : flags ) {
-		os << i.first << " " << i.second << "\n";
+	for( const auto &pair : params.flags ) {
+		os << pair.first << " " << pair.second << "\n";
 	}
 	return os;
 }

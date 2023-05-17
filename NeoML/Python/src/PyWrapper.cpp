@@ -56,6 +56,7 @@ limitations under the License.
 #include "PyMatrixMultiplicationLayer.h"
 #include "PyMultiheadAttentionLayer.h"
 #include "PyObjectNormalizationLayer.h"
+#include "PyOnnxLayers.h"
 #include "PyPositionalEmbeddingLayer.h"
 #include "PyPrecisionRecallLayer.h"
 #include "PyQrnnLayer.h"
@@ -139,6 +140,7 @@ PYBIND11_MODULE(PythonWrapper, m) {
 	InitializeMultichannelLookupLayer( m );
 	InitializeMultiheadAttentionLayer( m );
 	InitializeObjectNormalizationLayer( m );
+	InitializeOnnxLayers( m );
 	InitializePoolingLayer( m );
 	InitializePositionalEmbeddingLayer( m );
 	InitializePrecisionRecallLayer( m );

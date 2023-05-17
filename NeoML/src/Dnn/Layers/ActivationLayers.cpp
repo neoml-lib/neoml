@@ -72,6 +72,123 @@ CPtr<CBaseLayer> CreateActivationLayer( IMathEngine& mathEngine, const CActivati
 	return 0;
 }
 
+void StoreActivationDesc( const CActivationDesc& desc, CArchive& archive )
+{
+	TActivationFunction type = desc.GetType();
+
+	archive.SerializeEnum( type );
+	switch( type ) {
+		case AF_Linear:
+			archive << desc.GetParam<CLinearLayer::CParam>().Multiplier
+				<< desc.GetParam<CLinearLayer::CParam>().FreeTerm;
+			break;
+		case AF_ELU:
+			archive << desc.GetParam<CELULayer::CParam>().Alpha;
+			break;
+		case AF_ReLU:
+			archive << desc.GetParam<CReLULayer::CParam>().UpperThreshold;
+			break;
+		case AF_LeakyReLU:
+			archive << desc.GetParam<CLeakyReLULayer::CParam>().Alpha;
+			break;
+		case AF_HardSigmoid:
+			archive << desc.GetParam<CHardSigmoidLayer::CParam>().Slope
+				<< desc.GetParam<CHardSigmoidLayer::CParam>().Bias;
+			break;
+		case AF_Power:
+			archive << desc.GetParam<CPowerLayer::CParam>().Exponent;
+			break;
+		case AF_GELU:
+			archive << static_cast<int>( desc.GetParam<CGELULayer::CParam>().Mode );
+			break;
+		case AF_Abs:
+		case AF_Sigmoid:
+		case AF_Tanh:
+		case AF_HardTanh:
+		case AF_HSwish:
+		case AF_Exp:
+		case AF_Log:
+		case AF_Erf:
+			break;
+		default:
+			NeoAssert( false );
+	}
+}
+
+CActivationDesc LoadActivationDesc( CArchive& archive )
+{
+	TActivationFunction type = AF_Count;
+	archive.SerializeEnum( type );
+	CActivationDesc result = CActivationDesc( type );
+
+	switch( type ) {
+		case AF_Linear:
+		{
+			CLinearLayer::CParam param;
+			archive >> param.Multiplier >> param.FreeTerm;
+			result.SetParam( param );
+			break;
+		}
+		case AF_ELU:
+		{
+			CELULayer::CParam param;
+			archive >> param.Alpha;
+			result.SetParam( param );
+			break;
+		}
+		case AF_ReLU:
+		{
+			CReLULayer::CParam param;
+			archive >> param.UpperThreshold;
+			result.SetParam( param );
+			break;
+		}
+		case AF_LeakyReLU:
+		{
+			CLeakyReLULayer::CParam param;
+			archive >> param.Alpha;
+			result.SetParam( param );
+			break;
+		}
+		case AF_HardSigmoid:
+		{
+			CHardSigmoidLayer::CParam param;
+			archive >> param.Slope >> param.Bias;
+			result.SetParam( param );
+			break;
+		}
+		case AF_Power:
+		{
+			CPowerLayer::CParam param;
+			archive >> param.Exponent;
+			result.SetParam( param );
+			break;
+		}
+		case AF_GELU:
+		{
+			CGELULayer::CParam param;
+			int intMode = 0;
+			archive >> intMode;
+			param.Mode = static_cast<CGELULayer::TCalculationMode>( intMode );
+			result.SetParam( param );
+			break;
+		}
+		case AF_Abs:
+		case AF_Sigmoid:
+		case AF_Tanh:
+		case AF_HardTanh:
+		case AF_HSwish:
+		case AF_Exp:
+		case AF_Log:
+		case AF_Erf:
+			break;
+		default:
+			NeoAssert( false );
+	}
+
+	return result;
+}
+
 ///////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////
 CLinearLayer::CLinearLayer( IMathEngine& mathEngine ) :

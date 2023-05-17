@@ -1,4 +1,4 @@
-/* Copyright © 2017-2022 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,13 +20,19 @@ limitations under the License.
 
 namespace NeoML {
 
+CPtr<CDnnBlob>& COnnxSourceHelper::Blob()
+{
+	ForceReshape();
+	return blob;
+}
+
 static const int OnnxSourceHelperVersion = 0;
 
 void COnnxSourceHelper::Serialize( CArchive& archive )
 {
 	archive.SerializeVersion( OnnxSourceHelperVersion );
 	COnnxLayerBase::Serialize( archive );
-	SerializeBlob( GetDefaultCpuMathEngine(), archive, blob );
+	SerializeBlob( MathEngine(), archive, blob );
 }
 
 void COnnxSourceHelper::CalculateShapes()
@@ -34,13 +40,9 @@ void COnnxSourceHelper::CalculateShapes()
 	CheckLayerArchitecture( GetInputCount() == 0, "OnnxSourceHelper must have no inputs" );
 	CheckLayerArchitecture( GetOutputCount() == 1, "OnnxSourceHelper must have 1 output" );
 	CheckLayerArchitecture( blob != nullptr, "OnnxSourceHelper with null blob" );
+	CheckLayerArchitecture( &blob->GetMathEngine() == &MathEngine(), "MathEngine mismatch" );
 
-	if( &blob->GetMathEngine() != &MathEngine() ) {
-		outputShapeBlobs[0] = CDnnBlob::CreateBlob( MathEngine(), blob->GetDataType(), blob->GetDesc() );
-		outputShapeBlobs[0]->CopyFrom( blob );
-	} else {
-		outputShapeBlobs[0] = blob;
-	}
+	outputShapeBlobs[0] = blob;
 }
 
 } // namespace NeoML

@@ -66,6 +66,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/BertConvLayer.h>
 #include <NeoML/Dnn/Layers/BinaryFocalLossLayer.h>
 #include <NeoML/Dnn/Layers/CenterLossLayer.h>
+#include <NeoML/Dnn/Layers/ChannelwiseWith1x1Layer.h>
 #include <NeoML/Dnn/Layers/CrfLayer.h>
 #include <NeoML/Dnn/Layers/CtcLayer.h>
 #include <NeoML/Dnn/Layers/CumSumLayer.h>
@@ -84,6 +85,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/LogicalLayers.h>
 #include <NeoML/Dnn/Layers/LrnLayer.h>
 #include <NeoML/Dnn/Layers/MaxOverTimePoolingLayer.h>
+#include <NeoML/Dnn/Layers/MobileNetV3BlockLayer.h>
 #include <NeoML/Dnn/Layers/ModelWrapperLayer.h>
 #include <NeoML/Dnn/Layers/MultiHingeLossLayer.h>
 #include <NeoML/Dnn/Layers/PositionalEmbeddingLayer.h>
@@ -334,6 +336,7 @@ REGISTER_NEOML_LAYER( CBinaryFocalLossLayer, "FmlCnnBinaryFocalLossLayer" )
 REGISTER_NEOML_LAYER( CBitSetVectorizationLayer, "FmlCnnBitSetVectorizationLayerClassName" )
 REGISTER_NEOML_LAYER( CCaptureSinkLayer, "FmlCnnCaptureSink" )
 REGISTER_NEOML_LAYER( CCenterLossLayer, "FmlCnnCenterLossLayer" )
+REGISTER_NEOML_LAYER( CChannelwiseWith1x1Layer, "NeoMLDnnChannelwiseWith1x1Layer" )
 REGISTER_NEOML_LAYER( CCompositeSinkLayer, "FmlCompositeCnnSinkLayer" )
 REGISTER_NEOML_LAYER( CCompositeSourceLayer, "FmlCnnCompositeSourceLayer" )
 REGISTER_NEOML_LAYER( CConfusionMatrixLayer, "FmlCnnConfusionMatrixLayer" )
@@ -352,6 +355,8 @@ REGISTER_NEOML_LAYER( CImageToPixelLayer, "FmlCnnImageToPixelLayerClass" )
 REGISTER_NEOML_LAYER( CFocalLossLayer, "FmlCnnFocalLossLayer" )
 REGISTER_NEOML_LAYER( CFullyConnectedSourceLayer, "FmlCnnFullyConnectedSourceLayer" )
 REGISTER_NEOML_LAYER( CMaxOverTimePoolingLayer, "FmlCnnMaxOverTimePoolingLayer" )
+REGISTER_NEOML_LAYER( CMobileNetV3PreSEBlockLayer, "NeoMLDnnMobileNetV3PreSEBlockLayer" )
+REGISTER_NEOML_LAYER( CMobileNetV3PostSEBlockLayer, "NeoMLDnnMobileNetV3PostSEBlockLayer" )
 REGISTER_NEOML_LAYER( CMultiHingeLossLayer, "FmlCnnMultyHingeLossLayer" )
 REGISTER_NEOML_LAYER( CMultiSquaredHingeLossLayer, "FmlCnnMultySquaredHingeLossLayer" )
 REGISTER_NEOML_LAYER( CPixelToImageLayer, "FmlCnnPixelToImageLayerClass" )

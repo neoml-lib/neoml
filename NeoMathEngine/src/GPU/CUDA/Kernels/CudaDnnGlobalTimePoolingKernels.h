@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -27,22 +27,22 @@ __global__ void BlobGlobalMaxOverTimePoolingWithIndexKernel( const CCudaGlobalMa
 {
 	const CCudaBlobDesc& source = desc.Source;
 
-	int objectCount = source.BatchLength();
-	int objectSize = source.BlobSize() / objectCount;
+	const int objectCount = source.BatchLength();
+	const int objectSize = source.BlobSize() / objectCount;
 
 	int objectNum;
-	if(!GetCudaTaskIndex(objectSize, objectNum)) {
+	if( !GetCudaTaskIndex( objectSize, objectNum ) ) {
 		return;
 	}
 
 	int curIndex = objectNum;
 	int maxIndex = 0;
-	float maxVal = __ldg(sourceData + curIndex);
+	float maxVal = __ldg( sourceData + curIndex );
 
-	for(int i = 1; i < objectCount; ++i) {
+	for( int i = 1; i < objectCount; ++i ) {
 		curIndex += objectSize;
-		float candidate = __ldg(sourceData + curIndex);
-		if(candidate > maxVal) {
+		float candidate = __ldg( sourceData + curIndex );
+		if( candidate > maxVal ) {
 			maxVal = candidate;
 			maxIndex = i;
 		}
@@ -57,20 +57,20 @@ __global__ void BlobGlobalMaxOverTimePoolingKernel( const CCudaGlobalMaxOverTime
 {
 	const CCudaBlobDesc& source = desc.Source;
 
-	int objectCount = source.BatchLength();
-	int objectSize = source.BlobSize() / objectCount;
+	const int objectCount = source.BatchLength();
+	const int objectSize = source.BlobSize() / objectCount;
 
 	int objectNum;
-	if(!GetCudaTaskIndex(objectSize, objectNum)) {
+	if( !GetCudaTaskIndex( objectSize, objectNum ) ) {
 		return;
 	}
 
 	int curIndex = objectNum;
 	float maxVal = -FLT_MAX;
 
-	for(int i = 0; i < objectCount; ++i) {
-		float candidate = __ldg(sourceData + curIndex);
-		if(candidate > maxVal) {
+	for( int i = 0; i < objectCount; ++i ) {
+		const float candidate = __ldg( sourceData + curIndex );
+		if( candidate > maxVal ) {
 			maxVal = candidate;
 		}
 		curIndex += objectSize;
@@ -80,15 +80,14 @@ __global__ void BlobGlobalMaxOverTimePoolingKernel( const CCudaGlobalMaxOverTime
 }
 
 __global__ void BlobGlobalMaxOverTimePoolingBackwardKernel( const CCudaGlobalMaxOverTimePoolingDescInternal desc,
-	const float* __restrict__ sourceData, const int* __restrict__ maxIndicesData, float* resultData )
+	const float* __restrict__ resultDiff, const int* __restrict__ maxIndicesData, float* sourceDiff )
 {
-	const CCudaBlobDesc& outputDiff = desc.Result;
+	const CCudaBlobDesc& result = desc.Result;
 	int pos;
-	if(!GetCudaTaskIndex(outputDiff.BlobSize(), pos)) {
+	if( !GetCudaTaskIndex( result.BlobSize(), pos ) ) {
 		return;
 	}
-
-	resultData[__ldg(maxIndicesData + pos) * outputDiff.BlobSize() + pos] = __ldg(sourceData + pos);
+	sourceDiff[__ldg( maxIndicesData + pos ) * result.BlobSize() + pos] = __ldg( resultDiff + pos );
 }
 
 } // namespace NeoML

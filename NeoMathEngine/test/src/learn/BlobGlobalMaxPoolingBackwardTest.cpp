@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,22 +18,22 @@ limitations under the License.
 using namespace NeoML;
 using namespace NeoMLTest;
 
-static void blobGlobalMaxPoolingBackwardNaive( float* inputDiff, const float* outputDiff, const int* indices,
+static void blobGlobalMaxPoolingBackwardNaive( float* sourceDiff, const float* resultDiff, const int* indices,
 	int batchSize, int maxCount, int channels, int objectSize )
 {
 	for( int b = 0; b < batchSize; ++b ) {
 		for( int i = 0; i < maxCount; ++i ) {
-			float* inputDiffChannelData = inputDiff;
+			float* sourceDiffChannelData = sourceDiff;
 			for( int c = 0; c < channels; ++c ) {
 				int index = *indices++;
 				if( index >= 0 ) {
-					inputDiffChannelData[index * channels] = *outputDiff;
+					sourceDiffChannelData[index * channels] = *resultDiff;
 				}
-				++outputDiff;
-				++inputDiffChannelData;
+				++resultDiff;
+				++sourceDiffChannelData;
 			}
 		}
-		inputDiff += objectSize;
+		sourceDiff += objectSize;
 	}
 }
 
@@ -45,12 +45,12 @@ static void globalMaxPoolingBackwardImpl( const CTestParams& params, int seed )
 	const CInterval batchWidthInterval = params.GetInterval( "BatchWidth" );
 	const CInterval listSizeInterval = params.GetInterval( "ListSize" );
 	const CInterval channelsInterval = params.GetInterval( "Channels" );
-	const CInterval inputDepthInterval = params.GetInterval( "InputDepth" );
-	const CInterval inputHeightInterval = params.GetInterval( "InputHeight" );
-	const CInterval inputWidthInterval = params.GetInterval( "InputWidth" );
-	const CInterval outputDepthInterval = params.GetInterval( "OutputDepth" );
-	const CInterval outputHeightInterval = params.GetInterval( "OutputHeight" );
-	const CInterval outputWidthInterval = params.GetInterval( "OutputWidth" );
+	const CInterval sourceDepthInterval = params.GetInterval( "InputDepth" );
+	const CInterval sourceHeightInterval = params.GetInterval( "InputHeight" );
+	const CInterval sourceWidthInterval = params.GetInterval( "InputWidth" );
+	const CInterval resultDepthInterval = params.GetInterval( "OutputDepth" );
+	const CInterval resultHeightInterval = params.GetInterval( "OutputHeight" );
+	const CInterval resultWidthInterval = params.GetInterval( "OutputWidth" );
 	const CInterval valuesInterval = params.GetInterval( "Values" );
 
 	const int batchLength = random.UniformInt( batchLengthInterval.Begin, batchLengthInterval.End );
@@ -58,47 +58,47 @@ static void globalMaxPoolingBackwardImpl( const CTestParams& params, int seed )
 	const int listSize = random.UniformInt( listSizeInterval.Begin, std::min( listSizeInterval.End,
 		( batchLengthInterval.End * batchWidthInterval.End ) / ( batchLength * batchWidth ) ) );
 	const int channels = random.UniformInt( channelsInterval.Begin, channelsInterval.End );
-	const int inputDepth = random.UniformInt( inputDepthInterval.Begin, inputDepthInterval.End );
-	const int inputHeight = random.UniformInt( inputHeightInterval.Begin, inputHeightInterval.End );
-	const int inputWidth = random.UniformInt( inputWidthInterval.Begin, std::min( inputWidthInterval.End,
-		( inputDepthInterval.End * inputHeightInterval.End ) / ( inputDepth * inputHeight ) ) );
-	const int outputDepth = random.UniformInt( outputDepthInterval.Begin, outputDepthInterval.End );
-	const int outputHeight = random.UniformInt( outputHeightInterval.Begin, outputHeightInterval.End );
-	const int outputWidth = random.UniformInt( outputWidthInterval.Begin, outputWidthInterval.End );
+	const int sourceDepth = random.UniformInt( sourceDepthInterval.Begin, sourceDepthInterval.End );
+	const int sourceHeight = random.UniformInt( sourceHeightInterval.Begin, sourceHeightInterval.End );
+	const int sourceWidth = random.UniformInt( sourceWidthInterval.Begin, std::min( sourceWidthInterval.End,
+		( sourceDepthInterval.End * sourceHeightInterval.End ) / ( sourceDepth * sourceHeight ) ) );
+	const int resultDepth = random.UniformInt( resultDepthInterval.Begin, resultDepthInterval.End );
+	const int resultHeight = random.UniformInt( resultHeightInterval.Begin, resultHeightInterval.End );
+	const int resultWidth = random.UniformInt( resultWidthInterval.Begin, resultWidthInterval.End );
 
-	CFloatBlob outputDiff( MathEngine(), batchLength, batchWidth, listSize, outputHeight, outputWidth, outputDepth, channels );
-	CFloatBlob output( MathEngine(), batchLength, batchWidth, listSize, outputHeight, outputWidth, outputDepth, channels );
-	CIntBlob indices( MathEngine(), batchLength, batchWidth, listSize, outputHeight, outputWidth, outputDepth, channels );
-	CFloatBlob inputDiff( MathEngine(), batchLength, batchWidth, listSize, inputHeight, inputWidth, inputDepth, channels );
-	CFloatBlob input( MathEngine(), batchLength, batchWidth, listSize, inputHeight, inputWidth, inputDepth, channels );
+	CFloatBlob resultDiff( MathEngine(), batchLength, batchWidth, listSize, resultHeight, resultWidth, resultDepth, channels );
+	CFloatBlob result( MathEngine(), batchLength, batchWidth, listSize, resultHeight, resultWidth, resultDepth, channels );
+	CIntBlob indices( MathEngine(), batchLength, batchWidth, listSize, resultHeight, resultWidth, resultDepth, channels );
+	CFloatBlob sourceDiff( MathEngine(), batchLength, batchWidth, listSize, sourceHeight, sourceWidth, sourceDepth, channels );
+	CFloatBlob source( MathEngine(), batchLength, batchWidth, listSize, sourceHeight, sourceWidth, sourceDepth, channels );
 
-	CREATE_FILL_FLOAT_ARRAY( outputDiffBuff, valuesInterval.Begin, valuesInterval.End, outputDiff.GetDataSize(), random )
-	outputDiff.CopyFrom( outputDiffBuff.data() );
+	CREATE_FILL_FLOAT_ARRAY( resultDiffBuff, valuesInterval.Begin, valuesInterval.End, resultDiff.GetDataSize(), random )
+	resultDiff.CopyFrom( resultDiffBuff.data() );
 
-	CREATE_FILL_FLOAT_ARRAY( outputBuff, valuesInterval.Begin, valuesInterval.End, output.GetDataSize(), random )
-	output.CopyFrom( outputBuff.data() );
+	CREATE_FILL_FLOAT_ARRAY( resultBuff, valuesInterval.Begin, valuesInterval.End, result.GetDataSize(), random )
+	result.CopyFrom( resultBuff.data() );
 
-	CREATE_FILL_FLOAT_ARRAY( inputBuff, valuesInterval.Begin, valuesInterval.End, input.GetDataSize(), random )
-	input.CopyFrom( inputBuff.data() );
+	CREATE_FILL_FLOAT_ARRAY( sourceBuff, valuesInterval.Begin, valuesInterval.End, source.GetDataSize(), random )
+	source.CopyFrom( sourceBuff.data() );
 
 	std::vector<float> expectedDiff;
-	expectedDiff.insert( expectedDiff.begin(), inputDiff.GetDataSize(), 0 );
-	std::vector<float> actualDiff( inputDiff.GetDataSize() );
+	expectedDiff.insert( expectedDiff.begin(), sourceDiff.GetDataSize(), 0 );
+	std::vector<float> actualDiff( sourceDiff.GetDataSize() );
 
-	CGlobalMaxPoolingDesc* poolingDesc = MathEngine().InitGlobalMaxPooling( inputDiff.GetDesc(), indices.GetDesc(),
-		outputDiff.GetDesc() );
-	MathEngine().BlobGlobalMaxPooling( *poolingDesc, input.GetData(),
-		indices.GetData(), output.GetData() );
-	MathEngine().BlobGlobalMaxPoolingBackward( *poolingDesc, outputDiff.GetData(),
-		indices.GetData(), inputDiff.GetData() );
+	CGlobalMaxPoolingDesc* poolingDesc = MathEngine().InitGlobalMaxPooling( sourceDiff.GetDesc(), indices.GetDesc(),
+		resultDiff.GetDesc() );
+	MathEngine().BlobGlobalMaxPooling( *poolingDesc, source.GetData(),
+		indices.GetData(), result.GetData() );
+	MathEngine().BlobGlobalMaxPoolingBackward( *poolingDesc, resultDiff.GetData(),
+		indices.GetData(), sourceDiff.GetData() );
 	delete poolingDesc;
 
-	inputDiff.CopyTo( actualDiff.data() );
+	sourceDiff.CopyTo( actualDiff.data() );
 	std::vector<int> indicesBuff( indices.GetDataSize() );
 	indices.CopyTo( indicesBuff.data() );
 
-	blobGlobalMaxPoolingBackwardNaive( expectedDiff.data(), outputDiffBuff.data(), indicesBuff.data(), batchLength * batchWidth * listSize,
-		outputHeight * outputWidth * outputDepth, channels, inputHeight * inputWidth * inputDepth * channels );
+	blobGlobalMaxPoolingBackwardNaive( expectedDiff.data(), resultDiffBuff.data(), indicesBuff.data(), batchLength * batchWidth * listSize,
+		resultHeight * resultWidth * resultDepth, channels, sourceHeight * sourceWidth * sourceDepth * channels );
 
 	for( size_t i = 0; i < expectedDiff.size(); ++i ) {
 		ASSERT_FLOAT_EQ( expectedDiff[i], actualDiff[i] );

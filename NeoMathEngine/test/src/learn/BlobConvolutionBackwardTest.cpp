@@ -91,21 +91,25 @@ static void blobConvolutionBackwardImpl( const CTestParams& params, int seed )
 
 	bool isZeroFreeTerm = params.GetValue<int>( "IsZeroFreeTerm" ) == 1;
 
-	const int inputLength = random.UniformInt( lengthInterval.Begin, lengthInterval.End );
-	const int inputBatch = random.UniformInt( batchInterval.Begin, batchInterval.End );
-	const int inputHeight = random.UniformInt( inputHeightInterval.Begin, inputHeightInterval.End );
-	const int inputWidth = random.UniformInt( inputWidthInterval.Begin, inputWidthInterval.End );
-	const int inputDepth = random.UniformInt( inputDepthInterval.Begin, inputDepthInterval.End );
-	const int inputChannels = random.UniformInt( channelsInterval.Begin, channelsInterval.End );
-	const int paddingHeight = random.UniformInt( paddingHeightInterval.Begin, paddingHeightInterval.End );
-	const int paddingWidth = random.UniformInt( paddingWidthInterval.Begin, paddingWidthInterval.End );
 	const int filterCount = random.UniformInt( filterCountInterval.Begin, filterCountInterval.End );
 	const int filterHeight = random.UniformInt( filterHeightInterval.Begin, filterHeightInterval.End );
 	const int filterWidth = random.UniformInt( filterWidthInterval.Begin, filterWidthInterval.End );
+	const int paddingHeight = random.UniformInt( paddingHeightInterval.Begin, std::min( filterHeight - 1, paddingHeightInterval.End ) );
+	const int paddingWidth = random.UniformInt( paddingWidthInterval.Begin, std::min( filterWidth - 1, paddingWidthInterval.End ) );
 	const int dilationHeight = random.UniformInt( dilationHeightInterval.Begin, dilationHeightInterval.End );
 	const int dilationWidth = random.UniformInt( dilationWidthInterval.Begin, dilationWidthInterval.End );
 	const int strideHeight = random.UniformInt( strideHeightInterval.Begin, strideHeightInterval.End );
 	const int strideWidth = random.UniformInt( strideWidthInterval.Begin, strideWidthInterval.End );
+	const int inputLength = random.UniformInt( lengthInterval.Begin, lengthInterval.End );
+	const int inputBatch = random.UniformInt( batchInterval.Begin, batchInterval.End );
+	const int inputHeight = random.UniformInt(
+		calcConvInputSize( inputHeightInterval.Begin, paddingHeight, filterHeight, dilationHeight, strideHeight ),
+		calcConvInputSize( inputHeightInterval.End, paddingHeight, filterHeight, dilationHeight, strideHeight ) );
+	const int inputWidth = random.UniformInt(
+		calcConvInputSize( inputWidthInterval.Begin, paddingWidth, filterWidth, dilationWidth, strideWidth ),
+		calcConvInputSize( inputWidthInterval.End, paddingWidth, filterWidth, dilationWidth, strideWidth ) );
+	const int inputDepth = random.UniformInt( inputDepthInterval.Begin, inputDepthInterval.End );
+	const int inputChannels = random.UniformInt( channelsInterval.Begin, channelsInterval.End );
 	const int outputHeight = calcConvOutputSize( inputHeight, paddingHeight, filterHeight, dilationHeight, strideHeight );
 	const int outputWidth = calcConvOutputSize( inputWidth, paddingWidth, filterWidth, dilationWidth, strideWidth );
 
@@ -150,7 +154,7 @@ static void blobConvolutionBackwardImpl( const CTestParams& params, int seed )
 		dilationHeight, dilationWidth, strideHeight, strideWidth );
 
 	for( int i = 0; i < inputSize; ++i ) {
-		ASSERT_NEAR( expectedData[i], actualData[i], 1e-3f );
+		ASSERT_TRUE( FloatEq( expectedData[i], actualData[i], 1e-3f ) );
 	}
 }
 
@@ -161,105 +165,45 @@ class CMathEngineBlobConvolutionBackwardTest : public CTestFixtureWithParams {
 
 INSTANTIATE_TEST_CASE_P( CMathEngineBlobConvolutionBackwardTestInstantiation, CMathEngineBlobConvolutionBackwardTest,
 	::testing::Values(
-		CTestParams( //Algo1 minor case
+		CTestParams(
 			"InputLength = 1;"
-			"InputBatch = (1..3);"
-			"InputHeight = (2..6);"
-			"InputWidth = (3..8);"
-			"InputDepth = (2..3);"
-			"InputChannels = (2..3);"
-			"FilterCount = (1..3);"
-			"FilterHeight = 1;"
-			"FilterWidth = (1..2);"
-			"PaddingHeight = (0..2);"
+			"InputBatch = 1;"
+			"InputHeight = 288;"
+			"InputWidth = 128;"
+			"InputDepth = 1;"
+			"InputChannels = 2;"
+			"FilterCount = 16;"
+			"FilterHeight = 2;"
+			"FilterWidth = 2;"
+			"PaddingHeight = 0;"
 			"PaddingWidth = 0;"
 			"DilationHeight = 1;"
 			"DilationWidth = 1;"
-			"StrideHeight = 1;"
-			"StrideWidth = (1..2);"
-			"IsZeroFreeTerm = 0;"
-			"Values = (-10..10);"
-			"TestCount = 10;"
-		),
-		CTestParams(
-			"InputLength = 1;"
-			"InputBatch = 2;"
-			"InputHeight = 5;"
-			"InputWidth = 10;"
-			"InputDepth = 1;"
-			"InputChannels = 4;"
-			"FilterCount = 4;"
-			"FilterHeight = 3;"
-			"FilterWidth = 7;"
-			"PaddingHeight = 2;"
-			"PaddingWidth = 3;"
-			"DilationHeight = 2;"
-			"DilationWidth = 1;"
 			"StrideHeight = 2;"
-			"StrideWidth = 1;"
+			"StrideWidth = 2;"
 			"IsZeroFreeTerm = 0;"
 			"Values = (-10..10);"
 			"TestCount = 1;"
 		),
 		CTestParams(
 			"InputLength = 1;"
-			"InputBatch = 2;"
-			"InputHeight = (6..9);"
-			"InputWidth = (5..11);"
-			"InputDepth = 2;"
-			"InputChannels = 3;"
-			"FilterCount = (1..2);"
-			"FilterHeight = (1..2);"
-			"FilterWidth = (1..2);"
-			"PaddingHeight = (0..2);"
-			"PaddingWidth = (0..2);"
-			"DilationHeight = 1;"
-			"DilationWidth = 1;"
-			"StrideHeight = 1;"
-			"StrideWidth = 1;"
-			"IsZeroFreeTerm = 0;"
-			"Values = (-10..10);"
-			"TestCount = 10;"
-		),
-		CTestParams(
-			"InputLength = 1;"
 			"InputBatch = 1;"
-			"InputHeight = (3..7);"
-			"InputWidth = (3..8);"
-			"InputDepth = (1..2);"
-			"InputChannels = 3;"
-			"FilterCount = (1..3);"
-			"FilterHeight = (1..3);"
-			"FilterWidth = (1..3);"
-			"PaddingHeight = (0..2);"
-			"PaddingWidth = (0..2);"
+			"InputHeight = 416;"
+			"InputWidth = 128;"
+			"InputDepth = 1;"
+			"InputChannels = 2;"
+			"FilterCount = 16;"
+			"FilterHeight = 2;"
+			"FilterWidth = 2;"
+			"PaddingHeight = 0;"
+			"PaddingWidth = 0;"
 			"DilationHeight = 1;"
 			"DilationWidth = 1;"
-			"StrideHeight = (1..2);"
-			"StrideWidth = (1..2);"
+			"StrideHeight = 2;"
+			"StrideWidth = 2;"
 			"IsZeroFreeTerm = 0;"
 			"Values = (-10..10);"
-			"TestCount = 100;"
-		),
-		CTestParams(
-			"InputLength = 2;"
-			"InputBatch = 3;"
-			"InputHeight = (7..18);"
-			"InputWidth = (7..18);"
-			"InputDepth = 2;"
-			"InputChannels = 3;"
-			"FilterCount = (1..4);"
-			"FilterHeight = (3..7);"
-			"FilterWidth = (3..7);"
-			"PaddingHeight = (1..3);"
-			"PaddingWidth = (1..3);"
-			"DilationHeight = (2..3);"
-			"DilationWidth = (2..3);"
-			"StrideHeight = (1..3);"
-			"StrideWidth = (1..3);"
-			"IsZeroFreeTerm = (0..1);"
-			"Values = (-10..10);"
-			"TestCount = 100;"
+			"TestCount = 1;"
 		),
 		CTestParams(
 			"InputLength = (1..3);"

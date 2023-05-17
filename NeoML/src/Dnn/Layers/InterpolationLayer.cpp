@@ -16,6 +16,8 @@ limitations under the License.
 #include <common.h>
 #pragma hdrstop
 
+#include <memory>
+
 #include <NeoML/Dnn/Layers/InterpolationLayer.h>
 
 namespace NeoML {
@@ -125,6 +127,31 @@ void CInterpolationLayer::RunOnce()
 			}
 			objectCount *= oldSize;
 		}
+	} else if( nontrivialDims == 2 ) {
+		int objectCount = 1;
+		int objectSize = inputBlobs[0]->GetDataSize();
+		std::unique_ptr<CFloatHandleStackVar> buff;
+		for( int i = 0; i < static_cast<int>( BD_Count ); ++i ) {
+			const int oldSize = inputBlobs[0]->DimSize( i );
+			const int newSize = outputBlobs[0]->DimSize( i );
+			objectSize /= oldSize;
+			if( oldSize != newSize ) {
+				const float scale = rules[i].Type == TRuleType::Scale ? rules[i].ScaleCoeff
+					: static_cast<float>( newSize ) / oldSize;
+				if( buff == nullptr ) {
+					// First of 2 interpolations: interpolate from inputBlobs[0] to intermediate buffer
+					buff.reset( new CFloatHandleStackVar( MathEngine(), inputBlobs[0]->GetDataSize() / oldSize * newSize ) );
+					MathEngine().LinearInterpolation( inputBlobs[0]->GetData(), buff->GetHandle(), coords, round,
+						objectCount, oldSize, objectSize, scale );
+				} else {
+					// Second of 2 interpolations: interpolate from intermediate buffer to outputBlobs[0]
+					MathEngine().LinearInterpolation( buff->GetHandle(), outputBlobs[0]->GetData(), coords, round,
+						objectCount, oldSize, objectSize, scale );
+					break;
+				}
+			}
+			objectCount *= newSize;
+		}
 	} else {
 		int objectCount = 1;
 		int objectSize = inputBlobs[0]->GetDataSize();
@@ -140,14 +167,14 @@ void CInterpolationLayer::RunOnce()
 				--nontrivialDims;
 				const float scale = rules[i].Type == TRuleType::Scale ? rules[i].ScaleCoeff
 					: static_cast<float>( newSize ) / oldSize;
-				MathEngine().LinearInterpolation( currInput, currOutput, coords, round,
-					objectCount, oldSize, objectSize, scale );
+				MathEngine().LinearInterpolation( currInput,
+					nontrivialDims != 0 ? currOutput : outputBlobs[0]->GetData(),
+					coords, round, objectCount, oldSize, objectSize, scale );
 				currInput = currOutput;
 				currOutput = nontrivialDims % 2 == 0 ? buffer.GetHandle() : buffer.GetHandle() + halfBuffer;
 			}
 			objectCount *= newSize;
 		}
-		MathEngine().VectorCopy( outputBlobs[0]->GetData(), currInput, outputBlobs[0]->GetDataSize() );
 	}
 }
 

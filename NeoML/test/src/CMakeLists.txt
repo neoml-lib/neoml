@@ -29,6 +29,8 @@ target_sources(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/BpeTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/TransformerSourceMaskTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/MobileNetV2BlockTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/BatchNormFusionTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/OnnxLayerTest.cpp
 )
 
 set_target_properties( ${PROJECT_NAME} PROPERTIES

@@ -18,6 +18,10 @@ import neoml.PythonWrapper as PythonWrapper
 from .Dnn import Layer
 from neoml.Utils import check_input_layers
 import typing as tp
+try:
+    from typing import Literal
+except ImportError:
+    from typing_extensions import Literal
 
 class Linear(Layer):
     """The layer that calculates a linear activation function
@@ -574,7 +578,7 @@ class GELU(Layer):
     """
 
     def __init__(self, input_layer: tp.Union[Layer, tp.Tuple[Layer, int], PythonWrapper.GELU],
-                 calculation_mode: tp.Literal["precise", "sigmoid_approximate"] = "sigmoid_approximate", 
+                 calculation_mode: Literal["precise", "sigmoid_approximate"] = "sigmoid_approximate", 
                  name: str=None):
 
         if type(input_layer) is PythonWrapper.GELU:
@@ -588,13 +592,13 @@ class GELU(Layer):
         self.calculation_mode = calculation_mode
 
     @property
-    def calculation_mode(self) -> tp.Literal["precise", "sigmoid_approximate"]:
+    def calculation_mode(self) -> Literal["precise", "sigmoid_approximate"]:
         """ 'precise' (calculate GELU using the error function) or 'sigmoid_approximate' (using an approximation x * sigmoid(1.702x))
         """
         return self._internal.get_calculation_mode()
 
     @calculation_mode.setter
-    def calculation_mode(self, value: tp.Literal["precise", "sigmoid_approximate"]):
+    def calculation_mode(self, value: Literal["precise", "sigmoid_approximate"]):
         if value not in ["precise", "sigmoid_approximate"]:
             raise ValueError("GELU. Calculation mode should be 'precise' or 'sigmoid_approximate'.")
         self._internal.set_calculation_mode(value)

@@ -679,12 +679,33 @@ void CMetalMathEngine::ScatterND( const CConstIntHandle&, const CConstIntHandle&
     ASSERT_EXPR( false );
 }
 
-void CMetalMathEngine::MobileNetV2Block( const CBlobDesc&, const CBlobDesc&, const CChannelwiseConvolutionDesc&,
-	const CConstFloatHandle&, const CConstFloatHandle&, const CConstFloatHandle*, const CConstFloatHandle&,
-	const CConstFloatHandle&, const CConstFloatHandle*, const CConstFloatHandle&, const CConstFloatHandle&,
-	const CConstFloatHandle*, bool, const CFloatHandle& ) override
+void CMetalMathEngine::ChannelwiseWith1x1( const CBlobDesc&, const CBlobDesc&, const CChannelwiseConvolutionDesc&,
+    const CConstFloatHandle&, const CConstFloatHandle&, const CConstFloatHandle*, TActivationFunction, float,
+    const CConstFloatHandle&, const CConstFloatHandle*, bool, const CFloatHandle& )
 {
-	ASSERT_EXPR( false );
+    ASSERT_EXPR( false );
+}
+
+void CMetalMathEngine::MobileNetV2Block( const CBlobDesc&, const CBlobDesc&, const CChannelwiseConvolutionDesc&,
+    const CConstFloatHandle&, const CConstFloatHandle&, const CConstFloatHandle*, TActivationFunction, float,
+    const CConstFloatHandle&, const CConstFloatHandle*, TActivationFunction, float, const CConstFloatHandle&,
+    const CConstFloatHandle*, bool, const CFloatHandle& ) override
+{
+    ASSERT_EXPR( false );
+}
+
+void CMetalMathEngine::MobileNetV3PreSEBlock( const CBlobDesc&, const CBlobDesc&, const CChannelwiseConvolutionDesc&,
+    const CConstFloatHandle&, const CConstFloatHandle&, const CConstFloatHandle*, TActivationFunction, float,
+    const CConstFloatHandle&, const CConstFloatHandle*, TActivationFunction, float, const CFloatHandle& )
+{
+    ASSERT_EXPR( false );
+}
+
+void CMetalMathEngine::MobileNetV3PostSEBlock( const CBlobDesc&, int, const CConstFloatHandle&,
+    const CConstFloatHandle&, const CConstFloatHandle*, TActivationFunction, float, const CConstFloatHandle&,
+    const CConstFloatHandle*, const CFloatHandle& )
+{
+    ASSERT_EXPR( false );
 }
 
 } // namespace NeoML

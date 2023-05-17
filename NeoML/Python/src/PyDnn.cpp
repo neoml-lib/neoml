@@ -185,6 +185,8 @@ REGISTER_NEOML_PYLAYER( "BertConv", "NeoMLDnnBertConvLayer" )
 REGISTER_NEOML_PYLAYER( "Broadcast", "NeoMLDnnBroadcastLayer" )
 REGISTER_NEOML_PYLAYER( "CumSum", "NeoMLDnnCumSumLayer" )
 REGISTER_NEOML_PYLAYER_EX( "ScatterGather", "ScatterND", "NeoMLDnnScatterNDLayer" )
+REGISTER_NEOML_PYLAYER( "OnnxTransform", "NeoMLDnnOnnxTransformHelper" )
+REGISTER_NEOML_PYLAYER( "OnnxTranspose", "NeoMLDnnOnnxTransposeHelper" )
 
 }
 

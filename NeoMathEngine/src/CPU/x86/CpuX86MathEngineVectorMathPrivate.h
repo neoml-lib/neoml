@@ -91,6 +91,72 @@ inline void channelwise1x3( const float* source, const float* filter0, const flo
 
 //------------------------------------------------------------------------------------------------------------
 
+inline void channelwiseConvolution1x5Kernel( const float* source0, const float* source1, const float* source2, const float* source3,
+	const float* source4, const float* source5,
+	const float* filter0, const float* filter1, const float* filter2, const float* filter3, const float* filter4,
+	float* result0, float* result1 )
+{
+	__m128 result0_4 = _mm_loadu_ps(result0);
+	__m128 result1_4 = _mm_loadu_ps(result1);
+
+	__m128 filter_4 = _mm_loadu_ps(filter0);
+	__m128 source_4 = _mm_loadu_ps(source0);
+	result0_4 = _mm_add_ps( result0_4, _mm_mul_ps( source_4, filter_4 ) );
+
+	source_4 = _mm_loadu_ps(source1);
+	result1_4 = _mm_add_ps( result1_4, _mm_mul_ps( source_4, filter_4 ) );
+
+	filter_4 = _mm_loadu_ps(filter1);
+	result0_4 = _mm_add_ps( result0_4, _mm_mul_ps( source_4, filter_4 ) );
+
+	source_4 = _mm_loadu_ps(source2);
+	result1_4 = _mm_add_ps( result1_4, _mm_mul_ps( source_4, filter_4 ) );
+
+	filter_4 = _mm_loadu_ps(filter2);
+	result0_4 = _mm_add_ps( result0_4, _mm_mul_ps( source_4, filter_4 ) );
+
+	source_4 = _mm_loadu_ps(source3);
+	result1_4 = _mm_add_ps( result1_4, _mm_mul_ps( source_4, filter_4 ) );
+
+	filter_4 = _mm_loadu_ps(filter3);
+	result0_4 = _mm_add_ps( result0_4, _mm_mul_ps( source_4, filter_4 ) );
+
+	source_4 = _mm_loadu_ps(source4);
+	result1_4 = _mm_add_ps( result1_4, _mm_mul_ps( source_4, filter_4 ) );
+
+	filter_4 = _mm_loadu_ps(filter4);
+	result0_4 = _mm_add_ps( result0_4, _mm_mul_ps( source_4, filter_4 ) );
+
+	source_4 = _mm_loadu_ps(source5);
+	result1_4 = _mm_add_ps( result1_4, _mm_mul_ps( source_4, filter_4 ) );
+
+	_mm_storeu_ps(result0, result0_4);
+	_mm_storeu_ps(result1, result1_4);
+}
+
+inline void channelwise1x5( const float* source, const float* filter0, const float* filter1, const float* filter2,
+	const float* filter3, const float* filter4, float* result, int channels )
+{
+	const int shift1 = channels;
+	const int shift2 = 2 * channels;
+	const int shift3 = 3 * channels;
+	const int shift4 = 4 * channels;
+	const int shift5 = 5 * channels;
+	while( channels > 0 ) {
+		channelwiseConvolution1x5Kernel( source, source + shift1, source + shift2, source + shift3, source + shift4,
+			source + shift5,
+			filter0, filter1, filter2, filter3, filter4,
+			result, result + shift1 );
+
+		source += 4;
+		filter0 += 4; filter1 += 4; filter2 += 4; filter3 += 4; filter4 += 4;
+		result += 4;
+		channels -= 4;
+	}
+}
+
+//------------------------------------------------------------------------------------------------------------
+
 inline void vectorFill( float* result, float value, int vectorSize )
 {
 	int sseSize;
@@ -1001,6 +1067,45 @@ inline void vectorSigmoid( const float* first, float* result, int vectorSize )
 	for( int i = 0; i < nonSseSize; ++i ) {
 		*result = *result / ( *result + 1 );
 		++result;
+	}
+}
+
+//------------------------------------------------------------------------------------------------------------
+
+inline void vectorHSwish( const float* first, float* result, int vectorSize )
+{
+	int sseSize;
+	int nonSseSize;
+	checkSse( vectorSize, sseSize, nonSseSize );
+
+	if( sseSize > 0 ) {
+		const __m128 minusThreeSse = _mm_set1_ps( -3.f );
+		const __m128 threeSse = _mm_set1_ps( 3.f );
+		const __m128 oneSixthSse = _mm_set1_ps( 1.f / 6.f );
+		for( int i = 0; i < sseSize; ++i ) {
+			__m128 input = _mm_loadu_ps( first );
+			__m128 middlePart = _mm_cmplt_ps( minusThreeSse, input );
+			middlePart = _mm_and_ps( middlePart, _mm_cmplt_ps( input, threeSse ) ); // mask for (-3; 3)
+			middlePart = _mm_and_ps( middlePart, _mm_mul_ps( _mm_mul_ps( input, oneSixthSse ), _mm_add_ps( input, threeSse ) ) );
+			__m128 rightPart = _mm_cmpge_ps( input, threeSse );
+			rightPart = _mm_and_ps( rightPart, input );
+			_mm_storeu_ps( result, _mm_add_ps( middlePart, rightPart ) );
+
+			first += 4;
+			result += 4;
+		}
+	}
+
+	for( int i = 0; i < nonSseSize; ++i ) {
+		if( *first <= -3.f ) {
+			*result = 0.f;
+		} else if( *first >= 3.f ) {
+			*result = *first;
+		} else {
+			*result = *first * ( *first + 3 ) / 6.f;
+		}
+		++result;
+		++first;
 	}
 }
 
