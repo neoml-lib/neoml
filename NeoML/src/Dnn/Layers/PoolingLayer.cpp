@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -100,7 +100,7 @@ void CPoolingLayer::Serialize( CArchive& archive )
 	}
 }
 
-///////////////////////////////////////////////////////////////////////////////////
+//------------------------------------------------------------------------------------------------------------
 // CMeanPoolingLayer
 
 void CMeanPoolingLayer::RunOnce()
@@ -152,7 +152,7 @@ void CMeanPoolingLayer::Serialize( CArchive& archive )
 	CPoolingLayer::Serialize( archive );
 }
 
-///////////////////////////////////////////////////////////////////////////////////
+//------------------------------------------------------------------------------------------------------------
 // CMaxPoolingLayer
 
 void CMaxPoolingLayer::Reshape()
@@ -161,7 +161,7 @@ void CMaxPoolingLayer::Reshape()
 	maxIndices = 0;
 	if( IsBackwardPerformed() ) {
 		maxIndices = CDnnBlob::CreateBlob( MathEngine(), CT_Int, outputDescs[0] );
-		RegisterRuntimeBlob(maxIndices);
+		RegisterRuntimeBlob( maxIndices );
 	}
 	destroyDesc();
 }
@@ -213,6 +213,8 @@ void CMaxPoolingLayer::Serialize( CArchive& archive )
 	archive.SerializeVersion( MaxPoolingLayerVersion, CDnn::ArchiveMinSupportedVersion );
 	CPoolingLayer::Serialize( archive );
 }
+
+//------------------------------------------------------------------------------------------------------------
 
 CLayerWrapper<CMaxPoolingLayer> MaxPooling(
 	int filterHeight, int filterWidth, int strideHeight, int strideWidth )
