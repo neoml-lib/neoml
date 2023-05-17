@@ -106,6 +106,8 @@ class CRowwiseBuffer : public IRowwiseBuffer {
 public:
 	CRowwiseBuffer( IMathEngine& mathEngine, int rowCount, int rowSize, int fullHeight );
 
+	int RowCount() const { return rowCount; }
+
 	// IRowwiseBuffer implementation
 	int DataRowIndex() const override { return dataRowIndex; }
 	int RowSize() const override { return rowSize; }

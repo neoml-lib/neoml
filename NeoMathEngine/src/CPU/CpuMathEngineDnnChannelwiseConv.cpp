@@ -1186,8 +1186,8 @@ static IRowwiseCpuImpl::CProcessingReport getReport( int inputRowIndex, int inpu
 	report.OutputRowsCalculated = calculatedOutputRows - outputRowIndex;
 	PRESUME_EXPR( report.OutputRowsCalculated >= 0 && report.OutputRowsCalculated <= outputRowsAvailable );
 
-	report.InputRowsMayBeRemoved = getFirstRequiredInputRow( calculatedOutputRows, desc ) - inputRowIndex;
-	PRESUME_EXPR( report.InputRowsMayBeRemoved >= 0 && report.InputRowsMayBeRemoved <= inputRowsAvailable );
+	report.InputRowsMayBeRemoved = std::max( 0, getFirstRequiredInputRow( calculatedOutputRows, desc ) - inputRowIndex );
+	PRESUME_EXPR( report.InputRowsMayBeRemoved <= inputRowsAvailable );
 
 	return report;
 }
@@ -1454,6 +1454,7 @@ CBlobDesc CMobileNetV2CpuImpl::Reshape( const CBlobDesc& inputSize )
 IRowwiseCpuImpl::CProcessingReport CMobileNetV2CpuImpl::Process( const float* input, int inputRowIndex,
 	int inputRowsAvailable, float* output, int outputRowIndex, int outputRowsAvailable, float* ) const
 {
+	PRESUME_EXPR( !residual || inputRowIndex <= outputRowIndex );
 	CProcessingReport report = getReport( inputRowIndex, inputRowsAvailable,
 		outputRowIndex, outputRowsAvailable, desc );
 	if( report.OutputRowsCalculated == 0 ) {
@@ -1472,7 +1473,6 @@ IRowwiseCpuImpl::CProcessingReport CMobileNetV2CpuImpl::Process( const float* in
 	PRESUME_EXPR( chOutput->DataRowProcessed() == outputRowIndex );
 	PRESUME_EXPR( chInput->DataRowProcessed() >= inputRowIndex );
 	PRESUME_EXPR( chInput->DataRowProcessed() <= inputRowIndex + inputRowsAvailable );
-	PRESUME_EXPR( chInput->DataRowCount() <= 3 - desc.StrideHeight );
 	PRESUME_EXPR( chInput->DataRowIndex() == getFirstRequiredInputRow( outputRowIndex, desc ) );
 
 	const int inputWidth = desc.Source.Width();
@@ -1486,17 +1486,14 @@ IRowwiseCpuImpl::CProcessingReport CMobileNetV2CpuImpl::Process( const float* in
 
 	const int outputRowsThisCall = outputRowIndex + report.OutputRowsCalculated;
 	// Total number of input rows used during this call
-	const int inputRowsUsedThisCall = std::min( desc.Source.Height(),
-		( outputRowsThisCall - 1 ) * desc.StrideHeight + 2 );
+	const int inputRowsCanBeProcessed = inputRowIndex + inputRowsAvailable;
 
-	while( chOutput->DataRowProcessed() < outputRowsThisCall ) {
+	while( chOutput->DataRowProcessed() < outputRowsThisCall 
+		|| ( chInput->EmptyRowCount() > 0 && chInput->DataRowProcessed() < inputRowsCanBeProcessed ) )
+	{
 		// Process a bunch of rows of input image (till channelwise convolution: expandConv + expandReLU)
-		const int imageIndex = chOutput->DataRowProcessed() / desc.Source.Height();
-		const int inputRowsInBuffer = std::min( desc.Source.Height(),
-			chInput->DataRowProcessed() - imageIndex * desc.Source.Height() );
-		const int inputRowsThisStep = std::min( getMaxInputRowsPerStep(),
-			std::min( inputRowsUsedThisCall - chInput->DataRowProcessed(), desc.Source.Height() - inputRowsInBuffer ) );
-		PRESUME_EXPR( inputRowsThisStep >= 0 && inputRowsThisStep <= chInput->EmptyRowCount() );
+		const int inputRowsThisStep = std::min( { getMaxInputRowsPerStep(), inputRowsCanBeProcessed - chInput->DataRowProcessed(), chInput->EmptyRowCount() } );
+		PRESUME_EXPR( inputRowsThisStep >= 0 );
 
 		if( inputRowsThisStep > 0 ) {
 			const float* expandConvInput = input + ( chInput->DataRowProcessed() - inputRowIndex ) * inputRowSize;
@@ -1526,6 +1523,7 @@ IRowwiseCpuImpl::CProcessingReport CMobileNetV2CpuImpl::Process( const float* in
 		}
 
 		// Calculate how many output rows we can calculate with the processed input rows
+		const int imageIndex = chOutput->DataRowProcessed() / desc.Source.Height();
 		const int inputImageRowsInBuffer = chInput->DataRowProcessed() - imageIndex * desc.Source.Height();
 		const int outputImageRowsCanBeProcessed = std::min( outputRowsThisCall - imageIndex * desc.Result.Height(),
 			inputImageRowsInBuffer >= desc.Source.Height() ? desc.Result.Height()
@@ -1582,6 +1580,9 @@ IRowwiseCpuImpl::CProcessingReport CMobileNetV2CpuImpl::Process( const float* in
 			}
 		}
 	}
+
+	PRESUME_EXPR( chInput->DataRowProcessed() >= inputRowIndex + report.InputRowsMayBeRemoved );
+	report.InputRowsMayBeRemoved = ( residual ? outputRowsThisCall : chInput->DataRowProcessed() ) - inputRowIndex;
 
 	if( chOutput->DataRowProcessed() == desc.Result.ObjectCount() * desc.Result.Height() ) {
 		chInput.reset( nullptr );
