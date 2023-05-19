@@ -701,7 +701,7 @@ private:
 	void transposeResult( const CCpuConvolutionDesc& desc, const float* outputTransposedData,
 		int batch, int resultStart, int resultCount, float* result );
 	void fillTempData( const float* sourceData, float* filterData, const CCpuConvolutionDesc& desc, int start, int count );
-	void blobConvolutionForwardAlgo0( const CCpuConvolutionDesc& desc, const float* sourceData,
+	void blobConvolutionForward( const CCpuConvolutionDesc& desc, const float* sourceData,
 		const float* filterData, const CConstFloatHandle* freeTermData, float* resultData );
 	void blobConvolutionBackwardAlgo1( const CCpuConvolutionDesc& desc,
 		const CConstFloatHandle& sourceData, const CConstFloatHandle& filterData, const CConstFloatHandle* freeTerm,
