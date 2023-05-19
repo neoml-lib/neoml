@@ -285,26 +285,6 @@ void CCpuMathEngine::createTemporaryBlob( const TConvolutionDesc& desc, const fl
 	}
 }
 
-void CCpuMathEngine::transposeResult( const CCpuConvolutionDesc& desc, const float* outputTransposedData,
-	int batch, int resultStart, int resultCount, float* resultData )
-{
-	const CBlobDesc& result = desc.Result;
-
-	int resultPixelSize = result.Depth() * result.Channels();
-	int resultRowSize = resultPixelSize * result.Width();
-	const float* inPtr = outputTransposedData;
-	float* resultPtr = resultData + batch * result.ObjectSize() + resultStart * resultPixelSize;
-	for( int i = 0; i < resultCount; ++i ) {
-		float* outRowPtr = resultPtr;
-		for( int j = 0; j < result.Height(); ++j ) {
-			dataCopy( outRowPtr, inPtr, resultPixelSize );
-			outRowPtr += resultRowSize;
-			inPtr += resultPixelSize;
-		}
-		resultPtr += resultPixelSize;
-	}
-}
-
 static inline void calcPaddings( const CCpuConvolutionDesc& desc, int width, int& startPaddingSize, int& endPaddingSize )
 {
 	int startPos = -desc.PaddingWidth + width * desc.StrideWidth;
@@ -378,7 +358,7 @@ inline int ceilTo( int val, int discret )
 	return ( val / discret ) * discret;
 }
 
-void CCpuMathEngine::blobConvolutionForwardAlgo0( const CCpuConvolutionDesc& desc, const float* sourceData,
+void CCpuMathEngine::blobConvolutionForward( const CCpuConvolutionDesc& desc, const float* sourceData,
 	const float* filterData, const CConstFloatHandle* freeTermData, float* resultData )
 {
 	const int resultItemCount = desc.Result.ObjectCount() * desc.Result.Width() * desc.Result.Height();
@@ -421,73 +401,6 @@ void CCpuMathEngine::blobConvolutionForwardAlgo0( const CCpuConvolutionDesc& des
 	}
 }
 
-void CCpuMathEngine::blobConvolutionForwardAlgo1( const CCpuConvolutionDesc& desc, const float* sourceData,
-	const float* filterData, const CConstFloatHandle* freeTermData, float* resultData )
-{
-	const float* freeTermDataRaw = freeTermData == nullptr ? nullptr : GetRaw( *freeTermData );
-
-	const CBlobDesc& source = desc.Source;
-	const CBlobDesc& filter = desc.Filter;
-	const CBlobDesc& result = desc.Result;
-
-	const int outputChannels = result.Depth() * result.Channels();
-	const int outputTransposedDataRowSize = result.Height() * outputChannels;
-	const int outputTransposedDataObjectSize = result.Width() * outputTransposedDataRowSize;
-	const int tempBlobDataRowSize = result.Height() * filter.Height() * filter.Width() * source.Depth() * source.Channels();
-	const int tempBlobDataObjectSize = result.Width() * tempBlobDataRowSize;
-
-	const int curThreadCount = IsOmpRelevant( source.ObjectCount() * result.Width(),
-		static_cast<int64_t>( source.BlobSize() ) * filter.BlobSize() ) ? threadCount : 1;
-	const int tempObjectCount = std::min( source.ObjectCount(), curThreadCount );
-
-	const int outputTransposedDataSize = tempObjectCount * outputTransposedDataObjectSize;
-	const int tempBlobDataSize = tempObjectCount * tempBlobDataObjectSize;
-
-	CFloatHandleStackVar stackBuffer( mathEngine(), outputTransposedDataSize + tempBlobDataSize );
-	float* outputTransposedData = GetRaw( stackBuffer.GetHandle() );
-	float* tempBlobData = outputTransposedData + outputTransposedDataSize;
-
-	NEOML_OMP_NUM_THREADS( curThreadCount )
-	{
-		int batchStart;
-		int batchCount;
-		int resultStart;
-		int resultCount;
-		if( OmpGetTaskIndexAndCount2D( source.ObjectCount(), result.Width(), batchStart, batchCount, resultStart, resultCount ) ) {
-			for( int batch = batchStart; batch < batchStart + batchCount; ++batch ) {
-				const int tempObjectIndex = source.ObjectCount() <= tempObjectCount ? batch : OmpGetThreadNum();
-				float* outputTransposedPtr = outputTransposedData + tempObjectIndex * outputTransposedDataObjectSize
-					+ resultStart * outputTransposedDataRowSize;
-				float* tempBlobPtr = tempBlobData + tempObjectIndex * tempBlobDataObjectSize
-					+ resultStart * tempBlobDataRowSize;
-
-				// Fill the temporary matrix
-				if( desc.DilationHeight > 1 || desc.DilationWidth > 1 ) {
-					createDilationTemporaryBlob( desc, sourceData, batch, resultStart, resultCount, tempBlobPtr );
-				} else {
-					createTemporaryBlob( desc, sourceData, batch, resultStart, resultCount, tempBlobPtr );
-				}
-
-				// Apply the filter to the temporary matrix
-				if( freeTermData != nullptr ) {
-					setVectorToMatrixRows( outputTransposedPtr, result.Height() * resultCount, outputChannels, freeTermDataRaw );
-
-					multiplyMatrixByTransposedMatrixAndAdd( tempBlobPtr, result.Height() * resultCount, filter.ObjectSize(),
-						filter.ObjectSize(), filterData, filter.BatchWidth(), filter.ObjectSize(), outputTransposedPtr,
-						filter.BatchWidth() );
-				} else {
-					multiplyMatrixByTransposedMatrix( tempBlobPtr, result.Height() * resultCount, filter.ObjectSize(),
-						filter.ObjectSize(), filterData, filter.BatchWidth(), filter.ObjectSize(), outputTransposedPtr,
-						filter.BatchWidth() );
-				}
-
-				// Transpose the result
-				transposeResult( desc, outputTransposedPtr, batch, resultStart, resultCount, resultData );
-			}
-		}
-	}
-}
-
 void CCpuMathEngine::BlobConvolution( const CConvolutionDesc& convDesc, const CConstFloatHandle& source,
 	const CConstFloatHandle& filter, const CConstFloatHandle* freeTerm, const CFloatHandle& result )
 {
@@ -508,18 +421,7 @@ void CCpuMathEngine::BlobConvolution( const CConvolutionDesc& convDesc, const CC
 		case CA_1:
 		case CA_2:
 		{
-			const int algo0ThreadCount = IsOmpRelevant( desc.Result.ObjectCount() * desc.Result.Width() * desc.Result.Height(),
-				static_cast<int64_t>( desc.Result.BlobSize() ) * desc.Filter.ObjectSize() ) ? threadCount : 1;
-
-			const int algo1ThreadCount = IsOmpRelevant( desc.Result.ObjectCount() * desc.Result.Width(),
-				static_cast<int64_t>( desc.Result.BlobSize() ) * desc.Filter.ObjectSize() ) ? threadCount : 1;
-			const int64_t algo1DataSize = static_cast<int64_t>( desc.Result.Width() ) * desc.Result.Height() * desc.Filter.ObjectSize() + desc.Result.ObjectSize();
-
-			if( std::min( desc.Result.ObjectCount(), algo1ThreadCount ) * algo1DataSize <= algo0ThreadCount * BlobConvolutionCacheSize ) {
-				blobConvolutionForwardAlgo1( desc, sourceRaw, filterRaw, freeTerm, resultRaw );
-			} else {
-				blobConvolutionForwardAlgo0( desc, sourceRaw, filterRaw, freeTerm, resultRaw );
-			}
+			blobConvolutionForward( desc, sourceRaw, filterRaw, freeTerm, resultRaw );
 			break;
 		}
 		case CA_1x1:
