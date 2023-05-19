@@ -420,10 +420,8 @@ void CCpuMathEngine::BlobConvolution( const CConvolutionDesc& convDesc, const CC
 	switch( desc.ForwardAlgo ) {
 		case CA_1:
 		case CA_2:
-		{
 			blobConvolutionForward( desc, sourceRaw, filterRaw, freeTerm, resultRaw );
 			break;
-		}
 		case CA_1x1:
 			{
 				bool needsFlatten = desc.Source.Depth() != 1;
