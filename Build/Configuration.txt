@@ -4,9 +4,9 @@ BUILD_SKIP_IF_NO_CHANGES = 1
 
 #BUILD_INCREASE_MODIFICATION = 1
 
-BUILD_SOURCES=D:\Sources
+BUILD_SOURCES=\\LINGVO\ABBYY\R&D Department\Tools_Libs\Sources
 
-BUILD_RESULTS=\\buildtech4\Results
+BUILD_RESULTS=\\LINGVO\ABBYY\R&D Department\Tools_Libs\Results
 
 BUILD_USERNAME=buildtech
 

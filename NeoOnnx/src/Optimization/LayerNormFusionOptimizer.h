@@ -94,115 +94,29 @@ private:
 	CGraph& graph;
 	static constexpr const char* const FusionNamePrefix{ "NormFusion_" };
 
+	static bool isValidBlobDim( int dim )
+	{ return dim >= 0 && dim < BD_Count; }
+	static bool isEmptyBlobDim( int index, int dim )
+	{ return dim == index || !isValidBlobDim( dim ); };
+
+	void getTransformRule( const COnnxTransformHelper& transformLayer, const bool opposite, int rule[BD_Count] ) const;
+
+	// Checks if TransformHelperLayer is valid for CLayerNormFusionOptimizer conversion
+	bool isValidTransformLayer( const COnnxTransformHelper& transformLayer,
+		const COnnxTransformHelper* transformLayerPrevious,
+		bool opposite,
+		bool& objTransform ) const;
 	// Checks if DataLayer is valid for CLayerNormFusionOptimizer conversion
 	bool isValidDataLayer( const CDataLayer& dataLayer, TBlobType blobType, int blobSize = NotFound ) const;
-	// Checks if TransformHelperLayer is valid for CLayerNormFusionOptimizer conversion
-	bool isValidTransformLayer( const COnnxTransformHelper& transformHelperLayer ) const;
 	// Checks if CastLayer is valid for CLayerNormFusionOptimizer conversion
 	bool isValidCastLayer( const CCastLayer& castLayer ) const;
 	// Checks if COnnxEltwiseLayer is valid for CLayerNormFusionOptimizer conversion
-	bool isValidArithmeticLayer( const COnnxEltwiseLayer& layer, COnnxEltwiseLayer::TOperation operation ) const;
-
-	// Get typed pointer to current 'layer' in the 'graph' (only if its typ is 'TLayer'), else returns nullptr.
-	// If 'addToSelectedLayers' is true, also it adds this layer to 'graph.selection'.
-	template<typename TLayer,
-		typename std::enable_if<std::is_base_of<CBaseLayer, TLayer>::value, int>::type = 0>
-	TLayer* getExactLayer( CBaseLayer* layer, bool addToSelectedLayers = true );
-
-	// Select 1 exact input-layer of the 'currentLayer' in the 'graph' (only if its type is 'TInputLayer'), else returns nullptr.
-	// NOTE: If returned layer is not nullptr, it has been added to 'graph.selection'.
-	//       'COnnxTransformHelper' may be selected and skipped recursively, its input layers types would be checked and returned.
-	template<typename TInputLayer,
-		typename std::enable_if<std::is_base_of<CBaseLayer, TInputLayer>::value, int>::type = 0>
-	TInputLayer* selectOneExactInputLayerRecursive( const CBaseLayer& currentLayer );
-
-	// Select 2 exact input-layers of the 'currentLayer' in the 'graph' (only if their types are 'TFirstInputLayer' and 'TSecondInputLayer'),
-	// then returns true ('layerBase' and 'layerData' != nullptr), else false ('layerBase' or 'layerData' == nullptr).
-	// NOTE: If 'layerBase' or 'layerData' is not nullptr, if its layer type != 'CBaseLayer', it would be added to 'graph.selection'
-	//       'COnnxTransformHelper' may be selected and skipped recursively, its input layers types would be checked and returned.
-	template<typename TFirstInputLayer, typename TSecondInputLayer,
-		typename std::enable_if<
-			std::is_base_of<CBaseLayer, TFirstInputLayer>::value &&
-			std::is_base_of<CBaseLayer, TSecondInputLayer>::value,
-			int>::type = 0>
-	bool selectTwoExactInputLayersRecursive( const CBaseLayer& currentLayer, TFirstInputLayer** layerBase, TSecondInputLayer** layerData );
+	bool isValidArithmeticLayer( const COnnxEltwiseLayer& layer, COnnxEltwiseLayer::TOperation operation ) const
+	{ return layer.GetOperation() == operation && graph.GetInputCount( layer ) == 2 && graph.GetOutputCount( layer ) == 1; }
+	// Checks if CPowerLayer is valid for CLayerNormFusionOptimizer conversion
+	bool isValidPowerLayer( const CPowerLayer& powLayer, float exponent ) const
+	{ return powLayer.GetExponent() == exponent && graph.GetInputCount( powLayer ) == 1 && graph.GetOutputCount( powLayer ) == 1; }
 };
-
-//--------------------------------------------------------------------------------------------------------------
-template<typename TLayer,
-	typename std::enable_if<std::is_base_of<CBaseLayer, TLayer>::value, int>::type>
-TLayer* CLayerNormFusionOptimizer::getExactLayer( CBaseLayer* layer, bool addToSelection )
-{
-	auto* typedLayer = dynamic_cast<TLayer*>( layer );
-	if( addToSelection ) {
-		if( typedLayer != nullptr ) {
-			if( !graph.IsLayerSelected( *layer ) ) {
-				graph.SelectLayer( *layer );
-			}
-			return typedLayer;
-		}
-		return nullptr;
-	}
-	return typedLayer;
-}
-
-//--------------------------------------------------------------------------------------------------------------
-template<typename TInputLayer,
-	typename std::enable_if<std::is_base_of<CBaseLayer, TInputLayer>::value, int>::type>
-TInputLayer* CLayerNormFusionOptimizer::selectOneExactInputLayerRecursive( const CBaseLayer& currentLayer )
-{
-	static_assert(!std::is_same<TInputLayer, CBaseLayer>::value,
-		"Wrong 'TInputLayer' CLayerNormFusionOptimizer::selectOneExactInputLayerRecursive");
-
-	if( currentLayer.GetInputCount() != 1 ) {
-		return nullptr;
-	}
-	auto* layer = graph.GetConnectedOutput( currentLayer, /*inputIndex*/0 ).Layer;
-	auto* inputLayer = getExactLayer<TInputLayer>( layer, /*addToSelection*/true );
-	if( inputLayer != nullptr ) {
-		return inputLayer;
-	}
-	auto* transformLayer = getExactLayer<COnnxTransformHelper>( layer, /*addToSelection*/true );
-	if( transformLayer != nullptr && isValidTransformLayer( *transformLayer ) ) {
-		return selectOneExactInputLayerRecursive<TInputLayer>( *transformLayer );
-	}
-	return nullptr;
-}
-
-//--------------------------------------------------------------------------------------------------------------
-template<typename TFirstInputLayer, typename TSecondInputLayer,
-	typename std::enable_if<
-		std::is_base_of<CBaseLayer, TFirstInputLayer>::value &&
-		std::is_base_of<CBaseLayer, TSecondInputLayer>::value,
-		int>::type>
-bool CLayerNormFusionOptimizer::selectTwoExactInputLayersRecursive( const CBaseLayer& currentLayer, TFirstInputLayer** layerBase, TSecondInputLayer** layerData )
-{
-	static_assert( !std::is_same<TFirstInputLayer, CBaseLayer>::value,
-		"Wrong 'TFirstInputLayer' CLayerNormFusionOptimizer::selectTwoExactInputLayersRecursive" );
-
-	if( currentLayer.GetInputCount() > 2 ) { // also should fit for COnnxTransformHelper, it has 1 input
-		return false;
-	}
-	for( int inputIndex = 0; inputIndex < currentLayer.GetInputCount(); ++inputIndex ) {
-		auto* layer = graph.GetConnectedOutput( currentLayer, inputIndex ).Layer;
-
-		if( *layerBase == nullptr && ( *layerBase = getExactLayer<TFirstInputLayer>( layer, /*addToSelection*/true ) ) != nullptr ) {
-			continue;
-		}
-		if( *layerData == nullptr && ( *layerData = getExactLayer<TSecondInputLayer>( layer,
-			/*addToSelection*/!std::is_same<TSecondInputLayer, CBaseLayer>::value /*CBaseLayer will not be selected*/) ) != nullptr ) {
-			continue;
-		}
-
-		if( *layerBase == nullptr || *layerData == nullptr ) {
-			auto* transformLayer = getExactLayer<COnnxTransformHelper>( layer, /*addToSelection*/true );
-			if( transformLayer != nullptr && isValidTransformLayer( *transformLayer ) ) {
-				return selectTwoExactInputLayersRecursive<TFirstInputLayer, TSecondInputLayer>( *transformLayer, layerBase, layerData );
-			}
-		}
-	}
-	return ( *layerBase != nullptr && *layerData != nullptr );
-}
 
 } // namespace optimization
 

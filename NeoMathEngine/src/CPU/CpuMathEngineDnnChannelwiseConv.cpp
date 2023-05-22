@@ -241,8 +241,8 @@ static inline void processChannelwise3x3( const CCommonChannelwiseConvolutionDes
 
 	float* outputRow = currOutput;
 	int remOutputRowsThisStep = outputRowsToProcess;
-	const bool processBottomPadding = ( stride == 1 || inputHeight % 2 == 1 )
-		&& currOutputRowIndex + outputRowsToProcess == desc.Result.Height();
+	const bool processBottomPadding = currOutputRowIndex + outputRowsToProcess == desc.Result.Height()
+		&& ( stride == 1 || inputHeight % 2 == 1 ) && desc.Result.Height() > 1;
 	if( processBottomPadding ) {
 		--remOutputRowsThisStep;
 	}

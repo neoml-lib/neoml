@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,11 +18,11 @@ limitations under the License.
 using namespace NeoML;
 using namespace NeoMLTest;
 
-static void globalMaxOverTimePoolingBackwardNaive( const float *output, int batchWidth, int objectSize, float *input, int *maxIndices )
+static void globalMaxOverTimePoolingBackwardNaive( const float* resultDiff, int batchWidth, int objectSize, float* sourceDiff, int* maxIndices )
 {
-	for( int j = 0; j < objectSize * batchWidth; j++ ) {
+	for( int j = 0; j < objectSize * batchWidth; ++j ) {
 		const int maxIndex = maxIndices[j];
-		input[maxIndex * objectSize * batchWidth + j] += output[j];
+		sourceDiff[maxIndex * objectSize * batchWidth + j] += resultDiff[j];
 	}
 }
 
@@ -39,22 +39,22 @@ static void globalMaxOverTimePoolingTestImpl( const CTestParams& params, int see
 	const int batchWidth = random.UniformInt( batchWidthInterval.Begin, batchWidthInterval.End );
 	const int objectSize = random.UniformInt( objectSizeInterval.Begin, objectSizeInterval.End );
 
-	CREATE_FILL_FLOAT_ARRAY( inputData, valuesInterval.Begin, valuesInterval.End, objectSize * batchWidth * batchLength, random )
-	CFloatBlob inputBlob( MathEngine(), batchLength, batchWidth, 1, 1, 1, 1, objectSize );
-	inputBlob.CopyFrom( inputData.data() );
-	CFloatBlob inputDiffBlob( MathEngine(), batchLength, batchWidth, 1, 1, 1, 1, objectSize );
+	CREATE_FILL_FLOAT_ARRAY( sourceData, valuesInterval.Begin, valuesInterval.End, objectSize * batchWidth * batchLength, random )
+	CFloatBlob sourceBlob( MathEngine(), batchLength, batchWidth, 1, 1, 1, 1, objectSize );
+	sourceBlob.CopyFrom( sourceData.data() );
+	CFloatBlob sourceDiffBlob( MathEngine(), batchLength, batchWidth, 1, 1, 1, 1, objectSize );
 
-	CREATE_FILL_FLOAT_ARRAY( outputDiffData, valuesInterval.Begin, valuesInterval.End, objectSize * batchWidth, random )
-	CFloatBlob outputDiffBlob( MathEngine(), 1, batchWidth, 1, 1, 1, 1, objectSize );
-	outputDiffBlob.CopyFrom( outputDiffData.data() );
-	CFloatBlob outputBlob( MathEngine(), 1, batchWidth, 1, 1, 1, 1, objectSize );
+	CREATE_FILL_FLOAT_ARRAY( resultDiffData, valuesInterval.Begin, valuesInterval.End, objectSize * batchWidth, random )
+	CFloatBlob resultDiffBlob( MathEngine(), 1, batchWidth, 1, 1, 1, 1, objectSize );
+	resultDiffBlob.CopyFrom( resultDiffData.data() );
+	CFloatBlob resultBlob( MathEngine(), 1, batchWidth, 1, 1, 1, 1, objectSize );
 
 	CIntBlob indexBlob( MathEngine(), 1, batchWidth, 1, 1, 1, 1, objectSize );
 	CIntHandle indexBlobPtr = indexBlob.GetData();
 
-	CGlobalMaxOverTimePoolingDesc *desc = MathEngine().InitGlobalMaxOverTimePooling( inputBlob.GetDesc(), outputBlob.GetDesc() );
-	MathEngine().BlobGlobalMaxOverTimePooling( *desc, inputBlob.GetData(), &indexBlobPtr, outputBlob.GetData() );
-	MathEngine().BlobGlobalMaxOverTimePoolingBackward( *desc, outputDiffBlob.GetData(), indexBlobPtr, inputDiffBlob.GetData() );
+	CGlobalMaxOverTimePoolingDesc* desc = MathEngine().InitGlobalMaxOverTimePooling( sourceBlob.GetDesc(), resultBlob.GetDesc() );
+	MathEngine().BlobGlobalMaxOverTimePooling( *desc, sourceBlob.GetData(), &indexBlobPtr, resultBlob.GetData() );
+	MathEngine().BlobGlobalMaxOverTimePoolingBackward( *desc, resultDiffBlob.GetData(), indexBlobPtr, sourceDiffBlob.GetData() );
 	delete desc;
 
 	std::vector<int> maxIndices;
@@ -63,9 +63,9 @@ static void globalMaxOverTimePoolingTestImpl( const CTestParams& params, int see
 
 	std::vector<float> expected, actual;
 	actual.resize( batchLength * objectSize * batchWidth );
-	inputDiffBlob.CopyTo( actual.data() );
+	sourceDiffBlob.CopyTo( actual.data() );
 	expected.insert( expected.begin(), batchLength * objectSize * batchWidth, 0 );
-	globalMaxOverTimePoolingBackwardNaive( outputDiffData.data(), batchWidth, objectSize, expected.data(), maxIndices.data() );
+	globalMaxOverTimePoolingBackwardNaive( resultDiffData.data(), batchWidth, objectSize, expected.data(), maxIndices.data() );
 
 	for( int i = 0; i < objectSize * batchWidth; i++ ) {
 		ASSERT_NEAR( expected[i], actual[i], 1e-3 );

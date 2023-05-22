@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,9 +18,9 @@ limitations under the License.
 using namespace NeoML;
 using namespace NeoMLTest;
 
-static void maxPooling3dNaive( int batchSize, int channels, int inputHeight, int inputWidth, int inputDepth, 
-	int filterHeight, int filterWidth, int filterDepth, int strideHeight, int strideWidth, int strideDepth, 
-	const float *source, float *result, int *indices ) 
+static void maxPooling3dNaive( int batchSize, int channels, int inputHeight, int inputWidth, int inputDepth,
+	int filterHeight, int filterWidth, int filterDepth, int strideHeight, int strideWidth, int strideDepth,
+	const float* source, float* result, int* indices )
 {
 	const int outHeight = ( inputHeight - filterHeight ) / strideHeight + 1;
 	const int outWidth = ( inputWidth - filterWidth ) / strideWidth + 1;

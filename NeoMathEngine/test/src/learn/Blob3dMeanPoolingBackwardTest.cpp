@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,34 +19,34 @@ limitations under the License.
 using namespace NeoML;
 using namespace NeoMLTest;
 
-static void mean3dPoolingBackwardNaive( const C3dPoolingTestParams& params, const float *outputDiff, float *inputDiff )
+static void mean3dPoolingBackwardNaive( const C3dPoolingTestParams& params, const float* resultDiff, float* sourceDiff )
 {
 	const int filterSize = params.FilterHeight * params.FilterWidth * params.FilterDepth;
-	int resultHeight = calcConvOutputSize( params.InputHeight, 0, params.FilterHeight, 1, params.StrideHeight );
-	int resultWidth = calcConvOutputSize( params.InputWidth, 0, params.FilterWidth, 1, params.StrideWidth );
-	int resultDepth = calcConvOutputSize( params.InputDepth, 0, params.FilterDepth, 1, params.StrideDepth );
+	const int resultHeight = calcConvOutputSize( params.InputHeight, 0, params.FilterHeight, 1, params.StrideHeight );
+	const int resultWidth = calcConvOutputSize( params.InputWidth, 0, params.FilterWidth, 1, params.StrideWidth );
+	const int resultDepth = calcConvOutputSize( params.InputDepth, 0, params.FilterDepth, 1, params.StrideDepth );
 
 	for( int b = 0; b < params.InputCount; ++b ) {
 		for( int c = 0; c < params.InputChannels; ++c ) {
 			for( int y = 0; y < resultHeight; ++y ) {
 				for( int x = 0; x < resultWidth; ++x ) {
 					for( int z = 0; z < resultDepth; ++z ) {
-						const float res = outputDiff[b * resultHeight * resultWidth * resultDepth * params.InputChannels +
+						const float res = resultDiff[b * resultHeight * resultWidth * resultDepth * params.InputChannels +
 							y * resultWidth * resultDepth * params.InputChannels + x * resultDepth * params.InputChannels + z * params.InputChannels + c];
 
-						int inputHStart = y * params.StrideHeight;
-						int inputHEnd = inputHStart + params.FilterHeight;
-						int inputWStart = x * params.StrideWidth;
-						int inputWEnd = inputWStart + params.FilterWidth;
-						int inputDStart = z * params.StrideDepth;
-						int inputDEnd = inputDStart + params.FilterDepth;
-						for( int h = inputHStart; h < inputHEnd; ++h ) {
-							for( int w = inputWStart; w < inputWEnd; ++w ) {
-								for( int d = inputDStart; d < inputDEnd; ++d ) {
-									int index = b * params.InputHeight * params.InputWidth * params.InputDepth * params.InputChannels + 
-										h * params.InputWidth * params.InputDepth * params.InputChannels + w * params.InputDepth * params.InputChannels + 
+						const int sourceHStart = y * params.StrideHeight;
+						const int sourceHEnd = sourceHStart + params.FilterHeight;
+						const int sourceWStart = x * params.StrideWidth;
+						const int sourceWEnd = sourceWStart + params.FilterWidth;
+						const int sourceDStart = z * params.StrideDepth;
+						const int sourceDEnd = sourceDStart + params.FilterDepth;
+						for( int h = sourceHStart; h < sourceHEnd; ++h ) {
+							for( int w = sourceWStart; w < sourceWEnd; ++w ) {
+								for( int d = sourceDStart; d < sourceDEnd; ++d ) {
+									int index = b * params.InputHeight * params.InputWidth * params.InputDepth * params.InputChannels +
+										h * params.InputWidth * params.InputDepth * params.InputChannels + w * params.InputDepth * params.InputChannels +
 										d * params.InputChannels + c;
-									inputDiff[index] += res / filterSize;
+									sourceDiff[index] += res / filterSize;
 								}
 							}
 						}
@@ -67,27 +67,27 @@ static void blob3dMeanPoolingBackwardTestImpl( const CTestParams& params, int se
 	const int outWidth = calcConvOutputSize( poolingParams.InputWidth, 0, poolingParams.FilterWidth, 1, poolingParams.StrideWidth );
 	const int outDepth = calcConvOutputSize( poolingParams.InputDepth, 0, poolingParams.FilterDepth, 1, poolingParams.StrideDepth );
 
-	CREATE_FILL_FLOAT_ARRAY( outputDiffData, valuesInterval.Begin, valuesInterval.End, poolingParams.InputCount * outHeight * outWidth * outDepth * poolingParams.InputChannels, random )
-	CFloatBlob outputDiffBlob( MathEngine(), poolingParams.InputCount, outHeight, outWidth, outDepth, poolingParams.InputChannels );
-	outputDiffBlob.CopyFrom( outputDiffData.data() );
+	CREATE_FILL_FLOAT_ARRAY( resultDiffData, valuesInterval.Begin, valuesInterval.End, poolingParams.InputCount * outHeight * outWidth * outDepth * poolingParams.InputChannels, random )
+	CFloatBlob resultDiffBlob( MathEngine(), poolingParams.InputCount, outHeight, outWidth, outDepth, poolingParams.InputChannels );
+	resultDiffBlob.CopyFrom( resultDiffData.data() );
 
-	CFloatBlob inputDiffBlob( MathEngine(), poolingParams.InputCount, poolingParams.InputHeight, 
+	CFloatBlob sourceDiffBlob( MathEngine(), poolingParams.InputCount, poolingParams.InputHeight,
 		poolingParams.InputWidth, poolingParams.InputDepth, poolingParams.InputChannels );
 
-	auto poolingDesc = MathEngine().Init3dMeanPooling( inputDiffBlob.GetDesc(), poolingParams.FilterHeight, poolingParams.FilterWidth, poolingParams.FilterDepth,
-		poolingParams.StrideHeight, poolingParams.StrideWidth, poolingParams.StrideDepth, outputDiffBlob.GetDesc() );
-	MathEngine().Blob3dMeanPoolingBackward( *poolingDesc, outputDiffBlob.GetData(), inputDiffBlob.GetData() );
+	const auto poolingDesc = MathEngine().Init3dMeanPooling( sourceDiffBlob.GetDesc(), poolingParams.FilterHeight, poolingParams.FilterWidth, poolingParams.FilterDepth,
+		poolingParams.StrideHeight, poolingParams.StrideWidth, poolingParams.StrideDepth, resultDiffBlob.GetDesc() );
+	MathEngine().Blob3dMeanPoolingBackward( *poolingDesc, resultDiffBlob.GetData(), sourceDiffBlob.GetData() );
 	delete poolingDesc;
 
-	const int inputDiffSize = poolingParams.InputCount * poolingParams.InputHeight * poolingParams.InputWidth * poolingParams.InputDepth * poolingParams.InputChannels;
+	const int sourceDiffSize = poolingParams.InputCount * poolingParams.InputHeight * poolingParams.InputWidth * poolingParams.InputDepth * poolingParams.InputChannels;
 	std::vector<float> actualDiff, expectedDiff;
-	actualDiff.resize( inputDiffSize );
-	inputDiffBlob.CopyTo( actualDiff.data() );
-	expectedDiff.insert( expectedDiff.begin(), inputDiffSize, 0 );
+	actualDiff.resize( sourceDiffSize );
+	sourceDiffBlob.CopyTo( actualDiff.data() );
+	expectedDiff.insert( expectedDiff.begin(), sourceDiffSize, 0 );
 
-	mean3dPoolingBackwardNaive( poolingParams, outputDiffData.data(), expectedDiff.data() );
+	mean3dPoolingBackwardNaive( poolingParams, resultDiffData.data(), expectedDiff.data() );
 
-	for( int i = 0; i < inputDiffSize; ++i ) {
+	for( int i = 0; i < sourceDiffSize; ++i ) {
 		ASSERT_NEAR( expectedDiff[i], actualDiff[i], 1e-3 );
 	}
 }

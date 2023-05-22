@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,17 +18,17 @@ limitations under the License.
 using namespace NeoML;
 using namespace NeoMLTest;
 
-static void maxOverTimeBackwardNaive( int inputBatchLength, int batchWidth, int objectSize, int strideLength, int filterLength,
-	const float *outputDiff, const int *maxIndices, float *inputDiff )
+static void maxOverTimeBackwardNaive( int sourceBatchLength, int batchWidth, int objectSize, int strideLength, int filterLength,
+	const float* resultDiff, const int* maxIndices, float* sourceDiff )
 {
-	const int resultBatchLength = ( inputBatchLength - filterLength ) / strideLength + 1;
+	const int resultBatchLength = ( sourceBatchLength - filterLength ) / strideLength + 1;
 	for( int l = 0; l < resultBatchLength; ++l ) {
 		for( int w = 0; w < batchWidth; ++w ) {
 			for( int i = 0; i < objectSize; ++i ) {
 				const int ind = l * batchWidth * objectSize + w * objectSize + i;
 				const int maxIndex = maxIndices[ind];
-				const float diff = outputDiff[ind];
-				inputDiff[maxIndex * batchWidth * objectSize + w * objectSize + i] += diff;
+				const float diff = resultDiff[ind];
+				sourceDiff[maxIndex * batchWidth * objectSize + w * objectSize + i] += diff;
 			}
 		}
 	}
@@ -45,47 +45,47 @@ static void maxOverTimePoolingBackwardImpl( const CTestParams& params, int seed 
 	const CInterval filterLengthInterval = params.GetInterval( "FilterLength" );
 	const CInterval valuesInterval = params.GetInterval( "Values" );
 
-	const int inputBatchLength = random.UniformInt( batchLengthInterval.Begin, batchLengthInterval.End );
+	const int sourceBatchLength = random.UniformInt( batchLengthInterval.Begin, batchLengthInterval.End );
 	const int batchWidth = random.UniformInt( batchWidthInterval.Begin, batchWidthInterval.End );
 	const int objectSize = random.UniformInt( objectSizeInterval.Begin, objectSizeInterval.End );
 	const int strideLength = random.UniformInt( strideLengthInterval.Begin, strideLengthInterval.End );
 	const int filterLength = random.UniformInt( filterLengthInterval.Begin, filterLengthInterval.End );
 
-	const int inputSize = objectSize * batchWidth * inputBatchLength;
+	const int sourceSize = objectSize * batchWidth * sourceBatchLength;
 
-	CREATE_FILL_FLOAT_ARRAY( inputData, valuesInterval.Begin, valuesInterval.End, inputSize, random )
-	CFloatBlob inputBlob( MathEngine(), inputBatchLength, batchWidth, 1, 1, 1, 1, objectSize );
-	inputBlob.CopyFrom( inputData.data() );
-	const int resultBatchLength = ( inputBatchLength - filterLength ) / strideLength + 1;
-	const int outputSize = objectSize * batchWidth * resultBatchLength;
+	CREATE_FILL_FLOAT_ARRAY( sourceData, valuesInterval.Begin, valuesInterval.End, sourceSize, random )
+	CFloatBlob sourceBlob( MathEngine(), sourceBatchLength, batchWidth, 1, 1, 1, 1, objectSize );
+	sourceBlob.CopyFrom( sourceData.data() );
+	const int resultBatchLength = ( sourceBatchLength - filterLength ) / strideLength + 1;
+	const int resultSize = objectSize * batchWidth * resultBatchLength;
 
-	CFloatBlob outputBlob( MathEngine(), resultBatchLength, batchWidth, 1, 1, 1, 1, objectSize );
+	CFloatBlob resultBlob( MathEngine(), resultBatchLength, batchWidth, 1, 1, 1, 1, objectSize );
 	CIntBlob indexBlob( MathEngine(), resultBatchLength, batchWidth, 1, 1, 1, 1, objectSize );
 	CIntHandle indexBlobPtr = indexBlob.GetData();
 
-	CREATE_FILL_FLOAT_ARRAY( outputDiffData, valuesInterval.Begin, valuesInterval.End, outputSize, random )
-	CFloatBlob outputDiffBlob( MathEngine(), resultBatchLength, batchWidth, 1, 1, 1, 1, objectSize );
-	outputDiffBlob.CopyFrom( outputDiffData.data() );
-	CFloatBlob inputDiffBlob( MathEngine(), inputBatchLength, batchWidth, 1, 1, 1, 1, objectSize );
+	CREATE_FILL_FLOAT_ARRAY( resultDiffData, valuesInterval.Begin, valuesInterval.End, resultSize, random )
+	CFloatBlob resultDiffBlob( MathEngine(), resultBatchLength, batchWidth, 1, 1, 1, 1, objectSize );
+	resultDiffBlob.CopyFrom( resultDiffData.data() );
+	CFloatBlob sourceDiffBlob( MathEngine(), sourceBatchLength, batchWidth, 1, 1, 1, 1, objectSize );
 
-	CMaxOverTimePoolingDesc *desc = MathEngine().InitMaxOverTimePooling( inputBlob.GetDesc(), filterLength, strideLength, outputBlob.GetDesc() );
-	MathEngine().BlobMaxOverTimePooling( *desc, inputBlob.GetData(), &indexBlobPtr, outputBlob.GetData() );
-	MathEngine().BlobMaxOverTimePoolingBackward( *desc, outputDiffBlob.GetData(), indexBlobPtr, inputDiffBlob.GetData() );
+	CMaxOverTimePoolingDesc* desc = MathEngine().InitMaxOverTimePooling( sourceBlob.GetDesc(), filterLength, strideLength, resultBlob.GetDesc() );
+	MathEngine().BlobMaxOverTimePooling( *desc, sourceBlob.GetData(), &indexBlobPtr, resultBlob.GetData() );
+	MathEngine().BlobMaxOverTimePoolingBackward( *desc, resultDiffBlob.GetData(), indexBlobPtr, sourceDiffBlob.GetData() );
 	delete desc;
 
 	std::vector<int> maxIndices;
-	maxIndices.resize( outputSize );
+	maxIndices.resize( resultSize );
 	indexBlob.CopyTo( maxIndices.data() );
 
 	std::vector<float> actualDiff, expectedDiff;
-	actualDiff.resize( inputSize );
-	inputDiffBlob.CopyTo( actualDiff.data() );
-	expectedDiff.insert( expectedDiff.begin(), inputSize, 0 );
+	actualDiff.resize( sourceSize );
+	sourceDiffBlob.CopyTo( actualDiff.data() );
+	expectedDiff.insert( expectedDiff.begin(), sourceSize, 0 );
 
-	maxOverTimeBackwardNaive( inputBatchLength, batchWidth, objectSize, strideLength, filterLength,
-		outputDiffData.data(), maxIndices.data(), expectedDiff.data() );
+	maxOverTimeBackwardNaive( sourceBatchLength, batchWidth, objectSize, strideLength, filterLength,
+		resultDiffData.data(), maxIndices.data(), expectedDiff.data() );
 
-	for( int i = 0; i < inputSize; i++ ) {
+	for( int i = 0; i < sourceSize; i++ ) {
 		ASSERT_TRUE( FloatEq( expectedDiff[i], actualDiff[i] ) );
 	}
 }
