@@ -42,15 +42,15 @@ private:
 	struct CMNv3BlockInfo {
 		CLayerOutput<> InputData{};
 		CConvLayer* ExpandConv = nullptr;
-		CActivationDesc ExpandActivation{ AF_Linear, CLinearLayer::CParam{ 1.f, 0.f } };
+		CActivationDesc ExpandActivation{ AF_None };
 		CBaseLayer* PreSELayer = nullptr;
 		CChannelwiseConvLayer* Channelwise = nullptr;
-		CActivationDesc ChannelwisePreSEActivation{ AF_Linear, CLinearLayer::CParam{ 1.f, 0.f } };
+		CActivationDesc ChannelwisePreSEActivation{ AF_None };
 		CGlobalMeanPoolingLayer* SEPooling = nullptr;
 		CBaseLayer* SEFirstFc = nullptr;
 		CBaseLayer* SESecondActivation = nullptr;
 		CLayerInput<> SEMulVectorInput{};
-		CActivationDesc ChannelwisePostSEActivation{ AF_Linear, CLinearLayer::CParam{ 1.f, 0.f } };
+		CActivationDesc ChannelwisePostSEActivation{ AF_None };
 		CConvLayer* DownConv = nullptr;
 		CBaseLayer* Residual = nullptr;
 	};
@@ -68,7 +68,7 @@ private:
 
 	bool isValidSEMul( CBaseLayer& layer ) const;
 	bool isValid1x1Conv( CBaseLayer* conv ) const;
-	bool isValidBlockActivation( CBaseLayer& layer ) const;
+	bool isValidBlockActivation( CBaseLayer& layer, CActivationDesc& desc ) const;
 	bool isValidSEActivation( CBaseLayer& layer ) const;
 	bool isValidChannelwise( CChannelwiseConvLayer& channelwise ) const;
 

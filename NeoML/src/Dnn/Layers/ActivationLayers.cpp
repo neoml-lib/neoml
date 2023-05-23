@@ -34,7 +34,7 @@ static CPtr<CBaseLayer> createActivationWithParam( IMathEngine& mathEngine, cons
 
 CPtr<CBaseLayer> CreateActivationLayer( IMathEngine& mathEngine, const CActivationDesc& desc )
 {
-	static_assert( AF_Count == 15, "AF_Count != 15" );
+	static_assert( AF_Count == 16, "AF_Count != 16" );
 	switch( desc.GetType() ) {
 		case AF_Linear:
 			return createActivationWithParam<CLinearLayer>( mathEngine, desc );
@@ -66,10 +66,11 @@ CPtr<CBaseLayer> CreateActivationLayer( IMathEngine& mathEngine, const CActivati
 			return FINE_DEBUG_NEW CLogLayer( mathEngine );
 		case AF_Erf:
 			return FINE_DEBUG_NEW CErfLayer( mathEngine );
+		case AF_None:
 		default:
 			NeoAssert( false );
 	}
-	return 0;
+	return nullptr;
 }
 
 void StoreActivationDesc( const CActivationDesc& desc, CArchive& archive )
@@ -109,6 +110,7 @@ void StoreActivationDesc( const CActivationDesc& desc, CArchive& archive )
 		case AF_Exp:
 		case AF_Log:
 		case AF_Erf:
+		case AF_None:
 			break;
 		default:
 			NeoAssert( false );
@@ -181,6 +183,7 @@ CActivationDesc LoadActivationDesc( CArchive& archive )
 		case AF_Exp:
 		case AF_Log:
 		case AF_Erf:
+		case AF_None:
 			break;
 		default:
 			NeoAssert( false );

@@ -35,9 +35,9 @@ CMobileNetV3PreSEBlockLayer::CMobileNetV3PreSEBlockLayer( IMathEngine& mathEngin
 	convDesc( nullptr )
 {
 	NeoAssert( expandActivation.GetType() == AF_ReLU || expandActivation.GetType() == AF_HSwish
-		|| expandActivation.GetType() == AF_Linear );
+		|| expandActivation.GetType() == AF_None );
 	NeoAssert( channelwiseActivation.GetType() == AF_ReLU || channelwiseActivation.GetType() == AF_HSwish
-		|| channelwiseActivation.GetType() == AF_Linear );
+		|| channelwiseActivation.GetType() == AF_None );
 	paramBlobs.SetSize( P_Count );
 	paramBlobs[P_ExpandFilter] = MobileNetParam( expandFilter );
 	paramBlobs[P_ExpandFreeTerm] = MobileNetFreeTerm( expandFreeTerm );
@@ -82,11 +82,11 @@ CPtr<CDnnBlob> CMobileNetV3PreSEBlockLayer::ChannelwiseFreeTerm() const
 	return MobileNetParam( paramBlobs[P_ChannelwiseFreeTerm] );
 }
 
-static const int MobileNetV3PreSEBlockLayerVersion = 0;
+static const int MobileNetV3PreSEBlockLayerVersion = 1;
 
 void CMobileNetV3PreSEBlockLayer::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion( MobileNetV3PreSEBlockLayerVersion );
+	const int version = archive.SerializeVersion( MobileNetV3PreSEBlockLayerVersion );
 	CBaseLayer::Serialize( archive );
 
 	archive.Serialize( stride );
@@ -94,10 +94,22 @@ void CMobileNetV3PreSEBlockLayer::Serialize( CArchive& archive )
 	if( archive.IsLoading() ) {
 		expandActivation = LoadActivationDesc( archive );
 		channelwiseActivation = LoadActivationDesc( archive );
+
+		// In v0 AF_Linear meant "no activation"
+		// Let's fix that
+		if( version == 0 ) {
+			if( expandActivation.GetType() == AF_Linear ) {
+				expandActivation = CActivationDesc( AF_None );
+			}
+			if( channelwiseActivation.GetType() == AF_Linear ) {
+				channelwiseActivation = CActivationDesc( AF_None );
+			}
+		}
+
 		NeoAssert( expandActivation.GetType() == AF_ReLU || expandActivation.GetType() == AF_HSwish
-			|| expandActivation.GetType() == AF_Linear );
+			|| expandActivation.GetType() == AF_None );
 		NeoAssert( channelwiseActivation.GetType() == AF_ReLU || channelwiseActivation.GetType() == AF_HSwish
-			|| channelwiseActivation.GetType() == AF_Linear );
+			|| channelwiseActivation.GetType() == AF_None );
 	} else {
 		StoreActivationDesc( expandActivation, archive );
 		StoreActivationDesc( channelwiseActivation, archive );
@@ -183,7 +195,7 @@ CMobileNetV3PostSEBlockLayer::CMobileNetV3PostSEBlockLayer( IMathEngine& mathEng
 	CBaseLayer( mathEngine, "MobileNetV3PostSEBlock", false ),
 	activation( activation )
 {
-	NeoAssert( activation.GetType() == AF_ReLU || activation.GetType() == AF_HSwish || activation.GetType() == AF_Linear );
+	NeoAssert( activation.GetType() == AF_ReLU || activation.GetType() == AF_HSwish || activation.GetType() == AF_None );
 	paramBlobs.SetSize( P_Count );
 	paramBlobs[P_DownFilter] = MobileNetParam( downFilter );
 	paramBlobs[P_DownFreeTerm] = MobileNetFreeTerm( downFreeTerm );
@@ -206,17 +218,22 @@ CPtr<CDnnBlob> CMobileNetV3PostSEBlockLayer::DownFreeTerm() const
 	return MobileNetParam( paramBlobs[P_DownFreeTerm] );
 }
 
-static const int MobileNetV3PostSEBlockLayerVersion = 0;
+static const int MobileNetV3PostSEBlockLayerVersion = 1;
 
 void CMobileNetV3PostSEBlockLayer::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion( MobileNetV3PostSEBlockLayerVersion );
+	const int version = archive.SerializeVersion( MobileNetV3PostSEBlockLayerVersion );
 	CBaseLayer::Serialize( archive );
 
 	if( archive.IsLoading() ) {
 		activation = LoadActivationDesc( archive );
+		// In v0 AF_Linear meant "no activation"
+		// Let's fix that
+		if( version == 0 && activation.GetType() == AF_Linear ) {
+			activation = CActivationDesc( AF_None );
+		}
 		check( activation.GetType() == AF_ReLU || activation.GetType() == AF_HSwish
-			|| activation.GetType() == AF_Linear, ERR_BAD_ARCHIVE, archive.Name() );
+			|| activation.GetType() == AF_None, ERR_BAD_ARCHIVE, archive.Name() );
 	} else {
 		StoreActivationDesc( activation, archive );
 	}

@@ -137,6 +137,8 @@ void CCudaMathEngine::ChannelwiseWith1x1( const CBlobDesc& inputDesc, const CBlo
 	TActivationFunction activation, float activationParam, const CConstFloatHandle& convFilter,
 	const CConstFloatHandle* convFreeTerm, bool residual, const CFloatHandle& outputHandle )
 {
+	PRESUME_EXPR( activation == AF_ReLU || activation == AF_HSwish || activation == AF_None );
+
 	SetCudaDevice( device->DeviceNumber );
 	const CCudaChannelwiseConvolutionDescInternal& desc = static_cast<const CCudaChannelwiseConvolutionDesc&>( convDesc ).Internal;
 	const int inputChannels = desc.Source.Channels();
@@ -179,6 +181,9 @@ void CCudaMathEngine::MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobD
 	float channelwiseActivationParam, const CConstFloatHandle& downFilter, const CConstFloatHandle* downFreeTerm,
 	bool residual, const CFloatHandle& outputHandle )
 {
+	PRESUME_EXPR( expandActivation == AF_ReLU || expandActivation == AF_HSwish || expandActivation == AF_None );
+	PRESUME_EXPR( channelwiseActivation == AF_ReLU || channelwiseActivation == AF_HSwish || channelwiseActivation == AF_None );
+
 	SetCudaDevice( device->DeviceNumber );
 	const CCudaChannelwiseConvolutionDescInternal& desc = static_cast<const CCudaChannelwiseConvolutionDesc&>( convDesc ).Internal;
 
@@ -238,6 +243,9 @@ void CCudaMathEngine::MobileNetV3PreSEBlock( const CBlobDesc& inputDesc, const C
 	const CConstFloatHandle* channelwiseFreeTerm, TActivationFunction channelwiseActivation,
 	float channelwiseActivationParam, const CFloatHandle& outputHandle )
 {
+	PRESUME_EXPR( expandActivation == AF_ReLU || expandActivation == AF_HSwish || expandActivation == AF_None );
+	PRESUME_EXPR( channelwiseActivation == AF_ReLU || channelwiseActivation == AF_HSwish || channelwiseActivation == AF_None );
+
 	SetCudaDevice( device->DeviceNumber );
 	const CCudaChannelwiseConvolutionDescInternal& desc = static_cast<const CCudaChannelwiseConvolutionDesc&>( convDesc ).Internal;
 
@@ -278,6 +286,8 @@ void CCudaMathEngine::MobileNetV3PostSEBlock( const CBlobDesc& channelwiseOutput
 	const CConstFloatHandle& downFilterHandle, const CConstFloatHandle* downFreeTermHandle,
 	const CFloatHandle& outputHandle )
 {
+	PRESUME_EXPR( activation == AF_ReLU || activation == AF_HSwish || activation == AF_None );
+
 	const int batchSize = channelwiseOutputDesc.ObjectCount();
 	const int geomSize = channelwiseOutputDesc.GeometricalSize();
 	const int inputChannels = channelwiseOutputDesc.Channels();

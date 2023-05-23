@@ -453,7 +453,7 @@ Param CActivationDesc::GetParam() const {
 
 template <class T>
 void CActivationDesc::assertIsTypeCompatible() const {
-	static_assert( AF_Count == 15, "AF_Count != 15" );
+	static_assert( AF_Count == 16, "AF_Count != 16" );
 
 	// compile-time check: something not even looking like CParam is given.
 	static_assert( std::is_same<CLinearLayer::CParam, T>::value || 
@@ -496,6 +496,7 @@ void CActivationDesc::assertIsTypeCompatible() const {
 		case AF_Exp:
 		case AF_Log:
 		case AF_Erf:
+		case AF_None:
 		default:
 			isSame = false;
 	}

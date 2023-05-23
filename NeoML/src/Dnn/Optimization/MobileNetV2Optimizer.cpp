@@ -63,20 +63,20 @@ int CMobileNetV2Optimizer::optimizeNonResidualBlocks()
 		}
 		graph.SelectLayer( *channelwise );
 
-		CBaseLayer* expandActivation = graph.SelectConnectedOutput<>( *channelwise, 0, true ).Layer;
-		if( expandActivation == nullptr || !isValidActivation( *expandActivation ) ) {
+		CBaseLayer* expandActivationLayer = graph.SelectConnectedOutput<>( *channelwise, 0, true ).Layer;
+		CActivationDesc expandActivationDesc( AF_None );
+		if( expandActivationLayer == nullptr || !isValidActivation( *expandActivationLayer, expandActivationDesc ) ) {
 			continue;
 		}
 
-		CConvLayer* expandConv = graph.SelectConnectedOutput<CConvLayer>( *expandActivation, 0, true ).Layer;
+		CConvLayer* expandConv = graph.SelectConnectedOutput<CConvLayer>( *expandActivationLayer, 0, true ).Layer;
 		if( expandConv == nullptr || !isValid1x1Conv( *expandConv ) ) {
 			continue;
 		}
 
 		CLayerOutput<> mobileNetBlockData = graph.GetConnectedOutput<>( *expandConv, 0 );
 		CPtr<CMobileNetV2BlockLayer> mobileNetV2Block = new CMobileNetV2BlockLayer( graph.MathEngine(),
-			expandConv->GetFilterData(), expandConv->GetFreeTermData(),
-			dynamic_cast<IActivationLayer*>( expandActivation )->GetDesc(),
+			expandConv->GetFilterData(), expandConv->GetFreeTermData(), expandActivationDesc,
 			channelwise->Stride(), channelwise->ChannelwiseFilter(), channelwise->ChannelwiseFreeTerm(),
 			channelwise->Activation(), channelwise->ConvFilter(), channelwise->ConvFreeTerm(), false );
 		mobileNetV2Block->SetName( graph.GetUniqueName( "MobileNetV2Block" ) );
@@ -167,16 +167,19 @@ bool CMobileNetV2Optimizer::isValid1x1Conv( CConvLayer& conv ) const
 }
 
 // Checks that layer meets the criteria for activation function inside MobileNetV2 block
-bool CMobileNetV2Optimizer::isValidActivation( CBaseLayer& layer ) const
+bool CMobileNetV2Optimizer::isValidActivation( CBaseLayer& layer, CActivationDesc& desc ) const
 {
 	if( graph.GetInputCount( layer ) != 1 ) {
 		return false;
 	}
 
 	if( dynamic_cast<CReLULayer*>( &layer ) != nullptr || dynamic_cast<CHSwishLayer*>( &layer ) != nullptr ) {
+		desc = dynamic_cast<IActivationLayer*>( &layer )->GetDesc();
 		return true;
 	}
 
+	// Trivial linear == no activation
+	desc = CActivationDesc( AF_None );
 	CLinearLayer* linear = dynamic_cast<CLinearLayer*>( &layer );
 	return linear != nullptr && linear->GetFreeTerm() == 0 && linear->GetMultiplier() == 1;
 }

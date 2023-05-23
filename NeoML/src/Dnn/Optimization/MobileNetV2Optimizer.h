@@ -18,6 +18,7 @@ limitations under the License.
 namespace NeoML {
 
 // Forward declaration(s)
+class CActivationDesc;
 class CBaseLayer;
 class CConvLayer;
 class CChannelwiseConvLayer;
@@ -45,7 +46,7 @@ private:
 	int optimizeResidualConnections();
 
 	bool isValid1x1Conv( CConvLayer& conv ) const;
-	bool isValidActivation( CBaseLayer& layer ) const;
+	bool isValidActivation( CBaseLayer& layer, CActivationDesc& desc ) const;
 };
 
 } // namespace optimization

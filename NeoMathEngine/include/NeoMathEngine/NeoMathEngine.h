@@ -48,6 +48,7 @@ enum TActivationFunction {
 	AF_Exp,
 	AF_Log,
 	AF_Erf,
+	AF_None, // Special value which means "no activation"
 
 	AF_Count
 };

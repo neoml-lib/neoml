@@ -37,9 +37,9 @@ CMobileNetV2BlockLayer::CMobileNetV2BlockLayer( IMathEngine& mathEngine, const C
 	convDesc( nullptr )
 {
 	NeoAssert( expandActivation.GetType() == AF_ReLU || expandActivation.GetType() == AF_HSwish
-		|| expandActivation.GetType() == AF_Linear );
+		|| expandActivation.GetType() == AF_None );
 	NeoAssert( channelwiseActivation.GetType() == AF_ReLU || channelwiseActivation.GetType() == AF_HSwish
-		|| channelwiseActivation.GetType() == AF_Linear );
+		|| channelwiseActivation.GetType() == AF_None );
 	paramBlobs.SetSize( P_Count );
 	paramBlobs[P_ExpandFilter] = MobileNetParam( expandFilter );
 	paramBlobs[P_ExpandFreeTerm] = MobileNetFreeTerm( expandFreeTerm );
@@ -107,7 +107,7 @@ void CMobileNetV2BlockLayer::SetResidual( bool newValue )
 	ForceReshape();
 }
 
-static const int MobileNetV2BlockLayerVersion = 1;
+static const int MobileNetV2BlockLayerVersion = 2;
 
 void CMobileNetV2BlockLayer::Serialize( CArchive& archive )
 {
@@ -131,10 +131,22 @@ void CMobileNetV2BlockLayer::Serialize( CArchive& archive )
 	if( archive.IsLoading() ) {
 		expandActivation = LoadActivationDesc( archive );
 		channelwiseActivation = LoadActivationDesc( archive );
+
+		// In v1 AF_Linear meant "no activation"
+		// Let's fix that
+		if( version < 2 ) {
+			if( expandActivation.GetType() == AF_Linear ) {
+				expandActivation = CActivationDesc( AF_None );
+			}
+			if( channelwiseActivation.GetType() == AF_Linear ) {
+				channelwiseActivation = CActivationDesc( AF_None );
+			}
+		}
+
 		NeoAssert( expandActivation.GetType() == AF_ReLU || expandActivation.GetType() == AF_HSwish
-			|| channelwiseActivation.GetType() == AF_Linear );
+			|| channelwiseActivation.GetType() == AF_None );
 		NeoAssert( channelwiseActivation.GetType() == AF_ReLU || channelwiseActivation.GetType() == AF_HSwish
-			|| channelwiseActivation.GetType() == AF_Linear );
+			|| channelwiseActivation.GetType() == AF_None );
 	} else {
 		StoreActivationDesc( expandActivation, archive );
 		StoreActivationDesc( channelwiseActivation, archive );

@@ -771,6 +771,8 @@ void CCpuMathEngine::ChannelwiseWith1x1( const CBlobDesc& inputDesc, const CBlob
 	TActivationFunction activation, float activationParam, const CConstFloatHandle& convFilterData,
 	const CConstFloatHandle* convFreeTermData, bool residual, const CFloatHandle& outputHandle )
 {
+	PRESUME_EXPR( activation == AF_ReLU || activation == AF_HSwish );
+
 	CCpuExecutionScope scope;
 	const CCommonChannelwiseConvolutionDesc& desc = static_cast<const CCommonChannelwiseConvolutionDesc&>( convDesc );
 
@@ -867,6 +869,9 @@ void CCpuMathEngine::MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobDe
 	float channelwiseActivationParam, const CConstFloatHandle& downFilterData, const CConstFloatHandle* downFreeTermData,
 	bool residual, const CFloatHandle& outputHandle )
 {
+	PRESUME_EXPR( expandActivation == AF_ReLU || expandActivation == AF_HSwish || expandActivation == AF_None );
+	PRESUME_EXPR( channelwiseActivation == AF_ReLU || channelwiseActivation == AF_HSwish || channelwiseActivation == AF_None );
+
 	CCpuExecutionScope scope;
 	const CCommonChannelwiseConvolutionDesc& desc = static_cast<const CCommonChannelwiseConvolutionDesc&>( convDesc );
 
@@ -1023,6 +1028,9 @@ void CCpuMathEngine::MobileNetV3PreSEBlock( const CBlobDesc& inputDesc, const CB
 	const CConstFloatHandle* channelwiseFreeTermData, TActivationFunction channelwiseActivation,
 	float channelwiseActivationParam, const CFloatHandle& outputHandle )
 {
+	PRESUME_EXPR( expandActivation == AF_ReLU || expandActivation == AF_HSwish || expandActivation == AF_None );
+	PRESUME_EXPR( channelwiseActivation == AF_ReLU || channelwiseActivation == AF_HSwish || channelwiseActivation == AF_None );
+
 	CCpuExecutionScope scope;
 	const CCommonChannelwiseConvolutionDesc& desc = static_cast<const CCommonChannelwiseConvolutionDesc&>( convDesc );
 
@@ -1159,6 +1167,8 @@ void CCpuMathEngine::MobileNetV3PostSEBlock( const CBlobDesc& channelwiseOutputD
 	const CConstFloatHandle& downFilterHandle, const CConstFloatHandle* downFreeTermHandle,
 	const CFloatHandle& outputHandle )
 {
+	PRESUME_EXPR( activation == AF_ReLU || activation == AF_HSwish || activation == AF_None );
+
 	CCpuExecutionScope scope;
 	const int inputChannels = channelwiseOutputDesc.Channels();
 	const int width = channelwiseOutputDesc.Width();
