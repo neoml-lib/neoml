@@ -3077,7 +3077,7 @@ static void setSpecificParams(CMobileNetV3PreSEBlockLayer& layer)
 	layer.SetStride( 2 );
 	layer.SetChannelwiseFilter( generateBlob( 1, 3, 3, 1, expandChannels ) );
 	layer.SetChannelwiseFreeTerm( nullptr );
-	layer.SetChannelwiseActivation( CActivationDesc( AF_Linear, CLinearLayer::CParam{ 1.f, 0.f } ) );
+	layer.SetChannelwiseActivation( CActivationDesc( AF_None ) );
 }
 
 GTEST_TEST( SerializeToFile, MobileNetV3PreSEBlockLayerSerialization )
@@ -3101,9 +3101,7 @@ inline void checkSpecificParams<CMobileNetV3PreSEBlockLayer>( CMobileNetV3PreSEB
 	EXPECT_EQ( 2, layer.Stride() );
 	checkBlob( *layer.ChannelwiseFilter(), 3 * 3 * expandChannels );
 	EXPECT_EQ( nullptr, layer.ChannelwiseFreeTerm() );
-	EXPECT_EQ( AF_Linear, layer.ChannelwiseActivation().GetType() );
-	EXPECT_FLOAT_EQ( 1.f, layer.ChannelwiseActivation().GetParam<CLinearLayer::CParam>().Multiplier );
-	EXPECT_FLOAT_EQ( 0.f, layer.ChannelwiseActivation().GetParam<CLinearLayer::CParam>().FreeTerm );
+	EXPECT_EQ( AF_None, layer.ChannelwiseActivation().GetType() );
 }
 
 GTEST_TEST( SerializeFromFile, MobileNetV3PreSEBlockLayerSerialization )
