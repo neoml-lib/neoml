@@ -149,5 +149,11 @@ protected:
 	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
 };
 
+// HardSwish operator
+class CHardSwishOperator : public CActivationOperatorBase {
+public:
+	CHardSwishOperator( const onnx::NodeProto& hardSwish, int opsetVersion );
+};
+
 } // namespace NeoOnnx
 
