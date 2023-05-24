@@ -197,7 +197,7 @@ const int CBlobConvolution<FltCnt>::NarrowBatchKernelWidth = INT_MAX;
 
 class CBlobConvolutionFabric : public CCrtAllocatedObject {
 public:
-    static bool IsBlobConvolutionAvailable( int FltCnt, int FltH, int FltW );
+    static bool IsBlobConvolutionAvailable( int SrcPixelCnt, int FltCnt, int FltH, int FltW );
     static std::unique_ptr<CBlobConvolutionBase> GetProperInstance(
         IMathEngine* mathEngine, int FltCnt,
         int channelCount, int filterHeight, int filterWidth, int sourceHeight, int sourceWidth,
