@@ -19,8 +19,6 @@ limitations under the License.
 #include <UnigramEncoder.h>
 #include <SubwordDecoder.h>
 #include <NeoML/TraditionalML/GraphGenerator.h>
-#include <NeoML/TraditionalML/LdGraph.h>
-#include <cfloat>
 
 namespace NeoML {
 
@@ -28,96 +26,18 @@ REGISTER_NEOML_MODEL( CUnigramEncoder, UnigramEncoderModelName )
 
 const CString CUnigramEncoder::unkTokenName( "<UNK>" );
 
-CArchive& operator>>( CArchive& archive, IUnigramEncoder::CSubtoken& token )
+CArchive& operator>>( CArchive& archive, IUnigramEncoder::CSubword& token )
 {
 	archive.Serialize( token.Text );
 	archive.Serialize( token.Score );
 	return archive;
 }
 
-CArchive& operator<<( CArchive& archive, IUnigramEncoder::CSubtoken& token )
+CArchive& operator<<( CArchive& archive, IUnigramEncoder::CSubword& token )
 {
 	archive.Serialize( token.Text );
 	archive.Serialize( token.Score );
 	return archive;
-}
-
-// ----------------
-
-// Edge in CTokenLdGraph i.e. token from the vocabulary
-struct CTokenLdGraphArc {
-	using Quality = double;
-
-	CTokenLdGraphArc() = default;
-	CTokenLdGraphArc( int begin, int end, const IUnigramEncoder::CSubtoken* arc ) :
-		Begin( begin ), End( end ), Arc( arc )
-	{
-		if( arc != nullptr ) {
-			Cost = arc->Score;
-		}
-	}
-
-	int Begin = -1;
-	int End = 1;
-	double Cost = -10;
-	const IUnigramEncoder::CSubtoken* Arc = nullptr;
-
-	// CLdGraph
-	int InitialCoord() const { return Begin; }
-	int FinalCoord() const { return End; }
-	Quality ArcQuality() const { return Cost; }
-};
-
-// Graph represents all possible tokenizations (splits) of some word
-class CTokenLdGraph : public CLdGraph<CTokenLdGraphArc> {
-public:
-	using GraphArc = CTokenLdGraphArc;
-
-	CTokenLdGraph() = default;
-	explicit CTokenLdGraph( const CString& _text ) :
-		CLdGraph( 0, max( 1, _text.Length() ) ) {}
-	~CTokenLdGraph() override { DetachAll(); }
-};
-
-// create LdGraph with all possible splits of 'input' word
-static void fillTokenLdGraphFromTrie( const CString& input,
-	const CTrieNode<const IUnigramEncoder::CSubtoken>* trie,
-	CPointerArray<CTokenLdGraphArc>& tokenSegments,
-	CTokenLdGraph& tokenStructure )
-{
-	CArray<bool> isSymbolCovered;
-	isSymbolCovered.Add( false, input.Length() );
-
-	// traverse trie with 'input' to find all terminals (subtokens)
-	for( int begin = 0; begin < input.Length(); ++begin ) {
-		const auto* triePos = trie;
-		for( int i = begin; i < input.Length(); ++i ) {
-			triePos = triePos->Go( input[i] );
-			if( triePos == nullptr ) {
-				break;
-			}
-			const auto* token = triePos->Get();
-			if( token != nullptr ) {
-				tokenSegments.Add( new CTokenLdGraphArc( begin, i + 1, token ) );
-				tokenStructure.InsertArc( tokenSegments.Last() );
-				for( int pos = begin; pos <= i; ++pos ) {
-					isSymbolCovered[pos] = true;
-				}
-			}
-		}
-	}
-
-	// cover unknown letters with <UNK> symbol
-	const auto* unkToken = trie->Get();
-	NeoAssert( unkToken != nullptr );
-	for( int i = 0; i < input.Length(); ++i ) {
-		if( !isSymbolCovered[i] ) {
-			tokenSegments.Add( new CTokenLdGraphArc( i, i + 1, unkToken ) );
-			tokenStructure.InsertArc( tokenSegments.Last() );
-		}
-	}
-
-	tokenStructure.CalculateBestPathQuality( -FLT_MAX / 2 );
 }
 
 // ----------------
@@ -126,29 +46,30 @@ void CUnigramEncoder::Decode( const CArray<int>& tokenIds, CArray<CString>& word
 {
 	NeoAssert( IsInitialized() );
 	if( decoder == nullptr ) {
-		CMap<int, CString> idToToken;
-		GetIdToTokenMapping( idToToken );
-		decoder = std::make_unique<CSubwordDecoder>( params, std::move( idToToken ) );
+		CMap<int, CString> idToTokenOut;
+		GetIdToTokenMapping( idToTokenOut );
+		decoder = std::make_unique<CSubwordDecoder>( params, std::move( idToTokenOut ) );
 	}
 	decoder->Decode( tokenIds, words );
 }
 
 void CUnigramEncoder::Serialize( CArchive& archive )
 {
-	ClearCache();
+	archive.SerializeVersion( 0 );
 
 	params.Serialize( archive );
-	tokenStorage.Serialize( archive );
+	idToToken.Serialize( archive );
+	NeoAssert( !idToToken.IsEmpty() );
 
 	if( archive.IsLoading() ) {
 		tokenTrie.DeleteAll();
 		tokenToId.DeleteAll();
 
-		tokenTrie.Add( "", tokenStorage[0] );
-		for( int i = 1; i < tokenStorage.Size(); ++i ) {
-			const auto* token = tokenStorage[i];
-			tokenToId.Add( token->Text, tokenStorage.Size() );
-			tokenTrie.Add( token->Text, token );
+		tokenTrie.Set( idToToken[0] );
+		for( int i = 1; i < idToToken.Size(); ++i ) {
+			auto* token = idToToken[i];
+			tokenToId.Add( token->Text, i + UnknownTokenId() );
+			tokenTrie.Add( token->Text )->Set( token );
 		}
 	}
 }
@@ -157,18 +78,14 @@ void CUnigramEncoder::GetIdToTokenMapping( CMap<int, CString>& output ) const
 {
 	output.DeleteAll();
 	output.SetHashTableSize( Size() );
-	for( int i = 0; i < tokenStorage.Size(); ++i ) {
-		output.Add( i + UnknownTokenId(), tokenStorage[i]->Text );
+	for( int i = 0; i < idToToken.Size(); ++i ) {
+		output.Add( i + UnknownTokenId(), idToToken[i]->Text );
 	}
 }
 
 void CUnigramEncoder::GetTokenToIdMapping( CMap<CString, int>& output ) const
 {
-	output.DeleteAll();
-	output.SetHashTableSize( Size() );
-	for( int i = 0; i < tokenStorage.Size(); ++i ) {
-		output.Add( tokenStorage[i]->Text, i + UnknownTokenId() );
-	}
+	tokenToId.CopyTo( output );
 }
 
 void CUnigramEncoder::Initialize( const CUnigramDictionary& tokens, const CParams& _params )
@@ -176,22 +93,30 @@ void CUnigramEncoder::Initialize( const CUnigramDictionary& tokens, const CParam
 	NeoAssert( !IsInitialized() );
 	params = _params;
 
-	tokenStorage.Add( new CSubtoken( unkTokenName, unkTokenScore ) );
-	tokenTrie.Add( "", tokenStorage[0] );
+	idToToken.SetBufferSize( tokens.Size() + 1 );
+
+	idToToken.Add( new CSubword( unkTokenName, unkTokenScore ) );
+	tokenTrie.Set( idToToken[0] );
 
 	for( const auto& token : tokens ) {
-		tokenToId.Add( token.Text, tokenStorage.Size() );
-		tokenStorage.Add( new CSubtoken( token ) );
-		tokenTrie.Add( token.Text, tokenStorage.Last() );
+		idToToken.Add( new CSubword( token ) );
+	}
+	idToToken.QuickSort<DescendingPtrByMember<CSubword, double, &CSubword::Score>>();
+
+	for( int i = 1; i < idToToken.Size(); ++i ) {
+		const auto& token = *idToToken[i];
+		NeoAssert( !tokenToId.Has( token.Text ) );
+		tokenToId.Add( token.Text, i + UnknownTokenId() );
+		tokenTrie.Add( token.Text )->Set( idToToken.Last() );
 	}
 }
 
 void CUnigramEncoder::GetDictionary( CUnigramDictionary& output ) const
 {
 	output.DeleteAll();
-	output.SetBufferSize( tokenStorage.Size() - 1 );
-	for( int i = 1; i < tokenStorage.Size(); ++i ) {
-		output.Add( { tokenStorage[i]->Text, tokenStorage[i]->Score } );
+	output.SetBufferSize( idToToken.Size() - 1 );
+	for( int i = 1; i < idToToken.Size(); ++i ) {
+		output.Add( { idToToken[i]->Text, idToToken[i]->Score } );
 	}
 }
 
@@ -205,18 +130,18 @@ void CUnigramEncoder::DoEncode( const CString& word, CArray<int>& tokenIds, CArr
 	if( inputWithBorders.IsEmpty() ) {
 		return;
 	}
-	CPointerArray<CTokenLdGraphArc> tokenSegments;
-	CTokenLdGraph tokenStructure( inputWithBorders );
-	fillTokenLdGraphFromTrie( inputWithBorders, &tokenTrie, tokenSegments, tokenStructure );
+	CPointerArray<CSubwordLdGraphArc> tokenSegments;
+	CSubwordLdGraph tokenStructure( inputWithBorders );
+	FillSubwordLdGraphFromTrie( inputWithBorders, &tokenTrie, tokenSegments, tokenStructure );
 
-	CGraphGenerator<CTokenLdGraph> graphGen( &tokenStructure, 0.0, -FLT_MAX / 2 );
+	CGraphGenerator<CSubwordLdGraph> graphGen( &tokenStructure, 0.0, -FLT_MAX / 2 );
 
 	NeoAssert( graphGen.CanGenerateNextPath() );
-	CArray<const CTokenLdGraphArc*> path;
+	CArray<const CSubwordLdGraphArc*> path;
 	graphGen.GetNextPath( path );
-	for( const CTokenLdGraphArc* segment : path ) {
+	for( const CSubwordLdGraphArc* segment : path ) {
 		const CString& tokenText = segment->Arc->Text;
-		tokenIds.Add( getShiftedTokenIndex( tokenText ) );
+		tokenIds.Add( getTokenIndex( tokenText ) );
 		tokenLengths.Add( tokenText.Length() );
 	}
 	tokenLengths[firstTokenPos] -= params.StartOfWordToken.Length();
@@ -224,14 +149,10 @@ void CUnigramEncoder::DoEncode( const CString& word, CArray<int>& tokenIds, CArr
 }
 
 // Returns index of token for encoding.
-int CUnigramEncoder::getShiftedTokenIndex( const CString& token ) const
+int CUnigramEncoder::getTokenIndex( const CString& token ) const
 {
-	int tokenIndex = NotFound;
-	if( tokenToId.Lookup( token, tokenIndex ) ) {
-		return tokenIndex + UnknownTokenId();
-	} else {
-		// Unknown token
-		return UnknownTokenId();
-	}
+	int tokenIndex = UnknownTokenId();
+	tokenToId.Lookup( token, tokenIndex );
+	return tokenIndex;
 }
 } // namespace NeoML
