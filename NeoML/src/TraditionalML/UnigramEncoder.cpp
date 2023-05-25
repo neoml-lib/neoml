@@ -62,6 +62,7 @@ void CUnigramEncoder::Serialize( CArchive& archive )
 	NeoAssert( !idToToken.IsEmpty() );
 
 	if( archive.IsLoading() ) {
+		ClearCache();
 		tokenTrie.DeleteAll();
 		tokenToId.DeleteAll();
 
@@ -86,6 +87,7 @@ void CUnigramEncoder::GetIdToTokenMapping( CMap<int, CString>& output ) const
 void CUnigramEncoder::GetTokenToIdMapping( CMap<CString, int>& output ) const
 {
 	tokenToId.CopyTo( output );
+	output.Add( unkTokenName, UnknownTokenId() );
 }
 
 void CUnigramEncoder::Initialize( const CUnigramDictionary& tokens, const CParams& _params )
@@ -94,14 +96,12 @@ void CUnigramEncoder::Initialize( const CUnigramDictionary& tokens, const CParam
 	params = _params;
 
 	idToToken.SetBufferSize( tokens.Size() + 1 );
-
-	idToToken.Add( new CSubword( unkTokenName, unkTokenScore ) );
-	tokenTrie.Set( idToToken[0] );
-
 	for( const auto& token : tokens ) {
 		idToToken.Add( new CSubword( token ) );
 	}
 	idToToken.QuickSort<DescendingPtrByMember<CSubword, double, &CSubword::Score>>();
+	idToToken.InsertAt( new CSubword( unkTokenName, unkTokenScore ), 0 );
+	tokenTrie.Set( idToToken[0] );
 
 	for( int i = 1; i < idToToken.Size(); ++i ) {
 		const auto& token = *idToToken[i];

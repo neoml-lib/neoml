@@ -59,8 +59,6 @@ static const CString LegacyEowToken( "\\\xFF" );
 
 void CBytePairEncoder::Serialize( CArchive& archive )
 {
-	ClearCache();
-
 	const int version = archive.SerializeVersion( BytePairEncoderImplVersion );
 	if( version >= 1 ) {
 		params.Serialize( archive );
@@ -81,6 +79,7 @@ void CBytePairEncoder::Serialize( CArchive& archive )
 
 	tokens.Serialize( archive );
 	if( archive.IsLoading() ) {
+		ClearCache();
 		tokenToId.DeleteAll();
 		for( int i = 0; i < tokens.Size(); i++ ) {
 			tokenToId.Add( tokens[i], i );
