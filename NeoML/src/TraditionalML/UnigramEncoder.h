@@ -49,7 +49,7 @@ protected:
 
 private:
 	static const CString unkTokenName;
-	static constexpr double unkTokenScore = -10.0;
+	static constexpr double unkTokenScore = -20.0;
 
 	// Encoder parameters
 	CParams params;

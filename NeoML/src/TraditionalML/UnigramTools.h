@@ -21,7 +21,6 @@ limitations under the License.
 #include <cfloat>
 
 namespace NeoML {
-class CSubwordDecoder;
 
 // Trie based on char (CString) letters. Can store any data in nodes
 template <class T>

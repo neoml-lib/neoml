@@ -107,7 +107,7 @@ void CUnigramEncoder::Initialize( const CUnigramDictionary& tokens, const CParam
 		const auto& token = *idToToken[i];
 		NeoAssert( !tokenToId.Has( token.Text ) );
 		tokenToId.Add( token.Text, i + UnknownTokenId() );
-		tokenTrie.Add( token.Text )->Set( idToToken.Last() );
+		tokenTrie.Add( token.Text )->Set( idToToken[i] );
 	}
 }
 
