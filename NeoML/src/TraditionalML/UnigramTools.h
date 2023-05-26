@@ -136,7 +136,8 @@ void FillSubwordLdGraphFromTrie( const CString& word,
 //------------------
 
 template <class T>
-CTrieNode<T>* CTrieNode<T>::Go( char letter ) {
+CTrieNode<T>* CTrieNode<T>::Go( char letter )
+{
 	CTrieNode* res = nullptr;
 	children.Lookup( letter, res );
 	return res;
