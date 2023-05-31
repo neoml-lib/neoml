@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -35,10 +35,11 @@ limitations under the License.
 #include <NeoMathEngine/CrtAllocatedObject.h>
 
 #define DEBUG_ENABLE_AVX2
+
 #ifdef DEBUG_ENABLE_AVX2
 #include "avx2/Avx2Functions.h"
 #include "../CPUInfo.h"
-#endif
+#endif // DEBUG_ENABLE_AVX2
 
 namespace NeoML {
 
@@ -349,7 +350,7 @@ inline void dataCopy(float* dst, const float* src, int vectorSize)
 		NeoML::Avx2::dataCopy( dst, src, vectorSize );
 		return;
 	}
-#endif
+#endif // DEBUG_ENABLE_AVX2
 
 	int sseSize;
 	int nonSseSize;

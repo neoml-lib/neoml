@@ -159,6 +159,13 @@ inline void channelwise1x5( const float* source, const float* filter0, const flo
 
 inline void vectorFill( float* result, float value, int vectorSize )
 {
+#ifdef DEBUG_ENABLE_AVX2
+	if( CCPUInfo::IsAvxAndFmaAvailable() ) {
+		NeoML::Avx2::vectorFill( result, value, vectorSize );
+		return;
+	}
+#endif // DEBUG_ENABLE_AVX2
+
 	int sseSize;
 	int nonSseSize;
 	checkSse(vectorSize, sseSize, nonSseSize);
@@ -231,6 +238,13 @@ inline void vectorFill( int* result, int value, int vectorSize )
 
 inline void vectorFill0( float* result, int vectorSize )
 {
+#ifdef DEBUG_ENABLE_AVX2
+	if( CCPUInfo::IsAvxAndFmaAvailable() ) {
+		NeoML::Avx2::vectorFill0( result, vectorSize );
+		return;
+	}
+#endif // DEBUG_ENABLE_AVX2
+
 	int sseSize;
 	int nonSseSize;
 	checkSse(vectorSize, sseSize, nonSseSize);
@@ -306,6 +320,13 @@ inline void vectorEltwiseMax( const float* first, const float* second, float* re
 
 inline void vectorAdd(const float* first, const float* second, float* result, int vectorSize)
 {
+#ifdef DEBUG_ENABLE_AVX2
+	if( CCPUInfo::IsAvxAndFmaAvailable() ) {
+		NeoML::Avx2::vectorAdd( first, second, result, vectorSize );
+		return;
+	}
+#endif // DEBUG_ENABLE_AVX2
+
 	int sseSize;
 	int nonSseSize;
 	checkSse(vectorSize, sseSize, nonSseSize);
@@ -558,6 +579,13 @@ inline void vectorEltwiseMultiply( const float* first, const float* second, floa
 
 inline void vectorEltwiseMultiply( const float* first, const float* second, float* result, int vectorSize )
 {
+#ifdef DEBUG_ENABLE_AVX2
+	if( CCPUInfo::IsAvxAndFmaAvailable() ) {
+		NeoML::Avx2::vectorEltwiseMultiply( first, second, result, vectorSize );
+		return;
+	}
+#endif // DEBUG_ENABLE_AVX2
+
 	int sseSize;
 	int nonSseSize;
 	checkSse(vectorSize, sseSize, nonSseSize);
@@ -621,6 +649,13 @@ inline void vectorEltwiseMultiply( const int* first, const int* second, int* res
 
 inline void vectorEltwiseMultiplyAdd( const float* first, const float* second, float* result, int vectorSize )
 {
+#ifdef DEBUG_ENABLE_AVX2
+	if( CCPUInfo::IsAvxAndFmaAvailable() ) {
+		NeoML::Avx2::vectorEltwiseMultiplyAdd( first, second, result, vectorSize );
+		return;
+	}
+#endif // DEBUG_ENABLE_AVX2
+
 	int sseSize;
 	int nonSseSize;
 	checkSse(vectorSize, sseSize, nonSseSize);
@@ -668,6 +703,13 @@ inline void vectorEltwiseMultiplyAdd( const float* first, const float* second, f
 
 inline void vectorReLU( const float* first, float* result, int vectorSize )
 {
+#ifdef DEBUG_ENABLE_AVX2
+	if( CCPUInfo::IsAvxAndFmaAvailable() ) {
+		NeoML::Avx2::vectorReLU( first, result, vectorSize );
+		return;
+	}
+#endif // DEBUG_ENABLE_AVX2
+
 	int sseSize;
 	int nonSseSize;
 	checkSse(vectorSize, sseSize, nonSseSize);
@@ -706,6 +748,13 @@ inline void vectorReLU( const float* first, float* result, int vectorSize )
 
 inline void vectorReLU( const float* first, float* result, int vectorSize, float threshold )
 {
+#ifdef DEBUG_ENABLE_AVX2
+	if( CCPUInfo::IsAvxAndFmaAvailable() ) {
+		NeoML::Avx2::vectorReLU( first, result, vectorSize, threshold );
+		return;
+	}
+#endif // DEBUG_ENABLE_AVX2
+
 	int sseSize;
 	int nonSseSize;
 	checkSse(vectorSize, sseSize, nonSseSize);
@@ -1074,6 +1123,13 @@ inline void vectorSigmoid( const float* first, float* result, int vectorSize )
 
 inline void vectorHSwish( const float* first, float* result, int vectorSize )
 {
+#ifdef DEBUG_ENABLE_AVX2
+	if( CCPUInfo::IsAvxAndFmaAvailable() ) {
+		NeoML::Avx2::vectorHSwish( first, result, vectorSize );
+		return;
+	}
+#endif // DEBUG_ENABLE_AVX2
+
 	int sseSize;
 	int nonSseSize;
 	checkSse( vectorSize, sseSize, nonSseSize );
