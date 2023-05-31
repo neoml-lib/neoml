@@ -48,7 +48,6 @@ bool CCPUInfo::HasAvxAndFma = CCPUInfo::IsAvxAndFmaAvailable();
 namespace NeoML {
 
 static int FloatAlignment = CCPUInfo::DefineFloatAlignment();
-static CCPUInfo::TCpuArch CPUArch = CCPUInfo::GetCpuArch();
 
 CCpuMathEngine::CCpuMathEngine( int _threadCount, size_t _memoryLimit,
 		std::shared_ptr<CMultiThreadDistributedCommunicator> communicator,
@@ -67,15 +66,10 @@ CCpuMathEngine::CCpuMathEngine( int _threadCount, size_t _memoryLimit,
 #ifdef NEOML_USE_AVX
 	if( dllLoader.IsLoaded( CDllLoader::AVX_DLL ) ) {
 		simdMathEngine = std::unique_ptr<ISimdMathEngine>( CDllLoader::avxDll->CreateSimdMathEngine( this, threadCount ) );
-		// Don't use custom sgemm function when we are compiled with MKL and when we are on Intel CPU.
-		if( CPUArch == CCPUInfo::TCpuArch::Intel ) {
+		// Don't use custom sgemm function when we are compiled with MKL.
 #ifndef NEOML_USE_MKL
-			customSgemmFunction = simdMathEngine->GetSgemmFunction();
+		customSgemmFunction = simdMathEngine->GetSgemmFunction();
 #endif
-		} else {
-			// Non Intel architectures
-			customSgemmFunction = simdMathEngine->GetSgemmFunction();
-		}
 	}
 #else // NEOML_USE_AVX
 	// warning fix
