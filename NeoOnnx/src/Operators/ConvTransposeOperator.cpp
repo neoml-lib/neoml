@@ -1,4 +1,4 @@
-/* Copyright © 2017-2022 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -56,35 +56,44 @@ void CConvTransposeOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, C
 	CheckNoShapeInputs( inputs );
 
 	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
-	CheckNeoOnnxSupport( inputs[0]->DimCount() == 4, "non-2d convTranspose", *this );
+	const bool isConv2D = ( inputs[0]->DimCount() == 4 );
+	CheckNeoOnnxSupport( isConv2D || inputs[0]->DimCount() == 3, "can be only 1d- or 2d- convTranspose", *this );
 	CheckOnnxProtocol( inputs[1] != nullptr, "input can't be optional", *this );
 	CheckNeoOnnxSupport( inputs[1]->Type() == TTensorType::Data, "user-provided weights", *this );
 	if( InputCount() == 3 && inputs[2] != nullptr ) {
 		CheckNeoOnnxSupport( inputs[2]->Type() == TTensorType::Data, "user-provided bias", *this );
 	}
 
-	CTensorLayout neoMLLayout( { BD_BatchWidth, BD_Channels, BD_Height, BD_Width } );
+	CTensorLayout neoMLLayout = isConv2D
+		? CTensorLayout{ BD_BatchWidth, BD_Channels, BD_Height, BD_Width } //2d- convTranspose
+		: CTensorLayout{ BD_BatchWidth, BD_Channels, BD_Height }; //1d- convTranspose
 	CPtr<const CDataTensor> filter = dynamic_cast<const CDataTensor*>( ConvertTensor( *inputs[1], neoMLLayout ).Ptr() );
+
 	const int filterCount = filter->DimSize( 1 );
+	const int convDims = inputs[0]->DimCount() - 2;
 
 	CTensorShape kernelShape;
 	getConvTransposeKernelShape( inputs[0]->DimCount(), *filter, kernelShape );
+
 	CFastArray<int, 8> strides;
 	getStrides( inputs, strides );
 	CFastArray<int, 8> dilations;
 	getDilations( inputs, dilations );
-	const int convDims = inputs[0]->DimCount() - 2;
 
 	IMathEngine& mathEngine = dnn.GetMathEngine();
 	CPtr<COnnxConvTransposeLayer> transposedConv = new COnnxConvTransposeLayer( mathEngine );
 	transposedConv->SetName( Name() );
 	transposedConv->SetFilterCount( filterCount );
+	//1d- convTranspose
 	transposedConv->SetFilterHeight( kernelShape[0] );
-	transposedConv->SetFilterWidth( kernelShape[1] );
 	transposedConv->SetStrideHeight( strides[0] );
-	transposedConv->SetStrideWidth( strides[1] );
 	transposedConv->SetDilationHeight( dilations[0] );
-	transposedConv->SetDilationWidth( dilations[1] );
+	//2d- convTranspose
+	if( isConv2D ) {
+		transposedConv->SetFilterWidth( kernelShape[1] );
+		transposedConv->SetStrideWidth( strides[1] );
+		transposedConv->SetDilationWidth( dilations[1] );
+	}
 
 	CFastArray<int, 8> pads;
 	GetAttribute( "pads", pads );
