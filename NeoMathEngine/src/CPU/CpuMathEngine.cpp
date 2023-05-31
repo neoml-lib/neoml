@@ -43,6 +43,8 @@ limitations under the License.
 
 #endif // NEOML_USE_MKL
 
+bool CCPUInfo::HasAvxAndFma = CCPUInfo::IsAvxAndFmaAvailable();
+
 namespace NeoML {
 
 static int FloatAlignment = CCPUInfo::DefineFloatAlignment();
