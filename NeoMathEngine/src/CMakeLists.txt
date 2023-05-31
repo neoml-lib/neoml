@@ -52,14 +52,15 @@ target_sources(${PROJECT_NAME}
     MemoryHandleInternal.h
     MemoryPool.h
     RawMemoryManager.h
+    CPU/CpuExecutionScope.h
+    CPU/CpuFunctorCommon.h
+    CPU/CPUInfo.h
     CPU/CpuMathEngine.h
-    CPU/CpuRandom.h
     CPU/CpuMathEnginePrivate.h
     CPU/CpuMathEngineOmp.h
     CPU/CpuMathEngineDnnDistributed.h
     CPU/CpuMathEngineDnnLstm.h
-    CPU/CpuExecutionScope.h
-    CPU/CpuFunctorCommon.h
+    CPU/CpuRandom.h
 
     CPU/MatrixMultiplyingInterleavedCommon/CpuMemoryHelper.h
     CPU/MatrixMultiplyingInterleavedCommon/MatrixMultiplier.h
