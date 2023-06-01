@@ -23,6 +23,8 @@ namespace NeoML {
 
 namespace Avx2 {
 
+static constexpr int vectorThreshold = 32;
+
 void dataCopy( float* dst, const float* src, int vectorSize );
 
 void vectorFill( float* result, float value, int vectorSize );
