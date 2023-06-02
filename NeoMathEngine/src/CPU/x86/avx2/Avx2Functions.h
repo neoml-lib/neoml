@@ -23,7 +23,8 @@ namespace NeoML {
 
 namespace Avx2 {
 
-static constexpr int vectorThreshold = 32;
+// The minimum vector size recommended for using AVX vector functions
+static constexpr int VectorMathMinSize = 32;
 
 void dataCopy( float* dst, const float* src, int vectorSize );
 

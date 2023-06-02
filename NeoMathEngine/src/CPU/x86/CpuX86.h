@@ -341,7 +341,7 @@ inline void dataCopy(float* dst, const float* src, int vectorSize)
 {
 	static_assert( sizeof(float) == sizeof(unsigned int), "Size of float isn't equal to size of unsigned int." );
 
-	if( CCPUInfo::HasAvxAndFma && vectorSize >= NeoML::Avx2::vectorThreshold ) {
+	if( CCPUInfo::HasAvxAndFma && vectorSize >= NeoML::Avx2::VectorMathMinSize ) {
 		NeoML::Avx2::dataCopy( dst, src, vectorSize );
 		return;
 	}
