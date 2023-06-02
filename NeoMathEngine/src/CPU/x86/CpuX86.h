@@ -34,12 +34,8 @@ limitations under the License.
 
 #include <NeoMathEngine/CrtAllocatedObject.h>
 
-#define DEBUG_ENABLE_AVX2
-
-#ifdef DEBUG_ENABLE_AVX2
 #include "avx2/Avx2Functions.h"
 #include "../CPUInfo.h"
-#endif // DEBUG_ENABLE_AVX2
 
 namespace NeoML {
 
@@ -345,12 +341,10 @@ inline void dataCopy(float* dst, const float* src, int vectorSize)
 {
 	static_assert( sizeof(float) == sizeof(unsigned int), "Size of float isn't equal to size of unsigned int." );
 
-#ifdef DEBUG_ENABLE_AVX2
 	if( CCPUInfo::HasAvxAndFma && vectorSize >= NeoML::Avx2::vectorThreshold ) {
 		NeoML::Avx2::dataCopy( dst, src, vectorSize );
 		return;
 	}
-#endif // DEBUG_ENABLE_AVX2
 
 	int sseSize;
 	int nonSseSize;
