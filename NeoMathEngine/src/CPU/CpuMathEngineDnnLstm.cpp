@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -26,30 +26,31 @@ namespace NeoML {
 
 CMathEngineLstmDesc::~CMathEngineLstmDesc() = default;
 
-CLstmDesc* CCpuMathEngine::InitLstm( CLstmDesc* currentDesc, const CFloatHandle& inputFullyConnectedResult, const CFloatHandle& reccurentFullyConnectedResult,
-	int hiddenSize, int objectCount, int objectSize )
+CLstmDesc* CCpuMathEngine::InitLstm( CLstmDesc* currentDesc, const CFloatHandle& inputFullyConnectedResult,
+	const CFloatHandle& reccurentFullyConnectedResult, int hiddenSize, int objectCount, int objectSize )
 {
 	if( currentDesc != nullptr ) {
-		static_cast<CMathEngineLstmDesc*>( currentDesc )->Reset( inputFullyConnectedResult, reccurentFullyConnectedResult,
-			hiddenSize, objectCount, objectSize, this, threadCount );
+		static_cast<CMathEngineLstmDesc*>( currentDesc )->Reset( inputFullyConnectedResult,
+			reccurentFullyConnectedResult, hiddenSize, objectCount, objectSize, this, threadCount );
 		return currentDesc;
 	} else {
-		return new CMathEngineLstmDesc( inputFullyConnectedResult, reccurentFullyConnectedResult,
-			hiddenSize, objectCount, objectSize, this, threadCount );
+		return new CMathEngineLstmDesc( inputFullyConnectedResult,
+			reccurentFullyConnectedResult, hiddenSize, objectCount, objectSize, this, threadCount );
 	}
 }
 
-void CCpuMathEngine::Lstm( CLstmDesc& desc, 
+void CCpuMathEngine::Lstm( CLstmDesc& desc,
 	const CFloatHandle& inputWeights, const CConstFloatHandle& inputFreeTerm,
 	const CFloatHandle& recurrentWeights, const CConstFloatHandle& recurrentFreeTerm,
 	const CConstFloatHandle& inputStateBackLink, const CConstFloatHandle& inputMainBackLink, const CConstFloatHandle& input,
 	const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink )
 {
-	CMathEngineLstmDesc& lstmDesc = dynamic_cast< CMathEngineLstmDesc& >( desc );
+	CMathEngineLstmDesc& lstmDesc = dynamic_cast<CMathEngineLstmDesc&>( desc );
 
 	auto fullyConnectedRunOnce = [&]( const CConstFloatHandle& input, int inputHeight, int inputWidth,
 		const CFloatHandle& weights, int weightHeight, int weightsWidth,
-		const CFloatHandle& output, const CConstFloatHandle& freeTerm ) {
+		const CFloatHandle& output, const CConstFloatHandle& freeTerm )
+	{
 		MultiplyMatrixByTransposedMatrix( input, inputHeight, inputWidth, inputWidth,
 			weights, weightsWidth, weightHeight,
 			output, weightsWidth, inputHeight * weightsWidth );

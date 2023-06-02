@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -85,7 +85,7 @@ void CLstmOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArr
 	blobDesc.SetDimSize( BD_Channels, weights->GetDataSize() / blobDesc.BatchWidth() );
 	weights->ReinterpretDimensions( blobDesc );
 	blobDesc.SetDimSize( BD_Channels, hiddenSize );
-	
+
 	CheckNeoOnnxSupport( inputs[2] != nullptr && inputs[2]->Type() == TTensorType::Data,
 		"User-provided recurrent weight", *this );
 	CPtr<CDnnBlob> recurWeights = dynamic_cast<const CDataTensor*>( inputs[2].Ptr() )->Data()->GetCopy();
@@ -146,7 +146,7 @@ CPtr<CDnnBlob> CLstmOperator::reorderGates( CPtr<CDnnBlob> blob, TBlobDim dim ) 
 
 	CBlobDesc gateWeightDesc = blob->GetDesc();
 	gateWeightDesc.SetDimSize( dim, gateWeightDesc.DimSize( dim ) / 4 );
-	
+
 	for( int gateIndex = 0; gateIndex < 4; ++gateIndex ) {
 		onnxGateWeight.Add( CDnnBlob::CreateBlob( mathEngine, gateWeightDesc ) );
 	}
