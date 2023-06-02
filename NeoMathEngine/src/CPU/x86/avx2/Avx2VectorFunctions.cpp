@@ -45,7 +45,6 @@ namespace NeoML {
 
 namespace Avx2 {
 
-
 void dataCopy( float* dst, const float* src, int vectorSize )
 {
 	while( vectorSize >= 4 * AvxBlockSize ) {
