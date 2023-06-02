@@ -34,7 +34,7 @@ private:
 	// Size of hidden state vector
 	int hiddenSize;
 
-	CPtr<CDnnBlob> reorderGates( CPtr<CDnnBlob> weights, TBlobDim dim ) const;
+	class CParseState;
 };
 
 } // namespace NeoOnnx
