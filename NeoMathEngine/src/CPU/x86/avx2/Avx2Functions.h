@@ -27,9 +27,7 @@ static constexpr int vectorThreshold = 32;
 
 void dataCopy( float* dst, const float* src, int vectorSize );
 
-void vectorFill( float* result, float value, int vectorSize );
-
-void vectorFill0( float* result, int vectorSize );
+void vectorFill( float* result, int vectorSize, float value = 0.f );
 
 void vectorAdd( const float* first, const float* second, float* result, int vectorSize );
 

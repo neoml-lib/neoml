@@ -161,7 +161,7 @@ inline void vectorFill( float* result, float value, int vectorSize )
 {
 #ifdef DEBUG_ENABLE_AVX2
 	if( CCPUInfo::HasAvxAndFma && vectorSize >= NeoML::Avx2::vectorThreshold ) {
-		NeoML::Avx2::vectorFill( result, value, vectorSize );
+		NeoML::Avx2::vectorFill( result, vectorSize, value );
 		return;
 	}
 #endif // DEBUG_ENABLE_AVX2
@@ -240,7 +240,7 @@ inline void vectorFill0( float* result, int vectorSize )
 {
 #ifdef DEBUG_ENABLE_AVX2
 	if( CCPUInfo::HasAvxAndFma && vectorSize >= NeoML::Avx2::vectorThreshold ) {
-		NeoML::Avx2::vectorFill0( result, vectorSize );
+		NeoML::Avx2::vectorFill( result, vectorSize );
 		return;
 	}
 #endif // DEBUG_ENABLE_AVX2
