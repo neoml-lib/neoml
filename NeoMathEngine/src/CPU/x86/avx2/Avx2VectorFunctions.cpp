@@ -36,20 +36,28 @@ static constexpr int AvxBlockSize = 8;
 	_mm256_storeu_ps( dstPtr + 2 * AvxBlockSize, varPrefix##2 ); \
 	_mm256_storeu_ps( dstPtr + 3 * AvxBlockSize, varPrefix##3 )
 
-static const __m256i avxIOMask[AvxBlockSize] = {
-	_mm256_set_epi32( 0, 0, 0, 0, 0, 0, 0, 0 ),
-	_mm256_set_epi32( 0, 0, 0, 0, 0, 0, 0, -1 ),
-	_mm256_set_epi32( 0, 0, 0, 0, 0, 0, -1, -1 ),
-	_mm256_set_epi32( 0, 0, 0, 0, 0, -1, -1, -1 ),
-	_mm256_set_epi32( 0, 0, 0, 0, -1, -1, -1, -1 ),
-	_mm256_set_epi32( 0, 0, 0, -1, -1, -1, -1, -1 ),
-	_mm256_set_epi32( 0, 0, -1, -1, -1, -1, -1, -1 ),
-	_mm256_set_epi32( 0, -1, -1, -1, -1, -1, -1, -1 )
-};
-
 namespace NeoML {
 
 namespace Avx2 {
+
+static __m256i avxIOMask( int elems )
+{
+	switch( elems ) {
+		case 1:
+			return _mm256_set_epi32( 0, 0, 0, 0, 0, 0, 0, -1 );
+		case 2:
+			return _mm256_set_epi32( 0, 0, 0, 0, 0, 0, -1, -1 );
+		case 3:
+			return _mm256_set_epi32( 0, 0, 0, 0, 0, -1, -1, -1 );
+		case 4:
+			return _mm256_set_epi32( 0, 0, 0, 0, -1, -1, -1, -1 );
+		case 5:
+			return _mm256_set_epi32( 0, 0, 0, -1, -1, -1, -1, -1 );
+		case 6:
+			return _mm256_set_epi32( 0, 0, -1, -1, -1, -1, -1, -1 );
+	}
+	return _mm256_set_epi32( 0, -1, -1, -1, -1, -1, -1, -1 );
+}
 
 void dataCopy( float* dst, const float* src, int vectorSize )
 {
@@ -69,8 +77,8 @@ void dataCopy( float* dst, const float* src, int vectorSize )
 	}
 
 	if( vectorSize > 0 ) {
-		_mm256_maskstore_ps( dst, avxIOMask[vectorSize],
-			_mm256_maskload_ps( src, avxIOMask[vectorSize] ) );
+		const __m256i mask = avxIOMask( vectorSize );
+		_mm256_maskstore_ps( dst, mask, _mm256_maskload_ps( src, mask ) );
 	}
 }
 
@@ -94,7 +102,7 @@ void vectorFill( float* result, int vectorSize, float value )
 	}
 
 	if( vectorSize > 0 ) {
-		_mm256_maskstore_ps( result, avxIOMask[vectorSize], valueSimd );
+		_mm256_maskstore_ps( result, avxIOMask( vectorSize ), valueSimd );
 	}
 }
 
@@ -124,9 +132,10 @@ void vectorAdd( const float* first, const float* second, float* result, int vect
 	}
 
 	if( vectorSize > 0 ) {
-		const __m256 firstSimd = _mm256_maskload_ps( first, avxIOMask[vectorSize] );
-		const __m256 secondSimd = _mm256_maskload_ps( second, avxIOMask[vectorSize] );
-		_mm256_maskstore_ps( result, avxIOMask[vectorSize], _mm256_add_ps( firstSimd, secondSimd ) );
+		const __m256i mask = avxIOMask( vectorSize );
+		const __m256 firstSimd = _mm256_maskload_ps( first, mask );
+		const __m256 secondSimd = _mm256_maskload_ps( second, mask );
+		_mm256_maskstore_ps( result, mask, _mm256_add_ps( firstSimd, secondSimd ) );
 	}
 }
 
@@ -156,9 +165,10 @@ void vectorEltwiseMultiply( const float* first, const float* second, float* resu
 	}
 
 	if( vectorSize > 0 ) {
-		const __m256 firstSimd = _mm256_maskload_ps( first, avxIOMask[vectorSize] );
-		const __m256 secondSimd = _mm256_maskload_ps( second, avxIOMask[vectorSize] );
-		_mm256_maskstore_ps( result, avxIOMask[vectorSize], _mm256_mul_ps( firstSimd, secondSimd ) );
+		const __m256i mask = avxIOMask( vectorSize );
+		const __m256 firstSimd = _mm256_maskload_ps( first, mask );
+		const __m256 secondSimd = _mm256_maskload_ps( second, mask );
+		_mm256_maskstore_ps( result, mask, _mm256_mul_ps( firstSimd, secondSimd ) );
 	}
 }
 
@@ -189,10 +199,11 @@ void vectorEltwiseMultiplyAdd( const float* first, const float* second, float* r
 	}
 
 	if( vectorSize > 0 ) {
-		const __m256 firstSimd = _mm256_maskload_ps( first, avxIOMask[vectorSize] );
-		const __m256 secondSimd = _mm256_maskload_ps( second, avxIOMask[vectorSize] );
-		const __m256 resultSimd = _mm256_maskload_ps( result, avxIOMask[vectorSize] );
-		_mm256_maskstore_ps( result, avxIOMask[vectorSize], _mm256_fmadd_ps( firstSimd, secondSimd, resultSimd ) );
+		const __m256i mask = avxIOMask( vectorSize );
+		const __m256 firstSimd = _mm256_maskload_ps( first, mask );
+		const __m256 secondSimd = _mm256_maskload_ps( second, mask );
+		const __m256 resultSimd = _mm256_maskload_ps( result, mask );
+		_mm256_maskstore_ps( result, mask, _mm256_fmadd_ps( firstSimd, secondSimd, resultSimd ) );
 	}
 }
 
@@ -209,8 +220,8 @@ void vectorReLU( const float* first, float* result, int vectorSize )
 	}
 
 	if( vectorSize > 0 ) {
-		_mm256_maskstore_ps( result, avxIOMask[vectorSize],
-			_mm256_max_ps( _mm256_maskload_ps( first, avxIOMask[vectorSize] ), zeroSimd ) );
+		const __m256i mask = avxIOMask( vectorSize );
+		_mm256_maskstore_ps( result, mask, _mm256_max_ps( _mm256_maskload_ps( first, mask ), zeroSimd ) );
 	}
 }
 
@@ -228,9 +239,9 @@ void vectorReLU( const float* first, float* result, int vectorSize, float thresh
 	}
 
 	if( vectorSize > 0 ) {
-		const __m256 firstSimd = _mm256_maskload_ps( first, avxIOMask[vectorSize] );
-		_mm256_maskstore_ps( result, avxIOMask[vectorSize],
-			_mm256_min_ps( _mm256_max_ps( firstSimd, zeroSimd ), thresholdSimd ) );
+		const __m256i mask = avxIOMask( vectorSize );
+		const __m256 firstSimd = _mm256_maskload_ps( first, mask );
+		_mm256_maskstore_ps( result, mask, _mm256_min_ps( _mm256_max_ps( firstSimd, zeroSimd ), thresholdSimd ) );
 	}
 }
 
@@ -254,12 +265,13 @@ void vectorHSwish( const float* first, float* result, int vectorSize )
 	}
 
 	if( vectorSize > 0 ) {
-		__m256 firstSimd = _mm256_maskload_ps( first, avxIOMask[vectorSize] );
+		const __m256i mask = avxIOMask( vectorSize );
+		__m256 firstSimd = _mm256_maskload_ps( first, mask );
 		__m256 middlePart = _mm256_cmp_ps( minusThreeSimd, firstSimd, _CMP_LT_OQ );
 		middlePart = _mm256_and_ps( middlePart, _mm256_mul_ps( _mm256_mul_ps( firstSimd, oneSixthSimd ),
 			_mm256_add_ps( firstSimd, threeSimd ) ) );
 		__m256 rightPart = _mm256_cmp_ps( firstSimd, threeSimd, _CMP_GE_OQ );
-		_mm256_maskstore_ps( result, avxIOMask[vectorSize], _mm256_blendv_ps( middlePart, firstSimd, rightPart ) );
+		_mm256_maskstore_ps( result, mask, _mm256_blendv_ps( middlePart, firstSimd, rightPart ) );
 	}
 }
 
