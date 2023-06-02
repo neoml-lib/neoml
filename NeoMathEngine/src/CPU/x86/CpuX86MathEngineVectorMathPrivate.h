@@ -650,6 +650,11 @@ inline void vectorEltwiseMultiply( const int* first, const int* second, int* res
 inline void vectorEltwiseMultiplyAdd( const float* first, const float* second, float* result, int vectorSize )
 {
 #ifdef DEBUG_ENABLE_AVX2
+	if( vectorSize == 1 ) {
+		*result += *first * *second;
+		return;
+	}
+
 	if( CCPUInfo::HasAvxAndFma && vectorSize >= NeoML::Avx2::vectorThreshold ) {
 		NeoML::Avx2::vectorEltwiseMultiplyAdd( first, second, result, vectorSize );
 		return;
