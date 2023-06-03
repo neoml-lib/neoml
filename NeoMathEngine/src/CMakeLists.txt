@@ -179,7 +179,7 @@ else()
     if(WIN32)
         set_property(SOURCE ${CPU_AVX_SOURCES} PROPERTY COMPILE_OPTIONS /arch:AVX2)
     elseif(LINUX OR DARWIN)
-        set_property(SOURCE ${CPU_AVX_SOURCES} PROPERTY COMPILE_OPTIONS $<$<COMPILE_LANGUAGE:CXX>:-mavx2 -mfma>)
+        set_property(SOURCE ${CPU_AVX_SOURCES} PROPERTY COMPILE_OPTIONS $<$<COMPILE_LANGUAGE:CXX>:-mavx2 -mavx -mfma>)
     endif()
 
     if(NEOML_USE_AVX)
