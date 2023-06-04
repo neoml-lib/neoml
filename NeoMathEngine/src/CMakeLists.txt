@@ -178,7 +178,7 @@ else()
     set_property(SOURCE ${CPU_AVX_SOURCES} PROPERTY UNITY_GROUP 3)
     if(WIN32)
         set_property(SOURCE ${CPU_AVX_SOURCES} PROPERTY COMPILE_OPTIONS /arch:AVX2)
-    elseif()
+    else()
         set_property(SOURCE ${CPU_AVX_SOURCES} PROPERTY COMPILE_OPTIONS $<$<COMPILE_LANGUAGE:CXX>:-mavx2 -mfma>)
     endif()
 
