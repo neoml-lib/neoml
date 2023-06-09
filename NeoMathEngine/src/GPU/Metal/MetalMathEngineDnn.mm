@@ -153,10 +153,12 @@ void CMetalMathEngine::BlobSplitByDim(TBlobDim /*dim*/, const CBlobDesc& /*from*
 static const int BlobResizeImageCombine = 16;
 
 void CMetalMathEngine::BlobResizeImage( const CBlobDesc& from, const CFloatHandle& fromData, int deltaLeft, int deltaRight,
-	int deltaTop, int deltaBottom, float defaultValue, const CBlobDesc& to, const CFloatHandle& toData )
+    int deltaTop, int deltaBottom, TBlobResizePadding padding, float defaultValue,
+    const CBlobDesc& to, const CFloatHandle& toData )
 {
     ASSERT_EXPR( fromData.GetMathEngine() == this );
-	ASSERT_EXPR( toData.GetMathEngine() == this ); 
+	ASSERT_EXPR( toData.GetMathEngine() == this );
+    ASSERT_EXPR( padding == TBlobResizePadding::Constant );
 
 	const int geom = to.Height() * to.Width();
 	const int totalChannels = to.Channels() * to.Depth();

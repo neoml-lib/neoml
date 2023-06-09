@@ -41,7 +41,6 @@ CPadOperator::CPadOperator( const onnx::NodeProto& pad, int opsetVersion ) :
 	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
 
 	GetAttribute( "mode", mode );
-	CheckNeoOnnxSupport( mode == "constant", "Pad with non-constant mode", *this );
 }
 
 void CPadOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
@@ -51,7 +50,15 @@ void CPadOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArra
 	CFastArray<int, 8> pads;
 	getPads( inputs, pads );
 	const float value = getPadValue( inputs );
-	outputs.Add( PadUserTensor( *AsUserTensor( *inputs[0], Name() + "_Source", dnn ), pads, value).Ptr());
+	TBlobResizePadding padding = TBlobResizePadding::Constant;
+	if( mode == "edge" ) {
+		padding = TBlobResizePadding::Edge;
+	} else if( mode == "reflect" ) {
+		padding = TBlobResizePadding::Reflect;
+	} else {
+		CheckOnnxProtocol( mode == "constant", "Unknown padding mode", *this );
+	}
+	outputs.Add( PadUserTensor( *AsUserTensor( *inputs[0], Name() + "_Source", dnn ), pads, padding, value).Ptr());
 }
 
 // Gets pads sizes
