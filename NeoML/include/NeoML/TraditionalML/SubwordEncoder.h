@@ -20,7 +20,7 @@ limitations under the License.
 
 namespace NeoML {
 
-// Subword encoder interface.
+// An encoder tokenizes input sequence with parts of words ('subwords') as tokens.
 class NEOML_API ISubwordEncoder : virtual public IObject {
 public:
 	static constexpr int DefaultUnknownTokenId = 0;
@@ -154,6 +154,33 @@ public:
 	virtual void Initialize( const CBPEDictionary& tokens, const CParams& ) = 0;
 	// Whether the encoder is ready or it needs to be initialized using Initialize() or Serialize()
 	virtual bool IsInitialized() const = 0;
+};
+
+DECLARE_NEOML_MODEL_NAME( UnigramEncoderModelName, "NeoMLUnigramEncoderModel" )
+
+// Subword encoder using Unigram algorithm
+class NEOML_API IUnigramEncoder : public ISubwordEncoderWithCache {
+public:
+	// Unigram vocabulary entry
+	struct CSubword {
+		CSubword() = default;
+		CSubword( CString text, double score ) : Text( std::move( text ) ), Score( score ) {}
+
+		CString Text;
+		// Considered as log-probability of this subword
+		double Score = 0.0;
+	};
+
+	// A list of unique tokens
+	using CUnigramDictionary = CArray<CSubword>;
+
+	// Initializes the encoder. Can be safely used only once.
+	virtual void Initialize( const CUnigramDictionary& tokens, const CParams& ) = 0;
+	// Whether the encoder is ready or it needs to be initialized using Initialize() or Serialize()
+	virtual bool IsInitialized() const = 0;
+
+	// Returns a list of subtokens with their scores
+	virtual void GetDictionary( CUnigramDictionary& tokens ) const = 0;
 };
 
 ///////////////////////////////////////////////////////////////////////////////
