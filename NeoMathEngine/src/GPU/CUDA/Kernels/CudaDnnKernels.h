@@ -106,7 +106,7 @@ __global__ void BlobSplitByDimKernel(int height, int width, CCudaBlobDesc from, 
 }
 
 __global__ void BlobResizeImageKernel( const CCudaBlobDesc from, const float* __restrict__ fromData, int deltaLeft,
-	int deltaTop, float defaultValue, const CCudaBlobDesc to, float* toData )
+	int deltaTop, int padding, float defaultValue, const CCudaBlobDesc to, float* toData )
 {
 	const int geom = to.Height() * to.Width();
 	const int totalChannels = to.Channels() * to.Depth();
@@ -117,8 +117,18 @@ __global__ void BlobResizeImageKernel( const CCudaBlobDesc from, const float* __
 	if( GetCudaTaskIndex3D( to.ObjectCount(), geom, totalChannels, num, currGeom, ch ) ) {
 		toData += num * totalChannels * geom + totalChannels * currGeom + ch;
 
-		const int xFrom = currGeom % to.Width() - deltaLeft;
-		const int yFrom = currGeom / to.Width() - deltaTop;
+		int xFrom = currGeom % to.Width() - deltaLeft;
+		int yFrom = currGeom / to.Width() - deltaTop;
+		if( padding == 1 ) { // Reflect
+			xFrom = xFrom < 0 ? -( xFrom % from.Width() )
+				: ( xFrom >= from.Width() ? ( 2 * from.Width() - 2 - ( xFrom % from.Width() ) ) % from.Width() : xFrom );
+			yFrom = yFrom < 0 ? -( yFrom % from.Height() )
+				: ( yFrom >= from.Height() ? ( 2 * from.Height() - 2 - ( yFrom % from.Height() ) ) % from.Height() : yFrom );
+		} else if( padding == 2 ) { // Edge
+			xFrom = xFrom < 0 ? 0 : ( xFrom >= from.Width() ? from.Width() - 1 : xFrom );
+			yFrom = yFrom < 0 ? 0 : ( yFrom >= from.Height() ? from.Height() - 1 : yFrom );
+		}
+
 		if( xFrom >= 0 && yFrom >= 0 && xFrom < from.Width() && yFrom < from.Height() ) {
 			fromData += num * totalChannels * from.Height() * from.Width() + totalChannels * ( xFrom + yFrom * from.Width() ) + ch;
 			*toData = *fromData;
