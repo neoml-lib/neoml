@@ -414,7 +414,8 @@ static CPtr<const CUserTensor> addImageResizeLayer( CImageResizeLayer& imageResi
 	return new CUserTensor( result->Layout(), CLayerOutput( &imageResize, 0 ) );
 }
 
-CPtr<const CUserTensor> PadUserTensor( const CUserTensor& input, const CFastArray<int, 8>& pads, float padValue )
+CPtr<const CUserTensor> PadUserTensor( const CUserTensor& input, const CFastArray<int, 8>& pads,
+	TBlobResizePadding padding, float padValue )
 {
 	// Pool and conv operators storing pads only for N-2 tensor dimensions (leaving out batch and channels)
 	// On the other side Pad operator is storing pads for every tensor dimension
@@ -444,6 +445,7 @@ CPtr<const CUserTensor> PadUserTensor( const CUserTensor& input, const CFastArra
 		if( imageResize == nullptr ) {
 			imageResize = new CImageResizeLayer( mathEngine );
 			imageResize->SetName( getUniqueLayerName( dnn, padNamePrefix ) );
+			imageResize->SetPadding( padding );
 			imageResize->SetDefaultValue( padValue );
 		}
 

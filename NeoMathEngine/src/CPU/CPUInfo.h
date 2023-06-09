@@ -147,6 +147,8 @@ struct CCPUInfo {
 #endif // NEOML_USE_NEON
 	}
 
+	static bool HasAvxAndFma;
+
 	static bool IsAvxAndFmaAvailable()
 	{
 		Regs regs;

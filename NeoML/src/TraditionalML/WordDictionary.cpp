@@ -1,4 +1,4 @@
-/* Copyright © 2017-2022 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -85,7 +85,7 @@ void CWordDictionary::AddWord( const CString& word, long long count )
 void CWordDictionary::AddDictionary( const CWordDictionary& newDictionary )
 {
 	for( int i = 0; i < newDictionary.Size(); i++ ) {
-		const CString word = newDictionary.GetWord( i );
+		const CString& word = newDictionary.GetWord( i );
 		const long long count = newDictionary.GetWordUseCount( i );
 		AddWord( word, count );
 	}
@@ -107,9 +107,7 @@ void CWordDictionary::Finalize( long long minCount )
 int CWordDictionary::GetWordId( const CString& word ) const
 {
 	int id = NotFound;
-	if( !wordToId.Lookup( word, id ) ) {
-		return NotFound;
-	}
+	wordToId.Lookup( word, id );
 	return id;
 }
 
@@ -158,7 +156,9 @@ double CWordDictionary::GetWordFrequency( const CString& word ) const
 void CWordDictionary::RestrictSize( int maxSize )
 {
 	if( maxSize < Size() ) {
+		words.QuickSort<Descending<CWordWithCount>>();
 		words.SetSize( maxSize );
+		buildIndex();
 	}
 }
 

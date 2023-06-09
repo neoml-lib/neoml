@@ -147,11 +147,12 @@ CPtr<const CShapeTensor> ConvertTensor( const CShapeTensor& inputTensor, const C
 // Calculates padding size if autoPad is SAME_UPPER or SAME_LOWER
 void CalculatePadding( const CString& autoPad, const CTensorShape& kernelShape, CFastArray<int, 8>& pads );
 
-// Pads user tensor with padValue values
+// Pads user tensor via padding mode
 // Last pads.Size() / 2 dimensions of the input tensor will be padded (it's compatible with both Conv and Pad onnx operators)
 // First pads.Size() / 2 numbers determine padding size at the front of the dims
 // Last pads.Size() / 2 numbers determine padding size at the back of the dims
-CPtr<const CUserTensor> PadUserTensor( const CUserTensor& input, const CFastArray<int, 8>& pads, float padValue );
+CPtr<const CUserTensor> PadUserTensor( const CUserTensor& input, const CFastArray<int, 8>& pads,
+	TBlobResizePadding padding, float padValue );
 
 //---------------------------------------------------------------------------------------------------------------------
 // Auxiliary tensor broadcast functions

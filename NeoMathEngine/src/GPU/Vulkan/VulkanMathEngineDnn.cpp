@@ -182,9 +182,12 @@ void CVulkanMathEngine::BlobSplitByDim(TBlobDim /*dim*/, const CBlobDesc& /*from
 
 static const int BlobResizeImageCombine = 16;
 
-void CVulkanMathEngine::BlobResizeImage( const CBlobDesc& from, const CFloatHandle& fromData, int deltaLeft,
-	int deltaRight, int deltaTop, int deltaBottom, float defaultValue, const CBlobDesc& to, const CFloatHandle& toData )
+void CVulkanMathEngine::BlobResizeImage( const CBlobDesc& from, const CFloatHandle& fromData, int deltaLeft, int deltaRight,
+	int deltaTop, int deltaBottom, TBlobResizePadding padding, float defaultValue,
+	const CBlobDesc& to, const CFloatHandle& toData )
 {
+    ASSERT_EXPR( padding == TBlobResizePadding::Constant );
+
 	const int geom = to.Height() * to.Width();
 	const int totalChannels = to.Channels() * to.Depth();
 

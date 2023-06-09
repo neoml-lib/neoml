@@ -135,7 +135,7 @@ void CConvOperator::add2dConvLayer( const CTensorArray& inputs, bool is1dConv, C
 		// In NeoML convolution doesn't support cases when bottom padding is larger than upper padding
 		// (the same goes for other spatial dimensions)
 		// In this case we have to add explicit padding layer
-		currInput = PadUserTensor( *currInput, pads, 0.f );
+		currInput = PadUserTensor( *currInput, pads, TBlobResizePadding::Constant, 0.f );
 	}
 	conv->SetDilationHeight( dilations[0] );
 	conv->SetDilationWidth( is1dConv ? 1 : dilations[1] );
@@ -195,7 +195,7 @@ void CConvOperator::add3dConvLayer( const CTensorArray& inputs, CDnn& dnn, CTens
 		// In NeoML convolution doesn't support cases when bottom padding is larger than upper padding
 		// (the same goes for other spatial dimensions)
 		// In this case we have to add explicit padding layer
-		currInput = PadUserTensor( *currInput, pads, 0.f );
+		currInput = PadUserTensor( *currInput, pads, TBlobResizePadding::Constant, 0.f );
 	}
 
 	conv->SetFilterData( filter->Data()->GetCopy() );
