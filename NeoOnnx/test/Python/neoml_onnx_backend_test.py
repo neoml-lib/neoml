@@ -53,7 +53,6 @@ backend_test.exclude('test_greater_[a-z0-9_]*_expanded_')  # Or
 backend_test.exclude('test_gridsample_') # GridSample
 backend_test.exclude('test_gru_')  # GRU
 backend_test.exclude('test_hardmax_')  # HardMax
-backend_test.exclude('test_hardswish_(?!expanded)')  # HardSwish
 backend_test.exclude('test_if_')  # If
 backend_test.exclude('test_isinf_')  # IsInf
 backend_test.exclude('test_isnan_')  # IsNan
@@ -138,9 +137,8 @@ backend_test.exclude('test_convtranspose_')  # NeoML doesn't support trained fil
 backend_test.exclude('test_cumsum_')  # NeoML doesn't support axis index as input
 backend_test.exclude('test_dropout_default_mask_')  # NeoML doesn't support dropout mask as output
 backend_test.exclude('test_dropout_default_ratio_')  # NeoML doesn't support dropout rate as input
-backend_test.exclude('test_edge_pad_')  # NeoML supports padding only with 'constant' mode
+backend_test.exclude('test_edge_pad_')  # NeoML doesn't support padding sizes as input
 backend_test.exclude('test_expand_')  # NeoML doesn't support shape as input
-# backend_test.exclude('test_gather_negative_indices')  # NeoOnnx doesn't support negative indices
 backend_test.exclude('test_gemm_')  # NeoML supports only specific case when it's an FC layer (with constant weights)
 backend_test.exclude('test_identity_opt_')  # NeoML doesn't support optional values as inputs
 backend_test.exclude('test_identity_sequence_')  # NeoML doesn't support sequences values as inputs
@@ -157,7 +155,7 @@ backend_test.exclude('test_onehot_')  # NeoOnnx supports only constant depth in 
 backend_test.exclude('test_pow_')  # NeoML doesn't support power of the exponent as input
 backend_test.exclude('test_range')  # NeoOnnx supports Range only over constant data
 backend_test.exclude('test_reduce_sum_')  # NeoOnnx support ReduceSum only when axes are fixed within data
-backend_test.exclude('test_reflect_pad_')  # NeoML supports padding only with 'constant' mode
+backend_test.exclude('test_reflect_pad_')  # NeoML doesn't support padding sizes as input
 backend_test.exclude('test_reshape_')  # NeoML doesn't support shape as input
 backend_test.exclude('test_resize_')  # NeoML doesn't support sizes or scales as inputs
 backend_test.exclude('test_scatternd_add_')  # NeoML doesn't support non-trivial reduction in ScatterND
