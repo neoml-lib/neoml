@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ limitations under the License.
 
 namespace NeoML {
 
-static const int OnnxConvTransposeLayerVersion = 0;
+static const int OnnxConvTransposeLayerVersion = 1;
 
 void COnnxConvTransposeLayer::Serialize( CArchive& archive )
 {
@@ -38,8 +38,10 @@ void COnnxConvTransposeLayer::Reshape()
 
 	CBlobDesc origInputDesc;
 	if( !useExternalPadding ) {
-		SetPaddingHeight( totalPadding[0] );
-		SetPaddingWidth( totalPadding[1] );
+		SetPaddingHeight( totalPadding[0] ); //1d- convTranspose
+		if( OutputPadding().Size() == /*convDims*/2 ) { //2d- convTranspose
+			SetPaddingWidth( totalPadding[1] );
+		}
 	}
 
 	CTransposedConvLayer::Reshape();
@@ -61,8 +63,16 @@ void COnnxConvTransposeLayer::RunOnce()
 	CTransposedConvLayer::RunOnce();
 
 	if( useExternalPadding ) {
+		const bool isConv2D = ( OutputPadding().Size() == /*convDims*/2 );
+		const int padding[4]{
+			isConv2D ? ( -totalPadding[1] ) : 0,
+			isConv2D ? ( -totalPadding[3] ) : 0,
+			-totalPadding[0],
+			-totalPadding[isConv2D ? 2 : 1]
+		};
+
 		MathEngine().BlobResizeImage( outputBlobs[0]->GetDesc(), outputBlobs[0]->GetData(),
-			-totalPadding[1], -totalPadding[3], -totalPadding[0], -totalPadding[2], 0.f,
+			/*left*/padding[0], /*right*/padding[1], /*top*/padding[2], /*bottom*/padding[3], /*default*/0.f,
 			origOutput->GetDesc(), origOutput->GetData() );
 		outputBlobs[0] = origOutput;
 	}
@@ -72,26 +82,25 @@ void COnnxConvTransposeLayer::RunOnce()
 // and determines whether padding must be done manually or CTransposedConvLayer can calculated it itself
 void COnnxConvTransposeLayer::calcTotalPadding()
 {
-	const int convDims = 2;
-
-	NeoPresume( OutputPadding().Size() == convDims );
+	NeoPresume( OutputPadding().Size() == /*convDims*/2 || OutputPadding().Size() == /*convDims*/1 );
+	const int convDims = OutputPadding().Size();
 
 	useExternalPadding = false;
 	totalPadding.SetSize( 2 * convDims );
+
 	for( int i = 0; i < convDims; ++i ) {
 		int startPad = Pads().IsEmpty() ? 0 : Pads()[i];
 		int endPad = Pads().IsEmpty() ? 0 : Pads()[i];
 		if( Pads().IsEmpty() && !OutputShape().IsEmpty() ) {
 			const int axisPad = outputDescs[0].DimSize( static_cast<int>( BD_Height ) + i )
 				+ OutputPadding()[i] - OutputShape()[i + 2];
-			startPad = autoPad != "SAME_UPPER" ? axisPad / 2 : ( axisPad + 1 ) / 2;
+			startPad = ( ( autoPad != "SAME_UPPER" ) ? axisPad : ( axisPad + 1 ) ) / 2;
 			endPad = axisPad - startPad;
 		}
 
 		totalPadding[i] = startPad;
 		totalPadding[i + convDims] = endPad - OutputPadding()[i];
-		useExternalPadding |= totalPadding[i] != totalPadding[i + convDims]
-			|| totalPadding[i + convDims] < 0;
+		useExternalPadding |= totalPadding[i] != totalPadding[i + convDims] || totalPadding[i + convDims] < 0;
 	}
 }
 
@@ -99,8 +108,11 @@ void COnnxConvTransposeLayer::calcTotalPadding()
 CBlobDesc COnnxConvTransposeLayer::getPaddedDesc( const CBlobDesc& inputDesc )
 {
 	CBlobDesc paddedDesc = inputDesc;
-	paddedDesc.SetDimSize( BD_Height, paddedDesc.Height() - totalPadding[0] - totalPadding[2] );
-	paddedDesc.SetDimSize( BD_Width, paddedDesc.Width() - totalPadding[1] - totalPadding[3] );
+	const bool isConv2D = ( OutputPadding().Size() == /*convDims*/2 );
+	paddedDesc.SetDimSize( BD_Height, paddedDesc.Height() - totalPadding[0] - totalPadding[isConv2D ? 2 : 1] ); //1d- convTranspose
+	if( isConv2D ) { //2d- convTranspose
+		paddedDesc.SetDimSize( BD_Width, paddedDesc.Width() - totalPadding[1] - totalPadding[3] );
+	}
 	return paddedDesc;
 }
 
