@@ -80,6 +80,13 @@ enum class TInterpolationRound : int {
 	Count
 };
 
+// Determines how new columns/rows are filled when resizing image
+enum class TBlobResizePadding {
+	Constant, // fill with default value
+	Edge, // repeat the outermost value of the original image
+	Reflect // reflection padding
+};
+
 // The class provides operations on vectors
 class NEOMATHENGINE_API IVectorMathEngine : public CCrtAllocatedObject {
 public:
@@ -689,13 +696,6 @@ struct CRleImage {
 };
 
 //------------------------------------------------------------------------------------------------------------
-
-// Determines how new columns/rows are filled when resizing image
-enum class TBlobResizePadding {
-	Constant, // fill with default value
-	Reflect, // reflection padding
-	Edge // repeat the outermost value of the original image
-};
 
 // Neural network-specific operations
 class NEOMATHENGINE_API IDnnEngine : public IBlasEngine {

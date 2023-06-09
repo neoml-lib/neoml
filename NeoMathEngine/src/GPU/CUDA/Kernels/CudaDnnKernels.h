@@ -119,14 +119,14 @@ __global__ void BlobResizeImageKernel( const CCudaBlobDesc from, const float* __
 
 		int xFrom = currGeom % to.Width() - deltaLeft;
 		int yFrom = currGeom / to.Width() - deltaTop;
-		if( padding == 1 ) { // Reflect
+		if( padding == 1 ) { // Edge
+			xFrom = xFrom < 0 ? 0 : ( xFrom >= from.Width() ? from.Width() - 1 : xFrom );
+			yFrom = yFrom < 0 ? 0 : ( yFrom >= from.Height() ? from.Height() - 1 : yFrom );
+		} else if( padding == 2 ) { // Reflect
 			xFrom = xFrom < 0 ? -( xFrom % from.Width() )
 				: ( xFrom >= from.Width() ? ( 2 * from.Width() - 2 - ( xFrom % from.Width() ) ) % from.Width() : xFrom );
 			yFrom = yFrom < 0 ? -( yFrom % from.Height() )
 				: ( yFrom >= from.Height() ? ( 2 * from.Height() - 2 - ( yFrom % from.Height() ) ) % from.Height() : yFrom );
-		} else if( padding == 2 ) { // Edge
-			xFrom = xFrom < 0 ? 0 : ( xFrom >= from.Width() ? from.Width() - 1 : xFrom );
-			yFrom = yFrom < 0 ? 0 : ( yFrom >= from.Height() ? from.Height() - 1 : yFrom );
 		}
 
 		if( xFrom >= 0 && yFrom >= 0 && xFrom < from.Width() && yFrom < from.Height() ) {

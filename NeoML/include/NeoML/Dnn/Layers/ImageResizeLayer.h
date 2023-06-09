@@ -44,8 +44,21 @@ public:
 	// Sets the size difference from the given side, in pixels
 	void SetDelta( TImageSide side, int delta );
 
+	// Algorithm for filling new values when delta > 0
+	// Constant - fills new rows/columns with fixed value
+	// Edge - fills new rows/columns with outermost input values
+	//                1 1 2 3 3
+	//   1 2 3        1 1 2 3 3
+	//   4 5 6   ->   4 4 5 6 6
+	//   7 8 9        7 7 8 9 9
+	//                7 7 8 9 9
+	// Reflect - fills new rows/columns with reflection of input values
+	//                5 4 5 6 5
+	//   1 2 3        2 1 2 3 2
+	//   4 5 6   ->   5 4 5 6 5
+	//   7 8 9        8 7 8 9 8
+	//                5 4 5 6 5
 	TBlobResizePadding GetPadding() const { return padding; }
-	// Sets the algorithm for filling new values when delta > 0
 	void SetPadding( TBlobResizePadding newPadding ) { padding = newPadding; }
 
 	float GetDefaultValue() const { return defaultValue; }
