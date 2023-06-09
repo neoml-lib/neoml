@@ -203,8 +203,6 @@ backend_test.exclude('test_MaxPool1d_')  # NeoOnnx supports only 2d max pooling
 backend_test.exclude('test_MaxPool2d[a-z0-9_]*dilation')  # NeoOnnx doesn't support dilation in MaxPool
 backend_test.exclude('test_MaxPool3d_')  # NeoOnnx supports only 2d max pooling
 backend_test.exclude('test_PReLU')  # Contains PRelu operator
-backend_test.exclude('test_ReflectionPad2d_')  # NeoML supports padding only with 'constant' mode
-backend_test.exclude('test_ReplicationPad2d_')  # NeoML supports padding only with 'constant' mode
 backend_test.exclude('test_SELU')  # Contains Selu operator
 backend_test.exclude('test_Softplus')  # Contains Softplus operator
 
@@ -218,7 +216,6 @@ backend_test.exclude('test_operator_maxpool_')  # NeoOnnx supports only 2d max p
 backend_test.exclude('test_operator_min_')  # Contains Min operator
 # NeoML supports only specific case when it's an FC layer (with constant weights)
 backend_test.exclude('test_operator_mm_')
-backend_test.exclude('test_operator_pad_')  # NeoML supports padding only with 'constant' mode
 backend_test.exclude('test_operator_pow_')  # NeoML doesn't support power of the exponent as input
 backend_test.exclude('test_operator_repeat_')  # Contains Tile operator
 backend_test.exclude('test_operator_selu_')  # Contains Selu operator
