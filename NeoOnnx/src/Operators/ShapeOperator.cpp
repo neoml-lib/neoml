@@ -37,7 +37,6 @@ CShapeOperator::CShapeOperator( const onnx::NodeProto& shape, int opsetVersion )
 
 	CheckOnnxProtocol( InputCount() == 1, "operator must have 1 input", *this );
 	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
-	// TODO: support start and end attributes
 }
 
 void CShapeOperator::ProcessTensors( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
