@@ -210,12 +210,12 @@ void LoadFromOnnx( const char* fileName, const CImportSettings& importSettings,
 		info.OptimizationReport = NeoML::OptimizeDnn( dnn );
 	} catch( ... ) {
 		input.close();
-		// google::protobuf::ShutdownProtobufLibrary();
+		google::protobuf::ShutdownProtobufLibrary();
 		throw;
 	}
 
 	input.close();
-	// google::protobuf::ShutdownProtobufLibrary();
+	google::protobuf::ShutdownProtobufLibrary();
 }
 
 void LoadFromOnnx( const void* buffer, int bufferSize, const CImportSettings& importSettings,
@@ -237,11 +237,11 @@ void LoadFromOnnx( const void* buffer, int bufferSize, const CImportSettings& im
 		optimization::CDnnOptimizer( dnn ).Optimize();
 		info.OptimizationReport = NeoML::OptimizeDnn( dnn );
 	} catch( ... ) {
-		// google::protobuf::ShutdownProtobufLibrary();
+		google::protobuf::ShutdownProtobufLibrary();
 		throw;
 	}
 
-	// google::protobuf::ShutdownProtobufLibrary();
+	google::protobuf::ShutdownProtobufLibrary();
 }
 
 } //NeoOnnx
