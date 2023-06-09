@@ -690,6 +690,13 @@ struct CRleImage {
 
 //------------------------------------------------------------------------------------------------------------
 
+// Determines how new columns/rows are filled when resizing image
+enum class TBlobResizePadding {
+	Constant, // fill with default value
+	Reflect, // reflection padding
+	Edge // repeat the outermost value of the original image
+};
+
 // Neural network-specific operations
 class NEOMATHENGINE_API IDnnEngine : public IBlasEngine {
 public:
@@ -707,9 +714,10 @@ public:
 
 	// Resizes images in a blob
 	// For delta < 0 the pixels at the edges are erased
-	// For delta > 0 the extra pixels at the edges are filled with defaultValue
+	// For delta > 0 the extra pixels at the edges are filled with corresponding padding
 	virtual void BlobResizeImage( const CBlobDesc& from, const CFloatHandle& fromData, int deltaLeft, int deltaRight,
-		int deltaTop, int deltaBottom, float defaultValue, const CBlobDesc& to, const CFloatHandle& toData ) = 0;
+		int deltaTop, int deltaBottom, TBlobResizePadding padding, float defaultValue,
+		const CBlobDesc& to, const CFloatHandle& toData ) = 0;
 
 	// Retrieves subsequences from the blob sequences and, if necessary, reverses them
 	virtual void BlobGetSubSequence( const CBlobDesc& from, const CFloatHandle& fromData, const CIntHandle& indexHandle,

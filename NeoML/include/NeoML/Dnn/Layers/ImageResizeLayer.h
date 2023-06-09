@@ -44,8 +44,12 @@ public:
 	// Sets the size difference from the given side, in pixels
 	void SetDelta( TImageSide side, int delta );
 
+	TBlobResizePadding GetPadding() const { return padding; }
+	// Sets the algorithm for filling new values when delta > 0
+	void SetPadding( TBlobResizePadding newPadding ) { padding = newPadding; }
+
 	float GetDefaultValue() const { return defaultValue; }
-	// Sets the default value for new pixels
+	// Sets the default value for new pixels when padding is Constant
 	void SetDefaultValue( float value ) { defaultValue = value; }
 
 protected:
@@ -60,7 +64,8 @@ private:
 	int deltaRight; // the size difference from the right
 	int deltaTop; // the size difference from the top
 	int deltaBottom; // the size difference from the bottom
-	float defaultValue; // the default value for new pixels that appear whenever delta > 0
+	float defaultValue; // the default value for new pixels that appear whenever padding is Constant
+	TBlobResizePadding padding; // the algorithm used to fill the values when delta > 0
 };
 
 NEOML_API CLayerWrapper<CImageResizeLayer> ImageResize( int deltaLeft, int deltaRight,

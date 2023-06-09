@@ -77,7 +77,7 @@ static void blobResizeImageTestImpl( const CTestParams& params, int seed )
 	}
 	input.CopyFrom( inputBuff.data() );
 	MathEngine().BlobResizeImage( input.GetDesc(), input.GetData(), deltaLeft, deltaRight, deltaTop,
-		deltaBottom, defaultValue, output.GetDesc(), output.GetData() );
+		deltaBottom, TBlobResizePadding::Constant, defaultValue, output.GetDesc(), output.GetData() );
 	output.CopyTo( actual.data() );
 	for( size_t i = 0; i < expected.size(); ++i ) {
 		ASSERT_NEAR( expected[i], actual[i], 1e-3 ) << params;
