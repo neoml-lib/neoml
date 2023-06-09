@@ -199,7 +199,7 @@ TEST_F( CBpeTest, Ambiguous )
 {
 	IBytePairEncoder::CBPEDictionary dictionary = { "aa", "bb", "ab", "a", "b" };
 	CPtr<IBytePairEncoder> tokenizer = CheckCast<IBytePairEncoder>( CreateModel( BytePairEncoderModelName ) );
-	IBytePairEncoder::CParams params;
+	ISubwordEncoder::CParams params;
 	tokenizer->Initialize( dictionary, params );
 
 	CArray<int> tokenIds, tokenLengths;
@@ -251,7 +251,7 @@ TEST_F( CBpeTest, LoadIncorrectDictionary )
 {
 	CPtr<IBytePairEncoder> tokenizer = CheckCast<IBytePairEncoder>( CreateModel( BytePairEncoderModelName ) );
 
-	IBytePairEncoder::CParams params;
+	ISubwordEncoder::CParams params;
 	params.EndOfWordToken = "@"; 
 	IBytePairEncoder::CBPEDictionary badDictionary = { "a@a", "a" };
 	BPE_TEST_ASSERT( tokenizer->Initialize( badDictionary, params ) );
@@ -278,34 +278,40 @@ TEST_F( CBpeTest, LoadIncorrectDictionary )
 
 TEST_F( CBpeTest, SaveLoadDictionary )
 {
-	CPtr<IBytePairEncoder> tokenizer = CheckCast<IBytePairEncoder>( CreateModel( BytePairEncoderModelName ) );
+	CPtr<IBytePairEncoder> tokenizerBpe = CheckCast<IBytePairEncoder>( CreateModel( BytePairEncoderModelName ) );
+	CPtr<IUnigramEncoder> tokenizerUni = CheckCast<IUnigramEncoder>( CreateModel( UnigramEncoderModelName ) );
 
-	IBytePairEncoder::CBPEDictionary dictionary = { "aa@", "aa", "a", "@" };
-	IBytePairEncoder::CParams params;
-	params.EndOfWordToken = "@"; 
-	tokenizer->Initialize( dictionary, params );
+	IBytePairEncoder::CBPEDictionary dictionaryBpe = { "aa@", "aa", "a", "@" };
+	IUnigramEncoder::CUnigramDictionary dictionaryUni = { {"aa@", -1}, {"aa", -2}, {"a", -2.5}, {"@", -3} };
+	ISubwordEncoder::CParams params;
+	params.EndOfWordToken = "@";
+	tokenizerBpe->Initialize( dictionaryBpe, params );
+	tokenizerUni->Initialize( dictionaryUni, params );
 
-	CArray<int> tokenIds, tokenLengths;
-	tokenizer->Encode( "a", tokenIds, tokenLengths );
-	ASSERT_EQ( 2, tokenLengths.Size() );
-	EXPECT_EQ( 1, tokenLengths[0] );
-	EXPECT_EQ( 0, tokenLengths[1] );
-	tokenIds.DeleteAll();
-	tokenLengths.DeleteAll();
+	CArray<ISubwordEncoder*> tokenizers = { tokenizerBpe, tokenizerUni };
+	for( auto* tokenizer : tokenizers ) {
+		CArray<int> tokenIds, tokenLengths;
+		tokenizer->Encode( "a", tokenIds, tokenLengths );
+		ASSERT_EQ( 2, tokenLengths.Size() );
+		EXPECT_EQ( 1, tokenLengths[0] );
+		EXPECT_EQ( 0, tokenLengths[1] );
+		tokenIds.DeleteAll();
+		tokenLengths.DeleteAll();
 
-	tokenizer->Encode( "aa", tokenIds, tokenLengths );
-	ASSERT_EQ( 1, tokenLengths.Size() );
-	tokenIds.DeleteAll();
-	tokenLengths.DeleteAll();	
+		tokenizer->Encode( "aa", tokenIds, tokenLengths );
+		ASSERT_EQ( 1, tokenLengths.Size() );
+		tokenIds.DeleteAll();
+		tokenLengths.DeleteAll();
 
-	CMap<CString, int> outDictionary;
-	tokenizer->GetTokenToIdMapping( outDictionary );
-	EXPECT_EQ( 5, outDictionary.Size() );
-	EXPECT_TRUE( outDictionary.Has( "aa@" ) );
-	EXPECT_TRUE( outDictionary.Has( "aa" ) );
-	EXPECT_TRUE( outDictionary.Has( "a" ) );
-	EXPECT_TRUE( outDictionary.Has( "@" ) );
-	EXPECT_TRUE( outDictionary.Has( "<UNK>" ) );
+		CMap<CString, int> outDictionary;
+		tokenizer->GetTokenToIdMapping( outDictionary );
+		EXPECT_EQ( 5, outDictionary.Size() );
+		EXPECT_TRUE( outDictionary.Has( "aa@" ) );
+		EXPECT_TRUE( outDictionary.Has( "aa" ) );
+		EXPECT_TRUE( outDictionary.Has( "a" ) );
+		EXPECT_TRUE( outDictionary.Has( "@" ) );
+		EXPECT_TRUE( outDictionary.Has( "<UNK>" ) );
+	}
 }
 
 TEST_F( CBpeTest, RawBytes )
@@ -339,28 +345,31 @@ TEST_F( CBpeTest, RawBytes )
 
 TEST_F( CBpeTest, UnknownId )
 {
-	CPtr<IBytePairEncoder> tokenizer = CheckCast<IBytePairEncoder>( CreateModel( BytePairEncoderModelName ) );
+	CPtr<IBytePairEncoder> tokenizerBpe = CheckCast<IBytePairEncoder>( CreateModel( BytePairEncoderModelName ) );
+	CPtr<IUnigramEncoder> tokenizerUni = CheckCast<IUnigramEncoder>( CreateModel( UnigramEncoderModelName ) );
+	
+	IBytePairEncoder::CBPEDictionary dictionaryBpe = { "aa@", "aa", "a", "@" };
+	IUnigramEncoder::CUnigramDictionary dictionaryUni = { {"aa@", -1}, {"aa", -2}, {"a", -2.5}, {"@", -3} };
 
-	IBytePairEncoder::CBPEDictionary dictionary = { "aa@", "aa", "a", "@" };
-	IBytePairEncoder::CParams params;
-	params.EndOfWordToken = "@"; 
-	tokenizer->Initialize( dictionary, params );
+	ISubwordEncoder::CParams params;
+	params.EndOfWordToken = "@";
+	const int unkId = 5;
+	params.UnknownTokenId = unkId;
 
-	CArray<int> tokenIds, tokenLengths;
-	tokenizer->Encode( "baaa", tokenIds, tokenLengths );
-	EXPECT_EQ( tokenizer->UnknownTokenId(), tokenIds.First() );
+	tokenizerBpe->Initialize( dictionaryBpe, params );
+	tokenizerUni->Initialize( dictionaryUni, params );
 
-	const int offset = 5;
-	tokenizer = CheckCast<IBytePairEncoder>( CreateModel( BytePairEncoderModelName ) );
-	params.UnknownTokenId = offset;
-	tokenizer->Initialize( dictionary, params );
-	ASSERT_EQ( offset, tokenizer->UnknownTokenId() );
+	CArray<ISubwordEncoder*> tokenizers = { tokenizerBpe, tokenizerUni };
 
-	CArray<int> newTokenIds, newTokenLengths;
-	tokenizer->Encode( "baaa", newTokenIds, newTokenLengths );
-	ASSERT_EQ( tokenIds.Size(), newTokenIds.Size() );
-	EXPECT_EQ( tokenLengths, newTokenLengths );
-	for( int i = 0; i < tokenIds.Size(); ++i ) {
-		EXPECT_EQ( tokenIds[i] + offset, newTokenIds[i] );
+	for( auto* tokenizer : tokenizers ) {
+		CArray<int> tokenIds, tokenLengths;
+		tokenizer->Encode( "baaa", tokenIds, tokenLengths );
+
+		EXPECT_EQ( unkId, tokenizer->UnknownTokenId() );
+		EXPECT_EQ( unkId, tokenIds.First() );
+
+		for( int i = 1; i < tokenIds.Size(); ++i ) {
+			EXPECT_GT( tokenIds[i], unkId );
+		}
 	}
 }

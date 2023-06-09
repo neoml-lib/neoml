@@ -454,6 +454,29 @@ public:
 
 	// Returns number of tokens.
 	virtual int Size() const = 0;
+
+	// Returns BPE mappings as they are performed by the encoder
+	virtual void GetIdToTokenMapping( CMap<int, CString>& ) const = 0;
+	virtual void GetTokenToIdMapping( CMap<CString, int>& ) const = 0;
+
+	struct CParams {
+		// End-of-Word (EOW), a string that will be added to the end of each input word.
+		CString UseEndOfWordToken = "";
+		// Start-of-Word (SOW), a string that will be added to the beginning of each input word.
+		CString UseStartOfWordToken = "";
+		// Treat strings as arrays of raw bytes,
+		// which decreases the maximum size of the initial vocabulary to 256 and allows to completely avoid unknown symbols.
+		bool UseRawBytes = false;
+		// The id of <UNK>.
+		// All other tokens are continuously enumerated from 'UnknownTokenId' + 1. Ids [0, UnknownTokenId) are not used when encoding. 
+		int UnknownTokenId = 0
+	};
+
+	// Encoder parameters getters
+	virtual bool UseEndOfWordToken() const = 0;
+	virtual bool UseStartOfWordToken() const = 0;
+	virtual bool UseRawBytes() const = 0;
+	virtual int UnknownTokenId() const = 0;
 };
 ```
 
@@ -486,25 +509,6 @@ Popular subword encoding algorithm.
 ```c++
 class NEOML_API IBytePairEncoder : public ISubwordEncoderWithCache {
 public:
-	struct CParams {
-		// End-of-Word (EOW), a string that will be added to the end of each input word.
-		CString UseEndOfWordToken = "";
-		// Start-of-Word (SOW), a string that will be added to the beginning of each input word.
-		CString UseStartOfWordToken = "";
-		// Treat strings as arrays of raw bytes,
-		// which decreases the maximum size of the initial vocabulary to 256 and allows to completely avoid unknown symbols.
-		bool UseRawBytes = false;
-		// The id of <UNK>.
-		// All other tokens are continuously enumerated from 'UnknownTokenId' + 1. Ids [0, UnknownTokenId) are not used when encoding. 
-		int UnknownTokenId = 0
-	};
-
-	// Encoder parameters getters
-	virtual bool UseEndOfWordToken() const = 0;
-	virtual bool UseStartOfWordToken() const = 0;
-	virtual bool UseRawBytes() const = 0;
-	virtual int UnknownTokenId() const = 0;
-
 	// A list of unique tokens ordered by order of merges during training (this is used when encoding).
 	// The Id of a token in encoded words is <Id in this array> + GetUnknownTokenId() + 1
 	using CBPEDictionary = CArray<CString>;
@@ -513,10 +517,32 @@ public:
 	// Every token except the letters (or bytes), EOW and SOW must be a concatenation of two other tokens.
 	// If not empty, EOW and SOW must be contained in 'tokens' exactly only once as a separate token.
 	virtual void Initialize( const CBPEDictionary& tokens, const CParams& ) = 0;
+};
+```
 
-	// Returns BPE mappings as they are performed by the encoder
-	virtual void GetIdToTokenMapping( CMap<int, CString>& ) const = 0;
-	virtual void GetTokenToIdMapping( CMap<CString, int>& ) const = 0;
+**Unigram** language model ([Kudo.](https://arxiv.org/abs/1804.10959)) - alternative algorithm.
+
+```c++
+class NEOML_API IUnigramEncoder : public ISubwordEncoderWithCache {
+public:
+	// Unigram vocabulary entry
+	struct CSubtoken {
+		CSubtoken() = default;
+		CSubtoken( CString text, double score );
+		void Serialize( CArchive& archive );
+
+		CString Text;
+		double Score = 0.0;
+	};
+
+	// A list of unique tokens
+	using CUnigramDictionary = CArray<CSubtoken>;
+
+	// Initializes the encoder with an external dictionary.
+	virtual void Initialize( const CUnigramDictionary& tokens, const CParams& ) = 0;
+
+	// Returns a list of subtokens with their scores
+	virtual void GetDictionary( CUnigramDictionary& tokens ) const = 0;
 };
 ```
 
@@ -529,37 +555,44 @@ To train encoder with `IBytePairEncoder` functionality you need to use `CBytePai
 // Class that trains byte-pair-encoding.
 class NEOML_API CBytePairEncoderTrainer {
 public:
-	struct CParams {
-		// Max size of encoder.
-		// The size of the trained encoder cannot exceed this value, but CAN be smaller.
-		int MaxSize = 50000;
-		// Add EoW token to each word
-		bool UseEndOfWordToken = true;
-		// Add SoW token to each word
-		bool UseStartOfWordToken = false;
-		// Treat strings as arrays of raw bytes
-		bool UseRawBytes = false;
-		// The id of <UNK>
-		int UnknownTokenId = 0
+	enum class TAlgorithm {
+		BPE
+		// work in progress: Unigram algorithm
 	};
 
-	CBytePairEncoderTrainer( const CParams& params, const CWordDictionary& dictionary );
+	enum class TBorderHandling {
+		// Add special EndOfWord symbol (</s>) to all words
+		EndOfWord,
+		// Add special BeginOfWord symbol <s> to all words
+		BeginOfWord,
+		// Same as BeginOfWord, but with U+2581 as <s>.
+		// Note that the encoder has no special mode to handle this option. It is a user responsibility to place U+2581.
+		SentencePiece,
+		// Add special symbols on both sides of words
+		BeginAndEndOfWord,
+		// No preprocessing
+		None
+	};
+
+	enum class TVocabPruning {
+		// Restrict a single-letter vocabulary based on their frequency. Default coverage is 1, all symbols will be included into the vocabulary.
+		Coverage,
+		// Treat training data as raw bytes. Initial vocabulary size is 255, no <UNK> symbols will appear.
+		ByteBPE
+	};
+
+	CSubwordEncoderTrainer( int vocabSize, TAlgorithm, TBorderHandling, TVocabPruning = TVocabPruning::Coverage );
+
+	// Prune single-letter vocabulary so that it covers 'fraction' of the training data. Useful when text contains many rare unicode symbols.
+	// By default initial vocabulary contains all found chars (fraction = 1)
+	void SetCharacterCoverage( double value );
+	// Explicitly define required letters that cannot be deleted while pruning
+	void SetMandatoryChars( const CArray<CString>& );
+	// 0 by default. All other tokens will have contiguous numbers from ( UnknownTokenId + 1 )
+	void SetUnknownTokenId( int value );
 
 	// Trains and returns a fully trained encoder.
-	CPtr<IBytePairEncoder> Train();
-
-	// Trains addtional #stepsCount tokens.
-	// Returns true if no additional steps can be performed.
-	bool TrainSteps( int stepsCount );
-
-	// Returns true if training has been completed.
-	bool IsTrainingCompleted() const;
-
-	// Returns encoder consisting of bpe tokens obtained from completed steps.
-	CPtr<IBytePairEncoder> GetEncoder() const;
-
-	// Save/load checkpoint
-	void Serialize( CArchive& archive );
+	CPtr<ISubwordEncoder> Train( const CWordDictionary& frequencyDict );
 ```
 
 How to use:

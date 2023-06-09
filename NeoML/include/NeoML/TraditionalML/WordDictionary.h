@@ -1,4 +1,4 @@
-/* Copyright © 2017-2022 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -83,7 +83,7 @@ private:
 		long long Count;
 
 		CWordWithCount() : Count( 0 ) {}
-		CWordWithCount( const CString& word, long long count ) : Word( word ), Count( count ) {}
+		CWordWithCount( CString word, long long count ) : Word( std::move( word ) ), Count( count ) {}
 
 		void Serialize( CArchive& archive );
 

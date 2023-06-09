@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -159,6 +159,11 @@ inline void channelwise1x5( const float* source, const float* filter0, const flo
 
 inline void vectorFill( float* result, float value, int vectorSize )
 {
+	if( CCPUInfo::HasAvxAndFma && vectorSize >= NeoML::Avx2::VectorMathMinSize ) {
+		NeoML::Avx2::vectorFill( result, vectorSize, value );
+		return;
+	}
+
 	int sseSize;
 	int nonSseSize;
 	checkSse(vectorSize, sseSize, nonSseSize);
@@ -231,6 +236,11 @@ inline void vectorFill( int* result, int value, int vectorSize )
 
 inline void vectorFill0( float* result, int vectorSize )
 {
+	if( CCPUInfo::HasAvxAndFma && vectorSize >= NeoML::Avx2::VectorMathMinSize ) {
+		NeoML::Avx2::vectorFill( result, vectorSize );
+		return;
+	}
+
 	int sseSize;
 	int nonSseSize;
 	checkSse(vectorSize, sseSize, nonSseSize);
@@ -306,6 +316,11 @@ inline void vectorEltwiseMax( const float* first, const float* second, float* re
 
 inline void vectorAdd(const float* first, const float* second, float* result, int vectorSize)
 {
+	if( CCPUInfo::HasAvxAndFma && vectorSize >= NeoML::Avx2::VectorMathMinSize ) {
+		NeoML::Avx2::vectorAdd( first, second, result, vectorSize );
+		return;
+	}
+
 	int sseSize;
 	int nonSseSize;
 	checkSse(vectorSize, sseSize, nonSseSize);
@@ -558,6 +573,11 @@ inline void vectorEltwiseMultiply( const float* first, const float* second, floa
 
 inline void vectorEltwiseMultiply( const float* first, const float* second, float* result, int vectorSize )
 {
+	if( CCPUInfo::HasAvxAndFma && vectorSize >= NeoML::Avx2::VectorMathMinSize ) {
+		NeoML::Avx2::vectorEltwiseMultiply( first, second, result, vectorSize );
+		return;
+	}
+
 	int sseSize;
 	int nonSseSize;
 	checkSse(vectorSize, sseSize, nonSseSize);
@@ -621,6 +641,16 @@ inline void vectorEltwiseMultiply( const int* first, const int* second, int* res
 
 inline void vectorEltwiseMultiplyAdd( const float* first, const float* second, float* result, int vectorSize )
 {
+	if( vectorSize == 1 ) {
+		*result += *first * *second;
+		return;
+	}
+
+	if( CCPUInfo::HasAvxAndFma && vectorSize >= NeoML::Avx2::VectorMathMinSize ) {
+		NeoML::Avx2::vectorEltwiseMultiplyAdd( first, second, result, vectorSize );
+		return;
+	}
+
 	int sseSize;
 	int nonSseSize;
 	checkSse(vectorSize, sseSize, nonSseSize);
@@ -668,6 +698,11 @@ inline void vectorEltwiseMultiplyAdd( const float* first, const float* second, f
 
 inline void vectorReLU( const float* first, float* result, int vectorSize )
 {
+	if( CCPUInfo::HasAvxAndFma && vectorSize >= NeoML::Avx2::VectorMathMinSize ) {
+		NeoML::Avx2::vectorReLU( first, result, vectorSize );
+		return;
+	}
+
 	int sseSize;
 	int nonSseSize;
 	checkSse(vectorSize, sseSize, nonSseSize);
@@ -706,6 +741,11 @@ inline void vectorReLU( const float* first, float* result, int vectorSize )
 
 inline void vectorReLU( const float* first, float* result, int vectorSize, float threshold )
 {
+	if( CCPUInfo::HasAvxAndFma && vectorSize >= NeoML::Avx2::VectorMathMinSize ) {
+		NeoML::Avx2::vectorReLU( first, result, vectorSize, threshold );
+		return;
+	}
+
 	int sseSize;
 	int nonSseSize;
 	checkSse(vectorSize, sseSize, nonSseSize);
@@ -1074,6 +1114,11 @@ inline void vectorSigmoid( const float* first, float* result, int vectorSize )
 
 inline void vectorHSwish( const float* first, float* result, int vectorSize )
 {
+	if( CCPUInfo::HasAvxAndFma && vectorSize >= NeoML::Avx2::VectorMathMinSize ) {
+		NeoML::Avx2::vectorHSwish( first, result, vectorSize );
+		return;
+	}
+
 	int sseSize;
 	int nonSseSize;
 	checkSse( vectorSize, sseSize, nonSseSize );

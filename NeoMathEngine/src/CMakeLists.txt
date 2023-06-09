@@ -167,6 +167,21 @@ else()
     set_property(SOURCE ${CPU_X86_SOURCES} PROPERTY UNITY_GROUP 1)
     source_group("CPU\\x86" REGULAR_EXPRESSION "CPU\/x86\/.*")
     target_include_directories(${PROJECT_NAME} PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/CPU/x86>)
+
+    set(CPU_AVX_SOURCES
+        CPU/x86/avx2/Avx2VectorFunctions.cpp
+    )
+    target_sources(${PROJECT_NAME} PRIVATE
+        ${CPU_AVX_SOURCES}
+        CPU/x86/avx2/Avx2Functions.h
+    )
+    set_property(SOURCE ${CPU_AVX_SOURCES} PROPERTY UNITY_GROUP 3)
+    if(WIN32)
+        set_property(SOURCE ${CPU_AVX_SOURCES} PROPERTY COMPILE_OPTIONS /arch:AVX2)
+    else()
+        set_property(SOURCE ${CPU_AVX_SOURCES} PROPERTY COMPILE_OPTIONS $<$<COMPILE_LANGUAGE:CXX>:-mavx2 -mfma>)
+    endif()
+
     if(NEOML_USE_AVX)
         target_sources(${PROJECT_NAME}
         PRIVATE
