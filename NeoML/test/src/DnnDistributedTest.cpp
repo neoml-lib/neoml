@@ -222,8 +222,8 @@ TEST( CDnnDistributedTest, DnnDistributedSerializeTest )
             distributed.RunOnce( dataset );
             distributed.RunAndLearnOnce( dataset );
             distributed.RunOnce( dataset );
-            if( i % 10000 == 9999 ) {
-                ::printf( "10000\n" );
+            if( i % 1000 == 0 ) {
+                ::printf( "%d\n", i );
             }
         }
         counters->Synchronise();
