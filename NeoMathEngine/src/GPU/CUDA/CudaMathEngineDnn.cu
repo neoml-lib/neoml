@@ -162,7 +162,8 @@ void CCudaMathEngine::BlobSplitByDim(TBlobDim dim, const CBlobDesc& from, const 
 }
 
 void CCudaMathEngine::BlobResizeImage( const CBlobDesc& from, const CFloatHandle& fromData, int deltaLeft, int deltaRight,
-	int deltaTop, int deltaBottom, float defaultValue, const CBlobDesc& to, const CFloatHandle& toData )
+	int deltaTop, int deltaBottom, TBlobResizePadding padding, float defaultValue,
+	const CBlobDesc& to, const CFloatHandle& toData )
 {
 	ASSERT_EXPR( fromData.GetMathEngine() == this );
 	ASSERT_EXPR( toData.GetMathEngine() == this );
@@ -171,8 +172,8 @@ void CCudaMathEngine::BlobResizeImage( const CBlobDesc& from, const CFloatHandle
 	dim3 blockCount;
 	dim3 threadCount;
 	getCudaTaskGrid3D( blockCount, threadCount, to.ObjectCount(), to.Height() * to.Width(), to.Channels() * to.Depth() );
-	BlobResizeImageKernel<<<blockCount, threadCount>>>( from, GetRaw(fromData), deltaLeft, deltaTop, defaultValue, to,
-		GetRaw(toData) );
+	BlobResizeImageKernel<<<blockCount, threadCount>>>( from, GetRaw( fromData ), deltaLeft, deltaTop,
+		static_cast<int>( padding ), defaultValue, to, GetRaw( toData ) );
 }
 
 void CCudaMathEngine::BlobGetSubSequence( const CBlobDesc& from, const CFloatHandle& fromData, const CIntHandle& indexHandle, const CBlobDesc& to,
