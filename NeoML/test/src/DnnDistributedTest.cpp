@@ -170,7 +170,7 @@ TEST( CDnnDistributedTest, DnnDistributedSerializeTest )
     CDnn cnn( rand, *mathEngine );
     buildDnn( cnn, outputSize );
 
-    CDistributedTraining distributed( cnn, 3 );
+    CDistributedTraining distributed( cnn, 49 );
     CCustomDataset dataset( inputSize, outputSize );
     distributed.RunAndLearnOnce( dataset );
     distributed.RunOnce( dataset );
@@ -213,6 +213,21 @@ TEST( CDnnDistributedTest, DnnDistributedSerializeTest )
     ASSERT_EQ( weights.Size(), distributedWeights.Size() );
     for( int i = 0; i < weights.Size(); i++ ) {
         ASSERT_NEAR( weights[i], distributedWeights[i], 1e-4 );
+    }
+
+    {
+        std::unique_ptr<IPerformanceCounters> counters( GetDefaultCpuMathEngine().CreatePerformanceCounters() );
+        counters->Synchronise();
+        for( int i = 0; i < 100000; ++i ) {
+            distributed.RunOnce( dataset );
+            distributed.RunAndLearnOnce( dataset );
+            distributed.RunOnce( dataset );
+            if( i % 10000 == 9999 ) {
+                ::printf( "10000\n" );
+            }
+        }
+        counters->Synchronise();
+        std::cout << ( *counters )[0].Name << '\t' << ( *counters )[0].Value << '\n';
     }
 }
 
