@@ -20,9 +20,10 @@ limitations under the License.
 
 using namespace NeoML;
 using namespace NeoMLTest;
-using CSubwordEncoderTrainer::TAlgorithm;
-using CSubwordEncoderTrainer::TBorderHandling;
-using CSubwordEncoderTrainer::TVocabPruning;
+
+typedef CSubwordEncoderTrainer::TAlgorithm TAlgorithm;
+typedef CSubwordEncoderTrainer::TBorderHandling TBorderHandling;
+typedef CSubwordEncoderTrainer::TVocabPruning TVocabPruning;
 
 static void splitString( const CString& text, CArray<CString>& out, char delimiter = ' ' )
 {
