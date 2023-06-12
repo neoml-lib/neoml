@@ -171,6 +171,7 @@ TEST( CDnnDistributedTest, DnnDistributedSerializeTest )
     buildDnn( cnn, outputSize );
 
     CDistributedTraining distributed( cnn, GetGlobalThreadCount() == 0 ? 2 : GetGlobalThreadCount() );
+    ::printf( "OMP has %d threaads here\n", OmpGetMaxThreadCount() );
     ::printf( "Testing distributed with %d threads\n", distributed.GetModelCount() );
     CCustomDataset dataset( inputSize, outputSize );
     distributed.RunAndLearnOnce( dataset );
