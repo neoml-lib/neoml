@@ -170,7 +170,8 @@ TEST( CDnnDistributedTest, DnnDistributedSerializeTest )
     CDnn cnn( rand, *mathEngine );
     buildDnn( cnn, outputSize );
 
-    CDistributedTraining distributed( cnn, 49 );
+    CDistributedTraining distributed( cnn, GetGlobalThreadCount() == 0 ? 2 : GetGlobalThreadCount() );
+    ::printf( "Testing distributed with %d threads\n", distributed.GetModelCount() );
     CCustomDataset dataset( inputSize, outputSize );
     distributed.RunAndLearnOnce( dataset );
     distributed.RunOnce( dataset );

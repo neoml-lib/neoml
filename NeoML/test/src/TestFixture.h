@@ -23,6 +23,7 @@ namespace NeoMLTest {
 
 CString GetTestDataFilePath( const CString& relativePath, const CString& fileName );
 
+int GetGlobalThreadCount();
 // Get global MathEngine.
 IMathEngine& MathEngine();
 // Delete global MathEngine.
