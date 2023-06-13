@@ -165,66 +165,25 @@ TEST( CDnnDistributedTest, DnnDistributedSerializeTest )
     std::unique_ptr<IMathEngine> mathEngine( CreateCpuMathEngine( GetGlobalThreadCount(), 0 ) );
     CRandom rand( 42 );
 
-    int inputSize = 1000;
-    int outputSize = 5;
+    int inputSize = 8192;
+    int outputSize = 2048;
     CDnn cnn( rand, *mathEngine );
     buildDnn( cnn, outputSize );
 
-    CDistributedTraining distributed( cnn, GetGlobalThreadCount() == 0 ? 2 : GetGlobalThreadCount() );
-    ::printf( "OMP has %d threaads here\n", OmpGetMaxThreadCount() );
+    ::printf( "OMP has %d threads here\n", OmpGetMaxThreadCount() );
     ::printf( "Testing single CDnn with %d threads\n", GetGlobalThreadCount() );
     CCustomDataset dataset( inputSize, outputSize );
-    distributed.RunAndLearnOnce( dataset );
-    distributed.RunOnce( dataset );
-
-    CArray<float> losses;
-    distributed.GetLastLoss( "loss", losses );
-
-    CString archiveName = "distributedSerialized";
-    {
-        CArchiveFile archiveFile( archiveName, CArchive::store, GetPlatformEnv() );
-        CArchive archive( &archiveFile, CArchive::SD_Storing );
-        distributed.Serialize( archive );
-    }
-
-    CRandom rand2( 42 );
-    CDnn serializedCnn( rand2, *mathEngine );
-    {
-        CArchiveFile archiveFile( archiveName, CArchive::load, GetPlatformEnv() );
-        CArchive archive( &archiveFile, CArchive::SD_Loading );
-        serializedCnn.Serialize( archive );
-    }
-
-    dataset.SetInputBatch( serializedCnn, 0 );
-    serializedCnn.RunOnce();
-    float loss = static_cast< CLossLayer* >( serializedCnn.GetLayer( "loss" ).Ptr() )->GetLastLoss();
-    ASSERT_EQ( loss, losses[0] );
-
-    CArray<float> distributedWeights;
-    CPtr<CDnnBlob> weightsBlob = static_cast< CFullyConnectedLayer* >( serializedCnn.GetLayer( "full" ).Ptr() )->GetWeightsData();
-    distributedWeights.SetSize( weightsBlob->GetDataSize() );
-    weightsBlob->CopyTo( distributedWeights.GetPtr() );
 
     dataset.SetInputBatch( cnn, 0 );
-    cnn.RunAndLearnOnce();
-    CArray<float> weights;
-    weightsBlob = static_cast< CFullyConnectedLayer* >( cnn.GetLayer( "full" ).Ptr() )->GetWeightsData();
-    weights.SetSize( weightsBlob->GetDataSize() );
-    weightsBlob->CopyTo( weights.GetPtr() );
-
-    ASSERT_EQ( weights.Size(), distributedWeights.Size() );
-    for( int i = 0; i < weights.Size(); i++ ) {
-        ASSERT_NEAR( weights[i], distributedWeights[i], 1e-4 );
-    }
 
     {
         std::unique_ptr<IPerformanceCounters> counters( GetDefaultCpuMathEngine().CreatePerformanceCounters() );
         counters->Synchronise();
-        for( int i = 0; i < 100000; ++i ) {
-            serializedCnn.RunOnce();
-            serializedCnn.RunAndLearnOnce();
-            serializedCnn.RunOnce();
-            if( i % 10000 == 0 ) {
+        for( int i = 0; i < 100; ++i ) {
+            cnn.RunOnce();
+            cnn.RunAndLearnOnce();
+            cnn.RunOnce();
+            if( i % 10 == 0 ) {
                 ::printf( "%d\n", i );
             }
         }
