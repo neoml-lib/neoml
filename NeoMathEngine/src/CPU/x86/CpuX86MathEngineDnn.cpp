@@ -162,7 +162,7 @@ static void blob3dMaxPoolingProcessFirstItem( const float* sourceObject, int sou
 	}
 }
 
-static void blob3dMeanMaxPoolingProcessFirstItem( const float* sourceObject, int sourceIndex,
+static void blob3dMaxPoolingProcessFirstItem( const float* sourceObject, int sourceIndex,
 	int sseChannels, int nonSseChannels, float* resultData )
 {
 	const float* sourceData = sourceObject + sourceIndex;
@@ -289,7 +289,7 @@ void CCpuMathEngine::Blob3dMaxPooling( const C3dMaxPoolingDesc& poolingDesc, con
 							for( int filterK = 0; filterK < desc.FilterDepth; ++filterK ) {
 								if( ( filterJ == 0 ) && ( filterI == 0 ) && ( filterK == 0 ) ) {
 									if( indexData == 0 ) {
-										blob3dMeanMaxPoolingProcessFirstItem( sourceObject, sourceIndex,
+										blob3dMaxPoolingProcessFirstItem( sourceObject, sourceIndex,
 											sseChannels, nonSseChannels, resultDataPtr );
 									} else {
 										blob3dMaxPoolingProcessFirstItem( sourceObject, sourceIndex,
@@ -332,214 +332,6 @@ void CCpuMathEngine::Blob3dMaxPooling( const C3dMaxPoolingDesc& poolingDesc, con
 }
 
 //-------------------------------------------------------------------------------------------------------
-// 3d mean pooling
-
-static void blob3dMeanPoolingProcessItem( const float* sourceObject, int sourceIndex,
-	int sseChannels, int nonSseChannels, float* resultData )
-{
-	const float* sourceData = sourceObject + sourceIndex;
-
-	for( int c = 0; c < sseChannels; ++c ) {
-		__m128 src = _mm_loadu_ps( sourceData );
-		__m128 res = _mm_loadu_ps( resultData );
-		_mm_storeu_ps( resultData, _mm_add_ps( res, src ) );
-
-		sourceData += 4;
-		resultData += 4;
-	}
-
-	for( int c = 0; c < nonSseChannels; ++c ) {
-		*resultData++ += *sourceData++;
-	}
-}
-
-void CCpuMathEngine::Blob3dMeanPooling( const C3dMeanPoolingDesc& convDesc, const CConstFloatHandle& sourceData,
-	const CFloatHandle& resultData )
-{
-	ASSERT_EXPR( sourceData.GetMathEngine() == this );
-	ASSERT_EXPR( resultData.GetMathEngine() == this );
-	CCpuExecutionScope scope;
-
-	const CCommon3dMeanPoolingDesc& desc = static_cast<const CCommon3dMeanPoolingDesc&>( convDesc );
-	const CBlobDesc& source = desc.Source;
-	const CBlobDesc& result = desc.Result;
-
-	const float* sourceObject = GetRaw( sourceData );
-	float* resultJStart = GetRaw( resultData );
-
-	const int sourceDepthSize = source.Depth() * source.Channels();
-	const int sourceRowSize = source.Width() * sourceDepthSize;
-	const int sourceObjectSize = source.Height() * sourceRowSize;
-
-	const int resultDepthSize = result.Depth() * result.Channels();
-	const int resultRowSize = result.Width() * resultDepthSize;
-
-	int sseChannels;
-	int nonSseChannels;
-	checkSse( result.Channels(), sseChannels, nonSseChannels );
-
-	for( int b = 0; b < result.ObjectCount(); ++b ) {
-		// Go through all "cube blocks" and then go over values in each block
-		// So we get a forward pass through the source and filterHeight * filterWidth passes through the result
-		for( int j = 0; j < result.Height(); ++j ) {
-			int sourceJIndex = j * desc.StrideHeight * sourceRowSize;
-			for( int filterJ = 0; filterJ < desc.FilterHeight; ++filterJ ) {
-				float* resultIStart = resultJStart;
-
-				for( int i = 0; i < result.Width(); ++i ) {
-					int sourceIIndex = sourceJIndex + i * desc.StrideWidth * sourceDepthSize;
-					for( int filterI = 0; filterI < desc.FilterWidth; ++filterI ) {
-						float* resultDataPtr = resultIStart;
-
-						for( int k = 0; k < result.Depth(); ++k ) {
-							int sourceIndex = sourceIIndex + k * desc.StrideDepth * source.Channels();
-							for( int filterK = 0; filterK < desc.FilterDepth; ++filterK ) {
-								if( ( filterJ == 0 ) && ( filterI == 0 ) && ( filterK == 0 ) ) {
-									blob3dMeanMaxPoolingProcessFirstItem( sourceObject, sourceIndex,
-										sseChannels, nonSseChannels, resultDataPtr );
-								} else {
-									blob3dMeanPoolingProcessItem( sourceObject, sourceIndex,
-										sseChannels, nonSseChannels, resultDataPtr );
-								}
-
-								sourceIndex += source.Channels();
-							}
-							resultDataPtr += result.Channels();
-						}
-						sourceIIndex += sourceDepthSize;
-					}
-					resultIStart += resultDepthSize;
-				}
-				sourceJIndex += sourceRowSize;
-			}
-			resultJStart += resultRowSize;
-		}
-
-		sourceObject += sourceObjectSize;
-	}
-
-	// Divide the result by filter volume
-	CFloatHandleStackVar denom( mathEngine(), 1 );
-	denom.SetValue( 1.f / desc.FilterHeight / desc.FilterWidth / desc.FilterDepth );
-	VectorMultiply( resultData, resultData, result.BlobSize(), denom );
-}
-
-static void applyMeanPoolingBackwardSet( const float* resultDiff, int sseChannels, int nonSseChannels,
-	int filterHeight, int filterWidth, int filterDepth, float* sourceDiff,
-	int sourceRowSize, int sourceDepthSize )
-{
-	for( int j = 0; j < filterHeight; ++j ) {
-		float* sourceDiffDepth = sourceDiff;
-		for( int i = 0; i < filterWidth; ++i ) {
-			float* sourceDiffPixel = sourceDiffDepth;
-			for( int k = 0; k < filterDepth; ++k ) {
-				const float* resultDiffPixel = resultDiff;
-				for( int c = 0; c < sseChannels; ++c ) {
-					_mm_storeu_ps( sourceDiffPixel, _mm_loadu_ps( resultDiffPixel ) );
-					sourceDiffPixel += 4;
-					resultDiffPixel += 4;
-				}
-				for( int c = 0; c < nonSseChannels; ++c ) {
-					*sourceDiffPixel++ = *resultDiffPixel++;
-				}
-			}
-			sourceDiffDepth += sourceDepthSize;
-		}
-		sourceDiff += sourceRowSize;
-	}
-}
-
-static void applyMeanPoolingBackwardAdd( const float* resultDiff, int sseChannels, int nonSseChannels,
-	int filterHeight, int filterWidth, int filterDepth, float* sourceDiff,
-	int sourceRowSize, int sourceDepthSize )
-{
-	for( int j = 0; j < filterHeight; ++j ) {
-		float* sourceDiffDepth = sourceDiff;
-		for( int i = 0; i < filterWidth; ++i ) {
-			float* sourceDiffPixel = sourceDiffDepth;
-			for( int k = 0; k < filterDepth; ++k ) {
-				const float* resultDiffPixel = resultDiff;
-				for( int c = 0; c < sseChannels; ++c ) {
-					__m128 src = _mm_loadu_ps( resultDiffPixel );
-					__m128 res = _mm_loadu_ps( sourceDiffPixel );
-					_mm_storeu_ps( sourceDiffPixel, _mm_add_ps( res, src ) );
-					sourceDiffPixel += 4;
-					resultDiffPixel += 4;
-				}
-				for( int c = 0; c < nonSseChannels; ++c ) {
-					*sourceDiffPixel++ += *resultDiffPixel++;
-				}
-			}
-			sourceDiffDepth += sourceDepthSize;
-		}
-		sourceDiff += sourceRowSize;
-	}
-}
-
-void CCpuMathEngine::Blob3dMeanPoolingBackward( const C3dMeanPoolingDesc& poolingDesc,
-	const CConstFloatHandle& resultDiff, const CFloatHandle& sourceDiff )
-{
-	ASSERT_EXPR( resultDiff.GetMathEngine() == this );
-	ASSERT_EXPR( sourceDiff.GetMathEngine() == this );
-	CCpuExecutionScope scope;
-
-	const CCommon3dMeanPoolingDesc& desc = static_cast<const CCommon3dMeanPoolingDesc&>( poolingDesc );
-	const CBlobDesc& source = desc.Source;
-	const CBlobDesc& result = desc.Result;
-
-	if( desc.FilterHeight != desc.StrideHeight || desc.FilterWidth != desc.StrideWidth || desc.FilterDepth != desc.StrideDepth ) {
-		// Either the cube blocks for pooling have nonzero intersections and several diffs should be added up
-		// or some of the data is skipped when pooling, and diff should be set to 0 for them
-		VectorFill( sourceDiff, 0, source.BlobSize() );
-	}
-
-	// The flag that indicates that the cube blocks for pooling have nonzero intersections
-	bool isIntersect = desc.FilterHeight > desc.StrideHeight || desc.FilterWidth > desc.StrideWidth || desc.FilterDepth > desc.StrideDepth;
-
-	int sseChannels;
-	int nonSseChannels;
-	checkSse( result.Channels(), sseChannels, nonSseChannels );
-
-	const int sourceDepthSize = source.Depth() * source.Channels();
-	const int sourceRowSize = sourceDepthSize * source.Width();
-	const int sourceObjectSize = sourceRowSize * source.Height();
-
-	const float* resultDiffPtr = GetRaw( resultDiff );
-	float* sourceDiffPtr = GetRaw( sourceDiff );
-
-	for( int b = 0; b < result.ObjectCount(); ++b ) {
-		int jStart = 0;
-		for( int j = 0; j < result.Height(); ++j ) {
-			int iStart = jStart;
-			for( int i = 0; i < result.Width(); ++i ) {
-				int kStart = iStart;
-				for( int k = 0; k < result.Depth(); ++k ) {
-					if( isIntersect ) {
-						applyMeanPoolingBackwardAdd( resultDiffPtr, sseChannels, nonSseChannels,
-							desc.FilterHeight, desc.FilterWidth, desc.FilterDepth, sourceDiffPtr + kStart,
-							sourceRowSize, sourceDepthSize );
-					} else {
-						applyMeanPoolingBackwardSet( resultDiffPtr, sseChannels, nonSseChannels,
-							desc.FilterHeight, desc.FilterWidth, desc.FilterDepth, sourceDiffPtr + kStart,
-							sourceRowSize, sourceDepthSize );
-					}
-					resultDiffPtr += result.Channels();
-					kStart += source.Channels() * desc.StrideDepth;
-				}
-				iStart += sourceDepthSize * desc.StrideWidth;
-			}
-			jStart += sourceRowSize * desc.StrideHeight;
-		}
-		sourceDiffPtr += sourceObjectSize;
-	}
-
-	// Divide the source by the filter volume
-	CFloatHandleStackVar denom( mathEngine(), 1 );
-	denom.SetValue( 1.f / desc.FilterHeight / desc.FilterWidth / desc.FilterDepth );
-	VectorMultiply( sourceDiff, sourceDiff, source.BlobSize(), denom );
-}
-
-//-------------------------------------------------------------------------------------------------------
 
 void CCpuMathEngine::BlobMaxOverTimePooling( const CMaxOverTimePoolingDesc& poolingDesc, const CConstFloatHandle& sourceData,
 	const CIntHandle* maxIndices, const CFloatHandle& resultData )
@@ -553,13 +345,14 @@ void CCpuMathEngine::BlobMaxOverTimePooling( const CMaxOverTimePoolingDesc& pool
 	const CBlobDesc& source = desc.Source;
 	const CBlobDesc& result = desc.Result;
 
-	if( maxIndices != 0 ) {
-		int seqElemSize = source.BlobSize() / source.BatchLength();
-		int seqElemSizeSse = seqElemSize / 4;
-		int seqElemSizeNonSse = seqElemSize % 4;
+	const int seqElemSize = source.BlobSize() / source.BatchLength();
+	const int seqElemSizeSse = seqElemSize / 4;
+	const int seqElemSizeNonSse = seqElemSize % 4;
 
-		const float* sourceStart = GetRaw( sourceData );
-		float* resultStart = GetRaw( resultData );
+	const float* sourceStart = GetRaw( sourceData );
+	float* resultStart = GetRaw( resultData );
+
+	if( maxIndices != 0 ) {
 		int* indexStart = GetRaw( *maxIndices );
 
 		int indexValueStart = 0;
@@ -612,13 +405,6 @@ void CCpuMathEngine::BlobMaxOverTimePooling( const CMaxOverTimePoolingDesc& pool
 			indexValueStart += desc.StrideLen;
 		}
 	} else {
-		int seqElemSize = source.BlobSize() / source.BatchLength();
-		int seqElemSizeSse = seqElemSize / 4;
-		int seqElemSizeNonSse = seqElemSize % 4;
-
-		const float* sourceStart = GetRaw( sourceData );
-		float* resultStart = GetRaw( resultData );
-
 		for( int l = 0; l < result.BatchLength(); ++l ) {
 			const float* sourceDataPtr = sourceStart;
 
@@ -652,94 +438,6 @@ void CCpuMathEngine::BlobMaxOverTimePooling( const CMaxOverTimePoolingDesc& pool
 
 			sourceStart += desc.StrideLen * seqElemSize;
 			resultStart += seqElemSize;
-		}
-	}
-}
-
-void CCpuMathEngine::AddWidthIndex( const CBlobDesc& source, const CConstFloatHandle& sourceData, bool isForward, const CFloatHandle& resultData )
-{
-	ASSERT_EXPR( sourceData.GetMathEngine() == this );
-	ASSERT_EXPR( resultData.GetMathEngine() == this );
-	CCpuExecutionScope scope;
-
-	const float* pSource = GetRaw( sourceData );
-	float* pResult = GetRaw( resultData );
-
-	for( int batch = 0; batch < source.ObjectCount(); ++batch ) {
-		for( int h = 0; h < source.Height(); ++h ) {
-			for( int w = 0; w < source.Width(); ++w ) {
-				for( int c = 0; c < source.Channels(); ++c ) {
-					*pResult = isForward ? *pSource + w : *pSource - w;
-					++pSource;
-					++pResult;
-				}
-			}
-		}
-	}
-}
-
-void CCpuMathEngine::AddWidthIndex( const CBlobDesc& source, const CConstIntHandle& sourceData, bool isForward, const CIntHandle& resultData )
-{
-	ASSERT_EXPR( sourceData.GetMathEngine() == this );
-	ASSERT_EXPR( resultData.GetMathEngine() == this );
-	CCpuExecutionScope scope;
-
-	const int* pSource = GetRaw( sourceData );
-	int* pResult = GetRaw( resultData );
-
-	for( int batch = 0; batch < source.ObjectCount(); ++batch ) {
-		for( int h = 0; h < source.Height(); ++h ) {
-			for( int w = 0; w < source.Width(); ++w ) {
-				for( int c = 0; c < source.Channels(); ++c ) {
-					*pResult = isForward ? *pSource + w : *pSource - w;
-					++pSource;
-					++pResult;
-				}
-			}
-		}
-	}
-}
-
-void CCpuMathEngine::AddHeightIndex( const CBlobDesc& source, const CConstFloatHandle& sourceData, bool isForward, const CFloatHandle& resultData )
-{
-	ASSERT_EXPR( sourceData.GetMathEngine() == this );
-	ASSERT_EXPR( resultData.GetMathEngine() == this );
-	CCpuExecutionScope scope;
-
-	const float* pSource = GetRaw( sourceData );
-	float* pResult = GetRaw( resultData );
-
-	for( int batch = 0; batch < source.ObjectCount(); ++batch ) {
-		for( int h = 0; h < source.Height(); ++h ) {
-			for( int w = 0; w < source.Width(); ++w ) {
-				for( int c = 0; c < source.Channels(); ++c ) {
-					*pResult = isForward ? *pSource + h : *pSource - h;
-					++pSource;
-					++pResult;
-				}
-			}
-		}
-	}
-}
-
-void CCpuMathEngine::AddHeightIndex( const CBlobDesc& source, const CConstIntHandle& sourceData, bool isForward, const CIntHandle& resultData )
-{
-	ASSERT_EXPR( sourceData.GetMathEngine() == this );
-	ASSERT_EXPR( resultData.GetMathEngine() == this );
-	CCpuExecutionScope scope;
-
-	const int* pSource = GetRaw( sourceData );
-	int* pResult = GetRaw( resultData );
-
-	for( int batch = 0; batch < source.ObjectCount(); ++batch ) {
-		for( int h = 0; h < source.Height(); ++h ) {
-			for( int w = 0; w < source.Width(); ++w ) {
-				for( int c = 0; c < source.Channels(); ++c ) {
-					*pResult = isForward ? *pSource + h : *pSource - h;
-					++pSource;
-					++pResult;
-				}
-			}
 		}
 	}
 }
