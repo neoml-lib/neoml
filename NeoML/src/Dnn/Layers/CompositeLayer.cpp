@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -604,22 +604,12 @@ void CCompositeLayer::processBackwardOrLearn()
 	// Reset the learning parameters because they may have changed after the last run
 	CDnnSolver* solver = externalDnn->GetSolver();
 	internalDnn->SetSolver(solver);
-	float oldLearningRate = solver->GetLearningRate();
-	solver->SetLearningRate(oldLearningRate * GetBaseLearningRate());
-	float oldRegularizationL1 = solver->GetL1Regularization();
-	solver->SetL1Regularization(oldRegularizationL1 * GetBaseL1RegularizationMult());
-	float oldRegularizationL2 = solver->GetL2Regularization();
-	solver->SetL2Regularization(oldRegularizationL2 * GetBaseL2RegularizationMult());
 
 	if(internalDnn->GetLog()) {
 		*internalDnn->GetLog() << "\n";
 	}
 	// Run a backward pass for the internal network
 	RunInternalDnnBackward();
-
-	solver->SetL1Regularization(oldRegularizationL1);
-	solver->SetL2Regularization(oldRegularizationL2);
-	solver->SetLearningRate(oldLearningRate);
 
 	internalDnn->SetLog(0);
 }
