@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,6 +14,9 @@ limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
 #include <TestFixture.h>
+
+// These functions are implemented by MKL. MKL is not available on ARM.
+#if FINE_ARCHITECTURE( FINE_X86 ) || FINE_ARCHITECTURE( FINE_X64 )
 
 using namespace NeoML;
 using namespace NeoMLTest;
@@ -70,7 +73,7 @@ static void multiplyTransposedSparseMatrixByMatrixTestImpl( const CTestParams& p
 		firstHeight, secondWidth );
 
 	CSparseMatrix sparseMatrix( MathEngine(), rows, columns, values );
-	MathEngine().MultiplyTransposedSparseMatrixByMatrix( firstHeight, firstWidth, secondWidth, sparseMatrix.Desc(),
+	MathEngine().MultiplyTransposedSparseMatrixByMatrix( firstHeight, firstWidth, secondWidth, sparseMatrix.Desc(), //x86 -specific
 		CARRAY_FLOAT_WRAPPER( second ), CARRAY_FLOAT_WRAPPER( actual ) );
 
 	for( int i = 0; i < firstWidth * secondWidth; ++i ) {
@@ -102,3 +105,5 @@ TEST_P( CMultiplyTransposedSparseMatrixByMatrixTest, Random )
 	}
 	RUN_TEST_IMPL( multiplyTransposedSparseMatrixByMatrixTestImpl )
 }
+#endif //FINE_ARCHITECTURE( FINE_X86 ) || FINE_ARCHITECTURE( FINE_X64 )
+
