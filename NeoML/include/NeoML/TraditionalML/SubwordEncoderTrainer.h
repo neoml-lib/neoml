@@ -19,14 +19,13 @@ limitations under the License.
 #include <NeoML/TraditionalML/SubwordEncoder.h>
 
 namespace NeoML {
-class CBpeTrainer;
 
 // Class that trains byte-pair-encoding.
 class NEOML_API CSubwordEncoderTrainer {
 public:
 	enum class TAlgorithm {
-		BPE
-		// work in progress: Unigram algorithm
+		BPE,
+		Unigram
 	};
 
 	enum class TBorderHandling {
@@ -51,7 +50,6 @@ public:
 	};
 
 	CSubwordEncoderTrainer( int vocabSize, TAlgorithm, TBorderHandling, TVocabPruning = TVocabPruning::Coverage );
-	~CSubwordEncoderTrainer();
 
 	// Prune single-letter vocabulary so that it covers 'fraction' of the training data. Useful when text contains many rare unicode symbols.
 	// By default initial vocabulary contains all found chars (fraction = 1)
@@ -62,6 +60,7 @@ public:
 	void SetUnknownTokenId( int value );
 
 	// Trains and returns a fully trained encoder.
+	// It is advisable to prune low-frequency words by calling frequencyDict.Finalize( minCount ) before training.
 	CPtr<ISubwordEncoder> Train( const CWordDictionary& frequencyDict );
 
 	CSubwordEncoderTrainer( const CSubwordEncoderTrainer& other ) = delete;
@@ -70,13 +69,13 @@ public:
 private:
 	// Trainer and encoder params
 	int desiredVocabSize;
+	TAlgorithm algorithm;
 	TBorderHandling borderHandling;
 	TVocabPruning vocabPruning;
 	double coverage = 1.;
 	int encoderUnkTokenId = 0;
 
 	CArray<CString> mandatoryTokens;
-	CBpeTrainer* bpeTrainer = nullptr;
 
 	CWordDictionary getInitialDictionary( const CWordDictionary& trainData ) const;
 	static CWordDictionary getAllBytesDictionary();

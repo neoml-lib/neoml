@@ -556,8 +556,8 @@ To train encoder with `IBytePairEncoder` functionality you need to use `CBytePai
 class NEOML_API CBytePairEncoderTrainer {
 public:
 	enum class TAlgorithm {
-		BPE
-		// work in progress: Unigram algorithm
+		BPE,
+		Unigram
 	};
 
 	enum class TBorderHandling {
