@@ -244,6 +244,7 @@ static void mobileNetV3BlockTestImpl( unsigned int seed, int freeTermMask, const
 	seParams.SecondActivation = secondSEActivation;
 
 	CPostSEParams postSEParams;
+	postSEParams.PostSEActivation = postSEActivation;
 	postSEParams.DownFilter = createBlob( { 1, outputChannels, 1, 1, 1, 1, expandedChannels }, random );
 	if( ( freeTermMask & downFreeTermBit ) != 0 ) {
 		postSEParams.DownFreeTerm = createBlob( { outputChannels }, random );
