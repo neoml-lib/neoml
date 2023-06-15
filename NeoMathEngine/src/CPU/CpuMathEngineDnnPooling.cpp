@@ -470,7 +470,6 @@ void CCpuMathEngine::Blob3dMeanPooling( const C3dMeanPoolingDesc& convDesc, cons
 		}
 		sourceObject += sourceObjectSize;
 	}
-
 	// Divide the result by filter volume
 	vectorMultiply( GetRaw( resultData ), GetRaw( resultData ), ( 1.f / desc.FilterHeight / desc.FilterWidth / desc.FilterDepth ), result.BlobSize() );
 }
@@ -608,7 +607,6 @@ void CCpuMathEngine::Blob3dMeanPoolingBackward( const C3dMeanPoolingDesc& poolin
 		}
 		sourceDiffPtr += sourceObjectSize;
 	}
-
 	// Divide the sourceDiff by the filter volume
 	vectorMultiply( sourceDiffRaw, sourceDiffRaw, ( 1.f / desc.FilterHeight / desc.FilterWidth / desc.FilterDepth ), source.BlobSize() );
 }
@@ -616,8 +614,9 @@ void CCpuMathEngine::Blob3dMeanPoolingBackward( const C3dMeanPoolingDesc& poolin
 //---------------------------------------------------------------------------------------------------
 
 template<typename T>
-static void addWidthOrHeightIndex( const CCpuMathEngine* const mathEngine, bool isForward, bool isWidth,
-	const CBlobDesc& source, const CTypedMemoryHandle<const T>& sourceData, const CTypedMemoryHandle<T>& resultData )
+static void addDimIndex( const CCpuMathEngine* const mathEngine, bool isForward,
+	int objectCount, int indexedDimSize, int operateSize,
+	const CTypedMemoryHandle<const T>& sourceData, const CTypedMemoryHandle<T>& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == mathEngine );
 	ASSERT_EXPR( resultData.GetMathEngine() == mathEngine );
@@ -626,27 +625,12 @@ static void addWidthOrHeightIndex( const CCpuMathEngine* const mathEngine, bool 
 	const T* sourceRaw = GetRaw( sourceData );
 	T* resultRaw = GetRaw( resultData );
 
-	if( isWidth ) {
-		const int channels = source.Depth() * source.Channels();
-		for( int batch = 0; batch < source.ObjectCount(); ++batch ) {
-			for( int h = 0; h < source.Height(); ++h ) {
-				for( int w = 0; w < source.Width(); ++w ) {
-					const T value = static_cast<T>( isForward ? w : ( -w ) );
-					vectorAddValue( sourceRaw, resultRaw, channels, value );
-					sourceRaw += channels;
-					resultRaw += channels;
-				}
-			}
-		}
-	} else { //Height
-		const int width = source.Width() * source.Depth() * source.Channels();
-		for( int batch = 0; batch < source.ObjectCount(); ++batch ) {
-			for( int h = 0; h < source.Height(); ++h ) {
-				const T value = static_cast<T>( isForward ? h : ( -h ) );
-				vectorAddValue( sourceRaw, resultRaw, width, value );
-				sourceRaw += width;
-				resultRaw += width;
-			}
+	for( int batch = 0; batch < objectCount; ++batch ) {
+		for( int iDim = 0; iDim < indexedDimSize; ++iDim ) {
+			const T value = static_cast<T>( isForward ? iDim : ( -iDim ) );
+			vectorAddValue( sourceRaw, resultRaw, operateSize, value );
+			sourceRaw += operateSize;
+			resultRaw += operateSize;
 		}
 	}
 }
@@ -655,22 +639,22 @@ static void addWidthOrHeightIndex( const CCpuMathEngine* const mathEngine, bool 
 
 void CCpuMathEngine::AddWidthIndex( const CBlobDesc& source, const CConstFloatHandle& sourceData, bool isForward, const CFloatHandle& resultData )
 {
-	addWidthOrHeightIndex( this, isForward, /*isWidth*/true, source, sourceData, resultData);
+	addDimIndex( this, isForward, source.ObjectCount() * source.Height(), source.Width(), source.Depth() * source.Channels(), sourceData, resultData);
 }
 
 void CCpuMathEngine::AddWidthIndex( const CBlobDesc& source, const CConstIntHandle& sourceData, bool isForward, const CIntHandle& resultData )
 {
-	addWidthOrHeightIndex( this, isForward, /*isWidth*/true, source, sourceData, resultData );
+	addDimIndex( this, isForward, source.ObjectCount() * source.Height(), source.Width(), source.Depth() * source.Channels(), sourceData, resultData );
 }
 
 void CCpuMathEngine::AddHeightIndex( const CBlobDesc& source, const CConstFloatHandle& sourceData, bool isForward, const CFloatHandle& resultData )
 {
-	addWidthOrHeightIndex( this, isForward, /*isWidth*/false, source, sourceData, resultData );
+	addDimIndex( this, isForward, source.ObjectCount(), source.Height(), source.Width() * source.Depth() * source.Channels(), sourceData, resultData );
 }
 
 void CCpuMathEngine::AddHeightIndex( const CBlobDesc& source, const CConstIntHandle& sourceData, bool isForward, const CIntHandle& resultData )
 {
-	addWidthOrHeightIndex( this, isForward, /*isWidth*/false, source, sourceData, resultData );
+	addDimIndex( this, isForward, source.ObjectCount(), source.Height(), source.Width() * source.Depth() * source.Channels(), sourceData, resultData );
 }
 
 } // namespace NeoML
