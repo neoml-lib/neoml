@@ -129,7 +129,8 @@ bool CMobileNetV3Optimizer::detectMNv3Residual( CBaseLayer& residual, CMNv3Block
 
 		CLayerOutput<> blockData = graph.GetConnectedOutput<>( residual, 1 - i );
 		if( downConv != nullptr && detectMNv3NonResidual( *downConv, detectedBlock )
-			&& blockData == detectedBlock.InputData && graph.GetConnectedInputsCount( *downConv, 0 ) == 1 )
+			&& graph.GetConnectedInputsCount( *downConv, 0 ) == 1
+			&& blockData == detectedBlock.InputData )
 		{
 			detectedBlock.Residual = &residual;
 			graph.SelectLayer( residual );
