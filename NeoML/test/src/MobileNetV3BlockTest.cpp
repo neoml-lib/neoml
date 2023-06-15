@@ -91,10 +91,10 @@ static CBaseLayer* addMNv3PreSE( const CPreSEParams& params, CBaseLayer& input )
 struct CSEParams {
 	CPtr<CDnnBlob> FirstWeight;
 	CPtr<CDnnBlob> FirstFreeTerm;
-	CActivationDesc FirstActivation = AF_HSwish;
+	CActivationDesc FirstActivation = AF_HardSigmoid;
 	CPtr<CDnnBlob> SecondWeight;
 	CPtr<CDnnBlob> SecondFreeTerm;
-	CActivationDesc SecondActivation = AF_HSwish;
+	CActivationDesc SecondActivation = AF_HardSigmoid;
 };
 
 static CBaseLayer* addMNv3SE( const CSEParams& params, CBaseLayer& input )
@@ -251,14 +251,14 @@ static void mobileNetV3BlockTestImpl( unsigned int seed, int freeTermMask, const
 	postSEParams.Residual = residual;
 
 	CDnn expectedDnn( random, MathEngine() );
-	CPtr<CSourceLayer> expectedData = AddLayer<CSourceLayer>( "Data", expectedDnn );
+	CSourceLayer* expectedData = Source( expectedDnn, "Data" );
 	CBaseLayer* expectedPreSE = addMNv3PreSE( preSEParams, *expectedData );
 	CBaseLayer* expectedSE = addMNv3SE( seParams, *expectedPreSE );
 	CBaseLayer* expandPostSE = addMNv3PostSE( postSEParams, *expectedData, *expectedPreSE, *expectedSE );
-	CPtr<CSinkLayer> expectedSink = AddLayer<CSinkLayer>( "expectedSink", { expandPostSE } );
+	CSinkLayer* expectedSink = Sink( expandPostSE, "expectedSink" );
 
 	CDnn actualDnn( random, MathEngine() );
-	CPtr<CSourceLayer> actualData = AddLayer<CSourceLayer>( "Data", actualDnn );
+	CSourceLayer* actualData = Source( actualDnn, "Data" );
 	CPtr<CMobileNetV3PreSEBlockLayer> actualPreSE = AddLayer<CMobileNetV3PreSEBlockLayer>(
 		new CMobileNetV3PreSEBlockLayer( MathEngine(), preSEParams.ExpandFilter, preSEParams.ExpandFreeTerm,
 			preSEParams.ExpandActivation, preSEParams.ChannelwiseStride, preSEParams.ChannelwiseFilter,
@@ -272,7 +272,7 @@ static void mobileNetV3BlockTestImpl( unsigned int seed, int freeTermMask, const
 	if( postSEParams.Residual ) {
 		actualPostSE->Connect( 2, *actualData );
 	}
-	CPtr<CSinkLayer> actualSink = AddLayer<CSinkLayer>( "actualSink", { actualPostSE } );
+	CSinkLayer* actualSink = Sink( actualPostSE.Ptr(), "actualSink" );
 
 	actualData->SetBlob( createBlob( { 1, batch, 1, imageHeight, imageWidth, 1, inputChannels }, random ) );
 	expectedData->SetBlob( actualData->GetBlob() );
@@ -325,122 +325,177 @@ TEST( MobileNetV3BlockLayerTest, Run )
 		}
 	}
 }
-/*
-TEST( MobileNetv2OptimizerTest, SimpleNonResidual )
-{
-	CRandom random( 0x654 );
-	CDnn dnn( random, MathEngine() );
-	CSourceLayer* data = Source( dnn, "data" );
-	CConvLayer* expandConv = Conv( 32, CConvAxisParams( 1 ), CConvAxisParams( 1 ) )( "expandConv", data );
-	CReLULayer* expandReLU = Relu()( "expandReLU", expandConv );
-	CChannelwiseConvLayer* channelwiseConv = ChannelwiseConv( 32, CConvAxisParams( 3, 1, 2 ), CConvAxisParams( 3, 1, 2 ) )
-		( "channewlseConv", expandReLU );
-	CReLULayer* channelwiseReLU = Relu( 6.f )( "channelwiseReLU", channelwiseConv );
-	CConvLayer* downConv = Conv( 8, CConvAxisParams( 1 ), CConvAxisParams( 1 ) )( "downConv", channelwiseReLU );
-	Sink( downConv, "sink" );
-	CDnnOptimizationReport report = OptimizeDnn( dnn );
-	ASSERT_EQ( 1, report.MobileNetV2NonResidualBlocks );
-	ASSERT_EQ( 0, report.MobileNetV2ResidualBlocks );
-	ASSERT_EQ( 3, dnn.GetLayerCount() );
-}
 
-TEST( MobileNetv2OptimizerTest, SimpleResidual )
+TEST( MobileNetV3OptimizerTest, SimpleNonResidual )
 {
 	CRandom random( 0x654 );
 	CDnn dnn( random, MathEngine() );
 	CSourceLayer* data = Source( dnn, "data" );
-	CConvLayer* expandConv = Conv( 32, CConvAxisParams( 1 ), CConvAxisParams( 1 ) )( "expandConv", data );
-	CReLULayer* expandReLU = Relu()( "expandReLU", expandConv );
-	CChannelwiseConvLayer* channelwiseConv = ChannelwiseConv( 32, CConvAxisParams( 3, 1, 1 ), CConvAxisParams( 3, 1, 1 ) )
-		( "channewlseConv", expandReLU );
-	CReLULayer* channelwiseReLU = Relu( 6.f )( "channelwiseReLU", channelwiseConv );
-	CConvLayer* downConv = Conv( 8, CConvAxisParams( 1 ), CConvAxisParams( 1 ) )( "downConv", channelwiseReLU );
-	CEltwiseSumLayer* residual = Sum()( "residual", data, downConv );
-	Sink( residual, "sink" );
+	CPreSEParams preSEParams;
+	preSEParams.ExpandFilter = CDnnBlob::Create2DImageBlob( MathEngine(), CT_Float, 1, 12, 1, 1, 8 );
+	preSEParams.ChannelwiseFilter = CDnnBlob::Create2DImageBlob( MathEngine(), CT_Float, 1, 1, 5, 5, 12 );
+	preSEParams.ChannelwiseStride = 2;
+	CBaseLayer* preSE = addMNv3PreSE( preSEParams, *data );
+	CSEParams seParams;
+	seParams.FirstWeight = CDnnBlob::CreateDataBlob( MathEngine(), CT_Float, 1, 16, 12 );
+	seParams.SecondWeight = CDnnBlob::CreateDataBlob( MathEngine(), CT_Float, 1, 12, 16 );\
+	CBaseLayer* se = addMNv3SE( seParams, *preSE );
+	CPostSEParams postSEParams;
+	postSEParams.DownFilter = CDnnBlob::Create2DImageBlob( MathEngine(), CT_Float, 1, 10, 1, 1, 12 );
+	postSEParams.Residual = false;
+	CBaseLayer* postSE = addMNv3PostSE( postSEParams, *data, *preSE, *se );
+	Sink( postSE, "sink" );
 	CDnnOptimizationReport report = OptimizeDnn( dnn );
-	ASSERT_EQ( 0, report.MobileNetV2NonResidualBlocks );
-	ASSERT_EQ( 1, report.MobileNetV2ResidualBlocks );
-	ASSERT_EQ( 3, dnn.GetLayerCount() );
-}
-
-TEST( MobileNetv2OptimizerTest, ResidualResidual )
-{
-	CRandom random( 0x654 );
-	CDnn dnn( random, MathEngine() );
-	CSourceLayer* data = Source( dnn, "data" );
-	CConvLayer* expandConv = Conv( 32, CConvAxisParams( 1 ), CConvAxisParams( 1 ) )( "expandConv", data );
-	CReLULayer* expandReLU = Relu()( "expandReLU", expandConv );
-	CChannelwiseConvLayer* channelwiseConv = ChannelwiseConv( 32, CConvAxisParams( 3, 1, 1 ), CConvAxisParams( 3, 1, 1 ) )
-		( "channewlseConv", expandReLU );
-	CReLULayer* channelwiseReLU = Relu( 6.f )( "channelwiseReLU", channelwiseConv );
-	CConvLayer* downConv = Conv( 8, CConvAxisParams( 1 ), CConvAxisParams( 1 ) )( "downConv", channelwiseReLU );
-	CEltwiseSumLayer* residual = Sum()( "residual", data, downConv );
-	CEltwiseSumLayer* doubleResidual = Sum()( "doubleResidual", data, residual );
-	Sink( doubleResidual, "sink" );
-	CDnnOptimizationReport report = OptimizeDnn( dnn );
-	ASSERT_EQ( 0, report.MobileNetV2NonResidualBlocks );
-	ASSERT_EQ( 1, report.MobileNetV2ResidualBlocks );
-	ASSERT_EQ( 4, dnn.GetLayerCount() );
-}
-
-TEST( MobileNetv2OptimizerTest, NeighboringResiduals )
-{
-	CRandom random( 0x654 );
-	CDnn dnn( random, MathEngine() );
-	CSourceLayer* data = Source( dnn, "data" );
-	CConvLayer* expandConv = Conv( 32, CConvAxisParams( 1 ), CConvAxisParams( 1 ) )( "expandConv", data );
-	CReLULayer* expandReLU = Relu()( "expandReLU", expandConv );
-	CChannelwiseConvLayer* channelwiseConv = ChannelwiseConv( 32, CConvAxisParams( 3, 1, 1 ), CConvAxisParams( 3, 1, 1 ) )
-		( "channewlseConv", expandReLU );
-	CReLULayer* channelwiseReLU = Relu( 6.f )( "channelwiseReLU", channelwiseConv );
-	CConvLayer* downConv = Conv( 8, CConvAxisParams( 1 ), CConvAxisParams( 1 ) )( "downConv", channelwiseReLU );
-	CEltwiseSumLayer* residual = Sum()( "residual", data, downConv );
-	Sink( residual, "sink" );
-	CEltwiseSumLayer* secondResidual = Sum()( "secondResidual", data, downConv );
-	Sink( secondResidual, "secondSink" );
-	CDnnOptimizationReport report = OptimizeDnn( dnn );
-	ASSERT_EQ( 1, report.MobileNetV2NonResidualBlocks );
-	ASSERT_EQ( 0, report.MobileNetV2ResidualBlocks );
-	ASSERT_EQ( 6, dnn.GetLayerCount() );
-}
-
-TEST( MobileNetv2OptimizerTest, SinkFromTheMiddle )
-{
-	CRandom random( 0x654 );
-	CDnn dnn( random, MathEngine() );
-	CSourceLayer* data = Source( dnn, "data" );
-	CConvLayer* expandConv = Conv( 32, CConvAxisParams( 1 ), CConvAxisParams( 1 ) )( "expandConv", data );
-	CReLULayer* expandReLU = Relu()( "expandReLU", expandConv );
-	CChannelwiseConvLayer* channelwiseConv = ChannelwiseConv( 32, CConvAxisParams( 3, 1, 1 ), CConvAxisParams( 3, 1, 1 ) )
-		( "channewlseConv", expandReLU );
-	Sink( channelwiseConv, "channelwiseSink" );
-	CReLULayer* channelwiseReLU = Relu( 6.f )( "channelwiseReLU", channelwiseConv );
-	CConvLayer* downConv = Conv( 8, CConvAxisParams( 1 ), CConvAxisParams( 1 ) )( "downConv", channelwiseReLU );
-	CEltwiseSumLayer* residual = Sum()( "residual", data, downConv );
-	Sink( residual, "sink" );
-	CDnnOptimizationReport report = OptimizeDnn( dnn );
-	ASSERT_EQ( 0, report.MobileNetV2NonResidualBlocks );
-	ASSERT_EQ( 0, report.MobileNetV2ResidualBlocks );
+	ASSERT_EQ( 1, report.MobileNetV3NonResidualBlocks );
+	ASSERT_EQ( 0, report.MobileNetV3ResidualBlocks );
 	ASSERT_EQ( 9, dnn.GetLayerCount() );
 }
 
-TEST( MobileNetv2OptimizerTest, SinkDisablesResidual )
+TEST( MobileNetV3OptimizerTest, SimpleResidual )
 {
 	CRandom random( 0x654 );
 	CDnn dnn( random, MathEngine() );
 	CSourceLayer* data = Source( dnn, "data" );
-	CConvLayer* expandConv = Conv( 32, CConvAxisParams( 1 ), CConvAxisParams( 1 ) )( "expandConv", data );
-	CReLULayer* expandReLU = Relu()( "expandReLU", expandConv );
-	CChannelwiseConvLayer* channelwiseConv = ChannelwiseConv( 32, CConvAxisParams( 3, 1, 1 ), CConvAxisParams( 3, 1, 1 ) )
-		( "channewlseConv", expandReLU );
-	CReLULayer* channelwiseReLU = Relu( 6.f )( "channelwiseReLU", channelwiseConv );
-	CConvLayer* downConv = Conv( 8, CConvAxisParams( 1 ), CConvAxisParams( 1 ) )( "downConv", channelwiseReLU );
-	Sink( downConv, "downConvSink" );
-	CEltwiseSumLayer* residual = Sum()( "residual", data, downConv );
-	Sink( residual, "sink" );
+	CPreSEParams preSEParams;
+	preSEParams.ExpandFilter = CDnnBlob::Create2DImageBlob( MathEngine(), CT_Float, 1, 12, 1, 1, 8 );
+	preSEParams.ChannelwiseFilter = CDnnBlob::Create2DImageBlob( MathEngine(), CT_Float, 1, 1, 5, 5, 12 );
+	preSEParams.ChannelwiseStride = 2;
+	CBaseLayer* preSE = addMNv3PreSE( preSEParams, *data );
+	CSEParams seParams;
+	seParams.FirstWeight = CDnnBlob::CreateDataBlob( MathEngine(), CT_Float, 1, 16, 12 );
+	seParams.SecondWeight = CDnnBlob::CreateDataBlob( MathEngine(), CT_Float, 1, 12, 16 );\
+		CBaseLayer* se = addMNv3SE( seParams, *preSE );
+	CPostSEParams postSEParams;
+	postSEParams.DownFilter = CDnnBlob::Create2DImageBlob( MathEngine(), CT_Float, 1, 10, 1, 1, 12 );
+	postSEParams.Residual = true;
+	CBaseLayer* postSE = addMNv3PostSE( postSEParams, *data, *preSE, *se );
+	Sink( postSE, "sink" );
 	CDnnOptimizationReport report = OptimizeDnn( dnn );
-	ASSERT_EQ( 1, report.MobileNetV2NonResidualBlocks );
-	ASSERT_EQ( 0, report.MobileNetV2ResidualBlocks );
-	ASSERT_EQ( 5, dnn.GetLayerCount() );
+	ASSERT_EQ( 0, report.MobileNetV3NonResidualBlocks );
+	ASSERT_EQ( 1, report.MobileNetV3ResidualBlocks );
+	ASSERT_EQ( 9, dnn.GetLayerCount() );
 }
-*/
+
+TEST( MobileNetV3OptimizerTest, ResidualResidual )
+{
+	CRandom random( 0x654 );
+	CDnn dnn( random, MathEngine() );
+	CSourceLayer* data = Source( dnn, "data" );
+	CPreSEParams preSEParams;
+	preSEParams.ExpandFilter = CDnnBlob::Create2DImageBlob( MathEngine(), CT_Float, 1, 12, 1, 1, 8 );
+	preSEParams.ChannelwiseFilter = CDnnBlob::Create2DImageBlob( MathEngine(), CT_Float, 1, 1, 5, 5, 12 );
+	preSEParams.ChannelwiseStride = 2;
+	CBaseLayer* preSE = addMNv3PreSE( preSEParams, *data );
+	CSEParams seParams;
+	seParams.FirstWeight = CDnnBlob::CreateDataBlob( MathEngine(), CT_Float, 1, 16, 12 );
+	seParams.SecondWeight = CDnnBlob::CreateDataBlob( MathEngine(), CT_Float, 1, 12, 16 );\
+		CBaseLayer* se = addMNv3SE( seParams, *preSE );
+	CPostSEParams postSEParams;
+	postSEParams.DownFilter = CDnnBlob::Create2DImageBlob( MathEngine(), CT_Float, 1, 10, 1, 1, 12 );
+	postSEParams.Residual = true;
+	CBaseLayer* postSE = addMNv3PostSE( postSEParams, *data, *preSE, *se );
+	Sink( postSE, "sink" );
+	CEltwiseSumLayer* secondResidual = Sum()( "secondResidual", data, postSE );
+	Sink( secondResidual, "secondSink" );
+	CDnnOptimizationReport report = OptimizeDnn( dnn );
+	ASSERT_EQ( 0, report.MobileNetV3NonResidualBlocks );
+	ASSERT_EQ( 1, report.MobileNetV3ResidualBlocks );
+	ASSERT_EQ( 11, dnn.GetLayerCount() );
+}
+
+TEST( MobileNetV3OptimizerTest, NeighboringResiduals )
+{
+	CRandom random( 0x654 );
+	CDnn dnn( random, MathEngine() );
+	CSourceLayer* data = Source( dnn, "data" );
+	CPreSEParams preSEParams;
+	preSEParams.ExpandFilter = CDnnBlob::Create2DImageBlob( MathEngine(), CT_Float, 1, 12, 1, 1, 8 );
+	preSEParams.ChannelwiseFilter = CDnnBlob::Create2DImageBlob( MathEngine(), CT_Float, 1, 1, 5, 5, 12 );
+	preSEParams.ChannelwiseStride = 2;
+	CBaseLayer* preSE = addMNv3PreSE( preSEParams, *data );
+	CSEParams seParams;
+	seParams.FirstWeight = CDnnBlob::CreateDataBlob( MathEngine(), CT_Float, 1, 16, 12 );
+	seParams.SecondWeight = CDnnBlob::CreateDataBlob( MathEngine(), CT_Float, 1, 12, 16 );\
+		CBaseLayer* se = addMNv3SE( seParams, *preSE );
+	CPostSEParams postSEParams;
+	postSEParams.DownFilter = CDnnBlob::Create2DImageBlob( MathEngine(), CT_Float, 1, 10, 1, 1, 12 );
+	postSEParams.Residual = true;
+	CBaseLayer* postSE = addMNv3PostSE( postSEParams, *data, *preSE, *se );
+	Sink( postSE, "sink" );
+	CEltwiseSumLayer* secondResidual = Sum()( "secondResidual", dnn.GetLayer( "DownConv" ).Ptr(), postSE );
+	Sink( secondResidual, "secondSink" );
+	CDnnOptimizationReport report = OptimizeDnn( dnn );
+	ASSERT_EQ( 1, report.MobileNetV3NonResidualBlocks );
+	ASSERT_EQ( 0, report.MobileNetV3ResidualBlocks );
+	ASSERT_EQ( 12, dnn.GetLayerCount() );
+}
+
+TEST( MobileNetV3OptimizerTest, SinkFromTheMiddle )
+{
+	for( int testIndex = 0; testIndex < 4; ++testIndex ) {
+		CRandom random( 0x654 );
+		CDnn dnn( random, MathEngine() );
+		CSourceLayer* data = Source( dnn, "data" );
+		CPreSEParams preSEParams;
+		preSEParams.ExpandFilter = CDnnBlob::Create2DImageBlob( MathEngine(), CT_Float, 1, 12, 1, 1, 8 );
+		preSEParams.ChannelwiseFilter = CDnnBlob::Create2DImageBlob( MathEngine(), CT_Float, 1, 1, 5, 5, 12 );
+		preSEParams.ChannelwiseStride = 2;
+		CBaseLayer* preSE = addMNv3PreSE( preSEParams, *data );
+		CSEParams seParams;
+		seParams.FirstWeight = CDnnBlob::CreateDataBlob( MathEngine(), CT_Float, 1, 16, 12 );
+		seParams.SecondWeight = CDnnBlob::CreateDataBlob( MathEngine(), CT_Float, 1, 12, 16 );\
+			CBaseLayer* se = addMNv3SE( seParams, *preSE );
+		CPostSEParams postSEParams;
+		postSEParams.DownFilter = CDnnBlob::Create2DImageBlob( MathEngine(), CT_Float, 1, 10, 1, 1, 12 );
+		postSEParams.Residual = true;
+		CBaseLayer* postSE = addMNv3PostSE( postSEParams, *data, *preSE, *se );
+		Sink( postSE, "sink" );
+		switch( testIndex ) {
+			case 0:
+				Sink( dnn.GetLayer( "ExpandConv" ).Ptr(), "breakingSink" );
+				break;
+			case 1:
+				Sink( dnn.GetLayer( "CCnnChannelwiseConvLayer" ).Ptr(), "breakingSink" );
+				break;
+			case 2:
+				Sink( dnn.GetLayer( "SEMul" ).Ptr(), "breakingSink" );
+				break;
+			case 3:
+				Sink( dnn.GetLayer( "PostSEActivation" ).Ptr(), "breakingSink" );
+				break;
+			default:
+				FAIL();
+		}
+		CDnnOptimizationReport report = OptimizeDnn( dnn );
+		ASSERT_EQ( 0, report.MobileNetV3NonResidualBlocks );
+		ASSERT_EQ( 0, report.MobileNetV3ResidualBlocks );
+		ASSERT_EQ( 16, dnn.GetLayerCount() );
+	}
+}
+
+TEST( MobileNetV3OptimizerTest, SinkDisablesResidual )
+{
+	CRandom random( 0x654 );
+	CDnn dnn( random, MathEngine() );
+	CSourceLayer* data = Source( dnn, "data" );
+	CPreSEParams preSEParams;
+	preSEParams.ExpandFilter = CDnnBlob::Create2DImageBlob( MathEngine(), CT_Float, 1, 12, 1, 1, 8 );
+	preSEParams.ChannelwiseFilter = CDnnBlob::Create2DImageBlob( MathEngine(), CT_Float, 1, 1, 5, 5, 12 );
+	preSEParams.ChannelwiseStride = 2;
+	CBaseLayer* preSE = addMNv3PreSE( preSEParams, *data );
+	CSEParams seParams;
+	seParams.FirstWeight = CDnnBlob::CreateDataBlob( MathEngine(), CT_Float, 1, 16, 12 );
+	seParams.SecondWeight = CDnnBlob::CreateDataBlob( MathEngine(), CT_Float, 1, 12, 16 );\
+		CBaseLayer* se = addMNv3SE( seParams, *preSE );
+	CPostSEParams postSEParams;
+	postSEParams.DownFilter = CDnnBlob::Create2DImageBlob( MathEngine(), CT_Float, 1, 10, 1, 1, 12 );
+	postSEParams.Residual = true;
+	CBaseLayer* postSE = addMNv3PostSE( postSEParams, *data, *preSE, *se );
+	Sink( postSE, "sink" );
+	Sink( dnn.GetLayer( "DownConv" ).Ptr(), "secondSink" );
+	CDnnOptimizationReport report = OptimizeDnn( dnn );
+	ASSERT_EQ( 1, report.MobileNetV3NonResidualBlocks );
+	ASSERT_EQ( 0, report.MobileNetV3ResidualBlocks );
+	ASSERT_EQ( 11, dnn.GetLayerCount() );
+}
+
