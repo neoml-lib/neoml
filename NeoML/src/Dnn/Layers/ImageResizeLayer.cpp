@@ -26,7 +26,8 @@ CImageResizeLayer::CImageResizeLayer( IMathEngine& mathEngine ) :
 	deltaRight( 0 ),
 	deltaTop( 0 ),
 	deltaBottom( 0 ),
-	defaultValue( 0 )
+	defaultValue( 0 ),
+	padding( TBlobResizePadding::Constant )
 {
 }
 
@@ -67,11 +68,11 @@ void CImageResizeLayer::SetDelta( TImageSide side, int delta )
 	}
 }
 
-static const int ImageResizeLayerVersion = 2000;
+static const int ImageResizeLayerVersion = 2001;
 
 void CImageResizeLayer::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion( ImageResizeLayerVersion, CDnn::ArchiveMinSupportedVersion );
+	const int version = archive.SerializeVersion( ImageResizeLayerVersion, CDnn::ArchiveMinSupportedVersion );
 	CBaseLayer::Serialize( archive );
 
 	archive.Serialize( deltaLeft );
@@ -79,6 +80,12 @@ void CImageResizeLayer::Serialize( CArchive& archive )
 	archive.Serialize( deltaTop );
 	archive.Serialize( deltaBottom );
 	archive.Serialize( defaultValue );
+
+	if( version > 2000 ) {
+		archive.SerializeEnum( padding );
+	} else if( archive.IsLoading() ) {
+		padding = TBlobResizePadding::Constant;
+	}
 }
 
 void CImageResizeLayer::Reshape()
@@ -98,6 +105,11 @@ void CImageResizeLayer::Reshape()
 	CheckLayerArchitecture( inputDescs[0].Width() + deltaLeft + deltaRight > 0,
 		"deltaLeft + deltaRight remove whole image" );
 
+	if( IsBackwardPerformed() ) {
+		CheckLayerArchitecture( padding == TBlobResizePadding::Constant,
+			"backward with non-Constant padding" );
+	}
+
 	outputDescs[0] = inputDescs[0];
 	outputDescs[0].SetDimSize( BD_Height, outputDescs[0].Height() + deltaTop + deltaBottom );
 	outputDescs[0].SetDimSize( BD_Width, outputDescs[0].Width() + deltaLeft + deltaRight );
@@ -106,13 +118,14 @@ void CImageResizeLayer::Reshape()
 void CImageResizeLayer::RunOnce()
 {
 	MathEngine().BlobResizeImage( inputBlobs[0]->GetDesc(), inputBlobs[0]->GetData(), deltaLeft, deltaRight,
-		deltaTop, deltaBottom, defaultValue, outputBlobs[0]->GetDesc(), outputBlobs[0]->GetData() );
+		deltaTop, deltaBottom, padding, defaultValue, outputBlobs[0]->GetDesc(), outputBlobs[0]->GetData() );
 }
 
 void CImageResizeLayer::BackwardOnce()
 {
 	MathEngine().BlobResizeImage( outputDiffBlobs[0]->GetDesc(), outputDiffBlobs[0]->GetData(),
-		-deltaLeft, -deltaRight, -deltaTop, -deltaBottom, 0.f, inputDiffBlobs[0]->GetDesc(), inputDiffBlobs[0]->GetData() );
+		-deltaLeft, -deltaRight, -deltaTop, -deltaBottom, padding, 0.f,
+		inputDiffBlobs[0]->GetDesc(), inputDiffBlobs[0]->GetData() );
 }
 
 CLayerWrapper<CImageResizeLayer> ImageResize( int deltaLeft, int deltaRight, int deltaTop,

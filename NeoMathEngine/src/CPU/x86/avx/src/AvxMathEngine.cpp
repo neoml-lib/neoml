@@ -79,7 +79,8 @@ CConvolutionDesc* CAvxMathEngine::InitBlobConvolution( const CBlobDesc& source, 
 	const CBlobDesc& result ) const
 {
 	if( !CCPUInfo::IsAvx512Available()
-		&& CBlobConvolutionFabric::IsBlobConvolutionAvailable( filter.BatchWidth() , filter.Height(), filter.Width() ) )
+		&& CBlobConvolutionFabric::IsBlobConvolutionAvailable( source.ObjectCount() * source.Height() * source.Width(),
+			filter.BatchWidth() , filter.Height(), filter.Width() ) )
 	{
 		return new CAvxConvolutionDesc( mathEngine, source, result, filter, paddingHeight, paddingWidth, strideHeight, strideWidth, dilationHeight, dilationWidth );
 	}

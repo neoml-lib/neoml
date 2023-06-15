@@ -80,6 +80,13 @@ enum class TInterpolationRound : int {
 	Count
 };
 
+// Determines how new columns/rows are filled when resizing image
+enum class TBlobResizePadding {
+	Constant, // fill with default value
+	Edge, // repeat the outermost value of the original image
+	Reflect // reflection padding
+};
+
 // The class provides operations on vectors
 class NEOMATHENGINE_API IVectorMathEngine : public CCrtAllocatedObject {
 public:
@@ -707,9 +714,16 @@ public:
 
 	// Resizes images in a blob
 	// For delta < 0 the pixels at the edges are erased
-	// For delta > 0 the extra pixels at the edges are filled with defaultValue
+	// For delta > 0 the extra pixels at the edges are filled with corresponding padding
 	virtual void BlobResizeImage( const CBlobDesc& from, const CFloatHandle& fromData, int deltaLeft, int deltaRight,
-		int deltaTop, int deltaBottom, float defaultValue, const CBlobDesc& to, const CFloatHandle& toData ) = 0;
+		int deltaTop, int deltaBottom, TBlobResizePadding padding, float defaultValue,
+		const CBlobDesc& to, const CFloatHandle& toData ) = 0;
+	void BlobResizeImage( const CBlobDesc& from, const CFloatHandle& fromData, int deltaLeft, int deltaRight,
+		int deltaTop, int deltaBottom, float defaultValue, const CBlobDesc& to, const CFloatHandle& toData )
+	{
+		BlobResizeImage( from, fromData, deltaLeft, deltaRight, deltaTop, deltaBottom,
+			TBlobResizePadding::Constant, defaultValue, to, toData );
+	}
 
 	// Retrieves subsequences from the blob sequences and, if necessary, reverses them
 	virtual void BlobGetSubSequence( const CBlobDesc& from, const CFloatHandle& fromData, const CIntHandle& indexHandle,

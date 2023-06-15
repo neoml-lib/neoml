@@ -372,5 +372,17 @@ void CNegOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArra
 	linear->SetMultiplier( -1.f );
 }
 
+//---------------------------------------------------------------------------------------------------------------------
+
+CHardSwishOperator::CHardSwishOperator( const onnx::NodeProto& hardSwish, int opsetVersion ) :
+	CActivationOperatorBase( hardSwish, opsetVersion, AF_HSwish )
+{
+	// v14 - original
+	CheckNeoOnnxSupport( OpsetVersion >= 14 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
+
+	CheckOnnxProtocol( InputCount() == 1, "operator must have 1 input", *this );
+	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
+}
+
 } // namespace NeoOnnx
 

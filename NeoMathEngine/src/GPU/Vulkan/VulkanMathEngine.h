@@ -421,7 +421,8 @@ public:
 	void BlobSplitByDim( TBlobDim dim, const CBlobDesc& from, const CIntHandle& fromData,
 		const CBlobDesc* to, const CIntHandle* toData, int toCount ) override;
 	void BlobResizeImage( const CBlobDesc& from, const CFloatHandle& fromData, int deltaLeft, int deltaRight,
-		int deltaTop, int deltaBottom, float defaultValue, const CBlobDesc& to, const CFloatHandle& toData ) override;
+		int deltaTop, int deltaBottom, TBlobResizePadding padding, float defaultValue,
+		const CBlobDesc& to, const CFloatHandle& toData ) override;
 	void BlobGetSubSequence( const CBlobDesc& from, const CFloatHandle& fromData, const CIntHandle& indexHandle,
 		const CBlobDesc& to, const CFloatHandle& toData, int startPos, bool isRev ) override;
 	CTimeConvolutionDesc* InitTimeConvolution( const CBlobDesc& source, int stride, int paddingFront, int paddingBack, int dilation,
