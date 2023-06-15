@@ -467,8 +467,8 @@ class NEOML_API CSubwordEncoderTrainer {
 public:
     // Обучение IBytePairEncoder
 	enum class TAlgorithm {
-		BPE
-		// Обучение Unigram в разработке
+		BPE,
+		Unigram
 	};
 
 	// Варианты обработки границ: автоматически добавляет спец. символ в начало и\или конец слова при обучении

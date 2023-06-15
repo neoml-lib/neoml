@@ -185,6 +185,7 @@ set(NeoML_SOURCES
     TraditionalML/SubwordEncoderTrainer.cpp
     TraditionalML/Svm.cpp
     TraditionalML/SvmKernel.cpp
+    TraditionalML/UnigramTrainer.cpp
     TraditionalML/UnigramTools.cpp
     TraditionalML/Utf8Tools.cpp
     TraditionalML/WordDictionary.cpp
@@ -336,6 +337,7 @@ set(NeoML_HEADERS
     TraditionalML/SvmBinaryModel.h
     TraditionalML/SubwordDecoder.h
     TraditionalML/UnigramEncoder.h
+    TraditionalML/UnigramTrainer.h
     TraditionalML/UnigramTools.h
     TraditionalML/Utf8Tools.h
 

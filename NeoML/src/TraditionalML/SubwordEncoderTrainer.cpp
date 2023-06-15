@@ -18,23 +18,18 @@ limitations under the License.
 
 #include <NeoML/TraditionalML/SubwordEncoderTrainer.h>
 #include <BytePairEncoderTrainer.h>
+#include <UnigramTrainer.h>
 #include <Utf8Tools.h>
 
 namespace NeoML {
 
 CSubwordEncoderTrainer::CSubwordEncoderTrainer( int vocabSize, TAlgorithm a, TBorderHandling b, TVocabPruning v ) :
 	desiredVocabSize( vocabSize ),
+	algorithm( a ),
 	borderHandling( b ),
 	vocabPruning( v )
 {
 	NeoAssert( vocabSize > 0 );
-	// Unigram is on the way
-	NeoAssert( a == TAlgorithm::BPE );
-}
-
-CSubwordEncoderTrainer::~CSubwordEncoderTrainer()
-{
-	delete bpeTrainer;
 }
 
 void CSubwordEncoderTrainer::SetCharacterCoverage( double value )
@@ -69,10 +64,16 @@ CPtr<ISubwordEncoder> CSubwordEncoderTrainer::Train( const CWordDictionary& freq
 	for( const auto& token : mandatoryTokens ) {
 		charDict.AddWord( token );
 	}
+	// Nothing to add, only chars fitted in a vocab
 	NeoAssert( charDict.Size() < desiredVocabSize );
 
-	bpeTrainer = new CBpeTrainer( desiredVocabSize, borderHandling, vocabPruning == TVocabPruning::ByteBPE, encoderUnkTokenId );
-	return bpeTrainer->Train( frequencyDict, charDict ).Ptr();
+	if( algorithm == TAlgorithm::BPE ) {
+		CBpeTrainer trainer( desiredVocabSize, borderHandling, vocabPruning == TVocabPruning::ByteBPE, encoderUnkTokenId );
+		return trainer.Train( frequencyDict, charDict ).Ptr();
+	} else {
+		CUnigramTrainer trainer( desiredVocabSize, borderHandling, vocabPruning == TVocabPruning::ByteBPE, encoderUnkTokenId );
+		return trainer.Train( frequencyDict, charDict ).Ptr();
+	}
 }
 
 // returns a dictionary of single letters found in 'trainData'
