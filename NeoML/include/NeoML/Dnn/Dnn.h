@@ -173,6 +173,12 @@ public:
 	void SetBaseL2RegularizationMult( float mult ) { baseL2RegularizationMult = mult; }
 	float GetBaseL1RegularizationMult() const { return baseL1RegularizationMult; }
 	void SetBaseL1RegularizationMult(float mult) { baseL1RegularizationMult = mult; }
+
+	// Product of the layer's coefficient with all it's owners' ones (when layer is inside of composite/recurrent)
+	float GetLearningRate() const;
+	float GetL2RegularizationMult() const;
+	float GetL1RegularizationMult() const;
+
 	// Begins processing a new sequence
 	// The method is overloaded for the composite layer and the backward link layer
 	virtual void RestartSequence() {} 

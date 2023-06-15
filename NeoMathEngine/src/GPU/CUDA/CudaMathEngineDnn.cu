@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -162,7 +162,8 @@ void CCudaMathEngine::BlobSplitByDim(TBlobDim dim, const CBlobDesc& from, const 
 }
 
 void CCudaMathEngine::BlobResizeImage( const CBlobDesc& from, const CFloatHandle& fromData, int deltaLeft, int deltaRight,
-	int deltaTop, int deltaBottom, float defaultValue, const CBlobDesc& to, const CFloatHandle& toData )
+	int deltaTop, int deltaBottom, TBlobResizePadding padding, float defaultValue,
+	const CBlobDesc& to, const CFloatHandle& toData )
 {
 	ASSERT_EXPR( fromData.GetMathEngine() == this );
 	ASSERT_EXPR( toData.GetMathEngine() == this );
@@ -171,8 +172,8 @@ void CCudaMathEngine::BlobResizeImage( const CBlobDesc& from, const CFloatHandle
 	dim3 blockCount;
 	dim3 threadCount;
 	getCudaTaskGrid3D( blockCount, threadCount, to.ObjectCount(), to.Height() * to.Width(), to.Channels() * to.Depth() );
-	BlobResizeImageKernel<<<blockCount, threadCount>>>( from, GetRaw(fromData), deltaLeft, deltaTop, defaultValue, to,
-		GetRaw(toData) );
+	BlobResizeImageKernel<<<blockCount, threadCount>>>( from, GetRaw( fromData ), deltaLeft, deltaTop,
+		static_cast<int>( padding ), defaultValue, to, GetRaw( toData ) );
 }
 
 void CCudaMathEngine::BlobGetSubSequence( const CBlobDesc& from, const CFloatHandle& fromData, const CIntHandle& indexHandle, const CBlobDesc& to,
@@ -456,7 +457,7 @@ void CCudaMathEngine::DepthToSpace( const CBlobDesc& source, const CConstIntHand
 		source.Width(), result.Channels(), blockSize, false, GetRaw( resultData ) );
 }
 
-void CCudaMathEngine::AddWidthIndex( const CBlobDesc& source, const CFloatHandle& sourceData, bool isForward, const CFloatHandle& resultData )
+void CCudaMathEngine::AddWidthIndex( const CBlobDesc& source, const CConstFloatHandle& sourceData, bool isForward, const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
@@ -471,7 +472,7 @@ void CCudaMathEngine::AddWidthIndex( const CBlobDesc& source, const CFloatHandle
 		source.Channels(), source.ObjectCount(), isForward, GetRaw( resultData ) );
 }
 
-void CCudaMathEngine::AddWidthIndex( const CBlobDesc& source, const CIntHandle& sourceData, bool isForward, const CIntHandle& resultData )
+void CCudaMathEngine::AddWidthIndex( const CBlobDesc& source, const CConstIntHandle& sourceData, bool isForward, const CIntHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
@@ -481,12 +482,12 @@ void CCudaMathEngine::AddWidthIndex( const CBlobDesc& source, const CIntHandle& 
 	int threadCount = 0;
 	getCudaTaskGrid( blockCount, threadCount, source.BlobSize() );
 
-	AddWidthIndexKernel <<<blockCount, threadCount >>>(
+	AddWidthIndexKernel<<<blockCount, threadCount>>>(
 		GetRaw( sourceData ), source.Width(), source.Height(),
 		source.Channels(), source.ObjectCount(), isForward, GetRaw( resultData ) );
 }
 
-void CCudaMathEngine::AddHeightIndex( const CBlobDesc& source, const CFloatHandle& sourceData, bool isForward, const CFloatHandle& resultData )
+void CCudaMathEngine::AddHeightIndex( const CBlobDesc& source, const CConstFloatHandle& sourceData, bool isForward, const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
@@ -501,7 +502,7 @@ void CCudaMathEngine::AddHeightIndex( const CBlobDesc& source, const CFloatHandl
 		source.Channels(), source.ObjectCount(), isForward, GetRaw(resultData) );
 }
 
-void CCudaMathEngine::AddHeightIndex( const CBlobDesc& source, const CIntHandle& sourceData, bool isForward,
+void CCudaMathEngine::AddHeightIndex( const CBlobDesc& source, const CConstIntHandle& sourceData, bool isForward,
 	const CIntHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
@@ -512,7 +513,7 @@ void CCudaMathEngine::AddHeightIndex( const CBlobDesc& source, const CIntHandle&
 	int threadCount = 0;
 	getCudaTaskGrid( blockCount, threadCount, source.BlobSize() );
 	
-	AddHeightIndexKernel <<<blockCount, threadCount >>>(
+	AddHeightIndexKernel<<<blockCount, threadCount>>>(
 		GetRaw(sourceData), source.Width(), source.Height(),
 		source.Channels(), source.ObjectCount(), isForward, GetRaw(resultData) );
 }

@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,6 +14,23 @@ limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
 namespace NeoML {
+
+inline float CBaseLayer::GetLearningRate() const
+{
+	return GetBaseLearningRate() * ( dnn == nullptr || dnn->owner == nullptr ? 1.f : dnn->owner->GetLearningRate() );
+}
+
+inline float CBaseLayer::GetL2RegularizationMult() const
+{
+	return GetBaseL2RegularizationMult()
+		* ( dnn == nullptr || dnn->owner == nullptr ? 1.f : dnn->owner->GetL2RegularizationMult() );
+}
+
+inline float CBaseLayer::GetL1RegularizationMult() const
+{
+	return GetBaseL1RegularizationMult()
+		* ( dnn == nullptr || dnn->owner == nullptr ? 1.f : dnn->owner->GetL1RegularizationMult() );
+}
 
 inline bool CBaseLayer::IsLearningPerformed() const
 {

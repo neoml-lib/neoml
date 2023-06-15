@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -78,6 +78,13 @@ enum class TInterpolationRound : int {
 	Ceil, // always ceil
 
 	Count
+};
+
+// Determines how new columns/rows are filled when resizing image
+enum class TBlobResizePadding {
+	Constant, // fill with default value
+	Edge, // repeat the outermost value of the original image
+	Reflect // reflection padding
 };
 
 // The class provides operations on vectors
@@ -708,9 +715,16 @@ public:
 
 	// Resizes images in a blob
 	// For delta < 0 the pixels at the edges are erased
-	// For delta > 0 the extra pixels at the edges are filled with defaultValue
+	// For delta > 0 the extra pixels at the edges are filled with corresponding padding
 	virtual void BlobResizeImage( const CBlobDesc& from, const CFloatHandle& fromData, int deltaLeft, int deltaRight,
-		int deltaTop, int deltaBottom, float defaultValue, const CBlobDesc& to, const CFloatHandle& toData ) = 0;
+		int deltaTop, int deltaBottom, TBlobResizePadding padding, float defaultValue,
+		const CBlobDesc& to, const CFloatHandle& toData ) = 0;
+	void BlobResizeImage( const CBlobDesc& from, const CFloatHandle& fromData, int deltaLeft, int deltaRight,
+		int deltaTop, int deltaBottom, float defaultValue, const CBlobDesc& to, const CFloatHandle& toData )
+	{
+		BlobResizeImage( from, fromData, deltaLeft, deltaRight, deltaTop, deltaBottom,
+			TBlobResizePadding::Constant, defaultValue, to, toData );
+	}
 
 	// Retrieves subsequences from the blob sequences and, if necessary, reverses them
 	virtual void BlobGetSubSequence( const CBlobDesc& from, const CFloatHandle& fromData, const CIntHandle& indexHandle,
@@ -784,7 +798,7 @@ public:
 	virtual void BlobGlobalMaxPooling( const CGlobalMaxPoolingDesc& desc,
 		const CConstFloatHandle& source, const CIntHandle& maxIndices, const CFloatHandle& result ) = 0;
 	virtual void BlobGlobalMaxPoolingBackward( const CGlobalMaxPoolingDesc& desc,
-		const CFloatHandle& outputDiff, const CIntHandle& maxIndices, const CFloatHandle& inputDiff ) = 0;
+		const CConstFloatHandle& resultDiff, const CConstIntHandle& maxIndices, const CFloatHandle& sourceDiff ) = 0;
 
 	// 3dMax-Pooling
 	// The descriptor should be destroyed using the standard delete operator after use.
@@ -792,10 +806,10 @@ public:
 		int filterHeight, int filterWidth, int filterDepth,
 		int strideHeight, int strideWidth, int strideDepth, const CBlobDesc& result ) = 0;
 
-	virtual void Blob3dMaxPooling( const C3dMaxPoolingDesc& desc, const CFloatHandle& source,
+	virtual void Blob3dMaxPooling( const C3dMaxPoolingDesc& desc, const CConstFloatHandle& source,
 		const CIntHandle* maxIndices, const CFloatHandle& result ) = 0;
-	virtual void Blob3dMaxPoolingBackward( const C3dMaxPoolingDesc& desc, const CFloatHandle& outputDiff,
-		const CIntHandle& maxIndices, const CFloatHandle& inputDiff ) = 0;
+	virtual void Blob3dMaxPoolingBackward( const C3dMaxPoolingDesc& desc, const CConstFloatHandle& resultDiff,
+		const CConstIntHandle& maxIndices, const CFloatHandle& sourceDiff ) = 0;
 
 	// 3dMean-Pooling
 	// The descriptor should be destroyed using the standard delete operator after use.
@@ -804,10 +818,10 @@ public:
 		int strideHeight, int strideWidth, int strideDepth,
 		const CBlobDesc& result ) = 0;
 
-	virtual void Blob3dMeanPooling( const C3dMeanPoolingDesc& desc, const CFloatHandle& source,
+	virtual void Blob3dMeanPooling( const C3dMeanPoolingDesc& desc, const CConstFloatHandle& source,
 		const CFloatHandle& result ) = 0;
-	virtual void Blob3dMeanPoolingBackward( const C3dMeanPoolingDesc& desc, const CFloatHandle& outputDiff,
-		const CFloatHandle& inputDiff) = 0;
+	virtual void Blob3dMeanPoolingBackward( const C3dMeanPoolingDesc& desc, const CConstFloatHandle& resultDiff,
+		const CFloatHandle& sourceDiff ) = 0;
 
 	// Max-Pooling
 	// The descriptor should be destroyed using the standard delete operator after use.
@@ -815,19 +829,19 @@ public:
 		int filterHeight, int filterWidth, int strideHeight, int strideWidth,
 		const CBlobDesc& result ) = 0;
 
-	virtual void BlobMaxPooling( const CMaxPoolingDesc& desc, const CFloatHandle& source,
+	virtual void BlobMaxPooling( const CMaxPoolingDesc& desc, const CConstFloatHandle& source,
 		const CIntHandle* maxIndices, const CFloatHandle& result) = 0;
-	virtual void BlobMaxPoolingBackward( const CMaxPoolingDesc& desc, const CFloatHandle& outputDiff,
-		const CIntHandle& maxIndices, const CFloatHandle& inputDiff) = 0;
+	virtual void BlobMaxPoolingBackward( const CMaxPoolingDesc& desc, const CConstFloatHandle& resultDiff,
+		const CConstIntHandle& maxIndices, const CFloatHandle& sourceDiff ) = 0;
 
 	// MaxOverTime-Pooling
 	// The descriptor should be destroyed using the standard delete operator after use.
 	virtual CMaxOverTimePoolingDesc* InitMaxOverTimePooling( const CBlobDesc& source,
 		int filterLen, int strideLen, const CBlobDesc& result ) = 0;
-	virtual void BlobMaxOverTimePooling( const CMaxOverTimePoolingDesc& desc, const CFloatHandle& source,
+	virtual void BlobMaxOverTimePooling( const CMaxOverTimePoolingDesc& desc, const CConstFloatHandle& source,
 		const CIntHandle* maxIndices, const CFloatHandle& result) = 0;
-	virtual void BlobMaxOverTimePoolingBackward( const CMaxOverTimePoolingDesc& desc, const CFloatHandle& outputDiff,
-		const CIntHandle& maxIndices, const CFloatHandle& inputDiff ) = 0;
+	virtual void BlobMaxOverTimePoolingBackward( const CMaxOverTimePoolingDesc& desc, const CConstFloatHandle& resultDiff,
+		const CConstIntHandle& maxIndices, const CFloatHandle& sourceDiff ) = 0;
 
 	// Mean-Pooling
 	// The descriptor should be destroyed using the standard delete operator after use.
@@ -835,17 +849,17 @@ public:
 		int filterHeight, int filterWidth, int strideHeight, int strideWidth,
 		const CBlobDesc& result ) = 0;
 
-	virtual void BlobMeanPooling( const CMeanPoolingDesc& desc, const CFloatHandle& source, const CFloatHandle& result ) = 0;
-	virtual void BlobMeanPoolingBackward( const CMeanPoolingDesc& desc, const CFloatHandle& outputDiff, const CFloatHandle& inputDiff ) = 0;
+	virtual void BlobMeanPooling( const CMeanPoolingDesc& desc, const CConstFloatHandle& source, const CFloatHandle& result ) = 0;
+	virtual void BlobMeanPoolingBackward( const CMeanPoolingDesc& desc, const CConstFloatHandle& resultDiff, const CFloatHandle& sourceDiff ) = 0;
 
 	// GlobalMaxOverTime-Pooling
 	// The descriptor should be destroyed using the standard delete operator after use.
 	virtual CGlobalMaxOverTimePoolingDesc* InitGlobalMaxOverTimePooling( const CBlobDesc& source, const CBlobDesc& result ) = 0;
 
-	virtual void BlobGlobalMaxOverTimePooling( const CGlobalMaxOverTimePoolingDesc& desc, const CFloatHandle& source, const CIntHandle* maxIndices,
-		const CFloatHandle& result ) = 0;
-	virtual void BlobGlobalMaxOverTimePoolingBackward( const CGlobalMaxOverTimePoolingDesc& desc, const CFloatHandle& source, const CIntHandle& maxIndices,
-		const CFloatHandle& result ) = 0;
+	virtual void BlobGlobalMaxOverTimePooling( const CGlobalMaxOverTimePoolingDesc& desc, const CConstFloatHandle& source,
+		const CIntHandle* maxIndices, const CFloatHandle& result ) = 0;
+	virtual void BlobGlobalMaxOverTimePoolingBackward( const CGlobalMaxOverTimePoolingDesc& desc, const CConstFloatHandle& resultDiff,
+		const CConstIntHandle& maxIndices, const CFloatHandle& sourceDiff ) = 0;
 
 	virtual void Upsampling2DForward( const CBlobDesc& input, const CConstIntHandle& inputData, int heightCopyCount,
 		int widthCopyCount, const CBlobDesc& result, const CIntHandle& resultData ) = 0;
@@ -913,16 +927,16 @@ public:
 	// 3 4 5           3 5 7
 	// 6 7 8           6 8 10
 	// On backward pass, substracts the column number
-	virtual void AddWidthIndex( const CBlobDesc& source, const CFloatHandle& sourceData, bool isForward, const CFloatHandle& result ) = 0;
-	virtual void AddWidthIndex( const CBlobDesc& source, const CIntHandle& sourceData, bool isForward, const CIntHandle& result ) = 0;
+	virtual void AddWidthIndex( const CBlobDesc& source, const CConstFloatHandle& sourceData, bool isForward, const CFloatHandle& result ) = 0;
+	virtual void AddWidthIndex( const CBlobDesc& source, const CConstIntHandle& sourceData, bool isForward, const CIntHandle& result ) = 0;
 
 	// To each element, adds its row number (on forward pass)
 	// 0 1 2   --->    0 1 2
 	// 3 4 5           4 5 6
 	// 6 7 8           8 9 10 
 	// On backward pass, substracts the row number
-	virtual void AddHeightIndex( const CBlobDesc& source, const CFloatHandle& sourceData, bool isForward, const CFloatHandle& result ) = 0;
-	virtual void AddHeightIndex( const CBlobDesc& source, const CIntHandle& sourceData, bool isForward, const CIntHandle& result ) = 0;
+	virtual void AddHeightIndex( const CBlobDesc& source, const CConstFloatHandle& sourceData, bool isForward, const CFloatHandle& result ) = 0;
+	virtual void AddHeightIndex( const CBlobDesc& source, const CConstIntHandle& sourceData, bool isForward, const CIntHandle& result ) = 0;
 
 	// Initializes the dropout descriptor.
 	// The dropout descriptor should be destroyed using the standard delete operator after use.

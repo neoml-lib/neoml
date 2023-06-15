@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -49,7 +49,7 @@ CMaxPoolingDesc* CVulkanMathEngine::InitMaxPooling( const CBlobDesc& source,
 	return desc;
 }
 
-void CVulkanMathEngine::BlobMaxPooling( const CMaxPoolingDesc& poolingDesc, const CFloatHandle& sourceData,
+void CVulkanMathEngine::BlobMaxPooling( const CMaxPoolingDesc& poolingDesc, const CConstFloatHandle& sourceData,
 	const CIntHandle* maxIndicesData, const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
@@ -61,18 +61,18 @@ void CVulkanMathEngine::BlobMaxPooling( const CMaxPoolingDesc& poolingDesc, cons
 	const CBlobDesc& result = desc.Result;
 
 	CMemoryHandle bufs[2] = { sourceData, resultData };
-	size_t sizes[2] = { source.BlobSize() * sizeof(float), result.BlobSize() * sizeof(float) };
+	size_t sizes[2] = { source.BlobSize() * sizeof( float ), result.BlobSize() * sizeof( float ) };
 
-	PARAM_STRUCT(BlobMaxPooling) param = { { desc.StrideWidth, desc.StrideHeight }, { desc.FilterWidth, desc.FilterHeight },
+	PARAM_STRUCT( BlobMaxPooling ) param = { { desc.StrideWidth, desc.StrideHeight }, { desc.FilterWidth, desc.FilterHeight },
 		result.ObjectCount(), result.Channels() * result.Depth(), result.Height(), result.Width(),
 		source.Height(), source.Width() };
 
-	runShader(shaderLoader->GET_SHADER_DATA(BlobMaxPooling, true, 0, 0, 2),
-		&param, sizeof(param), 0, 0, 0, 0, bufs, sizes, 2,
-		result.Width(), result.ObjectCount() * result.Height(), result.Channels() * result.Depth());
+	runShader( shaderLoader->GET_SHADER_DATA( BlobMaxPooling, true, 0, 0, 2 ),
+		&param, sizeof( param ), 0, 0, 0, 0, bufs, sizes, 2,
+		result.Width(), result.ObjectCount() * result.Height(), result.Channels() * result.Depth() );
 }
 
-void CVulkanMathEngine::BlobMaxPoolingBackward( const CMaxPoolingDesc&, const CFloatHandle&, const CIntHandle&,
+void CVulkanMathEngine::BlobMaxPoolingBackward( const CMaxPoolingDesc&, const CConstFloatHandle&, const CConstIntHandle&,
 	const CFloatHandle& )
 {
 	ASSERT_EXPR( false );
@@ -91,7 +91,7 @@ C3dMaxPoolingDesc* CVulkanMathEngine::Init3dMaxPooling( const CBlobDesc& source,
 	return desc;
 }
 
-void CVulkanMathEngine::Blob3dMaxPooling( const C3dMaxPoolingDesc& poolingDesc, const CFloatHandle& sourceData,
+void CVulkanMathEngine::Blob3dMaxPooling( const C3dMaxPoolingDesc& poolingDesc, const CConstFloatHandle& sourceData,
 	const CIntHandle* maxIndicesData, const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
@@ -103,22 +103,22 @@ void CVulkanMathEngine::Blob3dMaxPooling( const C3dMaxPoolingDesc& poolingDesc, 
 	const CBlobDesc& result = desc.Result;
 
 	CMemoryHandle bufs[2] = { sourceData, resultData };
-	size_t sizes[2] = { source.BlobSize() * sizeof(float), source.BlobSize() * sizeof(float) };
+	size_t sizes[2] = { source.BlobSize() * sizeof( float ), source.BlobSize() * sizeof( float ) };
 
-	PARAM_STRUCT(Blob3dMaxPoolingNoIndices) param = { 
+	PARAM_STRUCT( Blob3dMaxPoolingNoIndices ) param = {
 		desc.StrideHeight, desc.StrideWidth, desc.StrideDepth,
 		desc.FilterHeight, desc.FilterWidth, desc.FilterDepth,
 		source.Height(), source.Width(), source.Depth(),
-		result.Height(), result.Width(), result.Depth(), 
+		result.Height(), result.Width(), result.Depth(),
 		result.Channels(), result.ObjectCount()
 	};
 
-	runShader(shaderLoader->GET_SHADER_DATA(Blob3dMaxPoolingNoIndices, true, 0, 0, 2),
-		&param, sizeof(param), 0, 0, 0, 0, bufs, sizes, 2,
-		result.Width() * result.Height() * result.Depth(), result.Channels(), result.ObjectCount());
+	runShader( shaderLoader->GET_SHADER_DATA( Blob3dMaxPoolingNoIndices, true, 0, 0, 2 ),
+		&param, sizeof( param ), 0, 0, 0, 0, bufs, sizes, 2,
+		result.Width() * result.Height() * result.Depth(), result.Channels(), result.ObjectCount() );
 }
 
-void CVulkanMathEngine::Blob3dMaxPoolingBackward( const C3dMaxPoolingDesc&, const CFloatHandle&, const CIntHandle&,
+void CVulkanMathEngine::Blob3dMaxPoolingBackward( const C3dMaxPoolingDesc&, const CConstFloatHandle&, const CConstIntHandle&,
 	const CFloatHandle& )
 {
 	ASSERT_EXPR( false );
@@ -137,7 +137,7 @@ C3dMeanPoolingDesc* CVulkanMathEngine::Init3dMeanPooling( const CBlobDesc& sourc
 	return desc;
 }
 
-void CVulkanMathEngine::Blob3dMeanPooling( const C3dMeanPoolingDesc& poolingDesc, const CFloatHandle& sourceData,
+void CVulkanMathEngine::Blob3dMeanPooling( const C3dMeanPoolingDesc& poolingDesc, const CConstFloatHandle& sourceData,
 	const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
@@ -148,22 +148,22 @@ void CVulkanMathEngine::Blob3dMeanPooling( const C3dMeanPoolingDesc& poolingDesc
 	const CBlobDesc& result = desc.Result;
 
 	CMemoryHandle bufs[2] = { sourceData, resultData };
-	size_t sizes[2] = { source.BlobSize() * sizeof(float), source.BlobSize() * sizeof(float) };
+	size_t sizes[2] = { source.BlobSize() * sizeof( float ), source.BlobSize() * sizeof( float ) };
 
-	PARAM_STRUCT(Blob3dMeanPooling) param = { 
+	PARAM_STRUCT( Blob3dMeanPooling ) param = {
 		desc.StrideHeight, desc.StrideWidth, desc.StrideDepth,
 		desc.FilterHeight, desc.FilterWidth, desc.FilterDepth,
 		source.Height(), source.Width(), source.Depth(),
-		result.Height(), result.Width(), result.Depth(), 
+		result.Height(), result.Width(), result.Depth(),
 		result.Channels(), result.ObjectCount()
 	};
 
-	runShader( shaderLoader->GET_SHADER_DATA(Blob3dMeanPooling, true, 0, 0, 2),
-		&param, sizeof(param), 0, 0, 0, 0, bufs, sizes, 2,
+	runShader( shaderLoader->GET_SHADER_DATA( Blob3dMeanPooling, true, 0, 0, 2 ),
+		&param, sizeof( param ), 0, 0, 0, 0, bufs, sizes, 2,
 		result.Width() * result.Height() * result.Depth(), result.Channels(), result.ObjectCount() );
 }
 
-void CVulkanMathEngine::Blob3dMeanPoolingBackward( const C3dMeanPoolingDesc&, const CFloatHandle&, const CFloatHandle& )
+void CVulkanMathEngine::Blob3dMeanPoolingBackward( const C3dMeanPoolingDesc&, const CConstFloatHandle&, const CFloatHandle& )
 {
 	ASSERT_EXPR( false );
 }
@@ -183,7 +183,7 @@ CMaxOverTimePoolingDesc* CVulkanMathEngine::InitMaxOverTimePooling( const CBlobD
 	return desc;
 }
 
-void CVulkanMathEngine::BlobMaxOverTimePooling( const CMaxOverTimePoolingDesc& poolingDesc, const CFloatHandle& sourceData,
+void CVulkanMathEngine::BlobMaxOverTimePooling( const CMaxOverTimePoolingDesc& poolingDesc, const CConstFloatHandle& sourceData,
 	const CIntHandle* maxIndicesData, const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( maxIndicesData == 0 );
@@ -196,19 +196,19 @@ void CVulkanMathEngine::BlobMaxOverTimePooling( const CMaxOverTimePoolingDesc& p
 	const CBlobDesc& result = desc.Result;
 
 	CMemoryHandle bufs[2] = { sourceData, resultData };
-	size_t sizes[2] = { source.BlobSize() * sizeof(float), source.BlobSize() * sizeof(float) };
+	size_t sizes[2] = { source.BlobSize() * sizeof( float ), source.BlobSize() * sizeof( float ) };
 
-	PARAM_STRUCT(BlobMaxOverTimePoolingNoIndices) param = { 
+	PARAM_STRUCT( BlobMaxOverTimePoolingNoIndices ) param = {
 		result.BlobSize(), result.BatchWidth(), result.ObjectSize(), desc.FilterLen, desc.StrideLen
 	};
 
-	runShader( shaderLoader->GET_SHADER_DATA(BlobMaxOverTimePoolingNoIndices, true, 0, 0, 2),
-		&param, sizeof(param), 0, 0, 0, 0, bufs, sizes, 2,
+	runShader( shaderLoader->GET_SHADER_DATA( BlobMaxOverTimePoolingNoIndices, true, 0, 0, 2 ),
+		&param, sizeof( param ), 0, 0, 0, 0, bufs, sizes, 2,
 		result.BlobSize(), 1, 1 );
 }
 
-void CVulkanMathEngine::BlobMaxOverTimePoolingBackward( const CMaxOverTimePoolingDesc&, const CFloatHandle&,
-	const CIntHandle&, const CFloatHandle& )
+void CVulkanMathEngine::BlobMaxOverTimePoolingBackward( const CMaxOverTimePoolingDesc&, const CConstFloatHandle&,
+	const CConstIntHandle&, const CFloatHandle& )
 {
 	ASSERT_EXPR( false );
 }
@@ -236,23 +236,23 @@ void CVulkanMathEngine::BlobGlobalMaxPooling( const CGlobalMaxPoolingDesc& pooli
 	const CBlobDesc& source = desc.Source;
 	const CBlobDesc& result = desc.Result;
 
-	VectorFill(resultData, -FLT_MAX, result.BlobSize());
-	VectorFill(maxIndicesData, -1, result.BlobSize());
+	VectorFill( resultData, -FLT_MAX, result.BlobSize() );
+	VectorFill( maxIndicesData, -1, result.BlobSize() );
 
 	CMemoryHandle bufs[3] = { sourceData, maxIndicesData, resultData };
-	size_t sizes[3] = { source.BlobSize() * sizeof(float), result.BlobSize() * sizeof(int), result.BlobSize() * sizeof(float) };
+	size_t sizes[3] = { source.BlobSize() * sizeof( float ), result.BlobSize() * sizeof( int ), result.BlobSize() * sizeof( float ) };
 
 	int poolSize = source.Height() * source.Width() * source.Depth();
 	int maxCount = result.Height() * result.Width() * result.Depth();
 
-	PARAM_STRUCT(BlobGlobalMaxPooling) param =
-		{ maxCount, source.ObjectCount(), source.Channels(), poolSize * source.Channels(), maxCount * result.Channels(), poolSize };
+	PARAM_STRUCT( BlobGlobalMaxPooling ) param =
+	{ maxCount, source.ObjectCount(), source.Channels(), poolSize * source.Channels(), maxCount * result.Channels(), poolSize };
 
-	runShader( shaderLoader->GET_SHADER_DATA(BlobGlobalMaxPooling, true, 0, 0, 3),
-		&param, sizeof(param), 0, 0, 0, 0, bufs, sizes, 3, result.ObjectCount(), result.Channels(), 1 );
+	runShader( shaderLoader->GET_SHADER_DATA( BlobGlobalMaxPooling, true, 0, 0, 3 ),
+		&param, sizeof( param ), 0, 0, 0, 0, bufs, sizes, 3, result.ObjectCount(), result.Channels(), 1 );
 }
 
-void CVulkanMathEngine::BlobGlobalMaxPoolingBackward( const CGlobalMaxPoolingDesc&, const CFloatHandle&, const CIntHandle&,
+void CVulkanMathEngine::BlobGlobalMaxPoolingBackward( const CGlobalMaxPoolingDesc&, const CConstFloatHandle&, const CConstIntHandle&,
 	const CFloatHandle& )
 {
 	ASSERT_EXPR( false );
@@ -269,28 +269,28 @@ CMeanPoolingDesc* CVulkanMathEngine::InitMeanPooling( const CBlobDesc& source,
 	return desc;
 }
 
-void CVulkanMathEngine::BlobMeanPooling( const CMeanPoolingDesc& poolingDesc, const CFloatHandle& sourceData, const CFloatHandle& resultData )
+void CVulkanMathEngine::BlobMeanPooling( const CMeanPoolingDesc& poolingDesc, const CConstFloatHandle& sourceData, const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
 
-	CCommonMeanPoolingDesc desc = static_cast<const CCommonMeanPoolingDesc &>( poolingDesc );
+	CCommonMeanPoolingDesc desc = static_cast<const CCommonMeanPoolingDesc&>( poolingDesc );
 	const CBlobDesc& source = desc.Source;
 	const CBlobDesc& result = desc.Result;
 
 	CMemoryHandle bufs[2] = { sourceData, resultData };
-	size_t sizes[2] = { source.BlobSize() * sizeof(float), result.BlobSize() * sizeof(float) };
+	size_t sizes[2] = { source.BlobSize() * sizeof( float ), result.BlobSize() * sizeof( float ) };
 
-	PARAM_STRUCT(BlobMeanPooling) param = { { desc.StrideWidth, desc.StrideHeight}, { desc.FilterWidth, desc.FilterHeight },
+	PARAM_STRUCT( BlobMeanPooling ) param = { { desc.StrideWidth, desc.StrideHeight}, { desc.FilterWidth, desc.FilterHeight },
 		result.ObjectCount(), result.Channels() * result.Depth(), result.Height(), result.Width(),
 		source.Height(), source.Width() };
 
-	runShader( shaderLoader->GET_SHADER_DATA(BlobMeanPooling, true, 0, 0, 2),
-		&param, sizeof(param), 0, 0, 0, 0, bufs, sizes, 2,
+	runShader( shaderLoader->GET_SHADER_DATA( BlobMeanPooling, true, 0, 0, 2 ),
+		&param, sizeof( param ), 0, 0, 0, 0, bufs, sizes, 2,
 		result.Width(), result.ObjectCount() * result.Height(), result.Channels() * result.Depth() );
 }
 
-void CVulkanMathEngine::BlobMeanPoolingBackward( const CMeanPoolingDesc&, const CFloatHandle&, const CFloatHandle& )
+void CVulkanMathEngine::BlobMeanPoolingBackward( const CMeanPoolingDesc&, const CConstFloatHandle&, const CFloatHandle& )
 {
 	ASSERT_EXPR( false );
 }
@@ -304,8 +304,8 @@ CGlobalMaxOverTimePoolingDesc* CVulkanMathEngine::InitGlobalMaxOverTimePooling( 
 	return desc;
 }
 
-void CVulkanMathEngine::BlobGlobalMaxOverTimePooling( const CGlobalMaxOverTimePoolingDesc& poolingDesc, const CFloatHandle& sourceData,
-	const CIntHandle* maxIndicesData, const CFloatHandle& resultData )
+void CVulkanMathEngine::BlobGlobalMaxOverTimePooling( const CGlobalMaxOverTimePoolingDesc& poolingDesc, 
+	const CConstFloatHandle& sourceData, const CIntHandle* maxIndicesData, const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( maxIndicesData == 0 );
@@ -317,8 +317,8 @@ void CVulkanMathEngine::BlobGlobalMaxOverTimePooling( const CGlobalMaxOverTimePo
 	findMaxValueInColumns( resultData, sourceData, source.BatchLength(), source.BatchWidth() * source.ObjectSize() );
 }
 
-void CVulkanMathEngine::BlobGlobalMaxOverTimePoolingBackward( const CGlobalMaxOverTimePoolingDesc&, const CFloatHandle&,
-	const CIntHandle&, const CFloatHandle& )
+void CVulkanMathEngine::BlobGlobalMaxOverTimePoolingBackward( const CGlobalMaxOverTimePoolingDesc&, const CConstFloatHandle&,
+	const CConstIntHandle&, const CFloatHandle& )
 {
 	ASSERT_EXPR( false );
 }

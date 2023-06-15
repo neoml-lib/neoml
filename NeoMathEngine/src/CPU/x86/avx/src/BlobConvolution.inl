@@ -15,9 +15,12 @@ limitations under the License.
 
 namespace NeoML {
 
-bool CBlobConvolutionFabric::IsBlobConvolutionAvailable( int FltCnt, int FltH, int FltW )
+bool CBlobConvolutionFabric::IsBlobConvolutionAvailable( int SrcPixelCnt, int FltCnt, int FltH, int FltW )
 {
     if( FltH % 2 == 0 || FltW % 2 == 0 ) {
+        return false;
+    }
+    if( FltH == 1 && FltW == 1 && SrcPixelCnt < 32 ) {
         return false;
     }
     if(

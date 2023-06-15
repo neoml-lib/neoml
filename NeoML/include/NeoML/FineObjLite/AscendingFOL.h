@@ -73,7 +73,7 @@ class AscendingPtr {
 public:
 	bool Predicate( const T* first, const T* second ) const { return *first < *second; }
 	bool IsEqual( const T* first, const T* second ) const { return *first == *second; }
-	void Swap( T*& first, T*& second ) const { swap( first, second ); }
+	void Swap( T*& first, T*& second ) const { std::swap( first, second ); }
 	void Swap( CPtr<T>& first, CPtr<T>& second ) const { std::swap( first, second ); }
 };
 
@@ -88,7 +88,7 @@ public:
 	bool IsEqual( const T* first, const T* second ) const { return ( first->*Member ) == ( second->*Member ); }
 	bool IsEqual( const TMemberType& first, const T* second ) const { return first == ( second->*Member ); }
 	bool IsEqual( const T* first, const TMemberType& second ) const { return ( first->*Member ) == second; }
-	void Swap( T*& first, T*& second ) const { swap( first, second ); }
+	void Swap( T*& first, T*& second ) const { std::swap( first, second ); }
 	void Swap( CPtr<T>& first, CPtr<T>& second ) const { std::swap( first, second ); }
 };
 
@@ -103,7 +103,7 @@ public:
 	bool IsEqual( const T* first, const T* second ) const { return ( first->*Method )() == ( second->*Method )(); }
 	bool IsEqual( const TMethodReturnType& first, const T* second ) const { return first == ( second->*Method )(); }
 	bool IsEqual( const T* first, const TMethodReturnType& second ) const { return ( first->*Method )() == second; }
-	void Swap( T*& first, T*& second ) const { swap( first, second ); }
+	void Swap( T*& first, T*& second ) const { std::swap( first, second ); }
 	void Swap( CPtr<T>& first, CPtr<T>& second ) const { std::swap( first, second ); }
 };
 
@@ -117,7 +117,7 @@ public:
 	bool IsEqual( const T* first, const T* second ) const { return ( first->*Method )() == ( second->*Method )(); }
 	bool IsEqual( const TMethodReturnType& first, const T* second ) const { return first == ( second->*Method )(); }
 	bool IsEqual( const T* first, const TMethodReturnType& second ) const { return ( first->*Method )() == second; }
-	void Swap( T*& first, T*& second ) const { swap( first, second ); }
+	void Swap( T*& first, T*& second ) const { std::swap( first, second ); }
 	void Swap( CPtr<T>& first, CPtr<T>& second ) const { std::swap( first, second ); }
 };
 
