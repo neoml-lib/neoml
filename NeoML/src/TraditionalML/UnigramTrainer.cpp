@@ -72,7 +72,7 @@ public:
 //----------
 
 struct CUnigramTrainer::CTokenLoss {
-	CTokenLoss( const CTrainingSubword* token, double loss = 0.0, bool alwaysKeep = false ) :
+	explicit CTokenLoss( const CTrainingSubword* token, double loss = 0.0, bool alwaysKeep = false ) :
 		Token( token ), Loss( loss ), AlwaysKeep( alwaysKeep )
 	{
 		NeoAssert( token != nullptr );
@@ -276,7 +276,7 @@ void CUnigramTrainer::createInitialVocab()
 		countSum += candidatesStorage[i]->Count;
 	}
 	for( int i = 0; i < candidatesStorage.Size(); ++i ) {
-		candidatesStorage[i]->Score = log( static_cast<double>(candidatesStorage[i]->Count) / countSum );
+		candidatesStorage[i]->Score = log( static_cast<double>( candidatesStorage[i]->Count ) / countSum );
 	}
 }
 
@@ -311,7 +311,7 @@ bool CUnigramTrainer::trainStep()
 		DescendingByMember<CTokenLoss, double, &CTokenLoss::Loss>>;
 	losses.QuickSort<TLossSorter>();
 
-	int pos = max( desiredVocabSize, static_cast<int>(shrinkingFactor * losses.Size()) );
+	int pos = max( desiredVocabSize, static_cast<int>( shrinkingFactor * losses.Size() ) );
 	while( pos < losses.Size() && losses[pos].AlwaysKeep ) {
 		++pos;
 	}
@@ -371,7 +371,7 @@ void CUnigramTrainer::calcProbsInWord( const CString& word, int64_t count, CMap<
 	// scale and add to the output statistics
 	for( auto p = unscaledProbs.GetFirstPosition(); p != NotFound; p = unscaledProbs.GetNextPosition( p ) ) {
 		const CString& token = unscaledProbs.GetKey( p );
-		const double score = static_cast<double>(count) * unscaledProbs.GetValue( p ) / totalPathsProb;
+		const double score = static_cast<double>( count ) * unscaledProbs.GetValue( p ) / totalPathsProb;
 		probs.GetOrCreateValue( token, 0.0 ) += score;
 	}
 }
@@ -442,7 +442,7 @@ void CUnigramTrainer::getTokenLoss( double tokenScore, int64_t tokenCount, CToke
 
 		if( graphGen.GetNextPath( path ) ) {
 			NeoAssert( path.Size() > 1 );
-			tokenLoss.Loss = static_cast<double>(tokenCount) * ( tokenScore - pathScore );
+			tokenLoss.Loss = static_cast<double>( tokenCount ) * ( tokenScore - pathScore );
 		} else {
 			// yes, sometimes GetNextPath() contradicts with CanGenerateNextPath()
 			tokenLoss.AlwaysKeep = true;
@@ -474,7 +474,7 @@ void CUnigramTrainer::dfsTrieToArray( CTokenTrie* node, CArray<IUnigramEncoder::
 // This is a rare edge case, mostly happens with MandatoryChars defined by user.
 void CUnigramTrainer::addChars( CArray<IUnigramEncoder::CSubword>& output ) const
 {
-	const int outputSize = output.Size();
+	const int sizeBeforeAddingChars = output.Size();
 
 	output.QuickSort<DescendingByMember<IUnigramEncoder::CSubword, double, &IUnigramEncoder::CSubword::Score>>();
 	double score = output.Last().Score;
@@ -489,7 +489,7 @@ void CUnigramTrainer::addChars( CArray<IUnigramEncoder::CSubword>& output ) cons
 
 	const int overflow = output.Size() - desiredVocabSize;
 	if( overflow > 0 ) {
-		output.DeleteAt( outputSize - 1 - overflow, overflow );
+		output.DeleteAt( sizeBeforeAddingChars - 1 - overflow, overflow );
 	}
 }
 } // namespace NeoML
