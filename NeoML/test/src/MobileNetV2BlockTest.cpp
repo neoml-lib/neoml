@@ -1,4 +1,4 @@
-/* Copyright © 2017-2022 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,9 +20,9 @@ limitations under the License.
 
 namespace NeoMLTest {
 
-class CCompositeTestBlock : public CCompositeLayer {
+class CMobileNetV2Composite : public CCompositeLayer {
 public:
-	CCompositeTestBlock( IMathEngine& mathEngine, CPtr<CDnnBlob> expandFilter, CPtr<CDnnBlob> expandFreeTerm,
+	CMobileNetV2Composite( IMathEngine& mathEngine, CPtr<CDnnBlob> expandFilter, CPtr<CDnnBlob> expandFreeTerm,
 		float expandReLUThreshold, CPtr<CDnnBlob> channelwiseFilter, CPtr<CDnnBlob> channelwiseFreeTerm,
 		float channelwiseReLUThreshold, CPtr<CDnnBlob> downFilter, CPtr<CDnnBlob> downFreeTerm,
 		int stride, bool residual );
@@ -32,11 +32,11 @@ public:
 	CPtr<CConvLayer> DownConv;
 };
 
-CCompositeTestBlock::CCompositeTestBlock( IMathEngine& mathEngine, CPtr<CDnnBlob> expandFilter,
+CMobileNetV2Composite::CMobileNetV2Composite( IMathEngine& mathEngine, CPtr<CDnnBlob> expandFilter,
 		CPtr<CDnnBlob> expandFreeTerm, float expandReLUThreshold, CPtr<CDnnBlob> channelwiseFilter,
 		CPtr<CDnnBlob> channelwiseFreeTerm, float channelwiseReLUThreshold, CPtr<CDnnBlob> downFilter,
 		CPtr<CDnnBlob> downFreeTerm, int stride, bool residual ) :
-	CCompositeLayer( mathEngine, "CompositeTestBlock" )
+	CCompositeLayer( mathEngine, "MobileNetV2Composite" )
 {
 	ExpandConv = new CConvLayer( mathEngine );
 	ExpandConv->SetName( "ExpandConv" );
@@ -110,17 +110,16 @@ CCompositeTestBlock::CCompositeTestBlock( IMathEngine& mathEngine, CPtr<CDnnBlob
 using namespace NeoML;
 using namespace NeoMLTest;
 
-static CPtr<CDnnBlob> createBlob( const std::initializer_list<int>& dims, CRandom& random )
-{
-	CPtr<CDnnBlob> blob = CDnnBlob::CreateTensor( MathEngine(), CT_Float, dims );
-	CREATE_FILL_FLOAT_ARRAY( data, -1, 1, blob->GetDataSize(), random );
-	blob->CopyFrom( data.GetPtr() );
-	return blob;
-}
-
 static void mobileNetV2BlockTestImpl( unsigned int seed, int freeTermMask, float expandReLUThreshold,
 	float channelwiseReLUThreshold, int stride, bool residual )
 {
+	auto createBlob = [] ( const std::initializer_list<int>& dims, CRandom& random ) -> CPtr<CDnnBlob> {
+		CPtr<CDnnBlob> blob = CDnnBlob::CreateTensor( MathEngine(), CT_Float, dims );
+		CREATE_FILL_FLOAT_ARRAY( data, -1, 1, blob->GetDataSize(), random );
+		blob->CopyFrom( data.GetPtr() );
+		return blob;
+	};
+
 	NeoAssert( stride == 1 || stride == 2 );
 	NeoAssert( freeTermMask >= 0 && freeTermMask < 8 );
 	NeoAssert( !residual || stride == 1 );
@@ -159,7 +158,7 @@ static void mobileNetV2BlockTestImpl( unsigned int seed, int freeTermMask, float
 	CDnn dnn( random, MathEngine() );
 	CPtr<CSourceLayer> data = AddLayer<CSourceLayer>( "Data", dnn );
 
-	CPtr<CCompositeTestBlock> expectedBlock = AddLayer<CCompositeTestBlock>( new CCompositeTestBlock( MathEngine(),
+	CPtr<CMobileNetV2Composite> expectedBlock = AddLayer<CMobileNetV2Composite>( new CMobileNetV2Composite( MathEngine(),
 		expandFilter, expandFreeTerm, expandReLUThreshold, channelwiseFilter, channelwiseFreeTerm,
 		channelwiseReLUThreshold, downFilter, downFreeTerm, stride, residual ), "expectedBlock", { data } );
 	CPtr<CSinkLayer> expectedSink = AddLayer<CSinkLayer>( "expectedSink", { expectedBlock } );
@@ -201,7 +200,7 @@ TEST( MobileNetV2BlockLayerTest, Run )
 	}
 }
 
-TEST( MobileNetConversionTest, SimpleNonResidual )
+TEST( MobileNetv2OptimizerTest, SimpleNonResidual )
 {
 	CRandom random( 0x654 );
 	CDnn dnn( random, MathEngine() );
@@ -219,7 +218,7 @@ TEST( MobileNetConversionTest, SimpleNonResidual )
 	ASSERT_EQ( 3, dnn.GetLayerCount() );
 }
 
-TEST( MobileNetConversionTest, SimpleResidual )
+TEST( MobileNetv2OptimizerTest, SimpleResidual )
 {
 	CRandom random( 0x654 );
 	CDnn dnn( random, MathEngine() );
@@ -238,7 +237,7 @@ TEST( MobileNetConversionTest, SimpleResidual )
 	ASSERT_EQ( 3, dnn.GetLayerCount() );
 }
 
-TEST( MobileNetConversionTest, ResidualResidual )
+TEST( MobileNetv2OptimizerTest, ResidualResidual )
 {
 	CRandom random( 0x654 );
 	CDnn dnn( random, MathEngine() );
@@ -258,7 +257,7 @@ TEST( MobileNetConversionTest, ResidualResidual )
 	ASSERT_EQ( 4, dnn.GetLayerCount() );
 }
 
-TEST( MobileNetConversionTest, NeighboringResiduals )
+TEST( MobileNetv2OptimizerTest, NeighboringResiduals )
 {
 	CRandom random( 0x654 );
 	CDnn dnn( random, MathEngine() );
@@ -279,7 +278,7 @@ TEST( MobileNetConversionTest, NeighboringResiduals )
 	ASSERT_EQ( 6, dnn.GetLayerCount() );
 }
 
-TEST( MobileNetConversionTest, SinkFromTheMiddle )
+TEST( MobileNetv2OptimizerTest, SinkFromTheMiddle )
 {
 	CRandom random( 0x654 );
 	CDnn dnn( random, MathEngine() );
@@ -299,7 +298,7 @@ TEST( MobileNetConversionTest, SinkFromTheMiddle )
 	ASSERT_EQ( 9, dnn.GetLayerCount() );
 }
 
-TEST( MobileNetConversionTest, SinkDisablesResidual )
+TEST( MobileNetv2OptimizerTest, SinkDisablesResidual )
 {
 	CRandom random( 0x654 );
 	CDnn dnn( random, MathEngine() );
