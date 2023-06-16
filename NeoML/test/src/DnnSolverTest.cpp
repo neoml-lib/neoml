@@ -535,6 +535,7 @@ TEST( CDnnSolverTest, NadamL2 )
 static bool checkBlobEquality( CDnnBlob& firstBlob, CDnnBlob& secondBlob )
 {
 	if( !firstBlob.HasEqualDimensions( &secondBlob ) ) {
+		// When this happens test must fail
 		EXPECT_TRUE( false );
 		return false;
 	}
@@ -851,6 +852,7 @@ TEST( CDnnSolverTest, CompositeLearningRate )
 		secondNet.RunAndLearnOnce();
 	}
 
+	// For now nets must be identical
 	CLstmLayer* direct = CheckCast<CLstmLayer>( firstNet.GetLayer( "direct_lstm" ) );
 	CLstmLayer* secondDirect = CheckCast<CLstmLayer>( secondNet.GetLayer( "direct_lstm" ) );
 	EXPECT_TRUE( checkLstmEquality( direct, secondDirect ) );
@@ -859,6 +861,7 @@ TEST( CDnnSolverTest, CompositeLearningRate )
 	CLstmLayer* secondReverse = CheckCast<CLstmLayer>( secondNet.GetLayer( "reverse_lstm" ) );
 	EXPECT_TRUE( checkLstmEquality( reverse, secondReverse ) );
 
+	// Change learning rate of LSTMs in one of the nets and train a bit
 	secondDirect->SetBaseLearningRate( 0.1f );
 	secondReverse->SetBaseLearningRate( 10.f );
 
@@ -867,7 +870,7 @@ TEST( CDnnSolverTest, CompositeLearningRate )
 		secondNet.RunAndLearnOnce();
 	}
 
-	// After change in learning rate nets should train differently
+	// After the change in learning rate nets should train differently
 	EXPECT_FALSE( checkLstmEquality( direct, secondDirect ) );
 	EXPECT_FALSE( checkLstmEquality( reverse, secondReverse ) );
 }
