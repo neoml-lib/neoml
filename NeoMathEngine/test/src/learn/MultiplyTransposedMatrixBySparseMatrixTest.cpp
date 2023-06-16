@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,6 +14,9 @@ limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
 #include <TestFixture.h>
+
+// These functions are implemented by MKL. MKL is not available on ARM.
+#if FINE_ARCHITECTURE( FINE_X86 ) || FINE_ARCHITECTURE( FINE_X64 )
 
 using namespace NeoML;
 using namespace NeoMLTest;
@@ -86,14 +89,14 @@ static void multiplyTransposedMatrixBySparseMatrixTestImpl( const CTestParams& p
 			firstWidth, resultWidth );
 
 		CSparseMatrix sparseMatrix( MathEngine(), rows, columns, values );
-		MathEngine().MultiplyTransposedMatrixBySparseMatrix( firstHeight, firstWidth, resultWidth, CARRAY_FLOAT_WRAPPER( first ),
+		MathEngine().MultiplyTransposedMatrixBySparseMatrix( firstHeight, firstWidth, resultWidth, CARRAY_FLOAT_WRAPPER( first ), //x86 -specific
 			sparseMatrix.Desc(), CARRAY_FLOAT_WRAPPER( actual ), true );
 	} else {
 		multiplyTransposedMatrixBySparseMatrixNaive( first.data(), rows.data(), columns.data(), values.data(), expected.data(),
 			firstHeight, firstWidth, resultWidth );
 
 		CSparseMatrix sparseMatrix( MathEngine(), rows, columns, values );
-		MathEngine().MultiplyTransposedMatrixBySparseMatrix( firstHeight, firstWidth, resultWidth, CARRAY_FLOAT_WRAPPER( first ),
+		MathEngine().MultiplyTransposedMatrixBySparseMatrix( firstHeight, firstWidth, resultWidth, CARRAY_FLOAT_WRAPPER( first ), //x86 -specific
 			sparseMatrix.Desc(), CARRAY_FLOAT_WRAPPER( actual ), false );
 	}
 
@@ -126,3 +129,5 @@ TEST_P( CMultiplyTransposedMatrixBySparseMatrixTest, Random )
 	}
 	RUN_TEST_IMPL( multiplyTransposedMatrixBySparseMatrixTestImpl )
 }
+#endif //FINE_ARCHITECTURE( FINE_X86 ) || FINE_ARCHITECTURE( FINE_X64 )
+

@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,6 +14,9 @@ limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
 #include <TestFixture.h>
+
+// These functions are implemented by MKL. MKL is not available on ARM.
+#if FINE_ARCHITECTURE( FINE_X86 ) || FINE_ARCHITECTURE( FINE_X64 )
 
 using namespace NeoML;
 using namespace NeoMLTest;
@@ -32,7 +35,7 @@ static void qrFactorizationTest( int height, int width, std::vector<float> matri
 				auto rWrapper = CARRAY_FLOAT_WRAPPER( r );
 				CFloatHandle qHandle = qWrapper;
 				CFloatHandle rHandle = rWrapper;
-				MathEngine().QRFactorization( height, width, CARRAY_FLOAT_WRAPPER( matrix ), returnQ ? &qHandle : nullptr,
+				MathEngine().QRFactorization( height, width, CARRAY_FLOAT_WRAPPER( matrix ), returnQ ? &qHandle : nullptr, //x86 -specific
 					returnR ? &rHandle : nullptr, false, returnQ, returnR );
 			}
 			if( returnQ ) {
@@ -88,3 +91,5 @@ TEST_F( CMathEngineQRFactorizationTest, Precalc )
 		{ -0.1877, 0.2724, -0.9184, -0.4111, -0.5016, 0.0918, -0.0983, -0.7374, -0.2657, -0.7061, 0.3582, 0.2722, -0.5362, -0.0472, -0.0587 },
 		{ -11.1888, -13.6600, -12.8056, 0.0000, -7.9431, 1.4661, 0.0000, 0.0000, -6.8569, 0, 0, 0, 0, 0, 0 } );
 }
+#endif //FINE_ARCHITECTURE( FINE_X86 ) || FINE_ARCHITECTURE( FINE_X64 )
+
