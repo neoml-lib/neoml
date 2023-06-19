@@ -532,25 +532,29 @@ TEST( CDnnSolverTest, NadamL2 )
 	testSolver( adam, expected );
 }
 
-static void checkBlobEquality( CDnnBlob& firstBlob, CDnnBlob& secondBlob )
+static bool checkBlobEquality( CDnnBlob& firstBlob, CDnnBlob& secondBlob )
 {
-	ASSERT_TRUE( firstBlob.HasEqualDimensions( &secondBlob ) );
-	const int dataSize = firstBlob.GetDataSize();
-	float* first = firstBlob.GetBuffer<float>( 0, dataSize, true );
-	float* second = secondBlob.GetBuffer<float>( 0, dataSize, true );
-	for( int i = 0; i < dataSize; ++i ) {
-		EXPECT_TRUE( FloatEq( first[i], second[i], 1e-4f ) ) << first[i] << '\t' << second[i];
+	if( !firstBlob.HasEqualDimensions( &secondBlob ) ) {
+		// When this happens test must fail
+		EXPECT_TRUE( false );
+		return false;
 	}
-	secondBlob.ReleaseBuffer( second, false );
-	firstBlob.ReleaseBuffer( first, false );
+	CDnnBlobBuffer<float> first( firstBlob, TDnnBlobBufferAccess::Read );
+	CDnnBlobBuffer<float> second( secondBlob, TDnnBlobBufferAccess::Read );
+	for( int i = 0; i < first.Size(); ++i ) {
+		if( !FloatEqImpl( first[i], second[i], 1e-4f ) ) {
+			return false;
+		}
+	}
+	return true;
 }
 
-static void checkLstmEquality( CLstmLayer* first, CLstmLayer* second )
+static bool checkLstmEquality( CLstmLayer* first, CLstmLayer* second )
 {
-	checkBlobEquality( *first->GetRecurWeightsData(), *second->GetRecurWeightsData() );
-	checkBlobEquality( *first->GetInputWeightsData(), *second->GetInputWeightsData() );
-	checkBlobEquality( *first->GetRecurFreeTermData(), *second->GetRecurFreeTermData() );
-	checkBlobEquality( *first->GetInputFreeTermData(), *second->GetInputFreeTermData() );
+	return checkBlobEquality( *first->GetRecurWeightsData(), *second->GetRecurWeightsData() )
+		&& checkBlobEquality( *first->GetInputWeightsData(), *second->GetInputWeightsData() )
+		&& checkBlobEquality( *first->GetRecurFreeTermData(), *second->GetRecurFreeTermData() )
+		&& checkBlobEquality( *first->GetInputFreeTermData(), *second->GetInputFreeTermData() );
 }
 
 static void buildDnnForSolverTest( CDnn& dnn )
@@ -662,21 +666,21 @@ static void solverSerializationTestImpl( CPtr<CDnnSolver> firstSolver, bool trai
 
 	CConvLayer* conv = CheckCast<CConvLayer>( firstNet.GetLayer( "conv" ) );
 	CConvLayer* secondConv = CheckCast<CConvLayer>( secondNet.GetLayer( "conv" ) );
-	checkBlobEquality( *conv->GetFilterData(), *secondConv->GetFilterData() );
-	checkBlobEquality( *conv->GetFreeTermData(), *secondConv->GetFreeTermData() );
+	EXPECT_TRUE( checkBlobEquality( *conv->GetFilterData(), *secondConv->GetFilterData() ) );
+	EXPECT_TRUE( checkBlobEquality( *conv->GetFreeTermData(), *secondConv->GetFreeTermData() ) );
 
 	CFullyConnectedLayer* fc = CheckCast<CFullyConnectedLayer>( firstNet.GetLayer( "fc" ) );
 	CFullyConnectedLayer* secondFc = CheckCast<CFullyConnectedLayer>( secondNet.GetLayer( "fc" ) );
-	checkBlobEquality( *fc->GetWeightsData(), *secondFc->GetWeightsData() );
-	checkBlobEquality( *fc->GetFreeTermData(), *secondFc->GetFreeTermData() );
+	EXPECT_TRUE( checkBlobEquality( *fc->GetWeightsData(), *secondFc->GetWeightsData() ) );
+	EXPECT_TRUE( checkBlobEquality( *fc->GetFreeTermData(), *secondFc->GetFreeTermData() ) );
 
 	CLstmLayer* direct = CheckCast<CLstmLayer>( firstNet.GetLayer( "direct_lstm" ) );
 	CLstmLayer* secondDirect = CheckCast<CLstmLayer>( secondNet.GetLayer( "direct_lstm" ) );
-	checkLstmEquality( direct, secondDirect );
+	EXPECT_TRUE( checkLstmEquality( direct, secondDirect ) );
 
 	CLstmLayer* reverse = CheckCast<CLstmLayer>( firstNet.GetLayer( "reverse_lstm" ) );
 	CLstmLayer* secondReverse = CheckCast<CLstmLayer>( secondNet.GetLayer( "reverse_lstm" ) );
-	checkLstmEquality( reverse, secondReverse );
+	EXPECT_TRUE( checkLstmEquality( reverse, secondReverse ) );
 }
 
 TEST( CDnnSimpleGradientSolverTest, Serialization1 )
@@ -832,21 +836,6 @@ TEST( CDnnLambGradientSolverTest, Serialization4 )
 
 // ====================================================================================================================
 
-static void checkBlobInequality( CDnnBlob& firstBlob, CDnnBlob& secondBlob )
-{
-	ASSERT_TRUE( firstBlob.HasEqualDimensions( &secondBlob ) );
-	const int dataSize = firstBlob.GetDataSize();
-	float* first = firstBlob.GetBuffer<float>( 0, dataSize, true );
-	float* second = secondBlob.GetBuffer<float>( 0, dataSize, true );
-	bool success = false;
-	for( int i = 0; i < dataSize; ++i ) {
-		success |= !FloatEqImpl( first[i], second[i], 1e-4f );
-	}
-	secondBlob.ReleaseBuffer( second, false );
-	firstBlob.ReleaseBuffer( first, false );
-	EXPECT_TRUE( success );
-}
-
 TEST( CDnnSolverTest, CompositeLearningRate )
 {
 	// There was a bug when only BaseLearningRate of the layer itself was taken into account
@@ -863,14 +852,16 @@ TEST( CDnnSolverTest, CompositeLearningRate )
 		secondNet.RunAndLearnOnce();
 	}
 
+	// For now nets must be identical
 	CLstmLayer* direct = CheckCast<CLstmLayer>( firstNet.GetLayer( "direct_lstm" ) );
 	CLstmLayer* secondDirect = CheckCast<CLstmLayer>( secondNet.GetLayer( "direct_lstm" ) );
-	checkLstmEquality( direct, secondDirect );
+	EXPECT_TRUE( checkLstmEquality( direct, secondDirect ) );
 
 	CLstmLayer* reverse = CheckCast<CLstmLayer>( firstNet.GetLayer( "reverse_lstm" ) );
 	CLstmLayer* secondReverse = CheckCast<CLstmLayer>( secondNet.GetLayer( "reverse_lstm" ) );
-	checkLstmEquality( reverse, secondReverse );
+	EXPECT_TRUE( checkLstmEquality( reverse, secondReverse ) );
 
+	// Change learning rate of LSTMs in one of the nets and train a bit
 	secondDirect->SetBaseLearningRate( 0.1f );
 	secondReverse->SetBaseLearningRate( 10.f );
 
@@ -879,14 +870,7 @@ TEST( CDnnSolverTest, CompositeLearningRate )
 		secondNet.RunAndLearnOnce();
 	}
 
-	auto checkLstmInequality = []( CLstmLayer* first, CLstmLayer* second )
-	{
-		checkBlobInequality( *first->GetRecurWeightsData(), *second->GetRecurWeightsData() );
-		checkBlobInequality( *first->GetInputWeightsData(), *second->GetInputWeightsData() );
-		checkBlobInequality( *first->GetRecurFreeTermData(), *second->GetRecurFreeTermData() );
-		checkBlobInequality( *first->GetInputFreeTermData(), *second->GetInputFreeTermData() );
-	};
-	checkLstmInequality( direct, secondDirect );
-	checkLstmInequality( reverse, secondReverse );
+	// After the change in learning rate nets should train differently
+	EXPECT_FALSE( checkLstmEquality( direct, secondDirect ) );
+	EXPECT_FALSE( checkLstmEquality( reverse, secondReverse ) );
 }
-
