@@ -273,11 +273,6 @@ CString GetTestDataFilePath( const CString& relativePath, const CString& fileNam
 	return mergePathSimple( mergePathSimple( testDir, relativePath ), fileName );
 }
 
-int GetGlobalThreadCount()
-{
-	return threadCount;
-}
-
 IMathEngine& MathEngine()
 {
 	if( mathEngine == nullptr ) {

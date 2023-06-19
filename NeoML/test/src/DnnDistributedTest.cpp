@@ -162,31 +162,57 @@ TEST( CDnnDistributedTest, DnnDistributedArchiveTest )
 
 TEST( CDnnDistributedTest, DnnDistributedSerializeTest )
 {
-    int inputSize = 1024;
-    int outputSize = 1024;
+    std::unique_ptr<IMathEngine> mathEngine( CreateCpuMathEngine( 1, 0 ) );
     CRandom rand( 42 );
 
-    ::printf( "Testing distributed with %d threads\n", GetGlobalThreadCount() );
-    std::unique_ptr<IMathEngine> mathEngine( CreateCpuMathEngine( GetGlobalThreadCount(), 0 ) );
+    int inputSize = 1000;
+    int outputSize = 5;
     CDnn cnn( rand, *mathEngine );
     buildDnn( cnn, outputSize );
 
+    CDistributedTraining distributed( cnn, 3 );
     CCustomDataset dataset( inputSize, outputSize );
-    CDistributedTraining distributed( cnn, GetGlobalThreadCount() );
+    distributed.RunAndLearnOnce( dataset );
+    distributed.RunOnce( dataset );
 
+    CArray<float> losses;
+    distributed.GetLastLoss( "loss", losses );
+
+    CString archiveName = "distributedSerialized";
     {
-        std::unique_ptr<IPerformanceCounters> counters( GetDefaultCpuMathEngine().CreatePerformanceCounters() );
-        counters->Synchronise();
-        for( int i = 0; i < 100; ++i ) {
-            distributed.RunOnce( dataset );
-            distributed.RunAndLearnOnce( dataset );
-            distributed.RunOnce( dataset );
-            if( i % 10 == 0 ) {
-                ::printf( "%d\n", i );
-            }
-        }
-        counters->Synchronise();
-        std::cout << ( *counters )[0].Name << '\t' << ( *counters )[0].Value << '\n';
+        CArchiveFile archiveFile( archiveName, CArchive::store, GetPlatformEnv() );
+        CArchive archive( &archiveFile, CArchive::SD_Storing );
+        distributed.Serialize( archive );
+    }
+
+    CRandom rand2( 42 );
+    CDnn serializedCnn( rand2, *mathEngine );
+    {
+        CArchiveFile archiveFile( archiveName, CArchive::load, GetPlatformEnv() );
+        CArchive archive( &archiveFile, CArchive::SD_Loading );
+        serializedCnn.Serialize( archive );
+    }
+
+    dataset.SetInputBatch( serializedCnn, 0 );
+    serializedCnn.RunOnce();
+    float loss = static_cast< CLossLayer* >( serializedCnn.GetLayer( "loss" ).Ptr() )->GetLastLoss();
+    ASSERT_EQ( loss, losses[0] );
+
+    CArray<float> distributedWeights;
+    CPtr<CDnnBlob> weightsBlob = static_cast< CFullyConnectedLayer* >( serializedCnn.GetLayer( "full" ).Ptr() )->GetWeightsData();
+    distributedWeights.SetSize( weightsBlob->GetDataSize() );
+    weightsBlob->CopyTo( distributedWeights.GetPtr() );
+
+    dataset.SetInputBatch( cnn, 0 );
+    cnn.RunAndLearnOnce();
+    CArray<float> weights;
+    weightsBlob = static_cast< CFullyConnectedLayer* >( cnn.GetLayer( "full" ).Ptr() )->GetWeightsData();
+    weights.SetSize( weightsBlob->GetDataSize() );
+    weightsBlob->CopyTo( weights.GetPtr() );
+
+    ASSERT_EQ( weights.Size(), distributedWeights.Size() );
+    for( int i = 0; i < weights.Size(); i++ ) {
+        ASSERT_NEAR( weights[i], distributedWeights[i], 1e-4 );
     }
 }
 
