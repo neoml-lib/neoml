@@ -109,7 +109,6 @@ TEST( CDnnDistributedTest, DnnDistributedNoArchiveTest )
     ASSERT_EQ( 2, distributed.GetModelCount() );
 }
 
-
 TEST( CDnnDistributedTest, DnnDistributedArchiveTest )
 {
     std::unique_ptr<IMathEngine> mathEngine( CreateCpuMathEngine( 1, 0 ) );
@@ -156,7 +155,6 @@ TEST( CDnnDistributedTest, DnnDistributedArchiveTest )
     ASSERT_EQ( losses[0], losses[1] );
     ASSERT_EQ( 2, distributed.GetModelCount() );
 }
-
 
 TEST( CDnnDistributedTest, DnnDistributedSerializeTest )
 {
@@ -212,4 +210,19 @@ TEST( CDnnDistributedTest, DnnDistributedSerializeTest )
     for( int i = 0; i < weights.Size(); i++ ) {
         ASSERT_NEAR( weights[i], distributedWeights[i], 1e-4 );
     }
+}
+
+TEST( CDnnDistributedTest, DnnDistributedAutoThreadCountTest )
+{
+    std::unique_ptr<IMathEngine> mathEngine( CreateCpuMathEngine( 1, 0 ) );
+    CRandom rand( 42 );
+
+    int inputSize = 1000;
+    int outputSize = 5;
+    CDnn cnn( rand, *mathEngine );
+    buildDnn( cnn, outputSize );
+
+    CDistributedTraining distributed( cnn, 0 );
+    GTEST_LOG_( INFO ) << "Distributed default thread count is " << distributed.GetModelCount();
+    ASSERT_LT( 0, distributed.GetModelCount() );
 }
