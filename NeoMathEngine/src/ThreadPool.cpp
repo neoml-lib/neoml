@@ -42,36 +42,23 @@ namespace NeoML {
 // Checks if we're running inside of docker or k8s
 static bool isInDocker()
 {
-	{
-		// First method: existence of .dockerenv
-		struct stat buffer;
-		const int ret = ::stat( "/.dockerenv", &buffer );
-		if( ret == 0 ) {
-			::printf( "dockerenv detected!\n" );
-			return true;
-		} else {
-			::printf( "stat( \"/.dockerenv\") returned %d\n", ret );
-		}
+	// First method: check the existence of .dockerenv
+	struct stat buffer;
+	if( ::stat( "/.dockerenv", &buffer ) == 0 ) {
+		return true;
 	}
 
 	// Second method: checking the contents of cgroup file
 	std::ifstream cgroupFile( "/proc/self/cgroup" );
 	if( cgroupFile.good() ) {
 		std::string data;
-		::printf( "cgroup contents:\n" );
 		while( cgroupFile >> data ) {
-			::printf( "\t%s\n", data.c_str() );
-			if( data.find( "docker" ) != std::string::npos ) {
-				::printf( "\"docker\" found\n" );
-				return true;
-			} else if( data.find( "kubepods" ) != std::string::npos ) {
-				::printf( "\"kubepods\" found\n" );
+			if( data.find( "docker" ) != std::string::npos || data.find( "kubepods" ) != std::string::npos ) {
 				return true;
 			}
 		}
 	}
 
-	::printf( "Not in docker!\n" );
 	return false;
 }
 
@@ -82,46 +69,35 @@ static int readIntFromFile( const char* name )
 	std::ifstream stream( name );
 	int result = -1;
 	if( stream.good() && ( stream >> result ) ) {
-		::printf( "read value '%d' from %s\n", result, name );
 		return result;
 	}
-	::printf( "read from %s failed\n", name );
 	return -1;
 }
-
 #endif // FINE_PLATFORM( FINE_LINUX )
 
-// Returns number of CPU cores available in 
+// Returns number of CPU cores available in the container
 static int getAvailableCpuCoreNum()
 {
 #if FINE_PLATFORM( FINE_LINUX )
 	if( isInDocker() ) {
-		// Case #1: linux Docker with --cpus value set
-		// In this case the only way to get number of cores is to read quotas
+		// Case #1: linux Docker with --cpus value set (or k8s with cpu limits)
 		// When working under cgroups without quotas cfs_quota_us contains -1
 		const int quota = readIntFromFile( "/sys/fs/cgroup/cpu/cpu.cfs_quota_us" );
 		const int period = readIntFromFile( "/sys/fs/cgroup/cpu/cpu.cfs_period_us" );
 		if( quota > 0 && period > 0 ) {
 			// Using ceil because --cpus 0.1 is a valid scenario in docker (0.1 means quota * 10 == period)
-			::printf( "quota is %d\n", ( quota + period - 1 ) / period );
 			return ( quota + period - 1 ) / period;
 		}
 
 		// Case #2: linux Docker with --cpuset-cpus
 		cpu_set_t cpuSet;
 		CPU_ZERO( &cpuSet );
-		const int ret = ::pthread_getaffinity_np( ::pthread_self(), sizeof( cpu_set_t ), &cpuSet );
-		if( ret == 0 ) {
-			::printf( "CPU_COUNT is %d\n", static_cast<int>( CPU_COUNT( &cpuSet ) ) );
+		if( ::pthread_getaffinity_np( ::pthread_self(), sizeof( cpu_set_t ), &cpuSet ) == 0 ) {
 			return static_cast<int>( CPU_COUNT( &cpuSet ) );	
-		} else {
-			::printf( "pthread_getaffinity_np returned %d\n", ret );
 		}
 	}
 #endif // FINE_PLATFORM( FINE_LINUX )
-
-	::printf( "std::thread::hardware_concurrency() is %d\n", std::thread::hardware_concurrency() );
-	// hardware_concurrency may return 0 if the value is not well defined or not computable
+	// std::thread::hardware_concurrency may return 0 if the value is not well defined or not computable
 	return std::max( static_cast<int>( std::thread::hardware_concurrency() ), 1 );
 }
 
@@ -187,9 +163,6 @@ private:
 
 CThreadPool::CThreadPool( int threadCount )
 {
-	std::cout << "Initial call was with " << threadCount << " threads\n";
-	std::cout << "C++ detects " << std::thread::hardware_concurrency() << " threads\n";
-	std::cout << "OMP detects " << OmpGetMaxThreadCount() << " threads\n";
 	if( threadCount <= 0 ) {
 		threadCount = getAvailableCpuCoreNum();
 	}
