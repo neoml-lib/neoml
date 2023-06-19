@@ -1,4 +1,4 @@
-/* Copyright © 2021 ABBYY Production LLC
+/* Copyright © 2021-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,6 +17,9 @@ limitations under the License.
 #pragma hdrstop
 
 #include <TestFixture.h>
+
+// These functions are implemented by MKL. MKL is not available on ARM.
+#if FINE_ARCHITECTURE( FINE_X86 ) || FINE_ARCHITECTURE( FINE_X64 )
 
 using namespace NeoML;
 using namespace NeoMLTest;
@@ -52,10 +55,10 @@ static void svdTestExample( int samples, int features, int components,
 	CArray<float> singularValues;
 	CArray<float> rightVectors;
 	if( svdSolver == SVD_Randomized ) {
-		RandomizedSingularValueDecomposition( matrix.GetDesc(), leftVectors, singularValues, rightVectors,
+		RandomizedSingularValueDecomposition( matrix.GetDesc(), leftVectors, singularValues, rightVectors, //x86 -specific
 			returnLeftVectors, returnRightVectors, components );
 	} else {
-		SingularValueDecomposition( matrix.GetDesc(), leftVectors, singularValues, rightVectors,
+		SingularValueDecomposition( matrix.GetDesc(), leftVectors, singularValues, rightVectors, //x86 -specific
 			returnLeftVectors, returnRightVectors, components );
 	}
 
@@ -129,9 +132,9 @@ static void pcaTestExample( int samples, int features, int components,
 		CFloatMatrixDesc transformed;
 		transformed = pca.TrainTransform( matrix.GetDesc() );
 		if( s == "TrainTransform" ) {
-			transformed = pca.TrainTransform( matrix.GetDesc() );
+			transformed = pca.TrainTransform( matrix.GetDesc() ); //x86 -specific
 		} else {
-			pca.Train( matrix.GetDesc() );
+			pca.Train( matrix.GetDesc() ); //x86 -specific
 			transformed = pca.Transform( matrix.GetDesc() );
 		}
 
@@ -207,9 +210,9 @@ TEST( CPCATest, PCAEllipseTest )
 		for( CString s : { "TrainTransform", "Train + Transform" } ) {
 			CPca pca( params );
 			if( s == "TrainTransform" ) {
-				pca.TrainTransform( matrix.GetDesc() );
+				pca.TrainTransform( matrix.GetDesc() ); //x86 -specific
 			} else {
-				pca.Train( matrix.GetDesc() );
+				pca.Train( matrix.GetDesc() ); //x86 -specific
 				pca.Transform( matrix.GetDesc() );
 			}
 			ASSERT_NEAR( 0, pca.GetNoiseVariance(), 1e-3 );
@@ -251,7 +254,7 @@ TEST( CPCATest, PCASerializationTest )
 
 	CString fileName = "PcaTest";
 	{
-		pca.Train( matrix.GetDesc() );
+		pca.Train( matrix.GetDesc() ); //x86 -specific
 		CArchiveFile archiveFile( fileName, CArchive::store, GetPlatformEnv() );
 		CArchive archive( &archiveFile, CArchive::SD_Storing );
 		pca.Serialize( archive );
@@ -290,3 +293,6 @@ TEST( CPCATest, PCASerializationTest )
 
 	ASSERT_NEAR( expectedNoiseVariance, pcaSerialized->GetNoiseVariance(), 5e-3 );
 }
+
+#endif //FINE_ARCHITECTURE( FINE_X86 ) || FINE_ARCHITECTURE( FINE_X64 )
+

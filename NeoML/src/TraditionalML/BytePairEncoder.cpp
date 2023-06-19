@@ -1,4 +1,4 @@
-/* Copyright © 2017-2022 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,79 +18,14 @@ limitations under the License.
 #pragma hdrstop
 
 #include <BytePairEncoder.h>
+#include <SubwordDecoder.h>
+#include <Utf8Tools.h>
 
 namespace NeoML {
 
 REGISTER_NEOML_MODEL( CBytePairEncoder, BytePairEncoderModelName )
 
 static const CString UnkToken( "<UNK>" );
-
-// Based on Utf8FirstByteProperties from UtfConverterFO.h.
-static constexpr int utf8CharacterLength[256] = {
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 00-0F
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 10-1F
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 20-2F
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 30-3F
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 40-4F
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 50-5F
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 60-6F
-	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, // 70-7F
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 80-8F
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 90-9F
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // A0-AF
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // B0-BF
-	0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, // C0-CF
-	2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, // D0-DF
-	3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, // E0-EF
-	4, 4, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // F0-FF
-};
-
-// Returns the length of a character in utf8 encoding by its first byte.
-static int getUtf8CharLength( char c )
-{
-	const unsigned char byte = ( unsigned char )c;
-	return utf8CharacterLength[byte];
-}
-
-void CBytePairEncoder::SplitWordIntoInitialTokens( const CString& word,
-	CArray<CString>& initialTokens, CArray<int>* initialTokensLength ) const
-{
-	NeoAssert( !word.IsEmpty() );
-
-	if( UseStartOfWordToken() ) {
-		initialTokens.Add( params.StartOfWordToken );
-	}
-
-	for( int curPos = 0; curPos < word.Length(); ) {
-		const int charLength = UseRawBytes() ? 1 : getUtf8CharLength( word[curPos] );
-		NeoAssert( charLength > 0 );
-		NeoAssert( curPos + charLength <= word.Length() );
-		initialTokens.Add( CString( ( const char* )word + curPos, charLength ) );
-		curPos += charLength;
-	}
-
-	if( UseEndOfWordToken() ) {
-		initialTokens.Add( params.EndOfWordToken );
-	}
-
-	if( initialTokensLength != nullptr ) {
-		NeoAssert( initialTokensLength->IsEmpty() );
-		initialTokensLength->Add( 1, initialTokens.Size() );
-		if( UseStartOfWordToken() ) {
-			initialTokensLength->First() = 0;
-		}
-		if( UseEndOfWordToken() ) {
-			initialTokensLength->Last() = 0;
-		}
-	}
-}
-
-CString CBytePairEncoder::MergeTokens( const CString& first, const CString& second )
-{
-	return first + second;
-}
-
-///////////////////////////////////////////////////////////////////////////////
 
 void CBytePairEncoder::InitializeUnsafe( const CBPEDictionary& _tokens )
 {
@@ -109,96 +44,12 @@ void CBytePairEncoder::InitializeUnsafe( const CBPEDictionary& _tokens )
 void CBytePairEncoder::Decode( const CArray<int>& tokenIds, CArray<CString>& words ) const
 {
 	NeoAssert( IsInitialized() );
-
-	if( tokenIds.IsEmpty() ) {
-		return;
+	if( decoder == nullptr ) {
+		CMap<int, CString> idToToken;
+		GetIdToTokenMapping( idToToken );
+		decoder = std::make_unique<CSubwordDecoder>( params, std::move( idToToken ) );
 	}
-
-	CArray<CString> rawWordTokens;
-	rawWordTokens.SetBufferSize( tokenIds.Size() );
-	for( int i = 0; i < tokenIds.Size(); i++ ) {
-		rawWordTokens.Add( getToken( tokenIds[i] ) );
-	}
-
-	CArray<bool> isWordBorder;
-	isWordBorder.Add( false, rawWordTokens.Size() - 1 );
-
-	for( int i = 0; i < rawWordTokens.Size(); i++ ) {
-		bool hasEow = false;
-		bool hasSow = false;
-		removeSpecialTokens( rawWordTokens[i], hasEow, hasSow );
-		if( i > 0 ) {
-			isWordBorder[i - 1] |= hasSow;
-		}
-		if( i < rawWordTokens.Size() - 1 ) {
-			isWordBorder[i] |= hasEow;
-		}
-	}
-
-	CString currentWord;
-	for( int i = 0; i < rawWordTokens.Size(); i++ ) {
-		currentWord += rawWordTokens[i];
-		if( i < rawWordTokens.Size() - 1
-			&& isWordBorder[i] ) 
-		{
-			words.Add( currentWord );
-			currentWord = "";
-		}
-	}
-	words.Add( currentWord );
-}
-
-// Returns string representation of token by tokenId.
-CString CBytePairEncoder::getToken( int shiftedTokenId ) const
-{
-	NeoAssert( shiftedTokenId >= UnknownTokenId() && shiftedTokenId < Size() + UnknownTokenId() );
-
-	if( shiftedTokenId == UnknownTokenId() ) {
-		// Unknown token.
-		return UnkToken;
-	} else {
-		return tokens[shiftedTokenId - UnknownTokenId() - 1];
-	}
-}
-
-// Removes special subtokens from token.
-void CBytePairEncoder::removeSpecialTokens( CString& token, bool& hasEow, bool& hasSow ) const
-{
-	hasEow = replaceEowToken( token, params.EndOfWordToken, "" );
-	hasSow = replaceSowToken( token, params.StartOfWordToken, "" );
-}
-
-// If Eow is enabled and if 'token' ends with 'eowToken', replaces matched suffix with 'replacement'
-bool CBytePairEncoder::replaceEowToken( CString& token, const CString& eowToken, const CString& replacement ) const
-{
-	if( !UseEndOfWordToken() || token.Length() < eowToken.Length() ) {
-		return false;
-	}
-	NeoAssert( !eowToken.IsEmpty() );
-
-	const int eowPos = token.Length() - eowToken.Length();
-	if( token.CompareSubstr( eowPos, eowToken, eowToken.Length() ) == 0 ) {
-		token.StrReplace( eowPos, eowToken.Length(), replacement );
-		return true;
-	} else {
-		return false;
-	}
-}
-
-// If Sow is enabled and if 'token' starts with 'sowToken', replaces matched prefix with 'replacement'
-bool CBytePairEncoder::replaceSowToken( CString& token, const CString& sowToken, const CString& replacement ) const
-{
-	if( !UseStartOfWordToken() || token.Length() < sowToken.Length() ) {
-		return false;
-	}
-	NeoAssert( !sowToken.IsEmpty() );
-
-	if( token.CompareSubstr( 0, sowToken, sowToken.Length() ) == 0 ) {
-		token.StrReplace( 0, sowToken.Length(), replacement );
-		return true;
-	} else {
-		return false;
-	}
+	decoder->Decode( tokenIds, words );
 }
 
 static constexpr int BytePairEncoderImplVersion = 1;
@@ -208,8 +59,6 @@ static const CString LegacyEowToken( "\\\xFF" );
 
 void CBytePairEncoder::Serialize( CArchive& archive )
 {
-	ClearCache();
-
 	const int version = archive.SerializeVersion( BytePairEncoderImplVersion );
 	if( version >= 1 ) {
 		params.Serialize( archive );
@@ -227,13 +76,36 @@ void CBytePairEncoder::Serialize( CArchive& archive )
 		params.UseRawBytes = false;
 		params.UnknownTokenId = DefaultUnknownTokenId;
 	}
-	
+
 	tokens.Serialize( archive );
 	if( archive.IsLoading() ) {
+		ClearCache();
 		tokenToId.DeleteAll();
 		for( int i = 0; i < tokens.Size(); i++ ) {
 			tokenToId.Add( tokens[i], i );
 		}
+	}
+}
+
+void CBytePairEncoder::GetIdToTokenMapping( CMap<int, CString>& output ) const
+{
+	output.DeleteAll();
+	output.SetHashTableSize( Size() );
+	output.Add( UnknownTokenId(), UnkToken );
+	for( int i = 0; i < tokens.Size(); ++i ) {
+		CString tokenUserView = tokens[i];
+		output.Add( i + 1 + UnknownTokenId(), tokenUserView );
+	}
+}
+
+void CBytePairEncoder::GetTokenToIdMapping( CMap<CString, int>& output ) const
+{
+	output.DeleteAll();
+	output.SetHashTableSize( Size() );
+	output.Add( UnkToken, UnknownTokenId() );
+	for( int i = 0; i < tokens.Size(); ++i ) {
+		CString tokenUserView = tokens[i];
+		output.Add( tokenUserView, i + 1 + UnknownTokenId() );
 	}
 }
 
@@ -261,7 +133,7 @@ void CBytePairEncoder::Initialize( const CBPEDictionary& _tokens, const CParams&
 // Checks that token is a letter, auxiliary or a combination of 2 other tokens
 bool CBytePairEncoder::isValidToken( const CString& token, const CArray<CString>& auxTokens ) const
 {
-	const int charLength = UseRawBytes() ? 1 : getUtf8CharLength( token[0] );
+	const int charLength = UseRawBytes() ? 1 : GetUtf8CharLength( token[0] );
 	if( charLength == token.Length() ) {
 		// ok, single letter
 		return true;
@@ -285,28 +157,6 @@ bool CBytePairEncoder::isValidToken( const CString& token, const CArray<CString>
 	return false;
 }
 
-void CBytePairEncoder::GetIdToTokenMapping( CMap<int, CString>& output ) const
-{
-	output.DeleteAll();
-	output.SetHashTableSize( Size() );
-	output.Add( UnknownTokenId(), UnkToken );
-	for( int i = 0; i < tokens.Size(); ++i ) {
-		CString tokenUserView = tokens[i];
-		output.Add( i + 1 + UnknownTokenId(), tokenUserView );
-	}
-}
-
-void CBytePairEncoder::GetTokenToIdMapping( CMap<CString, int>& output ) const
-{
-	output.DeleteAll();
-	output.SetHashTableSize( Size() );
-	output.Add( UnkToken, UnknownTokenId() );
-	for( int i = 0; i < tokens.Size(); ++i ) {
-		CString tokenUserView = tokens[i];
-		output.Add( tokenUserView, i + 1 + UnknownTokenId() );
-	}
-}
-
 void CBytePairEncoder::DoEncode( const CString& word, CArray<int>& tokenIds,
 	CArray<int>& tokenLengths ) const
 {
@@ -314,13 +164,13 @@ void CBytePairEncoder::DoEncode( const CString& word, CArray<int>& tokenIds,
 
 	CArray<CString> wordTokens;
 	CArray<int> wordTokenLengths;
-	SplitWordIntoInitialTokens( word, wordTokens, &wordTokenLengths );
+	splitWordIntoInitialTokens( word, wordTokens, &wordTokenLengths );
 
 	while( true ) {
 		int bestPairIndex = getShiftedTokenIndex( tokens.Last() ) + 1;
 		int bestMergePos = NotFound;
 		for( int i = 0; i < wordTokens.Size() - 1; i++ ) {
-			const CString pair = MergeTokens( wordTokens[i], wordTokens[i + 1] );
+			const CString pair = mergeTokens( wordTokens[i], wordTokens[i + 1] );
 			const int pairIndex = getShiftedTokenIndex( pair );
 			if( pairIndex != UnknownTokenId() && pairIndex < bestPairIndex ) {
 				bestPairIndex = pairIndex;
@@ -332,7 +182,7 @@ void CBytePairEncoder::DoEncode( const CString& word, CArray<int>& tokenIds,
 			break;
 		}
 
-		wordTokens[bestMergePos] = MergeTokens( wordTokens[bestMergePos],
+		wordTokens[bestMergePos] = mergeTokens( wordTokens[bestMergePos],
 			wordTokens[bestMergePos + 1] );
 		wordTokenLengths[bestMergePos] += wordTokenLengths[bestMergePos + 1];
 
@@ -360,4 +210,43 @@ int CBytePairEncoder::getShiftedTokenIndex( const CString& token ) const
 	}
 }
 
+// Splits a word into initial tokens: single unicode characters + special tokens (optional).
+void CBytePairEncoder::splitWordIntoInitialTokens( const CString& word,
+	CArray<CString>& initialTokens, CArray<int>* initialTokensLength ) const
+{
+	NeoAssert( !word.IsEmpty() );
+
+	if( UseStartOfWordToken() ) {
+		initialTokens.Add( params.StartOfWordToken );
+	}
+
+	for( int curPos = 0; curPos < word.Length(); ) {
+		const int charLength = UseRawBytes() ? 1 : GetUtf8CharLength( word[curPos] );
+		NeoAssert( charLength > 0 );
+		NeoAssert( curPos + charLength <= word.Length() );
+		initialTokens.Add( CString( (const char*)word + curPos, charLength ) );
+		curPos += charLength;
+	}
+
+	if( UseEndOfWordToken() ) {
+		initialTokens.Add( params.EndOfWordToken );
+	}
+
+	if( initialTokensLength != nullptr ) {
+		NeoAssert( initialTokensLength->IsEmpty() );
+		initialTokensLength->Add( 1, initialTokens.Size() );
+		if( UseStartOfWordToken() ) {
+			initialTokensLength->First() = 0;
+		}
+		if( UseEndOfWordToken() ) {
+			initialTokensLength->Last() = 0;
+		}
+	}
+}
+
+// Concatenates tokens.
+CString CBytePairEncoder::mergeTokens( const CString& first, const CString& second )
+{
+	return first + second;
+}
 } // namespace NeoML

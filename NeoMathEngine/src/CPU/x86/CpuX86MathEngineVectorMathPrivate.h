@@ -46,30 +46,30 @@ inline void channelwiseConvolution1x3Kernel( const float* source0, const float* 
 	const float* filter0, const float* filter1, const float* filter2,
 	float* result0, float* result1 )
 {
-	__m128 result0_4 = _mm_loadu_ps(result0);
-	__m128 result1_4 = _mm_loadu_ps(result1);
+	__m128 result0_4 = _mm_loadu_ps( result0 );
+	__m128 result1_4 = _mm_loadu_ps( result1 );
 
-	__m128 filter_4 = _mm_loadu_ps(filter0);
-	__m128 source_4 = _mm_loadu_ps(source0);
+	__m128 filter_4 = _mm_loadu_ps( filter0 );
+	__m128 source_4 = _mm_loadu_ps( source0 );
 	result0_4 = _mm_add_ps( result0_4, _mm_mul_ps( source_4, filter_4 ) );
 
-	source_4 = _mm_loadu_ps(source1);
+	source_4 = _mm_loadu_ps( source1 );
 	result1_4 = _mm_add_ps( result1_4, _mm_mul_ps( source_4, filter_4 ) );
 
-	filter_4 = _mm_loadu_ps(filter1);
+	filter_4 = _mm_loadu_ps( filter1 );
 	result0_4 = _mm_add_ps( result0_4, _mm_mul_ps( source_4, filter_4 ) );
 
-	source_4 = _mm_loadu_ps(source2);
+	source_4 = _mm_loadu_ps( source2 );
 	result1_4 = _mm_add_ps( result1_4, _mm_mul_ps( source_4, filter_4 ) );
 
-	filter_4 = _mm_loadu_ps(filter2);
+	filter_4 = _mm_loadu_ps( filter2 );
 	result0_4 = _mm_add_ps( result0_4, _mm_mul_ps( source_4, filter_4 ) );
 
-	source_4 = _mm_loadu_ps(source3);
+	source_4 = _mm_loadu_ps( source3 );
 	result1_4 = _mm_add_ps( result1_4, _mm_mul_ps( source_4, filter_4 ) );
 
-	_mm_storeu_ps(result0, result0_4);
-	_mm_storeu_ps(result1, result1_4);
+	_mm_storeu_ps( result0, result0_4 );
+	_mm_storeu_ps( result1, result1_4 );
 }
 
 inline void channelwise1x3( const float* source, const float* filter0, const float* filter1, const float* filter2, float* result, int channels )
@@ -96,42 +96,42 @@ inline void channelwiseConvolution1x5Kernel( const float* source0, const float* 
 	const float* filter0, const float* filter1, const float* filter2, const float* filter3, const float* filter4,
 	float* result0, float* result1 )
 {
-	__m128 result0_4 = _mm_loadu_ps(result0);
-	__m128 result1_4 = _mm_loadu_ps(result1);
+	__m128 result0_4 = _mm_loadu_ps( result0 );
+	__m128 result1_4 = _mm_loadu_ps( result1 );
 
-	__m128 filter_4 = _mm_loadu_ps(filter0);
-	__m128 source_4 = _mm_loadu_ps(source0);
+	__m128 filter_4 = _mm_loadu_ps( filter0 );
+	__m128 source_4 = _mm_loadu_ps( source0 );
 	result0_4 = _mm_add_ps( result0_4, _mm_mul_ps( source_4, filter_4 ) );
 
-	source_4 = _mm_loadu_ps(source1);
+	source_4 = _mm_loadu_ps( source1 );
 	result1_4 = _mm_add_ps( result1_4, _mm_mul_ps( source_4, filter_4 ) );
 
-	filter_4 = _mm_loadu_ps(filter1);
+	filter_4 = _mm_loadu_ps( filter1 );
 	result0_4 = _mm_add_ps( result0_4, _mm_mul_ps( source_4, filter_4 ) );
 
-	source_4 = _mm_loadu_ps(source2);
+	source_4 = _mm_loadu_ps( source2 );
 	result1_4 = _mm_add_ps( result1_4, _mm_mul_ps( source_4, filter_4 ) );
 
-	filter_4 = _mm_loadu_ps(filter2);
+	filter_4 = _mm_loadu_ps( filter2 );
 	result0_4 = _mm_add_ps( result0_4, _mm_mul_ps( source_4, filter_4 ) );
 
-	source_4 = _mm_loadu_ps(source3);
+	source_4 = _mm_loadu_ps( source3 );
 	result1_4 = _mm_add_ps( result1_4, _mm_mul_ps( source_4, filter_4 ) );
 
-	filter_4 = _mm_loadu_ps(filter3);
+	filter_4 = _mm_loadu_ps( filter3 );
 	result0_4 = _mm_add_ps( result0_4, _mm_mul_ps( source_4, filter_4 ) );
 
-	source_4 = _mm_loadu_ps(source4);
+	source_4 = _mm_loadu_ps( source4 );
 	result1_4 = _mm_add_ps( result1_4, _mm_mul_ps( source_4, filter_4 ) );
 
-	filter_4 = _mm_loadu_ps(filter4);
+	filter_4 = _mm_loadu_ps( filter4 );
 	result0_4 = _mm_add_ps( result0_4, _mm_mul_ps( source_4, filter_4 ) );
 
-	source_4 = _mm_loadu_ps(source5);
+	source_4 = _mm_loadu_ps( source5 );
 	result1_4 = _mm_add_ps( result1_4, _mm_mul_ps( source_4, filter_4 ) );
 
-	_mm_storeu_ps(result0, result0_4);
-	_mm_storeu_ps(result1, result1_4);
+	_mm_storeu_ps( result0, result0_4 );
+	_mm_storeu_ps( result1, result1_4 );
 }
 
 inline void channelwise1x5( const float* source, const float* filter0, const float* filter1, const float* filter2,
@@ -166,30 +166,30 @@ inline void vectorFill( float* result, float value, int vectorSize )
 
 	int sseSize;
 	int nonSseSize;
-	checkSse(vectorSize, sseSize, nonSseSize);
+	checkSse( vectorSize, sseSize, nonSseSize );
 
-	__m128 valueSse = _mm_set_ps1(value);
+	__m128 valueSse = _mm_set_ps1( value );
 
 	while( sseSize >= 4 ) {
-		_mm_storeu_ps(result, valueSse);
+		_mm_storeu_ps( result, valueSse );
 		result += 4;
-		_mm_storeu_ps(result, valueSse);
+		_mm_storeu_ps( result, valueSse );
 		result += 4;
-		_mm_storeu_ps(result, valueSse);
+		_mm_storeu_ps( result, valueSse );
 		result += 4;
-		_mm_storeu_ps(result, valueSse);
+		_mm_storeu_ps( result, valueSse );
 		result += 4;
 
 		sseSize -= 4;
 	}
 
 	while( sseSize > 0 ) {
-		_mm_storeu_ps(result, valueSse);
+		_mm_storeu_ps( result, valueSse );
 		result += 4;
 		sseSize--;
 	}
 
-	for(int i = 0; i < nonSseSize; ++i) {
+	for( int i = 0; i < nonSseSize; ++i ) {
 		*result++ = value;
 	}
 }
@@ -223,7 +223,7 @@ inline void vectorFill( int* result, int value, int vectorSize )
 
 #if FINE_PLATFORM(FINE_WINDOWS)
 	if( nonSseSize > 0 ) {
-		__stosd( (DWORD*) result, value, nonSseSize );
+		__stosd( (DWORD*)result, value, nonSseSize );
 	}
 #elif FINE_PLATFORM(FINE_LINUX) || FINE_PLATFORM(FINE_DARWIN) || FINE_PLATFORM(FINE_ANDROID) || FINE_PLATFORM(FINE_IOS)
 	for( int i = 0; i < nonSseSize; ++i ) {
@@ -243,25 +243,25 @@ inline void vectorFill0( float* result, int vectorSize )
 
 	int sseSize;
 	int nonSseSize;
-	checkSse(vectorSize, sseSize, nonSseSize);
+	checkSse( vectorSize, sseSize, nonSseSize );
 
 	__m128 valueSse = _mm_setzero_ps();
 
 	while( sseSize >= 4 ) {
-		_mm_storeu_ps(result, valueSse);
+		_mm_storeu_ps( result, valueSse );
 		result += 4;
-		_mm_storeu_ps(result, valueSse);
+		_mm_storeu_ps( result, valueSse );
 		result += 4;
-		_mm_storeu_ps(result, valueSse);
+		_mm_storeu_ps( result, valueSse );
 		result += 4;
-		_mm_storeu_ps(result, valueSse);
+		_mm_storeu_ps( result, valueSse );
 		result += 4;
 
 		sseSize -= 4;
 	}
 
 	while( sseSize > 0 ) {
-		_mm_storeu_ps(result, valueSse);
+		_mm_storeu_ps( result, valueSse );
 		result += 4;
 		sseSize--;
 	}
@@ -275,22 +275,22 @@ inline void vectorEltwiseMax( const float* first, const float* second, float* re
 {
 	int sseSize;
 	int nonSseSize;
-	checkSse(vectorSize, sseSize, nonSseSize);
+	checkSse( vectorSize, sseSize, nonSseSize );
 
 	while( sseSize >= 4 ) {
-		_mm_storeu_ps(result, _mm_max_ps(_mm_loadu_ps(first), _mm_loadu_ps(second)));
+		_mm_storeu_ps( result, _mm_max_ps( _mm_loadu_ps( first ), _mm_loadu_ps( second ) ) );
 		first += 4;
 		second += 4;
 		result += 4;
-		_mm_storeu_ps(result, _mm_max_ps(_mm_loadu_ps(first), _mm_loadu_ps(second)));
+		_mm_storeu_ps( result, _mm_max_ps( _mm_loadu_ps( first ), _mm_loadu_ps( second ) ) );
 		first += 4;
 		second += 4;
 		result += 4;
-		_mm_storeu_ps(result, _mm_max_ps(_mm_loadu_ps(first), _mm_loadu_ps(second)));
+		_mm_storeu_ps( result, _mm_max_ps( _mm_loadu_ps( first ), _mm_loadu_ps( second ) ) );
 		first += 4;
 		second += 4;
 		result += 4;
-		_mm_storeu_ps(result, _mm_max_ps(_mm_loadu_ps(first), _mm_loadu_ps(second)));
+		_mm_storeu_ps( result, _mm_max_ps( _mm_loadu_ps( first ), _mm_loadu_ps( second ) ) );
 		first += 4;
 		second += 4;
 		result += 4;
@@ -298,7 +298,7 @@ inline void vectorEltwiseMax( const float* first, const float* second, float* re
 	}
 
 	while( sseSize > 0 ) {
-		_mm_storeu_ps(result, _mm_max_ps(_mm_loadu_ps(first), _mm_loadu_ps(second)));
+		_mm_storeu_ps( result, _mm_max_ps( _mm_loadu_ps( first ), _mm_loadu_ps( second ) ) );
 		first += 4;
 		second += 4;
 		result += 4;
@@ -306,7 +306,7 @@ inline void vectorEltwiseMax( const float* first, const float* second, float* re
 	}
 
 	for( int i = 0; i < nonSseSize; ++i ) {
-		*result++ = std::max<float>(*first, *second);
+		*result++ = std::max<float>( *first, *second );
 		first++;
 		second++;
 	}
@@ -314,7 +314,7 @@ inline void vectorEltwiseMax( const float* first, const float* second, float* re
 
 //------------------------------------------------------------------------------------------------------------
 
-inline void vectorAdd(const float* first, const float* second, float* result, int vectorSize)
+inline void vectorAdd( const float* first, const float* second, float* result, int vectorSize )
 {
 	if( CCPUInfo::HasAvxAndFma && vectorSize >= NeoML::Avx2::VectorMathMinSize ) {
 		NeoML::Avx2::vectorAdd( first, second, result, vectorSize );
@@ -323,22 +323,22 @@ inline void vectorAdd(const float* first, const float* second, float* result, in
 
 	int sseSize;
 	int nonSseSize;
-	checkSse(vectorSize, sseSize, nonSseSize);
+	checkSse( vectorSize, sseSize, nonSseSize );
 
 	while( sseSize >= 4 ) {
-		_mm_storeu_ps(result, _mm_add_ps(_mm_loadu_ps(first), _mm_loadu_ps(second)));
+		_mm_storeu_ps( result, _mm_add_ps( _mm_loadu_ps( first ), _mm_loadu_ps( second ) ) );
 		first += 4;
 		second += 4;
 		result += 4;
-		_mm_storeu_ps(result, _mm_add_ps(_mm_loadu_ps(first), _mm_loadu_ps(second)));
+		_mm_storeu_ps( result, _mm_add_ps( _mm_loadu_ps( first ), _mm_loadu_ps( second ) ) );
 		first += 4;
 		second += 4;
 		result += 4;
-		_mm_storeu_ps(result, _mm_add_ps(_mm_loadu_ps(first), _mm_loadu_ps(second)));
+		_mm_storeu_ps( result, _mm_add_ps( _mm_loadu_ps( first ), _mm_loadu_ps( second ) ) );
 		first += 4;
 		second += 4;
 		result += 4;
-		_mm_storeu_ps(result, _mm_add_ps(_mm_loadu_ps(first), _mm_loadu_ps(second)));
+		_mm_storeu_ps( result, _mm_add_ps( _mm_loadu_ps( first ), _mm_loadu_ps( second ) ) );
 		first += 4;
 		second += 4;
 		result += 4;
@@ -346,7 +346,7 @@ inline void vectorAdd(const float* first, const float* second, float* result, in
 	}
 
 	while( sseSize > 0 ) {
-		_mm_storeu_ps(result, _mm_add_ps(_mm_loadu_ps(first), _mm_loadu_ps(second)));
+		_mm_storeu_ps( result, _mm_add_ps( _mm_loadu_ps( first ), _mm_loadu_ps( second ) ) );
 		first += 4;
 		second += 4;
 		result += 4;
@@ -580,7 +580,7 @@ inline void vectorEltwiseMultiply( const float* first, const float* second, floa
 
 	int sseSize;
 	int nonSseSize;
-	checkSse(vectorSize, sseSize, nonSseSize);
+	checkSse( vectorSize, sseSize, nonSseSize );
 	vectorEltwiseMultiply( first, second, result, sseSize, nonSseSize );
 }
 
@@ -653,26 +653,26 @@ inline void vectorEltwiseMultiplyAdd( const float* first, const float* second, f
 
 	int sseSize;
 	int nonSseSize;
-	checkSse(vectorSize, sseSize, nonSseSize);
+	checkSse( vectorSize, sseSize, nonSseSize );
 
 	while( sseSize >= 4 ) {
-		__m128 product = _mm_mul_ps( _mm_loadu_ps(first), _mm_loadu_ps(second) );
-		_mm_storeu_ps( result, _mm_add_ps( _mm_loadu_ps(result), product ) );
+		__m128 product = _mm_mul_ps( _mm_loadu_ps( first ), _mm_loadu_ps( second ) );
+		_mm_storeu_ps( result, _mm_add_ps( _mm_loadu_ps( result ), product ) );
 		first += 4;
 		second += 4;
 		result += 4;
-		product = _mm_mul_ps( _mm_loadu_ps(first), _mm_loadu_ps(second) );
-		_mm_storeu_ps( result, _mm_add_ps( _mm_loadu_ps(result), product ) );
+		product = _mm_mul_ps( _mm_loadu_ps( first ), _mm_loadu_ps( second ) );
+		_mm_storeu_ps( result, _mm_add_ps( _mm_loadu_ps( result ), product ) );
 		first += 4;
 		second += 4;
 		result += 4;
-		product = _mm_mul_ps( _mm_loadu_ps(first), _mm_loadu_ps(second) );
-		_mm_storeu_ps( result, _mm_add_ps( _mm_loadu_ps(result), product ) );
+		product = _mm_mul_ps( _mm_loadu_ps( first ), _mm_loadu_ps( second ) );
+		_mm_storeu_ps( result, _mm_add_ps( _mm_loadu_ps( result ), product ) );
 		first += 4;
 		second += 4;
 		result += 4;
-		product = _mm_mul_ps( _mm_loadu_ps(first), _mm_loadu_ps(second) );
-		_mm_storeu_ps( result, _mm_add_ps( _mm_loadu_ps(result), product ) );
+		product = _mm_mul_ps( _mm_loadu_ps( first ), _mm_loadu_ps( second ) );
+		_mm_storeu_ps( result, _mm_add_ps( _mm_loadu_ps( result ), product ) );
 		first += 4;
 		second += 4;
 		result += 4;
@@ -681,8 +681,8 @@ inline void vectorEltwiseMultiplyAdd( const float* first, const float* second, f
 	}
 
 	while( sseSize > 0 ) {
-		const __m128 product = _mm_mul_ps( _mm_loadu_ps(first), _mm_loadu_ps(second) );
-		_mm_storeu_ps( result, _mm_add_ps( _mm_loadu_ps(result), product ) );
+		const __m128 product = _mm_mul_ps( _mm_loadu_ps( first ), _mm_loadu_ps( second ) );
+		_mm_storeu_ps( result, _mm_add_ps( _mm_loadu_ps( result ), product ) );
 		first += 4;
 		second += 4;
 		result += 4;
@@ -705,20 +705,20 @@ inline void vectorReLU( const float* first, float* result, int vectorSize )
 
 	int sseSize;
 	int nonSseSize;
-	checkSse(vectorSize, sseSize, nonSseSize);
+	checkSse( vectorSize, sseSize, nonSseSize );
 
 	const __m128 zeroSse = _mm_setzero_ps();
 	while( sseSize >= 4 ) {
-		_mm_storeu_ps(result, _mm_max_ps(_mm_loadu_ps(first), zeroSse));
+		_mm_storeu_ps( result, _mm_max_ps( _mm_loadu_ps( first ), zeroSse ) );
 		first += 4;
 		result += 4;
-		_mm_storeu_ps(result, _mm_max_ps(_mm_loadu_ps(first), zeroSse));
+		_mm_storeu_ps( result, _mm_max_ps( _mm_loadu_ps( first ), zeroSse ) );
 		first += 4;
 		result += 4;
-		_mm_storeu_ps(result, _mm_max_ps(_mm_loadu_ps(first), zeroSse));
+		_mm_storeu_ps( result, _mm_max_ps( _mm_loadu_ps( first ), zeroSse ) );
 		first += 4;
 		result += 4;
-		_mm_storeu_ps(result, _mm_max_ps(_mm_loadu_ps(first), zeroSse));
+		_mm_storeu_ps( result, _mm_max_ps( _mm_loadu_ps( first ), zeroSse ) );
 		first += 4;
 		result += 4;
 
@@ -726,14 +726,14 @@ inline void vectorReLU( const float* first, float* result, int vectorSize )
 	}
 
 	while( sseSize > 0 ) {
-		_mm_storeu_ps(result, _mm_max_ps(_mm_loadu_ps(first), zeroSse));
+		_mm_storeu_ps( result, _mm_max_ps( _mm_loadu_ps( first ), zeroSse ) );
 		first += 4;
 		result += 4;
 		sseSize--;
 	}
 
-	for(int i = 0; i < nonSseSize; ++i) {
-		*result = std::max<float>(*first, 0.f);
+	for( int i = 0; i < nonSseSize; ++i ) {
+		*result = std::max<float>( *first, 0.f );
 		result++;
 		first++;
 	}
@@ -748,21 +748,21 @@ inline void vectorReLU( const float* first, float* result, int vectorSize, float
 
 	int sseSize;
 	int nonSseSize;
-	checkSse(vectorSize, sseSize, nonSseSize);
+	checkSse( vectorSize, sseSize, nonSseSize );
 
 	const __m128 zeroSse = _mm_setzero_ps();
-	const __m128 thresholdSse = _mm_set_ps1(threshold);
+	const __m128 thresholdSse = _mm_set_ps1( threshold );
 	while( sseSize >= 4 ) {
-		_mm_storeu_ps(result, _mm_min_ps(_mm_max_ps(_mm_loadu_ps(first), zeroSse), thresholdSse));
+		_mm_storeu_ps( result, _mm_min_ps( _mm_max_ps( _mm_loadu_ps( first ), zeroSse ), thresholdSse ) );
 		first += 4;
 		result += 4;
-		_mm_storeu_ps(result, _mm_min_ps(_mm_max_ps(_mm_loadu_ps(first), zeroSse), thresholdSse));
+		_mm_storeu_ps( result, _mm_min_ps( _mm_max_ps( _mm_loadu_ps( first ), zeroSse ), thresholdSse ) );
 		first += 4;
 		result += 4;
-		_mm_storeu_ps(result, _mm_min_ps(_mm_max_ps(_mm_loadu_ps(first), zeroSse), thresholdSse));
+		_mm_storeu_ps( result, _mm_min_ps( _mm_max_ps( _mm_loadu_ps( first ), zeroSse ), thresholdSse ) );
 		first += 4;
 		result += 4;
-		_mm_storeu_ps(result, _mm_min_ps(_mm_max_ps(_mm_loadu_ps(first), zeroSse), thresholdSse));
+		_mm_storeu_ps( result, _mm_min_ps( _mm_max_ps( _mm_loadu_ps( first ), zeroSse ), thresholdSse ) );
 		first += 4;
 		result += 4;
 
@@ -770,14 +770,14 @@ inline void vectorReLU( const float* first, float* result, int vectorSize, float
 	}
 
 	while( sseSize > 0 ) {
-		_mm_storeu_ps(result, _mm_min_ps(_mm_max_ps(_mm_loadu_ps(first), zeroSse), thresholdSse));
+		_mm_storeu_ps( result, _mm_min_ps( _mm_max_ps( _mm_loadu_ps( first ), zeroSse ), thresholdSse ) );
 		first += 4;
 		result += 4;
 		sseSize--;
 	}
 
 	for( int i = 0; i < nonSseSize; ++i ) {
-		*result = std::min<float>( std::max<float>(*first, 0.f), threshold );
+		*result = std::min<float>( std::max<float>( *first, 0.f ), threshold );
 		result++;
 		first++;
 	}
@@ -789,18 +789,38 @@ inline void vectorAddValue( const float* first, float* result, int vectorSize, f
 {
 	int sseSize;
 	int nonSseSize;
-	checkSse(vectorSize, sseSize, nonSseSize);
+	checkSse( vectorSize, sseSize, nonSseSize );
 
-	if(sseSize > 0) {
-		const __m128 addSse = _mm_set_ps1(value);
-		for(int i = 0; i < sseSize; ++i) {
-			_mm_storeu_ps(result, _mm_add_ps(_mm_loadu_ps(first), addSse));
+	if( sseSize > 0 ) {
+		const __m128 addSse = _mm_set_ps1( value );
+		for( int i = 0; i < sseSize; ++i ) {
+			_mm_storeu_ps( result, _mm_add_ps( _mm_loadu_ps( first ), addSse ) );
 			first += 4;
 			result += 4;
 		}
 	}
 
-	for(int i = 0; i < nonSseSize; ++i) {
+	for( int i = 0; i < nonSseSize; ++i ) {
+		result[i] = first[i] + value;
+	}
+}
+
+inline void vectorAddValue( const int* first, int* result, int vectorSize, int value )
+{
+	int sseSize;
+	int nonSseSize;
+	checkSse( vectorSize, sseSize, nonSseSize );
+
+	if( sseSize > 0 ) {
+		const __m128i addSse = _mm_set1_epi32( value );
+		for( int i = 0; i < sseSize; ++i ) {
+			StoreIntSse4( _mm_add_epi32( LoadIntSse4( first ), addSse ), result );
+			first += 4;
+			result += 4;
+		}
+	}
+
+	for( int i = 0; i < nonSseSize; ++i ) {
 		result[i] = first[i] + value;
 	}
 }
@@ -811,28 +831,28 @@ inline void vectorDotProduct( const float* first, const float* second, int vecto
 {
 	int sseSize;
 	int nonSseSize;
-	checkSse(vectorSize, sseSize, nonSseSize);
+	checkSse( vectorSize, sseSize, nonSseSize );
 
 	float acc = 0;
 
-	if(sseSize > 0) {
+	if( sseSize > 0 ) {
 		__m128 sum = _mm_setzero_ps();
-		for(int i = 0; i < sseSize; ++i) {
-			sum = _mm_add_ps(sum, _mm_mul_ps(_mm_loadu_ps(first), _mm_loadu_ps(second)));
+		for( int i = 0; i < sseSize; ++i ) {
+			sum = _mm_add_ps( sum, _mm_mul_ps( _mm_loadu_ps( first ), _mm_loadu_ps( second ) ) );
 
 			first += 4;
 			second += 4;
 		}
 
-		__m128 tmp = _mm_shuffle_ps(sum, sum, _MM_SHUFFLE(0, 3, 2, 1));
-		sum = _mm_add_ps(sum, tmp);
-		tmp = _mm_shuffle_ps(sum, sum, _MM_SHUFFLE(1, 0, 3, 2));
-		sum = _mm_add_ss(sum, tmp);
+		__m128 tmp = _mm_shuffle_ps( sum, sum, _MM_SHUFFLE( 0, 3, 2, 1 ) );
+		sum = _mm_add_ps( sum, tmp );
+		tmp = _mm_shuffle_ps( sum, sum, _MM_SHUFFLE( 1, 0, 3, 2 ) );
+		sum = _mm_add_ss( sum, tmp );
 
-		acc += _mm_cvtss_f32(sum);
+		acc += _mm_cvtss_f32( sum );
 	}
 
-	for(int i = 0; i < nonSseSize; ++i) {
+	for( int i = 0; i < nonSseSize; ++i ) {
 		acc += *first++ * *second++;
 	}
 
@@ -1040,25 +1060,25 @@ inline void vectorMinMax( const float* first, float* result, const float minValu
 {
 	int sseSize;
 	int nonSseSize;
-	checkSse(vectorSize, sseSize, nonSseSize);
+	checkSse( vectorSize, sseSize, nonSseSize );
 
-	const __m128 minSse = _mm_set_ps1(minValue);
-	const __m128 maxSse = _mm_set_ps1(maxValue);
+	const __m128 minSse = _mm_set_ps1( minValue );
+	const __m128 maxSse = _mm_set_ps1( maxValue );
 
-	auto minMaxWorker = [&minSse, &maxSse](const __m128& value) -> __m128 {
-		return _mm_min_ps(maxSse, _mm_max_ps(minSse, value));
+	auto minMaxWorker = [&minSse, &maxSse]( const __m128& value ) -> __m128 {
+		return _mm_min_ps( maxSse, _mm_max_ps( minSse, value ) );
 	};
 
-	if(sseSize > 0) {
-		for(int i = 0; i < sseSize; ++i) {
-			StoreSse4(minMaxWorker(LoadSse4(first)), result);
+	if( sseSize > 0 ) {
+		for( int i = 0; i < sseSize; ++i ) {
+			StoreSse4( minMaxWorker( LoadSse4( first ) ), result );
 			first += 4;
 			result += 4;
 		}
 	}
 
-	if(nonSseSize > 0) {
-		StoreSse(minMaxWorker(LoadSse(first, nonSseSize)), result, nonSseSize);
+	if( nonSseSize > 0 ) {
+		StoreSse( minMaxWorker( LoadSse( first, nonSseSize ) ), result, nonSseSize );
 	}
 }
 
@@ -1156,4 +1176,4 @@ inline void vectorHSwish( const float* first, float* result, int vectorSize )
 
 } // namespace NeoML
 
-#endif
+#endif // NEOML_USE_SSE

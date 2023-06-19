@@ -872,6 +872,7 @@ inline void checkSpecificParams<CImageResizeLayer>( CImageResizeLayer& layer )
 {
 	ASSERT_EQ( TestIntValue, layer.GetDelta( CImageResizeLayer::TImageSide::IS_Top ) );
 	ASSERT_NEAR( TestFloatValue, layer.GetDefaultValue(), 1e-3 );
+	ASSERT_EQ( TBlobResizePadding::Constant, layer.GetPadding() );
 }
 
 #ifdef GENERATE_SERIALIZATION_FILES

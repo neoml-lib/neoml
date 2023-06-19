@@ -33,6 +33,7 @@ public:
 	char operator[]( int pos ) const { return std::string::operator[]( static_cast<size_t>(pos) ); }
 	char& operator[]( int pos ) { return std::string::operator[]( static_cast<size_t>(pos) ); }
 
+	void Empty() { clear(); }
 	bool IsEmpty() const { return empty(); }
 	int Length() const { return static_cast<int>( size() ); }
 	int Find( const CString& other, int startPos = 0 ) const;

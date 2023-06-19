@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -381,9 +381,9 @@ void CDnnSimpleGradientSolver::TrainLayer( const CBaseLayer* layer, const CObjec
 		}
 	}
 
-	float rate = layer->GetBaseLearningRate() * GetLearningRate();
-	float regL1 = layer->GetBaseL1RegularizationMult() * GetL1Regularization();
-	float regL2 = layer->GetBaseL2RegularizationMult() * GetL2Regularization();
+	float rate = layer->GetLearningRate() * GetLearningRate();
+	float regL1 = layer->GetL1RegularizationMult() * GetL1Regularization();
+	float regL2 = layer->GetL2RegularizationMult() * GetL2Regularization();
 
 	// Set the values of the variables
 	CFastArray<float, TV_Count> varValues;
@@ -522,13 +522,13 @@ void CDnnAdaptiveGradientSolver::TrainLayer( const CBaseLayer* layer, const CObj
 	}
 
 	// Add regularization and add diffs to parameters
-	float rate = layer->GetBaseLearningRate() * GetLearningRate() * sqrtf(1 - secondMomentDecayRateN);
+	float rate = layer->GetLearningRate() * GetLearningRate() * sqrtf(1 - secondMomentDecayRateN);
 	if( !isInCompatibilityMode ) {
 		rate /= (1 - momentDecayRateN);
 	}
 
-	float regL1 = layer->GetBaseL1RegularizationMult() * GetL1Regularization();
-	float regL2 = layer->GetBaseL2RegularizationMult() * GetL2Regularization();
+	float regL1 = layer->GetL1RegularizationMult() * GetL1Regularization();
+	float regL2 = layer->GetL2RegularizationMult() * GetL2Regularization();
 
 	// Set the values of the variables
 	CFastArray<float, TV_Count> varValues;
@@ -684,9 +684,9 @@ void CDnnNesterovGradientSolver::TrainLayer( const CBaseLayer* layer, const CObj
 	}
 
 	// Apply regularization and add diffs to the parameters
-	float rate = layer->GetBaseLearningRate() * GetLearningRate();
-	float regL1 = layer->GetBaseL1RegularizationMult() * GetL1Regularization();
-	float regL2 = layer->GetBaseL2RegularizationMult() * GetL2Regularization();
+	float rate = layer->GetLearningRate() * GetLearningRate();
+	float regL1 = layer->GetL1RegularizationMult() * GetL1Regularization();
+	float regL2 = layer->GetL2RegularizationMult() * GetL2Regularization();
 
 	// Set the values for the variables
 	CFastArray<float, TV_Count> varValues;
@@ -857,8 +857,8 @@ void CDnnLambGradientSolver::TrainLayer( const CBaseLayer* layer, const CObjectA
 		}
 	}
 
-	const float rate = layer->GetBaseLearningRate() * GetLearningRate();
-	const float layerWeighDecay = GetL2Regularization() * layer->GetBaseL2RegularizationMult();
+	const float rate = layer->GetLearningRate() * GetLearningRate();
+	const float layerWeighDecay = GetL2Regularization() * layer->GetL2RegularizationMult();
 	const float clipMultiplier = 1.0f / max( 1.0f, totalGradientNorm );
 
 	CFastArray<float, TV_Count> varValues;

@@ -72,8 +72,8 @@ void COnnxConvTransposeLayer::RunOnce()
 		};
 
 		MathEngine().BlobResizeImage( outputBlobs[0]->GetDesc(), outputBlobs[0]->GetData(),
-			/*left*/padding[0], /*right*/padding[1], /*top*/padding[2], /*bottom*/padding[3], /*default*/0.f,
-			origOutput->GetDesc(), origOutput->GetData() );
+			/*left*/padding[0], /*right*/padding[1], /*top*/padding[2], /*bottom*/padding[3], TBlobResizePadding::Constant,
+			/*default*/0.f, origOutput->GetDesc(), origOutput->GetData() );
 		outputBlobs[0] = origOutput;
 	}
 }

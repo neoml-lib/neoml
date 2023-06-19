@@ -366,6 +366,31 @@ public:
 
 	// Возвращает кол-во токенов.
 	virtual int Size() const = 0;
+
+	// Получение отображений слово <-> идентификатор, как их производит кодировщик
+	virtual void GetIdToTokenMapping( CMap<int, CString>& ) const = 0;
+	virtual void GetTokenToIdMapping( CMap<CString, int>& ) const = 0;
+
+	struct CParams {
+		// Специальный токен конца слова для каждого кодируемого слова.
+		CString UseEndOfWordToken = "";
+		// Специальный токен начала слова для каждого кодируемого слова.
+		CString UseStartOfWordToken = "";
+		// Работать со строками как с массивами байт.
+		// Позволяет сократить и полностью избежать применение неизвестных токенов, т.к. всего различных байт 256 и, 
+		// в отличие от букв юникода, их реально перечислить в стартовом словаре
+		bool UseRawBytes = false;
+		// Идентификатор "неизвестного токена".
+		// Прочие токены нумеруются непрерывно с 'UnknownTokenId' + 1.
+		// Номера с 0 по 'UnknownTokenId' не используются токенизатором и могут быть задействованы пользователем для служебных символов. 
+		int UnknownTokenId = 0
+	};
+
+	// Возвращают флаги механизма кодирования.
+	virtual bool UseEndOfWordToken() const = 0;
+	virtual bool UseStartOfWordToken() const = 0;
+	virtual bool UseRawBytes() const = 0;
+	virtual int UnknownTokenId() const = 0;
 };
 ```
 
@@ -399,90 +424,92 @@ public:
 ```c++
 class NEOML_API IBytePairEncoder : public ISubwordEncoderWithCache {
 public:
-	struct CParams {
-		// Специальный токен конца слова для каждого кодируемого слова.
-		CString UseEndOfWordToken = "";
-		// Специальный токен начала слова для каждого кодируемого слова.
-		CString UseStartOfWordToken = "";
-		// Работать со строками как с массивами байт.
-		// Позволяет сократить и полностью избежать применение неизвестных токенов, т.к. всего различных байт 256 и, 
-		// в отличие от букв юникода, их реально перечислить в стартовом словаре
-		bool UseRawBytes = false;
-		// Идентификатор "неизвестного токена".
-		// Прочие токены нумеруются непрерывно с 'UnknownTokenId' + 1.
-		// Номера с 0 по 'UnknownTokenId' не используются токенизатором и могут быть задействованы пользователем для служебных символов. 
-		int UnknownTokenId = 0
-	};
-
-	// Возвращают флаги механизма кодирования.
-	virtual bool UseEndOfWordToken() const = 0;
-	virtual bool UseStartOfWordToken() const = 0;
-	virtual bool UseRawBytes() const = 0;
-	virtual int UnknownTokenId() const = 0;
-
 	// Словарь задается списком уникальных токенов, упорядоченных по порядку добавления в словарь при обучении (т.е. по убыванию частоты). 
 	// Идентификатор при кодировании равен позиции в этом массиве + GetUnknownTokenId() + 1
 	using CBPEDictionary = CArray<CString>;
 
 	// Загрузить обученный внешними инструментами механизм
 	virtual void Initialize( const CBPEDictionary& tokens, const CParams& ) = 0;
-
-	// Получение отображений слово <-> идентификатор, как их производит кодировщик
-	virtual void GetIdToTokenMapping( CMap<int, CString>& ) const = 0;
-	virtual void GetTokenToIdMapping( CMap<CString, int>& ) const = 0;
 };
 ```
 
-Дополнительные методы обеспечивают доступ к флагам, используемым в кодировщике: флагу-конца-слова и флагу-начала-слова.
-
-Для обучения механизма кодирования, удовлетворяющего интерфейсу `IBytePairEncoder`, нужно воспользоваться классом `CBytePairEncoderTrainer`.
+**Unigram** language model ([Kudo.](https://arxiv.org/abs/1804.10959)) - алгоритм, альтернативный BPE.
 
 ```c++
-// Класс, осуществляющий обучение механизма IBytePairEncoder.
-class NEOML_API CBytePairEncoderTrainer {
+class NEOML_API IUnigramEncoder : public ISubwordEncoderWithCache {
 public:
-	struct CParams {
-		// Максимальные размер кодировщика (в кол-ве токенов).
-		// Итоговый размер кодировщика не может превышать это значение, но может быть и меньше.
-		int MaxSize = 50000;
-		// Необходимо ли добавлять специальный токен конца слова для каждого кодируемого слова.
-		bool UseEndOfWordToken = true;
-		// Необходимо ли добавлять специальный токен начала слова для каждого кодируемого слова.
-		bool UseStartOfWordToken = false;
-		// Работать со строками как с массивами байт.
-		bool UseRawBytes = false;
-		// Идентификатор "неизвестного токена".
-		int UnknownTokenId = 0
+	// Элемент словаря
+	struct CSubtoken {
+		CSubtoken() = default;
+		CSubtoken( CString text, double score );
+		void Serialize( CArchive& archive );
+
+		CString Text;
+		double Score = 0.0;
 	};
 
-	CBytePairEncoderTrainer( const CParams& params, const CWordDictionary& dictionary );
+	// Словарь задается списком уникальных токенов
+	using CUnigramDictionary = CArray<CSubtoken>;
+
+	// Загрузить словарь, обученный внешними инструментами
+	virtual void Initialize( const CUnigramDictionary& tokens, const CParams& ) = 0;
+
+	// Получить словарь
+	virtual void GetDictionary( CUnigramDictionary& tokens ) const = 0;
+};
+```
+
+Для обучения механизма кодирования, удовлетворяющего интерфейсу `IBytePairEncoder`, нужно воспользоваться классом `CSubwordEncoderTrainer`.
+
+```c++
+// Класс, осуществляющий обучение механизма субтокенного кодирования.
+class NEOML_API CSubwordEncoderTrainer {
+public:
+    // Обучение IBytePairEncoder
+	enum class TAlgorithm {
+		BPE,
+		Unigram
+	};
+
+	// Варианты обработки границ: автоматически добавляет спец. символ в начало и\или конец слова при обучении
+	enum class TBorderHandling {
+		EndOfWord,
+		BeginOfWord,
+		SentencePiece,
+		BeginAndEndOfWord,
+		None
+	};
+
+	// Ограничение первичного (односимвольного) словаря. Решает проблему множественных редких символов юникода, чье наличие в итоговом словаре нежелательно.
+	enum class TVocabPruning {
+		// Односимвольные токены добавляются по убыванию частоты до достижения заданного покрытия. По умолчанию 1, т.е. добавятся все.
+		Coverage,
+		// Символом считается байт, первичный словарь имеет размер 255 и не требует сокращения.
+		ByteBPE
+	};
+
+	CSubwordEncoderTrainer( int vocabSize, TAlgorithm, TBorderHandling, TVocabPruning = TVocabPruning::Coverage );
+
+	// Установить порог для TVocabPruning = TVocabPruning::Coverage
+	void SetCharacterCoverage( double value );
+	// Установить список односимвольных токенов, которые будут добавлены вне зависимости от ограничения по покрытию
+	void SetMandatoryChars( const CArray<CString>& );
+	// Установить сдвиг словаря. Нумерация токенов непрерывна и начинается с UnknownTokenId. По умолчанию 0.
+	void SetUnknownTokenId( int value );
 
 	// Обучает и возвращает полностью обученный кодировщик.
-	CPtr<IBytePairEncoder> Train();
-
-	// Вычисляет stepsCount шагов алгоритма обучения кодировщка.
-	// Один шаг соответствует обучению одного токена.
-	// Возвращает true, если алгоритм обучения завершился, т.е. ни один шаг не может быть более вычислен.
-	bool TrainSteps( int stepsCount );
-
-	// Возвращает true, если процесс обучения заверишлся.
-	bool IsTrainingCompleted() const;
-
-	// Возвращает кодировщик, состоящий из токенов, обученных на данный момент.
-	CPtr<IBytePairEncoder> GetEncoder() const;
-
-	// Сохранение/загрузка текущего состояния.
-	void Serialize( CArchive& archive );
+	CPtr<ISubwordEncoder> Train( const CWordDictionary& frequencyDict );
 ```
 
 Итоговая последовательность шагов для обучения кодировщика:
 
 1. Создать словарь с частотами на основе текстового корпуса, используя экземпляр класса `CWordDictionary`.
-2. Создать экземпляр класса `CBytePairEncoderTrainer` с желаемыми параметрами `CParams` и ранее созданным словарем.
+2. Создать экземпляр класса `CSubwordEncoderTrainer` и настроить желаемые параметры.
 3. Вызвать метод `Train` у экземпляра `CBytePairEncoderTrainer`.
-    * Воспользоваться методом `TrainSteps`, если есть необходимость создать частично обученный кодировщик. Получить его можно с помощью вызова метода `GetEncoder`.
 
-В целях отладки и инференса внешних моделей `IBytePairEncoder` предоставляет прямой метод загрузки словаря `Initialize`. Словарь задаётся с помощью массива, где токены располагаются в порядке обучения словаря, т.е. по убыванию частоты. Словарь, созданный не алгоритмами NeoML, должен соответствовать следующим требованиям энкодера:
+В целях инференса внешних моделей `IBytePairEncoder` и `IUnigramEncoder` предоставляют прямой метод загрузки словаря `Initialize`. Для BPE словарь задаётся с помощью массива, где токены располагаются в порядке обучения словаря, т.е. по убыванию частоты. Словарь, созданный не алгоритмами NeoML, должен соответствовать следующим требованиям энкодера:
 1. Каждый токен, кроме букв, должен быть конкатенацией двух меньших токенов.
 2. End-Of-Word может располагаться только на окончании токенов. Start-Of-Word можен располагаться только в начале токенов.
 3. End-Of-Word и Start-Of-Word должны содержаться в словаре как отдельные токены (вообще говоря, это следует из вышеизложенных правил).
+   
+Для Unigram требуется загрузить пары токен-score.
