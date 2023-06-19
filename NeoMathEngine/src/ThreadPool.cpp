@@ -103,8 +103,8 @@ static int getAvailableCpuCoreNum()
 
 		// Case #2: linux Docker with --cpuset-cpus
 		struct cpu_set_t cpuSet;
-		::printf( "CPU_COUNT_S is %d\n", static_cast<int>( CPU_COUNT_S( sizeof( cpu_set_t ), &cpuSet ) ) );
-		return static_cast<int>( CPU_COUNT_S( sizeof( cpu_set_t ), &cpuSet ) );
+		::printf( "CPU_COUNT is %d\n", static_cast<int>( CPU_COUNT( &cpuSet ) ) );
+		return static_cast<int>( CPU_COUNT( &cpuSet ) );
 	}
 #endif // FINE_PLATFORM( FINE_LINUX )
 
