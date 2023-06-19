@@ -166,11 +166,11 @@ TEST( CDnnDistributedTest, DnnDistributedSerializeTest )
     int outputSize = 1024;
     CRandom rand( 42 );
 
+    ::printf( "Testing distributed with %d threads\n", GetGlobalThreadCount() );
     std::unique_ptr<IMathEngine> mathEngine( CreateCpuMathEngine( GetGlobalThreadCount(), 0 ) );
     CDnn cnn( rand, *mathEngine );
     buildDnn( cnn, outputSize );
 
-    ::printf( "Testing distributed with %d threads\n", GetGlobalThreadCount() );
     CCustomDataset dataset( inputSize, outputSize );
     CDistributedTraining distributed( cnn, GetGlobalThreadCount() );
 
