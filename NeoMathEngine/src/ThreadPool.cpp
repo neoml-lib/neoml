@@ -52,7 +52,7 @@ static bool isInDocker()
 		std::string data;
 		::printf( "cgroup contents:\n" );
 		while( cgroupFile >> data ) {
-			::printf( "\t%s\n", static_cast<const char*>( data) );
+			::printf( "\t%s\n", data.c_str() );
 			if( data.find( "docker" ) != std::string::npos ) {
 				::printf( "\"docker\" found\n" );
 				return true;
@@ -63,7 +63,7 @@ static bool isInDocker()
 		}
 	}
 
-	::prntf( "Not in docker!\n" );
+	::printf( "Not in docker!\n" );
 	return false;
 }
 
