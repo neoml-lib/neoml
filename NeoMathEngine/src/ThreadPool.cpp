@@ -30,7 +30,6 @@ limitations under the License.
 #include <fstream>
 #include <pthread.h>
 #include <sched.h>
-#include <unistd.h>
 #include <sys/stat.h>
 #endif // FINE_PLATFORM( FINE_LINUX )
 
