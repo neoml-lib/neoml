@@ -27,7 +27,7 @@ limitations under the License.
 
 #if FINE_PLATFORM( FINE_LINUX )
 #ifndef _GNU_SOURCE
-#define _GNU_SOURCE 1
+#define _GNU_SOURCE
 #endif // _GNU_SOURCE
 #include <fstream>
 #include <pthread.h>
@@ -87,7 +87,6 @@ static int readIntFromFile( const char* name )
 
 #endif // FINE_PLATFORM( FINE_LINUX )
 
-
 // Returns number of CPU cores available in 
 static int getAvailableCpuCoreNum()
 {
@@ -95,6 +94,7 @@ static int getAvailableCpuCoreNum()
 	if( isInDocker() ) {
 		// Case #1: linux Docker with --cpus value set
 		// In this case the only way to get number of cores is to read quotas
+		// When working under cgroups without quotas cfs_quota_us contains -1
 		const int quota = readIntFromFile( "/sys/fs/cgroup/cpu/cpu.cfs_quota_us" );
 		const int period = readIntFromFile( "/sys/fs/cgroup/cpu/cpu.cfs_period_us" );
 		if( quota > 0 && period > 0 ) {
@@ -103,7 +103,8 @@ static int getAvailableCpuCoreNum()
 		}
 
 		// Case #2: linux Docker with --cpuset-cpus
-		struct cpu_set_t cpuSet;
+		cpu_set_t cpuSet;
+		CPU_ZERO( &cpuSet );
 		const int ret = ::pthread_getaffinity_np( ::pthread_self(), sizeof( cpu_set_t ), &cpuSet );
 		if( ret == 0 ) {
 			::printf( "CPU_COUNT is %d\n", static_cast<int>( CPU_COUNT( &cpuSet ) ) );
