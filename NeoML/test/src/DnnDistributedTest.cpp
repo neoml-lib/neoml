@@ -20,8 +20,6 @@ limitations under the License.
 
 #include <TestFixture.h>
 
-#ifdef NEOML_USE_OMP
-
 using namespace NeoML;
 using namespace NeoMLTest;
 
@@ -215,5 +213,3 @@ TEST( CDnnDistributedTest, DnnDistributedSerializeTest )
         ASSERT_NEAR( weights[i], distributedWeights[i], 1e-4 );
     }
 }
-
-#endif // NEOML_USE_OMP
