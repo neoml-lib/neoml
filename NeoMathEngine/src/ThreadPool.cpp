@@ -17,11 +17,13 @@ limitations under the License.
 #pragma hdrstop
 
 #include <NeoMathEngine/ThreadPool.h>
+#include <NeoMathEngine/OpenMP.h>
 
 #include <condition_variable>
 #include <mutex>
 #include <thread>
 #include <queue>
+#include <iostream>
 
 namespace NeoML {
 
@@ -87,6 +89,8 @@ private:
 
 CThreadPool::CThreadPool( int threadCount )
 {
+	std::cout << "C++ detects " << std::thread::hardware_concurrency() << " threads\n";
+	std::cout << "OMP detects " << OmpGetMaxThreadCount() << " threads\n";
 	for( int i = 0; i < threadCount; i++ ) {
 		CThreadParams* param = new CThreadParams();
 		param->Count = threadCount;

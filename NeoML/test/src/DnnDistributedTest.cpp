@@ -162,27 +162,25 @@ TEST( CDnnDistributedTest, DnnDistributedArchiveTest )
 
 TEST( CDnnDistributedTest, DnnDistributedSerializeTest )
 {
-    std::unique_ptr<IMathEngine> mathEngine( CreateCpuMathEngine( GetGlobalThreadCount(), 0 ) );
+    int inputSize = 1024;
+    int outputSize = 1024;
     CRandom rand( 42 );
 
-    int inputSize = 8192;
-    int outputSize = 2048;
+    std::unique_ptr<IMathEngine> mathEngine( CreateCpuMathEngine( GetGlobalThreadCount(), 0 ) );
     CDnn cnn( rand, *mathEngine );
     buildDnn( cnn, outputSize );
 
-    ::printf( "OMP has %d threads here\n", OmpGetMaxThreadCount() );
-    ::printf( "Testing single CDnn with %d threads\n", GetGlobalThreadCount() );
+    ::printf( "Testing distributed with %d threads\n", GetGlobalThreadCount() );
     CCustomDataset dataset( inputSize, outputSize );
-
-    dataset.SetInputBatch( cnn, 0 );
+    CDistributedTraining distributed( cnn, GetGlobalThreadCount() );
 
     {
         std::unique_ptr<IPerformanceCounters> counters( GetDefaultCpuMathEngine().CreatePerformanceCounters() );
         counters->Synchronise();
         for( int i = 0; i < 100; ++i ) {
-            cnn.RunOnce();
-            cnn.RunAndLearnOnce();
-            cnn.RunOnce();
+            distributed.RunOnce( dataset );
+            distributed.RunAndLearnOnce( dataset );
+            distributed.RunOnce( dataset );
             if( i % 10 == 0 ) {
                 ::printf( "%d\n", i );
             }
