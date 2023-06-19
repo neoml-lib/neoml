@@ -92,7 +92,7 @@ private:
 	bool isFirstRun = true;
 	CString errorMessage;
 
-	void initialize( CArchive& archive, int count, TDistributedInitializer initializer, int seed );
+	void initialize( CArchive& archive, TDistributedInitializer initializer, int seed );
 };
 
 } // namespace NeoML

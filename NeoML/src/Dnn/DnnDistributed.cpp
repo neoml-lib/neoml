@@ -146,8 +146,12 @@ static CPtr<CDnnInitializer> createInitializer( TDistributedInitializer type, CR
     return nullptr;
 }
 
-void CDistributedTraining::initialize( CArchive& archive, int count, TDistributedInitializer initializer, int seed )
+void CDistributedTraining::initialize( CArchive& archive, TDistributedInitializer initializer, int seed )
 {
+    const int count = threadPool->GetModelCount();
+    initThreadGroupInfo();
+    mathEngines.SetSize( count );
+    CreateDistributedCpuMathEngines( mathEngines.GetPtr(), count );
     NeoAssert( archive.IsLoading() );
     for( int i = 0; i < count; i++ ){
         rands.Add( new CRandom( seed ) );
@@ -164,12 +168,6 @@ CDistributedTraining::CDistributedTraining( CDnn& dnn, int count, TDistributedIn
     isCpu( true ),
     threadPool( CreateThreadPool( count ) )
 {
-    // if count was <= 0 the pool has been initialized with the number of available CPU cores
-    count = threadPool->Size();
-
-    initThreadGroupInfo();
-    mathEngines.SetSize( count );
-    CreateDistributedCpuMathEngines( mathEngines.GetPtr(), count );
     CMemoryFile file;
     CArchive archive( &file, CArchive::SD_Storing );
     dnn.Serialize( archive );
@@ -177,7 +175,7 @@ CDistributedTraining::CDistributedTraining( CDnn& dnn, int count, TDistributedIn
     file.SeekToBegin();
 
     archive.Open( &file, CArchive::SD_Loading );
-    initialize( archive, count, initializer, seed );
+    initialize( archive, initializer, seed );
     archive.Close();
     file.SeekToBegin();
 
@@ -195,13 +193,7 @@ CDistributedTraining::CDistributedTraining( CArchive& archive, int count, TDistr
     isCpu( true ),
     threadPool( CreateThreadPool( count ) )
 {
-    // if count was <= 0 the pool has been initialized with the number of available CPU cores
-    count = threadPool->Size();
-
-    initThreadGroupInfo();
-    mathEngines.SetSize( count );
-    CreateDistributedCpuMathEngines( mathEngines.GetPtr(), count );
-    initialize( archive, count, initializer, seed );
+    initialize( archive, initializer, seed );
 }
 
 CDistributedTraining::CDistributedTraining( CDnn& dnn, const CArray<int>& cudaDevs,
