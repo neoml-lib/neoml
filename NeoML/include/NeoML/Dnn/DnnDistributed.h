@@ -40,7 +40,8 @@ enum class TDistributedInitializer {
 class NEOML_API CDistributedTraining {
 public:
 	// Creates `count` cpu models
-	// If `count` is 0 or less then creates (number of cores) cpu models
+	// If `count` is 0 or less then creates a number of models
+	// equal to the number of available CPU cores
 	CDistributedTraining( CDnn& dnn, int count,
 		TDistributedInitializer initializer = TDistributedInitializer::Xavier, int seed = 42 );
 	CDistributedTraining( CArchive& archive, int count,
