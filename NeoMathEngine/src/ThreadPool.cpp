@@ -1,4 +1,4 @@
-/* Copyright © 2017-2022 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,13 +17,11 @@ limitations under the License.
 #pragma hdrstop
 
 #include <NeoMathEngine/ThreadPool.h>
-#include <NeoMathEngine/OpenMP.h>
 
 #include <condition_variable>
 #include <mutex>
 #include <thread>
 #include <queue>
-#include <iostream>
 
 #if FINE_PLATFORM( FINE_LINUX )
 #ifndef _GNU_SOURCE
@@ -75,7 +73,7 @@ static int readIntFromFile( const char* name )
 }
 #endif // FINE_PLATFORM( FINE_LINUX )
 
-// Returns number of CPU cores available in the container
+// Returns number of CPU cores available in the current environment
 static int getAvailableCpuCoreNum()
 {
 #if FINE_PLATFORM( FINE_LINUX )
@@ -166,7 +164,6 @@ CThreadPool::CThreadPool( int threadCount )
 	if( threadCount <= 0 ) {
 		threadCount = getAvailableCpuCoreNum();
 	}
-	std::cout << "Creating pool with " << threadCount << " threads\n";
 	ASSERT_EXPR( threadCount > 0 );
 	for( int i = 0; i < threadCount; i++ ) {
 		CThreadParams* param = new CThreadParams();
