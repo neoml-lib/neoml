@@ -217,8 +217,7 @@ TEST( CDnnDistributedTest, DnnDistributedAutoThreadCountTest )
     std::unique_ptr<IMathEngine> mathEngine( CreateCpuMathEngine( 1, 0 ) );
     CRandom rand( 42 );
 
-    int inputSize = 1000;
-    int outputSize = 5;
+    const int outputSize = 5;
     CDnn cnn( rand, *mathEngine );
     buildDnn( cnn, outputSize );
 
