@@ -162,8 +162,11 @@ void CDistributedTraining::initialize( CArchive& archive, int count, TDistribute
 
 CDistributedTraining::CDistributedTraining( CDnn& dnn, int count, TDistributedInitializer initializer, int seed ) :
     isCpu( true ),
-    threadPool( CreateThreadPool(count) )
+    threadPool( CreateThreadPool( count ) )
 {
+    // if count was <= 0 the pool has been initialized with the number of available CPU cores
+    count = threadPool->Size();
+
     initThreadGroupInfo();
     mathEngines.SetSize( count );
     CreateDistributedCpuMathEngines( mathEngines.GetPtr(), count );
@@ -190,8 +193,11 @@ CDistributedTraining::CDistributedTraining( CDnn& dnn, int count, TDistributedIn
 
 CDistributedTraining::CDistributedTraining( CArchive& archive, int count, TDistributedInitializer initializer, int seed ) :
     isCpu( true ),
-    threadPool( CreateThreadPool(count) )
+    threadPool( CreateThreadPool( count ) )
 {
+    // if count was <= 0 the pool has been initialized with the number of available CPU cores
+    count = threadPool->Size();
+
     initThreadGroupInfo();
     mathEngines.SetSize( count );
     CreateDistributedCpuMathEngines( mathEngines.GetPtr(), count );
