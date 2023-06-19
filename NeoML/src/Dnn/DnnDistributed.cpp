@@ -148,7 +148,7 @@ static CPtr<CDnnInitializer> createInitializer( TDistributedInitializer type, CR
 
 void CDistributedTraining::initialize( CArchive& archive, TDistributedInitializer initializer, int seed )
 {
-    const int count = threadPool->GetModelCount();
+    const int count = threadPool->Size();
     initThreadGroupInfo();
     mathEngines.SetSize( count );
     CreateDistributedCpuMathEngines( mathEngines.GetPtr(), count );
@@ -199,7 +199,7 @@ CDistributedTraining::CDistributedTraining( CArchive& archive, int count, TDistr
 CDistributedTraining::CDistributedTraining( CDnn& dnn, const CArray<int>& cudaDevs,
         TDistributedInitializer initializer, int seed ) :
     isCpu( false ),
-    threadPool( CreateThreadPool(cudaDevs.Size()) )
+    threadPool( CreateThreadPool( cudaDevs.Size() ) )
 {
     mathEngines.SetSize( cudaDevs.Size() );
     CreateDistributedCudaMathEngines( mathEngines.GetPtr(), cudaDevs.Size(), cudaDevs.GetPtr() );
@@ -210,7 +210,7 @@ CDistributedTraining::CDistributedTraining( CDnn& dnn, const CArray<int>& cudaDe
     file.SeekToBegin();
 
     archive.Open( &file, CArchive::SD_Loading );
-    initialize( archive, cudaDevs.Size(), initializer, seed );
+    initialize( archive, initializer, seed );
     archive.Close();
     file.SeekToBegin();
 
@@ -227,11 +227,11 @@ CDistributedTraining::CDistributedTraining( CDnn& dnn, const CArray<int>& cudaDe
 CDistributedTraining::CDistributedTraining( CArchive& archive, const CArray<int>& cudaDevs,
         TDistributedInitializer initializer, int seed ) :
     isCpu( false ),
-    threadPool( CreateThreadPool(cudaDevs.Size()) )
+    threadPool( CreateThreadPool( cudaDevs.Size() ) )
 {
     mathEngines.SetSize( cudaDevs.Size() );
     CreateDistributedCudaMathEngines( mathEngines.GetPtr(), cudaDevs.Size(), cudaDevs.GetPtr() );
-    initialize( archive, cudaDevs.Size(), initializer, seed );
+    initialize( archive, initializer, seed );
 }
 
 CDistributedTraining::~CDistributedTraining()
