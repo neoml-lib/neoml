@@ -41,14 +41,17 @@ namespace NeoML {
 // Checks if we're running inside of docker or k8s
 static bool isInDocker()
 {
-	/* {
+	{
 		// First method: existence of .dockerenv
 		struct stat buffer;
-		if( ::stat( "/.dockerenv", &buffer ) == 0 ) {
+		const int ret = ::stat( "/.dockerenv", &buffer );
+		if( ret == 0 ) {
 			::printf( "dockerenv detected!\n" );
 			return true;
+		} else {
+			::printf( "stat( \"/.dockerenv\") returned %d\n", ret );
 		}
-	} */
+	}
 
 	// Second method: checking the contents of cgroup file
 	std::ifstream cgroupFile( "/proc/self/cgroup" );
