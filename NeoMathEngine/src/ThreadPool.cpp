@@ -60,8 +60,8 @@ static bool isInDocker()
 			if( data.find( "docker" ) != std::string::npos ) {
 				::printf( "\"docker\" found\n" );
 				return true;
-			} else if( data.find( "kubepod" ) != std::string::npos ) {
-				::printf( "\"kubepod\" found\n" );
+			} else if( data.find( "kubepods" ) != std::string::npos ) {
+				::printf( "\"kubepods\" found\n" );
 				return true;
 			}
 		}
@@ -98,6 +98,7 @@ static int getAvailableCpuCoreNum()
 		const int quota = readIntFromFile( "/sys/fs/cgroup/cpu/cpu.cfs_quota_us" );
 		const int period = readIntFromFile( "/sys/fs/cgroup/cpu/cpu.cfs_period_us" );
 		if( quota > 0 && period > 0 ) {
+			// Using ceil because --cpus 0.1 is a valid scenario in docker (0.1 means quota * 10 == period)
 			::printf( "quota is %d\n", ( quota + period - 1 ) / period );
 			return ( quota + period - 1 ) / period;
 		}
