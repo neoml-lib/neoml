@@ -268,7 +268,6 @@ set(NeoML_HEADERS_COMPACT
     ../include/NeoML/Dnn/Layers/DropoutLayer.h
     ../include/NeoML/Dnn/Layers/EltwiseLayer.h
     ../include/NeoML/Dnn/Layers/FullyConnectedLayer.h
-    ../include/NeoML/Dnn/Layers/GELULayer.h
     ../include/NeoML/Dnn/Layers/GlobalMeanPoolingLayer.h
     ../include/NeoML/Dnn/Layers/IndRnnLayer.h
     ../include/NeoML/Dnn/Layers/LossLayer.h
