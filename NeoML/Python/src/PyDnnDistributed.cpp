@@ -17,7 +17,7 @@ limitations under the License.
 
 #include "PyDnnDistributed.h"
 
-int CPyDistributedDataset::SetInputBatch( CDnn& dnn, int thread )s
+int CPyDistributedDataset::SetInputBatch( CDnn& dnn, int thread )
 {
 	py::gil_scoped_acquire acquire;
 
