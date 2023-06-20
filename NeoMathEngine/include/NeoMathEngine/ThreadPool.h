@@ -1,4 +1,4 @@
-/* Copyright © 2017-2022 ABBYY Production LLC
+/* Copyright Â© 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -43,6 +43,8 @@ public:
 };
 
 // Creates a thread pool containing the given number of threads.
+// If threadCount is 0 or less then creates a pool with a number of threads
+// equal to the number of available CPU cores
 NEOMATHENGINE_API IThreadPool* CreateThreadPool(int threadCount);
 
 //------------------------------------------------------------------------------------------------------------

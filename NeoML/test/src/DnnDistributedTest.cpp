@@ -1,4 +1,4 @@
-/* Copyright © 2021 ABBYY Production LLC
+/* Copyright © 2021-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,8 +19,6 @@ limitations under the License.
 #include <memory>
 
 #include <TestFixture.h>
-
-#ifdef NEOML_USE_OMP
 
 using namespace NeoML;
 using namespace NeoMLTest;
@@ -111,7 +109,6 @@ TEST( CDnnDistributedTest, DnnDistributedNoArchiveTest )
     ASSERT_EQ( 2, distributed.GetModelCount() );
 }
 
-
 TEST( CDnnDistributedTest, DnnDistributedArchiveTest )
 {
     std::unique_ptr<IMathEngine> mathEngine( CreateCpuMathEngine( 1, 0 ) );
@@ -158,7 +155,6 @@ TEST( CDnnDistributedTest, DnnDistributedArchiveTest )
     ASSERT_EQ( losses[0], losses[1] );
     ASSERT_EQ( 2, distributed.GetModelCount() );
 }
-
 
 TEST( CDnnDistributedTest, DnnDistributedSerializeTest )
 {
@@ -216,4 +212,16 @@ TEST( CDnnDistributedTest, DnnDistributedSerializeTest )
     }
 }
 
-#endif // NEOML_USE_OMP
+TEST( CDnnDistributedTest, DnnDistributedAutoThreadCountTest )
+{
+    std::unique_ptr<IMathEngine> mathEngine( CreateCpuMathEngine( 1, 0 ) );
+    CRandom rand( 42 );
+
+    const int outputSize = 5;
+    CDnn cnn( rand, *mathEngine );
+    buildDnn( cnn, outputSize );
+
+    CDistributedTraining distributed( cnn, 0 );
+    GTEST_LOG_( INFO ) << "Distributed default thread count is " << distributed.GetModelCount();
+    ASSERT_LT( 0, distributed.GetModelCount() );
+}
