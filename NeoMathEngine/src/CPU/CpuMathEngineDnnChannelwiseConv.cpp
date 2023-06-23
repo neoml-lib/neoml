@@ -71,7 +71,7 @@ static inline void process3x3Row( const CCommonChannelwiseConvolutionDesc& desc,
 			width -= 2;
 		}
 	}
-	
+
 	while( width > 0 ) {
 		NeoML::vectorEltwiseMultiplyAdd( filter, sourcePos, resultPos, channels );
 		NeoML::vectorEltwiseMultiplyAdd( filter1, sourcePos + channels, resultPos, channels );
@@ -431,19 +431,19 @@ void CCpuMathEngine::BlobChannelwiseConvolution( const CChannelwiseConvolutionDe
 	const float* freeTerm = freeTermData != 0 ? GetRaw( *freeTermData ) : 0;
 	float* result = GetRaw( resultData );
 
+	// Specify process function if it's a special case
 	TChannelwiseProcessFunction process = nullptr;
-
-	if( desc.Filter.Height() == 3 && desc.Filter.Width() == 3 && desc.PaddingHeight == 1 && desc.PaddingWidth == 1 ) {
-		if( desc.StrideHeight == desc.StrideWidth && desc.StrideHeight <= 2 ) {
-			process = processChannelwise3x3;
-		}
-	} else if( desc.Filter.Height() == 5 && desc.Filter.Width() == 5 && desc.PaddingHeight == 2 && desc.PaddingWidth == 2
+	if( desc.Filter.Height() == desc.Filter.Width() && desc.PaddingHeight == desc.PaddingWidth
 		&& desc.StrideHeight == desc.StrideWidth )
 	{
-		if( desc.StrideHeight == 1 ) {
-			process = processChannelwise5x5Stride1;
-		} else if( desc.StrideHeight == 2 ) {
-			process = processChannelwise5x5Stride2;
+		if( desc.Filter.Width() == 3 && desc.PaddingWidth == 1 && desc.StrideWidth <= 2 ) {
+			process = processChannelwise3x3;
+		} else if( desc.Filter.Width() == 5 && desc.PaddingWidth == 2 ) {
+			if( desc.StrideWidth == 1 ) {
+				process = processChannelwise5x5Stride1;
+			} else if( desc.StrideWidth == 2 ) {
+				process = processChannelwise5x5Stride2;
+			}
 		}
 	}
 
@@ -1036,6 +1036,7 @@ IRowwiseCpuImpl::CProcessingReport CMobileNetV2CpuImpl::Process( const float* in
 	const int chOutputRowSize = outputWidth * expandedChannels;
 
 	const float* residualInput = input + ( outputRowIndex - inputRowIndex ) * inputRowSize;
+	const bool isInPlace = ( residualInput == output );
 
 	const int outputRowsThisCall = outputRowIndex + report.OutputRowsCalculated;
 	// Total number of input rows used during this call
@@ -1086,16 +1087,24 @@ IRowwiseCpuImpl::CProcessingReport CMobileNetV2CpuImpl::Process( const float* in
 				chOutput->EmptyRows(), 0, outputRowsThisStep, nullptr );
 			chOutput->AddRows( outputRowsThisStep );
 
-			mathEngine.multiplyMatrixByTransposedMatrix( chOutput->DataRows(), outputRowsThisStep * outputWidth,
-				expandedChannels, expandedChannels, downFilter, outputChannels, expandedChannels,
-				output, outputChannels );
+			if( residual && isInPlace ) {
+				// Block input and output are located in the same memory
+				// It's possible to simultaneously calculate down conv output and add the residual connection
+				mathEngine.multiplyMatrixByTransposedMatrixAndAdd( chOutput->DataRows(), outputRowsThisStep * outputWidth,
+					expandedChannels, expandedChannels, downFilter, outputChannels, expandedChannels, output,
+					outputChannels );
+			} else {
+				mathEngine.multiplyMatrixByTransposedMatrix( chOutput->DataRows(), outputRowsThisStep * outputWidth,
+					expandedChannels, expandedChannels, downFilter, outputChannels, expandedChannels,
+					output, outputChannels );
+			}
 
 			if( downFreeTerm != nullptr ) {
 				mathEngine.addVectorToMatrixRows( output, output, outputRowsThisStep * outputWidth, outputChannels,
 					outputChannels, outputChannels, downFreeTerm );
 			}
 
-			if( residual ) {
+			if( residual && !isInPlace ) {
 				// Input and output are located in different memory regions
 				// Add residual connection
 				vectorAdd( output, residualInput, output, outputRowsThisStep * outputWidth * outputChannels );
@@ -1142,9 +1151,14 @@ void CCpuMathEngine::MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobDe
 		outputDesc.Channels(), residual );
 	const CBlobDesc reshapeResult = blockImpl.Reshape( inputDesc );
 	( void ) reshapeResult;
+	PRESUME_EXPR( blockImpl.InOperationBufferSize() == 0 );
 	PRESUME_EXPR( reshapeResult.HasEqualDimensions( outputDesc ) );
-	blockImpl.Process( GetRaw( inputHandle ), 0, inputDesc.ObjectCount() * inputDesc.Height(),
-		GetRaw( outputHandle ), 0, outputDesc.ObjectCount() * outputDesc.Height(), nullptr );
+	const IRowwiseCpuImpl::CProcessingReport report = blockImpl.Process( GetRaw( inputHandle ), 0,
+		inputDesc.ObjectCount() * inputDesc.Height(), GetRaw( outputHandle ), 0,
+		outputDesc.ObjectCount() * outputDesc.Height(), nullptr );
+	( void ) report;
+	PRESUME_EXPR( report.InputRowsMayBeRemoved == inputDesc.ObjectCount() * inputDesc.Height() );
+	PRESUME_EXPR( report.OutputRowsCalculated == outputDesc.ObjectCount() * outputDesc.Height() );
 }
 
 CRowwiseOperationDesc* CCpuMathEngine::InitMobileNetV2Rowwise( int inputChannels,

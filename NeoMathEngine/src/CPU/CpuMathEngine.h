@@ -626,6 +626,8 @@ public:
 	void multiplyMatrixByTransposedMatrix( const float* first, int firstHeight,
 		int firstWidth, int firstRowSize, const float* second, int secondHeight, int secondRowSize,
 		float* result, int resultRowSize );
+	void multiplyMatrixByTransposedMatrixAndAdd( const float* first, int firstHeight, int firstWidth, int firstRowSize,
+		const float* second, int secondHeight, int secondRowSize, float* result, int resultRowSize );
 	void addVectorToMatrixRows( const float* matrix, float* result,
 		int matrixHeight, int matrixWidth, int matrixRowSize, int resultRowSize, const float* vector );
 	void fillTempData( const float* sourceData, float* filterData, const CCpuConvolutionDesc& desc, int start, int count );
@@ -688,8 +690,6 @@ private:
 		const float* second, int secondWidth, int secondRowSize, float* result, int resultRowSize );
 	void batchMultiplyMatrixByTransposedMatrix( int batchSize, const CConstFloatHandle& firstHandle, int firstHeight,
 		int firstWidth, const CConstFloatHandle& secondHandle, int secondHeight, const CFloatHandle& resultHandle );
-	void multiplyMatrixByTransposedMatrixAndAdd( const float* first, int firstHeight, int firstWidth, int firstRowSize,
-		const float* second, int secondHeight, int secondRowSize, float* result, int resultRowSize );
 	void multiplyMatrixByDiagMatrix( const float* first, int firstHeight, int firstWidth,
 		const float* second, float* result );
 

@@ -16,8 +16,9 @@ limitations under the License.
 #include <common.h>
 #pragma hdrstop
 
-#include <TestFixture.h>
+#include <initializer_list>
 
+#include <TestFixture.h>
 #include <NeoML/Dnn/Layers/Onnx/OnnxEltwiseLayer.h>
 
 namespace NeoMLTest {
@@ -297,12 +298,12 @@ TEST( MobileNetV3BlockLayerTest, Run )
 {
 	CRandom seedRandom( 0x654 );
 
-	std::vector<CActivationDesc> blockActivations = {
+	std::initializer_list<CActivationDesc> blockActivations = {
 		CActivationDesc( AF_ReLU, CReLULayer::CParam{ -1.f } ),
 		CActivationDesc( AF_ReLU, CReLULayer::CParam{ 6.f } ),
 		CActivationDesc( AF_HSwish ),
 		CActivationDesc( AF_Linear, CLinearLayer::CParam{ 1.f, 0.f } ) };
-	std::vector<CActivationDesc> seActivations = {
+	std::initializer_list<CActivationDesc> seActivations = {
 		CActivationDesc( AF_ReLU, CReLULayer::CParam{ -1.f } ),
 		CActivationDesc( AF_ReLU, CReLULayer::CParam{ 6.f } ),
 		CActivationDesc( AF_HardSigmoid, CHardSigmoidLayer::CParam{ 0.5f, 0.5f } ) };
