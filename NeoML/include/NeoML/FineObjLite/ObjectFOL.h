@@ -56,10 +56,10 @@ private:
 template<class T>
 class CPtr final {
 public:
-    CPtr() : ptr( nullptr ) {}
-    CPtr( T* other ) : ptr( other ) { if( ptr != nullptr ) { ptr->addRef(); } }
-    CPtr( const CPtr<T>& other ) : CPtr( other.Ptr() ) {}
-    CPtr( CPtr<T>&& other ) { Swap( other ); }
+	CPtr() : ptr( nullptr ) {}
+	CPtr( T* other ) : ptr( other ) { if( ptr != nullptr ) { ptr->addRef(); } }
+	CPtr( const CPtr<T>& other ) : CPtr( other.Ptr() ) {}
+	CPtr( CPtr<T>&& other ) { Swap( other ); }
 	~CPtr() { Release(); }
 
 	void Release();
@@ -121,8 +121,8 @@ public:
 
 	const T& operator*() const;
 	const T* operator->() const;
-	auto Ptr() const -> const T* { return ptr; }
-	operator const T* ( ) const { return ptr; }
+	const T* Ptr() const { return ptr; }
+	operator const T*() const { return ptr; }
 
 	const CPtr<const T>& operator=( const T* other ) { return assignPtr( other ); }
 	const CPtr<const T>& operator=( const CPtr<const T>& other ) { return assignPtr( other.Ptr() ); }
@@ -248,10 +248,10 @@ inline const TDest* CheckCast( const IObject* ptr )
 
 //---------------------------------------------------------------------------------------------
 
-inline IObject::IObject() : refCounter( 0 )
-{
-}
-    
+inline IObject::IObject() :
+	refCounter( 0 )
+{}
+
 inline int IObject::RefCount() const
 {
 	return refCounter;
@@ -354,7 +354,7 @@ inline void CPtr<T>::replacePtr( T* other )
 //---------------------------------------------------------------------------------------------
 
 template<class T>
-class CCopyOnWritePtr {
+class CCopyOnWritePtr final {
 public:
 	CCopyOnWritePtr();
 	CCopyOnWritePtr( const CCopyOnWritePtr& other );
