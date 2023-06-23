@@ -720,13 +720,6 @@ private:
 		const CConstFloatHandle& outputDiff, const CFloatHandle& filterDiff, const CFloatHandle* freeTermDiff,
 		bool isFreeTermDiffFromInput );
 
-	void blobChannelwiseConvolutionFilter3x3Padding1Stride1( const CCommonChannelwiseConvolutionDesc& desc, const float* source,
-		const float* filter, const float* freeTerm, float* result );
-	void blobChannelwiseConvolutionFilter3x3Padding1Stride2( const CCommonChannelwiseConvolutionDesc& desc, const float* source,
-		const float* filter, const float* freeTerm, float* result );
-	void blobChannelwiseConvolutionFilter5x5Padding2Stride1Or2( const CCommonChannelwiseConvolutionDesc& desc, const float* source,
-		const float* filter, const float* freeTerm, float* result );
-
 	void findMaxValueInColumns( float* result, const float* matrixHandle,
 		int matrixHeight, int matrixWidth );
 	void findMaxValueInColumns( float* resultHandle, int* rowIndices,
