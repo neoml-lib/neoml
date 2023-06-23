@@ -16,6 +16,7 @@ limitations under the License.
 #pragma once
 
 #include <NeoMathEngine/BlobDesc.h>
+#include <CpuMathEnginePrivate.h>
 
 namespace NeoML {
 
@@ -41,6 +42,8 @@ public:
 	virtual CProcessingReport Process( const float* input, int inputRowIndex, int inputRowsAvailable,
 		float* output, int outputRowIndex, int outputRowsAvailable, float* buffer ) const = 0;
 };
+
+//=====================================================================================================================
 
 // Interface for buffers for rowwise operations
 // First DataRowCount() rows in buffer are filled with actual data
@@ -128,5 +131,83 @@ private:
 	int dataRowsCount;
 	int dataRowIndex;
 };
+
+//=====================================================================================================================
+
+class CActivationCpuImpl : public IRowwiseCpuImpl, public CRowwiseOperationDesc {
+public:
+	CActivationCpuImpl( TActivationFunction type, float param0, float param1 );
+
+	int MinInputRowCount() const override { return 1; }
+
+	CBlobDesc Reshape( const CBlobDesc& inputSize ) override;
+	int InOperationBufferSize() const override { return 0; }
+	int OutputRowCount() const override { return rowCount; }
+	int OutputRowSize() const override { return rowSize; }
+	bool IsInPlace() const override { return true; }
+	CProcessingReport Process( const float* input, int inputRowIndex, int inputRowsAvailable,
+		float* output, int outputRowIndex, int outputRowsAvailable, float* buffer ) const override;
+
+private:
+	TActivationFunction type;
+	float param0;
+	float param1;
+	int rowCount;
+	int rowSize;
+};
+
+inline CActivationCpuImpl::CActivationCpuImpl( TActivationFunction type, float param0, float param1 ) :
+	type( type ),
+	param0( param0 ),
+	param1( param1 ),
+	rowCount( 0 ),
+	rowSize( 0 )
+{
+}
+
+inline CBlobDesc CActivationCpuImpl::Reshape( const CBlobDesc& inputSize )
+{
+	rowCount = inputSize.ObjectCount() * inputSize.Height();
+	rowSize = inputSize.Width() * inputSize.Channels();
+	return inputSize;
+}
+
+inline IRowwiseCpuImpl::CProcessingReport CActivationCpuImpl::Process( const float* input, int inputRowIndex,
+	int inputRowsAvailable, float* output, int outputRowIndex, int outputRowsAvailable, float* ) const
+{
+	CProcessingReport result;
+	result.OutputRowsCalculated = std::min( outputRowsAvailable, inputRowIndex + inputRowsAvailable - outputRowIndex );
+	result.InputRowsMayBeRemoved = outputRowIndex + result.OutputRowsCalculated - inputRowIndex;
+
+	if( inputRowIndex < outputRowIndex ) {
+		input += ( outputRowIndex - inputRowIndex ) * rowSize;
+	}
+
+	const int dataSize = result.OutputRowsCalculated * rowSize;
+	switch( type ) {
+		case AF_HSwish:
+			vectorHSwish( input, output, dataSize );
+			break;
+		case AF_ReLU:
+			if( param0 <= 0 ) {
+				vectorReLU( input, output, dataSize );
+			} else {
+				vectorReLU( input, output, dataSize, param0 );
+			}
+			break;
+		case AF_Sigmoid:
+			vectorSigmoid( input, output, dataSize );
+			break;
+		case AF_Linear:
+			if( input != output ) {
+				dataCopy( output, input, dataSize );
+			}
+			break;
+		default:
+			ASSERT_EXPR( false );
+	}
+
+	return result;
+}
 
 } // namespace NeoML

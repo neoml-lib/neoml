@@ -247,4 +247,10 @@ void CCpuMathEngine::RowwiseExecute( const CBlobDesc& inputDesc, CRowwiseOperati
 	}
 }
 
+CRowwiseOperationDesc* CCpuMathEngine::InitActivationRowwise( TActivationFunction activation,
+	float param0, float param1 )
+{
+	return new CActivationCpuImpl( activation, param0, param1 );
+}
+
 } // namespace NeoML
