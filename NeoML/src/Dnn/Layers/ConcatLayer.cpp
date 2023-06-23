@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -24,8 +24,7 @@ namespace NeoML {
 CBaseConcatLayer::CBaseConcatLayer( IMathEngine& mathEngine, TBlobDim _dimension, const char* name ) :
 	CBaseLayer( mathEngine, name, false ),
 	dimension( _dimension )
-{
-}
+{}
 
 void CBaseConcatLayer::Reshape()
 {
@@ -67,7 +66,7 @@ void CBaseConcatLayer::Serialize( CArchive& archive )
 	CBaseLayer::Serialize( archive );
 }
 
-// ====================================================================================================================
+//----------------------------------------------------------------------------------------------------
 
 static const int ConcatChannelsLayerVersion = 2000;
 
@@ -82,7 +81,7 @@ CLayerWrapper<CConcatChannelsLayer> ConcatChannels()
 	return CLayerWrapper<CConcatChannelsLayer>( "ConcatChannels" );
 }
 
-// ====================================================================================================================
+//----------------------------------------------------------------------------------------------------
 
 static const int ConcatDepthLayerVersion = 2000;
 
@@ -97,8 +96,7 @@ CLayerWrapper<CConcatDepthLayer> ConcatDepth()
 	return CLayerWrapper<CConcatDepthLayer>( "ConcatDepth" );
 }
 
-
-// ====================================================================================================================
+//----------------------------------------------------------------------------------------------------
 
 static const int ConcatWidthLayerVersion = 2000;
 
@@ -113,7 +111,7 @@ CLayerWrapper<CConcatWidthLayer> ConcatWidth()
 	return CLayerWrapper<CConcatWidthLayer>( "ConcatWidth" );
 }
 
-// ====================================================================================================================
+//----------------------------------------------------------------------------------------------------
 
 static const int ConcatHeightLayerVersion = 2000;
 
@@ -128,7 +126,7 @@ CLayerWrapper<CConcatHeightLayer> ConcatHeight()
 	return CLayerWrapper<CConcatHeightLayer>( "ConcatHeight" );
 }
 
-// ====================================================================================================================
+//----------------------------------------------------------------------------------------------------
 
 static const int ConcatBatchWidthLayerVersion = 2000;
 
@@ -143,7 +141,7 @@ CLayerWrapper<CConcatBatchWidthLayer> ConcatBatchWidth()
 	return CLayerWrapper<CConcatBatchWidthLayer>( "ConcatBatchWidth" );
 }
 
-// ====================================================================================================================
+//----------------------------------------------------------------------------------------------------
 
 static const int ConcatBatchLengthLayerVersion = 2000;
 
@@ -158,7 +156,7 @@ CLayerWrapper<CConcatBatchLengthLayer> ConcatBatchLength()
 	return CLayerWrapper<CConcatBatchLengthLayer>( "ConcatBatchLength" );
 }
 
-// ====================================================================================================================
+//----------------------------------------------------------------------------------------------------
 
 static const int ConcatListSizeLayerVersion = 2000;
 
@@ -173,7 +171,7 @@ CLayerWrapper<CConcatListSizeLayer> ConcatListSize()
 	return CLayerWrapper<CConcatListSizeLayer>( "ConcatListSize" );
 }
 
-// ====================================================================================================================
+//----------------------------------------------------------------------------------------------------
 
 static const int ConcatObjectLayerVersion = 2000;
 

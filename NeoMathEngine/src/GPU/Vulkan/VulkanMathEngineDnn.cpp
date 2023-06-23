@@ -107,7 +107,7 @@ void CVulkanMathEngine::blobMergeByDim(int dimNum, const CBlobDesc* from, const 
 	}
 }
 
-void CVulkanMathEngine::blobSplitByDim(int dimNum, const CBlobDesc& from, const CFloatHandle& fromData,
+void CVulkanMathEngine::blobSplitByDim(int dimNum, const CBlobDesc& from, const CConstFloatHandle& fromData,
 	const CBlobDesc* to, const CFloatHandle* toData, int toCount)
 {
 	ASSERT_EXPR( fromData.GetMathEngine() == this );
@@ -163,19 +163,21 @@ void CVulkanMathEngine::BlobMergeByDim( TBlobDim dim, const CBlobDesc* from, con
 	blobMergeByDim(dim, from, fromData, fromCount, to, toData);
 }
 
-void CVulkanMathEngine::BlobMergeByDim(TBlobDim /*dim*/, const CBlobDesc* /*from*/, const CIntHandle* /*fromData*/, int /*fromCount*/, const CBlobDesc& /*to*/, const CIntHandle& /*toData*/)
+void CVulkanMathEngine::BlobMergeByDim(TBlobDim /*dim*/, const CBlobDesc* /*from*/, const CIntHandle* /*fromData*/,
+	int /*fromCount*/, const CBlobDesc& /*to*/, const CIntHandle& /*toData*/)
 {
 	ASSERT_EXPR(false);
 }
 
-void CVulkanMathEngine::BlobSplitByDim( TBlobDim dim, const CBlobDesc& from, const CFloatHandle& fromData,
+void CVulkanMathEngine::BlobSplitByDim( TBlobDim dim, const CBlobDesc& from, const CConstFloatHandle& fromData,
 	const CBlobDesc* to, const CFloatHandle* toData, int toCount )
 {
 	ASSERT_EXPR(0 <= dim && dim < CBlobDesc::MaxDimensions);
 	blobSplitByDim(dim, from, fromData, to, toData, toCount);
 }
 
-void CVulkanMathEngine::BlobSplitByDim(TBlobDim /*dim*/, const CBlobDesc& /*from*/, const CIntHandle& /*fromData*/, const CBlobDesc* /*to*/, const CIntHandle* /*toData*/, int /*toCount*/)
+void CVulkanMathEngine::BlobSplitByDim(TBlobDim /*dim*/, const CBlobDesc& /*from*/, const CConstIntHandle& /*fromData*/,
+	const CBlobDesc* /*to*/, const CIntHandle* /*toData*/, int /*toCount*/)
 {
 	ASSERT_EXPR(false);
 }

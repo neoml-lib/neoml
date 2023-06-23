@@ -402,9 +402,9 @@ public:
 		const CBlobDesc& to, const CFloatHandle& toData ) override;
 	void BlobMergeByDim( TBlobDim dim, const CBlobDesc* from, const CIntHandle* fromData, int fromCount,
 		const CBlobDesc& to, const CIntHandle& toData ) override;
-	void BlobSplitByDim( TBlobDim dim, const CBlobDesc& from, const CFloatHandle& fromData,
+	void BlobSplitByDim( TBlobDim dim, const CBlobDesc& from, const CConstFloatHandle& fromData,
 		const CBlobDesc* to, const CFloatHandle* toData, int toCount ) override;
-	void BlobSplitByDim( TBlobDim dim, const CBlobDesc& from, const CIntHandle& fromData,
+	void BlobSplitByDim( TBlobDim dim, const CBlobDesc& from, const CConstIntHandle& fromData,
 		const CBlobDesc* to, const CIntHandle* toData, int toCount ) override;
 	void BlobResizeImage( const CBlobDesc& from, const CFloatHandle& fromData, int deltaLeft, int deltaRight,
 		int deltaTop, int deltaBottom, TBlobResizePadding padding, float defaultValue,
@@ -680,11 +680,11 @@ private:
 	template<class T>
 	void blobMergeByDim( int dim, const CBlobDesc* from, const CTypedMemoryHandle<T>* fromData, int fromCount, const CBlobDesc& to, const CTypedMemoryHandle<T>& toData );
 	template<class T>
-	void blobSplitByDimCuda( int dimNum, const CBlobDesc& from, const CTypedMemoryHandle<T>& fromData, const CBlobDesc* to, const CTypedMemoryHandle<T>* toData, int toCount );
+	void blobSplitByDimCuda( int dimNum, const CBlobDesc& from, const CTypedMemoryHandle<const T>& fromData, const CBlobDesc* to, const CTypedMemoryHandle<T>* toData, int toCount );
 	template<class T>
-	void blobSplitByDim0( const CBlobDesc& from, const CTypedMemoryHandle<T>& fromData, const CBlobDesc* to, const CTypedMemoryHandle<T>* toData, int toCount );
+	void blobSplitByDim0( const CBlobDesc& from, const CTypedMemoryHandle<const T>& fromData, const CBlobDesc* to, const CTypedMemoryHandle<T>* toData, int toCount );
 	template<class T>
-	void blobSplitByDim( int dim, const CBlobDesc& from, const CTypedMemoryHandle<T>& fromData, const CBlobDesc* to, const CTypedMemoryHandle<T>* toData, int toCount );
+	void blobSplitByDim( int dim, const CBlobDesc& from, const CTypedMemoryHandle<const T>& fromData, const CBlobDesc* to, const CTypedMemoryHandle<T>* toData, int toCount );
 
 	void blobConvertFromRle( const CCudaRleConvolutionDesc& desc, const CConstFloatHandle& source, const CFloatHandle& result );
 

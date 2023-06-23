@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -44,7 +44,7 @@ protected:
 	CBaseSplitLayer( IMathEngine& mathEngine, TBlobDim _dimension, const char* name );
 };
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////
+//----------------------------------------------------------------------------------------------------
 
 // CSplitChannelsLayer implements a layer that splits a blob by the Channels dimension
 class NEOML_API CSplitChannelsLayer : public CBaseSplitLayer {
@@ -60,7 +60,7 @@ NEOML_API CLayerWrapper<CSplitChannelsLayer> SplitChannels(
 NEOML_API CLayerWrapper<CSplitChannelsLayer> SplitChannels( int output0,
 	int output1 = 0, int output2 = 0 );
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////
+//----------------------------------------------------------------------------------------------------
 
 // CSplitDepthLayer implements a layer that splits a blob by the Depth dimension
 class NEOML_API CSplitDepthLayer : public CBaseSplitLayer {
@@ -76,7 +76,7 @@ NEOML_API CLayerWrapper<CSplitDepthLayer> SplitDepth(
 NEOML_API CLayerWrapper<CSplitDepthLayer> SplitDepth( int output0,
 	int output1 = 0, int output2 = 0 );
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////
+//----------------------------------------------------------------------------------------------------
 
 // CSplitWidthLayer implements a layer that splits a blob by the Width dimension (horizontally)
 class NEOML_API CSplitWidthLayer : public CBaseSplitLayer {
@@ -92,7 +92,7 @@ NEOML_API CLayerWrapper<CSplitWidthLayer> SplitWidth(
 NEOML_API CLayerWrapper<CSplitWidthLayer> SplitWidth( int output0,
 	int output1 = 0, int output2 = 0 );
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////
+//----------------------------------------------------------------------------------------------------
 
 // CSplitHeightLayer implements a layer that splits a blob by the Height dimension (vertically)
 class NEOML_API CSplitHeightLayer : public CBaseSplitLayer {
@@ -108,7 +108,7 @@ NEOML_API CLayerWrapper<CSplitHeightLayer> SplitHeight(
 NEOML_API CLayerWrapper<CSplitHeightLayer> SplitHeight( int output0,
 	int output1 = 0, int output2 = 0 );
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////
+//----------------------------------------------------------------------------------------------------
 
 // CSplitListSizeLayer implements a layer that splits a blob by the ListSize dimension
 class NEOML_API CSplitListSizeLayer : public CBaseSplitLayer {
@@ -124,7 +124,7 @@ NEOML_API CLayerWrapper<CSplitListSizeLayer> SplitListSize(
 NEOML_API CLayerWrapper<CSplitListSizeLayer> SplitListSize( int output0,
 	int output1 = 0, int output2 = 0 );
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////
+//----------------------------------------------------------------------------------------------------
 
 // CSplitBatchWidthLayer implements a layer that splits a blob by the BatchWidth dimension
 class NEOML_API CSplitBatchWidthLayer : public CBaseSplitLayer {
@@ -140,7 +140,7 @@ NEOML_API CLayerWrapper<CSplitBatchWidthLayer> SplitBatchWidth(
 NEOML_API CLayerWrapper<CSplitBatchWidthLayer> SplitBatchWidth( int output0,
 	int output1 = 0, int output2 = 0 );
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////
+//----------------------------------------------------------------------------------------------------
 
 // CSplitBatchLengthLayer implements a layer that splits a blob by the BatchLength dimension
 class NEOML_API CSplitBatchLengthLayer : public CBaseSplitLayer {

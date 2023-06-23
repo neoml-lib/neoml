@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -36,7 +36,7 @@ protected:
 	CBaseConcatLayer( IMathEngine& mathEngine, TBlobDim _dimension, const char* name );
 };
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////
+//----------------------------------------------------------------------------------------------------
 
 // CConcatChannelsLayer implements a layer that concatenates several blobs into one along the Channel dimension
 class NEOML_API CConcatChannelsLayer : public CBaseConcatLayer {
@@ -49,7 +49,7 @@ public:
 
 NEOML_API CLayerWrapper<CConcatChannelsLayer> ConcatChannels();
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////
+//----------------------------------------------------------------------------------------------------
 
 // CConcatDepthLayer implements a layer that concatenates several blobs into one along the Depth dimension
 class NEOML_API CConcatDepthLayer : public CBaseConcatLayer {
@@ -62,7 +62,7 @@ public:
 
 NEOML_API CLayerWrapper<CConcatDepthLayer> ConcatDepth();
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////
+//----------------------------------------------------------------------------------------------------
 
 // CConcatWidthLayer implements a layer that concatenates several blobs into one along the Width dimension (i.e. horizontally)
 class NEOML_API CConcatWidthLayer : public CBaseConcatLayer {
@@ -75,7 +75,7 @@ public:
 
 NEOML_API CLayerWrapper<CConcatWidthLayer> ConcatWidth();
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////
+//----------------------------------------------------------------------------------------------------
 
 // CConcatHeightLayer implements a layer that concatenates several blobs into one along the Height dimension (i.e. vertically)
 class NEOML_API CConcatHeightLayer : public CBaseConcatLayer {
@@ -88,7 +88,7 @@ public:
 
 NEOML_API CLayerWrapper<CConcatHeightLayer> ConcatHeight();
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////
+//----------------------------------------------------------------------------------------------------
 
 // CConcatBatchWidthLayer implements a layer that concatenates several blobs into one 
 // along the BatchWidth dimension (simply stores them one after another)
@@ -102,7 +102,7 @@ public:
 
 NEOML_API CLayerWrapper<CConcatBatchWidthLayer> ConcatBatchWidth();
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////
+//----------------------------------------------------------------------------------------------------
 
 // CConcatBatchLengthLayer implements a layer that concatenates several blobs into one 
 // along the BatchLength dimension (simply stores them one after another)
@@ -116,7 +116,7 @@ public:
 
 NEOML_API CLayerWrapper<CConcatBatchLengthLayer> ConcatBatchLength();
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////
+//----------------------------------------------------------------------------------------------------
 
 // CConcatListSizeLayer implements a layer that concatenates several blobs into one 
 // along the ListSize dimension (simply stores them one after another)
@@ -130,7 +130,7 @@ public:
 
 NEOML_API CLayerWrapper<CConcatListSizeLayer> ConcatListSize();
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////
+//----------------------------------------------------------------------------------------------------
 
 // CConcatObjectLayer implements a layer that concatenates several blobs into one by objects
 // An object may be of any configuration; the raw data is concatenated

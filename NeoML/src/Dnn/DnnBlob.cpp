@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -444,7 +444,7 @@ void CDnnBlob::MergeByObject( IMathEngine& mathEngine, const CObjectArray<CDnnBl
 	MergeByDim( mathEngine, static_cast<TBlobDim>(CBlobDesc::FirstObjectDim), from, to );
 }
 
-void CDnnBlob::SplitByDim( IMathEngine& mathEngine, TBlobDim d, const CPtr<CDnnBlob>& from, const CObjectArray<CDnnBlob>& to )
+void CDnnBlob::SplitByDim( IMathEngine& mathEngine, TBlobDim d, const CPtr<const CDnnBlob>& from, const CObjectArray<CDnnBlob>& to )
 {
 	CFastArray<CBlobDesc, 16> toArray;
 	toArray.SetSize( to.Size() );
@@ -455,7 +455,7 @@ void CDnnBlob::SplitByDim( IMathEngine& mathEngine, TBlobDim d, const CPtr<CDnnB
 			toArray[i] = to[i]->GetDesc();
 			toData[i] = to[i]->GetData();
 		}
-		mathEngine.BlobSplitByDim( d, from->GetDesc(), from->GetData(), toArray.GetPtr(), toData.GetPtr(), to.Size() );
+		mathEngine.BlobSplitByDim( d, from->GetDesc(), from->GetData<const float>(), toArray.GetPtr(), toData.GetPtr(), to.Size() );
 	} else {
 		CFastArray<CIntHandle, 16> toData;
 		toData.SetSize( to.Size() );
@@ -463,46 +463,46 @@ void CDnnBlob::SplitByDim( IMathEngine& mathEngine, TBlobDim d, const CPtr<CDnnB
 			toArray[i] = to[i]->GetDesc();
 			toData[i] = to[i]->GetData<int>();
 		}
-		mathEngine.BlobSplitByDim( d, from->GetDesc(), from->GetData<int>(), toArray.GetPtr(), toData.GetPtr(), to.Size() );
+		mathEngine.BlobSplitByDim( d, from->GetDesc(), from->GetData<const int>(), toArray.GetPtr(), toData.GetPtr(), to.Size() );
 	}
 }
 
-void CDnnBlob::SplitByChannels( IMathEngine& mathEngine, const CPtr<CDnnBlob>& from, const CObjectArray<CDnnBlob>& to )
+void CDnnBlob::SplitByChannels( IMathEngine& mathEngine, const CPtr<const CDnnBlob>& from, const CObjectArray<CDnnBlob>& to )
 {
 	SplitByDim( mathEngine, BD_Channels, from, to );
 }
 
-void CDnnBlob::SplitByDepth( IMathEngine& mathEngine, const CPtr<CDnnBlob>& from, const CObjectArray<CDnnBlob>& to )
+void CDnnBlob::SplitByDepth( IMathEngine& mathEngine, const CPtr<const CDnnBlob>& from, const CObjectArray<CDnnBlob>& to )
 {
 	SplitByDim( mathEngine, BD_Depth, from, to );
 }
 
-void CDnnBlob::SplitByWidth( IMathEngine& mathEngine, const CPtr<CDnnBlob>& from, const CObjectArray<CDnnBlob>& to )
+void CDnnBlob::SplitByWidth( IMathEngine& mathEngine, const CPtr<const CDnnBlob>& from, const CObjectArray<CDnnBlob>& to )
 {
 	SplitByDim( mathEngine, BD_Width, from, to );
 }
 
-void CDnnBlob::SplitByHeight( IMathEngine& mathEngine, const CPtr<CDnnBlob>& from, const CObjectArray<CDnnBlob>& to )
+void CDnnBlob::SplitByHeight( IMathEngine& mathEngine, const CPtr<const CDnnBlob>& from, const CObjectArray<CDnnBlob>& to )
 {
 	SplitByDim( mathEngine, BD_Height, from, to );
 }
 
-void CDnnBlob::SplitByListSize( IMathEngine& mathEngine, const CPtr<CDnnBlob>& from, const CObjectArray<CDnnBlob>& to )
+void CDnnBlob::SplitByListSize( IMathEngine& mathEngine, const CPtr<const CDnnBlob>& from, const CObjectArray<CDnnBlob>& to )
 {
 	SplitByDim( mathEngine, BD_ListSize, from, to );
 }
 
-void CDnnBlob::SplitByBatchWidth( IMathEngine& mathEngine, const CPtr<CDnnBlob>& from, const CObjectArray<CDnnBlob>& to )
+void CDnnBlob::SplitByBatchWidth( IMathEngine& mathEngine, const CPtr<const CDnnBlob>& from, const CObjectArray<CDnnBlob>& to )
 {
 	SplitByDim( mathEngine, BD_BatchWidth, from, to );
 }
 
-void CDnnBlob::SplitByBatchLength( IMathEngine& mathEngine, const CPtr<CDnnBlob>& from, const CObjectArray<CDnnBlob>& to )
+void CDnnBlob::SplitByBatchLength( IMathEngine& mathEngine, const CPtr<const CDnnBlob>& from, const CObjectArray<CDnnBlob>& to )
 {
 	SplitByDim( mathEngine, BD_BatchLength, from, to );
 }
 
-void CDnnBlob::SplitByObject( IMathEngine& mathEngine, const CPtr<CDnnBlob>& from, const CObjectArray<CDnnBlob>& to )
+void CDnnBlob::SplitByObject( IMathEngine& mathEngine, const CPtr<const CDnnBlob>& from, const CObjectArray<CDnnBlob>& to )
 {
 	SplitByDim( mathEngine, static_cast<TBlobDim>(CBlobDesc::FirstObjectDim), from, to );
 }
