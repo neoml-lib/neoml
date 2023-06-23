@@ -42,9 +42,11 @@ public:
 	virtual void StopAndWait() = 0;
 };
 
+// Number of available CPU cores in current environment (e.g. inside container)
+NEOMATHENGINE_API int GetAvailableCpuCores();
+
 // Creates a thread pool containing the given number of threads.
-// If threadCount is 0 or less then creates a pool with a number of threads
-// equal to the number of available CPU cores
+// If threadCount is 0 or less then creates a pool with GetAvailableCpuCores() threads
 NEOMATHENGINE_API IThreadPool* CreateThreadPool(int threadCount);
 
 //------------------------------------------------------------------------------------------------------------

@@ -224,4 +224,5 @@ TEST( CDnnDistributedTest, DnnDistributedAutoThreadCountTest )
 	CDistributedTraining distributed( cnn, 0 );
 	GTEST_LOG_( INFO ) << "Distributed default thread count is " << distributed.GetModelCount();
 	ASSERT_LT( 0, distributed.GetModelCount() );
+	ASSERT_EQ( GetAvailableCpuCores(), distributed.GetModelCount() );
 }

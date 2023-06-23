@@ -73,7 +73,7 @@ static int readIntFromFile( const char* name )
 #endif // FINE_PLATFORM( FINE_LINUX )
 
 // Returns number of CPU cores available in the current environment
-static int getAvailableCpuCoreNum()
+static int getAvailableCpuCores()
 {
 #if FINE_PLATFORM( FINE_LINUX )
 	if( isInDocker() ) {
@@ -96,6 +96,12 @@ static int getAvailableCpuCoreNum()
 #endif // FINE_PLATFORM( FINE_LINUX )
 	// std::thread::hardware_concurrency may return 0 if the value is not well defined or not computable
 	return std::max( static_cast<int>( std::thread::hardware_concurrency() ), 1 );
+}
+
+int GetAvailableCpuCores()
+{
+	static const int availabeCpuCores = getAvailableCpuCores();
+	return availabeCpuCores;
 }
 
 struct CTask {
@@ -161,7 +167,7 @@ private:
 CThreadPool::CThreadPool( int threadCount )
 {
 	if( threadCount <= 0 ) {
-		threadCount = getAvailableCpuCoreNum();
+		threadCount = GetAvailableCpuCores();
 	}
 	ASSERT_EXPR( threadCount > 0 );
 	for( int i = 0; i < threadCount; i++ ) {
