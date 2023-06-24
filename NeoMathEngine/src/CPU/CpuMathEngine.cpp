@@ -173,18 +173,18 @@ void CCpuMathEngine::ReleaseBuffer( const CMemoryHandle&, void*, bool )
 	// no action needed
 }
 
-void CCpuMathEngine::DataExchangeRaw(const CMemoryHandle& handle, const void* data, size_t size)
+void CCpuMathEngine::DataExchangeRaw( const CMemoryHandle& handle, const void* data, size_t size )
 {
 	ASSERT_EXPR( handle.GetMathEngine() == this );
 
-	::memcpy( GetRaw(handle), data, size);
+	::memcpy( GetRaw( handle ), data, size );
 }
 
-void CCpuMathEngine::DataExchangeRaw(void* data, const CMemoryHandle& handle, size_t size)
+void CCpuMathEngine::DataExchangeRaw( void* data, const CMemoryHandle& handle, size_t size )
 {
 	ASSERT_EXPR( handle.GetMathEngine() == this );
 
-	::memcpy( data, GetRaw(handle), size );
+	::memcpy( data, GetRaw( handle ), size );
 }
 
 CMemoryHandle CCpuMathEngine::CopyFrom( const CMemoryHandle& handle, size_t size )

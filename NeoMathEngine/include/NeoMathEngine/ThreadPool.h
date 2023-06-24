@@ -25,7 +25,7 @@ namespace NeoML {
 class NEOMATHENGINE_API IThreadPool : public CCrtAllocatedObject {
 public:
 	// Interface for pool task.
-	typedef void(*TFunction)(int threadIndex, void* params);
+	typedef void( *TFunction )( int threadIndex, void* params );
 
 	virtual ~IThreadPool();
 
@@ -47,24 +47,24 @@ NEOMATHENGINE_API int GetAvailableCpuCores();
 
 // Creates a thread pool containing the given number of threads.
 // If threadCount is 0 or less then creates a pool with GetAvailableCpuCores() threads
-NEOMATHENGINE_API IThreadPool* CreateThreadPool(int threadCount);
+NEOMATHENGINE_API IThreadPool* CreateThreadPool( int threadCount );
 
 //------------------------------------------------------------------------------------------------------------
 
-inline void ExecuteTasks(IThreadPool& threadPool, void* params, IThreadPool::TFunction func)
+inline void ExecuteTasks( IThreadPool& threadPool, void* params, IThreadPool::TFunction func )
 {
-	int threadCount = threadPool.Size();
+	const int threadCount = threadPool.Size();
 	if( threadCount == 1 ) {
-		func(0, params);
+		func( 0, params );
 		return;
 	}
-	for (int i = 0; i < threadCount; i++) {
-		threadPool.AddTask(i, func, params);
+	for( int i = 0; i < threadCount; ++i ) {
+		threadPool.AddTask( i, func, params );
 	}
 	threadPool.WaitAllTask();
 }
 
-#define NEOML_NUM_THREADS(_threadPool, _params, _func) { ExecuteTasks(_threadPool, _params, _func);}
+#define NEOML_NUM_THREADS(_threadPool, _params, _func) {ExecuteTasks(_threadPool, _params, _func);}
 
 //------------------------------------------------------------------------------------------------------------
 
@@ -75,8 +75,8 @@ inline void ExecuteTasks(IThreadPool& threadPool, void* params, IThreadPool::TFu
 inline bool GetTaskIndexAndCount( int threadCount, int threadIndex, int fullCount, int align, int& index, int& count )
 {
 	if( threadCount > 1 ) {
-		int countPerThread = (fullCount + threadCount - 1) / threadCount;
-		countPerThread = (countPerThread + align - 1) / align * align;
+		int countPerThread = ( fullCount + threadCount - 1 ) / threadCount;
+		countPerThread = ( countPerThread + align - 1 ) / align * align;
 
 		index = countPerThread * threadIndex;
 		count = countPerThread;
@@ -90,13 +90,12 @@ inline bool GetTaskIndexAndCount( int threadCount, int threadIndex, int fullCoun
 		index = 0;
 		count = fullCount;
 	}
-
 	return count != 0;
 }
 
 inline bool GetTaskIndexAndCount( int threadCount, int threadIndex, int fullCount, int& index, int& count )
 {
-	return GetTaskIndexAndCount(threadCount, threadIndex, fullCount, 1, index, count);
+	return GetTaskIndexAndCount( threadCount, threadIndex, fullCount, 1, index, count );
 }
 
 } // namespace NeoML

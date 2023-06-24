@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ limitations under the License.
 #include <NeoML/NeoMLDefs.h>
 #include <NeoML/TraditionalML/Clustering.h>
 #include <NeoML/TraditionalML/FloatVector.h>
+#include <NeoMathEngine/ThreadPool.h>
 
 namespace NeoML {
 
@@ -51,34 +52,31 @@ public:
 	};
 
 	// K-means clustering parameters
-	struct CParam {
+	struct CParam final {
 		// Clusterization algorithm
-		TKMeansAlgo Algo;
+		TKMeansAlgo Algo = KMA_Lloyd;
 		// The distance function
-		TDistanceFunc DistanceFunc;
+		TDistanceFunc DistanceFunc = DF_Euclid;
 		// The initial cluster count
 		// Unless you set up the initial cluster centers when creating the object, 
 		// this number of centers will be randomly selected from the input data set
-		int InitialClustersCount;
+		int InitialClustersCount = 1;
 		// Initialization algorithm
 		// It's ignored if initial clusters were provided by user (initialClusters parameter of constructor)
-		TKMeansInitialization Initialization;
+		TKMeansInitialization Initialization = KMI_Default;
 		// The maximum number of iterations
-		int MaxIterations;
+		int MaxIterations = 1;
 		// Tolerance criterion for Elkan algorithm
-		double Tolerance;
+		double Tolerance = 1e-5f;
 		// Number of threads used in KMeans
-		int ThreadCount;
+		int ThreadCount = 1;
 		// Number of runs of algorithm
 		// If more than one then the best variant (least inertia) will be returned
-		int RunCount;
+		int RunCount = 1;
 		// Initial seed for random
-		int Seed;
+		int Seed = 0xCEA;
 
-		CParam() : Algo( KMA_Lloyd ), DistanceFunc( DF_Euclid ), InitialClustersCount( 1 ), Initialization( KMI_Default ),
-			MaxIterations( 1 ), Tolerance( 1e-5f ), ThreadCount( 1 ), RunCount( 1 ), Seed( 0xCEA )
-		{
-		}
+		CParam() = default;
 	};
 
 	// Constructors
@@ -103,6 +101,7 @@ private:
 	CTextStream* log; // the logging stream
 	CObjectArray<CCommonCluster> clusters; // the current clusters
 	CArray<CClusterCenter> initialClusterCenters; // the initial cluster centers
+	IThreadPool* threadPool = nullptr;
 
 	// Single run of clusterization with given seed
 	bool runClusterization( IClusteringData* input, int seed, CClusteringResult& result, double& inertia );
@@ -137,7 +136,7 @@ private:
 		const CArray<float>& moveDistance, const CArray<int>& assignments,
 		CArray<float>& upperBounds, CVariableMatrix<float>& lowerBounds ) const;
 	bool isPruned( const CArray<float>& upperBounds, const CVariableMatrix<float>& lowerBounds,
-		const CVariableMatrix<float>& clusterDists, int currentCluster, int clusterToProcess, int id) const;
+		const CVariableMatrix<float>& clusterDists, int currentCluster, int clusterToProcess, int id ) const;
 
 	// Specific case for dense data with Euclidean metrics and Lloyd algorithm
 	bool denseLloydL2Clusterize( IClusteringData* rawData, int seed, CClusteringResult& result, double& inertia );
