@@ -63,7 +63,7 @@ public:
 	virtual ~CDistributedTraining();
 
 	// Gets the number of models in disitrbuted traning
-	int GetModelCount() const { return cnns.Size(); }
+	int GetModelCount() const { return threadPool->Size(); }
 	// Sets the solver for all of the models
 	void SetSolver( CArchive& archive );
 	// Sets the learning rate for all of the models
@@ -100,12 +100,14 @@ public:
 	void StoreDnn( CArchive& archive, int index, bool storeSolver );
 
 private:
-	struct CThreadParams;
+	// Run neural networks passes types
+	enum class TRunType { Invalid, RunOnce, RunBackwardOnce, Train };
 
-	// Either multi-threads on a CPU or multi-devices GPU
-	const bool isCpu;
 	// If multi-threads on a CPU, it is an operator of worker threads
-	IThreadPool* const threadPool;
+	CPtrOwner<IThreadPool> threadPool;
+	// Params to transfer to all threads function
+	struct CThreadParams;
+	CPtrOwner<CThreadParams> threadParams;
 	// Separate mathEngine for each thread or device both for CPU and GPU training
 	// Cannot use CPointerArray, as CreateDistributedCpuMathEngines requires a raw array to initialize engines
 	CArray<IMathEngine*> mathEngines;
@@ -113,15 +115,10 @@ private:
 	CPointerArray<CRandom> rands;
 	// Separate dnn for each thread
 	CPointerArray<CDnn> cnns;
-	// Separate `batchSize` for each dnn (may be empty) in a thread
-	CArray<int> batchSize;
-	// `Train()` cannot be called if it `isFirstRun`
-	// `batchSize` may not be equal 0, if it `isFirstRun` for `RunOnce`, `RunAndBackwardOnce` or `RunAndLearnOnce`.
-	bool isFirstRun = true;
-	// Containers for errors if it happened
-	CArray<CString> errorMessages;
 
 	void initialize( CArchive& archive, int count, TDistributedInitializer initializer, int seed );
+	void serializeDnn( CDnn& dnn, int count, TDistributedInitializer initializer, int seed );
+	void run( IDistributedDataset*, TRunType );
 
 	friend class CLoraSerializer;
 };
@@ -137,10 +134,10 @@ public:
 	CDistributedInference( CArchive& archive, int threadsCount, int seed = 42,
 		bool optimizeDnn = true, size_t memoryLimit = 0 );
 
-	virtual ~CDistributedInference() = default;
+	virtual ~CDistributedInference();
 
 	// Gets the created models number
-	int GetModelCount() const { return threadParams.Refs.Size(); }
+	int GetModelCount() const { return threadPool->Size(); }
 	// Runs the inference for all of the networks
 	// NOTE: Main thread waits while all tasks are done
 	void RunOnce( IDistributedDataset& data );
@@ -152,12 +149,7 @@ public:
 
 private:
 	// Params to transfer to all threads function
-	struct CThreadParams final {
-		IDistributedDataset* Data = nullptr; // Pointer to data for the inference for all dnns
-		CObjectArray<CDnnReference> Refs; // Separate dnn for each thread
-		CArray<CString> ErrorMessages; // Containers for errors if it happened
-		bool IsErrorHappened = false;
-	};
+	struct CThreadParams;
 
 	// The operator of worker threads
 	CPtrOwner<IThreadPool> threadPool;
@@ -166,7 +158,7 @@ private:
 	// Class to create reference dnns
 	CPtr<CReferenceDnnFactory> referenceDnnFactory;
 	// Each `RunOnce` task parameters
-	CThreadParams threadParams;
+	CPtrOwner<CThreadParams> threadParams;
 
 	void initialize( int threadsCount );
 };
