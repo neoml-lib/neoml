@@ -18,10 +18,10 @@ limitations under the License.
 #include <NeoML/NeoMLDefs.h>
 #include <NeoML/TraditionalML/Clustering.h>
 #include <NeoML/TraditionalML/FloatVector.h>
-#include <NeoMathEngine/ThreadPool.h>
 
 namespace NeoML {
 
+class IThreadPool;
 class CCommonCluster;
 template<class T>
 class CVariableMatrix;
@@ -80,12 +80,13 @@ public:
 	};
 
 	// Constructors
+
 	// The initialClusters parameter is the array of cluster centers (of params.InitialClustersCount size)
 	// that will be used on the first step of the algorithm
 	CKMeansClustering( const CArray<CClusterCenter>& initialClusters, const CParam& params );
 	// If you do not specify the initial cluster centers, they will be selected randomly from the input data
 	explicit CKMeansClustering( const CParam& params );
-	~CKMeansClustering() override = default;
+	~CKMeansClustering() override;
 
 	// Sets a text stream for logging processing
 	// By default logging is off (set to null to turn off)
@@ -96,12 +97,16 @@ public:
 	// false if more iterations are needed
 	bool Clusterize( IClusteringData* data, CClusteringResult& result ) override;
 
+	IThreadPool* GetThreadPool() const { return threadPool; }
+	struct IThreadTask;
+
 private:
 	const CParam params; // clustering parameters
-	CTextStream* log; // the logging stream
-	CObjectArray<CCommonCluster> clusters; // the current clusters
-	CArray<CClusterCenter> initialClusterCenters; // the initial cluster centers
-	IThreadPool* threadPool = nullptr;
+	IThreadPool* const threadPool;
+	CTextStream* log = nullptr; // the logging stream
+
+	CObjectArray<CCommonCluster> clusters{}; // the current clusters
+	CArray<CClusterCenter> initialClusterCenters{}; // the initial cluster centers
 
 	// Single run of clusterization with given seed
 	bool runClusterization( IClusteringData* input, int seed, CClusteringResult& result, double& inertia );
@@ -116,27 +121,21 @@ private:
 
 	// Lloyd algorithm implementation for sparse data
 	bool lloydClusterization( const CFloatMatrixDesc& matrix, const CArray<double>& weights, double& inertia );
-	void classifyAllData( const CFloatMatrixDesc& matrix, CArray<int>& dataCluster, double& inertia );
-	int findNearestCluster( const CFloatMatrixDesc& matrix, int dataIndex, double& inertia ) const;
+	struct CClassifyAllThreadTask;
+	double classifyAllData( CClassifyAllThreadTask& );
 	void storeClusterCenters( CArray<CClusterCenter>& result );
 	bool updateClusters( const CFloatMatrixDesc& matrix, const CArray<double>& weights,
 		const CArray<int>& dataCluster, const CArray<CClusterCenter>& oldCenters );
 
 	// Elkan algorithm implementation for sparse data
 	bool elkanClusterization( const CFloatMatrixDesc& matrix, const CArray<double>& weights, double& inertia );
-	void initializeElkanStatistics( const CFloatMatrixDesc& matrix, CArray<int>& assignments,
-		CArray<float>& upperBounds, CVariableMatrix<float>& lowerBounds, CVariableMatrix<float>& clusterDists,
-		CArray<float>& closestClusterDist, CArray<float>& moveDistance );
+	struct CAssignVectorsThreadTask;
+	void initializeElkanStatistics( CAssignVectorsThreadTask& );
 	void computeClustersDists( CVariableMatrix<float>& dists, CArray<float>& closestCluster ) const;
-	void assignVectors( const CFloatMatrixDesc& matrix, const CVariableMatrix<float>& clusterDists,
-		const CArray<float>& closestClusterDist, CArray<int>& assignments, CArray<float>& upperBounds,
-		CVariableMatrix<float>& lowerBounds ) const;
+	void assignVectors( CAssignVectorsThreadTask& ) const;
 	void updateMoveDistance( const CArray<CClusterCenter>& oldCenters, CArray<float>& moveDistance ) const;
-	double updateUpperAndLowerBounds( const CFloatMatrixDesc& matrix,
-		const CArray<float>& moveDistance, const CArray<int>& assignments,
-		CArray<float>& upperBounds, CVariableMatrix<float>& lowerBounds ) const;
-	bool isPruned( const CArray<float>& upperBounds, const CVariableMatrix<float>& lowerBounds,
-		const CVariableMatrix<float>& clusterDists, int currentCluster, int clusterToProcess, int id ) const;
+	struct CUpdateULBoundsThreadTask;
+	double updateUpperAndLowerBounds( CUpdateULBoundsThreadTask& ) const;
 
 	// Specific case for dense data with Euclidean metrics and Lloyd algorithm
 	bool denseLloydL2Clusterize( IClusteringData* rawData, int seed, CClusteringResult& result, double& inertia );

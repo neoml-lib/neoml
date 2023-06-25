@@ -34,10 +34,10 @@ static CPtr<CDnnBlob> createDataBlob( IMathEngine& mathEngine, const CFloatMatri
 	NeoAssert( data.Columns == nullptr );
 	const int vectorCount = data.Height;
 	const int featureCount = data.Width;
-	CPtr<CDnnBlob> result = CDnnBlob::CreateDataBlob( mathEngine, CT_Float, 1, vectorCount, featureCount );
+	CPtr<CDnnBlob> result = CDnnBlob::CreateDataBlob( mathEngine, CT_Float, 1, vectorCount, featureCount ); // no threads
 	CFloatHandle currData = result->GetData();
 	for( int row = 0; row < data.Height; ++row ) {
-		mathEngine.DataExchangeTyped( currData, data.Values + data.PointerB[row], featureCount );
+		mathEngine.DataExchangeTyped( currData, data.Values + data.PointerB[row], featureCount ); // no threads
 		currData += featureCount;
 	}
 	return result;
@@ -46,7 +46,7 @@ static CPtr<CDnnBlob> createDataBlob( IMathEngine& mathEngine, const CFloatMatri
 static CPtr<CDnnBlob> createWeightBlob( IMathEngine& mathEngine, const IClusteringData* data )
 {
 	const int vectorCount = data->GetVectorCount();
-	CPtr<CDnnBlob> weight = CDnnBlob::CreateVector( mathEngine, CT_Float, vectorCount );
+	CPtr<CDnnBlob> weight = CDnnBlob::CreateVector( mathEngine, CT_Float, vectorCount ); // no threads
 	CDnnBlobBuffer<float> buffer( *weight, TDnnBlobBufferAccess::Write );
 	for( int vectorIndex = 0; vectorIndex < vectorCount; ++vectorIndex ) {
 		buffer[vectorIndex] = static_cast<float>( data->GetVectorWeight( vectorIndex ) );
@@ -57,10 +57,205 @@ static CPtr<CDnnBlob> createWeightBlob( IMathEngine& mathEngine, const IClusteri
 
 //-------------------------------------------------------------------------------------------------------------
 
+struct CInertia final {
+	explicit CInertia( int threadCount ) { localInertia.Add( 0., threadCount ); }
+	double& Get( int threadIndex ) { return localInertia[threadIndex]; }
+	double GetSum() const;
+
+private:
+	CArray<double> localInertia{};
+};
+
+double CInertia::GetSum() const
+{
+	double inertia = 0;
+	for( int i = 0; i < localInertia.Size(); ++i ) {
+		inertia += localInertia[i];
+	}
+	return inertia;
+}
+
+//-------------------------------------------------------------------------------------------------------------
+
+// Task which processes a set of elements on a single thread
+struct CKMeansClustering::IThreadTask {
+	virtual ~IThreadTask() {}
+	virtual int Size() const { return Matrix ? Matrix->Height : VectorSize; }
+
+	int ThreadCount() const { return Owner.params.ThreadCount; }
+	void CallRun( int threadIndex, int align = 1 );
+
+	const CFloatMatrixDesc* const Matrix;
+protected:
+	IThreadTask( const CKMeansClustering& owner, const CFloatMatrixDesc* matrix ) :
+		Matrix( matrix ),
+		VectorSize( 0 ),
+		Owner( owner )
+	{}
+	IThreadTask( const CKMeansClustering& owner, int size ) :
+		Matrix( nullptr ),
+		VectorSize( size ),
+		Owner( owner )
+	{}
+
+	virtual void Run( int threadIndex, int index, int count );
+	virtual void RunOnElement( int threadIndex, int index ) = 0;
+
+	const int VectorSize;
+	const CKMeansClustering& Owner;
+};
+
+void CKMeansClustering::IThreadTask::CallRun( int threadIndex, int align )
+{
+	int index = 0;
+	int count = 0;
+	if( GetTaskIndexAndCount( ThreadCount(), threadIndex, Size(), align, index, count ) ) {
+		Run( threadIndex, index, count );
+	}
+}
+
+void CKMeansClustering::IThreadTask::Run( int threadIndex, int index, int count )
+{
+	const int last = index + count;
+	for( int i = index; i < last; ++i ) {
+		RunOnElement( threadIndex, i );
+	}
+}
+
+//-------------------------------------------------------------------------------------------------------------
+
+// Finds the nearest cluster for the element
+struct CKMeansClustering::CClassifyAllThreadTask final : public CKMeansClustering::IThreadTask {
+	CClassifyAllThreadTask( const CKMeansClustering& owner, const CFloatMatrixDesc& matrix ) :
+		IThreadTask( owner, &matrix ),
+		Inertia( ThreadCount() )
+	{ DataCluster.SetBufferSize( Size() ); }
+
+	CArray<int> DataCluster{}; // the cluster for this element
+	CInertia Inertia;
+protected:
+	void RunOnElement( int threadIndex, int index ) override;
+};
+
+void CKMeansClustering::CClassifyAllThreadTask::RunOnElement( int threadIndex, int dataIndex )
+{
+	const auto distanceFunc = Owner.params.DistanceFunc;
+	double bestDistance = DBL_MAX;
+	int res = NotFound;
+
+	for( int i = 0; i < Owner.clusters.Size(); ++i ) {
+		CFloatVectorDesc desc;
+		Matrix->GetRow( dataIndex, desc );
+		const double distance = Owner.clusters[i]->CalcDistance( desc, distanceFunc );
+		if( distance < bestDistance ) {
+			bestDistance = distance;
+			res = i;
+		}
+	}
+
+	NeoAssert( res != NotFound );
+	Inertia.Get( threadIndex ) += bestDistance;
+	DataCluster[dataIndex] = res;
+}
+
+//-------------------------------------------------------------------------------------------------------------
+
+struct CKMeansClustering::CAssignVectorsThreadTask final : public CKMeansClustering::IThreadTask {
+	CAssignVectorsThreadTask( const CKMeansClustering& owner, const CFloatMatrixDesc& matrix ) :
+		IThreadTask( owner, &matrix )
+	{}
+
+	// Element assignments (objectCount)
+	CArray<int> Assignments{};
+	// Distances bounds
+	CArray<float> UpperBounds{}; // upper bounds for every object (objectCount)
+	CVariableMatrix<float> LowerBounds{}; // lower bounds for every object and every cluster (clusterCount x objectCount)
+
+	// Distances between clusters (clusterCount x clusteCount)
+	CVariableMatrix<float> ClusterDists{};
+	// Distance to the closest center of another cluster (clusterCount)
+	CArray<float> ClosestClusterDist{};
+	// Distances between old and updated centers of each cluster (clusterCount)
+	CArray<float> MoveDistance{};
+
+protected:
+	void RunOnElement( int threadIndex, int index ) override;
+	// Checks if operation can be omitted
+	// If it's true element 'id' can't be reassigned to the cluster 'clusterToProcess'
+	// and all of the calculations related to this case can be skipped
+	bool isPruned( int clusterToProcess, int id ) const;
+};
+
+bool CKMeansClustering::CAssignVectorsThreadTask::isPruned( int clusterToProcess, int id ) const
+{
+	return ( Assignments[id] == clusterToProcess ) ||
+		( UpperBounds[id] <= LowerBounds( clusterToProcess, id ) ) ||
+		( UpperBounds[id] <= 0.5 * ClusterDists( Assignments[id], clusterToProcess ) );
+}
+
+void CKMeansClustering::CAssignVectorsThreadTask::RunOnElement( int /*threadIndex*/, int index )
+{
+	const auto distanceFunc = Owner.params.DistanceFunc;
+	if( UpperBounds[index] > ClosestClusterDist[Assignments[index]] ) {
+		bool recalculate = true;
+		for( int c = 0; c < Owner.clusters.Size(); ++c ) {
+			if( isPruned( c, index ) ) {
+				continue;
+			}
+			float dist = UpperBounds[index];
+			if( recalculate ) {
+				recalculate = false;
+				auto& cluster = *Owner.clusters[Assignments[index]];
+				auto rowDesc = Matrix->GetRow( index );
+				dist = static_cast<float>( sqrt( cluster.CalcDistance( rowDesc, distanceFunc ) ) );
+				LowerBounds( Assignments[index], index ) = dist;
+				UpperBounds[index] = dist;
+			}
+			if( dist > LowerBounds( c, index ) || dist > 0.5 * ClusterDists( Assignments[index], c ) ) {
+				auto& cluster = *Owner.clusters[c];
+				auto rowDesc = Matrix->GetRow( index );
+				const float pointDist = static_cast<float>( sqrt( cluster.CalcDistance( rowDesc, distanceFunc ) ) );
+				LowerBounds( c, index ) = pointDist;
+				if( pointDist < dist ) {
+					UpperBounds[index] = pointDist;
+					Assignments[index] = c;
+				}
+			}
+		}
+	}
+}
+
+//-------------------------------------------------------------------------------------------------------------
+
+struct CKMeansClustering::CUpdateULBoundsThreadTask final : public CKMeansClustering::IThreadTask {
+	CUpdateULBoundsThreadTask( const CKMeansClustering& owner, const CFloatMatrixDesc& matrix,
+			CAssignVectorsThreadTask& assigns ) :
+		IThreadTask( owner, &matrix ),
+		Inertia( ThreadCount() ),
+		Assigns( assigns )
+	{}
+
+	CInertia Inertia;
+protected:
+	void RunOnElement( int threadIndex, int index ) override;
+
+	CAssignVectorsThreadTask& Assigns;
+};
+
+void CKMeansClustering::CUpdateULBoundsThreadTask::RunOnElement( int threadIndex, int index )
+{
+	for( int c = 0; c < Owner.clusters.Size(); ++c ) {
+		Assigns.LowerBounds( c, index ) = max( Assigns.LowerBounds( c, index ) - Assigns.MoveDistance[c], 0.f );
+	}
+	Assigns.UpperBounds[index] += Assigns.MoveDistance[Assigns.Assignments[index]];
+	Inertia.Get( threadIndex ) += Owner.clusters[Assigns.Assignments[index]]->CalcDistance(
+		Matrix->GetRow( index ), Owner.params.DistanceFunc );
+}
+
+//-------------------------------------------------------------------------------------------------------------
+
 CKMeansClustering::CKMeansClustering( const CArray<CClusterCenter>& _clusters, const CParam& _params ) :
-	params( _params ),
-	log( 0 ),
-	threadPool( CreateThreadPool( params.ThreadCount ) )
+	CKMeansClustering( _params )
 {
 	NeoAssert( !_clusters.IsEmpty() );
 	NeoAssert( _clusters.Size() == params.InitialClustersCount );
@@ -70,9 +265,15 @@ CKMeansClustering::CKMeansClustering( const CArray<CClusterCenter>& _clusters, c
 
 CKMeansClustering::CKMeansClustering( const CParam& _params ) :
 	params( _params ),
-	log( 0 ),
-	threadPool( CreateThreadPool( params.ThreadCount  ) )
-{}
+	threadPool( CreateThreadPool( params.ThreadCount ) )
+{
+	NeoAssert( threadPool != nullptr );
+}
+
+CKMeansClustering::~CKMeansClustering()
+{
+	delete threadPool;
+}
 
 bool CKMeansClustering::Clusterize( IClusteringData* input, CClusteringResult& result )
 {
@@ -168,16 +369,16 @@ bool CKMeansClustering::denseLloydL2Clusterize( IClusteringData* rawData, int se
 
 	std::unique_ptr<IMathEngine> mathEngine( CreateCpuMathEngine( params.ThreadCount, 0 ) );
 
-	CPtr<CDnnBlob> data = createDataBlob( *mathEngine, rawData->GetMatrix() );
-	CPtr<CDnnBlob> weight = createWeightBlob( *mathEngine, rawData );
-	CPtr<CDnnBlob> centers = CDnnBlob::CreateDataBlob( *mathEngine, CT_Float, 1, clusterCount, featureCount );
+	CPtr<CDnnBlob> data = createDataBlob( *mathEngine, rawData->GetMatrix() ); // no threads
+	CPtr<CDnnBlob> weight = createWeightBlob( *mathEngine, rawData ); // no threads
+	CPtr<CDnnBlob> centers = CDnnBlob::CreateDataBlob( *mathEngine, CT_Float, 1, clusterCount, featureCount ); // no threads
 
 	selectInitialClusters( *data, seed, *centers );
 
 	bool success = false;
 
-	CPtr<CDnnBlob> sizes = CDnnBlob::CreateVector( *mathEngine, CT_Float, clusterCount );
-	CPtr<CDnnBlob> labels = CDnnBlob::CreateVector( *mathEngine, CT_Int, vectorCount );
+	CPtr<CDnnBlob> sizes = CDnnBlob::CreateVector( *mathEngine, CT_Float, clusterCount ); // no threads
+	CPtr<CDnnBlob> labels = CDnnBlob::CreateVector( *mathEngine, CT_Int, vectorCount ); // no threads
 
 	static_assert( KMA_Count == 2, "KMA_Count != 2" );
 	switch( params.Algo ) {
@@ -195,7 +396,7 @@ bool CKMeansClustering::denseLloydL2Clusterize( IClusteringData* rawData, int se
 	result.Data.SetSize( vectorCount );
 	labels->CopyTo( result.Data.GetPtr() );
 
-	CPtr<CDnnBlob> variances = CDnnBlob::CreateDataBlob( *mathEngine, CT_Float, 1, clusterCount, featureCount );
+	CPtr<CDnnBlob> variances = CDnnBlob::CreateDataBlob( *mathEngine, CT_Float, 1, clusterCount, featureCount ); // no threads
 	calcClusterVariances( *data, *labels, *centers, *sizes, *variances );
 
 	CConstFloatHandle rawCentersPtr = centers->GetData();
@@ -207,8 +408,8 @@ bool CKMeansClustering::denseLloydL2Clusterize( IClusteringData* rawData, int se
 		CFloatVector center( featureCount );
 		CFloatVector variance( featureCount );
 
-		mathEngine->DataExchangeTyped( center.CopyOnWrite(), rawCentersPtr, featureCount );
-		mathEngine->DataExchangeTyped( variance.CopyOnWrite(), rawVariancesPtr, featureCount );
+		mathEngine->DataExchangeTyped( center.CopyOnWrite(), rawCentersPtr, featureCount ); // no threads
+		mathEngine->DataExchangeTyped( variance.CopyOnWrite(), rawVariancesPtr, featureCount ); // no threads
 
 		CClusterCenter& currentCenter = result.Clusters.Append();
 		currentCenter.Mean = center;
@@ -341,11 +542,11 @@ bool CKMeansClustering::clusterize( const CFloatMatrixDesc& matrix, const CArray
 
 bool CKMeansClustering::lloydClusterization( const CFloatMatrixDesc& matrix, const CArray<double>& weights, double& inertia )
 {
-	CArray<int> dataCluster; // the cluster for this element
-	dataCluster.SetBufferSize( matrix.Height );
 	bool success = false;
+
+	CClassifyAllThreadTask task( *this, matrix );
 	for( int i = 0; i < params.MaxIterations; ++i ) {
-		classifyAllData( matrix, dataCluster, inertia );
+		inertia = classifyAllData( task );
 
 		if( log != 0 ) {
 			*log << "\n[Step " << i << "]\nData classification result:\n";
@@ -357,7 +558,7 @@ bool CKMeansClustering::lloydClusterization( const CFloatMatrixDesc& matrix, con
 
 		CArray<CClusterCenter> oldCenters;
 		storeClusterCenters( oldCenters );
-		if( !updateClusters( matrix, weights, dataCluster, oldCenters ) ) {
+		if( !updateClusters( matrix, weights, task.DataCluster, oldCenters ) ) {
 			// Cluster centers stay the same, no need to continue
 			success = true;
 			break;
@@ -367,48 +568,15 @@ bool CKMeansClustering::lloydClusterization( const CFloatMatrixDesc& matrix, con
 }
 
 // Distributes all elements over the existing clusters
-void CKMeansClustering::classifyAllData( const CFloatMatrixDesc& matrix, CArray<int>& dataCluster, double& inertia )
+double CKMeansClustering::classifyAllData( CClassifyAllThreadTask& task )
 {
-	// Each element is assigned to the nearest cluster
-	dataCluster.SetSize( matrix.Height );
-	CFastArray<double, 8> localInertia;
-	localInertia.Add( 0., params.ThreadCount );
-	NEOML_OMP_NUM_THREADS( params.ThreadCount ) {
-		int firstVector = 0;
-		int vectorCount = 0;
-		if( OmpGetTaskIndexAndCount( matrix.Height, firstVector, vectorCount ) ) {
-			const int lastVector = firstVector + vectorCount;
-			for( int i = firstVector; i < lastVector; ++i ) {
-				dataCluster[i] = findNearestCluster( matrix, i, localInertia[OmpGetThreadNum()] );
-			}
-		}
-	}
+	task.DataCluster.SetSize( task.Size() ); // Each element is assigned to the nearest cluster
 
-	inertia = 0;
-	for( int i = 0; i < localInertia.Size(); ++i ) {
-		inertia += localInertia[i];
-	}
-}
+	NEOML_NUM_THREADS( *threadPool, &task, []( int threadIndex, void* ptr ) {
+		( ( IThreadTask* )ptr )->CallRun( threadIndex );
+	} );
 
-// Finds the nearest cluster for the element
-int CKMeansClustering::findNearestCluster( const CFloatMatrixDesc& matrix, int dataIndex, double& inertia ) const
-{
-	double bestDistance = DBL_MAX;
-	int res = NotFound;
-
-	for( int i = 0; i < clusters.Size(); ++i ) {
-		CFloatVectorDesc desc;
-		matrix.GetRow( dataIndex, desc );
-		const double distance = clusters[i]->CalcDistance( desc, params.DistanceFunc );
-		if( distance < bestDistance ) {
-			bestDistance = distance;
-			res = i;
-		}
-	}
-
-	NeoAssert( res != NotFound );
-	inertia += bestDistance;
-	return res;
+	return task.Inertia.GetSum();
 }
 
 void CKMeansClustering::storeClusterCenters( CArray<CClusterCenter>& result )
@@ -456,36 +624,24 @@ bool CKMeansClustering::elkanClusterization( const CFloatMatrixDesc& matrix, con
 	// Metric must support triangle inequality
 	NeoAssert( params.DistanceFunc == DF_Euclid );
 
-	// Distances bounds
-	CArray<float> upperBounds; // upper bounds for every object (objectCount)
-	CVariableMatrix<float> lowerBounds; // lower bounds for every object and every cluster (clusterCount x objectCount)
-	// Distances between old and updated centers of each cluster (clusterCount)
-	CArray<float> moveDistance;
-	// Distances between clusters (clusterCount x clusteCount)
-	CVariableMatrix<float> clusterDists;
-	// Distance to the closest center of another cluster (clusterCount)
-	CArray<float> closestClusterDist;
-	// Element assignments (objectCount)
-	CArray<int> assignments;
-
-	initializeElkanStatistics( matrix, assignments, upperBounds, lowerBounds, clusterDists,
-		closestClusterDist, moveDistance );
+	CAssignVectorsThreadTask assignTask( *this, matrix );
+	initializeElkanStatistics( assignTask );
 
 	double lastResidual = DBL_MAX;
 	for( int i = 0; i < params.MaxIterations; ++i ) {
 		// Calculaate pairwise and closest cluster distances
-		computeClustersDists( clusterDists, closestClusterDist );
+		computeClustersDists( assignTask.ClusterDists, assignTask.ClosestClusterDist );
 		// Reassign vectors
-		assignVectors( matrix, clusterDists, closestClusterDist, assignments,
-			upperBounds, lowerBounds );
+		assignVectors( assignTask );
 		// Recalculate centers
 		CArray<CClusterCenter> oldCenters;
 		storeClusterCenters( oldCenters );
-		updateClusters( matrix, weights, assignments, oldCenters );
+		updateClusters( matrix, weights, assignTask.Assignments, oldCenters );
 		// Update move distances
-		updateMoveDistance( oldCenters, moveDistance );
+		updateMoveDistance( oldCenters, assignTask.MoveDistance );
 		// Update bounds based on move distance
-		inertia = updateUpperAndLowerBounds( matrix, moveDistance, assignments, upperBounds, lowerBounds );
+		CUpdateULBoundsThreadTask updateTask( *this, matrix, assignTask );
+		inertia = updateUpperAndLowerBounds( updateTask );
 		// Check stop criteria
 		if( abs( inertia - lastResidual ) <= params.Tolerance ) {
 			return true;
@@ -499,31 +655,29 @@ bool CKMeansClustering::elkanClusterization( const CFloatMatrixDesc& matrix, con
 }
 
 // Initializes all required statistics for Elkan algorithm
-void CKMeansClustering::initializeElkanStatistics( const CFloatMatrixDesc& matrix,
-	CArray<int>& assignments, CArray<float>& upperBounds, CVariableMatrix<float>& lowerBounds,
-	CVariableMatrix<float>& clusterDists, CArray<float>& closestClusterDist, CArray<float>& moveDistance )
+void CKMeansClustering::initializeElkanStatistics( CAssignVectorsThreadTask& task )
 {
 	// initialize mapping between elements and cluster index
-	assignments.DeleteAll();
-	assignments.Add( 0, matrix.Height );
+	task.Assignments.DeleteAll();
+	task.Assignments.Add( 0, task.Matrix->Height );
 
 	// initialize bounds
-	upperBounds.DeleteAll();
-	upperBounds.Add( FLT_MAX, matrix.Height );
-	lowerBounds.SetSize( params.InitialClustersCount, matrix.Height );
-	lowerBounds.Set( 0.f );
+	task.UpperBounds.DeleteAll();
+	task.UpperBounds.Add( FLT_MAX, task.Matrix->Height );
+	task.LowerBounds.SetSize( params.InitialClustersCount, task.Matrix->Height );
+	task.LowerBounds.Set( 0.f );
 
 	// initialize pairwise cluster distances
-	clusterDists.SetSize( params.InitialClustersCount, params.InitialClustersCount );
-	clusterDists.Set( FLT_MAX );
+	task.ClusterDists.SetSize( params.InitialClustersCount, params.InitialClustersCount );
+	task.ClusterDists.Set( FLT_MAX );
 
 	// initialize closest cluster distances
-	closestClusterDist.DeleteAll();
-	closestClusterDist.Add( FLT_MAX, params.InitialClustersCount );
+	task.ClosestClusterDist.DeleteAll();
+	task.ClosestClusterDist.Add( FLT_MAX, params.InitialClustersCount );
 
 	// initialize move distances
-	moveDistance.DeleteAll();
-	moveDistance.Add( 0, params.InitialClustersCount );
+	task.MoveDistance.DeleteAll();
+	task.MoveDistance.Add( 0, params.InitialClustersCount );
 }
 
 void CKMeansClustering::computeClustersDists( CVariableMatrix<float>& dists, CArray<float>& closestCluster ) const
@@ -544,51 +698,15 @@ void CKMeansClustering::computeClustersDists( CVariableMatrix<float>& dists, CAr
 	}
 }
 
-void CKMeansClustering::assignVectors( const CFloatMatrixDesc& matrix, const CVariableMatrix<float>& clusterDists,
-	const CArray<float>& closestClusterDist, CArray<int>& assignments, CArray<float>& upperBounds,
-	CVariableMatrix<float>& lowerBounds ) const
+void CKMeansClustering::assignVectors( CAssignVectorsThreadTask& task ) const
 {
-	NeoAssert( assignments.Size() == matrix.Height );
-	NeoAssert( lowerBounds.SizeX() == params.InitialClustersCount );
-	NeoAssert( upperBounds.Size() == assignments.Size() );
-	NEOML_OMP_NUM_THREADS( params.ThreadCount ) {
-		int firstVector = 0;
-		int vectorCount = 0;
-		if( OmpGetTaskIndexAndCount( matrix.Height, firstVector, vectorCount ) ) {
-			const int lastVector = firstVector + vectorCount;
-			for( int i = firstVector; i < lastVector; ++i ) {
-				if( upperBounds[i] <= closestClusterDist[assignments[i]] ) {
-					continue;
-				} else {
-					bool mustRecalculate = true;
-					for( int c = 0; c < clusters.Size(); ++c ) {
-						if( isPruned( upperBounds, lowerBounds, clusterDists, assignments[i], c, i ) ) {
-							continue;
-						}
-						float dist = upperBounds[i];
-						if( mustRecalculate ) {
-							mustRecalculate = false;
-							dist = static_cast<float>(
-								sqrt( clusters[assignments[i]]->CalcDistance( matrix.GetRow( i ),
-									params.DistanceFunc ) ) );
-							lowerBounds( assignments[i], i ) = dist;
-							upperBounds[i] = dist;
-						}
-						if( dist > lowerBounds( c, i ) || dist > 0.5 * clusterDists( assignments[i], c ) ) {
-							const float pointDist = static_cast<float>(
-								sqrt( clusters[c]->CalcDistance( matrix.GetRow( i ),
-									params.DistanceFunc ) ) );
-							lowerBounds( c, i ) = pointDist;
-							if( pointDist < dist ) {
-								upperBounds[i] = pointDist;
-								assignments[i] = c;
-							}
-						}
-					}
-				}
-			}
-		}
-	}
+	NeoAssert( task.Assignments.Size() == task.Matrix->Height );
+	NeoAssert( task.LowerBounds.SizeX() == params.InitialClustersCount );
+	NeoAssert( task.UpperBounds.Size() == task.Assignments.Size() );
+
+	NEOML_NUM_THREADS( *threadPool, &task, []( int threadIndex, void* ptr )  {
+		( ( IThreadTask* )ptr )->CallRun( threadIndex );
+	} );
 }
 
 void CKMeansClustering::updateMoveDistance( const CArray<CClusterCenter>& oldCenters, CArray<float>& moveDistance ) const
@@ -599,45 +717,13 @@ void CKMeansClustering::updateMoveDistance( const CArray<CClusterCenter>& oldCen
 	}
 }
 
-double CKMeansClustering::updateUpperAndLowerBounds( const CFloatMatrixDesc& matrix,
-	const CArray<float>& moveDistance, const CArray<int>& assignments,
-	CArray<float>& upperBounds, CVariableMatrix<float>& lowerBounds ) const
+double CKMeansClustering::updateUpperAndLowerBounds( CUpdateULBoundsThreadTask& task ) const
 {
-	CFastArray<double, 16> localInertia;
-	localInertia.Add( 0., params.ThreadCount );
+	NEOML_NUM_THREADS( *threadPool, &task, []( int threadIndex, void* ptr ) {
+		( ( IThreadTask* )ptr )->CallRun( threadIndex );
+	} );
 
-	NEOML_OMP_NUM_THREADS( params.ThreadCount ) {
-		const int threadIndex = OmpGetThreadNum();
-		int firstVector = 0;
-		int vectorCount = 0;
-		if( OmpGetTaskIndexAndCount( matrix.Height, firstVector, vectorCount ) ) {
-			const int lastVector = firstVector + vectorCount;
-			for( int j = firstVector; j < lastVector; ++j ) {
-				for( int c = 0; c < clusters.Size(); ++c ) {
-					lowerBounds( c, j ) = max( lowerBounds( c, j ) - moveDistance[c], 0.f );
-				}
-				upperBounds[j] += moveDistance[assignments[j]];
-				localInertia[threadIndex] += clusters[assignments[j]]->CalcDistance( matrix.GetRow( j ), params.DistanceFunc );
-			}
-		}
-	}
-
-	double inertia = 0;
-	for( int i = 0; i < localInertia.Size(); ++i ) {
-		inertia += localInertia[i];
-	}
-	return inertia;
-}
-
-// Checks if operation can be omitted
-// If it's true element 'id' can't be reassigned to the cluster 'clusterToProcess'
-// and all of the calculations related to this case can be skipped
-bool CKMeansClustering::isPruned( const CArray<float>& upperBounds, const CVariableMatrix<float>& lowerBounds,
-	const CVariableMatrix<float>& clusterDists, int currentCluster, int clusterToProcess, int id ) const
-{
-	return ( currentCluster == clusterToProcess ) ||
-		( upperBounds[id] <= lowerBounds( clusterToProcess, id ) ) ||
-		( upperBounds[id] <= 0.5 * clusterDists( currentCluster, clusterToProcess ) );
+	return task.Inertia.GetSum();
 }
 
 // Selects initial centers from dense data
@@ -684,7 +770,7 @@ void CKMeansClustering::defaultInitialization( const CDnnBlob& data, int seed, C
 
 		for( int i = 0; i < params.InitialClustersCount; ++i ) {
 			const int pos = ( i * step ) % vectorCount;
-			mathEngine.VectorCopy( centers.GetObjectData( i ), data.GetObjectData( pos ), featureCount );
+			mathEngine.VectorCopy( centers.GetObjectData( i ), data.GetObjectData( pos ), featureCount ); // TODO! threads
 		}
 	} else {
 		CArray<int> perm;
@@ -701,7 +787,7 @@ void CKMeansClustering::defaultInitialization( const CDnnBlob& data, int seed, C
 		}
 
 		for( int i = 0; i < params.InitialClustersCount; ++i ) {
-			mathEngine.VectorCopy( centers.GetObjectData( i ), data.GetObjectData( perm[i] ), featureCount );
+			mathEngine.VectorCopy( centers.GetObjectData( i ), data.GetObjectData( perm[i] ), featureCount ); // TODO! threads
 		}
 	}
 }
@@ -716,22 +802,22 @@ void CKMeansClustering::kMeansPlusPlusInitialization( const CDnnBlob& data, int 
 	const int firstChoice = random.UniformInt( 0, vectorCount - 1 );
 	// Copy first vector
 	IMathEngine& mathEngine = centers.GetMathEngine();
-	mathEngine.VectorCopy( centers.GetData(), data.GetObjectData( firstChoice ), data.GetObjectSize() );
+	mathEngine.VectorCopy( centers.GetData(), data.GetObjectData( firstChoice ), data.GetObjectSize() ); // TODO! threads
 
 	CFloatHandleStackVar stackBuff( mathEngine, vectorCount + 1 );
 	CFloatHandle sumBlob = stackBuff;
 	CFloatHandle currDists = stackBuff + 1;
 
 	CHashTable<int> usedVectors;
-	CPtr<CDnnBlob> prevDists = CDnnBlob::CreateVector( mathEngine, CT_Float, vectorCount );
-	mathEngine.MatrixRowsToVectorSquaredL2Distance( data.GetData(), vectorCount, featureCount,
+	CPtr<CDnnBlob> prevDists = CDnnBlob::CreateVector( mathEngine, CT_Float, vectorCount ); // no threads
+	mathEngine.MatrixRowsToVectorSquaredL2Distance( data.GetData(), vectorCount, featureCount, // TODO! threads
 		centers.GetData(), prevDists->GetData() );
 	for( int k = 1; k < params.InitialClustersCount; ++k ) {
 		CConstFloatHandle currentVector = centers.GetObjectData( k - 1 );
-		mathEngine.MatrixRowsToVectorSquaredL2Distance( data.GetData(), vectorCount, featureCount,
+		mathEngine.MatrixRowsToVectorSquaredL2Distance( data.GetData(), vectorCount, featureCount, // TODO! threads
 			currentVector, currDists );
-		mathEngine.VectorEltwiseMin( currDists, prevDists->GetData(), prevDists->GetData(), prevDists->GetDataSize() );
-		mathEngine.VectorSum( prevDists->GetData(), prevDists->GetDataSize(), sumBlob );
+		mathEngine.VectorEltwiseMin( currDists, prevDists->GetData(), prevDists->GetData(), prevDists->GetDataSize() ); // TODO! threads
+		mathEngine.VectorSum( prevDists->GetData(), prevDists->GetDataSize(), sumBlob ); // TODO! threads
 
 		const double sumValue = static_cast<double>( sumBlob.GetValue() );
 		const double scaledSum = random.Uniform( 0, 1 ) * sumValue;
@@ -753,7 +839,7 @@ void CKMeansClustering::kMeansPlusPlusInitialization( const CDnnBlob& data, int 
 		NeoAssert( nextCoice != -1 );
 		NeoAssert( !usedVectors.Has( nextCoice ) );
 		usedVectors.Add( nextCoice );
-		mathEngine.VectorCopy( centers.GetObjectData( k ), data.GetObjectData( nextCoice ), featureCount );
+		mathEngine.VectorCopy( centers.GetObjectData( k ), data.GetObjectData( nextCoice ), featureCount ); // TODO! threads
 	}
 }
 
@@ -766,8 +852,8 @@ bool CKMeansClustering::lloydBlobClusterization( const CDnnBlob& data, const CDn
 
 	IMathEngine& mathEngine = data.GetMathEngine();
 	// pre-calculate l2-norm of input data
-	CPtr<CDnnBlob> squaredData = CDnnBlob::CreateVector( mathEngine, CT_Float, data.GetObjectCount() );
-	mathEngine.RowMultiplyMatrixByMatrix( data.GetData(), data.GetData(), data.GetObjectCount(),
+	CPtr<CDnnBlob> squaredData = CDnnBlob::CreateVector( mathEngine, CT_Float, data.GetObjectCount() ); // no threads
+	mathEngine.RowMultiplyMatrixByMatrix( data.GetData(), data.GetData(), data.GetObjectCount(), // TODO! threads
 		data.GetObjectSize(), squaredData->GetData() );
 	for( int iter = 0; iter < params.MaxIterations; ++iter ) {
 		inertia = assignClosest( data, *squaredData, weight, centers, labels );
@@ -800,7 +886,7 @@ static void calcClosestDistances( const CDnnBlob& data, const CDnnBlob& squaredD
 
 	minusTwo.SetValue( -2.f );
 	// pre-calculate l2-norm of current cluster centers
-	mathEngine.RowMultiplyMatrixByMatrix( centers.GetData(), centers.GetData(), clusterCount, featureCount, squaredCenters );
+	mathEngine.RowMultiplyMatrixByMatrix( centers.GetData(), centers.GetData(), clusterCount, featureCount, squaredCenters ); // TODO! threads
 
 	int batchStart = 0;
 	CConstFloatHandle currData = data.GetData();
@@ -808,17 +894,15 @@ static void calcClosestDistances( const CDnnBlob& data, const CDnnBlob& squaredD
 	CFloatHandle currClosesDist = closestDist;
 	CIntHandle currLabels = labels;
 	while( batchStart < vectorCount ) {
-		if( batchStart + batchSize > vectorCount ) {
-			batchSize = vectorCount - batchStart;
-		}
+		batchSize = min( batchSize, vectorCount - batchStart );
 
 		// (a - b)^2 = a^2 + b^2 - 2*a*b
-		mathEngine.MultiplyMatrixByTransposedMatrix( 1, centers.GetData(), clusterCount, featureCount, currData,
+		mathEngine.MultiplyMatrixByTransposedMatrix( 1, centers.GetData(), clusterCount, featureCount, currData, // TODO! threads
 			batchSize, distances, clusterCount * batchSize );
-		mathEngine.VectorMultiply( distances, distances, clusterCount * batchSize, minusTwo );
-		mathEngine.AddVectorToMatrixRows( 1, distances, distances, clusterCount, batchSize, currSquaredData );
-		mathEngine.AddVectorToMatrixColumns( distances, distances, clusterCount, batchSize, squaredCenters );
-		mathEngine.FindMinValueInColumns( distances, clusterCount, batchSize, currClosesDist, currLabels );
+		mathEngine.VectorMultiply( distances, distances, clusterCount * batchSize, minusTwo ); // TODO! threads
+		mathEngine.AddVectorToMatrixRows( 1, distances, distances, clusterCount, batchSize, currSquaredData ); // TODO! threads
+		mathEngine.AddVectorToMatrixColumns( distances, distances, clusterCount, batchSize, squaredCenters ); // TODO! threads
+		mathEngine.FindMinValueInColumns( distances, clusterCount, batchSize, currClosesDist, currLabels ); // TODO! threads
 
 		batchStart += batchSize;
 		currData += batchSize * featureCount;
@@ -856,9 +940,9 @@ void CKMeansClustering::recalcCenters( const CDnnBlob& data, const CDnnBlob& wei
 
 	CFloatHandleStackVar stackBuff( mathEngine, centers.GetDataSize() + 1 );
 	CFloatHandle newCenter = stackBuff;
-	mathEngine.LookupAndAddToTable( labels.GetData<int>(), vectorCount, 1, data.GetData(),
+	mathEngine.LookupAndAddToTable( labels.GetData<int>(), vectorCount, 1, data.GetData(), // no threads
 		data.GetObjectSize(), newCenter, clusterCount );
-	mathEngine.LookupAndAddToTable( labels.GetData<int>(), vectorCount, 1, weight.GetData(),
+	mathEngine.LookupAndAddToTable( labels.GetData<int>(), vectorCount, 1, weight.GetData(), // no threads
 		1, sizes.GetData(), clusterCount );
 
 	CFloatHandle invertedSize = stackBuff + centers.GetDataSize();
@@ -868,7 +952,7 @@ void CKMeansClustering::recalcCenters( const CDnnBlob& data, const CDnnBlob& wei
 		if( rawSizes[i] > 0 ) {
 			// Update centers for non-emtpy clusters
 			invertedSize.SetValue( 1.f / rawSizes[i] );
-			mathEngine.VectorMultiply( newCenter, centers.GetObjectData( i ),
+			mathEngine.VectorMultiply( newCenter, centers.GetObjectData( i ), // TODO! threads
 				featureCount, invertedSize );
 		}
 		newCenter += featureCount;
@@ -901,28 +985,28 @@ void CKMeansClustering::calcClusterVariances( const CDnnBlob& data, const CDnnBl
 		CFloatHandle squaredData = stackBuff.GetHandle();
 		CFloatHandle sumOfSquares = stackBuff.GetHandle() + vectorCount * featureCount;
 		CFloatHandle one = stackBuff.GetHandle() + vectorCount * featureCount + clusterCount * featureCount;
-		mathEngine.VectorEltwiseMultiply( data.GetData(), data.GetData(), squaredData,
+		mathEngine.VectorEltwiseMultiply( data.GetData(), data.GetData(), squaredData, // TODO! threads
 			data.GetDataSize() );
-		mathEngine.VectorFill( sumOfSquares, 0, clusterCount * featureCount );
+		mathEngine.VectorFill( sumOfSquares, 0, clusterCount * featureCount ); // TODO! threads
 		one.SetValue( 1.f );
 		CLookupDimension dim;
 		dim.VectorCount = params.InitialClustersCount;
 		dim.VectorSize = featureCount;
 		variances.Clear();
-		mathEngine.VectorMultichannelLookupAndAddToTable( vectorCount, 1, labels.GetData<int>(),
+		mathEngine.VectorMultichannelLookupAndAddToTable( vectorCount, 1, labels.GetData<int>(), // TODO! threads
 			&sumOfSquares, &dim, 1, one, squaredData, featureCount );
 		// Divide sum of squares by cluster size
-		mathEngine.MultiplyDiagMatrixByMatrix( sizeInv->GetData(), clusterCount, sumOfSquares, featureCount,
+		mathEngine.MultiplyDiagMatrixByMatrix( sizeInv->GetData(), clusterCount, sumOfSquares, featureCount, // TODO! threads
 			variances.GetData(), variances.GetDataSize() );
 	}
 
 	{
 		// Calculate squared centers
 		CFloatHandle squaredMean = stackBuff;
-		mathEngine.VectorEltwiseMultiply( centers.GetData(), centers.GetData(),
+		mathEngine.VectorEltwiseMultiply( centers.GetData(), centers.GetData(), // TODO! threads
 			squaredMean, clusterCount * featureCount );
 		// Subtract squares from average in order to get variance
-		mathEngine.VectorSub( variances.GetData(), squaredMean, variances.GetData(), clusterCount * featureCount );
+		mathEngine.VectorSub( variances.GetData(), squaredMean, variances.GetData(), clusterCount * featureCount ); // TODO! threads
 	}
 }
 
