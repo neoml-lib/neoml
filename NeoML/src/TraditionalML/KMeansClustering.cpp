@@ -941,14 +941,14 @@ void CKMeansClustering::kMeansPlusPlusInitialization( const CDnnBlob& data, int 
 
 	CHashTable<int> usedVectors;
 	CPtr<CDnnBlob> prevDists = CDnnBlob::CreateVector( mathEngine, CT_Float, vectorCount ); // no threads
-	mathEngine.MatrixRowsToVectorSquaredL2Distance( data.GetData(), vectorCount, featureCount, // TODO! threads
+	mathEngine.MatrixRowsToVectorSquaredL2Distance( data.GetData(), vectorCount, featureCount, // no threads
 		centers.GetData(), prevDists->GetData() );
 	for( int k = 1; k < params.InitialClustersCount; ++k ) {
 		CConstFloatHandle currentVector = centers.GetObjectData( k - 1 );
-		mathEngine.MatrixRowsToVectorSquaredL2Distance( data.GetData(), vectorCount, featureCount, // TODO! threads
+		mathEngine.MatrixRowsToVectorSquaredL2Distance( data.GetData(), vectorCount, featureCount, // no threads
 			currentVector, currDists );
-		mathEngine.VectorEltwiseMin( currDists, prevDists->GetData(), prevDists->GetData(), prevDists->GetDataSize() ); // TODO! threads
-		mathEngine.VectorSum( prevDists->GetData(), prevDists->GetDataSize(), sumBlob ); // TODO! threads
+		mathEngine.VectorEltwiseMin( currDists, prevDists->GetData(), prevDists->GetData(), prevDists->GetDataSize() ); // no threads
+		mathEngine.VectorSum( prevDists->GetData(), prevDists->GetDataSize(), sumBlob ); // no threads
 
 		const double sumValue = static_cast<double>( sumBlob.GetValue() );
 		const double scaledSum = random.Uniform( 0, 1 ) * sumValue;
@@ -984,7 +984,7 @@ bool CKMeansClustering::lloydBlobClusterization( const CDnnBlob& data, const CDn
 	IMathEngine& mathEngine = data.GetMathEngine();
 	// pre-calculate l2-norm of input data
 	CPtr<CDnnBlob> squaredData = CDnnBlob::CreateVector( mathEngine, CT_Float, data.GetObjectCount() ); // no threads
-	mathEngine.RowMultiplyMatrixByMatrix( data.GetData(), data.GetData(), data.GetObjectCount(), // TODO! threads
+	mathEngine.RowMultiplyMatrixByMatrix( data.GetData(), data.GetData(), data.GetObjectCount(), // no threads
 		data.GetObjectSize(), squaredData->GetData() );
 	for( int iter = 0; iter < params.MaxIterations; ++iter ) {
 		inertia = assignClosest( data, *squaredData, weight, centers, labels );
@@ -1017,7 +1017,7 @@ static void calcClosestDistances( const CKMeansClustering& owner, const CDnnBlob
 
 	minusTwo.SetValue( -2.f );
 	// pre-calculate l2-norm of current cluster centers
-	mathEngine.RowMultiplyMatrixByMatrix( centers.GetData(), centers.GetData(), clusterCount, featureCount, squaredCenters ); // TODO! threads
+	mathEngine.RowMultiplyMatrixByMatrix( centers.GetData(), centers.GetData(), clusterCount, featureCount, squaredCenters ); // no threads
 
 	int batchStart = 0;
 	CConstFloatHandle currData = data.GetData();
@@ -1054,8 +1054,8 @@ double CKMeansClustering::assignClosest( const CDnnBlob& data, const CDnnBlob& s
 	CFloatHandle totalDist = stackBuff.GetHandle() + vectorCount;
 	CIntHandle labelsHandle = labels.GetData<int>();
 	calcClosestDistances( *this, data, squaredData, centers, closestDist, labelsHandle );
-	mathEngine.VectorEltwiseMultiply( closestDist, weight.GetData(), closestDist, vectorCount );
-	mathEngine.VectorSum( closestDist, vectorCount, totalDist );
+	mathEngine.VectorEltwiseMultiply( closestDist, weight.GetData(), closestDist, vectorCount ); // TODO! threads
+	mathEngine.VectorSum( closestDist, vectorCount, totalDist ); // no threads
 	const double result = static_cast<double>( totalDist.GetValue() );
 	return result;
 }
@@ -1101,7 +1101,7 @@ void CKMeansClustering::calcClusterVariances( const CDnnBlob& data, const CDnnBl
 	const int clusterCount = sizes.GetDataSize();
 
 	// 1 / *cluster size*
-	CPtr<CDnnBlob> sizeInv = CDnnBlob::CreateVector( mathEngine, CT_Float, clusterCount );
+	CPtr<CDnnBlob> sizeInv = CDnnBlob::CreateVector( mathEngine, CT_Float, clusterCount ); // no threads
 	{
 		CDnnBlobBuffer<float> sizeBuff( const_cast<CDnnBlob&>( sizes ), TDnnBlobBufferAccess::Read );
 		CDnnBlobBuffer<float> sizeInvBuff( *sizeInv, TDnnBlobBufferAccess::Write );
@@ -1124,7 +1124,7 @@ void CKMeansClustering::calcClusterVariances( const CDnnBlob& data, const CDnnBl
 		dim.VectorCount = params.InitialClustersCount;
 		dim.VectorSize = featureCount;
 		variances.Clear();
-		mathEngine.VectorMultichannelLookupAndAddToTable( vectorCount, 1, labels.GetData<int>(), // TODO! threads
+		mathEngine.VectorMultichannelLookupAndAddToTable( vectorCount, 1, labels.GetData<int>(), // no threads
 			&sumOfSquares, &dim, 1, one, squaredData, featureCount );
 		// Divide sum of squares by cluster size
 		mathEngine.MultiplyDiagMatrixByMatrix( sizeInv->GetData(), clusterCount, sumOfSquares, featureCount, // TODO! threads
