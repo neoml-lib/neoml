@@ -396,10 +396,46 @@ void CThreadTaskMxMT::CallRun( int threadIndex )
 
 //-------------------------------------------------------------------------------------------------------------
 
+struct CKMeansClustering::CVectorCopyThreadTask final : public CKMeansClustering::IThreadTask {
+	CVectorCopyThreadTask( const CKMeansClustering& owner, int vectorSize, IMathEngine &mathEngine,
+			const CFloatHandle& dest, const CConstFloatHandle& src ) :
+		IThreadTask( owner, vectorSize ),
+		MathEngine( mathEngine ),
+		Dest( dest ),
+		Src( src )
+	{}
+protected:
+	void Run( int /*threadIndex*/, int index, int count ) override
+	{ MathEngine.VectorCopy( Dest + index, Src + index, count ); }
+
+	IMathEngine& MathEngine;
+	const CFloatHandle& Dest;
+	const CConstFloatHandle& Src;
+};
+
+//-------------------------------------------------------------------------------------------------------------
+
+constexpr int mathEngineFloatTaskAlignment = 16;
+
 static inline bool isThreadTaskRelevant( int64_t operationCount )
 {
 	constexpr int64_t MinOmpOperationCount = 32768;
 	return operationCount >= MinOmpOperationCount;
+}
+
+static void vectorCopy( const CKMeansClustering& owner, IMathEngine& mathEngine,
+	int vectorSize, const CFloatHandle& dest, const CConstFloatHandle& src )
+{
+	if( !isThreadTaskRelevant( vectorSize ) ) {
+		mathEngine.VectorCopy( dest, src, vectorSize );
+		return;
+	}
+
+	CKMeansClustering::CVectorCopyThreadTask task( owner, vectorSize, mathEngine, dest, src );
+
+	NEOML_NUM_THREADS( *owner.GetThreadPool(), &task, []( int threadIndex, void* ptr ) {
+		( ( CKMeansClustering::IThreadTask* )ptr )->CallRun( threadIndex, mathEngineFloatTaskAlignment );
+	} );
 }
 
 static void matrixMultiplyByTransposed( const CKMeansClustering& owner, IMathEngine& mathEngine, int batchSize,
@@ -915,7 +951,7 @@ void CKMeansClustering::defaultInitialization( const CDnnBlob& data, int seed, C
 
 		for( int i = 0; i < params.InitialClustersCount; ++i ) {
 			const int pos = ( i * step ) % vectorCount;
-			mathEngine.VectorCopy( centers.GetObjectData( i ), data.GetObjectData( pos ), featureCount ); // TODO! threads
+			vectorCopy( *this, mathEngine, featureCount, centers.GetObjectData( i ), data.GetObjectData( pos ) );
 		}
 	} else {
 		CArray<int> perm;
@@ -932,7 +968,7 @@ void CKMeansClustering::defaultInitialization( const CDnnBlob& data, int seed, C
 		}
 
 		for( int i = 0; i < params.InitialClustersCount; ++i ) {
-			mathEngine.VectorCopy( centers.GetObjectData( i ), data.GetObjectData( perm[i] ), featureCount ); // TODO! threads
+			vectorCopy( *this, mathEngine, featureCount, centers.GetObjectData( i ), data.GetObjectData( perm[i] ) );
 		}
 	}
 }
@@ -947,7 +983,7 @@ void CKMeansClustering::kMeansPlusPlusInitialization( const CDnnBlob& data, int 
 	const int firstChoice = random.UniformInt( 0, vectorCount - 1 );
 	// Copy first vector
 	IMathEngine& mathEngine = centers.GetMathEngine();
-	mathEngine.VectorCopy( centers.GetData(), data.GetObjectData( firstChoice ), data.GetObjectSize() ); // TODO! threads
+	vectorCopy( *this, mathEngine, data.GetObjectSize(), centers.GetData(), data.GetObjectData( firstChoice ) );
 
 	CFloatHandleStackVar stackBuff( mathEngine, vectorCount + 1 );
 	CFloatHandle sumBlob = stackBuff;
@@ -984,7 +1020,7 @@ void CKMeansClustering::kMeansPlusPlusInitialization( const CDnnBlob& data, int 
 		NeoAssert( nextCoice != -1 );
 		NeoAssert( !usedVectors.Has( nextCoice ) );
 		usedVectors.Add( nextCoice );
-		mathEngine.VectorCopy( centers.GetObjectData( k ), data.GetObjectData( nextCoice ), featureCount ); // TODO! threads
+		vectorCopy( *this, mathEngine, featureCount, centers.GetObjectData( k ), data.GetObjectData( nextCoice ) );
 	}
 }
 
