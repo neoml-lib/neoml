@@ -82,7 +82,7 @@ void CCudaMathEngine::blobMergeByDim( int dim, const CBlobDesc* from, const CTyp
 }
 
 template<class T>
-void CCudaMathEngine::blobSplitByDimCuda(int dimNum, const CBlobDesc& from, const CTypedMemoryHandle<T>& fromData, const CBlobDesc* to, const CTypedMemoryHandle<T>* toData, int toCount)
+void CCudaMathEngine::blobSplitByDimCuda(int dimNum, const CBlobDesc& from, const CTypedMemoryHandle<const T>& fromData, const CBlobDesc* to, const CTypedMemoryHandle<T>* toData, int toCount)
 {
 	ASSERT_EXPR(toCount <= MaxBlobDescs);
 	ASSERT_EXPR(0 <= dimNum && dimNum < CBlobDesc::MaxDimensions);
@@ -117,7 +117,7 @@ void CCudaMathEngine::blobSplitByDimCuda(int dimNum, const CBlobDesc& from, cons
 }
 
 template<class T>
-void CCudaMathEngine::blobSplitByDim0(const CBlobDesc& from, const CTypedMemoryHandle<T>& fromData, const CBlobDesc* to, const CTypedMemoryHandle<T>* toData, int toCount)
+void CCudaMathEngine::blobSplitByDim0(const CBlobDesc& from, const CTypedMemoryHandle<const T>& fromData, const CBlobDesc* to, const CTypedMemoryHandle<T>* toData, int toCount)
 {
 	CTypedMemoryHandle<const T> input = fromData;
 	for( int i = 0; i < toCount; ++i ) {
@@ -128,7 +128,7 @@ void CCudaMathEngine::blobSplitByDim0(const CBlobDesc& from, const CTypedMemoryH
 }
 
 template<class T>
-void CCudaMathEngine::blobSplitByDim( int dim, const CBlobDesc& from, const CTypedMemoryHandle<T>& fromData, const CBlobDesc* to, const CTypedMemoryHandle<T>* toData, int toCount )
+void CCudaMathEngine::blobSplitByDim( int dim, const CBlobDesc& from, const CTypedMemoryHandle<const T>& fromData, const CBlobDesc* to, const CTypedMemoryHandle<T>* toData, int toCount )
 {
 	if(dim == 0) {
 		return blobSplitByDim0(from, fromData, to, toData, toCount);
@@ -149,13 +149,13 @@ void CCudaMathEngine::BlobMergeByDim(TBlobDim dim, const CBlobDesc* from, const 
 	blobMergeByDim(dim, from, fromData, fromCount, to, toData);
 }
 
-void CCudaMathEngine::BlobSplitByDim(TBlobDim dim, const CBlobDesc& from, const CFloatHandle& fromData, const CBlobDesc* to, const CFloatHandle* toData, int toCount)
+void CCudaMathEngine::BlobSplitByDim(TBlobDim dim, const CBlobDesc& from, const CConstFloatHandle& fromData, const CBlobDesc* to, const CFloatHandle* toData, int toCount)
 {
 	ASSERT_EXPR(dim < BD_Count && toCount <= MaxBlobDescs);
 	blobSplitByDim(dim, from, fromData, to, toData, toCount);
 }
 
-void CCudaMathEngine::BlobSplitByDim(TBlobDim dim, const CBlobDesc& from, const CIntHandle& fromData, const CBlobDesc* to, const CIntHandle* toData, int toCount)
+void CCudaMathEngine::BlobSplitByDim(TBlobDim dim, const CBlobDesc& from, const CConstIntHandle& fromData, const CBlobDesc* to, const CIntHandle* toData, int toCount)
 {
 	ASSERT_EXPR(dim < BD_Count && toCount <= MaxBlobDescs);
 	blobSplitByDim(dim, from, fromData, to, toData, toCount);

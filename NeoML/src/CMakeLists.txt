@@ -185,6 +185,7 @@ set(NeoML_SOURCES
     TraditionalML/SubwordEncoderTrainer.cpp
     TraditionalML/Svm.cpp
     TraditionalML/SvmKernel.cpp
+    TraditionalML/UnigramTrainer.cpp
     TraditionalML/UnigramTools.cpp
     TraditionalML/Utf8Tools.cpp
     TraditionalML/WordDictionary.cpp
@@ -267,7 +268,6 @@ set(NeoML_HEADERS_COMPACT
     ../include/NeoML/Dnn/Layers/DropoutLayer.h
     ../include/NeoML/Dnn/Layers/EltwiseLayer.h
     ../include/NeoML/Dnn/Layers/FullyConnectedLayer.h
-    ../include/NeoML/Dnn/Layers/GELULayer.h
     ../include/NeoML/Dnn/Layers/GlobalMeanPoolingLayer.h
     ../include/NeoML/Dnn/Layers/IndRnnLayer.h
     ../include/NeoML/Dnn/Layers/LossLayer.h
@@ -336,6 +336,7 @@ set(NeoML_HEADERS
     TraditionalML/SvmBinaryModel.h
     TraditionalML/SubwordDecoder.h
     TraditionalML/UnigramEncoder.h
+    TraditionalML/UnigramTrainer.h
     TraditionalML/UnigramTools.h
     TraditionalML/Utf8Tools.h
 

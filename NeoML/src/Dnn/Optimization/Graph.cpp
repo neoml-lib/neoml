@@ -57,8 +57,22 @@ void CGraph::GetLayers( CArray<CBaseLayer*>& layers ) const
 
 	layers.Empty();
 	layers.SetBufferSize( layerNames.Size() );
+
+	CHashTable<CBaseLayer*> visited;
+	auto dfs = [&visited, &layers] ( CDnn& dnn, CBaseLayer* layer, auto&& dfs ) -> void {
+		if( visited.Has( layer ) ) {
+			return;
+		}
+
+		visited.Add( layer );
+		for( int i = 0; i < layer->GetInputCount(); ++i ) {
+			dfs( dnn, dnn.GetLayer( layer->GetInputName( i ) ).Ptr(), dfs );
+		}
+		layers.Add( layer );
+	};
+
 	for( const char* layerName : layerNames ) {
-		layers.Add( dnn.GetLayer( layerName ) );
+		dfs( dnn, dnn.GetLayer( layerName ).Ptr(), dfs );
 	}
 }
 

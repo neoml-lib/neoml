@@ -1,4 +1,4 @@
-/* Copyright © 2017-2022 ABBYY Production LLC
+/* Copyright Â© 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -42,7 +42,11 @@ public:
 	virtual void StopAndWait() = 0;
 };
 
+// Number of available CPU cores in current environment (e.g. inside container)
+NEOMATHENGINE_API int GetAvailableCpuCores();
+
 // Creates a thread pool containing the given number of threads.
+// If threadCount is 0 or less then creates a pool with GetAvailableCpuCores() threads
 NEOMATHENGINE_API IThreadPool* CreateThreadPool(int threadCount);
 
 //------------------------------------------------------------------------------------------------------------

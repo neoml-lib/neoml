@@ -707,9 +707,9 @@ public:
 		const CBlobDesc& to, const CFloatHandle& toData ) = 0;
 	virtual void BlobMergeByDim( TBlobDim dim, const CBlobDesc* from, const CIntHandle* fromData, int fromCount,
 		const CBlobDesc& to, const CIntHandle& toData ) = 0;
-	virtual void BlobSplitByDim( TBlobDim dim, const CBlobDesc& from, const CFloatHandle& fromData,
+	virtual void BlobSplitByDim( TBlobDim dim, const CBlobDesc& from, const CConstFloatHandle& fromData,
 		const CBlobDesc* to, const CFloatHandle* toData, int toCount ) = 0;
-	virtual void BlobSplitByDim( TBlobDim dim, const CBlobDesc& from, const CIntHandle& fromData,
+	virtual void BlobSplitByDim( TBlobDim dim, const CBlobDesc& from, const CConstIntHandle& fromData,
 		const CBlobDesc* to, const CIntHandle* toData, int toCount ) = 0;
 
 	// Resizes images in a blob
@@ -718,6 +718,12 @@ public:
 	virtual void BlobResizeImage( const CBlobDesc& from, const CFloatHandle& fromData, int deltaLeft, int deltaRight,
 		int deltaTop, int deltaBottom, TBlobResizePadding padding, float defaultValue,
 		const CBlobDesc& to, const CFloatHandle& toData ) = 0;
+	void BlobResizeImage( const CBlobDesc& from, const CFloatHandle& fromData, int deltaLeft, int deltaRight,
+		int deltaTop, int deltaBottom, float defaultValue, const CBlobDesc& to, const CFloatHandle& toData )
+	{
+		BlobResizeImage( from, fromData, deltaLeft, deltaRight, deltaTop, deltaBottom,
+			TBlobResizePadding::Constant, defaultValue, to, toData );
+	}
 
 	// Retrieves subsequences from the blob sequences and, if necessary, reverses them
 	virtual void BlobGetSubSequence( const CBlobDesc& from, const CFloatHandle& fromData, const CIntHandle& indexHandle,

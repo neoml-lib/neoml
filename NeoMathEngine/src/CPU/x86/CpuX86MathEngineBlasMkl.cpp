@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -35,14 +35,14 @@ limitations under the License.
 #else
 #error Unknown platform
 #endif
-#else
+#else  // !NEOML_USE_MKL
 #include <CPUInfo.h>
 #include <MatrixMultiplyingInterleavedCommon/MatrixMultiplying.h>
 
 // Cache sizes
 // Find the acceptable values or get them from CPU info
 static constexpr CCPUInfo CpuInfo( 0x60000, 0x180000, 0x900000 );
-#endif
+#endif // !NEOML_USE_MKL
 #include <MatrixMultiplyingInterleavedCommon/CpuMemoryHelper.h>
 
 namespace NeoML {
@@ -63,11 +63,11 @@ void CCpuMathEngine::multiplyMatrixByMatrix( const float* first, int firstHeight
 #ifdef NEOML_USE_MKL
 		cblas_sgemm( CblasRowMajor, CblasNoTrans, CblasNoTrans, firstHeight, secondWidth, firstWidth,
 			1, first, firstRowSize, second, secondRowSize, 0, result, resultRowSize );
-#else
+#else  // !NEOML_USE_MKL
 		nullify( result, firstHeight, secondWidth, resultRowSize );
 		MultiplyMatrix<false, false, CTmpMemoryHandler>( this, CpuInfo, first, firstRowSize, second, secondRowSize,
 			result, resultRowSize, firstHeight, secondWidth, firstWidth );
-#endif
+#endif // !NEOML_USE_MKL
 	}
 }
 
@@ -85,10 +85,10 @@ void CCpuMathEngine::multiplyMatrixByMatrixAndAdd( const float* first, int first
 #ifdef NEOML_USE_MKL
 		cblas_sgemm( CblasRowMajor, CblasNoTrans, CblasNoTrans, firstHeight, secondWidth, firstWidth,
 			1, first, firstRowSize, second, secondRowSize, 1, result, resultRowSize );
-#else
+#else  // !NEOML_USE_MKL
 		MultiplyMatrix<false, false, CTmpMemoryHandler>( this, CpuInfo, first, firstRowSize, second, secondRowSize,
 			result, resultRowSize, firstHeight, secondWidth, firstWidth );
-#endif
+#endif // !NEOML_USE_MKL
 	}
 }
 
@@ -107,11 +107,11 @@ void CCpuMathEngine::multiplyMatrixByTransposedMatrix(const float* first, int fi
 #ifdef NEOML_USE_MKL
 		cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasTrans, firstHeight, secondHeight, firstWidth,
 			1, first, firstRowSize, second, secondRowSize, 0, result, resultRowSize);
-#else
+#else  // !NEOML_USE_MKL
 		nullify( result, firstHeight, secondHeight, resultRowSize );
 		MultiplyMatrix<false, true, CTmpMemoryHandler>( this, CpuInfo, first, firstRowSize, second, secondRowSize,
 			result, resultRowSize, firstHeight, secondHeight, firstWidth );
-#endif
+#endif // !NEOML_USE_MKL
 	}
 }
 
@@ -126,10 +126,10 @@ void CCpuMathEngine::multiplyMatrixByTransposedMatrixAndAdd( const float* first,
 #ifdef NEOML_USE_MKL
 		cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasTrans, firstHeight, secondHeight, firstWidth,
 			1, first, firstRowSize, second, secondRowSize, 1, result, resultRowSize);
-#else
+#else  // !NEOML_USE_MKL
 		MultiplyMatrix<false, true, CTmpMemoryHandler>( this, CpuInfo, first, firstRowSize, second, secondRowSize,
 			result, resultRowSize, firstHeight, secondHeight, firstWidth );
-#endif
+#endif // !NEOML_USE_MKL
 	}
 }
 
@@ -164,7 +164,7 @@ void CCpuMathEngine::MultiplySparseMatrixByTransposedMatrix( int firstHeight, in
 	mkl_simatcopy( 'r', 't', secondHeight, firstHeight, 1, res, firstHeight, secondHeight );
 
 	ASSERT_EXPR( mkl_sparse_destroy( sparseMatrix ) == SPARSE_STATUS_SUCCESS );
-#else
+#else  // !NEOML_USE_MKL
 	for( int col = 0; col < secondHeight; ++col ) {
 		float* result = res;
 		for( int row = 0; row < firstHeight; ++row ) {
@@ -177,7 +177,7 @@ void CCpuMathEngine::MultiplySparseMatrixByTransposedMatrix( int firstHeight, in
 		}
 		second += firstWidth;
 	}
-#endif
+#endif // !NEOML_USE_MKL
 }
 
 // result = T(first) * second, second is transposed if isTransposedSparse
@@ -218,7 +218,7 @@ void CCpuMathEngine::MultiplyTransposedMatrixBySparseMatrix( int firstHeight, in
 		0.f, result, resultWidth ) == SPARSE_STATUS_SUCCESS );
 
 	ASSERT_EXPR( mkl_sparse_destroy( sparseMatrix ) == SPARSE_STATUS_SUCCESS );
-#else
+#else  // !NEOML_USE_MKL
 	nullify( result, firstWidth, resultWidth );
 	if( isTransposedSparse ) {
 		for( int row = 0; row < resultWidth; ++row ) {
@@ -239,7 +239,7 @@ void CCpuMathEngine::MultiplyTransposedMatrixBySparseMatrix( int firstHeight, in
 			first += firstWidth;
 		}
 	}
-#endif
+#endif // !NEOML_USE_MKL
 }
 
 // result = result + T(first) * second. The result size is firstWidth * secondWidth:
@@ -276,7 +276,7 @@ void CCpuMathEngine::MultiplyTransposedMatrixBySparseMatrixAndAdd( int firstHeig
 		GetRaw( transposedFirst.GetHandle() ), firstWidth, firstHeight, 1, result, secondWidth ) == SPARSE_STATUS_SUCCESS );
 
 	ASSERT_EXPR( mkl_sparse_destroy( sparseMatrix ) == SPARSE_STATUS_SUCCESS );
-#else
+#else  // !NEOML_USE_MKL
 	for( int row = 0; row < firstHeight; ++row ) {
 		for( int ind = secondRows[row]; ind < secondRows[row + 1]; ++ind ) {
 			for( int col = 0; col < firstWidth; ++col ) {
@@ -285,7 +285,7 @@ void CCpuMathEngine::MultiplyTransposedMatrixBySparseMatrixAndAdd( int firstHeig
 		}
 		first += firstWidth;
 	}
-#endif
+#endif // !NEOML_USE_MKL
 }
 
 // result = first * second. The result size is firstHeight * secondWidth:
@@ -319,7 +319,7 @@ void CCpuMathEngine::MultiplySparseMatrixByMatrix( int firstHeight, int firstWid
 		second, secondWidth, secondWidth, 0, res, secondWidth ) == SPARSE_STATUS_SUCCESS );
 
 	ASSERT_EXPR( mkl_sparse_destroy( sparseMatrix ) == SPARSE_STATUS_SUCCESS );
-#else
+#else  // !NEOML_USE_MKL
 	nullify( res, firstHeight, secondWidth );
 	for( int row = 0; row < firstHeight; ++row ) {
 		float* result = res + row * secondWidth;
@@ -330,7 +330,7 @@ void CCpuMathEngine::MultiplySparseMatrixByMatrix( int firstHeight, int firstWid
 			}
 		}
 	}
-#endif
+#endif // !NEOML_USE_MKL
 }
 
 // result = T(first) * second. The result size is firstWidth * secondWidth:
@@ -363,7 +363,7 @@ void CCpuMathEngine::MultiplyTransposedSparseMatrixByMatrix( int firstHeight, in
 		second, secondWidth, secondWidth, 0, res, secondWidth ) == SPARSE_STATUS_SUCCESS );
 
 	ASSERT_EXPR( mkl_sparse_destroy( sparseMatrix ) == SPARSE_STATUS_SUCCESS );
-#else
+#else  // !NEOML_USE_MKL
 	nullify( res, firstWidth, secondWidth );
 	for( int row = 0; row < firstHeight; ++row ) {
 		for( int ind = firstRows[row]; ind < firstRows[row + 1]; ++ind ) {
@@ -374,7 +374,7 @@ void CCpuMathEngine::MultiplyTransposedSparseMatrixByMatrix( int firstHeight, in
 			}
 		}
 	}
-#endif
+#endif // !NEOML_USE_MKL
 }
 
 void CCpuMathEngine::QRFactorization( int height, int width, const CFloatHandle& matrixHandle, const CFloatHandle* qHandle, const CFloatHandle* rHandle,
@@ -437,9 +437,9 @@ void CCpuMathEngine::QRFactorization( int height, int width, const CFloatHandle&
 			rPtr += width;
 		}
 	}
-#else
+#else  // !NEOML_USE_MKL
 	ASSERT_EXPR( false );
-#endif
+#endif // !NEOML_USE_MKL
 }
 
 void CCpuMathEngine::LUFactorization( int height, int width, const CFloatHandle& matrixHandle )
@@ -490,9 +490,9 @@ void CCpuMathEngine::LUFactorization( int height, int width, const CFloatHandle&
 		}
 	}
 
-#else
+#else  // !NEOML_USE_MKL
 	ASSERT_EXPR( false );
-#endif
+#endif // !NEOML_USE_MKL
 }
 
 void CCpuMathEngine::multiplyTransposedMatrixByMatrix(const float* first, int firstHeight,
@@ -510,14 +510,14 @@ void CCpuMathEngine::multiplyTransposedMatrixByMatrix(const float* first, int fi
 #ifdef NEOML_USE_MKL
 		cblas_sgemm(CblasRowMajor, CblasTrans, CblasNoTrans, firstWidth, secondWidth, firstHeight,
 			1, first, firstWidth, second, secondWidth, 0, result, secondWidth);
-#else
+#else  // !NEOML_USE_MKL
 		auto firstRowSize = firstWidth;
 		auto secondRowSize = secondWidth;
 		auto resultRowSize = secondWidth;
 		nullify( result, firstWidth, secondWidth );
 		MultiplyMatrix<true, false, CTmpMemoryHandler>( this, CpuInfo, first, firstRowSize, second, secondRowSize,
 			result, resultRowSize, firstWidth, secondWidth, firstHeight );
-#endif
+#endif // !NEOML_USE_MKL
 	}
 }
 
@@ -536,10 +536,10 @@ void CCpuMathEngine::multiplyTransposedMatrixByMatrixAndAdd(const float* first,
 #ifdef NEOML_USE_MKL
 		cblas_sgemm(CblasRowMajor, CblasTrans, CblasNoTrans, firstWidth, secondWidth, firstHeight,
 			1, first, firstRowSize, second, secondRowSize, 1, result, resultRowSize);
-#else
+#else  // !NEOML_USE_MKL
 		MultiplyMatrix<true, false, CTmpMemoryHandler>( this, CpuInfo, first, firstRowSize, second, secondRowSize,
 			result, resultRowSize, firstWidth, secondWidth, firstHeight );
-#endif
+#endif // !NEOML_USE_MKL
 	}
 }
 
@@ -558,11 +558,11 @@ void CCpuMathEngine::SingularValueDecomposition( const CFloatHandle& a, int heig
 	const int ldu = std::min( height, width );
 	ASSERT_EXPR( LAPACKE_sgesvd( LAPACK_ROW_MAJOR, returnLeftVectors ? 'S' : 'N', returnRightVectors ? 'S' : 'N',
 		height, width, GetRaw( a ), width, GetRaw( s ), GetRaw(u), ldu, GetRaw( vt ), width, GetRaw( superb ) ) == 0 );
-#else
+#else  // !NEOML_USE_MKL
 	( void )returnLeftVectors;
 	( void )returnRightVectors;
 	ASSERT_EXPR( false );
-#endif
+#endif // !NEOML_USE_MKL
 }
 
 } // namespace NeoML

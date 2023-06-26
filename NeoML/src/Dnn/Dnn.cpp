@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -34,7 +34,6 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/DropoutLayer.h>
 #include <NeoML/Dnn/Layers/EltwiseLayer.h>
 #include <NeoML/Dnn/Layers/FullyConnectedLayer.h>
-#include <NeoML/Dnn/Layers/GELULayer.h>
 #include <NeoML/Dnn/Layers/GlobalMeanPoolingLayer.h>
 #include <NeoML/Dnn/Layers/IndRnnLayer.h>
 #include <NeoML/Dnn/Layers/LossLayer.h>
@@ -116,9 +115,9 @@ static CMap<CString, TCreateLayerFunction, CDefaultHash<CString>, RuntimeHeap>& 
 
 
 // Class name hash to compare type_info
-struct CTypeInfoNameHash {
+struct CTypeInfoNameHash final {
 	static int HashKey( const std::type_info* key )
-	{ 
+	{
 		return GetMBCStringHash( key->name() );
 	}
 
@@ -203,7 +202,7 @@ void SerializeLayer( CArchive& archive, IMathEngine& mathEngine, CPtr<CBaseLayer
 {
 	if( archive.IsStoring() ) {
 		CString name = getLayerClass( layer );
-		NeoAssert( layer == nullptr || name != ""  ); // assertion on storing not registered layer
+		NeoAssert( layer == nullptr || name != "" ); // assertion on storing not registered layer
 		archive << name;
 		if( layer != 0 ) {
 			layer->Serialize( archive );
@@ -221,8 +220,7 @@ void SerializeLayer( CArchive& archive, IMathEngine& mathEngine, CPtr<CBaseLayer
 	}
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////
+//---------------------------------------------------------------------------------------------------------
 
 // Register all layer types
 namespace {
@@ -393,7 +391,7 @@ REGISTER_NEOML_LAYER( CWhereLayer, "NeoMLDnnWhereLayer" )
 
 } // namespace
 
-///////////////////////////////////////////////////////////////////////////////////////////
+//---------------------------------------------------------------------------------------------------------
 
 CDnn::CDnn( CRandom& _random, IMathEngine& _mathEngine, const CCompositeLayer* owner ) :
 	owner( owner ),
@@ -420,8 +418,8 @@ CDnn::~CDnn()
 {
 	for( int i = layers.Size() - 1; i >= 0; i-- ) {
 		CPtr<CBaseLayer> layer = layers[i];
-		DeleteLayer(*layer);
-		layer->setDnn(0);
+		DeleteLayer( *layer );
+		layer->setDnn( 0 );
 	}
 }
 
@@ -455,8 +453,8 @@ void CDnn::AddLayerImpl( CBaseLayer& layer )
 	ForceRebuild();
 
 	// Add a layer
-	layerMap.Add(layer.GetName(), &layer);
-	layers.Add(&layer);
+	layerMap.Add( layer.GetName(), &layer );
+	layers.Add( &layer );
 
 	// Set the layer network
 	layer.setDnn( this );
@@ -465,8 +463,8 @@ void CDnn::AddLayerImpl( CBaseLayer& layer )
 void CDnn::ForceRebuild()
 {
 	isRebuildNeeded = true;
-	sinkLayers.SetSize(0);
-	sourceLayers.SetSize(0);
+	sinkLayers.SetSize( 0 );
+	sourceLayers.SetSize( 0 );
 }
 
 void CDnn::DeleteLayerImpl( CBaseLayer& layer )
@@ -478,19 +476,19 @@ void CDnn::DeleteLayerImpl( CBaseLayer& layer )
 	// Unlink all layer connections
 	layer.unlink();
 	// Delete the layer from the table
-	layerMap.Delete(layer.GetName());
+	layerMap.Delete( layer.GetName() );
 
 	// Set the network for the layer
-	layer.setDnn(0);
+	layer.setDnn( 0 );
 	// Delete the layer from the array that owns the data
 	int oldSize = layers.Size();
 	for( int i = 0; i < layers.Size(); i++ ) {
 		if( layers[i] == &layer ) {
-			layers.DeleteAt(i);
+			layers.DeleteAt( i );
 			break;
 		}
 	}
-	NeoAssert(layers.Size() < oldSize);
+	NeoAssert( layers.Size() < oldSize );
 }
 
 void CDnn::RestartSequence()
@@ -506,7 +504,7 @@ void CDnn::DisableLearning()
 		return;
 	}
 	isLearningEnabled = false;
-	RequestReshape(true);
+	RequestReshape( /*forcedReshape*/true );
 }
 
 void CDnn::EnableLearning()
@@ -515,10 +513,10 @@ void CDnn::EnableLearning()
 		return;
 	}
 	isLearningEnabled = true;
-	RequestReshape(true);
+	RequestReshape( /*forcedReshape*/true );
 }
 
-void CDnn::RequestReshape(bool forcedReshape)
+void CDnn::RequestReshape( bool forcedReshape )
 {
 	for( int i = 0; i < layers.Size(); i++ ) {
 		layers[i]->isReshapeNeeded = true;
@@ -526,12 +524,12 @@ void CDnn::RequestReshape(bool forcedReshape)
 	}
 }
 
-void CDnn::SetSolver(CDnnSolver* _solver)
+void CDnn::SetSolver( CDnnSolver* _solver )
 {
-	if(solver.Ptr() == _solver) {
+	if( solver.Ptr() == _solver ) {
 		return;
 	}
-	solver = _solver; 
+	solver = _solver;
 }
 
 // Sets the network operation parameters
@@ -549,7 +547,7 @@ void CDnn::setProcessingParams( bool _isRecurrentMode, int sequenceLength, bool 
 	isBackwardPerformed = _isBackwardPerformed;
 }
 
-void CDnn::runOnce(int curSequencePos)
+void CDnn::runOnce( int curSequencePos )
 {
 	currentSequencePos = curSequencePos;
 	++runNumber;
@@ -576,50 +574,47 @@ void CDnn::runOnce(int curSequencePos)
 void CDnn::RunOnce()
 {
 	try {
-		NeoAssert(maxSequenceLength == 1);
-		if(isBackwardPerformed) {
+		NeoAssert( maxSequenceLength == 1 );
+		if( isBackwardPerformed ) {
 			// The layer Reshape methods depend on IsBackwardPerformed()
-			RequestReshape(true);
+			RequestReshape( /*forcedReshape*/true );
 		}
 		isBackwardPerformed = false;
-		if(autoRestartMode) {
+		if( autoRestartMode ) {
 			RestartSequence();
 		}
 		reshape(); // rebuild the network if necessary
 
 		// During inference we turning reuseMemoryMode on when the net is big enough
 		isReuseMemoryMode = ( getOutputBlobsSize() > MinReuseMemoryModeNetSize );
-		runOnce(0);
-	}
+		runOnce( 0 );
 #ifdef NEOML_USE_FINEOBJ
-	catch( CCheckException* exception ) {
-		if( IsLogging() ) {
-			*log << "CCheckException in RunOnce\n";
-			*log << "\t" << exception->MessageText() << "\n";
-		}
-		throw;
-	}
+	} catch( CCheckException* exception ) {
 #else
-	catch( CCheckException& exception ) {
+	} catch( CCheckException& exception ) {
+#endif
 		if( IsLogging() ) {
 			*log << "CCheckException in RunOnce\n";
+#ifdef NEOML_USE_FINEOBJ
+			*log << "\t" << exception->MessageText() << "\n";
+#else
 			*log << "\t" << exception.what() << "\n";
+#endif
 		}
 		throw;
 	}
-#endif
 }
 
 void CDnn::RunAndBackwardOnce()
 {
 	try {
-		NeoAssert(maxSequenceLength == 1);
-		if(!isBackwardPerformed) {
+		NeoAssert( maxSequenceLength == 1 );
+		if( !isBackwardPerformed ) {
 			// The layer Reshape methods depend on IsBackwardPerformed()
-			RequestReshape(true);
+			RequestReshape( /*forcedReshape*/true );
 		}
 		isBackwardPerformed = true;
-		if(autoRestartMode) {
+		if( autoRestartMode ) {
 			RestartSequence();
 		}
 		reshape(); // rebuild the network if necessary
@@ -628,15 +623,19 @@ void CDnn::RunAndBackwardOnce()
 		CMathEngineInfo info;
 		mathEngine.GetMathEngineInfo( info );
 		isReuseMemoryMode = info.Type != MET_Cpu || mathEngine.IsDistributed();
-		runOnce(0);
-		backwardRunAndLearnOnce(0);
+		runOnce( 0 );
+		backwardRunAndLearnOnce( 0 );
+#ifdef NEOML_USE_FINEOBJ
 	} catch( CCheckException* exception ) {
+#else
+	} catch( CCheckException& exception ) {
+#endif
 		if( IsLogging() ) {
 			*log << "CCheckException in RunAndLearnOnce\n";
 #ifdef NEOML_USE_FINEOBJ
 			*log << "\t" << exception->MessageText() << "\n";
 #else
-			*log << "\t" << exception->what() << "\n";
+			*log << "\t" << exception.what() << "\n";
 #endif
 		}
 		throw;
@@ -656,7 +655,7 @@ void CDnn::CleanUp()
 	}
 }
 
-void CDnn::backwardRunAndLearnOnce(int curSequencePos)
+void CDnn::backwardRunAndLearnOnce( int curSequencePos )
 {
 	currentSequencePos = curSequencePos;
 	if( IsLogging() ) {
@@ -716,11 +715,11 @@ void CDnn::rebuild()
 	// Recalculate the source and sink layers
 	for( int i = 0; i < layers.Size(); i++ ) {
 		const CBaseLayer* layer = layers[i];
-		if(layer->GetInputCount() == 0) {
-			sourceLayers.Add(layers[i]);
+		if( layer->GetInputCount() == 0 ) {
+			sourceLayers.Add( layers[i] );
 		}
-		if(layer->GetOutputCount() == 0) {
-			sinkLayers.Add(layers[i]);
+		if( layer->GetOutputCount() == 0 ) {
+			sinkLayers.Add( layers[i] );
 		}
 	}
 
@@ -728,7 +727,7 @@ void CDnn::rebuild()
 		sinkLayers[i]->buildOrder();
 	}
 
-	RequestReshape(true);
+	RequestReshape( /*forcedReshape*/true );
 }
 
 size_t CDnn::getOutputBlobsSize() const
@@ -763,7 +762,7 @@ void CDnn::Serialize( CArchive& archive )
 		archive << logFrequency;
 
 		archive << layers.Size();
-		for( int i = 0; i < layers.Size(); ++i) {
+		for( int i = 0; i < layers.Size(); ++i ) {
 			archive << getLayerClass( layers[i] );
 			if( layers[i] != 0 ) {
 				layers[i]->Serialize( archive );
@@ -794,7 +793,7 @@ void CDnn::Serialize( CArchive& archive )
 
 		int layerCount;
 		archive >> layerCount;
-		for( int i = 0; i < layerCount; ++i) {
+		for( int i = 0; i < layerCount; ++i ) {
 			CString className;
 			archive >> className;
 			CPtr<CBaseLayer> layer = createLayer( GetMathEngine(), className );

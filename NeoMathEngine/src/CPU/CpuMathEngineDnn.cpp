@@ -26,8 +26,8 @@ namespace NeoML {
 
 // Operations with blobs
 template<class T>
-void CCpuMathEngine::blobMergeByDimCommon( int dimNum, const CBlobDesc* from, const CTypedMemoryHandle<T>* fromData, int fromCount,
-	const CBlobDesc& to, const CTypedMemoryHandle<T>& toData )
+void CCpuMathEngine::blobMergeByDimCommon( int dimNum, const CBlobDesc* from, const CTypedMemoryHandle<T>* fromData,
+	int fromCount, const CBlobDesc& to, const CTypedMemoryHandle<T>& toData )
 {
 	int s[CBlobDesc::MaxDimensions];
 	to.GetDimSizes( s );
@@ -103,7 +103,8 @@ void CCpuMathEngine::blobMergeByDim0( const CBlobDesc* from, const CTypedMemoryH
 }
 
 template<class T>
-void CCpuMathEngine::blobMergeByDim( int dim, const CBlobDesc* from, const CTypedMemoryHandle<T>* fromData, int fromCount, const CBlobDesc& to, const CTypedMemoryHandle<T>& toData )
+void CCpuMathEngine::blobMergeByDim( int dim, const CBlobDesc* from, const CTypedMemoryHandle<T>* fromData,
+	int fromCount, const CBlobDesc& to, const CTypedMemoryHandle<T>& toData )
 {
 	if(dim == 0) {
 		return blobMergeByDim0(from, fromData, fromCount, to, toData);
@@ -112,7 +113,7 @@ void CCpuMathEngine::blobMergeByDim( int dim, const CBlobDesc* from, const CType
 }
 
 template<class T>
-void CCpuMathEngine::blobSplitByDimCommon( int dimNum, const CBlobDesc& from, const CTypedMemoryHandle<T>& fromData,
+void CCpuMathEngine::blobSplitByDimCommon( int dimNum, const CBlobDesc& from, const CTypedMemoryHandle<const T>& fromData,
 	const CBlobDesc* to, const CTypedMemoryHandle<T>* toData, int toCount )
 {
 	int s[CBlobDesc::MaxDimensions];
@@ -160,7 +161,7 @@ void CCpuMathEngine::blobSplitByDimCommon( int dimNum, const CBlobDesc& from, co
 }
 
 template<class T>
-void CCpuMathEngine::blobSplitByDim0( const CBlobDesc& from, const CTypedMemoryHandle<T>& fromData,
+void CCpuMathEngine::blobSplitByDim0( const CBlobDesc& from, const CTypedMemoryHandle<const T>& fromData,
 	const CBlobDesc* to, const CTypedMemoryHandle<T>* toData, int toCount )
 {
 	const T* input = GetRaw( fromData );
@@ -189,7 +190,8 @@ void CCpuMathEngine::blobSplitByDim0( const CBlobDesc& from, const CTypedMemoryH
 }
 
 template<class T>
-void CCpuMathEngine::blobSplitByDim( int dim, const CBlobDesc& from, const CTypedMemoryHandle<T>& fromData, const CBlobDesc* to, const CTypedMemoryHandle<T>* toData, int toCount )
+void CCpuMathEngine::blobSplitByDim( int dim, const CBlobDesc& from, const CTypedMemoryHandle<const T>& fromData,
+	const CBlobDesc* to, const CTypedMemoryHandle<T>* toData, int toCount )
 {
 	if(dim == 0) {
 		return blobSplitByDim0(from, fromData, to, toData, toCount);
@@ -197,28 +199,32 @@ void CCpuMathEngine::blobSplitByDim( int dim, const CBlobDesc& from, const CType
 	return blobSplitByDimCommon(dim, from, fromData, to, toData, toCount);
 }
 
-void CCpuMathEngine::BlobMergeByDim(TBlobDim dim, const CBlobDesc* from, const CFloatHandle* fromData, int fromCount, const CBlobDesc& to, const CFloatHandle& toData)
+void CCpuMathEngine::BlobMergeByDim(TBlobDim dim, const CBlobDesc* from, const CFloatHandle* fromData,
+	int fromCount, const CBlobDesc& to, const CFloatHandle& toData)
 {
 	ASSERT_EXPR(dim < BD_Count && fromCount <= MaxBlobDescs);
 	CCpuExecutionScope scope;
 	blobMergeByDim(dim, from, fromData, fromCount, to, toData);
 }
 
-void CCpuMathEngine::BlobMergeByDim(TBlobDim dim, const CBlobDesc* from, const CIntHandle* fromData, int fromCount, const CBlobDesc& to, const CIntHandle& toData)
+void CCpuMathEngine::BlobMergeByDim(TBlobDim dim, const CBlobDesc* from, const CIntHandle* fromData,
+	int fromCount, const CBlobDesc& to, const CIntHandle& toData)
 {
 	ASSERT_EXPR(dim < BD_Count && fromCount <= MaxBlobDescs);
 	CCpuExecutionScope scope;
 	blobMergeByDim(dim, from, fromData, fromCount, to, toData);
 }
 
-void CCpuMathEngine::BlobSplitByDim(TBlobDim dim, const CBlobDesc& from, const CFloatHandle& fromData, const CBlobDesc* to, const CFloatHandle* toData, int toCount)
+void CCpuMathEngine::BlobSplitByDim(TBlobDim dim, const CBlobDesc& from, const CConstFloatHandle& fromData,
+	const CBlobDesc* to, const CFloatHandle* toData, int toCount)
 {
 	ASSERT_EXPR(dim < BD_Count && toCount <= MaxBlobDescs);
 	CCpuExecutionScope scope;
 	blobSplitByDim(dim, from, fromData, to, toData, toCount);
 }
 
-void CCpuMathEngine::BlobSplitByDim(TBlobDim dim, const CBlobDesc& from, const CIntHandle& fromData, const CBlobDesc* to, const CIntHandle* toData, int toCount)
+void CCpuMathEngine::BlobSplitByDim(TBlobDim dim, const CBlobDesc& from, const CConstIntHandle& fromData,
+	const CBlobDesc* to, const CIntHandle* toData, int toCount)
 {
 	ASSERT_EXPR(dim < BD_Count && toCount <= MaxBlobDescs);
 	CCpuExecutionScope scope;

@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -54,12 +54,13 @@ private:
 
 // Smart pointer template for the interfaces that inherit from IObject
 template<class T>
-class CPtr {
+class CPtr final {
 public:
-	CPtr();
-	CPtr( T* );
-	CPtr( const CPtr& );
-	~CPtr();
+	CPtr() : ptr( nullptr ) {}
+	CPtr( T* other ) : ptr( other ) { if( ptr != nullptr ) { ptr->addRef(); } }
+	CPtr( const CPtr<T>& other ) : CPtr( other.Ptr() ) {}
+	CPtr( CPtr<T>&& other ) { Swap( other ); }
+	~CPtr() { Release(); }
 
 	void Release();
 
@@ -68,24 +69,152 @@ public:
 	// and false otherwise (because weakPtr is 0 or the object is already being destroyed)
 	bool PinWeakPtr( T* weakPtr );
 
-	int HashKey() const;
+	int HashKey() const { return static_cast<int>( reinterpret_cast<UINT_PTR>( ptr ) ); }
 
 	T& operator*() const;
 	T* operator->() const;
 	operator T*() const { return ptr; }
 	T* Ptr() const { return ptr; }
 
-	const CPtr<T>& operator =( T* );
-	const CPtr<T>& operator =( const CPtr<T>& );
+	const CPtr<T>& operator=( T* other ) { return assignPtr( other ); }
+	const CPtr<T>& operator=( const CPtr<T>& other ) { return assignPtr( other ); }
+	const CPtr<T>& operator=( CPtr<T>&& );
 
-	void Swap( CPtr<T>& );
+	void Swap( CPtr<T>& other ) { std::swap( ptr, other.ptr ); }
 
 private:
-	T* ptr;
+	T* ptr = nullptr;
 
 	const CPtr<T>& assignPtr( T* );
-	void replacePtr( T* newPtr );
+	void replacePtr( T* );
+
+	template<class U>
+	friend class CPtr;
 };
+
+//------------------------------------------------------------------------------------------------------------
+
+// Const specialization
+// Common used construction of implicit cast from CPtr<T> to CPtr<const T>
+// (full copy of class CPtr<T>)
+
+template<class T>
+class CPtr<const T> final {
+public:
+	CPtr() : ptr( nullptr ) {}
+	CPtr( const T* other ) : ptr( other ) { if( ptr != nullptr ) { ptr->addRef(); } }
+	CPtr( const CPtr<const T>& other ) : CPtr( other.Ptr() )  {}
+	CPtr( CPtr<const T>&& other ) { Swap( other ); }
+	~CPtr() { Release(); }
+
+	CPtr( const CPtr<T>& other ) : CPtr( other.Ptr() ) {} // <-- this main ctor added in specialization.
+	CPtr( CPtr<T>&& );
+
+	void Release();
+
+	// Binds a weak pointer to the object
+	// Returns true, if the pointer has been successfully bound
+	// and false otherwise (because weakPtr equals 0 or the object is already being destroyed).
+	bool PinWeakPtr( const T* weakPtr );
+
+	int HashKey() const { return static_cast<int>( reinterpret_cast<UINT_PTR>( ptr ) ); }
+
+	const T& operator*() const;
+	const T* operator->() const;
+	const T* Ptr() const { return ptr; }
+	operator const T*() const { return ptr; }
+
+	const CPtr<const T>& operator=( const T* other ) { return assignPtr( other ); }
+	const CPtr<const T>& operator=( const CPtr<const T>& other ) { return assignPtr( other.Ptr() ); }
+	const CPtr<const T>& operator=( CPtr<const T>&& );
+
+	const CPtr<const T>& operator=( const CPtr<T>& other ) { return assignPtr( other.Ptr() ); } // <-- this main operator= added in specialization.
+	const CPtr<const T>& operator=( CPtr<T>&& other );
+
+	void Swap( CPtr<const T>& other ) { std::swap( ptr, other.ptr ); }
+
+private:
+	const T* ptr = nullptr;
+
+	const CPtr<const T>& assignPtr( const T* );
+	void replacePtr( const T* );
+};
+
+template<class T>
+inline CPtr<const T>::CPtr( CPtr<T>&& other )
+{
+	ptr = other.ptr;
+	other.ptr = nullptr;
+}
+
+template<class T>
+inline void CPtr<const T>::Release()
+{
+	const T* tmp = ptr;
+	if( tmp != nullptr ) {
+		ptr = nullptr;
+		tmp->release();
+	}
+}
+
+template<class T>
+inline const T& CPtr<const T>::operator*() const
+{
+	AssertFO( ptr != nullptr );
+	return *ptr;
+}
+
+template<class T>
+inline const T* CPtr<const T>::operator->() const
+{
+	AssertFO( ptr != nullptr );
+	return ptr;
+}
+
+template<class T>
+inline const CPtr<const T>& CPtr<const T>::operator=( CPtr<const T>&& other )
+{
+	Swap( other );
+	return *this;
+}
+
+template<class T>
+inline const CPtr<const T>& CPtr<const T>::operator=( CPtr<T>&& other )
+{
+	replacePtr( other.ptr );
+	other.ptr = nullptr;
+	return *this;
+}
+
+template<class T>
+inline bool CPtr<const T>::PinWeakPtr( const T* weakPtr )
+{
+	if( weakPtr == nullptr || !weakPtr->weakAddRef() ) {
+		return false;
+	}
+	replacePtr( weakPtr );
+	return true;
+}
+
+template<class T>
+inline const CPtr<const T>& CPtr<const T>::assignPtr( const T* other )
+{
+	if( other != nullptr ) {
+		other->addRef();
+	}
+	replacePtr( other );
+	return *this;
+}
+
+template<class T>
+inline void CPtr<const T>::replacePtr( const T* other )
+{
+	const T* tmp = ptr;
+	ptr = other;
+	if( tmp != nullptr ) {
+		tmp->release();
+	}
+}
 
 //---------------------------------------------------------------------------------------------
 
@@ -119,10 +248,10 @@ inline const TDest* CheckCast( const IObject* ptr )
 
 //---------------------------------------------------------------------------------------------
 
-inline IObject::IObject() : refCounter( 0 )
-{
-}
-    
+inline IObject::IObject() :
+	refCounter( 0 )
+{}
+
 inline int IObject::RefCount() const
 {
 	return refCounter;
@@ -162,118 +291,70 @@ inline bool IObject::weakAddRef() const
 //---------------------------------------------------------------------------------------------
 
 template<class T>
-inline CPtr<T>::CPtr()
-{
-	ptr = 0;
-}
-
-template<class T>
-inline CPtr<T>::CPtr( T* _ptr )
-{
-	ptr = _ptr;
-	if( ptr != 0 ) {
-		ptr->addRef();
-	}
-}
-
-template<class T>
-inline CPtr<T>::CPtr( const CPtr<T>& _ptr )
-{
-	ptr = _ptr.ptr;
-	if( ptr != 0 ) {
-		ptr->addRef();
-	}
-}
-
-template<class T>
-inline CPtr<T>::~CPtr()
-{
-	Release();
-}
-
-template<class T>
 inline void CPtr<T>::Release()
 {
-	T* tempPtr = ptr;
-	if( tempPtr != 0 ) {
-		ptr = 0;
-		tempPtr->release();
+	T* tmp = ptr;
+	if( tmp != nullptr ) {
+		ptr = nullptr;
+		tmp->release();
 	}
 }
 
 template<class T>
 inline T& CPtr<T>::operator*() const
 {
-	AssertFO( ptr != 0 );
+	AssertFO( ptr != nullptr );
 	return *ptr;
 }
 
 template<class T>
 inline T* CPtr<T>::operator->() const
 {
-	AssertFO( ptr != 0 );
+	AssertFO( ptr != nullptr );
 	return ptr;
 }
 
 template<class T>
-inline const CPtr<T>& CPtr<T>::operator =( T* newPtr )
+inline const CPtr<T>& CPtr<T>::operator=( CPtr<T>&& other )
 {
-	return assignPtr( newPtr );
-}
-
-template<class T>
-inline const CPtr<T>& CPtr<T>::operator =( const CPtr<T>& newPtr )
-{
-	return assignPtr( newPtr.ptr );
-}
-
-template<class T>
-inline void CPtr<T>::Swap( CPtr<T>& other )
-{
-	std::swap<T*>( ptr, other.ptr );
+	Swap( other );
+	return *this;
 }
 
 template<class T>
 inline bool CPtr<T>::PinWeakPtr( T* weakPtr )
 {
-	if( weakPtr == 0 || !weakPtr->weakAddRef() ) {
+	if( weakPtr == nullptr || !weakPtr->weakAddRef() ) {
 		return false;
 	}
-
 	replacePtr( weakPtr );
 	return true;
 }
 
 template<class T>
-inline int CPtr<T>::HashKey() const
+inline const CPtr<T>& CPtr<T>::assignPtr( T* other )
 {
-	return static_cast<int>(reinterpret_cast<UINT_PTR>(ptr));
-}
-
-template<class T>
-inline const CPtr<T>& CPtr<T>::assignPtr( T* newPtr )
-{
-	if( newPtr != 0 ) {
-		newPtr->addRef();
+	if( other != nullptr ) {
+		other->addRef();
 	}
-	replacePtr( newPtr );
+	replacePtr( other );
 	return *this;
 }
 
 template<class T>
-inline void CPtr<T>::replacePtr( T* newPtr )
+inline void CPtr<T>::replacePtr( T* other )
 {
-	T* oldPtr = ptr;
-	ptr = newPtr;
-	if( oldPtr != 0 ) {
-		oldPtr->release();
+	T* tmp = ptr;
+	ptr = other;
+	if( tmp != nullptr ) {
+		tmp->release();
 	}
 }
 
 //---------------------------------------------------------------------------------------------
 
 template<class T>
-class CCopyOnWritePtr {
+class CCopyOnWritePtr final {
 public:
 	CCopyOnWritePtr();
 	CCopyOnWritePtr( const CCopyOnWritePtr& other );
