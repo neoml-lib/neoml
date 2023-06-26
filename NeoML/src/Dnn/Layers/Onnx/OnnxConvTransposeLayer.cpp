@@ -38,9 +38,9 @@ void COnnxConvTransposeLayer::Reshape()
 
 	CBlobDesc origInputDesc;
 	if( !useExternalPadding ) {
-		SetPaddingHeight( totalPadding[0] ); //1d- convTranspose
+		paddingHeight = totalPadding[0]; //1d- convTranspose
 		if( OutputPadding().Size() == /*convDims*/2 ) { //2d- convTranspose
-			SetPaddingWidth( totalPadding[1] );
+			paddingWidth = totalPadding[1];
 		}
 	}
 
