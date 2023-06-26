@@ -523,6 +523,17 @@ void CCpuMathEngine::BlobChannelwiseConvolution( const CChannelwiseConvolutionDe
 
 //=====================================================================================================================
 
+static void multiplyMatrixByTransposedWithFreeTerm( CCpuMathEngine& mathEngine, const float* first, int firstHeight,
+	int firstWidth, const float* second, int secondHeight, const float* freeTerm, float* result )
+{
+	mathEngine.multiplyMatrixByTransposedMatrix( first, firstHeight, firstWidth, firstWidth, second,
+		secondHeight, firstWidth, result, secondHeight );
+	if( freeTerm != nullptr ) {
+		mathEngine.addVectorToMatrixRows( result, result, firstHeight, secondHeight, secondHeight,
+			secondHeight, freeTerm );
+	}
+}
+
 void CCpuMathEngine::MobileNetV3PreSEBlock( const CBlobDesc& inputDesc, const CBlobDesc& outputDesc,
 	const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& inputHandle,
 	const CConstFloatHandle& expandFilterData, const CConstFloatHandle* expandFreeTermData,
@@ -585,12 +596,8 @@ void CCpuMathEngine::MobileNetV3PreSEBlock( const CBlobDesc& inputDesc, const CB
 			float* chInput = chInputBuff + ( inputRowsProcessed - firstInputRowInBuffer ) * chInputRowSize;
 
 			// Apply expand convolution
-			multiplyMatrixByTransposedMatrix( input, inputRowsThisStep * inputWidth, inputChannels, inputChannels,
-				expandFilter, outputChannels, inputChannels, chInput, outputChannels );
-			if( expandFreeTerm != nullptr ) {
-				addVectorToMatrixRows( chInput, chInput, inputRowsThisStep * inputWidth, outputChannels,
-					outputChannels, outputChannels, expandFreeTerm );
-			}
+			multiplyMatrixByTransposedWithFreeTerm( *this, input, inputRowsThisStep * inputWidth, inputChannels,
+				expandFilter, outputChannels, expandFreeTerm, chInput );
 			expandActivationImpl.Process( chInput, inputRowsProcessed, inputRowsThisStep,
 				chInput, inputRowsProcessed, inputRowsThisStep, nullptr );
 			inputRowsProcessed += inputRowsThisStep;
@@ -680,12 +687,8 @@ void CCpuMathEngine::MobileNetV3PostSEBlock( const CBlobDesc& channelwiseOutputD
 			activationImpl.Process( squeezed, rowsProcessed, rowsThisStep,
 				squeezed, rowsProcessed, rowsThisStep, nullptr );
 			// Down-convolution (1x1)
-			multiplyMatrixByTransposedMatrix( squeezed, rowsThisStep * width, inputChannels,
-				inputChannels, downFilter, outputChannels, inputChannels, output, outputChannels );
-			if( downFreeTerm != nullptr ) {
-				addVectorToMatrixRows( output, output, rowsThisStep * width, outputChannels,
-					outputChannels, outputChannels, downFreeTerm );
-			}
+			multiplyMatrixByTransposedWithFreeTerm( *this, squeezed, rowsThisStep * width, inputChannels,
+				downFilter, outputChannels, downFreeTerm, output );
 			// Residual connection (if present)
 			if( residual != nullptr ) {
 				vectorAdd( output, residual, output, rowsThisStep * width * outputChannels );
@@ -850,18 +853,10 @@ IRowwiseCpuImpl::CProcessingReport CChannelwiseWith1x1CpuImpl::Process( const fl
 
 		processChannelwise3x3( desc, outputRowsThisStep, input, inputRowIndex % desc.Source.Height(),
 			chFilter, chFreeTerm, buffer, outputImageRowIndex );
-
 		activationImpl.Process( buffer, outputRowIndex, outputRowsThisStep,
 			buffer, outputRowIndex, outputRowsThisStep, nullptr );
-
-		mathEngine.multiplyMatrixByTransposedMatrix( buffer, outputRowsThisStep * outputWidth, inputChannels,
-			inputChannels, convFilter, outputChannels, inputChannels, output, outputChannels );
-
-		if( convFreeTerm != nullptr ) {
-			mathEngine.addVectorToMatrixRows( output, output, outputRowsThisStep * outputWidth, outputChannels,
-				outputChannels, outputChannels, convFreeTerm );
-		}
-
+		multiplyMatrixByTransposedWithFreeTerm( mathEngine, buffer, outputRowsThisStep * outputWidth, inputChannels,
+			convFilter, outputChannels, convFreeTerm, output );
 		if( residual ) {
 			vectorAdd( output, residualInput, output, outputRowsThisStep * outputWidth * outputChannels );
 			residualInput += outputRowsThisStep * desc.Source.Width() * inputChannels;
@@ -1055,14 +1050,8 @@ IRowwiseCpuImpl::CProcessingReport CMobileNetV2CpuImpl::Process( const float* in
 		if( inputRowsThisStep > 0 ) {
 			const float* expandConvInput = input + ( chInput->DataRowProcessed() - inputRowIndex ) * inputRowSize;
 			// Apply expand convolution with activation
-			mathEngine.multiplyMatrixByTransposedMatrix( expandConvInput, inputRowsThisStep * inputWidth, inputChannels,
-				inputChannels, expandFilter, expandedChannels, inputChannels,
-				chInput->EmptyRows(), expandedChannels );
-			if( expandFreeTerm != nullptr ) {
-				mathEngine.addVectorToMatrixRows( chInput->EmptyRows(), chInput->EmptyRows(),
-					inputRowsThisStep * inputWidth, expandedChannels, expandedChannels,
-					expandedChannels, expandFreeTerm );
-			}
+			multiplyMatrixByTransposedWithFreeTerm( mathEngine, expandConvInput, inputRowsThisStep * inputWidth, inputChannels,
+				expandFilter, expandedChannels, expandFreeTerm, chInput->EmptyRows() );
 			expandActivationImpl.Process( chInput->EmptyRows(), 0, inputRowsThisStep,
 				chInput->EmptyRows(), 0, inputRowsThisStep, nullptr );
 			chInput->AddRows( inputRowsThisStep );
