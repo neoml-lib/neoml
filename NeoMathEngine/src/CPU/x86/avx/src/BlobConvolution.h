@@ -62,7 +62,7 @@ private:
     class CJitConvolution : public Xbyak::CodeGenerator {
     public:
         // Init JIT code main routine
-        CJitConvolution( CBlobConvolution& bc, int yStepIndex );
+        CJitConvolution( const CBlobConvolution& bc, int yStepIndex );
 
         void Run( bool useNarrowProcessing, const float* srcPtr, const float* fltPtr, const float* freeTermPtr, float* resPtr );
 
@@ -92,16 +92,16 @@ private:
             L( label );
         }
 
-        void fillBatchProcessingKernel( CBlobConvolution<FltCnt>& bc, bool useNarrowProcessing, size_t windowIndex );
-        void fillSingleProcessingKernel( CBlobConvolution<FltCnt>& bc, bool useNarrowProcessing, size_t windowIndex );
+        void fillBatchProcessingKernel( const CBlobConvolution<FltCnt>& bc, bool useNarrowProcessing, size_t windowIndex );
+        void fillSingleProcessingKernel( const CBlobConvolution<FltCnt>& bc, bool useNarrowProcessing, size_t windowIndex );
 
         // Initialize result registers with data from freeTerm (if it isn't nullptr)
         void initResRegs( size_t stepCount, size_t stepSize );
         // Flush result registers
         // 'fillKernel' will be called for filling of kernel in main loop
         // 'callBeforeFlush' will be called before flushing of result registers. It can be captured labda function.
-        void flushResRegs( CBlobConvolution<FltCnt>& bc, size_t stepCount, size_t stepSize, bool useNarrowProcessing );
-        void initProcessingMainLoop( CBlobConvolution<FltCnt>& bc,
+        void flushResRegs( const CBlobConvolution<FltCnt>& bc, size_t stepCount, size_t stepSize, bool useNarrowProcessing );
+        void initProcessingMainLoop( const CBlobConvolution<FltCnt>& bc,
             size_t stepCount, size_t stepSize, int batchChannelSize, const std::function<void( int )>& fillKernel,
             size_t windowIndex, bool useNarrowProcessing = false, const std::function<void()>* callBeforeFlush = nullptr );
 
