@@ -67,6 +67,7 @@ void CRowwiseWrapper::RemoveRows( int count )
 	PRESUME_EXPR( count <= DataRowCount() );
 	removedRows += count;
 	firstDataRow += count * rowSize;
+	PRESUME_EXPR( removedRows <= addedRows );
 }
 
 CRowwiseBuffer::CRowwiseBuffer( IMathEngine& mathEngine, int rowCount, int rowSize, int fullHeight ) :
@@ -250,7 +251,7 @@ void CCpuMathEngine::RowwiseExecute( const CBlobDesc& inputDesc, CRowwiseOperati
 CRowwiseOperationDesc* CCpuMathEngine::InitActivationRowwise( TActivationFunction activation,
 	float param0, float param1 )
 {
-	return new CActivationCpuImpl( activation, param0, param1 );
+	return new CRowwiseActivation( activation, param0, param1 );
 }
 
 } // namespace NeoML
