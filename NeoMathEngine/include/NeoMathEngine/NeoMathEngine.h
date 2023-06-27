@@ -1112,6 +1112,8 @@ struct CMathEngineDistributedInfo {
 
 //------------------------------------------------------------------------------------------------------------
 
+extern int NEOMATHENGINE_API FloatAlignment;
+
 // The maximum number of blobs in split or merge operations
 const int MaxBlobDescs = 32;
 

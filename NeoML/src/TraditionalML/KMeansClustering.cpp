@@ -254,6 +254,90 @@ void CKMeansClustering::CUpdateULBoundsThreadTask::RunOnElement( int threadIndex
 
 //-------------------------------------------------------------------------------------------------------------
 
+namespace {
+struct CThreadTaskMxMT final {
+	CThreadTaskMxMT( int threadCount, IMathEngine& mathEngine,
+			const CConstFloatHandle& first, int firstHeight, int firstWidth,
+			const CConstFloatHandle& second, int secondHeight,
+			const CFloatHandle& result ) :
+		ThreadCount( threadCount ),
+		MathEngine( mathEngine ),
+		First( first ),
+		FirstHeight( firstHeight ),
+		FirstWidth( firstWidth ),
+		Second( second ),
+		SecondHeight( secondHeight ),
+		Result( result )
+	{}
+
+	void CallRun( int threadIndex );
+protected:
+	const int ThreadCount;
+	IMathEngine& MathEngine;
+	const CConstFloatHandle& First;
+	const int FirstHeight;
+	const int FirstWidth;
+	const CConstFloatHandle& Second;
+	const int SecondHeight;
+	const CFloatHandle& Result;
+};
+
+void CThreadTaskMxMT::CallRun( int threadIndex )
+{
+	int firstHeightStart;
+	int firstHeightCount;
+	int secondHeightStart;
+	int secondHeightCount;
+	if( OmpGetTaskIndexAndCount2D( FirstHeight, /*alignX*/1, SecondHeight, FloatAlignment,
+		firstHeightStart, firstHeightCount, secondHeightStart, secondHeightCount,
+		ThreadCount, threadIndex ) )
+	{
+		const CConstFloatHandle& first = First + firstHeightStart * FirstWidth;
+		const CConstFloatHandle& second = Second + secondHeightStart * FirstWidth;
+		const CFloatHandle& result = Result + firstHeightStart * SecondHeight + secondHeightStart;
+
+		MathEngine.MultiplyMatrixByTransposedMatrix(
+			first, firstHeightCount, FirstWidth, FirstWidth/*RowSize*/,
+			second, secondHeightCount, FirstWidth/*RowSize*/,
+			result, SecondHeight/*RowSize*/, 0/*resBufferSize*/ );
+	}
+}
+} // namespace
+
+//-------------------------------------------------------------------------------------------------------------
+
+static inline bool isThreadTaskRelevant( int64_t operationCount )
+{
+	constexpr int64_t MinOmpOperationCount = 32768;
+	return operationCount >= MinOmpOperationCount;
+}
+
+static void matrixMultiplyByTransposed( const CKMeansClustering& owner, IMathEngine& mathEngine, int batchSize,
+	const CConstFloatHandle& first, int firstHeight, int firstWidth, const CConstFloatHandle& second, int secondHeight,
+	const CFloatHandle& result, int resultBufferSize )
+{
+	NeoAssert( batchSize == 1 );
+	NeoAssert( resultBufferSize >= firstHeight * secondHeight );
+
+	if( !isThreadTaskRelevant( firstWidth * firstHeight * secondHeight ) )
+	{
+		mathEngine.MultiplyMatrixByTransposedMatrix(
+			first, firstHeight, firstWidth, firstWidth/*firstRowSize*/,
+			second, secondHeight, firstWidth/*secondRowSize*/,
+			result, secondHeight/*resultRowSize*/, 0/*resultBufferSize*/ );
+		return;
+	}
+
+	CThreadTaskMxMT task( owner.GetThreadPool()->Size(), mathEngine,
+		first, firstHeight, firstWidth, second, secondHeight, result );
+
+	NEOML_NUM_THREADS( *owner.GetThreadPool(), &task, []( int threadIndex, void* ptr ) {
+		( ( CThreadTaskMxMT* )ptr )->CallRun( threadIndex );
+	} );
+}
+
+//-------------------------------------------------------------------------------------------------------------
+
 CKMeansClustering::CKMeansClustering( const CArray<CClusterCenter>& _clusters, const CParam& _params ) :
 	CKMeansClustering( _params )
 {
@@ -367,7 +451,7 @@ bool CKMeansClustering::denseLloydL2Clusterize( IClusteringData* rawData, int se
 	const int featureCount = rawData->GetFeaturesCount();
 	const int clusterCount = params.InitialClustersCount;
 
-	std::unique_ptr<IMathEngine> mathEngine( CreateCpuMathEngine( params.ThreadCount, 0 ) );
+	std::unique_ptr<IMathEngine> mathEngine( CreateCpuMathEngine( /*params.ThreadCount*/1, /*memoryLimit*/0 ) );
 
 	CPtr<CDnnBlob> data = createDataBlob( *mathEngine, rawData->GetMatrix() ); // no threads
 	CPtr<CDnnBlob> weight = createWeightBlob( *mathEngine, rawData ); // no threads
@@ -869,8 +953,8 @@ bool CKMeansClustering::lloydBlobClusterization( const CDnnBlob& data, const CDn
 static const int DistanceBufferSize = 2 * 1024 * 1024;
 
 // Calculates distances between every point and the closest cluster
-static void calcClosestDistances( const CDnnBlob& data, const CDnnBlob& squaredData, const CDnnBlob& centers,
-	CFloatHandle& closestDist, CIntHandle& labels )
+static void calcClosestDistances( const CKMeansClustering& owner, const CDnnBlob& data, const CDnnBlob& squaredData,
+	const CDnnBlob& centers, CFloatHandle& closestDist, CIntHandle& labels )
 {
 	IMathEngine& mathEngine = data.GetMathEngine();
 	const int clusterCount = centers.GetObjectCount();
@@ -897,12 +981,12 @@ static void calcClosestDistances( const CDnnBlob& data, const CDnnBlob& squaredD
 		batchSize = min( batchSize, vectorCount - batchStart );
 
 		// (a - b)^2 = a^2 + b^2 - 2*a*b
-		mathEngine.MultiplyMatrixByTransposedMatrix( 1, centers.GetData(), clusterCount, featureCount, currData, // TODO! threads
-			batchSize, distances, clusterCount * batchSize );
+		matrixMultiplyByTransposed( owner, mathEngine, /*batchSize*/1, /*first*/centers.GetData(), clusterCount, featureCount,
+			/*second*/currData, batchSize, /*result*/distances, clusterCount * batchSize );
 		mathEngine.VectorMultiply( distances, distances, clusterCount * batchSize, minusTwo ); // TODO! threads
 		mathEngine.AddVectorToMatrixRows( 1, distances, distances, clusterCount, batchSize, currSquaredData ); // TODO! threads
-		mathEngine.AddVectorToMatrixColumns( distances, distances, clusterCount, batchSize, squaredCenters ); // TODO! threads
-		mathEngine.FindMinValueInColumns( distances, clusterCount, batchSize, currClosesDist, currLabels ); // TODO! threads
+		mathEngine.AddVectorToMatrixColumns( distances, distances, clusterCount, batchSize, squaredCenters ); // no threads
+		mathEngine.FindMinValueInColumns( distances, clusterCount, batchSize, currClosesDist, currLabels ); // no threads
 
 		batchStart += batchSize;
 		currData += batchSize * featureCount;
@@ -922,7 +1006,7 @@ double CKMeansClustering::assignClosest( const CDnnBlob& data, const CDnnBlob& s
 	CFloatHandle closestDist = stackBuff.GetHandle();
 	CFloatHandle totalDist = stackBuff.GetHandle() + vectorCount;
 	CIntHandle labelsHandle = labels.GetData<int>();
-	calcClosestDistances( data, squaredData, centers, closestDist, labelsHandle );
+	calcClosestDistances( *this, data, squaredData, centers, closestDist, labelsHandle );
 	mathEngine.VectorEltwiseMultiply( closestDist, weight.GetData(), closestDist, vectorCount );
 	mathEngine.VectorSum( closestDist, vectorCount, totalDist );
 	const double result = static_cast<double>( totalDist.GetValue() );

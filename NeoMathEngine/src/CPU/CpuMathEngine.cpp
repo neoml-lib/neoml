@@ -47,7 +47,7 @@ bool CCPUInfo::HasAvxAndFma = CCPUInfo::IsAvxAndFmaAvailable();
 
 namespace NeoML {
 
-static int FloatAlignment = CCPUInfo::DefineFloatAlignment();
+int NEOMATHENGINE_API FloatAlignment = CCPUInfo::DefineFloatAlignment();
 
 CCpuMathEngine::CCpuMathEngine( int _threadCount, size_t _memoryLimit,
 		std::shared_ptr<CMultiThreadDistributedCommunicator> communicator,
