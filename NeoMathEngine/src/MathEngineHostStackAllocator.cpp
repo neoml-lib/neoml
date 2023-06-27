@@ -175,9 +175,9 @@ CHostStackAllocator::~CHostStackAllocator()
 
 void CHostStackAllocator::CleanUp()
 {
-	thread::id id = this_thread::get_id();
+	std::thread::id id = std::this_thread::get_id();
 
-	lock_guard<std::mutex> lock( mutex );
+	std::lock_guard<std::mutex> lock( mutex );
 	auto iterator = stackManagers.find( id );
 	if( iterator != stackManagers.end() ) {
 		iterator->second->CleanUp();
@@ -189,10 +189,10 @@ void* CHostStackAllocator::Alloc( size_t size )
 	// Align size to keep correct data alignment
 	size = ( ( size + memoryAlignment - 1 ) / memoryAlignment ) * memoryAlignment;
 	CHostStackMemoryManager* hostManager = 0;
-	thread::id id = this_thread::get_id();
+	std::thread::id id = std::this_thread::get_id();
 
 	{
-		lock_guard<std::mutex> lock( mutex );
+		std::lock_guard<std::mutex> lock( mutex );
 		auto result = stackManagers.find( id );
 		if( result == stackManagers.end() ) {
 			result = stackManagers.insert( make_pair( id, new CHostStackMemoryManager() ) ).first;
@@ -210,10 +210,10 @@ void CHostStackAllocator::Free( void* ptr )
 	}
 
 	CHostStackMemoryManager* hostManager = 0;
-	thread::id id = this_thread::get_id();
+	std::thread::id id = std::this_thread::get_id();
 
 	{
-		lock_guard<std::mutex> lock( mutex );
+		std::lock_guard<std::mutex> lock( mutex );
 
 		auto pair = stackManagers.find( id );
 		hostManager = pair->second;

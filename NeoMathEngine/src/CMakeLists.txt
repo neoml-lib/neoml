@@ -31,6 +31,7 @@ set(CPU_COMMON_SOURCES
     MathEngine.cpp
     MathEngineHostStackAllocator.cpp
     MemoryPool.cpp
+    ThreadPool.cpp
     common.cpp
 )
 
@@ -51,13 +52,15 @@ target_sources(${PROJECT_NAME}
     MemoryHandleInternal.h
     MemoryPool.h
     RawMemoryManager.h
+    CPU/CpuExecutionScope.h
+    CPU/CpuFunctorCommon.h
+    CPU/CPUInfo.h
     CPU/CpuMathEngine.h
-    CPU/CpuRandom.h
     CPU/CpuMathEnginePrivate.h
     CPU/CpuMathEngineOmp.h
     CPU/CpuMathEngineDnnDistributed.h
     CPU/CpuMathEngineDnnLstm.h
-    CPU/CpuExecutionScope.h
+    CPU/CpuRandom.h
 
     CPU/MatrixMultiplyingInterleavedCommon/CpuMemoryHelper.h
     CPU/MatrixMultiplyingInterleavedCommon/MatrixMultiplier.h
@@ -75,6 +78,7 @@ target_sources(${PROJECT_NAME}
     ../include/NeoMathEngine/NeoMathEngine.h
     ../include/NeoMathEngine/NeoMathEngineException.h
     ../include/NeoMathEngine/SimdMathEngine.h
+    ../include/NeoMathEngine/ThreadPool.h
 )
 
 add_library(NeoML::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
@@ -126,6 +130,7 @@ if((DARWIN AND CMAKE_SYSTEM_PROCESSOR MATCHES "^arm64.*") OR (ANDROID AND ANDROI
     PRIVATE
         ${CPU_ARM_SOURCES}
         CPU/arm/CpuArm.h
+        CPU/arm/CpuArmFunctors.h
         CPU/arm/CpuArmMathEngineBlasPrivate.h
         CPU/arm/CpuArmMathEngineVectorMathPrivate.h
         CPU/arm/MatrixMultiplyingInterleaved/Interleavers/Interleaver_ARM64.h
@@ -155,12 +160,28 @@ else()
     PRIVATE
         ${CPU_X86_SOURCES}
         CPU/x86/CpuX86.h
+        CPU/x86/CpuX86Functors.h
         CPU/x86/CpuX86MathEngineBlasPrivate.h
         CPU/x86/CpuX86MathEngineVectorMathPrivate.h
     )
     set_property(SOURCE ${CPU_X86_SOURCES} PROPERTY UNITY_GROUP 1)
     source_group("CPU\\x86" REGULAR_EXPRESSION "CPU\/x86\/.*")
     target_include_directories(${PROJECT_NAME} PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/CPU/x86>)
+
+    set(CPU_AVX_SOURCES
+        CPU/x86/avx2/Avx2VectorFunctions.cpp
+    )
+    target_sources(${PROJECT_NAME} PRIVATE
+        ${CPU_AVX_SOURCES}
+        CPU/x86/avx2/Avx2Functions.h
+    )
+    set_property(SOURCE ${CPU_AVX_SOURCES} PROPERTY UNITY_GROUP 3)
+    if(WIN32)
+        set_property(SOURCE ${CPU_AVX_SOURCES} PROPERTY COMPILE_OPTIONS /arch:AVX2)
+    else()
+        set_property(SOURCE ${CPU_AVX_SOURCES} PROPERTY COMPILE_OPTIONS $<$<COMPILE_LANGUAGE:CXX>:-mavx2 -mfma>)
+    endif()
+
     if(NEOML_USE_AVX)
         target_sources(${PROJECT_NAME}
         PRIVATE
@@ -204,15 +225,10 @@ if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
         list(GET NEOML_CUDA_VERSION_LIST 0 NEOML_CUDA_VERSION_MAJOR)
         list(GET NEOML_CUDA_VERSION_LIST 1 NEOML_CUDA_VERSION_MINOR)
 
-        if(NOT "${NEOML_CUDA_VERSION_MAJOR}" STREQUAL "11" OR NOT "${NEOML_CUDA_VERSION_MINOR}" STREQUAL "2")
-            if(USE_FINE_OBJECTS)
-                # Internal build must fail in case of version mismatch
-                message(FATAL_ERROR "CUDA 11.2 required for build (found: ${NEOML_CUDA_VERSION_MAJOR}.${NEOML_CUDA_VERSION_MINOR})")
-            else()
-                # OSS build can continue
-                # TODO: TEMPORARY FAILING FOR DEBUG, replace FATAL_ERROR with STATUS afterwards
-                message(FATAL_ERROR "CUDA 11.2 required for build (found: ${NEOML_CUDA_VERSION_MAJOR}.${NEOML_CUDA_VERSION_MINOR})")
-            endif()
+        if(USE_FINE_OBJECTS AND (NOT "${NEOML_CUDA_VERSION_MAJOR}" STREQUAL "11" OR NOT "${NEOML_CUDA_VERSION_MINOR}" STREQUAL "8"))
+            message(FATAL_ERROR "CUDA 11.8 is required for build with FineObjects (found: ${NEOML_CUDA_VERSION_MAJOR}.${NEOML_CUDA_VERSION_MINOR})")
+        elseif(NOT USE_FINE_OBJECTS AND NOT "${NEOML_CUDA_VERSION_MAJOR}" STREQUAL "11")
+            message(FATAL_ERROR "CUDA 11 is required for build (found: ${NEOML_CUDA_VERSION_MAJOR}.${NEOML_CUDA_VERSION_MINOR})")
         else()
             target_compile_definitions(${PROJECT_NAME} PRIVATE NEOML_USE_CUDA)
             target_compile_options(${PROJECT_NAME} PRIVATE
@@ -300,37 +316,42 @@ if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
     
 elseif(IOS)
     # Apple metal
-    set(IOS_SOURCES
-        GPU/Metal/MetalMathEngine.h
-        GPU/Metal/MetalMathEngine.mm
-        GPU/Metal/MetalMathEngineVectorMath.mm
-        GPU/Metal/MetalMathEngineBlas.mm
-        GPU/Metal/MetalMathEngineDnn.mm
-        GPU/Metal/MetalMathEngineDnnConvs.mm
-        GPU/Metal/MetalMathEngineDnnDropout.mm
-        GPU/Metal/MetalMathEngineDnnPoolings.mm
-        GPU/Metal/MetalMathEngineDnnLrn.mm
-        GPU/Metal/MetalMathEngineDnnLstm.mm
-        GPU/Metal/MetalKernel.h
-        GPU/Metal/MetalKernel.mm
-        GPU/Metal/MetalCommandQueue.h
-        GPU/Metal/MetalCommandQueue.mm
-    )
+    if(NeoMathEngine_ENABLE_METAL)
 
-    set_source_files_properties(${IOS_SOURCES} PROPERTIES COMPILE_FLAGS -fmodules)
-    target_include_directories(${PROJECT_NAME} PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/GPU/Metal>)
-    target_sources(${PROJECT_NAME} PRIVATE ${IOS_SOURCES})
+        target_compile_definitions(${PROJECT_NAME} PRIVATE NEOML_USE_METAL)
+
+        set(IOS_SOURCES
+            GPU/Metal/MetalMathEngine.h
+            GPU/Metal/MetalMathEngine.mm
+            GPU/Metal/MetalMathEngineVectorMath.mm
+            GPU/Metal/MetalMathEngineBlas.mm
+            GPU/Metal/MetalMathEngineDnn.mm
+            GPU/Metal/MetalMathEngineDnnConvs.mm
+            GPU/Metal/MetalMathEngineDnnDropout.mm
+            GPU/Metal/MetalMathEngineDnnPoolings.mm
+            GPU/Metal/MetalMathEngineDnnLrn.mm
+            GPU/Metal/MetalMathEngineDnnLstm.mm
+            GPU/Metal/MetalKernel.h
+            GPU/Metal/MetalKernel.mm
+            GPU/Metal/MetalCommandQueue.h
+            GPU/Metal/MetalCommandQueue.mm
+        )
+
+        set_source_files_properties(${IOS_SOURCES} PROPERTIES COMPILE_FLAGS -fmodules)
+        target_include_directories(${PROJECT_NAME} PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/GPU/Metal>)
+        target_sources(${PROJECT_NAME} PRIVATE ${IOS_SOURCES})
     
-    add_subdirectory(GPU/Metal/NeoMetalLib ${CMAKE_BINARY_DIR}/NeoMetalLib)
-    add_dependencies(${PROJECT_NAME} NeoMetalLib)
+        add_subdirectory(GPU/Metal/NeoMetalLib ${CMAKE_BINARY_DIR}/NeoMetalLib)
+        add_dependencies(${PROJECT_NAME} NeoMetalLib)
     
-    get_target_property(METAL_LIB NeoMetalLib OUTPUT_NAME)
+        get_target_property(METAL_LIB NeoMetalLib OUTPUT_NAME)
     
-    set_property(SOURCE ${METAL_LIB} PROPERTY GENERATED ON)
-    target_sources(${PROJECT_NAME} PRIVATE ${METAL_LIB})
+        set_property(SOURCE ${METAL_LIB} PROPERTY GENERATED ON)
+        target_sources(${PROJECT_NAME} PRIVATE ${METAL_LIB})
     
-    if(NeoMathEngine_BUILD_SHARED)
-        set_target_properties(${PROJECT_NAME} PROPERTIES RESOURCE ${METAL_LIB})
+        if(NeoMathEngine_BUILD_SHARED)
+            set_target_properties(${PROJECT_NAME} PROPERTIES RESOURCE ${METAL_LIB})
+        endif()
     endif()
 endif()
 

@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,14 +17,13 @@ limitations under the License.
 
 #include "onnx.pb.h"
 
-#include "TensorLayout.h"
 #include "Tensor.h"
 #include "AttributeGetters.h"
 
 namespace NeoOnnx {
 
 // Opset versioning support
-const int MaxOpsetVersion = 12;
+const int MaxOpsetVersion = 16;
 
 // onnx operator
 class COperator {
@@ -66,6 +65,9 @@ public:
 	virtual void ProcessTensors( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const = 0;
 
 protected:
+	// Opset version
+	const int OpsetVersion;
+
 	COperator( const onnx::NodeProto& node, int opsetVersion );
 
 	// Gets attribute value
@@ -73,8 +75,17 @@ protected:
 	template<class T>
 	bool GetAttribute( const CString& name, T& value ) const;
 
-	// Opset version
-	const int OpsetVersion;
+	// Throws an exception if operator has nullptr among its inputs
+	void CheckNoNullInputs( const CTensorArray& inputs ) const;
+
+	// Throws an exception if operator has CUserTensor among its inputs
+	void CheckNoUserInputs( const CTensorArray& inputs ) const;
+
+	// Throws an exception if operator has CShapeTensor among its inputs
+	void CheckNoShapeInputs( const CTensorArray& inputs ) const;
+
+	// Returns true if any of inputs is a CUserTensor
+	bool HasUserInput( const CTensorArray& inputs ) const;
 
 private:
 	// Operator name

@@ -16,6 +16,8 @@
 		- [CSimpleGenerator](#csimplegenerator)
 	- [Dimensionality reduction](#dimensionality-reduction)
 		- [Principal component analysis](#principal-component-analysis)
+	- [Subword encoding for language modelling](#subword-encoding-for-language-modelling)
+		- [Byte pair encoding](#byte-pair-encoding)
 
 <!-- TOC -->
 
@@ -429,3 +431,180 @@ public:
 	void Serialize( CArchive& archive ) override;
 
 ```
+
+## Subword encoding for language modelling
+
+Subword tokenization (+encoding) is approach which has advantages over character-based and word-based approach in language modeling tasks.
+
+```c++
+// Subword encoder interface.
+class NEOML_API ISubwordEncoder : virtual public IObject {
+public:
+	virtual ~ISubwordEncoder() override = default;
+
+	// Encodes a word as a sequence of token ids with corresponding token lengths.
+	// TokenId range = [0, ... , Size() - 1].
+	// To encode a string with wide characters you have to first encode it as utf-8 and wrap it in CString.
+	// In this case 'tokenLengths' will contain lengths of the tokens according to the original string version.
+	virtual void Encode( const CString& word, CArray<int>& tokenIds,
+		CArray<int>& tokenLengths ) const = 0;
+	
+	// Decodes sequence of token ids into a sequence of words.
+	virtual void Decode( const CArray<int>& tokenIds, CArray<CString>& words ) const = 0;
+
+	// Returns number of tokens.
+	virtual int Size() const = 0;
+
+	// Returns BPE mappings as they are performed by the encoder
+	virtual void GetIdToTokenMapping( CMap<int, CString>& ) const = 0;
+	virtual void GetTokenToIdMapping( CMap<CString, int>& ) const = 0;
+
+	struct CParams {
+		// End-of-Word (EOW), a string that will be added to the end of each input word.
+		CString UseEndOfWordToken = "";
+		// Start-of-Word (SOW), a string that will be added to the beginning of each input word.
+		CString UseStartOfWordToken = "";
+		// Treat strings as arrays of raw bytes,
+		// which decreases the maximum size of the initial vocabulary to 256 and allows to completely avoid unknown symbols.
+		bool UseRawBytes = false;
+		// The id of <UNK>.
+		// All other tokens are continuously enumerated from 'UnknownTokenId' + 1. Ids [0, UnknownTokenId) are not used when encoding. 
+		int UnknownTokenId = 0
+	};
+
+	// Encoder parameters getters
+	virtual bool UseEndOfWordToken() const = 0;
+	virtual bool UseStartOfWordToken() const = 0;
+	virtual bool UseRawBytes() const = 0;
+	virtual int UnknownTokenId() const = 0;
+};
+```
+
+Some subword encoding algorithms can be accelerated by using a cache for `Encode` calls.
+For example, during the training of language model, a large number of `Encode` calls usually occur.
+
+For this reason an additional interface has been added:
+
+```c++
+// Subword encoder which supports caching results of 'Encode' calls.
+class NEOML_API ISubwordEncoderWithCache : public ISubwordEncoder {
+public:
+	virtual void Encode( const CString& word, CArray<int>& tokenIds,
+		CArray<int>& tokenLengths ) const override final;
+
+	// Sets the cache cleanup period.
+	// The cache is used for Encode calls acceleration.
+	// The result of the encode call is cached and will be erased if 
+	// no call with the same word will occur among next 1-2 X cachePeriod calls.
+	// Increase in cachePeriod leads to a in increase in memory consumption.
+	// To completely switch the cache off set cachePeriod equal to -1.
+	// Value 0 is treated as invalid.
+	void SetCachePeriod( int cachePeriod ) const { cache.SetCachePeriod( cachePeriod ); }
+```
+
+### Byte pair encoding
+
+Popular subword encoding algorithm.
+
+```c++
+class NEOML_API IBytePairEncoder : public ISubwordEncoderWithCache {
+public:
+	// A list of unique tokens ordered by order of merges during training (this is used when encoding).
+	// The Id of a token in encoded words is <Id in this array> + GetUnknownTokenId() + 1
+	using CBPEDictionary = CArray<CString>;
+
+	// Initializes the encoder. Can be safely used only once.
+	// Every token except the letters (or bytes), EOW and SOW must be a concatenation of two other tokens.
+	// If not empty, EOW and SOW must be contained in 'tokens' exactly only once as a separate token.
+	virtual void Initialize( const CBPEDictionary& tokens, const CParams& ) = 0;
+};
+```
+
+**Unigram** language model ([Kudo.](https://arxiv.org/abs/1804.10959)) - alternative algorithm.
+
+```c++
+class NEOML_API IUnigramEncoder : public ISubwordEncoderWithCache {
+public:
+	// Unigram vocabulary entry
+	struct CSubtoken {
+		CSubtoken() = default;
+		CSubtoken( CString text, double score );
+		void Serialize( CArchive& archive );
+
+		CString Text;
+		double Score = 0.0;
+	};
+
+	// A list of unique tokens
+	using CUnigramDictionary = CArray<CSubtoken>;
+
+	// Initializes the encoder with an external dictionary.
+	virtual void Initialize( const CUnigramDictionary& tokens, const CParams& ) = 0;
+
+	// Returns a list of subtokens with their scores
+	virtual void GetDictionary( CUnigramDictionary& tokens ) const = 0;
+};
+```
+
+Additional methods cover usage of special tokens: End-Of-Word and Start-Of-Word token.
+Basically you probably want End-Of-Word set to `True` and Start-Of-Word set to `False`.
+
+To train encoder with `IBytePairEncoder` functionality you need to use `CBytePairEncoderTrainer`:
+
+```c++
+// Class that trains byte-pair-encoding.
+class NEOML_API CBytePairEncoderTrainer {
+public:
+	enum class TAlgorithm {
+		BPE,
+		Unigram
+	};
+
+	enum class TBorderHandling {
+		// Add special EndOfWord symbol (</s>) to all words
+		EndOfWord,
+		// Add special BeginOfWord symbol <s> to all words
+		BeginOfWord,
+		// Same as BeginOfWord, but with U+2581 as <s>.
+		// Note that the encoder has no special mode to handle this option. It is a user responsibility to place U+2581.
+		SentencePiece,
+		// Add special symbols on both sides of words
+		BeginAndEndOfWord,
+		// No preprocessing
+		None
+	};
+
+	enum class TVocabPruning {
+		// Restrict a single-letter vocabulary based on their frequency. Default coverage is 1, all symbols will be included into the vocabulary.
+		Coverage,
+		// Treat training data as raw bytes. Initial vocabulary size is 255, no <UNK> symbols will appear.
+		ByteBPE
+	};
+
+	CSubwordEncoderTrainer( int vocabSize, TAlgorithm, TBorderHandling, TVocabPruning = TVocabPruning::Coverage );
+
+	// Prune single-letter vocabulary so that it covers 'fraction' of the training data. Useful when text contains many rare unicode symbols.
+	// By default initial vocabulary contains all found chars (fraction = 1)
+	void SetCharacterCoverage( double value );
+	// Explicitly define required letters that cannot be deleted while pruning
+	void SetMandatoryChars( const CArray<CString>& );
+	// 0 by default. All other tokens will have contiguous numbers from ( UnknownTokenId + 1 )
+	void SetUnknownTokenId( int value );
+
+	// Trains and returns a fully trained encoder.
+	CPtr<ISubwordEncoder> Train( const CWordDictionary& frequencyDict );
+```
+
+How to use:
+
+1. Create a dictionary of counted words from text corpus using `CWordDictionary` class instance.
+2. Create `CBytePairEncoderTrainer` instance with desired `CParams` and the dictionary.
+3. Call `Train` method of encoder trainer.
+    * Use `TrainSteps` method if you want to perform partial training of encoder. To get partially trained encoder use `GetEncoder` method.
+
+
+For inference and debug reasons, `IBytePairEncoder` also provides direct method for loading an externally created dictionary (`Initialize`). An external dictionary must be valid for using with our encoder:
+1. Every token except the letters must be a concatenation of two smaller tokens.
+2. If used, End-Of-Word can be located only in the end of a token. If used, Start-Of-Word can be located only in the beginning of a token.
+3. If used, End-Of-Word and Start-Of-Word must be contained in the dictionary as separate tokens (which is just an implication from rules above).
+

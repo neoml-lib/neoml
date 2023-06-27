@@ -17,6 +17,7 @@ limitations under the License.
 
 #include "../SortFOL.h"
 #include "../ArchiveFOL.h"
+#include "../ArrayIteratorFOL.h"
 
 namespace FObj {
 
@@ -25,6 +26,8 @@ class CFastArray {
 public:
 	typedef T TElement;
 	typedef Allocator AllocatorType;
+	typedef CConstArrayIterator<CFastArray> TConstIterator;
+	typedef CArrayIterator<CFastArray> TIterator;
 
 	CFastArray();
 	CFastArray( std::initializer_list<T> list );
@@ -97,6 +100,12 @@ public:
 	int FindInsertionPoint( const SEARCHED_TYPE& what ) const;
 
 	void Serialize( CArchive& );
+
+	// range-based loop
+	TConstIterator begin() const { return TConstIterator( GetPtr(), this ); }
+	TConstIterator end() const { return TConstIterator( GetPtr() + Size(), this ); }
+	TIterator begin() { return TIterator( GetPtr(), this ); }
+	TIterator end() { return TIterator( GetPtr() + Size(), this ); }
 
 private:
 	char buffer[initialBufferSize * sizeof( T )];

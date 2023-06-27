@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,42 +18,40 @@ limitations under the License.
 using namespace NeoML;
 using namespace NeoMLTest;
 
-static void meanPooling3dNaive( int batchSize, int channels, int inputHeight, int inputWidth, int inputDepth, 
-	int filterHeight, int filterWidth, int filterDepth, int strideHeight, int strideWidth, int strideDepth, 
-	const float *source, float *result ) 
+static void meanPooling3dNaive( int batchSize, int channels, int inputHeight, int inputWidth, int inputDepth,
+	int filterHeight, int filterWidth, int filterDepth, int strideHeight, int strideWidth, int strideDepth,
+	const float* source, float* result )
 {
 	const int outHeight = ( inputHeight - filterHeight ) / strideHeight + 1;
 	const int outWidth = ( inputWidth - filterWidth ) / strideWidth + 1;
 	const int outDepth = ( inputDepth - filterDepth ) / strideDepth + 1;
 
-	int sourceDepthSize = inputDepth * channels;
-	int sourceRowSize = inputWidth * sourceDepthSize;
-	int sourceObjectSize = inputHeight * sourceRowSize;
-
-	int resultDepthSize = outDepth * channels;
-	int resultRowSize = outWidth * resultDepthSize;
-
-	int filterGeom = filterDepth * filterHeight * filterWidth;
+	const int sourceDepthSize = inputDepth * channels;
+	const int sourceRowSize = inputWidth * sourceDepthSize;
+	const int sourceObjectSize = inputHeight * sourceRowSize;
+	const int resultDepthSize = outDepth * channels;
+	const int resultRowSize = outWidth * resultDepthSize;
+	const int filterGeom = filterDepth * filterHeight * filterWidth;
 
 	const float* sourceObject = source;
 	float* resultJStart = result;
 
-	for(int b = 0; b < batchSize; ++b) {
-		for(int j = 0; j < outHeight; ++j) {
+	for( int b = 0; b < batchSize; ++b ) {
+		for( int j = 0; j < outHeight; ++j ) {
 			int sourceJIndex = j * strideHeight * sourceRowSize;
-			for(int filterJ = 0; filterJ < filterHeight; ++filterJ) {
+			for( int filterJ = 0; filterJ < filterHeight; ++filterJ ) {
 				float* resultIStart = resultJStart;
 
-				for(int i = 0; i < outWidth; ++i) {
+				for( int i = 0; i < outWidth; ++i ) {
 					int sourceIIndex = sourceJIndex + i * strideWidth * sourceDepthSize;
-					for(int filterI = 0; filterI < filterWidth; ++filterI) {
+					for( int filterI = 0; filterI < filterWidth; ++filterI ) {
 						float* resultData = resultIStart;
 
-						for(int k = 0; k < outDepth; ++k) {
+						for( int k = 0; k < outDepth; ++k ) {
 							int sourceIndex = sourceIIndex + k * strideDepth * channels;
-							for(int filterK = 0; filterK < filterDepth; ++filterK) {
+							for( int filterK = 0; filterK < filterDepth; ++filterK ) {
 
-								bool isFirstItem = (filterJ == 0) && (filterI == 0) && (filterK == 0);
+								bool isFirstItem = ( filterJ == 0 ) && ( filterI == 0 ) && ( filterK == 0 );
 								const float* sourceData = sourceObject + sourceIndex;
 								float* resultDataChannel = resultData;
 								for( int c = 0; c < channels; c++ ) {
@@ -65,7 +63,6 @@ static void meanPooling3dNaive( int batchSize, int channels, int inputHeight, in
 									resultDataChannel++;
 									sourceData++;
 								}
-
 								sourceIndex += channels;
 							}
 							resultData += channels;
@@ -78,7 +75,6 @@ static void meanPooling3dNaive( int batchSize, int channels, int inputHeight, in
 			}
 			resultJStart += resultRowSize;
 		}
-
 		sourceObject += sourceObjectSize;
 	}
 }
@@ -106,15 +102,15 @@ static void test3dMeanPoolingImpl( const CTestParams& params, int seed )
 
 	const int channels = random.UniformInt( channelsInterval.Begin, channelsInterval.End );
 	const int batchSize = random.UniformInt( batchSizeInterval.Begin, batchSizeInterval.End );
-	
+
 	const int filterHeight = random.UniformInt( filterHeightInterval.Begin, filterHeightInterval.End );
 	const int filterWidth = random.UniformInt( filterWidthInterval.Begin, filterWidthInterval.End );
 	const int filterDepth = random.UniformInt( filterDepthInterval.Begin, filterDepthInterval.End );
-	
+
 	const int strideHeight = random.UniformInt( strideHeightInterval.Begin, strideHeightInterval.End );
 	const int strideWidth = random.UniformInt( strideWidthInterval.Begin, strideWidthInterval.End );
 	const int strideDepth = random.UniformInt( strideDepthInterval.Begin, strideDepthInterval.End );
-	
+
 	const int geometrySize = inputHeight * inputWidth * inputDepth;
 	const int blobSize = batchSize * geometrySize * channels;
 
@@ -129,20 +125,20 @@ static void test3dMeanPoolingImpl( const CTestParams& params, int seed )
 	std::vector<float> expectedData;
 	expectedData.resize( batchSize * outHeight * outWidth * outDepth * channels );
 
-	meanPooling3dNaive( batchSize, channels, 
-		inputHeight, inputWidth, inputDepth, filterHeight, filterWidth, filterDepth, strideHeight, strideWidth, strideDepth, 
+	meanPooling3dNaive( batchSize, channels,
+		inputHeight, inputWidth, inputDepth, filterHeight, filterWidth, filterDepth, strideHeight, strideWidth, strideDepth,
 		inputData.data(), expectedData.data() );
-	
+
 	CFloatBlob outBlob( MathEngine(), batchSize, outHeight, outWidth, outDepth, channels );
 
-	C3dMeanPoolingDesc *desc = MathEngine().Init3dMeanPooling(inputBlob.GetDesc(), filterHeight, filterWidth, filterDepth, strideHeight, strideWidth, strideDepth, outBlob.GetDesc());
-	MathEngine().Blob3dMeanPooling(*desc, inputBlob.GetData(), outBlob.GetData());
+	C3dMeanPoolingDesc* desc = MathEngine().Init3dMeanPooling( inputBlob.GetDesc(), filterHeight, filterWidth, filterDepth,
+		strideHeight, strideWidth, strideDepth, outBlob.GetDesc() );
+	MathEngine().Blob3dMeanPooling( *desc, inputBlob.GetData(), outBlob.GetData() );
 	delete desc;
 
 	std::vector<float> resultData;
 	resultData.resize( batchSize * outHeight * outWidth * outDepth * channels );
-	outBlob.CopyTo(resultData.data());
-	std::vector<int> maxIndicesData;
+	outBlob.CopyTo( resultData.data() );
 
 	for( int i = 0; i < batchSize * outHeight * outWidth * outDepth * channels; i++ ) {
 		ASSERT_NEAR( expectedData[i], resultData[i], 1e-3 );

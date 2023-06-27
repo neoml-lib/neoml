@@ -14,16 +14,10 @@ limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
 #include <TestFixture.h>
+#include <MeTestCommon.h>
 
 using namespace NeoML;
 using namespace NeoMLTest;
-
-static inline int getFlatIndex(const CFloatBlob& blob, int seq, int batch, int list, int channel, int depth,
-	int row, int column)
-{
-	return (list + blob.GetDesc().ListSize() * (batch + blob.GetDesc().BatchWidth() * seq)) * blob.GetDesc().ObjectSize()
-		+ channel + blob.GetDesc().Channels() * (depth + blob.GetDesc().Depth() * (column + row * blob.GetDesc().Width()));
-}
 
 static void blobResizeImageTestImpl( const CTestParams& params, int seed )
 {
@@ -54,39 +48,60 @@ static void blobResizeImageTestImpl( const CTestParams& params, int seed )
 	const int deltaBottom = random.UniformInt( std::max( minBottom, deltaBottomInterval.Begin ),
 		deltaBottomInterval.End ); 
 
-	const float defaultValue = static_cast< float >( random.Uniform( defaultValueInterval.Begin,
+	const float defaultValue = static_cast<float>( random.Uniform( defaultValueInterval.Begin,
 		defaultValueInterval.End ) );
 
-	CFloatBlob input( MathEngine(), batchSize, height, width, channels );
-	CFloatBlob output( MathEngine(), batchSize, height + deltaTop + deltaBottom, width + deltaLeft + deltaRight, channels );
-	std::vector<float> inputBuff;
-	inputBuff.resize( input.GetDataSize() );
-	std::vector<float> expected;
-	expected.insert( expected.begin(), output.GetDataSize(), defaultValue );
-	std::vector<float> actual;
-	actual.resize( output.GetDataSize() );
-	for( int b = 0; b < batchSize; ++b ) {
-		for( int h = 0; h < height; ++h ) {
-			for( int w = 0; w < width; ++w ) {
-				for( int c = 0; c < channels; ++c ) {
-					const int inputIndex = getFlatIndex( input, 0, b, 0, c, 0, h, w );
-					inputBuff[inputIndex] = static_cast<float>( random.Uniform( 2., 5. ) );
-					if( h + deltaTop >= 0 && h + deltaTop < output.GetDesc().Height()
-						&& w + deltaLeft >= 0 && w + deltaLeft < output.GetDesc().Width() )
-					{
-						const int outputIndex = getFlatIndex( output, 0, b, 0, c, 0, h + deltaTop, w + deltaLeft );
+	for( TBlobResizePadding padding : { TBlobResizePadding::Constant, TBlobResizePadding::Edge, TBlobResizePadding::Reflect } ) {
+		CFloatBlob input( MathEngine(), batchSize, height, width, channels );
+		CFloatBlob output( MathEngine(), batchSize, height + deltaTop + deltaBottom, width + deltaLeft + deltaRight, channels );
+		std::vector<float> inputBuff;
+		inputBuff.resize( input.GetDataSize() );
+		std::vector<float> expected;
+		expected.insert( expected.begin(), output.GetDataSize(), defaultValue );
+		std::vector<float> actual;
+		actual.resize( output.GetDataSize() );
+		for( int b = 0; b < batchSize; ++b ) {
+			for( int h = 0; h < height; ++h ) {
+				for( int w = 0; w < width; ++w ) {
+					for( int c = 0; c < channels; ++c ) {
+						const int inputIndex = getFlatIndex( input, 0, b, 0, c, 0, h, w );
+						inputBuff[inputIndex] = static_cast<float>( random.Uniform( 2., 5. ) );
+					}
+				}
+			}
+			for( int h = 0; h < height + deltaTop + deltaBottom; ++h ) {
+				int inH = h - deltaTop;
+				if( padding != TBlobResizePadding::Constant && ( inH < 0 || inH >= height ) ) {
+					inH = padding == TBlobResizePadding::Edge ? ( inH < 0 ? 0 : height - 1 )
+						: ( inH < 0 ? -( inH % height ) : ( 2 * height - 2 - ( inH % height ) ) % height );
+				}
+				if( inH < 0 || inH >= height ) {
+					continue;
+				}
+				for( int w = 0; w < width + deltaLeft + deltaRight; ++w ) {
+					int inW = w - deltaLeft;
+					if( padding != TBlobResizePadding::Constant && ( inW < 0 || inW >= width ) ) {
+						inW = padding == TBlobResizePadding::Edge ? ( inW < 0 ? 0 : width - 1 )
+							: ( inW < 0 ? -( inW % width ) : ( 2 * width - 2 - ( inW % width ) ) % width );
+					}
+					if( inW < 0 || inW >= width ) {
+						continue;
+					}
+					for( int c = 0; c < channels; ++c ) {
+						const int inputIndex = getFlatIndex( input, 0, b, 0, c, 0, inH, inW );
+						const int outputIndex = getFlatIndex( output, 0, b, 0, c, 0, h, w );
 						expected[outputIndex] = inputBuff[inputIndex];
 					}
 				}
 			}
 		}
-	}
-	input.CopyFrom( inputBuff.data() );
-	MathEngine().BlobResizeImage( input.GetDesc(), input.GetData(), deltaLeft, deltaRight, deltaTop,
-		deltaBottom, defaultValue, output.GetDesc(), output.GetData() );
-	output.CopyTo( actual.data() );
-	for( size_t i = 0; i < expected.size(); ++i ) {
-		ASSERT_NEAR( expected[i], actual[i], 1e-3 ) << params;
+		input.CopyFrom( inputBuff.data() );
+		MathEngine().BlobResizeImage( input.GetDesc(), input.GetData(), deltaLeft, deltaRight, deltaTop,
+			deltaBottom, padding, defaultValue, output.GetDesc(), output.GetData() );
+		output.CopyTo( actual.data() );
+		for( size_t i = 0; i < expected.size(); ++i ) {
+			ASSERT_NEAR( expected[i], actual[i], 1e-3 ) << params;
+		}
 	}
 }
 

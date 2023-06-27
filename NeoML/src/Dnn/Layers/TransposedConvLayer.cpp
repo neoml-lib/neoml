@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -30,10 +30,10 @@ CTransposedConvLayer::CTransposedConvLayer( IMathEngine& mathEngine ) :
 void CTransposedConvLayer::Reshape()
 {
 	CheckInputs();
-	CheckArchitecture( GetInputCount() == GetOutputCount(),
-		GetName(), "different number of inputs and outputs in conv layer" );
-	CheckArchitecture( paddingHeight < filterHeight && paddingWidth < filterWidth,
-		GetName(), "padding is more or equal to filter size" );
+	CheckLayerArchitecture( GetInputCount() == GetOutputCount(),
+		"different number of inputs and outputs in conv layer" );
+	CheckLayerArchitecture( paddingHeight < filterHeight && paddingWidth < filterWidth,
+		"padding is more or equal to filter size" );
 
 	int outputHeight, outputWidth;
 	calcOutputBlobSize(outputHeight, outputWidth);
@@ -58,8 +58,8 @@ void CTransposedConvLayer::Reshape()
 			// Initialize
 			FreeTerms()->Fill(0);
 		} else {
-			CheckArchitecture( FreeTerms()->GetDataSize() == filterCount,
-				GetName(), "number of free members in convolution is not equal to number of filters" );
+			CheckLayerArchitecture( FreeTerms()->GetDataSize() == filterCount,
+				"number of free members in convolution is not equal to number of filters" );
 		}
 
 		// For each layer element there is a channel in the output blob
@@ -115,8 +115,12 @@ void CTransposedConvLayer::destroyConvDesc()
 void CTransposedConvLayer::initConvDesc()
 {
 	if( convDesc == 0 ) {
-		convDesc = MathEngine().InitBlobConvolution( outputBlobs[0]->GetDesc(), paddingHeight, paddingWidth,
-			strideHeight, strideWidth, dilationHeight, dilationWidth, Filter()->GetDesc(), inputBlobs[0]->GetDesc() );
+		NeoPresume( inputBlobs[0] != nullptr || inputDiffBlobs[0] != nullptr );
+		NeoPresume( outputBlobs[0] != nullptr || outputDiffBlobs[0] != nullptr );
+		convDesc = MathEngine().InitBlobConvolution(
+			outputBlobs[0] != nullptr ? outputBlobs[0]->GetDesc() : outputDiffBlobs[0]->GetDesc(),
+			paddingHeight, paddingWidth, strideHeight, strideWidth, dilationHeight, dilationWidth, Filter()->GetDesc(),
+			inputBlobs[0] != nullptr ? inputBlobs[0]->GetDesc() : inputDiffBlobs[0]->GetDesc() );
 	}
 }
 

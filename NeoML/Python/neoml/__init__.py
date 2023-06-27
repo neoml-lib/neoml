@@ -14,4 +14,6 @@ import neoml.PCA
 import neoml.Clustering
 import neoml.DifferentialEvolution
 
+import neoml.BytePairEncoder
+
 __all__ = []

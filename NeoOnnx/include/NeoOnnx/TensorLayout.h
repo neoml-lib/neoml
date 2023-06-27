@@ -15,7 +15,8 @@ limitations under the License.
 
 #pragma once
 
-#include "NeoOnnxCheck.h"
+#include <NeoOnnx/NeoOnnxDefs.h>
+#include <NeoML/NeoML.h>
 
 namespace NeoOnnx {
 
@@ -34,6 +35,8 @@ public:
 
 	bool operator==( const CTensorLayout& other ) const;
 	bool operator!=( const CTensorLayout& other ) const { return !operator==( other ); }
+
+	static CTensorLayout IOLayout( int dimCount );
 };
 
 inline CTensorLayout::CTensorLayout( int dimCount )
@@ -69,7 +72,7 @@ inline CTensorLayout::CTensorLayout( int dimCount )
 			Add( { BD_BatchLength, BD_BatchWidth, BD_ListSize, BD_Height, BD_Width, BD_Depth, BD_Channels } );
 			break;
 		default:
-			CheckNeoOnnxSupport( false, "unsupported dimension count" );
+			NeoAssert( false );
 			break;
 	}
 }
@@ -110,6 +113,17 @@ inline bool IsTransposedLayout( const CTensorLayout& layout )
 		}
 	}
 	return false;
+}
+
+// Returns layout for input and output blobs with the given number of dimensions
+inline CTensorLayout CTensorLayout::IOLayout( int dimCount )
+{
+	CTensorLayout layout;
+	layout.SetSize( dimCount );
+	for( int i = 0; i < dimCount; ++i ) {
+		layout[i] = static_cast<TBlobDim>( i );
+	}
+	return layout;
 }
 
 } // namespace NeoOnnx

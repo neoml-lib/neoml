@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -24,32 +24,44 @@ limitations under the License.
 #include "NeoOnnxCheck.h"
 
 #include "Operators/ActivationOperator.h"
+#include "Operators/ArgMaxOperator.h"
 #include "Operators/BatchNormalizationOperator.h"
 #include "Operators/CastOperator.h"
 #include "Operators/ConcatOperator.h"
 #include "Operators/ConstantOfShapeOperator.h"
 #include "Operators/ConstantOperator.h"
 #include "Operators/ConvOperator.h"
+#include "Operators/ConvTransposeOperator.h"
+#include "Operators/CumSumOperator.h"
 #include "Operators/DropoutOperator.h"
 #include "Operators/EltwiseOperator.h"
+#include "Operators/ExpandOperator.h"
 #include "Operators/FlattenOperator.h"
 #include "Operators/GatherOperator.h"
 #include "Operators/GemmOperator.h"
 #include "Operators/GlobalPoolOperator.h"
 #include "Operators/IdentityOperator.h"
+#include "Operators/InstanceNormalizationOperator.h"
+#include "Operators/LogicalOperator.h"
 #include "Operators/LrnOperator.h"
 #include "Operators/LstmOperator.h"
 #include "Operators/MatMulOperator.h"
+#include "Operators/NonZeroOperator.h"
+#include "Operators/OneHotOperator.h"
 #include "Operators/PadOperator.h"
 #include "Operators/PoolOperator.h"
 #include "Operators/RangeOperator.h"
 #include "Operators/ReshapeOperator.h"
+#include "Operators/ResizeOperator.h"
+#include "Operators/ScatterOperator.h"
 #include "Operators/ShapeOperator.h"
 #include "Operators/SliceOperator.h"
 #include "Operators/SoftmaxOperator.h"
+#include "Operators/SplitOperator.h"
 #include "Operators/SqueezeOperator.h"
 #include "Operators/TransposeOperator.h"
 #include "Operators/UnsqueezeOperator.h"
+#include "Operators/UpsampleOperator.h"
 
 namespace NeoOnnx {
 
@@ -103,7 +115,8 @@ namespace {
 
 // Register all operators
 REGISTER_OPERATOR( CAbsOperator, "Abs" )
-REGISTER_OPERATOR( CAddOperator, "Add" )
+REGISTER_OPERATOR( CEltwiseOperator<COnnxEltwiseLayer::TOperation::Add>, "Add" )
+REGISTER_OPERATOR( CArgMaxOperator, "ArgMax" )
 REGISTER_OPERATOR( CAveragePoolOperator, "AveragePool" )
 REGISTER_OPERATOR( CBatchNormalizationOperator, "BatchNormalization" )
 REGISTER_OPERATOR( CCastOperator, "Cast" )
@@ -112,41 +125,66 @@ REGISTER_OPERATOR( CConcatOperator, "Concat" )
 REGISTER_OPERATOR( CConstantOfShapeOperator, "ConstantOfShape" )
 REGISTER_OPERATOR( CConstantOperator, "Constant" )
 REGISTER_OPERATOR( CConvOperator, "Conv" )
-REGISTER_OPERATOR( CDivOperator, "Div" )
+REGISTER_OPERATOR( CConvTransposeOperator, "ConvTranspose" )
+REGISTER_OPERATOR( CCumSumOperator, "CumSum" )
+REGISTER_OPERATOR( CEltwiseOperator<COnnxEltwiseLayer::TOperation::Div>, "Div" )
 REGISTER_OPERATOR( CDropoutOperator, "Dropout" )
 REGISTER_OPERATOR( CEluOperator, "Elu" )
+REGISTER_OPERATOR( CEltwiseOperator<COnnxEltwiseLayer::TOperation::Equal>, "Equal" )
+REGISTER_OPERATOR( CErfOperator, "Erf" )
+REGISTER_OPERATOR( CExpOperator, "Exp" )
+REGISTER_OPERATOR( CExpandOperator, "Expand" )
 REGISTER_OPERATOR( CFlattenOperator, "Flatten" )
 REGISTER_OPERATOR( CGatherOperator, "Gather" )
 REGISTER_OPERATOR( CGemmOperator, "Gemm" )
 REGISTER_OPERATOR( CGlobalAveragePoolOperator, "GlobalAveragePool" )
 REGISTER_OPERATOR( CGlobalMaxPoolOperator, "GlobalMaxPool" )
+REGISTER_OPERATOR( CEltwiseOperator<COnnxEltwiseLayer::TOperation::Greater>, "Greater" )
+REGISTER_OPERATOR( CEltwiseOperator<COnnxEltwiseLayer::TOperation::GreaterOrEqual>, "GreaterOrEqual" )
 REGISTER_OPERATOR( CHardSigmoidOperator, "HardSigmoid" )
+REGISTER_OPERATOR( CHardSwishOperator, "HardSwish" )
 REGISTER_OPERATOR( CIdentityOperator, "Identity" )
+REGISTER_OPERATOR( CInstanceNormalizationOperator, "InstanceNormalization" )
 REGISTER_OPERATOR( CLeakyReluOperator, "LeakyRelu" )
+REGISTER_OPERATOR( CEltwiseOperator<COnnxEltwiseLayer::TOperation::Less>, "Less" )
+REGISTER_OPERATOR( CEltwiseOperator<COnnxEltwiseLayer::TOperation::LessOrEqual>, "LessOrEqual" )
+REGISTER_OPERATOR( CLogOperator, "Log" )
+REGISTER_OPERATOR( CSoftmaxOperator, "LogSoftmax" )
 REGISTER_OPERATOR( CLrnOperator, "LRN" )
 REGISTER_OPERATOR( CLstmOperator, "LSTM" )
 REGISTER_OPERATOR( CMatMulOperator, "MatMul" )
 REGISTER_OPERATOR( CMaxPoolOperator, "MaxPool" )
-REGISTER_OPERATOR( CMulOperator, "Mul" )
+REGISTER_OPERATOR( CEltwiseOperator<COnnxEltwiseLayer::TOperation::Mul>, "Mul" )
+REGISTER_OPERATOR( CNegOperator, "Neg" )
+REGISTER_OPERATOR( CNotOperator, "Not" )
+REGISTER_OPERATOR( CNonZeroOperator, "NonZero" )
+REGISTER_OPERATOR( COneHotOperator, "OneHot" )
 REGISTER_OPERATOR( CPadOperator, "Pad" )
 REGISTER_OPERATOR( CPowOperator, "Pow" )
 REGISTER_OPERATOR( CRangeOperator, "Range" )
+REGISTER_OPERATOR( CReduceL2Operator, "ReduceL2" )
 REGISTER_OPERATOR( CReduceMaxOperator, "ReduceMax" )
 REGISTER_OPERATOR( CReduceMeanOperator, "ReduceMean" )
 REGISTER_OPERATOR( CReduceMinOperator, "ReduceMin" )
+REGISTER_OPERATOR( CReduceSumOperator, "ReduceSum" )
 REGISTER_OPERATOR( CReluOperator, "Relu" )
 REGISTER_OPERATOR( CReshapeOperator, "Reshape" )
+REGISTER_OPERATOR( CResizeOperator, "Resize" )
+REGISTER_OPERATOR( CScatterNDOperator, "ScatterND" )
 REGISTER_OPERATOR( CShapeOperator, "Shape" )
 REGISTER_OPERATOR( CSigmoidOperator, "Sigmoid" )
 REGISTER_OPERATOR( CSliceOperator, "Slice" )
 REGISTER_OPERATOR( CSoftmaxOperator, "Softmax" )
+REGISTER_OPERATOR( CSplitOperator, "Split" )
 REGISTER_OPERATOR( CSqrtOperator, "Sqrt" )
 REGISTER_OPERATOR( CSqueezeOperator, "Squeeze" )
-REGISTER_OPERATOR( CSubOperator, "Sub" )
-REGISTER_OPERATOR( CSumOperator, "Sum" )
+REGISTER_OPERATOR( CEltwiseOperator<COnnxEltwiseLayer::TOperation::Sub>, "Sub" )
+REGISTER_OPERATOR( CEltwiseOperator<COnnxEltwiseLayer::TOperation::Add>, "Sum" )
 REGISTER_OPERATOR( CTanhOperator, "Tanh" )
 REGISTER_OPERATOR( CTransposeOperator, "Transpose" )
 REGISTER_OPERATOR( CUnsqueezeOperator, "Unsqueeze" )
+REGISTER_OPERATOR( CUpsampleOperator, "Upsample" )
+REGISTER_OPERATOR( CEltwiseOperator<COnnxEltwiseLayer::TOperation::Where>, "Where" )
 
 } // anonymous namespace
 
@@ -160,11 +198,11 @@ COperator::COperator( const onnx::NodeProto& onnxNode, int opsetVersion ) :
 	}
 
 	for( const std::string& inputName : onnxNode.input() ) {
-		inputNames.Add( CString( inputName ) );
+		inputNames.Add( CString( inputName.data() ) );
 	}
 
 	for( const std::string& outputName : onnxNode.output() ) {
-		outputNames.Add( CString( outputName ) );
+		outputNames.Add( CString( outputName.data() ) );
 	}
 }
 
@@ -182,7 +220,7 @@ const CString& COperator::OutputName( int index ) const
 
 COperator* COperator::CreateOperator( const onnx::NodeProto& onnxNode, int opsetVersion )
 {
-	TMapPosition pos = getRegisteredOperators().GetFirstPosition( onnxNode.op_type() );
+	TMapPosition pos = getRegisteredOperators().GetFirstPosition( CString( onnxNode.op_type().data() ) );
 	CheckNeoOnnxSupport( pos != NotFound, CString( "operator " ) + onnxNode.op_type().c_str() );
 	return getRegisteredOperators().GetValue( pos )( onnxNode, opsetVersion );
 }
@@ -191,6 +229,44 @@ bool COperator::IsSupportedOperator( const CString& operatorType )
 {
 	TMapPosition pos = getRegisteredOperators().GetFirstPosition( operatorType );
 	return pos != NotFound;
+}
+
+void COperator::CheckNoNullInputs( const CTensorArray& inputs ) const
+{
+	for( int i = 0; i < inputs.Size(); ++i ) {
+		if( inputs[i] == nullptr ) {
+			CheckNeoOnnxSupport( false, "NULL at input #" + Str( i ), *this );
+		}
+	}
+}
+
+void COperator::CheckNoUserInputs( const CTensorArray& inputs ) const
+{
+	for( int i = 0; i < inputs.Size(); ++i ) {
+		if( inputs[i] != nullptr && inputs[i]->Type() == TTensorType::User ) {
+			CheckNeoOnnxSupport( false, "CUserTensor at input #" + Str( i ), *this );
+		}
+	}
+}
+
+void COperator::CheckNoShapeInputs( const CTensorArray& inputs ) const
+{
+	for( int i = 0; i < inputs.Size(); ++i ) {
+		if( inputs[i] != nullptr && inputs[i]->Type() == TTensorType::Shape ) {
+			CheckNeoOnnxSupport( false, "CShapeTensor at input #" + Str( i ), *this );
+		}
+	}
+}
+
+bool COperator::HasUserInput( const CTensorArray& inputs ) const
+{
+	for( int i = 0; i < inputs.Size(); ++i ) {
+		if( inputs[i] != nullptr && inputs[i]->Type() == TTensorType::User ) {
+			return true;
+		}
+	}
+
+	return false;
 }
 
 } // namespace NeoOnnx

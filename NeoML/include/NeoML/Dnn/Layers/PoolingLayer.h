@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -48,7 +48,7 @@ protected:
 	void Reshape() override;
 };
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////
+//------------------------------------------------------------------------------------------------------------
 
 // CMaxPoolingLayer implements a pooling layer that takes the maximum in the window
 class NEOML_API CMaxPoolingLayer : public CPoolingLayer {
@@ -64,6 +64,7 @@ protected:
 	void RunOnce() override;
 	void BackwardOnce() override;
 	void Reshape() override;
+	int BlobsForBackward() const override { return 0; }
 
 private:
 	CPtr<CDnnBlob> maxIndices; // contains the maximums' indices (for the backward pass)
@@ -73,10 +74,10 @@ private:
 	void destroyDesc();
 };
 
-NEOML_API CLayerWrapper<CMaxPoolingLayer> MaxPooling( int filterHeight, int filterWidth, 
+NEOML_API CLayerWrapper<CMaxPoolingLayer> MaxPooling( int filterHeight, int filterWidth,
 	int strideHeight = 1, int strideWidth = 1 );
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////
+//------------------------------------------------------------------------------------------------------------
 
 // CMeanPoolingLayer implements a pooling layer that takes the average over the window
 class NEOML_API CMeanPoolingLayer : public CPoolingLayer {
@@ -92,6 +93,7 @@ protected:
 	void RunOnce() override;
 	void BackwardOnce() override;
 	void Reshape() override;
+	int BlobsForBackward() const override { return 0; }
 
 private:
 	CMeanPoolingDesc* desc;

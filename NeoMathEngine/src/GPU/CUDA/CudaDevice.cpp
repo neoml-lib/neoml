@@ -27,6 +27,7 @@ limitations under the License.
 
 #include <cuda_runtime.h>
 
+#include <algorithm>
 #include <memory>
 #include <string>
 
@@ -441,10 +442,14 @@ static CCudaDevice* captureSpecifiedCudaDevice( int deviceNumber, size_t deviceM
 	// RTX 30* has 1536 maxThreadsPerMultiProcessor and 1024 maxThreadsPerBlock
 	// If blockSize is in interval [769;1024] then one Streaming Multiprocessor (SM) can process only one block
 	// That's why we limit block size in a way when one SM can process at least 2 blocks
-	result->ThreadMaxCount = min( devProp.maxThreadsPerBlock, devProp.maxThreadsPerMultiProcessor / 2 );
-	result->ThreadMax3DCountX = min( result->ThreadMaxCount, devProp.maxThreadsDim[0] );
-	result->ThreadMax3DCountY = min( result->ThreadMaxCount, devProp.maxThreadsDim[1] );
-	result->ThreadMax3DCountZ = min( result->ThreadMaxCount, devProp.maxThreadsDim[2] );
+	result->ThreadMaxCount = std::min( devProp.maxThreadsPerBlock, devProp.maxThreadsPerMultiProcessor / 2 );
+	result->ThreadMax3DCountX = std::min( result->ThreadMaxCount, devProp.maxThreadsDim[0] );
+	result->ThreadMax3DCountY = std::min( result->ThreadMaxCount, devProp.maxThreadsDim[1] );
+	result->ThreadMax3DCountZ = std::min( result->ThreadMaxCount, devProp.maxThreadsDim[2] );
+
+	result->MaxGridSizeX = static_cast<unsigned int>( devProp.maxGridSize[0] );
+	result->MaxGridSizeY = static_cast<unsigned int>( devProp.maxGridSize[1] );
+	result->MaxGridSizeZ = static_cast<unsigned int>( devProp.maxGridSize[2] );
 
 	result->WarpSize = devProp.warpSize;
 	result->Handle = handle;
@@ -463,7 +468,7 @@ CCudaDevice* CaptureCudaDevice( int deviceNumber, size_t deviceMemoryLimit )
 	ASSERT_CUDA( cudaGetDeviceCount( &deviceCount ) );
 
 	// Detect the devices and their processing load
-	vector<CCudaDevUsage> devs;
+	std::vector<CCudaDevUsage> devs;
 	for( int i = 0; i < deviceCount; ++i ) {
 		cudaDeviceProp devProp;
 		ASSERT_CUDA( cudaGetDeviceProperties( &devProp, i ) );

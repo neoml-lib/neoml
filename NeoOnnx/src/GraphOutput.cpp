@@ -32,17 +32,7 @@ CPtr<const CSinkLayer> CGraphOutput::AddSinkLayer( const CUserTensor& input, CDn
 {
 	CPtr<CSinkLayer> sink = new CSinkLayer( dnn.GetMathEngine() );
 	sink->SetName( Name() );
-
-	// Sinks must return blobs in the onnx-friendly layout (non-transposed)
-	CPtr<const CUserTensor> currInput = &input;
-	if( IsTransposedLayout( currInput->Layout() ) ) {
-		CTensorLayout onnxLayout = input.Layout();
-		onnxLayout.QuickSort<Ascending<TBlobDim>>();
-		currInput = ConvertTensor( *currInput, onnxLayout );
-	}
-	const CLayerOutput& layerOutput = currInput->LayerOutput();
-	sink->Connect( 0, *layerOutput.Layer, layerOutput.OutputIndex );
-
+	sink->Connect( 0, *input.Layer(), input.OutputIndex() );
 	dnn.AddLayer( *sink );
 	return sink.Ptr();
 }

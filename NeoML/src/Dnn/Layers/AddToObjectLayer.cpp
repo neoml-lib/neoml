@@ -38,17 +38,12 @@ void CAddToObjectLayer::Reshape()
 	CheckInputs();
 	NeoAssert( inputDescs.Size() == 2 );
 
-	CheckArchitecture( inputDescs[0].Channels() == inputDescs[1].Channels(),
-		GetName(), "input Channels dimensions mismatch" );
-	CheckArchitecture( inputDescs[0].Depth() == inputDescs[1].Depth(),
-		GetName(), "input Depth dimensions mismatch" );
-	CheckArchitecture( inputDescs[0].Width() == inputDescs[1].Width(),
-		GetName(), "input Width dimensions mismatch" );
-	CheckArchitecture( inputDescs[0].Height() == inputDescs[1].Height(),
-		GetName(), "input Height dimensions mismatch" );
-
-	CheckArchitecture( inputDescs[1].ObjectCount() == 1, GetName(),
-		"CAddToObjectLayer wrong input BatchLength dimension" );
+	CheckLayerArchitecture( inputDescs[0].Channels() == inputDescs[1].Channels(),
+		"input Channels dimensions mismatch" );
+	CheckLayerArchitecture( inputDescs[0].Depth() == inputDescs[1].Depth(), "input Depth dimensions mismatch" );
+	CheckLayerArchitecture( inputDescs[0].Width() == inputDescs[1].Width(), "input Width dimensions mismatch" );
+	CheckLayerArchitecture( inputDescs[0].Height() == inputDescs[1].Height(), "input Height dimensions mismatch" );
+	CheckLayerArchitecture( inputDescs[1].ObjectCount() == 1, "CAddToObjectLayer wrong input BatchLength dimension" );
 
 	outputDescs.SetSize( 1 );
 	const CBlobDesc& inputDesc = inputDescs[0];

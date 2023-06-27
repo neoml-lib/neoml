@@ -295,6 +295,48 @@ class GlobalMeanPooling(Layer):
 # ----------------------------------------------------------------------------------------------------------------------
 
 
+class GlobalSumPooling(Layer):
+    """The layer that finds the sum over the whole three-dimensional image.
+    
+    :param input_layers: The input layer and the number of its output. If no number
+        is specified, the first output will be connected.
+    :type input_layers: object, tuple(object, int)
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) the set of images, of dimensions:
+
+        - **BatchLength** * **BatchWidth** * **ListSize** - the number of images in the set
+        - **Height** - the images' height
+        - **Width** - the images' width
+        - **Depth** - the images' depth
+        - **Channels** - the number of channels the image format uses
+        
+    .. rubric:: Layer outputs:
+
+    (1) the sums over each image.
+        The dimensions:
+
+        - **BatchLength**, **BatchWidth**, **ListSize** are equal to the input dimensions
+        - **Height**, **Width**, **Depth** are 1
+        - **Channels** is equal to the input **Channels**
+    """
+    def __init__(self, input_layers, name=None):
+
+        if type(input_layers) is PythonWrapper.GlobalSumPooling:
+            super().__init__(input_layers)
+            return
+
+        layers, outputs = check_input_layers(input_layers, 1)
+
+        internal = PythonWrapper.GlobalSumPooling(str(name), layers[0], outputs[0])
+        super().__init__(internal)
+
+# ----------------------------------------------------------------------------------------------------------------------
+
+
 class MaxOverTimePooling(Layer):
     """The layer that finds maximums on the set of sequences,
     with the window taken over BatchLength axis.

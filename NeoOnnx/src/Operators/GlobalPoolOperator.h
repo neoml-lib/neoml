@@ -27,6 +27,8 @@ public:
 		PT_Max, // Max pooling
 		PT_Min, // Min pooling
 		PT_Mean, // Mean pooling
+		PT_Sum, // Sum pooling
+		PT_L2, // L2 pooling
 
 		PT_Count
 	};
@@ -40,7 +42,7 @@ public:
 
 	// Get indices of dimensions to be pooled (in Onnx order)
 	// Result shouldn't contain negative indices and must be in sorted order
-	virtual void PoolAxes( const CTensorShape& inputShape, CFastArray<int, 8>& axes ) const;
+	virtual void PoolAxes( const CTensorArray& inputs, CFastArray<int, 8>& axes ) const;
 
 protected:
 	CGlobalPoolOperatorBase( TPoolType poolType, const onnx::NodeProto& onnxNode, int opsetVersion );
@@ -56,7 +58,6 @@ private:
 	CPtr<const CUserTensor> convertInputLayout( const CUserTensor& input, const CFastArray<int, 8>& axes ) const;
 
 	CPtr<const CUserTensor> addPoolingLayer( const CUserTensor& preparedInput, const CFastArray<int, 8>& axes, CDnn& dnn ) const;
-	void calcOutputShape( const CTensorShape& inputShape, const CFastArray<int, 8>& axes, CTensorShape& outputShape ) const;
 	CTensorLayout calcOutputLayout( const CTensorLayout& inputLayout, const CFastArray<int, 8>& axes ) const;
 
 	CPtr<const CUserTensor> addPostProcessing( const CUserTensor& layerOutput, CDnn& dnn ) const;
@@ -91,7 +92,7 @@ class CReducePoolOperatorBase : public CGlobalPoolOperatorBase {
 public:
 	// CGlobalPoolOperatorBase methods
 	bool KeepDims() const override;
-	void PoolAxes( const CTensorShape& inputShape, CFastArray<int, 8>& axes ) const override;
+	void PoolAxes( const CTensorArray& inputs, CFastArray<int, 8>& axes ) const override;
 
 protected:
 	CReducePoolOperatorBase( TPoolType poolType, const onnx::NodeProto& onnxNode, int opsetVersion ) :
@@ -123,6 +124,26 @@ class CReduceMinOperator : public CReducePoolOperatorBase {
 public:
 	CReduceMinOperator( const onnx::NodeProto& onnxNode, int opsetVersion ) :
 		CReducePoolOperatorBase( CGlobalPoolOperatorBase::PT_Min, onnxNode, opsetVersion )
+	{
+	}
+};
+
+// ReduceSum operator
+class CReduceSumOperator : public CReducePoolOperatorBase {
+public:
+	CReduceSumOperator( const onnx::NodeProto& onnxNode, int opsetVersion ) :
+		CReducePoolOperatorBase( CGlobalPoolOperatorBase::PT_Sum, onnxNode, opsetVersion )
+	{
+	}
+
+	void PoolAxes( const CTensorArray& inputs, CFastArray<int, 8>& axes ) const override;
+};
+
+// ReduceL2 operator
+class CReduceL2Operator : public CReducePoolOperatorBase {
+public:
+	CReduceL2Operator( const onnx::NodeProto& onnxNode, int opsetVersion ) :
+		CReducePoolOperatorBase( CGlobalPoolOperatorBase::PT_L2, onnxNode, opsetVersion )
 	{
 	}
 };

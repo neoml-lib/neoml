@@ -137,9 +137,9 @@ inline void CBlobConvolution<FltCnt>::CJitConvolution::prologue()
 #endif
     push( regNumSteps );
     push( retTemp );
+    sub( rsp, stackAlignment + 10 * 16 ); // reserve stack space for 10 Xmms
     for( int i = 6; i <= 15; i++ ) {
-        // '-16' - place for first xmm
-        vmovaps( ptr[rsp - stackAlignment - 16 - ( i - 6 ) * 16], Xmm( i ) );
+        vmovaps( ptr[rsp + ( 15 - i ) * 16], Xmm( i ) );
     }
 }
 
@@ -155,8 +155,9 @@ inline void CBlobConvolution<FltCnt>::CJitConvolution::epilogue()
 #endif
 
     for( int i = 15; i >= 6; i-- ) {
-        vmovaps( Xmm( i ), ptr[rsp - stackAlignment - 16  - ( i - 6 ) * 16] );
+        vmovaps( Xmm( i ), ptr[rsp + ( 15 - i ) * 16] );
     }
+    add( rsp, stackAlignment + 10 * 16 );
     pop( retTemp );
     pop( regNumSteps );
 
@@ -188,7 +189,7 @@ inline void CBlobConvolution<FltCnt>::CJitConvolution::initResRegs( size_t stepC
     //        r0                r1                r2                r3
     // 0 1 2 0 1 2 0 1 | 2 0 1 2 0 1 2 0 | 1 2 0 1 2 0 1 2 | 0 1 2 0 1 2 0 1
     // We see that r3 is the same as r0, therefore number of shift is 3 (r0, r1, r2)
-    const int NumberOfShifts = static_cast<int>( min( stepSize, FltCntM8 == FltCnt ? 1 : stepSize ) );
+    const int NumberOfShifts = static_cast<int>( std::min( stepSize, FltCntM8 == FltCnt ? size_t(1) : stepSize ) );
     // If we shift registers we will do that every ShiftStep regs.
     constexpr int ChunkSize = FltCntM8 / 8;
     // Number of identical chunks

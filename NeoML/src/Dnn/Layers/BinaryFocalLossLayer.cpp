@@ -85,9 +85,11 @@ CBinaryFocalLossLayer::CBinaryFocalLossLayer( IMathEngine& mathEngine ) :
 void CBinaryFocalLossLayer::Reshape()
 {
 	CLossLayer::Reshape();
-	CheckArchitecture( inputDescs[1].GetDataType() == CT_Float, GetName(), "labels must be CT_Float" );
-	CheckArchitecture( inputDescs[0].ObjectSize() == inputDescs[1].ObjectSize(), GetName(), "the labels dimensions should be equal to the first input dimensions" );
-	CheckArchitecture( inputDescs[1].ObjectSize() == 1, GetName(), "BinaryFocalLoss layer works only with binary-class classification" );
+	CheckLayerArchitecture( inputDescs[1].GetDataType() == CT_Float, "labels must be CT_Float" );
+	CheckLayerArchitecture( inputDescs[0].ObjectSize() == inputDescs[1].ObjectSize(),
+		"the labels dimensions should be equal to the first input dimensions" );
+	CheckLayerArchitecture( inputDescs[1].ObjectSize() == 1,
+		"BinaryFocalLoss layer works only with binary-class classification" );
 }
 
 void CBinaryFocalLossLayer::BatchCalculateLossAndGradient( int batchSize, CConstFloatHandle data,
@@ -144,4 +146,4 @@ CLayerWrapper<CBinaryFocalLossLayer> BinaryFocalLoss( float focalForce, float lo
 	} );
 }
 
-}
+} // namespace NeoML

@@ -22,6 +22,8 @@ limitations under the License.
 
 #include "onnx.pb.h"
 
+#include <NeoML/Dnn/Layers/Onnx/OnnxConcatLayer.h>
+
 namespace NeoOnnx {
 
 CConcatOperator::CConcatOperator( const onnx::NodeProto& concat, int opsetVersion ) :
@@ -30,72 +32,98 @@ CConcatOperator::CConcatOperator( const onnx::NodeProto& concat, int opsetVersio
 	// v1 - original
 	// v4 - supported new data types and axis becomes required attributes
 	// v11 - supported negative axis index
+	// v13 - bfloat16 is supported
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
-	CheckOnnxProtocol( InputCount() > 1, "operator must have more than 1 inputs", *this );
+	CheckOnnxProtocol( InputCount() >= 1, "operator must have at least 1 input", *this );
 	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
 }
 
 void CConcatOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
-	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
-	const int dimCount = inputs[0]->DimCount();
+	int firstInput = NotFound;
+	int inputCount = 0;
+	for( int i = 0; i < inputs.Size(); ++i ) {
+		if( inputs[i] != nullptr ) {
+			if( firstInput == NotFound ) {
+				firstInput = i;
+			}
+			inputCount++;
+		}
+	}
 
+	if( inputCount == 0 ) {
+		outputs.Add( nullptr );
+		return;
+	}
+
+	if( inputCount == 1 ) {
+		outputs.Add( inputs[firstInput] );
+		return;
+	}
+
+	const int axis = getAxis( inputs[firstInput]->DimCount() );
+	const CTensorLayout& inputLayout = inputs[firstInput]->Layout();
+	const bool returnUserTensor = HasUserInput( inputs );
+
+	CPtr<COnnxConcatLayer> concat = new COnnxConcatLayer( dnn.GetMathEngine() );
+	concat->SetName( Name() );
+	concat->SetConcatDim( inputLayout[axis] );
+
+	int connectionIndex = 0;
+	for( int inputIndex = 0; inputIndex < inputs.Size(); ++inputIndex ) {
+		if( inputs[inputIndex] == nullptr ) {
+			continue;
+		}
+
+		CLayerOutput layerOutput;
+		if( returnUserTensor ) {
+			layerOutput = AsUserTensor( *ConvertTensor( *inputs[inputIndex], inputLayout ),
+				Name() + "_Source" + Str( inputIndex ), dnn )->LayerOutput();
+		} else {
+			layerOutput = AsShapeTensor( *ConvertTensor( *inputs[inputIndex], inputLayout ),
+				Name() + "_Source" + Str( inputIndex ), dnn )->LayerOutput();
+		}
+		concat->Connect( connectionIndex++, *layerOutput.Layer, layerOutput.OutputIndex );
+	}
+
+	dnn.AddLayer( *concat );
+
+	if( returnUserTensor ) {
+		outputs.Add( new CUserTensor( inputLayout, CLayerOutput( concat, 0 ) ) );
+	} else {
+		NeoPresume( inputs[0]->Type() != TTensorType::User );
+		CTensorShape outputShape;
+		GetTensorShape( *inputs[0], outputShape );
+
+		// Calculate total size of axis along all inputs
+		int& concatDimSize = outputShape[axis];
+		for( int i = 1; i < inputs.Size(); ++i ) {
+			if( inputs[i]->Type() == TTensorType::Data ) {
+				concatDimSize += dynamic_cast<const CDataTensor&>( *inputs[i] ).DimSize( axis );
+			} else {
+				concatDimSize += dynamic_cast<const CShapeTensor&>( *inputs[i] ).Shape()[axis];
+			}
+		}
+
+		outputs.Add( new CShapeTensor( inputLayout, outputShape, CLayerOutput( concat, 0 ) ) );
+	}
+}
+
+// Returns non-negative axis index along which Concat is performing
+// Takes into account opset version and number of input dimensions
+int CConcatOperator::getAxis( int dimCount ) const
+{
 	int axis = 1;
 	if( OpsetVersion < 4 ) {
 		GetAttribute( "axis", axis );
 	} else {
 		CheckOnnxProtocol( GetAttribute( "axis", axis ), "axis attribute is missing", *this );
 		if( axis < 0 ) {
-			CheckOnnxProtocol( OpsetVersion >= 11, "negative axis is supported since v11", *this );
 			axis += dimCount;
 		}
 	}
-
-	const CTensorLayout& inputLayout = inputs[0]->Layout();
-	CPtr<CBaseLayer> concat = createLayer( inputLayout[axis], dnn.GetMathEngine() );
-	concat->SetName( Name() );
-
-	CTensorShape outputShape;
-	inputs[0]->Shape().CopyTo( outputShape );
-	outputShape[axis] = 0;
-
-	for( int inputIndex = 0; inputIndex < inputs.Size(); ++inputIndex ) {
-		CheckOnnxProtocol( inputs[inputIndex] != nullptr, "input can't be optional", *this );
-		CPtr<const CUserTensor> preparedInput = AsUserTensor( *ConvertTensor( *inputs[inputIndex], inputLayout ),
-			Name() + "_Source" + Str( inputIndex ), dnn );
-		concat->Connect( inputIndex, *preparedInput->Layer(), preparedInput->OutputIndex() );
-		outputShape[axis] += inputs[inputIndex]->Shape()[axis];
-	}
-
-	dnn.AddLayer( *concat );
-
-	outputs.Add( new CUserTensor( outputShape, inputLayout, CLayerOutput( concat, 0 ) ) );
-}
-
-// Creates corresponding CConcat*Layer
-CPtr<CBaseLayer> CConcatOperator::createLayer( TBlobDim concatDim, IMathEngine& mathEngine ) const
-{
-	switch( concatDim ) {
-		case BD_BatchWidth:
-			return new CConcatBatchWidthLayer( mathEngine );
-		case BD_Height:
-			return new CConcatHeightLayer( mathEngine );
-		case BD_Width:
-			return new CConcatWidthLayer( mathEngine );
-		case BD_Depth:
-			return new CConcatDepthLayer( mathEngine );
-		case BD_Channels:
-			return new CConcatChannelsLayer( mathEngine );
-		case BD_BatchLength:
-			return new CConcatBatchLengthLayer( mathEngine );
-		case BD_ListSize:
-			return new CConcatListSizeLayer( mathEngine );
-		default:
-			CheckNeoOnnxSupport( false, "unsupported Concat dimension", *this );
-	}
-
-	return nullptr;
+	return axis;
 }
 
 } // namespace NeoOnnx

@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -24,11 +24,10 @@ limitations under the License.
 
 namespace NeoML {
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
 // Operations with blobs
 template<class T>
-void CCpuMathEngine::blobMergeByDimCommon( int dimNum, const CBlobDesc* from, const CTypedMemoryHandle<T>* fromData, int fromCount,
-	const CBlobDesc& to, const CTypedMemoryHandle<T>& toData )
+void CCpuMathEngine::blobMergeByDimCommon( int dimNum, const CBlobDesc* from, const CTypedMemoryHandle<T>* fromData,
+	int fromCount, const CBlobDesc& to, const CTypedMemoryHandle<T>& toData )
 {
 	int s[CBlobDesc::MaxDimensions];
 	to.GetDimSizes( s );
@@ -104,7 +103,8 @@ void CCpuMathEngine::blobMergeByDim0( const CBlobDesc* from, const CTypedMemoryH
 }
 
 template<class T>
-void CCpuMathEngine::blobMergeByDim( int dim, const CBlobDesc* from, const CTypedMemoryHandle<T>* fromData, int fromCount, const CBlobDesc& to, const CTypedMemoryHandle<T>& toData )
+void CCpuMathEngine::blobMergeByDim( int dim, const CBlobDesc* from, const CTypedMemoryHandle<T>* fromData,
+	int fromCount, const CBlobDesc& to, const CTypedMemoryHandle<T>& toData )
 {
 	if(dim == 0) {
 		return blobMergeByDim0(from, fromData, fromCount, to, toData);
@@ -113,7 +113,7 @@ void CCpuMathEngine::blobMergeByDim( int dim, const CBlobDesc* from, const CType
 }
 
 template<class T>
-void CCpuMathEngine::blobSplitByDimCommon( int dimNum, const CBlobDesc& from, const CTypedMemoryHandle<T>& fromData,
+void CCpuMathEngine::blobSplitByDimCommon( int dimNum, const CBlobDesc& from, const CTypedMemoryHandle<const T>& fromData,
 	const CBlobDesc* to, const CTypedMemoryHandle<T>* toData, int toCount )
 {
 	int s[CBlobDesc::MaxDimensions];
@@ -161,7 +161,7 @@ void CCpuMathEngine::blobSplitByDimCommon( int dimNum, const CBlobDesc& from, co
 }
 
 template<class T>
-void CCpuMathEngine::blobSplitByDim0( const CBlobDesc& from, const CTypedMemoryHandle<T>& fromData,
+void CCpuMathEngine::blobSplitByDim0( const CBlobDesc& from, const CTypedMemoryHandle<const T>& fromData,
 	const CBlobDesc* to, const CTypedMemoryHandle<T>* toData, int toCount )
 {
 	const T* input = GetRaw( fromData );
@@ -190,7 +190,8 @@ void CCpuMathEngine::blobSplitByDim0( const CBlobDesc& from, const CTypedMemoryH
 }
 
 template<class T>
-void CCpuMathEngine::blobSplitByDim( int dim, const CBlobDesc& from, const CTypedMemoryHandle<T>& fromData, const CBlobDesc* to, const CTypedMemoryHandle<T>* toData, int toCount )
+void CCpuMathEngine::blobSplitByDim( int dim, const CBlobDesc& from, const CTypedMemoryHandle<const T>& fromData,
+	const CBlobDesc* to, const CTypedMemoryHandle<T>* toData, int toCount )
 {
 	if(dim == 0) {
 		return blobSplitByDim0(from, fromData, to, toData, toCount);
@@ -198,28 +199,32 @@ void CCpuMathEngine::blobSplitByDim( int dim, const CBlobDesc& from, const CType
 	return blobSplitByDimCommon(dim, from, fromData, to, toData, toCount);
 }
 
-void CCpuMathEngine::BlobMergeByDim(TBlobDim dim, const CBlobDesc* from, const CFloatHandle* fromData, int fromCount, const CBlobDesc& to, const CFloatHandle& toData)
+void CCpuMathEngine::BlobMergeByDim(TBlobDim dim, const CBlobDesc* from, const CFloatHandle* fromData,
+	int fromCount, const CBlobDesc& to, const CFloatHandle& toData)
 {
 	ASSERT_EXPR(dim < BD_Count && fromCount <= MaxBlobDescs);
 	CCpuExecutionScope scope;
 	blobMergeByDim(dim, from, fromData, fromCount, to, toData);
 }
 
-void CCpuMathEngine::BlobMergeByDim(TBlobDim dim, const CBlobDesc* from, const CIntHandle* fromData, int fromCount, const CBlobDesc& to, const CIntHandle& toData)
+void CCpuMathEngine::BlobMergeByDim(TBlobDim dim, const CBlobDesc* from, const CIntHandle* fromData,
+	int fromCount, const CBlobDesc& to, const CIntHandle& toData)
 {
 	ASSERT_EXPR(dim < BD_Count && fromCount <= MaxBlobDescs);
 	CCpuExecutionScope scope;
 	blobMergeByDim(dim, from, fromData, fromCount, to, toData);
 }
 
-void CCpuMathEngine::BlobSplitByDim(TBlobDim dim, const CBlobDesc& from, const CFloatHandle& fromData, const CBlobDesc* to, const CFloatHandle* toData, int toCount)
+void CCpuMathEngine::BlobSplitByDim(TBlobDim dim, const CBlobDesc& from, const CConstFloatHandle& fromData,
+	const CBlobDesc* to, const CFloatHandle* toData, int toCount)
 {
 	ASSERT_EXPR(dim < BD_Count && toCount <= MaxBlobDescs);
 	CCpuExecutionScope scope;
 	blobSplitByDim(dim, from, fromData, to, toData, toCount);
 }
 
-void CCpuMathEngine::BlobSplitByDim(TBlobDim dim, const CBlobDesc& from, const CIntHandle& fromData, const CBlobDesc* to, const CIntHandle* toData, int toCount)
+void CCpuMathEngine::BlobSplitByDim(TBlobDim dim, const CBlobDesc& from, const CConstIntHandle& fromData,
+	const CBlobDesc* to, const CIntHandle* toData, int toCount)
 {
 	ASSERT_EXPR(dim < BD_Count && toCount <= MaxBlobDescs);
 	CCpuExecutionScope scope;
@@ -227,7 +232,8 @@ void CCpuMathEngine::BlobSplitByDim(TBlobDim dim, const CBlobDesc& from, const C
 }
 
 void CCpuMathEngine::BlobResizeImage( const CBlobDesc& from, const CFloatHandle& fromData, int deltaLeft, int deltaRight,
-	int deltaTop, int deltaBottom, float defaultValue, const CBlobDesc& to, const CFloatHandle& toData )
+	int deltaTop, int deltaBottom, TBlobResizePadding padding, float defaultValue,
+	const CBlobDesc& to, const CFloatHandle& toData )
 {
 	CCpuExecutionScope scope;
 
@@ -243,10 +249,23 @@ void CCpuMathEngine::BlobResizeImage( const CBlobDesc& from, const CFloatHandle&
 		return;
 	}
 
-	// If the image size has increased, fill the toData with defaultValue
-	if( deltaLeft > 0 || deltaRight > 0 || deltaTop > 0 || deltaBottom > 0 ) {
-		VectorFill( toData, defaultValue, outputDataSize );
-	}
+	auto calcInCoord = [&padding] ( int inCoord, int dimSize ) -> int {
+		if( inCoord >= 0 && inCoord < dimSize ) {
+			return inCoord;
+		}
+		switch( padding ) {
+			case TBlobResizePadding::Constant:
+				return inCoord;
+			case TBlobResizePadding::Reflect:
+				return inCoord < 0 ? -( inCoord % dimSize )
+					: ( 2 * dimSize - 2 - ( inCoord % dimSize ) ) % dimSize;
+			case TBlobResizePadding::Edge:
+				return inCoord < 0 ? 0 : dimSize - 1;
+			default:
+				ASSERT_EXPR( false );
+		}
+		return 0;
+	};
 
 	// The pointer to the current image (the element of a separate batch)
 	const float* inputImageStart = GetRaw( fromData );
@@ -255,30 +274,33 @@ void CCpuMathEngine::BlobResizeImage( const CBlobDesc& from, const CFloatHandle&
 	const int inputImageSize = from.ObjectSize();
 	const int outputImageSize = to.ObjectSize();
 	// The image rows length
-	const int inputRowSize = from.Width() * from.Depth() * from.Channels();
-	const int outputRowSize = to.Width() * to.Depth() * to.Channels();
+	const int inputRowSize = from.Width() * totalChannels;
+	const int outputRowSize = to.Width() * totalChannels;
 
 	const int currThreadCount = IsOmpRelevant( from.ObjectCount(), from.BlobSize() ) ? threadCount : 1;
 	NEOML_OMP_FOR_NUM_THREADS( currThreadCount )
 	for( int batch = 0; batch < from.ObjectCount(); ++batch ) {
 		const float* inputImage = inputImageStart + batch * inputImageSize;
 		float* outputImage = outputImageStart + batch * outputImageSize;
-		if( deltaLeft == 0 && deltaRight == 0 ) {
-			ASSERT_EXPR( inputRowSize == outputRowSize );
-			// If the image width isn't changed, copy together
-			dataCopy( outputImage + outputRowSize * max( 0, deltaTop ),
-				inputImage + inputRowSize * max( 0, -deltaTop ),
-				inputRowSize * ( from.Height() + min( 0, deltaTop ) + min( 0, deltaBottom ) ) );
-		} else {
-			// Otherwise copy the necessary parts row by row
-			const int horizontalInputOffset = max( 0, -deltaLeft ) * totalChannels;
-			const int horizontalOutputOffset = max( 0, deltaLeft ) * totalChannels;
-			const int rowSizeToCopy = ( from.Width() + min( 0, deltaLeft ) + min( 0, deltaRight ) ) * totalChannels;
-			for( int rowIndex = max( 0, -deltaTop ); rowIndex < from.Height() + min( 0, deltaBottom );
-				++rowIndex ) {
-				dataCopy( outputImage + outputRowSize * ( rowIndex + deltaTop ) + horizontalOutputOffset,
-					inputImage + inputRowSize * rowIndex + horizontalInputOffset,
-					rowSizeToCopy );
+		for( int outRowIndex = 0; outRowIndex < to.Height(); ++outRowIndex ) {
+			const int inRowIndex = calcInCoord( outRowIndex - deltaTop, from.Height() );
+			if( inRowIndex < 0 || inRowIndex >= from.Height() ) {
+				PRESUME_EXPR( padding == TBlobResizePadding::Constant );
+				vectorFill( outputImage, defaultValue, outputRowSize );
+				outputImage += outputRowSize;
+				continue;
+			}
+			const float* inputRow = inputImage + inRowIndex * inputRowSize;
+
+			for( int outColIndex = 0; outColIndex < to.Width(); ++outColIndex ) {
+				const int inColIndex = calcInCoord( outColIndex - deltaLeft, from.Width() );
+				if( inColIndex < 0 || inColIndex >= from.Width() ) {
+					PRESUME_EXPR( padding == TBlobResizePadding::Constant );
+					vectorFill( outputImage, defaultValue, totalChannels );
+				} else {
+					dataCopy( outputImage, inputRow + inColIndex * totalChannels, totalChannels );
+				}
+				outputImage += totalChannels;
 			}
 		}
 	}
@@ -1111,8 +1133,8 @@ void CCpuMathEngine::BertConv( const CConstFloatHandle& dataHandle, const CConst
 		int outputOffset = i * headSize;
 		const int kernelOffset = i * kernelSize;
 
-		const int kernelStart = max( 0, pad - seq );
-		const int kernelEnd = min( kernelSize, seqLen + pad - seq );
+		const int kernelStart = std::max( 0, pad - seq );
+		const int kernelEnd = std::min( kernelSize, seqLen + pad - seq );
 
 		vectorFill( output + outputOffset, 0.f, headSize );
 
@@ -1155,8 +1177,8 @@ void CCpuMathEngine::BertConvBackward( const CConstFloatHandle& dataHandle, cons
 			int outputOffset = ( seq * batchSize * numHeads + b ) * headSize;
 			const int kernelOffset = ( seq * batchSize * numHeads + b ) * kernelSize;
 
-			const int kernelStart = max( 0, pad - seq );
-			const int kernelEnd = min( kernelSize, seqLen + pad - seq );
+			const int kernelStart = std::max( 0, pad - seq );
+			const int kernelEnd = std::min( kernelSize, seqLen + pad - seq );
 
 			for( int h = 0; h < headSize; ++h ) {
 				int dataOffset = h + b * headSize + ( seq - pad + kernelStart ) * dataSeqStep;
@@ -1169,6 +1191,160 @@ void CCpuMathEngine::BertConvBackward( const CConstFloatHandle& dataHandle, cons
 			}
 		}
 	}
+}
+
+typedef float ( *TCoordTransformer )( int oldSize, float scale, int newCoord );
+
+static TCoordTransformer getCoordTransformer( TInterpolationCoords coords )
+{
+	switch( coords ) {
+		case TInterpolationCoords::Asymmetric:
+			return []( int, float scale, int newCoord ) {
+				return newCoord / scale;
+			};
+		case TInterpolationCoords::HalfPixel:
+			return []( int, float scale, int newCoord ) {
+				return ( newCoord + 0.5f ) / scale  - 0.5f;
+			};
+		case TInterpolationCoords::PytorchHalfPixel:
+			return []( int oldSize, float scale, int newCoord ) {
+				const int newSize = static_cast<int>( oldSize * scale );
+				return newSize > 1 ? ( newCoord + 0.5f ) / scale - 0.5f : 0.f;
+			};
+		case TInterpolationCoords::AlignCorners:
+			return []( int oldSize, float scale, int newCoord ) {
+				const int newSize = static_cast<int>( oldSize * scale );
+				return static_cast<float>( newCoord * ( oldSize - 1 ) ) / ( newSize - 1 );
+			};
+		default:
+			ASSERT_EXPR( false );
+	}
+	return nullptr;
+}
+
+typedef float ( *TCoordRound )( float x );
+
+static TCoordRound getCoordRound( TInterpolationRound round )
+{
+	switch( round ) {
+		case TInterpolationRound::None:
+			return nullptr;
+		case TInterpolationRound::RoundPreferFloor:
+			return []( float x ) {
+				if( x == static_cast<int>( x ) + 0.5f ) {
+					return ::floorf( x );
+				}
+				return ::roundf( x );
+			};
+		case TInterpolationRound::RoundPreferCeil:
+			return []( float x ) { return ::roundf( x ); };
+		case TInterpolationRound::Floor:
+			return []( float x ) { return ::floorf( x ); };
+		case TInterpolationRound::Ceil:
+			return []( float x ) { return ::ceilf( x ); };
+		default:
+			ASSERT_EXPR( false );
+	}
+	return nullptr;
+}
+
+void CCpuMathEngine::LinearInterpolation( const CConstFloatHandle& dataHandle, const CFloatHandle& resultHandle,
+	TInterpolationCoords coords, TInterpolationRound round, int objectCount, int scaledAxis, int objectSize, float scale )
+{
+	ASSERT_EXPR( dataHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+	const float* data = GetRaw( dataHandle );
+	float* result = GetRaw( resultHandle );
+
+	const int dataBatchStep = scaledAxis * objectSize;
+	const int resultBatchStep = static_cast<int>( scale * scaledAxis ) * objectSize;
+
+	const int opCount = objectCount * resultBatchStep;
+	const int curThreadCount = IsOmpRelevant( objectCount, opCount ) ? threadCount : 1;
+	CFloatHandleStackVar buff( *this, objectSize * curThreadCount );
+
+	TCoordTransformer getCoords = getCoordTransformer( coords );
+	TCoordRound roundCoords = getCoordRound( round );
+
+	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
+	for( int b = 0; b < objectCount; ++b ) {
+		float* currBuff = GetRaw( buff.GetHandle() ) + OmpGetThreadNum() * objectSize;
+		float* currResult = result + b * resultBatchStep;
+		const float* currData = data + b * dataBatchStep;
+		for( int i = 0; i < static_cast<int>( scaledAxis * scale ); ++i ) {
+			float oldCoord = getCoords( scaledAxis, scale, i );
+			if( roundCoords != nullptr ) {
+				oldCoord = roundCoords( oldCoord );
+			}
+			if( oldCoord <= 0 ) {
+				dataCopy( currResult, currData, objectSize );
+			} else if( oldCoord >= static_cast<float>( scaledAxis - 1 ) ) {
+				dataCopy( currResult, currData + ( scaledAxis - 1 ) * objectSize, objectSize );
+			} else {
+				const float leftCoord = ::floorf( oldCoord );
+				const float leftMul = 1.f - ( oldCoord - leftCoord );
+				const float rightMul = oldCoord - leftCoord;
+				vectorMultiply( currData + static_cast<int>( oldCoord ) * objectSize, currBuff, leftMul, objectSize );
+				vectorMultiply( currData + ( static_cast<int>( oldCoord ) + 1 ) * objectSize, currResult, rightMul, objectSize );
+				vectorAdd( currResult, currBuff, currResult, objectSize );
+			}
+			currResult += objectSize;
+		}
+	}
+}
+
+template<class T>
+static void scatterNDImpl( const T* updates, const int* indices, T* data, const CBlobDesc& dataDesc,
+	int updateCount, int indexDims )
+{
+	int objectSize = 1;
+	for( int i = indexDims; i < static_cast<int>( BD_Count ); ++i ) {
+		objectSize *= dataDesc.DimSize( i );
+	}
+	const int curThreadCount = IsOmpRelevant( updateCount * ( objectSize + indexDims ) );
+
+	static_assert( BD_Count <= 8, "BD_Count > 8" );
+	int offsets[8];
+	offsets[indexDims - 1] = objectSize;
+	for( int i = indexDims - 2; i >= 0; --i ) {
+		offsets[i] = offsets[i + 1] * dataDesc.DimSize( i + 1 );
+	}
+
+	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
+	for( int updateIndex = 0; updateIndex < updateCount; ++updateIndex ) {
+		int flatIndex = 0;
+		for( int i = 0; i < indexDims; ++i ) {
+			flatIndex += offsets[i] * indices[updateIndex * indexDims + i];
+		}
+		dataCopy( data + flatIndex, updates + updateIndex * objectSize, objectSize );
+	}
+}
+
+void CCpuMathEngine::ScatterND( const CConstIntHandle& indicesHandle, const CConstFloatHandle& updatesHandle,
+	const CFloatHandle& dataHandle, const CBlobDesc& dataDesc, int updateCount, int indexDims )
+{
+	ASSERT_EXPR( updatesHandle.GetMathEngine() == this );
+	ASSERT_EXPR( indicesHandle.GetMathEngine() == this );
+	ASSERT_EXPR( dataHandle.GetMathEngine() == this );
+	ASSERT_EXPR( updateCount > 0 );
+	ASSERT_EXPR( indexDims > 0 && indexDims < static_cast<int>( BD_Count ) );
+
+	scatterNDImpl( GetRaw( updatesHandle ), GetRaw( indicesHandle ), GetRaw( dataHandle ),
+		dataDesc, updateCount, indexDims );
+}
+
+void CCpuMathEngine::ScatterND( const CConstIntHandle& indicesHandle, const CConstIntHandle& updatesHandle,
+	const CIntHandle& dataHandle, const CBlobDesc& dataDesc, int updateCount, int indexDims )
+{
+	ASSERT_EXPR( updatesHandle.GetMathEngine() == this );
+	ASSERT_EXPR( indicesHandle.GetMathEngine() == this );
+	ASSERT_EXPR( dataHandle.GetMathEngine() == this );
+	ASSERT_EXPR( updateCount > 0 );
+	ASSERT_EXPR( indexDims > 0 && indexDims < static_cast<int>( BD_Count ) );
+
+	scatterNDImpl( GetRaw( updatesHandle ), GetRaw( indicesHandle ), GetRaw( dataHandle ),
+		dataDesc, updateCount, indexDims );
 }
 
 } // namespace NeoML

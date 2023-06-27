@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -43,16 +43,21 @@ limitations under the License.
 
 #endif // NEOML_USE_MKL
 
+bool CCPUInfo::HasAvxAndFma = CCPUInfo::IsAvxAndFmaAvailable();
+
 namespace NeoML {
 
 static int FloatAlignment = CCPUInfo::DefineFloatAlignment();
-static CCPUInfo::TCpuArch CPUArch = CCPUInfo::GetCpuArch();
 
-CCpuMathEngine::CCpuMathEngine( int _threadCount, size_t _memoryLimit ) :
+CCpuMathEngine::CCpuMathEngine( int _threadCount, size_t _memoryLimit,
+		std::shared_ptr<CMultiThreadDistributedCommunicator> communicator,
+		const CMathEngineDistributedInfo& distributedInfo ) :
 	threadCount( _threadCount <= 0 ? OmpGetMaxThreadCount() : _threadCount ),
 	floatAlignment( FloatAlignment ),
 	memoryAlignment( floatAlignment * sizeof(float) ),
-	memoryPool( new CMemoryPool( _memoryLimit == 0 ? SIZE_MAX : _memoryLimit, this, false ) ),
+	communicator( communicator ),
+	distributedInfo( distributedInfo ),
+	memoryPool( new CMemoryPool( _memoryLimit == 0 ? SIZE_MAX : _memoryLimit, this, distributedInfo.Threads > 1 ) ),
 	stackAllocator( new CDeviceStackAllocator( *memoryPool, memoryAlignment ) ),
 	dllLoader( CDllLoader::AVX_DLL ),
 	simdMathEngine( nullptr ),
@@ -60,16 +65,11 @@ CCpuMathEngine::CCpuMathEngine( int _threadCount, size_t _memoryLimit ) :
 {
 #ifdef NEOML_USE_AVX
 	if( dllLoader.IsLoaded( CDllLoader::AVX_DLL ) ) {
-		simdMathEngine = unique_ptr<ISimdMathEngine>( CDllLoader::avxDll->CreateSimdMathEngine( this, threadCount ) );
-		// Don't use custom sgemm function when we are compiled with MKL and when we are on Intel CPU.
-		if( CPUArch == CCPUInfo::TCpuArch::Intel ) {
+		simdMathEngine = std::unique_ptr<ISimdMathEngine>( CDllLoader::avxDll->CreateSimdMathEngine( this, threadCount ) );
+		// Don't use custom sgemm function when we are compiled with MKL.
 #ifndef NEOML_USE_MKL
-			customSgemmFunction = simdMathEngine->GetSgemmFunction();
+		customSgemmFunction = simdMathEngine->GetSgemmFunction();
 #endif
-		} else {
-			// Non Intel architectures
-			customSgemmFunction = simdMathEngine->GetSgemmFunction();
-		}
 	}
 #else // NEOML_USE_AVX
 	// warning fix
@@ -87,6 +87,12 @@ CCpuMathEngine::~CCpuMathEngine()
 
 void CCpuMathEngine::SetReuseMemoryMode( bool enable )
 {
+	// Distributed CPU math engine always uses memory pools
+	// because big simultaneous allocations on multiple (20+) threads are extremely slow
+	if( IsDistributed() ) {
+		return;
+	}
+
 	std::lock_guard<std::mutex> lock( mutex );
 	memoryPool->SetReuseMemoryMode( enable );
 }
@@ -250,12 +256,6 @@ IPerformanceCounters* CCpuMathEngine::CreatePerformanceCounters() const
 #endif
 }
 
-void CCpuMathEngine::SetDistributedCommunicator( std::shared_ptr<CMultiThreadDistributedCommunicator> comm, const CMathEngineDistributedInfo& info )
-{
-	communicator = comm;
-	distributedInfo = info;
-}
-
 void CCpuMathEngine::AllReduce( const CFloatHandle& handle, int size )
 {
 	if( communicator != nullptr ){
@@ -285,4 +285,16 @@ void CpuMathEngineCleanUp()
 	mkl_free_buffers();
 #endif
 }
+
+void DeinitializeNeoMathEngine()
+{
+#ifdef NEOML_USE_MKL
+	mkl_free_buffers();
+#if FINE_PLATFORM( FINE_WINDOWS )
+	MKLFreeTls( DLL_PROCESS_DETACH );
+#endif
+	mkl_finalize();
+#endif
+}
+
 } // namespace NeoML

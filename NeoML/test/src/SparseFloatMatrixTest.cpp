@@ -17,6 +17,7 @@ limitations under the License.
 #pragma hdrstop
 
 #include <TestFixture.h>
+#include <MlTestCommon.h>
 
 using namespace NeoML;
 using namespace NeoMLTest;
@@ -26,17 +27,6 @@ public:
 	static bool InitTestFixture() { return true; }
 	static void DeinitTestFixture() {}
 };
-
-static CSparseFloatVector generateRandomVector( CRandom& rand, int maxLength = 100,
-	float minValue = -100., float maxValue = 100. )
-{
-	CSparseFloatVector res;
-	for( int i = 0; i < maxLength; ++i ) {
-		int index = rand.UniformInt( 0, maxLength - 1 ) ;
-		res.SetAt( index, static_cast<float>( rand.Uniform( minValue, maxValue ) ) );
-	}
-	return res;
-}
 
 TEST_F( CSparseFloatMatrixTest, AddRow )
 {
@@ -290,5 +280,67 @@ TEST_F( CSparseFloatMatrixTest, DISABLED_CreateHuge )
 	} catch( CInternalError& ) {
 		GTEST_LOG_( INFO ) << "CInternalError caught";
 	}
+}
+
+static void serializeSparseFloatMatrix( CSparseFloatMatrix& matrix, CBaseFile& file, CArchive::TDirection direction )
+{
+	file.Seek( 0, CBaseFile::begin );
+	CArchive archive( &file, direction );
+	matrix.Serialize( archive );
+}
+
+static void compareSparseFloatMatrices( const CSparseFloatMatrix& expected, const CSparseFloatMatrix& actual )
+{
+	ASSERT_EQ( expected.GetHeight(), actual.GetHeight() );
+	ASSERT_EQ( expected.GetWidth(), actual.GetWidth() );
+	for( int rowIndex = 0; rowIndex < expected.GetHeight(); ++rowIndex ) {
+		CFloatVectorDesc expectedRow = expected.GetRow( rowIndex );
+		CFloatVectorDesc actualRow = actual.GetRow( rowIndex );
+		ASSERT_EQ( expectedRow.Size, actualRow.Size );
+		for( int elemIndex = 0; elemIndex < expectedRow.Size; ++elemIndex ) {
+			ASSERT_EQ( expectedRow.Indexes[elemIndex], actualRow.Indexes[elemIndex] );
+			ASSERT_EQ( expectedRow.Values[elemIndex], actualRow.Values[elemIndex] );
+		}
+	}
+}
+
+static void testSparseFloatMatrixSerialization( CSparseFloatMatrix& original )
+{
+	CMemoryFile memoryFile;
+	serializeSparseFloatMatrix( original, memoryFile, CArchive::store );
+
+	CSparseFloatMatrix deserialized;
+	serializeSparseFloatMatrix( deserialized, memoryFile, CArchive::load );
+	compareSparseFloatMatrices( original, deserialized );
+
+	serializeSparseFloatMatrix( deserialized, memoryFile, CArchive::store );
+	serializeSparseFloatMatrix( deserialized, memoryFile, CArchive::load );
+	compareSparseFloatMatrices( original, deserialized );
+}
+
+TEST_F( CSparseFloatMatrixTest, Serialization )
+{
+	const int h = 5;
+	const int w = 10;
+	CRandom rand( 0 );
+	CSparseFloatMatrix original( w );
+	for( int i = 0; i < h; ++i ) {
+		original.AddRow( generateRandomVector( rand, w ) );
+	}
+	testSparseFloatMatrixSerialization( original );
+}
+
+// Case when body == nullptr
+TEST_F( CSparseFloatMatrixTest, NullBodySerialization )
+{
+	CSparseFloatMatrix original;
+	testSparseFloatMatrixSerialization( original );
+}
+
+// Case when body != nullptr but matrix doesn't have non-zero elements
+TEST_F( CSparseFloatMatrixTest, ZeroElemsSerialization )
+{
+	CSparseFloatMatrix original( 3 );
+	testSparseFloatMatrixSerialization( original );
 }
 

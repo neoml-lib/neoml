@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -28,6 +28,7 @@ limitations under the License.
 #include "GraphInitializer.h"
 #include "GraphInput.h"
 #include "GraphOutput.h"
+#include "Optimization/DnnOptimizer.h"
 
 namespace NeoOnnx {
 
@@ -37,8 +38,9 @@ static void checkOperatorSupport( const onnx::GraphProto& onnxGraph )
 {
 	CHashTable<CString> notSupportedOps;
 	for( const onnx::NodeProto& onnxNode : onnxGraph.node() ) {
-		if( !COperator::IsSupportedOperator( onnxNode.op_type() ) && !notSupportedOps.Has( onnxNode.op_type() ) ) {
-			notSupportedOps.Add( onnxNode.op_type() );
+		const CString opType( onnxNode.op_type().data() );
+		if( !COperator::IsSupportedOperator( opType ) && !notSupportedOps.Has( opType ) ) {
+			notSupportedOps.Add( opType );
 		}
 	}
 
@@ -101,8 +103,8 @@ static void processOperator( const COperator& op, CTensorCache& tensors, CDnn& d
 }
 
 // Builds dnn based on GraphProto
-static void buildDnnFromGraphProto( const onnx::GraphProto& onnxGraph, int opsetVersion,
-	CDnn& dnn, CArray<const char*>& inputs, CArray<const char*>& outputs )
+static void buildDnnFromGraphProto( const onnx::GraphProto& onnxGraph, int opsetVersion, const CImportSettings& settings,
+	CDnn& dnn, CArray<CImportedModelInfo::CInputInfo>& inputs, CArray<CImportedModelInfo::COutputInfo>& outputs)
 {
 	CheckOnnxProtocol( opsetVersion > 0, "Wrong onnx version: " + Str( opsetVersion ) );
 	CheckNeoOnnxSupport( opsetVersion <= MaxOpsetVersion, "Unsupported opset version: " + Str( opsetVersion ) );
@@ -123,15 +125,22 @@ static void buildDnnFromGraphProto( const onnx::GraphProto& onnxGraph, int opset
 
 	// Add graph inputs
 	for( const onnx::ValueInfoProto& onnxInput : onnxGraph.input() ) {
-		if( initializers.Has( onnxInput.name().c_str() ) ) {
+		const CString inputName = onnxInput.name().c_str();
+		if( initializers.Has( inputName ) ) {
 			// Networks from PyTorch can have separate inputs for every initializer (every weight/filter etc.)
 			// In case of NeoML inputs like these won't be needed because all the weights must be calculated from initializers
 			continue;
 		}
 		CGraphInput graphInput( onnxInput );
-		CPtr<const CUserTensor> inputTensor = graphInput.AddSourceLayer( dnn ).Ptr();
+		CPtr<const CUserTensor> inputTensor;
+		if( settings.InputLayouts.Has( inputName ) ) {
+			inputTensor = graphInput.AddSourceLayer( dnn, &settings.InputLayouts[inputName] ).Ptr();
+		} else {
+			inputTensor = graphInput.AddSourceLayer( dnn, nullptr ).Ptr();
+		}
 		tensors.Add( graphInput.Name(), inputTensor.Ptr() );
-		inputs.Add( inputTensor->Layer()->GetName() );
+		CImportedModelInfo::CInputInfo& inputInfo = inputs.Append();
+		inputInfo.Name = CString( inputTensor->Layer()->GetName() );
 	}
 
 	// Add graph operators
@@ -144,14 +153,42 @@ static void buildDnnFromGraphProto( const onnx::GraphProto& onnxGraph, int opset
 	for( const onnx::ValueInfoProto& onnxOutput : onnxGraph.output() ) {
 		CGraphOutput output( onnxOutput );
 		CheckOnnxProtocol( tensors.Has( output.Name() ), "output tensor is missing" );
-		const CPtr<const CTensorBase>& baseTensor = tensors[output.Name()];
-		CheckNeoOnnxSupport( !baseTensor->IsCalculated(), "constant network output" );
-		CPtr<const CSinkLayer> sink = output.AddSinkLayer( dynamic_cast<const CUserTensor&>( *baseTensor ), dnn );
-		outputs.Add( sink->GetName() );
+		CheckNeoOnnxSupport( tensors[output.Name()] != nullptr, "output tensor can't be calculated" );
+
+		// API obliges us to return output tensors in layout from settings
+		// or (if settings don't have layout) in the IOLayout
+		const CTensorBase& currTensor = *tensors[output.Name()];
+		const int layoutPos = settings.OutputLayouts.GetFirstPosition( output.Name() );
+		const CTensorLayout outputLayout = layoutPos == NotFound ? CTensorLayout::IOLayout( currTensor.DimCount() )
+			: settings.OutputLayouts.GetValue( layoutPos );
+		CPtr<const CTensorBase> convertedTensor = ConvertTensor( currTensor, outputLayout );
+
+		// API obliges us to return CDnn outputs in the corresponding CSinkLayer
+		// Which is why convert any tensor to CUserTensor and connect it to CSinkLayer
+		CPtr<const CUserTensor> userTensor = AsUserTensor( *convertedTensor, output.Name() + "_UserSource", dnn );
+		CPtr<const CSinkLayer> sink;
+		if( settings.OutputLayouts.Has( output.Name() ) ) {
+			sink = output.AddSinkLayer( *userTensor, dnn );
+		} else {
+			sink = output.AddSinkLayer( *userTensor, dnn );
+		}
+
+		CImportedModelInfo::COutputInfo& outputInfo = outputs.Append();
+		outputInfo.Name = CString( sink->GetName() );
 	}
 }
 
-void LoadFromOnnx( const char* fileName, CDnn& dnn, CArray<const char*>& inputs, CArray<const char*>& outputs )
+// Extracts metadata from the model
+static void extractMetadata( const onnx::ModelProto& model, CMap<CString, CString>& metadata )
+{
+	metadata.Empty();
+	for( const onnx::StringStringEntryProto& entry : model.metadata_props() ) {
+		metadata.Add( CString( entry.key().data() ), CString( entry.value().data() ) );
+	}
+}
+
+void LoadFromOnnx( const char* fileName, const CImportSettings& importSettings,
+	CDnn& dnn, CImportedModelInfo& info )
 {
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
 
@@ -166,8 +203,11 @@ void LoadFromOnnx( const char* fileName, CDnn& dnn, CArray<const char*>& inputs,
 		if( !model.ParseFromIstream( &input ) ) {
 			NeoOnnxCheck( false, CString( "Failed to parse model from file " ) + fileName );
 		}
-
-		buildDnnFromGraphProto( model.graph(), getOpsetVersion( model ), dnn, inputs, outputs );
+		buildDnnFromGraphProto( model.graph(), getOpsetVersion( model ), importSettings,
+			dnn, info.Inputs, info.Outputs );
+		extractMetadata( model, info.Metadata );
+		optimization::CDnnOptimizer( dnn ).Optimize();
+		info.OptimizationReport = NeoML::OptimizeDnn( dnn );
 	} catch( ... ) {
 		input.close();
 		google::protobuf::ShutdownProtobufLibrary();
@@ -178,7 +218,8 @@ void LoadFromOnnx( const char* fileName, CDnn& dnn, CArray<const char*>& inputs,
 	google::protobuf::ShutdownProtobufLibrary();
 }
 
-void LoadFromOnnx( const void* buffer, int bufferSize, CDnn& dnn, CArray<const char*>& inputs, CArray<const char*>& outputs )
+void LoadFromOnnx( const void* buffer, int bufferSize, const CImportSettings& importSettings,
+	CDnn& dnn, CImportedModelInfo& info )
 {
 	GOOGLE_PROTOBUF_VERIFY_VERSION;
 
@@ -190,8 +231,11 @@ void LoadFromOnnx( const void* buffer, int bufferSize, CDnn& dnn, CArray<const c
 		if( !model.ParseFromString( strBuffer ) ) {
 			NeoOnnxCheck( false, "Failed to parse model from buffer" );
 		}
-
-		buildDnnFromGraphProto( model.graph(), getOpsetVersion( model ), dnn, inputs, outputs );
+		buildDnnFromGraphProto( model.graph(), getOpsetVersion( model ), importSettings,
+			dnn, info.Inputs, info.Outputs );
+		extractMetadata( model, info.Metadata );
+		optimization::CDnnOptimizer( dnn ).Optimize();
+		info.OptimizationReport = NeoML::OptimizeDnn( dnn );
 	} catch( ... ) {
 		google::protobuf::ShutdownProtobufLibrary();
 		throw;
@@ -200,4 +244,5 @@ void LoadFromOnnx( const void* buffer, int bufferSize, CDnn& dnn, CArray<const c
 	google::protobuf::ShutdownProtobufLibrary();
 }
 
-}
+} //NeoOnnx
+

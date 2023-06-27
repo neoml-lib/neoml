@@ -37,16 +37,15 @@ CPtr<const CDataTensor> CGraphInitializer::GetDataTensor( IMathEngine& mathEngin
 		outputShape.Add( static_cast<int>( initializer.dims( dimIndex ) ) );
 	}
 
-	if( outputShape.IsEmpty() ) {
-		// Tensor without dims is a scalar
-		outputShape.Add( 1 );
-	}
-
 	CTensorLayout outputLayout( outputShape.Size() );
 	CBlobDesc blobDesc;
 	blobDesc.SetDataType( GetBlobType( static_cast<onnx::TensorProto_DataType>( initializer.data_type() ) ) );
 	for( int dimIndex = 0; dimIndex < initializer.dims_size(); ++dimIndex ) {
 		blobDesc.SetDimSize( outputLayout[dimIndex], outputShape[dimIndex] );
+	}
+
+	if( blobDesc.BlobSize() == 0 ) {
+		return nullptr;
 	}
 
 	CPtr<CDnnBlob> outputBlob = CDnnBlob::CreateBlob( mathEngine, blobDesc.GetDataType(), blobDesc );
@@ -56,7 +55,7 @@ CPtr<const CDataTensor> CGraphInitializer::GetDataTensor( IMathEngine& mathEngin
 		LoadBlobData<int>( initializer, *outputBlob );
 	}
 
-	return new CDataTensor( outputShape, outputLayout, *outputBlob );
+	return new CDataTensor( outputLayout, *outputBlob );
 }
 
 } // namespace NeoOnnx

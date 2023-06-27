@@ -55,15 +55,15 @@ void CLossLayer::SetMaxGradientValue(float maxValue)
 void CLossLayer::Reshape()
 {
 	CheckInputs();
-	CheckArchitecture( inputDescs.Size() >= 2, GetName(), "loss layer with 1 input" );
-	CheckArchitecture( inputDescs.Size() <= 3, GetName(), "loss layer with more than 3 inputs" );
-	CheckArchitecture( outputDescs.IsEmpty(), GetName(), "loss layer has no output" );
-	CheckArchitecture( inputDescs[0].ObjectCount() == inputDescs[1].ObjectCount(), GetName(), "object count mismatch" );
-	CheckArchitecture( !(trainLabels && inputDescs[1].GetDataType() == CT_Int), GetName(), "can't train integer labels" );
+	CheckLayerArchitecture( inputDescs.Size() >= 2, "loss layer with 1 input" );
+	CheckLayerArchitecture( inputDescs.Size() <= 3, "loss layer with more than 3 inputs" );
+	CheckLayerArchitecture( outputDescs.IsEmpty(), "loss layer has no output" );
+	CheckLayerArchitecture( inputDescs[0].ObjectCount() == inputDescs[1].ObjectCount(), "object count mismatch" );
+	CheckLayerArchitecture( !(trainLabels && inputDescs[1].GetDataType() == CT_Int), "can't train integer labels" );
 
 	if( inputDescs.Size() > 2 ) {
-		CheckArchitecture( inputDescs[0].BatchWidth() == inputDescs[2].BatchWidth(),
-			GetName(), "weights batch width doesn't match result batch width" );
+		CheckLayerArchitecture( inputDescs[0].BatchWidth() == inputDescs[2].BatchWidth(),
+			"weights batch width doesn't match result batch width" );
 	}
 
 	params->GetData().SetValueAt( P_LossDivider, 1.f / inputDescs[0].ObjectCount() );

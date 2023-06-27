@@ -109,6 +109,11 @@ void CVulkanMathEngine::AddDiagMatrixToMatrix( const CConstFloatHandle& diagMatr
 void CVulkanMathEngine::TransposeMatrix( int batchSize, const CConstFloatHandle& firstHandle,
 	int height, int medium, int width, int channels, const CFloatHandle& resultHandle, int /*resultBufferSize*/ )
 {
+	if( medium == 1 && ( height == 1 || width == 1 ) ) {
+		VectorCopy( resultHandle, firstHandle, batchSize * height * medium * width * channels );
+		return;
+	}
+
 	int vectorSize = batchSize * height * medium * width * channels;
 	CMemoryHandle bufs[2] = { firstHandle, resultHandle };
 	size_t sizes[2] = { vectorSize * sizeof(float), vectorSize * sizeof(float) };
@@ -122,6 +127,11 @@ void CVulkanMathEngine::TransposeMatrix( int batchSize, const CConstFloatHandle&
 void CVulkanMathEngine::TransposeMatrix( int batchSize, const CConstIntHandle& firstHandle,
 	int height, int medium, int width, int channels, const CIntHandle& resultHandle, int /*resultBufferSize*/ )
 {
+	if( medium == 1 && ( height == 1 || width == 1 ) ) {
+		VectorCopy( resultHandle, firstHandle, batchSize * height * medium * width * channels );
+		return;
+	}
+
 	int vectorSize = batchSize * height * medium * width * channels;
 	CMemoryHandle bufs[2] = { firstHandle, resultHandle };
 	size_t sizes[2] = { vectorSize * sizeof(int), vectorSize * sizeof(int) };
@@ -178,6 +188,12 @@ void CVulkanMathEngine::MultiplySparseMatrixByTransposedMatrix( int firstHeight,
 		&param, sizeof( param ), 0, 0, 0, 0, bufs, sizes, 5, secondHeight, firstHeight, 1 );
 }
 
+void CVulkanMathEngine::MultiplyTransposedMatrixBySparseMatrix( int, int, int,
+	const CConstFloatHandle&, const CSparseMatrixDesc&, const CFloatHandle&, bool )
+{
+	ASSERT_EXPR( false );
+}
+
 void CVulkanMathEngine::MultiplyTransposedMatrixBySparseMatrixAndAdd( int firstHeight, int firstWidth, int secondWidth,
 	const CConstFloatHandle& firstHandle, const CSparseMatrixDesc& secondDesc, const CFloatHandle& resultHandle )
 {
@@ -195,6 +211,18 @@ void CVulkanMathEngine::MultiplyTransposedMatrixBySparseMatrixAndAdd( int firstH
 
 	runVectorShader( shaderLoader->GET_SHADER_DATA( MultiplyTransposedMatrixBySparseMatrix, true, 0, 0, 5 ),
 		&param, sizeof( param ), 0, 0, 0, 0, bufs, sizes, 5, firstWidth );
+}
+
+void CVulkanMathEngine::MultiplySparseMatrixByMatrix( int, int, int,
+	const CSparseMatrixDesc&, const CConstFloatHandle&, const CFloatHandle& )
+{
+	ASSERT_EXPR( false );
+}
+
+void CVulkanMathEngine::MultiplyTransposedSparseMatrixByMatrix( int, int, int,
+	const CSparseMatrixDesc&, const CConstFloatHandle&, const CFloatHandle& )
+{
+	ASSERT_EXPR( false );
 }
 
 void CVulkanMathEngine::MultiplyTransposedMatrixByMatrixAndAdd( const CConstFloatHandle& firstHandle, int firstHeight,
@@ -710,6 +738,11 @@ void CVulkanMathEngine::SumMatrixRows( int batchSize, const CFloatHandle& result
 		&param, sizeof(param), 0, 0, 0, 0, bufs, sizes, 2, matrixWidth, 1, batchSize);
 }
 
+void CVulkanMathEngine::SumMatrixRows( int, const CIntHandle&, const CConstIntHandle&, int, int )
+{
+	ASSERT_EXPR( false );
+}
+
 void CVulkanMathEngine::SumMatrixColumns( const CFloatHandle& resultHandle, const CConstFloatHandle& matrixHandle,
 	int matrixHeight, int matrixWidth )
 {
@@ -1160,8 +1193,13 @@ void CVulkanMathEngine::SingularValueDecomposition( const CFloatHandle&, int, in
 	ASSERT_EXPR( false );
 }
 
-void CVulkanMathEngine::SparseSingularValueDecomposition( const CSparseMatrixDesc&, int, int, const CFloatHandle&, const CFloatHandle&,
-	const CFloatHandle&, const CFloatHandle&, int, bool )
+void CVulkanMathEngine::QRFactorization( int, int, const CFloatHandle&, const CFloatHandle*, const CFloatHandle*,
+	bool, bool, bool )
+{
+	ASSERT_EXPR( false );
+}
+
+void CVulkanMathEngine::LUFactorization( int, int, const CFloatHandle& )
 {
 	ASSERT_EXPR( false );
 }

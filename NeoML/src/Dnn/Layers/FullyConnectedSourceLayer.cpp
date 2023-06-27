@@ -126,19 +126,20 @@ CFullyConnectedSourceLayer::~CFullyConnectedSourceLayer()
 
 void CFullyConnectedSourceLayer::Reshape()
 {
-	CheckArchitecture( inputDescs.IsEmpty(), GetName(), "layer has input" );
-	CheckArchitecture( GetOutputCount() >= 3, GetName(), "fully connected source layer has less than 3 outputs" );
-	CheckArchitecture( problem.Ptr() != 0, GetName(), "source problem is null" );
+	CheckLayerArchitecture( inputDescs.IsEmpty(), "layer has input" );
+	CheckLayerArchitecture( GetOutputCount() >= 3,
+		"fully connected source layer has less than 3 outputs" );
+	CheckLayerArchitecture( problem.Ptr() != 0, "source problem is null" );
 
 	if( Weights() == 0 ) {
 		// Create and initialize a weights matrix
 		Weights() = CDnnBlob::CreateDataBlob( MathEngine(), CT_Float, 1, GetNumberOfElements(), problem->GetFeatureCount() );
 		InitializeParamBlob( 0, *Weights(), batchSize );
 	} else {
-		CheckArchitecture( Weights()->GetObjectCount() == GetNumberOfElements(),
-			GetName(), "weights number is not equal to number of elements" );
-		CheckArchitecture( Weights()->GetObjectSize() == problem->GetFeatureCount(),
-			GetName(), "weights size mismatch" );
+		CheckLayerArchitecture( Weights()->GetObjectCount() == GetNumberOfElements(),
+			"weights number is not equal to number of elements" );
+		CheckLayerArchitecture( Weights()->GetObjectSize() == problem->GetFeatureCount(),
+			"weights size mismatch" );
 	}
 
 	if( FreeTerms() == 0 ) {
@@ -146,8 +147,8 @@ void CFullyConnectedSourceLayer::Reshape()
 		// Initialize
 		FreeTerms()->Fill( 0 );
 	} else {
-		CheckArchitecture( FreeTerms()->GetDataSize() == GetNumberOfElements(),
-			GetName(), "free terms num is not equal to number of elements" );
+		CheckLayerArchitecture( FreeTerms()->GetDataSize() == GetNumberOfElements(),
+			"free terms num is not equal to number of elements" );
 	}
 
 	// The data

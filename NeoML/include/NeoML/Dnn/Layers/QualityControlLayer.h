@@ -36,6 +36,7 @@ protected:
 
 	void Reshape() override;
 	void BackwardOnce() override;
+	int BlobsForBackward() const override { return 0; }
 
 	// User-implemented
 	virtual void OnReset() = 0;

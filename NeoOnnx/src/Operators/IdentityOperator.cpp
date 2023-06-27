@@ -27,6 +27,9 @@ CIdentityOperator::CIdentityOperator( const onnx::NodeProto& identity, int opset
 	COperator( identity, opsetVersion )
 {
 	// v1 - original
+	// v13 - bfloat16 is supported
+	// v14 - sequences are supported
+	// v16 - optionals are supported
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
 	CheckOnnxProtocol( InputCount() == 1, "operator must have 1 input", *this );
@@ -35,7 +38,7 @@ CIdentityOperator::CIdentityOperator( const onnx::NodeProto& identity, int opset
 
 void CIdentityOperator::ProcessTensors( const CTensorArray& inputs, CDnn& /* dnn */, CTensorArray& outputs ) const
 {
-	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
+	CheckNoNullInputs( inputs );
 	inputs.CopyTo( outputs );
 }
 

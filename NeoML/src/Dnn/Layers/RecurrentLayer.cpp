@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright Â© 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -159,8 +159,7 @@ void CRecurrentLayer::SetInternalDnnParams()
 	if(!GetDnn()->IsRecurrentMode()) {
 		GetInternalDnn()->setProcessingParams(true, sequenceLength, isReverseSequence, GetDnn()->IsBackwardPerformed());
 	} else {
-		CheckArchitecture( repeatCount == 1,
-			GetName(), "repeat count should be 1 for internal recurrent layers" );
+		CheckLayerArchitecture( repeatCount == 1, "repeat count should be 1 for internal recurrent layers" );
 	}
 	// Set the parameters for the back link
 	for(int i = 0; i < backLinks.Size(); ++i) {
@@ -173,8 +172,10 @@ void CRecurrentLayer::SetInternalDnnParams()
 // Runs the forward pass of the internal network (overloaded in children)
 void CRecurrentLayer::RunInternalDnn()
 {
-	CheckArchitecture( outputBlobs[0]->GetOwner()->GetBatchLength() == inputBlobs[0]->GetOwner()->GetBatchLength() * repeatCount, 
-		GetName(), "incorrect batch length of outputBlobs[0]" );
+	// Avoid calling GetPath on every run
+	if( outputBlobs[0]->GetOwner()->GetBatchLength() != inputBlobs[0]->GetOwner()->GetBatchLength() * repeatCount ) {
+		CheckLayerArchitecture( false, "incorrect batch length of outputBlobs[0]" );
+	}
 	CDnn* internalDnn = GetInternalDnn();
 	internalDnn->isReuseMemoryMode = GetDnn()->isReuseMemoryMode;
 	if(!GetDnn()->IsRecurrentMode()) {
@@ -198,6 +199,7 @@ void CRecurrentLayer::RunInternalDnn()
 void CRecurrentLayer::RunInternalDnnBackward()
 {
 	CDnn* internalDnn = GetInternalDnn();
+	internalDnn->isReuseMemoryMode = GetDnn()->isReuseMemoryMode;
 	// Start the backward pass of the internal network in recurrent mode
 	if( !GetDnn()->IsRecurrentMode() ) {
 		if( internalDnn->IsReverseSequense() ) {

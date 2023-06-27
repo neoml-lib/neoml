@@ -70,9 +70,11 @@ CFocalLossLayer::CFocalLossLayer( IMathEngine& mathEngine ) :
 void CFocalLossLayer::Reshape()
 {
 	CLossLayer::Reshape();
-	CheckArchitecture( inputDescs[1].GetDataType() == CT_Float, GetName(), "labels must be CT_Float" );
-	CheckArchitecture( inputDescs[0].ObjectSize() == inputDescs[1].ObjectSize(), GetName(), "the labels dimensions should be equal to the first input dimensions" );
-	CheckArchitecture( inputDescs[0].ObjectSize() >= 2, GetName(), "FocalLoss layer works only with multi-class classification" );
+	CheckLayerArchitecture( inputDescs[1].GetDataType() == CT_Float, "labels must be CT_Float" );
+	CheckLayerArchitecture( inputDescs[0].ObjectSize() == inputDescs[1].ObjectSize(),
+		"the labels dimensions should be equal to the first input dimensions" );
+	CheckLayerArchitecture( inputDescs[0].ObjectSize() >= 2,
+		"FocalLoss layer works only with multi-class classification" );
 }
 
 void CFocalLossLayer::BatchCalculateLossAndGradient( int batchSize, CConstFloatHandle data, int vectorSize,
@@ -143,4 +145,13 @@ void CFocalLossLayer::calculateGradient( CFloatHandle correctClassProbabilityPer
 	MathEngine().MultiplyDiagMatrixByMatrix( diffPart, batchSize, label, labelSize, lossGradient, dataSize );
 }
 
+CLayerWrapper<CFocalLossLayer> FocalLoss( float focalForce, float lossWeight )
+{
+	return CLayerWrapper<CFocalLossLayer>( "FocalLoss", [=]( CFocalLossLayer* result )
+		{
+			result->SetFocalForce( focalForce );
+			result->SetLossWeight( lossWeight );
+		}
+	);
+}
 } // namespace NeoML

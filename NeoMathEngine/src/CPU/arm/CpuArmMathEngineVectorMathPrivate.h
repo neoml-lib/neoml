@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -29,33 +29,33 @@ inline void channelwiseConvolution1x3Kernel( const float* source0, const float* 
 	const float* filter0, const float* filter1, const float* filter2,
 	float* result0, float* result1 )
 {
-	float32x4_t filter_4 = vld1q_f32(filter0);
+	float32x4_t filter_4 = vld1q_f32( filter0 );
 
-	float32x4_t source0_4 = vld1q_f32(source0);
-	float32x4_t source1_4 = vld1q_f32(source1);
+	float32x4_t source0_4 = vld1q_f32( source0 );
+	float32x4_t source1_4 = vld1q_f32( source1 );
 
-	float32x4_t result0_4 = vld1q_f32(result0);
-	float32x4_t result1_4 = vld1q_f32(result1);
+	float32x4_t result0_4 = vld1q_f32( result0 );
+	float32x4_t result1_4 = vld1q_f32( result1 );
 
 	result0_4 = MultiplyAndAddNeon( result0_4, source0_4, filter_4 );
 	result1_4 = MultiplyAndAddNeon( result1_4, source1_4, filter_4 );
 
-	filter_4 = vld1q_f32(filter1);
+	filter_4 = vld1q_f32( filter1 );
 
 	result0_4 = MultiplyAndAddNeon( result0_4, source1_4, filter_4 );
 
-	source0_4 = vld1q_f32(source2);
-	source1_4 = vld1q_f32(source3);
+	source0_4 = vld1q_f32( source2 );
+	source1_4 = vld1q_f32( source3 );
 
 	result1_4 = MultiplyAndAddNeon( result1_4, source0_4, filter_4 );
 
-	filter_4 = vld1q_f32(filter2);
+	filter_4 = vld1q_f32( filter2 );
 
 	result0_4 = MultiplyAndAddNeon( result0_4, source0_4, filter_4 );
 	result1_4 = MultiplyAndAddNeon( result1_4, source1_4, filter_4 );
 
-	vst1q_f32(result0, result0_4);
-	vst1q_f32(result1, result1_4);
+	vst1q_f32( result0, result0_4 );
+	vst1q_f32( result1, result1_4 );
 }
 
 inline void channelwise1x3( const float* source, const float* filter0, const float* filter1, const float* filter2, float* result, int channels )
@@ -81,18 +81,18 @@ inline void vectorFill( float* result, float value, int vectorSize )
 {
 	int coord = 0;
 
-	float32x4_t val = vdupq_n_f32(value);
+	float32x4_t val = vdupq_n_f32( value );
 	for( ; coord <= vectorSize - 16; coord += 16 ) {
-		StoreNeon4(val, result + 4 * 0);
-		StoreNeon4(val, result + 4 * 1);
-		StoreNeon4(val, result + 4 * 2);
-		StoreNeon4(val, result + 4 * 3);
-		
+		StoreNeon4( val, result + 4 * 0 );
+		StoreNeon4( val, result + 4 * 1 );
+		StoreNeon4( val, result + 4 * 2 );
+		StoreNeon4( val, result + 4 * 3 );
+
 		result += 16;
 	}
 
 	for( ; coord <= vectorSize - 4; coord += 4 ) {
-		StoreNeon4(val, result);
+		StoreNeon4( val, result );
 		result += 4;
 	}
 
@@ -105,18 +105,18 @@ inline void vectorFill( int* result, int value, int vectorSize )
 {
 	int coord = 0;
 
-	int32x4_t val = vdupq_n_s32(value);
+	int32x4_t val = vdupq_n_s32( value );
 	for( ; coord <= vectorSize - 16; coord += 16 ) {
-		StoreIntNeon4(val, result + 4 * 0);
-		StoreIntNeon4(val, result + 4 * 1);
-		StoreIntNeon4(val, result + 4 * 2);
-		StoreIntNeon4(val, result + 4 * 3);
-		
+		StoreIntNeon4( val, result + 4 * 0 );
+		StoreIntNeon4( val, result + 4 * 1 );
+		StoreIntNeon4( val, result + 4 * 2 );
+		StoreIntNeon4( val, result + 4 * 3 );
+
 		result += 16;
 	}
 
 	for( ; coord <= vectorSize - 4; coord += 4 ) {
-		StoreIntNeon4(val, result);
+		StoreIntNeon4( val, result );
 		result += 4;
 	}
 
@@ -136,23 +136,23 @@ inline void vectorFill0( float* result, int vectorSize )
 
 inline void vectorEltwiseMax( const float* first, const float* second, float* result, int vectorSize )
 {
-	int count = GetCount4(vectorSize);
+	int count = GetCount4( vectorSize );
 
 	for( ; count >= 4; count -= 4, first += 16, second += 16, result += 16 ) {
-		NEON_LOAD_16_FLOATS(first, first);
-		NEON_LOAD_16_FLOATS(second, second);
+		NEON_LOAD_16_FLOATS( first, first );
+		NEON_LOAD_16_FLOATS( second, second );
 
-		float32x4_t result0 = vmaxq_f32(first0, second0);
-		float32x4_t result1 = vmaxq_f32(first1, second1);
-		float32x4_t result2 = vmaxq_f32(first2, second2);
-		float32x4_t result3 = vmaxq_f32(first3, second3);
+		float32x4_t result0 = vmaxq_f32( first0, second0 );
+		float32x4_t result1 = vmaxq_f32( first1, second1 );
+		float32x4_t result2 = vmaxq_f32( first2, second2 );
+		float32x4_t result3 = vmaxq_f32( first3, second3 );
 
-		NEON_STORE_16_FLOATS(result, result);
+		NEON_STORE_16_FLOATS( result, result );
 	}
 
 	for( int i = 0; i < count; ++i ) {
-		float32x4_t res = vmaxq_f32(LoadNeon4(first), LoadNeon4(second));
-		StoreNeon4(res, result);
+		float32x4_t res = vmaxq_f32( LoadNeon4( first ), LoadNeon4( second ) );
+		StoreNeon4( res, result );
 
 		first += 4;
 		second += 4;
@@ -160,8 +160,8 @@ inline void vectorEltwiseMax( const float* first, const float* second, float* re
 	}
 
 	if( vectorSize > 0 ) {
-		float32x4_t res = vmaxq_f32(LoadNeon(first, vectorSize), LoadNeon(second, vectorSize));
-		StoreNeon(res, result, vectorSize);
+		float32x4_t res = vmaxq_f32( LoadNeon( first, vectorSize ), LoadNeon( second, vectorSize ) );
+		StoreNeon( res, result, vectorSize );
 	}
 }
 
@@ -172,38 +172,78 @@ inline void vectorAdd( const float* first, const float* second, float* result, i
 	int coord = 0;
 
 	for( ; coord <= vectorSize - 16; coord += 16 ) {
-		NEON_LOAD_16_FLOATS(first, first);
+		NEON_LOAD_16_FLOATS( first, first );
 		first += 16;
 
-		NEON_LOAD_16_FLOATS(second, second);
+		NEON_LOAD_16_FLOATS( second, second );
 		second += 16;
 
-		float32x4_t result0 = vaddq_f32(first0, second0);
-		float32x4_t result1 = vaddq_f32(first1, second1);
-		float32x4_t result2 = vaddq_f32(first2, second2);
-		float32x4_t result3 = vaddq_f32(first3, second3);
+		float32x4_t result0 = vaddq_f32( first0, second0 );
+		float32x4_t result1 = vaddq_f32( first1, second1 );
+		float32x4_t result2 = vaddq_f32( first2, second2 );
+		float32x4_t result3 = vaddq_f32( first3, second3 );
 
-		NEON_STORE_16_FLOATS(result, result);
+		NEON_STORE_16_FLOATS( result, result );
 		result += 16;
 	}
 
 	for( ; coord <= vectorSize - 4; coord += 4 ) {
-		float32x4_t first0 = LoadNeon4(first);
+		float32x4_t first0 = LoadNeon4( first );
 		first += 4;
 
-		float32x4_t second0 = LoadNeon4(second);
+		float32x4_t second0 = LoadNeon4( second );
 		second += 4;
 
-		float32x4_t result0 = vaddq_f32(first0, second0);
+		float32x4_t result0 = vaddq_f32( first0, second0 );
 
-		StoreNeon4(result0, result);
+		StoreNeon4( result0, result );
 		result += 4;
 	}
 
 	vectorSize -= coord;
-	if(vectorSize > 0) {
-		float32x4_t res = vaddq_f32(LoadNeon(first, vectorSize), LoadNeon(second, vectorSize));
-		StoreNeon(res, result, vectorSize);
+	if( vectorSize > 0 ) {
+		float32x4_t res = vaddq_f32( LoadNeon( first, vectorSize ), LoadNeon( second, vectorSize ) );
+		StoreNeon( res, result, vectorSize );
+	}
+}
+
+inline void vectorAdd( const int* first, const int* second, int* result, int vectorSize )
+{
+	int coord = 0;
+
+	for( ; coord <= vectorSize - 16; coord += 16 ) {
+		NEON_LOAD_16_INTS( first, first );
+		first += 16;
+
+		NEON_LOAD_16_INTS( second, second );
+		second += 16;
+
+		int32x4_t result0 = vaddq_s32( first0, second0 );
+		int32x4_t result1 = vaddq_s32( first1, second1 );
+		int32x4_t result2 = vaddq_s32( first2, second2 );
+		int32x4_t result3 = vaddq_s32( first3, second3 );
+
+		NEON_STORE_16_INTS( result, result );
+		result += 16;
+	}
+
+	for( ; coord <= vectorSize - 4; coord += 4 ) {
+		int32x4_t first0 = LoadIntNeon4( first );
+		first += 4;
+
+		int32x4_t second0 = LoadIntNeon4( second );
+		second += 4;
+
+		int32x4_t result0 = vaddq_s32( first0, second0 );
+
+		StoreIntNeon4( result0, result );
+		result += 4;
+	}
+
+	vectorSize -= coord;
+	if( vectorSize > 0 ) {
+		int32x4_t res = vaddq_s32( LoadIntNeon( first, vectorSize ), LoadIntNeon( second, vectorSize ) );
+		StoreIntNeon( res, result, vectorSize );
 	}
 }
 
@@ -214,24 +254,24 @@ inline void alignedVectorAdd( float* first, const float* second, int vectorSize 
 	int coord = 0;
 
 	for( ; coord <= vectorSize - 16; coord += 16, first += 16, second += 16 ) {
-		NEON_LOAD_16_FLOATS(first, first);
-		NEON_LOAD_16_FLOATS(second, second);
+		NEON_LOAD_16_FLOATS( first, first );
+		NEON_LOAD_16_FLOATS( second, second );
 
-		float32x4_t result0 = vaddq_f32(first0, second0);
-		float32x4_t result1 = vaddq_f32(first1, second1);
-		float32x4_t result2 = vaddq_f32(first2, second2);
-		float32x4_t result3 = vaddq_f32(first3, second3);
+		float32x4_t result0 = vaddq_f32( first0, second0 );
+		float32x4_t result1 = vaddq_f32( first1, second1 );
+		float32x4_t result2 = vaddq_f32( first2, second2 );
+		float32x4_t result3 = vaddq_f32( first3, second3 );
 
-		NEON_STORE_16_FLOATS(result, first);
+		NEON_STORE_16_FLOATS( result, first );
 	}
 
 	for( ; coord <= vectorSize - 4; coord += 4, first += 4, second += 4 ) {
-		float32x4_t first0 = LoadNeon4(first);
-		float32x4_t second0 = LoadNeon4(second);
+		float32x4_t first0 = LoadNeon4( first );
+		float32x4_t second0 = LoadNeon4( second );
 
-		float32x4_t result0 = vaddq_f32(first0, second0);
+		float32x4_t result0 = vaddq_f32( first0, second0 );
 
-		StoreNeon4(result0, first);
+		StoreNeon4( result0, first );
 	}
 }
 
@@ -241,31 +281,31 @@ inline void alignedVectorMultiplyAndAdd( const float* first, const float* second
 	int coord = 0;
 
 	for( ; coord <= vectorSize - 16; coord += 16 ) {
-		NEON_LOAD_16_FLOATS(first, first);
+		NEON_LOAD_16_FLOATS( first, first );
 		first += 16;
 
-		NEON_LOAD_16_FLOATS(second, second);
+		NEON_LOAD_16_FLOATS( second, second );
 		second += 16;
 
-		float32x4_t result0 = vmlaq_n_f32(first0, second0, *mult);
-		float32x4_t result1 = vmlaq_n_f32(first1, second1, *mult);
-		float32x4_t result2 = vmlaq_n_f32(first2, second2, *mult);
-		float32x4_t result3 = vmlaq_n_f32(first3, second3, *mult);
+		float32x4_t result0 = vmlaq_n_f32( first0, second0, *mult );
+		float32x4_t result1 = vmlaq_n_f32( first1, second1, *mult );
+		float32x4_t result2 = vmlaq_n_f32( first2, second2, *mult );
+		float32x4_t result3 = vmlaq_n_f32( first3, second3, *mult );
 
-		NEON_STORE_16_FLOATS(result, result);
+		NEON_STORE_16_FLOATS( result, result );
 		result += 16;
 	}
 
 	for( ; coord <= vectorSize - 4; coord += 4 ) {
-		float32x4_t first0 = LoadNeon4(first);
+		float32x4_t first0 = LoadNeon4( first );
 		first += 4;
 
-		float32x4_t second0 = LoadNeon4(second);
+		float32x4_t second0 = LoadNeon4( second );
 		second += 4;
 
-		float32x4_t result0 = vmlaq_n_f32(first0, second0, *mult);
+		float32x4_t result0 = vmlaq_n_f32( first0, second0, *mult );
 
-		StoreNeon4(result0, result);
+		StoreNeon4( result0, result );
 		result += 4;
 	}
 }
@@ -274,20 +314,36 @@ inline void alignedVectorMultiplyAndAdd( const float* first, const float* second
 
 inline void vectorMultiply( const float* first, float* result, float multiplier, int vectorSize )
 {
-	int count = GetCount4(vectorSize);
-	float32x4_t mult = vdupq_n_f32(multiplier);
+	int count = GetCount4( vectorSize );
+	float32x4_t mult = vdupq_n_f32( multiplier );
 
-	for(int i = 0; i < count; ++i) {
-		float32x4_t res = vmulq_f32(LoadNeon4(first), mult);
-		StoreNeon4(res, result);
+	for( int i = 0; i < count; ++i ) {
+		float32x4_t res = vmulq_f32( LoadNeon4( first ), mult );
+		StoreNeon4( res, result );
 
 		first += 4;
 		result += 4;
 	}
 
-	if(vectorSize > 0) {
-		float32x4_t res = vmulq_f32(LoadNeon(first, vectorSize), mult);
-		StoreNeon(res, result, vectorSize);
+	if( vectorSize > 0 ) {
+		float32x4_t res = vmulq_f32( LoadNeon( first, vectorSize ), mult );
+		StoreNeon( res, result, vectorSize );
+	}
+}
+
+inline void vectorMultiply( const int* first, int* result, int multiplier, int vectorSize )
+{
+	int count = GetCount4( vectorSize );
+	int32x4_t mult = vdupq_n_s32( multiplier );
+
+	for( int i = 0; i < count; ++i ) {
+		StoreIntNeon4( vmulq_s32( LoadIntNeon4( first ), mult ), result );
+		first += 4;
+		result += 4;
+	}
+
+	if( vectorSize > 0 ) {
+		StoreIntNeon( vmulq_s32( LoadIntNeon( first, vectorSize ), mult ), result, vectorSize );
 	}
 }
 
@@ -296,10 +352,10 @@ inline void vectorMultiply( const float* first, float* result, float multiplier,
 inline void vectorEltwiseMultiply( const float* first, const float* second, float* result, int neonSize, int nonNeonSize )
 {
 	while( neonSize >= 4 ) {
-		NEON_LOAD_16_FLOATS(first, first);
+		NEON_LOAD_16_FLOATS( first, first );
 		first += 16;
 
-		NEON_LOAD_16_FLOATS(second, second);
+		NEON_LOAD_16_FLOATS( second, second );
 		second += 16;
 
 		float32x4_t result0 = vmulq_f32( first0, second0 );
@@ -307,7 +363,7 @@ inline void vectorEltwiseMultiply( const float* first, const float* second, floa
 		float32x4_t result2 = vmulq_f32( first2, second2 );
 		float32x4_t result3 = vmulq_f32( first3, second3 );
 
-		NEON_STORE_16_FLOATS(result, result);
+		NEON_STORE_16_FLOATS( result, result );
 		result += 16;
 
 		neonSize -= 4;
@@ -346,10 +402,10 @@ inline void vectorEltwiseMultiply( const int* first, const int* second, int* res
 	int nonNeonSize = vectorSize % 4;
 
 	while( neonSize >= 4 ) {
-		NEON_LOAD_16_INTS(first, first);
+		NEON_LOAD_16_INTS( first, first );
 		first += 16;
 
-		NEON_LOAD_16_INTS(second, second);
+		NEON_LOAD_16_INTS( second, second );
 		second += 16;
 
 		int32x4_t result0 = vmulq_s32( first0, second0 );
@@ -357,7 +413,7 @@ inline void vectorEltwiseMultiply( const int* first, const int* second, int* res
 		int32x4_t result2 = vmulq_s32( first2, second2 );
 		int32x4_t result3 = vmulq_s32( first3, second3 );
 
-		NEON_STORE_16_INTS(result, result);
+		NEON_STORE_16_INTS( result, result );
 		result += 16;
 
 		neonSize -= 4;
@@ -390,43 +446,43 @@ inline void vectorEltwiseMultiplyAdd( const float* first, const float* second, f
 	int coord = 0;
 
 	for( ; coord <= vectorSize - 16; coord += 16 ) {
-		NEON_LOAD_16_FLOATS(first, first);
+		NEON_LOAD_16_FLOATS( first, first );
 		first += 16;
 
-		NEON_LOAD_16_FLOATS(second, second);
+		NEON_LOAD_16_FLOATS( second, second );
 		second += 16;
 
-		NEON_LOAD_16_FLOATS(result, result);
+		NEON_LOAD_16_FLOATS( result, result );
 
-		result0 = MultiplyAndAddNeon(result0, first0, second0);
-		result1 = MultiplyAndAddNeon(result1, first1, second1);
-		result2 = MultiplyAndAddNeon(result2, first2, second2);
-		result3 = MultiplyAndAddNeon(result3, first3, second3);
+		result0 = MultiplyAndAddNeon( result0, first0, second0 );
+		result1 = MultiplyAndAddNeon( result1, first1, second1 );
+		result2 = MultiplyAndAddNeon( result2, first2, second2 );
+		result3 = MultiplyAndAddNeon( result3, first3, second3 );
 
-		NEON_STORE_16_FLOATS(result, result);
+		NEON_STORE_16_FLOATS( result, result );
 		result += 16;
 	}
 
 	for( ; coord <= vectorSize - 4; coord += 4 ) {
-		float32x4_t first0 = LoadNeon4(first);
+		float32x4_t first0 = LoadNeon4( first );
 		first += 4;
 
-		float32x4_t second0 = LoadNeon4(second);
+		float32x4_t second0 = LoadNeon4( second );
 		second += 4;
 
-		float32x4_t result0 = LoadNeon4(result);
+		float32x4_t result0 = LoadNeon4( result );
 
-		result0 = MultiplyAndAddNeon(result0, first0, second0);
+		result0 = MultiplyAndAddNeon( result0, first0, second0 );
 
-		StoreNeon4(result0, result);
+		StoreNeon4( result0, result );
 		result += 4;
 	}
 
 	vectorSize -= coord;
 	if( vectorSize > 0 ) {
-		float32x4_t res = MultiplyAndAddNeon(LoadNeon(result, vectorSize),
-			LoadNeon(first, vectorSize), LoadNeon(second, vectorSize));
-		StoreNeon(res, result, vectorSize);
+		float32x4_t res = MultiplyAndAddNeon( LoadNeon( result, vectorSize ),
+			LoadNeon( first, vectorSize ), LoadNeon( second, vectorSize ) );
+		StoreNeon( res, result, vectorSize );
 	}
 }
 
@@ -437,33 +493,33 @@ inline void vectorReLU( const float* first, float* result, int vectorSize )
 	int coord = 0;
 
 	for( ; coord <= vectorSize - 16; coord += 16 ) {
-		NEON_LOAD_16_FLOATS(first, first);
+		NEON_LOAD_16_FLOATS( first, first );
 		first += 16;
 
-		float32x4_t result0 = vmaxq_f32(vdupq_n_f32(0), first0);
-		float32x4_t result1 = vmaxq_f32(vdupq_n_f32(0), first1);
-		float32x4_t result2 = vmaxq_f32(vdupq_n_f32(0), first2);
-		float32x4_t result3 = vmaxq_f32(vdupq_n_f32(0), first3);
+		float32x4_t result0 = vmaxq_f32( vdupq_n_f32( 0 ), first0 );
+		float32x4_t result1 = vmaxq_f32( vdupq_n_f32( 0 ), first1 );
+		float32x4_t result2 = vmaxq_f32( vdupq_n_f32( 0 ), first2 );
+		float32x4_t result3 = vmaxq_f32( vdupq_n_f32( 0 ), first3 );
 
-		NEON_STORE_16_FLOATS(result, result);
+		NEON_STORE_16_FLOATS( result, result );
 		result += 16;
 	}
 
 	for( ; coord <= vectorSize - 4; coord += 4 ) {
-		float32x4_t first0 = LoadNeon4(first);
+		float32x4_t first0 = LoadNeon4( first );
 		first += 4;
 
-		float32x4_t result0 = vmaxq_f32(vdupq_n_f32(0), first0);
+		float32x4_t result0 = vmaxq_f32( vdupq_n_f32( 0 ), first0 );
 
-		StoreNeon4(result0, result);
+		StoreNeon4( result0, result );
 		result += 4;
 	}
 
 	vectorSize -= coord;
 	if( vectorSize > 0 ) {
-		float32x4_t first0 = LoadNeon(first, vectorSize);
-		float32x4_t result0 = vmaxq_f32(vdupq_n_f32(0), first0);
-		StoreNeon(result0, result, vectorSize);
+		float32x4_t first0 = LoadNeon( first, vectorSize );
+		float32x4_t result0 = vmaxq_f32( vdupq_n_f32( 0 ), first0 );
+		StoreNeon( result0, result, vectorSize );
 	}
 }
 
@@ -472,33 +528,33 @@ inline void vectorReLU( const float* first, float* result, int vectorSize, float
 	int coord = 0;
 
 	for( ; coord <= vectorSize - 16; coord += 16 ) {
-		NEON_LOAD_16_FLOATS(first, first);
+		NEON_LOAD_16_FLOATS( first, first );
 		first += 16;
 
-		float32x4_t result0 = vminq_f32(vmaxq_f32(vdupq_n_f32(0), first0), vdupq_n_f32(threshold));
-		float32x4_t result1 = vminq_f32(vmaxq_f32(vdupq_n_f32(0), first1), vdupq_n_f32(threshold));
-		float32x4_t result2 = vminq_f32(vmaxq_f32(vdupq_n_f32(0), first2), vdupq_n_f32(threshold));
-		float32x4_t result3 = vminq_f32(vmaxq_f32(vdupq_n_f32(0), first3), vdupq_n_f32(threshold));
+		float32x4_t result0 = vminq_f32( vmaxq_f32( vdupq_n_f32( 0 ), first0 ), vdupq_n_f32( threshold ) );
+		float32x4_t result1 = vminq_f32( vmaxq_f32( vdupq_n_f32( 0 ), first1 ), vdupq_n_f32( threshold ) );
+		float32x4_t result2 = vminq_f32( vmaxq_f32( vdupq_n_f32( 0 ), first2 ), vdupq_n_f32( threshold ) );
+		float32x4_t result3 = vminq_f32( vmaxq_f32( vdupq_n_f32( 0 ), first3 ), vdupq_n_f32( threshold ) );
 
-		NEON_STORE_16_FLOATS(result, result);
+		NEON_STORE_16_FLOATS( result, result );
 		result += 16;
 	}
 
 	for( ; coord <= vectorSize - 4; coord += 4 ) {
-		float32x4_t first0 = LoadNeon4(first);
+		float32x4_t first0 = LoadNeon4( first );
 		first += 4;
 
-		float32x4_t result0 = vminq_f32(vmaxq_f32(vdupq_n_f32(0), first0), vdupq_n_f32(threshold));
+		float32x4_t result0 = vminq_f32( vmaxq_f32( vdupq_n_f32( 0 ), first0 ), vdupq_n_f32( threshold ) );
 
-		StoreNeon4(result0, result);
+		StoreNeon4( result0, result );
 		result += 4;
 	}
 
 	vectorSize -= coord;
 	if( vectorSize > 0 ) {
-		float32x4_t first0 = LoadNeon(first, vectorSize);
-		float32x4_t result0 = vminq_f32(vmaxq_f32(vdupq_n_f32(0), first0), vdupq_n_f32(threshold));
-		StoreNeon(result0, result, vectorSize);
+		float32x4_t first0 = LoadNeon( first, vectorSize );
+		float32x4_t result0 = vminq_f32( vmaxq_f32( vdupq_n_f32( 0 ), first0 ), vdupq_n_f32( threshold ) );
+		StoreNeon( result0, result, vectorSize );
 	}
 }
 
@@ -506,21 +562,41 @@ inline void vectorReLU( const float* first, float* result, int vectorSize, float
 
 inline void vectorAddValue( const float* first, float* result, int vectorSize, float value )
 {
-	float32x4_t addition = vdupq_n_f32(value);
+	float32x4_t addition = vdupq_n_f32( value );
 
 	int coord = 0;
 	for( ; coord <= vectorSize - 4; coord += 4 ) {
-		float32x4_t res = vaddq_f32(LoadNeon4(first), addition);
-		StoreNeon4(res, result);
+		float32x4_t res = vaddq_f32( LoadNeon4( first ), addition );
+		StoreNeon4( res, result );
 
 		first += 4;
 		result += 4;
 	}
 
 	vectorSize -= coord;
-	if(vectorSize > 0) {
-		float32x4_t res = vaddq_f32(LoadNeon(first, vectorSize), addition);
-		StoreNeon(res, result, vectorSize);
+	if( vectorSize > 0 ) {
+		float32x4_t res = vaddq_f32( LoadNeon( first, vectorSize ), addition );
+		StoreNeon( res, result, vectorSize );
+	}
+}
+
+inline void vectorAddValue( const int* first, int* result, int vectorSize, int value )
+{
+	int32x4_t addition = vdupq_n_s32( value );
+
+	int coord = 0;
+	for( ; coord <= vectorSize - 4; coord += 4 ) {
+		int32x4_t res = vaddq_s32( LoadIntNeon4( first ), addition );
+		StoreIntNeon4( res, result );
+
+		first += 4;
+		result += 4;
+	}
+
+	vectorSize -= coord;
+	if( vectorSize > 0 ) {
+		float32x4_t res = vaddq_s32( LoadIntNeon( first, vectorSize ), addition );
+		StoreIntNeon( res, result, vectorSize );
 	}
 }
 
@@ -528,24 +604,24 @@ inline void vectorAddValue( const float* first, float* result, int vectorSize, f
 
 inline void vectorDotProduct( const float* first, const float* second, int vectorSize, float* result )
 {
-	float32x4_t acc = vdupq_n_f32(0);
+	float32x4_t acc = vdupq_n_f32( 0 );
 
 	int coord = 0;
 	for( ; coord <= vectorSize - 4; coord += 4 ) {
-		float32x4_t res = vmulq_f32(LoadNeon4(first), LoadNeon4(second));
-		acc = vaddq_f32(acc, res);
+		float32x4_t res = vmulq_f32( LoadNeon4( first ), LoadNeon4( second ) );
+		acc = vaddq_f32( acc, res );
 
 		first += 4;
 		second += 4;
 	}
 
 	vectorSize -= coord;
-	if(vectorSize > 0) {
-		float32x4_t res = vmulq_f32(LoadNeon(first, vectorSize, 0), LoadNeon(second, vectorSize, 0));
-		acc = vaddq_f32(acc, res);
+	if( vectorSize > 0 ) {
+		float32x4_t res = vmulq_f32( LoadNeon( first, vectorSize, 0 ), LoadNeon( second, vectorSize, 0 ) );
+		acc = vaddq_f32( acc, res );
 	}
 
-	*result = vget_lane_f32(HorizontalAddNeon(acc), 0);
+	*result = vget_lane_f32( HorizontalAddNeon( acc ), 0 );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -604,13 +680,13 @@ static inline void qrnnFPoolingStep( const float* z, const float* f, const float
 {
 	float32x4_t ones = vdupq_n_f32( 1.f );
 	while( neonSize >= 4 ) {
-		NEON_LOAD_16_FLOATS(z, z);
+		NEON_LOAD_16_FLOATS( z, z );
 		z += 16;
 
-		NEON_LOAD_16_FLOATS(f, f);
+		NEON_LOAD_16_FLOATS( f, f );
 		f += 16;
 
-		NEON_LOAD_16_FLOATS(h, h);
+		NEON_LOAD_16_FLOATS( h, h );
 		h += 16;
 
 		float32x4_t res0 = vaddq_f32( vmulq_f32( f0, h0 ), vmulq_f32( vsubq_f32( ones, f0 ), z0 ) );
@@ -618,7 +694,7 @@ static inline void qrnnFPoolingStep( const float* z, const float* f, const float
 		float32x4_t res2 = vaddq_f32( vmulq_f32( f2, h2 ), vmulq_f32( vsubq_f32( ones, f2 ), z2 ) );
 		float32x4_t res3 = vaddq_f32( vmulq_f32( f3, h3 ), vmulq_f32( vsubq_f32( ones, f3 ), z3 ) );
 
-		NEON_STORE_16_FLOATS(res, res);
+		NEON_STORE_16_FLOATS( res, res );
 		res += 16;
 
 		neonSize -= 4;
@@ -656,16 +732,16 @@ static inline void qrnnIfPoolingStep( const float* z, const float* f, const floa
 	float* res, int neonSize, int nonNeonSize )
 {
 	while( neonSize >= 4 ) {
-		NEON_LOAD_16_FLOATS(z, z);
+		NEON_LOAD_16_FLOATS( z, z );
 		z += 16;
 
-		NEON_LOAD_16_FLOATS(f, f);
+		NEON_LOAD_16_FLOATS( f, f );
 		f += 16;
 
-		NEON_LOAD_16_FLOATS(i, i);
+		NEON_LOAD_16_FLOATS( i, i );
 		i += 16;
 
-		NEON_LOAD_16_FLOATS(h, h);
+		NEON_LOAD_16_FLOATS( h, h );
 		h += 16;
 
 		float32x4_t res0 = vaddq_f32( vmulq_f32( f0, h0 ), vmulq_f32( i0, z0 ) );
@@ -673,7 +749,7 @@ static inline void qrnnIfPoolingStep( const float* z, const float* f, const floa
 		float32x4_t res2 = vaddq_f32( vmulq_f32( f2, h2 ), vmulq_f32( i2, z2 ) );
 		float32x4_t res3 = vaddq_f32( vmulq_f32( f3, h3 ), vmulq_f32( i3, z3 ) );
 
-		NEON_STORE_16_FLOATS(res, res);
+		NEON_STORE_16_FLOATS( res, res );
 		res += 16;
 
 		neonSize -= 4;
@@ -711,19 +787,19 @@ static inline void qrnnIfPoolingStep( const float* z, const float* f, const floa
 
 inline void vectorMinMax( const float* first, float* result, const float minValue, const float maxValue, int vectorSize )
 {
-	int count = GetCount4(vectorSize);
+	int count = GetCount4( vectorSize );
 
-	float32x4_t minVal = vdupq_n_f32(minValue);
-	float32x4_t maxVal = vdupq_n_f32(maxValue);
+	float32x4_t minVal = vdupq_n_f32( minValue );
+	float32x4_t maxVal = vdupq_n_f32( maxValue );
 
 	while( count >= 4 ) {
 		NEON_LOAD_16_FLOATS( first, first );
 		first += 16;
 
-		float32x4_t res0 = vmaxq_f32(minVal, vminq_f32(maxVal, first0));
-		float32x4_t res1 = vmaxq_f32(minVal, vminq_f32(maxVal, first1));
-		float32x4_t res2 = vmaxq_f32(minVal, vminq_f32(maxVal, first2));
-		float32x4_t res3 = vmaxq_f32(minVal, vminq_f32(maxVal, first3));
+		float32x4_t res0 = vmaxq_f32( minVal, vminq_f32( maxVal, first0 ) );
+		float32x4_t res1 = vmaxq_f32( minVal, vminq_f32( maxVal, first1 ) );
+		float32x4_t res2 = vmaxq_f32( minVal, vminq_f32( maxVal, first2 ) );
+		float32x4_t res3 = vmaxq_f32( minVal, vminq_f32( maxVal, first3 ) );
 
 		NEON_STORE_16_FLOATS( res, result );
 		result += 16;
@@ -732,31 +808,32 @@ inline void vectorMinMax( const float* first, float* result, const float minValu
 	}
 
 	while( count > 0 ) {
-		float32x4_t res = vmaxq_f32(minVal, vminq_f32(maxVal, LoadNeon4(first)));
-		StoreNeon4(res, result);
+		float32x4_t res = vmaxq_f32( minVal, vminq_f32( maxVal, LoadNeon4( first ) ) );
+		StoreNeon4( res, result );
 
 		first += 4;
 		result += 4;
 		--count;
 	}
 
-	if(vectorSize > 0) {
-		float32x4_t res = vmaxq_f32(minVal, vminq_f32(maxVal, LoadNeon(first, vectorSize)));
-		StoreNeon(res, result, vectorSize);
+	if( vectorSize > 0 ) {
+		float32x4_t res = vmaxq_f32( minVal, vminq_f32( maxVal, LoadNeon( first, vectorSize ) ) );
+		StoreNeon( res, result, vectorSize );
 	}
 }
 
 inline float32x4_t vectorTanhWorker( const float32x4_t& val, const float32x4_t& one, const CExpNeon& expObj )
 {
-	float32x4_t expVal = expObj.Execute( vaddq_f32( val, val ) );
-	return DivideNeon( vsubq_f32( expVal, one ), vaddq_f32( expVal, one ) );
+	float32x4_t expVal = expObj.Execute( vnegq_f32( vaddq_f32( val, val ) ) );
+	float32x4_t inv = InvNeon( vaddq_f32( one, expVal ) );
+	return vsubq_f32( vaddq_f32( inv, inv ), one );
 }
 
 inline void vectorTanh( const float* first, float* result, int vectorSize )
 {
 	int count = GetCount4( vectorSize );
 
-	const float32x4_t one = vdupq_n_f32( 1 );
+	const float32x4_t one = vdupq_n_f32( 1.f );
 	const CExpNeon expObj;
 
 	for( int i = 0; i < count; ++i ) {
@@ -782,7 +859,7 @@ inline void vectorSigmoid( const float* first, float* result, int vectorSize )
 {
 	int count = GetCount4( vectorSize );
 
-	const float32x4_t one = vdupq_n_f32( 1 );
+	const float32x4_t one = vdupq_n_f32( 1.f );
 	const CExpNeon expObj;
 
 	for( int i = 0; i < count; ++i ) {
@@ -799,6 +876,40 @@ inline void vectorSigmoid( const float* first, float* result, int vectorSize )
 	}
 }
 
+//------------------------------------------------------------------------------------------------------------
+
+inline float32x4_t vectorHSwishWorker( const float32x4_t& first, const float32x4_t& three,
+	const float32x4_t& minusThree, const float32x4_t& oneSixth )
+{
+	uint32x4_t middleMask = vandq_u32( vcgtq_f32( first, minusThree ), vcltq_f32( first, three ) );
+	float32x4_t middleValue = vmulq_f32( vaddq_f32( first, three ), vmulq_f32( first, oneSixth ) );
+	middleValue = vreinterpretq_f32_u32( vandq_u32( vreinterpretq_u32_f32( middleValue ), middleMask ) );
+	float32x4_t rightValue = vandq_u32( vreinterpretq_u32_f32( first ), vcgeq_f32( first, three ) );
+	return vaddq_f32( middleValue, rightValue );
+}
+
+inline void vectorHSwish( const float* first, float* result, int vectorSize )
+{
+	int count = GetCount4( vectorSize );
+
+	const float32x4_t three = vdupq_n_f32( 3 );
+	const float32x4_t minusThree = vdupq_n_f32( -3 );
+	const float32x4_t oneSixth = vdupq_n_f32( 1.f / 6 );
+
+	for( int i = 0; i < count; ++i ) {
+		float32x4_t res = vectorHSwishWorker( LoadNeon4( first ), three, minusThree, oneSixth );
+		StoreNeon4( res, result );
+
+		first += 4;
+		result += 4;
+	}
+
+	if( vectorSize > 0 ) {
+		float32x4_t res = vectorHSwishWorker( LoadNeon( first, vectorSize ), three, minusThree, oneSixth );
+		StoreNeon( res, result, vectorSize );
+	}
+}
+
 } // namespace NeoML
 
-#endif
+#endif // NEOML_USE_NEON

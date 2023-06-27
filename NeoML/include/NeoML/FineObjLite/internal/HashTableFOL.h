@@ -148,6 +148,18 @@ inline int CDefaultHash<CString>::HashKey( const CString& str )
 	return result;
 }
 
+template<> 
+struct CDefaultHash<const char*> {
+	static int HashKey( const char* string )
+	{ 
+		return GetMBCStringHash( string );
+	}
+	static bool IsEqual( const char* first, const char* second ) 
+	{ 
+		return ::strcmp( first, second ) == 0;
+	}
+};
+
 //------------------------------------------------------------------------------------------------------------
 
 template<class VALUE, class HASHINFO = CDefaultHash<VALUE>, class ALLOCATOR = CurrentMemoryManager>
@@ -189,6 +201,8 @@ public:
 	const VALUE& GetValue( THashTablePosition ) const;
 	const VALUE& operator [] ( THashTablePosition pos ) const { return GetValue( pos ); }
 	const VALUE& GetOrCreateValue( const VALUE& );
+
+	void Serialize( CArchive& ar );
 
 private:
 	class CIndexEntry {
@@ -631,6 +645,29 @@ inline void CHashTable<VALUE, HASHINFO, ALLOCATOR>::growIndex( int minSize )
 
 	newIndex.MoveTo( index );
 	hashTableSize = newHashTableSize;
+}
+
+template<class VALUE, class HASHINFO, class ALLOCATOR>
+inline void CHashTable<VALUE, HASHINFO, ALLOCATOR>::Serialize( CArchive& ar )
+{
+	if( ar.IsStoring() ) {
+		int count = Size();
+		ar << count;
+		for( THashTablePosition pos = GetFirstPosition(); pos != NotFound; pos = GetNextPosition( pos ) ) {
+			ar << GetValue( pos );
+			count--;
+		}
+	} else {
+		DeleteAll();
+		int count;
+		ar >> count;
+		init( UpperPrimeNumber( count - 1 ) );
+		for( int i = 0; i < count; i++ ) {
+			VALUE value;
+			ar >> value;
+			Set( value );
+		}
+	}
 }
 
 template<class VALUE, class HASHINFO, class ALLOCATOR>

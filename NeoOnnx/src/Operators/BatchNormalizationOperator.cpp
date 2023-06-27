@@ -25,7 +25,7 @@ limitations under the License.
 namespace NeoOnnx {
 
 // Converts layer input to the layout, supported by batch normalization layer
-static CPtr<const CUserTensor> convertInput( const CUserTensor& input )
+static CPtr<const CTensorBase> convertInput( const CTensorBase& input )
 {
 	const CTensorLayout& inputLayout = input.Layout();
 	bool needConversion = false;
@@ -97,6 +97,8 @@ CBatchNormalizationOperator::CBatchNormalizationOperator( const onnx::NodeProto&
 	// v6 - legacy optimization attributes are removed
 	// v7 - 'is_test' attribute is removed
 	// v9 - 'spatial' attribute is removed
+	// v14 - 'training_mode' attribute is added, bfloat16 is supported, 'saved_mean' and 'saved_var' outputs are removed
+	// v15 - some data type restrictions are loosened
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
 	CheckOnnxProtocol( InputCount() == 5 || InputCount() == 6, "operator must have 5 or 6 inputs", *this );
@@ -115,20 +117,25 @@ CBatchNormalizationOperator::CBatchNormalizationOperator( const onnx::NodeProto&
 		GetAttribute( "spatial", spatial );
 		CheckNeoOnnxSupport( spatial != 0, "non-spatial batch norm", *this );
 	}
+
+	if( OpsetVersion >= 14 ) {
+		int trainingMode = 0;
+		GetAttribute( "training_mode", trainingMode );
+		CheckNeoOnnxSupport( trainingMode == 0, "traning_mode", *this );
+	}
 }
 
 void CBatchNormalizationOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
-	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
+	CheckNoNullInputs( inputs );
+	CheckNoShapeInputs( inputs );
 
-	const int channels = inputs[0]->Shape()[1];
 	// The number of required inputs of BatchNormalization operator
 	const int batchNormReqInputCount = 5;
 	for( int inputIndex = 1; inputIndex < batchNormReqInputCount; ++inputIndex ) {
-		CheckOnnxProtocol( inputs[inputIndex] != nullptr, "input can't be optional", *this );
-		CheckNeoOnnxSupport( inputs[inputIndex]->IsCalculated(), "non-constant weights", *this );
+		CheckNeoOnnxSupport( inputs[inputIndex]->Type() == TTensorType::Data,
+			"non-constant weights", *this );
 		CheckOnnxProtocol( inputs[inputIndex]->DimCount() == 1, "weights must be 1-dimensional", *this );
-		CheckOnnxProtocol( inputs[inputIndex]->Shape()[0] == channels, "weights must have 'channels' length", *this );
 	}
 
 	CPtr<CBatchNormalizationLayer> bnLayer = new CBatchNormalizationLayer( dnn.GetMathEngine() );
@@ -136,11 +143,11 @@ void CBatchNormalizationOperator::AddLayers( const CTensorArray& inputs, CDnn& d
 	bnLayer->SetChannelBased( true );
 	bnLayer->SetFinalParams( calculateFinalParams( eps, inputs ) );
 
-	CPtr<const CUserTensor> userData = convertInput( *AsUserTensor( *inputs[0], Name() + "_Source", dnn ) );
+	CPtr<const CUserTensor> userData = AsUserTensor( *convertInput( *inputs[0] ), Name() + "_Source", dnn );
 	bnLayer->Connect( 0, *userData->Layer(), userData->OutputIndex() );
 	dnn.AddLayer( *bnLayer );
 
-	outputs.Add( new CUserTensor( userData->Shape(), userData->Layout(), CLayerOutput( bnLayer, 0 ) ) );
+	outputs.Add( new CUserTensor( userData->Layout(), CLayerOutput( bnLayer, 0 ) ) );
 }
 
 } // namespace NeoOnnx

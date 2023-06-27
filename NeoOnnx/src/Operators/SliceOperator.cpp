@@ -16,39 +16,17 @@ limitations under the License.
 #include "../common.h"
 #pragma hdrstop
 
+#include <algorithm>
+
 #include "SliceOperator.h"
 #include "NeoOnnxCheck.h"
 #include "TensorUtils.h"
 
 #include "onnx.pb.h"
 
+#include <NeoML/Dnn/Layers/Onnx/OnnxSliceLayer.h>
+
 namespace NeoOnnx {
-
-// Creates split layer along given dimension
-static CPtr<CBaseSplitLayer> createSplitLayer( IMathEngine& mathEngine, TBlobDim dim )
-{
-	switch( dim ) {
-		case BD_BatchLength:
-			return new CSplitBatchLengthLayer( mathEngine );
-		case BD_BatchWidth:
-			return new CSplitBatchWidthLayer( mathEngine );
-		case BD_ListSize:
-			return new CSplitListSizeLayer( mathEngine );
-		case BD_Height:
-			return new CSplitHeightLayer( mathEngine );
-		case BD_Width:
-			return new CSplitWidthLayer( mathEngine );
-		case BD_Depth:
-			return new CSplitDepthLayer( mathEngine );
-		case BD_Channels:
-			return new CSplitChannelsLayer( mathEngine );
-		default:
-			NeoAssert( false );
-	}
-	return nullptr;
-}
-
-//---------------------------------------------------------------------------------------------------------------------
 
 CSliceOperator::CSliceOperator( const onnx::NodeProto& slice, int opsetVersion ) :
 	CLayerOperator( slice, opsetVersion )
@@ -56,7 +34,7 @@ CSliceOperator::CSliceOperator( const onnx::NodeProto& slice, int opsetVersion )
 	// v1 - original
 	// v10 - attributes are replaced with additional inputs + 'step' support
 	// v11 - backward slicing support is added
-	// v13 - bloaf16 support is added
+	// v13 - bfloat16 support is added
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
 	if( OpsetVersion < 10 ) {
@@ -69,47 +47,106 @@ CSliceOperator::CSliceOperator( const onnx::NodeProto& slice, int opsetVersion )
 
 void CSliceOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
-	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
+	CheckNoNullInputs( inputs );
 
-	CFastArray<int, 8> axes;
-	getAxes( inputs, axes );
+	for( int i = 1; i < inputs.Size(); ++i ) {
+		CheckNeoOnnxSupport( inputs[i]->Type() != TTensorType::User, "user-provided slice param", *this );
+		CheckNeoOnnxSupport( inputs[i]->DimCount() == 1, "non-1-dimensional slice param", *this );
+	}
+
+	const bool isInShapeMode = hasShapeOutput( inputs );
+
+	CPtr<COnnxSliceLayer> sliceLayer = new COnnxSliceLayer( dnn.GetMathEngine() );
+	sliceLayer->SetName( Name() );
+	inputs[0]->Layout().CopyTo( sliceLayer->TensorLayout() );
+
+	if( isInShapeMode ) {
+		CPtr<const CShapeTensor> data = AsShapeTensor( *inputs[0], Name() + "_Data", dnn );
+		sliceLayer->Connect( 0, *data->Layer(), data->OutputIndex() );
+	} else {
+		CPtr<const CUserTensor> data = AsUserTensor( *inputs[0], Name() + "_Data", dnn );
+		sliceLayer->Connect( 0, *data->Layer(), data->OutputIndex() );
+	}
+
+	CPtr<const CShapeTensor> starts = getStarts( inputs, dnn );
+	sliceLayer->Connect( 1, *starts->Layer(), starts->OutputIndex() );
+	CPtr<const CShapeTensor> ends = getEnds( inputs, dnn );
+	sliceLayer->Connect( 2, *ends->Layer(), ends->OutputIndex() );
+	CPtr<const CShapeTensor> axes = getAxes( inputs, dnn );
+	if( axes != nullptr ) {
+		sliceLayer->Connect( 3, *axes->Layer(), axes->OutputIndex() );
+	}
+	CPtr<const CShapeTensor> steps = getSteps( inputs, dnn );
+	if( steps != nullptr ) {
+		sliceLayer->Connect( 4, *steps->Layer(), steps->OutputIndex() );
+	}
+
+	dnn.AddLayer( *sliceLayer );
+
+	if( isInShapeMode ) {
+		CTensorShape outputShape;
+		calcOutputShape( inputs, outputShape );
+		outputs.Add( new CShapeTensor( inputs[0]->Layout(), outputShape, CLayerOutput( sliceLayer, 0 ) ) );
+	} else {
+		outputs.Add( new CUserTensor( inputs[0]->Layout(), CLayerOutput( sliceLayer, 0 ) ) );
+	}
+}
+
+// Checks whether output can be CShapeTensor or it has to be CUserTensor
+bool CSliceOperator::hasShapeOutput( const CTensorArray& inputs ) const
+{
+	// If input data is a CUserTensor then output data has to be CUserTensor
+	if( inputs[0]->Type() == TTensorType::User ) {
+		return false;
+	}
+
+	// For the correct work of NeoOnnx each CShapeTensor must have a computable shape (the data may stay unknown)
+	// Which is why for the CShapeTensor as output we need values from all other inputs (CDataTensor)
+	for( int i = 1; i < inputs.Size(); ++i ) {
+		if( inputs[i]->Type() != TTensorType::Data ) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+void CSliceOperator::calcOutputShape( const CTensorArray& inputs, CTensorShape& outputShape ) const
+{
+	NeoPresume( hasShapeOutput( inputs ) );
+
+	CTensorShape inputShape;
+	if( inputs[0]->Type() == TTensorType::Data ) {
+		const CDataTensor* dataTensor = dynamic_cast<const CDataTensor*>( inputs[0].Ptr() );
+		for( int dimIndex = 0; dimIndex < dataTensor->DimCount(); ++dimIndex ) {
+			inputShape.Add( dataTensor->DimSize( dimIndex ) );
+		}
+	} else {
+		NeoPresume( inputs[0]->Type() == TTensorType::Shape );
+		const CShapeTensor* shapeTensor = dynamic_cast<const CShapeTensor*>( inputs[0].Ptr() );
+		shapeTensor->Shape().CopyTo( inputShape );
+	}
 
 	CFastArray<int, 8> starts;
 	getStarts( inputs, starts );
-
 	CFastArray<int, 8> ends;
 	getEnds( inputs, ends );
-
+	CFastArray<int, 8> axes;
+	getAxes( inputs, axes );
 	CFastArray<int, 8> steps;
 	getSteps( inputs, steps );
 
-	CPtr<const CUserTensor> currInput = AsUserTensor( *inputs[0], Name() + "_Source", dnn );
-	for( int i = 0; i < axes.Size(); ++i ) {
-		currInput = sliceAxis( *currInput, axes[i], starts[i], ends[i], steps[i] );
-	}
-	outputs.Add( currInput.Ptr() );
-}
-
-// Fills array with axes, affected by slice
-void CSliceOperator::getAxes( const CTensorArray& inputs, CFastArray<int, 8>& axes ) const
-{
-	const CTensorShape& inputShape = inputs[0]->Shape();
-
-	if( OpsetVersion < 10 && GetAttribute( "axes", axes ) ) {
-		// Successfully extracted from the attribute
-		return;
-	} else if( OpsetVersion >= 10 && inputs.Size() >= 4 && inputs[3] != nullptr ) {
-		CheckNeoOnnxSupport( inputs[3]->IsCalculated(), "User-provided axes", *this );
-		const CDnnBlob* axesBlob = dynamic_cast<const CDataTensor*>( inputs[3].Ptr() )->Data();
-		CheckOnnxProtocol( axesBlob->GetDataType() == CT_Int, "Non-integer axes", *this );
-		axes.SetSize( axesBlob->GetDataSize() );
-		axesBlob->CopyTo( axes.GetPtr() );
-	} else {
-		// Fill with default value
-		axes.SetBufferSize( inputShape.Size() );
-		for( int i = 0; i < inputShape.Size(); ++i ) {
-			axes.Add( i );
-		}
+	inputShape.CopyTo( outputShape );
+	NeoPresume( starts.Size() == ends.Size() );
+	NeoPresume( starts.Size() <= axes.Size() );
+	NeoPresume( starts.Size() <= steps.Size() );
+	for( int i = 0; i < starts.Size(); ++i ) {
+		const int dimSize = inputShape[axes[i]];
+		const int start = std::min<int>( dimSize, starts[i] < 0 ? starts[i] + dimSize : starts[i] );
+		const int end = std::min<int>( dimSize, ends[i] < 0 ? ends[i] + dimSize : ends[i] );
+		CheckNeoOnnxSupport( steps[i] == 1, "Non-1 step", *this );
+		NeoPresume( start <= end );
+		outputShape[axes[i]] = end - start;
 	}
 }
 
@@ -120,7 +157,7 @@ void CSliceOperator::getStarts( const CTensorArray& inputs, CFastArray<int, 8>& 
 		// Extracting from attributes
 		CheckOnnxProtocol( GetAttribute( "starts", starts ), "'starts' attribute is missing", *this );
 	} else {
-		CheckNeoOnnxSupport( inputs[1] != nullptr && inputs[1]->IsCalculated(), "User-provided starts", *this );
+		NeoPresume( inputs[1]->Type() == TTensorType::Data );
 		const CDnnBlob* startsBlob = dynamic_cast<const CDataTensor*>( inputs[1].Ptr() )->Data();
 		CheckOnnxProtocol( startsBlob->GetDataType() == CT_Int, "Non-integer starts", *this );
 		starts.SetSize( startsBlob->GetDataSize() );
@@ -135,7 +172,7 @@ void CSliceOperator::getEnds( const CTensorArray& inputs, CFastArray<int, 8>& en
 		// Extracting from attributes
 		CheckOnnxProtocol( GetAttribute( "ends", ends ), "'ends' attribute is missing", *this );
 	} else {
-		CheckNeoOnnxSupport( inputs[2] != nullptr && inputs[2]->IsCalculated(), "User-provided ends", *this );
+		NeoPresume( inputs[2]->Type() == TTensorType::Data );
 		const CDnnBlob* endsBlob = dynamic_cast<const CDataTensor*>( inputs[2].Ptr() )->Data();
 		CheckOnnxProtocol( endsBlob->GetDataType() == CT_Int, "Non-integer ends", *this );
 		ends.SetSize( endsBlob->GetDataSize() );
@@ -143,92 +180,91 @@ void CSliceOperator::getEnds( const CTensorArray& inputs, CFastArray<int, 8>& en
 	}
 }
 
+// Fills array with axes, affected by slice
+void CSliceOperator::getAxes( const CTensorArray& inputs, CFastArray<int, 8>& axes ) const
+{
+	if( OpsetVersion < 10 && GetAttribute( "axes", axes ) ) {
+		// Successfully extracted from the attribute
+		return;
+	} else if( OpsetVersion >= 10 && inputs.Size() >= 4 && inputs[3] != nullptr ) {
+		NeoPresume( inputs[3]->Type() == TTensorType::Data );
+		const CDnnBlob* axesBlob = dynamic_cast<const CDataTensor*>( inputs[3].Ptr() )->Data();
+		CheckOnnxProtocol( axesBlob->GetDataType() == CT_Int, "Non-integer axes", *this );
+		axes.SetSize( axesBlob->GetDataSize() );
+		axesBlob->CopyTo( axes.GetPtr() );
+	} else {
+		// Fill with default value
+		axes.SetBufferSize( inputs[0]->DimCount() );
+		for( int i = 0; i < inputs[0]->DimCount(); ++i ) {
+			axes.Add( i );
+		}
+	}
+}
+
 // Fills array with slice steps
 void CSliceOperator::getSteps( const CTensorArray& inputs, CFastArray<int, 8>& steps ) const
 {
-	const CTensorShape& inputShape = inputs[0]->Shape();
-
-	if( OpsetVersion < 10 && GetAttribute( "steps", steps ) ) {
-		// Successfully extracted from the attribute
-		return;
-	} else if( OpsetVersion >= 10 && inputs.Size() >= 5 && inputs[4] != nullptr ) {
+	if( OpsetVersion >= 10 && inputs.Size() >= 5 && inputs[4] != nullptr ) {
 		// Extracting from the input
-		CheckNeoOnnxSupport( inputs[4]->IsCalculated(), "User-provided steps", *this );
+		NeoPresume( inputs[4]->Type() == TTensorType::Data );
+		CheckNeoOnnxSupport( inputs[4]->Type() == TTensorType::Data, "User-provided steps", *this );
 		const CDnnBlob* stepsBlob = dynamic_cast<const CDataTensor*>( inputs[4].Ptr() )->Data();
 		CheckOnnxProtocol( stepsBlob->GetDataType() == CT_Int, "Non-integer steps", *this );
 		steps.SetSize( stepsBlob->GetDataSize() );
 		stepsBlob->CopyTo( steps.GetPtr() );
 	} else {
 		// Fill with default value
-		steps.SetBufferSize( inputShape.Size() );
-		steps.Add( 1, inputShape.Size() );
+		steps.SetBufferSize( inputs[0]->DimCount() );
+		steps.Add( 1, inputs[0]->DimCount() );
 	}
 }
 
-// Adds slice along one axis
-CPtr<const CUserTensor> CSliceOperator::sliceAxis( const CUserTensor& input, int axis, int start, int end, int step ) const
+CPtr<const CShapeTensor> CSliceOperator::getStarts( const CTensorArray& inputs, CDnn& dnn ) const
 {
-	CheckNeoOnnxSupport( step == 1, "Slice with step", *this );
-
-	if( axis < 0 ) {
-		axis += input.DimCount();
-	}
-	CheckOnnxProtocol( axis >= 0 && axis < input.DimCount(), "invalid axis index", *this );
-	const int dimSize = input.Shape()[axis];
-	if( start < 0 ) {
-		start += dimSize;
-	}
-	if( end < 0 ) {
-		end += dimSize;
-	} else if( end > dimSize ) {
-		end = dimSize;
+	if( OpsetVersion < 10 ) {
+		CFastArray<int, 8> startsAttr;
+		CheckOnnxProtocol( GetAttribute( "starts", startsAttr ), "'starts' attribute is missing", *this );
+		return AsShapeTensor( startsAttr, Name() + "_Starts", dnn );
 	}
 
-	NeoAssert( start < end );
+	return AsShapeTensor( *inputs[1], Name() + "_Starts", dnn );
+}
 
-	if( start == 0 && end == dimSize) {
-		// No need to split
-		return &input;
+CPtr<const CShapeTensor> CSliceOperator::getEnds( const CTensorArray& inputs, CDnn& dnn ) const
+{
+	if( OpsetVersion < 10 ) {
+		CFastArray<int, 8> endsAttr;
+		CheckOnnxProtocol( GetAttribute( "ends", endsAttr ), "'ends' attribute is missing", *this );
+		return AsShapeTensor( endsAttr, Name() + "_Ends", dnn );
 	}
 
-	CDnn& dnn = *input.Layer()->GetDnn();
-	CPtr<CBaseSplitLayer> split = createSplitLayer( dnn.GetMathEngine(), input.Layout()[axis] );
-	split->SetName( Name() + "_" + Str( axis ) );
-	int outputIndex = 0;
+	return AsShapeTensor( *inputs[2], Name() + "_Ends", dnn );
+}
 
-	if( start == 0 ) {
-		NeoAssert( end != dimSize );
-		split->SetOutputCounts2( end );
-	} else if( end == dimSize ) {
-		split->SetOutputCounts2( start );
-	} else {
-		split->SetOutputCounts3( start, end - start );
+CPtr<const CShapeTensor> CSliceOperator::getAxes( const CTensorArray& inputs, CDnn& dnn ) const
+{
+	if( OpsetVersion < 10 ) {
+		CFastArray<int, 8> axesAttr;
+		if( GetAttribute( "axes", axesAttr ) ) {
+			return AsShapeTensor( axesAttr, Name() + "_Axes", dnn );
+		}
+		return nullptr;
 	}
 
-	if( start != 0 ) {
-		outputIndex = 1;
-		// We have to add sink for the first part
-		CPtr<CSinkLayer> sink = new CSinkLayer( dnn.GetMathEngine() );
-		sink->SetName( Name() + "_sink" + Str( dnn.GetLayerCount() ) );
-		sink->Connect( *split );
-		dnn.AddLayer( *sink );
+	if( inputs.Size() <= 3 ) {
+		return nullptr;
 	}
 
-	if( end != dimSize ) {
-		// We have to add sink for the remaining part
-		CPtr<CSinkLayer> sink = new CSinkLayer( dnn.GetMathEngine() );
-		sink->SetName( Name() + "_sink" + Str( dnn.GetLayerCount() ) );
-		sink->Connect( 0, *split, outputIndex + 1 );
-		dnn.AddLayer( *sink );
+	return AsShapeTensor( *inputs[3], Name() + "_Axes", dnn );
+}
+
+CPtr<const CShapeTensor> CSliceOperator::getSteps( const CTensorArray& inputs, CDnn& dnn ) const
+{
+	if( OpsetVersion < 10 || inputs.Size() <= 4 ) {
+		return nullptr;
 	}
 
-	split->Connect( 0, *input.Layer(), input.OutputIndex() );
-	dnn.AddLayer( *split );
-	
-	CTensorShape outputShape;
-	input.Shape().CopyTo( outputShape );
-	outputShape[axis] = end - start;
-	return new CUserTensor( outputShape, input.Layout(), CLayerOutput( split, outputIndex ) );
+	return AsShapeTensor( *inputs[4], Name() + "_Steps", dnn );
 }
 
 } // namespace NeoOnnx

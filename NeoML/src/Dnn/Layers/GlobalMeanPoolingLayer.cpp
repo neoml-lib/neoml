@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright Â© 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -38,8 +38,8 @@ void CGlobalMeanPoolingLayer::Serialize( CArchive& archive )
 void CGlobalMeanPoolingLayer::Reshape()
 {
 	CheckInputs();
-	CheckArchitecture( GetInputCount() == 1, GetName(), "multiple inputs" );
-	CheckArchitecture( GetOutputCount() == 1, GetName(), "multiple outputs" );
+	CheckLayerArchitecture( GetInputCount() == 1, "multiple inputs" );
+	CheckLayerArchitecture( GetOutputCount() == 1, "multiple outputs" );
 
 	NeoAssert( inputDescs.Size() == 1 );
 	const CBlobDesc& inputDesc = inputDescs[0];

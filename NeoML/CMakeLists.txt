@@ -5,6 +5,12 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
 endif()
 
 project(NeoML LANGUAGES CXX)
+if(ANDROID OR IOS)
+    add_compile_definitions(NEOML_COMPACT)
+endif()
+
+message(STATUS "CMAKE_SYSTEM_PROCESSOR=${CMAKE_SYSTEM_PROCESSOR}")
+message(STATUS "CMAKE_VERSION=${CMAKE_VERSION}")
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../cmake)
 if(USE_FINE_OBJECTS)
@@ -47,8 +53,8 @@ option(NeoML_INSTALL "Install NeoML" ON)
 
 # Build NeoOnnx library
 option(NeoOnnx_BUILD "Build NeoOnnx" ON)
-if(USE_FINE_OBJECTS)
-    set(NeoOnnx_BUILD OFF CACHE BOOL "" FORCE) 
+if(NOT (WIN32 OR CMAKE_SYSTEM_NAME MATCHES "Linux" OR CMAKE_SYSTEM_NAME MATCHES "Darwin"))
+    set(NeoOnnx_BUILD OFF CACHE BOOL "" FORCE)
 endif()
 
 # Set cmake default variables and some usefull variables

@@ -662,7 +662,7 @@ inline bool CQSNodeAscending::Predicate( const CQSNode& first, const CQSNode& se
 	const bool firstIsInverted = HasFlag( first.PropertiesMask, PM_Inverted );
 	const bool secondIsInverted = HasFlag( second.PropertiesMask, PM_Inverted );
 	if( firstIsInverted != secondIsInverted ) {
-		return ( firstIsInverted < secondIsInverted );
+		return secondIsInverted;
 	}
 
 	const int firstTreeOrderIndex = treeOffsets[first.Tree] + first.Order;

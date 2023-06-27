@@ -1,8 +1,10 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
+
 	http://www.apache.org/licenses/LICENSE-2.0
+
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -40,21 +42,28 @@ enum class TDistributedInitializer {
 class NEOML_API CDistributedTraining {
 public:
 	// Creates `count` cpu models
-	explicit CDistributedTraining( CDnn& dnn, int count,
+	// If `count` is 0 or less then creates a number of models
+	// equal to the number of available CPU cores
+	CDistributedTraining( CDnn& dnn, int count,
 		TDistributedInitializer initializer = TDistributedInitializer::Xavier, int seed = 42 );
-	explicit CDistributedTraining( CArchive& archive, int count,
+	CDistributedTraining( CArchive& archive, int count,
 		TDistributedInitializer initializer = TDistributedInitializer::Xavier, int seed = 42 );
 	// Creates gpu models, `devs` should contain numbers of using devices
-	explicit CDistributedTraining( CDnn& dnn, const CArray<int>& cudaDevs,
+	CDistributedTraining( CDnn& dnn, const CArray<int>& cudaDevs,
 		TDistributedInitializer initializer = TDistributedInitializer::Xavier, int seed = 42 );
-	explicit CDistributedTraining( CArchive& archive, const CArray<int>& cudaDevs,
+	CDistributedTraining( CArchive& archive, const CArray<int>& cudaDevs,
 		TDistributedInitializer initializer = TDistributedInitializer::Xavier, int seed = 42 );
+
+	~CDistributedTraining();
+
 	// Gets the number of models in disitrbuted traning
 	int GetModelCount() const { return cnns.Size(); }
 	// Sets the solver for all of the models
 	void SetSolver( CArchive& archive );
 	// Sets the learning rate for all of the models
 	void SetLearningRate( float rate );
+	// Returns the current learning rate
+	float GetLearningRate() const;
 	// Runs the networks without backward and training
 	void RunOnce( IDistributedDataset& data );
 	// Runs the networks and performs a backward pass
@@ -71,8 +80,13 @@ public:
 	void GetLastBlob( const CString& layerName, CObjectArray<CDnnBlob>& blobs );
 	// Save trained net
 	void Serialize( CArchive& archive );
-	~CDistributedTraining();
+	// Save the trained net with the given `index` with its solver state (optional)
+	// An archive with solver state can later be passed to CDnn::SerializeCheckpoint to resume training
+	void StoreDnn( CArchive& archive, int index, bool storeSolver );
+
 private:
+	const bool isCpu;
+	IThreadPool* threadPool;
 	CArray<IMathEngine*> mathEngines;
 	CArray<CRandom*> rands;
 	CArray<CDnn*> cnns;
@@ -82,6 +96,5 @@ private:
 
 	void initialize( CArchive& archive, int count, TDistributedInitializer initializer, int seed );
 };
-
 
 } // namespace NeoML

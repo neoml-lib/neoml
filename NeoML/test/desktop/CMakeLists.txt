@@ -13,7 +13,8 @@ add_executable(${PROJECT_NAME}
 )
 
 set_target_properties( ${PROJECT_NAME} PROPERTIES
-    UNITY_BUILD_MODE GROUP
+    UNITY_BUILD_MODE BATCH
+    UNITY_BUILD_BATCH_SIZE ${NeoML_UNITY_BUILD_BATCH_SIZE}
 )
 
 configure_target(${PROJECT_NAME})

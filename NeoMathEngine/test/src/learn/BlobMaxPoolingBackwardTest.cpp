@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,52 +14,14 @@ limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
 #include <TestFixture.h>
+#include <MeTestCommon.h>
 
 using namespace NeoML;
 using namespace NeoMLTest;
 
-struct CPoolingTestParams {
-	int InputCount;
-	int InputHeight;
-	int InputWidth;
-	int InputDepth;
-	int InputChannels;
-
-	int FilterHeight;
-	int FilterWidth;
-
-	int StrideHeight;
-	int StrideWidth;
-
-	int OutputHeight;
-	int OutputWidth;
-
-	bool IsMaxPooing = false;
-
-	CPoolingTestParams( int inputCount, int inputHeight, int inputWidth, int inputDepth, int inputChannels,
-		int filterHeight, int filterWidth, int strideHeight, int strideWidth, int outputHeight, int outputWidth ) :
-		InputCount( inputCount ),
-		InputHeight( inputHeight ),
-		InputWidth( inputWidth ),
-		InputDepth( inputDepth ),
-		InputChannels( inputChannels ),
-		FilterHeight( filterHeight ),
-		FilterWidth( filterWidth ),
-		StrideHeight( strideHeight ),
-		StrideWidth( strideWidth ),
-		OutputHeight( outputHeight ),
-		OutputWidth( outputWidth )
-	{}
-};
-
-static int calcConvDimSize( int input, int filter, int stride )
+static void maxPoolingBackwardNaive( const CPoolingTestParams& params, const float* resultDiff, const int* maxIndices, float* sourceDiff )
 {
-	return ( input - filter ) / stride + 1;
-}
-
-static void maxPoolingBackwardNaive( const CPoolingTestParams& params, const float *outputDiff, const int *maxIndices, float *inputDiff )
-{
-	const int inputObjectSize = params.InputHeight * params.InputWidth * params.InputDepth * params.InputChannels;
+	const int sourceObjectSize = params.InputHeight * params.InputWidth * params.InputDepth * params.InputChannels;
 	const int channels = params.InputDepth * params.InputChannels;
 
 	for( int b = 0; b < params.InputCount; ++b ) {
@@ -69,94 +31,61 @@ static void maxPoolingBackwardNaive( const CPoolingTestParams& params, const flo
 					const int index = b * params.OutputHeight * params.OutputWidth * channels +
 						y * params.OutputWidth * channels + x * channels + c;
 					const int maxIndex = maxIndices[index];
-					const float diff = outputDiff[index];
-					inputDiff[b * inputObjectSize + maxIndex] += diff;
+					sourceDiff[b * sourceObjectSize + maxIndex] += resultDiff[index];
 				}
 			}
 		}
 	}
 }
 
-static CPoolingTestParams getParams( const CTestParams& params, CRandom& random )
-{
-	const CInterval inputHeightInterval = params.GetInterval( "InputHeight" );
-	const CInterval inputWidthInterval = params.GetInterval( "InputWidth" );
-	const CInterval inputDepthInterval = params.GetInterval( "InputDepth" );
-	const CInterval channelsInterval = params.GetInterval( "Channels" );
-	const CInterval batchSizeInterval = params.GetInterval( "BatchSize" );
-	const CInterval filterHeightInterval = params.GetInterval( "FilterHeight" );
-	const CInterval filterWidthInterval = params.GetInterval( "FilterWidth" );
-	const CInterval strideHeightInterval = params.GetInterval( "StrideHeight" );
-	const CInterval strideWidthInterval = params.GetInterval( "StrideWidth" );
-
-	const int inputHeight = random.UniformInt( inputHeightInterval.Begin, inputHeightInterval.End );
-	const int inputWidth = random.UniformInt( inputWidthInterval.Begin, inputWidthInterval.End );
-	const int inputDepth = random.UniformInt( inputDepthInterval.Begin, inputDepthInterval.End );
-
-	const int inputChannels = random.UniformInt( channelsInterval.Begin, channelsInterval.End );
-	const int batchSize = random.UniformInt( batchSizeInterval.Begin, batchSizeInterval.End );
-
-	const int filterHeight = random.UniformInt( filterHeightInterval.Begin, filterHeightInterval.End );
-	const int filterWidth = random.UniformInt( filterWidthInterval.Begin, filterWidthInterval.End );
-
-	const int strideHeight = random.UniformInt( strideHeightInterval.Begin, strideHeightInterval.End );
-	const int strideWidth = random.UniformInt( strideWidthInterval.Begin, strideWidthInterval.End );
-
-	const int outHeight = calcConvDimSize( inputHeight, filterHeight, strideHeight );
-	const int outWidth = calcConvDimSize( inputWidth, filterWidth, strideWidth );
-
-	return CPoolingTestParams( batchSize, inputHeight, inputWidth, inputDepth, inputChannels,
-		filterHeight, filterWidth, strideHeight, strideWidth, outHeight, outWidth );
-}
-
 static void blobMaxPoolingBackwardTestImpl( const CTestParams& params, int seed )
 {
 	CRandom random( seed );
-	auto poolingParams = getParams( params, random );
+	const auto poolingParams = getPoolingParams( params, random );
 	const CInterval valuesInterval = params.GetInterval( "Values" );
-	const int inputSize = poolingParams.InputCount * poolingParams.InputHeight * poolingParams.InputWidth
+	const int sourceSize = poolingParams.InputCount * poolingParams.InputHeight * poolingParams.InputWidth
 		* poolingParams.InputDepth * poolingParams.InputChannels;
-	const int outputSize = poolingParams.InputCount * poolingParams.OutputHeight * poolingParams.OutputWidth
+	const int resultSize = poolingParams.InputCount * poolingParams.OutputHeight * poolingParams.OutputWidth
 		* poolingParams.InputDepth * poolingParams.InputChannels;
 
-	CREATE_FILL_FLOAT_ARRAY( outputDiffData, valuesInterval.Begin, valuesInterval.End, outputSize, random )
-	CFloatBlob outputDiffBlob( MathEngine(),
+	CREATE_FILL_FLOAT_ARRAY( resultDiffData, valuesInterval.Begin, valuesInterval.End, resultSize, random )
+	CFloatBlob resultDiffBlob( MathEngine(),
 		poolingParams.InputCount, poolingParams.OutputHeight, poolingParams.OutputWidth, poolingParams.InputDepth, poolingParams.InputChannels );
-	outputDiffBlob.CopyFrom( outputDiffData.data() );
-	CFloatBlob outputBlob( MathEngine(),
+	resultDiffBlob.CopyFrom( resultDiffData.data() );
+	CFloatBlob resultBlob( MathEngine(),
 		poolingParams.InputCount, poolingParams.OutputHeight, poolingParams.OutputWidth, poolingParams.InputDepth, poolingParams.InputChannels );
 
-	CREATE_FILL_FLOAT_ARRAY( inputData, valuesInterval.Begin, valuesInterval.End, inputSize, random )
-	CFloatBlob inputDataBlob( MathEngine(), poolingParams.InputCount, poolingParams.InputHeight,
+	CREATE_FILL_FLOAT_ARRAY( sourceData, valuesInterval.Begin, valuesInterval.End, sourceSize, random )
+	CFloatBlob sourceDataBlob( MathEngine(), poolingParams.InputCount, poolingParams.InputHeight,
 		poolingParams.InputWidth, poolingParams.InputDepth, poolingParams.InputChannels );
-	inputDataBlob.CopyFrom( inputData.data() );
+	sourceDataBlob.CopyFrom( sourceData.data() );
 
-	CFloatBlob inputDiffBlob( MathEngine(), poolingParams.InputCount, poolingParams.InputHeight,
+	CFloatBlob sourceDiffBlob( MathEngine(), poolingParams.InputCount, poolingParams.InputHeight,
 		poolingParams.InputWidth, poolingParams.InputDepth, poolingParams.InputChannels );
 
 	CIntBlob indexBlob( MathEngine(),
 		poolingParams.InputCount, poolingParams.OutputHeight, poolingParams.OutputWidth, poolingParams.InputDepth, poolingParams.InputChannels );
 	CIntHandle indexBlobPtr = indexBlob.GetData();
 
-	auto poolingDesc = MathEngine().InitMaxPooling( inputDataBlob.GetDesc(), poolingParams.FilterHeight, poolingParams.FilterWidth,
-		poolingParams.StrideHeight, poolingParams.StrideWidth, outputDiffBlob.GetDesc() );
-	MathEngine().BlobMaxPooling( *poolingDesc, inputDataBlob.GetData(), &indexBlobPtr, outputBlob.GetData() );
+	auto poolingDesc = MathEngine().InitMaxPooling( sourceDataBlob.GetDesc(), poolingParams.FilterHeight, poolingParams.FilterWidth,
+		poolingParams.StrideHeight, poolingParams.StrideWidth, resultDiffBlob.GetDesc() );
+	MathEngine().BlobMaxPooling( *poolingDesc, sourceDataBlob.GetData(), &indexBlobPtr, resultBlob.GetData() );
 
-	MathEngine().BlobMaxPoolingBackward( *poolingDesc, outputDiffBlob.GetData(), indexBlobPtr, inputDiffBlob.GetData() );
+	MathEngine().BlobMaxPoolingBackward( *poolingDesc, resultDiffBlob.GetData(), indexBlobPtr, sourceDiffBlob.GetData() );
 	delete poolingDesc;
 
 	std::vector<int> maxIndices;
-	maxIndices.resize( outputSize );
+	maxIndices.resize( resultSize );
 	indexBlob.CopyTo( maxIndices.data() );
 
 	std::vector<float> actualDiff, expectedDiff;
-	actualDiff.resize( inputSize );
-	inputDiffBlob.CopyTo( actualDiff.data() );
-	expectedDiff.insert( expectedDiff.begin(), inputSize, 0 );
+	actualDiff.resize( sourceSize );
+	sourceDiffBlob.CopyTo( actualDiff.data() );
+	expectedDiff.insert( expectedDiff.begin(), sourceSize, 0 );
 
-	maxPoolingBackwardNaive( poolingParams, outputDiffData.data(), maxIndices.data(), expectedDiff.data() );
+	maxPoolingBackwardNaive( poolingParams, resultDiffData.data(), maxIndices.data(), expectedDiff.data() );
 
-	for( int i = 0; i < inputSize; ++i ) {
+	for( int i = 0; i < sourceSize; ++i ) {
 		ASSERT_NEAR( expectedDiff[i], actualDiff[i], 1e-3 );
 	}
 }

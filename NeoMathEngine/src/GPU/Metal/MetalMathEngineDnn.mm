@@ -153,10 +153,12 @@ void CMetalMathEngine::BlobSplitByDim(TBlobDim /*dim*/, const CBlobDesc& /*from*
 static const int BlobResizeImageCombine = 16;
 
 void CMetalMathEngine::BlobResizeImage( const CBlobDesc& from, const CFloatHandle& fromData, int deltaLeft, int deltaRight,
-	int deltaTop, int deltaBottom, float defaultValue, const CBlobDesc& to, const CFloatHandle& toData )
+    int deltaTop, int deltaBottom, TBlobResizePadding padding, float defaultValue,
+    const CBlobDesc& to, const CFloatHandle& toData )
 {
     ASSERT_EXPR( fromData.GetMathEngine() == this );
-	ASSERT_EXPR( toData.GetMathEngine() == this ); 
+	ASSERT_EXPR( toData.GetMathEngine() == this );
+    ASSERT_EXPR( padding == TBlobResizePadding::Constant );
 
 	const int geom = to.Height() * to.Width();
 	const int totalChannels = to.Channels() * to.Depth();
@@ -657,6 +659,53 @@ void CMetalMathEngine::BertConv( const CConstFloatHandle& dataHandle, const CCon
 void CMetalMathEngine::BertConvBackward( const CConstFloatHandle& /*dataHandle*/, const CConstFloatHandle& /*kernelHandle*/,
     const CConstFloatHandle& /*outDiffHandle*/, int /*seqLen*/, int /*batchSize*/, int /*numHeads*/, int /*headSize*/, int /*kernelSize*/,
     const CFloatHandle& /*dataDiffHandle*/, const CFloatHandle& /*kernelDiffHandle*/ )
+{
+    ASSERT_EXPR( false );
+}
+
+void CMetalMathEngine::LinearInterpolation( const CConstFloatHandle&, const CFloatHandle&,
+    TInterpolationCoords, TInterpolationRound, int, int, int, float )
+{
+    ASSERT_EXPR( false );
+}
+
+void CMetalMathEngine::ScatterND( const CConstIntHandle&, const CConstFloatHandle&, const CFloatHandle&,
+    const CBlobDesc&, int, int )
+{
+    ASSERT_EXPR( false );
+}
+
+void CMetalMathEngine::ScatterND( const CConstIntHandle&, const CConstIntHandle&, const CIntHandle&,
+    const CBlobDesc&, int, int )
+{
+    ASSERT_EXPR( false );
+}
+
+void CMetalMathEngine::ChannelwiseWith1x1( const CBlobDesc&, const CBlobDesc&, const CChannelwiseConvolutionDesc&,
+    const CConstFloatHandle&, const CConstFloatHandle&, const CConstFloatHandle*, TActivationFunction, float,
+    const CConstFloatHandle&, const CConstFloatHandle*, bool, const CFloatHandle& )
+{
+    ASSERT_EXPR( false );
+}
+
+void CMetalMathEngine::MobileNetV2Block( const CBlobDesc&, const CBlobDesc&, const CChannelwiseConvolutionDesc&,
+    const CConstFloatHandle&, const CConstFloatHandle&, const CConstFloatHandle*, TActivationFunction, float,
+    const CConstFloatHandle&, const CConstFloatHandle*, TActivationFunction, float, const CConstFloatHandle&,
+    const CConstFloatHandle*, bool, const CFloatHandle& ) override
+{
+    ASSERT_EXPR( false );
+}
+
+void CMetalMathEngine::MobileNetV3PreSEBlock( const CBlobDesc&, const CBlobDesc&, const CChannelwiseConvolutionDesc&,
+    const CConstFloatHandle&, const CConstFloatHandle&, const CConstFloatHandle*, TActivationFunction, float,
+    const CConstFloatHandle&, const CConstFloatHandle*, TActivationFunction, float, const CFloatHandle& )
+{
+    ASSERT_EXPR( false );
+}
+
+void CMetalMathEngine::MobileNetV3PostSEBlock( const CBlobDesc&, int, const CConstFloatHandle&,
+    const CConstFloatHandle&, const CConstFloatHandle*, TActivationFunction, float, const CConstFloatHandle&,
+    const CConstFloatHandle*, const CFloatHandle& )
 {
     ASSERT_EXPR( false );
 }

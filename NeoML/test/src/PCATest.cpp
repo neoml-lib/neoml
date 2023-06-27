@@ -1,4 +1,4 @@
-/* Copyright © 2021 ABBYY Production LLC
+/* Copyright Â© 2021-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,6 +17,9 @@ limitations under the License.
 #pragma hdrstop
 
 #include <TestFixture.h>
+
+// These functions are implemented by MKL. MKL is not available on ARM.
+#if FINE_ARCHITECTURE( FINE_X86 ) || FINE_ARCHITECTURE( FINE_X64 )
 
 using namespace NeoML;
 using namespace NeoMLTest;
@@ -47,30 +50,32 @@ static void svdTestExample( int samples, int features, int components,
 	CArray<float> expectedSingularValues, CArray<float> expectedRightVectors,
 	bool returnLeftVectors, bool returnRightVectors, TSvd svdSolver )
 {
-	if( svdSolver == SVD_Sparse && ( returnLeftVectors == returnRightVectors ) ) {
-		return;
-	}
 	const CSparseFloatMatrix& matrix = generateMatrix( samples, features, data );
 	CArray<float> leftVectors;
 	CArray<float> singularValues;
 	CArray<float> rightVectors;
-	SingularValueDecomposition( matrix.GetDesc(), svdSolver, leftVectors, singularValues, rightVectors,
-		returnLeftVectors, returnRightVectors, components );
-	int totalComponents = ( svdSolver == SVD_Sparse ) ? components : features;
+	if( svdSolver == SVD_Randomized ) {
+		RandomizedSingularValueDecomposition( matrix.GetDesc(), leftVectors, singularValues, rightVectors, //x86 -specific
+			returnLeftVectors, returnRightVectors, components );
+	} else {
+		SingularValueDecomposition( matrix.GetDesc(), leftVectors, singularValues, rightVectors, //x86 -specific
+			returnLeftVectors, returnRightVectors, components );
+	}
 
 	if( returnLeftVectors ) {
 		for( int row = 0; row < samples; row++ ) {
-			for( int col = 0; col < totalComponents; col++ ) {
-				const float get = leftVectors[row * totalComponents + col];
-				const float expected = expectedLeftVectors[row * features + col];
+			for( int col = 0; col < components; col++ ) {
+				const float get = leftVectors[row * components + col];
+				const float expected = expectedLeftVectors[row * samples + col];
 				ASSERT_NEAR( fabs( get ), fabs( expected ), 5e-3 );
 			}
 		}
 	}
-	expectedSingularValues.SetSize( totalComponents );
+	expectedSingularValues.SetSize( components );
 	checkArraysEqual( expectedSingularValues, singularValues.GetPtr() );
+
 	if( returnRightVectors ) {
-		for( int row = 0; row < totalComponents; row++ ) {
+		for( int row = 0; row < components; row++ ) {
 			for( int col = 0; col < features; col++ ) {
 				const int index = row * features + col;
 				ASSERT_NEAR( fabs( rightVectors[index] ), fabs( expectedRightVectors[index] ), 5e-3 );
@@ -81,15 +86,29 @@ static void svdTestExample( int samples, int features, int components,
 
 TEST( CSVDTest, SVDExampleTest )
 {
-	for( TSvd svdSolver : { SVD_Full, SVD_Sparse } ) {
+	for( TSvd svdSolver : { SVD_Full, SVD_Randomized } ) {
 		for( bool returnLeftVectors : { false, true } ) {
 			for( bool returnRightVectors : { false, true } ) {
 				svdTestExample( 4, 4, 2, { 2, 1, 3, 2, 2, 4, 4, 1, 2, 4, 1, 1, 4, 4, 3, 4 },
-					{ -0.3495,  0.6025,  0.3083, -0.6479, -0.5253, -0.325,  0.7173,  0.3224,
-					 -0.3879, -0.6554, -0.3305, -0.5575, -0.6719,  0.319, -0.5303,  0.4068 },
-					{ 11.0117  ,  2.7114 ,  2.3155  ,  0.1736 },
-					{ -0.4734, -0.6075, -0.5043, -0.3905, 0.19205657, -0.7533076 ,  0.29856473,  0.5536254,
-					 -0.3158, -0.1149,  0.8087, -0.4828, -0.7995,  0.2241,  0.05091,  0.5549 },
+					{ -0.3495, 0.6025, 0.3083, -0.6479, -0.5253, -0.325, 0.7173, 0.3224,
+					-0.3879, -0.6554, -0.3305, -0.5575, -0.6719, 0.319, -0.5303, 0.4068 },
+					{ 11.0117, 2.7114, 2.3155, 0.1736 },
+					{ -0.4734, -0.6075, -0.5043, -0.3905, 0.19205657, -0.7533076, 0.29856473, 0.5536254,
+					-0.3158, -0.1149, 0.8087, -0.4828, -0.7995, 0.2241, 0.05091, 0.5549 },
+					returnLeftVectors, returnRightVectors, svdSolver );
+
+				svdTestExample( 3, 5, 2, { 1.8, 1.3, 8.0, 8.5, 9.6, 5.4, 0.0, 2.6, 1.8, 3.2, 6.1, 6.4, 9.2, 1.3, 6.5 },
+					{ 0.7004, 0.7080, 0.0903, 0.2859, -0.1624, -0.9444, 0.6540, -0.6873, 0.3162 },
+					{ 20.4914, 7.3685, 3.9114 },
+					{ 0.3315, 0.2487, 0.6033, 0.3571, 0.5802, -0.5150, -0.4721, -0.1468, 0.6558, 0.2456, -0.7692, 0.5473,
+					  0.3006, -0.1333, -0.0256, 0.1724, 0.6171, -0.4502, 0.5711, -0.2464, -0.0585, 0.1871, -0.5670, -0.3138, 0.7360 },
+					returnLeftVectors, returnRightVectors, svdSolver );
+
+				svdTestExample( 5, 3, 2, { 1.8, 1.3, 8.0, 8.5, 9.6, 5.4, 0.0, 2.6, 1.8, 3.2, 6.1, 6.4, 9.2, 1.3, 6.5 },
+					{ -0.3280, 0.5495, 0.5836, -0.3606, -0.3463, -0.6567, -0.5710, -0.2121, -0.3107, -0.3181, -0.1199,
+					  -0.1704, 0.2894, -0.4621, 0.8120, -0.4419, -0.1542, 0.4520, 0.7416, 0.1633, -0.5015, 0.5650, -0.5713, 0.0997, 0.3048 },
+					{ 20.3076, 6.6083, 5.7811 },
+					{ -0.6008, -0.5116, -0.6143, 0.1270, -0.8197, 0.5585, -0.7893, 0.2575, 0.5575 },
 					returnLeftVectors, returnRightVectors, svdSolver );
 			}
 		}
@@ -108,17 +127,17 @@ static void pcaTestExample( int samples, int features, int components,
 	params.SvdSolver = svdSolver;
 
 	const CSparseFloatMatrix& matrix = generateMatrix( samples, features, data );
-
 	for( CString s : { "TrainTransform", "Train + Transform" } ) {
 		CPca pca( params );
 		CFloatMatrixDesc transformed;
 		transformed = pca.TrainTransform( matrix.GetDesc() );
 		if( s == "TrainTransform" ) {
-			transformed = pca.TrainTransform( matrix.GetDesc() );
+			transformed = pca.TrainTransform( matrix.GetDesc() ); //x86 -specific
 		} else {
-			pca.Train( matrix.GetDesc() );
+			pca.Train( matrix.GetDesc() ); //x86 -specific
 			transformed = pca.Transform( matrix.GetDesc() );
 		}
+
 		ASSERT_EQ( samples, transformed.Height );
 		ASSERT_EQ( components, transformed.Width );
 		checkArraysEqual( expectedTransform, transformed.Values );
@@ -146,7 +165,7 @@ static void pcaTestExample( int samples, int features, int components,
 
 TEST( CPCATest, PCAExamplesTest )
 {
-	for( TSvd svdSolver : { SVD_Full, SVD_Sparse } ) {
+	for( TSvd svdSolver : { SVD_Full, SVD_Randomized } ) {
 		pcaTestExample( 4, 4, 2, { 2, 1, 3, 2, 2, 4, 4, 1, 2, 4, 1, 1, 4, 4, 3, 4 },
 			{ 3.0407, 2.6677 }, { 3.0819, 2.3722 }, { 0.451, 0.3472 }, 0.6896,
 			{ 0.5649, 0.2846, 0.1827, 0.7525, -0.0238, -0.8853, 0.3850, 0.2592 },
@@ -185,30 +204,32 @@ TEST( CPCATest, PCAEllipseTest )
 	CPca::CParams params;
 	params.ComponentsType = CPca::TComponents::PCAC_Int;
 	params.Components = components;
-	params.SvdSolver = SVD_Full;
 
-	for( CString s : { "TrainTransform", "Train + Transform" } ) {
-		CPca pca( params );
-		if( s == "TrainTransform" ) {
-			pca.TrainTransform( matrix.GetDesc() );
-		} else {
-			pca.Train( matrix.GetDesc() );
-			pca.Transform( matrix.GetDesc() );
-		}
-		ASSERT_NEAR( 0, pca.GetNoiseVariance(), 1e-3 );
+	for( TSvd svdSolver : { SVD_Full, SVD_Randomized } ) {
+		params.SvdSolver = svdSolver;
+		for( CString s : { "TrainTransform", "Train + Transform" } ) {
+			CPca pca( params );
+			if( s == "TrainTransform" ) {
+				pca.TrainTransform( matrix.GetDesc() ); //x86 -specific
+			} else {
+				pca.Train( matrix.GetDesc() ); //x86 -specific
+				pca.Transform( matrix.GetDesc() );
+			}
+			ASSERT_NEAR( 0, pca.GetNoiseVariance(), 1e-3 );
 
-		CSparseFloatMatrix componentsMatrix = pca.GetComponents();
-		ASSERT_EQ( components, componentsMatrix.GetHeight() );
-		ASSERT_EQ( features, componentsMatrix.GetWidth() );
+			CSparseFloatMatrix componentsMatrix = pca.GetComponents();
+			ASSERT_EQ( components, componentsMatrix.GetHeight() );
+			ASSERT_EQ( features, componentsMatrix.GetWidth() );
 
-		CArray<float> expectedComponent;
-		for( int row = 0; row < 2; row++ ) {
-			CSparseFloatVector actualComponent( componentsMatrix.GetRow( row ) );
-			expectedComponent.Empty();
-			expectedComponent.Add( 0, features );
-			expectedComponent[row] = 1.f;
-			for( int i = 0; i < features; i++ ) {
-				ASSERT_NEAR( expectedComponent[i], abs( actualComponent.GetValue( i ) ), 5e-3 );
+			CArray<float> expectedComponent;
+			for( int row = 0; row < 2; row++ ) {
+				CSparseFloatVector actualComponent( componentsMatrix.GetRow( row ) );
+				expectedComponent.Empty();
+				expectedComponent.Add( 0, features );
+				expectedComponent[row] = 1.f;
+				for( int i = 0; i < features; i++ ) {
+					ASSERT_NEAR( expectedComponent[i], abs( actualComponent.GetValue( i ) ), 5e-3 );
+				}
 			}
 		}
 	}
@@ -233,7 +254,7 @@ TEST( CPCATest, PCASerializationTest )
 
 	CString fileName = "PcaTest";
 	{
-		pca.Train( matrix.GetDesc() );
+		pca.Train( matrix.GetDesc() ); //x86 -specific
 		CArchiveFile archiveFile( fileName, CArchive::store, GetPlatformEnv() );
 		CArchive archive( &archiveFile, CArchive::SD_Storing );
 		pca.Serialize( archive );
@@ -272,3 +293,6 @@ TEST( CPCATest, PCASerializationTest )
 
 	ASSERT_NEAR( expectedNoiseVariance, pcaSerialized->GetNoiseVariance(), 5e-3 );
 }
+
+#endif //FINE_ARCHITECTURE( FINE_X86 ) || FINE_ARCHITECTURE( FINE_X64 )
+

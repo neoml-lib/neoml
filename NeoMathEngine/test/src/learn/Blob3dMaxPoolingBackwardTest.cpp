@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,54 +14,17 @@ limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
 #include <TestFixture.h>
+#include <MeTestCommon.h>
 
 using namespace NeoML;
 using namespace NeoMLTest;
 
-struct C3dPoolingTestParams {
-	int InputCount;
-	int InputHeight;
-	int InputWidth;
-	int InputDepth;
-	int InputChannels;
-
-	int FilterHeight;
-	int FilterWidth;
-	int FilterDepth;
-
-	int StrideHeight;
-	int StrideWidth;
-	int StrideDepth;
-
-	bool IsMaxPooing = false;
-
-	C3dPoolingTestParams( int inputCount, int inputHeight, int inputWidth, int inputDepth, int inputChannels,
-		int filterHeight, int filterWidth, int filterDepth, int strideHeight, int strideWidth, int strideDepth ) :
-		InputCount( inputCount ),
-		InputHeight( inputHeight ),
-		InputWidth( inputWidth ),
-		InputDepth( inputDepth ),
-		InputChannels( inputChannels ),
-		FilterHeight( filterHeight ),
-		FilterWidth( filterWidth ),
-		FilterDepth( filterDepth ),
-		StrideHeight( strideHeight ),
-		StrideWidth( strideWidth ),
-		StrideDepth( strideDepth )
-	{}
-};
-
-static int calcConvDimSize( int input, int filter, int stride ) 
+static void max3dPoolingBackwardNaive( const C3dPoolingTestParams& params, const float* resultDiff, const int* maxIndices, float* sourceDiff )
 {
-	return ( input - filter ) / stride + 1;
-}
-
-static void max3dPoolingBackwardNaive( const C3dPoolingTestParams& params, const float *outputDiff, const int *maxIndices, float *inputDiff )
-{
-	const int inputObjectSize = params.InputHeight * params.InputWidth * params.InputDepth * params.InputChannels;
-	int resultHeight = calcConvDimSize( params.InputHeight, params.FilterHeight, params.StrideHeight );
-	int resultWidth = calcConvDimSize( params.InputWidth, params.FilterWidth, params.StrideWidth );
-	int resultDepth = calcConvDimSize( params.InputDepth, params.FilterDepth, params.StrideDepth );
+	const int sourceObjectSize = params.InputHeight * params.InputWidth * params.InputDepth * params.InputChannels;
+	const int resultHeight = calcConvOutputSize( params.InputHeight, 0, params.FilterHeight, 1, params.StrideHeight );
+	const int resultWidth = calcConvOutputSize( params.InputWidth, 0, params.FilterWidth, 1, params.StrideWidth );
+	const int resultDepth = calcConvOutputSize( params.InputDepth, 0, params.FilterDepth, 1, params.StrideDepth );
 
 	for( int b = 0; b < params.InputCount; ++b ) {
 		for( int y = 0; y < resultHeight; ++y ) {
@@ -71,8 +34,8 @@ static void max3dPoolingBackwardNaive( const C3dPoolingTestParams& params, const
 						const int index = b * resultHeight * resultWidth * resultDepth * params.InputChannels +
 							y * resultWidth * resultDepth * params.InputChannels + x * resultDepth * params.InputChannels + z * params.InputChannels + c;
 						const int maxIndex = maxIndices[index];
-						const float diff = outputDiff[index];
-						inputDiff[b * inputObjectSize + maxIndex + c] += diff;
+						const float diff = resultDiff[index];
+						sourceDiff[b * sourceObjectSize + maxIndex + c] += diff;
 					}
 				}
 			}
@@ -80,86 +43,53 @@ static void max3dPoolingBackwardNaive( const C3dPoolingTestParams& params, const
 	}
 }
 
-static C3dPoolingTestParams getParams( const CTestParams& params, CRandom& random )
-{
-	const CInterval inputHeightInterval = params.GetInterval( "InputHeight" );
-	const CInterval inputWidthInterval = params.GetInterval( "InputWidth" );
-	const CInterval inputDepthInterval = params.GetInterval( "InputDepth" );
-	const CInterval channelsInterval = params.GetInterval( "Channels" );
-	const CInterval batchSizeInterval = params.GetInterval( "BatchSize" );
-	const CInterval filterHeightInterval = params.GetInterval( "FilterHeight" );
-	const CInterval filterWidthInterval = params.GetInterval( "FilterWidth" );
-	const CInterval filterDepthInterval = params.GetInterval( "FilterDepth" );
-	const CInterval strideHeightInterval = params.GetInterval( "StrideHeight" );
-	const CInterval strideWidthInterval = params.GetInterval( "StrideWidth" );
-	const CInterval strideDepthInterval = params.GetInterval( "StrideDepth" );
-
-	const int inputHeight = random.UniformInt( inputHeightInterval.Begin, inputHeightInterval.End );
-	const int inputWidth = random.UniformInt( inputWidthInterval.Begin, inputWidthInterval.End );
-	const int inputDepth = random.UniformInt( inputDepthInterval.Begin, inputDepthInterval.End );
-
-	const int inputChannels = random.UniformInt( channelsInterval.Begin, channelsInterval.End );
-	const int batchSize = random.UniformInt( batchSizeInterval.Begin, batchSizeInterval.End );
-
-	const int filterHeight = random.UniformInt( filterHeightInterval.Begin, filterHeightInterval.End );
-	const int filterWidth = random.UniformInt( filterWidthInterval.Begin, filterWidthInterval.End );
-	const int filterDepth = random.UniformInt( filterDepthInterval.Begin, filterDepthInterval.End );
-
-	const int strideHeight = random.UniformInt( strideHeightInterval.Begin, strideHeightInterval.End );
-	const int strideWidth = random.UniformInt( strideWidthInterval.Begin, strideWidthInterval.End );
-	const int strideDepth = random.UniformInt( strideDepthInterval.Begin, strideDepthInterval.End );
-
-	return C3dPoolingTestParams( batchSize, inputHeight, inputWidth, inputDepth, inputChannels,
-		filterHeight, filterWidth, filterDepth, strideHeight, strideWidth, strideDepth );
-}
-
 static void blob3dMaxPoolingBackwardTestImpl( const CTestParams& params, int seed )
 {
 	CRandom random( seed );
-	auto poolingParams = getParams( params, random );
+	auto poolingParams = get3dPoolingParams( params, random );
 	const CInterval valuesInterval = params.GetInterval( "Values" );
 
-	const int outHeight = calcConvDimSize( poolingParams.InputHeight, poolingParams.FilterHeight, poolingParams.StrideHeight );
-	const int outWidth = calcConvDimSize( poolingParams.InputWidth, poolingParams.FilterWidth, poolingParams.StrideWidth );
-	const int outDepth = calcConvDimSize( poolingParams.InputDepth, poolingParams.FilterDepth, poolingParams.StrideDepth );
+	const int outHeight = calcConvOutputSize( poolingParams.InputHeight, 0, poolingParams.FilterHeight, 1, poolingParams.StrideHeight );
+	const int outWidth = calcConvOutputSize( poolingParams.InputWidth, 0, poolingParams.FilterWidth, 1, poolingParams.StrideWidth );
+	const int outDepth = calcConvOutputSize( poolingParams.InputDepth, 0, poolingParams.FilterDepth, 1, poolingParams.StrideDepth );
 
-	CREATE_FILL_FLOAT_ARRAY( outputDiffData, valuesInterval.Begin, valuesInterval.End, poolingParams.InputCount * outHeight * outWidth * outDepth * poolingParams.InputChannels, random )
-	CFloatBlob outputDiffBlob( MathEngine(), poolingParams.InputCount, outHeight, outWidth, outDepth, poolingParams.InputChannels );
-	outputDiffBlob.CopyFrom( outputDiffData.data() );
-	CFloatBlob outputBlob( MathEngine(), poolingParams.InputCount, outHeight, outWidth, outDepth, poolingParams.InputChannels );
+	CREATE_FILL_FLOAT_ARRAY( resultDiff, valuesInterval.Begin, valuesInterval.End, poolingParams.InputCount * outHeight * outWidth * outDepth * poolingParams.InputChannels, random )
+	CFloatBlob resultDiffBlob( MathEngine(), poolingParams.InputCount, outHeight, outWidth, outDepth, poolingParams.InputChannels );
+	resultDiffBlob.CopyFrom( resultDiff.data() );
+	CFloatBlob resultBlob( MathEngine(), poolingParams.InputCount, outHeight, outWidth, outDepth, poolingParams.InputChannels );
 
-	CREATE_FILL_FLOAT_ARRAY( inputData, valuesInterval.Begin, valuesInterval.End, poolingParams.InputCount * poolingParams.InputHeight * poolingParams.InputWidth
+	CREATE_FILL_FLOAT_ARRAY( sourceData, valuesInterval.Begin, valuesInterval.End, poolingParams.InputCount * poolingParams.InputHeight * poolingParams.InputWidth
 		* poolingParams.InputDepth * poolingParams.InputChannels, random )
-	CFloatBlob inputDataBlob( MathEngine(), poolingParams.InputCount, poolingParams.InputHeight,
+	CFloatBlob sourceDataBlob( MathEngine(), poolingParams.InputCount, poolingParams.InputHeight,
 		poolingParams.InputWidth, poolingParams.InputDepth, poolingParams.InputChannels );
-	inputDataBlob.CopyFrom( inputData.data() );
+	sourceDataBlob.CopyFrom( sourceData.data() );
 
-	CFloatBlob inputDiffBlob( MathEngine(), poolingParams.InputCount, poolingParams.InputHeight,
+	CFloatBlob sourceDiffBlob( MathEngine(), poolingParams.InputCount, poolingParams.InputHeight,
 		poolingParams.InputWidth, poolingParams.InputDepth, poolingParams.InputChannels );
 
 	CIntBlob indexBlob( MathEngine(), poolingParams.InputCount, outHeight, outWidth, outDepth, poolingParams.InputChannels );
 	CIntHandle indexBlobPtr = indexBlob.GetData();
 
-	auto poolingDesc = MathEngine().Init3dMaxPooling( inputDataBlob.GetDesc(), poolingParams.FilterHeight, poolingParams.FilterWidth, poolingParams.FilterDepth,
-		poolingParams.StrideHeight, poolingParams.StrideWidth, poolingParams.StrideDepth, outputDiffBlob.GetDesc() );
-	MathEngine().Blob3dMaxPooling( *poolingDesc, inputDataBlob.GetData(), &indexBlobPtr, outputBlob.GetData()  );
+	const auto poolingDesc = MathEngine().Init3dMaxPooling( sourceDataBlob.GetDesc(), poolingParams.FilterHeight, poolingParams.FilterWidth, poolingParams.FilterDepth,
+		poolingParams.StrideHeight, poolingParams.StrideWidth, poolingParams.StrideDepth, resultDiffBlob.GetDesc() );
+	MathEngine().Blob3dMaxPooling( *poolingDesc, sourceDataBlob.GetData(), &indexBlobPtr, resultBlob.GetData() );
 
-	MathEngine().Blob3dMaxPoolingBackward( *poolingDesc, outputDiffBlob.GetData(), indexBlobPtr, inputDiffBlob.GetData() );
+	MathEngine().Blob3dMaxPoolingBackward( *poolingDesc, resultDiffBlob.GetData(), indexBlobPtr, sourceDiffBlob.GetData() );
 	delete poolingDesc;
 
 	std::vector<int> maxIndices;
 	maxIndices.resize( poolingParams.InputCount * outHeight * outWidth * outDepth * poolingParams.InputChannels );
 	indexBlob.CopyTo( maxIndices.data() );
 
-	const int inputDiffSize = poolingParams.InputCount * poolingParams.InputHeight * poolingParams.InputWidth * poolingParams.InputDepth * poolingParams.InputChannels;
+	const int sourceDiffSize = poolingParams.InputCount * poolingParams.InputHeight * poolingParams.InputWidth * poolingParams.InputDepth * poolingParams.InputChannels;
 	std::vector<float> actualDiff, expectedDiff;
-	actualDiff.resize( inputDiffSize );
-	inputDiffBlob.CopyTo( actualDiff.data() );
-	expectedDiff.insert( expectedDiff.begin(), inputDiffSize, 0 );
+	actualDiff.resize( sourceDiffSize );
+	sourceDiffBlob.CopyTo( actualDiff.data() );
+	expectedDiff.insert( expectedDiff.begin(), sourceDiffSize, 0 );
 
-	max3dPoolingBackwardNaive( poolingParams, outputDiffData.data(), maxIndices.data(), expectedDiff.data() );
+	max3dPoolingBackwardNaive( poolingParams, resultDiff.data(), maxIndices.data(), expectedDiff.data() );
 
-	for( int i = 0; i < inputDiffSize; ++i ) {
+	for( int i = 0; i < sourceDiffSize; ++i ) {
 		ASSERT_NEAR( expectedDiff[i], actualDiff[i], 1e-3 );
 	}
 }

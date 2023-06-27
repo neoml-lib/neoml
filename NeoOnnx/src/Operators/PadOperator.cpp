@@ -41,16 +41,24 @@ CPadOperator::CPadOperator( const onnx::NodeProto& pad, int opsetVersion ) :
 	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
 
 	GetAttribute( "mode", mode );
-	CheckNeoOnnxSupport( mode == "constant", "Pad with non-constant mode", *this );
 }
 
 void CPadOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
+	CheckNoShapeInputs( inputs );
 	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
 	CFastArray<int, 8> pads;
 	getPads( inputs, pads );
 	const float value = getPadValue( inputs );
-	outputs.Add( PadUserTensor( *AsUserTensor( *inputs[0], Name() + "_Source", dnn ), pads, value).Ptr());
+	TBlobResizePadding padding = TBlobResizePadding::Constant;
+	if( mode == "edge" ) {
+		padding = TBlobResizePadding::Edge;
+	} else if( mode == "reflect" ) {
+		padding = TBlobResizePadding::Reflect;
+	} else {
+		CheckOnnxProtocol( mode == "constant", "Unknown padding mode", *this );
+	}
+	outputs.Add( PadUserTensor( *AsUserTensor( *inputs[0], Name() + "_Source", dnn ), pads, padding, value).Ptr());
 }
 
 // Gets pads sizes
@@ -61,7 +69,7 @@ void CPadOperator::getPads( const CTensorArray& inputs, CFastArray<int, 8>& pads
 		CheckOnnxProtocol( GetAttribute( padAttributeName, pads ),
 			"'pads' attribute is missing", *this );
 	} else {
-		CheckNeoOnnxSupport( inputs[1]->IsCalculated(), "user-provided pad sizes", *this );
+		CheckNeoOnnxSupport( inputs[1]->Type() == TTensorType::Data, "user-provided pad sizes", *this );
 		const CDnnBlob& padsBlob = *( dynamic_cast<const CDataTensor*>( inputs[1].Ptr() )->Data() );
 		CheckOnnxProtocol( padsBlob.GetDataType() == CT_Int, "non-integer pad sizes", *this );
 		pads.SetSize( padsBlob.GetDataSize() );
@@ -76,7 +84,7 @@ float CPadOperator::getPadValue( const CTensorArray& inputs ) const
 	if( OpsetVersion < 11 ) {
 		GetAttribute( "value", padValue );
 	} else if( InputCount() == 3 ) {
-		CheckNeoOnnxSupport( inputs[2]->IsCalculated(), "user-provided pad value", *this );
+		CheckNeoOnnxSupport( inputs[2]->Type() == TTensorType::Data, "user-provided pad value", *this );
 		const CDnnBlob& valueBlob = *( dynamic_cast<const CDataTensor*>( inputs[2].Ptr() )->Data() );
 		if( valueBlob.GetDataType() == CT_Float ) {
 			padValue = valueBlob.GetData<float>().GetValue();

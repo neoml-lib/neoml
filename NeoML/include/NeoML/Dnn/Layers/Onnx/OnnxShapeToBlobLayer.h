@@ -1,10 +1,10 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,30 +16,21 @@ limitations under the License.
 #pragma once
 
 #include <NeoML/NeoMLDefs.h>
-#include <NeoML/Dnn/Dnn.h>
+#include <NeoML/Dnn/Layers/Onnx/OnnxLayerBase.h>
 
 namespace NeoML {
 
-// Activation layer with formual x * Ф(x),
-// where Ф(x) - cumulative distribution function for the normal distribution N(0, 1)
-// This layer uses next approximation: x * sigmoid(1.702 * x)
-class NEOML_API CGELULayer : public CBaseLayer {
-	NEOML_DNN_LAYER( CGELULayer )
+// Special layer which takes shape-blob from its only input and returns it as a usual blob
+class NEOML_API COnnxShapeToBlobLayer : public COnnxLayerBase {
 public:
-	explicit CGELULayer( IMathEngine& mathEngine );
+	explicit COnnxShapeToBlobLayer( IMathEngine& mathEngine ) : COnnxLayerBase( mathEngine, "OnnxShapeToBlobLayer" ) {}
 
 	void Serialize( CArchive& archive ) override;
 
 protected:
-	void Reshape() override;
+	void CalculateShapes() override;
 	void RunOnce() override;
-	void BackwardOnce() override;
-
-private:
-	// Constant 1.702f
-	CFloatHandleVar multiplierVar;
 };
 
-NEOML_API CLayerWrapper<CGELULayer> Gelu();
-
 } // namespace NeoML
+

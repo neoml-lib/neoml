@@ -50,10 +50,14 @@ void CCastLayer::SetOutputType( TBlobType type )
 
 void CCastLayer::Reshape()
 {
-	CheckArchitecture( inputDescs.Size() == 1, GetName(), "CCastLayer must have 1 input" );
-	CheckArchitecture( outputDescs.Size() == 1, GetName(), "CCastLayer must have 1 output" );
+	CheckLayerArchitecture( inputDescs.Size() == 1, "CCastLayer must have 1 input" );
+	CheckLayerArchitecture( outputDescs.Size() == 1, "CCastLayer must have 1 output" );
 	outputDescs[0] = inputDescs[0];
 	outputDescs[0].SetDataType( outputType );
+	if( IsBackwardPerformed() ) {
+		CheckLayerArchitecture( inputDescs[0].GetDataType() == CT_Float && outputDescs[0].GetDataType() == CT_Float,
+			"Backward is possible only over float data" );
+	}
 }
 
 void CCastLayer::RunOnce()
@@ -69,7 +73,6 @@ void CCastLayer::RunOnce()
 
 void CCastLayer::BackwardOnce()
 {
-	NeoAssert( inputBlobs[0]->GetDataType() == CT_Float && outputBlobs[0]->GetDataType() == CT_Float );
 	inputDiffBlobs[0]->CopyFrom( outputDiffBlobs[0] );
 }
 

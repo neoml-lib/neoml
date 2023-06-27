@@ -118,7 +118,7 @@ CMemoryPool::~CMemoryPool()
 
 void CMemoryPool::SetReuseMemoryMode( bool enable )
 {
-	thread::id id = this_thread::get_id();
+	std::thread::id id = std::this_thread::get_id();
 	auto pool = pools.find( id );
 	if( pool == pools.end() ) {
 		createPools( id );
@@ -130,7 +130,7 @@ void CMemoryPool::SetReuseMemoryMode( bool enable )
 
 CMemoryHandle CMemoryPool::Alloc( size_t size )
 {
-	thread::id id = this_thread::get_id();
+	std::thread::id id = std::this_thread::get_id();
 	auto pool = pools.find( id );
 	if( pool == pools.end() ) {
 		createPools( id );
@@ -164,7 +164,7 @@ void CMemoryPool::Free( const CMemoryHandle& handle )
 
 size_t CMemoryPool::GetMemoryInPools() const
 {
-	thread::id id = this_thread::get_id();
+	std::thread::id id = std::this_thread::get_id();
 	auto pool = pools.find( id );
 	if( pool == pools.end() ) {
 		return 0;
@@ -176,10 +176,10 @@ size_t CMemoryPool::GetMemoryInPools() const
 
 void CMemoryPool::CleanUp()
 {
-	cleanUp( this_thread::get_id() );
+	cleanUp( std::this_thread::get_id() );
 }
 
-void CMemoryPool::createPools( thread::id id )
+void CMemoryPool::createPools( std::thread::id id )
 {
 	CThreadData threadData;
 	threadData.Enabled = defaultReuseMemoryMode;
@@ -190,7 +190,7 @@ void CMemoryPool::createPools( thread::id id )
 	pools[id] = threadData;
 }
 
-void CMemoryPool::cleanUp( thread::id id )
+void CMemoryPool::cleanUp( std::thread::id id )
 {
 	auto pool = pools.find( id );
 	if( pool == pools.end() ) {
@@ -255,7 +255,7 @@ CMemoryHandle CMemoryPool::alloc( size_t size )
 	if( !result.IsNull() ) {
 		allocatedMemory += size;
 	}
-	peakMemoryUsage = max( peakMemoryUsage, allocatedMemory );
+	peakMemoryUsage = std::max( peakMemoryUsage, allocatedMemory );
 
 	return result;
 }

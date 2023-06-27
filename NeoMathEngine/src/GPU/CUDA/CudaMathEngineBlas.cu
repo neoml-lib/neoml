@@ -236,6 +236,25 @@ void CCudaMathEngine::SubVectorFromMatrixColumns(const CConstFloatHandle& matrix
 		(GetRaw(matrixHandle), GetRaw(resultHandle), matrixHeight, matrixWidth, GetRaw(vectorHandle));
 }
 
+void CCudaMathEngine::SumMatrixRows( int batchSize, const CIntHandle& resultHandle,
+	const CConstIntHandle& matrixHandle, int matrixHeight, int matrixWidth )
+{
+	ASSERT_EXPR( matrixHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
+
+	VectorFill( resultHandle, 0, batchSize * matrixWidth );
+
+	const int height = ( matrixHeight + SumMatrixRowsAddCombineCount - 1 ) / SumMatrixRowsAddCombineCount;
+
+	dim3 blockCount;
+	dim3 threadCount;
+	getCudaTaskGrid3D( blockCount, threadCount, batchSize, height, matrixWidth );
+
+	SumMatrixRowsAddKernel<<<blockCount, threadCount>>>
+		( batchSize, GetRaw(resultHandle), GetRaw(matrixHandle), matrixHeight, matrixWidth );
+}
+
 void CCudaMathEngine::SumMatrixRowsAdd( 
 	int batchSize, const CFloatHandle& resultHandle, const CConstFloatHandle& matrixHandle,
 	int matrixHeight, int matrixWidth )
@@ -753,15 +772,19 @@ void CCudaMathEngine::MatrixSpreadRows(const CConstIntHandle& sourceHandle, int 
 		resultHandle, resultHeight, GetRaw(indexHandle), fillValue);
 }
 
-void CCudaMathEngine::SingularValueDecomposition( const CFloatHandle& a, int n, int m, const CFloatHandle& u, const CFloatHandle& s,
+void CCudaMathEngine::SingularValueDecomposition( const CFloatHandle& a, int height, int width, const CFloatHandle& u, const CFloatHandle& s,
 	const CFloatHandle& vt, const CFloatHandle& superb, bool returnLeftVectors, bool returnRightVectors )
 {
 	ASSERT_EXPR( false );
 }
 
-void CCudaMathEngine::SparseSingularValueDecomposition( const CSparseMatrixDesc& desc, int height, int width,
-	const CFloatHandle& leftVectors, const CFloatHandle& s, const CFloatHandle& rightVectors, const CFloatHandle& res,
-	int components, bool returnLeftVectors )
+void CCudaMathEngine::QRFactorization( int height, int width, const CFloatHandle& matrixHandle, const CFloatHandle* qHandle, const CFloatHandle* rHandle,
+	bool inplace, bool returnQ, bool returnR )
+{
+	ASSERT_EXPR( false );
+}
+
+void CCudaMathEngine::LUFactorization( int, int, const CFloatHandle& )
 {
 	ASSERT_EXPR( false );
 }
@@ -834,6 +857,12 @@ void CCudaMathEngine::transposeMatrixImpl(int batchSize, const CTypedMemoryHandl
 {
 	int size = batchSize * height * medium * width * channels;
 	ASSERT_EXPR(resultBufferSize >= size);
+
+	if( medium == 1 && ( height == 1 || width == 1 ) ) {
+		VectorCopy( resultHandle, firstHandle, size );
+		return;
+	}
+
 	SetCudaDevice( device->DeviceNumber );
 
 	int blockCount;

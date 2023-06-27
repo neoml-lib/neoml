@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -170,15 +170,15 @@ public:
 	static void MergeByObject( IMathEngine& mathEngine, const CObjectArray<CDnnBlob>& from, const CPtr<CDnnBlob>& to );
 
 	// Splits blobs along the given dimension
-	static void SplitByDim( IMathEngine& mathEngine, TBlobDim d, const CPtr<CDnnBlob>& from, const CObjectArray<CDnnBlob>& to );
-	static void SplitByChannels( IMathEngine& mathEngine, const CPtr<CDnnBlob>& from, const CObjectArray<CDnnBlob>& to );
-	static void SplitByDepth( IMathEngine& mathEngine, const CPtr<CDnnBlob>& from, const CObjectArray<CDnnBlob>& to );
-	static void SplitByWidth( IMathEngine& mathEngine, const CPtr<CDnnBlob>& from, const CObjectArray<CDnnBlob>& to );
-	static void SplitByHeight( IMathEngine& mathEngine, const CPtr<CDnnBlob>& from, const CObjectArray<CDnnBlob>& to );
-	static void SplitByListSize( IMathEngine& mathEngine, const CPtr<CDnnBlob>& from, const CObjectArray<CDnnBlob>& to );
-	static void SplitByBatchWidth( IMathEngine& mathEngine, const CPtr<CDnnBlob>& from, const CObjectArray<CDnnBlob>& to );
-	static void SplitByBatchLength( IMathEngine& mathEngine, const CPtr<CDnnBlob>& from, const CObjectArray<CDnnBlob>& to );
-	static void SplitByObject( IMathEngine& mathEngine, const CPtr<CDnnBlob>& from, const CObjectArray<CDnnBlob>& to );
+	static void SplitByDim( IMathEngine& mathEngine, TBlobDim d, const CPtr<const CDnnBlob>& from, const CObjectArray<CDnnBlob>& to );
+	static void SplitByChannels( IMathEngine& mathEngine, const CPtr<const CDnnBlob>& from, const CObjectArray<CDnnBlob>& to );
+	static void SplitByDepth( IMathEngine& mathEngine, const CPtr<const CDnnBlob>& from, const CObjectArray<CDnnBlob>& to );
+	static void SplitByWidth( IMathEngine& mathEngine, const CPtr<const CDnnBlob>& from, const CObjectArray<CDnnBlob>& to );
+	static void SplitByHeight( IMathEngine& mathEngine, const CPtr<const CDnnBlob>& from, const CObjectArray<CDnnBlob>& to );
+	static void SplitByListSize( IMathEngine& mathEngine, const CPtr<const CDnnBlob>& from, const CObjectArray<CDnnBlob>& to );
+	static void SplitByBatchWidth( IMathEngine& mathEngine, const CPtr<const CDnnBlob>& from, const CObjectArray<CDnnBlob>& to );
+	static void SplitByBatchLength( IMathEngine& mathEngine, const CPtr<const CDnnBlob>& from, const CObjectArray<CDnnBlob>& to );
+	static void SplitByObject( IMathEngine& mathEngine, const CPtr<const CDnnBlob>& from, const CObjectArray<CDnnBlob>& to );
 
 	void Serialize( CArchive& ) override;
 
@@ -286,6 +286,9 @@ public:
 		access( _access ),
 		size( _size ),
 		ptr( blob.GetBuffer<TBufferType>( pos, size, access == TDnnBlobBufferAccess::Read || access == TDnnBlobBufferAccess::ReadWrite ) )
+	{}
+	CDnnBlobBuffer( CDnnBlob& _blob, TDnnBlobBufferAccess _access ) :
+		CDnnBlobBuffer( _blob, 0, _blob.GetDataSize(), _access )
 	{}
 	CDnnBlobBuffer( const CDnnBlobBuffer& ) = delete;
 	~CDnnBlobBuffer();

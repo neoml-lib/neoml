@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ limitations under the License.
 #include <NeoMathEngine/PerformanceCounters.h>
 #include <NeoMathEngine/CrtAllocatedObject.h>
 #include <NeoMathEngine/NeoMathEngineException.h>
+#include <NeoMathEngine/ThreadPool.h>
 #include <climits>
 
 namespace NeoML {
@@ -44,8 +45,46 @@ enum TActivationFunction {
 	AF_Power,
 	AF_HSwish,
 	AF_GELU,
+	AF_Exp,
+	AF_Log,
+	AF_Erf,
 
 	AF_Count
+};
+
+// Supported coordinate modes for linear interpolation
+// The variables in formula:
+//     - scale - size multiplier
+//     - x_old - coordinate in array before the interpolation 
+//     - x_new - coordinate in array after the interpolation
+//     - old_size - size before the transformation
+//     - new_size - size after the transformation  (int(ratio * old_size))
+enum class TInterpolationCoords : int {
+	HalfPixel, // x_old = ( x_new + 0.5 ) / scale - 0.5
+	PytorchHalfPixel, // x_old = ( new_size > 1 ) ? ( x_new + 0.5 ) / scale - 0.5 : 0
+	AlignCorners, // x_old = x_new * ( old_size - 1) / ( new_size - 1 )
+	Asymmetric, // x_old = x_new / scale
+
+	Count
+};
+
+// Suppported rounding for coordinates
+// Transform linear interpolation into nearest (if set)
+enum class TInterpolationRound : int {
+	None, // no rounding, keep interpolation linear
+	RoundPreferFloor, // round half down
+	RoundPreferCeil, // round half up
+	Floor, // always floor
+	Ceil, // always ceil
+
+	Count
+};
+
+// Determines how new columns/rows are filled when resizing image
+enum class TBlobResizePadding {
+	Constant, // fill with default value
+	Edge, // repeat the outermost value of the original image
+	Reflect // reflection padding
 };
 
 // The class provides operations on vectors
@@ -60,6 +99,8 @@ public:
 	// additionalWidth != 1 means broadcasting from (*fromDesc, additionalWidth) to (*toDesc, additionalWidth)
 	// where (*desc, additionalWidth) is 8-dimensional shape with last dimension equals additionalWidth,
 	// channels count of handle must be additionalWidth times bigger than channels count of corresponding desc.
+	virtual void BroadcastCopy(const CIntHandle& toHandle, const CConstIntHandle& fromHandle,
+		const CBlobDesc& toDesc, const CBlobDesc& fromDesc, int additionalWidth) = 0;
 	virtual void BroadcastCopy(const CFloatHandle& toHandle, const CConstFloatHandle& fromHandle,
 		const CBlobDesc& toDesc, const CBlobDesc& fromDesc, int additionalWidth) = 0;
 
@@ -91,7 +132,9 @@ public:
 		int followingDimension, const CFloatHandle& resultHandle) = 0;
 	// Cumulative Sum of blob elements along dimension with size `dimension`
 	virtual void VectorCumSumAlongDimension(const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
-		int followingDimension, const CFloatHandle& resultHandle) = 0;
+		int followingDimension, const CFloatHandle& resultHandle, bool reverse) = 0;
+	virtual void VectorCumSumAlongDimension(const CConstIntHandle& firstHandle, int precedingDimension, int dimension,
+		int followingDimension, const CIntHandle& resultHandle, bool reverse) = 0;
 	// Blob `first` is assumed to be a diagonal matrix
 	virtual void VectorSumAlongDimensionDiag( const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
 		int followingDimension, const CFloatHandle& resultHandle ) = 0;
@@ -138,7 +181,7 @@ public:
 		int vectorSize, const CConstFloatHandle& alpha ) = 0;
 
 	// H-Swish. f(x) = x * relu6(x + 3) / 6
-	virtual void VectorHSwish( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, 
+	virtual void VectorHSwish( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle,
 		int vectorSize ) = 0;
 	virtual void VectorHSwishDiff( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
 		const CFloatHandle& resultHandle, int vectorSize ) = 0;
@@ -203,6 +246,9 @@ public:
 	// result = -log(first)
 	virtual void VectorNegLog(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize) = 0;
 
+	// result = erf(first)
+	virtual void VectorErf( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize ) = 0;
+
 	// Calculates the Kullback-Leibler distance derivative for a Bernoulli distribution using the distribution parameters
 	virtual void VectorBernulliKLDerivative(const CConstFloatHandle& estimationHandle,
 		const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& target) = 0;
@@ -243,6 +289,8 @@ public:
 	// result = first * multiplier
 	virtual void VectorMultiply(const CConstFloatHandle& firstHandle,
 		const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& multiplierHandle) = 0;
+	virtual void VectorMultiply(const CConstIntHandle& firstHandle,
+		const CIntHandle& resultHandle, int vectorSize, const CConstIntHandle& multiplierHandle) = 0;
 	// result = -first * multiplier
 	virtual void VectorNegMultiply(const CConstFloatHandle& firstHandle,
 		const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& multiplierHandle) = 0;
@@ -260,6 +308,8 @@ public:
 		const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int vectorSize) = 0;
 
 	// result = first / second elementwise
+	virtual void VectorEltwiseDivide( const CConstIntHandle& firstHandle,
+		const CConstIntHandle& secondHandle, const CIntHandle& resultHandle, int vectorSize ) = 0;
 	virtual void VectorEltwiseDivide(const CConstFloatHandle& firstHandle,
 		const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int vectorSize) = 0;
 
@@ -311,6 +361,9 @@ public:
 	virtual void VectorDotProduct(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle, int vectorSize,
 		const CFloatHandle& resultHandle) = 0;
 
+	// result[i] = first[i] == 0 ? 1 : 0
+	virtual void VectorEltwiseNot( const CConstIntHandle& firstHandle, const CIntHandle& resultHandle, int vectorSize ) = 0;
+
 	// result[i] = first[i] >= 0 ? 1.f : 0.f
 	virtual void VectorEltwiseNotNegative( const CConstIntHandle& firstHanle, const CFloatHandle& resultHandle, int vectorSize ) = 0;
 
@@ -321,6 +374,24 @@ public:
 		const CFloatHandle& resultHandle, int vectorSize ) = 0;
 	virtual void VectorEltwiseLess( float firstHandle, const CConstFloatHandle& secondHandle,
 		const CFloatHandle& resultHandle, int vectorSize ) = 0;
+
+	// result[i] = first[i] < second[i] ? 1 : 0
+	virtual void VectorEltwiseLess( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
+		const CIntHandle& resultHandle, int vectorSize ) = 0;
+	virtual void VectorEltwiseLess( const CConstIntHandle& firstHandle, const CConstIntHandle& secondHandle,
+		const CIntHandle& resultHandle, int vectorSize ) = 0;
+
+	// result[i] = first[i] == second[i] ? 1 : 0
+	virtual void VectorEltwiseEqual( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
+		const CIntHandle& resultHandle, int vectorSize ) = 0;
+	virtual void VectorEltwiseEqual( const CConstIntHandle& firstHandle, const CConstIntHandle& secondHandle,
+		const CIntHandle& resultHandle, int vectorSize ) = 0;
+
+	// result[i] = first[i] != 0 ? second[i] : third[i]
+	virtual void VectorEltwiseWhere( const CConstIntHandle& firstHandle, const CConstFloatHandle& secondHandle,
+		const CConstFloatHandle& thirdHandle, const CFloatHandle& resultHandle, int vectorSize ) = 0;
+	virtual void VectorEltwiseWhere( const CConstIntHandle& firstHandle, const CConstIntHandle& secondHandle,
+		const CConstIntHandle& thirdHandle, const CIntHandle& resultHandle, int vectorSize ) = 0;
 
 	virtual void VectorFindMaxValueInSet(const CConstFloatHandle* vectors, int vectorCount, const CFloatHandle& resultHandle, int vectorSize) = 0;
 	virtual void VectorFindMaxValueInSet(const CConstFloatHandle* vectors, int vectorCount, const CFloatHandle& resultHandle,
@@ -382,6 +453,8 @@ public:
 	virtual void SumMatrixRowsAdd(int batchSize, const CFloatHandle& resultHandle, const CConstFloatHandle& matrixHandle,
 		int matrixHeight, int matrixWidth) = 0;
 	virtual void SumMatrixRows(int batchSize, const CFloatHandle& resultHandle, const CConstFloatHandle& matrixHandle,
+		int matrixHeight, int matrixWidth) = 0;
+	virtual void SumMatrixRows(int batchSize, const CIntHandle& resultHandle, const CConstIntHandle& matrixHandle,
 		int matrixHeight, int matrixWidth) = 0;
 
 	// Calculates the total of matrix columns
@@ -490,9 +563,22 @@ public:
 	virtual void MultiplySparseMatrixByTransposedMatrix( int firstHeight, int firstWidth, int secondHeight,
 		const CSparseMatrixDesc& firstDesc, const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle ) = 0;
 
+	// result = T(first) * second, second is transposed if isTransposedSparse
+	virtual void MultiplyTransposedMatrixBySparseMatrix( int firstHeight, int firstWidth, int resultWidth,
+		const CConstFloatHandle& firstHandle, const CSparseMatrixDesc& secondDesc, const CFloatHandle& resultHandle,
+		bool isTransposedSparse ) = 0;
+
 	// result = result + T(first) * second. The result will be of firstWidth * secondWidth size
 	virtual void MultiplyTransposedMatrixBySparseMatrixAndAdd( int firstHeight, int firstWidth, int secondWidth,
 		const CConstFloatHandle& firstHandle, const CSparseMatrixDesc& secondDesc, const CFloatHandle& resultHandle ) = 0;
+
+	// result = first * second. The result will be of firstHeight * secondWidth size
+	virtual void MultiplySparseMatrixByMatrix( int firstHeight, int firstWidth, int secondWidth,
+		const CSparseMatrixDesc& firstDesc, const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle ) = 0;
+
+	// result = T(first) * second. The result size is firstWidth * secondWidth
+	virtual void MultiplyTransposedSparseMatrixByMatrix( int firstHeight, int firstWidth, int secondWidth,
+		const CSparseMatrixDesc& firstDesc, const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle ) = 0;
 
 	// result = result + first(T) * second
 	virtual void MultiplyTransposedMatrixByMatrixAndAdd(const CConstFloatHandle& firstHandle, int firstHeight, int firstWidth, int firstRowSize,
@@ -548,13 +634,24 @@ public:
 		const CConstIntHandle& fillValue ) = 0;
 
 	// Computes the singular value decomposition of the dense matrix `a`: `a` = `u` * `s` * `vt`
-	virtual void SingularValueDecomposition( const CFloatHandle& a, int n, int m, const CFloatHandle& u, const CFloatHandle& s,
+	virtual void SingularValueDecomposition( const CFloatHandle& a, int height, int width, const CFloatHandle& u, const CFloatHandle& s,
 		const CFloatHandle& vt, const CFloatHandle& superb, bool returnLeftVectors, bool returnRightVectors ) = 0;
-	// Computes the truncated singular value decomposition of the sparse matrix using `components` largest singular values
-	// If returnLeftVectors is true return only left singular vectors, otherwise only right
-	virtual void SparseSingularValueDecomposition( const CSparseMatrixDesc& desc, int height, int width,
-		const CFloatHandle& leftVectors, const CFloatHandle& s, const CFloatHandle& rightVectors, const CFloatHandle& res,
-		int components, bool returnLeftVectors ) = 0;
+
+	// Computes the QR factorization of the matrix = Q x R, where Q is of shape (height, min(height, width)), R is of shape(height, width).
+	// If returnQ or returnR is false then the corresponding matrix in the factorization is not returned.
+	// If inplace is true then the matrixHandle will be overwritten with a content of matrix R.
+	virtual void QRFactorization( int height, int width, const CFloatHandle& matrixHandle, const CFloatHandle* qHandle, const CFloatHandle* rHandle,
+		bool inplace, bool returnQ, bool returnR ) = 0;
+
+	// Computes the LU-factorization in the following manner
+	//   P * A = L * U
+	// where
+	//   - P - permutation matrix
+	//   - A - the data matrix, to be factorized
+	//   - L - lower diagonal matrix with units (1.f) on the diagonal
+	//   - U - upper diagonal matrix with non-trivial elements on the diagonal
+	// This function overwrites matrixHandle with "permuted L" = P^(-1) * L .
+	virtual void LUFactorization( int height, int width, const CFloatHandle& matrixHandle ) = 0;
 };
 
 // Blob operations descriptors
@@ -610,16 +707,23 @@ public:
 		const CBlobDesc& to, const CFloatHandle& toData ) = 0;
 	virtual void BlobMergeByDim( TBlobDim dim, const CBlobDesc* from, const CIntHandle* fromData, int fromCount,
 		const CBlobDesc& to, const CIntHandle& toData ) = 0;
-	virtual void BlobSplitByDim( TBlobDim dim, const CBlobDesc& from, const CFloatHandle& fromData,
+	virtual void BlobSplitByDim( TBlobDim dim, const CBlobDesc& from, const CConstFloatHandle& fromData,
 		const CBlobDesc* to, const CFloatHandle* toData, int toCount ) = 0;
-	virtual void BlobSplitByDim( TBlobDim dim, const CBlobDesc& from, const CIntHandle& fromData,
+	virtual void BlobSplitByDim( TBlobDim dim, const CBlobDesc& from, const CConstIntHandle& fromData,
 		const CBlobDesc* to, const CIntHandle* toData, int toCount ) = 0;
 
 	// Resizes images in a blob
 	// For delta < 0 the pixels at the edges are erased
-	// For delta > 0 the extra pixels at the edges are filled with defaultValue
+	// For delta > 0 the extra pixels at the edges are filled with corresponding padding
 	virtual void BlobResizeImage( const CBlobDesc& from, const CFloatHandle& fromData, int deltaLeft, int deltaRight,
-		int deltaTop, int deltaBottom, float defaultValue, const CBlobDesc& to, const CFloatHandle& toData ) = 0;
+		int deltaTop, int deltaBottom, TBlobResizePadding padding, float defaultValue,
+		const CBlobDesc& to, const CFloatHandle& toData ) = 0;
+	void BlobResizeImage( const CBlobDesc& from, const CFloatHandle& fromData, int deltaLeft, int deltaRight,
+		int deltaTop, int deltaBottom, float defaultValue, const CBlobDesc& to, const CFloatHandle& toData )
+	{
+		BlobResizeImage( from, fromData, deltaLeft, deltaRight, deltaTop, deltaBottom,
+			TBlobResizePadding::Constant, defaultValue, to, toData );
+	}
 
 	// Retrieves subsequences from the blob sequences and, if necessary, reverses them
 	virtual void BlobGetSubSequence( const CBlobDesc& from, const CFloatHandle& fromData, const CIntHandle& indexHandle,
@@ -693,7 +797,7 @@ public:
 	virtual void BlobGlobalMaxPooling( const CGlobalMaxPoolingDesc& desc,
 		const CConstFloatHandle& source, const CIntHandle& maxIndices, const CFloatHandle& result ) = 0;
 	virtual void BlobGlobalMaxPoolingBackward( const CGlobalMaxPoolingDesc& desc,
-		const CFloatHandle& outputDiff, const CIntHandle& maxIndices, const CFloatHandle& inputDiff ) = 0;
+		const CConstFloatHandle& resultDiff, const CConstIntHandle& maxIndices, const CFloatHandle& sourceDiff ) = 0;
 
 	// 3dMax-Pooling
 	// The descriptor should be destroyed using the standard delete operator after use.
@@ -701,10 +805,10 @@ public:
 		int filterHeight, int filterWidth, int filterDepth,
 		int strideHeight, int strideWidth, int strideDepth, const CBlobDesc& result ) = 0;
 
-	virtual void Blob3dMaxPooling( const C3dMaxPoolingDesc& desc, const CFloatHandle& source,
+	virtual void Blob3dMaxPooling( const C3dMaxPoolingDesc& desc, const CConstFloatHandle& source,
 		const CIntHandle* maxIndices, const CFloatHandle& result ) = 0;
-	virtual void Blob3dMaxPoolingBackward( const C3dMaxPoolingDesc& desc, const CFloatHandle& outputDiff,
-		const CIntHandle& maxIndices, const CFloatHandle& inputDiff ) = 0;
+	virtual void Blob3dMaxPoolingBackward( const C3dMaxPoolingDesc& desc, const CConstFloatHandle& resultDiff,
+		const CConstIntHandle& maxIndices, const CFloatHandle& sourceDiff ) = 0;
 
 	// 3dMean-Pooling
 	// The descriptor should be destroyed using the standard delete operator after use.
@@ -713,10 +817,10 @@ public:
 		int strideHeight, int strideWidth, int strideDepth,
 		const CBlobDesc& result ) = 0;
 
-	virtual void Blob3dMeanPooling( const C3dMeanPoolingDesc& desc, const CFloatHandle& source,
+	virtual void Blob3dMeanPooling( const C3dMeanPoolingDesc& desc, const CConstFloatHandle& source,
 		const CFloatHandle& result ) = 0;
-	virtual void Blob3dMeanPoolingBackward( const C3dMeanPoolingDesc& desc, const CFloatHandle& outputDiff,
-		const CFloatHandle& inputDiff) = 0;
+	virtual void Blob3dMeanPoolingBackward( const C3dMeanPoolingDesc& desc, const CConstFloatHandle& resultDiff,
+		const CFloatHandle& sourceDiff ) = 0;
 
 	// Max-Pooling
 	// The descriptor should be destroyed using the standard delete operator after use.
@@ -724,19 +828,19 @@ public:
 		int filterHeight, int filterWidth, int strideHeight, int strideWidth,
 		const CBlobDesc& result ) = 0;
 
-	virtual void BlobMaxPooling( const CMaxPoolingDesc& desc, const CFloatHandle& source,
+	virtual void BlobMaxPooling( const CMaxPoolingDesc& desc, const CConstFloatHandle& source,
 		const CIntHandle* maxIndices, const CFloatHandle& result) = 0;
-	virtual void BlobMaxPoolingBackward( const CMaxPoolingDesc& desc, const CFloatHandle& outputDiff,
-		const CIntHandle& maxIndices, const CFloatHandle& inputDiff) = 0;
+	virtual void BlobMaxPoolingBackward( const CMaxPoolingDesc& desc, const CConstFloatHandle& resultDiff,
+		const CConstIntHandle& maxIndices, const CFloatHandle& sourceDiff ) = 0;
 
 	// MaxOverTime-Pooling
 	// The descriptor should be destroyed using the standard delete operator after use.
 	virtual CMaxOverTimePoolingDesc* InitMaxOverTimePooling( const CBlobDesc& source,
 		int filterLen, int strideLen, const CBlobDesc& result ) = 0;
-	virtual void BlobMaxOverTimePooling( const CMaxOverTimePoolingDesc& desc, const CFloatHandle& source,
+	virtual void BlobMaxOverTimePooling( const CMaxOverTimePoolingDesc& desc, const CConstFloatHandle& source,
 		const CIntHandle* maxIndices, const CFloatHandle& result) = 0;
-	virtual void BlobMaxOverTimePoolingBackward( const CMaxOverTimePoolingDesc& desc, const CFloatHandle& outputDiff,
-		const CIntHandle& maxIndices, const CFloatHandle& inputDiff ) = 0;
+	virtual void BlobMaxOverTimePoolingBackward( const CMaxOverTimePoolingDesc& desc, const CConstFloatHandle& resultDiff,
+		const CConstIntHandle& maxIndices, const CFloatHandle& sourceDiff ) = 0;
 
 	// Mean-Pooling
 	// The descriptor should be destroyed using the standard delete operator after use.
@@ -744,17 +848,17 @@ public:
 		int filterHeight, int filterWidth, int strideHeight, int strideWidth,
 		const CBlobDesc& result ) = 0;
 
-	virtual void BlobMeanPooling( const CMeanPoolingDesc& desc, const CFloatHandle& source, const CFloatHandle& result ) = 0;
-	virtual void BlobMeanPoolingBackward( const CMeanPoolingDesc& desc, const CFloatHandle& outputDiff, const CFloatHandle& inputDiff ) = 0;
+	virtual void BlobMeanPooling( const CMeanPoolingDesc& desc, const CConstFloatHandle& source, const CFloatHandle& result ) = 0;
+	virtual void BlobMeanPoolingBackward( const CMeanPoolingDesc& desc, const CConstFloatHandle& resultDiff, const CFloatHandle& sourceDiff ) = 0;
 
 	// GlobalMaxOverTime-Pooling
 	// The descriptor should be destroyed using the standard delete operator after use.
 	virtual CGlobalMaxOverTimePoolingDesc* InitGlobalMaxOverTimePooling( const CBlobDesc& source, const CBlobDesc& result ) = 0;
 
-	virtual void BlobGlobalMaxOverTimePooling( const CGlobalMaxOverTimePoolingDesc& desc, const CFloatHandle& source, const CIntHandle* maxIndices,
-		const CFloatHandle& result ) = 0;
-	virtual void BlobGlobalMaxOverTimePoolingBackward( const CGlobalMaxOverTimePoolingDesc& desc, const CFloatHandle& source, const CIntHandle& maxIndices,
-		const CFloatHandle& result ) = 0;
+	virtual void BlobGlobalMaxOverTimePooling( const CGlobalMaxOverTimePoolingDesc& desc, const CConstFloatHandle& source,
+		const CIntHandle* maxIndices, const CFloatHandle& result ) = 0;
+	virtual void BlobGlobalMaxOverTimePoolingBackward( const CGlobalMaxOverTimePoolingDesc& desc, const CConstFloatHandle& resultDiff,
+		const CConstIntHandle& maxIndices, const CFloatHandle& sourceDiff ) = 0;
 
 	virtual void Upsampling2DForward( const CBlobDesc& input, const CConstIntHandle& inputData, int heightCopyCount,
 		int widthCopyCount, const CBlobDesc& result, const CIntHandle& resultData ) = 0;
@@ -822,16 +926,16 @@ public:
 	// 3 4 5           3 5 7
 	// 6 7 8           6 8 10
 	// On backward pass, substracts the column number
-	virtual void AddWidthIndex( const CBlobDesc& source, const CFloatHandle& sourceData, bool isForward, const CFloatHandle& result ) = 0;
-	virtual void AddWidthIndex( const CBlobDesc& source, const CIntHandle& sourceData, bool isForward, const CIntHandle& result ) = 0;
+	virtual void AddWidthIndex( const CBlobDesc& source, const CConstFloatHandle& sourceData, bool isForward, const CFloatHandle& result ) = 0;
+	virtual void AddWidthIndex( const CBlobDesc& source, const CConstIntHandle& sourceData, bool isForward, const CIntHandle& result ) = 0;
 
 	// To each element, adds its row number (on forward pass)
 	// 0 1 2   --->    0 1 2
 	// 3 4 5           4 5 6
 	// 6 7 8           8 9 10 
 	// On backward pass, substracts the row number
-	virtual void AddHeightIndex( const CBlobDesc& source, const CFloatHandle& sourceData, bool isForward, const CFloatHandle& result ) = 0;
-	virtual void AddHeightIndex( const CBlobDesc& source, const CIntHandle& sourceData, bool isForward, const CIntHandle& result ) = 0;
+	virtual void AddHeightIndex( const CBlobDesc& source, const CConstFloatHandle& sourceData, bool isForward, const CFloatHandle& result ) = 0;
+	virtual void AddHeightIndex( const CBlobDesc& source, const CConstIntHandle& sourceData, bool isForward, const CIntHandle& result ) = 0;
 
 	// Initializes the dropout descriptor.
 	// The dropout descriptor should be destroyed using the standard delete operator after use.
@@ -948,6 +1052,51 @@ public:
 	virtual void BertConvBackward( const CConstFloatHandle& dataHandle, const CConstFloatHandle& kernelHandle,
 		const CConstFloatHandle& outDiffHandle, int seqLen, int batchSize, int numHeads, int headSize, int kernelSize,
 		const CFloatHandle& dataDiffHandle, const CFloatHandle& kernelDiffHandle ) = 0;
+
+	// Linear interpolation
+
+	// data is a 3D tensor of size objectCount x scaledAxis x objectSize
+	// result is a 3D tensor of size objectCount x int(scaledAxis * scale) x objectSize
+	virtual void LinearInterpolation( const CConstFloatHandle& dataHandle, const CFloatHandle& resultHandle,
+		TInterpolationCoords coords, TInterpolationRound round, int objectCount, int scaledAxis, int objectSize, float scale ) = 0;
+
+	// ScatterND
+	// Replaces objects in the provided indices with the values from the updates
+	// data[indices[i]] = updates[i] for i in [0; updateCount)
+	// where indices[i] means coordinates in the first indexDims dimensions of the blob
+	// Unaffected data objects remain as-is
+	//
+	// Data consists of objectCount x objectSize elements where objectCount is a production of first indexDims dimensions
+	// Indices consists of updateCount x indexDims elements
+	// Updates consists of updateCount x objectCount elements
+	virtual void ScatterND( const CConstIntHandle& indicesHandle, const CConstFloatHandle& updatesHandle,
+		const CFloatHandle& dataHandle, const CBlobDesc& dataDesc, int updateCount, int indexDims ) = 0;
+	virtual void ScatterND( const CConstIntHandle& indicesHandle, const CConstIntHandle& updatesHandle,
+		const CIntHandle& dataHandle, const CBlobDesc& dataDesc, int updateCount, int indexDims ) = 0;
+
+	virtual void ChannelwiseWith1x1( const CBlobDesc& inputDesc, const CBlobDesc& outputDesc,
+		const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& inputHandle,
+		const CConstFloatHandle& channelwiseFilter, const CConstFloatHandle* channelwiseFreeTerm,
+		TActivationFunction activation, float activationParam, const CConstFloatHandle& convFilter,
+		const CConstFloatHandle* convFreeTerm, bool residual, const CFloatHandle& outputHandle ) = 0;
+	virtual void MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobDesc& outputDesc,
+		const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& inputHandle,
+		const CConstFloatHandle& expandFilter, const CConstFloatHandle* expandFreeTerm,
+		TActivationFunction expandActivation, float expandActivationParam, const CConstFloatHandle& channelwiseFilter,
+		const CConstFloatHandle* channelwiseFreeTerm, TActivationFunction channelwiseActivation,
+		float channelwiseActivationParam, const CConstFloatHandle& downFilter, const CConstFloatHandle* downFreeTerm,
+		bool residual, const CFloatHandle& outputHandle ) = 0;
+	virtual void MobileNetV3PreSEBlock( const CBlobDesc& inputDesc, const CBlobDesc& outputDesc,
+		const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& inputHandle,
+		const CConstFloatHandle& expandFilter, const CConstFloatHandle* expandFreeTerm,
+		TActivationFunction expandActivation, float expandActivationParam, const CConstFloatHandle& channelwiseFilter,
+		const CConstFloatHandle* channelwiseFreeTerm, TActivationFunction channelwiseActivation,
+		float channelwiseActivationParam, const CFloatHandle& outputHandle ) = 0;
+	virtual void MobileNetV3PostSEBlock( const CBlobDesc& channelwiseOutputDesc, int outputChannels,
+		const CConstFloatHandle& channelwiseOutputHandle, const CConstFloatHandle& squeezeAndExciteHandle,
+		const CConstFloatHandle* residualHandle, TActivationFunction activation, float activationParam,
+		const CConstFloatHandle& downFilterHandle, const CConstFloatHandle* downFreeTermHandle,
+		const CFloatHandle& outputHandle ) = 0;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -1118,6 +1267,11 @@ NEOMATHENGINE_API void CreateDistributedCpuMathEngines( IMathEngine** mathEngine
 // Creates `count` gpu MathEngines connected via distributed communicator object
 // i-th MathEngine placed on gpu with number devs[i]
 NEOMATHENGINE_API void CreateDistributedCudaMathEngines( IMathEngine** mathEngines, int devsCount, const int* cudaDevs );
+
+// Deinitialization function for NeoMathEngine library
+// It's recommended to call this function during the unload of the dynamic library
+// (esp. if you want to load/unload NeoMathEngine multiple times)
+NEOMATHENGINE_API void DeinitializeNeoMathEngine();
 
 } // namespace NeoML
 

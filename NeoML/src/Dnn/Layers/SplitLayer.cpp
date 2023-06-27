@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -98,7 +98,7 @@ void CBaseSplitLayer::BackwardOnce()
 	CDnnBlob::MergeByDim( MathEngine(), dimension, outputDiffBlobs, inputDiffBlobs[0] );
 }
 
-// ====================================================================================================================
+//----------------------------------------------------------------------------------------------------
 
 static const int SplitChannelsLayerVersion = 2000;
 
@@ -128,7 +128,7 @@ CLayerWrapper<CSplitChannelsLayer> SplitChannels( int output0, int output1, int 
 	} );
 }
 
-// ====================================================================================================================
+//----------------------------------------------------------------------------------------------------
 
 static const int SplitDepthLayerVersion = 2000;
 
@@ -158,7 +158,7 @@ CLayerWrapper<CSplitDepthLayer> SplitDepth( int output0, int output1, int output
 	} );
 }
 
-// ====================================================================================================================
+//----------------------------------------------------------------------------------------------------
 
 static const int SplitWidthLayerVersion = 2000;
 
@@ -188,7 +188,7 @@ CLayerWrapper<CSplitWidthLayer> SplitWidth( int output0, int output1, int output
 	} );
 }
 
-// ====================================================================================================================
+//----------------------------------------------------------------------------------------------------
 
 static const int SplitHeightLayerVersion = 2000;
 
@@ -218,7 +218,7 @@ CLayerWrapper<CSplitHeightLayer> SplitHeight( int output0, int output1, int outp
 	} );
 }
 
-// ====================================================================================================================
+//----------------------------------------------------------------------------------------------------
 
 static const int SplitListSizeLayerVersion = 0;
 
@@ -248,7 +248,7 @@ CLayerWrapper<CSplitListSizeLayer> SplitListSize( int output0, int output1, int 
 		} );
 }
 
-// ====================================================================================================================
+//----------------------------------------------------------------------------------------------------
 
 static const int SplitBatchWidthLayerVersion = 2000;
 
@@ -278,7 +278,7 @@ CLayerWrapper<CSplitBatchWidthLayer> SplitBatchWidth( int output0, int output1, 
 	} );
 }
 
-// ====================================================================================================================
+//----------------------------------------------------------------------------------------------------
 
 static const int SplitBatchLengthLayerVersion = 0;
 

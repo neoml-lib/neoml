@@ -27,8 +27,9 @@ namespace NeoML {
 void CEuclideanLossLayer::Reshape()
 {
 	CLossLayer::Reshape();
-	CheckArchitecture( inputDescs[1].GetDataType() == CT_Float, GetName(), "labels must be CT_Float" );
-	CheckArchitecture( inputDescs[0].ObjectSize() == inputDescs[1].ObjectSize(), GetName(), "the labels dimensions should be equal to the first input dimensions" );
+	CheckLayerArchitecture( inputDescs[1].GetDataType() == CT_Float, "labels must be CT_Float" );
+	CheckLayerArchitecture( inputDescs[0].ObjectSize() == inputDescs[1].ObjectSize(),
+		"the labels dimensions should be equal to the first input dimensions" );
 }
 
 void CEuclideanLossLayer::BatchCalculateLossAndGradient(int batchSize, CConstFloatHandle data, int vectorSize,
@@ -62,4 +63,4 @@ CLayerWrapper<CEuclideanLossLayer> EuclideanLoss( float lossWeight )
 	} );
 }
 
-}
+} // namespace NeoML

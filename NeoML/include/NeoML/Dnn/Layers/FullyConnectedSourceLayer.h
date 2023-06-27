@@ -59,6 +59,7 @@ protected:
 	void RunOnce() override;
 	void BackwardOnce() override;
 	void LearnOnce() override;
+	int BlobsForLearn() const override { return 0; }
 
 private:
 	CPtr<const IProblem> problem; // the current problem

@@ -68,7 +68,7 @@ enum TGradientBoostTreeBuilder {
 
 // Different model representations CGradientBoost can produce.
 enum TGradientBoostModelRepresentation {
-	// Straightforward representation used during trainig and for backward compatibility.
+	// Straightforward representation used during training and for backward compatibility.
 	GBMR_Linked,
 	// Optimized for low memory impact.
 	// Limited to 64K nodes per tree and (64K - 1) features.

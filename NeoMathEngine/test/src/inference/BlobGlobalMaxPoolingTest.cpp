@@ -14,16 +14,10 @@ limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
 #include <TestFixture.h>
+#include <MeTestCommon.h>
 
 using namespace NeoML;
 using namespace NeoMLTest;
-
-static inline int getFlatIndex(const CFloatBlob& blob, int seq, int batch, int list, int channel, int depth,
-	int row, int column)
-{
-	return (list + blob.GetDesc().ListSize() * (batch + blob.GetDesc().BatchWidth() * seq)) * blob.GetDesc().ObjectSize()
-		+ channel + blob.GetDesc().Channels() * (depth + blob.GetDesc().Depth() * (column + row * blob.GetDesc().Width()));
-}
 
 static void blobGlobalMaxPoolingTestImpl( const CTestParams& params, int seed )
 {
@@ -118,6 +112,8 @@ static void blobGlobalMaxPoolingTestImpl( const CTestParams& params, int seed )
 //------------------------------------------------------------------------------------------------------------
 
 class CMathEngineGlobalMaxPoolingTest : public CTestFixtureWithParams {
+public:
+	void SetUp() override { MathEngine().CleanUp(); }
 };
 
 INSTANTIATE_TEST_CASE_P( CMathEngineGlobalMaxPoolingTestInstantiation, CMathEngineGlobalMaxPoolingTest,

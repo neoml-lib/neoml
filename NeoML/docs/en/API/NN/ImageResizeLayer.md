@@ -36,13 +36,46 @@ Specifies the difference between the original and the resized image. If the diff
 
 The default value is `0`: the image will not be resized.
 
+### Padding algorithm
+
+```c++
+// Determines how new columns/rows are filled when resizing image
+enum class TBlobResizePadding {
+	Constant, // fill with default value
+	Edge, // repeat the outermost value of the original image
+	Reflect // reflection padding
+};
+
+void SetPadding( TBlobResizePadding newPadding );
+```
+
+Sets the algorithm used for filling new values. `Constant` by default.
+
+* `Constant` - fills new elements with `GetDefaultValue()`.
+* `Edge` - fills new elements with outermost input values
+```
+             1 1 2 3 3
+1 2 3        1 1 2 3 3
+4 5 6   ->   4 4 5 6 6
+7 8 9        7 7 8 9 9
+             7 7 8 9 9
+```
+* `Reflect` - fills new rows/columns with reflection of input values
+```
+             5 4 5 6 5
+1 2 3        2 1 2 3 2
+4 5 6   ->   5 4 5 6 5
+7 8 9        8 7 8 9 8
+             5 4 5 6 5
+```
+
 ### Values to fill in
 
 ```c++
 void SetDefalutValue( float value );
 ```
 
-Sets the value with which new pixels will be filled. The default is `0`.
+Sets the value with which new pixels will be filled. The default is `0`. Used only when `GetPadding()` is `Constant`.
 
 ## Trainable parameters
 

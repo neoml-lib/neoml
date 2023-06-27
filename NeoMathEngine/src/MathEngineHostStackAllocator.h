@@ -22,7 +22,6 @@ limitations under the License.
 #include <unordered_map>
 #include <thread>
 
-using namespace std;
 
 namespace NeoML {
 
@@ -42,8 +41,9 @@ public:
 private:
 	const int memoryAlignment;
 	std::mutex mutex;
-	std::unordered_map< thread::id, CHostStackMemoryManager*,
-		hash<thread::id>, equal_to<thread::id>, CrtAllocator< pair<const thread::id, CHostStackMemoryManager*> > > stackManagers;
+	std::unordered_map< std::thread::id, CHostStackMemoryManager*,
+		std::hash<std::thread::id>, std::equal_to<std::thread::id>,
+		CrtAllocator< std::pair<const std::thread::id, CHostStackMemoryManager*> > > stackManagers;
 };
 
 } // namespace NeoML

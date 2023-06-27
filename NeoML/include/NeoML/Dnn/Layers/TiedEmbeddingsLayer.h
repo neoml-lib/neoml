@@ -1,4 +1,4 @@
-﻿/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -44,6 +44,8 @@ protected:
 	void RunOnce() override;
 	void BackwardOnce() override;
 	void LearnOnce() override;
+	int BlobsForBackward() const override { return 0; }
+	int BlobsForLearn() const override { return TInputBlobs; }
 
 private:
 	// Embedding layer name from which we take the matrix.

@@ -27,7 +27,8 @@ namespace NeoOnnx {
 CLrnOperator::CLrnOperator( const onnx::NodeProto& lrn, int opsetVersion ) :
 	CLayerOperator( lrn, opsetVersion )
 {
-	// Introduce in opset v1
+	// v1 - original
+	// v13 - bfloat16 is supported
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
 	CheckOnnxProtocol( InputCount() == 1, "operator must have 1 input", *this );
@@ -36,7 +37,8 @@ CLrnOperator::CLrnOperator( const onnx::NodeProto& lrn, int opsetVersion ) :
 
 void CLrnOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
-	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
+	CheckNoNullInputs( inputs );
+	CheckNoShapeInputs( inputs );
 	CheckNeoOnnxSupport( inputs[0]->DimCount() <= 5, "6+ dimensional input", *this );
 
 	CTensorLayout outputLayout( { BD_BatchWidth, BD_Channels, BD_Height, BD_Width, BD_Depth } );
@@ -65,7 +67,7 @@ void CLrnOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArra
 	lrn->Connect( 0, *input->Layer(), input->OutputIndex() );
 	dnn.AddLayer( *lrn );
 
-	outputs.Add( new CUserTensor( input->Shape(), input->Layout(), CLayerOutput( lrn, 0 ) ) );
+	outputs.Add( new CUserTensor( input->Layout(), CLayerOutput( lrn, 0 ) ) );
 }
 
 } // namespace NeoOnnx

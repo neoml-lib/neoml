@@ -29,9 +29,9 @@ protected:
 	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
 
 private:
-	void getAxes( const CTensorShape& inputShape, CFastArray<int, 8>& axes ) const;
+	void getAxes( int inputDimCount, const CTensorBase* axesInput, CFastArray<int, 8>& axes ) const;
 	void calcOutputShape( const CTensorShape& inputShape, const CFastArray<int, 8>& axes, CTensorShape& outputShape ) const;
-	CTensorLayout calcOutputLayout( const CTensorLayout& inputLayout, const CFastArray<int, 8>& axes ) const;
+	CTensorLayout calcOutputLayout( const CTensorBase& input, const CFastArray<int, 8>& axes ) const;
 };
 
 } // namespace NeoOnnx

@@ -47,8 +47,8 @@ void CAccumulativeLookupLayer::Reshape()
 {
 	CheckInput1();
 
-	CheckArchitecture( inputDescs[0].GetDataType() == CT_Int,
-		GetName(), "CCnnAccumulativeLookupLayer must have integer input" );
+	CheckLayerArchitecture( inputDescs[0].GetDataType() == CT_Int,
+		"CCnnAccumulativeLookupLayer must have integer input" );
 
 	if( paramBlobs[0] == 0
 		|| paramBlobs[0]->DimSize(0) != lookupDimension.VectorCount

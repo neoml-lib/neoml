@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -125,12 +125,14 @@ private:
 	CFastLstmDesc fastLstmDesc;
 
 	void buildLayer(float dropout);
+	void checkBlobDescs() const;
 	void setWeightsData(const CPtr<CDnnBlob>& newWeights);
 
 	void fastLstm();
 	void initRecurentBlob( CPtr<CDnnBlob>& backlinkBlob, int num );
 };
 
+//--------------------------------------------------------------------------
 NEOML_API CLayerWrapper<CLstmLayer> Lstm(
 	int hiddenSize, float dropoutRate, bool isInCompatibilityMode = false );
 

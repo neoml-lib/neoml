@@ -34,11 +34,13 @@ limitations under the License.
 #include "PyBaseConvLayer.h"
 #include "PyBertConvLayer.h"
 #include "PyBinarizationLayer.h"
+#include "PyBroadcastLayer.h"
 #include "PyCastLayer.h"
 #include "PyConvLayer.h"
 #include "PyConcatLayer.h"
 #include "PyCrfLayer.h"
 #include "PyCtcLayer.h"
+#include "PyCumSumLayer.h"
 #include "PyCustomLossLayer.h"
 #include "PyDataLayer.h"
 #include "PyDotProductLayer.h"
@@ -48,16 +50,19 @@ limitations under the License.
 #include "PyIndRnnLayer.h"
 #include "PyIrnnLayer.h"
 #include "PyGruLayer.h"
+#include "PyLogicalLayer.h"
 #include "PyLrnLayer.h"
 #include "PyMultichannelLookupLayer.h"
 #include "PyMatrixMultiplicationLayer.h"
 #include "PyMultiheadAttentionLayer.h"
 #include "PyObjectNormalizationLayer.h"
+#include "PyOnnxLayers.h"
 #include "PyPositionalEmbeddingLayer.h"
 #include "PyPrecisionRecallLayer.h"
 #include "PyQrnnLayer.h"
 #include "PyReorgLayer.h"
 #include "PyRepeatSequenceLayer.h"
+#include "PyScatterGatherLayers.h"
 #include "PySequenceSumLayer.h"
 #include "PySoftmaxLayer.h"
 #include "PySpaceAndDepthLayer.h"
@@ -81,6 +86,7 @@ limitations under the License.
 #include "PyTiedEmbeddingsLayer.h"
 #include "PyDifferentialEvolution.h"
 #include "PyPCA.h"
+#include "PyBytePairEncoder.h"
 
 PYBIND11_MODULE(PythonWrapper, m) {
 
@@ -107,11 +113,13 @@ PYBIND11_MODULE(PythonWrapper, m) {
 	InitializeBatchNormalizationLayer( m );
 	InitializeBertConvLayer( m );
 	InitializeBinarizationLayer( m );
+	InitializeBroadcastLayer( m );
 	InitializeCastLayer( m );
 	InitializeConvLayer( m );
 	InitializeConcatLayer( m );
 	InitializeCrfLayer( m );
 	InitializeCtcLayer( m );
+	InitializeCumSumLayer( m );
 	InitializeDataLayer( m );
 	InitializeEltwiseLayer( m );
 	InitializeDotProductLayer( m );
@@ -122,6 +130,7 @@ PYBIND11_MODULE(PythonWrapper, m) {
 	InitializeIndRnnLayer( m );
 	InitializeIrnnLayer( m );
 	InitializeGruLayer( m );
+	InitializeLogicalLayer( m );
 	InitializeLossLayer( m );
 	InitializeLrnLayer( m );
 	InitializeCustomLossLayer( m );
@@ -130,12 +139,14 @@ PYBIND11_MODULE(PythonWrapper, m) {
 	InitializeMultichannelLookupLayer( m );
 	InitializeMultiheadAttentionLayer( m );
 	InitializeObjectNormalizationLayer( m );
+	InitializeOnnxLayers( m );
 	InitializePoolingLayer( m );
 	InitializePositionalEmbeddingLayer( m );
 	InitializePrecisionRecallLayer( m );
 	InitializeQrnnLayer( m );
 	InitializeReorgLayer( m );
 	InitializeRepeatSequenceLayer( m );
+	InitializeScatterGatherLayers( m );
 	InitializeSequenceSumLayer( m );
 	InitializeSoftmaxLayer( m );
 	InitializeSplitLayer( m );
@@ -156,5 +167,6 @@ PYBIND11_MODULE(PythonWrapper, m) {
 
 	InitializeInitializer( m );
 	InitializeDifferentialEvolution( m );
-}
 
+	InitializeBytePairEncoder( m );
+}

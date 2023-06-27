@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -32,7 +32,7 @@ public:
 	void Serialize( CArchive& archive ) override;
 
 	int GetMaxCount() const { return maxCount; }
-	void SetMaxCount(int _enumSize);
+	void SetMaxCount( int _enumSize );
 
 protected:
 	~CGlobalMaxPoolingLayer() override { destroyDesc(); }
@@ -41,6 +41,7 @@ protected:
 	void Reshape() override;
 	void RunOnce() override;
 	void BackwardOnce() override;
+	int BlobsForBackward() const override { return 0; }
 
 private:
 	CGlobalMaxPoolingDesc* desc;

@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -30,8 +30,8 @@ void CConcatObjectLayer::Reshape()
 	int objectSize = inputDescs[0].ObjectSize();
 
 	for(int i = 1; i < inputDescs.Size(); ++i) {
-		CheckArchitecture( inputDescs[i].BatchLength() == batchLength, GetName(), "input batch length mismatch" );
-		CheckArchitecture( inputDescs[i].BatchWidth() == batchWidth, GetName(), "input batch width mismatch" );
+		CheckLayerArchitecture( inputDescs[i].BatchLength() == batchLength, "input batch length mismatch" );
+		CheckLayerArchitecture( inputDescs[i].BatchWidth() == batchWidth, "input batch width mismatch" );
 		objectSize += inputDescs[i].ObjectSize();
 	}
 

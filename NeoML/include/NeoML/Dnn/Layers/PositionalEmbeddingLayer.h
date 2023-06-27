@@ -48,12 +48,19 @@ public:
 	CPtr<CDnnBlob> GetAddends() const;
 	void SetAddends( CDnnBlob* newAddends, bool copy );
 
+	// Maximal length of the input sequence
+	int GetMaxListSize() const { return maxSequenceLength; }
+	// For PET_LearnableAddition mode only. Changing this setting causes parameter reset.
+	void SetMaxListSize( int value );
+
 protected:
 	void Reshape() override;
 	void RunOnce() override;
 	void BackwardOnce() override;
 	void LearnOnce() override;
 	void Serialize( CArchive& archive ) override;
+	int BlobsForBackward() const override { return 0; }
+	int BlobsForLearn() const override { return 0; }
 
 private:
 	// Embedding type
@@ -61,6 +68,8 @@ private:
 
 	// Positional embeddings (if type == PET_Transformers)
 	CPtr<CDnnBlob> positionalEmbeddings;
+
+	int maxSequenceLength = NotFound;
 
 	void checkDimensions();
 	void initializeLearnableAddition();

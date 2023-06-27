@@ -32,6 +32,9 @@ constexpr const T& Clamp( const T& value, const T& low, const T& high )
 	return value < low ? low : ( high < value ? high : value );
 }
 
+// Checks if float contains an integer value
+bool IsInteger( float x );
+
 // Auxiliary tensor's data loading functions
 
 // Gets NeoML blob type from onnx tensor's data type
@@ -136,6 +139,7 @@ inline void LoadBlobData( const onnx::TensorProto& src, CDnnBlob& dest )
 CPtr<const CTensorBase> ConvertTensor( const CTensorBase& inputTensor, const CTensorLayout& destLayout );
 CPtr<const CUserTensor> ConvertTensor( const CUserTensor& inputTensor, const CTensorLayout& destLayout );
 CPtr<const CDataTensor> ConvertTensor( const CDataTensor& inputTensor, const CTensorLayout& destLayout );
+CPtr<const CShapeTensor> ConvertTensor( const CShapeTensor& inputTensor, const CTensorLayout& destLayout );
 
 //---------------------------------------------------------------------------------------------------------------------
 // Auxiliary tensor padding functions
@@ -143,11 +147,12 @@ CPtr<const CDataTensor> ConvertTensor( const CDataTensor& inputTensor, const CTe
 // Calculates padding size if autoPad is SAME_UPPER or SAME_LOWER
 void CalculatePadding( const CString& autoPad, const CTensorShape& kernelShape, CFastArray<int, 8>& pads );
 
-// Pads user tensor with padValue values
+// Pads user tensor via padding mode
 // Last pads.Size() / 2 dimensions of the input tensor will be padded (it's compatible with both Conv and Pad onnx operators)
 // First pads.Size() / 2 numbers determine padding size at the front of the dims
 // Last pads.Size() / 2 numbers determine padding size at the back of the dims
-CPtr<const CUserTensor> PadUserTensor( const CUserTensor& input, const CFastArray<int, 8>& pads, float padValue );
+CPtr<const CUserTensor> PadUserTensor( const CUserTensor& input, const CFastArray<int, 8>& pads,
+	TBlobResizePadding padding, float padValue );
 
 //---------------------------------------------------------------------------------------------------------------------
 // Auxiliary tensor broadcast functions
@@ -160,6 +165,10 @@ enum TBroadcastType {
 	BT_Onnx,
 	// Numpy-style broadcast, used in later opset versions
 	BT_Numpy,
+	// Upsample operator style
+	// Number of dimensions must match
+	// Supports broadcasting of non-trivial dimensions (size != 1)
+	BT_Upsample,
 
 	BT_Count
 };
@@ -180,13 +189,26 @@ struct CBroadcast {
 bool BroadcastTensorShape( const CTensorShape& first, const CTensorShape& second, const CBroadcast& broadcast,
 	CTensorShape& result );
 
-// Broadcasts the given tensor to the given outputShape according to given broadcast
-CPtr<const CTensorBase> BroadcastTensor( const CTensorBase& input, const CBroadcast& broadcast, const CTensorShape& outputShape );
+// Prepares user tensor for CBroadcastLayer
+CPtr<const CTensorBase> PrepareForBroadcast( const CTensorBase& input, const CBroadcast& broadcast, int outputDims );
 
 //---------------------------------------------------------------------------------------------------------------------
 
 // Converts the given tensor to user tensor by adding corresponding data layer to the dnn (if needed)
 CPtr<const CUserTensor> AsUserTensor( const CTensorBase& tensor, const CString& layerName, CDnn& dnn );
+
+// Converts the given tensor to shape tensor by adding corresponding layers to the dnn (if needed)
+CPtr<const CShapeTensor> AsShapeTensor( const CTensorBase& tensor, const CString& layerName, CDnn& dnn );
+
+// Converts the given array to shape tensor by adding corresponding layers to the dnn (if needed)
+CPtr<const CShapeTensor> AsShapeTensor( const CFastArray<int, 8>& data, const CString& layerName, CDnn& dnn );
+CPtr<const CShapeTensor> AsShapeTensor( const CFastArray<float, 8>& data, const CString& layerName, CDnn& dnn );
+
+//---------------------------------------------------------------------------------------------------------------------
+
+// Extracts shape to the given array
+// Throws an exception if CUserTensor is provided (CUserTensor doesn't have shape)
+void GetTensorShape( const CTensorBase& tensor, CTensorShape& shape );
 
 } // namespace NeoOnnx
 

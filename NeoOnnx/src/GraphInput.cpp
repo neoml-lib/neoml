@@ -30,7 +30,7 @@ CGraphInput::CGraphInput( const onnx::ValueInfoProto& input ) :
 {
 }
 
-CPtr<const CUserTensor> CGraphInput::AddSourceLayer( CDnn& dnn ) const
+CPtr<const CUserTensor> CGraphInput::AddSourceLayer( CDnn& dnn, const CTensorLayout* layout ) const
 {
 	CPtr<CSourceLayer> source = new CSourceLayer( dnn.GetMathEngine() );
 	source->SetName( Name() );
@@ -46,21 +46,25 @@ CPtr<const CUserTensor> CGraphInput::AddSourceLayer( CDnn& dnn ) const
 			outputShape.Last() = 1;
 		}
 	}
-	CheckNeoOnnxSupport( outputShape.Size() < BD_Count, "Tensor has too many dimensions" );
+	const int dimCount = outputShape.Size();
+	CheckNeoOnnxSupport( dimCount <= BD_Count, "Tensor has too many dimensions" );
 
 	CheckNeoOnnxSupport( valueInfo.type().has_tensor_type(), "Only tensors supported for graph input values" );
 	CBlobDesc outputBlobDesc(
 		GetBlobType( static_cast<onnx::TensorProto_DataType>( valueInfo.type().tensor_type().elem_type() ) ) );
 
-	CTensorLayout outputLayout( outputShape.Size() );
-	for( int dimIndex = 0; dimIndex < outputShape.Size(); ++dimIndex ) {
+	NeoOnnxCheck( layout == nullptr || layout->Size() == dimCount,
+		"User-provided layout has wrong number of dimensions" );
+	CTensorLayout outputLayout = layout != nullptr ? *layout : CTensorLayout::IOLayout( dimCount );
+
+	for( int dimIndex = 0; dimIndex < dimCount; ++dimIndex ) {
 		outputBlobDesc.SetDimSize( outputLayout[dimIndex], outputShape[dimIndex] );
 	}
 	CPtr<CDnnBlob> inputBlob = CDnnBlob::CreateBlob( dnn.GetMathEngine(), outputBlobDesc.GetDataType(), outputBlobDesc );
 	source->SetBlob( inputBlob );
 
 	dnn.AddLayer( *source );
-	return new CUserTensor( outputShape, outputLayout, CLayerOutput( source, 0 ) );
+	return new CUserTensor( outputLayout, CLayerOutput( source, 0 ) );
 }
 
 } // namespace NeoOnnx

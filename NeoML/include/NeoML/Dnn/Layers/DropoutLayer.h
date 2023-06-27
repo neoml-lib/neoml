@@ -50,6 +50,7 @@ protected:
 	void RunOnce() override;
 	void BackwardOnce() override;
 	void OnReshaped() override;
+	int BlobsForBackward() const override { return 0; }
 
 private:
 	CDropoutDesc* desc; // the dropout description

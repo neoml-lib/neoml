@@ -19,6 +19,7 @@ limitations under the License.
 #include <NeoMathEngine/SimdMathEngine.h>
 #include <BlobConvolution.h>
 #include <PrimitivesJit.h>
+#include <CPUInfo.h>
 
 namespace NeoML {
 
@@ -77,7 +78,10 @@ CConvolutionDesc* CAvxMathEngine::InitBlobConvolution( const CBlobDesc& source, 
 	int strideHeight, int strideWidth, int dilationHeight, int dilationWidth, const CBlobDesc& filter,
 	const CBlobDesc& result ) const
 {
-	if( CBlobConvolutionFabric::IsBlobConvolutionAvailable( filter.BatchWidth() , filter.Height(), filter.Width() ) ) {
+	if( !CCPUInfo::IsAvx512Available()
+		&& CBlobConvolutionFabric::IsBlobConvolutionAvailable( source.ObjectCount() * source.Height() * source.Width(),
+			filter.BatchWidth() , filter.Height(), filter.Width() ) )
+	{
 		return new CAvxConvolutionDesc( mathEngine, source, result, filter, paddingHeight, paddingWidth, strideHeight, strideWidth, dilationHeight, dilationWidth );
 	}
 	return nullptr;
@@ -87,9 +91,7 @@ void CAvxMathEngine::BlobConvolution( const CConvolutionDesc& convDesc, const fl
 	const float* filter, const float* freeTerm, float* result ) const
 {
 	const CAvxConvolutionDesc& desc = static_cast<const CAvxConvolutionDesc&>( convDesc );
-	
 	desc.BlobConvolution->ProcessConvolution( threadCount, source, filter, freeTerm, result );
-
 }
 
 SgemmFunc CAvxMathEngine::GetSgemmFunction() const

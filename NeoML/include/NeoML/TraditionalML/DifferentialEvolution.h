@@ -101,4 +101,4 @@ private:
 		const CFunctionParam& minVal, const CFunctionParam& maxVal );
 };
 
-}
+} // namespace NeoML

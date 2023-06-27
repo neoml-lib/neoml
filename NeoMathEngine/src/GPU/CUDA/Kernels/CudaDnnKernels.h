@@ -106,7 +106,7 @@ __global__ void BlobSplitByDimKernel(int height, int width, CCudaBlobDesc from, 
 }
 
 __global__ void BlobResizeImageKernel( const CCudaBlobDesc from, const float* __restrict__ fromData, int deltaLeft,
-	int deltaTop, float defaultValue, const CCudaBlobDesc to, float* toData )
+	int deltaTop, int padding, float defaultValue, const CCudaBlobDesc to, float* toData )
 {
 	const int geom = to.Height() * to.Width();
 	const int totalChannels = to.Channels() * to.Depth();
@@ -117,8 +117,18 @@ __global__ void BlobResizeImageKernel( const CCudaBlobDesc from, const float* __
 	if( GetCudaTaskIndex3D( to.ObjectCount(), geom, totalChannels, num, currGeom, ch ) ) {
 		toData += num * totalChannels * geom + totalChannels * currGeom + ch;
 
-		const int xFrom = currGeom % to.Width() - deltaLeft;
-		const int yFrom = currGeom / to.Width() - deltaTop;
+		int xFrom = currGeom % to.Width() - deltaLeft;
+		int yFrom = currGeom / to.Width() - deltaTop;
+		if( padding == 1 ) { // Edge
+			xFrom = xFrom < 0 ? 0 : ( xFrom >= from.Width() ? from.Width() - 1 : xFrom );
+			yFrom = yFrom < 0 ? 0 : ( yFrom >= from.Height() ? from.Height() - 1 : yFrom );
+		} else if( padding == 2 ) { // Reflect
+			xFrom = xFrom < 0 ? -( xFrom % from.Width() )
+				: ( xFrom >= from.Width() ? ( 2 * from.Width() - 2 - ( xFrom % from.Width() ) ) % from.Width() : xFrom );
+			yFrom = yFrom < 0 ? -( yFrom % from.Height() )
+				: ( yFrom >= from.Height() ? ( 2 * from.Height() - 2 - ( yFrom % from.Height() ) ) % from.Height() : yFrom );
+		}
+
 		if( xFrom >= 0 && yFrom >= 0 && xFrom < from.Width() && yFrom < from.Height() ) {
 			fromData += num * totalChannels * from.Height() * from.Width() + totalChannels * ( xFrom + yFrom * from.Width() ) + ch;
 			*toData = *fromData;
@@ -768,6 +778,97 @@ __global__ void BertConvBackwardKernelKernel( const float* data, const float* ou
 	}
 
 	kernelDiff[kernelOffset] = res;
+}
+
+__global__ void LinearInterpolationKernel( const float* data, float* result, int coords, int round,
+	int objectCount, int scaledAxis, int objectSize, float scale )
+{
+	const int newSize = static_cast<int>( scaledAxis * scale );
+	const int taskCount = objectCount * newSize * objectSize;
+	int taskIndex;
+	if( !GetCudaTaskIndex( taskCount, taskIndex ) ) {
+		return;
+	}
+
+	result += taskIndex;
+	const int elem = taskIndex % objectSize;
+	taskIndex /= objectSize;
+	const int xNew = taskIndex % newSize;
+	const int b = taskIndex / newSize;
+
+	float xOld = 0;
+	switch( coords ) {
+		case 0: // HalfPixel
+			xOld = ( xNew + 0.5f ) / scale - 0.5f;
+			break;
+		case 1: // PytorchHalfPixel
+			xOld = ( newSize > 1 ) ? ( xNew + 0.5f ) / scale - 0.5f : 0.f;
+			break;
+		case 2: // AlignCorners
+			xOld = static_cast<float>( xNew * ( scaledAxis - 1 ) ) / ( newSize - 1 );
+			break;
+		case 3:
+			xOld = xNew / scale;
+			break;
+	}
+
+	switch( round ) {
+		case 0: // None
+			break;
+		case 1: // RoundPreferFloor
+			if( static_cast<int>( xOld ) + 0.5f == xOld ) {
+				xOld = ::floorf( xOld );
+			} else {
+				xOld = ::roundf( xOld );
+			}
+			break;
+		case 2: // RoundPreferCeil
+			xOld = ::roundf( xOld );
+			break;
+		case 3: // Floor
+			xOld = ::floorf( xOld );
+			break;
+		case 4: // Ceil
+			xOld = ::ceilf( xOld );
+			break;
+	}
+
+	if( xOld <= 0 ) {
+		*result = data[b * scaledAxis * objectSize + elem];
+	} else if( xOld >= static_cast<float>( scaledAxis - 1 ) ) {
+		*result = data[( b * scaledAxis + scaledAxis - 1 ) * objectSize + elem];
+	} else {
+		const int leftCoord = static_cast<int>( xOld );
+		const float rightMul = xOld - ::floorf( xOld );
+		const float leftMul = 1.f - rightMul;
+		*result = leftMul * data[( b * scaledAxis + leftCoord ) * objectSize + elem]
+			+ rightMul * data[( b * scaledAxis + ( leftCoord + 1 ) ) * objectSize + elem];
+	}
+}
+
+template<class T>
+__global__ void scatterNDKernel( const T* updates, const int* indices, T* data, const CCudaBlobDesc dataDesc,
+	int updateCount, int indexDims, int objectSize )
+{
+	const int taskCount = updateCount * objectSize;
+	int index;
+	if( !GetCudaTaskIndex( taskCount, index ) ) {
+		return;
+	}
+
+	const int updateIndex = index / objectSize;
+	const int elem = index % objectSize;
+
+	indices += updateIndex * indexDims;
+	updates += updateIndex * objectSize;
+
+	int dataOffset = 0;
+	int dimOffset = objectSize;
+	for( int i = indexDims - 1; i >= 0; --i ) {
+		dataOffset += indices[i] * dimOffset;
+		dimOffset *= dataDesc.DimSize( i );
+	}
+	data[dataOffset + elem] = updates[elem];
 }
 
 } // namespace NeoML

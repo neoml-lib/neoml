@@ -46,12 +46,15 @@ pybind11_add_module(PythonWrapper
     src/PyBatchNormalizationLayer.cpp
     src/PyBertConvLayer.cpp
     src/PyBinarizationLayer.cpp
+    src/PyBroadcastLayer.cpp
+    src/PyBytePairEncoder.cpp
     src/PyConcatLayer.cpp
     src/PyCastLayer.cpp
     src/PyConvLayer.cpp
     src/PyClustering.cpp
     src/PyCrfLayer.cpp
     src/PyCtcLayer.cpp
+    src/PyCumSumLayer.cpp
     src/PyCustomLossLayer.cpp
     src/PyDataLayer.cpp
     src/PyDifferentialEvolution.cpp
@@ -68,6 +71,7 @@ pybind11_add_module(PythonWrapper
     src/PyIrnnLayer.cpp
     src/PyGruLayer.cpp
     src/PyLayer.cpp
+    src/PyLogicalLayer.cpp
     src/PyLossLayer.cpp
     src/PyLrnLayer.cpp
     src/PyLstmLayer.cpp
@@ -77,6 +81,7 @@ pybind11_add_module(PythonWrapper
     src/PyMultichannelLookupLayer.cpp
     src/PyMultiheadAttentionLayer.cpp
     src/PyObjectNormalizationLayer.cpp
+    src/PyOnnxLayers.cpp
     src/PyPCA.cpp
     src/PyPoolingLayer.cpp
     src/PyPositionalEmbeddingLayer.cpp
@@ -85,6 +90,7 @@ pybind11_add_module(PythonWrapper
     src/PyRandom.cpp
     src/PyReorgLayer.cpp
     src/PyRepeatSequenceLayer.cpp
+    src/PyScatterGatherLayers.cpp
     src/PySequenceSumLayer.cpp
     src/PySoftmaxLayer.cpp
     src/PySplitLayer.cpp

@@ -1,4 +1,4 @@
-/* Copyright © 2021 ABBYY Production LLC
+/* Copyright Â© 2021-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -532,20 +532,32 @@ TEST( CDnnSolverTest, NadamL2 )
 	testSolver( adam, expected );
 }
 
-static void checkBlobEquality( CDnnBlob& firstBlob, CDnnBlob& secondBlob )
+static bool checkBlobEquality( CDnnBlob& firstBlob, CDnnBlob& secondBlob )
 {
-	ASSERT_TRUE( firstBlob.HasEqualDimensions( &secondBlob ) );
-	const int dataSize = firstBlob.GetDataSize();
-	float* first = firstBlob.GetBuffer<float>( 0, dataSize, true );
-	float* second = secondBlob.GetBuffer<float>( 0, dataSize, true );
-	for( int i = 0; i < dataSize; ++i ) {
-		EXPECT_TRUE( FloatEq( first[i], second[i], 1e-4f ) ) << first[i] << '\t' << second[i];
+	if( !firstBlob.HasEqualDimensions( &secondBlob ) ) {
+		// When this happens test must fail
+		EXPECT_TRUE( false );
+		return false;
 	}
-	secondBlob.ReleaseBuffer( second, false );
-	firstBlob.ReleaseBuffer( first, false );
+	CDnnBlobBuffer<float> first( firstBlob, TDnnBlobBufferAccess::Read );
+	CDnnBlobBuffer<float> second( secondBlob, TDnnBlobBufferAccess::Read );
+	for( int i = 0; i < first.Size(); ++i ) {
+		if( !FloatEqImpl( first[i], second[i], 1e-4f ) ) {
+			return false;
+		}
+	}
+	return true;
 }
 
-static void solverSerializationTestImpl( CPtr<CDnnSolver> firstSolver, bool trainEveryStep )
+static bool checkLstmEquality( CLstmLayer* first, CLstmLayer* second )
+{
+	return checkBlobEquality( *first->GetRecurWeightsData(), *second->GetRecurWeightsData() )
+		&& checkBlobEquality( *first->GetInputWeightsData(), *second->GetInputWeightsData() )
+		&& checkBlobEquality( *first->GetRecurFreeTermData(), *second->GetRecurFreeTermData() )
+		&& checkBlobEquality( *first->GetInputFreeTermData(), *second->GetInputFreeTermData() );
+}
+
+static void buildDnnForSolverTest( CDnn& dnn )
 {
 	const int batchLength = 7;
 	const int batchSize = 16;
@@ -554,11 +566,7 @@ static void solverSerializationTestImpl( CPtr<CDnnSolver> firstSolver, bool trai
 	const int imageChannels = 3;
 	const int classCount = 3;
 
-	CRandom random( 0x1234 );
-	CDnn firstNet( random, MathEngine() );
-	firstNet.SetSolver( firstSolver );
-
-	CPtr<CSourceLayer> source = AddLayer<CSourceLayer>( "source", firstNet );
+	CPtr<CSourceLayer> source = AddLayer<CSourceLayer>( "source", dnn );
 	CPtr<CConvLayer> conv = AddLayer<CConvLayer>( "conv", { source } );
 	conv->SetFilterCount( 5 );
 	conv->SetFilterHeight( 3 );
@@ -581,7 +589,7 @@ static void solverSerializationTestImpl( CPtr<CDnnSolver> firstSolver, bool trai
 	CPtr<CFullyConnectedLayer> fc = AddLayer<CFullyConnectedLayer>( "fc", { sum } );
 	fc->SetNumberOfElements( classCount );
 
-	CPtr<CSourceLayer> label = AddLayer<CSourceLayer>( "label", firstNet );
+	CPtr<CSourceLayer> label = AddLayer<CSourceLayer>( "label", dnn );
 	CPtr<CCrossEntropyLossLayer> loss = AddLayer<CCrossEntropyLossLayer>( "loss", { fc, label } );
 
 	CPtr<CDnnBlob> dataBlob = CDnnBlob::Create2DImageBlob( MathEngine(), CT_Float, batchLength, batchSize,
@@ -589,21 +597,47 @@ static void solverSerializationTestImpl( CPtr<CDnnSolver> firstSolver, bool trai
 	{
 		float* data = dataBlob->GetBuffer<float>( 0, dataBlob->GetDataSize(), false );
 		for( int i = 0; i < dataBlob->GetDataSize(); ++i ) {
-			data[i] = static_cast< float >( random.Uniform( -1., 3. ) );
+			data[i] = static_cast<float>( dnn.Random().Uniform( -1., 3. ) );
 		}
 		dataBlob->ReleaseBuffer( data, true );
 	}
+	source->StoreBlob( true );
 	source->SetBlob( dataBlob );
 
 	CPtr<CDnnBlob> labelBlob = CDnnBlob::CreateDataBlob( MathEngine(), CT_Int, batchLength, batchSize, 1 );
 	{
 		int* labelBuff = labelBlob->GetBuffer<int>( 0, labelBlob->GetDataSize(), false );
 		for( int i = 0; i < labelBlob->GetDataSize(); ++i ) {
-			labelBuff[i] = random.UniformInt( 0, classCount - 1 );
+			labelBuff[i] = dnn.Random().UniformInt( 0, classCount - 1 );
 		}
 		labelBlob->ReleaseBuffer( labelBuff, true );
 	}
+	label->StoreBlob( true );
 	label->SetBlob( labelBlob );
+}
+
+static void copyDnnAndSolver( CDnn& from, CDnn& to )
+{
+	CString archiveFileName = "test_solver";
+	{
+		CArchiveFile file( archiveFileName, CArchive::store, GetPlatformEnv() );
+		CArchive archive( &file, CArchive::SD_Storing );
+		from.SerializeCheckpoint( archive );
+	}
+
+	{
+		CArchiveFile file( archiveFileName, CArchive::load, GetPlatformEnv() );
+		CArchive archive( &file, CArchive::SD_Loading );
+		to.SerializeCheckpoint( archive );
+	}
+}
+
+static void solverSerializationTestImpl( CPtr<CDnnSolver> firstSolver, bool trainEveryStep )
+{
+	CRandom random( 0x1234 );
+	CDnn firstNet( random, MathEngine() );
+	firstNet.SetSolver( firstSolver );
+	buildDnnForSolverTest( firstNet );
 
 	for( int step = 1; step <= 10; ++step ) {
 		firstNet.RunAndBackwardOnce();
@@ -614,25 +648,11 @@ static void solverSerializationTestImpl( CPtr<CDnnSolver> firstSolver, bool trai
 
 	// Cloning net and solver via serialization
 	CDnn secondNet( random, MathEngine() );
-	CString archiveFileName = "test_solver";
-	{
-		CArchiveFile file( archiveFileName, CArchive::store, GetPlatformEnv() );
-		CArchive archive( &file, CArchive::SD_Storing );
-		firstNet.SerializeCheckpoint( archive );
-	}
+	copyDnnAndSolver( firstNet, secondNet );
 
-	{
-		CArchiveFile file( archiveFileName, CArchive::load, GetPlatformEnv() );
-		CArchive archive( &file, CArchive::SD_Loading );
-		secondNet.SerializeCheckpoint( archive );
-	}
-
-	CPtr<CDnnSolver> secondSolver = secondNet.GetSolver();
-	CPtr<CSourceLayer> secondSource = CheckCast<CSourceLayer>( secondNet.GetLayer( "source" ) );
-	secondSource->SetBlob( dataBlob );
-	CPtr<CSourceLayer> secondLabel = CheckCast<CSourceLayer>( secondNet.GetLayer( "label" ) );
-	secondLabel->SetBlob( labelBlob );
-	CPtr<CCrossEntropyLossLayer> secondLoss = CheckCast<CCrossEntropyLossLayer>( secondNet.GetLayer( "loss" ) );
+	CDnnSolver* secondSolver = secondNet.GetSolver();
+	CCrossEntropyLossLayer* loss = CheckCast<CCrossEntropyLossLayer>( firstNet.GetLayer( "loss" ) );
+	CCrossEntropyLossLayer* secondLoss = CheckCast<CCrossEntropyLossLayer>( secondNet.GetLayer( "loss" ) );
 
 	for( int step = 11; step <= 20; ++step ) {
 		firstNet.RunAndBackwardOnce();
@@ -644,23 +664,23 @@ static void solverSerializationTestImpl( CPtr<CDnnSolver> firstSolver, bool trai
 		ASSERT_TRUE( FloatEq( loss->GetLastLoss(), secondLoss->GetLastLoss() ) );
 	}
 
-	CPtr<CConvLayer> secondConv = CheckCast<CConvLayer>( secondNet.GetLayer( "conv" ) );
-	CPtr<CFullyConnectedLayer> secondFc = CheckCast<CFullyConnectedLayer>( secondNet.GetLayer( "fc" ) );
-	CPtr<CLstmLayer> secondDirect = CheckCast<CLstmLayer>( secondNet.GetLayer( "direct_lstm" ) );
-	CPtr<CLstmLayer> secondReverse = CheckCast<CLstmLayer>( secondNet.GetLayer( "reverse_lstm" ) );
+	CConvLayer* conv = CheckCast<CConvLayer>( firstNet.GetLayer( "conv" ) );
+	CConvLayer* secondConv = CheckCast<CConvLayer>( secondNet.GetLayer( "conv" ) );
+	EXPECT_TRUE( checkBlobEquality( *conv->GetFilterData(), *secondConv->GetFilterData() ) );
+	EXPECT_TRUE( checkBlobEquality( *conv->GetFreeTermData(), *secondConv->GetFreeTermData() ) );
 
-	checkBlobEquality( *conv->GetFilterData(), *secondConv->GetFilterData() );
-	checkBlobEquality( *conv->GetFreeTermData(), *secondConv->GetFreeTermData() );
-	checkBlobEquality( *fc->GetWeightsData(), *secondFc->GetWeightsData() );
-	checkBlobEquality( *fc->GetFreeTermData(), *secondFc->GetFreeTermData() );
-	checkBlobEquality( *direct->GetRecurWeightsData(), *secondDirect->GetRecurWeightsData() );
-	checkBlobEquality( *direct->GetInputWeightsData(), *secondDirect->GetInputWeightsData() );
-	checkBlobEquality( *direct->GetRecurFreeTermData(), *secondDirect->GetRecurFreeTermData() );
-	checkBlobEquality( *direct->GetInputFreeTermData(), *secondDirect->GetInputFreeTermData() );
-	checkBlobEquality( *reverse->GetRecurWeightsData(), *secondReverse->GetRecurWeightsData() );
-	checkBlobEquality( *reverse->GetInputWeightsData(), *secondReverse->GetInputWeightsData() );
-	checkBlobEquality( *reverse->GetRecurFreeTermData(), *secondReverse->GetRecurFreeTermData() );
-	checkBlobEquality( *reverse->GetInputFreeTermData(), *secondReverse->GetInputFreeTermData() );
+	CFullyConnectedLayer* fc = CheckCast<CFullyConnectedLayer>( firstNet.GetLayer( "fc" ) );
+	CFullyConnectedLayer* secondFc = CheckCast<CFullyConnectedLayer>( secondNet.GetLayer( "fc" ) );
+	EXPECT_TRUE( checkBlobEquality( *fc->GetWeightsData(), *secondFc->GetWeightsData() ) );
+	EXPECT_TRUE( checkBlobEquality( *fc->GetFreeTermData(), *secondFc->GetFreeTermData() ) );
+
+	CLstmLayer* direct = CheckCast<CLstmLayer>( firstNet.GetLayer( "direct_lstm" ) );
+	CLstmLayer* secondDirect = CheckCast<CLstmLayer>( secondNet.GetLayer( "direct_lstm" ) );
+	EXPECT_TRUE( checkLstmEquality( direct, secondDirect ) );
+
+	CLstmLayer* reverse = CheckCast<CLstmLayer>( firstNet.GetLayer( "reverse_lstm" ) );
+	CLstmLayer* secondReverse = CheckCast<CLstmLayer>( secondNet.GetLayer( "reverse_lstm" ) );
+	EXPECT_TRUE( checkLstmEquality( reverse, secondReverse ) );
 }
 
 TEST( CDnnSimpleGradientSolverTest, Serialization1 )
@@ -812,4 +832,45 @@ TEST( CDnnLambGradientSolverTest, Serialization4 )
 	lamb->SetUseTrustRatio( true );
 	lamb->SetWeightDecayClip( 2.5f );
 	solverSerializationTestImpl( lamb.Ptr(), true );
+}
+
+// ====================================================================================================================
+
+TEST( CDnnSolverTest, CompositeLearningRate )
+{
+	// There was a bug when only BaseLearningRate of the layer itself was taken into account
+	// Even when the layer was inside the reccurent which was inside the recurrent/composite
+	CRandom random( 0x1234 );
+	CDnn firstNet( random, MathEngine() );
+	buildDnnForSolverTest( firstNet );
+	firstNet.RunAndLearnOnce();
+	CDnn secondNet( random, MathEngine() );
+	copyDnnAndSolver( firstNet, secondNet );
+
+	for( int i = 0; i < 10; ++i ) {
+		firstNet.RunAndLearnOnce();
+		secondNet.RunAndLearnOnce();
+	}
+
+	// For now nets must be identical
+	CLstmLayer* direct = CheckCast<CLstmLayer>( firstNet.GetLayer( "direct_lstm" ) );
+	CLstmLayer* secondDirect = CheckCast<CLstmLayer>( secondNet.GetLayer( "direct_lstm" ) );
+	EXPECT_TRUE( checkLstmEquality( direct, secondDirect ) );
+
+	CLstmLayer* reverse = CheckCast<CLstmLayer>( firstNet.GetLayer( "reverse_lstm" ) );
+	CLstmLayer* secondReverse = CheckCast<CLstmLayer>( secondNet.GetLayer( "reverse_lstm" ) );
+	EXPECT_TRUE( checkLstmEquality( reverse, secondReverse ) );
+
+	// Change learning rate of LSTMs in one of the nets and train a bit
+	secondDirect->SetBaseLearningRate( 0.1f );
+	secondReverse->SetBaseLearningRate( 10.f );
+
+	for( int i = 0; i < 10; ++i ) {
+		firstNet.RunAndLearnOnce();
+		secondNet.RunAndLearnOnce();
+	}
+
+	// After the change in learning rate nets should train differently
+	EXPECT_FALSE( checkLstmEquality( direct, secondDirect ) );
+	EXPECT_FALSE( checkLstmEquality( reverse, secondReverse ) );
 }

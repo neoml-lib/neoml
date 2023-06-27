@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -37,6 +37,8 @@ protected:
 	void BackwardOnce() override;
 	void LearnOnce() override;
 	bool IsFilterTransposed() const override { return true; }
+	int BlobsForBackward() const override { return 0; }
+	int BlobsForLearn() const override { return TInputBlobs; }
 
 private:
 	CConvolutionDesc* convDesc;

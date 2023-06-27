@@ -18,8 +18,10 @@
 ```c++
 #include <NeoOnnx/NeoOnnx.h>
 
-NEOONNX_API void LoadFromOnnx( const char* fileName, NeoML::CDnn& dnn, CArray<const char*>& inputs, CArray<const char*>& outputs );
-NEOONNX_API void LoadFromOnnx( const void* buffer, int bufferSize, NeoML::CDnn& dnn, CArray<const char*>& inputs, CArray<const char*>& outputs );
+NEOONNX_API void LoadFromOnnx( const char* fileName, const CImportSettings& settings,
+    NeoML::CDnn& dnn, CImportedModelInfo& info );
+NEOONNX_API void LoadFromOnnx( const void* buffer, int bufferSize, const CImportSettings& settings,
+    NeoML::CDnn& dnn, CImportedModelInfo& info );
 ```
 
 Загружает сеть из файла или из буфера.
@@ -28,7 +30,7 @@ NEOONNX_API void LoadFromOnnx( const void* buffer, int bufferSize, NeoML::CDnn& 
 
 Для каждого выхода сети в `dnn` будет создан `CSinkLayer` с таким же именем. Также имена выходов будут добавлены в массив `outputs`.
 
-Указатели в массивах `inputs` и `outputs` привязаны к именам соответствующих слоёв и станут невалидными после переименования или разрушения соответствующих слоёв.
+Информация о входах и выходах, а также `metadata_props` модели будет записана в `info`.
 
 ## Сборка
 

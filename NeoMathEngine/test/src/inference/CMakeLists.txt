@@ -31,6 +31,7 @@ target_sources(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/FindMaxValueInColumnsTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/FindMaxValueInRowsTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/IndRnnInferenceTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/LinearInterpolationTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/LookupAndSumTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/LrnTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/MatrixSpreadRowsTest.cpp
@@ -40,6 +41,7 @@ target_sources(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/MultiplyMatrixByTransposedMatrixTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/QrnnInferenceTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/ReorgTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/ScatterNDTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/SetVectorToMatrixRowsTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/SpaceToDepthTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/SumMatrixRowsTest.cpp
@@ -51,17 +53,23 @@ target_sources(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorAddValueTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorBernulliKLDerivativeTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorConvertTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/VectorCumSumAlongDimensionTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorDotProductTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorEltwiseDivideTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/VectorEltwiseEqualTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/VectorEltwiseLessTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorEltwiseMaxTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorEltwiseMinTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorEltwiseMultiplyTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/VectorEltwiseNotTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorEltwisePowerTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/VectorEltwiseWhereTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorELUDiffOpTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorELUDiffTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorELUTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorEqualTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorEqualValueTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/VectorErfTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorExpTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorFillBernoulliTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorFillTest.cpp

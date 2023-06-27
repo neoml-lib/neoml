@@ -32,6 +32,7 @@ CGemmOperator::CGemmOperator( const onnx::NodeProto& gemm, int opsetVersion ) :
 	transB( 0 )
 {
 	// Older versions have broadcast support
+	// v13 - bfloat16 is supported
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
 	CheckOnnxProtocol( InputCount() == 2 || InputCount() == 3, "operator must have 2 or 3 inputs", *this );
@@ -47,7 +48,6 @@ CGemmOperator::CGemmOperator( const onnx::NodeProto& gemm, int opsetVersion ) :
 	CheckNeoOnnxSupport( transA == 0, "transA != 0", *this );
 
 	GetAttribute( "transB", transB );
-	CheckNeoOnnxSupport( transB != 0, "transB == 0", *this );
 
 	if( OpsetVersion < 7 ) {
 		int broadcast = 0;
@@ -58,30 +58,22 @@ CGemmOperator::CGemmOperator( const onnx::NodeProto& gemm, int opsetVersion ) :
 
 void CGemmOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
-	CheckOnnxProtocol( inputs[0] != nullptr && inputs[1] != nullptr, "input can't be optional", *this );
+	CheckNoNullInputs( inputs );
+	CheckNoShapeInputs( inputs );
 
-	const CTensorShape& inputShape = inputs[0]->Shape();
-	CheckNeoOnnxSupport( transA == 0, "transA != 0", *this );
-	// Some models from the model zoo has this op with 4-dimensional input
-	// e.g. 1 x 512 x 7 x 7 and this input is interpreted as matrix 1 x 25088
-	// The documentation does mention 'input matrix' but doesn't clarify what needs to be done when input is N-dimensional
-	// Thats why we're heuristically trying to process this input as matrix dim[0] x (dim[1] * dim[2] * ...)
-	int inputObjectSize = inputShape[1];
-	for( int i = 2; i < inputShape.Size(); ++i ) {
-		inputObjectSize *= inputShape[i];
-	}
+	CheckNeoOnnxSupport( inputs[1]->Type() == TTensorType::Data, "user-provided weights", *this );
 
-	CheckNeoOnnxSupport( inputs[1]->IsCalculated(), "user-provided weights", *this );
-	const CTensorShape& matrixShape = inputs[1]->Shape();
-	CheckOnnxProtocol( matrixShape.Size() == 2, "weights must be 2-dimensional", *this );
-	CheckOnnxProtocol( matrixShape[transB == 0 ? 0 : 1] == inputObjectSize, "wrong weight size", *this );
-	const int numberOfElements = matrixShape[transB == 0 ? 1 : 0];
+	const CTensorLayout weightLayout( { transB == 0 ? BD_Channels: BD_BatchWidth, transB == 0 ? BD_BatchWidth : BD_Channels } );
+	CPtr<const CDataTensor> matrixTensor = CheckCast<const CDataTensor>( ConvertTensor( *inputs[1], weightLayout ) );
+	CheckOnnxProtocol( matrixTensor->DimCount() == 2, "weights must be 2-dimensional", *this );
+	const int numberOfElements = matrixTensor->DimSize( transB == 0 ? 1 : 0 );
 
+	CPtr<const CDataTensor> freeTermTensor = nullptr;
 	if( InputCount() == 3 ) {
-		CheckNeoOnnxSupport( inputs[2]->IsCalculated(), "user-provided bias", *this );
-		const CTensorShape& biasShape = inputs[2]->Shape();
-		CheckOnnxProtocol( biasShape.Size() == 1, "bias must be 1-dimensional", *this );
-		CheckOnnxProtocol( biasShape[0] == numberOfElements, "wrong bias size", *this );
+		CheckNeoOnnxSupport( inputs[2]->Type() == TTensorType::Data, "user-provided bias", *this );
+		freeTermTensor = CheckCast<const CDataTensor>( inputs[2] );
+		CheckOnnxProtocol( freeTermTensor->DimCount() == 1, "bias must be 1-dimensional", *this );
+		CheckOnnxProtocol( freeTermTensor->DimSize( 0 ) == numberOfElements, "wrong bias size", *this );
 	}
 
 	CPtr<CFullyConnectedLayer> fc = new CFullyConnectedLayer( dnn.GetMathEngine() );
@@ -89,19 +81,16 @@ void CGemmOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArr
 
 	fc->SetNumberOfElements( numberOfElements );
 
-	const CTensorLayout fcLayout( { BD_BatchWidth, BD_Channels } );
+	fc->SetWeightsData( matrixTensor->Data()->GetCopy() );
 
-	CPtr<const CTensorBase> matrixTensor = ConvertTensor( *inputs[1], fcLayout );
-	fc->SetWeightsData( dynamic_cast<const CDataTensor*>( matrixTensor.Ptr() )->Data()->GetCopy() );
-
-	if( InputCount() > 2 ) {
-		fc->SetFreeTermData( dynamic_cast<const CDataTensor*>( inputs[2].Ptr() )->Data()->GetCopy() );
+	if( freeTermTensor != nullptr ) {
+		fc->SetFreeTermData( freeTermTensor->Data()->GetCopy() );
 	} else {
 		fc->SetZeroFreeTerm( true );
 	}
 
-	CTensorLayout inputLayout = inputShape.Size() == 2 ? fcLayout : inputs[0]->Layout();
-	if( inputShape.Size() > 2 ) {
+	CTensorLayout inputLayout = inputs[0]->DimCount() == 2 ? CTensorLayout{BD_BatchWidth, BD_Channels} : inputs[0]->Layout();
+	if( inputs[0]->DimCount() > 2 ) {
 		// Build input layout for N-dimensional input
 
 		// We need this in order to guarantee that output will be in { BD_BatchWidth, BD_Channels } layout
@@ -115,7 +104,7 @@ void CGemmOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArr
 	fc->Connect( 0, *userInput->Layer(), userInput->OutputIndex() );
 	dnn.AddLayer( *fc );
 
-	outputs.Add( new CUserTensor( { inputShape[0], numberOfElements }, fcLayout, CLayerOutput( fc, 0 ) ) );
+	outputs.Add( new CUserTensor( CTensorLayout{ BD_BatchWidth, BD_Channels }, CLayerOutput( fc, 0 ) ) );
 }
 
 } // namespace NeoOnnx

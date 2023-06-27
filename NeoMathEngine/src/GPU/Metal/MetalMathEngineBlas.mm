@@ -402,6 +402,11 @@ void CMetalMathEngine::VectorMultiplyAndSub(const CConstFloatHandle& firstHandle
     ASSERT_EXPR( kernel.Run() );
 }
 
+void CMetalMathEngine::VectorEltwiseNot( const CConstIntHandle&, const CIntHandle&, int )
+{
+    ASSERT_EXPR( false );
+}
+
 void CMetalMathEngine::VectorEltwiseNotNegative( const CConstIntHandle& firstHanle, const CFloatHandle& resultHandle,
     int vectorSize )
 {
@@ -966,6 +971,11 @@ void CMetalMathEngine::TransposeMatrix(int batchSize, const CConstFloatHandle& f
     ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 
+	if( medium == 1 && ( height == 1 || width == 1 ) ) {
+		VectorCopy( resultHandle, firstHandle, batchSize * height * medium * width * channels );
+		return;
+	}
+
     const int size = batchSize * height * medium * width * channels;
     ASSERT_EXPR( resultBufferSize >= size );
     
@@ -986,6 +996,11 @@ void CMetalMathEngine::TransposeMatrix(int batchSize, const CConstIntHandle& fir
 {
     ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+	if( medium == 1 && ( height == 1 || width == 1 ) ) {
+		VectorCopy( resultHandle, firstHandle, batchSize * height * medium * width * channels );
+		return;
+	}
 
     const int size = batchSize * height * medium * width * channels;
     ASSERT_EXPR( resultBufferSize >= size );
@@ -1292,15 +1307,38 @@ void CMetalMathEngine::SumMatrixRows( int batchSize, const CFloatHandle& resultH
 	SumMatrixRowsAdd(batchSize, resultHandle, matrixHandle, matrixHeight, matrixWidth);
 }
 
+void CMetalMathEngine::SumMatrixRows( int, const CIntHandle&, const CConstIntHandle&, int, int )
+{
+	ASSERT_EXPR( false );
+}
+
 void CMetalMathEngine::SingularValueDecomposition( const CFloatHandle&, int, int, const CFloatHandle&, const CFloatHandle&,
 	const CFloatHandle&, const CFloatHandle&, bool, bool )
 {
     ASSERT_EXPR( false );
 }
 
-void CMetalMathEngine::SparseSingularValueDecomposition( const CSparseMatrixDesc&, int, int,
-    const CFloatHandle&, const CFloatHandle&, const CFloatHandle&, const CFloatHandle&,
-    int, bool )
+void CMetalMathEngine::MultiplyTransposedMatrixBySparseMatrix( int, int, int, const CConstFloatHandle&, const CSparseMatrixDesc&, const CFloatHandle&, bool )
+{
+    ASSERT_EXPR( false );
+}
+
+void CMetalMathEngine::MultiplySparseMatrixByMatrix( int, int, int, const CSparseMatrixDesc&, const CConstFloatHandle&, const CFloatHandle& )
+{
+    ASSERT_EXPR( false );
+}
+
+void CMetalMathEngine::MultiplyTransposedSparseMatrixByMatrix( int, int, int, const CSparseMatrixDesc&, const CConstFloatHandle&, const CFloatHandle& )
+{
+    ASSERT_EXPR( false );
+}
+
+void CMetalMathEngine::QRFactorization( int, int, const CFloatHandle&, const CFloatHandle*, const CFloatHandle*, bool, bool, bool )
+{
+    ASSERT_EXPR( false );
+}
+
+void CMetalMathEngine::LUFactorization( int, int, const CFloatHandle& )
 {
     ASSERT_EXPR( false );
 }
