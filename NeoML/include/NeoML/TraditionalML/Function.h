@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,6 +20,8 @@ limitations under the License.
 #include <NeoML/TraditionalML/Problem.h>
 
 namespace NeoML {
+
+class IThreadPool;
 
 // An arbitrary function interface
 // Used for optimization problems and error functions
@@ -53,121 +55,104 @@ public:
 class CFunctionWithHessian : public CFunctionWithGradient {
 public:
 	// The product of the function hessian by a given vector
-	virtual CFloatVector HessianProduct( const CFloatVector& s ) = 0;
+	virtual CFloatVector HessianProduct( const CFloatVector& ) = 0;
+};
+
+//------------------------------------------------------------------------------------------------------------
+
+// Function that supports gradient and hessian calculation
+class CThreadFunctionWithHessianImpl : public CFunctionWithHessian {
+public:
+	CThreadFunctionWithHessianImpl( const IProblem&,
+		double errorWeight, float l1Coeff, int threadCount );
+	CThreadFunctionWithHessianImpl( const IRegressionProblem&,
+		double errorWeight, float l1Coeff, int threadCount );
+	~CThreadFunctionWithHessianImpl() override;
+
+	// The CFunctionWithHessian class methods:
+	int NumberOfDimensions() const override { return Matrix.Width + 1; }
+	double Value() const override { return Val; }
+	CFloatVector Gradient() const override { return Grad; }
+
+	// The product of the function hessian by a given vector
+	CFloatVector HessianProduct( const CFloatVector& ) override;
+
+	struct IArgs;
+	struct CProductArgs;
+	struct CSetArgs;
+protected:
+	CThreadFunctionWithHessianImpl( CFloatMatrixDesc, int vetcorCount,
+		double errorWeight, float l1Coeff, int threadCount );
+
+	void SetArguments( CSetArgs& );
+
+	IThreadPool* const ThreadPool;
+	const float ErrorWeight;
+	const float L1Coeff;
+
+	double Val{};
+	CFloatVector Grad{};
+	CArray<double> Hessian{};
+
+	// Problem
+	const CFloatMatrixDesc Matrix;
+	CFloatVector Answers{};
+	CFloatVector Weights{};
 };
 
 //------------------------------------------------------------------------------------------------------------
 // Main loss functions
 
 // For support-vector machine with a squared hinge loss function:
-class NEOML_API CSquaredHinge : public CFunctionWithHessian {
+class NEOML_API CSquaredHinge : public CThreadFunctionWithHessianImpl {
 public:
 	CSquaredHinge( const IProblem& data, double errorWeight, float l1Coeff, int threadCount );
-	~CSquaredHinge() override = default;
 
 	// The CFunctionWithHessian class methods:
-	int NumberOfDimensions() const override { return matrix.Width + 1; }
 	void SetArgument( const CFloatVector& w ) override;
-	double Value() const override { return value;}
-	CFloatVector Gradient() const override { return gradient; }
-	CFloatVector HessianProduct( const CFloatVector& s ) override;
 
-protected:
-	const CFloatMatrixDesc matrix;
-	const float errorWeight;
-	const float l1Coeff;
-	const int threadCount;
-
-	double value;
-	CFloatVector gradient;
-	CArray<double> hessian;
-	CFloatVector answers;
-	CFloatVector weights;
+	struct CArgs;
 };
 
 //------------------------------------------------------------------------------------------------------------
 
 // Loss function for a regression problem
-class NEOML_API CL2Regression : public CFunctionWithHessian {
+class NEOML_API CL2Regression : public CThreadFunctionWithHessianImpl {
 public:
 	CL2Regression( const IRegressionProblem& data, double errorWeight, double p, float l1Coeff, int threadCount );
-	~CL2Regression() override = default;
 
 	// The CFunctionWithHessian class methods:
-	int NumberOfDimensions() const override { return matrix.Width + 1; }
 	void SetArgument(const CFloatVector& w) override;
-	double Value() const override { return value; }
-	CFloatVector Gradient() const override { return gradient; }
-	CFloatVector HessianProduct(const CFloatVector& s) override;
 
+	struct CArgs;
 protected:
-	const CFloatMatrixDesc matrix;
-	const float errorWeight;
-	const float p;
-	const float l1Coeff;
-	const int threadCount;
-
-	double value;
-	CFloatVector gradient;
-	CArray<double> hessian;
-	CFloatVector answers;
-	CFloatVector weights;
+	const float P;
 };
 
 //------------------------------------------------------------------------------------------------------------
 
 // Logistic regression function
-class NEOML_API CLogRegression: public CFunctionWithHessian {
+class NEOML_API CLogRegression: public CThreadFunctionWithHessianImpl {
 public:
-	CLogRegression( const IProblem& _data, double errorWeight, float l1Coeff, int threadCount );
-	~CLogRegression() override = default;
+	CLogRegression( const IProblem& data, double errorWeight, float l1Coeff, int threadCount );
 
 	// The CFunctionWithHessian class methods:
-	int NumberOfDimensions() const override { return matrix.Width + 1; }
 	void SetArgument( const CFloatVector& w ) override;
-	double Value() const override { return value; }
-	CFloatVector Gradient() const override { return gradient; }
-	CFloatVector HessianProduct( const CFloatVector& s ) override;
 
-protected:
-	const CFloatMatrixDesc matrix;
-	const float errorWeight;
-	const float l1Coeff;
-	const int threadCount;
-
-	double value;
-	CFloatVector gradient;
-	CArray<double> hessian;
-	CFloatVector answers;
-	CFloatVector weights;
+	struct CArgs;
 };
 
 //------------------------------------------------------------------------------------------------------------
 
 // Smoothed hinge function
-class NEOML_API CSmoothedHinge : public CFunctionWithHessian {
+class NEOML_API CSmoothedHinge : public CThreadFunctionWithHessianImpl {
 public:
 	CSmoothedHinge( const IProblem& data, double errorWeight, float l1Coeff, int threadCount );
-	~CSmoothedHinge() override = default;
 
 	// The CFunctionWithHessian class methods:
-	int NumberOfDimensions() const override { return matrix.Width + 1; }
 	void SetArgument( const CFloatVector& w ) override;
-	double Value() const override { return value; }
-	CFloatVector Gradient() const override { return gradient; }
-	CFloatVector HessianProduct( const CFloatVector& s ) override;
 
-protected:
-	const CFloatMatrixDesc matrix;
-	const float errorWeight;
-	const float l1Coeff;
-	const int threadCount;
-
-	double value;
-	CFloatVector gradient;
-	CArray<double> hessian;
-	CFloatVector answers;
-	CFloatVector weights;
+	struct CArgs;
 };
 
 //------------------------------------------------------------------------------------------------------------
