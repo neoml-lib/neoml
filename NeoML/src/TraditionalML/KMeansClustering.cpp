@@ -415,6 +415,27 @@ protected:
 
 //-------------------------------------------------------------------------------------------------------------
 
+struct CKMeansClustering::CVectorMultiplyThreadTask : public CKMeansClustering::IThreadTask {
+	CVectorMultiplyThreadTask( const CKMeansClustering& owner, int vectorSize, IMathEngine& mathEngine,
+			const CConstFloatHandle& first, const CFloatHandle& result, const CConstFloatHandle& multiplier ) :
+		IThreadTask( owner, vectorSize ),
+		MathEngine( mathEngine ),
+		First( first ),
+		Second( multiplier ),
+		Result( result )
+	{}
+protected:
+	void Run( int /*threadIndex*/, int index, int count ) override
+	{ MathEngine.VectorMultiply( First + index, Result + index, count, Second ); }
+
+	IMathEngine& MathEngine;
+	const CConstFloatHandle& First;
+	const CConstFloatHandle& Second;
+	const CFloatHandle& Result;
+};
+
+//-------------------------------------------------------------------------------------------------------------
+
 constexpr int mathEngineFloatTaskAlignment = 16;
 
 static inline bool isThreadTaskRelevant( int64_t operationCount )
@@ -435,6 +456,21 @@ static void vectorCopy( const CKMeansClustering& owner, IMathEngine& mathEngine,
 
 	NEOML_NUM_THREADS( *owner.GetThreadPool(), &task, []( int threadIndex, void* ptr ) {
 		( ( CKMeansClustering::IThreadTask* )ptr )->CallRun( threadIndex, mathEngineFloatTaskAlignment );
+	} );
+}
+
+static void vectorMultiply( const CKMeansClustering& owner, IMathEngine& mathEngine, int vectorSize,
+	const CConstFloatHandle& first, const CFloatHandle& result, const CConstFloatHandle& multiplier )
+{
+	if( !isThreadTaskRelevant( vectorSize ) ) {
+		mathEngine.VectorMultiply( first, result, vectorSize, multiplier );
+		return;
+	}
+
+	CKMeansClustering::CVectorMultiplyThreadTask task( owner, vectorSize, mathEngine, first, result, multiplier );
+
+	NEOML_NUM_THREADS( *owner.GetThreadPool(), &task, []( int threadIndex, void* ptr ) {
+		( ( CKMeansClustering::IThreadTask* )ptr )->CallRun( threadIndex );
 	} );
 }
 
@@ -1080,7 +1116,7 @@ static void calcClosestDistances( const CKMeansClustering& owner, const CDnnBlob
 		// (a - b)^2 = a^2 + b^2 - 2*a*b
 		matrixMultiplyByTransposed( owner, mathEngine, /*batchSize*/1, /*first*/centers.GetData(), clusterCount, featureCount,
 			/*second*/currData, batchSize, /*result*/distances, clusterCount * batchSize );
-		mathEngine.VectorMultiply( distances, distances, clusterCount * batchSize, minusTwo ); // TODO! threads
+		vectorMultiply( owner, mathEngine, clusterCount * batchSize, distances, distances, minusTwo );
 		mathEngine.AddVectorToMatrixRows( 1, distances, distances, clusterCount, batchSize, currSquaredData ); // TODO! threads
 		mathEngine.AddVectorToMatrixColumns( distances, distances, clusterCount, batchSize, squaredCenters ); // no threads
 		mathEngine.FindMinValueInColumns( distances, clusterCount, batchSize, currClosesDist, currLabels ); // no threads
@@ -1133,8 +1169,7 @@ void CKMeansClustering::recalcCenters( const CDnnBlob& data, const CDnnBlob& wei
 		if( rawSizes[i] > 0 ) {
 			// Update centers for non-emtpy clusters
 			invertedSize.SetValue( 1.f / rawSizes[i] );
-			mathEngine.VectorMultiply( newCenter, centers.GetObjectData( i ), // TODO! threads
-				featureCount, invertedSize );
+			vectorMultiply( *this, mathEngine, featureCount, newCenter, centers.GetObjectData( i ), invertedSize );
 		}
 		newCenter += featureCount;
 	}

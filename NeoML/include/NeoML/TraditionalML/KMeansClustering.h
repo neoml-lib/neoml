@@ -101,6 +101,7 @@ public:
 	struct IThreadTask;
 	struct IThreadSubTask;
 	struct CVectorCopyThreadTask;
+	struct CVectorMultiplyThreadTask;
 
 private:
 	const CParam params; // clustering parameters
