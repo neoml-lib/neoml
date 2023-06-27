@@ -32,7 +32,6 @@ struct CCommonChannelwiseConvolutionDesc;
 class CDeviceStackAllocator;
 class CMemoryPool;
 class ISimdMathEngine;
-class CRowwiseConv;
 
 // Math engine that uses a CPU for calculations
 class CCpuMathEngine : public IMathEngine, public IRawMemoryManager {

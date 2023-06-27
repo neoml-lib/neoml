@@ -267,4 +267,16 @@ inline IRowwiseCpuImpl::CProcessingReport CRowwiseActivation::Process( const flo
 	return result;
 }
 
+//=====================================================================================================================
+
+// Index of first input row needed to calculate outputRowIndex'th row of output
+int RowwiseConvFirstInputRow( int outputRowIndex, int inputImageHeight, int outputImageHeight,
+	int strideHeight, int paddingHeight );
+
+// Calculates how many output rows can be calculated with the given data
+// and how many input rows can be released after that
+IRowwiseCpuImpl::CProcessingReport RowwiseConvProcessingReport( int inputRowIndex, int inputRowsAvailable,
+	int outputRowIndex, int outputRowsAvailable, int inputImageHeight, int outputImageHeight,
+	int filterHeight, int paddingHeight, int strideHeight, int dilationHeight );
+
 } // namespace NeoML

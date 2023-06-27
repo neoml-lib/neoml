@@ -711,60 +711,6 @@ void CCpuMathEngine::MobileNetV3PostSEBlock( const CBlobDesc& channelwiseOutputD
 
 //=====================================================================================================================
 
-// Gets the index of firsst input row required to calculate outputRowIndex'th row of output
-static int getFirstRequiredInputRow( int outputRowIndex, const CCommonChannelwiseConvolutionDesc& desc )
-{
-	const int imageIndex = outputRowIndex / desc.Result.Height();
-	const int outputImageRowIndex = outputRowIndex % desc.Result.Height();
-	
-	const int inputImageRowIndex = std::max( 0, outputImageRowIndex * desc.StrideHeight - desc.PaddingHeight );
-
-	return imageIndex * desc.Source.Height() + inputImageRowIndex;
-}
-
-// Calculates the CProcessingReport for the given amount of data
-// It contains the number of output rows calculated during this call
-// and the number of input rows which can be discarded after this call
-static IRowwiseCpuImpl::CProcessingReport getReport( int inputRowIndex, int inputRowsAvailable,
-	int outputRowIndex, int outputRowsAvailable, const CCommonChannelwiseConvolutionDesc& desc )
-{
-	PRESUME_EXPR( desc.Filter.Height() == 3 && desc.PaddingHeight == 1 && desc.StrideHeight <= 2 );
-
-	const int processedInputRows = inputRowIndex + inputRowsAvailable;
-	const int lastAvailableInputImageIndex = processedInputRows == 0 ? 0
-		: ( processedInputRows - 1 ) / desc.Source.Height();
-
-	const int maxOutputRows = outputRowIndex + outputRowsAvailable;
-	const int lastAvailableOutputImageIndex = maxOutputRows == 0 ? 0 : ( maxOutputRows - 1 ) / desc.Result.Height();
-
-	const int lastImageIndex = std::min( lastAvailableInputImageIndex, lastAvailableOutputImageIndex );
-	PRESUME_EXPR( lastImageIndex >= 0 && lastImageIndex < desc.Source.ObjectCount() );
-
-	const int lastImageProcessedInputRows = std::min( desc.Source.Height(),
-		processedInputRows - lastImageIndex * desc.Source.Height() );
-	PRESUME_EXPR( lastImageProcessedInputRows > 0 && lastImageProcessedInputRows <= desc.Source.Height() );
-
-	const int lastImageMaxOutputRows = std::min( desc.Result.Height(),
-		maxOutputRows - lastImageIndex * desc.Result.Height() );
-	PRESUME_EXPR( lastImageMaxOutputRows > 0 && lastImageMaxOutputRows <= desc.Result.Height() );
-
-	const int lastImageOutputRowWithData = lastImageProcessedInputRows == desc.Source.Height() ? desc.Result.Height()
-		: std::max( 0, 1 + ( lastImageProcessedInputRows + desc.PaddingHeight - desc.Filter.Height() ) / desc.StrideHeight );
-
-	const int calculatedOutputRows = lastImageIndex * desc.Result.Height()
-		+ std::min( lastImageOutputRowWithData, lastImageMaxOutputRows );
-	IRowwiseCpuImpl::CProcessingReport report;
-	report.OutputRowsCalculated = calculatedOutputRows - outputRowIndex;
-	PRESUME_EXPR( report.OutputRowsCalculated >= 0 && report.OutputRowsCalculated <= outputRowsAvailable );
-
-	report.InputRowsMayBeRemoved = getFirstRequiredInputRow( calculatedOutputRows, desc ) - inputRowIndex;
-	PRESUME_EXPR( report.InputRowsMayBeRemoved >= 0 && report.InputRowsMayBeRemoved <= inputRowsAvailable );
-
-	return report;
-}
-
-//=====================================================================================================================
-
 class CCpuMathEngine::CRowwiseChannelwiseWith1x1 : public IRowwiseCpuImpl, public CRowwiseOperationDesc {
 public:
 	CRowwiseChannelwiseWith1x1( CCpuMathEngine& mathEngine, int stride, const float* chFilter, const float* chFreeTerm,
@@ -833,7 +779,9 @@ IRowwiseCpuImpl::CProcessingReport CCpuMathEngine::CRowwiseChannelwiseWith1x1::P
 	float* buffer ) const
 {
 	PRESUME_EXPR( !residual || inputRowIndex <= outputRowIndex );
-	CProcessingReport report = getReport( inputRowIndex, inputRowsAvailable, outputRowIndex, outputRowsAvailable, desc );
+	CProcessingReport report = RowwiseConvProcessingReport( inputRowIndex, inputRowsAvailable, outputRowIndex,
+		outputRowsAvailable, desc.Source.Height(), desc.Result.Height(), desc.Filter.Height(), desc.PaddingHeight,
+		desc.StrideHeight, 1 );
 	if( report.OutputRowsCalculated == 0 ) {
 		PRESUME_EXPR( report.InputRowsMayBeRemoved == 0 );
 		return report;
@@ -1004,8 +952,9 @@ CBlobDesc CCpuMathEngine::CRowwiseMobileNetV2::Reshape( const CBlobDesc& inputSi
 IRowwiseCpuImpl::CProcessingReport CCpuMathEngine::CRowwiseMobileNetV2::Process( const float* input, int inputRowIndex,
 	int inputRowsAvailable, float* output, int outputRowIndex, int outputRowsAvailable, float* ) const
 {
-	CProcessingReport report = getReport( inputRowIndex, inputRowsAvailable,
-		outputRowIndex, outputRowsAvailable, desc );
+	CProcessingReport report = RowwiseConvProcessingReport( inputRowIndex, inputRowsAvailable, outputRowIndex,
+		outputRowsAvailable, desc.Source.Height(), desc.Result.Height(), desc.Filter.Height(), desc.PaddingHeight,
+		desc.StrideHeight, 1 );
 	if( report.OutputRowsCalculated == 0 ) {
 		PRESUME_EXPR( report.InputRowsMayBeRemoved == 0 );
 		return report;
@@ -1106,7 +1055,8 @@ IRowwiseCpuImpl::CProcessingReport CCpuMathEngine::CRowwiseMobileNetV2::Process(
 		}
 
 		if( chOutput->DataRowProcessed() < desc.Result.ObjectCount() * desc.Result.Height() ) {
-			const int firstInputRowNeeded = getFirstRequiredInputRow( chOutput->DataRowProcessed(), desc );
+			const int firstInputRowNeeded = RowwiseConvFirstInputRow( chOutput->DataRowProcessed(),
+				desc.Source.Height(), desc.Result.Height(), desc.StrideHeight, desc.PaddingHeight );
 			if( firstInputRowNeeded > chInput->DataRowIndex() ) {
 				chInput->RemoveRows( firstInputRowNeeded - chInput->DataRowIndex() );
 			}

@@ -1357,59 +1357,6 @@ void CCpuMathEngine::BlobChannelwiseConvolutionLearnAdd( const CChannelwiseConvo
 
 //------------------------------------------------------------------------------------------------------------
 
-// Gets the index of firsst input row required to calculate outputRowIndex'th row of output
-static int getFirstRequiredInputRow( int outputRowIndex, const CCpuConvolutionDesc& desc )
-{
-	const int imageIndex = outputRowIndex / desc.Result.Height();
-	const int outputImageRowIndex = outputRowIndex % desc.Result.Height();
-
-	const int inputImageRowIndex = std::max( 0, outputImageRowIndex * desc.StrideHeight - desc.PaddingHeight );
-
-	return imageIndex * desc.Source.Height() + inputImageRowIndex;
-}
-
-// Calculates the CProcessingReport for the given amount of data
-// It contains the number of output rows calculated during this call
-// and the number of input rows which can be discarded after this call
-static IRowwiseCpuImpl::CProcessingReport getReport( int inputRowIndex, int inputRowsAvailable,
-	int outputRowIndex, int outputRowsAvailable, const CCpuConvolutionDesc& desc )
-{
-	const int processedInputRows = inputRowIndex + inputRowsAvailable;
-	const int lastAvailableInputImageIndex = processedInputRows == 0 ? 0
-		: ( processedInputRows - 1 ) / desc.Source.Height();
-
-	const int maxOutputRows = outputRowIndex + outputRowsAvailable;
-	const int lastAvailableOutputImageIndex = maxOutputRows == 0 ? 0 : ( maxOutputRows - 1 ) / desc.Result.Height();
-
-	const int lastImageIndex = std::min( lastAvailableInputImageIndex, lastAvailableOutputImageIndex );
-	PRESUME_EXPR( lastImageIndex >= 0 && lastImageIndex < desc.Source.ObjectCount() );
-
-	const int lastImageProcessedInputRows = std::min( desc.Source.Height(),
-		processedInputRows - lastImageIndex * desc.Source.Height() );
-	PRESUME_EXPR( lastImageProcessedInputRows > 0 && lastImageProcessedInputRows <= desc.Source.Height() );
-
-	const int lastImageMaxOutputRows = std::min( desc.Result.Height(),
-		maxOutputRows - lastImageIndex * desc.Result.Height() );
-	PRESUME_EXPR( lastImageMaxOutputRows > 0 && lastImageMaxOutputRows <= desc.Result.Height() );
-
-	const int effectiveFilterHeight = 1 + ( desc.Filter.Height() - 1 ) * desc.DilationHeight;
-	const int lastImageOutputRowWithData = lastImageProcessedInputRows == desc.Source.Height() ? desc.Result.Height()
-		: std::max( 0, 1 + ( lastImageProcessedInputRows + desc.PaddingHeight - effectiveFilterHeight ) / desc.StrideHeight );
-
-	const int calculatedOutputRows = lastImageIndex * desc.Result.Height()
-		+ std::min( lastImageOutputRowWithData, lastImageMaxOutputRows );
-	IRowwiseCpuImpl::CProcessingReport report;
-	report.OutputRowsCalculated = calculatedOutputRows - outputRowIndex;
-	PRESUME_EXPR( report.OutputRowsCalculated >= 0 && report.OutputRowsCalculated <= outputRowsAvailable );
-
-	report.InputRowsMayBeRemoved = getFirstRequiredInputRow( calculatedOutputRows, desc ) - inputRowIndex;
-	PRESUME_EXPR( report.InputRowsMayBeRemoved >= 0 && report.InputRowsMayBeRemoved <= inputRowsAvailable );
-
-	return report;
-}
-
-//------------------------------------------------------------------------------------------------------------
-
 class CCpuMathEngine::CRowwiseConv : public IRowwiseCpuImpl, public CRowwiseOperationDesc {
 public:
 	CRowwiseConv( CCpuMathEngine& mathEngine, int inputChannels, int padH, int padW, int strideH, int strideW,
@@ -1482,21 +1429,24 @@ int CCpuMathEngine::CRowwiseConv::InOperationBufferSize() const
 IRowwiseCpuImpl::CProcessingReport CCpuMathEngine::CRowwiseConv::Process( const float* input, int inputRowIndex,
 	int inputRowsAvailable, float* output, int outputRowIndex, int outputRowsAvailable, float* buffer ) const
 {
-	CProcessingReport result = getReport( inputRowIndex, inputRowsAvailable, outputRowIndex, outputRowsAvailable, desc );
-	if( result.OutputRowsCalculated == 0 ) {
-		PRESUME_EXPR( result.InputRowsMayBeRemoved == 0 );
-		return result;
+	CProcessingReport report = RowwiseConvProcessingReport( inputRowIndex, inputRowsAvailable, outputRowIndex,
+		outputRowsAvailable, desc.Source.Height(), desc.Result.Height(), desc.Filter.Height(), desc.PaddingHeight,
+		desc.StrideHeight, desc.DilationHeight );
+	if( report.OutputRowsCalculated == 0 ) {
+		PRESUME_EXPR( report.InputRowsMayBeRemoved == 0 );
+		return report;
 	}
 
 	if( desc.SimdConvolutionDesc != nullptr ) {
 		mathEngine.simdMathEngine->BlobConvolutionRowwise( *desc.SimdConvolutionDesc,
 			input, inputRowIndex, filter, freeTerm,
-			output, outputRowIndex, result.OutputRowsCalculated );
-		return result;
+			output, outputRowIndex, report.OutputRowsCalculated );
+		return report;
 	}
 
 	const int inputRowSize = desc.Source.Width() * desc.Source.Channels();
-	const int firstInputRowUsed = getFirstRequiredInputRow( outputRowIndex, desc );
+	const int firstInputRowUsed = RowwiseConvFirstInputRow( outputRowIndex, desc.Source.Height(),
+		desc.Result.Height(), desc.StrideHeight, desc.PaddingHeight );
 	if( inputRowIndex < firstInputRowUsed ) {
 		const int diff = firstInputRowUsed - inputRowIndex;
 		input += diff * inputRowSize;
@@ -1505,15 +1455,15 @@ IRowwiseCpuImpl::CProcessingReport CCpuMathEngine::CRowwiseConv::Process( const 
 	}
 
 	if( is1x1Conv() ) {
-		mathEngine.multiplyMatrixByTransposedMatrix( input, result.OutputRowsCalculated * desc.Result.Width(),
+		mathEngine.multiplyMatrixByTransposedMatrix( input, report.OutputRowsCalculated * desc.Result.Width(),
 			desc.Source.Channels(), desc.Source.Channels(), filter, desc.Result.Channels(),
 			desc.Source.Channels(), output, desc.Result.Channels() );
 		if( freeTerm != nullptr ) {
-			mathEngine.addVectorToMatrixRows( output, output, result.OutputRowsCalculated * desc.Result.Width(),
+			mathEngine.addVectorToMatrixRows( output, output, report.OutputRowsCalculated * desc.Result.Width(),
 				desc.Result.Channels(), desc.Result.Channels(), desc.Result.Channels(),
 				freeTerm );
 		}
-		return result;
+		return report;
 	}
 
 	const int filterObjectCount = desc.Filter.ObjectCount();
@@ -1523,7 +1473,7 @@ IRowwiseCpuImpl::CProcessingReport CCpuMathEngine::CRowwiseConv::Process( const 
 	const int imageStartOffset = inputRowIndex * desc.Source.Width() * desc.Source.Channels();
 
 	int index = 0;
-	const int count = result.OutputRowsCalculated * desc.Result.Width();
+	const int count = report.OutputRowsCalculated * desc.Result.Width();
 	const int start = outputRowIndex * desc.Result.Width();
 	while( index < count ) {
 		const int size = std::min( count - index, cacheItemCount );
@@ -1544,7 +1494,7 @@ IRowwiseCpuImpl::CProcessingReport CCpuMathEngine::CRowwiseConv::Process( const 
 		index += size;
 	}
 
-	return result;
+	return report;
 }
 
 int CCpuMathEngine::CRowwiseConv::getCacheItemCount() const
