@@ -34,10 +34,6 @@ public:
 	void SetSize( int newSize );
 	void SetBufferSize( int newSize );
 	void Grow( int newSize );
-	// Returns the pointer to the first element in the array
-	// If the array is empty, 0 is returned
-	T** GetPtr();
-	const T** GetPtr() const;
 
 	bool IsEmpty() const;
 	void Empty() { DeleteAll(); }
@@ -190,18 +186,6 @@ template<class T, class Allocator>
 inline void CPointerArray<T, Allocator>::Grow( int newSize )
 {
 	body.Grow( newSize );
-}
-
-template<class T, class Allocator>
-inline T** CPointerArray<T, Allocator>::GetPtr()
-{
-	return body.GetPtr();
-}
-
-template<class T, class Allocator>
-inline const T** CPointerArray<T, Allocator>::GetPtr() const
-{
-	return body.GetPtr();
 }
 
 template<class T, class Allocator>

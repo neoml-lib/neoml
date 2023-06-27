@@ -35,6 +35,11 @@ CRowwiseOperationChainLayer::CRowwiseOperationChainLayer( IMathEngine& mathEngin
 {
 }
 
+CRowwiseOperationChainLayer::~CRowwiseOperationChainLayer()
+{
+	deleteRowwiseDescs();
+}
+
 static const int RowwiseOperationChainLayerVersion = 0;
 
 void CRowwiseOperationChainLayer::Serialize( CArchive& archive )
@@ -67,7 +72,8 @@ void CRowwiseOperationChainLayer::Reshape()
 	CheckInput1();
 	CheckLayerArchitecture( inputDescs[0].Depth() == 1, "Non-trivial depth" );
 
-	operationDescs.DeleteAll();
+	deleteRowwiseDescs();
+	NeoPresume( operationDescs.IsEmpty() );
 	outputDescs[0] = inputDescs[0];
 
 	for( IRowwiseOperation* operation : operations ) {
@@ -75,19 +81,27 @@ void CRowwiseOperationChainLayer::Reshape()
 	}
 
 	// TODO: FIX const_cast
-	outputDescs[0] = MathEngine().RowwiseReshape( const_cast<CRowwiseOperationDesc**>( operationDescs.GetAllPointers().GetPtr() ), operations.Size(), outputDescs[0]);
+	outputDescs[0] = MathEngine().RowwiseReshape( operationDescs.GetPtr(), operations.Size(), outputDescs[0]);
 	// TODO: support in-place
 }
 
 void CRowwiseOperationChainLayer::RunOnce()
 {
-	MathEngine().RowwiseExecute( inputBlobs[0]->GetDesc(), const_cast<CRowwiseOperationDesc**>( operationDescs.GetAllPointers().GetPtr() ), operations.Size(),
+	MathEngine().RowwiseExecute( inputBlobs[0]->GetDesc(), operationDescs.GetPtr(), operations.Size(),
 		inputBlobs[0]->GetData(), outputBlobs[0]->GetData() );
 }
 
 void CRowwiseOperationChainLayer::BackwardOnce()
 {
 	NeoAssert( false );
+}
+
+void CRowwiseOperationChainLayer::deleteRowwiseDescs()
+{
+	for( int i = 0; i < operationDescs.Size(); ++i ) {
+		delete operationDescs[i];
+	}
+	operationDescs.DeleteAll();
 }
 
 //=====================================================================================================================

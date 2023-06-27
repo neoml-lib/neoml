@@ -26,6 +26,7 @@ class NEOML_API CRowwiseOperationChainLayer : public CBaseLayer {
 	NEOML_DNN_LAYER( CRowwiseOperationChainLayer )
 public:
 	explicit CRowwiseOperationChainLayer( IMathEngine& mathEngine );
+	~CRowwiseOperationChainLayer();
 
 	// Access to the chain of operations
 	int OperationCount() const { return operations.Size(); }
@@ -45,7 +46,9 @@ private:
 	// Rowwise operations
 	CObjectArray<IRowwiseOperation> operations;
 	// MathEngine descriptors of operations in chain
-	CPointerArray<CRowwiseOperationDesc> operationDescs;
+	CArray<CRowwiseOperationDesc*> operationDescs;
+
+	void deleteRowwiseDescs();
 };
 
 //=====================================================================================================================
