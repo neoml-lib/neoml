@@ -200,7 +200,7 @@ TEST( MobileNetV2BlockLayerTest, Run )
 	}
 }
 
-TEST( MobileNetv2OptimizerTest, SimpleNonResidual )
+TEST( MobileNetV2OptimizerTest, SimpleNonResidual )
 {
 	CRandom random( 0x654 );
 	CDnn dnn( random, MathEngine() );
@@ -218,7 +218,7 @@ TEST( MobileNetv2OptimizerTest, SimpleNonResidual )
 	ASSERT_EQ( 3, dnn.GetLayerCount() );
 }
 
-TEST( MobileNetv2OptimizerTest, SimpleResidual )
+TEST( MobileNetV2OptimizerTest, SimpleResidual )
 {
 	CRandom random( 0x654 );
 	CDnn dnn( random, MathEngine() );
@@ -237,7 +237,7 @@ TEST( MobileNetv2OptimizerTest, SimpleResidual )
 	ASSERT_EQ( 3, dnn.GetLayerCount() );
 }
 
-TEST( MobileNetv2OptimizerTest, ResidualResidual )
+TEST( MobileNetV2OptimizerTest, ResidualResidual )
 {
 	CRandom random( 0x654 );
 	CDnn dnn( random, MathEngine() );
@@ -257,7 +257,7 @@ TEST( MobileNetv2OptimizerTest, ResidualResidual )
 	ASSERT_EQ( 4, dnn.GetLayerCount() );
 }
 
-TEST( MobileNetv2OptimizerTest, NeighboringResiduals )
+TEST( MobileNetV2OptimizerTest, NeighboringResiduals )
 {
 	CRandom random( 0x654 );
 	CDnn dnn( random, MathEngine() );
@@ -278,7 +278,7 @@ TEST( MobileNetv2OptimizerTest, NeighboringResiduals )
 	ASSERT_EQ( 6, dnn.GetLayerCount() );
 }
 
-TEST( MobileNetv2OptimizerTest, SinkFromTheMiddle )
+TEST( MobileNetV2OptimizerTest, SinkFromTheMiddle )
 {
 	CRandom random( 0x654 );
 	CDnn dnn( random, MathEngine() );
@@ -298,7 +298,7 @@ TEST( MobileNetv2OptimizerTest, SinkFromTheMiddle )
 	ASSERT_EQ( 9, dnn.GetLayerCount() );
 }
 
-TEST( MobileNetv2OptimizerTest, SinkDisablesResidual )
+TEST( MobileNetV2OptimizerTest, SinkDisablesResidual )
 {
 	CRandom random( 0x654 );
 	CDnn dnn( random, MathEngine() );
