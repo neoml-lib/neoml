@@ -25,20 +25,47 @@ class IRowwiseCpuImpl {
 public:
 	virtual ~IRowwiseCpuImpl() = default;
 
+	// The minimum number of input rows required for correct work of this operation
+	// Usually means the number of input rows required to calculate 1 row of output
 	virtual int MinInputRowCount() const = 0;
 
+	// Must be called before inference
+	// Returns the size of output of this operation
 	virtual CBlobDesc Reshape( const CBlobDesc& inputSize ) = 0;
+
+	// The size of buffer needed during calculation
+	// Buffer of equal or greater size must be provided as `buffer` parameter in IRowwiseCpuImpl::Process
+	// The data won't be saved between different IRowwiseCpuImpl::Process calls
+	// If operation needs dedicated buffer which saves data between different calls
+	// it should allocate and manage this buffer by itself (e.g. allocate during Reshape)
 	virtual int InOperationBufferSize() const = 0;
+
+	// The number of rows in output
+	// Usually equal to outputDesc.ObjectCount() * outputDesc.Height()
+	// where outputDesc is the result of last Reshape call
 	virtual int OutputRowCount() const = 0;
+
+	// The size of single output row
+	// Usually equal to outputDesc.Width() * outputDesc.Depth() * outputDesc.Channels()
+	// where outputDesc is the result of last Reshape call
 	virtual int OutputRowSize() const = 0;
+
+	// Flag for special operations which can be calculated in-place
+	// It means that it always able to process all the input rows provided
+	// and may overwrite its input
+	// E.g. most of the activation functions
 	virtual bool IsInPlace() const = 0;
 
 	// The result of single rowwise processing
 	struct CProcessingReport {
 		int OutputRowsCalculated; // number of output rows calculated during this call
-		int InputRowsMayBeRemoved; // number of input rows which are not needed anymore
+		int InputRowsMayBeRemoved; // number of input rows which are not needed anymore by this operation
 	};
 
+	// Processes [inputRowIndex; inputRowIndex + inputRowsAvailable) rows of the input
+	// and calculate up to [outputRowIndex; outputRowIndex + outputRowsAvailable) rows of the input
+	// Return the report with information about how many rows of output were calculated
+	// and how many rows of input won't be needed by this operation anymore
 	virtual CProcessingReport Process( const float* input, int inputRowIndex, int inputRowsAvailable,
 		float* output, int outputRowIndex, int outputRowsAvailable, float* buffer ) const = 0;
 };
@@ -46,8 +73,11 @@ public:
 //=====================================================================================================================
 
 // Interface for buffers for rowwise operations
-// First DataRowCount() rows in buffer are filled with actual data
-// Rest of the rows are considered empty
+//
+// It contains DataRowCount() rows of the full blob starting from DataRowIndex()'th row
+// (Full blob contains ObjectCount() * Height() rows)
+//
+// In addition it has space for the next EmptyRowCount() rows of full blob
 class IRowwiseBuffer {
 public:
 	virtual ~IRowwiseBuffer() = default;
@@ -72,17 +102,22 @@ public:
 	virtual float* EmptyRows() = 0;
 
 	// Interprets first `count` of empty rows as data
+	// Which means it increases the number of DataRowCount() and reduces the EmptyRowCount()
 	virtual void AddRows( int count ) = 0;
 	// Frees first `count` of data rows
+	// which means it increase DataRowIndex(), reduces DataRowCount() and increases EmptyRowCount()
 	virtual void RemoveRows( int count ) = 0;
 };
 
-// Rowwise buffer over fully allocated data
-// It considers itself empty
-// Add rows marks next rows as data
-// Free rows moves the pointer of the beginning of the buffer
+// Rowwise buffer over previously allocated data
 class CRowwiseWrapper : public IRowwiseBuffer {
 public:
+	// data - pointer to the beginning of the buffer
+	// rowCount - number of rows in the buffer
+	// rowSize - size of one row
+	// After the construction it considers itself as a buffer without data
+	// which means DataRowCount() is 0 and EmptyRowCount() is rowCount
+	// It may allocate more than rowCount in order to reduce number of ::memmove calls
 	CRowwiseWrapper( float* data, int rowCount, int rowSize );
 
 	// IRowwiseBuffer implementation
@@ -96,17 +131,25 @@ public:
 	void RemoveRows( int count ) override;
 
 private:
+	// Pointer to the beginning of data rows
+	// RemoveRows moves this pointer
 	float* firstDataRow;
+	// The initial number of empty rows in buffer
 	const int rowCount;
+	// The size of a signle row
 	const int rowSize;
+	// Number of data rows added to buffer during whole lifetime (never decreases)
 	int addedRows;
+	// Number of data rows removed from buffer during whole lifetime
+	// (never decreases, always less or equal to the addedRows)
 	int removedRows;
 };
 
-// Rowwise buffer which allocates data for it
-// Always stores data in the beginning of the buffer (moves memory if needed)
+// Rowwise buffer which contains only slice of full blob
+// Allocates and manages memory by itself
 class CRowwiseBuffer : public IRowwiseBuffer {
 public:
+	// It guarantees to allocate at least rowCount rows and at most fullHeight rows
 	CRowwiseBuffer( IMathEngine& mathEngine, int rowCount, int rowSize, int fullHeight );
 
 	// IRowwiseBuffer implementation
@@ -120,23 +163,34 @@ public:
 	void RemoveRows( int count ) override;
 
 private:
+	// Number of rows this buffer is expected to have
 	const int rowCount;
+	// Size of a single row
 	const int rowSize;
+	// Number of rows in full blob (ObjectCount() * Height())
 	const int fullHeight;
+	// Number of rows actually allocated for this buffer, somewhere in [rowCount; fullHeight]
 	const int realHeight;
+	// MathEngine variable which contains the allocated memory
 	CFloatHandleVar bufferVar;
-	float* bufferPtr;
+	// Pointer to the beginning of the allocated memory
+	float* const bufferPtr;
+	// Pointer to the memory where data rows are contained
 	float* dataPtr;
+	// Number of rows between bufferPtr and dataPtr
+	// (distance between the beginning of the buffer and the memory where data currently starts)
 	int dataPtrIndex;
+	// Number of data rows in buffer
 	int dataRowsCount;
+	// Index of first data row relative to the full blob [0; fullHeight)
 	int dataRowIndex;
 };
 
 //=====================================================================================================================
 
-class CActivationCpuImpl : public IRowwiseCpuImpl, public CRowwiseOperationDesc {
+class CRowwiseActivation : public IRowwiseCpuImpl, public CRowwiseOperationDesc {
 public:
-	CActivationCpuImpl( TActivationFunction type, float param0, float param1 );
+	CRowwiseActivation( TActivationFunction type, float param0, float param1 );
 
 	int MinInputRowCount() const override { return 1; }
 
@@ -156,7 +210,7 @@ private:
 	int rowSize;
 };
 
-inline CActivationCpuImpl::CActivationCpuImpl( TActivationFunction type, float param0, float param1 ) :
+inline CRowwiseActivation::CRowwiseActivation( TActivationFunction type, float param0, float param1 ) :
 	type( type ),
 	param0( param0 ),
 	param1( param1 ),
@@ -165,14 +219,14 @@ inline CActivationCpuImpl::CActivationCpuImpl( TActivationFunction type, float p
 {
 }
 
-inline CBlobDesc CActivationCpuImpl::Reshape( const CBlobDesc& inputSize )
+inline CBlobDesc CRowwiseActivation::Reshape( const CBlobDesc& inputSize )
 {
 	rowCount = inputSize.ObjectCount() * inputSize.Height();
 	rowSize = inputSize.Width() * inputSize.Channels();
 	return inputSize;
 }
 
-inline IRowwiseCpuImpl::CProcessingReport CActivationCpuImpl::Process( const float* input, int inputRowIndex,
+inline IRowwiseCpuImpl::CProcessingReport CRowwiseActivation::Process( const float* input, int inputRowIndex,
 	int inputRowsAvailable, float* output, int outputRowIndex, int outputRowsAvailable, float* ) const
 {
 	CProcessingReport result;
