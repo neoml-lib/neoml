@@ -253,6 +253,9 @@ inline IRowwiseCpuImpl::CProcessingReport CRowwiseActivation::Process( const flo
 			vectorSigmoid( input, output, dataSize );
 			break;
 		case AF_Linear:
+			// For now linear is used in rowwise only as "no-activation" (x * 1.f + 0.f)
+			// That's why interface in some cases doesn't even have a way to pass 2 parameters (e.g. inside MN blocks)
+			// so we can't even check here both parameters
 			if( input != output ) {
 				dataCopy( output, input, dataSize );
 			}

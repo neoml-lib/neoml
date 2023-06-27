@@ -559,14 +559,14 @@ void CCpuMathEngine::MobileNetV3PreSEBlock( const CBlobDesc& inputDesc, const CB
 	const float* inputObject = GetRaw( inputHandle );
 	const float* expandFilter = GetRaw( expandFilterData );
 	const float* expandFreeTerm = expandFreeTermData == nullptr ? nullptr : GetRaw( *expandFreeTermData );
-	CActivationCpuImpl expandActivationImpl( expandActivation, expandActivationParam, 0.f );
+	CRowwiseActivation expandActivationImpl( expandActivation, expandActivationParam, 0.f );
 	expandActivationImpl.Reshape( desc.Source );
 
 	TChannelwiseProcessFunction channelwise = filterSize == 3 ? processChannelwise3x3
 		: ( stride == 1 ? processChannelwise5x5Stride1 : processChannelwise5x5Stride2 );
 	const float* channelwiseFilter = GetRaw( channelwiseFilterData );
 	const float* channelwiseFreeTerm = channelwiseFreeTermData == nullptr ? nullptr : GetRaw( *channelwiseFreeTermData );
-	CActivationCpuImpl channelwiseActivationImpl( channelwiseActivation, channelwiseActivationParam, 0.f );
+	CRowwiseActivation channelwiseActivationImpl( channelwiseActivation, channelwiseActivationParam, 0.f );
 	channelwiseActivationImpl.Reshape( desc.Result );
 
 	const int maxInputRowsPerStep = std::max<int>( 1,
@@ -659,7 +659,7 @@ void CCpuMathEngine::MobileNetV3PostSEBlock( const CBlobDesc& channelwiseOutputD
 	const int inputRowSize = inputChannels * width;
 	const int outputRowSize = outputChannels * width;
 	const int outputObjectSize = outputRowSize * rowCount;
-	CActivationCpuImpl activationImpl( activation, activationParam, 0.f );
+	CRowwiseActivation activationImpl( activation, activationParam, 0.f );
 	activationImpl.Reshape( channelwiseOutputDesc );
 
 	const int maxRowsPerStep = std::max( 1, ( RowwiseCacheSize / ( std::max( inputChannels, outputChannels ) * width ) ) );
@@ -796,7 +796,7 @@ private:
 	CCpuMathEngine& mathEngine;
 	const float* chFilter;
 	const float* chFreeTerm;
-	CActivationCpuImpl activationImpl;
+	CRowwiseActivation activationImpl;
 	const float* convFilter;
 	const float* convFreeTerm;
 	int outputChannels;
@@ -966,11 +966,11 @@ private:
 	const float* expandFilter;
 	const float* expandFreeTerm;
 	int expandedChannels;
-	CActivationCpuImpl expandActivationImpl;
+	CRowwiseActivation expandActivationImpl;
 	CCommonChannelwiseConvolutionDesc desc;
 	const float* channelwiseFilter;
 	const float* channelwiseFreeTerm;
-	CActivationCpuImpl channelwiseActivationImpl;
+	CRowwiseActivation channelwiseActivationImpl;
 	const float* downFilter;
 	const float* downFreeTerm;
 	int outputChannels;
