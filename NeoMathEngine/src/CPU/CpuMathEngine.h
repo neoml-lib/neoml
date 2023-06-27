@@ -32,7 +32,7 @@ struct CCommonChannelwiseConvolutionDesc;
 class CDeviceStackAllocator;
 class CMemoryPool;
 class ISimdMathEngine;
-class CConvCpuImpl;
+class CRowwiseConv;
 
 // Math engine that uses a CPU for calculations
 class CCpuMathEngine : public IMathEngine, public IRawMemoryManager {
@@ -622,15 +622,6 @@ public:
 	void AbortDistributed() override;
 	CMathEngineDistributedInfo GetDistributedInfo() override { return distributedInfo; }
 	bool IsDistributed() override { return distributedInfo.Threads > 1; }
-
-	void multiplyMatrixByTransposedMatrix( const float* first, int firstHeight,
-		int firstWidth, int firstRowSize, const float* second, int secondHeight, int secondRowSize,
-		float* result, int resultRowSize );
-	void multiplyMatrixByTransposedMatrixAndAdd( const float* first, int firstHeight, int firstWidth, int firstRowSize,
-		const float* second, int secondHeight, int secondRowSize, float* result, int resultRowSize );
-	void addVectorToMatrixRows( const float* matrix, float* result,
-		int matrixHeight, int matrixWidth, int matrixRowSize, int resultRowSize, const float* vector );
-	void fillTempData( const float* sourceData, float* filterData, const CCpuConvolutionDesc& desc, int start, int count );
 protected:
 	// IRawMemoryManager interface methods
 	CMemoryHandle Alloc( size_t size ) override;
@@ -670,6 +661,8 @@ private:
 		const float* inputBlobData, int inputObject, int outputHeight, int outputWidthExStart, int outputWidthExCount );
 
 	void setVectorToMatrixRows( float* result, int matrixHeight, int matrixWidth, const float* vector );
+	void addVectorToMatrixRows( const float* matrix, float* result,
+		int matrixHeight, int matrixWidth, int matrixRowSize, int resultRowSize, const float* vector );
 	void addMatrixToMatrix( float* first, int height,
 		int width, int firstRowSize, const float* second, int secondRowSize );
 	void sumMatrixRowsAdd( float* result, const float* matrix,
@@ -688,10 +681,17 @@ private:
 		const float* second, int secondWidth, float* result );
 	void multiplyTransposedMatrixByMatrixAndAdd( const float* first, int firstHeight, int firstWidth, int firstRowSize,
 		const float* second, int secondWidth, int secondRowSize, float* result, int resultRowSize );
+	void multiplyMatrixByTransposedMatrix( const float* first, int firstHeight,
+		int firstWidth, int firstRowSize, const float* second, int secondHeight, int secondRowSize,
+		float* result, int resultRowSize );
 	void batchMultiplyMatrixByTransposedMatrix( int batchSize, const CConstFloatHandle& firstHandle, int firstHeight,
 		int firstWidth, const CConstFloatHandle& secondHandle, int secondHeight, const CFloatHandle& resultHandle );
+	void multiplyMatrixByTransposedMatrixAndAdd( const float* first, int firstHeight, int firstWidth, int firstRowSize,
+		const float* second, int secondHeight, int secondRowSize, float* result, int resultRowSize );
 	void multiplyMatrixByDiagMatrix( const float* first, int firstHeight, int firstWidth,
 		const float* second, float* result );
+	void multiplyMatrixByTransposedWithFreeTerm( const float* first, int firstHeight,
+		int firstWidth, const float* second, int secondHeight, const float* freeTerm, float* result );
 
 	template<class T>
 	void blobMergeByDimCommon( int dimNum, const CBlobDesc* from, const CTypedMemoryHandle<T>* fromData, int fromCount,
@@ -723,6 +723,7 @@ private:
 		int inputBatch, int outputRowStart, int outputRowCount, float* tempBlob );
 	void transposeResult( const CCpuConvolutionDesc& desc, const float* outputTransposedData,
 		int batch, int resultStart, int resultCount, float* result );
+	void fillTempData( const float* sourceData, float* filterData, const CCpuConvolutionDesc& desc, int start, int count );
 	void blobConvolutionForwardAlgo0( const CCpuConvolutionDesc& desc, const float* sourceData,
 		const float* filterData, const CConstFloatHandle* freeTermData, float* resultData );
 	void blobConvolutionForwardAlgo1( const CCpuConvolutionDesc& desc, const float* sourceData,
@@ -759,7 +760,9 @@ private:
 		const CConstFloatHandle& resultLogProb, const CConstIntHandle& resultLens, const CConstIntHandle& labelLens,
 		const CFloatHandle& logBeta );
 
-	friend class CConvCpuImpl;
+	class CRowwiseConv;
+	class CRowwiseChannelwiseWith1x1;
+	class CRowwiseMobileNetV2;
 };
 
 inline void CCpuMathEngine::VectorReLUDiffOp( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,

@@ -1410,9 +1410,9 @@ static IRowwiseCpuImpl::CProcessingReport getReport( int inputRowIndex, int inpu
 
 //------------------------------------------------------------------------------------------------------------
 
-class CConvCpuImpl : public IRowwiseCpuImpl, public CRowwiseOperationDesc {
+class CCpuMathEngine::CRowwiseConv : public IRowwiseCpuImpl, public CRowwiseOperationDesc {
 public:
-	CConvCpuImpl( CCpuMathEngine& mathEngine, int inputChannels, int padH, int padW, int strideH, int strideW,
+	CRowwiseConv( CCpuMathEngine& mathEngine, int inputChannels, int padH, int padW, int strideH, int strideW,
 		int dilH, int dilW, int fC, int fH, int fW, const float* filter, const float* freeTerm ) :
 		mathEngine( mathEngine ),
 		desc( std::unique_ptr<CConvolutionDesc>(), CBlobDesc(), CBlobDesc(), CBlobDesc( { 1, fC, 1, fH, fW, 1, inputChannels } ),
@@ -1443,7 +1443,7 @@ private:
 	int getCacheItemCount() const;
 };
 
-CBlobDesc CConvCpuImpl::Reshape( const CBlobDesc& inputSize )
+CBlobDesc CCpuMathEngine::CRowwiseConv::Reshape( const CBlobDesc& inputSize )
 {
 	auto convOutputSize = [] ( int input, int filter, int padding,
 		int stride, int dilation ) -> int
@@ -1470,7 +1470,7 @@ CBlobDesc CConvCpuImpl::Reshape( const CBlobDesc& inputSize )
 	return outputSize;
 }
 
-int CConvCpuImpl::InOperationBufferSize() const
+int CCpuMathEngine::CRowwiseConv::InOperationBufferSize() const
 {
 	if( is1x1Conv() || desc.SimdConvolutionDesc != nullptr ) {
 		return 0;
@@ -1479,8 +1479,8 @@ int CConvCpuImpl::InOperationBufferSize() const
 	return getCacheItemCount() * desc.Filter.ObjectSize();
 }
 
-IRowwiseCpuImpl::CProcessingReport CConvCpuImpl::Process( const float* input, int inputRowIndex, int inputRowsAvailable,
-	float* output, int outputRowIndex, int outputRowsAvailable, float* buffer ) const
+IRowwiseCpuImpl::CProcessingReport CCpuMathEngine::CRowwiseConv::Process( const float* input, int inputRowIndex,
+	int inputRowsAvailable, float* output, int outputRowIndex, int outputRowsAvailable, float* buffer ) const
 {
 	CProcessingReport result = getReport( inputRowIndex, inputRowsAvailable, outputRowIndex, outputRowsAvailable, desc );
 	if( result.OutputRowsCalculated == 0 ) {
@@ -1547,7 +1547,7 @@ IRowwiseCpuImpl::CProcessingReport CConvCpuImpl::Process( const float* input, in
 	return result;
 }
 
-int CConvCpuImpl::getCacheItemCount() const
+int CCpuMathEngine::CRowwiseConv::getCacheItemCount() const
 {
 	const int resultItemCount = desc.Result.Width() * desc.Result.Height();
 	return std::max( 1, std::min( ceilTo( BlobConvolutionCacheSize / desc.Filter.ObjectSize(), 16 ),
@@ -1558,7 +1558,7 @@ CRowwiseOperationDesc* CCpuMathEngine::InitConvRowwise( int paddingHeight, int p
 	int strideWidth, int dilationHeight, int dilationWidth, const CBlobDesc& filterDesc,
 	const CConstFloatHandle& filter, const CConstFloatHandle* freeTerm )
 {
-	return new CConvCpuImpl( *this, filterDesc.Channels(), paddingHeight, paddingWidth, strideHeight, strideWidth,
+	return new CRowwiseConv( *this, filterDesc.Channels(), paddingHeight, paddingWidth, strideHeight, strideWidth,
 		dilationHeight, dilationWidth, filterDesc.ObjectCount(), filterDesc.Height(), filterDesc.Width(),
 		GetRaw( filter ), freeTerm == nullptr ? nullptr : GetRaw( *freeTerm ) );
 }
