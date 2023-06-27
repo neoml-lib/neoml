@@ -33,6 +33,9 @@ namespace NeoML {
 CRowwiseOperationChainLayer::CRowwiseOperationChainLayer( IMathEngine& mathEngine ) :
 	CBaseLayer( mathEngine, "CRowwiseOperationChainLayer", false )
 {
+	// The whole idea of optimization is CPU only
+	// On GPU this optimization worsens the performance
+	NeoAssert( mathEngine.GetType() == MET_Cpu );
 }
 
 CRowwiseOperationChainLayer::~CRowwiseOperationChainLayer()
@@ -80,9 +83,7 @@ void CRowwiseOperationChainLayer::Reshape()
 		operationDescs.Add( operation->GetDesc( inputDescs[0] ) );
 	}
 
-	// TODO: FIX const_cast
-	outputDescs[0] = MathEngine().RowwiseReshape( operationDescs.GetPtr(), operations.Size(), outputDescs[0]);
-	// TODO: support in-place
+	outputDescs[0] = MathEngine().RowwiseReshape( operationDescs.GetPtr(), operations.Size(), outputDescs[0] );
 }
 
 void CRowwiseOperationChainLayer::RunOnce()
