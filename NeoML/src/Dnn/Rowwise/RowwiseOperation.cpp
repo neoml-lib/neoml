@@ -34,7 +34,7 @@ static CMap<const std::type_info*, CString, CDefaultHash<const std::type_info*>,
 
 IRowwiseOperation::~IRowwiseOperation() = default;
 
-const char* GetRowwiseOperationName( const IObject* rowwiseOperation )
+const char* GetRowwiseOperationName( const IRowwiseOperation* rowwiseOperation )
 {
 	if( rowwiseOperation == nullptr ) {
 		return "";
@@ -48,9 +48,9 @@ const char* GetRowwiseOperationName( const IObject* rowwiseOperation )
 	return getRowwiseNames().GetValue( pos );
 }
 
-CPtr<IObject> CreateRowwiseOperation( const char* className, IMathEngine& mathEngine )
+CPtr<IRowwiseOperation> CreateRowwiseOperation( const char* className, IMathEngine& mathEngine )
 {
-	TMapPosition pos = getRegisteredRowwise().GetFirstPosition(className);
+	TMapPosition pos = getRegisteredRowwise().GetFirstPosition( className );
 	if( pos == NotFound ) {
 		return 0;
 	}

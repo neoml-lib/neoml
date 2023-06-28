@@ -17,6 +17,8 @@ limitations under the License.
 #pragma hdrstop
 
 #include <NeoML/Dnn/Layers/Onnx/OnnxLayers.h>
+#include <NeoML/Dnn/Layers/RowwiseOperationChainLayer.h>
+#include <NeoML/Dnn/Rowwise/Activation.h>
 
 #include <TestFixture.h>
 
@@ -3207,5 +3209,63 @@ inline void checkSpecificParams<CChannelwiseWith1x1Layer>( CChannelwiseWith1x1La
 GTEST_TEST( SerializeFromFile, ChannelwiseWith1x1LayerSerialization )
 {
 	checkSerializeLayer<CChannelwiseWith1x1Layer>( "NeoMLDnnChannelwiseWith1x1Layer" );
+}
+
+// ====================================================================================================================
+
+// CRowwiseOperationChainLayer
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+static void setSpecificParams( CRowwiseOperationChainLayer& layer )
+{
+	layer.AddOperation( new CRowwiseActivation( MathEngine(),
+		CActivationDesc( AF_ReLU, CReLULayer::CParam{ -1.f } ) ) );
+	layer.AddOperation( new CRowwiseActivation( MathEngine(),
+		CActivationDesc( AF_ReLU, CReLULayer::CParam{ 6.f } ) ) );
+	layer.AddOperation( new CRowwiseActivation( MathEngine(), CActivationDesc( AF_HSwish ) ) );
+	layer.AddOperation( new CRowwiseActivation( MathEngine(),
+		CActivationDesc( AF_Linear, CLinearLayer::CParam{ 1.f, 0.f } ) ) );
+}
+
+GTEST_TEST( SerializeToFile, RowwiseOperationChainLayerSerialization )
+{
+	serializeToFile<CRowwiseOperationChainLayer>( "NeoMLDnnRowwiseOperationChainLayer" );
+}
+
+#endif // GENERATE_SERIALIZATION_FILES
+
+template<>
+inline void checkSpecificParams<CRowwiseOperationChainLayer>( CRowwiseOperationChainLayer& layer )
+{
+	EXPECT_EQ( 4, layer.OperationCount() );
+	constexpr TActivationFunction expectedTypes[4] = { AF_ReLU, AF_ReLU, AF_HSwish, AF_Linear };
+
+	for( int i = 0; i < layer.OperationCount(); ++i ) {
+		const CRowwiseActivation* rowwise = dynamic_cast<const CRowwiseActivation*>( layer.GetOperation( i ) );
+		ASSERT_NE( nullptr, rowwise );
+		EXPECT_EQ( expectedTypes[i], rowwise->Activation().GetType());
+		switch( i ) {
+			case 0:
+				EXPECT_FLOAT_EQ( -1.f, rowwise->Activation().GetParam<CReLULayer::CParam>().UpperThreshold );
+				break;
+			case 1:
+				EXPECT_FLOAT_EQ( 6.f, rowwise->Activation().GetParam<CReLULayer::CParam>().UpperThreshold );
+				break;
+			case 2:
+				break;
+			case 3:
+				EXPECT_FLOAT_EQ( 1.f, rowwise->Activation().GetParam<CLinearLayer::CParam>().Multiplier );
+				EXPECT_FLOAT_EQ( 0.f, rowwise->Activation().GetParam<CLinearLayer::CParam>().FreeTerm );
+				break;
+			default:
+				FAIL();
+		}
+	}
+}
+
+GTEST_TEST( SerializeFromFile, RowwiseOperationChainLayerSerialization )
+{
+	checkSerializeLayer<CRowwiseOperationChainLayer>( "NeoMLDnnRowwiseOperationChainLayer" );
 }
 

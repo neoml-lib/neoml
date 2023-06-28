@@ -34,8 +34,6 @@ public:
 	// The descriptor pointer is valid till next Reshape call (or till this object is destroyed)
 	// The user must delete this pointer afterwards
 	virtual CRowwiseOperationDesc* GetDesc( const CBlobDesc& inputDesc ) = 0;
-
-	void Serialize( CArchive& archive ) override = 0;
 };
 
 // Registration macro
@@ -43,10 +41,10 @@ public:
 	static CRowwiseOperationRegistrar<classType> __merge__1( _RegisterRowwise, __LINE__ )( name );
 
 // Get registered name from the object
-NEOML_API const char* GetRowwiseOperationName( const IObject* rowwiseOperation );
+NEOML_API const char* GetRowwiseOperationName( const IRowwiseOperation* rowwiseOperation );
 
 // Create object of registered name
-NEOML_API CPtr<IObject> CreateRowwiseOperation( const char* className, IMathEngine& mathEngine );
+NEOML_API CPtr<IRowwiseOperation> CreateRowwiseOperation( const char* className, IMathEngine& mathEngine );
 
 template<class T>
 inline CPtr<T> CreateRowwiseOperation( const char* className, IMathEngine& mathEngine )

@@ -53,7 +53,9 @@ void CRowwiseOperationChainLayer::Serialize( CArchive& archive )
 	if( archive.IsStoring() ) {
 		archive << operations.Size();
 		for( IRowwiseOperation* operation : operations ) {
-			archive << CString( GetRowwiseOperationName( operation ) );
+			const CString name = CString( GetRowwiseOperationName( operation ) );
+			NeoAssert( operation == nullptr || name != "" ); // assertion on storing not registered rowwise operation
+			archive << name;
 			operation->Serialize( archive );
 		}
 	} else {
@@ -65,6 +67,8 @@ void CRowwiseOperationChainLayer::Serialize( CArchive& archive )
 			CString operationName;
 			archive >> operationName;
 			operations.Add( CreateRowwiseOperation<IRowwiseOperation>( operationName, MathEngine() ) );
+			CheckArchitecture( operationName == "" || operations.Last() != nullptr, operationName,
+				"restoring unknown rowwise operation from archive" );
 			operations.Last()->Serialize( archive );
 		}
 	}

@@ -30,6 +30,9 @@ public:
 	// Constructor for serialization
 	explicit CRowwiseActivation( IMathEngine& mathEngine ) : mathEngine( mathEngine ), desc( AF_HSwish ) {}
 
+	// Activation desc of this layer
+	const CActivationDesc& Activation() const { return desc; }
+
 	// IRowwiseOperation implementation
 	CRowwiseOperationDesc* GetDesc( const CBlobDesc& inputDesc ) override;
 	void Serialize( CArchive& archive ) override;
