@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,14 +20,10 @@ limitations under the License.
 
 namespace NeoML {
 
-ISvmBinaryModel::~ISvmBinaryModel()
-{
-}
-
 REGISTER_NEOML_MODEL( CSvmBinaryModel, SvmBinaryModelName )
 
-CSvmBinaryModel::CSvmBinaryModel( const CSvmKernel& _kernel, const IProblem& problem, const CArray<double>& _alpha,
-		double _freeTerm ) :
+CSvmBinaryModel::CSvmBinaryModel( const CSvmKernel& _kernel,
+		const IProblem& problem, const CArray<double>& _alpha, double _freeTerm ) :
 	kernel( _kernel ),
 	freeTerm( _freeTerm )
 {

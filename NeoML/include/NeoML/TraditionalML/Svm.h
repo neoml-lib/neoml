@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,12 +23,14 @@ limitations under the License.
 
 namespace NeoML {
 
+class IThreadPool;
+
 DECLARE_NEOML_MODEL_NAME( SvmBinaryModelName, "FmlSvmBinaryModel" )
 
 // Support-vector machine binary classifier
 class NEOML_API ISvmBinaryModel : public IModel {
 public:
-	~ISvmBinaryModel() override;
+	~ISvmBinaryModel() override {}
 
 	// Gets the kernel type
 	virtual CSvmKernel::TKernelType GetKernelType() const = 0;
@@ -72,11 +74,11 @@ public:
 			DoShrinking( doShrinking ),
 			ThreadCount( threadCount ),
 			MulticlassMode( multiclassMode )
-		{
-		}
+		{}
 	};
 
 	explicit CSvm( const CParams& params );
+	~CSvm() override;
 
 	// Sets the text stream for logging processing
 	void SetLog( CTextStream* newLog ) { log = newLog; }
@@ -88,7 +90,12 @@ public:
 
 private:
 	const CParams params; // classification parameters
-	CTextStream* log; // Logging stream
+	IThreadPool* const threadPool;
+	CTextStream* log = nullptr; // Logging stream
+
+	struct IThreadTask;
+	struct CFindPlanesThreadTask;
+	struct CCalcDistancesThreadTask;
 };
 
 // DEPRECATED: for backward compatibility

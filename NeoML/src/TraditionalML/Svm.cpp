@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,15 +22,111 @@ limitations under the License.
 #include <NeoML/TraditionalML/PlattScalling.h>
 #include <SvmBinaryModel.h>
 #include <LinearBinaryModel.h>
-#include <NeoMathEngine/OpenMP.h>
+#include <NeoMathEngine/ThreadPool.h>
 #include <SMOptimizer.h>
 
 namespace NeoML {
 
-CSvm::CSvm( const CParams& _params ) :
-	params( _params ),
-	log( nullptr )
+struct CSvm::IThreadTask {
+	virtual ~IThreadTask() {}
+
+	void CallRun( int threadIndex );
+	int Size() const { return Problem.GetVectorCount(); }
+
+protected:
+	IThreadTask( int threadCount, const IProblem& );
+
+	virtual void Run( int threadIndex, int index, const CFloatVectorDesc& ) = 0;
+
+	const int ThreadCount;
+	const IProblem& Problem;
+	const CFloatMatrixDesc Matrix;
+};
+
+CSvm::IThreadTask::IThreadTask( int threadCount, const IProblem& problem ) :
+	ThreadCount( threadCount ),
+	Problem( problem ),
+	Matrix( Problem.GetMatrix() )
 {
+	NeoAssert( Matrix.Height == Problem.GetVectorCount() );
+	NeoAssert( Matrix.Width == Problem.GetFeatureCount() );
+}
+
+void CSvm::IThreadTask::CallRun( int threadIndex )
+{
+	int index = 0;
+	int count = 0;
+	if( GetTaskIndexAndCount( ThreadCount, threadIndex, Size(), index, count ) ) {
+		for( int i = 0; i < count; ++i, ++index ) {
+			CFloatVectorDesc desc;
+			Matrix.GetRow( index, desc );
+
+			Run( threadIndex, index, desc );
+		}
+	}
+}
+
+//------------------------------------------------------------------------------------------------------------
+
+struct CSvm::CFindPlanesThreadTask : public CSvm::IThreadTask {
+	CFindPlanesThreadTask( int threadCount, const IProblem& problem, CArray<double>& alpha ) :
+		CSvm::IThreadTask( threadCount, problem ),
+		Alpha( alpha )
+	{ PlaneReduction.Add( CFloatVector( problem.GetFeatureCount() + 1, 0.f ), ThreadCount ); }
+
+	CFloatVector Reduction( float freeTerm );
+protected:
+	void Run( int threadIndex, int index, const CFloatVectorDesc& ) override;
+
+	CArray<double>& Alpha;
+	CArray<CFloatVector> PlaneReduction{};
+};
+
+void CSvm::CFindPlanesThreadTask::Run( int threadIndex, int index, const CFloatVectorDesc& desc )
+{
+	const float alpha = static_cast<float>( Alpha[index] * Problem.GetBinaryClass( index ) );
+	PlaneReduction[threadIndex].MultiplyAndAdd( desc, alpha );
+}
+
+CFloatVector CSvm::CFindPlanesThreadTask::Reduction( float freeTerm )
+{
+	CFloatVector plane = PlaneReduction[0];
+	for( int t = 1; t < ThreadCount; ++t ) {
+		plane += PlaneReduction[t];
+	}
+	plane.SetAt( Problem.GetFeatureCount(), freeTerm );
+	return plane;
+}
+
+//-------------------------------------------------------------------------------------------------------------
+
+struct CSvm::CCalcDistancesThreadTask : public CSvm::IThreadTask {
+	CCalcDistancesThreadTask( int threadCount, const IProblem& problem, const CFloatVector& plane ) :
+		CSvm::IThreadTask( threadCount, problem ),
+		Plane( plane )
+	{ Dist.Add( 0.0, Size() ); }
+
+	const CArray<double>& Distances() const { return Dist; }
+protected:
+	void Run( int /*threadIndex*/, int index, const CFloatVectorDesc& desc ) override
+	{ Dist[index] = LinearFunction( Plane, desc ); }
+
+	const CFloatVector& Plane;
+	CArray<double> Dist{};
+};
+
+//-------------------------------------------------------------------------------------------------------------
+
+CSvm::CSvm( const CParams& params )
+	: params( params ),
+	threadPool( CreateThreadPool( params.ThreadCount ) )
+{
+	NeoAssert( threadPool != nullptr );
+}
+
+CSvm::~CSvm()
+{
+	delete threadPool;
 }
 
 CPtr<IModel> CSvm::Train( const IProblem& problem )
@@ -49,71 +145,32 @@ CPtr<IModel> CSvm::Train( const IProblem& problem )
 		return nullptr;
 	}
 
-	CSvmKernel kernel( params.KernelType, params.Degree, params.Gamma, params.Coeff0 );
+	const CSvmKernel kernel( params.KernelType, params.Degree, params.Gamma, params.Coeff0 );
 
-	CSMOptimizer optimizer( kernel, problem, params.MaxIterations, params.ErrorWeight, params.Tolerance,
-		params.DoShrinking );
+	CSMOptimizer optimizer( kernel, problem, params.MaxIterations,
+		params.ErrorWeight, params.Tolerance, params.DoShrinking );
 	if( log != nullptr ) {
 		optimizer.SetLog( log );
 	}
 
-	CArray<double> alpha;
-	float freeTerm;
+	CArray<double> alpha{};
+	float freeTerm{};
 	optimizer.Optimize( alpha, freeTerm );
 
 	if( kernel.KernelType() == CSvmKernel::KT_Linear ) {
-		const int vectorCount = problem.GetVectorCount();
-		const int curThreadCount = IsOmpRelevant( vectorCount ) ? params.ThreadCount : 1;
-		const CFloatMatrixDesc matrix = problem.GetMatrix();
-		NeoAssert( matrix.Height == problem.GetVectorCount() );
-		NeoAssert( matrix.Width == problem.GetFeatureCount() );
+		CFindPlanesThreadTask planeTask( params.ThreadCount, problem, alpha );
+		NEOML_NUM_THREADS( *threadPool, &planeTask, []( int threadIndex, void* ptr ) {
+			( ( IThreadTask* )ptr )->CallRun( threadIndex );
+		} );
+		CFloatVector plane = planeTask.Reduction( freeTerm );
 
-		CArray<CFloatVector> planeReduction;
-		planeReduction.Add( CFloatVector( problem.GetFeatureCount() + 1, 0.f ), curThreadCount );
-
-		NEOML_OMP_NUM_THREADS( curThreadCount )
-		{
-			const int threadNumber = OmpGetThreadNum();
-			CFloatVector& plane = planeReduction[threadNumber];
-
-			int index = 0;
-			int count = 0;
-			if( OmpGetTaskIndexAndCount( vectorCount, index, count ) ) {
-				for( int i = 0; i < count; i++ ) {
-					float alphaValue = static_cast<float>( alpha[index] * problem.GetBinaryClass(index) );
-					CFloatVectorDesc desc;
-					matrix.GetRow( index, desc );
-					plane.MultiplyAndAdd( desc, alphaValue );
-					index++;
-				}
-			}
-		}
-
-		CFloatVector plane = planeReduction[0];
-		for( int i = 1; i < planeReduction.Size(); i++ ) {
-			plane += planeReduction[i];
-		}
-		plane.SetAt( problem.GetFeatureCount(), freeTerm );
-
-		CArray<double> distances;
-		distances.Add( 0.0, vectorCount );
-
-		NEOML_OMP_NUM_THREADS( curThreadCount )
-		{
-			int index = 0;
-			int count = 0;
-			if( OmpGetTaskIndexAndCount( vectorCount, index, count ) ) {
-				for( int i = 0; i < count; i++ ) {
-					CFloatVectorDesc desc;
-					matrix.GetRow( index, desc );
-					distances[index] = LinearFunction( plane, desc );
-					index++;
-				}
-			}
-		}
+		CCalcDistancesThreadTask distTask( params.ThreadCount, problem, plane );
+		NEOML_NUM_THREADS( *threadPool, &distTask, []( int threadIndex, void* ptr ) {
+			( ( IThreadTask* )ptr )->CallRun( threadIndex );
+		} );
 
 		CSigmoid coefficients;
-		CalcSigmoidCoefficients( problem, distances, coefficients );
+		CalcSigmoidCoefficients( problem, distTask.Distances(), coefficients );
 		return FINE_DEBUG_NEW CLinearBinaryModel( plane, coefficients );
 	} else {
 		return FINE_DEBUG_NEW CSvmBinaryModel( kernel, problem, alpha, freeTerm );
