@@ -154,7 +154,7 @@ public:
 	int Size() const override { return static_cast<int>(threads.size()); }
 	bool AddTask( int threadIndex, TFunction function, void* params ) override;
 	void WaitAllTask() override;
-	void StopAndWait() override;
+	void StopAndWait() override final;
 
 private:
 	std::vector<std::thread*> threads; // CPointerArray isn't available in neoml.
@@ -220,8 +220,8 @@ void CThreadPool::StopAndWait()
 		{
 			std::unique_lock<std::mutex> lock(params[i]->Mutex);
 			params[i]->Stopped = true;
-			params[i]->ConditionVariable.notify_all();
 		}
+		params[i]->ConditionVariable.notify_all();
 		threads[i]->join();
 	}
 }

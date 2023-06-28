@@ -428,8 +428,8 @@ inline void CCopyOnWritePtr<T>::Release()
 {
 	if( ptr != 0 ) {
 		ptr->release();
+		ptr = 0;
 	}
-	ptr = 0;
 }
 
 template<class T>
@@ -462,11 +462,10 @@ inline const CCopyOnWritePtr<T>& CCopyOnWritePtr<T>::assignPtr( T* newPtr )
 	if( newPtr != 0 ) {
 		newPtr->addRef();
 	}
-	T* oldPtr = ptr;
-	ptr = newPtr;
-	if( oldPtr != 0 ) {
-		oldPtr->release();
+	if( ptr != 0 ) {
+		ptr->release();
 	}
+	ptr = newPtr;
 	return *this;
 }
 

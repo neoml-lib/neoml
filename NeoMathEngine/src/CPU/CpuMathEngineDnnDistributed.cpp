@@ -30,19 +30,19 @@ CMultiThreadDistributedCommunicator::CMultiThreadDistributedCommunicator( int _n
 void CMultiThreadDistributedCommunicator::collectHandles( const CFloatHandle& handle )
 {
 	IMathEngine* mathEngine = handle.GetMathEngine();
-	int thread = mathEngine->GetDistributedInfo().Thread;
+	const int thread = mathEngine->GetDistributedInfo().Thread;
 	handles[thread] = reinterpret_cast<float*>( GetRaw( handle ) );
 }
 
 void CMultiThreadDistributedCommunicator::barrier()
 {
-	int wait = waiting_flag;
+	const bool wait = waiting_flag.load(std::memory_order_acquire);
 	if( !--counter ){
 		counter = n_threads;
-		waiting_flag++;
+		waiting_flag.store(!wait, std::memory_order_release);
 	} else {
-		while( waiting_flag == wait ){
-			if( isAbort ){
+		while( waiting_flag.load(std::memory_order_acquire) == wait ){
+			if( isAbort.load(std::memory_order_acquire) ){
 				throw std::logic_error( "Stopping due to error in another thread." );
 			}
 			std::this_thread::yield();
@@ -53,14 +53,13 @@ void CMultiThreadDistributedCommunicator::barrier()
 void CMultiThreadDistributedCommunicator::AllReduce( const CFloatHandle& handle, int size )
 {
 	collectHandles( handle );
-	int thread = handle.GetMathEngine()->GetDistributedInfo().Thread;
+	const int thread = handle.GetMathEngine()->GetDistributedInfo().Thread;
 
 	barrier();
 
-	int perThread = ( size + n_threads - 1 ) / n_threads;
-	float buf;
+	const int perThread = ( size + n_threads - 1 ) / n_threads;
 	for( int i = thread * perThread; i < std::min( ( thread + 1 ) * perThread, size ); i++ ){
-		buf = 0;
+		float buf = 0;
 		for( int j = 0; j < n_threads; j++ ){
 			buf += handles[j][i];
 		}
@@ -76,7 +75,7 @@ void CMultiThreadDistributedCommunicator::AllReduce( const CFloatHandle& handle,
 void CMultiThreadDistributedCommunicator::Broadcast( const CFloatHandle& handle, int size, int root )
 {
 	collectHandles( handle );
-	int thread = handle.GetMathEngine()->GetDistributedInfo().Thread;
+	const int thread = handle.GetMathEngine()->GetDistributedInfo().Thread;
 	barrier();
 
 	if( thread != root ){
