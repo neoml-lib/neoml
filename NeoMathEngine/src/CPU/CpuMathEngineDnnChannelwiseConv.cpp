@@ -972,7 +972,8 @@ IRowwiseCpuImpl::CProcessingReport CCpuMathEngine::CRowwiseMobileNetV2::Process(
 	PRESUME_EXPR( chInput->DataRowProcessed() >= inputRowIndex );
 	PRESUME_EXPR( chInput->DataRowProcessed() <= inputRowIndex + inputRowsAvailable );
 	PRESUME_EXPR( chInput->DataRowCount() <= 3 - desc.StrideHeight );
-	PRESUME_EXPR( chInput->DataRowIndex() == getFirstRequiredInputRow( outputRowIndex, desc ) );
+	PRESUME_EXPR( chInput->DataRowIndex() == RowwiseConvFirstInputRow( outputRowIndex, desc.Source.Height(),
+		desc.Result.Height(), desc.StrideHeight, desc.PaddingHeight ) );
 
 	const int inputWidth = desc.Source.Width();
 	const int outputWidth = desc.Result.Width();
