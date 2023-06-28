@@ -595,15 +595,15 @@ public:
 		const CConstFloatHandle* residualHandle, TActivationFunction activation, float activationParam,
 		const CConstFloatHandle& downFilterHandle, const CConstFloatHandle* downFreeTermHandle,
 		const CFloatHandle& outputHandle ) override;
-	CRowwiseOperationDesc* InitActivationRowwise( TActivationFunction activation, float param0, float param1 ) override;
-	CRowwiseOperationDesc* InitChannelwiseWith1x1Rowwise( int stride, const CConstFloatHandle& channelwiseFilter,
+	CRowwiseOperationDesc* InitRowwiseActivation( TActivationFunction activation, float param0, float param1 ) override;
+	CRowwiseOperationDesc* InitRowwiseChWith1x1( int stride, const CConstFloatHandle& channelwiseFilter,
 		const CConstFloatHandle* channelwiseFreeTerm, TActivationFunction activation, float activationParam,
 		const CConstFloatHandle& convFilter, const CConstFloatHandle* convFreeTerm,
 		int outputChannels, bool residual ) override;
-	CRowwiseOperationDesc* InitConvRowwise( int paddingHeight, int paddingWidth, int strideHeight,
+	CRowwiseOperationDesc* InitRowwiseConv( int paddingHeight, int paddingWidth, int strideHeight,
 		int strideWidth, int dilationHeight, int dilationWidth, const CBlobDesc& filterDesc,
 		const CConstFloatHandle& filter, const CConstFloatHandle* freeTerm ) override;
-	CRowwiseOperationDesc* InitMobileNetV2Rowwise( int inputChannels,
+	CRowwiseOperationDesc* InitRowwiseMobileNetV2( int inputChannels,
 		const CConstFloatHandle& expandFilter, const CConstFloatHandle* expandFreeTerm, int expandedChannels,
 		TActivationFunction expandActivation, float expandActivationParam,
 		const CConstFloatHandle& channelwiseFilter, const CConstFloatHandle* channelwiseFreeTerm, int stride,

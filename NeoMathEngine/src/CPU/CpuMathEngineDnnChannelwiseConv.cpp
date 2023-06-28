@@ -860,7 +860,7 @@ void CCpuMathEngine::ChannelwiseWith1x1( const CBlobDesc& inputDesc, const CBlob
 	PRESUME_EXPR( report.OutputRowsCalculated == outputRowCount );
 }
 
-CRowwiseOperationDesc* CCpuMathEngine::InitChannelwiseWith1x1Rowwise( int stride, const CConstFloatHandle& channelwiseFilter,
+CRowwiseOperationDesc* CCpuMathEngine::InitRowwiseChWith1x1( int stride, const CConstFloatHandle& channelwiseFilter,
 	const CConstFloatHandle* channelwiseFreeTerm, TActivationFunction activation, float activationParam,
 	const CConstFloatHandle& convFilter, const CConstFloatHandle* convFreeTerm, int outputChannels, bool residual )
 {
@@ -1102,7 +1102,7 @@ void CCpuMathEngine::MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobDe
 	PRESUME_EXPR( report.OutputRowsCalculated == outputDesc.ObjectCount() * outputDesc.Height() );
 }
 
-CRowwiseOperationDesc* CCpuMathEngine::InitMobileNetV2Rowwise( int inputChannels,
+CRowwiseOperationDesc* CCpuMathEngine::InitRowwiseMobileNetV2( int inputChannels,
 	const CConstFloatHandle& expandFilter, const CConstFloatHandle* expandFreeTerm, int expandedChannels,
 	TActivationFunction expandActivation, float expandActivationParam,
 	const CConstFloatHandle& channelwiseFilter, const CConstFloatHandle* channelwiseFreeTerm, int stride,

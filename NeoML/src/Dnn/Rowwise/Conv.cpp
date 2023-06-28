@@ -47,7 +47,7 @@ CConvRowwise::CConvRowwise( IMathEngine& mathEngine ) :
 
 CRowwiseOperationDesc* CConvRowwise::GetDesc( const CBlobDesc& inputDesc )
 {
-	return mathEngine.InitConvRowwise( paddingHeight, paddingWidth, strideHeight, strideWidth, dilationHeight,
+	return mathEngine.InitRowwiseConv( paddingHeight, paddingWidth, strideHeight, strideWidth, dilationHeight,
 		dilationWidth, filter->GetDesc(), filter->GetData(),
 		freeTerm == nullptr ? nullptr : &freeTerm->GetData<const float>() );
 }

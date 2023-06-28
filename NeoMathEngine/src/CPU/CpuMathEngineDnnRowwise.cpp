@@ -247,7 +247,7 @@ void CCpuMathEngine::RowwiseExecute( const CBlobDesc& inputDesc, CRowwiseOperati
 	}
 }
 
-CRowwiseOperationDesc* CCpuMathEngine::InitActivationRowwise( TActivationFunction activation,
+CRowwiseOperationDesc* CCpuMathEngine::InitRowwiseActivation( TActivationFunction activation,
 	float param0, float param1 )
 {
 	return new CRowwiseActivation( activation, param0, param1 );

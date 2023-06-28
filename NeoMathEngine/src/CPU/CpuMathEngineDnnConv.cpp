@@ -1504,7 +1504,7 @@ int CCpuMathEngine::CRowwiseConv::getCacheItemCount() const
 		resultItemCount ) );
 }
 
-CRowwiseOperationDesc* CCpuMathEngine::InitConvRowwise( int paddingHeight, int paddingWidth, int strideHeight,
+CRowwiseOperationDesc* CCpuMathEngine::InitRowwiseConv( int paddingHeight, int paddingWidth, int strideHeight,
 	int strideWidth, int dilationHeight, int dilationWidth, const CBlobDesc& filterDesc,
 	const CConstFloatHandle& filter, const CConstFloatHandle* freeTerm )
 {

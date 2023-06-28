@@ -25,9 +25,9 @@ CRowwiseOperationDesc* CActivationRowwise::GetDesc( const CBlobDesc& )
 	switch( desc.GetType() ) {
 		case AF_HSwish:
 		case AF_Sigmoid:
-			return mathEngine.InitActivationRowwise( desc.GetType(), 0, 0);
+			return mathEngine.InitRowwiseActivation( desc.GetType(), 0, 0);
 		case AF_ReLU:
-			return mathEngine.InitActivationRowwise( AF_ReLU,
+			return mathEngine.InitRowwiseActivation( AF_ReLU,
 				desc.HasParam() ? desc.GetParam<CReLULayer::CParam>().UpperThreshold : 0,
 				0 );
 	}

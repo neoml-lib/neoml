@@ -47,7 +47,7 @@ CMobileNetV2Rowwise::CMobileNetV2Rowwise( IMathEngine& mathEngine ) :
 
 CRowwiseOperationDesc* CMobileNetV2Rowwise::GetDesc( const CBlobDesc& inputDesc )
 {
-	return mathEngine.InitMobileNetV2Rowwise( expandFilter->GetChannelsCount(), expandFilter->GetData(),
+	return mathEngine.InitRowwiseMobileNetV2( expandFilter->GetChannelsCount(), expandFilter->GetData(),
 		expandFreeTerm == nullptr ? nullptr : &expandFreeTerm->GetData<const float>(),
 		expandFilter->GetObjectCount(), expandActivation.GetType(),
 		expandActivation.GetType() == AF_ReLU ? expandActivation.GetParam<CReLULayer::CParam>().UpperThreshold : 0,

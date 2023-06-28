@@ -43,7 +43,7 @@ CChannelwiseWith1x1Rowwise::CChannelwiseWith1x1Rowwise( IMathEngine& mathEngine 
 
 CRowwiseOperationDesc* CChannelwiseWith1x1Rowwise::GetDesc( const CBlobDesc& inputDesc )
 {
-	return mathEngine.InitChannelwiseWith1x1Rowwise( stride, channelwiseFilter->GetData(),
+	return mathEngine.InitRowwiseChWith1x1( stride, channelwiseFilter->GetData(),
 		channelwiseFreeTerm == nullptr ? nullptr : &channelwiseFreeTerm->GetData<const float>(),
 		activation.GetType(),
 		activation.GetType() == AF_ReLU ? activation.GetParam<CReLULayer::CParam>().UpperThreshold : 0,

@@ -603,14 +603,14 @@ public:
 		const CConstFloatHandle& downFilterHandle, const CConstFloatHandle* downFreeTermHandle,
 		const CFloatHandle& outputHandle ) override;
 	// Rowwise computation is ineffective on GPUs
-	CRowwiseOperationDesc* InitActivationRowwise( TActivationFunction, float, float ) override
+	CRowwiseOperationDesc* InitRowwiseActivation( TActivationFunction, float, float ) override
 		{ ASSERT_EXPR( false ); return nullptr; }
-	CRowwiseOperationDesc* InitChannelwiseWith1x1Rowwise( int, const CConstFloatHandle&, const CConstFloatHandle*,
+	CRowwiseOperationDesc* InitRowwiseChWith1x1( int, const CConstFloatHandle&, const CConstFloatHandle*,
 		TActivationFunction, float, const CConstFloatHandle&, const CConstFloatHandle*, int, bool ) override
 		{ ASSERT_EXPR( false ); return nullptr; }
-	CRowwiseOperationDesc* InitConvRowwise( int, int, int, int, int, int, const CBlobDesc&, const CConstFloatHandle&,
+	CRowwiseOperationDesc* InitRowwiseConv( int, int, int, int, int, int, const CBlobDesc&, const CConstFloatHandle&,
 		const CConstFloatHandle* ) override { ASSERT_EXPR( false ); return nullptr; }
-	CRowwiseOperationDesc* InitMobileNetV2Rowwise( int, const CConstFloatHandle&, const CConstFloatHandle*, int,
+	CRowwiseOperationDesc* InitRowwiseMobileNetV2( int, const CConstFloatHandle&, const CConstFloatHandle*, int,
 		TActivationFunction, float, const CConstFloatHandle&, const CConstFloatHandle*, int, TActivationFunction,
 		float, const CConstFloatHandle&, const CConstFloatHandle*, int, bool ) override
 		{ ASSERT_EXPR( false ); return nullptr; }
