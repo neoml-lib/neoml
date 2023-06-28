@@ -38,8 +38,8 @@ private:
 	IObject( const IObject& );
 	IObject& operator=( const IObject& );
 	
-	void addRef() const;
-	void release() const;
+	void addRef() const noexcept;
+	void release() const noexcept;
 	void detach();
 	bool weakAddRef() const;
 
@@ -150,10 +150,9 @@ inline CPtr<const T>::CPtr( CPtr<T>&& other )
 template<class T>
 inline void CPtr<const T>::Release()
 {
-	const T* tmp = ptr;
-	if( tmp != nullptr ) {
+	if( ptr != nullptr ) {
+		ptr->release();
 		ptr = nullptr;
-		tmp->release();
 	}
 }
 
@@ -209,11 +208,10 @@ inline const CPtr<const T>& CPtr<const T>::assignPtr( const T* other )
 template<class T>
 inline void CPtr<const T>::replacePtr( const T* other )
 {
-	const T* tmp = ptr;
-	ptr = other;
-	if( tmp != nullptr ) {
-		tmp->release();
+	if( ptr != nullptr ) {
+		ptr->release();
 	}
+	ptr = other;
 }
 
 //---------------------------------------------------------------------------------------------
@@ -257,12 +255,12 @@ inline int IObject::RefCount() const
 	return refCounter;
 }
 
-inline void IObject::addRef() const
+inline void IObject::addRef() const noexcept
 {
 	refCounter++;
 }
 
-inline void IObject::release() const
+inline void IObject::release() const noexcept
 {
 	if( refCounter.fetch_sub( 1 ) == 1 ) {
 		delete this;
@@ -293,10 +291,9 @@ inline bool IObject::weakAddRef() const
 template<class T>
 inline void CPtr<T>::Release()
 {
-	T* tmp = ptr;
-	if( tmp != nullptr ) {
+	if( ptr != nullptr ) {
+		ptr->release();
 		ptr = nullptr;
-		tmp->release();
 	}
 }
 
@@ -344,11 +341,10 @@ inline const CPtr<T>& CPtr<T>::assignPtr( T* other )
 template<class T>
 inline void CPtr<T>::replacePtr( T* other )
 {
-	T* tmp = ptr;
-	ptr = other;
-	if( tmp != nullptr ) {
-		tmp->release();
+	if( ptr != nullptr ) {
+		ptr->release();
 	}
+	ptr = other;
 }
 
 //---------------------------------------------------------------------------------------------
@@ -426,9 +422,9 @@ inline const CCopyOnWritePtr<T>& CCopyOnWritePtr<T>::operator=( T* other )
 template<class T>
 inline void CCopyOnWritePtr<T>::Release()
 {
-	if( ptr != 0 ) {
+	if( ptr != nullptr ) {
 		ptr->release();
-		ptr = 0;
+		ptr = nullptr;
 	}
 }
 
@@ -459,10 +455,10 @@ inline T* CCopyOnWritePtr<T>::CopyOnWrite()
 template<class T>
 inline const CCopyOnWritePtr<T>& CCopyOnWritePtr<T>::assignPtr( T* newPtr )
 {
-	if( newPtr != 0 ) {
+	if( newPtr != nullptr ) {
 		newPtr->addRef();
 	}
-	if( ptr != 0 ) {
+	if( ptr != nullptr ) {
 		ptr->release();
 	}
 	ptr = newPtr;
