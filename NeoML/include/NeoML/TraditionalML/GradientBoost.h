@@ -23,6 +23,7 @@ limitations under the License.
 
 namespace NeoML {
 
+class IThreadPool;
 class IRegressionTreeNode;
 template<class T>
 class CGradientBoostFullTreeBuilder;
@@ -151,6 +152,11 @@ public:
 	CPtr<IRegressionModel> GetRegressionModel( const IRegressionProblem& );
 	CPtr<IMultivariateRegressionModel> GetMultivariateRegressionModel( const IMultivariateRegressionProblem& );
 
+	struct IArgs;
+	struct CBuildPredictionsArgs;
+	struct CBuildFullPredictionsArgs;
+	struct CThreadTask;
+
 private:
 	// A cache element that contains the ensemble predictions for a vector on a given step
 	struct CPredictionCacheItem final {
@@ -165,6 +171,7 @@ private:
 	};
 
 	const CParams params; // the classification parameters
+	IThreadPool* const threadPool;
 	CRandom defaultRandom{}; // the default random number generator
 	CTextStream* logStream{}; // the logging stream
 	CPtr<CGradientBoostFullTreeBuilder<CGradientBoostStatisticsSingle>> fullSingleClassTreeBuilder{}; // TGBT_Full tree builder for single class
