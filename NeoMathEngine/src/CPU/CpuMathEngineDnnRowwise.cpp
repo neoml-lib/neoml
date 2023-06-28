@@ -187,7 +187,7 @@ void CCpuMathEngine::RowwiseExecute( const CBlobDesc& inputDesc, CRowwiseOperati
 
 	buffers.front()->AddRows( inputDesc.ObjectCount() * inputDesc.Height() );
 
-	if( operations.size() == 1 ) {
+	if( operations.size() == 1 && operations[0].size() > 1 ) {
 		const int maxOutputRowsPerStep = std::max( 1, RowwiseMaxBuffSize / operations.back().back()->OutputRowSize() );
 		while( buffers.back()->EmptyRowCount() > 0 ) {
 			const int outputRowsThisStep = std::min( maxOutputRowsPerStep, buffers.back()->EmptyRowCount() );
@@ -211,13 +211,12 @@ void CCpuMathEngine::RowwiseExecute( const CBlobDesc& inputDesc, CRowwiseOperati
 	}
 
 	while( buffers.back()->EmptyRowCount() > 0 ) {
-
 		for( size_t i = 0; i < operations.size(); ++i ) {
 			if( buffers[i]->DataRowCount() == 0 || buffers[i + 1]->EmptyRowCount() == 0 ) {
 				continue;
 			}
 
-			IRowwiseCpuImpl::CProcessingReport report = operations[i][0]->Process(buffers[i]->DataRows(),
+			IRowwiseCpuImpl::CProcessingReport report = operations[i][0]->Process( buffers[i]->DataRows(),
 				buffers[i]->DataRowIndex(), buffers[i]->DataRowCount(), buffers[i + 1]->EmptyRows(),
 				buffers[i + 1]->DataRowProcessed(), buffers[i + 1]->EmptyRowCount(), inOperationBuffer );
 
