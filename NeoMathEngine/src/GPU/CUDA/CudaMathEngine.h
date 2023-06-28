@@ -602,6 +602,22 @@ public:
 		const CConstFloatHandle* residualHandle, TActivationFunction activation, float activationParam,
 		const CConstFloatHandle& downFilterHandle, const CConstFloatHandle* downFreeTermHandle,
 		const CFloatHandle& outputHandle ) override;
+	// Rowwise computation is ineffective on GPUs
+	CRowwiseOperationDesc* InitActivationRowwise( TActivationFunction, float, float ) override
+		{ ASSERT_EXPR( false ); return nullptr; }
+	CRowwiseOperationDesc* InitChannelwiseWith1x1Rowwise( int, const CConstFloatHandle&, const CConstFloatHandle*,
+		TActivationFunction, float, const CConstFloatHandle&, const CConstFloatHandle*, int, bool ) override
+		{ ASSERT_EXPR( false ); return nullptr; }
+	CRowwiseOperationDesc* InitConvRowwise( int, int, int, int, int, int, const CBlobDesc&, const CConstFloatHandle&,
+		const CConstFloatHandle* ) override { ASSERT_EXPR( false ); return nullptr; }
+	CRowwiseOperationDesc* InitMobileNetV2Rowwise( int, const CConstFloatHandle&, const CConstFloatHandle*, int,
+		TActivationFunction, float, const CConstFloatHandle&, const CConstFloatHandle*, int, TActivationFunction,
+		float, const CConstFloatHandle&, const CConstFloatHandle*, int, bool ) override
+		{ ASSERT_EXPR( false ); return nullptr; }
+	CBlobDesc RowwiseReshape( CRowwiseOperationDesc**, int, const CBlobDesc& ) override
+		{ ASSERT_EXPR( false ); return CBlobDesc(); }
+	void RowwiseExecute( const CBlobDesc&, CRowwiseOperationDesc**, int, const CFloatHandle&,
+		const CFloatHandle& ) override { ASSERT_EXPR( false ); }
 
 	IPerformanceCounters* CreatePerformanceCounters() const override { 	return new CPerformanceCountersDefault(); }
 	void AllReduce( const CFloatHandle& handle, int size ) override;

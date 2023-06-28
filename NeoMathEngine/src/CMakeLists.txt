@@ -197,7 +197,7 @@ else()
 endif()
 
 # GPU specific source and settings
-if(FALSE) # if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
+if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
 
     if(USE_FINE_OBJECTS)
         # The CUDA must exist at $ENV{ROOT}/ThirdParty
@@ -357,7 +357,7 @@ elseif(IOS)
     endif()
 endif()
 
-if(FALSE) # if(NeoMathEngine_ENABLE_VULKAN)
+if(NeoMathEngine_ENABLE_VULKAN)
     if(WIN32 OR ANDROID)
         # Vulkan
         if(USE_FINE_OBJECTS)
