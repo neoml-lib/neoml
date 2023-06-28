@@ -24,19 +24,30 @@ class CDnn;
 // Struct which contains the details of optimization result
 struct NEOML_API CDnnOptimizationReport {
 	// Number of batch normalizations fused into other layers
-	int FusedBatchNormalizations;
+	int FusedBatchNormalizations{};
 	// Number of merged (channelwise->activation->1x1) constructions without residual connection
-	int ChannelwiseWith1x1NonResidual;
+	int ChannelwiseWith1x1NonResidual{};
 	// Number of merged (channelwise->activation->1x1) constructions with residual connection
-	int ChannelwiseWith1x1Residual;
+	int ChannelwiseWith1x1Residual{};
 	// Number of optimized MobileNetV2 blocks without residual connection
-	int MobileNetV2NonResidualBlocks;
+	int MobileNetV2NonResidualBlocks{};
 	// Number of optimized MobileNetV2 blocks with residual connection
-	int MobileNetV2ResidualBlocks;
+	int MobileNetV2ResidualBlocks{};
 	// Number of optimized MobileNetV3 blocks without residual connection
-	int MobileNetV3NonResidualBlocks;
+	int MobileNetV3NonResidualBlocks{};
 	// Number of optimized MobileNetV3 blocks with residual connection
-	int MobileNetV3ResidualBlocks;
+	int MobileNetV3ResidualBlocks{};
+	// Number of chains of rowwise operations (0 if CDnnOptimizationSettings::OptimizeRowwiseChains is false)
+	int RowwiseChainCount{};
+};
+
+// Settings for optional optimizations
+struct NEOML_API CDnnOptimizationSettings {
+	// Enable rowwise computation of images withing blobs
+	// After these optimizations dnn can be used ONLY ON CPU
+	// Recommended for convolutional nets with at least 20MB RAM usage
+	// (You can measure RAM usage by running the dnn and dnn.GetMathEngine().GetPeakMemoryUsage())
+	bool OptimizeRowwiseChains = false;
 };
 
 // Optimizes inference of given CDnn at the cost of trainability
@@ -78,6 +89,7 @@ struct NEOML_API CDnnOptimizationReport {
 //             +------------------------------+
 //        with optimized CMobileNetV3BlockLayer
 //        ReLU and HSwish activations are supported (or trivial Linear{mul=1, ft=0}).
-CDnnOptimizationReport NEOML_API OptimizeDnn( CDnn& dnn );
+CDnnOptimizationReport NEOML_API OptimizeDnn( CDnn& dnn,
+	const CDnnOptimizationSettings& settings = CDnnOptimizationSettings() );
 
 } // namespace NeoML
