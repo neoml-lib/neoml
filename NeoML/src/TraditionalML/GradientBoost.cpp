@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -41,11 +41,11 @@ IRegressionTreeNode::~IRegressionTreeNode() = default;
 class IGradientBoostingLossFunction : public virtual IObject {
 public:
 	// Calculates function gradient
-	virtual void CalcGradientAndHessian( const CArray< CArray<double> >& predicts, const CArray< CArray<double> >& answers,
-		CArray< CArray<double> >& gradient, CArray< CArray<double> >& hessian ) const = 0;
+	virtual void CalcGradientAndHessian( const CArray<CArray<double>>& predicts, const CArray<CArray<double>>& answers,
+		CArray<CArray<double>>& gradient, CArray<CArray<double>>& hessian ) const = 0;
 
 	// Calculates loss
-	virtual double CalcLossMean( const CArray< CArray<double> >& predicts, const CArray< CArray<double> >& answers ) const = 0;
+	virtual double CalcLossMean( const CArray<CArray<double>>& predicts, const CArray<CArray<double>>& answers ) const = 0;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -89,7 +89,7 @@ double CGradientBoostingBinomialLossFunction::CalcLossMean( const CArray< CArray
 	for( int i = 0; i < predicts.Size(); ++i ) {
 		double sum = 0;
 		for( int j = 0; j < predicts[i].Size(); ++j ) {
-			sum += log1p( exp( min( -predicts[i][j], MaxExpArgument ) ) ) - predicts[i][j] * answers[i][j]; 
+			sum += log1p( exp( min( -predicts[i][j], MaxExpArgument ) ) ) - predicts[i][j] * answers[i][j];
 		}
 		overallSum += getMean( sum, predicts[i].Size() );
 	}
@@ -456,7 +456,7 @@ void CGradientBoost::initialize()
 	if( params.Subfeature == 1.0 ) {
 		usedFeatures.DeleteAll();
 		featureNumbers.DeleteAll();
-		for(int i = 0; i < featureCount; i++ ) {
+		for( int i = 0; i < featureCount; i++ ) {
 			usedFeatures.Add( i );
 			featureNumbers.Add( i );
 		}
@@ -468,7 +468,7 @@ void CGradientBoost::initialize()
 		destroyTreeBuilder(); // return to the initial state
 		throw;
 	}
-	
+
 	if( fullProblem != nullptr && params.Subfeature == 1.0 && params.Subsample == 1.0 ) {
 		fullProblem->Update();
 	}
@@ -493,7 +493,7 @@ void CGradientBoost::executeStep( IGradientBoostingLossFunction& lossFunction,
 	if( params.Subfeature < 1.0 ) {
 		generateRandomArray( params.Random != nullptr ? *params.Random : defaultRandom, featureCount,
 			max( static_cast<int>( featureCount * params.Subfeature ), 1 ), usedFeatures );
-		
+
 		if( featureNumbers.Size() != featureCount ) {
 			featureNumbers.SetSize( featureCount );
 		}
@@ -609,18 +609,18 @@ void CGradientBoost::buildPredictions( const IMultivariateRegressionProblem& pro
 						params.LearningRate, vector, predictions[threadNum] );
 				} else {
 					CFastArray<double, 1> pred;
-					pred.SetSize(1);
+					pred.SetSize( 1 );
 					for( int j = 0; j < problem.GetValueSize(); j++ ) {
-						 CGradientBoostModel::PredictRaw( models[j], predictCache[j][usedVector].Step,
-							 params.LearningRate, vector, pred );
-						 predictions[threadNum][j] = pred[0];
+						CGradientBoostModel::PredictRaw( models[j], predictCache[j][usedVector].Step,
+							params.LearningRate, vector, pred );
+						predictions[threadNum][j] = pred[0];
 					}
 				}
 
 				for( int j = 0; j < problem.GetValueSize(); j++ ) {
 					predictCache[j][usedVector].Value += predictions[threadNum][j];
 					predictCache[j][usedVector].Step = curStep;
-					predicts[j][index] =  predictCache[j][usedVector].Value;
+					predicts[j][index] = predictCache[j][usedVector].Value;
 					answers[j][index] = value[j];
 				}
 				index++;
@@ -638,7 +638,7 @@ void CGradientBoost::buildFullPredictions( const IMultivariateRegressionProblem&
 
 	for( int i = 0; i < predicts.Size(); i++ ) {
 		predicts[i].SetSize( problem.GetVectorCount() );
-		answers[i].SetSize( problem.GetVectorCount());
+		answers[i].SetSize( problem.GetVectorCount() );
 	}
 	CArray<CFastArray<double, 1>> predictions;
 	predictions.SetSize( params.ThreadCount );
@@ -658,13 +658,13 @@ void CGradientBoost::buildFullPredictions( const IMultivariateRegressionProblem&
 				CFloatVectorDesc vector;
 				matrix.GetRow( index, vector );
 
-				if( isMultiTreesModel() ){
+				if( isMultiTreesModel() ) {
 					CGradientBoostModel::PredictRaw( models[0], predictCache[0][index].Step,
 						params.LearningRate, vector, predictions[threadNum] );
 				} else {
 					CFastArray<double, 1> pred;
-					pred.SetSize(1);
-					for( int j = 0; j < problem.GetValueSize(); j++ ){
+					pred.SetSize( 1 );
+					for( int j = 0; j < problem.GetValueSize(); j++ ) {
 						CGradientBoostModel::PredictRaw( models[j], predictCache[j][index].Step,
 							params.LearningRate, vector, pred );
 						predictions[threadNum][j] = pred[0];

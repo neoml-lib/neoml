@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -55,9 +55,9 @@ protected:
 
 private:
 	// A feature value
-	struct CFeatureValue {
-		float Value;
-		double Weight;
+	struct CFeatureValue final {
+		float Value{};
+		double Weight{};
 	};
 
 	// The vectors used
@@ -69,12 +69,12 @@ private:
 	// The array has N * CParams::Subfeature elements, where N is the number of features in the full set
 	const CArray<int>& usedFeatures;
 
-	CArray<int> featurePos; // the identifier positions for this feature
-	CArray<int> featureIndexes; // the indices of the feature to which the identifier belongs
-	CArray<float> cuts; // the cut values for histograms
-	CArray<int> nullValueIds; // the identifiers of the zero feature values
-	CArray<int> vectorData; // the vector data
-	CArray<int> vectorPtr; // the pointers to the data of the given vector
+	CArray<int> featurePos{}; // the identifier positions for this feature
+	CArray<int> featureIndexes{}; // the indices of the feature to which the identifier belongs
+	CArray<float> cuts{}; // the cut values for histograms
+	CArray<int> nullValueIds{}; // the identifiers of the zero feature values
+	CArray<int> vectorData{}; // the vector data
+	CArray<int> vectorPtr{}; // the pointers to the data of the given vector
 
 	void initializeFeatureInfo( int threadCount, int maxBins, const CFloatMatrixDesc& matrix,
 		const IMultivariateRegressionProblem& baseProblem );
