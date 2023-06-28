@@ -77,14 +77,15 @@ public:
 	// The product of the function hessian by a given vector
 	CFloatVector HessianProduct( const CFloatVector& ) override;
 
-	struct IArgs;
-	struct CProductArgs;
-	struct CSetArgs;
+	struct IThreadTask;
+	struct CProductThreadTask;
+	struct CSetArgThreadTask;
+
 protected:
 	CThreadFunctionWithHessianImpl( CFloatMatrixDesc, int vetcorCount,
 		double errorWeight, float l1Coeff, int threadCount );
 
-	void SetArguments( CSetArgs& );
+	void SetArguments( CSetArgThreadTask& );
 
 	IThreadPool* const ThreadPool;
 	const float ErrorWeight;
@@ -111,7 +112,7 @@ public:
 	// The CFunctionWithHessian class methods:
 	void SetArgument( const CFloatVector& w ) override;
 
-	struct CArgs;
+	struct CSetArgThreadTask;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -124,7 +125,7 @@ public:
 	// The CFunctionWithHessian class methods:
 	void SetArgument(const CFloatVector& w) override;
 
-	struct CArgs;
+	struct CSetArgThreadTask;
 protected:
 	const float P;
 };
@@ -139,7 +140,7 @@ public:
 	// The CFunctionWithHessian class methods:
 	void SetArgument( const CFloatVector& w ) override;
 
-	struct CArgs;
+	struct CSetArgThreadTask;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -152,7 +153,7 @@ public:
 	// The CFunctionWithHessian class methods:
 	void SetArgument( const CFloatVector& w ) override;
 
-	struct CArgs;
+	struct CSetArgThreadTask;
 };
 
 //------------------------------------------------------------------------------------------------------------
