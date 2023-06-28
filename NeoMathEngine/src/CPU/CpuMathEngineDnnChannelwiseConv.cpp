@@ -722,13 +722,13 @@ public:
 		activationImpl( activation, activationParam, 0.f ),
 		convFilter( convFilter ),
 		convFreeTerm( convFreeTerm ),
-		residual( residual ),
 		outputChannels( outputChannels ),
+		residual( residual ),
 		desc( 1, 1, stride, stride, CBlobDesc(), CBlobDesc(), CBlobDesc() )
 	{
 	}
 
-	int MinInputRowCount() const { return 3; }
+	int MinInputRowCount() const override { return 3; }
 	CBlobDesc Reshape( const CBlobDesc& inputSize ) override;
 	int InOperationBufferSize() const override
 		{ return desc.Result.Channels() * desc.Result.Width() * maxOutputRowsPerStep(); }
@@ -978,8 +978,6 @@ IRowwiseCpuImpl::CProcessingReport CCpuMathEngine::CRowwiseMobileNetV2::Process(
 	const int inputWidth = desc.Source.Width();
 	const int outputWidth = desc.Result.Width();
 	const int inputRowSize = inputWidth * inputChannels;
-	const int chInputRowSize = inputWidth * expandedChannels;
-	const int chOutputRowSize = outputWidth * expandedChannels;
 
 	const float* residualInput = input + ( outputRowIndex - inputRowIndex ) * inputRowSize;
 	const bool isInPlace = ( residualInput == output );

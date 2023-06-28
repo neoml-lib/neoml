@@ -1369,7 +1369,7 @@ public:
 	{
 	}
 
-	int MinInputRowCount() const { return 1 + ( desc.Filter.Height() - 1 ) * desc.DilationHeight; }
+	int MinInputRowCount() const override { return 1 + ( desc.Filter.Height() - 1 ) * desc.DilationHeight; }
 
 	CBlobDesc Reshape( const CBlobDesc& inputSize ) override;
 	int InOperationBufferSize() const override;
