@@ -20,7 +20,7 @@ limitations under the License.
 
 namespace NeoML {
 
-CRowwiseOperationDesc* CActivationRowwise::GetDesc( const CBlobDesc& )
+CRowwiseOperationDesc* CRowwiseActivation::GetDesc( const CBlobDesc& )
 {
 	switch( desc.GetType() ) {
 		case AF_HSwish:
@@ -35,7 +35,7 @@ CRowwiseOperationDesc* CActivationRowwise::GetDesc( const CBlobDesc& )
 	return nullptr;
 }
 
-void CActivationRowwise::Serialize( CArchive& archive )
+void CRowwiseActivation::Serialize( CArchive& archive )
 {
 	(void) archive.SerializeVersion( 0 ); // version
 	if( archive.IsStoring() ) {
@@ -45,6 +45,6 @@ void CActivationRowwise::Serialize( CArchive& archive )
 	}
 }
 
-REGISTER_NEOML_ROWWISE_OPERATION( CActivationRowwise, "ActivationRowwiseOperation" )
+REGISTER_NEOML_ROWWISE_OPERATION( CRowwiseActivation, "RowwiseActivationOperation" )
 
 } // namespace NeoML

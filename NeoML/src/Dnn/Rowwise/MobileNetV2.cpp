@@ -21,7 +21,7 @@ limitations under the License.
 
 namespace NeoML {
 
-CMobileNetV2Rowwise::CMobileNetV2Rowwise( const CMobileNetV2BlockLayer& blockLayer ) :
+CRowwiseMobileNetV2::CRowwiseMobileNetV2( const CMobileNetV2BlockLayer& blockLayer ) :
 	mathEngine( blockLayer.MathEngine() ),
 	expandFilter( blockLayer.ExpandFilter() ),
 	expandFreeTerm( blockLayer.ExpandFreeTerm() ),
@@ -36,7 +36,7 @@ CMobileNetV2Rowwise::CMobileNetV2Rowwise( const CMobileNetV2BlockLayer& blockLay
 {
 }
 
-CMobileNetV2Rowwise::CMobileNetV2Rowwise( IMathEngine& mathEngine ) :
+CRowwiseMobileNetV2::CRowwiseMobileNetV2( IMathEngine& mathEngine ) :
 	mathEngine( mathEngine ),
 	stride( 1 ),
 	expandActivation( AF_HSwish ),
@@ -45,7 +45,7 @@ CMobileNetV2Rowwise::CMobileNetV2Rowwise( IMathEngine& mathEngine ) :
 {
 }
 
-CRowwiseOperationDesc* CMobileNetV2Rowwise::GetDesc( const CBlobDesc& inputDesc )
+CRowwiseOperationDesc* CRowwiseMobileNetV2::GetDesc( const CBlobDesc& inputDesc )
 {
 	return mathEngine.InitRowwiseMobileNetV2( expandFilter->GetChannelsCount(), expandFilter->GetData(),
 		expandFreeTerm == nullptr ? nullptr : &expandFreeTerm->GetData<const float>(),
@@ -60,7 +60,7 @@ CRowwiseOperationDesc* CMobileNetV2Rowwise::GetDesc( const CBlobDesc& inputDesc 
 		downFilter->GetObjectCount(), residual );
 }
 
-void CMobileNetV2Rowwise::Serialize( CArchive& archive )
+void CRowwiseMobileNetV2::Serialize( CArchive& archive )
 {
 	(void) archive.SerializeVersion( 0 ); // version
 	SerializeBlob( mathEngine, archive, expandFilter );
@@ -83,6 +83,6 @@ void CMobileNetV2Rowwise::Serialize( CArchive& archive )
 	archive.Serialize( residual );
 }
 
-REGISTER_NEOML_ROWWISE_OPERATION( CMobileNetV2Rowwise, "MobileNetV2RowwiseOperation" )
+REGISTER_NEOML_ROWWISE_OPERATION( CRowwiseMobileNetV2, "RowwiseMobileNetV2Operation" )
 
 } // namespace NeoML

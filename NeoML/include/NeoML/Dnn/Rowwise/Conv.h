@@ -23,12 +23,12 @@ namespace NeoML {
 
 class CConvLayer;
 
-class NEOML_API CConvRowwise : public IRowwiseOperation {
+class NEOML_API CRowwiseConv : public IRowwiseOperation {
 public:
 	// Creates an equivalent of a block layer
-	explicit CConvRowwise( const CConvLayer& convLayer );
+	explicit CRowwiseConv( const CConvLayer& convLayer );
 	// Constructor for serialization
-	explicit CConvRowwise( IMathEngine& mathEngine );
+	explicit CRowwiseConv( IMathEngine& mathEngine );
 
 	// IRowwiseOperation implementation
 	CRowwiseOperationDesc* GetDesc( const CBlobDesc& inputDesc ) override;

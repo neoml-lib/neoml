@@ -24,12 +24,12 @@ namespace NeoML {
 
 class CChannelwiseWith1x1Layer;
 
-class NEOML_API CChannelwiseWith1x1Rowwise : public IRowwiseOperation {
+class NEOML_API CRowwiseChWith1x1 : public IRowwiseOperation {
 public:
 	// Creates an equivalent of a block layer
-	explicit CChannelwiseWith1x1Rowwise( const CChannelwiseWith1x1Layer& blockLayer );
+	explicit CRowwiseChWith1x1( const CChannelwiseWith1x1Layer& blockLayer );
 	// Constructor for serialization
-	explicit CChannelwiseWith1x1Rowwise( IMathEngine& mathEngine );
+	explicit CRowwiseChWith1x1( IMathEngine& mathEngine );
 
 	// IRowwiseOperation implementation
 	CRowwiseOperationDesc* GetDesc( const CBlobDesc& inputDesc ) override;

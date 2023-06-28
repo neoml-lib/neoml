@@ -24,12 +24,12 @@ namespace NeoML {
 
 class CMobileNetV2BlockLayer;
 
-class NEOML_API CMobileNetV2Rowwise : public IRowwiseOperation {
+class NEOML_API CRowwiseMobileNetV2 : public IRowwiseOperation {
 public:
 	// Creates an equivalent of a block layer
-	explicit CMobileNetV2Rowwise( const CMobileNetV2BlockLayer& blockLayer );
+	explicit CRowwiseMobileNetV2( const CMobileNetV2BlockLayer& blockLayer );
 	// Constructor for serialization
-	explicit CMobileNetV2Rowwise( IMathEngine& mathEngine );
+	explicit CRowwiseMobileNetV2( IMathEngine& mathEngine );
 
 	// IRowwiseOperation implementation
 	CRowwiseOperationDesc* GetDesc( const CBlobDesc& inputDesc ) override;

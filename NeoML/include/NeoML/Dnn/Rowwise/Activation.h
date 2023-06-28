@@ -21,14 +21,14 @@ limitations under the License.
 
 namespace NeoML {
 
-class NEOML_API CActivationRowwise : public IRowwiseOperation {
+class NEOML_API CRowwiseActivation : public IRowwiseOperation {
 public:
 	// Creates an equivalent of a block layer
-	CActivationRowwise( IMathEngine& mathEngine, const CActivationDesc& desc )
+	CRowwiseActivation( IMathEngine& mathEngine, const CActivationDesc& desc )
 		: mathEngine( mathEngine ), desc( desc ) {}
 
 	// Constructor for serialization
-	explicit CActivationRowwise( IMathEngine& mathEngine ) : mathEngine( mathEngine ), desc( AF_HSwish ) {}
+	explicit CRowwiseActivation( IMathEngine& mathEngine ) : mathEngine( mathEngine ), desc( AF_HSwish ) {}
 
 	// IRowwiseOperation implementation
 	CRowwiseOperationDesc* GetDesc( const CBlobDesc& inputDesc ) override;

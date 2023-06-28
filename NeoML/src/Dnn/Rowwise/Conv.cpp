@@ -21,7 +21,7 @@ limitations under the License.
 
 namespace NeoML {
 
-CConvRowwise::CConvRowwise( const CConvLayer& convLayer ) :
+CRowwiseConv::CRowwiseConv( const CConvLayer& convLayer ) :
 	mathEngine( convLayer.MathEngine() ),
 	paddingHeight( convLayer.GetPaddingHeight() ),
 	paddingWidth( convLayer.GetPaddingWidth() ),
@@ -34,7 +34,7 @@ CConvRowwise::CConvRowwise( const CConvLayer& convLayer ) :
 {
 }
 
-CConvRowwise::CConvRowwise( IMathEngine& mathEngine ) :
+CRowwiseConv::CRowwiseConv( IMathEngine& mathEngine ) :
 	mathEngine( mathEngine ),
 	paddingHeight( 0 ),
 	paddingWidth( 0 ),
@@ -45,14 +45,14 @@ CConvRowwise::CConvRowwise( IMathEngine& mathEngine ) :
 {
 }
 
-CRowwiseOperationDesc* CConvRowwise::GetDesc( const CBlobDesc& inputDesc )
+CRowwiseOperationDesc* CRowwiseConv::GetDesc( const CBlobDesc& inputDesc )
 {
 	return mathEngine.InitRowwiseConv( paddingHeight, paddingWidth, strideHeight, strideWidth, dilationHeight,
 		dilationWidth, filter->GetDesc(), filter->GetData(),
 		freeTerm == nullptr ? nullptr : &freeTerm->GetData<const float>() );
 }
 
-void CConvRowwise::Serialize( CArchive& archive )
+void CRowwiseConv::Serialize( CArchive& archive )
 {
 	(void) archive.SerializeVersion( 0 ); // version
 	archive.Serialize( paddingHeight );
@@ -65,6 +65,6 @@ void CConvRowwise::Serialize( CArchive& archive )
 	SerializeBlob( mathEngine, archive, freeTerm );
 }
 
-REGISTER_NEOML_ROWWISE_OPERATION( CConvRowwise, "ConvRowwiseOperation" )
+REGISTER_NEOML_ROWWISE_OPERATION( CRowwiseConv, "RowwiseConvOperation" )
 
 } // namespace NeoML

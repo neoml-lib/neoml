@@ -21,7 +21,7 @@ limitations under the License.
 
 namespace NeoML {
 
-CChannelwiseWith1x1Rowwise::CChannelwiseWith1x1Rowwise( const CChannelwiseWith1x1Layer& blockLayer ) :
+CRowwiseChWith1x1::CRowwiseChWith1x1( const CChannelwiseWith1x1Layer& blockLayer ) :
 	mathEngine( blockLayer.MathEngine() ),
 	stride( blockLayer.Stride() ),
 	channelwiseFilter( blockLayer.ChannelwiseFilter() ),
@@ -33,7 +33,7 @@ CChannelwiseWith1x1Rowwise::CChannelwiseWith1x1Rowwise( const CChannelwiseWith1x
 {
 }
 
-CChannelwiseWith1x1Rowwise::CChannelwiseWith1x1Rowwise( IMathEngine& mathEngine ) :
+CRowwiseChWith1x1::CRowwiseChWith1x1( IMathEngine& mathEngine ) :
 	mathEngine( mathEngine ),
 	stride( 1 ),
 	activation( AF_HSwish ),
@@ -41,7 +41,7 @@ CChannelwiseWith1x1Rowwise::CChannelwiseWith1x1Rowwise( IMathEngine& mathEngine 
 {
 }
 
-CRowwiseOperationDesc* CChannelwiseWith1x1Rowwise::GetDesc( const CBlobDesc& inputDesc )
+CRowwiseOperationDesc* CRowwiseChWith1x1::GetDesc( const CBlobDesc& inputDesc )
 {
 	return mathEngine.InitRowwiseChWith1x1( stride, channelwiseFilter->GetData(),
 		channelwiseFreeTerm == nullptr ? nullptr : &channelwiseFreeTerm->GetData<const float>(),
@@ -52,7 +52,7 @@ CRowwiseOperationDesc* CChannelwiseWith1x1Rowwise::GetDesc( const CBlobDesc& inp
 		convFilter->GetObjectCount(), residual );
 }
 
-void CChannelwiseWith1x1Rowwise::Serialize( CArchive& archive )
+void CRowwiseChWith1x1::Serialize( CArchive& archive )
 {
 	(void) archive.SerializeVersion( 0 ); // version
 	archive.Serialize( stride );
@@ -68,6 +68,6 @@ void CChannelwiseWith1x1Rowwise::Serialize( CArchive& archive )
 	archive.Serialize( residual );
 }
 
-REGISTER_NEOML_ROWWISE_OPERATION( CChannelwiseWith1x1Rowwise, "ChannelwiseWith1x1RowwiseOperation" )
+REGISTER_NEOML_ROWWISE_OPERATION( CRowwiseChWith1x1, "RowwiseChWith1x1Operation" )
 
 } // namespace NeoML

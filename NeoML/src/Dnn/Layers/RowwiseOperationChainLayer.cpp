@@ -128,22 +128,22 @@ void OptimizeRowwiseChains( CDnn& dnn, CArray<int>& chains )
 	auto createOperation = [] ( const CBaseLayer* layer ) -> CPtr<IRowwiseOperation> {
 		auto channelwiseWith1x1 = dynamic_cast<const CChannelwiseWith1x1Layer*>( layer );
 		if( channelwiseWith1x1 != nullptr ) {
-			return new CChannelwiseWith1x1Rowwise( *channelwiseWith1x1 );
+			return new CRowwiseChWith1x1( *channelwiseWith1x1 );
 		}
 		auto conv = dynamic_cast<const CConvLayer*>( layer );
 		if( conv != nullptr ) {
-			return new CConvRowwise( *conv );
+			return new CRowwiseConv( *conv );
 		}
 		auto hSwish = dynamic_cast<const CHSwishLayer*>( layer );
 		auto relu = dynamic_cast<const CReLULayer*>( layer );
 		auto sigmoid = dynamic_cast<const CSigmoidLayer*>( layer );
 		if( hSwish != nullptr || relu != nullptr || sigmoid != nullptr ) {
-			return new CActivationRowwise( layer->MathEngine(),
+			return new CRowwiseActivation( layer->MathEngine(),
 				dynamic_cast<const IActivationLayer*>( layer )->GetDesc() );
 		}
 		auto mobileNetV2 = dynamic_cast<const CMobileNetV2BlockLayer*>( layer );
 		if( mobileNetV2 != nullptr ) {
-			return new CMobileNetV2Rowwise( *mobileNetV2 );
+			return new CRowwiseMobileNetV2( *mobileNetV2 );
 		}
 		NeoAssert( false );
 		return nullptr;
