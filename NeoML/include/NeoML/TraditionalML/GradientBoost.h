@@ -152,10 +152,9 @@ public:
 	CPtr<IRegressionModel> GetRegressionModel( const IRegressionProblem& );
 	CPtr<IMultivariateRegressionModel> GetMultivariateRegressionModel( const IMultivariateRegressionProblem& );
 
-	struct IArgs;
-	struct CBuildPredictionsArgs;
-	struct CBuildFullPredictionsArgs;
-	struct CThreadTask;
+	struct IThreadTask;
+	struct CBuildPredictionsThreadTask;
+	struct CBuildFullPredictionsThreadTask;
 
 private:
 	// A cache element that contains the ensemble predictions for a vector on a given step

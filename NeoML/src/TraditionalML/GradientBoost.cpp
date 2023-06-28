@@ -254,18 +254,18 @@ double CGradientBoostingSquareLoss::CalcLossMean( const CArray< CArray<double> >
 
 //-------------------------------------------------------------------------------------------------------------
 
-struct CGradientBoost::IArgs {
-	virtual ~IArgs() {}
+struct CGradientBoost::IThreadTask {
+	virtual ~IThreadTask() {}
 
-	virtual int Size() const = 0;
-	virtual void Run( int threadIndex, int index, int count );
-
+	void CallRun( int threadIndex );
 	int ThreadCount() const { return Owner.params.ThreadCount; }
 
 protected:
-	IArgs( CGradientBoost&, const IMultivariateRegressionProblem&,
+	IThreadTask( CGradientBoost&, const IMultivariateRegressionProblem&,
 		const CArray<CGradientBoostEnsemble>& models, int curStep );
 
+	virtual int Size() const = 0;
+	virtual void Run( int threadIndex, int index, int count );
 	virtual int UsedVectorIndex( int index ) const = 0;
 
 	CGradientBoost& Owner;
@@ -277,7 +277,8 @@ protected:
 	CArray<CFastArray<double, 1>> Predictions{};
 };
 
-CGradientBoost::IArgs::IArgs( CGradientBoost& owner, const IMultivariateRegressionProblem& problem,
+CGradientBoost::IThreadTask::IThreadTask( CGradientBoost& owner,
+		const IMultivariateRegressionProblem& problem,
 		const CArray<CGradientBoostEnsemble>& models, int curStep ) :
 	Owner( owner ),
 	Problem( problem ),
@@ -294,7 +295,16 @@ CGradientBoost::IArgs::IArgs( CGradientBoost& owner, const IMultivariateRegressi
 	}
 }
 
-void CGradientBoost::IArgs::Run( int threadIndex, int index, int count )
+void CGradientBoost::IThreadTask::CallRun( int threadIndex )
+{
+	int index = 0;
+	int count = 0;
+	if( GetTaskIndexAndCount( ThreadCount(), threadIndex, Size(), index, count ) ) {
+		Run( threadIndex, index, count );
+	}
+}
+
+void CGradientBoost::IThreadTask::Run( int threadIndex, int index, int count )
 {
 	for( int i = 0; i < count; ++i, ++index ) {
 		const int usedVectorIndex = UsedVectorIndex( index );
@@ -306,7 +316,7 @@ void CGradientBoost::IArgs::Run( int threadIndex, int index, int count )
 			CGradientBoostModel::PredictRaw( Models[0], Owner.predictCache[0][usedVectorIndex].Step,
 				 Owner.params.LearningRate, vector, Predictions[threadIndex] );
 		} else {
-			CFastArray<double, 1> pred;
+			CFastArray<double, 1> pred{};
 			pred.SetSize( 1 );
 			for( int j = 0; j < Problem.GetValueSize(); ++j ) {
 				CGradientBoostModel::PredictRaw( Models[j], Owner.predictCache[j][usedVectorIndex].Step,
@@ -326,51 +336,35 @@ void CGradientBoost::IArgs::Run( int threadIndex, int index, int count )
 
 //------------------------------------------------------------------------------------------------------------
 
-struct CGradientBoost::CBuildPredictionsArgs : public CGradientBoost::IArgs {
-	CBuildPredictionsArgs( CGradientBoost& owner, const IMultivariateRegressionProblem& problem,
+struct CGradientBoost::CBuildPredictionsThreadTask : public CGradientBoost::IThreadTask {
+	CBuildPredictionsThreadTask( CGradientBoost& owner, const IMultivariateRegressionProblem& problem,
 			const CArray<CGradientBoostEnsemble>& models, int curStep ) :
-		CGradientBoost::IArgs( owner, problem, models, curStep )
+		IThreadTask( owner, problem, models, curStep )
 	{}
 
+protected:
 	int Size() const override { return Owner.usedVectors.Size(); }
 	int UsedVectorIndex( int index ) const override { return Owner.usedVectors[index]; }
 };
 
 //------------------------------------------------------------------------------------------------------------
 
-struct CGradientBoost::CBuildFullPredictionsArgs : public CGradientBoost::IArgs {
-	CBuildFullPredictionsArgs( CGradientBoost&, const IMultivariateRegressionProblem&,
+struct CGradientBoost::CBuildFullPredictionsThreadTask : public CGradientBoost::IThreadTask {
+	CBuildFullPredictionsThreadTask( CGradientBoost&, const IMultivariateRegressionProblem&,
 			const CArray<CGradientBoostEnsemble>& models );
 
+protected:
 	int Size() const override { return Problem.GetVectorCount(); }
 	int UsedVectorIndex( int index ) const override { return index; }
 };
 
-CGradientBoost::CBuildFullPredictionsArgs::CBuildFullPredictionsArgs( CGradientBoost& owner,
+CGradientBoost::CBuildFullPredictionsThreadTask::CBuildFullPredictionsThreadTask( CGradientBoost& owner,
 		const IMultivariateRegressionProblem& problem, const CArray<CGradientBoostEnsemble>& models ) :
-	CGradientBoost::IArgs( owner, problem, models, models[0].Size() )
+	IThreadTask( owner, problem, models, models[0].Size() )
 {
 	for( int i = 0; i < Owner.predicts.Size(); ++i ) {
 		Owner.predicts[i].SetSize( Problem.GetVectorCount() );
 		Owner.answers[i].SetSize( Problem.GetVectorCount() );
-	}
-}
-
-//-------------------------------------------------------------------------------------------------------------
-
-struct CGradientBoost::CThreadTask final {
-	CThreadTask( IArgs& args ) : args( args ) {}
-	void CallRun( int threadIndex, int align = 1 );
-private:
-	IArgs& args;
-};
-
-void CGradientBoost::CThreadTask::CallRun( int threadIndex, int align )
-{
-	int index = 0;
-	int count = 0;
-	if( GetTaskIndexAndCount( args.ThreadCount(), threadIndex, args.Size(), align, index, count ) ) {
-		args.Run( threadIndex, index, count );
 	}
 }
 
@@ -708,22 +702,20 @@ void CGradientBoost::executeStep( IGradientBoostingLossFunction& lossFunction,
 // Builds the ensemble predictions for a set of vectors
 void CGradientBoost::buildPredictions( const IMultivariateRegressionProblem& problem, const CArray<CGradientBoostEnsemble>& models, int curStep )
 {
-	CBuildPredictionsArgs args( *this, problem, models, curStep );
-	CThreadTask task( args );
+	CBuildPredictionsThreadTask task( *this, problem, models, curStep );
 
 	NEOML_NUM_THREADS( *threadPool, &task, []( int threadIndex, void* ptr ) {
-		( ( CThreadTask* )ptr )->CallRun( threadIndex );
+		( ( IThreadTask* )ptr )->CallRun( threadIndex );
 	} );
 }
 
 // Fills the prediction cache with the values of the full problem
 void CGradientBoost::buildFullPredictions( const IMultivariateRegressionProblem& problem, const CArray<CGradientBoostEnsemble>& models )
 {
-	CBuildFullPredictionsArgs args( *this, problem, models );
-	CThreadTask task( args );
+	CBuildFullPredictionsThreadTask task( *this, problem, models );
 
 	NEOML_NUM_THREADS( *threadPool, &task, []( int threadIndex, void* ptr ) {
-		( ( CThreadTask* )ptr )->CallRun( threadIndex );
+		( ( IThreadTask* )ptr )->CallRun( threadIndex );
 	} );
 }
 
