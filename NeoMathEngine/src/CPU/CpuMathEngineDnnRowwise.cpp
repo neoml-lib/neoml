@@ -290,7 +290,7 @@ IRowwiseCpuImpl::CProcessingReport RowwiseConvProcessingReport( int inputRowInde
 		if( inputRowsRequired <= inputRowCount ) {
 			binSearchMin = binSearchMid; // There is enough data to process binSearchMid output rows
 		} else {
-			binSearchMax = binSearchMid; // Not enough data
+			binSearchMax = binSearchMid - 1; // Not enough data
 		}
 	}
 	IRowwiseCpuImpl::CProcessingReport result;
