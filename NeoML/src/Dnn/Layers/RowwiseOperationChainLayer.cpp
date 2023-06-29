@@ -136,7 +136,7 @@ void OptimizeRowwiseChains( CDnn& dnn, CArray<int>& chains )
 	};
 
 	auto isRowwiseLayer = [] ( const CBaseLayer* layer ) -> bool {
-		return IsOneOf<CChannelwiseWith1x1Layer, CConvLayer, CHSwishLayer, CMobileNetV2BlockLayer,
+		return IsOneOf<CChannelwiseWith1x1Layer, CConvLayer, CHSwishLayer, CLinearLayer, CMobileNetV2BlockLayer,
 			CReLULayer, CSigmoidLayer>::f( layer );
 	};
 
