@@ -436,6 +436,19 @@ protected:
 
 //-------------------------------------------------------------------------------------------------------------
 
+struct CKMeansClustering::CVectorEltwiseMultiplyThreadTask final : public CKMeansClustering::CVectorMultiplyThreadTask {
+	CVectorEltwiseMultiplyThreadTask( const CKMeansClustering& owner, int vectorSize, IMathEngine& mathEngine,
+			const CConstFloatHandle& first, const CConstFloatHandle& second, const CFloatHandle& result ) :
+		CVectorMultiplyThreadTask( owner, vectorSize, mathEngine, first, result, second )
+	{}
+protected:
+	void Run( int /*threadIndex*/, int index, int count ) override
+	{ MathEngine.VectorEltwiseMultiply( First + index, Second + index, Result + index, count ); }
+
+};
+
+//-------------------------------------------------------------------------------------------------------------
+
 constexpr int mathEngineFloatTaskAlignment = 16;
 
 static inline bool isThreadTaskRelevant( int64_t operationCount )
@@ -471,6 +484,22 @@ static void vectorMultiply( const CKMeansClustering& owner, IMathEngine& mathEng
 
 	NEOML_NUM_THREADS( *owner.GetThreadPool(), &task, []( int threadIndex, void* ptr ) {
 		( ( CKMeansClustering::IThreadTask* )ptr )->CallRun( threadIndex );
+	} );
+}
+
+static void vectorEltwiseMultiply( const CKMeansClustering& owner, IMathEngine& mathEngine, int vectorSize,
+	const CConstFloatHandle& first, const CConstFloatHandle& second, const CFloatHandle& result )
+{
+	if( !isThreadTaskRelevant( vectorSize ) ) {
+		mathEngine.VectorEltwiseMultiply( first, second, result, vectorSize );
+		return;
+	}
+
+	CKMeansClustering::CVectorEltwiseMultiplyThreadTask task( owner,
+		vectorSize, mathEngine, first, second, result );
+
+	NEOML_NUM_THREADS( *owner.GetThreadPool(), &task, []( int threadIndex, void* ptr ) {
+		( ( CKMeansClustering::IThreadTask* )ptr )->CallRun( threadIndex, mathEngineFloatTaskAlignment );
 	} );
 }
 
@@ -1140,7 +1169,7 @@ double CKMeansClustering::assignClosest( const CDnnBlob& data, const CDnnBlob& s
 	CFloatHandle totalDist = stackBuff.GetHandle() + vectorCount;
 	CIntHandle labelsHandle = labels.GetData<int>();
 	calcClosestDistances( *this, data, squaredData, centers, closestDist, labelsHandle );
-	mathEngine.VectorEltwiseMultiply( closestDist, weight.GetData(), closestDist, vectorCount ); // TODO! threads
+	vectorEltwiseMultiply( *this, mathEngine, vectorCount, closestDist, weight.GetData(), closestDist );
 	mathEngine.VectorSum( closestDist, vectorCount, totalDist ); // no threads
 	const double result = static_cast<double>( totalDist.GetValue() );
 	return result;
@@ -1201,16 +1230,15 @@ void CKMeansClustering::calcClusterVariances( const CDnnBlob& data, const CDnnBl
 		CFloatHandle squaredData = stackBuff.GetHandle();
 		CFloatHandle sumOfSquares = stackBuff.GetHandle() + vectorCount * featureCount;
 		CFloatHandle one = stackBuff.GetHandle() + vectorCount * featureCount + clusterCount * featureCount;
-		mathEngine.VectorEltwiseMultiply( data.GetData(), data.GetData(), squaredData, // TODO! threads
-			data.GetDataSize() );
+		vectorEltwiseMultiply( *this, mathEngine, data.GetDataSize(), data.GetData(), data.GetData(), squaredData );
 		mathEngine.VectorFill( sumOfSquares, 0, clusterCount * featureCount ); // TODO! threads
 		one.SetValue( 1.f );
 		CLookupDimension dim;
 		dim.VectorCount = params.InitialClustersCount;
 		dim.VectorSize = featureCount;
 		variances.Clear();
-		mathEngine.VectorMultichannelLookupAndAddToTable( vectorCount, 1, labels.GetData<int>(), // no threads
-			&sumOfSquares, &dim, 1, one, squaredData, featureCount );
+		mathEngine.VectorMultichannelLookupAndAddToTable( vectorCount, /*chennels*/1, // no threads
+			labels.GetData<int>(), &sumOfSquares, &dim, 1, one, squaredData, featureCount );
 		// Divide sum of squares by cluster size
 		mathEngine.MultiplyDiagMatrixByMatrix( sizeInv->GetData(), clusterCount, sumOfSquares, featureCount, // TODO! threads
 			variances.GetData(), variances.GetDataSize() );
@@ -1219,8 +1247,7 @@ void CKMeansClustering::calcClusterVariances( const CDnnBlob& data, const CDnnBl
 	{
 		// Calculate squared centers
 		CFloatHandle squaredMean = stackBuff;
-		mathEngine.VectorEltwiseMultiply( centers.GetData(), centers.GetData(), // TODO! threads
-			squaredMean, clusterCount * featureCount );
+		vectorEltwiseMultiply( *this, mathEngine, clusterCount * featureCount, centers.GetData(), centers.GetData(), squaredMean );
 		// Subtract squares from average in order to get variance
 		mathEngine.VectorSub( variances.GetData(), squaredMean, variances.GetData(), clusterCount * featureCount ); // TODO! threads
 	}
