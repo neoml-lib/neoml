@@ -397,26 +397,11 @@ static void generateRandomArray( CRandom& random, int n, int k, CArray<int>& res
 
 //------------------------------------------------------------------------------------------------------------
 
-#if FINE_PLATFORM( FINE_IOS )
-	// No OpenMP available for iOS, so working in one thread
-	static inline CGradientBoost::CParams processParams( const CGradientBoost::CParams& params )
-	{
-		CGradientBoost::CParams result = params;
-		result.ThreadCount = 1;
-		return result;
-	}
-#elif FINE_PLATFORM( FINE_WINDOWS ) || FINE_PLATFORM( FINE_LINUX ) || FINE_PLATFORM( FINE_ANDROID ) || FINE_PLATFORM( FINE_DARWIN )
-	static inline CGradientBoost::CParams processParams( const CGradientBoost::CParams& params ) { return params; }
-#else
-	#error Unknown platform
-#endif
-
 CGradientBoost::CGradientBoost( const CParams& _params ) :
-	params( processParams( _params ) ),
-	threadPool( CreateThreadPool( params.ThreadCount ) ),
-	logStream( 0 ),
-	loss( 0 )
+	params( _params ),
+	threadPool( CreateThreadPool( params.ThreadCount ) )
 {
+	NeoAssert( threadPool != nullptr );
 	NeoAssert( params.IterationsCount > 0 );
 	NeoAssert( 0 <= params.Subsample && params.Subsample <= 1 );
 	NeoAssert( 0 <= params.Subfeature && params.Subfeature <= 1 );
@@ -700,7 +685,8 @@ void CGradientBoost::executeStep( IGradientBoostingLossFunction& lossFunction,
 }
 
 // Builds the ensemble predictions for a set of vectors
-void CGradientBoost::buildPredictions( const IMultivariateRegressionProblem& problem, const CArray<CGradientBoostEnsemble>& models, int curStep )
+void CGradientBoost::buildPredictions( const IMultivariateRegressionProblem& problem,
+	const CArray<CGradientBoostEnsemble>& models, int curStep )
 {
 	CBuildPredictionsThreadTask task( *this, problem, models, curStep );
 
@@ -710,7 +696,8 @@ void CGradientBoost::buildPredictions( const IMultivariateRegressionProblem& pro
 }
 
 // Fills the prediction cache with the values of the full problem
-void CGradientBoost::buildFullPredictions( const IMultivariateRegressionProblem& problem, const CArray<CGradientBoostEnsemble>& models )
+void CGradientBoost::buildFullPredictions( const IMultivariateRegressionProblem& problem,
+	const CArray<CGradientBoostEnsemble>& models )
 {
 	CBuildFullPredictionsThreadTask task( *this, problem, models );
 
@@ -874,7 +861,8 @@ CPtr<IRegressionModel> CGradientBoost::GetRegressionModel( const IRegressionProb
 	return getModel<IRegressionModel>();
 }
 
-CPtr<IMultivariateRegressionModel> CGradientBoost::GetMultivariateRegressionModel( const IMultivariateRegressionProblem& _problem )
+CPtr<IMultivariateRegressionModel> CGradientBoost::GetMultivariateRegressionModel(
+	const IMultivariateRegressionProblem& _problem )
 {
 	prepareProblem( _problem );
 	return getModel<IMultivariateRegressionModel>();

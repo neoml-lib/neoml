@@ -172,7 +172,7 @@ private:
 	const CParams params; // the classification parameters
 	IThreadPool* const threadPool;
 	CRandom defaultRandom{}; // the default random number generator
-	CTextStream* logStream{}; // the logging stream
+	CTextStream* logStream = nullptr; // the logging stream
 	CPtr<CGradientBoostFullTreeBuilder<CGradientBoostStatisticsSingle>> fullSingleClassTreeBuilder{}; // TGBT_Full tree builder for single class
 	CPtr<CGradientBoostFullTreeBuilder<CGradientBoostStatisticsMulti>> fullMultiClassTreeBuilder{}; // TGBT_Full tree builder for multi class
 	CPtr<CGradientBoostFastHistTreeBuilder<CGradientBoostStatisticsSingle>> fastHistSingleClassTreeBuilder{}; // TGBT_FastHist tree builder for single class
@@ -189,7 +189,7 @@ private:
 	CArray<CArray<double>> answers{}; // the correct answers for the vectors used on each step
 	CArray<CArray<double>> gradients{}; // the gradients on each step
 	CArray<CArray<double>> hessians{}; // the hessians on each step
-	double loss{}; // the last loss mean
+	double loss = 0; // the last loss mean
 	// The vectors used on each step
 	// Contains the mapping of the index in the truncated training set for the given step to the index in the full set
 	// The array length is N * CParams::Subsample, where N is the original training set length
