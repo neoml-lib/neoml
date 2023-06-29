@@ -1174,6 +1174,45 @@ inline void vectorHSwish( const float* first, float* result, int vectorSize )
 	}
 }
 
+//------------------------------------------------------------------------------------------------------------
+
+inline void vectorHardSigmoid( const float* first, float* result, float slope, float bias, int vectorSize )
+{
+	int sseSize;
+	int nonSseSize;
+	checkSse( vectorSize, sseSize, nonSseSize );
+
+	if( sseSize > 0 ) {
+		const __m128 oneSse = _mm_set_ps1( 1.f );
+		const __m128 zeroSse = _mm_set_ps1( 0.f );
+		const __m128 slopeSse = _mm_set_ps1( slope );
+		const __m128 biasSse = _mm_set_ps1( bias );
+		for( int i = 0; i < sseSize; ++i ) {
+			__m128 value = _mm_loadu_ps( first );
+			value = _mm_mul_ps( value, slopeSse );
+			value = _mm_add_ps( value, biasSse );
+			_mm_storeu_ps(result, _mm_min_ps( _mm_max_ps( value, zeroSse ), oneSse ) );
+
+			first += 4;
+			result += 4;
+		}
+	}
+
+	const float maxXValue = ( 1 - bias ) / slope;
+	const float minXValue = -bias / slope;
+
+	for(int i = 0; i < nonSseSize; ++i) {
+		if(*first >= maxXValue ) {
+			*result++ = 1;
+		} else if(*first <= minXValue ) {
+			*result++ = 0;
+		} else {
+			*result++ = *first * slope + bias;
+		}
+		++first;
+	}
+}
+
 } // namespace NeoML
 
 #endif // NEOML_USE_SSE
