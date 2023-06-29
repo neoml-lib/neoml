@@ -239,6 +239,9 @@ inline IRowwiseCpuImpl::CProcessingReport CRowwiseActivation::Process( const flo
 
 	const int dataSize = result.OutputRowsCalculated * rowSize;
 	switch( type ) {
+		case AF_HardSigmoid:
+			vectorHardSigmoid( input, output, param0, param1, dataSize );
+			break;
 		case AF_HSwish:
 			vectorHSwish( input, output, dataSize );
 			break;

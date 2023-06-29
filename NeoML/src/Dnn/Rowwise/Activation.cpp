@@ -23,6 +23,11 @@ namespace NeoML {
 CRowwiseOperationDesc* CRowwiseActivation::GetDesc( const CBlobDesc& )
 {
 	switch( desc.GetType() ) {
+		case AF_HardSigmoid:
+		{
+			const CHardSigmoidLayer::CParam param = desc.GetParam<CHardSigmoidLayer::CParam>();
+			return mathEngine.InitRowwiseActivation( AF_HardSigmoid, param.Slope, param.Bias );
+		}
 		case AF_Linear:
 		{
 			const CLinearLayer::CParam param = desc.GetParam<CLinearLayer::CParam>();
