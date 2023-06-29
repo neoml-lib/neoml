@@ -18,6 +18,7 @@ limitations under the License.
 
 #include <NeoML/Dnn/Rowwise/MobileNetV2.h>
 #include <NeoML/Dnn/Layers/MobileNetV2BlockLayer.h>
+#include "../Layers/MobileNetBlockUtils.h"
 
 namespace NeoML {
 
@@ -49,12 +50,10 @@ CRowwiseOperationDesc* CRowwiseMobileNetV2::GetDesc( const CBlobDesc& inputDesc 
 {
 	return mathEngine.InitRowwiseMobileNetV2( expandFilter->GetChannelsCount(), expandFilter->GetData(),
 		expandFreeTerm == nullptr ? nullptr : &expandFreeTerm->GetData<const float>(),
-		expandFilter->GetObjectCount(), expandActivation.GetType(),
-		expandActivation.GetType() == AF_ReLU ? expandActivation.GetParam<CReLULayer::CParam>().UpperThreshold : 0,
+		expandFilter->GetObjectCount(), expandActivation.GetType(), MobileNetActivationParam( expandActivation ),
 		channelwiseFilter->GetData(),
 		channelwiseFreeTerm == nullptr ? nullptr : &channelwiseFreeTerm->GetData<const float>(),
-		stride, channelwiseActivation.GetType(),
-		channelwiseActivation.GetType() == AF_ReLU ? channelwiseActivation.GetParam<CReLULayer::CParam>().UpperThreshold : 0,
+		stride, channelwiseActivation.GetType(), MobileNetActivationParam( channelwiseActivation ),
 		downFilter->GetData(),
 		downFreeTerm == nullptr ? nullptr : &downFreeTerm->GetData<const float>(),
 		downFilter->GetObjectCount(), residual );

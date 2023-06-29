@@ -18,6 +18,7 @@ limitations under the License.
 
 #include <NeoML/Dnn/Rowwise/ChannelwiseWith1x1.h>
 #include <NeoML/Dnn/Layers/ChannelwiseWith1x1Layer.h>
+#include "../Layers/MobileNetBlockUtils.h"
 
 namespace NeoML {
 
@@ -45,9 +46,7 @@ CRowwiseOperationDesc* CRowwiseChWith1x1::GetDesc( const CBlobDesc& inputDesc )
 {
 	return mathEngine.InitRowwiseChWith1x1( stride, channelwiseFilter->GetData(),
 		channelwiseFreeTerm == nullptr ? nullptr : &channelwiseFreeTerm->GetData<const float>(),
-		activation.GetType(),
-		activation.GetType() == AF_ReLU ? activation.GetParam<CReLULayer::CParam>().UpperThreshold : 0,
-		convFilter->GetData(),
+		activation.GetType(), MobileNetActivationParam( activation ), convFilter->GetData(),
 		convFreeTerm == nullptr ? nullptr : &convFreeTerm->GetData<const float>(),
 		convFilter->GetObjectCount(), residual );
 }

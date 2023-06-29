@@ -162,12 +162,10 @@ void CMobileNetV3PreSEBlockLayer::RunOnce()
 	MathEngine().MobileNetV3PreSEBlock( inputBlobs[0]->GetDesc(), outputBlobs[0]->GetDesc(), *convDesc,
 		inputBlobs[0]->GetData(), paramBlobs[P_ExpandFilter]->GetData(),
 		expandFt.IsNull() ? nullptr : &expandFt,
-		expandActivation.GetType(),
-		expandActivation.GetType() == AF_ReLU ? expandActivation.GetParam<CReLULayer::CParam>().UpperThreshold : 0.f,
+		expandActivation.GetType(), MobileNetActivationParam( expandActivation ),
 		paramBlobs[P_ChannelwiseFilter]->GetData(),
 		channelwiseFt.IsNull() ? nullptr : &channelwiseFt,
-		channelwiseActivation.GetType(),
-		channelwiseActivation.GetType() == AF_ReLU ? channelwiseActivation.GetParam<CReLULayer::CParam>().UpperThreshold : 0.f,
+		channelwiseActivation.GetType(), MobileNetActivationParam( channelwiseActivation ),
 		outputBlobs[0]->GetData() );
 }
 
@@ -259,9 +257,7 @@ void CMobileNetV3PostSEBlockLayer::RunOnce()
 	MathEngine().MobileNetV3PostSEBlock( inputBlobs[I_Channelwise]->GetDesc(), outputBlobs[0]->GetChannelsCount(),
 		inputBlobs[I_Channelwise]->GetData(), inputBlobs[I_SqueezeAndExcite]->GetData(),
 		residual.IsNull() ? nullptr : &residual,
-		activation.GetType(),
-		activation.GetType() == AF_ReLU ? activation.GetParam<CReLULayer::CParam>().UpperThreshold : 0.f,
-		paramBlobs[P_DownFilter]->GetData(),
+		activation.GetType(), MobileNetActivationParam( activation ), paramBlobs[P_DownFilter]->GetData(),
 		downFt.IsNull() ? nullptr : &downFt,
 		outputBlobs[0]->GetData() );
 }

@@ -111,6 +111,21 @@ void CRowwiseOperationChainLayer::deleteRowwiseDescs()
 
 //=====================================================================================================================
 
+template<typename... Targs>
+struct IsOneOf
+{
+	static bool f( const CBaseLayer* ) { return false; }
+};
+
+template<typename T, typename... Targs>
+struct IsOneOf<T, Targs...>
+{
+	static bool f( const CBaseLayer* layer )
+	{
+		return dynamic_cast<const T*>( layer ) != nullptr || IsOneOf<Targs...>::f( layer );
+	}
+};
+
 void OptimizeRowwiseChains( CDnn& dnn, CArray<int>& chains )
 {
 	chains.DeleteAll();
@@ -121,12 +136,8 @@ void OptimizeRowwiseChains( CDnn& dnn, CArray<int>& chains )
 	};
 
 	auto isRowwiseLayer = [] ( const CBaseLayer* layer ) -> bool {
-		return dynamic_cast<const CChannelwiseWith1x1Layer*>( layer ) != nullptr
-			|| dynamic_cast<const CConvLayer*>( layer ) != nullptr
-			|| dynamic_cast<const CHSwishLayer*>( layer ) != nullptr
-			|| dynamic_cast<const CMobileNetV2BlockLayer*>( layer ) != nullptr
-			|| dynamic_cast<const CReLULayer*>( layer ) != nullptr
-			|| dynamic_cast<const CSigmoidLayer*>( layer ) != nullptr;
+		return IsOneOf<CChannelwiseWith1x1Layer, CConvLayer, CHSwishLayer, CMobileNetV2BlockLayer,
+			CReLULayer, CSigmoidLayer>::f( layer );
 	};
 
 	auto createOperation = [] ( const CBaseLayer* layer ) -> CPtr<IRowwiseOperation> {
@@ -138,10 +149,7 @@ void OptimizeRowwiseChains( CDnn& dnn, CArray<int>& chains )
 		if( conv != nullptr ) {
 			return new CRowwiseConv( *conv );
 		}
-		auto hSwish = dynamic_cast<const CHSwishLayer*>( layer );
-		auto relu = dynamic_cast<const CReLULayer*>( layer );
-		auto sigmoid = dynamic_cast<const CSigmoidLayer*>( layer );
-		if( hSwish != nullptr || relu != nullptr || sigmoid != nullptr ) {
+		if( IsOneOf<CHSwishLayer, CLinearLayer, CReLULayer, CSigmoidLayer>::f( layer ) ) {
 			return new CRowwiseActivation( layer->MathEngine(),
 				dynamic_cast<const IActivationLayer*>( layer )->GetDesc() );
 		}

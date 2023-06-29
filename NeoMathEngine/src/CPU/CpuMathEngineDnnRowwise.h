@@ -242,6 +242,20 @@ inline IRowwiseCpuImpl::CProcessingReport CRowwiseActivation::Process( const flo
 		case AF_HSwish:
 			vectorHSwish( input, output, dataSize );
 			break;
+		case AF_Linear:
+			if( param0 != 1.f ) {
+				vectorMultiply( input, output, param0, dataSize );
+				input = output;
+			}
+			if( param1 != 0.f ) {
+				vectorAddValue( input, output, dataSize, param1 );
+				input = output;
+			}
+			if( input != output ) {
+				// Corner case: Linear( 1, 0 ), not in-place
+				dataCopy( output, input, dataSize );
+			}
+			break;
 		case AF_ReLU:
 			if( param0 <= 0 ) {
 				vectorReLU( input, output, dataSize );
@@ -251,14 +265,6 @@ inline IRowwiseCpuImpl::CProcessingReport CRowwiseActivation::Process( const flo
 			break;
 		case AF_Sigmoid:
 			vectorSigmoid( input, output, dataSize );
-			break;
-		case AF_Linear:
-			// For now linear is used in rowwise only as "no-activation" (x * 1.f + 0.f)
-			// That's why interface in some cases doesn't even have a way to pass 2 parameters (e.g. inside MN blocks)
-			// so we can't even check here both parameters
-			if( input != output ) {
-				dataCopy( output, input, dataSize );
-			}
 			break;
 		default:
 			ASSERT_EXPR( false );

@@ -167,9 +167,7 @@ void CChannelwiseWith1x1Layer::RunOnce()
 	MathEngine().ChannelwiseWith1x1( inputBlobs[0]->GetDesc(), outputBlobs[0]->GetDesc(), *convDesc,
 		inputBlobs[0]->GetData(), paramBlobs[P_ChannelwiseFilter]->GetData(),
 		channelwiseFt.IsNull() ? nullptr : &channelwiseFt,
-		activation.GetType(),
-		activation.GetType() == AF_ReLU ? activation.GetParam<CReLULayer::CParam>().UpperThreshold : 0.f,
-		paramBlobs[P_ConvFilter]->GetData(),
+		activation.GetType(), MobileNetActivationParam( activation ), paramBlobs[P_ConvFilter]->GetData(),
 		convFt.IsNull() ? nullptr : &convFt,
 		residual, outputBlobs[0]->GetData() );
 }
