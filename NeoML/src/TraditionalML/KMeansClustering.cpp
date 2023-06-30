@@ -434,23 +434,35 @@ protected:
 
 //-------------------------------------------------------------------------------------------------------------
 
-struct CKMeansClustering::CVectorMultiplyThreadTask : public CKMeansClustering::IThreadTask {
-	CVectorMultiplyThreadTask( const CKMeansClustering& owner, int vectorSize, IMathEngine& mathEngine,
-			const CConstFloatHandle& first, const CFloatHandle& result, const CConstFloatHandle& multiplier ) :
+struct CKMeansClustering::CVectorSubThreadTask : public CKMeansClustering::IThreadTask {
+	CVectorSubThreadTask( const CKMeansClustering& owner, int vectorSize, IMathEngine& mathEngine,
+			const CConstFloatHandle& first, const CConstFloatHandle& second, const CFloatHandle& result ) :
 		IThreadTask( owner, vectorSize ),
 		MathEngine( mathEngine ),
 		First( first ),
-		Second( multiplier ),
+		Second( second ),
 		Result( result )
 	{}
 protected:
 	void Run( int /*threadIndex*/, int index, int count ) override
-	{ MathEngine.VectorMultiply( First + index, Result + index, count, Second ); }
+	{ MathEngine.VectorSub( First + index, Second + index, Result + index, count ); }
 
 	IMathEngine& MathEngine;
 	const CConstFloatHandle& First;
 	const CConstFloatHandle& Second;
 	const CFloatHandle& Result;
+};
+
+//-------------------------------------------------------------------------------------------------------------
+
+struct CKMeansClustering::CVectorMultiplyThreadTask : public CKMeansClustering::CVectorSubThreadTask {
+	CVectorMultiplyThreadTask( const CKMeansClustering& owner, int vectorSize, IMathEngine& mathEngine,
+			const CConstFloatHandle& first, const CFloatHandle& result, const CConstFloatHandle& multiplier ) :
+		CVectorSubThreadTask( owner, vectorSize, mathEngine, first, multiplier, result )
+	{}
+protected:
+	void Run( int /*threadIndex*/, int index, int count ) override
+	{ MathEngine.VectorMultiply( First + index, Result + index, count, Second ); }
 };
 
 //-------------------------------------------------------------------------------------------------------------
@@ -500,6 +512,21 @@ static void vectorCopy( const CKMeansClustering& owner, IMathEngine& mathEngine,
 	}
 
 	CKMeansClustering::CVectorCopyThreadTask task( owner, vectorSize, mathEngine, dest, src );
+
+	NEOML_NUM_THREADS( *owner.GetThreadPool(), &task, []( int threadIndex, void* ptr ) {
+		( ( CKMeansClustering::IThreadTask* )ptr )->CallRun( threadIndex, mathEngineFloatTaskAlignment );
+	} );
+}
+
+static void vectorSub( const CKMeansClustering& owner, IMathEngine& mathEngine, int vectorSize,
+	const CConstFloatHandle& first, const CConstFloatHandle& second, const CFloatHandle& result )
+{
+	if( !isThreadTaskRelevant( vectorSize ) ) {
+		mathEngine.VectorSub( first, second, result, vectorSize );
+		return;
+	}
+
+	CKMeansClustering::CVectorSubThreadTask task( owner, vectorSize, mathEngine, first, second, result );
 
 	NEOML_NUM_THREADS( *owner.GetThreadPool(), &task, []( int threadIndex, void* ptr ) {
 		( ( CKMeansClustering::IThreadTask* )ptr )->CallRun( threadIndex, mathEngineFloatTaskAlignment );
@@ -1283,7 +1310,7 @@ void CKMeansClustering::calcClusterVariances( const CDnnBlob& data, const CDnnBl
 		CFloatHandle squaredMean = stackBuff;
 		vectorEltwiseMultiply( *this, mathEngine, clusterCount * featureCount, centers.GetData(), centers.GetData(), squaredMean );
 		// Subtract squares from average in order to get variance
-		mathEngine.VectorSub( variances.GetData(), squaredMean, variances.GetData(), clusterCount * featureCount ); // TODO! threads
+		vectorSub( *this, mathEngine, clusterCount * featureCount, variances.GetData(), squaredMean, variances.GetData() );
 	}
 }
 

@@ -102,6 +102,7 @@ public:
 	struct IThreadSubTask;
 	struct CVectorFillThreadTask;
 	struct CVectorCopyThreadTask;
+	struct CVectorSubThreadTask;
 	struct CVectorMultiplyThreadTask;
 	struct CVectorEltwiseMultiplyThreadTask;
 
