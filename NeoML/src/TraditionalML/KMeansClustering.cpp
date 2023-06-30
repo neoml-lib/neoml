@@ -99,7 +99,7 @@ protected:
 	{}
 
 	virtual void Run( int threadIndex, int index, int count );
-	virtual void RunOnElement( int threadIndex, int index ) = 0;
+	virtual void RunOnElement( int /*threadIndex*/, int /*index*/ ) { NeoAssert( false ); }
 
 	const int VectorSize;
 	const CKMeansClustering& Owner;
@@ -156,6 +156,82 @@ void CKMeansClustering::CClassifyAllThreadTask::RunOnElement( int threadIndex, i
 	NeoAssert( res != NotFound );
 	Inertia.Get( threadIndex ) += bestDistance;
 	DataCluster[dataIndex] = res;
+}
+
+//-------------------------------------------------------------------------------------------------------------
+
+// Recalculate cluster centers
+struct CKMeansClustering::CUpdateClustersThreadTask final : public CKMeansClustering::IThreadTask {
+	CUpdateClustersThreadTask( const CKMeansClustering& owner,
+		const CFloatMatrixDesc& matrix, const CArray<double>& weights, const CArray<int>& data );
+
+	int Complexity() const { return DataClusters.Size() * Matrix.Width; }
+	bool Reduction() const;
+	bool RunOneThread();
+
+	CArray<CClusterCenter> OldCenters{};
+protected:
+	void Run( int threadIndex, int index, int count ) override;
+
+	const CFloatMatrixDesc& Matrix;
+	const CArray<double>& Weights;
+	const CArray<int>& DataClusters;
+	CArray<bool> IsChanged{};
+};
+
+CKMeansClustering::CUpdateClustersThreadTask::CUpdateClustersThreadTask( const CKMeansClustering& owner,
+		const CFloatMatrixDesc& matrix, const CArray<double>& weights, const CArray<int>& data ) :
+	IThreadTask( owner, owner.clusters.Size() ),
+	Matrix( matrix ),
+	Weights( weights ),
+	DataClusters( data )
+{
+	IsChanged.SetSize( ThreadCount() );
+	OldCenters.SetSize( Size() );
+}
+
+bool CKMeansClustering::CUpdateClustersThreadTask::RunOneThread()
+{
+	Run( /*threadIndex*/0, /*first_cluster_id*/0, /*clusters*/Size() );
+	return Reduction();
+}
+
+void CKMeansClustering::CUpdateClustersThreadTask::Run( int threadIndex, int first_id, int count )
+{
+	const int last_id = first_id + count;
+	// Store the old cluster centers
+	for( int /*cluster*/id = first_id; id < last_id; ++id ) {
+		OldCenters[id] = Owner.clusters[id]->GetCenter();
+		Owner.clusters[id]->Reset( DataClusters.Size() ); //avoid reallocations
+	}
+	// Update the cluster contents
+	for( int i = 0; i < DataClusters.Size(); ++i ) {
+		const int /*cluster*/id = DataClusters[i];
+		if( first_id <= id && id < last_id ) {
+			CFloatVectorDesc desc;
+			Matrix.GetRow( i, desc );
+			Owner.clusters[id]->Add( i, desc, Weights[i] );
+		}
+	}
+	// Update the cluster centers
+	IsChanged[threadIndex] = false;
+	for( int /*cluster*/id = first_id; id < last_id; ++id ) {
+		if( Owner.clusters[id]->GetElementsCount() > 0 ) {
+			Owner.clusters[id]->RecalcCenter();
+		}
+		// Compare the new cluster centers with the old
+		IsChanged[threadIndex] |= ( OldCenters[id].Mean != Owner.clusters[id]->GetCenter().Mean );
+	}
+}
+
+bool CKMeansClustering::CUpdateClustersThreadTask::Reduction() const
+{
+	for( int t = 0; t < ThreadCount(); ++t ) {
+		if ( IsChanged[t] == true ) {
+			return true;
+		}
+	}
+	return false;
 }
 
 //-------------------------------------------------------------------------------------------------------------
@@ -628,9 +704,9 @@ bool CKMeansClustering::lloydClusterization( const CFloatMatrixDesc& matrix, con
 {
 	bool success = false;
 
-	CClassifyAllThreadTask task( *this, matrix );
+	CClassifyAllThreadTask classifyTask( *this, matrix );
 	for( int i = 0; i < params.MaxIterations; ++i ) {
-		inertia = classifyAllData( task );
+		inertia = classifyAllData( classifyTask );
 
 		if( log != 0 ) {
 			*log << "\n[Step " << i << "]\nData classification result:\n";
@@ -640,9 +716,8 @@ bool CKMeansClustering::lloydClusterization( const CFloatMatrixDesc& matrix, con
 			}
 		}
 
-		CArray<CClusterCenter> oldCenters;
-		storeClusterCenters( oldCenters );
-		if( !updateClusters( matrix, weights, task.DataCluster, oldCenters ) ) {
+		CUpdateClustersThreadTask updateClustersTask( *this, matrix, weights, classifyTask.DataCluster );
+		if( !updateClusters( updateClustersTask ) ) {
 			// Cluster centers stay the same, no need to continue
 			success = true;
 			break;
@@ -663,44 +738,17 @@ double CKMeansClustering::classifyAllData( CClassifyAllThreadTask& task )
 	return task.Inertia.GetSum();
 }
 
-void CKMeansClustering::storeClusterCenters( CArray<CClusterCenter>& result )
-{
-	result.SetBufferSize( clusters.Size() );
-	for( int i = 0; i < clusters.Size(); ++i ) {
-		result.Add( clusters[i]->GetCenter() );
-	}
-}
-
 // Updates the clusters and returns true if the clusters were changed, false if they stayed the same
-bool CKMeansClustering::updateClusters( const CFloatMatrixDesc& matrix, const CArray<double>& weights,
-	const CArray<int>& dataCluster, const CArray<CClusterCenter>& oldCenters )
+bool CKMeansClustering::updateClusters( CUpdateClustersThreadTask& task )
 {
-	// Store the old cluster centers
-	for( int i = 0; i < clusters.Size(); ++i ) {
-		clusters[i]->Reset();
+	if( !isThreadTaskRelevant( task.Complexity() ) ) {
+		return task.RunOneThread();
 	}
 
-	// Update the cluster contents
-	for( int i = 0; i < dataCluster.Size(); ++i ) {
-		CFloatVectorDesc desc;
-		matrix.GetRow( i, desc );
-		clusters[dataCluster[i]]->Add( i, desc, weights[i] );
-	}
-
-	// Update the cluster centers
-	for( int i = 0; i < clusters.Size(); ++i ) {
-		if( clusters[i]->GetElementsCount() > 0 ) {
-			clusters[i]->RecalcCenter();
-		}
-	}
-
-	// Compare the new cluster centers with the old
-	for( int i = 0; i < clusters.Size(); ++i ) {
-		if( oldCenters[i].Mean != clusters[i]->GetCenter().Mean ) {
-			return true;
-		}
-	}
-	return false;
+	NEOML_NUM_THREADS( *threadPool, &task, []( int threadIndex, void* ptr ) {
+		( ( IThreadTask* )ptr )->CallRun( threadIndex );
+	} );
+	return task.Reduction();
 }
 
 bool CKMeansClustering::elkanClusterization( const CFloatMatrixDesc& matrix, const CArray<double>& weights, double& inertia )
@@ -718,14 +766,13 @@ bool CKMeansClustering::elkanClusterization( const CFloatMatrixDesc& matrix, con
 		// Reassign vectors
 		assignVectors( assignTask );
 		// Recalculate centers
-		CArray<CClusterCenter> oldCenters;
-		storeClusterCenters( oldCenters );
-		updateClusters( matrix, weights, assignTask.Assignments, oldCenters );
+		CUpdateClustersThreadTask updateClustersTask( *this, matrix, weights, assignTask.Assignments );
+		updateClusters( updateClustersTask );
 		// Update move distances
-		updateMoveDistance( oldCenters, assignTask.MoveDistance );
+		updateMoveDistance( updateClustersTask.OldCenters, assignTask.MoveDistance );
 		// Update bounds based on move distance
-		CUpdateULBoundsThreadTask updateTask( *this, matrix, assignTask );
-		inertia = updateUpperAndLowerBounds( updateTask );
+		CUpdateULBoundsThreadTask updateBoundsTask( *this, matrix, assignTask );
+		inertia = updateUpperAndLowerBounds( updateBoundsTask );
 		// Check stop criteria
 		if( abs( inertia - lastResidual ) <= params.Tolerance ) {
 			return true;

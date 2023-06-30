@@ -123,9 +123,8 @@ private:
 	bool lloydClusterization( const CFloatMatrixDesc& matrix, const CArray<double>& weights, double& inertia );
 	struct CClassifyAllThreadTask;
 	double classifyAllData( CClassifyAllThreadTask& );
-	void storeClusterCenters( CArray<CClusterCenter>& result );
-	bool updateClusters( const CFloatMatrixDesc& matrix, const CArray<double>& weights,
-		const CArray<int>& dataCluster, const CArray<CClusterCenter>& oldCenters );
+	struct CUpdateClustersThreadTask;
+	bool updateClusters( CUpdateClustersThreadTask& );
 
 	// Elkan algorithm implementation for sparse data
 	bool elkanClusterization( const CFloatMatrixDesc& matrix, const CArray<double>& weights, double& inertia );
