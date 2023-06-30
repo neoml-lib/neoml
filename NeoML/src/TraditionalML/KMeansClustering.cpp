@@ -495,6 +495,50 @@ protected:
 
 //-------------------------------------------------------------------------------------------------------------
 
+struct CKMeansClustering::CVectorMultichannelLookupAndAddToTableThreadTask final : public CKMeansClustering::IThreadSubTask {
+	CVectorMultichannelLookupAndAddToTableThreadTask( const CKMeansClustering& owner, int vectorSize,
+			IMathEngine& mathEngine, const CConstIntHandle& input,
+			const CFloatHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
+			const CConstFloatHandle& mult, const CConstFloatHandle& matrix, int /*outputChannels*/ ) :
+		IThreadSubTask( owner, vectorSize ),
+		MathEngine( mathEngine ),
+		LookupChannels( 1 ),
+		LookupInput( input ),
+		LookupHandles( lookupHandles ),
+		LookupDimensions( lookupDimensions ),
+		LookupCount( lookupCount ),
+		LookupMult( mult ),
+		LookupMatrix( matrix )
+	{}
+protected:
+	void RunOnElement( int threadIndex, int index ) override;
+
+	IMathEngine& MathEngine;
+	const int LookupChannels;
+	const CConstIntHandle& LookupInput;
+	const CFloatHandle* const LookupHandles;
+	const CLookupDimension* const LookupDimensions;
+	const int LookupCount;
+	const CConstFloatHandle& LookupMult;
+	const CConstFloatHandle& LookupMatrix;
+};
+
+void CKMeansClustering::CVectorMultichannelLookupAndAddToTableThreadTask::RunOnElement( int /*threadIndex*/, int index )
+{
+	const int remained = LookupChannels - LookupCount;
+	const int vectorSize = LookupDimensions[0].VectorSize;
+	// skip unmapped updates
+	CConstIntHandle input = LookupInput + index * ( remained + 1 );
+	CConstFloatHandle matrix = LookupMatrix + index * ( remained + vectorSize );
+	// only if j=0 < LookupChannels=1
+	const int indexInput = input.GetValue();
+	NeoPresume( 0 <= indexInput && indexInput < LookupDimensions[0].VectorCount );
+	const CFloatHandle pos = LookupHandles[0] + indexInput * vectorSize;
+	MathEngine.VectorMultiplyAndAdd( pos, matrix, pos, vectorSize, LookupMult );
+}
+
+//-------------------------------------------------------------------------------------------------------------
+
 constexpr int mathEngineFloatTaskAlignment = 16;
 
 static inline bool isThreadTaskRelevant( int64_t operationCount )
@@ -590,6 +634,26 @@ static void matrixDiagMultiply( const CKMeansClustering& owner, IMathEngine& mat
 
 	NeoAssert( resultBufferSize >= firstSize * secondWidth );
 	CKMeansClustering::CDiagMxMThreadTask task( owner, mathEngine, first, firstSize, second, secondWidth, result );
+
+	NEOML_NUM_THREADS( *owner.GetThreadPool(), &task, []( int threadIndex, void* ptr ) {
+		( ( CKMeansClustering::IThreadTask* )ptr )->CallRun( threadIndex );
+	} );
+}
+
+static void vectorMultichannelLookupAndAddToTable( const CKMeansClustering& owner,
+	IMathEngine& mathEngine, int vectorSize, int channelCount, const CConstIntHandle& input,
+	const CFloatHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
+	const CConstFloatHandle& mult, const CConstFloatHandle& matrix, int outputChannels )
+{
+	if( !isThreadTaskRelevant( vectorSize ) ) {
+		mathEngine.VectorMultichannelLookupAndAddToTable( vectorSize, channelCount,
+			 input, lookupHandles, lookupDimensions, lookupCount, mult, matrix, outputChannels );
+		return;
+	}
+
+	NeoAssert( channelCount == 1 );
+	CKMeansClustering::CVectorMultichannelLookupAndAddToTableThreadTask task( owner, vectorSize,
+		mathEngine, input, lookupHandles, lookupDimensions, lookupCount, mult, matrix, outputChannels );
 
 	NEOML_NUM_THREADS( *owner.GetThreadPool(), &task, []( int threadIndex, void* ptr ) {
 		( ( CKMeansClustering::IThreadTask* )ptr )->CallRun( threadIndex );
@@ -1330,7 +1394,7 @@ void CKMeansClustering::calcClusterVariances( const CDnnBlob& data, const CDnnBl
 		dim.VectorCount = params.InitialClustersCount;
 		dim.VectorSize = featureCount;
 		variances.Clear();
-		mathEngine.VectorMultichannelLookupAndAddToTable( vectorCount, /*chennels*/1, // no threads
+		vectorMultichannelLookupAndAddToTable( *this, mathEngine, vectorCount, /*chennels*/1,
 			labels.GetData<int>(), &sumOfSquares, &dim, 1, one, squaredData, featureCount );
 		// Divide sum of squares by cluster size
 		matrixDiagMultiply( *this, mathEngine, sizeInv->GetData(), clusterCount, sumOfSquares, featureCount,

@@ -106,6 +106,7 @@ public:
 	struct CVectorMultiplyThreadTask;
 	struct CVectorEltwiseMultiplyThreadTask;
 	struct CDiagMxMThreadTask;
+	struct CVectorMultichannelLookupAndAddToTableThreadTask;
 
 private:
 	const CParam params; // clustering parameters
