@@ -396,6 +396,25 @@ void CThreadTaskMxMT::CallRun( int threadIndex )
 
 //-------------------------------------------------------------------------------------------------------------
 
+struct CKMeansClustering::CVectorFillThreadTask final : public CKMeansClustering::IThreadTask {
+	CVectorFillThreadTask( const CKMeansClustering& owner, int vectorSize, IMathEngine& mathEngine,
+			const CFloatHandle& result, float value ) :
+		IThreadTask( owner, vectorSize ),
+		MathEngine( mathEngine ),
+		Result( result ),
+		Value( value )
+	{}
+protected:
+	void Run( int /*threadIndex*/, int index, int count ) override
+	{ MathEngine.VectorFill( Result + index, Value, count ); }
+
+	IMathEngine& MathEngine;
+	const CFloatHandle& Result;
+	const float Value;
+};
+
+//-------------------------------------------------------------------------------------------------------------
+
 struct CKMeansClustering::CVectorCopyThreadTask final : public CKMeansClustering::IThreadTask {
 	CVectorCopyThreadTask( const CKMeansClustering& owner, int vectorSize, IMathEngine &mathEngine,
 			const CFloatHandle& dest, const CConstFloatHandle& src ) :
@@ -455,6 +474,21 @@ static inline bool isThreadTaskRelevant( int64_t operationCount )
 {
 	constexpr int64_t MinOmpOperationCount = 32768;
 	return operationCount >= MinOmpOperationCount;
+}
+
+static void vectorFill( const CKMeansClustering& owner, IMathEngine& mathEngine,
+	int vectorSize, const CFloatHandle& result, float value )
+{
+	if( !isThreadTaskRelevant( vectorSize ) ) {
+		mathEngine.VectorFill( result, value, vectorSize );
+		return;
+	}
+
+	CKMeansClustering::CVectorFillThreadTask task( owner, vectorSize, mathEngine, result, value );
+
+	NEOML_NUM_THREADS( *owner.GetThreadPool(), &task, []( int threadIndex, void* ptr ) {
+		( ( CKMeansClustering::IThreadTask* )ptr )->CallRun( threadIndex, mathEngineFloatTaskAlignment );
+	} );
 }
 
 static void vectorCopy( const CKMeansClustering& owner, IMathEngine& mathEngine,
@@ -1231,7 +1265,7 @@ void CKMeansClustering::calcClusterVariances( const CDnnBlob& data, const CDnnBl
 		CFloatHandle sumOfSquares = stackBuff.GetHandle() + vectorCount * featureCount;
 		CFloatHandle one = stackBuff.GetHandle() + vectorCount * featureCount + clusterCount * featureCount;
 		vectorEltwiseMultiply( *this, mathEngine, data.GetDataSize(), data.GetData(), data.GetData(), squaredData );
-		mathEngine.VectorFill( sumOfSquares, 0, clusterCount * featureCount ); // TODO! threads
+		vectorFill( *this, mathEngine, clusterCount * featureCount, sumOfSquares, /*value*/0.f );
 		one.SetValue( 1.f );
 		CLookupDimension dim;
 		dim.VectorCount = params.InitialClustersCount;

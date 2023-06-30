@@ -100,6 +100,7 @@ public:
 	IThreadPool* GetThreadPool() const { return threadPool; }
 	struct IThreadTask;
 	struct IThreadSubTask;
+	struct CVectorFillThreadTask;
 	struct CVectorCopyThreadTask;
 	struct CVectorMultiplyThreadTask;
 	struct CVectorEltwiseMultiplyThreadTask;
