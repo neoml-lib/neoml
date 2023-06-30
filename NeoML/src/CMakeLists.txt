@@ -170,6 +170,7 @@ set(NeoML_SOURCES
     Dnn/Optimization/MobileNetV2Optimizer.cpp
     Dnn/Optimization/MobileNetV3Optimizer.cpp
     Dnn/Rowwise/Activation.cpp
+    Dnn/Rowwise/ChannelwiseConv.cpp
     Dnn/Rowwise/ChannelwiseWith1x1.cpp
     Dnn/Rowwise/Conv.cpp
     Dnn/Rowwise/MobileNetV2.cpp
@@ -421,6 +422,7 @@ set(NeoML_HEADERS
     ../include/NeoML/Dnn/Optimization/Graph.h
 
     ../include/NeoML/Dnn/Rowwise/Activation.h
+    ../include/NeoML/Dnn/Rowwise/ChannelwiseConv.h
     ../include/NeoML/Dnn/Rowwise/ChannelwiseWith1x1.h
     ../include/NeoML/Dnn/Rowwise/Conv.h
     ../include/NeoML/Dnn/Rowwise/MobileNetV2.h

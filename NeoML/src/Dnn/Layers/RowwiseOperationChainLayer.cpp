@@ -19,11 +19,13 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/RowwiseOperationChainLayer.h>
 
 #include <NeoML/Dnn/Layers/ActivationLayers.h>
+#include <NeoML/Dnn/Layers/ChannelwiseConvLayer.h>
 #include <NeoML/Dnn/Layers/ChannelwiseWith1x1Layer.h>
 #include <NeoML/Dnn/Layers/ConvLayer.h>
 #include <NeoML/Dnn/Layers/MobileNetV2BlockLayer.h>
 #include <NeoML/Dnn/Optimization/Graph.h>
 #include <NeoML/Dnn/Rowwise/Activation.h>
+#include <NeoML/Dnn/Rowwise/ChannelwiseConv.h>
 #include <NeoML/Dnn/Rowwise/ChannelwiseWith1x1.h>
 #include <NeoML/Dnn/Rowwise/Conv.h>
 #include <NeoML/Dnn/Rowwise/MobileNetV2.h>
@@ -136,8 +138,8 @@ void OptimizeRowwiseChains( CDnn& dnn, CArray<int>& chains )
 	};
 
 	auto isRowwiseLayer = [] ( const CBaseLayer* layer ) -> bool {
-		return IsOneOf<CChannelwiseWith1x1Layer, CConvLayer, CHardSigmoidLayer, CHSwishLayer, CLinearLayer,
-			CMobileNetV2BlockLayer, CReLULayer, CSigmoidLayer>::f( layer );
+		return IsOneOf<CChannelwiseWith1x1Layer, CChannelwiseConvLayer, CConvLayer, CHardSigmoidLayer, CHSwishLayer,
+			CLinearLayer, CMobileNetV2BlockLayer, CReLULayer, CSigmoidLayer>::f( layer );
 	};
 
 	auto createOperation = [] ( const CBaseLayer* layer ) -> CPtr<IRowwiseOperation> {
@@ -148,6 +150,10 @@ void OptimizeRowwiseChains( CDnn& dnn, CArray<int>& chains )
 		auto conv = dynamic_cast<const CConvLayer*>( layer );
 		if( conv != nullptr ) {
 			return new CRowwiseConv( *conv );
+		}
+		auto chConv = dynamic_cast<const CChannelwiseConvLayer*>( layer );
+		if( chConv != nullptr ) {
+			return new CRowwiseChConv( *chConv );
 		}
 		if( IsOneOf<CHardSigmoidLayer, CHSwishLayer, CLinearLayer, CReLULayer, CSigmoidLayer>::f( layer ) ) {
 			return new CRowwiseActivation( layer->MathEngine(),

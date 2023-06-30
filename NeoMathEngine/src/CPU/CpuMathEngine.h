@@ -603,6 +603,9 @@ public:
 	CRowwiseOperationDesc* InitRowwiseConv( int paddingHeight, int paddingWidth, int strideHeight,
 		int strideWidth, int dilationHeight, int dilationWidth, const CBlobDesc& filterDesc,
 		const CConstFloatHandle& filter, const CConstFloatHandle* freeTerm ) override;
+	CRowwiseOperationDesc* InitRowwiseChConv( int paddingHeight, int paddingWidth, int strideHeight,
+		int strideWidth, const CBlobDesc& filterDesc, const CConstFloatHandle& filter,
+		const CConstFloatHandle* freeTerm ) override;
 	CRowwiseOperationDesc* InitRowwiseMobileNetV2( int inputChannels,
 		const CConstFloatHandle& expandFilter, const CConstFloatHandle* expandFreeTerm, int expandedChannels,
 		TActivationFunction expandActivation, float expandActivationParam,

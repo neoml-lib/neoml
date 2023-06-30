@@ -1108,6 +1108,9 @@ public:
 	virtual CRowwiseOperationDesc* InitRowwiseConv( int paddingHeight, int paddingWidth, int strideHeight,
 		int strideWidth, int dilationHeight, int dilationWidth, const CBlobDesc& filterDesc,
 		const CConstFloatHandle& filter, const CConstFloatHandle* freeTerm ) = 0;
+	virtual CRowwiseOperationDesc* InitRowwiseChConv( int paddingHeight, int paddingWidth, int strideHeight,
+		int strideWidth, const CBlobDesc& filterDesc, const CConstFloatHandle& filter,
+		const CConstFloatHandle* freeTerm ) = 0;
 	virtual CRowwiseOperationDesc* InitRowwiseMobileNetV2( int inputChannels,
 		const CConstFloatHandle& expandFilter, const CConstFloatHandle* expandFreeTerm, int expandedChannels,
 		TActivationFunction expandActivation, float expandActivationParam,

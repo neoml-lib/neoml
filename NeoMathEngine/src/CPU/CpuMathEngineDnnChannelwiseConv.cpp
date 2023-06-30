@@ -417,8 +417,77 @@ static inline void processChannelwise5x5Stride2( const CCommonChannelwiseConvolu
 	}
 }
 
+static inline void processChannelwiseNaive( const CCommonChannelwiseConvolutionDesc& desc, int outputRowsToProcess,
+	const float* currInput, int currInputRowIndex, const float* filter, const float* freeTerm, float* currOutput,
+	int currOutputRowIndex )
+{
+	const CBlobDesc& sourceDesc = desc.Source;
+	const CBlobDesc& filterDesc = desc.Filter;
+	const CBlobDesc& resultDesc = desc.Result;
+
+	const int channels = sourceDesc.Channels() * sourceDesc.Depth();
+	const int inputRowSize = sourceDesc.Width() * channels;
+	const int outputRowSize = resultDesc.Width() * channels;
+	const int filterRowSize = filterDesc.Width() * channels;
+
+	float* const currOutputEnd = currOutput + outputRowsToProcess * outputRowSize;
+	int firstFilteredRow = currOutputRowIndex * desc.StrideHeight - desc.PaddingHeight;
+	for( ; currOutput < currOutputEnd; currOutput += outputRowSize, firstFilteredRow += desc.StrideHeight ) {
+		if( freeTerm != 0 ) {
+			float* rowStart = currOutput;
+			float* rowEnd = rowStart + channels * resultDesc.Width();
+			for( ; rowStart < rowEnd; rowStart += channels ) {
+				NeoML::dataCopy( rowStart, freeTerm, channels );
+			}
+		} else {
+			NeoML::vectorFill( currOutput, 0, resultDesc.Width() * channels );
+		}
+
+		const int filterFirstRow = std::max( 0, -firstFilteredRow );
+		const int filterLastRow = std::min( filterDesc.Height(), sourceDesc.Height() - firstFilteredRow );
+		const float* filterRow = filter + filterFirstRow * filterRowSize;
+		const float* filterRowEnd = filter + filterLastRow * filterRowSize;
+		const float* srcRow = currInput + ( firstFilteredRow + filterFirstRow - currInputRowIndex ) * inputRowSize;
+
+		for( ; filterRow < filterRowEnd; filterRow += filterRowSize, srcRow += inputRowSize ) {
+			int firstFilteredCol = -desc.PaddingWidth;
+			float* currOutputPos = currOutput;
+			float* currOutputPosEnd = currOutputPos + channels * resultDesc.Width();
+			for( ; currOutputPos < currOutputPosEnd; currOutputPos += channels, firstFilteredCol += desc.StrideWidth ) {
+				const int filterFirstCol = std::max( 0, -firstFilteredCol );
+				const int filterLastCol = std::min( filterDesc.Width(), sourceDesc.Width() - firstFilteredCol );
+				const float* filterPos = filterRow + filterFirstCol * channels;
+				const float* filterPosEnd = filterRow + filterLastCol * channels;
+				const float* srcPos = srcRow + ( firstFilteredCol + filterFirstCol ) * channels;
+				for( ; filterPos < filterPosEnd; filterPos += channels, srcPos += channels ) {
+					NeoML::vectorEltwiseMultiplyAdd( filterPos, srcPos, currOutputPos, channels );
+				}
+			}
+		}
+	}
+}
+
 typedef void (*TChannelwiseProcessFunction)( const CCommonChannelwiseConvolutionDesc&, int, const float*, int,
 	const float*, const float*, float*, int );
+
+static TChannelwiseProcessFunction getChannelwiseProcessFunction( const CCommonChannelwiseConvolutionDesc& desc )
+{
+	if( desc.Filter.Height() == desc.Filter.Width() && desc.PaddingHeight == desc.PaddingWidth
+		&& desc.StrideHeight == desc.StrideWidth )
+	{
+		if( desc.Filter.Width() == 3 && desc.PaddingWidth == 1 && desc.StrideWidth <= 2 ) {
+			return processChannelwise3x3;
+		} else if( desc.Filter.Width() == 5 && desc.PaddingWidth == 2 ) {
+			if( desc.StrideWidth == 1 ) {
+				return processChannelwise5x5Stride1;
+			} else if( desc.StrideWidth == 2 ) {
+				return processChannelwise5x5Stride2;
+			}
+		}
+	}
+
+	return processChannelwiseNaive;
+}
 
 void CCpuMathEngine::BlobChannelwiseConvolution( const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& sourceData,
 	const CConstFloatHandle& filterData, const CConstFloatHandle* freeTermData, const CFloatHandle& resultData )
@@ -431,21 +500,7 @@ void CCpuMathEngine::BlobChannelwiseConvolution( const CChannelwiseConvolutionDe
 	const float* freeTerm = freeTermData != 0 ? GetRaw( *freeTermData ) : 0;
 	float* result = GetRaw( resultData );
 
-	// Specify process function if it's a special case
-	TChannelwiseProcessFunction process = nullptr;
-	if( desc.Filter.Height() == desc.Filter.Width() && desc.PaddingHeight == desc.PaddingWidth
-		&& desc.StrideHeight == desc.StrideWidth )
-	{
-		if( desc.Filter.Width() == 3 && desc.PaddingWidth == 1 && desc.StrideWidth <= 2 ) {
-			process = processChannelwise3x3;
-		} else if( desc.Filter.Width() == 5 && desc.PaddingWidth == 2 ) {
-			if( desc.StrideWidth == 1 ) {
-				process = processChannelwise5x5Stride1;
-			} else if( desc.StrideWidth == 2 ) {
-				process = processChannelwise5x5Stride2;
-			}
-		}
-	}
+	TChannelwiseProcessFunction processFunc = getChannelwiseProcessFunction( desc );
 
 	const CBlobDesc& sourceDesc = desc.Source;
 	const CBlobDesc& filterDesc = desc.Filter;
@@ -458,7 +513,6 @@ void CCpuMathEngine::BlobChannelwiseConvolution( const CChannelwiseConvolutionDe
 
 	const int inputRowSize = sourceDesc.Width() * channels;
 	const int outputRowSize = resultDesc.Width() * channels;
-	const int filterRowSize = filterDesc.Width() * channels;
 
 	const int inputObjectSize = inputRowSize * sourceDesc.Height();
 	const int outputObjectSize = outputRowSize * resultDesc.Height();
@@ -472,50 +526,10 @@ void CCpuMathEngine::BlobChannelwiseConvolution( const CChannelwiseConvolutionDe
 		if( OmpGetTaskIndexAndCount2D( sourceDesc.ObjectCount(), resultDesc.Height(), batchStart, batchCount, resultStart, resultCount ) ) {
 			const float* src = source + batchStart * inputObjectSize;
 			const float* srcEnd = src + batchCount * inputObjectSize;
-			float* res = result + batchStart * outputObjectSize + resultStart * resultDesc.Width() * channels;
+			float* res = result + batchStart * outputObjectSize + resultStart * outputRowSize;
 
 			for( ; src < srcEnd; src += inputObjectSize, res += outputObjectSize ) {
-				if( process != nullptr ) {
-					process( desc, resultCount, src, 0, filter, freeTerm, res, resultStart );
-					continue;
-				}
-
-				float* resultRow = res;
-				float* resultRowEnd = resultRow + resultCount * outputRowSize;
-				int firstFilteredRow = resultStart * desc.StrideHeight - desc.PaddingHeight;
-				for( ; resultRow < resultRowEnd; resultRow += outputRowSize, firstFilteredRow += desc.StrideHeight ) {
-					if( freeTerm != 0 ) {
-						float* rowStart = resultRow;
-						float* rowEnd = rowStart + channels * resultDesc.Width();
-						for( ; rowStart < rowEnd; rowStart += channels ) {
-							NeoML::dataCopy(rowStart, freeTerm, channels);
-						}
-					} else {
-						NeoML::vectorFill(resultRow, 0, resultDesc.Width() * channels);
-					}
-
-					const int filterFirstRow = std::max( 0, -firstFilteredRow );
-					const int filterLastRow = std::min( filterDesc.Height(), sourceDesc.Height() - firstFilteredRow );
-					const float* filterRow = filter + filterFirstRow * filterRowSize;
-					const float* filterRowEnd = filter + filterLastRow * filterRowSize;
-					const float* srcRow = src + (firstFilteredRow + filterFirstRow) * inputRowSize;
-
-					for( ; filterRow < filterRowEnd; filterRow += filterRowSize, srcRow += inputRowSize ) {
-						int firstFilteredCol = -desc.PaddingWidth;
-						float* resultPos = resultRow;
-						float* resultPosEnd = resultPos + channels * resultDesc.Width();
-						for( ; resultPos < resultPosEnd; resultPos += channels, firstFilteredCol += desc.StrideWidth ) {
-							const int filterFirstCol = std::max( 0, -firstFilteredCol );
-							const int filterLastCol = std::min( filterDesc.Width(), sourceDesc.Width() - firstFilteredCol );
-							const float* filterPos = filterRow + filterFirstCol * channels;
-							const float* filterPosEnd = filterRow + filterLastCol * channels;
-							const float* srcPos = srcRow + (firstFilteredCol + filterFirstCol) * channels;
-							for( ; filterPos < filterPosEnd; filterPos += channels, srcPos += channels ) {
-								NeoML::vectorEltwiseMultiplyAdd(filterPos, srcPos, resultPos, channels);
-							}
-						}
-					}
-				}
+				processFunc( desc, resultCount, src, 0, filter, freeTerm, res, resultStart );
 			}
 		}
 	}
@@ -902,7 +916,7 @@ public:
 
 	CBlobDesc Reshape( const CBlobDesc& inputSize ) override;
 	int InOperationBufferSize() const override { return 0; }
-	int OutputRowCount() const override { return desc.Result.Height(); }
+	int OutputRowCount() const override { return desc.Result.ObjectCount() * desc.Result.Height(); }
 	int OutputRowSize() const override { return desc.Result.Width() * outputChannels; }
 	bool IsInPlace() const override { return false; }
 	CProcessingReport Process( const float* input, int inputRowIndex, int inputRowsAvailable,
@@ -1114,6 +1128,100 @@ CRowwiseOperationDesc* CCpuMathEngine::InitRowwiseMobileNetV2( int inputChannels
 		stride, channelwiseActivation, channelwiseActivationParam, GetRaw( downFilter ),
 		downFreeTerm == nullptr ? nullptr : GetRaw( *downFreeTerm ),
 		outputChannels, residual );
+}
+
+//=====================================================================================================================
+
+class CRowwiseChConv : public IRowwiseCpuImpl, public CRowwiseOperationDesc {
+public:
+	CRowwiseChConv::CRowwiseChConv( int paddingHeight, int paddingWidth, int strideHeight,
+		int strideWidth, const CBlobDesc& filterDesc, const float* filter,
+		const float* freeTerm ) :
+		desc( paddingHeight, paddingWidth, strideHeight, strideWidth, CBlobDesc(), filterDesc, CBlobDesc() ),
+		processFunc( nullptr ),
+		filter( filter ),
+		freeTerm( freeTerm )
+	{
+	}
+
+	int MinInputRowCount() const override { return desc.Filter.Height(); }
+	CBlobDesc Reshape( const CBlobDesc& inputSize ) override;
+	int InOperationBufferSize() const override { return 0; }
+	int OutputRowCount() const override { return desc.Result.ObjectCount() * desc.Result.Height(); }
+	int OutputRowSize() const override { return desc.Result.Width() * desc.Result.Depth() * desc.Result.Channels(); }
+	bool IsInPlace() const override { return false; }
+	CProcessingReport Process( const float* input, int inputRowIndex, int inputRowsAvailable,
+		float* output, int outputRowIndex, int outputRowsAvailable, float* buffer ) const override;
+
+private:
+	CCommonChannelwiseConvolutionDesc desc;
+	TChannelwiseProcessFunction processFunc;
+	const float* filter;
+	const float* freeTerm;
+};
+
+CBlobDesc CRowwiseChConv::Reshape( const CBlobDesc& inputSize )
+{
+	auto convOutputSize = [] ( int input, int filter, int padding, int stride ) -> int
+	{
+		return 1 + ( input + 2 * padding - filter ) / stride;
+	};
+
+	desc.Source = inputSize;
+	desc.Result = desc.Source;
+	desc.Result.SetDimSize( BD_Height, convOutputSize( inputSize.Height(), desc.Filter.Height(),
+		desc.PaddingHeight, desc.StrideHeight ) );
+	desc.Result.SetDimSize( BD_Width, convOutputSize( inputSize.Width(), desc.Filter.Width(),
+		desc.PaddingWidth, desc.StrideWidth ) );
+	processFunc = getChannelwiseProcessFunction( desc );
+
+	return desc.Result;
+}
+
+IRowwiseCpuImpl::CProcessingReport CRowwiseChConv::Process( const float* input, int inputRowIndex,
+	int inputRowsAvailable, float* output, int outputRowIndex, int outputRowsAvailable, float* buffer ) const
+{
+	CProcessingReport report = RowwiseConvProcessingReport( inputRowIndex, inputRowsAvailable, outputRowIndex,
+		outputRowsAvailable, desc.Source.Height(), desc.Result.Height(), desc.Filter.Height(), desc.PaddingHeight,
+		desc.StrideHeight, 1 );
+	if( report.OutputRowsCalculated == 0 ) {
+		PRESUME_EXPR( report.InputRowsMayBeRemoved == 0 );
+		return report;
+	}
+
+	int imageIndex = outputRowIndex / desc.Result.Height();
+	const int outputRowsAfterThisCall = outputRowIndex + report.OutputRowsCalculated;
+	const int inputRowSize = desc.Source.Width() * desc.Source.Depth() * desc.Source.Channels();
+	const int outputRowSize = desc.Result.Width() * desc.Result.Depth() * desc.Result.Channels();
+	const int inputHeight = desc.Source.Height();
+	const int outputHeight = desc.Result.Height();
+
+	while( outputRowIndex < outputRowsAfterThisCall ) {
+		if( imageIndex * desc.Source.Height() > inputRowIndex ) {
+			const int diff = imageIndex * desc.Source.Height() - inputRowIndex;
+			inputRowIndex += diff;
+			input += diff * inputRowSize;
+		}
+
+		const int outputRowsThisStep = std::min( outputRowsAfterThisCall, ( imageIndex + 1 ) * desc.Result.Height() )
+			- outputRowIndex;
+		processFunc( desc, outputRowsThisStep, input, inputRowIndex % inputHeight, filter, freeTerm,
+			output, outputRowIndex % outputHeight );
+
+		outputRowIndex += outputRowsThisStep;
+		output += outputRowsThisStep * outputRowSize;
+		imageIndex = outputRowIndex / outputHeight;
+	}
+
+	return report;
+}
+
+CRowwiseOperationDesc* CCpuMathEngine::InitRowwiseChConv( int paddingHeight, int paddingWidth, int strideHeight,
+	int strideWidth, const CBlobDesc& filterDesc, const CConstFloatHandle& filter,
+	const CConstFloatHandle* freeTerm )
+{
+	return new CRowwiseChConv( paddingHeight, paddingWidth, strideHeight, strideWidth, filterDesc, GetRaw( filter ),
+		freeTerm == nullptr ? nullptr : GetRaw( *freeTerm ) );
 }
 
 } // namespace NeoML

@@ -58,8 +58,8 @@ public:
 
 	// The result of single rowwise processing
 	struct CProcessingReport {
-		int OutputRowsCalculated; // number of output rows calculated during this call
-		int InputRowsMayBeRemoved; // number of input rows which are not needed anymore by this operation
+		int OutputRowsCalculated = 0; // number of output rows calculated during this call
+		int InputRowsMayBeRemoved = 0; // number of input rows which are not needed anymore by this operation
 	};
 
 	// Processes [inputRowIndex; inputRowIndex + inputRowsAvailable) rows of the input
