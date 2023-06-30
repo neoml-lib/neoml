@@ -475,7 +475,22 @@ struct CKMeansClustering::CVectorEltwiseMultiplyThreadTask final : public CKMean
 protected:
 	void Run( int /*threadIndex*/, int index, int count ) override
 	{ MathEngine.VectorEltwiseMultiply( First + index, Second + index, Result + index, count ); }
+};
 
+//-------------------------------------------------------------------------------------------------------------
+
+struct CKMeansClustering::CDiagMxMThreadTask final : public CKMeansClustering::CVectorMultiplyThreadTask {
+	CDiagMxMThreadTask( const CKMeansClustering& owner, IMathEngine& mathEngine,
+			const CConstFloatHandle& first, int firstSize,
+			const CConstFloatHandle& second, int secondWidth, const CFloatHandle& result ) :
+		CVectorMultiplyThreadTask( owner, firstSize, mathEngine, second, result, first ),
+		SecondWidth( secondWidth )
+	{}
+protected:
+	void Run( int /*threadIndex*/, int index, int /*count*/ ) override
+	{ MathEngine.VectorMultiply( First + index * SecondWidth, Result + index * SecondWidth, SecondWidth, Second + index ); }
+
+	const int SecondWidth;
 };
 
 //-------------------------------------------------------------------------------------------------------------
@@ -561,6 +576,23 @@ static void vectorEltwiseMultiply( const CKMeansClustering& owner, IMathEngine& 
 
 	NEOML_NUM_THREADS( *owner.GetThreadPool(), &task, []( int threadIndex, void* ptr ) {
 		( ( CKMeansClustering::IThreadTask* )ptr )->CallRun( threadIndex, mathEngineFloatTaskAlignment );
+	} );
+}
+
+static void matrixDiagMultiply( const CKMeansClustering& owner, IMathEngine& mathEngine,
+	const CConstFloatHandle& first, int firstSize, const CConstFloatHandle& second, int secondWidth,
+	const CFloatHandle& result, int resultBufferSize )
+{
+	if( !isThreadTaskRelevant( firstSize * secondWidth ) ) {
+		mathEngine.MultiplyDiagMatrixByMatrix( first, firstSize, second, secondWidth, result, resultBufferSize );
+		return;
+	}
+
+	NeoAssert( resultBufferSize >= firstSize * secondWidth );
+	CKMeansClustering::CDiagMxMThreadTask task( owner, mathEngine, first, firstSize, second, secondWidth, result );
+
+	NEOML_NUM_THREADS( *owner.GetThreadPool(), &task, []( int threadIndex, void* ptr ) {
+		( ( CKMeansClustering::IThreadTask* )ptr )->CallRun( threadIndex );
 	} );
 }
 
@@ -1301,7 +1333,7 @@ void CKMeansClustering::calcClusterVariances( const CDnnBlob& data, const CDnnBl
 		mathEngine.VectorMultichannelLookupAndAddToTable( vectorCount, /*chennels*/1, // no threads
 			labels.GetData<int>(), &sumOfSquares, &dim, 1, one, squaredData, featureCount );
 		// Divide sum of squares by cluster size
-		mathEngine.MultiplyDiagMatrixByMatrix( sizeInv->GetData(), clusterCount, sumOfSquares, featureCount, // TODO! threads
+		matrixDiagMultiply( *this, mathEngine, sizeInv->GetData(), clusterCount, sumOfSquares, featureCount,
 			variances.GetData(), variances.GetDataSize() );
 	}
 
