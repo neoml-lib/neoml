@@ -539,6 +539,61 @@ void CKMeansClustering::CVectorMultichannelLookupAndAddToTableThreadTask::RunOnE
 
 //-------------------------------------------------------------------------------------------------------------
 
+namespace {
+struct CVectorAddToMatrixRowsThreadTask final {
+	CVectorAddToMatrixRowsThreadTask( int threadCount, IMathEngine& mathEngine,
+			const CConstFloatHandle& matrix, const CFloatHandle& result,
+			int matrixHeight, int matrixWidth, const CConstFloatHandle& vector ) :
+		ThreadCount( threadCount ),
+		MathEngine( mathEngine ),
+		Matrix( matrix ),
+		MatrixHeight( matrixHeight ),
+		MatrixWidth( matrixWidth ),
+		Vector( vector ),
+		Result( result )
+	{}
+
+	void CallRun( int threadIndex );
+	void Run( CConstFloatHandle matrix, CConstFloatHandle vector, CFloatHandle result,
+		int Height, int Width, int MatrixWidth );
+protected:
+	const int ThreadCount;
+	IMathEngine& MathEngine;
+	const CConstFloatHandle& Matrix;
+	const int MatrixHeight;
+	const int MatrixWidth;
+	const CConstFloatHandle& Vector;
+	const CFloatHandle& Result;
+};
+
+void CVectorAddToMatrixRowsThreadTask::CallRun( int threadIndex )
+{
+	int heightStart;
+	int heightCount;
+	int widthStart;
+	int widthCount;
+	if( OmpGetTaskIndexAndCount2D( MatrixHeight, /*alignX*/1, MatrixWidth, /*alignY*/1,
+		heightStart, heightCount, widthStart, widthCount, ThreadCount, threadIndex ) )
+	{
+		const int offset = heightStart * MatrixWidth + widthStart;
+		Run( Matrix + offset, Vector + widthStart, Result + offset, heightCount, widthCount, MatrixWidth );
+	}
+}
+
+void CVectorAddToMatrixRowsThreadTask::Run( CConstFloatHandle matrix, CConstFloatHandle vector, CFloatHandle result,
+	int Height, int Width, int MatrixWidth )
+{
+	for( int h = 0; h < Height; ++h ) {
+		MathEngine.VectorAdd( matrix, vector, result, Width );
+		matrix += MatrixWidth;
+		result += MatrixWidth;
+	}
+}
+
+} // namespace
+
+//-------------------------------------------------------------------------------------------------------------
+
 constexpr int mathEngineFloatTaskAlignment = 16;
 
 static inline bool isThreadTaskRelevant( int64_t operationCount )
@@ -657,6 +712,25 @@ static void vectorMultichannelLookupAndAddToTable( const CKMeansClustering& owne
 
 	NEOML_NUM_THREADS( *owner.GetThreadPool(), &task, []( int threadIndex, void* ptr ) {
 		( ( CKMeansClustering::IThreadTask* )ptr )->CallRun( threadIndex );
+	} );
+}
+
+static void vectorAddToMatrixRows(
+	const CKMeansClustering& owner, IMathEngine& mathEngine, int batchSize,
+	const CConstFloatHandle& matrix, const CFloatHandle& result,
+	int matrixHeight, int matrixWidth, const CConstFloatHandle& vector )
+{
+	NeoAssert( batchSize == 1 );
+	CVectorAddToMatrixRowsThreadTask task( owner.GetThreadPool()->Size(), mathEngine, matrix,
+		result, matrixHeight, matrixWidth, vector );
+
+	if( !isThreadTaskRelevant( matrixHeight * matrixWidth ) ) {
+		task.Run( matrix + 0, vector, result + 0, matrixHeight, matrixWidth, matrixWidth );
+		return;
+	}
+
+	NEOML_NUM_THREADS( *owner.GetThreadPool(), &task, []( int threadIndex, void* ptr ) {
+		( ( CVectorAddToMatrixRowsThreadTask* )ptr )->CallRun( threadIndex );
 	} );
 }
 
@@ -1303,7 +1377,7 @@ static void calcClosestDistances( const CKMeansClustering& owner, const CDnnBlob
 		matrixMultiplyByTransposed( owner, mathEngine, /*batchSize*/1, /*first*/centers.GetData(), clusterCount, featureCount,
 			/*second*/currData, batchSize, /*result*/distances, clusterCount * batchSize );
 		vectorMultiply( owner, mathEngine, clusterCount * batchSize, distances, distances, minusTwo );
-		mathEngine.AddVectorToMatrixRows( 1, distances, distances, clusterCount, batchSize, currSquaredData ); // TODO! threads
+		vectorAddToMatrixRows( owner, mathEngine, /*batchSize*/1, distances, distances, clusterCount, batchSize, currSquaredData );
 		mathEngine.AddVectorToMatrixColumns( distances, distances, clusterCount, batchSize, squaredCenters ); // no threads
 		mathEngine.FindMinValueInColumns( distances, clusterCount, batchSize, currClosesDist, currLabels ); // no threads
 
