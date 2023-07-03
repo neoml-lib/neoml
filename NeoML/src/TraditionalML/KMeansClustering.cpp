@@ -79,27 +79,19 @@ double CInertia::GetSum() const
 
 // Task which processes a set of elements on a single thread
 struct CKMeansClustering::IThreadTask {
+public:
 	virtual ~IThreadTask() {}
-	virtual int Size() const { return Matrix ? Matrix->Height : VectorSize; }
+	virtual int Size() const { return VectorSize; }
 
 	int ThreadCount() const { return Owner.params.ThreadCount; }
 	void CallRun( int threadIndex, int align = 1 );
-
-	const CFloatMatrixDesc* const Matrix;
 protected:
-	IThreadTask( const CKMeansClustering& owner, const CFloatMatrixDesc* matrix ) :
-		Matrix( matrix ),
-		VectorSize( 0 ),
-		Owner( owner )
-	{}
 	IThreadTask( const CKMeansClustering& owner, int size ) :
-		Matrix( nullptr ),
 		VectorSize( size ),
 		Owner( owner )
 	{}
 
-	virtual void Run( int threadIndex, int index, int count );
-	virtual void RunOnElement( int /*threadIndex*/, int /*index*/ ) { NeoAssert( false ); }
+	virtual void Run( int threadIndex, int index, int count ) = 0;
 
 	const int VectorSize;
 	const CKMeansClustering& Owner;
@@ -114,10 +106,32 @@ void CKMeansClustering::IThreadTask::CallRun( int threadIndex, int align )
 	}
 }
 
-void CKMeansClustering::IThreadTask::Run( int threadIndex, int index, int count )
+//-------------------------------------------------------------------------------------------------------------
+
+// Task which processes a set of elements one-by-one on a single thread
+struct CKMeansClustering::IThreadSubTask : public CKMeansClustering::IThreadTask {
+public:
+	int Size() const override final { return Matrix ? Matrix->Height : VectorSize; }
+
+	const CFloatMatrixDesc* const Matrix;
+protected:
+	IThreadSubTask( const CKMeansClustering& owner, int size ) :
+		IThreadTask( owner, size ),
+		Matrix( nullptr )
+	{}
+	IThreadSubTask( const CKMeansClustering& owner, const CFloatMatrixDesc* matrix ) :
+		IThreadTask( owner, 0 ),
+		Matrix( matrix )
+	{}
+
+	void Run( int threadIndex, int index, int count ) override final;
+	virtual void RunOnElement( int threadIndex, int index ) = 0;
+};
+
+void CKMeansClustering::IThreadSubTask::Run( int threadIndex, int index, int count )
 {
-	const int last = index + count;
-	for( int i = index; i < last; ++i ) {
+	const int after_last = index + count;
+	for( int i = index; i < after_last; ++i ) {
 		RunOnElement( threadIndex, i );
 	}
 }
@@ -125,9 +139,9 @@ void CKMeansClustering::IThreadTask::Run( int threadIndex, int index, int count 
 //-------------------------------------------------------------------------------------------------------------
 
 // Finds the nearest cluster for the element
-struct CKMeansClustering::CClassifyAllThreadTask final : public CKMeansClustering::IThreadTask {
+struct CKMeansClustering::CClassifyAllThreadTask final : public CKMeansClustering::IThreadSubTask {
 	CClassifyAllThreadTask( const CKMeansClustering& owner, const CFloatMatrixDesc& matrix ) :
-		IThreadTask( owner, &matrix ),
+		IThreadSubTask( owner, &matrix ),
 		Inertia( ThreadCount() )
 	{ DataCluster.SetBufferSize( Size() ); }
 
@@ -236,9 +250,9 @@ bool CKMeansClustering::CUpdateClustersThreadTask::Reduction() const
 
 //-------------------------------------------------------------------------------------------------------------
 
-struct CKMeansClustering::CAssignVectorsThreadTask final : public CKMeansClustering::IThreadTask {
+struct CKMeansClustering::CAssignVectorsThreadTask final : public CKMeansClustering::IThreadSubTask {
 	CAssignVectorsThreadTask( const CKMeansClustering& owner, const CFloatMatrixDesc& matrix ) :
-		IThreadTask( owner, &matrix )
+		IThreadSubTask( owner, &matrix )
 	{}
 
 	// Element assignments (objectCount)
@@ -303,10 +317,10 @@ void CKMeansClustering::CAssignVectorsThreadTask::RunOnElement( int /*threadInde
 
 //-------------------------------------------------------------------------------------------------------------
 
-struct CKMeansClustering::CUpdateULBoundsThreadTask final : public CKMeansClustering::IThreadTask {
+struct CKMeansClustering::CUpdateULBoundsThreadTask final : public CKMeansClustering::IThreadSubTask {
 	CUpdateULBoundsThreadTask( const CKMeansClustering& owner, const CFloatMatrixDesc& matrix,
 			CAssignVectorsThreadTask& assigns ) :
-		IThreadTask( owner, &matrix ),
+		IThreadSubTask( owner, &matrix ),
 		Inertia( ThreadCount() ),
 		Assigns( assigns )
 	{}

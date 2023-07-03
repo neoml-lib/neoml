@@ -99,6 +99,7 @@ public:
 
 	IThreadPool* GetThreadPool() const { return threadPool; }
 	struct IThreadTask;
+	struct IThreadSubTask;
 
 private:
 	const CParam params; // clustering parameters
