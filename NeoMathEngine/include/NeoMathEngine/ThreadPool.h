@@ -27,7 +27,11 @@ public:
 	// Interface for pool task.
 	typedef void( *TFunction )( int threadIndex, void* params );
 
+	IThreadPool() = default;
 	virtual ~IThreadPool();
+	// Forbidden to copy this class, or any children
+	IThreadPool( const IThreadPool& ) = delete;
+	IThreadPool& operator=( const IThreadPool& ) = delete;
 
 	// Returns the number of threads in the pool.
 	virtual int Size() const = 0;
@@ -37,9 +41,6 @@ public:
 
 	// Waits for all tasks to complete.
 	virtual void WaitAllTask() = 0;
-
-	// Stops all threads and waits for them to complete.
-	virtual void StopAndWait() = 0;
 };
 
 // Number of available CPU cores in current environment (e.g. inside container)
@@ -66,6 +67,9 @@ inline void ExecuteTasks( IThreadPool& threadPool, void* params, IThreadPool::TF
 
 #define NEOML_NUM_THREADS(_threadPool, _params, _func) {ExecuteTasks(_threadPool, _params, _func);}
 
+#define NEOML_THPOOL_MAX(x, y)    (((x) > (y)) ? (x) : (y))
+#define NEOML_THPOOL_MIN(x, y)    (((x) < (y)) ? (x) : (y))
+
 //------------------------------------------------------------------------------------------------------------
 
 // Splits the specified number of tasks [0, fullCount) into intervals for each thread
@@ -76,16 +80,12 @@ inline bool GetTaskIndexAndCount( int threadCount, int threadIndex, int fullCoun
 {
 	if( threadCount > 1 ) {
 		int countPerThread = ( fullCount + threadCount - 1 ) / threadCount;
-		countPerThread = ( countPerThread + align - 1 ) / align * align;
+		countPerThread = ( align > 1 ) ? ( ( countPerThread + align - 1 ) / align * align ) : countPerThread;
 
 		index = countPerThread * threadIndex;
 		count = countPerThread;
-		if( index + count > fullCount ) {
-			count = fullCount - index;
-			if( count < 0 ) {
-				count = 0;
-			}
-		}
+		count = NEOML_THPOOL_MIN( count, fullCount - index );
+		count = NEOML_THPOOL_MAX( count, 0 );
 	} else {
 		index = 0;
 		count = fullCount;
@@ -95,7 +95,7 @@ inline bool GetTaskIndexAndCount( int threadCount, int threadIndex, int fullCoun
 
 inline bool GetTaskIndexAndCount( int threadCount, int threadIndex, int fullCount, int& index, int& count )
 {
-	return GetTaskIndexAndCount( threadCount, threadIndex, fullCount, 1, index, count );
+	return GetTaskIndexAndCount( threadCount, threadIndex, fullCount, /*align*/1, index, count );
 }
 
 } // namespace NeoML
