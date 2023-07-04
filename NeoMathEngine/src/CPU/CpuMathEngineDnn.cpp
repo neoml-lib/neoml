@@ -21,6 +21,7 @@ limitations under the License.
 #include <CpuExecutionScope.h>
 #include <MemoryHandleInternal.h>
 #include <MathEngineCommon.h>
+#include <CpuMathEngineDnnRowwise.h>
 
 namespace NeoML {
 
@@ -223,81 +224,6 @@ void CCpuMathEngine::BlobSplitByDim(TBlobDim dim, const CBlobDesc& from, const C
 	ASSERT_EXPR(dim < BD_Count && toCount <= MaxBlobDescs);
 	CCpuExecutionScope scope;
 	blobSplitByDim(dim, from, fromData, to, toData, toCount);
-}
-
-void CCpuMathEngine::BlobResizeImage( const CBlobDesc& from, const CFloatHandle& fromData, int deltaLeft, int deltaRight,
-	int deltaTop, int deltaBottom, TBlobResizePadding padding, float defaultValue,
-	const CBlobDesc& to, const CFloatHandle& toData )
-{
-	CCpuExecutionScope scope;
-
-	int totalChannels = from.Depth() * from.Channels();
-
-	const int outputDataSize = from.ObjectCount() * totalChannels * ( from.Width() + deltaLeft + deltaRight )
-		* ( from.Height() + deltaTop + deltaBottom );
-	ASSERT_EXPR( to.BlobSize() == outputDataSize );
-
-	// If the size hasn't changed, copy the image
-	if( deltaLeft == 0 && deltaRight == 0 && deltaTop == 0 && deltaBottom == 0 ) {
-		VectorCopy( toData, fromData, outputDataSize );
-		return;
-	}
-
-	auto calcInCoord = [&padding] ( int inCoord, int dimSize ) -> int {
-		if( inCoord >= 0 && inCoord < dimSize ) {
-			return inCoord;
-		}
-		switch( padding ) {
-			case TBlobResizePadding::Constant:
-				return inCoord;
-			case TBlobResizePadding::Reflect:
-				return inCoord < 0 ? -( inCoord % dimSize )
-					: ( 2 * dimSize - 2 - ( inCoord % dimSize ) ) % dimSize;
-			case TBlobResizePadding::Edge:
-				return inCoord < 0 ? 0 : dimSize - 1;
-			default:
-				ASSERT_EXPR( false );
-		}
-		return 0;
-	};
-
-	// The pointer to the current image (the element of a separate batch)
-	const float* inputImageStart = GetRaw( fromData );
-	float* outputImageStart = GetRaw( toData );
-	// The image size (used to offset pointers)
-	const int inputImageSize = from.ObjectSize();
-	const int outputImageSize = to.ObjectSize();
-	// The image rows length
-	const int inputRowSize = from.Width() * totalChannels;
-	const int outputRowSize = to.Width() * totalChannels;
-
-	const int currThreadCount = IsOmpRelevant( from.ObjectCount(), from.BlobSize() ) ? threadCount : 1;
-	NEOML_OMP_FOR_NUM_THREADS( currThreadCount )
-	for( int batch = 0; batch < from.ObjectCount(); ++batch ) {
-		const float* inputImage = inputImageStart + batch * inputImageSize;
-		float* outputImage = outputImageStart + batch * outputImageSize;
-		for( int outRowIndex = 0; outRowIndex < to.Height(); ++outRowIndex ) {
-			const int inRowIndex = calcInCoord( outRowIndex - deltaTop, from.Height() );
-			if( inRowIndex < 0 || inRowIndex >= from.Height() ) {
-				PRESUME_EXPR( padding == TBlobResizePadding::Constant );
-				vectorFill( outputImage, defaultValue, outputRowSize );
-				outputImage += outputRowSize;
-				continue;
-			}
-			const float* inputRow = inputImage + inRowIndex * inputRowSize;
-
-			for( int outColIndex = 0; outColIndex < to.Width(); ++outColIndex ) {
-				const int inColIndex = calcInCoord( outColIndex - deltaLeft, from.Width() );
-				if( inColIndex < 0 || inColIndex >= from.Width() ) {
-					PRESUME_EXPR( padding == TBlobResizePadding::Constant );
-					vectorFill( outputImage, defaultValue, totalChannels );
-				} else {
-					dataCopy( outputImage, inputRow + inColIndex * totalChannels, totalChannels );
-				}
-				outputImage += totalChannels;
-			}
-		}
-	}
 }
 
 void CCpuMathEngine::BlobGetSubSequence( const CBlobDesc& from, const CFloatHandle& fromData,
@@ -1339,6 +1265,217 @@ void CCpuMathEngine::ScatterND( const CConstIntHandle& indicesHandle, const CCon
 
 	scatterNDImpl( GetRaw( updatesHandle ), GetRaw( indicesHandle ), GetRaw( dataHandle ),
 		dataDesc, updateCount, indexDims );
+}
+
+//------------------------------------------------------------------------------------------------------------
+
+class CRowwiseImageResize : public IRowwiseCpuImpl, public CRowwiseOperationDesc {
+public:
+	CRowwiseImageResize( TBlobResizePadding padding, float defaultValue, int deltaLeft, int deltaRight,
+			int deltaTop, int deltaBottom ) :
+		padding( padding ),
+		defaultValue( defaultValue ),
+		deltaLeft( deltaLeft ),
+		deltaRight( deltaRight ),
+		deltaTop( deltaTop ),
+		deltaBottom( deltaBottom )
+	{
+	}
+
+	int MinInputRowCount() const override;
+	CBlobDesc Reshape( const CBlobDesc& inputSize ) override;
+	int InOperationBufferSize() const override { return 0; }
+	int OutputRowCount() const override { return to.ObjectCount() * to.Height(); }
+	int OutputRowSize() const override { return to.Width() * to.Depth() * to.Channels(); }
+	bool IsInPlace() const override { return false; }
+	CProcessingReport Process( const float* input, int inputRowIndex, int inputRowsAvailable,
+		float* output, int outputRowIndex, int outputRowsAvailable, float* buffer ) const override;
+
+private:
+	TBlobResizePadding padding;
+	float defaultValue;
+	int deltaLeft;
+	int deltaRight;
+	int deltaTop;
+	int deltaBottom;
+	CBlobDesc from;
+	CBlobDesc to;
+};
+
+int CRowwiseImageResize::MinInputRowCount() const
+{
+	if( padding != TBlobResizePadding::Reflect ) {
+		// Constant padding doesn't rely on input data
+		// Reflect padding relies only on 1 line (top or bottom)
+		return 1;
+	}
+
+	// Guarantee to store all the lines required for reflection padding
+	return std::min( from.Height(), std::max( { 1, 1 + deltaTop, 1 + deltaBottom } ) );
+}
+
+CBlobDesc CRowwiseImageResize::Reshape( const CBlobDesc& inputSize )
+{
+	from = inputSize;
+	to = from;
+	to.SetDimSize( BD_Width, to.Width() + deltaLeft + deltaRight );
+	to.SetDimSize( BD_Height, to.Height() + deltaTop + deltaBottom );
+	return to;
+}
+
+IRowwiseCpuImpl::CProcessingReport CRowwiseImageResize::Process( const float* input, int inputRowIndex,
+	int inputRowsAvailable, float* output, int outputRowIndex, int outputRowsAvailable, float* ) const
+{
+	CProcessingReport report;
+
+	const int maxRowsCalculated = outputRowIndex + outputRowsAvailable;
+	const int firstBatchIndex = outputRowIndex / to.Height();
+	const int lastBatchIndex = ( maxRowsCalculated - 1 ) / to.Height();
+
+	auto calcInCoord = [this] ( int inCoord, int dimSize ) -> int {
+		if( inCoord >= 0 && inCoord < dimSize ) {
+			return inCoord;
+		}
+		switch( padding ) {
+			case TBlobResizePadding::Constant:
+				return inCoord;
+			case TBlobResizePadding::Reflect:
+				return inCoord < 0 ? -( inCoord % dimSize )
+					: ( 2 * dimSize - 2 - ( inCoord % dimSize ) ) % dimSize;
+			case TBlobResizePadding::Edge:
+				return inCoord < 0 ? 0 : dimSize - 1;
+			default:
+				ASSERT_EXPR( false );
+		}
+		return 0;
+	};
+
+	auto calcFirstInputRowNeeded = [this, &calcInCoord] ( int nextOutputRowIndex ) -> int {
+		const int imageIndex = nextOutputRowIndex / to.Height();
+		const int outRowIndex = nextOutputRowIndex % to.Height();
+		int inRowIndex = calcInCoord( outRowIndex - deltaTop, from.Height() );
+		if( inRowIndex < 0 ) {
+			return imageIndex * from.Height(); // Constant padding, top
+		} else if( inRowIndex >= from.Height() ) {
+			return ( imageIndex + 1 ) * from.Height(); // Constant padding, bot
+		}
+
+		if( padding != TBlobResizePadding::Reflect ) {
+			return inRowIndex + imageIndex * from.Height();
+		}
+
+		// Corner-case of reflect padding: guarantee that remaining paddings of current image can be calculated
+		// Check for remaining top padding
+		for( int i = outRowIndex; i - deltaTop < 0; ++i ) {
+			inRowIndex = std::min( inRowIndex, calcInCoord( i - deltaTop, from.Height() ) );
+		}
+		// Check for remaining bot padding
+		for( int i = std::max( outRowIndex, to.Height() - deltaBottom ); i < to.Height(); ++i ) {
+			inRowIndex = std::min( inRowIndex, calcInCoord( i - deltaTop, from.Height() ) );
+		}
+		return inRowIndex + imageIndex * from.Height();
+	};
+
+	// The image size (used to offset pointers)
+	const int inputImageSize = from.ObjectSize();
+	const int outputImageSize = to.ObjectSize();
+	// The image rows length
+	const int totalChannels = from.Depth() * from.Channels();
+	const int inputRowSize = from.Width() * totalChannels;
+	const int outputRowSize = to.Width() * totalChannels;
+
+	// If the size hasn't changed, copy the image
+	if( deltaLeft == 0 && deltaRight == 0 && deltaTop == 0 && deltaBottom == 0 ) {
+		PRESUME_EXPR( inputRowIndex <= outputRowIndex );
+		const int rowsAfterThisCall = std::min( inputRowIndex + inputRowsAvailable,
+			outputRowIndex + outputRowsAvailable );
+		report.OutputRowsCalculated = rowsAfterThisCall - outputRowIndex;
+		report.InputRowsMayBeRemoved = rowsAfterThisCall - inputRowIndex;
+		dataCopy( output, input + ( outputRowIndex - inputRowIndex ) * inputRowSize,
+			report.OutputRowsCalculated * inputRowSize );
+		return report;
+	}
+
+	const int lastInputRowIndex = inputRowIndex + inputRowsAvailable - 1;
+	bool hasInputData = true;
+
+	for( int batch = firstBatchIndex; batch <= lastBatchIndex && hasInputData; ++batch ) {
+		const float* inputImage = input + batch * inputImageSize - inputRowIndex * inputRowSize;
+		const int firstOutputRowIndex = ( batch == firstBatchIndex ? outputRowIndex % to.Height() : 0 );
+		const int lastOutputRowIndex = ( batch == lastBatchIndex ? ( maxRowsCalculated - 1 ) % to.Height()
+			: to.Height() - 1 );
+		for( int rowIndex = firstOutputRowIndex; rowIndex <= lastOutputRowIndex && hasInputData; ++rowIndex ) {
+			const int inRowIndex = calcInCoord( rowIndex - deltaTop, from.Height() );
+			if( inRowIndex < 0 || inRowIndex >= from.Height() ) {
+				PRESUME_EXPR( padding == TBlobResizePadding::Constant );
+				vectorFill( output, defaultValue, outputRowSize );
+				output += outputRowSize;
+				report.OutputRowsCalculated++;
+				continue;
+			}
+
+			PRESUME_EXPR( inRowIndex + batch * from.Height() >= inputRowIndex );
+			if( inRowIndex > lastInputRowIndex ) {
+				// We've calculated everythin we could from current input data
+				hasInputData = false;
+				break;
+			}
+
+			const float* inputRow = inputImage + inRowIndex * inputRowSize;
+
+			for( int outColIndex = 0; outColIndex < to.Width(); ++outColIndex ) {
+				const int inColIndex = calcInCoord( outColIndex - deltaLeft, from.Width() );
+				if( inColIndex < 0 || inColIndex >= from.Width() ) {
+					PRESUME_EXPR( padding == TBlobResizePadding::Constant );
+					vectorFill( output, defaultValue, totalChannels );
+				} else {
+					dataCopy( output, inputRow + inColIndex * totalChannels, totalChannels );
+				}
+				output += totalChannels;
+			}
+			report.OutputRowsCalculated++;
+		}
+	}
+
+	report.InputRowsMayBeRemoved = std::min( inputRowsAvailable,
+		calcFirstInputRowNeeded( outputRowIndex + report.OutputRowsCalculated ) - inputRowIndex );
+	PRESUME_EXPR( report.InputRowsMayBeRemoved >= 0 );
+	if( inputRowIndex + report.InputRowsMayBeRemoved == from.ObjectCount() * from.Height()
+		&& outputRowIndex + report.OutputRowsCalculated < OutputRowCount() )
+	{
+		--report.InputRowsMayBeRemoved;
+	}
+	return report;
+}
+
+void CCpuMathEngine::BlobResizeImage( const CBlobDesc& from, const CFloatHandle& fromData, int deltaLeft, int deltaRight,
+	int deltaTop, int deltaBottom, TBlobResizePadding padding, float defaultValue,
+	const CBlobDesc& to, const CFloatHandle& toData )
+{
+	CCpuExecutionScope scope;
+
+	CRowwiseImageResize impl( padding, defaultValue, deltaLeft, deltaRight, deltaTop, deltaBottom );
+	CBlobDesc reshapeResult = impl.Reshape( from );
+	( void ) reshapeResult;
+	PRESUME_EXPR( reshapeResult.HasEqualDimensions( to ) );
+
+	const float* fromPtr = GetRaw( fromData );
+	float* toPtr = GetRaw( toData );
+
+	const int currThreadCount = IsOmpRelevant( from.ObjectCount(), from.BlobSize() ) ? threadCount : 1;
+	NEOML_OMP_FOR_NUM_THREADS( currThreadCount )
+	for( int batch = 0; batch < from.ObjectCount(); ++batch ) {
+		IRowwiseCpuImpl::CProcessingReport report = impl.Process( fromPtr + batch * from.ObjectSize(), batch * from.Height(),
+			from.Height(), toPtr + batch * to.ObjectSize(), batch * to.Height(), to.Height(), nullptr );
+		( void ) report;
+		PRESUME_EXPR( report.OutputRowsCalculated == to.Height() );
+	}
+}
+
+CRowwiseOperationDesc* CCpuMathEngine::InitRowwiseResizeImage( TBlobResizePadding padding, float defaultValue,
+	int deltaLeft, int deltaRight, int deltaTop, int deltaBottom )
+{
+	return new CRowwiseImageResize( padding, defaultValue, deltaLeft, deltaRight, deltaTop, deltaBottom );
 }
 
 } // namespace NeoML

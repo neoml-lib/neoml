@@ -22,6 +22,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/ChannelwiseConvLayer.h>
 #include <NeoML/Dnn/Layers/ChannelwiseWith1x1Layer.h>
 #include <NeoML/Dnn/Layers/ConvLayer.h>
+#include <NeoML/Dnn/Layers/ImageResizeLayer.h>
 #include <NeoML/Dnn/Layers/MobileNetV2BlockLayer.h>
 #include <NeoML/Dnn/Layers/PoolingLayer.h>
 #include <NeoML/Dnn/Optimization/Graph.h>
@@ -29,6 +30,7 @@ limitations under the License.
 #include <NeoML/Dnn/Rowwise/ChannelwiseConv.h>
 #include <NeoML/Dnn/Rowwise/ChannelwiseWith1x1.h>
 #include <NeoML/Dnn/Rowwise/Conv.h>
+#include <NeoML/Dnn/Rowwise/ImageResize.h>
 #include <NeoML/Dnn/Rowwise/MobileNetV2.h>
 #include <NeoML/Dnn/Rowwise/Pooling.h>
 
@@ -141,7 +143,7 @@ void OptimizeRowwiseChains( CDnn& dnn, CArray<int>& chains )
 
 	auto isRowwiseLayer = [] ( const CBaseLayer* layer ) -> bool {
 		return IsOneOf<CChannelwiseWith1x1Layer, CChannelwiseConvLayer, CConvLayer, CHardSigmoidLayer, CHSwishLayer,
-			CLinearLayer, CMaxPoolingLayer, CMeanPoolingLayer, CMobileNetV2BlockLayer, CReLULayer,
+			CImageResizeLayer, CLinearLayer, CMaxPoolingLayer, CMeanPoolingLayer, CMobileNetV2BlockLayer, CReLULayer,
 			CSigmoidLayer>::f( layer );
 	};
 
@@ -157,6 +159,10 @@ void OptimizeRowwiseChains( CDnn& dnn, CArray<int>& chains )
 		auto chConv = dynamic_cast<const CChannelwiseConvLayer*>( layer );
 		if( chConv != nullptr ) {
 			return new CRowwiseChConv( *chConv );
+		}
+		auto imageResize = dynamic_cast<const CImageResizeLayer*>( layer );
+		if( imageResize != nullptr ) {
+			return new CRowwiseImageResize( *imageResize );
 		}
 		auto maxPooling = dynamic_cast<const CMaxPoolingLayer*>( layer );
 		if( maxPooling != nullptr ) {

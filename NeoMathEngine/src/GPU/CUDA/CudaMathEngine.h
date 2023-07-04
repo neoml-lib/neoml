@@ -606,17 +606,19 @@ public:
 	CRowwiseOperationDesc* InitRowwiseActivation( TActivationFunction, float, float ) override
 		{ ASSERT_EXPR( false ); return nullptr; }
 	CRowwiseOperationDesc* InitRowwiseChWith1x1( int, const CConstFloatHandle&, const CConstFloatHandle*,
-		TActivationFunction, float, const CConstFloatHandle&, const CConstFloatHandle*, int, bool ) override
+			TActivationFunction, float, const CConstFloatHandle&, const CConstFloatHandle*, int, bool ) override
 		{ ASSERT_EXPR( false ); return nullptr; }
 	CRowwiseOperationDesc* InitRowwiseConv( int, int, int, int, int, int, const CBlobDesc&, const CConstFloatHandle&,
 		const CConstFloatHandle* ) override { ASSERT_EXPR( false ); return nullptr; }
 	CRowwiseOperationDesc* InitRowwiseChConv( int, int, int, int, const CBlobDesc&, const CConstFloatHandle&,
 		const CConstFloatHandle* ) override { ASSERT_EXPR( false ); return nullptr; }
 	CRowwiseOperationDesc* InitRowwiseMobileNetV2( int, const CConstFloatHandle&, const CConstFloatHandle*, int,
-		TActivationFunction, float, const CConstFloatHandle&, const CConstFloatHandle*, int, TActivationFunction,
-		float, const CConstFloatHandle&, const CConstFloatHandle*, int, bool ) override
+			TActivationFunction, float, const CConstFloatHandle&, const CConstFloatHandle*, int, TActivationFunction,
+			float, const CConstFloatHandle&, const CConstFloatHandle*, int, bool ) override
 		{ ASSERT_EXPR( false ); return nullptr; }
 	CRowwiseOperationDesc* InitRowwise2DPooling( bool, int, int, int, int ) override
+		{ ASSERT_EXPR( false ); return nullptr; }
+	CRowwiseOperationDesc* InitRowwiseResizeImage( TBlobResizePadding, float, int, int, int, int ) override
 		{ ASSERT_EXPR( false ); return nullptr; }
 	CBlobDesc RowwiseReshape( CRowwiseOperationDesc**, int, const CBlobDesc& ) override
 		{ ASSERT_EXPR( false ); return CBlobDesc(); }

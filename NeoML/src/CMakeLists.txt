@@ -173,6 +173,7 @@ set(NeoML_SOURCES
     Dnn/Rowwise/ChannelwiseConv.cpp
     Dnn/Rowwise/ChannelwiseWith1x1.cpp
     Dnn/Rowwise/Conv.cpp
+    Dnn/Rowwise/ImageResize.cpp
     Dnn/Rowwise/MobileNetV2.cpp
     Dnn/Rowwise/Pooling.cpp
     Dnn/Rowwise/RowwiseOperation.cpp
@@ -426,6 +427,7 @@ set(NeoML_HEADERS
     ../include/NeoML/Dnn/Rowwise/ChannelwiseConv.h
     ../include/NeoML/Dnn/Rowwise/ChannelwiseWith1x1.h
     ../include/NeoML/Dnn/Rowwise/Conv.h
+    ../include/NeoML/Dnn/Rowwise/ImageResize.h
     ../include/NeoML/Dnn/Rowwise/MobileNetV2.h
     ../include/NeoML/Dnn/Rowwise/Pooling.h
     ../include/NeoML/Dnn/Rowwise/RowwiseOperation.h
