@@ -200,22 +200,38 @@ TEST( MobileNetV2BlockLayerTest, Run )
 	}
 }
 
+static std::initializer_list<CActivationDesc> mnv2BlockActivations = {
+	CActivationDesc( AF_ReLU, CReLULayer::CParam{ -1.f } ),
+	CActivationDesc( AF_ReLU, CReLULayer::CParam{ 6.f } ),
+	CActivationDesc( AF_HSwish ),
+	CActivationDesc( AF_Linear, CLinearLayer::CParam{ 1.f, 0.f } ) };
+
 TEST( MobileNetV2OptimizerTest, SimpleNonResidual )
 {
-	CRandom random( 0x654 );
-	CDnn dnn( random, MathEngine() );
-	CSourceLayer* data = Source( dnn, "data" );
-	CConvLayer* expandConv = Conv( 32, CConvAxisParams( 1 ), CConvAxisParams( 1 ) )( "expandConv", data );
-	CReLULayer* expandReLU = Relu()( "expandReLU", expandConv );
-	CChannelwiseConvLayer* channelwiseConv = ChannelwiseConv( 32, CConvAxisParams( 3, 1, 2 ), CConvAxisParams( 3, 1, 2 ) )
-		( "channewlseConv", expandReLU );
-	CReLULayer* channelwiseReLU = Relu( 6.f )( "channelwiseReLU", channelwiseConv );
-	CConvLayer* downConv = Conv( 8, CConvAxisParams( 1 ), CConvAxisParams( 1 ) )( "downConv", channelwiseReLU );
-	Sink( downConv, "sink" );
-	CDnnOptimizationReport report = OptimizeDnn( dnn );
-	ASSERT_EQ( 1, report.MobileNetV2NonResidualBlocks );
-	ASSERT_EQ( 0, report.MobileNetV2ResidualBlocks );
-	ASSERT_EQ( 3, dnn.GetLayerCount() );
+	for( const CActivationDesc& expandActivationDesc : mnv2BlockActivations ) {
+		for( const CActivationDesc& channelwiseActivationDesc : mnv2BlockActivations ) {
+			CRandom random( 0x654 );
+			CDnn dnn( random, MathEngine() );
+			CSourceLayer* data = Source( dnn, "data" );
+			CConvLayer* expandConv = Conv( 32, CConvAxisParams( 1 ), CConvAxisParams( 1 ) )( "expandConv", data );
+			CPtr<CBaseLayer> expandActivation = CreateActivationLayer( MathEngine(), expandActivationDesc );
+			expandActivation->SetName( "expandActivation" );
+			expandActivation->Connect( *expandConv );
+			dnn.AddLayer( *expandActivation );
+			CChannelwiseConvLayer* channelwiseConv = ChannelwiseConv( 32, CConvAxisParams( 3, 1, 2 ), CConvAxisParams( 3, 1, 2 ) )
+				( "channewlseConv", expandActivation.Ptr() );
+			CPtr<CBaseLayer> channelwiseActivation = CreateActivationLayer( MathEngine(), channelwiseActivationDesc );
+			channelwiseActivation->SetName( "channelwiseActivation" );
+			channelwiseActivation->Connect( *channelwiseConv );
+			dnn.AddLayer( *channelwiseActivation );
+			CConvLayer* downConv = Conv( 8, CConvAxisParams( 1 ), CConvAxisParams( 1 ) )( "downConv", channelwiseActivation.Ptr() );
+			Sink( downConv, "sink" );
+			CDnnOptimizationReport report = OptimizeDnn( dnn );
+			ASSERT_EQ( 1, report.MobileNetV2NonResidualBlocks );
+			ASSERT_EQ( 0, report.MobileNetV2ResidualBlocks );
+			ASSERT_EQ( 3, dnn.GetLayerCount() );
+		}
+	}
 }
 
 TEST( MobileNetV2OptimizerTest, SimpleResidual )

@@ -23,22 +23,24 @@ class CDnn;
 
 // Struct which contains the details of optimization result
 struct NEOML_API CDnnOptimizationReport {
+	// Number of trivial layers removed from the CDnn (dropout, linear(1,0) etc)
+	int RemovedTrivialLayers = 0;
 	// Number of batch normalizations fused into other layers
-	int FusedBatchNormalizations{};
+	int FusedBatchNormalizations = 0;
 	// Number of merged (channelwise->activation->1x1) constructions without residual connection
-	int ChannelwiseWith1x1NonResidual{};
+	int ChannelwiseWith1x1NonResidual = 0;
 	// Number of merged (channelwise->activation->1x1) constructions with residual connection
-	int ChannelwiseWith1x1Residual{};
+	int ChannelwiseWith1x1Residual = 0;
 	// Number of optimized MobileNetV2 blocks without residual connection
-	int MobileNetV2NonResidualBlocks{};
+	int MobileNetV2NonResidualBlocks = 0;
 	// Number of optimized MobileNetV2 blocks with residual connection
-	int MobileNetV2ResidualBlocks{};
+	int MobileNetV2ResidualBlocks = 0;
 	// Number of optimized MobileNetV3 blocks without residual connection
-	int MobileNetV3NonResidualBlocks{};
+	int MobileNetV3NonResidualBlocks = 0;
 	// Number of optimized MobileNetV3 blocks with residual connection
-	int MobileNetV3ResidualBlocks{};
+	int MobileNetV3ResidualBlocks = 0;
 	// Number of chains of rowwise operations (0 if CDnnOptimizationSettings::OptimizeRowwiseChains is false)
-	int RowwiseChainCount{};
+	int RowwiseChainCount = 0;
 };
 
 // Settings for optional optimizations

@@ -64,21 +64,31 @@ int CChannelwiseWith1x1Optimizer::optimizeNonResidualBlocks()
 		graph.SelectLayer( *downConv );
 
 		CBaseLayer* channelwiseActivation = graph.SelectConnectedOutput<>( *downConv, 0 , true ).Layer;
-		if( channelwiseActivation == nullptr || !isValidActivation( *channelwiseActivation ) ) {
+		CChannelwiseConvLayer* channelwise = nullptr;
+		if( channelwiseActivation == nullptr ) {
 			continue;
 		}
 
-		CChannelwiseConvLayer* channelwise = graph.SelectConnectedOutput<CChannelwiseConvLayer>(
-			*channelwiseActivation, 0, true ).Layer;
+		if( isValidActivation( *channelwiseActivation ) ) {
+			channelwise = graph.SelectConnectedOutput<CChannelwiseConvLayer>( *channelwiseActivation, 0, true ).Layer;
+		} else {
+			channelwise = dynamic_cast<CChannelwiseConvLayer*>( channelwiseActivation );
+			channelwiseActivation = nullptr;
+		}
+
 		if( channelwise == nullptr || !isValidChannelwise( *channelwise ) ) {
 			continue;
 		}
-
 		CLayerOutput<> channelwiseWith1x1Data = graph.GetConnectedOutput<>( *channelwise, 0 );
+
+		NeoAssert( channelwiseActivation == nullptr
+			|| dynamic_cast<IActivationLayer*>( channelwiseActivation ) != nullptr );
+		const CActivationDesc channelwiseActivationDesc = channelwiseActivation == nullptr
+			? CActivationDesc( AF_Linear, CLinearLayer::CParam{ 1.f, 0.f } )
+			: dynamic_cast<IActivationLayer*>( channelwiseActivation )->GetDesc();
 		CPtr<CChannelwiseWith1x1Layer> channelwiseWith1x1 = new CChannelwiseWith1x1Layer( graph.MathEngine(),
 			channelwise->GetStrideHeight(), channelwise->GetFilterData(), channelwise->GetFreeTermData(),
-			dynamic_cast<IActivationLayer*>( channelwiseActivation )->GetDesc(), downConv->GetFilterData(),
-			downConv->GetFreeTermData(), false );
+			channelwiseActivationDesc, downConv->GetFilterData(), downConv->GetFreeTermData(), false );
 		channelwiseWith1x1->SetName( graph.GetUniqueName( "ChannelwiseWith1x1" ) );
 		graph.AddLayer( *channelwiseWith1x1 );
 		graph.Connect( *channelwiseWith1x1, 0, *channelwiseWith1x1Data.Layer, channelwiseWith1x1Data.Index );

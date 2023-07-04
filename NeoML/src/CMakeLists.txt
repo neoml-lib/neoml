@@ -169,6 +169,7 @@ set(NeoML_SOURCES
     Dnn/Optimization/Graph.cpp
     Dnn/Optimization/MobileNetV2Optimizer.cpp
     Dnn/Optimization/MobileNetV3Optimizer.cpp
+    Dnn/Optimization/TrivialLayerOptimizer.cpp
     Dnn/Rowwise/Activation.cpp
     Dnn/Rowwise/ChannelwiseConv.cpp
     Dnn/Rowwise/ChannelwiseWith1x1.cpp
@@ -337,6 +338,7 @@ set(NeoML_HEADERS
     Dnn/Optimization/ChannelwiseWith1x1Optimizer.h
     Dnn/Optimization/MobileNetV2Optimizer.h
     Dnn/Optimization/MobileNetV3Optimizer.h
+    Dnn/Optimization/TrivialLayerOptimizer.h
     TraditionalML/BytePairEncoder.h
     TraditionalML/BytePairEncoderTrainer.h
     TraditionalML/NaiveHierarchicalClustering.h
