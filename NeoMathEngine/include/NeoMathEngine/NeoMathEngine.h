@@ -1118,6 +1118,8 @@ public:
 		TActivationFunction channelwiseActivation, float channelwiseActivationParam,
 		const CConstFloatHandle& downFilter, const CConstFloatHandle* downFreeTerm,
 		int outputChannels, bool residual ) = 0;
+	virtual CRowwiseOperationDesc* InitRowwise2DPooling( bool isMax, int filterHeight, int filterWidth,
+		int strideHeight, int strideWidth ) = 0;
 
 	virtual CBlobDesc RowwiseReshape( CRowwiseOperationDesc** operations, int operationCount,
 		const CBlobDesc& input ) = 0;

@@ -616,6 +616,8 @@ public:
 		TActivationFunction, float, const CConstFloatHandle&, const CConstFloatHandle*, int, TActivationFunction,
 		float, const CConstFloatHandle&, const CConstFloatHandle*, int, bool ) override
 		{ ASSERT_EXPR( false ); return nullptr; }
+	CRowwiseOperationDesc* InitRowwise2DPooling( bool, int, int, int, int ) override
+		{ ASSERT_EXPR( false ); return nullptr; }
 	CBlobDesc RowwiseReshape( CRowwiseOperationDesc**, int, const CBlobDesc& ) override
 		{ ASSERT_EXPR( false ); return CBlobDesc(); }
 	void RowwiseExecute( const CBlobDesc&, CRowwiseOperationDesc**, int, const CFloatHandle&,

@@ -631,8 +631,10 @@ public:
 	CRowwiseOperationDesc* InitRowwiseChConv( int, int, int, int, const CBlobDesc&, const CConstFloatHandle&,
 		const CConstFloatHandle* ) override { ASSERT_EXPR( false ); return nullptr; }
 	CRowwiseOperationDesc* InitRowwiseMobileNetV2( int, const CConstFloatHandle&, const CConstFloatHandle*, int,
-		TActivationFunction, float, const CConstFloatHandle&, const CConstFloatHandle*, int, TActivationFunction,
-		float, const CConstFloatHandle&, const CConstFloatHandle*, int, bool ) override
+			TActivationFunction, float, const CConstFloatHandle&, const CConstFloatHandle*, int, TActivationFunction,
+			float, const CConstFloatHandle&, const CConstFloatHandle*, int, bool ) override
+		{ ASSERT_EXPR( false ); return nullptr; }
+	CRowwiseOperationDesc* InitRowwise2DPooling( bool, int, int, int, int ) override
 		{ ASSERT_EXPR( false ); return nullptr; }
 	CBlobDesc RowwiseReshape( CRowwiseOperationDesc**, int, const CBlobDesc& ) override
 		{ ASSERT_EXPR( false ); return CBlobDesc(); }
