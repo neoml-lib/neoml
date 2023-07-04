@@ -192,8 +192,10 @@ class CRowwiseActivation : public IRowwiseCpuImpl, public CRowwiseOperationDesc 
 public:
 	CRowwiseActivation( TActivationFunction type, float param0, float param1 );
 
-	int MinInputRowCount() const override { return 1; }
+	TActivationFunction Type() const { return type; }
 
+	// IRowwiseCpuImpl
+	int MinInputRowCount() const override { return 1; }
 	CBlobDesc Reshape( const CBlobDesc& inputSize ) override;
 	int InOperationBufferSize() const override { return 0; }
 	int OutputRowCount() const override { return rowCount; }

@@ -612,8 +612,10 @@ void CCpuMathEngine::MobileNetV3PreSEBlock( const CBlobDesc& inputDesc, const CB
 			// Apply expand convolution
 			multiplyMatrixByTransposedWithFreeTerm( input, inputRowsThisStep * inputWidth, inputChannels,
 				expandFilter, outputChannels, expandFreeTerm, chInput );
-			expandActivationImpl.Process( chInput, inputRowsProcessed, inputRowsThisStep,
-				chInput, inputRowsProcessed, inputRowsThisStep, nullptr );
+			if( expandActivation != AF_Linear ) {
+				expandActivationImpl.Process( chInput, inputRowsProcessed, inputRowsThisStep,
+					chInput, inputRowsProcessed, inputRowsThisStep, nullptr );
+			}
 			inputRowsProcessed += inputRowsThisStep;
 
 			// Calculate how many output rows we can calculate with the processed input rows
@@ -628,8 +630,10 @@ void CCpuMathEngine::MobileNetV3PreSEBlock( const CBlobDesc& inputDesc, const CB
 				// Channelwise conv
 				channelwise( desc, outputRowsThisStep, chInputBuff, firstInputRowInBuffer,
 					channelwiseFilter, channelwiseFreeTerm, output, outputRowsProcessed );
-				channelwiseActivationImpl.Process( output, outputRowsProcessed, outputRowsThisStep,
-					output, outputRowsProcessed, outputRowsThisStep, nullptr );
+				if( channelwiseActivation != AF_Linear ) {
+					channelwiseActivationImpl.Process( output, outputRowsProcessed, outputRowsThisStep,
+						output, outputRowsProcessed, outputRowsThisStep, nullptr );
+				}
 
 				output += outputRowsThisStep * outputRowSize;
 				outputRowsProcessed += outputRowsThisStep;
@@ -698,8 +702,10 @@ void CCpuMathEngine::MobileNetV3PostSEBlock( const CBlobDesc& channelwiseOutputD
 			multiplyMatrixByDiagMatrix( input, rowsThisStep * width, inputChannels,
 				squeezeVector, squeezed );
 			// Activation (if present, not present means trivial linear)
-			activationImpl.Process( squeezed, rowsProcessed, rowsThisStep,
-				squeezed, rowsProcessed, rowsThisStep, nullptr );
+			if( activation != AF_Linear ) {
+				activationImpl.Process( squeezed, rowsProcessed, rowsThisStep,
+					squeezed, rowsProcessed, rowsThisStep, nullptr );
+			}
 			// Down-convolution (1x1)
 			multiplyMatrixByTransposedWithFreeTerm( squeezed, rowsThisStep * width, inputChannels,
 				downFilter, outputChannels, downFreeTerm, output );
@@ -816,8 +822,11 @@ IRowwiseCpuImpl::CProcessingReport CCpuMathEngine::CRowwiseChannelwiseWith1x1::P
 
 		processChannelwise3x3( desc, outputRowsThisStep, input, inputRowIndex % desc.Source.Height(),
 			chFilter, chFreeTerm, buffer, outputImageRowIndex );
-		activationImpl.Process( buffer, outputRowIndex, outputRowsThisStep,
-			buffer, outputRowIndex, outputRowsThisStep, nullptr );
+
+		if( activationImpl.Type() != AF_Linear ) {
+			activationImpl.Process( buffer, outputRowIndex, outputRowsThisStep,
+				buffer, outputRowIndex, outputRowsThisStep, nullptr );
+		}
 		mathEngine.multiplyMatrixByTransposedWithFreeTerm( buffer, outputRowsThisStep * outputWidth, inputChannels,
 			convFilter, outputChannels, convFreeTerm, output );
 		if( residual ) {
@@ -1015,8 +1024,10 @@ IRowwiseCpuImpl::CProcessingReport CCpuMathEngine::CRowwiseMobileNetV2::Process(
 			// Apply expand convolution with activation
 			mathEngine.multiplyMatrixByTransposedWithFreeTerm( expandConvInput, inputRowsThisStep * inputWidth, inputChannels,
 				expandFilter, expandedChannels, expandFreeTerm, chInput->EmptyRows() );
-			expandActivationImpl.Process( chInput->EmptyRows(), 0, inputRowsThisStep,
-				chInput->EmptyRows(), 0, inputRowsThisStep, nullptr );
+			if( expandActivationImpl.Type() != AF_Linear ) {
+				expandActivationImpl.Process( chInput->EmptyRows(), 0, inputRowsThisStep,
+					chInput->EmptyRows(), 0, inputRowsThisStep, nullptr );
+			}
 			chInput->AddRows( inputRowsThisStep );
 		}
 
@@ -1035,8 +1046,10 @@ IRowwiseCpuImpl::CProcessingReport CCpuMathEngine::CRowwiseMobileNetV2::Process(
 
 			processChannelwise3x3( desc, outputRowsThisStep, chInput->DataRows(), chInput->DataRowIndex() % desc.Source.Height(),
 				channelwiseFilter, channelwiseFreeTerm, chOutput->EmptyRows(), chOutput->DataRowProcessed() % desc.Result.Height() );
-			channelwiseActivationImpl.Process( chOutput->EmptyRows(), 0, outputRowsThisStep,
-				chOutput->EmptyRows(), 0, outputRowsThisStep, nullptr );
+			if( channelwiseActivationImpl.Type() != AF_Linear ) {
+				channelwiseActivationImpl.Process( chOutput->EmptyRows(), 0, outputRowsThisStep,
+					chOutput->EmptyRows(), 0, outputRowsThisStep, nullptr );
+			}
 			chOutput->AddRows( outputRowsThisStep );
 
 			if( residual && isInPlace ) {
