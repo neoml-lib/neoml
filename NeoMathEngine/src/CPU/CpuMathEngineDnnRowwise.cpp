@@ -92,7 +92,7 @@ const float* CRowwiseBuffer::DataRows() const
 
 int CRowwiseBuffer::EmptyRowCount() const
 {
-	return std::min( rowCount - dataRowsCount, realHeight - ( dataPtrIndex + dataRowsCount ) );
+	return std::min( rowCount - dataRowsCount, fullHeight - ( dataRowIndex + dataRowsCount ) );
 }
 
 float* CRowwiseBuffer::EmptyRows()
