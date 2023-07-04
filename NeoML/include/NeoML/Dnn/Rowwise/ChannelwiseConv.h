@@ -17,7 +17,6 @@ limitations under the License.
 
 #include <NeoML/NeoMLDefs.h>
 #include <NeoML/Dnn/DnnBlob.h>
-#include <NeoML/Dnn/Layers/ActivationLayers.h>
 #include <NeoML/Dnn/Rowwise/RowwiseOperation.h>
 
 namespace NeoML {
@@ -26,8 +25,8 @@ class CChannelwiseConvLayer;
 
 class NEOML_API CRowwiseChConv : public IRowwiseOperation {
 public:
-	// Creates an equivalent of a block layer
-	explicit CRowwiseChConv( const CChannelwiseConvLayer& blockLayer );
+	// Creates an equivalent of a layer
+	explicit CRowwiseChConv( const CChannelwiseConvLayer& layer );
 	// Constructor for serialization
 	explicit CRowwiseChConv( IMathEngine& mathEngine );
 
