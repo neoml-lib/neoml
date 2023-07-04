@@ -1423,16 +1423,35 @@ IRowwiseCpuImpl::CProcessingReport CRowwiseImageResize::Process( const float* in
 
 			const float* inputRow = inputImage + inRowIndex * inputRowSize;
 
-			for( int outColIndex = 0; outColIndex < to.Width(); ++outColIndex ) {
-				const int inColIndex = calcInCoord( outColIndex - deltaLeft, from.Width() );
-				if( inColIndex < 0 || inColIndex >= from.Width() ) {
-					PRESUME_EXPR( padding == TBlobResizePadding::Constant );
-					vectorFill( output, defaultValue, totalChannels );
-				} else {
-					dataCopy( output, inputRow + inColIndex * totalChannels, totalChannels );
+			// Process left padding for current row
+			auto processPadding = [&] ( int delta, int firstColIndex ) -> void {
+				if( delta > 0 ) {
+					if( padding == TBlobResizePadding::Constant ) {
+						vectorFill( output, defaultValue, delta * totalChannels );
+						output += delta * totalChannels;
+					} else {
+						for( int outColIndex = firstColIndex; outColIndex < firstColIndex + delta; ++outColIndex ) {
+							const int inColIndex = calcInCoord( outColIndex - deltaLeft, from.Width() );
+							dataCopy( output, inputRow + inColIndex * totalChannels, totalChannels );
+							output += totalChannels;
+						}
+					}
 				}
-				output += totalChannels;
+			};
+
+			// Process left padding
+			processPadding( deltaLeft, 0 );
+
+			// Copy data from intersection
+			const int intersectionWidth = from.Width() - std::max( 0, -deltaLeft ) - std::max( 0, -deltaRight );
+			if( intersectionWidth > 0 ) {
+				dataCopy( output, inputRow + std::max( 0, -deltaLeft ) * totalChannels, intersectionWidth * totalChannels );
+				output += intersectionWidth * totalChannels;
 			}
+
+			// Process right padding
+			processPadding( deltaRight, to.Width() - deltaRight );
+
 			report.OutputRowsCalculated++;
 		}
 	}
