@@ -624,6 +624,8 @@ public:
 		{ ASSERT_EXPR( false ); return nullptr; }
 	CRowwiseOperationDesc* InitRowwise2DPooling( bool, int, int, int, int ) override
 		{ ASSERT_EXPR( false ); return nullptr; }
+	CRowwiseOperationDesc* InitRowwiseResizeImage( TBlobResizePadding, float, int, int, int, int ) override
+		{ ASSERT_EXPR( false ); return nullptr; }
 	CBlobDesc RowwiseReshape( CRowwiseOperationDesc**, int, const CBlobDesc& ) override
 		{ ASSERT_EXPR( false ); return CBlobDesc(); }
 	void RowwiseExecute( const CBlobDesc&, CRowwiseOperationDesc**, int, const CFloatHandle&,
