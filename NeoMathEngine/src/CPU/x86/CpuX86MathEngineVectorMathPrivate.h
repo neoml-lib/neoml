@@ -1148,13 +1148,11 @@ inline void vectorHSwish( const float* first, float* result, int vectorSize )
 		const __m128 threeSse = _mm_set1_ps( 3.f );
 		const __m128 oneSixthSse = _mm_set1_ps( 1.f / 6.f );
 		for( int i = 0; i < sseSize; ++i ) {
-			__m128 input = _mm_loadu_ps( first );
-			__m128 middlePart = _mm_cmplt_ps( minusThreeSse, input );
-			middlePart = _mm_and_ps( middlePart, _mm_cmplt_ps( input, threeSse ) ); // mask for (-3; 3)
-			middlePart = _mm_and_ps( middlePart, _mm_mul_ps( _mm_mul_ps( input, oneSixthSse ), _mm_add_ps( input, threeSse ) ) );
-			__m128 rightPart = _mm_cmpge_ps( input, threeSse );
-			rightPart = _mm_and_ps( rightPart, input );
-			_mm_storeu_ps( result, _mm_add_ps( middlePart, rightPart ) );
+			__m128 firstSse = _mm_loadu_ps( first );
+			__m128 rightPart = _mm_and_ps( firstSse , _mm_cmpge_ps( firstSse, threeSse ) );
+			__m128 middlePart = _mm_mul_ps( _mm_mul_ps( firstSse, oneSixthSse ), _mm_add_ps( firstSse, threeSse ) );
+			middlePart = _mm_and_ps( _mm_and_ps( middlePart, rightPart), _mm_cmplt_ps( minusThreeSse, firstSse ) );
+			_mm_storeu_ps( result, middlePart );
 
 			first += 4;
 			result += 4;
