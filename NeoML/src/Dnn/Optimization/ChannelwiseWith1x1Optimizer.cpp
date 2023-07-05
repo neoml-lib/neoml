@@ -64,11 +64,11 @@ int CChannelwiseWith1x1Optimizer::optimizeNonResidualBlocks()
 		graph.SelectLayer( *downConv );
 
 		CBaseLayer* channelwiseActivation = graph.SelectConnectedOutput<>( *downConv, 0 , true ).Layer;
-		CChannelwiseConvLayer* channelwise = nullptr;
 		if( channelwiseActivation == nullptr ) {
 			continue;
 		}
 
+		CChannelwiseConvLayer* channelwise = nullptr;
 		if( isValidActivation( *channelwiseActivation ) ) {
 			channelwise = graph.SelectConnectedOutput<CChannelwiseConvLayer>( *channelwiseActivation, 0, true ).Layer;
 		} else {
