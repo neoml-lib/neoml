@@ -545,11 +545,9 @@ void CCpuMathEngine::VectorHSwishDiff( const CConstFloatHandle& firstHandle, con
 		for( int i = 0; i < sseSize; ++i ) {
 			__m128 input = _mm_loadu_ps( first );
 			__m128 middlePart = _mm_cmplt_ps( minusThreeSse, input );
-			middlePart = _mm_and_ps( middlePart, _mm_cmplt_ps( input, threeSse ) ); // mask for (-3; 3)
 			middlePart = _mm_and_ps( middlePart, _mm_add_ps( _mm_mul_ps( input, oneThirdSse ), halfSse ) );
 			__m128 rightPart = _mm_cmpge_ps( input, threeSse );
-			rightPart = _mm_and_ps( rightPart, oneSse );
-			_mm_storeu_ps( result, _mm_mul_ps( _mm_loadu_ps( second ), _mm_add_ps( middlePart, rightPart ) ) );
+			_mm_storeu_ps( result, _mm_blendv_ps( middlePart, _mm_loadu_ps( second ), rightPart ) );
 
 			first += 4;
 			result += 4;
