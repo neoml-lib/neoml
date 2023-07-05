@@ -1017,4 +1017,22 @@ void CCpuMathEngine::VectorHSwish( const CConstFloatHandle& firstHandle, const C
 	vectorHSwish( GetRaw( firstHandle ), GetRaw( resultHandle ), vectorSize );
 }
 
+void CCpuMathEngine::VectorHardSigmoid( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize,
+	const CConstFloatHandle& slopeHandle, const CConstFloatHandle& biasHandle )
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	CCpuExecutionScope scope;
+
+	const float* first = GetRaw(firstHandle);
+	float* result = GetRaw(resultHandle);
+
+	const float slope = *GetRaw( slopeHandle );
+	const float bias = *GetRaw( biasHandle );
+
+	ASSERT_EXPR( slope != 0.f );
+
+	vectorHardSigmoid( first, result, slope, bias, vectorSize );
+}
+
 } // namespace NeoML

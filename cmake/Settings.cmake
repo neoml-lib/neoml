@@ -82,7 +82,7 @@ function(configure_target TARGET_NAME)
     if(IOS)
         set_target_properties(${TARGET_NAME} PROPERTIES 
             XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET 11.0
-            XCODE_ATTRIBUTE_ENABLE_BITCODE "YES"
+            XCODE_ATTRIBUTE_ENABLE_BITCODE "NO"
             XCODE_ATTRIBUTE_ONLY_ACTIVE_ARCH[variant=Debug] "YES"
         )
 
