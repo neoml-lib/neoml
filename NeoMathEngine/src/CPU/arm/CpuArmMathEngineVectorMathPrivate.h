@@ -946,22 +946,20 @@ inline void vectorHardSigmoid( const float* first, float* result, float slope, f
 
 //------------------------------------------------------------------------------------------------------------
 
-static inline float32x4_t vectorLeakyReLUWorker( const float32x4_t& val,
-	const float32x4_t& alpha, const float32x4_t& zero )
+static inline float32x4_t vectorLeakyReLUWorker( const float32x4_t& val, float alpha, const float32x4_t& zero )
 {
 	uint32x4_t upperMask = vcgeq_f32( val, zero );
-	float32x4_t lowerRes = vmulq_f32( alpha, val );
+	float32x4_t lowerRes = vmulq_n_f32( val, alpha );
 	return ConditionNeon( upperMask, val, lowerRes );
 }
 
 inline void vectorLeakyReLU( const float* first, float* result, float alpha, int vectorSize )
 {
-	const float32x4_t alphaBlock = vdupq_n_f32( alpha );
 	const float32x4_t zeroBlock = vdupq_n_f32( 0 );
 
 	while( vectorSize >= 4 ) {
 		float32x4_t val = LoadNeon4( first );
-		float32x4_t res = vectorLeakyReLUWorker( val, alphaBlock, zeroBlock );
+		float32x4_t res = vectorLeakyReLUWorker( val, alpha, zeroBlock );
 		StoreNeon4( res, result );
 
 		first += 4;
@@ -971,7 +969,7 @@ inline void vectorLeakyReLU( const float* first, float* result, float alpha, int
 
 	if( vectorSize > 0 ) {
 		float32x4_t val = LoadNeon( first, vectorSize );
-		float32x4_t res = vectorLeakyReLUWorker( val, alphaBlock, zeroBlock );
+		float32x4_t res = vectorLeakyReLUWorker( val, alpha, zeroBlock );
 		StoreNeon( res, result, vectorSize );
 	}
 }
