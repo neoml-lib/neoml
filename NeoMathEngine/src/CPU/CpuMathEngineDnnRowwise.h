@@ -247,6 +247,9 @@ inline IRowwiseCpuImpl::CProcessingReport CRowwiseActivation::Process( const flo
 		case AF_HSwish:
 			vectorHSwish( input, output, dataSize );
 			break;
+		case AF_LeakyReLU:
+			vectorLeakyReLU( input, output, param0, dataSize );
+			break;
 		case AF_Linear:
 			if( param0 != 1.f ) {
 				vectorMultiply( input, output, param0, dataSize );

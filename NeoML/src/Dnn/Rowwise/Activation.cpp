@@ -28,6 +28,8 @@ CRowwiseOperationDesc* CRowwiseActivation::GetDesc( const CBlobDesc& )
 			const CHardSigmoidLayer::CParam param = desc.GetParam<CHardSigmoidLayer::CParam>();
 			return mathEngine.InitRowwiseActivation( AF_HardSigmoid, param.Slope, param.Bias );
 		}
+		case AF_LeakyReLU:
+			return mathEngine.InitRowwiseActivation( AF_LeakyReLU, desc.GetParam<CLeakyReLULayer::CParam>().Alpha, 0 );
 		case AF_Linear:
 		{
 			const CLinearLayer::CParam param = desc.GetParam<CLinearLayer::CParam>();
