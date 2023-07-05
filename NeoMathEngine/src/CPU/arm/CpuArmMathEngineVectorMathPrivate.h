@@ -956,7 +956,7 @@ static inline float32x4_t vectorLeakyReLUWorker( const float32x4_t& val,
 
 inline void vectorLeakyReLU( const float* first, float* result, float alpha, int vectorSize )
 {
-	const float32x4_t alphaBlock = vdupq_n_f32();
+	const float32x4_t alphaBlock = vdupq_n_f32( alpha );
 	const float32x4_t zeroBlock = vdupq_n_f32( 0 );
 
 	while( vectorSize >= 4 ) {
