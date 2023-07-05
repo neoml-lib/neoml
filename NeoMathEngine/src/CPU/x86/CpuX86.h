@@ -28,7 +28,6 @@ limitations under the License.
 #include <xmmintrin.h>
 #include <emmintrin.h>
 #include <tmmintrin.h>
-#include <smmintrin.h>
 #include <cmath>
 #include <cfloat>
 #include <cassert>
