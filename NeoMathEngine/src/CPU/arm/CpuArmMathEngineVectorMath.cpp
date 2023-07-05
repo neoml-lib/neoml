@@ -972,45 +972,6 @@ void CCpuMathEngine::VectorReLUDiff(const CConstFloatHandle& firstHandle, const 
 	}
 }
 
-static inline float32x4_t VectorLeakyReLUWorker(const float32x4_t& val,
-	const float32x4_t& alpha, const float32x4_t& zero)
-{
-	uint32x4_t upperMask = vcgeq_f32(val, zero);
-	float32x4_t lowerRes = vmulq_f32(alpha, val);
-	return ConditionNeon(upperMask, val, lowerRes);
-}
-
-void CCpuMathEngine::VectorLeakyReLU(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle,
-	int vectorSize, const CConstFloatHandle& alphaHandle)
-{
-	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
-	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-	ASSERT_EXPR( alphaHandle.GetMathEngine() == this );
-	CCpuExecutionScope scope;
-
-	const float* first = GetRaw(firstHandle);
-	float* result = GetRaw(resultHandle);
-	int count = GetCount4(vectorSize);
-
-	float32x4_t alpha = vdupq_n_f32(*GetRaw(alphaHandle));
-	const float32x4_t zero = vdupq_n_f32(0);
-
-	for(int i = 0; i < count; ++i) {
-		float32x4_t val = LoadNeon4(first);
-		float32x4_t res = VectorLeakyReLUWorker(val, alpha, zero);
-		StoreNeon4(res, result);
-
-		first += 4;
-		result += 4;
-	}
-
-	if(vectorSize > 0) {
-		float32x4_t val = LoadNeon(first, vectorSize);
-		float32x4_t res = VectorLeakyReLUWorker(val, alpha, zero);
-		StoreNeon(res, result, vectorSize);
-	}
-}
-
 static inline float32x4_t vectorLeakyReLUDiffWorker(const float32x4_t& first, const float32x4_t& second,
 	const float32x4_t& alpha, const float32x4_t& zero)
 {
