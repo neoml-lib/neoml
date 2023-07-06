@@ -537,19 +537,19 @@ void CCpuMathEngine::VectorHSwishDiff( const CConstFloatHandle& firstHandle, con
 	checkSse( vectorSize, sseSize, nonSseSize );
 
 	if( sseSize > 0 ) {
-		const __m128 oneSse = _mm_set1_ps( 1.f );
+		const __m128 invSse = _mm_set1_ps( 0xFFFFFFFF );
 		const __m128 minusThreeSse = _mm_set1_ps( -3.f );
 		const __m128 threeSse = _mm_set1_ps( 3.f );
 		const __m128 oneThirdSse = _mm_set1_ps( 1.f / 3.f );
 		const __m128 halfSse = _mm_set1_ps( 0.5f );
 		for( int i = 0; i < sseSize; ++i ) {
-			__m128 input = _mm_loadu_ps( first );
-			__m128 middlePart = _mm_cmplt_ps( minusThreeSse, input );
-			middlePart = _mm_and_ps( middlePart, _mm_cmplt_ps( input, threeSse ) ); // mask for (-3; 3)
-			middlePart = _mm_and_ps( middlePart, _mm_add_ps( _mm_mul_ps( input, oneThirdSse ), halfSse ) );
-			__m128 rightPart = _mm_cmpge_ps( input, threeSse );
-			rightPart = _mm_and_ps( rightPart, oneSse );
-			_mm_storeu_ps( result, _mm_mul_ps( _mm_loadu_ps( second ), _mm_add_ps( middlePart, rightPart ) ) );
+			__m128 firstSse = _mm_loadu_ps( first );
+			__m128 secondSse = _mm_loadu_ps( second );
+			__m128 middlePart = _mm_mul_ps( secondSse, _mm_add_ps( _mm_mul_ps( firstSse, oneThirdSse ), halfSse ) );
+			__m128 mask = _mm_cmplt_ps( firstSse, threeSse );
+			middlePart = _mm_and_ps( middlePart, mask );
+			middlePart = _mm_or_ps( middlePart, _mm_and_ps( secondSse, _mm_xor_ps( mask, invSse ) ) );
+			_mm_storeu_ps( result, _mm_and_ps(middlePart, _mm_cmplt_ps( minusThreeSse, firstSse ) ) );
 
 			first += 4;
 			result += 4;
@@ -563,7 +563,7 @@ void CCpuMathEngine::VectorHSwishDiff( const CConstFloatHandle& firstHandle, con
 		} else if( *first >= 3.f ) {
 			*result = *second;
 		} else {
-			*result = *second * ( 1.f / 3.f * *first + 0.5f );
+			*result = *second * ( *first / 3.f + 0.5f );
 		}
 		++result;
 		++first;
