@@ -903,7 +903,7 @@ inline void vectorHSwish( const float* first, float* result, int vectorSize )
 	}
 
 	if( vectorSize > 0 ) {
-		float32x4_t res = vectorHSwishWorker( LoadNeon( first, vectorSize ), three, minusThree, oneSixth );
+		float32x4_t res = vectorHSwishWorker( LoadNeon( first, vectorSize ), three, zero, oneSixth );
 		StoreNeon( res, result, vectorSize );
 	}
 }

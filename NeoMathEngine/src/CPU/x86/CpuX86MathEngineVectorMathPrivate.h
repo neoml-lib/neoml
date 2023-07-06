@@ -1139,33 +1139,25 @@ inline void vectorHSwish( const float* first, float* result, int vectorSize )
 		return;
 	}
 
-	int i{};
-	const int sseSize{ checkSse(vectorSize) };
-	if( sseSize > 0 ) {
-		const __m128 zeroSse = _mm_setzero_ps();
-		const __m128 threeSse = _mm_set1_ps( 3.f );
-		const __m128 oneSixthSse = _mm_set1_ps( 1.f / 6.f );
-		for( ; i < sseSize; i += 4 ) {
-			__m128 firstSse = _mm_loadu_ps( first );
-			__m128 middlePart = _mm_max_ps( _mm_add_ps( firstSse, threeSse ), zeroSse );
-			middlePart = _mm_mul_ps( _mm_mul_ps( firstSse, oneSixthSse ), middlePart );
-			_mm_storeu_ps( result, _mm_min_ps( middlePart, firstSse) );
+	const __m128 zeroSse = _mm_setzero_ps();
+	const __m128 threeSse = _mm_set1_ps( 3.f );
+	const __m128 oneSixthSse = _mm_set1_ps( 1.f / 6.f );
 
-			first += 4;
-			result += 4;
-		}
+	for( ; vectorSize >= 4; vectorSize -= 4 ) {
+		__m128 firstSse = _mm_loadu_ps( first );
+		__m128 middlePart = _mm_max_ps( _mm_add_ps( firstSse, threeSse ), zeroSse );
+		middlePart = _mm_mul_ps( _mm_mul_ps( firstSse, oneSixthSse ), middlePart );
+		_mm_storeu_ps( result, _mm_min_ps( middlePart, firstSse ) );
+
+		first += 4;
+		result += 4;
 	}
 
-	for( ; i < vectorSize; ++i ) {
-		if( *first <= -3.f ) {
-			*result = 0.f;
-		} else if( *first >= 3.f ) {
-			*result = *first;
-		} else {
-			*result = *first * ( *first + 3 ) / 6.f;
-		}
-		++result;
-		++first;
+	if ( vectorSize > 0 ) {
+		__m128 firstSse = LoadSse( first, vectorSize );
+		__m128 middlePart = _mm_max_ps( _mm_add_ps( firstSse, threeSse ), zeroSse );
+		middlePart = _mm_mul_ps( _mm_mul_ps( firstSse, oneSixthSse ), middlePart );
+		StoreSse( _mm_min_ps( middlePart, firstSse ), result, vectorSize );
 	}
 }
 

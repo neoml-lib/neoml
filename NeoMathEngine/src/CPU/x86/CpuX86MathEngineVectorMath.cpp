@@ -532,41 +532,34 @@ void CCpuMathEngine::VectorHSwishDiff( const CConstFloatHandle& firstHandle, con
 	const float* second = GetRaw( secondHandle );
 	float* result = GetRaw( resultHandle );
 
-	int i{};
-	const int sseSize{ checkSse(vectorSize) };
-	if( sseSize > 0 ) {
-		const __m128 invSse = _mm_castsi128_ps( _mm_set1_epi8( -1 ) ); // 0xFF
-		const __m128 minusThreeSse = _mm_set1_ps( -3.f );
-		const __m128 threeSse = _mm_set1_ps( 3.f );
-		const __m128 oneThirdSse = _mm_set1_ps( 1.f / 3.f );
-		const __m128 halfSse = _mm_set1_ps( 0.5f );
-		for( ; i < sseSize; i += 4 ) {
-			__m128 firstSse = _mm_loadu_ps( first );
-			__m128 secondSse = _mm_loadu_ps( second );
-			__m128 middlePart = _mm_mul_ps( secondSse, _mm_add_ps( _mm_mul_ps( firstSse, oneThirdSse ), halfSse ) );
-			__m128 mask = _mm_cmplt_ps( firstSse, threeSse );
-			middlePart = _mm_and_ps( middlePart, mask );
-			middlePart = _mm_or_ps( middlePart, _mm_and_ps( secondSse, _mm_xor_ps( mask, invSse ) ) );
-			_mm_storeu_ps( result, _mm_and_ps(middlePart, _mm_cmplt_ps( minusThreeSse, firstSse ) ) );
+	const __m128 invSse = _mm_castsi128_ps( _mm_set1_epi8( -1 ) ); // 0xFF
+	const __m128 minusThreeSse = _mm_set1_ps( -3.f );
+	const __m128 threeSse = _mm_set1_ps( 3.f );
+	const __m128 oneThirdSse = _mm_set1_ps( 1.f / 3.f );
+	const __m128 halfSse = _mm_set1_ps( 0.5f );
 
-			first += 4;
-			result += 4;
-			second += 4;
-		}
+	for( ; vectorSize >= 4; vectorSize -= 4 ) {
+		__m128 firstSse = _mm_loadu_ps( first );
+		__m128 secondSse = _mm_loadu_ps( second );
+		__m128 middlePart = _mm_mul_ps( secondSse, _mm_add_ps( _mm_mul_ps( firstSse, oneThirdSse ), halfSse ) );
+		__m128 mask = _mm_cmplt_ps( firstSse, threeSse );
+		middlePart = _mm_and_ps( middlePart, mask );
+		middlePart = _mm_or_ps( middlePart, _mm_and_ps( secondSse, _mm_xor_ps( mask, invSse ) ) );
+		_mm_storeu_ps( result, _mm_and_ps( middlePart, _mm_cmplt_ps( minusThreeSse, firstSse ) ) );
+
+		first += 4;
+		result += 4;
+		second += 4;
 	}
 
-	constexpr float oneThird( 1.f / 3.f );
-	for( ; i < vectorSize; ++i ) {
-		if( *first <= -3.f ) {
-			*result = 0.f;
-		} else if( *first >= 3.f ) {
-			*result = *second;
-		} else {
-			*result = *second * ( oneThird * *first + 0.5f );
-		}
-		++result;
-		++first;
-		++second;
+	if ( vectorSize > 0 ) {
+		__m128 firstSse = LoadSse( first, vectorSize );
+		__m128 secondSse = LoadSse( second, vectorSize );
+		__m128 middlePart = _mm_mul_ps( secondSse, _mm_add_ps( _mm_mul_ps( firstSse, oneThirdSse ), halfSse ) );
+		__m128 mask = _mm_cmplt_ps( firstSse, threeSse );
+		middlePart = _mm_and_ps( middlePart, mask );
+		middlePart = _mm_or_ps( middlePart, _mm_and_ps( secondSse, _mm_xor_ps( mask, invSse ) ) );
+		StoreSse(_mm_and_ps( middlePart, _mm_cmplt_ps( minusThreeSse, firstSse ) ), result, vectorSize );
 	}
 }
 

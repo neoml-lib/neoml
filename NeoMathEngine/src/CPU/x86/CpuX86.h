@@ -337,11 +337,6 @@ inline void checkSse2(int size, int& sseSize, int& nonSseSize)
 	return checkSse(size, sseSize, nonSseSize);
 }
 
-inline constexpr int checkSse(int size)
-{
-	return size & (~3);
-}
-
 inline void dataCopy(float* dst, const float* src, int vectorSize)
 {
 	static_assert( sizeof(float) == sizeof(unsigned int), "Size of float isn't equal to size of unsigned int." );
