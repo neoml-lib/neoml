@@ -537,7 +537,7 @@ void CCpuMathEngine::VectorHSwishDiff( const CConstFloatHandle& firstHandle, con
 	checkSse( vectorSize, sseSize, nonSseSize );
 
 	if( sseSize > 0 ) {
-		const __m128 invSse = _mm_set1_ps( 0xFFFFFFFF );
+		const __m128 invSse = _mm_castsi128_ps( _mm_set1_epi8( 0xFF ) );
 		const __m128 minusThreeSse = _mm_set1_ps( -3.f );
 		const __m128 threeSse = _mm_set1_ps( 3.f );
 		const __m128 oneThirdSse = _mm_set1_ps( 1.f / 3.f );
@@ -557,13 +557,14 @@ void CCpuMathEngine::VectorHSwishDiff( const CConstFloatHandle& firstHandle, con
 		}
 	}
 
+	constexpr float oneThird( 1.f / 3.f );
 	for( int i = 0; i < nonSseSize; ++i ) {
 		if( *first <= -3.f ) {
 			*result = 0.f;
 		} else if( *first >= 3.f ) {
 			*result = *second;
 		} else {
-			*result = *second * ( *first / 3.f + 0.5f );
+			*result = *second * ( oneThird * *first + 0.5f );
 		}
 		++result;
 		++first;
