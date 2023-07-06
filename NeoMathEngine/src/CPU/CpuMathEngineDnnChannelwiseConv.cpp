@@ -924,7 +924,7 @@ public:
 	int MinInputRowCount() const override { return 3; }
 
 	CBlobDesc Reshape( const CBlobDesc& inputSize ) override;
-	int InOperationBufferSize() const override { return 0; }
+	int InOperationBufferSize() const override { return getMaxOutputRowsPerStep() * expandedChannels * desc.Result.Width(); }
 	int OutputRowCount() const override { return desc.Result.ObjectCount() * desc.Result.Height(); }
 	int OutputRowSize() const override { return desc.Result.Width() * outputChannels; }
 	bool IsInPlace() const override { return false; }
@@ -947,7 +947,6 @@ private:
 	int outputChannels;
 	bool residual;
 	mutable std::unique_ptr<CRowwiseBuffer> chInput;
-	mutable std::unique_ptr<CRowwiseBuffer> chOutput;
 
 	int getMaxInputRowsPerStep() const { return std::max<int>( 1,
 		( RowwiseCacheSize / ( std::max<int>( inputChannels, expandedChannels ) * desc.Source.Width() ) ) ); }
@@ -973,7 +972,7 @@ CBlobDesc CCpuMathEngine::CRowwiseMobileNetV2::Reshape( const CBlobDesc& inputSi
 }
 
 IRowwiseCpuImpl::CProcessingReport CCpuMathEngine::CRowwiseMobileNetV2::Process( const float* input, int inputRowIndex,
-	int inputRowsAvailable, float* output, int outputRowIndex, int outputRowsAvailable, float* ) const
+	int inputRowsAvailable, float* output, int outputRowIndex, int outputRowsAvailable, float* buffer ) const
 {
 	CProcessingReport report = RowwiseConvProcessingReport( inputRowIndex, inputRowsAvailable, outputRowIndex,
 		outputRowsAvailable, desc.Source.Height(), desc.Result.Height(), desc.Filter.Height(), desc.PaddingHeight,
@@ -987,11 +986,8 @@ IRowwiseCpuImpl::CProcessingReport CCpuMathEngine::CRowwiseMobileNetV2::Process(
 		chInput.reset( new CRowwiseBuffer( mathEngine,
 			std::min( desc.Source.Height(), getMaxInputRowsPerStep() + 2 ),
 			desc.Source.Width() * expandedChannels, desc.Source.Height() * desc.Source.ObjectCount() ) );
-		chOutput.reset( new CRowwiseBuffer( mathEngine, getMaxOutputRowsPerStep(),
-			desc.Result.Width() * expandedChannels, desc.Result.Height() * desc.Result.ObjectCount() ) );
 	}
 
-	PRESUME_EXPR( chOutput->DataRowProcessed() == outputRowIndex );
 	PRESUME_EXPR( chInput->DataRowProcessed() >= inputRowIndex );
 	PRESUME_EXPR( chInput->DataRowProcessed() <= inputRowIndex + inputRowsAvailable );
 	PRESUME_EXPR( chInput->DataRowCount() <= 3 - desc.StrideHeight );
@@ -1010,9 +1006,10 @@ IRowwiseCpuImpl::CProcessingReport CCpuMathEngine::CRowwiseMobileNetV2::Process(
 	const int inputRowsUsedThisCall = std::min( desc.Source.ObjectCount() * desc.Source.Height(),
 		( outputRowsThisCall - 1 ) * desc.StrideHeight + 2 );
 
-	while( chOutput->DataRowProcessed() < outputRowsThisCall ) {
+	int outputRowsProcessed = outputRowIndex;
+	while( outputRowsProcessed < outputRowsThisCall ) {
 		// Process a bunch of rows of input image (till channelwise convolution: expandConv + expandReLU)
-		const int imageIndex = chOutput->DataRowProcessed() / desc.Result.Height();
+		const int imageIndex = outputRowsProcessed / desc.Result.Height();
 		const int inputRowsInBuffer = std::min( desc.Source.Height(),
 			chInput->DataRowProcessed() - imageIndex * desc.Source.Height() );
 		const int inputRowsThisStep = std::min( getMaxInputRowsPerStep(),
@@ -1038,28 +1035,27 @@ IRowwiseCpuImpl::CProcessingReport CCpuMathEngine::CRowwiseMobileNetV2::Process(
 				: ( inputImageRowsInBuffer < 2 ? 0 : 1 + ( inputImageRowsInBuffer - 2 ) / desc.StrideHeight ) );
 		const int outputRowsCanBeProcessed = imageIndex * desc.Result.Height() + outputImageRowsCanBeProcessed;
 
-		while( chOutput->DataRowProcessed() < outputRowsCanBeProcessed ) {
+		while( outputRowsProcessed < outputRowsCanBeProcessed ) {
 			// Process channelwise output rows (while there are any)
 			const int outputRowsThisStep = std::min<int>( getMaxOutputRowsPerStep(),
-				outputRowsCanBeProcessed - chOutput->DataRowProcessed() );
-			PRESUME_EXPR( outputRowsThisStep <= chOutput->EmptyRowCount() );
+				outputRowsCanBeProcessed - outputRowsProcessed );
 
 			processChannelwise3x3( desc, outputRowsThisStep, chInput->DataRows(), chInput->DataRowIndex() % desc.Source.Height(),
-				channelwiseFilter, channelwiseFreeTerm, chOutput->EmptyRows(), chOutput->DataRowProcessed() % desc.Result.Height() );
+				channelwiseFilter, channelwiseFreeTerm, buffer, outputRowsProcessed % desc.Result.Height() );
 			if( channelwiseActivationImpl.Type() != AF_Linear ) {
-				channelwiseActivationImpl.Process( chOutput->EmptyRows(), 0, outputRowsThisStep,
-					chOutput->EmptyRows(), 0, outputRowsThisStep, nullptr );
+				channelwiseActivationImpl.Process( buffer, 0, outputRowsThisStep,
+					buffer, 0, outputRowsThisStep, nullptr );
 			}
-			chOutput->AddRows( outputRowsThisStep );
+			outputRowsProcessed += outputRowsThisStep;
 
 			if( residual && isInPlace ) {
 				// Block input and output are located in the same memory
 				// It's possible to simultaneously calculate down conv output and add the residual connection
-				mathEngine.multiplyMatrixByTransposedMatrixAndAdd( chOutput->DataRows(), outputRowsThisStep * outputWidth,
+				mathEngine.multiplyMatrixByTransposedMatrixAndAdd( buffer, outputRowsThisStep * outputWidth,
 					expandedChannels, expandedChannels, downFilter, outputChannels, expandedChannels, output,
 					outputChannels );
 			} else {
-				mathEngine.multiplyMatrixByTransposedMatrix( chOutput->DataRows(), outputRowsThisStep * outputWidth,
+				mathEngine.multiplyMatrixByTransposedMatrix( buffer, outputRowsThisStep * outputWidth,
 					expandedChannels, expandedChannels, downFilter, outputChannels, expandedChannels,
 					output, outputChannels );
 			}
@@ -1077,11 +1073,10 @@ IRowwiseCpuImpl::CProcessingReport CCpuMathEngine::CRowwiseMobileNetV2::Process(
 			}
 
 			output += outputRowsThisStep * outputChannels * outputWidth;
-			chOutput->RemoveRows( outputRowsThisStep );
 		}
 
-		if( chOutput->DataRowProcessed() < desc.Result.ObjectCount() * desc.Result.Height() ) {
-			const int firstInputRowNeeded = RowwiseConvFirstInputRow( chOutput->DataRowProcessed(),
+		if( outputRowsProcessed < desc.Result.ObjectCount() * desc.Result.Height() ) {
+			const int firstInputRowNeeded = RowwiseConvFirstInputRow( outputRowsProcessed,
 				desc.Source.Height(), desc.Result.Height(), desc.StrideHeight, desc.PaddingHeight );
 			if( firstInputRowNeeded > chInput->DataRowIndex() ) {
 				chInput->RemoveRows( firstInputRowNeeded - chInput->DataRowIndex() );
@@ -1089,9 +1084,8 @@ IRowwiseCpuImpl::CProcessingReport CCpuMathEngine::CRowwiseMobileNetV2::Process(
 		}
 	}
 
-	if( chOutput->DataRowProcessed() == desc.Result.ObjectCount() * desc.Result.Height() ) {
+	if( outputRowsProcessed == desc.Result.ObjectCount() * desc.Result.Height() ) {
 		chInput.reset( nullptr );
-		chOutput.reset( nullptr );
 	}
 
 	return report;
@@ -1117,11 +1111,11 @@ void CCpuMathEngine::MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobDe
 		outputDesc.Channels(), residual );
 	const CBlobDesc reshapeResult = blockImpl.Reshape( inputDesc );
 	( void ) reshapeResult;
-	PRESUME_EXPR( blockImpl.InOperationBufferSize() == 0 );
 	PRESUME_EXPR( reshapeResult.HasEqualDimensions( outputDesc ) );
+	CFloatHandleStackVar buffer( *this, blockImpl.InOperationBufferSize() );
 	const IRowwiseCpuImpl::CProcessingReport report = blockImpl.Process( GetRaw( inputHandle ), 0,
 		inputDesc.ObjectCount() * inputDesc.Height(), GetRaw( outputHandle ), 0,
-		outputDesc.ObjectCount() * outputDesc.Height(), nullptr );
+		outputDesc.ObjectCount() * outputDesc.Height(), GetRaw( buffer.GetHandle() ) );
 	( void ) report;
 	PRESUME_EXPR( report.InputRowsMayBeRemoved == inputDesc.ObjectCount() * inputDesc.Height() );
 	PRESUME_EXPR( report.OutputRowsCalculated == outputDesc.ObjectCount() * outputDesc.Height() );
