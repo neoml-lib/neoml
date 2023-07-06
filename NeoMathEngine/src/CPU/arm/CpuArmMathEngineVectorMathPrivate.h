@@ -881,7 +881,7 @@ inline void vectorSigmoid( const float* first, float* result, int vectorSize )
 inline float32x4_t vectorHSwishWorker( const float32x4_t& first, const float32x4_t& three,
 	const float32x4_t& zero, const float32x4_t& oneSixth )
 {
-	float32x4_t middlePart = vmaxq_f32( vaddq_f32( first, three ). zero );
+	float32x4_t middlePart = vmaxq_f32( vaddq_f32( first, three ), zero );
 	middlePart = vmulq_f32( vmulq_f32( first, oneSixth ), middlePart );
 	return vminq_f32( middlePart, first );
 }
