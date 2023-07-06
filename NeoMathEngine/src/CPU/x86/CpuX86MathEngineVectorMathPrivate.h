@@ -1139,15 +1139,13 @@ inline void vectorHSwish( const float* first, float* result, int vectorSize )
 		return;
 	}
 
-	int sseSize;
-	int nonSseSize;
-	checkSse( vectorSize, sseSize, nonSseSize );
-
+	int i{};
+	const int sseSize{ checkSse(vectorSize) };
 	if( sseSize > 0 ) {
 		const __m128 minusThreeSse = _mm_set1_ps( -3.f );
 		const __m128 threeSse = _mm_set1_ps( 3.f );
 		const __m128 oneSixthSse = _mm_set1_ps( 1.f / 6.f );
-		for( int i = 0; i < sseSize; ++i ) {
+		for( ; i < sseSize; i += 4 ) {
 			__m128 firstSse = _mm_loadu_ps( first );
 			__m128 middlePart = _mm_mul_ps( _mm_mul_ps( firstSse, oneSixthSse ), _mm_add_ps( firstSse, threeSse ) );
 			middlePart = _mm_and_ps( _mm_min_ps( middlePart, firstSse), _mm_cmplt_ps( minusThreeSse, firstSse ) );
@@ -1158,7 +1156,7 @@ inline void vectorHSwish( const float* first, float* result, int vectorSize )
 		}
 	}
 
-	for( int i = 0; i < nonSseSize; ++i ) {
+	for( ; i < vectorSize; ++i ) {
 		if( *first <= -3.f ) {
 			*result = 0.f;
 		} else if( *first >= 3.f ) {

@@ -532,17 +532,15 @@ void CCpuMathEngine::VectorHSwishDiff( const CConstFloatHandle& firstHandle, con
 	const float* second = GetRaw( secondHandle );
 	float* result = GetRaw( resultHandle );
 
-	int sseSize;
-	int nonSseSize;
-	checkSse( vectorSize, sseSize, nonSseSize );
-
+	int i{};
+	const int sseSize{ checkSse(vectorSize) };
 	if( sseSize > 0 ) {
 		const __m128 invSse = _mm_castsi128_ps( _mm_set1_epi8( -1 ) ); // 0xFF
 		const __m128 minusThreeSse = _mm_set1_ps( -3.f );
 		const __m128 threeSse = _mm_set1_ps( 3.f );
 		const __m128 oneThirdSse = _mm_set1_ps( 1.f / 3.f );
 		const __m128 halfSse = _mm_set1_ps( 0.5f );
-		for( int i = 0; i < sseSize; ++i ) {
+		for( ; i < sseSize; i += 4 ) {
 			__m128 firstSse = _mm_loadu_ps( first );
 			__m128 secondSse = _mm_loadu_ps( second );
 			__m128 middlePart = _mm_mul_ps( secondSse, _mm_add_ps( _mm_mul_ps( firstSse, oneThirdSse ), halfSse ) );
@@ -558,7 +556,7 @@ void CCpuMathEngine::VectorHSwishDiff( const CConstFloatHandle& firstHandle, con
 	}
 
 	constexpr float oneThird( 1.f / 3.f );
-	for( int i = 0; i < nonSseSize; ++i ) {
+	for( ; i < vectorSize; ++i ) {
 		if( *first <= -3.f ) {
 			*result = 0.f;
 		} else if( *first >= 3.f ) {
