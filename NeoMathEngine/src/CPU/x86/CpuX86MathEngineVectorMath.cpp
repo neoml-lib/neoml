@@ -537,7 +537,7 @@ void CCpuMathEngine::VectorHSwishDiff( const CConstFloatHandle& firstHandle, con
 	checkSse( vectorSize, sseSize, nonSseSize );
 
 	if( sseSize > 0 ) {
-		const __m128 invSse = _mm_castsi128_ps( _mm_set1_epi8( 0xFF ) );
+		const __m128 invSse = _mm_castsi128_ps( _mm_set1_epi8( -1 ) ); // 0xFF
 		const __m128 minusThreeSse = _mm_set1_ps( -3.f );
 		const __m128 threeSse = _mm_set1_ps( 3.f );
 		const __m128 oneThirdSse = _mm_set1_ps( 1.f / 3.f );
