@@ -559,7 +559,7 @@ void CCpuMathEngine::VectorHSwishDiff( const CConstFloatHandle& firstHandle, con
 		__m128 mask = _mm_cmplt_ps( firstSse, threeSse );
 		middlePart = _mm_and_ps( middlePart, mask );
 		middlePart = _mm_or_ps( middlePart, _mm_and_ps( secondSse, _mm_xor_ps( mask, invSse ) ) );
-		StoreSse(_mm_and_ps( middlePart, _mm_cmplt_ps( minusThreeSse, firstSse ) ), result, vectorSize );
+		StoreSse( _mm_and_ps( middlePart, _mm_cmplt_ps( minusThreeSse, firstSse ) ), result, vectorSize );
 	}
 }
 
