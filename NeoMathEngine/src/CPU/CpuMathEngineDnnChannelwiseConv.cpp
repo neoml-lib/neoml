@@ -950,8 +950,8 @@ private:
 
 	int getMaxInputRowsPerStep() const { return std::max<int>( 1,
 		( RowwiseCacheSize / ( std::max<int>( inputChannels, expandedChannels ) * desc.Source.Width() ) ) ); }
-	int getMaxOutputRowsPerStep() const { return std::max<int>( 1,
-		( RowwiseCacheSize / ( std::max<int>( outputChannels, expandedChannels ) * desc.Result.Width() ) ) ); }
+	int getMaxOutputRowsPerStep() const { return std::min( desc.Result.Height(), std::max<int>( 1,
+		( RowwiseCacheSize / ( std::max<int>( outputChannels, expandedChannels ) * desc.Result.Width() ) ) ) ); }
 };
 
 CBlobDesc CCpuMathEngine::CRowwiseMobileNetV2::Reshape( const CBlobDesc& inputSize )
@@ -982,9 +982,12 @@ IRowwiseCpuImpl::CProcessingReport CCpuMathEngine::CRowwiseMobileNetV2::Process(
 		return report;
 	}
 
+	const int maxInputRowsPerStep = getMaxInputRowsPerStep();
+	const int maxOutputRowsPerStep = getMaxOutputRowsPerStep();
+
 	if( chInput == nullptr ) {
 		chInput.reset( new CRowwiseBuffer( mathEngine,
-			std::min( desc.Source.Height(), getMaxInputRowsPerStep() + 2 ),
+			std::min( desc.Source.Height(), maxInputRowsPerStep + 2 ),
 			desc.Source.Width() * expandedChannels, desc.Source.Height() * desc.Source.ObjectCount() ) );
 	}
 
@@ -1012,9 +1015,8 @@ IRowwiseCpuImpl::CProcessingReport CCpuMathEngine::CRowwiseMobileNetV2::Process(
 		const int imageIndex = outputRowsProcessed / desc.Result.Height();
 		const int inputRowsInBuffer = std::min( desc.Source.Height(),
 			chInput->DataRowProcessed() - imageIndex * desc.Source.Height() );
-		const int inputRowsThisStep = std::min( getMaxInputRowsPerStep(),
-			std::min( inputRowsUsedThisCall - chInput->DataRowProcessed(), desc.Source.Height() - inputRowsInBuffer ) );
-		PRESUME_EXPR( inputRowsThisStep >= 0 && inputRowsThisStep <= chInput->EmptyRowCount() );
+		const int inputRowsThisStep = std::min( { inputRowsUsedThisCall - chInput->DataRowProcessed(),
+			chInput->EmptyRowCount(), desc.Source.Height() - inputRowsInBuffer } );
 
 		if( inputRowsThisStep > 0 ) {
 			const float* expandConvInput = input + ( chInput->DataRowProcessed() - inputRowIndex ) * inputRowSize;
@@ -1037,8 +1039,7 @@ IRowwiseCpuImpl::CProcessingReport CCpuMathEngine::CRowwiseMobileNetV2::Process(
 
 		while( outputRowsProcessed < outputRowsCanBeProcessed ) {
 			// Process channelwise output rows (while there are any)
-			const int outputRowsThisStep = std::min<int>( getMaxOutputRowsPerStep(),
-				outputRowsCanBeProcessed - outputRowsProcessed );
+			const int outputRowsThisStep = std::min<int>( maxOutputRowsPerStep, outputRowsCanBeProcessed - outputRowsProcessed );
 
 			processChannelwise3x3( desc, outputRowsThisStep, chInput->DataRows(), chInput->DataRowIndex() % desc.Source.Height(),
 				channelwiseFilter, channelwiseFreeTerm, buffer, outputRowsProcessed % desc.Result.Height() );
