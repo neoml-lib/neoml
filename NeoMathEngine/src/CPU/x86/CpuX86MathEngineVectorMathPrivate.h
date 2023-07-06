@@ -1132,6 +1132,14 @@ inline void vectorSigmoid( const float* first, float* result, int vectorSize )
 
 //------------------------------------------------------------------------------------------------------------
 
+inline __m128 vectorHSwishWorker( const __m128& first, const __m128& three,
+	const __m128& zero, const __m128& oneSixth )
+{
+	__m128 middlePart = _mm_max_ps( _mm_add_ps( first, three ), zero );
+	middlePart = _mm_mul_ps( _mm_mul_ps( first, oneSixth ), middlePart );
+	return _mm_min_ps( middlePart, first );
+}
+
 inline void vectorHSwish( const float* first, float* result, int vectorSize )
 {
 	if( CCPUInfo::HasAvxAndFma && vectorSize >= NeoML::Avx2::VectorMathMinSize ) {
@@ -1139,25 +1147,21 @@ inline void vectorHSwish( const float* first, float* result, int vectorSize )
 		return;
 	}
 
-	const __m128 zeroSse = _mm_setzero_ps();
-	const __m128 threeSse = _mm_set1_ps( 3.f );
-	const __m128 oneSixthSse = _mm_set1_ps( 1.f / 6.f );
+	const __m128 zero = _mm_setzero_ps();
+	const __m128 three = _mm_set1_ps( 3.f );
+	const __m128 oneSixth = _mm_set1_ps( 1.f / 6.f );
 
 	for( ; vectorSize >= 4; vectorSize -= 4 ) {
-		__m128 firstSse = _mm_loadu_ps( first );
-		__m128 middlePart = _mm_max_ps( _mm_add_ps( firstSse, threeSse ), zeroSse );
-		middlePart = _mm_mul_ps( _mm_mul_ps( firstSse, oneSixthSse ), middlePart );
-		_mm_storeu_ps( result, _mm_min_ps( middlePart, firstSse ) );
+		__m128 res = vectorHSwishWorker( LoadSse4( first ), three, zero, oneSixth );
+		StoreSse4( res , result );
 
 		first += 4;
 		result += 4;
 	}
 
 	if ( vectorSize > 0 ) {
-		__m128 firstSse = LoadSse( first, vectorSize );
-		__m128 middlePart = _mm_max_ps( _mm_add_ps( firstSse, threeSse ), zeroSse );
-		middlePart = _mm_mul_ps( _mm_mul_ps( firstSse, oneSixthSse ), middlePart );
-		StoreSse( _mm_min_ps( middlePart, firstSse ), result, vectorSize );
+		__m128 res = vectorHSwishWorker( LoadSse( first, vectorSize ), three, zero, oneSixth );
+		StoreSse( res, result, vectorSize );
 	}
 }
 
