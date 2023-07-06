@@ -1147,8 +1147,8 @@ inline void vectorHSwish( const float* first, float* result, int vectorSize )
 		const __m128 oneSixthSse = _mm_set1_ps( 1.f / 6.f );
 		for( ; i < sseSize; i += 4 ) {
 			__m128 firstSse = _mm_loadu_ps( first );
-			__m128 tmpSse = _mm_max_ps( _mm_add_ps( firstSse, threeSse ), zeroSse );
-			__m128 middlePart = _mm_mul_ps( _mm_mul_ps( firstSse, oneSixthSse ), tmpSse );
+			__m128 middlePart = _mm_max_ps( _mm_add_ps( firstSse, threeSse ), zeroSse );
+			middlePart = _mm_mul_ps( _mm_mul_ps( firstSse, oneSixthSse ), middlePart );
 			_mm_storeu_ps( result, _mm_min_ps( middlePart, firstSse) );
 
 			first += 4;
