@@ -294,26 +294,26 @@ static void mobileNetV3BlockTestImpl( unsigned int seed, int freeTermMask, const
 	}
 }
 
+static std::initializer_list<CActivationDesc> mnv3BlockActivations = {
+	CActivationDesc( AF_ReLU, CReLULayer::CParam{ -1.f } ),
+	CActivationDesc( AF_ReLU, CReLULayer::CParam{ 6.f } ),
+	CActivationDesc( AF_HSwish ),
+	CActivationDesc( AF_Linear, CLinearLayer::CParam{ 1.f, 0.f } ) };
+static std::initializer_list<CActivationDesc> mnv3SeActivations = {
+	CActivationDesc( AF_ReLU, CReLULayer::CParam{ -1.f } ),
+	CActivationDesc( AF_ReLU, CReLULayer::CParam{ 6.f } ),
+	CActivationDesc( AF_HardSigmoid, CHardSigmoidLayer::CParam{ 0.5f, 0.5f } ) };
+
 TEST( MobileNetV3BlockLayerTest, Run )
 {
 	CRandom seedRandom( 0x654 );
 
-	std::initializer_list<CActivationDesc> blockActivations = {
-		CActivationDesc( AF_ReLU, CReLULayer::CParam{ -1.f } ),
-		CActivationDesc( AF_ReLU, CReLULayer::CParam{ 6.f } ),
-		CActivationDesc( AF_HSwish ),
-		CActivationDesc( AF_Linear, CLinearLayer::CParam{ 1.f, 0.f } ) };
-	std::initializer_list<CActivationDesc> seActivations = {
-		CActivationDesc( AF_ReLU, CReLULayer::CParam{ -1.f } ),
-		CActivationDesc( AF_ReLU, CReLULayer::CParam{ 6.f } ),
-		CActivationDesc( AF_HardSigmoid, CHardSigmoidLayer::CParam{ 0.5f, 0.5f } ) };
-
 	for( int ftMask = 0; ftMask < 32; ++ftMask ) {
-		for( const CActivationDesc& expandActivation : blockActivations ) {
-			for( const CActivationDesc& channelwiseActivation : blockActivations ) {
-				for( const CActivationDesc& firstSEActivation : seActivations ) {
-					for( const CActivationDesc& secondSEActivation : seActivations ) {
-						for( const CActivationDesc& postSEActivation : blockActivations ) {
+		for( const CActivationDesc& expandActivation : mnv3BlockActivations ) {
+			for( const CActivationDesc& channelwiseActivation : mnv3BlockActivations ) {
+				for( const CActivationDesc& firstSEActivation : mnv3SeActivations ) {
+					for( const CActivationDesc& secondSEActivation : mnv3SeActivations ) {
+						for( const CActivationDesc& postSEActivation : mnv3BlockActivations ) {
 							mobileNetV3BlockTestImpl( seedRandom.Next(), ftMask, expandActivation, channelwiseActivation,
 								firstSEActivation, secondSEActivation, postSEActivation, 1, true );
 							mobileNetV3BlockTestImpl( seedRandom.Next(), ftMask, expandActivation, channelwiseActivation,
@@ -330,27 +330,42 @@ TEST( MobileNetV3BlockLayerTest, Run )
 
 TEST( MobileNetV3OptimizerTest, SimpleNonResidual )
 {
-	CRandom random( 0x654 );
-	CDnn dnn( random, MathEngine() );
-	CSourceLayer* data = Source( dnn, "data" );
-	CPreSEParams preSEParams;
-	preSEParams.ExpandFilter = CDnnBlob::Create2DImageBlob( MathEngine(), CT_Float, 1, 12, 1, 1, 8 );
-	preSEParams.ChannelwiseFilter = CDnnBlob::Create2DImageBlob( MathEngine(), CT_Float, 1, 1, 5, 5, 12 );
-	preSEParams.ChannelwiseStride = 2;
-	CBaseLayer* preSE = addMNv3PreSE( preSEParams, *data );
-	CSEParams seParams;
-	seParams.FirstWeight = CDnnBlob::CreateDataBlob( MathEngine(), CT_Float, 1, 16, 12 );
-	seParams.SecondWeight = CDnnBlob::CreateDataBlob( MathEngine(), CT_Float, 1, 12, 16 );\
-	CBaseLayer* se = addMNv3SE( seParams, *preSE );
-	CPostSEParams postSEParams;
-	postSEParams.DownFilter = CDnnBlob::Create2DImageBlob( MathEngine(), CT_Float, 1, 10, 1, 1, 12 );
-	postSEParams.Residual = false;
-	CBaseLayer* postSE = addMNv3PostSE( postSEParams, *data, *preSE, *se );
-	Sink( postSE, "sink" );
-	CDnnOptimizationReport report = OptimizeDnn( dnn );
-	ASSERT_EQ( 1, report.MobileNetV3NonResidualBlocks );
-	ASSERT_EQ( 0, report.MobileNetV3ResidualBlocks );
-	ASSERT_EQ( 9, dnn.GetLayerCount() );
+	for( const CActivationDesc& expandActivation : mnv3BlockActivations ) {
+		for( const CActivationDesc& channelwiseActivation : mnv3BlockActivations ) {
+			for( const CActivationDesc& firstSEActivation : mnv3SeActivations ) {
+				for( const CActivationDesc& secondSEActivation : mnv3SeActivations ) {
+					for( const CActivationDesc& postSEActivation : mnv3BlockActivations ) {
+						CRandom random( 0x654 );
+						CDnn dnn( random, MathEngine() );
+						CSourceLayer* data = Source( dnn, "data" );
+						CPreSEParams preSEParams;
+						preSEParams.ExpandFilter = CDnnBlob::Create2DImageBlob( MathEngine(), CT_Float, 1, 12, 1, 1, 8 );
+						preSEParams.ExpandActivation = expandActivation;
+						preSEParams.ChannelwiseFilter = CDnnBlob::Create2DImageBlob( MathEngine(), CT_Float, 1, 1, 5, 5, 12 );
+						preSEParams.ChannelwiseStride = 2;
+						preSEParams.ChannelwiseActivation = channelwiseActivation;
+						CBaseLayer* preSE = addMNv3PreSE( preSEParams, *data );
+						CSEParams seParams;
+						seParams.FirstWeight = CDnnBlob::CreateDataBlob( MathEngine(), CT_Float, 1, 16, 12 );
+						seParams.FirstActivation = firstSEActivation;
+						seParams.SecondWeight = CDnnBlob::CreateDataBlob( MathEngine(), CT_Float, 1, 12, 16 );
+						seParams.SecondActivation = secondSEActivation;
+						CBaseLayer* se = addMNv3SE( seParams, *preSE );
+						CPostSEParams postSEParams;
+						postSEParams.PostSEActivation = postSEActivation;
+						postSEParams.DownFilter = CDnnBlob::Create2DImageBlob( MathEngine(), CT_Float, 1, 10, 1, 1, 12 );
+						postSEParams.Residual = false;
+						CBaseLayer* postSE = addMNv3PostSE( postSEParams, *data, *preSE, *se );
+						Sink( postSE, "sink" );
+						CDnnOptimizationReport report = OptimizeDnn( dnn );
+						ASSERT_EQ( 1, report.MobileNetV3NonResidualBlocks );
+						ASSERT_EQ( 0, report.MobileNetV3ResidualBlocks );
+						ASSERT_EQ( 9, dnn.GetLayerCount() );
+					}
+				}
+			}
+		}
+	}
 }
 
 TEST( MobileNetV3OptimizerTest, SimpleResidual )

@@ -169,7 +169,7 @@ bool CMobileNetV3Optimizer::detectMNv3PostSE( CConvLayer& downConv, CMNv3BlockIn
 
 	CBaseLayer* nextLayer = graph.SelectConnectedOutput<>( downConv, 0, true ).Layer;
 	if( nextLayer != nullptr && isValidBlockActivation( *nextLayer ) ) {
-		detectedBlock.ChannelwisePostSEActivation = dynamic_cast<IActivationLayer&>( *nextLayer ).GetDesc();
+		detectedBlock.ChannelwisePostSEActivation = dynamic_cast<IActivationLayer*>( nextLayer )->GetDesc();
 		detectedBlock.SEMulVectorInput.Layer = graph.SelectConnectedOutput<>( *nextLayer, 0, true ).Layer;
 	} else {
 		detectedBlock.SEMulVectorInput.Layer = nextLayer;
@@ -200,7 +200,7 @@ bool CMobileNetV3Optimizer::detectMNv3SE( CMNv3BlockInfo& detectedBlock )
 
 		CBaseLayer* secondFc = graph.GetConnectedOutput<>( *detectedBlock.SESecondActivation, 0 ).Layer;
 		if( !isValid1x1Conv( secondFc ) ) {
-			return false;
+			continue;
 		}
 
 		CBaseLayer* firstActivation = graph.GetConnectedOutput<>( *secondFc, 0 ).Layer;
@@ -249,13 +249,13 @@ bool CMobileNetV3Optimizer::detectMNv3PreSE( CMNv3BlockInfo& detectedBlock )
 		return false;
 	}
 
-	CBaseLayer* expandActivation = graph.SelectConnectedOutput<>( *detectedBlock.Channelwise, 0, true ).Layer;
-	if( expandActivation == nullptr || !isValidBlockActivation( *expandActivation ) ) {
-		return false;
+	CBaseLayer* expandConvCandidate = graph.SelectConnectedOutput<>( *detectedBlock.Channelwise, 0, true ).Layer;
+	if( expandConvCandidate != nullptr && isValidBlockActivation( *expandConvCandidate ) ) {
+		detectedBlock.ExpandActivation = dynamic_cast<IActivationLayer*>( expandConvCandidate )->GetDesc();
+		expandConvCandidate = graph.SelectConnectedOutput<>( *expandConvCandidate, 0, true ).Layer;
 	}
-	detectedBlock.ExpandActivation = dynamic_cast<IActivationLayer&>( *expandActivation ).GetDesc();
 
-	detectedBlock.ExpandConv = graph.SelectConnectedOutput<CConvLayer>( *expandActivation, 0, true ).Layer;
+	detectedBlock.ExpandConv = dynamic_cast<CConvLayer*>( expandConvCandidate );
 	if( detectedBlock.ExpandConv == nullptr || !isValid1x1Conv( detectedBlock.ExpandConv ) ) {
 		return false;
 	}
@@ -306,12 +306,7 @@ bool CMobileNetV3Optimizer::isValidBlockActivation( CBaseLayer& layer ) const
 		return false;
 	}
 
-	if( dynamic_cast<CReLULayer*>( &layer ) != nullptr || dynamic_cast<CHSwishLayer*>( &layer ) != nullptr ) {
-		return true;
-	}
-
-	CLinearLayer* linear = dynamic_cast<CLinearLayer*>( &layer );
-	return linear != nullptr && linear->GetFreeTerm() == 0 && linear->GetMultiplier() == 1;
+	return dynamic_cast<CReLULayer*>( &layer ) != nullptr || dynamic_cast<CHSwishLayer*>( &layer ) != nullptr;
 }
 
 // Checks that layer meets the criteria for activation function inside Squeeze-and-Excite

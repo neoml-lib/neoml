@@ -33,6 +33,7 @@ target_sources(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/OnnxLayerTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/ChannelwiseWith1x1BlockTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/MobileNetV3BlockTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/TrivialLayerOptimizerTest.cpp
 )
 
 set_target_properties( ${PROJECT_NAME} PROPERTIES
