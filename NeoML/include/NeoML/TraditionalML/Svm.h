@@ -23,14 +23,12 @@ limitations under the License.
 
 namespace NeoML {
 
-class IThreadPool;
-
 DECLARE_NEOML_MODEL_NAME( SvmBinaryModelName, "FmlSvmBinaryModel" )
 
 // Support-vector machine binary classifier
 class NEOML_API ISvmBinaryModel : public IModel {
 public:
-	~ISvmBinaryModel() override {}
+	~ISvmBinaryModel() override;
 
 	// Gets the kernel type
 	virtual CSvmKernel::TKernelType GetKernelType() const = 0;
@@ -45,11 +43,14 @@ public:
 	virtual double GetFreeTerm() const = 0;
 };
 
+// Forward declaration
+class IThreadPool;
+
 // Binary SVM training algorithm
 class NEOML_API CSvm : public ITrainingModel {
 public:
 	// Classification parameters
-	struct CParams {
+	struct CParams final {
 		CSvmKernel::TKernelType KernelType; // the type of error function used
 		double ErrorWeight; // the weight of the error relative to the regularization function
 		int MaxIterations; // the maximum number of algorithm iterations
@@ -75,6 +76,8 @@ public:
 			ThreadCount( threadCount ),
 			MulticlassMode( multiclassMode )
 		{}
+		CParams( const CParams& params ) = default;
+		CParams( const CParams& params, int realThreadCount ) : CParams( params ) { ThreadCount = realThreadCount; }
 	};
 
 	explicit CSvm( const CParams& params );
@@ -89,13 +92,9 @@ public:
 	CPtr<IModel> Train( const IProblem& trainingClassificationData ) override;
 
 private:
-	const CParams params; // classification parameters
-	IThreadPool* const threadPool;
+	IThreadPool* const threadPool; // Parallel executors
+	const CParams params; // Classification parameters
 	CTextStream* log = nullptr; // Logging stream
-
-	struct IThreadTask;
-	struct CFindPlanesThreadTask;
-	struct CCalcDistancesThreadTask;
 };
 
 // DEPRECATED: for backward compatibility

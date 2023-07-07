@@ -20,6 +20,10 @@ limitations under the License.
 
 namespace NeoML {
 
+ISvmBinaryModel::~ISvmBinaryModel() = default;
+
+//---------------------------------------------------------------------
+
 REGISTER_NEOML_MODEL( CSvmBinaryModel, SvmBinaryModelName )
 
 CSvmBinaryModel::CSvmBinaryModel( const CSvmKernel& _kernel,
@@ -49,6 +53,8 @@ CSvmBinaryModel::CSvmBinaryModel( const CSvmKernel& _kernel,
 		}
 	}
 }
+
+CSvmBinaryModel::~CSvmBinaryModel() = default;
 
 bool CSvmBinaryModel::Classify( const CFloatVectorDesc& data, CClassificationResult& result ) const
 {
