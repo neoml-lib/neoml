@@ -169,7 +169,7 @@ bool CMobileNetV3Optimizer::detectMNv3PostSE( CConvLayer& downConv, CMNv3BlockIn
 
 	CBaseLayer* nextLayer = graph.SelectConnectedOutput<>( downConv, 0, true ).Layer;
 	if( nextLayer != nullptr && isValidBlockActivation( *nextLayer ) ) {
-		detectedBlock.ChannelwisePostSEActivation = dynamic_cast<IActivationLayer&>( *nextLayer ).GetDesc();
+		detectedBlock.ChannelwisePostSEActivation = dynamic_cast<IActivationLayer*>( nextLayer )->GetDesc();
 		detectedBlock.SEMulVectorInput.Layer = graph.SelectConnectedOutput<>( *nextLayer, 0, true ).Layer;
 	} else {
 		detectedBlock.SEMulVectorInput.Layer = nextLayer;
@@ -251,7 +251,7 @@ bool CMobileNetV3Optimizer::detectMNv3PreSE( CMNv3BlockInfo& detectedBlock )
 
 	CBaseLayer* expandConvCandidate = graph.SelectConnectedOutput<>( *detectedBlock.Channelwise, 0, true ).Layer;
 	if( expandConvCandidate != nullptr && isValidBlockActivation( *expandConvCandidate ) ) {
-		detectedBlock.ExpandActivation = dynamic_cast<IActivationLayer&>( *expandConvCandidate ).GetDesc();
+		detectedBlock.ExpandActivation = dynamic_cast<IActivationLayer*>( expandConvCandidate )->GetDesc();
 		expandConvCandidate = graph.SelectConnectedOutput<>( *expandConvCandidate, 0, true ).Layer;
 	}
 
