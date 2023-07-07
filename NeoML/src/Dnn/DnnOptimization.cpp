@@ -22,6 +22,7 @@ limitations under the License.
 #include "Optimization/ChannelwiseWith1x1Optimizer.h"
 #include "Optimization/MobileNetV2Optimizer.h"
 #include "Optimization/MobileNetV3Optimizer.h"
+#include "Optimization/TrivialLayerOptimizer.h"
 #include <NeoML/Dnn/Dnn.h>
 
 namespace NeoML {
@@ -30,6 +31,7 @@ CDnnOptimizationReport OptimizeDnn( CDnn& dnn )
 {
 	CDnnOptimizationReport report;
 	optimization::CGraph graph( dnn );
+	report.RemovedTrivialLayers = optimization::RemoveTrivialLayers( graph );
 	optimization::CBatchNormFusionOptimizer( graph ).Apply( report );
 	optimization::CChannelwiseWith1x1Optimizer( graph ).Apply( report );
 	optimization::CMobileNetV2Optimizer( graph ).Apply( report );

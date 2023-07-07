@@ -447,40 +447,6 @@ void CCpuMathEngine::VectorReLUDiff( const CConstFloatHandle& firstHandle, const
 	}
 }
 
-void CCpuMathEngine::VectorLeakyReLU( const CConstFloatHandle& firstHandle,
-	const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& alpha )
-{
-	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
-	ASSERT_EXPR( alpha.GetMathEngine() == this );
-	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-	CCpuExecutionScope scope;
-
-	const float* first = GetRaw( firstHandle );
-	float* result = GetRaw( resultHandle );
-	const float coeff = *GetRaw( alpha );
-
-	int sseSize;
-	int nonSseSize;
-	checkSse( vectorSize, sseSize, nonSseSize );
-
-	if( sseSize > 0 ) {
-		const __m128 zeroSse = _mm_setzero_ps();
-		const __m128 coeffSse = _mm_set1_ps( coeff );
-		for( int i = 0; i < sseSize; ++i ) {
-			__m128 input = _mm_loadu_ps( first );
-			// result = x_pos + x_neg * alpha
-			_mm_storeu_ps( result, _mm_add_ps( _mm_max_ps( input, zeroSse ),
-				_mm_mul_ps( _mm_min_ps( input, zeroSse ), coeffSse ) ) );
-			first += 4;
-			result += 4;
-		}
-	}
-
-	for( int i = 0; i < nonSseSize; ++i ) {
-		*result++ = *first >= 0.f ? *first++ : coeff * *first++;
-	}
-}
-
 void CCpuMathEngine::VectorLeakyReLUDiff( const CConstFloatHandle& firstHandle,
 	const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle,
 	int vectorSize, const CConstFloatHandle& alpha )

@@ -64,19 +64,29 @@ int CMobileNetV2Optimizer::optimizeNonResidualBlocks()
 		graph.SelectLayer( *channelwise );
 
 		CBaseLayer* expandActivation = graph.SelectConnectedOutput<>( *channelwise, 0, true ).Layer;
-		if( expandActivation == nullptr || !isValidActivation( *expandActivation ) ) {
+		CConvLayer* expandConv = nullptr;
+		if( expandActivation == nullptr ) {
 			continue;
 		}
 
-		CConvLayer* expandConv = graph.SelectConnectedOutput<CConvLayer>( *expandActivation, 0, true ).Layer;
+		if( isValidActivation( *expandActivation ) ) {
+			expandConv = graph.SelectConnectedOutput<CConvLayer>( *expandActivation, 0, true ).Layer;
+		} else {
+			expandConv = dynamic_cast<CConvLayer*>( expandActivation );
+			expandActivation = nullptr;
+		}
+
 		if( expandConv == nullptr || !isValid1x1Conv( *expandConv ) ) {
 			continue;
 		}
 
+		NeoAssert( expandActivation == nullptr || dynamic_cast<IActivationLayer*>( expandActivation ) != nullptr );
+		const CActivationDesc expandActivationDesc = expandActivation == nullptr
+			? CActivationDesc( AF_Linear, CLinearLayer::CParam{ 1.f, 0.f } )
+			: dynamic_cast<IActivationLayer*>( expandActivation )->GetDesc();
 		CLayerOutput<> mobileNetBlockData = graph.GetConnectedOutput<>( *expandConv, 0 );
 		CPtr<CMobileNetV2BlockLayer> mobileNetV2Block = new CMobileNetV2BlockLayer( graph.MathEngine(),
-			expandConv->GetFilterData(), expandConv->GetFreeTermData(),
-			dynamic_cast<IActivationLayer*>( expandActivation )->GetDesc(),
+			expandConv->GetFilterData(), expandConv->GetFreeTermData(), expandActivationDesc,
 			channelwise->Stride(), channelwise->ChannelwiseFilter(), channelwise->ChannelwiseFreeTerm(),
 			channelwise->Activation(), channelwise->ConvFilter(), channelwise->ConvFreeTerm(), false );
 		mobileNetV2Block->SetName( graph.GetUniqueName( "MobileNetV2Block" ) );
@@ -122,16 +132,6 @@ int CMobileNetV2Optimizer::optimizeResidualConnections()
 			CMobileNetV2BlockLayer* mobileNetV2Block = graph.GetConnectedOutput<CMobileNetV2BlockLayer>(
 				*layer, i ).Layer;
 
-			// Workaround for some networks which have Linear{1.f, 0.f} between downConv and residual
-			CLinearLayer* linear = nullptr;
-			if( mobileNetV2Block == nullptr ) {
-				linear = graph.GetConnectedOutput<CLinearLayer>( *layer, i ).Layer;
-				if( linear == nullptr || linear->GetFreeTerm() != 0.f || linear->GetMultiplier() != 1.f ) {
-					continue;
-				}
-				mobileNetV2Block = graph.GetConnectedOutput<CMobileNetV2BlockLayer>( *linear, 0 ).Layer;
-			}
-
 			if( mobileNetV2Block == nullptr || graph.GetInputCount( *mobileNetV2Block ) != 1
 				|| graph.GetOutputCount( *mobileNetV2Block ) != 1
 				|| graph.GetConnectedInputsCount( *mobileNetV2Block, 0 ) != 1
@@ -146,9 +146,6 @@ int CMobileNetV2Optimizer::optimizeResidualConnections()
 				graph.SwitchOutputs( *layer, 0, *mobileNetV2Block, 0 );
 				mobileNetV2Block->SetResidual( true );
 				graph.DeleteLayer( *layer );
-				if( linear != nullptr ) {
-					graph.DeleteLayer( *linear );
-				}
 				++blocksOptimized;
 				break;
 			}
@@ -173,12 +170,7 @@ bool CMobileNetV2Optimizer::isValidActivation( CBaseLayer& layer ) const
 		return false;
 	}
 
-	if( dynamic_cast<CReLULayer*>( &layer ) != nullptr || dynamic_cast<CHSwishLayer*>( &layer ) != nullptr ) {
-		return true;
-	}
-
-	CLinearLayer* linear = dynamic_cast<CLinearLayer*>( &layer );
-	return linear != nullptr && linear->GetFreeTerm() == 0 && linear->GetMultiplier() == 1;
+	return dynamic_cast<CReLULayer*>( &layer ) != nullptr || dynamic_cast<CHSwishLayer*>( &layer ) != nullptr;
 }
 
 } // namespace optimization

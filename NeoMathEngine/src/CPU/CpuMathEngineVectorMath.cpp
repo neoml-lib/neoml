@@ -1035,4 +1035,14 @@ void CCpuMathEngine::VectorHardSigmoid( const CConstFloatHandle& firstHandle, co
 	vectorHardSigmoid( first, result, slope, bias, vectorSize );
 }
 
+void CCpuMathEngine::VectorLeakyReLU( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle,
+	int vectorSize, const CConstFloatHandle& alphaHandle )
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( alphaHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	CCpuExecutionScope scope;
+	vectorLeakyReLU( GetRaw( firstHandle ), GetRaw( resultHandle ), *GetRaw( alphaHandle ), vectorSize );
+}
+
 } // namespace NeoML
