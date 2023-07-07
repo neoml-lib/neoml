@@ -32,7 +32,7 @@ TEST( TrivialLayerOptimizerTest, Linear )
 	CLinearLayer* linearToSave1 = Linear( 1.f, 1.f )( "linearToSave1", linearToRemove1 );
 	CLinearLayer* linearToRemove2 = Linear( 1.0f, 0 )( "linearToRemove2", linearToSave1 );
 	CLinearLayer* linearToRemove3 = Linear( 1.0f, 0 )( "linearToRemove3", linearToRemove2 );
-	CSinkLayer* sink = Sink( linearToRemove3, "sink" );
+	( void ) Sink( linearToRemove3, "sink" );
 
 	CDnnOptimizationReport report = OptimizeDnn( dnn );
 
@@ -60,7 +60,7 @@ TEST( TrivialLayerOptimizerTest, Dropout )
 	CDropoutLayer* dropout1 = Dropout( 0.2f )( "dropout1", fc0 );
 	CDropoutLayer* dropout2 = Dropout( 0.5f )( "dropout2", dropout1 );
 	CDropoutLayer* dropout3 = Dropout( 0.001f )( "dropout3", dropout2 );
-	CSinkLayer* sink = Sink( dropout3, "sink" );
+	( void ) Sink( dropout3, "sink" );
 
 	CDnnOptimizationReport report = OptimizeDnn( dnn );
 
@@ -86,7 +86,7 @@ TEST( TrivialLayerOptimizerTest, None )
 	CLinearLayer* linear0 = Linear( 2.f, 0.f )( "linear0", fc );
 	CConvLayer* conv = Conv( 12, CConvAxisParams( 3 ), CConvAxisParams( 4 ), true )( "conv", linear0 );
 	CLinearLayer* linear1 = Linear( 1.f, 1.f )( "linear1", conv );
-	CSinkLayer* sink = Sink( linear1, "sink" );
+	( void ) Sink( linear1, "sink" );
 
 	EXPECT_EQ( 6, dnn.GetLayerCount() );
 
@@ -108,7 +108,7 @@ TEST( TrivialLayerOptimizerTest, All )
 	CDropoutLayer* dropout3 = Dropout( 0.001f )( "dropout3", dropout2 );
 	CLinearLayer* linear1 = Linear( 1.f, 0.f )( "linear1", dropout3 );
 	CLinearLayer* linear2 = Linear( 1.f, 0.f )( "linear2", linear1 );
-	CSinkLayer* sink = Sink( linear2, "sink" );
+	( void ) Sink( linear2, "sink" );
 
 	CDnnOptimizationReport report = OptimizeDnn( dnn );
 
