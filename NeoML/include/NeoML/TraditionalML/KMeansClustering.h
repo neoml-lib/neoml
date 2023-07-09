@@ -77,6 +77,8 @@ public:
 		int Seed = 0xCEA;
 
 		CParam() = default;
+		CParam( const CParam&  ) = default;
+		CParam( const CParam& params, int realThreadCount ) : CParam( params ) { ThreadCount = realThreadCount; }
 	};
 
 	// Constructors
@@ -97,20 +99,12 @@ public:
 	// false if more iterations are needed
 	bool Clusterize( IClusteringData* data, CClusteringResult& result ) override;
 
+	// Get handler of the internal thread pool
 	IThreadPool* GetThreadPool() const { return threadPool; }
-	struct IThreadTask;
-	struct IThreadSubTask;
-	struct CVectorFillThreadTask;
-	struct CVectorCopyThreadTask;
-	struct CVectorSubThreadTask;
-	struct CVectorMultiplyThreadTask;
-	struct CVectorEltwiseMultiplyThreadTask;
-	struct CDiagMxMThreadTask;
-	struct CVectorMultichannelLookupAndAddToTableThreadTask;
 
 private:
+	IThreadPool* const threadPool; // parallelize execution
 	const CParam params; // clustering parameters
-	IThreadPool* const threadPool;
 	CTextStream* log = nullptr; // the logging stream
 
 	CObjectArray<CCommonCluster> clusters{}; // the current clusters
@@ -129,20 +123,11 @@ private:
 
 	// Lloyd algorithm implementation for sparse data
 	bool lloydClusterization( const CFloatMatrixDesc& matrix, const CArray<double>& weights, double& inertia );
-	struct CClassifyAllThreadTask;
-	double classifyAllData( CClassifyAllThreadTask& );
-	struct CUpdateClustersThreadTask;
-	bool updateClusters( CUpdateClustersThreadTask& );
 
 	// Elkan algorithm implementation for sparse data
 	bool elkanClusterization( const CFloatMatrixDesc& matrix, const CArray<double>& weights, double& inertia );
-	struct CAssignVectorsThreadTask;
-	void initializeElkanStatistics( CAssignVectorsThreadTask& );
 	void computeClustersDists( CVariableMatrix<float>& dists, CArray<float>& closestCluster ) const;
-	void assignVectors( CAssignVectorsThreadTask& ) const;
 	void updateMoveDistance( const CArray<CClusterCenter>& oldCenters, CArray<float>& moveDistance ) const;
-	struct CUpdateULBoundsThreadTask;
-	double updateUpperAndLowerBounds( CUpdateULBoundsThreadTask& ) const;
 
 	// Specific case for dense data with Euclidean metrics and Lloyd algorithm
 	bool denseLloydL2Clusterize( IClusteringData* rawData, int seed, CClusteringResult& result, double& inertia );
@@ -150,6 +135,7 @@ private:
 	void selectInitialClusters( const CDnnBlob& data, int seed, CDnnBlob& centers );
 	void defaultInitialization( const CDnnBlob& data, int seed, CDnnBlob& centers );
 	void kMeansPlusPlusInitialization( const CDnnBlob& data, int seed, CDnnBlob& centers );
+
 	// Lloyd algorithm implementation
 	bool lloydBlobClusterization( const CDnnBlob& data, const CDnnBlob& weight,
 		CDnnBlob& centers, CDnnBlob& sizes, CDnnBlob& labels, double& inertia );
