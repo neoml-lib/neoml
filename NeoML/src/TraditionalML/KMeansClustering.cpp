@@ -649,15 +649,14 @@ void CDiagMxMThreadTask::Run( int /*threadIndex*/, const int* index, const int* 
 
 struct CVectorMultichannelLookupAndAddToTableThreadTask : public IMathEngineThreadTask {
 	CVectorMultichannelLookupAndAddToTableThreadTask( IThreadPool& threadPool, IMathEngine& mathEngine, int lookupItemCount,
-			int lookupItemSize, int batchSize, const CConstIntHandle& input, const CFloatHandle& lookupHandles,
-			const CConstFloatHandle& multiplier, const CConstFloatHandle& matrix ) :
-		IMathEngineThreadTask( threadPool, /*1D*/{ lookupItemCount }, /*align*/1, mathEngine, lookupHandles ),
+			int lookupItemSize, int batchSize, const CConstIntHandle& input, const CFloatHandle& lookupResult,
+			const CConstFloatHandle& matrix ) :
+		IMathEngineThreadTask( threadPool, /*1D*/{ lookupItemCount }, /*align*/1, mathEngine, lookupResult ),
 		BatchSize( batchSize ),
 		LookupItemSize( lookupItemSize ),
 		LookupItemCount( lookupItemCount ),
 		LookupInput( input ),
-		LookupMatrix( matrix ),
-		LookupMultiplier( multiplier )
+		LookupMatrix( matrix )
 	{}
 protected:
 	int Complexity() const override { return BatchSize * LookupItemCount * LookupItemSize; }
@@ -668,7 +667,6 @@ protected:
 	const int LookupItemCount;
 	const CConstIntHandle& LookupInput;
 	const CConstFloatHandle& LookupMatrix;
-	const CConstFloatHandle& LookupMultiplier;
 };
 
 void CVectorMultichannelLookupAndAddToTableThreadTask::Run( int /*threadIndex*/, const int* firstIndex, const int* count )
@@ -677,10 +675,10 @@ void CVectorMultichannelLookupAndAddToTableThreadTask::Run( int /*threadIndex*/,
 	for( int b = 0; b < BatchSize; ++b ) {
 		const int index = ( LookupInput + b ).GetValue();
 		if( *firstIndex <= index && index <= lastIndex ) {
-			NeoPresume( 0 <= indexInput && indexInput < LookupItemCount );
+			NeoPresume( 0 <= index && index < LookupItemCount );
 			const CConstFloatHandle matrix = LookupMatrix + b * LookupItemSize;
 			const CFloatHandle pos = Result + index * LookupItemSize;
-			MathEngine.VectorMultiplyAndAdd( pos, matrix, pos, LookupItemSize, LookupMultiplier );
+			MathEngine.VectorAdd( pos, matrix, pos, LookupItemSize );
 		}
 	}
 }
@@ -1397,18 +1395,16 @@ void CKMeansClustering::calcClusterVariances( const CDnnBlob& data, const CDnnBl
 		}
 	}
 
-	CFloatHandleStackVar stackBuff( mathEngine, vectorCount * featureCount + clusterCount * featureCount + 1 );
+	CFloatHandleStackVar stackBuff( mathEngine, vectorCount * featureCount + clusterCount * featureCount );
 	{
 		// Calculate sum of squares of objects in each cluster
 		CFloatHandle squaredData = stackBuff.GetHandle();
 		CFloatHandle sumOfSquares = stackBuff.GetHandle() + vectorCount * featureCount;
-		CFloatHandle one = stackBuff.GetHandle() + vectorCount * featureCount + clusterCount * featureCount;
-		one.SetValue( 1.f );
 
 		CVectorEltwiseMultiplyThreadTask( *threadPool, mathEngine, data.GetDataSize(), data.GetData(), data.GetData(), squaredData ).ParallelRun();
 		CVectorFillThreadTask( *threadPool, mathEngine, clusterCount * featureCount, sumOfSquares, /*value*/0.f ).ParallelRun();
 		CVectorMultichannelLookupAndAddToTableThreadTask( *GetThreadPool(), mathEngine, params.InitialClustersCount,
-			featureCount, vectorCount, labels.GetData<int>(), sumOfSquares, one, squaredData ).ParallelRun();
+			featureCount, vectorCount, labels.GetData<int>(), sumOfSquares, squaredData ).ParallelRun();
 
 		variances.Clear();
 		// Divide sum of squares by cluster size
