@@ -36,7 +36,7 @@ TEST( TrivialLayerOptimizerTest, Linear )
 
 	CDnnOptimizationReport report = OptimizeDnn( dnn );
 
-	EXPECT_EQ( 4, report.RemovedTrivialLayers );
+	EXPECT_EQ( 4, report.TrivialLayersRemoved );
 
 	EXPECT_EQ( 4, dnn.GetLayerCount() );
 	EXPECT_TRUE( dnn.HasLayer( "source" ) );
@@ -64,7 +64,7 @@ TEST( TrivialLayerOptimizerTest, Dropout )
 
 	CDnnOptimizationReport report = OptimizeDnn( dnn );
 
-	EXPECT_EQ( 4, report.RemovedTrivialLayers );
+	EXPECT_EQ( 4, report.TrivialLayersRemoved );
 
 	EXPECT_EQ( 3, dnn.GetLayerCount() );
 	EXPECT_TRUE( dnn.HasLayer( "source" ) );
@@ -92,7 +92,7 @@ TEST( TrivialLayerOptimizerTest, None )
 
 	CDnnOptimizationReport report = OptimizeDnn( dnn );
 
-	EXPECT_EQ( 0, report.RemovedTrivialLayers );
+	EXPECT_EQ( 0, report.TrivialLayersRemoved );
 	EXPECT_EQ( 6, dnn.GetLayerCount() );
 }
 
@@ -112,8 +112,120 @@ TEST( TrivialLayerOptimizerTest, All )
 
 	CDnnOptimizationReport report = OptimizeDnn( dnn );
 
-	EXPECT_EQ( 7, report.RemovedTrivialLayers );
+	EXPECT_EQ( 7, report.TrivialLayersRemoved );
 	EXPECT_EQ( 2, dnn.GetLayerCount() );
 	EXPECT_TRUE( dnn.HasLayer( "source" ) );
 	EXPECT_TRUE( dnn.HasLayer( "sink" ) );
 }
+
+//---------------------------------------------------------------------------------------------------------------------
+
+namespace NeoMLTest {
+
+class CConvActivationTestLayer : public CCompositeLayer {
+public:
+	CConvActivationTestLayer( IMathEngine& mathEngine, bool multipleOutputs = false );
+};
+
+CConvActivationTestLayer::CConvActivationTestLayer( IMathEngine& mathEngine, bool multipleOutputs ) :
+	CCompositeLayer( mathEngine, "ConvActivation" )
+{
+	CPtr<CConvLayer> conv = new CConvLayer( mathEngine );
+	AddLayer( *conv );
+	SetInputMapping( *conv );
+	if( multipleOutputs ) {
+		SetOutputMapping( 1, *conv, 0 );
+	}
+
+	CPtr<CReLULayer> relu = new CReLULayer( mathEngine );
+	AddLayer( *relu );
+	relu->Connect( *conv );
+	SetOutputMapping( 0, *relu, 0 );
+}
+
+REGISTER_NEOML_LAYER( CConvActivationTestLayer, "CConvActivationTestLayer" )
+
+//---------------------------------------------------------------------------------------------------------------------
+
+class CTwoConvActivationTestLayer : public CCompositeLayer {
+public:
+	explicit CTwoConvActivationTestLayer( IMathEngine& mathEngine, bool multipleOutputs = false );
+};
+
+CTwoConvActivationTestLayer::CTwoConvActivationTestLayer( IMathEngine& mathEngine, bool multipleOutputs ) :
+	CCompositeLayer( mathEngine, "TwoConvActivation" )
+{
+	CPtr<CConvActivationTestLayer> convAct0 = new CConvActivationTestLayer( mathEngine, multipleOutputs );
+	convAct0->SetName( "convAct0" );
+	AddLayer( *convAct0 );
+	SetInputMapping( *convAct0 );
+
+	CPtr<CConvActivationTestLayer> convAct1 = new CConvActivationTestLayer( mathEngine, false );
+	convAct1->SetName( "convAct1" );
+	AddLayer( *convAct1 );
+	convAct1->Connect( *convAct0 );
+	SetOutputMapping( 0, *convAct1, 0 );
+
+	if( multipleOutputs ) {
+		SetOutputMapping( 1, *convAct0, 1 );
+	}
+}
+
+REGISTER_NEOML_LAYER( CTwoConvActivationTestLayer, "CTwoConvActivationTestLayer" )
+
+} // namespace NeoMLTest
+
+TEST( UnpackCompositeOptimizerTest, Sample )
+{
+	CRandom random( 0x9845 );
+	CDnn dnn( random, MathEngine() );
+	CSourceLayer* source = Source( dnn, "source" );
+
+	CPtr<CTwoConvActivationTestLayer> twoConvAct0 = new CTwoConvActivationTestLayer( MathEngine(), true );
+	twoConvAct0->SetName( "twoConvAct0" );
+	dnn.AddLayer( *twoConvAct0 );
+	twoConvAct0->Connect( *source );
+
+	CSinkLayer* sink0 = Sink( twoConvAct0.Ptr(), "sink0" );
+
+	CPtr<CTwoConvActivationTestLayer> twoConvAct1 = new CTwoConvActivationTestLayer( MathEngine(), false );
+	twoConvAct1->SetName( "twoConvAct1" );
+	dnn.AddLayer( *twoConvAct1 );
+	twoConvAct1->Connect( 0, *twoConvAct0, 1 );
+
+	CPtr<CConvActivationTestLayer> convAct = new CConvActivationTestLayer( MathEngine(), true );
+	convAct->SetName( "convAct" );
+	dnn.AddLayer( *convAct );
+	convAct->Connect( *twoConvAct1 );
+
+	CSinkLayer* sink1 = Sink( convAct.Ptr(), "sink1" );
+	CSinkLayer* sink2 = Sink( CDnnLayerLink( convAct.Ptr(), 1 ), "sink2" );
+
+	CPtr<CDnnBlob> testImage = CDnnBlob::Create2DImageBlob( MathEngine(), CT_Float, 1, 2, 64, 128, 3 );
+	CREATE_FILL_FLOAT_ARRAY( rawData, 0.f, 1.f, testImage->GetDataSize(), random );
+	testImage->CopyFrom( rawData.GetPtr() );
+
+	source->SetBlob( testImage );
+	dnn.RunOnce();
+
+	CObjectArray<CDnnBlob> originalOutput = {
+		sink0->GetBlob()->GetCopy(),
+		sink1->GetBlob()->GetCopy(),
+		sink2->GetBlob()->GetCopy()
+	};
+
+	CDnnOptimizationReport report = OptimizeDnn( dnn );
+	EXPECT_EQ( 7, report.CompositeLayersUnpacked );
+	dnn.RunOnce();
+
+	CObjectArray<CDnnBlob> actualOutput = {
+		sink0->GetBlob()->GetCopy(),
+		sink1->GetBlob()->GetCopy(),
+		sink2->GetBlob()->GetCopy()
+	};
+
+	for( int i = 0; i < originalOutput.Size(); ++i ) {
+		EXPECT_TRUE( CompareBlobs( *originalOutput[0], *actualOutput[0] ) );
+	}
+}
+

@@ -23,8 +23,11 @@ class CDnn;
 
 // Struct which contains the details of optimization result
 struct NEOML_API CDnnOptimizationReport {
+	// Number of composite layers which where unpacked
+	// (unpack == content of the layer moved to the root CDnn, composite itself is removed)
+	int CompositeLayersUnpacked = 0;
 	// Number of trivial layers removed from the CDnn (dropout, linear(1,0) etc)
-	int RemovedTrivialLayers = 0;
+	int TrivialLayersRemoved = 0;
 	// Number of batch normalizations fused into other layers
 	int FusedBatchNormalizations = 0;
 	// Number of merged (channelwise->activation->1x1) constructions without residual connection

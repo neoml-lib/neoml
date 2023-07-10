@@ -45,6 +45,10 @@ public:
 	void SetOutputMapping(const char* internalLayerName) { SetOutputMapping(0, internalLayerName, 0); }
 	void SetOutputMapping(CBaseLayer& internalLayer) { SetOutputMapping(internalLayer.GetName()); }
 
+	int GetOutputMappingCount() const { return outputMappings.Size(); }
+	CString GetOutputMappingLayer( int index ) { return outputMappings[index].InternalLayerName; }
+	int GetOutputMappingIndex( int index ) { return outputMappings[index].InternalLayerOutput; }
+
 	// Internal logging settings
 	void EnableInternalLogging() { areInternalLogsEnabled = true; }
 	void DisableInternalLogging() { areInternalLogsEnabled = false; }
