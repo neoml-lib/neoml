@@ -54,8 +54,6 @@ CSvmBinaryModel::CSvmBinaryModel( const CSvmKernel& _kernel,
 	}
 }
 
-CSvmBinaryModel::~CSvmBinaryModel() = default;
-
 bool CSvmBinaryModel::Classify( const CFloatVectorDesc& data, CClassificationResult& result ) const
 {
 	CFloatVectorDesc desc;

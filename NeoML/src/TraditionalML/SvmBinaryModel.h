@@ -40,7 +40,7 @@ public:
 	double GetFreeTerm() const override { return freeTerm; }
 
 protected:
-	~CSvmBinaryModel() override; // delete prohibited
+	~CSvmBinaryModel() override = default; // delete prohibited
 
 private:
 	CSvmKernel kernel{}; // the kernel

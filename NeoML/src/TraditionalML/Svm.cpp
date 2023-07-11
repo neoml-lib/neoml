@@ -29,31 +29,30 @@ namespace NeoML {
 
 namespace {
 
-// Function to decide run the task in a single thread or in parallel
-static inline bool isThreadTaskRelevant( int64_t operationCount )
-{
-	constexpr int64_t MinOmpOperationCount = 32768;
-	return operationCount >= MinOmpOperationCount;
-}
-
 // Task which processes in multiple threads
 struct IThreadTask {
 	virtual ~IThreadTask() {}
-
+	// Run in a single thread or in parallel, corresponding of task's `ParallelizeSize()`
 	void ParallelRun();
 protected:
-	IThreadTask( IThreadPool& threadPool, const IProblem& );
+	// Create a task
+	IThreadTask( IThreadPool&, const IProblem& );
 
+	// The size of parallelization, max number of sub-tasks to perform
 	int ParallelizeSize() const { return Problem.GetVectorCount(); }
+	// The number of separate executors
 	int ThreadCount() const { return ThreadPool.Size(); }
+	// Get way of split the task into sub-tasks
 	void RunSplittedByThreads( int threadIndex );
-	void Run( int threadIndex, int index, int count );
-
+	// Run the problem vector in a separate thread, cycle on sub-tasks
+	void Run( int threadIndex, int startIndex, int count );
+	// Run on each element of the problem vector separately
 	virtual void RunOnElement( int threadIndex, int index, const CFloatVectorDesc& ) = 0;
 
-	IThreadPool& ThreadPool;
-	const IProblem& Problem;
-	const CFloatMatrixDesc Matrix;
+	static constexpr int MultiThreadMinTasksCount = 2;
+	IThreadPool& ThreadPool; //parallel executors
+	const IProblem& Problem; //performing problem
+	const CFloatMatrixDesc Matrix; //performing problem's sizes
 };
 
 IThreadTask::IThreadTask( IThreadPool& threadPool, const IProblem& problem ) :
@@ -67,7 +66,7 @@ IThreadTask::IThreadTask( IThreadPool& threadPool, const IProblem& problem ) :
 
 void IThreadTask::ParallelRun()
 {
-	if( !isThreadTaskRelevant( Problem.GetVectorCount() ) ) {
+	if( ParallelizeSize() < MultiThreadMinTasksCount ) {
 		// Run in a single thread
 		Run( /*threadIndex*/0, /*index*/0, ParallelizeSize() );
 		return;
@@ -82,17 +81,19 @@ void IThreadTask::RunSplittedByThreads( int threadIndex )
 {
 	int index = 0;
 	int count = 0;
+	// 1 dimensional split
 	if( GetTaskIndexAndCount( ThreadCount(), threadIndex, ParallelizeSize(), index, count ) ) {
 		Run( threadIndex, index, count );
 	}
 }
 
-void IThreadTask::Run( int threadIndex, int index, int count )
+void IThreadTask::Run( int threadIndex, int startIndex, int count )
 {
-	for( int i = 0; i < count; ++i, ++index ) {
+	const int endIndex = startIndex + count;
+	for( int index = startIndex; index < endIndex; ++index ) {
 		CFloatVectorDesc desc;
 		Matrix.GetRow( index, desc );
-
+		// main function call
 		RunOnElement( threadIndex, index, desc );
 	}
 }
@@ -100,6 +101,7 @@ void IThreadTask::Run( int threadIndex, int index, int count )
 //------------------------------------------------------------------------------------------------------------
 
 struct CFindPlanesThreadTask : public IThreadTask {
+	// Create a task
 	CFindPlanesThreadTask( IThreadPool& threadPool, const IProblem& problem, CArray<double>& alpha ) :
 		IThreadTask( threadPool, problem ),
 		Alpha( alpha )
@@ -132,6 +134,7 @@ CFloatVector CFindPlanesThreadTask::Reduction( float freeTerm )
 //-------------------------------------------------------------------------------------------------------------
 
 struct CCalcDistancesThreadTask : public IThreadTask {
+	// Create a task
 	CCalcDistancesThreadTask( IThreadPool& threadPool, const IProblem& problem, const CFloatVector& plane ) :
 		IThreadTask( threadPool, problem ),
 		Plane( plane )
