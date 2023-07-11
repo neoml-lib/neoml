@@ -1193,6 +1193,30 @@ inline void vectorHardSigmoid( const float* first, float* result, float slope, f
 	}
 }
 
+//------------------------------------------------------------------------------------------------------------
+
+inline void vectorLeakyReLU( const float* first, float* result, float alpha, int vectorSize )
+{
+	const __m128 zeroSse = _mm_setzero_ps();
+	const __m128 alphaSse = _mm_set1_ps( alpha );
+
+	while( vectorSize >= 4 ) {
+		__m128 input = LoadSse4( first );
+		// result = x_pos + x_neg * alpha
+		StoreSse4( _mm_add_ps( _mm_max_ps( input, zeroSse ), _mm_mul_ps( _mm_min_ps( input, zeroSse ), alphaSse ) ),
+			result );
+		first += 4;
+		result += 4;
+		vectorSize -= 4;
+	}
+
+	if( vectorSize > 0 ) {
+		__m128 input = LoadSse( first, vectorSize );
+		StoreSse( _mm_add_ps( _mm_max_ps( input, zeroSse ), _mm_mul_ps( _mm_min_ps( input, zeroSse ), alphaSse ) ),
+			result, vectorSize );
+	}
+}
+
 } // namespace NeoML
 
 #endif // NEOML_USE_SSE
