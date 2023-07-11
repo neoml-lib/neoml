@@ -49,9 +49,7 @@ inline CCriticalSectionLock::CCriticalSectionLock( CCriticalSection& _section, b
 
 inline CCriticalSectionLock::~CCriticalSectionLock()
 {
-	if( isLocked ) {
-		Unlock();
-	}
+	Unlock();
 }
 
 inline void CCriticalSectionLock::Lock()
