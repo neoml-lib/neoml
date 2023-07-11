@@ -19,6 +19,9 @@ limitations under the License.
 
 namespace NeoML {
 
+// Forward declaration
+class IThreadPool;
+
 struct CFloatVectorElement final {
 	int Index{};
 	float Value{};
@@ -27,7 +30,8 @@ struct CFloatVectorElement final {
 // The subproblem for building a tree using gradient boosting
 class CGradientBoostFullProblem : public IObject {
 public:
-	CGradientBoostFullProblem( int threadCount, const IMultivariateRegressionProblem* baseProblem,
+	CGradientBoostFullProblem( int threadCount,
+		const IMultivariateRegressionProblem* baseProblem,
 		const CArray<int>& usedVectors, const CArray<int>& usedFeatures,
 		const CArray<int>& featureNumbers );
 
@@ -61,10 +65,10 @@ public:
 
 protected:
 	// delete prohibited
-	~CGradientBoostFullProblem() override = default;
+	~CGradientBoostFullProblem() override;
 
 private:
-	const int threadCount; // the number of processing threads
+	IThreadPool* const threadPool; // the pool of processing threads
 	// The original problem that contains all vectors of the original set
 	// The vectors for the subsample will be stored in the usedVectors field (see below)
 	const CPtr<const IMultivariateRegressionProblem> baseProblem;

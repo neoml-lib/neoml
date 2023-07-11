@@ -20,11 +20,12 @@ limitations under the License.
 #include <NeoML/TraditionalML/GradientBoostQuickScorer.h>
 #include <GradientBoostModel.h>
 #include <RegressionTree.h>
+#include <ProblemWrappers.h>
 #include <GradientBoostFullProblem.h>
 #include <GradientBoostFastHistProblem.h>
 #include <GradientBoostFullTreeBuilder.h>
 #include <GradientBoostFastHistTreeBuilder.h>
-#include <ProblemWrappers.h>
+#include <GradientBoostThreadTask.h>
 #include <NeoMathEngine/ThreadPool.h>
 
 namespace NeoML {
@@ -256,14 +257,11 @@ double CGradientBoostingSquareLoss::CalcLossMean( const CArray< CArray<double> >
 
 namespace {
 
-// Task which processes in multiple threads
-struct IThreadTask {
-	virtual ~IThreadTask() {}
-	// Run in a single thread or in parallel, corresponding to `ParallelizeSize()`
-	void ParallelRun();
+// Abstract base class
+struct IPredictionsThreadTask : public IGradientBoostThreadTask {
 protected:
 	// Create a task
-	IThreadTask( IThreadPool&, const IMultivariateRegressionProblem&,
+	IPredictionsThreadTask( IThreadPool&, const IMultivariateRegressionProblem&,
 		const CArray<CGradientBoostEnsemble>& models,
 		CArray<CArray<CGradientBoost::CPredictionCacheItem>>& predictCache,
 		CArray<CArray<double>>& predicts, CArray<CArray<double>>& answers,
@@ -271,21 +269,14 @@ protected:
 
 	// The number of separate executors
 	int ThreadCount() const { return ThreadPool.Size(); }
-	// Get way of split the task into sub-tasks
-	void RunSplittedByThreads( int threadIndex );
-	// Run the process in a separate thread
-	void Run( int threadIndex, int startIndex, int count );
 	// Run on each problem's element separately
 	void RunOnElement( int threadIndex, int index, int usedVectorIndex,
 		const CFloatVectorDesc&, const CFloatVector& );
-
-	// The size of parallelization, max number of elements to perform
-	virtual int ParallelizeSize() const = 0;
+	// Run the process in a separate thread
+	void Run( int threadIndex, int startIndex, int count ) override final;
 	// Contains the mapping of the index in the truncated training set for the given step
 	virtual int UsedVectorIndex( int index ) const = 0;
 
-	static constexpr int MultiThreadMinTasksCount = 2;
-	IThreadPool& ThreadPool; //parallel executors
 	const IMultivariateRegressionProblem& Problem; //performing problem
 	const CFloatMatrixDesc Matrix; //performing problem's sizes
 	const CArray<CGradientBoostEnsemble>& Models; //given models for multi-class classification
@@ -298,7 +289,7 @@ protected:
 	CArray<CFastArray<double, 1>> Predictions{}; //intermediate result
 };
 
-IThreadTask::IThreadTask(
+IPredictionsThreadTask::IPredictionsThreadTask(
 		IThreadPool& threadPool,
 		const IMultivariateRegressionProblem& problem,
 		const CArray<CGradientBoostEnsemble>& models,
@@ -307,7 +298,7 @@ IThreadTask::IThreadTask(
 		CArray<CArray<double>>& answers,
 		float learningRate,
 		bool isMultiTreesModel ) :
-	ThreadPool( threadPool ),
+	IGradientBoostThreadTask( threadPool ),
 	Problem( problem ),
 	Matrix( Problem.GetMatrix() ),
 	Models( models ),
@@ -327,30 +318,7 @@ IThreadTask::IThreadTask(
 	}
 }
 
-void IThreadTask::ParallelRun()
-{
-	if( ParallelizeSize() < MultiThreadMinTasksCount ) {
-		// Run in a single thread
-		Run( /*threadIndex*/0, /*index*/0, ParallelizeSize() );
-		return;
-	}
-	// Run in parallel
-	NEOML_NUM_THREADS( ThreadPool, this, []( int threadIndex, void* ptr ) {
-		( ( IThreadTask* )ptr )->RunSplittedByThreads( threadIndex );
-	} );
-}
-
-void IThreadTask::RunSplittedByThreads( int threadIndex )
-{
-	int index = 0;
-	int count = 0;
-	// 1 dimensional split
-	if( GetTaskIndexAndCount( ThreadCount(), threadIndex, ParallelizeSize(), index, count ) ) {
-		Run( threadIndex, index, count );
-	}
-}
-
-void IThreadTask::Run( int threadIndex, int startIndex, int count )
+void IPredictionsThreadTask::Run( int threadIndex, int startIndex, int count )
 {
 	const int endIndex = startIndex + count;
 	for( int index = startIndex; index < endIndex; ++index ) {
@@ -363,7 +331,7 @@ void IThreadTask::Run( int threadIndex, int startIndex, int count )
 	}
 }
 
-void IThreadTask::RunOnElement( int threadIndex, int index, int usedVectorIndex,
+void IPredictionsThreadTask::RunOnElement( int threadIndex, int index, int usedVectorIndex,
 	const CFloatVectorDesc& desc, const CFloatVector& value )
 {
 	if( IsMultiTreesModel ) {
@@ -390,7 +358,7 @@ void IThreadTask::RunOnElement( int threadIndex, int index, int usedVectorIndex,
 //------------------------------------------------------------------------------------------------------------
 
 // Builds the ensemble predictions for a set of vectors
-struct CBuildPredictionsThreadTask : public IThreadTask {
+struct CBuildPredictionsThreadTask : public IPredictionsThreadTask {
 	// Create a task
 	CBuildPredictionsThreadTask(
 			IThreadPool& threadPool,
@@ -402,8 +370,8 @@ struct CBuildPredictionsThreadTask : public IThreadTask {
 			const CArray<int>& usedVectors,
 			float learningRate,
 			bool isMultiTreesModel ) :
-		IThreadTask( threadPool, problem, models, predictCache, predicts, answers,
-			learningRate, isMultiTreesModel ),
+		IPredictionsThreadTask( threadPool, problem, models,
+			predictCache, predicts, answers, learningRate, isMultiTreesModel ),
 		UsedVectors( usedVectors )
 	{}
 protected:
@@ -416,7 +384,7 @@ protected:
 //------------------------------------------------------------------------------------------------------------
 
 // Fills the prediction cache with the values of the full problem
-struct CBuildFullPredictionsThreadTask : public IThreadTask {
+struct CBuildFullPredictionsThreadTask : public IPredictionsThreadTask {
 	// Create a task
 	CBuildFullPredictionsThreadTask( IThreadPool&, const IMultivariateRegressionProblem&,
 			const CArray<CGradientBoostEnsemble>& models,
@@ -437,8 +405,8 @@ CBuildFullPredictionsThreadTask::CBuildFullPredictionsThreadTask(
 		CArray<CArray<double>>& answers,
 		float learningRate,
 		bool isMultiTreesModel ) :
-	IThreadTask( threadPool, problem, models, predictCache, predicts, answers,
-		learningRate, isMultiTreesModel )
+	IPredictionsThreadTask( threadPool, problem, models,
+		predictCache, predicts, answers, learningRate, isMultiTreesModel )
 {
 	for( int i = 0; i < Predicts.Size(); ++i ) {
 		Predicts[i].SetSize( Problem.GetVectorCount() );
@@ -472,7 +440,7 @@ static void generateRandomArray( CRandom& random, int n, int k, CArray<int>& res
 		swap( result[i], result[index] );
 	}
 	result.SetSize( k );
-	result.QuickSort< Ascending<int> >();
+	result.QuickSort<Ascending<int>>();
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -534,9 +502,11 @@ void CGradientBoost::createTreeBuilder( const IMultivariateRegressionProblem* pr
 			builderParams.MinSubsetWeight = params.MinSubsetWeight;
 			builderParams.DenseTreeBoostCoefficient = params.DenseTreeBoostCoefficient;
 			if( params.TreeBuilder == GBTB_MultiFull ) {
-				fullMultiClassTreeBuilder = FINE_DEBUG_NEW CGradientBoostFullTreeBuilder<CGradientBoostStatisticsMulti>( builderParams, logStream );
+				fullMultiClassTreeBuilder = FINE_DEBUG_NEW
+					CGradientBoostFullTreeBuilder<CGradientBoostStatisticsMulti>( builderParams, logStream );
 			} else {
-				fullSingleClassTreeBuilder = FINE_DEBUG_NEW CGradientBoostFullTreeBuilder<CGradientBoostStatisticsSingle>( builderParams, logStream );
+				fullSingleClassTreeBuilder = FINE_DEBUG_NEW
+					CGradientBoostFullTreeBuilder<CGradientBoostStatisticsSingle>( builderParams, logStream );
 			}
 			fullProblem = FINE_DEBUG_NEW CGradientBoostFullProblem( params.ThreadCount, problem,
 				usedVectors, usedFeatures, featureNumbers );
@@ -557,9 +527,12 @@ void CGradientBoost::createTreeBuilder( const IMultivariateRegressionProblem* pr
 			builderParams.MinSubsetWeight = params.MinSubsetWeight;
 			builderParams.DenseTreeBoostCoefficient = params.DenseTreeBoostCoefficient;
 			if( params.TreeBuilder == GBTB_MultiFastHist ) {
-				fastHistMultiClassTreeBuilder = FINE_DEBUG_NEW CGradientBoostFastHistTreeBuilder<CGradientBoostStatisticsMulti>( builderParams, logStream, problem->GetValueSize() );
+				fastHistMultiClassTreeBuilder = FINE_DEBUG_NEW
+					CGradientBoostFastHistTreeBuilder<CGradientBoostStatisticsMulti>(
+						builderParams, logStream, problem->GetValueSize() );
 			} else {
-				fastHistSingleClassTreeBuilder = FINE_DEBUG_NEW CGradientBoostFastHistTreeBuilder<CGradientBoostStatisticsSingle>( builderParams, logStream, 1 );
+				fastHistSingleClassTreeBuilder = FINE_DEBUG_NEW
+					CGradientBoostFastHistTreeBuilder<CGradientBoostStatisticsSingle>( builderParams, logStream, 1 );
 			}
 			fastHistProblem = FINE_DEBUG_NEW CGradientBoostFastHistProblem( params.ThreadCount, params.MaxBins,
 				*problem, usedVectors, usedFeatures );

@@ -19,6 +19,9 @@ limitations under the License.
 
 namespace NeoML {
 
+// Forward declaration
+class IThreadPool;
+
 // The subproblem for building a tree with gradient boosting
 // The original vectors are transformed into vectors of unique integer identifiers
 // The identifier is the number of the histogram bin to which the feature value corresponds
@@ -49,17 +52,18 @@ public:
 	// Gets the array of identifiers for zero feature values
 	const CArray<int>& GetFeatureNullValueId() const { return nullValueIds; }
 
-protected:
-	// delete prohibited
-	~CGradientBoostFastHistProblem() override = default;
-
-private:
 	// A feature value
 	struct CFeatureValue final {
 		float Value{};
 		double Weight{};
 	};
 
+protected:
+	// delete prohibited
+	~CGradientBoostFastHistProblem() override;
+
+private:
+	IThreadPool* const threadPool;
 	// The vectors used
 	// For each vector in the subsample, the array contains the index it had in the full sample
 	// The array has N * CParams::Subsample elements, where N is the number of vectors in the full sample
@@ -76,10 +80,8 @@ private:
 	CArray<int> vectorData{}; // the vector data
 	CArray<int> vectorPtr{}; // the pointers to the data of the given vector
 
-	void initializeFeatureInfo( int threadCount, int maxBins, const CFloatMatrixDesc& matrix,
+	void initializeFeatureInfo( int maxBins, const CFloatMatrixDesc& matrix,
 		const IMultivariateRegressionProblem& baseProblem );
-	void compressFeatureValues( int threadCount, int maxBins, double totalWeight,
-		CArray< CArray<CFeatureValue> >& featureValues );
 	void buildVectorData( const CFloatMatrixDesc& matrix );
 };
 
