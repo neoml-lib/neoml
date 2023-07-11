@@ -117,6 +117,8 @@ public:
 		TGradientBoostModelRepresentation Representation = GBMR_Compact;
 
 		CParams() = default;
+		CParams( const CParams& ) = default;
+		CParams( const CParams& params, int realThreadCount ) : CParams( params ) { ThreadCount = realThreadCount; }
 	};
 
 	explicit CGradientBoost( const CParams& );
@@ -152,11 +154,6 @@ public:
 	CPtr<IRegressionModel> GetRegressionModel( const IRegressionProblem& );
 	CPtr<IMultivariateRegressionModel> GetMultivariateRegressionModel( const IMultivariateRegressionProblem& );
 
-	struct IThreadTask;
-	struct CBuildPredictionsThreadTask;
-	struct CBuildFullPredictionsThreadTask;
-
-private:
 	// A cache element that contains the ensemble predictions for a vector on a given step
 	struct CPredictionCacheItem final {
 		int Step{}; // the number of the step on which the value was calculated
@@ -169,8 +166,9 @@ private:
 		{ return archive >> item.Step >> item.Value; }
 	};
 
+private:
+	IThreadPool* const threadPool; // the parallel executors
 	const CParams params; // the classification parameters
-	IThreadPool* const threadPool;
 	CRandom defaultRandom{}; // the default random number generator
 	CTextStream* logStream = nullptr; // the logging stream
 	CPtr<CGradientBoostFullTreeBuilder<CGradientBoostStatisticsSingle>> fullSingleClassTreeBuilder{}; // TGBT_Full tree builder for single class
@@ -216,8 +214,6 @@ private:
 	bool trainStep();
 	void executeStep( IGradientBoostingLossFunction& lossFunction,
 		const IMultivariateRegressionProblem* problem, CGradientBoostEnsemble& curModels );
-	void buildPredictions( const IMultivariateRegressionProblem& problem, const CArray<CGradientBoostEnsemble>& models, int curStep );
-	void buildFullPredictions( const IMultivariateRegressionProblem& problem, const CArray<CGradientBoostEnsemble>& models );
 	CPtr<IObject> createOutputRepresentation(
 		CArray<CGradientBoostEnsemble>& models, int predictionSize );
 	bool isMultiTreesModel() { return params.TreeBuilder == GBTB_MultiFull || params.TreeBuilder == GBTB_MultiFastHist; }
