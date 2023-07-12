@@ -78,6 +78,7 @@ set(NeoML_SOURCES_COMPACT
     TraditionalML/GradientBoostFastHistTreeBuilder.cpp
     TraditionalML/GradientBoostFullProblem.cpp
     TraditionalML/GradientBoostFullTreeBuilder.cpp
+    TraditionalML/GradientBoostThreadTask.cpp
     TraditionalML/GradientBoostQSEnsemble.cpp
     TraditionalML/Linear.cpp
     TraditionalML/LinkedRegressionTree.cpp
@@ -229,6 +230,7 @@ set(NeoML_HEADERS_COMPACT
     TraditionalML/GradientBoostQSEnsemble.h
     TraditionalML/GradientBoostStatisticsSingle.h
     TraditionalML/GradientBoostStatisticsMulti.h
+    TraditionalML/GradientBoostThreadTask.h
     TraditionalML/LinearBinaryModel.h
     TraditionalML/LinkedRegressionTree.h
     TraditionalML/OneVersusAllModel.h

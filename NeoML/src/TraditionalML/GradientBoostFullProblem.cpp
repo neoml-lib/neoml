@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,20 +17,76 @@ limitations under the License.
 #pragma hdrstop
 
 #include <GradientBoostFullProblem.h>
-#include <NeoMathEngine/OpenMP.h>
+#include <GradientBoostThreadTask.h>
+#include <NeoMathEngine/ThreadPool.h>
 
 namespace NeoML {
+
+namespace {
+
+class CSortFeaturesThreadTask : public IGradientBoostThreadTask {
+public:
+	// Create a task
+	CSortFeaturesThreadTask( IThreadPool& threadPool,
+			const CArray<int>& curFeaturePos,
+			const CArray<bool>& isUsedFeatureBinary,
+			const CArray<int>& featureValueCount,
+			const CArray<int>& featurePos,
+			CArray<CFloatVectorElement>& featureValues ) :
+		IGradientBoostThreadTask( threadPool ),
+		CurFeaturePos( curFeaturePos ),
+		IsUsedFeatureBinary( isUsedFeatureBinary ),
+		FeatureValueCount( featureValueCount ),
+		FeaturePos( featurePos ),
+		FeatureValues( featureValues )
+	{}
+protected:
+	// The size of parallelization, max number of elements to perform
+	int ParallelizeSize() const override { return CurFeaturePos.Size(); }
+	// Run the process in a separate thread
+	void Run( int threadIndex, int startIndex, int count ) override;
+
+	const CArray<int>& CurFeaturePos;
+	const CArray<bool>& IsUsedFeatureBinary;
+	const CArray<int>& FeatureValueCount;
+	const CArray<int>& FeaturePos;
+	CArray<CFloatVectorElement>& FeatureValues;
+};
+
+void CSortFeaturesThreadTask::Run( int /*threadIndex*/, int startIndex, int count )
+{
+	const int endIndex = startIndex + count;
+	for( int index = startIndex; index < endIndex; ++index ) {
+		if( CurFeaturePos[index] != NotFound && !IsUsedFeatureBinary[index] ) {
+			FeatureValues[CurFeaturePos[index]].Index = NotFound;
+			FeatureValues[CurFeaturePos[index]].Value = 0;
+			// Sorting by feature value
+			AscendingByMember<CFloatVectorElement, float, &CFloatVectorElement::Value> comparator;
+			QuickSort( &FeatureValues[FeaturePos[index]], FeatureValueCount[index], &comparator );
+		}
+	}
+}
+
+} // namespace
+
+//-------------------------------------------------------------------------------------------------------------
 
 CGradientBoostFullProblem::CGradientBoostFullProblem( int _threadCount,
 		const IMultivariateRegressionProblem* _baseProblem,
 		const CArray<int>& _usedVectors, const CArray<int>& _usedFeatures, const CArray<int>& _featureNumbers ) :
-	threadCount( _threadCount ),
+	threadPool( CreateThreadPool( _threadCount ) ),
 	baseProblem( _baseProblem ),
 	usedVectors( _usedVectors ),
 	usedFeatures( _usedFeatures ),
 	featureNumbers( _featureNumbers )
 {
-	NeoAssert( baseProblem != 0 );
+	NeoAssert( threadPool != nullptr );
+	NeoAssert( baseProblem != nullptr );
+}
+
+CGradientBoostFullProblem::~CGradientBoostFullProblem()
+{
+	delete threadPool;
 }
 
 void CGradientBoostFullProblem::Update()
@@ -105,23 +161,8 @@ void CGradientBoostFullProblem::Update()
 		}
 	}
 
-	NEOML_OMP_NUM_THREADS( threadCount )
-	{
-		int index = 0;
-		int count = 0;
-		if( OmpGetTaskIndexAndCount( curFeaturePos.Size(), index, count ) ) {
-			for( int i = 0; i < count; i++ ) {
-				if( curFeaturePos[index] != NotFound && !isUsedFeatureBinary[index] ) {
-					featureValues[curFeaturePos[index]].Index = NotFound;
-					featureValues[curFeaturePos[index]].Value = 0;
-					// Sorting by feature value
-					AscendingByMember<CFloatVectorElement, float, &CFloatVectorElement::Value> comparator;
-					QuickSort( &featureValues[featurePos[index]], featureValueCount[index], &comparator );
-				}
-				index++;
-			}
-		}
-	}
+	CSortFeaturesThreadTask( *threadPool, curFeaturePos, isUsedFeatureBinary,
+		featureValueCount, featurePos, featureValues ).ParallelRun();
 }
 
 int CGradientBoostFullProblem::GetTotalVectorCount() const
@@ -147,9 +188,9 @@ const void* CGradientBoostFullProblem::GetUsedFeatureDataPtr( int feature ) cons
 	}
 
 	if( isUsedFeatureBinary[feature] ) {
-		return &binaryFeatureValues[ featurePos[feature] ];
+		return &binaryFeatureValues[featurePos[feature]];
 	}
-	return &featureValues[ featurePos[feature] ];
+	return &featureValues[featurePos[feature]];
 }
 
 int CGradientBoostFullProblem::GetUsedFeatureDataSize( int feature ) const
