@@ -1,4 +1,4 @@
-/* Copyright © 2021 ABBYY Production LLC
+/* Copyright © 2021-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -195,7 +195,7 @@ static void kmeansLloydClustering( IClusteringData* data, CClusteringResult& res
 	params.MaxIterations = 50;
 	params.Algo = CKMeansClustering::KMA_Lloyd;
 	params.Initialization = CKMeansClustering::KMI_Default;
-	params.ThreadCount = 4;
+	params.ThreadCount = -1;
 
 	CKMeansClustering kMeans( params );
 	kMeans.Clusterize( data, result );
@@ -209,7 +209,7 @@ static void kmeansElkanClustering( IClusteringData* data, CClusteringResult& res
 	params.MaxIterations = 50;
 	params.Algo = CKMeansClustering::KMA_Elkan;
 	params.Initialization = CKMeansClustering::KMI_KMeansPlusPlus;
-	params.ThreadCount = 4;
+	params.ThreadCount = -1;
 
 	CKMeansClustering kMeans( params );
 	kMeans.Clusterize( data, result );
@@ -572,10 +572,16 @@ TEST_F( CClusteringTest, HierarchicalDendrogram )
 }
 
 INSTANTIATE_TEST_CASE_P( CClusteringTestInstantiation, CClusteringTest,
-	::testing::Values( firstComeClustering,
+	::testing::Values(
+		firstComeClustering,
 		hierarchicalClustering<CHierarchicalClustering::L_Centroid>,
 		hierarchicalClustering<CHierarchicalClustering::L_Single>,
 		hierarchicalClustering<CHierarchicalClustering::L_Average>,
 		hierarchicalClustering<CHierarchicalClustering::L_Complete>,
 		hierarchicalClustering<CHierarchicalClustering::L_Ward>,
-		isoDataClustering, kmeansElkanClustering, kmeansLloydClustering ) );
+		isoDataClustering,
+		kmeansElkanClustering,
+		kmeansLloydClustering
+	)
+);
+

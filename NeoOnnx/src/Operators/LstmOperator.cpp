@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,6 +19,8 @@ limitations under the License.
 #include "LstmOperator.h"
 #include "NeoOnnxCheck.h"
 #include "TensorUtils.h"
+#include <NeoML/Dnn/Layers/ConcatLayer.h>
+#include <NeoML/Dnn/Layers/SplitLayer.h>
 
 #include "onnx.pb.h"
 
@@ -40,132 +42,244 @@ CLstmOperator::CLstmOperator( const onnx::NodeProto& lstm, int opsetVersion ) :
 	CheckOnnxProtocol( OutputCount() >= 1 && OutputCount() <= 3, "operator must have from 1 upto 3 outputs", *this );
 
 	GetAttribute( "direction", direction );
-	CheckNeoOnnxSupport( direction != "bidirectional", "bidirectional LSTM", *this );
-
 	CheckOnnxProtocol( GetAttribute( "hidden_size", hiddenSize ), "'hidden_size' attribute is missing", *this );
 }
+
+//----------------------------------------------------------------------------------------------
+
+class CLstmOperator::CParseState final {
+public:
+	using TConstBlobPtr = const CPtr<const CDnnBlob>;
+	using TConstTensorPtr = const CPtr<const CUserTensor>;
+	using TLstmPtrs = const CPtr<CLstmLayer>[2];
+
+	CParseState( const CString& direction, int hiddenSize, CDnn& dnn, const CLstmOperator& owner );
+
+	void ReorderWeights( TConstBlobPtr weights, TConstBlobPtr recurWeights );
+	void ReorderBias( TConstBlobPtr bias );
+	void CreateLstms( CPtr<CLstmLayer> lstmLayers[2], TConstTensorPtr input, const CString& nameLstm ) const;
+	void ConnectInitial( TLstmPtrs lstmLayers, TConstTensorPtr init, CString nameSplit, int inputNumber ) const;
+	CBaseLayer* GetOutputLayer( TLstmPtrs lstmLayers, const CString& nameLstm ) const;
+
+private:
+	// Converts lstm weights from onnx format to NeoML, because gate weights in onnx and NeoML are ordered differently
+	CPtr<CDnnBlob> reorderGates( TConstBlobPtr weights, TBlobDim dim ) const;
+	void reorderWeights( TConstBlobPtr weights, CObjectArray<CDnnBlob>& weightsSplitted );
+	void reorderBias( TConstBlobPtr bias, CObjectArray<CDnnBlob>& biasSplitted, CBlobDesc biasDesc, int offset );
+
+	CDnn& dnn;
+	IMathEngine& mathEngine;
+	const CLstmOperator& owner;
+
+	const CString& direction;
+	const int hiddenSize;
+
+	const bool bidirectional;
+	const int numDirections;
+
+	CObjectArray<CDnnBlob> weightsSplitted{};
+	CObjectArray<CDnnBlob> recursiveWeightsSplitted{};
+
+	CObjectArray<CDnnBlob> weightBiasSplitted{};
+	CObjectArray<CDnnBlob> recursBiasSplitted{};
+};
+
+CLstmOperator::CParseState::CParseState( const CString& direction, int hiddenSize, CDnn& dnn, const CLstmOperator& owner ) :
+	dnn( dnn ),
+	mathEngine( dnn.GetMathEngine() ),
+	owner( owner ),
+	direction( direction ),
+	hiddenSize( hiddenSize ),
+	bidirectional( direction == "bidirectional" ),
+	numDirections( bidirectional ? 2 : 1 )
+{}
+
+void CLstmOperator::CParseState::ReorderWeights( TConstBlobPtr weights, TConstBlobPtr recurWeights )
+{
+	reorderWeights( weights, weightsSplitted );
+	reorderWeights( recurWeights, recursiveWeightsSplitted );
+}
+
+void CLstmOperator::CParseState::ReorderBias( TConstBlobPtr bias )
+{
+	if( bias == nullptr ) {
+		return;
+	}
+	CBlobDesc biasDesc( CT_Float );
+	biasDesc.SetDimSize( BD_Channels, 4 * hiddenSize );
+	for( int dir = 0; dir < numDirections; ++dir ) {
+		reorderBias( bias, weightBiasSplitted, biasDesc, dir * numDirections );
+		reorderBias( bias, recursBiasSplitted, biasDesc, dir * numDirections + 1 );
+	}
+}
+
+void CLstmOperator::CParseState::CreateLstms( CPtr<CLstmLayer> lstmLayers[2], TConstTensorPtr input, const CString& nameLstm ) const
+{
+	for( int dir = 0; dir < numDirections; ++dir ) {
+		const bool reversed = ( direction == "backward" || dir != 0 );
+
+		lstmLayers[dir] = new CLstmLayer( mathEngine );
+		lstmLayers[dir]->SetName( nameLstm + ( reversed ? "_Reversed" : "" ) );
+		lstmLayers[dir]->SetHiddenSize( hiddenSize );
+		lstmLayers[dir]->Connect( /*inputNumber*/0, *input->Layer(), input->OutputIndex() );
+		lstmLayers[dir]->SetReverseSequence( reversed );
+
+		lstmLayers[dir]->SetInputWeightsData( weightsSplitted[dir] );
+		lstmLayers[dir]->SetRecurWeightsData( recursiveWeightsSplitted[dir] );
+		if( dir < weightBiasSplitted.Size() ) {
+			lstmLayers[dir]->SetInputFreeTermData( weightBiasSplitted[dir] );
+			lstmLayers[dir]->SetRecurFreeTermData( recursBiasSplitted[dir] );
+		}
+		dnn.AddLayer( *lstmLayers[dir] );
+	}
+}
+
+void CLstmOperator::CParseState::ConnectInitial( TLstmPtrs lstmLayers, TConstTensorPtr init, CString nameSplit, int inputNumber ) const
+{
+	if( bidirectional ) {
+		auto* splitLayer = new CSplitBatchLengthLayer( mathEngine );
+		splitLayer->SetName( nameSplit );
+		splitLayer->Connect( /*inputNumber*/0, *init->Layer(), init->OutputIndex() );
+		splitLayer->SetOutputCounts2( 1 );
+		dnn.AddLayer( *splitLayer );
+
+		lstmLayers[0]->Connect( inputNumber, *splitLayer, /*outputNumber*/0 );
+		lstmLayers[1]->Connect( inputNumber, *splitLayer, /*outputNumber*/1 );
+	} else {
+		lstmLayers[0]->Connect( inputNumber, *init->Layer(), init->OutputIndex() );
+	}
+}
+
+CBaseLayer* CLstmOperator::CParseState::GetOutputLayer( TLstmPtrs lstmLayers, const CString& nameLstm ) const
+{
+	if( bidirectional ) {
+		auto* concatLayer = new CConcatListSizeLayer( mathEngine );
+		concatLayer->SetName( nameLstm + "_Concat" );
+		concatLayer->Connect( /*inputNumber*/0, *( lstmLayers[0] ), /*outputNumber*/0 );
+		concatLayer->Connect( /*inputNumber*/1, *( lstmLayers[1] ), /*outputNumber*/0 );
+		dnn.AddLayer( *concatLayer );
+
+		return concatLayer;
+	} else {
+		return lstmLayers[0];
+	}
+}
+
+CPtr<CDnnBlob> CLstmOperator::CParseState::reorderGates( TConstBlobPtr blob, TBlobDim dim ) const
+{
+	const int gatesIndexNum = 4;
+	const int gatesNumerate[gatesIndexNum]{ /*Main gate*/3, /*Forget gate*/2, /*Input gate*/0, /*Reset gate*/1 };
+
+	CBlobDesc gateWeightDesc = blob->GetDesc();
+	gateWeightDesc.SetDimSize( dim, gateWeightDesc.DimSize( dim ) / gatesIndexNum );
+
+	CObjectArray<CDnnBlob> onnxGateWeight{};
+	for( int gateIndex = 0; gateIndex < gatesIndexNum; ++gateIndex ) {
+		onnxGateWeight.Add( CDnnBlob::CreateBlob( mathEngine, gateWeightDesc ) );
+	}
+	CDnnBlob::SplitByDim( mathEngine, dim, blob, onnxGateWeight );
+
+	CObjectArray<CDnnBlob> neoMLGateWeight{};
+	for( int gateIndex = 0; gateIndex < gatesIndexNum; ++gateIndex ) {
+		neoMLGateWeight.Add( onnxGateWeight[gatesNumerate[gateIndex]] );
+	}
+
+	CPtr<CDnnBlob> result = blob->GetClone();
+	CDnnBlob::MergeByDim( mathEngine, dim, neoMLGateWeight, result );
+	return result;
+}
+
+void CLstmOperator::CParseState::reorderWeights( TConstBlobPtr weights, CObjectArray<CDnnBlob>& weightsSplitted )
+{
+	CheckOnnxProtocol( weights->GetDesc().BatchLength() == numDirections, "invalid number directions for weights", owner );
+	if( bidirectional ) {
+		CBlobDesc wDesc = weights->GetDesc();
+		wDesc.SetDimSize( BD_BatchLength, wDesc.BatchLength() / numDirections );
+
+		for( int dir = 0; dir < numDirections; ++dir ) {
+			weightsSplitted.Add( CDnnBlob::CreateBlob( mathEngine, wDesc ) );
+		}
+		CDnnBlob::SplitByDim( mathEngine, BD_BatchLength, weights, weightsSplitted );
+	} else {
+		weightsSplitted.Add( weights->GetCopy() );
+	}
+
+	CBlobDesc blobDesc( CT_Float );
+	blobDesc.SetDimSize( BD_BatchWidth, 4 * hiddenSize );
+	for( int dir = 0; dir < numDirections; ++dir ) {
+		blobDesc.SetDimSize( BD_Channels, weightsSplitted[dir]->GetDataSize() / blobDesc.BatchWidth() );
+		weightsSplitted[dir]->ReinterpretDimensions( blobDesc );
+		weightsSplitted[dir] = reorderGates( weightsSplitted[dir], BD_BatchWidth );
+	}
+}
+
+void CLstmOperator::CParseState::reorderBias( TConstBlobPtr bias, CObjectArray<CDnnBlob>& biasSplitted, CBlobDesc biasDesc, int offset )
+{
+	CheckOnnxProtocol( bias->GetDesc().BatchWidth() == numDirections, "invalid number directions for bias", owner );
+	const int biasChannels = biasDesc.Channels();
+	biasSplitted.Add( CDnnBlob::CreateBlob( mathEngine, biasDesc ) );
+	mathEngine.VectorCopy( biasSplitted.Last()->GetData(), bias->GetData() + offset * biasChannels, biasChannels );
+	biasSplitted.Last() = reorderGates( biasSplitted.Last(), BD_Channels );
+}
+
+//----------------------------------------------------------------------------------------------
 
 void CLstmOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
 	CheckNoShapeInputs( inputs );
 	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
-
-	CPtr<CDnnBlob> bias = nullptr;
-	if( InputCount() > 3 && inputs[3] != nullptr ) {
-		CheckNeoOnnxSupport( inputs[3]->Type() == TTensorType::Data, "User-provided bias", *this );
-		bias = dynamic_cast<const CDataTensor*>( inputs[3].Ptr() )->Data()->GetCopy();
-	}
-
 	// NeoML doesn't support sequence lengths
 	CheckNeoOnnxSupport( InputCount() <= 4 || inputs[4] == nullptr, "sequence lengths", *this );
-
 	// NeoML doesn't support peepholes
 	CheckNeoOnnxSupport( InputCount() <= 7 || inputs[7] == nullptr, "peepholes", *this );
 
 	int layoutAttr = 0;
 	GetAttribute( "layout", layoutAttr );
+	// ONNX: The shape format of inputs X, initial_h, initial_c and outputs Y, Y_h, Y_c.
+	const CTensorLayout neomlLayout = ( layoutAttr != 0 )
+		? CTensorLayout{ BD_BatchWidth, BD_BatchLength, BD_Channels }
+		: CTensorLayout{ BD_BatchLength, BD_BatchWidth, BD_Channels };
+	CParseState::TConstTensorPtr inputData = AsUserTensor( *ConvertTensor( *inputs[0], neomlLayout ), Name() + "_Source", dnn );
 
-	CTensorLayout neomlLayout( { BD_BatchLength, BD_BatchWidth, BD_Channels } );
-	if( layoutAttr != 0 ) {
-		std::swap<TBlobDim>( neomlLayout[0], neomlLayout[1] );
-	}
-	CPtr<const CUserTensor> inputData = AsUserTensor( *ConvertTensor( *inputs[0], neomlLayout ),
-		Name() + "_Source", dnn );
-
-	IMathEngine& mathEngine = dnn.GetMathEngine();
-	CPtr<CLstmLayer> lstmLayer = new CLstmLayer( mathEngine );
-	lstmLayer->SetName( Name() );
-
+	const CTensorLayout dataLayout{ BD_BatchLength, BD_BatchWidth, BD_Channels };
 	CheckNeoOnnxSupport( inputs[1] != nullptr && inputs[1]->Type() == TTensorType::Data,
 		"User-provided weight", *this );
-	CPtr<CDnnBlob> weights = dynamic_cast<const CDataTensor*>( inputs[1].Ptr() )->Data()->GetCopy();
+	CParseState::TConstBlobPtr weights = dynamic_cast<const CDataTensor*>( ConvertTensor( *inputs[1], dataLayout ).Ptr() )->Data()->GetCopy();
 
-	CBlobDesc blobDesc( CT_Float );
-	blobDesc.SetDimSize( BD_BatchWidth, 4 * hiddenSize );
-	blobDesc.SetDimSize( BD_Channels, weights->GetDataSize() / blobDesc.BatchWidth() );
-	weights->ReinterpretDimensions( blobDesc );
-	blobDesc.SetDimSize( BD_Channels, hiddenSize );
-	
 	CheckNeoOnnxSupport( inputs[2] != nullptr && inputs[2]->Type() == TTensorType::Data,
 		"User-provided recurrent weight", *this );
-	CPtr<CDnnBlob> recurWeights = dynamic_cast<const CDataTensor*>( inputs[2].Ptr() )->Data()->GetCopy();
-	recurWeights->ReinterpretDimensions( blobDesc );
+	CParseState::TConstBlobPtr recurWeights = dynamic_cast<const CDataTensor*>( ConvertTensor( *inputs[2], dataLayout ).Ptr() )->Data()->GetCopy();
 
-	lstmLayer->SetHiddenSize( hiddenSize );
-	weights = reorderGates( weights, BD_BatchWidth );
-	recurWeights = reorderGates( recurWeights, BD_BatchWidth );
-
-	lstmLayer->SetInputWeightsData( weights );
-	lstmLayer->SetRecurWeightsData( recurWeights );
-
-	if( bias != nullptr ) {
-		CPtr<CDnnBlob> weightBias = CDnnBlob::CreateDataBlob( mathEngine, CT_Float, 1, 1, 4 * hiddenSize );
-		CPtr<CDnnBlob> recurBias = weightBias->GetClone();
-
-		mathEngine.VectorCopy( weightBias->GetData(), bias->GetData(), 4 * hiddenSize );
-		mathEngine.VectorCopy( recurBias->GetData(), bias->GetData() + 4 * hiddenSize, 4 * hiddenSize );
-
-		weightBias = reorderGates( weightBias, BD_Channels );
-		recurBias = reorderGates( recurBias, BD_Channels );
-
-		lstmLayer->SetInputFreeTermData( weightBias );
-		lstmLayer->SetRecurFreeTermData( recurBias );
+	CPtr<const CDnnBlob> bias = nullptr;
+	if( InputCount() > 3 && inputs[3] != nullptr ) {
+		const CTensorLayout biasLayout{ BD_BatchWidth, BD_Channels };
+		CheckNeoOnnxSupport( inputs[3]->Type() == TTensorType::Data, "User-provided bias", *this );
+		bias = dynamic_cast<const CDataTensor*>( ConvertTensor( *inputs[3], biasLayout ).Ptr() )->Data()->GetCopy();
 	}
 
-	lstmLayer->Connect( 0, *inputData->Layer(), inputData->OutputIndex() );
+	CParseState ps( direction, hiddenSize, dnn, *this );
+	ps.ReorderWeights( weights, recurWeights );
+	ps.ReorderBias( bias );
 
-	if( inputs.Size() > 6 && inputs[6] != nullptr ) {
-		CPtr<const CUserTensor> initialC = AsUserTensor( *ConvertTensor( *inputs[6], neomlLayout ),
-			Name() + "_InitialC", dnn );
-		lstmLayer->Connect( 1, *initialC->Layer(), initialC->OutputIndex() );
-	}
+	CPtr<CLstmLayer> lstmLayers[2]{}; // lstmLayer("forward" or "backward") [+ reversedLstmLayer, if bidirectional]
+	ps.CreateLstms( lstmLayers, inputData, Name() );
 
 	if( inputs.Size() > 5 && inputs[5] != nullptr ) {
-		CPtr<const CUserTensor> initialH = AsUserTensor( *ConvertTensor( *inputs[5], neomlLayout ),
-			Name() + "_InitialH", dnn );
-		lstmLayer->Connect( 2, *initialH->Layer(), initialH->OutputIndex() );
+		CParseState::TConstTensorPtr initH = AsUserTensor( *ConvertTensor( *inputs[5], neomlLayout ), Name() + "_InitH", dnn );
+		ps.ConnectInitial( lstmLayers, initH, Name() + "_SplitH", /*inputNumber*/2 );
 	}
 
-	dnn.AddLayer( *lstmLayer );
-
-	CTensorLayout outputLayout( { BD_BatchLength, BD_ListSize, BD_BatchWidth, BD_Channels } );
-	if( layoutAttr != 0 ) {
-		outputLayout = { BD_BatchWidth, BD_BatchLength, BD_ListSize, BD_Channels };
-	}
-	outputs.Add( new CUserTensor( outputLayout, CLayerOutput( lstmLayer, 0 ) ) );
-	outputs.Add( nullptr, OutputCount() - 1 );
-}
-
-// Converts lstm weights from onnx format to NeoML
-// because gate weights in onnx and NeoML are oredered differently
-CPtr<CDnnBlob> CLstmOperator::reorderGates( CPtr<CDnnBlob> blob, TBlobDim dim ) const
-{
-	IMathEngine& mathEngine = blob->GetMathEngine();
-
-	CObjectArray<CDnnBlob> onnxGateWeight;
-
-	CBlobDesc gateWeightDesc = blob->GetDesc();
-	gateWeightDesc.SetDimSize( dim, gateWeightDesc.DimSize( dim ) / 4 );
-	
-	for( int gateIndex = 0; gateIndex < 4; ++gateIndex ) {
-		onnxGateWeight.Add( CDnnBlob::CreateBlob( mathEngine, gateWeightDesc ) );
+	if( inputs.Size() > 6 && inputs[6] != nullptr ) {
+		CParseState::TConstTensorPtr initC = AsUserTensor( *ConvertTensor( *inputs[6], neomlLayout ), Name() + "_InitC", dnn );
+		ps.ConnectInitial( lstmLayers, initC, Name() + "_SplitC", /*inputNumber*/1 );
 	}
 
-	CDnnBlob::SplitByDim( mathEngine, dim, blob, onnxGateWeight );
-
-	CObjectArray<CDnnBlob> neoMLGateWeight;
-	// Main gate
-	neoMLGateWeight.Add( onnxGateWeight[3] );
-	// Forget gate
-	neoMLGateWeight.Add( onnxGateWeight[2] );
-	// Input gate
-	neoMLGateWeight.Add( onnxGateWeight[0] );
-	// Reset gate
-	neoMLGateWeight.Add( onnxGateWeight[1] );
-
-	CPtr<CDnnBlob> result = blob->GetClone();
-	CDnnBlob::MergeByDim( mathEngine, dim, neoMLGateWeight, result );
-	return result;
+	CBaseLayer* outputLayer = ps.GetOutputLayer( lstmLayers, Name() );
+	const CTensorLayout outputLayout = ( layoutAttr != 0 )
+		? CTensorLayout{ BD_BatchWidth, BD_BatchLength, BD_ListSize, BD_Channels }
+		: CTensorLayout{ BD_BatchLength, BD_ListSize, BD_BatchWidth, BD_Channels };
+	outputs.Add( new CUserTensor( outputLayout, CLayerOutput( outputLayer, /*outputIndex*/0 ) ) );
+	outputs.Add( /*Tensor*/nullptr, OutputCount() - 1 ); // internal state
 }
 
 } // namespace NeoOnnx

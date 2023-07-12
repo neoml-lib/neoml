@@ -15,26 +15,20 @@ limitations under the License.
 
 #pragma once
 
-#include "../LayerOperator.h"
+namespace NeoML {
 
-namespace NeoOnnx {
+namespace optimization {
 
-// Lstm operator
-class CLstmOperator : public CLayerOperator {
-public:
-	CLstmOperator( const onnx::NodeProto& lstm, int opsetVersion );
+class CGraph;
 
-protected:
-	// CLayerOperator methods
-	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
+// Unpacks content of non-recurrent composites into the root CDnn
+// Returns the number of unpacked composites
+int UnpackComposites( CGraph& graph );
 
-private:
-	// LSTM's direction ("forward", "backward" or "bidirectional")
-	CString direction;
-	// Size of hidden state vector
-	int hiddenSize;
+// Removes trivial layers (dropouts, linear(1,0) etc.)
+// Returns the number of removed layers
+int RemoveTrivialLayers( CGraph& graph );
 
-	class CParseState;
-};
+} // namespace optimization
 
-} // namespace NeoOnnx
+} // namespace NeoML

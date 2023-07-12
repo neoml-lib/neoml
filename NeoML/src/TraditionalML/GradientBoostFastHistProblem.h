@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,6 +18,9 @@ limitations under the License.
 #include <NeoML/TraditionalML/Problem.h>
 
 namespace NeoML {
+
+// Forward declaration
+class IThreadPool;
 
 // The subproblem for building a tree with gradient boosting
 // The original vectors are transformed into vectors of unique integer identifiers
@@ -49,17 +52,18 @@ public:
 	// Gets the array of identifiers for zero feature values
 	const CArray<int>& GetFeatureNullValueId() const { return nullValueIds; }
 
-protected:
-	// delete prohibited
-	~CGradientBoostFastHistProblem() override = default;
-
-private:
 	// A feature value
-	struct CFeatureValue {
-		float Value;
-		double Weight;
+	struct CFeatureValue final {
+		float Value{};
+		double Weight{};
 	};
 
+protected:
+	// delete prohibited
+	~CGradientBoostFastHistProblem() override;
+
+private:
+	IThreadPool* const threadPool;
 	// The vectors used
 	// For each vector in the subsample, the array contains the index it had in the full sample
 	// The array has N * CParams::Subsample elements, where N is the number of vectors in the full sample
@@ -69,17 +73,15 @@ private:
 	// The array has N * CParams::Subfeature elements, where N is the number of features in the full set
 	const CArray<int>& usedFeatures;
 
-	CArray<int> featurePos; // the identifier positions for this feature
-	CArray<int> featureIndexes; // the indices of the feature to which the identifier belongs
-	CArray<float> cuts; // the cut values for histograms
-	CArray<int> nullValueIds; // the identifiers of the zero feature values
-	CArray<int> vectorData; // the vector data
-	CArray<int> vectorPtr; // the pointers to the data of the given vector
+	CArray<int> featurePos{}; // the identifier positions for this feature
+	CArray<int> featureIndexes{}; // the indices of the feature to which the identifier belongs
+	CArray<float> cuts{}; // the cut values for histograms
+	CArray<int> nullValueIds{}; // the identifiers of the zero feature values
+	CArray<int> vectorData{}; // the vector data
+	CArray<int> vectorPtr{}; // the pointers to the data of the given vector
 
-	void initializeFeatureInfo( int threadCount, int maxBins, const CFloatMatrixDesc& matrix,
+	void initializeFeatureInfo( int maxBins, const CFloatMatrixDesc& matrix,
 		const IMultivariateRegressionProblem& baseProblem );
-	void compressFeatureValues( int threadCount, int maxBins, double totalWeight,
-		CArray< CArray<CFeatureValue> >& featureValues );
 	void buildVectorData( const CFloatMatrixDesc& matrix );
 };
 

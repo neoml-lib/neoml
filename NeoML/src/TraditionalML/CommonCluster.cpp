@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,6 +20,8 @@ limitations under the License.
 #include <NeoML/TraditionalML/Clustering.h>
 
 namespace NeoML {
+
+CCommonCluster::CParams::CParams() = default;
 
 // Precision of a double value
 const double Precision = 1e-15;
@@ -46,7 +48,7 @@ CCommonCluster::CCommonCluster( const CCommonCluster& first, const CCommonCluste
 	elements.Add( first.elements );
 	elements.Add( second.elements );
 
-	for( int i = 0; i < first.sum.Size(); i++ ) {
+	for( int i = 0; i < first.sum.Size(); ++i ) {
 		sum.Add( first.sum[i] + second.sum[i] );
 		sumSquare.Add( first.sumSquare[i] + second.sumSquare[i] );
 	}
@@ -62,20 +64,25 @@ void CCommonCluster::Add( int dataIndex, const CFloatVectorDesc& desc, double we
 
 	sumWeight += weight;
 
-	for( int i = 0; i < desc.Size; i++ ) {
-		sum[desc.Indexes == nullptr ? i : desc.Indexes[i]] += desc.Values[i] * weight;
-		sumSquare[desc.Indexes == nullptr ? i : desc.Indexes[i]] += desc.Values[i] * desc.Values[i] * weight;
+	for( int i = 0; i < desc.Size; ++i ) {
+		const auto index = ( ( desc.Indexes == nullptr ) ? i : desc.Indexes[i] );
+		const auto value = desc.Values[i] * weight;
+		sum[index] += value;
+		sumSquare[index] += desc.Values[i] * value;
 	}
 
 	isCenterDirty = true;
 }
 
-void CCommonCluster::Reset()
+void CCommonCluster::Reset( int reserveElementsSize )
 {
 	elements.DeleteAll();
+	if( reserveElementsSize > 0 ) {
+		elements.SetBufferSize( reserveElementsSize );
+	}
 
 	sumWeight = 0;
-	for( int i = 0; i < sum.Size(); i++ ) {
+	for( int i = 0; i < sum.Size(); ++i ) {
 		sum[i] = 0;
 		sumSquare[i] = 0;
 	}
@@ -85,7 +92,7 @@ void CCommonCluster::Reset()
 
 void CCommonCluster::RecalcCenter()
 {
-	for( int i = 0; i < center.Mean.Size(); i++ ) {
+	for( int i = 0; i < center.Mean.Size(); ++i ) {
 		center.Mean.SetAt( i, static_cast<float>( sum[i] / sumWeight ) );
 
 		double variance = params.DefaultVariance;

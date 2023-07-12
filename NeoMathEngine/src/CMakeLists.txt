@@ -71,6 +71,7 @@ target_sources(${PROJECT_NAME}
     CPU/MatrixMultiplyingInterleavedCommon/MicroKernels/MicroKernelBase.h
 
     ../include/NeoMathEngine/NeoMathEngineDefs.h
+    ../include/NeoMathEngine/ActivationDesc.h
     ../include/NeoMathEngine/BlobDesc.h
     ../include/NeoMathEngine/BlobType.h
     ../include/NeoMathEngine/LookupData.h

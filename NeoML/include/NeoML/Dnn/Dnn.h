@@ -141,6 +141,14 @@ public:
 	const char* GetName() const { return name; }
 	virtual void SetName( const char* _name );
 
+	// Gets the path to this Layer
+	// If this layer directly belongs to the root CDnn then this path consists of the name of this layer only
+	// Otherwise it contains the names of all the composites from the root till this layer separated by '/'
+	//
+	// e.g. layer "InputHidden" inside of CLstmLayer named "LSTM", which is inside of CCompositeLayer named "Encoder"
+	// has path "Encoder/LSTM/InputHidden"
+	CString GetPath() const;
+
 	// Connects this layer's inputNumber input to the specified layer's outputNumber output
 	virtual void Connect( int inputNumber, const char* layer, int outputNumber = 0 );
 	void Connect( int inputNumber, const CBaseLayer& layer, int outputNumber = 0 ) { Connect(inputNumber, layer.GetName(), outputNumber); }
@@ -272,14 +280,6 @@ protected:
 	// Allocates the output blobs
 	// The default implementation creates the outputBlobs array using the output descriptions
 	virtual void AllocateOutputBlobs();
-
-	// Gets the path to this Layer
-	// If this layer directly belongs to the root CDnn then this path consists of the name of this layer only
-	// Otherwise it contains the names of all the composites from the root till this layer separated by '/'
-	//
-	// e.g. layer InputHidden" inside of CLstmLayer named "LSTM", which is inside of CCompositeLayer named "Encoder"
-	// has path "Encoder/LSTM/InputHidden"
-	CString GetPath() const;
 
 	// The following section contains interface for the memory optimization during training
 	// The key idea is that the layer may provide additional information about blobs required

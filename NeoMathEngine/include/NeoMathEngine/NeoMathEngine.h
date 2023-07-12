@@ -16,6 +16,7 @@ limitations under the License.
 #pragma once
 
 #include <NeoMathEngine/NeoMathEngineDefs.h>
+#include <NeoMathEngine/ActivationDesc.h>
 #include <NeoMathEngine/BlobType.h>
 #include <NeoMathEngine/MemoryHandle.h>
 #include <NeoMathEngine/BlobDesc.h>
@@ -30,27 +31,6 @@ limitations under the License.
 #include <climits>
 
 namespace NeoML {
-
-// Supported activation functions
-enum TActivationFunction {
-	AF_Linear = 0,
-	AF_ELU,
-	AF_ReLU,
-	AF_LeakyReLU,
-	AF_Abs,
-	AF_Sigmoid,
-	AF_Tanh,
-	AF_HardTanh,
-	AF_HardSigmoid,
-	AF_Power,
-	AF_HSwish,
-	AF_GELU,
-	AF_Exp,
-	AF_Log,
-	AF_Erf,
-
-	AF_Count
-};
 
 // Supported coordinate modes for linear interpolation
 // The variables in formula:
@@ -708,9 +688,9 @@ public:
 		const CBlobDesc& to, const CFloatHandle& toData ) = 0;
 	virtual void BlobMergeByDim( TBlobDim dim, const CBlobDesc* from, const CIntHandle* fromData, int fromCount,
 		const CBlobDesc& to, const CIntHandle& toData ) = 0;
-	virtual void BlobSplitByDim( TBlobDim dim, const CBlobDesc& from, const CFloatHandle& fromData,
+	virtual void BlobSplitByDim( TBlobDim dim, const CBlobDesc& from, const CConstFloatHandle& fromData,
 		const CBlobDesc* to, const CFloatHandle* toData, int toCount ) = 0;
-	virtual void BlobSplitByDim( TBlobDim dim, const CBlobDesc& from, const CIntHandle& fromData,
+	virtual void BlobSplitByDim( TBlobDim dim, const CBlobDesc& from, const CConstIntHandle& fromData,
 		const CBlobDesc* to, const CIntHandle* toData, int toCount ) = 0;
 
 	// Resizes images in a blob
@@ -1141,6 +1121,8 @@ struct CMathEngineDistributedInfo {
 };
 
 //------------------------------------------------------------------------------------------------------------
+
+extern int NEOMATHENGINE_API FloatAlignment;
 
 // The maximum number of blobs in split or merge operations
 const int MaxBlobDescs = 32;

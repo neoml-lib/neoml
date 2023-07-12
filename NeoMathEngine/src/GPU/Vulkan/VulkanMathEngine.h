@@ -416,9 +416,9 @@ public:
 		const CBlobDesc& to, const CFloatHandle& toData ) override;
 	void BlobMergeByDim( TBlobDim dim, const CBlobDesc* from, const CIntHandle* fromData, int fromCount,
 		const CBlobDesc& to, const CIntHandle& toData ) override;
-	void BlobSplitByDim( TBlobDim dim, const CBlobDesc& from, const CFloatHandle& fromData,
+	void BlobSplitByDim( TBlobDim dim, const CBlobDesc& from, const CConstFloatHandle& fromData,
 		const CBlobDesc* to, const CFloatHandle* toData, int toCount ) override;
-	void BlobSplitByDim( TBlobDim dim, const CBlobDesc& from, const CIntHandle& fromData,
+	void BlobSplitByDim( TBlobDim dim, const CBlobDesc& from, const CConstIntHandle& fromData,
 		const CBlobDesc* to, const CIntHandle* toData, int toCount ) override;
 	void BlobResizeImage( const CBlobDesc& from, const CFloatHandle& fromData, int deltaLeft, int deltaRight,
 		int deltaTop, int deltaBottom, TBlobResizePadding padding, float defaultValue,
@@ -752,7 +752,7 @@ private:
 	void blobMergeByDim( int dimNum, const CBlobDesc* from, const CFloatHandle* fromData, int fromCount,
 		const CBlobDesc& to, const CFloatHandle& toData );
 
-	void blobSplitByDim( int dimNum, const CBlobDesc& from, const CFloatHandle& fromData,
+	void blobSplitByDim( int dimNum, const CBlobDesc& from, const CConstFloatHandle& fromData,
 		const CBlobDesc* to, const CFloatHandle* toData, int toCount );
 
 	void findMaxValueInColumns( const CFloatHandle& resultHandle, const CConstFloatHandle& matrixHandle,

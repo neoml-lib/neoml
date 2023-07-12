@@ -190,13 +190,10 @@ inline CVulkanDevice::~CVulkanDevice() noexcept
 class CVulkanDll : public CDll {
 public:
 	CVulkanDll();
-	~CVulkanDll();
+	~CVulkanDll() override;
 
 	// Loads the library
 	bool Load();
-
-	// Checks if the library has been loaded already
-	bool IsLoaded() const { return CDll::IsLoaded(); }
 
 	// Gets the information about available devices
 	const std::vector< CVulkanDeviceInfo, CrtAllocator<CVulkanDeviceInfo> >& GetDevices() const { return devices; }

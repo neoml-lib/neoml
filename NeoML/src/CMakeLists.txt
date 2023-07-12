@@ -78,6 +78,7 @@ set(NeoML_SOURCES_COMPACT
     TraditionalML/GradientBoostFastHistTreeBuilder.cpp
     TraditionalML/GradientBoostFullProblem.cpp
     TraditionalML/GradientBoostFullTreeBuilder.cpp
+    TraditionalML/GradientBoostThreadTask.cpp
     TraditionalML/GradientBoostQSEnsemble.cpp
     TraditionalML/Linear.cpp
     TraditionalML/LinkedRegressionTree.cpp
@@ -169,7 +170,7 @@ set(NeoML_SOURCES
     Dnn/Optimization/Graph.cpp
     Dnn/Optimization/MobileNetV2Optimizer.cpp
     Dnn/Optimization/MobileNetV3Optimizer.cpp
-    Dnn/Optimization/TrivialLayerOptimizer.cpp
+    Dnn/Optimization/OptimizerFunctions.cpp
     Dnn/Rowwise/Activation.cpp
     Dnn/Rowwise/ChannelwiseConv.cpp
     Dnn/Rowwise/ChannelwiseWith1x1.cpp
@@ -238,6 +239,7 @@ set(NeoML_HEADERS_COMPACT
     TraditionalML/GradientBoostQSEnsemble.h
     TraditionalML/GradientBoostStatisticsSingle.h
     TraditionalML/GradientBoostStatisticsMulti.h
+    TraditionalML/GradientBoostThreadTask.h
     TraditionalML/LinearBinaryModel.h
     TraditionalML/LinkedRegressionTree.h
     TraditionalML/OneVersusAllModel.h
@@ -338,7 +340,7 @@ set(NeoML_HEADERS
     Dnn/Optimization/ChannelwiseWith1x1Optimizer.h
     Dnn/Optimization/MobileNetV2Optimizer.h
     Dnn/Optimization/MobileNetV3Optimizer.h
-    Dnn/Optimization/TrivialLayerOptimizer.h
+    Dnn/Optimization/OptimizerFunctions.h
     TraditionalML/BytePairEncoder.h
     TraditionalML/BytePairEncoderTrainer.h
     TraditionalML/NaiveHierarchicalClustering.h
