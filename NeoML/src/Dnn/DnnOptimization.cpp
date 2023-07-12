@@ -31,8 +31,8 @@ CDnnOptimizationReport OptimizeDnn( CDnn& dnn )
 {
 	CDnnOptimizationReport report;
 	optimization::CGraph graph( dnn );
-	report.CompositeLayersUnpacked = optimization::UnpackComposites( graph );
-	report.TrivialLayersRemoved = optimization::RemoveTrivialLayers( graph );
+	report.UnpackedCompositeLayers = optimization::UnpackComposites( graph );
+	report.RemovedTrivialLayers = optimization::RemoveTrivialLayers( graph );
 	optimization::CBatchNormFusionOptimizer( graph ).Apply( report );
 	optimization::CChannelwiseWith1x1Optimizer( graph ).Apply( report );
 	optimization::CMobileNetV2Optimizer( graph ).Apply( report );

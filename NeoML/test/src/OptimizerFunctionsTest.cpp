@@ -36,7 +36,7 @@ TEST( TrivialLayerOptimizerTest, Linear )
 
 	CDnnOptimizationReport report = OptimizeDnn( dnn );
 
-	EXPECT_EQ( 4, report.TrivialLayersRemoved );
+	EXPECT_EQ( 4, report.RemovedTrivialLayers );
 
 	EXPECT_EQ( 4, dnn.GetLayerCount() );
 	EXPECT_TRUE( dnn.HasLayer( "source" ) );
@@ -64,7 +64,7 @@ TEST( TrivialLayerOptimizerTest, Dropout )
 
 	CDnnOptimizationReport report = OptimizeDnn( dnn );
 
-	EXPECT_EQ( 4, report.TrivialLayersRemoved );
+	EXPECT_EQ( 4, report.RemovedTrivialLayers );
 
 	EXPECT_EQ( 3, dnn.GetLayerCount() );
 	EXPECT_TRUE( dnn.HasLayer( "source" ) );
@@ -92,7 +92,7 @@ TEST( TrivialLayerOptimizerTest, None )
 
 	CDnnOptimizationReport report = OptimizeDnn( dnn );
 
-	EXPECT_EQ( 0, report.TrivialLayersRemoved );
+	EXPECT_EQ( 0, report.RemovedTrivialLayers );
 	EXPECT_EQ( 6, dnn.GetLayerCount() );
 }
 
@@ -112,7 +112,7 @@ TEST( TrivialLayerOptimizerTest, All )
 
 	CDnnOptimizationReport report = OptimizeDnn( dnn );
 
-	EXPECT_EQ( 7, report.TrivialLayersRemoved );
+	EXPECT_EQ( 7, report.RemovedTrivialLayers );
 	EXPECT_EQ( 2, dnn.GetLayerCount() );
 	EXPECT_TRUE( dnn.HasLayer( "source" ) );
 	EXPECT_TRUE( dnn.HasLayer( "sink" ) );
@@ -215,7 +215,7 @@ TEST( UnpackCompositeOptimizerTest, Sample )
 	};
 
 	CDnnOptimizationReport report = OptimizeDnn( dnn );
-	EXPECT_EQ( 7, report.CompositeLayersUnpacked );
+	EXPECT_EQ( 7, report.UnpackedCompositeLayers );
 	dnn.RunOnce();
 
 	CObjectArray<CDnnBlob> actualOutput = {
