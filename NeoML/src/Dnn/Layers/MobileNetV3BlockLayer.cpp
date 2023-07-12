@@ -162,10 +162,10 @@ void CMobileNetV3PreSEBlockLayer::RunOnce()
 	MathEngine().MobileNetV3PreSEBlock( inputBlobs[0]->GetDesc(), outputBlobs[0]->GetDesc(), *convDesc,
 		inputBlobs[0]->GetData(), paramBlobs[P_ExpandFilter]->GetData(),
 		expandFt.IsNull() ? nullptr : &expandFt,
-		expandActivation.GetType(), MobileNetActivationParam( expandActivation ),
+		expandActivation.GetType(), MobileNetReluParam( expandActivation ),
 		paramBlobs[P_ChannelwiseFilter]->GetData(),
 		channelwiseFt.IsNull() ? nullptr : &channelwiseFt,
-		channelwiseActivation.GetType(), MobileNetActivationParam( channelwiseActivation ),
+		channelwiseActivation.GetType(), MobileNetReluParam( channelwiseActivation ),
 		outputBlobs[0]->GetData() );
 }
 
@@ -257,7 +257,7 @@ void CMobileNetV3PostSEBlockLayer::RunOnce()
 	MathEngine().MobileNetV3PostSEBlock( inputBlobs[I_Channelwise]->GetDesc(), outputBlobs[0]->GetChannelsCount(),
 		inputBlobs[I_Channelwise]->GetData(), inputBlobs[I_SqueezeAndExcite]->GetData(),
 		residual.IsNull() ? nullptr : &residual,
-		activation.GetType(), MobileNetActivationParam( activation ), paramBlobs[P_DownFilter]->GetData(),
+		activation.GetType(), MobileNetReluParam( activation ), paramBlobs[P_DownFilter]->GetData(),
 		downFt.IsNull() ? nullptr : &downFt,
 		outputBlobs[0]->GetData() );
 }

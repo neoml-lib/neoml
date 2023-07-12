@@ -50,10 +50,10 @@ CRowwiseOperationDesc* CRowwiseMobileNetV2::GetDesc( const CBlobDesc& inputDesc 
 {
 	return mathEngine.InitRowwiseMobileNetV2( expandFilter->GetChannelsCount(), expandFilter->GetData(),
 		expandFreeTerm == nullptr ? nullptr : &expandFreeTerm->GetData<const float>(),
-		expandFilter->GetObjectCount(), expandActivation.GetType(), MobileNetActivationParam( expandActivation ),
+		expandFilter->GetObjectCount(), expandActivation.GetType(), MobileNetReluParam( expandActivation ),
 		channelwiseFilter->GetData(),
 		channelwiseFreeTerm == nullptr ? nullptr : &channelwiseFreeTerm->GetData<const float>(),
-		stride, channelwiseActivation.GetType(), MobileNetActivationParam( channelwiseActivation ),
+		stride, channelwiseActivation.GetType(), MobileNetReluParam( channelwiseActivation ),
 		downFilter->GetData(),
 		downFreeTerm == nullptr ? nullptr : &downFreeTerm->GetData<const float>(),
 		downFilter->GetObjectCount(), residual );

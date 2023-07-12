@@ -1078,31 +1078,31 @@ public:
 	virtual void ChannelwiseWith1x1( const CBlobDesc& inputDesc, const CBlobDesc& outputDesc,
 		const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& inputHandle,
 		const CConstFloatHandle& channelwiseFilter, const CConstFloatHandle* channelwiseFreeTerm,
-		TActivationFunction activation, float activationParam, const CConstFloatHandle& convFilter,
+		TActivationFunction activation, float reluParam, const CConstFloatHandle& convFilter,
 		const CConstFloatHandle* convFreeTerm, bool residual, const CFloatHandle& outputHandle ) = 0;
 	virtual void MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobDesc& outputDesc,
 		const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& inputHandle,
 		const CConstFloatHandle& expandFilter, const CConstFloatHandle* expandFreeTerm,
-		TActivationFunction expandActivation, float expandActivationParam, const CConstFloatHandle& channelwiseFilter,
+		TActivationFunction expandActivation, float expandReluParam, const CConstFloatHandle& channelwiseFilter,
 		const CConstFloatHandle* channelwiseFreeTerm, TActivationFunction channelwiseActivation,
-		float channelwiseActivationParam, const CConstFloatHandle& downFilter, const CConstFloatHandle* downFreeTerm,
+		float channelwiseReluParam, const CConstFloatHandle& downFilter, const CConstFloatHandle* downFreeTerm,
 		bool residual, const CFloatHandle& outputHandle ) = 0;
 	virtual void MobileNetV3PreSEBlock( const CBlobDesc& inputDesc, const CBlobDesc& outputDesc,
 		const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& inputHandle,
 		const CConstFloatHandle& expandFilter, const CConstFloatHandle* expandFreeTerm,
-		TActivationFunction expandActivation, float expandActivationParam, const CConstFloatHandle& channelwiseFilter,
+		TActivationFunction expandActivation, float expandReluParam, const CConstFloatHandle& channelwiseFilter,
 		const CConstFloatHandle* channelwiseFreeTerm, TActivationFunction channelwiseActivation,
-		float channelwiseActivationParam, const CFloatHandle& outputHandle ) = 0;
+		float channelwiseReluParam, const CFloatHandle& outputHandle ) = 0;
 	virtual void MobileNetV3PostSEBlock( const CBlobDesc& channelwiseOutputDesc, int outputChannels,
 		const CConstFloatHandle& channelwiseOutputHandle, const CConstFloatHandle& squeezeAndExciteHandle,
-		const CConstFloatHandle* residualHandle, TActivationFunction activation, float activationParam,
+		const CConstFloatHandle* residualHandle, TActivationFunction activation, float reluParam,
 		const CConstFloatHandle& downFilterHandle, const CConstFloatHandle* downFreeTermHandle,
 		const CFloatHandle& outputHandle ) = 0;
 
 	virtual CRowwiseOperationDesc* InitRowwiseActivation( TActivationFunction activation,
 		float param0, float param1 ) = 0;
 	virtual CRowwiseOperationDesc* InitRowwiseChWith1x1( int stride, const CConstFloatHandle& channelwiseFilter,
-		const CConstFloatHandle* channelwiseFreeTerm, TActivationFunction activation, float activationParam,
+		const CConstFloatHandle* channelwiseFreeTerm, TActivationFunction activation, float reluParam,
 		const CConstFloatHandle& convFilter, const CConstFloatHandle* convFreeTerm,
 		int outputChannels, bool residual ) = 0;
 	virtual CRowwiseOperationDesc* InitRowwiseConv( int paddingHeight, int paddingWidth, int strideHeight,
@@ -1113,9 +1113,9 @@ public:
 		const CConstFloatHandle* freeTerm ) = 0;
 	virtual CRowwiseOperationDesc* InitRowwiseMobileNetV2( int inputChannels,
 		const CConstFloatHandle& expandFilter, const CConstFloatHandle* expandFreeTerm, int expandedChannels,
-		TActivationFunction expandActivation, float expandActivationParam,
+		TActivationFunction expandActivation, float expandReluParam,
 		const CConstFloatHandle& channelwiseFilter, const CConstFloatHandle* channelwiseFreeTerm, int stride,
-		TActivationFunction channelwiseActivation, float channelwiseActivationParam,
+		TActivationFunction channelwiseActivation, float channelwiseReluParam,
 		const CConstFloatHandle& downFilter, const CConstFloatHandle* downFreeTerm,
 		int outputChannels, bool residual ) = 0;
 	virtual CRowwiseOperationDesc* InitRowwise2DPooling( bool isMax, int filterHeight, int filterWidth,

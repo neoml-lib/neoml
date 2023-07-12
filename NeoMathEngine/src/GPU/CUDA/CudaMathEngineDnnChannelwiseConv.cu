@@ -134,7 +134,7 @@ void CCudaMathEngine::BlobChannelwiseConvolutionLearnAdd( const CChannelwiseConv
 void CCudaMathEngine::ChannelwiseWith1x1( const CBlobDesc& inputDesc, const CBlobDesc& outputDesc,
 	const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& inputHandle,
 	const CConstFloatHandle& channelwiseFilter, const CConstFloatHandle* channelwiseFreeTerm,
-	TActivationFunction activation, float activationParam, const CConstFloatHandle& convFilter,
+	TActivationFunction activation, float reluParam, const CConstFloatHandle& convFilter,
 	const CConstFloatHandle* convFreeTerm, bool residual, const CFloatHandle& outputHandle )
 {
 	SetCudaDevice( device->DeviceNumber );
@@ -152,7 +152,7 @@ void CCudaMathEngine::ChannelwiseWith1x1( const CBlobDesc& inputDesc, const CBlo
 		VectorHSwish( channelwiseOutput, channelwiseOutput, channelwiseOutput.Size() );
 	} else if( activation == AF_ReLU ) {
 		CFloatHandleStackVar reLUThreshold( *this );
-		reLUThreshold.GetHandle().SetValue( activationParam );
+		reLUThreshold.GetHandle().SetValue( reluParam );
 		VectorReLU( channelwiseOutput, channelwiseOutput, channelwiseOutput.Size(), reLUThreshold );
 	}
 
@@ -174,9 +174,9 @@ void CCudaMathEngine::ChannelwiseWith1x1( const CBlobDesc& inputDesc, const CBlo
 void CCudaMathEngine::MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobDesc& outputDesc,
 	const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& inputHandle,
 	const CConstFloatHandle& expandFilter, const CConstFloatHandle* expandFreeTerm,
-	TActivationFunction expandActivation, float expandActivationParam, const CConstFloatHandle& channelwiseFilter,
+	TActivationFunction expandActivation, float expandReluParam, const CConstFloatHandle& channelwiseFilter,
 	const CConstFloatHandle* channelwiseFreeTerm, TActivationFunction channelwiseActivation,
-	float channelwiseActivationParam, const CConstFloatHandle& downFilter, const CConstFloatHandle* downFreeTerm,
+	float channelwiseReluParam, const CConstFloatHandle& downFilter, const CConstFloatHandle* downFreeTerm,
 	bool residual, const CFloatHandle& outputHandle )
 {
 	SetCudaDevice( device->DeviceNumber );
@@ -203,7 +203,7 @@ void CCudaMathEngine::MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobD
 		VectorHSwish( channelwiseInput, channelwiseInput, channelwiseInput.Size() );
 	} else if( expandActivation == AF_ReLU ) {
 		CFloatHandleStackVar expandReLUThreshold( *this );
-		expandReLUThreshold.GetHandle().SetValue( expandActivationParam );
+		expandReLUThreshold.GetHandle().SetValue( expandReluParam );
 		VectorReLU( channelwiseInput, channelwiseInput, channelwiseInput.Size(), expandReLUThreshold );
 	}
 
@@ -212,7 +212,7 @@ void CCudaMathEngine::MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobD
 		VectorHSwish( channelwiseOutput, channelwiseOutput, channelwiseOutput.Size() );
 	} else if( channelwiseActivation == AF_ReLU ) {
 		CFloatHandleStackVar channelwiseReLUThreshold( *this );
-		channelwiseReLUThreshold.GetHandle().SetValue( channelwiseActivationParam );
+		channelwiseReLUThreshold.GetHandle().SetValue( channelwiseReluParam );
 		VectorReLU( channelwiseOutput, channelwiseOutput, channelwiseOutput.Size(), channelwiseReLUThreshold );
 	}
 
@@ -234,9 +234,9 @@ void CCudaMathEngine::MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobD
 void CCudaMathEngine::MobileNetV3PreSEBlock( const CBlobDesc& inputDesc, const CBlobDesc& outputDesc,
 	const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& inputHandle,
 	const CConstFloatHandle& expandFilter, const CConstFloatHandle* expandFreeTerm,
-	TActivationFunction expandActivation, float expandActivationParam, const CConstFloatHandle& channelwiseFilter,
+	TActivationFunction expandActivation, float expandReluParam, const CConstFloatHandle& channelwiseFilter,
 	const CConstFloatHandle* channelwiseFreeTerm, TActivationFunction channelwiseActivation,
-	float channelwiseActivationParam, const CFloatHandle& outputHandle )
+	float channelwiseReluParam, const CFloatHandle& outputHandle )
 {
 	SetCudaDevice( device->DeviceNumber );
 	const CCudaChannelwiseConvolutionDescInternal& desc = static_cast<const CCudaChannelwiseConvolutionDesc&>( convDesc ).Internal;
@@ -257,7 +257,7 @@ void CCudaMathEngine::MobileNetV3PreSEBlock( const CBlobDesc& inputDesc, const C
 		VectorHSwish( channelwiseInput, channelwiseInput, channelwiseInput.Size() );
 	} else if( expandActivation == AF_ReLU ) {
 		CFloatHandleStackVar expandReLUThreshold( *this );
-		expandReLUThreshold.GetHandle().SetValue( expandActivationParam );
+		expandReLUThreshold.GetHandle().SetValue( expandReluParam );
 		VectorReLU( channelwiseInput, channelwiseInput, channelwiseInput.Size(), expandReLUThreshold );
 	}
 
@@ -267,14 +267,14 @@ void CCudaMathEngine::MobileNetV3PreSEBlock( const CBlobDesc& inputDesc, const C
 		VectorHSwish( outputHandle, outputHandle, desc.Result.BlobSize() );
 	} else if( channelwiseActivation == AF_ReLU ) {
 		CFloatHandleStackVar channelwiseReLUThreshold( *this );
-		channelwiseReLUThreshold.GetHandle().SetValue( channelwiseActivationParam );
+		channelwiseReLUThreshold.GetHandle().SetValue( channelwiseReluParam );
 		VectorReLU( outputHandle, outputHandle, desc.Result.BlobSize(), channelwiseReLUThreshold);
 	}
 }
 
 void CCudaMathEngine::MobileNetV3PostSEBlock( const CBlobDesc& channelwiseOutputDesc, int outputChannels,
 	const CConstFloatHandle& channelwiseOutputHandle, const CConstFloatHandle& squeezeAndExciteHandle,
-	const CConstFloatHandle* residualHandle, TActivationFunction activation, float activationParam,
+	const CConstFloatHandle* residualHandle, TActivationFunction activation, float reluParam,
 	const CConstFloatHandle& downFilterHandle, const CConstFloatHandle* downFreeTermHandle,
 	const CFloatHandle& outputHandle )
 {
@@ -296,7 +296,7 @@ void CCudaMathEngine::MobileNetV3PostSEBlock( const CBlobDesc& channelwiseOutput
 		VectorHSwish( squeezedAndExcited, squeezedAndExcited, inputSize );
 	} else if( activation == AF_ReLU ) {
 		CFloatHandleStackVar reLUThreshold( *this );
-		reLUThreshold.GetHandle().SetValue( activationParam );
+		reLUThreshold.GetHandle().SetValue( reluParam );
 		VectorReLU( squeezedAndExcited, squeezedAndExcited, inputSize, reLUThreshold );
 	}
 

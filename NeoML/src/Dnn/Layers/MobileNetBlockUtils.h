@@ -58,7 +58,7 @@ inline bool IsValidMobileNetBlockActivation( const CActivationDesc& desc )
 	return false;
 }
 
-inline float MobileNetActivationParam( const CActivationDesc& desc )
+inline float MobileNetReluParam( const CActivationDesc& desc )
 {
 	if( desc.GetType() == AF_ReLU ) {
 		return desc.GetParam<CReLULayer::CParam>().UpperThreshold;

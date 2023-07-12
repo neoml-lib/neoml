@@ -215,10 +215,10 @@ void CMobileNetV2BlockLayer::RunOnce()
 	MathEngine().MobileNetV2Block( inputBlobs[0]->GetDesc(), outputBlobs[0]->GetDesc(), *convDesc,
 		inputBlobs[0]->GetData(), paramBlobs[P_ExpandFilter]->GetData(),
 		expandFt.IsNull() ? nullptr : &expandFt,
-		expandActivation.GetType(), MobileNetActivationParam( expandActivation ),
+		expandActivation.GetType(), MobileNetReluParam( expandActivation ),
 		paramBlobs[P_ChannelwiseFilter]->GetData(),
 		channelwiseFt.IsNull() ? nullptr : &channelwiseFt,
-		channelwiseActivation.GetType(), MobileNetActivationParam( channelwiseActivation ),
+		channelwiseActivation.GetType(), MobileNetReluParam( channelwiseActivation ),
 		paramBlobs[P_DownFilter]->GetData(),
 		downFt.IsNull() ? nullptr : &downFt,
 		residual, outputBlobs[0]->GetData() );

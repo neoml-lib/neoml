@@ -46,7 +46,7 @@ CRowwiseOperationDesc* CRowwiseChWith1x1::GetDesc( const CBlobDesc& inputDesc )
 {
 	return mathEngine.InitRowwiseChWith1x1( stride, channelwiseFilter->GetData(),
 		channelwiseFreeTerm == nullptr ? nullptr : &channelwiseFreeTerm->GetData<const float>(),
-		activation.GetType(), MobileNetActivationParam( activation ), convFilter->GetData(),
+		activation.GetType(), MobileNetReluParam( activation ), convFilter->GetData(),
 		convFreeTerm == nullptr ? nullptr : &convFreeTerm->GetData<const float>(),
 		convFilter->GetObjectCount(), residual );
 }

@@ -551,9 +551,9 @@ void CCpuMathEngine::multiplyMatrixByTransposedWithFreeTerm( const float* first,
 void CCpuMathEngine::MobileNetV3PreSEBlock( const CBlobDesc& inputDesc, const CBlobDesc& outputDesc,
 	const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& inputHandle,
 	const CConstFloatHandle& expandFilterData, const CConstFloatHandle* expandFreeTermData,
-	TActivationFunction expandActivation, float expandActivationParam, const CConstFloatHandle& channelwiseFilterData,
+	TActivationFunction expandActivation, float expandReluParam, const CConstFloatHandle& channelwiseFilterData,
 	const CConstFloatHandle* channelwiseFreeTermData, TActivationFunction channelwiseActivation,
-	float channelwiseActivationParam, const CFloatHandle& outputHandle )
+	float channelwiseReluParam, const CFloatHandle& outputHandle )
 {
 	CCpuExecutionScope scope;
 	const CCommonChannelwiseConvolutionDesc& desc = static_cast<const CCommonChannelwiseConvolutionDesc&>( convDesc );
@@ -573,15 +573,11 @@ void CCpuMathEngine::MobileNetV3PreSEBlock( const CBlobDesc& inputDesc, const CB
 	const float* inputObject = GetRaw( inputHandle );
 	const float* expandFilter = GetRaw( expandFilterData );
 	const float* expandFreeTerm = expandFreeTermData == nullptr ? nullptr : GetRaw( *expandFreeTermData );
-	CRowwiseActivation expandActivationImpl( expandActivation, expandActivationParam, 0.f );
-	expandActivationImpl.Reshape( desc.Source );
 
 	TChannelwiseProcessFunction channelwise = filterSize == 3 ? processChannelwise3x3
 		: ( stride == 1 ? processChannelwise5x5Stride1 : processChannelwise5x5Stride2 );
 	const float* channelwiseFilter = GetRaw( channelwiseFilterData );
 	const float* channelwiseFreeTerm = channelwiseFreeTermData == nullptr ? nullptr : GetRaw( *channelwiseFreeTermData );
-	CRowwiseActivation channelwiseActivationImpl( channelwiseActivation, channelwiseActivationParam, 0.f );
-	channelwiseActivationImpl.Reshape( desc.Result );
 
 	const int maxInputRowsPerStep = std::max<int>( 1,
 		( RowwiseCacheSize / ( std::max<int>( inputChannels, outputChannels ) * inputWidth ) ) );
@@ -612,9 +608,14 @@ void CCpuMathEngine::MobileNetV3PreSEBlock( const CBlobDesc& inputDesc, const CB
 			// Apply expand convolution
 			multiplyMatrixByTransposedWithFreeTerm( input, inputRowsThisStep * inputWidth, inputChannels,
 				expandFilter, outputChannels, expandFreeTerm, chInput );
-			if( expandActivation != AF_Linear ) {
-				expandActivationImpl.Process( chInput, inputRowsProcessed, inputRowsThisStep,
-					chInput, inputRowsProcessed, inputRowsThisStep, nullptr );
+			if( expandActivation == AF_HSwish ) {
+				vectorHSwish( chInput, chInput, inputRowsThisStep * chInputRowSize );
+			} else if( expandActivation == AF_ReLU ) {
+				if( expandReluParam > 0 ) {
+					vectorReLU( chInput, chInput, inputRowsThisStep * chInputRowSize, expandReluParam );
+				} else {
+					vectorReLU( chInput, chInput, inputRowsThisStep * chInputRowSize );
+				}
 			}
 			inputRowsProcessed += inputRowsThisStep;
 
@@ -630,9 +631,14 @@ void CCpuMathEngine::MobileNetV3PreSEBlock( const CBlobDesc& inputDesc, const CB
 				// Channelwise conv
 				channelwise( desc, outputRowsThisStep, chInputBuff, firstInputRowInBuffer,
 					channelwiseFilter, channelwiseFreeTerm, output, outputRowsProcessed );
-				if( channelwiseActivation != AF_Linear ) {
-					channelwiseActivationImpl.Process( output, outputRowsProcessed, outputRowsThisStep,
-						output, outputRowsProcessed, outputRowsThisStep, nullptr );
+				if( channelwiseActivation == AF_HSwish ) {
+					vectorHSwish( output, output, outputRowsThisStep * outputRowSize );
+				} else if( channelwiseActivation == AF_ReLU ) {
+					if( channelwiseReluParam > 0 ) {
+						vectorReLU( output, output, outputRowsThisStep * outputRowSize, channelwiseReluParam );
+					} else {
+						vectorReLU( output, output, outputRowsThisStep * outputRowSize );
+					}
 				}
 
 				output += outputRowsThisStep * outputRowSize;
@@ -666,7 +672,7 @@ void CCpuMathEngine::MobileNetV3PreSEBlock( const CBlobDesc& inputDesc, const CB
 
 void CCpuMathEngine::MobileNetV3PostSEBlock( const CBlobDesc& channelwiseOutputDesc, int outputChannels,
 	const CConstFloatHandle& channelwiseOutputHandle, const CConstFloatHandle& squeezeAndExciteHandle,
-	const CConstFloatHandle* residualHandle, TActivationFunction activation, float activationParam,
+	const CConstFloatHandle* residualHandle, TActivationFunction activation, float reluParam,
 	const CConstFloatHandle& downFilterHandle, const CConstFloatHandle* downFreeTermHandle,
 	const CFloatHandle& outputHandle )
 {
@@ -677,8 +683,6 @@ void CCpuMathEngine::MobileNetV3PostSEBlock( const CBlobDesc& channelwiseOutputD
 	const int inputRowSize = inputChannels * width;
 	const int outputRowSize = outputChannels * width;
 	const int outputObjectSize = outputRowSize * rowCount;
-	CRowwiseActivation activationImpl( activation, activationParam, 0.f );
-	activationImpl.Reshape( channelwiseOutputDesc );
 
 	const int maxRowsPerStep = std::max( 1, ( RowwiseCacheSize / ( std::max( inputChannels, outputChannels ) * width ) ) );
 
@@ -702,9 +706,14 @@ void CCpuMathEngine::MobileNetV3PostSEBlock( const CBlobDesc& channelwiseOutputD
 			multiplyMatrixByDiagMatrix( input, rowsThisStep * width, inputChannels,
 				squeezeVector, squeezed );
 			// Activation (if present, not present means trivial linear)
-			if( activation != AF_Linear ) {
-				activationImpl.Process( squeezed, rowsProcessed, rowsThisStep,
-					squeezed, rowsProcessed, rowsThisStep, nullptr );
+			if( activation == AF_HSwish ) {
+				vectorHSwish( squeezed, squeezed, rowsThisStep * inputRowSize );
+			} else if( activation == AF_ReLU ) {
+				if( reluParam > 0 ) {
+					vectorReLU( squeezed, squeezed, rowsThisStep * inputRowSize, reluParam );
+				} else {
+					vectorReLU( squeezed, squeezed, rowsThisStep * inputRowSize );
+				}
 			}
 			// Down-convolution (1x1)
 			multiplyMatrixByTransposedWithFreeTerm( squeezed, rowsThisStep * width, inputChannels,
@@ -734,12 +743,13 @@ void CCpuMathEngine::MobileNetV3PostSEBlock( const CBlobDesc& channelwiseOutputD
 class CCpuMathEngine::CRowwiseChannelwiseWith1x1 : public IRowwiseCpuImpl, public CRowwiseOperationDesc {
 public:
 	CRowwiseChannelwiseWith1x1( CCpuMathEngine& mathEngine, int stride, const float* chFilter, const float* chFreeTerm,
-			TActivationFunction activation, float activationParam, const float* convFilter,
+			TActivationFunction activation, float reluParam, const float* convFilter,
 			const float* convFreeTerm, int outputChannels, bool residual ) :
 		mathEngine( mathEngine ),
 		chFilter( chFilter ),
 		chFreeTerm( chFreeTerm ),
-		activationImpl( activation, activationParam, 0.f ),
+		activation( activation ),
+		reluParam( reluParam ),
 		convFilter( convFilter ),
 		convFreeTerm( convFreeTerm ),
 		outputChannels( outputChannels ),
@@ -762,7 +772,8 @@ private:
 	CCpuMathEngine& mathEngine;
 	const float* chFilter;
 	const float* chFreeTerm;
-	CRowwiseActivation activationImpl;
+	TActivationFunction activation;
+	float reluParam;
 	const float* convFilter;
 	const float* convFreeTerm;
 	int outputChannels;
@@ -783,7 +794,6 @@ CBlobDesc CCpuMathEngine::CRowwiseChannelwiseWith1x1::Reshape( const CBlobDesc& 
 	filterSize.SetDimSize( BD_Channels, inputSize.Channels() );
 	desc = CCommonChannelwiseConvolutionDesc( desc.PaddingHeight, desc.PaddingWidth, desc.StrideHeight,
 		desc.StrideWidth, inputSize, filterSize, outputSize );
-	activationImpl.Reshape( outputSize );
 	outputSize.SetDimSize( BD_Channels, outputChannels );
 	return outputSize;
 }
@@ -823,10 +833,16 @@ IRowwiseCpuImpl::CProcessingReport CCpuMathEngine::CRowwiseChannelwiseWith1x1::P
 		processChannelwise3x3( desc, outputRowsThisStep, input, inputRowIndex % desc.Source.Height(),
 			chFilter, chFreeTerm, buffer, outputImageRowIndex );
 
-		if( activationImpl.Type() != AF_Linear ) {
-			activationImpl.Process( buffer, outputRowIndex, outputRowsThisStep,
-				buffer, outputRowIndex, outputRowsThisStep, nullptr );
+		if( activation == AF_HSwish ) {
+			vectorHSwish( buffer, buffer, outputRowsThisStep * chOutputRowSize );
+		} else if( activation == AF_ReLU ) {
+			if( reluParam > 0 ) {
+				vectorReLU( buffer, buffer, outputRowsThisStep * chOutputRowSize, reluParam );
+			} else {
+				vectorReLU( buffer, buffer, outputRowsThisStep * chOutputRowSize );
+			}
 		}
+
 		mathEngine.multiplyMatrixByTransposedWithFreeTerm( buffer, outputRowsThisStep * outputWidth, inputChannels,
 			convFilter, outputChannels, convFreeTerm, output );
 		if( residual ) {
@@ -854,7 +870,7 @@ IRowwiseCpuImpl::CProcessingReport CCpuMathEngine::CRowwiseChannelwiseWith1x1::P
 void CCpuMathEngine::ChannelwiseWith1x1( const CBlobDesc& inputDesc, const CBlobDesc& outputDesc,
 	const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& inputHandle,
 	const CConstFloatHandle& channelwiseFilterData, const CConstFloatHandle* channelwiseFreeTermData,
-	TActivationFunction activation, float activationParam, const CConstFloatHandle& convFilterData,
+	TActivationFunction activation, float reluParam, const CConstFloatHandle& convFilterData,
 	const CConstFloatHandle* convFreeTermData, bool residual, const CFloatHandle& outputHandle )
 {
 	CCpuExecutionScope scope;
@@ -862,7 +878,7 @@ void CCpuMathEngine::ChannelwiseWith1x1( const CBlobDesc& inputDesc, const CBlob
 
 	CRowwiseChannelwiseWith1x1 impl( *this, desc.StrideHeight, GetRaw( channelwiseFilterData ),
 		channelwiseFreeTermData == nullptr ? nullptr : GetRaw( *channelwiseFreeTermData ),
-		activation, activationParam, GetRaw( convFilterData ),
+		activation, reluParam, GetRaw( convFilterData ),
 		convFreeTermData == nullptr ? nullptr : GetRaw( *convFreeTermData ),
 		outputDesc.Channels(), residual );
 	(void)impl.Reshape( inputDesc );
@@ -884,12 +900,12 @@ void CCpuMathEngine::ChannelwiseWith1x1( const CBlobDesc& inputDesc, const CBlob
 }
 
 CRowwiseOperationDesc* CCpuMathEngine::InitRowwiseChWith1x1( int stride, const CConstFloatHandle& channelwiseFilter,
-	const CConstFloatHandle* channelwiseFreeTerm, TActivationFunction activation, float activationParam,
+	const CConstFloatHandle* channelwiseFreeTerm, TActivationFunction activation, float reluParam,
 	const CConstFloatHandle& convFilter, const CConstFloatHandle* convFreeTerm, int outputChannels, bool residual )
 {
 	return new CRowwiseChannelwiseWith1x1( *this, stride, GetRaw( channelwiseFilter ),
 		channelwiseFreeTerm == nullptr ? nullptr : GetRaw( *channelwiseFreeTerm ),
-		activation, activationParam, GetRaw( convFilter ),
+		activation, reluParam, GetRaw( convFilter ),
 		convFreeTerm == nullptr ? nullptr : GetRaw( *convFreeTerm ),
 		outputChannels, residual );
 }
@@ -900,20 +916,22 @@ class CCpuMathEngine::CRowwiseMobileNetV2 : public IRowwiseCpuImpl, public CRoww
 public:
 	CRowwiseMobileNetV2( CCpuMathEngine& mathEngine, int inputChannels,
 			const float* expandFilter, const float* expandFreeTerm, int expandedChannels,
-			TActivationFunction expandActivation, float expandActivationParam,
+			TActivationFunction expandActivation, float expandReluParam,
 			const float* channelwiseFilter, const float* channelwiseFreeTerm, int stride,
-			TActivationFunction channelwiseActivation, float channelwiseActivationParam,
+			TActivationFunction channelwiseActivation, float channelwiseReluParam,
 			const float* downFilter, const float* downFreeTerm, int outputChannels, bool residual ) :
 		mathEngine( mathEngine ),
 		inputChannels( inputChannels ),
 		expandFilter( expandFilter ),
 		expandFreeTerm( expandFreeTerm ),
 		expandedChannels( expandedChannels ),
-		expandActivationImpl( expandActivation, expandActivationParam, 0.f ),
+		expandActivation( expandActivation ),
+		expandReluParam( expandReluParam ),
 		desc( 1, 1, stride, stride, CBlobDesc(), CBlobDesc( { 3, 3, 1, expandedChannels } ), CBlobDesc() ),
 		channelwiseFilter( channelwiseFilter ),
 		channelwiseFreeTerm( channelwiseFreeTerm ),
-		channelwiseActivationImpl( channelwiseActivation, channelwiseActivationParam, 0.f ),
+		channelwiseActivation( channelwiseActivation ),
+		channelwiseReluParam( channelwiseReluParam ),
 		downFilter( downFilter ),
 		downFreeTerm( downFreeTerm ),
 		outputChannels( outputChannels ),
@@ -937,11 +955,13 @@ private:
 	const float* expandFilter;
 	const float* expandFreeTerm;
 	int expandedChannels;
-	CRowwiseActivation expandActivationImpl;
+	TActivationFunction expandActivation;
+	float expandReluParam;
 	CCommonChannelwiseConvolutionDesc desc;
 	const float* channelwiseFilter;
 	const float* channelwiseFreeTerm;
-	CRowwiseActivation channelwiseActivationImpl;
+	TActivationFunction channelwiseActivation;
+	float channelwiseReluParam;
 	const float* downFilter;
 	const float* downFreeTerm;
 	int outputChannels;
@@ -958,7 +978,6 @@ CBlobDesc CCpuMathEngine::CRowwiseMobileNetV2::Reshape( const CBlobDesc& inputSi
 {
 	CBlobDesc chInputSize = inputSize;
 	chInputSize.SetDimSize( BD_Channels, expandedChannels );
-	expandActivationImpl.Reshape( chInputSize );
 	CBlobDesc outputSize = chInputSize;
 	if( desc.StrideHeight == 2 ) {
 		outputSize.SetDimSize( BD_Height, ( outputSize.Height() + 1 ) / 2 );
@@ -966,7 +985,6 @@ CBlobDesc CCpuMathEngine::CRowwiseMobileNetV2::Reshape( const CBlobDesc& inputSi
 	}
 	desc = CCommonChannelwiseConvolutionDesc( desc.PaddingHeight, desc.PaddingWidth, desc.StrideHeight, desc.StrideWidth,
 		chInputSize, desc.Filter, outputSize );
-	channelwiseActivationImpl.Reshape( outputSize );
 	outputSize.SetDimSize( BD_Channels, outputChannels );
 	return outputSize;
 }
@@ -1000,6 +1018,7 @@ IRowwiseCpuImpl::CProcessingReport CCpuMathEngine::CRowwiseMobileNetV2::Process(
 	const int inputWidth = desc.Source.Width();
 	const int outputWidth = desc.Result.Width();
 	const int inputRowSize = inputWidth * inputChannels;
+	const int chOutputRowSize = outputWidth * expandedChannels;
 
 	const float* residualInput = input + ( outputRowIndex - inputRowIndex ) * inputRowSize;
 	const bool isInPlace = ( residualInput == output );
@@ -1023,9 +1042,15 @@ IRowwiseCpuImpl::CProcessingReport CCpuMathEngine::CRowwiseMobileNetV2::Process(
 			// Apply expand convolution with activation
 			mathEngine.multiplyMatrixByTransposedWithFreeTerm( expandConvInput, inputRowsThisStep * inputWidth, inputChannels,
 				expandFilter, expandedChannels, expandFreeTerm, chInput->EmptyRows() );
-			if( expandActivationImpl.Type() != AF_Linear ) {
-				expandActivationImpl.Process( chInput->EmptyRows(), 0, inputRowsThisStep,
-					chInput->EmptyRows(), 0, inputRowsThisStep, nullptr );
+			if( expandActivation == AF_HSwish ) {
+				vectorHSwish( chInput->EmptyRows(), chInput->EmptyRows(), inputRowsThisStep * chInput->RowSize() );
+			} else if( expandActivation == AF_ReLU ) {
+				if( expandReluParam > 0 ) {
+					vectorReLU( chInput->EmptyRows(), chInput->EmptyRows(),
+						inputRowsThisStep * chInput->RowSize(), expandReluParam );
+				} else {
+					vectorReLU( chInput->EmptyRows(), chInput->EmptyRows(), inputRowsThisStep * chInput->RowSize() );
+				}
 			}
 			chInput->AddRows( inputRowsThisStep );
 		}
@@ -1043,9 +1068,14 @@ IRowwiseCpuImpl::CProcessingReport CCpuMathEngine::CRowwiseMobileNetV2::Process(
 
 			processChannelwise3x3( desc, outputRowsThisStep, chInput->DataRows(), chInput->DataRowIndex() % desc.Source.Height(),
 				channelwiseFilter, channelwiseFreeTerm, buffer, outputRowsProcessed % desc.Result.Height() );
-			if( channelwiseActivationImpl.Type() != AF_Linear ) {
-				channelwiseActivationImpl.Process( buffer, 0, outputRowsThisStep,
-					buffer, 0, outputRowsThisStep, nullptr );
+			if( channelwiseActivation == AF_HSwish ) {
+				vectorHSwish( buffer, buffer, outputRowsThisStep * chOutputRowSize );
+			} else if( channelwiseActivation == AF_ReLU ) {
+				if( channelwiseReluParam > 0 ) {
+					vectorReLU( buffer, buffer, outputRowsThisStep * chOutputRowSize, channelwiseReluParam );
+				} else {
+					vectorReLU( buffer, buffer, outputRowsThisStep * chOutputRowSize );
+				}
 			}
 			outputRowsProcessed += outputRowsThisStep;
 
@@ -1095,9 +1125,9 @@ IRowwiseCpuImpl::CProcessingReport CCpuMathEngine::CRowwiseMobileNetV2::Process(
 void CCpuMathEngine::MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobDesc& outputDesc,
 	const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& inputHandle,
 	const CConstFloatHandle& expandFilterData, const CConstFloatHandle* expandFreeTermData,
-	TActivationFunction expandActivation, float expandActivationParam, const CConstFloatHandle& channelwiseFilterData,
+	TActivationFunction expandActivation, float expandReluParam, const CConstFloatHandle& channelwiseFilterData,
 	const CConstFloatHandle* channelwiseFreeTermData, TActivationFunction channelwiseActivation,
-	float channelwiseActivationParam, const CConstFloatHandle& downFilterData, const CConstFloatHandle* downFreeTermData,
+	float channelwiseReluParam, const CConstFloatHandle& downFilterData, const CConstFloatHandle* downFreeTermData,
 	bool residual, const CFloatHandle& outputHandle )
 {
 	CCpuExecutionScope scope;
@@ -1105,9 +1135,9 @@ void CCpuMathEngine::MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobDe
 
 	CRowwiseMobileNetV2 blockImpl( *this, inputDesc.Channels(), GetRaw( expandFilterData ),
 		expandFreeTermData == nullptr ? nullptr : GetRaw( *expandFreeTermData ),
-		desc.Source.Channels(), expandActivation, expandActivationParam, GetRaw( channelwiseFilterData ),
+		desc.Source.Channels(), expandActivation, expandReluParam, GetRaw( channelwiseFilterData ),
 		channelwiseFreeTermData == nullptr ? nullptr : GetRaw( *channelwiseFreeTermData ),
-		desc.StrideHeight, channelwiseActivation, channelwiseActivationParam, GetRaw( downFilterData ),
+		desc.StrideHeight, channelwiseActivation, channelwiseReluParam, GetRaw( downFilterData ),
 		downFreeTermData == nullptr ? nullptr : GetRaw( *downFreeTermData ),
 		outputDesc.Channels(), residual );
 	const CBlobDesc reshapeResult = blockImpl.Reshape( inputDesc );
@@ -1124,16 +1154,16 @@ void CCpuMathEngine::MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobDe
 
 CRowwiseOperationDesc* CCpuMathEngine::InitRowwiseMobileNetV2( int inputChannels,
 	const CConstFloatHandle& expandFilter, const CConstFloatHandle* expandFreeTerm, int expandedChannels,
-	TActivationFunction expandActivation, float expandActivationParam,
+	TActivationFunction expandActivation, float expandReluParam,
 	const CConstFloatHandle& channelwiseFilter, const CConstFloatHandle* channelwiseFreeTerm, int stride,
-	TActivationFunction channelwiseActivation, float channelwiseActivationParam,
+	TActivationFunction channelwiseActivation, float channelwiseReluParam,
 	const CConstFloatHandle& downFilter, const CConstFloatHandle* downFreeTerm, int outputChannels, bool residual )
 {
 	return new CRowwiseMobileNetV2( *this, inputChannels, GetRaw( expandFilter ),
 		expandFreeTerm == nullptr ? nullptr : GetRaw( *expandFreeTerm ),
-		expandedChannels, expandActivation, expandActivationParam, GetRaw( channelwiseFilter ),
+		expandedChannels, expandActivation, expandReluParam, GetRaw( channelwiseFilter ),
 		channelwiseFreeTerm == nullptr ? nullptr : GetRaw( *channelwiseFreeTerm ),
-		stride, channelwiseActivation, channelwiseActivationParam, GetRaw( downFilter ),
+		stride, channelwiseActivation, channelwiseReluParam, GetRaw( downFilter ),
 		downFreeTerm == nullptr ? nullptr : GetRaw( *downFreeTerm ),
 		outputChannels, residual );
 }
