@@ -28,12 +28,9 @@ class CActivationDesc;
 class NEOML_API CLinearLayer : public CBaseInPlaceLayer, public IActivationLayer {
 	NEOML_DNN_LAYER( CLinearLayer )
 public:
-	static constexpr float DefaultMultiplier = 1.f;
-	static constexpr float DefaultFreeTerm = 0.f;
-	struct CParam {
-		float Multiplier = DefaultMultiplier;
-		float FreeTerm = DefaultFreeTerm;
-	};
+	using CParam = CLinearActivationParam;
+	static constexpr float DefaultMultiplier = CParam::DefaultMultiplier;
+	static constexpr float DefaultFreeTerm = CParam::DefaultFreeTerm;
 
 	explicit CLinearLayer( IMathEngine& mathEngine );
 
@@ -67,10 +64,8 @@ NEOML_API CLayerWrapper<CLinearLayer> Linear( float multiplier, float freeTerm )
 class NEOML_API CELULayer : public CBaseInPlaceLayer, public IActivationLayer {
 	NEOML_DNN_LAYER( CELULayer )
 public:
-	static constexpr float DefaultAlpha = 0.01f;
-	struct CParam {
-		float Alpha = DefaultAlpha;
-	};
+	using CParam = CELUActivationParam;
+	static constexpr float DefaultAlpha = CParam::DefaultAlpha;
 
 	explicit CELULayer( IMathEngine& mathEngine );
 
@@ -96,10 +91,8 @@ NEOML_API CLayerWrapper<CELULayer> Elu( float alpha = CELULayer::DefaultAlpha );
 class NEOML_API CReLULayer : public CBaseInPlaceLayer, public IActivationLayer {
 	NEOML_DNN_LAYER( CReLULayer )
 public:
-	static constexpr float DefaultUpperThreshold = 0.f;
-	struct CParam {
-		float UpperThreshold = DefaultUpperThreshold;
-	};
+	using CParam = CReLUActivationParam;
+	static constexpr float DefaultUpperThreshold = CParam::DefaultUpperThreshold;
 
 	explicit CReLULayer( IMathEngine& mathEngine );
 
@@ -133,10 +126,8 @@ NEOML_API CLayerWrapper<CReLULayer> Relu( float threshold = CReLULayer::DefaultU
 class NEOML_API CLeakyReLULayer : public CBaseInPlaceLayer, public IActivationLayer {
 	NEOML_DNN_LAYER( CLeakyReLULayer )
 public:
-	static constexpr float DefaultAlpha = 0.01f;
-	struct CParam {
-		float Alpha = DefaultAlpha;
-	};
+	using CParam = CLeakyReLUActivationParam;
+	static constexpr float DefaultAlpha = CParam::DefaultAlpha;
 
 	explicit CLeakyReLULayer( IMathEngine& mathEngine );
 
@@ -266,12 +257,9 @@ NEOML_API CLayerWrapper<CHardTanhLayer> HardTanh();
 class NEOML_API CHardSigmoidLayer : public CBaseInPlaceLayer, public IActivationLayer {
 	NEOML_DNN_LAYER( CHardSigmoidLayer )
 public:
-	static constexpr float DefaultSlope = 0.5f;
-	static constexpr float DefaultBias = 0.5f;
-	struct CParam {
-		float Slope = DefaultSlope;
-		float Bias = DefaultBias;
-	};
+	using CParam = CHardSigmoidActivationParam;
+	static constexpr float DefaultSlope = CParam::DefaultSlope;
+	static constexpr float DefaultBias = CParam::DefaultBias;
 
 	explicit CHardSigmoidLayer( IMathEngine& mathEngine );
 
@@ -302,10 +290,8 @@ NEOML_API CLayerWrapper<CHardSigmoidLayer> HardSigmoid( float slope, float bias 
 class NEOML_API CPowerLayer : public CBaseInPlaceLayer, public IActivationLayer {
 	NEOML_DNN_LAYER( CPowerLayer )
 public:
-	static constexpr float DefaultExponent = 0.f;
-	struct CParam {
-		float Exponent = DefaultExponent;
-	};
+	using CParam = CPowerActivationParam;
+	static constexpr float DefaultExponent = CParam::DefaultExponent;
 	explicit CPowerLayer( IMathEngine& mathEngine );
 
 	void Serialize( CArchive& archive ) override;
@@ -395,17 +381,9 @@ NEOML_API CLayerWrapper<CErfLayer> Erf();
 class NEOML_API CGELULayer : public CBaseLayer, public IActivationLayer {
 	NEOML_DNN_LAYER( CGELULayer )
 public:
-	// CDF can be calculated using the error function (slow) or using an approximation. The approximate method is used by default.
-	enum TCalculationMode {
-		// x * 0.5( 1 + erf( x / sqrt(2) ) )
-		CM_Precise,
-		// x * sigmoid(1.702x)
-		CM_SigmoidApproximate
-	};
-	static const TCalculationMode DefaultCalculationMode = CM_SigmoidApproximate;
-	struct CParam {
-		TCalculationMode Mode = DefaultCalculationMode;
-	};
+	using TCalculationMode = TGELUCalculationMode;
+	using CParam = CGELUActivationParam;
+	static const TCalculationMode DefaultCalculationMode = CParam::DefaultCalculationMode;
 
 	explicit CGELULayer( IMathEngine& mathEngine );
 
@@ -451,124 +429,11 @@ NEOML_API CLayerWrapper<CGELULayer> Gelu();
 
 //------------------------------------------------------------------------------------------------------------
 
-// Name of activation and its parameters (if any)
-class NEOML_API CActivationDesc {
-public:
-	// For non-parametrized activations or default parameters
-	CActivationDesc( TActivationFunction _type ) : type( _type ), isParamStored( false ) {}
-
-	// For explicitly setting activation parameters. 'Param' must be a 'CParam' struct from the correspondent layer
-	template<class Param>
-	CActivationDesc( TActivationFunction _type, const Param& param ) : type( _type ) { SetParam( param ); }
-
-	// The activation selected during the instance construction.
-	TActivationFunction GetType() const { return type; }
-
-	// Changing/setting parameters of the selected activation.
-	// 'Param' must be a 'CParam' struct from the correspondent layer.
-	template<class Param>
-	void SetParam( const Param& param );
-
-	// Are the parameters set
-	bool HasParam() const { return isParamStored; }
-
-	// Get parameters of the activation.
-	// The parameters must be set (HasParam),
-	// 'Param' must be a 'CParam' struct from the correspondent layer.
-	template<class Param>
-	Param GetParam() const;
-
-private:
-	std::aligned_union_t<1,
-		CLinearLayer::CParam,
-		CELULayer::CParam,
-		CReLULayer::CParam,
-		CLeakyReLULayer::CParam,
-		CHardSigmoidLayer::CParam,
-		CPowerLayer::CParam,
-		CGELULayer::CParam> paramValue;
-	TActivationFunction type;
-	bool isParamStored;
-
-	template<class T>
-	void assertIsTypeCompatible() const;
-};
-
-template <class Param>
-void CActivationDesc::SetParam( const Param& param ) {
-	assertIsTypeCompatible<Param>();
-	new( &paramValue ) Param( param );
-	isParamStored = true;
-}
-
-template <class Param>
-Param CActivationDesc::GetParam() const {
-	assertIsTypeCompatible<Param>();
-	if( isParamStored ) {
-		return *reinterpret_cast<const Param*>( &paramValue );
-	} else {
-		return Param{};
-	}
-}
-
-template <class T>
-void CActivationDesc::assertIsTypeCompatible() const {
-	static_assert( AF_Count == 15, "AF_Count != 15" );
-
-	// compile-time check: something not even looking like CParam is given.
-	static_assert( std::is_same<CLinearLayer::CParam, T>::value || 
-		std::is_same<CELULayer::CParam, T>::value || 
-		std::is_same<CReLULayer::CParam, T>::value ||
-		std::is_same<CLeakyReLULayer::CParam, T>::value ||
-		std::is_same<CHardSigmoidLayer::CParam, T>::value || 
-		std::is_same<CPowerLayer::CParam, T>::value || 
-		std::is_same<CGELULayer::CParam, T>::value, "Not CParam is given." );
-
-	bool isSame = false;
-	switch( type )
-	{
-		case AF_Linear:
-			isSame = std::is_same<CLinearLayer::CParam, T>::value;
-			break;
-		case AF_ELU:
-			isSame = std::is_same<CELULayer::CParam, T>::value;
-			break;
-		case AF_ReLU:
-			isSame = std::is_same<CReLULayer::CParam, T>::value;
-			break;
-		case AF_LeakyReLU:
-			isSame = std::is_same<CLeakyReLULayer::CParam, T>::value;
-			break;
-		case AF_HardSigmoid:
-			isSame = std::is_same<CHardSigmoidLayer::CParam, T>::value;
-			break;
-		case AF_Power:
-			isSame = std::is_same<CPowerLayer::CParam, T>::value;
-			break;
-		case AF_GELU:
-			isSame = std::is_same<CGELULayer::CParam, T>::value;
-			break;
-		case AF_Abs:
-		case AF_Sigmoid:
-		case AF_Tanh:
-		case AF_HardTanh:
-		case AF_HSwish:
-		case AF_Exp:
-		case AF_Log:
-		case AF_Erf:
-		default:
-			isSame = false;
-	}
-	NeoAssert( isSame );
-}
-
 // Creates an activation layer using the specified activation function
 CPtr<CBaseLayer> NEOML_API CreateActivationLayer( IMathEngine& mathEngine, const CActivationDesc& activation );
 
 void NEOML_API StoreActivationDesc( const CActivationDesc& desc, CArchive& archive );
 
 CActivationDesc NEOML_API LoadActivationDesc( CArchive& archive );
-
-//------------------------------------------------------------------------------------------------------------
 
 } // namespace NeoML
