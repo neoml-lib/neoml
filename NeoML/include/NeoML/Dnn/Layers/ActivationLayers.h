@@ -381,9 +381,14 @@ NEOML_API CLayerWrapper<CErfLayer> Erf();
 class NEOML_API CGELULayer : public CBaseLayer, public IActivationLayer {
 	NEOML_DNN_LAYER( CGELULayer )
 public:
-	using TCalculationMode = TGELUCalculationMode;
 	using CParam = CGELUActivationParam;
+	// Workaround for all compilers
+	using TCalculationMode = CParam::TCalculationMode;
 	static const TCalculationMode DefaultCalculationMode = CParam::DefaultCalculationMode;
+	// Backward compatibility
+	static_assert( static_cast<int>( TCalculationMode::Count ) == 2, "CGELULayer::TCalculationMode::Count != 2" );
+	static const TCalculationMode CM_Precise = CParam::TCalculationMode::Precise;
+	static const TCalculationMode CM_SigmoidApproximate = CParam::TCalculationMode::SigmoidApproximate;
 
 	explicit CGELULayer( IMathEngine& mathEngine );
 

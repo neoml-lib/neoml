@@ -82,19 +82,21 @@ struct NEOMATHENGINE_API CPowerActivationParam final {
 	float Exponent = DefaultExponent;
 };
 
-// CDF can be calculated using the error function (slow) or using an approximation.
-// The approximate method is used by default.
-enum TGELUCalculationMode {
-	// x * 0.5( 1 + erf( x / sqrt(2) ) )
-	CM_Precise,
-	// x * sigmoid(1.702x)
-	CM_SigmoidApproximate
-};
-
 // Parameters of GELU activation
 struct NEOMATHENGINE_API CGELUActivationParam final {
-	static const TGELUCalculationMode DefaultCalculationMode = CM_SigmoidApproximate;
-	TGELUCalculationMode Mode = DefaultCalculationMode;
+	// CDF can be calculated using the error function (slow) or using an approximation.
+	// The approximate method is used by default.
+	enum class TCalculationMode {
+		// x * 0.5( 1 + erf( x / sqrt(2) ) )
+		Precise,
+		// x * sigmoid(1.702x)
+		SigmoidApproximate,
+
+		Count
+	};
+
+	static const TCalculationMode DefaultCalculationMode = TCalculationMode::SigmoidApproximate;
+	TCalculationMode Mode = DefaultCalculationMode;
 };
 
 // Name of activation and its parameters (if any)
