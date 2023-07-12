@@ -76,6 +76,12 @@ void CGraph::GetLayers( CArray<CBaseLayer*>& layers ) const
 	}
 }
 
+CBaseLayer* CGraph::GetLayer( const char* name ) const
+{
+	NeoAssert( dnn.HasLayer( name ) );
+	return dnn.GetLayer( name ).Ptr();
+}
+
 int CGraph::GetInputCount( const CBaseLayer& layer ) const
 {
 	const int layerLinksPos = graphLinks.GetFirstPosition( &layer );
