@@ -154,7 +154,7 @@ public:
 	int Size() const override { return static_cast<int>(threads.size()); }
 	bool AddTask( int threadIndex, TFunction function, void* params ) override;
 	void WaitAllTask() override;
-	void StopAndWait() override final;
+	void StopAndWait() override;
 
 private:
 	std::vector<std::thread*> threads; // CPointerArray isn't available in neoml.
