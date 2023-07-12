@@ -99,9 +99,6 @@ public:
 	// false if more iterations are needed
 	bool Clusterize( IClusteringData* data, CClusteringResult& result ) override;
 
-	// Get handler of the internal thread pool
-	IThreadPool* GetThreadPool() const { return threadPool; }
-
 private:
 	IThreadPool* const threadPool; // parallelize execution
 	const CParam params; // clustering parameters
