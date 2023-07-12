@@ -382,12 +382,12 @@ class NEOML_API CGELULayer : public CBaseLayer, public IActivationLayer {
 	NEOML_DNN_LAYER( CGELULayer )
 public:
 	using CParam = CGELUActivationParam;
+	// Full backward compatibility
 	using TCalculationMode = CParam::TCalculationMode;
 	static const TCalculationMode DefaultCalculationMode = CParam::DefaultCalculationMode;
-	// Backward compatibility
-	static_assert( static_cast<int>( TCalculationMode::Count ) == 2, "CGELULayer::TCalculationMode::Count != 2" );
-	static const TCalculationMode CM_Precise = CParam::TCalculationMode::Precise;
-	static const TCalculationMode CM_SigmoidApproximate = CParam::TCalculationMode::SigmoidApproximate;
+	static_assert( static_cast<int>( TCalculationMode::CM_Count ) == 2, "TCalculationMode::CM_Count != 2" );
+	static const TCalculationMode CM_Precise = CParam::TCalculationMode::CM_Precise;
+	static const TCalculationMode CM_SigmoidApproximate = CParam::TCalculationMode::CM_SigmoidApproximate;
 
 	explicit CGELULayer( IMathEngine& mathEngine );
 

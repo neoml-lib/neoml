@@ -88,14 +88,14 @@ struct NEOMATHENGINE_API CGELUActivationParam final {
 	// The approximate method is used by default.
 	enum class TCalculationMode {
 		// x * 0.5( 1 + erf( x / sqrt(2) ) )
-		Precise,
+		CM_Precise,
 		// x * sigmoid(1.702x)
-		SigmoidApproximate,
+		CM_SigmoidApproximate,
 
-		Count
+		CM_Count
 	};
 
-	static const TCalculationMode DefaultCalculationMode = TCalculationMode::SigmoidApproximate;
+	static const TCalculationMode DefaultCalculationMode = TCalculationMode::CM_SigmoidApproximate;
 	TCalculationMode Mode = DefaultCalculationMode;
 };
 
