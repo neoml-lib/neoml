@@ -90,7 +90,7 @@ static int getAvailableCpuCores()
 		cpu_set_t cpuSet;
 		CPU_ZERO( &cpuSet );
 		if( ::pthread_getaffinity_np( ::pthread_self(), sizeof( cpu_set_t ), &cpuSet ) == 0 ) {
-			return static_cast<int>( CPU_COUNT( &cpuSet ) );	
+			return static_cast<int>( CPU_COUNT( &cpuSet ) );
 		}
 	}
 #endif // FINE_PLATFORM( FINE_LINUX )
@@ -104,34 +104,66 @@ int GetAvailableCpuCores()
 	return availabeCpuCores;
 }
 
-struct CTask {
-	IThreadPool::TFunction Function;
-	void* Params;
+//------------------------------------------------------------------------------------------------------------
+
+class CThreadPoolEmpty : public IThreadPool {
+public:
+	CThreadPoolEmpty() = default;
+	// IThreadPool:
+	int Size() const override { return 1; }
+	bool AddTask( int, TFunction, void* ) override { ASSERT_EXPR( false ); return false; }
+	void WaitAllTask() override { ASSERT_EXPR( false ); }
 };
 
-struct CThreadParams {
-	int Count; // Number of threads in the pool.
-	int Index; // Thread index in the pool.
-	std::condition_variable ConditionVariable;
-	std::mutex Mutex;
-	std::queue<CTask> Queue;
-	bool Stopped;
+//------------------------------------------------------------------------------------------------------------
+
+class CThreadPool : public IThreadPool {
+public:
+	explicit CThreadPool( int threadCount );
+	~CThreadPool() override;
+
+	// IThreadPool:
+	int Size() const override { return static_cast<int>( threads.size() ); }
+	bool AddTask( int threadIndex, TFunction function, void* params ) override;
+	void WaitAllTask() override;
+
+private:
+	struct CTask final {
+		IThreadPool::TFunction Function{};
+		void* Params{};
+	};
+
+	struct CParams final {
+		int Count{}; // Number of threads in the pool.
+		int Index{}; // Thread index in the pool.
+		std::condition_variable ConditionVariable{};
+		std::mutex Mutex{};
+		std::queue<CTask> Queue{};
+		bool Stopped{};
+	};
+
+	static void threadEntry( CParams* );
+	// Stops all threads and waits for them to complete.
+	void stopAndWait();
+
+	std::vector<std::thread*> threads{}; // CPointerArray isn't available in neoml.
+	std::vector<CParams*> params{};
 };
 
-static void threadEntry( CThreadParams* parameters )
+void CThreadPool::threadEntry( CParams* parameters )
 {
-	CThreadParams& params = *parameters;
-	std::unique_lock<std::mutex> lock(params.Mutex);
+	CParams& params = *parameters;
+	std::unique_lock<std::mutex> lock( params.Mutex );
 
-	while(!params.Stopped) {
+	while( !params.Stopped ) {
 		if( !params.Queue.empty() ) {
 			CTask task = params.Queue.front();
 			lock.unlock();
 
 			try {
-				task.Function(params.Index, task.Params);
-			} catch(...) {
-				ASSERT_EXPR(false); // Better than nothing
+				task.Function( params.Index, task.Params );
+			} catch( ... ) {
+				ASSERT_EXPR( false ); // Better than nothing
 			}
 
 			lock.lock();
@@ -139,52 +171,28 @@ static void threadEntry( CThreadParams* parameters )
 			params.ConditionVariable.notify_all();
 		}
 
-		params.ConditionVariable.wait(lock);
+		params.ConditionVariable.wait( lock );
 	}
 }
 
-//------------------------------------------------------------------------------------------------------------
-
-class CThreadPool : public IThreadPool {
-public:
-	explicit CThreadPool(int threadCount);
-	~CThreadPool() override;
-
-	// IThreadPool:
-	int Size() const override { return static_cast<int>(threads.size()); }
-	bool AddTask( int threadIndex, TFunction function, void* params ) override;
-	void WaitAllTask() override;
-	void StopAndWait() override;
-
-private:
-	std::vector<std::thread*> threads; // CPointerArray isn't available in neoml.
-	std::vector<CThreadParams*> params;
-
-	CThreadPool( const CThreadPool& );
-	CThreadPool& operator=( const CThreadPool& );
-};
-
 CThreadPool::CThreadPool( int threadCount )
 {
-	if( threadCount <= 0 ) {
-		threadCount = GetAvailableCpuCores();
-	}
 	ASSERT_EXPR( threadCount > 0 );
 	for( int i = 0; i < threadCount; i++ ) {
-		CThreadParams* param = new CThreadParams();
+		CParams* param = new CParams();
 		param->Count = threadCount;
 		param->Index = i;
 		param->Stopped = false;
-		params.push_back(param);
+		params.push_back( param );
 
-		std::thread* thread = new std::thread(threadEntry, param);
-		threads.push_back(thread);
+		std::thread* thread = new std::thread( threadEntry, param );
+		threads.push_back( thread );
 	}
 }
 
 CThreadPool::~CThreadPool()
 {
-	StopAndWait();
+	stopAndWait();
 	for( auto t : threads ) {
 		delete t;
 	}
@@ -195,10 +203,10 @@ CThreadPool::~CThreadPool()
 
 bool CThreadPool::AddTask( int threadIndex, TFunction function, void* functionParams )
 {
-	assert(0 <= threadIndex && threadIndex < static_cast<int>(params.size()));
+	assert( 0 <= threadIndex && threadIndex < Size() );
 
-	std::unique_lock<std::mutex> lock(params[threadIndex]->Mutex);
-	params[threadIndex]->Queue.push({function, functionParams});
+	std::unique_lock<std::mutex> lock( params[threadIndex]->Mutex );
+	params[threadIndex]->Queue.push( { function, functionParams } );
 	params[threadIndex]->ConditionVariable.notify_all();
 
 	return !params[threadIndex]->Stopped;
@@ -207,18 +215,18 @@ bool CThreadPool::AddTask( int threadIndex, TFunction function, void* functionPa
 void CThreadPool::WaitAllTask()
 {
 	for( size_t i = 0; i < params.size(); i++ ) {
-		std::unique_lock<std::mutex> lock(params[i]->Mutex);
-		while(!params[i]->Queue.empty()) {
-			params[i]->ConditionVariable.wait(lock);
+		std::unique_lock<std::mutex> lock( params[i]->Mutex );
+		while( !params[i]->Queue.empty() ) {
+			params[i]->ConditionVariable.wait( lock );
 		}
 	}
 }
 
-void CThreadPool::StopAndWait()
+void CThreadPool::stopAndWait()
 {
 	for( size_t i = 0; i < threads.size(); i++ ) {
 		{
-			std::unique_lock<std::mutex> lock(params[i]->Mutex);
+			std::unique_lock<std::mutex> lock( params[i]->Mutex );
 			params[i]->Stopped = true;
 		}
 		params[i]->ConditionVariable.notify_all();
@@ -226,9 +234,18 @@ void CThreadPool::StopAndWait()
 	}
 }
 
-IThreadPool* CreateThreadPool(int threadCount)
+//------------------------------------------------------------------------------------------------------------
+
+IThreadPool* CreateThreadPool( int threadCount )
 {
-	return new CThreadPool(threadCount);
+	if( threadCount <= 0 ) {
+		threadCount = GetAvailableCpuCores();
+	}
+	if( threadCount == 1 ) {
+		return new CThreadPoolEmpty();
+	}
+	return new CThreadPool( threadCount );
+	// TODO: Add here creation of any other implementations of ThreadPool
 }
 
 } // namespace NeoML

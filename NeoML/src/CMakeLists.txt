@@ -168,7 +168,7 @@ set(NeoML_SOURCES
     Dnn/Optimization/Graph.cpp
     Dnn/Optimization/MobileNetV2Optimizer.cpp
     Dnn/Optimization/MobileNetV3Optimizer.cpp
-    Dnn/Optimization/TrivialLayerOptimizer.cpp
+    Dnn/Optimization/OptimizerFunctions.cpp
     TraditionalML/BytePairEncoderTrainer.cpp
     TraditionalML/ClusterCenter.cpp
     TraditionalML/CommonCluster.cpp
@@ -329,7 +329,7 @@ set(NeoML_HEADERS
     Dnn/Optimization/ChannelwiseWith1x1Optimizer.h
     Dnn/Optimization/MobileNetV2Optimizer.h
     Dnn/Optimization/MobileNetV3Optimizer.h
-    Dnn/Optimization/TrivialLayerOptimizer.h
+    Dnn/Optimization/OptimizerFunctions.h
     TraditionalML/BytePairEncoder.h
     TraditionalML/BytePairEncoderTrainer.h
     TraditionalML/NaiveHierarchicalClustering.h

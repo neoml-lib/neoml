@@ -87,10 +87,15 @@ public:
 	// Checks whether 'layer' points to an existing layer in the graph
 	// Works correctly even if 'layer' is invalid or nullptr
 	bool HasLayer( const CBaseLayer* layer ) const { return graphLinks.Has( layer ); }
+	bool HasLayer( const char* name ) const { return dnn.HasLayer( name ); }
 
 	// Writes pointers of all of the layers of this graph
 	// NOTE: Be cautious that after graph modification pointers may lead to deleted objects
 	void GetLayers( CArray<CBaseLayer*>& layers ) const;
+
+	// Returns pointer to the layer with the given name
+	// assert if there is no such layer
+	CBaseLayer* GetLayer( const char* name ) const;
 
 	// Properties of a layer
 

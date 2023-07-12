@@ -41,6 +41,9 @@ GTEST_TEST( LayerSerialization, CheckRegisteredLayers )
 	CHashTable<CString> ignoredLayers;
 	ignoredLayers.Add( "FmlCCnnChannelwiseSoftmaxLayer" ); // It's an alternative name for CSoftmaxLayer
 	ignoredLayers.Add( "FmlCnnGlobalMainPoolingLayer" ); // It's an alternative name for CGlobalMeanPoolingLayer
+	// Layers from other tests
+	ignoredLayers.Add( "CConvActivationTestLayer" ); // from UnpackCompositeOptimizerTest
+	ignoredLayers.Add( "CTwoConvActivationTestLayer" ); // from UnpackCompositeOptimizerTest
 
 	CArray<const char*> layerClasses;
 	GetRegisteredLayerClasses( layerClasses );
