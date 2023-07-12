@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,17 +22,17 @@ limitations under the License.
 namespace NeoML {
 
 // Clustering result
-class NEOML_API CClusteringResult {
+class NEOML_API CClusteringResult final {
 public:
-	int ClusterCount;					// the number of clusters
-	CArray<int> Data;					// the array of cluster numbers for each of the input data elements 
-										// (the clusters are numbered from 0 to ClusterCount - 1)
-	CArray<CClusterCenter> Clusters;	// the cluster centers
+	int ClusterCount = 0;               // the number of clusters
+	CArray<int> Data{};                 // the array of cluster numbers for each of the input data elements 
+	                                    // (the clusters are numbered from 0 to ClusterCount - 1)
+	CArray<CClusterCenter> Clusters{};  // the cluster centers
+
+	CClusteringResult() = default;
+	CClusteringResult( const CClusteringResult& result ) { result.CopyTo( *this ); }
 
 	void CopyTo( CClusteringResult& to ) const;
-
-	CClusteringResult();
-	CClusteringResult( const CClusteringResult& result );
 };
 
 inline void CClusteringResult::CopyTo( CClusteringResult& to ) const
@@ -40,16 +40,6 @@ inline void CClusteringResult::CopyTo( CClusteringResult& to ) const
 	to.ClusterCount = ClusterCount;
 	Data.CopyTo( to.Data );
 	Clusters.CopyTo( to.Clusters );
-}
-
-inline CClusteringResult::CClusteringResult() :
-	ClusterCount( 0 )
-{
-}
-
-inline CClusteringResult::CClusteringResult( const CClusteringResult& result )
-{
-	result.CopyTo( *this );
 }
 
 //---------------------------------------------------------------------------------------------------------
@@ -77,7 +67,7 @@ public:
 
 	// Clusterizes the input data 
 	// and returns true if successful with the given parameters
-	virtual bool Clusterize( IClusteringData* data, CClusteringResult& result ) = 0;
+	virtual bool Clusterize( IClusteringData*, CClusteringResult& ) = 0;
 };
 
 } // namespace NeoML

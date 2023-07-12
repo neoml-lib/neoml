@@ -255,7 +255,9 @@ void CCpuMathEngine::AddVectorToMatrixRows( int batchSize, const CConstFloatHand
 		int heightCount;
 		int widthStart;
 		int widthCount;
-		if( OmpGetTaskIndexAndCount3D( batchSize, 1, matrixHeight, 1, matrixWidth, 1, batchStart, batchCount, heightStart, heightCount, widthStart, widthCount ) ) {
+		if( OmpGetTaskIndexAndCount3D( batchSize, 1, matrixHeight, 1, matrixWidth, 1,
+			batchStart, batchCount, heightStart, heightCount, widthStart, widthCount ) )
+		{
 			const int offset = batchStart * matrixSize + heightStart * matrixWidth + widthStart;
 			float* outputData = result + offset;
 			const float* inputData = matrix + offset;

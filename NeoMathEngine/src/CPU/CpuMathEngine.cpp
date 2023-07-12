@@ -47,7 +47,7 @@ bool CCPUInfo::HasAvxAndFma = CCPUInfo::IsAvxAndFmaAvailable();
 
 namespace NeoML {
 
-static int FloatAlignment = CCPUInfo::DefineFloatAlignment();
+int NEOMATHENGINE_API FloatAlignment = CCPUInfo::DefineFloatAlignment();
 
 CCpuMathEngine::CCpuMathEngine( int _threadCount, size_t _memoryLimit,
 		std::shared_ptr<CMultiThreadDistributedCommunicator> communicator,
@@ -173,18 +173,18 @@ void CCpuMathEngine::ReleaseBuffer( const CMemoryHandle&, void*, bool )
 	// no action needed
 }
 
-void CCpuMathEngine::DataExchangeRaw(const CMemoryHandle& handle, const void* data, size_t size)
+void CCpuMathEngine::DataExchangeRaw( const CMemoryHandle& handle, const void* data, size_t size )
 {
 	ASSERT_EXPR( handle.GetMathEngine() == this );
 
-	::memcpy( GetRaw(handle), data, size);
+	::memcpy( GetRaw( handle ), data, size );
 }
 
-void CCpuMathEngine::DataExchangeRaw(void* data, const CMemoryHandle& handle, size_t size)
+void CCpuMathEngine::DataExchangeRaw( void* data, const CMemoryHandle& handle, size_t size )
 {
 	ASSERT_EXPR( handle.GetMathEngine() == this );
 
-	::memcpy( data, GetRaw(handle), size );
+	::memcpy( data, GetRaw( handle ), size );
 }
 
 CMemoryHandle CCpuMathEngine::CopyFrom( const CMemoryHandle& handle, size_t size )
