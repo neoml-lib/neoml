@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -27,12 +27,11 @@ limitations under the License.
 namespace NeoML {
 
 // Raise a number to a power: base**times
-inline double power(double base, int times)
+inline double power( double base, int times )
 {
 	double tmp = base, ret = 1.0;
-	for(int t = times; t > 0; t /= 2)
-	{
-		if(t % 2 == 1) {
+	for( int t = times; t > 0; t /= 2 ) {
+		if( t % 2 == 1 ) {
 			ret *= tmp;
 		}
 		tmp = tmp * tmp;
@@ -40,25 +39,20 @@ inline double power(double base, int times)
 	return ret;
 }
 
-CSvmKernel::CSvmKernel(TKernelType kernelType, int degree, double gamma, double coef0) :
-	kernelType(kernelType), degree(degree), gamma(gamma), coef0(coef0)
-{
-}
-
 // The linear kernel
-double CSvmKernel::linear(const CFloatVectorDesc& x1, const CFloatVectorDesc& x2) const
+double CSvmKernel::linear( const CFloatVectorDesc& x1, const CFloatVectorDesc& x2 ) const
 {
-	return DotProduct(x1, x2);
+	return DotProduct( x1, x2 );
 }
 
 // The polynomial kernel
-double CSvmKernel::poly(const CFloatVectorDesc& x1, const CFloatVectorDesc& x2) const
+double CSvmKernel::poly( const CFloatVectorDesc& x1, const CFloatVectorDesc& x2 ) const
 {
-	return power(gamma * DotProduct(x1, x2) + coef0, degree);
+	return power( gamma * DotProduct( x1, x2 ) + coef0, degree );
 }
 
 // The Gaussian kernel
-double CSvmKernel::rbf(const CFloatVectorDesc& x1, const CFloatVectorDesc& x2) const
+double CSvmKernel::rbf( const CFloatVectorDesc& x1, const CFloatVectorDesc& x2 ) const
 {
 	if( x1.Indexes == nullptr ) {
 		if( x2.Indexes == nullptr ) {
@@ -76,24 +70,24 @@ double CSvmKernel::rbf(const CFloatVectorDesc& x1, const CFloatVectorDesc& x2) c
 }
 
 // The sigmoid kernel
-double CSvmKernel::sigmoid(const CFloatVectorDesc& x1, const CFloatVectorDesc& x2) const
+double CSvmKernel::sigmoid( const CFloatVectorDesc& x1, const CFloatVectorDesc& x2 ) const
 {
-	return tanh(gamma * DotProduct(x1, x2) + coef0);
+	return tanh( gamma * DotProduct( x1, x2 ) + coef0 );
 }
 
-double CSvmKernel::Calculate(const CFloatVectorDesc& x1, const CFloatVectorDesc& x2) const
+double CSvmKernel::Calculate( const CFloatVectorDesc& x1, const CFloatVectorDesc& x2 ) const
 {
 	switch( kernelType ) {
 		case KT_Linear:
-			return linear(x1, x2);
+			return linear( x1, x2 );
 		case KT_Poly:
-			return poly(x1, x2);
+			return poly( x1, x2 );
 		case KT_RBF:
-			return rbf(x1, x2);
+			return rbf( x1, x2 );
 		case KT_Sigmoid:
-			return sigmoid(x1, x2);
+			return sigmoid( x1, x2 );
 		default:
-			NeoAssert(false);
+			NeoAssert( false );
 			return 0;
 	}
 }
@@ -125,7 +119,7 @@ double CSvmKernel::rbfDenseBySparse( const CFloatVectorDesc& x1, const CFloatVec
 		diff = x2.Values[j];
 		square += diff * diff;
 	}
-	return exp(-gamma * square);
+	return exp( -gamma * square );
 }
 
 double CSvmKernel::rbfDenseByDense( const CFloatVectorDesc& x1, const CFloatVectorDesc& x2 ) const
@@ -144,7 +138,7 @@ double CSvmKernel::rbfDenseByDense( const CFloatVectorDesc& x1, const CFloatVect
 	for( ; i < x2.Size; ++i ) {
 		square += x2.Values[i] * x2.Values[i];
 	}
-	return exp(-gamma * square);
+	return exp( -gamma * square );
 }
 
 double CSvmKernel::rbfSparseBySparse( const CFloatVectorDesc& x1, const CFloatVectorDesc& x2 ) const
@@ -174,7 +168,7 @@ double CSvmKernel::rbfSparseBySparse( const CFloatVectorDesc& x1, const CFloatVe
 		diff = x2.Values[j];
 		square += diff * diff;
 	}
-	return exp(-gamma * square);
+	return exp( -gamma * square );
 }
 
 } // namespace NeoML

@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ limitations under the License.
 
 namespace NeoML {
 
+class IThreadPool;
 class CCommonCluster;
 template<class T>
 class CVariableMatrix;
@@ -51,43 +52,43 @@ public:
 	};
 
 	// K-means clustering parameters
-	struct CParam {
+	struct CParam final {
 		// Clusterization algorithm
-		TKMeansAlgo Algo;
+		TKMeansAlgo Algo = KMA_Lloyd;
 		// The distance function
-		TDistanceFunc DistanceFunc;
+		TDistanceFunc DistanceFunc = DF_Euclid;
 		// The initial cluster count
 		// Unless you set up the initial cluster centers when creating the object, 
 		// this number of centers will be randomly selected from the input data set
-		int InitialClustersCount;
+		int InitialClustersCount = 1;
 		// Initialization algorithm
 		// It's ignored if initial clusters were provided by user (initialClusters parameter of constructor)
-		TKMeansInitialization Initialization;
+		TKMeansInitialization Initialization = KMI_Default;
 		// The maximum number of iterations
-		int MaxIterations;
+		int MaxIterations = 1;
 		// Tolerance criterion for Elkan algorithm
-		double Tolerance;
+		double Tolerance = 1e-5f;
 		// Number of threads used in KMeans
-		int ThreadCount;
+		int ThreadCount = 1;
 		// Number of runs of algorithm
 		// If more than one then the best variant (least inertia) will be returned
-		int RunCount;
+		int RunCount = 1;
 		// Initial seed for random
-		int Seed;
+		int Seed = 0xCEA;
 
-		CParam() : Algo( KMA_Lloyd ), DistanceFunc( DF_Euclid ), InitialClustersCount( 1 ), Initialization( KMI_Default ),
-			MaxIterations( 1 ), Tolerance( 1e-5f ), ThreadCount( 1 ), RunCount( 1 ), Seed( 0xCEA )
-		{
-		}
+		CParam() = default;
+		CParam( const CParam&  ) = default;
+		CParam( const CParam& params, int realThreadCount ) : CParam( params ) { ThreadCount = realThreadCount; }
 	};
 
 	// Constructors
+
 	// The initialClusters parameter is the array of cluster centers (of params.InitialClustersCount size)
 	// that will be used on the first step of the algorithm
 	CKMeansClustering( const CArray<CClusterCenter>& initialClusters, const CParam& params );
 	// If you do not specify the initial cluster centers, they will be selected randomly from the input data
 	explicit CKMeansClustering( const CParam& params );
-	~CKMeansClustering() override = default;
+	~CKMeansClustering() override;
 
 	// Sets a text stream for logging processing
 	// By default logging is off (set to null to turn off)
@@ -99,10 +100,12 @@ public:
 	bool Clusterize( IClusteringData* data, CClusteringResult& result ) override;
 
 private:
+	IThreadPool* const threadPool; // parallelize execution
 	const CParam params; // clustering parameters
-	CTextStream* log; // the logging stream
-	CObjectArray<CCommonCluster> clusters; // the current clusters
-	CArray<CClusterCenter> initialClusterCenters; // the initial cluster centers
+	CTextStream* log = nullptr; // the logging stream
+
+	CObjectArray<CCommonCluster> clusters{}; // the current clusters
+	CArray<CClusterCenter> initialClusterCenters{}; // the initial cluster centers
 
 	// Single run of clusterization with given seed
 	bool runClusterization( IClusteringData* input, int seed, CClusteringResult& result, double& inertia );
@@ -117,27 +120,11 @@ private:
 
 	// Lloyd algorithm implementation for sparse data
 	bool lloydClusterization( const CFloatMatrixDesc& matrix, const CArray<double>& weights, double& inertia );
-	void classifyAllData( const CFloatMatrixDesc& matrix, CArray<int>& dataCluster, double& inertia );
-	int findNearestCluster( const CFloatMatrixDesc& matrix, int dataIndex, double& inertia ) const;
-	void storeClusterCenters( CArray<CClusterCenter>& result );
-	bool updateClusters( const CFloatMatrixDesc& matrix, const CArray<double>& weights,
-		const CArray<int>& dataCluster, const CArray<CClusterCenter>& oldCenters );
 
 	// Elkan algorithm implementation for sparse data
 	bool elkanClusterization( const CFloatMatrixDesc& matrix, const CArray<double>& weights, double& inertia );
-	void initializeElkanStatistics( const CFloatMatrixDesc& matrix, CArray<int>& assignments,
-		CArray<float>& upperBounds, CVariableMatrix<float>& lowerBounds, CVariableMatrix<float>& clusterDists,
-		CArray<float>& closestClusterDist, CArray<float>& moveDistance );
 	void computeClustersDists( CVariableMatrix<float>& dists, CArray<float>& closestCluster ) const;
-	void assignVectors( const CFloatMatrixDesc& matrix, const CVariableMatrix<float>& clusterDists,
-		const CArray<float>& closestClusterDist, CArray<int>& assignments, CArray<float>& upperBounds,
-		CVariableMatrix<float>& lowerBounds ) const;
 	void updateMoveDistance( const CArray<CClusterCenter>& oldCenters, CArray<float>& moveDistance ) const;
-	double updateUpperAndLowerBounds( const CFloatMatrixDesc& matrix,
-		const CArray<float>& moveDistance, const CArray<int>& assignments,
-		CArray<float>& upperBounds, CVariableMatrix<float>& lowerBounds ) const;
-	bool isPruned( const CArray<float>& upperBounds, const CVariableMatrix<float>& lowerBounds,
-		const CVariableMatrix<float>& clusterDists, int currentCluster, int clusterToProcess, int id) const;
 
 	// Specific case for dense data with Euclidean metrics and Lloyd algorithm
 	bool denseLloydL2Clusterize( IClusteringData* rawData, int seed, CClusteringResult& result, double& inertia );
@@ -145,6 +132,7 @@ private:
 	void selectInitialClusters( const CDnnBlob& data, int seed, CDnnBlob& centers );
 	void defaultInitialization( const CDnnBlob& data, int seed, CDnnBlob& centers );
 	void kMeansPlusPlusInitialization( const CDnnBlob& data, int seed, CDnnBlob& centers );
+
 	// Lloyd algorithm implementation
 	bool lloydBlobClusterization( const CDnnBlob& data, const CDnnBlob& weight,
 		CDnnBlob& centers, CDnnBlob& sizes, CDnnBlob& labels, double& inertia );
