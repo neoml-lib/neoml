@@ -382,7 +382,6 @@ class NEOML_API CGELULayer : public CBaseLayer, public IActivationLayer {
 	NEOML_DNN_LAYER( CGELULayer )
 public:
 	using CParam = CGELUActivationParam;
-	// Workaround for all compilers
 	using TCalculationMode = CParam::TCalculationMode;
 	static const TCalculationMode DefaultCalculationMode = CParam::DefaultCalculationMode;
 	// Backward compatibility
