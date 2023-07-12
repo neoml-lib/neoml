@@ -89,10 +89,10 @@ void CGELULayer::RunOnce()
 	CheckInput1();
 
 	switch( mode ) {
-		case TCalculationMode::CM_Precise:
+		case TCalculationMode::Precise:
 			runPrecise();
 			break;
-		case TCalculationMode::CM_SigmoidApproximate:
+		case TCalculationMode::SigmoidApproximate:
 			runFastApproximate();
 			break;
 		default: 
@@ -103,10 +103,10 @@ void CGELULayer::RunOnce()
 void CGELULayer::BackwardOnce()
 {
 	switch( mode ) {
-		case TCalculationMode::CM_Precise:
+		case TCalculationMode::Precise:
 			backwardPrecise();
 			break;
-		case TCalculationMode::CM_SigmoidApproximate:
+		case TCalculationMode::SigmoidApproximate:
 			backwardFastApproximate();
 			break;
 		default: 
