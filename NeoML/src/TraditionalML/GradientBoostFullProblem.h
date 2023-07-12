@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,15 +19,19 @@ limitations under the License.
 
 namespace NeoML {
 
-struct CFloatVectorElement {
-	int Index;
-	float Value;
+// Forward declaration
+class IThreadPool;
+
+struct CFloatVectorElement final {
+	int Index{};
+	float Value{};
 };
 
 // The subproblem for building a tree using gradient boosting
 class CGradientBoostFullProblem : public IObject {
 public:
-	CGradientBoostFullProblem( int threadCount, const IMultivariateRegressionProblem* baseProblem,
+	CGradientBoostFullProblem( int threadCount,
+		const IMultivariateRegressionProblem* baseProblem,
 		const CArray<int>& usedVectors, const CArray<int>& usedFeatures,
 		const CArray<int>& featureNumbers );
 
@@ -61,10 +65,10 @@ public:
 
 protected:
 	// delete prohibited
-	~CGradientBoostFullProblem() override = default;
+	~CGradientBoostFullProblem() override;
 
 private:
-	const int threadCount; // the number of processing threads
+	IThreadPool* const threadPool; // the pool of processing threads
 	// The original problem that contains all vectors of the original set
 	// The vectors for the subsample will be stored in the usedVectors field (see below)
 	const CPtr<const IMultivariateRegressionProblem> baseProblem;
@@ -80,11 +84,11 @@ private:
 	// The array length is the total number of features
 	const CArray<int>& featureNumbers;
 
-	CArray<int> featureValueCount; // the number of values for each of the subproblem features
-	CArray<bool> isUsedFeatureBinary; // the types of the subproblem features
-	CArray<CFloatVectorElement> featureValues; // feature values
-	CArray<int> binaryFeatureValues; // binary feature values
-	CArray<int> featurePos; // the start of the values of the specific feature in the featureValues array
+	CArray<int> featureValueCount{}; // the number of values for each of the subproblem features
+	CArray<bool> isUsedFeatureBinary{}; // the types of the subproblem features
+	CArray<CFloatVectorElement> featureValues{}; // feature values
+	CArray<int> binaryFeatureValues{}; // binary feature values
+	CArray<int> featurePos{}; // the start of the values of the specific feature in the featureValues array
 };
 
 } // namespace NeoML

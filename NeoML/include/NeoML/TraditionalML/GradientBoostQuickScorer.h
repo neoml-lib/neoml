@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -49,13 +49,13 @@ public:
 };
 
 // The QuickScorer algorithm for optimizing a gradient boosting model
-class NEOML_API CGradientBoostQuickScorer {
+class NEOML_API CGradientBoostQuickScorer final {
 public:
 	// Builds a IGradientBoostQSModel based on the given IGradientBoostModel
-	CPtr<IGradientBoostQSModel> Build( const IGradientBoostModel& gradientBoostModel );
+	CPtr<IGradientBoostQSModel> Build( const IGradientBoostModel& );
 
 	// Builds a IGradientBoostQSRegressionModel based on the given IGradientBoostRegressionModel
-	CPtr<IGradientBoostQSRegressionModel> BuildRegression( const IGradientBoostRegressionModel& gradientBoostModel );
+	CPtr<IGradientBoostQSRegressionModel> BuildRegression( const IGradientBoostRegressionModel& );
 };
 
 } // namespace NeoML
