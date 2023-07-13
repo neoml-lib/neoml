@@ -23,7 +23,7 @@ namespace NeoMLTest {
 class CChannelwiseWith1x1Composite : public CCompositeLayer {
 public:
 	CChannelwiseWith1x1Composite( IMathEngine& mathEngine, int stride, const CPtr<CDnnBlob>& channelwiseFilter,
-		const CPtr<CDnnBlob>& channelwiseFreeTerm, TActivationFunction activation, float activationParam,
+		const CPtr<CDnnBlob>& channelwiseFreeTerm, TActivationFunction activation, float reluParam,
 		const CPtr<CDnnBlob>& convFilter, const CPtr<CDnnBlob>& convFreeTerm, bool residuall );
 
 	CPtr<CChannelwiseConvLayer> Channelwise;
@@ -32,7 +32,7 @@ public:
 
 CChannelwiseWith1x1Composite::CChannelwiseWith1x1Composite( IMathEngine& mathEngine, int stride,
 		const CPtr<CDnnBlob>& channelwiseFilter, const CPtr<CDnnBlob>& channelwiseFreeTerm,
-		TActivationFunction activation, float activationParam, const CPtr<CDnnBlob>& convFilter,
+		TActivationFunction activation, float reluParam, const CPtr<CDnnBlob>& convFilter,
 		const CPtr<CDnnBlob>& convFreeTerm, bool residual ) :
 	CCompositeLayer( mathEngine, "ChannelwiseWith1x1Composite" )
 {
@@ -57,7 +57,7 @@ CChannelwiseWith1x1Composite::CChannelwiseWith1x1Composite( IMathEngine& mathEng
 	CPtr<CBaseLayer> activationLayer;
 	if( activation == AF_ReLU ) {
 		CPtr<CReLULayer> relu = new CReLULayer( mathEngine );
-		relu->SetUpperThreshold( activationParam );
+		relu->SetUpperThreshold( reluParam );
 		activationLayer = relu;
 	} else {
 		activationLayer = new CHSwishLayer( mathEngine );
@@ -95,7 +95,7 @@ using namespace NeoMLTest;
 
 
 static void channelwiseWith1x1TestImpl( unsigned int seed, int freeTermMask, TActivationFunction activation,
-	float activationParam, int stride, bool residual )
+	float reluParam, int stride, bool residual )
 {
 	auto createBlob = [] ( const std::initializer_list<int>& dims, CRandom& random ) -> CPtr<CDnnBlob> {
 		CPtr<CDnnBlob> blob = CDnnBlob::CreateTensor( MathEngine(), CT_Float, dims );
@@ -136,15 +136,15 @@ static void channelwiseWith1x1TestImpl( unsigned int seed, int freeTermMask, TAc
 
 	CPtr<CChannelwiseWith1x1Composite> expectedBlock = AddLayer<CChannelwiseWith1x1Composite>(
 		new CChannelwiseWith1x1Composite( MathEngine(), stride, channelwiseFilter, channelwiseFreeTerm,
-			activation, activationParam, convFilter, convFreeTerm, residual ), "expectedBlock", { data } );
+			activation, reluParam, convFilter, convFreeTerm, residual ), "expectedBlock", { data } );
 	CPtr<CSinkLayer> expectedSink = AddLayer<CSinkLayer>( "expectedSink", { expectedBlock } );
 
 	NeoAssert( activation == AF_ReLU || activation == AF_HSwish );
 	CActivationDesc activationDesc( activation );
 	if( activation == AF_ReLU ) {
-		CReLULayer::CParam reluParam;
-		reluParam.UpperThreshold = activationParam;
-		activationDesc.SetParam( reluParam );
+		CReLULayer::CParam param;
+		param.UpperThreshold = reluParam;
+		activationDesc.SetParam( param );
 	}
 	CPtr<CChannelwiseWith1x1Layer> actualBlock = new CChannelwiseWith1x1Layer( MathEngine(), stride, channelwiseFilter,
 		channelwiseFreeTerm, activationDesc, convFilter, convFreeTerm, residual );
