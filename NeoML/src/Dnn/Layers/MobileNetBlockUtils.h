@@ -58,4 +58,9 @@ inline bool IsValidMobileNetBlockActivation( const CActivationDesc& desc )
 	return false;
 }
 
+inline float MobileNetReluParam( const CActivationDesc& desc )
+{
+	return desc.GetType() == AF_ReLU ? desc.GetParam<CReLUActivationParam>().UpperThreshold : 0.f;
+}
+
 } // namespace NeoML

@@ -518,9 +518,9 @@ void CCpuMathEngine::BlobChannelwiseConvolution( const CChannelwiseConvolutionDe
 void CCpuMathEngine::MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobDesc& outputDesc,
 	const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& inputHandle,
 	const CConstFloatHandle& expandFilterData, const CConstFloatHandle* expandFreeTermData,
-	TActivationFunction expandActivation, float expandActivationParam, const CConstFloatHandle& channelwiseFilterData,
+	TActivationFunction expandActivation, float expandReluParam, const CConstFloatHandle& channelwiseFilterData,
 	const CConstFloatHandle* channelwiseFreeTermData, TActivationFunction channelwiseActivation,
-	float channelwiseActivationParam, const CConstFloatHandle& downFilterData, const CConstFloatHandle* downFreeTermData,
+	float channelwiseReluParam, const CConstFloatHandle& downFilterData, const CConstFloatHandle* downFreeTermData,
 	bool residual, const CFloatHandle& outputHandle )
 {
 	CCpuExecutionScope scope;
@@ -588,8 +588,8 @@ void CCpuMathEngine::MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobDe
 			if( expandActivation == AF_HSwish ) {
 				vectorHSwish( chInput, chInput, inputRowsThisStep * chInputRowSize );
 			} else if( expandActivation == AF_ReLU ) {
-				if( expandActivationParam > 0 ) {
-					vectorReLU( chInput, chInput, inputRowsThisStep * chInputRowSize, expandActivationParam );
+				if( expandReluParam > 0 ) {
+					vectorReLU( chInput, chInput, inputRowsThisStep * chInputRowSize, expandReluParam );
 				} else {
 					vectorReLU( chInput, chInput, inputRowsThisStep * chInputRowSize );
 				}
@@ -611,9 +611,9 @@ void CCpuMathEngine::MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobDe
 				if( channelwiseActivation == AF_HSwish ) {
 					vectorHSwish( chOutputBuff, chOutputBuff, outputRowsThisStep * chOutputRowSize );
 				} else if( channelwiseActivation == AF_ReLU ) {
-					if( channelwiseActivationParam > 0 ) {
+					if( channelwiseReluParam > 0 ) {
 						vectorReLU( chOutputBuff, chOutputBuff, outputRowsThisStep * chOutputRowSize,
-							channelwiseActivationParam );
+							channelwiseReluParam );
 					} else {
 						vectorReLU( chOutputBuff, chOutputBuff, outputRowsThisStep * chOutputRowSize );
 					}
@@ -674,9 +674,9 @@ void CCpuMathEngine::MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobDe
 void CCpuMathEngine::MobileNetV3PreSEBlock( const CBlobDesc& inputDesc, const CBlobDesc& outputDesc,
 	const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& inputHandle,
 	const CConstFloatHandle& expandFilterData, const CConstFloatHandle* expandFreeTermData,
-	TActivationFunction expandActivation, float expandActivationParam, const CConstFloatHandle& channelwiseFilterData,
+	TActivationFunction expandActivation, float expandReluParam, const CConstFloatHandle& channelwiseFilterData,
 	const CConstFloatHandle* channelwiseFreeTermData, TActivationFunction channelwiseActivation,
-	float channelwiseActivationParam, const CFloatHandle& outputHandle )
+	float channelwiseReluParam, const CFloatHandle& outputHandle )
 {
 	CCpuExecutionScope scope;
 	const CCommonChannelwiseConvolutionDesc& desc = static_cast<const CCommonChannelwiseConvolutionDesc&>( convDesc );
@@ -738,8 +738,8 @@ void CCpuMathEngine::MobileNetV3PreSEBlock( const CBlobDesc& inputDesc, const CB
 			if( expandActivation == AF_HSwish ) {
 				vectorHSwish( chInput, chInput, inputRowsThisStep * chInputRowSize );
 			} else if( expandActivation == AF_ReLU ) {
-				if( expandActivationParam > 0 ) {
-					vectorReLU( chInput, chInput, inputRowsThisStep * chInputRowSize, expandActivationParam );
+				if( expandReluParam > 0 ) {
+					vectorReLU( chInput, chInput, inputRowsThisStep * chInputRowSize, expandReluParam );
 				} else {
 					vectorReLU( chInput, chInput, inputRowsThisStep * chInputRowSize );
 				}
@@ -771,8 +771,8 @@ void CCpuMathEngine::MobileNetV3PreSEBlock( const CBlobDesc& inputDesc, const CB
 				if( channelwiseActivation == AF_HSwish ) {
 					vectorHSwish( output, output, outputRowsThisStep * outputRowSize );
 				} else if( channelwiseActivation == AF_ReLU ) {
-					if( channelwiseActivationParam > 0 ) {
-						vectorReLU( output, output, outputRowsThisStep * outputRowSize, channelwiseActivationParam );
+					if( channelwiseReluParam > 0 ) {
+						vectorReLU( output, output, outputRowsThisStep * outputRowSize, channelwiseReluParam );
 					} else {
 						vectorReLU( output, output, outputRowsThisStep * outputRowSize );
 					}
@@ -810,7 +810,7 @@ void CCpuMathEngine::MobileNetV3PreSEBlock( const CBlobDesc& inputDesc, const CB
 void CCpuMathEngine::ChannelwiseWith1x1( const CBlobDesc& inputDesc, const CBlobDesc& outputDesc,
 	const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& inputHandle,
 	const CConstFloatHandle& channelwiseFilterData, const CConstFloatHandle* channelwiseFreeTermData,
-	TActivationFunction activation, float activationParam, const CConstFloatHandle& convFilterData,
+	TActivationFunction activation, float reluParam, const CConstFloatHandle& convFilterData,
 	const CConstFloatHandle* convFreeTermData, bool residual, const CFloatHandle& outputHandle )
 {
 	CCpuExecutionScope scope;
@@ -866,9 +866,9 @@ void CCpuMathEngine::ChannelwiseWith1x1( const CBlobDesc& inputDesc, const CBlob
 				if( activation == AF_HSwish ) {
 					vectorHSwish( chOutputBuff, chOutputBuff, outputRowsThisStep * chOutputRowSize );
 				} else if( activation == AF_ReLU ) {
-					if( activationParam > 0 ) {
+					if( reluParam > 0 ) {
 						vectorReLU( chOutputBuff, chOutputBuff, outputRowsThisStep * chOutputRowSize,
-							activationParam );
+							reluParam );
 					} else {
 						vectorReLU( chOutputBuff, chOutputBuff, outputRowsThisStep * chOutputRowSize );
 					}
@@ -901,7 +901,7 @@ void CCpuMathEngine::ChannelwiseWith1x1( const CBlobDesc& inputDesc, const CBlob
 
 void CCpuMathEngine::MobileNetV3PostSEBlock( const CBlobDesc& channelwiseOutputDesc, int outputChannels,
 	const CConstFloatHandle& channelwiseOutputHandle, const CConstFloatHandle& squeezeAndExciteHandle,
-	const CConstFloatHandle* residualHandle, TActivationFunction activation, float activationParam,
+	const CConstFloatHandle* residualHandle, TActivationFunction activation, float reluParam,
 	const CConstFloatHandle& downFilterHandle, const CConstFloatHandle* downFreeTermHandle,
 	const CFloatHandle& outputHandle )
 {
@@ -935,12 +935,12 @@ void CCpuMathEngine::MobileNetV3PostSEBlock( const CBlobDesc& channelwiseOutputD
 
 			multiplyMatrixByDiagMatrix( input, rowsThisStep * width, inputChannels,
 				squeezeVector, squeezed );
-
+			// Activation (if present, not present means trivial linear)
 			if( activation == AF_HSwish ) {
 				vectorHSwish( squeezed, squeezed, rowsThisStep * inputRowSize );
 			} else if( activation == AF_ReLU ) {
-				if( activationParam > 0 ) {
-					vectorReLU( squeezed, squeezed, rowsThisStep * inputRowSize, activationParam );
+				if( reluParam > 0 ) {
+					vectorReLU( squeezed, squeezed, rowsThisStep * inputRowSize, reluParam );
 				} else {
 					vectorReLU( squeezed, squeezed, rowsThisStep * inputRowSize );
 				}
