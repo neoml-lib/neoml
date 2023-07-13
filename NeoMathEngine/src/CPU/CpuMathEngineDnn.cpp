@@ -21,7 +21,6 @@ limitations under the License.
 #include <CpuExecutionScope.h>
 #include <MemoryHandleInternal.h>
 #include <MathEngineCommon.h>
-#include <CpuMathEngineDnnRowwise.h>
 
 namespace NeoML {
 
@@ -1293,7 +1292,7 @@ public:
 	int InOperationBufferSize() const override { return 0; }
 	int OutputRowCount() const override { return to.ObjectCount() * to.Height(); }
 	int OutputRowSize() const override { return to.Width() * to.Depth() * to.Channels(); }
-	bool IsInPlace() const override { return false; }
+	bool IsTrivial() const override { return false; }
 	CProcessingReport Process( const float* input, int inputRowIndex, int inputRowsAvailable,
 		float* output, int outputRowIndex, int outputRowsAvailable, float* buffer ) const override;
 

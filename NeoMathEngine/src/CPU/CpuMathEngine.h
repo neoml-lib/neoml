@@ -772,7 +772,7 @@ private:
 		const CFloatHandle& logBeta );
 
 	class CRowwiseConv;
-	class CRowwiseChannelwiseWith1x1;
+	class CRowwiseChConvWith1x1;
 	class CRowwiseMobileNetV2;
 	class CRowwise2DPooling;
 };

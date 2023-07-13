@@ -21,115 +21,13 @@ limitations under the License.
 #include <algorithm>
 
 #include <CpuMathEngine.h>
-#include <CpuMathEngineDnnRowwise.h>
 #include <CpuMathEnginePrivate.h>
 #include <CpuExecutionScope.h>
 #include <MemoryHandleInternal.h>
 
+#include "Rowwise/CpuRowwiseActivation.h"
+
 namespace NeoML {
-
-CRowwiseWrapper::CRowwiseWrapper( float* data, int rowCount, int rowSize ) :
-	firstDataRow( data ),
-	rowCount( rowCount ),
-	rowSize( rowSize ),
-	addedRows( 0 ),
-	removedRows( 0 )
-{}
-
-int CRowwiseWrapper::DataRowCount() const
-{
-	PRESUME_EXPR( addedRows >= removedRows );
-	return addedRows - removedRows;
-}
-
-const float* CRowwiseWrapper::DataRows() const
-{
-	PRESUME_EXPR( DataRowCount() > 0 );
-	return firstDataRow;
-}
-
-float* CRowwiseWrapper::EmptyRows()
-{
-	PRESUME_EXPR( addedRows < rowCount );
-	return firstDataRow + DataRowCount() * rowSize;
-}
-
-void CRowwiseWrapper::AddRows( int count )
-{
-	PRESUME_EXPR( count > 0 );
-	addedRows += count;
-	PRESUME_EXPR( addedRows <= rowCount );
-}
-
-void CRowwiseWrapper::RemoveRows( int count )
-{
-	PRESUME_EXPR( count > 0 );
-	PRESUME_EXPR( count <= DataRowCount() );
-	removedRows += count;
-	firstDataRow += count * rowSize;
-	PRESUME_EXPR( removedRows <= addedRows );
-}
-
-CRowwiseBuffer::CRowwiseBuffer( IMathEngine& mathEngine, int rowCount, int rowSize, int fullHeight ) :
-	rowCount( rowCount ),
-	rowSize( rowSize ),
-	fullHeight( fullHeight ),
-	realHeight( std::min( fullHeight, 2 * rowCount ) ),
-	bufferVar( mathEngine, realHeight * rowSize ),
-	bufferPtr( GetRaw( bufferVar.GetHandle() ) ),
-	dataPtr( bufferPtr ),
-	dataPtrIndex( 0 ),
-	dataRowsCount( 0 ),
-	dataRowIndex( 0 )
-{
-}
-
-const float* CRowwiseBuffer::DataRows() const
-{
-	PRESUME_EXPR( dataRowsCount > 0 );
-	return dataPtr;
-}
-
-int CRowwiseBuffer::EmptyRowCount() const
-{
-	return std::min( rowCount - dataRowsCount, fullHeight - ( dataRowIndex + dataRowsCount ) );
-}
-
-float* CRowwiseBuffer::EmptyRows()
-{
-	PRESUME_EXPR( EmptyRowCount() > 0 );
-	return dataPtr + dataRowsCount * rowSize;
-}
-
-void CRowwiseBuffer::AddRows( int count )
-{
-	PRESUME_EXPR( count > 0 );
-	PRESUME_EXPR( count <= EmptyRowCount() );
-	dataRowsCount += count;
-	PRESUME_EXPR( dataRowsCount <= rowCount );
-	PRESUME_EXPR( dataRowsCount + dataPtrIndex <= realHeight );
-}
-
-void CRowwiseBuffer::RemoveRows( int count )
-{
-	PRESUME_EXPR( count > 0 );
-	PRESUME_EXPR( count <= dataRowsCount );
-	dataRowsCount -= count;
-	dataRowIndex += count;
-	dataPtr += count * rowSize;
-	dataPtrIndex += count;
-	if( dataPtrIndex + rowCount > realHeight && dataRowIndex + ( rowCount - dataPtrIndex ) < fullHeight ) {
-		if( dataRowsCount > 0 ) {
-			// Move remaining data rows to the beginning of buffer
-			// HACK: we know that data copying work sequentially that's why we don't need to check for the overlap
-			dataCopy( bufferPtr, dataPtr, dataRowsCount * rowSize );
-		}
-		dataPtr = bufferPtr;
-		dataPtrIndex = 0;
-	}
-}
-
-//---------------------------------------------------------------------------------------------------------------------
 
 CBlobDesc CCpuMathEngine::RowwiseReshape( CRowwiseOperationDesc** operations, int operationCount,
 	const CBlobDesc& input )
@@ -156,7 +54,7 @@ void CCpuMathEngine::RowwiseExecute( const CBlobDesc& inputDesc, CRowwiseOperati
 	std::vector<std::vector<IRowwiseCpuImpl*>> operations;
 	for( int i = 0; i < operationCount; ++i ) {
 		IRowwiseCpuImpl* operation = dynamic_cast<IRowwiseCpuImpl*>( *( operationDescs + i ) );
-		if( i == 0 || !operation->IsInPlace() ) {
+		if( i == 0 || !operation->IsTrivial() ) {
 			operations.emplace_back();
 		}
 		inOperationBufferSize = std::max( inOperationBufferSize, operation->InOperationBufferSize() );
@@ -251,55 +149,6 @@ CRowwiseOperationDesc* CCpuMathEngine::InitRowwiseActivation( TActivationFunctio
 	float param0, float param1 )
 {
 	return new CRowwiseActivation( activation, param0, param1 );
-}
-
-//---------------------------------------------------------------------------------------------------------------------
-
-int RowwiseConvFirstInputRow( int outputRowIndex, int inputImageHeight, int outputImageHeight,
-	int strideHeight, int paddingHeight )
-{
-	const int imageIndex = outputRowIndex / outputImageHeight;
-	const int currOutputRowInImage = outputRowIndex % outputImageHeight;
-	return imageIndex * inputImageHeight + std::max( 0,
-		currOutputRowInImage * strideHeight - paddingHeight );
-}
-
-IRowwiseCpuImpl::CProcessingReport RowwiseConvProcessingReport( int inputRowIndex, int inputRowsAvailable,
-	int outputRowIndex, int outputRowsAvailable, int inputImageHeight, int outputImageHeight,
-	int filterHeight, int paddingHeight, int strideHeight, int dilationHeight )
-{
-	const int inputRowCount = inputRowIndex + inputRowsAvailable;
-	const int effectiveFilterSize = 1 + ( filterHeight - 1 ) * dilationHeight;
-
-	// Number of input rows required to calculate given number of outputRows
-	auto getRequiredInputRows = [&] ( int outputRowCount ) -> int {
-		const int lastOutputRowIndex = outputRowCount - 1;
-		const int imageIndex = lastOutputRowIndex / outputImageHeight;
-		const int lastOutputRowInImage = lastOutputRowIndex % outputImageHeight;
-		return imageIndex * inputImageHeight + std::min( inputImageHeight,
-			lastOutputRowInImage * strideHeight - paddingHeight + effectiveFilterSize );
-	};
-
-	// Binary search for number of output rows which can be calculated during this call
-	int binSearchMin = 0;
-	int binSearchMax = outputRowsAvailable;
-	while( binSearchMin != binSearchMax ) {
-		const int binSearchMid = ( binSearchMin + binSearchMax + 1 ) / 2;
-		const int inputRowsRequired = getRequiredInputRows( outputRowIndex + binSearchMid );
-		if( inputRowsRequired <= inputRowCount ) {
-			binSearchMin = binSearchMid; // There is enough data to process binSearchMid output rows
-		} else {
-			binSearchMax = binSearchMid - 1; // Not enough data
-		}
-	}
-	IRowwiseCpuImpl::CProcessingReport result;
-	result.OutputRowsCalculated = binSearchMin;
-
-	const int firstRequiredInputRow = RowwiseConvFirstInputRow( outputRowIndex + result.OutputRowsCalculated,
-		inputImageHeight, outputImageHeight, strideHeight, paddingHeight );
-	result.InputRowsMayBeRemoved = std::min( inputRowCount, firstRequiredInputRow ) - inputRowIndex;
-
-	return result;
 }
 
 } // namespace NeoML

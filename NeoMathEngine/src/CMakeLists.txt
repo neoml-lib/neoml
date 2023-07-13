@@ -57,18 +57,26 @@ target_sources(${PROJECT_NAME}
     CPU/CpuFunctorCommon.h
     CPU/CPUInfo.h
     CPU/CpuMathEngine.h
-    CPU/CpuMathEnginePrivate.h
-    CPU/CpuMathEngineOmp.h
+    CPU/CpuMathEngineDnnChannelwiseConv.h
     CPU/CpuMathEngineDnnDistributed.h
     CPU/CpuMathEngineDnnLstm.h
+    CPU/CpuMathEngineOmp.h
+    CPU/CpuMathEnginePrivate.h
     CPU/CpuRandom.h
-    CPU/CpuMathEngineDnnRowwise.h
 
     CPU/MatrixMultiplyingInterleavedCommon/CpuMemoryHelper.h
     CPU/MatrixMultiplyingInterleavedCommon/MatrixMultiplier.h
     CPU/MatrixMultiplyingInterleavedCommon/MatrixMultiplying.h
     CPU/MatrixMultiplyingInterleavedCommon/Interleavers/InterleaverBase.h
     CPU/MatrixMultiplyingInterleavedCommon/MicroKernels/MicroKernelBase.h
+
+    CPU/Rowwise/CpuRowwiseActivation.h
+    CPU/Rowwise/CpuRowwiseBuffer.h
+    CPU/Rowwise/CpuRowwiseChConv.h
+    CPU/Rowwise/CpuRowwiseChConvWith1x1.h
+    CPU/Rowwise/CpuRowwiseCommon.h
+    CPU/Rowwise/CpuRowwiseInterface.h
+    CPU/Rowwise/CpuRowwiseMobileNetV2.h
 
     ../include/NeoMathEngine/NeoMathEngineDefs.h
     ../include/NeoMathEngine/ActivationDesc.h

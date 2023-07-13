@@ -25,7 +25,8 @@ limitations under the License.
 #include <MathEngineDnnConv.h>
 #include <CpuMathEnginePrivate.h>
 #include <NeoMathEngine/SimdMathEngine.h>
-#include <CpuMathEngineDnnRowwise.h>
+#include <Rowwise/CpuRowwiseInterface.h>
+#include <Rowwise/CpuRowwiseCommon.h>
 
 namespace NeoML {
 
@@ -1375,7 +1376,7 @@ public:
 	int InOperationBufferSize() const override;
 	int OutputRowCount() const override { return desc.Result.ObjectCount() * desc.Result.Height(); }
 	int OutputRowSize() const override { return desc.Result.Width() * desc.Result.Channels(); }
-	bool IsInPlace() const override { return false; }
+	bool IsTrivial() const override { return false; }
 	CProcessingReport Process( const float* input, int inputRowIndex, int inputRowsAvailable,
 		float* output, int outputRowIndex, int outputRowsAvailable, float* buffer ) const override;
 
