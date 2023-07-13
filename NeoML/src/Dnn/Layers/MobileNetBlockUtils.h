@@ -60,18 +60,7 @@ inline bool IsValidMobileNetBlockActivation( const CActivationDesc& desc )
 
 inline float MobileNetReluParam( const CActivationDesc& desc )
 {
-	if( desc.GetType() == AF_ReLU ) {
-		return desc.GetParam<CReLULayer::CParam>().UpperThreshold;
-	}
-
-	if( desc.GetType() == AF_Linear ) {
-		NeoPresume( desc.GetParam<CLinearLayer::CParam>().Multiplier == 1.f );
-		NeoPresume( desc.GetParam<CLinearLayer::CParam>().FreeTerm == 0.f );
-		return 1.f;
-	}
-
-	NeoPresume( desc.GetType() == AF_HSwish );
-	return 0.f;
+	return desc.GetType() == AF_ReLU ? desc.GetParam<CReLUActivationParam>().UpperThreshold : 0.f;
 }
 
 } // namespace NeoML
