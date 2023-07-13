@@ -41,4 +41,21 @@ inline CPtr<CDnnBlob> MobileNetFreeTerm( CDnnBlob* freeTerm )
 	return nullptr;
 }
 
+inline bool IsValidMobileNetBlockActivation( const CActivationDesc& desc )
+{
+	if( desc.GetType() == AF_ReLU || desc.GetType() == AF_HSwish ) {
+		return true;
+	}
+
+	if( desc.GetType() == AF_Linear ) {
+		if( !desc.HasParam() ) {
+			return false;
+		}
+		CLinearLayer::CParam param = desc.GetParam<CLinearLayer::CParam>();
+		return param.Multiplier == 1.f && param.FreeTerm == 0.f;
+	}
+
+	return false;
+}
+
 } // namespace NeoML

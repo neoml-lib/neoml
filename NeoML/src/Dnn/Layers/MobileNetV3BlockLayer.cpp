@@ -34,10 +34,8 @@ CMobileNetV3PreSEBlockLayer::CMobileNetV3PreSEBlockLayer( IMathEngine& mathEngin
 	channelwiseActivation( channelwiseActivation ),
 	convDesc( nullptr )
 {
-	NeoAssert( expandActivation.GetType() == AF_ReLU || expandActivation.GetType() == AF_HSwish
-		|| expandActivation.GetType() == AF_Linear );
-	NeoAssert( channelwiseActivation.GetType() == AF_ReLU || channelwiseActivation.GetType() == AF_HSwish
-		|| channelwiseActivation.GetType() == AF_Linear );
+	NeoAssert( IsValidMobileNetBlockActivation( expandActivation ) );
+	NeoAssert( IsValidMobileNetBlockActivation( channelwiseActivation ) );
 	paramBlobs.SetSize( P_Count );
 	paramBlobs[P_ExpandFilter] = MobileNetParam( expandFilter );
 	paramBlobs[P_ExpandFreeTerm] = MobileNetFreeTerm( expandFreeTerm );
@@ -94,10 +92,8 @@ void CMobileNetV3PreSEBlockLayer::Serialize( CArchive& archive )
 	if( archive.IsLoading() ) {
 		expandActivation = LoadActivationDesc( archive );
 		channelwiseActivation = LoadActivationDesc( archive );
-		NeoAssert( expandActivation.GetType() == AF_ReLU || expandActivation.GetType() == AF_HSwish
-			|| expandActivation.GetType() == AF_Linear );
-		NeoAssert( channelwiseActivation.GetType() == AF_ReLU || channelwiseActivation.GetType() == AF_HSwish
-			|| channelwiseActivation.GetType() == AF_Linear );
+		check( IsValidMobileNetBlockActivation( expandActivation ), ERR_BAD_ARCHIVE, archive.Name() );
+		check( IsValidMobileNetBlockActivation( channelwiseActivation ), ERR_BAD_ARCHIVE, archive.Name() );
 	} else {
 		StoreActivationDesc( expandActivation, archive );
 		StoreActivationDesc( channelwiseActivation, archive );
@@ -183,7 +179,7 @@ CMobileNetV3PostSEBlockLayer::CMobileNetV3PostSEBlockLayer( IMathEngine& mathEng
 	CBaseLayer( mathEngine, "MobileNetV3PostSEBlock", false ),
 	activation( activation )
 {
-	NeoAssert( activation.GetType() == AF_ReLU || activation.GetType() == AF_HSwish || activation.GetType() == AF_Linear );
+	NeoAssert( IsValidMobileNetBlockActivation( activation ) );
 	paramBlobs.SetSize( P_Count );
 	paramBlobs[P_DownFilter] = MobileNetParam( downFilter );
 	paramBlobs[P_DownFreeTerm] = MobileNetFreeTerm( downFreeTerm );
@@ -215,8 +211,7 @@ void CMobileNetV3PostSEBlockLayer::Serialize( CArchive& archive )
 
 	if( archive.IsLoading() ) {
 		activation = LoadActivationDesc( archive );
-		check( activation.GetType() == AF_ReLU || activation.GetType() == AF_HSwish
-			|| activation.GetType() == AF_Linear, ERR_BAD_ARCHIVE, archive.Name() );
+		check( IsValidMobileNetBlockActivation( activation ), ERR_BAD_ARCHIVE, archive.Name() );
 	} else {
 		StoreActivationDesc( activation, archive );
 	}

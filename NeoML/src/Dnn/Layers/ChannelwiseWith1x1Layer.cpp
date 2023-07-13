@@ -34,8 +34,7 @@ CChannelwiseWith1x1Layer::CChannelwiseWith1x1Layer( IMathEngine& mathEngine, int
 	residual( residual ),
 	convDesc( nullptr )
 {
-	NeoAssert( activation.GetType() == AF_ReLU || activation.GetType() == AF_HSwish
-		|| activation.GetType() == AF_Linear );
+	NeoAssert( IsValidMobileNetBlockActivation( activation ) );
 	paramBlobs.SetSize( P_Count );
 	paramBlobs[P_ChannelwiseFilter] = MobileNetParam( channelwiseFilter );
 	paramBlobs[P_ChannelwiseFreeTerm] = MobileNetFreeTerm( channelwiseFreeTerm );
@@ -103,8 +102,7 @@ void CChannelwiseWith1x1Layer::Serialize( CArchive& archive )
 
 	if( archive.IsLoading() ) {
 		activation = LoadActivationDesc( archive );
-		NeoAssert( activation.GetType() == AF_ReLU || activation.GetType() == AF_HSwish
-			|| activation.GetType() == AF_Linear );
+		check( IsValidMobileNetBlockActivation( activation ), ERR_BAD_ARCHIVE, archive.Name() );
 	} else {
 		StoreActivationDesc( activation, archive );
 	}
