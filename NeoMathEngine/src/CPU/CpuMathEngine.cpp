@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -43,6 +43,7 @@ limitations under the License.
 
 #endif // NEOML_USE_MKL
 
+const bool NEOMATHENGINE_API CCPUInfo::HasAvx512 = CCPUInfo::IsAvx512Available();
 const bool CCPUInfo::HasAvxAndFma = CCPUInfo::IsAvxAndFmaAvailable();
 const bool CCPUInfo::IsNotIntel = CCPUInfo::GetCpuArch() != CCPUInfo::TCpuArch::Intel;
 

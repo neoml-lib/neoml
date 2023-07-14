@@ -202,6 +202,20 @@ else()
         set_property(SOURCE ${CPU_AVX_SOURCES} PROPERTY COMPILE_OPTIONS $<$<COMPILE_LANGUAGE:CXX>:-mavx2 -mfma>)
     endif()
 
+    set(CPU_AVX512_SOURCES
+        CPU/x86/avx512/Avx512VectorFunctions.cpp
+    )
+    target_sources(${PROJECT_NAME} PRIVATE
+        ${CPU_AVX512_SOURCES}
+        CPU/x86/avx512/Avx512Functions.h
+    )
+    set_property(SOURCE ${CPU_AVX512_SOURCES} PROPERTY UNITY_GROUP 3)
+    if(WIN32)
+        set_property(SOURCE ${CPU_AVX512_SOURCES} PROPERTY COMPILE_OPTIONS /arch:AVX512)
+    else()
+        set_property(SOURCE ${CPU_AVX512_SOURCES} PROPERTY COMPILE_OPTIONS $<$<COMPILE_LANGUAGE:CXX>:-mfma -mavx -mavx2 -mavx512f -mavx512dq -mavx512vl>)
+    endif()
+
     if(NEOML_USE_AVX)
         target_sources(${PROJECT_NAME}
         PRIVATE

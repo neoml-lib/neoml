@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -35,6 +35,7 @@ limitations under the License.
 #include <NeoMathEngine/CrtAllocatedObject.h>
 
 #include "avx2/Avx2Functions.h"
+#include "avx512/Avx512Functions.h"
 #include "../CPUInfo.h"
 
 namespace NeoML {
@@ -341,7 +342,10 @@ inline void dataCopy(float* dst, const float* src, int vectorSize)
 {
 	static_assert( sizeof(float) == sizeof(unsigned int), "Size of float isn't equal to size of unsigned int." );
 
-	if( CCPUInfo::HasAvxAndFma && vectorSize >= NeoML::Avx2::VectorMathMinSize ) {
+	if( CCPUInfo::HasAvx512 && vectorSize >= NeoML::Avx512::VectorMathMinSize ) {
+		NeoML::Avx512::dataCopy( dst, src, vectorSize );
+		return;
+	} else if( CCPUInfo::HasAvxAndFma && vectorSize >= NeoML::Avx2::VectorMathMinSize ) {
 		NeoML::Avx2::dataCopy( dst, src, vectorSize );
 		return;
 	}
