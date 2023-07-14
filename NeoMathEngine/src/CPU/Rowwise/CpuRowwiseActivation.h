@@ -78,6 +78,9 @@ inline IRowwiseCpuImpl::CProcessingReport CRowwiseActivation::Process( const flo
 			vectorHardSigmoid( input, output, desc.GetParam<CHardSigmoidActivationParam>().Slope,
 				desc.GetParam<CHardSigmoidActivationParam>().Bias, dataSize );
 			break;
+		case AF_HardTanh:
+			vectorMinMax( input, output, -1.f, 1.f, dataSize );
+			break;
 		case AF_HSwish:
 			vectorHSwish( input, output, dataSize );
 			break;
