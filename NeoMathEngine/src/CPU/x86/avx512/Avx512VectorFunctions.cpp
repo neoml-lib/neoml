@@ -238,6 +238,43 @@ void vectorReLU( const float* first, float* result, int vectorSize, float thresh
 	}
 }
 
+void vectorHSwish( const float* first, float* result, int vectorSize )
+{
+	const __m512 zeroSimd = _mm512_setzero_ps();
+	const __m512 threeSimd = _mm512_set1_ps( 3.f );
+	const __m512 oneSixthSimd = _mm512_set1_ps( 1.f / 6.f );
+
+	//for( int i = 0; i < nonSseSize; ++i ) {
+	//	if( *first <= -3.f ) {
+	//		*result = 0.f;
+	//	} else if( *first >= 3.f ) {
+	//		*result = *first;
+	//	} else {
+	//		*result = *first * ( 1. / 6. ) * ( *first + 3 );
+	//	}
+	//	++result;
+	//	++first;
+	//}
+
+	while( vectorSize >= AvxBlockSize ) {
+		__m512 firstSimd = _mm512_loadu_ps( first );
+		__m512 middlePart = _mm512_max_ps( _mm512_add_ps( firstSimd, threeSimd ), zeroSimd );
+		middlePart = _mm512_mul_ps( _mm512_mul_ps( firstSimd, oneSixthSimd ), middlePart );
+		_mm512_storeu_ps( result, _mm512_min_ps( middlePart, _mm512_max_ps( firstSimd, threeSimd ) ) );
+
+		first += AvxBlockSize;
+		result += AvxBlockSize;
+		vectorSize -= AvxBlockSize;
+	}
+
+	if( vectorSize > 0 ) {
+		const __mmask16 mask = AVX512_IO_MASK( vectorSize );
+		__m512 firstSimd = _mm512_mask_loadu_ps( _mm512_setzero_ps(), mask, first );
+		__m512 middlePart = _mm512_max_ps( _mm512_add_ps( firstSimd, threeSimd ), zeroSimd );
+		middlePart = _mm512_mul_ps( _mm512_mul_ps( firstSimd, oneSixthSimd ), middlePart );
+		_mm512_mask_storeu_ps( result, mask, _mm512_min_ps( middlePart, _mm512_max_ps( firstSimd, threeSimd ) ) );
+	}
+}
 
 } // namespace Avx512
 

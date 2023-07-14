@@ -1259,7 +1259,10 @@ inline __m128 vectorHSwishWorker( const __m128& first, const __m128& three,
 
 inline void vectorHSwish( const float* first, float* result, int vectorSize )
 {
-	if( CCPUInfo::HasAvxAndFma && vectorSize >= NeoML::Avx2::VectorMathMinSize ) {
+	if( CCPUInfo::HasAvx512 && vectorSize >= NeoML::Avx512::VectorMathMinSize ) {
+		NeoML::Avx512::vectorHSwish( first, result, vectorSize );
+		return;
+	} else if( CCPUInfo::HasAvxAndFma && vectorSize >= NeoML::Avx2::VectorMathMinSize ) {
 		NeoML::Avx2::vectorHSwish( first, result, vectorSize );
 		return;
 	}
