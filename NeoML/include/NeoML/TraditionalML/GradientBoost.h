@@ -171,13 +171,13 @@ private:
 	const CParams params; // the classification parameters
 	CRandom defaultRandom{}; // the default random number generator
 	CTextStream* logStream = nullptr; // the logging stream
-	CPtr<CGradientBoostFullTreeBuilder<CGradientBoostStatisticsSingle>> fullSingleClassTreeBuilder{}; // TGBT_Full tree builder for single class
-	CPtr<CGradientBoostFullTreeBuilder<CGradientBoostStatisticsMulti>> fullMultiClassTreeBuilder{}; // TGBT_Full tree builder for multi class
-	CPtr<CGradientBoostFastHistTreeBuilder<CGradientBoostStatisticsSingle>> fastHistSingleClassTreeBuilder{}; // TGBT_FastHist tree builder for single class
-	CPtr<CGradientBoostFastHistTreeBuilder<CGradientBoostStatisticsMulti>> fastHistMultiClassTreeBuilder{}; // TGBT_MultiFastHist tree builder for multi class
-	CPtr<IMultivariateRegressionProblem> baseProblem{}; // base problem
-	CPtr<CGradientBoostFullProblem> fullProblem{}; // the problem data for TGBT_Full mode
-	CPtr<CGradientBoostFastHistProblem> fastHistProblem{}; // the problem data for TGBT_FastHist mode
+	CPtr<CGradientBoostFullTreeBuilder<CGradientBoostStatisticsSingle>> fullSingleClassTreeBuilder; // TGBT_Full tree builder for single class
+	CPtr<CGradientBoostFullTreeBuilder<CGradientBoostStatisticsMulti>> fullMultiClassTreeBuilder; // TGBT_Full tree builder for multi class
+	CPtr<CGradientBoostFastHistTreeBuilder<CGradientBoostStatisticsSingle>> fastHistSingleClassTreeBuilder; // TGBT_FastHist tree builder for single class
+	CPtr<CGradientBoostFastHistTreeBuilder<CGradientBoostStatisticsMulti>> fastHistMultiClassTreeBuilder; // TGBT_MultiFastHist tree builder for multi class
+	CPtr<IMultivariateRegressionProblem> baseProblem; // base problem
+	CPtr<CGradientBoostFullProblem> fullProblem; // the problem data for TGBT_Full mode
+	CPtr<CGradientBoostFastHistProblem> fastHistProblem; // the problem data for TGBT_FastHist mode
 	CArray<CArray<CPredictionCacheItem>> predictCache{}; // the cache for predictions of the models being built
 	// In the predicts, answers, gradients, hessians arrays the first index corresponds to the number of the class
 	// if you are training a multi-class classifier; 
@@ -202,7 +202,7 @@ private:
 	// The current models ensemble (ensembles are used for multi-class classification)
 	CArray<CGradientBoostEnsemble> models{};
 	// Loss function
-	CPtr<IGradientBoostingLossFunction> lossFunction{};
+	CPtr<IGradientBoostingLossFunction> lossFunction;
 
 	void createTreeBuilder( const IMultivariateRegressionProblem* problem );
 	void destroyTreeBuilder();

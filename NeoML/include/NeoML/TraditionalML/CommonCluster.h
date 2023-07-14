@@ -26,11 +26,11 @@ public:
 	// Parameters of the cluster
 	struct CParams final {
 		// Minimum number of elements in the cluster to account for variance in distance calculation 
-		int MinElementCountForVariance = 4;
+		int MinElementCountForVariance;
 		// The default variance, for when the number of elements is too small
-		double DefaultVariance = 1.;
+		double DefaultVariance;
 
-		CParams();
+		CParams() : MinElementCountForVariance( 4 ), DefaultVariance( 1.0 ) {}
 	};
 
 	// Creates a cluster with the specified center
