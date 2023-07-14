@@ -90,7 +90,7 @@ void CRowwiseOperationChainLayer::Reshape()
 	outputDescs[0] = inputDescs[0];
 
 	for( IRowwiseOperation* operation : operations ) {
-		operationDescs.Add( operation->GetDesc( inputDescs[0] ) );
+		operationDescs.Add( operation->GetDesc() );
 	}
 
 	outputDescs[0] = MathEngine().RowwiseReshape( operationDescs.GetPtr(), operations.Size(), outputDescs[0] );

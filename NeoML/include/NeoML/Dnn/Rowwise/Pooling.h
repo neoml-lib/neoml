@@ -33,7 +33,7 @@ public:
 	explicit CRowwise2DPooling( IMathEngine& mathEngine );
 
 	// IRowwiseOperation implementation
-	CRowwiseOperationDesc* GetDesc( const CBlobDesc& inputDesc ) override;
+	CRowwiseOperationDesc* GetDesc() override;
 	void Serialize( CArchive& archive ) override;
 
 public:

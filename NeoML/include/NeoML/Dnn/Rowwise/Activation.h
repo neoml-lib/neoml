@@ -34,7 +34,7 @@ public:
 	const CActivationDesc& Activation() const { return desc; }
 
 	// IRowwiseOperation implementation
-	CRowwiseOperationDesc* GetDesc( const CBlobDesc& inputDesc ) override;
+	CRowwiseOperationDesc* GetDesc() override;
 	void Serialize( CArchive& archive ) override;
 
 private:

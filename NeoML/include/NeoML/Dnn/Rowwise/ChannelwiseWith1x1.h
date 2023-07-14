@@ -32,7 +32,7 @@ public:
 	explicit CRowwiseChWith1x1( IMathEngine& mathEngine );
 
 	// IRowwiseOperation implementation
-	CRowwiseOperationDesc* GetDesc( const CBlobDesc& inputDesc ) override;
+	CRowwiseOperationDesc* GetDesc() override;
 	void Serialize( CArchive& archive ) override;
 
 private:

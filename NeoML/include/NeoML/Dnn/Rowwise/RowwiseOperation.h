@@ -33,7 +33,7 @@ public:
 	// Returns pointer to operation NeoMathEngine descriptor
 	// The descriptor pointer is valid till next Reshape call (or till this object is destroyed)
 	// The user must delete this pointer afterwards
-	virtual CRowwiseOperationDesc* GetDesc( const CBlobDesc& inputDesc ) = 0;
+	virtual CRowwiseOperationDesc* GetDesc() = 0;
 };
 
 // Registration macro

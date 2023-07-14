@@ -41,10 +41,10 @@ CRowwiseChConv::CRowwiseChConv( IMathEngine& mathEngine ) :
 {
 }
 
-CRowwiseOperationDesc* CRowwiseChConv::GetDesc( const CBlobDesc& inputDesc )
+CRowwiseOperationDesc* CRowwiseChConv::GetDesc()
 {
 	return mathEngine.InitRowwiseChConv( paddingHeight, paddingWidth, strideHeight, strideWidth,
-        filter->GetDesc(), filter->GetData(),
+		filter->GetDesc(), filter->GetData(),
 		freeTerm == nullptr ? nullptr : &freeTerm->GetData<const float>() );
 }
 

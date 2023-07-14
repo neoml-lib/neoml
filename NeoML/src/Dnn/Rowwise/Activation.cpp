@@ -20,7 +20,7 @@ limitations under the License.
 
 namespace NeoML {
 
-CRowwiseOperationDesc* CRowwiseActivation::GetDesc( const CBlobDesc& )
+CRowwiseOperationDesc* CRowwiseActivation::GetDesc()
 {
 	return mathEngine.InitRowwiseActivation( desc );
 }

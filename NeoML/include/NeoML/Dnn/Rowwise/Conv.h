@@ -31,7 +31,7 @@ public:
 	explicit CRowwiseConv( IMathEngine& mathEngine );
 
 	// IRowwiseOperation implementation
-	CRowwiseOperationDesc* GetDesc( const CBlobDesc& inputDesc ) override;
+	CRowwiseOperationDesc* GetDesc() override;
 	void Serialize( CArchive& archive ) override;
 
 private:

@@ -42,7 +42,7 @@ CRowwiseChWith1x1::CRowwiseChWith1x1( IMathEngine& mathEngine ) :
 {
 }
 
-CRowwiseOperationDesc* CRowwiseChWith1x1::GetDesc( const CBlobDesc& inputDesc )
+CRowwiseOperationDesc* CRowwiseChWith1x1::GetDesc()
 {
 	return mathEngine.InitRowwiseChWith1x1( stride, channelwiseFilter->GetData(),
 		channelwiseFreeTerm == nullptr ? nullptr : &channelwiseFreeTerm->GetData<const float>(),

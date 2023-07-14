@@ -41,7 +41,7 @@ CRowwise2DPooling::CRowwise2DPooling( const CMeanPoolingLayer& layer ) :
 {
 }
 
-CRowwise2DPooling::CRowwise2DPooling( IMathEngine& layer ) :
+CRowwise2DPooling::CRowwise2DPooling( IMathEngine& mathEngine ) :
 	mathEngine( mathEngine ),
 	isMax( false ),
 	filterHeight( 0 ),
@@ -51,7 +51,7 @@ CRowwise2DPooling::CRowwise2DPooling( IMathEngine& layer ) :
 {
 }
 
-CRowwiseOperationDesc* CRowwise2DPooling::GetDesc( const CBlobDesc& )
+CRowwiseOperationDesc* CRowwise2DPooling::GetDesc()
 {
 	return mathEngine.InitRowwise2DPooling( isMax, filterHeight, filterWidth, strideHeight, strideWidth );
 }

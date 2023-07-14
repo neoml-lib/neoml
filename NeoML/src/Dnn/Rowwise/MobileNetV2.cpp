@@ -46,7 +46,7 @@ CRowwiseMobileNetV2::CRowwiseMobileNetV2( IMathEngine& mathEngine ) :
 {
 }
 
-CRowwiseOperationDesc* CRowwiseMobileNetV2::GetDesc( const CBlobDesc& inputDesc )
+CRowwiseOperationDesc* CRowwiseMobileNetV2::GetDesc()
 {
 	return mathEngine.InitRowwiseMobileNetV2( expandFilter->GetChannelsCount(), expandFilter->GetData(),
 		expandFreeTerm == nullptr ? nullptr : &expandFreeTerm->GetData<const float>(),

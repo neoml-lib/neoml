@@ -45,7 +45,7 @@ CRowwiseConv::CRowwiseConv( IMathEngine& mathEngine ) :
 {
 }
 
-CRowwiseOperationDesc* CRowwiseConv::GetDesc( const CBlobDesc& inputDesc )
+CRowwiseOperationDesc* CRowwiseConv::GetDesc()
 {
 	return mathEngine.InitRowwiseConv( paddingHeight, paddingWidth, strideHeight, strideWidth, dilationHeight,
 		dilationWidth, filter->GetDesc(), filter->GetData(),

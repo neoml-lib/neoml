@@ -43,7 +43,7 @@ CRowwiseImageResize::CRowwiseImageResize( IMathEngine& mathEngine ) :
 {
 }
 
-CRowwiseOperationDesc* CRowwiseImageResize::GetDesc( const CBlobDesc& inputDesc )
+CRowwiseOperationDesc* CRowwiseImageResize::GetDesc()
 {
 	return mathEngine.InitRowwiseResizeImage( padding, defaultValue, deltaLeft, deltaRight, deltaTop, deltaBottom );
 }
