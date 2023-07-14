@@ -29,6 +29,8 @@ public:
 		int MinElementCountForVariance = 4;
 		// The default variance, for when the number of elements is too small
 		double DefaultVariance = 1.;
+
+		CParams() = default;
 	};
 
 	// Creates a cluster with the specified center
