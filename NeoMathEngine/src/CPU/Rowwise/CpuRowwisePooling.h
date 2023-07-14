@@ -15,9 +15,10 @@ limitations under the License.
 
 #pragma once
 
-#include "../CpuMathEngineDnnPooling.h"
 #include "CpuRowwiseInterface.h"
 #include "CpuRowwiseCommon.h"
+#include <CpuMathEngineDnnPooling.h>
+#include <CpuMathEngine.h>
 
 namespace NeoML {
 

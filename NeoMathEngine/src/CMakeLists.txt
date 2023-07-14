@@ -58,6 +58,7 @@ target_sources(${PROJECT_NAME}
     CPU/CPUInfo.h
     CPU/CpuMathEngine.h
     CPU/CpuMathEngineDnnChannelwiseConv.h
+    CPU/CpuMathEngineDnnConv.h
     CPU/CpuMathEngineDnnDistributed.h
     CPU/CpuMathEngineDnnLstm.h
     CPU/CpuMathEngineDnnPooling.h
@@ -76,6 +77,7 @@ target_sources(${PROJECT_NAME}
     CPU/Rowwise/CpuRowwiseChConv.h
     CPU/Rowwise/CpuRowwiseChConvWith1x1.h
     CPU/Rowwise/CpuRowwiseCommon.h
+    CPU/Rowwise/CpuRowwiseConv.h
     CPU/Rowwise/CpuRowwiseInterface.h
     CPU/Rowwise/CpuRowwiseMobileNetV2.h
     CPU/Rowwise/CpuRowwisePooling.h
