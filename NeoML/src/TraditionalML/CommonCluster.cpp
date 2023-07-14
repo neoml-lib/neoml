@@ -21,8 +21,6 @@ limitations under the License.
 
 namespace NeoML {
 
-CCommonCluster::CParams::CParams() = default;
-
 // Precision of a double value
 const double Precision = 1e-15;
 

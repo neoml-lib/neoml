@@ -15,6 +15,8 @@ limitations under the License.
 
 #pragma once
 
+#include <NeoMathEngine/NeoMathEngineDefs.h>
+
 #define __merge__2( a, b )	a##b
 #define __merge__1( a, b )	__merge__2( a, b )
 #define __UNICODEFILE__	__merge__1( L, __FILE__ )
