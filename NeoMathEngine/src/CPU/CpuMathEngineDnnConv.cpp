@@ -24,10 +24,8 @@ limitations under the License.
 #include <MemoryHandleInternal.h>
 #include <MathEngineDnnConv.h>
 #include <CpuMathEnginePrivate.h>
+#include <CpuMathEngineDnnConv.h>
 #include <NeoMathEngine/SimdMathEngine.h>
-#include <Rowwise/CpuRowwiseInterface.h>
-#include <Rowwise/CpuRowwiseCommon.h>
-#include <Rowwise/CpuRowwiseConv.h>
 
 namespace NeoML {
 
@@ -1279,17 +1277,6 @@ void CCpuMathEngine::BlobChannelwiseConvolutionLearnAdd( const CChannelwiseConvo
 
 	TransposeMatrix( 1, filterDiffTransposedHolder.GetHandle(),
 		filterDiff.Channels(), 1, filterDiff.Height() * filterDiff.Width(), 1, filterDiffData, filterDiff.BlobSize() );
-}
-
-//------------------------------------------------------------------------------------------------------------
-
-CRowwiseOperationDesc* CCpuMathEngine::InitRowwiseConv( int paddingHeight, int paddingWidth, int strideHeight,
-	int strideWidth, int dilationHeight, int dilationWidth, const CBlobDesc& filterDesc,
-	const CConstFloatHandle& filter, const CConstFloatHandle* freeTerm )
-{
-	return new CRowwiseConv( *this, filterDesc.Channels(), paddingHeight, paddingWidth, strideHeight, strideWidth,
-		dilationHeight, dilationWidth, filterDesc.ObjectCount(), filterDesc.Height(), filterDesc.Width(),
-		GetRaw( filter ), freeTerm == nullptr ? nullptr : GetRaw( *freeTerm ) );
 }
 
 } // namespace NeoML

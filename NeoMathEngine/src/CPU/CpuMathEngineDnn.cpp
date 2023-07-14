@@ -21,7 +21,6 @@ limitations under the License.
 #include <CpuExecutionScope.h>
 #include <MemoryHandleInternal.h>
 #include <MathEngineCommon.h>
-#include <Rowwise/CpuRowwiseResizeImage.h>
 
 namespace NeoML {
 
@@ -1271,38 +1270,6 @@ void CCpuMathEngine::ScatterND( const CConstIntHandle& indicesHandle, const CCon
 
 	scatterNDImpl( GetRaw( updatesHandle ), GetRaw( indicesHandle ), GetRaw( dataHandle ),
 		dataDesc, updateCount, indexDims );
-}
-
-//------------------------------------------------------------------------------------------------------------
-
-void CCpuMathEngine::BlobResizeImage( const CBlobDesc& from, const CFloatHandle& fromData, int deltaLeft, int deltaRight,
-	int deltaTop, int deltaBottom, TBlobResizePadding padding, float defaultValue,
-	const CBlobDesc& to, const CFloatHandle& toData )
-{
-	CCpuExecutionScope scope;
-
-	CRowwiseImageResize impl( padding, defaultValue, deltaLeft, deltaRight, deltaTop, deltaBottom );
-	CBlobDesc reshapeResult = impl.Reshape( from );
-	( void ) reshapeResult;
-	PRESUME_EXPR( reshapeResult.HasEqualDimensions( to ) );
-
-	const float* fromPtr = GetRaw( fromData );
-	float* toPtr = GetRaw( toData );
-
-	const int currThreadCount = IsOmpRelevant( from.ObjectCount(), from.BlobSize() ) ? threadCount : 1;
-	NEOML_OMP_FOR_NUM_THREADS( currThreadCount )
-	for( int batch = 0; batch < from.ObjectCount(); ++batch ) {
-		IRowwiseCpuImpl::CProcessingReport report = impl.Process( fromPtr + batch * from.ObjectSize(), batch * from.Height(),
-			from.Height(), toPtr + batch * to.ObjectSize(), batch * to.Height(), to.Height(), nullptr );
-		( void ) report;
-		PRESUME_EXPR( report.OutputRowsCalculated == to.Height() );
-	}
-}
-
-CRowwiseOperationDesc* CCpuMathEngine::InitRowwiseResizeImage( TBlobResizePadding padding, float defaultValue,
-	int deltaLeft, int deltaRight, int deltaTop, int deltaBottom )
-{
-	return new CRowwiseImageResize( padding, defaultValue, deltaLeft, deltaRight, deltaTop, deltaBottom );
 }
 
 } // namespace NeoML

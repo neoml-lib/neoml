@@ -23,7 +23,6 @@ limitations under the License.
 #include <MathEngineDnnPoolings.h>
 #include <CpuMathEnginePrivate.h>
 #include "CpuMathEngineDnnPooling.h"
-#include <Rowwise/CpuRowwisePooling.h>
 
 namespace NeoML {
 
@@ -640,14 +639,6 @@ void CCpuMathEngine::AddHeightIndex( const CBlobDesc& source, const CConstFloatH
 void CCpuMathEngine::AddHeightIndex( const CBlobDesc& source, const CConstIntHandle& sourceData, bool isForward, const CIntHandle& resultData )
 {
 	addDimIndex( this, isForward, source.ObjectCount(), source.Height(), source.Width() * source.Depth() * source.Channels(), sourceData, resultData );
-}
-
-//---------------------------------------------------------------------------------------------------
-
-CRowwiseOperationDesc* CCpuMathEngine::InitRowwise2DPooling( bool isMax, int filterHeight, int filterWidth,
-	int strideHeight, int strideWidth )
-{
-	return new CRowwise2DPooling( *this, isMax, filterHeight, filterWidth, strideHeight, strideWidth );
 }
 
 } // namespace NeoML

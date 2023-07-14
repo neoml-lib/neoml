@@ -25,7 +25,14 @@ limitations under the License.
 #include <CpuExecutionScope.h>
 #include <MemoryHandleInternal.h>
 
-#include "Rowwise/CpuRowwiseActivation.h"
+#include <Rowwise/CpuRowwiseActivation.h>
+#include <Rowwise/CpuRowwiseBuffer.h>
+#include <Rowwise/CpuRowwiseChConv.h>
+#include <Rowwise/CpuRowwiseChConvWith1x1.h>
+#include <Rowwise/CpuRowwiseConv.h>
+#include <Rowwise/CpuRowwiseMobileNetV2.h>
+#include <Rowwise/CpuRowwisePooling.h>
+#include <Rowwise/CpuRowwiseResizeImage.h>
 
 namespace NeoML {
 
@@ -145,9 +152,165 @@ void CCpuMathEngine::RowwiseExecute( const CBlobDesc& inputDesc, CRowwiseOperati
 	}
 }
 
+//------------------------------------------------------------------------------------------------------------
+
 CRowwiseOperationDesc* CCpuMathEngine::InitRowwiseActivation( const CActivationDesc& desc )
 {
 	return new CRowwiseActivation( desc );
+}
+
+//------------------------------------------------------------------------------------------------------------
+
+CRowwiseOperationDesc* CCpuMathEngine::InitRowwiseChConv( int paddingHeight, int paddingWidth, int strideHeight,
+	int strideWidth, const CBlobDesc& filterDesc, const CConstFloatHandle& filter,
+	const CConstFloatHandle* freeTerm )
+{
+	return new CRowwiseChConv( paddingHeight, paddingWidth, strideHeight, strideWidth, filterDesc, GetRaw( filter ),
+		freeTerm == nullptr ? nullptr : GetRaw( *freeTerm ) );
+}
+
+//------------------------------------------------------------------------------------------------------------
+
+CRowwiseOperationDesc* CCpuMathEngine::InitRowwiseConv( int paddingHeight, int paddingWidth, int strideHeight,
+	int strideWidth, int dilationHeight, int dilationWidth, const CBlobDesc& filterDesc,
+	const CConstFloatHandle& filter, const CConstFloatHandle* freeTerm )
+{
+	return new CRowwiseConv( *this, filterDesc.Channels(), paddingHeight, paddingWidth, strideHeight, strideWidth,
+		dilationHeight, dilationWidth, filterDesc.ObjectCount(), filterDesc.Height(), filterDesc.Width(),
+		GetRaw( filter ), freeTerm == nullptr ? nullptr : GetRaw( *freeTerm ) );
+}
+
+//------------------------------------------------------------------------------------------------------------
+
+void CCpuMathEngine::ChannelwiseWith1x1( const CBlobDesc& inputDesc, const CBlobDesc& outputDesc,
+	const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& inputHandle,
+	const CConstFloatHandle& channelwiseFilterData, const CConstFloatHandle* channelwiseFreeTermData,
+	TActivationFunction activation, float reluParam, const CConstFloatHandle& convFilterData,
+	const CConstFloatHandle* convFreeTermData, bool residual, const CFloatHandle& outputHandle )
+{
+	CCpuExecutionScope scope;
+	const CCommonChannelwiseConvolutionDesc& desc = static_cast<const CCommonChannelwiseConvolutionDesc&>( convDesc );
+
+	CRowwiseChConvWith1x1 impl( *this, desc.StrideHeight, GetRaw( channelwiseFilterData ),
+		channelwiseFreeTermData == nullptr ? nullptr : GetRaw( *channelwiseFreeTermData ),
+		activation, reluParam, GetRaw( convFilterData ),
+		convFreeTermData == nullptr ? nullptr : GetRaw( *convFreeTermData ),
+		outputDesc.Channels(), residual );
+	(void)impl.Reshape( inputDesc );
+
+	// Buffer for the output rows of channelwise convolution
+	CFloatHandleStackVar bufferVar( *this, static_cast<size_t>( impl.InOperationBufferSize() ) );
+
+	float* buffer = GetRaw( bufferVar.GetHandle() );
+	const float* input = GetRaw( inputHandle );
+	float* output = GetRaw( outputHandle );
+
+	const int inputRowCount = desc.Source.ObjectCount() * desc.Source.Height();
+	const int outputRowCount = desc.Result.ObjectCount() * desc.Result.Height();
+	IRowwiseCpuImpl::CProcessingReport report = impl.Process( input, 0, inputRowCount,
+		output, 0, outputRowCount, buffer );
+	( void ) report; // Avoid compiler warning in release configuration
+	PRESUME_EXPR( report.InputRowsMayBeRemoved == inputRowCount );
+	PRESUME_EXPR( report.OutputRowsCalculated == outputRowCount );
+}
+
+CRowwiseOperationDesc* CCpuMathEngine::InitRowwiseChWith1x1( int stride, const CConstFloatHandle& channelwiseFilter,
+	const CConstFloatHandle* channelwiseFreeTerm, TActivationFunction activation, float reluParam,
+	const CConstFloatHandle& convFilter, const CConstFloatHandle* convFreeTerm, int outputChannels, bool residual )
+{
+	return new CRowwiseChConvWith1x1( *this, stride, GetRaw( channelwiseFilter ),
+		channelwiseFreeTerm == nullptr ? nullptr : GetRaw( *channelwiseFreeTerm ),
+		activation, reluParam, GetRaw( convFilter ),
+		convFreeTerm == nullptr ? nullptr : GetRaw( *convFreeTerm ),
+		outputChannels, residual );
+}
+
+//------------------------------------------------------------------------------------------------------------
+
+void CCpuMathEngine::MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobDesc& outputDesc,
+	const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& inputHandle,
+	const CConstFloatHandle& expandFilterData, const CConstFloatHandle* expandFreeTermData,
+	TActivationFunction expandActivation, float expandReluParam, const CConstFloatHandle& channelwiseFilterData,
+	const CConstFloatHandle* channelwiseFreeTermData, TActivationFunction channelwiseActivation,
+	float channelwiseReluParam, const CConstFloatHandle& downFilterData, const CConstFloatHandle* downFreeTermData,
+	bool residual, const CFloatHandle& outputHandle )
+{
+	CCpuExecutionScope scope;
+	const CCommonChannelwiseConvolutionDesc& desc = static_cast< const CCommonChannelwiseConvolutionDesc& >( convDesc );
+
+	CRowwiseMobileNetV2 blockImpl( *this, inputDesc.Channels(), GetRaw( expandFilterData ),
+		expandFreeTermData == nullptr ? nullptr : GetRaw( *expandFreeTermData ),
+		desc.Source.Channels(), expandActivation, expandReluParam, GetRaw( channelwiseFilterData ),
+		channelwiseFreeTermData == nullptr ? nullptr : GetRaw( *channelwiseFreeTermData ),
+		desc.StrideHeight, channelwiseActivation, channelwiseReluParam, GetRaw( downFilterData ),
+		downFreeTermData == nullptr ? nullptr : GetRaw( *downFreeTermData ),
+		outputDesc.Channels(), residual );
+	const CBlobDesc reshapeResult = blockImpl.Reshape( inputDesc );
+	( void ) reshapeResult;
+	PRESUME_EXPR( reshapeResult.HasEqualDimensions( outputDesc ) );
+	CFloatHandleStackVar buffer( *this, blockImpl.InOperationBufferSize() );
+	const IRowwiseCpuImpl::CProcessingReport report = blockImpl.Process( GetRaw( inputHandle ), 0,
+		inputDesc.ObjectCount() * inputDesc.Height(), GetRaw( outputHandle ), 0,
+		outputDesc.ObjectCount() * outputDesc.Height(), GetRaw( buffer.GetHandle() ) );
+	( void ) report;
+	PRESUME_EXPR( report.InputRowsMayBeRemoved == inputDesc.ObjectCount() * inputDesc.Height() );
+	PRESUME_EXPR( report.OutputRowsCalculated == outputDesc.ObjectCount() * outputDesc.Height() );
+}
+
+CRowwiseOperationDesc* CCpuMathEngine::InitRowwiseMobileNetV2( int inputChannels,
+	const CConstFloatHandle& expandFilter, const CConstFloatHandle* expandFreeTerm, int expandedChannels,
+	TActivationFunction expandActivation, float expandReluParam,
+	const CConstFloatHandle& channelwiseFilter, const CConstFloatHandle* channelwiseFreeTerm, int stride,
+	TActivationFunction channelwiseActivation, float channelwiseReluParam,
+	const CConstFloatHandle& downFilter, const CConstFloatHandle* downFreeTerm, int outputChannels, bool residual )
+{
+	return new CRowwiseMobileNetV2( *this, inputChannels, GetRaw( expandFilter ),
+		expandFreeTerm == nullptr ? nullptr : GetRaw( *expandFreeTerm ),
+		expandedChannels, expandActivation, expandReluParam, GetRaw( channelwiseFilter ),
+		channelwiseFreeTerm == nullptr ? nullptr : GetRaw( *channelwiseFreeTerm ),
+		stride, channelwiseActivation, channelwiseReluParam, GetRaw( downFilter ),
+		downFreeTerm == nullptr ? nullptr : GetRaw( *downFreeTerm ),
+		outputChannels, residual );
+}
+
+//---------------------------------------------------------------------------------------------------
+
+CRowwiseOperationDesc* CCpuMathEngine::InitRowwise2DPooling( bool isMax, int filterHeight, int filterWidth,
+	int strideHeight, int strideWidth )
+{
+	return new CRowwise2DPooling( *this, isMax, filterHeight, filterWidth, strideHeight, strideWidth );
+}
+
+//------------------------------------------------------------------------------------------------------------
+
+void CCpuMathEngine::BlobResizeImage( const CBlobDesc& from, const CFloatHandle& fromData, int deltaLeft, int deltaRight,
+	int deltaTop, int deltaBottom, TBlobResizePadding padding, float defaultValue,
+	const CBlobDesc& to, const CFloatHandle& toData )
+{
+	CCpuExecutionScope scope;
+
+	CRowwiseImageResize impl( padding, defaultValue, deltaLeft, deltaRight, deltaTop, deltaBottom );
+	CBlobDesc reshapeResult = impl.Reshape( from );
+	( void ) reshapeResult;
+	PRESUME_EXPR( reshapeResult.HasEqualDimensions( to ) );
+
+	const float* fromPtr = GetRaw( fromData );
+	float* toPtr = GetRaw( toData );
+
+	const int currThreadCount = IsOmpRelevant( from.ObjectCount(), from.BlobSize() ) ? threadCount : 1;
+	NEOML_OMP_FOR_NUM_THREADS( currThreadCount )
+		for( int batch = 0; batch < from.ObjectCount(); ++batch ) {
+			IRowwiseCpuImpl::CProcessingReport report = impl.Process( fromPtr + batch * from.ObjectSize(), batch * from.Height(),
+				from.Height(), toPtr + batch * to.ObjectSize(), batch * to.Height(), to.Height(), nullptr );
+			( void ) report;
+			PRESUME_EXPR( report.OutputRowsCalculated == to.Height() );
+		}
+}
+
+CRowwiseOperationDesc* CCpuMathEngine::InitRowwiseResizeImage( TBlobResizePadding padding, float defaultValue,
+	int deltaLeft, int deltaRight, int deltaTop, int deltaBottom )
+{
+	return new CRowwiseImageResize( padding, defaultValue, deltaLeft, deltaRight, deltaTop, deltaBottom );
 }
 
 } // namespace NeoML
