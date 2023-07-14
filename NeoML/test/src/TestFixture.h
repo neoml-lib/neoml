@@ -29,6 +29,8 @@ IMathEngine& MathEngine();
 void DeleteMathEngine();
 // Get global MathEngine type.
 TMathEngineType MathEngineType();
+// Recommended dnn optimization settings for current run.
+CDnnOptimizationSettings DnnOptimizationSettings();
 
 void SetPlatformEnv( void* platformEnv );
 

@@ -48,11 +48,11 @@ struct NEOML_API CDnnOptimizationReport {
 
 // Settings for optional optimizations
 struct NEOML_API CDnnOptimizationSettings {
-	// Enable rowwise computation of images withing blobs
+	// Enable additional optimizations which are useful for inference on C{U
 	// After these optimizations dnn can be used ONLY ON CPU
 	// Recommended for convolutional nets with at least 20MB RAM usage
 	// (You can measure RAM usage by running the dnn and dnn.GetMathEngine().GetPeakMemoryUsage())
-	bool OptimizeRowwiseChains = false;
+	bool AllowCpuOnlyOptimizations = true;
 };
 
 // Optimizes inference of given CDnn at the cost of trainability

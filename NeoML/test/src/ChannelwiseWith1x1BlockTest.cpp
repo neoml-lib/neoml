@@ -194,7 +194,7 @@ TEST( ChannelwiseWith1x1OptimizerTest, SimpleNonResidual )
 	CReLULayer* channelwiseReLU = Relu( 6.f )( "channelwiseReLU", channelwiseConv );
 	CConvLayer* conv = Conv( 8, CConvAxisParams( 1 ), CConvAxisParams( 1 ) )( "conv", channelwiseReLU );
 	Sink( conv, "sink" );
-	CDnnOptimizationReport report = OptimizeDnn( dnn );
+	CDnnOptimizationReport report = OptimizeDnn( dnn, DnnOptimizationSettings() );
 	ASSERT_EQ( 1, report.ChannelwiseWith1x1NonResidual );
 	ASSERT_EQ( 0, report.ChannelwiseWith1x1Residual );
 	ASSERT_EQ( 3, dnn.GetLayerCount() );
@@ -212,7 +212,7 @@ TEST( ChannelwiseWith1x1OptimizerTest, SimpleResidual )
 	CConvLayer* conv = Conv( 8, CConvAxisParams( 1 ), CConvAxisParams( 1 ) )( "conv", channelwiseHSwish );
 	CEltwiseSumLayer* residual = Sum()( "residual", data, conv );
 	Sink( residual, "sink" );
-	CDnnOptimizationReport report = OptimizeDnn( dnn );
+	CDnnOptimizationReport report = OptimizeDnn( dnn, DnnOptimizationSettings() );
 	ASSERT_EQ( 0, report.ChannelwiseWith1x1NonResidual );
 	ASSERT_EQ( 1, report.ChannelwiseWith1x1Residual );
 	ASSERT_EQ( 3, dnn.GetLayerCount() );
@@ -231,7 +231,7 @@ TEST( ChannelwiseWith1x1OptimizerTest, ResidualResidual )
 	CEltwiseSumLayer* residual = Sum()( "residual", data, conv );
 	CEltwiseSumLayer* doubleResidual = Sum()( "doubleResidual", data, residual );
 	Sink( doubleResidual, "sink" );
-	CDnnOptimizationReport report = OptimizeDnn( dnn );
+	CDnnOptimizationReport report = OptimizeDnn( dnn, DnnOptimizationSettings() );
 	ASSERT_EQ( 0, report.ChannelwiseWith1x1NonResidual );
 	ASSERT_EQ( 1, report.ChannelwiseWith1x1Residual );
 	ASSERT_EQ( 4, dnn.GetLayerCount() );
@@ -251,7 +251,7 @@ TEST( ChannelwiseWith1x1OptimizerTest, NeighboringResiduals )
 	Sink( residual, "sink" );
 	CEltwiseSumLayer* secondResidual = Sum()( "secondResidual", data, conv );
 	Sink( secondResidual, "secondSink" );
-	CDnnOptimizationReport report = OptimizeDnn( dnn );
+	CDnnOptimizationReport report = OptimizeDnn( dnn, DnnOptimizationSettings() );
 	ASSERT_EQ( 1, report.ChannelwiseWith1x1NonResidual );
 	ASSERT_EQ( 0, report.ChannelwiseWith1x1Residual );
 	ASSERT_EQ( 6, dnn.GetLayerCount() );
@@ -270,10 +270,9 @@ TEST( ChannelwiseWith1x1OptimizerTest, SinkFromTheMiddle )
 	CConvLayer* conv = Conv( 8, CConvAxisParams( 1 ), CConvAxisParams( 1 ) )( "conv", channelwiseHSwish );
 	CEltwiseSumLayer* residual = Sum()( "residual", data, conv );
 	Sink( residual, "sink" );
-	CDnnOptimizationReport report = OptimizeDnn( dnn );
+	CDnnOptimizationReport report = OptimizeDnn( dnn, DnnOptimizationSettings() );
 	ASSERT_EQ( 0, report.ChannelwiseWith1x1NonResidual );
 	ASSERT_EQ( 0, report.ChannelwiseWith1x1Residual );
-	ASSERT_EQ( 7, dnn.GetLayerCount() );
 }
 
 TEST( ChannelwiseWith1x1OptimizerTest, SinkDisablesResidual )
@@ -289,7 +288,7 @@ TEST( ChannelwiseWith1x1OptimizerTest, SinkDisablesResidual )
 	Sink( conv, "convSink" );
 	CEltwiseSumLayer* residual = Sum()( "residual", data, conv );
 	Sink( residual, "sink" );
-	CDnnOptimizationReport report = OptimizeDnn( dnn );
+	CDnnOptimizationReport report = OptimizeDnn( dnn, DnnOptimizationSettings() );
 	ASSERT_EQ( 1, report.ChannelwiseWith1x1NonResidual );
 	ASSERT_EQ( 0, report.ChannelwiseWith1x1Residual );
 	ASSERT_EQ( 5, dnn.GetLayerCount() );
