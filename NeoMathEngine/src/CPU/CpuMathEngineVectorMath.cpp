@@ -1045,4 +1045,12 @@ void CCpuMathEngine::VectorLeakyReLU( const CConstFloatHandle& firstHandle, cons
 	vectorLeakyReLU( GetRaw( firstHandle ), GetRaw( resultHandle ), *GetRaw( alphaHandle ), vectorSize );
 }
 
+void CCpuMathEngine::VectorHardTanh(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize)
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	CCpuExecutionScope scope;
+	vectorMinMax( GetRaw( firstHandle ), GetRaw( resultHandle ), -1.f, 1.f, vectorSize );
+}
+
 } // namespace NeoML

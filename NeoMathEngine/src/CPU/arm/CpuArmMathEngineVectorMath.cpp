@@ -253,22 +253,6 @@ void CCpuMathEngine::VectorHuberDerivative(const CConstFloatHandle& firstHandle,
 	VectorHardTanh(firstHandle, resultHandle, vectorSize);
 }
 
-void CCpuMathEngine::VectorHardTanh(const CConstFloatHandle& firstHandle,
-	const CFloatHandle& resultHandle, int vectorSize)
-{
-	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
-	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-	CCpuExecutionScope scope;
-
-	CFloatHandleStackVar minVal( mathEngine() );
-	minVal.SetValue( -1 );
-
-	CFloatHandleStackVar maxVal( mathEngine() );
-	maxVal.SetValue( 1 );
-
-	VectorMinMax(firstHandle, resultHandle, vectorSize, minVal, maxVal);
-}
-
 void CCpuMathEngine::VectorExp(const CConstFloatHandle& firstHandle,
 	const CFloatHandle& resultHandle, int vectorSize)
 {
