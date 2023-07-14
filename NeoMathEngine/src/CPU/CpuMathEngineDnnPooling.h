@@ -16,6 +16,7 @@ limitations under the License.
 #pragma once
 
 #include <CpuMathEnginePrivate.h>
+#include <MathEngineDnnPoolings.h>
 
 namespace NeoML {
 
@@ -56,7 +57,7 @@ inline void blobMeanPooling( const CCommon2DPoolingDesc& desc, int resultRowsToP
 			sumMatrixRows( bufferPtr, currentStripStart, desc.FilterHeight, sourceRowSize );
 			const float* currentBufferStart = bufferPtr;
 			for( int k = 0; k < result.Width(); ++k ) {
-				sumMatrixRows( resultPtr, bufferPtr, desc.FilterWidth, channels );
+				sumMatrixRows( resultPtr, currentBufferStart, desc.FilterWidth, channels );
 				currentBufferStart += windowStep;
 				resultPtr += channels;
 			}
