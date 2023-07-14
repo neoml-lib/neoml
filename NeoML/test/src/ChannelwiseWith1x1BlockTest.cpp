@@ -169,6 +169,7 @@ static void channelwiseWith1x1TestImpl( unsigned int seed, int freeTermMask, TAc
 
 TEST( ChannelwiseWith1x1LayerTest, Run )
 {
+	// This test is allowed on GPU because of backward compatibility
 	CRandom seedRandom( 0x654 );
 	for( int ftMask = 0; ftMask < 4; ++ftMask ) {
 		for( int stride = 1; stride < 3; ++stride ) {
@@ -184,6 +185,7 @@ TEST( ChannelwiseWith1x1LayerTest, Run )
 
 TEST( ChannelwiseWith1x1OptimizerTest, SimpleNonResidual )
 {
+	NEOML_TEST_CPU_ONLY;
 	CRandom random( 0x654 );
 	CDnn dnn( random, MathEngine() );
 	CSourceLayer* data = Source( dnn, "data" );
@@ -200,6 +202,7 @@ TEST( ChannelwiseWith1x1OptimizerTest, SimpleNonResidual )
 
 TEST( ChannelwiseWith1x1OptimizerTest, SimpleResidual )
 {
+	NEOML_TEST_CPU_ONLY;
 	CRandom random( 0x654 );
 	CDnn dnn( random, MathEngine() );
 	CSourceLayer* data = Source( dnn, "data" );
@@ -217,6 +220,7 @@ TEST( ChannelwiseWith1x1OptimizerTest, SimpleResidual )
 
 TEST( ChannelwiseWith1x1OptimizerTest, ResidualResidual )
 {
+	NEOML_TEST_CPU_ONLY;
 	CRandom random( 0x654 );
 	CDnn dnn( random, MathEngine() );
 	CSourceLayer* data = Source( dnn, "data" );
@@ -235,6 +239,7 @@ TEST( ChannelwiseWith1x1OptimizerTest, ResidualResidual )
 
 TEST( ChannelwiseWith1x1OptimizerTest, NeighboringResiduals )
 {
+	NEOML_TEST_CPU_ONLY;
 	CRandom random( 0x654 );
 	CDnn dnn( random, MathEngine() );
 	CSourceLayer* data = Source( dnn, "data" );
@@ -254,6 +259,7 @@ TEST( ChannelwiseWith1x1OptimizerTest, NeighboringResiduals )
 
 TEST( ChannelwiseWith1x1OptimizerTest, SinkFromTheMiddle )
 {
+	NEOML_TEST_CPU_ONLY;
 	CRandom random( 0x654 );
 	CDnn dnn( random, MathEngine() );
 	CSourceLayer* data = Source( dnn, "data" );
@@ -272,6 +278,7 @@ TEST( ChannelwiseWith1x1OptimizerTest, SinkFromTheMiddle )
 
 TEST( ChannelwiseWith1x1OptimizerTest, SinkDisablesResidual )
 {
+	NEOML_TEST_CPU_ONLY;
 	CRandom random( 0x654 );
 	CDnn dnn( random, MathEngine() );
 	CSourceLayer* data = Source( dnn, "data" );

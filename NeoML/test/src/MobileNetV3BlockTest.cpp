@@ -306,6 +306,7 @@ static std::initializer_list<CActivationDesc> mnv3SeActivations = {
 
 TEST( MobileNetV3BlockLayerTest, Run )
 {
+	// This test is allowed on GPU because of backward compatibility
 	CRandom seedRandom( 0x654 );
 
 	for( int ftMask = 0; ftMask < 32; ++ftMask ) {
@@ -330,6 +331,7 @@ TEST( MobileNetV3BlockLayerTest, Run )
 
 TEST( MobileNetV3OptimizerTest, SimpleNonResidual )
 {
+	NEOML_TEST_CPU_ONLY;
 	for( const CActivationDesc& expandActivation : mnv3BlockActivations ) {
 		for( const CActivationDesc& channelwiseActivation : mnv3BlockActivations ) {
 			for( const CActivationDesc& firstSEActivation : mnv3SeActivations ) {
@@ -370,6 +372,7 @@ TEST( MobileNetV3OptimizerTest, SimpleNonResidual )
 
 TEST( MobileNetV3OptimizerTest, SimpleResidual )
 {
+	NEOML_TEST_CPU_ONLY;
 	CRandom random( 0x654 );
 	CDnn dnn( random, MathEngine() );
 	CSourceLayer* data = Source( dnn, "data" );
@@ -395,6 +398,7 @@ TEST( MobileNetV3OptimizerTest, SimpleResidual )
 
 TEST( MobileNetV3OptimizerTest, ResidualResidual )
 {
+	NEOML_TEST_CPU_ONLY;
 	CRandom random( 0x654 );
 	CDnn dnn( random, MathEngine() );
 	CSourceLayer* data = Source( dnn, "data" );
@@ -422,6 +426,7 @@ TEST( MobileNetV3OptimizerTest, ResidualResidual )
 
 TEST( MobileNetV3OptimizerTest, NeighboringResiduals )
 {
+	NEOML_TEST_CPU_ONLY;
 	CRandom random( 0x654 );
 	CDnn dnn( random, MathEngine() );
 	CSourceLayer* data = Source( dnn, "data" );
@@ -449,6 +454,7 @@ TEST( MobileNetV3OptimizerTest, NeighboringResiduals )
 
 TEST( MobileNetV3OptimizerTest, SinkFromTheMiddle )
 {
+	NEOML_TEST_CPU_ONLY;
 	for( int testIndex = 0; testIndex < 4; ++testIndex ) {
 		CRandom random( 0x654 );
 		CDnn dnn( random, MathEngine() );
@@ -492,6 +498,7 @@ TEST( MobileNetV3OptimizerTest, SinkFromTheMiddle )
 
 TEST( MobileNetV3OptimizerTest, SinkDisablesResidual )
 {
+	NEOML_TEST_CPU_ONLY;
 	CRandom random( 0x654 );
 	CDnn dnn( random, MathEngine() );
 	CSourceLayer* data = Source( dnn, "data" );
