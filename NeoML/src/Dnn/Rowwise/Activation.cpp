@@ -22,27 +22,7 @@ namespace NeoML {
 
 CRowwiseOperationDesc* CRowwiseActivation::GetDesc( const CBlobDesc& )
 {
-	switch( desc.GetType() ) {
-		case AF_HardSigmoid:
-		{
-			const CHardSigmoidLayer::CParam param = desc.GetParam<CHardSigmoidLayer::CParam>();
-			return mathEngine.InitRowwiseActivation( AF_HardSigmoid, param.Slope, param.Bias );
-		}
-		case AF_LeakyReLU:
-			return mathEngine.InitRowwiseActivation( AF_LeakyReLU, desc.GetParam<CLeakyReLULayer::CParam>().Alpha, 0 );
-		case AF_Linear:
-		{
-			const CLinearLayer::CParam param = desc.GetParam<CLinearLayer::CParam>();
-			return mathEngine.InitRowwiseActivation( AF_Linear, param.Multiplier, param.FreeTerm );
-		}
-		case AF_ReLU:
-			return mathEngine.InitRowwiseActivation( AF_ReLU, desc.GetParam<CReLULayer::CParam>().UpperThreshold, 0 );
-		case AF_HSwish:
-		case AF_Sigmoid:
-			return mathEngine.InitRowwiseActivation( desc.GetType(), 0, 0);
-	}
-	NeoAssert( false );
-	return nullptr;
+	return mathEngine.InitRowwiseActivation( desc );
 }
 
 void CRowwiseActivation::Serialize( CArchive& archive )

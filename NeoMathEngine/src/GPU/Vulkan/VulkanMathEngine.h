@@ -621,7 +621,7 @@ public:
 		const CConstFloatHandle& downFilterHandle, const CConstFloatHandle* downFreeTermHandle,
 		const CFloatHandle& outputHandle ) override;
 	// Rowwise computation is ineffective on GPUs
-	CRowwiseOperationDesc* InitRowwiseActivation( TActivationFunction, float, float ) override
+	CRowwiseOperationDesc* InitRowwiseActivation( const CActivationDesc& ) override
 		{ ASSERT_EXPR( false ); return nullptr; }
 	CRowwiseOperationDesc* InitRowwiseChWith1x1( int, const CConstFloatHandle&, const CConstFloatHandle*,
 		TActivationFunction, float, const CConstFloatHandle&, const CConstFloatHandle*, int, bool ) override

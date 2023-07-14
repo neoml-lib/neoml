@@ -22,9 +22,9 @@ namespace NeoML {
 
 class CRowwiseActivation : public IRowwiseCpuImpl, public CRowwiseOperationDesc {
 public:
-	CRowwiseActivation( TActivationFunction type, float param0, float param1 );
+	explicit CRowwiseActivation( const CActivationDesc& desc );
 
-	TActivationFunction Type() const { return type; }
+	TActivationFunction Type() const { return desc.GetType(); }
 
 	// IRowwiseCpuImpl
 	int MinInputRowCount() const override { return 1; }
@@ -37,19 +37,15 @@ public:
 		float* output, int outputRowIndex, int outputRowsAvailable, float* buffer ) const override;
 
 private:
-	TActivationFunction type;
-	float param0;
-	float param1;
+	CActivationDesc desc;
 	int rowCount;
 	int rowSize;
 };
 
 //---------------------------------------------------------------------------------------------------------------------
 
-inline CRowwiseActivation::CRowwiseActivation( TActivationFunction type, float param0, float param1 ) :
-	type( type ),
-	param0( param0 ),
-	param1( param1 ),
+inline CRowwiseActivation::CRowwiseActivation( const CActivationDesc& desc ) :
+	desc( desc ),
 	rowCount( 0 ),
 	rowSize( 0 )
 {
@@ -74,23 +70,24 @@ inline IRowwiseCpuImpl::CProcessingReport CRowwiseActivation::Process( const flo
 	}
 
 	const int dataSize = result.OutputRowsCalculated * rowSize;
-	switch( type ) {
+	switch( desc.GetType() ) {
 		case AF_HardSigmoid:
-			vectorHardSigmoid( input, output, param0, param1, dataSize );
+			vectorHardSigmoid( input, output, desc.GetParam<CHardSigmoidActivationParam>().Slope,
+				desc.GetParam<CHardSigmoidActivationParam>().Bias, dataSize);
 			break;
 		case AF_HSwish:
 			vectorHSwish( input, output, dataSize );
 			break;
 		case AF_LeakyReLU:
-			vectorLeakyReLU( input, output, param0, dataSize );
+			vectorLeakyReLU( input, output, desc.GetParam<CLeakyReLUActivationParam>().Alpha, dataSize );
 			break;
 		case AF_Linear:
-			if( param0 != 1.f ) {
-				vectorMultiply( input, output, param0, dataSize );
+			if( desc.GetParam<CLinearActivationParam>().Multiplier != 1.f ) {
+				vectorMultiply( input, output, desc.GetParam<CLinearActivationParam>().Multiplier, dataSize );
 				input = output;
 			}
-			if( param1 != 0.f ) {
-				vectorAddValue( input, output, dataSize, param1 );
+			if( desc.GetParam<CLinearActivationParam>().FreeTerm != 0.f ) {
+				vectorAddValue( input, output, dataSize, desc.GetParam<CLinearActivationParam>().FreeTerm );
 				input = output;
 			}
 			if( input != output ) {
@@ -99,10 +96,10 @@ inline IRowwiseCpuImpl::CProcessingReport CRowwiseActivation::Process( const flo
 			}
 			break;
 		case AF_ReLU:
-			if( param0 <= 0 ) {
+			if( desc.GetParam<CReLUActivationParam>().UpperThreshold <= 0 ) {
 				vectorReLU( input, output, dataSize );
 			} else {
-				vectorReLU( input, output, dataSize, param0 );
+				vectorReLU( input, output, dataSize, desc.GetParam<CReLUActivationParam>().UpperThreshold );
 			}
 			break;
 		case AF_Sigmoid:

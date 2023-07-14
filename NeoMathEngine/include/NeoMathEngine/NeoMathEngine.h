@@ -1079,8 +1079,7 @@ public:
 		const CConstFloatHandle& downFilterHandle, const CConstFloatHandle* downFreeTermHandle,
 		const CFloatHandle& outputHandle ) = 0;
 
-	virtual CRowwiseOperationDesc* InitRowwiseActivation( TActivationFunction activation,
-		float param0, float param1 ) = 0;
+	virtual CRowwiseOperationDesc* InitRowwiseActivation( const CActivationDesc& desc ) = 0;
 	virtual CRowwiseOperationDesc* InitRowwiseChWith1x1( int stride, const CConstFloatHandle& channelwiseFilter,
 		const CConstFloatHandle* channelwiseFreeTerm, TActivationFunction activation, float reluParam,
 		const CConstFloatHandle& convFilter, const CConstFloatHandle* convFreeTerm,

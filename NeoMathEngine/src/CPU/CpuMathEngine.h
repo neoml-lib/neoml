@@ -596,7 +596,7 @@ public:
 		const CConstFloatHandle* residualHandle, TActivationFunction activation, float reluParam,
 		const CConstFloatHandle& downFilterHandle, const CConstFloatHandle* downFreeTermHandle,
 		const CFloatHandle& outputHandle ) override;
-	CRowwiseOperationDesc* InitRowwiseActivation( TActivationFunction activation, float param0, float param1 ) override;
+	CRowwiseOperationDesc* InitRowwiseActivation( const CActivationDesc& desc ) override;
 	CRowwiseOperationDesc* InitRowwiseChWith1x1( int stride, const CConstFloatHandle& channelwiseFilter,
 		const CConstFloatHandle* channelwiseFreeTerm, TActivationFunction activation, float reluParam,
 		const CConstFloatHandle& convFilter, const CConstFloatHandle* convFreeTerm,
