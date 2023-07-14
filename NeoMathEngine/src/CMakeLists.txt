@@ -79,6 +79,7 @@ target_sources(${PROJECT_NAME}
     CPU/Rowwise/CpuRowwiseInterface.h
     CPU/Rowwise/CpuRowwiseMobileNetV2.h
     CPU/Rowwise/CpuRowwisePooling.h
+    CPU/Rowwise/CpuRowwiseResizeImage.h
 
     ../include/NeoMathEngine/NeoMathEngineDefs.h
     ../include/NeoMathEngine/ActivationDesc.h
