@@ -105,6 +105,9 @@ inline IRowwiseCpuImpl::CProcessingReport CRowwiseActivation::Process( const flo
 		case AF_Sigmoid:
 			vectorSigmoid( input, output, dataSize );
 			break;
+		case AF_Tanh:
+			vectorTanh( input, output, dataSize );
+			break;
 		default:
 			ASSERT_EXPR( false );
 	}

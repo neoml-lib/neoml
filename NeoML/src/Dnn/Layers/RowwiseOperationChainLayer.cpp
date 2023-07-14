@@ -144,7 +144,7 @@ void OptimizeRowwiseChains( CDnn& dnn, CArray<int>& chains )
 	auto isRowwiseLayer = [] ( const CBaseLayer* layer ) -> bool {
 		return IsOneOf<CChannelwiseWith1x1Layer, CChannelwiseConvLayer, CConvLayer, CHardSigmoidLayer, CHSwishLayer,
 			CImageResizeLayer, CLeakyReLULayer, CLinearLayer, CMaxPoolingLayer, CMeanPoolingLayer, CMobileNetV2BlockLayer,
-			CReLULayer, CSigmoidLayer>::f( layer );
+			CReLULayer, CSigmoidLayer, CTanhLayer>::f( layer );
 	};
 
 	auto createOperation = [] ( const CBaseLayer* layer ) -> CPtr<IRowwiseOperation> {
@@ -172,7 +172,9 @@ void OptimizeRowwiseChains( CDnn& dnn, CArray<int>& chains )
 		if( meanPooling != nullptr ) {
 			return new CRowwise2DPooling( *meanPooling );
 		}
-		if( IsOneOf<CHardSigmoidLayer, CHSwishLayer, CLeakyReLULayer, CLinearLayer, CReLULayer, CSigmoidLayer>::f( layer ) ) {
+		if( IsOneOf<CHardSigmoidLayer, CHSwishLayer, CLeakyReLULayer, CLinearLayer, CReLULayer, CSigmoidLayer,
+			CTanhLayer>::f( layer ) )
+		{
 			return new CRowwiseActivation( layer->MathEngine(),
 				dynamic_cast<const IActivationLayer*>( layer )->GetDesc() );
 		}
