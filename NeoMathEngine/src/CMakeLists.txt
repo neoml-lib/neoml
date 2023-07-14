@@ -60,6 +60,7 @@ target_sources(${PROJECT_NAME}
     CPU/CpuMathEngineDnnChannelwiseConv.h
     CPU/CpuMathEngineDnnDistributed.h
     CPU/CpuMathEngineDnnLstm.h
+    CPU/CpuMathEngineDnnPooling.h
     CPU/CpuMathEngineOmp.h
     CPU/CpuMathEnginePrivate.h
     CPU/CpuRandom.h
@@ -77,6 +78,7 @@ target_sources(${PROJECT_NAME}
     CPU/Rowwise/CpuRowwiseCommon.h
     CPU/Rowwise/CpuRowwiseInterface.h
     CPU/Rowwise/CpuRowwiseMobileNetV2.h
+    CPU/Rowwise/CpuRowwisePooling.h
 
     ../include/NeoMathEngine/NeoMathEngineDefs.h
     ../include/NeoMathEngine/ActivationDesc.h
@@ -104,6 +106,7 @@ target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_14)
 
 source_group("Header Files\\NeoMathEngine" REGULAR_EXPRESSION "^.*NeoMathEngine/.+\.h|inl$")
 source_group("CPU" REGULAR_EXPRESSION "CPU\/.*")
+source_group("CPU\\Rowwise" REGULAR_EXPRESSION "CPU\/Rowwise\/.*")
 
 target_include_directories(${PROJECT_NAME}
     PUBLIC

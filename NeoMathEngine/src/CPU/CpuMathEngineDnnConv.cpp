@@ -1514,6 +1514,5 @@ CRowwiseOperationDesc* CCpuMathEngine::InitRowwiseConv( int paddingHeight, int p
 		GetRaw( filter ), freeTerm == nullptr ? nullptr : GetRaw( *freeTerm ) );
 }
 
-
 } // namespace NeoML
 

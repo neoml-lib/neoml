@@ -22,7 +22,8 @@ limitations under the License.
 #include <MathEngineCommon.h>
 #include <MathEngineDnnPoolings.h>
 #include <CpuMathEnginePrivate.h>
-#include <Rowwise/CpuRowwiseInterface.h>
+#include "CpuMathEngineDnnPooling.h"
+#include <Rowwise/CpuRowwisePooling.h>
 
 namespace NeoML {
 
@@ -183,55 +184,6 @@ CMeanPoolingDesc* CCpuMathEngine::InitMeanPooling( const CBlobDesc& source,
 {
 	CCommonMeanPoolingDesc* desc = new CCommonMeanPoolingDesc( source, result, filterHeight, filterWidth, strideHeight, strideWidth );
 	return desc;
-}
-
-static void blobMeanPooling( const CCommon2DPoolingDesc& desc, int resultRowsToProcess, const float* sourceData,
-	int sourceRowIndex, float* resultData, int resultRowIndex, float* bufferPtr )
-{
-	auto sumMatrixRows = [] ( float* result, const float* matrix, int height, int width ) {
-		dataCopy( result, matrix, width );
-		matrix += width;
-		for( int i = 1; i < height; ++i ) {
-			vectorAdd( result, matrix, result, width );
-			matrix += width;
-		}
-	};
-
-	const CBlobDesc& source = desc.Source;
-	const CBlobDesc& result = desc.Result;
-
-	const int channels = result.Depth() * result.Channels();
-	const int sourceRowSize = source.Width() * channels;
-	const int resultRowSize = result.Width() * channels;
-	const int windowStep = desc.StrideWidth * channels;
-
-	const int resultRowsAfterThisCall = resultRowIndex + resultRowsToProcess;
-	const int firstImageIndex = resultRowIndex / result.Height();
-	const int lastImageIndex = ( resultRowsAfterThisCall - 1 ) / result.Height();
-
-	const float* sourcePtr = sourceData + ( firstImageIndex * source.Height() - sourceRowIndex ) * sourceRowSize;
-	float* resultPtr = resultData;
-
-	for( int i = firstImageIndex; i <= lastImageIndex; ++i ) {
-		const int firstRowInImage = ( i == firstImageIndex ? resultRowIndex % result.Height() : 0 );
-		const int lastRowInIamge = ( i == lastImageIndex ? ( resultRowsAfterThisCall - 1 ) % result.Height()
-			: result.Height() - 1 );
-		for( int j = firstRowInImage; j <= lastRowInIamge; ++j ) {
-			// Calculate the sum of all rows in a strip of the window height
-			const float* currentStripStart = sourcePtr + sourceRowSize * desc.StrideHeight * j;
-			sumMatrixRows( bufferPtr, currentStripStart, desc.FilterHeight, sourceRowSize );
-			const float* currentBufferStart = bufferPtr;
-			for( int k = 0; k < result.Width(); ++k ) {
-				sumMatrixRows( resultPtr, bufferPtr, desc.FilterWidth, channels );
-				currentBufferStart += windowStep;
-				resultPtr += channels;
-			}
-		}
-		sourcePtr += source.ObjectSize();
-	}
-	// Multiply the result by the inverse of the window size
-	vectorMultiply( resultData, resultData, ( 1.f / desc.FilterHeight / desc.FilterWidth ),
-		resultRowsToProcess * resultRowSize );
 }
 
 void CCpuMathEngine::BlobMeanPooling( const CMeanPoolingDesc& poolingDesc, const CConstFloatHandle& sourceData, const CFloatHandle& resultData )
@@ -691,68 +643,6 @@ void CCpuMathEngine::AddHeightIndex( const CBlobDesc& source, const CConstIntHan
 }
 
 //---------------------------------------------------------------------------------------------------
-
-class CCpuMathEngine::CRowwise2DPooling : public IRowwiseCpuImpl, public CRowwiseOperationDesc {
-public:
-	CRowwise2DPooling::CRowwise2DPooling( CCpuMathEngine& mathEngine, bool isMax, int filterHeight, int filterWidth,
-			int strideHeight, int strideWidth ) :
-		mathEngine( mathEngine ),
-		isMax( isMax ),
-		desc( CBlobDesc(), CBlobDesc(), filterHeight, filterWidth, strideHeight, strideWidth )
-	{
-	}
-
-	int MinInputRowCount() const override { return desc.FilterHeight; }
-	CBlobDesc Reshape( const CBlobDesc& inputSize ) override;
-	int InOperationBufferSize() const override { return desc.Source.Width() * desc.Source.Depth() * desc.Source.Channels(); }
-	int OutputRowCount() const override { return desc.Result.ObjectCount() * desc.Result.Height(); }
-	int OutputRowSize() const override { return desc.Result.Width() * desc.Result.Depth() * desc.Result.Channels(); }
-	bool IsTrivial() const override { return false; }
-	CProcessingReport Process( const float* input, int inputRowIndex, int inputRowsAvailable,
-		float* output, int outputRowIndex, int outputRowsAvailable, float* buffer ) const override;
-
-private:
-	CCpuMathEngine& mathEngine;
-	bool isMax;
-	CCommon2DPoolingDesc desc;
-};
-
-CBlobDesc CCpuMathEngine::CRowwise2DPooling::Reshape( const CBlobDesc& inputSize )
-{
-	auto poolOutputSize = [] ( int input, int filter, int stride ) -> int
-	{
-		return 1 + ( input - filter ) / stride;
-	};
-
-	desc.Source = inputSize;
-	desc.Result = desc.Source;
-	desc.Result.SetDimSize( BD_Height, poolOutputSize( inputSize.Height(), desc.FilterHeight, desc.StrideHeight ) );
-	desc.Result.SetDimSize( BD_Width, poolOutputSize( inputSize.Width(), desc.FilterWidth, desc.StrideWidth ) );
-
-	return desc.Result;
-}
-
-IRowwiseCpuImpl::CProcessingReport CCpuMathEngine::CRowwise2DPooling::Process( const float* input, int inputRowIndex,
-	int inputRowsAvailable, float* output, int outputRowIndex, int outputRowsAvailable, float* buffer ) const
-{
-	CProcessingReport report = RowwiseConvProcessingReport( inputRowIndex, inputRowsAvailable, outputRowIndex,
-		outputRowsAvailable, desc.Source.Height(), desc.Result.Height(), desc.FilterHeight, 0,
-		desc.StrideHeight, 1 );
-	if( report.OutputRowsCalculated == 0 ) {
-		PRESUME_EXPR( report.InputRowsMayBeRemoved == 0 );
-		return report;
-	}
-
-	if( isMax ) {
-		mathEngine.blobMaxPoolingWithoutIndices( desc, report.OutputRowsCalculated,
-			input, inputRowIndex, output, outputRowIndex, buffer );
-	} else {
-		blobMeanPooling( desc, report.OutputRowsCalculated, input, inputRowIndex,
-			output, outputRowIndex, buffer );
-	}
-
-	return report;
-}
 
 CRowwiseOperationDesc* CCpuMathEngine::InitRowwise2DPooling( bool isMax, int filterHeight, int filterWidth,
 	int strideHeight, int strideWidth )
