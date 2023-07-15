@@ -34,7 +34,7 @@ public:
 	{
 	}
 
-	int MinInputRowCount() const override { return 1 + ( desc.Filter.Height() - 1 ) * desc.DilationHeight; }
+	int MinInputRowCount() const override;
 
 	CBlobDesc Reshape( const CBlobDesc& inputSize ) override;
 	int InOperationBufferSize() const override;
@@ -54,6 +54,16 @@ private:
 		&& desc.PaddingWidth == 0 && desc.StrideHeight == 1 && desc.StrideWidth == 1; }
 	int getCacheItemCount() const;
 };
+
+inline int CCpuMathEngine::CRowwiseConv::MinInputRowCount() const 
+{
+	const int effectiveFilterHeight = 1 + ( desc.Filter.Height() - 1 ) * desc.DilationHeight;
+	if( desc.SimdConvolutionDesc != nullptr ) {
+		return effectiveFilterHeight;
+	}
+	// Other algorithms face significant performance reduction in matmul if first matrix is too small
+	return std::max( effectiveFilterHeight, ( 64 + desc.Result.Width() - 1 ) / desc.Result.Width() );
+}
 
 inline CBlobDesc CCpuMathEngine::CRowwiseConv::Reshape( const CBlobDesc& inputSize )
 {
