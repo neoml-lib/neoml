@@ -972,6 +972,39 @@ inline void vectorLeakyReLU( const float* first, float* result, float alpha, int
 	}
 }
 
+//------------------------------------------------------------------------------------------------------------
+
+inline float32x4_t vectorELUWorker( const float32x4_t& val, float alpha, const float32x4_t& zero,
+	const float32x4_t& one, const CExpNeon& expObj )
+{
+	uint32x4_t upperMask = vcgeq_f32( val, zero );
+	float32x4_t lowerRes = vmulq_n_f32( vsubq_f32( expObj.Execute( val ), one ), alpha );
+	return ConditionNeon( upperMask, val, lowerRes );
+}
+
+inline void vectorELU( const float* first, float* result, float alpha, int vectorSize )
+{
+	const float32x4_t zero = vdupq_n_f32( 0 );
+	const float32x4_t one = vdupq_n_f32( 1 );
+	const CExpNeon expObj;
+
+	while( vectorSize >= 4 ) {
+		float32x4_t val = LoadNeon4( first);
+		float32x4_t res = vectorELUWorker( val, alpha, zero, one, expObj );
+		StoreNeon4( res, result );
+
+		first += 4;
+		result += 4;
+		vectorSize -= 4;
+	}
+
+	if( vectorSize > 0 ) {
+		float32x4_t val = LoadNeon( first, vectorSize );
+		float32x4_t res = vectorELUWorker( val, alpha, zero, one, expObj );
+		StoreNeon( res, result, vectorSize );
+	}
+}
+
 } // namespace NeoML
 
 #endif // NEOML_USE_NEON
