@@ -82,7 +82,7 @@ private:
 };
 
 NEOML_API CLayerWrapper<CImageResizeLayer> ImageResize( int deltaLeft, int deltaRight,
-	int deltaTop, int deltaBottom, float defaultValue );
+	int deltaTop, int deltaBottom, float defaultValue, TBlobResizePadding padding = TBlobResizePadding::Constant );
 
 } // namespace NeoML
 	
