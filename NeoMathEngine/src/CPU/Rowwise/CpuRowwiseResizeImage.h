@@ -129,7 +129,6 @@ inline IRowwiseCpuImpl::CProcessingReport CRowwiseImageResize::Process( const fl
 
 	// The image size (used to offset pointers)
 	const int inputImageSize = from.ObjectSize();
-	const int outputImageSize = to.ObjectSize();
 	// The image rows length
 	const int totalChannels = from.Depth() * from.Channels();
 	const int inputRowSize = from.Width() * totalChannels;

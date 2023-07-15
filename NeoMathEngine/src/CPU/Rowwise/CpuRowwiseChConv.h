@@ -22,9 +22,8 @@ namespace NeoML {
 
 class CRowwiseChConv : public IRowwiseCpuImpl, public CRowwiseOperationDesc {
 public:
-	CRowwiseChConv::CRowwiseChConv( int paddingHeight, int paddingWidth, int strideHeight,
-			int strideWidth, const CBlobDesc& filterDesc, const float* filter,
-			const float* freeTerm ) :
+	CRowwiseChConv( int paddingHeight, int paddingWidth, int strideHeight, int strideWidth,
+			const CBlobDesc& filterDesc, const float* filter, const float* freeTerm ) :
 		desc( paddingHeight, paddingWidth, strideHeight, strideWidth, CBlobDesc(), filterDesc, CBlobDesc() ),
 		processFunc( nullptr ),
 		filter( filter ),

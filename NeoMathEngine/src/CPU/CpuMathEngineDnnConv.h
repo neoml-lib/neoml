@@ -35,12 +35,11 @@ struct CCpuConvolutionDesc : public CCommonConvolutionDesc {
 	TConvAlgo BackwardAlgo;
 	std::unique_ptr<CConvolutionDesc> SimdConvolutionDesc;
 
-	CCpuConvolutionDesc( std::unique_ptr<CConvolutionDesc>& simdConvolutionDesc, const CBlobDesc& source, const CBlobDesc& result, const CBlobDesc& filter,
+	CCpuConvolutionDesc( const CBlobDesc& source, const CBlobDesc& result, const CBlobDesc& filter,
 			int paddingHeight, int paddingWidth, int strideHeight, int strideWidth, int dilationHeight, int dilationWidth ) :
 		CCommonConvolutionDesc( source, result, filter, paddingHeight, paddingWidth, strideHeight, strideWidth, dilationHeight, dilationWidth ),
 		ForwardAlgo( getActualForwardAlgo() ),
-		BackwardAlgo( getActualBackwardAlgo() ),
-		SimdConvolutionDesc( std::move( simdConvolutionDesc ) )
+		BackwardAlgo( getActualBackwardAlgo() )
 	{
 	}
 

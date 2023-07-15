@@ -27,9 +27,9 @@ CRowwiseMobileNetV2::CRowwiseMobileNetV2( const CMobileNetV2BlockLayer& blockLay
 	expandFilter( blockLayer.ExpandFilter() ),
 	expandFreeTerm( blockLayer.ExpandFreeTerm() ),
 	expandActivation( blockLayer.ExpandActivation() ),
-	stride( blockLayer.Stride() ),
 	channelwiseFilter( blockLayer.ChannelwiseFilter() ),
 	channelwiseFreeTerm( blockLayer.ChannelwiseFreeTerm() ),
+	stride( blockLayer.Stride() ),
 	channelwiseActivation( blockLayer.ChannelwiseActivation() ),
 	downFilter( blockLayer.DownFilter() ),
 	downFreeTerm( blockLayer.DownFreeTerm() ),
@@ -39,8 +39,8 @@ CRowwiseMobileNetV2::CRowwiseMobileNetV2( const CMobileNetV2BlockLayer& blockLay
 
 CRowwiseMobileNetV2::CRowwiseMobileNetV2( IMathEngine& mathEngine ) :
 	mathEngine( mathEngine ),
-	stride( 1 ),
 	expandActivation( AF_HSwish ),
+	stride( 1 ),
 	channelwiseActivation( AF_HSwish ),
 	residual( false )
 {
@@ -48,14 +48,19 @@ CRowwiseMobileNetV2::CRowwiseMobileNetV2( IMathEngine& mathEngine ) :
 
 CRowwiseOperationDesc* CRowwiseMobileNetV2::GetDesc()
 {
+	CConstFloatHandle expandFreeTermData = expandFreeTerm == nullptr ? CConstFloatHandle()
+		: expandFreeTerm->GetData<const float>();
+	CConstFloatHandle channelwiseFreeTermData = channelwiseFreeTerm == nullptr ? CConstFloatHandle()
+		: channelwiseFreeTerm->GetData<const float>();
+	CConstFloatHandle downFreeTermData = downFreeTerm == nullptr ? CConstFloatHandle()
+		: downFreeTerm->GetData<const float>();
 	return mathEngine.InitRowwiseMobileNetV2( expandFilter->GetChannelsCount(), expandFilter->GetData(),
-		expandFreeTerm == nullptr ? nullptr : &expandFreeTerm->GetData<const float>(),
+		expandFreeTerm == nullptr ? nullptr : &expandFreeTermData,
 		expandFilter->GetObjectCount(), expandActivation.GetType(), MobileNetReluParam( expandActivation ),
 		channelwiseFilter->GetData(),
-		channelwiseFreeTerm == nullptr ? nullptr : &channelwiseFreeTerm->GetData<const float>(),
-		stride, channelwiseActivation.GetType(), MobileNetReluParam( channelwiseActivation ),
-		downFilter->GetData(),
-		downFreeTerm == nullptr ? nullptr : &downFreeTerm->GetData<const float>(),
+		channelwiseFreeTerm == nullptr ? nullptr : &channelwiseFreeTermData,
+		stride, channelwiseActivation.GetType(), MobileNetReluParam( channelwiseActivation ), downFilter->GetData(),
+		downFreeTerm == nullptr ? nullptr : &downFreeTermData,
 		downFilter->GetObjectCount(), residual );
 }
 

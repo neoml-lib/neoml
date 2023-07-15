@@ -51,11 +51,6 @@ CRowwise2DPooling::CRowwise2DPooling( IMathEngine& mathEngine ) :
 {
 }
 
-CRowwiseOperationDesc* CRowwise2DPooling::GetDesc()
-{
-	return mathEngine.InitRowwise2DPooling( isMax, filterHeight, filterWidth, strideHeight, strideWidth );
-}
-
 void CRowwise2DPooling::Serialize( CArchive& archive )
 {
 	( void ) archive.SerializeVersion( 0 );

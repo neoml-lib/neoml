@@ -40,9 +40,9 @@ private:
 	CPtr<CDnnBlob> expandFilter; // filter of 1x1 expand convolution
 	CPtr<CDnnBlob> expandFreeTerm; // free term of 1x1 expand convolution (if present)
 	CActivationDesc expandActivation; // activation after expand convolution
-	int stride; // stride of channnelwise convolution
 	CPtr<CDnnBlob> channelwiseFilter; // filter of channelwise convolution
 	CPtr<CDnnBlob> channelwiseFreeTerm; // free term of channelwise convolution (if present)
+	int stride; // stride of channnelwise convolution
 	CActivationDesc channelwiseActivation; // activation after channelwise convolution
 	CPtr<CDnnBlob> downFilter; // filter of 1x1 down convolution
 	CPtr<CDnnBlob> downFreeTerm; // free term of 1x1 down convolution (if present)

@@ -27,8 +27,8 @@ public:
 	CRowwiseConv( CCpuMathEngine& mathEngine, int inputChannels, int padH, int padW, int strideH, int strideW,
 		int dilH, int dilW, int fC, int fH, int fW, const float* filter, const float* freeTerm ) :
 		mathEngine( mathEngine ),
-		desc( std::unique_ptr<CConvolutionDesc>(), CBlobDesc(), CBlobDesc(), CBlobDesc( { 1, fC, 1, fH, fW, 1, inputChannels } ),
-			padH, padW, strideH, strideW, dilH, dilW ),
+		desc( CBlobDesc(), CBlobDesc(), CBlobDesc( { 1, fC, 1, fH, fW, 1, inputChannels } ), padH, padW,
+			strideH, strideW, dilH, dilW ),
 		filter( filter ),
 		freeTerm( freeTerm )
 	{
@@ -63,23 +63,21 @@ inline CBlobDesc CCpuMathEngine::CRowwiseConv::Reshape( const CBlobDesc& inputSi
 		return 1 + ( input - ( filter - 1 ) * dilation + 2 * padding - 1 ) / stride;
 	};
 
-	CBlobDesc outputSize = inputSize;
-	outputSize.SetDimSize( BD_Height, convOutputSize( inputSize.Height(), desc.Filter.Height(), desc.PaddingHeight,
+	desc.Source = inputSize;
+	desc.Result = desc.Source;
+	desc.Result.SetDimSize( BD_Height, convOutputSize( inputSize.Height(), desc.Filter.Height(), desc.PaddingHeight,
 		desc.StrideHeight, desc.DilationHeight ) );
-	outputSize.SetDimSize( BD_Width, convOutputSize( inputSize.Width(), desc.Filter.Width(), desc.PaddingWidth,
+	desc.Result.SetDimSize( BD_Width, convOutputSize( inputSize.Width(), desc.Filter.Width(), desc.PaddingWidth,
 		desc.StrideWidth, desc.DilationWidth ) );
-	outputSize.SetDimSize( BD_Channels, desc.Filter.ObjectCount() );
-	desc = CCpuConvolutionDesc( std::unique_ptr<CConvolutionDesc>(), inputSize, outputSize, desc.Filter,
-		desc.PaddingHeight, desc.PaddingWidth, desc.StrideHeight, desc.StrideWidth,
-		desc.DilationHeight, desc.DilationWidth );
+	desc.Result.SetDimSize( BD_Channels, desc.Filter.ObjectCount() );
 
-	std::unique_ptr<CConvolutionDesc> simdConvolutionDesc;
 	if( mathEngine.simdMathEngine != nullptr ) {
-		desc.SimdConvolutionDesc = std::unique_ptr<CConvolutionDesc>( mathEngine.simdMathEngine->InitBlobConvolution(
+		desc.SimdConvolutionDesc.reset( mathEngine.simdMathEngine->InitBlobConvolution(
 			desc.Source, desc.PaddingHeight, desc.PaddingWidth, desc.StrideHeight, desc.StrideWidth,
 			desc.DilationHeight, desc.DilationWidth, desc.Filter, desc.Result ) );
 	}
-	return outputSize;
+
+	return desc.Result;
 }
 
 inline int CCpuMathEngine::CRowwiseConv::InOperationBufferSize() const

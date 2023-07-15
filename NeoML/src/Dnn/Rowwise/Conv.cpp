@@ -47,9 +47,10 @@ CRowwiseConv::CRowwiseConv( IMathEngine& mathEngine ) :
 
 CRowwiseOperationDesc* CRowwiseConv::GetDesc()
 {
+	CConstFloatHandle freeTermData = freeTerm == nullptr ? CConstFloatHandle() : freeTerm->GetData<const float>();
 	return mathEngine.InitRowwiseConv( paddingHeight, paddingWidth, strideHeight, strideWidth, dilationHeight,
 		dilationWidth, filter->GetDesc(), filter->GetData(),
-		freeTerm == nullptr ? nullptr : &freeTerm->GetData<const float>() );
+		freeTerm == nullptr ? nullptr : &freeTermData );
 }
 
 void CRowwiseConv::Serialize( CArchive& archive )

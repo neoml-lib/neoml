@@ -33,7 +33,9 @@ public:
 	explicit CRowwise2DPooling( IMathEngine& mathEngine );
 
 	// IRowwiseOperation implementation
-	CRowwiseOperationDesc* GetDesc() override;
+	CRowwiseOperationDesc* GetDesc() override
+	{ return mathEngine.InitRowwise2DPooling( isMax, filterHeight, filterWidth, strideHeight, strideWidth ); }
+
 	void Serialize( CArchive& archive ) override;
 
 public:

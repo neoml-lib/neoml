@@ -44,10 +44,14 @@ CRowwiseChWith1x1::CRowwiseChWith1x1( IMathEngine& mathEngine ) :
 
 CRowwiseOperationDesc* CRowwiseChWith1x1::GetDesc()
 {
+	CConstFloatHandle channelwiseFreeTermData = channelwiseFreeTerm == nullptr ? CConstFloatHandle()
+		: channelwiseFreeTerm->GetData<const float>();
+	CConstFloatHandle convFreeTermData = convFreeTerm == nullptr ? CConstFloatHandle()
+		: convFreeTerm->GetData<const float>();
 	return mathEngine.InitRowwiseChWith1x1( stride, channelwiseFilter->GetData(),
-		channelwiseFreeTerm == nullptr ? nullptr : &channelwiseFreeTerm->GetData<const float>(),
+		channelwiseFreeTerm == nullptr ? nullptr : &channelwiseFreeTermData,
 		activation.GetType(), MobileNetReluParam( activation ), convFilter->GetData(),
-		convFreeTerm == nullptr ? nullptr : &convFreeTerm->GetData<const float>(),
+		convFreeTerm == nullptr ? nullptr : &convFreeTermData,
 		convFilter->GetObjectCount(), residual );
 }
 

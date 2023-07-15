@@ -24,7 +24,7 @@ namespace NeoML {
 
 class CCpuMathEngine::CRowwise2DPooling : public IRowwiseCpuImpl, public CRowwiseOperationDesc {
 public:
-	CRowwise2DPooling::CRowwise2DPooling( CCpuMathEngine& mathEngine, bool isMax, int filterHeight, int filterWidth,
+	CRowwise2DPooling( CCpuMathEngine& mathEngine, bool isMax, int filterHeight, int filterWidth,
 			int strideHeight, int strideWidth ) :
 		mathEngine( mathEngine ),
 		isMax( isMax ),

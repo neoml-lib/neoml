@@ -63,14 +63,12 @@ CConvolutionDesc* CCpuMathEngine::InitBlobConvolution( const CBlobDesc& source, 
 	ASSERT_EXPR( result.Channels() == filter.BatchWidth() );
 	ASSERT_EXPR( result.Depth() == 1 );
 
-	std::unique_ptr<CConvolutionDesc> simdConvolutionDesc;
+	CCpuConvolutionDesc* desc = new CCpuConvolutionDesc( source, result, filter,
+		paddingHeight, paddingWidth, strideHeight, strideWidth, dilationHeight, dilationWidth );
 	if( simdMathEngine != nullptr ) {
-		simdConvolutionDesc = std::unique_ptr<CConvolutionDesc>( simdMathEngine->InitBlobConvolution( source, paddingHeight, paddingWidth,
+		desc->SimdConvolutionDesc.reset( simdMathEngine->InitBlobConvolution( source, paddingHeight, paddingWidth,
 			strideHeight, strideWidth, dilationHeight, dilationWidth, filter, result ) );
 	}
-
-	CCpuConvolutionDesc* desc = new CCpuConvolutionDesc( simdConvolutionDesc, source, result, filter,
-		paddingHeight, paddingWidth, strideHeight, strideWidth, dilationHeight, dilationWidth );
 	return desc;
 }
 
