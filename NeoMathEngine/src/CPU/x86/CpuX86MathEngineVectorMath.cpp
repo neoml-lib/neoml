@@ -251,25 +251,6 @@ void CCpuMathEngine::VectorEqualValue( const CConstIntHandle& firstHandle,
 	}
 }
 
-void CCpuMathEngine::VectorELU( const CConstFloatHandle& firstHandle,
-	const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& alphaHandle )
-{
-	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
-	ASSERT_EXPR( alphaHandle.GetMathEngine() == this );
-	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-	CCpuExecutionScope scope;
-
-	const float* first = GetRaw( firstHandle );
-	float* result = GetRaw( resultHandle );
-	const float alpha = *GetRaw( alphaHandle );
-
-	for( int i = 0; i < vectorSize; ++i ) {
-		*result = *first >= 0 ? *first : alpha * ( ExponentFunc( *first ) - 1.f );
-		++result;
-		++first;
-	}
-}
-
 void CCpuMathEngine::VectorELUDiff( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
 	const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& alphaHandle )
 {
