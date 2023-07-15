@@ -166,7 +166,7 @@ inline IRowwiseCpuImpl::CProcessingReport CRowwiseImageResize::Process( const fl
 			}
 
 			PRESUME_EXPR( inRowIndex + batch * from.Height() >= inputRowIndex );
-			if( inRowIndex > lastInputRowIndex ) {
+			if( inRowIndex + batch * from.Height() > lastInputRowIndex ) {
 				// We've calculated everythin we could from current input data
 				hasInputData = false;
 				break;
