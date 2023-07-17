@@ -35,12 +35,15 @@ public:
 		convFreeTerm( convFreeTerm ),
 		outputChannels( outputChannels ),
 		residual( residual ),
-		desc( 1, 1, stride, stride, CBlobDesc(), CBlobDesc(), CBlobDesc() )
+		desc( 1, 1, stride, stride, CBlobDesc(), CBlobDesc(), CBlobDesc() ),
+		inputRowRequirement( 0 ),
+		outputRowRequirement( 0 )
 	{
 	}
 
-	int MinInputRowCount() const override { return 3; }
 	CBlobDesc Reshape( const CBlobDesc& inputSize ) override;
+	int InputRowRequirement() const override { return inputRowRequirement; }
+	int OutputRowRequirement() const override { return outputRowRequirement; }
 	int InOperationBufferSize() const override
 		{ return desc.Result.Channels() * desc.Result.Width() * maxOutputRowsPerStep(); }
 	int OutputRowCount() const override { return desc.Result.ObjectCount() * desc.Result.Height(); }
@@ -60,6 +63,8 @@ private:
 	int outputChannels;
 	bool residual;
 	CCommonChannelwiseConvolutionDesc desc;
+	int inputRowRequirement;
+	int outputRowRequirement;
 
 	int maxOutputRowsPerStep() const;
 };
@@ -76,13 +81,24 @@ inline CBlobDesc CCpuMathEngine::CRowwiseChConvWith1x1::Reshape( const CBlobDesc
 	desc = CCommonChannelwiseConvolutionDesc( desc.PaddingHeight, desc.PaddingWidth, desc.StrideHeight,
 		desc.StrideWidth, inputSize, filterSize, outputSize );
 	outputSize.SetDimSize( BD_Channels, outputChannels );
+
+	if( desc.Result.Width() < RowwiseMatMulRequiredHeight ) {
+		outputRowRequirement = ( RowwiseMatMulRequiredHeight + desc.Result.Width() - 1 ) / desc.Result.Width();
+		inputRowRequirement = 3 + ( outputRowRequirement - 1 ) * desc.StrideHeight;
+	} else {
+		inputRowRequirement = 3;
+		outputRowRequirement = 0;
+	}
+
 	return outputSize;
 }
 
 inline int CCpuMathEngine::CRowwiseChConvWith1x1::maxOutputRowsPerStep() const
 {
-	const int maxRowSize = std::max( desc.Result.Channels(), desc.Source.Channels() ) * desc.Result.Width();
-	return std::min( std::max( RowwiseCacheSize / maxRowSize, 1 ), desc.Result.Height() );
+	const int maxRowSize = std::max( desc.Result.Channels() * desc.Result.Width(),
+		desc.Source.Channels() * desc.Source.Width() );
+	return std::min( std::max( { RowwiseCacheSize / maxRowSize, 1, outputRowRequirement } ),
+		desc.Result.ObjectCount() * desc.Result.Height() );
 }
 
 inline IRowwiseCpuImpl::CProcessingReport CCpuMathEngine::CRowwiseChConvWith1x1::Process( const float* input,
@@ -98,29 +114,56 @@ inline IRowwiseCpuImpl::CProcessingReport CCpuMathEngine::CRowwiseChConvWith1x1:
 		return report;
 	}
 
-	const int outputRowsThisCall = outputRowIndex + report.OutputRowsCalculated;
+	const int outputRowsAfterThisCall = outputRowIndex + report.OutputRowsCalculated;
 	const int maxRowsPerStep = maxOutputRowsPerStep();
+	const int chInputRowSize = desc.Source.Channels() * desc.Source.Width();
 	const int chOutputRowSize = desc.Result.Channels() * desc.Result.Width();
 	const int outputWidth = desc.Result.Width();
 	const int inputChannels = desc.Source.Channels();
 
 	const float* residualInput = input + ( outputRowIndex - inputRowIndex ) * desc.Source.Width() * desc.Source.Channels();
-	while( outputRowIndex < outputRowsThisCall ) {
-		// Process channelwise output rows (while there are any)
-		const int outputImageRowIndex = outputRowIndex % desc.Result.Height();
-		const int outputRowsThisStep = std::min( maxRowsPerStep,
-			std::min( desc.Result.Height() - outputImageRowIndex, outputRowsThisCall - outputRowIndex ) );
+	const int maxChRowsPerStep = std::max( 1, RowwiseCacheSize / std::max( chOutputRowSize, chInputRowSize ) );
 
-		ProcessChannelwise3x3( desc, outputRowsThisStep, input, inputRowIndex % desc.Source.Height(),
-			chFilter, chFreeTerm, buffer, outputImageRowIndex );
+	while( outputRowIndex < outputRowsAfterThisCall ) {
+		// Determine how many output rows of whole block we're going to calculate this step
+		const int outputRowsThisStep = std::min( maxRowsPerStep, outputRowsAfterThisCall - outputRowIndex );
+		const int outputRowsAfterThisStep = outputRowIndex + outputRowsThisStep;
 
-		if( activation == AF_HSwish ) {
-			vectorHSwish( buffer, buffer, outputRowsThisStep * chOutputRowSize );
-		} else if( activation == AF_ReLU ) {
-			if( reluParam > 0 ) {
-				vectorReLU( buffer, buffer, outputRowsThisStep * chOutputRowSize, reluParam );
-			} else {
-				vectorReLU( buffer, buffer, outputRowsThisStep * chOutputRowSize );
+		// Process channelwise conv and write its result into buffer
+		int chOutputRowIndex = outputRowIndex;
+		float* chOutput = buffer;
+		while( chOutputRowIndex < outputRowsAfterThisStep ) {
+			// Because of matrix multiplication in 1x1 conv chOutputRowSize * outputRowsThisStep may be quite big
+			// Which is why channelwise convolution is performed in smaller steps
+			// (unlike matrix multiplication it doesn't slow down when output rows doesn't have enough columns)
+			const int outputImageRowIndex = chOutputRowIndex % desc.Result.Height();
+			const int chRowsThisStep = std::min( { outputRowsAfterThisStep - chOutputRowIndex, maxChRowsPerStep,
+				desc.Result.Height() - outputImageRowIndex } );
+
+			ProcessChannelwise3x3( desc, chRowsThisStep, input, inputRowIndex % desc.Source.Height(),
+				chFilter, chFreeTerm, chOutput, outputImageRowIndex );
+
+			if( activation == AF_HSwish ) {
+				vectorHSwish( chOutput, chOutput, chRowsThisStep * chOutputRowSize );
+			} else if( activation == AF_ReLU ) {
+				if( reluParam > 0 ) {
+					vectorReLU( chOutput, chOutput, chRowsThisStep * chOutputRowSize, reluParam );
+				} else {
+					vectorReLU( chOutput, chOutput, chRowsThisStep * chOutputRowSize );
+				}
+			}
+
+			chOutput += chRowsThisStep * chOutputRowSize;
+			chOutputRowIndex += chRowsThisStep;
+
+			if( chOutputRowIndex % desc.Result.Height() == 0 && chOutputRowIndex < outputRowsAfterThisCall ) {
+				// Switch to the next image in batch
+				const int nextImageIndex = chOutputRowIndex / desc.Result.Height();
+				const int diff = nextImageIndex * desc.Source.Height() - inputRowIndex;
+				PRESUME_EXPR( diff >= 0 );
+				input += diff * desc.Source.Width() * inputChannels;
+				inputRowIndex += diff;
+				inputRowsAvailable -= diff;
 			}
 		}
 
@@ -133,16 +176,6 @@ inline IRowwiseCpuImpl::CProcessingReport CCpuMathEngine::CRowwiseChConvWith1x1:
 
 		output += outputRowsThisStep * outputChannels * outputWidth;
 		outputRowIndex += outputRowsThisStep;
-
-		if( outputRowIndex % desc.Result.Height() == 0 && outputRowIndex < outputRowsThisCall ) {
-			// Switch to the next image in batch
-			const int imageIndex = outputRowIndex / desc.Result.Height();
-			const int diff = imageIndex * desc.Source.Height() - inputRowIndex;
-			PRESUME_EXPR( diff >= 0 );
-			input += diff * desc.Source.Width() * inputChannels;
-			inputRowIndex += diff;
-			inputRowsAvailable -= diff;
-		}
 	}
 
 	return report;

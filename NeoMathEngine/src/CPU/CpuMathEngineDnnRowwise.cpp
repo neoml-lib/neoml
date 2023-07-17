@@ -74,10 +74,28 @@ void CCpuMathEngine::RowwiseExecute( const CBlobDesc& inputDesc, CRowwiseOperati
 	const int inputRowsCount = inputDesc.ObjectCount() * inputDesc.Height();
 	buffers.emplace_back( new CRowwiseWrapper( GetRaw( input ), inputRowsCount,
 		inputDesc.Width() * inputDesc.Channels() ) );
+	int prevOutputRequirement = 1;
+	int nextInputRequirement = 1;
+	size_t nextInputRequirementIndex = 0;
 	for( size_t i = 0; i < operations.size() - 1; ++i ) {
+		if( i == nextInputRequirementIndex ) {
+			nextInputRequirement = 1;
+			while( nextInputRequirementIndex < operations.size() ) {
+				++nextInputRequirementIndex;
+				if( operations[nextInputRequirementIndex][0]->InputRowRequirement() > 0 ) {
+					nextInputRequirement = operations[nextInputRequirementIndex][0]->InputRowRequirement();
+					break;
+				}
+			}
+		}
+
+		if( operations[i][0]->OutputRowRequirement() > 0 ) {
+			prevOutputRequirement = operations[i][0]->OutputRowRequirement();
+		}
+
 		const int rowSize = operations[i][0]->OutputRowSize();
-		const int maxRowCount = std::min( std::max( operations[i + 1][0]->MinInputRowCount(), RowwiseMaxBuffSize / rowSize ),
-			operations[i][0]->OutputRowCount() );
+		const int maxRowCount = std::min( operations[i][0]->OutputRowCount(),
+			std::max( { prevOutputRequirement, nextInputRequirement, RowwiseMaxBuffSize / rowSize } ) );
 		buffers.emplace_back( new CRowwiseBuffer( *this, maxRowCount, rowSize, operations[i][0]->OutputRowCount() ) );
 	}
 	buffers.emplace_back( new CRowwiseWrapper( GetRaw( output ), operations.back().back()->OutputRowCount(),

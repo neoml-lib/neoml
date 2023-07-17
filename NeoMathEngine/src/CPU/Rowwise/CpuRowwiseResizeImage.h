@@ -33,8 +33,9 @@ public:
 	{
 	}
 
-	int MinInputRowCount() const override;
 	CBlobDesc Reshape( const CBlobDesc& inputSize ) override;
+	int InputRowRequirement() const override;
+	int OutputRowRequirement() const override { return 0; }
 	int InOperationBufferSize() const override { return 0; }
 	int OutputRowCount() const override { return to.ObjectCount() * to.Height(); }
 	int OutputRowSize() const override { return to.Width() * to.Depth() * to.Channels(); }
@@ -53,7 +54,7 @@ private:
 	CBlobDesc to;
 };
 
-inline int CRowwiseImageResize::MinInputRowCount() const
+inline int CRowwiseImageResize::InputRowRequirement() const
 {
 	if( padding != TBlobResizePadding::Reflect ) {
 		// Constant padding doesn't rely on input data

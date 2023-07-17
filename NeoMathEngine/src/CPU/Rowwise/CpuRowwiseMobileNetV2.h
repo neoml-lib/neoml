@@ -15,6 +15,8 @@ limitations under the License.
 
 #pragma once
 
+#include <algorithm>
+
 #include "CpuRowwiseInterface.h"
 #include <CpuMathEngineDnnChannelwiseConv.h>
 #include <CpuMathEngine.h>
@@ -44,13 +46,15 @@ public:
 		downFilter( downFilter ),
 		downFreeTerm( downFreeTerm ),
 		outputChannels( outputChannels ),
-		residual( residual )
+		residual( residual ),
+		inputRowRequirement( 0 ),
+		outputRowRequirement( 0 )
 	{
 	}
 
-	int MinInputRowCount() const override { return 3; }
-
 	CBlobDesc Reshape( const CBlobDesc& inputSize ) override;
+	int InputRowRequirement() const override { return inputRowRequirement; }
+	int OutputRowRequirement() const override { return outputRowRequirement; }
 	int InOperationBufferSize() const override { return getMaxOutputRowsPerStep() * expandedChannels * desc.Result.Width(); }
 	int OutputRowCount() const override { return desc.Result.ObjectCount() * desc.Result.Height(); }
 	int OutputRowSize() const override { return desc.Result.Width() * outputChannels; }
@@ -76,11 +80,14 @@ private:
 	int outputChannels;
 	bool residual;
 	mutable std::unique_ptr<CRowwiseBuffer> chInput;
+	int inputRowRequirement;
+	int outputRowRequirement;
 
-	int getMaxInputRowsPerStep() const { return std::max<int>( 1,
-		( RowwiseCacheSize / ( std::max<int>( inputChannels, expandedChannels ) * desc.Source.Width() ) ) ); }
-	int getMaxOutputRowsPerStep() const { return std::min( desc.Result.Height(), std::max<int>( 1,
-		( RowwiseCacheSize / ( std::max<int>( outputChannels, expandedChannels ) * desc.Result.Width() ) ) ) ); }
+	int getMaxInputRowsPerStep() const { return std::min( desc.Source.ObjectCount() * desc.Source.Height(),
+		std::max( inputRowRequirement, RowwiseCacheSize / ( std::max<int>( inputChannels, expandedChannels ) * desc.Source.Width() ) ) ); }
+	int getMaxOutputRowsPerStep() const { return std::min( desc.Result.ObjectCount() * desc.Result.Height(),
+		std::max<int>( { 1, outputRowRequirement, 
+			RowwiseCacheSize / ( std::max<int>( outputChannels, expandedChannels ) * desc.Result.Width() ) } ) ); }
 };
 
 inline CBlobDesc CCpuMathEngine::CRowwiseMobileNetV2::Reshape( const CBlobDesc& inputSize )
@@ -95,6 +102,16 @@ inline CBlobDesc CCpuMathEngine::CRowwiseMobileNetV2::Reshape( const CBlobDesc& 
 	desc = CCommonChannelwiseConvolutionDesc( desc.PaddingHeight, desc.PaddingWidth, desc.StrideHeight, desc.StrideWidth,
 		chInputSize, desc.Filter, outputSize );
 	outputSize.SetDimSize( BD_Channels, outputChannels );
+
+	// Because of math desc.Result.Width() <= desc.Source.Width()
+	if( desc.Result.Width() < RowwiseMatMulRequiredHeight ) {
+		outputRowRequirement = ( RowwiseMatMulRequiredHeight + desc.Result.Width() - 1 ) / desc.Result.Width();
+		inputRowRequirement = 3 + ( outputRowRequirement - 1 ) * desc.StrideHeight;
+	} else {
+		outputRowRequirement = 0;
+		inputRowRequirement = 3;
+	}
+
 	return outputSize;
 }
 
@@ -109,12 +126,12 @@ inline IRowwiseCpuImpl::CProcessingReport CCpuMathEngine::CRowwiseMobileNetV2::P
 		return report;
 	}
 
-	const int maxInputRowsPerStep = getMaxInputRowsPerStep();
 	const int maxOutputRowsPerStep = getMaxOutputRowsPerStep();
+	const int maxChRowsPerStep = std::max( 1,
+		RowwiseCacheSize / ( desc.Source.Width() * expandedChannels ) );
 
 	if( chInput == nullptr ) {
-		chInput.reset( new CRowwiseBuffer( mathEngine,
-			std::min( desc.Source.Height(), maxInputRowsPerStep + 2 ),
+		chInput.reset( new CRowwiseBuffer( mathEngine, getMaxInputRowsPerStep(),
 			desc.Source.Width() * expandedChannels, desc.Source.Height() * desc.Source.ObjectCount() ) );
 	}
 
@@ -133,18 +150,15 @@ inline IRowwiseCpuImpl::CProcessingReport CCpuMathEngine::CRowwiseMobileNetV2::P
 	const bool isInPlace = ( residualInput == output );
 
 	const int outputRowsThisCall = outputRowIndex + report.OutputRowsCalculated;
+	const int lastImageIndex = ( outputRowsThisCall - 1 ) / desc.Result.Height();
 	// Total number of input rows used during this call
-	const int inputRowsUsedThisCall = std::min( desc.Source.ObjectCount() * desc.Source.Height(),
-		( outputRowsThisCall - 1 ) * desc.StrideHeight + 2 );
+	const int inputRowsUsedThisCall = lastImageIndex * desc.Source.Height()
+		+ std::min( desc.Source.Height(), ( outputRowsThisCall - 1 - lastImageIndex * desc.Result.Height() ) * desc.StrideHeight + 2 );
 
-	int outputRowsProcessed = outputRowIndex;
-	while( outputRowsProcessed < outputRowsThisCall ) {
+	while( outputRowIndex < outputRowsThisCall ) {
 		// Process a bunch of rows of input image (till channelwise convolution: expandConv + expandReLU)
-		const int imageIndex = outputRowsProcessed / desc.Result.Height();
-		const int inputRowsInBuffer = std::min( desc.Source.Height(),
-			chInput->DataRowProcessed() - imageIndex * desc.Source.Height() );
 		const int inputRowsThisStep = std::min( { inputRowsUsedThisCall - chInput->DataRowProcessed(),
-			chInput->EmptyRowCount(), desc.Source.Height() - inputRowsInBuffer } );
+			chInput->EmptyRowCount() } );
 
 		if( inputRowsThisStep > 0 ) {
 			const float* expandConvInput = input + ( chInput->DataRowProcessed() - inputRowIndex ) * inputRowSize;
@@ -165,28 +179,50 @@ inline IRowwiseCpuImpl::CProcessingReport CCpuMathEngine::CRowwiseMobileNetV2::P
 		}
 
 		// Calculate how many output rows we can calculate with the processed input rows
+		const int imageIndex = ( chInput->DataRowProcessed() - 1 ) / desc.Source.Height();
 		const int inputImageRowsInBuffer = chInput->DataRowProcessed() - imageIndex * desc.Source.Height();
 		const int outputImageRowsCanBeProcessed = std::min( outputRowsThisCall - imageIndex * desc.Result.Height(),
 			inputImageRowsInBuffer >= desc.Source.Height() ? desc.Result.Height()
 				: ( inputImageRowsInBuffer < 2 ? 0 : 1 + ( inputImageRowsInBuffer - 2 ) / desc.StrideHeight ) );
 		const int outputRowsCanBeProcessed = imageIndex * desc.Result.Height() + outputImageRowsCanBeProcessed;
 
-		while( outputRowsProcessed < outputRowsCanBeProcessed ) {
+		while( outputRowIndex < outputRowsCanBeProcessed ) {
 			// Process channelwise output rows (while there are any)
-			const int outputRowsThisStep = std::min<int>( maxOutputRowsPerStep, outputRowsCanBeProcessed - outputRowsProcessed );
+			const int outputRowsThisStep = std::min<int>( maxOutputRowsPerStep, outputRowsCanBeProcessed - outputRowIndex );
 
-			ProcessChannelwise3x3( desc, outputRowsThisStep, chInput->DataRows(), chInput->DataRowIndex() % desc.Source.Height(),
-				channelwiseFilter, channelwiseFreeTerm, buffer, outputRowsProcessed % desc.Result.Height() );
-			if( channelwiseActivation == AF_HSwish ) {
-				vectorHSwish( buffer, buffer, outputRowsThisStep * chOutputRowSize );
-			} else if( channelwiseActivation == AF_ReLU ) {
-				if( channelwiseReluParam > 0 ) {
-					vectorReLU( buffer, buffer, outputRowsThisStep * chOutputRowSize, channelwiseReluParam );
-				} else {
-					vectorReLU( buffer, buffer, outputRowsThisStep * chOutputRowSize );
+			float* chOutput = buffer;
+			int chOutputRowIndex = outputRowIndex;
+			const float* chInputBuff = chInput->DataRows();
+			int chInputRowIndex = chInput->DataRowIndex();
+			PRESUME_EXPR( chOutputRowIndex / desc.Result.Height() == chInputRowIndex / desc.Source.Height() );
+
+			while( chOutputRowIndex < outputRowIndex + outputRowsThisStep ) {
+				const int chRowsThisStep = std::min( { maxChRowsPerStep,
+					outputRowIndex + outputRowsThisStep - chOutputRowIndex,
+					desc.Result.Height() - chOutputRowIndex % desc.Result.Height() } );
+				ProcessChannelwise3x3( desc, chRowsThisStep, chInputBuff, chInputRowIndex % desc.Source.Height(),
+					channelwiseFilter, channelwiseFreeTerm, chOutput, chOutputRowIndex % desc.Result.Height() );
+				if( channelwiseActivation == AF_HSwish ) {
+					vectorHSwish( chOutput, chOutput, chRowsThisStep * chOutputRowSize );
+				} else if( channelwiseActivation == AF_ReLU ) {
+					if( channelwiseReluParam > 0 ) {
+						vectorReLU( chOutput, chOutput, chRowsThisStep * chOutputRowSize, channelwiseReluParam );
+					} else {
+						vectorReLU( chOutput, chOutput, chRowsThisStep * chOutputRowSize );
+					}
+				}
+				chOutput += chRowsThisStep * chOutputRowSize;
+				chOutputRowIndex += chRowsThisStep;
+
+				if( chOutputRowIndex % desc.Result.Height() == 0 && chOutputRowIndex < outputRowsThisCall ) {
+					// Switch to the next image in batch
+					const int nextImageIndex = chOutputRowIndex / desc.Result.Height();
+					const int diff = nextImageIndex * desc.Source.Height() - chInputRowIndex;
+					PRESUME_EXPR( diff >= 0 );
+					chInputBuff += diff * chInput->RowSize();
+					chInputRowIndex += diff;
 				}
 			}
-			outputRowsProcessed += outputRowsThisStep;
 
 			if( residual && isInPlace ) {
 				// Block input and output are located in the same memory
@@ -213,10 +249,11 @@ inline IRowwiseCpuImpl::CProcessingReport CCpuMathEngine::CRowwiseMobileNetV2::P
 			}
 
 			output += outputRowsThisStep * outputChannels * outputWidth;
+			outputRowIndex += outputRowsThisStep;
 		}
 
-		if( outputRowsProcessed < desc.Result.ObjectCount() * desc.Result.Height() ) {
-			const int firstInputRowNeeded = RowwiseConvFirstInputRow( outputRowsProcessed,
+		if( outputRowIndex < desc.Result.ObjectCount() * desc.Result.Height() ) {
+			const int firstInputRowNeeded = RowwiseConvFirstInputRow( outputRowIndex,
 				desc.Source.Height(), desc.Result.Height(), desc.StrideHeight, desc.PaddingHeight );
 			if( firstInputRowNeeded > chInput->DataRowIndex() ) {
 				chInput->RemoveRows( firstInputRowNeeded - chInput->DataRowIndex() );
@@ -224,7 +261,7 @@ inline IRowwiseCpuImpl::CProcessingReport CCpuMathEngine::CRowwiseMobileNetV2::P
 		}
 	}
 
-	if( outputRowsProcessed == desc.Result.ObjectCount() * desc.Result.Height() ) {
+	if( outputRowIndex == desc.Result.ObjectCount() * desc.Result.Height() ) {
 		chInput.reset( nullptr );
 	}
 

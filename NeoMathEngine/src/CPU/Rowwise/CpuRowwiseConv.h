@@ -30,13 +30,15 @@ public:
 		desc( CBlobDesc(), CBlobDesc(), CBlobDesc( { 1, fC, 1, fH, fW, 1, inputChannels } ), padH, padW,
 			strideH, strideW, dilH, dilW ),
 		filter( filter ),
-		freeTerm( freeTerm )
+		freeTerm( freeTerm ),
+		inputRowRequirement( 0 ),
+		outputRowRequirement( 0 )
 	{
 	}
 
-	int MinInputRowCount() const override { return 1 + ( desc.Filter.Height() - 1 ) * desc.DilationHeight; }
-
 	CBlobDesc Reshape( const CBlobDesc& inputSize ) override;
+	int InputRowRequirement() const override { return inputRowRequirement; }
+	int OutputRowRequirement() const override { return outputRowRequirement; }
 	int InOperationBufferSize() const override;
 	int OutputRowCount() const override { return desc.Result.ObjectCount() * desc.Result.Height(); }
 	int OutputRowSize() const override { return desc.Result.Width() * desc.Result.Channels(); }
@@ -49,6 +51,8 @@ private:
 	CCpuConvolutionDesc desc;
 	const float* filter;
 	const float* freeTerm;
+	int inputRowRequirement;
+	int outputRowRequirement;
 
 	bool is1x1Conv() const { return desc.Filter.GeometricalSize() == 1 && desc.PaddingHeight == 0
 		&& desc.PaddingWidth == 0 && desc.StrideHeight == 1 && desc.StrideWidth == 1; }
@@ -75,6 +79,17 @@ inline CBlobDesc CCpuMathEngine::CRowwiseConv::Reshape( const CBlobDesc& inputSi
 		desc.SimdConvolutionDesc.reset( mathEngine.simdMathEngine->InitBlobConvolution(
 			desc.Source, desc.PaddingHeight, desc.PaddingWidth, desc.StrideHeight, desc.StrideWidth,
 			desc.DilationHeight, desc.DilationWidth, desc.Filter, desc.Result ) );
+	}
+
+	const int effectiveFilterSize = 1 + ( desc.Filter.Height() - 1 ) * desc.DilationHeight;
+
+	inputRowRequirement = effectiveFilterSize;
+	outputRowRequirement = 0;
+	if( desc.SimdConvolutionDesc == nullptr && desc.Result.Width() < RowwiseMatMulRequiredHeight ) {
+		// Tricky case: if conv will be calculating 1 row at a time matmul will be ineffective
+		// (only SIMD algo doesn't have matmul inside)
+		outputRowRequirement = ( RowwiseMatMulRequiredHeight + desc.Result.Width() - 1 ) / desc.Result.Width();
+		inputRowRequirement = effectiveFilterSize + desc.StrideHeight * ( outputRowRequirement - 1 );
 	}
 
 	return desc.Result;

@@ -31,8 +31,9 @@ public:
 	{
 	}
 
-	int MinInputRowCount() const override { return desc.Filter.Height(); }
 	CBlobDesc Reshape( const CBlobDesc& inputSize ) override;
+	int InputRowRequirement() const override { return desc.Filter.Height(); }
+	int OutputRowRequirement() const override { return 0; }
 	int InOperationBufferSize() const override { return 0; }
 	int OutputRowCount() const override { return desc.Result.ObjectCount() * desc.Result.Height(); }
 	int OutputRowSize() const override { return desc.Result.Width() * desc.Result.Depth() * desc.Result.Channels(); }

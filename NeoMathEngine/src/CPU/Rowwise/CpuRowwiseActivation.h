@@ -27,8 +27,9 @@ public:
 	TActivationFunction Type() const { return desc.GetType(); }
 
 	// IRowwiseCpuImpl
-	int MinInputRowCount() const override { return 1; }
 	CBlobDesc Reshape( const CBlobDesc& inputSize ) override;
+	int InputRowRequirement() const override { return 0; }
+	int OutputRowRequirement() const override { return 0; }
 	int InOperationBufferSize() const override { return 0; }
 	int OutputRowCount() const override { return rowCount; }
 	int OutputRowSize() const override { return rowSize; }

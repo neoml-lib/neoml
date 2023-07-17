@@ -21,6 +21,8 @@ namespace NeoML {
 
 static constexpr int RowwiseCacheSize = 32 * 1024;
 
+static constexpr int RowwiseMatMulRequiredHeight = 64;
+
 // Index of first input row needed to calculate outputRowIndex'th row of output
 inline int RowwiseConvFirstInputRow( int outputRowIndex, int inputImageHeight, int outputImageHeight,
 	int strideHeight, int paddingHeight )
