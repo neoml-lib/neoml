@@ -28,10 +28,10 @@ static void calcL1Regularization( const CFloatVector& w, float l1Coeff, double& 
 	for( int i = 0; i < w.Size(); ++i ) {
 		float z = w[i];
 		if( abs( z ) < l1Coeff ) {
-			value += z * z / 2;
+			value += z * z / 2.f;
 			gradient.SetAt( i, z );
 		} else {
-			value += l1Coeff * ( abs( z ) - l1Coeff / 2 );
+			value += l1Coeff * ( abs( z ) - l1Coeff / 2.f );
 			gradient.SetAt( i, l1Coeff * z / abs( z ) );
 		}
 	}
@@ -112,7 +112,7 @@ void CThreadFunctionWithHessianImpl::CProductThreadTask::Run( int threadIndex, i
 	CFloatVector& result = ThreadsResult[threadIndex];
 	result.Nullify();
 	for( int i = 0; i < count; ++i, ++index ) {
-		if( F.Hessian[index] != 0 ) {
+		if( F.Hessian[index] != 0. ) {
 			CFloatVectorDesc desc;
 			F.Matrix.GetRow( index, desc );
 			const double temp = LinearFunction( Argument, desc ) * F.Hessian[index];
@@ -148,15 +148,15 @@ CThreadFunctionWithHessianImpl::CSetArgThreadTask::CSetArgThreadTask(
 		CThreadFunctionWithHessianImpl& f, const CFloatVector& argument ) :
 	IThreadTask( f, argument )
 {
-	NeoAssert( Argument.Size() == F.NumberOfDimensions() );
+	NeoAssert( argument.Size() == F.NumberOfDimensions() );
 
-	F.Grad = Argument;
-	F.Grad.SetAt( F.Grad.Size() - 1, 0 ); // don't take the regularization bias into account
+	F.Grad = argument;
+	F.Grad.SetAt( F.Grad.Size() - 1, 0.f ); // don't take the regularization bias into account
 
-	if( F.L1Coeff > 0 ) {
+	if( F.L1Coeff > 0.f ) {
 		calcL1Regularization( F.Grad, F.L1Coeff, F.Val, F.Grad );
 	} else {
-		F.Val = DotProduct( F.Grad, F.Grad ) / 2;
+		F.Val = DotProduct( F.Grad, F.Grad ) / 2.;
 	}
 	F.Val = F.Val / F.ErrorWeight;
 	F.Grad = F.Grad / F.ErrorWeight;
@@ -264,14 +264,14 @@ void CSquaredHinge::CSetArgThreadTask::SetArgument( const CFloatVector& argument
 	double& hessian, double& value, CFloatVector& gradient, float answer, float weight )
 {
 	const double x = answer * LinearFunction( argument, desc );
-	const double d = 1 - x;
+	const double d = 1. - x;
 
-	if( x < 1 ) {
+	if( x < 1. ) {
 		value += weight * d * d;
-		gradient.MultiplyAndAddExt( desc, -weight * answer * d * 2 );
-		hessian = weight * 2;
+		gradient.MultiplyAndAddExt( desc, -weight * answer * d * 2. );
+		hessian = weight * 2.;
 	} else {
-		hessian = 0;
+		hessian = 0.;
 	}
 }
 
@@ -307,15 +307,15 @@ void CL2Regression::CSetArgThreadTask::SetArgument( const CFloatVector& argument
 
 	if( d < -P ) {
 		value += weight * ( d + P ) * ( d + P );
-		hessian = weight * 2;
-		gradient.MultiplyAndAddExt( desc, weight * ( d + P ) * 2 );
+		hessian = weight * 2.;
+		gradient.MultiplyAndAddExt( desc, weight * ( d + P ) * 2. );
 	} else {
 		value += weight * ( d - P ) * ( d - P );
 		if( d > P ) {
-			hessian = weight * 2;
-			gradient.MultiplyAndAddExt( desc, weight * ( d - P ) * 2 );
+			hessian = weight * 2.;
+			gradient.MultiplyAndAddExt( desc, weight * ( d - P ) * 2. );
 		} else {
-			hessian = 0;
+			hessian = 0.;
 		}
 	}
 }
@@ -323,7 +323,7 @@ void CL2Regression::CSetArgThreadTask::SetArgument( const CFloatVector& argument
 CL2Regression::CL2Regression(
 		const IRegressionProblem& data, double errorWeight, double p, float l1Coeff, int threadCount ) :
 	CThreadFunctionWithHessianImpl( data, errorWeight, l1Coeff, threadCount ),
-	P( static_cast<float>( p ) )
+	P( p )
 {}
 
 void CL2Regression::SetArgument( const CFloatVector& argument )
@@ -347,16 +347,16 @@ protected:
 CLogRegression::CSetArgThreadTask::CSetArgThreadTask( CLogRegression& f, const CFloatVector& argument ) :
 	CThreadFunctionWithHessianImpl::CSetArgThreadTask( f, argument )
 {
-	f.Val = 0; // should repeat all of this, because Val should == 0, and rValue used instead
-	rValue = 0;
+	f.Val = 0.; // should repeat all of this, because Val should == 0, and rValue used instead
+	rValue = 0.;
 
 	f.Grad = Argument;  // calculate Grad the same again
-	f.Grad.SetAt( f.Grad.Size() - 1, 0 ); // don't take the regularization bias into account
+	f.Grad.SetAt( f.Grad.Size() - 1, 0.f ); // don't take the regularization bias into account
 
-	if( f.L1Coeff > 0 ) {
+	if( f.L1Coeff > 0.f ) {
 		calcL1Regularization( f.Grad, f.L1Coeff, rValue, f.Grad );  // !!!
 	} else {
-		rValue = DotProduct( f.Grad, f.Grad ) / 2; // !!!
+		rValue = DotProduct( f.Grad, f.Grad ) / 2.; // !!!
 	}
 	rValue = rValue / f.ErrorWeight; // !!!
 	f.Grad = f.Grad / f.ErrorWeight;
@@ -370,8 +370,8 @@ void CLogRegression::CSetArgThreadTask::SetArgument( const CFloatVector& argumen
 
 	value += weight * log1p( expCoeff );
 
-	gradient.MultiplyAndAddExt( desc, -weight * LogNormalizer * answer * expCoeff / ( 1.f + expCoeff ) );
-	hessian = weight * LogNormalizer * expCoeff / ( 1.f + expCoeff ) / ( 1.f + expCoeff );
+	gradient.MultiplyAndAddExt( desc, -weight * LogNormalizer * answer * expCoeff / ( 1. + expCoeff ) );
+	hessian = weight * LogNormalizer * expCoeff / ( 1. + expCoeff ) / ( 1. + expCoeff );
 }
 
 CLogRegression::CLogRegression(
@@ -402,15 +402,15 @@ protected:
 void CSmoothedHinge::CSetArgThreadTask::SetArgument( const CFloatVector& argument, const CFloatVectorDesc& desc,
 	double& hessian, double& value, CFloatVector& gradient, float answer, float weight )
 {
-	const double d = answer * LinearFunction( argument, desc ) - 1;
+	const double d = answer * LinearFunction( argument, desc ) - 1.;
 
-	if( d < 0 ) {
-		const float sqrtValue = static_cast<float>( sqrt( d * d + 1 ) );
-		value += weight * ( sqrtValue - 1 );
+	if( d < 0. ) {
+		const double sqrtValue = sqrt( d * d + 1. );
+		value += weight * ( sqrtValue - 1. );
 		gradient.MultiplyAndAddExt( desc, weight * answer * d / sqrtValue );
-		hessian = weight / ( ( d * d + 1 ) * sqrtValue );
+		hessian = weight / ( ( d * d + 1. ) * sqrtValue );
 	} else {
-		hessian = 0;
+		hessian = 0.;
 	}
 }
 
