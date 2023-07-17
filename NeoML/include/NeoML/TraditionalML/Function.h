@@ -21,8 +21,6 @@ limitations under the License.
 
 namespace NeoML {
 
-class IThreadPool;
-
 // An arbitrary function interface
 // Used for optimization problems and error functions
 class CFunction {
@@ -60,100 +58,75 @@ public:
 
 //------------------------------------------------------------------------------------------------------------
 
-// Function that supports gradient and hessian calculation
-class CThreadFunctionWithHessianImpl : public CFunctionWithHessian {
-public:
-	CThreadFunctionWithHessianImpl( const IProblem&,
-		double errorWeight, float l1Coeff, int threadCount );
-	CThreadFunctionWithHessianImpl( const IRegressionProblem&,
-		double errorWeight, float l1Coeff, int threadCount );
-	~CThreadFunctionWithHessianImpl() override;
+struct CFunctionWithHessianState;
 
-	// The CFunctionWithHessian class methods:
-	int NumberOfDimensions() const override { return Matrix.Width + 1; }
-	double Value() const override { return Val; }
-	CFloatVector Gradient() const override { return Grad; }
+enum class THessianFType {
+	SquaredHinge, L2Regression, LogRegression, SmoothedHinge
+};
+
+// Function that supports gradient and hessian calculation in multiple threads
+class IMultiThreadFunctionWithHessianImpl : public CFunctionWithHessian {
+public:
+	~IMultiThreadFunctionWithHessianImpl() override;
 
 	// The product of the function hessian by a given vector
-	CFloatVector HessianProduct( const CFloatVector& ) override;
+	CFloatVector HessianProduct( const CFloatVector& ) override final;
 
-	struct IThreadTask;
-	struct CProductThreadTask;
-	struct CSetArgThreadTask;
+	// The CFunctionWithHessian class methods:
+	int NumberOfDimensions() const override final;
+	double Value() const override final;
+	CFloatVector Gradient() const override final;
+	// Sets the argument for the subsequent calculations
+	void SetArgument( const CFloatVector& ) override final;
 
 protected:
-	CThreadFunctionWithHessianImpl( CFloatMatrixDesc, int vetcorCount,
-		double errorWeight, float l1Coeff, int threadCount );
+	IMultiThreadFunctionWithHessianImpl( const IProblem&,
+		double errorWeight, float l1Coeff, int threadCount, THessianFType );
+	IMultiThreadFunctionWithHessianImpl( const IRegressionProblem&,
+		double errorWeight, double p, float l1Coeff, int threadCount, THessianFType );
 
-	void SetArguments( CSetArgThreadTask& );
-
-	IThreadPool* const ThreadPool;
-	const float ErrorWeight;
-	const float L1Coeff;
-
-	double Val{};
-	CFloatVector Grad{};
-	CArray<double> Hessian{};
-
-	// Problem
-	const CFloatMatrixDesc Matrix;
-	CFloatVector Answers{};
-	CFloatVector Weights{};
+	CFunctionWithHessianState* const FS; // Function State (internal)
 };
 
 //------------------------------------------------------------------------------------------------------------
 // Main loss functions
 
 // For support-vector machine with a squared hinge loss function:
-class NEOML_API CSquaredHinge : public CThreadFunctionWithHessianImpl {
+class NEOML_API CSquaredHinge : public IMultiThreadFunctionWithHessianImpl {
 public:
-	CSquaredHinge( const IProblem& data, double errorWeight, float l1Coeff, int threadCount );
-
-	// The CFunctionWithHessian class methods:
-	void SetArgument( const CFloatVector& w ) override;
-
-	struct CSetArgThreadTask;
+	CSquaredHinge( const IProblem& problem, double errorWeight, float l1Coeff, int threadCount ) :
+		IMultiThreadFunctionWithHessianImpl( problem, errorWeight, l1Coeff, threadCount, THessianFType::SquaredHinge )
+	{}
 };
 
 //------------------------------------------------------------------------------------------------------------
 
 // Loss function for a regression problem
-class NEOML_API CL2Regression : public CThreadFunctionWithHessianImpl {
+class NEOML_API CL2Regression : public IMultiThreadFunctionWithHessianImpl {
 public:
-	CL2Regression( const IRegressionProblem& data, double errorWeight, double p, float l1Coeff, int threadCount );
-
-	// The CFunctionWithHessian class methods:
-	void SetArgument(const CFloatVector& w) override;
-
-	struct CSetArgThreadTask;
-protected:
-	const float P;
+	CL2Regression( const IRegressionProblem& problem, double errorWeight, double p, float l1Coeff, int threadCount ) :
+		IMultiThreadFunctionWithHessianImpl( problem, errorWeight, p, l1Coeff, threadCount, THessianFType::L2Regression )
+	{}
 };
 
 //------------------------------------------------------------------------------------------------------------
 
 // Logistic regression function
-class NEOML_API CLogRegression: public CThreadFunctionWithHessianImpl {
+class NEOML_API CLogRegression: public IMultiThreadFunctionWithHessianImpl {
 public:
-	CLogRegression( const IProblem& data, double errorWeight, float l1Coeff, int threadCount );
-
-	// The CFunctionWithHessian class methods:
-	void SetArgument( const CFloatVector& w ) override;
-
-	struct CSetArgThreadTask;
+	CLogRegression( const IProblem& problem, double errorWeight, float l1Coeff, int threadCount ) :
+		IMultiThreadFunctionWithHessianImpl( problem, errorWeight, l1Coeff, threadCount, THessianFType::LogRegression )
+	{}
 };
 
 //------------------------------------------------------------------------------------------------------------
 
 // Smoothed hinge function
-class NEOML_API CSmoothedHinge : public CThreadFunctionWithHessianImpl {
+class NEOML_API CSmoothedHinge : public IMultiThreadFunctionWithHessianImpl {
 public:
-	CSmoothedHinge( const IProblem& data, double errorWeight, float l1Coeff, int threadCount );
-
-	// The CFunctionWithHessian class methods:
-	void SetArgument( const CFloatVector& w ) override;
-
-	struct CSetArgThreadTask;
+	CSmoothedHinge( const IProblem& problem, double errorWeight, float l1Coeff, int threadCount ) :
+		IMultiThreadFunctionWithHessianImpl( problem, errorWeight, l1Coeff, threadCount, THessianFType::SmoothedHinge )
+	{}
 };
 
 //------------------------------------------------------------------------------------------------------------

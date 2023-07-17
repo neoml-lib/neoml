@@ -39,42 +39,143 @@ static void calcL1Regularization( const CFloatVector& w, float l1Coeff, double& 
 
 //------------------------------------------------------------------------------------------------------------
 
-struct CThreadFunctionWithHessianImpl::IThreadTask {
+struct CFunctionWithHessianState {
+	// Children creation
+	static CFunctionWithHessianState* Create( CFloatMatrixDesc, int vectorCount,
+		double errorWeight, double p, float l1Coeff, int threadCount, THessianFType type );
+
+	// Ctor & dtor
+	CFunctionWithHessianState( CFloatMatrixDesc, int vectorCount,
+		double errorWeight, float l1Coeff, int threadCount, THessianFType type );
+	virtual ~CFunctionWithHessianState();
+	// Forbid coping
+	CFunctionWithHessianState( const CFunctionWithHessianState& ) = delete;
+	CFunctionWithHessianState& operator=( const CFunctionWithHessianState& ) = delete;
+
+	// Basic function operations
+	int NumberOfDimensions() const { return Matrix.Width + 1; }
+	// Called in Step 1. Run of IThreadTask
+	void HessianProduct( CFloatVector& result, const CFloatVector& argument, int index );
+
+	// Call in Step 0. Constructor of IThreadTask
+	virtual void PrepareSetArgument( const CFloatVector& argument, double& value );
+	// Call in Step 1. Run of IThreadTask
+	virtual void SetArgument( const CFloatVector& argument, const CFloatVectorDesc& desc,
+		double& hessian, double& value, CFloatVector& gradient, float answer, float weight ) = 0;
+	// Call in Step 2. Reduction of IThreadTask
+	virtual void PostReductionSetArgument() {} // special for LogRegression
+
+	// Executors
+	IThreadPool* const ThreadPool;
+	// Internal state
+	const THessianFType Type;
+	const float ErrorWeight;
+	const float L1Coeff;
+	double Value = 0.;
+	CFloatVector Gradient{};
+	CArray<double> Hessian{};
+	// Problem description
+	const CFloatMatrixDesc Matrix;
+	CFloatVector Answers{};
+	CFloatVector Weights{};
+};
+
+CFunctionWithHessianState::CFunctionWithHessianState( CFloatMatrixDesc matrix, int vectorCount,
+		double errorWeight, float l1Coeff, int threadCount, THessianFType type ) :
+	ThreadPool( CreateThreadPool( threadCount ) ),
+	Type( type ),
+	ErrorWeight( static_cast<float>( errorWeight ) ),
+	L1Coeff( l1Coeff ),
+	Matrix( matrix ),
+	Answers( vectorCount ),
+	Weights( vectorCount )
+{
+	NeoAssert( ThreadPool != nullptr );
+}
+
+CFunctionWithHessianState::~CFunctionWithHessianState()
+{
+	delete ThreadPool;
+}
+
+void CFunctionWithHessianState::HessianProduct( CFloatVector& result, const CFloatVector& argument, int index )
+{
+	if( Hessian[index] != 0. ) {
+		CFloatVectorDesc desc;
+		Matrix.GetRow( index, desc );
+		const double temp = LinearFunction( argument, desc ) * Hessian[index];
+		result.MultiplyAndAddExt( desc, temp );
+	}
+}
+
+void CFunctionWithHessianState::PrepareSetArgument( const CFloatVector& argument, double& value )
+{
+	value = 0.;
+	Gradient = argument;
+	Gradient.SetAt( Gradient.Size() - 1, 0.f ); // don't take the regularization bias into account
+
+	if( L1Coeff > 0.f ) {
+		calcL1Regularization( Gradient, L1Coeff, Value, Gradient );
+	} else {
+		value = DotProduct( Gradient, Gradient ) / 2.;
+	}
+	value = value / ErrorWeight;
+	Gradient = Gradient / ErrorWeight;
+
+	Hessian.SetSize( Matrix.Height );
+}
+
+//------------------------------------------------------------------------------------------------------------
+
+namespace {
+
+// Task which processes in multiple threads
+struct IThreadTask {
 	virtual ~IThreadTask() {}
+	// Run in a single thread or in parallel, corresponding to `ParallelizeSize()`
+	// 1. Run       -- Split into sub-tasks by threads and start parallel execution.
+	// 2. Reduction -- Combine results of each thread in 1 answer.
 	void ParallelRun();
 
 protected:
 	static constexpr int MultiThreadMinTasksCount = 2;
-
-	IThreadTask( CThreadFunctionWithHessianImpl& f, const CFloatVector& argument ) :
-		F( f ),
+	// Create a task
+	IThreadTask( CFunctionWithHessianState& fs, const CFloatVector& argument ) :
+		FS( fs ),
 		Argument( argument )
 	{}
+	// Get way of split the task into sub-tasks
 	void RunSplittedByThreads( int threadIndex );
 
-	virtual int ParallelizeSize() const { return F.Matrix.Height; }
-	virtual int ThreadsCount() const { return F.ThreadPool->Size(); }
+	// The size of parallelization, max number of elements to perform
+	virtual int ParallelizeSize() const { return FS.Matrix.Height; }
+	// The number of separate executors
+	virtual int ThreadsCount() const { return FS.ThreadPool->Size(); }
 
+	// Step 1. Run the process in a separate thread
 	virtual void Run( int threadIndex, int index, int count ) = 0;
+	// Step 2. Combine the answer
 	virtual void Reduction() = 0;
 
-	CThreadFunctionWithHessianImpl& F;
+	CFunctionWithHessianState& FS;
 	const CFloatVector& Argument;
 };
 
-void CThreadFunctionWithHessianImpl::IThreadTask::ParallelRun()
+void IThreadTask::ParallelRun()
 {
+	// Step 1. Run in a separate thread
 	if( ParallelizeSize() < MultiThreadMinTasksCount ) {
 		Run( /*threadIndex*/0, /*index*/0, ParallelizeSize() );
 	} else {
-		NEOML_NUM_THREADS( *F.ThreadPool, this, []( int threadIndex, void* ptr ) {
+		NEOML_NUM_THREADS( *FS.ThreadPool, this, []( int threadIndex, void* ptr ) {
 			 ( ( IThreadTask* )ptr )->RunSplittedByThreads( threadIndex );
 		} );
 	}
+	// Step 2. Combine the answer
 	Reduction();
 }
 
-void CThreadFunctionWithHessianImpl::IThreadTask::RunSplittedByThreads( int threadIndex )
+void IThreadTask::RunSplittedByThreads( int threadIndex )
 {
 	int index = 0;
 	int count = 0;
@@ -86,42 +187,35 @@ void CThreadFunctionWithHessianImpl::IThreadTask::RunSplittedByThreads( int thre
 
 //------------------------------------------------------------------------------------------------------------
 
-struct CThreadFunctionWithHessianImpl::CProductThreadTask final : public CThreadFunctionWithHessianImpl::IThreadTask {
-	CProductThreadTask( CThreadFunctionWithHessianImpl& f, const CFloatVector& argument );
-
-	void Reduction() override;
+struct CHessianProductTask : public IThreadTask {
+	CHessianProductTask( CFunctionWithHessianState&, const CFloatVector& argument );
 
 	CFloatVector Result{};
 protected:
 	void Run( int threadIndex, int index, int count ) override;
+	void Reduction() override;
 
 	CArray<CFloatVector> ThreadsResult{};
 };
 
-CThreadFunctionWithHessianImpl::CProductThreadTask::CProductThreadTask(
-		CThreadFunctionWithHessianImpl& f, const CFloatVector& argument ) :
-	IThreadTask( f, argument ),
-	Result( argument / F.ErrorWeight )
+CHessianProductTask::CHessianProductTask( CFunctionWithHessianState& fs, const CFloatVector& argument ) :
+	IThreadTask( fs, argument ),
+	Result( argument / FS.ErrorWeight )
 {
 	Result.SetAt( Result.Size() - 1, 0 );
 	ThreadsResult.Add( CFloatVector( Result.Size() ), ThreadsCount() );
 }
 
-void CThreadFunctionWithHessianImpl::CProductThreadTask::Run( int threadIndex, int index, int count )
+void CHessianProductTask::Run( int threadIndex, int index, int count )
 {
 	CFloatVector& result = ThreadsResult[threadIndex];
 	result.Nullify();
 	for( int i = 0; i < count; ++i, ++index ) {
-		if( F.Hessian[index] != 0. ) {
-			CFloatVectorDesc desc;
-			F.Matrix.GetRow( index, desc );
-			const double temp = LinearFunction( Argument, desc ) * F.Hessian[index];
-			result.MultiplyAndAddExt( desc, temp );
-		}
+		FS.HessianProduct( result, Argument, index );
 	}
 }
 
-void CThreadFunctionWithHessianImpl::CProductThreadTask::Reduction()
+void CHessianProductTask::Reduction()
 {
 	for( int t = 0; t < ThreadsCount(); ++t ) {
 		Result += ThreadsResult[t];
@@ -130,44 +224,27 @@ void CThreadFunctionWithHessianImpl::CProductThreadTask::Reduction()
 
 //------------------------------------------------------------------------------------------------------------
 
-struct CThreadFunctionWithHessianImpl::CSetArgThreadTask : public CThreadFunctionWithHessianImpl::IThreadTask {
-	CSetArgThreadTask( CThreadFunctionWithHessianImpl&, const CFloatVector& argument );
-
-	void Run( int threadIndex, int index, int count ) override final;
-	void Reduction() override;
-
+struct CSetArgumentTask : public IThreadTask {
+	CSetArgumentTask( CFunctionWithHessianState&, const CFloatVector& argument );
 protected:
-	virtual void SetArgument( const CFloatVector& argument, const CFloatVectorDesc& desc,
-		double& hessian, double& value, CFloatVector& gradient, float answer, float weight ) = 0;
+	void Run( int threadIndex, int index, int count ) override;
+	void Reduction() override;
 
 	CArray<CFloatVector> ThreadsGradient{};
 	CArray<double> ThreadsValue{};
 };
 
-CThreadFunctionWithHessianImpl::CSetArgThreadTask::CSetArgThreadTask(
-		CThreadFunctionWithHessianImpl& f, const CFloatVector& argument ) :
-	IThreadTask( f, argument )
+CSetArgumentTask::CSetArgumentTask( CFunctionWithHessianState& fs, const CFloatVector& argument ) :
+	IThreadTask( fs, argument )
 {
-	NeoAssert( argument.Size() == F.NumberOfDimensions() );
+	// Important preparations
+	FS.PrepareSetArgument( Argument, FS.Value );
 
-	F.Grad = argument;
-	F.Grad.SetAt( F.Grad.Size() - 1, 0.f ); // don't take the regularization bias into account
-
-	if( F.L1Coeff > 0.f ) {
-		calcL1Regularization( F.Grad, F.L1Coeff, F.Val, F.Grad );
-	} else {
-		F.Val = DotProduct( F.Grad, F.Grad ) / 2.;
-	}
-	F.Val = F.Val / F.ErrorWeight;
-	F.Grad = F.Grad / F.ErrorWeight;
-
-	f.Hessian.SetSize( ParallelizeSize() );
-
-	ThreadsGradient.Add( CFloatVector( F.Grad.Size() ), ThreadsCount() );
+	ThreadsGradient.Add( CFloatVector( FS.Gradient.Size() ), ThreadsCount() );
 	ThreadsValue.Add( 0., ThreadsCount() );
 }
 
-void CThreadFunctionWithHessianImpl::CSetArgThreadTask::Run( int threadIndex, int index, int count )
+void CSetArgumentTask::Run( int threadIndex, int index, int count )
 {
 	double* value = ThreadsValue.GetPtr() + threadIndex;
 	CFloatVector& gradient = ThreadsGradient[threadIndex];
@@ -175,92 +252,101 @@ void CThreadFunctionWithHessianImpl::CSetArgThreadTask::Run( int threadIndex, in
 
 	for( int i = 0; i < count; ++i, ++index ) {
 		CFloatVectorDesc desc;
-		F.Matrix.GetRow( index, desc );
+		FS.Matrix.GetRow( index, desc );
 
-		const float answer = F.Answers[index];
-		const float weight = F.Weights[index];
-		double& hessian = F.Hessian[index];
-
-		SetArgument( Argument, desc, hessian, *value, gradient, answer, weight );
+		const float answer = FS.Answers[index];
+		const float weight = FS.Weights[index];
+		double& hessian = FS.Hessian[index];
+		// Main function call
+		FS.SetArgument( Argument, desc, hessian, *value, gradient, answer, weight );
 	}
 }
 
-void CThreadFunctionWithHessianImpl::CSetArgThreadTask::Reduction()
+void CSetArgumentTask::Reduction()
 {
 	for( int t = 0; t < ThreadsCount(); ++t ) {
-		F.Val += ThreadsValue[t];
-		F.Grad += ThreadsGradient[t];
+		FS.Value += ThreadsValue[t];
+		FS.Gradient += ThreadsGradient[t];
 	}
+	// Important for answer
+	FS.PostReductionSetArgument();
 }
+
+} // namespace
 
 //------------------------------------------------------------------------------------------------------------
 
-CThreadFunctionWithHessianImpl::CThreadFunctionWithHessianImpl(
-		CFloatMatrixDesc matrix, int vectorCount, double errorWeight, float l1Coeff, int threadCount ) :
-	ThreadPool( CreateThreadPool( threadCount ) ),
-	ErrorWeight( static_cast<float>( errorWeight ) ),
-	L1Coeff( l1Coeff ),
-	Matrix( matrix ),
-	Answers( vectorCount ),
-	Weights( vectorCount )
-{}
-
-CThreadFunctionWithHessianImpl::CThreadFunctionWithHessianImpl(
-		const IProblem& data, double errorWeight, float l1Coeff, int threadCount ) :
-	CThreadFunctionWithHessianImpl( data.GetMatrix(), data.GetVectorCount(),
-		errorWeight, l1Coeff, threadCount )
+IMultiThreadFunctionWithHessianImpl::IMultiThreadFunctionWithHessianImpl(
+		const IProblem& problem, double errorWeight, float l1Coeff, int threadCount, THessianFType type ) :
+	FS( CFunctionWithHessianState::Create( problem.GetMatrix(), problem.GetVectorCount(), errorWeight, 0., l1Coeff, threadCount, type ) )
 {
-	float* answersPtr = Answers.CopyOnWrite();
-	float* weightsPtr = Weights.CopyOnWrite();
-	for( int i = 0; i < Matrix.Height; ++i ) {
-		answersPtr[i] = static_cast<float>( data.GetBinaryClass( i ) );
-		weightsPtr[i] = static_cast<float>( data.GetVectorWeight( i ) );
+	NeoAssert( FS != nullptr );
+	float* answersPtr = FS->Answers.CopyOnWrite();
+	float* weightsPtr = FS->Weights.CopyOnWrite();
+	for( int i = 0; i < FS->Matrix.Height; ++i ) {
+		answersPtr[i] = static_cast<float>( problem.GetBinaryClass( i ) );
+		weightsPtr[i] = static_cast<float>( problem.GetVectorWeight( i ) );
 	}
 }
 
-CThreadFunctionWithHessianImpl::CThreadFunctionWithHessianImpl(
-		const IRegressionProblem& data, double errorWeight, float l1Coeff, int threadCount ) :
-	CThreadFunctionWithHessianImpl(	data.GetMatrix(), data.GetVectorCount(),
-		errorWeight, l1Coeff, threadCount )
+IMultiThreadFunctionWithHessianImpl::IMultiThreadFunctionWithHessianImpl(
+		const IRegressionProblem& problem, double errorWeight, double p, float l1Coeff, int threadCount, THessianFType type ) :
+	FS( CFunctionWithHessianState::Create( problem.GetMatrix(), problem.GetVectorCount(), errorWeight, p, l1Coeff, threadCount, type ) )
 {
-	float* answersPtr = Answers.CopyOnWrite();
-	float* weightsPtr = Weights.CopyOnWrite();
-	for( int i = 0; i < Matrix.Height; ++i ) {
-		answersPtr[i] = static_cast<float>( data.GetValue( i ) );
-		weightsPtr[i] = static_cast<float>( data.GetVectorWeight( i ) );
+	NeoAssert( FS != nullptr );
+	float* answersPtr = FS->Answers.CopyOnWrite();
+	float* weightsPtr = FS->Weights.CopyOnWrite();
+	for( int i = 0; i < FS->Matrix.Height; ++i ) {
+		answersPtr[i] = static_cast<float>( problem.GetValue( i ) );
+		weightsPtr[i] = static_cast<float>( problem.GetVectorWeight( i ) );
 	}
 }
 
-CThreadFunctionWithHessianImpl::~CThreadFunctionWithHessianImpl()
+IMultiThreadFunctionWithHessianImpl::~IMultiThreadFunctionWithHessianImpl()
 {
-	delete ThreadPool;
+	delete FS;
 }
 
-// Multiplies hessian by vector
-CFloatVector CThreadFunctionWithHessianImpl::HessianProduct( const CFloatVector& argument )
+CFloatVector IMultiThreadFunctionWithHessianImpl::HessianProduct( const CFloatVector& argument )
 {
-	CThreadFunctionWithHessianImpl::CProductThreadTask task( *this, argument );
+	CHessianProductTask task( *FS, argument );
 	task.ParallelRun();
 	return task.Result;
 }
 
-void CThreadFunctionWithHessianImpl::SetArguments( CSetArgThreadTask& task )
+int IMultiThreadFunctionWithHessianImpl::NumberOfDimensions() const
 {
+	return FS->NumberOfDimensions();
+}
+
+double IMultiThreadFunctionWithHessianImpl::Value() const
+{
+	return FS->Value;
+}
+
+CFloatVector IMultiThreadFunctionWithHessianImpl::Gradient() const
+{
+	return FS->Gradient;
+}
+
+void IMultiThreadFunctionWithHessianImpl::SetArgument( const CFloatVector& argument )
+{
+	NeoAssert( argument.Size() == NumberOfDimensions() );
+	CSetArgumentTask task( *FS, argument );
 	task.ParallelRun();
 }
 
 //------------------------------------------------------------------------------------------------------------
 
-struct CSquaredHinge::CSetArgThreadTask : public CThreadFunctionWithHessianImpl::CSetArgThreadTask {
-	CSetArgThreadTask( CThreadFunctionWithHessianImpl& f, const CFloatVector& argument ) :
-		CThreadFunctionWithHessianImpl::CSetArgThreadTask( f, argument )
-	{}
-protected:
+namespace {
+
+struct CSquaredHingeState : public CFunctionWithHessianState {
+	using CFunctionWithHessianState::CFunctionWithHessianState; // inherit constructor of the base class
 	void SetArgument( const CFloatVector& argument, const CFloatVectorDesc& desc,
 		double& hessian, double& value, CFloatVector& gradient, float answer, float weight ) override;
 };
 
-void CSquaredHinge::CSetArgThreadTask::SetArgument( const CFloatVector& argument, const CFloatVectorDesc& desc,
+void CSquaredHingeState::SetArgument( const CFloatVector& argument, const CFloatVectorDesc& desc,
 	double& hessian, double& value, CFloatVector& gradient, float answer, float weight )
 {
 	const double x = answer * LinearFunction( argument, desc );
@@ -275,22 +361,12 @@ void CSquaredHinge::CSetArgThreadTask::SetArgument( const CFloatVector& argument
 	}
 }
 
-CSquaredHinge::CSquaredHinge(
-		const IProblem& data, double errorWeight, float l1Coeff, int threadCount ) :
-	CThreadFunctionWithHessianImpl( data, errorWeight, l1Coeff, threadCount )
-{}
-
-void CSquaredHinge::SetArgument( const CFloatVector& argument )
-{
-	CSetArgThreadTask task( *this, argument );
-	SetArguments( task );
-}
-
 //-----------------------------------------------------------------------------------------------------------------------
 
-struct CL2Regression::CSetArgThreadTask : public CThreadFunctionWithHessianImpl::CSetArgThreadTask {
-	CSetArgThreadTask( CL2Regression& f, const CFloatVector& argument, double p ) :
-		CThreadFunctionWithHessianImpl::CSetArgThreadTask( f, argument ),
+struct CL2RegressionState : public CFunctionWithHessianState {
+	CL2RegressionState( CFloatMatrixDesc matrix, int vectorCount,
+			double errorWeight, double p, float l1Coeff, int threadCount, THessianFType type ) :
+		CFunctionWithHessianState( matrix, vectorCount, errorWeight, l1Coeff, threadCount, type ),
 		P( p )
 	{}
 protected:
@@ -300,7 +376,7 @@ protected:
 	const double P;
 };
 
-void CL2Regression::CSetArgThreadTask::SetArgument( const CFloatVector& argument, const CFloatVectorDesc& desc,
+void CL2RegressionState::SetArgument( const CFloatVector& argument, const CFloatVectorDesc& desc,
 	double& hessian, double& value, CFloatVector& gradient, float answer, float weight )
 {
 	const double d = LinearFunction( argument, desc ) - answer;
@@ -320,49 +396,28 @@ void CL2Regression::CSetArgThreadTask::SetArgument( const CFloatVector& argument
 	}
 }
 
-CL2Regression::CL2Regression(
-		const IRegressionProblem& data, double errorWeight, double p, float l1Coeff, int threadCount ) :
-	CThreadFunctionWithHessianImpl( data, errorWeight, l1Coeff, threadCount ),
-	P( p )
-{}
-
-void CL2Regression::SetArgument( const CFloatVector& argument )
-{
-	CSetArgThreadTask task( *this, argument, P );
-	SetArguments( task );
-}
-
 //-----------------------------------------------------------------------------------------------------------------------
 
-struct CLogRegression::CSetArgThreadTask : public CThreadFunctionWithHessianImpl::CSetArgThreadTask {
-	CSetArgThreadTask( CLogRegression&, const CFloatVector& argument );
+struct CLogRegressionState : public CFunctionWithHessianState {
+	using CFunctionWithHessianState::CFunctionWithHessianState; // inherit constructor of the base class
 
-	double rValue = 0.;
-	const float LogNormalizer = 1.f / logf( 2.f );
-protected:
+	void PrepareSetArgument( const CFloatVector& argument, double& value ) override;
 	void SetArgument( const CFloatVector& argument, const CFloatVectorDesc& desc,
 		double& hessian, double& value, CFloatVector& gradient, float answer, float weight ) override;
+	void PostReductionSetArgument() override;
+
+	double RValue = 0.;
+	const float LogNormalizer = 1.f / logf( 2.f );
 };
 
-CLogRegression::CSetArgThreadTask::CSetArgThreadTask( CLogRegression& f, const CFloatVector& argument ) :
-	CThreadFunctionWithHessianImpl::CSetArgThreadTask( f, argument )
+void CLogRegressionState::PrepareSetArgument( const CFloatVector& argument, double& value )
 {
-	f.Val = 0.; // should repeat all of this, because Val should == 0, and rValue used instead
-	rValue = 0.;
-
-	f.Grad = Argument;  // calculate Grad the same again
-	f.Grad.SetAt( f.Grad.Size() - 1, 0.f ); // don't take the regularization bias into account
-
-	if( f.L1Coeff > 0.f ) {
-		calcL1Regularization( f.Grad, f.L1Coeff, rValue, f.Grad );  // !!!
-	} else {
-		rValue = DotProduct( f.Grad, f.Grad ) / 2.; // !!!
-	}
-	rValue = rValue / f.ErrorWeight; // !!!
-	f.Grad = f.Grad / f.ErrorWeight;
+	value = 0.;
+	// Should repeat all of this, because Value should == 0, and RValue used instead
+	CFunctionWithHessianState::PrepareSetArgument( argument, RValue );
 }
 
-void CLogRegression::CSetArgThreadTask::SetArgument( const CFloatVector& argument, const CFloatVectorDesc& desc,
+void CLogRegressionState::SetArgument( const CFloatVector& argument, const CFloatVectorDesc& desc,
 	double& hessian, double& value, CFloatVector& gradient, float answer, float weight )
 {
 	const double dot = LinearFunction( argument, desc );
@@ -374,32 +429,21 @@ void CLogRegression::CSetArgThreadTask::SetArgument( const CFloatVector& argumen
 	hessian = weight * LogNormalizer * expCoeff / ( 1. + expCoeff ) / ( 1. + expCoeff );
 }
 
-CLogRegression::CLogRegression(
-		const IProblem& data, double errorWeight, float l1Coeff, int threadCount ) :
-	CThreadFunctionWithHessianImpl( data, errorWeight, l1Coeff, threadCount )
-{}
-
-void CLogRegression::SetArgument( const CFloatVector& argument )
+void CLogRegressionState::PostReductionSetArgument()
 {
-	CSetArgThreadTask task( *this, argument );
-	SetArguments( task );
-
-	Val *= task.LogNormalizer;
-	Val += task.rValue;
+	Value *= LogNormalizer;
+	Value += RValue;
 }
 
 //-----------------------------------------------------------------------------------------------------------------------
 
-struct CSmoothedHinge::CSetArgThreadTask : public CThreadFunctionWithHessianImpl::CSetArgThreadTask {
-	CSetArgThreadTask( CSmoothedHinge& f, const CFloatVector& argument ) :
-		CThreadFunctionWithHessianImpl::CSetArgThreadTask( f, argument )
-	{}
-protected:
+struct CSmoothedHingeState : public CFunctionWithHessianState {
+	using CFunctionWithHessianState::CFunctionWithHessianState; // inherit constructor of the base class
 	void SetArgument( const CFloatVector& argument, const CFloatVectorDesc& desc,
 		double& hessian, double& value, CFloatVector& gradient, float answer, float weight ) override;
 };
 
-void CSmoothedHinge::CSetArgThreadTask::SetArgument( const CFloatVector& argument, const CFloatVectorDesc& desc,
+void CSmoothedHingeState::SetArgument( const CFloatVector& argument, const CFloatVectorDesc& desc,
 	double& hessian, double& value, CFloatVector& gradient, float answer, float weight )
 {
 	const double d = answer * LinearFunction( argument, desc ) - 1.;
@@ -414,15 +458,26 @@ void CSmoothedHinge::CSetArgThreadTask::SetArgument( const CFloatVector& argumen
 	}
 }
 
-CSmoothedHinge::CSmoothedHinge(
-		const IProblem& data, double errorWeight, float l1Coeff, int threadCount ) :
-	CThreadFunctionWithHessianImpl( data, errorWeight, l1Coeff, threadCount )
-{}
+} // namespace
 
-void CSmoothedHinge::SetArgument( const CFloatVector& argument )
+//-----------------------------------------------------------------------------------------------------------------------
+
+CFunctionWithHessianState* CFunctionWithHessianState::Create( CFloatMatrixDesc matrix, int vectorCount,
+	double errorWeight, double p, float l1Coeff, int threadCount, THessianFType type )
 {
-	CSetArgThreadTask task( *this, argument );
-	SetArguments( task );
+	switch( type ) {
+		case THessianFType::SquaredHinge:
+			return new CSquaredHingeState( matrix, vectorCount, errorWeight, l1Coeff, threadCount, type );
+		case THessianFType::L2Regression:
+			return new CL2RegressionState( matrix, vectorCount, errorWeight, p, l1Coeff, threadCount, type );
+		case THessianFType::LogRegression:
+			return new CLogRegressionState( matrix, vectorCount, errorWeight, l1Coeff, threadCount, type );
+		case THessianFType::SmoothedHinge:
+			return new CSmoothedHingeState( matrix, vectorCount, errorWeight, l1Coeff, threadCount, type );
+		default:
+			NeoAssert( false );
+	}
+	return nullptr;
 }
 
 } // namespace NeoML
