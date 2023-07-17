@@ -24,7 +24,7 @@ namespace NeoML {
 // Calculates the L1 regularization factor
 static void calcL1Regularization( const CFloatVector& w, float l1Coeff, double& value, CFloatVector& gradient )
 {
-	value = 0;
+	value = 0.;
 	for( int i = 0; i < w.Size(); ++i ) {
 		float z = w[i];
 		if( abs( z ) < l1Coeff ) {
@@ -40,26 +40,46 @@ static void calcL1Regularization( const CFloatVector& w, float l1Coeff, double& 
 //------------------------------------------------------------------------------------------------------------
 
 struct CThreadFunctionWithHessianImpl::IThreadTask {
-	explicit IThreadTask( CThreadFunctionWithHessianImpl& f ) :
-		F( f )
-	{}
 	virtual ~IThreadTask() {}
-	int ThreadsCount() const { return F.ThreadPool->Size(); }
+	void ParallelRun();
 
-	void CallRun( int threadIndex );
-	virtual void Reduction() = 0;
 protected:
-	virtual int Size() const { return F.Matrix.Height; }
+	static constexpr int MultiThreadMinTasksCount = 2;
+
+	IThreadTask( CThreadFunctionWithHessianImpl& f, const CFloatVector& argument ) :
+		F( f ),
+		Argument( argument )
+	{}
+	void RunSplittedByThreads( int threadIndex );
+
+	virtual int ParallelizeSize() const { return F.Matrix.Height; }
+	virtual int ThreadsCount() const { return F.ThreadPool->Size(); }
+
 	virtual void Run( int threadIndex, int index, int count ) = 0;
+	virtual void Reduction() = 0;
 
 	CThreadFunctionWithHessianImpl& F;
+	const CFloatVector& Argument;
 };
 
-void CThreadFunctionWithHessianImpl::IThreadTask::CallRun( int threadIndex )
+void CThreadFunctionWithHessianImpl::IThreadTask::ParallelRun()
+{
+	if( ParallelizeSize() < MultiThreadMinTasksCount ) {
+		Run( /*threadIndex*/0, /*index*/0, ParallelizeSize() );
+	} else {
+		NEOML_NUM_THREADS( *F.ThreadPool, this, []( int threadIndex, void* ptr ) {
+			 ( ( IThreadTask* )ptr )->RunSplittedByThreads( threadIndex );
+		} );
+	}
+	Reduction();
+}
+
+void CThreadFunctionWithHessianImpl::IThreadTask::RunSplittedByThreads( int threadIndex )
 {
 	int index = 0;
 	int count = 0;
-	if( GetTaskIndexAndCount( ThreadsCount(), threadIndex, Size(), index, count ) ) {
+	// 1 dimensional split
+	if( GetTaskIndexAndCount( ThreadsCount(), threadIndex, ParallelizeSize(), index, count ) ) {
 		Run( threadIndex, index, count );
 	}
 }
@@ -75,30 +95,26 @@ struct CThreadFunctionWithHessianImpl::CProductThreadTask final : public CThread
 protected:
 	void Run( int threadIndex, int index, int count ) override;
 
-	const CFloatVector& Argument;
-	CArray<CFloatVector> ResultReduction{};
+	CArray<CFloatVector> ThreadsResult{};
 };
 
 CThreadFunctionWithHessianImpl::CProductThreadTask::CProductThreadTask(
 		CThreadFunctionWithHessianImpl& f, const CFloatVector& argument ) :
-	IThreadTask( f ),
-	Result( argument / F.ErrorWeight ),
-	Argument( argument )
+	IThreadTask( f, argument ),
+	Result( argument / F.ErrorWeight )
 {
 	Result.SetAt( Result.Size() - 1, 0 );
-	ResultReduction.Add( CFloatVector( Result.Size() ), ThreadsCount() );
+	ThreadsResult.Add( CFloatVector( Result.Size() ), ThreadsCount() );
 }
 
 void CThreadFunctionWithHessianImpl::CProductThreadTask::Run( int threadIndex, int index, int count )
 {
-	CFloatVector& result = ResultReduction[threadIndex];
+	CFloatVector& result = ThreadsResult[threadIndex];
 	result.Nullify();
-
 	for( int i = 0; i < count; ++i, ++index ) {
 		if( F.Hessian[index] != 0 ) {
 			CFloatVectorDesc desc;
 			F.Matrix.GetRow( index, desc );
-
 			const double temp = LinearFunction( Argument, desc ) * F.Hessian[index];
 			result.MultiplyAndAddExt( desc, temp );
 		}
@@ -108,7 +124,7 @@ void CThreadFunctionWithHessianImpl::CProductThreadTask::Run( int threadIndex, i
 void CThreadFunctionWithHessianImpl::CProductThreadTask::Reduction()
 {
 	for( int t = 0; t < ThreadsCount(); ++t ) {
-		Result += ResultReduction[t];
+		Result += ThreadsResult[t];
 	}
 }
 
@@ -121,18 +137,16 @@ struct CThreadFunctionWithHessianImpl::CSetArgThreadTask : public CThreadFunctio
 	void Reduction() override;
 
 protected:
-	virtual void SubRun( int index, CFloatVectorDesc,
-		double* value, CFloatVector& grad, float answer, float weight ) = 0;
+	virtual void SetArgument( const CFloatVector& argument, const CFloatVectorDesc& desc,
+		double& hessian, double& value, CFloatVector& gradient, float answer, float weight ) = 0;
 
-	CFloatVector Argument{};
-	CArray<CFloatVector> GradientReduction{};
-	CArray<double> ValueReduction{};
+	CArray<CFloatVector> ThreadsGradient{};
+	CArray<double> ThreadsValue{};
 };
 
 CThreadFunctionWithHessianImpl::CSetArgThreadTask::CSetArgThreadTask(
 		CThreadFunctionWithHessianImpl& f, const CFloatVector& argument ) :
-	IThreadTask( f ),
-	Argument( argument )
+	IThreadTask( f, argument )
 {
 	NeoAssert( Argument.Size() == F.NumberOfDimensions() );
 
@@ -147,36 +161,35 @@ CThreadFunctionWithHessianImpl::CSetArgThreadTask::CSetArgThreadTask(
 	F.Val = F.Val / F.ErrorWeight;
 	F.Grad = F.Grad / F.ErrorWeight;
 
-	GradientReduction.Add( CFloatVector( F.Grad.Size() ), ThreadsCount() );
-	ValueReduction.Add( 0., ThreadsCount() );
-	f.Hessian.SetSize( Size() );
+	f.Hessian.SetSize( ParallelizeSize() );
+
+	ThreadsGradient.Add( CFloatVector( F.Grad.Size() ), ThreadsCount() );
+	ThreadsValue.Add( 0., ThreadsCount() );
 }
 
 void CThreadFunctionWithHessianImpl::CSetArgThreadTask::Run( int threadIndex, int index, int count )
 {
-	double* value = ValueReduction.GetPtr() + threadIndex;
-	GradientReduction[threadIndex].Nullify();
-	CFloatVector& grad = GradientReduction[threadIndex];
-
-	const float* AnswersPtr = F.Answers.GetPtr();
-	const float* WeightsPtr = F.Weights.GetPtr();
+	double* value = ThreadsValue.GetPtr() + threadIndex;
+	CFloatVector& gradient = ThreadsGradient[threadIndex];
+	gradient.Nullify();
 
 	for( int i = 0; i < count; ++i, ++index ) {
 		CFloatVectorDesc desc;
 		F.Matrix.GetRow( index, desc );
 
-		const float answer = AnswersPtr[index];
-		const float weight = WeightsPtr[index];
+		const float answer = F.Answers[index];
+		const float weight = F.Weights[index];
+		double& hessian = F.Hessian[index];
 
-		SubRun( index, desc, value, grad, answer, weight );
+		SetArgument( Argument, desc, hessian, *value, gradient, answer, weight );
 	}
 }
 
 void CThreadFunctionWithHessianImpl::CSetArgThreadTask::Reduction()
 {
 	for( int t = 0; t < ThreadsCount(); ++t ) {
-		F.Val += ValueReduction[t];
-		F.Grad += GradientReduction[t];
+		F.Val += ThreadsValue[t];
+		F.Grad += ThreadsGradient[t];
 	}
 }
 
@@ -227,22 +240,13 @@ CThreadFunctionWithHessianImpl::~CThreadFunctionWithHessianImpl()
 CFloatVector CThreadFunctionWithHessianImpl::HessianProduct( const CFloatVector& argument )
 {
 	CThreadFunctionWithHessianImpl::CProductThreadTask task( *this, argument );
-
-	NEOML_NUM_THREADS( *ThreadPool, &task, []( int threadIndex, void* ptr ) {
-		( ( IThreadTask* )ptr )->CallRun( threadIndex );
-	} );
-
-	task.Reduction();
+	task.ParallelRun();
 	return task.Result;
 }
 
 void CThreadFunctionWithHessianImpl::SetArguments( CSetArgThreadTask& task )
 {
-	NEOML_NUM_THREADS( *ThreadPool, &task, []( int threadIndex, void* ptr ) {
-		( ( IThreadTask* )ptr )->CallRun( threadIndex );
-	} );
-
-	task.Reduction();
+	task.ParallelRun();
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -251,29 +255,23 @@ struct CSquaredHinge::CSetArgThreadTask : public CThreadFunctionWithHessianImpl:
 	CSetArgThreadTask( CThreadFunctionWithHessianImpl& f, const CFloatVector& argument ) :
 		CThreadFunctionWithHessianImpl::CSetArgThreadTask( f, argument )
 	{}
-
 protected:
-	void SubRun( int index, CFloatVectorDesc, double* value,
-		CFloatVector& grad, float answer, float weight ) override;
-
-	CSquaredHinge& Function() { return dynamic_cast<CSquaredHinge&>( F ); }
+	void SetArgument( const CFloatVector& argument, const CFloatVectorDesc& desc,
+		double& hessian, double& value, CFloatVector& gradient, float answer, float weight ) override;
 };
 
-void CSquaredHinge::CSetArgThreadTask::SubRun( int index, CFloatVectorDesc desc,
-	double* value, CFloatVector& grad, float answer, float weight )
+void CSquaredHinge::CSetArgThreadTask::SetArgument( const CFloatVector& argument, const CFloatVectorDesc& desc,
+	double& hessian, double& value, CFloatVector& gradient, float answer, float weight )
 {
-	CSquaredHinge& f = Function();
-
-	const double x = answer * LinearFunction( Argument, desc );
+	const double x = answer * LinearFunction( argument, desc );
 	const double d = 1 - x;
 
 	if( x < 1 ) {
-		*value += weight * d * d;
-		grad.MultiplyAndAddExt( desc, -weight * answer * d * 2 );
-
-		f.Hessian[index] = weight * 2;
+		value += weight * d * d;
+		gradient.MultiplyAndAddExt( desc, -weight * answer * d * 2 );
+		hessian = weight * 2;
 	} else {
-		f.Hessian[index] = 0;
+		hessian = 0;
 	}
 }
 
@@ -295,34 +293,29 @@ struct CL2Regression::CSetArgThreadTask : public CThreadFunctionWithHessianImpl:
 		CThreadFunctionWithHessianImpl::CSetArgThreadTask( f, argument ),
 		P( p )
 	{}
-
 protected:
-	void SubRun( int index, CFloatVectorDesc, double* value,
-		CFloatVector& grad, float answer, float weight ) override;
-
-	CL2Regression& Function() { return dynamic_cast<CL2Regression&>( F ); }
+	void SetArgument( const CFloatVector& argument, const CFloatVectorDesc& desc,
+		double& hessian, double& value, CFloatVector& gradient, float answer, float weight ) override;
 
 	const double P;
 };
 
-void CL2Regression::CSetArgThreadTask::SubRun( int index, CFloatVectorDesc desc,
-	double* value, CFloatVector& grad, float answer, float weight )
+void CL2Regression::CSetArgThreadTask::SetArgument( const CFloatVector& argument, const CFloatVectorDesc& desc,
+	double& hessian, double& value, CFloatVector& gradient, float answer, float weight )
 {
-	CL2Regression& f = Function();
-	const double d = LinearFunction( Argument, desc ) - answer;
+	const double d = LinearFunction( argument, desc ) - answer;
 
 	if( d < -P ) {
-		*value += weight * ( d + P ) * ( d + P );
-		f.Hessian[index] = weight * 2;
-		grad.MultiplyAndAddExt( desc, weight * ( d + P ) * 2 );
+		value += weight * ( d + P ) * ( d + P );
+		hessian = weight * 2;
+		gradient.MultiplyAndAddExt( desc, weight * ( d + P ) * 2 );
 	} else {
-		*value += weight * ( d - P ) * ( d - P );
-
+		value += weight * ( d - P ) * ( d - P );
 		if( d > P ) {
-			f.Hessian[index] = weight * 2;
-			grad.MultiplyAndAddExt( desc, weight * ( d - P ) * 2 );
+			hessian = weight * 2;
+			gradient.MultiplyAndAddExt( desc, weight * ( d - P ) * 2 );
 		} else {
-			f.Hessian[index] = 0.f;
+			hessian = 0;
 		}
 	}
 }
@@ -344,13 +337,11 @@ void CL2Regression::SetArgument( const CFloatVector& argument )
 struct CLogRegression::CSetArgThreadTask : public CThreadFunctionWithHessianImpl::CSetArgThreadTask {
 	CSetArgThreadTask( CLogRegression&, const CFloatVector& argument );
 
-	double rValue = 0;
+	double rValue = 0.;
 	const float LogNormalizer = 1.f / logf( 2.f );
 protected:
-	void SubRun( int index, CFloatVectorDesc, double* value,
-		CFloatVector& grad, float answer, float weight ) override;
-
-	CLogRegression& Function() { return dynamic_cast<CLogRegression&>( F ); }
+	void SetArgument( const CFloatVector& argument, const CFloatVectorDesc& desc,
+		double& hessian, double& value, CFloatVector& gradient, float answer, float weight ) override;
 };
 
 CLogRegression::CSetArgThreadTask::CSetArgThreadTask( CLogRegression& f, const CFloatVector& argument ) :
@@ -371,18 +362,16 @@ CLogRegression::CSetArgThreadTask::CSetArgThreadTask( CLogRegression& f, const C
 	f.Grad = f.Grad / f.ErrorWeight;
 }
 
-void CLogRegression::CSetArgThreadTask::SubRun( int index, CFloatVectorDesc desc,
-	double* value, CFloatVector& grad, float answer, float weight )
+void CLogRegression::CSetArgThreadTask::SetArgument( const CFloatVector& argument, const CFloatVectorDesc& desc,
+	double& hessian, double& value, CFloatVector& gradient, float answer, float weight )
 {
-	CLogRegression& f = Function();
-
-	const double dot = LinearFunction( Argument, desc );
+	const double dot = LinearFunction( argument, desc );
 	const double expCoeff = exp( -answer * dot );
 
-	*value += weight * log1p( expCoeff );
+	value += weight * log1p( expCoeff );
 
-	grad.MultiplyAndAddExt( desc, -weight * LogNormalizer * answer * expCoeff / ( 1.f + expCoeff ) );
-	f.Hessian[index] = weight * LogNormalizer * expCoeff / ( 1.f + expCoeff ) / ( 1.f + expCoeff );
+	gradient.MultiplyAndAddExt( desc, -weight * LogNormalizer * answer * expCoeff / ( 1.f + expCoeff ) );
+	hessian = weight * LogNormalizer * expCoeff / ( 1.f + expCoeff ) / ( 1.f + expCoeff );
 }
 
 CLogRegression::CLogRegression(
@@ -405,29 +394,23 @@ struct CSmoothedHinge::CSetArgThreadTask : public CThreadFunctionWithHessianImpl
 	CSetArgThreadTask( CSmoothedHinge& f, const CFloatVector& argument ) :
 		CThreadFunctionWithHessianImpl::CSetArgThreadTask( f, argument )
 	{}
-
 protected:
-	void SubRun( int index, CFloatVectorDesc, double* value,
-		CFloatVector& grad, float answer, float weight ) override;
-
-	CSmoothedHinge& Function() { return dynamic_cast<CSmoothedHinge&>( F ); }
+	void SetArgument( const CFloatVector& argument, const CFloatVectorDesc& desc,
+		double& hessian, double& value, CFloatVector& gradient, float answer, float weight ) override;
 };
 
-void CSmoothedHinge::CSetArgThreadTask::SubRun( int index, CFloatVectorDesc desc,
-	double* value, CFloatVector& grad, float answer, float weight )
+void CSmoothedHinge::CSetArgThreadTask::SetArgument( const CFloatVector& argument, const CFloatVectorDesc& desc,
+	double& hessian, double& value, CFloatVector& gradient, float answer, float weight )
 {
-	CSmoothedHinge& f = Function();
-
-	const double d = answer * LinearFunction( Argument, desc ) - 1;
+	const double d = answer * LinearFunction( argument, desc ) - 1;
 
 	if( d < 0 ) {
 		const float sqrtValue = static_cast<float>( sqrt( d * d + 1 ) );
-		*value += weight * ( sqrtValue - 1 );
-
-		grad.MultiplyAndAddExt( desc, weight * answer * d / sqrtValue );
-		f.Hessian[index] = weight / ( ( d * d + 1 ) * sqrtValue );
+		value += weight * ( sqrtValue - 1 );
+		gradient.MultiplyAndAddExt( desc, weight * answer * d / sqrtValue );
+		hessian = weight / ( ( d * d + 1 ) * sqrtValue );
 	} else {
-		f.Hessian[index] = 0;
+		hessian = 0;
 	}
 }
 
