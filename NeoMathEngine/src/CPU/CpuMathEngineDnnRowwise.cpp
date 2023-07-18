@@ -352,20 +352,18 @@ void CCpuMathEngine::BlobResizeImage( const CBlobDesc& from, const CFloatHandle&
 
 	CCpuRowwiseImageResize impl( padding, defaultValue, deltaLeft, deltaRight, deltaTop, deltaBottom );
 	CBlobDesc reshapeResult = impl.Reshape( from );
-	( void ) reshapeResult;
+	( void )reshapeResult;
 	PRESUME_EXPR( reshapeResult.HasEqualDimensions( to ) );
 
 	const float* fromPtr = GetRaw( fromData );
 	float* toPtr = GetRaw( toData );
 
-	const int currThreadCount = IsOmpRelevant( from.ObjectCount(), from.BlobSize() ) ? threadCount : 1;
-	NEOML_OMP_FOR_NUM_THREADS( currThreadCount )
-		for( int batch = 0; batch < from.ObjectCount(); ++batch ) {
-			ICpuRowwiseImpl::CProcessingReport report = impl.Process( fromPtr + batch * from.ObjectSize(), batch * from.Height(),
-				from.Height(), toPtr + batch * to.ObjectSize(), batch * to.Height(), to.Height(), nullptr );
-			( void ) report;
-			PRESUME_EXPR( report.OutputRowsCalculated == to.Height() );
-		}
+	for( int batch = 0; batch < from.ObjectCount(); ++batch ) {
+		auto report = impl.Process( fromPtr + batch * from.ObjectSize(), batch * from.Height(),
+			from.Height(), toPtr + batch * to.ObjectSize(), batch * to.Height(), to.Height(), nullptr );
+		( void )report;
+		PRESUME_EXPR( report.OutputRowsCalculated == to.Height() );
+	}
 }
 
 CRowwiseOperationDesc* CCpuMathEngine::InitRowwiseResizeImage( TBlobResizePadding padding, float defaultValue,

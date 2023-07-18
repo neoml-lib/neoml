@@ -219,9 +219,6 @@ void CCpuMathEngine::BlobRleConvolution( const CRleConvolutionDesc& convDesc, co
 	const float* filterConvPtr = GetRaw( desc.FilterConv.GetHandle() );
 	float* resultDataPtr = GetRaw( resultData );
 
-	const int curThreadCount = IsOmpRelevant( objectCount ) ? threadCount : 1;
-
-	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
 	for( int b = 0; b < objectCount; ++b ) {
 		const CRleImage* inputImage = reinterpret_cast<const CRleImage*>( GetRaw( sourceData + source.ObjectSize() * b ) );
 		int imageStartPos = ( source.Width() - inputImage->Width ) / 2;

@@ -777,9 +777,7 @@ void CCpuMathEngine::blobConvolutionBackwardAlgo2( const CCpuConvolutionDesc& de
 
 	const int batchSize = source.ObjectCount();
 	const int tempSourceWidth = filter.Width() * tempBlobDesc.Depth() * tempBlobDesc.Channels();
-	const int curThreadCount = IsOmpRelevant( batchSize ) ? threadCount : 1;
 
-	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
 	for( int j = 0; j < batchSize; ++j ) {
 		float* resultRawPtr = resultRaw + j * result.ObjectSize();
 		if( freeTerm != nullptr ) {
