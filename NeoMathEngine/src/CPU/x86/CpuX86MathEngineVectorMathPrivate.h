@@ -1226,6 +1226,17 @@ inline void vectorLeakyReLU( const float* first, float* result, float alpha, int
 	}
 }
 
+//------------------------------------------------------------------------------------------------------------
+
+inline void vectorELU( const float* first, float* result, float alpha, int vectorSize )
+{
+	for( int i = 0; i < vectorSize; ++i ) {
+		*result = *first >= 0 ? *first : alpha * ( ExponentFunc( *first ) - 1.f );
+		++result;
+		++first;
+	}
+}
+
 } // namespace NeoML
 
 #endif // NEOML_USE_SSE

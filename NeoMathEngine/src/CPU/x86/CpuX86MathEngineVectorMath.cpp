@@ -251,25 +251,6 @@ void CCpuMathEngine::VectorEqualValue( const CConstIntHandle& firstHandle,
 	}
 }
 
-void CCpuMathEngine::VectorELU( const CConstFloatHandle& firstHandle,
-	const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& alphaHandle )
-{
-	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
-	ASSERT_EXPR( alphaHandle.GetMathEngine() == this );
-	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-	CCpuExecutionScope scope;
-
-	const float* first = GetRaw( firstHandle );
-	float* result = GetRaw( resultHandle );
-	const float alpha = *GetRaw( alphaHandle );
-
-	for( int i = 0; i < vectorSize; ++i ) {
-		*result = *first >= 0 ? *first : alpha * ( ExponentFunc( *first ) - 1.f );
-		++result;
-		++first;
-	}
-}
-
 void CCpuMathEngine::VectorELUDiff( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
 	const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& alphaHandle )
 {
@@ -826,45 +807,6 @@ void CCpuMathEngine::VectorHuberDerivative(const CConstFloatHandle& firstHandle,
 		for(int i = 0; i < sseSize; ++i) {
 			__m128 resSse = _mm_max_ps(_mm_min_ps(_mm_loadu_ps(first), oneSse), negOneSse);
 			_mm_storeu_ps(result, resSse);
-
-			first += 4;
-			result += 4;
-		}
-	}
-
-	for(int i = 0; i < nonSseSize; ++i) {
-		if(*first > 1) {
-			*result++ = 1;
-		} else if(*first < -1) {
-			*result++ = -1;
-		} else {
-			*result++ = *first;
-		}
-		++first;
-	}
-}
-
-void CCpuMathEngine::VectorHardTanh(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize)
-{
-	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
-	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-	CCpuExecutionScope scope;
-
-	const float* first = GetRaw(firstHandle);
-	float* result = GetRaw(resultHandle);
-
-	int sseSize;
-	int nonSseSize;
-	checkSse(vectorSize, sseSize, nonSseSize);
-
-	if(sseSize > 0) {
-		const __m128 oneSse = _mm_set_ps1(1.f);
-		const __m128 negOneSse = _mm_set_ps1(-1.f);
-		for(int i = 0; i < sseSize; ++i) {
-			__m128 value = _mm_loadu_ps(first);
-			value = _mm_max_ps(value, negOneSse);
-			value = _mm_min_ps(value, oneSse);
-			_mm_storeu_ps(result, value);
 
 			first += 4;
 			result += 4;
