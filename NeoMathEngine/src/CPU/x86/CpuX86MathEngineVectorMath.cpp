@@ -1382,9 +1382,9 @@ void CCpuMathEngine::VectorSigmoid(const CConstFloatHandle& firstHandle, const C
 
 	const float* first = GetRaw( firstHandle );
 	float* result = GetRaw( resultHandle );
-	const int curThreadCount = IsOmpRelevant( vectorSize, 2 * vectorSize ) ? threadCount : 1;
+
 	if( simdMathEngine != nullptr ) {
-		simdMathEngine->Sigmoid( result, first, vectorSize, curThreadCount > 1 );
+		simdMathEngine->Sigmoid( result, first, vectorSize );
 	} else {
 		vectorSigmoid( first, result, vectorSize );
 	}

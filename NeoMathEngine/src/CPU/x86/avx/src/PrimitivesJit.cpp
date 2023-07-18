@@ -34,23 +34,23 @@ CPrimitivesJit::CPrimitivesJit( IMathEngine* _mathEngine ) :
 	initTable();
 }
 
-void CPrimitivesJit::Tanh( float* dst, const float* src, size_t dataSize, bool isMultithread )
+void CPrimitivesJit::Tanh( float* dst, const float* src, size_t dataSize )
 {
-	callPrimitive<TPrimitive::Tanh, ActivationFunc>( dataSize, isMultithread, dst, src );
+	callPrimitive<TPrimitive::Tanh, ActivationFunc>( dataSize, dst, src );
 }
 
-void CPrimitivesJit::Sigmoid( float* dst, const float* src, size_t dataSize, bool isMultithread )
+void CPrimitivesJit::Sigmoid( float* dst, const float* src, size_t dataSize )
 {
-	callPrimitive<TPrimitive::Sigmoid, ActivationFunc>( dataSize, isMultithread, dst, src );
+	callPrimitive<TPrimitive::Sigmoid, ActivationFunc>( dataSize, dst, src );
 }
 
-void CPrimitivesJit::Exp( float* dst, const float* src, size_t dataSize, bool isMultithread )
+void CPrimitivesJit::Exp( float* dst, const float* src, size_t dataSize )
 {
-	callPrimitive<TPrimitive::Exp, ActivationFunc>( dataSize, isMultithread, dst, src );
+	callPrimitive<TPrimitive::Exp, ActivationFunc>( dataSize, dst, src );
 }
 
 void CPrimitivesJit::RestOfLstm( CMathEngineLstmDesc* desc, const CConstFloatHandle& inputStateBackLink,
-	const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink, bool isMultithread )
+	const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink )
 {
 	CMathEngineLstmDesc& lstmDesc = *desc;
 
@@ -60,7 +60,7 @@ void CPrimitivesJit::RestOfLstm( CMathEngineLstmDesc* desc, const CConstFloatHan
 	float* inputFullyConnectedResultPtr = GetRaw( lstmDesc.inputFullyConnectedResult );
 	float* reccurentFullyConnectedResultPtr = GetRaw( lstmDesc.reccurentFullyConnectedResult );
 
-	callPrimitive<TPrimitive::RestOfLstm, RestOfLstmFunc>( lstmDesc.objectCount, isMultithread,
+	callPrimitive<TPrimitive::RestOfLstm, RestOfLstmFunc>( lstmDesc.objectCount,
 		lstmDesc.hiddenSize, inputStateBackLinkPtr, outputStateBackLinkPtr, outputMainBackLinkPtr,
 		inputFullyConnectedResultPtr, reccurentFullyConnectedResultPtr );
 }
@@ -265,11 +265,11 @@ void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::RestOfLstm>()
 	gen.mov( regInputFullyConnectedResultPtr, stackArgsPtr );
 	gen.mov( regReccurentFullyConnectedResultPtr, gen.ptr[stackArgsPtr.getRegExp() + SizeofReg64] );
 	const int WinUnixStackDiff = 2;
-#else
+#else  // !_WIN32
 	const reg64_t regInputFullyConnectedResultPtr = Param5;
 	const reg64_t regReccurentFullyConnectedResultPtr = Param6;
 	const int WinUnixStackDiff = 0;
-#endif
+#endif // !_WIN32
 	const reg64_t regOffset = rax;
 	const reg64_t regObjectsCount = r11;
 	gen.mov( regOffset, gen.ptr[stackArgsPtr.getRegExp() + ( WinUnixStackDiff + 0 ) * SizeofReg64] );
@@ -712,7 +712,7 @@ void CPrimitivesJit::insertPrimitive<CPrimitivesJit::TPrimitive::Sigmoid>( CJitC
 }
 
 template<CPrimitivesJit::TPrimitive P, class PrimitiveFuncType, class... Args>
-inline void CPrimitivesJit::callPrimitive( size_t dataSize, bool isMultithread, Args... args )
+inline void CPrimitivesJit::callPrimitive( size_t dataSize, Args... args )
 {
 	// args - usually are different kind of pointers
 	using namespace Xbyak::util;
@@ -726,18 +726,7 @@ inline void CPrimitivesJit::callPrimitive( size_t dataSize, bool isMultithread, 
 	}
 	genInst.lock.unlock();
 	func = genInst.gen.getCode<PrimitiveFuncType>();
-
-	const int curThreadCount = isMultithread && IsOmpRelevant( static_cast< int >( dataSize ) ) ? threadCount : 1;
-	if( curThreadCount != 1 ) {
-		NEOML_OMP_NUM_THREADS( curThreadCount ) {
-			int offt, count;
-			if( OmpGetTaskIndexAndCount( static_cast< int >( dataSize ), offt, count ) ) {
-				func( args..., offt, count );
-			}
-		}
-	} else {
-		func( args..., 0, dataSize );
-	}
+	func( args..., 0, dataSize );
 }
 
 template<class RegType, class ArrayType0, class ArrayType1>
