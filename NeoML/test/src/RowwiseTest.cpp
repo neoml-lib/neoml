@@ -18,6 +18,8 @@ limitations under the License.
 
 #include <TestFixture.h>
 
+#include <NeoML/Dnn/Rowwise/Activation.h>
+
 using namespace NeoML;
 using namespace NeoMLTest;
 
@@ -153,4 +155,59 @@ TEST( RowwiseTest, ResizeImageOp )
 		return curr;
 	};
 	rowwiseTestImpl( buildChain, 0xBADBEE );
+}
+
+TEST( RowwiseTest, Optimize2Chains )
+{
+	NEOML_TEST_CPU_ONLY;
+	auto buildChain = [] ( CSourceLayer* source ) -> CBaseLayer* {
+		CBaseLayer* curr = source;
+		IMathEngine& mathEngine = source->MathEngine();
+		CDnn& dnn = *source->GetDnn();
+
+		CPtr<CRowwiseOperationChainLayer> firstChain = new CRowwiseOperationChainLayer( mathEngine );
+		firstChain->SetName( "firstChain" );
+		firstChain->AddOperation( new CRowwiseActivation( mathEngine,
+			CActivationDesc( AF_ELU, CELUActivationParam{ 0.01f } ) ) );
+		firstChain->AddOperation( new CRowwiseActivation( mathEngine,
+			CActivationDesc( AF_LeakyReLU, CLeakyReLUActivationParam() ) ) );
+		dnn.AddLayer( *firstChain );
+		firstChain->Connect( *source );
+
+		CPtr<CRowwiseOperationChainLayer> secondChain = new CRowwiseOperationChainLayer( mathEngine );
+		secondChain->SetName( "secondChain" );
+		secondChain->AddOperation( new CRowwiseActivation( mathEngine,
+			CActivationDesc( AF_HardSigmoid, CHardSigmoidActivationParam() ) ) );
+		secondChain->AddOperation( new CRowwiseActivation( mathEngine, CActivationDesc( AF_HardTanh ) ) );
+		dnn.AddLayer( *secondChain );
+		secondChain->Connect( *firstChain );
+
+		return secondChain.Ptr();
+	};
+	rowwiseTestImpl( buildChain, 0xBEE );
+}
+
+TEST( RowwiseTest, OptimizeOpInFrontOfChain )
+{
+	NEOML_TEST_CPU_ONLY;
+	auto buildChain = [] ( CSourceLayer* source ) -> CBaseLayer* {
+		CBaseLayer* curr = source;
+		IMathEngine& mathEngine = source->MathEngine();
+		CDnn& dnn = *source->GetDnn();
+
+		curr = Elu()( curr );
+
+		CPtr<CRowwiseOperationChainLayer> chain = new CRowwiseOperationChainLayer( mathEngine );
+		chain->SetName( "chain" );
+		chain->AddOperation( new CRowwiseActivation( mathEngine,
+			CActivationDesc( AF_LeakyReLU, CLeakyReLUActivationParam() ) ) );
+		chain->AddOperation( new CRowwiseActivation( mathEngine,
+			CActivationDesc( AF_HardSigmoid, CHardSigmoidActivationParam() ) ) );
+		chain->AddOperation( new CRowwiseActivation( mathEngine, CActivationDesc( AF_HardTanh ) ) );
+		dnn.AddLayer( *chain );
+		chain->Connect( *curr );
+
+		return chain.Ptr();
+	};
+	rowwiseTestImpl( buildChain, 0xBEE );
 }
