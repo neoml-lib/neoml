@@ -48,10 +48,11 @@ struct NEOML_API CDnnOptimizationReport {
 
 // Settings for optional optimizations
 struct NEOML_API CDnnOptimizationSettings {
-	// Enable additional optimizations which are useful for inference on C{U
-	// After these optimizations dnn can be used ONLY ON CPU
+	// Enable additional optimizations which are useful for inference on CPU
+	// After these optimizations dnn can be used ONLY ON CPU (GPU support isn't guarranteed)
 	// Recommended for convolutional nets with at least 20MB RAM usage
 	// (You can measure RAM usage by running the dnn and dnn.GetMathEngine().GetPeakMemoryUsage())
+	// Turned ON by default because it's the most common scenario
 	bool AllowCpuOnlyOptimizations = true;
 };
 
