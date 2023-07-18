@@ -67,7 +67,7 @@ inline CBlobDesc CRowwiseChConv::Reshape( const CBlobDesc& inputSize )
 }
 
 inline IRowwiseCpuImpl::CProcessingReport CRowwiseChConv::Process( const float* input, int inputRowIndex,
-	int inputRowsAvailable, float* output, int outputRowIndex, int outputRowsAvailable, float* buffer ) const
+	int inputRowsAvailable, float* output, int outputRowIndex, int outputRowsAvailable, float* ) const
 {
 	CProcessingReport report = RowwiseConvProcessingReport( inputRowIndex, inputRowsAvailable, outputRowIndex,
 		outputRowsAvailable, desc.Source.Height(), desc.Result.Height(), desc.Filter.Height(), desc.PaddingHeight,
