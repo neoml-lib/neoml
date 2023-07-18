@@ -44,6 +44,15 @@ struct NEOML_API CDnnOptimizationReport {
 	int MobileNetV3ResidualBlocks = 0;
 };
 
+// Settings for optional optimizations
+struct NEOML_API CDnnOptimizationSettings {
+	// Enable additional optimizations which are useful for inference on CPU
+	// After these optimizations dnn can be used ONLY ON CPU (GPU support isn't guarranteed)
+	// Recommended for convolutional nets with at least 20MB RAM usage
+	// (You can measure RAM usage by running the dnn and dnn.GetMathEngine().GetPeakMemoryUsage())
+	bool AllowCpuOnlyOptimizations = true;
+};
+
 // Optimizes inference of given CDnn at the cost of trainability
 //
 // List of supported optimizations:
@@ -83,6 +92,7 @@ struct NEOML_API CDnnOptimizationReport {
 //             +------------------------------+
 //        with optimized CMobileNetV3BlockLayer
 //        ReLU and HSwish activations are supported (or trivial Linear{mul=1, ft=0}).
-CDnnOptimizationReport NEOML_API OptimizeDnn( CDnn& dnn );
+CDnnOptimizationReport NEOML_API OptimizeDnn( CDnn& dnn,
+	const CDnnOptimizationSettings& settings = CDnnOptimizationSettings() );
 
 } // namespace NeoML

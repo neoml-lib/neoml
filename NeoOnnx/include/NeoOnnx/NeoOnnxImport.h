@@ -34,6 +34,10 @@ struct NEOONNX_API CImportSettings {
 	//    OutputLayouts.Add( Name, { BD_BatchWidth, BD_Channels } );
 	// If not set the default behavior is used (see LoadFromOnnx)
 	CMap<CString, CTensorLayout> OutputLayouts;
+
+	// After the import the net is passed to NeoML::OptimizeDnn
+	// The settings used by OptimizeDnn
+	CDnnOptimizationSettings DnnOptimizationSettings{};
 };
 
 // Information about imported model
