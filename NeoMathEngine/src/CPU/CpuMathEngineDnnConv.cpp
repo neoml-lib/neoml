@@ -312,7 +312,7 @@ void CCpuMathEngine::blobConvolutionForwardAlgo0( const CCpuConvolutionDesc& des
 	CFloatHandleStackVar tempData( mathEngine(), tempDataSize );
 	float* tempDataRaw = GetRaw( tempData.GetHandle() );
 
-	NEOML_OMP_NUM_THREADS(curThreadCount)
+	NEOML_OMP_NUM_THREADS( curThreadCount )
 	{
 		const int filterObjectCount = desc.Filter.ObjectCount();
 		const int filterObjectSize = desc.Filter.ObjectSize();
