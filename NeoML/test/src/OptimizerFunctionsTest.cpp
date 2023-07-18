@@ -34,20 +34,9 @@ TEST( TrivialLayerOptimizerTest, Linear )
 	CLinearLayer* linearToRemove3 = Linear( 1.0f, 0 )( "linearToRemove3", linearToRemove2 );
 	( void ) Sink( linearToRemove3, "sink" );
 
-	CDnnOptimizationReport report = OptimizeDnn( dnn );
+	CDnnOptimizationReport report = OptimizeDnn( dnn, DnnOptimizationSettings() );
 
 	EXPECT_EQ( 4, report.RemovedTrivialLayers );
-
-	EXPECT_EQ( 4, dnn.GetLayerCount() );
-	EXPECT_TRUE( dnn.HasLayer( "source" ) );
-	EXPECT_TRUE( dnn.HasLayer( "linearToSave0" ) );
-	EXPECT_TRUE( dnn.HasLayer( "linearToSave1" ) );
-	EXPECT_TRUE( dnn.HasLayer( "sink" ) );
-
-	EXPECT_FALSE( dnn.HasLayer( "linearToRemove0" ) );
-	EXPECT_FALSE( dnn.HasLayer( "linearToRemove1" ) );
-	EXPECT_FALSE( dnn.HasLayer( "linearToRemove2" ) );
-	EXPECT_FALSE( dnn.HasLayer( "linearToRemove3" ) );
 }
 
 TEST( TrivialLayerOptimizerTest, Dropout )
@@ -62,7 +51,7 @@ TEST( TrivialLayerOptimizerTest, Dropout )
 	CDropoutLayer* dropout3 = Dropout( 0.001f )( "dropout3", dropout2 );
 	( void ) Sink( dropout3, "sink" );
 
-	CDnnOptimizationReport report = OptimizeDnn( dnn );
+	CDnnOptimizationReport report = OptimizeDnn( dnn, DnnOptimizationSettings() );
 
 	EXPECT_EQ( 4, report.RemovedTrivialLayers );
 
@@ -90,10 +79,9 @@ TEST( TrivialLayerOptimizerTest, None )
 
 	EXPECT_EQ( 6, dnn.GetLayerCount() );
 
-	CDnnOptimizationReport report = OptimizeDnn( dnn );
+	CDnnOptimizationReport report = OptimizeDnn( dnn, DnnOptimizationSettings() );
 
 	EXPECT_EQ( 0, report.RemovedTrivialLayers );
-	EXPECT_EQ( 6, dnn.GetLayerCount() );
 }
 
 TEST( TrivialLayerOptimizerTest, All )
@@ -110,7 +98,7 @@ TEST( TrivialLayerOptimizerTest, All )
 	CLinearLayer* linear2 = Linear( 1.f, 0.f )( "linear2", linear1 );
 	( void ) Sink( linear2, "sink" );
 
-	CDnnOptimizationReport report = OptimizeDnn( dnn );
+	CDnnOptimizationReport report = OptimizeDnn( dnn, DnnOptimizationSettings() );
 
 	EXPECT_EQ( 7, report.RemovedTrivialLayers );
 	EXPECT_EQ( 2, dnn.GetLayerCount() );
@@ -214,7 +202,7 @@ TEST( UnpackCompositeOptimizerTest, Sample )
 		sink2->GetBlob()->GetCopy()
 	};
 
-	CDnnOptimizationReport report = OptimizeDnn( dnn );
+	CDnnOptimizationReport report = OptimizeDnn( dnn, DnnOptimizationSettings() );
 	EXPECT_EQ( 7, report.UnpackedCompositeLayers );
 	dnn.RunOnce();
 

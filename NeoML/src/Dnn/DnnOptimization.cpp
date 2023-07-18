@@ -27,16 +27,20 @@ limitations under the License.
 
 namespace NeoML {
 
-CDnnOptimizationReport OptimizeDnn( CDnn& dnn )
+CDnnOptimizationReport OptimizeDnn( CDnn& dnn, const CDnnOptimizationSettings& settings )
 {
 	CDnnOptimizationReport report;
 	optimization::CGraph graph( dnn );
+
 	report.UnpackedCompositeLayers = optimization::UnpackComposites( graph );
 	report.RemovedTrivialLayers = optimization::RemoveTrivialLayers( graph );
 	optimization::CBatchNormFusionOptimizer( graph ).Apply( report );
-	optimization::CChannelwiseWith1x1Optimizer( graph ).Apply( report );
-	optimization::CMobileNetV2Optimizer( graph ).Apply( report );
-	optimization::CMobileNetV3Optimizer( graph ).Apply( report );
+
+	if( settings.AllowCpuOnlyOptimizations ) {
+		optimization::CChannelwiseWith1x1Optimizer( graph ).Apply( report );
+		optimization::CMobileNetV2Optimizer( graph ).Apply( report );
+		optimization::CMobileNetV3Optimizer( graph ).Apply( report );
+	}
 	return report;
 }
 
