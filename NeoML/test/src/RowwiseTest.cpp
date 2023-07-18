@@ -161,7 +161,6 @@ TEST( RowwiseTest, Optimize2Chains )
 {
 	NEOML_TEST_CPU_ONLY;
 	auto buildChain = [] ( CSourceLayer* source ) -> CBaseLayer* {
-		CBaseLayer* curr = source;
 		IMathEngine& mathEngine = source->MathEngine();
 		CDnn& dnn = *source->GetDnn();
 
