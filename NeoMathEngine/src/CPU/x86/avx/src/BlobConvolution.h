@@ -185,6 +185,8 @@ private:
 
     void initJitCodes();
 
+    void processConvolutionRowwise( int rowIdx, int rowCount );
+
     // Rearrange filter and fill 'Filter' and 'FreeTerm' members.
     const float* rearrangeFilter( const float* filterData, CMemoryHandleVarBase<float>& Filter );
     const float* rearrangeFreeTerm( const float* freeTermData, CMemoryHandleVarBase<float>& FreeTerm );
