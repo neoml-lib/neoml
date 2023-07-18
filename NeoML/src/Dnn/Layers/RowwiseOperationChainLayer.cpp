@@ -115,7 +115,7 @@ void CRowwiseOperationChainLayer::deleteRowwiseDescs()
 	operationDescs.DeleteAll();
 }
 
-//=====================================================================================================================
+//---------------------------------------------------------------------------------------------------------------------
 
 template<typename... Targs>
 struct IsOneOf
@@ -132,86 +132,114 @@ struct IsOneOf<T, Targs...>
 	}
 };
 
+static bool isChainLayer( const CBaseLayer* layer )
+{
+	return IsOneOf<CRowwiseOperationChainLayer>::f( layer );
+}
+
+static bool isRowwiseOpLayer( const CBaseLayer* layer )
+{
+	return IsOneOf<CChannelwiseWith1x1Layer, CChannelwiseConvLayer, CConvLayer, CELULayer, CHardSigmoidLayer,
+		CHardTanhLayer, CHSwishLayer, CImageResizeLayer, CLeakyReLULayer, CLinearLayer, CMaxPoolingLayer,
+		CMeanPoolingLayer, CMobileNetV2BlockLayer, CReLULayer, CSigmoidLayer, CTanhLayer>::f( layer );
+}
+
+static CPtr<IRowwiseOperation> createRowwiseOp( const CBaseLayer* layer )
+{
+	auto channelwiseWith1x1 = dynamic_cast<const CChannelwiseWith1x1Layer*>( layer );
+	if( channelwiseWith1x1 != nullptr ) {
+		return new CRowwiseChWith1x1( *channelwiseWith1x1 );
+	}
+	auto conv = dynamic_cast<const CConvLayer*>( layer );
+	if( conv != nullptr ) {
+		return new CRowwiseConv( *conv );
+	}
+	auto chConv = dynamic_cast<const CChannelwiseConvLayer*>( layer );
+	if( chConv != nullptr ) {
+		return new CRowwiseChConv( *chConv );
+	}
+	auto imageResize = dynamic_cast<const CImageResizeLayer*>( layer );
+	if( imageResize != nullptr ) {
+		return new CRowwiseImageResize( *imageResize );
+	}
+	auto maxPooling = dynamic_cast<const CMaxPoolingLayer*>( layer );
+	if( maxPooling != nullptr ) {
+		return new CRowwise2DPooling( *maxPooling );
+	}
+	auto meanPooling = dynamic_cast<const CMeanPoolingLayer*>( layer );
+	if( meanPooling != nullptr ) {
+		return new CRowwise2DPooling( *meanPooling );
+	}
+	if( IsOneOf<CELULayer, CHardSigmoidLayer, CHardTanhLayer, CHSwishLayer, CLeakyReLULayer, CLinearLayer,
+		CReLULayer, CSigmoidLayer, CTanhLayer>::f( layer ) )
+	{
+		return new CRowwiseActivation( layer->MathEngine(),
+			dynamic_cast<const IActivationLayer*>( layer )->GetDesc() );
+	}
+	auto mobileNetV2 = dynamic_cast<const CMobileNetV2BlockLayer*>( layer );
+	if( mobileNetV2 != nullptr ) {
+		return new CRowwiseMobileNetV2( *mobileNetV2 );
+	}
+	NeoAssert( false );
+	return nullptr;
+}
+
 void OptimizeRowwiseChains( CDnn& dnn, CArray<int>& chains )
 {
 	chains.DeleteAll();
 	optimization::CGraph graph( dnn );
-
-	auto isChainLayer = [] ( const CBaseLayer* layer ) -> bool {
-		return dynamic_cast<const CRowwiseOperationChainLayer*>( layer ) != nullptr;
-	};
-
-	auto isRowwiseLayer = [] ( const CBaseLayer* layer ) -> bool {
-		return IsOneOf<CChannelwiseWith1x1Layer, CChannelwiseConvLayer, CConvLayer, CELULayer, CHardSigmoidLayer,
-			CHardTanhLayer, CHSwishLayer, CImageResizeLayer, CLeakyReLULayer, CLinearLayer, CMaxPoolingLayer,
-			CMeanPoolingLayer, CMobileNetV2BlockLayer, CReLULayer, CSigmoidLayer, CTanhLayer>::f( layer );
-	};
-
-	auto createOperation = [] ( const CBaseLayer* layer ) -> CPtr<IRowwiseOperation> {
-		auto channelwiseWith1x1 = dynamic_cast<const CChannelwiseWith1x1Layer*>( layer );
-		if( channelwiseWith1x1 != nullptr ) {
-			return new CRowwiseChWith1x1( *channelwiseWith1x1 );
-		}
-		auto conv = dynamic_cast<const CConvLayer*>( layer );
-		if( conv != nullptr ) {
-			return new CRowwiseConv( *conv );
-		}
-		auto chConv = dynamic_cast<const CChannelwiseConvLayer*>( layer );
-		if( chConv != nullptr ) {
-			return new CRowwiseChConv( *chConv );
-		}
-		auto imageResize = dynamic_cast<const CImageResizeLayer*>( layer );
-		if( imageResize != nullptr ) {
-			return new CRowwiseImageResize( *imageResize );
-		}
-		auto maxPooling = dynamic_cast<const CMaxPoolingLayer*>( layer );
-		if( maxPooling != nullptr ) {
-			return new CRowwise2DPooling( *maxPooling );
-		}
-		auto meanPooling = dynamic_cast<const CMeanPoolingLayer*>( layer );
-		if( meanPooling != nullptr ) {
-			return new CRowwise2DPooling( *meanPooling );
-		}
-		if( IsOneOf<CELULayer, CHardSigmoidLayer, CHardTanhLayer, CHSwishLayer, CLeakyReLULayer, CLinearLayer,
-			CReLULayer, CSigmoidLayer, CTanhLayer>::f( layer ) )
-		{
-			return new CRowwiseActivation( layer->MathEngine(),
-				dynamic_cast<const IActivationLayer*>( layer )->GetDesc() );
-		}
-		auto mobileNetV2 = dynamic_cast<const CMobileNetV2BlockLayer*>( layer );
-		if( mobileNetV2 != nullptr ) {
-			return new CRowwiseMobileNetV2( *mobileNetV2 );
-		}
-		NeoAssert( false );
-		return nullptr;
-	};
 
 	CArray<CBaseLayer*> layers;
 	graph.GetLayers( layers );
 
 	for( CBaseLayer* layer : layers ) {
 		graph.ClearSelection();
-
-		if( !isRowwiseLayer( layer ) ) {
-			continue;
-		}
-
 		graph.SelectLayer( *layer );
-		CBaseLayer* prevLayer = graph.SelectTheOnlyConnectedOutput<CBaseLayer>( *layer, true );
-		if( isChainLayer( prevLayer ) ) {
-			dynamic_cast<CRowwiseOperationChainLayer*>( prevLayer )->AddOperation( createOperation( layer ) );
-			graph.SwitchOutputs( *layer, 0, *prevLayer, 0 );
-			graph.DeleteLayer( *layer );
-		} else if( isRowwiseLayer( prevLayer ) ) {
-			CPtr<CRowwiseOperationChainLayer> chainLayer = new CRowwiseOperationChainLayer( dnn.GetMathEngine() );
-			chainLayer->SetName( graph.GetUniqueName( "RowwiseChain" ) );
-			chainLayer->AddOperation( createOperation( prevLayer ) );
-			chainLayer->AddOperation( createOperation( layer ) );
-			graph.AddLayer( *chainLayer );
-			optimization::CLayerOutput<> chainInput = graph.GetConnectedOutput( *prevLayer, 0 );
-			graph.Connect( *chainLayer, 0, *chainInput.Layer, chainInput.Index );
-			graph.SwitchOutputs( *layer, 0, *chainLayer, 0 );
-			graph.DeleteSelectedLayers();
+
+		if( isRowwiseOpLayer( layer ) ) {
+			CBaseLayer* prevLayer = graph.SelectTheOnlyConnectedOutput<CBaseLayer>( *layer, true );
+			if( isChainLayer( prevLayer ) ) {
+				// Append current op to an existing chain
+				dynamic_cast<CRowwiseOperationChainLayer*>( prevLayer )->AddOperation( createRowwiseOp( layer ) );
+				graph.SwitchOutputs( *layer, 0, *prevLayer, 0 );
+				graph.DeleteLayer( *layer );
+			} else if( isRowwiseOpLayer( prevLayer ) ) {
+				// Merge 2 rowwise ops into chain
+				CPtr<CRowwiseOperationChainLayer> chainLayer = new CRowwiseOperationChainLayer( dnn.GetMathEngine() );
+				chainLayer->SetName( graph.GetUniqueName( "RowwiseChain" ) );
+				chainLayer->AddOperation( createRowwiseOp( prevLayer ) );
+				chainLayer->AddOperation( createRowwiseOp( layer ) );
+				graph.AddLayer( *chainLayer );
+				optimization::CLayerOutput<> chainInput = graph.GetConnectedOutput( *prevLayer, 0 );
+				graph.Connect( *chainLayer, 0, *chainInput.Layer, chainInput.Index );
+				graph.SwitchOutputs( *layer, 0, *chainLayer, 0 );
+				graph.DeleteSelectedLayers();
+			}
+		} else if( isChainLayer( layer ) ) {
+			CRowwiseOperationChainLayer* currChain = dynamic_cast<CRowwiseOperationChainLayer*>( layer );
+			CBaseLayer* prevLayer = graph.SelectTheOnlyConnectedOutput<CBaseLayer>( *layer, true );
+			if( isChainLayer( prevLayer ) ) {
+				// Move operations from currChain into prevChain and delete currChain
+				CRowwiseOperationChainLayer* prevChain = dynamic_cast<CRowwiseOperationChainLayer*>( prevLayer );
+				for( int i = 0; i < currChain->OperationCount(); ++i ) {
+					prevChain->AddOperation( currChain->GetOperation( i ) );
+				}
+				graph.SwitchOutputs( *currChain, 0, *prevChain, 0 );
+				graph.DeleteLayer( *currChain );
+			} else if( isRowwiseOpLayer( prevLayer ) ) {
+				// Create new chain which starts with operation from prevLayer and then does all the ops from currChain
+				CPtr<CRowwiseOperationChainLayer> newChain = new CRowwiseOperationChainLayer( dnn.GetMathEngine() );
+				newChain->SetName( graph.GetUniqueName( "RowwiseChain" ) );
+				newChain->AddOperation( createRowwiseOp( prevLayer ) );
+				for( int i = 0; i < currChain->OperationCount(); ++i ) {
+					newChain->AddOperation( currChain->GetOperation( i ) );
+				}
+				optimization::CLayerOutput<> chainInput = graph.GetConnectedOutput( *prevLayer, 0 );
+				graph.AddLayer( *newChain );
+				graph.Connect( *newChain, 0, *chainInput.Layer, chainInput.Index );
+				graph.SwitchOutputs( *currChain, 0, *newChain, 0 );
+				graph.DeleteSelectedLayers();
+			}
 		}
 	}
 

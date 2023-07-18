@@ -30,7 +30,7 @@ public:
 
 	// Access to the chain of operations
 	int OperationCount() const { return operations.Size(); }
-	const IRowwiseOperation* GetOperation( int index ) const { return operations[index]; }
+	IRowwiseOperation* GetOperation( int index ) const { return operations[index]; }
 
 	// Adds operation to the end of the chain
 	void AddOperation( IRowwiseOperation* newOperation ) { operations.Add( newOperation ); }
@@ -53,7 +53,6 @@ private:
 
 //=====================================================================================================================
 
-// TODO: add this to OptimizeDnn?
 void NEOML_API OptimizeRowwiseChains( CDnn& dnn, CArray<int>& chains );
 
 } // namespace NeoML
