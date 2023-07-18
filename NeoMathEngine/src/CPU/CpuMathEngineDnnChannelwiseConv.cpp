@@ -147,15 +147,7 @@ void CCpuMathEngine::MobileNetV3PreSEBlock( const CBlobDesc& inputDesc, const CB
 			// Apply expand convolution
 			multiplyMatrixByTransposedWithFreeTerm( input, inputRowsThisStep * inputWidth, inputChannels,
 				expandFilter, outputChannels, expandFreeTerm, chInput );
-			if( expandActivation == AF_HSwish ) {
-				vectorHSwish( chInput, chInput, inputRowsThisStep * chInputRowSize );
-			} else if( expandActivation == AF_ReLU ) {
-				if( expandReluParam > 0 ) {
-					vectorReLU( chInput, chInput, inputRowsThisStep * chInputRowSize, expandReluParam );
-				} else {
-					vectorReLU( chInput, chInput, inputRowsThisStep * chInputRowSize );
-				}
-			}
+			MOBILENET_ACTIVATION( expandActivation, expandReluParam, chInput, inputRowsThisStep * chInputRowSize );
 			inputRowsProcessed += inputRowsThisStep;
 
 			// Calculate how many output rows we can calculate with the processed input rows
@@ -170,15 +162,7 @@ void CCpuMathEngine::MobileNetV3PreSEBlock( const CBlobDesc& inputDesc, const CB
 				// Channelwise conv
 				channelwise( desc, outputRowsThisStep, chInputBuff, firstInputRowInBuffer,
 					channelwiseFilter, channelwiseFreeTerm, output, outputRowsProcessed );
-				if( channelwiseActivation == AF_HSwish ) {
-					vectorHSwish( output, output, outputRowsThisStep * outputRowSize );
-				} else if( channelwiseActivation == AF_ReLU ) {
-					if( channelwiseReluParam > 0 ) {
-						vectorReLU( output, output, outputRowsThisStep * outputRowSize, channelwiseReluParam );
-					} else {
-						vectorReLU( output, output, outputRowsThisStep * outputRowSize );
-					}
-				}
+				MOBILENET_ACTIVATION( channelwiseActivation, channelwiseReluParam, output, outputRowsThisStep * outputRowSize );
 
 				output += outputRowsThisStep * outputRowSize;
 				outputRowsProcessed += outputRowsThisStep;
@@ -245,15 +229,7 @@ void CCpuMathEngine::MobileNetV3PostSEBlock( const CBlobDesc& channelwiseOutputD
 			multiplyMatrixByDiagMatrix( input, rowsThisStep * width, inputChannels,
 				squeezeVector, squeezed );
 			// Activation (if present, not present means trivial linear)
-			if( activation == AF_HSwish ) {
-				vectorHSwish( squeezed, squeezed, rowsThisStep * inputRowSize );
-			} else if( activation == AF_ReLU ) {
-				if( reluParam > 0 ) {
-					vectorReLU( squeezed, squeezed, rowsThisStep * inputRowSize, reluParam );
-				} else {
-					vectorReLU( squeezed, squeezed, rowsThisStep * inputRowSize );
-				}
-			}
+			MOBILENET_ACTIVATION( activation, reluParam, squeezed, rowsThisStep * inputRowSize );
 			// Down-convolution (1x1)
 			multiplyMatrixByTransposedWithFreeTerm( squeezed, rowsThisStep * width, inputChannels,
 				downFilter, outputChannels, downFreeTerm, output );

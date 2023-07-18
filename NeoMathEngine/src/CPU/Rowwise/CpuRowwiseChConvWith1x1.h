@@ -142,17 +142,7 @@ inline IRowwiseCpuImpl::CProcessingReport CCpuMathEngine::CRowwiseChConvWith1x1:
 
 			ProcessChannelwise3x3( desc, chRowsThisStep, input, inputRowIndex % desc.Source.Height(),
 				chFilter, chFreeTerm, chOutput, outputImageRowIndex );
-
-			if( activation == AF_HSwish ) {
-				vectorHSwish( chOutput, chOutput, chRowsThisStep * chOutputRowSize );
-			} else if( activation == AF_ReLU ) {
-				if( reluParam > 0 ) {
-					vectorReLU( chOutput, chOutput, chRowsThisStep * chOutputRowSize, reluParam );
-				} else {
-					vectorReLU( chOutput, chOutput, chRowsThisStep * chOutputRowSize );
-				}
-			}
-
+			MOBILENET_ACTIVATION( activation, reluParam, chOutput, chRowsThisStep * chOutputRowSize );
 			chOutput += chRowsThisStep * chOutputRowSize;
 			chOutputRowIndex += chRowsThisStep;
 

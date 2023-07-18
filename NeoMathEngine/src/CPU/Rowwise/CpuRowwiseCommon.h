@@ -74,3 +74,13 @@ inline IRowwiseCpuImpl::CProcessingReport RowwiseConvProcessingReport( int input
 }
 
 } // namespace NeoML
+
+// Using macro to guarantee inline
+#define MOBILENET_ACTIVATION( type, reluParam, data, size ) \
+	if( type == AF_ReLU ) { \
+		if( reluParam > 0 ) { \
+			vectorReLU( data, data, size, reluParam ); \
+		} else { \
+			vectorReLU( data, data, size ); \
+		} \
+	} else if( type == AF_HSwish ) vectorHSwish( data, data, size )

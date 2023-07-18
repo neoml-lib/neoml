@@ -165,16 +165,7 @@ inline IRowwiseCpuImpl::CProcessingReport CCpuMathEngine::CRowwiseMobileNetV2::P
 			// Apply expand convolution with activation
 			mathEngine.multiplyMatrixByTransposedWithFreeTerm( expandConvInput, inputRowsThisStep * inputWidth, inputChannels,
 				expandFilter, expandedChannels, expandFreeTerm, chInput->EmptyRows() );
-			if( expandActivation == AF_HSwish ) {
-				vectorHSwish( chInput->EmptyRows(), chInput->EmptyRows(), inputRowsThisStep * chInput->RowSize() );
-			} else if( expandActivation == AF_ReLU ) {
-				if( expandReluParam > 0 ) {
-					vectorReLU( chInput->EmptyRows(), chInput->EmptyRows(),
-						inputRowsThisStep * chInput->RowSize(), expandReluParam );
-				} else {
-					vectorReLU( chInput->EmptyRows(), chInput->EmptyRows(), inputRowsThisStep * chInput->RowSize() );
-				}
-			}
+			MOBILENET_ACTIVATION( expandActivation, expandReluParam, chInput->EmptyRows(), inputRowsThisStep * chInput->RowSize() );
 			chInput->AddRows( inputRowsThisStep );
 		}
 
@@ -202,15 +193,7 @@ inline IRowwiseCpuImpl::CProcessingReport CCpuMathEngine::CRowwiseMobileNetV2::P
 					desc.Result.Height() - chOutputRowIndex % desc.Result.Height() } );
 				ProcessChannelwise3x3( desc, chRowsThisStep, chInputBuff, chInputRowIndex % desc.Source.Height(),
 					channelwiseFilter, channelwiseFreeTerm, chOutput, chOutputRowIndex % desc.Result.Height() );
-				if( channelwiseActivation == AF_HSwish ) {
-					vectorHSwish( chOutput, chOutput, chRowsThisStep * chOutputRowSize );
-				} else if( channelwiseActivation == AF_ReLU ) {
-					if( channelwiseReluParam > 0 ) {
-						vectorReLU( chOutput, chOutput, chRowsThisStep * chOutputRowSize, channelwiseReluParam );
-					} else {
-						vectorReLU( chOutput, chOutput, chRowsThisStep * chOutputRowSize );
-					}
-				}
+				MOBILENET_ACTIVATION( channelwiseActivation, channelwiseReluParam, chOutput, chRowsThisStep * chOutputRowSize );
 				chOutput += chRowsThisStep * chOutputRowSize;
 				chOutputRowIndex += chRowsThisStep;
 
