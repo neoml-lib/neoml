@@ -54,7 +54,7 @@ inline CPtr<T> CreateRowwiseOperation( const char* className, IMathEngine& mathE
 
 //=====================================================================================================================
 // Registration mechanisms
-// DO NOT use directyle (use macro above)
+// DO NOT use directly (use macro above)
 
 typedef CPtr<IRowwiseOperation> ( *TCreateRowwiseOperationFunction )( IMathEngine& mathEngine );
 
