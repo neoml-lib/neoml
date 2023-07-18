@@ -28,16 +28,16 @@ public:
 	// Returns the size of output of this operation
 	virtual CBlobDesc Reshape( const CBlobDesc& inputSize ) = 0;
 
-	// The minimum number of input rows required for efficient work of this operation
+	// The minimum number of input rows required for correct and efficient work of this operation
 	// Usually means the number of input rows required to calculate 1 row of output
 	// Returns 0 or less if operation doesn't have requirement (1 row is enough)
 	virtual int InputRowRequirement() const = 0;
 
 	// The minimum numer of output rows required for efficient work of this operation
 	// Technically if operation is rowwise it must be able to calculate 1 output row at a time
-	// BUT some of operations face HUGE performance reduction when calculating 1 output row at a time
-	// In these cases this function must return number of output rows required for optimal calculation
-	// Returns 0 or less if operation doesn't have requirement like this
+	// But some operations face HUGE performance reduction when calculating 1 output row at a time
+	// In these cases this method must return number of output rows required for optimal calculation
+	// Returns 0 or less if operation doesn't have requirement like this (1 row at a time is OK)
 	virtual int OutputRowRequirement() const = 0;
 
 	// The size of buffer needed during calculation
