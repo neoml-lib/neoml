@@ -17,6 +17,7 @@ limitations under the License.
 
 #include <algorithm>
 
+#include "CpuRowwiseCommon.h"
 #include "CpuRowwiseInterface.h"
 #include <CpuMathEngineDnnChannelwiseConv.h>
 #include <CpuMathEngine.h>
@@ -79,15 +80,15 @@ private:
 	const float* downFreeTerm;
 	int outputChannels;
 	bool residual;
+	// Inner rowwise buffer is needed because we need to transfer some rows after expand conv
+	// between different Process calls (usual inOperationBuffer doesn't save data between calls)
+	// It's caused by the fact that single input row is used by multiply output rows in 3x3 channelwise
 	mutable std::unique_ptr<CRowwiseBuffer> chInput;
 	int inputRowRequirement;
 	int outputRowRequirement;
 
-	int getMaxInputRowsPerStep() const { return std::min( desc.Source.ObjectCount() * desc.Source.Height(),
-		std::max( inputRowRequirement, RowwiseCacheSize / ( std::max<int>( inputChannels, expandedChannels ) * desc.Source.Width() ) ) ); }
-	int getMaxOutputRowsPerStep() const { return std::min( desc.Result.ObjectCount() * desc.Result.Height(),
-		std::max<int>( { 1, outputRowRequirement, 
-			RowwiseCacheSize / ( std::max<int>( outputChannels, expandedChannels ) * desc.Result.Width() ) } ) ); }
+	int getMaxInputRowsPerStep() const;
+	int getMaxOutputRowsPerStep() const;
 };
 
 inline CBlobDesc CCpuMathEngine::CRowwiseMobileNetV2::Reshape( const CBlobDesc& inputSize )
@@ -113,6 +114,35 @@ inline CBlobDesc CCpuMathEngine::CRowwiseMobileNetV2::Reshape( const CBlobDesc& 
 	}
 
 	return outputSize;
+}
+
+// Number of rows which can be processed at one time in expand conv
+inline int CCpuMathEngine::CRowwiseMobileNetV2::getMaxInputRowsPerStep() const
+{
+	// Determine which row size is bigger: before or after the expand conv
+	const int maxRowSize = std::max( inputChannels, expandedChannels ) * desc.Source.Width();
+	// Determine the number required for effective calculation
+	// Taking into consideration both facts:
+	//     - inputRowRequirement is always present and must be met (otherwise the math will become broken)
+	//     - if rows are too small then take into consideration RowwiseCacheSize
+	const int recommendedRowCount = std::max( inputRowRequirement, RowwiseCacheSize / maxRowSize );
+	// But there is no need to allocate more data than the whole input
+	return std::min( desc.Result.ObjectCount() * desc.Result.Height(), recommendedRowCount );
+}
+
+// Number of rows which can be processed at one time in down conv
+inline int CCpuMathEngine::CRowwiseMobileNetV2::getMaxOutputRowsPerStep() const
+{
+	// Determine which row size is bigger: before or after the down conv
+	const int maxRowSize = std::max( expandedChannels, outputChannels ) * desc.Result.Width();
+	// Determine the number required for effective calculation
+	// Taking into consideration both facts:
+	//     - downConv is a matmul, that's why outputRowRequirement must be met
+	//     - if rows are too small then take into consideration RowwiseCacheSize
+	//     - both of the above can be 0 (in case of wide rows with many channels)
+	const int recommendedRowCount = std::max( { 1, outputRowRequirement, RowwiseCacheSize / maxRowSize } );
+	// But there is no need to allocate more data than the whole output
+	return std::min( desc.Result.ObjectCount() * desc.Result.Height(), recommendedRowCount );
 }
 
 inline IRowwiseCpuImpl::CProcessingReport CCpuMathEngine::CRowwiseMobileNetV2::Process( const float* input, int inputRowIndex,

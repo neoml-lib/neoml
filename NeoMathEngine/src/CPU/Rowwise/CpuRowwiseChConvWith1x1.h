@@ -15,6 +15,7 @@ limitations under the License.
 
 #pragma once
 
+#include "CpuRowwiseCommon.h"
 #include "CpuRowwiseInterface.h"
 #include <CpuMathEngineDnnChannelwiseConv.h>
 #include <CpuMathEngine.h>
@@ -45,7 +46,7 @@ public:
 	int InputRowRequirement() const override { return inputRowRequirement; }
 	int OutputRowRequirement() const override { return outputRowRequirement; }
 	int InOperationBufferSize() const override
-		{ return desc.Result.Channels() * desc.Result.Width() * maxOutputRowsPerStep(); }
+		{ return desc.Result.Channels() * desc.Result.Width() * getMaxOutputRowsPerStep(); }
 	int OutputRowCount() const override { return desc.Result.ObjectCount() * desc.Result.Height(); }
 	int OutputRowSize() const override { return desc.Result.Width() * outputChannels; }
 	bool IsTrivial() const override { return false; }
@@ -66,7 +67,7 @@ private:
 	int inputRowRequirement;
 	int outputRowRequirement;
 
-	int maxOutputRowsPerStep() const;
+	int getMaxOutputRowsPerStep() const;
 };
 
 inline CBlobDesc CCpuMathEngine::CRowwiseChConvWith1x1::Reshape( const CBlobDesc& inputSize )
@@ -93,12 +94,19 @@ inline CBlobDesc CCpuMathEngine::CRowwiseChConvWith1x1::Reshape( const CBlobDesc
 	return outputSize;
 }
 
-inline int CCpuMathEngine::CRowwiseChConvWith1x1::maxOutputRowsPerStep() const
+// Number of rows which can be processed at one time in down conv
+inline int CCpuMathEngine::CRowwiseChConvWith1x1::getMaxOutputRowsPerStep() const
 {
-	const int maxRowSize = std::max( desc.Result.Channels() * desc.Result.Width(),
-		desc.Source.Channels() * desc.Source.Width() );
-	return std::min( std::max( { RowwiseCacheSize / maxRowSize, 1, outputRowRequirement } ),
-		desc.Result.ObjectCount() * desc.Result.Height() );
+	// Determine which row size is bigger: before or after the 1x1 conv
+	const int maxRowSize = std::max( desc.Result.Channels(), outputChannels ) * desc.Result.Width();
+	// Determine the number required for effective calculation
+	// Taking into consideration both facts:
+	//     - 1x1 conv is a matmul, that's why outputRowRequirement must be met
+	//     - if rows are too small then take into consideration RowwiseCacheSize
+	//     - both of the above can be 0 (in case of wide rows with many channels)
+	const int recommendedRowCount = std::max( { 1, outputRowRequirement, RowwiseCacheSize / maxRowSize } );
+	// But there is no need to allocate more data than the whole output
+	return std::min( desc.Result.ObjectCount() * desc.Result.Height(), recommendedRowCount );
 }
 
 inline IRowwiseCpuImpl::CProcessingReport CCpuMathEngine::CRowwiseChConvWith1x1::Process( const float* input,
@@ -115,7 +123,7 @@ inline IRowwiseCpuImpl::CProcessingReport CCpuMathEngine::CRowwiseChConvWith1x1:
 	}
 
 	const int outputRowsAfterThisCall = outputRowIndex + report.OutputRowsCalculated;
-	const int maxRowsPerStep = maxOutputRowsPerStep();
+	const int maxRowsPerStep = getMaxOutputRowsPerStep();
 	const int chInputRowSize = desc.Source.Channels() * desc.Source.Width();
 	const int chOutputRowSize = desc.Result.Channels() * desc.Result.Width();
 	const int outputWidth = desc.Result.Width();
