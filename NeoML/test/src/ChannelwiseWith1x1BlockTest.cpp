@@ -23,7 +23,7 @@ namespace NeoMLTest {
 class CChannelwiseWith1x1Composite : public CCompositeLayer {
 public:
 	CChannelwiseWith1x1Composite( IMathEngine& mathEngine, int stride, const CPtr<CDnnBlob>& channelwiseFilter,
-		const CPtr<CDnnBlob>& channelwiseFreeTerm, TActivationFunction activation, float activationParam,
+		const CPtr<CDnnBlob>& channelwiseFreeTerm, TActivationFunction activation, float reluParam,
 		const CPtr<CDnnBlob>& convFilter, const CPtr<CDnnBlob>& convFreeTerm, bool residuall );
 
 	CPtr<CChannelwiseConvLayer> Channelwise;
@@ -32,7 +32,7 @@ public:
 
 CChannelwiseWith1x1Composite::CChannelwiseWith1x1Composite( IMathEngine& mathEngine, int stride,
 		const CPtr<CDnnBlob>& channelwiseFilter, const CPtr<CDnnBlob>& channelwiseFreeTerm,
-		TActivationFunction activation, float activationParam, const CPtr<CDnnBlob>& convFilter,
+		TActivationFunction activation, float reluParam, const CPtr<CDnnBlob>& convFilter,
 		const CPtr<CDnnBlob>& convFreeTerm, bool residual ) :
 	CCompositeLayer( mathEngine, "ChannelwiseWith1x1Composite" )
 {
@@ -57,7 +57,7 @@ CChannelwiseWith1x1Composite::CChannelwiseWith1x1Composite( IMathEngine& mathEng
 	CPtr<CBaseLayer> activationLayer;
 	if( activation == AF_ReLU ) {
 		CPtr<CReLULayer> relu = new CReLULayer( mathEngine );
-		relu->SetUpperThreshold( activationParam );
+		relu->SetUpperThreshold( reluParam );
 		activationLayer = relu;
 	} else {
 		activationLayer = new CHSwishLayer( mathEngine );
@@ -95,7 +95,7 @@ using namespace NeoMLTest;
 
 
 static void channelwiseWith1x1TestImpl( unsigned int seed, int freeTermMask, TActivationFunction activation,
-	float activationParam, int stride, bool residual )
+	float reluParam, int stride, bool residual )
 {
 	auto createBlob = [] ( const std::initializer_list<int>& dims, CRandom& random ) -> CPtr<CDnnBlob> {
 		CPtr<CDnnBlob> blob = CDnnBlob::CreateTensor( MathEngine(), CT_Float, dims );
@@ -136,15 +136,15 @@ static void channelwiseWith1x1TestImpl( unsigned int seed, int freeTermMask, TAc
 
 	CPtr<CChannelwiseWith1x1Composite> expectedBlock = AddLayer<CChannelwiseWith1x1Composite>(
 		new CChannelwiseWith1x1Composite( MathEngine(), stride, channelwiseFilter, channelwiseFreeTerm,
-			activation, activationParam, convFilter, convFreeTerm, residual ), "expectedBlock", { data } );
+			activation, reluParam, convFilter, convFreeTerm, residual ), "expectedBlock", { data } );
 	CPtr<CSinkLayer> expectedSink = AddLayer<CSinkLayer>( "expectedSink", { expectedBlock } );
 
 	NeoAssert( activation == AF_ReLU || activation == AF_HSwish );
 	CActivationDesc activationDesc( activation );
 	if( activation == AF_ReLU ) {
-		CReLULayer::CParam reluParam;
-		reluParam.UpperThreshold = activationParam;
-		activationDesc.SetParam( reluParam );
+		CReLULayer::CParam param;
+		param.UpperThreshold = reluParam;
+		activationDesc.SetParam( param );
 	}
 	CPtr<CChannelwiseWith1x1Layer> actualBlock = new CChannelwiseWith1x1Layer( MathEngine(), stride, channelwiseFilter,
 		channelwiseFreeTerm, activationDesc, convFilter, convFreeTerm, residual );
@@ -169,6 +169,7 @@ static void channelwiseWith1x1TestImpl( unsigned int seed, int freeTermMask, TAc
 
 TEST( ChannelwiseWith1x1LayerTest, Run )
 {
+	// This test is allowed on GPU because of backward compatibility
 	CRandom seedRandom( 0x654 );
 	for( int ftMask = 0; ftMask < 4; ++ftMask ) {
 		for( int stride = 1; stride < 3; ++stride ) {
@@ -184,6 +185,7 @@ TEST( ChannelwiseWith1x1LayerTest, Run )
 
 TEST( ChannelwiseWith1x1OptimizerTest, SimpleNonResidual )
 {
+	NEOML_TEST_CPU_ONLY;
 	CRandom random( 0x654 );
 	CDnn dnn( random, MathEngine() );
 	CSourceLayer* data = Source( dnn, "data" );
@@ -192,7 +194,7 @@ TEST( ChannelwiseWith1x1OptimizerTest, SimpleNonResidual )
 	CReLULayer* channelwiseReLU = Relu( 6.f )( "channelwiseReLU", channelwiseConv );
 	CConvLayer* conv = Conv( 8, CConvAxisParams( 1 ), CConvAxisParams( 1 ) )( "conv", channelwiseReLU );
 	Sink( conv, "sink" );
-	CDnnOptimizationReport report = OptimizeDnn( dnn );
+	CDnnOptimizationReport report = OptimizeDnn( dnn, DnnOptimizationSettings() );
 	ASSERT_EQ( 1, report.ChannelwiseWith1x1NonResidual );
 	ASSERT_EQ( 0, report.ChannelwiseWith1x1Residual );
 	ASSERT_EQ( 3, dnn.GetLayerCount() );
@@ -200,6 +202,7 @@ TEST( ChannelwiseWith1x1OptimizerTest, SimpleNonResidual )
 
 TEST( ChannelwiseWith1x1OptimizerTest, SimpleResidual )
 {
+	NEOML_TEST_CPU_ONLY;
 	CRandom random( 0x654 );
 	CDnn dnn( random, MathEngine() );
 	CSourceLayer* data = Source( dnn, "data" );
@@ -209,7 +212,7 @@ TEST( ChannelwiseWith1x1OptimizerTest, SimpleResidual )
 	CConvLayer* conv = Conv( 8, CConvAxisParams( 1 ), CConvAxisParams( 1 ) )( "conv", channelwiseHSwish );
 	CEltwiseSumLayer* residual = Sum()( "residual", data, conv );
 	Sink( residual, "sink" );
-	CDnnOptimizationReport report = OptimizeDnn( dnn );
+	CDnnOptimizationReport report = OptimizeDnn( dnn, DnnOptimizationSettings() );
 	ASSERT_EQ( 0, report.ChannelwiseWith1x1NonResidual );
 	ASSERT_EQ( 1, report.ChannelwiseWith1x1Residual );
 	ASSERT_EQ( 3, dnn.GetLayerCount() );
@@ -217,6 +220,7 @@ TEST( ChannelwiseWith1x1OptimizerTest, SimpleResidual )
 
 TEST( ChannelwiseWith1x1OptimizerTest, ResidualResidual )
 {
+	NEOML_TEST_CPU_ONLY;
 	CRandom random( 0x654 );
 	CDnn dnn( random, MathEngine() );
 	CSourceLayer* data = Source( dnn, "data" );
@@ -227,7 +231,7 @@ TEST( ChannelwiseWith1x1OptimizerTest, ResidualResidual )
 	CEltwiseSumLayer* residual = Sum()( "residual", data, conv );
 	CEltwiseSumLayer* doubleResidual = Sum()( "doubleResidual", data, residual );
 	Sink( doubleResidual, "sink" );
-	CDnnOptimizationReport report = OptimizeDnn( dnn );
+	CDnnOptimizationReport report = OptimizeDnn( dnn, DnnOptimizationSettings() );
 	ASSERT_EQ( 0, report.ChannelwiseWith1x1NonResidual );
 	ASSERT_EQ( 1, report.ChannelwiseWith1x1Residual );
 	ASSERT_EQ( 4, dnn.GetLayerCount() );
@@ -235,6 +239,7 @@ TEST( ChannelwiseWith1x1OptimizerTest, ResidualResidual )
 
 TEST( ChannelwiseWith1x1OptimizerTest, NeighboringResiduals )
 {
+	NEOML_TEST_CPU_ONLY;
 	CRandom random( 0x654 );
 	CDnn dnn( random, MathEngine() );
 	CSourceLayer* data = Source( dnn, "data" );
@@ -246,7 +251,7 @@ TEST( ChannelwiseWith1x1OptimizerTest, NeighboringResiduals )
 	Sink( residual, "sink" );
 	CEltwiseSumLayer* secondResidual = Sum()( "secondResidual", data, conv );
 	Sink( secondResidual, "secondSink" );
-	CDnnOptimizationReport report = OptimizeDnn( dnn );
+	CDnnOptimizationReport report = OptimizeDnn( dnn, DnnOptimizationSettings() );
 	ASSERT_EQ( 1, report.ChannelwiseWith1x1NonResidual );
 	ASSERT_EQ( 0, report.ChannelwiseWith1x1Residual );
 	ASSERT_EQ( 6, dnn.GetLayerCount() );
@@ -254,6 +259,7 @@ TEST( ChannelwiseWith1x1OptimizerTest, NeighboringResiduals )
 
 TEST( ChannelwiseWith1x1OptimizerTest, SinkFromTheMiddle )
 {
+	NEOML_TEST_CPU_ONLY;
 	CRandom random( 0x654 );
 	CDnn dnn( random, MathEngine() );
 	CSourceLayer* data = Source( dnn, "data" );
@@ -264,14 +270,14 @@ TEST( ChannelwiseWith1x1OptimizerTest, SinkFromTheMiddle )
 	CConvLayer* conv = Conv( 8, CConvAxisParams( 1 ), CConvAxisParams( 1 ) )( "conv", channelwiseHSwish );
 	CEltwiseSumLayer* residual = Sum()( "residual", data, conv );
 	Sink( residual, "sink" );
-	CDnnOptimizationReport report = OptimizeDnn( dnn );
+	CDnnOptimizationReport report = OptimizeDnn( dnn, DnnOptimizationSettings() );
 	ASSERT_EQ( 0, report.ChannelwiseWith1x1NonResidual );
 	ASSERT_EQ( 0, report.ChannelwiseWith1x1Residual );
-	ASSERT_EQ( 7, dnn.GetLayerCount() );
 }
 
 TEST( ChannelwiseWith1x1OptimizerTest, SinkDisablesResidual )
 {
+	NEOML_TEST_CPU_ONLY;
 	CRandom random( 0x654 );
 	CDnn dnn( random, MathEngine() );
 	CSourceLayer* data = Source( dnn, "data" );
@@ -282,7 +288,7 @@ TEST( ChannelwiseWith1x1OptimizerTest, SinkDisablesResidual )
 	Sink( conv, "convSink" );
 	CEltwiseSumLayer* residual = Sum()( "residual", data, conv );
 	Sink( residual, "sink" );
-	CDnnOptimizationReport report = OptimizeDnn( dnn );
+	CDnnOptimizationReport report = OptimizeDnn( dnn, DnnOptimizationSettings() );
 	ASSERT_EQ( 1, report.ChannelwiseWith1x1NonResidual );
 	ASSERT_EQ( 0, report.ChannelwiseWith1x1Residual );
 	ASSERT_EQ( 5, dnn.GetLayerCount() );

@@ -1174,6 +1174,69 @@ inline void vectorHSwish( const float* first, float* result, int vectorSize )
 	}
 }
 
+//------------------------------------------------------------------------------------------------------------
+
+inline void vectorHardSigmoid( const float* first, float* result, float slope, float bias, int vectorSize )
+{
+	const __m128 oneSse = _mm_set_ps1( 1.f );
+	const __m128 zeroSse = _mm_set_ps1( 0.f );
+	const __m128 slopeSse = _mm_set_ps1( slope );
+	const __m128 biasSse = _mm_set_ps1( bias );
+
+	while( vectorSize >= 4 ) {
+		__m128 value = LoadSse4( first );
+		value = _mm_mul_ps( value, slopeSse );
+		value = _mm_add_ps( value, biasSse );
+		StoreSse4( _mm_min_ps( _mm_max_ps( value, zeroSse ), oneSse ), result );
+
+		first += 4;
+		result += 4;
+		vectorSize -= 4;
+	}
+
+	if( vectorSize > 0 ) {
+		__m128 value = LoadSse( first, vectorSize );
+		value = _mm_mul_ps( value, slopeSse );
+		value = _mm_add_ps( value, biasSse );
+		StoreSse( _mm_min_ps( _mm_max_ps( value, zeroSse ), oneSse ), result, vectorSize );
+	}
+}
+
+//------------------------------------------------------------------------------------------------------------
+
+inline void vectorLeakyReLU( const float* first, float* result, float alpha, int vectorSize )
+{
+	const __m128 zeroSse = _mm_setzero_ps();
+	const __m128 alphaSse = _mm_set1_ps( alpha );
+
+	while( vectorSize >= 4 ) {
+		__m128 input = LoadSse4( first );
+		// result = x_pos + x_neg * alpha
+		StoreSse4( _mm_add_ps( _mm_max_ps( input, zeroSse ), _mm_mul_ps( _mm_min_ps( input, zeroSse ), alphaSse ) ),
+			result );
+		first += 4;
+		result += 4;
+		vectorSize -= 4;
+	}
+
+	if( vectorSize > 0 ) {
+		__m128 input = LoadSse( first, vectorSize );
+		StoreSse( _mm_add_ps( _mm_max_ps( input, zeroSse ), _mm_mul_ps( _mm_min_ps( input, zeroSse ), alphaSse ) ),
+			result, vectorSize );
+	}
+}
+
+//------------------------------------------------------------------------------------------------------------
+
+inline void vectorELU( const float* first, float* result, float alpha, int vectorSize )
+{
+	for( int i = 0; i < vectorSize; ++i ) {
+		*result = *first >= 0 ? *first : alpha * ( ExponentFunc( *first ) - 1.f );
+		++result;
+		++first;
+	}
+}
+
 } // namespace NeoML
 
 #endif // NEOML_USE_SSE

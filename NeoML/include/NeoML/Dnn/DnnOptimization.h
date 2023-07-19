@@ -1,4 +1,4 @@
-/* Copyright © 2017-2022 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,20 +23,37 @@ class CDnn;
 
 // Struct which contains the details of optimization result
 struct NEOML_API CDnnOptimizationReport {
+	// Number of composite layers which where unpacked
+	// (unpack == content of the layer moved to the root CDnn, composite itself is removed)
+	int UnpackedCompositeLayers = 0;
+	// Number of trivial layers removed from the CDnn (dropout, linear(1,0) etc)
+	int RemovedTrivialLayers = 0;
 	// Number of batch normalizations fused into other layers
-	int FusedBatchNormalizations;
+	int FusedBatchNormalizations = 0;
 	// Number of merged (channelwise->activation->1x1) constructions without residual connection
-	int ChannelwiseWith1x1NonResidual;
+	int ChannelwiseWith1x1NonResidual = 0;
 	// Number of merged (channelwise->activation->1x1) constructions with residual connection
-	int ChannelwiseWith1x1Residual;
+	int ChannelwiseWith1x1Residual = 0;
 	// Number of optimized MobileNetV2 blocks without residual connection
-	int MobileNetV2NonResidualBlocks;
+	int MobileNetV2NonResidualBlocks = 0;
 	// Number of optimized MobileNetV2 blocks with residual connection
-	int MobileNetV2ResidualBlocks;
+	int MobileNetV2ResidualBlocks = 0;
 	// Number of optimized MobileNetV3 blocks without residual connection
-	int MobileNetV3NonResidualBlocks;
+	int MobileNetV3NonResidualBlocks = 0;
 	// Number of optimized MobileNetV3 blocks with residual connection
-	int MobileNetV3ResidualBlocks;
+	int MobileNetV3ResidualBlocks = 0;
+	// Number of chains of rowwise operations
+	int RowwiseChainCount = 0;
+};
+
+// Settings for optional optimizations
+struct NEOML_API CDnnOptimizationSettings {
+	// Enable additional optimizations which are useful for inference on CPU
+	// After these optimizations dnn can be used ONLY ON CPU (GPU support isn't guarranteed)
+	// Recommended for convolutional nets with at least 20MB RAM usage
+	// (You can measure RAM usage by running the dnn and dnn.GetMathEngine().GetPeakMemoryUsage())
+	// Turned ON by default because it's the most common scenario
+	bool AllowCpuOnlyOptimizations = true;
 };
 
 // Optimizes inference of given CDnn at the cost of trainability
@@ -78,6 +95,7 @@ struct NEOML_API CDnnOptimizationReport {
 //             +------------------------------+
 //        with optimized CMobileNetV3BlockLayer
 //        ReLU and HSwish activations are supported (or trivial Linear{mul=1, ft=0}).
-CDnnOptimizationReport NEOML_API OptimizeDnn( CDnn& dnn );
+CDnnOptimizationReport NEOML_API OptimizeDnn( CDnn& dnn,
+	const CDnnOptimizationSettings& settings = CDnnOptimizationSettings() );
 
 } // namespace NeoML

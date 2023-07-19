@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -129,7 +129,7 @@ void CImageResizeLayer::BackwardOnce()
 }
 
 CLayerWrapper<CImageResizeLayer> ImageResize( int deltaLeft, int deltaRight, int deltaTop,
-	int deltaBottom, float defaultValue )
+	int deltaBottom, float defaultValue, TBlobResizePadding padding )
 {
 	return CLayerWrapper<CImageResizeLayer>( "ImageResize", [=]( CImageResizeLayer* result ) {
 		result->SetDelta( CImageResizeLayer::IS_Left, deltaLeft );
@@ -137,6 +137,7 @@ CLayerWrapper<CImageResizeLayer> ImageResize( int deltaLeft, int deltaRight, int
 		result->SetDelta( CImageResizeLayer::IS_Bottom, deltaBottom );
 		result->SetDelta( CImageResizeLayer::IS_Top, deltaTop );
 		result->SetDefaultValue( defaultValue );
+		result->SetPadding( padding );
 	} );
 }
 

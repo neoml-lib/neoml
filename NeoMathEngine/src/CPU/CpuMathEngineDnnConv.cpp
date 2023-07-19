@@ -24,77 +24,10 @@ limitations under the License.
 #include <MemoryHandleInternal.h>
 #include <MathEngineDnnConv.h>
 #include <CpuMathEnginePrivate.h>
+#include <CpuMathEngineDnnConv.h>
 #include <NeoMathEngine/SimdMathEngine.h>
 
 namespace NeoML {
-
-// The algorithm used to calculate a 2D convolution
-enum TConvAlgo {
-	CA_Auto,	// choose automatically
-	CA_1,		// use a temporary matrix to store the data in another order
-	CA_2,		// work with the data directly (only for stride = 1 and padding = 0)
-				// most efficient when the image is large and especially when it has many channels
-				
-	CA_1x1		// for convolution with a 1*1 filter, no padding and dilation (both 2D and 3D)
-};
-
-const int BlobConvolutionCacheSize = 256 * 1024;
-
-// Convolution descriptor
-struct CCpuConvolutionDesc : public CCommonConvolutionDesc {
-	TConvAlgo ForwardAlgo;
-	TConvAlgo BackwardAlgo;
-	std::unique_ptr<CConvolutionDesc> SimdConvolutionDesc;
-
-	CCpuConvolutionDesc( std::unique_ptr<CConvolutionDesc>& simdConvolutionDesc, const CBlobDesc& source, const CBlobDesc& result, const CBlobDesc& filter,
-			int paddingHeight, int paddingWidth, int strideHeight, int strideWidth, int dilationHeight, int dilationWidth ) :
-		CCommonConvolutionDesc( source, result, filter, paddingHeight, paddingWidth, strideHeight, strideWidth, dilationHeight, dilationWidth ),
-		ForwardAlgo( getActualForwardAlgo() ),
-		BackwardAlgo( getActualBackwardAlgo() ),
-		SimdConvolutionDesc( std::move( simdConvolutionDesc ) )
-	{
-	}
-
-	TConvAlgo getActualForwardAlgo() const;
-	TConvAlgo getActualBackwardAlgo() const;
-};
-
-// Gets the algorithm to be used for this convolution
-inline TConvAlgo CCpuConvolutionDesc::getActualForwardAlgo() const
-{
-	if( PaddingHeight == 0 && PaddingWidth == 0
-		&& DilationHeight == 1 && DilationWidth == 1
-		&& Filter.ObjectSize() == Filter.Channels() )
-	{
-		return CA_1x1;
-	}
-
-	if( DilationHeight == 1 && DilationWidth == 1 && StrideHeight == 1 && StrideWidth == 1 ) {
-		if( PaddingHeight > 0 || PaddingWidth > 0 ) {
-			if( ( Source.Height() >= 64 && Source.Width() >= 64 && Source.Depth() * Source.Channels() >= 8 ) ||
-				( Source.Height() >= 32 && Source.Width() >= 32 && Source.Depth() * Source.Channels() >= 16 ) )
-			{
-				return CA_2;
-			}
-		} else {
-			if( ( Source.Height() >= 64 && Source.Width() >= 64 && Source.Depth() * Source.Channels() >= 4 ) ||
-				( Source.Height() >= 32 && Source.Width() >= 32 && Source.Depth() * Source.Channels() >= 8 ) )
-			{
-				return CA_2;
-			}
-		}
-	}
-	return CA_1;
-}
-
-inline TConvAlgo CCpuConvolutionDesc::getActualBackwardAlgo() const
-{
-	TConvAlgo ret = getActualForwardAlgo();
-	if( ret == CA_2 && ( PaddingHeight != 0 || PaddingWidth != 0 ) ) {
-		ret = CA_1;
-	}
-	return ret;
-}
 
 // Returns the descriptor of the "flattened" blob with depth == 1 and channels = desc.depth * desc.channels
 static inline CBlobDesc flatten( const CBlobDesc& desc )
@@ -130,14 +63,12 @@ CConvolutionDesc* CCpuMathEngine::InitBlobConvolution( const CBlobDesc& source, 
 	ASSERT_EXPR( result.Channels() == filter.BatchWidth() );
 	ASSERT_EXPR( result.Depth() == 1 );
 
-	std::unique_ptr<CConvolutionDesc> simdConvolutionDesc;
+	CCpuConvolutionDesc* desc = new CCpuConvolutionDesc( source, result, filter,
+		paddingHeight, paddingWidth, strideHeight, strideWidth, dilationHeight, dilationWidth );
 	if( simdMathEngine != nullptr ) {
-		simdConvolutionDesc = std::unique_ptr<CConvolutionDesc>( simdMathEngine->InitBlobConvolution( source, paddingHeight, paddingWidth,
+		desc->SimdConvolutionDesc.reset( simdMathEngine->InitBlobConvolution( source, paddingHeight, paddingWidth,
 			strideHeight, strideWidth, dilationHeight, dilationWidth, filter, result ) );
 	}
-
-	CCpuConvolutionDesc* desc = new CCpuConvolutionDesc( simdConvolutionDesc, source, result, filter,
-		paddingHeight, paddingWidth, strideHeight, strideWidth, dilationHeight, dilationWidth );
 	return desc;
 }
 
@@ -368,14 +299,6 @@ void CCpuMathEngine::fillTempData( const float* sourceData, float* tempData, con
 			sourceDataPtr += desc.DilationHeight * desc.Source.Width() * channelsCount;
 		}
 	}
-}
-
-inline int ceilTo( int val, int discret )
-{
-	if( val > 0 ) {
-		return ( ( val + discret - 1 ) / discret ) * discret;
-	}
-	return ( val / discret ) * discret;
 }
 
 void CCpuMathEngine::blobConvolutionForwardAlgo0( const CCpuConvolutionDesc& desc, const float* sourceData,

@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ namespace NeoML {
 class NEOML_API CCommonCluster : public virtual IObject {
 public:
 	// Parameters of the cluster
-	struct CParams {
+	struct CParams final {
 		// Minimum number of elements in the cluster to account for variance in distance calculation 
 		int MinElementCountForVariance;
 		// The default variance, for when the number of elements is too small
@@ -43,7 +43,7 @@ public:
 	// Checks if the cluster is empty
 	bool IsEmpty() const { return elements.IsEmpty(); }
 	// Removes all elements of the cluster; the center remains the same
-	void Reset();
+	void Reset( int reserveElementsSize = -1 );
 	// Gets the number of elements
 	int GetElementsCount() const { return elements.Size(); }
 	// Gets all elements of the cluster

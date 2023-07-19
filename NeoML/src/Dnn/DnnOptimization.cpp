@@ -1,4 +1,4 @@
-/* Copyright © 2017-2022 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,18 +22,30 @@ limitations under the License.
 #include "Optimization/ChannelwiseWith1x1Optimizer.h"
 #include "Optimization/MobileNetV2Optimizer.h"
 #include "Optimization/MobileNetV3Optimizer.h"
+#include "Optimization/OptimizerFunctions.h"
+#include <NeoML/Dnn/Layers/RowwiseOperationChainLayer.h>
 #include <NeoML/Dnn/Dnn.h>
 
 namespace NeoML {
 
-CDnnOptimizationReport OptimizeDnn( CDnn& dnn )
+CDnnOptimizationReport OptimizeDnn( CDnn& dnn, const CDnnOptimizationSettings& settings )
 {
 	CDnnOptimizationReport report;
 	optimization::CGraph graph( dnn );
+
+	report.UnpackedCompositeLayers = optimization::UnpackComposites( graph );
+	report.RemovedTrivialLayers = optimization::RemoveTrivialLayers( graph );
 	optimization::CBatchNormFusionOptimizer( graph ).Apply( report );
-	optimization::CChannelwiseWith1x1Optimizer( graph ).Apply( report );
-	optimization::CMobileNetV2Optimizer( graph ).Apply( report );
-	optimization::CMobileNetV3Optimizer( graph ).Apply( report );
+
+	if( settings.AllowCpuOnlyOptimizations ) {
+		optimization::CChannelwiseWith1x1Optimizer( graph ).Apply( report );
+		optimization::CMobileNetV2Optimizer( graph ).Apply( report );
+		optimization::CMobileNetV3Optimizer( graph ).Apply( report );
+
+		CArray<int> chains;
+		OptimizeRowwiseChains( dnn, chains );
+		report.RowwiseChainCount = chains.Size();
+	}
 	return report;
 }
 

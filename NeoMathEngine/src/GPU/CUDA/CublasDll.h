@@ -30,19 +30,12 @@ namespace NeoML {
 class CCublasDll : public CDll {
 public:
 	CCublasDll();
-	virtual ~CCublasDll();
 
 	// Loads the library
 	bool Load();
 
-	// Checks if the library has been loaded
-	bool IsLoaded() const { return CDll::IsLoaded(); }
-
 	// Gets the structure that exposes the cublas functions used in MathEngine
 	const CCublas* GetFunctions() const { return IsLoaded() ? &functions : 0; }
-
-	// Unloads the library
-	void Free();
 
 private:
 	CCublas functions; // the structure that exposes the cublas functions used in MathEngine

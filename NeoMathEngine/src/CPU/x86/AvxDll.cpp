@@ -72,10 +72,7 @@ static std::string getModuleDir()
 }
 namespace NeoML {
 
-CAvxDll::CAvxDll() :
-	createSimdMathEngineFunc( nullptr )
-{
-}
+CAvxDll::CAvxDll() = default;
 
 CAvxDll::~CAvxDll()
 {

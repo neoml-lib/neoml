@@ -1017,4 +1017,50 @@ void CCpuMathEngine::VectorHSwish( const CConstFloatHandle& firstHandle, const C
 	vectorHSwish( GetRaw( firstHandle ), GetRaw( resultHandle ), vectorSize );
 }
 
+void CCpuMathEngine::VectorHardSigmoid( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize,
+	const CConstFloatHandle& slopeHandle, const CConstFloatHandle& biasHandle )
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	CCpuExecutionScope scope;
+
+	const float* first = GetRaw(firstHandle);
+	float* result = GetRaw(resultHandle);
+
+	const float slope = *GetRaw( slopeHandle );
+	const float bias = *GetRaw( biasHandle );
+
+	ASSERT_EXPR( slope != 0.f );
+
+	vectorHardSigmoid( first, result, slope, bias, vectorSize );
+}
+
+void CCpuMathEngine::VectorLeakyReLU( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle,
+	int vectorSize, const CConstFloatHandle& alphaHandle )
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( alphaHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	CCpuExecutionScope scope;
+	vectorLeakyReLU( GetRaw( firstHandle ), GetRaw( resultHandle ), *GetRaw( alphaHandle ), vectorSize );
+}
+
+void CCpuMathEngine::VectorELU( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle,
+	int vectorSize, const CConstFloatHandle& alphaHandle )
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( alphaHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	CCpuExecutionScope scope;
+	vectorELU( GetRaw( firstHandle ), GetRaw( resultHandle ), *GetRaw( alphaHandle ), vectorSize );
+}
+
+void CCpuMathEngine::VectorHardTanh(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize)
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	CCpuExecutionScope scope;
+	vectorMinMax( GetRaw( firstHandle ), GetRaw( resultHandle ), -1.f, 1.f, vectorSize );
+}
+
 } // namespace NeoML

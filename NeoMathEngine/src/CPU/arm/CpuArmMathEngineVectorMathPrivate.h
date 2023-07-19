@@ -910,6 +910,103 @@ inline void vectorHSwish( const float* first, float* result, int vectorSize )
 	}
 }
 
+//------------------------------------------------------------------------------------------------------------
+
+inline float32x4_t vectorHardSigmoidWorker( const float32x4_t& val,
+	const float32x4_t& zero, const float32x4_t& one, const float32x4_t& slope, const float32x4_t& bias )
+{
+	float32x4_t mainVal = vaddq_f32( vmulq_f32( val, slope ), bias );
+	return vmaxq_f32( zero, vminq_f32( one, mainVal ) );
+}
+
+inline void vectorHardSigmoid( const float* first, float* result, float slope, float bias, int vectorSize )
+{
+	int count = GetCount4( vectorSize );
+
+	const float32x4_t zero = vdupq_n_f32( 0 );
+	const float32x4_t one = vdupq_n_f32( 1 );
+	const float32x4_t slope4 = vdupq_n_f32( slope );
+	const float32x4_t bias4 = vdupq_n_f32( bias );
+
+	for( int i = 0; i < count; ++i ) {
+		float32x4_t val = LoadNeon4( first );
+		float32x4_t res = vectorHardSigmoidWorker( val, zero, one, slope4, bias4 );
+		StoreNeon4( res, result );
+
+		first += 4;
+		result += 4;
+	}
+
+	if( vectorSize > 0 ) {
+		float32x4_t val = LoadNeon( first, vectorSize );
+		float32x4_t res = vectorHardSigmoidWorker( val, zero, one, slope4, bias4 );
+		StoreNeon( res, result, vectorSize );
+	}
+}
+
+//------------------------------------------------------------------------------------------------------------
+
+static inline float32x4_t vectorLeakyReLUWorker( const float32x4_t& val, float alpha, const float32x4_t& zero )
+{
+	uint32x4_t upperMask = vcgeq_f32( val, zero );
+	float32x4_t lowerRes = vmulq_n_f32( val, alpha );
+	return ConditionNeon( upperMask, val, lowerRes );
+}
+
+inline void vectorLeakyReLU( const float* first, float* result, float alpha, int vectorSize )
+{
+	const float32x4_t zeroBlock = vdupq_n_f32( 0 );
+
+	while( vectorSize >= 4 ) {
+		float32x4_t val = LoadNeon4( first );
+		float32x4_t res = vectorLeakyReLUWorker( val, alpha, zeroBlock );
+		StoreNeon4( res, result );
+
+		first += 4;
+		result += 4;
+		vectorSize -= 4;
+	}
+
+	if( vectorSize > 0 ) {
+		float32x4_t val = LoadNeon( first, vectorSize );
+		float32x4_t res = vectorLeakyReLUWorker( val, alpha, zeroBlock );
+		StoreNeon( res, result, vectorSize );
+	}
+}
+
+//------------------------------------------------------------------------------------------------------------
+
+inline float32x4_t vectorELUWorker( const float32x4_t& val, float alpha, const float32x4_t& zero,
+	const float32x4_t& one, const CExpNeon& expObj )
+{
+	uint32x4_t upperMask = vcgeq_f32( val, zero );
+	float32x4_t lowerRes = vmulq_n_f32( vsubq_f32( expObj.Execute( val ), one ), alpha );
+	return ConditionNeon( upperMask, val, lowerRes );
+}
+
+inline void vectorELU( const float* first, float* result, float alpha, int vectorSize )
+{
+	const float32x4_t zero = vdupq_n_f32( 0 );
+	const float32x4_t one = vdupq_n_f32( 1 );
+	const CExpNeon expObj;
+
+	while( vectorSize >= 4 ) {
+		float32x4_t val = LoadNeon4( first);
+		float32x4_t res = vectorELUWorker( val, alpha, zero, one, expObj );
+		StoreNeon4( res, result );
+
+		first += 4;
+		result += 4;
+		vectorSize -= 4;
+	}
+
+	if( vectorSize > 0 ) {
+		float32x4_t val = LoadNeon( first, vectorSize );
+		float32x4_t res = vectorELUWorker( val, alpha, zero, one, expObj );
+		StoreNeon( res, result, vectorSize );
+	}
+}
+
 } // namespace NeoML
 
 #endif // NEOML_USE_NEON

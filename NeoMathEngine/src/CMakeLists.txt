@@ -20,6 +20,7 @@ set(CPU_COMMON_SOURCES
     CPU/CpuMathEngineDnn.cpp
     CPU/CpuMathEngineDnnPooling.cpp
     CPU/CpuMathEngineDnnRleConv.cpp
+    CPU/CpuMathEngineDnnRowwise.cpp
     CPU/CpuMathEngineDnnTimeConv.cpp
     CPU/CpuMathEngine.cpp
     CPU/CpuMathEngineVectorMath.cpp
@@ -56,10 +57,13 @@ target_sources(${PROJECT_NAME}
     CPU/CpuFunctorCommon.h
     CPU/CPUInfo.h
     CPU/CpuMathEngine.h
-    CPU/CpuMathEnginePrivate.h
-    CPU/CpuMathEngineOmp.h
+    CPU/CpuMathEngineDnnChannelwiseConv.h
+    CPU/CpuMathEngineDnnConv.h
     CPU/CpuMathEngineDnnDistributed.h
     CPU/CpuMathEngineDnnLstm.h
+    CPU/CpuMathEngineDnnPooling.h
+    CPU/CpuMathEngineOmp.h
+    CPU/CpuMathEnginePrivate.h
     CPU/CpuRandom.h
 
     CPU/MatrixMultiplyingInterleavedCommon/CpuMemoryHelper.h
@@ -68,7 +72,19 @@ target_sources(${PROJECT_NAME}
     CPU/MatrixMultiplyingInterleavedCommon/Interleavers/InterleaverBase.h
     CPU/MatrixMultiplyingInterleavedCommon/MicroKernels/MicroKernelBase.h
 
+    CPU/Rowwise/CpuRowwiseActivation.h
+    CPU/Rowwise/CpuRowwiseBuffer.h
+    CPU/Rowwise/CpuRowwiseChConv.h
+    CPU/Rowwise/CpuRowwiseChConvWith1x1.h
+    CPU/Rowwise/CpuRowwiseCommon.h
+    CPU/Rowwise/CpuRowwiseConv.h
+    CPU/Rowwise/CpuRowwiseInterface.h
+    CPU/Rowwise/CpuRowwiseMobileNetV2.h
+    CPU/Rowwise/CpuRowwisePooling.h
+    CPU/Rowwise/CpuRowwiseResizeImage.h
+
     ../include/NeoMathEngine/NeoMathEngineDefs.h
+    ../include/NeoMathEngine/ActivationDesc.h
     ../include/NeoMathEngine/BlobDesc.h
     ../include/NeoMathEngine/BlobType.h
     ../include/NeoMathEngine/LookupData.h
@@ -93,6 +109,7 @@ target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_14)
 
 source_group("Header Files\\NeoMathEngine" REGULAR_EXPRESSION "^.*NeoMathEngine/.+\.h|inl$")
 source_group("CPU" REGULAR_EXPRESSION "CPU\/.*")
+source_group("CPU\\Rowwise" REGULAR_EXPRESSION "CPU\/Rowwise\/.*")
 
 target_include_directories(${PROJECT_NAME}
     PUBLIC

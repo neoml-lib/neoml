@@ -1,0 +1,51 @@
+# Rowwise inference
+
+## Idea
+
+Let's take a look at a channelwise convolution 3x3 width padding 1 and stride 1.
+
+```c++
+output[rowIdx, colIdx, channelIdx] = 0
+for( int filterRow = 0; filterRow < 3; ++i ) {
+	for( int filterCol = 0; filterCol < 3; ++i ) {
+		const int inRowIdx = rowIdx - padding + filterRow;
+		const int inColIdx = colIdx - padding + filterCol;
+		output[rowIdx, colIdx, channelIdx] += input[inRowIdx, inColIdx, channelIdx] * filter[filterRow, filterCol, channelIdx];
+	}
+}
+```
+
+From this code we can see that `output[rowIdx, ...]` requires only 3 rows of input: `input[rowIdx - 1 ... rowIdx + 1, ...]`.
+
+In that case it's possible to calculate the result of by keeping in memory only 3 rows of input image at a time. It doesn't matter how many rows input image actually has.
+
+## Formal definition
+
+Let's call an operation `rowwise` if it's output can be calculated row-by-row by keeping only a fixed number of rows of input. `Fixed` means that this number depends only on the parameters of operation and doesn't depend on a height of input image.
+
+Which operations are rowwise?
+
+- Convolutions (`1 + (filterHeight - 1) * dilationHeight` rows are needed).
+- 2d poolings (`filterHeight` rows are needed)
+- activations (only `1` row is needed, `output[rowIdx, ...] = activaition(input[rowIdx, ...])`)
+
+The list above is already covers most of the operations in convolutional neural networks.
+
+As an example of operation which are not rowwise:
+
+- Fully connected because it flattens `height * width * depth * channels` into 1 vector and multiplies it by the matrix
+- Global poolings
+
+## Implementation
+
+Let's connect sequences of rowwise operations in chains. Each operation has 1 input and 1 output. In this case we can calculate the output of the whole chain without fully allocating the blobs in-between operations.
+
+Every blob with images during these operations is interpreted as a sequence of `batchSize * imageHeight` image rows.
+
+The key classes are:
+
+- `IRowwiseCpuImpl` - interface which must be realizeed by a rwowise operation
+- `CCpuMathEngine::RowwiseExecute` - function which takes input data, memory for output data and an array of `IRowwiseCpuImpl`. Executes the sequence of operations from array and writes the result into output data.
+- `IRowwiseBuffer` - interface for memory buffers used during the execution, has 2 significantly different implementations
+	- `CRowwiseWrapper` - wraps already allocated memory as `IRowwiseBuffer`, used for the input and output of a chain (`inputBlobs[0]` and `outputBlobs[0]` of `CRowwiseChainLayer`)
+	- `CRowwiseBuffer` - allocates a slice of image rows

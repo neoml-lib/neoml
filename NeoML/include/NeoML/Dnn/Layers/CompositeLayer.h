@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -44,6 +44,10 @@ public:
 		{ SetOutputMapping(outputNumber, internalLayer.GetName(), internalLayerOutput); }
 	void SetOutputMapping(const char* internalLayerName) { SetOutputMapping(0, internalLayerName, 0); }
 	void SetOutputMapping(CBaseLayer& internalLayer) { SetOutputMapping(internalLayer.GetName()); }
+
+	int GetOutputMappingCount() const { return outputMappings.Size(); }
+	const CString& GetOutputMappingLayer( int index ) const { return outputMappings[index].InternalLayerName; }
+	int GetOutputMappingIndex( int index ) const { return outputMappings[index].InternalLayerOutput; }
 
 	// Internal logging settings
 	void EnableInternalLogging() { areInternalLogsEnabled = true; }

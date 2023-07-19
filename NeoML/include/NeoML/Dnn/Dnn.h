@@ -126,6 +126,9 @@ class NEOML_API CBaseLayer : public virtual IObject {
 public:
 	CBaseLayer( IMathEngine& mathEngine, const char* name, bool isLearnable );
 
+	// Retrieves the reference to the IMathEngine with which the layer was created
+	IMathEngine& MathEngine() const;
+
 	// The current network (described by a CDnn class) to which the layer belongs
 	// While a layer is connected to a network, you may not change its basic configuration,
 	// such as its name, the list of inputs, the size of a convolution window, etc.
@@ -137,6 +140,14 @@ public:
 	// Gets the layer name
 	const char* GetName() const { return name; }
 	virtual void SetName( const char* _name );
+
+	// Gets the path to this Layer
+	// If this layer directly belongs to the root CDnn then this path consists of the name of this layer only
+	// Otherwise it contains the names of all the composites from the root till this layer separated by '/'
+	//
+	// e.g. layer "InputHidden" inside of CLstmLayer named "LSTM", which is inside of CCompositeLayer named "Encoder"
+	// has path "Encoder/LSTM/InputHidden"
+	CString GetPath() const;
 
 	// Connects this layer's inputNumber input to the specified layer's outputNumber output
 	virtual void Connect( int inputNumber, const char* layer, int outputNumber = 0 );
@@ -266,20 +277,9 @@ protected:
 	// Fills with zeros the parameters that are less (but not equal) than a given threshold
 	virtual void FilterLayerParams( float /*threshold*/ ) {}
 
-	// Retrieves the reference to the IMathEngine with which the layer was created
-	IMathEngine& MathEngine() const;
-
 	// Allocates the output blobs
 	// The default implementation creates the outputBlobs array using the output descriptions
 	virtual void AllocateOutputBlobs();
-
-	// Gets the path to this Layer
-	// If this layer directly belongs to the root CDnn then this path consists of the name of this layer only
-	// Otherwise it contains the names of all the composites from the root till this layer separated by '/'
-	//
-	// e.g. layer InputHidden" inside of CLstmLayer named "LSTM", which is inside of CCompositeLayer named "Encoder"
-	// has path "Encoder/LSTM/InputHidden"
-	CString GetPath() const;
 
 	// The following section contains interface for the memory optimization during training
 	// The key idea is that the layer may provide additional information about blobs required
