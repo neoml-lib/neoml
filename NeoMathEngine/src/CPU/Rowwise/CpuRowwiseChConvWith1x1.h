@@ -143,7 +143,7 @@ inline IRowwiseCpuImpl::CProcessingReport CCpuMathEngine::CRowwiseChConvWith1x1:
 		while( chOutputRowIndex < outputRowsAfterThisStep ) {
 			// Because of matrix multiplication in 1x1 conv chOutputRowSize * outputRowsThisStep may be quite big
 			// Which is why channelwise convolution is performed in smaller steps
-			// (unlike matrix multiplication it doesn't slow down when output rows doesn't have enough columns)
+			// (unlike matrix multiplication it doesn't slow down when output rows don't have enough columns)
 			const int outputImageRowIndex = chOutputRowIndex % desc.Result.Height();
 			const int chRowsThisStep = std::min( { outputRowsAfterThisStep - chOutputRowIndex, maxChRowsPerStep,
 				desc.Result.Height() - outputImageRowIndex } );
