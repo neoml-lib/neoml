@@ -176,7 +176,7 @@ void IThreadTask::splitRun2D( int threadIndex )
 	int heightStarts[2]{};
 	int heightCounts[2]{};
 	// 2 dimensional split
-	if( OmpGetTaskIndexAndCount2D( SizeToParallelize2D, /*alignX*/1, ParallelizeSize(), Align,
+	if( GetTaskIndexAndCount2D( SizeToParallelize2D, /*alignX*/1, ParallelizeSize(), Align,
 		heightStarts[1], heightCounts[1], heightStarts[0], heightCounts[0], ThreadPool.Size(), threadIndex ) )
 	{
 		Run( threadIndex, heightStarts, heightCounts );
@@ -864,7 +864,7 @@ bool CKMeansClustering::denseLloydL2Clusterize( IClusteringData* rawData, int se
 	const int featureCount = rawData->GetFeaturesCount();
 	const int clusterCount = params.InitialClustersCount;
 
-	std::unique_ptr<IMathEngine> mathEngine( CreateCpuMathEngine( /*params.ThreadCount*/1, /*memoryLimit*/0 ) );
+	std::unique_ptr<IMathEngine> mathEngine( CreateCpuMathEngine( /*memoryLimit*/0u ) );
 
 	CPtr<CDnnBlob> data = createDataBlob( *mathEngine, rawData->GetMatrix() ); // no threads
 	CPtr<CDnnBlob> weight = createWeightBlob( *mathEngine, rawData ); // no threads

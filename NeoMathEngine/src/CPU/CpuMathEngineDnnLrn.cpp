@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,12 +22,11 @@ limitations under the License.
 #include <MathEngineDnnLrn.h>
 #include <MemoryHandleInternal.h>
 #include <NeoMathEngine/NeoMathEngineException.h>
-#include <NeoMathEngine/OpenMP.h>
 
 namespace NeoML {
 
 static void channelwisePool( const float* input, float* output, int vectorCount, int vectorSize,
-	int windowSize, float scale, float bias, bool isForward, int threadCount );
+	int windowSize, float scale, float bias, bool isForward );
 
 // --------------------------------------------------------------------------------------------------------------------
 
@@ -60,7 +59,7 @@ void CCpuMathEngine::Lrn( const CLrnDesc& lrnDesc, const CConstFloatHandle& inpu
 		CFloatHandle sqrBuff = buffer;
 		VectorEltwiseMultiply( input, input, sqrBuff, dataSize );
 		channelwisePool( GetRaw( sqrBuff ), GetRaw( invSum ), vectorCount, vectorSize, desc.WindowSize,
-			desc.Alpha / desc.WindowSize, desc.Bias, true, threadCount );
+			desc.Alpha / desc.WindowSize, desc.Bias, /*isForward*/true );
 	}
 
 	VectorInv( invSum, invSum, dataSize );
@@ -93,7 +92,7 @@ void CCpuMathEngine::LrnBackward( const CLrnDesc& lrnDesc, const CConstFloatHand
 	
 	const float newScale = -2.f * desc.Alpha * desc.Beta / desc.WindowSize;
 	channelwisePool( GetRaw( buffer.GetHandle() ), GetRaw( inputDiff ), vectorCount, vectorSize, desc.WindowSize,
-		newScale, 0, false, threadCount );
+		newScale, /*bias*/0, /*isForward*/false );
 	VectorEltwiseMultiply( inputDiff, input, inputDiff, dataSize );
 	VectorEltwiseMultiplyAdd( invSumBeta, outputDiff, inputDiff, dataSize );
 }
@@ -103,7 +102,7 @@ void CCpuMathEngine::LrnBackward( const CLrnDesc& lrnDesc, const CConstFloatHand
 #ifdef NEOML_USE_SSE
 
 static void channelwisePool( const float* input, float* output, int vectorCount, int vectorSize,
-	int windowSize, float scale, float bias, bool isForward, int threadCount )
+	int windowSize, float scale, float bias, bool isForward )
 {
 	for( int vec = 0; vec < vectorCount; ++vec ) {
 		for( int ch = 0; ch < vectorSize; ++ch ) {
@@ -146,7 +145,7 @@ static void channelwisePool( const float* input, float* output, int vectorCount,
 #elif defined(NEOML_USE_NEON)
 
 static void channelwisePool( const float* input, float* output, int vectorCount, int vectorSize,
-	int windowSize, float scale, float bias, bool isForward, int threadCount )
+	int windowSize, float scale, float bias, bool isForward )
 {
 	for( int vec = 0; vec < vectorSize; ++vec ) {
 		for( int ch = 0; ch < vectorSize; ++ch ) {
@@ -184,8 +183,8 @@ static void channelwisePool( const float* input, float* output, int vectorCount,
 	}
 }
 
-#else  // !NEOML_USE_NEON
+#else  // !NEOML_USE_NEON && !NEOML_USE_SSE
 #error "Unknown architecure"
-#endif // !NEOML_USE_NEON
+#endif // !NEOML_USE_NEON && !NEOML_USE_SSE
 
 } // namespace NeoML

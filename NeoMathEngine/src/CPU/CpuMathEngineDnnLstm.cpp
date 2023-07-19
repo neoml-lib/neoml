@@ -20,7 +20,6 @@ limitations under the License.
 #include <CpuMathEnginePrivate.h>
 #include <CpuMathEngineDnnLstm.h>
 #include <NeoMathEngine/NeoMathEngineException.h>
-#include <NeoMathEngine/OpenMP.h>
 
 namespace NeoML {
 

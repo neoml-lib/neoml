@@ -1,4 +1,4 @@
-/* Copyright © 2021 ABBYY Production LLC
+/* Copyright © 2021-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ limitations under the License.
 
 TEST(CDnnBlobTest, InitWindowBlob)
 {
-    NeoML::IMathEngine& engine = NeoML::GetSingleThreadCpuMathEngine();
+    NeoML::IMathEngine& engine = NeoML::GetDefaultCpuMathEngine();
     CPtr<NeoML::CDnnBlob> parent = NeoML::CDnnBlob::CreateDataBlob( engine, NeoML::CT_Float, 16, 1, 1 );
     CPtr<NeoML::CDnnBlob> blob = NeoML::CDnnBlob::CreateWindowBlob( parent );
 
@@ -29,7 +29,7 @@ TEST(CDnnBlobTest, InitWindowBlob)
 
 TEST(CDnnBlobTest, BufferTest)
 {
-    NeoML::IMathEngine& engine = NeoML::GetSingleThreadCpuMathEngine();
+    NeoML::IMathEngine& engine = NeoML::GetDefaultCpuMathEngine();
     CPtr<NeoML::CDnnBlob> blob = NeoML::CDnnBlob::CreateDataBlob( engine, NeoML::CT_Float, 16, 1, 1 );
     ASSERT_FALSE( blob->GetData().IsNull() );
 

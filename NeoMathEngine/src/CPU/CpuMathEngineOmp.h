@@ -51,8 +51,7 @@ public:
 	// Get the data for the current thread
 	CFloatHandle GetPrivateData() const
 	{
-		const int threadNumber = OmpGetThreadNum();
-		return items[threadNumber].GetHandle();
+		return items[/*threadNumber*/0].GetHandle();
 	}
 
 	// Get the data height
@@ -103,8 +102,7 @@ public:
 	// Get the data for the current thread
 	CFloatHandle GetPrivateData() const
 	{
-		const int threadNumber = OmpGetThreadNum();
-		return items[threadNumber].GetHandle();
+		return items[/*threadNumber*/0].GetHandle();
 	}
 
 	// Get the data size
@@ -196,9 +194,7 @@ public:
 
 	TItem& GetPrivate() const
 	{
-		const int threadNumber = OmpGetThreadNum();
-		ASSERT_EXPR( 0 <= threadNumber && threadNumber < count + 1 );
-
+		const int threadNumber = 0;
 		if( threadNumber == 0 ) {
 			return sharedItem;
 		}

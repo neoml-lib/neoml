@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -187,7 +187,7 @@ static void convertToMatrix( float* input, CSparseFloatMatrix& matrix, int matri
 // transform matrix using principal components
 static CSparseFloatMatrix transform( const CFloatMatrixDesc& data, const CArray<float>& componentsMatrix, int components )
 {
-	std::unique_ptr<IMathEngine> mathEngine( CreateCpuMathEngine( 1, 0 ) );
+	std::unique_ptr<IMathEngine> mathEngine( CreateCpuMathEngine( /*memoryLimit*/0u ) );
 	CPtr<CDnnBlob> columns;
 	CPtr<CDnnBlob> rows;
 	CPtr<CDnnBlob> values;
@@ -228,7 +228,7 @@ void RandomizedSingularValueDecomposition( const CFloatMatrixDesc& data,
 	NeoAssert( components > 0 );
 	NeoAssert( components <= min( data.Height, data.Width ) );
 	CRandom rand( seed );
-	std::unique_ptr<IMathEngine> mathEngine( CreateCpuMathEngine( 1, 0 ) );
+	std::unique_ptr<IMathEngine> mathEngine( CreateCpuMathEngine( /*memoryLimit*/0u ) );
 
 	CPtr<CDnnBlob> columns;
 	CPtr<CDnnBlob> rows;
@@ -334,7 +334,7 @@ void SingularValueDecomposition( const CFloatMatrixDesc& data,
 	const int components = min( height, width );
 	resultComponents = ( resultComponents == 0 ) ? components : resultComponents;
 
-	std::unique_ptr<IMathEngine> mathEngine( CreateCpuMathEngine( 1, 0 ) );
+	std::unique_ptr<IMathEngine> mathEngine( CreateCpuMathEngine( /*memoryLimit*/0u ) );
 	CPtr<CDnnBlob> leftVectors;
 	if( returnLeftVectors ) {
 		leftVectors = CDnnBlob::CreateMatrix( *mathEngine, CT_Float, components, height );

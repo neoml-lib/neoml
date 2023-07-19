@@ -22,7 +22,6 @@ limitations under the License.
 #include <NeoMathEngine/BlobDesc.h>
 #include <NeoMathEngine/SparseMatrixDesc.h>
 #include <NeoMathEngine/LookupData.h>
-#include <NeoMathEngine/OpenMP.h>
 #include <NeoMathEngine/CrtAllocatedObject.h>
 #include <NeoMathEngine/PerformanceCounters.h>
 #include <NeoMathEngine/NeoMathEngineException.h>

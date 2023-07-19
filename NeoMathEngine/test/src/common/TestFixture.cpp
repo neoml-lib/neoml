@@ -165,7 +165,7 @@ static IMathEngine* createMathEngine( TMathEngineArgType argType )
 			GTEST_LOG_( WARNING ) << "Unknown type of MathEngine!";
 			// fall through
 		case TMathEngineArgType::Cpu:
-			return CreateCpuMathEngine( /*memoryLimit*/0 );
+			return CreateCpuMathEngine( /*memoryLimit*/0u );
 		default:
 			return nullptr;
 	}

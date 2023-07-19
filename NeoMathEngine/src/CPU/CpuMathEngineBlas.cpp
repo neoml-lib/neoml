@@ -243,32 +243,11 @@ void CCpuMathEngine::AddVectorToMatrixRows( int batchSize, const CConstFloatHand
 	const float* vector = GetRaw( vectorHandle );
 
 	const int matrixSize = matrixHeight * matrixWidth;
-	const int tasks = batchSize * matrixSize;
-	const int curThreadCount = IsOmpRelevant( tasks, tasks ) ? threadCount : 1;
-	NEOML_OMP_NUM_THREADS( curThreadCount )
-	{
-		int batchStart;
-		int batchCount;
-		int heightStart;
-		int heightCount;
-		int widthStart;
-		int widthCount;
-		if( OmpGetTaskIndexAndCount3D( batchSize, 1, matrixHeight, 1, matrixWidth, 1,
-			batchStart, batchCount, heightStart, heightCount, widthStart, widthCount ) )
-		{
-			const int offset = batchStart * matrixSize + heightStart * matrixWidth + widthStart;
-			float* outputData = result + offset;
-			const float* inputData = matrix + offset;
-			const float* vectorData = vector + batchStart * matrixWidth + widthStart;
-
-			for( int i = 0; i < batchCount; ++i ) {
-				addVectorToMatrixRows( inputData, outputData, heightCount, widthCount,
-					matrixWidth, matrixWidth, vectorData );
-				inputData += matrixSize;
-				outputData += matrixSize;
-				vectorData += matrixWidth;
-			}
-		}
+	for( int i = 0; i < batchSize; ++i ) {
+		addVectorToMatrixRows( matrix, result, matrixHeight, matrixWidth, matrixWidth, matrixWidth, vector );
+		matrix += matrixSize;
+		result += matrixSize;
+		vector += matrixWidth;
 	}
 }
 
@@ -934,26 +913,8 @@ void CCpuMathEngine::MultiplyMatrixByTransposedMatrix( const CConstFloatHandle& 
 	const float* const second = GetRaw( secondHandle );
 	float* const result = GetRaw( resultHandle );
 
-	const int curThreadCount = IsOmpRelevant( firstHeight * secondHeight, firstWidth * firstHeight * secondHeight )
-		? threadCount : 1;
-	NEOML_OMP_NUM_THREADS( curThreadCount )
-	{
-		int firstHeightStart;
-		int firstHeightCount;
-		int secondHeightStart;
-		int secondHeightCount;
-		if( OmpGetTaskIndexAndCount2D( firstHeight, 1, secondHeight, floatAlignment,
-				firstHeightStart, firstHeightCount, secondHeightStart, secondHeightCount ) )
-		{
-			const float* const firstData = first + firstHeightStart * firstWidth;
-			float* const resultData = result + firstHeightStart * secondHeight + secondHeightStart;
-			const float* const secondData = second + secondHeightStart * firstWidth;
-
-			multiplyMatrixByTransposedMatrix( firstData, firstHeightCount, firstWidth, firstRowSize,
-				secondData, secondHeightCount, secondRowSize,
-				resultData, resultRowSize );
-		}
-	}
+	multiplyMatrixByTransposedMatrix( first, firstHeight, firstWidth, firstRowSize,
+		second, secondHeight, secondRowSize, result, resultRowSize );
 }
 
 void CCpuMathEngine::MultiplyMatrixByTransposedMatrix( int batchSize, const CConstFloatHandle& firstHandle,

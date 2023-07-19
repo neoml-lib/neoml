@@ -414,49 +414,37 @@ void CCpuMathEngine::QrnnFPooling( bool reverse, int sequenceLength, int objectS
 	ASSERT_EXPR( result.GetMathEngine() == this );
 	CCpuExecutionScope scope;
 
-	// Global means outside of OMP
-	const float* globalZ = GetRaw( update );
-	const float* globalF = GetRaw( forget );
-	const float* globalH0 = initialState.IsNull() ? nullptr : GetRaw( initialState );
-	float* globalRes = GetRaw( result );
+	const float* z = GetRaw( update );
+	const float* f = GetRaw( forget );
+	const float* h0 = initialState.IsNull() ? nullptr : GetRaw( initialState );
+	float* res = GetRaw( result );
 
 	const int nextObjectOffset = reverse ? -objectSize : objectSize;
 
 	if( reverse ) {
 		const int firstElemOffset = ( sequenceLength - 1 ) * objectSize;
-		globalZ += firstElemOffset;
-		globalF += firstElemOffset;
-		globalRes += firstElemOffset;
+		z += firstElemOffset;
+		f += firstElemOffset;
+		h0 += firstElemOffset;
 	}
 
-	const int currThreadCount = IsOmpRelevant( objectSize, sequenceLength * objectSize ) ? threadCount : 1;
-	NEOML_OMP_NUM_THREADS( currThreadCount )
-	{
-		int start;
-		int count;
-		if( OmpGetTaskIndexAndCount( objectSize, start, count ) ) {
-			const float* z = globalZ + start;
-			const float* f = globalF + start;
-			const float* h0 = globalH0 == nullptr ? nullptr : globalH0 + start;
-			float* res = globalRes + start;
+	const int count = objectSize;
+	const int sseSize = count / 4;
+	const int nonSseSize = count % 4;
 
-			const int sseSize = count / 4;
-			const int nonSseSize = count % 4;
-			if( h0 == nullptr ) {
-				NeoML::qrnnFPoolingFirstStep( z, f, res, sseSize, nonSseSize );
-			} else {
-				NeoML::qrnnFPoolingStep( z, f, h0, res, sseSize, nonSseSize );
-			}
+	if( h0 == nullptr ) {
+		NeoML::qrnnFPoolingFirstStep( z, f, res, sseSize, nonSseSize );
+	} else {
+		NeoML::qrnnFPoolingStep( z, f, h0, res, sseSize, nonSseSize );
+	}
 
-			const float* hPrev = res;
-			for( int step = 0; step < sequenceLength - 1; ++step ) {
-				z += nextObjectOffset;
-				f += nextObjectOffset;
-				res += nextObjectOffset;
-				NeoML::qrnnFPoolingStep( z, f, hPrev, res, sseSize, nonSseSize );
-				hPrev = res;
-			}
-		}
+	const float* hPrev = res;
+	for( int step = 0; step < sequenceLength - 1; ++step ) {
+		z += nextObjectOffset;
+		f += nextObjectOffset;
+		res += nextObjectOffset;
+		NeoML::qrnnFPoolingStep( z, f, hPrev, res, sseSize, nonSseSize );
+		hPrev = res;
 	}
 }
 
@@ -539,53 +527,40 @@ void CCpuMathEngine::QrnnIfPooling( bool reverse, int sequenceLength, int object
 	ASSERT_EXPR( result.GetMathEngine() == this );
 	CCpuExecutionScope scope;
 
-	// Global means outside of OMP
-	const float* globalZ = GetRaw( update );
-	const float* globalF = GetRaw( forget );
-	const float* globalI = GetRaw( input );
-	const float* globalH0 = initialState.IsNull() ? nullptr : GetRaw( initialState );
-	float* globalRes = GetRaw( result );
+	const float* z = GetRaw( update );
+	const float* f = GetRaw( forget );
+	const float* i = GetRaw( input );
+	const float* h0 = initialState.IsNull() ? nullptr : GetRaw( initialState );
+	float* res = GetRaw( result );
 
 	const int nextObjectOffset = reverse ? -objectSize : objectSize;
 
 	if( reverse ) {
 		const int firstElemOffset = ( sequenceLength - 1 ) * objectSize;
-		globalZ += firstElemOffset;
-		globalF += firstElemOffset;
-		globalI += firstElemOffset;
-		globalRes += firstElemOffset;
+		z += firstElemOffset;
+		f += firstElemOffset;
+		i += firstElemOffset;
+		res += firstElemOffset;
 	}
 
-	const int currThreadCount = IsOmpRelevant( objectSize, sequenceLength * objectSize ) ? threadCount : 1;
-	NEOML_OMP_NUM_THREADS( currThreadCount )
-	{
-		int start;
-		int count;
-		if( OmpGetTaskIndexAndCount( objectSize, start, count ) ) {
-			const float* z = globalZ + start;
-			const float* f = globalF + start;
-			const float* i = globalI + start;
-			const float* h0 = globalH0 == nullptr ? nullptr : globalH0 + start;
-			float* res = globalRes + start;
+	const int count = objectSize;
+	const int sseSize = count / 4;
+	const int nonSseSize = count % 4;
 
-			const int sseSize = count / 4;
-			const int nonSseSize = count % 4;
-			if( h0 == nullptr ) {
-				NeoML::vectorEltwiseMultiply( i, z, res, sseSize, nonSseSize );
-			} else {
-				NeoML::qrnnIfPoolingStep( z, f, i, h0, res, sseSize, nonSseSize );
-			}
+	if( h0 == nullptr ) {
+		NeoML::vectorEltwiseMultiply( i, z, res, sseSize, nonSseSize );
+	} else {
+		NeoML::qrnnIfPoolingStep( z, f, i, h0, res, sseSize, nonSseSize );
+	}
 
-			const float* hPrev = res;
-			for( int step = 0; step < sequenceLength - 1; ++step ) {
-				z += nextObjectOffset;
-				f += nextObjectOffset;
-				i += nextObjectOffset;
-				res += nextObjectOffset;
-				NeoML::qrnnIfPoolingStep( z, f, i, hPrev, res, sseSize, nonSseSize );
-				hPrev = res;
-			}
-		}
+	const float* hPrev = res;
+	for( int step = 0; step < sequenceLength - 1; ++step ) {
+		z += nextObjectOffset;
+		f += nextObjectOffset;
+		i += nextObjectOffset;
+		res += nextObjectOffset;
+		NeoML::qrnnIfPoolingStep( z, f, i, hPrev, res, sseSize, nonSseSize );
+		hPrev = res;
 	}
 }
 
@@ -872,37 +847,26 @@ static inline void SpaceToDepthFunc( const T* source, int dataRowCount, int data
 	const int resultBlockRowOffset = isForward ? blockRowSize : dataRowWidth * blockRowSize;
 
 	// iterate over data rows
-	const int blobSize = dataRowCount * dataRowWidth * blockSize * blockRowSize;
-	const int curThreadCount = 1;
-	NEOML_OMP_NUM_THREADS( curThreadCount )
-	{
-		int threadRowStart;
-		int threadRowCount;
-		if( OmpGetTaskIndexAndCount( dataRowCount, threadRowStart, threadRowCount ) ) {
-			const T* sourcePtr = source + threadRowStart * dataRowSize;
-			T* resultPtr = result + threadRowStart * dataRowSize;
-			for( int dataRowIndex = 0; dataRowIndex < threadRowCount; ++dataRowIndex ) {
-				const T* sourceRow = sourcePtr;
-				T* resultRow = resultPtr;
-				// iterate over blocks in data row
-				for( int blockIndex = 0; blockIndex < dataRowWidth; ++blockIndex ) {
-					const T* sourceBlock = sourceRow;
-					T* resultBlock = resultRow;
-					// iterate over rows of 3-dimensional (blockSize x blockSize x channels) block
-					for( int blockRowIndex = 0; blockRowIndex < blockSize; ++blockRowIndex ) {
-						// copy current row of 3d-block
-						dataCopy( resultBlock, sourceBlock, blockRowSize );
-						sourceBlock += sourceBlockRowOffset;
-						resultBlock += resultBlockRowOffset;
-					}
-					// switching to the next block
-					sourceRow += sourceBlockOffset;
-					resultRow += resultBlockOffset;
-				}
-				sourcePtr += dataRowSize;
-				resultPtr += dataRowSize;
+	for( int dataRowIndex = 0; dataRowIndex < dataRowCount; ++dataRowIndex ) {
+		const T* sourceRow = source;
+		T* resultRow = result;
+		// iterate over blocks in data row
+		for( int blockIndex = 0; blockIndex < dataRowWidth; ++blockIndex ) {
+			const T* sourceBlock = sourceRow;
+			T* resultBlock = resultRow;
+			// iterate over rows of 3-dimensional (blockSize x blockSize x channels) block
+			for( int blockRowIndex = 0; blockRowIndex < blockSize; ++blockRowIndex ) {
+				// copy current row of 3d-block
+				dataCopy( resultBlock, sourceBlock, blockRowSize );
+				sourceBlock += sourceBlockRowOffset;
+				resultBlock += resultBlockRowOffset;
 			}
+			// switching to the next block
+			sourceRow += sourceBlockOffset;
+			resultRow += resultBlockOffset;
 		}
+		source += dataRowSize;
+		result += dataRowSize;
 	}
 }
 
@@ -1125,7 +1089,7 @@ void CCpuMathEngine::LinearInterpolation( const CConstFloatHandle& dataHandle, c
 	TCoordRound roundCoords = getCoordRound( round );
 
 	for( int b = 0; b < objectCount; ++b ) {
-		float* currBuff = GetRaw( buff.GetHandle() ) + OmpGetThreadNum() * objectSize;
+		float* currBuff = GetRaw( buff.GetHandle() ) + objectSize;
 		float* currResult = result + b * resultBatchStep;
 		const float* currData = data + b * dataBatchStep;
 		for( int i = 0; i < static_cast<int>( scaledAxis * scale ); ++i ) {
