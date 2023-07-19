@@ -118,8 +118,9 @@ void CCpuMathEngine::MobileNetV3PreSEBlock( const CBlobDesc& inputDesc, const CB
 	const float* channelwiseFilter = GetRaw( channelwiseFilterData );
 	const float* channelwiseFreeTerm = channelwiseFreeTermData == nullptr ? nullptr : GetRaw( *channelwiseFreeTermData );
 
-	const int maxInputRowsPerStep = std::max<int>( 1,
-		( RowwiseCacheSize / ( std::max<int>( inputChannels, outputChannels ) * inputWidth ) ) );
+	const int maxInputRowsPerStep = std::max<int>( { 1,
+		( RowwiseCacheSize / ( std::max<int>( inputChannels, outputChannels ) * inputWidth ) ),
+		( RowwiseMatMulRequiredHeight + inputWidth - 1 ) / inputWidth } );
 	const int maxOutputRowsPerStep = std::max<int>( 1, ( RowwiseCacheSize / ( outputChannels * desc.Result.Width() ) ) );
 
 	// Buffer for the input rows of channelwise convolution
@@ -207,7 +208,9 @@ void CCpuMathEngine::MobileNetV3PostSEBlock( const CBlobDesc& channelwiseOutputD
 	const int outputRowSize = outputChannels * width;
 	const int outputObjectSize = outputRowSize * rowCount;
 
-	const int maxRowsPerStep = std::max( 1, ( RowwiseCacheSize / ( std::max( inputChannels, outputChannels ) * width ) ) );
+	const int maxRowsPerStep = std::max( { 1,
+		RowwiseCacheSize / ( std::max( inputChannels, outputChannels ) * width ),
+		( ( RowwiseMatMulRequiredHeight + width - 1 ) / width ) } );
 
 	CFloatHandleStackVar buffVar( *this, std::min( rowCount, maxRowsPerStep ) * inputRowSize );
 	const float* inputObject = GetRaw( channelwiseOutputHandle );
