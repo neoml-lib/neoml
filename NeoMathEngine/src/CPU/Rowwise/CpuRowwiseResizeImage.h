@@ -211,6 +211,11 @@ inline int CRowwiseImageResize::requiredInputRow( int outputRowIndex ) const
 
 	// Corner-case of reflect padding: guarantee that remaining paddings of current image can be calculated
 	// Check for remaining top padding
+	if( outRowIndex < deltaTop ) {
+		// Top padding itself doesn't need 0'th line of input
+		// but it's needed to calculate deltaTop'th line of output (which maps onto 0'th line of input)
+		inRowIndex = std::min( inRowIndex, 0 );
+	}
 	for( int i = outRowIndex; i - deltaTop < 0; ++i ) {
 		inRowIndex = std::min( inRowIndex, inputCoord( i - deltaTop, from.Height() ) );
 	}
