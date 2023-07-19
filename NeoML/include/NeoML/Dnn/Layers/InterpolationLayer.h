@@ -91,6 +91,13 @@ private:
 	CArray<CRule> rules;
 	TInterpolationCoords coords;
 	TInterpolationRound round;
+	int nontrivialDims;
+	int upsamplingHeightCopyCount;
+	int upsamplingWidthCopyCount;
+	CBlobDesc upsamplingInputDesc;
+	CBlobDesc upsamplingOutputDesc;
+
+	void tryUpsampling();
 };
 
 inline CArchive& operator<<( CArchive& archive, const CInterpolationLayer::CRule& rule )
