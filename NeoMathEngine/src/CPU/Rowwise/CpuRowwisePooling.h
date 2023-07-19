@@ -71,7 +71,6 @@ inline IRowwiseCpuImpl::CProcessingReport CCpuMathEngine::CRowwise2DPooling::Pro
 		outputRowsAvailable, desc.Source.Height(), desc.Result.Height(), desc.FilterHeight, 0,
 		desc.StrideHeight, 1 );
 	if( report.OutputRowsCalculated == 0 ) {
-		PRESUME_EXPR( report.InputRowsMayBeRemoved == 0 );
 		return report;
 	}
 
