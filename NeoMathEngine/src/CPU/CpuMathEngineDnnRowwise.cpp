@@ -49,40 +49,57 @@ CBlobDesc CCpuMathEngine::RowwiseReshape( CRowwiseOperationDesc** operations, in
 
 static constexpr int RowwiseMaxBuffSize = 32 * 1024;
 
-void CCpuMathEngine::RowwiseExecute( const CBlobDesc& inputDesc, CRowwiseOperationDesc** operationDescs,
-	int operationCount, const CFloatHandle& input, const CFloatHandle& output )
+typedef std::vector<std::vector<IRowwiseCpuImpl*>> CRowwiseSubchains;
+typedef std::vector<std::unique_ptr<IRowwiseBuffer>> CRowwiseBuffers;
+
+// Splits chain of rowwise operation into subchains
+// First operation in each subchain is performed out-of-place
+// the rest of operations in each subchain are trivial and performed in-place
+// most common example:
+//     conv -> relu6 -> conv -> relu6 -> pool
+// will be split into:
+//     [conv -> relu6] -> [conv -> relu6] -> [pool]
+// Returns the buffer size needed for calculation (size in floats)
+static int splitIntoSubchains( CRowwiseOperationDesc** operationDescs, int operationCount,
+	CRowwiseSubchains& subchains )
 {
-	PRESUME_EXPR( operationCount > 1 );
-	PRESUME_EXPR( inputDesc.Depth() == 1 );
-
-	CCpuExecutionScope scope;
-
 	int inOperationBufferSize = 0;
-	std::vector<std::vector<IRowwiseCpuImpl*>> operations;
+
 	for( int i = 0; i < operationCount; ++i ) {
 		IRowwiseCpuImpl* operation = dynamic_cast<IRowwiseCpuImpl*>( *( operationDescs + i ) );
 		if( i == 0 || !operation->IsTrivial() ) {
-			operations.emplace_back();
+			subchains.emplace_back();
 		}
 		inOperationBufferSize = std::max( inOperationBufferSize, operation->InOperationBufferSize() );
-		operations.back().push_back( operation );
+		subchains.back().push_back( operation );
 	}
 
-	std::vector<std::unique_ptr<IRowwiseBuffer>> buffers;
-	buffers.reserve( static_cast<size_t>( operationCount + 1 ) );
+	return inOperationBufferSize;
+}
+
+// Allocates rowwise buffers for the current set of operations
+static void allocateRowwiseBuffers( const CBlobDesc& inputDesc, const CRowwiseSubchains& operations,
+	const CFloatHandle& input, const CFloatHandle& output, CRowwiseBuffers& buffers )
+{
+	buffers.reserve( operations.size() + 1 );
 
 	const int inputRowsCount = inputDesc.ObjectCount() * inputDesc.Height();
 	buffers.emplace_back( new CRowwiseWrapper( GetRaw( input ), inputRowsCount,
 		inputDesc.Width() * inputDesc.Channels() ) );
+	// Each time we try to allocate buffer which meets the output requirement of latest operator
+	// and the input requirement of next operator (skipping operators which don't have such requirements)
 	int prevOutputRequirement = 1;
 	int nextInputRequirement = 1;
 	size_t nextInputRequirementIndex = 0;
 	for( size_t i = 0; i < operations.size() - 1; ++i ) {
 		if( i == nextInputRequirementIndex ) {
+			// Finding the next operation which has requirement for its input
 			nextInputRequirement = 1;
 			while( nextInputRequirementIndex < operations.size() ) {
 				++nextInputRequirementIndex;
-				if( operations[nextInputRequirementIndex][0]->InputRowRequirement() > 0 ) {
+				if( nextInputRequirementIndex < operations.size()
+					&& operations[nextInputRequirementIndex][0]->InputRowRequirement() > 0 )
+				{
 					nextInputRequirement = operations[nextInputRequirementIndex][0]->InputRowRequirement();
 					break;
 				}
@@ -96,10 +113,55 @@ void CCpuMathEngine::RowwiseExecute( const CBlobDesc& inputDesc, CRowwiseOperati
 		const int rowSize = operations[i][0]->OutputRowSize();
 		const int maxRowCount = std::min( operations[i][0]->OutputRowCount(),
 			std::max( { prevOutputRequirement, nextInputRequirement, RowwiseMaxBuffSize / rowSize } ) );
-		buffers.emplace_back( new CRowwiseBuffer( *this, maxRowCount, rowSize, operations[i][0]->OutputRowCount() ) );
+		buffers.emplace_back( new CRowwiseBuffer( *input.GetMathEngine(),
+			maxRowCount, rowSize, operations[i][0]->OutputRowCount() ) );
 	}
 	buffers.emplace_back( new CRowwiseWrapper( GetRaw( output ), operations.back().back()->OutputRowCount(),
 		operations.back().back()->OutputRowSize() ) );
+}
+
+// Processes corner case: single subchain which has multiple operations
+void executeSingleSubchain( std::vector<IRowwiseCpuImpl*>& subchain, CRowwiseBuffers& buffers, float* inOperationBuffer )
+{
+	const int maxOutputRowsPerStep = std::max( 1, RowwiseMaxBuffSize / subchain.back()->OutputRowSize() );
+	while( buffers.back()->EmptyRowCount() > 0 ) {
+		// In this case all the data is allocated (cause input and output blobs are fully allocated by CDnn)
+		// But because of the fact that we have multiple operations in subchain it will be ineffective to
+		// call Process for the whole data for each of operations (because data may be too big)
+		// That's why we manually limit the number of output rows calculated during each call
+		const int outputRowsThisStep = std::min( maxOutputRowsPerStep, buffers.back()->EmptyRowCount() );
+		IRowwiseCpuImpl::CProcessingReport report = subchain[0]->Process( buffers[0]->DataRows(),
+			buffers[0]->DataRowIndex(), buffers[0]->DataRowCount(), buffers[1]->EmptyRows(),
+			buffers[1]->DataRowProcessed(), outputRowsThisStep, inOperationBuffer );
+		PRESUME_EXPR( report.OutputRowsCalculated == outputRowsThisStep );
+
+		for( size_t j = 1; j < subchain.size(); ++j ) {
+			( void ) subchain[j]->Process( buffers[1]->EmptyRows(), buffers[1]->DataRowProcessed(),
+				report.OutputRowsCalculated, buffers[1]->EmptyRows(), buffers[1]->DataRowProcessed(),
+				report.OutputRowsCalculated, inOperationBuffer );
+		}
+
+		buffers[1]->AddRows( report.OutputRowsCalculated );
+		if( report.InputRowsMayBeRemoved > 0 ) {
+			buffers[0]->RemoveRows( report.InputRowsMayBeRemoved );
+		}
+	}
+	return;
+}
+
+void CCpuMathEngine::RowwiseExecute( const CBlobDesc& inputDesc, CRowwiseOperationDesc** operationDescs,
+	int operationCount, const CFloatHandle& input, const CFloatHandle& output )
+{
+	PRESUME_EXPR( operationCount > 1 );
+	PRESUME_EXPR( inputDesc.Depth() == 1 );
+
+	CCpuExecutionScope scope;
+
+	CRowwiseSubchains operations;
+	int inOperationBufferSize = splitIntoSubchains( operationDescs, operationCount, operations );
+
+	CRowwiseBuffers buffers;
+	allocateRowwiseBuffers( inputDesc, operations, input, output, buffers );
 
 	std::unique_ptr<CFloatHandleStackVar> inOperationBufferVar;
 	float* inOperationBuffer = nullptr;
@@ -111,25 +173,7 @@ void CCpuMathEngine::RowwiseExecute( const CBlobDesc& inputDesc, CRowwiseOperati
 	buffers.front()->AddRows( inputDesc.ObjectCount() * inputDesc.Height() );
 
 	if( operations.size() == 1 && operations[0].size() > 1 ) {
-		const int maxOutputRowsPerStep = std::max( 1, RowwiseMaxBuffSize / operations.back().back()->OutputRowSize() );
-		while( buffers.back()->EmptyRowCount() > 0 ) {
-			const int outputRowsThisStep = std::min( maxOutputRowsPerStep, buffers.back()->EmptyRowCount() );
-			IRowwiseCpuImpl::CProcessingReport report = operations[0][0]->Process( buffers[0]->DataRows(),
-				buffers[0]->DataRowIndex(), buffers[0]->DataRowCount(), buffers[1]->EmptyRows(),
-				buffers[1]->DataRowProcessed(), outputRowsThisStep, inOperationBuffer );
-			PRESUME_EXPR( report.OutputRowsCalculated == outputRowsThisStep );
-
-			for( size_t j = 1; j < operations[0].size(); ++j ) {
-				( void ) operations[0][j]->Process( buffers[1]->EmptyRows(), buffers[1]->DataRowProcessed(),
-					report.OutputRowsCalculated, buffers[1]->EmptyRows(), buffers[1]->DataRowProcessed(),
-					report.OutputRowsCalculated, inOperationBuffer );
-			}
-
-			buffers[1]->AddRows( report.OutputRowsCalculated );
-			if( report.InputRowsMayBeRemoved > 0 ) {
-				buffers[0]->RemoveRows( report.InputRowsMayBeRemoved );
-			}
-		}
+		executeSingleSubchain( operations[0], buffers, inOperationBuffer );
 		return;
 	}
 
@@ -160,7 +204,6 @@ void CCpuMathEngine::RowwiseExecute( const CBlobDesc& inputDesc, CRowwiseOperati
 			// Try to fill as much of output as possible
 			// Significanlty reduces a number of calls with report.OutputRowsCalculated == 0
 			if( buffers[i + 1]->EmptyRowCount() > 0
-				&& buffers[i + 1]->DataRowProcessed() < operations[i][0]->OutputRowCount()
 				&& ( ( i == 0 && buffers[i]->DataRowCount() > 0 )
 					|| ( i > 0 && buffers[i]->DataRowProcessed() < operations[i - 1][0]->OutputRowCount() ) ) )
 			{
