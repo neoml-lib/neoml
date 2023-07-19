@@ -20,8 +20,8 @@ limitations under the License.
 
 namespace NeoML {
 
-// The general max pooling descriptor
-struct CCommonMaxPoolingDesc : public CMaxPoolingDesc {
+// The general 2D pooling descriptor
+struct CCommon2DPoolingDesc {
 	CBlobDesc Source;
 	CBlobDesc Result;
 	int FilterHeight;
@@ -29,7 +29,7 @@ struct CCommonMaxPoolingDesc : public CMaxPoolingDesc {
 	int StrideHeight;
 	int StrideWidth;
 
-	CCommonMaxPoolingDesc( const CBlobDesc& source, const CBlobDesc& result,
+	CCommon2DPoolingDesc( const CBlobDesc& source, const CBlobDesc& result,
 			int filterHeight, int filterWidth, int strideHeight, int strideWidth ) :
 		Source( source ),
 		Result( result ),
@@ -41,23 +41,20 @@ struct CCommonMaxPoolingDesc : public CMaxPoolingDesc {
 	}
 };
 
-// The general mean pooling descriptor
-struct CCommonMeanPoolingDesc : public CMeanPoolingDesc {
-	CBlobDesc Source;
-	CBlobDesc Result;
-	int FilterHeight;
-	int FilterWidth;
-	int StrideHeight;
-	int StrideWidth;
-
-	CCommonMeanPoolingDesc( const CBlobDesc& source, const CBlobDesc& result,
+// The general max pooling descriptor
+struct CCommonMaxPoolingDesc : public CMaxPoolingDesc, public CCommon2DPoolingDesc {
+	CCommonMaxPoolingDesc( const CBlobDesc& source, const CBlobDesc& result,
 			int filterHeight, int filterWidth, int strideHeight, int strideWidth ) :
-		Source( source ),
-		Result( result ),
-		FilterHeight( filterHeight ),
-		FilterWidth( filterWidth ),
-		StrideHeight( strideHeight ),
-		StrideWidth( strideWidth )
+		CCommon2DPoolingDesc( source, result, filterHeight, filterWidth, strideHeight, strideWidth )
+	{
+	}
+};
+
+// The general mean pooling descriptor
+struct CCommonMeanPoolingDesc : public CMeanPoolingDesc, public CCommon2DPoolingDesc {
+	CCommonMeanPoolingDesc( const CBlobDesc& source, const CBlobDesc& result,
+		int filterHeight, int filterWidth, int strideHeight, int strideWidth ) :
+		CCommon2DPoolingDesc( source, result, filterHeight, filterWidth, strideHeight, strideWidth )
 	{
 	}
 };

@@ -42,6 +42,8 @@ struct NEOML_API CDnnOptimizationReport {
 	int MobileNetV3NonResidualBlocks = 0;
 	// Number of optimized MobileNetV3 blocks with residual connection
 	int MobileNetV3ResidualBlocks = 0;
+	// Number of chains of rowwise operations
+	int RowwiseChainCount = 0;
 };
 
 // Settings for optional optimizations

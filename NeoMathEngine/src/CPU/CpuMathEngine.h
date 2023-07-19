@@ -26,6 +26,7 @@ limitations under the License.
 namespace NeoML {
 
 struct CCpuConvolutionDesc;
+struct CCommon2DPoolingDesc;
 struct CCommonMaxPoolingDesc;
 struct CCommon3dConvolutionDesc;
 struct CCommonChannelwiseConvolutionDesc;
@@ -595,6 +596,32 @@ public:
 		const CConstFloatHandle* residualHandle, TActivationFunction activation, float reluParam,
 		const CConstFloatHandle& downFilterHandle, const CConstFloatHandle* downFreeTermHandle,
 		const CFloatHandle& outputHandle ) override;
+	CRowwiseOperationDesc* InitRowwiseActivation( const CActivationDesc& desc ) override;
+	CRowwiseOperationDesc* InitRowwiseChWith1x1( int stride, const CConstFloatHandle& channelwiseFilter,
+		const CConstFloatHandle* channelwiseFreeTerm, TActivationFunction activation, float reluParam,
+		const CConstFloatHandle& convFilter, const CConstFloatHandle* convFreeTerm,
+		int outputChannels, bool residual ) override;
+	CRowwiseOperationDesc* InitRowwiseConv( int paddingHeight, int paddingWidth, int strideHeight,
+		int strideWidth, int dilationHeight, int dilationWidth, const CBlobDesc& filterDesc,
+		const CConstFloatHandle& filter, const CConstFloatHandle* freeTerm ) override;
+	CRowwiseOperationDesc* InitRowwiseChConv( int paddingHeight, int paddingWidth, int strideHeight,
+		int strideWidth, const CBlobDesc& filterDesc, const CConstFloatHandle& filter,
+		const CConstFloatHandle* freeTerm ) override;
+	CRowwiseOperationDesc* InitRowwiseResizeImage( TBlobResizePadding padding, float defaultValue,
+		int deltaLeft, int deltaRight, int deltaTop, int deltaBottom ) override;
+	CRowwiseOperationDesc* InitRowwiseMobileNetV2( int inputChannels,
+		const CConstFloatHandle& expandFilter, const CConstFloatHandle* expandFreeTerm, int expandedChannels,
+		TActivationFunction expandActivation, float expandReluParam,
+		const CConstFloatHandle& channelwiseFilter, const CConstFloatHandle* channelwiseFreeTerm, int stride,
+		TActivationFunction channelwiseActivation, float channelwiseReluParam,
+		const CConstFloatHandle& downFilter, const CConstFloatHandle* downFreeTerm,
+		int outputChannels, bool residual ) override;
+	CRowwiseOperationDesc* InitRowwise2DPooling( bool isMax, int filterHeight, int filterWidth,
+		int strideHeight, int strideWidth ) override;
+	CBlobDesc RowwiseReshape( CRowwiseOperationDesc** operations, int operationCount,
+		const CBlobDesc& input ) override;
+	void RowwiseExecute( const CBlobDesc& inputDesc, CRowwiseOperationDesc** operations, int operationCount,
+		const CFloatHandle& input, const CFloatHandle& output ) override;
 
 	IPerformanceCounters* CreatePerformanceCounters() const override;
 	void AllReduce( const CFloatHandle& handle, int size ) override;
@@ -670,6 +697,8 @@ private:
 		const float* second, int secondHeight, int secondRowSize, float* result, int resultRowSize );
 	void multiplyMatrixByDiagMatrix( const float* first, int firstHeight, int firstWidth,
 		const float* second, float* result );
+	void multiplyMatrixByTransposedWithFreeTerm( const float* first, int firstHeight,
+		int firstWidth, const float* second, int secondHeight, const float* freeTerm, float* result );
 
 	template<class T>
 	void blobMergeByDimCommon( int dimNum, const CBlobDesc* from, const CTypedMemoryHandle<T>* fromData,
@@ -729,7 +758,8 @@ private:
 		const float* matrixHandle, int matrixHeight, int matrixWidth );
 	void blobMaxPoolingWithIndices( const CCommonMaxPoolingDesc& desc, const float* sourceData,
 		int* maxIndicesData, float* resultData );
-	void blobMaxPoolingWithoutIndices( const CCommonMaxPoolingDesc& desc, const float* sourceData, float* resultData );
+	void blobMaxPoolingWithoutIndices( const CCommon2DPoolingDesc& desc, int resultRowsToProcess,
+		const float* sourceData, int sourceRowIndex, float* resultData, int resultRowIndex, float* bufferPtr );
 
 	void vectorEltwiseLogSumExp( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
 		const CFloatHandle& resultHandle, int vectorSize );
@@ -740,6 +770,11 @@ private:
 		const CConstIntHandle& rowIndices, const CConstIntHandle& padLabels, const CConstFloatHandle& blankSkipMask,
 		const CConstFloatHandle& resultLogProb, const CConstIntHandle& resultLens, const CConstIntHandle& labelLens,
 		const CFloatHandle& logBeta );
+
+	class CRowwiseConv;
+	class CRowwiseChConvWith1x1;
+	class CRowwiseMobileNetV2;
+	class CRowwise2DPooling;
 };
 
 inline void CCpuMathEngine::VectorReLUDiffOp( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,

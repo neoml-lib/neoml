@@ -608,6 +608,28 @@ public:
 		const CConstFloatHandle* residualHandle, TActivationFunction activation, float reluParam,
 		const CConstFloatHandle& downFilterHandle, const CConstFloatHandle* downFreeTermHandle,
 		const CFloatHandle& outputHandle ) override;
+	// Rowwise computation is ineffective on GPUs
+	CRowwiseOperationDesc* InitRowwiseActivation( const CActivationDesc& ) override
+		{ ASSERT_EXPR( false ); return nullptr; }
+	CRowwiseOperationDesc* InitRowwiseChWith1x1( int, const CConstFloatHandle&, const CConstFloatHandle*,
+		TActivationFunction, float, const CConstFloatHandle&, const CConstFloatHandle*, int, bool ) override
+		{ ASSERT_EXPR( false ); return nullptr; }
+	CRowwiseOperationDesc* InitRowwiseConv( int, int, int, int, int, int, const CBlobDesc&, const CConstFloatHandle&,
+		const CConstFloatHandle* ) override { ASSERT_EXPR( false ); return nullptr; }
+	CRowwiseOperationDesc* InitRowwiseChConv( int, int, int, int, const CBlobDesc&, const CConstFloatHandle&,
+		const CConstFloatHandle* ) override { ASSERT_EXPR( false ); return nullptr; }
+	CRowwiseOperationDesc* InitRowwiseMobileNetV2( int, const CConstFloatHandle&, const CConstFloatHandle*, int,
+		TActivationFunction, float, const CConstFloatHandle&, const CConstFloatHandle*, int, TActivationFunction,
+		float, const CConstFloatHandle&, const CConstFloatHandle*, int, bool ) override
+		{ ASSERT_EXPR( false ); return nullptr; }
+	CRowwiseOperationDesc* InitRowwise2DPooling( bool, int, int, int, int ) override
+		{ ASSERT_EXPR( false ); return nullptr; }
+	CRowwiseOperationDesc* InitRowwiseResizeImage( TBlobResizePadding, float, int, int, int, int ) override
+		{ ASSERT_EXPR( false ); return nullptr; }
+	CBlobDesc RowwiseReshape( CRowwiseOperationDesc**, int, const CBlobDesc& ) override
+		{ ASSERT_EXPR( false ); return CBlobDesc(); }
+	void RowwiseExecute( const CBlobDesc&, CRowwiseOperationDesc**, int, const CFloatHandle&,
+		const CFloatHandle& ) override { ASSERT_EXPR( false ); }
 
 	IPerformanceCounters* CreatePerformanceCounters() const override { 	return new CPerformanceCountersDefault(); }
 	void AllReduce( const CFloatHandle& /*handle*/, int /*size*/ ) override {};

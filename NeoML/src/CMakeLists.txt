@@ -156,6 +156,7 @@ set(NeoML_SOURCES
     Dnn/Layers/ProjectionPoolingLayer.cpp
     Dnn/Layers/ReorgLayer.cpp
     Dnn/Layers/RepeatSequenceLayer.cpp
+    Dnn/Layers/RowwiseOperationChainLayer.cpp
     Dnn/Layers/ScatterGatherLayers.cpp
     Dnn/Layers/SequenceSumLayer.cpp
     Dnn/Layers/SpaceToDepthLayer.cpp
@@ -170,6 +171,14 @@ set(NeoML_SOURCES
     Dnn/Optimization/MobileNetV2Optimizer.cpp
     Dnn/Optimization/MobileNetV3Optimizer.cpp
     Dnn/Optimization/OptimizerFunctions.cpp
+    Dnn/Rowwise/Activation.cpp
+    Dnn/Rowwise/ChannelwiseConv.cpp
+    Dnn/Rowwise/ChannelwiseWith1x1.cpp
+    Dnn/Rowwise/Conv.cpp
+    Dnn/Rowwise/ImageResize.cpp
+    Dnn/Rowwise/MobileNetV2.cpp
+    Dnn/Rowwise/Pooling.cpp
+    Dnn/Rowwise/RowwiseOperation.cpp
     TraditionalML/BytePairEncoderTrainer.cpp
     TraditionalML/ClusterCenter.cpp
     TraditionalML/CommonCluster.cpp
@@ -406,6 +415,7 @@ set(NeoML_HEADERS
     ../include/NeoML/Dnn/Layers/ProjectionPoolingLayer.h
     ../include/NeoML/Dnn/Layers/ReorgLayer.h
     ../include/NeoML/Dnn/Layers/RepeatSequenceLayer.h
+    ../include/NeoML/Dnn/Layers/RowwiseOperationChainLayer.h
     ../include/NeoML/Dnn/Layers/ScatterGatherLayers.h
     ../include/NeoML/Dnn/Layers/SequenceSumLayer.h
     ../include/NeoML/Dnn/Layers/SpaceToDepthLayer.h
@@ -416,6 +426,15 @@ set(NeoML_HEADERS
     ../include/NeoML/Dnn/Layers/Upsampling2DLayer.h
 
     ../include/NeoML/Dnn/Optimization/Graph.h
+
+    ../include/NeoML/Dnn/Rowwise/Activation.h
+    ../include/NeoML/Dnn/Rowwise/ChannelwiseConv.h
+    ../include/NeoML/Dnn/Rowwise/ChannelwiseWith1x1.h
+    ../include/NeoML/Dnn/Rowwise/Conv.h
+    ../include/NeoML/Dnn/Rowwise/ImageResize.h
+    ../include/NeoML/Dnn/Rowwise/MobileNetV2.h
+    ../include/NeoML/Dnn/Rowwise/Pooling.h
+    ../include/NeoML/Dnn/Rowwise/RowwiseOperation.h
 
     ../include/NeoML/TraditionalML/ClusterCenter.h
     ../include/NeoML/TraditionalML/Clustering.h

@@ -23,6 +23,7 @@ limitations under the License.
 #include "Optimization/MobileNetV2Optimizer.h"
 #include "Optimization/MobileNetV3Optimizer.h"
 #include "Optimization/OptimizerFunctions.h"
+#include <NeoML/Dnn/Layers/RowwiseOperationChainLayer.h>
 #include <NeoML/Dnn/Dnn.h>
 
 namespace NeoML {
@@ -40,6 +41,10 @@ CDnnOptimizationReport OptimizeDnn( CDnn& dnn, const CDnnOptimizationSettings& s
 		optimization::CChannelwiseWith1x1Optimizer( graph ).Apply( report );
 		optimization::CMobileNetV2Optimizer( graph ).Apply( report );
 		optimization::CMobileNetV3Optimizer( graph ).Apply( report );
+
+		CArray<int> chains;
+		OptimizeRowwiseChains( dnn, chains );
+		report.RowwiseChainCount = chains.Size();
 	}
 	return report;
 }
