@@ -177,6 +177,9 @@ inline IRowwiseCpuImpl::CProcessingReport CCpuMathEngine::CRowwiseMobileNetV2::P
 	const int chOutputRowSize = outputWidth * expandedChannels;
 
 	const float* residualInput = input + ( outputRowIndex - inputRowIndex ) * inputRowSize;
+	// CCpuMathEngine::ExecuteRowwise will never execute this block in-place
+	// But in order to avoid copy-paste of this chunk of code it's also used in CCpuMathEngine::MobileNetV2Block
+	// and the CCpuMathEngine::MobileNetV2Block must support in-place execution
 	const bool isInPlace = ( residualInput == output );
 
 	const int outputRowsThisCall = outputRowIndex + report.OutputRowsCalculated;
