@@ -291,9 +291,14 @@ static void upsampling2DForward( int threadCount, const CBlobDesc& input, const 
 
 			// Fill the output row with the index srcRowIndex * heightCopyCount
 			for(int srcColIndex = 0; srcColIndex < inputWidth; ++srcColIndex) {
-				for(int w = 0; w < widthCopyCount; ++w) {
-					dataCopy(outputPtr, inputPtr, pixelSize);
-					outputPtr += pixelSize;
+				if(pixelSize == 1) {
+					vectorFill(outputPtr, *inputPtr, widthCopyCount);
+					outputPtr += widthCopyCount;
+				} else {
+					for(int w = 0; w < widthCopyCount; ++w) {
+						dataCopy(outputPtr, inputPtr, pixelSize);
+						outputPtr += pixelSize;
+					}
 				}
 				inputPtr += pixelSize;
 			}
