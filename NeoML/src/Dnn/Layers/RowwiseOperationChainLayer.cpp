@@ -39,9 +39,6 @@ namespace NeoML {
 CRowwiseOperationChainLayer::CRowwiseOperationChainLayer( IMathEngine& mathEngine ) :
 	CBaseLayer( mathEngine, "CRowwiseOperationChainLayer", false )
 {
-	// The whole idea of optimization is CPU only
-	// On GPU this optimization worsens the performance
-	NeoAssert( mathEngine.GetType() == MET_Cpu );
 }
 
 CRowwiseOperationChainLayer::~CRowwiseOperationChainLayer()
@@ -82,6 +79,10 @@ void CRowwiseOperationChainLayer::Serialize( CArchive& archive )
 
 void CRowwiseOperationChainLayer::Reshape()
 {
+	// The whole idea of optimization is CPU only
+	// On GPU this optimization worsens the performance
+	CheckLayerArchitecture( MathEngine().GetType() == MET_Cpu, "Only CPU math engine is supported" );
+
 	CheckInput1();
 	CheckLayerArchitecture( inputDescs[0].Depth() == 1, "Non-trivial depth" );
 
