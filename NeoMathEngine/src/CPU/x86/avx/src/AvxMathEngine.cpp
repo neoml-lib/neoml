@@ -59,6 +59,9 @@ public:
 
 	void BlobConvolution( const CConvolutionDesc& convDesc, const float* source,
 		const float* filter, const float* freeTerm, float* result ) const override;
+	void BlobConvolutionRowwise( const CConvolutionDesc& convDesc, const float* source,
+		int sourceRowIndex, const float* filter, const float* freeTerm, float* result,
+		int resultRowIndex, int resultRowCount ) const override;
 
 	SgemmFunc GetSgemmFunction() const override;
 
@@ -92,6 +95,15 @@ void CAvxMathEngine::BlobConvolution( const CConvolutionDesc& convDesc, const fl
 {
 	const CAvxConvolutionDesc& desc = static_cast<const CAvxConvolutionDesc&>( convDesc );
 	desc.BlobConvolution->ProcessConvolution( threadCount, source, filter, freeTerm, result );
+}
+
+void CAvxMathEngine::BlobConvolutionRowwise( const CConvolutionDesc& convDesc, const float* source,
+	int sourceRowIndex, const float* filter, const float* freeTerm, float* result,
+	int resultRowIndex, int resultRowCount ) const
+{
+	const CAvxConvolutionDesc& desc = static_cast<const CAvxConvolutionDesc&>( convDesc );
+	desc.BlobConvolution->ProcessConvolutionRowwise( source, sourceRowIndex, filter, freeTerm,
+		result, resultRowIndex, resultRowCount );
 }
 
 SgemmFunc CAvxMathEngine::GetSgemmFunction() const

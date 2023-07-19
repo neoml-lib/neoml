@@ -22,6 +22,7 @@ limitations under the License.
 #include <MathEngineCommon.h>
 #include <MathEngineDnnPoolings.h>
 #include <CpuMathEnginePrivate.h>
+#include "CpuMathEngineDnnPooling.h"
 
 namespace NeoML {
 
@@ -84,8 +85,8 @@ void CCpuMathEngine::blobMaxPoolingWithIndices( const CCommonMaxPoolingDesc& des
 	}
 }
 
-void CCpuMathEngine::blobMaxPoolingWithoutIndices( const CCommonMaxPoolingDesc& desc,
-	const float* sourceData, float* resultData )
+void CCpuMathEngine::blobMaxPoolingWithoutIndices( const CCommon2DPoolingDesc& desc, int resultRowsToProcess,
+	const float* sourceData, int sourceRowIndex, float* resultData, int resultRowIndex, float* bufferPtr )
 {
 	const CBlobDesc& source = desc.Source;
 	const CBlobDesc& result = desc.Result;
@@ -94,22 +95,26 @@ void CCpuMathEngine::blobMaxPoolingWithoutIndices( const CCommonMaxPoolingDesc& 
 	const int sourceRowSize = source.Width() * channels;
 	const int windowStep = desc.StrideWidth * channels;
 
-	CFloatHandleStackVar buffer( *this, sourceRowSize );
-	float* bufferPtr = GetRaw( buffer.GetHandle() );
-	const float* sourcePtr = sourceData;
-	float* resultPtr = resultData;
+	const int resultRowsAfterThisCall = resultRowIndex + resultRowsToProcess;
+	const int firstImageIndex = resultRowIndex / result.Height();
+	const int lastImageIndex = ( resultRowsAfterThisCall - 1 ) / result.Height();
 
-	for( int i = 0; i < source.ObjectCount(); ++i ) {
-		for( int j = 0; j < result.Height(); ++j ) {
+	const float* sourcePtr = sourceData + ( firstImageIndex * source.Height() - sourceRowIndex ) * sourceRowSize;
+
+	for( int i = firstImageIndex; i <= lastImageIndex; ++i ) {
+		const int firstRowInImage = ( i == firstImageIndex ? resultRowIndex % result.Height() : 0 );
+		const int lastRowInIamge = ( i == lastImageIndex ? ( resultRowsAfterThisCall - 1 ) % result.Height()
+			: result.Height() - 1 );
+		for( int j = firstRowInImage; j <= lastRowInIamge; ++j ) {
 			// Calculate maximums in columns over a strip of the window height
 			const float* currentStripStart = sourcePtr + sourceRowSize * desc.StrideHeight * j;
 			findMaxValueInColumns( bufferPtr, currentStripStart, desc.FilterHeight, sourceRowSize );
 			// Calculate maximum over the window
 			const float* currentbufferStart = bufferPtr;
 			for( int k = 0; k < result.Width(); ++k ) {
-				findMaxValueInColumns( resultPtr, currentbufferStart, desc.FilterWidth, channels );
+				findMaxValueInColumns( resultData, currentbufferStart, desc.FilterWidth, channels );
 				currentbufferStart += windowStep;
-				resultPtr += channels;
+				resultData += channels;
 			}
 		}
 		sourcePtr += source.ObjectSize();
@@ -132,7 +137,9 @@ void CCpuMathEngine::BlobMaxPooling( const CMaxPoolingDesc& poolingDesc, const C
 	if( maxIndices != nullptr ) {
 		blobMaxPoolingWithIndices( desc, sourceDataRaw, GetRaw( *maxIndices ), resultDataRaw );
 	} else {
-		blobMaxPoolingWithoutIndices( desc, sourceDataRaw, resultDataRaw );
+		CFloatHandleStackVar buffer( *this, desc.Source.Width() * desc.Source.Depth() * desc.Source.Channels() );
+		blobMaxPoolingWithoutIndices( desc, desc.Result.Height() * desc.Result.ObjectCount(), sourceDataRaw, 0,
+			resultDataRaw, 0, GetRaw( buffer.GetHandle() ) );
 	}
 }
 
@@ -187,32 +194,9 @@ void CCpuMathEngine::BlobMeanPooling( const CMeanPoolingDesc& poolingDesc, const
 	const CCommonMeanPoolingDesc& desc = static_cast<const CCommonMeanPoolingDesc&>( poolingDesc );
 	const CBlobDesc& source = desc.Source;
 	const CBlobDesc& result = desc.Result;
-
-	const int channels = result.Depth() * result.Channels();
-	const int sourceRowSize = source.Width() * channels;
-	const int windowStep = desc.StrideWidth * channels;
-	CFloatHandleStackVar buffer( mathEngine(), sourceRowSize );
-
-	CConstFloatHandle sourcePtr = sourceData;
-	CFloatHandle resultPtr = resultData;
-
-	for( int i = 0; i < source.ObjectCount(); ++i ) {
-		for( int j = 0; j < result.Height(); ++j ) {
-			// Calculate the sum of all rows in a strip of the window height
-			CConstFloatHandle currentStripStart = sourcePtr + sourceRowSize * desc.StrideHeight * j;
-			SumMatrixRows( 1, buffer.GetHandle(), currentStripStart, desc.FilterHeight, sourceRowSize );
-			// Calculate the sum in each window
-			CConstFloatHandle currentbufferStart = buffer.GetHandle();
-			for( int k = 0; k < result.Width(); ++k ) {
-				SumMatrixRows( 1, resultPtr, currentbufferStart, desc.FilterWidth, channels );
-				currentbufferStart += windowStep;
-				resultPtr += channels;
-			}
-		}
-		sourcePtr += source.ObjectSize();
-	}
-	// Multiply the result by the inverse of the window size
-	vectorMultiply( GetRaw( resultData ), GetRaw( resultData ), ( 1.f / desc.FilterHeight / desc.FilterWidth ), result.BlobSize() );
+	CFloatHandleStackVar buffer( mathEngine(), source.Width() * source.Depth() * source.Channels() );
+	blobMeanPooling( desc, result.ObjectCount() * result.Height(), GetRaw( sourceData ), 0,
+		GetRaw( resultData ), 0, GetRaw( buffer.GetHandle() ) );
 }
 
 void CCpuMathEngine::BlobMeanPoolingBackward( const CMeanPoolingDesc& poolingDesc,

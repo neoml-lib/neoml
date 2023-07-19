@@ -650,6 +650,7 @@ struct NEOMATHENGINE_API CGlobalMaxOverTimePoolingDesc : public CCrtAllocatedObj
 struct NEOMATHENGINE_API CMaxOverTimePoolingDesc : public CCrtAllocatedObject { public: virtual ~CMaxOverTimePoolingDesc(); };
 struct NEOMATHENGINE_API CLrnDesc : public CCrtAllocatedObject { public: virtual ~CLrnDesc(); };
 struct NEOMATHENGINE_API CLstmDesc : public CCrtAllocatedObject { public: virtual ~CLstmDesc(); };
+struct NEOMATHENGINE_API CRowwiseOperationDesc : public CCrtAllocatedObject { public: virtual ~CRowwiseOperationDesc(); };
 
 //------------------------------------------------------------------------------------------------------------
 // RLE format
@@ -1077,6 +1078,34 @@ public:
 		const CConstFloatHandle* residualHandle, TActivationFunction activation, float reluParam,
 		const CConstFloatHandle& downFilterHandle, const CConstFloatHandle* downFreeTermHandle,
 		const CFloatHandle& outputHandle ) = 0;
+
+	virtual CRowwiseOperationDesc* InitRowwiseActivation( const CActivationDesc& desc ) = 0;
+	virtual CRowwiseOperationDesc* InitRowwiseChWith1x1( int stride, const CConstFloatHandle& channelwiseFilter,
+		const CConstFloatHandle* channelwiseFreeTerm, TActivationFunction activation, float reluParam,
+		const CConstFloatHandle& convFilter, const CConstFloatHandle* convFreeTerm,
+		int outputChannels, bool residual ) = 0;
+	virtual CRowwiseOperationDesc* InitRowwiseConv( int paddingHeight, int paddingWidth, int strideHeight,
+		int strideWidth, int dilationHeight, int dilationWidth, const CBlobDesc& filterDesc,
+		const CConstFloatHandle& filter, const CConstFloatHandle* freeTerm ) = 0;
+	virtual CRowwiseOperationDesc* InitRowwiseChConv( int paddingHeight, int paddingWidth, int strideHeight,
+		int strideWidth, const CBlobDesc& filterDesc, const CConstFloatHandle& filter,
+		const CConstFloatHandle* freeTerm ) = 0;
+	virtual CRowwiseOperationDesc* InitRowwiseMobileNetV2( int inputChannels,
+		const CConstFloatHandle& expandFilter, const CConstFloatHandle* expandFreeTerm, int expandedChannels,
+		TActivationFunction expandActivation, float expandReluParam,
+		const CConstFloatHandle& channelwiseFilter, const CConstFloatHandle* channelwiseFreeTerm, int stride,
+		TActivationFunction channelwiseActivation, float channelwiseReluParam,
+		const CConstFloatHandle& downFilter, const CConstFloatHandle* downFreeTerm,
+		int outputChannels, bool residual ) = 0;
+	virtual CRowwiseOperationDesc* InitRowwise2DPooling( bool isMax, int filterHeight, int filterWidth,
+		int strideHeight, int strideWidth ) = 0;
+	virtual CRowwiseOperationDesc* InitRowwiseResizeImage( TBlobResizePadding padding, float defaultValue,
+		int deltaLeft, int deltaRight, int deltaTop, int deltaBottom ) = 0;
+
+	virtual CBlobDesc RowwiseReshape( CRowwiseOperationDesc** operations, int operationCount,
+		const CBlobDesc& input ) = 0;
+	virtual void RowwiseExecute( const CBlobDesc& inputDesc, CRowwiseOperationDesc** operations, int operationCount,
+		const CFloatHandle& input, const CFloatHandle& output ) = 0;
 };
 
 //------------------------------------------------------------------------------------------------------------

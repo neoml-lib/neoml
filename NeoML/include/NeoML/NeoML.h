@@ -133,6 +133,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/ProjectionPoolingLayer.h>
 #include <NeoML/Dnn/Layers/ReorgLayer.h>
 #include <NeoML/Dnn/Layers/RepeatSequenceLayer.h>
+#include <NeoML/Dnn/Layers/RowwiseOperationChainLayer.h>
 #include <NeoML/Dnn/Layers/ScatterGatherLayers.h>
 #include <NeoML/Dnn/Layers/SequenceSumLayer.h>
 #include <NeoML/Dnn/Layers/SpaceToDepthLayer.h>
