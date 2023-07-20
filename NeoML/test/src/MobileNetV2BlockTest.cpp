@@ -203,7 +203,7 @@ TEST( MobileNetV2BlockLayerTest, CornerCases )
 {
 	// This test is allowed on GPU because of backward compatibility
 	CRandom seedRandom( 0x654 );
-	mobileNetV2BlockTestImpl( seedRandom.Next(), 0, 0, 7, 1, true, {1, 7, 1, 1, 3, 1, 3} );
+	mobileNetV2BlockTestImpl( seedRandom.Next(), 0, 0, 7, 1, true, { 1, 7, 1, 1, 3, 1, 3 } );
 	mobileNetV2BlockTestImpl( seedRandom.Next(), 1, 5, 0, 2, false, { 1, 7, 1, 2, 3, 1, 3 } );
 	mobileNetV2BlockTestImpl( seedRandom.Next(), 2, 1, 2, 2, false, { 1, 7, 1, 2, 1, 1, 3 } );
 	mobileNetV2BlockTestImpl( seedRandom.Next(), 3, 4, 6, 2, false, { 1, 7, 1, 3, 1, 1, 3 } );
