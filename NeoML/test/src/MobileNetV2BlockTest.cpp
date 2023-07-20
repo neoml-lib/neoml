@@ -111,7 +111,7 @@ using namespace NeoML;
 using namespace NeoMLTest;
 
 static void mobileNetV2BlockTestImpl( unsigned int seed, int freeTermMask, float expandReLUThreshold,
-	float channelwiseReLUThreshold, int stride, bool residual )
+	float channelwiseReLUThreshold, int stride, bool residual, const std::initializer_list<int>& inputDims )
 {
 	auto createBlob = [] ( const std::initializer_list<int>& dims, CRandom& random ) -> CPtr<CDnnBlob> {
 		CPtr<CDnnBlob> blob = CDnnBlob::CreateTensor( MathEngine(), CT_Float, dims );
@@ -130,12 +130,9 @@ static void mobileNetV2BlockTestImpl( unsigned int seed, int freeTermMask, float
 	const int channelwiseFreeTermBit = 1 << 1;
 	const int downFreeTermBit = 1 << 2;
 
-	const int batch = 3;
-	const int inputChannels = 8;
+	const int inputChannels = *( inputDims.begin() + 6 );
 	const int outputChannels = residual ? inputChannels : 12;
 	const int expandedChannels = 16;
-	const int imageHeight = 26;
-	const int imageWidth = 31;
 
 	CPtr<CDnnBlob> expandFilter = createBlob( { 1, expandedChannels, 1, 1, 1, 1, inputChannels }, random );
 	CPtr<CDnnBlob> expandFreeTerm;
@@ -170,7 +167,7 @@ static void mobileNetV2BlockTestImpl( unsigned int seed, int freeTermMask, float
 	AddLayer( actualBlock, "actualBlock", { data } );
 	CPtr<CSinkLayer> actualSink = AddLayer<CSinkLayer>( "actualSink", { actualBlock } );
 
-	data->SetBlob( createBlob( { 1, batch, 1, imageHeight, imageWidth, 1, inputChannels }, random ) );
+	data->SetBlob( createBlob( inputDims, random ) );
 	
 	dnn.RunOnce();
 
@@ -189,16 +186,35 @@ static void mobileNetV2BlockTestImpl( unsigned int seed, int freeTermMask, float
 TEST( MobileNetV2BlockLayerTest, Run )
 {
 	// This test is allowed on GPU because of backward compatibility
+	std::initializer_list<int> inputDims = { 1, 3, 1, 26, 31, 1, 8 };
 	CRandom seedRandom( 0x654 );
 	for( int ftMask = 0; ftMask < 8; ++ftMask ) {
 		for( float expandReLU : { 0.f, 6.f } ) {
 			for( float channelwiseReLU : { 0.f, 1.f } ) {
-				mobileNetV2BlockTestImpl( seedRandom.Next(), ftMask, expandReLU, channelwiseReLU, 1, false );
-				mobileNetV2BlockTestImpl( seedRandom.Next(), ftMask, expandReLU, channelwiseReLU, 2, false );
-				mobileNetV2BlockTestImpl( seedRandom.Next(), ftMask, expandReLU, channelwiseReLU, 1, true );
+				mobileNetV2BlockTestImpl( seedRandom.Next(), ftMask, expandReLU, channelwiseReLU, 1, false, inputDims );
+				mobileNetV2BlockTestImpl( seedRandom.Next(), ftMask, expandReLU, channelwiseReLU, 2, false, inputDims );
+				mobileNetV2BlockTestImpl( seedRandom.Next(), ftMask, expandReLU, channelwiseReLU, 1, true, inputDims );
 			}
 		}
 	}
+}
+
+TEST( MobileNetV2BlockLayerTest, CornerCases )
+{
+	// This test is allowed on GPU because of backward compatibility
+	CRandom seedRandom( 0x654 );
+	mobileNetV2BlockTestImpl( seedRandom.Next(), 0, 0, 7, 1, true, { 1, 7, 1, 1, 3, 1, 3 } );
+	mobileNetV2BlockTestImpl( seedRandom.Next(), 1, 5, 0, 2, false, { 1, 7, 1, 2, 3, 1, 3 } );
+	mobileNetV2BlockTestImpl( seedRandom.Next(), 2, 1, 2, 2, false, { 1, 7, 1, 2, 1, 1, 3 } );
+	mobileNetV2BlockTestImpl( seedRandom.Next(), 3, 4, 6, 2, false, { 1, 7, 1, 3, 1, 1, 3 } );
+	mobileNetV2BlockTestImpl( seedRandom.Next(), 4, 4, 6, 1, false, { 1, 7, 1, 3, 1, 1, 3 } );
+	mobileNetV2BlockTestImpl( seedRandom.Next(), 5, 4, 6, 1, true, { 1, 7, 1, 3, 1, 1, 3 } );
+	mobileNetV2BlockTestImpl( seedRandom.Next(), 6, 0, 7, 1, true, { 1, 31, 1, 1, 3, 1, 65536 } );
+	mobileNetV2BlockTestImpl( seedRandom.Next(), 7, 5, 0, 2, false, { 1, 32, 1, 2, 3, 1, 65537 } );
+	mobileNetV2BlockTestImpl( seedRandom.Next(), 0, 1, 2, 2, false, { 1, 33, 1, 2, 1, 1, 65535 } );
+	mobileNetV2BlockTestImpl( seedRandom.Next(), 1, 4, 6, 2, false, { 1, 34, 1, 3, 1, 1, 65533 } );
+	mobileNetV2BlockTestImpl( seedRandom.Next(), 2, 4, 6, 1, false, { 1, 35, 1, 3, 1, 1, 65535 } );
+	mobileNetV2BlockTestImpl( seedRandom.Next(), 3, 4, 6, 1, true, { 1, 36, 1, 3, 1, 1, 65537 } );
 }
 
 static std::initializer_list<CActivationDesc> mnv2BlockActivations = {
