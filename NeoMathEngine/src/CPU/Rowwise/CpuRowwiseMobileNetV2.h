@@ -209,6 +209,8 @@ inline IRowwiseCpuImpl::CProcessingReport CCpuMathEngine::CRowwiseMobileNetV2::P
 			inputImageRowsInBuffer >= desc.Source.Height() ? desc.Result.Height()
 				: ( inputImageRowsInBuffer < 2 ? 0 : 1 + ( inputImageRowsInBuffer - 2 ) / desc.StrideHeight ) );
 		const int outputRowsCanBeProcessed = imageIndex * desc.Result.Height() + outputImageRowsCanBeProcessed;
+		const float* chInputBuff = chInput->DataRows();
+		int chInputRowIndex = chInput->DataRowIndex();
 
 		while( outputRowIndex < outputRowsCanBeProcessed ) {
 			// Process channelwise output rows (while there are any)
@@ -216,8 +218,6 @@ inline IRowwiseCpuImpl::CProcessingReport CCpuMathEngine::CRowwiseMobileNetV2::P
 
 			float* chOutput = buffer;
 			int chOutputRowIndex = outputRowIndex;
-			const float* chInputBuff = chInput->DataRows();
-			int chInputRowIndex = chInput->DataRowIndex();
 			PRESUME_EXPR( chOutputRowIndex / desc.Result.Height() == chInputRowIndex / desc.Source.Height() );
 
 			while( chOutputRowIndex < outputRowIndex + outputRowsThisStep ) {
