@@ -95,7 +95,7 @@ using namespace NeoMLTest;
 
 
 static void channelwiseWith1x1TestImpl( unsigned int seed, int freeTermMask, TActivationFunction activation,
-	float reluParam, int stride, bool residual )
+	float reluParam, int stride, bool residual, const std::initializer_list<int>& inputDims )
 {
 	auto createBlob = [] ( const std::initializer_list<int>& dims, CRandom& random ) -> CPtr<CDnnBlob> {
 		CPtr<CDnnBlob> blob = CDnnBlob::CreateTensor( MathEngine(), CT_Float, dims );
@@ -113,11 +113,8 @@ static void channelwiseWith1x1TestImpl( unsigned int seed, int freeTermMask, TAc
 	const int channelwiseFreeTermBit = 1 << 0;
 	const int convFreeTermBit = 1 << 1;
 
-	const int batch = 3;
-	const int inputChannels = 8;
+	const int inputChannels = *( inputDims.begin() + 6 );
 	const int outputChannels = residual ? inputChannels : 12;
-	const int imageHeight = 26;
-	const int imageWidth = 31;
 
 	CPtr<CDnnBlob> channelwiseFilter = createBlob( { 1, 1, 1, 3, 3, 1, inputChannels }, random );
 	CPtr<CDnnBlob> channelwiseFreeTerm;
@@ -151,7 +148,7 @@ static void channelwiseWith1x1TestImpl( unsigned int seed, int freeTermMask, TAc
 	AddLayer( actualBlock, "actualBlock", { data } );
 	CPtr<CSinkLayer> actualSink = AddLayer<CSinkLayer>( "actualSink", { actualBlock } );
 
-	data->SetBlob( createBlob( { 1, batch, 1, imageHeight, imageWidth, 1, inputChannels }, random ) );
+	data->SetBlob( createBlob( inputDims, random ) );
 
 	dnn.RunOnce();
 
@@ -170,17 +167,36 @@ static void channelwiseWith1x1TestImpl( unsigned int seed, int freeTermMask, TAc
 TEST( ChannelwiseWith1x1LayerTest, Run )
 {
 	// This test is allowed on GPU because of backward compatibility
+	std::initializer_list<int> inputDims = { 1, 3, 1, 26, 31, 1, 8 };
 	CRandom seedRandom( 0x654 );
 	for( int ftMask = 0; ftMask < 4; ++ftMask ) {
 		for( int stride = 1; stride < 3; ++stride ) {
-			channelwiseWith1x1TestImpl( seedRandom.Next(), ftMask, AF_ReLU, 0, stride, false );
-			channelwiseWith1x1TestImpl( seedRandom.Next(), ftMask, AF_ReLU, 6.0f, stride, false );
-			channelwiseWith1x1TestImpl( seedRandom.Next(), ftMask, AF_HSwish, 0, stride, false );
+			channelwiseWith1x1TestImpl( seedRandom.Next(), ftMask, AF_ReLU, 0, stride, false, inputDims );
+			channelwiseWith1x1TestImpl( seedRandom.Next(), ftMask, AF_ReLU, 6.0f, stride, false, inputDims );
+			channelwiseWith1x1TestImpl( seedRandom.Next(), ftMask, AF_HSwish, 0, stride, false, inputDims );
 		}
-		channelwiseWith1x1TestImpl( seedRandom.Next(), ftMask, AF_ReLU, 0, 1, true );
-		channelwiseWith1x1TestImpl( seedRandom.Next(), ftMask, AF_ReLU, 6.0f, 1, true );
-		channelwiseWith1x1TestImpl( seedRandom.Next(), ftMask, AF_HSwish, 0, 1, true );
+		channelwiseWith1x1TestImpl( seedRandom.Next(), ftMask, AF_ReLU, 0, 1, true, inputDims );
+		channelwiseWith1x1TestImpl( seedRandom.Next(), ftMask, AF_ReLU, 6.0f, 1, true, inputDims );
+		channelwiseWith1x1TestImpl( seedRandom.Next(), ftMask, AF_HSwish, 0, 1, true, inputDims );
 	}
+}
+
+TEST( ChannelwiseWith1x1LayerTest, CornerCases )
+{
+	// This test is allowed on GPU because of backward compatibility
+	CRandom seedRandom( 0x654 );
+	channelwiseWith1x1TestImpl( seedRandom.Next(), 0, AF_ReLU, 0, 1, true, { 1, 7, 1, 1, 3, 1, 3 } );
+	channelwiseWith1x1TestImpl( seedRandom.Next(), 1, AF_HSwish, 1, 2, false, { 1, 7, 1, 2, 3, 1, 3 } );
+	channelwiseWith1x1TestImpl( seedRandom.Next(), 2, AF_ReLU, 2, 2, false, { 1, 7, 1, 2, 1, 1, 3 } );
+	channelwiseWith1x1TestImpl( seedRandom.Next(), 3, AF_HSwish, 3, 2, false, { 1, 7, 1, 3, 1, 1, 3 } );
+	channelwiseWith1x1TestImpl( seedRandom.Next(), 0, AF_ReLU, 0, 1, false, { 1, 7, 1, 3, 1, 1, 3 } );
+	channelwiseWith1x1TestImpl( seedRandom.Next(), 1, AF_HSwish, 1, 1, true, { 1, 7, 1, 3, 1, 1, 3 } );
+	channelwiseWith1x1TestImpl( seedRandom.Next(), 2, AF_ReLU, 2, 1, true, { 1, 21, 1, 1, 3, 1, 1022 } );
+	channelwiseWith1x1TestImpl( seedRandom.Next(), 3, AF_HSwish, 3, 2, false, { 1, 22, 1, 2, 3, 1, 1023 } );
+	channelwiseWith1x1TestImpl( seedRandom.Next(), 0, AF_ReLU, 0, 2, false, { 1, 23, 1, 2, 1, 1, 1024 } );
+	channelwiseWith1x1TestImpl( seedRandom.Next(), 1, AF_HSwish, 1, 2, false, { 1, 24, 1, 3, 1, 1, 1025 } );
+	channelwiseWith1x1TestImpl( seedRandom.Next(), 2, AF_ReLU, 2, 1, false, { 1, 25, 1, 3, 1, 1, 1026 } );
+	channelwiseWith1x1TestImpl( seedRandom.Next(), 3, AF_HSwish, 3, 1, true, { 1, 26, 1, 3, 1, 1, 1027 } );
 }
 
 TEST( ChannelwiseWith1x1OptimizerTest, SimpleNonResidual )
