@@ -113,7 +113,8 @@ using namespace NeoMLTest;
 static void mobileNetV2BlockTestImpl( unsigned int seed, int freeTermMask, float expandReLUThreshold,
 	float channelwiseReLUThreshold, int stride, bool residual, const std::initializer_list<int>& inputDims )
 {
-	auto createBlob = [] ( const std::initializer_list<int>& dims, CRandom& random ) -> CPtr<CDnnBlob> {
+	auto createBlob = [] ( const std::initializer_list<int>& dims, CRandom& random ) -> CPtr<CDnnBlob>
+	{
 		CPtr<CDnnBlob> blob = CDnnBlob::CreateTensor( MathEngine(), CT_Float, dims );
 		CREATE_FILL_FLOAT_ARRAY( data, -1, 1, blob->GetDataSize(), random );
 		blob->CopyFrom( data.GetPtr() );
@@ -173,14 +174,7 @@ static void mobileNetV2BlockTestImpl( unsigned int seed, int freeTermMask, float
 
 	CPtr<CDnnBlob> expectedBlob = expectedSink->GetBlob();
 	CPtr<CDnnBlob> actualBlob = actualSink->GetBlob();
-
-	CDnnBlobBuffer<float> expected( *expectedBlob, TDnnBlobBufferAccess::Read );
-	CDnnBlobBuffer<float> actual( *actualBlob, TDnnBlobBufferAccess::Read );
-
-	ASSERT_EQ( expected.Size(), actual.Size() ) << "output size mismatch";
-	for( int i = 0; i < expected.Size(); ++i ) {
-		ASSERT_NEAR( expected[i], actual[i], 1e-3 ) << "at index " << i;
-	}
+	CompareBlobs( *expectedBlob, *actualBlob );
 }
 
 TEST( MobileNetV2BlockLayerTest, Run )
@@ -215,6 +209,7 @@ TEST( MobileNetV2BlockLayerTest, CornerCases )
 	mobileNetV2BlockTestImpl( seedRandom.Next(), 1, 4, 6, 2, false, { 1, 34, 1, 3, 1, 1, 65533 } );
 	mobileNetV2BlockTestImpl( seedRandom.Next(), 2, 4, 6, 1, false, { 1, 35, 1, 3, 1, 1, 65535 } );
 	mobileNetV2BlockTestImpl( seedRandom.Next(), 3, 4, 6, 1, true, { 1, 36, 1, 3, 1, 1, 65537 } );
+	mobileNetV2BlockTestImpl( seedRandom.Next(), 0, 4, 6, 2, false, { 1, 1, 1, 4, 1, 1, 65533 } );
 }
 
 static std::initializer_list<CActivationDesc> mnv2BlockActivations = {

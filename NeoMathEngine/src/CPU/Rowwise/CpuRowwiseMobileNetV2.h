@@ -127,7 +127,7 @@ inline int CCpuMathEngine::CRowwiseMobileNetV2::getMaxInputRowsPerStep() const
 	//     - if rows are too small then take into consideration RowwiseCacheSize
 	const int recommendedRowCount = std::max( inputRowRequirement, RowwiseCacheSize / maxRowSize );
 	// But there is no need to allocate more data than the whole input
-	return std::min( desc.Result.ObjectCount() * desc.Result.Height(), recommendedRowCount );
+	return std::min( desc.Source.ObjectCount() * desc.Source.Height(), recommendedRowCount );
 }
 
 // Number of rows which can be processed at one time in down conv
