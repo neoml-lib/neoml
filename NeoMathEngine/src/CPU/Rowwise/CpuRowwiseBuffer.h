@@ -15,6 +15,8 @@ limitations under the License.
 
 #pragma once
 
+#include <memory>
+
 #include <NeoMathEngine/NeoMathEngineException.h>
 #include <NeoMathEngine/MemoryHandle.h>
 
@@ -111,6 +113,8 @@ public:
 	void RemoveRows( int count ) override;
 
 private:
+	// Math engine used for buffer allocation
+	IMathEngine& mathEngine;
 	// Number of rows this buffer is expected to have
 	const int rowCount;
 	// Size of a single row
@@ -120,9 +124,9 @@ private:
 	// Number of rows actually allocated for this buffer, somewhere in [rowCount; fullHeight]
 	const int realHeight;
 	// MathEngine variable which contains the allocated memory
-	CFloatHandleVar bufferVar;
+	std::unique_ptr<CFloatHandleVar> bufferVar;
 	// Pointer to the beginning of the allocated memory
-	float* const bufferPtr;
+	float* bufferPtr;
 	// Pointer to the memory where data rows are contained
 	float* dataPtr;
 	// Number of rows between bufferPtr and dataPtr
@@ -181,13 +185,13 @@ inline void CRowwiseWrapper::RemoveRows( int count )
 //---------------------------------------------------------------------------------------------------------------------
 
 CRowwiseBuffer::CRowwiseBuffer( IMathEngine& mathEngine, int rowCount, int rowSize, int fullHeight ) :
+	mathEngine( mathEngine ),
 	rowCount( rowCount ),
 	rowSize( rowSize ),
 	fullHeight( fullHeight ),
 	realHeight( std::min( fullHeight, 2 * rowCount ) ),
-	bufferVar( mathEngine, realHeight * rowSize ),
-	bufferPtr( GetRaw( bufferVar.GetHandle() ) ),
-	dataPtr( bufferPtr ),
+	bufferPtr( nullptr ),
+	dataPtr( nullptr ),
 	dataPtrIndex( 0 ),
 	dataRowsCount( 0 ),
 	dataRowIndex( 0 )
@@ -208,6 +212,16 @@ int CRowwiseBuffer::EmptyRowCount() const
 float* CRowwiseBuffer::EmptyRows()
 {
 	PRESUME_EXPR( EmptyRowCount() > 0 );
+	if( bufferPtr == nullptr ) {
+		// First attempt to write data
+		PRESUME_EXPR( bufferVar == nullptr );
+		PRESUME_EXPR( dataRowsCount == 0 );
+		PRESUME_EXPR( dataPtrIndex == 0 );
+		PRESUME_EXPR( dataRowIndex == 0 );
+		bufferVar.reset( new CFloatHandleVar( mathEngine, realHeight * rowSize ) );
+		bufferPtr = GetRaw( bufferVar->GetHandle() );
+		dataPtr = bufferPtr;
+	}
 	return dataPtr + dataRowsCount * rowSize;
 }
 
@@ -236,6 +250,11 @@ void CRowwiseBuffer::RemoveRows( int count )
 		}
 		dataPtr = bufferPtr;
 		dataPtrIndex = 0;
+	} else if( dataRowIndex == fullHeight ) {
+		// All of the data has been processed
+		bufferVar.reset( nullptr );
+		bufferPtr = nullptr;
+		dataPtr = nullptr;
 	}
 }
 
