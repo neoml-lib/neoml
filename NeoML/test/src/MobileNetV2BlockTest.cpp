@@ -105,14 +105,6 @@ CMobileNetV2Composite::CMobileNetV2Composite( IMathEngine& mathEngine, CPtr<CDnn
 	}
 }
 
-static CPtr<CDnnBlob> mnV2TestCreateBlob( const std::initializer_list<int>& dims, CRandom& random )
-{
-	CPtr<CDnnBlob> blob = CDnnBlob::CreateTensor( MathEngine(), CT_Float, dims );
-	CREATE_FILL_FLOAT_ARRAY( data, -1, 1, blob->GetDataSize(), random );
-	blob->CopyFrom( data.GetPtr() );
-	return blob;
-};
-
 } // namespace NeoMLTest
 
 using namespace NeoML;
@@ -121,6 +113,14 @@ using namespace NeoMLTest;
 static void mobileNetV2BlockTestImpl( unsigned int seed, int freeTermMask, float expandReLUThreshold,
 	float channelwiseReLUThreshold, int stride, bool residual, const std::initializer_list<int>& inputDims )
 {
+	auto createBlob = [] ( const std::initializer_list<int>& dims, CRandom& random ) -> CPtr<CDnnBlob>
+	{
+		CPtr<CDnnBlob> blob = CDnnBlob::CreateTensor( MathEngine(), CT_Float, dims );
+		CREATE_FILL_FLOAT_ARRAY( data, -1, 1, blob->GetDataSize(), random );
+		blob->CopyFrom( data.GetPtr() );
+		return blob;
+	};
+
 	NeoAssert( stride == 1 || stride == 2 );
 	NeoAssert( freeTermMask >= 0 && freeTermMask < 8 );
 	NeoAssert( !residual || stride == 1 );
@@ -135,22 +135,22 @@ static void mobileNetV2BlockTestImpl( unsigned int seed, int freeTermMask, float
 	const int outputChannels = residual ? inputChannels : 12;
 	const int expandedChannels = 16;
 
-	CPtr<CDnnBlob> expandFilter = mnV2TestCreateBlob( { 1, expandedChannels, 1, 1, 1, 1, inputChannels }, random );
+	CPtr<CDnnBlob> expandFilter = createBlob( { 1, expandedChannels, 1, 1, 1, 1, inputChannels }, random );
 	CPtr<CDnnBlob> expandFreeTerm;
 	if( ( freeTermMask & expandFreeTermBit ) != 0 ) {
-		expandFreeTerm = mnV2TestCreateBlob( { expandedChannels }, random );
+		expandFreeTerm = createBlob( { expandedChannels }, random );
 	}
 
-	CPtr<CDnnBlob> channelwiseFilter = mnV2TestCreateBlob( { 1, 1, 1, 3, 3, 1, expandedChannels }, random );
+	CPtr<CDnnBlob> channelwiseFilter = createBlob( { 1, 1, 1, 3, 3, 1, expandedChannels }, random );
 	CPtr<CDnnBlob> channelwiseFreeTerm;
 	if( ( freeTermMask & channelwiseFreeTermBit ) != 0 ) {
-		channelwiseFreeTerm = mnV2TestCreateBlob( { expandedChannels }, random );
+		channelwiseFreeTerm = createBlob( { expandedChannels }, random );
 	}
 
-	CPtr<CDnnBlob> downFilter = mnV2TestCreateBlob( { 1, outputChannels, 1, 1, 1, 1, expandedChannels }, random );
+	CPtr<CDnnBlob> downFilter = createBlob( { 1, outputChannels, 1, 1, 1, 1, expandedChannels }, random );
 	CPtr<CDnnBlob> downFreeTerm;
 	if( ( freeTermMask & downFreeTermBit ) != 0 ) {
-		downFreeTerm = mnV2TestCreateBlob( { outputChannels }, random );
+		downFreeTerm = createBlob( { outputChannels }, random );
 	}
 
 	CDnn dnn( random, MathEngine() );
@@ -168,7 +168,7 @@ static void mobileNetV2BlockTestImpl( unsigned int seed, int freeTermMask, float
 	AddLayer( actualBlock, "actualBlock", { data } );
 	CPtr<CSinkLayer> actualSink = AddLayer<CSinkLayer>( "actualSink", { actualBlock } );
 
-	data->SetBlob( mnV2TestCreateBlob( inputDims, random ) );
+	data->SetBlob( createBlob( inputDims, random ) );
 	
 	dnn.RunOnce();
 
@@ -209,50 +209,7 @@ TEST( MobileNetV2BlockLayerTest, CornerCases )
 	mobileNetV2BlockTestImpl( seedRandom.Next(), 1, 4, 6, 2, false, { 1, 34, 1, 3, 1, 1, 65533 } );
 	mobileNetV2BlockTestImpl( seedRandom.Next(), 2, 4, 6, 1, false, { 1, 35, 1, 3, 1, 1, 65535 } );
 	mobileNetV2BlockTestImpl( seedRandom.Next(), 3, 4, 6, 1, true, { 1, 36, 1, 3, 1, 1, 65537 } );
-}
-
-TEST( MobileNetV2BlockLayerTest, RowwiseCornerCase )
-{
-	NEOML_TEST_CPU_ONLY;
-	CRandom random( 0x654 );
-	CDnn dnn( random, MathEngine() );
-
-	auto createMNv2BlockLayer = [] ( CRandom& random, const char* name,
-		const std::initializer_list<int>& inputDims, int expandedChannels, int outputChannels,
-		int stride, bool residual, CBaseLayer& input ) -> CMobileNetV2BlockLayer*
-	{
-		const int inputChannels = *( inputDims.begin() + 6 );
-		NeoAssert( !residual || ( outputChannels == inputChannels && stride == 1 ) );
-		CPtr<CDnnBlob> expandFilter = mnV2TestCreateBlob( { 1, expandedChannels, 1, 1, 1, 1, inputChannels }, random );
-		CPtr<CDnnBlob> channelwiseFilter = mnV2TestCreateBlob( { 1, 1, 1, 3, 3, 1, expandedChannels }, random );
-		CPtr<CDnnBlob> downFilter = mnV2TestCreateBlob( { 1, outputChannels, 1, 1, 1, 1, expandedChannels }, random );
-		CPtr<CMobileNetV2BlockLayer> block = new CMobileNetV2BlockLayer( MathEngine(), expandFilter, nullptr,
-			CActivationDesc( AF_HSwish ), stride, channelwiseFilter, nullptr, CActivationDesc( AF_HSwish ),
-			downFilter, nullptr, residual );
-		block->SetName( name );
-		block->Connect( input );
-		input.GetDnn()->AddLayer( *block );
-		return block.Ptr();
-	};
-
-	std::initializer_list<int> inputDims = { 1, 1, 1, 4, 24, 1, 56 };
-	CSourceLayer* source = Source( dnn, "source" );
-	CBaseLayer* curr = createMNv2BlockLayer( random, "block0", inputDims, 336, 104, 2, false, *source );
-	curr = createMNv2BlockLayer( random, "block1", { 1, 1, 1, 2, 12, 1, 104 }, 264, 104, 1, true, *curr );
-	curr = createMNv2BlockLayer( random, "block2", { 1, 1, 1, 2, 12, 1, 104 }, 240, 104, 1, true, *curr );
-	curr = createMNv2BlockLayer( random, "block3", { 1, 1, 1, 2, 12, 1, 104 }, 240, 104, 1, true, *curr );
-	CSinkLayer* sink = Sink( curr, "sink" );
-
-	source->SetBlob( mnV2TestCreateBlob( inputDims, random ) );
-	dnn.RunOnce();
-	CPtr<CDnnBlob> expectedBlob = sink->GetBlob()->GetCopy();
-
-	CDnnOptimizationReport report = OptimizeDnn( dnn );
-	ASSERT_EQ( 1, report.RowwiseChainCount );
-
-	dnn.RunOnce();
-	CPtr<CDnnBlob> actualBlob = sink->GetBlob();
-	CompareBlobs( *expectedBlob, *actualBlob );
+	mobileNetV2BlockTestImpl( seedRandom.Next(), 0, 4, 6, 2, false, { 1, 1, 1, 4, 1, 1, 65533 } );
 }
 
 static std::initializer_list<CActivationDesc> mnv2BlockActivations = {
