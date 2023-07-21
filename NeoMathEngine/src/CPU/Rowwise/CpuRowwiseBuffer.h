@@ -250,7 +250,7 @@ void CRowwiseBuffer::RemoveRows( int count )
 		}
 		dataPtr = bufferPtr;
 		dataPtrIndex = 0;
-	} else if( dataRowIndex + ( rowCount - dataPtrIndex ) == fullHeight ) {
+	} else if( dataRowIndex == fullHeight ) {
 		// All of the data has been processed
 		bufferVar.reset( nullptr );
 		bufferPtr = nullptr;
