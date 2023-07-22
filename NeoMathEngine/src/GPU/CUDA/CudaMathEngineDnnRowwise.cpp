@@ -81,7 +81,7 @@ void CCudaMathEngine::RowwiseExecute( const CBlobDesc&, CRowwiseOperationDesc** 
 
 		if( i != operations.size() - 1 ) {
 			std::swap( inputBuff, outputBuff );
-			currInput = inputBuff->GetHandle();
+			currInput = currOutput;
 		}
 	}
 }
