@@ -44,7 +44,6 @@ CBlobDesc CCudaMathEngine::RowwiseReshape( CRowwiseOperationDesc** operations, i
 		++operations;
 	}
 	return output;
-
 }
 
 void CCudaMathEngine::RowwiseExecute( const CBlobDesc&, CRowwiseOperationDesc** operationDescs,
