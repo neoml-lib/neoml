@@ -72,7 +72,7 @@ inline CBlobDesc CCudaRowwiseChConvWith1x1::Reshape( const CBlobDesc& inputSize 
 	CBlobDesc freeTermSize( { inputSize.Channels() } );
 	IMathEngine& mathEngine = *chFilter.GetMathEngine();
 	chDesc.reset( mathEngine.InitBlobChannelwiseConvolution( inputSize, 1, 1, stride, stride,
-		filterSize, chFreeTerm.IsNull() ? nullptr : &freeTermSize, outputDesc) );
+		filterSize, chFreeTerm.IsNull() ? nullptr : &freeTermSize, outputDesc ) );
 	outputDesc.SetDimSize( BD_Channels, outputChannels );
 	return outputDesc;
 }
@@ -81,7 +81,7 @@ inline void CCudaRowwiseChConvWith1x1::Process( const CFloatHandle& input, const
 {
 	chFilter.GetMathEngine()->ChannelwiseWith1x1( inputDesc, outputDesc, *chDesc, input, chFilter,
 		chFreeTerm.IsNull() ? nullptr : &chFreeTerm, activation, reluParam, convFilter,
-		convFreeTerm.IsNull() ? nullptr : &convFreeTerm, residual, output);
+		convFreeTerm.IsNull() ? nullptr : &convFreeTerm, residual, output );
 }
 
 } // namespace NeoML

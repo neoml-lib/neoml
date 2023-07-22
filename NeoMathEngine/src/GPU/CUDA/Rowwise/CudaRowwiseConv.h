@@ -86,7 +86,7 @@ inline CBlobDesc CCudaRowwiseConv::Reshape( const CBlobDesc& inputSize )
 inline void CCudaRowwiseConv::Process( const CFloatHandle& input, const CFloatHandle& output ) const
 {
 	filter.GetMathEngine()->BlobConvolution( *convDesc, input, filter,
-		freeTerm.IsNull() ? nullptr : &freeTerm, output);
+		freeTerm.IsNull() ? nullptr : &freeTerm, output );
 }
 
 } // namespace NeoML

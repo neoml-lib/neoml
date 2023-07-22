@@ -73,7 +73,7 @@ inline CBlobDesc CCudaRowwiseChConv::Reshape( const CBlobDesc& inputSize )
 	CBlobDesc freeTermDesc( { inputSize.Channels() } );
 	IMathEngine& mathEngine = *filter.GetMathEngine();
 	convDesc.reset( mathEngine.InitBlobChannelwiseConvolution( inputSize, paddingHeight, paddingWidth,
-		strideHeight, strideWidth, filterDesc, freeTerm.IsNull() ? nullptr : &freeTermDesc, outputSize));
+		strideHeight, strideWidth, filterDesc, freeTerm.IsNull() ? nullptr : &freeTermDesc, outputSize ) );
 	outputBlobSize = outputSize.BlobSize();
 	return outputSize;
 }

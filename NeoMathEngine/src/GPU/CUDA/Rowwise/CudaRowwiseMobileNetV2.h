@@ -89,7 +89,7 @@ inline CBlobDesc CCudaRowwiseMobileNetV2::Reshape( const CBlobDesc& inputSize )
 	CBlobDesc freeTermDesc( { expandedChannels } );
 	IMathEngine& mathEngine = *expandFilter.GetMathEngine();
 	chDesc.reset( mathEngine.InitBlobChannelwiseConvolution( inputDesc, 1, 1, stride, stride,
-		filterDesc, channelwiseFreeTerm.IsNull() ? nullptr : &freeTermDesc, outputDesc));
+		filterDesc, channelwiseFreeTerm.IsNull() ? nullptr : &freeTermDesc, outputDesc ) );
 	inputDesc.SetDimSize( BD_Channels, inputChannels );
 	outputDesc.SetDimSize( BD_Channels, outputChannels );
 
@@ -101,7 +101,7 @@ inline void CCudaRowwiseMobileNetV2::Process( const CFloatHandle& input, const C
 	expandFilter.GetMathEngine()->MobileNetV2Block( inputDesc, outputDesc, *chDesc, input, expandFilter,
 		expandFreeTerm.IsNull() ? nullptr : &expandFreeTerm, expandActivation, expandReluParam, channelwiseFilter,
 		channelwiseFreeTerm.IsNull() ? nullptr : &channelwiseFreeTerm, channelwiseActivation, channelwiseReluParam,
-		downFilter, downFreeTerm.IsNull() ? nullptr : &downFreeTerm, residual, output);
+		downFilter, downFreeTerm.IsNull() ? nullptr : &downFreeTerm, residual, output );
 }
 
 } // namespace NeoML
