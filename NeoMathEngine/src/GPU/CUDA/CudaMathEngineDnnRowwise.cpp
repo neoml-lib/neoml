@@ -47,7 +47,7 @@ CBlobDesc CCudaMathEngine::RowwiseReshape( CRowwiseOperationDesc** operations, i
 
 }
 
-void CCudaMathEngine::RowwiseExecute( const CBlobDesc& inputDesc, CRowwiseOperationDesc** operationDescs,
+void CCudaMathEngine::RowwiseExecute( const CBlobDesc&, CRowwiseOperationDesc** operationDescs,
 	int operationCount, const CFloatHandle& input, const CFloatHandle& output )
 {
 	std::vector<std::vector<ICudaRowwiseImpl*>> operations;
