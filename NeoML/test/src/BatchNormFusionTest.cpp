@@ -41,7 +41,7 @@ void checkBnFusion( CDnn& dnn, CSinkLayer* sink, int expectedFusions )
 	dnn.RunOnce();
 	CPtr<CDnnBlob> expected = sink->GetBlob()->GetCopy();
 
-	CDnnOptimizationReport report = OptimizeDnn( dnn, DnnOptimizationSettings() );
+	CDnnOptimizationReport report = OptimizeDnn( dnn );
 	EXPECT_EQ( expectedFusions, report.FusedBatchNormalizations );
 	dnn.RunOnce();
 	CPtr<CDnnBlob> actual = sink->GetBlob()->GetCopy();

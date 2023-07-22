@@ -283,13 +283,6 @@ IMathEngine& MathEngine()
 	return *mathEngine;
 }
 
-CDnnOptimizationSettings DnnOptimizationSettings()
-{
-	CDnnOptimizationSettings result;
-	result.AllowCpuOnlyOptimizations = ( MathEngine().GetType() == MET_Cpu );
-	return result;
-}
-
 void DeleteMathEngine()
 {
 	if( mathEngine ) {

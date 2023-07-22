@@ -771,10 +771,10 @@ private:
 		const CConstFloatHandle& resultLogProb, const CConstIntHandle& resultLens, const CConstIntHandle& labelLens,
 		const CFloatHandle& logBeta );
 
-	class CRowwiseConv;
-	class CRowwiseChConvWith1x1;
-	class CRowwiseMobileNetV2;
-	class CRowwise2DPooling;
+	class CCpuRowwiseConv;
+	class CCpuRowwiseChConvWith1x1;
+	class CCpuRowwiseMobileNetV2;
+	class CCpuRowwise2DPooling;
 };
 
 inline void CCpuMathEngine::VectorReLUDiffOp( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,

@@ -22,9 +22,9 @@ limitations under the License.
 
 namespace NeoML {
 
-class CCpuMathEngine::CRowwiseChConvWith1x1 : public IRowwiseCpuImpl, public CRowwiseOperationDesc {
+class CCpuMathEngine::CCpuRowwiseChConvWith1x1 : public ICpuRowwiseImpl, public CRowwiseOperationDesc {
 public:
-	CRowwiseChConvWith1x1( CCpuMathEngine& mathEngine, int stride, const float* chFilter, const float* chFreeTerm,
+	CCpuRowwiseChConvWith1x1( CCpuMathEngine& mathEngine, int stride, const float* chFilter, const float* chFreeTerm,
 			TActivationFunction activation, float reluParam, const float* convFilter,
 			const float* convFreeTerm, int outputChannels, bool residual ) :
 		mathEngine( mathEngine ),
@@ -70,7 +70,7 @@ private:
 	int getMaxOutputRowsPerStep() const;
 };
 
-inline CBlobDesc CCpuMathEngine::CRowwiseChConvWith1x1::Reshape( const CBlobDesc& inputSize )
+inline CBlobDesc CCpuMathEngine::CCpuRowwiseChConvWith1x1::Reshape( const CBlobDesc& inputSize )
 {
 	CBlobDesc outputSize = inputSize;
 	outputSize.SetDimSize( BD_Height, 1 + ( outputSize.Height() - 1 ) / desc.StrideHeight );
@@ -95,7 +95,7 @@ inline CBlobDesc CCpuMathEngine::CRowwiseChConvWith1x1::Reshape( const CBlobDesc
 }
 
 // Number of rows which can be processed at one time in down conv
-inline int CCpuMathEngine::CRowwiseChConvWith1x1::getMaxOutputRowsPerStep() const
+inline int CCpuMathEngine::CCpuRowwiseChConvWith1x1::getMaxOutputRowsPerStep() const
 {
 	// Determine which row size is bigger: before or after the 1x1 conv
 	const int maxRowSize = std::max( desc.Result.Channels(), outputChannels ) * desc.Result.Width();
@@ -109,7 +109,7 @@ inline int CCpuMathEngine::CRowwiseChConvWith1x1::getMaxOutputRowsPerStep() cons
 	return std::min( desc.Result.ObjectCount() * desc.Result.Height(), recommendedRowCount );
 }
 
-inline IRowwiseCpuImpl::CProcessingReport CCpuMathEngine::CRowwiseChConvWith1x1::Process( const float* input,
+inline ICpuRowwiseImpl::CProcessingReport CCpuMathEngine::CCpuRowwiseChConvWith1x1::Process( const float* input,
 	int inputRowIndex, int inputRowsAvailable, float* output, int outputRowIndex, int outputRowsAvailable,
 	float* buffer ) const
 {

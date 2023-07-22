@@ -20,13 +20,13 @@ limitations under the License.
 
 namespace NeoML {
 
-class CRowwiseActivation : public IRowwiseCpuImpl, public CRowwiseOperationDesc {
+class CCpuRowwiseActivation : public ICpuRowwiseImpl, public CRowwiseOperationDesc {
 public:
-	explicit CRowwiseActivation( const CActivationDesc& desc );
+	explicit CCpuRowwiseActivation( const CActivationDesc& desc );
 
 	TActivationFunction Type() const { return desc.GetType(); }
 
-	// IRowwiseCpuImpl
+	// ICpuRowwiseImpl
 	CBlobDesc Reshape( const CBlobDesc& inputSize ) override;
 	int InputRowRequirement() const override { return 0; }
 	int OutputRowRequirement() const override { return 0; }
@@ -45,21 +45,21 @@ private:
 
 //---------------------------------------------------------------------------------------------------------------------
 
-inline CRowwiseActivation::CRowwiseActivation( const CActivationDesc& desc ) :
+inline CCpuRowwiseActivation::CCpuRowwiseActivation( const CActivationDesc& desc ) :
 	desc( desc ),
 	rowCount( 0 ),
 	rowSize( 0 )
 {
 }
 
-inline CBlobDesc CRowwiseActivation::Reshape( const CBlobDesc& inputSize )
+inline CBlobDesc CCpuRowwiseActivation::Reshape( const CBlobDesc& inputSize )
 {
 	rowCount = inputSize.ObjectCount() * inputSize.Height();
 	rowSize = inputSize.Width() * inputSize.Channels();
 	return inputSize;
 }
 
-inline IRowwiseCpuImpl::CProcessingReport CRowwiseActivation::Process( const float* input, int inputRowIndex,
+inline ICpuRowwiseImpl::CProcessingReport CCpuRowwiseActivation::Process( const float* input, int inputRowIndex,
 	int inputRowsAvailable, float* output, int outputRowIndex, int outputRowsAvailable, float* ) const
 {
 	CProcessingReport result;

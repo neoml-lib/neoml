@@ -81,7 +81,8 @@ void CRowwiseOperationChainLayer::Reshape()
 {
 	// The whole idea of optimization is CPU only
 	// On GPU this optimization worsens the performance
-	CheckLayerArchitecture( MathEngine().GetType() == MET_Cpu, "Only CPU math engine is supported" );
+	CheckLayerArchitecture( MathEngine().GetType() == MET_Cpu || MathEngine().GetType() == MET_Cuda,
+		"Only CPU and CUDA are supported" );
 
 	CheckInput1();
 	CheckLayerArchitecture( inputDescs[0].Depth() == 1, "Non-trivial depth" );

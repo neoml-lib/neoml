@@ -220,7 +220,6 @@ static std::initializer_list<CActivationDesc> mnv2BlockActivations = {
 
 TEST( MobileNetV2OptimizerTest, SimpleNonResidual )
 {
-	NEOML_TEST_CPU_ONLY;
 	for( const CActivationDesc& expandActivationDesc : mnv2BlockActivations ) {
 		for( const CActivationDesc& channelwiseActivationDesc : mnv2BlockActivations ) {
 			CRandom random( 0x654 );
@@ -239,7 +238,7 @@ TEST( MobileNetV2OptimizerTest, SimpleNonResidual )
 			dnn.AddLayer( *channelwiseActivation );
 			CConvLayer* downConv = Conv( 8, CConvAxisParams( 1 ), CConvAxisParams( 1 ) )( "downConv", channelwiseActivation.Ptr() );
 			Sink( downConv, "sink" );
-			CDnnOptimizationReport report = OptimizeDnn( dnn, DnnOptimizationSettings() );
+			CDnnOptimizationReport report = OptimizeDnn( dnn );
 			ASSERT_EQ( 1, report.MobileNetV2NonResidualBlocks );
 			ASSERT_EQ( 0, report.MobileNetV2ResidualBlocks );
 			ASSERT_EQ( 3, dnn.GetLayerCount() );
@@ -249,7 +248,6 @@ TEST( MobileNetV2OptimizerTest, SimpleNonResidual )
 
 TEST( MobileNetV2OptimizerTest, SimpleResidual )
 {
-	NEOML_TEST_CPU_ONLY;
 	CRandom random( 0x654 );
 	CDnn dnn( random, MathEngine() );
 	CSourceLayer* data = Source( dnn, "data" );
@@ -261,7 +259,7 @@ TEST( MobileNetV2OptimizerTest, SimpleResidual )
 	CConvLayer* downConv = Conv( 8, CConvAxisParams( 1 ), CConvAxisParams( 1 ) )( "downConv", channelwiseReLU );
 	CEltwiseSumLayer* residual = Sum()( "residual", data, downConv );
 	Sink( residual, "sink" );
-	CDnnOptimizationReport report = OptimizeDnn( dnn, DnnOptimizationSettings() );
+	CDnnOptimizationReport report = OptimizeDnn( dnn );
 	ASSERT_EQ( 0, report.MobileNetV2NonResidualBlocks );
 	ASSERT_EQ( 1, report.MobileNetV2ResidualBlocks );
 	ASSERT_EQ( 3, dnn.GetLayerCount() );
@@ -269,7 +267,6 @@ TEST( MobileNetV2OptimizerTest, SimpleResidual )
 
 TEST( MobileNetV2OptimizerTest, ResidualResidual )
 {
-	NEOML_TEST_CPU_ONLY;
 	CRandom random( 0x654 );
 	CDnn dnn( random, MathEngine() );
 	CSourceLayer* data = Source( dnn, "data" );
@@ -282,7 +279,7 @@ TEST( MobileNetV2OptimizerTest, ResidualResidual )
 	CEltwiseSumLayer* residual = Sum()( "residual", data, downConv );
 	CEltwiseSumLayer* doubleResidual = Sum()( "doubleResidual", data, residual );
 	Sink( doubleResidual, "sink" );
-	CDnnOptimizationReport report = OptimizeDnn( dnn, DnnOptimizationSettings() );
+	CDnnOptimizationReport report = OptimizeDnn( dnn );
 	ASSERT_EQ( 0, report.MobileNetV2NonResidualBlocks );
 	ASSERT_EQ( 1, report.MobileNetV2ResidualBlocks );
 	ASSERT_EQ( 4, dnn.GetLayerCount() );
@@ -290,7 +287,6 @@ TEST( MobileNetV2OptimizerTest, ResidualResidual )
 
 TEST( MobileNetV2OptimizerTest, NeighboringResiduals )
 {
-	NEOML_TEST_CPU_ONLY;
 	CRandom random( 0x654 );
 	CDnn dnn( random, MathEngine() );
 	CSourceLayer* data = Source( dnn, "data" );
@@ -304,7 +300,7 @@ TEST( MobileNetV2OptimizerTest, NeighboringResiduals )
 	Sink( residual, "sink" );
 	CEltwiseSumLayer* secondResidual = Sum()( "secondResidual", data, downConv );
 	Sink( secondResidual, "secondSink" );
-	CDnnOptimizationReport report = OptimizeDnn( dnn, DnnOptimizationSettings() );
+	CDnnOptimizationReport report = OptimizeDnn( dnn );
 	ASSERT_EQ( 1, report.MobileNetV2NonResidualBlocks );
 	ASSERT_EQ( 0, report.MobileNetV2ResidualBlocks );
 	ASSERT_EQ( 6, dnn.GetLayerCount() );
@@ -312,7 +308,6 @@ TEST( MobileNetV2OptimizerTest, NeighboringResiduals )
 
 TEST( MobileNetV2OptimizerTest, SinkFromTheMiddle )
 {
-	NEOML_TEST_CPU_ONLY;
 	CRandom random( 0x654 );
 	CDnn dnn( random, MathEngine() );
 	CSourceLayer* data = Source( dnn, "data" );
@@ -325,14 +320,13 @@ TEST( MobileNetV2OptimizerTest, SinkFromTheMiddle )
 	CConvLayer* downConv = Conv( 8, CConvAxisParams( 1 ), CConvAxisParams( 1 ) )( "downConv", channelwiseReLU );
 	CEltwiseSumLayer* residual = Sum()( "residual", data, downConv );
 	Sink( residual, "sink" );
-	CDnnOptimizationReport report = OptimizeDnn( dnn, DnnOptimizationSettings() );
+	CDnnOptimizationReport report = OptimizeDnn( dnn );
 	ASSERT_EQ( 0, report.MobileNetV2NonResidualBlocks );
 	ASSERT_EQ( 0, report.MobileNetV2ResidualBlocks );
 }
 
 TEST( MobileNetV2OptimizerTest, SinkDisablesResidual )
 {
-	NEOML_TEST_CPU_ONLY;
 	CRandom random( 0x654 );
 	CDnn dnn( random, MathEngine() );
 	CSourceLayer* data = Source( dnn, "data" );
@@ -345,7 +339,7 @@ TEST( MobileNetV2OptimizerTest, SinkDisablesResidual )
 	Sink( downConv, "downConvSink" );
 	CEltwiseSumLayer* residual = Sum()( "residual", data, downConv );
 	Sink( residual, "sink" );
-	CDnnOptimizationReport report = OptimizeDnn( dnn, DnnOptimizationSettings() );
+	CDnnOptimizationReport report = OptimizeDnn( dnn );
 	ASSERT_EQ( 1, report.MobileNetV2NonResidualBlocks );
 	ASSERT_EQ( 0, report.MobileNetV2ResidualBlocks );
 	ASSERT_EQ( 5, dnn.GetLayerCount() );
