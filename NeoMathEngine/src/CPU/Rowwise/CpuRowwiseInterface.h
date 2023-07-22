@@ -20,9 +20,9 @@ limitations under the License.
 namespace NeoML {
 
 // CPU implementation of rowwise operation
-class IRowwiseCpuImpl {
+class ICpuRowwiseImpl {
 public:
-	virtual ~IRowwiseCpuImpl() = default;
+	virtual ~ICpuRowwiseImpl() = default;
 
 	// Must be called before inference
 	// Returns the size of output of this operation
@@ -41,8 +41,8 @@ public:
 	virtual int OutputRowRequirement() const = 0;
 
 	// The size of buffer needed during calculation
-	// Buffer of equal or greater size must be provided as `buffer` parameter in IRowwiseCpuImpl::Process
-	// The data won't be saved between different IRowwiseCpuImpl::Process calls
+	// Buffer of equal or greater size must be provided as `buffer` parameter in ICpuRowwiseImpl::Process
+	// The data won't be saved between different ICpuRowwiseImpl::Process calls
 	// If operation needs dedicated buffer which saves data between different calls
 	// it should allocate and manage this buffer by itself (e.g. allocate during Reshape)
 	virtual int InOperationBufferSize() const = 0;

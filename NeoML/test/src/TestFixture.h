@@ -29,8 +29,6 @@ IMathEngine& MathEngine();
 void DeleteMathEngine();
 // Get global MathEngine type.
 TMathEngineType MathEngineType();
-// Recommended dnn optimization settings for current run.
-CDnnOptimizationSettings DnnOptimizationSettings();
 
 void SetPlatformEnv( void* platformEnv );
 
@@ -225,11 +223,6 @@ class CNeoMlTestFixtureWithParams : public CNeoMLTestFixture, public ::testing::
 	const int testCount = params.GetValue<int>( "TestCount" ); \
 	for( int test = 0; test < testCount; ++test ) { \
 		impl ( params, 282 + test * 10000 + test % 3  ); \
-	} } \
-
-//------------------------------------------------------------------------------------------------------------
-
-#define NEOML_TEST_CPU_ONLY \
-	if( MathEngine().GetType() != MET_Cpu ) return
+	} }
 
 } // namespace NeoMLTest

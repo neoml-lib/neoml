@@ -3270,7 +3270,6 @@ inline void checkSpecificParams<CRowwiseOperationChainLayer>( CRowwiseOperationC
 
 GTEST_TEST( SerializeFromFile, RowwiseOperationChainLayerSerialization )
 {
-	NEOML_TEST_CPU_ONLY;
 	checkSerializeLayer<CRowwiseOperationChainLayer>( "NeoMLDnnRowwiseOperationChainLayer" );
 }
 

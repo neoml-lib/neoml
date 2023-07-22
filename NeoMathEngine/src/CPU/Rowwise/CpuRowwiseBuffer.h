@@ -28,9 +28,9 @@ namespace NeoML {
 // (Full blob contains ObjectCount() * Height() rows)
 //
 // In addition it has space for the next EmptyRowCount() rows of full blob
-class IRowwiseBuffer {
+class ICpuRowwiseBuffer {
 public:
-	virtual ~IRowwiseBuffer() = default;
+	virtual ~ICpuRowwiseBuffer() = default;
 
 	// Number of elements in row
 	virtual int RowSize() const = 0;
@@ -60,7 +60,7 @@ public:
 };
 
 // Rowwise buffer over previously allocated data
-class CRowwiseWrapper : public IRowwiseBuffer {
+class CCpuRowwiseWrapper : public ICpuRowwiseBuffer {
 public:
 	// data - pointer to the beginning of the buffer
 	// rowCount - number of rows in the buffer
@@ -68,9 +68,9 @@ public:
 	// After the construction it considers itself as a buffer without data
 	// which means DataRowCount() is 0 and EmptyRowCount() is rowCount
 	// It may allocate more than rowCount in order to reduce number of ::memmove calls
-	CRowwiseWrapper( float* data, int rowCount, int rowSize );
+	CCpuRowwiseWrapper( float* data, int rowCount, int rowSize );
 
-	// IRowwiseBuffer implementation
+	// ICpuRowwiseBuffer implementation
 	int RowSize() const override { return rowSize; }
 	int DataRowIndex() const override { return removedRows; }
 	int DataRowCount() const override;
@@ -97,12 +97,12 @@ private:
 
 // Rowwise buffer which contains only slice of full blob
 // Allocates and manages memory by itself
-class CRowwiseBuffer : public IRowwiseBuffer {
+class CCpuRowwiseBuffer : public ICpuRowwiseBuffer {
 public:
 	// It guarantees to allocate at least rowCount rows and at most fullHeight rows
-	CRowwiseBuffer( IMathEngine& mathEngine, int rowCount, int rowSize, int fullHeight );
+	CCpuRowwiseBuffer( IMathEngine& mathEngine, int rowCount, int rowSize, int fullHeight );
 
-	// IRowwiseBuffer implementation
+	// ICpuRowwiseBuffer implementation
 	int DataRowIndex() const override { return dataRowIndex; }
 	int RowSize() const override { return rowSize; }
 	int DataRowCount() const override { return dataRowsCount; }
@@ -140,7 +140,7 @@ private:
 
 //---------------------------------------------------------------------------------------------------------------------
 
-inline CRowwiseWrapper::CRowwiseWrapper( float* data, int rowCount, int rowSize ) :
+inline CCpuRowwiseWrapper::CCpuRowwiseWrapper( float* data, int rowCount, int rowSize ) :
 	firstDataRow( data ),
 	rowCount( rowCount ),
 	rowSize( rowSize ),
@@ -148,32 +148,32 @@ inline CRowwiseWrapper::CRowwiseWrapper( float* data, int rowCount, int rowSize 
 	removedRows( 0 )
 {}
 
-inline int CRowwiseWrapper::DataRowCount() const
+inline int CCpuRowwiseWrapper::DataRowCount() const
 {
 	PRESUME_EXPR( addedRows >= removedRows );
 	return addedRows - removedRows;
 }
 
-inline const float* CRowwiseWrapper::DataRows() const
+inline const float* CCpuRowwiseWrapper::DataRows() const
 {
 	PRESUME_EXPR( DataRowCount() > 0 );
 	return firstDataRow;
 }
 
-inline float* CRowwiseWrapper::EmptyRows()
+inline float* CCpuRowwiseWrapper::EmptyRows()
 {
 	PRESUME_EXPR( addedRows < rowCount );
 	return firstDataRow + DataRowCount() * rowSize;
 }
 
-inline void CRowwiseWrapper::AddRows( int count )
+inline void CCpuRowwiseWrapper::AddRows( int count )
 {
 	PRESUME_EXPR( count > 0 );
 	addedRows += count;
 	PRESUME_EXPR( addedRows <= rowCount );
 }
 
-inline void CRowwiseWrapper::RemoveRows( int count )
+inline void CCpuRowwiseWrapper::RemoveRows( int count )
 {
 	PRESUME_EXPR( count > 0 );
 	PRESUME_EXPR( count <= DataRowCount() );
@@ -184,7 +184,7 @@ inline void CRowwiseWrapper::RemoveRows( int count )
 
 //---------------------------------------------------------------------------------------------------------------------
 
-CRowwiseBuffer::CRowwiseBuffer( IMathEngine& mathEngine, int rowCount, int rowSize, int fullHeight ) :
+CCpuRowwiseBuffer::CCpuRowwiseBuffer( IMathEngine& mathEngine, int rowCount, int rowSize, int fullHeight ) :
 	mathEngine( mathEngine ),
 	rowCount( rowCount ),
 	rowSize( rowSize ),
@@ -198,18 +198,18 @@ CRowwiseBuffer::CRowwiseBuffer( IMathEngine& mathEngine, int rowCount, int rowSi
 {
 }
 
-const float* CRowwiseBuffer::DataRows() const
+const float* CCpuRowwiseBuffer::DataRows() const
 {
 	PRESUME_EXPR( dataRowsCount > 0 );
 	return dataPtr;
 }
 
-int CRowwiseBuffer::EmptyRowCount() const
+int CCpuRowwiseBuffer::EmptyRowCount() const
 {
 	return std::min( rowCount - dataRowsCount, fullHeight - ( dataRowIndex + dataRowsCount ) );
 }
 
-float* CRowwiseBuffer::EmptyRows()
+float* CCpuRowwiseBuffer::EmptyRows()
 {
 	PRESUME_EXPR( EmptyRowCount() > 0 );
 	if( bufferPtr == nullptr ) {
@@ -225,7 +225,7 @@ float* CRowwiseBuffer::EmptyRows()
 	return dataPtr + dataRowsCount * rowSize;
 }
 
-void CRowwiseBuffer::AddRows( int count )
+void CCpuRowwiseBuffer::AddRows( int count )
 {
 	PRESUME_EXPR( count > 0 );
 	PRESUME_EXPR( count <= EmptyRowCount() );
@@ -234,7 +234,7 @@ void CRowwiseBuffer::AddRows( int count )
 	PRESUME_EXPR( dataRowsCount + dataPtrIndex <= realHeight );
 }
 
-void CRowwiseBuffer::RemoveRows( int count )
+void CCpuRowwiseBuffer::RemoveRows( int count )
 {
 	PRESUME_EXPR( count > 0 );
 	PRESUME_EXPR( count <= dataRowsCount );

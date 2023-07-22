@@ -20,9 +20,9 @@ limitations under the License.
 
 namespace NeoML {
 
-class CRowwiseImageResize : public IRowwiseCpuImpl, public CRowwiseOperationDesc {
+class CCpuRowwiseImageResize : public ICpuRowwiseImpl, public CRowwiseOperationDesc {
 public:
-	CRowwiseImageResize( TBlobResizePadding padding, float defaultValue, int deltaLeft, int deltaRight,
+	CCpuRowwiseImageResize( TBlobResizePadding padding, float defaultValue, int deltaLeft, int deltaRight,
 			int deltaTop, int deltaBottom ) :
 		padding( padding ),
 		defaultValue( defaultValue ),
@@ -53,7 +53,7 @@ private:
 	CBlobDesc from;
 	CBlobDesc to;
 
-	IRowwiseCpuImpl::CProcessingReport processTrivialCase( const float* input, int inputRowIndex,
+	ICpuRowwiseImpl::CProcessingReport processTrivialCase( const float* input, int inputRowIndex,
 		int inputRowsAvailable, float* output, int outputRowIndex, int outputRowsAvailable ) const;
 	int inputCoord( int unnormalizedInputCoord, int dimSize ) const;
 	int requiredInputRow( int outputRowIndex ) const;
@@ -61,7 +61,7 @@ private:
 		int delta, int firstColIndex, int totalChannels ) const;
 };
 
-inline int CRowwiseImageResize::InputRowRequirement() const
+inline int CCpuRowwiseImageResize::InputRowRequirement() const
 {
 	if( padding != TBlobResizePadding::Reflect ) {
 		// Constant padding doesn't rely on input data
@@ -73,7 +73,7 @@ inline int CRowwiseImageResize::InputRowRequirement() const
 	return std::min( from.Height(), std::max( { 1, 1 + deltaTop, 1 + deltaBottom } ) );
 }
 
-inline CBlobDesc CRowwiseImageResize::Reshape( const CBlobDesc& inputSize )
+inline CBlobDesc CCpuRowwiseImageResize::Reshape( const CBlobDesc& inputSize )
 {
 	from = inputSize;
 	to = from;
@@ -83,7 +83,7 @@ inline CBlobDesc CRowwiseImageResize::Reshape( const CBlobDesc& inputSize )
 }
 
 // Processes trivial case: when operation doesn't resize anything (all deltas are zeros)
-inline IRowwiseCpuImpl::CProcessingReport CRowwiseImageResize::processTrivialCase( const float* input,
+inline ICpuRowwiseImpl::CProcessingReport CCpuRowwiseImageResize::processTrivialCase( const float* input,
 	int inputRowIndex, int inputRowsAvailable, float* output, int outputRowIndex, int outputRowsAvailable ) const
 {
 	PRESUME_EXPR( inputRowIndex <= outputRowIndex );
@@ -101,7 +101,7 @@ inline IRowwiseCpuImpl::CProcessingReport CRowwiseImageResize::processTrivialCas
 	return report;
 }
 
-inline IRowwiseCpuImpl::CProcessingReport CRowwiseImageResize::Process( const float* input, int inputRowIndex,
+inline ICpuRowwiseImpl::CProcessingReport CCpuRowwiseImageResize::Process( const float* input, int inputRowIndex,
 	int inputRowsAvailable, float* output, int outputRowIndex, int outputRowsAvailable, float* ) const
 {
 	// If the size hasn't changed, copy the image
@@ -174,7 +174,7 @@ inline IRowwiseCpuImpl::CProcessingReport CRowwiseImageResize::Process( const fl
 // (unnormalized means that it may be outside of [0;dimSize-1])
 // Returns coordinate of corresponding input data
 // or smth outside of [0;dimSize-1] if it must be filled with constant values
-inline int CRowwiseImageResize::inputCoord( int unnormalizedInputCoord, int dimSize ) const
+inline int CCpuRowwiseImageResize::inputCoord( int unnormalizedInputCoord, int dimSize ) const
 {
 	if( unnormalizedInputCoord >= 0 && unnormalizedInputCoord < dimSize ) {
 		return unnormalizedInputCoord;
@@ -194,7 +194,7 @@ inline int CRowwiseImageResize::inputCoord( int unnormalizedInputCoord, int dimS
 }
 
 // Calculates the index of first input row required to calculate output rows starting from outputRowIndex'th
-inline int CRowwiseImageResize::requiredInputRow( int outputRowIndex ) const
+inline int CCpuRowwiseImageResize::requiredInputRow( int outputRowIndex ) const
 {
 	const int imageIndex = outputRowIndex / to.Height();
 	const int outRowIndex = outputRowIndex % to.Height();
@@ -228,7 +228,7 @@ inline int CRowwiseImageResize::requiredInputRow( int outputRowIndex ) const
 
 // Processes horizontal padding of size delta at current output
 // Returns pointer to the output after this padding
-inline float* CRowwiseImageResize::processHorizontalPadding( const float* inputRow, float* currOutput,
+inline float* CCpuRowwiseImageResize::processHorizontalPadding( const float* inputRow, float* currOutput,
 	int delta, int firstColIndex, int totalChannels ) const
 {
 	if( delta > 0 ) {

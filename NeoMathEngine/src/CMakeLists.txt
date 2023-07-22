@@ -263,23 +263,24 @@ if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
                     GPU/CUDA/CusparseDll.cpp
                     GPU/CUDA/NcclDll.cpp
                     # CUDA Sources
+                    GPU/CUDA/CudaMathEngine.cu
                     GPU/CUDA/CudaMathEngineBlas.cu
                     GPU/CUDA/CudaMathEngineCublas.cu
                     GPU/CUDA/CudaMathEngineCusparse.cu
+                    GPU/CUDA/CudaMathEngineDnn.cu
                     GPU/CUDA/CudaMathEngineDnn3dConv.cu
                     GPU/CUDA/CudaMathEngineDnnChannelwiseConv.cu
                     GPU/CUDA/CudaMathEngineDnnConv.cu
                     GPU/CUDA/CudaMathEngineDnnCtc.cu
-                    GPU/CUDA/CudaMathEngineDnn.cu
+                    GPU/CUDA/CudaMathEngineDnnDistributed.cpp
                     GPU/CUDA/CudaMathEngineDnnDropout.cu
                     GPU/CUDA/CudaMathEngineDnnLrn.cu
                     GPU/CUDA/CudaMathEngineDnnLstm.cu
                     GPU/CUDA/CudaMathEngineDnnPoolings.cu
                     GPU/CUDA/CudaMathEngineDnnRleConv.cu
+                    GPU/CUDA/CudaMathEngineDnnRowwise.cpp
                     GPU/CUDA/CudaMathEngineDnnTimeConv.cu
-                    GPU/CUDA/CudaMathEngine.cu
                     GPU/CUDA/CudaMathEngineVectorMath.cu
-                    GPU/CUDA/CudaMathEngineDnnDistributed.cpp
                     # Headers
                     GPU/CUDA/CublasDll.h
                     GPU/CUDA/CublasFunctions.h
@@ -313,11 +314,20 @@ if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
                     GPU/CUDA/Kernels/CudaRandom.h
                     GPU/CUDA/Kernels/CudaReduce.h
                     GPU/CUDA/Kernels/CudaVectorMathKernels.h
+                    GPU/CUDA/Rowwise/CudaRowwiseActivation.h
+                    GPU/CUDA/Rowwise/CudaRowwiseChConv.h
+                    GPU/CUDA/Rowwise/CudaRowwiseChConvWith1x1.h
+                    GPU/CUDA/Rowwise/CudaRowwiseConv.h
+                    GPU/CUDA/Rowwise/CudaRowwiseInterface.h
+                    GPU/CUDA/Rowwise/CudaRowwiseMobileNetV2.h
+                    GPU/CUDA/Rowwise/CudaRowwisePooling.h
+                    GPU/CUDA/Rowwise/CudaRowwiseResizeImage.h
             )
             target_include_directories(${PROJECT_NAME} PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/GPU/CUDA>)
             target_include_directories(${PROJECT_NAME} PRIVATE $<BUILD_INTERFACE:${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}>)
             source_group("GPU\\CUDA" REGULAR_EXPRESSION "GPU\/CUDA\/[A-Za-z0-9_]+\.(h|cpp|cu)")
             source_group("GPU\\CUDA\\Kernels" REGULAR_EXPRESSION "GPU\/CUDA\/Kernels\/.+")
+            source_group("GPU\\CUDA\\Rowwise" REGULAR_EXPRESSION "GPU\/CUDA\/Rowwise\/.+")
 
             find_path(NCCL_INCLUDE_DIR NAMES nccl.h PATHS ${NCCL_ROOT_DIR})
 
