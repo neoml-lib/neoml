@@ -24,9 +24,9 @@ limitations under the License.
 
 namespace NeoML {
 
-class CCpuMathEngine::CRowwiseMobileNetV2 : public IRowwiseCpuImpl, public CRowwiseOperationDesc {
+class CCpuMathEngine::CCpuRowwiseMobileNetV2 : public ICpuRowwiseImpl, public CRowwiseOperationDesc {
 public:
-	CRowwiseMobileNetV2( CCpuMathEngine& mathEngine, int inputChannels,
+	CCpuRowwiseMobileNetV2( CCpuMathEngine& mathEngine, int inputChannels,
 			const float* expandFilter, const float* expandFreeTerm, int expandedChannels,
 			TActivationFunction expandActivation, float expandReluParam,
 			const float* channelwiseFilter, const float* channelwiseFreeTerm, int stride,
@@ -83,7 +83,7 @@ private:
 	// Inner rowwise buffer is needed because we need to transfer some rows after expand conv
 	// between different Process calls (usual inOperationBuffer doesn't save data between calls)
 	// It's caused by the fact that single input row is used by multiply output rows in 3x3 channelwise
-	mutable std::unique_ptr<CRowwiseBuffer> chInput;
+	mutable std::unique_ptr<CCpuRowwiseBuffer> chInput;
 	int inputRowRequirement;
 	int outputRowRequirement;
 
@@ -91,7 +91,7 @@ private:
 	int getMaxOutputRowsPerStep() const;
 };
 
-inline CBlobDesc CCpuMathEngine::CRowwiseMobileNetV2::Reshape( const CBlobDesc& inputSize )
+inline CBlobDesc CCpuMathEngine::CCpuRowwiseMobileNetV2::Reshape( const CBlobDesc& inputSize )
 {
 	CBlobDesc chInputSize = inputSize;
 	chInputSize.SetDimSize( BD_Channels, expandedChannels );
@@ -117,7 +117,7 @@ inline CBlobDesc CCpuMathEngine::CRowwiseMobileNetV2::Reshape( const CBlobDesc& 
 }
 
 // Number of rows which can be processed at one time in expand conv
-inline int CCpuMathEngine::CRowwiseMobileNetV2::getMaxInputRowsPerStep() const
+inline int CCpuMathEngine::CCpuRowwiseMobileNetV2::getMaxInputRowsPerStep() const
 {
 	// Determine which row size is bigger: before or after the expand conv
 	const int maxRowSize = std::max( inputChannels, expandedChannels ) * desc.Source.Width();
@@ -127,11 +127,11 @@ inline int CCpuMathEngine::CRowwiseMobileNetV2::getMaxInputRowsPerStep() const
 	//     - if rows are too small then take into consideration RowwiseCacheSize
 	const int recommendedRowCount = std::max( inputRowRequirement, RowwiseCacheSize / maxRowSize );
 	// But there is no need to allocate more data than the whole input
-	return std::min( desc.Result.ObjectCount() * desc.Result.Height(), recommendedRowCount );
+	return std::min( desc.Source.ObjectCount() * desc.Source.Height(), recommendedRowCount );
 }
 
 // Number of rows which can be processed at one time in down conv
-inline int CCpuMathEngine::CRowwiseMobileNetV2::getMaxOutputRowsPerStep() const
+inline int CCpuMathEngine::CCpuRowwiseMobileNetV2::getMaxOutputRowsPerStep() const
 {
 	// Determine which row size is bigger: before or after the down conv
 	const int maxRowSize = std::max( expandedChannels, outputChannels ) * desc.Result.Width();
@@ -145,7 +145,7 @@ inline int CCpuMathEngine::CRowwiseMobileNetV2::getMaxOutputRowsPerStep() const
 	return std::min( desc.Result.ObjectCount() * desc.Result.Height(), recommendedRowCount );
 }
 
-inline IRowwiseCpuImpl::CProcessingReport CCpuMathEngine::CRowwiseMobileNetV2::Process( const float* input, int inputRowIndex,
+inline ICpuRowwiseImpl::CProcessingReport CCpuMathEngine::CCpuRowwiseMobileNetV2::Process( const float* input, int inputRowIndex,
 	int inputRowsAvailable, float* output, int outputRowIndex, int outputRowsAvailable, float* buffer ) const
 {
 	CProcessingReport report = RowwiseConvProcessingReport( inputRowIndex, inputRowsAvailable, outputRowIndex,
@@ -161,7 +161,7 @@ inline IRowwiseCpuImpl::CProcessingReport CCpuMathEngine::CRowwiseMobileNetV2::P
 		RowwiseCacheSize / ( desc.Source.Width() * expandedChannels ) );
 
 	if( chInput == nullptr ) {
-		chInput.reset( new CRowwiseBuffer( mathEngine, getMaxInputRowsPerStep(),
+		chInput.reset( new CCpuRowwiseBuffer( mathEngine, getMaxInputRowsPerStep(),
 			desc.Source.Width() * expandedChannels, desc.Source.Height() * desc.Source.ObjectCount() ) );
 	}
 
@@ -209,6 +209,8 @@ inline IRowwiseCpuImpl::CProcessingReport CCpuMathEngine::CRowwiseMobileNetV2::P
 			inputImageRowsInBuffer >= desc.Source.Height() ? desc.Result.Height()
 				: ( inputImageRowsInBuffer < 2 ? 0 : 1 + ( inputImageRowsInBuffer - 2 ) / desc.StrideHeight ) );
 		const int outputRowsCanBeProcessed = imageIndex * desc.Result.Height() + outputImageRowsCanBeProcessed;
+		const float* chInputBuff = chInput->DataRows();
+		int chInputRowIndex = chInput->DataRowIndex();
 
 		while( outputRowIndex < outputRowsCanBeProcessed ) {
 			// Process channelwise output rows (while there are any)
@@ -216,8 +218,6 @@ inline IRowwiseCpuImpl::CProcessingReport CCpuMathEngine::CRowwiseMobileNetV2::P
 
 			float* chOutput = buffer;
 			int chOutputRowIndex = outputRowIndex;
-			const float* chInputBuff = chInput->DataRows();
-			int chInputRowIndex = chInput->DataRowIndex();
 			PRESUME_EXPR( chOutputRowIndex / desc.Result.Height() == chInputRowIndex / desc.Source.Height() );
 
 			while( chOutputRowIndex < outputRowIndex + outputRowsThisStep ) {

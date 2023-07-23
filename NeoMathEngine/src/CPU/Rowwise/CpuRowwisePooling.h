@@ -22,9 +22,9 @@ limitations under the License.
 
 namespace NeoML {
 
-class CCpuMathEngine::CRowwise2DPooling : public IRowwiseCpuImpl, public CRowwiseOperationDesc {
+class CCpuMathEngine::CCpuRowwise2DPooling : public ICpuRowwiseImpl, public CRowwiseOperationDesc {
 public:
-	CRowwise2DPooling( CCpuMathEngine& mathEngine, bool isMax, int filterHeight, int filterWidth,
+	CCpuRowwise2DPooling( CCpuMathEngine& mathEngine, bool isMax, int filterHeight, int filterWidth,
 			int strideHeight, int strideWidth ) :
 		mathEngine( mathEngine ),
 		isMax( isMax ),
@@ -48,7 +48,7 @@ private:
 	CCommon2DPoolingDesc desc;
 };
 
-inline CBlobDesc CCpuMathEngine::CRowwise2DPooling::Reshape( const CBlobDesc& inputSize )
+inline CBlobDesc CCpuMathEngine::CCpuRowwise2DPooling::Reshape( const CBlobDesc& inputSize )
 {
 	auto poolOutputSize = [] ( int input, int filter, int stride ) -> int
 	{
@@ -63,7 +63,7 @@ inline CBlobDesc CCpuMathEngine::CRowwise2DPooling::Reshape( const CBlobDesc& in
 	return desc.Result;
 }
 
-inline IRowwiseCpuImpl::CProcessingReport CCpuMathEngine::CRowwise2DPooling::Process( const float* input,
+inline ICpuRowwiseImpl::CProcessingReport CCpuMathEngine::CCpuRowwise2DPooling::Process( const float* input,
 	int inputRowIndex, int inputRowsAvailable, float* output, int outputRowIndex, int outputRowsAvailable,
 	float* buffer ) const
 {

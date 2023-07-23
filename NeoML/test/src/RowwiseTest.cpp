@@ -70,7 +70,6 @@ static void rowwiseTestImpl( TChainBuilder buildChain, int seed )
 
 TEST( RowwiseTest, ActivationOp )
 {
-	NEOML_TEST_CPU_ONLY;
 	auto buildChain = [] ( CSourceLayer* source ) -> CBaseLayer* {
 		CBaseLayer* curr = source;
 		curr = Elu( 0.01f )( curr );
@@ -94,7 +93,6 @@ TEST( RowwiseTest, ActivationOp )
 
 TEST( RowwiseTest, ChannelwiseConvOp )
 {
-	NEOML_TEST_CPU_ONLY;
 	auto buildChain = [] ( CSourceLayer* source ) -> CBaseLayer* {
 		CBaseLayer* curr = source;
 		curr = ChannelwiseConv( RowwiseTestChannels, CConvAxisParams( 3 ), CConvAxisParams( 3 ), true )( curr );
@@ -110,7 +108,6 @@ TEST( RowwiseTest, ChannelwiseConvOp )
 
 TEST( RowwiseTest, ConvOp )
 {
-	NEOML_TEST_CPU_ONLY;
 	auto buildChain = [] ( CSourceLayer* source ) -> CBaseLayer* {
 		CBaseLayer* curr = source;
 		curr = Conv( 34, CConvAxisParams( 4, 3, 2, 1 ), CConvAxisParams( 5, 4, 3, 2 ), true )( curr );
@@ -126,7 +123,6 @@ TEST( RowwiseTest, ConvOp )
 
 TEST( RowwiseTest, PoolingOp )
 {
-	NEOML_TEST_CPU_ONLY;
 	auto buildChain = [] ( CSourceLayer* source ) -> CBaseLayer* {
 		CBaseLayer* curr = source;
 		curr = MaxPooling( 3, 3 )( curr );
@@ -142,7 +138,6 @@ TEST( RowwiseTest, PoolingOp )
 
 TEST( RowwiseTest, ResizeImageOp )
 {
-	NEOML_TEST_CPU_ONLY;
 	auto buildChain = [] ( CSourceLayer* source ) -> CBaseLayer* {
 		CBaseLayer* curr = source;
 		curr = ImageResize( 2, 3, 4, 5, 0.f, TBlobResizePadding::Edge )( curr );
@@ -159,7 +154,6 @@ TEST( RowwiseTest, ResizeImageOp )
 
 TEST( RowwiseTest, Optimize2Chains )
 {
-	NEOML_TEST_CPU_ONLY;
 	auto buildChain = [] ( CSourceLayer* source ) -> CBaseLayer* {
 		IMathEngine& mathEngine = source->MathEngine();
 		CDnn& dnn = *source->GetDnn();
@@ -188,7 +182,6 @@ TEST( RowwiseTest, Optimize2Chains )
 
 TEST( RowwiseTest, OptimizeOpInFrontOfChain )
 {
-	NEOML_TEST_CPU_ONLY;
 	auto buildChain = [] ( CSourceLayer* source ) -> CBaseLayer* {
 		CBaseLayer* curr = source;
 		IMathEngine& mathEngine = source->MathEngine();

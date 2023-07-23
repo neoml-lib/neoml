@@ -22,9 +22,9 @@ limitations under the License.
 
 namespace NeoML {
 
-class CCpuMathEngine::CRowwiseConv : public IRowwiseCpuImpl, public CRowwiseOperationDesc {
+class CCpuMathEngine::CCpuRowwiseConv : public ICpuRowwiseImpl, public CRowwiseOperationDesc {
 public:
-	CRowwiseConv( CCpuMathEngine& mathEngine, int inputChannels, int padH, int padW, int strideH, int strideW,
+	CCpuRowwiseConv( CCpuMathEngine& mathEngine, int inputChannels, int padH, int padW, int strideH, int strideW,
 		int dilH, int dilW, int fC, int fH, int fW, const float* filter, const float* freeTerm ) :
 		mathEngine( mathEngine ),
 		desc( CBlobDesc(), CBlobDesc(), CBlobDesc( { 1, fC, 1, fH, fW, 1, inputChannels } ), padH, padW,
@@ -59,7 +59,7 @@ private:
 	int getCacheItemCount() const;
 };
 
-inline CBlobDesc CCpuMathEngine::CRowwiseConv::Reshape( const CBlobDesc& inputSize )
+inline CBlobDesc CCpuMathEngine::CCpuRowwiseConv::Reshape( const CBlobDesc& inputSize )
 {
 	auto convOutputSize = [] ( int input, int filter, int padding,
 		int stride, int dilation ) -> int
@@ -95,7 +95,7 @@ inline CBlobDesc CCpuMathEngine::CRowwiseConv::Reshape( const CBlobDesc& inputSi
 	return desc.Result;
 }
 
-inline int CCpuMathEngine::CRowwiseConv::InOperationBufferSize() const
+inline int CCpuMathEngine::CCpuRowwiseConv::InOperationBufferSize() const
 {
 	if( is1x1Conv() || desc.SimdConvolutionDesc != nullptr ) {
 		return 0;
@@ -104,7 +104,7 @@ inline int CCpuMathEngine::CRowwiseConv::InOperationBufferSize() const
 	return getCacheItemCount() * desc.Filter.ObjectSize();
 }
 
-inline IRowwiseCpuImpl::CProcessingReport CCpuMathEngine::CRowwiseConv::Process( const float* input, int inputRowIndex,
+inline ICpuRowwiseImpl::CProcessingReport CCpuMathEngine::CCpuRowwiseConv::Process( const float* input, int inputRowIndex,
 	int inputRowsAvailable, float* output, int outputRowIndex, int outputRowsAvailable, float* buffer ) const
 {
 	CProcessingReport report = RowwiseConvProcessingReport( inputRowIndex, inputRowsAvailable, outputRowIndex,
@@ -175,7 +175,7 @@ inline IRowwiseCpuImpl::CProcessingReport CCpuMathEngine::CRowwiseConv::Process(
 	return report;
 }
 
-inline int CCpuMathEngine::CRowwiseConv::getCacheItemCount() const
+inline int CCpuMathEngine::CCpuRowwiseConv::getCacheItemCount() const
 {
 	const int resultItemCount = desc.Result.Width() * desc.Result.Height();
 	return std::max( 1, std::min( ceilTo( BlobConvolutionCacheSize / desc.Filter.ObjectSize(), 16 ),

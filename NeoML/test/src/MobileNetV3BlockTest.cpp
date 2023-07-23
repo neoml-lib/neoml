@@ -331,7 +331,6 @@ TEST( MobileNetV3BlockLayerTest, Run )
 
 TEST( MobileNetV3OptimizerTest, SimpleNonResidual )
 {
-	NEOML_TEST_CPU_ONLY;
 	for( const CActivationDesc& expandActivation : mnv3BlockActivations ) {
 		for( const CActivationDesc& channelwiseActivation : mnv3BlockActivations ) {
 			for( const CActivationDesc& firstSEActivation : mnv3SeActivations ) {
@@ -359,7 +358,7 @@ TEST( MobileNetV3OptimizerTest, SimpleNonResidual )
 						postSEParams.Residual = false;
 						CBaseLayer* postSE = addMNv3PostSE( postSEParams, *data, *preSE, *se );
 						Sink( postSE, "sink" );
-						CDnnOptimizationReport report = OptimizeDnn( dnn, DnnOptimizationSettings() );
+						CDnnOptimizationReport report = OptimizeDnn( dnn );
 						ASSERT_EQ( 1, report.MobileNetV3NonResidualBlocks );
 						ASSERT_EQ( 0, report.MobileNetV3ResidualBlocks );
 						ASSERT_EQ( 9, dnn.GetLayerCount() );
@@ -372,7 +371,6 @@ TEST( MobileNetV3OptimizerTest, SimpleNonResidual )
 
 TEST( MobileNetV3OptimizerTest, SimpleResidual )
 {
-	NEOML_TEST_CPU_ONLY;
 	CRandom random( 0x654 );
 	CDnn dnn( random, MathEngine() );
 	CSourceLayer* data = Source( dnn, "data" );
@@ -390,7 +388,7 @@ TEST( MobileNetV3OptimizerTest, SimpleResidual )
 	postSEParams.Residual = true;
 	CBaseLayer* postSE = addMNv3PostSE( postSEParams, *data, *preSE, *se );
 	Sink( postSE, "sink" );
-	CDnnOptimizationReport report = OptimizeDnn( dnn, DnnOptimizationSettings() );
+	CDnnOptimizationReport report = OptimizeDnn( dnn );
 	ASSERT_EQ( 0, report.MobileNetV3NonResidualBlocks );
 	ASSERT_EQ( 1, report.MobileNetV3ResidualBlocks );
 	ASSERT_EQ( 9, dnn.GetLayerCount() );
@@ -398,7 +396,6 @@ TEST( MobileNetV3OptimizerTest, SimpleResidual )
 
 TEST( MobileNetV3OptimizerTest, ResidualResidual )
 {
-	NEOML_TEST_CPU_ONLY;
 	CRandom random( 0x654 );
 	CDnn dnn( random, MathEngine() );
 	CSourceLayer* data = Source( dnn, "data" );
@@ -418,7 +415,7 @@ TEST( MobileNetV3OptimizerTest, ResidualResidual )
 	Sink( postSE, "sink" );
 	CEltwiseSumLayer* secondResidual = Sum()( "secondResidual", data, postSE );
 	Sink( secondResidual, "secondSink" );
-	CDnnOptimizationReport report = OptimizeDnn( dnn, DnnOptimizationSettings() );
+	CDnnOptimizationReport report = OptimizeDnn( dnn );
 	ASSERT_EQ( 0, report.MobileNetV3NonResidualBlocks );
 	ASSERT_EQ( 1, report.MobileNetV3ResidualBlocks );
 	ASSERT_EQ( 11, dnn.GetLayerCount() );
@@ -426,7 +423,6 @@ TEST( MobileNetV3OptimizerTest, ResidualResidual )
 
 TEST( MobileNetV3OptimizerTest, NeighboringResiduals )
 {
-	NEOML_TEST_CPU_ONLY;
 	CRandom random( 0x654 );
 	CDnn dnn( random, MathEngine() );
 	CSourceLayer* data = Source( dnn, "data" );
@@ -446,7 +442,7 @@ TEST( MobileNetV3OptimizerTest, NeighboringResiduals )
 	Sink( postSE, "sink" );
 	CEltwiseSumLayer* secondResidual = Sum()( "secondResidual", dnn.GetLayer( "DownConv" ).Ptr(), postSE );
 	Sink( secondResidual, "secondSink" );
-	CDnnOptimizationReport report = OptimizeDnn( dnn, DnnOptimizationSettings() );
+	CDnnOptimizationReport report = OptimizeDnn( dnn );
 	ASSERT_EQ( 1, report.MobileNetV3NonResidualBlocks );
 	ASSERT_EQ( 0, report.MobileNetV3ResidualBlocks );
 	ASSERT_EQ( 12, dnn.GetLayerCount() );
@@ -454,7 +450,6 @@ TEST( MobileNetV3OptimizerTest, NeighboringResiduals )
 
 TEST( MobileNetV3OptimizerTest, SinkFromTheMiddle )
 {
-	NEOML_TEST_CPU_ONLY;
 	for( int testIndex = 0; testIndex < 4; ++testIndex ) {
 		CRandom random( 0x654 );
 		CDnn dnn( random, MathEngine() );
@@ -489,7 +484,7 @@ TEST( MobileNetV3OptimizerTest, SinkFromTheMiddle )
 			default:
 				FAIL();
 		}
-		CDnnOptimizationReport report = OptimizeDnn( dnn, DnnOptimizationSettings() );
+		CDnnOptimizationReport report = OptimizeDnn( dnn );
 		ASSERT_EQ( 0, report.MobileNetV3NonResidualBlocks );
 		ASSERT_EQ( 0, report.MobileNetV3ResidualBlocks );
 	}
@@ -497,7 +492,6 @@ TEST( MobileNetV3OptimizerTest, SinkFromTheMiddle )
 
 TEST( MobileNetV3OptimizerTest, SinkDisablesResidual )
 {
-	NEOML_TEST_CPU_ONLY;
 	CRandom random( 0x654 );
 	CDnn dnn( random, MathEngine() );
 	CSourceLayer* data = Source( dnn, "data" );
@@ -516,7 +510,7 @@ TEST( MobileNetV3OptimizerTest, SinkDisablesResidual )
 	CBaseLayer* postSE = addMNv3PostSE( postSEParams, *data, *preSE, *se );
 	Sink( postSE, "sink" );
 	Sink( dnn.GetLayer( "DownConv" ).Ptr(), "secondSink" );
-	CDnnOptimizationReport report = OptimizeDnn( dnn, DnnOptimizationSettings() );
+	CDnnOptimizationReport report = OptimizeDnn( dnn );
 	ASSERT_EQ( 1, report.MobileNetV3NonResidualBlocks );
 	ASSERT_EQ( 0, report.MobileNetV3ResidualBlocks );
 	ASSERT_EQ( 11, dnn.GetLayerCount() );
