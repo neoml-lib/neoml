@@ -15,6 +15,7 @@ limitations under the License.
 
 #pragma once
 
+#include "CpuRowwiseCommon.h"
 #include "CpuRowwiseInterface.h"
 #include <CpuMathEngineDnnChannelwiseConv.h>
 

@@ -25,7 +25,6 @@ limitations under the License.
 #include <NeoMathEngine/OpenMP.h>
 #include <NeoMathEngine/CrtAllocatedObject.h>
 #include <NeoMathEngine/PerformanceCounters.h>
-#include <NeoMathEngine/CrtAllocatedObject.h>
 #include <NeoMathEngine/NeoMathEngineException.h>
 #include <NeoMathEngine/ThreadPool.h>
 #include <climits>

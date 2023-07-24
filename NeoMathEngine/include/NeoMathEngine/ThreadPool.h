@@ -17,7 +17,6 @@ limitations under the License.
 
 #include <NeoMathEngine/NeoMathEngineDefs.h>
 #include <NeoMathEngine/CrtAllocatedObject.h>
-#include <NeoMathEngine/NeoMathEngineException.h>
 
 namespace NeoML {
 

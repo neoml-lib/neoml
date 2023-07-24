@@ -17,6 +17,7 @@ limitations under the License.
 #pragma hdrstop
 
 #include <NeoMathEngine/ThreadPool.h>
+#include <NeoMathEngine/NeoMathEngineException.h>
 
 #include <condition_variable>
 #include <mutex>
