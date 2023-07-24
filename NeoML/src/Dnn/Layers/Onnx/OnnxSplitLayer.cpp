@@ -16,6 +16,8 @@ limitations under the License.
 #include <common.h>
 #pragma hdrstop
 
+#include <memory>
+
 #include <NeoML/Dnn/Layers/Onnx/OnnxSplitLayer.h>
 
 namespace NeoML {
