@@ -14,7 +14,7 @@ limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
 #include "common.h"
-#pragma once
+#pragma hdrtsop
 
 #include <NeoML/Dnn/Optimization/Graph.h>
 

@@ -15,6 +15,8 @@ limitations under the License.
 
 #pragma once
 
+#include <cstdint>
+
 #include <NeoMathEngine/NeoMathEngineDefs.h>
 
 #if FINE_PLATFORM( FINE_WINDOWS )
