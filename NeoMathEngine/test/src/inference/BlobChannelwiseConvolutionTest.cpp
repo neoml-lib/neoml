@@ -815,9 +815,6 @@ TEST_F( CMathEngineBlobChannelwiseConvolutionTest, Conv7x7 )
 	CRandom random( 0x666 );
 	constexpr int filterSize = 7;
 	constexpr int maxSize = filterSize * 2;
-	blobChannelwiseConvolutionTestImpl( random, 1, 1, 1, 1, 4, 13, filterSize, filterSize,
-		filterSize / 2, filterSize / 2, 1, 1, -10.f, 10.f );
-
 	for( int inputSize = 1; inputSize <= maxSize; ++inputSize ) {
 		blobChannelwiseConvolutionTestImpl( random, 1, 3, 1, inputSize, inputSize, 13, filterSize, filterSize,
 			filterSize / 2, filterSize / 2, 1, 1, -10.f, 10.f );

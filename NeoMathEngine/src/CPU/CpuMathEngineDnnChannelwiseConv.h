@@ -234,17 +234,17 @@ inline void Process7x7RowStride1( const CCommonChannelwiseConvolutionDesc& desc,
 
 	const float* sourcePos = source;
 	float* resultPos = result + 3 * channels;
-/*#ifdef NEOML_USE_SSE
+#ifdef NEOML_USE_SSE
 	if( channels % 4 == 0 ) {
 		while( width >= 2 ) {
-			channelwise1x7( sourcePos, filter, filter1, filter2, filter3, filter4, resultPos, channels );
+			channelwise1x7( sourcePos, filter, filter1, filter2, filter3, filter4, filter5, filter6, resultPos, channels );
 
 			resultPos += 2 * channels;
 			sourcePos += 2 * channels;
 			width -= 2;
 		}
 	}
-#endif*/
+#endif
 
 	while( width > 0 ) {
 		vectorEltwiseMultiplyAdd( filter, sourcePos, resultPos, channels );
