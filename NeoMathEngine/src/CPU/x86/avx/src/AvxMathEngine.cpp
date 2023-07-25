@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -50,8 +50,8 @@ CAvxConvolutionDesc::CAvxConvolutionDesc( IMathEngine* mathEngine, const CBlobDe
 
 class CAvxMathEngine : public ISimdMathEngine {
 public:
-	CAvxMathEngine( IMathEngine* _mathEngine, int _threadCount ) :
-		mathEngine( _mathEngine ), threadCount( _threadCount ), primitives( _mathEngine, _threadCount ) {}
+	CAvxMathEngine( IMathEngine* _mathEngine ) :
+		mathEngine( _mathEngine ), primitives( _mathEngine ) {}
 
 	CConvolutionDesc* InitBlobConvolution( const CBlobDesc& source, int paddingHeight, int paddingWidth,
 		int strideHeight, int strideWidth, int dilationHeight, int dilationWidth, const CBlobDesc& filter,
@@ -72,8 +72,8 @@ public:
 		const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink, bool isMultithread ) override;
 
 private:
-	IMathEngine* mathEngine;
-	int threadCount;
+	IMathEngine* const mathEngine;
+	const int threadCount = 1; /*deprecated*/
 	CPrimitivesJit primitives;
 };
 
@@ -134,10 +134,10 @@ void CAvxMathEngine::RunOnceRestOfLstm( CMathEngineLstmDesc* desc, const CConstF
 
 extern "C"
 FME_DLL_EXPORT
-ISimdMathEngine* CreateSimdMathEngine( IMathEngine* mathEngine, int threadCount )
+ISimdMathEngine* CreateSimdMathEngine( IMathEngine* mathEngine )
 {
 	try {
-		return new CAvxMathEngine( mathEngine, threadCount );
+		return new CAvxMathEngine( mathEngine );
 	} catch( ... ) {
 		// We cannot throw any exception from C function
 		return nullptr;
