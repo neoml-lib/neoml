@@ -135,7 +135,7 @@ inline ICpuRowwiseImpl::CProcessingReport CCpuMathEngine::CCpuRowwiseConv::Proce
 	if( is1x1Conv() ) {
 		mathEngine.multiplyMatrixByTransposedMatrix( input, report.OutputRowsCalculated * desc.Result.Width(),
 			desc.Source.Channels(), desc.Source.Channels(), filter, desc.Result.Channels(),
-			desc.Source.Channels(), output, desc.Result.Channels() );
+			desc.Source.Channels(), output, desc.Result.Channels(), nullptr );
 		if( freeTerm != nullptr ) {
 			mathEngine.addVectorToMatrixRows( output, output, report.OutputRowsCalculated * desc.Result.Width(),
 				desc.Result.Channels(), desc.Result.Channels(), desc.Result.Channels(),
@@ -162,7 +162,7 @@ inline ICpuRowwiseImpl::CProcessingReport CCpuMathEngine::CCpuRowwiseConv::Proce
 
 		mathEngine.multiplyMatrixByTransposedMatrix( buffer, size, filterObjectSize,
 			filterObjectSize, filter, filterObjectCount, filterObjectSize, resultDataPtr,
-			filterObjectCount );
+			filterObjectCount, nullptr );
 
 		if( freeTerm!= nullptr ) {
 			mathEngine.addVectorToMatrixRows( resultDataPtr, resultDataPtr, size, filterObjectCount, filterObjectCount,

@@ -166,7 +166,7 @@ inline ICpuRowwiseImpl::CProcessingReport CCpuMathEngine::CCpuRowwiseChConvWith1
 		}
 
 		mathEngine.multiplyMatrixByTransposedWithFreeTerm( buffer, outputRowsThisStep * outputWidth, inputChannels,
-			convFilter, outputChannels, convFreeTerm, output );
+			convFilter, outputChannels, convFreeTerm, output, nullptr );
 		if( residual ) {
 			vectorAdd( output, residualInput, output, outputRowsThisStep * outputWidth * outputChannels );
 			residualInput += outputRowsThisStep * desc.Source.Width() * inputChannels;

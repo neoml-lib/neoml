@@ -70,6 +70,7 @@ CMaxOverTimePoolingDesc::~CMaxOverTimePoolingDesc() = default;
 CLrnDesc::~CLrnDesc() = default;
 CLstmDesc::~CLstmDesc() = default;
 CRowwiseOperationDesc::~CRowwiseOperationDesc() = default;
+CSmallMatricesMultiplyDesc::~CSmallMatricesMultiplyDesc() = default;
 
 // GPU manager implementation
 class CGpuMathEngineManager : public IGpuMathEngineManager {

@@ -60,6 +60,8 @@ static const float* initLstmFreeTerm( const CFloatHandleVar* freeTermVar, const 
 	return nullptr;
 }
 
+//-------------------------------------------------------------------------------------------------------------------------
+
 CMathEngineLstmDesc::CMathEngineLstmDesc( int hiddenSize, int objectSize, const CConstFloatHandle& inputWeights,
 		const CConstFloatHandle& inputFreeTerm, const CConstFloatHandle& recurWeights,
 		const CConstFloatHandle& recurFreeTerm ) :
@@ -83,6 +85,8 @@ CLstmDesc* CCpuMathEngine::InitLstm( int hiddenSize, int objectSize,
 		recurrentWeights, recurrentFreeTerm );
 }
 
+//-------------------------------------------------------------------------------------------------------------------------
+
 template<class T>
 class CSequenceWrapper {
 public:
@@ -103,6 +107,8 @@ private:
 	int sequenceLength;
 	int elemSize;
 };
+
+//-------------------------------------------------------------------------------------------------------------------------
 
 void CCpuMathEngine::Lstm( CLstmDesc& desc, bool reverse, int sequenceLength, int sequenceCount,
 	const CConstFloatHandle& inputStateBackLink, const CConstFloatHandle& inputMainBackLink,
@@ -165,12 +171,14 @@ void CCpuMathEngine::Lstm( CLstmDesc& desc, bool reverse, int sequenceLength, in
 				sequenceLength - bufferIdx * fullyConnectedResult.SequenceLength() );
 			multiplyMatrixByTransposedMatrix( input[bufferIdx * fullyConnectedResult.SequenceLength()],
 				seqElemsInBuffer * sequenceCount, lstmDesc.ObjectSize, lstmDesc.ObjectSize, lstmDesc.InputWeights,
-				4 * lstmDesc.HiddenSize, lstmDesc.ObjectSize, fullyConnectedResult[0], 4 * lstmDesc.HiddenSize );
+				4 * lstmDesc.HiddenSize, lstmDesc.ObjectSize, fullyConnectedResult[0], 4 * lstmDesc.HiddenSize,
+				nullptr );
 		}
 
 		multiplyMatrixByMatrixAndAdd( mainBackLink[inputPos], sequenceCount, lstmDesc.HiddenSize,
 			lstmDesc.HiddenSize, lstmDesc.RecurWeights, 4 * lstmDesc.HiddenSize, 4 * lstmDesc.HiddenSize,
-			fullyConnectedResult[outputPos], 4 * lstmDesc.HiddenSize );
+			fullyConnectedResult[outputPos], 4 * lstmDesc.HiddenSize,
+			nullptr );
 		if( lstmDesc.FreeTerm != nullptr ) {
 			addVectorToMatrixRows( fullyConnectedResult[outputPos], fullyConnectedResult[outputPos],
 				sequenceCount, 4 * lstmDesc.HiddenSize, 4 * lstmDesc.HiddenSize, 4 * lstmDesc.HiddenSize,

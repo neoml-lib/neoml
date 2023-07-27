@@ -63,10 +63,11 @@ void CCpuMathEngine::BlobChannelwiseConvolution( const CChannelwiseConvolutionDe
 //=====================================================================================================================
 
 void CCpuMathEngine::multiplyMatrixByTransposedWithFreeTerm( const float* first, int firstHeight,
-	int firstWidth, const float* second, int secondHeight, const float* freeTerm, float* result )
+	int firstWidth, const float* second, int secondHeight, const float* freeTerm, float* result,
+	const CSmallMatricesMultiplyDesc* desc )
 {
 	multiplyMatrixByTransposedMatrix( first, firstHeight, firstWidth, firstWidth, second,
-		secondHeight, firstWidth, result, secondHeight );
+		secondHeight, firstWidth, result, secondHeight, desc );
 	if( freeTerm != nullptr ) {
 		addVectorToMatrixRows( result, result, firstHeight, secondHeight, secondHeight,
 			secondHeight, freeTerm );
@@ -133,7 +134,7 @@ void CCpuMathEngine::MobileNetV3PreSEBlock( const CBlobDesc& inputDesc, const CB
 
 			// Apply expand convolution
 			multiplyMatrixByTransposedWithFreeTerm( input, inputRowsThisStep * inputWidth, inputChannels,
-				expandFilter, outputChannels, expandFreeTerm, chInput );
+				expandFilter, outputChannels, expandFreeTerm, chInput, nullptr );
 			MOBILENET_ACTIVATION( expandActivation, expandReluParam, chInput, inputRowsThisStep * chInputRowSize );
 			inputRowsProcessed += inputRowsThisStep;
 
@@ -221,7 +222,7 @@ void CCpuMathEngine::MobileNetV3PostSEBlock( const CBlobDesc& channelwiseOutputD
 			MOBILENET_ACTIVATION( activation, reluParam, squeezed, rowsThisStep * inputRowSize );
 			// Down-convolution (1x1)
 			multiplyMatrixByTransposedWithFreeTerm( squeezed, rowsThisStep * width, inputChannels,
-				downFilter, outputChannels, downFreeTerm, output );
+				downFilter, outputChannels, downFreeTerm, output, nullptr );
 			// Residual connection (if present)
 			if( residual != nullptr ) {
 				vectorAdd( output, residual, output, rowsThisStep * width * outputChannels );

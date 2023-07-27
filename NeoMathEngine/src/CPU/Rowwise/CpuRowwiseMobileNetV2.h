@@ -197,7 +197,7 @@ inline ICpuRowwiseImpl::CProcessingReport CCpuMathEngine::CCpuRowwiseMobileNetV2
 			const float* expandConvInput = input + ( chInput->DataRowProcessed() - inputRowIndex ) * inputRowSize;
 			// Apply expand convolution with activation
 			mathEngine.multiplyMatrixByTransposedWithFreeTerm( expandConvInput, inputRowsThisStep * inputWidth, inputChannels,
-				expandFilter, expandedChannels, expandFreeTerm, chInput->EmptyRows() );
+				expandFilter, expandedChannels, expandFreeTerm, chInput->EmptyRows(), nullptr );
 			MOBILENET_ACTIVATION( expandActivation, expandReluParam, chInput->EmptyRows(), inputRowsThisStep * chInput->RowSize() );
 			chInput->AddRows( inputRowsThisStep );
 		}
@@ -245,11 +245,11 @@ inline ICpuRowwiseImpl::CProcessingReport CCpuMathEngine::CCpuRowwiseMobileNetV2
 				// It's possible to simultaneously calculate down conv output and add the residual connection
 				mathEngine.multiplyMatrixByTransposedMatrixAndAdd( buffer, outputRowsThisStep * outputWidth,
 					expandedChannels, expandedChannels, downFilter, outputChannels, expandedChannels, output,
-					outputChannels );
+					outputChannels, nullptr );
 			} else {
 				mathEngine.multiplyMatrixByTransposedMatrix( buffer, outputRowsThisStep * outputWidth,
 					expandedChannels, expandedChannels, downFilter, outputChannels, expandedChannels,
-					output, outputChannels );
+					output, outputChannels, nullptr );
 			}
 
 			if( downFreeTerm != nullptr ) {

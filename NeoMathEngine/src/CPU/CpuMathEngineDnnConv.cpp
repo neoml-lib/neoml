@@ -323,7 +323,7 @@ void CCpuMathEngine::blobConvolutionForwardAlgo0( const CCpuConvolutionDesc& des
 
 		multiplyMatrixByTransposedMatrix( tempDataPtr, size, filterObjectSize,
 			filterObjectSize, filterData, filterObjectCount, filterObjectSize, resultDataPtr,
-			filterObjectCount );
+			filterObjectCount, nullptr );
 
 		if( freeTermData != nullptr ) {
 			addVectorToMatrixRows( resultDataPtr, resultDataPtr, size, filterObjectCount, filterObjectCount,
@@ -368,11 +368,11 @@ void CCpuMathEngine::blobConvolutionForwardAlgo1( const CCpuConvolutionDesc& des
 
 			multiplyMatrixByTransposedMatrixAndAdd( tempBlobPtr, result.Height() * resultCount, filter.ObjectSize(),
 				filter.ObjectSize(), filterData, filter.BatchWidth(), filter.ObjectSize(), outputTransposedPtr,
-				filter.BatchWidth() );
+				filter.BatchWidth(), nullptr );
 		} else {
 			multiplyMatrixByTransposedMatrix( tempBlobPtr, result.Height() * resultCount, filter.ObjectSize(),
 				filter.ObjectSize(), filterData, filter.BatchWidth(), filter.ObjectSize(), outputTransposedPtr,
-				filter.BatchWidth() );
+				filter.BatchWidth(), nullptr );
 		}
 		// Transpose the result
 		transposeResult( desc, outputTransposedPtr, batch, /*resultStart*/0, resultCount, resultData );
@@ -551,7 +551,7 @@ void CCpuMathEngine::blobConvolutionBackwardAlgo1( const CCpuConvolutionDesc& de
 					/*handle*/sourceRaw + ( batchedSourceRowStart + sourceRowExistShift ) * sourceRowSize,
 					/*height*/sourceRealHeight * source.Width(), /*width*/sourceChannelsCount, /*row-size*/sourceChannelsCount,
 					/*handle*/filterRaw, /*width*/filterObjectSize, /*row-size*/filterObjectSize,
-					/*handle*/ringBuf.GetBufPtrForAddingItems( sourceRealHeight ), /*row-size*/filterObjectSize );
+					/*handle*/ringBuf.GetBufPtrForAddingItems( sourceRealHeight ), /*row-size*/filterObjectSize, nullptr );
 
 				// Make twice because of Ring-buffer, from end to start
 				if( sourceNeedHeight > ( sourceRowExistShift + sourceRealHeight ) ) {
@@ -561,7 +561,7 @@ void CCpuMathEngine::blobConvolutionBackwardAlgo1( const CCpuConvolutionDesc& de
 						/*handle*/sourceRaw + ( batchedSourceRowStart + sourceRowExistShiftRest ) * sourceRowSize,
 						/*height*/sourceRealHeightRest * source.Width(), /*width*/sourceChannelsCount, /*row-size*/sourceChannelsCount,
 						/*handle*/filterRaw, /*width*/filterObjectSize, /*row-size*/filterObjectSize,
-						/*handle*/ringBuf.GetBufPtrForAddingItems( sourceRealHeightRest ), /*row-size*/filterObjectSize );
+						/*handle*/ringBuf.GetBufPtrForAddingItems( sourceRealHeightRest ), /*row-size*/filterObjectSize, nullptr );
 					ASSERT_EXPR( sourceNeedHeight <= ( sourceRowExistShiftRest + sourceRealHeightRest ) );
 				}
 			}
@@ -748,7 +748,7 @@ void CCpuMathEngine::blobConvolutionBackwardAlgo2( const CCpuConvolutionDesc& de
 				multiplyMatrixByMatrixAndAdd(
 					tempSourcePtr, tempSourceHeight, tempSourceWidth, tempSourceWidth,
 					filterRawPtr, filter.Depth() * filter.Channels(), filter.Depth() * filter.Channels(),
-					resultMatrix, filter.Width() * result.Depth() * result.Channels() );
+					resultMatrix, filter.Width() * result.Depth() * result.Channels(), nullptr );
 			}
 			resultRawPtr += result.Width() * result.Depth() * result.Channels();
 			filterRawPtr += tempFilterObjectSize;
@@ -831,7 +831,7 @@ void CCpuMathEngine::blobConvolutionLearnAlgo1( const CCpuConvolutionDesc& desc,
 
 		// Calculate diffs
 		multiplyTransposedMatrixByMatrix( outputDiffTransDataRaw, outputDiffTransHeight, outputDiffTransWidth,
-			tempBlobHolderDataRaw, tempBlobHolderWidth, outputTempDataRaw );
+			tempBlobHolderDataRaw, tempBlobHolderWidth, outputTempDataRaw, nullptr );
 
 		vectorAdd( filterDiffDataRaw, outputTempDataRaw, filterDiffDataRaw, filterDiffSize );
 
@@ -905,7 +905,8 @@ void CCpuMathEngine::blobConvolutionLearnAlgo2( const CCpuConvolutionDesc& desc,
 					inputMatrix,
 					inputDepthChannels,
 					inputDepthChannels,
-					filterMatrix, filterDiff.ObjectSize() );
+					filterMatrix, filterDiff.ObjectSize(),
+					nullptr );
 			}
 		}
 
@@ -1039,7 +1040,7 @@ void CCpuMathEngine::BlobChannelwiseConvolutionBackward( const CChannelwiseConvo
 		// Multiply the inputRepacked and filter matrices
 		PRESUME_EXPR( temp.Size() >= inputRepackedWidth * inputGeo );
 		batchMultiplyMatrixByTransposedMatrix( inputRepackedWidth, inputRepacked.GetHandle(), inputGeo, /*firstWidth*/1,
-			filterTransposed.GetHandle(), filterGeo, temp.GetHandle() );
+			filterTransposed.GetHandle(), filterGeo, temp.GetHandle(), nullptr );
 
 		// Add the subvectors from the resulting matrix to the required positions in outputRepacked
 		for( int step = 0; step < output.Height() * output.Channels(); ++step ) {
@@ -1160,7 +1161,7 @@ void CCpuMathEngine::BlobChannelwiseConvolutionLearnAdd( const CChannelwiseConvo
 		batchMultiplyTransposedMatrixByMatrix( outputDiffTransRepackedWidth,
 			outputDiffTransRepackedDataRaw, outputDiffTransRepackedHeight, /*firstWidth*/1,
 			tempBlobRepackedDataRaw, filterDiff.Height() * filterDiff.Width(),
-			filterTempDataRaw );
+			filterTempDataRaw, nullptr );
 
 		// Update the accumulator
 		vectorAdd( filterDiffReductionDataRaw, filterTempDataRaw, filterDiffReductionDataRaw, filterTempSize );

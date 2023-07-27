@@ -384,6 +384,7 @@ public:
 };
 
 //------------------------------------------------------------------------------------------------------------
+struct CSmallMatricesMultiplyDesc;
 
 // The class provides basic linear algebra operations
 class NEOMATHENGINE_API IBlasEngine : public IVectorMathEngine {
@@ -526,13 +527,14 @@ public:
 		const CConstFloatHandle& firstHandle, int firstSize, const CLookupVector& secondVector) = 0;
 
 	// Multiplies a matrix by another matrix, transposed; the result will be of firstHeight * secondHeight size
-	virtual void MultiplyMatrixByTransposedMatrix(const CConstFloatHandle& firstHandle, int firstHeight,
+	virtual void MultiplyMatrixByTransposedMatrix( const CConstFloatHandle& firstHandle, int firstHeight,
 		int firstWidth, int firstRowSize, const CConstFloatHandle& secondHandle, int secondHeight, int secondRowSize,
-		const CFloatHandle& resultHandle, int resultRowSize, int resultBufferSize) = 0;
+		const CFloatHandle& resultHandle, int resultRowSize, int resultBufferSize,
+		const CSmallMatricesMultiplyDesc* desc = nullptr ) = 0;
 	// Multiplies matrices from two batches, stored one after another in firstHandle, secondHandle parameters
-	virtual void MultiplyMatrixByTransposedMatrix(int batchSize, const CConstFloatHandle& firstHandle, int firstHeight,
+	virtual void MultiplyMatrixByTransposedMatrix( int batchSize, const CConstFloatHandle& firstHandle, int firstHeight,
 		int firstWidth, const CConstFloatHandle& secondHandle, int secondHeight, const CFloatHandle& resultHandle,
-		int resultBufferSize) = 0;
+		int resultBufferSize, const CSmallMatricesMultiplyDesc* desc = nullptr ) = 0;
 
 	// Operations on sparse matrices
 
@@ -559,13 +561,15 @@ public:
 		const CSparseMatrixDesc& firstDesc, const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle ) = 0;
 
 	// result = result + first(T) * second
-	virtual void MultiplyTransposedMatrixByMatrixAndAdd(const CConstFloatHandle& firstHandle, int firstHeight, int firstWidth, int firstRowSize,
+	virtual void MultiplyTransposedMatrixByMatrixAndAdd( const CConstFloatHandle& firstHandle, int firstHeight, int firstWidth, int firstRowSize,
 		const CConstFloatHandle& secondHandle, int secondWidth, int secondRowSize,
-		const CFloatHandle& resultHandle, int resultRowSize, int resultBufferSize) = 0;
+		const CFloatHandle& resultHandle, int resultRowSize, int resultBufferSize,
+		const CSmallMatricesMultiplyDesc* desc = nullptr ) = 0;
 
 	// result[i] = first[i](T) * second[i] for i in [0, batchSize)
-	virtual void MultiplyTransposedMatrixByMatrix(int batchSize, const CConstFloatHandle& firstHandle, int firstHeight, int firstWidth,
-		const CConstFloatHandle& secondHandle, int secondWidth, const CFloatHandle& resultHandle, int resultBufferSize) = 0;
+	virtual void MultiplyTransposedMatrixByMatrix( int batchSize, const CConstFloatHandle& firstHandle, int firstHeight, int firstWidth,
+		const CConstFloatHandle& secondHandle, int secondWidth, const CFloatHandle& resultHandle, int resultBufferSize,
+		const CSmallMatricesMultiplyDesc* desc = nullptr ) = 0;
 
 	virtual void MultiplyDiagMatrixByMatrix(const CConstFloatHandle& firstHandle, int firstSize,
 		const CConstFloatHandle& secondHandle, int secondWidth,
@@ -579,7 +583,8 @@ public:
 	// Multiplies matrices from two batches, stored one after another in firstHandle, secondHandle parameters
 	virtual void MultiplyMatrixByMatrix( int batchSize, const CConstFloatHandle& firstHandle, int firstHeight,
 		int firstWidth, const CConstFloatHandle& secondHandle, int secondWidth,
-		const CFloatHandle& resultHandle, int resultBufferSize ) = 0;
+		const CFloatHandle& resultHandle, int resultBufferSize,
+		const CSmallMatricesMultiplyDesc* desc = nullptr ) = 0;
 
 	// Multiplies batch of matrices height x width by a batch of diag matrces of size width
 	// Matrix offsets sets how many elements must be added to the pointer to move to the next matrix
@@ -660,6 +665,7 @@ struct NEOMATHENGINE_API CMaxOverTimePoolingDesc : public CCrtAllocatedObject { 
 struct NEOMATHENGINE_API CLrnDesc : public CCrtAllocatedObject { public: virtual ~CLrnDesc(); };
 struct NEOMATHENGINE_API CLstmDesc : public CCrtAllocatedObject { public: virtual ~CLstmDesc(); };
 struct NEOMATHENGINE_API CRowwiseOperationDesc : public CCrtAllocatedObject { public: virtual ~CRowwiseOperationDesc(); };
+struct NEOMATHENGINE_API CSmallMatricesMultiplyDesc : public CCrtAllocatedObject { public: virtual ~CSmallMatricesMultiplyDesc(); };
 
 //------------------------------------------------------------------------------------------------------------
 // RLE format
@@ -778,6 +784,16 @@ public:
 	virtual void BlobChannelwiseConvolutionLearnAdd( const CChannelwiseConvolutionDesc& desc,
 		const CConstFloatHandle& input, const CConstFloatHandle& outputDiff, const CFloatHandle& filterDiff,
 		const CFloatHandle* freeTermDiff ) = 0;
+
+	// Creates the descriptor of small matrices multiplication optimization
+	// The descriptor should be destroyed using the standard delete operator after use.
+	virtual CSmallMatricesMultiplyDesc* InitSmallMatricesMultiplyDesc(
+		int firstHeight, int firstWidth, int secondWidth, int secondRowSize, int resultWidth,
+		bool resultAdd, bool trans1, bool trans2 ) const = 0;
+	// Using previosly created descriptor of fixed size multiply these exact matrices
+	// Returns false if description is not valid for these matrices sizes
+	virtual bool SmallMatricesMultiply( const CSmallMatricesMultiplyDesc* desc,
+		const CConstFloatHandle& first, const CConstFloatHandle& second, const CFloatHandle& result ) const = 0;
 
 	// GlobalMaxPooling
 	// The descriptor should be destroyed using the standard delete operator after use.
