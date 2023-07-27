@@ -82,6 +82,9 @@ if(NeoML_BUILD_TESTS AND NOT IS_SUBPROJECT AND NOT ANDROID AND NOT IOS)
     if(USE_FINE_OBJECTS)
         add_subdirectory(${ROOT_PATH}/NeoMLTest/test ${CMAKE_BINARY_DIR}/test)
     endif()
+    if(NeoOnnx_BUILD AND NeoOnnxModelTest_DIR)
+        add_subdirectory(${NeoOnnxModelTest_DIR}/src ${CMAKE_BINARY_DIR}/NeoOnnxModelTest)
+    endif()
 endif()
 
 # Install
