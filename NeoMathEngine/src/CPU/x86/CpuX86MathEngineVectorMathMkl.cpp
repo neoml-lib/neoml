@@ -250,6 +250,23 @@ void CCpuMathEngine::vectorEltwiseLogSumExp(const CConstFloatHandle& firstHandle
 	VectorAdd(resultHandle, tempBuffer.GetHandle(), resultHandle, vectorSize);
 }
 
+void CCpuMathEngine::VectorErf( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize )
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	CCpuExecutionScope scope;
+
+#ifdef NEOML_USE_MKL
+	vsErf( vectorSize, GetRaw( firstHandle ), GetRaw( resultHandle ) );
+#else
+	const float* first = GetRaw( firstHandle );
+	float* result = GetRaw( resultHandle );
+	for( int i = 0; i < vectorSize; ++i ) {
+		*result++ = std::erff( *first++ );
+	}
+#endif
+}
+
 } // namespace NeoML
 
 #endif // NEOML_USE_SSE
