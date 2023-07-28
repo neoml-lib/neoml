@@ -144,32 +144,48 @@ CPtr<const CUserTensor> CGlobalPoolOperatorBase::convertInputLayout( const CUser
 		return &input;
 	}
 
-	CTensorLayout convertedLayout;
-	convertedLayout.Add( BD_Count, input.DimCount() );
-
-	// Distribute dimensions which can be pooled between non-trivial pooled dims
-	for( int i = 0; i < pooledDims.Size(); ++i ) {
-		convertedLayout[pooledDims[i]] = BD_Height + i;
-	}
+	CTensorLayout convertedLayout = inputLayout;
 
 	{
-		// Distribute dimensions which can't be pooled between non-trivial remaining dims
-		CTensorLayout possibleRemainingDims( { BD_BatchLength, BD_BatchWidth, BD_ListSize, BD_Channels } );
-		for( int i = 0; i < remainingDims.Size(); ++i ) {
-			convertedLayout[remainingDims[i]] = possibleRemainingDims[i];
+		// Distribute dimensions which can be pooled between non-trivial pooled dims
+		CTensorLayout possiblePoolDims( { BD_Height, BD_Width, BD_Depth } );
+		for( int i = 0; i < pooledDims.Size(); ++i ) {
+			const int index = possiblePoolDims.Find( convertedLayout[pooledDims[i]] );
+			if( index != NotFound ) {
+				possiblePoolDims.DeleteAt( index );
+			}
+		}
+
+		int possiblePoolDimIndex = 0;
+		for( int i = 0; i < pooledDims.Size(); ++i ) {
+			if( convertedLayout[pooledDims[i]] < BD_Height || convertedLayout[pooledDims[i]] > BD_Depth ) {
+				// Replaced invalid pool dims with unused
+				convertedLayout[pooledDims[i]] = possiblePoolDims[possiblePoolDimIndex++];
+			}
 		}
 	}
 
-	// Distribute unused dimensions between the rest (trivial) of tensor dimensions
-	TBlobDim currDim = BD_BatchLength;
-	for( int i = 0; i < convertedLayout.Size(); ++i ) {
-		if( convertedLayout[i] == BD_Count ) {
-			while( convertedLayout.Find( currDim ) != NotFound && currDim != BD_Count ) {
-				++currDim;
+	{
+		// Distribute dimensions which cannot be pooled between non-trivial non-pooled dims
+		CTensorLayout possibleNonPoolDims( { BD_BatchLength, BD_BatchWidth, BD_ListSize, BD_Channels } );
+		for( int i = 0; i < convertedLayout.Size(); ++i ) {
+			if( pooledDims.Find( i ) != NotFound ) {
+				continue;
 			}
-			// Double-check
-			NeoAssert( currDim != BD_Count );
-			convertedLayout[i] = currDim;
+			const int index = possibleNonPoolDims.Find( convertedLayout[i] );
+			if( index != NotFound ) {
+				possibleNonPoolDims.DeleteAt( index );
+			}
+		}
+
+		int possibleNonPoolDimIndex = 0;
+		for( int i = 0; i < convertedLayout.Size(); ++i ) {
+			if( pooledDims.Find( i ) != NotFound ) {
+				continue;
+			}
+			if( convertedLayout[i] >= BD_Height && convertedLayout[i] <= BD_Depth ) {
+				convertedLayout[i] = possibleNonPoolDims[possibleNonPoolDimIndex++];
+			}
 		}
 	}
 
