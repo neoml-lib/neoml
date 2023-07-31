@@ -89,7 +89,7 @@ static CLayerOutput<> selectAddOneLayer( CGraph& graph, CBaseLayer& layer )
 // Selects layer that divides its input by sqrt(2)
 static CLayerOutput<> selectDivSqrt2Layer( CGraph& graph, CBaseLayer& layer )
 {
-	const float sqrt2 = std::sqrtf( 2.f );
+	const float sqrt2 = std::sqrt( 2.f );
 	CLayerOutput<> result = selectEltwiseByScalar( COnnxEltwiseLayer::TOperation::Div, sqrt2, graph, layer );
 	if( result.Layer == nullptr ) {
 		result = selectEltwiseByScalar( COnnxEltwiseLayer::TOperation::Mul, 1.f / sqrt2, graph, layer );
