@@ -16,6 +16,7 @@ limitations under the License.
 #pragma once
 
 #include <NeoML/Dnn/Optimization/Graph.h>
+#include "GELUOptimizer.h"
 #include "HardSigmoidOptimizer.h"
 #include "HSwishOptimizer.h"
 #include "LayerNormFusionOptimizer.h"
@@ -45,6 +46,7 @@ inline void CDnnOptimizer::Optimize()
 {
 	CHardSigmoidOptimizer( graph ).Apply();
 	CHSwishOptimizer( graph ).Apply();
+	( void ) OptimizeGELU( graph );
 	CSqueezeAndExciteOptimizer( graph ).Apply();
 	CLayerNormFusionOptimizer( graph ).Apply();
 }
