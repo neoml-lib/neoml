@@ -52,7 +52,7 @@ static CLayerOutput<> selectEltwiseByScalar( COnnxEltwiseLayer::TOperation expec
 		// We don't consider the case when both input of this layer are CDataLayers because that's invalid for GELU
 		CPtr<CDnnBlob> blob = dataInput.Layer->GetBlob();
 		if( blob->GetDataSize() != 1 || blob->GetDataType() != CT_Float ||
-			std::fabsf( expectedScalar - blob->GetData().GetValue() ) > 1e-4f )
+			std::fabs( expectedScalar - blob->GetData().GetValue() ) > 1e-4f )
 		{
 			return CLayerOutput<>();
 		}
