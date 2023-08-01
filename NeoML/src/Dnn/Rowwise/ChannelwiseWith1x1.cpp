@@ -44,15 +44,19 @@ CRowwiseChWith1x1::CRowwiseChWith1x1( IMathEngine& mathEngine ) :
 
 CRowwiseOperationDesc* CRowwiseChWith1x1::GetDesc()
 {
-	CConstFloatHandle channelwiseFreeTermData = channelwiseFreeTerm == nullptr ? CConstFloatHandle()
+	const CConstFloatHandle channelwiseFreeTermData = channelwiseFreeTerm == nullptr ? CConstFloatHandle()
 		: channelwiseFreeTerm->GetData<const float>();
-	CConstFloatHandle convFreeTermData = convFreeTerm == nullptr ? CConstFloatHandle()
+	const CConstFloatHandle convFreeTermData = convFreeTerm == nullptr ? CConstFloatHandle()
 		: convFreeTerm->GetData<const float>();
-	return mathEngine.InitRowwiseChWith1x1( stride, channelwiseFilter->GetData(),
-		channelwiseFreeTerm == nullptr ? nullptr : &channelwiseFreeTermData,
-		activation.GetType(), MobileNetReluParam( activation ), convFilter->GetData(),
-		convFreeTerm == nullptr ? nullptr : &convFreeTermData,
+
+	CRowwiseOperationDesc* rowwiseDesc = mathEngine.InitRowwiseChWith1x1( stride,
+		channelwiseFilter->GetData(), channelwiseFreeTermData.IsNull() ? nullptr : &channelwiseFreeTermData,
+		activation.GetType(), MobileNetReluParam( activation ),
+		convFilter->GetData(), convFreeTermData.IsNull() ? nullptr : &convFreeTermData,
 		convFilter->GetObjectCount(), residual );
+
+	NeoAssert( rowwiseDesc != nullptr );
+	return rowwiseDesc;
 }
 
 void CRowwiseChWith1x1::Serialize( CArchive& archive )

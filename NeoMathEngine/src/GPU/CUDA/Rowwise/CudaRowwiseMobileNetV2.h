@@ -68,9 +68,12 @@ private:
 	const CConstFloatHandle downFreeTerm;
 	const int outputChannels;
 	const bool residual;
-	CBlobDesc inputDesc;
-	CBlobDesc outputDesc;
-	std::unique_ptr<CChannelwiseConvolutionDesc> chDesc;
+	// Reshape
+	CBlobDesc inputDesc{};
+	CBlobDesc outputDesc{};
+	std::unique_ptr<CChannelwiseConvolutionDesc> chDesc{};
+
+	friend class CCudaMathEngine;
 };
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -98,10 +101,7 @@ inline CBlobDesc CCudaRowwiseMobileNetV2::Reshape( const CBlobDesc& inputSize )
 
 inline void CCudaRowwiseMobileNetV2::Process( const CFloatHandle& input, const CFloatHandle& output ) const
 {
-	expandFilter.GetMathEngine()->MobileNetV2Block( inputDesc, outputDesc, *chDesc, input, expandFilter,
-		expandFreeTerm.IsNull() ? nullptr : &expandFreeTerm, expandActivation, expandReluParam, channelwiseFilter,
-		channelwiseFreeTerm.IsNull() ? nullptr : &channelwiseFreeTerm, channelwiseActivation, channelwiseReluParam,
-		downFilter, downFreeTerm.IsNull() ? nullptr : &downFreeTerm, residual, output );
+	expandFilter.GetMathEngine()->MobileNetV2Block( inputDesc, outputDesc, *this, *chDesc, input, output );
 }
 
 } // namespace NeoML

@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -69,10 +69,14 @@ private:
 		P_Count
 	};
 
+	void recreateConvDesc();
+	void recreateRowwiseDesc();
+
 	int stride; // stride of channnelwise convolution
 	CActivationDesc activation; // activation after channelwise convolution
 	bool residual; // Does block have residual connection?
-	CChannelwiseConvolutionDesc* convDesc; // descriptor of channelwise convolution
+	CChannelwiseConvolutionDesc* convDesc = nullptr; // descriptor of channelwise convolution
+	CRowwiseOperationDesc* rowwiseDesc = nullptr; // matrix multiplication optimization
 };
 
 } // namespace NeoML

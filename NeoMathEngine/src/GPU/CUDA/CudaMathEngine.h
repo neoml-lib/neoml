@@ -595,17 +595,11 @@ public:
 	void ScatterND( const CConstIntHandle& indicesHandle, const CConstIntHandle& updatesHandle,
 		const CIntHandle& dataHandle, const CBlobDesc& dataDesc, int updateCount, int indexDims ) override;
 	void ChannelwiseWith1x1( const CBlobDesc& inputDesc, const CBlobDesc& outputDesc,
-		const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& inputHandle,
-		const CConstFloatHandle& channelwiseFilter, const CConstFloatHandle* channelwiseFreeTerm,
-		TActivationFunction activation, float reluParam, const CConstFloatHandle& convFilter,
-		const CConstFloatHandle* convFreeTerm, bool residual, const CFloatHandle& outputHandle ) override;
+		const CRowwiseOperationDesc& rowwiseDesc, const CChannelwiseConvolutionDesc& convDesc,
+		const CConstFloatHandle& inputHandle, const CFloatHandle& outputHandle ) override;
 	void MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobDesc& outputDesc,
-		const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& inputHandle,
-		const CConstFloatHandle& expandFilter, const CConstFloatHandle* expandFreeTerm,
-		TActivationFunction expandActivation, float expandReluParam, const CConstFloatHandle& channelwiseFilter,
-		const CConstFloatHandle* channelwiseFreeTerm, TActivationFunction channelwiseActivation,
-		float channelwiseReluParam, const CConstFloatHandle& downFilter, const CConstFloatHandle* downFreeTerm,
-		bool residual, const CFloatHandle& outputHandle ) override;
+		const CRowwiseOperationDesc& rowwiseDesc, const CChannelwiseConvolutionDesc& convDesc,
+		const CConstFloatHandle& inputHandle, const CFloatHandle& outputHandle ) override;
 	void MobileNetV3PreSEBlock( const CBlobDesc& inputDesc, const CBlobDesc& outputDesc,
 		const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& inputHandle,
 		const CConstFloatHandle& expandFilter, const CConstFloatHandle* expandFreeTerm,

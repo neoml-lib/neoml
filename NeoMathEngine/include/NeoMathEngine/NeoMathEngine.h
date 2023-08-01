@@ -30,6 +30,10 @@ limitations under the License.
 
 namespace NeoML {
 
+// Forward declarations
+struct CSmallMatricesMultiplyDesc;
+struct CSmallMatricesMultiplyDescsArray;
+
 // Supported coordinate modes for linear interpolation
 // The variables in formula:
 //     - scale - size multiplier
@@ -384,7 +388,6 @@ public:
 };
 
 //------------------------------------------------------------------------------------------------------------
-struct CSmallMatricesMultiplyDesc;
 
 // The class provides basic linear algebra operations
 class NEOMATHENGINE_API IBlasEngine : public IVectorMathEngine {
@@ -666,6 +669,7 @@ struct NEOMATHENGINE_API CLrnDesc : public CCrtAllocatedObject { public: virtual
 struct NEOMATHENGINE_API CLstmDesc : public CCrtAllocatedObject { public: virtual ~CLstmDesc(); };
 struct NEOMATHENGINE_API CRowwiseOperationDesc : public CCrtAllocatedObject { public: virtual ~CRowwiseOperationDesc(); };
 struct NEOMATHENGINE_API CSmallMatricesMultiplyDesc : public CCrtAllocatedObject { public: virtual ~CSmallMatricesMultiplyDesc(); };
+struct NEOMATHENGINE_API CSmallMatricesMultiplyDescsArray : public CCrtAllocatedObject { public: virtual ~CSmallMatricesMultiplyDescsArray(); };
 
 //------------------------------------------------------------------------------------------------------------
 // RLE format
@@ -1080,17 +1084,11 @@ public:
 		const CIntHandle& dataHandle, const CBlobDesc& dataDesc, int updateCount, int indexDims ) = 0;
 
 	virtual void ChannelwiseWith1x1( const CBlobDesc& inputDesc, const CBlobDesc& outputDesc,
-		const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& inputHandle,
-		const CConstFloatHandle& channelwiseFilter, const CConstFloatHandle* channelwiseFreeTerm,
-		TActivationFunction activation, float reluParam, const CConstFloatHandle& convFilter,
-		const CConstFloatHandle* convFreeTerm, bool residual, const CFloatHandle& outputHandle ) = 0;
+		const CRowwiseOperationDesc& rowwiseDesc, const CChannelwiseConvolutionDesc& convDesc,
+		const CConstFloatHandle& inputHandle, const CFloatHandle& outputHandle ) = 0;
 	virtual void MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobDesc& outputDesc,
-		const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& inputHandle,
-		const CConstFloatHandle& expandFilter, const CConstFloatHandle* expandFreeTerm,
-		TActivationFunction expandActivation, float expandReluParam, const CConstFloatHandle& channelwiseFilter,
-		const CConstFloatHandle* channelwiseFreeTerm, TActivationFunction channelwiseActivation,
-		float channelwiseReluParam, const CConstFloatHandle& downFilter, const CConstFloatHandle* downFreeTerm,
-		bool residual, const CFloatHandle& outputHandle ) = 0;
+		const CRowwiseOperationDesc& rowwiseDesc, const CChannelwiseConvolutionDesc& convDesc,
+		const CConstFloatHandle& inputHandle, const CFloatHandle& outputHandle ) = 0;
 	virtual void MobileNetV3PreSEBlock( const CBlobDesc& inputDesc, const CBlobDesc& outputDesc,
 		const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& inputHandle,
 		const CConstFloatHandle& expandFilter, const CConstFloatHandle* expandFreeTerm,

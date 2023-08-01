@@ -1,4 +1,4 @@
-/* Copyright © 2017-2022 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -33,8 +33,7 @@ CMobileNetV2BlockLayer::CMobileNetV2BlockLayer( IMathEngine& mathEngine, const C
 	residual( residual ),
 	stride( stride ),
 	expandActivation( expandActivation ),
-	channelwiseActivation( channelwiseActivation ),
-	convDesc( nullptr )
+	channelwiseActivation( channelwiseActivation )
 {
 	NeoAssert( IsValidMobileNetBlockActivation( expandActivation ) );
 	NeoAssert( IsValidMobileNetBlockActivation( channelwiseActivation ) );
@@ -52,14 +51,16 @@ CMobileNetV2BlockLayer::CMobileNetV2BlockLayer( IMathEngine& mathEngine ) :
 	residual( false ),
 	stride( 0 ),
 	expandActivation( AF_HSwish ),
-	channelwiseActivation( AF_HSwish ),
-	convDesc( nullptr )
+	channelwiseActivation( AF_HSwish )
 {
 	paramBlobs.SetSize( P_Count );
 }
 
 CMobileNetV2BlockLayer::~CMobileNetV2BlockLayer()
 {
+	if( rowwiseDesc != nullptr ) {
+		delete rowwiseDesc;
+	}
 	if( convDesc != nullptr ) {
 		delete convDesc;
 	}
@@ -184,44 +185,67 @@ void CMobileNetV2BlockLayer::Reshape()
 	}
 	outputDescs[0].SetDimSize( BD_Channels, outputChannels );
 
+	if( InputsMayBeOverwritten() && inputDescs[0].HasEqualDimensions( outputDescs[0] ) ) {
+		NeoAssert( stride == 1 );
+		EnableInPlace( true );
+	}
+
+	recreateConvDesc( expandedChannels );
+	recreateRowwiseDesc( expandedChannels );
+}
+
+void CMobileNetV2BlockLayer::recreateConvDesc( int expandedChannels )
+{
 	if( convDesc != nullptr ) {
 		delete convDesc;
 		convDesc = nullptr;
 	}
+
 	CBlobDesc channelwiseInputDesc = inputDescs[0];
 	channelwiseInputDesc.SetDimSize( BD_Channels, expandedChannels );
 	CBlobDesc channelwiseOutputDesc = outputDescs[0];
 	channelwiseOutputDesc.SetDimSize( BD_Channels, expandedChannels );
 	CBlobDesc freeTermDesc = paramBlobs[P_ChannelwiseFreeTerm] != nullptr
 		? paramBlobs[P_ChannelwiseFreeTerm]->GetDesc() : CBlobDesc();
+
 	convDesc = MathEngine().InitBlobChannelwiseConvolution( channelwiseInputDesc, 1, 1, stride, stride,
 		paramBlobs[P_ChannelwiseFilter]->GetDesc(),
-		paramBlobs[P_ChannelwiseFreeTerm] != nullptr ? &freeTermDesc : nullptr, channelwiseOutputDesc );
+		( paramBlobs[P_ChannelwiseFreeTerm] != nullptr ) ? &freeTermDesc : nullptr, channelwiseOutputDesc );
+	NeoAssert( convDesc != nullptr );
+}
 
-	if( InputsMayBeOverwritten() && inputDescs[0].HasEqualDimensions( outputDescs[0] ) ) {
-		NeoAssert( stride == 1 );
-		EnableInPlace( true );
+void CMobileNetV2BlockLayer::recreateRowwiseDesc( int expandedChannels )
+{
+	if( rowwiseDesc != nullptr ) {
+		delete rowwiseDesc;
+		rowwiseDesc = nullptr;
 	}
+
+	const CConstFloatHandle exFreeTerm = paramBlobs[P_ExpandFreeTerm] == nullptr ? CConstFloatHandle()
+		: paramBlobs[P_ExpandFreeTerm]->GetData<const float>();
+	const CConstFloatHandle chFreeTerm = paramBlobs[P_ChannelwiseFreeTerm] == nullptr ? CConstFloatHandle()
+		: paramBlobs[P_ChannelwiseFreeTerm]->GetData<const float>();
+	const CConstFloatHandle downFreeTerm = paramBlobs[P_DownFreeTerm] == nullptr ? CConstFloatHandle()
+		: paramBlobs[P_DownFreeTerm]->GetData<const float>();
+
+	rowwiseDesc = MathEngine().InitRowwiseMobileNetV2(
+		paramBlobs[P_ExpandFilter]->GetChannelsCount(),
+		paramBlobs[P_ExpandFilter]->GetData(), exFreeTerm.IsNull() ? nullptr : &exFreeTerm,
+		expandedChannels, expandActivation.GetType(), MobileNetReluParam( expandActivation ),
+		paramBlobs[P_ChannelwiseFilter]->GetData(), chFreeTerm.IsNull() ? nullptr : &chFreeTerm,
+		stride, channelwiseActivation.GetType(), MobileNetReluParam( channelwiseActivation ),
+		paramBlobs[P_DownFilter]->GetData(), downFreeTerm.IsNull() ? nullptr : &downFreeTerm,
+		paramBlobs[P_DownFilter]->GetObjectCount(), residual );
+	NeoAssert( rowwiseDesc != nullptr );
 }
 
 void CMobileNetV2BlockLayer::RunOnce()
 {
-	const CConstFloatHandle expandFt = paramBlobs[P_ExpandFreeTerm] == nullptr ? CConstFloatHandle()
-		: paramBlobs[P_ExpandFreeTerm]->GetData<const float>();
-	const CConstFloatHandle channelwiseFt = paramBlobs[P_ChannelwiseFreeTerm] == nullptr ? CConstFloatHandle()
-		: paramBlobs[P_ChannelwiseFreeTerm]->GetData<const float>();
-	const CConstFloatHandle downFt = paramBlobs[P_DownFreeTerm] == nullptr ? CConstFloatHandle()
-		: paramBlobs[P_DownFreeTerm]->GetData<const float>();
-	MathEngine().MobileNetV2Block( inputBlobs[0]->GetDesc(), outputBlobs[0]->GetDesc(), *convDesc,
-		inputBlobs[0]->GetData(), paramBlobs[P_ExpandFilter]->GetData(),
-		expandFt.IsNull() ? nullptr : &expandFt,
-		expandActivation.GetType(), MobileNetReluParam( expandActivation ),
-		paramBlobs[P_ChannelwiseFilter]->GetData(),
-		channelwiseFt.IsNull() ? nullptr : &channelwiseFt,
-		channelwiseActivation.GetType(), MobileNetReluParam( channelwiseActivation ),
-		paramBlobs[P_DownFilter]->GetData(),
-		downFt.IsNull() ? nullptr : &downFt,
-		residual, outputBlobs[0]->GetData() );
+	NeoPresume( convDesc != nullptr );
+	NeoPresume( rowwiseDesc != nullptr );
+
+	MathEngine().MobileNetV2Block( inputBlobs[0]->GetDesc(), outputBlobs[0]->GetDesc(),
+		*rowwiseDesc, *convDesc, inputBlobs[0]->GetData(), outputBlobs[0]->GetData() );
 }
 
 } // namespace NeoML
