@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,9 +21,8 @@ limitations under the License.
 namespace NeoML {
 
 CMatrixMultiplicationLayer::CMatrixMultiplicationLayer( IMathEngine& mathEngine ) :
-	CBaseLayer( mathEngine, "CMatrixMultiplicationLayer", false )
-{
-}
+	CBaseLayer( mathEngine, "CMatrixMultiplicationLayer", /*isLearnable*/false )
+{}
 
 static const int MatrixMultiplicationLayerVersion = 0;
 
@@ -31,8 +30,33 @@ void CMatrixMultiplicationLayer::Serialize( CArchive& archive )
 {
 	archive.SerializeVersion( MatrixMultiplicationLayerVersion );
 	CBaseLayer::Serialize( archive );
+	if( archive.IsLoading() ) {
+		recreateSmallMatricesMulDescs();
+	}
 }
 
+const CSmallMatricesMultiplyDesc* CMatrixMultiplicationLayer::initSmallMatricesMulDesc(
+	TSMMD type, int firstHeight, int firstWidth, int secondWidth, int resultWidth )
+{
+	NeoPresume( inputBlobs[0] != nullptr || inputDiffBlobs[0] != nullptr );
+	NeoPresume( outputBlobs[0] != nullptr || outputDiffBlobs[0] != nullptr );
+
+	if( smallMatricesMulDescs[type] == nullptr ) {
+		smallMatricesMulDescs.DetachAndReplaceAt(
+			MathEngine().InitSmallMatricesMultiplyDesc(
+				firstHeight, firstWidth, secondWidth, /*secondRowSize*/secondWidth, resultWidth,
+				/*resultAdd*/false, /*trans1*/( type == TSMMD_SecondBackward ), /*trans2*/( type == TSMMD_Backward ) ),
+			type );
+	}
+	return smallMatricesMulDescs[type];
+}
+
+void CMatrixMultiplicationLayer::recreateSmallMatricesMulDescs()
+{
+	smallMatricesMulDescs.DeleteAll(); // delete operator inside
+	smallMatricesMulDescs.SetSize( TSMMD_Count_ ); // init nullptr inside
+	NeoPresume( smallMatricesMulDescs[0] == nullptr );
+}
 
 void CMatrixMultiplicationLayer::Reshape()
 {
@@ -60,25 +84,42 @@ void CMatrixMultiplicationLayer::Reshape()
 	}
 
 	outputDescs[0] = outputDesc;
+	recreateSmallMatricesMulDescs();
 }
 
 void CMatrixMultiplicationLayer::RunOnce()
 {
+	const int firstHeight = inputBlobs[0]->GetGeometricalSize();
+	const int firstWidth  = inputBlobs[0]->GetChannelsCount();
+	const int secondWidth = inputBlobs[1]->GetChannelsCount();
+	const int resultWidth = outputBlobs[0]->GetChannelsCount();
+	const int resultBufferSize = outputBlobs[0]->GetObjectSize();
+
+	auto mulDesc = initSmallMatricesMulDesc( TSMMD_Forward,
+		firstHeight, firstWidth, secondWidth, resultWidth );
+
 	if( inputBlobs[0]->GetObjectCount() == inputBlobs[1]->GetObjectCount() ) {
-		MathEngine().MultiplyMatrixByMatrix( inputBlobs[0]->GetObjectCount(), inputBlobs[0]->GetData(),
-			inputBlobs[0]->GetGeometricalSize(), inputBlobs[0]->GetChannelsCount(), inputBlobs[1]->GetData(),
-			inputBlobs[1]->GetChannelsCount(), outputBlobs[0]->GetData(), outputBlobs[0]->GetDataSize() );
+		MathEngine().MultiplyMatrixByMatrix( /*batchSize*/inputBlobs[0]->GetObjectCount(),
+			/*first*/inputBlobs[0]->GetData(), firstHeight, firstWidth,
+			/*second*/inputBlobs[1]->GetData(), secondWidth,
+			/*result*/outputBlobs[0]->GetData(),
+			/*resultBufferSize*/outputBlobs[0]->GetDataSize(),
+			mulDesc );
 	} else if( inputBlobs[1]->GetObjectCount() == 1 ) {
 		for( int i = 0; i < inputBlobs[0]->GetObjectCount(); ++i ) {
-			MathEngine().MultiplyMatrixByMatrix( 1, inputBlobs[0]->GetObjectData( i ),
-				inputBlobs[0]->GetGeometricalSize(), inputBlobs[0]->GetChannelsCount(), inputBlobs[1]->GetData(),
-				inputBlobs[1]->GetChannelsCount(), outputBlobs[0]->GetObjectData( i ), outputBlobs[0]->GetObjectSize() );
+			MathEngine().MultiplyMatrixByMatrix( /*batchSize*/1,
+				/*first*/inputBlobs[0]->GetObjectData( i ), firstHeight, firstWidth,
+				/*second*/inputBlobs[1]->GetData(), secondWidth,
+				/*result*/outputBlobs[0]->GetObjectData( i ), resultBufferSize,
+				mulDesc );
 		}
 	} else if( inputBlobs[0]->GetObjectCount() == 1 ) {
 		for( int i = 0; i < inputBlobs[1]->GetObjectCount(); ++i ) {
-			MathEngine().MultiplyMatrixByMatrix( 1, inputBlobs[0]->GetData(),
-				inputBlobs[0]->GetGeometricalSize(), inputBlobs[0]->GetChannelsCount(), inputBlobs[1]->GetObjectData( i ),
-				inputBlobs[1]->GetChannelsCount(), outputBlobs[0]->GetObjectData( i ), outputBlobs[0]->GetObjectSize() );
+			MathEngine().MultiplyMatrixByMatrix( /*batchSize*/1,
+				/*first*/inputBlobs[0]->GetData(), firstHeight, firstWidth,
+				/*second*/inputBlobs[1]->GetObjectData( i ), secondWidth,
+				/*result*/outputBlobs[0]->GetObjectData( i ), resultBufferSize,
+				mulDesc );
 		}
 	} else {
 		NeoAssert( false );
@@ -87,20 +128,45 @@ void CMatrixMultiplicationLayer::RunOnce()
 
 void CMatrixMultiplicationLayer::BackwardOnce()
 {
-	NeoAssert( inputBlobs[0]->GetObjectCount() == inputBlobs[1]->GetObjectCount() );
-	NeoAssert( outputDiffBlobs[0]->GetChannelsCount() == inputBlobs[1]->GetChannelsCount() );
-	NeoAssert( outputDiffBlobs[0]->GetGeometricalSize() == inputBlobs[0]->GetGeometricalSize() );
+	const int batchSize = inputBlobs[0]->GetObjectCount();
+	NeoAssert( batchSize == inputBlobs[1]->GetObjectCount() );
 
-	MathEngine().MultiplyMatrixByTransposedMatrix( inputBlobs[0]->GetObjectCount(),
-		outputDiffBlobs[0]->GetData(), outputDiffBlobs[0]->GetGeometricalSize(),
-		outputDiffBlobs[0]->GetChannelsCount(), inputBlobs[1]->GetData(),
-		inputBlobs[1]->GetGeometricalSize(), inputDiffBlobs[0]->GetData(), 
-		inputDiffBlobs[0]->GetDataSize() );
+	{
+		const int firstHeight = outputDiffBlobs[0]->GetGeometricalSize();
+		const int firstWidth = outputDiffBlobs[0]->GetChannelsCount();
+		const int secondHeight = inputBlobs[1]->GetGeometricalSize();
+		const int secondWidth = inputBlobs[1]->GetChannelsCount();
+		const int resultWidth = inputBlobs[1]->GetGeometricalSize();
+		const int resultBufferSize = inputDiffBlobs[0]->GetDataSize();
 
-	MathEngine().MultiplyTransposedMatrixByMatrix( inputBlobs[0]->GetObjectCount(),
-		inputBlobs[0]->GetData(), inputBlobs[0]->GetGeometricalSize(), inputBlobs[0]->GetChannelsCount(),
-		outputDiffBlobs[0]->GetData(), outputDiffBlobs[0]->GetChannelsCount(),
-		inputDiffBlobs[1]->GetData(), inputDiffBlobs[1]->GetDataSize() );
+		NeoAssert( firstWidth == inputBlobs[1]->GetChannelsCount() );
+		NeoAssert( firstHeight == inputBlobs[0]->GetGeometricalSize() );
+
+		initSmallMatricesMulDesc( TSMMD_Backward,
+			firstHeight, firstWidth, secondWidth, resultWidth );
+
+		MathEngine().MultiplyMatrixByTransposedMatrix( batchSize,
+			/*first*/outputDiffBlobs[0]->GetData(), firstHeight, firstWidth,
+			/*second*/inputBlobs[1]->GetData(), secondHeight,
+			/*result*/inputDiffBlobs[0]->GetData(), resultBufferSize,
+			smallMatricesMulDescs[TSMMD_Backward] );
+	}
+
+	{
+		const int firstHeight = inputBlobs[0]->GetGeometricalSize();
+		const int firstWidth = inputBlobs[0]->GetChannelsCount();
+		const int secondWidth = outputDiffBlobs[0]->GetChannelsCount();
+		const int resultBufferSize = inputDiffBlobs[1]->GetDataSize();
+
+		initSmallMatricesMulDesc( TSMMD_SecondBackward,
+			firstHeight, firstWidth, secondWidth, /*resultWidth*/secondWidth );
+
+		MathEngine().MultiplyTransposedMatrixByMatrix( batchSize,
+			/*first*/inputBlobs[0]->GetData(), firstHeight, firstWidth,
+			/*second*/outputDiffBlobs[0]->GetData(), secondWidth,
+			/*result*/inputDiffBlobs[1]->GetData(), resultBufferSize,
+			smallMatricesMulDescs[TSMMD_SecondBackward] );
+	}
 }
 
 CLayerWrapper<CMatrixMultiplicationLayer> MatrixMultiplication()
