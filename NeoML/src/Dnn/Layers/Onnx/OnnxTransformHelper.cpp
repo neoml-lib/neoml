@@ -20,19 +20,25 @@ limitations under the License.
 
 namespace NeoML {
 
-static const int OnnxTransformHelperVersion = 0;
-
 COnnxTransformHelper::COnnxTransformHelper( IMathEngine& mathEngine ) :
 	COnnxLayerBase( mathEngine, "OnnxTransformHelper" )
 {
 	transformInfo.Add( BD_Count, BD_Count );
 }
 
+static const int OnnxTransformHelperVersion = 1;
+
 void COnnxTransformHelper::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion( OnnxTransformHelperVersion );
+	const int version = archive.SerializeVersion( OnnxTransformHelperVersion );
 	COnnxLayerBase::Serialize( archive );
 	transformInfo.Serialize( archive );
+
+	if( version == 0 ) {
+		outputLayout.Empty();
+	} else {
+		outputLayout.Serialize( archive );
+	}
 }
 
 void COnnxTransformHelper::CalculateShapes()

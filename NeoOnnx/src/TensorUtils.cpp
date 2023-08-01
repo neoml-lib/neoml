@@ -138,6 +138,7 @@ static CLayerOutput renameDimensions( const CLayerOutput& input, const CTensorLa
 	CDnn& dnn = *( input.Layer->GetDnn() );
 	CPtr<COnnxTransformHelper> transformLayer = new COnnxTransformHelper( dnn.GetMathEngine() );
 	transformLayer->SetName( getUniqueLayerName( dnn, "transform_" ) );
+	outputLayout.CopyTo( transformLayer->OutputLayout() );
 	for( int dimIndex = 0; dimIndex < outputLayout.Size(); ++dimIndex ) {
 		transformLayer->SetRule( inputLayout[dimIndex], outputLayout[dimIndex] );
 	}

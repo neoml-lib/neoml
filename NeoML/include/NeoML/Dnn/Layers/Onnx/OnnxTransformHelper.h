@@ -31,6 +31,10 @@ public:
 	void SetRule( TBlobDim inputDim, TBlobDim outputDim ) { transformInfo[outputDim] = inputDim; }
 	TBlobDim GetRule( TBlobDim outputDim ) const { return transformInfo[outputDim]; }
 
+	// ONNX output tensor layout
+	CFastArray<TBlobDim, 8>& OutputLayout() { return outputLayout; }
+	const CFastArray<TBlobDim, 8>& OutputLayout() const { return outputLayout; }
+
 	void Serialize( CArchive& archive ) override;
 
 protected:
@@ -39,6 +43,7 @@ protected:
 
 private:
 	CFastArray<TBlobDim, 8> transformInfo;
+	CFastArray<TBlobDim, 8> outputLayout;
 	CBlobDesc outputDesc;
 };
 
