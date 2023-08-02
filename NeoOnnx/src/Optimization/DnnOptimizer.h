@@ -50,13 +50,6 @@ inline void CDnnOptimizer::Optimize( COnnxOptimizationReport& report )
 	report.GELU = OptimizeGELU( graph );
 	report.SqueezeAndExcite = CSqueezeAndExciteOptimizer( graph ).Apply();
 	report.LayerNorm = CLayerNormFusionOptimizer( graph ).Apply();
-
-	std::cout << "*** ONNX OPTIMIZATIONS ***\n"
-		<< "\tHardSigmoids:\t" << report.HardSigmoid << '\n'
-		<< "\tHSwish:\t" << report.HSwish << '\n'
-		<< "\tGELU:\t" << report.GELU << '\n'
-		<< "\tSqueezeAndExcite:\t" << report.SqueezeAndExcite << '\n'
-		<< "\tLayerNorm:\t" << report.LayerNorm << '\n';
 }
 
 } // namespace optimization

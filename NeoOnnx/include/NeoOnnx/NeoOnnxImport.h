@@ -42,15 +42,11 @@ struct NEOONNX_API CImportSettings {
 
 // Information about ONNX optimizations
 struct NEOONNX_API COnnxOptimizationReport {
+	int GELU = 0;
 	int HardSigmoid = 0;
 	int HSwish = 0;
-	int GELU = 0;
-	int SqueezeAndExcite = 0;
 	int LayerNorm = 0;
-
-	bool operator==( const COnnxOptimizationReport& other )
-	{ return HardSigmoid == other.HardSigmoid && HSwish == other.HSwish && GELU == other.GELU
-		&& SqueezeAndExcite == other.SqueezeAndExcite && LayerNorm == other.LayerNorm; }
+	int SqueezeAndExcite = 0;
 };
 
 // Information about imported model
