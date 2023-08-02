@@ -32,9 +32,9 @@ namespace NeoOnnx {
 
 namespace optimization {
 
-void CSqueezeAndExciteOptimizer::Apply()
+int CSqueezeAndExciteOptimizer::Apply()
 {
-	( void ) optimizeSEBlocks();
+	return optimizeSEBlocks();
 }
 
 int CSqueezeAndExciteOptimizer::optimizeSEBlocks()

@@ -101,8 +101,10 @@ bool CLayerNormFusionOptimizer::isValidCastLayer( const CCastLayer& castLayer ) 
 }
 
 //--------------------------------------------------------------------------------------------------------------
-void CLayerNormFusionOptimizer::Apply()
+int CLayerNormFusionOptimizer::Apply()
 {
+	int optimizedLayers = 0;
+
 	NeoAssert( graph.SelectionSize() == 0 );
 
 	CArray<CBaseLayer*> layers{};
@@ -354,7 +356,11 @@ void CLayerNormFusionOptimizer::Apply()
 
 		// All selected layers would be removed from the dnn
 		graph.DeleteSelectedLayers();
+
+		++optimizedLayers;
 	} //for layers
+
+	return optimizedLayers;
 }
 
 } // namespace optimization
