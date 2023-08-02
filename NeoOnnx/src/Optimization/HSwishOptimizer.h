@@ -40,7 +40,7 @@ public:
 		graph( graph )
 	{}
 
-	void Apply();
+	int Apply();
 
 private:
 	NeoML::optimization::CGraph& graph;
