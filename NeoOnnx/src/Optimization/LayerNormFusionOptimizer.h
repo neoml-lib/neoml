@@ -88,7 +88,7 @@ public:
 	CLayerNormFusionOptimizer( const CLayerNormFusionOptimizer& ) = delete;
 	CLayerNormFusionOptimizer( CLayerNormFusionOptimizer&& ) = delete;
 
-	void Apply();
+	int Apply();
 
 private:
 	CGraph& graph;

@@ -26,8 +26,10 @@ namespace NeoOnnx {
 
 namespace optimization {
 
-void CHSwishOptimizer::Apply()
+int CHSwishOptimizer::Apply()
 {
+	int optimizedLayers = 0;
+
 	CArray<CBaseLayer*> layers;
 	graph.GetLayers( layers );
 
@@ -64,10 +66,13 @@ void CHSwishOptimizer::Apply()
 
 				graph.DeleteLayer( *mulLayer );
 				graph.DeleteLayer( *hardSigmoid );
+				optimizedLayers++;
 				break;
 			}
 		}
 	}
+
+	return optimizedLayers;
 }
 
 // Checks if CHardSigmoidLayer is valid for CHSwishLayer conversion
