@@ -147,10 +147,17 @@ static CLayerOutput renameDimensions( const CLayerOutput& input, const CTensorLa
 }
 
 // Renames dimensions of tensor (without any reordering in memory)
-static CPtr<const CTensorBase> renameDimensions( const CTensorBase& input, const CTensorLayout& outputLayout )
+static CPtr<const CTensorBase> renameDimensions( const CTensorBase& input, const CTensorLayoutRename& rename )
 {
-	if( input.Layout() == outputLayout ) {
+	if( rename.From == rename.To ) {
 		return &input;
+	}
+
+	CTensorLayout outputLayout;
+	outputLayout.SetBufferSize( input.DimCount() );
+	for( int dimIndex = 0; dimIndex < input.DimCount(); ++dimIndex ) {
+		const int sortedDimIndex = rename.From.Find( input.Layout()[dimIndex] );
+		outputLayout.Add( rename.To[sortedDimIndex] );
 	}
 
 	if( input.Type() == TTensorType::Data ) {
@@ -235,68 +242,26 @@ CPtr<const CTensorBase> ConvertTensor( const CTensorBase& input, const ITensorLa
 {
 	const int dimCount = input.DimCount();
 
-	CTensorLayoutRename renameBefore;
+	CTensorLayoutRename renameBeforeTransposes;
 	CFastArray<CTensorLayoutTranspose, 2> transposes;
-	CTensorLayoutRename renameAfter;
-	CTensorLayout result = FindOptimalConversion( input.Layout(), validator, renameBefore, transposes, renameAfter );
+	CTensorLayoutRename renameAfterTransposes;
+	CTensorLayout result = FindOptimalConversion( input.Layout(), validator,
+		renameBeforeTransposes, transposes, renameAfterTransposes );
 
 	CPtr<const CTensorBase> currentTensor = &input;
 
-	// Step 1: renaming dimensions (if needed)
-	// It's possible that input.Layout() and outputLayout use different dimensions
+	// Step 1: renaming dimensions before transpositions (if needed)
 	// Renaming means assigning outputLayout's dimensions to the ones of input.Layout()
-	// without data transposing.
-	// e.g.
-	//     input.Layout() == { BD_Channels, BD_BatchWidth }
-	//     outputLayout == { BD_Height, BD_Width }
-	// result of renaming:
-	//     renamed.Layout == { BD_Width, BD_Height } (transpose will happen on step #2)
-	if( renameBefore.From != renameBefore.To ) {
-		NeoAssert( renameBefore.From.IsSorted<Ascending<TBlobDim>>() );
-		NeoAssert( renameBefore.From.IsSorted<Ascending<TBlobDim>>() );
-		// Tensors use different blob dimensions, need to rename
-		const CTensorLayout& inputLayout = input.Layout();
-		CTensorLayout renamedLayout;
-		renamedLayout.SetBufferSize( dimCount );
-		for( int dimIndex = 0; dimIndex < dimCount; ++dimIndex ) {
-			const int sortedDimIndex = renameBefore.From.Find( inputLayout[dimIndex] );
-			renamedLayout.Add( renameBefore.To[sortedDimIndex] );
-		}
-		currentTensor = renameDimensions( *currentTensor, renamedLayout );
-	}
+	// without data transpositions
+	currentTensor = renameDimensions( *currentTensor, renameBeforeTransposes );
 
-	// Step 2: reordering dimensions
-	// Step 1 guarantees that outputLayout is a permutation of currentTensor.Layout()
-	// NeoML has operations only for swapping 2 dimensions
-	// that's why reordering is implemented as a sequence of swaps
+	// Step 2: reordering dimensions (apply transpositions)
 	for( const CTensorLayoutTranspose& transpose : transposes ) {
 		currentTensor = swapDimensions( *currentTensor, transpose.First, transpose.Second );
 	}
 
-	// Step 3: renaming dimensions (if needed)
-	// It's possible that input.Layout() and outputLayout use different dimensions
-	// Renaming means assigning outputLayout's dimensions to the ones of input.Layout()
-	// without data transposing.
-	// e.g.
-	//     input.Layout() == { BD_Channels, BD_BatchWidth }
-	//     outputLayout == { BD_Height, BD_Width }
-	// result of renaming:
-	//     renamed.Layout == { BD_Width, BD_Height } (transpose will happen on step #2)
-	if( renameAfter.From != renameAfter.To ) {
-		NeoAssert( renameAfter.From.IsSorted<Ascending<TBlobDim>>() );
-		NeoAssert( renameAfter.From.IsSorted<Ascending<TBlobDim>>() );
-		// Tensors use different blob dimensions, need to rename
-		const CTensorLayout& inputLayout = currentTensor->Layout();
-		CTensorLayout renamedLayout;
-		renamedLayout.SetBufferSize( dimCount );
-		for( int dimIndex = 0; dimIndex < dimCount; ++dimIndex ) {
-			const int sortedDimIndex = renameAfter.From.Find( inputLayout[dimIndex] );
-			renamedLayout.Add( renameAfter.To[sortedDimIndex] );
-		}
-		currentTensor = renameDimensions( *currentTensor, renamedLayout );
-	}
-
-	return currentTensor;
+	// Step 3: renaming dimensions after transpositions (if needed)
+	return renameDimensions( *currentTensor, renameAfterTransposes );
 }
 
 CPtr<const CTensorBase> ConvertTensor( const CTensorBase& input, const CTensorLayout& outputLayout )
