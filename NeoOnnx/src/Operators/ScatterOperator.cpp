@@ -55,10 +55,7 @@ void CScatterNDOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTens
 	CPtr<const CUserTensor> indicesTensor = AsUserTensor( *ConvertTensor( *inputs[1], indicesLayout ),
 		Name() + "_Indices", dnn );
 
-	CTensorLayout updatesLayout = IsTransposedLayout( inputs[2]->Layout() ) ? CTensorLayout( inputs[2]->DimCount() )
-		: inputs[2]->Layout();
-	CPtr<const CUserTensor> updatesTensor = AsUserTensor( *ConvertTensor( *inputs[2], 
-		IsTransposedLayout( inputs[2]->Layout() ) ? CTensorLayout( inputs[2]->DimCount() ) : inputs[2]->Layout() ),
+	CPtr<const CUserTensor> updatesTensor = AsUserTensor( *ConvertTensor( *inputs[2], COnnxTensorLayoutValidator() ),
 		Name() + "_Indices", dnn );
 
 	CPtr<CScatterNDLayer> scatterND = new CScatterNDLayer( dnn.GetMathEngine() );

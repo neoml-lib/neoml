@@ -231,22 +231,14 @@ static CPtr<const CTensorBase> swapDimensions( const CTensorBase& input, TBlobDi
 	return new CShapeTensor( outputLayout, dynamic_cast<const CShapeTensor&>( input ).Shape(), layerOutput );
 }
 
-CPtr<const CTensorBase> ConvertTensor( const CTensorBase& input, const CTensorLayout& outputLayout )
+CPtr<const CTensorBase> ConvertTensor( const CTensorBase& input, const ITensorLayoutValidator& validator )
 {
-	// Trivial case
-	if( input.Layout() == outputLayout ) {
-		return &input;
-	}
-
-	const int dimCount = outputLayout.Size();
-	NeoAssert( input.DimCount() == dimCount );
+	const int dimCount = input.DimCount();
 
 	CTensorLayoutRename renameBefore;
 	CFastArray<CTensorLayoutTranspose, 2> transposes;
 	CTensorLayoutRename renameAfter;
-	CTensorLayoutMatchFunctor functor( outputLayout );
-	CTensorLayout result = FindOptimalConversion( input.Layout(), functor, renameBefore, transposes, renameAfter );
-	NeoAssert( result == outputLayout );
+	CTensorLayout result = FindOptimalConversion( input.Layout(), validator, renameBefore, transposes, renameAfter );
 
 	CPtr<const CTensorBase> currentTensor = &input;
 
@@ -305,6 +297,21 @@ CPtr<const CTensorBase> ConvertTensor( const CTensorBase& input, const CTensorLa
 	}
 
 	return currentTensor;
+}
+
+CPtr<const CTensorBase> ConvertTensor( const CTensorBase& input, const CTensorLayout& outputLayout )
+{
+	// Trivial case
+	if( input.Layout() == outputLayout ) {
+		return &input;
+	}
+
+	NeoAssert( input.DimCount() == outputLayout.Size() );
+
+	CTensorLayoutMatchValidator validator( outputLayout );
+	CPtr<const CTensorBase> output = ConvertTensor( input, validator );
+	NeoAssert( output->Layout() == outputLayout );
+	return output;
 }
 
 CPtr<const CDataTensor> ConvertTensor( const CDataTensor& dataTensor, const CTensorLayout& destLayout )
@@ -632,5 +639,232 @@ void GetTensorShape( const CTensorBase& tensor, CTensorShape& shape )
 			CheckNeoOnnxSupport( false, "Can't extract tensor shape" );
 	}
 }
+
+//---------------------------------------------------------------------------------------------------------------------
+
+// Encodes layout into 32-bit integer
+static int tensorLayoutHash( const CTensorLayout& layout )
+{
+	static_assert( static_cast<int>( BD_Count ) <= 8, "BD_Count > 8" );
+	int result = 0;
+	for( int i = 0; i < layout.Size(); ++i ) {
+		result |= static_cast<int>( layout[i] ) << ( 3 * i );
+	}
+	return result;
+}
+
+// Finds optimal way to convert inputLayout into layout where TFunctor()( layout ) == true
+CTensorLayout FindOptimalConversion( const CTensorLayout& inputLayout, const ITensorLayoutValidator& validator,
+	CTensorLayoutRename& renameBeforeTransposes, CFastArray<CTensorLayoutTranspose, 2>& transposes,
+	CTensorLayoutRename& renameAfterTransposes )
+{
+	renameBeforeTransposes = CTensorLayoutRename();
+	transposes.Empty();
+	renameAfterTransposes = CTensorLayoutRename();
+
+	if( validator( inputLayout ) ) {
+		return inputLayout;
+	}
+
+	struct CBfsEntry {
+		CBfsEntry() = default;
+		CBfsEntry( const CBfsEntry& other ) :
+			Rename( other.Rename ),
+			OutputLayout( other.OutputLayout )
+		{
+			other.Transposes.CopyTo( Transposes );
+		};
+		CBfsEntry( CBfsEntry&& other )
+		{
+			other.Rename.From.MoveTo( Rename.From );
+			other.Rename.To.MoveTo( Rename.To );
+			other.Transposes.MoveTo( Transposes );
+			other.OutputLayout.MoveTo( OutputLayout );
+		};
+
+		CTensorLayoutRename Rename;
+		CFastArray<CTensorLayoutTranspose, 2> Transposes;
+		CTensorLayout OutputLayout;
+	};
+
+	CArray<CBfsEntry> queue;
+	CHashTable<int> visited;
+	visited.Add( tensorLayoutHash( inputLayout ) );
+
+	queue.SetSize( 1 );
+	queue[0].OutputLayout = inputLayout;
+
+	// Add all renamings to the queue
+	CTensorLayoutRename currentRename;
+	CTensorLayout currentOutputLayout;
+	CTensorLayout currentInputLayout = inputLayout;
+	currentRename.From = inputLayout;
+	currentRename.From.QuickSort<Ascending<TBlobDim>>();
+	currentRename.To.SetSize( currentRename.From.Size() );
+	currentOutputLayout.SetSize( inputLayout.Size() );
+
+	auto bruteForceRename = [&] ( int sortedAxisIndex, bool isPreTranspose, auto&& bruteForceRename ) -> bool {
+		static_assert( static_cast<int>( BD_Count ) == 7, "BD_Count != 7" );
+		const bool isLastAxis = sortedAxisIndex == currentOutputLayout.Size() - 1;
+		const int axisIndex = currentInputLayout.Find( currentRename.From[sortedAxisIndex] );
+		const int minValue = sortedAxisIndex == 0 ? 0 : static_cast<int>( currentRename.To[sortedAxisIndex - 1] ) + 1;
+		const int maxValue = static_cast<int>( BD_Count ) - ( currentOutputLayout.Size() - sortedAxisIndex );
+		for( int value = minValue; value <= maxValue; ++value ) {
+			currentRename.To[sortedAxisIndex] = static_cast<TBlobDim>( value );
+			currentOutputLayout[axisIndex] = static_cast<TBlobDim>( value );
+			if( isLastAxis ) {
+				if( validator( currentOutputLayout ) ) {
+					( isPreTranspose ? renameBeforeTransposes : renameAfterTransposes ) = currentRename;
+					return true;
+				}
+				const int hash = isPreTranspose ? tensorLayoutHash( currentOutputLayout ) : 0;
+				if( isPreTranspose && !visited.Has( hash ) ) {
+					visited.Add( hash );
+					CBfsEntry newEntry;
+					newEntry.Rename = currentRename;
+					newEntry.OutputLayout = currentOutputLayout;
+					queue.Add( newEntry );
+				}
+			} else if( bruteForceRename( sortedAxisIndex + 1, isPreTranspose, bruteForceRename ) ) {
+				return true;
+			}
+		}
+		return false;
+	};
+
+	if( bruteForceRename( 0, true, bruteForceRename ) ) {
+		return currentOutputLayout;
+	}
+
+	NeoAssert( inputLayout.Size() > 1 ); // layout of size must be converted via rename
+	// std::cout << "Queue size after renames: " << queue.Size() << '\n';
+
+	int queueIndex = 0;
+	const int queueResetPeriod = 1024;
+
+	auto tryAddTranspose = [&] ( const CBfsEntry& entry, const CTensorLayoutTranspose& transpose ) -> bool {
+		const int firstIndex = entry.OutputLayout.Find( transpose.First );
+		const int secondIndex = entry.OutputLayout.Find( transpose.Second );
+		currentOutputLayout = entry.OutputLayout;
+		if( firstIndex == NotFound && secondIndex == NotFound ) {
+			return false;
+		} else if( firstIndex == NotFound ) {
+			currentOutputLayout[secondIndex] = transpose.First;
+		} else if( secondIndex == NotFound ) {
+			currentOutputLayout[firstIndex] =  transpose.Second;
+		} else {
+			std::swap( currentOutputLayout[firstIndex], currentOutputLayout[secondIndex] );
+		}
+
+		if( validator( currentOutputLayout ) ) {
+			entry.Transposes.CopyTo( transposes );
+			transposes.Add( transpose );
+			renameBeforeTransposes = entry.Rename;
+			return true;
+		}
+
+		const int hash = tensorLayoutHash( currentOutputLayout );
+		if( !visited.Has( hash ) ) {
+			CBfsEntry newEntry( entry );
+			newEntry.OutputLayout = currentOutputLayout;
+			newEntry.Transposes.Add( transpose );
+			queue.Add( newEntry );
+			visited.Add( hash );
+		}
+
+		currentRename.From = currentOutputLayout;
+		currentRename.From.QuickSort<Ascending<TBlobDim>>();
+		currentInputLayout = currentOutputLayout;
+		if( bruteForceRename( 0, false, bruteForceRename ) ) {
+			entry.Transposes.CopyTo( transposes );
+			transposes.Add( transpose );
+			renameBeforeTransposes = entry.Rename;
+			return true;
+		}
+
+		return false;
+	};
+
+	int currStepQueueSize = queue.Size();
+	int step = 0;
+	while( queueIndex < queue.Size() ) {
+		if( queueIndex == queueResetPeriod ) {
+			queueIndex = 0;
+			currStepQueueSize -= queueResetPeriod; 
+			queue.DeleteAt( 0, queueResetPeriod );
+		}
+
+		const CBfsEntry entry = queue[queueIndex];
+
+		TBlobDim secondLastAxis = BD_BatchLength;
+		TBlobDim lastAxis = BD_BatchLength;
+		for( TBlobDim dim : entry.OutputLayout ) {
+			if( dim > lastAxis ) {
+				secondLastAxis = lastAxis;
+				lastAxis = dim;
+			} else if( dim > secondLastAxis ) {
+				secondLastAxis = dim;
+			}
+		}
+
+		// Add all plain transposes
+		// 1. Transpose last 2 axes
+		CTensorLayoutTranspose transpose( secondLastAxis, lastAxis );
+		if( tryAddTranspose( entry, transpose ) ) {
+			return currentOutputLayout;
+		}
+
+		// 2. Transpose non-last used axis with unused axis after last axis
+		for( TBlobDim first : entry.OutputLayout ) {
+			transpose.First = first;
+			if( transpose.First == lastAxis ) {
+				continue;
+			}
+			for( transpose.Second = lastAxis + 1; transpose.Second != BD_Count; ++transpose.Second ) {
+				if( tryAddTranspose( entry, transpose ) ) {
+					return currentOutputLayout;
+				}
+			}
+		}
+
+		// 3. Transpose last used axis with unused axis less than last axis
+		transpose.Second = lastAxis;
+		for( transpose.First = BD_BatchLength; transpose.First != transpose.Second; ++transpose.First ) {
+			if( entry.OutputLayout.Find( transpose.First ) != NotFound ) {
+				continue;
+			}
+			if( tryAddTranspose( entry, transpose ) ) {
+				return currentOutputLayout;
+			}
+		}
+
+		// Add all other possible transposes
+		for( transpose.First = BD_BatchLength; transpose.First != BD_Channels; ++transpose.First ) {
+			for( transpose.Second = transpose.First + 1; transpose.Second != BD_Count; ++transpose.Second ) {
+				if( tryAddTranspose( entry, transpose ) ) {
+					return currentOutputLayout;
+				}
+			}
+		}
+
+		queueIndex++;
+		if( queueIndex == currStepQueueSize ) {
+			currStepQueueSize = queue.Size();
+			++step;
+			std::cout << "Failed to find a way in " << step << " transposes\n";
+			std::cout << "\tFrom:";
+			for( TBlobDim dim : inputLayout ) {
+				std::cout << '\t' << (int ) dim;
+			}
+			std::cout << "\n\tTo:";
+			validator.Print();
+			std::cout << '\n';
+		}
+	}
+
+	NeoAssert( false );
+	return inputLayout;
+}
+
 
 } // namespace NeoOnnx

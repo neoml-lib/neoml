@@ -90,11 +90,8 @@ void CReshapeOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensor
 	const bool hasShapeOutput = inputs[0]->Type() != TTensorType::User && newShapeTensor->Type() == TTensorType::Data;
 
 	// In order to process tensors correctly reshape is not allowed in transposed layouts
-	CPtr<const CTensorBase> inputBaseTensor = inputs[0];
-	if( IsTransposedLayout( inputBaseTensor->Layout() ) ) {
-		inputBaseTensor = ConvertTensor( *inputBaseTensor, CTensorLayout( inputBaseTensor->DimCount() ) );
-	}
-	
+	CPtr<const CTensorBase> inputBaseTensor = ConvertTensor( *inputs[0], COnnxTensorLayoutValidator() );
+
 	CPtr<COnnxReshapeLayer> reshapeLayer = new COnnxReshapeLayer( dnn.GetMathEngine() );
 	reshapeLayer->SetName( Name() );
 	inputBaseTensor->Layout().CopyTo( reshapeLayer->InputLayout() );
