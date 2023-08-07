@@ -240,8 +240,6 @@ static CPtr<const CTensorBase> swapDimensions( const CTensorBase& input, TBlobDi
 
 CPtr<const CTensorBase> ConvertTensor( const CTensorBase& input, const ITensorLayoutValidator& validator )
 {
-	const int dimCount = input.DimCount();
-
 	CTensorLayoutRename renameBeforeTransposes;
 	CFastArray<CTensorLayoutTranspose, 2> transposes;
 	CTensorLayoutRename renameAfterTransposes;
@@ -638,8 +636,8 @@ private:
 
 		CBfsEntry( const CBfsEntry& other ) :
 			PreTransposeRename( other.PreTransposeRename ),
-			OutputLayout( other.OutputLayout ),
-			PostTransposeRename( other.PostTransposeRename )
+			PostTransposeRename( other.PostTransposeRename ),
+			OutputLayout( other.OutputLayout )
 		{
 			other.Transposes.CopyTo( Transposes );
 		}
