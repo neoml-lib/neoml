@@ -653,146 +653,74 @@ static int tensorLayoutHash( const CTensorLayout& layout )
 	return result;
 }
 
-// Finds optimal way to convert inputLayout into layout where TFunctor()( layout ) == true
-CTensorLayout FindOptimalConversion( const CTensorLayout& inputLayout, const ITensorLayoutValidator& validator,
-	CTensorLayoutRename& renameBeforeTransposes, CFastArray<CTensorLayoutTranspose, 2>& transposes,
-	CTensorLayoutRename& renameAfterTransposes )
-{
-	renameBeforeTransposes = CTensorLayoutRename();
-	transposes.Empty();
-	renameAfterTransposes = CTensorLayoutRename();
+class CLayoutConversionBfs {
+public:
+	explicit CLayoutConversionBfs( const ITensorLayoutValidator& validator ) :
+		validator( validator ), queueResultIndex( NotFound ) {}
 
-	if( validator( inputLayout ) ) {
-		return inputLayout;
-	}
+	CTensorLayout Find( const CTensorLayout& inputLayout, CTensorLayoutRename& renameBeforeTransposes,
+		CFastArray<CTensorLayoutTranspose, 2>& transposes, CTensorLayoutRename& renameAfterTransposes );
 
+private:
 	struct CBfsEntry {
 		CBfsEntry() = default;
+		CBfsEntry( const CTensorLayoutRename& rename, const CTensorLayout& outputLayout ) :
+			PreTransposeRename( rename ),
+			OutputLayout( outputLayout )
+		{
+		};
 		CBfsEntry( const CBfsEntry& other ) :
-			Rename( other.Rename ),
-			OutputLayout( other.OutputLayout )
+			PreTransposeRename( other.PreTransposeRename ),
+			OutputLayout( other.OutputLayout ),
+			PostTransposeRename( other.PostTransposeRename )
 		{
 			other.Transposes.CopyTo( Transposes );
 		};
 		CBfsEntry( CBfsEntry&& other )
 		{
-			other.Rename.From.MoveTo( Rename.From );
-			other.Rename.To.MoveTo( Rename.To );
+			other.PreTransposeRename.From.MoveTo( PreTransposeRename.From );
+			other.PreTransposeRename.To.MoveTo( PreTransposeRename.To );
 			other.Transposes.MoveTo( Transposes );
 			other.OutputLayout.MoveTo( OutputLayout );
+			other.PostTransposeRename.From.MoveTo( PostTransposeRename.From );
+			other.PostTransposeRename.To.MoveTo( PostTransposeRename.To );
 		};
 
-		CTensorLayoutRename Rename;
+		CTensorLayoutRename PreTransposeRename;
 		CFastArray<CTensorLayoutTranspose, 2> Transposes;
+		CTensorLayoutRename PostTransposeRename;
 		CTensorLayout OutputLayout;
 	};
 
-	CArray<CBfsEntry> queue;
+	const ITensorLayoutValidator& validator;
+
 	CHashTable<int> visited;
-	visited.Add( tensorLayoutHash( inputLayout ) );
+	CArray<CBfsEntry> queue;
+	int queueResultIndex;
+	
+	void setOptimum( int index ) { queueResultIndex = index; }
+	bool isOptimimumFound() const { return queueResultIndex != NotFound; }
+	int optimum() const { return queueResultIndex; }
+	void addInitialRenames( const CTensorLayout& inputLayout );
+	void addTranspose( const CBfsEntry& entry, const CTensorLayoutTranspose& transpose );
+	void bruteForceRenames( const CBfsEntry& entry, bool addToQueue );
+};
 
-	queue.SetSize( 1 );
-	queue[0].OutputLayout = inputLayout;
+CTensorLayout CLayoutConversionBfs::Find( const CTensorLayout& inputLayout, CTensorLayoutRename& renameBeforeTransposes,
+	CFastArray<CTensorLayoutTranspose, 2>& transposes, CTensorLayoutRename& renameAfterTransposes )
+{
+	setOptimum( NotFound );
+	addInitialRenames( inputLayout );
 
-	// Add all renamings to the queue
-	CTensorLayoutRename currentRename;
-	CTensorLayout currentOutputLayout;
-	CTensorLayout currentInputLayout = inputLayout;
-	currentRename.From = inputLayout;
-	currentRename.From.QuickSort<Ascending<TBlobDim>>();
-	currentRename.To.SetSize( currentRename.From.Size() );
-	currentOutputLayout.SetSize( inputLayout.Size() );
-
-	auto bruteForceRename = [&] ( int sortedAxisIndex, bool isPreTranspose, auto&& bruteForceRename ) -> bool {
-		static_assert( static_cast<int>( BD_Count ) == 7, "BD_Count != 7" );
-		const bool isLastAxis = sortedAxisIndex == currentOutputLayout.Size() - 1;
-		const int axisIndex = currentInputLayout.Find( currentRename.From[sortedAxisIndex] );
-		const int minValue = sortedAxisIndex == 0 ? 0 : static_cast<int>( currentRename.To[sortedAxisIndex - 1] ) + 1;
-		const int maxValue = static_cast<int>( BD_Count ) - ( currentOutputLayout.Size() - sortedAxisIndex );
-		for( int value = minValue; value <= maxValue; ++value ) {
-			currentRename.To[sortedAxisIndex] = static_cast<TBlobDim>( value );
-			currentOutputLayout[axisIndex] = static_cast<TBlobDim>( value );
-			if( isLastAxis ) {
-				if( validator( currentOutputLayout ) ) {
-					( isPreTranspose ? renameBeforeTransposes : renameAfterTransposes ) = currentRename;
-					return true;
-				}
-				const int hash = isPreTranspose ? tensorLayoutHash( currentOutputLayout ) : 0;
-				if( isPreTranspose && !visited.Has( hash ) ) {
-					visited.Add( hash );
-					CBfsEntry newEntry;
-					newEntry.Rename = currentRename;
-					newEntry.OutputLayout = currentOutputLayout;
-					queue.Add( newEntry );
-				}
-			} else if( bruteForceRename( sortedAxisIndex + 1, isPreTranspose, bruteForceRename ) ) {
-				return true;
-			}
-		}
-		return false;
-	};
-
-	if( bruteForceRename( 0, true, bruteForceRename ) ) {
-		return currentOutputLayout;
-	}
-
-	NeoAssert( inputLayout.Size() > 1 ); // layout of size must be converted via rename
-	// std::cout << "Queue size after renames: " << queue.Size() << '\n';
+	// layout of size 1 must be converted without transposes
+	NeoAssert( isOptimimumFound() || inputLayout.Size() > 1 );
 
 	int queueIndex = 0;
-	const int queueResetPeriod = 1024;
-
-	auto tryAddTranspose = [&] ( const CBfsEntry& entry, const CTensorLayoutTranspose& transpose ) -> bool {
-		const int firstIndex = entry.OutputLayout.Find( transpose.First );
-		const int secondIndex = entry.OutputLayout.Find( transpose.Second );
-		currentOutputLayout = entry.OutputLayout;
-		if( firstIndex == NotFound && secondIndex == NotFound ) {
-			return false;
-		} else if( firstIndex == NotFound ) {
-			currentOutputLayout[secondIndex] = transpose.First;
-		} else if( secondIndex == NotFound ) {
-			currentOutputLayout[firstIndex] =  transpose.Second;
-		} else {
-			std::swap( currentOutputLayout[firstIndex], currentOutputLayout[secondIndex] );
-		}
-
-		if( validator( currentOutputLayout ) ) {
-			entry.Transposes.CopyTo( transposes );
-			transposes.Add( transpose );
-			renameBeforeTransposes = entry.Rename;
-			return true;
-		}
-
-		const int hash = tensorLayoutHash( currentOutputLayout );
-		if( !visited.Has( hash ) ) {
-			CBfsEntry newEntry( entry );
-			newEntry.OutputLayout = currentOutputLayout;
-			newEntry.Transposes.Add( transpose );
-			queue.Add( newEntry );
-			visited.Add( hash );
-		}
-
-		currentRename.From = currentOutputLayout;
-		currentRename.From.QuickSort<Ascending<TBlobDim>>();
-		currentInputLayout = currentOutputLayout;
-		if( bruteForceRename( 0, false, bruteForceRename ) ) {
-			entry.Transposes.CopyTo( transposes );
-			transposes.Add( transpose );
-			renameBeforeTransposes = entry.Rename;
-			return true;
-		}
-
-		return false;
-	};
 
 	int currStepQueueSize = queue.Size();
 	int step = 0;
-	while( queueIndex < queue.Size() ) {
-		if( queueIndex == queueResetPeriod ) {
-			queueIndex = 0;
-			currStepQueueSize -= queueResetPeriod; 
-			queue.DeleteAt( 0, queueResetPeriod );
-		}
+	while( !isOptimimumFound() ) {
+		NeoAssert( queueIndex < queue.Size() );
 
 		const CBfsEntry entry = queue[queueIndex];
 
@@ -807,43 +735,36 @@ CTensorLayout FindOptimalConversion( const CTensorLayout& inputLayout, const ITe
 			}
 		}
 
-		// Add all plain transposes
-		// 1. Transpose last 2 axes
+		// Add all transposes which are equivalent to transposition of a batch of 2 dimensional tensors (B x H x W)
+		// 1. Transpose last 2 used axes
+		// B x H x W is (D_0...D_n-3) x D_n-2 x D_n-1
 		CTensorLayoutTranspose transpose( secondLastAxis, lastAxis );
-		if( tryAddTranspose( entry, transpose ) ) {
-			return currentOutputLayout;
-		}
-
+		addTranspose( entry, transpose );
 		// 2. Transpose non-last used axis with unused axis after last axis
+		// B x H x W is (D_0...D_i-1) x D_i x (D_i+1...D_n-1)
 		for( TBlobDim first : entry.OutputLayout ) {
 			transpose.First = first;
 			if( transpose.First == lastAxis ) {
 				continue;
 			}
 			for( transpose.Second = lastAxis + 1; transpose.Second != BD_Count; ++transpose.Second ) {
-				if( tryAddTranspose( entry, transpose ) ) {
-					return currentOutputLayout;
-				}
+				addTranspose( entry, transpose );
 			}
 		}
-
 		// 3. Transpose last used axis with unused axis less than last axis
+		// B x H x W is (D_0...D_i-1) x (D_i...D_n-2) x D_n-1
 		transpose.Second = lastAxis;
 		for( transpose.First = BD_BatchLength; transpose.First != transpose.Second; ++transpose.First ) {
 			if( entry.OutputLayout.Find( transpose.First ) != NotFound ) {
 				continue;
 			}
-			if( tryAddTranspose( entry, transpose ) ) {
-				return currentOutputLayout;
-			}
+			addTranspose( entry, transpose );
 		}
 
 		// Add all other possible transposes
 		for( transpose.First = BD_BatchLength; transpose.First != BD_Channels; ++transpose.First ) {
 			for( transpose.Second = transpose.First + 1; transpose.Second != BD_Count; ++transpose.Second ) {
-				if( tryAddTranspose( entry, transpose ) ) {
-					return currentOutputLayout;
-				}
+				addTranspose( entry, transpose );
 			}
 		}
 
@@ -862,8 +783,132 @@ CTensorLayout FindOptimalConversion( const CTensorLayout& inputLayout, const ITe
 		}
 	}
 
-	NeoAssert( false );
-	return inputLayout;
+	NeoAssert( isOptimimumFound() );
+	const int optimumIndex = optimum();
+	renameBeforeTransposes = queue[optimumIndex].PreTransposeRename;
+	queue[optimumIndex].Transposes.CopyTo( transposes );
+	renameAfterTransposes = queue[optimumIndex].PostTransposeRename;
+	return queue[optimumIndex].OutputLayout;
+}
+
+// Adds all possible renames of input layout to the queue
+void CLayoutConversionBfs::addInitialRenames( const CTensorLayout& inputLayout )
+{
+	visited.Add( tensorLayoutHash( inputLayout ) );
+	queue.SetSize( 1 );
+	queue[0].OutputLayout = inputLayout;
+
+	// Corner case - input layout is a valid layout
+	if( validator( queue[0].OutputLayout ) ) {
+		setOptimum( 0 );
+		return;
+	}
+
+	const CBfsEntry firstEntry = queue[0];
+	bruteForceRenames( firstEntry, true );
+}
+
+// Adds transposition to current bfs entry
+// Also brute-forces post-transpose renames
+void CLayoutConversionBfs::addTranspose( const CBfsEntry& entry, const CTensorLayoutTranspose& transpose )
+{
+	if( isOptimimumFound() ) {
+		return;
+	}
+
+	CBfsEntry transposedEntry = entry;
+	transposedEntry.Transposes.Add( transpose );
+
+	const int firstIndex = entry.OutputLayout.Find( transpose.First );
+	const int secondIndex = entry.OutputLayout.Find( transpose.Second );
+	if( firstIndex == NotFound && secondIndex == NotFound ) {
+		return;
+	} else if( firstIndex == NotFound ) {
+		transposedEntry.OutputLayout[secondIndex] = transpose.First;
+	} else if( secondIndex == NotFound ) {
+		transposedEntry.OutputLayout[firstIndex] =  transpose.Second;
+	} else {
+		std::swap( transposedEntry.OutputLayout[firstIndex], transposedEntry.OutputLayout[secondIndex] );
+	}
+
+	if( validator( transposedEntry.OutputLayout ) ) {
+		queue.Add( transposedEntry );
+		setOptimum( queue.Size() - 1 );
+		return;
+	}
+
+	const int hash = tensorLayoutHash( transposedEntry.OutputLayout );
+	if( !visited.Has( hash ) ) {
+		queue.Add( transposedEntry );
+		visited.Add( hash );
+	}
+
+	bruteForceRenames( transposedEntry, false );
+}
+
+// Brute-forces all possible renames for current bfs entry
+void CLayoutConversionBfs::bruteForceRenames( const CBfsEntry& entry, bool addToQueue )
+{
+	if( isOptimimumFound() ) {
+		return;
+	}
+
+	CBfsEntry bruteForceEntry = entry;
+	const bool isPostRename = ( !entry.PreTransposeRename.From.IsEmpty() || !entry.Transposes.IsEmpty() );
+	const CTensorLayout& inputLayout = entry.OutputLayout; // Initial layout, it won't be changed during brute-forced
+	// Rename which will be changed during brute-force
+	CTensorLayoutRename& rename = isPostRename ? bruteForceEntry.PostTransposeRename : bruteForceEntry.PreTransposeRename;
+	// Layout which will be changed during brute-force
+	CTensorLayout& outputLayout = bruteForceEntry.OutputLayout;
+
+	inputLayout.CopyTo( rename.From );
+	rename.From.QuickSort<Ascending<TBlobDim>>();
+	rename.To.SetSize( inputLayout.Size() );
+
+	static_assert( static_cast<int>( BD_Count ) == 7, "BD_Count != 7" );
+
+	auto bruteForce = [&] ( int sortedAxisIndex, auto&& bruteForce ) -> void
+	{
+		NeoPresume( !isOptimimumFound() );
+
+		const bool isLastAxis = sortedAxisIndex == outputLayout.Size() - 1;
+		const int axisIndex = inputLayout.Find( rename.From[sortedAxisIndex] );
+		const int minValue = sortedAxisIndex == 0 ? 0 : static_cast<int>( rename.To[sortedAxisIndex - 1] ) + 1;
+		const int maxValue = static_cast<int>( BD_Count ) - ( outputLayout.Size() - sortedAxisIndex );
+
+		for( int value = minValue; value <= maxValue; ++value ) {
+			rename.To[sortedAxisIndex] = static_cast<TBlobDim>( value );
+			outputLayout[axisIndex] = static_cast<TBlobDim>( value );
+			if( isLastAxis ) {
+				const bool isValid = validator( outputLayout );
+				const int hash = ( addToQueue || isValid ) ? tensorLayoutHash( outputLayout ) : 0;
+				NeoPresume( !isValid || !visited.Has( hash ) ); // if layout is valid then it shouldn't be visited before
+				if( isValid || ( addToQueue && !visited.Has( hash ) ) ) {
+					visited.Add( hash );
+					queue.Add( bruteForceEntry );
+				}
+				if( isValid ) {
+					setOptimum( queue.Size() - 1 );
+					return;
+				}
+			} else {
+				bruteForce( sortedAxisIndex + 1, bruteForce );
+				if( isOptimimumFound() ) {
+					return;
+				}
+			}
+		}
+	};
+
+	bruteForce( 0, bruteForce );
+}
+
+CTensorLayout FindOptimalConversion( const CTensorLayout& inputLayout, const ITensorLayoutValidator& validator,
+	CTensorLayoutRename& renameBeforeTransposes, CFastArray<CTensorLayoutTranspose, 2>& transposes,
+	CTensorLayoutRename& renameAfterTransposes )
+{
+	return CLayoutConversionBfs( validator ).Find( inputLayout, renameBeforeTransposes, transposes,
+		renameAfterTransposes );
 }
 
 

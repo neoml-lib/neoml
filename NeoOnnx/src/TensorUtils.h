@@ -240,7 +240,7 @@ struct CTensorLayoutTranspose {
 	TBlobDim Second;
 };
 
-// Finds optimal way to convert inputLayout into layout where TFunctor()( layout ) == true
+// Finds optimal way to convert inputLayout into a valid layout ( validator( layout ) == true )
 CTensorLayout FindOptimalConversion( const CTensorLayout& inputLayout, const ITensorLayoutValidator& validator,
 	CTensorLayoutRename& renameBeforeTransposes, CFastArray<CTensorLayoutTranspose, 2>& transposes,
 	CTensorLayoutRename& renameAfterTransposes );
