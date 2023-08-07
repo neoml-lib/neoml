@@ -664,18 +664,21 @@ public:
 private:
 	struct CBfsEntry {
 		CBfsEntry() = default;
+
 		CBfsEntry( const CTensorLayoutRename& rename, const CTensorLayout& outputLayout ) :
 			PreTransposeRename( rename ),
 			OutputLayout( outputLayout )
 		{
-		};
+		}
+
 		CBfsEntry( const CBfsEntry& other ) :
 			PreTransposeRename( other.PreTransposeRename ),
 			OutputLayout( other.OutputLayout ),
 			PostTransposeRename( other.PostTransposeRename )
 		{
 			other.Transposes.CopyTo( Transposes );
-		};
+		}
+
 		CBfsEntry( CBfsEntry&& other )
 		{
 			other.PreTransposeRename.From.MoveTo( PreTransposeRename.From );
@@ -684,7 +687,7 @@ private:
 			other.OutputLayout.MoveTo( OutputLayout );
 			other.PostTransposeRename.From.MoveTo( PostTransposeRename.From );
 			other.PostTransposeRename.To.MoveTo( PostTransposeRename.To );
-		};
+		}
 
 		CTensorLayoutRename PreTransposeRename;
 		CFastArray<CTensorLayoutTranspose, 2> Transposes;
