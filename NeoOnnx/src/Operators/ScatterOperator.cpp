@@ -23,6 +23,13 @@ limitations under the License.
 
 namespace NeoOnnx {
 
+class CScatterNDLayoutValidator : public ITensorLayoutValidator {
+public:
+	bool operator()( const CTensorLayout& layout ) const override
+		{ return !IsTransposedLayout( layout ) && layout.Last() == BD_Channels; }
+	void Print() const override { std::cout << "ScatterND layout"; }
+};
+
 CScatterNDOperator::CScatterNDOperator( const onnx::NodeProto& scatterND, int opsetVersion ) :
 	CLayerOperator( scatterND, opsetVersion )
 {
@@ -46,15 +53,10 @@ void CScatterNDOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTens
 	CheckNoNullInputs( inputs );
 	CheckNoShapeInputs( inputs );
 
-	CPtr<const CUserTensor> dataTensor = AsUserTensor( *ConvertTensor( *inputs[0], CTensorLayout::IOLayout( inputs[0]->DimCount() ) ),
-		Name() + "_Data", dnn );
-
-	CTensorLayout indicesLayout = IsTransposedLayout( inputs[1]->Layout() ) ? CTensorLayout( inputs[1]->DimCount() )
-		: inputs[1]->Layout();
-	indicesLayout.Last() = BD_Channels;
-	CPtr<const CUserTensor> indicesTensor = AsUserTensor( *ConvertTensor( *inputs[1], indicesLayout ),
+	CPtr<const CUserTensor> dataTensor = AsUserTensor(
+		*ConvertTensor( *inputs[0], CTensorLayout::IOLayout( inputs[0]->DimCount() ) ), Name() + "_Data", dnn );
+	CPtr<const CUserTensor> indicesTensor = AsUserTensor( *ConvertTensor( *inputs[1], CScatterNDLayoutValidator() ),
 		Name() + "_Indices", dnn );
-
 	CPtr<const CUserTensor> updatesTensor = AsUserTensor( *ConvertTensor( *inputs[2], COnnxTensorLayoutValidator() ),
 		Name() + "_Indices", dnn );
 
