@@ -27,8 +27,6 @@ namespace NeoOnnx {
 // Validator for batch normalization operator
 class CBatchNormLayoutValidator : public ITensorLayoutValidator {
 public:
-	CBatchNormLayoutValidator() {}
-
 	bool operator()( const CTensorLayout& layout ) const override;
 	void Print() const override { std::cout << "Batch normalization layout"; }
 };
