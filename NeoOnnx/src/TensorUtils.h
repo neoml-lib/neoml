@@ -254,7 +254,7 @@ public:
 	explicit CTensorLayoutMatchValidator( const CTensorLayout& etalon ) : etalon( etalon ) {}
 
 	bool operator()( const CTensorLayout& layout ) const override { return etalon == layout; }
-	void Print() const override { for( TBlobDim dim : etalon ) std::cout << "\t" << (int)dim; }
+	void Print() const override { for( TBlobDim dim : etalon ) std::cout << (int)dim << "\t"; }
 
 private:
 	CTensorLayout etalon;

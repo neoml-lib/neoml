@@ -743,7 +743,7 @@ CTensorLayout CLayoutConversionBfs::Find( const CTensorLayout& inputLayout, CTen
 			for( TBlobDim dim : inputLayout ) {
 				std::cout << '\t' << (int ) dim;
 			}
-			std::cout << "\n\tTo:";
+			std::cout << "\n\tTo:\t";
 			validator.Print();
 			std::cout << '\n';
 		}
@@ -876,6 +876,5 @@ CTensorLayout FindOptimalConversion( const CTensorLayout& inputLayout, const ITe
 	return CLayoutConversionBfs( validator ).Find( inputLayout, renameBeforeTransposes, transposes,
 		renameAfterTransposes );
 }
-
 
 } // namespace NeoOnnx
