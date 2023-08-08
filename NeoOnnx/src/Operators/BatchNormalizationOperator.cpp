@@ -24,30 +24,6 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-// Validator for batch normalization operator
-class CBatchNormLayoutValidator : public ITensorLayoutValidator {
-public:
-	bool operator()( const CTensorLayout& layout ) const override;
-	void Print() const override { std::cout << "Batch normalization layout"; }
-};
-
-bool CBatchNormLayoutValidator::operator()( const CTensorLayout& layout ) const
-{
-	if( ( !layout.IsEmpty() && layout[0] >= BD_Height ) || ( layout.Size() > 1 && layout[1] != BD_Channels ) ) {
-		return false;
-	}
-
-	for( int i = 2; i < layout.Size(); ++i ) {
-		if( layout[i] < BD_Height || layout[i] == BD_Channels ) {
-			return false;
-		}
-	}
-
-	return true;
-}
-
-//---------------------------------------------------------------------------------------------------------------------
-
 // Calculates NeoML::CBatchNormalizationLayer's final params blob from onnx operator's inputs
 static CPtr<CDnnBlob> calculateFinalParams( float eps, const CTensorArray& inputs )
 {

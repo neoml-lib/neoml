@@ -64,10 +64,8 @@ void CConvTransposeOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, C
 		CheckNeoOnnxSupport( inputs[2]->Type() == TTensorType::Data, "user-provided bias", *this );
 	}
 
-	CTensorLayout neoMLLayout = isConv2D
-		? CTensorLayout{ BD_BatchWidth, BD_Channels, BD_Height, BD_Width } //2d- convTranspose
-		: CTensorLayout{ BD_BatchWidth, BD_Channels, BD_Height }; //1d- convTranspose
-	CPtr<const CDataTensor> filter = dynamic_cast<const CDataTensor*>( ConvertTensor( *inputs[1], neoMLLayout ).Ptr() );
+	CPtr<const CDataTensor> filter = dynamic_cast<const CDataTensor*>(
+		ConvertTensor( *inputs[1], CNeoMLImageLayoutValidator() ).Ptr() );
 
 	const int filterCount = filter->DimSize( 1 );
 	const int convDims = inputs[0]->DimCount() - 2;
@@ -84,11 +82,11 @@ void CConvTransposeOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, C
 	CPtr<COnnxConvTransposeLayer> transposedConv = new COnnxConvTransposeLayer( mathEngine );
 	transposedConv->SetName( Name() );
 	transposedConv->SetFilterCount( filterCount );
-	//1d- convTranspose
+	// 1d-convTranspose
 	transposedConv->SetFilterHeight( kernelShape[0] );
 	transposedConv->SetStrideHeight( strides[0] );
 	transposedConv->SetDilationHeight( dilations[0] );
-	//2d- convTranspose
+	// 2d-convTranspose
 	if( isConv2D ) {
 		transposedConv->SetFilterWidth( kernelShape[1] );
 		transposedConv->SetStrideWidth( strides[1] );
@@ -116,10 +114,11 @@ void CConvTransposeOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, C
 		transposedConv->SetZeroFreeTerm( true );
 	}
 
-	CPtr<const CUserTensor> currTensor = AsUserTensor( *ConvertTensor( *inputs[0], neoMLLayout ), Name() + "_Source", dnn );
+	CPtr<const CUserTensor> currTensor = AsUserTensor( *ConvertTensor( *inputs[0], CNeoMLImageLayoutValidator() ),
+		Name() + "_Source", dnn );
 	transposedConv->Connect( 0, *currTensor->Layer(), currTensor->OutputIndex() );
 	dnn.AddLayer( *transposedConv );
-	currTensor = new CUserTensor( neoMLLayout, CLayerOutput( transposedConv, 0 ) );
+	currTensor = new CUserTensor( currTensor->Layout(), CLayerOutput( transposedConv, 0 ) );
 	outputs.Add( currTensor.Ptr() );
 }
 

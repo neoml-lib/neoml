@@ -147,6 +147,7 @@ public:
 
 // Converts tensor to the layout accepted by validator
 CPtr<const CTensorBase> ConvertTensor( const CTensorBase& inputTensor, const ITensorLayoutValidator& validator );
+CPtr<const CUserTensor> ConvertTensor( const CUserTensor& inputTensor, const ITensorLayoutValidator& validator );
 
 // Converts tensor to the given layout
 CPtr<const CTensorBase> ConvertTensor( const CTensorBase& inputTensor, const CTensorLayout& destLayout );
@@ -266,6 +267,50 @@ public:
 	bool operator()( const CTensorLayout& layout ) const override { return !IsTransposedLayout( layout ); }
 	void Print() const override { std::cout << "Any ONNX layout"; }
 };
+
+// Validator which considers NeoML-compatible image layouts as valid
+class CNeoMLImageLayoutValidator : public ITensorLayoutValidator {
+public:
+	bool operator()( const CTensorLayout& layout ) const override;
+	void Print() const override { std::cout << "NeoML image layout"; }
+};
+
+inline bool CNeoMLImageLayoutValidator::operator()( const CTensorLayout& layout ) const
+{
+	if( ( !layout.IsEmpty() && layout[0] >= BD_Height ) || ( layout.Size() > 1 && layout[1] != BD_Channels ) ) {
+		return false;
+	}
+
+	for( int i = 2; i < layout.Size(); ++i ) {
+		if( layout[i] != BD_Height + ( i - 2 ) ) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+// Validator for batch normalization operator
+class CBatchNormLayoutValidator : public ITensorLayoutValidator {
+public:
+	bool operator()( const CTensorLayout& layout ) const override;
+	void Print() const override { std::cout << "Batch normalization layout"; }
+};
+
+bool CBatchNormLayoutValidator::operator()( const CTensorLayout& layout ) const
+{
+	if( ( !layout.IsEmpty() && layout[0] >= BD_Height ) || ( layout.Size() > 1 && layout[1] != BD_Channels ) ) {
+		return false;
+	}
+
+	for( int i = 2; i < layout.Size(); ++i ) {
+		if( layout[i] < BD_Height || layout[i] == BD_Channels ) {
+			return false;
+		}
+	}
+
+	return true;
+}
 
 } // namespace NeoOnnx
 

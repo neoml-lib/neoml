@@ -262,6 +262,11 @@ CPtr<const CTensorBase> ConvertTensor( const CTensorBase& input, const ITensorLa
 	return renameDimensions( *currentTensor, renameAfterTransposes );
 }
 
+CPtr<const CUserTensor> ConvertTensor( const CUserTensor& userTensor, const ITensorLayoutValidator& validator )
+{
+	return dynamic_cast<const CUserTensor*>( ConvertTensor( static_cast<const CTensorBase&>( userTensor ), validator ).Ptr() );
+}
+
 CPtr<const CTensorBase> ConvertTensor( const CTensorBase& input, const CTensorLayout& outputLayout )
 {
 	// Trivial case
