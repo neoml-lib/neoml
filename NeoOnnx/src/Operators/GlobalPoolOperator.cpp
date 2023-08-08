@@ -100,7 +100,7 @@ void CGlobalPoolOperatorBase::AddLayers( const CTensorArray& inputs, CDnn& dnn, 
 
 	CPtr<const CUserTensor> curr = AsUserTensor( *ConvertTensor( *inputs[0], CGlobalPoolLayoutValidator( axes ) ),
 		Name() + "_Source", dnn );
-	curr = prepareInput( *curr, axes, dnn );
+	curr = prepareInput( *curr, dnn );
 	curr = addPoolingLayer( *curr, axes, dnn );
 	curr = addPostProcessing( *curr, dnn );
 
@@ -108,7 +108,7 @@ void CGlobalPoolOperatorBase::AddLayers( const CTensorArray& inputs, CDnn& dnn, 
 }
 
 // Prepares input for NeoML's CGlobal*PoolingLayer
-CPtr<const CUserTensor> CGlobalPoolOperatorBase::prepareInput( const CUserTensor& input, const CFastArray<int, 8>& axes, CDnn& dnn ) const
+CPtr<const CUserTensor> CGlobalPoolOperatorBase::prepareInput( const CUserTensor& input, CDnn& dnn ) const
 {
 	// Add pre-processing layers if needed
 	static_assert( PT_Count == 5, "PT_Count != 5" );

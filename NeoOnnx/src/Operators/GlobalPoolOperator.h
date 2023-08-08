@@ -54,7 +54,7 @@ private:
 	// Pool type
 	TPoolType poolType;
 
-	CPtr<const CUserTensor> prepareInput( const CUserTensor& input, const CFastArray<int, 8>& axes, CDnn& dnn ) const;
+	CPtr<const CUserTensor> prepareInput( const CUserTensor& input, CDnn& dnn ) const;
 
 	CPtr<const CUserTensor> addPoolingLayer( const CUserTensor& preparedInput, const CFastArray<int, 8>& axes, CDnn& dnn ) const;
 	CTensorLayout calcOutputLayout( const CTensorLayout& inputLayout, const CFastArray<int, 8>& axes ) const;
