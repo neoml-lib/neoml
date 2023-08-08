@@ -97,8 +97,13 @@ void CConvOperator::add2dConvLayer( const CTensorArray& inputs, bool is1dConv, C
 	const int filterCount = filter->DimSize( 0 );
 	if( group == 1 ) {
 		// Non-groupped convolution can be calculated via CConvLayer
+		CTensorLayout neoMLLayout( { BD_BatchWidth, BD_Channels, BD_Height, BD_Width } );
+		if( is1dConv ) {
+			neoMLLayout.SetSize( 3 );
+		}
+
 		conv = new CConvLayer( mathEngine );
-		filter = dynamic_cast<const CDataTensor*>( ConvertTensor( *inputs[1], CNeoMLImageLayoutValidator() ).Ptr() );
+		filter = dynamic_cast<const CDataTensor*>( ConvertTensor( *inputs[1], neoMLLayout ).Ptr() );
 	} else {
 		// Other cases of groupped convolution aren't supported by NeoML
 		CheckNeoOnnxSupport( filter->DimSize( 1 ) == 1, "non-trivial groupped conv", *this );
@@ -152,8 +157,9 @@ void CConvOperator::add2dConvLayer( const CTensorArray& inputs, bool is1dConv, C
 // Adds 3-dimensional convolution
 void CConvOperator::add3dConvLayer( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
+	CTensorLayout neoMLLayout( { BD_BatchWidth, BD_Channels, BD_Height, BD_Width, BD_Depth } );
 	CPtr<const CDataTensor> filter = dynamic_cast<const CDataTensor*>(
-		ConvertTensor( *inputs[1], CNeoMLImageLayoutValidator() ).Ptr() );
+		ConvertTensor( *inputs[1], neoMLLayout ).Ptr() );
 
 	CTensorShape kernelShape;
 	getConvKernelShape( inputs[0]->DimCount(), *filter, kernelShape );

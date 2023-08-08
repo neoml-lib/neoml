@@ -64,8 +64,10 @@ void CConvTransposeOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, C
 		CheckNeoOnnxSupport( inputs[2]->Type() == TTensorType::Data, "user-provided bias", *this );
 	}
 
-	CPtr<const CDataTensor> filter = dynamic_cast<const CDataTensor*>(
-		ConvertTensor( *inputs[1], CNeoMLImageLayoutValidator() ).Ptr() );
+	CTensorLayout neoMLLayout = isConv2D
+		? CTensorLayout{ BD_BatchWidth, BD_Channels, BD_Height, BD_Width } // 2d-convTranspose
+		: CTensorLayout{ BD_BatchWidth, BD_Channels, BD_Height }; // 1d-convTranspose
+	CPtr<const CDataTensor> filter = dynamic_cast<const CDataTensor*>( ConvertTensor( *inputs[1], neoMLLayout ).Ptr() );
 
 	const int filterCount = filter->DimSize( 1 );
 	const int convDims = inputs[0]->DimCount() - 2;

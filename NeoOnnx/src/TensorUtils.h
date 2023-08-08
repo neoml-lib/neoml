@@ -297,7 +297,7 @@ public:
 	void Print() const override { std::cout << "Batch normalization layout"; }
 };
 
-bool CBatchNormLayoutValidator::operator()( const CTensorLayout& layout ) const
+inline bool CBatchNormLayoutValidator::operator()( const CTensorLayout& layout ) const
 {
 	if( ( !layout.IsEmpty() && layout[0] >= BD_Height ) || ( layout.Size() > 1 && layout[1] != BD_Channels ) ) {
 		return false;
