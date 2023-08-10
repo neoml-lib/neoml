@@ -28,7 +28,6 @@ public:
 	explicit CObjectNormLayoutValidator( const CFastArray<int, 8>& _axes ) { _axes.CopyTo( axes ); }
 
 	bool operator()( const CTensorLayout& layout ) const override;
-	void Print() const override { std::cout << "ObjectNorm layout"; }
 
 private:
 	CFastArray<int, 8> axes; // axes which will be normalized
@@ -216,23 +215,21 @@ CLayerOutput<> CLayerNormFusionOptimizer::changeLayout( const CLayerOutput<>& in
 	const CTensorLayout& inputLayout, const ITensorLayoutValidator& validator,
 	CTensorLayout& outputLayout )
 {
-	CTensorLayoutRename preTransposeRename;
-	CFastArray<CTensorLayoutTranspose, 2> transposes;
-	CTensorLayoutRename postTransposeRename;
-	outputLayout = FindOptimalConversion( inputLayout, validator,
-		preTransposeRename, transposes, postTransposeRename );
+	CTensorLayoutConversion conversion;
+	outputLayout = FindConversion( inputLayout, validator, conversion );
 
-	CLayerOutput<> currentOutput = addTensorLayoutRename( inputData, preTransposeRename, graph );
+	CLayerOutput<> currentOutput = addTensorLayoutRename( inputData, conversion.PreTransposeRename, graph );
 
-	CTensorLayout transposeInputLayout = preTransposeRename.To.IsEmpty() ? inputLayout : preTransposeRename.To;
+	CTensorLayout transposeInputLayout = conversion.PreTransposeRename.To.IsEmpty() ? inputLayout
+		: conversion.PreTransposeRename.To;
 	CTensorLayout transposeOutputLayout = transposeInputLayout;
-	for( const CTensorLayoutTranspose& transpose : transposes ) {
+	for( const CTensorLayoutTranspose& transpose : conversion.Transposes ) {
 		currentOutput = addTensorLayoutTranspose( currentOutput, transposeInputLayout, transposeOutputLayout,
 			transpose, graph );
 		transposeOutputLayout.CopyTo( transposeInputLayout );
 	}
 
-	return addTensorLayoutRename( currentOutput, postTransposeRename, graph );
+	return addTensorLayoutRename( currentOutput, conversion.PostTransposeRename, graph );
 }
 
 int CLayerNormFusionOptimizer::Apply()

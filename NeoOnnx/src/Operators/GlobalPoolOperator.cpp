@@ -29,7 +29,6 @@ public:
 	explicit CGlobalPoolLayoutValidator( const CFastArray<int, 8>& _pooledAxes );
 
 	bool operator()( const CTensorLayout& layout ) const override;
-	void Print() const override { std::cout << "Global poooling layout"; }
 
 private:
 	CFastArray<int, 8> pooledAxes;

@@ -242,26 +242,23 @@ static CPtr<const CTensorBase> swapDimensions( const CTensorBase& input, TBlobDi
 
 CPtr<const CTensorBase> ConvertTensor( const CTensorBase& input, const ITensorLayoutValidator& validator )
 {
-	CTensorLayoutRename renameBeforeTransposes;
-	CFastArray<CTensorLayoutTranspose, 2> transposes;
-	CTensorLayoutRename renameAfterTransposes;
-	CTensorLayout result = FindOptimalConversion( input.Layout(), validator,
-		renameBeforeTransposes, transposes, renameAfterTransposes );
+	CTensorLayoutConversion conversion;
+	( void ) FindConversion( input.Layout(), validator, conversion );
 
 	CPtr<const CTensorBase> currentTensor = &input;
 
 	// Step 1: renaming dimensions before transpositions (if needed)
 	// Renaming means assigning outputLayout's dimensions to the ones of input.Layout()
 	// without data transpositions
-	currentTensor = renameDimensions( *currentTensor, renameBeforeTransposes );
+	currentTensor = renameDimensions( *currentTensor, conversion.PreTransposeRename );
 
 	// Step 2: reordering dimensions (apply transpositions)
-	for( const CTensorLayoutTranspose& transpose : transposes ) {
+	for( const CTensorLayoutTranspose& transpose : conversion.Transposes ) {
 		currentTensor = swapDimensions( *currentTensor, transpose.First, transpose.Second );
 	}
 
 	// Step 3: renaming dimensions after transpositions (if needed)
-	return renameDimensions( *currentTensor, renameAfterTransposes );
+	return renameDimensions( *currentTensor, conversion.PostTransposeRename );
 }
 
 CPtr<const CUserTensor> ConvertTensor( const CUserTensor& userTensor, const ITensorLayoutValidator& validator )
@@ -628,40 +625,16 @@ public:
 	explicit CLayoutConversionBfs( const ITensorLayoutValidator& validator ) :
 		validator( validator ), queueResultIndex( NotFound ) {}
 
-	CTensorLayout Find( const CTensorLayout& inputLayout, CTensorLayoutRename& renameBeforeTransposes,
-		CFastArray<CTensorLayoutTranspose, 2>& transposes, CTensorLayoutRename& renameAfterTransposes );
+	CTensorLayout Find( const CTensorLayout& inputLayout, CTensorLayoutConversion& conversion );
 
 private:
 	struct CBfsEntry {
 		CBfsEntry() = default;
 
-		CBfsEntry( const CTensorLayoutRename& rename, const CTensorLayout& outputLayout ) :
-			PreTransposeRename( rename ),
-			OutputLayout( outputLayout )
-		{
-		}
+		CBfsEntry( const CTensorLayoutRename& rename, const CTensorLayout& outputLayout ) : OutputLayout( outputLayout )
+			{ Conversion.PreTransposeRename = rename; }
 
-		CBfsEntry( const CBfsEntry& other ) :
-			PreTransposeRename( other.PreTransposeRename ),
-			PostTransposeRename( other.PostTransposeRename ),
-			OutputLayout( other.OutputLayout )
-		{
-			other.Transposes.CopyTo( Transposes );
-		}
-
-		CBfsEntry( CBfsEntry&& other )
-		{
-			other.PreTransposeRename.From.MoveTo( PreTransposeRename.From );
-			other.PreTransposeRename.To.MoveTo( PreTransposeRename.To );
-			other.Transposes.MoveTo( Transposes );
-			other.OutputLayout.MoveTo( OutputLayout );
-			other.PostTransposeRename.From.MoveTo( PostTransposeRename.From );
-			other.PostTransposeRename.To.MoveTo( PostTransposeRename.To );
-		}
-
-		CTensorLayoutRename PreTransposeRename;
-		CFastArray<CTensorLayoutTranspose, 2> Transposes;
-		CTensorLayoutRename PostTransposeRename;
+		CTensorLayoutConversion Conversion;
 		CTensorLayout OutputLayout;
 	};
 
@@ -679,8 +652,7 @@ private:
 	void bruteForceRenames( const CBfsEntry& entry, bool addToQueue );
 };
 
-CTensorLayout CLayoutConversionBfs::Find( const CTensorLayout& inputLayout, CTensorLayoutRename& renameBeforeTransposes,
-	CFastArray<CTensorLayoutTranspose, 2>& transposes, CTensorLayoutRename& renameAfterTransposes )
+CTensorLayout CLayoutConversionBfs::Find( const CTensorLayout& inputLayout, CTensorLayoutConversion& conversion )
 {
 	setOptimum( NotFound );
 	addInitialRenames( inputLayout );
@@ -690,8 +662,6 @@ CTensorLayout CLayoutConversionBfs::Find( const CTensorLayout& inputLayout, CTen
 
 	int queueIndex = 0;
 
-	int currStepQueueSize = queue.Size();
-	int step = 0;
 	while( !isOptimumFound() ) {
 		NeoAssert( queueIndex < queue.Size() );
 
@@ -742,25 +712,11 @@ CTensorLayout CLayoutConversionBfs::Find( const CTensorLayout& inputLayout, CTen
 		}
 
 		queueIndex++;
-		if( queueIndex == currStepQueueSize ) {
-			currStepQueueSize = queue.Size();
-			++step;
-			std::cout << "Failed to find a way in " << step << " transposes\n";
-			std::cout << "\tFrom:";
-			for( TBlobDim dim : inputLayout ) {
-				std::cout << '\t' << (int ) dim;
-			}
-			std::cout << "\n\tTo:\t";
-			validator.Print();
-			std::cout << '\n';
-		}
 	}
 
 	NeoAssert( isOptimumFound() );
 	const int optimumIndex = optimum();
-	renameBeforeTransposes = queue[optimumIndex].PreTransposeRename;
-	queue[optimumIndex].Transposes.CopyTo( transposes );
-	renameAfterTransposes = queue[optimumIndex].PostTransposeRename;
+	conversion = queue[optimumIndex].Conversion;
 	return queue[optimumIndex].OutputLayout;
 }
 
@@ -790,7 +746,7 @@ void CLayoutConversionBfs::addTranspose( const CBfsEntry& entry, const CTensorLa
 	}
 
 	CBfsEntry transposedEntry = entry;
-	transposedEntry.Transposes.Add( transpose );
+	transposedEntry.Conversion.Transposes.Add( transpose );
 
 	const int firstIndex = entry.OutputLayout.Find( transpose.First );
 	const int secondIndex = entry.OutputLayout.Find( transpose.Second );
@@ -827,10 +783,12 @@ void CLayoutConversionBfs::bruteForceRenames( const CBfsEntry& entry, bool addTo
 	}
 
 	CBfsEntry bruteForceEntry = entry;
-	const bool isPostRename = ( !entry.PreTransposeRename.From.IsEmpty() || !entry.Transposes.IsEmpty() );
+	const bool isPostRename = ( !entry.Conversion.PreTransposeRename.From.IsEmpty()
+		|| !entry.Conversion.Transposes.IsEmpty() );
 	const CTensorLayout& inputLayout = entry.OutputLayout; // Initial layout, it won't be changed during brute-forced
 	// Rename which will be changed during brute-force
-	CTensorLayoutRename& rename = isPostRename ? bruteForceEntry.PostTransposeRename : bruteForceEntry.PreTransposeRename;
+	CTensorLayoutRename& rename = isPostRename ? bruteForceEntry.Conversion.PostTransposeRename
+		: bruteForceEntry.Conversion.PreTransposeRename;
 	// Layout which will be changed during brute-force
 	CTensorLayout& outputLayout = bruteForceEntry.OutputLayout;
 
@@ -876,12 +834,12 @@ void CLayoutConversionBfs::bruteForceRenames( const CBfsEntry& entry, bool addTo
 	bruteForce( 0, bruteForce );
 }
 
-CTensorLayout FindOptimalConversion( const CTensorLayout& inputLayout, const ITensorLayoutValidator& validator,
-	CTensorLayoutRename& renameBeforeTransposes, CFastArray<CTensorLayoutTranspose, 2>& transposes,
-	CTensorLayoutRename& renameAfterTransposes )
+//---------------------------------------------------------------------------------------------------------------------
+
+CTensorLayout FindConversion( const CTensorLayout& inputLayout, const ITensorLayoutValidator& validator,
+	CTensorLayoutConversion& conversion )
 {
-	return CLayoutConversionBfs( validator ).Find( inputLayout, renameBeforeTransposes, transposes,
-		renameAfterTransposes );
+	return CLayoutConversionBfs( validator ).Find( inputLayout, conversion );
 }
 
 } // namespace NeoOnnx

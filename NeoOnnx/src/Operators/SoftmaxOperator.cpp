@@ -29,7 +29,6 @@ public:
 	CSoftmaxLayoutValidator( int opsetVersion, int axis ) : opsetVersion( opsetVersion ), axis( axis ) {}
 
 	bool operator()( const CTensorLayout& layout ) const override;
-	void Print() const override { std::cout << "Softmax layout"; }
 
 private:
 	int opsetVersion;

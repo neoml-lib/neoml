@@ -27,7 +27,6 @@ class CScatterNDLayoutValidator : public ITensorLayoutValidator {
 public:
 	bool operator()( const CTensorLayout& layout ) const override
 		{ return !IsTransposedLayout( layout ) && layout.Last() == BD_Channels; }
-	void Print() const override { std::cout << "ScatterND layout"; }
 };
 
 CScatterNDOperator::CScatterNDOperator( const onnx::NodeProto& scatterND, int opsetVersion ) :

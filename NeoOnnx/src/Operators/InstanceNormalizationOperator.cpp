@@ -27,7 +27,6 @@ namespace NeoOnnx {
 // Validator for CObjectNormalizationLayer
 class CInstanceNormLayoutValidator : public ITensorLayoutValidator {
 	bool operator()( const CTensorLayout& layout ) const override;
-	void Print() const override { std::cout << "Object norm layout"; }
 };
 
 bool CInstanceNormLayoutValidator::operator()( const CTensorLayout& layout ) const
