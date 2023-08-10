@@ -24,7 +24,7 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-// Validator for CObjectNormalizationLayer
+// Validator for InstanceNorm operator
 class CInstanceNormLayoutValidator : public ITensorLayoutValidator {
 	bool operator()( const CTensorLayout& layout ) const override;
 };
