@@ -233,7 +233,7 @@ struct CTensorLayoutRename {
 	CTensorLayout To;
 };
 
-// Information about swapping
+// Information about transposition (swapping 2 dimensions)
 struct CTensorLayoutTranspose {
 	CTensorLayoutTranspose( TBlobDim first, TBlobDim second ) : First( first ), Second( second ) {}
 
@@ -241,10 +241,60 @@ struct CTensorLayoutTranspose {
 	TBlobDim Second;
 };
 
+// Information about layout conversion
+// The chain is
+//     -> [PreTransposeRename] -> [Transpose]* -> [PostTransposeRename] ->
+// (each part is optional, trivial conversion means no operations at all)
+struct CTensorLayoutConversion {
+	CTensorLayoutRename PreTransposeRename;
+	CFastArray<CTensorLayoutTranspose, 2> Transposes;
+	CTensorLayoutRename PostTransposeRename;
+
+	CTensorLayoutConversion() = default;
+	~CTensorLayoutConversion() = default;
+	CTensorLayoutConversion( const CTensorLayoutConversion& other );
+	CTensorLayoutConversion( CTensorLayoutConversion&& other );
+	CTensorLayoutConversion& operator=( const CTensorLayoutConversion& other );
+	CTensorLayoutConversion& operator=( CTensorLayoutConversion&& other );
+};
+
+inline CTensorLayoutConversion::CTensorLayoutConversion( const CTensorLayoutConversion& other ) :
+	PreTransposeRename( other.PreTransposeRename ),
+	PostTransposeRename( other.PostTransposeRename )
+{
+	other.Transposes.CopyTo( Transposes );
+}
+
+inline CTensorLayoutConversion::CTensorLayoutConversion( CTensorLayoutConversion&& other )
+{
+	other.PreTransposeRename.From.MoveTo( PreTransposeRename.From );
+	other.PreTransposeRename.To.MoveTo( PreTransposeRename.To );
+	other.Transposes.MoveTo( Transposes );
+	other.PostTransposeRename.From.MoveTo( PostTransposeRename.From );
+	other.PostTransposeRename.To.MoveTo( PostTransposeRename.To );
+}
+
+inline CTensorLayoutConversion& CTensorLayoutConversion::operator=( const CTensorLayoutConversion& other )
+{
+	PreTransposeRename = other.PreTransposeRename;
+	other.Transposes.CopyTo( Transposes );
+	PostTransposeRename = other.PostTransposeRename;
+	return *this;
+}
+
+inline CTensorLayoutConversion& CTensorLayoutConversion::operator=( CTensorLayoutConversion&& other )
+{
+	other.PreTransposeRename.From.MoveTo( PreTransposeRename.From );
+	other.PreTransposeRename.To.MoveTo( PreTransposeRename.To );
+	other.Transposes.MoveTo( Transposes );
+	other.PostTransposeRename.From.MoveTo( PostTransposeRename.From );
+	other.PostTransposeRename.To.MoveTo( PostTransposeRename.To );
+	return *this;
+}
+
 // Finds optimal way to convert inputLayout into a valid layout ( validator( layout ) == true )
-CTensorLayout FindOptimalConversion( const CTensorLayout& inputLayout, const ITensorLayoutValidator& validator,
-	CTensorLayoutRename& renameBeforeTransposes, CFastArray<CTensorLayoutTranspose, 2>& transposes,
-	CTensorLayoutRename& renameAfterTransposes );
+CTensorLayout FindConversion( const CTensorLayout& inputLayout, const ITensorLayoutValidator& validator,
+	CTensorLayoutConversion& conversion );
 
 //---------------------------------------------------------------------------------------------------------------------
 // Implementations of ITensorLayoutValidator
