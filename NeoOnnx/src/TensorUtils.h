@@ -141,8 +141,6 @@ public:
 
 	// Returns whether the given layout satisfies the criteria
 	virtual bool operator()( const CTensorLayout& layout ) const = 0;
-	// TODO: Debug, delete after debugging
-	virtual void Print() const = 0;
 };
 
 // Converts tensor to the layout accepted by validator
@@ -305,7 +303,6 @@ public:
 	explicit CTensorLayoutMatchValidator( const CTensorLayout& etalon ) : etalon( etalon ) {}
 
 	bool operator()( const CTensorLayout& layout ) const override { return etalon == layout; }
-	void Print() const override { for( TBlobDim dim : etalon ) std::cout << (int)dim << "\t"; }
 
 private:
 	CTensorLayout etalon;
@@ -315,14 +312,12 @@ private:
 class COnnxTensorLayoutValidator : public ITensorLayoutValidator {
 public:
 	bool operator()( const CTensorLayout& layout ) const override { return !IsTransposedLayout( layout ); }
-	void Print() const override { std::cout << "Any ONNX layout"; }
 };
 
 // Validator which considers NeoML-compatible image layouts as valid
 class CNeoMLImageLayoutValidator : public ITensorLayoutValidator {
 public:
 	bool operator()( const CTensorLayout& layout ) const override;
-	void Print() const override { std::cout << "NeoML image layout"; }
 };
 
 inline bool CNeoMLImageLayoutValidator::operator()( const CTensorLayout& layout ) const
@@ -344,7 +339,6 @@ inline bool CNeoMLImageLayoutValidator::operator()( const CTensorLayout& layout 
 class CBatchNormLayoutValidator : public ITensorLayoutValidator {
 public:
 	bool operator()( const CTensorLayout& layout ) const override;
-	void Print() const override { std::cout << "Batch normalization layout"; }
 };
 
 inline bool CBatchNormLayoutValidator::operator()( const CTensorLayout& layout ) const

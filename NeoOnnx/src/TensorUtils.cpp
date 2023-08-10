@@ -660,8 +660,6 @@ CTensorLayout CLayoutConversionBfs::Find( const CTensorLayout& inputLayout, CTen
 
 	int queueIndex = 0;
 
-	int currStepQueueSize = queue.Size();
-	int step = 0;
 	while( !isOptimimumFound() ) {
 		NeoAssert( queueIndex < queue.Size() );
 
@@ -712,18 +710,6 @@ CTensorLayout CLayoutConversionBfs::Find( const CTensorLayout& inputLayout, CTen
 		}
 
 		queueIndex++;
-		if( queueIndex == currStepQueueSize ) {
-			currStepQueueSize = queue.Size();
-			++step;
-			std::cout << "Failed to find a way in " << step << " transposes\n";
-			std::cout << "\tFrom:";
-			for( TBlobDim dim : inputLayout ) {
-				std::cout << '\t' << (int ) dim;
-			}
-			std::cout << "\n\tTo:\t";
-			validator.Print();
-			std::cout << '\n';
-		}
 	}
 
 	NeoAssert( isOptimimumFound() );
