@@ -26,19 +26,21 @@ COnnxTransformHelper::COnnxTransformHelper( IMathEngine& mathEngine ) :
 	transformInfo.Add( BD_Count, BD_Count );
 }
 
-static const int OnnxTransformHelperVersion = 1;
+COnnxTransformHelper::COnnxTransformHelper( IMathEngine& mathEngine, const CFastArray<TBlobDim, 8>& _inputLayout,
+		const CFastArray<TBlobDim, 8>& _outputLayout ) :
+	COnnxTransformHelper( mathEngine )
+{
+	_inputLayout.CopyTo( inputLayout );
+	_outputLayout.CopyTo( outputLayout );
+}
+
+static const int OnnxTransformHelperVersion = 0;
 
 void COnnxTransformHelper::Serialize( CArchive& archive )
 {
-	const int version = archive.SerializeVersion( OnnxTransformHelperVersion );
+	archive.SerializeVersion( OnnxTransformHelperVersion );
 	COnnxLayerBase::Serialize( archive );
 	transformInfo.Serialize( archive );
-
-	if( version == 0 ) {
-		outputLayout.Empty();
-	} else {
-		outputLayout.Serialize( archive );
-	}
 }
 
 void COnnxTransformHelper::CalculateShapes()

@@ -22,7 +22,6 @@ namespace NeoML {
 // Forward declaration(s)
 class CBaseLayer;
 class CConvLayer;
-struct CDnnOptimizationReport;
 class COnnxSourceHelper;
 class COnnxTransformHelper;
 class COnnxTransposeHelper;
@@ -41,7 +40,7 @@ public:
 		graph( graph )
 	{}
 
-	void Apply();
+	int Apply();
 
 private:
 	struct CSEBlockInfo final {

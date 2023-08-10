@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,6 +22,44 @@ limitations under the License.
 #include "onnx.pb.h"
 
 namespace NeoOnnx {
+
+// Validator for global pool operators
+class CGlobalPoolLayoutValidator : public ITensorLayoutValidator {
+public:
+	explicit CGlobalPoolLayoutValidator( const CFastArray<int, 8>& _pooledAxes );
+
+	bool operator()( const CTensorLayout& layout ) const override;
+	void Print() const override { std::cout << "Global poooling layout"; }
+
+private:
+	CFastArray<int, 8> pooledAxes;
+};
+
+CGlobalPoolLayoutValidator::CGlobalPoolLayoutValidator( const CFastArray<int, 8>& _pooledAxes )
+{
+	_pooledAxes.CopyTo( pooledAxes );
+	CheckNeoOnnxSupport( pooledAxes.Size() <= 3, "Global pooling may have up to 3 pooled dims" );
+	for( int i = 0; i < pooledAxes.Size(); ++i ) {
+		NeoAssert( pooledAxes[i] >= 0 );
+		NeoAssert( i == 0 || pooledAxes[i - 1] < pooledAxes[i] );
+	}
+}
+
+bool CGlobalPoolLayoutValidator::operator()( const CTensorLayout& layout ) const
+{
+	NeoAssert( layout.Size() >= pooledAxes.Size() );
+	CheckNeoOnnxSupport( layout.Size() - pooledAxes.Size() <= 4, "Global pooling may have up to 4 unpooled dims" );
+	for( int i = 0; i < layout.Size(); ++i ) {
+		if( pooledAxes.Find( i ) == NotFound && layout[i] >= BD_Height && layout[i] <= BD_Depth ) {
+			return false; // non-pooled axes must be in { BD_BatchLength, BD_BatchWidth, BD_ListSize, BD_Channels }
+		} else if( pooledAxes.Find( i ) != NotFound && ( layout[i] < BD_Height || layout[i] == BD_Channels ) ) {
+			return false; // pooled axes must be in { BD_Height, BD_Width, BD_Depth }
+		}
+	}
+	return true;
+}
+
+//---------------------------------------------------------------------------------------------------------------------
 
 CGlobalPoolOperatorBase::CGlobalPoolOperatorBase( TPoolType _poolType, const onnx::NodeProto& onnxNode, int opsetVersion ) :
 	CLayerOperator( onnxNode, opsetVersion ),
@@ -60,8 +98,9 @@ void CGlobalPoolOperatorBase::AddLayers( const CTensorArray& inputs, CDnn& dnn, 
 		return;
 	}
 
-	CPtr<const CUserTensor> curr = AsUserTensor( *inputs[0], Name() + "_Source", dnn );
-	curr = prepareInput( *curr, axes, dnn );
+	CPtr<const CUserTensor> curr = AsUserTensor( *ConvertTensor( *inputs[0], CGlobalPoolLayoutValidator( axes ) ),
+		Name() + "_Source", dnn );
+	curr = prepareInput( *curr, dnn );
 	curr = addPoolingLayer( *curr, axes, dnn );
 	curr = addPostProcessing( *curr, dnn );
 
@@ -69,127 +108,29 @@ void CGlobalPoolOperatorBase::AddLayers( const CTensorArray& inputs, CDnn& dnn, 
 }
 
 // Prepares input for NeoML's CGlobal*PoolingLayer
-CPtr<const CUserTensor> CGlobalPoolOperatorBase::prepareInput( const CUserTensor& input, const CFastArray<int, 8>& axes, CDnn& dnn ) const
+CPtr<const CUserTensor> CGlobalPoolOperatorBase::prepareInput( const CUserTensor& input, CDnn& dnn ) const
 {
-	// Step 1: converting to proper layout (if needed)
-	CPtr<const CUserTensor> result = convertInputLayout( input, axes );
-
-	// Step 2: add pre-processing layers if needed
+	// Add pre-processing layers if needed
 	static_assert( PT_Count == 5, "PT_Count != 5" );
 	if( poolType == PT_Min ) {
 		// MinPool( x ) == -1 * MaxPool( -1 * x )
 		CPtr<CLinearLayer> linear = new CLinearLayer( dnn.GetMathEngine() );
 		linear->SetName( Name() + "_preProcess" );
 		linear->SetMultiplier( -1 );
-		linear->Connect( 0, *result->Layer(), result->OutputIndex() );
+		linear->Connect( 0, *input.Layer(), input.OutputIndex() );
 		dnn.AddLayer( *linear );
-		result = new CUserTensor( result->Layout(), CLayerOutput( linear, 0 ) );
+		return new CUserTensor( input.Layout(), CLayerOutput( linear, 0 ) );
 	} else if( poolType == PT_L2 ) {
 		// L2Pool = Sqrt(SumPool(x^2))
 		CPtr<CPowerLayer> sqare = new CPowerLayer( dnn.GetMathEngine() );
 		sqare->SetName( Name() + "_preProcess" );
 		sqare->SetExponent( 2.f );
-		sqare->Connect( 0, *result->Layer(), result->OutputIndex() );
+		sqare->Connect( 0, *input.Layer(), input.OutputIndex() );
 		dnn.AddLayer( *sqare );
-		result = new CUserTensor( result->Layout(), CLayerOutput( sqare, 0 ) );
+		return new CUserTensor( input.Layout(), CLayerOutput( sqare, 0 ) );
 	}
 
-	return result;
-}
-
-// Check if current layout is compatible with Global*PoolingLayer
-static bool isCompatibleLayout( const CTensorLayout& layout, const CFastArray<int, 8>& pooledDims,
-	const CFastArray<int, 8>& remainingDims )
-{
-	// Check that pooled axes are BD_Height, BD_Width or BD_Depth
-	for( int i = 0; i < pooledDims.Size(); ++i ) {
-		if( layout[pooledDims[i]] < BD_Height || layout[pooledDims[i]] == BD_Channels ) {
-			return false;
-		}
-	}
-
-	// Check that remaining axes are BD_BatchLength, BD_BatchWidth, BD_ListSize or BD_Channels
-	for( int i = 0; i < remainingDims.Size(); ++i ) {
-		if( layout[remainingDims[i]] >= BD_Height && layout[remainingDims[i]] <= BD_Depth ) {
-			return false;
-		}
-	}
-
-	return true;
-}
-
-// Convert input's layout into compatible with NeoML's CGlobal*PoolingLayer
-CPtr<const CUserTensor> CGlobalPoolOperatorBase::convertInputLayout( const CUserTensor& input,
-	const CFastArray<int, 8>& axes ) const
-{
-	const CTensorLayout& inputLayout = input.Layout();
-
-	// Non-trivial dims to be pooled
-	CFastArray<int, 8> pooledDims;
-	// Non-trivial dims not to be pooled
-	CFastArray<int, 8> remainingDims;
-	int axisIndex = 0;
-	for( int dimIndex = 0; dimIndex < input.DimCount(); ++dimIndex ) {
-		if( axisIndex < axes.Size() && dimIndex == axes[axisIndex] ) {
-			pooledDims.Add( dimIndex );
-			axisIndex++;
-		} else {
-			remainingDims.Add( dimIndex );
-		}
-	}
-	CheckNeoOnnxSupport( pooledDims.Size() <= 3 && remainingDims.Size() <= 4,
-		"Global pooling which can't be emulated by NeoML", *this );
-
-	if( isCompatibleLayout( inputLayout, pooledDims, remainingDims ) ) {
-		return &input;
-	}
-
-	CTensorLayout convertedLayout = inputLayout;
-
-	{
-		// Distribute dimensions which can be pooled between non-trivial pooled dims
-		CTensorLayout possiblePoolDims( { BD_Height, BD_Width, BD_Depth } );
-		for( int i = 0; i < pooledDims.Size(); ++i ) {
-			const int index = possiblePoolDims.Find( convertedLayout[pooledDims[i]] );
-			if( index != NotFound ) {
-				possiblePoolDims.DeleteAt( index );
-			}
-		}
-
-		int possiblePoolDimIndex = 0;
-		for( int i = 0; i < pooledDims.Size(); ++i ) {
-			if( convertedLayout[pooledDims[i]] < BD_Height || convertedLayout[pooledDims[i]] > BD_Depth ) {
-				// Replaced invalid pool dims with unused
-				convertedLayout[pooledDims[i]] = possiblePoolDims[possiblePoolDimIndex++];
-			}
-		}
-	}
-
-	{
-		// Distribute dimensions which cannot be pooled between non-trivial non-pooled dims
-		CTensorLayout possibleNonPoolDims( { BD_BatchLength, BD_BatchWidth, BD_ListSize, BD_Channels } );
-		for( int i = 0; i < convertedLayout.Size(); ++i ) {
-			if( pooledDims.Find( i ) != NotFound ) {
-				continue;
-			}
-			const int index = possibleNonPoolDims.Find( convertedLayout[i] );
-			if( index != NotFound ) {
-				possibleNonPoolDims.DeleteAt( index );
-			}
-		}
-
-		int possibleNonPoolDimIndex = 0;
-		for( int i = 0; i < convertedLayout.Size(); ++i ) {
-			if( pooledDims.Find( i ) != NotFound ) {
-				continue;
-			}
-			if( convertedLayout[i] >= BD_Height && convertedLayout[i] <= BD_Depth ) {
-				convertedLayout[i] = possibleNonPoolDims[possibleNonPoolDimIndex++];
-			}
-		}
-	}
-
-	return ConvertTensor( input, convertedLayout );
+	return &input;
 }
 
 // Adds CGlobal*Pooling layer

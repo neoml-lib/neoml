@@ -18,6 +18,7 @@ limitations under the License.
 #include <type_traits>
 #include "Optimization/Graph.h"
 #include <NeoML/Dnn/Layers/Onnx/OnnxEltwiseLayer.h>
+#include "../TensorUtils.h"
 
 namespace NeoOnnx {
 
@@ -87,7 +88,7 @@ public:
 	CLayerNormFusionOptimizer( const CLayerNormFusionOptimizer& ) = delete;
 	CLayerNormFusionOptimizer( CLayerNormFusionOptimizer&& ) = delete;
 
-	void Apply();
+	int Apply();
 
 private:
 	CGraph& graph;
@@ -107,6 +108,8 @@ private:
 	// Checks if CPowerLayer is valid for CLayerNormFusionOptimizer conversion
 	bool isValidPowerLayer( const CPowerLayer& powLayer, float exponent ) const
 	{ return powLayer.GetExponent() == exponent && graph.GetInputCount( powLayer ) == 1 && graph.GetOutputCount( powLayer ) == 1; }
+	CLayerOutput<> changeLayout( const CLayerOutput<>& inputData, const CTensorLayout& inputLayout,
+		const ITensorLayoutValidator& validator, CTensorLayout& outputLayout );
 };
 
 } // namespace optimization
