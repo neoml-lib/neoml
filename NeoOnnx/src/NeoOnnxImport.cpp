@@ -30,29 +30,7 @@ limitations under the License.
 #include "GraphOutput.h"
 #include "Optimization/DnnOptimizer.h"
 
-#include <NeoML/Dnn/Layers/Onnx/OnnxTransformHelper.h>
-#include <NeoML/Dnn/Layers/Onnx/OnnxTransposeHelper.h>
-
 namespace NeoOnnx {
-
-static void printDebugInfo( const CDnn& dnn )
-{
-	CArray<const char*> layerNames;
-	dnn.GetLayerList( layerNames );
-
-	int nTransform = 0;
-	int nTranspose = 0;
-	for( const char* layerName : layerNames ) {
-		const CBaseLayer* layer = dnn.GetLayer( layerName ).Ptr();
-		if( dynamic_cast<const COnnxTransformHelper*>( layer ) != nullptr ) {
-			++nTransform;
-		} else if( dynamic_cast<const COnnxTransposeHelper*>( layer ) != nullptr ) {
-			++nTranspose;
-		}
-	}
-
-	::printf( "#Transforms:\t%d\n#Transposes:\t%d\n", nTransform, nTranspose );
-}
 
 // Checks if all of the operators are supported by NeoOnnx
 // Throws an exception if some of the operators are not supoorted
@@ -237,8 +215,7 @@ void LoadFromOnnx( const char* fileName, const CImportSettings& importSettings,
 	}
 
 	input.close();
-	// google::protobuf::ShutdownProtobufLibrary();
-	printDebugInfo( dnn );
+	google::protobuf::ShutdownProtobufLibrary();
 }
 
 void LoadFromOnnx( const void* buffer, int bufferSize, const CImportSettings& importSettings,
@@ -264,8 +241,7 @@ void LoadFromOnnx( const void* buffer, int bufferSize, const CImportSettings& im
 		throw;
 	}
 
-	// google::protobuf::ShutdownProtobufLibrary();
-	printDebugInfo( dnn );
+	google::protobuf::ShutdownProtobufLibrary();
 }
 
 } //NeoOnnx
