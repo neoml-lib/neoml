@@ -150,25 +150,19 @@ CLayerOutput<> CLayerNormFusionOptimizer::selectLayoutChange( CBaseLayer& inputL
 		}
 	};
 
-	auto processOptionalTransform = [&] () -> bool
+	auto processOptionalTransform = [&] () -> void
 	{
 		COnnxTransformHelper* transform = dynamic_cast<COnnxTransformHelper*>( currentOutput.Layer );
-		if( transform != nullptr ) {
-			if( graph.GetConnectedInputsCount( *transform, 0 ) != 1 ) {
-				return false;
-			}
+		if( transform != nullptr && graph.GetConnectedInputsCount( *transform, 0 ) == 1 ) {
 			trySetOutputLayout( transform->OutputLayout() );
 			transform->InputLayout().CopyTo( change.From );
 			graph.SelectLayer( *transform );
 			currentOutput = graph.GetConnectedOutput( *transform, 0 );
 		}
-		return true;
 	};
 
 	// Process possible COnnxTransformLayer after transposes
-	if( !processOptionalTransform() ) {
-		return CLayerOutput<>();
-	}
+	processOptionalTransform();
 
 	// Process transposes
 	while( dynamic_cast<COnnxTransposeHelper*>( currentOutput.Layer ) != nullptr ) {
@@ -183,9 +177,7 @@ CLayerOutput<> CLayerNormFusionOptimizer::selectLayoutChange( CBaseLayer& inputL
 	}
 
 	// Process possible COnnxTransformLayer before transposes
-	if( !processOptionalTransform() ) {
-		return CLayerOutput<>();
-	}
+	processOptionalTransform();
 
 	if( change.From.IsEmpty() ) {
 		return CLayerOutput<>(); // No layout conversion detected
