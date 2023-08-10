@@ -42,6 +42,14 @@ COnnxTransposeHelper::COnnxTransposeHelper( IMathEngine& mathEngine ) :
 	dims[1] = BD_Count;
 }
 
+COnnxTransposeHelper::COnnxTransposeHelper( IMathEngine& mathEngine, const CFastArray<TBlobDim, 8>& _inputLayout,
+		const CFastArray<TBlobDim, 8>& _outputLayout ) :
+	COnnxTransposeHelper( mathEngine )
+{
+	_inputLayout.CopyTo( inputLayout );
+	_outputLayout.CopyTo( outputLayout );
+}
+
 void COnnxTransposeHelper::SetDims( TBlobDim firstDim, TBlobDim secondDim )
 {
 	NeoPresume( firstDim >= BD_BatchLength && firstDim < BD_Count );

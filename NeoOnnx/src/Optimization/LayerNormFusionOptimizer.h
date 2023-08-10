@@ -18,7 +18,7 @@ limitations under the License.
 #include <type_traits>
 #include "Optimization/Graph.h"
 #include <NeoML/Dnn/Layers/Onnx/OnnxEltwiseLayer.h>
-#include <NeoML/Dnn/Layers/Onnx/OnnxTransformHelper.h>
+#include "../TensorUtils.h"
 
 namespace NeoOnnx {
 
@@ -92,23 +92,15 @@ public:
 
 private:
 	CGraph& graph;
-	static constexpr const char* const FusionNamePrefix{ "NormFusion_" };
+	struct CLayoutChange;
 
 	static bool isValidBlobDim( int dim )
 	{ return dim >= 0 && dim < BD_Count; }
 	static bool isEmptyBlobDim( int index, int dim )
 	{ return dim == index || !isValidBlobDim( dim ); };
 
-	void getTransformRule( const COnnxTransformHelper& transformLayer, const bool opposite, int rule[BD_Count] ) const;
-
-	// Checks if TransformHelperLayer is valid for CLayerNormFusionOptimizer conversion
-	bool isValidTransformLayer( const COnnxTransformHelper& transformLayer,
-		const COnnxTransformHelper* transformLayerPrevious,
-		bool opposite,
-		bool& objTransform ) const;
-	// Checks if DataLayer is valid for CLayerNormFusionOptimizer conversion
+	CLayerOutput<> selectLayoutChange( CBaseLayer& inputLayer, int inputIndex, CLayoutChange& change ) const;
 	bool isValidDataLayer( const CDataLayer& dataLayer, TBlobType blobType, int blobSize = NotFound ) const;
-	// Checks if CastLayer is valid for CLayerNormFusionOptimizer conversion
 	bool isValidCastLayer( const CCastLayer& castLayer ) const;
 	// Checks if COnnxEltwiseLayer is valid for CLayerNormFusionOptimizer conversion
 	bool isValidArithmeticLayer( const COnnxEltwiseLayer& layer, COnnxEltwiseLayer::TOperation operation ) const
@@ -116,6 +108,8 @@ private:
 	// Checks if CPowerLayer is valid for CLayerNormFusionOptimizer conversion
 	bool isValidPowerLayer( const CPowerLayer& powLayer, float exponent ) const
 	{ return powLayer.GetExponent() == exponent && graph.GetInputCount( powLayer ) == 1 && graph.GetOutputCount( powLayer ) == 1; }
+	CLayerOutput<> changeLayout( const CLayerOutput<>& inputData, const CTensorLayout& inputLayout,
+		const ITensorLayoutValidator& validator, CTensorLayout& outputLayout );
 };
 
 } // namespace optimization
