@@ -41,10 +41,8 @@ void CLrnOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArra
 	CheckNoShapeInputs( inputs );
 	CheckNeoOnnxSupport( inputs[0]->DimCount() <= 5, "6+ dimensional input", *this );
 
-	CTensorLayout outputLayout( { BD_BatchWidth, BD_Channels, BD_Height, BD_Width, BD_Depth } );
-	outputLayout.SetSize( inputs[0]->DimCount() );
-
-	CPtr<const CUserTensor> input = AsUserTensor( *ConvertTensor( *inputs[0], outputLayout ), Name() + "_Source", dnn );
+	CPtr<const CUserTensor> input = AsUserTensor( *ConvertTensor( *inputs[0], CNeoMLImageLayoutValidator() ),
+		Name() + "_Source", dnn );
 
 	CPtr<CLrnLayer> lrn = new CLrnLayer( dnn.GetMathEngine() );
 	lrn->SetName( Name() );

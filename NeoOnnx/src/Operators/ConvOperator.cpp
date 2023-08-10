@@ -80,11 +80,6 @@ void CConvOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArr
 // Adds 2-dimensional convolution (also used for emulation of 1-dimensional convolution)
 void CConvOperator::add2dConvLayer( const CTensorArray& inputs, bool is1dConv, CDnn& dnn, CTensorArray& outputs ) const
 {
-	CTensorLayout neoMLLayout( { BD_BatchWidth, BD_Channels, BD_Height, BD_Width }  );
-	if( is1dConv ) {
-		neoMLLayout.SetSize( 3 );
-	}
-
 	CPtr<const CDataTensor> filter = dynamic_cast<const CDataTensor*>( inputs[1].Ptr() );
 
 	CTensorShape kernelShape;
@@ -102,6 +97,11 @@ void CConvOperator::add2dConvLayer( const CTensorArray& inputs, bool is1dConv, C
 	const int filterCount = filter->DimSize( 0 );
 	if( group == 1 ) {
 		// Non-groupped convolution can be calculated via CConvLayer
+		CTensorLayout neoMLLayout( { BD_BatchWidth, BD_Channels, BD_Height, BD_Width } );
+		if( is1dConv ) {
+			neoMLLayout.SetSize( 3 );
+		}
+
 		conv = new CConvLayer( mathEngine );
 		filter = dynamic_cast<const CDataTensor*>( ConvertTensor( *inputs[1], neoMLLayout ).Ptr() );
 	} else {
@@ -124,7 +124,8 @@ void CConvOperator::add2dConvLayer( const CTensorArray& inputs, bool is1dConv, C
 	conv->SetStrideHeight( strides[0] );
 	conv->SetStrideWidth( is1dConv ? 1 : strides[1] );
 
-	CPtr<const CUserTensor> currInput = AsUserTensor( *ConvertTensor( *inputs[0], neoMLLayout ), Name() + "_Source", dnn );
+	CPtr<const CUserTensor> currInput = AsUserTensor( *ConvertTensor( *inputs[0], CNeoMLImageLayoutValidator() ),
+		Name() + "_Source", dnn );
 	if( ( is1dConv && pads[0] >= pads[1] )
 		|| ( !is1dConv && pads[0] >= pads[2] && pads[1] >= pads[3] ) )
 	{
@@ -150,18 +151,18 @@ void CConvOperator::add2dConvLayer( const CTensorArray& inputs, bool is1dConv, C
 	conv->Connect( 0, *currInput->Layer(), currInput->OutputIndex() );
 	dnn.AddLayer( *conv );
 
-	outputs.Add( new CUserTensor( neoMLLayout, CLayerOutput( conv, 0 ) ) );
+	outputs.Add( new CUserTensor( currInput->Layout(), CLayerOutput( conv, 0 ) ) );
 }
 
 // Adds 3-dimensional convolution
 void CConvOperator::add3dConvLayer( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
-	const CTensorLayout neoML3dLayout( { BD_BatchWidth, BD_Channels, BD_Height, BD_Width, BD_Depth } );
-
-	CPtr<const CDataTensor> filter = dynamic_cast<const CDataTensor*>( ConvertTensor( *inputs[1], neoML3dLayout ).Ptr() );
+	CTensorLayout neoMLLayout( { BD_BatchWidth, BD_Channels, BD_Height, BD_Width, BD_Depth } );
+	CPtr<const CDataTensor> filter = dynamic_cast<const CDataTensor*>(
+		ConvertTensor( *inputs[1], neoMLLayout ).Ptr() );
 
 	CTensorShape kernelShape;
-	getConvKernelShape( inputs[0]->DimCount(), *filter, kernelShape);
+	getConvKernelShape( inputs[0]->DimCount(), *filter, kernelShape );
 	CFastArray<int, 8> strides;
 	getStrides( inputs, strides );
 	CFastArray<int, 8> pads;
@@ -185,7 +186,8 @@ void CConvOperator::add3dConvLayer( const CTensorArray& inputs, CDnn& dnn, CTens
 	conv->SetStrideWidth( strides[1] );
 	conv->SetStrideDepth( strides[2] );
 	
-	CPtr<const CUserTensor> currInput = AsUserTensor( *ConvertTensor( *inputs[0], neoML3dLayout ), Name() + "_Source", dnn );
+	CPtr<const CUserTensor> currInput = AsUserTensor( *ConvertTensor( *inputs[0], CNeoMLImageLayoutValidator() ),
+		Name() + "_Source", dnn );
 	if( pads[0] >= pads[3] && pads[1] >= pads[4] && pads[2] >= pads[5] ) {
 		// This is a valid padding for a convolution in NeoML
 		conv->SetPaddingHeight( pads[0] );
@@ -208,7 +210,7 @@ void CConvOperator::add3dConvLayer( const CTensorArray& inputs, CDnn& dnn, CTens
 	conv->Connect( 0, *currInput->Layer(), currInput->OutputIndex() );
 	dnn.AddLayer( *conv );
 
-	outputs.Add( new CUserTensor( neoML3dLayout, CLayerOutput( conv, 0 ) ) );
+	outputs.Add( new CUserTensor( currInput->Layout(), CLayerOutput( conv, 0 ) ) );
 }
 
 // Gets strides
