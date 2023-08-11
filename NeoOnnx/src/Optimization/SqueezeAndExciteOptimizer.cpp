@@ -80,11 +80,11 @@ bool CSqueezeAndExciteOptimizer::detectSqueezAndExcite( CBaseLayer& mulLayer, CS
 	}
 
 	for( int mulInput = 0; mulInput < 2; ++mulInput ) {
-		COnnxTransformHelper* thirdTransform = graph.SelectConnectedOutput<COnnxTransformHelper>( mulLayer, mulInput,
+		COnnxTransformHelper* secondTransform = graph.SelectConnectedOutput<COnnxTransformHelper>( mulLayer, mulInput,
 			false ).Layer;
-		if( thirdTransform == nullptr ||
-			!isValidOnnxTransform( *thirdTransform,
-				{ BD_Count, BD_BatchLength, BD_Count, BD_ListSize, BD_Height, BD_Count, BD_Channels } ) )
+		if( secondTransform == nullptr ||
+			!isValidOnnxTransform( *secondTransform,
+				{ BD_BatchLength, BD_Count, BD_Count, BD_ListSize, BD_Height, BD_Count, BD_Width } ) )
 		{
 			continue;
 		}
@@ -94,21 +94,21 @@ bool CSqueezeAndExciteOptimizer::detectSqueezAndExcite( CBaseLayer& mulLayer, CS
 		detectedBlock.SEMulVectorInput.Index = mulInput;
 
 		COnnxTransposeHelper* secondTranspose = graph.SelectConnectedOutput<COnnxTransposeHelper>(
-			*thirdTransform, 0, true ).Layer;
-		if( secondTranspose == nullptr || !isValidOnnxTranspose( *secondTranspose, BD_BatchWidth, BD_Channels ) ) {
+			*secondTransform, 0, true ).Layer;
+		if( secondTranspose == nullptr || !isValidOnnxTranspose( *secondTranspose, BD_BatchWidth, BD_Width ) ) {
 			return false;
 		}
 
-		COnnxTransformHelper* secondTransform = graph.SelectConnectedOutput<COnnxTransformHelper>(
+		COnnxTransformHelper* firstTransform = graph.SelectConnectedOutput<COnnxTransformHelper>(
 			*secondTranspose, 0, true ).Layer;
-		if( secondTransform == nullptr || !isValidOnnxTransform( *secondTransform,
+		if( firstTransform == nullptr || !isValidOnnxTransform( *firstTransform,
 			{ BD_BatchWidth, BD_Height, BD_Width, BD_Channels, BD_Count, BD_Count, BD_Count } ) )
 		{
 			return false;
 		}
 
 		COnnxReshapeLayer* secondReshape = graph.SelectConnectedOutput<COnnxReshapeLayer>(
-			*secondTransform, 0, true ).Layer;
+			*firstTransform, 0, true ).Layer;
 		if( secondReshape == nullptr ) {
 			return false;
 		}
@@ -152,22 +152,16 @@ bool CSqueezeAndExciteOptimizer::detectSqueezAndExcite( CBaseLayer& mulLayer, CS
 			return false;
 		}
 
-		CLayerOutput<COnnxTransformHelper> firstTransform;
+		CLayerOutput<COnnxTransposeHelper> firstTranspose;
 		CLayerOutput<COnnxSourceHelper> firstSource;
-		if( !graph.SelectBothConnectedOutputs( *firstReshape.Layer, firstTransform, firstSource, true )
-			|| !isValidOnnxTransform( *firstTransform.Layer, { BD_Count, BD_BatchWidth, BD_Count, BD_ListSize, BD_Height, BD_Count, BD_Width } )
+		if( !graph.SelectBothConnectedOutputs( *firstReshape.Layer, firstTranspose, firstSource, true )
+			|| !isValidOnnxTranspose( *firstTranspose.Layer, BD_BatchWidth, BD_Channels )
 			|| !isValidOnnxSource( *firstSource.Layer, { 1, 0 } ) )
 		{
 			return false;
 		}
 
-		COnnxTransposeHelper* firstTranspose = graph.SelectConnectedOutput<COnnxTransposeHelper>(
-			*firstTransform.Layer, 0, true ).Layer;
-		if( firstTranspose == nullptr || !isValidOnnxTranspose( *firstTranspose, BD_Channels, BD_ListSize ) ) {
-			return false;
-		}
-
-		detectedBlock.SEPooling = graph.GetConnectedOutput<CGlobalMeanPoolingLayer>( *firstTranspose, 0 ).Layer;
+		detectedBlock.SEPooling = graph.GetConnectedOutput<CGlobalMeanPoolingLayer>( *firstTranspose.Layer, 0 ).Layer;
 		if( detectedBlock.SEPooling == nullptr ) {
 			return false;
 		}
