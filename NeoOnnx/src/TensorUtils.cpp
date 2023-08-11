@@ -136,7 +136,7 @@ static CLayerOutput renameDimensions( const CLayerOutput& input, const CTensorLa
 {
 	NeoPresume( inputLayout.Size() == outputLayout.Size() );
 	CDnn& dnn = *( input.Layer->GetDnn() );
-	CPtr<COnnxTransformHelper> transformLayer = new COnnxTransformHelper( dnn.GetMathEngine() );
+	CPtr<COnnxTransformHelper> transformLayer = new COnnxTransformHelper( dnn.GetMathEngine(), inputLayout, outputLayout );
 	transformLayer->SetName( getUniqueLayerName( dnn, "transform_" ) );
 	for( int dimIndex = 0; dimIndex < outputLayout.Size(); ++dimIndex ) {
 		transformLayer->SetRule( inputLayout[dimIndex], outputLayout[dimIndex] );
@@ -194,10 +194,12 @@ static CPtr<const CDnnBlob> swapDimensions( const CDnnBlob& inputBlob, TBlobDim 
 }
 
 // Swaps 2 dimensions of given layer output
-static CLayerOutput swapDimensions( const CLayerOutput& input, TBlobDim firstDim, TBlobDim secondDim )
+static CLayerOutput swapDimensions( const CLayerOutput& input, TBlobDim firstDim, TBlobDim secondDim,
+	const CTensorLayout& inputLayout, const CTensorLayout& outputLayout )
 {
 	CDnn& dnn = *( input.Layer->GetDnn() );
-	CPtr<COnnxTransposeHelper> transposeLayer = new COnnxTransposeHelper( dnn.GetMathEngine() );
+	CPtr<COnnxTransposeHelper> transposeLayer = new COnnxTransposeHelper( dnn.GetMathEngine(),
+		inputLayout, outputLayout );
 	transposeLayer->SetName( getUniqueLayerName( dnn, "transpose_" ) );
 	transposeLayer->SetDims( firstDim, secondDim );
 	dnn.AddLayer( *transposeLayer );
@@ -229,7 +231,7 @@ static CPtr<const CTensorBase> swapDimensions( const CTensorBase& input, TBlobDi
 	CLayerOutput layerOutput = input.Type() == TTensorType::User
 		? dynamic_cast<const CUserTensor&>( input ).LayerOutput()
 		: dynamic_cast<const CShapeTensor&>( input ).LayerOutput();
-	layerOutput = swapDimensions( layerOutput, firstDim, secondDim );
+	layerOutput = swapDimensions( layerOutput, firstDim, secondDim, input.Layout(), outputLayout );
 
 	if( input.Type() == TTensorType::User ) {
 		return new CUserTensor( outputLayout, layerOutput );
@@ -643,7 +645,7 @@ private:
 	int queueResultIndex;
 	
 	void setOptimum( int index ) { queueResultIndex = index; }
-	bool isOptimimumFound() const { return queueResultIndex != NotFound; }
+	bool isOptimumFound() const { return queueResultIndex != NotFound; }
 	int optimum() const { return queueResultIndex; }
 	void addInitialRenames( const CTensorLayout& inputLayout );
 	void addTranspose( const CBfsEntry& entry, const CTensorLayoutTranspose& transpose );
@@ -656,11 +658,11 @@ CTensorLayout CLayoutConversionBfs::Find( const CTensorLayout& inputLayout, CTen
 	addInitialRenames( inputLayout );
 
 	// layout of size 1 must be converted without transposes
-	NeoAssert( isOptimimumFound() || inputLayout.Size() > 1 );
+	NeoAssert( isOptimumFound() || inputLayout.Size() > 1 );
 
 	int queueIndex = 0;
 
-	while( !isOptimimumFound() ) {
+	while( !isOptimumFound() ) {
 		NeoAssert( queueIndex < queue.Size() );
 
 		const CBfsEntry entry = queue[queueIndex];
@@ -712,7 +714,7 @@ CTensorLayout CLayoutConversionBfs::Find( const CTensorLayout& inputLayout, CTen
 		queueIndex++;
 	}
 
-	NeoAssert( isOptimimumFound() );
+	NeoAssert( isOptimumFound() );
 	const int optimumIndex = optimum();
 	conversion = queue[optimumIndex].Conversion;
 	return queue[optimumIndex].OutputLayout;
@@ -739,7 +741,7 @@ void CLayoutConversionBfs::addInitialRenames( const CTensorLayout& inputLayout )
 // Also brute-forces post-transpose renames
 void CLayoutConversionBfs::addTranspose( const CBfsEntry& entry, const CTensorLayoutTranspose& transpose )
 {
-	if( isOptimimumFound() ) {
+	if( isOptimumFound() ) {
 		return;
 	}
 
@@ -776,7 +778,7 @@ void CLayoutConversionBfs::addTranspose( const CBfsEntry& entry, const CTensorLa
 // Brute-forces all possible renames for current bfs entry
 void CLayoutConversionBfs::bruteForceRenames( const CBfsEntry& entry, bool addToQueue )
 {
-	if( isOptimimumFound() ) {
+	if( isOptimumFound() ) {
 		return;
 	}
 
@@ -798,7 +800,7 @@ void CLayoutConversionBfs::bruteForceRenames( const CBfsEntry& entry, bool addTo
 
 	auto bruteForce = [&] ( int sortedAxisIndex, auto&& bruteForce ) -> void
 	{
-		NeoPresume( !isOptimimumFound() );
+		NeoPresume( !isOptimumFound() );
 
 		const bool isLastAxis = sortedAxisIndex == outputLayout.Size() - 1;
 		const int axisIndex = inputLayout.Find( rename.From[sortedAxisIndex] );
@@ -822,7 +824,7 @@ void CLayoutConversionBfs::bruteForceRenames( const CBfsEntry& entry, bool addTo
 				}
 			} else {
 				bruteForce( sortedAxisIndex + 1, bruteForce );
-				if( isOptimimumFound() ) {
+				if( isOptimumFound() ) {
 					return;
 				}
 			}

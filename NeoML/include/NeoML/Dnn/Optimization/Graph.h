@@ -160,7 +160,7 @@ public:
 	CLayerOutput<TOutputLayer> SelectConnectedOutput( CBaseLayer& inputLayer, int inputIndex,
 		bool checkOutOfSelectionLinks );
 
-	template<typename TOutLayer>
+	template<typename TOutLayer = CBaseLayer>
 	TOutLayer* SelectTheOnlyConnectedOutput( const CBaseLayer& layer, bool checkOutOfSelectionLinks = false );
 
 	// Checks that the layer has 2 inputs, and that those inputs are connected

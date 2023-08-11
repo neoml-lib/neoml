@@ -24,12 +24,12 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-// Validator for CObjectNormalizationLayer
-class CObjectNormLayoutValidator : public ITensorLayoutValidator {
+// Validator for InstanceNorm operator
+class CInstanceNormLayoutValidator : public ITensorLayoutValidator {
 	bool operator()( const CTensorLayout& layout ) const override;
 };
 
-bool CObjectNormLayoutValidator::operator()( const CTensorLayout& layout ) const
+bool CInstanceNormLayoutValidator::operator()( const CTensorLayout& layout ) const
 {
 	// In compatible layout first 2 dims must be batch dims and the rest must be object dims
 	const int batchDims = 2;
@@ -46,7 +46,7 @@ bool CObjectNormLayoutValidator::operator()( const CTensorLayout& layout ) const
 // Applies normalization to the InstanceNormalization input
 static CPtr<const CUserTensor> applyNormalization( const CUserTensor& input, float eps, const CString& layerName, CDnn& dnn )
 {
-	CPtr<const CUserTensor> currInput = ConvertTensor( input, CObjectNormLayoutValidator() );
+	CPtr<const CUserTensor> currInput = ConvertTensor( input, CInstanceNormLayoutValidator() );
 	CPtr<CObjectNormalizationLayer> objNormLayer = new CObjectNormalizationLayer( dnn.GetMathEngine() );
 	objNormLayer->SetName( layerName );
 	objNormLayer->SetEpsilon( eps );
