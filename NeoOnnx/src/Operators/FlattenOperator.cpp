@@ -62,13 +62,8 @@ void CFlattenOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensor
 
 	// Every operator which somehow changes Onnx tensor's shape or dimensions works only with Onnx dim type
 	// Otherwise it'll lead to hardly fixable troubles with data-ordering
-	CPtr<const CUserTensor> input;
-	if( IsTransposedLayout( inputs[0]->Layout() ) ) {
-		input = AsUserTensor( *ConvertTensor( *inputs[0], CTensorLayout( inputs[0]->DimCount() ) ),
-			Name() + "_Source", dnn );
-	} else {
-		input = AsUserTensor( *inputs[0], Name() + "_Source", dnn );
-	}
+	CPtr<const CUserTensor> input = AsUserTensor( *ConvertTensor( *inputs[0], COnnxTensorLayoutValidator() ),
+		Name() + "_Source", dnn );
 
 	// Flatten operator reshapes tensor into 2-dimensional matrix of size
 	// [ dim_0 * ... * dim_(axis-1) ; dim_axis * ... * dim_(n-1) ]

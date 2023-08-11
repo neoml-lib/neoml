@@ -34,7 +34,7 @@ TEST( TrivialLayerOptimizerTest, Linear )
 	CLinearLayer* linearToRemove3 = Linear( 1.0f, 0 )( "linearToRemove3", linearToRemove2 );
 	( void ) Sink( linearToRemove3, "sink" );
 
-	CDnnOptimizationReport report = OptimizeDnn( dnn, DnnOptimizationSettings() );
+	CDnnOptimizationReport report = OptimizeDnn( dnn );
 
 	EXPECT_EQ( 4, report.RemovedTrivialLayers );
 }
@@ -51,7 +51,7 @@ TEST( TrivialLayerOptimizerTest, Dropout )
 	CDropoutLayer* dropout3 = Dropout( 0.001f )( "dropout3", dropout2 );
 	( void ) Sink( dropout3, "sink" );
 
-	CDnnOptimizationReport report = OptimizeDnn( dnn, DnnOptimizationSettings() );
+	CDnnOptimizationReport report = OptimizeDnn( dnn );
 
 	EXPECT_EQ( 4, report.RemovedTrivialLayers );
 
@@ -79,7 +79,7 @@ TEST( TrivialLayerOptimizerTest, None )
 
 	EXPECT_EQ( 6, dnn.GetLayerCount() );
 
-	CDnnOptimizationReport report = OptimizeDnn( dnn, DnnOptimizationSettings() );
+	CDnnOptimizationReport report = OptimizeDnn( dnn );
 
 	EXPECT_EQ( 0, report.RemovedTrivialLayers );
 }
@@ -98,7 +98,7 @@ TEST( TrivialLayerOptimizerTest, All )
 	CLinearLayer* linear2 = Linear( 1.f, 0.f )( "linear2", linear1 );
 	( void ) Sink( linear2, "sink" );
 
-	CDnnOptimizationReport report = OptimizeDnn( dnn, DnnOptimizationSettings() );
+	CDnnOptimizationReport report = OptimizeDnn( dnn );
 
 	EXPECT_EQ( 7, report.RemovedTrivialLayers );
 	EXPECT_EQ( 2, dnn.GetLayerCount() );
@@ -202,7 +202,7 @@ TEST( UnpackCompositeOptimizerTest, Sample )
 		sink2->GetBlob()->GetCopy()
 	};
 
-	CDnnOptimizationReport report = OptimizeDnn( dnn, DnnOptimizationSettings() );
+	CDnnOptimizationReport report = OptimizeDnn( dnn );
 	EXPECT_EQ( 7, report.UnpackedCompositeLayers );
 	dnn.RunOnce();
 
@@ -213,7 +213,7 @@ TEST( UnpackCompositeOptimizerTest, Sample )
 	};
 
 	for( int i = 0; i < originalOutput.Size(); ++i ) {
-		EXPECT_TRUE( CompareBlobs( *originalOutput[0], *actualOutput[0] ) );
+		EXPECT_TRUE( CompareBlobs( *originalOutput[i], *actualOutput[i] ) );
 	}
 }
 

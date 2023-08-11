@@ -25,10 +25,16 @@ class NEOML_API COnnxTransposeHelper : public COnnxLayerBase {
 	NEOML_DNN_LAYER( COnnxTransposeHelper )
 public:
 	explicit COnnxTransposeHelper( IMathEngine& mathEngine );
+	COnnxTransposeHelper( IMathEngine& mathEngine, const CFastArray<TBlobDim, 8>& inputLayout,
+		const CFastArray<TBlobDim, 8>& outputLayout );
 
 	// Dimensions to be transposed
 	void SetDims( TBlobDim firstDim, TBlobDim secondDim );
 	void GetDims( TBlobDim& firstDim, TBlobDim& secondDim ) const;
+
+	// ONNX tensor layouts (filled only during ONNX import, aren't serialized)
+	const CFastArray<TBlobDim, 8>& InputLayout() const { return inputLayout; }
+	const CFastArray<TBlobDim, 8>& OutputLayout() const { return outputLayout; }
 
 	void Serialize( CArchive& archive ) override;
 
@@ -38,6 +44,8 @@ protected:
 
 private:
 	TBlobDim dims[2];
+	CFastArray<TBlobDim, 8> inputLayout;
+	CFastArray<TBlobDim, 8> outputLayout;
 };
 
 } // namespace NeoML

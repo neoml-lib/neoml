@@ -24,36 +24,6 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-// Converts layer input to the layout, supported by batch normalization layer
-static CPtr<const CTensorBase> convertInput( const CTensorBase& input )
-{
-	const CTensorLayout& inputLayout = input.Layout();
-	bool needConversion = false;
-	for( int dimIndex = 0; dimIndex < inputLayout.Size(); ++dimIndex ) {
-		// First dimension must be batch (BD_BatchLength, BD_BatchWidth or BD_ListSize)
-		// Second dimension must be channels
-		// Other dimensions must be spatial (BD_Height, BD_Width or BD_Depth)
-		if( ( dimIndex < 1 && inputLayout[dimIndex] >= BD_Height )
-			|| ( dimIndex == 1 && inputLayout[dimIndex] != BD_Channels )
-			|| ( dimIndex > 1 && ( inputLayout[dimIndex] < BD_Height || inputLayout[dimIndex] == BD_Channels ) ) )
-		{
-			needConversion = true;
-			break;
-		}
-	}
-
-	if( !needConversion ) {
-		// input's layout is compatible with batch normalzation
-		// No conversion needed
-		return &input;
-	}
-
-	CTensorLayout outputLayout( { BD_BatchWidth, BD_Channels, BD_Height, BD_Width, BD_Depth } );
-	outputLayout.SetSize( input.DimCount() );
-
-	return ConvertTensor( input, outputLayout );
-}
-
 // Calculates NeoML::CBatchNormalizationLayer's final params blob from onnx operator's inputs
 static CPtr<CDnnBlob> calculateFinalParams( float eps, const CTensorArray& inputs )
 {
@@ -143,7 +113,8 @@ void CBatchNormalizationOperator::AddLayers( const CTensorArray& inputs, CDnn& d
 	bnLayer->SetChannelBased( true );
 	bnLayer->SetFinalParams( calculateFinalParams( eps, inputs ) );
 
-	CPtr<const CUserTensor> userData = AsUserTensor( *convertInput( *inputs[0] ), Name() + "_Source", dnn );
+	CPtr<const CUserTensor> userData = AsUserTensor( *ConvertTensor( *inputs[0], CBatchNormLayoutValidator() ),
+		Name() + "_Source", dnn );
 	bnLayer->Connect( 0, *userData->Layer(), userData->OutputIndex() );
 	dnn.AddLayer( *bnLayer );
 

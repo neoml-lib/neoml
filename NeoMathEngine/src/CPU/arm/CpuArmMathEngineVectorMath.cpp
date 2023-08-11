@@ -1862,6 +1862,19 @@ void CCpuMathEngine::vectorEltwiseLogSumExp(const CConstFloatHandle& firstHandle
 	}
 }
 
+void CCpuMathEngine::VectorErf( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize )
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	CCpuExecutionScope scope;
+
+	const float* first = GetRaw( firstHandle );
+	float* result = GetRaw( resultHandle );
+	for( int i = 0; i < vectorSize; ++i ) {
+		*result++ = std::erff( *first++ );
+	}
+}
+
 } // namespace NeoML
 
 #endif // NEOML_USE_NEON

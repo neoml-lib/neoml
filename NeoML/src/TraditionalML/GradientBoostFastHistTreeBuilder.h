@@ -22,6 +22,7 @@ limitations under the License.
 
 namespace NeoML {
 
+class IThreadPool;
 class CRegressionTree;
 class CLinkedRegressionTree;
 
@@ -36,7 +37,13 @@ struct CGradientBoostFastHistTreeBuilderParams final {
 	int MaxNodesCount{}; // the maximum number of nodes in a tree (set to NotFound == -1 for no limitation)
 	int MaxBins{}; // the maximum histogram size for a feature
 	float MinSubsetWeight{}; // the minimum subtree weight
-	float DenseTreeBoostCoefficient{}; // the dense tree boost coefficient 
+	float DenseTreeBoostCoefficient{}; // the dense tree boost coefficient
+
+	CGradientBoostFastHistTreeBuilderParams() = default;
+	CGradientBoostFastHistTreeBuilderParams( const CGradientBoostFastHistTreeBuilderParams& ) = default;
+	CGradientBoostFastHistTreeBuilderParams( const CGradientBoostFastHistTreeBuilderParams& params, int realThreadsCount ) :
+		CGradientBoostFastHistTreeBuilderParams( params )
+	{ ThreadCount = realThreadsCount; }
 };
 
 // Tree builder
@@ -48,13 +55,6 @@ public:
 	// Builds a tree
 	CPtr<CRegressionTree> Build( const CGradientBoostFastHistProblem& problem,
 		const CArray<typename T::Type>& gradients, const CArray<typename T::Type>& hessians, const CArray<double>& weights );
-
-protected:
-	~CGradientBoostFastHistTreeBuilder() override = default; // delete prohibited
-
-private:
-	const CGradientBoostFastHistTreeBuilderParams params; // classifier parameters
-	CTextStream* const logStream; // the logging stream
 
 	// A node in the tree
 	struct CNode final {
@@ -76,6 +76,21 @@ private:
 		{}
 	};
 
+	struct CThreadsBuffers final {
+		CArray<double> SplitGainsBuffer{};
+		CArray<int> SplitIdsBuffer{};
+		CArray<T> LeftCandidates{};
+		CArray<T> RightCandidates{};
+	};
+
+protected:
+	~CGradientBoostFastHistTreeBuilder() override; // delete prohibited
+
+private:
+	IThreadPool* const threadPool; // parallel executors
+	const CGradientBoostFastHistTreeBuilderParams params; // classifier parameters
+	CTextStream* const logStream; // the logging stream
+
 	int predictionSize{}; // size of prediction value in leaves
 	int histSize{}; // histogram size
 	CArray<CNode> nodes{}; // the final tree nodes
@@ -84,24 +99,21 @@ private:
 	CArray<int> freeHists{}; // free histograms list
 	CArray<T> histStats{}; // the array for storing histograms
 	CArray<int> idPos{}; // the identifier positions in the current histogram
-	CArray<T> tempHistStats{}; // a temporary array for building histograms
 
-	// Caching the buffers
-	mutable CArray<double> splitGainsByThreadBuffer{};
-	mutable CArray<int> splitIdsBuffer{};
-	mutable CArray<T> leftCandidates{};
-	mutable CArray<T> rightCandidates{};
+	// Caching threads temporary memory
+	CArray<T> tempHistStats{}; // a temporary array for building histograms
+	mutable CThreadsBuffers tb{};
 
 	void initVectorSet( int size );
 	void initHistData( const CGradientBoostFastHistProblem& problem );
 	int allocHist();
-	void freeHist( int ptr );
+	// Free the unnecessary histogram
+	// A histogram is identified by the pointer to its start in the histData array
+	void freeHist( int ptr ) { freeHists.Add( ptr ); }
 	void subHist( int firstPtr, int secondPtr );
 	void buildHist( const CGradientBoostFastHistProblem& problem, const CNode& node,
 		const CArray<typename T::Type>& gradients, const CArray<typename T::Type>& hessians, const CArray<double>& weights,
 		T& totalStats );
-	void addVectorToHist( const int* vectorPtr, int vectorSize, const CArray<typename T::Type>& gradients,
-		const CArray<typename T::Type>& hessians, const CArray<double>& weights, T* stats, int vectorIndex );
 	int evaluateSplit( const CGradientBoostFastHistProblem& problem, CNode& node ) const;
 	void applySplit( const CGradientBoostFastHistProblem& problem, int node, int& leftNode, int& rightNode );
 	bool prune( int node );

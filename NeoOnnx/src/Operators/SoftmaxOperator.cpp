@@ -22,9 +22,33 @@ limitations under the License.
 
 #include "onnx.pb.h"
 
-#include <algorithm>
-
 namespace NeoOnnx {
+
+class CSoftmaxLayoutValidator : public ITensorLayoutValidator {
+public:
+	CSoftmaxLayoutValidator( int opsetVersion, int axis ) : opsetVersion( opsetVersion ), axis( axis ) {}
+
+	bool operator()( const CTensorLayout& layout ) const override;
+
+private:
+	int opsetVersion;
+	int axis;
+};
+
+bool CSoftmaxLayoutValidator::operator()( const CTensorLayout& layout ) const
+{
+	if( opsetVersion < 13 ) {
+		for( int i = 0; i < layout.Size(); ++i ) {
+			if( ( i < axis && layout[i] >= BD_Height ) // object dimension before axis
+				|| ( i >= axis && layout[i] < BD_Height ) ) // batch dimension after axis
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+	return layout[axis] == BD_Channels || layout[axis] == BD_ListSize || layout[axis] == BD_BatchLength;
+}
 
 CSoftmaxOperator::CSoftmaxOperator( const onnx::NodeProto& softmax, int opsetVersion ) :
 	CLayerOperator( softmax, opsetVersion )
@@ -52,8 +76,8 @@ void CSoftmaxOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensor
 	CheckNeoOnnxSupport( axis <= 3, "more than 3 batch dimensions", *this );
 	CheckNeoOnnxSupport( dimCount - axis + 1 <= 4, "more than 4 object  dimensions", *this );
 
-	CTensorLayout compatibleLayout = getCompatibleLayout( dimCount, axis, inputs[0]->Layout() );
-	CPtr<const CUserTensor> input = AsUserTensor( *ConvertTensor( *inputs[0], compatibleLayout ), Name() + "_Source", dnn );
+	CPtr<const CUserTensor> input = AsUserTensor(
+		*ConvertTensor( *inputs[0], CSoftmaxLayoutValidator( OpsetVersion, axis ) ), Name() + "_Source", dnn );
 
 	CPtr<CSoftmaxLayer> softmax = new CSoftmaxLayer( dnn.GetMathEngine() );
 	softmax->SetName( Name() );
@@ -61,7 +85,7 @@ void CSoftmaxOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensor
 	dnn.AddLayer( *softmax );
 
 	if( OpsetVersion >= 13 ) {
-		switch( compatibleLayout[axis] ) {
+		switch( input->Layout()[axis] ) {
 			case BD_Channels:
 				softmax->SetNormalizationArea( CSoftmaxLayer::NA_Channel );
 				break;
@@ -86,50 +110,6 @@ void CSoftmaxOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensor
 	}
 
 	outputs.Add( new CUserTensor( input->Layout(), CLayerOutput( outLayer, 0 ) ) );
-}
-
-CTensorLayout CSoftmaxOperator::getCompatibleLayout( int dimCount, int axis, const CTensorLayout& inputLayout ) const
-{
-	// Check whether input layout is compatible with softmax
-	bool isCompatible = true;
-	if( OpsetVersion < 13 ) {
-		for( int i = 0; i < inputLayout.Size(); ++i ) {
-			if( ( i < axis && inputLayout[i] >= BD_Height ) // object dimension before axis
-				|| ( i >= axis && inputLayout[i] < BD_Height ) ) // batch dimension after axis
-			{
-				isCompatible = false;
-				break;
-			}
-		}
-	} else {
-		isCompatible = inputLayout[axis] == BD_Channels || inputLayout[axis] == BD_ListSize
-			|| inputLayout[axis] == BD_BatchLength;
-	}
-
-	if( isCompatible ) {
-		return inputLayout;
-	}
-
-	CTensorLayout compatibleLayout;
-	compatibleLayout.SetBufferSize( dimCount );
-	if( OpsetVersion < 13 ) {
-		for( int i = 0; i < dimCount; ++i ) {
-			if( i < axis ) {
-				compatibleLayout.Add( static_cast<TBlobDim>( i ) );
-			} else {
-				compatibleLayout.Add( static_cast<TBlobDim>( BD_Height + i - axis ) );
-			}
-		}
-	} else {
-		compatibleLayout = inputLayout;
-		const int channelIndex = inputLayout.Find( BD_Channels );
-		if( channelIndex == NotFound ) {
-			compatibleLayout[axis] = BD_Channels;
-		} else {
-			std::swap<TBlobDim>( compatibleLayout[channelIndex], compatibleLayout[axis] );
-		}
-	}
-	return compatibleLayout;
 }
 
 } // namespace NeoOnnx

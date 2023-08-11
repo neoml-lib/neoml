@@ -15,7 +15,9 @@ limitations under the License.
 
 #pragma once
 
+#include <NeoOnnx/NeoOnnxImport.h>
 #include <NeoML/Dnn/Optimization/Graph.h>
+#include "GELUOptimizer.h"
 #include "HardSigmoidOptimizer.h"
 #include "HSwishOptimizer.h"
 #include "LayerNormFusionOptimizer.h"
@@ -35,18 +37,19 @@ public:
 	CDnnOptimizer( CDnnOptimizer&& ) = delete;
 	CDnnOptimizer( const CDnnOptimizer& ) = delete;
 
-	void Optimize();
+	void Optimize( COnnxOptimizationReport& report );
 
 private:
 	NeoML::optimization::CGraph graph;
 };
 
-inline void CDnnOptimizer::Optimize()
+inline void CDnnOptimizer::Optimize( COnnxOptimizationReport& report )
 {
-	CHardSigmoidOptimizer( graph ).Apply();
-	CHSwishOptimizer( graph ).Apply();
-	CSqueezeAndExciteOptimizer( graph ).Apply();
-	CLayerNormFusionOptimizer( graph ).Apply();
+	report.HardSigmoid = CHardSigmoidOptimizer( graph ).Apply();
+	report.HSwish = CHSwishOptimizer( graph ).Apply();
+	report.GELU = OptimizeGELU( graph );
+	report.SqueezeAndExcite = CSqueezeAndExciteOptimizer( graph ).Apply();
+	report.LayerNorm = CLayerNormFusionOptimizer( graph ).Apply();
 }
 
 } // namespace optimization

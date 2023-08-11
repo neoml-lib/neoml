@@ -62,7 +62,10 @@ void CInterpolationLayer::CRule::Serialize( CArchive& archive )
 CInterpolationLayer::CInterpolationLayer( IMathEngine& mathEngine ) :
 	CBaseLayer( mathEngine, "CInterpolationLayer", false ),
 	coords( TInterpolationCoords::Asymmetric ),
-	round( TInterpolationRound::None )
+	round( TInterpolationRound::None ),
+	nontrivialDims( 0 ),
+	upsamplingHeightCopyCount( 0 ),
+	upsamplingWidthCopyCount( 0 )
 {
 	rules.SetSize( BD_Count );
 }
@@ -105,13 +108,24 @@ void CInterpolationLayer::Reshape()
 		}
 		CheckLayerArchitecture( outputDescs[0].DimSize( dim ) > 0, "Zero or negative dim size" );
 	}
+
+	nontrivialDims = nontrivialInterpolationDims( inputDescs[0], outputDescs[0] );
+	upsamplingHeightCopyCount = 0; // Set as "not using Upsampling2DForward"
+
+	if( coords == TInterpolationCoords::Asymmetric && round == TInterpolationRound::Floor
+		&& nontrivialDims > 0 && nontrivialDims < 3 )
+	{
+		tryUpsampling();
+	}
 }
 
 void CInterpolationLayer::RunOnce()
 {
-	int nontrivialDims = nontrivialInterpolationDims( inputBlobs[0]->GetDesc(), outputBlobs[0]->GetDesc() );
 	if( nontrivialDims == 0 ) {
 		outputBlobs[0]->CopyFrom( inputBlobs[0].Ptr() );
+	} else if( upsamplingHeightCopyCount > 0 ) {
+		MathEngine().Upsampling2DForward( upsamplingInputDesc, inputBlobs[0]->GetData(), upsamplingHeightCopyCount,
+			upsamplingWidthCopyCount, upsamplingOutputDesc, outputBlobs[0]->GetData() );
 	} else if( nontrivialDims == 1 ) {
 		int objectCount = 1;
 		for( int i = 0; i < static_cast<int>( BD_Count ); ++i ) {
@@ -181,6 +195,61 @@ void CInterpolationLayer::RunOnce()
 void CInterpolationLayer::BackwardOnce()
 {
 	NeoAssert( false );
+}
+
+// Tries to interpret this layer as Upsampling2D
+void CInterpolationLayer::tryUpsampling()
+{
+	CFastArray<TBlobDim, 2> usedDims;
+	for( TBlobDim dim = BD_BatchLength; dim != BD_Count; ++dim ) {
+		if( outputDescs[0].DimSize( dim ) % inputDescs[0].DimSize( dim ) != 0 ) {
+			// It can't be emulated by Upsampling2d
+			return;
+		}
+		if( outputDescs[0].DimSize( dim ) != inputDescs[0].DimSize( dim ) ) {
+			usedDims.Add( dim );
+		}
+	}
+
+	NeoPresume( usedDims.Size() == 1 || usedDims.Size() == 2 );
+	if( usedDims.Size() == 2 ) {
+		// Upsampling2D is possible only if there's no data between upsampled dims
+		for( TBlobDim dim = usedDims[0] + 1; dim != usedDims[1]; ++dim ) {
+			if( outputDescs[0].DimSize( dim ) != 1 ) {
+				return;
+			}
+		}
+	}
+
+	if( usedDims.Size() == 2 ) {
+		upsamplingHeightCopyCount = outputDescs[0].DimSize( usedDims[0] ) / inputDescs[0].DimSize( usedDims[0] );
+		upsamplingWidthCopyCount = outputDescs[0].DimSize( usedDims[1] ) / inputDescs[0].DimSize( usedDims[1] );
+	} else {
+		upsamplingHeightCopyCount = 1;
+		upsamplingWidthCopyCount = outputDescs[0].DimSize( usedDims[0] ) / inputDescs[0].DimSize( usedDims[0] );
+	}
+
+	int objectCount = 1;
+	for( TBlobDim dim = BD_BatchLength; dim != usedDims[0]; ++dim ) {
+		objectCount *= inputDescs[0].DimSize( dim );
+	}
+
+	int pixelSize = 1;
+	for( TBlobDim dim = usedDims.Last() + 1; dim != BD_Count; ++dim ) {
+		pixelSize *= inputDescs[0].DimSize( dim );
+	}
+
+	upsamplingInputDesc = CBlobDesc( CT_Float );
+	upsamplingInputDesc.SetDimSize( BD_BatchWidth, objectCount );
+	upsamplingInputDesc.SetDimSize( BD_Height, usedDims.Size() == 1 ? 1 : inputDescs[0].DimSize( usedDims[0] ) );
+	upsamplingInputDesc.SetDimSize( BD_Width,  inputDescs[0].DimSize( usedDims.Last() ) );
+	upsamplingInputDesc.SetDimSize( BD_Channels, pixelSize );
+	PRESUME_EXPR( upsamplingInputDesc.BlobSize() == inputDescs[0].BlobSize() );
+
+	upsamplingOutputDesc = upsamplingInputDesc;
+	upsamplingOutputDesc.SetDimSize( BD_Height, upsamplingOutputDesc.Height() * upsamplingHeightCopyCount );
+	upsamplingOutputDesc.SetDimSize( BD_Width, upsamplingOutputDesc.Width() * upsamplingWidthCopyCount );
+	PRESUME_EXPR( upsamplingOutputDesc.BlobSize() == outputDescs[0].BlobSize() );
 }
 
 } // namespace NeoML

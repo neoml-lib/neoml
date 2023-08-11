@@ -54,16 +54,26 @@ void CGlobalMeanPoolingLayer::Reshape()
 
 void CGlobalMeanPoolingLayer::RunOnce()
 {
-	MathEngine().SumMatrixRows( inputBlobs[0]->GetObjectCount(), outputBlobs[0]->GetData(), inputBlobs[0]->GetData(), inputBlobs[0]->GetGeometricalSize(),
-		inputBlobs[0]->GetChannelsCount() );
+	if( inputBlobs[0]->GetChannelsCount() == 1 ) {
+		MathEngine().SumMatrixColumns( outputBlobs[0]->GetData(), inputBlobs[0]->GetData(),
+			inputBlobs[0]->GetObjectCount(), inputBlobs[0]->GetGeometricalSize() );
+	} else {
+		MathEngine().SumMatrixRows( inputBlobs[0]->GetObjectCount(), outputBlobs[0]->GetData(), inputBlobs[0]->GetData(), inputBlobs[0]->GetGeometricalSize(),
+			inputBlobs[0]->GetChannelsCount() );
+	}
 	MathEngine().VectorMultiply( outputBlobs[0]->GetData(), outputBlobs[0]->GetData(), outputBlobs[0]->GetDataSize(), coeff->GetData() );
 }
 
 void CGlobalMeanPoolingLayer::BackwardOnce()
 {
 	MathEngine().VectorFill( inputDiffBlobs[0]->GetData(), 0.0f, inputDiffBlobs[0]->GetDataSize() );
-	MathEngine().AddVectorToMatrixRows( inputDiffBlobs[0]->GetObjectCount(), inputDiffBlobs[0]->GetData(), inputDiffBlobs[0]->GetData(),
-		inputDiffBlobs[0]->GetGeometricalSize(), inputDiffBlobs[0]->GetChannelsCount(), outputDiffBlobs[0]->GetData() );
+	if( inputDiffBlobs[0]->GetChannelsCount() == 1 ) {
+		MathEngine().AddVectorToMatrixColumns( inputDiffBlobs[0]->GetData(), inputDiffBlobs[0]->GetData(),
+			inputDiffBlobs[0]->GetObjectCount(), inputDiffBlobs[0]->GetGeometricalSize(), outputDiffBlobs[0]->GetData() );
+	} else {
+		MathEngine().AddVectorToMatrixRows( inputDiffBlobs[0]->GetObjectCount(), inputDiffBlobs[0]->GetData(), inputDiffBlobs[0]->GetData(),
+			inputDiffBlobs[0]->GetGeometricalSize(), inputDiffBlobs[0]->GetChannelsCount(), outputDiffBlobs[0]->GetData() );
+	}
 	MathEngine().VectorMultiply( inputDiffBlobs[0]->GetData(), inputDiffBlobs[0]->GetData(), inputDiffBlobs[0]->GetDataSize(), coeff->GetData() );
 }
 

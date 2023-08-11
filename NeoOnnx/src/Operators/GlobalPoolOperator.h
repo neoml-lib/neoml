@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -54,8 +54,7 @@ private:
 	// Pool type
 	TPoolType poolType;
 
-	CPtr<const CUserTensor> prepareInput( const CUserTensor& input, const CFastArray<int, 8>& axes, CDnn& dnn ) const;
-	CPtr<const CUserTensor> convertInputLayout( const CUserTensor& input, const CFastArray<int, 8>& axes ) const;
+	CPtr<const CUserTensor> prepareInput( const CUserTensor& input, CDnn& dnn ) const;
 
 	CPtr<const CUserTensor> addPoolingLayer( const CUserTensor& preparedInput, const CFastArray<int, 8>& axes, CDnn& dnn ) const;
 	CTensorLayout calcOutputLayout( const CTensorLayout& inputLayout, const CFastArray<int, 8>& axes ) const;

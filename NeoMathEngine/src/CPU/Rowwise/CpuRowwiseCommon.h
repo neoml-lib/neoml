@@ -35,7 +35,7 @@ inline int RowwiseConvFirstInputRow( int outputRowIndex, int inputImageHeight, i
 
 // Calculates how many output rows can be calculated with the given data
 // and how many input rows can be released after that
-inline IRowwiseCpuImpl::CProcessingReport RowwiseConvProcessingReport( int inputRowIndex, int inputRowsAvailable,
+inline ICpuRowwiseImpl::CProcessingReport RowwiseConvProcessingReport( int inputRowIndex, int inputRowsAvailable,
 	int outputRowIndex, int outputRowsAvailable, int inputImageHeight, int outputImageHeight,
 	int filterHeight, int paddingHeight, int strideHeight, int dilationHeight )
 {
@@ -63,7 +63,7 @@ inline IRowwiseCpuImpl::CProcessingReport RowwiseConvProcessingReport( int input
 			binSearchMax = binSearchMid - 1; // Not enough data
 		}
 	}
-	IRowwiseCpuImpl::CProcessingReport result;
+	ICpuRowwiseImpl::CProcessingReport result;
 	result.OutputRowsCalculated = binSearchMin;
 
 	const int firstRequiredInputRow = RowwiseConvFirstInputRow( outputRowIndex + result.OutputRowsCalculated,

@@ -15,14 +15,15 @@ limitations under the License.
 
 #pragma once
 
+#include "CpuRowwiseCommon.h"
 #include "CpuRowwiseInterface.h"
 #include <CpuMathEngineDnnChannelwiseConv.h>
 
 namespace NeoML {
 
-class CRowwiseChConv : public IRowwiseCpuImpl, public CRowwiseOperationDesc {
+class CCpuRowwiseChConv : public ICpuRowwiseImpl, public CRowwiseOperationDesc {
 public:
-	CRowwiseChConv( int paddingHeight, int paddingWidth, int strideHeight, int strideWidth,
+	CCpuRowwiseChConv( int paddingHeight, int paddingWidth, int strideHeight, int strideWidth,
 			const CBlobDesc& filterDesc, const float* filter, const float* freeTerm ) :
 		desc( paddingHeight, paddingWidth, strideHeight, strideWidth, CBlobDesc(), filterDesc, CBlobDesc() ),
 		processFunc( nullptr ),
@@ -48,7 +49,7 @@ private:
 	const float* freeTerm;
 };
 
-inline CBlobDesc CRowwiseChConv::Reshape( const CBlobDesc& inputSize )
+inline CBlobDesc CCpuRowwiseChConv::Reshape( const CBlobDesc& inputSize )
 {
 	auto convOutputSize = [] ( int input, int filter, int padding, int stride ) -> int
 	{
@@ -66,7 +67,7 @@ inline CBlobDesc CRowwiseChConv::Reshape( const CBlobDesc& inputSize )
 	return desc.Result;
 }
 
-inline IRowwiseCpuImpl::CProcessingReport CRowwiseChConv::Process( const float* input, int inputRowIndex,
+inline ICpuRowwiseImpl::CProcessingReport CCpuRowwiseChConv::Process( const float* input, int inputRowIndex,
 	int inputRowsAvailable, float* output, int outputRowIndex, int outputRowsAvailable, float* ) const
 {
 	CProcessingReport report = RowwiseConvProcessingReport( inputRowIndex, inputRowsAvailable, outputRowIndex,

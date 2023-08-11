@@ -26,8 +26,10 @@ namespace NeoOnnx {
 
 namespace optimization {
 
-void CHardSigmoidOptimizer::Apply()
+int CHardSigmoidOptimizer::Apply()
 {
+	int optimizedLayers = 0;
+
 	CArray<CBaseLayer*> layers;
 	graph.GetLayers( layers );
 
@@ -114,9 +116,12 @@ void CHardSigmoidOptimizer::Apply()
 		graph.SwitchOutputs( *slopeLayer, 0, *hardSigmoidLayer, 0 );
 
 		graph.DeleteSelectedLayers();
+
+		optimizedLayers++;
 	}
 
 	graph.ClearSelection();
+	return optimizedLayers;
 }
 
 // Checks if data layer is valid for CHardSigmoid conversion

@@ -17,66 +17,175 @@ limitations under the License.
 #pragma hdrstop
 
 #include <NeoOnnx/NeoOnnxImport.h>
+#include <NeoML/Dnn/Layers/Onnx/OnnxTransformHelper.h>
+#include <NeoML/Dnn/Layers/Onnx/OnnxTransposeHelper.h>
 #include "Optimization/LayerNormFusionOptimizer.h"
 
 namespace NeoOnnx {
 
+class CObjectNormLayoutValidator : public ITensorLayoutValidator {
+public:
+	explicit CObjectNormLayoutValidator( const CFastArray<int, 8>& _axes ) { _axes.CopyTo( axes ); }
+
+	bool operator()( const CTensorLayout& layout ) const override;
+
+private:
+	CFastArray<int, 8> axes; // axes which will be normalized
+};
+
+bool CObjectNormLayoutValidator::operator()( const CTensorLayout& layout ) const
+{
+	for( int i = 0; i < layout.Size(); ++i ) {
+		if( axes.Find( i ) == NotFound && layout[i] >= BD_Height ) {
+			return false; // CObjectNormalizationLayer normalizes every object dimension
+		} else if( axes.Find( i ) != NotFound && layout[i] < BD_Height ) {
+			return false; // CObjectNormalizationLayer preserves every batch dimension
+		}
+	}
+	return true;
+}
+
 namespace optimization {
 
-void CLayerNormFusionOptimizer::getTransformRule( const COnnxTransformHelper& transformLayer, const bool opposite, int rule[BD_Count] ) const
+static constexpr const char* const fusionNamePrefix{ "NormFusion_" };
+
+// Information about layout change in ONNX
+struct CLayerNormFusionOptimizer::CLayoutChange {
+	CTensorLayout From; // Layout before this change
+	CTensorLayout To; // Layout after this change
+
+	bool operator==( const CLayoutChange& other ) const
+	{ return From == other.From && To == other.To; }
+	bool operator!=( const CLayoutChange& other ) const { return !( *this == other ); }
+	// Checks that this layout switches back layouts from other change
+	bool IsInversionOf( const CLayoutChange& other ) const
+	{ return From == other.To && To == other.From; }
+};
+
+// Prepares object norm param blob
+static CPtr<CDnnBlob> prepareObjNormParamBlob( const CDataLayer& dataLayer, const CTensorLayout& currentLayout,
+	const CTensorLayout& objNormLayout )
 {
-	for( int index = 0; index < BD_Count; ++index ) {
-		const int dim = transformLayer.GetRule( TBlobDim( index ) );
-		if( !opposite ) {
-			rule[index] = dim;
-		} else if( isValidBlobDim( dim ) ) {
-			rule[dim] = index;
-		}
-	}
+	// Convert it via ONNX tensor utilities
+	CPtr<CDataTensor> dataTensor = new CDataTensor( currentLayout, *( dataLayer.GetBlob() ) );
+	return ConvertTensor( *dataTensor, objNormLayout )->Data()->GetCopy();
 }
 
-//--------------------------------------------------------------------------------------------------------------
-bool CLayerNormFusionOptimizer::isValidTransformLayer( const COnnxTransformHelper& transformLayer,
-	const COnnxTransformHelper* transformLayerPrevious,
-	bool opposite,
-	bool& objTransform ) const
+// Adds rename layer to the given input data
+// Returns the output of this rename
+static CLayerOutput<> addTensorLayoutRename( const CLayerOutput<> inputData,
+	const CTensorLayoutRename& rename, CGraph& graph )
 {
-	NeoAssert( graph.GetInputCount( transformLayer ) == 1 );
-	NeoAssert( graph.GetOutputCount( transformLayer ) == 1 );
+	NeoAssert( inputData.Layer != nullptr );
+	NeoAssert( inputData.Index >= 0 );
+	NeoAssert( rename.From.Size() == rename.To.Size() );
 
-	bool result = true;
-	if( transformLayerPrevious ) {
-		int rule[BD_Count]{ -1, -1, -1, -1, -1, -1, -1 };
-		getTransformRule( *transformLayerPrevious, opposite, rule );
+	if( rename.From == rename.To ) {
+		return inputData; // No renaming needed
+	}
 
-		for( int index = 0; index < BD_Count; ++index ) {
-			const TBlobDim dim = transformLayer.GetRule( TBlobDim( index ) );
-			if( dim != rule[index] && ( !isEmptyBlobDim( index, dim ) || !isEmptyBlobDim( index, rule[index] ) ) ) {
-				result = false;
-				break;
-			}
-		}
+	CPtr<COnnxTransformHelper> transformLayer = new COnnxTransformHelper(graph.MathEngine(),
+		rename.From, rename.To );
+	transformLayer->SetName( graph.GetUniqueName( CString( fusionNamePrefix ) + "_Transform" ) );
+	for( int i = 0; i < rename.From.Size(); ++i ) {
+		transformLayer->SetRule( rename.From[i], rename.To[i] );
+	}
+	graph.AddLayer( *transformLayer );
+	graph.Connect( *transformLayer, 0, *inputData.Layer, inputData.Index );
+	return CLayerOutput<>( transformLayer, 0 );
+}
+
+// Adds transpose layer to the given input data
+// Returns the output of this transpose
+static CLayerOutput<> addTensorLayoutTranspose( const CLayerOutput<> inputData,
+	const CTensorLayout& inputLayout, CTensorLayout& outputLayout,
+	const CTensorLayoutTranspose& transpose, CGraph& graph )
+{
+	NeoAssert( inputData.Layer != nullptr );
+	NeoAssert( inputData.Index >= 0 );
+	NeoAssert( transpose.First != transpose.Second );
+
+	outputLayout = inputLayout;
+	const int firstIndex = inputLayout.Find( transpose.First );
+	const int secondIndex = inputLayout.Find( transpose.Second );
+	NeoAssert( firstIndex != NotFound || secondIndex != NotFound );
+
+	if( firstIndex != NotFound && secondIndex != NotFound ) {
+		std::swap( outputLayout[firstIndex], outputLayout[secondIndex] );
+	} else if( firstIndex == NotFound ) {
+		outputLayout[secondIndex] = transpose.First;
 	} else {
-		bool objChange = false;
-		for( int index = 0; index < BD_Count; ++index ) {
-			const TBlobDim dim = transformLayer.GetRule( TBlobDim( index ) );
-			if( !isEmptyBlobDim( index, dim )
-				&& ( ( dim > BD_ListSize && index <= BD_ListSize )
-				|| ( dim <= BD_ListSize && index > BD_ListSize ) ) )
-			{
-				objChange = true;
-				break;
-			}
-		}
-		if( objTransform || objChange ) {
-			result = ( objTransform = objChange );
-		} 
-		// Or allow any transform, which does not change the object size
+		outputLayout[firstIndex] = transpose.Second;
 	}
-	return result;
+
+	CPtr<COnnxTransposeHelper> transposeLayer = new COnnxTransposeHelper( graph.MathEngine(),
+		inputLayout, outputLayout );
+	transposeLayer->SetDims( transpose.First, transpose.Second );
+	transposeLayer->SetName( graph.GetUniqueName( CString( fusionNamePrefix ) + "_Transpose" ) );
+	graph.AddLayer( *transposeLayer );
+	graph.Connect( *transposeLayer, 0, *inputData.Layer, inputData.Index );
+	return CLayerOutput<>( transposeLayer, 0 );
 }
 
-//--------------------------------------------------------------------------------------------------------------
+// Selects the following chain of ONNX layers
+//     -> [Transform] -> [Transpose ->]* -> [Transform] ->
+// connected to inputIndex'th input of inputLayer
+// Chains like these are generated by NeoOnnx in order to change tensor layout
+// Must select at least one layer (otherwise it's a failure)
+// If succeeded returns output connected to Transform's input and fills information about layouts before/after
+// If failed returns empty output: CLayerOutput( nullptr, NotFound )
+CLayerOutput<> CLayerNormFusionOptimizer::selectLayoutChange( CBaseLayer& inputLayer, int inputIndex,
+	CLayoutChange& change ) const
+{
+	change.From.Empty();
+	change.To.Empty();
+
+	CLayerOutput<> currentOutput = graph.GetConnectedOutput<>( inputLayer, inputIndex );
+
+	auto trySetOutputLayout = [&change] ( const CFastArray<TBlobDim, 8>& layout ) -> void
+	{
+		if( change.To.IsEmpty() ) {
+			layout.CopyTo( change.To );
+		}
+	};
+
+	auto processOptionalTransform = [&] () -> void
+	{
+		COnnxTransformHelper* transform = dynamic_cast<COnnxTransformHelper*>( currentOutput.Layer );
+		if( transform != nullptr && graph.GetConnectedInputsCount( *transform, 0 ) == 1 ) {
+			trySetOutputLayout( transform->OutputLayout() );
+			transform->InputLayout().CopyTo( change.From );
+			graph.SelectLayer( *transform );
+			currentOutput = graph.GetConnectedOutput( *transform, 0 );
+		}
+	};
+
+	// Process possible COnnxTransformLayer after transposes
+	processOptionalTransform();
+
+	// Process transposes
+	while( dynamic_cast<COnnxTransposeHelper*>( currentOutput.Layer ) != nullptr ) {
+		COnnxTransposeHelper* transpose = dynamic_cast<COnnxTransposeHelper*>( currentOutput.Layer );
+		if( graph.GetConnectedInputsCount( *transpose, 0 ) != 1 ) {
+			return CLayerOutput<>();
+		}
+		trySetOutputLayout( transpose->OutputLayout() );
+		transpose->InputLayout().CopyTo( change.From );
+		graph.SelectLayer( *currentOutput.Layer );
+		currentOutput = graph.GetConnectedOutput( *transpose, 0 );
+	}
+
+	// Process possible COnnxTransformLayer before transposes
+	processOptionalTransform();
+
+	if( change.From.IsEmpty() ) {
+		return CLayerOutput<>(); // No layout conversion detected
+	}
+
+	return currentOutput;
+}
+
+// Checks if DataLayer is valid for CLayerNormFusionOptimizer conversion
 bool CLayerNormFusionOptimizer::isValidDataLayer( const CDataLayer& dataLayer, TBlobType blobType, int blobSize ) const
 {
 	NeoAssert( graph.GetInputCount( dataLayer ) == 0 );
@@ -91,7 +200,7 @@ bool CLayerNormFusionOptimizer::isValidDataLayer( const CDataLayer& dataLayer, T
 		&& ( blobSize == NotFound || blob->GetDataSize() == blobSize ) );
 }
 
-//--------------------------------------------------------------------------------------------------------------
+// Checks if CastLayer is valid for CLayerNormFusionOptimizer conversion
 bool CLayerNormFusionOptimizer::isValidCastLayer( const CCastLayer& castLayer ) const
 {
 	NeoAssert( graph.GetInputCount( castLayer ) == 1 );
@@ -100,9 +209,33 @@ bool CLayerNormFusionOptimizer::isValidCastLayer( const CCastLayer& castLayer ) 
 	return castLayer.GetOutputType() == CT_Float;
 }
 
-//--------------------------------------------------------------------------------------------------------------
-void CLayerNormFusionOptimizer::Apply()
+// Adds tensor layout change to the given input data
+// Returns the output of this change
+CLayerOutput<> CLayerNormFusionOptimizer::changeLayout( const CLayerOutput<>& inputData,
+	const CTensorLayout& inputLayout, const ITensorLayoutValidator& validator,
+	CTensorLayout& outputLayout )
 {
+	CTensorLayoutConversion conversion;
+	outputLayout = FindConversion( inputLayout, validator, conversion );
+
+	CLayerOutput<> currentOutput = addTensorLayoutRename( inputData, conversion.PreTransposeRename, graph );
+
+	CTensorLayout transposeInputLayout = conversion.PreTransposeRename.To.IsEmpty() ? inputLayout
+		: conversion.PreTransposeRename.To;
+	CTensorLayout transposeOutputLayout = transposeInputLayout;
+	for( const CTensorLayoutTranspose& transpose : conversion.Transposes ) {
+		currentOutput = addTensorLayoutTranspose( currentOutput, transposeInputLayout, transposeOutputLayout,
+			transpose, graph );
+		transposeOutputLayout.CopyTo( transposeInputLayout );
+	}
+
+	return addTensorLayoutRename( currentOutput, conversion.PostTransposeRename, graph );
+}
+
+int CLayerNormFusionOptimizer::Apply()
+{
+	int optimizedLayers = 0;
+
 	NeoAssert( graph.SelectionSize() == 0 );
 
 	CArray<CBaseLayer*> layers{};
@@ -172,97 +305,87 @@ void CLayerNormFusionOptimizer::Apply()
 			}
 		}
 
-		bool objTransform = false;
-		CLayerOutput<COnnxTransformHelper> transform4{};
+		CLayerOutput<> sqrtOutput{};
 		CLayerOutput<COnnxEltwiseLayer> sub2{};
-		if( !graph.SelectBothConnectedOutputs<COnnxEltwiseLayer, COnnxTransformHelper>( *div.Layer, sub2, transform4, /*checkOutOfSelectionLinks*/false )
-			|| !isValidArithmeticLayer( *sub2.Layer, COnnxEltwiseLayer::TOperation::Sub )
-			|| !isValidTransformLayer( *transform4.Layer, /*prevTransform*/nullptr, /*opposite*/false, objTransform ) )
+		CLayoutChange layoutChangeAfterSecondPooling;
+		for( int subIndex = 0; subIndex < 2; ++subIndex ) {
+			sub2 = graph.SelectConnectedOutput<COnnxEltwiseLayer>( *div.Layer, subIndex, false );
+			if( sub2.Layer != nullptr ) {
+				sqrtOutput = selectLayoutChange( *div.Layer, 1 - subIndex, layoutChangeAfterSecondPooling );
+				break;
+			}
+		}
+
+		auto* sqrtLayer = dynamic_cast<CPowerLayer*>( sqrtOutput.Layer );
+		if( sqrtLayer == nullptr || !isValidPowerLayer( *sqrtLayer, 0.5f ) || sub2.Layer == nullptr
+			|| !isValidArithmeticLayer( *sub2.Layer, COnnxEltwiseLayer::TOperation::Sub ) )
 		{
 			continue; // fail this Fusion
 		}
+		graph.SelectLayer( *sqrtLayer );
 
-		auto* sqrtLayer = graph.SelectTheOnlyConnectedOutput<CPowerLayer>( *transform4.Layer, /*checkOutOfSelectionLinks*/false );
-		if( sqrtLayer == nullptr
-			|| !isValidPowerLayer( *sqrtLayer, 0.5f ) )
-		{
-			continue; // fail this Fusion
-		}
-
-		auto* addLayer = graph.SelectTheOnlyConnectedOutput<COnnxEltwiseLayer>( *sqrtLayer, /*checkOutOfSelectionLinks*/false );
-		if( addLayer == nullptr
-			|| !isValidArithmeticLayer( *addLayer, COnnxEltwiseLayer::TOperation::Add ) )
-		{
+		COnnxEltwiseLayer* addLayer = graph.SelectTheOnlyConnectedOutput<COnnxEltwiseLayer>( *sqrtLayer, false );
+		if( addLayer == nullptr || !isValidArithmeticLayer( *addLayer, COnnxEltwiseLayer::TOperation::Add ) ) {
 			continue; // fail this Fusion
 		}
 
 		CLayerOutput<CGlobalMeanPoolingLayer> reduceMean2{};
-		CLayerOutput<CDataLayer> epsilont{};
-		if( !graph.SelectBothConnectedOutputs<CGlobalMeanPoolingLayer, CDataLayer>( *addLayer, reduceMean2, epsilont, /*checkOutOfSelectionLinks*/false )
-			|| graph.GetInputCount( *reduceMean2.Layer ) != 1
-			|| !isValidDataLayer( *epsilont.Layer, CT_Float, /*size*/1 ) )
+		CLayerOutput<CDataLayer> eps{};
+		if( !graph.SelectBothConnectedOutputs<CGlobalMeanPoolingLayer, CDataLayer>( *addLayer, reduceMean2, eps, false )
+			|| graph.GetInputCount( *reduceMean2.Layer ) != 1 || !isValidDataLayer( *eps.Layer, CT_Float, /*size*/1 ) )
 		{
 			continue; // fail this Fusion
 		}
 
-		auto* transform3Layer = graph.SelectTheOnlyConnectedOutput<COnnxTransformHelper>( *reduceMean2.Layer, /*checkOutOfSelectionLinks*/false );
-		if( transform3Layer == nullptr
-			|| !isValidTransformLayer( *transform3Layer, /*prevTransform*/transform4.Layer, /*opposite*/true, objTransform ) )
+		CLayoutChange layoutChangeBeforeSecondPooling;
+		auto* sqrLayer = dynamic_cast<CPowerLayer*>(
+			selectLayoutChange( *reduceMean2.Layer, 0, layoutChangeBeforeSecondPooling ).Layer );
+		if( sqrLayer == nullptr || !isValidPowerLayer( *sqrLayer, 2.f ) ||
+			!layoutChangeBeforeSecondPooling.IsInversionOf( layoutChangeAfterSecondPooling ) )
 		{
 			continue; // fail this Fusion
 		}
-
-		auto* powLayer = graph.SelectTheOnlyConnectedOutput<CPowerLayer>( *transform3Layer, /*checkOutOfSelectionLinks*/false );
-		if( powLayer == nullptr
-			|| !isValidPowerLayer( *powLayer, 2.f ) )
-		{
-			continue; // fail this Fusion
-		}
+		graph.SelectLayer( *sqrLayer );
 
 		COnnxEltwiseLayer* subLayer = nullptr;
-		CCastLayer* unusedCastLayer = graph.SelectTheOnlyConnectedOutput<CCastLayer>( *powLayer, /*checkOutOfSelectionLinks*/false ); // try to skip CAST layer in operand (1)
+		// try to skip CAST layer in operand (1)
+		CCastLayer* unusedCastLayer = graph.SelectTheOnlyConnectedOutput<CCastLayer>( *sqrLayer, false );
 		if( unusedCastLayer != nullptr ) { // success to find the CAST layer as operand (1)
 			if( !isValidCastLayer( *unusedCastLayer ) ) {
 				continue; // fail this Fusion
 			}
 			subLayer = graph.GetConnectedOutput<COnnxEltwiseLayer>( *unusedCastLayer, /*inputIndex*/0 ).Layer;
 		} else { // fail to find the CAST layer as operand (1)
-			subLayer = graph.GetConnectedOutput<COnnxEltwiseLayer>( *powLayer, /*inputIndex*/0 ).Layer;
+			subLayer = graph.GetConnectedOutput<COnnxEltwiseLayer>( *sqrLayer, /*inputIndex*/0 ).Layer;
 		}
-		if( subLayer == nullptr
-			|| !isValidArithmeticLayer( *subLayer, COnnxEltwiseLayer::TOperation::Sub ) )
-		{
+
+		if( subLayer == nullptr || !isValidArithmeticLayer( *subLayer, COnnxEltwiseLayer::TOperation::Sub ) ) {
 			continue; // fail this Fusion
 		}
 
+		CLayoutChange layoutChangeAfterFirstPooling;
+		CGlobalMeanPoolingLayer* reduceMeanLayer = nullptr;
 		CBaseLayer* inputNormLayerX = nullptr;
-		auto* transform2Layer = graph.GetConnectedOutput<COnnxTransformHelper>( *subLayer, /*inputIndex*/0 ).Layer;
-		if( transform2Layer == nullptr
-			|| isValidTransformLayer( *transform2Layer, /*prevTransform*/transform4.Layer, /*opposite*/false, objTransform ) )
-		{
-			transform2Layer = graph.GetConnectedOutput<COnnxTransformHelper>( *subLayer, /*inputIndex*/1 ).Layer;
-			inputNormLayerX = graph.GetConnectedOutput<CBaseLayer>( *subLayer, /*inputIndex*/0 ).Layer;
-			if( transform2Layer == nullptr
-				|| !isValidTransformLayer( *transform2Layer, /*prevTransform*/transform4.Layer, /*opposite*/false, objTransform ) )
-			{
-				continue; // fail this Fusion
+		for( int layoutChangeIndex = 0; layoutChangeIndex < 2; ++layoutChangeIndex ) {
+			CLayerOutput<> reduceOutput = selectLayoutChange( *subLayer, layoutChangeIndex,
+				layoutChangeAfterFirstPooling );
+			if( reduceOutput.Layer != nullptr ) {
+				inputNormLayerX = graph.GetConnectedOutput<CBaseLayer>( *subLayer, 1 - layoutChangeIndex ).Layer;
+				reduceMeanLayer = dynamic_cast<CGlobalMeanPoolingLayer*>( reduceOutput.Layer );
+				break;
 			}
-		} else {
-			inputNormLayerX = graph.GetConnectedOutput<CBaseLayer>( *subLayer, /*inputIndex*/1 ).Layer;
 		}
-		graph.SelectLayer( *transform2Layer );
 
-		CGlobalMeanPoolingLayer* reduceMeanLayer = graph.SelectTheOnlyConnectedOutput<CGlobalMeanPoolingLayer>( *transform2Layer, /*checkOutOfSelectionLinks*/false );
-		if( reduceMeanLayer == nullptr
-			|| graph.GetInputCount( *reduceMeanLayer ) != 1 )
+		if( reduceMeanLayer == nullptr || graph.GetInputCount( *reduceMeanLayer ) != 1
+			|| layoutChangeAfterFirstPooling != layoutChangeAfterSecondPooling )
 		{
 			continue; // fail this Fusion
 		}
+		graph.SelectLayer( *reduceMeanLayer );
 
-		auto* transform1Layer = graph.SelectTheOnlyConnectedOutput<COnnxTransformHelper>( *reduceMeanLayer, /*checkOutOfSelectionLinks*/false );
-		if( transform1Layer == nullptr
-			|| !isValidTransformLayer( *transform1Layer, /*prevTransform*/transform4.Layer, /*opposite*/true, objTransform ) )
-		{
+		CLayoutChange layoutChangeBeforeFirstPooling;
+		CLayerOutput<> blockData = selectLayoutChange( *reduceMeanLayer, 0, layoutChangeBeforeFirstPooling );
+		if( blockData.Layer == nullptr || layoutChangeBeforeFirstPooling != layoutChangeBeforeSecondPooling ) {
 			continue; // fail this Fusion
 		}
 
@@ -276,85 +399,58 @@ void CLayerNormFusionOptimizer::Apply()
 				continue; // fail this Fusion
 			}
 		}
+
 		// Handle cyclic edges check (2)
-		auto* inputReduceMeanLayer = graph.GetConnectedOutput( *transform1Layer, /*inputIndex*/0 ).Layer;
-		if( inputReduceMeanLayer != inputNormLayerX ) {
-			CBaseLayer* transformLayer = transform1Layer;
-			while( ( transformLayer = graph.SelectTheOnlyConnectedOutput<COnnxTransformHelper>( *transformLayer ) ) != nullptr ) {
-				inputReduceMeanLayer = graph.GetConnectedOutput( *transformLayer, /*inputIndex*/0 ).Layer;
-			}
-			if ( inputReduceMeanLayer != inputNormLayerX ) {
-				continue; // fail this Fusion
-			}
+		if( blockData.Layer != inputNormLayerX ) {
+			continue; // fail this Fusion
 		}
 		// Current Fusion succeed!
 
-		const auto& biasBlob = bias.Layer->GetBlob();
-		const auto& scaleBlob = scale.Layer->GetBlob();
-		const auto& epsBlob = epsilont.Layer->GetBlob();
+		// ObjectNorm and GlobalMeanPooling are working with different layouts
+		// (the difference is in BD_Channels, ObjectNorm affects data along it while GlobalMeanPooling doesn't)
+		// Let's find a conversion to layout which will good for CObjectNormalizationLayer
+
+		// Find axes indices which must be normalized
+		// GlobalMeanPooling affects BD_Height, BD_Width and BD_Depth
+		const CTensorLayout& ioLayout = layoutChangeBeforeFirstPooling.From;
+		const CTensorLayout& globalPoolLayout = layoutChangeBeforeFirstPooling.To;
+		CFastArray<int, 8> axes;
+		for( int i = 0; i < globalPoolLayout.Size(); ++i ) {
+			if( globalPoolLayout[i] >= BD_Height && globalPoolLayout[i] <= BD_Depth ) {
+				axes.Add( i );
+			}
+		}
+
+		// Convert data to layout valid for CObjectNormalizationLayer
+		CTensorLayout objNormLayout;
+		CLayerOutput<> objNormInput = changeLayout( blockData, ioLayout, CObjectNormLayoutValidator( axes ),
+			objNormLayout );
 
 		CPtr<CObjectNormalizationLayer> normLayer{ new CObjectNormalizationLayer( graph.MathEngine() ) };
-		normLayer->SetName( graph.GetUniqueName( CString( FusionNamePrefix ) + "ObjNorm_" ) );
-		normLayer->SetEpsilon( epsBlob->GetData().GetValue() );
+		normLayer->SetName( graph.GetUniqueName( CString( fusionNamePrefix ) + "ObjNorm_" ) );
+		normLayer->SetEpsilon( eps.Layer->GetBlob()->GetData().GetValue() );
 		graph.AddLayer( *normLayer );
+		graph.Connect( *normLayer, 0, *objNormInput.Layer, objNormInput.Index );
 
-		CBaseLayer* newNormLayer = nullptr;
-		if( objTransform ) {
-			int rule[BD_Count]{ -1, -1, -1, -1, -1, -1, -1 };
-			getTransformRule( *transform4.Layer, /*opposite*/false, rule );
+		// Prepare parameters for CObjectNormalizationLayer before setting them
+		normLayer->SetBias( prepareObjNormParamBlob( *bias.Layer, ioLayout, objNormLayout ) );
+		normLayer->SetScale( prepareObjNormParamBlob( *scale.Layer, ioLayout, objNormLayout ) );
 
-			for( int index = 0; index < BD_Count; ++index ) {
-				if( !isEmptyBlobDim( index, rule[index] )  ) {
-					biasBlob->GetTransposed( index, rule[index] );
-					scaleBlob->GetTransposed( index, rule[index] );
-				}
-			}
-			normLayer->SetBias( biasBlob );
-			normLayer->SetScale( scaleBlob );
+		// Now change back the layout after the CObjectNormalizationLayer
+		CTensorLayout afterObjNormLayout;
+		CLayerOutput<> newBlockOutput = changeLayout( CLayerOutput<>( normLayer, 0 ), objNormLayout,
+			CTensorLayoutMatchValidator( ioLayout ), afterObjNormLayout );
+		NeoAssert( ioLayout == afterObjNormLayout );
 
-			// Layer ObjectNormalization should have some number of objects to reduction ( ObjectCount > 1 && ObjectSize >= 1 ).
-			// Mostly in given ANNs X layer (input of ObjNorm) has Height > 1, so it used to increase the ObjectCount.
+		// And switch everythin that was connected with old huge block to new one
+		graph.SwitchOutputs( *addLayerLast, 0, *newBlockOutput.Layer, newBlockOutput.Index );
 
-			CPtr<COnnxTransformHelper> layerTransformBefore{ new COnnxTransformHelper( graph.MathEngine() ) };
-			layerTransformBefore->SetName( graph.GetUniqueName( CString( FusionNamePrefix ) + "TransformBefore_" ) );
-			graph.AddLayer( *layerTransformBefore );
-
-			for( int index = 0; index < BD_Count; ++index ) {
-				if( isValidBlobDim( rule[index] ) ) {
-					layerTransformBefore->SetRule( TBlobDim( index ), TBlobDim( rule[index] ) );
-				}
-			}
-
-			CPtr<COnnxTransformHelper> layerTransformAfter{ new COnnxTransformHelper( graph.MathEngine() ) };
-			layerTransformAfter->SetName( graph.GetUniqueName( CString( FusionNamePrefix ) + "TransformAfter_" ) );
-			graph.AddLayer( *layerTransformAfter );
-
-			int ruleOpposite[BD_Count]{ -1, -1, -1, -1, -1, -1, -1 };
-			getTransformRule( *transform4.Layer, /*opposite*/true, ruleOpposite );
-			for( int index = 0; index < BD_Count; ++index ) {
-				if( isValidBlobDim( ruleOpposite[index] ) ) {
-					layerTransformAfter->SetRule( TBlobDim( index ), TBlobDim( ruleOpposite[index] ) );
-				}
-			}
-
-			graph.Connect( *layerTransformBefore, /*inputIndex*/0, *inputNormLayerX, /*outputIndex*/0 );
-			graph.Connect( *normLayer, /*inputIndex*/0, *layerTransformBefore, /*outputIndex*/0 );
-			graph.Connect( *layerTransformAfter, /*inputIndex*/0, *normLayer, /*outputIndex*/0 );
-			newNormLayer = layerTransformAfter;
-		} else {
-			normLayer->SetBias( biasBlob );
-			normLayer->SetScale( scaleBlob );
-
-			graph.Connect( *normLayer, /*inputIndex*/0, *inputNormLayerX, /*outputIndex*/0 );
-			newNormLayer = normLayer;
-		};
-
-		// Search for the output-layers of addLayerLast for new added ObjNorm layer
-		graph.SwitchOutputs( *addLayerLast, /*outputIndex*/0, *newNormLayer, /*outputIndex*/0 );
-
-		// All selected layers would be removed from the dnn
 		graph.DeleteSelectedLayers();
+
+		++optimizedLayers;
 	} //for layers
+
+	return optimizedLayers;
 }
 
 } // namespace optimization

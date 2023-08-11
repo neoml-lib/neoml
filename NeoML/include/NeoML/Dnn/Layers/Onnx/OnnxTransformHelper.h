@@ -25,11 +25,17 @@ class NEOML_API COnnxTransformHelper : public COnnxLayerBase {
 	NEOML_DNN_LAYER( COnnxTransformHelper )
 public:
 	explicit COnnxTransformHelper( IMathEngine& mathEngine );
+	COnnxTransformHelper( IMathEngine& mathEngine, const CFastArray<TBlobDim, 8>& inputLayout,
+		const CFastArray<TBlobDim, 8>& outputLayout );
 
 	// Puts the size of input's inputDim to output's outputDim
 	// If inputDim == BD_Count then the following outputDim will be set to 1 (default)
 	void SetRule( TBlobDim inputDim, TBlobDim outputDim ) { transformInfo[outputDim] = inputDim; }
 	TBlobDim GetRule( TBlobDim outputDim ) const { return transformInfo[outputDim]; }
+
+	// ONNX tensor layouts (filled only during ONNX import, aren't serialized)
+	const CFastArray<TBlobDim, 8>& InputLayout() const { return inputLayout; }
+	const CFastArray<TBlobDim, 8>& OutputLayout() const { return outputLayout; }
 
 	void Serialize( CArchive& archive ) override;
 
@@ -40,6 +46,8 @@ protected:
 private:
 	CFastArray<TBlobDim, 8> transformInfo;
 	CBlobDesc outputDesc;
+	CFastArray<TBlobDim, 8> inputLayout;
+	CFastArray<TBlobDim, 8> outputLayout;
 };
 
 } // namespace NeoML

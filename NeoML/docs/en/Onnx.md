@@ -38,7 +38,7 @@ The library will be built automatically together with **NeoML**.
 
 ## Implementation
 
-We use the ONNX opset version 9, supporting the main convolutional neural network operations, LSTM, and most activation functions.
+Supported all ONNX opset versions up to 16. Supported the main convolutional neural network operations, LSTM, and most activation functions.
 
 ## Mobile support
 

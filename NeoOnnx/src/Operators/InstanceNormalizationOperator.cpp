@@ -24,11 +24,14 @@ limitations under the License.
 
 namespace NeoOnnx {
 
-// Checks whether the tensor layout is compatible with CObjectNormalizationLayer or not
-static bool isObjectNormalizationCompatible( const CTensorLayout& layout )
+// Validator for InstanceNorm operator
+class CInstanceNormLayoutValidator : public ITensorLayoutValidator {
+	bool operator()( const CTensorLayout& layout ) const override;
+};
+
+bool CInstanceNormLayoutValidator::operator()( const CTensorLayout& layout ) const
 {
-	// In compatible layout first 2 dims must be batch dims
-	// and the rest must be object dims
+	// In compatible layout first 2 dims must be batch dims and the rest must be object dims
 	const int batchDims = 2;
 	for( int dimIndex = 0; dimIndex < layout.Size(); ++dimIndex ) {
 		if( ( dimIndex < batchDims && layout[dimIndex] >= BD_Height )
@@ -43,12 +46,7 @@ static bool isObjectNormalizationCompatible( const CTensorLayout& layout )
 // Applies normalization to the InstanceNormalization input
 static CPtr<const CUserTensor> applyNormalization( const CUserTensor& input, float eps, const CString& layerName, CDnn& dnn )
 {
-	CPtr<const CUserTensor> currInput = &input;
-	if( !isObjectNormalizationCompatible( currInput->Layout() ) ) {
-		CTensorLayout objNormLayout( { BD_BatchWidth, BD_ListSize, BD_Height, BD_Width, BD_Depth } );
-		objNormLayout.SetSize( currInput->DimCount() );
-		currInput = ConvertTensor( *currInput, objNormLayout );
-	}
+	CPtr<const CUserTensor> currInput = ConvertTensor( input, CInstanceNormLayoutValidator() );
 	CPtr<CObjectNormalizationLayer> objNormLayer = new CObjectNormalizationLayer( dnn.GetMathEngine() );
 	objNormLayer->SetName( layerName );
 	objNormLayer->SetEpsilon( eps );
@@ -62,11 +60,7 @@ static CPtr<const CUserTensor> applyScaleAndBias( const CUserTensor& input, cons
 	const CDataTensor& bias, const CString& layerName, CDnn& dnn )
 {
 	IMathEngine& mathEngine = dnn.GetMathEngine();
-	CPtr<const CUserTensor> currInput = &input;
-	// CObjectNormalization layout is 100% incompatible with the CBatchNormalization layout
-	CTensorLayout batchNormLayout( { BD_BatchWidth, BD_Channels, BD_Height, BD_Width, BD_Depth } );
-	batchNormLayout.SetSize( currInput->DimCount() );
-	currInput = ConvertTensor( *currInput, batchNormLayout );
+	CPtr<const CUserTensor> currInput = ConvertTensor( input, CBatchNormLayoutValidator() );
 
 	CPtr<CBatchNormalizationLayer> batchNormLayer = new CBatchNormalizationLayer( mathEngine );
 	batchNormLayer->SetName( layerName );
