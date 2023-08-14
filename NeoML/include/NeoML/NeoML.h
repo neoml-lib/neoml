@@ -118,6 +118,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/FullyConnectedSourceLayer.h>
 #include <NeoML/Dnn/Layers/GlobalMaxPoolingLayer.h>
 #include <NeoML/Dnn/Layers/GlobalSumPoolingLayer.h>
+#include <NeoML/Dnn/Layers/GrnLayer.h>
 #include <NeoML/Dnn/Layers/GruLayer.h>
 #include <NeoML/Dnn/Layers/ImageAndPixelConversionLayer.h>
 #include <NeoML/Dnn/Layers/ImageResizeLayer.h>
