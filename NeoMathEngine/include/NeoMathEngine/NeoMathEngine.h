@@ -1235,6 +1235,9 @@ public:
 // This math engine should be destroyed using the standard delete operator after use
 NEOMATHENGINE_API IMathEngine* CreateCpuMathEngine( int threadCount, size_t memoryLimit );
 
+// Future interface
+NEOMATHENGINE_API IMathEngine* CreateCpuMathEngine( size_t memoryLimit );
+
 // Destroys all global data that is shared between CPU math engines
 // Should be called only if there are no running CpuMathEngine instances
 NEOMATHENGINE_API void CpuMathEngineCleanUp();

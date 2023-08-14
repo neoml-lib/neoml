@@ -217,6 +217,11 @@ IMathEngine* CreateCpuMathEngine( int threadCount, size_t memoryLimit )
 	return new CCpuMathEngine( threadCount, memoryLimit );
 }
 
+IMathEngine* CreateCpuMathEngine( size_t memoryLimit )
+{
+	return new CCpuMathEngine( /*threadCount*/1, memoryLimit );
+}
+
 IMathEngine* CreateGpuMathEngine( size_t memoryLimit, int flags )
 {
 	CGpuMathEngineManager manager;

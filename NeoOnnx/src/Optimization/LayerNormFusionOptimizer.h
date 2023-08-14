@@ -94,11 +94,6 @@ private:
 	CGraph& graph;
 	struct CLayoutChange;
 
-	static bool isValidBlobDim( int dim )
-	{ return dim >= 0 && dim < BD_Count; }
-	static bool isEmptyBlobDim( int index, int dim )
-	{ return dim == index || !isValidBlobDim( dim ); };
-
 	CLayerOutput<> selectLayoutChange( CBaseLayer& inputLayer, int inputIndex, CLayoutChange& change ) const;
 	bool isValidDataLayer( const CDataLayer& dataLayer, TBlobType blobType, int blobSize = NotFound ) const;
 	bool isValidCastLayer( const CCastLayer& castLayer ) const;
