@@ -114,11 +114,9 @@ void CGrnLayer::RunOnce()
 	}
 	MathEngine().VectorAddValue( batchChannelBuff, batchChannelBuff, objectCount * channels, one );
 
-	// TODO: ineffective on GPU, add function?
-	for( int b = 0; b < objectCount; ++b ) {
-		MathEngine().MultiplyMatrixByDiagMatrix( inputData + b * objectSize, geometry, channels,
-			batchChannelBuff + b * channels, outputData + b * objectSize, objectSize );
-	}
+	MathEngine().MultiplyMatrixByDiagMatrix( objectCount, inputData, geometry, channels, objectSize,
+		batchChannelBuff, channels, outputData, objectCount * objectSize );
+
 	MathEngine().AddVectorToMatrixRows( 1, outputData, outputData, objectCount * geometry,
 		channels, bias()->GetData() );
 }
