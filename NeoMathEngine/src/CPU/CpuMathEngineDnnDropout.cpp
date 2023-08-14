@@ -44,15 +44,15 @@ void CCpuMathEngine::Dropout( const CDropoutDesc& dropoutDesc, const CFloatHandl
 	ASSERT_EXPR( desc.Mask.Size() == maskSize );
 
 	if( !desc.IsSpatial ) {
-		MultiplyMatrixByDiagMatrix( inputData, batchLength, maskSize, desc.Mask.GetHandle(), outputData,
-			output.BlobSize() );
+		IDnnEngine::MultiplyMatrixByDiagMatrix( inputData, batchLength, maskSize, desc.Mask.GetHandle(),
+			outputData, output.BlobSize() );
 		return;
 	}
 
 	CFloatHandle currInput = inputData;
 	CFloatHandle currOutput = outputData;
 	for( int i = 0; i < input.ObjectCount(); ++i ) {
-		mathEngine().MultiplyMatrixByDiagMatrix( currInput, input.ObjectSize() / objectSize, objectSize,
+		IDnnEngine::MultiplyMatrixByDiagMatrix( currInput, input.ObjectSize() / objectSize, objectSize,
 			desc.Mask.GetHandle() + ( i % batchWidth ) * objectSize, currOutput, input.ObjectSize() );
 		currInput += input.ObjectSize();
 		currOutput += input.ObjectSize();

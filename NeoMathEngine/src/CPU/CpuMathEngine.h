@@ -369,8 +369,9 @@ public:
 	void MultiplyMatrixByMatrix( int batchSize, const CConstFloatHandle& firstHandle, int firstHeight,
 		int firstWidth, const CConstFloatHandle& secondHandle, int secondWidth,
 		const CFloatHandle& resultHandle, int resultBufferSize ) override;
-	void MultiplyMatrixByDiagMatrix( const CConstFloatHandle& firstHandle, int firstHeight, int firstWidth,
-		const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int resultBufferSize ) override;
+	void MultiplyMatrixByDiagMatrix( int batchSize, const CConstFloatHandle& firstHandle, int height,
+		int width, int firstMatrixOffset, const CConstFloatHandle& secondHandle, int secondMatrixOffset,
+		const CFloatHandle& resultHandle, int resultBufferSize ) override;
 	void TransposeMatrix( int batchSize, const CConstFloatHandle& firstHandle,
 		int height, int medium, int width, int channels, const CFloatHandle& resultHandle, int resultBufferSize ) override;
 	void TransposeMatrix( int batchSize, const CConstIntHandle& firstHandle,
