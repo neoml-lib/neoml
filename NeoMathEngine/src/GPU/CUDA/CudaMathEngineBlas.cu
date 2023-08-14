@@ -1005,6 +1005,18 @@ void CCudaMathEngine::vectorMultichannelLookupAndAddToTable(int batchSize, int c
 	}
 }
 
+void CCudaMathEngine::multiplyMatrixByDiagMatrix( int batchSize, const CConstFloatHandle& firstHandle, int height,
+	int width, int firstMatrixOffset, const CConstFloatHandle& secondHandle, int secondMatrixOffset,
+	const CFloatHandle& resultHandle )
+{
+	SetCudaDevice( device->DeviceNumber );
+	int blockCount;
+	int threadCount;
+	getCudaTaskGrid( blockCount, threadCount, height * width * batchSize, MultiplyMatrixByDiagMatrixCombine );
+	MultiplyMatrixByDiagMatrixKernel<<<blockCount, threadCount>>>( batchSize, GetRaw( firstHandle ), height, width,
+		firstMatrixOffset, GetRaw( secondHandle ), secondMatrixOffset, GetRaw( resultHandle ) );
+}
+
 } // namespace NeoML
 
 #endif // NEOML_USE_CUDA
