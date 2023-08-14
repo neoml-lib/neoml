@@ -201,7 +201,10 @@ struct CBroadcast {
 bool BroadcastTensorShape( const CTensorShape& first, const CTensorShape& second, const CBroadcast& broadcast,
 	CTensorShape& result );
 
-// Prepares user tensor for CBroadcastLayer
+// Generates layout recommended for broadcasting given tensor
+CTensorLayout BroadcastTensorLayout( const CTensorLayout& inputLayout, const CBroadcast& broadcast, int outputDims );
+
+// Prepares tensor for operation with broadcast
 CPtr<const CTensorBase> PrepareForBroadcast( const CTensorBase& input, const CBroadcast& broadcast, int outputDims );
 
 //---------------------------------------------------------------------------------------------------------------------
