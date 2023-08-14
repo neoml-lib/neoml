@@ -50,7 +50,8 @@ void CCudaMathEngine::Dropout( const CDropoutDesc& dropoutDesc, const CFloatHand
 	ASSERT_EXPR( desc.Mask.Size() == maskSize );
 
 	if( !desc.IsSpatial ) {
-		MultiplyMatrixByDiagMatrix( inputData, batchLength, maskSize, desc.Mask.GetHandle(), outputData, desc.Output.BlobSize() );
+		IDnnEngine::MultiplyMatrixByDiagMatrix( inputData, batchLength, maskSize, desc.Mask.GetHandle(),
+			outputData, desc.Output.BlobSize() );
 		return;
 	}
 

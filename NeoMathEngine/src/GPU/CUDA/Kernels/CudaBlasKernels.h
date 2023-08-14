@@ -1156,4 +1156,24 @@ __global__ void MatrixColumnsEltwiseDivideKernel( const float* __restrict__ matr
 	}
 }
 
+const int MultiplyMatrixByDiagMatrixCombine = 16;
+__global__ void MultiplyMatrixByDiagMatrixKernel( int batchSize, const float* __restrict__ first, int height,
+	int width, int firstMatrixOffset, const float* __restrict__ second, int secondMatrixOffset, float* result )
+{
+	const int matrixSize = height * width;
+	const int resultSize = batchSize * matrixSize;
+
+	int index;
+	int step;
+	int count = GetCudaTaskCountAndIndex( resultSize, MultiplyMatrixByDiagMatrixCombine, index, step );
+
+	for( int i = 0; i < count; ++i ) {
+		const int b = index / matrixSize;
+		const int row = ( index % matrixSize ) / width;
+		const int col = ( index % matrixSize ) % width;
+		result[index] = first[b * firstMatrixOffset + row * width + col] * second[b * secondMatrixOffset + col];
+		index += step;
+	}
+}
+
 } // namespace NeoML
