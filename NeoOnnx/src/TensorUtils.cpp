@@ -457,6 +457,47 @@ bool BroadcastTensorShape( const CTensorShape& first, const CTensorShape& second
 	return true;
 }
 
+CTensorLayout BroadcastTensorLayout( const CTensorLayout& inputLayout, const CBroadcast& broadcast, int outputDims )
+{
+	if( inputLayout.Size() == outputDims ) {
+		return inputLayout;
+	}
+
+	int axis = outputDims - inputLayout.Size();
+	if( broadcast.Type == BT_Onnx && broadcast.Axis >= 0 && axis > broadcast.Axis ) {
+		axis = broadcast.Axis;
+	}
+
+	TBlobDim currDim = BD_BatchLength;
+	CTensorLayout outputLayout;
+	outputLayout.SetBufferSize( outputDims );
+
+	// Adding unused blob dims to the new layout
+	for( int i = 0; i < axis; ++i ) {
+		while( inputLayout.Find( currDim ) != NotFound && currDim < BD_Count ) {
+			++currDim;
+		}
+		NeoAssert( currDim != BD_Count );
+		outputLayout.Add( currDim );
+		++currDim;
+	}
+
+	// Copying existing dims
+	outputLayout.Add( inputLayout );
+
+	// Adding unused blob dims to the new layout
+	for( int i = outputLayout.Size(); i < outputDims; ++i ) {
+		while( inputLayout.Find( currDim ) != NotFound && currDim < BD_Count ) {
+			++currDim;
+		}
+		NeoAssert( currDim != BD_Count );
+		outputLayout.Add( currDim );
+		++currDim;
+	}
+
+	return outputLayout;
+}
+
 CPtr<const CTensorBase> PrepareForBroadcast( const CTensorBase& input, const CBroadcast& broadcast, int outputDims )
 {
 	const bool isShapeTensor = input.Type() == TTensorType::Shape;
@@ -475,31 +516,7 @@ CPtr<const CTensorBase> PrepareForBroadcast( const CTensorBase& input, const CBr
 		outputShape.Add( 1, outputDims - outputShape.Size() );
 	}
 
-	const CTensorLayout& inputLayout = input.Layout();
-
-	TBlobDim currDim = BD_BatchLength;
-	CTensorLayout outputLayout;
-	outputLayout.SetBufferSize( outputDims );
-	// Adding unused blob dims to the new layout
-	for( int i = 0; i < axis; ++i ) {
-		while( inputLayout.Find( currDim ) != NotFound && currDim < BD_Count ) {
-			++currDim;
-		}
-		NeoAssert( currDim != BD_Count );
-		outputLayout.Add( currDim );
-		++currDim;
-	}
-	// Copying existing dims
-	outputLayout.Add( inputLayout );
-	// Adding unused blob dims to the new layout
-	for( int i = outputLayout.Size(); i < outputDims; ++i ) {
-		while( inputLayout.Find( currDim ) != NotFound && currDim < BD_Count ) {
-			++currDim;
-		}
-		NeoAssert( currDim != BD_Count );
-		outputLayout.Add( currDim );
-		++currDim;
-	}
+	CTensorLayout outputLayout = BroadcastTensorLayout( input.Layout(), broadcast, outputDims );
 
 	if( input.Type() == TTensorType::Data ) {
 		return new CDataTensor( outputLayout, *dynamic_cast<const CDataTensor&>( input ).Data() );
