@@ -58,18 +58,6 @@ bool CGrnLayoutValidator::operator()( const CTensorLayout& layout ) const
 
 namespace optimization {
 
-// Returns true if ONNX transform has the given set of rules
-static bool isValidGrnTransform( const COnnxTransformHelper& transform, std::initializer_list<TBlobDim> rules )
-{
-	for( int i = 0; i < BD_Count; ++i ) {
-		if( rules.begin()[i] != transform.GetRule( static_cast<TBlobDim>( i ) ) ) {
-			return false;
-		}
-	}
-
-	return true;
-}
-
 // Checks that the following eltwise operation is
 //    1. of a given type
 //    2. has 2 inputs
