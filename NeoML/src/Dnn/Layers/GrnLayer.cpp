@@ -56,7 +56,7 @@ void CGrnLayer::Reshape()
 	CheckLayerArchitecture( GetInputCount() == 1, "layer must have exactly 1 input" );
 	CheckLayerArchitecture( GetOutputCount() == 1, "layer must have exactly 1 output" );
 
-	CBlobDesc paramDesc;
+	CBlobDesc paramDesc( CT_Float );
 	paramDesc.SetDimSize( BD_Channels, inputDescs[0].Channels() );
 	if( scale() == nullptr || scale()->GetDataSize() != paramDesc.BlobSize() ) {
 		scale() = CDnnBlob::CreateBlob( MathEngine(), CT_Float, paramDesc );
@@ -114,7 +114,7 @@ void CGrnLayer::RunOnce()
 	}
 	MathEngine().VectorAddValue( batchChannelBuff, batchChannelBuff, objectCount * channels, one );
 
-	MathEngine().MultiplyMatrixByDiagMatrix( objectCount, inputData, geometry, channels, objectSize,
+	MathEngine().BatchMultiplyMatrixByDiagMatrix( objectCount, inputData, geometry, channels, objectSize,
 		batchChannelBuff, channels, outputData, objectCount * objectSize );
 
 	MathEngine().AddVectorToMatrixRows( 1, outputData, outputData, objectCount * geometry,

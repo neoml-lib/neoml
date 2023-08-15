@@ -149,7 +149,7 @@ void CCudaMathEngine::multiplyMatrixByTransposedMatrixAndAdd(const CConstFloatHa
 		GetRaw( resultHandle ), resultRowSize ) );
 }
 
-void CCudaMathEngine::MultiplyMatrixByDiagMatrix( int batchSize, const CConstFloatHandle& firstHandle, int height,
+void CCudaMathEngine::BatchMultiplyMatrixByDiagMatrix( int batchSize, const CConstFloatHandle& firstHandle, int height,
 	int width, int firstMatrixOffset, const CConstFloatHandle& secondHandle, int secondMatrixOffset,
 	const CFloatHandle& resultHandle, int )
 {
