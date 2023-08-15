@@ -114,7 +114,7 @@ void CGrnLayer::RunOnce()
 	}
 	MathEngine().VectorAddValue( batchChannelBuff, batchChannelBuff, objectCount * channels, one );
 
-	MathEngine().MultiplyMatrixByDiagMatrix( objectCount, inputData, geometry, channels, objectSize,
+	MathEngine().BatchMultiplyMatrixByDiagMatrix( objectCount, inputData, geometry, channels, objectSize,
 		batchChannelBuff, channels, outputData, objectCount * objectSize );
 
 	MathEngine().AddVectorToMatrixRows( 1, outputData, outputData, objectCount * geometry,
