@@ -61,6 +61,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Operators/UnsqueezeOperator.cpp
     Operators/UpsampleOperator.cpp
     Optimization/GELUOptimizer.cpp
+    Optimization/GRNOptimizer.cpp
     Optimization/HardSigmoidOptimizer.cpp
     Optimization/HSwishOptimizer.cpp
     Optimization/LayerNormFusionOptimizer.cpp
@@ -120,6 +121,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Optimization/DnnOptimizer.h
     Optimization/Graph.h
     Optimization/GELUOptimizer.h
+    Optimization/GRNOptimizer.h
     Optimization/HardSigmoidOptimizer.h
     Optimization/HSwishOptimizer.h
     Optimization/LayerNormFusionOptimizer.h

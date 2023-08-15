@@ -71,62 +71,6 @@ static CPtr<CDnnBlob> prepareObjNormParamBlob( const CDataLayer& dataLayer, cons
 	return ConvertTensor( *dataTensor, objNormLayout )->Data()->GetCopy();
 }
 
-// Adds rename layer to the given input data
-// Returns the output of this rename
-static CLayerOutput<> addTensorLayoutRename( const CLayerOutput<> inputData,
-	const CTensorLayoutRename& rename, CGraph& graph )
-{
-	NeoAssert( inputData.Layer != nullptr );
-	NeoAssert( inputData.Index >= 0 );
-	NeoAssert( rename.From.Size() == rename.To.Size() );
-
-	if( rename.From == rename.To ) {
-		return inputData; // No renaming needed
-	}
-
-	CPtr<COnnxTransformHelper> transformLayer = new COnnxTransformHelper(graph.MathEngine(),
-		rename.From, rename.To );
-	transformLayer->SetName( graph.GetUniqueName( CString( fusionNamePrefix ) + "_Transform" ) );
-	for( int i = 0; i < rename.From.Size(); ++i ) {
-		transformLayer->SetRule( rename.From[i], rename.To[i] );
-	}
-	graph.AddLayer( *transformLayer );
-	graph.Connect( *transformLayer, 0, *inputData.Layer, inputData.Index );
-	return CLayerOutput<>( transformLayer, 0 );
-}
-
-// Adds transpose layer to the given input data
-// Returns the output of this transpose
-static CLayerOutput<> addTensorLayoutTranspose( const CLayerOutput<> inputData,
-	const CTensorLayout& inputLayout, CTensorLayout& outputLayout,
-	const CTensorLayoutTranspose& transpose, CGraph& graph )
-{
-	NeoAssert( inputData.Layer != nullptr );
-	NeoAssert( inputData.Index >= 0 );
-	NeoAssert( transpose.First != transpose.Second );
-
-	outputLayout = inputLayout;
-	const int firstIndex = inputLayout.Find( transpose.First );
-	const int secondIndex = inputLayout.Find( transpose.Second );
-	NeoAssert( firstIndex != NotFound || secondIndex != NotFound );
-
-	if( firstIndex != NotFound && secondIndex != NotFound ) {
-		std::swap( outputLayout[firstIndex], outputLayout[secondIndex] );
-	} else if( firstIndex == NotFound ) {
-		outputLayout[secondIndex] = transpose.First;
-	} else {
-		outputLayout[firstIndex] = transpose.Second;
-	}
-
-	CPtr<COnnxTransposeHelper> transposeLayer = new COnnxTransposeHelper( graph.MathEngine(),
-		inputLayout, outputLayout );
-	transposeLayer->SetDims( transpose.First, transpose.Second );
-	transposeLayer->SetName( graph.GetUniqueName( CString( fusionNamePrefix ) + "_Transpose" ) );
-	graph.AddLayer( *transposeLayer );
-	graph.Connect( *transposeLayer, 0, *inputData.Layer, inputData.Index );
-	return CLayerOutput<>( transposeLayer, 0 );
-}
-
 // Selects the following chain of ONNX layers
 //     -> [Transform] -> [Transpose ->]* -> [Transform] ->
 // connected to inputIndex'th input of inputLayer
@@ -207,29 +151,6 @@ bool CLayerNormFusionOptimizer::isValidCastLayer( const CCastLayer& castLayer ) 
 	NeoAssert( graph.GetOutputCount( castLayer ) == 1 );
 
 	return castLayer.GetOutputType() == CT_Float;
-}
-
-// Adds tensor layout change to the given input data
-// Returns the output of this change
-CLayerOutput<> CLayerNormFusionOptimizer::changeLayout( const CLayerOutput<>& inputData,
-	const CTensorLayout& inputLayout, const ITensorLayoutValidator& validator,
-	CTensorLayout& outputLayout )
-{
-	CTensorLayoutConversion conversion;
-	outputLayout = FindConversion( inputLayout, validator, conversion );
-
-	CLayerOutput<> currentOutput = addTensorLayoutRename( inputData, conversion.PreTransposeRename, graph );
-
-	CTensorLayout transposeInputLayout = conversion.PreTransposeRename.To.IsEmpty() ? inputLayout
-		: conversion.PreTransposeRename.To;
-	CTensorLayout transposeOutputLayout = transposeInputLayout;
-	for( const CTensorLayoutTranspose& transpose : conversion.Transposes ) {
-		currentOutput = addTensorLayoutTranspose( currentOutput, transposeInputLayout, transposeOutputLayout,
-			transpose, graph );
-		transposeOutputLayout.CopyTo( transposeInputLayout );
-	}
-
-	return addTensorLayoutRename( currentOutput, conversion.PostTransposeRename, graph );
 }
 
 int CLayerNormFusionOptimizer::Apply()
@@ -423,8 +344,8 @@ int CLayerNormFusionOptimizer::Apply()
 
 		// Convert data to layout valid for CObjectNormalizationLayer
 		CTensorLayout objNormLayout;
-		CLayerOutput<> objNormInput = changeLayout( blockData, ioLayout, CObjectNormLayoutValidator( axes ),
-			objNormLayout );
+		CLayerOutput<> objNormInput = ConvertTensor( blockData, ioLayout, CObjectNormLayoutValidator( axes ),
+			graph, objNormLayout );
 
 		CPtr<CObjectNormalizationLayer> normLayer{ new CObjectNormalizationLayer( graph.MathEngine() ) };
 		normLayer->SetName( graph.GetUniqueName( CString( fusionNamePrefix ) + "ObjNorm_" ) );
@@ -438,8 +359,8 @@ int CLayerNormFusionOptimizer::Apply()
 
 		// Now change back the layout after the CObjectNormalizationLayer
 		CTensorLayout afterObjNormLayout;
-		CLayerOutput<> newBlockOutput = changeLayout( CLayerOutput<>( normLayer, 0 ), objNormLayout,
-			CTensorLayoutMatchValidator( ioLayout ), afterObjNormLayout );
+		CLayerOutput<> newBlockOutput = ConvertTensor( CLayerOutput<>( normLayer, 0 ), objNormLayout,
+			CTensorLayoutMatchValidator( ioLayout ), graph, afterObjNormLayout );
 		NeoAssert( ioLayout == afterObjNormLayout );
 
 		// And switch everythin that was connected with old huge block to new one

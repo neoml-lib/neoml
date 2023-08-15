@@ -103,8 +103,6 @@ private:
 	// Checks if CPowerLayer is valid for CLayerNormFusionOptimizer conversion
 	bool isValidPowerLayer( const CPowerLayer& powLayer, float exponent ) const
 	{ return powLayer.GetExponent() == exponent && graph.GetInputCount( powLayer ) == 1 && graph.GetOutputCount( powLayer ) == 1; }
-	CLayerOutput<> changeLayout( const CLayerOutput<>& inputData, const CTensorLayout& inputLayout,
-		const ITensorLayoutValidator& validator, CTensorLayout& outputLayout );
 };
 
 } // namespace optimization

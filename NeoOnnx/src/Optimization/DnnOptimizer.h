@@ -18,6 +18,7 @@ limitations under the License.
 #include <NeoOnnx/NeoOnnxImport.h>
 #include <NeoML/Dnn/Optimization/Graph.h>
 #include "GELUOptimizer.h"
+#include "GRNOptimizer.h"
 #include "HardSigmoidOptimizer.h"
 #include "HSwishOptimizer.h"
 #include "LayerNormFusionOptimizer.h"
@@ -50,6 +51,7 @@ inline void CDnnOptimizer::Optimize( COnnxOptimizationReport& report )
 	report.GELU = OptimizeGELU( graph );
 	report.SqueezeAndExcite = CSqueezeAndExciteOptimizer( graph ).Apply();
 	report.LayerNorm = CLayerNormFusionOptimizer( graph ).Apply();
+	report.GRN = OptimizeGRN( graph );
 }
 
 } // namespace optimization
