@@ -582,8 +582,19 @@ public:
 		int firstWidth, const CConstFloatHandle& secondHandle, int secondWidth,
 		const CFloatHandle& resultHandle, int resultBufferSize ) = 0;
 
-	virtual void MultiplyMatrixByDiagMatrix(const CConstFloatHandle& firstHandle, int firstHeight, int firstWidth,
-		const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int resultBufferSize) = 0;
+	// Multiplies batch of matrices height x width by a batch of diag matrces of size width
+	// Matrix offsets sets how many elements must be added to the pointer to move to the next matrix
+	// Setting matrixOffset to 0 transforms this function into multiply-one-by-many or multiply-many-by-one
+	// Result always consists of batch matrices of size height x width
+	virtual void MultiplyMatrixByDiagMatrix( int batchSize, const CConstFloatHandle& firstHandle, int height,
+		int width, int firstMatrixOffset, const CConstFloatHandle& secondHandle, int secondMatrixOffset,
+		const CFloatHandle& resultHandle, int resultBufferSize ) = 0;
+	void MultiplyMatrixByDiagMatrix( const CConstFloatHandle& firstHandle, int firstHeight, int firstWidth,
+		const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int resultBufferSize )
+	{
+		MultiplyMatrixByDiagMatrix( 1, firstHandle, firstHeight, firstWidth, firstHeight * firstWidth,
+			secondHandle, firstWidth, resultHandle, resultBufferSize );
+	}
 
 	// Transposes a set of matrices stored one after another. A matrix cell is of "channels" size
 	virtual void TransposeMatrix(int batchSize, const CConstFloatHandle& firstHandle,
@@ -1223,6 +1234,9 @@ public:
 // the default value is 0, which means as many threads as the CPU has cores
 // This math engine should be destroyed using the standard delete operator after use
 NEOMATHENGINE_API IMathEngine* CreateCpuMathEngine( int threadCount, size_t memoryLimit );
+
+// Future interface
+NEOMATHENGINE_API IMathEngine* CreateCpuMathEngine( size_t memoryLimit );
 
 // Destroys all global data that is shared between CPU math engines
 // Should be called only if there are no running CpuMathEngine instances

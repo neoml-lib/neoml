@@ -22,32 +22,44 @@ static void multiplyMatrixByDiagMatrixTestImpl( const CTestParams& params, int s
 {
 	CRandom random( seed );
 
+	const CInterval batchInterval = params.GetInterval( "Batch" );
 	const CInterval widthInterval = params.GetInterval( "Width" );
 	const CInterval heightInterval = params.GetInterval( "Height" );
 	const CInterval valuesInterval = params.GetInterval( "Values" );
 
-	const int firstHeight = random.UniformInt( heightInterval.Begin, heightInterval.End );
-	const int firstWidth = random.UniformInt( widthInterval.Begin, widthInterval.End );
+	const int batch = random.UniformInt( batchInterval.Begin, batchInterval.End );
+	const int height = random.UniformInt( heightInterval.Begin, heightInterval.End );
+	const int width = random.UniformInt( widthInterval.Begin, widthInterval.End );
+	const int matrixSize = height * width;
+	const int dataSize = batch * matrixSize;
 
-	CREATE_FILL_FLOAT_ARRAY( firstData, valuesInterval.Begin, valuesInterval.End, firstHeight * firstWidth, random )
-	CREATE_FILL_FLOAT_ARRAY( secondData, valuesInterval.Begin, valuesInterval.End, firstWidth, random )
+	CREATE_FILL_FLOAT_ARRAY( firstData, valuesInterval.Begin, valuesInterval.End, dataSize, random )
+	CREATE_FILL_FLOAT_ARRAY( secondData, valuesInterval.Begin, valuesInterval.End, batch * width, random )
 
-	std::vector<float> expected, get;
-	expected.resize( firstHeight * firstWidth );
-	get.resize( firstHeight * firstWidth );
+	std::vector<float> expected, actual;
+	expected.resize( dataSize );
+	actual.resize( dataSize );
 
-	int index = 0;
-	for( int i = 0; i < firstHeight; ++i ) {
-		for( int j = 0; j < firstWidth; ++j, ++index ) {
-			expected[index] = firstData[index] * secondData[j];
+	for( int firstMatrixOffset : { 0, matrixSize } ) {
+		for( int secondMatrixOffset : { 0, width } ) {
+			int index = 0;
+			for( int b = 0; b < batch; ++b ) {
+				for( int i = 0; i < height; ++i ) {
+					for( int j = 0; j < width; ++j, ++index ) {
+						expected[index] = firstData[b * firstMatrixOffset + i * width + j]
+							* secondData[b * secondMatrixOffset + j];
+					}
+				}
+			}
+
+			MathEngine().MultiplyMatrixByDiagMatrix( batch, CARRAY_FLOAT_WRAPPER( firstData ), height, width,
+				firstMatrixOffset, CARRAY_FLOAT_WRAPPER( secondData ), secondMatrixOffset,
+				CARRAY_FLOAT_WRAPPER( actual ), dataSize );
+
+			for( int i = 0; i < dataSize; ++i ) {
+				ASSERT_NEAR( expected[i], actual[i], 1e-3 );
+			}
 		}
-	}
-
-	MathEngine().MultiplyMatrixByDiagMatrix( CARRAY_FLOAT_WRAPPER( firstData ), firstHeight, firstWidth,
-		CARRAY_FLOAT_WRAPPER( secondData ), CARRAY_FLOAT_WRAPPER( get ), firstHeight * firstWidth );
-
-	for( int i = 0; i < firstHeight * firstWidth; ++i ) {
-		ASSERT_NEAR( expected[i], get[i], 1e-3 );
 	}
 }
 
@@ -59,21 +71,59 @@ class CMultiplyMatrixByDiagMatrixTest : public CTestFixtureWithParams {
 INSTANTIATE_TEST_CASE_P( CMultiplyMatrixByDiagMatrixTestInstantiation, CMultiplyMatrixByDiagMatrixTest,
 	::testing::Values(
 		CTestParams(
+			"Batch = (1..1);"
+			"Height = (10..10);"
+			"Width = (10..10);"
+			"Values = (-1..1);"
+			"TestCount = 1;"
+		),
+		CTestParams(
+			"Batch = (10..10);"
+			"Height = (1..1);"
+			"Width = (10..10);"
+			"Values = (-1..1);"
+			"TestCount = 1;"
+		),
+		CTestParams(
+			"Batch = (10..10);"
+			"Height = (10..10);"
+			"Width = (1..1);"
+			"Values = (-1..1);"
+			"TestCount = 1;"
+		),
+		CTestParams(
+			"Batch = (10..10);"
+			"Height = (1..1);"
+			"Width = (1..1);"
+			"Values = (-1..1);"
+			"TestCount = 1;"
+		),
+		CTestParams(
+			"Batch = (1..1);"
+			"Height = (10..10);"
+			"Width = (1..1);"
+			"Values = (-1..1);"
+			"TestCount = 1;"
+		),
+		CTestParams(
+			"Batch = (1..1);"
+			"Height = (1..1);"
+			"Width = (10..10);"
+			"Values = (-1..1);"
+			"TestCount = 1;"
+		),
+		CTestParams(
+			"Batch = (1..10);"
 			"Height = (1..50);"
 			"Width = (1..50);"
-			"BatchSize = (1..5);"
-			"VectorSize = (1..20);"
 			"Values = (-1..1);"
-			"Channels = (1..5);"
 			"TestCount = 100;"
 		),
 		CTestParams(
+			"Batch = (1..5);"
 			"Height = (100..500);"
 			"Width = (100..500);"
-			"BatchSize = (1..5);"
-			"VectorSize = (30..50);"
 			"Values = (-1..1);"
-			"Channels = (1..5);"
 			"TestCount = 5;"
 		)
 	)

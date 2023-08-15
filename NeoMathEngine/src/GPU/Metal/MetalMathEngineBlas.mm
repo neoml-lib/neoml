@@ -949,17 +949,19 @@ void CMetalMathEngine::Multiply1DiagMatrixByMatrix(int batchSize, const CConstFl
     ASSERT_EXPR( kernel.Run() );
 }
 
-void CMetalMathEngine::MultiplyMatrixByDiagMatrix(const CConstFloatHandle& firstHandle, int firstHeight, int firstWidth,
-	const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int)
+void CMetalMathEngine::MultiplyMatrixByDiagMatrix( int batchSize, const CConstFloatHandle& firstHandle, int height,
+	int width, int firstMatrixOffset, const CConstFloatHandle& secondHandle, int secondMatrixOffset,
+	const CFloatHandle& resultHandle, int )
 {
     ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+    ASSERT_EXPR( batchSize == 1 );
 
-    C2DKernel kernel( *queue, "matrixKernelMultiplyMatrixByDiagMatrix", 1, 1, firstHeight, firstWidth );
+    C2DKernel kernel( *queue, "matrixKernelMultiplyMatrixByDiagMatrix", 1, 1, height, width );
     kernel.SetParam( firstHandle, 0 );
-    kernel.SetParam( firstHeight, 1 );
-    kernel.SetParam( firstWidth, 2 );
+    kernel.SetParam( height, 1 );
+    kernel.SetParam( width, 2 );
     kernel.SetParam( secondHandle, 3 );
     kernel.SetParam( resultHandle, 4 );
     ASSERT_EXPR( kernel.Run() );
