@@ -949,7 +949,7 @@ void CMetalMathEngine::Multiply1DiagMatrixByMatrix(int batchSize, const CConstFl
     ASSERT_EXPR( kernel.Run() );
 }
 
-void CMetalMathEngine::MultiplyMatrixByDiagMatrix( int batchSize, const CConstFloatHandle& firstHandle, int height,
+void CMetalMathEngine::BatchMultiplyMatrixByDiagMatrix( int batchSize, const CConstFloatHandle& firstHandle, int height,
 	int width, int firstMatrixOffset, const CConstFloatHandle& secondHandle, int secondMatrixOffset,
 	const CFloatHandle& resultHandle, int )
 {

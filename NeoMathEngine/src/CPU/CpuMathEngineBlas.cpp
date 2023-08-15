@@ -1012,7 +1012,7 @@ void CCpuMathEngine::multiplyMatrixByDiagMatrix( const float* first, int firstHe
 	}
 }
 
-void CCpuMathEngine::MultiplyMatrixByDiagMatrix( int batchSize, const CConstFloatHandle& firstHandle, int height,
+void CCpuMathEngine::BatchMultiplyMatrixByDiagMatrix( int batchSize, const CConstFloatHandle& firstHandle, int height,
 		int width, int firstMatrixOffset, const CConstFloatHandle& secondHandle, int secondMatrixOffset,
 		const CFloatHandle& resultHandle, int resultBufferSize )
 {
@@ -1252,7 +1252,7 @@ void CCpuMathEngine::MatrixSoftmaxByColumns( const CConstFloatHandle& matrix, in
 	VectorInv( temp, temp, width );
 
 	// Multiply the result matrix rows by 1. / (exp(x0) + exp(x1) + ...)
-	IDnnEngine::MultiplyMatrixByDiagMatrix( result, height, width, temp, result, height * width );
+	MultiplyMatrixByDiagMatrix( result, height, width, temp, result, height * width );
 }
 
 void CCpuMathEngine::MatrixSoftmaxDiffOpByColumns( const CConstFloatHandle& firstHandle,

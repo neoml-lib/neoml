@@ -52,7 +52,7 @@ static void multiplyMatrixByDiagMatrixTestImpl( const CTestParams& params, int s
 				}
 			}
 
-			MathEngine().MultiplyMatrixByDiagMatrix( batch, CARRAY_FLOAT_WRAPPER( firstData ), height, width,
+			MathEngine().BatchMultiplyMatrixByDiagMatrix( batch, CARRAY_FLOAT_WRAPPER( firstData ), height, width,
 				firstMatrixOffset, CARRAY_FLOAT_WRAPPER( secondData ), secondMatrixOffset,
 				CARRAY_FLOAT_WRAPPER( actual ), dataSize );
 

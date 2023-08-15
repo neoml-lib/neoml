@@ -44,7 +44,7 @@ void CCpuMathEngine::Dropout( const CDropoutDesc& dropoutDesc, const CFloatHandl
 	ASSERT_EXPR( desc.Mask.Size() == maskSize );
 
 	if( !desc.IsSpatial ) {
-		IDnnEngine::MultiplyMatrixByDiagMatrix( inputData, batchLength, maskSize, desc.Mask.GetHandle(),
+		MultiplyMatrixByDiagMatrix( inputData, batchLength, maskSize, desc.Mask.GetHandle(),
 			outputData, output.BlobSize() );
 		return;
 	}
@@ -52,7 +52,7 @@ void CCpuMathEngine::Dropout( const CDropoutDesc& dropoutDesc, const CFloatHandl
 	CFloatHandle currInput = inputData;
 	CFloatHandle currOutput = outputData;
 	for( int i = 0; i < input.ObjectCount(); ++i ) {
-		IDnnEngine::MultiplyMatrixByDiagMatrix( currInput, input.ObjectSize() / objectSize, objectSize,
+		MultiplyMatrixByDiagMatrix( currInput, input.ObjectSize() / objectSize, objectSize,
 			desc.Mask.GetHandle() + ( i % batchWidth ) * objectSize, currOutput, input.ObjectSize() );
 		currInput += input.ObjectSize();
 		currOutput += input.ObjectSize();

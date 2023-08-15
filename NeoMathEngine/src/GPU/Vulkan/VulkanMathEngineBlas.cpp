@@ -802,7 +802,7 @@ void CVulkanMathEngine::MatrixSoftmaxDiffOpByColumns(const CConstFloatHandle&, c
 	ASSERT_EXPR( false );
 }
 
-void CVulkanMathEngine::MultiplyMatrixByDiagMatrix( int batchSize, const CConstFloatHandle& firstHandle, int height,
+void CVulkanMathEngine::BatchMultiplyMatrixByDiagMatrix( int batchSize, const CConstFloatHandle& firstHandle, int height,
 	int width, int, const CConstFloatHandle& secondHandle, int, const CFloatHandle& resultHandle, int resultBufferSize )
 {
 	ASSERT_EXPR( batchSize == 1 );
