@@ -1228,15 +1228,14 @@ public:
 
 //------------------------------------------------------------------------------------------------------------
 
-// Creates a math engine that uses a CPU for calculations
-// You should call SetMathEngineExceptionHandler() before this call
-// threadCount is the number of threads that may be used;
-// the default value is 0, which means as many threads as the CPU has cores
-// This math engine should be destroyed using the standard delete operator after use
-NEOMATHENGINE_API IMathEngine* CreateCpuMathEngine( int threadCount, size_t memoryLimit );
-
-// Future interface
+// Creates a math engine that uses a CPU for calculations.
+// You should call SetMathEngineExceptionHandler() before this call.
+// the default value is 0, which means as many memory as the system has.
+// This math engine should be destroyed using the standard delete operator after use.
 NEOMATHENGINE_API IMathEngine* CreateCpuMathEngine( size_t memoryLimit );
+
+// deprecated
+NEOMATHENGINE_API IMathEngine* CreateCpuMathEngine( int /*deprecated*/, size_t memoryLimit );
 
 // Destroys all global data that is shared between CPU math engines
 // Should be called only if there are no running CpuMathEngine instances

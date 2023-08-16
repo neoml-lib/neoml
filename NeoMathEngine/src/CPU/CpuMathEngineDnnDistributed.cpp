@@ -88,10 +88,10 @@ void CMultiThreadDistributedCommunicator::Broadcast( const CFloatHandle& handle,
 
 void CreateDistributedCpuMathEngines( IMathEngine** mathEngines, int count )
 {
-	auto comm = std::make_shared<CMultiThreadDistributedCommunicator>( count );
+	auto communicator = std::make_shared<CMultiThreadDistributedCommunicator>( count );
 	for( int i = 0; i < count; i++ ){
-		mathEngines[i] = new CCpuMathEngine( 1, 0, comm, CMathEngineDistributedInfo( i, count ) );
+		mathEngines[i] = new CCpuMathEngine( /*memoryLimit*/0u, communicator, CMathEngineDistributedInfo( i, count ) );
 	}
 }
 
-}
+} // namespace NeoML

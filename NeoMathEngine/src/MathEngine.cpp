@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -212,14 +212,15 @@ IMathEngineExceptionHandler* GetMathEngineExceptionHandler()
 	return exceptionHandler;
 }
 
-IMathEngine* CreateCpuMathEngine( int threadCount, size_t memoryLimit )
-{
-	return new CCpuMathEngine( threadCount, memoryLimit );
-}
-
 IMathEngine* CreateCpuMathEngine( size_t memoryLimit )
 {
-	return new CCpuMathEngine( /*threadCount*/1, memoryLimit );
+	return new CCpuMathEngine( memoryLimit );
+}
+
+// deprecated
+IMathEngine* CreateCpuMathEngine( int /*deprecated*/, size_t memoryLimit )
+{
+	return CreateCpuMathEngine( memoryLimit );
 }
 
 IMathEngine* CreateGpuMathEngine( size_t memoryLimit, int flags )

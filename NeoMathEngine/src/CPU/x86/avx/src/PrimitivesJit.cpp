@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -28,8 +28,8 @@ void CPrimitivesJit::insertPrimitive<CPrimitivesJit::TPrimitive::Exp>( CJitCommo
 template<>
 void CPrimitivesJit::insertPrimitive<CPrimitivesJit::TPrimitive::Sigmoid>( CJitCommon& gen, const ymmVec_t& ymmSrc, const ymmVec_t& ymmAux );
 
-CPrimitivesJit::CPrimitivesJit( IMathEngine* _mathEngine, int _threadCount ) :
-	mathEngine( _mathEngine ), threadCount( _threadCount )
+CPrimitivesJit::CPrimitivesJit( IMathEngine* _mathEngine ) :
+	mathEngine( _mathEngine )
 {
 	initTable();
 }

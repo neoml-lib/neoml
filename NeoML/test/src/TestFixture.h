@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -34,7 +34,7 @@ void SetPlatformEnv( void* platformEnv );
 
 void* GetPlatformEnv();
 
-NeoML::IMathEngine* CreateMathEngine( TMathEngineType type, std::size_t memoryLimit = 0u, int threadCount = 0 );
+NeoML::IMathEngine* CreateMathEngine( TMathEngineType type, std::size_t memoryLimit );
 
 #ifdef NEOML_USE_FINEOBJ
 int RunTests( int argc, wchar_t* argv[], void* platformEnv = nullptr );

@@ -37,7 +37,7 @@ class ISimdMathEngine;
 // Math engine that uses a CPU for calculations
 class CCpuMathEngine : public IMathEngine, public IRawMemoryManager {
 public:
-	CCpuMathEngine( int threadCount, size_t memoryLimit,
+	CCpuMathEngine( size_t memoryLimit,
 		std::shared_ptr<CMultiThreadDistributedCommunicator> communicator = nullptr,
 		const CMathEngineDistributedInfo& distributedInfo = CMathEngineDistributedInfo() );
 	~CCpuMathEngine() override;
@@ -636,7 +636,7 @@ protected:
 	void Free( const CMemoryHandle& handle ) override;
 
 private:
-	const int threadCount; // the number of threads for OMP
+	const int /*deprecated*/ threadCount = 1; // the number of threads for OMP
 	const int floatAlignment; // float alignment
 	const int memoryAlignment; // allocation alignment
 	std::shared_ptr<CMultiThreadDistributedCommunicator> communicator;
