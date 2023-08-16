@@ -465,12 +465,6 @@ if(NOT NeoMathEngine_BUILD_SHARED)
     target_compile_definitions(${PROJECT_NAME} PUBLIC STATIC_NEOMATHENGINE)
 endif()
 
-
-# OpenMP
-if(NOT IOS AND NOT DARWIN)
-    link_openmp(${PROJECT_NAME})
-endif()
-
 # SSE2
 if(WIN32 AND CMAKE_SIZEOF_VOID_P EQUAL 4)
     target_compile_options(${PROJECT_NAME} PRIVATE /arch:SSE2)

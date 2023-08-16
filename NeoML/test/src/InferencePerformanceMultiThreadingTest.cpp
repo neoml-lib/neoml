@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -234,7 +234,7 @@ TEST_P( CDnnInferencePerformanceTest, LocalMathEngine )
 	DeleteMathEngine();
 
 	for( int i = 0; i < param.ThreadCount; ++i ) {
-		auto mathEngine = CreateMathEngine( MathEngineType(), memoryLimit, 1 );
+		auto mathEngine = CreateMathEngine( MathEngineType(), memoryLimit );
 		ASSERT_TRUE( mathEngine != nullptr ) << i;
 		mathEngines.emplace_back( mathEngine );
 		results.push_back( std::async( std::launch::async, Run, std::ref( param ), std::ref( *mathEngine ) ) );
