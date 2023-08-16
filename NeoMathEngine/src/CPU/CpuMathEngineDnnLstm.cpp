@@ -31,11 +31,11 @@ CLstmDesc* CCpuMathEngine::InitLstm( CLstmDesc* currentDesc, const CFloatHandle&
 {
 	if( currentDesc != nullptr ) {
 		static_cast<CMathEngineLstmDesc*>( currentDesc )->Reset( inputFullyConnectedResult,
-			reccurentFullyConnectedResult, hiddenSize, objectCount, objectSize, this, threadCount );
+			reccurentFullyConnectedResult, hiddenSize, objectCount, objectSize );
 		return currentDesc;
 	} else {
 		return new CMathEngineLstmDesc( inputFullyConnectedResult,
-			reccurentFullyConnectedResult, hiddenSize, objectCount, objectSize, this, threadCount );
+			reccurentFullyConnectedResult, hiddenSize, objectCount, objectSize );
 	}
 }
 
