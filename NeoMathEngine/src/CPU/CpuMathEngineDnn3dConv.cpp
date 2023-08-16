@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -26,6 +26,50 @@ limitations under the License.
 #include <CpuMathEnginePrivate.h>
 
 namespace NeoML {
+
+void CCpuMathEngine::blob3dConvolution1x1x1( const CBlobDesc& source, const CBlobDesc& /*filter*/, const CBlobDesc& result,
+	int strideHeight, int strideWidth, int strideDepth,
+	const float* sourceData, const float* filterData, const float* freeTermData, float* resultData )
+{
+	const int channels = source.Channels();
+	const int geomSize = result.ObjectCount() * result.GeometricalSize();
+	const int newChannels = result.Channels();
+	// Convolution is matrix product:
+	// [geomSize x channels] * [newChannels x channels]T
+	// then add the free term if necessary
+
+	// Split the first matrix by rows
+	if( freeTermData != nullptr ) {
+		setVectorToMatrixRows( resultData, geomSize, newChannels, freeTermData );
+	} else {
+		NeoML::vectorFill0( resultData, geomSize * newChannels );
+	}
+
+	if( strideHeight == 1 && strideWidth == 1 && strideDepth == 1 ) {
+		multiplyMatrixByTransposedMatrixAndAdd( sourceData, geomSize, channels, channels,
+			filterData, newChannels, channels, resultData, newChannels );
+	} else {
+		CFloatHandleVar repackedHolder( mathEngine(), geomSize * channels );
+		float* repackedData = GetRaw( repackedHolder.GetHandle() );
+		// Repack the input blob, removing the unused data
+		for( int out = 0; out < geomSize; ++out ) {
+			int objNum = out;
+			const int outK = objNum % result.Depth();
+			objNum /= result.Depth();
+			const int outI = objNum % result.Width();
+			objNum /= result.Width();
+			const int outJ = objNum % result.Height();
+			objNum /= result.Height();
+
+			float* const sourceDataPtr = repackedData + out * channels;
+			const float* const inputData = sourceData + ( ( ( objNum * source.Height() + outJ * strideHeight )
+				* source.Width() + outI * strideWidth ) * source.Depth() + outK * strideDepth ) * channels;
+			dataCopy( sourceDataPtr, inputData, channels );
+		}
+		multiplyMatrixByTransposedMatrixAndAdd( repackedData, geomSize, channels, channels,
+			filterData, newChannels, channels, resultData, newChannels );
+	}
+}
 
 void CCpuMathEngine::blob3dConvolution1x1x1Backward( const CCommon3dConvolutionDesc& desc,
 	const float* outputDiffData, const float* filterData, const CConstFloatHandle* freeTermData,

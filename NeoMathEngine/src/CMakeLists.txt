@@ -140,7 +140,6 @@ if((DARWIN AND CMAKE_SYSTEM_PROCESSOR MATCHES "^arm64.*") OR (ANDROID AND ANDROI
         CPU/arm/CpuArmMathEngineBlas.cpp
         CPU/arm/CpuArmMathEngineDnn.cpp
         CPU/arm/CpuArmMathEngineVectorMath.cpp
-        CPU/arm/CpuArmMathEngineDnn3dConv.cpp
         CPU/arm/CpuArmMathEngineMatrixMultiplying.cpp
     )
     target_sources(${PROJECT_NAME} 
@@ -148,7 +147,6 @@ if((DARWIN AND CMAKE_SYSTEM_PROCESSOR MATCHES "^arm64.*") OR (ANDROID AND ANDROI
         ${CPU_ARM_SOURCES}
         CPU/arm/CpuArm.h
         CPU/arm/CpuArmFunctors.h
-        CPU/arm/CpuArmMathEngineBlasPrivate.h
         CPU/arm/CpuArmMathEngineVectorMathPrivate.h
         CPU/arm/MatrixMultiplyingInterleaved/Interleavers/Interleaver_ARM64.h
         CPU/arm/MatrixMultiplyingInterleaved/MicroKernels/Kernel_ARM32NEON_6x8.h
@@ -171,14 +169,12 @@ else()
         CPU/x86/CpuX86MathEngineDnn.cpp
         CPU/x86/CpuX86MathEngineVectorMath.cpp
         CPU/x86/CpuX86MathEngineVectorMathMkl.cpp
-        CPU/x86/CpuX86MathEngineDnn3dConv.cpp
     )
     target_sources(${PROJECT_NAME} 
     PRIVATE
         ${CPU_X86_SOURCES}
         CPU/x86/CpuX86.h
         CPU/x86/CpuX86Functors.h
-        CPU/x86/CpuX86MathEngineBlasPrivate.h
         CPU/x86/CpuX86MathEngineVectorMathPrivate.h
     )
     set_property(SOURCE ${CPU_X86_SOURCES} PROPERTY UNITY_GROUP 1)
