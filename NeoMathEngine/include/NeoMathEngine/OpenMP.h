@@ -15,30 +15,13 @@ limitations under the License.
 
 #pragma once
 
-#ifdef NEOML_USE_OMP
-#include <omp.h>
-#endif
-
 #include <cstdint>
 
-#ifdef NEOML_USE_OMP
-#if defined( _MSC_VER )
-#define NEOML_OMP(cond, x) __pragma(omp x if(cond))
-#define NEOML_OMP_BARRIER(cond) do { if(cond) { __pragma(omp barrier) } } while(0)
-#define NEOML_OMP_NUM_THREADS( threadCount ) __pragma(omp parallel num_threads( threadCount ) if( threadCount > 1 ) )
-#define NEOML_OMP_FOR_NUM_THREADS( threadCount ) __pragma(omp parallel for num_threads( threadCount ) if( threadCount > 1 ) )
-#else
-#define STRINGIFY(a) #a
-#define NEOML_OMP(cond, x) _Pragma("omp x if(cond)")
-#define NEOML_OMP_BARRIER(cond) do { if(cond) { _Pragma("omp barrier") } } while(0)
-#define NEOML_OMP_NUM_THREADS( threadCount ) _Pragma( STRINGIFY( omp parallel num_threads( threadCount ) if( threadCount > 1 ) ) )
-#define NEOML_OMP_FOR_NUM_THREADS( threadCount ) _Pragma( STRINGIFY( omp parallel for num_threads( threadCount ) if( threadCount > 1 ) ) )
-#endif
-#else  // !NEOML_USE_OMP
-#define NEOML_OMP(cond, x)  { const bool __attribute__((unused)) tempCond = cond; }
-#define NEOML_OMP_BARRIER(cond)  { const bool __attribute__((unused)) tempCond = cond; }
-#define NEOML_OMP_NUM_THREADS( threadCount ) { const int __attribute__((unused)) tempThreadCount = threadCount; }
-#define NEOML_OMP_FOR_NUM_THREADS( threadCount ) { const int __attribute__((unused)) tempThreadCount = threadCount; }
+#ifndef NEOML_USE_OMP
+#define NEOML_OMP( cond, x ) {  const bool tempCond = cond; /*unused*/(void)tempCond; /*unused*/(void)x; }
+#define NEOML_OMP_BARRIER( cond ) { const bool tempCond = cond; /*unused*/(void)tempCond; }
+#define NEOML_OMP_NUM_THREADS( threadCount ) { const int tempThreadCount = threadCount; /*unused*/(void)tempThreadCount; }
+#define NEOML_OMP_FOR_NUM_THREADS( threadCount ) { const int tempThreadCount = threadCount; /*unused*/(void)tempThreadCount; }
 #endif // !NEOML_USE_OMP
 
 namespace NeoML {
@@ -53,44 +36,28 @@ const int MinOmpOperationCount = 32768;
 // operationCount is the total number of operations across all tasks
 inline bool IsOmpRelevant( int taskCount, int64_t operationCount = MinOmpOperationCount )
 {
-#ifdef NEOML_USE_OMP
-	return taskCount > 1 && operationCount >= MinOmpOperationCount;
-#else  // !NEOML_USE_OMP
 	(void)MinOmpOperationCount;
 	(void)taskCount;
 	(void)operationCount;
 	return false;
-#endif // !NEOML_USE_OMP
 }
 
 // Returns the maximum possible number of threads used in an OMP block
 inline int OmpGetMaxThreadCount()
 {
-#ifdef NEOML_USE_OMP
-	return omp_get_max_threads();
-#else  // !NEOML_USE_OMP
 	return 1;
-#endif // !NEOML_USE_OMP
 }
 
 // Returns the current number of threads in the OMP pool
 inline int OmpGetThreadCount()
 {
-#ifdef NEOML_USE_OMP
-	return omp_get_num_threads();
-#else  // !NEOML_USE_OMP
 	return 1;
-#endif // !NEOML_USE_OMP
 }
 
 // Returns the current thread number
 inline int OmpGetThreadNum()
 {
-#ifdef NEOML_USE_OMP
-	return omp_get_thread_num();
-#else  // !NEOML_USE_OMP
 	return 0;
-#endif // !NEOML_USE_OMP
 }
 
 // Splits the specified number of tasks [0, fullCount) into intervals for each thread

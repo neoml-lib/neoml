@@ -103,9 +103,7 @@ struct CModuleInitializer {
 //------------------------------------------------------------------------------------------------------------
 
 static CMathEngineExceptionHandler fmlExceptionHandler;
-static IMathEngine* singleThreadCpuMathEngine = 0;
-static IMathEngine* multiThreadCpuMathEngine = 0;
-static bool isSingleThreadModeOn = true;
+static IMathEngine* cpuMathEngine = 0;
 static CCriticalSection section;
 #ifndef NEOML_USE_FINEOBJ
 static CModuleInitializer moduleInitializer;
@@ -117,43 +115,37 @@ IMathEngineExceptionHandler* GetExceptionHandler()
 	return &fmlExceptionHandler;
 }
 
-void EnableSingleThreadMode( bool enable )
+// deprecated
+void EnableSingleThreadMode( bool /*enable*/ )
 {
-	CCriticalSectionLock lock( section );
-	isSingleThreadModeOn = enable;
 }
 
+// deprecated
 bool IsSingleThreadModeOn()
 {
-	return isSingleThreadModeOn;
+	return true;
 }
 
+// deprecated
 IMathEngine& GetSingleThreadCpuMathEngine()
 {
-	CCriticalSectionLock lock( section );
-	if( singleThreadCpuMathEngine == 0 ) {
-		SetMathEngineExceptionHandler( GetExceptionHandler() );
-		singleThreadCpuMathEngine = CreateCpuMathEngine( 1, 0 );
-	}
-	return *singleThreadCpuMathEngine;
+	return GetDefaultCpuMathEngine();
 }
 
+// deprecated
 IMathEngine& GetMultiThreadCpuMathEngine()
 {
-	CCriticalSectionLock lock( section );
-	if( multiThreadCpuMathEngine == 0 ) {
-		SetMathEngineExceptionHandler( GetExceptionHandler() );
-		multiThreadCpuMathEngine = CreateCpuMathEngine( 0, 0 );
-	}
-	return *multiThreadCpuMathEngine;
+	return GetDefaultCpuMathEngine();
 }
 
 IMathEngine& GetDefaultCpuMathEngine()
 {
-	if( IsSingleThreadModeOn() ) {
-		return GetSingleThreadCpuMathEngine();
+	CCriticalSectionLock lock( section );
+	if( cpuMathEngine == nullptr ) {
+		SetMathEngineExceptionHandler( GetExceptionHandler() );
+		cpuMathEngine = CreateCpuMathEngine( /*memoryLimit*/0u );
 	}
-	return GetMultiThreadCpuMathEngine();
+	return *cpuMathEngine;
 }
 
 IMathEngine* GetRecommendedGpuMathEngine( size_t memoryLimit )
@@ -165,13 +157,9 @@ IMathEngine* GetRecommendedGpuMathEngine( size_t memoryLimit )
 static void destroyDefaultCpuMathEngine()
 {
 	CCriticalSectionLock lock( section );
-	if( singleThreadCpuMathEngine != 0 ) {
-		delete singleThreadCpuMathEngine;
-		singleThreadCpuMathEngine = 0;
-	}
-	if( multiThreadCpuMathEngine != 0 ) {
-		delete multiThreadCpuMathEngine;
-		multiThreadCpuMathEngine = 0;
+	if( cpuMathEngine != nullptr ) {
+		delete cpuMathEngine;
+		cpuMathEngine = nullptr;
 	}
 	CpuMathEngineCleanUp();
 }

@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -114,11 +114,11 @@ void CAvxDll::Free()
 	}
 }
 
-ISimdMathEngine* CAvxDll::CreateSimdMathEngine( IMathEngine* mathEngine, int threadCount )
+ISimdMathEngine* CAvxDll::CreateSimdMathEngine( IMathEngine* mathEngine )
 {
 	ASSERT_EXPR( IsLoaded() );
 
-	ISimdMathEngine* simdMathEngine = createSimdMathEngineFunc( mathEngine, threadCount );
+	ISimdMathEngine* simdMathEngine = createSimdMathEngineFunc( mathEngine );
 	ASSERT_EXPR( simdMathEngine != nullptr );
 	return simdMathEngine;
 }

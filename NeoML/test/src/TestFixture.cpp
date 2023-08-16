@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -25,13 +25,12 @@ namespace NeoMLTest {
 namespace {
 
 	IMathEngine* mathEngine = nullptr;
-	CString testDir;
+	CString testDir{};
 	void* platformEnv = nullptr;
-	int threadCount = 0;
 	TMathEngineType type = MET_Undefined;
 
 	template <typename T, std::size_t N>
-	bool StartsWith( const T* str, const T(&prefix)[N] )
+	bool startsWith( const T* str, const T(&prefix)[N] )
 	{
 		size_t i = 0;
 		for( ; i < N && *str != '\0'; ++i, ++str ) {
@@ -43,16 +42,16 @@ namespace {
 	}
 
 	template <typename T, std::size_t N>
-	bool Equal( const T* one, const T(&two)[N] )
+	bool equal( const T* one, const T(&two)[N] )
 	{
-		return StartsWith( one, two ) && one[N] == '\0';
+		return startsWith( one, two ) && one[N] == '\0';
 	}
 
 	template <typename T, std::size_t N>
-	const T* ArgValue( int argc, T* argv[], const T(&argument)[N] )
+	const T* argValue( int argc, T* argv[], const T(&argument)[N] )
 	{
 		for( int i = 0; i < argc; ++i ) {
-			if( StartsWith( argv[i], argument ) ) {
+			if( startsWith( argv[i], argument ) ) {
 				return argv[i] + N;
 			}
 		}
@@ -60,35 +59,32 @@ namespace {
 	}
 
 #ifdef NEOML_USE_FINEOBJ
-    using CharType = wchar_t;
+    using TCharType = wchar_t;
 #else
-	using CharType = char;
+	using TCharType = char;
 #endif
 
-	static constexpr CharType TestDataPath[] = { '-','-','T','e','s','t','D','a','t','a','P','a','t','h','=' };
-	static constexpr CharType MathEngineArg[] = { '-','-','M','a','t','h','E','n','g','i','n','e','=' };
-	static constexpr CharType ThreadCount[] = { '-','-','T','h','r','e','a','d','C','o','u','n','t','=' };
+	static constexpr TCharType TestDataPath[]{ '-','-','T','e','s','t','D','a','t','a','P','a','t','h','=' };
+	static constexpr TCharType MathEngineArg[]{ '-','-','M','a','t','h','E','n','g','i','n','e','=' };
+	static constexpr TCharType Cpu[]{ 'c', 'p', 'u' };
+	static constexpr TCharType Cuda[]{ 'c','u','d','a' };
+	static constexpr TCharType Vulkan[]{ 'v','u','l','k','a','n' };
+	static constexpr TCharType Metal[]{ 'm','e','t','a','l' };
 
-	static constexpr CharType Cpu[] = { 'c', 'p', 'u' };
-	static constexpr CharType Cuda[] = { 'c','u','d','a' };
-	static constexpr CharType Vulkan[] = { 'v','u','l','k','a','n' };
-	static constexpr CharType Metal[] = { 'm','e','t','a','l' };
-
-	template <typename T>
-	TMathEngineType GetMathEngineType( int argc, T* argv[] )
+	static TMathEngineType getMathEngineType( int argc, TCharType* argv[] )
 	{
-		auto value = ArgValue( argc, argv, MathEngineArg );
+		auto value = argValue( argc, argv, MathEngineArg );
 		if( !value ) {
 			return MET_Undefined;
 		}
 
-		if( Equal( value, Cpu ) ) {
+		if( equal( value, Cpu ) ) {
 			return MET_Cpu;
-		} else if( Equal( value, Metal ) ) {
+		} else if( equal( value, Metal ) ) {
 			return MET_Metal;
-		} else if( Equal( value, Cuda ) ) {
+		} else if( equal( value, Cuda ) ) {
 			return MET_Cuda;
-		} else if( Equal( value, Vulkan ) ) {
+		} else if( equal( value, Vulkan ) ) {
 			return MET_Vulkan;
 		}
 		return MET_Undefined;
@@ -108,53 +104,20 @@ namespace {
 		return "";
 	}
 
+	static void initTestDataPath( int argc, TCharType* argv[] )
+	{
+		auto value = argValue( argc, argv, TestDataPath );
+		if( value ) {
 #ifdef NEOML_USE_FINEOBJ
-
-	inline void InitTestDataPath( int argc, wchar_t* argv[] )
-	{
-		auto value = ArgValue( argc, argv, TestDataPath );
-		if( value ) {
 			testDir = CString( value, CP_UTF8 );
-		}
-	}
-
-	inline int GetThreadCount( int argc, wchar_t* argv[] )
-	{
-		auto value = ArgValue( argc, argv, ThreadCount );
-		int res = 0;
-		if( value && FObj::Value( value, res ) ) {
-			return res;
-		}
-		return 0;
-	}
-
-#else // NEOML_USE_FINEOBJ
-
-	inline void InitTestDataPath( int argc, char* argv[] )
-	{
-		auto value = ArgValue( argc, argv, TestDataPath );
-		if( value ) {
+#else  //NEOML_USE_FINEOBJ
 			testDir = FObj::CString( value );
+#endif //NEOML_USE_FINEOBJ
 		}
 	}
-
-	inline int GetThreadCount( int argc, char* argv[] )
-	{
-		auto value = ArgValue( argc, argv, ThreadCount );
-		if( value ) {
-			try {
-				return std::stoi( value );
-			} catch( std::exception& ) {
-				return 0;
-			}
-		}
-		return 0;
-	}
-
-#endif // NEOML_USE_FINEOBJ
 }
 
-IMathEngine* CreateMathEngine( TMathEngineType type, std::size_t memoryLimit, int threadCount )
+IMathEngine* CreateMathEngine( TMathEngineType type, std::size_t memoryLimit )
 {
 	IMathEngine* result = nullptr;
 	switch( type ) {
@@ -181,8 +144,8 @@ IMathEngine* CreateMathEngine( TMathEngineType type, std::size_t memoryLimit, in
 			GTEST_LOG_( WARNING ) << "Unknown type of MathEngine!";
 			// fall through
 		case MET_Cpu: {
-			result = CreateCpuMathEngine( threadCount, memoryLimit );
-			GTEST_LOG_( INFO ) << "Create CPU MathEngine, threadCount = " << threadCount;
+			result = CreateCpuMathEngine( memoryLimit );
+			GTEST_LOG_( INFO ) << "Create CPU MathEngine, threadCount = 1";
 			break; 
 		}
 		default:
@@ -197,12 +160,10 @@ int RunTests( int argc, wchar_t* argv[], void* platformEnv )
 int RunTests( int argc, char* argv[], void* platformEnv )
 #endif
 {
-	NeoMLTest::InitTestDataPath( argc, argv );
+	NeoMLTest::initTestDataPath( argc, argv );
 	::testing::InitGoogleTest( &argc, argv );
 
-	threadCount = NeoMLTest::GetThreadCount( argc, argv );
-
-	type = GetMathEngineType( argc, argv );
+	type = getMathEngineType( argc, argv );
 
 	SetPlatformEnv( platformEnv );
 
@@ -276,7 +237,7 @@ CString GetTestDataFilePath( const CString& relativePath, const CString& fileNam
 IMathEngine& MathEngine()
 {
 	if( mathEngine == nullptr ) {
-		mathEngine = CreateMathEngine( type, 0u, threadCount );
+		mathEngine = CreateMathEngine( type, /*memoryLimit*/0u );
 		NeoAssert( mathEngine != nullptr );
 		SetMathEngineExceptionHandler( GetExceptionHandler() );
 	}

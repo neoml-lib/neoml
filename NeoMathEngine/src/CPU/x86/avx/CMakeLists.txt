@@ -62,11 +62,6 @@ target_compile_definitions(${PROJECT_NAME}
 
 target_link_libraries(${PROJECT_NAME} PRIVATE NeoMathEngine)
 
-# OpenMP
-if(NOT DARWIN)
-    link_openmp(${PROJECT_NAME})
-endif()
-
 # AVX
 if(WIN32)
     target_compile_options(${PROJECT_NAME} PRIVATE /arch:AVX)

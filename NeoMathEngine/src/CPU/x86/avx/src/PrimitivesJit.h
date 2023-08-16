@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ class IMathEngine;
 
 class CPrimitivesJit {
 public:
-	CPrimitivesJit( IMathEngine* _mathEngine, int _threadCount );
+	CPrimitivesJit( IMathEngine* );
 
 	void Tanh( float* dst, const float* src, size_t dataSize, bool isMultithread = true );
 	void Sigmoid( float* dst, const float* src, size_t dataSize, bool isMultithread = true );
@@ -86,8 +86,8 @@ private:
 	using RestOfLstmFunc = void( * )( size_t hiddenSize, const float* inputStateBackLinkPtr, float* outputStateBackLinkPtr,
 		float* outputMainBackLinkPtr, float* inputFullyConnectedResultPtr, float* reccurentFullyConnectedResultPtr, size_t offset, size_t count );
 
-	IMathEngine* mathEngine;
-	int threadCount;
+	IMathEngine* const mathEngine;
+	const int threadCount = 1; /*deprecated*/
 
 	// Contains jit code generators for partial primitives
 	std::array<CGenerator, static_cast<size_t>( TPrimitive::Count )> gens;
