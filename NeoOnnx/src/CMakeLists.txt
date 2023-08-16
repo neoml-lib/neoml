@@ -60,6 +60,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Operators/TransposeOperator.cpp
     Operators/UnsqueezeOperator.cpp
     Operators/UpsampleOperator.cpp
+    Optimization/Conv1x1Optimizer.cpp
     Optimization/GELUOptimizer.cpp
     Optimization/GRNOptimizer.cpp
     Optimization/HardSigmoidOptimizer.cpp
@@ -118,6 +119,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Operators/TransposeOperator.h
     Operators/UnsqueezeOperator.h
     Operators/UpsampleOperator.h
+    Optimization/Conv1x1Optimizer.h
     Optimization/DnnOptimizer.h
     Optimization/Graph.h
     Optimization/GELUOptimizer.h
