@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -237,7 +237,7 @@ void CCudaMathEngine::MobileNetV3PreSEBlock( const CBlobDesc& inputDesc, const C
 	const CConstFloatHandle& expandFilter, const CConstFloatHandle* expandFreeTerm,
 	TActivationFunction expandActivation, float expandReluParam, const CConstFloatHandle& channelwiseFilter,
 	const CConstFloatHandle* channelwiseFreeTerm, TActivationFunction channelwiseActivation,
-	float channelwiseReluParam, const CFloatHandle& outputHandle )
+	float channelwiseReluParam, const CFloatHandle& outputHandle, const CSmallMatricesMultiplyDescsArray* )
 {
 	SetCudaDevice( device->DeviceNumber );
 	const CCudaChannelwiseConvolutionDescInternal& desc = static_cast<const CCudaChannelwiseConvolutionDesc&>( convDesc ).Internal;
@@ -277,7 +277,7 @@ void CCudaMathEngine::MobileNetV3PostSEBlock( const CBlobDesc& channelwiseOutput
 	const CConstFloatHandle& channelwiseOutputHandle, const CConstFloatHandle& squeezeAndExciteHandle,
 	const CConstFloatHandle* residualHandle, TActivationFunction activation, float reluParam,
 	const CConstFloatHandle& downFilterHandle, const CConstFloatHandle* downFreeTermHandle,
-	const CFloatHandle& outputHandle )
+	const CFloatHandle& outputHandle, const CSmallMatricesMultiplyDescsArray* )
 {
 	const int batchSize = channelwiseOutputDesc.ObjectCount();
 	const int geomSize = channelwiseOutputDesc.GeometricalSize();

@@ -713,14 +713,15 @@ void CVulkanMathEngine::MobileNetV2Block( const CBlobDesc&, const CBlobDesc&,
 
 void CVulkanMathEngine::MobileNetV3PreSEBlock( const CBlobDesc&, const CBlobDesc&, const CChannelwiseConvolutionDesc&,
 	const CConstFloatHandle&, const CConstFloatHandle&, const CConstFloatHandle*, TActivationFunction, float,
-	const CConstFloatHandle&, const CConstFloatHandle*, TActivationFunction, float, const CFloatHandle& )
+	const CConstFloatHandle&, const CConstFloatHandle*, TActivationFunction, float, const CFloatHandle&,
+	const CSmallMatricesMultiplyDescsArray* )
 {
 	ASSERT_EXPR( false );
 }
 
 void CVulkanMathEngine::MobileNetV3PostSEBlock( const CBlobDesc&, int, const CConstFloatHandle&,
 	const CConstFloatHandle&, const CConstFloatHandle*, TActivationFunction, float, const CConstFloatHandle&,
-	const CConstFloatHandle*, const CFloatHandle& )
+	const CConstFloatHandle*, const CFloatHandle&, const CSmallMatricesMultiplyDescsArray* )
 {
 	ASSERT_EXPR( false );
 }
