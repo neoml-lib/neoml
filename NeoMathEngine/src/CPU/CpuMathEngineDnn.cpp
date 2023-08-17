@@ -416,7 +416,7 @@ void CCpuMathEngine::QrnnFPooling( bool reverse, int sequenceLength, int objectS
 
 	const float* z = GetRaw( update );
 	const float* f = GetRaw( forget );
-	const float* h0 = initialState.IsNull() ? nullptr : GetRaw( initialState );
+	const float* const h0 = initialState.IsNull() ? nullptr : GetRaw( initialState );
 	float* res = GetRaw( result );
 
 	const int nextObjectOffset = reverse ? -objectSize : objectSize;
@@ -425,7 +425,7 @@ void CCpuMathEngine::QrnnFPooling( bool reverse, int sequenceLength, int objectS
 		const int firstElemOffset = ( sequenceLength - 1 ) * objectSize;
 		z += firstElemOffset;
 		f += firstElemOffset;
-		h0 += firstElemOffset;
+		res += firstElemOffset;
 	}
 
 	const int count = objectSize;
@@ -1087,9 +1087,9 @@ void CCpuMathEngine::LinearInterpolation( const CConstFloatHandle& dataHandle, c
 	CFloatHandleStackVar buff( *this, objectSize );
 	TCoordTransformer getCoords = getCoordTransformer( coords );
 	TCoordRound roundCoords = getCoordRound( round );
+	float* const currBuff = GetRaw( buff.GetHandle() );
 
 	for( int b = 0; b < objectCount; ++b ) {
-		float* currBuff = GetRaw( buff.GetHandle() ) + objectSize;
 		float* currResult = result + b * resultBatchStep;
 		const float* currData = data + b * dataBatchStep;
 		for( int i = 0; i < static_cast<int>( scaledAxis * scale ); ++i ) {

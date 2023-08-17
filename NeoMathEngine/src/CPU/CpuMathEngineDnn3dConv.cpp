@@ -331,20 +331,19 @@ void CCpuMathEngine::blob3dConvolution( const CCommon3dConvolutionDesc& desc, co
 
 	const int objectCount = source.ObjectCount();
 	const int preparedWidth = filter.GeometricalSize();
-	const int tempObjectCount = source.ObjectCount();
 
 	const int inputPreparedObjectSize = result.Width() * result.Depth() * result.Height() * preparedWidth * source.Channels();
-	CFloatHandleStackVar inputPreparedData( mathEngine(), tempObjectCount * inputPreparedObjectSize );
+	CFloatHandleStackVar inputPreparedData( mathEngine(), inputPreparedObjectSize );
 
 	const int outputTempObjectSize = result.Width() * result.Depth() * result.Height() * result.Channels();
-	CFloatHandleStackVar outputTempData( mathEngine(), tempObjectCount * outputTempObjectSize );
+	CFloatHandleStackVar outputTempData( mathEngine(), outputTempObjectSize );
 
 	const int outputCount = result.Width() * result.Depth();
 	const int workingPreparedHeight = outputCount * result.Height();
 	const int outputTempGeometricalSize = outputCount * result.Height();
 
-	float* inputPrepared = GetRaw( inputPreparedData.GetHandle() );
-	float* outputTemp = GetRaw( outputTempData.GetHandle() );
+	float* const inputPrepared = GetRaw( inputPreparedData.GetHandle() );
+	float* const outputTemp = GetRaw( outputTempData.GetHandle() );
 
 	for( int b = 0; b < objectCount; ++b ) {
 		blob3dConvolutionPrepareInput( desc, inputPrepared, sourceData, b, result.Height(), /*outputStart*/0, outputCount );
@@ -361,7 +360,7 @@ void CCpuMathEngine::blob3dConvolution( const CCommon3dConvolutionDesc& desc, co
 		// Transpose outputTemp to a part of result
 		const float* tempData = outputTemp;
 		float* outputDataPtr = resultData + b * result.ObjectSize();
-		int outputRowSize = result.Width() * result.Depth() * result.Channels();
+		const int outputRowSize = result.Width() * result.Depth() * result.Channels();
 		for( int tj = 0; tj < outputCount; ++tj ) {
 			float* outputRowData = outputDataPtr;
 			for( int ti = 0; ti < result.Height(); ++ti ) {
