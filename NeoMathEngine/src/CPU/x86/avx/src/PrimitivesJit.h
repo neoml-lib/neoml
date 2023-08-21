@@ -35,9 +35,9 @@ public:
 	void Exp( float* dst, const float* src, size_t dataSize, bool isMultithread = true );
 
 	// Process part of lstm layer which follow after fullyconnected layers.
-	void RestOfLstm( CMathEngineLstmDesc* desc, const CConstFloatHandle& inputStateBackLink,
-		const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink,
-		bool isMultithread );
+	void RestOfLstm( CMathEngineLstmDesc* desc, const CFloatHandle& inputFullyConnectedResult,
+		const CConstFloatHandle& inputStateBackLink, const CFloatHandle& outputStateBackLink,
+		const CFloatHandle& outputMainBackLink, bool isMultithread );
 
 private:
 	enum class TPrimitive {

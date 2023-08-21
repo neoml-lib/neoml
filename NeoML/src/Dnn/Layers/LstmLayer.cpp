@@ -440,18 +440,31 @@ void CLstmLayer::fastLstm()
 	// Emulate working of LSTM recurrent implementation
 	CPtr<CDnnBlob>& mainBacklink = outputBlobs[0];
 	CPtr<CDnnBlob>& stateBacklink = outputDescs.Size() == 2 ? outputBlobs[1] : fastLstmDesc.StateBacklinkBlob();
+	CPtr<CDnnBlob>& inputFullyConnectedResult = fastLstmDesc.InputFullyConnectedResult();
 
 	CPtr<CDnnBlob> mainBacklinkInput = CDnnBlob::CreateWindowBlob( mainBacklink );
 	CPtr<CDnnBlob> mainBacklinkOutput = CDnnBlob::CreateWindowBlob( mainBacklink );
 	CPtr<CDnnBlob> input = CDnnBlob::CreateWindowBlob( inputBlobs[0] );
 	CPtr<CDnnBlob> stateBacklinkInput = CDnnBlob::CreateWindowBlob( stateBacklink );
 	CPtr<CDnnBlob> stateBacklinkOutput = CDnnBlob::CreateWindowBlob( stateBacklink );
+	CPtr<CDnnBlob> currInputFullyConnectedResult = CDnnBlob::CreateWindowBlob( inputFullyConnectedResult );
 
 	// Init state and main backlink blobs
 	initRecurentBlob( stateBacklink, 1 );
 	initRecurentBlob( mainBacklink, 2 );
 
+	CConstFloatHandle inputFreeTermHandle;
+	CConstFloatHandle recurrentFreeTermHandle;
+	if( inputFreeTerm.Ptr() ) {
+		inputFreeTermHandle = inputFreeTerm->GetData();
+	}
+	if( recurrentFreeTerm.Ptr() ) {
+		recurrentFreeTermHandle = recurrentFreeTerm->GetData();
+	}
+
 	// Iterate recurent net step by step
+	int seqElemsInBuffer = 0;
+
 	for( int i = 0; i < inputBlobs[0]->GetBatchLength(); i++ ) {
 		int inputPos, outputPos;
 		if( IsReverseSequence() ) {
@@ -463,9 +476,28 @@ void CLstmLayer::fastLstm()
 			inputPos = max( 0, i - 1 );
 			outputPos = i;
 		}
+
+		// Precalculate portion of input multiplied by weights and with free terms added
+		if( seqElemsInBuffer == 0 ) {
+			const int bufferIdx = outputPos / inputFullyConnectedResult->GetBatchLength();
+			input->SetParentPos( bufferIdx * inputFullyConnectedResult->GetBatchLength() );
+			seqElemsInBuffer = min( inputBlobs[0]->GetBatchLength() - input->GetParentPos(),
+				inputFullyConnectedResult->GetBatchLength() );
+			MathEngine().MultiplyMatrixByTransposedMatrix( input->GetData(),
+				seqElemsInBuffer * inputFullyConnectedResult->GetBatchWidth(), input->GetObjectSize(),
+				input->GetObjectSize(), inputWeights->GetData(), inputWeights->GetObjectCount(),
+				inputWeights->GetObjectSize(), inputFullyConnectedResult->GetData(),
+				inputFullyConnectedResult->GetObjectSize(), inputFullyConnectedResult->GetDataSize() );
+			if( !inputFreeTermHandle.IsNull() ) {
+				MathEngine().AddVectorToMatrixRows( 1, inputFullyConnectedResult->GetData(),
+					inputFullyConnectedResult->GetData(), seqElemsInBuffer * inputFullyConnectedResult->GetBatchWidth(),
+					inputFullyConnectedResult->GetObjectSize(), inputFreeTermHandle );
+			}
+		}
+
 		// Set current step
 		mainBacklinkInput->SetParentPos( inputPos );
-		input->SetParentPos( outputPos );
+		currInputFullyConnectedResult->SetParentPos( outputPos % inputFullyConnectedResult->GetBatchLength() );
 
 		if( outputDescs.Size() == 2 ) {
 			// if ( outputDescs.Size() == 1 ) we could preserve only one step of state ( and we do it )
@@ -474,20 +506,11 @@ void CLstmLayer::fastLstm()
 		}
 		mainBacklinkOutput->SetParentPos( outputPos );
 
-		CConstFloatHandle inputFreeTermHandle;
-		CConstFloatHandle recurrentFreeTermHandle;
-		if( inputFreeTerm.Ptr() ) {
-			inputFreeTermHandle = inputFreeTerm->GetData();
-		}
-		if( recurrentFreeTerm.Ptr() ) {
-			recurrentFreeTermHandle = recurrentFreeTerm->GetData();
-		}
-
 		MathEngine().Lstm( fastLstmDesc.LstmDesc(),
-			inputWeights->GetData(), inputFreeTermHandle,
 			recurrentWeights->GetData(), recurrentFreeTermHandle,
 			stateBacklinkInput->GetData(), mainBacklinkInput->GetData(),
-			input->GetData(), stateBacklinkOutput->GetData(), mainBacklinkOutput->GetData() );
+			currInputFullyConnectedResult->GetData(), stateBacklinkOutput->GetData(), mainBacklinkOutput->GetData() );
+		--seqElemsInBuffer;
 	}
 }
 
@@ -528,14 +551,16 @@ void CLstmLayer::CFastLstmDesc::Init( CLstmLayer* lstmLayer )
 	auto& ifcl = inputFullyConnectedResult;
 	auto& inDesc0 = lstmLayer->inputDescs[0];
 	if( ifcl.Ptr() == nullptr || ifcl->GetBatchWidth() != inDesc0.BatchWidth() || ifcl->GetObjectSize() != inDesc0.ObjectSize() ) {
-		inputFullyConnectedResult = CDnnBlob::CreateDataBlob( lstmLayer->MathEngine(), CT_Float, /*batchLength*/1,
-			lstmLayer->inputDescs[0].BatchWidth(), G_Count * hiddenSize );
-		reccurentFullyConnectedResult = CDnnBlob::CreateBlob( lstmLayer->MathEngine(), CT_Float,
-			inputFullyConnectedResult->GetDesc() );
+		const int maxSeqLen = lstmLayer->inputDescs[0].BatchLength();
+		const int batchWidth = lstmLayer->inputDescs[0].BatchWidth();
+		const int recommendedSeqLen = ( 64 + batchWidth - 1 ) / batchWidth;
+		inputFullyConnectedResult = CDnnBlob::CreateDataBlob( lstmLayer->MathEngine(), CT_Float,
+			min( maxSeqLen, recommendedSeqLen ), batchWidth, G_Count * hiddenSize );
+		reccurentFullyConnectedResult = CDnnBlob::CreateDataBlob( lstmLayer->MathEngine(), CT_Float, 1,
+			batchWidth, G_Count * hiddenSize );
 	}
 
-	lstmDesc = lstmLayer->MathEngine().InitLstm( lstmDesc,
-		inputFullyConnectedResult->GetData(), reccurentFullyConnectedResult->GetData(),
+	lstmDesc = lstmLayer->MathEngine().InitLstm( lstmDesc, reccurentFullyConnectedResult->GetData(),
 		hiddenSize, lstmLayer->inputDescs[0].BatchWidth(), lstmLayer->inputDescs[0].ObjectSize() );
 }
 

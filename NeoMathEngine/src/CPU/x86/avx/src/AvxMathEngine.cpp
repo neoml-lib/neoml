@@ -68,8 +68,9 @@ public:
 	void Tanh( float* dst, const float* src, size_t dataSize, bool isMultithread ) override;
 	void Sigmoid( float* dst, const float* src, size_t dataSize, bool isMultithread ) override;
 	void Exp( float* dst, const float* src, size_t dataSize, bool isMultithread ) override;
-	void RunOnceRestOfLstm( CMathEngineLstmDesc* desc, const CConstFloatHandle& inputStateBackLink,
-		const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink, bool isMultithread ) override;
+	void RunOnceRestOfLstm( CMathEngineLstmDesc* desc, const CFloatHandle& inputFullyConnectedResult,
+		const CConstFloatHandle& inputStateBackLink, const CFloatHandle& outputStateBackLink,
+		const CFloatHandle& outputMainBackLink, bool isMultithread ) override;
 
 private:
 	IMathEngine* const mathEngine;
@@ -126,10 +127,12 @@ void CAvxMathEngine::Exp( float* dst, const float* src, size_t dataSize, bool is
 	primitives.Exp( dst, src, dataSize, isMultithread );
 }
 
-void CAvxMathEngine::RunOnceRestOfLstm( CMathEngineLstmDesc* desc, const CConstFloatHandle& inputStateBackLink,
-	const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink, bool isMultithread )
+void CAvxMathEngine::RunOnceRestOfLstm( CMathEngineLstmDesc* desc, const CFloatHandle& inputFullyConnectedResult,
+	const CConstFloatHandle& inputStateBackLink, const CFloatHandle& outputStateBackLink,
+	const CFloatHandle& outputMainBackLink, bool isMultithread )
 {
-	primitives.RestOfLstm( desc, inputStateBackLink, outputStateBackLink, outputMainBackLink, isMultithread );
+	primitives.RestOfLstm( desc, inputFullyConnectedResult, inputStateBackLink, outputStateBackLink,
+		outputMainBackLink, isMultithread );
 }
 
 extern "C"

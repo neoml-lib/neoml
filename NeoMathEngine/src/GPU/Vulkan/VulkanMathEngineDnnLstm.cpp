@@ -22,17 +22,14 @@ limitations under the License.
 
 namespace NeoML {
 
-CLstmDesc* CVulkanMathEngine::InitLstm(  CLstmDesc*, const CFloatHandle&, const CFloatHandle&, int, int, int )
+CLstmDesc* CVulkanMathEngine::InitLstm( CLstmDesc*, const CFloatHandle&, int, int, int )
 {
 	ASSERT_EXPR( false );
 	return nullptr;
 }
 
-void CVulkanMathEngine::Lstm( CLstmDesc&, 
-	const CFloatHandle&, const CConstFloatHandle&,
-	const CFloatHandle&, const CConstFloatHandle&,
-	const CConstFloatHandle&, const CConstFloatHandle&, const CConstFloatHandle&,
-	const CFloatHandle&, const CFloatHandle& )
+void CVulkanMathEngine::Lstm( CLstmDesc&, const CFloatHandle&, const CConstFloatHandle&, const CConstFloatHandle&,
+	const CConstFloatHandle&, const CFloatHandle&, const CFloatHandle&, const CFloatHandle& )
 {
 	ASSERT_EXPR( false );
 }

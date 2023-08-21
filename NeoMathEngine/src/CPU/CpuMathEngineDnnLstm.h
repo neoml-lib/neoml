@@ -25,9 +25,8 @@ limitations under the License.
 namespace NeoML {
 
 struct CMathEngineLstmDesc : public CLstmDesc {
-	CMathEngineLstmDesc( const CFloatHandle& _inputFullyConnectedResult, const CFloatHandle& _reccurentFullyConnectedResult,
-		int _hiddenSize, int _objectCount, int _objectSize ) :
-			inputFullyConnectedResult( _inputFullyConnectedResult ),
+	CMathEngineLstmDesc( const CFloatHandle& _reccurentFullyConnectedResult, int _hiddenSize, int _objectCount,
+		int _objectSize ) :
 			reccurentFullyConnectedResult( _reccurentFullyConnectedResult ),
 			hiddenSize( _hiddenSize ),
 			objectCount( _objectCount ),
@@ -35,10 +34,8 @@ struct CMathEngineLstmDesc : public CLstmDesc {
 	{}
 	~CMathEngineLstmDesc() override;
 
-	void Reset( const CFloatHandle& _inputFullyConnectedResult, const CFloatHandle& _reccurentFullyConnectedResult,
-		int _hiddenSize, int _objectCount, int _objectSize )
+	void Reset( const CFloatHandle& _reccurentFullyConnectedResult, int _hiddenSize, int _objectCount, int _objectSize )
 	{
-		inputFullyConnectedResult = _inputFullyConnectedResult;
 		reccurentFullyConnectedResult = _reccurentFullyConnectedResult;
 		hiddenSize = _hiddenSize;
 		objectCount = _objectCount;
@@ -47,18 +44,19 @@ struct CMathEngineLstmDesc : public CLstmDesc {
 
 	static int constexpr GatesNum = 4;
 
-	CFloatHandle inputFullyConnectedResult;
 	CFloatHandle reccurentFullyConnectedResult;
 	int hiddenSize; 
 	int objectCount;
 	int objectSize;
 
-	virtual void RunOnceRestOfLstm( const CConstFloatHandle& inputStateBackLink,
-		const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink );
+	virtual void RunOnceRestOfLstm( const CFloatHandle& inputFullyConnectedResult,
+		const CConstFloatHandle& inputStateBackLink, const CFloatHandle& outputStateBackLink,
+		const CFloatHandle& outputMainBackLink );
 };
 
-inline void CMathEngineLstmDesc::RunOnceRestOfLstm( const CConstFloatHandle& inputStateBackLink, 
-	const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink )
+inline void CMathEngineLstmDesc::RunOnceRestOfLstm( const CFloatHandle& inputFullyConnectedResult,
+	const CConstFloatHandle& inputStateBackLink, const CFloatHandle& outputStateBackLink,
+	const CFloatHandle& outputMainBackLink )
 {
 	// Elementwise summ of fully connected layers' results (inplace)
 	const int resultMatrixWidth = CMathEngineLstmDesc::GatesNum * hiddenSize;

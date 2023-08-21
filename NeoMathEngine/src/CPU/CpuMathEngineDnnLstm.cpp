@@ -26,24 +26,23 @@ namespace NeoML {
 
 CMathEngineLstmDesc::~CMathEngineLstmDesc() = default;
 
-CLstmDesc* CCpuMathEngine::InitLstm( CLstmDesc* currentDesc, const CFloatHandle& inputFullyConnectedResult,
-	const CFloatHandle& reccurentFullyConnectedResult, int hiddenSize, int objectCount, int objectSize )
+CLstmDesc* CCpuMathEngine::InitLstm( CLstmDesc* currentDesc, const CFloatHandle& reccurentFullyConnectedResult,
+	int hiddenSize, int objectCount, int objectSize )
 {
 	if( currentDesc != nullptr ) {
-		static_cast<CMathEngineLstmDesc*>( currentDesc )->Reset( inputFullyConnectedResult,
-			reccurentFullyConnectedResult, hiddenSize, objectCount, objectSize );
+		static_cast<CMathEngineLstmDesc*>( currentDesc )->Reset( reccurentFullyConnectedResult, hiddenSize,
+			objectCount, objectSize );
 		return currentDesc;
 	} else {
-		return new CMathEngineLstmDesc( inputFullyConnectedResult,
-			reccurentFullyConnectedResult, hiddenSize, objectCount, objectSize );
+		return new CMathEngineLstmDesc( reccurentFullyConnectedResult, hiddenSize, objectCount, objectSize );
 	}
 }
 
 void CCpuMathEngine::Lstm( CLstmDesc& desc,
-	const CFloatHandle& inputWeights, const CConstFloatHandle& inputFreeTerm,
 	const CFloatHandle& recurrentWeights, const CConstFloatHandle& recurrentFreeTerm,
-	const CConstFloatHandle& inputStateBackLink, const CConstFloatHandle& inputMainBackLink, const CConstFloatHandle& input,
-	const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink )
+	const CConstFloatHandle& inputStateBackLink, const CConstFloatHandle& inputMainBackLink,
+	const CFloatHandle& inputFullyConnectedResult, const CFloatHandle& outputStateBackLink,
+	const CFloatHandle& outputMainBackLink )
 {
 	CMathEngineLstmDesc& lstmDesc = dynamic_cast<CMathEngineLstmDesc&>( desc );
 
@@ -63,19 +62,17 @@ void CCpuMathEngine::Lstm( CLstmDesc& desc,
 
 	//-----------------------------------------------------------------------------------------------------------------
 	// Apply fully connected layers
-	fullyConnectedRunOnce( input, lstmDesc.objectCount, lstmDesc.objectSize,
-		inputWeights, lstmDesc.objectSize, CMathEngineLstmDesc::GatesNum * lstmDesc.hiddenSize,
-		lstmDesc.inputFullyConnectedResult, inputFreeTerm );
-
 	fullyConnectedRunOnce( inputMainBackLink, lstmDesc.objectCount, lstmDesc.hiddenSize,
 		recurrentWeights, lstmDesc.hiddenSize, CMathEngineLstmDesc::GatesNum * lstmDesc.hiddenSize,
 		lstmDesc.reccurentFullyConnectedResult, recurrentFreeTerm );
 
 	// if outputMainBackLink != output then we are in compatibility mode
 	if( simdMathEngine != nullptr ) {
-		simdMathEngine->RunOnceRestOfLstm( &lstmDesc, inputStateBackLink, outputStateBackLink, outputMainBackLink );
+		simdMathEngine->RunOnceRestOfLstm( &lstmDesc, inputFullyConnectedResult, inputStateBackLink,
+			outputStateBackLink, outputMainBackLink );
 	} else {
-		lstmDesc.RunOnceRestOfLstm( inputStateBackLink, outputStateBackLink, outputMainBackLink );
+		lstmDesc.RunOnceRestOfLstm( inputFullyConnectedResult, inputStateBackLink,
+			outputStateBackLink, outputMainBackLink );
 	}
 }
 

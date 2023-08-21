@@ -49,15 +49,16 @@ void CPrimitivesJit::Exp( float* dst, const float* src, size_t dataSize, bool is
 	callPrimitive<TPrimitive::Exp, ActivationFunc>( dataSize, isMultithread, dst, src );
 }
 
-void CPrimitivesJit::RestOfLstm( CMathEngineLstmDesc* desc, const CConstFloatHandle& inputStateBackLink,
-	const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink, bool isMultithread )
+void CPrimitivesJit::RestOfLstm( CMathEngineLstmDesc* desc, const CFloatHandle& inputFullyConnectedResult,
+	const CConstFloatHandle& inputStateBackLink, const CFloatHandle& outputStateBackLink,
+	const CFloatHandle& outputMainBackLink, bool isMultithread )
 {
 	CMathEngineLstmDesc& lstmDesc = *desc;
 
 	const float* inputStateBackLinkPtr = GetRaw( inputStateBackLink );
 	float* outputStateBackLinkPtr = GetRaw( outputStateBackLink );
 	float* outputMainBackLinkPtr = GetRaw( outputMainBackLink );
-	float* inputFullyConnectedResultPtr = GetRaw( lstmDesc.inputFullyConnectedResult );
+	float* inputFullyConnectedResultPtr = GetRaw( inputFullyConnectedResult );
 	float* reccurentFullyConnectedResultPtr = GetRaw( lstmDesc.reccurentFullyConnectedResult );
 
 	callPrimitive<TPrimitive::RestOfLstm, RestOfLstmFunc>( lstmDesc.objectCount, isMultithread,
