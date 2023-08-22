@@ -18,7 +18,6 @@ limitations under the License.
 
 #include <CpuMathEngine.h>
 #include <CpuExecutionScope.h>
-#include <CpuMathEngineOmp.h>
 #include <MemoryHandleInternal.h>
 #include <MathEngineCommon.h>
 #include <MathEngineDnnConv.h>
@@ -61,19 +60,19 @@ void CCpuMathEngine::BlobTimeConvolution( const CTimeConvolutionDesc& convDesc, 
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
 	CCpuExecutionScope scope;
 
-	const float* sourceDataRaw = GetRaw( sourceData );
-	const float* filterDataRaw = GetRaw( filterData );
-	float* resultDataRaw = GetRaw( resultData );
+	const float* const sourceDataRaw = GetRaw( sourceData );
+	const float* const filterDataRaw = GetRaw( filterData );
+	float* const resultDataRaw = GetRaw( resultData );
 
 	const CCommonTimeConvolutionDesc& desc = static_cast<const CCommonTimeConvolutionDesc&>( convDesc );
 	const CBlobDesc& source = desc.Source;
 	const CBlobDesc& result = desc.Result;
 	const CBlobDesc& filter = desc.Filter;
 
-	int filterDataSize = filter.Height() * filter.Channels();
-	int outputObjectSize = result.ObjectSize();
-	int inputObjectSize = source.ObjectSize();
-	int inputRowSize = source.BatchWidth() * inputObjectSize;
+	const int filterDataSize = filter.Height() * filter.Channels();
+	const int outputObjectSize = result.ObjectSize();
+	const int inputObjectSize = source.ObjectSize();
+	const int inputRowSize = source.BatchWidth() * inputObjectSize;
 
 	for( int outSeqNum = 0; outSeqNum < result.BatchLength(); ++outSeqNum ) {
 		int filterRowStart = 0;
@@ -88,7 +87,7 @@ void CCpuMathEngine::BlobTimeConvolution( const CTimeConvolutionDesc& convDesc, 
 			filterRowCount = ( source.BatchLength() - inputRowStart + desc.Dilation - 1 ) / desc.Dilation;
 		}
 
-		float* outputPtr = resultDataRaw + outSeqNum * result.BatchWidth() * outputObjectSize;
+		float* const outputPtr = resultDataRaw + outSeqNum * result.BatchWidth() * outputObjectSize;
 		const float* inputPtr = sourceDataRaw + inputRowStart * inputRowSize;
 		const float* filterPtr = filterDataRaw + filterRowStart * filter.Channels();
 
@@ -118,27 +117,27 @@ void CCpuMathEngine::BlobTimeConvolutionBackward( const CTimeConvolutionDesc& co
 	ASSERT_EXPR( outputDiffData.GetMathEngine() == this );
 	CCpuExecutionScope scope;
 
-	const float* outputDiffDataRaw = GetRaw( outputDiffData );
-	const float* filterDataRaw = GetRaw( filterData );
-	float* inputDiffDataRaw = GetRaw( inputDiffData );
+	const float* const outputDiffDataRaw = GetRaw( outputDiffData );
+	const float* const filterDataRaw = GetRaw( filterData );
+	float* const inputDiffDataRaw = GetRaw( inputDiffData );
 
 	const CCommonTimeConvolutionDesc& desc = static_cast<const CCommonTimeConvolutionDesc&>( convDesc );
 	const CBlobDesc& inputDiff = desc.Source;
 	const CBlobDesc& outputDiff = desc.Result;
 	const CBlobDesc& filter = desc.Filter;
 
-	int filterDataSize = filter.Height() * filter.Channels();
-	int inputObjectSize = inputDiff.ObjectSize();
-	int inputRowSize = inputDiff.BatchWidth() * inputObjectSize;
-	int outputObjectSize = outputDiff.ObjectSize();
-	int outputRowSize = outputDiff.BatchWidth() * outputObjectSize;
+	const int filterDataSize = filter.Height() * filter.Channels();
+	const int inputObjectSize = inputDiff.ObjectSize();
+	const int inputRowSize = inputDiff.BatchWidth() * inputObjectSize;
+	const int outputObjectSize = outputDiff.ObjectSize();
+	const int outputRowSize = outputDiff.BatchWidth() * outputObjectSize;
 
 	for( int inSeqNum = 0; inSeqNum < inputDiff.BatchLength(); ++inSeqNum ) {
-		float* inputDiffDataPtr = inputDiffDataRaw + inSeqNum * inputRowSize;
+		float* const inputDiffDataPtr = inputDiffDataRaw + inSeqNum * inputRowSize;
 		vectorFill0( inputDiffDataPtr, inputObjectSize * inputDiff.BatchWidth() );
 
 		for( int filterRow = 0; filterRow < filter.Height(); filterRow++ ) {
-			int inSeqNumFirst = inSeqNum - filterRow * desc.Dilation;
+			const int inSeqNumFirst = inSeqNum - filterRow * desc.Dilation;
 			if( inSeqNumFirst < -desc.PaddingFront ) {
 				break; // the next values can only be smaller
 			}
@@ -150,8 +149,8 @@ void CCpuMathEngine::BlobTimeConvolutionBackward( const CTimeConvolutionDesc& co
 				continue;
 			}
 
-			const float* outputDiffPtr = outputDiffDataRaw + outSeqNum * outputRowSize;
-			const float* filterPtr = filterDataRaw + filterRow * filter.Channels();
+			const float* const outputDiffPtr = outputDiffDataRaw + outSeqNum * outputRowSize;
+			const float* const filterPtr = filterDataRaw + filterRow * filter.Channels();
 
 			multiplyMatrixByMatrixAndAdd( outputDiffPtr,
 				outputDiff.BatchWidth(), outputObjectSize, outputObjectSize,
@@ -170,8 +169,9 @@ void CCpuMathEngine::BlobTimeConvolutionLearnAdd( const CTimeConvolutionDesc& co
 	ASSERT_EXPR( outputDiffData.GetMathEngine() == this );
 	CCpuExecutionScope scope;
 
-	const float* outputDiffDataRaw = GetRaw( outputDiffData );
-	const float* inputDataRaw = GetRaw( inputData );
+	const float* const outputDiffDataRaw = GetRaw( outputDiffData );
+	const float* const inputDataRaw = GetRaw( inputData );
+	float* const filterDiffDataRaw = GetRaw( filterDiffData );
 
 	const CCommonTimeConvolutionDesc& desc = static_cast<const CCommonTimeConvolutionDesc&>( convDesc );
 	const CBlobDesc& input = desc.Source;
@@ -179,15 +179,11 @@ void CCpuMathEngine::BlobTimeConvolutionLearnAdd( const CTimeConvolutionDesc& co
 	const CBlobDesc& filterDiff = desc.Filter;
 
 	// Train the filter
-	int filterDataSize = filterDiff.Height() * filterDiff.Channels();
-
-	COmpReduction1DData filterDiffItem( mathEngine(), filterDiffData, filterDiff.BlobSize() );
-	COmpReduction<COmpReduction1DData> ompReduction( /*threadCount*/1, filterDiffItem );
+	const int filterDataSize = filterDiff.Height() * filterDiff.Channels();
 
 	for( int outSeqNum = 0; outSeqNum < outputDiff.BatchLength(); ++outSeqNum ) {
-		const float* outputDiffPtr = outputDiffDataRaw +
+		const float* const outputDiffPtr = outputDiffDataRaw +
 			outSeqNum * outputDiff.BatchWidth() * outputDiff.ObjectSize();
-		float* ompReductionPrivatePtr = GetRaw( ompReduction.GetPrivate().Data );
 
 		for( int filterRow = 0; filterRow < filterDiff.Height(); ++filterRow ) {
 			int inSeqNum = outSeqNum * desc.Stride - desc.PaddingFront + filterRow * desc.Dilation;
@@ -195,8 +191,8 @@ void CCpuMathEngine::BlobTimeConvolutionLearnAdd( const CTimeConvolutionDesc& co
 				continue; // padding or went out of the input bounds
 			}
 
-			const float* inputPtr = inputDataRaw + inSeqNum * input.BatchWidth() * filterDiff.Channels();
-			float* filterDiffPtr = ompReductionPrivatePtr + filterRow * filterDiff.Channels();
+			const float* const inputPtr = inputDataRaw + inSeqNum * input.BatchWidth() * filterDiff.Channels();
+			float* const filterDiffPtr = filterDiffDataRaw + filterRow * filterDiff.Channels();
 
 			multiplyTransposedMatrixByMatrixAndAdd( outputDiffPtr,
 				outputDiff.BatchWidth(), filterDiff.BatchWidth(), filterDiff.BatchWidth(),
@@ -204,9 +200,6 @@ void CCpuMathEngine::BlobTimeConvolutionLearnAdd( const CTimeConvolutionDesc& co
 				filterDiffPtr, filterDataSize );
 		}
 	}
-
-	ompReduction.Reduce();
-
 	// Train the free term
 	SumMatrixRowsAdd( 1, freeTermDiffData, outputDiffData, outputDiff.ObjectCount(), filterDiff.ObjectCount() );
 }

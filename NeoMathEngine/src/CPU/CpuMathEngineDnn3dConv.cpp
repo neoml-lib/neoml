@@ -20,7 +20,6 @@ limitations under the License.
 #include <CpuMathEngine.h>
 #include <CpuExecutionScope.h>
 #include <float.h>
-#include <CpuMathEngineOmp.h> // TODO: GOLIKOV remove it
 #include <MathEngineCommon.h>
 #include <MathEngineDnnConv.h>
 #include <MemoryHandleInternal.h>
@@ -406,7 +405,7 @@ void CCpuMathEngine::blob3dConvolutionBackward( const CCommon3dConvolutionDesc& 
 	const int filterForwardGeometricalSize = filter.GeometricalSize() * filter.Channels();
 	const int filterForwardDataSize = filterForwardChannelsCount * filterForwardGeometricalSize;
 
-	CFloatHandleVar filterForward( mathEngine(), filterForwardDataSize );
+	CFloatHandleStackVar filterForward( mathEngine(), filterForwardDataSize );
 	TransposeMatrix( 1, filterData, filter.BatchWidth(), 1, filter.ObjectSize(), 1, filterForward.GetHandle(),
 		filterForwardDataSize );
 	float* const filterForwardPtr = GetRaw( filterForward.GetHandle() );
@@ -420,7 +419,7 @@ void CCpuMathEngine::blob3dConvolutionBackward( const CCommon3dConvolutionDesc& 
 	const int outputZSize = result.Depth() * result.Channels();
 
 	const int tempDataSize = source.ObjectCount() * inputGeo * filterForwardGeometricalSize;
-	CFloatHandleVar temp( mathEngine(), tempDataSize );
+	CFloatHandleStackVar temp( mathEngine(), tempDataSize );
 	float* const tempPtr = GetRaw( temp.GetHandle() );
 
 	// The first step is to multiply the input and filter matrices
@@ -515,28 +514,17 @@ void CCpuMathEngine::blob3dConvolutionLearnAdd( const CCommon3dConvolutionDesc& 
 	const CBlobDesc& filterDiff = desc.Filter;
 
 	const int inputPreparedTempSize = outputDiff.GeometricalSize() * filterDiff.GeometricalSize() * input.Channels();
-	COmpPrivate1DData inputPreparedTemp( /*curThreadCount*/1, mathEngine(), inputPreparedTempSize );
+	CFloatHandleStackVar inputPreparedTemp( mathEngine(), inputPreparedTempSize );
 
 	const int outputTempSize = outputDiff.ObjectSize();
-	COmpPrivate1DData outputTemp( /*curThreadCount*/1, mathEngine(), outputTempSize );
+	CFloatHandleStackVar outputTemp( mathEngine(), outputTempSize );
 
-	COmpReduction1DData filterDiffItem( mathEngine(), filterDiffData, desc.Filter.BlobSize() );
-	COmpReduction<COmpReduction1DData> filterDiffReduction( /*curThreadCount*/1, filterDiffItem );
-	
-	std::unique_ptr<COmpReduction1DData> freeTermDiffItem( nullptr );
-	std::unique_ptr<COmpReduction<COmpReduction1DData>> freeTermDiffReduction( nullptr );
-	
-	if( freeTermDiffData != nullptr ) {
-		const int freeTermDiffSize = isFreeTermDiffFromInput ? filterDiff.Channels() : filterDiff.ObjectCount();
-		freeTermDiffItem.reset( new COmpReduction1DData( mathEngine(), *freeTermDiffData, freeTermDiffSize ) );
-		freeTermDiffReduction.reset( new COmpReduction<COmpReduction1DData>( /*curThreadCount*/1, *freeTermDiffItem ) );
-	}
+	float* const inputPreparedDataPtr = GetRaw( inputPreparedTemp.GetHandle() );
+	float* const outputTempDataPtr = GetRaw( outputTemp.GetHandle() );
+	float* const filterDiffDataPtr = GetRaw( filterDiffData );
 
 	for( int b = 0; b < input.ObjectCount(); ++b ) {
 		const float* outputDiffDataPtr = outputDiffData + b * outputDiff.ObjectSize();
-		float* inputPreparedDataPtr = GetRaw( inputPreparedTemp.GetPrivateData() );
-		float* filterDiffReductionDataPtr = GetRaw( filterDiffReduction.GetPrivate().Data );
-		float* outputTempDataPtr = GetRaw( outputTemp.GetPrivateData() );
 
 		blob3dConvolutionPrepareInput( desc, inputPreparedDataPtr, inputData, b,
 			outputDiff.Height(), 0, outputDiff.Width() * outputDiff.Depth() );
@@ -549,24 +537,17 @@ void CCpuMathEngine::blob3dConvolutionLearnAdd( const CCommon3dConvolutionDesc& 
 		multiplyTransposedMatrixByMatrixAndAdd( outputTempDataPtr,
 			outputDiff.GeometricalSize(), outputDiff.Channels(), outputDiff.Channels(),
 			inputPreparedDataPtr, filterDiff.GeometricalSize() * input.Channels(), filterDiff.GeometricalSize() * input.Channels(),
-			filterDiffReductionDataPtr, filterDiff.GeometricalSize() * input.Channels() );
+			filterDiffDataPtr, filterDiff.GeometricalSize() * input.Channels() );
 
 		if( freeTermDiffData != nullptr ) {
 			// Free term diff
-			float* freeTermDiffReductionDataPtr = GetRaw( freeTermDiffReduction->GetPrivate().Data );
+			float* const freeTermDiffDataPtr = GetRaw( *freeTermDiffData );
 			if( isFreeTermDiffFromInput ) {
-				sumMatrixRowsAdd( freeTermDiffReductionDataPtr,
-					inputData + b * input.ObjectSize(), input.GeometricalSize(), input.Channels() );
+				sumMatrixRowsAdd( freeTermDiffDataPtr, inputData + b * input.ObjectSize(), input.GeometricalSize(), input.Channels() );
 			} else {
-				sumMatrixRowsAdd( freeTermDiffReductionDataPtr,
-					outputDiffDataPtr, outputDiff.GeometricalSize(), outputDiff.Channels() );
+				sumMatrixRowsAdd( freeTermDiffDataPtr, outputDiffDataPtr, outputDiff.GeometricalSize(), outputDiff.Channels() );
 			}
 		}
-	}
-
-	filterDiffReduction.Reduce();
-	if( freeTermDiffData != 0 ) {
-		freeTermDiffReduction->Reduce();
 	}
 }
 
