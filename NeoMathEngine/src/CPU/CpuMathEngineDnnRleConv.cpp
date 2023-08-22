@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -219,9 +219,6 @@ void CCpuMathEngine::BlobRleConvolution( const CRleConvolutionDesc& convDesc, co
 	const float* filterConvPtr = GetRaw( desc.FilterConv.GetHandle() );
 	float* resultDataPtr = GetRaw( resultData );
 
-	const int curThreadCount = IsOmpRelevant( objectCount ) ? threadCount : 1;
-
-	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
 	for( int b = 0; b < objectCount; ++b ) {
 		const CRleImage* inputImage = reinterpret_cast<const CRleImage*>( GetRaw( sourceData + source.ObjectSize() * b ) );
 		int imageStartPos = ( source.Width() - inputImage->Width ) / 2;
@@ -303,30 +300,26 @@ void CCpuMathEngine::BlobRleConvolutionLearnAdd( const CRleConvolutionDesc& conv
 
 	const int strideHeight = desc.StrideHeight;
 	const int strideWidth = desc.StrideWidth;
-
 	const int filterJCount = outputDiff.Height();
 
 	TransposeMatrix( 1, filterDiffData, filterCount, 1, filterHeight * filterWidth, 1,
 		desc.ConvertedFilterDiff.GetHandle(), desc.ConvertedFilterDiff.Size() );
-
-	const int curThreadCount = IsOmpRelevant( objectCount ) ? threadCount : 1;
 
 	std::unique_ptr<COmpReduction1DData> freeTermDiffItem( nullptr );
 	std::unique_ptr<COmpReduction<COmpReduction1DData>> freeTermDiffReduction( nullptr );
 
 	if( freeTermDiffData != nullptr ) {
 		freeTermDiffItem.reset( new COmpReduction1DData( mathEngine(), *freeTermDiffData, desc.Filter.ObjectCount() ) );
-		freeTermDiffReduction.reset( new COmpReduction<COmpReduction1DData>( curThreadCount, *freeTermDiffItem ) );
+		freeTermDiffReduction.reset( new COmpReduction<COmpReduction1DData>( /*curThreadCount*/1, *freeTermDiffItem ) );
 	}
 
 	COmpReduction1DData filterDiffItem( mathEngine(), desc.ConvertedFilterDiff, filterHeight * filterWidth * filterCount );
-	COmpReduction<COmpReduction1DData> filterDiffReduction( curThreadCount, filterDiffItem );
+	COmpReduction<COmpReduction1DData> filterDiffReduction( /*curThreadCount*/1, filterDiffItem );
 
-	CFloatHandleStackVar mults( mathEngine(), curThreadCount );
-	float* multsPtr = GetRaw( mults.GetHandle() );
-	const float* outputDiffDataRaw = GetRaw( outputDiffData );
+	CFloatHandleStackVar mults( mathEngine(), /*curThreadCount*/1 );
+	float* const multsPtr = GetRaw( mults.GetHandle() );
+	const float* const outputDiffDataRaw = GetRaw( outputDiffData );
 
-	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
 	for( int b = 0; b < objectCount; ++b ) {
 		const CRleImage* inputImage = reinterpret_cast<const CRleImage*>( GetRaw( inputData + input.ObjectSize() * b ) );
 		int imageStartPos = ( input.Width() - inputImage->Width ) / 2;
@@ -367,7 +360,7 @@ void CCpuMathEngine::BlobRleConvolutionLearnAdd( const CRleConvolutionDesc& conv
 					const int filterRow = lineNumber - strideHeight * outRow;
 					float* currFilterDiff = filterDiffReductionPrivatePtr + filterRow * filterWidth * filterCount;
 					for( int filterCol = 0; filterCol < filterWidth; ++filterCol ) {
-						float* mult = multsPtr + OmpGetThreadNum();
+						float* const mult = multsPtr;
 						*mult = ( ( ( 1ULL << filterCol ) & line ) != 0 ) ? strokeValue : nonStrokeValue;
 						alignedVectorMultiplyAndAdd( currFilterDiff, currOutputDiff, currFilterDiff, filterCount, mult );
 						currFilterDiff += filterCount;

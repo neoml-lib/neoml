@@ -26,18 +26,17 @@ namespace NeoML {
 
 class IMathEngine;
 
-class CPrimitivesJit {
+class CPrimitivesJit final {
 public:
-	CPrimitivesJit( IMathEngine* );
+	explicit CPrimitivesJit( IMathEngine* );
 
-	void Tanh( float* dst, const float* src, size_t dataSize, bool isMultithread = true );
-	void Sigmoid( float* dst, const float* src, size_t dataSize, bool isMultithread = true );
-	void Exp( float* dst, const float* src, size_t dataSize, bool isMultithread = true );
+	void Tanh( float* dst, const float* src, size_t dataSize );
+	void Sigmoid( float* dst, const float* src, size_t dataSize );
+	void Exp( float* dst, const float* src, size_t dataSize );
 
 	// Process part of lstm layer which follow after fullyconnected layers.
 	void RestOfLstm( CMathEngineLstmDesc* desc, const CConstFloatHandle& inputStateBackLink,
-		const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink,
-		bool isMultithread );
+		const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink );
 
 private:
 	enum class TPrimitive {
@@ -87,7 +86,6 @@ private:
 		float* outputMainBackLinkPtr, float* inputFullyConnectedResultPtr, float* reccurentFullyConnectedResultPtr, size_t offset, size_t count );
 
 	IMathEngine* const mathEngine;
-	const int threadCount = 1; /*deprecated*/
 
 	// Contains jit code generators for partial primitives
 	std::array<CGenerator, static_cast<size_t>( TPrimitive::Count )> gens;
@@ -123,7 +121,7 @@ private:
 	void insertPrimitive( CJitCommon& gen, const ymmVec_t& ymmSrc, const ymmVec_t& ymmAux );
 
 	template<TPrimitive P, class PrimitiveFuncType, class... Args>
-	void callPrimitive( size_t dataSize, bool isMultithread, Args... args );
+	void callPrimitive( size_t dataSize, Args... args );
 
 	// Check if two arrays have insersected registers and each array contains only unique registers
 	template<class RegType, class ArrayType0, class ArrayType1>

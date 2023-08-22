@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -75,9 +75,6 @@ void CCpuMathEngine::BlobTimeConvolution( const CTimeConvolutionDesc& convDesc, 
 	int inputObjectSize = source.ObjectSize();
 	int inputRowSize = source.BatchWidth() * inputObjectSize;
 
-	const int curThreadCount = IsOmpRelevant( result.BatchLength() ) ? threadCount : 1;
-
-	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
 	for( int outSeqNum = 0; outSeqNum < result.BatchLength(); ++outSeqNum ) {
 		int filterRowStart = 0;
 		int inputRowStart = outSeqNum * desc.Stride - desc.PaddingFront;
@@ -136,9 +133,6 @@ void CCpuMathEngine::BlobTimeConvolutionBackward( const CTimeConvolutionDesc& co
 	int outputObjectSize = outputDiff.ObjectSize();
 	int outputRowSize = outputDiff.BatchWidth() * outputObjectSize;
 
-	const int curThreadCount = IsOmpRelevant( inputDiff.BatchLength() ) ? threadCount : 1;
-
-	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
 	for( int inSeqNum = 0; inSeqNum < inputDiff.BatchLength(); ++inSeqNum ) {
 		float* inputDiffDataPtr = inputDiffDataRaw + inSeqNum * inputRowSize;
 		vectorFill0( inputDiffDataPtr, inputObjectSize * inputDiff.BatchWidth() );
@@ -188,11 +182,8 @@ void CCpuMathEngine::BlobTimeConvolutionLearnAdd( const CTimeConvolutionDesc& co
 	int filterDataSize = filterDiff.Height() * filterDiff.Channels();
 
 	COmpReduction1DData filterDiffItem( mathEngine(), filterDiffData, filterDiff.BlobSize() );
-	COmpReduction<COmpReduction1DData> ompReduction( threadCount, filterDiffItem );
+	COmpReduction<COmpReduction1DData> ompReduction( /*threadCount*/1, filterDiffItem );
 
-	const int curThreadCount = IsOmpRelevant( outputDiff.BatchLength() ) ? threadCount : 1;
-
-	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
 	for( int outSeqNum = 0; outSeqNum < outputDiff.BatchLength(); ++outSeqNum ) {
 		const float* outputDiffPtr = outputDiffDataRaw +
 			outSeqNum * outputDiff.BatchWidth() * outputDiff.ObjectSize();

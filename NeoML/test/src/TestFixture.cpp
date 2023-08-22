@@ -90,7 +90,7 @@ namespace {
 		return MET_Undefined;
 	}
 
-	inline const char* toString( TMathEngineType type )
+	static const char* toString( TMathEngineType type )
 	{
 		if( type == MET_Cpu ) {
 			return "Cpu";
@@ -115,7 +115,10 @@ namespace {
 #endif //NEOML_USE_FINEOBJ
 		}
 	}
-}
+
+} // end namespace
+
+//------------------------------------------------------------------------------------------------------------
 
 IMathEngine* CreateMathEngine( TMathEngineType type, std::size_t memoryLimit )
 {
@@ -184,7 +187,20 @@ void* GetPlatformEnv()
 	return platformEnv;
 }
 
+//------------------------------------------------------------------------------------------------------------
+
 static inline bool isPathSeparator( char ch ) { return ch == '\\' || ch == '/'; }
+
+static inline char pathSeparator()
+{
+#if FINE_PLATFORM( FINE_WINDOWS )
+	return '\\';
+#elif FINE_PLATFORM( FINE_LINUX ) || FINE_PLATFORM( FINE_ANDROID ) || FINE_PLATFORM( FINE_IOS ) || FINE_PLATFORM( FINE_DARWIN )
+	return '/';
+#else
+#error Unknown platform
+#endif
+}
 
 static CString mergePathSimple( const CString& dir, const CString& relativePath )
 {
@@ -204,27 +220,21 @@ static CString mergePathSimple( const CString& dir, const CString& relativePath 
 		separatorsCount++;
 	}
 
-	CString result;
+	CString result{};
 	switch( separatorsCount ) {
 		case 0:
-			#if FINE_PLATFORM( FINE_WINDOWS )
-				result = dir + "\\" + relativePath;
-			#elif FINE_PLATFORM( FINE_LINUX ) || FINE_PLATFORM( FINE_ANDROID ) || FINE_PLATFORM( FINE_IOS ) || FINE_PLATFORM( FINE_DARWIN )
-				result = dir + "/" + relativePath;
-			#else
-				#error Unknown platform
-			#endif
+			result = dir + pathSeparator();
 			break;
 		case 1:
-			result = dir + relativePath;
+			result = dir;
 			break;
 		case 2:
-			result = CString( dirPtr, static_cast<int>( dirLen - 1 ) ) + relativePath;
+			result = CString( dirPtr, static_cast<int>( dirLen - 1 ) );
 			break;
 		default:
 			NeoAssert( false );
 	}
-	return result;
+	return result + relativePath;
 }
 
 //------------------------------------------------------------------------------------------------------------
