@@ -17,6 +17,7 @@ limitations under the License.
 #pragma hdrstop
 
 #include <algorithm>
+#include <memory>
 
 #include <CpuMathEngine.h>
 #include <CpuMathEnginePrivate.h>
@@ -103,6 +104,19 @@ void CCpuMathEngine::Lstm( CLstmDesc& desc, bool reverse, int sequenceLength, in
 
 	CSequenceWrapper<const float> input( inputHandle, sequenceLength, sequenceCount * lstmDesc.objectSize );
 
+	CConstFloatHandle freeTerm;
+	std::unique_ptr<CFloatHandleStackVar> freeTermVar;
+	if( !inputFreeTerm.IsNull() && !recurrentFreeTerm.IsNull() ) {
+		freeTermVar.reset( new CFloatHandleStackVar( *this, 4 * lstmDesc.hiddenSize ) );
+		freeTerm = freeTermVar->GetHandle();
+		vectorAdd( GetRaw( inputFreeTerm ), GetRaw( recurrentFreeTerm ),
+			GetRaw( freeTermVar->GetHandle() ), freeTermVar->Size() );
+	} else if( !inputFreeTerm.IsNull() ) {
+		freeTerm = inputFreeTerm;
+	} else {
+		freeTerm = recurrentFreeTerm;
+	}
+
 	// Iterate recurent net step by step
 	int seqElemsInBuffer = 0;
 	for( int i = 0; i < sequenceLength; i++ ) {
@@ -130,15 +144,10 @@ void CCpuMathEngine::Lstm( CLstmDesc& desc, bool reverse, int sequenceLength, in
 		multiplyMatrixByTransposedMatrixAndAdd( mainBackLink[inputPos], sequenceCount, lstmDesc.hiddenSize,
 			lstmDesc.hiddenSize, GetRaw( recurrentWeights ), 4 * lstmDesc.hiddenSize, lstmDesc.hiddenSize,
 			fullyConnectedResult[outputPos], 4 * lstmDesc.hiddenSize );
-		if( !inputFreeTerm.IsNull() ) {
+		if( !freeTerm.IsNull() ) {
 			addVectorToMatrixRows( fullyConnectedResult[outputPos], fullyConnectedResult[outputPos],
 				sequenceCount, 4 * lstmDesc.hiddenSize, 4 * lstmDesc.hiddenSize, 4 * lstmDesc.hiddenSize,
-				GetRaw( inputFreeTerm ) );
-		}
-		if( !recurrentFreeTerm.IsNull() ) {
-			addVectorToMatrixRows( fullyConnectedResult[outputPos], fullyConnectedResult[outputPos],
-				sequenceCount, 4 * lstmDesc.hiddenSize, 4 * lstmDesc.hiddenSize, 4 * lstmDesc.hiddenSize,
-				GetRaw( recurrentFreeTerm ) );
+				GetRaw( freeTerm ) );
 		}
 
 		// if outputMainBackLink != output then we are in compatibility mode
