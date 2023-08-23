@@ -70,20 +70,6 @@ void CCpuMathEngine::Lstm( CLstmDesc& desc, bool reverse, int sequenceLength, in
 {
 	CMathEngineLstmDesc& lstmDesc = dynamic_cast<CMathEngineLstmDesc&>( desc );
 
-	auto fullyConnectedRunOnce = [&]( const float* input, int inputHeight, int inputWidth,
-		const float* weights, int weightsHeight, int weightsWidth,
-		float* output, const float* freeTerm )
-	{
-		PRESUME_EXPR( inputWidth == weightsWidth );
-		multiplyMatrixByTransposedMatrix( input, inputHeight, inputWidth, inputWidth,
-			weights, weightsHeight, weightsWidth, output, weightsHeight );
-
-		if( freeTerm != nullptr ) {
-			addVectorToMatrixRows( output, output, inputHeight,
-				weightsHeight, weightsHeight, weightsHeight, freeTerm );
-		}
-	};
-
 	auto initializeBacklink = [&] ( const CConstFloatHandle& initialState, CSequenceWrapper<float>& wrapper )
 	{
 		const int firstElemIdx = reverse ? sequenceLength - 1 : 0;
@@ -138,16 +124,15 @@ void CCpuMathEngine::Lstm( CLstmDesc& desc, bool reverse, int sequenceLength, in
 			const int bufferIdx = outputPos / inputFullyConnectedResult.SequenceLength();
 			seqElemsInBuffer = std::min( inputFullyConnectedResult.SequenceLength(),
 				sequenceLength - bufferIdx * inputFullyConnectedResult.SequenceLength() );
-			fullyConnectedRunOnce( input[bufferIdx * inputFullyConnectedResult.SequenceLength()],
-				seqElemsInBuffer * sequenceCount, lstmDesc.objectSize, GetRaw( inputWeights ),
-				4 * lstmDesc.hiddenSize, lstmDesc.objectSize, inputFullyConnectedResult[0],
-				GetRaw( inputFreeTerm ) );
+			multiplyMatrixByTransposedWithFreeTerm( input[bufferIdx * inputFullyConnectedResult.SequenceLength()],
+				seqElemsInBuffer * sequenceCount, lstmDesc.objectSize, GetRaw( inputWeights ), 4 * lstmDesc.hiddenSize,
+				GetRaw( inputFreeTerm ), inputFullyConnectedResult[0] );
 		}
 
 		// Apply fully connected layers
-		fullyConnectedRunOnce( mainBackLink[inputPos], sequenceCount, lstmDesc.hiddenSize,
-			GetRaw( recurrentWeights ), 4 * lstmDesc.hiddenSize, lstmDesc.hiddenSize,
-			recurrentFullyConnectedResult, GetRaw( recurrentFreeTerm ) );
+		multiplyMatrixByTransposedWithFreeTerm( mainBackLink[inputPos], sequenceCount, lstmDesc.hiddenSize,
+			GetRaw( recurrentWeights ), 4 * lstmDesc.hiddenSize, GetRaw( recurrentFreeTerm ),
+			recurrentFullyConnectedResult );
 
 		// if outputMainBackLink != output then we are in compatibility mode
 		if( simdMathEngine != nullptr ) {
