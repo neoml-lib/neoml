@@ -257,7 +257,7 @@ void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::RestOfLstm>()
 	const reg64_t regFullyConnectedResultPtr = rdi; // param5
 	const reg64_t regOffset = rsi; // param 6
 	gen.mov( regFullyConnectedResultPtr, stackArgsPtr );
-	gen.mov( regFullyConnectedResultPtr, gen.ptr[stackArgsPtr.getRegExp() + SizeofReg64]);
+	gen.mov( regOffset, gen.ptr[stackArgsPtr.getRegExp() + SizeofReg64]);
 	const int WinUnixStackDiff = 2;
 #else
 	const reg64_t regFullyConnectedResultPtr = Param5;
