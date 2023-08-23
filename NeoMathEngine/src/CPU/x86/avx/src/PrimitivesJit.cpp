@@ -255,16 +255,17 @@ void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::RestOfLstm>()
 	const reg64_t regOutputMainBackLinkPtr = Param4;
 #ifdef _WIN32
 	const reg64_t regFullyConnectedResultPtr = rdi; // param5
+	const reg64_t regOffset = rsi; // param 6
 	gen.mov( regFullyConnectedResultPtr, stackArgsPtr );
-	const int WinUnixStackDiff = 1;
+	gen.mov( regFullyConnectedResultPtr, gen.ptr[stackArgsPtr.getRegExp() + SizeofReg64]);
+	const int WinUnixStackDiff = 2;
 #else
 	const reg64_t regFullyConnectedResultPtr = Param5;
+	const reg64_t regOffset = Param6;
 	const int WinUnixStackDiff = 0;
 #endif
-	const reg64_t regOffset = rax;
 	const reg64_t regObjectsCount = r11;
-	gen.mov( regOffset, gen.ptr[stackArgsPtr.getRegExp() + ( WinUnixStackDiff + 0 ) * SizeofReg64] );
-	gen.mov( regObjectsCount, gen.ptr[stackArgsPtr.getRegExp() + ( WinUnixStackDiff + 1 ) * SizeofReg64] );
+	gen.mov( regObjectsCount, gen.ptr[stackArgsPtr.getRegExp() + WinUnixStackDiff * SizeofReg64] );
 	
 	// Current offset of intput in each of gates
 	const reg64_t regForgetOffset = r12;
