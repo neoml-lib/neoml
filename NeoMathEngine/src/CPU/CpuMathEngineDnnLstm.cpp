@@ -27,14 +27,6 @@ limitations under the License.
 
 namespace NeoML {
 
-static CFloatHandleVar* transposeLstmWeights( const CConstFloatHandle& oldWeights, int oldHeight, int oldWidth )
-{
-	IMathEngine& mathEngine = *oldWeights.GetMathEngine();
-	CFloatHandleVar* result = new CFloatHandleVar( mathEngine, oldHeight * oldWidth );
-	mathEngine.TransposeMatrix( 1, oldWeights, oldHeight, 1, oldWidth, 1, result->GetHandle(), result->Size() );
-	return result;
-}
-
 static CFloatHandleVar* createLstmFreeTermVar( const CConstFloatHandle& inputFreeTerm,
 	const CConstFloatHandle& recurFreeTerm, int hiddenSize )
 {
@@ -65,10 +57,8 @@ CMathEngineLstmDesc::CMathEngineLstmDesc( int hiddenSize, int objectSize, const 
 		const CConstFloatHandle& recurFreeTerm ) :
 	HiddenSize( hiddenSize ),
 	ObjectSize( objectSize ),
-	InputWeightsVar( transposeLstmWeights( inputWeights, 4 * hiddenSize, objectSize ) ),
-	InputWeights( GetRaw( InputWeightsVar->GetHandle() ) ),
-	RecurWeightsVar( transposeLstmWeights( recurWeights, 4 * hiddenSize, hiddenSize ) ),
-	RecurWeights( GetRaw( RecurWeightsVar->GetHandle() ) ),
+	InputWeights( GetRaw( inputWeights ) ),
+	RecurWeights( GetRaw( recurWeights ) ),
 	FreeTermVar( createLstmFreeTermVar( inputFreeTerm, recurFreeTerm, hiddenSize ) ),
 	FreeTerm( initLstmFreeTerm( FreeTermVar.get(), inputFreeTerm, recurFreeTerm))
 {
@@ -166,13 +156,13 @@ void CCpuMathEngine::Lstm( CLstmDesc& desc, bool reverse, int sequenceLength, in
 			const int bufferIdx = outputPos / fullyConnectedResult.SequenceLength();
 			seqElemsInBuffer = std::min( fullyConnectedResult.SequenceLength(),
 				sequenceLength - bufferIdx * fullyConnectedResult.SequenceLength() );
-			multiplyMatrixByMatrix( input[bufferIdx * fullyConnectedResult.SequenceLength()],
+			multiplyMatrixByTransposedMatrix( input[bufferIdx * fullyConnectedResult.SequenceLength()],
 				seqElemsInBuffer * sequenceCount, lstmDesc.ObjectSize, lstmDesc.ObjectSize, lstmDesc.InputWeights,
-				4 * lstmDesc.HiddenSize, 4 * lstmDesc.HiddenSize, fullyConnectedResult[0], 4 * lstmDesc.HiddenSize );
+				4 * lstmDesc.HiddenSize, lstmDesc.ObjectSize, fullyConnectedResult[0], 4 * lstmDesc.HiddenSize );
 		}
 
-		multiplyMatrixByMatrixAndAdd( mainBackLink[inputPos], sequenceCount, lstmDesc.HiddenSize,
-			lstmDesc.HiddenSize, lstmDesc.RecurWeights, 4 * lstmDesc.HiddenSize, 4 * lstmDesc.HiddenSize,
+		multiplyMatrixByTransposedMatrixAndAdd( mainBackLink[inputPos], sequenceCount, lstmDesc.HiddenSize,
+			lstmDesc.HiddenSize, lstmDesc.RecurWeights, 4 * lstmDesc.HiddenSize, lstmDesc.HiddenSize,
 			fullyConnectedResult[outputPos], 4 * lstmDesc.HiddenSize );
 		if( lstmDesc.FreeTerm != nullptr ) {
 			addVectorToMatrixRows( fullyConnectedResult[outputPos], fullyConnectedResult[outputPos],

@@ -363,6 +363,7 @@ void CLstmLayer::RunOnce()
 			inputBlobs[0]->GetBatchWidth(), inputStateBackLink, inputMainBackLink, inputBlobs[0]->GetData(),
 			outputState, outputBlobs[0]->GetData() );
 	} else {
+		freeDesc();
 		CRecurrentLayer::RunOnce();
 	}
 }
