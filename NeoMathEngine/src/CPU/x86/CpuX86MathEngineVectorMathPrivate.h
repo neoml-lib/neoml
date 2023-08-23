@@ -13,7 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
-// These functions work with raw pointers, contain no OMP sections and perform no checks
+// These functions work with raw pointers, and perform no checks
 
 #pragma once
 

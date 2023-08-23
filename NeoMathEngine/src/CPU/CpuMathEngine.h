@@ -636,7 +636,6 @@ protected:
 	void Free( const CMemoryHandle& handle ) override;
 
 private:
-	const int /*deprecated*/ threadCount = 1; // the number of threads for OMP
 	const int floatAlignment; // float alignment
 	const int memoryAlignment; // allocation alignment
 	std::shared_ptr<CMultiThreadDistributedCommunicator> communicator;

@@ -36,41 +36,27 @@ void CCpuMathEngine::BlobChannelwiseConvolution( const CChannelwiseConvolutionDe
 
 	const float* source = GetRaw( sourceData );
 	const float* filter = GetRaw( filterData );
-	const float* freeTerm = freeTermData != 0 ? GetRaw( *freeTermData ) : 0;
+	const float* freeTerm = ( freeTermData != nullptr ) ? GetRaw( *freeTermData ) : nullptr;
 	float* result = GetRaw( resultData );
 
 	TChannelwiseProcessFunction processFunc = GetChannelwiseProcessFunction( desc );
 
 	const CBlobDesc& sourceDesc = desc.Source;
-	const CBlobDesc& filterDesc = desc.Filter;
 	const CBlobDesc& resultDesc = desc.Result;
 
-	const int curThreadCount = IsOmpRelevant( sourceDesc.ObjectCount() * resultDesc.Height(),
-		static_cast<int64_t>( sourceDesc.BlobSize() ) * filterDesc.BlobSize() ) ? threadCount : 1;
-
 	const int channels = sourceDesc.Channels() * sourceDesc.Depth();
-
 	const int inputRowSize = sourceDesc.Width() * channels;
 	const int outputRowSize = resultDesc.Width() * channels;
 
 	const int inputObjectSize = inputRowSize * sourceDesc.Height();
 	const int outputObjectSize = outputRowSize * resultDesc.Height();
 
-	NEOML_OMP_NUM_THREADS( curThreadCount )
-	{
-		int batchStart;
-		int batchCount;
-		int resultStart;
-		int resultCount;
-		if( OmpGetTaskIndexAndCount2D( sourceDesc.ObjectCount(), resultDesc.Height(), batchStart, batchCount, resultStart, resultCount ) ) {
-			const float* src = source + batchStart * inputObjectSize;
-			const float* srcEnd = src + batchCount * inputObjectSize;
-			float* res = result + batchStart * outputObjectSize + resultStart * outputRowSize;
+	const int batchCount = sourceDesc.ObjectCount();
+	const int resultCount = resultDesc.Height();
 
-			for( ; src < srcEnd; src += inputObjectSize, res += outputObjectSize ) {
-				processFunc( desc, resultCount, src, 0, filter, freeTerm, res, resultStart );
-			}
-		}
+	const float* const sourceEnd = source + batchCount * inputObjectSize;
+	for( ; source < sourceEnd; source += inputObjectSize, result += outputObjectSize ) {
+		processFunc( desc, resultCount, source, /*sourceRowIndex*/0, filter, freeTerm, result, /*resultRowIndex*/0 );
 	}
 }
 

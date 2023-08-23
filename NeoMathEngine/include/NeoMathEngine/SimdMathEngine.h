@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -46,12 +46,11 @@ public:
 
 	virtual SgemmFunc GetSgemmFunction() const = 0;
 
-	virtual void Tanh( float* dst, const float* src, size_t dataSize, bool isMultithread = true ) = 0;
-	virtual void Sigmoid( float* dst, const float* src, size_t dataSize, bool isMultithread = true ) = 0;
-	virtual void Exp( float* dst, const float* src, size_t dataSize, bool isMultithread = true ) = 0;
+	virtual void Tanh( float* dst, const float* src, size_t dataSize ) = 0;
+	virtual void Sigmoid( float* dst, const float* src, size_t dataSize ) = 0;
+	virtual void Exp( float* dst, const float* src, size_t dataSize ) = 0;
 	virtual void RunOnceRestOfLstm( CMathEngineLstmDesc* desc, int sequenceCount, float* fullyConnectedResult,
-		const float* inputStateBackLink, float* outputStateBackLink, float* outputMainBackLink,
-		bool isMultithread = true ) = 0;
+		const float* inputStateBackLink, float* outputStateBackLink, float* outputMainBackLink ) = 0;
 };
 
 }

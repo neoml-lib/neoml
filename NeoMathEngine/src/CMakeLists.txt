@@ -62,7 +62,6 @@ target_sources(${PROJECT_NAME}
     CPU/CpuMathEngineDnnDistributed.h
     CPU/CpuMathEngineDnnLstm.h
     CPU/CpuMathEngineDnnPooling.h
-    CPU/CpuMathEngineOmp.h
     CPU/CpuMathEnginePrivate.h
     CPU/CpuRandom.h
 

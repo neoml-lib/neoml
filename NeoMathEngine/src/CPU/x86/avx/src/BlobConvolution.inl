@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -133,7 +133,7 @@ CBlobConvolution<FltCnt>::CBlobConvolution(
 
 template<int FltCnt>
 void CBlobConvolution<FltCnt>::ProcessConvolution(
-    int threadCount, const float* sourceData, const float* filterData, const float* freeTermData, float* resultData )
+    const float* sourceData, const float* filterData, const float* freeTermData, float* resultData )
 {
     CFloatHandleStackVar filterTempBuffer( *mathEngine, FltW * FltH * FltCntM8 * ChCnt );
     CFloatHandleStackVar freeTermTempBuffer( *mathEngine, FltCntM8 );
@@ -149,19 +149,8 @@ void CBlobConvolution<FltCnt>::ProcessConvolution(
         jitIsInited = true;
     }
 
-    const int ResRowCount = ResObjCnt * ResH;
-    const int curThreadCount = IsOmpRelevant( ResRowCount, ResRowCount * ResW * FltCnt * FltW * FltH * ChCnt ) ? threadCount : 1;
-
-    NEOML_OMP_NUM_THREADS( curThreadCount )
-    {
-        // Index of row in whole result array
-        int rowIdx;
-        // Count of rows for current thread
-        int rowCount;
-        if( OmpGetTaskIndexAndCount( ResRowCount, rowIdx, rowCount ) ) {
-            processConvolutionRowwise( rowIdx, rowCount );
-        }
-    }
+    const int resRowCount = ResObjCnt * ResH;
+    processConvolutionRowwise( /*resRowStartIndex*/0, resRowCount );
 }
 
 template<int FltCnt>
@@ -199,17 +188,17 @@ void CBlobConvolution<FltCnt>::processConvolutionRowwise( int rowIdx, int rowCou
 
     while( rowCount > 0 ) {
         // Index of result image in output batch
-        int resIdx = rowIdx / ResH;
+        const int resIdx = rowIdx / ResH;
         // Offset in current result image
-        int ryStart = rowIdx % ResH;
+        const int ryStart = rowIdx % ResH;
         // Number of rows for processing ( or number of rows till the end of current result image ).
-        int ryCount = std::min( ResH - ryStart, rowCount );
+        const int ryCount = std::min( ResH - ryStart, rowCount );
         rowIdx += ryCount;
         rowCount -= ryCount;
 
         // Pointers to src and res for current thread
-        const float* realSrcStart = src + resIdx * SrcObjSize + srcXOffset * ChCnt;
-        float* realResStart = res + resIdx * ResObjSize;
+        const float* const realSrcStart = src + resIdx * SrcObjSize + srcXOffset * ChCnt;
+        float* const realResStart = res + resIdx * ResObjSize;
 
         // Iterate through result, left->right, top->bottom
         const int currentRH = std::min( ResH, ryStart + ryCount );

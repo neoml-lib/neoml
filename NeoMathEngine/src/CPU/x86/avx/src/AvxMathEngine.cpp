@@ -50,7 +50,7 @@ CAvxConvolutionDesc::CAvxConvolutionDesc( IMathEngine* mathEngine, const CBlobDe
 
 class CAvxMathEngine : public ISimdMathEngine {
 public:
-	CAvxMathEngine( IMathEngine* _mathEngine ) :
+	explicit CAvxMathEngine( IMathEngine* _mathEngine ) :
 		mathEngine( _mathEngine ), primitives( _mathEngine ) {}
 
 	CConvolutionDesc* InitBlobConvolution( const CBlobDesc& source, int paddingHeight, int paddingWidth,
@@ -65,16 +65,14 @@ public:
 
 	SgemmFunc GetSgemmFunction() const override;
 
-	void Tanh( float* dst, const float* src, size_t dataSize, bool isMultithread ) override;
-	void Sigmoid( float* dst, const float* src, size_t dataSize, bool isMultithread ) override;
-	void Exp( float* dst, const float* src, size_t dataSize, bool isMultithread ) override;
+	void Tanh( float* dst, const float* src, size_t dataSize ) override;
+	void Sigmoid( float* dst, const float* src, size_t dataSize ) override;
+	void Exp( float* dst, const float* src, size_t dataSize ) override;
 	void RunOnceRestOfLstm( CMathEngineLstmDesc* desc, int sequenceCount, float* fullyConnectedResult,
-		const float* inputStateBackLink, float* outputStateBackLink, float* outputMainBackLink,
-		bool isMultithread ) override;
+		const float* inputStateBackLink, float* outputStateBackLink, float* outputMainBackLink ) override;
 
 private:
 	IMathEngine* const mathEngine;
-	const int threadCount = 1; /*deprecated*/
 	CPrimitivesJit primitives;
 };
 
@@ -95,7 +93,7 @@ void CAvxMathEngine::BlobConvolution( const CConvolutionDesc& convDesc, const fl
 	const float* filter, const float* freeTerm, float* result ) const
 {
 	const CAvxConvolutionDesc& desc = static_cast<const CAvxConvolutionDesc&>( convDesc );
-	desc.BlobConvolution->ProcessConvolution( threadCount, source, filter, freeTerm, result );
+	desc.BlobConvolution->ProcessConvolution( source, filter, freeTerm, result );
 }
 
 void CAvxMathEngine::BlobConvolutionRowwise( const CConvolutionDesc& convDesc, const float* source,
@@ -112,26 +110,26 @@ SgemmFunc CAvxMathEngine::GetSgemmFunction() const
 	return AvxMultiplyMatrix;
 }
 
-void CAvxMathEngine::Tanh( float* dst, const float* src, size_t dataSize, bool isMultithread )
+void CAvxMathEngine::Tanh( float* dst, const float* src, size_t dataSize )
 {
-	primitives.Tanh( dst, src, dataSize, isMultithread );
+	primitives.Tanh( dst, src, dataSize );
 }
 
-void CAvxMathEngine::Sigmoid( float* dst, const float* src, size_t dataSize, bool isMultithread )
+void CAvxMathEngine::Sigmoid( float* dst, const float* src, size_t dataSize )
 {
-	primitives.Sigmoid( dst, src, dataSize, isMultithread );
+	primitives.Sigmoid( dst, src, dataSize );
 }
 
-void CAvxMathEngine::Exp( float* dst, const float* src, size_t dataSize, bool isMultithread )
+void CAvxMathEngine::Exp( float* dst, const float* src, size_t dataSize )
 {
-	primitives.Exp( dst, src, dataSize, isMultithread );
+	primitives.Exp( dst, src, dataSize );
 }
 
 void CAvxMathEngine::RunOnceRestOfLstm( CMathEngineLstmDesc* desc, int sequenceCount, float* fullyConnectedResult,
-	const float* inputStateBackLink, float* outputStateBackLink, float* outputMainBackLink, bool isMultithread )
+	const float* inputStateBackLink, float* outputStateBackLink, float* outputMainBackLink )
 {
 	primitives.RestOfLstm( desc, sequenceCount, fullyConnectedResult, inputStateBackLink, outputStateBackLink,
-		outputMainBackLink, isMultithread );
+		outputMainBackLink );
 }
 
 extern "C"
