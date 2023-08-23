@@ -99,7 +99,6 @@ void CCpuMathEngine::LrnBackward( const CLrnDesc& lrnDesc, const CConstFloatHand
 
 // --------------------------------------------------------------------------------------------------------------------
 
-#ifdef NEOML_USE_SSE
 
 static void channelwisePool( const float* input, float* output, int vectorCount, int vectorSize,
 	int windowSize, float scale, float bias, bool isForward )
@@ -113,8 +112,8 @@ static void channelwisePool( const float* input, float* output, int vectorCount,
 			const float* windowStart = input + firstC;
 
 			const int lastC = std::min( vectorSize - 1, ch + ( isForward ? padCeil : padFloor ) );
+#ifdef NEOML_USE_SSE
 			const int currWindowSize = lastC - firstC + 1;
-
 			int sseSize, nonSseSize;
 			checkSse( currWindowSize, sseSize, nonSseSize );
 			__m128 accum;
@@ -136,26 +135,7 @@ static void channelwisePool( const float* input, float* output, int vectorCount,
 			}
 
 			float res = _mm_cvtss_f32( HorizontalAddSse( accum ) );
-			*output++ = res * scale + bias;
-		}
-		input += vectorSize;
-	}
-}
-
 #elif defined(NEOML_USE_NEON)
-
-static void channelwisePool( const float* input, float* output, int vectorCount, int vectorSize,
-	int windowSize, float scale, float bias, bool isForward )
-{
-	for( int vec = 0; vec < vectorSize; ++vec ) {
-		for( int ch = 0; ch < vectorSize; ++ch ) {
-			const int padCeil = windowSize / 2;
-			const int padFloor = ( windowSize - 1 ) / 2;
-
-			const int firstC = std::max( 0, ch - ( isForward ? padFloor : padCeil ) );
-			const float* windowStart = input + firstC;
-
-			const int lastC = std::min( vectorSize - 1, ch + ( isForward ? padCeil : padFloor ) );
 			int nonSseSize = lastC - firstC + 1;
 			int sseSize = GetCount4( nonSseSize );
 
@@ -177,14 +157,13 @@ static void channelwisePool( const float* input, float* output, int vectorCount,
 			}
 
 			float res = vget_lane_f32( HorizontalAddNeon( accum ), 0 );
+#else  // !NEOML_USE_NEON && !NEOML_USE_SSE
+#error "Unknown architecure"
+#endif // !NEOML_USE_NEON && !NEOML_USE_SSE
 			*output++ = res * scale + bias;
 		}
 		input += vectorSize;
 	}
 }
-
-#else  // !NEOML_USE_NEON && !NEOML_USE_SSE
-#error "Unknown architecure"
-#endif // !NEOML_USE_NEON && !NEOML_USE_SSE
 
 } // namespace NeoML

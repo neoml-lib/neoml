@@ -912,22 +912,22 @@ void CCpuMathEngine::blobConvolutionLearnAlgo2( const CCpuConvolutionDesc& desc,
 		if( freeTermDiffData != nullptr ) {
 			// freeTerm diff
 			// Train free term (add diff to the accumulating data)
-			CConstFloatHandle diffData;
+			const float* diffData;
 			int diffDataHeight;
 			int diffDataWidth;
 
 			if( isFreeTermDiffFromInput ) {
-				diffData = inputData + j * input.ObjectSize();
+				diffData = inputDataRaw + j * input.ObjectSize();
 				diffDataHeight = input.Height();
 				diffDataWidth = input.Width();
 			} else {
-				diffData = outputDiffData + j * outputDiff.ObjectSize();
+				diffData = GetRaw( outputDiffData ) + j * outputDiff.ObjectSize();
 				diffDataHeight = outputDiff.Height();
 				diffDataWidth = outputDiff.Width();
 			}
 			for( int m = 0; m < diffDataHeight; ++m ) {
 				for( int k = 0; k < diffDataWidth; ++k ) {
-					vectorAdd( filterDiffDataRaw, GetRaw( diffData ), freeTermDiffDataRaw, freeTermDiffSize );
+					vectorAdd( freeTermDiffDataRaw, diffData, freeTermDiffDataRaw, freeTermDiffSize );
 					diffData += freeTermDiffSize;
 				}
 			}
