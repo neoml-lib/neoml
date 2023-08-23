@@ -35,9 +35,8 @@ public:
 	void Exp( float* dst, const float* src, size_t dataSize, bool isMultithread = true );
 
 	// Process part of lstm layer which follow after fullyconnected layers.
-	void RestOfLstm( CMathEngineLstmDesc* desc, int sequenceCount, float* inputFullyConnectedResult,
-		float* recurrentFullyConnectedResult, const float* inputStateBackLink,
-		float* outputStateBackLink, float* outputMainBackLink, bool isMultithread );
+	void RestOfLstm( CMathEngineLstmDesc* desc, int sequenceCount, float* fullyConnectedResult,
+		const float* inputStateBackLink, float* outputStateBackLink, float* outputMainBackLink, bool isMultithread );
 
 private:
 	enum class TPrimitive {
@@ -84,7 +83,7 @@ private:
 
 	using ActivationFunc = void( * )( float* dst, const float* src, size_t offset, size_t count );
 	using RestOfLstmFunc = void( * )( size_t hiddenSize, const float* inputStateBackLinkPtr, float* outputStateBackLinkPtr,
-		float* outputMainBackLinkPtr, float* inputFullyConnectedResultPtr, float* reccurentFullyConnectedResultPtr, size_t offset, size_t count );
+		float* outputMainBackLinkPtr, float* fullyConnectedResultPtr, size_t offset, size_t count );
 
 	IMathEngine* const mathEngine;
 	const int threadCount = 1; /*deprecated*/

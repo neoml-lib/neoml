@@ -92,12 +92,10 @@ void CCpuMathEngine::Lstm( CLstmDesc& desc, bool reverse, int sequenceLength, in
 	initializeBacklink( inputStateBackLink, stateBackLink );
 
 	// Create temporary blobs for result of fully connected layers
-	const int inputFcLen = std::min( sequenceLength, ( 64 + sequenceCount - 1 ) / sequenceCount );
-	CFloatHandleStackVar inputFullyConnectedResultVar( *this, inputFcLen * sequenceCount * 4 * lstmDesc.hiddenSize );
-	CSequenceWrapper<float> inputFullyConnectedResult( inputFullyConnectedResultVar,
-		inputFcLen, sequenceCount * 4 * lstmDesc.hiddenSize );
-	CFloatHandleStackVar recurrentFullyConnectedResultVar( *this, sequenceCount * 4 * lstmDesc.hiddenSize );
-	float* recurrentFullyConnectedResult = GetRaw( recurrentFullyConnectedResultVar.GetHandle() );
+	const int fcLen = std::min( sequenceLength, ( 64 + sequenceCount - 1 ) / sequenceCount );
+	CFloatHandleStackVar fullyConnectedResultVar( *this, fcLen * sequenceCount * 4 * lstmDesc.hiddenSize );
+	CSequenceWrapper<float> fullyConnectedResult( fullyConnectedResultVar,
+		fcLen, sequenceCount * 4 * lstmDesc.hiddenSize );
 
 	// Emulate working of LSTM recurrent implementation
 	CSequenceWrapper<float> mainBackLink( outputMainBackLink, sequenceLength, sequenceCount * lstmDesc.hiddenSize );
@@ -121,28 +119,35 @@ void CCpuMathEngine::Lstm( CLstmDesc& desc, bool reverse, int sequenceLength, in
 
 		// Precalculate portion of input multiplied by weights and with free terms added
 		if( seqElemsInBuffer == 0 ) {
-			const int bufferIdx = outputPos / inputFullyConnectedResult.SequenceLength();
-			seqElemsInBuffer = std::min( inputFullyConnectedResult.SequenceLength(),
-				sequenceLength - bufferIdx * inputFullyConnectedResult.SequenceLength() );
-			multiplyMatrixByTransposedWithFreeTerm( input[bufferIdx * inputFullyConnectedResult.SequenceLength()],
-				seqElemsInBuffer * sequenceCount, lstmDesc.objectSize, GetRaw( inputWeights ), 4 * lstmDesc.hiddenSize,
-				GetRaw( inputFreeTerm ), inputFullyConnectedResult[0] );
+			const int bufferIdx = outputPos / fullyConnectedResult.SequenceLength();
+			seqElemsInBuffer = std::min( fullyConnectedResult.SequenceLength(),
+				sequenceLength - bufferIdx * fullyConnectedResult.SequenceLength() );
+			multiplyMatrixByTransposedMatrix( input[bufferIdx * fullyConnectedResult.SequenceLength()],
+				seqElemsInBuffer * sequenceCount, lstmDesc.objectSize, lstmDesc.objectSize, GetRaw( inputWeights ),
+				4 * lstmDesc.hiddenSize, lstmDesc.objectSize, fullyConnectedResult[0], 4 * lstmDesc.hiddenSize );
 		}
 
-		// Apply fully connected layers
-		multiplyMatrixByTransposedWithFreeTerm( mainBackLink[inputPos], sequenceCount, lstmDesc.hiddenSize,
-			GetRaw( recurrentWeights ), 4 * lstmDesc.hiddenSize, GetRaw( recurrentFreeTerm ),
-			recurrentFullyConnectedResult );
+		multiplyMatrixByTransposedMatrixAndAdd( mainBackLink[inputPos], sequenceCount, lstmDesc.hiddenSize,
+			lstmDesc.hiddenSize, GetRaw( recurrentWeights ), 4 * lstmDesc.hiddenSize, lstmDesc.hiddenSize,
+			fullyConnectedResult[outputPos], 4 * lstmDesc.hiddenSize );
+		if( !inputFreeTerm.IsNull() ) {
+			addVectorToMatrixRows( fullyConnectedResult[outputPos], fullyConnectedResult[outputPos],
+				sequenceCount, 4 * lstmDesc.hiddenSize, 4 * lstmDesc.hiddenSize, 4 * lstmDesc.hiddenSize,
+				GetRaw( inputFreeTerm ) );
+		}
+		if( !recurrentFreeTerm.IsNull() ) {
+			addVectorToMatrixRows( fullyConnectedResult[outputPos], fullyConnectedResult[outputPos],
+				sequenceCount, 4 * lstmDesc.hiddenSize, 4 * lstmDesc.hiddenSize, 4 * lstmDesc.hiddenSize,
+				GetRaw( recurrentFreeTerm ) );
+		}
 
 		// if outputMainBackLink != output then we are in compatibility mode
 		if( simdMathEngine != nullptr ) {
-			simdMathEngine->RunOnceRestOfLstm( &lstmDesc, sequenceCount, inputFullyConnectedResult[outputPos],
-				recurrentFullyConnectedResult, stateBackLink[inputPos],
-				stateBackLink[outputPos], mainBackLink[outputPos] );
+			simdMathEngine->RunOnceRestOfLstm( &lstmDesc, sequenceCount, fullyConnectedResult[outputPos],
+				stateBackLink[inputPos], stateBackLink[outputPos], mainBackLink[outputPos] );
 		} else {
-			lstmDesc.RunOnceRestOfLstm( sequenceCount, inputFullyConnectedResult[outputPos],
-				recurrentFullyConnectedResult, stateBackLink[inputPos], stateBackLink[outputPos],
-				mainBackLink[outputPos] );
+			lstmDesc.RunOnceRestOfLstm( sequenceCount, fullyConnectedResult[outputPos], stateBackLink[inputPos],
+				stateBackLink[outputPos], mainBackLink[outputPos] );
 		}
 		--seqElemsInBuffer;
 	}

@@ -42,62 +42,53 @@ struct CMathEngineLstmDesc : public CLstmDesc {
 	int hiddenSize; 
 	int objectSize;
 
-	virtual void RunOnceRestOfLstm( int objectCount, float* inputFullyConnectedResult,
-		float* recurrentFullyConnectedResult, const float* inputStateBackLink,
+	virtual void RunOnceRestOfLstm( int objectCount, float* fullyConnectedResult, const float* inputStateBackLink,
 		float* outputStateBackLink, float* outputMainBackLink );
 };
 
-inline void CMathEngineLstmDesc::RunOnceRestOfLstm( int objectCount, float* inputFullyConnectedResult,
-	float* recurrentFullyConnectedResult, const float* inputStateBackLink,
-	float* outputStateBackLink, float* outputMainBackLink )
+inline void CMathEngineLstmDesc::RunOnceRestOfLstm( int objectCount, float* fullyConnectedResult,
+	const float* inputStateBackLink, float* outputStateBackLink, float* outputMainBackLink )
 {
 	// Elementwise summ of fully connected layers' results (inplace)
 	const int resultMatrixWidth = CMathEngineLstmDesc::GatesNum * hiddenSize;
-	const int curDataSize = objectCount * hiddenSize;
-
-	float* const hiddenLayerSum = inputFullyConnectedResult;
-
-	NeoML::vectorAdd( inputFullyConnectedResult, recurrentFullyConnectedResult,
-		hiddenLayerSum, objectCount * resultMatrixWidth );
 
 	// Rearrange sum
-	float* const hiddenLayerSumRearranged = recurrentFullyConnectedResult;
-	float* const inputTanhData = hiddenLayerSumRearranged;
-	float* const forgetData = inputTanhData + curDataSize;
-	float* const inputData = forgetData + curDataSize;
-	float* const outputData = inputData + curDataSize;
+	float* inputTanhData = fullyConnectedResult;
+	float* forgetData = inputTanhData + hiddenSize;
+	float* inputData = forgetData + hiddenSize;
+	float* outputData = inputData + hiddenSize;
 
-	float* const rawFrom = hiddenLayerSum;
-	float* const rawTo = hiddenLayerSumRearranged;
-	for( int x = 0; x < objectCount; ++x ) {
-		const float* input = rawFrom + x * resultMatrixWidth;
-		for( int i = 0; i < CMathEngineLstmDesc::GatesNum; ++i ) {
-			memcpy( ( rawTo + i * curDataSize ) + x * hiddenSize, input, hiddenSize * sizeof( float ) );
-			input += hiddenSize;
-		}
+	for( int i = 0; i < objectCount; ++i ) {
+		// Apply activations
+		NeoML::vectorTanh( inputTanhData, inputTanhData, hiddenSize );
+
+		NeoML::vectorSigmoid( forgetData, forgetData, hiddenSize );
+		NeoML::vectorSigmoid( inputData, inputData, hiddenSize );
+		NeoML::vectorSigmoid( outputData, outputData, hiddenSize );
+
+		// Multiply input gates
+		NeoML::vectorEltwiseMultiply( inputData, inputTanhData, inputData, hiddenSize );
+
+		// Multiply state backlink with forget gate
+		NeoML::vectorEltwiseMultiply( forgetData, inputStateBackLink, forgetData, hiddenSize );
+
+		// Append input gate to state backlink
+		NeoML::vectorAdd( forgetData, inputData, outputStateBackLink, hiddenSize );
+
+		// Apply tanh to state baclink
+		NeoML::vectorTanh( outputStateBackLink, inputData, hiddenSize );
+
+		// Multiply output gate with result of previous operation
+		NeoML::vectorEltwiseMultiply( outputData, inputData, outputMainBackLink, hiddenSize );
+
+		inputTanhData += resultMatrixWidth;
+		forgetData += resultMatrixWidth;
+		inputData += resultMatrixWidth;
+		outputData += resultMatrixWidth;
+		inputStateBackLink += hiddenSize;
+		outputStateBackLink += hiddenSize;
+		outputMainBackLink += hiddenSize;
 	}
-
-	// Apply activations
-	NeoML::vectorTanh( inputTanhData, inputTanhData, curDataSize );
-
-	NeoML::vectorSigmoid( forgetData, forgetData, curDataSize );
-	NeoML::vectorSigmoid( inputData, inputData, curDataSize );
-	NeoML::vectorSigmoid( outputData, outputData, curDataSize );
-
-	// Multiply input gates
-	NeoML::vectorEltwiseMultiply( inputData, inputTanhData, inputData, curDataSize );
-
-	// Multiply state backlink with forget gate
-	NeoML::vectorEltwiseMultiply( forgetData, inputStateBackLink, forgetData, curDataSize );
-
-	// Append input gate to state backlink
-	NeoML::vectorAdd( forgetData, inputData, outputStateBackLink, curDataSize );
-
-	// Apply tanh to state baclink
-	NeoML::vectorTanh( outputStateBackLink, inputData, curDataSize );
-
-	// Multiply output gate with result of previous operation
-	NeoML::vectorEltwiseMultiply( outputData, inputData, outputMainBackLink, curDataSize );
 }
 
 } // namespace NeoML

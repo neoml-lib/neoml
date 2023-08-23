@@ -49,15 +49,14 @@ void CPrimitivesJit::Exp( float* dst, const float* src, size_t dataSize, bool is
 	callPrimitive<TPrimitive::Exp, ActivationFunc>( dataSize, isMultithread, dst, src );
 }
 
-void CPrimitivesJit::RestOfLstm( CMathEngineLstmDesc* desc, int sequenceCount, float* inputFullyConnectedResult,
-	float* recurrentFullyConnectedResult, const float* inputStateBackLink, float* outputStateBackLink,
-	float* outputMainBackLink, bool isMultithread )
+void CPrimitivesJit::RestOfLstm( CMathEngineLstmDesc* desc, int sequenceCount, float* fullyConnectedResult,
+	const float* inputStateBackLink, float* outputStateBackLink, float* outputMainBackLink, bool isMultithread )
 {
 	CMathEngineLstmDesc& lstmDesc = *desc;
 
 	callPrimitive<TPrimitive::RestOfLstm, RestOfLstmFunc>( sequenceCount, isMultithread,
 		lstmDesc.hiddenSize, inputStateBackLink, outputStateBackLink, outputMainBackLink,
-		inputFullyConnectedResult, recurrentFullyConnectedResult );
+		fullyConnectedResult );
 }
 
 void CPrimitivesJit::initTable()
@@ -255,14 +254,11 @@ void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::RestOfLstm>()
 	const reg64_t regOutputStateBackLinkPtr = Param3;
 	const reg64_t regOutputMainBackLinkPtr = Param4;
 #ifdef _WIN32
-	const reg64_t regInputFullyConnectedResultPtr = rdi; // param5
-	const reg64_t regReccurentFullyConnectedResultPtr = rsi; // param6
-	gen.mov( regInputFullyConnectedResultPtr, stackArgsPtr );
-	gen.mov( regReccurentFullyConnectedResultPtr, gen.ptr[stackArgsPtr.getRegExp() + SizeofReg64] );
-	const int WinUnixStackDiff = 2;
+	const reg64_t regFullyConnectedResultPtr = rdi; // param5
+	gen.mov( regFullyConnectedResultPtr, stackArgsPtr );
+	const int WinUnixStackDiff = 1;
 #else
-	const reg64_t regInputFullyConnectedResultPtr = Param5;
-	const reg64_t regReccurentFullyConnectedResultPtr = Param6;
+	const reg64_t regFullyConnectedResultPtr = Param5;
 	const int WinUnixStackDiff = 0;
 #endif
 	const reg64_t regOffset = rax;
@@ -294,8 +290,7 @@ void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::RestOfLstm>()
 	gen.lea( regOutputStateBackLinkPtr, gen.ptr[regOutputStateBackLinkPtr + regOffset * sizeof( float )] ); // += Offset * HiddenSize
 	gen.lea( regOutputMainBackLinkPtr, gen.ptr[regOutputMainBackLinkPtr + regOffset * sizeof( float )] ); // += Offset * HiddenSize
 	gen.shl( regOffset, 2 );
-	gen.lea( regInputFullyConnectedResultPtr, gen.ptr[regInputFullyConnectedResultPtr + regOffset * sizeof( float )] ); // += Offset * 4 *HiddenSize
-	gen.lea( regReccurentFullyConnectedResultPtr, gen.ptr[regReccurentFullyConnectedResultPtr + regOffset * sizeof( float )] ); // += Offset * 4 * HiddenSize
+	gen.lea( regFullyConnectedResultPtr, gen.ptr[regFullyConnectedResultPtr + regOffset * sizeof( float )] ); // += Offset * 4 *HiddenSize
 
 	// regHiddenSize is read only and is used very rarely, hence we put it onto stack and reuse its register
 	gen.push( regHiddenSize );
@@ -324,29 +319,17 @@ void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::RestOfLstm>()
 			gen.shl( regLoopCounter, 3 );
 			gen.vmovups( ymmMask, gen.ptr[regTablePtr + regLoopCounter * sizeof( float ) + getOfft( TTableKey::LoadMask )] );
 			gen.shr( regLoopCounter, 3 );
-			gen.vmaskmovps( forget[0], ymmMask, gen.ptr[regInputFullyConnectedResultPtr + regForgetOffset * sizeof( float )] );
-			gen.vmaskmovps( input[0], ymmMask, gen.ptr[regInputFullyConnectedResultPtr + regInputOffset * sizeof( float )] );
-			gen.vmaskmovps( main[0], ymmMask, gen.ptr[regInputFullyConnectedResultPtr + regMainOffset * sizeof( float )] );
-			gen.vmaskmovps( ymmAux[0], ymmMask, gen.ptr[regReccurentFullyConnectedResultPtr + regForgetOffset * sizeof( float )] );
-			gen.vmaskmovps( ymmAux[1], ymmMask, gen.ptr[regReccurentFullyConnectedResultPtr + regInputOffset * sizeof( float )] );
-			gen.vmaskmovps( ymmAux[2], ymmMask, gen.ptr[regReccurentFullyConnectedResultPtr + regMainOffset * sizeof( float )] );
-			gen.vaddps( forget[0], forget[0], ymmAux[0] );
-			gen.vaddps( input[0], input[0], ymmAux[1] );
-			gen.vaddps( main[0], main[0], ymmAux[2] );
+			gen.vmaskmovps( forget[0], ymmMask, gen.ptr[regFullyConnectedResultPtr + regForgetOffset * sizeof( float )] );
+			gen.vmaskmovps( input[0], ymmMask, gen.ptr[regFullyConnectedResultPtr + regInputOffset * sizeof( float )] );
+			gen.vmaskmovps( main[0], ymmMask, gen.ptr[regFullyConnectedResultPtr + regMainOffset * sizeof( float )] );
 		} else {
-			gen.vmovups( forget[0], gen.ptr[regInputFullyConnectedResultPtr + regForgetOffset * sizeof( float )] );
-			gen.vmovups( input[0], gen.ptr[regInputFullyConnectedResultPtr + regInputOffset * sizeof( float )] );
-			gen.vmovups( main[0], gen.ptr[regInputFullyConnectedResultPtr + regMainOffset * sizeof( float )] );
-			gen.vaddps( forget[0], forget[0], gen.ptr[regReccurentFullyConnectedResultPtr + regForgetOffset * sizeof( float )] );
-			gen.vaddps( input[0], input[0], gen.ptr[regReccurentFullyConnectedResultPtr + regInputOffset * sizeof( float )] );
-			gen.vaddps( main[0], main[0], gen.ptr[regReccurentFullyConnectedResultPtr + regMainOffset * sizeof( float )] );
+			gen.vmovups( forget[0], gen.ptr[regFullyConnectedResultPtr + regForgetOffset * sizeof( float )] );
+			gen.vmovups( input[0], gen.ptr[regFullyConnectedResultPtr + regInputOffset * sizeof( float )] );
+			gen.vmovups( main[0], gen.ptr[regFullyConnectedResultPtr + regMainOffset * sizeof( float )] );
 			if( wholeYmmNumber == 2 ) {
-				gen.vmovups( forget[1], gen.ptr[regInputFullyConnectedResultPtr + regForgetOffset * sizeof( float ) + SizeOfYmm] );
-				gen.vmovups( input[1], gen.ptr[regInputFullyConnectedResultPtr + regInputOffset * sizeof( float ) + SizeOfYmm] );
-				gen.vmovups( main[1], gen.ptr[regInputFullyConnectedResultPtr + regMainOffset * sizeof( float ) + SizeOfYmm] );
-				gen.vaddps( forget[1], forget[1], gen.ptr[regReccurentFullyConnectedResultPtr + regForgetOffset * sizeof( float ) + SizeOfYmm] );
-				gen.vaddps( input[1], input[1], gen.ptr[regReccurentFullyConnectedResultPtr + regInputOffset * sizeof( float ) + SizeOfYmm] );
-				gen.vaddps( main[1], main[1], gen.ptr[regReccurentFullyConnectedResultPtr + regMainOffset * sizeof( float ) + SizeOfYmm] );
+				gen.vmovups( forget[1], gen.ptr[regFullyConnectedResultPtr + regForgetOffset * sizeof( float ) + SizeOfYmm] );
+				gen.vmovups( input[1], gen.ptr[regFullyConnectedResultPtr + regInputOffset * sizeof( float ) + SizeOfYmm] );
+				gen.vmovups( main[1], gen.ptr[regFullyConnectedResultPtr + regMainOffset * sizeof( float ) + SizeOfYmm] );
 			}
 		}
 
@@ -395,15 +378,11 @@ void CPrimitivesJit::initPrimitive <CPrimitivesJit::TPrimitive::RestOfLstm>()
 		// 3.1 Load reset gate
 		if( wholeYmmNumber == 0 ) {
 			// load data with mask
-			gen.vmaskmovps( reset[0], ymmMask, gen.ptr[regInputFullyConnectedResultPtr + regResetOffset * sizeof( float )] );
-			gen.vmaskmovps( ymmAux[0], ymmMask, gen.ptr[regReccurentFullyConnectedResultPtr + regResetOffset * sizeof( float )] );
-			gen.vaddps( reset[0], reset[0], ymmAux[0] );
+			gen.vmaskmovps( reset[0], ymmMask, gen.ptr[regFullyConnectedResultPtr + regResetOffset * sizeof( float )] );
 		} else {
-			gen.vmovups( reset[0], gen.ptr[regInputFullyConnectedResultPtr + regResetOffset * sizeof( float )] );
-			gen.vaddps( reset[0], reset[0], gen.ptr[regReccurentFullyConnectedResultPtr + regResetOffset * sizeof( float )] );
+			gen.vmovups( reset[0], gen.ptr[regFullyConnectedResultPtr + regResetOffset * sizeof( float )] );
 			if( wholeYmmNumber == 2 ) {
-				gen.vmovups( reset[1], gen.ptr[regInputFullyConnectedResultPtr + regResetOffset * sizeof( float ) + SizeOfYmm] );
-				gen.vaddps( reset[1], reset[1], gen.ptr[regReccurentFullyConnectedResultPtr + regResetOffset * sizeof( float ) + SizeOfYmm] );
+				gen.vmovups( reset[1], gen.ptr[regFullyConnectedResultPtr + regResetOffset * sizeof( float ) + SizeOfYmm] );
 			}
 		}
 
