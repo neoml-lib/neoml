@@ -42,14 +42,14 @@ public:
 	// The input hidden layers weights (the blob size is (4*HiddenSize)x1x1xInputSize)
 	CPtr<CDnnBlob> GetInputWeightsData() const { return inputHiddenLayer->GetWeightsData(); }
 	CPtr<CDnnBlob> GetInputFreeTermData() const { return inputHiddenLayer->GetFreeTermData(); }
-	void SetInputWeightsData( const CPtr<CDnnBlob>& inputWeights ) { inputHiddenLayer->SetWeightsData( inputWeights ); }
-	void SetInputFreeTermData( const CPtr<CDnnBlob>& inputFreeTerm ) { inputHiddenLayer->SetFreeTermData( inputFreeTerm ); }
+	void SetInputWeightsData( const CPtr<CDnnBlob>& inputWeights );
+	void SetInputFreeTermData( const CPtr<CDnnBlob>& inputFreeTerm );
 
 	// The recurrent hidden layers weights (the blob size is (4*HiddenSize)x1x1xHiddenSize)
 	CPtr<CDnnBlob> GetRecurWeightsData() const { return recurHiddenLayer->GetWeightsData(); }
 	CPtr<CDnnBlob> GetRecurFreeTermData() const { return recurHiddenLayer->GetFreeTermData(); }
-	void SetRecurWeightsData( const CPtr<CDnnBlob>& recurWeights ) { recurHiddenLayer->SetWeightsData( recurWeights ); }
-	void SetRecurFreeTermData( const CPtr<CDnnBlob>& recurFreeTerm ) { recurHiddenLayer->SetFreeTermData( recurFreeTerm ); }
+	void SetRecurWeightsData( const CPtr<CDnnBlob>& recurWeights );
+	void SetRecurFreeTermData( const CPtr<CDnnBlob>& recurFreeTerm );
 
 	// The dropout rate for the hidden layer
 	// Variational tied weights dropout is used (see https://arxiv.org/abs/1512.05287)
@@ -101,6 +101,8 @@ private:
 	void buildLayer(float dropout);
 	void checkBlobDescs() const;
 	void setWeightsData(const CPtr<CDnnBlob>& newWeights);
+	void initDesc();
+	void freeDesc();
 };
 
 //--------------------------------------------------------------------------

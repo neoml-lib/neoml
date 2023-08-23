@@ -196,6 +196,40 @@ void CLstmLayer::buildLayer( float dropout )
 
 	// Output the hidden state
 	SetOutputMapping( /*outputNumber*/1, *newState );
+	freeDesc();
+}
+
+void CLstmLayer::SetHiddenSize( int size )
+{
+	inputHiddenLayer->SetNumberOfElements( size * G_Count );
+	recurHiddenLayer->SetNumberOfElements( size * G_Count );
+	splitLayer->SetOutputCounts4( size, size, size );
+	mainBackLink->SetDimSize( BD_Channels, size );
+	stateBackLink->SetDimSize( BD_Channels, size );
+}
+
+void CLstmLayer::SetInputWeightsData( const CPtr<CDnnBlob>& inputWeights )
+{
+	inputHiddenLayer->SetWeightsData( inputWeights );
+	freeDesc();
+}
+
+void CLstmLayer::SetInputFreeTermData( const CPtr<CDnnBlob>& inputFreeTerm )
+{
+	inputHiddenLayer->SetFreeTermData( inputFreeTerm );
+	freeDesc();
+}
+
+void CLstmLayer::SetRecurWeightsData( const CPtr<CDnnBlob>& recurWeights )
+{
+	recurHiddenLayer->SetWeightsData( recurWeights );
+	freeDesc();
+}
+
+void CLstmLayer::SetRecurFreeTermData( const CPtr<CDnnBlob>& recurFreeTerm )
+{
+	recurHiddenLayer->SetFreeTermData( recurFreeTerm );
+	freeDesc();
 }
 
 void CLstmLayer::SetDropoutRate( float newDropoutRate )
@@ -209,15 +243,6 @@ void CLstmLayer::SetDropoutRate( float newDropoutRate )
 		inputDropoutLayer->SetDropoutRate( newDropoutRate );
 		recurDropoutLayer->SetDropoutRate( newDropoutRate );
 	}
-}
-
-void CLstmLayer::SetHiddenSize( int size )
-{
-	inputHiddenLayer->SetNumberOfElements( size * G_Count );
-	recurHiddenLayer->SetNumberOfElements( size * G_Count );
-	splitLayer->SetOutputCounts4( size, size, size );
-	mainBackLink->SetDimSize( BD_Channels, size );
-	stateBackLink->SetDimSize( BD_Channels, size );
 }
 
 void CLstmLayer::SetRecurrentActivation( TActivationFunction newActivation )
@@ -330,17 +355,12 @@ void CLstmLayer::RunOnce()
 		!IsLearningPerformed() &&
 		recurrentActivation == AF_Sigmoid )
 	{
-		CConstFloatHandle inputFreeTerm = inputHiddenLayer->FreeTerms() == nullptr ? CConstFloatHandle()
-			: inputHiddenLayer->FreeTerms()->GetData();
-		CConstFloatHandle recurrentFreeTerm = recurHiddenLayer->FreeTerms() == nullptr ? CConstFloatHandle()
-			: recurHiddenLayer->FreeTerms()->GetData();
+		initDesc();
 		CConstFloatHandle inputStateBackLink = inputBlobs.Size() > 1 ? inputBlobs[1]->GetData() : CConstFloatHandle();
 		CConstFloatHandle inputMainBackLink = inputBlobs.Size() > 2 ? inputBlobs[2]->GetData() : CConstFloatHandle();
 		CFloatHandle outputState = outputBlobs.Size() > 1 ? outputBlobs[1]->GetData() : CFloatHandle();
 		MathEngine().Lstm( *lstmDesc, IsReverseSequence(), inputBlobs[0]->GetBatchLength(),
-			inputBlobs[0]->GetBatchWidth(), inputHiddenLayer->Weights()->GetData(),
-			inputFreeTerm, recurHiddenLayer->Weights()->GetData(), recurrentFreeTerm,
-			inputStateBackLink, inputMainBackLink, inputBlobs[0]->GetData(),
+			inputBlobs[0]->GetBatchWidth(), inputStateBackLink, inputMainBackLink, inputBlobs[0]->GetData(),
 			outputState, outputBlobs[0]->GetData() );
 	} else {
 		CRecurrentLayer::RunOnce();
@@ -351,9 +371,7 @@ void CLstmLayer::Reshape()
 {
 	checkBlobDescs();
 	CRecurrentLayer::Reshape();
-	if( MathEngine().GetType() == MET_Cpu ) {
-		lstmDesc = MathEngine().InitLstm( lstmDesc, GetHiddenSize(), inputDescs[0].ObjectSize() );
-	}
+	freeDesc();
 }
 
 // Checks layer input and output descs
@@ -443,6 +461,25 @@ void CLstmLayer::setWeightsData( const CPtr<CDnnBlob>& newWeights )
 
 	SetInputWeightsData( splitWeights[0] );
 	SetRecurWeightsData( splitWeights[1] );
+}
+
+void CLstmLayer::initDesc()
+{
+	if( lstmDesc == nullptr ) {
+		CConstFloatHandle inputFreeTerm = inputHiddenLayer->FreeTerms() == nullptr ? CConstFloatHandle()
+			: inputHiddenLayer->FreeTerms()->GetData();
+		CConstFloatHandle recurrentFreeTerm = recurHiddenLayer->FreeTerms() == nullptr ? CConstFloatHandle()
+			: recurHiddenLayer->FreeTerms()->GetData();
+		lstmDesc = MathEngine().InitLstm( GetHiddenSize(), inputBlobs[0]->GetObjectSize(),
+			inputHiddenLayer->Weights()->GetData(), inputFreeTerm,
+			recurHiddenLayer->Weights()->GetData(), recurrentFreeTerm );
+	}
+}
+
+void CLstmLayer::freeDesc()
+{
+	delete lstmDesc;
+	lstmDesc = nullptr;
 }
 
 //--------------------------------------------------------------------------

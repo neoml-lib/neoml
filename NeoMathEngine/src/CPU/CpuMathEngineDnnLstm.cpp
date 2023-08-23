@@ -27,16 +27,62 @@ limitations under the License.
 
 namespace NeoML {
 
+static CFloatHandleVar* transposeLstmRecurrentWeights( const CConstFloatHandle& oldWeights,
+	int hiddenSize )
+{
+	IMathEngine& mathEngine = *oldWeights.GetMathEngine();
+	CFloatHandleVar* result = new CFloatHandleVar( mathEngine, 4 * hiddenSize * hiddenSize );
+	mathEngine.TransposeMatrix( 1, oldWeights, 4 * hiddenSize, 1, hiddenSize, 1,
+		result->GetHandle(), result->Size() );
+	return result;
+}
+
+static CFloatHandleVar* createLstmFreeTermVar( const CConstFloatHandle& inputFreeTerm,
+	const CConstFloatHandle& recurFreeTerm, int hiddenSize )
+{
+	if( inputFreeTerm.IsNull() || recurFreeTerm.IsNull() ) {
+		return nullptr;
+	}
+	IMathEngine& mathEngine = *inputFreeTerm.GetMathEngine();
+	CFloatHandleVar* result = new CFloatHandleVar( mathEngine, 4 * hiddenSize );
+	mathEngine.VectorAdd( inputFreeTerm, recurFreeTerm, result->GetHandle(), result->Size() );
+	return result;
+}
+
+static const float* initLstmFreeTerm( const CFloatHandleVar* freeTermVar, const CConstFloatHandle& inputFreeTerm,
+	const CConstFloatHandle& recurFreeTerm )
+{
+	if( freeTermVar != nullptr ) {
+		return GetRaw( freeTermVar->GetHandle() );
+	} else if( !inputFreeTerm.IsNull() ) {
+		return GetRaw( inputFreeTerm );
+	} else if( !recurFreeTerm.IsNull() ) {
+		return GetRaw( recurFreeTerm );
+	}
+	return nullptr;
+}
+
+CMathEngineLstmDesc::CMathEngineLstmDesc( int hiddenSize, int objectSize, const CConstFloatHandle& inputWeights,
+		const CConstFloatHandle& inputFreeTerm, const CConstFloatHandle& recurWeights,
+		const CConstFloatHandle& recurFreeTerm ) :
+	HiddenSize( hiddenSize ),
+	ObjectSize( objectSize ),
+	InputWeights( GetRaw( inputWeights ) ),
+	RecurWeightsVar( transposeLstmRecurrentWeights( recurWeights, hiddenSize ) ),
+	RecurWeights( GetRaw( RecurWeightsVar->GetHandle() ) ),
+	FreeTermVar( createLstmFreeTermVar( inputFreeTerm, recurFreeTerm, hiddenSize ) ),
+	FreeTerm( initLstmFreeTerm( FreeTermVar.get(), inputFreeTerm, recurFreeTerm))
+{
+}
+
 CMathEngineLstmDesc::~CMathEngineLstmDesc() = default;
 
-CLstmDesc* CCpuMathEngine::InitLstm( CLstmDesc* currentDesc, int hiddenSize, int objectSize )
+CLstmDesc* CCpuMathEngine::InitLstm( int hiddenSize, int objectSize,
+	const CConstFloatHandle& inputWeights, const CConstFloatHandle& inputFreeTerm,
+	const CConstFloatHandle& recurrentWeights, const CConstFloatHandle& recurrentFreeTerm )
 {
-	if( currentDesc != nullptr ) {
-		static_cast<CMathEngineLstmDesc*>( currentDesc )->Reset( hiddenSize, objectSize );
-		return currentDesc;
-	} else {
-		return new CMathEngineLstmDesc( hiddenSize, objectSize );
-	}
+	return new CMathEngineLstmDesc( hiddenSize, objectSize, inputWeights, inputFreeTerm,
+		recurrentWeights, recurrentFreeTerm );
 }
 
 template<class T>
@@ -63,8 +109,6 @@ private:
 };
 
 void CCpuMathEngine::Lstm( CLstmDesc& desc, bool reverse, int sequenceLength, int sequenceCount,
-	const CConstFloatHandle& inputWeights, const CConstFloatHandle& inputFreeTerm,
-	const CConstFloatHandle& recurrentWeights, const CConstFloatHandle& recurrentFreeTerm,
 	const CConstFloatHandle& inputStateBackLink, const CConstFloatHandle& inputMainBackLink,
 	const CConstFloatHandle& inputHandle, const CFloatHandle& outputStateBackLink,
 	const CFloatHandle& outputMainBackLink )
@@ -84,38 +128,25 @@ void CCpuMathEngine::Lstm( CLstmDesc& desc, bool reverse, int sequenceLength, in
 	// Write state data directly to output or create temporary blob for recurent
 	std::unique_ptr<CFloatHandleStackVar> stateBackLinkVar;
 	if( outputStateBackLink.IsNull() ) {
-		stateBackLinkVar.reset( new CFloatHandleStackVar( *this, sequenceCount * lstmDesc.hiddenSize ) );
+		stateBackLinkVar.reset( new CFloatHandleStackVar( *this, sequenceCount * lstmDesc.HiddenSize ) );
 	}
 	CSequenceWrapper<float> stateBackLink(
 		outputStateBackLink.IsNull() ? stateBackLinkVar->GetHandle() : outputStateBackLink,
 		outputStateBackLink.IsNull() ? 1 : sequenceLength,
-		sequenceCount * lstmDesc.hiddenSize );
+		sequenceCount * lstmDesc.HiddenSize );
 	initializeBacklink( inputStateBackLink, stateBackLink );
 
 	// Create temporary blobs for result of fully connected layers
 	const int fcLen = std::min( sequenceLength, ( 64 + sequenceCount - 1 ) / sequenceCount );
-	CFloatHandleStackVar fullyConnectedResultVar( *this, fcLen * sequenceCount * 4 * lstmDesc.hiddenSize );
+	CFloatHandleStackVar fullyConnectedResultVar( *this, fcLen * sequenceCount * 4 * lstmDesc.HiddenSize );
 	CSequenceWrapper<float> fullyConnectedResult( fullyConnectedResultVar,
-		fcLen, sequenceCount * 4 * lstmDesc.hiddenSize );
+		fcLen, sequenceCount * 4 * lstmDesc.HiddenSize );
 
 	// Emulate working of LSTM recurrent implementation
-	CSequenceWrapper<float> mainBackLink( outputMainBackLink, sequenceLength, sequenceCount * lstmDesc.hiddenSize );
+	CSequenceWrapper<float> mainBackLink( outputMainBackLink, sequenceLength, sequenceCount * lstmDesc.HiddenSize );
 	initializeBacklink( inputMainBackLink, mainBackLink );
 
-	CSequenceWrapper<const float> input( inputHandle, sequenceLength, sequenceCount * lstmDesc.objectSize );
-
-	CConstFloatHandle freeTerm;
-	std::unique_ptr<CFloatHandleStackVar> freeTermVar;
-	if( !inputFreeTerm.IsNull() && !recurrentFreeTerm.IsNull() ) {
-		freeTermVar.reset( new CFloatHandleStackVar( *this, 4 * lstmDesc.hiddenSize ) );
-		freeTerm = freeTermVar->GetHandle();
-		vectorAdd( GetRaw( inputFreeTerm ), GetRaw( recurrentFreeTerm ),
-			GetRaw( freeTermVar->GetHandle() ), freeTermVar->Size() );
-	} else if( !inputFreeTerm.IsNull() ) {
-		freeTerm = inputFreeTerm;
-	} else {
-		freeTerm = recurrentFreeTerm;
-	}
+	CSequenceWrapper<const float> input( inputHandle, sequenceLength, sequenceCount * lstmDesc.ObjectSize );
 
 	// Iterate recurent net step by step
 	int seqElemsInBuffer = 0;
@@ -137,17 +168,17 @@ void CCpuMathEngine::Lstm( CLstmDesc& desc, bool reverse, int sequenceLength, in
 			seqElemsInBuffer = std::min( fullyConnectedResult.SequenceLength(),
 				sequenceLength - bufferIdx * fullyConnectedResult.SequenceLength() );
 			multiplyMatrixByTransposedMatrix( input[bufferIdx * fullyConnectedResult.SequenceLength()],
-				seqElemsInBuffer * sequenceCount, lstmDesc.objectSize, lstmDesc.objectSize, GetRaw( inputWeights ),
-				4 * lstmDesc.hiddenSize, lstmDesc.objectSize, fullyConnectedResult[0], 4 * lstmDesc.hiddenSize );
+				seqElemsInBuffer * sequenceCount, lstmDesc.ObjectSize, lstmDesc.ObjectSize, lstmDesc.InputWeights,
+				4 * lstmDesc.HiddenSize, lstmDesc.ObjectSize, fullyConnectedResult[0], 4 * lstmDesc.HiddenSize );
 		}
 
-		multiplyMatrixByTransposedMatrixAndAdd( mainBackLink[inputPos], sequenceCount, lstmDesc.hiddenSize,
-			lstmDesc.hiddenSize, GetRaw( recurrentWeights ), 4 * lstmDesc.hiddenSize, lstmDesc.hiddenSize,
-			fullyConnectedResult[outputPos], 4 * lstmDesc.hiddenSize );
-		if( !freeTerm.IsNull() ) {
+		multiplyMatrixByMatrixAndAdd( mainBackLink[inputPos], sequenceCount, lstmDesc.HiddenSize,
+			lstmDesc.HiddenSize, lstmDesc.RecurWeights, 4 * lstmDesc.HiddenSize, 4 * lstmDesc.HiddenSize,
+			fullyConnectedResult[outputPos], 4 * lstmDesc.HiddenSize );
+		if( lstmDesc.FreeTerm != nullptr ) {
 			addVectorToMatrixRows( fullyConnectedResult[outputPos], fullyConnectedResult[outputPos],
-				sequenceCount, 4 * lstmDesc.hiddenSize, 4 * lstmDesc.hiddenSize, 4 * lstmDesc.hiddenSize,
-				GetRaw( freeTerm ) );
+				sequenceCount, 4 * lstmDesc.HiddenSize, 4 * lstmDesc.HiddenSize, 4 * lstmDesc.HiddenSize,
+				lstmDesc.FreeTerm );
 		}
 
 		// if outputMainBackLink != output then we are in compatibility mode

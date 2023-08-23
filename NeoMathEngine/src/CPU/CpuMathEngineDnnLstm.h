@@ -21,26 +21,25 @@ limitations under the License.
 #include <MemoryHandleInternal.h>
 
 #include <cstring>
+#include <memory>
 
 namespace NeoML {
 
 struct CMathEngineLstmDesc : public CLstmDesc {
-	CMathEngineLstmDesc( int hiddenSize, int objectSize ) :
-		hiddenSize( hiddenSize ),
-		objectSize( objectSize )
-	{}
+	CMathEngineLstmDesc( int hiddenSize, int objectSize, const CConstFloatHandle& inputWeights,
+		const CConstFloatHandle& inputFreeTerm, const CConstFloatHandle& recurWeights,
+		const CConstFloatHandle& recurFreeTerm );
 	~CMathEngineLstmDesc() override;
-
-	void Reset( int newHiddenSize, int newObjectSize )
-	{
-		hiddenSize = newHiddenSize;
-		objectSize = newObjectSize;
-	}
 
 	static int constexpr GatesNum = 4;
 
-	int hiddenSize; 
-	int objectSize;
+	const int HiddenSize;
+	const int ObjectSize;
+	const float* const InputWeights;
+	const std::unique_ptr<CFloatHandleVar> RecurWeightsVar;
+	const float* const RecurWeights;
+	const std::unique_ptr<CFloatHandleVar> FreeTermVar;
+	const float* FreeTerm;
 
 	virtual void RunOnceRestOfLstm( int objectCount, float* fullyConnectedResult, const float* inputStateBackLink,
 		float* outputStateBackLink, float* outputMainBackLink );
@@ -50,44 +49,44 @@ inline void CMathEngineLstmDesc::RunOnceRestOfLstm( int objectCount, float* full
 	const float* inputStateBackLink, float* outputStateBackLink, float* outputMainBackLink )
 {
 	// Elementwise summ of fully connected layers' results (inplace)
-	const int resultMatrixWidth = CMathEngineLstmDesc::GatesNum * hiddenSize;
+	const int resultMatrixWidth = CMathEngineLstmDesc::GatesNum * HiddenSize;
 
 	// Rearrange sum
 	float* inputTanhData = fullyConnectedResult;
-	float* forgetData = inputTanhData + hiddenSize;
-	float* inputData = forgetData + hiddenSize;
-	float* outputData = inputData + hiddenSize;
+	float* forgetData = inputTanhData + HiddenSize;
+	float* inputData = forgetData + HiddenSize;
+	float* outputData = inputData + HiddenSize;
 
 	for( int i = 0; i < objectCount; ++i ) {
 		// Apply activations
-		NeoML::vectorTanh( inputTanhData, inputTanhData, hiddenSize );
+		NeoML::vectorTanh( inputTanhData, inputTanhData, HiddenSize );
 
-		NeoML::vectorSigmoid( forgetData, forgetData, hiddenSize );
-		NeoML::vectorSigmoid( inputData, inputData, hiddenSize );
-		NeoML::vectorSigmoid( outputData, outputData, hiddenSize );
+		NeoML::vectorSigmoid( forgetData, forgetData, HiddenSize );
+		NeoML::vectorSigmoid( inputData, inputData, HiddenSize );
+		NeoML::vectorSigmoid( outputData, outputData, HiddenSize );
 
 		// Multiply input gates
-		NeoML::vectorEltwiseMultiply( inputData, inputTanhData, inputData, hiddenSize );
+		NeoML::vectorEltwiseMultiply( inputData, inputTanhData, inputData, HiddenSize );
 
 		// Multiply state backlink with forget gate
-		NeoML::vectorEltwiseMultiply( forgetData, inputStateBackLink, forgetData, hiddenSize );
+		NeoML::vectorEltwiseMultiply( forgetData, inputStateBackLink, forgetData, HiddenSize );
 
 		// Append input gate to state backlink
-		NeoML::vectorAdd( forgetData, inputData, outputStateBackLink, hiddenSize );
+		NeoML::vectorAdd( forgetData, inputData, outputStateBackLink, HiddenSize );
 
 		// Apply tanh to state baclink
-		NeoML::vectorTanh( outputStateBackLink, inputData, hiddenSize );
+		NeoML::vectorTanh( outputStateBackLink, inputData, HiddenSize );
 
 		// Multiply output gate with result of previous operation
-		NeoML::vectorEltwiseMultiply( outputData, inputData, outputMainBackLink, hiddenSize );
+		NeoML::vectorEltwiseMultiply( outputData, inputData, outputMainBackLink, HiddenSize );
 
 		inputTanhData += resultMatrixWidth;
 		forgetData += resultMatrixWidth;
 		inputData += resultMatrixWidth;
 		outputData += resultMatrixWidth;
-		inputStateBackLink += hiddenSize;
-		outputStateBackLink += hiddenSize;
-		outputMainBackLink += hiddenSize;
+		inputStateBackLink += HiddenSize;
+		outputStateBackLink += HiddenSize;
+		outputMainBackLink += HiddenSize;
 	}
 }
 

@@ -55,7 +55,7 @@ void CPrimitivesJit::RestOfLstm( CMathEngineLstmDesc* desc, int sequenceCount, f
 	CMathEngineLstmDesc& lstmDesc = *desc;
 
 	callPrimitive<TPrimitive::RestOfLstm, RestOfLstmFunc>( sequenceCount, isMultithread,
-		lstmDesc.hiddenSize, inputStateBackLink, outputStateBackLink, outputMainBackLink,
+		lstmDesc.HiddenSize, inputStateBackLink, outputStateBackLink, outputMainBackLink,
 		fullyConnectedResult );
 }
 

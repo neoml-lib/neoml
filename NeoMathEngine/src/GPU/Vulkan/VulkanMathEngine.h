@@ -584,10 +584,10 @@ public:
 	void BertConvBackward( const CConstFloatHandle& dataHandle, const CConstFloatHandle& kernelHandle,
 		const CConstFloatHandle& outDiffHandle, int seqLen, int batchSize, int numHeads, int headSize, int kernelSize,
 		const CFloatHandle& dataDiffHandle, const CFloatHandle& kernelDiffHandle ) override;
-	CLstmDesc* InitLstm( CLstmDesc* currentDesc, int hiddenSize, int objectSize ) override;
-	void Lstm( CLstmDesc& desc, bool reverse, int sequenceLength, int sequenceCount,
+	CLstmDesc* InitLstm( int hiddenSize, int objectSize,
 		const CConstFloatHandle& inputWeights, const CConstFloatHandle& inputFreeTerm,
-		const CConstFloatHandle& recurrentWeights, const CConstFloatHandle& recurrentFreeTerm,
+		const CConstFloatHandle& recurrentWeights, const CConstFloatHandle& recurrentFreeTerm ) override;
+	void Lstm( CLstmDesc& desc, bool reverse, int sequenceLength, int sequenceCount,
 		const CConstFloatHandle& inputStateBackLink, const CConstFloatHandle& inputMainBackLink,
 		const CConstFloatHandle& input, const CFloatHandle& outputStateBackLink,
 		const CFloatHandle& outputMainBackLink ) override;
