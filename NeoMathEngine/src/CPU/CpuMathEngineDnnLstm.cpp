@@ -76,8 +76,6 @@ CLstmDesc* CCpuMathEngine::InitLstm( int hiddenSize, int objectSize,
 template<class T>
 class CSequenceWrapper {
 public:
-	//CSequenceWrapper( float* buffer, int sequenceLength, int objectSize ) :
-	//	buffer( buffer ), sequenceLength( sequenceLength ), objectSize( objectSize ) {}
 	CSequenceWrapper( const CTypedMemoryHandle<T>& handle, int sequenceLength, int elemSize ) :
 		buffer( GetRaw( handle ) ), sequenceLength( sequenceLength ), elemSize( elemSize ) {}
 	CSequenceWrapper( const CSequenceWrapper& ) = delete;
