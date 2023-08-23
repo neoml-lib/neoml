@@ -27,13 +27,11 @@ limitations under the License.
 
 namespace NeoML {
 
-static CFloatHandleVar* transposeLstmRecurrentWeights( const CConstFloatHandle& oldWeights,
-	int hiddenSize )
+static CFloatHandleVar* transposeLstmWeights( const CConstFloatHandle& oldWeights, int oldHeight, int oldWidth )
 {
 	IMathEngine& mathEngine = *oldWeights.GetMathEngine();
-	CFloatHandleVar* result = new CFloatHandleVar( mathEngine, 4 * hiddenSize * hiddenSize );
-	mathEngine.TransposeMatrix( 1, oldWeights, 4 * hiddenSize, 1, hiddenSize, 1,
-		result->GetHandle(), result->Size() );
+	CFloatHandleVar* result = new CFloatHandleVar( mathEngine, oldHeight * oldWidth );
+	mathEngine.TransposeMatrix( 1, oldWeights, oldHeight, 1, oldWidth, 1, result->GetHandle(), result->Size() );
 	return result;
 }
 
@@ -67,8 +65,9 @@ CMathEngineLstmDesc::CMathEngineLstmDesc( int hiddenSize, int objectSize, const 
 		const CConstFloatHandle& recurFreeTerm ) :
 	HiddenSize( hiddenSize ),
 	ObjectSize( objectSize ),
-	InputWeights( GetRaw( inputWeights ) ),
-	RecurWeightsVar( transposeLstmRecurrentWeights( recurWeights, hiddenSize ) ),
+	InputWeightsVar( transposeLstmWeights( inputWeights, 4 * hiddenSize, objectSize ) ),
+	InputWeights( GetRaw( InputWeightsVar->GetHandle() ) ),
+	RecurWeightsVar( transposeLstmWeights( recurWeights, 4 * hiddenSize, hiddenSize ) ),
 	RecurWeights( GetRaw( RecurWeightsVar->GetHandle() ) ),
 	FreeTermVar( createLstmFreeTermVar( inputFreeTerm, recurFreeTerm, hiddenSize ) ),
 	FreeTerm( initLstmFreeTerm( FreeTermVar.get(), inputFreeTerm, recurFreeTerm))
@@ -167,9 +166,9 @@ void CCpuMathEngine::Lstm( CLstmDesc& desc, bool reverse, int sequenceLength, in
 			const int bufferIdx = outputPos / fullyConnectedResult.SequenceLength();
 			seqElemsInBuffer = std::min( fullyConnectedResult.SequenceLength(),
 				sequenceLength - bufferIdx * fullyConnectedResult.SequenceLength() );
-			multiplyMatrixByTransposedMatrix( input[bufferIdx * fullyConnectedResult.SequenceLength()],
+			multiplyMatrixByMatrix( input[bufferIdx * fullyConnectedResult.SequenceLength()],
 				seqElemsInBuffer * sequenceCount, lstmDesc.ObjectSize, lstmDesc.ObjectSize, lstmDesc.InputWeights,
-				4 * lstmDesc.HiddenSize, lstmDesc.ObjectSize, fullyConnectedResult[0], 4 * lstmDesc.HiddenSize );
+				4 * lstmDesc.HiddenSize, 4 * lstmDesc.HiddenSize, fullyConnectedResult[0], 4 * lstmDesc.HiddenSize );
 		}
 
 		multiplyMatrixByMatrixAndAdd( mainBackLink[inputPos], sequenceCount, lstmDesc.HiddenSize,

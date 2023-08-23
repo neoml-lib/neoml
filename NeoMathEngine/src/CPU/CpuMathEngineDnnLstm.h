@@ -35,6 +35,7 @@ struct CMathEngineLstmDesc : public CLstmDesc {
 
 	const int HiddenSize;
 	const int ObjectSize;
+	const std::unique_ptr<CFloatHandleVar> InputWeightsVar;
 	const float* const InputWeights;
 	const std::unique_ptr<CFloatHandleVar> RecurWeightsVar;
 	const float* const RecurWeights;
