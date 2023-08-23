@@ -1004,12 +1004,12 @@ public:
 
 	// If currentDesc isn't nullptr, it will be reinitialized with new values and pointer to it will be returned.
 	// Otherwise new descriptor will be created.
-	virtual CLstmDesc* InitLstm( CLstmDesc* currentDesc, const CFloatHandle& reccurentFullyConnectedResult,
-		int hiddenSize, int objectCount, int objectSize ) = 0;
-	virtual void Lstm( CLstmDesc& desc, 
-		const CFloatHandle& recurrentWeights, const CConstFloatHandle& recurrentFreeTerm,
+	virtual CLstmDesc* InitLstm( CLstmDesc* currentDesc, int hiddenSize, int objectSize ) = 0;
+	virtual void Lstm( CLstmDesc& desc, bool reverse, int sequenceLength, int sequenceCount,
+		const CConstFloatHandle& inputWeights, const CConstFloatHandle& inputFreeTerm,
+		const CConstFloatHandle& recurrentWeights, const CConstFloatHandle& recurrentFreeTerm,
 		const CConstFloatHandle& inputStateBackLink, const CConstFloatHandle& inputMainBackLink,
-		const CFloatHandle& inputFullyConnectedResult, const CFloatHandle& outputStateBackLink,
+		const CConstFloatHandle& input, const CFloatHandle& outputStateBackLink,
 		const CFloatHandle& outputMainBackLink ) = 0;
 
 	// CTC

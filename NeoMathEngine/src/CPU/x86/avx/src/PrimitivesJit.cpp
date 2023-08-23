@@ -49,21 +49,15 @@ void CPrimitivesJit::Exp( float* dst, const float* src, size_t dataSize, bool is
 	callPrimitive<TPrimitive::Exp, ActivationFunc>( dataSize, isMultithread, dst, src );
 }
 
-void CPrimitivesJit::RestOfLstm( CMathEngineLstmDesc* desc, const CFloatHandle& inputFullyConnectedResult,
-	const CConstFloatHandle& inputStateBackLink, const CFloatHandle& outputStateBackLink,
-	const CFloatHandle& outputMainBackLink, bool isMultithread )
+void CPrimitivesJit::RestOfLstm( CMathEngineLstmDesc* desc, int sequenceCount, float* inputFullyConnectedResult,
+	float* recurrentFullyConnectedResult, const float* inputStateBackLink, float* outputStateBackLink,
+	float* outputMainBackLink, bool isMultithread )
 {
 	CMathEngineLstmDesc& lstmDesc = *desc;
 
-	const float* inputStateBackLinkPtr = GetRaw( inputStateBackLink );
-	float* outputStateBackLinkPtr = GetRaw( outputStateBackLink );
-	float* outputMainBackLinkPtr = GetRaw( outputMainBackLink );
-	float* inputFullyConnectedResultPtr = GetRaw( inputFullyConnectedResult );
-	float* reccurentFullyConnectedResultPtr = GetRaw( lstmDesc.reccurentFullyConnectedResult );
-
-	callPrimitive<TPrimitive::RestOfLstm, RestOfLstmFunc>( lstmDesc.objectCount, isMultithread,
-		lstmDesc.hiddenSize, inputStateBackLinkPtr, outputStateBackLinkPtr, outputMainBackLinkPtr,
-		inputFullyConnectedResultPtr, reccurentFullyConnectedResultPtr );
+	callPrimitive<TPrimitive::RestOfLstm, RestOfLstmFunc>( sequenceCount, isMultithread,
+		lstmDesc.hiddenSize, inputStateBackLink, outputStateBackLink, outputMainBackLink,
+		inputFullyConnectedResult, recurrentFullyConnectedResult );
 }
 
 void CPrimitivesJit::initTable()

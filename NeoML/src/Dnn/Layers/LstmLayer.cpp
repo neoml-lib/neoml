@@ -38,9 +38,15 @@ static const char* recurHiddenLayerName = "RecurHidden";
 CLstmLayer::CLstmLayer( IMathEngine& mathEngine ) :
 	CRecurrentLayer( mathEngine, "CCnnLstmLayer" ),
 	recurrentActivation( AF_Sigmoid ),
-	isInCompatibilityMode( false )
+	isInCompatibilityMode( false ),
+	lstmDesc( nullptr )
 {
 	buildLayer( /*dropout*/0 );
+}
+
+CLstmLayer::~CLstmLayer()
+{
+	delete lstmDesc;
 }
 
 // Builds the layer
@@ -324,7 +330,18 @@ void CLstmLayer::RunOnce()
 		!IsLearningPerformed() &&
 		recurrentActivation == AF_Sigmoid )
 	{
-		fastLstm();
+		CConstFloatHandle inputFreeTerm = inputHiddenLayer->FreeTerms() == nullptr ? CConstFloatHandle()
+			: inputHiddenLayer->FreeTerms()->GetData();
+		CConstFloatHandle recurrentFreeTerm = recurHiddenLayer->FreeTerms() == nullptr ? CConstFloatHandle()
+			: recurHiddenLayer->FreeTerms()->GetData();
+		CConstFloatHandle inputStateBackLink = inputBlobs.Size() > 1 ? inputBlobs[1]->GetData() : CConstFloatHandle();
+		CConstFloatHandle inputMainBackLink = inputBlobs.Size() > 2 ? inputBlobs[2]->GetData() : CConstFloatHandle();
+		CFloatHandle outputState = outputBlobs.Size() > 1 ? outputBlobs[1]->GetData() : CFloatHandle();
+		MathEngine().Lstm( *lstmDesc, IsReverseSequence(), inputBlobs[0]->GetBatchLength(),
+			inputBlobs[0]->GetBatchWidth(), inputHiddenLayer->Weights()->GetData(),
+			inputFreeTerm, recurHiddenLayer->Weights()->GetData(), recurrentFreeTerm,
+			inputStateBackLink, inputMainBackLink, inputBlobs[0]->GetData(),
+			outputState, outputBlobs[0]->GetData() );
 	} else {
 		CRecurrentLayer::RunOnce();
 	}
@@ -335,7 +352,7 @@ void CLstmLayer::Reshape()
 	checkBlobDescs();
 	CRecurrentLayer::Reshape();
 	if( MathEngine().GetType() == MET_Cpu ) {
-		fastLstmDesc.Reset();
+		lstmDesc = MathEngine().InitLstm( lstmDesc, GetHiddenSize(), inputDescs[0].ObjectSize() );
 	}
 }
 
@@ -426,142 +443,6 @@ void CLstmLayer::setWeightsData( const CPtr<CDnnBlob>& newWeights )
 
 	SetInputWeightsData( splitWeights[0] );
 	SetRecurWeightsData( splitWeights[1] );
-}
-
-void CLstmLayer::fastLstm()
-{
-	fastLstmDesc.Init( this );
-
-	const CPtr<CDnnBlob>& inputWeights = inputHiddenLayer->Weights();
-	const CPtr<CDnnBlob>& inputFreeTerm = inputHiddenLayer->FreeTerms();
-	const CPtr<CDnnBlob>& recurrentWeights = recurHiddenLayer->Weights();
-	const CPtr<CDnnBlob>& recurrentFreeTerm = recurHiddenLayer->FreeTerms();
-
-	// Emulate working of LSTM recurrent implementation
-	CPtr<CDnnBlob>& mainBacklink = outputBlobs[0];
-	CPtr<CDnnBlob>& stateBacklink = outputDescs.Size() == 2 ? outputBlobs[1] : fastLstmDesc.StateBacklinkBlob();
-	CPtr<CDnnBlob>& inputFullyConnectedResult = fastLstmDesc.InputFullyConnectedResult();
-
-	CPtr<CDnnBlob> mainBacklinkInput = CDnnBlob::CreateWindowBlob( mainBacklink );
-	CPtr<CDnnBlob> mainBacklinkOutput = CDnnBlob::CreateWindowBlob( mainBacklink );
-	CPtr<CDnnBlob> input = CDnnBlob::CreateWindowBlob( inputBlobs[0] );
-	CPtr<CDnnBlob> stateBacklinkInput = CDnnBlob::CreateWindowBlob( stateBacklink );
-	CPtr<CDnnBlob> stateBacklinkOutput = CDnnBlob::CreateWindowBlob( stateBacklink );
-	CPtr<CDnnBlob> currInputFullyConnectedResult = CDnnBlob::CreateWindowBlob( inputFullyConnectedResult );
-
-	// Init state and main backlink blobs
-	initRecurentBlob( stateBacklink, 1 );
-	initRecurentBlob( mainBacklink, 2 );
-
-	CConstFloatHandle inputFreeTermHandle;
-	CConstFloatHandle recurrentFreeTermHandle;
-	if( inputFreeTerm.Ptr() ) {
-		inputFreeTermHandle = inputFreeTerm->GetData();
-	}
-	if( recurrentFreeTerm.Ptr() ) {
-		recurrentFreeTermHandle = recurrentFreeTerm->GetData();
-	}
-
-	// Iterate recurent net step by step
-	int seqElemsInBuffer = 0;
-
-	for( int i = 0; i < inputBlobs[0]->GetBatchLength(); i++ ) {
-		int inputPos, outputPos;
-		if( IsReverseSequence() ) {
-			const int LastIdx = inputBlobs[0]->GetBatchLength() - 1;
-			int iRev = LastIdx - i;
-			inputPos = min( LastIdx, iRev + 1 );
-			outputPos = iRev;
-		} else {
-			inputPos = max( 0, i - 1 );
-			outputPos = i;
-		}
-
-		// Precalculate portion of input multiplied by weights and with free terms added
-		if( seqElemsInBuffer == 0 ) {
-			const int bufferIdx = outputPos / inputFullyConnectedResult->GetBatchLength();
-			input->SetParentPos( bufferIdx * inputFullyConnectedResult->GetBatchLength() );
-			seqElemsInBuffer = min( inputBlobs[0]->GetBatchLength() - input->GetParentPos(),
-				inputFullyConnectedResult->GetBatchLength() );
-			MathEngine().MultiplyMatrixByTransposedMatrix( input->GetData(),
-				seqElemsInBuffer * inputFullyConnectedResult->GetBatchWidth(), input->GetObjectSize(),
-				input->GetObjectSize(), inputWeights->GetData(), inputWeights->GetObjectCount(),
-				inputWeights->GetObjectSize(), inputFullyConnectedResult->GetData(),
-				inputFullyConnectedResult->GetObjectSize(), inputFullyConnectedResult->GetDataSize() );
-			if( !inputFreeTermHandle.IsNull() ) {
-				MathEngine().AddVectorToMatrixRows( 1, inputFullyConnectedResult->GetData(),
-					inputFullyConnectedResult->GetData(), seqElemsInBuffer * inputFullyConnectedResult->GetBatchWidth(),
-					inputFullyConnectedResult->GetObjectSize(), inputFreeTermHandle );
-			}
-		}
-
-		// Set current step
-		mainBacklinkInput->SetParentPos( inputPos );
-		currInputFullyConnectedResult->SetParentPos( outputPos % inputFullyConnectedResult->GetBatchLength() );
-
-		if( outputDescs.Size() == 2 ) {
-			// if ( outputDescs.Size() == 1 ) we could preserve only one step of state ( and we do it )
-			stateBacklinkInput->SetParentPos( inputPos );
-			stateBacklinkOutput->SetParentPos( outputPos );
-		}
-		mainBacklinkOutput->SetParentPos( outputPos );
-
-		MathEngine().Lstm( fastLstmDesc.LstmDesc(),
-			recurrentWeights->GetData(), recurrentFreeTermHandle,
-			stateBacklinkInput->GetData(), mainBacklinkInput->GetData(),
-			currInputFullyConnectedResult->GetData(), stateBacklinkOutput->GetData(), mainBacklinkOutput->GetData() );
-		--seqElemsInBuffer;
-	}
-}
-
-void CLstmLayer::initRecurentBlob( CPtr<CDnnBlob>& backlinkBlob, int num )
-{
-	if( inputBlobs.Size() > num && inputBlobs[num] != nullptr ) {
-		CPtr<CDnnBlob> windowBlob = CDnnBlob::CreateWindowBlob( backlinkBlob );
-		windowBlob->SetParentPos( IsReverseSequence() ? backlinkBlob->GetBatchLength() - 1 : 0 );
-		NeoAssert( windowBlob->GetDataSize() == inputBlobs[num]->GetDataSize() );
-		MathEngine().VectorCopy( windowBlob->GetData(), inputBlobs[num]->GetData(), windowBlob->GetDataSize() );
-	} else {
-		backlinkBlob->Clear();
-	}
-}
-
-void CLstmLayer::CFastLstmDesc::Init( CLstmLayer* lstmLayer )
-{
-	if( isInitialized ) {
-		return;
-	}
-	isInitialized = true;
-	// Check before each initialization if new size of blob fits to previous one.
-
-	const int hiddenSize = lstmLayer->GetHiddenSize();
-
-	// Write state data directly to output or create temporary blob for recurent 
-	auto& sbl = stateBacklinkBlob;
-	auto& outDesc0 = lstmLayer->outputDescs[0];
-	if( lstmLayer->outputDescs.Size() != 2 &&
-		( sbl.Ptr() == nullptr || sbl->GetBatchWidth() != outDesc0.BatchWidth() || sbl->GetObjectSize() != outDesc0.ObjectSize() ) )
-	{
-		stateBacklinkBlob = CDnnBlob::CreateDataBlob( lstmLayer->MathEngine(), CT_Float, /*batchLength*/1,
-			lstmLayer->outputDescs[0].BatchWidth(), lstmLayer->outputDescs[0].ObjectSize() );
-	}
-
-	// Create temporary blobs for result of fully connected layers
-	// inputFullyConnectedResult and reccurentFullyConnectedResult always equal to zero or not simultaneously
-	auto& ifcl = inputFullyConnectedResult;
-	auto& inDesc0 = lstmLayer->inputDescs[0];
-	if( ifcl.Ptr() == nullptr || ifcl->GetBatchWidth() != inDesc0.BatchWidth() || ifcl->GetObjectSize() != inDesc0.ObjectSize() ) {
-		const int maxSeqLen = lstmLayer->inputDescs[0].BatchLength();
-		const int batchWidth = lstmLayer->inputDescs[0].BatchWidth();
-		const int recommendedSeqLen = ( 64 + batchWidth - 1 ) / batchWidth;
-		inputFullyConnectedResult = CDnnBlob::CreateDataBlob( lstmLayer->MathEngine(), CT_Float,
-			min( maxSeqLen, recommendedSeqLen ), batchWidth, G_Count * hiddenSize );
-		reccurentFullyConnectedResult = CDnnBlob::CreateDataBlob( lstmLayer->MathEngine(), CT_Float, 1,
-			batchWidth, G_Count * hiddenSize );
-	}
-
-	lstmDesc = lstmLayer->MathEngine().InitLstm( lstmDesc, reccurentFullyConnectedResult->GetData(),
-		hiddenSize, lstmLayer->inputDescs[0].BatchWidth(), lstmLayer->inputDescs[0].ObjectSize() );
 }
 
 //--------------------------------------------------------------------------

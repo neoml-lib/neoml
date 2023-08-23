@@ -31,6 +31,7 @@ class NEOML_API CLstmLayer : public CRecurrentLayer {
 	NEOML_DNN_LAYER( CLstmLayer )
 public:
 	explicit CLstmLayer( IMathEngine& mathEngine );
+	~CLstmLayer();
 
 	void Serialize( CArchive& archive ) override;
 
@@ -80,33 +81,6 @@ private:
 		G_Count
 	};
 
-	class CFastLstmDesc {
-	public:
-		CFastLstmDesc() : lstmDesc( nullptr ), isInitialized( false ) {}
-		~CFastLstmDesc() { clearPointers(); }
-
-		void Reset() { isInitialized = false; }
-		void Init( CLstmLayer* lstmLayer );
-
-		CPtr<CDnnBlob>& StateBacklinkBlob() { return stateBacklinkBlob; }
-		CPtr<CDnnBlob>& InputFullyConnectedResult() { return inputFullyConnectedResult; }
-		CPtr<CDnnBlob>& ReccurentFullyConnectedResult() { return reccurentFullyConnectedResult; }
-		CLstmDesc& LstmDesc() { return *lstmDesc; }
-	private:
-		CPtr<CDnnBlob> stateBacklinkBlob;
-		CPtr<CDnnBlob> inputFullyConnectedResult;
-		CPtr<CDnnBlob> reccurentFullyConnectedResult;
-		CLstmDesc* lstmDesc;
-		bool isInitialized;
-
-		void clearPointers() {
-			if( lstmDesc != nullptr ) {
-				delete lstmDesc;
-				lstmDesc = nullptr;
-			}
-		}
-	};
-
 	CPtr<CFullyConnectedLayer> inputHiddenLayer;
 	CPtr<CFullyConnectedLayer> recurHiddenLayer;
 
@@ -122,14 +96,11 @@ private:
 	TActivationFunction recurrentActivation;
 	bool isInCompatibilityMode;
 
-	CFastLstmDesc fastLstmDesc;
+	CLstmDesc* lstmDesc;
 
 	void buildLayer(float dropout);
 	void checkBlobDescs() const;
 	void setWeightsData(const CPtr<CDnnBlob>& newWeights);
-
-	void fastLstm();
-	void initRecurentBlob( CPtr<CDnnBlob>& backlinkBlob, int num );
 };
 
 //--------------------------------------------------------------------------

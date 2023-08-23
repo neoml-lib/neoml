@@ -25,60 +25,50 @@ limitations under the License.
 namespace NeoML {
 
 struct CMathEngineLstmDesc : public CLstmDesc {
-	CMathEngineLstmDesc( const CFloatHandle& _reccurentFullyConnectedResult, int _hiddenSize, int _objectCount,
-		int _objectSize ) :
-			reccurentFullyConnectedResult( _reccurentFullyConnectedResult ),
-			hiddenSize( _hiddenSize ),
-			objectCount( _objectCount ),
-			objectSize( _objectSize )
+	CMathEngineLstmDesc( int hiddenSize, int objectSize ) :
+		hiddenSize( hiddenSize ),
+		objectSize( objectSize )
 	{}
 	~CMathEngineLstmDesc() override;
 
-	void Reset( const CFloatHandle& _reccurentFullyConnectedResult, int _hiddenSize, int _objectCount, int _objectSize )
+	void Reset( int newHiddenSize, int newObjectSize )
 	{
-		reccurentFullyConnectedResult = _reccurentFullyConnectedResult;
-		hiddenSize = _hiddenSize;
-		objectCount = _objectCount;
-		objectSize = _objectSize;
+		hiddenSize = newHiddenSize;
+		objectSize = newObjectSize;
 	}
 
 	static int constexpr GatesNum = 4;
 
-	CFloatHandle reccurentFullyConnectedResult;
 	int hiddenSize; 
-	int objectCount;
 	int objectSize;
 
-	virtual void RunOnceRestOfLstm( const CFloatHandle& inputFullyConnectedResult,
-		const CConstFloatHandle& inputStateBackLink, const CFloatHandle& outputStateBackLink,
-		const CFloatHandle& outputMainBackLink );
+	virtual void RunOnceRestOfLstm( int objectCount, float* inputFullyConnectedResult,
+		float* recurrentFullyConnectedResult, const float* inputStateBackLink,
+		float* outputStateBackLink, float* outputMainBackLink );
 };
 
-inline void CMathEngineLstmDesc::RunOnceRestOfLstm( const CFloatHandle& inputFullyConnectedResult,
-	const CConstFloatHandle& inputStateBackLink, const CFloatHandle& outputStateBackLink,
-	const CFloatHandle& outputMainBackLink )
+inline void CMathEngineLstmDesc::RunOnceRestOfLstm( int objectCount, float* inputFullyConnectedResult,
+	float* recurrentFullyConnectedResult, const float* inputStateBackLink,
+	float* outputStateBackLink, float* outputMainBackLink )
 {
 	// Elementwise summ of fully connected layers' results (inplace)
 	const int resultMatrixWidth = CMathEngineLstmDesc::GatesNum * hiddenSize;
 	const int curDataSize = objectCount * hiddenSize;
 
-	float* const outputStateBackLinkRaw = GetRaw( outputStateBackLink );
-	float* const inputFullyConnectedResultRaw = GetRaw( inputFullyConnectedResult );
-	float* const reccurentFullyConnectedResultRaw = GetRaw( reccurentFullyConnectedResult );
-	float* const hiddenLayerSumRaw = inputFullyConnectedResultRaw;
+	float* const hiddenLayerSum = inputFullyConnectedResult;
 
-	NeoML::vectorAdd( inputFullyConnectedResultRaw, reccurentFullyConnectedResultRaw,
-		hiddenLayerSumRaw, objectCount * resultMatrixWidth );
+	NeoML::vectorAdd( inputFullyConnectedResult, recurrentFullyConnectedResult,
+		hiddenLayerSum, objectCount * resultMatrixWidth );
 
 	// Rearrange sum
-	float* const hiddenLayerSumRearrangedRaw = reccurentFullyConnectedResultRaw;
-	float* const inputTanhData = hiddenLayerSumRearrangedRaw;
+	float* const hiddenLayerSumRearranged = recurrentFullyConnectedResult;
+	float* const inputTanhData = hiddenLayerSumRearranged;
 	float* const forgetData = inputTanhData + curDataSize;
 	float* const inputData = forgetData + curDataSize;
 	float* const outputData = inputData + curDataSize;
 
-	float* const rawFrom = hiddenLayerSumRaw;
-	float* const rawTo = hiddenLayerSumRearrangedRaw;
+	float* const rawFrom = hiddenLayerSum;
+	float* const rawTo = hiddenLayerSumRearranged;
 	for( int x = 0; x < objectCount; ++x ) {
 		const float* input = rawFrom + x * resultMatrixWidth;
 		for( int i = 0; i < CMathEngineLstmDesc::GatesNum; ++i ) {
@@ -89,25 +79,25 @@ inline void CMathEngineLstmDesc::RunOnceRestOfLstm( const CFloatHandle& inputFul
 
 	// Apply activations
 	NeoML::vectorTanh( inputTanhData, inputTanhData, curDataSize );
-			
+
 	NeoML::vectorSigmoid( forgetData, forgetData, curDataSize );
 	NeoML::vectorSigmoid( inputData, inputData, curDataSize );
 	NeoML::vectorSigmoid( outputData, outputData, curDataSize );
-			
+
 	// Multiply input gates
 	NeoML::vectorEltwiseMultiply( inputData, inputTanhData, inputData, curDataSize );
 
 	// Multiply state backlink with forget gate
-	NeoML::vectorEltwiseMultiply( forgetData, GetRaw( inputStateBackLink ), forgetData, curDataSize );
+	NeoML::vectorEltwiseMultiply( forgetData, inputStateBackLink, forgetData, curDataSize );
 
 	// Append input gate to state backlink
-	NeoML::vectorAdd( forgetData, inputData, outputStateBackLinkRaw, curDataSize );
+	NeoML::vectorAdd( forgetData, inputData, outputStateBackLink, curDataSize );
 
 	// Apply tanh to state baclink
-	NeoML::vectorTanh( outputStateBackLinkRaw, inputData, curDataSize );
+	NeoML::vectorTanh( outputStateBackLink, inputData, curDataSize );
 
 	// Multiply output gate with result of previous operation
-	NeoML::vectorEltwiseMultiply( outputData, inputData, GetRaw( outputMainBackLink ), curDataSize );
+	NeoML::vectorEltwiseMultiply( outputData, inputData, outputMainBackLink, curDataSize );
 }
 
 } // namespace NeoML
