@@ -157,6 +157,85 @@ inline void channelwise1x5( const float* source, const float* filter0, const flo
 
 //------------------------------------------------------------------------------------------------------------
 
+inline void channelwiseConvolution1x7Kernel( const float* source0, const float* source1, const float* source2, const float* source3,
+	const float* source4, const float* source5, const float* source6, const float* source7,
+	const float* filter0, const float* filter1, const float* filter2, const float* filter3, const float* filter4,
+	const float* filter5, const float* filter6, float* result0, float* result1 )
+{
+	__m128 result0_4 = _mm_loadu_ps( result0 );
+	__m128 result1_4 = _mm_loadu_ps( result1 );
+
+	__m128 filter_4 = _mm_loadu_ps( filter0 );
+	__m128 source_4 = _mm_loadu_ps( source0 );
+	result0_4 = _mm_add_ps( result0_4, _mm_mul_ps( source_4, filter_4 ) );
+
+	source_4 = _mm_loadu_ps( source1 );
+	result1_4 = _mm_add_ps( result1_4, _mm_mul_ps( source_4, filter_4 ) );
+
+	filter_4 = _mm_loadu_ps( filter1 );
+	result0_4 = _mm_add_ps( result0_4, _mm_mul_ps( source_4, filter_4 ) );
+
+	source_4 = _mm_loadu_ps( source2 );
+	result1_4 = _mm_add_ps( result1_4, _mm_mul_ps( source_4, filter_4 ) );
+
+	filter_4 = _mm_loadu_ps( filter2 );
+	result0_4 = _mm_add_ps( result0_4, _mm_mul_ps( source_4, filter_4 ) );
+
+	source_4 = _mm_loadu_ps( source3 );
+	result1_4 = _mm_add_ps( result1_4, _mm_mul_ps( source_4, filter_4 ) );
+
+	filter_4 = _mm_loadu_ps( filter3 );
+	result0_4 = _mm_add_ps( result0_4, _mm_mul_ps( source_4, filter_4 ) );
+
+	source_4 = _mm_loadu_ps( source4 );
+	result1_4 = _mm_add_ps( result1_4, _mm_mul_ps( source_4, filter_4 ) );
+
+	filter_4 = _mm_loadu_ps( filter4 );
+	result0_4 = _mm_add_ps( result0_4, _mm_mul_ps( source_4, filter_4 ) );
+
+	source_4 = _mm_loadu_ps( source5 );
+	result1_4 = _mm_add_ps( result1_4, _mm_mul_ps( source_4, filter_4 ) );
+
+	filter_4 = _mm_loadu_ps( filter5 );
+	result0_4 = _mm_add_ps( result0_4, _mm_mul_ps( source_4, filter_4 ) );
+
+	source_4 = _mm_loadu_ps( source6 );
+	result1_4 = _mm_add_ps( result1_4, _mm_mul_ps( source_4, filter_4 ) );
+
+	filter_4 = _mm_loadu_ps( filter6 );
+	result0_4 = _mm_add_ps( result0_4, _mm_mul_ps( source_4, filter_4 ) );
+
+	source_4 = _mm_loadu_ps( source7 );
+	result1_4 = _mm_add_ps( result1_4, _mm_mul_ps( source_4, filter_4 ) );
+
+	_mm_storeu_ps( result0, result0_4 );
+	_mm_storeu_ps( result1, result1_4 );
+}
+
+inline void channelwise1x7( const float* source, const float* filter0, const float* filter1, const float* filter2,
+	const float* filter3, const float* filter4, const float* filter5, const float* filter6, float* result, int channels )
+{
+	const int shift1 = channels;
+	const int shift2 = 2 * channels;
+	const int shift3 = 3 * channels;
+	const int shift4 = 4 * channels;
+	const int shift5 = 5 * channels;
+	const int shift6 = 6 * channels;
+	const int shift7 = 7 * channels;
+	while( channels > 0 ) {
+		channelwiseConvolution1x7Kernel( source, source + shift1, source + shift2, source + shift3, source + shift4,
+			source + shift5, source + shift6, source + shift7,
+			filter0, filter1, filter2, filter3, filter4, filter5, filter6, result, result + shift1 );
+
+		source += 4;
+		filter0 += 4; filter1 += 4; filter2 += 4; filter3 += 4; filter4 += 4; filter5 += 4; filter6 += 4;
+		result += 4;
+		channels -= 4;
+	}
+}
+
+//------------------------------------------------------------------------------------------------------------
+
 inline void vectorFill( float* result, float value, int vectorSize )
 {
 	if( CCPUInfo::HasAvxAndFma && vectorSize >= NeoML::Avx2::VectorMathMinSize ) {
