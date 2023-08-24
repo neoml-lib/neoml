@@ -40,6 +40,17 @@ struct NEOONNX_API CImportSettings {
 	CDnnOptimizationSettings DnnOptimizationSettings{};
 };
 
+// Information about ONNX optimizations
+struct NEOONNX_API COnnxOptimizationReport {
+	int Conv1x1 = 0;
+	int GELU = 0;
+	int GRN = 0;
+	int HardSigmoid = 0;
+	int HSwish = 0;
+	int LayerNorm = 0;
+	int SqueezeAndExcite = 0;
+};
+
 // Information about imported model
 struct NEOONNX_API CImportedModelInfo {
 	struct NEOONNX_API CInputInfo {
@@ -53,6 +64,10 @@ struct NEOONNX_API CImportedModelInfo {
 	CArray<CInputInfo> Inputs;
 	CArray<COutputInfo> Outputs;
 	CMap<CString, CString> Metadata; // metadata_props
+	// During export 2 types of optimization are performed
+	// 1. ONNX-only optimizations. Mostly they just removed artifacts from ONNX generation. See OnnxOptimizationReport.
+	// 2. NeoML::OptimizeDnn. See OptimizationReport.
+	COnnxOptimizationReport OnnxOptimizationReport;
 	CDnnOptimizationReport OptimizationReport;
 };
 

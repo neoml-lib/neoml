@@ -84,7 +84,7 @@ static void buildDnn( CDnn& cnn, int outputSize )
 
 TEST( CDnnDistributedTest, DnnDistributedNoArchiveTest )
 {
-	std::unique_ptr<IMathEngine> mathEngine( CreateCpuMathEngine( 1, 0 ) );
+	std::unique_ptr<IMathEngine> mathEngine( CreateCpuMathEngine( /*memoryLimit*/0u ) );
 	CRandom rand( 42 );
 
 	int inputSize = 1000;
@@ -111,7 +111,7 @@ TEST( CDnnDistributedTest, DnnDistributedNoArchiveTest )
 
 TEST( CDnnDistributedTest, DnnDistributedArchiveTest )
 {
-	std::unique_ptr<IMathEngine> mathEngine( CreateCpuMathEngine( 1, 0 ) );
+	std::unique_ptr<IMathEngine> mathEngine( CreateCpuMathEngine( /*memoryLimit*/0u ) );
 	CRandom rand( 42 );
 
 	int inputSize = 1000;
@@ -158,7 +158,7 @@ TEST( CDnnDistributedTest, DnnDistributedArchiveTest )
 
 TEST( CDnnDistributedTest, DnnDistributedSerializeTest )
 {
-	std::unique_ptr<IMathEngine> mathEngine( CreateCpuMathEngine( 1, 0 ) );
+	std::unique_ptr<IMathEngine> mathEngine( CreateCpuMathEngine( /*memoryLimit*/0u ) );
 	CRandom rand( 42 );
 
 	int inputSize = 1000;
@@ -214,7 +214,7 @@ TEST( CDnnDistributedTest, DnnDistributedSerializeTest )
 
 TEST( CDnnDistributedTest, DnnDistributedAutoThreadCountTest )
 {
-	std::unique_ptr<IMathEngine> mathEngine( CreateCpuMathEngine( 1, 0 ) );
+	std::unique_ptr<IMathEngine> mathEngine( CreateCpuMathEngine( /*memoryLimit*/0u ) );
 	CRandom rand( 42 );
 
 	const int outputSize = 5;

@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,106 +21,71 @@ limitations under the License.
 #include <MemoryHandleInternal.h>
 
 #include <cstring>
+#include <memory>
 
 namespace NeoML {
 
 struct CMathEngineLstmDesc : public CLstmDesc {
-	CMathEngineLstmDesc( const CFloatHandle& _inputFullyConnectedResult, const CFloatHandle& _reccurentFullyConnectedResult,
-		int _hiddenSize, int _objectCount, int _objectSize, IMathEngine* _mathEngine, int _threadCount ) :
-			inputFullyConnectedResult( _inputFullyConnectedResult ),
-			reccurentFullyConnectedResult( _reccurentFullyConnectedResult ),
-			hiddenSize( _hiddenSize ),
-			objectCount( _objectCount ),
-			objectSize( _objectSize ),
-			mathEngine( _mathEngine ),
-			threadCount( _threadCount )
-	{}
+	CMathEngineLstmDesc( int hiddenSize, int objectSize, const CConstFloatHandle& inputWeights,
+		const CConstFloatHandle& inputFreeTerm, const CConstFloatHandle& recurWeights,
+		const CConstFloatHandle& recurFreeTerm );
 	~CMathEngineLstmDesc() override;
-
-	void Reset( const CFloatHandle& _inputFullyConnectedResult, const CFloatHandle& _reccurentFullyConnectedResult,
-		int _hiddenSize, int _objectCount, int _objectSize, IMathEngine* _mathEngine, int _threadCount ) {
-		inputFullyConnectedResult = _inputFullyConnectedResult;
-		reccurentFullyConnectedResult = _reccurentFullyConnectedResult;
-		hiddenSize = _hiddenSize;
-		objectCount = _objectCount;
-		objectSize = _objectSize;
-		mathEngine = _mathEngine;
-		threadCount = _threadCount;
-	}
 
 	static int constexpr GatesNum = 4;
 
-	CFloatHandle inputFullyConnectedResult;
-	CFloatHandle reccurentFullyConnectedResult;
-	int hiddenSize; 
-	int objectCount;
-	int objectSize;
-	IMathEngine* mathEngine;
-	int threadCount;
+	const int HiddenSize;
+	const int ObjectSize;
+	const float* const InputWeights;
+	const float* const RecurWeights;
+	const std::unique_ptr<CFloatHandleVar> FreeTermVar;
+	const float* FreeTerm;
 
-	virtual void RunOnceRestOfLstm( const CConstFloatHandle& inputStateBackLink,
-		const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink );
+	virtual void RunOnceRestOfLstm( int objectCount, float* fullyConnectedResult, const float* inputStateBackLink,
+		float* outputStateBackLink, float* outputMainBackLink );
 };
 
-inline void CMathEngineLstmDesc::RunOnceRestOfLstm( const CConstFloatHandle& inputStateBackLink, 
-	const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink )
+inline void CMathEngineLstmDesc::RunOnceRestOfLstm( int objectCount, float* fullyConnectedResult,
+	const float* inputStateBackLink, float* outputStateBackLink, float* outputMainBackLink )
 {
 	// Elementwise summ of fully connected layers' results (inplace)
-	const int ResultMatrixWidth = CMathEngineLstmDesc::GatesNum * hiddenSize;
+	const int resultMatrixWidth = CMathEngineLstmDesc::GatesNum * HiddenSize;
 
-	const int curThreadCount = IsOmpRelevant( static_cast< int >( objectCount ) ) ? threadCount : 1;
-	NEOML_OMP_NUM_THREADS( curThreadCount ) {
-		int offt, count;
-		if( OmpGetTaskIndexAndCount( static_cast< int >( objectCount ), offt, count ) ) {
-			const int OffsetFullyConnectedResult = offt * ResultMatrixWidth;
-			const int OffsetBackLink = offt * hiddenSize;
-			const int CurDataSize = count * hiddenSize;
-			const CFloatHandle& curInputFullyConnectedResult = inputFullyConnectedResult + OffsetFullyConnectedResult;
-			const CFloatHandle& curReccurentFullyConnectedResult = reccurentFullyConnectedResult + OffsetFullyConnectedResult;
-			
-			const CFloatHandle& hiddenLayerSum = curInputFullyConnectedResult;
-			mathEngine->VectorAdd( curInputFullyConnectedResult, curReccurentFullyConnectedResult,
-				hiddenLayerSum, count * ResultMatrixWidth );
+	// Rearrange sum
+	float* inputTanhData = fullyConnectedResult;
+	float* forgetData = inputTanhData + HiddenSize;
+	float* inputData = forgetData + HiddenSize;
+	float* outputData = inputData + HiddenSize;
 
-			// Rearrange sum
-			const CFloatHandle& hiddenLayerSumRearranged = curReccurentFullyConnectedResult;
-			CFloatHandle inputTanhData = hiddenLayerSumRearranged;
-			CFloatHandle forgetData = inputTanhData + CurDataSize;
-			CFloatHandle inputData = forgetData + CurDataSize;
-			CFloatHandle outputData = inputData + CurDataSize;
+	for( int i = 0; i < objectCount; ++i ) {
+		// Apply activations
+		NeoML::vectorTanh( inputTanhData, inputTanhData, HiddenSize );
 
-			float* rawFrom = GetRaw( hiddenLayerSum );
-			float* rawTo = GetRaw( hiddenLayerSumRearranged );
-			for( int x = 0; x < count; x++ ) {
-				const float* input = rawFrom + x * ResultMatrixWidth;
-				for( int i = 0; i < CMathEngineLstmDesc::GatesNum; ++i ) {
-					memcpy( ( rawTo + i * CurDataSize ) + x * hiddenSize, input, hiddenSize * sizeof( float ) );
-					input += hiddenSize;
-				}
-			}
+		NeoML::vectorSigmoid( forgetData, forgetData, HiddenSize );
+		NeoML::vectorSigmoid( inputData, inputData, HiddenSize );
+		NeoML::vectorSigmoid( outputData, outputData, HiddenSize );
 
-			// Apply activations
-			NeoML::vectorTanh( GetRaw( inputTanhData ), GetRaw( inputTanhData ), CurDataSize );
-			
-			NeoML::vectorSigmoid( GetRaw( forgetData ), GetRaw( forgetData ), CurDataSize );
-			NeoML::vectorSigmoid( GetRaw( inputData ), GetRaw( inputData ), CurDataSize );
-			NeoML::vectorSigmoid( GetRaw( outputData ), GetRaw( outputData ), CurDataSize );
-			
-			// Multiply input gates
-			NeoML::vectorEltwiseMultiply( GetRaw( inputData ), GetRaw( inputTanhData ), GetRaw( inputData ), CurDataSize );
+		// Multiply input gates
+		NeoML::vectorEltwiseMultiply( inputData, inputTanhData, inputData, HiddenSize );
 
-			// Multiply state backlink with forget gate
-			NeoML::vectorEltwiseMultiply( GetRaw( forgetData ), GetRaw( inputStateBackLink + OffsetBackLink ), GetRaw( forgetData ), CurDataSize );
+		// Multiply state backlink with forget gate
+		NeoML::vectorEltwiseMultiply( forgetData, inputStateBackLink, forgetData, HiddenSize );
 
-			// Append input gate to state backlink
-			NeoML::vectorAdd( GetRaw( forgetData ), GetRaw( inputData ), GetRaw( outputStateBackLink + OffsetBackLink ), CurDataSize );
+		// Append input gate to state backlink
+		NeoML::vectorAdd( forgetData, inputData, outputStateBackLink, HiddenSize );
 
-			// Apply tanh to state baclink
-			NeoML::vectorTanh( GetRaw( outputStateBackLink + OffsetBackLink ), GetRaw( inputData ), CurDataSize );
+		// Apply tanh to state baclink
+		NeoML::vectorTanh( outputStateBackLink, inputData, HiddenSize );
 
-			// Multiply output gate with result of previous operation
-			NeoML::vectorEltwiseMultiply( GetRaw( outputData ), GetRaw( inputData ), GetRaw( outputMainBackLink + OffsetBackLink ), CurDataSize );
-		}
+		// Multiply output gate with result of previous operation
+		NeoML::vectorEltwiseMultiply( outputData, inputData, outputMainBackLink, HiddenSize );
+
+		inputTanhData += resultMatrixWidth;
+		forgetData += resultMatrixWidth;
+		inputData += resultMatrixWidth;
+		outputData += resultMatrixWidth;
+		inputStateBackLink += HiddenSize;
+		outputStateBackLink += HiddenSize;
+		outputMainBackLink += HiddenSize;
 	}
 }
 

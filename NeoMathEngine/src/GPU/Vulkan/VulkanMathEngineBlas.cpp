@@ -802,34 +802,34 @@ void CVulkanMathEngine::MatrixSoftmaxDiffOpByColumns(const CConstFloatHandle&, c
 	ASSERT_EXPR( false );
 }
 
-void CVulkanMathEngine::MultiplyMatrixByDiagMatrix( const CConstFloatHandle& firstHandle, int firstHeight, int firstWidth,
-	const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int resultBufferSize )
+void CVulkanMathEngine::BatchMultiplyMatrixByDiagMatrix( int batchSize, const CConstFloatHandle& firstHandle, int height,
+	int width, int, const CConstFloatHandle& secondHandle, int, const CFloatHandle& resultHandle, int resultBufferSize )
 {
-	const int batchSize = 1;
+	ASSERT_EXPR( batchSize == 1 );
 	const int secondBatchSize = 1;
-	int matrixSize = batchSize * firstHeight * firstWidth;
+	int matrixSize = batchSize * height * width;
 
 	ASSERT_EXPR( resultBufferSize >= matrixSize );
 
 	if( device->Type == VDT_Adreno ) {
 		const CVulkanImage* samplers[] =
-		{ &batchVectorToImage( secondBatchSize, secondHandle, firstWidth, TVI_DiagMatrix ) };
+		{ &batchVectorToImage( secondBatchSize, secondHandle, width, TVI_DiagMatrix ) };
 
 		CMemoryHandle bufs[2] = { firstHandle, resultHandle };
 		size_t sizes[2] = { matrixSize * sizeof( float ), matrixSize * sizeof( float ) };
 
-		PARAM_STRUCT( MultiplyMatrixByDiagMatrixAdreno ) param = { batchSize, secondBatchSize, firstHeight, firstWidth, 0 };
+		PARAM_STRUCT( MultiplyMatrixByDiagMatrixAdreno ) param = { batchSize, secondBatchSize, height, width, 0 };
 
 		runShader( shaderLoader->GET_SHADER_DATA( MultiplyMatrixByDiagMatrixAdreno, true, 0, 1, 2 ),
-			&param, sizeof( param ), 0, 0, samplers, 1, bufs, sizes, 2, Ceil( firstWidth, 4 ), batchSize * firstHeight, 1 );
+			&param, sizeof( param ), 0, 0, samplers, 1, bufs, sizes, 2, Ceil( width, 4 ), batchSize * height, 1 );
 	} else {
 		CMemoryHandle bufs[3] = { firstHandle, secondHandle, resultHandle };
-		size_t sizes[3] = { matrixSize * sizeof( float ), firstWidth * sizeof( float ), matrixSize * sizeof( float ) };
+		size_t sizes[3] = { matrixSize * sizeof( float ), width * sizeof( float ), matrixSize * sizeof( float ) };
 
-		PARAM_STRUCT( MultiplyMatrixByDiagMatrix ) param = { batchSize, secondBatchSize, firstHeight, firstWidth, 0 };
+		PARAM_STRUCT( MultiplyMatrixByDiagMatrix ) param = { batchSize, secondBatchSize, height, width, 0 };
 
 		runShader( shaderLoader->GET_SHADER_DATA( MultiplyMatrixByDiagMatrix, true, 0, 0, 3 ),
-			&param, sizeof( param ), 0, 0, 0, 0, bufs, sizes, 3, Ceil( firstWidth, 4 ), batchSize * firstHeight, 1 );
+			&param, sizeof( param ), 0, 0, 0, 0, bufs, sizes, 3, Ceil( width, 4 ), batchSize * height, 1 );
 	}
 }
 

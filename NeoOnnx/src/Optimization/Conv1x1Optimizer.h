@@ -1,10 +1,10 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,18 +15,22 @@ limitations under the License.
 
 #pragma once
 
-#include "../LayerOperator.h"
+// Forward declaration(s)
+namespace NeoML {
+namespace optimization {
+class CGraph;
+} // namespace optimization
+} // namespace NeoML
 
 namespace NeoOnnx {
 
-// Softmax operator
-class CSoftmaxOperator : public CLayerOperator {
-public:
-	CSoftmaxOperator( const onnx::NodeProto& softmax, int opsetVersion );
+namespace optimization {
 
-protected:
-	// CLayerOperator methods
-	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
-};
+// In order to train faster on PyTorch sometimes 1x1 Convolutions are replaced with MatMul + Add
+// This optimizer replaces these operations with convolution (it's better for NeoML::OptimizeDnn)
+int OptimizeConv1x1( NeoML::optimization::CGraph& graph );
+
+} // namespace optimization
 
 } // namespace NeoOnnx
+

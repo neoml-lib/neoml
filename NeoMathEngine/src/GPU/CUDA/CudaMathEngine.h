@@ -373,8 +373,9 @@ public:
 	void MultiplyMatrixByMatrix( int batchSize, const CConstFloatHandle& firstHandle, int firstHeight,
 		int firstWidth, const CConstFloatHandle& secondHandle, int secondWidth,
 		const CFloatHandle& resultHandle, int resultBufferSize ) override;
-	void MultiplyMatrixByDiagMatrix( const CConstFloatHandle& firstHandle, int firstHeight, int firstWidth,
-		const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int resultBufferSize ) override;
+	void BatchMultiplyMatrixByDiagMatrix( int batchSize, const CConstFloatHandle& firstHandle, int height,
+		int width, int firstMatrixOffset, const CConstFloatHandle& secondHandle, int secondMatrixOffset,
+		const CFloatHandle& resultHandle, int resultBufferSize ) override;
 	void TransposeMatrix( int batchSize, const CConstFloatHandle& firstHandle,
 		int height, int medium, int width, int channels, const CFloatHandle& resultHandle, int resultBufferSize ) override;
 	void TransposeMatrix( int batchSize, const CConstIntHandle& firstHandle,
@@ -565,13 +566,13 @@ public:
 	void BertConvBackward( const CConstFloatHandle& dataHandle, const CConstFloatHandle& kernelHandle,
 		const CConstFloatHandle& outDiffHandle, int seqLen, int batchSize, int numHeads, int headSize, int kernelSize,
 		const CFloatHandle& dataDiffHandle, const CFloatHandle& kernelDiffHandle ) override;
-	CLstmDesc* InitLstm( CLstmDesc* currentDesc, const CFloatHandle& inputFullyConnectedResult, const CFloatHandle& reccurentFullyConnectedResult,
-		int hiddenSize, int objectCount, int objectSize ) override;
-	void Lstm( CLstmDesc& desc,
-		const CFloatHandle& inputWeights, const CConstFloatHandle& inputFreeTerm,
-		const CFloatHandle& recurrentWeights, const CConstFloatHandle& recurrentFreeTerm,
-		const CConstFloatHandle& inputStateBackLink, const CConstFloatHandle& inputMainBackLink, const CConstFloatHandle& input,
-		const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink ) override;
+	CLstmDesc* InitLstm( int hiddenSize, int objectSize,
+		const CConstFloatHandle& inputWeights, const CConstFloatHandle& inputFreeTerm,
+		const CConstFloatHandle& recurrentWeights, const CConstFloatHandle& recurrentFreeTerm ) override;
+	void Lstm( CLstmDesc& desc, bool reverse, int sequenceLength, int sequenceCount,
+		const CConstFloatHandle& inputStateBackLink, const CConstFloatHandle& inputMainBackLink,
+		const CConstFloatHandle& input, const CFloatHandle& outputStateBackLink,
+		const CFloatHandle& outputMainBackLink ) override;
 	void LinearInterpolation( const CConstFloatHandle& dataHandle, const CFloatHandle& resultHandle,
 		TInterpolationCoords coords, TInterpolationRound round, int objectCount, int scaledAxis,
 		int objectSize, float scale ) override;
@@ -719,6 +720,9 @@ private:
 		int firstHeight, int firstWidth, int firstRowSize,
 		const CConstFloatHandle& secondHandle, int secondHeight, int secondRowSize,
 		const CFloatHandle& resultHandle, int resultRowSize );
+	void multiplyMatrixByDiagMatrix( int batchSize, const CConstFloatHandle& firstHandle, int height,
+		int width, int firstMatrixOffset, const CConstFloatHandle& secondHandle, int secondMatrixOffset,
+		const CFloatHandle& resultHandle );
 
 	void setVectorToMatrixElements( const CFloatHandle& matrix, int height, int width,
 		const CConstIntHandle& rowIndices, const CConstIntHandle& columnIndices,

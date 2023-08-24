@@ -22,7 +22,6 @@ limitations under the License.
 #include <NeoMathEngine/BlobDesc.h>
 #include <NeoMathEngine/SparseMatrixDesc.h>
 #include <NeoMathEngine/LookupData.h>
-#include <NeoMathEngine/OpenMP.h>
 #include <NeoMathEngine/CrtAllocatedObject.h>
 #include <NeoMathEngine/PerformanceCounters.h>
 #include <NeoMathEngine/NeoMathEngineException.h>
@@ -582,8 +581,19 @@ public:
 		int firstWidth, const CConstFloatHandle& secondHandle, int secondWidth,
 		const CFloatHandle& resultHandle, int resultBufferSize ) = 0;
 
-	virtual void MultiplyMatrixByDiagMatrix(const CConstFloatHandle& firstHandle, int firstHeight, int firstWidth,
-		const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int resultBufferSize) = 0;
+	// Multiplies batch of matrices height x width by a batch of diag matrces of size width
+	// Matrix offsets sets how many elements must be added to the pointer to move to the next matrix
+	// Setting matrixOffset to 0 transforms this function into multiply-one-by-many or multiply-many-by-one
+	// Result always consists of batch matrices of size height x width
+	virtual void BatchMultiplyMatrixByDiagMatrix( int batchSize, const CConstFloatHandle& firstHandle, int height,
+		int width, int firstMatrixOffset, const CConstFloatHandle& secondHandle, int secondMatrixOffset,
+		const CFloatHandle& resultHandle, int resultBufferSize ) = 0;
+	void MultiplyMatrixByDiagMatrix( const CConstFloatHandle& firstHandle, int firstHeight, int firstWidth,
+		const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int resultBufferSize )
+	{
+		BatchMultiplyMatrixByDiagMatrix( 1, firstHandle, firstHeight, firstWidth, firstHeight * firstWidth,
+			secondHandle, firstWidth, resultHandle, resultBufferSize );
+	}
 
 	// Transposes a set of matrices stored one after another. A matrix cell is of "channels" size
 	virtual void TransposeMatrix(int batchSize, const CConstFloatHandle& firstHandle,
@@ -991,15 +1001,14 @@ public:
 		const CConstFloatHandle& outputDiff, const CConstFloatHandle& invSum, const CConstFloatHandle& invSumBeta,
 		const CFloatHandle& inputDiff ) = 0;
 
-	// If currentDesc isn't nullptr, it will be reinitialized with new values and pointer to it will be returned.
-	// Otherwise new descriptor will be created.
-	virtual CLstmDesc* InitLstm( CLstmDesc* currentDesc, const CFloatHandle& inputFullyConnectedResult, const CFloatHandle& reccurentFullyConnectedResult,
-		int hiddenSize, int objectCount, int objectSize ) = 0;
-	virtual void Lstm( CLstmDesc& desc, 
-		const CFloatHandle& inputWeights, const CConstFloatHandle& inputFreeTerm,
-		const CFloatHandle& recurrentWeights, const CConstFloatHandle& recurrentFreeTerm,
-		const CConstFloatHandle& inputStateBackLink, const CConstFloatHandle& inputMainBackLink, const CConstFloatHandle& input,
-		const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink ) = 0;
+	// Creates descriptor of LSTM with given weights be created.
+	virtual CLstmDesc* InitLstm( int hiddenSize, int objectSize,
+		const CConstFloatHandle& inputWeights, const CConstFloatHandle& inputFreeTerm,
+		const CConstFloatHandle& recurrentWeights, const CConstFloatHandle& recurrentFreeTerm ) = 0;
+	virtual void Lstm( CLstmDesc& desc, bool reverse, int sequenceLength, int sequenceCount,
+		const CConstFloatHandle& inputStateBackLink, const CConstFloatHandle& inputMainBackLink,
+		const CConstFloatHandle& input, const CFloatHandle& outputStateBackLink,
+		const CFloatHandle& outputMainBackLink ) = 0;
 
 	// CTC
 
@@ -1217,12 +1226,14 @@ public:
 
 //------------------------------------------------------------------------------------------------------------
 
-// Creates a math engine that uses a CPU for calculations
-// You should call SetMathEngineExceptionHandler() before this call
-// threadCount is the number of threads that may be used;
-// the default value is 0, which means as many threads as the CPU has cores
-// This math engine should be destroyed using the standard delete operator after use
-NEOMATHENGINE_API IMathEngine* CreateCpuMathEngine( int threadCount, size_t memoryLimit );
+// Creates a math engine that uses a CPU for calculations.
+// You should call SetMathEngineExceptionHandler() before this call.
+// the default value is 0, which means as many memory as the system has.
+// This math engine should be destroyed using the standard delete operator after use.
+NEOMATHENGINE_API IMathEngine* CreateCpuMathEngine( size_t memoryLimit );
+
+// deprecated
+NEOMATHENGINE_API IMathEngine* CreateCpuMathEngine( int /*deprecated*/, size_t memoryLimit );
 
 // Destroys all global data that is shared between CPU math engines
 // Should be called only if there are no running CpuMathEngine instances

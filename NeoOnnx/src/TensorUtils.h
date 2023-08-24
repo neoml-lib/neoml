@@ -23,6 +23,7 @@ limitations under the License.
 
 #include "NeoOnnxCheck.h"
 #include "Tensor.h"
+#include "Optimization/Graph.h"
 
 namespace NeoOnnx {
 
@@ -133,13 +134,30 @@ inline void LoadBlobData( const onnx::TensorProto& src, CDnnBlob& dest )
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-// Auxiliary tensor layout functions
+// Layout conversion functions
+
+class ITensorLayoutValidator {
+public:
+	virtual ~ITensorLayoutValidator() = default;
+
+	// Returns whether the given layout satisfies the criteria
+	virtual bool operator()( const CTensorLayout& layout ) const = 0;
+};
+
+// Converts tensor to the layout accepted by validator
+CPtr<const CTensorBase> ConvertTensor( const CTensorBase& inputTensor, const ITensorLayoutValidator& validator );
+CPtr<const CUserTensor> ConvertTensor( const CUserTensor& inputTensor, const ITensorLayoutValidator& validator );
 
 // Converts tensor to the given layout
 CPtr<const CTensorBase> ConvertTensor( const CTensorBase& inputTensor, const CTensorLayout& destLayout );
 CPtr<const CUserTensor> ConvertTensor( const CUserTensor& inputTensor, const CTensorLayout& destLayout );
 CPtr<const CDataTensor> ConvertTensor( const CDataTensor& inputTensor, const CTensorLayout& destLayout );
 CPtr<const CShapeTensor> ConvertTensor( const CShapeTensor& inputTensor, const CTensorLayout& destLayout );
+
+// Layout conversion during optimizations
+optimization::CLayerOutput<> ConvertTensor( const optimization::CLayerOutput<>& inputData,
+	const CTensorLayout& inputLayout, const ITensorLayoutValidator& validator,
+	optimization::CGraph& graph, CTensorLayout& outputLayout );
 
 //---------------------------------------------------------------------------------------------------------------------
 // Auxiliary tensor padding functions
@@ -189,7 +207,10 @@ struct CBroadcast {
 bool BroadcastTensorShape( const CTensorShape& first, const CTensorShape& second, const CBroadcast& broadcast,
 	CTensorShape& result );
 
-// Prepares user tensor for CBroadcastLayer
+// Generates layout recommended for broadcasting given tensor
+CTensorLayout BroadcastTensorLayout( const CTensorLayout& inputLayout, const CBroadcast& broadcast, int outputDims );
+
+// Prepares tensor for operation with broadcast
 CPtr<const CTensorBase> PrepareForBroadcast( const CTensorBase& input, const CBroadcast& broadcast, int outputDims );
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -209,6 +230,68 @@ CPtr<const CShapeTensor> AsShapeTensor( const CFastArray<float, 8>& data, const 
 // Extracts shape to the given array
 // Throws an exception if CUserTensor is provided (CUserTensor doesn't have shape)
 void GetTensorShape( const CTensorBase& tensor, CTensorShape& shape );
+
+//---------------------------------------------------------------------------------------------------------------------
+// Implementations of ITensorLayoutValidator
+
+// Validator which considers as a valid only etalon layout
+class CTensorLayoutMatchValidator : public ITensorLayoutValidator {
+public:
+	explicit CTensorLayoutMatchValidator( const CTensorLayout& etalon ) : etalon( etalon ) {}
+
+	bool operator()( const CTensorLayout& layout ) const override { return etalon == layout; }
+
+private:
+	CTensorLayout etalon;
+};
+
+// Validator which considers any ONNX-compatible layout as valid
+class COnnxTensorLayoutValidator : public ITensorLayoutValidator {
+public:
+	bool operator()( const CTensorLayout& layout ) const override { return !IsTransposedLayout( layout ); }
+};
+
+// Validator which considers NeoML-compatible image layouts as valid
+class CNeoMLImageLayoutValidator : public ITensorLayoutValidator {
+public:
+	bool operator()( const CTensorLayout& layout ) const override;
+};
+
+inline bool CNeoMLImageLayoutValidator::operator()( const CTensorLayout& layout ) const
+{
+	if( ( !layout.IsEmpty() && layout[0] >= BD_Height ) || ( layout.Size() > 1 && layout[1] != BD_Channels ) ) {
+		return false;
+	}
+
+	for( int i = 2; i < layout.Size(); ++i ) {
+		if( layout[i] != BD_Height + ( i - 2 ) ) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+// Validator for batch normalization operator
+class CBatchNormLayoutValidator : public ITensorLayoutValidator {
+public:
+	bool operator()( const CTensorLayout& layout ) const override;
+};
+
+inline bool CBatchNormLayoutValidator::operator()( const CTensorLayout& layout ) const
+{
+	if( ( !layout.IsEmpty() && layout[0] >= BD_Height ) || ( layout.Size() > 1 && layout[1] != BD_Channels ) ) {
+		return false;
+	}
+
+	for( int i = 2; i < layout.Size(); ++i ) {
+		if( layout[i] < BD_Height || layout[i] == BD_Channels ) {
+			return false;
+		}
+	}
+
+	return true;
+}
 
 } // namespace NeoOnnx
 

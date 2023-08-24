@@ -231,6 +231,13 @@ void CGraph::SelectLayer( CBaseLayer& layer )
 	selection.Add( &layer );
 }
 
+void CGraph::UndoSelectLayer( CBaseLayer& layer )
+{
+	NeoAssert( HasLayer( &layer ) );
+	NeoAssert( IsLayerSelected( layer ) );
+	selection.Delete( &layer );
+}
+
 void CGraph::DeleteSelectedLayers()
 {
 	for( int pos = selection.GetFirstPosition(); pos != NotFound; pos = selection.GetNextPosition( pos ) ) {

@@ -76,6 +76,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/FullyConnectedSourceLayer.h>
 #include <NeoML/Dnn/Layers/GlobalMaxPoolingLayer.h>
 #include <NeoML/Dnn/Layers/GlobalSumPoolingLayer.h>
+#include <NeoML/Dnn/Layers/GrnLayer.h>
 #include <NeoML/Dnn/Layers/GruLayer.h>
 #include <NeoML/Dnn/Layers/ImageAndPixelConversionLayer.h>
 #include <NeoML/Dnn/Layers/ImageResizeLayer.h>
@@ -348,6 +349,7 @@ REGISTER_NEOML_LAYER( CCtcLossLayer, "FmlCnnCtcLossLayer" )
 REGISTER_NEOML_LAYER( CDotProductLayer, "FmlCnnDotProductLayer" )
 REGISTER_NEOML_LAYER( CEnumBinarizationLayer, "FmlCnnEnumBinarizationLayer" )
 REGISTER_NEOML_LAYER( CGlobalMaxPoolingLayer, "FmlCnnGlobalMaxPoolingLayer" )
+REGISTER_NEOML_LAYER( CGrnLayer, "NeoMLDnnGrnLayer" )
 REGISTER_NEOML_LAYER( CGruLayer, "FmlCnnGruLayer" )
 REGISTER_NEOML_LAYER( CImageResizeLayer, "FmlCnnImageResizeLayer" )
 REGISTER_NEOML_LAYER( CImageToPixelLayer, "FmlCnnImageToPixelLayerClass" )

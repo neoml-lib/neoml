@@ -95,14 +95,13 @@ void CNonZeroOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensor
 	inputs[0]->Layout().CopyTo( nonZeroLayer->InputLayout() );
 	dnn.AddLayer( *nonZeroLayer );
 
-	CTensorLayout inputLayout = IsTransposedLayout( inputs[0]->Layout() ) ? CTensorLayout( inputs[0]->DimCount() )
-		: inputs[0]->Layout();
-	CTensorLayout outputLayout = inputLayout;
+	CPtr<const CShapeTensor> input = AsShapeTensor( *ConvertTensor( *inputs[0], COnnxTensorLayoutValidator() ),
+		Name() + "_Source", dnn );
+	CTensorLayout outputLayout = input->Layout();
 	if( outputLayout.Size() > 2 ) {
 		outputLayout.SetSize( 2 );
 	}
 
-	CPtr<const CShapeTensor> input = AsShapeTensor( *ConvertTensor( *inputs[0], inputLayout ), Name() + "_Source", dnn );
 	nonZeroLayer->Connect( 0, *input->Layer(), input->OutputIndex() );
 	outputs.Add( new CUserTensor( outputLayout, CLayerOutput( nonZeroLayer, 0 ) ) );
 }

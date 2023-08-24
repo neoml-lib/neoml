@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,25 +13,26 @@ See the License for the specific language governing permissions and
 limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
-// These functions work with raw pointers, may be called from OMP sections and perform no parameter checks
-
 #pragma once
 
-#include <NeoMathEngine/NeoMathEngineDefs.h>
-
-#ifdef NEOML_USE_NEON
-
-#include <CpuArm.h>
-
+// Forward declaration(s)
 namespace NeoML {
-
-inline void setVectorToMatrixRows( float* result, int matrixHeight, int matrixWidth, const float* vector )
-{
-	for(int i = 0; i < matrixHeight; i++) {
-		dataCopy( result + i * matrixWidth, vector, matrixWidth );
-	}
-}
-
+class COnnxEltwiseLayer;
+namespace optimization {
+class CGraph;
+} // namespace optimization
 } // namespace NeoML
 
-#endif
+namespace NeoOnnx {
+
+namespace optimization {
+
+// ONNX doesn't support GELU as an operation (till opset v20)
+// Because of this GELU is written into ONNX as a subgraph
+// This optimizer replaces these subgraphs with CGELULayer
+// Returns the number of detected layers
+int OptimizeGELU( NeoML::optimization::CGraph& graph );
+
+} // namespace optimization
+
+} // namespace NeoOnnx

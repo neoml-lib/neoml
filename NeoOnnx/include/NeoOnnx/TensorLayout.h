@@ -29,9 +29,11 @@ public:
 	explicit CTensorLayout( int dimCount );
 	explicit CTensorLayout( std::initializer_list<TBlobDim> list ) : CFastArray<TBlobDim, 8>( list ) {}
 	CTensorLayout( const CTensorLayout& other ) : CFastArray<TBlobDim, 8>() { other.CopyTo( *this ); }
+	CTensorLayout( CTensorLayout&& other ) : CFastArray<TBlobDim, 8>() { other.MoveTo( *this ); }
 
 	CTensorLayout& operator=( std::initializer_list<TBlobDim> list );
 	CTensorLayout& operator=( const CTensorLayout& other );
+	CTensorLayout& operator=( CTensorLayout&& other );
 
 	bool operator==( const CTensorLayout& other ) const;
 	bool operator!=( const CTensorLayout& other ) const { return !operator==( other ); }
@@ -83,9 +85,15 @@ inline CTensorLayout& CTensorLayout::operator=( std::initializer_list<TBlobDim> 
 	return *this;
 }
 
-inline CTensorLayout& CTensorLayout::operator=(  const CTensorLayout& other )
+inline CTensorLayout& CTensorLayout::operator=( const CTensorLayout& other )
 {
 	other.CopyTo( *this );
+	return *this;
+}
+
+inline CTensorLayout& CTensorLayout::operator=( CTensorLayout&& other )
+{
+	other.MoveTo( *this );
 	return *this;
 }
 

@@ -119,6 +119,7 @@ set(NeoML_SOURCES
     Dnn/Layers/FullyConnectedSourceLayer.cpp
     Dnn/Layers/GlobalMaxPoolingLayer.cpp
     Dnn/Layers/GlobalSumPoolingLayer.cpp
+    Dnn/Layers/GrnLayer.cpp
     Dnn/Layers/GruLayer.cpp
     Dnn/Layers/ImageAndPixelConversionLayer.cpp
     Dnn/Layers/ImageResizeLayer.cpp
@@ -376,6 +377,7 @@ set(NeoML_HEADERS
     ../include/NeoML/Dnn/Layers/FullyConnectedSourceLayer.h
     ../include/NeoML/Dnn/Layers/GlobalMaxPoolingLayer.h
     ../include/NeoML/Dnn/Layers/GlobalSumPoolingLayer.h
+    ../include/NeoML/Dnn/Layers/GrnLayer.h
     ../include/NeoML/Dnn/Layers/GruLayer.h
     ../include/NeoML/Dnn/Layers/ImageAndPixelConversionLayer.h
     ../include/NeoML/Dnn/Layers/ImageResizeLayer.h

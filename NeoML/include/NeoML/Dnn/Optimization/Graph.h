@@ -150,6 +150,9 @@ public:
 	// Adds the layer to selection
 	void SelectLayer( CBaseLayer& layer );
 
+	// Removes layer from selection
+	void UndoSelectLayer( CBaseLayer& layer );
+
 	// Checks that the layer connected to the given input can be casted to TOutputLayer
 	// Then if checkOutOfSelectionLinks == true it performs additional check
 	// that every layer connected to !any! of CLayerOutput<>.Layer outputs has already been selected
@@ -160,7 +163,7 @@ public:
 	CLayerOutput<TOutputLayer> SelectConnectedOutput( CBaseLayer& inputLayer, int inputIndex,
 		bool checkOutOfSelectionLinks );
 
-	template<typename TOutLayer>
+	template<typename TOutLayer = CBaseLayer>
 	TOutLayer* SelectTheOnlyConnectedOutput( const CBaseLayer& layer, bool checkOutOfSelectionLinks = false );
 
 	// Checks that the layer has 2 inputs, and that those inputs are connected

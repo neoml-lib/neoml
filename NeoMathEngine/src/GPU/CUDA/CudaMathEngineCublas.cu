@@ -149,23 +149,31 @@ void CCudaMathEngine::multiplyMatrixByTransposedMatrixAndAdd(const CConstFloatHa
 		GetRaw( resultHandle ), resultRowSize ) );
 }
 
-void CCudaMathEngine::MultiplyMatrixByDiagMatrix(const CConstFloatHandle& firstHandle, int firstHeight, int firstWidth,
-	const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int)
+void CCudaMathEngine::BatchMultiplyMatrixByDiagMatrix( int batchSize, const CConstFloatHandle& firstHandle, int height,
+	int width, int firstMatrixOffset, const CConstFloatHandle& secondHandle, int secondMatrixOffset,
+	const CFloatHandle& resultHandle, int )
 {
-	if( firstHeight == 1 ) {
-		VectorEltwiseMultiply( firstHandle, secondHandle, resultHandle, firstWidth );
+	if( height == 1 && batchSize == 1 ) {
+		VectorEltwiseMultiply( firstHandle, secondHandle, resultHandle, width );
 		return;
-	} else if( firstWidth == 1 ) {
-		VectorMultiply( firstHandle, resultHandle, firstHeight, secondHandle );
+	} else if( width == 1 && batchSize == 1 ) {
+		VectorMultiply( firstHandle, resultHandle, height, secondHandle );
 		return;
 	}
 
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-	SetCudaDevice( device->DeviceNumber );
-	ASSERT_CUBLAS( cublas->Sdgmm( cublasHandle, CUBLAS_SIDE_LEFT, firstWidth, firstHeight, GetRaw( firstHandle ), firstWidth,
-		GetRaw( secondHandle ), 1, GetRaw( resultHandle ), firstWidth ) );
+
+	if( batchSize == 1 ) {
+		SetCudaDevice( device->DeviceNumber );
+		ASSERT_CUBLAS( cublas->Sdgmm( cublasHandle, CUBLAS_SIDE_LEFT, width, height, GetRaw( firstHandle ), width,
+			GetRaw( secondHandle ), 1, GetRaw( resultHandle ), width ) );
+		return;
+	}
+
+	multiplyMatrixByDiagMatrix( batchSize, firstHandle, height, width, firstMatrixOffset, secondHandle,
+		secondMatrixOffset, resultHandle );
 }
 
 } // namespace NeoML

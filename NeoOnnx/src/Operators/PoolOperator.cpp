@@ -69,9 +69,8 @@ void CPoolOperatorBase::AddLayersImpl( const CTensorArray& inputs, float padValu
 
 	pooling.SetName( Name() );
 
-	CTensorLayout expectedLayout( { BD_BatchWidth, BD_Channels, BD_Height, BD_Width } );
-	expectedLayout.SetSize( inputs[0]->DimCount() );
-	CPtr<const CUserTensor> input = AsUserTensor( *ConvertTensor( *inputs[0], expectedLayout ), Name() + "_Source", dnn );
+	CPtr<const CUserTensor> input = AsUserTensor( *ConvertTensor( *inputs[0], CNeoMLImageLayoutValidator() ),
+		Name() + "_Source", dnn );
 	input = PadUserTensor( *input, pads, TBlobResizePadding::Constant, padValue );
 
 	pooling.SetFilterHeight( kernelShape[0] );
