@@ -49,8 +49,8 @@ public:
 	virtual void Tanh( float* dst, const float* src, size_t dataSize ) = 0;
 	virtual void Sigmoid( float* dst, const float* src, size_t dataSize ) = 0;
 	virtual void Exp( float* dst, const float* src, size_t dataSize ) = 0;
-	virtual void RunOnceRestOfLstm( CMathEngineLstmDesc* desc, const CConstFloatHandle& inputStateBackLink,
-		const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink ) = 0;
+	virtual void RunOnceRestOfLstm( CMathEngineLstmDesc* desc, int sequenceCount, float* fullyConnectedResult,
+		const float* inputStateBackLink, float* outputStateBackLink, float* outputMainBackLink ) = 0;
 };
 
 }

@@ -68,8 +68,8 @@ public:
 	void Tanh( float* dst, const float* src, size_t dataSize ) override;
 	void Sigmoid( float* dst, const float* src, size_t dataSize ) override;
 	void Exp( float* dst, const float* src, size_t dataSize ) override;
-	void RunOnceRestOfLstm( CMathEngineLstmDesc* desc, const CConstFloatHandle& inputStateBackLink,
-		const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink ) override;
+	void RunOnceRestOfLstm( CMathEngineLstmDesc* desc, int sequenceCount, float* fullyConnectedResult,
+		const float* inputStateBackLink, float* outputStateBackLink, float* outputMainBackLink ) override;
 
 private:
 	IMathEngine* const mathEngine;
@@ -125,10 +125,11 @@ void CAvxMathEngine::Exp( float* dst, const float* src, size_t dataSize )
 	primitives.Exp( dst, src, dataSize );
 }
 
-void CAvxMathEngine::RunOnceRestOfLstm( CMathEngineLstmDesc* desc, const CConstFloatHandle& inputStateBackLink,
-	const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink )
+void CAvxMathEngine::RunOnceRestOfLstm( CMathEngineLstmDesc* desc, int sequenceCount, float* fullyConnectedResult,
+	const float* inputStateBackLink, float* outputStateBackLink, float* outputMainBackLink )
 {
-	primitives.RestOfLstm( desc, inputStateBackLink, outputStateBackLink, outputMainBackLink );
+	primitives.RestOfLstm( desc, sequenceCount, fullyConnectedResult, inputStateBackLink, outputStateBackLink,
+		outputMainBackLink );
 }
 
 extern "C"
