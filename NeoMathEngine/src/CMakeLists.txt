@@ -206,6 +206,12 @@ else()
     endif()
 endif()
 
+if(WIN32)
+    add_subdirectory(CPU/mlas EXCLUDE_FROM_ALL)
+    target_link_libraries(${PROJECT_NAME} PRIVATE onnxruntime_mlas)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE NEOML_USE_MLAS)
+endif()
+
 # GPU specific source and settings
 if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
 
