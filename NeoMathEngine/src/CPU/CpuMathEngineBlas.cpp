@@ -199,8 +199,6 @@ void CCpuMathEngine::SetVectorToMatrixRows( const CFloatHandle& resultHandle,
 	float* result = GetRaw( resultHandle );
 	const float* vector = GetRaw( vectorHandle );
 
-	const int curThreadCount = IsOmpRelevant( matrixHeight, matrixHeight * matrixWidth ) ? threadCount : 1;
-	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
 	for( int i = 0; i < matrixHeight; ++i ) {
 		dataCopy( result + i * matrixWidth, vector, matrixWidth );
 	}
@@ -245,32 +243,11 @@ void CCpuMathEngine::AddVectorToMatrixRows( int batchSize, const CConstFloatHand
 	const float* vector = GetRaw( vectorHandle );
 
 	const int matrixSize = matrixHeight * matrixWidth;
-	const int tasks = batchSize * matrixSize;
-	const int curThreadCount = IsOmpRelevant( tasks, tasks ) ? threadCount : 1;
-	NEOML_OMP_NUM_THREADS( curThreadCount )
-	{
-		int batchStart;
-		int batchCount;
-		int heightStart;
-		int heightCount;
-		int widthStart;
-		int widthCount;
-		if( OmpGetTaskIndexAndCount3D( batchSize, 1, matrixHeight, 1, matrixWidth, 1,
-			batchStart, batchCount, heightStart, heightCount, widthStart, widthCount ) )
-		{
-			const int offset = batchStart * matrixSize + heightStart * matrixWidth + widthStart;
-			float* outputData = result + offset;
-			const float* inputData = matrix + offset;
-			const float* vectorData = vector + batchStart * matrixWidth + widthStart;
-
-			for( int i = 0; i < batchCount; ++i ) {
-				addVectorToMatrixRows( inputData, outputData, heightCount, widthCount,
-					matrixWidth, matrixWidth, vectorData );
-				inputData += matrixSize;
-				outputData += matrixSize;
-				vectorData += matrixWidth;
-			}
-		}
+	for( int i = 0; i < batchSize; ++i ) {
+		addVectorToMatrixRows( matrix, result, matrixHeight, matrixWidth, matrixWidth, matrixWidth, vector );
+		matrix += matrixSize;
+		result += matrixSize;
+		vector += matrixWidth;
 	}
 }
 
@@ -462,8 +439,6 @@ void CCpuMathEngine::VectorMultichannelLookupAndCopy( int batchSize, int channel
 	const float* inputStart = GetRaw( inputHandle );
 	float* outputStart = GetRaw( outputHandle );
 
-	const int curThreadCount = IsOmpRelevant( batchSize, batchSize * outputChannels ) ? threadCount : 1;
-	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
 	for( int i = 0; i < batchSize; ++i ) {
 		const float* input = inputStart + i * channelCount;
 		float* output = outputStart + i * outputChannels;
@@ -475,7 +450,7 @@ void CCpuMathEngine::VectorMultichannelLookupAndCopy( int batchSize, int channel
 			dataCopy( output, GetRaw( lookupHandles[j] ) + index * vectorSize, vectorSize );
 			output += vectorSize;
 		}
-		int remained = channelCount - lookupCount;
+		const int remained = channelCount - lookupCount;
 		if( remained > 0 ) {
 			dataCopy( output, input, remained );
 		}
@@ -492,8 +467,6 @@ void CCpuMathEngine::VectorMultichannelLookupAndCopy( int batchSize, int channel
 	const int* inputStart = GetRaw( inputHandle );
 	float* outputStart = GetRaw( outputHandle );
 
-	const int curThreadCount = IsOmpRelevant( batchSize, batchSize * outputChannels ) ? threadCount : 1;
-	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
 	for( int i = 0; i < batchSize; ++i ) {
 		const int* input = inputStart + i * channelCount;
 		float* output = outputStart + i * outputChannels;
@@ -517,11 +490,9 @@ void CCpuMathEngine::VectorMultichannelLookupAndCopy( int batchSize, int channel
 	ASSERT_EXPR( lookupCount <= channelCount );
 	CCpuExecutionScope scope;
 
-	const int* inputStart = GetRaw( inputHandle );
-	int* outputStart = GetRaw( outputHandle );
+	const int* const inputStart = GetRaw( inputHandle );
+	int* const outputStart = GetRaw( outputHandle );
 
-	const int curThreadCount = IsOmpRelevant( batchSize, batchSize * outputChannels ) ? threadCount : 1;
-	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
 	for( int i = 0; i < batchSize; ++i ) {
 		const int* input = inputStart + i * channelCount;
 		int* output = outputStart + i * outputChannels;
@@ -533,7 +504,7 @@ void CCpuMathEngine::VectorMultichannelLookupAndCopy( int batchSize, int channel
 			dataCopy( output, GetRaw( lookupHandles[j] ) + index * vectorSize, vectorSize );
 			output += vectorSize;
 		}
-		int remained = channelCount - lookupCount;
+		const int remained = channelCount - lookupCount;
 		if( remained > 0 ) {
 			dataCopy( output, input, remained );
 		}
@@ -563,7 +534,7 @@ void CCpuMathEngine::VectorMultichannelLookupAndAddToTable( int batchSize, int c
 			}
 		}
 		// skip unmapped updates
-		int remained = channelCount - lookupCount;
+		const int remained = channelCount - lookupCount;
 		input += remained;
 		matrix += remained;
 	}
@@ -764,8 +735,6 @@ void CCpuMathEngine::LookupAndSum( const CConstIntHandle& indicesHandle, int bat
 	float* outputStart = GetRaw( result );
 	const float* table = GetRaw( tableHandle );
 
-	const int curThreadCount = IsOmpRelevant( batchSize, batchSize * indexCount * vectorSize ) ? threadCount : 1;
-	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
 	for( int b = 0; b < batchSize; ++b ) {
 		float* output = outputStart + b * vectorSize;
 		const int* indices = indicesStart + b * indexCount;
@@ -847,8 +816,6 @@ void CCpuMathEngine::MultiplyDiagMatrixByMatrix( const CConstFloatHandle& firstH
 	const float* const second = GetRaw( secondHandle );
 	float* const result = GetRaw( resultHandle );
 
-	const int curThreadCount = IsOmpRelevant( firstSize, firstSize * secondWidth ) ? threadCount : 1;
-	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
 	for( int i = 0; i < firstSize; i++ ) {
 		const float multiplier = *( first + i );
 		vectorMultiply( second + i * secondWidth, result + i * secondWidth, multiplier, secondWidth );
@@ -946,26 +913,8 @@ void CCpuMathEngine::MultiplyMatrixByTransposedMatrix( const CConstFloatHandle& 
 	const float* const second = GetRaw( secondHandle );
 	float* const result = GetRaw( resultHandle );
 
-	const int curThreadCount = IsOmpRelevant( firstHeight * secondHeight, firstWidth * firstHeight * secondHeight )
-		? threadCount : 1;
-	NEOML_OMP_NUM_THREADS( curThreadCount )
-	{
-		int firstHeightStart;
-		int firstHeightCount;
-		int secondHeightStart;
-		int secondHeightCount;
-		if( OmpGetTaskIndexAndCount2D( firstHeight, 1, secondHeight, floatAlignment,
-				firstHeightStart, firstHeightCount, secondHeightStart, secondHeightCount ) )
-		{
-			const float* const firstData = first + firstHeightStart * firstWidth;
-			float* const resultData = result + firstHeightStart * secondHeight + secondHeightStart;
-			const float* const secondData = second + secondHeightStart * firstWidth;
-
-			multiplyMatrixByTransposedMatrix( firstData, firstHeightCount, firstWidth, firstRowSize,
-				secondData, secondHeightCount, secondRowSize,
-				resultData, resultRowSize );
-		}
-	}
+	multiplyMatrixByTransposedMatrix( first, firstHeight, firstWidth, firstRowSize,
+		second, secondHeight, secondRowSize, result, resultRowSize );
 }
 
 void CCpuMathEngine::MultiplyMatrixByTransposedMatrix( int batchSize, const CConstFloatHandle& firstHandle,
@@ -1045,8 +994,6 @@ void CCpuMathEngine::MatrixSpreadRows( const CConstFloatHandle& sourceHandle, in
 	const float* const source = GetRaw( sourceHandle );
 	float* const result = GetRaw( resultHandle );
 
-	const int curThreadCount = IsOmpRelevant( height, height * width ) ? threadCount : 1;
-	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
 	for( int j = 0; j < height; ++j ) {
 		if( indices[j] >= 0 ) {
 			dataCopy( result + indices[j] * width, source + j * width, width );
@@ -1068,8 +1015,6 @@ void CCpuMathEngine::MatrixSpreadRows( const CConstIntHandle& sourceHandle, int 
 	const int* const source = GetRaw( sourceHandle );
 	int* const result = GetRaw( resultHandle );
 
-	const int curThreadCount = IsOmpRelevant( height, height * width ) ? threadCount : 1;
-	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
 	for( int j = 0; j < height; ++j ) {
 		if( indices[j] >= 0 ) {
 			dataCopy( result + indices[j] * width, source + j * width, width );

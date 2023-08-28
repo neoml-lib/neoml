@@ -560,13 +560,13 @@ public:
 	void BertConvBackward( const CConstFloatHandle& dataHandle, const CConstFloatHandle& kernelHandle,
 		const CConstFloatHandle& outDiffHandle, int seqLen, int batchSize, int numHeads, int headSize, int kernelSize,
 		const CFloatHandle& dataDiffHandle, const CFloatHandle& kernelDiffHandle ) override;
-	CLstmDesc* InitLstm( CLstmDesc* currentDesc, const CFloatHandle& inputFullyConnectedResult,
-		const CFloatHandle& reccurentFullyConnectedResult, int hiddenSize, int objectCount, int objectSize ) override;
-	void Lstm( CLstmDesc& desc,
-		const CFloatHandle& inputWeights, const CConstFloatHandle& inputFreeTerm,
-		const CFloatHandle& recurrentWeights, const CConstFloatHandle& recurrentFreeTerm,
-		const CConstFloatHandle& inputStateBackLink, const CConstFloatHandle& inputMainBackLink, const CConstFloatHandle& input,
-		const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink ) override;
+	CLstmDesc* InitLstm( int hiddenSize, int objectSize,
+		const CConstFloatHandle& inputWeights, const CConstFloatHandle& inputFreeTerm,
+		const CConstFloatHandle& recurrentWeights, const CConstFloatHandle& recurrentFreeTerm ) override;
+	void Lstm( CLstmDesc& desc, bool reverse, int sequenceLength, int sequenceCount,
+		const CConstFloatHandle& inputStateBackLink, const CConstFloatHandle& inputMainBackLink,
+		const CConstFloatHandle& input, const CFloatHandle& outputStateBackLink,
+		const CFloatHandle& outputMainBackLink ) override;
 	void LinearInterpolation( const CConstFloatHandle& dataHandle, const CFloatHandle& resultHandle,
 		TInterpolationCoords coords, TInterpolationRound round, int objectCount, int scaledAxis,
 		int objectSize, float scale ) override;
@@ -636,7 +636,6 @@ protected:
 	void Free( const CMemoryHandle& handle ) override;
 
 private:
-	const int /*deprecated*/ threadCount = 1; // the number of threads for OMP
 	const int floatAlignment; // float alignment
 	const int memoryAlignment; // allocation alignment
 	std::shared_ptr<CMultiThreadDistributedCommunicator> communicator;

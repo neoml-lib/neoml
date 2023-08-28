@@ -69,7 +69,58 @@ static void blobChannelwiseConvolutionNaive( int inputCount, int inputChannels, 
 	}
 }
 
-static void blobChannelwiseConvolutionTestImpl( const CTestParams& params, int seed )
+static void blobChannelwiseConvolutionTestImpl( CRandom& random, int batchLength, int batchWidth, int listSize,
+	int inputHeight, int inputWidth, int channels, int filterHeight, int filterWidth,
+	int paddingHeight, int paddingWidth, int strideHeight, int strideWidth, float minValue, float maxValue )
+{
+	const int blobSize = batchLength * batchWidth * listSize * inputHeight * inputWidth * channels;
+
+	CREATE_FILL_FLOAT_ARRAY( inputData, minValue, maxValue, blobSize, random )
+		CFloatBlob inputBlob( MathEngine(), batchLength, batchWidth, listSize, inputHeight, inputWidth, 1, channels );
+	inputBlob.CopyFrom( inputData.data() );
+
+	CREATE_FILL_FLOAT_ARRAY( filterData, minValue, maxValue, channels * filterHeight * filterWidth, random )
+		CFloatBlob filterBlob( MathEngine(), 1, filterHeight, filterWidth, 1, channels );
+	filterBlob.CopyFrom( filterData.data() );
+
+	std::vector<float> freeTermData;
+	freeTermData.resize( channels );
+	for( size_t i = 0; i < freeTermData.size(); i++ ) {
+		freeTermData[i] = static_cast<float>( random.Uniform( minValue, maxValue ) );
+	}
+	CFloatBlob freeTermBlob( MathEngine(), 1, 1, 1, channels );
+	freeTermBlob.CopyFrom( freeTermData.data() );
+
+	const int outHeight = 1 + ( inputHeight + 2 * paddingHeight - filterHeight ) / strideHeight;
+	const int outWidth = 1 + ( inputWidth + 2 * paddingWidth - filterWidth ) / strideWidth;
+	std::vector<float> expectedData;
+	expectedData.resize( batchLength * batchWidth * listSize * outHeight * outWidth * channels );
+
+	blobChannelwiseConvolutionNaive( batchLength * batchWidth * listSize, channels, inputHeight, inputWidth,
+		filterHeight, filterWidth,
+		paddingHeight, paddingWidth,
+		strideHeight, strideWidth,
+		inputData.data(), filterData.data(), freeTermData.data(), expectedData.data() );
+
+	CFloatBlob outBlob( MathEngine(), batchLength, batchWidth, listSize, outHeight, outWidth, 1, channels );
+	CConstFloatHandle ft = freeTermBlob.GetData();
+
+	CChannelwiseConvolutionDesc* convDesc = MathEngine().InitBlobChannelwiseConvolution( inputBlob.GetDesc(),
+		paddingHeight, paddingWidth, strideHeight, strideWidth, filterBlob.GetDesc(), &freeTermBlob.GetDesc(), outBlob.GetDesc() );
+	MathEngine().BlobChannelwiseConvolution( *convDesc, inputBlob.GetData(),
+		filterBlob.GetData(), &ft, outBlob.GetData() );
+	delete convDesc;
+
+	std::vector<float> resultData;
+	resultData.resize( batchLength * batchWidth * listSize * outHeight * outWidth * channels );
+	outBlob.CopyTo( resultData.data() );
+
+	for( size_t i = 0; i < resultData.size(); i++ ) {
+		ASSERT_NEAR( expectedData[i], resultData[i], 1e-3f ) << "At index " << i;
+	}
+}
+
+static void blobChannelwiseConvolutionParameterizedTestImpl( const CTestParams& params, int seed )
 {
 	CRandom random( seed );
 
@@ -100,51 +151,9 @@ static void blobChannelwiseConvolutionTestImpl( const CTestParams& params, int s
 	const int strideHeight = random.UniformInt( strideHeightInterval.Begin, strideHeightInterval.End );
 	const int strideWidth = random.UniformInt( strideWidthInterval.Begin, strideWidthInterval.End );
 
-	const int blobSize = batchLength * batchWidth * listSize * inputHeight * inputWidth * channels;
-
-	CREATE_FILL_FLOAT_ARRAY( inputData, valuesInterval.Begin, valuesInterval.End, blobSize, random )
-	CFloatBlob inputBlob( MathEngine(), batchLength, batchWidth, listSize, inputHeight, inputWidth, 1, channels );
-	inputBlob.CopyFrom( inputData.data() );
-
-	CREATE_FILL_FLOAT_ARRAY( filterData, valuesInterval.Begin, valuesInterval.End, channels * filterHeight * filterWidth, random )
-	CFloatBlob filterBlob( MathEngine(), 1, filterHeight, filterWidth, 1, channels );
-	filterBlob.CopyFrom( filterData.data() );
-
-	std::vector<float> freeTermData;
-	freeTermData.resize( channels );
-	for( size_t i = 0; i < freeTermData.size(); i++ ) {
-		freeTermData[i] = static_cast<float>( random.Uniform( valuesInterval.Begin, valuesInterval.End ) );
-	}
-	CFloatBlob freeTermBlob( MathEngine(), 1, 1, 1, channels );
-	freeTermBlob.CopyFrom( freeTermData.data() );
-
-	const int outHeight = 1 + ( inputHeight + 2 * paddingHeight - filterHeight ) / strideHeight;
-	const int outWidth = 1 + ( inputWidth + 2 * paddingWidth - filterWidth ) / strideWidth;
-	std::vector<float> expectedData;
-	expectedData.resize( batchLength * batchWidth * listSize * outHeight * outWidth * channels );
-
-	blobChannelwiseConvolutionNaive( batchLength * batchWidth * listSize, channels, inputHeight, inputWidth,
-		filterHeight, filterWidth,
-		paddingHeight, paddingWidth,
-		strideHeight, strideWidth,
-		inputData.data(), filterData.data(), freeTermData.data(), expectedData.data() );
-
-	CFloatBlob outBlob( MathEngine(), batchLength, batchWidth, listSize, outHeight, outWidth, 1, channels );
-	CConstFloatHandle ft = freeTermBlob.GetData();
-
-	CChannelwiseConvolutionDesc* convDesc = MathEngine().InitBlobChannelwiseConvolution( inputBlob.GetDesc(),
-		paddingHeight, paddingWidth, strideHeight, strideWidth, filterBlob.GetDesc(), &freeTermBlob.GetDesc(), outBlob.GetDesc() );
-	MathEngine().BlobChannelwiseConvolution( *convDesc, inputBlob.GetData(),
-		filterBlob.GetData(), &ft, outBlob.GetData() );
-	delete convDesc;
-
-	std::vector<float> resultData;
-	resultData.resize( batchLength * batchWidth * listSize * outHeight * outWidth * channels );
-	outBlob.CopyTo( resultData.data() );
-
-	for( size_t i = 0; i < resultData.size(); i++ ) {
-		ASSERT_NEAR( expectedData[i], resultData[i], 1e-3f );
-	}
+	blobChannelwiseConvolutionTestImpl( random, batchLength, batchWidth, listSize, inputHeight, inputWidth, channels,
+		filterHeight, filterWidth, paddingHeight, paddingWidth, strideHeight, strideWidth,
+		static_cast<float>( valuesInterval.Begin ), static_cast<float>( valuesInterval.End ) );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -772,5 +781,42 @@ INSTANTIATE_TEST_CASE_P(CMobileNetV3Channelwise5x5, CMathEngineBlobChannelwiseCo
 
 TEST_P(CMathEngineBlobChannelwiseConvolutionTest, Random)
 {
-	RUN_TEST_IMPL(blobChannelwiseConvolutionTestImpl)
+	RUN_TEST_IMPL(blobChannelwiseConvolutionParameterizedTestImpl)
+}
+
+TEST_F(CMathEngineBlobChannelwiseConvolutionTest, Conv3x3)
+{
+	CRandom random( 0x666 );
+	constexpr int filterSize = 3;
+	constexpr int maxSize = filterSize * 3;
+	for( int stride = 1; stride <= 2; ++stride ) {
+		for( int inputSize = 1; inputSize <= maxSize; ++inputSize ) {
+			blobChannelwiseConvolutionTestImpl( random, 1, 3, 1, inputSize, inputSize, 13, filterSize, filterSize,
+				filterSize / 2, filterSize / 2, stride, stride, -10.f, 10.f );
+		}
+	}
+}
+
+TEST_F(CMathEngineBlobChannelwiseConvolutionTest, Conv5x5)
+{
+	CRandom random( 0x666 );
+	constexpr int filterSize = 5;
+	constexpr int maxSize = filterSize * 3;
+	for( int stride = 1; stride <= 2; ++stride ) {
+		for( int inputSize = 1; inputSize <= maxSize; ++inputSize ) {
+			blobChannelwiseConvolutionTestImpl( random, 1, 3, 1, inputSize, inputSize, 13, filterSize, filterSize,
+				filterSize / 2, filterSize / 2, stride, stride, -10.f, 10.f );
+		}
+	}
+}
+
+TEST_F( CMathEngineBlobChannelwiseConvolutionTest, Conv7x7 )
+{
+	CRandom random( 0x666 );
+	constexpr int filterSize = 7;
+	constexpr int maxSize = filterSize * 2;
+	for( int inputSize = 1; inputSize <= maxSize; ++inputSize ) {
+		blobChannelwiseConvolutionTestImpl( random, 1, 3, 1, inputSize, inputSize, 13, filterSize, filterSize,
+			filterSize / 2, filterSize / 2, 1, 1, -10.f, 10.f );
+	}
 }

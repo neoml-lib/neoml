@@ -22,7 +22,6 @@ limitations under the License.
 #include <NeoMathEngine/BlobDesc.h>
 #include <NeoMathEngine/SparseMatrixDesc.h>
 #include <NeoMathEngine/LookupData.h>
-#include <NeoMathEngine/OpenMP.h>
 #include <NeoMathEngine/CrtAllocatedObject.h>
 #include <NeoMathEngine/PerformanceCounters.h>
 #include <NeoMathEngine/NeoMathEngineException.h>
@@ -1002,15 +1001,14 @@ public:
 		const CConstFloatHandle& outputDiff, const CConstFloatHandle& invSum, const CConstFloatHandle& invSumBeta,
 		const CFloatHandle& inputDiff ) = 0;
 
-	// If currentDesc isn't nullptr, it will be reinitialized with new values and pointer to it will be returned.
-	// Otherwise new descriptor will be created.
-	virtual CLstmDesc* InitLstm( CLstmDesc* currentDesc, const CFloatHandle& inputFullyConnectedResult, const CFloatHandle& reccurentFullyConnectedResult,
-		int hiddenSize, int objectCount, int objectSize ) = 0;
-	virtual void Lstm( CLstmDesc& desc, 
-		const CFloatHandle& inputWeights, const CConstFloatHandle& inputFreeTerm,
-		const CFloatHandle& recurrentWeights, const CConstFloatHandle& recurrentFreeTerm,
-		const CConstFloatHandle& inputStateBackLink, const CConstFloatHandle& inputMainBackLink, const CConstFloatHandle& input,
-		const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink ) = 0;
+	// Creates descriptor of LSTM with given weights be created.
+	virtual CLstmDesc* InitLstm( int hiddenSize, int objectSize,
+		const CConstFloatHandle& inputWeights, const CConstFloatHandle& inputFreeTerm,
+		const CConstFloatHandle& recurrentWeights, const CConstFloatHandle& recurrentFreeTerm ) = 0;
+	virtual void Lstm( CLstmDesc& desc, bool reverse, int sequenceLength, int sequenceCount,
+		const CConstFloatHandle& inputStateBackLink, const CConstFloatHandle& inputMainBackLink,
+		const CConstFloatHandle& input, const CFloatHandle& outputStateBackLink,
+		const CFloatHandle& outputMainBackLink ) = 0;
 
 	// CTC
 

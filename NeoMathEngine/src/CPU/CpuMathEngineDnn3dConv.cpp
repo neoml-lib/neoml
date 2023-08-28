@@ -16,10 +16,10 @@ limitations under the License.
 #include <common.h>
 #pragma hdrstop
 
+#include <algorithm>
 #include <CpuMathEngine.h>
 #include <CpuExecutionScope.h>
 #include <float.h>
-#include <CpuMathEngineOmp.h>
 #include <MathEngineCommon.h>
 #include <MathEngineDnnConv.h>
 #include <MemoryHandleInternal.h>
@@ -83,7 +83,7 @@ void CCpuMathEngine::blob3dConvolution1x1x1Backward( const CCommon3dConvolutionD
 	bool isRepackNeeded = desc.StrideHeight > 1 || desc.StrideWidth > 1 || desc.StrideDepth > 1;
 
 	CBlobDesc resultBlob = inputDiff;
-	float* resultBlobData = inputDiffData;
+	float* resultData = inputDiffData;
 	int resultBlobHolderSize = 0;
 	if( isRepackNeeded ) {
 		resultBlob = outputDiff;
@@ -94,65 +94,55 @@ void CCpuMathEngine::blob3dConvolution1x1x1Backward( const CCommon3dConvolutionD
 	CFloatHandleVar resultBlobHolder( mathEngine(), resultBlobHolderSize );
 
 	if( isRepackNeeded ) {
-		resultBlobData = GetRaw( resultBlobHolder.GetHandle() );
+		resultData = GetRaw( resultBlobHolder.GetHandle() );
 	}
 
-	int objectCount = outputDiff.ObjectCount();
+	const int batchCount = outputDiff.ObjectCount();
+	float* inputDiffDataPtr = inputDiffData;
 
-	const int curThreadCount = IsOmpRelevant( objectCount ) ? threadCount : 1;
-	NEOML_OMP_NUM_THREADS( curThreadCount )
-	{
-		int batchStart;
-		int batchCount;
-		if( OmpGetTaskIndexAndCount( objectCount, batchStart, batchCount ) ) {
-			float* resultData = resultBlobData + batchStart * resultBlob.ObjectSize();
-			float* inputDiffDataPtr = inputDiffData + batchStart * inputDiff.ObjectSize();
+	if( freeTermData != nullptr ) {
+		setVectorToMatrixRows( inputDiffDataPtr, batchCount * inputDiff.GeometricalSize(),
+			inputDiff.Channels(), freeTermDataRaw );
+	}
 
-			if( freeTermData != nullptr ) {
-				setVectorToMatrixRows( inputDiffDataPtr, batchCount * inputDiff.GeometricalSize(),
-					inputDiff.Channels(), freeTermDataRaw );
-			}
+	if( isRepackNeeded || freeTermData == nullptr ) {
+		multiplyMatrixByMatrix( outputDiffData,
+			batchCount * outputDiff.GeometricalSize(), outputDiff.Channels(), outputDiff.Channels(),
+			filterData, resultBlob.Channels(), resultBlob.Channels(),
+			resultData, resultBlob.Channels() );
+	} else {
+		multiplyMatrixByMatrixAndAdd( outputDiffData,
+			batchCount * outputDiff.GeometricalSize(), outputDiff.Channels(), outputDiff.Channels(),
+			filterData, resultBlob.Channels(), resultBlob.Channels(),
+			resultData, resultBlob.Channels() );
+	}
 
-			if( isRepackNeeded || freeTermData == nullptr ) {
-				multiplyMatrixByMatrix( outputDiffData + batchStart * outputDiff.ObjectSize(),
-					batchCount * outputDiff.GeometricalSize(), outputDiff.Channels(), outputDiff.Channels(),
-					filterData, resultBlob.Channels(), resultBlob.Channels(),
-					resultData, resultBlob.Channels() );
-			} else {
-				multiplyMatrixByMatrixAndAdd( outputDiffData + batchStart * outputDiff.ObjectSize(),
-					batchCount * outputDiff.GeometricalSize(), outputDiff.Channels(), outputDiff.Channels(),
-					filterData, resultBlob.Channels(), resultBlob.Channels(),
-					resultData, resultBlob.Channels() );
-			}
+	if( isRepackNeeded ) {
+		// Repack the result blob
+		int inputColSize = inputDiff.Channels() * inputDiff.Depth();
+		int inputRowSize = inputColSize * inputDiff.Width();
+		int inputObjSize = inputRowSize * inputDiff.Height();
 
-			if( isRepackNeeded ) {
-				// Repack the result blob
-				int inputColSize = inputDiff.Channels() * inputDiff.Depth();
-				int inputRowSize = inputColSize * inputDiff.Width();
-				int inputObjSize = inputRowSize * inputDiff.Height();
+		if( freeTermData == nullptr ) {
+			vectorFill0( inputDiffDataPtr, inputObjSize * batchCount );
+		}
 
-				if( freeTermData == nullptr ) {
-					vectorFill0( inputDiffDataPtr, inputObjSize * batchCount );
-				}
-
-				for( int b = 0; b < batchCount; ++b ) {
-					float* inputDiffRow = inputDiffDataPtr;
-					for( int j = 0; j < resultBlob.Height(); ++j ) {
-						float* inputDiffCol = inputDiffRow;
-						for( int i = 0; i < resultBlob.Width(); ++i ) {
-							float* inputDiffPixel = inputDiffCol;
-							for( int k = 0; k < resultBlob.Depth(); ++k ) {
-								NeoML::vectorAdd( inputDiffPixel, resultData, inputDiffPixel, inputDiff.Channels() );
-								inputDiffPixel += inputDiff.Channels() * desc.StrideDepth;
-								resultData += inputDiff.Channels();
-							}
-							inputDiffCol += inputColSize * desc.StrideWidth;
-						}
-						inputDiffRow += inputRowSize * desc.StrideHeight;
+		for( int b = 0; b < batchCount; ++b ) {
+			float* inputDiffRow = inputDiffDataPtr;
+			for( int j = 0; j < resultBlob.Height(); ++j ) {
+				float* inputDiffCol = inputDiffRow;
+				for( int i = 0; i < resultBlob.Width(); ++i ) {
+					float* inputDiffPixel = inputDiffCol;
+					for( int k = 0; k < resultBlob.Depth(); ++k ) {
+						NeoML::vectorAdd( inputDiffPixel, resultData, inputDiffPixel, inputDiff.Channels() );
+						inputDiffPixel += inputDiff.Channels() * desc.StrideDepth;
+						resultData += inputDiff.Channels();
 					}
-					inputDiffDataPtr += inputObjSize;
+					inputDiffCol += inputColSize * desc.StrideWidth;
 				}
+				inputDiffRow += inputRowSize * desc.StrideHeight;
 			}
+			inputDiffDataPtr += inputObjSize;
 		}
 	}
 }
@@ -339,66 +329,45 @@ void CCpuMathEngine::blob3dConvolution( const CCommon3dConvolutionDesc& desc, co
 	const CBlobDesc& filter = desc.Filter;
 
 	const int objectCount = source.ObjectCount();
-
-	int preparedWidth = filter.GeometricalSize();
-
-	const int curThreadCount = IsOmpRelevant( objectCount * result.Width() * result.Depth(),
-		static_cast<int64_t>( source.BlobSize() ) * filter.BlobSize() ) ? threadCount : 1;
-	const int tempObjectCount = std::min( source.ObjectCount(), curThreadCount );
+	const int preparedWidth = filter.GeometricalSize();
 
 	const int inputPreparedObjectSize = result.Width() * result.Depth() * result.Height() * preparedWidth * source.Channels();
-	CFloatHandleStackVar inputPreparedData( mathEngine(), tempObjectCount * inputPreparedObjectSize );
-	float* inputPreparedDataPtr = GetRaw( inputPreparedData.GetHandle() );
+	CFloatHandleStackVar inputPreparedData( mathEngine(), inputPreparedObjectSize );
 
 	const int outputTempObjectSize = result.Width() * result.Depth() * result.Height() * result.Channels();
-	CFloatHandleStackVar outputTempData( mathEngine(), tempObjectCount * outputTempObjectSize );
-	float* outputTempDataPtr = GetRaw( outputTempData.GetHandle() );
+	CFloatHandleStackVar outputTempData( mathEngine(), outputTempObjectSize );
 
-	NEOML_OMP_NUM_THREADS( curThreadCount )
-	{
-		int batchStart;
-		int batchCount;
-		int outputStart;
-		int outputCount;
-		if( OmpGetTaskIndexAndCount2D( objectCount, result.Width() * result.Depth(),
-			batchStart, batchCount, outputStart, outputCount ) )
-		{
-			int workingPreparedHeight = outputCount * result.Height();
+	const int outputCount = result.Width() * result.Depth();
+	const int workingPreparedHeight = outputCount * result.Height();
+	const int outputTempGeometricalSize = outputCount * result.Height();
 
-			const int outputTempGeometricalSize = outputCount * result.Height();
-			const int tempObjectIndex = source.ObjectCount() <= tempObjectCount ? batchStart : OmpGetThreadNum();
+	float* const inputPrepared = GetRaw( inputPreparedData.GetHandle() );
+	float* const outputTemp = GetRaw( outputTempData.GetHandle() );
 
-			float* inputPrepared = inputPreparedDataPtr + tempObjectIndex * inputPreparedObjectSize
-				+ outputStart * result.Height() * preparedWidth * source.Channels();
-			float* outputTemp = outputTempDataPtr + tempObjectIndex * outputTempObjectSize
-				+ outputStart * result.Height() * result.Channels();
+	for( int b = 0; b < objectCount; ++b ) {
+		blob3dConvolutionPrepareInput( desc, inputPrepared, sourceData, b, result.Height(), /*outputStart*/0, outputCount );
 
-			for( int b = batchStart; b < batchStart + batchCount; ++b ) {
-				blob3dConvolutionPrepareInput( desc, inputPrepared, sourceData, b, result.Height(), outputStart, outputCount );
+		multiplyMatrixByTransposedMatrix( inputPrepared, workingPreparedHeight, preparedWidth * source.Channels(),
+			preparedWidth * source.Channels(), filterData, filter.BatchWidth(), preparedWidth * source.Channels(),
+			outputTemp, filter.BatchWidth() );
 
-				multiplyMatrixByTransposedMatrix( inputPrepared, workingPreparedHeight, preparedWidth * source.Channels(),
-					preparedWidth * source.Channels(), filterData, filter.BatchWidth(), preparedWidth * source.Channels(),
-					outputTemp, filter.BatchWidth() );
+		if( freeTermData != nullptr ) {
+			addVectorToMatrixRows( outputTemp, outputTemp, outputTempGeometricalSize, result.Channels(),
+				result.Channels(), result.Channels(), freeTermDataRaw );
+		}
 
-				if( freeTermData != nullptr ) {
-					addVectorToMatrixRows( outputTemp, outputTemp, outputTempGeometricalSize, result.Channels(),
-						result.Channels(), result.Channels(), freeTermDataRaw );
-				}
-
-				// Transpose outputTemp to a part of result
-				const float* tempData = outputTemp;
-				float* outputDataPtr = resultData + b * result.ObjectSize() + outputStart * result.Channels();
-				int outputRowSize = result.Width() * result.Depth() * result.Channels();
-				for( int tj = 0; tj < outputCount; ++tj ) {
-					float* outputRowData = outputDataPtr;
-					for( int ti = 0; ti < result.Height(); ++ti ) {
-						dataCopy( outputRowData, tempData, result.Channels() );
-						tempData += result.Channels();
-						outputRowData += outputRowSize;
-					}
-					outputDataPtr += result.Channels();
-				}
+		// Transpose outputTemp to a part of result
+		const float* tempData = outputTemp;
+		float* outputDataPtr = resultData + b * result.ObjectSize();
+		const int outputRowSize = result.Width() * result.Depth() * result.Channels();
+		for( int tj = 0; tj < outputCount; ++tj ) {
+			float* outputRowData = outputDataPtr;
+			for( int ti = 0; ti < result.Height(); ++ti ) {
+				dataCopy( outputRowData, tempData, result.Channels() );
+				tempData += result.Channels();
+				outputRowData += outputRowSize;
 			}
+			outputDataPtr += result.Channels();
 		}
 	}
 }
@@ -436,131 +405,100 @@ void CCpuMathEngine::blob3dConvolutionBackward( const CCommon3dConvolutionDesc& 
 	const int filterForwardGeometricalSize = filter.GeometricalSize() * filter.Channels();
 	const int filterForwardDataSize = filterForwardChannelsCount * filterForwardGeometricalSize;
 
-	CFloatHandleVar filterForward( mathEngine(), filterForwardDataSize );
+	CFloatHandleStackVar filterForward( mathEngine(), filterForwardDataSize );
 	TransposeMatrix( 1, filterData, filter.BatchWidth(), 1, filter.ObjectSize(), 1, filterForward.GetHandle(),
 		filterForwardDataSize );
-	float* filterForwardPtr = GetRaw( filterForward.GetHandle() );
+	float* const filterForwardPtr = GetRaw( filterForward.GetHandle() );
 
-	int inputGeo = source.GeometricalSize();
+	const int inputGeo = source.GeometricalSize();
 	// The number of rows in the output
-	int outputLineY = result.ObjectCount() * result.Height();
+	const int outputLineY = result.ObjectCount() * result.Height();
 	// The output row size
-	int outputRowSize = result.Width() * result.Depth() * result.Channels();
+	const int outputRowSize = result.Width() * result.Depth() * result.Channels();
 	// The element size, including depth
-	int outputZSize = result.Depth() * result.Channels();
+	const int outputZSize = result.Depth() * result.Channels();
 
 	const int tempDataSize = source.ObjectCount() * inputGeo * filterForwardGeometricalSize;
-	const int tempWidth = filterForwardGeometricalSize;
-	CFloatHandleVar temp( mathEngine(), tempDataSize );
-	float* tempPtr = GetRaw( temp.GetHandle() );
+	CFloatHandleStackVar temp( mathEngine(), tempDataSize );
+	float* const tempPtr = GetRaw( temp.GetHandle() );
 
-	const int curThreadCount = IsOmpRelevant( outputLineY, static_cast<int64_t>( source.BlobSize() ) * filter.BlobSize() )
-		? threadCount : 1;
+	// The first step is to multiply the input and filter matrices
+	const int sourceCount = source.ObjectCount() * inputGeo;
+	multiplyMatrixByTransposedMatrix( sourceData,
+		sourceCount, filterForwardChannelsCount, filterForwardChannelsCount,
+		filterForwardPtr, filterForwardGeometricalSize, filterForwardChannelsCount,
+		tempPtr, filterForwardGeometricalSize );
 
-	NEOML_OMP_NUM_THREADS( curThreadCount )
-	{
-		// The first step is to multiply the input and filter matrices
-		int inputStart;
-		int inputCount;
-		if( OmpGetTaskIndexAndCount( source.ObjectCount() * inputGeo, inputStart, inputCount ) ) {
-			multiplyMatrixByTransposedMatrix( sourceData + inputStart * filterForwardChannelsCount,
-				inputCount, filterForwardChannelsCount, filterForwardChannelsCount,
-				filterForwardPtr, filterForwardGeometricalSize, filterForwardChannelsCount,
-				tempPtr + inputStart * tempWidth, filterForwardGeometricalSize );
+	// The second step is to add the subvectors of the resulting 
+	// matrix to the corresponding places in the output
+	if( freeTermData == nullptr ) {
+		vectorFill0( resultData, outputLineY * outputRowSize );
+	}
+
+	for( int step = 0; step < outputLineY; ++step ) {
+		float* const outputData = resultData + step * outputRowSize;
+
+		// Set the free term
+		if( freeTermData != nullptr ) {
+			setVectorToMatrixRows( outputData, result.Width() * result.Depth(),
+				result.Channels(), freeTermDataRaw );
 		}
 
-		do {
-			if( curThreadCount > 1 ) {
-#pragma omp barrier
-			}
-		} while( 0 );
+		const int batch = step / result.Height();
+		const int row = step % result.Height();
+		const int inputRowStart = std::max( 0, ( row + desc.PaddingHeight - filter.Height() + desc.StrideHeight ) / desc.StrideHeight );
+		const int filterRowBackStart = row - inputRowStart * desc.StrideHeight + desc.PaddingHeight;
+		if( 0 > filterRowBackStart || filterRowBackStart >= filter.Height() ) {
+			continue;
+		}
+		const int filterRowBackEnd = std::max( 0, filter.Height() + row - result.Height() - desc.PaddingHeight );
 
-		// The second step is to add the subvectors of the resulting 
-		// matrix to the corresponding places in the output
-		int outputLineStart;
-		int outputLineCount;
-		if( OmpGetTaskIndexAndCount( outputLineY, outputLineStart, outputLineCount ) ) {
-			if( freeTermData == 0 ) {
-				vectorFill( resultData + outputLineStart * outputRowSize,
-					0, outputLineCount * outputRowSize );
-			}
+		int inputRow = inputRowStart;
+		for( int filterRow = filterRowBackStart;
+			filterRow >= filterRowBackEnd;
+			filterRow -= desc.StrideHeight, ++inputRow ) {
 
-			int outputLineEnd = outputLineStart + outputLineCount;
-			for( int step = outputLineStart; step < outputLineEnd; ++step ) {
-				float* outputData = resultData + step * outputRowSize;
+			// temp stores the rows of filter multiplied by input; add them to the output rows in correct positions
+			const float* tempRowData = tempPtr + ( ( batch * source.Height() + inputRow )
+				* source.Width() * source.Depth() * filter.Height() + filterRow )
+				* filter.Width() * filter.Depth() * filter.Channels();
 
-				// Set the free term
-				if( freeTermData != nullptr ) {
-					setVectorToMatrixRows( outputData, result.Width() * result.Depth(),
-						result.Channels(), freeTermDataRaw );
+			for( int inputX = 0; inputX < source.Width(); ++inputX ) {
+				int xStart = inputX * desc.StrideWidth - desc.PaddingWidth;
+				const int xEnd = std::min( result.Width(), xStart + filter.Width() );
+				int xTempDataShift = 0;
+				if( xStart < 0 ) {
+					xTempDataShift = -xStart;
+					xStart = 0;
 				}
 
-				int batch = step / result.Height();
-				int row = step % result.Height();
-				int inputRowStart = ( row + desc.PaddingHeight - filter.Height() + desc.StrideHeight ) / desc.StrideHeight;
-				if( inputRowStart < 0 ) {
-					inputRowStart = 0;
-				}
-				int filterRowBackStart = row - inputRowStart * desc.StrideHeight + desc.PaddingHeight;
-				if( 0 > filterRowBackStart || filterRowBackStart >= filter.Height() ) {
-					continue;
-				}
-				int filterRowBackEnd = filter.Height() + row - result.Height() - desc.PaddingHeight;
-				if( filterRowBackEnd < 0 ) {
-					filterRowBackEnd = 0;
-				}
+				// The start of the place in the output where to copy
+				float* const outputLine = outputData + xStart * outputZSize;
+				const float* tempData = tempRowData + inputX * source.Depth() *  filter.ObjectSize()
+					+ xTempDataShift * filter.Depth() * filter.Channels();
 
-				int inputRow = inputRowStart;
-				for( int filterRow = filterRowBackStart;
-					filterRow >= filterRowBackEnd;
-					filterRow -= desc.StrideHeight, ++inputRow ) {
-
-					// temp stores the rows of filter multiplied by input; add them to the output rows in correct positions
-					const float* tempRowData = tempPtr + ( ( batch * source.Height() + inputRow )
-						* source.Width() * source.Depth() * filter.Height() + filterRow )
-						* filter.Width() * filter.Depth() * filter.Channels();
-
-					for( int inputX = 0; inputX < source.Width(); ++inputX ) {
-						int xStart = inputX * desc.StrideWidth - desc.PaddingWidth;
-						int xEnd = xStart + filter.Width();
-						int xTempDataShift = 0;
-						if( xStart < 0 ) {
-							xTempDataShift = -xStart;
-							xStart = 0;
-						}
-						if( xEnd > result.Width() ) {
-							xEnd = result.Width();
-						}
-
-						// The start of the place in the output where to copy
-						float* outputLine = outputData + xStart * outputZSize;
-						const float* tempData = tempRowData + inputX * source.Depth() *  filter.ObjectSize()
-							+ xTempDataShift * filter.Depth() * filter.Channels();
-
-						for( int z = -desc.PaddingDepth;
-							z <= result.Depth() + desc.PaddingDepth - filter.Depth();
-							z += desc.StrideDepth ) {
-							int tempDataShift = 0;
-							int toCopy = filter.Depth();
-							int pos = z;
-							if( pos < 0 ) {
-								tempDataShift = -pos * filter.Channels();
-								toCopy += pos;
-								pos = 0;
-							}
-							if( pos + toCopy > result.Depth() ) {
-								toCopy = result.Depth() - pos;
-							}
-							PRESUME_EXPR( toCopy > 0 );
-
-							toCopy *= filter.Channels();
-							float* outputVec = outputLine + pos * filter.Channels();
-							addMatrixToMatrix( outputVec, xEnd - xStart, toCopy, outputZSize,
-								tempData + tempDataShift, filter.Depth() * filter.Channels() );
-
-							tempData += filter.ObjectSize();
-						}
+				for( int z = -desc.PaddingDepth;
+					z <= result.Depth() + desc.PaddingDepth - filter.Depth();
+					z += desc.StrideDepth ) {
+					int tempDataShift = 0;
+					int toCopy = filter.Depth();
+					int pos = z;
+					if( pos < 0 ) {
+						tempDataShift = -pos * filter.Channels();
+						toCopy += pos;
+						pos = 0;
 					}
+					if( pos + toCopy > result.Depth() ) {
+						toCopy = result.Depth() - pos;
+					}
+					PRESUME_EXPR( toCopy > 0 );
+
+					toCopy *= filter.Channels();
+					float* outputVec = outputLine + pos * filter.Channels();
+					addMatrixToMatrix( outputVec, xEnd - xStart, toCopy, outputZSize,
+						tempData + tempDataShift, filter.Depth() * filter.Channels() );
+
+					tempData += filter.ObjectSize();
 				}
 			}
 		}
@@ -575,62 +513,41 @@ void CCpuMathEngine::blob3dConvolutionLearnAdd( const CCommon3dConvolutionDesc& 
 	const CBlobDesc& outputDiff = desc.Result;
 	const CBlobDesc& filterDiff = desc.Filter;
 
-	const int objectCount = input.ObjectCount();
-	const int freeTermDiffSize = isFreeTermDiffFromInput ? filterDiff.Channels() : filterDiff.ObjectCount();
 	const int inputPreparedTempSize = outputDiff.GeometricalSize() * filterDiff.GeometricalSize() * input.Channels();
+	CFloatHandleStackVar inputPreparedTemp( mathEngine(), inputPreparedTempSize );
+
 	const int outputTempSize = outputDiff.ObjectSize();
+	CFloatHandleStackVar outputTemp( mathEngine(), outputTempSize );
 
-	const int curThreadCount = IsOmpRelevant( objectCount ) ? threadCount : 1;
+	float* const inputPreparedDataPtr = GetRaw( inputPreparedTemp.GetHandle() );
+	float* const outputTempDataPtr = GetRaw( outputTemp.GetHandle() );
+	float* const filterDiffDataPtr = GetRaw( filterDiffData );
 
-	COmpPrivate1DData inputPreparedTemp( curThreadCount, mathEngine(), inputPreparedTempSize );
-	COmpPrivate1DData outputTemp( curThreadCount, mathEngine(), outputTempSize );
-	COmpReduction1DData filterDiffItem( mathEngine(), filterDiffData, desc.Filter.BlobSize() );
-	COmpReduction<COmpReduction1DData> filterDiffReduction( curThreadCount, filterDiffItem );
-	
-	std::unique_ptr<COmpReduction1DData> freeTermDiffItem( nullptr );
-	std::unique_ptr<COmpReduction<COmpReduction1DData>> freeTermDiffReduction( nullptr );
-	
-	if( freeTermDiffData != nullptr ) {
-		freeTermDiffItem.reset( new COmpReduction1DData( mathEngine(), *freeTermDiffData, freeTermDiffSize ) );
-		freeTermDiffReduction.reset( new COmpReduction<COmpReduction1DData>( curThreadCount, *freeTermDiffItem ) );
-	}
+	for( int b = 0; b < input.ObjectCount(); ++b ) {
+		const float* outputDiffDataPtr = outputDiffData + b * outputDiff.ObjectSize();
 
-	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
-		for( int b = 0; b < objectCount; ++b ) {
-			const float* outputDiffDataPtr = outputDiffData + b * outputDiff.ObjectSize();
-			float* inputPreparedDataPtr = GetRaw( inputPreparedTemp.GetPrivateData() );
-			float* filterDiffReductionDataPtr = GetRaw( filterDiffReduction.GetPrivate().Data );
-			float* outputTempDataPtr = GetRaw( outputTemp.GetPrivateData() );
+		blob3dConvolutionPrepareInput( desc, inputPreparedDataPtr, inputData, b,
+			outputDiff.Height(), 0, outputDiff.Width() * outputDiff.Depth() );
 
-			blob3dConvolutionPrepareInput( desc, inputPreparedDataPtr, inputData, b,
-				outputDiff.Height(), 0, outputDiff.Width() * outputDiff.Depth() );
+		transposeMatrix( 1, outputDiffDataPtr,
+			outputDiff.Height(), 1, outputDiff.Width() * outputDiff.Depth(),
+			outputDiff.Channels(), outputTempDataPtr );
 
-			transposeMatrix( 1, outputDiffDataPtr,
-				outputDiff.Height(), 1, outputDiff.Width() * outputDiff.Depth(),
-				outputDiff.Channels(), outputTempDataPtr );
+		// Filter diff
+		multiplyTransposedMatrixByMatrixAndAdd( outputTempDataPtr,
+			outputDiff.GeometricalSize(), outputDiff.Channels(), outputDiff.Channels(),
+			inputPreparedDataPtr, filterDiff.GeometricalSize() * input.Channels(), filterDiff.GeometricalSize() * input.Channels(),
+			filterDiffDataPtr, filterDiff.GeometricalSize() * input.Channels() );
 
-			// Filter diff
-			multiplyTransposedMatrixByMatrixAndAdd( outputTempDataPtr,
-				outputDiff.GeometricalSize(), outputDiff.Channels(), outputDiff.Channels(),
-				inputPreparedDataPtr, filterDiff.GeometricalSize() * input.Channels(), filterDiff.GeometricalSize() * input.Channels(),
-				filterDiffReductionDataPtr, filterDiff.GeometricalSize() * input.Channels() );
-
-			if( freeTermDiffData != nullptr ) {
-				// Free term diff
-				float* freeTermDiffReductionDataPtr = GetRaw( freeTermDiffReduction->GetPrivate().Data );
-				if( isFreeTermDiffFromInput ) {
-					sumMatrixRowsAdd( freeTermDiffReductionDataPtr,
-						inputData + b * input.ObjectSize(), input.GeometricalSize(), input.Channels() );
-				} else {
-					sumMatrixRowsAdd( freeTermDiffReductionDataPtr,
-						outputDiffDataPtr, outputDiff.GeometricalSize(), outputDiff.Channels() );
-				}
+		if( freeTermDiffData != nullptr ) {
+			// Free term diff
+			float* const freeTermDiffDataPtr = GetRaw( *freeTermDiffData );
+			if( isFreeTermDiffFromInput ) {
+				sumMatrixRowsAdd( freeTermDiffDataPtr, inputData + b * input.ObjectSize(), input.GeometricalSize(), input.Channels() );
+			} else {
+				sumMatrixRowsAdd( freeTermDiffDataPtr, outputDiffDataPtr, outputDiff.GeometricalSize(), outputDiff.Channels() );
 			}
 		}
-
-	filterDiffReduction.Reduce();
-	if( freeTermDiffData != 0 ) {
-		freeTermDiffReduction->Reduce();
 	}
 }
 

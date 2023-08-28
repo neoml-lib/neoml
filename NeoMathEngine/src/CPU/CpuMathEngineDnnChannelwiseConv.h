@@ -189,6 +189,103 @@ inline void Process5x5RowStride2( const CCommonChannelwiseConvolutionDesc& desc,
 	}
 }
 
+inline void Process7x7RowStride1( const CCommonChannelwiseConvolutionDesc& desc, const float* filter, const float* source, float* result )
+{
+	PRESUME_EXPR( desc.PaddingWidth == 3 );
+	PRESUME_EXPR( desc.Filter.Width() == 7 );
+
+	const int resultWidth = desc.Result.Width();
+	int width = resultWidth - 6;
+	int channels = desc.Result.Channels();
+	const float* filter1 = filter + channels;
+	const float* filter2 = filter1 + channels;
+	const float* filter3 = filter2 + channels;
+	const float* filter4 = filter3 + channels;
+	const float* filter5 = filter4 + channels;
+	const float* filter6 = filter5 + channels;
+
+	vectorEltwiseMultiplyAdd( filter3, source, result, channels );
+	if( resultWidth > 1 ) {
+		vectorEltwiseMultiplyAdd( filter2, source, result + channels, channels );
+
+		vectorEltwiseMultiplyAdd( filter4, source + channels, result, channels );
+		vectorEltwiseMultiplyAdd( filter3, source + channels, result + channels, channels );
+		if( resultWidth > 2 ) {
+			vectorEltwiseMultiplyAdd( filter5, source + 2 * channels, result, channels );
+			vectorEltwiseMultiplyAdd( filter4, source + 2 * channels, result + channels, channels );
+
+			vectorEltwiseMultiplyAdd( filter3, source + 2 * channels, result + 2 * channels, channels );
+			vectorEltwiseMultiplyAdd( filter2, source + channels, result + 2 * channels, channels );
+			vectorEltwiseMultiplyAdd( filter1, source, result + 2 * channels, channels );
+			if( resultWidth > 3 ) {
+				vectorEltwiseMultiplyAdd( filter6, source + 3 * channels, result, channels );
+				vectorEltwiseMultiplyAdd( filter5, source + 3 * channels, result + channels, channels );
+				vectorEltwiseMultiplyAdd( filter4, source + 3 * channels, result + 2 * channels, channels );
+				if( resultWidth > 4 ) {
+					vectorEltwiseMultiplyAdd( filter6, source + 4 * channels, result + channels, channels );
+					vectorEltwiseMultiplyAdd( filter5, source + 4 * channels, result + 2 * channels, channels );
+					if( resultWidth > 5 ) {
+						vectorEltwiseMultiplyAdd( filter6, source + 5 * channels, result + 2 * channels, channels );
+					}
+				}
+			}
+		}
+	}
+
+	const float* sourcePos = source;
+	float* resultPos = result + 3 * channels;
+#ifdef NEOML_USE_SSE
+	if( channels % 4 == 0 ) {
+		while( width >= 2 ) {
+			channelwise1x7( sourcePos, filter, filter1, filter2, filter3, filter4, filter5, filter6, resultPos, channels );
+
+			resultPos += 2 * channels;
+			sourcePos += 2 * channels;
+			width -= 2;
+		}
+	}
+#endif
+
+	while( width > 0 ) {
+		vectorEltwiseMultiplyAdd( filter, sourcePos, resultPos, channels );
+		vectorEltwiseMultiplyAdd( filter1, sourcePos + channels, resultPos, channels );
+		vectorEltwiseMultiplyAdd( filter2, sourcePos + 2 * channels, resultPos, channels );
+		vectorEltwiseMultiplyAdd( filter3, sourcePos + 3 * channels, resultPos, channels );
+		vectorEltwiseMultiplyAdd( filter4, sourcePos + 4 * channels, resultPos, channels );
+		vectorEltwiseMultiplyAdd( filter5, sourcePos + 5 * channels, resultPos, channels );
+		vectorEltwiseMultiplyAdd( filter6, sourcePos + 6 * channels, resultPos, channels );
+		resultPos += channels;
+		sourcePos += channels;
+		width--;
+	}
+
+	if( resultWidth > 3 ) {
+		vectorEltwiseMultiplyAdd( filter, sourcePos, resultPos, channels );
+		vectorEltwiseMultiplyAdd( filter1, sourcePos + channels, resultPos, channels );
+		vectorEltwiseMultiplyAdd( filter2, sourcePos + 2 * channels, resultPos, channels );
+		vectorEltwiseMultiplyAdd( filter3, sourcePos + 3 * channels, resultPos, channels );
+		if( resultWidth > 4 ) {
+			vectorEltwiseMultiplyAdd( filter4, sourcePos + 4 * channels, resultPos, channels );
+
+			vectorEltwiseMultiplyAdd( filter, sourcePos + channels, resultPos + channels, channels );
+			vectorEltwiseMultiplyAdd( filter1, sourcePos + 2 * channels, resultPos + channels, channels );
+			vectorEltwiseMultiplyAdd( filter2, sourcePos + 3 * channels, resultPos + channels, channels );
+			vectorEltwiseMultiplyAdd( filter3, sourcePos + 4 * channels, resultPos + channels, channels );
+
+			if( resultWidth > 5 ) {
+				vectorEltwiseMultiplyAdd( filter5, sourcePos + 5 * channels, resultPos, channels );
+
+				vectorEltwiseMultiplyAdd( filter4, sourcePos + 5 * channels, resultPos + channels, channels );
+
+				vectorEltwiseMultiplyAdd( filter, sourcePos + 2 * channels, resultPos + 2 * channels, channels );
+				vectorEltwiseMultiplyAdd( filter1, sourcePos + 3 * channels, resultPos + 2 * channels, channels );
+				vectorEltwiseMultiplyAdd( filter2, sourcePos + 4 * channels, resultPos + 2 * channels, channels );
+				vectorEltwiseMultiplyAdd( filter3, sourcePos + 5 * channels, resultPos + 2 * channels, channels );
+			}
+		}
+	}
+}
+
 // Calculates `outputRowsToProcess` rows of output of channelwise conv 3x3 with pad 1 and stride 1 or 2
 // currInput points to currInputRowIndex'th row of input image
 // currOutput points to currOutputRowIndex'th row of output image
@@ -408,6 +505,131 @@ inline void ProcessChannelwise5x5Stride2( const CCommonChannelwiseConvolutionDes
 	}
 }
 
+// Calculates `outputRowsToProcess` rows of output of channelwise conv 7x7 with pad 3 and stride 1
+// currInput points to currInputRowIndex'th row of input image
+// currOutput points to currOutputRowIndex'th row of output image
+inline void ProcessChannelwise7x7Stride1( const CCommonChannelwiseConvolutionDesc& desc, int outputRowsToProcess,
+	const float* currInput, int currInputRowIndex, const float* filter, const float* freeTerm, float* currOutput, int currOutputRowIndex )
+{
+	const int inputHeight = desc.Source.Height();
+	const int outputHeight = desc.Result.Height();
+	const int inputRowSize = desc.Source.Width() * desc.Source.Channels();
+	const int filterRowSize = desc.Filter.Width() * desc.Filter.Channels();
+	const int outputRowSize = desc.Result.Width() * desc.Result.Channels();
+
+	auto initOutputRow = [&] () {
+		if( freeTerm != nullptr ) {
+			FillResultRow( desc, freeTerm, currOutput );
+		} else {
+			vectorFill( currOutput, 0, outputRowSize );
+		}
+	};
+	auto switchToNextOutputRow = [&] () {
+		currOutput += outputRowSize;
+		currOutputRowIndex++;
+		outputRowsToProcess--;
+	};
+
+	if( currOutputRowIndex == 0 ) {
+		PRESUME_EXPR( currInputRowIndex == 0 );
+		initOutputRow();
+		Process7x7RowStride1( desc, filter + 3 * filterRowSize, currInput, currOutput );
+		if( inputHeight > 1 ) {
+			Process7x7RowStride1( desc, filter + 4 * filterRowSize, currInput + inputRowSize, currOutput );
+			if( inputHeight > 2 ) {
+				Process7x7RowStride1( desc, filter + 5 * filterRowSize, currInput + 2 * inputRowSize, currOutput );
+				if( inputHeight > 3 ) {
+					Process7x7RowStride1( desc, filter + 6 * filterRowSize, currInput + 3 * inputRowSize, currOutput );
+				}
+			}
+		}
+		switchToNextOutputRow();
+	}
+
+	if( currOutputRowIndex == 1 && outputRowsToProcess > 0 ) {
+		PRESUME_EXPR( currInputRowIndex == 0 );
+		initOutputRow();
+		Process7x7RowStride1( desc, filter + 2 * filterRowSize, currInput, currOutput );
+		Process7x7RowStride1( desc, filter + 3 * filterRowSize, currInput + inputRowSize, currOutput );
+		if( inputHeight > 2 ) {
+			Process7x7RowStride1( desc, filter + 4 * filterRowSize, currInput + 2 * inputRowSize, currOutput );
+			if( inputHeight > 3 ) {
+				Process7x7RowStride1( desc, filter + 5 * filterRowSize, currInput + 3 * inputRowSize, currOutput );
+				if( inputHeight > 4 ) {
+					Process7x7RowStride1( desc, filter + 6 * filterRowSize, currInput + 4 * inputRowSize, currOutput );
+				}
+			}
+		}
+		switchToNextOutputRow();
+	}
+
+	if( currOutputRowIndex == 2 && outputRowsToProcess > 0 ) {
+		PRESUME_EXPR( currInputRowIndex == 0 );
+		initOutputRow();
+		Process7x7RowStride1( desc, filter + filterRowSize, currInput, currOutput );
+		Process7x7RowStride1( desc, filter + 2 * filterRowSize, currInput + inputRowSize, currOutput );
+		Process7x7RowStride1( desc, filter + 3 * filterRowSize, currInput + 2 * inputRowSize, currOutput );
+		if( inputHeight > 3 ) {
+			Process7x7RowStride1( desc, filter + 4 * filterRowSize, currInput + 3 * inputRowSize, currOutput );
+			if( inputHeight > 4 ) {
+				Process7x7RowStride1( desc, filter + 5 * filterRowSize, currInput + 4 * inputRowSize, currOutput );
+				if( inputHeight > 5 ) {
+					Process7x7RowStride1( desc, filter + 6 * filterRowSize, currInput + 5 * inputRowSize, currOutput );
+				}
+			}
+		}
+		switchToNextOutputRow();
+	}
+
+	auto hasRowsWithoutPadding = [&] { return outputRowsToProcess > 0 && currOutputRowIndex < outputHeight - 3; };
+	for( const float* firstInputUnderFilter = currInput + ( currOutputRowIndex - 3 - currInputRowIndex ) * inputRowSize;
+		hasRowsWithoutPadding();
+		firstInputUnderFilter += inputRowSize )
+	{
+		initOutputRow();
+		Process7x7RowStride1( desc, filter + 0 * filterRowSize, firstInputUnderFilter + 0 * inputRowSize, currOutput );
+		Process7x7RowStride1( desc, filter + 1 * filterRowSize, firstInputUnderFilter + 1 * inputRowSize, currOutput );
+		Process7x7RowStride1( desc, filter + 2 * filterRowSize, firstInputUnderFilter + 2 * inputRowSize, currOutput );
+		Process7x7RowStride1( desc, filter + 3 * filterRowSize, firstInputUnderFilter + 3 * inputRowSize, currOutput );
+		Process7x7RowStride1( desc, filter + 4 * filterRowSize, firstInputUnderFilter + 4 * inputRowSize, currOutput );
+		Process7x7RowStride1( desc, filter + 5 * filterRowSize, firstInputUnderFilter + 5 * inputRowSize, currOutput );
+		Process7x7RowStride1( desc, filter + 6 * filterRowSize, firstInputUnderFilter + 6 * inputRowSize, currOutput );
+		switchToNextOutputRow();
+	}
+
+	if( outputRowsToProcess > 0 && inputHeight > 5 && currOutputRowIndex == outputHeight - 3 ) {
+		initOutputRow();
+		const float* firstInputUnderFilter = currInput + ( currOutputRowIndex - 3 - currInputRowIndex ) * inputRowSize;
+		Process7x7RowStride1( desc, filter + 0 * filterRowSize, firstInputUnderFilter + 0 * inputRowSize, currOutput );
+		Process7x7RowStride1( desc, filter + 1 * filterRowSize, firstInputUnderFilter + 1 * inputRowSize, currOutput );
+		Process7x7RowStride1( desc, filter + 2 * filterRowSize, firstInputUnderFilter + 2 * inputRowSize, currOutput );
+		Process7x7RowStride1( desc, filter + 3 * filterRowSize, firstInputUnderFilter + 3 * inputRowSize, currOutput );
+		Process7x7RowStride1( desc, filter + 4 * filterRowSize, firstInputUnderFilter + 4 * inputRowSize, currOutput );
+		Process7x7RowStride1( desc, filter + 5 * filterRowSize, firstInputUnderFilter + 5 * inputRowSize, currOutput );
+		switchToNextOutputRow();
+	}
+
+	if( outputRowsToProcess > 0 && inputHeight > 4 && currOutputRowIndex == outputHeight - 2 ) {
+		initOutputRow();
+		const float* firstInputUnderFilter = currInput + ( currOutputRowIndex - 3 - currInputRowIndex ) * inputRowSize;
+		Process7x7RowStride1( desc, filter + 0 * filterRowSize, firstInputUnderFilter + 0 * inputRowSize, currOutput );
+		Process7x7RowStride1( desc, filter + 1 * filterRowSize, firstInputUnderFilter + 1 * inputRowSize, currOutput );
+		Process7x7RowStride1( desc, filter + 2 * filterRowSize, firstInputUnderFilter + 2 * inputRowSize, currOutput );
+		Process7x7RowStride1( desc, filter + 3 * filterRowSize, firstInputUnderFilter + 3 * inputRowSize, currOutput );
+		Process7x7RowStride1( desc, filter + 4 * filterRowSize, firstInputUnderFilter + 4 * inputRowSize, currOutput );
+		switchToNextOutputRow();
+	}
+
+	if( outputRowsToProcess > 0 && inputHeight > 3 && currOutputRowIndex == outputHeight - 1 ) {
+		initOutputRow();
+		const float* firstInputUnderFilter = currInput + ( currOutputRowIndex - 3 - currInputRowIndex ) * inputRowSize;
+		Process7x7RowStride1( desc, filter + 0 * filterRowSize, firstInputUnderFilter + 0 * inputRowSize, currOutput );
+		Process7x7RowStride1( desc, filter + 1 * filterRowSize, firstInputUnderFilter + 1 * inputRowSize, currOutput );
+		Process7x7RowStride1( desc, filter + 2 * filterRowSize, firstInputUnderFilter + 2 * inputRowSize, currOutput );
+		Process7x7RowStride1( desc, filter + 3 * filterRowSize, firstInputUnderFilter + 3 * inputRowSize, currOutput );
+	}
+}
+
 inline void ProcessChannelwiseNaive( const CCommonChannelwiseConvolutionDesc& desc, int outputRowsToProcess,
 	const float* currInput, int currInputRowIndex, const float* filter, const float* freeTerm, float* currOutput,
 	int currOutputRowIndex )
@@ -474,6 +696,8 @@ inline TChannelwiseProcessFunction GetChannelwiseProcessFunction( const CCommonC
 			} else if( desc.StrideWidth == 2 ) {
 				return ProcessChannelwise5x5Stride2;
 			}
+		} else if( desc.Filter.Width() == 7 && desc.PaddingWidth == 3 && desc.StrideWidth == 1 ) {
+			return ProcessChannelwise7x7Stride1;
 		}
 	}
 
