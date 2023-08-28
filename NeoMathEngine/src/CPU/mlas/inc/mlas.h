@@ -113,9 +113,9 @@ typedef enum { MlasLeft=141, MlasRight=142} MLAS_SIDE;
 namespace onnxruntime {
     namespace concurrency {
         class ThreadPool;
-    };
+    }
     struct MLFloat16;
-};  // namespace onnxruntime
+}  // namespace onnxruntime
 
 using MLAS_THREADPOOL = onnxruntime::concurrency::ThreadPool;
 
