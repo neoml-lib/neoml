@@ -54,6 +54,7 @@ add_library(onnxruntime_mlas STATIC
   lib/qdwconv_kernelsize.cpp
 )
 # onnxruntime_configure_target(${target_name})
+set_property(TARGET onnxruntime_mlas PROPERTY CXX_STANDARD 17)
 target_compile_definitions(onnxruntime_mlas PUBLIC BUILD_MLAS_NO_ONNXRUNTIME)
 
 if(MLAS_AMX_SUPPORTED)
