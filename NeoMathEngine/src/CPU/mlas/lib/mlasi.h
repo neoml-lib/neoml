@@ -24,6 +24,7 @@ Abstract:
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <string.h>
 #include <type_traits>
 
 #ifdef MLAS_NO_EXCEPTION
