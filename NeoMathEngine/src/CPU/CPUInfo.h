@@ -148,7 +148,7 @@ struct CCPUInfo {
 	}
 
 	static const bool HasAvxAndFma;
-	static const bool IsAMD;
+	static const bool IsNotIntel;
 
 	static bool IsAvxAndFmaAvailable()
 	{

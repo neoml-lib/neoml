@@ -44,7 +44,7 @@ limitations under the License.
 #endif // NEOML_USE_MKL
 
 const bool CCPUInfo::HasAvxAndFma = CCPUInfo::IsAvxAndFmaAvailable();
-const bool CCPUInfo::IsAMD = CCPUInfo::GetCpuArch() == CCPUInfo::TCpuArch::AMD;
+const bool CCPUInfo::IsNotIntel = CCPUInfo::GetCpuArch() != CCPUInfo::TCpuArch::Intel;
 
 namespace NeoML {
 

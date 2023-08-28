@@ -65,7 +65,7 @@ void CCpuMathEngine::multiplyMatrixByMatrix( const float* first, int firstHeight
 			result, resultRowSize, firstHeight, secondWidth, firstWidth );
 	} else {
 #if defined( NEOML_USE_MKL ) && defined( NEOML_USE_MLAS )
-		if( CCPUInfo::IsAMD ) {
+		if( CCPUInfo::IsNotIntel ) {
 			MlasGemm( MlasNoTrans, MlasNoTrans, static_cast<size_t>( firstHeight ), static_cast<size_t>( secondWidth ),
 				static_cast<size_t>( firstWidth ), 1, first, static_cast<size_t>( firstRowSize ), second,
 				static_cast<size_t>( secondRowSize ), 0, result, static_cast<size_t>( resultRowSize ), nullptr );
@@ -100,7 +100,7 @@ void CCpuMathEngine::multiplyMatrixByMatrixAndAdd( const float* first, int first
 			result, resultRowSize, firstHeight, secondWidth, firstWidth );
 	} else {
 #if defined( NEOML_USE_MKL ) && defined( NEOML_USE_MLAS )
-		if( CCPUInfo::IsAMD ) {
+		if( CCPUInfo::IsNotIntel ) {
 			MlasGemm( MlasNoTrans, MlasNoTrans, static_cast<size_t>( firstHeight ), static_cast<size_t>( secondWidth ),
 				static_cast<size_t>( firstWidth ), 1, first, static_cast<size_t>( firstRowSize ), second,
 				static_cast<size_t>( secondRowSize ), 1, result, static_cast<size_t>( resultRowSize ), nullptr );
@@ -135,7 +135,7 @@ void CCpuMathEngine::multiplyMatrixByTransposedMatrix(const float* first, int fi
 			result, resultRowSize, firstHeight, secondHeight, firstWidth );
 	} else {
 #if defined( NEOML_USE_MKL ) && defined( NEOML_USE_MLAS )
-		if( CCPUInfo::IsAMD ) {
+		if( CCPUInfo::IsNotIntel ) {
 			MlasGemm( MlasNoTrans, MlasTrans, static_cast<size_t>( firstHeight ), static_cast<size_t>( secondHeight ),
 				static_cast<size_t>( firstWidth ), 1, first, static_cast<size_t>( firstRowSize ), second,
 				static_cast<size_t>( secondRowSize ), 0, result, static_cast<size_t>( resultRowSize ), nullptr );
@@ -167,7 +167,7 @@ void CCpuMathEngine::multiplyMatrixByTransposedMatrixAndAdd( const float* first,
 			result, resultRowSize, firstHeight, secondHeight, firstWidth );
 	} else {
 #if defined( NEOML_USE_MKL ) && defined( NEOML_USE_MLAS )
-		if( CCPUInfo::IsAMD ) {
+		if( CCPUInfo::IsNotIntel ) {
 			MlasGemm( MlasNoTrans, MlasTrans, static_cast<size_t>( firstHeight ), static_cast<size_t>( secondHeight ),
 				static_cast<size_t>( firstWidth ), 1, first, static_cast<size_t>( firstRowSize ), second,
 				static_cast<size_t>( secondRowSize ), 1, result, static_cast<size_t>( resultRowSize ), nullptr );
