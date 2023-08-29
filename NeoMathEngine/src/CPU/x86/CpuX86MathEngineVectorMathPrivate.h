@@ -557,10 +557,10 @@ inline __m128i sse2Multiply4SignedInts( const __m128i& first, const __m128i& sec
 
 //------------------------------------------------------------------------------------------------------------
 
-inline void vectorMultiply( const float* first, float* result, float multiplier, int vectorSize )
+inline void vectorMultiply( const float* first, float* result, int vectorSize, float multiplier )
 {
 	if( CCPUInfo::HasAvxAndFma && vectorSize >= NeoML::Avx2::VectorMathMinSize ) {
-		NeoML::Avx2::vectorMultiply( first, result, multiplier, vectorSize );
+		NeoML::Avx2::vectorMultiply( first, result, vectorSize, multiplier );
 		return;
 	}
 
@@ -582,7 +582,7 @@ inline void vectorMultiply( const float* first, float* result, float multiplier,
 	}
 }
 
-inline void vectorMultiply( const int* first, int* result, int multiplier, int vectorSize )
+inline void vectorMultiply( const int* first, int* result, int vectorSize, int multiplier )
 {
 	int sseSize;
 	int nonSseSize;

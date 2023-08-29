@@ -474,7 +474,7 @@ void CCpuMathEngine::VectorMultiply( const CConstFloatHandle& firstHandle,
 
 	const float multiplier = *GetRaw( multiplierHandle );
 
-	vectorMultiply( GetRaw( firstHandle ), GetRaw( resultHandle ), multiplier, vectorSize );
+	vectorMultiply( GetRaw( firstHandle ), GetRaw( resultHandle ), vectorSize, multiplier );
 }
 
 void CCpuMathEngine::VectorMultiply( const CConstIntHandle& firstHandle,
@@ -487,7 +487,7 @@ void CCpuMathEngine::VectorMultiply( const CConstIntHandle& firstHandle,
 
 	const int multiplier = *GetRaw( multiplierHandle );
 
-	vectorMultiply( GetRaw( firstHandle ), GetRaw( resultHandle ), multiplier, vectorSize );
+	vectorMultiply( GetRaw( firstHandle ), GetRaw( resultHandle ), vectorSize, multiplier );
 }
 
 void CCpuMathEngine::VectorEltwiseMultiply( const CConstFloatHandle& firstHandle,

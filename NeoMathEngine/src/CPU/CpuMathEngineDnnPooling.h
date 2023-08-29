@@ -65,8 +65,8 @@ inline void blobMeanPooling( const CCommon2DPoolingDesc& desc, int resultRowsToP
 		sourcePtr += source.ObjectSize();
 	}
 	// Multiply the result by the inverse of the window size
-	vectorMultiply( resultData, resultData, ( 1.f / desc.FilterHeight / desc.FilterWidth ),
-		resultRowsToProcess * resultRowSize );
+	vectorMultiply( resultData, resultData, resultRowsToProcess * resultRowSize,
+		( 1.f / desc.FilterHeight / desc.FilterWidth ) );
 }
 
 } // namespace NeoML

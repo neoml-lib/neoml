@@ -144,7 +144,7 @@ void vectorAddValue( const float* first, float* result, int vectorSize, float va
 	}
 }
 
-void vectorMultiply( const float* first, float* result, float multiplier, int vectorSize )
+void vectorMultiply( const float* first, float* result, int vectorSize, float multiplier )
 {
 	const __m256 multSimd = _mm256_set1_ps( multiplier );
 

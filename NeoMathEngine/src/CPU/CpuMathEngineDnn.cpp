@@ -1105,8 +1105,8 @@ void CCpuMathEngine::LinearInterpolation( const CConstFloatHandle& dataHandle, c
 				const float leftCoord = ::floorf( oldCoord );
 				const float leftMul = 1.f - ( oldCoord - leftCoord );
 				const float rightMul = oldCoord - leftCoord;
-				vectorMultiply( currData + static_cast<int>( oldCoord ) * objectSize, currBuff, leftMul, objectSize );
-				vectorMultiply( currData + ( static_cast<int>( oldCoord ) + 1 ) * objectSize, currResult, rightMul, objectSize );
+				vectorMultiply( currData + static_cast<int>( oldCoord ) * objectSize, currBuff, objectSize, leftMul );
+				vectorMultiply( currData + ( static_cast<int>( oldCoord ) + 1 ) * objectSize, currResult, objectSize, rightMul );
 				vectorAdd( currResult, currBuff, currResult, objectSize );
 			}
 			currResult += objectSize;
