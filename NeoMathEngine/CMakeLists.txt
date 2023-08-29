@@ -44,7 +44,7 @@ endif()
 add_subdirectory(src)
 
 # Tests
-if((NeoMathEngine_BUILD_TESTS OR NeoML_BUILD_TESTS) AND NOT IOS AND NOT ANDROID)
+if(NeoMathEngine_BUILD_TESTS AND NOT IOS AND NOT ANDROID)
     enable_testing()
     add_subdirectory(test/FullTestDesktop)
 endif()
