@@ -229,8 +229,8 @@ void CThreadPool::stopAndWait()
 		{
 			std::unique_lock<std::mutex> lock( params[i]->Mutex );
 			params[i]->Stopped = true;
-			params[i]->ConditionVariable.notify_all();
 		}
+		params[i]->ConditionVariable.notify_all();
 		threads[i]->join();
 	}
 }

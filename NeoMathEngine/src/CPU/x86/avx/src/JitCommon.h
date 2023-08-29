@@ -85,12 +85,12 @@ public:
 
 
     template<class LastVec>
-    bool HasSameSize( const LastVec& ) {
+    bool HasSameSize( const LastVec& ) const {
         return true;
     }
 
     template<class Vec1, class Vec2, class... Vecs>
-    bool HasSameSize( const Vec1& vec1, const Vec2& vec2, const Vecs&... vecs ) {
+    bool HasSameSize( const Vec1& vec1, const Vec2& vec2, const Vecs&... vecs ) const {
         return vec1.size() == vec2.size() && HasSameSize( vec1, vecs... );
     }
 
@@ -190,7 +190,7 @@ public:
 
 private:
     struct CLoopDesc {
-        CLoopDesc( reg64_t counter, uint32_t step ) : Counter( counter ), Step( step ) {}
+        CLoopDesc( const reg64_t& counter, uint32_t step ) : Counter( counter ), Step( step ) {}
         Xbyak::Label StartLabel;
         Xbyak::Label EndLabel;
         reg64_t Counter;
