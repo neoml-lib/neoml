@@ -22,17 +22,15 @@ limitations under the License.
 
 namespace NeoML {
 
-CLstmDesc* CCudaMathEngine::InitLstm( CLstmDesc*, const CFloatHandle&, const CFloatHandle&, int, int, int )
+CLstmDesc* CCudaMathEngine::InitLstm( int, int, const CConstFloatHandle&, const CConstFloatHandle&,
+	const CConstFloatHandle&, const CConstFloatHandle& )
 {
 	ASSERT_EXPR( false );
 	return nullptr;
 }
 
-void CCudaMathEngine::Lstm( CLstmDesc&, 
-	const CFloatHandle&, const CConstFloatHandle&,
-	const CFloatHandle&, const CConstFloatHandle&,
-	const CConstFloatHandle&, const CConstFloatHandle&, const CConstFloatHandle&,
-	const CFloatHandle&, const CFloatHandle& )
+void CCudaMathEngine::Lstm( CLstmDesc&, bool, int, int, const CConstFloatHandle&, const CConstFloatHandle&,
+	const CConstFloatHandle&, const CFloatHandle&, const CFloatHandle& )
 {
 	ASSERT_EXPR( false );
 }

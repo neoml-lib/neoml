@@ -126,23 +126,14 @@ void CCpuMathEngine::VectorReLU(const CConstFloatHandle& firstHandle,
 	ASSERT_EXPR( upperThresholdHandle.GetMathEngine() == this );
 	CCpuExecutionScope scope;
 
-	const float* first = GetRaw(firstHandle);
-	float* result = GetRaw(resultHandle);
-	float threshold = *GetRaw(upperThresholdHandle);
+	const float* first = GetRaw( firstHandle );
+	float* result = GetRaw( resultHandle );
+	const float threshold = *GetRaw( upperThresholdHandle );
 
-	const int curThreadCount = IsOmpRelevant( vectorSize, vectorSize ) ? threadCount : 1;
-
-	NEOML_OMP_NUM_THREADS( curThreadCount )
-	{
-		int index;
-		int count;
-		if( OmpGetTaskIndexAndCount( vectorSize, 16, index, count ) ) {
-			if( threshold > 0 ) {
-				vectorReLU( first + index, result + index, count, threshold );
-			} else {
-				vectorReLU( first + index, result + index, count );
-			}
-		}
+	if( threshold > 0 ) {
+		vectorReLU( first, result, vectorSize, threshold );
+	} else {
+		vectorReLU( first, result, vectorSize );
 	}
 }
 

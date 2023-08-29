@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -32,7 +32,8 @@ using reg64_t = Xbyak::Reg64;
 class CBlobConvolutionBase : public CCrtAllocatedObject {
 public:
     virtual ~CBlobConvolutionBase() = default;
-    virtual void ProcessConvolution( int threadCount, const float* sourceData, const float* filterData, const float* freeTermData, float* resultData ) = 0;
+    virtual void ProcessConvolution(
+        const float* sourceData, const float* filterData, const float* freeTermData, float* resultData ) = 0;
     virtual void ProcessConvolutionRowwise( const float* sourceData, int sourceRowIndex,
         const float* filterData, const float* freeTermData, float* resultData,
         int rowIdx, int rowCount ) = 0;
@@ -48,7 +49,7 @@ public:
         int dilationHeight, int dilationWidth, int resultHeight, int resultWidth, int resObjCnt );
     ~CBlobConvolution() override = default;
 
-    void ProcessConvolution( int threadCount,
+    void ProcessConvolution(
         const float* sourceData, const float* filterData, const float* freeTermData, float* resultData ) override;
     void ProcessConvolutionRowwise( const float* sourceData, int sourceRowIndex, const float* filterData,
         const float* freeTermData, float* resultData, int resultRowIndex, int resultRowCount ) override;
@@ -114,7 +115,7 @@ private:
         void circularShift( Xbyak::Ymm* dst, Xbyak::Ymm* src, Xbyak::Ymm* temp = nullptr ) {}
     };
 
-    IMathEngine* mathEngine;
+    IMathEngine* const mathEngine;
 
     const int ChCnt;
     const int FltH;

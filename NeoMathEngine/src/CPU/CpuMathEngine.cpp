@@ -44,6 +44,7 @@ limitations under the License.
 #endif // NEOML_USE_MKL
 
 const bool CCPUInfo::HasAvxAndFma = CCPUInfo::IsAvxAndFmaAvailable();
+const bool CCPUInfo::IsNotIntel = CCPUInfo::GetCpuArch() != CCPUInfo::TCpuArch::Intel;
 
 namespace NeoML {
 
@@ -154,11 +155,8 @@ void CCpuMathEngine::CleanUp()
 	stackAllocator->CleanUp();
 	memoryPool->CleanUp();
 #ifdef NEOML_USE_MKL
-	NEOML_OMP_NUM_THREADS( threadCount )
-	{
-		mkl_thread_free_buffers();
-	}
-#endif
+	mkl_thread_free_buffers();
+#endif // NEOML_USE_MKL
 }
 
 void* CCpuMathEngine::GetBuffer( const CMemoryHandle& handle, size_t pos, size_t, bool exchange )

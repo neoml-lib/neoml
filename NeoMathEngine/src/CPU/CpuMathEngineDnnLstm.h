@@ -21,95 +21,72 @@ limitations under the License.
 #include <MemoryHandleInternal.h>
 
 #include <cstring>
+#include <memory>
 
 namespace NeoML {
 
 struct CMathEngineLstmDesc : public CLstmDesc {
-	CMathEngineLstmDesc( const CFloatHandle& _inputFullyConnectedResult, const CFloatHandle& _reccurentFullyConnectedResult,
-		int _hiddenSize, int _objectCount, int _objectSize ) :
-			inputFullyConnectedResult( _inputFullyConnectedResult ),
-			reccurentFullyConnectedResult( _reccurentFullyConnectedResult ),
-			hiddenSize( _hiddenSize ),
-			objectCount( _objectCount ),
-			objectSize( _objectSize )
-	{}
+	CMathEngineLstmDesc( int hiddenSize, int objectSize, const CConstFloatHandle& inputWeights,
+		const CConstFloatHandle& inputFreeTerm, const CConstFloatHandle& recurWeights,
+		const CConstFloatHandle& recurFreeTerm );
 	~CMathEngineLstmDesc() override;
-
-	void Reset( const CFloatHandle& _inputFullyConnectedResult, const CFloatHandle& _reccurentFullyConnectedResult,
-		int _hiddenSize, int _objectCount, int _objectSize )
-	{
-		inputFullyConnectedResult = _inputFullyConnectedResult;
-		reccurentFullyConnectedResult = _reccurentFullyConnectedResult;
-		hiddenSize = _hiddenSize;
-		objectCount = _objectCount;
-		objectSize = _objectSize;
-	}
 
 	static int constexpr GatesNum = 4;
 
-	CFloatHandle inputFullyConnectedResult;
-	CFloatHandle reccurentFullyConnectedResult;
-	int hiddenSize; 
-	int objectCount;
-	int objectSize;
+	const int HiddenSize;
+	const int ObjectSize;
+	const float* const InputWeights;
+	const float* const RecurWeights;
+	const std::unique_ptr<CFloatHandleVar> FreeTermVar;
+	const float* FreeTerm;
 
-	virtual void RunOnceRestOfLstm( const CConstFloatHandle& inputStateBackLink,
-		const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink );
+	virtual void RunOnceRestOfLstm( int objectCount, float* fullyConnectedResult, const float* inputStateBackLink,
+		float* outputStateBackLink, float* outputMainBackLink );
 };
 
-inline void CMathEngineLstmDesc::RunOnceRestOfLstm( const CConstFloatHandle& inputStateBackLink, 
-	const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink )
+inline void CMathEngineLstmDesc::RunOnceRestOfLstm( int objectCount, float* fullyConnectedResult,
+	const float* inputStateBackLink, float* outputStateBackLink, float* outputMainBackLink )
 {
 	// Elementwise summ of fully connected layers' results (inplace)
-	const int resultMatrixWidth = CMathEngineLstmDesc::GatesNum * hiddenSize;
-	const int curDataSize = objectCount * hiddenSize;
-
-	float* const outputStateBackLinkRaw = GetRaw( outputStateBackLink );
-	float* const inputFullyConnectedResultRaw = GetRaw( inputFullyConnectedResult );
-	float* const reccurentFullyConnectedResultRaw = GetRaw( reccurentFullyConnectedResult );
-	float* const hiddenLayerSumRaw = inputFullyConnectedResultRaw;
-
-	NeoML::vectorAdd( inputFullyConnectedResultRaw, reccurentFullyConnectedResultRaw,
-		hiddenLayerSumRaw, objectCount * resultMatrixWidth );
+	const int resultMatrixWidth = CMathEngineLstmDesc::GatesNum * HiddenSize;
 
 	// Rearrange sum
-	float* const hiddenLayerSumRearrangedRaw = reccurentFullyConnectedResultRaw;
-	float* const inputTanhData = hiddenLayerSumRearrangedRaw;
-	float* const forgetData = inputTanhData + curDataSize;
-	float* const inputData = forgetData + curDataSize;
-	float* const outputData = inputData + curDataSize;
+	float* inputTanhData = fullyConnectedResult;
+	float* forgetData = inputTanhData + HiddenSize;
+	float* inputData = forgetData + HiddenSize;
+	float* outputData = inputData + HiddenSize;
 
-	float* const rawFrom = hiddenLayerSumRaw;
-	float* const rawTo = hiddenLayerSumRearrangedRaw;
-	for( int x = 0; x < objectCount; ++x ) {
-		const float* input = rawFrom + x * resultMatrixWidth;
-		for( int i = 0; i < CMathEngineLstmDesc::GatesNum; ++i ) {
-			memcpy( ( rawTo + i * curDataSize ) + x * hiddenSize, input, hiddenSize * sizeof( float ) );
-			input += hiddenSize;
-		}
+	for( int i = 0; i < objectCount; ++i ) {
+		// Apply activations
+		NeoML::vectorTanh( inputTanhData, inputTanhData, HiddenSize );
+
+		NeoML::vectorSigmoid( forgetData, forgetData, HiddenSize );
+		NeoML::vectorSigmoid( inputData, inputData, HiddenSize );
+		NeoML::vectorSigmoid( outputData, outputData, HiddenSize );
+
+		// Multiply input gates
+		NeoML::vectorEltwiseMultiply( inputData, inputTanhData, inputData, HiddenSize );
+
+		// Multiply state backlink with forget gate
+		NeoML::vectorEltwiseMultiply( forgetData, inputStateBackLink, forgetData, HiddenSize );
+
+		// Append input gate to state backlink
+		NeoML::vectorAdd( forgetData, inputData, outputStateBackLink, HiddenSize );
+
+		// Apply tanh to state baclink
+		NeoML::vectorTanh( outputStateBackLink, inputData, HiddenSize );
+
+		// Multiply output gate with result of previous operation
+		NeoML::vectorEltwiseMultiply( outputData, inputData, outputMainBackLink, HiddenSize );
+
+		inputTanhData += resultMatrixWidth;
+		forgetData += resultMatrixWidth;
+		inputData += resultMatrixWidth;
+		outputData += resultMatrixWidth;
+		inputStateBackLink += HiddenSize;
+		outputStateBackLink += HiddenSize;
+		outputMainBackLink += HiddenSize;
 	}
-
-	// Apply activations
-	NeoML::vectorTanh( inputTanhData, inputTanhData, curDataSize );
-			
-	NeoML::vectorSigmoid( forgetData, forgetData, curDataSize );
-	NeoML::vectorSigmoid( inputData, inputData, curDataSize );
-	NeoML::vectorSigmoid( outputData, outputData, curDataSize );
-			
-	// Multiply input gates
-	NeoML::vectorEltwiseMultiply( inputData, inputTanhData, inputData, curDataSize );
-
-	// Multiply state backlink with forget gate
-	NeoML::vectorEltwiseMultiply( forgetData, GetRaw( inputStateBackLink ), forgetData, curDataSize );
-
-	// Append input gate to state backlink
-	NeoML::vectorAdd( forgetData, inputData, outputStateBackLinkRaw, curDataSize );
-
-	// Apply tanh to state baclink
-	NeoML::vectorTanh( outputStateBackLinkRaw, inputData, curDataSize );
-
-	// Multiply output gate with result of previous operation
-	NeoML::vectorEltwiseMultiply( outputData, inputData, GetRaw( outputMainBackLink ), curDataSize );
 }
 
 } // namespace NeoML

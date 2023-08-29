@@ -37,6 +37,10 @@ limitations under the License.
 #endif
 #endif // NEOML_USE_MKL
 
+#ifdef NEOML_USE_MLAS
+#include "mlas/inc/mlas.h"
+#endif
+
 namespace NeoML {
 
 void CCpuMathEngine::VectorExp( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize )
@@ -45,18 +49,7 @@ void CCpuMathEngine::VectorExp( const CConstFloatHandle& firstHandle, const CFlo
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	CCpuExecutionScope scope;
 
-	const int curThreadCount = IsOmpRelevant( vectorSize, vectorSize ) ? threadCount : 1;
-
-	if( curThreadCount > 1 ) {
-		NEOML_OMP_NUM_THREADS( curThreadCount ) {
-			int index, count;
-			if( OmpGetTaskIndexAndCount( vectorSize, 16, index, count ) ) {
-				NeoML::vectorExp( GetRaw( firstHandle + index ), GetRaw( resultHandle + index ), count );
-			}
-		}
-	} else {
-		NeoML::vectorExp( GetRaw( firstHandle ), GetRaw( resultHandle ), vectorSize );
-	}
+	NeoML::vectorExp( GetRaw( firstHandle ), GetRaw( resultHandle ), vectorSize );
 }
 
 void CCpuMathEngine::VectorLog(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize)
@@ -130,29 +123,17 @@ void CCpuMathEngine::VectorTanh( const CConstFloatHandle& firstHandle, const CFl
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	CCpuExecutionScope scope;
 
-	const int curThreadCount = IsOmpRelevant( vectorSize, vectorSize ) ? threadCount : 1;
-
-	if( curThreadCount > 1 ) {
-		NEOML_OMP_NUM_THREADS( curThreadCount ) {
-			int index, count;
-			if( OmpGetTaskIndexAndCount( vectorSize, 16, index, count ) ) {
-				NeoML::vectorTanh( GetRaw( firstHandle + index ), GetRaw( resultHandle + index ), count );
-			}
-		}
-	} else {
-		NeoML::vectorTanh( GetRaw( firstHandle ),  GetRaw( resultHandle ), vectorSize );
-	}
+	NeoML::vectorTanh( GetRaw( firstHandle ),  GetRaw( resultHandle ), vectorSize );
 }
 
-void CCpuMathEngine::VectorPower(float exponent, const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize)
+void CCpuMathEngine::VectorPower( float exponent, const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize )
 {
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	CCpuExecutionScope scope;
 
-	const int curThreadCount = IsOmpRelevant( vectorSize, 2 * vectorSize ) ? threadCount : 1;
-	const float* first = GetRaw(firstHandle);
-	float* result = GetRaw(resultHandle);
+	const float* first = GetRaw( firstHandle );
+	float* result = GetRaw( resultHandle );
 
 	// Profiler showed that vsPowx is effective in 2 cases:
 	//    1. Non-integer exponent
@@ -161,31 +142,13 @@ void CCpuMathEngine::VectorPower(float exponent, const CConstFloatHandle& firstH
 	if( std::fabs( std::roundf( exponent ) - exponent ) >= FLT_EPSILON
 		|| std::fabs( 2.0f - exponent ) < FLT_EPSILON )
 	{
-		if( curThreadCount > 1 ) {
-			NEOML_OMP_NUM_THREADS( curThreadCount )
-			{
-				int start;
-				int count;
-				if( OmpGetTaskIndexAndCount( vectorSize, start, count ) ) {
-					vsPowx( count, first + start, exponent, result + start );
-				}
-			}
-		} else {
-			vsPowx( vectorSize, first, exponent, result );
-		}
+		vsPowx( vectorSize, first, exponent, result );
 		return;
 	}
 #endif // NEOML_USE_MKL
 
-	if( curThreadCount > 1 ) {
-		NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
-		for( int i = 0; i < vectorSize; ++i ) {
-			result[i] = powf( first[i], exponent );
-		}
-	} else {
-		for( int i = 0; i < vectorSize; ++i ) {
-			*result++ = powf( *first++, exponent );
-		}
+	for( int i = 0; i < vectorSize; ++i ) {
+		*result++ = powf( *first++, exponent );
 	}
 }
 
@@ -256,7 +219,15 @@ void CCpuMathEngine::VectorErf( const CConstFloatHandle& firstHandle, const CFlo
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	CCpuExecutionScope scope;
 
-#ifdef NEOML_USE_MKL
+#if defined( NEOML_USE_MLAS ) && defined( NEOML_USE_MKL )
+	if( CCPUInfo::IsNotIntel ) {
+		MlasComputeErf( GetRaw( firstHandle ), GetRaw( resultHandle ), static_cast<size_t>( vectorSize ) );
+	} else {
+		vsErf( vectorSize, GetRaw( firstHandle ), GetRaw( resultHandle ) );
+	}
+#elif defined( NEOML_USE_MLAS )
+	MlasComputeErf( GetRaw( firstHandle ), GetRaw( resultHandle ), static_cast<size_t>( vectorSize ) );
+#elif defined( NEOML_USE_MKL )
 	vsErf( vectorSize, GetRaw( firstHandle ), GetRaw( resultHandle ) );
 #else
 	const float* first = GetRaw( firstHandle );

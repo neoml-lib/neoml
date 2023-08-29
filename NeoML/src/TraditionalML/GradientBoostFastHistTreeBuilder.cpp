@@ -20,7 +20,6 @@ limitations under the License.
 #include <GradientBoostThreadTask.h>
 #include <LinkedRegressionTree.h>
 #include <NeoMathEngine/ThreadPool.h>
-#include <NeoMathEngine/OpenMP.h>
 
 namespace NeoML {
 
