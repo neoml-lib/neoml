@@ -883,7 +883,7 @@ inline float32x4_t vectorHSwishWorker( const float32x4_t& first, const float32x4
 {
 	float32x4_t middlePart = vmaxq_f32( vaddq_f32( first, three ), zero );
 	middlePart = vmulq_f32( vmulq_f32( first, oneSixth ), middlePart );
-	return vminq_f32( middlePart, first );
+	return vminq_f32( middlePart, vmaxq_f32( first, three ) );
 }
 
 inline void vectorHSwish( const float* first, float* result, int vectorSize )

@@ -1226,7 +1226,7 @@ inline __m128 vectorHSwishWorker( const __m128& first, const __m128& three,
 {
 	__m128 middlePart = _mm_max_ps( _mm_add_ps( first, three ), zero );
 	middlePart = _mm_mul_ps( _mm_mul_ps( first, oneSixth ), middlePart );
-	return _mm_min_ps( middlePart, first );
+	return _mm_min_ps( middlePart, _mm_max_ps( first, three ) );
 }
 
 inline void vectorHSwish( const float* first, float* result, int vectorSize )

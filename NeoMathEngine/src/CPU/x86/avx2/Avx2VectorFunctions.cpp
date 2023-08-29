@@ -279,7 +279,7 @@ void vectorHSwish( const float* first, float* result, int vectorSize )
 		__m256 firstSimd = _mm256_loadu_ps( first );
 		__m256 middlePart = _mm256_max_ps( _mm256_add_ps( firstSimd, threeSimd ), zeroSimd );
 		middlePart = _mm256_mul_ps( _mm256_mul_ps( firstSimd, oneSixthSimd ), middlePart );
-		_mm256_storeu_ps( result, _mm256_min_ps( middlePart, firstSimd ) );
+		_mm256_storeu_ps( result, _mm256_min_ps( middlePart, _mm256_max_ps( firstSimd, threeSimd ) ) );
 
 		first += AvxBlockSize;
 		result += AvxBlockSize;
@@ -291,7 +291,7 @@ void vectorHSwish( const float* first, float* result, int vectorSize )
 		__m256 firstSimd = _mm256_maskload_ps( first, mask );
 		__m256 middlePart = _mm256_max_ps( _mm256_add_ps( firstSimd, threeSimd ), zeroSimd );
 		middlePart = _mm256_mul_ps( _mm256_mul_ps( firstSimd, oneSixthSimd ), middlePart );
-		_mm256_maskstore_ps( result, mask, _mm256_min_ps( middlePart, firstSimd ) );
+		_mm256_maskstore_ps( result, mask, _mm256_min_ps( middlePart, _mm256_max_ps( firstSimd, threeSimd ) ) );
 	}
 }
 
