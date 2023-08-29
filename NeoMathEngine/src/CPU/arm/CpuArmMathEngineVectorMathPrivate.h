@@ -312,7 +312,7 @@ inline void alignedVectorMultiplyAndAdd( const float* first, const float* second
 
 //------------------------------------------------------------------------------------------------------------
 
-inline void vectorMultiply( const float* first, float* result, float multiplier, int vectorSize )
+inline void vectorMultiply( const float* first, float* result, int vectorSize, float multiplier )
 {
 	int count = GetCount4( vectorSize );
 	float32x4_t mult = vdupq_n_f32( multiplier );
@@ -331,7 +331,7 @@ inline void vectorMultiply( const float* first, float* result, float multiplier,
 	}
 }
 
-inline void vectorMultiply( const int* first, int* result, int multiplier, int vectorSize )
+inline void vectorMultiply( const int* first, int* result, int vectorSize, int multiplier )
 {
 	int count = GetCount4( vectorSize );
 	int32x4_t mult = vdupq_n_s32( multiplier );

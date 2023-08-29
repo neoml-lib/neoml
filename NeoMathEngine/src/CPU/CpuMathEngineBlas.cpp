@@ -818,7 +818,7 @@ void CCpuMathEngine::MultiplyDiagMatrixByMatrix( const CConstFloatHandle& firstH
 
 	for( int i = 0; i < firstSize; i++ ) {
 		const float multiplier = *( first + i );
-		vectorMultiply( second + i * secondWidth, result + i * secondWidth, multiplier, secondWidth );
+		vectorMultiply( second + i * secondWidth, result + i * secondWidth, secondWidth, multiplier );
 	}
 }
 

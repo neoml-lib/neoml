@@ -237,7 +237,8 @@ void CCpuMathEngine::BlobMeanPoolingBackward( const CMeanPoolingDesc& poolingDes
 		sourcePtr += source.ObjectSize();
 	}
 	// Multiply the diff by the inverse of the window size
-	vectorMultiply( GetRaw( sourceDiff ), GetRaw( sourceDiff ), ( 1.f / desc.FilterHeight / desc.FilterWidth ), source.BlobSize() );
+	vectorMultiply( GetRaw( sourceDiff ), GetRaw( sourceDiff ), source.BlobSize(),
+		( 1.f / desc.FilterHeight / desc.FilterWidth ) );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -455,7 +456,8 @@ void CCpuMathEngine::Blob3dMeanPooling( const C3dMeanPoolingDesc& convDesc, cons
 		sourceObject += sourceObjectSize;
 	}
 	// Divide the result by filter volume
-	vectorMultiply( GetRaw( resultData ), GetRaw( resultData ), ( 1.f / desc.FilterHeight / desc.FilterWidth / desc.FilterDepth ), result.BlobSize() );
+	vectorMultiply( GetRaw( resultData ), GetRaw( resultData ), result.BlobSize(),
+		( 1.f / desc.FilterHeight / desc.FilterWidth / desc.FilterDepth ) );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -592,7 +594,8 @@ void CCpuMathEngine::Blob3dMeanPoolingBackward( const C3dMeanPoolingDesc& poolin
 		sourceDiffPtr += sourceObjectSize;
 	}
 	// Divide the sourceDiff by the filter volume
-	vectorMultiply( sourceDiffRaw, sourceDiffRaw, ( 1.f / desc.FilterHeight / desc.FilterWidth / desc.FilterDepth ), source.BlobSize() );
+	vectorMultiply( sourceDiffRaw, sourceDiffRaw, source.BlobSize(),
+		( 1.f / desc.FilterHeight / desc.FilterWidth / desc.FilterDepth ) );
 }
 
 //---------------------------------------------------------------------------------------------------
