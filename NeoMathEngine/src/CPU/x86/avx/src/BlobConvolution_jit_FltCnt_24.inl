@@ -27,7 +27,7 @@ template<>
 const int CBlobConvolution<24>::WideBatchKernelWidth = 3;
 
 template<>
-inline void CBlobConvolution<24>::CJitConvolution::fillBatchProcessingKernel( CBlobConvolution<24>& bc, bool useNarrowProcessing, size_t windowIndex )
+inline void CBlobConvolution<24>::CJitConvolution::fillBatchProcessingKernel( const CBlobConvolution<24>& bc, bool useNarrowProcessing, size_t windowIndex )
 {
     using namespace Xbyak;
 
@@ -69,7 +69,7 @@ inline void CBlobConvolution<24>::CJitConvolution::fillBatchProcessingKernel( CB
 }
 
 template<>
-inline void CBlobConvolution<24>::CJitConvolution::fillSingleProcessingKernel( CBlobConvolution<24>& bc, bool useNarrowProcessing, size_t windowIndex )
+inline void CBlobConvolution<24>::CJitConvolution::fillSingleProcessingKernel( const CBlobConvolution<24>& bc, bool useNarrowProcessing, size_t windowIndex )
 {
     using namespace Xbyak;
 
