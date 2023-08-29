@@ -37,6 +37,10 @@ limitations under the License.
 #endif
 #endif // NEOML_USE_MKL
 
+#ifdef NEOML_USE_MLAS
+#include "mlas/inc/mlas.h"
+#endif
+
 namespace NeoML {
 
 void CCpuMathEngine::VectorExp( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize )
@@ -215,7 +219,15 @@ void CCpuMathEngine::VectorErf( const CConstFloatHandle& firstHandle, const CFlo
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	CCpuExecutionScope scope;
 
-#ifdef NEOML_USE_MKL
+#if defined( NEOML_USE_MLAS ) && defined( NEOML_USE_MKL )
+	if( CCPUInfo::IsNotIntel ) {
+		MlasComputeErf( GetRaw( firstHandle ), GetRaw( resultHandle ), static_cast<size_t>( vectorSize ) );
+	} else {
+		vsErf( vectorSize, GetRaw( firstHandle ), GetRaw( resultHandle ) );
+	}
+#elif defined( NEOML_USE_MLAS )
+	MlasComputeErf( GetRaw( firstHandle ), GetRaw( resultHandle ), static_cast<size_t>( vectorSize ) );
+#elif defined( NEOML_USE_MKL )
 	vsErf( vectorSize, GetRaw( firstHandle ), GetRaw( resultHandle ) );
 #else
 	const float* first = GetRaw( firstHandle );
