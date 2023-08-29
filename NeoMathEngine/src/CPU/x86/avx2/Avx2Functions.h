@@ -34,7 +34,7 @@ void vectorAdd( const float* first, const float* second, float* result, int vect
 
 void vectorAddValue( const float* first, float* result, int vectorSize, float value );
 
-void vectorMultiply( const float* first, float* result, float multiplier, int vectorSize );
+void vectorMultiply( const float* first, float* result, int vectorSize, float multiplier );
 
 void vectorEltwiseMultiply( const float* first, const float* second, float* result, int vectorSize );
 
