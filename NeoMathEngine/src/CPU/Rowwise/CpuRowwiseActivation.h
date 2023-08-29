@@ -90,7 +90,7 @@ inline ICpuRowwiseImpl::CProcessingReport CCpuRowwiseActivation::Process( const 
 			break;
 		case AF_Linear:
 			if( desc.GetParam<CLinearActivationParam>().Multiplier != 1.f ) {
-				vectorMultiply( input, output, desc.GetParam<CLinearActivationParam>().Multiplier, dataSize );
+				vectorMultiply( input, output, dataSize, desc.GetParam<CLinearActivationParam>().Multiplier );
 				input = output;
 			}
 			if( desc.GetParam<CLinearActivationParam>().FreeTerm != 0.f ) {
