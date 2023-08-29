@@ -206,6 +206,18 @@ else()
     endif()
 endif()
 
+if(WIN32 OR LINUX)
+    if(${CMAKE_VERSION} VERSION_GREATER "3.16.0")
+        set(CMAKE_UNITY_BUILD OFF)
+    endif()
+    add_subdirectory(CPU/mlas EXCLUDE_FROM_ALL)
+    if(${CMAKE_VERSION} VERSION_GREATER "3.16.0")
+        set(CMAKE_UNITY_BUILD ${NeoML_UNITY_BUILD})
+    endif()
+    target_link_libraries(${PROJECT_NAME} PRIVATE onnxruntime_mlas)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE NEOML_USE_MLAS)
+endif()
+
 # GPU specific source and settings
 if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
 
