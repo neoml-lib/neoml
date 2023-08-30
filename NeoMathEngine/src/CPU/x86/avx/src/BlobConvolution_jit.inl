@@ -18,7 +18,7 @@ namespace NeoML {
 using reg64_t = Xbyak::Reg64;
 
 template<int FltCnt>
-CBlobConvolution<FltCnt>::CJitConvolution::CJitConvolution( CBlobConvolution<FltCnt>& bc, int yStepIndex )
+CBlobConvolution<FltCnt>::CJitConvolution::CJitConvolution( const CBlobConvolution<FltCnt>& bc, int yStepIndex )
     : Xbyak::CodeGenerator( 256 << 10 )
 {
     using namespace Xbyak::util;
@@ -229,7 +229,7 @@ inline void CBlobConvolution<FltCnt>::CJitConvolution::initResRegs( size_t stepC
 }
 
 template<int FltCnt>
-inline void CBlobConvolution<FltCnt>::CJitConvolution::flushResRegs( CBlobConvolution<FltCnt>& bc, size_t stepCount, size_t stepSize, bool useNarrowProcessing )
+inline void CBlobConvolution<FltCnt>::CJitConvolution::flushResRegs( const CBlobConvolution<FltCnt>& bc, size_t stepCount, size_t stepSize, bool useNarrowProcessing )
 {
     using namespace Xbyak;
 
@@ -289,7 +289,7 @@ inline void CBlobConvolution<FltCnt>::CJitConvolution::flushResRegs( CBlobConvol
 
 template<int FltCnt>
 inline void CBlobConvolution<FltCnt>::CJitConvolution::initProcessingMainLoop(
-        CBlobConvolution<FltCnt>& bc,
+        const CBlobConvolution<FltCnt>& bc,
         size_t stepCount, size_t stepSize, int batchChannelSize, const std::function<void(int)>& fillKernel,
         size_t windowIndex, bool useNarrowProcessing, const std::function<void()>* callBeforeFlush )
 {

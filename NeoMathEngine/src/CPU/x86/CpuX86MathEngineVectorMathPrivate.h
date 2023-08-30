@@ -1228,6 +1228,14 @@ inline void vectorSigmoid( const float* first, float* result, int vectorSize )
 
 //------------------------------------------------------------------------------------------------------------
 
+inline __m128 vectorHSwishWorker( const __m128& first, const __m128& three,
+	const __m128& zero, const __m128& oneSixth )
+{
+	__m128 middlePart = _mm_max_ps( _mm_add_ps( first, three ), zero );
+	middlePart = _mm_mul_ps( _mm_mul_ps( first, oneSixth ), middlePart );
+	return _mm_min_ps( middlePart, _mm_max_ps( first, three ) );
+}
+
 inline void vectorHSwish( const float* first, float* result, int vectorSize )
 {
 	if( CCPUInfo::HasAvxAndFma && vectorSize >= NeoML::Avx2::VectorMathMinSize ) {
@@ -1235,38 +1243,21 @@ inline void vectorHSwish( const float* first, float* result, int vectorSize )
 		return;
 	}
 
-	int sseSize;
-	int nonSseSize;
-	checkSse( vectorSize, sseSize, nonSseSize );
+	const __m128 zero = _mm_setzero_ps();
+	const __m128 three = _mm_set1_ps( 3.f );
+	const __m128 oneSixth = _mm_set1_ps( 1.f / 6.f );
 
-	if( sseSize > 0 ) {
-		const __m128 minusThreeSse = _mm_set1_ps( -3.f );
-		const __m128 threeSse = _mm_set1_ps( 3.f );
-		const __m128 oneSixthSse = _mm_set1_ps( 1.f / 6.f );
-		for( int i = 0; i < sseSize; ++i ) {
-			__m128 input = _mm_loadu_ps( first );
-			__m128 middlePart = _mm_cmplt_ps( minusThreeSse, input );
-			middlePart = _mm_and_ps( middlePart, _mm_cmplt_ps( input, threeSse ) ); // mask for (-3; 3)
-			middlePart = _mm_and_ps( middlePart, _mm_mul_ps( _mm_mul_ps( input, oneSixthSse ), _mm_add_ps( input, threeSse ) ) );
-			__m128 rightPart = _mm_cmpge_ps( input, threeSse );
-			rightPart = _mm_and_ps( rightPart, input );
-			_mm_storeu_ps( result, _mm_add_ps( middlePart, rightPart ) );
+	for( ; vectorSize >= 4; vectorSize -= 4 ) {
+		__m128 res = vectorHSwishWorker( LoadSse4( first ), three, zero, oneSixth );
+		StoreSse4( res , result );
 
-			first += 4;
-			result += 4;
-		}
+		first += 4;
+		result += 4;
 	}
 
-	for( int i = 0; i < nonSseSize; ++i ) {
-		if( *first <= -3.f ) {
-			*result = 0.f;
-		} else if( *first >= 3.f ) {
-			*result = *first;
-		} else {
-			*result = *first * ( *first + 3 ) / 6.f;
-		}
-		++result;
-		++first;
+	if ( vectorSize > 0 ) {
+		__m128 res = vectorHSwishWorker( LoadSse( first, vectorSize ), three, zero, oneSixth );
+		StoreSse( res, result, vectorSize );
 	}
 }
 

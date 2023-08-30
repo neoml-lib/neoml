@@ -546,7 +546,7 @@ void CPrimitivesJit::insertPrimitive<CPrimitivesJit::TPrimitive::Tanh>( CJitComm
 	// For b-d, we need 31 polynomials and will do a table lookup for those.
 	// To simplify the logic, we will also put a) in the table.
 	auto gather_coefficient = [&]( ymmVec_t& ymmCoeff, int coeff_idx,
-		ymmVec_t& vmm_pol_idx ) {
+		const ymmVec_t& vmm_pol_idx ) {
 			std::vector<Xbyak::Address> idx_addr( vmm_pol_idx.size(), Xbyak::Address( 0 ) );
 			for( int i = 0; i < idx_addr.size(); i++ ) {
 				idx_addr[i] = gen.ptr[regTablePtr
@@ -706,7 +706,6 @@ bool CPrimitivesJit::isRegArraysIntersected( const ArrayType0& arr0, const Array
 	int isAlreadyExists[MaxRegNum] = { 0, };
 	for_each( arr0.cbegin(), arr0.cend(), [&]( const RegType& reg ) { isAlreadyExists[reg.getIdx()]++; } );
 	for_each( arr1.cbegin(), arr1.cend(), [&]( const RegType& reg ) { isAlreadyExists[reg.getIdx()]++; } );
-	int* it = isAlreadyExists;
 	for( int* it = isAlreadyExists; it < &isAlreadyExists[MaxRegNum]; it++ ) {
 		if( *it > 1 ) {
 			// There is an intersection
