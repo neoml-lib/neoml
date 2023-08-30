@@ -219,7 +219,7 @@ void CCpuMathEngine::VectorErf( const CConstFloatHandle& firstHandle, const CFlo
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	CCpuExecutionScope scope;
 
-#if defined( NEOML_USE_MLAS )
+#ifdef NEOML_USE_MLAS
 	MlasComputeErf( GetRaw( firstHandle ), GetRaw( resultHandle ), static_cast<size_t>( vectorSize ) );
 #else
 	const float* first = GetRaw( firstHandle );
