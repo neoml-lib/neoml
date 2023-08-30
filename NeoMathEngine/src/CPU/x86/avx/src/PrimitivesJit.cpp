@@ -39,11 +39,6 @@ void CPrimitivesJit::Tanh( float* dst, const float* src, size_t dataSize )
 	callPrimitive<TPrimitive::Tanh, ActivationFunc>( dataSize, dst, src );
 }
 
-void CPrimitivesJit::Sigmoid( float* dst, const float* src, size_t dataSize )
-{
-	callPrimitive<TPrimitive::Sigmoid, ActivationFunc>( dataSize, dst, src );
-}
-
 void CPrimitivesJit::Exp( float* dst, const float* src, size_t dataSize )
 {
 	callPrimitive<TPrimitive::Exp, ActivationFunc>( dataSize, dst, src );
