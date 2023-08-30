@@ -1379,15 +1379,7 @@ void CCpuMathEngine::VectorSigmoid(const CConstFloatHandle& firstHandle, const C
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	CCpuExecutionScope scope;
-
-	const float* first = GetRaw( firstHandle );
-	float* result = GetRaw( resultHandle );
-
-	if( simdMathEngine != nullptr ) {
-		simdMathEngine->Sigmoid( result, first, vectorSize );
-	} else {
-		vectorSigmoid( first, result, vectorSize );
-	}
+	vectorSigmoid( GetRaw( firstHandle ), GetRaw( resultHandle ), vectorSize );
 }
 
 void CCpuMathEngine::VectorSigmoidDiff(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,

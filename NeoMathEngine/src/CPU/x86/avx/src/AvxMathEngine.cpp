@@ -66,7 +66,6 @@ public:
 	SgemmFunc GetSgemmFunction() const override;
 
 	void Tanh( float* dst, const float* src, size_t dataSize ) override;
-	void Sigmoid( float* dst, const float* src, size_t dataSize ) override;
 	void Exp( float* dst, const float* src, size_t dataSize ) override;
 	void RunOnceRestOfLstm( CMathEngineLstmDesc* desc, int sequenceCount, float* fullyConnectedResult,
 		const float* inputStateBackLink, float* outputStateBackLink, float* outputMainBackLink ) override;
@@ -113,11 +112,6 @@ SgemmFunc CAvxMathEngine::GetSgemmFunction() const
 void CAvxMathEngine::Tanh( float* dst, const float* src, size_t dataSize )
 {
 	primitives.Tanh( dst, src, dataSize );
-}
-
-void CAvxMathEngine::Sigmoid( float* dst, const float* src, size_t dataSize )
-{
-	primitives.Sigmoid( dst, src, dataSize );
 }
 
 void CAvxMathEngine::Exp( float* dst, const float* src, size_t dataSize )

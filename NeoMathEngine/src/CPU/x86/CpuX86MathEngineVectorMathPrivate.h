@@ -33,6 +33,10 @@ limitations under the License.
 #endif
 #endif
 
+#ifdef NEOML_USE_MLAS
+#include <mlas/inc/mlas.h>
+#endif
+
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
@@ -1173,8 +1177,8 @@ inline void vectorMinMax( const float* first, float* result, const float minValu
 
 inline void vectorTanh( const float* first, float* result, int vectorSize )
 {
-#ifdef NEOML_USE_MKL
-	vsTanh( vectorSize, first, result );
+#ifdef NEOML_USE_MLAS
+	MlasComputeTanh( first, result, static_cast<size_t>( vectorSize ) );
 #else
 	for( int i = 0; i < vectorSize; ++i ) {
 		result[i] = -1.f + 2 / ( 1.f + ExponentFunc( -2 * first[i] ) );
@@ -1184,9 +1188,8 @@ inline void vectorTanh( const float* first, float* result, int vectorSize )
 
 inline void vectorExp( const float* first, float* result, int vectorSize )
 {
-#ifdef NEOML_USE_MKL
-	vectorMinMax( first, result, FLT_MIN_LOG, FLT_MAX_LOG, vectorSize );
-	vsExp( vectorSize, result, result );
+#ifdef NEOML_USE_MLAS
+	MlasComputeExp( first, result, static_cast<size_t>( vectorSize ) );
 #else
 	for( int i = 0; i < vectorSize; ++i ) {
 		result[i] = ExponentFunc( first[i] );
@@ -1196,6 +1199,9 @@ inline void vectorExp( const float* first, float* result, int vectorSize )
 
 inline void vectorSigmoid( const float* first, float* result, int vectorSize )
 {
+#ifdef NEOML_USE_MLAS
+	MlasComputeLogistic( first, result, static_cast<size_t>( vectorSize ) );
+#else
 	int sseSize;
 	int nonSseSize;
 	checkSse( vectorSize, sseSize, nonSseSize );
@@ -1217,6 +1223,7 @@ inline void vectorSigmoid( const float* first, float* result, int vectorSize )
 		*result = *result / ( *result + 1 );
 		++result;
 	}
+#endif
 }
 
 //------------------------------------------------------------------------------------------------------------

@@ -1132,7 +1132,10 @@ void CCpuMathEngine::MatrixSoftmaxByRows( const CConstFloatHandle& matrixHandle,
 	const CFloatHandle& resultHandle )
 {
 	CCpuExecutionScope scope;
-
+#ifdef NEOML_USE_MLAS
+	MlasComputeSoftmax( GetRaw( matrixHandle ), GetRaw( resultHandle ), static_cast<size_t>( height ),
+		static_cast<size_t>( width ), false, nullptr );
+#else
 	CFloatHandleStackVar temp( mathEngine(), height );
 
 	// Find maximum in each row
@@ -1152,6 +1155,7 @@ void CCpuMathEngine::MatrixSoftmaxByRows( const CConstFloatHandle& matrixHandle,
 
 	// Multiply the result matrix rows by 1. / (exp(x0) + exp(x1) + ...)
 	MultiplyDiagMatrixByMatrix( temp, height, resultHandle, width, resultHandle, height * width );
+#endif
 }
 
 void CCpuMathEngine::MatrixSoftmaxDiffOpByRows( const CConstFloatHandle& firstHandle,

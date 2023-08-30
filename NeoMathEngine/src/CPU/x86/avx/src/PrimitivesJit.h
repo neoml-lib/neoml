@@ -31,7 +31,6 @@ public:
 	explicit CPrimitivesJit( IMathEngine* );
 
 	void Tanh( float* dst, const float* src, size_t dataSize );
-	void Sigmoid( float* dst, const float* src, size_t dataSize );
 	void Exp( float* dst, const float* src, size_t dataSize );
 
 	// Process part of lstm layer which follow after fullyconnected layers.
