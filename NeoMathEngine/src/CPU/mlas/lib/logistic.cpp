@@ -43,7 +43,7 @@ MLAS_INTERNAL_DATA const struct {
     float one_half;
 } MlasLogisticConstants = {
     -15.9f,
-    15.9f,
+    18.0f,
     4.37031012579801e-11f,
     1.15627324459942e-07f,
     6.08574864600143e-05f,
