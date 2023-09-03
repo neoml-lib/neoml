@@ -151,7 +151,13 @@ struct CCommonTimeConvolutionDesc : public CTimeConvolutionDesc {
 	int PaddingBack;
 	int Dilation;
 
-	CCommonTimeConvolutionDesc( const CBlobDesc& source, const CBlobDesc& result, const CBlobDesc& filter,
+	enum { TSMMD_Forward_MxMT, TSMMD_Forward_MxMT_Add, TSMMD_Backward_MxM_Add, TSMMD_Learn_MTxM_Add,
+		/*...*/ TSMMD_Count_ };
+	// The array of matrices multiplication optimization descriptors by enum above
+	mutable CCpuSmallMatricesMultiplyDescsArray<TSMMD_Count_> smallMatricesMultiplyDescs;
+
+	CCommonTimeConvolutionDesc( IMathEngine& mathEngine,
+			const CBlobDesc& source, const CBlobDesc& result, const CBlobDesc& filter,
 			int stride, int paddingFront, int paddingBack, int dilation ) :
 		Source( source ),
         Filter( filter ),
@@ -159,9 +165,9 @@ struct CCommonTimeConvolutionDesc : public CTimeConvolutionDesc {
         Stride( stride ),
 		PaddingFront( paddingFront ),
 		PaddingBack( paddingBack ),
-        Dilation( dilation )
-	{
-	}
+        Dilation( dilation ),
+		smallMatricesMultiplyDescs( mathEngine )
+	{}
 };
 
 // The general channelwise convolution descriptor

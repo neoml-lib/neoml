@@ -175,7 +175,8 @@ CTimeConvolutionDesc* CVulkanMathEngine::InitTimeConvolution( const CBlobDesc& s
 	ASSERT_EXPR( paddingFront < ( filter.Height() - 1 ) * dilation + 1 );
 	ASSERT_EXPR( paddingBack < ( filter.Height() - 1 ) * dilation + 1 );
 
-	CCommonTimeConvolutionDesc* desc = new CCommonTimeConvolutionDesc( source, filter, result, stride, paddingFront, paddingBack, dilation );
+	CCommonTimeConvolutionDesc* desc = new CCommonTimeConvolutionDesc( *this,
+		source, filter, result, stride, paddingFront, paddingBack, dilation );
 	return desc;
 }
 
