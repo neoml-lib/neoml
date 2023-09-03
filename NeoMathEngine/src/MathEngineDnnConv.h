@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,6 +14,8 @@ limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
 #pragma once
+
+#include <memory>
 
 #include <NeoMathEngine/NeoMathEngine.h>
 #include <NeoMathEngine/CrtAllocatedObject.h>
@@ -118,8 +120,14 @@ struct CCommon3dConvolutionDesc : public C3dConvolutionDesc {
 	int StrideWidth;
 	int StrideDepth;
 
-	CCommon3dConvolutionDesc( const CBlobDesc& source, const CBlobDesc& result, const CBlobDesc& filter,
-			int paddingHeight, int paddingWidth, int paddingDepth, int strideHeight, int strideWidth, int strideDepth ) :
+	enum { TSMMD_3DForward, TSMMD_3DBackward, TSMMD_3DLearn, /*...*/ TSMMD_3DCount_ };
+	// The array of matrices multiplication optimization descriptors by enum above
+	mutable CCpuSmallMatricesMultiplyDescsArray<TSMMD_3DCount_> smallMatricesMultiplyDescs;
+
+	CCommon3dConvolutionDesc( IMathEngine& mathEngine,
+			const CBlobDesc& source, const CBlobDesc& result, const CBlobDesc& filter,
+			int paddingHeight, int paddingWidth, int paddingDepth,
+			int strideHeight, int strideWidth, int strideDepth ) :
 		Source( source ),
         Result( result ),
         Filter( filter ),
@@ -128,9 +136,9 @@ struct CCommon3dConvolutionDesc : public C3dConvolutionDesc {
 		PaddingDepth( paddingDepth ),
 		StrideHeight( strideHeight ),
 		StrideWidth( strideWidth ),
-		StrideDepth( strideDepth )
-	{
-	}
+		StrideDepth( strideDepth ),
+		smallMatricesMultiplyDescs( mathEngine )
+	{}
 };
 
 // The general time convolution descriptor

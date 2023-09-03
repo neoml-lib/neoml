@@ -657,9 +657,10 @@ private:
 
 	IMathEngine& mathEngine() { IMathEngine* engine = this; return *engine; }
 
-	void blob3dConvolution1x1x1( const CBlobDesc& source, const CBlobDesc& filter, const CBlobDesc& result,
+	void blob3dConvolution1x1x1( const CBlobDesc& source, const CBlobDesc& result,
 		int strideHeight, int strideWidth, int strideDepth,
-		const float* sourceData, const float* filterData, const float* freeTermData, float* resultData );
+		const float* sourceData, const float* filterData, const float* freeTermData, float* resultData,
+		const CSmallMatricesMultiplyDescsArray* descs );
 	void blob3dConvolution1x1x1Backward( const CCommon3dConvolutionDesc& desc, const float* outputDiffData,
 		const float* filterData, const CConstFloatHandle* freeTermData, float* inputDiffData );
 	void blob3dConvolution1x1x1LearnAdd( const CCommon3dConvolutionDesc& desc, const CConstFloatHandle& inputData,

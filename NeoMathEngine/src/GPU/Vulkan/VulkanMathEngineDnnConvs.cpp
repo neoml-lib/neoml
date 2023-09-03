@@ -249,7 +249,8 @@ C3dConvolutionDesc* CVulkanMathEngine::InitBlob3dConvolution( const CBlobDesc& s
 	int strideHeight, int strideWidth, int strideDepth,
 	const CBlobDesc& filter, const CBlobDesc& result )
 {
-	CCommon3dConvolutionDesc* desc = new CCommon3dConvolutionDesc( source, result, filter, paddingHeight, paddingWidth, paddingDepth,
+	CCommon3dConvolutionDesc* desc = new CCommon3dConvolutionDesc( *this,
+		source, result, filter, paddingHeight, paddingWidth, paddingDepth,
 		strideHeight, strideWidth, strideDepth );
 	return desc;
 }

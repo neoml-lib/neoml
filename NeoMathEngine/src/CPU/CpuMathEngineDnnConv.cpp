@@ -412,8 +412,8 @@ void CCpuMathEngine::BlobConvolution( const CConvolutionDesc& convDesc, const CC
 		case CA_1x1:
 		{
 			const bool needsFlatten = ( desc.Source.Depth() != 1 );
-			blob3dConvolution1x1x1( needsFlatten ? flatten( desc.Source ) : desc.Source, needsFlatten ? flatten( desc.Filter ) : desc.Filter,
-				desc.Result, desc.StrideHeight, desc.StrideWidth, 1, sourceRaw, filterRaw, freeTermRaw, resultRaw );
+			blob3dConvolution1x1x1( needsFlatten ? flatten( desc.Source ) : desc.Source, desc.Result,
+				desc.StrideHeight, desc.StrideWidth, /*StrideDepth*/1, sourceRaw, filterRaw, freeTermRaw, resultRaw, nullptr );
 			break;
 		}
 		default:
