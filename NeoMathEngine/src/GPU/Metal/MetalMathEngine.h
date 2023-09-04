@@ -464,10 +464,10 @@ public:
 	CSmallMatricesMultiplyDesc* InitSmallMatricesMultiplyDesc(
 		int /*firstHeight*/, int /*firstWidth*/, int /*secondWidth*/, int /*secondRowSize*/, int /*resultWidth*/,
 		bool /*resultAdd*/, bool /*trans1*/, bool /*trans2*/ ) const override
-	{ return nullptr; }
-	bool SmallMatricesMultiply( const CSmallMatricesMultiplyDesc& /*desc*/,
+	{ return new CSmallMatricesMultiplyDesc{}; }
+	bool SmallMatricesMultiply( const CSmallMatricesMultiplyDesc* /*desc*/,
 		const CConstFloatHandle& /*first*/, const CConstFloatHandle& /*second*/, const CFloatHandle& /*result*/ ) const override
-	{ ASSERT_EXPR( false ); }
+	{ ASSERT_EXPR( false ); return false; }
 
 	CGlobalMaxPoolingDesc* InitGlobalMaxPooling( const CBlobDesc& source, const CBlobDesc& maxIndices,
 		const CBlobDesc& result ) override;
@@ -619,7 +619,7 @@ public:
 		const CConstFloatHandle* residualHandle, TActivationFunction activation, float reluParam,
 		const CConstFloatHandle& downFilterHandle, const CConstFloatHandle* downFreeTermHandle,
 		const CFloatHandle& outputHandle, const CSmallMatricesMultiplyDescsArray* descs = nullptr ) override;
-	CSmallMatricesMultiplyDescsArray* InitSmallMatricesMultiplyDescsArray() override { return nullptr; }
+	CSmallMatricesMultiplyDescsArray* InitSmallMatricesMultiplyDescsArray() override { return new CSmallMatricesMultiplyDescsArray{}; }
 	// Rowwise computation is ineffective on GPUs
 	CRowwiseOperationDesc* InitRowwiseActivation( const CActivationDesc& ) override
 		{ ASSERT_EXPR( false ); return nullptr; }

@@ -79,10 +79,12 @@ void CCpuMathEngine::multiplyMatrixByMatrix( const float* first, int firstHeight
 				1.f, first, firstRowSize, second, secondRowSize, 0.f, result, resultRowSize );
 		}
 #elif defined( NEOML_USE_MLAS )
+		( void ) desc;
 		MlasGemm( MlasNoTrans, MlasNoTrans, static_cast<size_t>( firstHeight ), static_cast<size_t>( secondWidth ),
 			static_cast<size_t>( firstWidth ), 1, first, static_cast<size_t>( firstRowSize ), second,
 			static_cast<size_t>( secondRowSize ), 0, result, static_cast<size_t>( resultRowSize ), nullptr );
 #else // !NEOML_USE_MKL && !NEOML_USE_MLAS
+		( void ) desc;
 		nullify( result, firstHeight, secondWidth, resultRowSize );
 		MultiplyMatrix<false, false, CTmpMemoryHandler>( this, CpuInfo, first, firstRowSize, second, secondRowSize,
 			result, resultRowSize, firstHeight, secondWidth, firstWidth );
@@ -116,10 +118,12 @@ void CCpuMathEngine::multiplyMatrixByMatrixAndAdd( const float* first, int first
 				1.f, first, firstRowSize, second, secondRowSize, 1.f, result, resultRowSize );
 		}
 #elif defined( NEOML_USE_MLAS )
+		( void ) desc;
 		MlasGemm( MlasNoTrans, MlasNoTrans, static_cast<size_t>( firstHeight ), static_cast<size_t>( secondWidth ),
 			static_cast<size_t>( firstWidth ), 1, first, static_cast<size_t>( firstRowSize ), second,
 			static_cast<size_t>( secondRowSize ), 1, result, static_cast<size_t>( resultRowSize ), nullptr );
 #else // !NEOML_USE_MKL && !NEOML_USE_MLAS
+		( void ) desc;
 		MultiplyMatrix<false, false, CTmpMemoryHandler>( this, CpuInfo, first, firstRowSize, second, secondRowSize,
 			result, resultRowSize, firstHeight, secondWidth, firstWidth );
 #endif // !NEOML_USE_MKL && !NEOML_USE_MLAS
@@ -153,10 +157,12 @@ void CCpuMathEngine::multiplyMatrixByTransposedMatrix( const float* first, int f
 				1.f, first, firstRowSize, second, secondRowSize, 0.f, result, resultRowSize );
 		}
 #elif defined( NEOML_USE_MLAS )
+		( void ) desc;
 		MlasGemm( MlasNoTrans, MlasTrans, static_cast<size_t>( firstHeight ), static_cast<size_t>( secondHeight ),
 			static_cast<size_t>( firstWidth ), 1, first, static_cast<size_t>( firstRowSize ), second,
 			static_cast<size_t>( secondRowSize ), 0, result, static_cast<size_t>( resultRowSize ), nullptr );
 #else // !NEOML_USE_MKL && !NEOML_USE_MLAS
+		( void ) desc;
 		nullify( result, firstHeight, secondHeight, resultRowSize );
 		MultiplyMatrix<false, true, CTmpMemoryHandler>( this, CpuInfo, first, firstRowSize, second, secondRowSize,
 			result, resultRowSize, firstHeight, secondHeight, firstWidth );
@@ -187,10 +193,12 @@ void CCpuMathEngine::multiplyMatrixByTransposedMatrixAndAdd( const float* first,
 				1.f, first, firstRowSize, second, secondRowSize, 1.f, result, resultRowSize );
 		}
 #elif defined( NEOML_USE_MLAS )
+		( void ) desc;
 		MlasGemm( MlasNoTrans, MlasTrans, static_cast<size_t>( firstHeight ), static_cast<size_t>( secondHeight ),
 			static_cast<size_t>( firstWidth ), 1, first, static_cast<size_t>( firstRowSize ), second,
 			static_cast<size_t>( secondRowSize ), 1, result, static_cast<size_t>( resultRowSize ), nullptr );
 #else  // !NEOML_USE_MKL && !NEOML_USE_MLAS
+		( void ) desc;
 		MultiplyMatrix<false, true, CTmpMemoryHandler>( this, CpuInfo, first, firstRowSize, second, secondRowSize,
 			result, resultRowSize, firstHeight, secondHeight, firstWidth );
 #endif // !NEOML_USE_MKL && !NEOML_USE_MLAS
@@ -577,6 +585,7 @@ void CCpuMathEngine::multiplyTransposedMatrixByMatrix( const float* first, int f
 				1.f, first, firstWidth, second, secondWidth, 0.f, result, secondWidth );
 		}
 #else  // !NEOML_USE_MKL
+		( void ) desc;
 		auto firstRowSize = firstWidth;
 		auto secondRowSize = secondWidth;
 		auto resultRowSize = secondWidth;
@@ -606,6 +615,7 @@ void CCpuMathEngine::multiplyTransposedMatrixByMatrixAndAdd( const float* first,
 				1.f, first, firstRowSize, second, secondRowSize, 1.f, result, resultRowSize );
 		}
 #else  // !NEOML_USE_MKL
+		( void ) desc;
 		MultiplyMatrix<true, false, CTmpMemoryHandler>( this, CpuInfo, first, firstRowSize, second, secondRowSize,
 			result, resultRowSize, firstWidth, secondWidth, firstHeight );
 #endif // !NEOML_USE_MKL

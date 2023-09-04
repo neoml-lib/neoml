@@ -137,7 +137,7 @@ CCpuSmallMatricesMultiplyDesc::~CCpuSmallMatricesMultiplyDesc()
 
 inline void CCpuSmallMatricesMultiplyDesc::Multiply( const float* first, const float* second, float* result ) const
 {
-	ASSERT_EXPR( MklJitter != nullptr && MklKernel != nullptr );
+	PRESUME_EXPR( MklJitter != nullptr && MklKernel != nullptr );
 #ifdef NEOML_USE_MKL
 	// Repeatedly execute the GEMM kernel
 	MklKernel( MklJitter, ( float* )first, ( float* )second, result );

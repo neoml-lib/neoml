@@ -461,7 +461,7 @@ public:
 	CSmallMatricesMultiplyDesc* InitSmallMatricesMultiplyDesc(
 		int /*firstHeight*/, int /*firstWidth*/, int /*secondWidth*/, int /*secondRowSize*/, int /*resultWidth*/,
 		bool /*resultAdd*/, bool /*trans1*/, bool /*trans2*/ ) const override
-	{ return nullptr; }
+	{ return new CSmallMatricesMultiplyDesc{}; }
 	bool SmallMatricesMultiply( const CSmallMatricesMultiplyDesc* /*desc*/,
 		const CConstFloatHandle& /*first*/, const CConstFloatHandle& /*second*/, const CFloatHandle& /*result*/ ) const override
 	{ ASSERT_EXPR( false ); return false; }
@@ -611,7 +611,7 @@ public:
 		const CConstFloatHandle* residualHandle, TActivationFunction activation, float reluParam,
 		const CConstFloatHandle& downFilterHandle, const CConstFloatHandle* downFreeTermHandle,
 		const CFloatHandle& outputHandle, const CSmallMatricesMultiplyDescsArray* descs = nullptr ) override;
-	CSmallMatricesMultiplyDescsArray* InitSmallMatricesMultiplyDescsArray() override { return nullptr; }
+	CSmallMatricesMultiplyDescsArray* InitSmallMatricesMultiplyDescsArray() override { return new CSmallMatricesMultiplyDescsArray{}; }
 	// WARNING: Rowwise computation is ineffective on GPUs
 	CRowwiseOperationDesc* InitRowwiseActivation( const CActivationDesc& desc ) override;
 	CRowwiseOperationDesc* InitRowwiseChWith1x1( int stride, const CConstFloatHandle& channelwiseFilter,
