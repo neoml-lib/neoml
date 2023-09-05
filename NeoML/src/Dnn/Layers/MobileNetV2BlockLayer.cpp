@@ -190,17 +190,18 @@ void CMobileNetV2BlockLayer::Reshape()
 		EnableInPlace( true );
 	}
 
-	recreateConvDesc( expandedChannels );
-	recreateRowwiseDesc( expandedChannels );
+	recreateConvDesc();
+	recreateRowwiseDesc();
 }
 
-void CMobileNetV2BlockLayer::recreateConvDesc( int expandedChannels )
+void CMobileNetV2BlockLayer::recreateConvDesc()
 {
 	if( convDesc != nullptr ) {
 		delete convDesc;
 		convDesc = nullptr;
 	}
 
+	const int expandedChannels = paramBlobs[P_ExpandFilter]->GetObjectCount();
 	CBlobDesc channelwiseInputDesc = inputDescs[0];
 	channelwiseInputDesc.SetDimSize( BD_Channels, expandedChannels );
 	CBlobDesc channelwiseOutputDesc = outputDescs[0];
@@ -214,13 +215,14 @@ void CMobileNetV2BlockLayer::recreateConvDesc( int expandedChannels )
 	NeoAssert( convDesc != nullptr );
 }
 
-void CMobileNetV2BlockLayer::recreateRowwiseDesc( int expandedChannels )
+void CMobileNetV2BlockLayer::recreateRowwiseDesc()
 {
 	if( rowwiseDesc != nullptr ) {
 		delete rowwiseDesc;
 		rowwiseDesc = nullptr;
 	}
 
+	const int expandedChannels = paramBlobs[P_ExpandFilter]->GetObjectCount();
 	const CConstFloatHandle exFreeTerm = paramBlobs[P_ExpandFreeTerm] == nullptr ? CConstFloatHandle()
 		: paramBlobs[P_ExpandFreeTerm]->GetData<const float>();
 	const CConstFloatHandle chFreeTerm = paramBlobs[P_ChannelwiseFreeTerm] == nullptr ? CConstFloatHandle()

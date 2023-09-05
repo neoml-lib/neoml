@@ -33,6 +33,8 @@ struct CCpuSmallMatricesMultiplyDesc : public CSmallMatricesMultiplyDesc {
 	CCpuSmallMatricesMultiplyDesc(
 		int firstHeight, int firstWidth, int secondWidth, int secondRowSize, int resultWidth,
 		bool resultAdd, bool trans1, bool trans2 );
+	CCpuSmallMatricesMultiplyDesc( CCpuSmallMatricesMultiplyDesc&& ) = delete;
+	CCpuSmallMatricesMultiplyDesc( const CCpuSmallMatricesMultiplyDesc& ) = delete;
 	~CCpuSmallMatricesMultiplyDesc() override;
 
 	bool IsValid() const { return MklJitter != nullptr; }

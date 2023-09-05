@@ -88,7 +88,7 @@ private:
 
 	const CSmallMatricesMultiplyDesc* initSmallMatricesMulDescs( TSMMD type, int inputNumber,
 		int firstHeight, int firstWidth, int secondWidth, int resultWidth );
-	void recreateSmallMatricesMulDescs( int inputCount );
+	void recreateSmallMatricesMulDescs();
 };
 
 NEOML_API CLayerWrapper<CFullyConnectedLayer> FullyConnected(

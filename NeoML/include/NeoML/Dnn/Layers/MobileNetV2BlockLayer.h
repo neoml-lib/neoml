@@ -88,8 +88,8 @@ private:
 		P_Count
 	};
 
-	void recreateConvDesc( int expandedChannels );
-	void recreateRowwiseDesc( int expandedChannels );
+	void recreateConvDesc();
+	void recreateRowwiseDesc();
 
 	bool residual; // Does block have residual connection?
 	int stride; // stride of channnelwise convolution

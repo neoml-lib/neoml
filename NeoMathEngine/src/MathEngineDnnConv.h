@@ -22,7 +22,7 @@ limitations under the License.
 
 namespace NeoML {
 
-// Empiric upper limit of a matrix size to effective JIT optimization
+// Empirical upper limit of a matrix size to effective JIT optimization
 static constexpr int SMMD_MaxHeight = 128 + 1;
 
 // The array of descriptors of the small matrices multiplication optimization by MKL JIT
@@ -65,8 +65,10 @@ inline const CSmallMatricesMultiplyDesc* CCpuSmallMatricesMultiplyDescsArray<Siz
 		return nullptr;
 	}
 	if( descs[index] == nullptr ) {
-		descs[index].reset( mathEngine.InitSmallMatricesMultiplyDesc(
-			firstHeight, firstWidth, secondWidth, secondRowSize, resultWidth, resultAdd, trans1, trans2 ) );
+		CSmallMatricesMultiplyDesc* ptr = mathEngine.InitSmallMatricesMultiplyDesc(
+			firstHeight, firstWidth, secondWidth, secondRowSize, resultWidth, resultAdd, trans1, trans2 );
+		PRESUME_EXPR( ptr != nullptr );
+		descs[index].reset( ptr );
 	}
 	return descs[index].get();
 }

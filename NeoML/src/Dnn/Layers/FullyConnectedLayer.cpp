@@ -35,22 +35,30 @@ const CSmallMatricesMultiplyDesc* CFullyConnectedLayer::initSmallMatricesMulDesc
 	NeoPresume( inputBlobs[0] != nullptr || inputDiffBlobs[0] != nullptr );
 	NeoPresume( outputBlobs[0] != nullptr || outputDiffBlobs[0] != nullptr );
 
+	NeoPresume( type < TSMMD_Count_ );
+	NeoPresume( inputNumber < GetInputCount() );
 	if( smallMatricesMulDescs[type][inputNumber] == nullptr ) {
-		smallMatricesMulDescs[type].DetachAndReplaceAt(
-			MathEngine().InitSmallMatricesMultiplyDesc(
-				firstHeight, firstWidth, secondWidth, /*secondRowSize*/secondWidth, resultWidth,
-				/*resultAdd*/( type == TSMMD_Learn ), /*trans1*/( type == TSMMD_Learn ), /*trans2*/( type == TSMMD_Forward ) ),
-			inputNumber );
+		CSmallMatricesMultiplyDesc* ptr = MathEngine().InitSmallMatricesMultiplyDesc(
+			firstHeight, firstWidth, secondWidth, /*secondRowSize*/secondWidth, resultWidth,
+			/*resultAdd*/( type == TSMMD_Learn ), /*trans1*/( type == TSMMD_Learn ), /*trans2*/( type == TSMMD_Forward ) );
+		NeoPresume( ptr != nullptr );
+		smallMatricesMulDescs[type].DetachAndReplaceAt( ptr, inputNumber );
 	}
 	return smallMatricesMulDescs[type][inputNumber];
 }
 
-void CFullyConnectedLayer::recreateSmallMatricesMulDescs( int inputCount )
+void CFullyConnectedLayer::recreateSmallMatricesMulDescs()
 {
+	const int inputCount = GetInputCount();
+	NeoPresume( inputCount >= 0 );
+
 	for( int type = 0; type < TSMMD_Count_; ++type ) {
 		smallMatricesMulDescs[type].DeleteAll(); // delete operator inside
-		smallMatricesMulDescs[type].SetSize( inputCount ); // init nullptr inside
-		NeoPresume( smallMatricesMulDescs[type][0] == nullptr );
+
+		if( inputCount > 0 ) { // serialization loading
+			smallMatricesMulDescs[type].SetSize( inputCount ); // init nullptr inside
+			NeoPresume( smallMatricesMulDescs[type][0] == nullptr );
+		}
 	}
 }
 
@@ -92,7 +100,7 @@ void CFullyConnectedLayer::Reshape()
 		outputDescs[i].SetDimSize( BD_Depth, 1 );
 		outputDescs[i].SetDimSize( BD_Channels, numberOfElements );
 	}
-	recreateSmallMatricesMulDescs( GetInputCount() );
+	recreateSmallMatricesMulDescs();
 }
 
 void CFullyConnectedLayer::RunOnce()
@@ -111,8 +119,10 @@ void CFullyConnectedLayer::RunOnce()
 		const int firstHeight = inputBlobs[inputNumber]->GetObjectCount();
 		const int firstWidth = inputBlobs[inputNumber]->GetObjectSize();
 		const int resultWidth = outputBlobs[inputNumber]->GetObjectSize();
+		NeoPresume( firstWidth == secondWidth );
+		NeoPresume( resultWidth == secondHeight );
 
-		auto mulDesc = initSmallMatricesMulDescs( TSMMD_Forward, inputNumber,
+		const CSmallMatricesMultiplyDesc* mulDesc = initSmallMatricesMulDescs( TSMMD_Forward, inputNumber,
 			firstHeight, firstWidth, secondWidth, resultWidth );
 
 		MathEngine().MultiplyMatrixByTransposedMatrix(
@@ -142,7 +152,7 @@ void CFullyConnectedLayer::BackwardOnce()
 		const int firstWidth = outputDiffBlobs[outputDiffNumber]->GetObjectSize();
 		const int resultBufferSize = inputDiffBlobs[outputDiffNumber]->GetDataSize();
 
-		auto mulDesc = initSmallMatricesMulDescs( TSMMD_Backward, outputDiffNumber,
+		const CSmallMatricesMultiplyDesc* mulDesc = initSmallMatricesMulDescs( TSMMD_Backward, outputDiffNumber,
 			firstHeight, firstWidth, secondWidth, /*resultWidth*/secondWidth );
 
 		MathEngine().MultiplyMatrixByMatrix( /*batchSize*/1,
@@ -169,7 +179,7 @@ void CFullyConnectedLayer::LearnOnce()
 		const int firstHeight = outputDiffBlobs[outputDiffNumber]->GetObjectCount();
 		const int secondWidth = inputBlobs[outputDiffNumber]->GetObjectSize();
 
-		auto mulDesc = initSmallMatricesMulDescs( TSMMD_Learn, outputDiffNumber,
+		const CSmallMatricesMultiplyDesc* mulDesc = initSmallMatricesMulDescs( TSMMD_Learn, outputDiffNumber,
 			firstHeight, firstWidth, secondWidth, resultWidth );
 
 		MathEngine().MultiplyTransposedMatrixByMatrixAndAdd(
@@ -299,7 +309,7 @@ void CFullyConnectedLayer::Serialize( CArchive& archive )
 			desc.SetDimSize( 0, freeTerms->GetDataSize() );
 			freeTerms->ReinterpretDimensions( desc );
 		}
-		recreateSmallMatricesMulDescs( GetInputCount() );
+		recreateSmallMatricesMulDescs();
 	}
 }
 

@@ -61,6 +61,7 @@ inline bool CCpuMathEngine::smallMatricesMultiply( const CSmallMatricesMultiplyD
 #endif // !NEOML_USE_MKL
 
 	if( desc != nullptr ) {
+		PRESUME_EXPR( dynamic_cast<const CCpuSmallMatricesMultiplyDesc*>( desc ) != nullptr );
 		const CCpuSmallMatricesMultiplyDesc* mulDesk = static_cast<const CCpuSmallMatricesMultiplyDesc*>( desc );
 		if( mulDesk->IsValid() ) {
 			mulDesk->Multiply( first, second, result );
@@ -81,10 +82,8 @@ CCpuSmallMatricesMultiplyDesc::CCpuSmallMatricesMultiplyDesc(
 	ASSERT_EXPR( secondWidth > 0 );
 	ASSERT_EXPR( secondRowSize > 0 );
 	ASSERT_EXPR( resultWidth > 0 );
-	ASSERT_EXPR( MklJitter == nullptr );
-	ASSERT_EXPR( MklKernel == nullptr );
 
-	// Empiric upper limit of a matrix size to effective JIT optimization
+	// Empirical upper limit of a matrix size to effective JIT optimization
 	static constexpr int MaxMatrixSize = 128;
 
 	if( firstHeight <= MaxMatrixSize
@@ -129,7 +128,7 @@ CCpuSmallMatricesMultiplyDesc::~CCpuSmallMatricesMultiplyDesc()
 {
 	if( MklJitter ) {
 #ifdef NEOML_USE_MKL
-		// Destroy the created jitter/GEMM kernel
+		// Destroy the created jitter
 		mkl_jit_destroy( MklJitter );
 #endif // NEOML_USE_MKL
 	}
