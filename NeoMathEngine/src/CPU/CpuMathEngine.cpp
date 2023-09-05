@@ -67,9 +67,9 @@ CCpuMathEngine::CCpuMathEngine( size_t _memoryLimit,
 	if( dllLoader.IsLoaded( CDllLoader::AVX_DLL ) ) {
 		simdMathEngine = std::unique_ptr<ISimdMathEngine>( CDllLoader::avxDll->CreateSimdMathEngine( this ) );
 		// Don't use custom sgemm function when we are compiled with MKL.
-#ifndef NEOML_USE_MKL
+#if !defined( NEOML_USE_MKL ) && !defined( NEOML_USE_MLAS )
 		customSgemmFunction = simdMathEngine->GetSgemmFunction();
-#endif // NEOML_USE_MKL
+#endif // !defined( NEOML_USE_MKL ) && !defined( NEOML_USE_MLAS )
 	}
 #else  // !NEOML_USE_AVX
 	// warning fix
