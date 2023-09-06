@@ -43,6 +43,7 @@ set(NeoML_SOURCES_COMPACT
     Dnn/Layers/HingeLossLayer.cpp
     Dnn/Layers/IndRnnLayer.cpp
     Dnn/Layers/L1LossLayer.cpp
+    Dnn/Layers/LoraFullyConnectedLayer.cpp
     Dnn/Layers/LstmLayer.cpp
     Dnn/Layers/MatrixMultiplicationLayer.cpp
     Dnn/Layers/MobileNetV2BlockLayer.cpp
@@ -284,6 +285,7 @@ set(NeoML_HEADERS_COMPACT
     ../include/NeoML/Dnn/Layers/GlobalMeanPoolingLayer.h
     ../include/NeoML/Dnn/Layers/IndRnnLayer.h
     ../include/NeoML/Dnn/Layers/LossLayer.h
+    ../include/NeoML/Dnn/Layers/LoraFullyConnectedLayer.h
     ../include/NeoML/Dnn/Layers/LstmLayer.h
     ../include/NeoML/Dnn/Layers/MatrixMultiplicationLayer.h
     ../include/NeoML/Dnn/Layers/MobileNetV2BlockLayer.h

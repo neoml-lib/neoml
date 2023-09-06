@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -28,6 +28,18 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/SoftmaxLayer.h>
 
 namespace NeoML {
+
+static const char* const fcQName = "Q";
+static const char* const fcKName = "K";
+static const char* const fcVName = "V";
+static const char* const fcOutputName = "Out.Dense";
+
+static const char* const fcQOutputLayerName = "Q.reshape0";
+static const char* const fcKOutputLayerName = "K.transpose0";
+static const char* const fcVOutputLayerName = "V.reshape0";
+static const char* const fcOutputInputLayerName = "Out.reshape0.Out";
+
+//--------------------------------------------------------------------------------------
 
 CMultiheadAttentionLayer::CMultiheadAttentionLayer( IMathEngine& mathEngine ) :
 	CCompositeLayer( mathEngine ),
@@ -95,12 +107,13 @@ void CMultiheadAttentionLayer::SetCompatibilityMode( bool value )
 	}
 }
 
-static const int MultiheadAttentionLayerVersion = 2;
+static const int MultiheadAttentionLayerVersion = 3;
 
 void CMultiheadAttentionLayer::Serialize( CArchive& archive )
 {
 	const int version = archive.SerializeVersion( MultiheadAttentionLayerVersion );
 	CCompositeLayer::Serialize( archive );
+
 	archive.Serialize( headCount );
 	archive.Serialize( hiddenSize );
 	archive.Serialize( dropoutRate );
@@ -118,11 +131,116 @@ void CMultiheadAttentionLayer::Serialize( CArchive& archive )
 		isInCompatibilityMode = true;
 		multiplyByConstLayerName = GetName() + CString( ".MultiplyByConst" );
 	}
+	if( archive.IsLoading() ) {
+		if( !isCreated() ) {
+			fcQ = nullptr;
+			fcK = nullptr;
+			fcV = nullptr;
+			fcOutput = nullptr;
+		} else if ( version >= 3 ) {
+			fcQ = CheckCast<CLoraFullyConnectedLayer>( GetLayer( fcQName ) );
+			fcK = CheckCast<CLoraFullyConnectedLayer>( GetLayer( fcKName ) );
+			fcV = CheckCast<CLoraFullyConnectedLayer>( GetLayer( fcVName ) );
+			fcOutput = CheckCast<CLoraFullyConnectedLayer>( GetLayer( fcOutputName ) );
+		} else {
+
+			auto convertHead = []( CCompositeLayer& composite,
+				const char* fcName, TInputs inputNumber, const char* outputFcName )
+			{
+				CPtr<CFullyConnectedLayer> fcOld = CheckCast<CFullyConnectedLayer>( composite.GetLayer( fcName ) );
+				composite.DeleteLayer( fcName );
+				// Creates a LowRankAdapted-FullyConnected-Layer from FullyConnected-Layer by its aggregation.
+				CPtr<CLoraFullyConnectedLayer> fcLora
+					= FINE_DEBUG_NEW CLoraFullyConnectedLayer( *fcOld );
+				composite.SetInputMapping( inputNumber, *fcLora );
+				composite.GetLayer( outputFcName )->Connect( *fcLora );
+				composite.AddLayer( *fcLora );
+
+				NeoAssert( fcLora != nullptr && fcLora->GetName() == CString( fcName ) );
+				return fcLora;
+			};
+
+			fcQ = convertHead( *this, fcQName, I_Q, fcQOutputLayerName );
+			fcK = convertHead( *this, fcKName, I_K, fcKOutputLayerName );
+			fcV = convertHead( *this, fcVName, I_V, fcVOutputLayerName );
+
+			// Convert Output Layer
+			CPtr<CFullyConnectedLayer> fcOld = CheckCast<CFullyConnectedLayer>( GetLayer( fcOutputName ) );
+			DeleteLayer( fcOutputName );
+
+			fcOutput = FINE_DEBUG_NEW CLoraFullyConnectedLayer( *fcOld );
+			fcOutput->Connect( fcOutputInputLayerName );
+			SetOutputMapping( O_Output, *fcOutput );
+			AddLayer( *fcOutput );
+
+			NeoAssert( fcOutput != nullptr && fcOutput->GetName() == CString( fcOutputName ) );
+		}
+	}
+}
+
+void CMultiheadAttentionLayer::BuildLoRA( int rank, float alpha, float dropoutRate )
+{
+	NeoAssert( fcQ != nullptr );
+	fcQ->BuildLoRA( rank, alpha, dropoutRate );
+
+	NeoAssert( fcK != nullptr );
+	fcK->BuildLoRA( rank, alpha, dropoutRate );
+
+	NeoAssert( fcV != nullptr );
+	fcV->BuildLoRA( rank, alpha, dropoutRate );
+
+	NeoAssert( fcOutput != nullptr );
+	fcOutput->BuildLoRA( rank, alpha, dropoutRate );
+}
+
+void CMultiheadAttentionLayer::MergeWeightsLoRA()
+{
+	NeoAssert( fcQ != nullptr );
+	fcQ->MergeWeightsLoRA();
+
+	NeoAssert( fcK != nullptr );
+	fcK->MergeWeightsLoRA();
+
+	NeoAssert( fcV != nullptr );
+	fcV->MergeWeightsLoRA();
+
+	NeoAssert( fcOutput != nullptr );
+	fcOutput->MergeWeightsLoRA();
+}
+
+void CMultiheadAttentionLayer::DestroyUnmergedLoRA()
+{
+	NeoAssert( fcQ != nullptr );
+	fcQ->DestroyUnmergedLoRA();
+
+	NeoAssert( fcK != nullptr );
+	fcK->DestroyUnmergedLoRA();
+
+	NeoAssert( fcV != nullptr );
+	fcV->DestroyUnmergedLoRA();
+
+	NeoAssert( fcOutput != nullptr );
+	fcOutput->DestroyUnmergedLoRA();
+}
+
+int CMultiheadAttentionLayer::GetRankLoRA() const
+{
+	return ( fcQ != nullptr ) ? fcQ->GetRankLoRA() : 0;
+}
+
+float CMultiheadAttentionLayer::GetAlphaLoRA() const
+{
+	return ( fcQ != nullptr ) ? fcQ->GetAlphaLoRA() : 0;
+}
+
+float CMultiheadAttentionLayer::GetDropoutRateLoRA() const
+{
+	return ( fcQ != nullptr ) ? fcQ->GetDropoutRateLoRA() : 0.f;
 }
 
 void CMultiheadAttentionLayer::Reshape()
 {
-	if( !HasLayer( "Q" ) ) {
+	if( !isCreated() ) {
 		create();
 	}
 
@@ -132,12 +250,18 @@ void CMultiheadAttentionLayer::Reshape()
 // Recreates the layer if forceRebuild is true or it doesn't contain sublayers
 void CMultiheadAttentionLayer::Rebuild( bool forceRebuild )
 {
-	if( forceRebuild && HasLayer( "Q" ) ) {
+	if( forceRebuild && isCreated() ) {
 		DeleteAllLayers();
 	}
-	if ( !HasLayer( "Q" ) ) {
+	if ( !isCreated() ) {
 		create();
 	}
+}
+
+// Check either the layers are built in the internal dnn
+bool CMultiheadAttentionLayer::isCreated() const
+{
+	return HasLayer( fcQName );
 }
 
 // Creates layer with new parameters
@@ -149,20 +273,23 @@ void CMultiheadAttentionLayer::create()
 
 	// Applying W_Q, W_K and W_V to the corresponding inputs
 	// [B, seq_Q, 1, hiddenSize]
-	CBaseLayer* Q = multiplyInputByMatrixWeights( hiddenSize, "Q", I_Q );
+	fcQ = CheckCast<CLoraFullyConnectedLayer>( multiplyInputByMatrixWeights( hiddenSize, fcQName, I_Q ) );
+	NeoAssert( fcQ != nullptr );
 
 	// [B, seq_to, 1, hiddenSize]
-	CBaseLayer* K = multiplyInputByMatrixWeights( hiddenSize, "K", I_K );
-	CBaseLayer* V = multiplyInputByMatrixWeights( hiddenSize, "V", I_V );
+	fcK = CheckCast<CLoraFullyConnectedLayer>( multiplyInputByMatrixWeights( hiddenSize, fcKName, I_K ) );
+	NeoAssert( fcK != nullptr );
+	fcV = CheckCast<CLoraFullyConnectedLayer>( multiplyInputByMatrixWeights( hiddenSize, fcVName, I_V ) );
+	NeoAssert( fcV != nullptr );
 
 	// [B, n_head, seq_Q, d_k]
-	Q = prepareQ( Q );
+	CBaseLayer* Q = prepareQ( fcQ );
 
 	// [B, n_head, d_k, seq_to]
-	CBaseLayer* Kt = prepareK( K );
+	CBaseLayer* Kt = prepareK( fcK );
 
 	// [B, n_head, seq_to, d_k]
-	V = prepareV( V );
+	CBaseLayer* V = prepareV( fcV );
 	
 	// Multiplying Q by K_t
 	// [B, n_head, seq_Q, seq_to]
@@ -216,7 +343,10 @@ void CMultiheadAttentionLayer::create()
 	// [B, seq_Q, 1, hidden_size]
 	CPtr<CBaseLayer> output = prepareOutput( head );
 
-	output = multiplyByMatrixWeights( output, outputSize, "Out.Dense" );
+	fcOutput = CheckCast<CLoraFullyConnectedLayer>(
+		multiplyByMatrixWeights( output, outputSize, fcOutputName ) );
+	NeoAssert( fcOutput != nullptr );
+	output = fcOutput;
 
 	SetOutputMapping( O_Output, *output );
 	SetOutputMapping( O_Softmax, *afterSoftmax );
@@ -228,7 +358,7 @@ CBaseLayer* CMultiheadAttentionLayer::multiplyInputByMatrixWeights(
 {
 	NeoAssert( size > 0 );
 
-	CPtr<CFullyConnectedLayer> fcLayer = new CFullyConnectedLayer( MathEngine() );
+	CPtr<CLoraFullyConnectedLayer> fcLayer = new CLoraFullyConnectedLayer( MathEngine() );
 	fcLayer->SetNumberOfElements( size );
 	fcLayer->SetZeroFreeTerm( false );
 	fcLayer->SetName( name );
@@ -247,7 +377,7 @@ CBaseLayer* CMultiheadAttentionLayer::multiplyByMatrixWeights( CBaseLayer* input
 	NeoAssert( width >= 0 );
 	NeoAssert( input != 0 );
 
-	CPtr<CFullyConnectedLayer> fcLayer = new CFullyConnectedLayer( MathEngine() );
+	CPtr<CLoraFullyConnectedLayer> fcLayer = new CLoraFullyConnectedLayer( MathEngine() );
 	fcLayer->SetNumberOfElements( width );
 	fcLayer->Connect( *input );
 	fcLayer->SetZeroFreeTerm( false );
@@ -342,7 +472,7 @@ CBaseLayer* CMultiheadAttentionLayer::prepareQ( CBaseLayer* input )
 
 	// [B, seq_Q, n_head, d_k]
 	CPtr<CTransformLayer> reshape0 = new CTransformLayer( MathEngine() );
-	reshape0->SetName( "Q.reshape0" );
+	reshape0->SetName( fcQOutputLayerName );
 	reshape0->Connect( *input );
 	reshape0->SetDimensionRule( BD_BatchLength, CTransformLayer::O_Multiply, 1 );
 	reshape0->SetDimensionRule( BD_BatchWidth, CTransformLayer::O_Multiply, 1 );
@@ -372,7 +502,7 @@ CBaseLayer* CMultiheadAttentionLayer::prepareK( CBaseLayer* input )
 
 	// [B, hiddenSize, 1, seq_to]
 	CPtr<CTransposeLayer> transpose0 = new CTransposeLayer( MathEngine() );
-	transpose0->SetName( "K.transpose0" );
+	transpose0->SetName( fcKOutputLayerName );
 	transpose0->SetTransposedDimensions( BD_ListSize, BD_Channels );
 	transpose0->Connect( *input );
 	AddLayer( *transpose0 );
@@ -403,7 +533,7 @@ CBaseLayer* CMultiheadAttentionLayer::prepareV( CBaseLayer* input )
 
 	// [B, seq_to, n_head, d_k]
 	CPtr<CTransformLayer> reshape0 = new CTransformLayer( MathEngine() );
-	reshape0->SetName( "V.reshape0" );
+	reshape0->SetName( fcVOutputLayerName );
 	reshape0->Connect( *input );
 	reshape0->SetDimensionRule( BD_BatchLength, CTransformLayer::O_Multiply, 1 );
 	reshape0->SetDimensionRule( BD_BatchWidth, CTransformLayer::O_Multiply, 1 );
@@ -441,7 +571,7 @@ CBaseLayer* CMultiheadAttentionLayer::prepareOutput( CBaseLayer* input )
 
 	// [B, seq_Q, 1, hidden_size]
 	CPtr<CTransformLayer> reshape0 = new CTransformLayer( MathEngine() );
-	reshape0->SetName( "Out.reshape0.Out" );
+	reshape0->SetName( fcOutputInputLayerName );
 	reshape0->Connect( *transpose0 );
 	reshape0->SetDimensionRule( BD_BatchLength, CTransformLayer::O_Multiply, 1 );
 	reshape0->SetDimensionRule( BD_BatchWidth, CTransformLayer::O_Multiply, 1 );
@@ -454,6 +584,8 @@ CBaseLayer* CMultiheadAttentionLayer::prepareOutput( CBaseLayer* input )
 
 	return reshape0;
 }
+
+//--------------------------------------------------------------------------------------
 
 CLayerWrapper<CMultiheadAttentionLayer> MultiheadAttention(
 	int headCount, int hiddenSize, int outputSize, float dropoutRate )

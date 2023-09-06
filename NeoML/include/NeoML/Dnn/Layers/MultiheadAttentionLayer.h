@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ limitations under the License.
 
 #include <NeoML/Dnn/Dnn.h>
 #include <NeoML/Dnn/Layers/CompositeLayer.h>
+#include <NeoML/Dnn/Layers/LoraFullyConnectedLayer.h>
 
 namespace NeoML {
 
@@ -97,6 +98,14 @@ public:
 	// Recreates the layer if forceRebuild is true or it doesn't contain sublayers
 	void Rebuild( bool forceRebuild );
 
+	// LoRA
+	void BuildLoRA( int rank, float alpha, float dropoutRate = 0.f );
+	void MergeWeightsLoRA();
+	void DestroyUnmergedLoRA();
+	int GetRankLoRA() const;
+	float GetAlphaLoRA() const;
+	float GetDropoutRateLoRA() const;
+
 protected:
 	void Reshape() override;
 
@@ -118,7 +127,11 @@ private:
 	// layer applying scale
 	CString multiplyByConstLayerName;
 
-	void create();
+	// layers of exchanged weights by LoRA
+	CPtr<CLoraFullyConnectedLayer> fcQ;
+	CPtr<CLoraFullyConnectedLayer> fcK;
+	CPtr<CLoraFullyConnectedLayer> fcV;
+	CPtr<CLoraFullyConnectedLayer> fcOutput;
 
 	// Layer inputs
 	enum TInputs {
@@ -134,9 +147,11 @@ private:
 		O_Softmax = 1
 	};
 
+	bool isCreated() const;
+	void create();
+
 	CBaseLayer* multiplyInputByMatrixWeights( int size, const char* name, TInputs input );
-	CBaseLayer* multiplyByMatrixWeights( CBaseLayer* input, 
-		int width, const char* prefix );
+	CBaseLayer* multiplyByMatrixWeights( CBaseLayer* input, int width, const char* prefix );
 	CBaseLayer* softmaxByChannels( CBaseLayer& input );
 	CBaseLayer* applyMask( CBaseLayer* layer );
 	CBaseLayer* prepareQ( CBaseLayer* input );

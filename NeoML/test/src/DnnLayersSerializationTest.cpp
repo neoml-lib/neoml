@@ -1,4 +1,4 @@
-/* Copyright © 2021 ABBYY Production LLC
+/* Copyright © 2021-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -672,6 +672,54 @@ inline void checkSpecificParams<CFullyConnectedLayer>( CFullyConnectedLayer& lay
 GTEST_TEST( SerializeFromFile, FullyConnectedLayerSerialization )
 {
 	checkSerializeLayer<CFullyConnectedLayer>( "FmlCnnFullyConnectedLayer" );
+}
+
+// ====================================================================================================================
+
+// CLoraFullyConnectedLayer
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+static void setSpecificParams( CLoraFullyConnectedLayer& layer )
+{
+	CPtr<CDnnBlob> baseW = generateBlob( TestSize, 1, 1, 1, 2 * TestSize );
+	CPtr<CDnnBlob> baseB = generateBlob( 1, 1, 1, 1, TestSize );
+	const int rank = 7;
+	CPtr<CDnnBlob> a = generateBlob( rank, 1, 1, 1, TestSize );
+	CPtr<CDnnBlob> b = generateBlob( TestSize, 1, 1, 1, rank );
+
+	layer.SetWeightsData( baseW );
+	layer.SetFreeTermData( baseB );
+	layer.SetNumberOfElements( TestSize );
+	layer.BuildLoRA( 7, 3.f, 0.1f );
+	layer.SetAWeightsLoRAData( a );
+	layer.SetBWeightsLoRAData( b );
+}
+
+GTEST_TEST( SerializeToFile, LoraFullyConnectedLayerSerialization )
+{
+	serializeToFile<CLoraFullyConnectedLayer>( "NeoMLDnnLoraFullyConnectedLayer" );
+}
+
+#endif // GENERATE_SERIALIZATION_FILES
+
+template<>
+inline void checkSpecificParams<CLoraFullyConnectedLayer>( CLoraFullyConnectedLayer& layer )
+{
+	checkBlob( *layer.Weights(), 2 * TestSize * TestSize );
+	checkBlob( *layer.FreeTerms(), TestSize );
+
+	ASSERT_EQ( layer.GetRankLoRA(), 7 );
+	ASSERT_EQ( layer.GetAlphaLoRA(), 3.f );
+	ASSERT_EQ( layer.GetDropoutRateLoRA(), 0.1f );
+	ASSERT_EQ( layer.GetNumberOfElements(), TestSize );
+	checkBlob( *layer.AWeightsLoRA(), layer.GetRankLoRA() * TestSize );
+	checkBlob( *layer.BWeightsLoRA(), layer.GetRankLoRA() * TestSize );
+}
+
+GTEST_TEST( SerializeFromFile, LoraFullyConnectedLayerSerialization )
+{
+	checkSerializeLayer<CLoraFullyConnectedLayer>( "NeoMLDnnLoraFullyConnectedLayer" );
 }
 
 // ====================================================================================================================

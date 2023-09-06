@@ -1,4 +1,4 @@
-/* Copyright © 2017-2021 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ namespace NeoML {
 
 static const char* const selfAttentionName = "SelfAttention";
 static const char* const selfAttentionSumName = "SelfAttentionSum";
+static const char* const selfAttentionNormName = "SelfAttentionNorm";
 static const char* const dropoutSelfAttentionName = "DropoutSelfAttention";
 static const char* const fc1Name = "FullyConnected1";
 static const char* const activationName = "Activation";
@@ -31,14 +32,6 @@ static const char* const dropoutFc1Name = "DropoutFc1";
 static const char* const fc2Name = "FullyConnected2";
 static const char* const dropoutFc2Name = "DropoutFc2";
 static const char* const feedForwardSumName = "FeedForwardSum";
-
-static CPtr<CDropoutLayer> getOptionalDropout( CDnnLayerGraph& dnn, const char* name )
-{
-	if( dnn.HasLayer( name ) ) {
-		return CheckCast<CDropoutLayer>( dnn.GetLayer( name ) );
-	}
-	return nullptr;
-}
 
 static inline void checkBlob( const CBlobDesc& desc, const char* layerName, const char* blobName,
 	int batchWidth, int listSize, int width, int channels )
@@ -69,21 +62,55 @@ CTransformerEncoderLayer::CTransformerEncoderLayer( IMathEngine& mathEngine )
 	buildLayer();
 }
 
-static const int transformerEncoderLayerVersion = 0;
+static const int transformerEncoderLayerVersion = 1;
 
 void CTransformerEncoderLayer::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion( transformerEncoderLayerVersion );
+	const int version = archive.SerializeVersion( transformerEncoderLayerVersion );
 	CCompositeLayer::Serialize( archive );
+
 	if( archive.IsLoading() ) {
 		selfAttention = CheckCast<CMultiheadAttentionLayer>( GetLayer( selfAttentionName ) );
-		dropoutSelfAttention = getOptionalDropout( *this, dropoutSelfAttentionName );
+		dropoutSelfAttention = HasLayer( dropoutSelfAttentionName )
+			? CheckCast<CDropoutLayer>( GetLayer( dropoutSelfAttentionName ) )
+			: nullptr;
 		selfAttentionSum = CheckCast<CEltwiseSumLayer>( GetLayer( selfAttentionSumName ) );
-		fc1 = CheckCast<CFullyConnectedLayer>( GetLayer( fc1Name ) );
-		dropoutFc1 = getOptionalDropout( *this, dropoutFc1Name );
-		fc2 = CheckCast<CFullyConnectedLayer>( GetLayer( fc2Name ) );
-		dropoutFc2 = getOptionalDropout( *this, dropoutFc2Name );
+		dropoutFc1 = HasLayer( dropoutFc1Name )
+			? CheckCast<CDropoutLayer>( GetLayer( dropoutFc1Name ) )
+			: nullptr;
+		dropoutFc2 = HasLayer( dropoutFc2Name )
+			? CheckCast<CDropoutLayer>( GetLayer( dropoutFc2Name ) )
+			: nullptr;
 		feedForwardSum = CheckCast<CEltwiseSumLayer>( GetLayer( feedForwardSumName ) );
+
+		if( version >= 1 ) {
+			fc1 = CheckCast<CLoraFullyConnectedLayer>( GetLayer( fc1Name ) );
+			fc2 = CheckCast<CLoraFullyConnectedLayer>( GetLayer( fc2Name ) );
+		} else {
+			NeoAssert( HasLayer( activationName ) );
+			NeoAssert( HasLayer( selfAttentionNormName ) );
+
+			auto convert = []( CCompositeLayer& composite,
+				const char* fcName, const char* inputFcName, const char* outputFcName )
+			{
+				CPtr<CFullyConnectedLayer> fcOld = CheckCast<CFullyConnectedLayer>( composite.GetLayer( fcName ) );
+				composite.DeleteLayer( fcName );
+
+				CPtr<CLoraFullyConnectedLayer> fcLora
+					= FINE_DEBUG_NEW CLoraFullyConnectedLayer( *fcOld );
+				fcLora->Connect( inputFcName );
+				composite.GetLayer( outputFcName )->Connect( *fcLora );
+				composite.AddLayer( *fcLora );
+
+				NeoAssert( fcLora != nullptr && fcLora->GetName() == CString( fcName ) );
+				return fcLora;
+			};
+
+			fc1 = convert( *this, fc1Name, selfAttentionNormName, activationName );
+			fc2 = convert( *this, fc2Name,
+				( dropoutFc1 != nullptr ) ? dropoutFc1Name : activationName,
+				( dropoutFc2 != nullptr ) ? dropoutFc2Name : feedForwardSumName );
+		}
 	}
 }
 
@@ -168,6 +195,57 @@ void CTransformerEncoderLayer::SetMaskType( CMultiheadAttentionLayer::TMaskType 
 	NeoPresume( GetMaskType() == type );
 }
 
+void CTransformerEncoderLayer::BuildLoRA( int rank, float alpha, float dropoutRate )
+{
+	NeoAssert( selfAttention != nullptr );
+	selfAttention->BuildLoRA( rank, alpha, dropoutRate );
+
+	NeoAssert( fc1 != nullptr );
+	fc1->BuildLoRA( rank, alpha, dropoutRate );
+
+	NeoAssert( fc2 != nullptr );
+	fc2->BuildLoRA( rank, alpha, dropoutRate );
+}
+
+void CTransformerEncoderLayer::MergeWeightsLoRA()
+{
+	NeoAssert( selfAttention != nullptr );
+	selfAttention->MergeWeightsLoRA();
+
+	NeoAssert( fc1 != nullptr );
+	fc1->MergeWeightsLoRA();
+
+	NeoAssert( fc2 != nullptr );
+	fc2->MergeWeightsLoRA();
+}
+
+void CTransformerEncoderLayer::DestroyUnmergedLoRA()
+{
+	NeoAssert( selfAttention != nullptr );
+	selfAttention->DestroyUnmergedLoRA();
+
+	NeoAssert( fc1 != nullptr );
+	fc1->DestroyUnmergedLoRA();
+
+	NeoAssert( fc2 != nullptr );
+	fc2->DestroyUnmergedLoRA();
+}
+
+int CTransformerEncoderLayer::GetRankLoRA() const
+{
+	return ( fc1 != nullptr ) ? fc1->GetRankLoRA() : 0;
+}
+
+float CTransformerEncoderLayer::GetAlphaLoRA() const
+{
+	return ( fc1 != nullptr ) ? fc1->GetAlphaLoRA() : 0;
+}
+
+float CTransformerEncoderLayer::GetDropoutRateLoRA() const
+{
+	return ( fc1 != nullptr ) ? fc1->GetDropoutRateLoRA() : 0.f;
+}
+
 void CTransformerEncoderLayer::Reshape()
 {
 	CheckLayerArchitecture( GetHiddenSize() % GetHeadCount() == 0, "HiddenSize must be a multiple of HeadCount" );
@@ -229,12 +307,12 @@ void CTransformerEncoderLayer::buildLayer()
 
 	// Normalize the sum
 	CPtr<CObjectNormalizationLayer> selfAttentionNorm = FINE_DEBUG_NEW CObjectNormalizationLayer( MathEngine() );
-	selfAttentionNorm->SetName( "SelfAttentionNorm" );
+	selfAttentionNorm->SetName( selfAttentionNormName );
 	selfAttentionNorm->Connect( *selfAttentionSum );
 	AddLayer( *selfAttentionNorm );
 
 	// First fully-connected of feed-forward
-	fc1 = FINE_DEBUG_NEW CFullyConnectedLayer( MathEngine() );
+	fc1 = FINE_DEBUG_NEW CLoraFullyConnectedLayer( MathEngine() );
 	fc1->SetName( fc1Name );
 	fc1->SetNumberOfElements( 1 );
 	fc1->Connect( *selfAttentionNorm );
@@ -247,7 +325,7 @@ void CTransformerEncoderLayer::buildLayer()
 	AddLayer( *activation );
 
 	// Second fully-connected of feed-forward
-	fc2 = FINE_DEBUG_NEW CFullyConnectedLayer( MathEngine() );
+	fc2 = FINE_DEBUG_NEW CLoraFullyConnectedLayer( MathEngine() );
 	fc2->SetName( fc2Name );
 	fc2->SetNumberOfElements( 1 );
 	fc2->Connect( *activation );
@@ -327,6 +405,8 @@ void CTransformerEncoderLayer::removeDropoutLayers()
 	NeoPresume( dropoutFc1 == nullptr && !HasLayer( dropoutFc1Name ) );
 	NeoPresume( dropoutFc2 == nullptr && !HasLayer( dropoutFc2Name ) );
 }
+
+// --------------------------------------------------------------------------------------------------------------------
 
 CLayerWrapper<CTransformerEncoderLayer> TransformerEncoder( int headCount, int hiddenSize,
 	float dropout, int feedForwardSize, TActivationFunction activation )

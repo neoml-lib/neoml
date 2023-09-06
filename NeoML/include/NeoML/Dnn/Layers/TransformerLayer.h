@@ -1,4 +1,4 @@
-/* Copyright © 2017-2021 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ limitations under the License.
 #include <NeoML/Dnn/Dnn.h>
 #include <NeoML/Dnn/Layers/CompositeLayer.h>
 #include <NeoML/Dnn/Layers/MultiheadAttentionLayer.h>
-#include <NeoML/Dnn/Layers/FullyConnectedLayer.h>
+#include <NeoML/Dnn/Layers/LoraFullyConnectedLayer.h>
 #include <NeoML/Dnn/Layers/DropoutLayer.h>
 #include <NeoML/Dnn/Layers/EltwiseLayer.h>
 
@@ -35,11 +35,11 @@ class CActivationDesc;
 //           |
 //     feedForwardSum
 //      |          |
-//      |      (dropout)
+//      |    (dropout fc2)
 //      |          |
 //      |         fc2
 //      |          |
-//      |      (dropout)
+//      |    (dropout fc1)
 //      |          |
 //      |   fc1 + activation
 //      |          |
@@ -49,7 +49,7 @@ class CActivationDesc;
 //           |
 //    selfAttentionSum
 //      |          |
-//      |      (dropout)
+//      |      (dropout Att)
 //      |          |
 //      |       selfAttention
 //      |          |     |
@@ -94,6 +94,14 @@ public:
 	int GetHiddenSize() const { return selfAttention->GetHiddenSize(); }
 	void SetHiddenSize( int hiddenSize );
 
+	// LoRA
+	void BuildLoRA( int rank, float alpha, float dropoutRate = 0.f );
+	void MergeWeightsLoRA();
+	void DestroyUnmergedLoRA();
+	int GetRankLoRA() const;
+	float GetAlphaLoRA() const;
+	float GetDropoutRateLoRA() const;
+
 	// Dropout rate
 	float GetDropoutRate() const;
 	void SetDropoutRate( float rate );
@@ -118,9 +126,9 @@ private:
 	CPtr<CMultiheadAttentionLayer> selfAttention;
 	CPtr<CDropoutLayer> dropoutSelfAttention;
 	CPtr<CEltwiseSumLayer> selfAttentionSum;
-	CPtr<CFullyConnectedLayer> fc1;
+	CPtr<CLoraFullyConnectedLayer> fc1;
 	CPtr<CDropoutLayer> dropoutFc1;
-	CPtr<CFullyConnectedLayer> fc2;
+	CPtr<CLoraFullyConnectedLayer> fc2;
 	CPtr<CDropoutLayer> dropoutFc2;
 	CPtr<CEltwiseSumLayer> feedForwardSum;
 
