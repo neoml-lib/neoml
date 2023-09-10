@@ -1,0 +1,639 @@
+/* Copyright © 2023 ABBYY
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+--------------------------------------------------------------------------------------------------------------*/
+
+#include <common.h>
+#pragma hdrstop
+
+#include <TestFixture.h>
+#include <NeoML/NeoML.h>
+
+using namespace NeoML;
+using namespace NeoMLTest;
+
+namespace NeoMLTest {
+
+static void setDnnInputs( CDnn& dnn, int labelSize )
+{
+	const int inputSize = 1000;
+
+	CArray<float> inArr;
+	inArr.Add( 1, inputSize );
+	CPtr<CDnnBlob> in = CDnnBlob::CreateTensor( dnn.GetMathEngine(), CT_Float, { 1, 1, 1, 1, 1, 1, inputSize } );
+	in->CopyFrom( inArr.GetPtr() );
+
+	CArray<float> labelArr;
+	labelArr.Add( 1, labelSize );
+	CPtr<CDnnBlob> labels = CDnnBlob::CreateTensor( dnn.GetMathEngine(), CT_Float, { 1, 1, 1, 1, 1, 1, labelSize } );
+	labels->CopyFrom( labelArr.GetPtr() );
+
+	CheckCast<CSourceLayer>( dnn.GetLayer( "in" ) )->SetBlob( in );
+	CheckCast<CSourceLayer>( dnn.GetLayer( "label" ) )->SetBlob( labels );
+}
+
+static void buildDnn( CDnn& dnn, int outputSize )
+{
+	CPtr<CSourceLayer> dataLayer = new CSourceLayer( dnn.GetMathEngine() );
+	dataLayer->SetName( "in" );
+	dnn.AddLayer( *dataLayer );
+
+	CPtr<CLoraFullyConnectedLayer> full = new CLoraFullyConnectedLayer( dnn.GetMathEngine() );
+	full->SetNumberOfElements( outputSize );
+	full->SetName( "full" );
+	full->SetZeroFreeTerm( false );
+	full->Connect( *dataLayer );
+	dnn.AddLayer( *full );
+
+	CPtr<CSourceLayer> label = new CSourceLayer( dnn.GetMathEngine() );
+	label->SetName( "label" );
+	dnn.AddLayer( *label );
+
+	CPtr<CEuclideanLossLayer> loss = new CEuclideanLossLayer( dnn.GetMathEngine() );
+	loss->SetName( "loss" );
+	loss->Connect( 0, *full );
+	loss->Connect( 1, *label );
+	dnn.AddLayer( *loss );
+
+	CPtr<CSinkLayer> out = new CSinkLayer( dnn.GetMathEngine() );
+	out->SetName( "sink" );
+	out->Connect( *full );
+	dnn.AddLayer( *out );
+
+	CPtr<CDnnAdaptiveGradientSolver> solver = new CDnnAdaptiveGradientSolver( dnn.GetMathEngine() );
+	dnn.SetSolver( solver.Ptr() );
+}
+
+static void testArchive( CDnn& dnn, const char* archiveName = "lora.archive", bool setSolver = true )
+{
+	{
+		CArchiveFile file( archiveName, CArchive::store, GetPlatformEnv() );
+		CArchive archive( &file, CArchive::store );
+		archive.Serialize( dnn );
+	}
+	dnn.DeleteAllLayers();
+	{
+		CArchiveFile file( archiveName, CArchive::load, GetPlatformEnv() );
+		CArchive archive( &file, CArchive::load );
+		archive.Serialize( dnn );
+	}
+
+	if( setSolver ) {
+		CPtr<CDnnSolver> solver = new CDnnAdaptiveGradientSolver( dnn.GetMathEngine() );
+		dnn.SetSolver( solver.Ptr() );
+	}
+}
+
+static void testLearn( CDnn& dnn, int epochs )
+{
+	for( int i = 0; i < epochs; ++i ) {
+		dnn.RunAndLearnOnce();
+	}
+	dnn.RunOnce();
+}
+
+struct CLoraTestParams final {
+	int rank = 2;
+	float alpha = 1.f;
+	float dropout = 0.f;
+	int epochs = 100;
+
+	bool buildLora = false;
+	bool archiveAfterBuild = false;
+	bool learnBeforeMerge = false;
+	bool mergeLora = false;
+	bool destroyLora = false;
+	bool archiveBeforeMerge = false;
+	bool archiveAfterMerge = false;
+	bool archiveAfterDestroy = false;
+};
+
+static void testImpl( const CLoraTestParams& params )
+{
+	CRandom random( 42 );
+
+	const int outputSize = 5;
+	CDnn dnn( random, MathEngine() );
+
+	buildDnn( dnn, outputSize );
+	setDnnInputs( dnn, outputSize );
+
+	dnn.RunAndLearnOnce();
+
+	float outputData[outputSize]{};
+	{
+		dnn.RunOnce();
+
+		const CPtr<CDnnBlob> sinkBlob = CheckCast<CSinkLayer>( dnn.GetLayer( "sink" ) )->GetBlob();
+		EXPECT_EQ( outputSize, sinkBlob->GetDataSize() );
+		sinkBlob->CopyTo( outputData );
+	}
+
+	if( params.buildLora ) {
+		CheckCast<CLoraFullyConnectedLayer>( dnn.GetLayer( "full" ) )->BuildLoRA( params.rank, params.alpha, params.dropout );
+		if( params.archiveAfterBuild ) {
+			testArchive( dnn );
+			setDnnInputs( dnn, outputSize );
+		}
+
+		dnn.RunOnce();
+		auto sinkData = CheckCast<CSinkLayer>( dnn.GetLayer( "sink" ) )->GetBlob()->GetData();
+		for( int i = 0; i < outputSize; ++i ) {
+			EXPECT_TRUE( FloatEq( sinkData.GetValueAt( i ), outputData[i], 1e-4f ) );
+		}
+	}
+	if( params.learnBeforeMerge ) {
+		testLearn( dnn, params.epochs );
+	}
+	if( params.archiveBeforeMerge ) {
+		testArchive( dnn );
+		setDnnInputs( dnn, outputSize );
+	}
+	if( params.mergeLora ) {
+		CheckCast<CLoraFullyConnectedLayer>( dnn.GetLayer( "full" ) )->MergeWeightsLoRA();
+	}
+	if( params.archiveAfterMerge ) {
+		testArchive( dnn );
+		setDnnInputs( dnn, outputSize );
+	}
+	if( params.destroyLora ) {
+		CheckCast<CLoraFullyConnectedLayer>( dnn.GetLayer( "full" ) )->DestroyUnmergedLoRA();
+	}
+	if( params.archiveAfterDestroy ) {
+		testArchive( dnn );
+		setDnnInputs( dnn, outputSize );
+	}
+
+	testLearn( dnn, params.epochs );
+
+	const CPtr<CDnnBlob> sinkBlob = CheckCast<CSinkLayer>( dnn.GetLayer( "sink" ) )->GetBlob();
+	EXPECT_EQ( outputSize, sinkBlob->GetDataSize() );
+
+	const float loss = CheckCast<CLossLayer>( dnn.GetLayer( "loss" ) )->GetLastLoss();
+	GTEST_LOG_( INFO ) << "loss = " << loss;
+	if( params.learnBeforeMerge ) {
+		EXPECT_LE( loss, 0.5f );
+	}
+}
+
+} // namespace NeoMLTest
+
+//---------------------------------------------------------------------------------------------------------------------------------------
+
+TEST( LoraFullyConnectedLayerTest, Simple )
+{
+	CLoraTestParams params;
+	testImpl( params );
+}
+
+TEST( LoraFullyConnectedLayerTest, SimpleLora )
+{
+	CLoraTestParams params;
+	params.buildLora = true;
+	testImpl( params );
+}
+
+TEST( LoraFullyConnectedLayerTest, DestroyLora )
+{
+	CLoraTestParams params;
+	params.buildLora = true;
+	params.destroyLora = true;
+	testImpl( params );
+}
+
+TEST( LoraFullyConnectedLayerTest, DestroyNoBuiltLora )
+{
+	CLoraTestParams params;
+	params.destroyLora = true;
+	testImpl( params );
+}
+
+TEST( LoraFullyConnectedLayerTest, DestroyLearnedLora )
+{
+	CLoraTestParams params;
+	params.epochs = 50;
+	params.buildLora = true;
+	params.learnBeforeMerge = true;
+	params.destroyLora = true;
+	testImpl( params );
+}
+
+TEST( LoraFullyConnectedLayerTest, ArchiveAfterBuild )
+{
+	CLoraTestParams params;
+	params.buildLora = true;
+	params.archiveAfterBuild = true;
+	testImpl( params );
+}
+
+TEST( LoraFullyConnectedLayerTest, MergeLora )
+{
+	CLoraTestParams params;
+	params.buildLora = true;
+	params.mergeLora = true;
+	testImpl( params );
+}
+
+TEST( LoraFullyConnectedLayerTest, MergeLearnedLora )
+{
+	CLoraTestParams params;
+	params.epochs = 50;
+	params.buildLora = true;
+	params.learnBeforeMerge = true;
+	params.mergeLora = true;
+	testImpl( params );
+}
+
+TEST( LoraFullyConnectedLayerTest, ArchiveBefore )
+{
+	CLoraTestParams params;
+	params.buildLora = true;
+	params.archiveBeforeMerge = true;
+	testImpl( params );
+}
+
+TEST( LoraFullyConnectedLayerTest, LearnedArchiveBefore )
+{
+	CLoraTestParams params;
+	params.epochs = 50;
+	params.buildLora = true;
+	params.learnBeforeMerge = true;
+	params.mergeLora = true;
+	params.archiveBeforeMerge = true;
+	testImpl( params );
+}
+
+TEST( LoraFullyConnectedLayerTest, ArchiveAfter )
+{
+	CLoraTestParams params;
+	params.buildLora = true;
+	params.mergeLora = true;
+	params.archiveAfterMerge = true;
+	testImpl( params );
+}
+
+TEST( LoraFullyConnectedLayerTest, LearnedArchiveAfter )
+{
+	CLoraTestParams params;
+	params.epochs = 50;
+	params.buildLora = true;
+	params.learnBeforeMerge = true;
+	params.mergeLora = true;
+	params.archiveAfterMerge = true;
+	testImpl( params );
+}
+
+TEST( LoraFullyConnectedLayerTest, LearnedArchiveBeforeAndAfter )
+{
+	CLoraTestParams params;
+	params.epochs = 50;
+	params.buildLora = true;
+	params.learnBeforeMerge = true;
+	params.mergeLora = true;
+	params.archiveBeforeMerge = true;
+	params.archiveAfterMerge = true;
+	testImpl( params );
+}
+
+TEST( LoraFullyConnectedLayerTest, ArchiveDestroyed )
+{
+	CLoraTestParams params;
+	params.buildLora = true;
+	params.learnBeforeMerge = true;
+	params.destroyLora = true;
+	params.archiveAfterDestroy = true;
+	testImpl( params );
+}
+
+TEST( LoraFullyConnectedLayerTest, LoadLoraSaved )
+{
+	CRandom random( 42 );
+
+	const int outputSize = 5;
+	CDnn dnn( random, MathEngine() );
+
+	buildDnn( dnn, outputSize );
+	setDnnInputs( dnn, outputSize );
+
+	CheckCast<CLoraFullyConnectedLayer>( dnn.GetLayer( "full" ) )->BuildLoRA( /*rank*/3, /*alpha*/1.f, /*dropout*/0.f );
+	{ // store the Lora is built and isn't learned
+		CArchiveFile file( "lora.archive", CArchive::store, GetPlatformEnv() );
+		CArchive archive( &file, CArchive::store );
+		archive.Serialize( dnn );
+	}
+
+	dnn.RunAndLearnOnce();
+
+	CheckCast<CLoraFullyConnectedLayer>( dnn.GetLayer( "full" ) )->DestroyUnmergedLoRA();
+	{ // load the Lora is built (if Lora is destroyed)
+		CArchiveFile file( "lora.archive", CArchive::load, GetPlatformEnv() );
+		CArchive archive( &file, CArchive::load );
+		archive.Serialize( dnn );
+	}
+	setDnnInputs( dnn, outputSize );
+
+	testLearn( dnn, 100 );
+
+	const float loss = CheckCast<CLossLayer>( dnn.GetLayer( "loss" ) )->GetLastLoss();
+	GTEST_LOG_( INFO ) << "loss = " << loss;
+}
+
+TEST( LoraFullyConnectedLayerTest, LoadLoraNotSaved )
+{
+	CRandom random( 42 );
+
+	const int outputSize = 5;
+	CDnn dnn( random, MathEngine() );
+
+	buildDnn( dnn, outputSize );
+	setDnnInputs( dnn, outputSize );
+
+	{ // store the Lora isn't built
+		CArchiveFile file( "lora.archive", CArchive::store, GetPlatformEnv() );
+		CArchive archive( &file, CArchive::store );
+		archive.Serialize( dnn );
+	}
+
+	dnn.RunAndLearnOnce();
+
+	CheckCast<CLoraFullyConnectedLayer>( dnn.GetLayer( "full" ) )->BuildLoRA( /*rank*/3, /*alpha*/1.f, /*dropout*/0.f );
+	{ // load the Lora is destroyed (if Lora is built)
+		CArchiveFile file( "lora.archive", CArchive::load, GetPlatformEnv() );
+		CArchive archive( &file, CArchive::load );
+		archive.Serialize( dnn );
+	}
+	setDnnInputs( dnn, outputSize );
+
+	testLearn( dnn, 100 );
+
+	const float loss = CheckCast<CLossLayer>( dnn.GetLayer( "loss" ) )->GetLastLoss();
+	GTEST_LOG_( INFO ) << "loss = " << loss;
+}
+
+//---------------------------------------------------------------------------------------------------------------------------------------
+
+TEST( LoraFullyConnectedLayerTest, DropoutSimpleLora )
+{
+	CLoraTestParams params;
+	params.dropout = 0.5f;
+	params.buildLora = true;
+	testImpl( params );
+}
+
+TEST( LoraFullyConnectedLayerTest, DropoutDestroyLearnedLora )
+{
+	CLoraTestParams params;
+	params.dropout = 0.5f;
+	params.buildLora = true;
+	params.learnBeforeMerge = true;
+	params.destroyLora = true;
+	testImpl( params );
+}
+
+TEST( LoraFullyConnectedLayerTest, DropoutMergeLearnedLora )
+{
+	CLoraTestParams params;
+	params.dropout = 0.5f;
+	params.epochs = 50;
+	params.buildLora = true;
+	params.learnBeforeMerge = true;
+	params.mergeLora = true;
+	testImpl( params );
+}
+
+TEST( LoraFullyConnectedLayerTest, DropoutLearnedArchiveBefore )
+{
+	CLoraTestParams params;
+	params.dropout = 0.5f;
+	params.epochs = 50;
+	params.buildLora = true;
+	params.learnBeforeMerge = true;
+	params.mergeLora = true;
+	params.archiveBeforeMerge = true;
+	testImpl( params );
+}
+
+TEST( LoraFullyConnectedLayerTest, DropoutLearnedArchiveAfter )
+{
+	CLoraTestParams params;
+	params.dropout = 0.5f;
+	params.epochs = 50;
+	params.buildLora = true;
+	params.learnBeforeMerge = true;
+	params.mergeLora = true;
+	params.archiveAfterMerge = true;
+	testImpl( params );
+}
+
+TEST( LoraFullyConnectedLayerTest, DropoutLearnedArchiveBeforeAndAfter )
+{
+	CLoraTestParams params;
+	params.dropout = 0.5f;
+	params.epochs = 50;
+	params.buildLora = true;
+	params.learnBeforeMerge = true;
+	params.mergeLora = true;
+	params.archiveBeforeMerge = true;
+	params.archiveAfterMerge = true;
+	testImpl( params );
+}
+
+TEST( LoraFullyConnectedLayerTest, DropoutArchiveDestroyed )
+{
+	CLoraTestParams params;
+	params.dropout = 0.5f;
+	params.buildLora = true;
+	params.learnBeforeMerge = true;
+	params.destroyLora = true;
+	params.archiveAfterDestroy = true;
+	testImpl( params );
+}
+
+//---------------------------------------------------------------------------------------------------------------------------------------
+
+namespace NeoMLTest {
+
+static void buildTransformer( CDnn& dnn )
+{
+	const int headCount = 2;
+
+	CPtr<CSourceLayer> widthsSourceLayer = AddLayer<CSourceLayer>( "widths", dnn );
+	CPtr<CSourceLayer> qSourceLayer = AddLayer<CSourceLayer>( "Q", dnn );
+
+	CPtr<CTransformerEncoderLayer> transformerLayer = AddLayer<CTransformerEncoderLayer>(
+		"transformer", { widthsSourceLayer, qSourceLayer } );
+	transformerLayer->SetHeadCount( headCount );
+	transformerLayer->SetHiddenSize( 36 );
+	transformerLayer->SetDropoutRate( 0.2f );
+	transformerLayer->SetFeedForwardSize( 16 );
+	transformerLayer->SetMaskType( CMultiheadAttentionLayer::MT_OneObject );
+	
+	( void ) AddLayer<CSinkLayer>( "out", { transformerLayer } );
+}
+
+static void createTransformerInput( CPtr<CDnnBlob>& widthsBlob, CPtr<CDnnBlob>& qBlob,
+	const char* DnnNameToDumpInputs = nullptr )
+{
+	const int batchSize = 1;
+	const int ListSize_Q = 1;
+	const int ListSize_W = 3;
+
+	// Inputs widths and Q-matrix
+	float widthsArray[ListSize_W]{ 3.f, 1.f, 2.f };
+	float qArray[ListSize_Q]{ 0.f };
+
+	widthsBlob = CDnnBlob::CreateBlob( MathEngine(), CT_Float, { 1, batchSize, 1, 1, 1, 1, ListSize_W } );
+	qBlob = CDnnBlob::CreateBlob( MathEngine(), CT_Float, { 1, batchSize, 1, 1, 1, 1, ListSize_Q } );
+
+	widthsBlob->CopyFrom( widthsArray );
+	qBlob->CopyFrom( qArray );
+
+	if( DnnNameToDumpInputs != nullptr ) {
+		CArchiveFile wfile( CString( DnnNameToDumpInputs ) + ".widths.input", CArchive::store, GetPlatformEnv() );
+		CArchive warchive( &wfile, CArchive::store );
+		widthsBlob->Serialize( warchive );
+
+		CArchiveFile qfile( CString( DnnNameToDumpInputs ) + ".Q.input", CArchive::store, GetPlatformEnv() );
+		CArchive qarchive( &qfile, CArchive::store );
+		qBlob->Serialize( qarchive );
+	}
+}
+
+static void setTransformerInput( CDnn& dnn, CPtr<CDnnBlob> widthsBlob, CPtr<CDnnBlob> qBlob )
+{
+	CheckCast<CSourceLayer>( dnn.GetLayer( "widths" ) )->SetBlob( widthsBlob );
+	CheckCast<CSourceLayer>( dnn.GetLayer( "Q" ) )->SetBlob( qBlob );
+}
+
+} // namespace NeoMLTest
+
+//---------------------------------------------------------------------------------------------------------------------------------------
+
+TEST( LoraFullyConnectedLayerTest, Transformer )
+{
+	CRandom random( 87 );
+
+	const int outputSize = 3;
+	const int epochs = 10;
+
+	CPtr<CDnnBlob> widthsBlob, qBlob;
+	createTransformerInput( widthsBlob, qBlob );
+
+	// Simple nn
+	CDnn dnn( random, MathEngine() );
+	buildTransformer( dnn );
+	setTransformerInput( dnn, widthsBlob, qBlob );
+
+	testLearn( dnn, epochs );
+
+	testArchive( dnn, "transformerLora.cnnarch", /*setSolver*/false );
+	setTransformerInput( dnn, widthsBlob, qBlob );
+
+	CheckCast<CTransformerEncoderLayer>( dnn.GetLayer( "transformer" ) )->BuildLoRA( /*rank*/2, /*alpha*/2.f, /*dropout*/0.2f );
+
+	testLearn( dnn, epochs );
+
+	testArchive( dnn, "transformerLora.cnnarch", /*setSolver*/false );
+	setTransformerInput( dnn, widthsBlob, qBlob );
+
+	CheckCast<CTransformerEncoderLayer>( dnn.GetLayer( "transformer" ) )->MergeWeightsLoRA();
+
+	testLearn( dnn, epochs );
+
+	testArchive( dnn, "transformerLora.cnnarch", /*setSolver*/false );
+	setTransformerInput( dnn, widthsBlob, qBlob );
+
+	dnn.RunOnce();
+	for( int i = 0; i < epochs; ++i ) {
+		dnn.RunOnce();
+	}
+
+	// Expected output
+	const float expectedOutput[outputSize]{ 0.753938, 0.659215, -1.413153 };
+
+	CPtr<CDnnBlob> sinkBLob = CheckCast<CSinkLayer>( dnn.GetLayer( "out" ) )->GetBlob();
+	EXPECT_EQ( outputSize, sinkBLob->GetDataSize() );
+
+	float outputBuff[outputSize]{};
+	sinkBLob->CopyTo( outputBuff );
+
+	if( /*dumpOutputs*/false ) {
+		CArchiveFile qfile( "transformerLora.out.output", CArchive::store, GetPlatformEnv() );
+		qfile.Write( outputBuff, outputSize * sizeof( float ) );
+	}
+
+	// Checking for equality of all elements
+	for( int i = 0; i < outputSize; ++i ) {
+		EXPECT_TRUE( FloatEq( expectedOutput[i], outputBuff[i], 1e-4f ) );
+	}
+}
+
+TEST( LoraFullyConnectedLayerTest, TransformerOldLoad )
+{
+	CRandom random( 87 );
+
+	const CString filepath = GetTestDataFilePath( "data", "transformerLoraOld" );
+
+	CArray<float> expectedOutput{};
+	{
+		CArchiveFile file( filepath + ".out.output", CArchive::load, GetPlatformEnv() );
+		expectedOutput.SetSize( static_cast<int>( file.GetLength() / sizeof( float ) ) );
+		file.Read( expectedOutput.GetPtr(), expectedOutput.Size() * sizeof( float ) );
+	}
+
+	CPtr<CDnnBlob> widthsBlob = new CDnnBlob( MathEngine() );
+	{
+		CArchiveFile file( filepath + ".widths.input", CArchive::load, GetPlatformEnv() );
+		CArchive archive( &file, CArchive::load );
+		widthsBlob->Serialize( archive );
+	}
+	CPtr<CDnnBlob> qBlob = new CDnnBlob( MathEngine() );
+	{
+		CArchiveFile file( filepath + ".Q.input", CArchive::load, GetPlatformEnv() );
+		CArchive archive( &file, CArchive::load );
+		qBlob->Serialize( archive );
+	}
+
+	CDnn dnn( random, MathEngine() );
+	{
+		CArchiveFile file( filepath + ".cnnarch", CArchive::load, GetPlatformEnv() );
+		CArchive archive( &file, CArchive::load );
+		archive.Serialize( dnn );
+	}
+	setTransformerInput( dnn, widthsBlob, qBlob );
+
+	const int epochs = 10;
+
+	testLearn( dnn, epochs );
+
+	CheckCast<CTransformerEncoderLayer>( dnn.GetLayer( "transformer" ) )->BuildLoRA( /*rank*/2, /*alpha*/2.f, /*dropout*/0.2f );
+
+	testLearn( dnn, epochs );
+
+	CheckCast<CTransformerEncoderLayer>( dnn.GetLayer( "transformer" ) )->MergeWeightsLoRA();
+
+	testLearn( dnn, epochs );
+
+	dnn.RunOnce();
+	for( int i = 0; i < epochs; ++i ) {
+		dnn.RunOnce();
+	}
+
+	CPtr<CDnnBlob> sinkBLob = CheckCast<CSinkLayer>( dnn.GetLayer( "out" ) )->GetBlob();
+	EXPECT_EQ( expectedOutput.Size(), sinkBLob->GetDataSize() );
+	// Checking for equality of all elements
+	for( int i = 0; i < expectedOutput.Size(); ++i ) {
+		EXPECT_TRUE( FloatEq( expectedOutput[i], sinkBLob->GetData().GetValueAt( i ), 1e-4f ) );
+	}
+}
+
