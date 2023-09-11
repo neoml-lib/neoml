@@ -46,6 +46,10 @@ inline CSmallMatricesMultiplyDesc* CCpuMathEngine::InitSmallMatricesMultiplyDesc
 inline bool CCpuMathEngine::SmallMatricesMultiply( const CSmallMatricesMultiplyDesc* desc,
 	const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle ) const
 {
+#if FINE_BIT( FINE_32_BIT )
+	return false;
+#endif // FINE_32_BIT
+
 #ifndef NEOML_USE_MKL
 	ASSERT_EXPR( false );
 #endif // !NEOML_USE_MKL
@@ -56,6 +60,10 @@ inline bool CCpuMathEngine::SmallMatricesMultiply( const CSmallMatricesMultiplyD
 inline bool CCpuMathEngine::smallMatricesMultiply( const CSmallMatricesMultiplyDesc* desc,
 	const float* first, const float* second, float* result ) const
 {
+#if FINE_BIT( FINE_32_BIT )
+	return false;
+#endif // FINE_32_BIT
+
 #ifndef NEOML_USE_MKL
 	ASSERT_EXPR( false );
 #endif // !NEOML_USE_MKL
@@ -82,6 +90,10 @@ CCpuSmallMatricesMultiplyDesc::CCpuSmallMatricesMultiplyDesc(
 	ASSERT_EXPR( secondWidth > 0 );
 	ASSERT_EXPR( secondRowSize > 0 );
 	ASSERT_EXPR( resultWidth > 0 );
+
+#if FINE_BIT( FINE_32_BIT )
+	return;
+#endif // FINE_32_BIT
 
 	// Empirical upper limit of a matrix size to effective JIT optimization
 	static constexpr int MaxMatrixSize = 128;
@@ -136,6 +148,10 @@ CCpuSmallMatricesMultiplyDesc::~CCpuSmallMatricesMultiplyDesc()
 
 inline void CCpuSmallMatricesMultiplyDesc::Multiply( const float* first, const float* second, float* result ) const
 {
+#if FINE_BIT( FINE_32_BIT )
+	ASSERT_EXPR( false );
+#endif // FINE_32_BIT
+
 	PRESUME_EXPR( MklJitter != nullptr && MklKernel != nullptr );
 #ifdef NEOML_USE_MKL
 	// Repeatedly execute the GEMM kernel
