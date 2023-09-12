@@ -396,6 +396,10 @@ class LayersTestCase(MultithreadedTestCase):
 
         self.assertEqual(weights.shape, (5, 16))
         self.assertEqual(free_term.shape, (5,))
+        
+        # Call reshape twice test
+        inputs = {"source1": input2, "source2": input1}
+        outputs = dnn.run(inputs)
 
     def test_concat_channels(self):
         math_engine = neoml.MathEngine.CpuMathEngine()

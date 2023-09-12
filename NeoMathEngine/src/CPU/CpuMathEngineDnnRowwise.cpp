@@ -243,24 +243,18 @@ CRowwiseOperationDesc* CCpuMathEngine::InitRowwiseConv( int paddingHeight, int p
 
 //------------------------------------------------------------------------------------------------------------
 
-void CCpuMathEngine::ChannelwiseWith1x1( const CBlobDesc& inputDesc, const CBlobDesc& outputDesc,
-	const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& inputHandle,
-	const CConstFloatHandle& channelwiseFilterData, const CConstFloatHandle* channelwiseFreeTermData,
-	TActivationFunction activation, float reluParam, const CConstFloatHandle& convFilterData,
-	const CConstFloatHandle* convFreeTermData, bool residual, const CFloatHandle& outputHandle )
+void CCpuMathEngine::ChannelwiseWith1x1( const CBlobDesc& inputDesc, const CBlobDesc& /*outputDesc*/,
+	const CRowwiseOperationDesc& rowwiseDesc, const CChannelwiseConvolutionDesc& convDesc,
+	const CConstFloatHandle& inputHandle, const CFloatHandle& outputHandle )
 {
 	CCpuExecutionScope scope;
 	const CCommonChannelwiseConvolutionDesc& desc = static_cast<const CCommonChannelwiseConvolutionDesc&>( convDesc );
+	const CCpuRowwiseChConvWith1x1& blockImpl = static_cast<const CCpuRowwiseChConvWith1x1&>( rowwiseDesc );
 
-	CCpuRowwiseChConvWith1x1 impl( *this, desc.StrideHeight, GetRaw( channelwiseFilterData ),
-		channelwiseFreeTermData == nullptr ? nullptr : GetRaw( *channelwiseFreeTermData ),
-		activation, reluParam, GetRaw( convFilterData ),
-		convFreeTermData == nullptr ? nullptr : GetRaw( *convFreeTermData ),
-		outputDesc.Channels(), residual );
-	(void)impl.Reshape( inputDesc );
+	( void ) const_cast<CCpuRowwiseChConvWith1x1&>( blockImpl ).Reshape( inputDesc );
 
 	// Buffer for the output rows of channelwise convolution
-	CFloatHandleStackVar bufferVar( *this, static_cast<size_t>( impl.InOperationBufferSize() ) );
+	CFloatHandleStackVar bufferVar( *this, static_cast<size_t>( blockImpl.InOperationBufferSize() ) );
 
 	float* buffer = GetRaw( bufferVar.GetHandle() );
 	const float* input = GetRaw( inputHandle );
@@ -268,9 +262,11 @@ void CCpuMathEngine::ChannelwiseWith1x1( const CBlobDesc& inputDesc, const CBlob
 
 	const int inputRowCount = desc.Source.ObjectCount() * desc.Source.Height();
 	const int outputRowCount = desc.Result.ObjectCount() * desc.Result.Height();
-	ICpuRowwiseImpl::CProcessingReport report = impl.Process( input, 0, inputRowCount,
+
+	ICpuRowwiseImpl::CProcessingReport report = blockImpl.Process( input, 0, inputRowCount,
 		output, 0, outputRowCount, buffer );
 	( void ) report; // Avoid compiler warning in release configuration
+
 	PRESUME_EXPR( report.InputRowsMayBeRemoved == inputRowCount );
 	PRESUME_EXPR( report.OutputRowsCalculated == outputRowCount );
 }
@@ -280,42 +276,37 @@ CRowwiseOperationDesc* CCpuMathEngine::InitRowwiseChWith1x1( int stride, const C
 	const CConstFloatHandle& convFilter, const CConstFloatHandle* convFreeTerm, int outputChannels, bool residual )
 {
 	return new CCpuRowwiseChConvWith1x1( *this, stride, GetRaw( channelwiseFilter ),
-		channelwiseFreeTerm == nullptr ? nullptr : GetRaw( *channelwiseFreeTerm ),
+		( channelwiseFreeTerm == nullptr ) ? nullptr : GetRaw( *channelwiseFreeTerm ),
 		activation, reluParam, GetRaw( convFilter ),
-		convFreeTerm == nullptr ? nullptr : GetRaw( *convFreeTerm ),
+		( convFreeTerm == nullptr ) ? nullptr : GetRaw( *convFreeTerm ),
 		outputChannels, residual );
 }
 
 //------------------------------------------------------------------------------------------------------------
 
 void CCpuMathEngine::MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobDesc& outputDesc,
-	const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& inputHandle,
-	const CConstFloatHandle& expandFilterData, const CConstFloatHandle* expandFreeTermData,
-	TActivationFunction expandActivation, float expandReluParam, const CConstFloatHandle& channelwiseFilterData,
-	const CConstFloatHandle* channelwiseFreeTermData, TActivationFunction channelwiseActivation,
-	float channelwiseReluParam, const CConstFloatHandle& downFilterData, const CConstFloatHandle* downFreeTermData,
-	bool residual, const CFloatHandle& outputHandle )
+	const CRowwiseOperationDesc& rowwiseDesc, const CChannelwiseConvolutionDesc& /*convDesc*/,
+	const CConstFloatHandle& inputHandle, const CFloatHandle& outputHandle )
 {
 	CCpuExecutionScope scope;
-	const CCommonChannelwiseConvolutionDesc& desc = static_cast< const CCommonChannelwiseConvolutionDesc& >( convDesc );
+	const CCpuRowwiseMobileNetV2& blockImpl = static_cast<const CCpuRowwiseMobileNetV2&>( rowwiseDesc );
 
-	CCpuRowwiseMobileNetV2 blockImpl( *this, inputDesc.Channels(), GetRaw( expandFilterData ),
-		expandFreeTermData == nullptr ? nullptr : GetRaw( *expandFreeTermData ),
-		desc.Source.Channels(), expandActivation, expandReluParam, GetRaw( channelwiseFilterData ),
-		channelwiseFreeTermData == nullptr ? nullptr : GetRaw( *channelwiseFreeTermData ),
-		desc.StrideHeight, channelwiseActivation, channelwiseReluParam, GetRaw( downFilterData ),
-		downFreeTermData == nullptr ? nullptr : GetRaw( *downFreeTermData ),
-		outputDesc.Channels(), residual );
-	const CBlobDesc reshapeResult = blockImpl.Reshape( inputDesc );
+	const CBlobDesc reshapeResult = const_cast<CCpuRowwiseMobileNetV2&>( blockImpl ).Reshape( inputDesc );
 	( void ) reshapeResult;
 	PRESUME_EXPR( reshapeResult.HasEqualDimensions( outputDesc ) );
+
+	const int InputRowsMayBeRemoved = inputDesc.ObjectCount() * inputDesc.Height();
+	const int OutputRowsCalculated = outputDesc.ObjectCount() * outputDesc.Height();
+
 	CFloatHandleStackVar buffer( *this, blockImpl.InOperationBufferSize() );
+
 	const ICpuRowwiseImpl::CProcessingReport report = blockImpl.Process( GetRaw( inputHandle ), 0,
-		inputDesc.ObjectCount() * inputDesc.Height(), GetRaw( outputHandle ), 0,
-		outputDesc.ObjectCount() * outputDesc.Height(), GetRaw( buffer.GetHandle() ) );
-	( void ) report;
-	PRESUME_EXPR( report.InputRowsMayBeRemoved == inputDesc.ObjectCount() * inputDesc.Height() );
-	PRESUME_EXPR( report.OutputRowsCalculated == outputDesc.ObjectCount() * outputDesc.Height() );
+		InputRowsMayBeRemoved, GetRaw( outputHandle ), 0,
+		OutputRowsCalculated, GetRaw( buffer.GetHandle() ) );
+	( void ) report; // Avoid compiler warning in release configuration
+
+	PRESUME_EXPR( report.InputRowsMayBeRemoved == InputRowsMayBeRemoved );
+	PRESUME_EXPR( report.OutputRowsCalculated == OutputRowsCalculated );
 }
 
 CRowwiseOperationDesc* CCpuMathEngine::InitRowwiseMobileNetV2( int inputChannels,
@@ -326,12 +317,11 @@ CRowwiseOperationDesc* CCpuMathEngine::InitRowwiseMobileNetV2( int inputChannels
 	const CConstFloatHandle& downFilter, const CConstFloatHandle* downFreeTerm, int outputChannels, bool residual )
 {
 	return new CCpuRowwiseMobileNetV2( *this, inputChannels, GetRaw( expandFilter ),
-		expandFreeTerm == nullptr ? nullptr : GetRaw( *expandFreeTerm ),
+		( expandFreeTerm == nullptr ) ? nullptr : GetRaw( *expandFreeTerm ),
 		expandedChannels, expandActivation, expandReluParam, GetRaw( channelwiseFilter ),
-		channelwiseFreeTerm == nullptr ? nullptr : GetRaw( *channelwiseFreeTerm ),
+		( channelwiseFreeTerm == nullptr ) ? nullptr : GetRaw( *channelwiseFreeTerm ),
 		stride, channelwiseActivation, channelwiseReluParam, GetRaw( downFilter ),
-		downFreeTerm == nullptr ? nullptr : GetRaw( *downFreeTerm ),
-		outputChannels, residual );
+		( downFreeTerm == nullptr ) ? nullptr : GetRaw( *downFreeTerm ), outputChannels, residual );
 }
 
 //---------------------------------------------------------------------------------------------------

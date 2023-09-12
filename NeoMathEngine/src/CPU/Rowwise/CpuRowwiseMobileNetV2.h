@@ -49,9 +49,9 @@ public:
 		outputChannels( outputChannels ),
 		residual( residual ),
 		inputRowRequirement( 0 ),
-		outputRowRequirement( 0 )
-	{
-	}
+		outputRowRequirement( 0 ),
+		smallMatricesMulDescs{ mathEngine, mathEngine }
+	{}
 
 	CBlobDesc Reshape( const CBlobDesc& inputSize ) override;
 	int InputRowRequirement() const override { return inputRowRequirement; }
@@ -65,32 +65,42 @@ public:
 
 private:
 	CCpuMathEngine& mathEngine;
-	int inputChannels;
-	const float* expandFilter;
-	const float* expandFreeTerm;
-	int expandedChannels;
-	TActivationFunction expandActivation;
-	float expandReluParam;
+	const int inputChannels;
+	const float* const expandFilter;
+	const float* const expandFreeTerm;
+	const int expandedChannels;
+	const TActivationFunction expandActivation;
+	const float expandReluParam;
 	CCommonChannelwiseConvolutionDesc desc;
-	const float* channelwiseFilter;
-	const float* channelwiseFreeTerm;
-	TActivationFunction channelwiseActivation;
-	float channelwiseReluParam;
-	const float* downFilter;
-	const float* downFreeTerm;
-	int outputChannels;
-	bool residual;
+	const float* const channelwiseFilter;
+	const float* const channelwiseFreeTerm;
+	const TActivationFunction channelwiseActivation;
+	const float channelwiseReluParam;
+	const float* const downFilter;
+	const float* const downFreeTerm;
+	const int outputChannels;
+	const bool residual;
+
 	// Inner rowwise buffer is needed because we need to transfer some rows after expand conv
 	// between different Process calls (usual inOperationBuffer doesn't save data between calls)
 	// It's caused by the fact that single input row is used by multiply output rows in 3x3 channelwise
-	mutable std::unique_ptr<CCpuRowwiseBuffer> chInput;
-	int inputRowRequirement;
-	int outputRowRequirement;
+	mutable std::unique_ptr<CCpuRowwiseBuffer> chInput{};
+	int inputRowRequirement{};
+	int outputRowRequirement{};
+
+	enum { TSMMDA_ExpandConvInput, TSMMDA_BufferDownFilter, /*...*/ TSMMDA_Count_ };
+	// The array of matrices multiplication optimization descriptors arrays by enum above
+	CCpuSmallMatricesMultiplyDescsArray</*Height*/> smallMatricesMulDescs[TSMMDA_Count_];
+	// If ( outputChannels or expandedChannels or inputChannels ) is being changed,
+	// for each smallMatricesMulDescs method DestroyAll() should be called to recreate JIT.
 
 	int getMaxInputRowsPerStep() const;
 	int getMaxOutputRowsPerStep() const;
 };
 
+//--------------------------------------------------------------------------------------------------------------------
+
+// NOTICE: This method Reshape() is called from the RunOnce() function, avoid heavy reinitializations here
 inline CBlobDesc CCpuMathEngine::CCpuRowwiseMobileNetV2::Reshape( const CBlobDesc& inputSize )
 {
 	CBlobDesc chInputSize = inputSize;
@@ -194,10 +204,14 @@ inline ICpuRowwiseImpl::CProcessingReport CCpuMathEngine::CCpuRowwiseMobileNetV2
 			chInput->EmptyRowCount() } );
 
 		if( inputRowsThisStep > 0 ) {
+			const int firstHeight = inputRowsThisStep * inputWidth;
+			auto mulDesc = smallMatricesMulDescs[TSMMDA_ExpandConvInput].Get( firstHeight,
+				firstHeight, /*firstWidth*/inputChannels, /*secondWidth*/inputChannels, /*resultWidth*/expandedChannels );
+
 			const float* expandConvInput = input + ( chInput->DataRowProcessed() - inputRowIndex ) * inputRowSize;
 			// Apply expand convolution with activation
-			mathEngine.multiplyMatrixByTransposedWithFreeTerm( expandConvInput, inputRowsThisStep * inputWidth, inputChannels,
-				expandFilter, expandedChannels, expandFreeTerm, chInput->EmptyRows() );
+			mathEngine.multiplyMatrixByTransposedWithFreeTerm( /*first*/expandConvInput, firstHeight, inputChannels,
+				/*second*/expandFilter, expandedChannels, /*freeTerm*/expandFreeTerm, /*result*/chInput->EmptyRows(), mulDesc );
 			MOBILENET_ACTIVATION( expandActivation, expandReluParam, chInput->EmptyRows(), inputRowsThisStep * chInput->RowSize() );
 			chInput->AddRows( inputRowsThisStep );
 		}
@@ -240,21 +254,28 @@ inline ICpuRowwiseImpl::CProcessingReport CCpuMathEngine::CCpuRowwiseMobileNetV2
 				}
 			}
 
-			if( residual && isInPlace ) {
-				// Block input and output are located in the same memory
-				// It's possible to simultaneously calculate down conv output and add the residual connection
-				mathEngine.multiplyMatrixByTransposedMatrixAndAdd( buffer, outputRowsThisStep * outputWidth,
-					expandedChannels, expandedChannels, downFilter, outputChannels, expandedChannels, output,
-					outputChannels );
-			} else {
-				mathEngine.multiplyMatrixByTransposedMatrix( buffer, outputRowsThisStep * outputWidth,
-					expandedChannels, expandedChannels, downFilter, outputChannels, expandedChannels,
-					output, outputChannels );
-			}
+			{
+				const int firstHeight = outputRowsThisStep * outputWidth;
+				const int firstWidth = expandedChannels;
+				const int secondHeight = outputChannels;
+				const int secondWidth = firstWidth;
+				const int resultWidth = secondHeight;
+				auto mulDesc = smallMatricesMulDescs[TSMMDA_BufferDownFilter].Get( firstHeight,
+					firstHeight, firstWidth, secondWidth, resultWidth, /*resultAdd*/( residual && isInPlace ) );
 
-			if( downFreeTerm != nullptr ) {
-				mathEngine.addVectorToMatrixRows( output, output, outputRowsThisStep * outputWidth, outputChannels,
-					outputChannels, outputChannels, downFreeTerm );
+				if( residual && isInPlace ) {
+					// Block input and output are located in the same memory
+					// It's possible to simultaneously calculate down conv output and add the residual connection
+					mathEngine.multiplyMatrixByTransposedMatrixAndAdd( /*first*/buffer, firstHeight, firstWidth, firstWidth,
+						/*second*/downFilter, secondHeight, secondWidth, /*result*/output, resultWidth, mulDesc );
+				} else {
+					mathEngine.multiplyMatrixByTransposedMatrix( /*first*/buffer, firstHeight, firstWidth, firstWidth,
+						/*second*/downFilter, secondHeight, secondWidth, /*result*/output, resultWidth, mulDesc );
+				}
+				if( downFreeTerm != nullptr ) {
+					mathEngine.addVectorToMatrixRows( output, output, firstHeight, outputChannels,
+						outputChannels, outputChannels, downFreeTerm );
+				}
 			}
 
 			if( residual && !isInPlace ) {

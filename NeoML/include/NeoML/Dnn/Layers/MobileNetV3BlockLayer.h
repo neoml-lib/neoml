@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -39,7 +39,7 @@ public:
 		const CPtr<CDnnBlob>& channelwiseFilter, const CPtr<CDnnBlob>& channelwiseFreeTerm,
 		const CActivationDesc& channelwiseActivation );
 	explicit CMobileNetV3PreSEBlockLayer( IMathEngine& mathEngine );
-	~CMobileNetV3PreSEBlockLayer();
+	~CMobileNetV3PreSEBlockLayer() override;
 
 	// Expand convolution and activation parameters
 	CPtr<CDnnBlob> ExpandFilter() const;
@@ -74,6 +74,7 @@ private:
 	int stride; // stride of channelwise convolution
 	CActivationDesc channelwiseActivation; // activation applied after channelwise convolution
 	CChannelwiseConvolutionDesc* convDesc; // descriptor of channelwise convolution
+	CSmallMatricesMultiplyDescsArray* smallMatricesMulDescs = nullptr;
 };
 
 // Emulates the part of the block which goes after Squeeze-and-Excite
@@ -93,6 +94,7 @@ public:
 	CMobileNetV3PostSEBlockLayer( IMathEngine& mathEngine, const CActivationDesc& activation,
 		const CPtr<CDnnBlob>& downFilter, const CPtr<CDnnBlob>& downFreeTerm );
 	explicit CMobileNetV3PostSEBlockLayer( IMathEngine& mathEngine );
+	~CMobileNetV3PostSEBlockLayer() override;
 
 	// Activation
 	// Applied on the result of Mul(ChannelwiseConv, Squeeze-and-Excite)
@@ -131,6 +133,7 @@ private:
 	};
 
 	CActivationDesc activation; // activation applied after channelwise convolution
+	CSmallMatricesMultiplyDescsArray* smallMatricesMulDescs = nullptr;
 };
 
 } // namespace NeoML

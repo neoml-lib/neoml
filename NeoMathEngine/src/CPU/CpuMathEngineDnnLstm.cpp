@@ -23,6 +23,7 @@ limitations under the License.
 #include <CpuMathEnginePrivate.h>
 #include <CpuMathEngineDnnLstm.h>
 #include <NeoMathEngine/NeoMathEngineException.h>
+#include <CpuMathEngineDnnChannelwiseConv.h>
 
 namespace NeoML {
 
@@ -60,7 +61,10 @@ static const float* initLstmFreeTerm( const CFloatHandleVar* freeTermVar, const 
 	return nullptr;
 }
 
-CMathEngineLstmDesc::CMathEngineLstmDesc( int hiddenSize, int objectSize, const CConstFloatHandle& inputWeights,
+//-------------------------------------------------------------------------------------------------------------------------
+
+CMathEngineLstmDesc::CMathEngineLstmDesc( CCpuMathEngine& mathEngine,
+		int hiddenSize, int objectSize, const CConstFloatHandle& inputWeights,
 		const CConstFloatHandle& inputFreeTerm, const CConstFloatHandle& recurWeights,
 		const CConstFloatHandle& recurFreeTerm ) :
 	HiddenSize( hiddenSize ),
@@ -69,9 +73,11 @@ CMathEngineLstmDesc::CMathEngineLstmDesc( int hiddenSize, int objectSize, const 
 	RecurWeightsVar( transposeLstmWeights( recurWeights, 4 * hiddenSize, hiddenSize ) ),
 	RecurWeights( GetRaw( RecurWeightsVar->GetHandle() ) ),
 	FreeTermVar( createLstmFreeTermVar( inputFreeTerm, recurFreeTerm, hiddenSize ) ),
-	FreeTerm( initLstmFreeTerm( FreeTermVar.get(), inputFreeTerm, recurFreeTerm))
-{
-}
+	FreeTerm( initLstmFreeTerm( FreeTermVar.get(), inputFreeTerm, recurFreeTerm) ),
+	smallMatricesMulDescsArrays{
+		std::unique_ptr<CSmallMatricesMultiplyDescsArray>( mathEngine.InitSmallMatricesMultiplyDescsArray() ),
+		std::unique_ptr<CSmallMatricesMultiplyDescsArray>( mathEngine.InitSmallMatricesMultiplyDescsArray() ) }
+{}
 
 CMathEngineLstmDesc::~CMathEngineLstmDesc() = default;
 
@@ -79,9 +85,11 @@ CLstmDesc* CCpuMathEngine::InitLstm( int hiddenSize, int objectSize,
 	const CConstFloatHandle& inputWeights, const CConstFloatHandle& inputFreeTerm,
 	const CConstFloatHandle& recurrentWeights, const CConstFloatHandle& recurrentFreeTerm )
 {
-	return new CMathEngineLstmDesc( hiddenSize, objectSize, inputWeights, inputFreeTerm,
+	return new CMathEngineLstmDesc( *this, hiddenSize, objectSize, inputWeights, inputFreeTerm,
 		recurrentWeights, recurrentFreeTerm );
 }
+
+//-------------------------------------------------------------------------------------------------------------------------
 
 template<class T>
 class CSequenceWrapper {
@@ -103,6 +111,8 @@ private:
 	int sequenceLength;
 	int elemSize;
 };
+
+//-------------------------------------------------------------------------------------------------------------------------
 
 void CCpuMathEngine::Lstm( CLstmDesc& desc, bool reverse, int sequenceLength, int sequenceCount,
 	const CConstFloatHandle& inputStateBackLink, const CConstFloatHandle& inputMainBackLink,
@@ -144,6 +154,9 @@ void CCpuMathEngine::Lstm( CLstmDesc& desc, bool reverse, int sequenceLength, in
 
 	CSequenceWrapper<const float> input( inputHandle, sequenceLength, sequenceCount * lstmDesc.ObjectSize );
 
+	const int secondHeight = 4 * lstmDesc.HiddenSize;
+	const int resultWidth = secondHeight;
+
 	// Iterate recurent net step by step
 	int seqElemsInBuffer = 0;
 	for( int i = 0; i < sequenceLength; i++ ) {
@@ -163,18 +176,35 @@ void CCpuMathEngine::Lstm( CLstmDesc& desc, bool reverse, int sequenceLength, in
 			const int bufferIdx = outputPos / fullyConnectedResult.SequenceLength();
 			seqElemsInBuffer = std::min( fullyConnectedResult.SequenceLength(),
 				sequenceLength - bufferIdx * fullyConnectedResult.SequenceLength() );
-			multiplyMatrixByTransposedMatrix( input[bufferIdx * fullyConnectedResult.SequenceLength()],
-				seqElemsInBuffer * sequenceCount, lstmDesc.ObjectSize, lstmDesc.ObjectSize, lstmDesc.InputWeights,
-				4 * lstmDesc.HiddenSize, lstmDesc.ObjectSize, fullyConnectedResult[0], 4 * lstmDesc.HiddenSize );
+
+			const int firstHeight = seqElemsInBuffer * sequenceCount;
+			const int firstWidth = lstmDesc.ObjectSize;
+			const auto& mulDescs = static_cast<const CCpuSmallMatricesMultiplyDescsArray<>&>(
+				*lstmDesc.smallMatricesMulDescsArrays[CMathEngineLstmDesc::TSMMDA_MxMT] );
+
+			multiplyMatrixByTransposedMatrix(
+				/*first*/input[bufferIdx * fullyConnectedResult.SequenceLength()], firstHeight, firstWidth, firstWidth,
+				/*second*/lstmDesc.InputWeights, secondHeight, /*secondWidth*/firstWidth,
+				/*result*/fullyConnectedResult[0], resultWidth,
+				mulDescs.Get( firstHeight, firstHeight, firstWidth, /*secondWidth*/firstWidth, resultWidth ) );
 		}
 
-		multiplyMatrixByMatrixAndAdd( mainBackLink[inputPos], sequenceCount, lstmDesc.HiddenSize,
-			lstmDesc.HiddenSize, lstmDesc.RecurWeights, 4 * lstmDesc.HiddenSize, 4 * lstmDesc.HiddenSize,
-			fullyConnectedResult[outputPos], 4 * lstmDesc.HiddenSize );
+		{
+			const int firstHeight = sequenceCount;
+			const int firstWidth = lstmDesc.HiddenSize;
+			const auto& mulDescs = static_cast<const CCpuSmallMatricesMultiplyDescsArray<>&>(
+				*lstmDesc.smallMatricesMulDescsArrays[CMathEngineLstmDesc::TSMMDA_MxM] );
+
+			multiplyMatrixByMatrixAndAdd(
+				/*first*/mainBackLink[inputPos], firstHeight, firstWidth, firstWidth,
+				/*second*/lstmDesc.RecurWeights, /*secondWidth*/resultWidth, /*secondWidth*/resultWidth,
+				/*result*/fullyConnectedResult[outputPos], resultWidth,
+				mulDescs.Get( firstHeight, firstHeight, firstWidth, /*secondWidth*/resultWidth, resultWidth,
+					/*resultAdd*/true, /*trans1*/false, /*trans2*/false ) );
+		}
 		if( lstmDesc.FreeTerm != nullptr ) {
 			addVectorToMatrixRows( fullyConnectedResult[outputPos], fullyConnectedResult[outputPos],
-				sequenceCount, 4 * lstmDesc.HiddenSize, 4 * lstmDesc.HiddenSize, 4 * lstmDesc.HiddenSize,
-				lstmDesc.FreeTerm );
+				sequenceCount, resultWidth, resultWidth, resultWidth, lstmDesc.FreeTerm );
 		}
 
 		// if outputMainBackLink != output then we are in compatibility mode

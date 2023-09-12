@@ -70,6 +70,10 @@ CMaxOverTimePoolingDesc::~CMaxOverTimePoolingDesc() = default;
 CLrnDesc::~CLrnDesc() = default;
 CLstmDesc::~CLstmDesc() = default;
 CRowwiseOperationDesc::~CRowwiseOperationDesc() = default;
+CSmallMatricesMultiplyDesc::~CSmallMatricesMultiplyDesc() = default;
+CSmallMatricesMultiplyDescsArray::~CSmallMatricesMultiplyDescsArray() = default;
+
+//------------------------------------------------------------------------------------------------------------
 
 // GPU manager implementation
 class CGpuMathEngineManager : public IGpuMathEngineManager {
@@ -107,20 +111,20 @@ CGpuMathEngineManager::CGpuMathEngineManager() :
 			}
 		}
 	}
-#endif
+#endif // NEOML_USE_CUDA
 
 #ifdef NEOML_USE_VULKAN
 	if (loader.IsLoaded(CDllLoader::VULKAN_DLL)) {
 		LoadVulkanEngineInfo(*CDllLoader::vulkanDll, info);
 	}
-#endif
+#endif // NEOML_USE_VULKAN
 
 #ifdef NEOML_USE_METAL
 	CMathEngineInfo deviceInfo;
 	if( LoadMetalEngineInfo( deviceInfo ) ) {
 		info.push_back( deviceInfo );
 	}
-#endif
+#endif // NEOML_USE_METAL
 }
 
 void CGpuMathEngineManager::GetMathEngineInfo( int index, CMathEngineInfo& result ) const
@@ -212,6 +216,8 @@ IMathEngineExceptionHandler* GetMathEngineExceptionHandler()
 	return exceptionHandler;
 }
 
+//------------------------------------------------------------------------------------------------------------
+
 IMathEngine* CreateCpuMathEngine( size_t memoryLimit )
 {
 	return new CCpuMathEngine( memoryLimit );
@@ -223,6 +229,8 @@ IMathEngine* CreateCpuMathEngine( int /*deprecated*/, size_t memoryLimit )
 	return CreateCpuMathEngine( memoryLimit );
 }
 
+//------------------------------------------------------------------------------------------------------------
+
 IMathEngine* CreateGpuMathEngine( size_t memoryLimit, int flags )
 {
 	CGpuMathEngineManager manager;
@@ -233,6 +241,8 @@ IGpuMathEngineManager* CreateGpuMathEngineManager()
 {
 	return new CGpuMathEngineManager();
 }
+
+//------------------------------------------------------------------------------------------------------------
 
 void CreateDistributedCudaMathEngines( IMathEngine** mathEngines, int devsCount, const int* cudaDevs )
 {

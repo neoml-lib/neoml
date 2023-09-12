@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -57,6 +57,9 @@ CMobileNetV3PreSEBlockLayer::~CMobileNetV3PreSEBlockLayer()
 {
 	if( convDesc != nullptr ) {
 		delete convDesc;
+	}
+	if( smallMatricesMulDescs != nullptr ) {
+		delete smallMatricesMulDescs;
 	}
 }
 
@@ -151,6 +154,12 @@ void CMobileNetV3PreSEBlockLayer::Reshape()
 		paramBlobs[P_ChannelwiseFilter]->GetDesc(),
 		paramBlobs[P_ChannelwiseFreeTerm] != nullptr ? &freeTermDesc : nullptr,
 		channelwiseOutputDesc );
+
+	if( smallMatricesMulDescs != nullptr ) {
+		delete smallMatricesMulDescs;
+		smallMatricesMulDescs = nullptr;
+	}
+	smallMatricesMulDescs = MathEngine().InitSmallMatricesMultiplyDescsArray();
 }
 
 void CMobileNetV3PreSEBlockLayer::RunOnce()
@@ -166,7 +175,7 @@ void CMobileNetV3PreSEBlockLayer::RunOnce()
 		paramBlobs[P_ChannelwiseFilter]->GetData(),
 		channelwiseFt.IsNull() ? nullptr : &channelwiseFt,
 		channelwiseActivation.GetType(), MobileNetReluParam( channelwiseActivation ),
-		outputBlobs[0]->GetData() );
+		outputBlobs[0]->GetData(), smallMatricesMulDescs );
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -188,6 +197,13 @@ CMobileNetV3PostSEBlockLayer::CMobileNetV3PostSEBlockLayer( IMathEngine& mathEng
 	activation( AF_HSwish )
 {
 	paramBlobs.SetSize( P_Count );
+}
+
+CMobileNetV3PostSEBlockLayer::~CMobileNetV3PostSEBlockLayer()
+{
+	if( smallMatricesMulDescs != nullptr ) {
+		delete smallMatricesMulDescs;
+	}
 }
 
 CPtr<CDnnBlob> CMobileNetV3PostSEBlockLayer::DownFilter() const
@@ -246,6 +262,12 @@ void CMobileNetV3PostSEBlockLayer::Reshape()
 
 	outputDescs[0] = inputDescs[I_Channelwise];
 	outputDescs[0].SetDimSize( BD_Channels, outputChannels );
+
+	if( smallMatricesMulDescs != nullptr ) {
+		delete smallMatricesMulDescs;
+		smallMatricesMulDescs = nullptr;
+	}
+	smallMatricesMulDescs = MathEngine().InitSmallMatricesMultiplyDescsArray();
 }
 
 void CMobileNetV3PostSEBlockLayer::RunOnce()
@@ -259,7 +281,7 @@ void CMobileNetV3PostSEBlockLayer::RunOnce()
 		residual.IsNull() ? nullptr : &residual,
 		activation.GetType(), MobileNetReluParam( activation ), paramBlobs[P_DownFilter]->GetData(),
 		downFt.IsNull() ? nullptr : &downFt,
-		outputBlobs[0]->GetData() );
+		outputBlobs[0]->GetData(), smallMatricesMulDescs );
 }
 
 } // namespace NeoML
