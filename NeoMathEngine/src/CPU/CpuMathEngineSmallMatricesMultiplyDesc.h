@@ -20,7 +20,7 @@ limitations under the License.
 namespace NeoML {
 
 // Small matrices multiplication optimization descriptor
-// Enabled only for x86/x64 platform and CPU MathEngine, used MKL JIT
+// Enabled only for x64 platform and CPU MathEngine, used MKL JIT
 struct CCpuSmallMatricesMultiplyDesc : public CSmallMatricesMultiplyDesc {
 	using TKernel = void( * )( void*, float*, float*, float* );
 
@@ -36,9 +36,6 @@ struct CCpuSmallMatricesMultiplyDesc : public CSmallMatricesMultiplyDesc {
 	CCpuSmallMatricesMultiplyDesc( CCpuSmallMatricesMultiplyDesc&& ) = delete;
 	CCpuSmallMatricesMultiplyDesc( const CCpuSmallMatricesMultiplyDesc& ) = delete;
 	~CCpuSmallMatricesMultiplyDesc() override;
-
-	bool IsValid() const { return MklJitter != nullptr; }
-	void Multiply( const float* first, const float* second, float* result ) const;
 };
 
 } // namespace NeoML

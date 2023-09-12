@@ -28,8 +28,6 @@ limitations under the License.
 #endif
 #endif // NEOML_USE_MKL
 
-#define NEOML_MAX(a,b)  ((a)>(b)?(a):(b))
-
 //-------------------------------------------------------------------------------------------------------------------------
 
 namespace NeoML {
@@ -43,39 +41,35 @@ inline CSmallMatricesMultiplyDesc* CCpuMathEngine::InitSmallMatricesMultiplyDesc
 		resultAdd, trans1, trans2 );
 }
 
-inline bool CCpuMathEngine::SmallMatricesMultiply( const CSmallMatricesMultiplyDesc* desc,
-	const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle ) const
-{
-#if FINE_BIT( FINE_32_BIT )
-	return false;
-#endif // FINE_32_BIT
-
-#ifndef NEOML_USE_MKL
-	ASSERT_EXPR( false );
-#endif // !NEOML_USE_MKL
-
-	return smallMatricesMultiply( desc, GetRaw( firstHandle ), GetRaw( secondHandle ), GetRaw( resultHandle ) );
-}
-
 inline bool CCpuMathEngine::smallMatricesMultiply( const CSmallMatricesMultiplyDesc* desc,
 	const float* first, const float* second, float* result ) const
 {
-#if FINE_BIT( FINE_32_BIT )
-	return false;
-#endif // FINE_32_BIT
+	PRESUME_EXPR( first != nullptr );
+	PRESUME_EXPR( second != nullptr );
+	PRESUME_EXPR( result != nullptr );
 
-#ifndef NEOML_USE_MKL
-	ASSERT_EXPR( false );
-#endif // !NEOML_USE_MKL
+#if FINE_BIT( FINE_64_BIT ) && defined( NEOML_USE_MKL )
 
 	if( desc != nullptr ) {
 		PRESUME_EXPR( dynamic_cast<const CCpuSmallMatricesMultiplyDesc*>( desc ) != nullptr );
 		const CCpuSmallMatricesMultiplyDesc* mulDesk = static_cast<const CCpuSmallMatricesMultiplyDesc*>( desc );
-		if( mulDesk->IsValid() ) {
-			mulDesk->Multiply( first, second, result );
+
+		if( mulDesk->MklJitter != nullptr ) {
+			PRESUME_EXPR( mulDesk->MklJitter != nullptr && mulDesk->MklKernel != nullptr );
+
+			// Repeatedly execute the SGemm Kernel
+			mulDesk->MklKernel( mulDesk->MklJitter, ( float* )first, ( float* )second, result );
 			return true;
 		}
 	}
+
+#else  // !FINE_64_BIT || !NEOML_USE_MKL
+	( void )desc;
+	( void )first;
+	( void )second;
+	( void )result;
+#endif // !FINE_64_BIT || !NEOML_USE_MKL
+
 	return false;
 }
 
@@ -91,9 +85,7 @@ CCpuSmallMatricesMultiplyDesc::CCpuSmallMatricesMultiplyDesc(
 	ASSERT_EXPR( secondRowSize > 0 );
 	ASSERT_EXPR( resultWidth > 0 );
 
-#if FINE_BIT( FINE_32_BIT )
-	return;
-#endif // FINE_32_BIT
+#if FINE_BIT( FINE_64_BIT ) && defined( NEOML_USE_MKL )
 
 	// Empirical upper limit of a matrix size to effective JIT optimization
 	static constexpr int MaxMatrixSize = 128;
@@ -102,8 +94,7 @@ CCpuSmallMatricesMultiplyDesc::CCpuSmallMatricesMultiplyDesc(
 		&& ( trans2 || ( firstWidth <= MaxMatrixSize && secondWidth <= MaxMatrixSize ) )
 		&& resultWidth <= MaxMatrixSize )
 	{
-#ifdef NEOML_USE_MKL
-		// Create jitter handle and generate GEMM kernel
+		// Create jitter handle and generate SGemm Kernel
 		auto status = mkl_jit_create_sgemm(
 			&MklJitter,
 			MKL_ROW_MAJOR,
@@ -113,27 +104,27 @@ CCpuSmallMatricesMultiplyDesc::CCpuSmallMatricesMultiplyDesc(
 			/*n*/( trans2 ? resultWidth : secondWidth ),
 			/*k*/( trans1 ? firstHeight : firstWidth ),
 			1.f,
-			NEOML_MAX( 1, firstWidth ),
-			NEOML_MAX( 1, secondRowSize ),
+			firstWidth,
+			secondRowSize,
 			( resultAdd ? 1.f : 0.f ),
-			NEOML_MAX( 1, resultWidth ) );
+			resultWidth );
 		ASSERT_EXPR( status != MKL_JIT_ERROR );
 
 		// Get kernel associated with jitter handle
 		MklKernel = mkl_jit_get_sgemm_ptr( MklJitter );
 		ASSERT_EXPR( MklKernel != nullptr );
-
-#else  // !NEOML_USE_MKL
-		( void )firstHeight;
-		( void )firstWidth;
-		( void )secondWidth;
-		( void )secondRowSize;
-		( void )resultWidth;
-		( void )resultAdd;
-		( void )trans1;
-		( void )trans2;
-#endif // !NEOML_USE_MKL
 	}
+
+#else  // !FINE_64_BIT || !NEOML_USE_MKL
+	( void )firstHeight;
+	( void )firstWidth;
+	( void )secondWidth;
+	( void )secondRowSize;
+	( void )resultWidth;
+	( void )resultAdd;
+	( void )trans1;
+	( void )trans2;
+#endif // !FINE_64_BIT || !NEOML_USE_MKL
 }
 
 CCpuSmallMatricesMultiplyDesc::~CCpuSmallMatricesMultiplyDesc()
@@ -146,24 +137,5 @@ CCpuSmallMatricesMultiplyDesc::~CCpuSmallMatricesMultiplyDesc()
 	}
 }
 
-inline void CCpuSmallMatricesMultiplyDesc::Multiply( const float* first, const float* second, float* result ) const
-{
-#if FINE_BIT( FINE_32_BIT )
-	ASSERT_EXPR( false );
-#endif // FINE_32_BIT
-
-	PRESUME_EXPR( MklJitter != nullptr && MklKernel != nullptr );
-#ifdef NEOML_USE_MKL
-	// Repeatedly execute the GEMM kernel
-	MklKernel( MklJitter, ( float* )first, ( float* )second, result );
-#else  // !NEOML_USE_MKL
-	( void )first;
-	( void )second;
-	( void )result;
-#endif // !NEOML_USE_MKL
-}
-
 } // namespace NeoML
-
-#undef NEOML_MAX
 

@@ -794,10 +794,6 @@ public:
 	virtual CSmallMatricesMultiplyDesc* InitSmallMatricesMultiplyDesc(
 		int firstHeight, int firstWidth, int secondWidth, int secondRowSize, int resultWidth,
 		bool resultAdd, bool trans1, bool trans2 ) const = 0;
-	// Using previosly created descriptor of fixed size multiply these exact matrices
-	// Returns false if description is not valid for these matrices sizes
-	virtual bool SmallMatricesMultiply( const CSmallMatricesMultiplyDesc* desc,
-		const CConstFloatHandle& first, const CConstFloatHandle& second, const CFloatHandle& result ) const = 0;
 
 	// GlobalMaxPooling
 	// The descriptor should be destroyed using the standard delete operator after use.

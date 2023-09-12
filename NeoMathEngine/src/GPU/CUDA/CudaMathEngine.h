@@ -462,9 +462,6 @@ public:
 		int /*firstHeight*/, int /*firstWidth*/, int /*secondWidth*/, int /*secondRowSize*/, int /*resultWidth*/,
 		bool /*resultAdd*/, bool /*trans1*/, bool /*trans2*/ ) const override
 	{ return new CSmallMatricesMultiplyDesc{}; }
-	bool SmallMatricesMultiply( const CSmallMatricesMultiplyDesc* /*desc*/,
-		const CConstFloatHandle& /*first*/, const CConstFloatHandle& /*second*/, const CFloatHandle& /*result*/ ) const override
-	{ ASSERT_EXPR( false ); return false; }
 
 	CGlobalMaxPoolingDesc* InitGlobalMaxPooling( const CBlobDesc& source, const CBlobDesc& maxIndices, const CBlobDesc& result ) override;
 	void BlobGlobalMaxPooling( const CGlobalMaxPoolingDesc& desc,

@@ -455,8 +455,6 @@ public:
 	CSmallMatricesMultiplyDesc* InitSmallMatricesMultiplyDesc(
 		int firstHeight, int firstWidth, int secondWidth, int secondRowSize, int resultWidth,
 		bool resultAdd, bool trans1, bool trans2 ) const override;
-	bool SmallMatricesMultiply( const CSmallMatricesMultiplyDesc* desc,
-		const CConstFloatHandle& first, const CConstFloatHandle& second, const CFloatHandle& result ) const override;
 
 	CGlobalMaxPoolingDesc* InitGlobalMaxPooling( const CBlobDesc& source, const CBlobDesc& maxIndices, const CBlobDesc& result ) override;
 	void BlobGlobalMaxPooling( const CGlobalMaxPoolingDesc& desc,
@@ -712,6 +710,8 @@ private:
 	void multiplyMatrixByTransposedWithFreeTerm( const float* first, int firstHeight,
 		int firstWidth, const float* second, int secondHeight, const float* freeTerm, float* result,
 		const CSmallMatricesMultiplyDesc* );
+	// Using previosly created descriptor of fixed size multiply these exact matrices
+	// Returns false if description is not valid for these matrices sizes
 	bool smallMatricesMultiply( const CSmallMatricesMultiplyDesc*, const float* first, const float* second, float* result ) const;
 
 	template<class T>
