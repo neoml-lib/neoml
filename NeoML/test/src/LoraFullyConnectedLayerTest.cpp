@@ -24,17 +24,15 @@ using namespace NeoMLTest;
 
 namespace NeoMLTest {
 
-static void setDnnInputs( CDnn& dnn, int labelSize )
+static void setDnnInputs( CDnn& dnn, int labelSize, int inputSize = 1000 )
 {
-	const int inputSize = 1000;
-
 	CArray<float> inArr;
-	inArr.Add( 1, inputSize );
+	inArr.Add( 0.01f, inputSize );
 	CPtr<CDnnBlob> in = CDnnBlob::CreateTensor( dnn.GetMathEngine(), CT_Float, { 1, 1, 1, 1, 1, 1, inputSize } );
 	in->CopyFrom( inArr.GetPtr() );
 
 	CArray<float> labelArr;
-	labelArr.Add( 1, labelSize );
+	labelArr.Add( 1.f, labelSize );
 	CPtr<CDnnBlob> labels = CDnnBlob::CreateTensor( dnn.GetMathEngine(), CT_Float, { 1, 1, 1, 1, 1, 1, labelSize } );
 	labels->CopyFrom( labelArr.GetPtr() );
 
@@ -637,3 +635,113 @@ TEST( LoraFullyConnectedLayerTest, TransformerOldLoad )
 	}
 }
 
+//---------------------------------------------------------------------------------------------------------------------------------------
+
+namespace NeoMLTest {
+
+static void testPrintTime( IPerformanceCounters* counters, const char* title )
+{
+	for( const auto& counter : *counters ) {
+		GTEST_LOG_( INFO ) << title << counter.Name << ": " << counter.Value
+			<< "  (" << ( double( counter.Value ) / 1000000 ) << " ms.)";
+	}
+	GTEST_LOG_( INFO ) << title << "Peak memory usage: " << ( double( MathEngine().GetPeakMemoryUsage() ) / 1024 / 1024 ) << " MB.";
+}
+
+static void testBehchmarkImpl( float dropout, int epochs, bool lora, CArchive::TDirection arhive = CArchive::load )
+{
+	CRandom rand( 42 );
+
+	const int inputSize = 100000;
+	const int outputSize = 1000;
+	const char* filename = "loraBenchmark.archive";
+
+	CDnn dnn( rand, MathEngine() );
+	if( arhive == CArchive::load ) {
+		CArchiveFile file( filename, CArchive::load, GetPlatformEnv() );
+		CArchive archive( &file, CArchive::load );
+		archive.Serialize( dnn );
+	} else {
+		buildDnn( dnn, outputSize );
+	}
+
+	setDnnInputs( dnn, outputSize, inputSize );
+	GTEST_LOG_( INFO ) << "inputSize = " << inputSize << "  outputSize = " << outputSize;
+	// Speed measures:
+	auto counters = dnn.GetMathEngine().CreatePerformanceCounters();
+
+	if( arhive == CArchive::store ) {
+		dnn.RunAndLearnOnce();
+		counters->Synchronise();
+
+		testLearn( dnn, epochs );
+		counters->Synchronise();
+		testPrintTime( counters, "RunAndLearnOnce " );
+
+		CArchiveFile file( filename, CArchive::store, GetPlatformEnv() );
+		CArchive archive( &file, CArchive::store );
+		archive.Serialize( dnn );
+		GTEST_LOG_( INFO ) << "Serialized";
+
+	} else {
+
+		if( lora ) {
+			CheckCast<CLoraFullyConnectedLayer>( dnn.GetLayer( "full" ) )->BuildLoRA( /*rank*/2, /*alpha*/1.f, dropout );
+		}
+
+		dnn.RunAndLearnOnce();
+		counters->Synchronise();
+
+		testLearn( dnn, epochs );
+
+		counters->Synchronise();
+		testPrintTime( counters, "RunAndLearnOnce " );
+
+		if( lora ) {
+			counters->Synchronise();
+
+			CheckCast<CLoraFullyConnectedLayer>( dnn.GetLayer( "full" ) )->MergeWeightsLoRA();
+
+			counters->Synchronise();
+			testPrintTime( counters, "Merge LoRA " );
+		}
+
+		dnn.RunOnce();
+		counters->Synchronise();
+
+		for( int i = 0; i < epochs; ++i ) {
+			dnn.RunOnce();
+		}
+
+		counters->Synchronise();
+		testPrintTime( counters, "RunOnce " );
+	}
+	delete counters;
+
+	const float loss = CheckCast<CLossLayer>( dnn.GetLayer( "loss" ) )->GetLastLoss();
+	GTEST_LOG_( INFO ) << "loss = " << loss;
+}
+
+} // namespace NeoMLTest
+
+//---------------------------------------------------------------------------------------------------------------------------------------
+
+TEST( LoraFullyConnectedLayerTest, DISABLED_BenchmarkCreate )
+{
+	testBehchmarkImpl( /*dropout*/0.f, /*epochs*/100, /*lora*/false, CArchive::store );
+}
+
+TEST( LoraFullyConnectedLayerTest, DISABLED_BenchmarkLora )
+{
+	testBehchmarkImpl( /*dropout*/0.f, /*epochs*/1000, /*lora*/true );
+}
+
+TEST( LoraFullyConnectedLayerTest, DISABLED_BenchmarkLoraDropout )
+{
+	testBehchmarkImpl( /*dropout*/0.2f, /*epochs*/1000, /*lora*/true );
+}
+
+TEST( LoraFullyConnectedLayerTest, DISABLED_BenchmarkNoLora )
+{
+	testBehchmarkImpl( /*dropout*/0.f, /*epochs*/1000, /*lora*/false );
+}
