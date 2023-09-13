@@ -219,11 +219,19 @@ void CCpuMathEngine::VectorErf( const CConstFloatHandle& firstHandle, const CFlo
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	CCpuExecutionScope scope;
 
-#ifdef NEOML_USE_MLAS
-	MlasComputeErf( GetRaw( firstHandle ), GetRaw( resultHandle ), static_cast<size_t>( vectorSize ) );
-#else
 	const float* first = GetRaw( firstHandle );
 	float* result = GetRaw( resultHandle );
+#if defined( NEOML_USE_MLAS ) && defined( NEOML_USE_MKL )
+	if( CCPUInfo::IsNotIntel ) {
+		MlasComputeErf( first, result, static_cast<size_t>( vectorSize ) );
+	} else {
+		::vsErf( vectorSize, first, result );
+	}
+#elif defined( NEOML_USE_MKL )
+	::vsErf( vectorSize, first, result );
+#elif defined( NEOML_USE_MLAS )
+	MlasComputeErf( first, result, static_cast<size_t>( vectorSize ) );
+#else
 	for( int i = 0; i < vectorSize; ++i ) {
 		*result++ = std::erff( *first++ );
 	}
