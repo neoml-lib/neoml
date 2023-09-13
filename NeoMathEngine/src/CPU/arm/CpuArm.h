@@ -554,9 +554,24 @@ inline float32x4_t Polynom8Neon(const float32x4_t& x,
 	tail = MultiplyAndAddNeon( poly1, x, tail );
 	return MultiplyAndAddNeon( poly0, x, tail );
 }
-inline float32x4_t Polynom8Neon(const float32x4_t& x, const float32x4_t* poly)
+
+// A 11th degree polynomial
+inline float32x4_t Polynom12Neon(const float32x4_t& x,
+	const float32x4_t& poly0, const float32x4_t& poly1, const float32x4_t& poly2, const float32x4_t& poly3,
+	const float32x4_t& poly4, const float32x4_t& poly5, const float32x4_t& poly6, const float32x4_t& poly7,
+	const float32x4_t& poly8, const float32x4_t& poly9, const float32x4_t& poly10, const float32x4_t& poly11)
 {
-	return Polynom8Neon(x, poly[0], poly[1], poly[2], poly[3], poly[4], poly[5], poly[6], poly[7]);
+	float32x4_t tail = MultiplyAndAddNeon( poly10, x, poly11 );
+	tail = MultiplyAndAddNeon( poly9, x, tail );
+	tail = MultiplyAndAddNeon( poly8, x, tail );
+	tail = MultiplyAndAddNeon( poly7, x, tail );
+	tail = MultiplyAndAddNeon( poly6, x, tail );
+	tail = MultiplyAndAddNeon( poly5, x, tail );
+	tail = MultiplyAndAddNeon( poly4, x, tail );
+	tail = MultiplyAndAddNeon( poly3, x, tail );
+	tail = MultiplyAndAddNeon( poly2, x, tail );
+	tail = MultiplyAndAddNeon( poly1, x, tail );
+	return MultiplyAndAddNeon( poly0, x, tail );
 }
 
 // sqrt
@@ -653,14 +668,18 @@ class CLogNeon : public CCrtAllocatedObject {
 public:
 	CLogNeon() :
 		Log2(vdupq_n_f32(0.69314718055994530941723212145817656807550013436025)),
-		Poly0(vdupq_n_f32(-2.2496354384323994835209829226495141810521420107384)),
-		Poly1(vdupq_n_f32(4.9448910244549799872106325311521085580266870326504)),
-		Poly2(vdupq_n_f32(-5.1945351982243051696422411814528666698483563209764)),
-		Poly3(vdupq_n_f32(4.0073882206207432223548376040428533830499620725419)),
-		Poly4(vdupq_n_f32(-2.06905895742501636916193336058740532558260222207)),
-		Poly5(vdupq_n_f32(0.6779636853241939027852947156614612589585157662135)),
-		Poly6(vdupq_n_f32(-0.12749724414788236804817747106717809620960121948297)),
-		Poly7(vdupq_n_f32(1.04841000320826930139331087157692539801107792338888e-2)),
+		Poly0(vdupq_n_f32(-2.6756275322724130082707857791217790979492563888696)),
+		Poly1(vdupq_n_f32(7.7748024474030843012898549867207560882879758466734)),
+		Poly2(vdupq_n_f32(-13.6625537480686564753578176997385557078648253601313)),
+		Poly3(vdupq_n_f32(19.101813196164846674994672744271359788869980208218)),
+		Poly4(vdupq_n_f32(-19.920357472151294823179004510732878302662431703126)),
+		Poly5(vdupq_n_f32(15.4268490438010227482088026049482548156472348063243)),
+		Poly6(vdupq_n_f32(-8.8410704091806968774029534492847864243221769389402)),
+		Poly7(vdupq_n_f32(3.7025864226801543728934070413858174910289476027895)),
+		Poly8(vdupq_n_f32(-1.10216752456147388478511108483560642221484461716795)),
+		Poly9(vdupq_n_f32(0.221031045743092235078711915263904864434295547106977)),
+		Poly10(vdupq_n_f32(-2.67885407929050964771646177418048839172508042004637e-2)),
+		Poly11(vdupq_n_f32(1.48307134648194478382736827732497112554619568324827e-3)),
 		MinValue(vdupq_n_f32(FLT_MIN)),
 		FloatBias(vdupq_n_s32(127))
 	{
@@ -677,8 +696,8 @@ public:
 		int32x4_t n = vsubq_s32(vshrq_n_s32(vreinterpretq_s32_f32(x), 23), FloatBias);
 
 		// Calculate r (via the polynomial)
-		float32x4_t r = Polynom8Neon(vreinterpretq_f32_s32(vsubq_s32(x, vshlq_n_s32(n, 23))),
-			Poly0, Poly1, Poly2, Poly3, Poly4, Poly5, Poly6, Poly7);
+		float32x4_t r = Polynom12Neon(vreinterpretq_f32_s32(vsubq_s32(x, vshlq_n_s32(n, 23))),
+			Poly0, Poly1, Poly2, Poly3, Poly4, Poly5, Poly6, Poly7, Poly8, Poly9, Poly10, Poly11);
 
 		return vaddq_f32(r, vmulq_f32(vcvtq_f32_s32(n), Log2));
 	}
@@ -692,7 +711,7 @@ public:
 private:
 	// The constants used in the algorithm
 	const float32x4_t Log2;
-	const float32x4_t Poly0, Poly1, Poly2, Poly3, Poly4, Poly5, Poly6, Poly7;
+	const float32x4_t Poly0, Poly1, Poly2, Poly3, Poly4, Poly5, Poly6, Poly7, Poly8, Poly9, Poly10, Poly11;
 	const float32x4_t MinValue;
 	const int32x4_t FloatBias;
 };
