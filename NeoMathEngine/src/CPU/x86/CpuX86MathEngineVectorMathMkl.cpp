@@ -225,10 +225,10 @@ void CCpuMathEngine::VectorErf( const CConstFloatHandle& firstHandle, const CFlo
 	if( CCPUInfo::IsNotIntel ) {
 		MlasComputeErf( first, result, static_cast<size_t>( vectorSize ) );
 	} else {
-		::vsErf( vectorSize, first, result );
+		vsErf( vectorSize, first, result );
 	}
 #elif defined( NEOML_USE_MKL )
-	::vsErf( vectorSize, first, result );
+	vsErf( vectorSize, first, result );
 #elif defined( NEOML_USE_MLAS )
 	MlasComputeErf( first, result, static_cast<size_t>( vectorSize ) );
 #else
