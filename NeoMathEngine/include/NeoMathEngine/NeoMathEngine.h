@@ -30,6 +30,10 @@ limitations under the License.
 
 namespace NeoML {
 
+// Forward declarations
+struct CSmallMatricesMultiplyDesc;
+struct CSmallMatricesMultiplyDescsArray;
+
 // Supported coordinate modes for linear interpolation
 // The variables in formula:
 //     - scale - size multiplier
@@ -526,13 +530,14 @@ public:
 		const CConstFloatHandle& firstHandle, int firstSize, const CLookupVector& secondVector) = 0;
 
 	// Multiplies a matrix by another matrix, transposed; the result will be of firstHeight * secondHeight size
-	virtual void MultiplyMatrixByTransposedMatrix(const CConstFloatHandle& firstHandle, int firstHeight,
+	virtual void MultiplyMatrixByTransposedMatrix( const CConstFloatHandle& firstHandle, int firstHeight,
 		int firstWidth, int firstRowSize, const CConstFloatHandle& secondHandle, int secondHeight, int secondRowSize,
-		const CFloatHandle& resultHandle, int resultRowSize, int resultBufferSize) = 0;
+		const CFloatHandle& resultHandle, int resultRowSize, int resultBufferSize,
+		const CSmallMatricesMultiplyDesc* desc = nullptr ) = 0;
 	// Multiplies matrices from two batches, stored one after another in firstHandle, secondHandle parameters
-	virtual void MultiplyMatrixByTransposedMatrix(int batchSize, const CConstFloatHandle& firstHandle, int firstHeight,
+	virtual void MultiplyMatrixByTransposedMatrix( int batchSize, const CConstFloatHandle& firstHandle, int firstHeight,
 		int firstWidth, const CConstFloatHandle& secondHandle, int secondHeight, const CFloatHandle& resultHandle,
-		int resultBufferSize) = 0;
+		int resultBufferSize, const CSmallMatricesMultiplyDesc* desc = nullptr ) = 0;
 
 	// Operations on sparse matrices
 
@@ -559,13 +564,15 @@ public:
 		const CSparseMatrixDesc& firstDesc, const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle ) = 0;
 
 	// result = result + first(T) * second
-	virtual void MultiplyTransposedMatrixByMatrixAndAdd(const CConstFloatHandle& firstHandle, int firstHeight, int firstWidth, int firstRowSize,
+	virtual void MultiplyTransposedMatrixByMatrixAndAdd( const CConstFloatHandle& firstHandle, int firstHeight, int firstWidth, int firstRowSize,
 		const CConstFloatHandle& secondHandle, int secondWidth, int secondRowSize,
-		const CFloatHandle& resultHandle, int resultRowSize, int resultBufferSize) = 0;
+		const CFloatHandle& resultHandle, int resultRowSize, int resultBufferSize,
+		const CSmallMatricesMultiplyDesc* desc = nullptr ) = 0;
 
 	// result[i] = first[i](T) * second[i] for i in [0, batchSize)
-	virtual void MultiplyTransposedMatrixByMatrix(int batchSize, const CConstFloatHandle& firstHandle, int firstHeight, int firstWidth,
-		const CConstFloatHandle& secondHandle, int secondWidth, const CFloatHandle& resultHandle, int resultBufferSize) = 0;
+	virtual void MultiplyTransposedMatrixByMatrix( int batchSize, const CConstFloatHandle& firstHandle, int firstHeight, int firstWidth,
+		const CConstFloatHandle& secondHandle, int secondWidth, const CFloatHandle& resultHandle, int resultBufferSize,
+		const CSmallMatricesMultiplyDesc* desc = nullptr ) = 0;
 
 	virtual void MultiplyDiagMatrixByMatrix(const CConstFloatHandle& firstHandle, int firstSize,
 		const CConstFloatHandle& secondHandle, int secondWidth,
@@ -579,7 +586,8 @@ public:
 	// Multiplies matrices from two batches, stored one after another in firstHandle, secondHandle parameters
 	virtual void MultiplyMatrixByMatrix( int batchSize, const CConstFloatHandle& firstHandle, int firstHeight,
 		int firstWidth, const CConstFloatHandle& secondHandle, int secondWidth,
-		const CFloatHandle& resultHandle, int resultBufferSize ) = 0;
+		const CFloatHandle& resultHandle, int resultBufferSize,
+		const CSmallMatricesMultiplyDesc* desc = nullptr ) = 0;
 
 	// Multiplies batch of matrices height x width by a batch of diag matrces of size width
 	// Matrix offsets sets how many elements must be added to the pointer to move to the next matrix
@@ -660,6 +668,8 @@ struct NEOMATHENGINE_API CMaxOverTimePoolingDesc : public CCrtAllocatedObject { 
 struct NEOMATHENGINE_API CLrnDesc : public CCrtAllocatedObject { public: virtual ~CLrnDesc(); };
 struct NEOMATHENGINE_API CLstmDesc : public CCrtAllocatedObject { public: virtual ~CLstmDesc(); };
 struct NEOMATHENGINE_API CRowwiseOperationDesc : public CCrtAllocatedObject { public: virtual ~CRowwiseOperationDesc(); };
+struct NEOMATHENGINE_API CSmallMatricesMultiplyDesc : public CCrtAllocatedObject { public: virtual ~CSmallMatricesMultiplyDesc(); };
+struct NEOMATHENGINE_API CSmallMatricesMultiplyDescsArray : public CCrtAllocatedObject { public: virtual ~CSmallMatricesMultiplyDescsArray(); };
 
 //------------------------------------------------------------------------------------------------------------
 // RLE format
@@ -778,6 +788,12 @@ public:
 	virtual void BlobChannelwiseConvolutionLearnAdd( const CChannelwiseConvolutionDesc& desc,
 		const CConstFloatHandle& input, const CConstFloatHandle& outputDiff, const CFloatHandle& filterDiff,
 		const CFloatHandle* freeTermDiff ) = 0;
+
+	// Creates the descriptor of small matrices multiplication optimization
+	// The descriptor should be destroyed using the standard delete operator after use.
+	virtual CSmallMatricesMultiplyDesc* InitSmallMatricesMultiplyDesc(
+		int firstHeight, int firstWidth, int secondWidth, int secondRowSize, int resultWidth,
+		bool resultAdd, bool trans1, bool trans2 ) const = 0;
 
 	// GlobalMaxPooling
 	// The descriptor should be destroyed using the standard delete operator after use.
@@ -1064,28 +1080,25 @@ public:
 		const CIntHandle& dataHandle, const CBlobDesc& dataDesc, int updateCount, int indexDims ) = 0;
 
 	virtual void ChannelwiseWith1x1( const CBlobDesc& inputDesc, const CBlobDesc& outputDesc,
-		const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& inputHandle,
-		const CConstFloatHandle& channelwiseFilter, const CConstFloatHandle* channelwiseFreeTerm,
-		TActivationFunction activation, float reluParam, const CConstFloatHandle& convFilter,
-		const CConstFloatHandle* convFreeTerm, bool residual, const CFloatHandle& outputHandle ) = 0;
+		const CRowwiseOperationDesc& rowwiseDesc, const CChannelwiseConvolutionDesc& convDesc,
+		const CConstFloatHandle& inputHandle, const CFloatHandle& outputHandle ) = 0;
 	virtual void MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobDesc& outputDesc,
-		const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& inputHandle,
-		const CConstFloatHandle& expandFilter, const CConstFloatHandle* expandFreeTerm,
-		TActivationFunction expandActivation, float expandReluParam, const CConstFloatHandle& channelwiseFilter,
-		const CConstFloatHandle* channelwiseFreeTerm, TActivationFunction channelwiseActivation,
-		float channelwiseReluParam, const CConstFloatHandle& downFilter, const CConstFloatHandle* downFreeTerm,
-		bool residual, const CFloatHandle& outputHandle ) = 0;
+		const CRowwiseOperationDesc& rowwiseDesc, const CChannelwiseConvolutionDesc& convDesc,
+		const CConstFloatHandle& inputHandle, const CFloatHandle& outputHandle ) = 0;
 	virtual void MobileNetV3PreSEBlock( const CBlobDesc& inputDesc, const CBlobDesc& outputDesc,
 		const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& inputHandle,
 		const CConstFloatHandle& expandFilter, const CConstFloatHandle* expandFreeTerm,
 		TActivationFunction expandActivation, float expandReluParam, const CConstFloatHandle& channelwiseFilter,
 		const CConstFloatHandle* channelwiseFreeTerm, TActivationFunction channelwiseActivation,
-		float channelwiseReluParam, const CFloatHandle& outputHandle ) = 0;
+		float channelwiseReluParam, const CFloatHandle& outputHandle, const CSmallMatricesMultiplyDescsArray* descs = nullptr ) = 0;
 	virtual void MobileNetV3PostSEBlock( const CBlobDesc& channelwiseOutputDesc, int outputChannels,
 		const CConstFloatHandle& channelwiseOutputHandle, const CConstFloatHandle& squeezeAndExciteHandle,
 		const CConstFloatHandle* residualHandle, TActivationFunction activation, float reluParam,
 		const CConstFloatHandle& downFilterHandle, const CConstFloatHandle* downFreeTermHandle,
-		const CFloatHandle& outputHandle ) = 0;
+		const CFloatHandle& outputHandle, const CSmallMatricesMultiplyDescsArray* descs = nullptr ) = 0;
+	// Creates the array of small matrices multiplication optimization descriptors.
+	// This object should be destroyed using the standard delete operator after use.
+	virtual CSmallMatricesMultiplyDescsArray* InitSmallMatricesMultiplyDescsArray() = 0;
 
 	virtual CRowwiseOperationDesc* InitRowwiseActivation( const CActivationDesc& desc ) = 0;
 	virtual CRowwiseOperationDesc* InitRowwiseChWith1x1( int stride, const CConstFloatHandle& channelwiseFilter,

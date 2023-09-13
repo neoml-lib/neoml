@@ -60,13 +60,14 @@ void CCpuMathEngine::BlobChannelwiseConvolution( const CChannelwiseConvolutionDe
 	}
 }
 
-//=====================================================================================================================
+//---------------------------------------------------------------------------------------------------------------------
 
 void CCpuMathEngine::multiplyMatrixByTransposedWithFreeTerm( const float* first, int firstHeight,
-	int firstWidth, const float* second, int secondHeight, const float* freeTerm, float* result )
+	int firstWidth, const float* second, int secondHeight, const float* freeTerm, float* result,
+	const CSmallMatricesMultiplyDesc* desc )
 {
 	multiplyMatrixByTransposedMatrix( first, firstHeight, firstWidth, firstWidth, second,
-		secondHeight, firstWidth, result, secondHeight );
+		secondHeight, firstWidth, result, secondHeight, desc );
 	if( freeTerm != nullptr ) {
 		addVectorToMatrixRows( result, result, firstHeight, secondHeight, secondHeight,
 			secondHeight, freeTerm );
@@ -78,7 +79,7 @@ void CCpuMathEngine::MobileNetV3PreSEBlock( const CBlobDesc& inputDesc, const CB
 	const CConstFloatHandle& expandFilterData, const CConstFloatHandle* expandFreeTermData,
 	TActivationFunction expandActivation, float expandReluParam, const CConstFloatHandle& channelwiseFilterData,
 	const CConstFloatHandle* channelwiseFreeTermData, TActivationFunction channelwiseActivation,
-	float channelwiseReluParam, const CFloatHandle& outputHandle )
+	float channelwiseReluParam, const CFloatHandle& outputHandle, const CSmallMatricesMultiplyDescsArray* SMMDescs )
 {
 	CCpuExecutionScope scope;
 	const CCommonChannelwiseConvolutionDesc& desc = static_cast<const CCommonChannelwiseConvolutionDesc&>( convDesc );
@@ -131,9 +132,16 @@ void CCpuMathEngine::MobileNetV3PreSEBlock( const CBlobDesc& inputDesc, const CB
 			const int inputRowsThisStep = std::min<int>( maxInputRowsPerStep, inputHeight - inputRowsProcessed );
 			float* chInput = chInputBuff + ( inputRowsProcessed - firstInputRowInBuffer ) * chInputRowSize;
 
+			const int firstHeight = inputRowsThisStep * inputWidth;
+			const int firstWidth = inputChannels;
+			const int secondHeight = outputChannels;
+			const CSmallMatricesMultiplyDesc* mulDesc = ( SMMDescs == nullptr ) ? nullptr :
+				static_cast<const CCpuSmallMatricesMultiplyDescsArray<>*>( SMMDescs )->Get( firstHeight,
+					firstHeight, firstWidth, /*secondWidth*/firstWidth, /*resultWidth*/secondHeight );
+
 			// Apply expand convolution
-			multiplyMatrixByTransposedWithFreeTerm( input, inputRowsThisStep * inputWidth, inputChannels,
-				expandFilter, outputChannels, expandFreeTerm, chInput );
+			multiplyMatrixByTransposedWithFreeTerm( input, firstHeight, firstWidth,
+				expandFilter, secondHeight, expandFreeTerm, chInput, mulDesc );
 			MOBILENET_ACTIVATION( expandActivation, expandReluParam, chInput, inputRowsThisStep * chInputRowSize );
 			inputRowsProcessed += inputRowsThisStep;
 
@@ -184,7 +192,7 @@ void CCpuMathEngine::MobileNetV3PostSEBlock( const CBlobDesc& channelwiseOutputD
 	const CConstFloatHandle& channelwiseOutputHandle, const CConstFloatHandle& squeezeAndExciteHandle,
 	const CConstFloatHandle* residualHandle, TActivationFunction activation, float reluParam,
 	const CConstFloatHandle& downFilterHandle, const CConstFloatHandle* downFreeTermHandle,
-	const CFloatHandle& outputHandle )
+	const CFloatHandle& outputHandle, const CSmallMatricesMultiplyDescsArray* SMMDescs )
 {
 	CCpuExecutionScope scope;
 	const int inputChannels = channelwiseOutputDesc.Channels();
@@ -219,9 +227,17 @@ void CCpuMathEngine::MobileNetV3PostSEBlock( const CBlobDesc& channelwiseOutputD
 				squeezeVector, squeezed );
 			// Activation (if present, not present means trivial linear)
 			MOBILENET_ACTIVATION( activation, reluParam, squeezed, rowsThisStep * inputRowSize );
+
+			const int firstHeight = rowsThisStep * width;
+			const int firstWidth = inputChannels;
+			const int secondHeight = outputChannels;
+			const CSmallMatricesMultiplyDesc* mulDesc = ( SMMDescs == nullptr ) ? nullptr :
+				static_cast<const CCpuSmallMatricesMultiplyDescsArray<>*>( SMMDescs )->Get( firstHeight,
+					firstHeight, firstWidth, /*secondWidth*/firstWidth, /*resultWidth*/secondHeight );
+
 			// Down-convolution (1x1)
-			multiplyMatrixByTransposedWithFreeTerm( squeezed, rowsThisStep * width, inputChannels,
-				downFilter, outputChannels, downFreeTerm, output );
+			multiplyMatrixByTransposedWithFreeTerm( squeezed, firstHeight, firstWidth,
+				downFilter, secondHeight, downFreeTerm, output, mulDesc );
 			// Residual connection (if present)
 			if( residual != nullptr ) {
 				vectorAdd( output, residual, output, rowsThisStep * width * outputChannels );
@@ -240,6 +256,11 @@ void CCpuMathEngine::MobileNetV3PostSEBlock( const CBlobDesc& channelwiseOutputD
 		}
 		outputObject += outputObjectSize;
 	}
+}
+
+CSmallMatricesMultiplyDescsArray* CCpuMathEngine::InitSmallMatricesMultiplyDescsArray()
+{
+	return new CCpuSmallMatricesMultiplyDescsArray</*Height*/>( *this );
 }
 
 } // namespace NeoML

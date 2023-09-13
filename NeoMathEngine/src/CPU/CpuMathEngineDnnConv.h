@@ -33,16 +33,25 @@ constexpr int BlobConvolutionCacheSize = 256 * 1024;
 struct CCpuConvolutionDesc : public CCommonConvolutionDesc {
 	TConvAlgo ForwardAlgo;
 	TConvAlgo BackwardAlgo;
-	std::unique_ptr<CConvolutionDesc> SimdConvolutionDesc;
+	std::unique_ptr<CConvolutionDesc> SimdConvolutionDesc{};
 
-	CCpuConvolutionDesc( const CBlobDesc& source, const CBlobDesc& result, const CBlobDesc& filter,
-			int paddingHeight, int paddingWidth, int strideHeight, int strideWidth, int dilationHeight, int dilationWidth ) :
-		CCommonConvolutionDesc( source, result, filter, paddingHeight, paddingWidth, strideHeight, strideWidth, dilationHeight, dilationWidth ),
+	enum { TSMMDA_Forward, TSMMDA_Backward, TSMMDA_Learn, /*...*/ TSMMDA_Count_ };
+	// The C-array of optimization descriptors arrays, which parametrized by matrix height,
+	// to get access to 1 array, use enum above as index.
+	mutable CCpuSmallMatricesMultiplyDescsArray</*Height*/> SmallMatricesMulDescsHeightArrays[TSMMDA_Count_];
+
+	CCpuConvolutionDesc( IMathEngine& mathEngine,
+			const CBlobDesc& source, const CBlobDesc& result, const CBlobDesc& filter,
+			int paddingHeight, int paddingWidth, int strideHeight, int strideWidth,
+			int dilationHeight, int dilationWidth ) :
+		CCommonConvolutionDesc( source, result, filter, paddingHeight, paddingWidth,
+			strideHeight, strideWidth, dilationHeight, dilationWidth ),
 		ForwardAlgo( getActualForwardAlgo() ),
-		BackwardAlgo( getActualBackwardAlgo() )
-	{
-	}
+		BackwardAlgo( getActualBackwardAlgo() ),
+		SmallMatricesMulDescsHeightArrays{ mathEngine, mathEngine, mathEngine }
+	{}
 
+private:
 	TConvAlgo getActualForwardAlgo() const;
 	TConvAlgo getActualBackwardAlgo() const;
 };

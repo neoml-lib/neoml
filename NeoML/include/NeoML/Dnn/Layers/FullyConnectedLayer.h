@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,6 +20,9 @@ limitations under the License.
 #include <NeoML/Dnn/Dnn.h>
 
 namespace NeoML {
+
+// Forward declaration
+struct CSmallMatricesMultiplyDesc;
 
 // CFullyConnectedLayer implements a fully-connected layer
 class NEOML_API CFullyConnectedLayer : public CBaseLayer {
@@ -62,7 +65,7 @@ public:
 	const CPtr<CDnnBlob>& FreeTerms() const { return paramBlobs[1]; }	// the free term matrix
 
 protected:
-	~CFullyConnectedLayer() override;
+	~CFullyConnectedLayer() override = default;
 
 	void Reshape() override;
 	void RunOnce() override;
@@ -77,8 +80,15 @@ protected:
 	CPtr<CDnnBlob>& FreeTermsDiff() { return paramDiffBlobs[1]; }
 
 private:
-	int numberOfElements; // the number of elements (neurons) of the fully-connected layer
-	bool isZeroFreeTerm; // indicates if the free term should be set to zero
+	int numberOfElements = 0; // the number of elements (neurons) of the fully-connected layer
+	bool isZeroFreeTerm = false; // indicates if the free term should be set to zero
+
+	enum TSMMD { TSMMD_Forward, TSMMD_Backward, TSMMD_Learn, /*...*/  TSMMD_Count_ };
+	CPointerArray<CSmallMatricesMultiplyDesc> smallMatricesMulDescs[TSMMD_Count_]{}; // execution descriptors for each input
+
+	const CSmallMatricesMultiplyDesc* initSmallMatricesMulDescs( TSMMD type, int inputNumber,
+		int firstHeight, int firstWidth, int secondWidth, int resultWidth );
+	void recreateSmallMatricesMulDescs();
 };
 
 NEOML_API CLayerWrapper<CFullyConnectedLayer> FullyConnected(

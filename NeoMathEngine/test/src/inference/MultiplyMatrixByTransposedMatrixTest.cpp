@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -57,9 +57,17 @@ static void multiplyMatrixByTransposedMatrixTestImpl( const CTestParams& params,
 
 	std::vector<float> result;
 	result.resize( firstHeight * secondHeight );
-	MathEngine().MultiplyMatrixByTransposedMatrix( CARRAY_FLOAT_WRAPPER( a ), firstHeight, firstWidth, firstWidth,
-		CARRAY_FLOAT_WRAPPER( b ), secondHeight, firstWidth, CARRAY_FLOAT_WRAPPER( result ), secondHeight, firstHeight * secondHeight );
 
+	CSmallMatricesMultiplyDesc* desc = MathEngine().InitSmallMatricesMultiplyDesc(
+		firstHeight, firstWidth, /*secondWidth*/firstWidth, /*secondRowSize*/firstWidth, /*resultWidth*/secondHeight,
+		/*resultAdd*/false, /*trans1*/false, /*trans2*/true );
+
+	MathEngine().MultiplyMatrixByTransposedMatrix( CARRAY_FLOAT_WRAPPER( a ), firstHeight, firstWidth, firstWidth,
+		CARRAY_FLOAT_WRAPPER( b ), secondHeight, firstWidth, CARRAY_FLOAT_WRAPPER( result ), secondHeight, firstHeight * secondHeight, desc );
+
+	if( desc ) {
+		delete desc;
+	}
 	for( int i = 0; i < firstHeight * secondHeight; ++i ) {
 		ASSERT_NEAR( exp[i], result[i], 1e-3 );
 	}
@@ -88,9 +96,17 @@ static void batchMultiplyMatrixByTransposedMatrixTestImpl( const CTestParams& pa
 
 	std::vector<float> result;
 	result.resize( batchSize * firstHeight * secondHeight );
-	MathEngine().MultiplyMatrixByTransposedMatrix( batchSize, CARRAY_FLOAT_WRAPPER( a ), firstHeight, firstWidth,
-		CARRAY_FLOAT_WRAPPER( b ), secondHeight, CARRAY_FLOAT_WRAPPER( result ), batchSize * firstHeight * secondHeight );
 
+	CSmallMatricesMultiplyDesc* desc = MathEngine().InitSmallMatricesMultiplyDesc(
+		firstHeight, firstWidth, /*secondWidth*/firstWidth, /*secondRowSize*/firstWidth, /*resultWidth*/secondHeight,
+		/*resultAdd*/false, /*trans1*/false, /*trans2*/true );
+
+	MathEngine().MultiplyMatrixByTransposedMatrix( batchSize, CARRAY_FLOAT_WRAPPER( a ), firstHeight, firstWidth,
+		CARRAY_FLOAT_WRAPPER( b ), secondHeight, CARRAY_FLOAT_WRAPPER( result ), batchSize * firstHeight * secondHeight, desc );
+
+	if( desc ) {
+		delete desc;
+	}
 	for( int i = 0; i < firstHeight * secondHeight; ++i ) {
 		ASSERT_NEAR( exp[i], result[i], 1e-3 );
 	}

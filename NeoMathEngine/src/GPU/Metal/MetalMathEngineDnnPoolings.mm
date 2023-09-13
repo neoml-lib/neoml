@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -38,8 +38,8 @@ CMaxPoolingDesc* CMetalMathEngine::InitMaxPooling( const CBlobDesc& source,
 	return desc;
 }
 
-void CMetalMathEngine::BlobMaxPooling( const CMaxPoolingDesc& poolingDesc, const CFloatHandle& sourceData, const CIntHandle* maxIndicesData,
-	const CFloatHandle& resultData )
+void CMetalMathEngine::BlobMaxPooling( const CMaxPoolingDesc& poolingDesc,
+	const CFConstloatHandle& sourceData, const CIntHandle* maxIndicesData, const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( maxIndicesData == 0 );
@@ -69,7 +69,8 @@ void CMetalMathEngine::BlobMaxPooling( const CMaxPoolingDesc& poolingDesc, const
     ASSERT_EXPR( kernel.Run() );
 }
 
-void CMetalMathEngine::BlobMaxPoolingBackward( const CMaxPoolingDesc&, const CFloatHandle&, const CIntHandle&, const CFloatHandle& )
+void CMetalMathEngine::BlobMaxPoolingBackward( const CMaxPoolingDesc&,
+	const CConstFloatHandle&, const CConstIntHandle&, const CFloatHandle& )
 {
 	ASSERT_EXPR( false );
 }
@@ -85,7 +86,7 @@ CMeanPoolingDesc* CMetalMathEngine::InitMeanPooling( const CBlobDesc& source,
 	return desc;
 }
 
-void CMetalMathEngine::BlobMeanPooling( const CMeanPoolingDesc& poolingDesc, const CFloatHandle& sourceData, const CFloatHandle& resultData )
+void CMetalMathEngine::BlobMeanPooling( const CMeanPoolingDesc& poolingDesc, const CConstFloatHandle& sourceData, const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
@@ -110,7 +111,7 @@ void CMetalMathEngine::BlobMeanPooling( const CMeanPoolingDesc& poolingDesc, con
     ASSERT_EXPR( kernel.Run() );
 }
 
-void CMetalMathEngine::BlobMeanPoolingBackward( const CMeanPoolingDesc&, const CFloatHandle&, const CFloatHandle& )
+void CMetalMathEngine::BlobMeanPoolingBackward( const CMeanPoolingDesc&, const CConstFloatHandle&, const CFloatHandle& )
 {
 	ASSERT_EXPR( false );
 }
@@ -124,8 +125,8 @@ CGlobalMaxOverTimePoolingDesc* CMetalMathEngine::InitGlobalMaxOverTimePooling( c
 	return desc;
 }
 
-void CMetalMathEngine::BlobGlobalMaxOverTimePooling( const CGlobalMaxOverTimePoolingDesc& poolingDesc, const CFloatHandle& sourceData,
-	const CIntHandle* maxIndicesData, const CFloatHandle& resultData )
+void CMetalMathEngine::BlobGlobalMaxOverTimePooling( const CGlobalMaxOverTimePoolingDesc& poolingDesc,
+	const CConstFloatHandle& sourceData, const CIntHandle* maxIndicesData, const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( maxIndicesData == 0 );
@@ -149,8 +150,8 @@ void CMetalMathEngine::BlobGlobalMaxOverTimePooling( const CGlobalMaxOverTimePoo
     ASSERT_EXPR( kernel.Run() );
 }
 
-void CMetalMathEngine::BlobGlobalMaxOverTimePoolingBackward( const CGlobalMaxOverTimePoolingDesc&, const CFloatHandle&,
-	const CIntHandle&, const CFloatHandle& )
+void CMetalMathEngine::BlobGlobalMaxOverTimePoolingBackward( const CGlobalMaxOverTimePoolingDesc&,
+	const CConstFloatHandle&, const CConstIntHandle&, const CFloatHandle& )
 {
 	ASSERT_EXPR( false );
 }
@@ -198,8 +199,8 @@ void CMetalMathEngine::BlobGlobalMaxPooling( const CGlobalMaxPoolingDesc& poolin
     ASSERT_EXPR( kernel.Run( 0, 0, 1 ) );
 }
 
-void CMetalMathEngine::BlobGlobalMaxPoolingBackward( const CGlobalMaxPoolingDesc&, const CFloatHandle&, const CIntHandle&,
-	const CFloatHandle& )
+void CMetalMathEngine::BlobGlobalMaxPoolingBackward( const CGlobalMaxPoolingDesc&,
+	const CConstFloatHandle&, const CConstIntHandle&, const CFloatHandle& )
 {
 	ASSERT_EXPR( false );
 }
@@ -217,8 +218,8 @@ C3dMaxPoolingDesc* CMetalMathEngine::Init3dMaxPooling( const CBlobDesc& source,
 	return desc;
 }
 
-void CMetalMathEngine::Blob3dMaxPooling( const C3dMaxPoolingDesc& poolingDesc, const CFloatHandle& sourceData,
-	const CIntHandle* maxIndicesData, const CFloatHandle& resultData )
+void CMetalMathEngine::Blob3dMaxPooling( const C3dMaxPoolingDesc& poolingDesc, const CConstFloatHandle& sourceData,
+	const CConstIntHandle* maxIndicesData, const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( maxIndicesData == 0 || maxIndicesData->GetMathEngine() == this );
@@ -246,8 +247,8 @@ void CMetalMathEngine::Blob3dMaxPooling( const C3dMaxPoolingDesc& poolingDesc, c
     ASSERT_EXPR( kernel.Run() );
 }
 
-void CMetalMathEngine::Blob3dMaxPoolingBackward( const C3dMaxPoolingDesc&, const CFloatHandle&, const CIntHandle&,
-	const CFloatHandle& )
+void CMetalMathEngine::Blob3dMaxPoolingBackward( const C3dMaxPoolingDesc&,
+	const CConstFloatHandle&, const CConstIntHandle&, const CFloatHandle& )
 {
 	ASSERT_EXPR( false );
 }
@@ -265,8 +266,8 @@ C3dMeanPoolingDesc* CMetalMathEngine::Init3dMeanPooling( const CBlobDesc& source
 	return desc;
 }
 
-void CMetalMathEngine::Blob3dMeanPooling( const C3dMeanPoolingDesc& poolingDesc, const CFloatHandle& sourceData,
-	const CFloatHandle& resultData )
+void CMetalMathEngine::Blob3dMeanPooling( const C3dMeanPoolingDesc& poolingDesc,
+	const CConstFloatHandle& sourceData, const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
@@ -290,7 +291,8 @@ void CMetalMathEngine::Blob3dMeanPooling( const C3dMeanPoolingDesc& poolingDesc,
     ASSERT_EXPR( kernel.Run() );
 }
 
-void CMetalMathEngine::Blob3dMeanPoolingBackward( const C3dMeanPoolingDesc&, const CFloatHandle&, const CFloatHandle& )
+void CMetalMathEngine::Blob3dMeanPoolingBackward( const C3dMeanPoolingDesc&,
+	const CConstFloatHandle&, const CFloatHandle& )
 {
 	ASSERT_EXPR( false );
 }
@@ -310,8 +312,8 @@ CMaxOverTimePoolingDesc* CMetalMathEngine::InitMaxOverTimePooling( const CBlobDe
 	return desc;
 }
 
-void CMetalMathEngine::BlobMaxOverTimePooling( const CMaxOverTimePoolingDesc& poolingDesc, const CFloatHandle& sourceData,
-	const CIntHandle* maxIndicesData, const CFloatHandle& resultData )
+void CMetalMathEngine::BlobMaxOverTimePooling( const CMaxOverTimePoolingDesc& poolingDesc,
+	const CConstFloatHandle& sourceData, const CIntHandle* maxIndicesData, const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( maxIndicesData == 0 );
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
@@ -339,8 +341,8 @@ void CMetalMathEngine::BlobMaxOverTimePooling( const CMaxOverTimePoolingDesc& po
     ASSERT_EXPR( kernel.Run( 0, 0, 1 ) );
 }
 
-void CMetalMathEngine::BlobMaxOverTimePoolingBackward( const CMaxOverTimePoolingDesc&, const CFloatHandle&,
-	const CIntHandle&, const CFloatHandle& )
+void CMetalMathEngine::BlobMaxOverTimePoolingBackward( const CMaxOverTimePoolingDesc&,
+	const CConstFloatHandle&, const CConstIntHandle&, const CFloatHandle& )
 {
 	ASSERT_EXPR( false );
 }

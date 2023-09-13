@@ -33,6 +33,8 @@ inline void FillResultRow( const CCommonChannelwiseConvolutionDesc& desc, const 
 	}
 }
 
+//--------------------------------------------------------------------------------------------------------------------
+
 inline void Process3x3Row( const CCommonChannelwiseConvolutionDesc& desc, const float* filter, const float* source, float* result )
 {
 	PRESUME_EXPR( desc.PaddingWidth == 1 );
@@ -117,7 +119,7 @@ inline void Process5x5RowStride1( const CCommonChannelwiseConvolutionDesc& desc,
 			width -= 2;
 		}
 	}
-#endif
+#endif // NEOML_USE_SSE
 
 	while( width > 0 ) {
 		vectorEltwiseMultiplyAdd( filter, sourcePos, resultPos, channels );
@@ -653,7 +655,7 @@ inline void ProcessChannelwiseNaive( const CCommonChannelwiseConvolutionDesc& de
 				dataCopy( rowStart, freeTerm, channels );
 			}
 		} else {
-			vectorFill( currOutput, 0, resultDesc.Width() * channels );
+			vectorFill0( currOutput, resultDesc.Width() * channels );
 		}
 
 		const int filterFirstRow = std::max( 0, -firstFilteredRow );
@@ -679,6 +681,8 @@ inline void ProcessChannelwiseNaive( const CCommonChannelwiseConvolutionDesc& de
 		}
 	}
 }
+
+//--------------------------------------------------------------------------------------------------------------------
 
 typedef void (*TChannelwiseProcessFunction)( const CCommonChannelwiseConvolutionDesc&, int, const float*, int,
 	const float*, const float*, float*, int );

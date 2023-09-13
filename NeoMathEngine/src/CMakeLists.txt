@@ -23,8 +23,9 @@ set(CPU_COMMON_SOURCES
     CPU/CpuMathEngineDnnRowwise.cpp
     CPU/CpuMathEngineDnnTimeConv.cpp
     CPU/CpuMathEngine.cpp
-    CPU/CpuMathEngineVectorMath.cpp
     CPU/CpuMathEngineDnnDistributed.cpp
+    CPU/CpuMathEngineSmallMatricesMultiplyDesc.cpp
+    CPU/CpuMathEngineVectorMath.cpp
     CrtAllocatedObject.cpp
     DllLoader.cpp
     MathEngineDeviceStackAllocator.cpp
@@ -63,6 +64,7 @@ target_sources(${PROJECT_NAME}
     CPU/CpuMathEngineDnnLstm.h
     CPU/CpuMathEngineDnnPooling.h
     CPU/CpuMathEnginePrivate.h
+    CPU/CpuMathEngineSmallMatricesMultiplyDesc.h
     CPU/CpuRandom.h
 
     CPU/MatrixMultiplyingInterleavedCommon/CpuMemoryHelper.h
