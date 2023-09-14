@@ -663,9 +663,9 @@ public:
 		Poly2(vdupq_n_f32(-2.1206751311583441238241879498162715470170831545835)),
 		Poly3(vdupq_n_f32(0.64514236360486817097732513587849947304566499326535)),
 		Poly4(vdupq_n_f32(-8.1615808500582478385347879261117568757559632423465e-2)),
-		Poly5(0),
-		Poly6(0),
-		Poly7(0),
+		Poly5(vdupq_n_f32(0)),
+		Poly6(vdupq_n_f32(0)),
+		Poly7(vdupq_n_f32(0)),
 		MinValue(vdupq_n_f32(FLT_MIN)),
 		FloatBias(vdupq_n_s32(127))
 	{
