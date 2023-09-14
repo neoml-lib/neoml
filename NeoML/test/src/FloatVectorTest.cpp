@@ -253,3 +253,4 @@ TEST_F( CFloatVectorTest, Common )
 	CFloatVector s1Full( 10 );
 	s1Full.SetAt( 1, 2.2f );
 }
+
