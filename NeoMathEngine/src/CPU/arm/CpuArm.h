@@ -556,19 +556,10 @@ inline float32x4_t Polynom8Neon(const float32x4_t& x,
 }
 
 // A 11th degree polynomial
-inline float32x4_t Polynom12Neon(const float32x4_t& x,
-	const float32x4_t& poly0, const float32x4_t& poly1, const float32x4_t& poly2, const float32x4_t& poly3,
-	const float32x4_t& poly4, const float32x4_t& poly5, const float32x4_t& poly6, const float32x4_t& poly7,
-	const float32x4_t& poly8, const float32x4_t& poly9, const float32x4_t& poly10, const float32x4_t& poly11)
+inline float32x4_t Polynom5Neon(const float32x4_t& x, const float32x4_t& poly0, const float32x4_t& poly1,
+	const float32x4_t& poly2, const float32x4_t& poly3, const float32x4_t& poly4)
 {
-	float32x4_t tail = MultiplyAndAddNeon( poly10, x, poly11 );
-	tail = MultiplyAndAddNeon( poly9, x, tail );
-	tail = MultiplyAndAddNeon( poly8, x, tail );
-	tail = MultiplyAndAddNeon( poly7, x, tail );
-	tail = MultiplyAndAddNeon( poly6, x, tail );
-	tail = MultiplyAndAddNeon( poly5, x, tail );
-	tail = MultiplyAndAddNeon( poly4, x, tail );
-	tail = MultiplyAndAddNeon( poly3, x, tail );
+	float32x4_t tail = MultiplyAndAddNeon( poly3, x, poly4 );
 	tail = MultiplyAndAddNeon( poly2, x, tail );
 	tail = MultiplyAndAddNeon( poly1, x, tail );
 	return MultiplyAndAddNeon( poly0, x, tail );
@@ -658,12 +649,11 @@ private:
 // Logarithm
 // We use a polynomial approximation ln(x) of 7 degree over the [1, 2] interval with the Remez method
 // The approximation uses Sollya 6.0 (http://sollya.gforge.inria.fr/)
-// > remez(log(x), 7, [1; 2]);
-// -2.2496354384323994835209829226495141810521420107384 + 4.9448910244549799872106325311521085580266870326504 * x +
-// -5.1945351982243051696422411814528666698483563209764 * x^2 + 4.0073882206207432223548376040428533830499620725419 * x^3 +
-// -2.06905895742501636916193336058740532558260222207 * x^4 + 0.6779636853241939027852947156614612589585157662135 * x^5 +
-// -0.12749724414788236804817747106717809620960121948297 * x^6 + 1.04841000320826930139331087157692539801107792338888e-2 * x^7
-// The multipliers are corrected to give a total of exactly 0 (ln(1))
+// > remez(log(x), 4, [1;2]);
+// -1.74177809772959326742348847469684504926649442859653 + x * (2.8211719570295896184619745903222755834657557904338
+// + x * (-1.4699399880459984553881950054449920833913210669278 + x * (0.44717861039249344739158314078886335455489702631503
+// + x * (-5.6571767551299162394411055293515873989779193055536e-2))))
+// The Poly0 is corrected to give a total of exactly 0 (ln(1))
 class CLogNeon : public CCrtAllocatedObject {
 public:
 	CLogNeon() :
@@ -673,9 +663,6 @@ public:
 		Poly2(vdupq_n_f32(-1.4699399880459984553881950054449920833913210669278)),
 		Poly3(vdupq_n_f32(0.44717861039249344739158314078886335455489702631503)),
 		Poly4(vdupq_n_f32(-5.6571767551299162394411055293515873989779193055536e-2)),
-		Poly5(vdupq_n_f32(0)),
-		Poly6(vdupq_n_f32(0)),
-		Poly7(vdupq_n_f32(0)),
 		MinValue(vdupq_n_f32(FLT_MIN)),
 		FloatBias(vdupq_n_s32(127))
 	{
@@ -692,8 +679,8 @@ public:
 		int32x4_t n = vsubq_s32(vshrq_n_s32(vreinterpretq_s32_f32(x), 23), FloatBias);
 
 		// Calculate r (via the polynomial)
-		float32x4_t r = Polynom8Neon(vreinterpretq_f32_s32(vsubq_s32(x, vshlq_n_s32(n, 23))),
-			Poly0, Poly1, Poly2, Poly3, Poly4, Poly5, Poly6, Poly7);
+		float32x4_t r = Polynom5Neon(vreinterpretq_f32_s32(vsubq_s32(x, vshlq_n_s32(n, 23))),
+			Poly0, Poly1, Poly2, Poly3, Poly4);
 
 		return vaddq_f32(r, vmulq_f32(vcvtq_f32_s32(n), Log2));
 	}
@@ -707,7 +694,7 @@ public:
 private:
 	// The constants used in the algorithm
 	const float32x4_t Log2;
-	const float32x4_t Poly0, Poly1, Poly2, Poly3, Poly4, Poly5, Poly6, Poly7;
+	const float32x4_t Poly0, Poly1, Poly2, Poly3, Poly4;
 	const float32x4_t MinValue;
 	const int32x4_t FloatBias;
 };
