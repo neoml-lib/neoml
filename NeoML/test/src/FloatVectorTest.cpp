@@ -322,7 +322,7 @@ TEST( DebugArm64, LogApproximationNear1 )
 	for( int i = 0; i < delta; ++i ) {
 		if( outputData[i] > 0 ) {
 			EXPECT_TRUE( false );
-			::printf( "!positive! log( %.10f ) == %.10f;   // hex input: %010x\n", inputData[i],
+			::printf( "!positive! log( %.10f ) == %.10e;   // hex input: %010x\n", inputData[i],
 				outputData[i], *reinterpret_cast<const uint32_t*>( &inputData[i] ) );
 		}
 	}
@@ -334,7 +334,7 @@ TEST( DebugArm64, LogApproximationNear1 )
 	for( int i = delta + 1; i < outputData.Size(); ++i ) {
 		if( outputData[i] < 0 ) {
 			EXPECT_TRUE( false );
-			::printf( "!negative! log( %.10f ) == %.10f;   // hex input: %010x\n", inputData[i],
+			::printf( "!negative! log( %.10f ) == %.10e;   // hex input: %010x\n", inputData[i],
 				outputData[i], *reinterpret_cast<const uint32_t*>( &inputData[i] ) );
 		}
 	}
