@@ -938,7 +938,8 @@ static void ctcTestImpl( const CTestParams& params, int seed )
 	naiveDnn.RunAndBackwardOnce();
 	actualDnn.RunAndBackwardOnce();
 
-	ASSERT_NEAR( naiveLoss->GetLastLoss(), actualLoss->GetLastLoss(), 1e-4f );
+	EXPECT_TRUE( FloatEq( naiveLoss->GetLastLoss(), actualLoss->GetLastLoss() ) ) << naiveLoss->GetLastLoss()
+		<< '\t' << actualLoss->GetLastLoss();
 	CompareBlobs( *naiveLoss->GetLastGradient(), *actualLoss->GetLastGradient(), 1e-4f );
 	CompareBlobs( *naiveLearn->ActualDiff, *actualLearn->ActualDiff, 1e-4f );
 }
