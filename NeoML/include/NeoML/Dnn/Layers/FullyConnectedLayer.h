@@ -84,7 +84,7 @@ private:
 	bool isZeroFreeTerm = false; // indicates if the free term should be set to zero
 
 	enum TSMMD { TSMMD_Forward, TSMMD_Backward, TSMMD_Learn, /*...*/  TSMMD_Count_ };
-	CPointerArray<CSmallMatricesMultiplyDesc> smallMatricesMulDescs[TSMMD_Count_]{}; // execution descriptors for each input
+	CPointerArray<CSmallMatricesMultiplyDesc> smallMatricesMulDescs[TSMMD_Count_]; // execution descriptors for each input
 
 	const CSmallMatricesMultiplyDesc* initSmallMatricesMulDescs( TSMMD type, int inputNumber,
 		int firstHeight, int firstWidth, int secondWidth, int resultWidth );
