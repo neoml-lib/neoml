@@ -33,7 +33,7 @@ static void vectorLogImpl( const CTestParams& params, int seed )
 
 	for( int i = 0; i < vectorSize; i++ ) {
 		float expected = logf( std::max( a[i], FLT_MIN ) );
-		ASSERT_NEAR(expected, result[i], 1e-04);
+		ASSERT_NEAR(expected, result[i], 1e-05);
 	}
 }
 
