@@ -304,7 +304,7 @@ TEST( DebugArm64, ReadBlob )
 
 TEST( DebugArm64, LogApproximationNear1 )
 {
-	const int delta = 1000;
+	const int delta = 1000000;
 	const int dataSize = 2 * delta + 1;
 	CArray<float> inputData;
 	inputData.SetSize( dataSize );
