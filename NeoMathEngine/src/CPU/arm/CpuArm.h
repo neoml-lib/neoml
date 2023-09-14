@@ -672,7 +672,7 @@ public:
 		Poly1(vdupq_n_f32(2.8212026)),
 		Poly2(vdupq_n_f32(-1.4699568)),
 		Poly3(vdupq_n_f32(0.44717955)),
-		Poly4(vdupq_n_f32(0.056570851)),
+		Poly4(vdupq_n_f32(-0.056570851)),
 		Poly5(vdupq_n_f32(0)),
 		Poly6(vdupq_n_f32(0)),
 		Poly7(vdupq_n_f32(0)),
