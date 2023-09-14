@@ -555,7 +555,7 @@ inline float32x4_t Polynom8Neon(const float32x4_t& x,
 	return MultiplyAndAddNeon( poly0, x, tail );
 }
 
-// A 11th degree polynomial
+// A 6th degree polynomial
 inline float32x4_t Polynom7Neon(const float32x4_t& x,
 	const float32x4_t& poly0, const float32x4_t& poly1, const float32x4_t& poly2, const float32x4_t& poly3,
 	const float32x4_t& poly4, const float32x4_t& poly5, const float32x4_t& poly6)
