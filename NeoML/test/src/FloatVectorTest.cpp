@@ -329,6 +329,7 @@ TEST( DebugArm64, LogApproximationNear1 )
 
 	::printf( "log( 1.0 ) is %.20e   // hex output: %010x\n",
 		outputData[delta], *reinterpret_cast<const uint32_t*>( &outputData[delta] ) );
+	EXPECT_TRUE( outputData[delta] < 1e-8f && outputData[delta] > -1e-8f );
 
 	for( int i = delta + 1; i < outputData.Size(); ++i ) {
 		if( outputData[i] < 0 ) {
