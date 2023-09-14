@@ -663,6 +663,9 @@ public:
 		Poly2(vdupq_n_f32(-2.1206751311583441238241879498162715470170831545835)),
 		Poly3(vdupq_n_f32(0.64514236360486817097732513587849947304566499326535)),
 		Poly4(vdupq_n_f32(-8.1615808500582478385347879261117568757559632423465e-2)),
+		Poly5(0)),
+		Poly6(0)),
+		Poly7(0)),
 		MinValue(vdupq_n_f32(FLT_MIN)),
 		FloatBias(vdupq_n_s32(127))
 	{
@@ -679,8 +682,8 @@ public:
 		int32x4_t n = vsubq_s32(vshrq_n_s32(vreinterpretq_s32_f32(x), 23), FloatBias);
 
 		// Calculate r (via the polynomial)
-		float32x4_t r = Polynom5Neon(vreinterpretq_f32_s32(vsubq_s32(x, vshlq_n_s32(n, 23))),
-			Poly0, Poly1, Poly2, Poly3, Poly4);
+		float32x4_t r = Polynom8Neon(vreinterpretq_f32_s32(vsubq_s32(x, vshlq_n_s32(n, 23))),
+			Poly0, Poly1, Poly2, Poly3, Poly4, Poly5, Poly6, Poly7);
 
 		return vmulq_f32( vaddq_f32(r, vcvtq_f32_s32(n)), Log2);
 	}
@@ -694,7 +697,7 @@ public:
 private:
 	// The constants used in the algorithm
 	const float32x4_t Log2;
-	const float32x4_t Poly0, Poly1, Poly2, Poly3, Poly4;
+	const float32x4_t Poly0, Poly1, Poly2, Poly3, Poly4, Poly5, Poly6, Poly7;
 	const float32x4_t MinValue;
 	const int32x4_t FloatBias;
 };
