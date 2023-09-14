@@ -327,7 +327,7 @@ TEST( DebugArm64, LogApproximationNear1 )
 		}
 	}
 
-	::printf( "log( 1.f ) is %.10f   // hex output: %010x\n",
+	::printf( "log( 1.0 ) is %.20e   // hex output: %010x\n",
 		outputData[delta], *reinterpret_cast<const uint32_t*>( &outputData[delta] ) );
 
 	for( int i = delta + 1; i < outputData.Size(); ++i ) {
