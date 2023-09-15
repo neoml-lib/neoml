@@ -78,7 +78,7 @@ class GpuMathEngine(MathEngine):
         if gpu_index < -1 or gpu_index >= len(gpus):
             raise ValueError("GPU with index `gpu_index` doesn't exist.")
 
-        internal = PythonWrapper.MathEngine('gpu', 0, int(gpu_index))
+        internal = PythonWrapper.MathEngine('gpu', int(gpu_index))
         super().__init__(internal)
 
     @property
