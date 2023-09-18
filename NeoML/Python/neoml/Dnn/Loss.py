@@ -81,7 +81,7 @@ class Loss(Layer):
 
 
 class CrossEntropyLoss(Loss):
-    """The layer that calculates the loss value as cross-entropy 
+    r"""The layer that calculates the loss value as cross-entropy 
     between the result and the standard:
     :math:`loss = -\sum{y_i * \log{z_i}}`,
     where for each i class 
@@ -157,7 +157,7 @@ class CrossEntropyLoss(Loss):
 
 
 class BinaryCrossEntropyLoss(Loss):
-    """The layer that calculates the cross-entropy loss function
+    r"""The layer that calculates the cross-entropy loss function
     for binary classification:
     :math:`loss = - y * \log(sigmoid(x)) - (1 - y) * \log(1 - sigmoid(x))`, where
     x is the network response, y is the correct class label (can be -1 or 1)
@@ -311,7 +311,7 @@ class L1Loss(Loss):
 
 
 class HingeLoss(Loss):
-    """The layer that calculates hinge loss function for binary classification:
+    r"""The layer that calculates hinge loss function for binary classification:
     :math:`f(x) = \max(0, 1 - x * y)`, where 
     x is the network response, 
     y is the correct class label (1 or -1).
@@ -358,7 +358,7 @@ class HingeLoss(Loss):
 
 
 class SquaredHingeLoss(Loss):
-    """The layer that calculates squared hinge loss function
+    r"""The layer that calculates squared hinge loss function
     for binary classification:
 
     - :math:`f(x) = -4 * x * y`               if :math:`x * y < -1`
@@ -409,7 +409,7 @@ class SquaredHingeLoss(Loss):
 
 
 class FocalLoss(Loss):
-    """The layer that calculates the focal loss function for multiple class
+    r"""The layer that calculates the focal loss function for multiple class
     classification. It is a version of cross-entropy in which 
     the easily-distinguished objects receive smaller penalties. This helps
     focus on learning the difference between similar-looking elements of
@@ -495,7 +495,7 @@ class FocalLoss(Loss):
 
 
 class BinaryFocalLoss(Loss):
-    """The layer that calculates the focal loss function for binary
+    r"""The layer that calculates the focal loss function for binary
     classification. It is a version of cross-entropy in which 
     the easily-distinguished objects receive smaller penalties. This helps
     focus on learning the difference between similar-looking elements of
@@ -659,7 +659,7 @@ class CenterLoss(Loss):
 
 
 class MultiHingeLoss(Loss):
-    """The layer that calculates hinge loss function for multiple class
+    r"""The layer that calculates hinge loss function for multiple class
     classification:
     :math:`f(x) = \max(0, 1 - (x_{right} - x_{max\_wrong}))`
     where 
@@ -721,7 +721,7 @@ class MultiHingeLoss(Loss):
 
 
 class MultiSquaredHingeLoss(Loss):
-    """The layer that calculates squared hinge loss function for multiple class
+    r"""The layer that calculates squared hinge loss function for multiple class
     classification:
 
     - :math:`f(x) = -4 * (x_{right} - x_{max\_wrong})`             if :math:`x_{right} - x_{max\_wrong} < -1`
