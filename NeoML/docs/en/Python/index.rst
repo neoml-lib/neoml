@@ -124,6 +124,6 @@ Install the library you downloaded locally from `our github repo <https://github
     cd <path to neoml>/NeoML/Python
     python3 setup.py install
 
-Supported Python versions: 3.6 to 3.9
+Supported Python versions: 3.8 to 3.11
 
-If you're going to use a GPU for processing, install also `CUDA 11.2 update 1 <https://developer.nvidia.com/cuda-toolkit>`_.
+If you're going to use a GPU for processing, install also `CUDA 11.8 <https://developer.nvidia.com/cuda-toolkit>`_.
