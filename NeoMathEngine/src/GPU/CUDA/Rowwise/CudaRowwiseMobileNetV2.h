@@ -50,7 +50,7 @@ public:
 	// ICudaRowwiseImpl
 	CBlobDesc Reshape( const CBlobDesc& inputSize ) override;
 	int OutputSize() const override { return outputDesc.BlobSize(); }
-	bool IsInPlace() const override { return stride == 1; }
+	bool IsInPlace() const override { return supportsInPlace; }
 	void Process( const CFloatHandle& input, const CFloatHandle& output ) const override;
 
 private:
@@ -72,6 +72,7 @@ private:
 	CBlobDesc inputDesc{};
 	CBlobDesc outputDesc{};
 	std::unique_ptr<CChannelwiseConvolutionDesc> chDesc{};
+	bool supportsInPlace = false;
 
 	friend class CCudaMathEngine;
 };
@@ -95,6 +96,8 @@ inline CBlobDesc CCudaRowwiseMobileNetV2::Reshape( const CBlobDesc& inputSize )
 		filterDesc, channelwiseFreeTerm.IsNull() ? nullptr : &freeTermDesc, outputDesc ) );
 	inputDesc.SetDimSize( BD_Channels, inputChannels );
 	outputDesc.SetDimSize( BD_Channels, outputChannels );
+
+	supportsInPlace = inputSize.HasEqualDimensions( outputDesc );
 
 	return outputDesc;
 }
