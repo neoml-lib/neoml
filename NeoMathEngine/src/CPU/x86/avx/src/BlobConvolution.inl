@@ -20,9 +20,6 @@ bool CBlobConvolutionFabric::IsBlobConvolutionAvailable( int SrcPixelCnt, int Fl
     if( FltH % 2 == 0 || FltW % 2 == 0 ) {
         return false;
     }
-    if( FltH == 1 && FltW == 1 && SrcPixelCnt < 32 ) {
-        return false;
-    }
     if(
         FltCnt == 32 ||
         FltCnt == 24 ||
