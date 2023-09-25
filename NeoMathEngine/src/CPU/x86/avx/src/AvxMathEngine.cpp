@@ -80,9 +80,10 @@ CConvolutionDesc* CAvxMathEngine::InitBlobConvolution( const CBlobDesc& source, 
 	const CBlobDesc& result ) const
 {
 	if( CBlobConvolutionFabric::IsBlobConvolutionAvailable( source.ObjectCount() * source.Height() * source.Width(),
-			filter.BatchWidth() , filter.Height(), filter.Width() ) )
+		filter.BatchWidth() , filter.Height(), filter.Width() ) )
 	{
-		return new CAvxConvolutionDesc( mathEngine, source, result, filter, paddingHeight, paddingWidth, strideHeight, strideWidth, dilationHeight, dilationWidth );
+		return new CAvxConvolutionDesc( mathEngine, source, result, filter, paddingHeight, paddingWidth,
+			strideHeight, strideWidth, dilationHeight, dilationWidth );
 	}
 	return nullptr;
 }
