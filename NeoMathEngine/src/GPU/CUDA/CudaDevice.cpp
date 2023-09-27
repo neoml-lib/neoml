@@ -51,7 +51,7 @@ const int CUDA_DEV_SLOT_COUNT = 64;
 
 static inline std::string getCudaMutexName( int busId, int deviceId, int slotNum )
 {
-	return "Global\\AbbyyNeoMLCudaDev" + std::to_string( busId ) << "_" std::to_string( deviceId )
+	return "Global\\AbbyyNeoMLCudaDev" + std::to_string( busId ) + "_" + std::to_string( deviceId )
 		+ "_" + std::to_string( slotNum );
 }
 
