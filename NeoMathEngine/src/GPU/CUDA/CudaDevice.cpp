@@ -370,7 +370,7 @@ static void* captureDeviceSlots( int busId, int deviceId, int slotCount )
 	handle->Slots.reserve( slotCount );
 	for( int slotIndex = 0; slotIndex < CUDA_DEV_SLOT_COUNT; ++slotIndex ) {
 		if( file.CaptureSlot( slotIndex ) ) {
-			handle->Slots.push_back( CSlotHandle( busId, deviceId, slotIndex ) );
+			handle->Slots.push_back( slotIndex );
 			if( static_cast<int>( handle->Slots.size() ) == slotCount ) {
 				break;
 			}
