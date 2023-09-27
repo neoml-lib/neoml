@@ -442,8 +442,6 @@ static CCudaDevice* captureSpecifiedCudaDevice( int deviceNumber, size_t deviceM
 	}
 
 	result->DeviceNumber = deviceNumber;
-	result->BusId = devProp.pciBusID;
-	result->DeviceId = devProp.pciDeviceID;
 	result->MemoryLimit = deviceMemoryLimit;
 	result->SharedMemoryLimit = 48 * 1024;
 
