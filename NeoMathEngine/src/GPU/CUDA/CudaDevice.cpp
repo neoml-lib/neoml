@@ -381,11 +381,11 @@ static void* captureDeviceSlots( int busId, int deviceId, int slotCount )
 	return handle.release();
 }
 
-static void releaseDeviceSlots( void* handle )
+static void releaseDeviceSlots( void* ptr )
 {
-	CSlotsHandle* handle = static_cast<CSlotsHandle*>( handle );\
+	CSlotsHandle* handle = static_cast<CSlotsHandle*>( ptr );
 
-	if( !handles->empty() ) {
+	if( !handle->Slots.empty() ) {
 		CDeviceFile file( handle->BusId, handle->DeviceId );
 		if( file.Open() ) {
 			for( const int& slotIndex : handle->Slots ) {
@@ -484,7 +484,7 @@ CCudaDevice* CaptureCudaDevice( int deviceNumber, size_t deviceMemoryLimit )
 
 		CCudaDevUsage dev;
 		dev.DevNum = i;
-		dev.FreeMemory = ( CUDA_DEV_SLOT_COUNT - getDeviceUsage( devProp.pciBusID ) ) * slotSize;
+		dev.FreeMemory = ( CUDA_DEV_SLOT_COUNT - getDeviceUsage( devProp.pciBusID, devProp.pciDeviceID ) ) * slotSize;
 		devs.push_back(dev);
 	}
 	// Sort the devices in decreasing free memory
