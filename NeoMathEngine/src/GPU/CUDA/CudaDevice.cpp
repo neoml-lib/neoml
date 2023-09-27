@@ -49,18 +49,19 @@ const int CUDA_DEV_SLOT_COUNT = 64;
 
 #if FINE_PLATFORM(FINE_WINDOWS)
 
-static inline std::string getCudaMutexName(int devNum, int slotNum)
+static inline std::string getCudaMutexName( int busId, int deviceId, int slotNum )
 {
-	return "Global\\AbbyyNeoMLCudaDev" + std::to_string( devNum ) + "_" + std::to_string( slotNum );
+	return "Global\\AbbyyNeoMLCudaDev" + std::to_string( busId ) << "_" std::to_string( deviceId )
+		+ "_" + std::to_string( slotNum );
 }
 
-static int getDeviceUsage( int deviceId )
+static int getDeviceUsage( int busId, int deviceId )
 {
 	int result = 0;
 	for( int slotIndex = 0; slotIndex < CUDA_DEV_SLOT_COUNT; ++slotIndex ) {
-		HANDLE devHandle = ::OpenMutexA( SYNCHRONIZE, FALSE, getCudaMutexName(deviceId, slotIndex).c_str() );
+		HANDLE devHandle = ::OpenMutexA( SYNCHRONIZE, FALSE, getCudaMutexName( busId, deviceId, slotIndex ).c_str() );
 		if( devHandle != 0 ) {
-			::CloseHandle(devHandle);
+			::CloseHandle( devHandle );
 			result += 1;
 		}
 	}
@@ -69,13 +70,13 @@ static int getDeviceUsage( int deviceId )
 
 typedef std::vector<void*> CSlotsHandle;
 
-static void* captureDeviceSlots( int deviceId, int slotCount )
+static void* captureDeviceSlots( int busId, int deviceId, int slotCount )
 {
 	std::unique_ptr<CSlotsHandle> result( new CSlotsHandle() );
 	result->reserve( slotCount );
 
 	for( int slotIndex = 0; slotIndex < CUDA_DEV_SLOT_COUNT; ++slotIndex ) {
-		void* handle = ::CreateMutexA( 0, FALSE, getCudaMutexName(deviceId, slotIndex).c_str() );
+		void* handle = ::CreateMutexA( 0, FALSE, getCudaMutexName( busId, deviceId, slotIndex ).c_str() );
 		if( handle != nullptr ) {
 			if( GetLastError() == ERROR_ALREADY_EXISTS ) {
 				// Reusing slots is not allowed.
@@ -153,9 +154,9 @@ static unsigned long long getProcessStartTime( int pid )
 	return parsed == 22 ? startTime : 0;
 }
 
-static inline std::string getCudaDeviceFileName( int devNum )
+static inline std::string getCudaDeviceFileName( int busId, int deviceId )
 {
-	return "/var/lock/AbbyyNeoMLCudaDev" + std::to_string( devNum );
+	return "/var/lock/AbbyyNeoMLCudaDev" + std::to_string( busId ) + "_" + std::to_string( deviceId );
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -164,7 +165,7 @@ static inline std::string getCudaDeviceFileName( int devNum )
 // When slot is captured its bytes contain process pid (4 bytes) and creation time (8 bytes).
 class CDeviceFile {
 public:
-	explicit CDeviceFile( int deviceNum );
+	CDeviceFile( int busId, int deviceId );
 	~CDeviceFile();
 
 	CDeviceFile( const CDeviceFile& ) = delete;
@@ -187,6 +188,7 @@ public:
 
 private:
 	static const int slotEntrySize = 12; // pid (%d) + start time (%ull)
+	int bus; // bus Id
 	int device; // device Id
 	int fd; // file descriptor (-1 if file isn't open)
 };
@@ -194,8 +196,9 @@ private:
 //---------------------------------------------------------------------------------------------------------------------
 // CDeviceFile's implementation
 
-CDeviceFile::CDeviceFile( int deviceNum ) :
-	device( deviceNum ),
+CDeviceFile::CDeviceFile( int busId, int deviceId ) :
+	bus( busId ),
+	device( deviceId ),
 	fd( -1 )
 {
 }
@@ -212,7 +215,7 @@ CDeviceFile::~CDeviceFile()
 bool CDeviceFile::Open()
 {
 	ASSERT_EXPR( fd == -1 );
-	int localFd = ::open( getCudaDeviceFileName( device ).data(), O_CREAT | O_RDWR, 0666 );
+	int localFd = ::open( getCudaDeviceFileName( bus, device ).data(), O_CREAT | O_RDWR, 0666 );
 	if( localFd == -1 ) {
 		return false;
 	}
@@ -320,9 +323,9 @@ void CDeviceFile::ReleaseSlot( int slotIndex )
 //---------------------------------------------------------------------------------------------------------------------
 // Functions from CudaDevice.h
 
-static int getDeviceUsage( int deviceId )
+static int getDeviceUsage( int busId, int deviceId )
 {
-	CDeviceFile file( deviceId );
+	CDeviceFile file( busId, deviceId );
 	if( !file.Open() ) {
 		return CUDA_DEV_SLOT_COUNT;
 	}
@@ -336,11 +339,17 @@ static int getDeviceUsage( int deviceId )
 	return result;
 }
 
-typedef std::vector<int64_t> CSlotsHandle;
+struct CSlotsHandle {
+	CSlotsHandle( int busId, int deviceId ) : BusId( busId ), DeviceId( deviceId ) {}
 
-static void* captureDeviceSlots( int deviceId, int slotCount )
+	int BusId;
+	int DeviceId;
+	std::vector<int> Slots;
+}
+
+static void* captureDeviceSlots( int busId, int deviceId, int slotCount )
 {
-	CDeviceFile file( deviceId );
+	CDeviceFile file( busId, deviceId );
 	if( !file.Open() ) {
 		return nullptr;
 	}
@@ -357,37 +366,35 @@ static void* captureDeviceSlots( int deviceId, int slotCount )
 	}
 
 	// Capturing slots
-	std::unique_ptr<CSlotsHandle> slots( new CSlotsHandle() );
-	slots->reserve( slotCount );
+	std::unique_ptr<CSlotsHandle> handle( new CSlotsHandle( busId, deviceId ) );
+	handle->Slots.reserve( slotCount );
 	for( int slotIndex = 0; slotIndex < CUDA_DEV_SLOT_COUNT; ++slotIndex ) {
 		if( file.CaptureSlot( slotIndex ) ) {
-			slots->push_back( deviceId * CUDA_DEV_SLOT_COUNT + slotIndex );
-			if( static_cast<int>( slots->size() ) == slotCount ) {
+			handle->Slots.push_back( CSlotHandle( busId, deviceId, slotIndex ) );
+			if( static_cast<int>( handle->Slots.size() ) == slotCount ) {
 				break;
 			}
 		}
 	}
 
-	ASSERT_EXPR( static_cast<int>( slots->size() ) == slotCount );
-	return slots.release();
+	ASSERT_EXPR( static_cast<int>( handle->Slots.size() ) == slotCount );
+	return handle.release();
 }
 
 static void releaseDeviceSlots( void* handle )
 {
-	CSlotsHandle* handles = static_cast<CSlotsHandle*>( handle );\
+	CSlotsHandle* handle = static_cast<CSlotsHandle*>( handle );\
 
 	if( !handles->empty() ) {
-		const int device = ( *handles )[0] / CUDA_DEV_SLOT_COUNT;
-		CDeviceFile file( device );
+		CDeviceFile file( handle->BusId, handle->DeviceId );
 		if( file.Open() ) {
-			for( size_t handleIndex = 0; handleIndex < handles->size(); ++handleIndex ) {
-				const int slotIndex = ( *handles )[handleIndex] % CUDA_DEV_SLOT_COUNT;
+			for( const int& slotIndex : handle->Slots ) {
 				file.ReleaseSlot( slotIndex );
 			}
 		}
 	}
 
-	delete handles;
+	delete handle;
 }
 
 #else
@@ -409,7 +416,7 @@ struct CCudaDevUsage {
 static CCudaDevice* captureSpecifiedCudaDevice( int deviceNumber, size_t deviceMemoryLimit )
 {
 	cudaDeviceProp devProp;
-	ASSERT_CUDA( cudaGetDeviceProperties(&devProp, deviceNumber) );
+	ASSERT_CUDA( cudaGetDeviceProperties( &devProp, deviceNumber ) );
 
 	if( deviceMemoryLimit == 0 ) {
 		deviceMemoryLimit = devProp.totalGlobalMem;
@@ -419,7 +426,7 @@ static CCudaDevice* captureSpecifiedCudaDevice( int deviceNumber, size_t deviceM
 
 	size_t slotSize = devProp.totalGlobalMem / CUDA_DEV_SLOT_COUNT;
 	int slotCount = static_cast<int>( ( deviceMemoryLimit + slotSize - 1 ) / slotSize );
-	void* handle = captureDeviceSlots( devProp.pciBusID, slotCount );
+	void* handle = captureDeviceSlots( devProp.pciBusID, devProp.pciDeviceID, slotCount );
 
 	if( handle == nullptr ) {
 		return nullptr;
@@ -435,7 +442,8 @@ static CCudaDevice* captureSpecifiedCudaDevice( int deviceNumber, size_t deviceM
 	}
 
 	result->DeviceNumber = deviceNumber;
-	result->DeviceId = devProp.pciBusID;
+	result->BusId = devProp.pciBusID;
+	result->DeviceId = devProp.pciDeviceID;
 	result->MemoryLimit = deviceMemoryLimit;
 	result->SharedMemoryLimit = 48 * 1024;
 
