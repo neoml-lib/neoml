@@ -345,7 +345,7 @@ struct CSlotsHandle {
 	int BusId;
 	int DeviceId;
 	std::vector<int> Slots;
-}
+};
 
 static void* captureDeviceSlots( int busId, int deviceId, int slotCount )
 {
