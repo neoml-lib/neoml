@@ -26,7 +26,6 @@ namespace NeoML {
 // CUDA device descriptor
 struct CCudaDevice : public CCrtAllocatedObject {
 	int DeviceNumber;
-	int DeviceId;
 	size_t MemoryLimit;
 	int SharedMemoryLimit;
 	int ThreadMaxCount;
