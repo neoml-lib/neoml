@@ -112,7 +112,7 @@ public:
 	CThreadPoolEmpty() = default;
 	// IThreadPool:
 	int Size() const override { return 1; }
-	bool AddTask( int, TFunction, void* ) override { ASSERT_EXPR( false ); return false; }
+	bool AddTask( int, std::function<void(int, void*)>, void* ) override { ASSERT_EXPR( false ); return false; }
 	void WaitAllTask() override { ASSERT_EXPR( false ); }
 };
 
@@ -125,12 +125,12 @@ public:
 
 	// IThreadPool:
 	int Size() const override { return static_cast<int>( threads.size() ); }
-	bool AddTask( int threadIndex, TFunction function, void* params ) override;
+	bool AddTask( int, std::function<void(int, void*)> function, void* params ) override;
 	void WaitAllTask() override;
 
 private:
 	struct CTask final {
-		IThreadPool::TFunction Function{};
+		std::function<void(int, void*)> Function{};
 		void* Params{};
 	};
 
@@ -202,7 +202,7 @@ CThreadPool::~CThreadPool()
 	}
 }
 
-bool CThreadPool::AddTask( int threadIndex, TFunction function, void* functionParams )
+bool CThreadPool::AddTask( int threadIndex, std::function<void(int, void*)> function, void* functionParams )
 {
 	assert( 0 <= threadIndex && threadIndex < Size() );
 

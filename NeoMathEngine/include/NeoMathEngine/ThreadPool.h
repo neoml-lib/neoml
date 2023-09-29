@@ -15,6 +15,8 @@ limitations under the License.
 
 #pragma once
 
+#include <functional>
+
 #include <NeoMathEngine/NeoMathEngineDefs.h>
 #include <NeoMathEngine/CrtAllocatedObject.h>
 
@@ -35,7 +37,7 @@ public:
 	// Returns the number of threads in the pool.
 	virtual int Size() const = 0;
 	// Adds a task with parameters for the given thread.
-	virtual bool AddTask( int threadIndex, TFunction function, void* params ) = 0;
+	virtual bool AddTask( int threadIndex, std::function<void(int, void*)> function, void* params ) = 0;
 	// Waits for all tasks to complete.
 	virtual void WaitAllTask() = 0;
 };
@@ -49,7 +51,7 @@ NEOMATHENGINE_API IThreadPool* CreateThreadPool( int threadCount );
 
 //------------------------------------------------------------------------------------------------------------
 
-inline void ExecuteTasks( IThreadPool& threadPool, void* params, IThreadPool::TFunction func )
+inline void ExecuteTasks( IThreadPool& threadPool, void* params, std::function<void(int, void*)> func )
 {
 	const int threadCount = threadPool.Size();
 	if( threadCount == 1 ) {

@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,6 +20,8 @@ limitations under the License.
 #include <NeoML/TraditionalML/Problem.h>
 
 namespace NeoML {
+
+class IThreadPool;
 
 // An arbitrary function interface
 // Used for optimization problems and error functions
@@ -63,7 +65,7 @@ public:
 class NEOML_API CSquaredHinge : public CFunctionWithHessian {
 public:
 	CSquaredHinge( const IProblem& data, double errorWeight, float l1Coeff, int threadCount );
-	~CSquaredHinge() override = default;
+	~CSquaredHinge() override;
 
 	// The CFunctionWithHessian class methods:
 	int NumberOfDimensions() const override { return matrix.Width + 1; }
@@ -76,7 +78,7 @@ protected:
 	const CFloatMatrixDesc matrix;
 	const float errorWeight;
 	const float l1Coeff;
-	const int threadCount;
+	IThreadPool* const threadPool;
 
 	double value;
 	CFloatVector gradient;
@@ -91,7 +93,7 @@ protected:
 class NEOML_API CL2Regression : public CFunctionWithHessian {
 public:
 	CL2Regression( const IRegressionProblem& data, double errorWeight, double p, float l1Coeff, int threadCount );
-	~CL2Regression() override = default;
+	~CL2Regression() override;
 
 	// The CFunctionWithHessian class methods:
 	int NumberOfDimensions() const override { return matrix.Width + 1; }
@@ -105,7 +107,7 @@ protected:
 	const float errorWeight;
 	const float p;
 	const float l1Coeff;
-	const int threadCount;
+	IThreadPool* const threadPool;
 
 	double value;
 	CFloatVector gradient;
@@ -120,7 +122,7 @@ protected:
 class NEOML_API CLogRegression: public CFunctionWithHessian {
 public:
 	CLogRegression( const IProblem& _data, double errorWeight, float l1Coeff, int threadCount );
-	~CLogRegression() override = default;
+	~CLogRegression() override;
 
 	// The CFunctionWithHessian class methods:
 	int NumberOfDimensions() const override { return matrix.Width + 1; }
@@ -133,7 +135,7 @@ protected:
 	const CFloatMatrixDesc matrix;
 	const float errorWeight;
 	const float l1Coeff;
-	const int threadCount;
+	IThreadPool* const threadPool;
 
 	double value;
 	CFloatVector gradient;
@@ -148,7 +150,7 @@ protected:
 class NEOML_API CSmoothedHinge : public CFunctionWithHessian {
 public:
 	CSmoothedHinge( const IProblem& data, double errorWeight, float l1Coeff, int threadCount );
-	~CSmoothedHinge() override = default;
+	~CSmoothedHinge() override;
 
 	// The CFunctionWithHessian class methods:
 	int NumberOfDimensions() const override { return matrix.Width + 1; }
@@ -161,7 +163,7 @@ protected:
 	const CFloatMatrixDesc matrix;
 	const float errorWeight;
 	const float l1Coeff;
-	const int threadCount;
+	IThreadPool* const threadPool;
 
 	double value;
 	CFloatVector gradient;
