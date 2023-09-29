@@ -693,3 +693,23 @@ TEST_F( RandomMultiGBRegression2000x20, Compact )
 	TrainMultiGradientBoost( params );
 	TestMultiRegressionResult();
 }
+
+TEST( FunctionSetArgumentTest, InitialGradient )
+{
+	auto testImpl = [] ( CFunctionWithGradient&& func ) -> void
+	{
+		CFloatVector zeroArg( 11, 0.f );
+		func.SetArgument( zeroArg );
+
+		ASSERT_GE( 1e5, func.Gradient().Norm() );
+	};
+
+	CRandom rand( 42 );
+	CPtr<IProblem> classProblem = CClassificationRandomProblem::Random( rand, 22, 10, 2 ).Ptr();
+	CPtr<IRegressionProblem> regrProblem = CRegressionRandomProblem::Random( rand, 22, 10, 2 ).Ptr();
+
+	testImpl( CSquaredHinge( *classProblem, 1, 0.001f, 16 ) );
+	testImpl( CL2Regression( *regrProblem, 1, 0.5, 0.001f, 16 ) );
+	testImpl( CLogRegression( *classProblem, 1, 0.001f, 16 ) );
+	testImpl( CSmoothedHinge( *classProblem, 1, 0.001f, 16 ) );
+}
