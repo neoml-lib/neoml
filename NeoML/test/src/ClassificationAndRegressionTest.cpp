@@ -696,7 +696,7 @@ TEST_F( RandomMultiGBRegression2000x20, Compact )
 
 TEST( FunctionSetArgumentTest, InitialGradient )
 {
-	auto testImpl = [] ( CFunctionWithGradient& func ) -> void
+	auto testImpl = [] ( CFunctionWithGradient&& func ) -> void
 	{
 		CFloatVector zeroArg( 11, 0.f );
 		func.SetArgument( zeroArg );
