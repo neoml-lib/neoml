@@ -55,7 +55,7 @@ public:
 class CFunctionWithHessian : public CFunctionWithGradient {
 public:
 	// The product of the function hessian by a given vector
-	virtual CFloatVector HessianProduct( const CFloatVector& s ) = 0;
+	virtual CFloatVector HessianProduct( const CFloatVector& ) = 0;
 };
 
 //------------------------------------------------------------------------------------------------------------
