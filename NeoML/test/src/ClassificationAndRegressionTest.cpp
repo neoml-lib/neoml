@@ -1,4 +1,4 @@
-/* Copyright © 2023 ABBYY
+/* Copyright © 2021-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -132,10 +132,10 @@ protected:
 	CPtr<IModel> ModelSparse;
 
 	void TrainBinary( ITrainingModel& trainingModel )
-		{ Train( trainingModel, *DenseRandomBinaryProblem, *SparseRandomBinaryProblem, ModelDense, ModelSparse ); }
+	{ Train( trainingModel, *DenseRandomBinaryProblem, *SparseRandomBinaryProblem, ModelDense, ModelSparse ); }
 
 	void TestBinaryClassificationResult() const
-		{ TestClassificationResult( ModelDense, ModelSparse, DenseBinaryTestData, SparseBinaryTestData ); }
+	{ TestClassificationResult( ModelDense, ModelSparse, DenseBinaryTestData, SparseBinaryTestData ); }
 };
 
 CClassificationRandomProblem* RandomBinaryClassification4000x20::getDenseRandomBinaryProblem( CRandom& rand )
@@ -181,7 +181,7 @@ protected:
 	CPtr<IRegressionModel> ModelSparse;
 
 	void TrainBinaryGradientBoost( const CGradientBoost::CParams& params )
-		{ TrainGB( params, *DenseRandomBinaryProblem, *SparseRandomBinaryProblem, ModelDense, ModelSparse ); }
+	{ TrainGB( params, *DenseRandomBinaryProblem, *SparseRandomBinaryProblem, ModelDense, ModelSparse ); }
 
 	void TestBinaryRegressionResult() const
 	{
@@ -219,13 +219,13 @@ protected:
 	CPtr<IModel> ModelSparse;
 
 	void TrainMulti( ITrainingModel& trainingModel )
-		{ Train( trainingModel, *DenseRandomMultiProblem, *SparseRandomMultiProblem, ModelDense, ModelSparse ); }
+	{ Train( trainingModel, *DenseRandomMultiProblem, *SparseRandomMultiProblem, ModelDense, ModelSparse ); }
 
 	void TrainMultiGradientBoost( const CGradientBoost::CParams& params )
-		{ TrainGB( params, *DenseRandomMultiProblem, *SparseRandomMultiProblem, ModelDense, ModelSparse ); }
+	{ TrainGB( params, *DenseRandomMultiProblem, *SparseRandomMultiProblem, ModelDense, ModelSparse ); }
 
 	void TestMultiClassificationResult() const
-		{ TestClassificationResult( ModelDense, ModelSparse, DenseMultiTestData, SparseMultiTestData ); }
+	{ TestClassificationResult( ModelDense, ModelSparse, DenseMultiTestData, SparseMultiTestData ); }
 };
 
 CClassificationRandomProblem* RandomMultiClassification2000x20::getDenseRandomMultiProblem( CRandom& rand )
@@ -268,7 +268,7 @@ protected:
 	CPtr<IMultivariateRegressionModel> ModelSparse;
 
 	void TrainMultiGradientBoost( const CGradientBoost::CParams& params )
-		{ TrainGB( params, *DenseRandomMultiProblem, *SparseRandomMultiProblem, ModelDense, ModelSparse ); }
+	{ TrainGB( params, *DenseRandomMultiProblem, *SparseRandomMultiProblem, ModelDense, ModelSparse ); }
 
 	void TestMultiRegressionResult() const
 	{
