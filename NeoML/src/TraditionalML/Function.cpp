@@ -24,14 +24,14 @@ namespace NeoML {
 // Calculates the L1 regularization factor
 static void calcL1Regularization( const CFloatVector& w, float l1Coeff, double& value, CFloatVector& gradient )
 {
-	value = 0;
+	value = 0.;
 	for( int i = 0; i < w.Size(); ++i ) {
 		float z = w[i];
 		if( abs( z ) < l1Coeff ) {
-			value += z * z / 2;
+			value += z * z / 2.f;
 			gradient.SetAt( i, z );
 		} else {
-			value += l1Coeff * ( abs( z ) - l1Coeff / 2 );
+			value += l1Coeff * ( abs( z ) - l1Coeff / 2.f );
 			gradient.SetAt( i, l1Coeff * z / abs( z ) );
 		}
 	}
@@ -100,7 +100,7 @@ CFunctionWithHessianState::~CFunctionWithHessianState()
 
 void CFunctionWithHessianState::HessianProduct( CFloatVector& result, const CFloatVector& argument, int index )
 {
-	if( Hessian[index] != 0 ) {
+	if( Hessian[index] != 0. ) {
 		CFloatVectorDesc desc;
 		Matrix.GetRow( index, desc );
 		const double temp = LinearFunction( argument, desc ) * Hessian[index];
@@ -110,14 +110,14 @@ void CFunctionWithHessianState::HessianProduct( CFloatVector& result, const CFlo
 
 void CFunctionWithHessianState::PrepareSetArgument( const CFloatVector& argument, double& value )
 {
-	value = 0;
+	value = 0.;
 	Gradient = argument;
-	Gradient.SetAt( Gradient.Size() - 1, 0 ); // don't take the regularization bias into account
+	Gradient.SetAt( Gradient.Size() - 1, 0.f ); // don't take the regularization bias into account
 
-	if( L1Coeff > 0 ) {
+	if( L1Coeff > 0.f ) {
 		calcL1Regularization( Gradient, L1Coeff, Value, Gradient );
 	} else {
-		value = DotProduct( Gradient, Gradient ) / 2;
+		value = DotProduct( Gradient, Gradient ) / 2.;
 	}
 	value = value / ErrorWeight;
 	Gradient = Gradient / ErrorWeight;
@@ -350,14 +350,14 @@ void CSquaredHingeState::SetArgument( const CFloatVector& argument, const CFloat
 	double& hessian, double& value, CFloatVector& gradient, float answer, float weight )
 {
 	const double x = answer * LinearFunction( argument, desc );
-	const double d = 1 - x;
+	const double d = 1. - x;
 
-	if( x < 1 ) {
+	if( x < 1. ) {
 		value += weight * d * d;
-		gradient.MultiplyAndAddExt( desc, -weight * answer * d * 2 );
-		hessian = weight * 2;
+		gradient.MultiplyAndAddExt( desc, -weight * answer * d * 2. );
+		hessian = weight * 2.;
 	} else {
-		hessian = 0;
+		hessian = 0.;
 	}
 }
 
@@ -367,13 +367,13 @@ struct CL2RegressionState : public CFunctionWithHessianState {
 	CL2RegressionState( CFloatMatrixDesc matrix, int vectorCount,
 			double errorWeight, double p, float l1Coeff, int threadCount, THessianFType type ) :
 		CFunctionWithHessianState( matrix, vectorCount, errorWeight, l1Coeff, threadCount, type ),
-		P( static_cast<float>( p ) )
+		P( p )
 	{}
 protected:
 	void SetArgument( const CFloatVector& argument, const CFloatVectorDesc& desc,
 		double& hessian, double& value, CFloatVector& gradient, float answer, float weight ) override;
 
-	const float P;
+	const double P;
 };
 
 void CL2RegressionState::SetArgument( const CFloatVector& argument, const CFloatVectorDesc& desc,
@@ -383,15 +383,15 @@ void CL2RegressionState::SetArgument( const CFloatVector& argument, const CFloat
 
 	if( d < -P ) {
 		value += weight * ( d + P ) * ( d + P );
-		hessian = weight * 2;
-		gradient.MultiplyAndAddExt( desc, weight * ( d + P ) * 2 );
+		hessian = weight * 2.;
+		gradient.MultiplyAndAddExt( desc, weight * ( d + P ) * 2. );
 	} else {
 		value += weight * ( d - P ) * ( d - P );
 		if( d > P ) {
-			hessian = weight * 2;
-			gradient.MultiplyAndAddExt( desc, weight * ( d - P ) * 2 );
+			hessian = weight * 2.;
+			gradient.MultiplyAndAddExt( desc, weight * ( d - P ) * 2. );
 		} else {
-			hessian = 0;
+			hessian = 0.;
 		}
 	}
 }
@@ -425,8 +425,8 @@ void CLogRegressionState::SetArgument( const CFloatVector& argument, const CFloa
 
 	value += weight * log1p( expCoeff );
 
-	gradient.MultiplyAndAddExt( desc, -weight * LogNormalizer * answer * expCoeff / ( 1.f + expCoeff ) );
-	hessian = weight * LogNormalizer * expCoeff / ( 1.f + expCoeff ) / ( 1.f + expCoeff );
+	gradient.MultiplyAndAddExt( desc, -weight * LogNormalizer * answer * expCoeff / ( 1. + expCoeff ) );
+	hessian = weight * LogNormalizer * expCoeff / ( 1. + expCoeff ) / ( 1. + expCoeff );
 }
 
 void CLogRegressionState::PostReductionSetArgument()
@@ -446,15 +446,15 @@ struct CSmoothedHingeState : public CFunctionWithHessianState {
 void CSmoothedHingeState::SetArgument( const CFloatVector& argument, const CFloatVectorDesc& desc,
 	double& hessian, double& value, CFloatVector& gradient, float answer, float weight )
 {
-	const double d = answer * LinearFunction( argument, desc ) - 1;
+	const double d = answer * LinearFunction( argument, desc ) - 1.;
 
-	if( d < 0 ) {
-		const float sqrtValue = static_cast<float>( sqrt( d * d + 1 ) );
-		value += weight * ( sqrtValue - 1 );
+	if( d < 0. ) {
+		const double sqrtValue = sqrt( d * d + 1. );
+		value += weight * ( sqrtValue - 1. );
 		gradient.MultiplyAndAddExt( desc, weight * answer * d / sqrtValue );
-		hessian = weight / ( ( d * d + 1 ) * sqrtValue );
+		hessian = weight / ( ( d * d + 1. ) * sqrtValue );
 	} else {
-		hessian = 0;
+		hessian = 0.;
 	}
 }
 
