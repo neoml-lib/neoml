@@ -17,7 +17,7 @@ limitations under the License.
 #pragma hdrstop
 
 #include <NeoML/TraditionalML/Function.h>
-#include <NeoMathEngine/OpenMP.h>
+#include <NeoMathEngine/ThreadPool.h>
 
 namespace NeoML {
 
@@ -40,28 +40,41 @@ static void calcL1Regularization( const CFloatVector& w, float l1Coeff, double& 
 //------------------------------------------------------------------------------------------------------------
 
 // Multiplies hessian by vector
-static CFloatVector calcHessianProduct( int threadCount, const CFloatMatrixDesc& matrix, const CFloatVector& arg,
+static CFloatVector calcHessianProduct( IThreadPool& threadPool, const CFloatMatrixDesc& matrix, const CFloatVector& arg,
 	float errorWeight, const CArray<double>& hessian )
 {
-	const int vectorCount = matrix.Height;
-
 	CFloatVector result = arg / errorWeight;
 	result.SetAt( result.Size() - 1, 0 );
 
-	const int curThreadCount = IsOmpRelevant( vectorCount ) ? threadCount : 1;
+	struct CFunctionParams {
+		const CFloatMatrixDesc& Matrix;
+		const CFloatVector& Arg;
+		const CArray<double>& Hessian;
+		CArray<CFloatVector> ResultReduction;
 
-	CArray<CFloatVector> resultReduction;
-	resultReduction.Add( CFloatVector( result.Size() ), curThreadCount );
+		CFunctionParams( int threadCount, const CFloatMatrixDesc& matrix, const CFloatVector& arg, const CArray<double>& hessian ) :
+			Matrix( matrix ),
+			Arg( arg ),
+			Hessian( hessian )
+		{
+			ResultReduction.Add( CFloatVector( arg.Size() ), threadCount );
+		}
+	} params( threadPool.Size(), matrix, arg, hessian);
 
-	NEOML_OMP_NUM_THREADS( curThreadCount )
+	IThreadPool::TFunction f = [] ( int threadIndex, void* paramPtr )
 	{
-		const int threadNumber = OmpGetThreadNum();
-		CFloatVector& privateResult = resultReduction[threadNumber];
+		CFunctionParams& params = *( CFunctionParams* )paramPtr;
+		const CFloatMatrixDesc& matrix = params.Matrix;
+		const CFloatVector& arg = params.Arg;
+		const CArray<double>& hessian = params.Hessian;
+
+		const int threadCount = params.ResultReduction.Size();
+		CFloatVector& privateResult = params.ResultReduction[threadIndex];
 		privateResult.Nullify();
 
 		int index = 0;
 		int count = 0;
-		if( OmpGetTaskIndexAndCount( vectorCount, index, count ) ) {
+		if( GetTaskIndexAndCount( threadCount, threadIndex, matrix.Height, index, count ) ) {
 			for( int i = 0; i < count; i++ ) {
 				if( hessian[index] != 0 ) {
 					CFloatVectorDesc desc;
@@ -76,10 +89,12 @@ static CFloatVector calcHessianProduct( int threadCount, const CFloatMatrixDesc&
 				index++;
 			}
 		}
-	}
+	};
 
-	for( int i = 0; i < resultReduction.Size(); i++ ) {
-		result += resultReduction[i];
+	NEOML_NUM_THREADS( threadPool, &params, f );
+
+	for( const CFloatVector& resultPerThread : params.ResultReduction ) {
+		result += resultPerThread;
 	}
 
 	return result;
@@ -87,11 +102,38 @@ static CFloatVector calcHessianProduct( int threadCount, const CFloatMatrixDesc&
 
 //------------------------------------------------------------------------------------------------------------
 
-CSquaredHinge::CSquaredHinge( const IProblem& data, double _errorWeight, float _l1Coeff, int _threadCount ) :
+// Struct which is used to pass parameters of CFunction::SetArgument to multithreading (IThreadPool)
+struct CSetArgumentParams {
+	const float* Answers;
+	const float* Weights;
+	const CFloatMatrixDesc& Matrix;
+	const CFloatVector& Arg;
+	CArray<double>& Hessian;
+	CArray<CFloatVector> GradientReduction;
+	CArray<double> ValueReduction;
+	const float P;
+
+	CSetArgumentParams( int threadCount, const float* answersPtr, const float* weightsPtr,
+		const CFloatMatrixDesc& matrix, const CFloatVector& arg, CArray<double>& hessian, float p = 0.f ) :
+		Answers( answersPtr ),
+		Weights( weightsPtr ),
+		Matrix( matrix ),
+		Arg( arg ),
+		Hessian( hessian ),
+		P( p )
+	{
+		GradientReduction.Add( CFloatVector( arg.Size() ), threadCount );
+		ValueReduction.Add( 0., threadCount );
+	}
+};
+
+//------------------------------------------------------------------------------------------------------------
+
+CSquaredHinge::CSquaredHinge( const IProblem& data, double _errorWeight, float _l1Coeff, int threadCount ) :
 	matrix( data.GetMatrix() ),
 	errorWeight( static_cast<float>( _errorWeight ) ),
 	l1Coeff( _l1Coeff ),
-	threadCount( _threadCount ),
+	threadPool( CreateThreadPool( threadCount ) ),
 	value( 0.f ),
 	answers( data.GetVectorCount() ),
 	weights( data.GetVectorCount() )
@@ -104,12 +146,17 @@ CSquaredHinge::CSquaredHinge( const IProblem& data, double _errorWeight, float _
 	}
 }
 
-void CSquaredHinge::SetArgument( const CFloatVector& w )
+CSquaredHinge::~CSquaredHinge()
 {
-	NeoAssert( w.Size() == NumberOfDimensions() );
+	delete threadPool;
+}
+
+void CSquaredHinge::SetArgument( const CFloatVector& arg )
+{
+	NeoAssert( arg.Size() == NumberOfDimensions() );
 
 	value = 0;
-	gradient = w;
+	gradient = arg;
 	gradient.SetAt( gradient.Size() - 1, 0 );
 
 	if( l1Coeff > 0 ) {
@@ -121,33 +168,28 @@ void CSquaredHinge::SetArgument( const CFloatVector& w )
 	gradient /= errorWeight;
 	value /= errorWeight;
 
-	CFloatVector arg = w;
+	hessian.SetSize( matrix.Height );
 
-	const int vectorCount = matrix.Height;
-	const int curThreadCount = IsOmpRelevant( matrix.Height ) ? threadCount : 1;
+	CSetArgumentParams params( threadPool->Size(), answers.GetPtr(), weights.GetPtr(), matrix, arg, hessian );
 
-	CArray<CFloatVector> gradientReduction;
-	gradientReduction.Add( CFloatVector( gradient.Size() ), curThreadCount );
-	CArray<double> valueReduction;
-	valueReduction.Add( 0., curThreadCount );
-
-	const float* answersPtr = answers.GetPtr();
-	const float* weightsPtr = weights.GetPtr();
-	hessian.SetSize( vectorCount );
-
-	NEOML_OMP_NUM_THREADS( curThreadCount )
+	IThreadPool::TFunction f = []( int threadIndex, void* paramPtr )
 	{
-		const int threadNumber = OmpGetThreadNum();
-		double* valuePtr = valueReduction.GetPtr() + threadNumber;
-		gradientReduction[threadNumber].Nullify();
-		CFloatVector& gradientPrivate = gradientReduction[threadNumber];
+		CSetArgumentParams& params = *( CSetArgumentParams* )paramPtr;
+		const CFloatMatrixDesc& matrix = params.Matrix;
+		const CFloatVector& arg = params.Arg;
+		CArray<double>& hessian = params.Hessian;
+		const int threadCount = params.ValueReduction.Size();
+
+		double& valuePrivate = params.ValueReduction[threadIndex];
+		CFloatVector& gradientPrivate = params.GradientReduction[threadIndex];
+		gradientPrivate.Nullify();
 
 		int index = 0;
 		int count = 0;
-		if( OmpGetTaskIndexAndCount( vectorCount, index, count ) ) {
+		if( GetTaskIndexAndCount( threadCount, threadIndex, matrix.Height, index, count ) ) {
 			for( int i = 0; i < count; i++ ) {
-				double answer = answersPtr[index];
-				double weight = weightsPtr[index];
+				double answer = params.Answers[index];
+				double weight = params.Weights[index];
 				CFloatVectorDesc desc;
 				matrix.GetRow( index, desc );
 
@@ -155,7 +197,7 @@ void CSquaredHinge::SetArgument( const CFloatVector& w )
 				double d = 1 - x;
 
 				if( x < 1 ) {
-					*valuePtr += weight * d * d;
+					valuePrivate += weight * d * d;
 					gradientPrivate.MultiplyAndAddExt( desc, -weight * answer * d * 2 );
 
 					hessian[index] = weight * 2;
@@ -166,27 +208,29 @@ void CSquaredHinge::SetArgument( const CFloatVector& w )
 				index++;
 			}
 		}
-	}
+	};
 
-	for( int i = 0; i < curThreadCount; i++ ) {
-		value += valueReduction[i];
-		gradient += gradientReduction[i];
+	NEOML_NUM_THREADS( *threadPool, &params, f );
+
+	for( int i = 0; i < params.ValueReduction.Size(); i++ ) {
+		value += params.ValueReduction[i];
+		gradient += params.GradientReduction[i];
 	}
 }
 
 CFloatVector CSquaredHinge::HessianProduct( const CFloatVector& arg )
 {
-	return calcHessianProduct( threadCount, matrix, arg, errorWeight, hessian );
+	return calcHessianProduct( *threadPool, matrix, arg, errorWeight, hessian );
 }
 
 //-----------------------------------------------------------------------------------------------------------------------
 
-CL2Regression::CL2Regression( const IRegressionProblem& data, double errorWeight, double _p, float _l1Coeff, int _threadCount ) :
+CL2Regression::CL2Regression( const IRegressionProblem& data, double errorWeight, double _p, float _l1Coeff, int threadCount ) :
 	matrix( data.GetMatrix() ),
 	errorWeight( static_cast<float>( errorWeight ) ),
 	p( static_cast<float>( _p ) ),
 	l1Coeff(_l1Coeff ),
-	threadCount( _threadCount ),
+	threadPool( CreateThreadPool( threadCount ) ),
 	value( 0.f ),
 	answers( data.GetVectorCount() ),
 	weights( data.GetVectorCount() )
@@ -199,11 +243,16 @@ CL2Regression::CL2Regression( const IRegressionProblem& data, double errorWeight
 	}
 }
 
-void CL2Regression::SetArgument( const CFloatVector& w )
+CL2Regression::~CL2Regression()
 {
-	NeoAssert( w.Size() == NumberOfDimensions() );
+	delete threadPool;
+}
 
-	gradient = w;
+void CL2Regression::SetArgument( const CFloatVector& arg )
+{
+	NeoAssert( arg.Size() == NumberOfDimensions() );
+
+	gradient = arg;
 	gradient.SetAt( gradient.Size() - 1, 0 ); // don't take the regularization bias into account
 
 	if( l1Coeff > 0 ) {
@@ -214,43 +263,39 @@ void CL2Regression::SetArgument( const CFloatVector& w )
 	value = value / errorWeight;
 	gradient = gradient / errorWeight;
 
-	CFloatVector arg = w;
+	hessian.SetSize( matrix.Height );
 
-	const int vectorCount = matrix.Height;
-	const int curThreadCount = IsOmpRelevant( matrix.Height ) ? threadCount : 1;
+	CSetArgumentParams params( threadPool->Size(), answers.GetPtr(), weights.GetPtr(), matrix, arg, hessian, p );
 
-	CArray<CFloatVector> gradientReduction;
-	gradientReduction.Add( CFloatVector( gradient.Size() ), curThreadCount );
-	CArray<double> valueReduction;
-	valueReduction.Add( 0.f, curThreadCount );
-
-	const float* answersPtr = answers.GetPtr();
-	const float* weightsPtr = weights.GetPtr();
-	hessian.SetSize( vectorCount );
-
-	NEOML_OMP_NUM_THREADS( curThreadCount )
+	IThreadPool::TFunction f = []( int threadIndex, void* paramPtr )
 	{
-		const int threadNumber = OmpGetThreadNum();
-		double* valuePtr = valueReduction.GetPtr() + threadNumber;
-		gradientReduction[threadNumber].Nullify();
-		CFloatVector& gradientPrivate = gradientReduction[threadNumber];
+		CSetArgumentParams& params = *( CSetArgumentParams* )paramPtr;
+		const CFloatMatrixDesc& matrix = params.Matrix;
+		const CFloatVector& arg = params.Arg;
+		CArray<double>& hessian = params.Hessian;
+		const int threadCount = params.ValueReduction.Size();
+		float p = params.P;
+
+		double& valuePrivate = params.ValueReduction[threadIndex];
+		CFloatVector& gradientPrivate = params.GradientReduction[threadIndex];
+		gradientPrivate.Nullify();
 
 		int index = 0;
 		int count = 0;
-		if( OmpGetTaskIndexAndCount( vectorCount, index, count ) ) {
+		if( GetTaskIndexAndCount( threadCount, threadIndex, matrix.Height, index, count ) ) {
 			for( int i = 0; i < count; i++ ) {
-				float weight = weightsPtr[index];
+				float weight = params.Weights[index];
 				CFloatVectorDesc desc;
 				matrix.GetRow( index, desc );
 
-				double d = LinearFunction( arg, desc ) - answersPtr[index];
+				double d = LinearFunction( arg, desc ) - params.Answers[index];
 
 				if( d < -p ) {
-					*valuePtr += weight * ( d + p ) * ( d + p );
+					valuePrivate += weight * ( d + p ) * ( d + p );
 					hessian[index] = weight * 2;
 					gradientPrivate.MultiplyAndAddExt( desc, weight * ( d + p ) * 2 );
 				} else {
-					*valuePtr += weight * ( d - p ) * ( d - p );
+					valuePrivate += weight * ( d - p ) * ( d - p );
 
 					if( d > p ) {
 						hessian[index] = weight * 2;
@@ -263,26 +308,28 @@ void CL2Regression::SetArgument( const CFloatVector& w )
 				index++;
 			}
 		}
-	}
+	};
 
-	for( int i = 0; i < curThreadCount; i++ ) {
-		gradient += gradientReduction[i];
-		value += valueReduction[i];
+	NEOML_NUM_THREADS( *threadPool, &params, f );
+
+	for( int i = 0; i < params.ValueReduction.Size(); i++ ) {
+		gradient += params.GradientReduction[i];
+		value += params.ValueReduction[i];
 	}
 }
 
 CFloatVector CL2Regression::HessianProduct( const CFloatVector& arg )
 {
-	return calcHessianProduct( threadCount, matrix, arg, errorWeight, hessian );
+	return calcHessianProduct( *threadPool, matrix, arg, errorWeight, hessian );
 }
 
 //-----------------------------------------------------------------------------------------------------------------------
 
-CLogRegression::CLogRegression( const IProblem& data, double _errorWeight, float _l1Coeff, int _threadCount ) :
+CLogRegression::CLogRegression( const IProblem& data, double _errorWeight, float _l1Coeff, int threadCount ) :
 	matrix( data.GetMatrix() ),
 	errorWeight( static_cast<float>( _errorWeight ) ),
 	l1Coeff( _l1Coeff ),
-	threadCount( _threadCount ),
+	threadPool( CreateThreadPool( threadCount ) ),
 	value( 0.f ),
 	answers( data.GetVectorCount() ),
 	weights( data.GetVectorCount() )
@@ -295,13 +342,16 @@ CLogRegression::CLogRegression( const IProblem& data, double _errorWeight, float
 	}
 }
 
-void CLogRegression::SetArgument( const CFloatVector& w )
+CLogRegression::~CLogRegression()
 {
-	NeoAssert( w.Size() == NumberOfDimensions() );
+	delete threadPool;
+}
 
-	const float logNormalizer = 1.f / logf( 2.f );
+void CLogRegression::SetArgument( const CFloatVector& arg )
+{
+	NeoAssert( arg.Size() == NumberOfDimensions() );
 
-	gradient = w;
+	gradient = arg;
 	gradient.SetAt( gradient.Size() - 1, 0 ); // do not take bias into account for regularization
 
 	value = 0;
@@ -314,40 +364,36 @@ void CLogRegression::SetArgument( const CFloatVector& w )
 	rValue = rValue / errorWeight;
 	gradient = gradient / errorWeight;
 
-	CFloatVector arg = w;
+	hessian.SetSize( matrix.Height );
 
-	const int vectorCount = matrix.Height;
-	const int curThreadCount = IsOmpRelevant( matrix.Height ) ? threadCount : 1;
+	CSetArgumentParams params( threadPool->Size(), answers.GetPtr(), weights.GetPtr(), matrix, arg, hessian );
 
-	CArray<CFloatVector> gradientReduction;
-	gradientReduction.Add( CFloatVector( gradient.Size() ), curThreadCount );
-	CArray<double> valueReduction;
-	valueReduction.Add( 0.f, curThreadCount );
-
-	const float* answersPtr = answers.GetPtr();
-	const float* weightsPtr = weights.GetPtr();
-	hessian.SetSize( vectorCount );
-
-	NEOML_OMP_NUM_THREADS( curThreadCount )
+	IThreadPool::TFunction f = []( int threadIndex, void* paramPtr )
 	{
-		const int threadNumber = OmpGetThreadNum();
-		double* valuePtr = valueReduction.GetPtr() + threadNumber;
-		gradientReduction[threadNumber].Nullify();
-		CFloatVector& gradientPrivate = gradientReduction[threadNumber];
+		CSetArgumentParams& params = *( CSetArgumentParams* )paramPtr;
+		const CFloatMatrixDesc& matrix = params.Matrix;
+		const CFloatVector& arg = params.Arg;
+		CArray<double>& hessian = params.Hessian;
+		const int threadCount = params.ValueReduction.Size();
+
+		double& valuePrivate = params.ValueReduction[threadIndex];
+		CFloatVector& gradientPrivate = params.GradientReduction[threadIndex];
+		gradientPrivate.Nullify();
 
 		int index = 0;
 		int count = 0;
-		if( OmpGetTaskIndexAndCount( vectorCount, index, count ) ) {
+		const float logNormalizer = 1.f / logf( 2.f );
+		if( GetTaskIndexAndCount( threadCount, threadIndex, matrix.Height, index, count ) ) {
 			for( int i = 0; i < count; i++ ) {
-				double answer = answersPtr[index];
-				double weight = weightsPtr[index];
+				double answer = params.Answers[index];
+				double weight = params.Weights[index];
 				CFloatVectorDesc desc;
 				matrix.GetRow( index, desc );
 
 				double dot = LinearFunction( arg, desc );
 				double expCoeff = exp( -answer * dot );
 
-				*valuePtr += weight * log1p( expCoeff );
+				valuePrivate += weight * log1p( expCoeff );
 
 				gradientPrivate.MultiplyAndAddExt( desc, -weight * logNormalizer * answer * expCoeff / ( 1.f + expCoeff ) );
 				hessian[index] = weight * logNormalizer * expCoeff / ( 1.f + expCoeff ) / ( 1.f + expCoeff );
@@ -355,29 +401,31 @@ void CLogRegression::SetArgument( const CFloatVector& w )
 				index++;
 			}
 		}
+	};
+
+	NEOML_NUM_THREADS( *threadPool, &params, f );
+
+	for( int i = 0; i < params.ValueReduction.Size(); i++ ) {
+		gradient += params.GradientReduction[i];
+		value += params.ValueReduction[i];
 	}
 
-	for( int i = 0; i < curThreadCount; i++ ) {
-		gradient += gradientReduction[i];
-		value += valueReduction[i];
-	}
-
-	value *= logNormalizer;
+	value /= logf( 2.f );
 	value += rValue;
 }
 
 CFloatVector CLogRegression::HessianProduct( const CFloatVector& arg )
 {
-	return calcHessianProduct( threadCount, matrix, arg, errorWeight, hessian );
+	return calcHessianProduct( *threadPool, matrix, arg, errorWeight, hessian );
 }
 
 //-----------------------------------------------------------------------------------------------------------------------
 
-CSmoothedHinge::CSmoothedHinge( const IProblem& data, double _errorWeight, float _l1Coeff, int _threadCount ) :
+CSmoothedHinge::CSmoothedHinge( const IProblem& data, double _errorWeight, float _l1Coeff, int threadCount ) :
 	matrix( data.GetMatrix() ),
 	errorWeight( static_cast<float>( _errorWeight ) ),
 	l1Coeff( _l1Coeff ),
-	threadCount( _threadCount ),
+	threadPool( CreateThreadPool( threadCount ) ),
 	value( 0.f ),
 	answers( data.GetVectorCount() ),
 	weights( data.GetVectorCount() )
@@ -390,11 +438,16 @@ CSmoothedHinge::CSmoothedHinge( const IProblem& data, double _errorWeight, float
 	}
 }
 
-void CSmoothedHinge::SetArgument( const CFloatVector& w )
+CSmoothedHinge::~CSmoothedHinge()
 {
-	NeoAssert( w.Size() == NumberOfDimensions() );
+	delete threadPool;
+}
 
-	gradient = w;
+void CSmoothedHinge::SetArgument( const CFloatVector& arg )
+{
+	NeoAssert( arg.Size() == NumberOfDimensions() );
+
+	gradient = arg;
 	gradient.SetAt( gradient.Size() - 1, 0 ); // don't take the regularization bias into account
 
 	if( l1Coeff > 0 ) {
@@ -405,33 +458,28 @@ void CSmoothedHinge::SetArgument( const CFloatVector& w )
 	value = value / errorWeight;
 	gradient = gradient / errorWeight;
 
-	CFloatVector arg = w;
+	hessian.SetSize( matrix.Height );
 
-	const int vectorCount = matrix.Height;
-	const int curThreadCount = IsOmpRelevant( matrix.Height ) ? threadCount : 1;
+	CSetArgumentParams params( threadPool->Size(), answers.GetPtr(), weights.GetPtr(), matrix, arg, hessian );
 
-	CArray<CFloatVector> gradientReduction;
-	gradientReduction.Add( CFloatVector( gradient.Size() ), curThreadCount );
-	CArray<double> valueReduction;
-	valueReduction.Add( 0.f, curThreadCount );
-
-	const float* answersPtr = answers.GetPtr();
-	const float* weightsPtr = weights.GetPtr();
-	hessian.SetSize( vectorCount );
-
-	NEOML_OMP_NUM_THREADS( curThreadCount )
+	IThreadPool::TFunction f = []( int threadIndex, void* paramPtr )
 	{
-		const int threadNumber = OmpGetThreadNum();
-		double* valuePtr = valueReduction.GetPtr() + threadNumber;
-		gradientReduction[threadNumber].Nullify();
-		CFloatVector& gradientPrivate = gradientReduction[threadNumber];
+		CSetArgumentParams& params = *( CSetArgumentParams* )paramPtr;
+		const CFloatMatrixDesc& matrix = params.Matrix;
+		const CFloatVector& arg = params.Arg;
+		CArray<double>& hessian = params.Hessian;
+		const int threadCount = params.ValueReduction.Size();
+
+		double& valuePrivate = params.ValueReduction[threadIndex];
+		CFloatVector& gradientPrivate = params.GradientReduction[threadIndex];
+		gradientPrivate.Nullify();
 
 		int index = 0;
 		int count = 0;
-		if( OmpGetTaskIndexAndCount( vectorCount, index, count ) ) {
+		if( GetTaskIndexAndCount( threadCount, threadIndex, matrix.Height, index, count ) ) {
 			for( int i = 0; i < count; i++ ) {
-				float answer = answersPtr[index];
-				float weight = weightsPtr[index];
+				float answer = params.Answers[index];
+				float weight = params.Weights[index];
 				CFloatVectorDesc desc;
 				matrix.GetRow( index, desc );
 
@@ -439,7 +487,7 @@ void CSmoothedHinge::SetArgument( const CFloatVector& w )
 
 				if( d < 0 ) {
 					const float sqrtValue = static_cast<float>( sqrt( d * d + 1 ) );
-					*valuePtr += weight * ( sqrtValue - 1 );
+					valuePrivate += weight * ( sqrtValue - 1 );
 
 					gradientPrivate.MultiplyAndAddExt( desc, weight * answer * d / sqrtValue );
 
@@ -451,17 +499,19 @@ void CSmoothedHinge::SetArgument( const CFloatVector& w )
 				index++;
 			}
 		}
-	}
+	};
 
-	for( int i = 0; i < curThreadCount; i++ ) {
-		gradient += gradientReduction[i];
-		value += valueReduction[i];
+	NEOML_NUM_THREADS( *threadPool, &params, f );
+
+	for( int i = 0; i < params.ValueReduction.Size(); i++ ) {
+		gradient += params.GradientReduction[i];
+		value += params.ValueReduction[i];
 	}
 }
 
 CFloatVector CSmoothedHinge::HessianProduct( const CFloatVector& arg )
 {
-	return calcHessianProduct( threadCount, matrix, arg, errorWeight, hessian );
+	return calcHessianProduct( *threadPool, matrix, arg, errorWeight, hessian );
 }
 
 } // namespace NeoML
