@@ -745,3 +745,191 @@ TEST( LoraFullyConnectedLayerTest, DISABLED_BenchmarkNoLora )
 {
 	testBehchmarkImpl( /*dropout*/0.f, /*epochs*/1000, /*lora*/false );
 }
+
+//---------------------------------------------------------------------------------------------------------------------------------------
+
+namespace NeoMLTest {
+
+static void setDnnSpecialInputs( CDnn& dnn, int labelSize, int inputSize )
+{
+	CArray<float> inArr;
+	for( int i = 0; i < inputSize; ++i ) {
+		inArr.Add( 0.01f * i );
+	}
+	CPtr<CDnnBlob> in = CDnnBlob::CreateTensor( dnn.GetMathEngine(), CT_Float, { 1, 1, 1, 1, 1, 1, inputSize } );
+	in->CopyFrom( inArr.GetPtr() );
+
+	CArray<float> labelArr;
+	for( int i = 0; i < labelSize; ++i ) {
+		labelArr.Add( 0.7f * ( labelSize - i ) );
+	}
+	CPtr<CDnnBlob> labels = CDnnBlob::CreateTensor( dnn.GetMathEngine(), CT_Float, { 1, 1, 1, 1, 1, 1, labelSize } );
+	labels->CopyFrom( labelArr.GetPtr() );
+
+	CheckCast<CSourceLayer>( dnn.GetLayer( "in" ) )->SetBlob( in );
+	CheckCast<CSourceLayer>( dnn.GetLayer( "label" ) )->SetBlob( labels );
+}
+
+static void trainAndTest( CDnn& dnn, int epochs, bool verbose )
+{
+	const float eps = 0.1;
+	CPtr<CLossLayer> lossLayer = CheckCast<CLossLayer>( dnn.GetLayer( "loss" ) );
+	float prevTrainLoss = lossLayer->GetLastLoss();
+	float prevTestLoss = prevTrainLoss;
+
+	// In several eposhs perform train + test (let train == test), where for each epoch calculate separate train-loss and test-loss.
+	// Losses should decrease constantly, because we have the only 1 BLOB, exact equality is not garanteed, it depends on LoRA configs.
+	for( int i = 0; i < epochs; ++i ) {
+		dnn.RunAndLearnOnce();
+
+		const float trainLoss = lossLayer->GetLastLoss();
+
+		dnn.RunOnce();
+
+		const float testLoss = lossLayer->GetLastLoss();
+
+		if( verbose ) {
+			printf( "trainLoss = %10f\ttestLoss = %10f\n", trainLoss, testLoss );
+		}
+		EXPECT_TRUE( ( trainLoss - eps ) <= ( prevTrainLoss + eps ) ); // losses should decrease (mostly)
+		prevTrainLoss = trainLoss;
+
+		EXPECT_TRUE( ( testLoss - eps ) <= ( prevTestLoss + eps ) ); // losses should decrease (mostly)
+		prevTestLoss = testLoss;
+	}
+}
+
+static void printStatus( float loss, CPtr<CDnnBlob> sinkBlob )
+{
+	printf( "\nprintStatus loss = %f \n", loss );
+	printf( "printStatus output = { " );
+	for( int i = 0; i < sinkBlob->GetDesc().BlobSize(); ++i ) {
+		printf( "%f ", sinkBlob->GetData().GetValueAt( i ) );
+	}
+	printf( "}\n\n" );
+}
+
+static void checkStatus( float originLoss, float loss, CPtr<CDnnBlob> originSinkBlob, CPtr<CDnnBlob> sinkBlob )
+{
+	EXPECT_TRUE( FloatEq( originLoss, loss ) );
+	for( int i = 0; i < originSinkBlob->GetDesc().BlobSize(); ++i ) {
+		EXPECT_TRUE( FloatEq(
+			sinkBlob->GetData().GetValueAt( i ),
+			originSinkBlob->GetData().GetValueAt( i ) ) );
+	}
+}
+
+static void testConsistenceImpl( int epochs, int inputSize, int outputSize,
+	int rank, float alpha, float dropout, bool verbose )
+{
+	CRandom rand( 42 );
+
+	// Train the sipmlest task: the only 1 BLOB for test and train and the only 1 "right labels" for it.
+	// Try to make the LoRA outputs right answers for this BLOB.
+	CDnn dnn( rand, MathEngine() );
+
+	// Create the mininal net, consists: input data, loraFullyConnected, «right labels», and any loss.
+	buildDnn( dnn, outputSize );
+	// Tune inputs that way, so no nan/infinity values would be appeared.
+	setDnnSpecialInputs( dnn, outputSize, inputSize );
+
+	CPtr<CLoraFullyConnectedLayer> fullLayer = CheckCast<CLoraFullyConnectedLayer>( dnn.GetLayer( "full" ) );
+	CPtr<CLossLayer> lossLayer = CheckCast<CLossLayer>( dnn.GetLayer( "loss" ) );
+	CPtr<CSinkLayer> sinkLayer = CheckCast<CSinkLayer>( dnn.GetLayer( "sink" ) );
+
+	// Make forward pass.
+	dnn.RunOnce();
+
+	// Several epochs of train + test
+	trainAndTest( dnn, epochs, /*verbose*/false );
+
+	// Make another forward pass.
+	dnn.RunOnce();
+
+	// Copy the weights and freeTerm of the baseFc and the additianl sink is created to see the values returned by loraFc.
+	const CPtr<CDnnBlob> baseFcWightsBlob = fullLayer->Weights()->GetCopy();
+	const CPtr<CDnnBlob> baseFcFreeTermBlob = fullLayer->FreeTerms()->GetCopy();
+	{
+		// Measure the forward pass's loss and output.
+		const CPtr<CDnnBlob> sinkOriginBlob = sinkLayer->GetBlob()->GetCopy();
+		const float originTestLoss = lossLayer->GetLastLoss();
+
+		// Build the LoRA.
+		fullLayer->BuildLoRA( rank, alpha, dropout );
+		// Make another forward pass.
+		dnn.RunOnce();
+
+		const float loraTestLoss = lossLayer->GetLastLoss();
+		if( verbose ) {
+			printf( "\ntestLoss = %10f\tloraBuildTestLoss = %10f\n", originTestLoss, loraTestLoss );
+			printStatus( originTestLoss, sinkOriginBlob );
+		}
+		// Check, that loss and output are exactly the same.
+		checkStatus( originTestLoss, loraTestLoss, sinkOriginBlob, sinkLayer->GetBlob() );
+	}
+
+	// Several epochs of train + test
+	trainAndTest( dnn, epochs, verbose );
+
+	{ // Check, that weights and freeterm of the baseFc are not changed while the training (it has been stored earlier).
+		auto loraBaseFcWeights = fullLayer->Weights()->GetData();
+		for( int i = 0; i < baseFcWightsBlob->GetDesc().BlobSize(); ++i ) {
+			EXPECT_TRUE( FloatEq( baseFcWightsBlob->GetData().GetValueAt( i ), loraBaseFcWeights.GetValueAt( i ), 1e-5f ) );
+		}
+		auto loraBaseFcFreeTerm = fullLayer->FreeTerms()->GetData();
+		for( int i = 0; i < baseFcFreeTermBlob->GetDesc().BlobSize(); ++i ) {
+			EXPECT_TRUE( FloatEq( baseFcFreeTermBlob->GetData().GetValueAt( i ), loraBaseFcFreeTerm.GetValueAt( i ), 1e-5f ) );
+		}
+	}
+
+	{ // After training measure test-loss and save the output
+		dnn.RunOnce();
+
+		const float currentTestLoss = lossLayer->GetLastLoss();
+		const auto currentSinkBlob = sinkLayer->GetBlob()->GetCopy();
+
+		// Merge the LoRA.
+		fullLayer->MergeWeightsLoRA();
+		// Make another forward pass.
+		dnn.RunOnce();
+
+		const float loraMergeTestLoss = lossLayer->GetLastLoss();
+		if( verbose ) {
+			printf( "\ntestLoss = %10f\tloraMergeTestLoss = %10f\n", currentTestLoss, loraMergeTestLoss );
+			printStatus( loraMergeTestLoss, sinkLayer->GetBlob() );
+		}
+		// Check, that test-loss and output are not changed after the LoRA merging.
+		checkStatus( currentTestLoss, loraMergeTestLoss, currentSinkBlob, sinkLayer->GetBlob() );
+	}
+}
+
+} // namespace NeoMLTest
+
+//---------------------------------------------------------------------------------------------------------------------------------------
+
+TEST( LoraFullyConnectedLayerTest, ConsistenceCheck )
+{
+	( void ) MathEngine(); // Creates it, if not exist
+
+	const bool verbose = false;
+	const int inputSize = 100;
+	const int outputSize = 10;
+	const int epochs = 4;
+
+	// Check all cases of different scales and dropouts
+	for( float dropout = 0; dropout < 1; dropout += 0.11 ) {
+		for( int rank = 1; rank <= outputSize / 2; ++rank ) {
+			for( float alpha = 1.f; alpha <= rank; ++alpha ) {
+
+				if( verbose ) {
+					printf( "\n===============================================================\n"
+						"rank=%d, alpha=%.2f, dropout=%.2f, inputSize=%d, outputSize=%d, epochs=%d\n",
+						rank, alpha, dropout, inputSize, outputSize, epochs );
+				}
+
+				testConsistenceImpl( epochs, inputSize, outputSize, rank, alpha, dropout, verbose );
+			}
+		}
+	}
+}
+
