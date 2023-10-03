@@ -228,7 +228,6 @@ TEST( CDnnDistributedTest, DnnDistributedAutoThreadCountTest )
 }
 
 #ifndef NEOML_USE_FINEOBJ
-
 TEST( CDnnDistributedTest, MemoryLimitViolationTest )
 {
 	constexpr int fcOutputSize = 1000;
@@ -250,5 +249,4 @@ TEST( CDnnDistributedTest, MemoryLimitViolationTest )
 	EXPECT_THROW( training.reset(
 		new CDistributedTraining( dnn, 8, TDistributedInitializer::Xavier, 42, blobSize * 2 ) ), CMemoryException );
 }
-
 #endif
