@@ -227,19 +227,7 @@ TEST( CDnnDistributedTest, DnnDistributedAutoThreadCountTest )
 	ASSERT_EQ( GetAvailableCpuCores(), distributed.GetModelCount() );
 }
 
-#ifdef NEOML_USE_FINEOBJ
-#define BPE_TEST_ASSERT( expr ) \
-	try { \
-		( expr ); \
-		FAIL() << "No exception has been thrown during '" << #expr << "'"; \
-	} catch( CMemoryException* err ) { \
-		err->Delete(); \
-	} catch( ... ) { \
-		FAIL() << "Wrong exception has been thrown during '" << #expr << "'"; \
-	}
-#else
-#define TEST_MEMORY_EXCEPTION( expr ) EXPECT_THROW( ( expr ), CMemoryException )
-#endif
+#ifndef NEOML_USE_FINEOBJ
 
 TEST( CDnnDistributedTest, MemoryLimitViolationTest )
 {
@@ -256,7 +244,8 @@ TEST( CDnnDistributedTest, MemoryLimitViolationTest )
 
 	std::unique_ptr<CDistributedTraining> training;
 	// 80.000.000 bytes is not enough to load this net 8 times
-	TEST_MEMORY_EXCEPTION( training.reset(
-		new CDistributedTraining( dnn, 8, TDistributedInitializer::Xavier, 42, 80000000 ) ) );
+	EXPECT_THROW( training.reset( new CDistributedTraining( dnn, 8, TDistributedInitializer::Xavier, 42, 80000000 ) ),
+		CMemoryException );
 }
 
+#endif
