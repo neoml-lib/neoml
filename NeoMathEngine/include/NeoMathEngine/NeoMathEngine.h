@@ -1297,7 +1297,7 @@ public:
 NEOMATHENGINE_API IGpuMathEngineManager* CreateGpuMathEngineManager();
 
 // Creates `count` cpu MathEngines connected via distributed communicator object
-NEOMATHENGINE_API void CreateDistributedCpuMathEngines( IMathEngine** mathEngines, int count );
+NEOMATHENGINE_API void CreateDistributedCpuMathEngines( IMathEngine** mathEngines, int count, size_t memoryLimit = 0 );
 // Creates `count` gpu MathEngines connected via distributed communicator object
 // i-th MathEngine placed on gpu with number devs[i]
 NEOMATHENGINE_API void CreateDistributedCudaMathEngines( IMathEngine** mathEngines, int devsCount, const int* cudaDevs );

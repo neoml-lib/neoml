@@ -162,7 +162,8 @@ void CDistributedTraining::initialize( CArchive& archive, int count, TDistribute
 	batchSize.Add( 0, count );
 }
 
-CDistributedTraining::CDistributedTraining( CDnn& dnn, int count, TDistributedInitializer initializer, int seed ) :
+CDistributedTraining::CDistributedTraining( CDnn& dnn, int count, TDistributedInitializer initializer, int seed,
+		size_t memoryLimit ) :
 	isCpu( true ),
 	threadPool( CreateThreadPool( count ) )
 {
@@ -171,7 +172,7 @@ CDistributedTraining::CDistributedTraining( CDnn& dnn, int count, TDistributedIn
 
 	initThreadGroupInfo();
 	mathEngines.SetSize( count );
-	CreateDistributedCpuMathEngines( mathEngines.GetPtr(), count );
+	CreateDistributedCpuMathEngines( mathEngines.GetPtr(), count, memoryLimit );
 	CMemoryFile file;
 	CArchive archive( &file, CArchive::SD_Storing );
 	dnn.Serialize( archive );
@@ -193,7 +194,8 @@ CDistributedTraining::CDistributedTraining( CDnn& dnn, int count, TDistributedIn
 	SetSolver( archive );
 }
 
-CDistributedTraining::CDistributedTraining( CArchive& archive, int count, TDistributedInitializer initializer, int seed ) :
+CDistributedTraining::CDistributedTraining( CArchive& archive, int count, TDistributedInitializer initializer, int seed,
+		size_t memoryLimit ) :
 	isCpu( true ),
 	threadPool( CreateThreadPool( count ) )
 {
@@ -202,7 +204,7 @@ CDistributedTraining::CDistributedTraining( CArchive& archive, int count, TDistr
 
 	initThreadGroupInfo();
 	mathEngines.SetSize( count );
-	CreateDistributedCpuMathEngines( mathEngines.GetPtr(), count );
+	CreateDistributedCpuMathEngines( mathEngines.GetPtr(), count, memoryLimit );
 	initialize( archive, count, initializer, seed );
 }
 

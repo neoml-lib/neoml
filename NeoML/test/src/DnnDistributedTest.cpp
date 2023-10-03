@@ -226,3 +226,27 @@ TEST( CDnnDistributedTest, DnnDistributedAutoThreadCountTest )
 	ASSERT_LT( 0, distributed.GetModelCount() );
 	ASSERT_EQ( GetAvailableCpuCores(), distributed.GetModelCount() );
 }
+
+#ifndef NEOML_USE_FINEOBJ
+TEST( CDnnDistributedTest, MemoryLimitViolationTest )
+{
+	constexpr int fcOutputSize = 1000;
+	constexpr int fcInputSize = 1000;
+	constexpr size_t blobSize = sizeof( float ) * fcInputSize * fcOutputSize;
+
+	std::unique_ptr<IMathEngine> mathEngine( CreateCpuMathEngine( 0 ) );
+	CRandom rand( 42 );
+
+	CDnn dnn( rand, *mathEngine );
+	CSourceLayer* source = Source( dnn, "source" );
+	CFullyConnectedLayer* fc = FullyConnected( fcOutputSize, true )( "fc", source );
+	( void ) Sink( fc, "sink" );
+
+	fc->SetWeightsData( CDnnBlob::CreateDataBlob( *mathEngine, CT_Float, 1, fcOutputSize, fcInputSize ) );
+
+	std::unique_ptr<CDistributedTraining> training;
+	// 2 blob sizes isn't enough to load net 8 times
+	EXPECT_THROW( training.reset(
+		new CDistributedTraining( dnn, 8, TDistributedInitializer::Xavier, 42, blobSize * 2 ) ), CMemoryException );
+}
+#endif // NEOML_USE_FINEOBJ
