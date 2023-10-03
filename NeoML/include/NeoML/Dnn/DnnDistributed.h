@@ -45,9 +45,11 @@ public:
 	// If `count` is 0 or less then creates a number of models
 	// equal to the number of available CPU cores
 	CDistributedTraining( CDnn& dnn, int count,
-		TDistributedInitializer initializer = TDistributedInitializer::Xavier, int seed = 42 );
+		TDistributedInitializer initializer = TDistributedInitializer::Xavier, int seed = 42,
+		size_t memoryLimit = 0 );
 	CDistributedTraining( CArchive& archive, int count,
-		TDistributedInitializer initializer = TDistributedInitializer::Xavier, int seed = 42 );
+		TDistributedInitializer initializer = TDistributedInitializer::Xavier, int seed = 42,
+		size_t memoryLimit = 0 );
 	// Creates gpu models, `devs` should contain numbers of using devices
 	CDistributedTraining( CDnn& dnn, const CArray<int>& cudaDevs,
 		TDistributedInitializer initializer = TDistributedInitializer::Xavier, int seed = 42 );
