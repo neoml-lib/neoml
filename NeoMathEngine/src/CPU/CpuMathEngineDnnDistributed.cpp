@@ -86,11 +86,11 @@ void CMultiThreadDistributedCommunicator::Broadcast( const CFloatHandle& handle,
 	barrier();
 }
 
-void CreateDistributedCpuMathEngines( IMathEngine** mathEngines, int count, size_t memoryLimit )
+void CreateDistributedCpuMathEngines( IMathEngine** mathEngines, int count )
 {
 	auto communicator = std::make_shared<CMultiThreadDistributedCommunicator>( count );
 	for( int i = 0; i < count; i++ ){
-		mathEngines[i] = new CCpuMathEngine( memoryLimit / count, communicator, CMathEngineDistributedInfo( i, count ) );
+		mathEngines[i] = new CCpuMathEngine( /*memoryLimit*/0u, communicator, CMathEngineDistributedInfo( i, count ) );
 	}
 }
 
