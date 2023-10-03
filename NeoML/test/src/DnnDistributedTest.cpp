@@ -231,21 +231,24 @@ TEST( CDnnDistributedTest, DnnDistributedAutoThreadCountTest )
 
 TEST( CDnnDistributedTest, MemoryLimitViolationTest )
 {
-	std::unique_ptr<IMathEngine> mathEngine( CreateCpuMathEngine( 0u ) );
+	constexpr int fcOutputSize = 1000;
+	constexpr int fcInputSize = 1000;
+	constexpr size_t blobSize = sizeof( float ) * fcInputSize * fcOutputSize;
+
+	std::unique_ptr<IMathEngine> mathEngine( CreateCpuMathEngine( 0 ) );
 	CRandom rand( 42 );
 
 	CDnn dnn( rand, *mathEngine );
 	CSourceLayer* source = Source( dnn, "source" );
-	CFullyConnectedLayer* fc = FullyConnected( 10, true )( "fc", source );
+	CFullyConnectedLayer* fc = FullyConnected( fcOutputSize, true )( "fc", source );
 	( void ) Sink( fc, "sink" );
 
-	// now this net has 10.000.000 floats (40.000.000 bytes) of parameters
-	fc->SetWeightsData( CDnnBlob::CreateDataBlob( *mathEngine, CT_Float, 1, 100, 1000000 ) );
+	fc->SetWeightsData( CDnnBlob::CreateDataBlob( *mathEngine, CT_Float, 1, fcOutputSize, fcInputSize ) );
 
 	std::unique_ptr<CDistributedTraining> training;
-	// 80.000.000 bytes is not enough to load this net 8 times
-	EXPECT_THROW( training.reset( new CDistributedTraining( dnn, 8, TDistributedInitializer::Xavier, 42, 80000000 ) ),
-		CMemoryException );
+	// 2 blob sizes isn't enough to load net 8 times
+	EXPECT_THROW( training.reset(
+		new CDistributedTraining( dnn, 8, TDistributedInitializer::Xavier, 42, blobSize * 2 ) ), CMemoryException );
 }
 
 #endif
