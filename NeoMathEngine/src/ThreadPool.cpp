@@ -79,7 +79,7 @@ static T readValueFromFile( const char* name, const T defaultValue )
 		std::cerr << name << '\t' << result << '\n';
 		return result;
 	}
-	std::cerr << name << "\tFAILED(0)\n";
+	std::cerr << name << "\tFAILED(" << defaultValue << ")\n";
 	return defaultValue;
 }
 #endif // FINE_PLATFORM( FINE_LINUX )
@@ -92,8 +92,8 @@ int GetAvailableCpuCores()
 		if( isInDocker() ) {
 			// Case #1: linux Docker with --cpus value set (or k8s with cpu limits)
 			// When working under cgroups without quotas cfs_quota_us contains -1
-			const int quota = readFromFile<int>( "/sys/fs/cgroup/cpu/cpu.cfs_quota_us", -1 );
-			const int period = readFromFile<int>( "/sys/fs/cgroup/cpu/cpu.cfs_period_us", -1 );
+			const int quota = readValueFromFile<int>( "/sys/fs/cgroup/cpu/cpu.cfs_quota_us", -1 );
+			const int period = readValueFromFile<int>( "/sys/fs/cgroup/cpu/cpu.cfs_period_us", -1 );
 			if( quota > 0 && period > 0 ) {
 				// Using ceil because --cpus 0.1 is a valid scenario in docker (0.1 means quota * 10 == period)
 				return static_cast<int>( ( quota + period - 1 ) / period );
@@ -119,8 +119,8 @@ size_t GetRamLimit()
 {
 #if FINE_PLATFORM( FINE_LINUX )
 	if( isInDocker() ) {
-		const uint64_t memLimit = readFromFile<uint64_t>( "/sys/fs/cgroup/memory/memory.limit_in_bytes", 0 );
-		const uint64_t memUsed = readFromFile<uint64_t>( "/sys/fs/cgroup/memory/memory.usage_in_bytes", 0 );
+		const uint64_t memLimit = readValueFromFile<uint64_t>( "/sys/fs/cgroup/memory/memory.limit_in_bytes", 0 );
+		const uint64_t memUsed = readValueFromFile<uint64_t>( "/sys/fs/cgroup/memory/memory.usage_in_bytes", 0 );
 		if( memLimit > memUsed ) {
 			return static_cast<size_t>( std::min( SIZE_MAX, memLimit - memUsed ) );
 		}
