@@ -33,7 +33,6 @@ CActivationOperatorBase::CActivationOperatorBase( const onnx::NodeProto& onnxNod
 void CActivationOperatorBase::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
 	CheckNeoOnnxSupport( inputs[0] != nullptr, "Missing input", *this );
-	CheckNoShapeInputs( inputs );
 
 	CPtr<const CUserTensor> userInput = AsUserTensor( *inputs[0], Name() + "_Source", dnn );
 

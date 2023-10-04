@@ -26,14 +26,14 @@ public:
 	explicit CMultiThreadDistributedCommunicator( int n_threads );
 	void AllReduce( const CFloatHandle& handle, int size );
 	void Broadcast( const CFloatHandle& handle, int size, int root );
-	void Abort() { isAbort = true; }
+	void Abort() { isAbort.store(true, std::memory_order_release); }
 private:
 	std::vector<float*> handles;
 
 	std::atomic<int> counter;
-	std::atomic<int> waiting_flag;
+	std::atomic_bool waiting_flag;
 	int n_threads;
-	std::atomic<bool> isAbort;
+	std::atomic_bool isAbort;
 
 	// non-blocking barrier
 	void barrier();

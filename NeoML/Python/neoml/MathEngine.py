@@ -43,18 +43,14 @@ class MathEngine:
 class CpuMathEngine(MathEngine):
     """A math engine working on CPU.
     
-    :param thread_count: the maximum number of threads in use.
-    :type thread_count: int, default=None
+    :param deprecated
     """
-    def __init__(self, thread_count=None):
-        if thread_count is None:
-            thread_count = 0
-
-        if isinstance(thread_count, PythonWrapper.MathEngine):
-            super().__init__(thread_count)
+    def __init__(self, deprecated=None):
+        if isinstance(deprecated, PythonWrapper.MathEngine):
+            super().__init__(deprecated)
             return
 
-        internal = PythonWrapper.MathEngine('cpu', int(thread_count), 0)
+        internal = PythonWrapper.MathEngine('cpu', 0)
         super().__init__(internal)
 
 # ----------------------------------------------------------------------------------------------------------------------
@@ -82,7 +78,7 @@ class GpuMathEngine(MathEngine):
         if gpu_index < -1 or gpu_index >= len(gpus):
             raise ValueError("GPU with index `gpu_index` doesn't exist.")
 
-        internal = PythonWrapper.MathEngine('gpu', 0, int(gpu_index))
+        internal = PythonWrapper.MathEngine('gpu', int(gpu_index))
         super().__init__(internal)
 
     @property

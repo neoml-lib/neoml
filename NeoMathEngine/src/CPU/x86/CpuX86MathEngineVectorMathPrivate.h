@@ -13,7 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
-// These functions work with raw pointers, contain no OMP sections and perform no checks
+// These functions work with raw pointers, and perform no checks
 
 #pragma once
 
@@ -31,6 +31,10 @@ limitations under the License.
 #else
 #error Unknown platform
 #endif
+#endif
+
+#ifdef NEOML_USE_MLAS
+#include <mlas/inc/mlas.h>
 #endif
 
 #ifndef NOMINMAX
@@ -150,6 +154,85 @@ inline void channelwise1x5( const float* source, const float* filter0, const flo
 
 		source += 4;
 		filter0 += 4; filter1 += 4; filter2 += 4; filter3 += 4; filter4 += 4;
+		result += 4;
+		channels -= 4;
+	}
+}
+
+//------------------------------------------------------------------------------------------------------------
+
+inline void channelwiseConvolution1x7Kernel( const float* source0, const float* source1, const float* source2, const float* source3,
+	const float* source4, const float* source5, const float* source6, const float* source7,
+	const float* filter0, const float* filter1, const float* filter2, const float* filter3, const float* filter4,
+	const float* filter5, const float* filter6, float* result0, float* result1 )
+{
+	__m128 result0_4 = _mm_loadu_ps( result0 );
+	__m128 result1_4 = _mm_loadu_ps( result1 );
+
+	__m128 filter_4 = _mm_loadu_ps( filter0 );
+	__m128 source_4 = _mm_loadu_ps( source0 );
+	result0_4 = _mm_add_ps( result0_4, _mm_mul_ps( source_4, filter_4 ) );
+
+	source_4 = _mm_loadu_ps( source1 );
+	result1_4 = _mm_add_ps( result1_4, _mm_mul_ps( source_4, filter_4 ) );
+
+	filter_4 = _mm_loadu_ps( filter1 );
+	result0_4 = _mm_add_ps( result0_4, _mm_mul_ps( source_4, filter_4 ) );
+
+	source_4 = _mm_loadu_ps( source2 );
+	result1_4 = _mm_add_ps( result1_4, _mm_mul_ps( source_4, filter_4 ) );
+
+	filter_4 = _mm_loadu_ps( filter2 );
+	result0_4 = _mm_add_ps( result0_4, _mm_mul_ps( source_4, filter_4 ) );
+
+	source_4 = _mm_loadu_ps( source3 );
+	result1_4 = _mm_add_ps( result1_4, _mm_mul_ps( source_4, filter_4 ) );
+
+	filter_4 = _mm_loadu_ps( filter3 );
+	result0_4 = _mm_add_ps( result0_4, _mm_mul_ps( source_4, filter_4 ) );
+
+	source_4 = _mm_loadu_ps( source4 );
+	result1_4 = _mm_add_ps( result1_4, _mm_mul_ps( source_4, filter_4 ) );
+
+	filter_4 = _mm_loadu_ps( filter4 );
+	result0_4 = _mm_add_ps( result0_4, _mm_mul_ps( source_4, filter_4 ) );
+
+	source_4 = _mm_loadu_ps( source5 );
+	result1_4 = _mm_add_ps( result1_4, _mm_mul_ps( source_4, filter_4 ) );
+
+	filter_4 = _mm_loadu_ps( filter5 );
+	result0_4 = _mm_add_ps( result0_4, _mm_mul_ps( source_4, filter_4 ) );
+
+	source_4 = _mm_loadu_ps( source6 );
+	result1_4 = _mm_add_ps( result1_4, _mm_mul_ps( source_4, filter_4 ) );
+
+	filter_4 = _mm_loadu_ps( filter6 );
+	result0_4 = _mm_add_ps( result0_4, _mm_mul_ps( source_4, filter_4 ) );
+
+	source_4 = _mm_loadu_ps( source7 );
+	result1_4 = _mm_add_ps( result1_4, _mm_mul_ps( source_4, filter_4 ) );
+
+	_mm_storeu_ps( result0, result0_4 );
+	_mm_storeu_ps( result1, result1_4 );
+}
+
+inline void channelwise1x7( const float* source, const float* filter0, const float* filter1, const float* filter2,
+	const float* filter3, const float* filter4, const float* filter5, const float* filter6, float* result, int channels )
+{
+	const int shift1 = channels;
+	const int shift2 = 2 * channels;
+	const int shift3 = 3 * channels;
+	const int shift4 = 4 * channels;
+	const int shift5 = 5 * channels;
+	const int shift6 = 6 * channels;
+	const int shift7 = 7 * channels;
+	while( channels > 0 ) {
+		channelwiseConvolution1x7Kernel( source, source + shift1, source + shift2, source + shift3, source + shift4,
+			source + shift5, source + shift6, source + shift7,
+			filter0, filter1, filter2, filter3, filter4, filter5, filter6, result, result + shift1 );
+
+		source += 4;
+		filter0 += 4; filter1 += 4; filter2 += 4; filter3 += 4; filter4 += 4; filter5 += 4; filter6 += 4;
 		result += 4;
 		channels -= 4;
 	}
@@ -478,8 +561,13 @@ inline __m128i sse2Multiply4SignedInts( const __m128i& first, const __m128i& sec
 
 //------------------------------------------------------------------------------------------------------------
 
-inline void vectorMultiply( const float* first, float* result, float multiplier, int vectorSize )
+inline void vectorMultiply( const float* first, float* result, int vectorSize, float multiplier )
 {
+	if( CCPUInfo::HasAvxAndFma && vectorSize >= NeoML::Avx2::VectorMathMinSize ) {
+		NeoML::Avx2::vectorMultiply( first, result, vectorSize, multiplier );
+		return;
+	}
+
 	int sseSize;
 	int nonSseSize;
 	checkSse( vectorSize, sseSize, nonSseSize );
@@ -498,7 +586,7 @@ inline void vectorMultiply( const float* first, float* result, float multiplier,
 	}
 }
 
-inline void vectorMultiply( const int* first, int* result, int multiplier, int vectorSize )
+inline void vectorMultiply( const int* first, int* result, int vectorSize, int multiplier )
 {
 	int sseSize;
 	int nonSseSize;
@@ -787,6 +875,11 @@ inline void vectorReLU( const float* first, float* result, int vectorSize, float
 
 inline void vectorAddValue( const float* first, float* result, int vectorSize, float value )
 {
+	if( CCPUInfo::HasAvxAndFma && vectorSize >= NeoML::Avx2::VectorMathMinSize ) {
+		NeoML::Avx2::vectorAddValue( first, result, vectorSize, value );
+		return;
+	}
+
 	int sseSize;
 	int nonSseSize;
 	checkSse( vectorSize, sseSize, nonSseSize );
@@ -1084,8 +1177,8 @@ inline void vectorMinMax( const float* first, float* result, const float minValu
 
 inline void vectorTanh( const float* first, float* result, int vectorSize )
 {
-#ifdef NEOML_USE_MKL
-	vsTanh( vectorSize, first, result );
+#ifdef NEOML_USE_MLAS
+	MlasComputeTanh( first, result, static_cast<size_t>( vectorSize ) );
 #else
 	for( int i = 0; i < vectorSize; ++i ) {
 		result[i] = -1.f + 2 / ( 1.f + ExponentFunc( -2 * first[i] ) );
@@ -1095,9 +1188,8 @@ inline void vectorTanh( const float* first, float* result, int vectorSize )
 
 inline void vectorExp( const float* first, float* result, int vectorSize )
 {
-#ifdef NEOML_USE_MKL
-	vectorMinMax( first, result, FLT_MIN_LOG, FLT_MAX_LOG, vectorSize );
-	vsExp( vectorSize, result, result );
+#ifdef NEOML_USE_MLAS
+	MlasComputeExp( first, result, static_cast<size_t>( vectorSize ) );
 #else
 	for( int i = 0; i < vectorSize; ++i ) {
 		result[i] = ExponentFunc( first[i] );
@@ -1107,6 +1199,9 @@ inline void vectorExp( const float* first, float* result, int vectorSize )
 
 inline void vectorSigmoid( const float* first, float* result, int vectorSize )
 {
+#ifdef NEOML_USE_MLAS
+	MlasComputeLogistic( first, result, static_cast<size_t>( vectorSize ) );
+#else
 	int sseSize;
 	int nonSseSize;
 	checkSse( vectorSize, sseSize, nonSseSize );
@@ -1128,9 +1223,18 @@ inline void vectorSigmoid( const float* first, float* result, int vectorSize )
 		*result = *result / ( *result + 1 );
 		++result;
 	}
+#endif
 }
 
 //------------------------------------------------------------------------------------------------------------
+
+inline __m128 vectorHSwishWorker( const __m128& first, const __m128& three,
+	const __m128& zero, const __m128& oneSixth )
+{
+	__m128 middlePart = _mm_max_ps( _mm_add_ps( first, three ), zero );
+	middlePart = _mm_mul_ps( _mm_mul_ps( first, oneSixth ), middlePart );
+	return _mm_min_ps( middlePart, _mm_max_ps( first, three ) );
+}
 
 inline void vectorHSwish( const float* first, float* result, int vectorSize )
 {
@@ -1139,38 +1243,21 @@ inline void vectorHSwish( const float* first, float* result, int vectorSize )
 		return;
 	}
 
-	int sseSize;
-	int nonSseSize;
-	checkSse( vectorSize, sseSize, nonSseSize );
+	const __m128 zero = _mm_setzero_ps();
+	const __m128 three = _mm_set1_ps( 3.f );
+	const __m128 oneSixth = _mm_set1_ps( 1.f / 6.f );
 
-	if( sseSize > 0 ) {
-		const __m128 minusThreeSse = _mm_set1_ps( -3.f );
-		const __m128 threeSse = _mm_set1_ps( 3.f );
-		const __m128 oneSixthSse = _mm_set1_ps( 1.f / 6.f );
-		for( int i = 0; i < sseSize; ++i ) {
-			__m128 input = _mm_loadu_ps( first );
-			__m128 middlePart = _mm_cmplt_ps( minusThreeSse, input );
-			middlePart = _mm_and_ps( middlePart, _mm_cmplt_ps( input, threeSse ) ); // mask for (-3; 3)
-			middlePart = _mm_and_ps( middlePart, _mm_mul_ps( _mm_mul_ps( input, oneSixthSse ), _mm_add_ps( input, threeSse ) ) );
-			__m128 rightPart = _mm_cmpge_ps( input, threeSse );
-			rightPart = _mm_and_ps( rightPart, input );
-			_mm_storeu_ps( result, _mm_add_ps( middlePart, rightPart ) );
+	for( ; vectorSize >= 4; vectorSize -= 4 ) {
+		__m128 res = vectorHSwishWorker( LoadSse4( first ), three, zero, oneSixth );
+		StoreSse4( res , result );
 
-			first += 4;
-			result += 4;
-		}
+		first += 4;
+		result += 4;
 	}
 
-	for( int i = 0; i < nonSseSize; ++i ) {
-		if( *first <= -3.f ) {
-			*result = 0.f;
-		} else if( *first >= 3.f ) {
-			*result = *first;
-		} else {
-			*result = *first * ( *first + 3 ) / 6.f;
-		}
-		++result;
-		++first;
+	if ( vectorSize > 0 ) {
+		__m128 res = vectorHSwishWorker( LoadSse( first, vectorSize ), three, zero, oneSixth );
+		StoreSse( res, result, vectorSize );
 	}
 }
 

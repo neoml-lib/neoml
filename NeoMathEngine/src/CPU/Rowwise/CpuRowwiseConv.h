@@ -25,16 +25,16 @@ namespace NeoML {
 class CCpuMathEngine::CCpuRowwiseConv : public ICpuRowwiseImpl, public CRowwiseOperationDesc {
 public:
 	CCpuRowwiseConv( CCpuMathEngine& mathEngine, int inputChannels, int padH, int padW, int strideH, int strideW,
-		int dilH, int dilW, int fC, int fH, int fW, const float* filter, const float* freeTerm ) :
+			int dilH, int dilW, int fC, int fH, int fW, const float* filter, const float* freeTerm ) :
 		mathEngine( mathEngine ),
-		desc( CBlobDesc(), CBlobDesc(), CBlobDesc( { 1, fC, 1, fH, fW, 1, inputChannels } ), padH, padW,
+		desc( mathEngine, CBlobDesc{}, CBlobDesc{}, CBlobDesc( { 1, fC, 1, fH, fW, 1, inputChannels } ), padH, padW,
 			strideH, strideW, dilH, dilW ),
 		filter( filter ),
 		freeTerm( freeTerm ),
 		inputRowRequirement( 0 ),
-		outputRowRequirement( 0 )
-	{
-	}
+		outputRowRequirement( 0 ),
+		smallMatricesMulDescs{ mathEngine, mathEngine }
+	{}
 
 	CBlobDesc Reshape( const CBlobDesc& inputSize ) override;
 	int InputRowRequirement() const override { return inputRowRequirement; }
@@ -49,20 +49,26 @@ public:
 private:
 	CCpuMathEngine& mathEngine;
 	CCpuConvolutionDesc desc;
-	const float* filter;
-	const float* freeTerm;
-	int inputRowRequirement;
-	int outputRowRequirement;
+	const float* const filter;
+	const float* const freeTerm;
+
+	int inputRowRequirement{};
+	int outputRowRequirement{};
+
+	enum { TSMMDA_Input, TSMMDA_Buffer, /*...*/ TSMMDA_Count_ };
+	// The array of matrices multiplication optimization descriptors arrays by enum above
+	CCpuSmallMatricesMultiplyDescsArray</*Height*/> smallMatricesMulDescs[TSMMDA_Count_];
 
 	bool is1x1Conv() const { return desc.Filter.GeometricalSize() == 1 && desc.PaddingHeight == 0
 		&& desc.PaddingWidth == 0 && desc.StrideHeight == 1 && desc.StrideWidth == 1; }
 	int getCacheItemCount() const;
 };
 
+//-------------------------------------------------------------------------------------------------------------
+
 inline CBlobDesc CCpuMathEngine::CCpuRowwiseConv::Reshape( const CBlobDesc& inputSize )
 {
-	auto convOutputSize = [] ( int input, int filter, int padding,
-		int stride, int dilation ) -> int
+	auto convOutputSize = [] ( int input, int filter, int padding, int stride, int dilation ) -> int
 	{
 		return 1 + ( input - ( filter - 1 ) * dilation + 2 * padding - 1 ) / stride;
 	};
@@ -91,7 +97,10 @@ inline CBlobDesc CCpuMathEngine::CCpuRowwiseConv::Reshape( const CBlobDesc& inpu
 		outputRowRequirement = ( RowwiseMatMulRequiredHeight + desc.Result.Width() - 1 ) / desc.Result.Width();
 		inputRowRequirement = effectiveFilterSize + desc.StrideHeight * ( outputRowRequirement - 1 );
 	}
-
+	// Destroy optimizer to recreate it with updated sizes at use
+	for( auto& desc : smallMatricesMulDescs ) {
+		desc.DestroyAll();
+	}
 	return desc.Result;
 }
 
@@ -133,13 +142,19 @@ inline ICpuRowwiseImpl::CProcessingReport CCpuMathEngine::CCpuRowwiseConv::Proce
 	}
 
 	if( is1x1Conv() ) {
-		mathEngine.multiplyMatrixByTransposedMatrix( input, report.OutputRowsCalculated * desc.Result.Width(),
-			desc.Source.Channels(), desc.Source.Channels(), filter, desc.Result.Channels(),
-			desc.Source.Channels(), output, desc.Result.Channels() );
+		const int firstHeight = report.OutputRowsCalculated * desc.Result.Width();
+		const int firstWidth = desc.Source.Channels();
+		const int secondHeight = desc.Result.Channels();
+		const int secondWidth = firstWidth;
+		const int resultWidth = secondHeight;
+		auto mulDesc = smallMatricesMulDescs[TSMMDA_Input].Get( firstHeight,
+			firstHeight, firstWidth, secondWidth, resultWidth );
+
+		mathEngine.multiplyMatrixByTransposedMatrix( input, firstHeight, firstWidth, firstWidth,
+			filter, secondHeight, secondWidth, output, resultWidth, mulDesc );
 		if( freeTerm != nullptr ) {
-			mathEngine.addVectorToMatrixRows( output, output, report.OutputRowsCalculated * desc.Result.Width(),
-				desc.Result.Channels(), desc.Result.Channels(), desc.Result.Channels(),
-				freeTerm );
+			mathEngine.addVectorToMatrixRows( output, output, firstHeight,
+				resultWidth, resultWidth, resultWidth, freeTerm );
 		}
 		return report;
 	}
@@ -149,10 +164,15 @@ inline ICpuRowwiseImpl::CProcessingReport CCpuMathEngine::CCpuRowwiseConv::Proce
 	const int cacheItemCount = getCacheItemCount();
 
 	const int imageStartOffset = inputRowIndex * desc.Source.Width() * desc.Source.Channels();
-
-	int index = 0;
 	const int count = report.OutputRowsCalculated * desc.Result.Width();
 	const int start = outputRowIndex * desc.Result.Width();
+
+	const int firstWidth = filterObjectSize;
+	const int secondHeight = filterObjectCount;
+	const int secondWidth = firstWidth;
+	const int resultWidth = secondHeight;
+
+	int index = 0;
 	while( index < count ) {
 		const int size = std::min( count - index, cacheItemCount );
 
@@ -160,15 +180,17 @@ inline ICpuRowwiseImpl::CProcessingReport CCpuMathEngine::CCpuRowwiseConv::Proce
 
 		float* resultDataPtr = output + index * filterObjectCount;
 
-		mathEngine.multiplyMatrixByTransposedMatrix( buffer, size, filterObjectSize,
-			filterObjectSize, filter, filterObjectCount, filterObjectSize, resultDataPtr,
-			filterObjectCount );
+		const int firstHeight = size;
+		auto mulDesc = smallMatricesMulDescs[TSMMDA_Buffer].Get( firstHeight,
+			firstHeight, firstWidth, secondWidth, resultWidth );
+
+		mathEngine.multiplyMatrixByTransposedMatrix( buffer, firstHeight, firstWidth, firstWidth,
+			filter, secondHeight, secondWidth, resultDataPtr, resultWidth, mulDesc );
 
 		if( freeTerm!= nullptr ) {
-			mathEngine.addVectorToMatrixRows( resultDataPtr, resultDataPtr, size, filterObjectCount, filterObjectCount,
-				filterObjectCount, freeTerm );
+			mathEngine.addVectorToMatrixRows( resultDataPtr, resultDataPtr, size,
+				resultWidth, resultWidth, resultWidth, freeTerm );
 		}
-
 		index += size;
 	}
 

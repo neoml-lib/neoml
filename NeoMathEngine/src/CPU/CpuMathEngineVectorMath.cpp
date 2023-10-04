@@ -27,86 +27,6 @@ limitations under the License.
 
 namespace NeoML {
 
-// Applies singleThreadFunction on the data of vectorSize by using threadCount omp threads
-template<class T>
-static void applyOmpVectorFunction( int threadCount, int vectorSize, T& function )
-{
-	if( threadCount > 1 ) {
-		NEOML_OMP_NUM_THREADS( threadCount ) {
-			int index, count;
-			if( OmpGetTaskIndexAndCount( vectorSize, 16, index, count ) ) {
-				function( index, count );
-			}
-		}
-	} else {
-		function( 0, vectorSize );
-	}
-}
-
-//------------------------------------------------------------------------------------------------------------
-// 
-// Class which wraps binary vector functor into OMP-friendly interface
-template<class TFunctor>
-class COmpBinaryVectorFunction final {
-public:
-	using TFirst = typename TFunctor::TFirst;
-	using TSecond = typename TFunctor::TSecond;
-	using TResult = typename TFunctor::TResult;
-
-	COmpBinaryVectorFunction( const TFirst* first, const TSecond* second, TResult* result,
-			const TFunctor& functor = TFunctor(), TFirst firstDefaultValue = 1, TSecond secondDefaultValue = 1 ) :
-		function( functor, firstDefaultValue, secondDefaultValue ),
-		first( first ),
-		second( second ),
-		result( result )
-	{}
-
-	void operator()( int index, int count )
-	{
-		function( first + index, second + index, result + index, count );
-	}
-
-private:
-	CBinaryVectorFunction<TFunctor> function;
-	const TFirst* const first;
-	const TSecond* const second;
-	TResult* const result;
-};
-
-// Class which wraps ternary vector functor into OMP-friendly interface
-template<class TFunctor>
-class COmpTernaryVectorFunction final {
-public:
-	using TFirst = typename TFunctor::TFirst;
-	using TSecond = typename TFunctor::TSecond;
-	using TThird = typename TFunctor::TThird;
-	using TResult = typename TFunctor::TResult;
-
-	COmpTernaryVectorFunction( const TFirst* first, const TSecond* second, const TThird* third, TResult* result,
-			const TFunctor& functor = TFunctor(), TFirst firstDefaultValue = 1, TSecond secondDefaultValue = 1,
-			TThird thirdDefaultValue = 1 ) :
-		function( functor, firstDefaultValue, secondDefaultValue, thirdDefaultValue ),
-		first( first ),
-		second( second ),
-		third( third ),
-		result( result )
-	{}
-
-	void operator()( int index, int count )
-	{
-		function( first + index, second + index, third + index, result + index, count );
-	}
-
-private:
-	CTernaryVectorFunction<TFunctor> function;
-	const TFirst* const first;
-	const TSecond* const second;
-	const TThird* const third;
-	TResult* const result;
-};
-
-//------------------------------------------------------------------------------------------------------------
-
 void CCpuMathEngine::VectorFill( const CFloatHandle& result, int vectorSize, const CConstFloatHandle& value )
 {
 	ASSERT_EXPR( result.GetMathEngine() == this );
@@ -131,18 +51,7 @@ void CCpuMathEngine::VectorCopy( const CFloatHandle& firstHandle, const CConstFl
 	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
 	CCpuExecutionScope scope;
 
-	const int curThreadCount = IsOmpRelevant( vectorSize, vectorSize ) ? threadCount : 1;
-
-	if( curThreadCount > 1 ) {
-		NEOML_OMP_NUM_THREADS( curThreadCount ) {
-			int index, count;
-			if( OmpGetTaskIndexAndCount( vectorSize, 16, index, count ) ) {
-				dataCopy( GetRaw( firstHandle + index ), GetRaw( secondHandle + index ), count );
-			}
-		}
-	} else {
-		dataCopy( GetRaw( firstHandle ), GetRaw( secondHandle ), vectorSize );
-	}
+	dataCopy( GetRaw( firstHandle ), GetRaw( secondHandle ), vectorSize );
 }
 
 void CCpuMathEngine::VectorCopy( const CIntHandle& firstHandle, const CConstIntHandle& secondHandle, int vectorSize )
@@ -151,16 +60,7 @@ void CCpuMathEngine::VectorCopy( const CIntHandle& firstHandle, const CConstIntH
 	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
 	CCpuExecutionScope scope;
 
-	const int curThreadCount = IsOmpRelevant( vectorSize, vectorSize ) ? threadCount : 1;
-
-	NEOML_OMP_NUM_THREADS( curThreadCount )
-	{
-		int index;
-		int count;
-		if( OmpGetTaskIndexAndCount( vectorSize, 16, index, count ) ) {
-			dataCopy( GetRaw( firstHandle + index ), GetRaw( secondHandle + index ), count );
-		}
-	}
+	dataCopy( GetRaw( firstHandle ), GetRaw( secondHandle ), vectorSize );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -174,7 +74,7 @@ void broadcastCopyImpl( T* to, const T* from, const CBlobDesc& toDesc, const CBl
 
 	for( int i = BD_Count - 1; i >= 0; i-- ) {
 		if( toDesc.DimSize( i ) != fromDesc.DimSize( i ) ) {
-			T* fromPtr = to + curSize - copySize;
+			const T* fromPtr = to + curSize - copySize;
 			T* toPtr = to + curSize * toDesc.DimSize( i ) - copySize;
 			for( int j = 0; j < curSize / copySize; j++ ) {
 				if( copySize == 1 ) {
@@ -230,18 +130,7 @@ void CCpuMathEngine::VectorAdd( const CConstFloatHandle& firstHandle, const CCon
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	CCpuExecutionScope scope;
 
-	const int curThreadCount = IsOmpRelevant( vectorSize, vectorSize ) ? threadCount : 1;
-
-	if( curThreadCount > 1 ) {
-		NEOML_OMP_NUM_THREADS( curThreadCount ) {
-			int index, count;
-			if( OmpGetTaskIndexAndCount( vectorSize, 16, index, count ) ) {
-				NeoML::vectorAdd( GetRaw( firstHandle + index ), GetRaw( secondHandle + index ), GetRaw( resultHandle + index ), count );
-			}
-		}
-	} else {
-		NeoML::vectorAdd( GetRaw( firstHandle ), GetRaw( secondHandle ), GetRaw( resultHandle ), vectorSize );
-	}
+	NeoML::vectorAdd( GetRaw( firstHandle ), GetRaw( secondHandle ), GetRaw( resultHandle ), vectorSize );
 }
 
 void CCpuMathEngine::VectorSum( const CConstFloatHandle& firstHandle, int vectorSize, const CFloatHandle& resultHandle )
@@ -583,20 +472,9 @@ void CCpuMathEngine::VectorMultiply( const CConstFloatHandle& firstHandle,
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	CCpuExecutionScope scope;
 
-	float multiplier = *GetRaw( multiplierHandle );
+	const float multiplier = *GetRaw( multiplierHandle );
 
-	const int curThreadCount = IsOmpRelevant( vectorSize, vectorSize ) ? threadCount : 1;
-
-	if( curThreadCount > 1 ) {
-		NEOML_OMP_NUM_THREADS( curThreadCount ) {
-			int index, count;
-			if( OmpGetTaskIndexAndCount( vectorSize, 16, index, count ) ) {
-				vectorMultiply( GetRaw( firstHandle + index ), GetRaw( resultHandle + index ), multiplier, count );
-			}
-		}
-	} else {
-		vectorMultiply( GetRaw( firstHandle ), GetRaw( resultHandle ), multiplier, vectorSize );
-	}
+	vectorMultiply( GetRaw( firstHandle ), GetRaw( resultHandle ), vectorSize, multiplier );
 }
 
 void CCpuMathEngine::VectorMultiply( const CConstIntHandle& firstHandle,
@@ -607,20 +485,9 @@ void CCpuMathEngine::VectorMultiply( const CConstIntHandle& firstHandle,
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	CCpuExecutionScope scope;
 
-	int multiplier = *GetRaw( multiplierHandle );
+	const int multiplier = *GetRaw( multiplierHandle );
 
-	const int curThreadCount = IsOmpRelevant( vectorSize, vectorSize ) ? threadCount : 1;
-
-	if( curThreadCount > 1 ) {
-		NEOML_OMP_NUM_THREADS( curThreadCount ) {
-			int index, count;
-			if( OmpGetTaskIndexAndCount( vectorSize, 16, index, count ) ) {
-				vectorMultiply( GetRaw( firstHandle + index ), GetRaw( resultHandle + index ), multiplier, count );
-			}
-		}
-	} else {
-		vectorMultiply( GetRaw( firstHandle ), GetRaw( resultHandle ), multiplier, vectorSize );
-	}
+	vectorMultiply( GetRaw( firstHandle ), GetRaw( resultHandle ), vectorSize, multiplier );
 }
 
 void CCpuMathEngine::VectorEltwiseMultiply( const CConstFloatHandle& firstHandle,
@@ -630,19 +497,8 @@ void CCpuMathEngine::VectorEltwiseMultiply( const CConstFloatHandle& firstHandle
 	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	CCpuExecutionScope scope;
-
-	const int curThreadCount = IsOmpRelevant( vectorSize, vectorSize ) ? threadCount : 1;
-
-	if( curThreadCount > 1 ) {
-		NEOML_OMP_NUM_THREADS( curThreadCount ) {
-			int index, count;
-			if( OmpGetTaskIndexAndCount( vectorSize, 16, index, count ) ) {
-				NeoML::vectorEltwiseMultiply( GetRaw( firstHandle + index ), GetRaw( secondHandle + index ), GetRaw( resultHandle + index ), count );
-			}
-		}
-	} else {
-		NeoML::vectorEltwiseMultiply( GetRaw( firstHandle ), GetRaw( secondHandle ), GetRaw( resultHandle ), vectorSize );
-	}
+	
+	NeoML::vectorEltwiseMultiply( GetRaw( firstHandle ), GetRaw( secondHandle ), GetRaw( resultHandle ), vectorSize );
 }
 
 void CCpuMathEngine::VectorEltwiseMultiplyAdd( const CConstFloatHandle& firstHandle,
@@ -653,16 +509,7 @@ void CCpuMathEngine::VectorEltwiseMultiplyAdd( const CConstFloatHandle& firstHan
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	CCpuExecutionScope scope;
 
-	const int curThreadCount = IsOmpRelevant( vectorSize, vectorSize ) ? threadCount : 1;
-
-	NEOML_OMP_NUM_THREADS( curThreadCount )
-	{
-		int index;
-		int count;
-		if( OmpGetTaskIndexAndCount( vectorSize, 16, index, count ) ) {
-			NeoML::vectorEltwiseMultiplyAdd( GetRaw( firstHandle + index ), GetRaw( secondHandle + index ), GetRaw( resultHandle + index ), count );
-		}
-	}
+	NeoML::vectorEltwiseMultiplyAdd( GetRaw( firstHandle ), GetRaw( secondHandle ), GetRaw( resultHandle ), vectorSize );
 }
 
 void CCpuMathEngine::VectorAbsDiff( const CConstFloatHandle& sourceGradHandle, int gradHeight, int gradWidth,
@@ -794,19 +641,8 @@ void CCpuMathEngine::VectorMinMax( const CConstFloatHandle& firstHandle, const C
 
 	const float minValue = *GetRaw( minHandle );
 	const float maxValue = *GetRaw( maxHandle );
-
-	const int curThreadCount = IsOmpRelevant( vectorSize, vectorSize ) ? threadCount : 1;
-
-	if( curThreadCount > 1 ) {
-		NEOML_OMP_NUM_THREADS( curThreadCount ) {
-			int index, count;
-			if( OmpGetTaskIndexAndCount( vectorSize, 16, index, count ) ) {
-				vectorMinMax( GetRaw( firstHandle + index ), GetRaw( resultHandle + index ), minValue, maxValue, count );
-			}
-		}
-	} else {
-		vectorMinMax( GetRaw( firstHandle ), GetRaw( resultHandle ), minValue, maxValue, vectorSize );
-	}
+	
+	vectorMinMax( GetRaw( firstHandle ), GetRaw( resultHandle ), minValue, maxValue, vectorSize );
 }
 
 void CCpuMathEngine::VectorMinMaxDiff( const CConstFloatHandle& sourceGradHandle, int gradHeight, int gradWidth,
@@ -931,10 +767,9 @@ void CCpuMathEngine::VectorEltwiseEqual( const CConstFloatHandle& firstHandle, c
 	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	CCpuExecutionScope scope;
-	const int curThreadCount = IsOmpRelevant( vectorSize, vectorSize ) ? threadCount : 1;
-	COmpBinaryVectorFunction<CEqualFunctor<float>> ompFunction( GetRaw( firstHandle ),
-		GetRaw( secondHandle ), GetRaw( resultHandle ) );
-	applyOmpVectorFunction( curThreadCount, vectorSize, ompFunction );
+
+	CBinaryVectorFunction<CEqualFunctor<float>>{}(
+		GetRaw( firstHandle ), GetRaw( secondHandle ), GetRaw( resultHandle ), vectorSize );
 }
 
 void CCpuMathEngine::VectorEltwiseEqual( const CConstIntHandle& firstHandle, const CConstIntHandle& secondHandle,
@@ -944,10 +779,9 @@ void CCpuMathEngine::VectorEltwiseEqual( const CConstIntHandle& firstHandle, con
 	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	CCpuExecutionScope scope;
-	const int curThreadCount = IsOmpRelevant( vectorSize, vectorSize ) ? threadCount : 1;
-	COmpBinaryVectorFunction<CEqualFunctor<int>> ompFunction( GetRaw( firstHandle ),
-		GetRaw( secondHandle ), GetRaw( resultHandle ) );
-	applyOmpVectorFunction( curThreadCount, vectorSize, ompFunction );
+
+	CBinaryVectorFunction<CEqualFunctor<int>>{}(
+		GetRaw( firstHandle ), GetRaw( secondHandle ), GetRaw( resultHandle ), vectorSize );
 }
 
 void CCpuMathEngine::VectorEltwiseWhere( const CConstIntHandle& firstHandle, const CConstFloatHandle& secondHandle,
@@ -958,10 +792,9 @@ void CCpuMathEngine::VectorEltwiseWhere( const CConstIntHandle& firstHandle, con
 	ASSERT_EXPR( thirdHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	CCpuExecutionScope scope;
-	const int curThreadCount = IsOmpRelevant( vectorSize, vectorSize ) ? threadCount : 1;
-	COmpTernaryVectorFunction<CWhereFunctor<float>> ompFunction( GetRaw( firstHandle ),
-		GetRaw( secondHandle ), GetRaw( thirdHandle ), GetRaw( resultHandle ) );
-	applyOmpVectorFunction( curThreadCount, vectorSize, ompFunction );
+
+	CTernaryVectorFunction<CWhereFunctor<float>>{}(
+		GetRaw( firstHandle ), GetRaw( secondHandle ), GetRaw( thirdHandle ), GetRaw( resultHandle ), vectorSize );
 }
 
 void CCpuMathEngine::VectorEltwiseWhere( const CConstIntHandle& firstHandle, const CConstIntHandle& secondHandle,
@@ -972,10 +805,9 @@ void CCpuMathEngine::VectorEltwiseWhere( const CConstIntHandle& firstHandle, con
 	ASSERT_EXPR( thirdHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	CCpuExecutionScope scope;
-	const int curThreadCount = IsOmpRelevant( vectorSize, vectorSize ) ? threadCount : 1;
-	COmpTernaryVectorFunction<CWhereFunctor<int>> ompFunction( GetRaw( firstHandle ),
-		GetRaw( secondHandle ), GetRaw( thirdHandle ), GetRaw( resultHandle ) );
-	applyOmpVectorFunction( curThreadCount, vectorSize, ompFunction );
+	
+	CTernaryVectorFunction<CWhereFunctor<int>>{}(
+		GetRaw( firstHandle ), GetRaw( secondHandle ), GetRaw( thirdHandle ), GetRaw( resultHandle ), vectorSize );
 }
 
 void CCpuMathEngine::VectorEltwiseDivide( const CConstIntHandle& firstHandle,

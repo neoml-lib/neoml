@@ -23,8 +23,9 @@ set(CPU_COMMON_SOURCES
     CPU/CpuMathEngineDnnRowwise.cpp
     CPU/CpuMathEngineDnnTimeConv.cpp
     CPU/CpuMathEngine.cpp
-    CPU/CpuMathEngineVectorMath.cpp
     CPU/CpuMathEngineDnnDistributed.cpp
+    CPU/CpuMathEngineSmallMatricesMultiplyDesc.cpp
+    CPU/CpuMathEngineVectorMath.cpp
     CrtAllocatedObject.cpp
     DllLoader.cpp
     MathEngineDeviceStackAllocator.cpp
@@ -62,8 +63,8 @@ target_sources(${PROJECT_NAME}
     CPU/CpuMathEngineDnnDistributed.h
     CPU/CpuMathEngineDnnLstm.h
     CPU/CpuMathEngineDnnPooling.h
-    CPU/CpuMathEngineOmp.h
     CPU/CpuMathEnginePrivate.h
+    CPU/CpuMathEngineSmallMatricesMultiplyDesc.h
     CPU/CpuRandom.h
 
     CPU/MatrixMultiplyingInterleavedCommon/CpuMemoryHelper.h
@@ -140,7 +141,6 @@ if((DARWIN AND CMAKE_SYSTEM_PROCESSOR MATCHES "^arm64.*") OR (ANDROID AND ANDROI
         CPU/arm/CpuArmMathEngineBlas.cpp
         CPU/arm/CpuArmMathEngineDnn.cpp
         CPU/arm/CpuArmMathEngineVectorMath.cpp
-        CPU/arm/CpuArmMathEngineDnn3dConv.cpp
         CPU/arm/CpuArmMathEngineMatrixMultiplying.cpp
     )
     target_sources(${PROJECT_NAME} 
@@ -148,7 +148,6 @@ if((DARWIN AND CMAKE_SYSTEM_PROCESSOR MATCHES "^arm64.*") OR (ANDROID AND ANDROI
         ${CPU_ARM_SOURCES}
         CPU/arm/CpuArm.h
         CPU/arm/CpuArmFunctors.h
-        CPU/arm/CpuArmMathEngineBlasPrivate.h
         CPU/arm/CpuArmMathEngineVectorMathPrivate.h
         CPU/arm/MatrixMultiplyingInterleaved/Interleavers/Interleaver_ARM64.h
         CPU/arm/MatrixMultiplyingInterleaved/MicroKernels/Kernel_ARM32NEON_6x8.h
@@ -171,14 +170,12 @@ else()
         CPU/x86/CpuX86MathEngineDnn.cpp
         CPU/x86/CpuX86MathEngineVectorMath.cpp
         CPU/x86/CpuX86MathEngineVectorMathMkl.cpp
-        CPU/x86/CpuX86MathEngineDnn3dConv.cpp
     )
     target_sources(${PROJECT_NAME} 
     PRIVATE
         ${CPU_X86_SOURCES}
         CPU/x86/CpuX86.h
         CPU/x86/CpuX86Functors.h
-        CPU/x86/CpuX86MathEngineBlasPrivate.h
         CPU/x86/CpuX86MathEngineVectorMathPrivate.h
     )
     set_property(SOURCE ${CPU_X86_SOURCES} PROPERTY UNITY_GROUP 1)
@@ -209,6 +206,18 @@ else()
         add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/CPU/x86/avx)
         set_target_properties(${PROJECT_NAME} PROPERTIES BUILD_RPATH "\$ORIGIN")
     endif()
+endif()
+
+if(WIN32 OR LINUX)
+    if(${CMAKE_VERSION} VERSION_GREATER "3.16.0")
+        set(CMAKE_UNITY_BUILD OFF)
+    endif()
+    add_subdirectory(CPU/mlas EXCLUDE_FROM_ALL)
+    if(${CMAKE_VERSION} VERSION_GREATER "3.16.0")
+        set(CMAKE_UNITY_BUILD ${NeoML_UNITY_BUILD})
+    endif()
+    target_link_libraries(${PROJECT_NAME} PRIVATE onnxruntime_mlas)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE NEOML_USE_MLAS)
 endif()
 
 # GPU specific source and settings
@@ -467,12 +476,6 @@ target_compile_definitions(${PROJECT_NAME}
 
 if(NOT NeoMathEngine_BUILD_SHARED)
     target_compile_definitions(${PROJECT_NAME} PUBLIC STATIC_NEOMATHENGINE)
-endif()
-
-
-# OpenMP
-if(NOT IOS AND NOT DARWIN)
-    link_openmp(${PROJECT_NAME})
 endif()
 
 # SSE2

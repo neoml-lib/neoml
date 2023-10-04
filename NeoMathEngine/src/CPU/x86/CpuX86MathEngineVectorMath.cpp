@@ -34,19 +34,8 @@ void CCpuMathEngine::VectorFill( const CFloatHandle& result, float value, int ve
 {
 	ASSERT_EXPR( result.GetMathEngine() == this );
 	CCpuExecutionScope scope;
-
-	const int curThreadCount = IsOmpRelevant( vectorSize, vectorSize ) ? threadCount : 1;
-
-	if( curThreadCount > 1 ) {
-		NEOML_OMP_NUM_THREADS( curThreadCount ) {
-			int index, count;
-			if( OmpGetTaskIndexAndCount( vectorSize, 16, index, count ) ) {
-				vectorFill( GetRaw( result + index ), value, count );
-			}
-		}
-	} else {
-		vectorFill( GetRaw( result ), value, vectorSize );
-	}
+	
+	vectorFill( GetRaw( result ), value, vectorSize );
 }
 
 void CCpuMathEngine::VectorFill( const CIntHandle& resultHandle, int value, int vectorSize )
@@ -54,18 +43,7 @@ void CCpuMathEngine::VectorFill( const CIntHandle& resultHandle, int value, int 
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	CCpuExecutionScope scope;
 
-	const int curThreadCount = IsOmpRelevant( vectorSize, vectorSize ) ? threadCount : 1;
-
-	if( curThreadCount > 1 ) {
-		NEOML_OMP_NUM_THREADS( curThreadCount ) {
-			int index, count;
-			if( OmpGetTaskIndexAndCount( vectorSize, 16, index, count ) ) {
-				vectorFill( GetRaw( resultHandle + index ), value, count );
-			}
-		}
-	} else {
-		vectorFill( GetRaw( resultHandle ), value, vectorSize );
-	}
+	vectorFill( GetRaw( resultHandle ), value, vectorSize );
 }
 
 void CCpuMathEngine::VectorConvert( const CConstFloatHandle& from, const CIntHandle& to, int vectorSize )
@@ -349,27 +327,12 @@ void CCpuMathEngine::VectorReLU( const CConstFloatHandle& firstHandle, const CFl
 
 	const float* first = GetRaw( firstHandle );
 	float* result = GetRaw( resultHandle );
-	float threshold = *GetRaw( upperThresholdHandle );
+	const float threshold = *GetRaw( upperThresholdHandle );
 
-	const int curThreadCount = IsOmpRelevant( vectorSize, vectorSize ) ? threadCount : 1;
-
-	if( curThreadCount > 1 ) {
-		NEOML_OMP_NUM_THREADS( curThreadCount ) {
-			int index, count;
-			if( OmpGetTaskIndexAndCount( vectorSize, 16, index, count ) ) {
-				if( threshold > 0 ) {
-					vectorReLU( first + index, result + index, count, threshold );
-				} else {
-					vectorReLU( first + index, result + index, count );
-				}
-			}
-		}
+	if( threshold > 0 ) {
+		vectorReLU( first, result, vectorSize, threshold );
 	} else {
-		if( threshold > 0 ) {
-			vectorReLU( first, result, vectorSize, threshold );
-		} else {
-			vectorReLU( first, result, vectorSize );
-		}
+		vectorReLU( first, result, vectorSize );
 	}
 }
 
@@ -479,42 +442,34 @@ void CCpuMathEngine::VectorHSwishDiff( const CConstFloatHandle& firstHandle, con
 	const float* second = GetRaw( secondHandle );
 	float* result = GetRaw( resultHandle );
 
-	int sseSize;
-	int nonSseSize;
-	checkSse( vectorSize, sseSize, nonSseSize );
+	const __m128 invSse = _mm_castsi128_ps( _mm_set1_epi8( -1 ) ); // 0xFF
+	const __m128 minusThreeSse = _mm_set1_ps( -3.f );
+	const __m128 threeSse = _mm_set1_ps( 3.f );
+	const __m128 oneThirdSse = _mm_set1_ps( 1.f / 3.f );
+	const __m128 halfSse = _mm_set1_ps( 0.5f );
 
-	if( sseSize > 0 ) {
-		const __m128 oneSse = _mm_set1_ps( 1.f );
-		const __m128 minusThreeSse = _mm_set1_ps( -3.f );
-		const __m128 threeSse = _mm_set1_ps( 3.f );
-		const __m128 oneThirdSse = _mm_set1_ps( 1.f / 3.f );
-		const __m128 halfSse = _mm_set1_ps( 0.5f );
-		for( int i = 0; i < sseSize; ++i ) {
-			__m128 input = _mm_loadu_ps( first );
-			__m128 middlePart = _mm_cmplt_ps( minusThreeSse, input );
-			middlePart = _mm_and_ps( middlePart, _mm_cmplt_ps( input, threeSse ) ); // mask for (-3; 3)
-			middlePart = _mm_and_ps( middlePart, _mm_add_ps( _mm_mul_ps( input, oneThirdSse ), halfSse ) );
-			__m128 rightPart = _mm_cmpge_ps( input, threeSse );
-			rightPart = _mm_and_ps( rightPart, oneSse );
-			_mm_storeu_ps( result, _mm_mul_ps( _mm_loadu_ps( second ), _mm_add_ps( middlePart, rightPart ) ) );
+	for( ; vectorSize >= 4; vectorSize -= 4 ) {
+		__m128 firstSse = _mm_loadu_ps( first );
+		__m128 secondSse = _mm_loadu_ps( second );
+		__m128 middlePart = _mm_mul_ps( secondSse, _mm_add_ps( _mm_mul_ps( firstSse, oneThirdSse ), halfSse ) );
+		__m128 mask = _mm_cmplt_ps( firstSse, threeSse );
+		middlePart = _mm_and_ps( middlePart, mask );
+		middlePart = _mm_or_ps( middlePart, _mm_and_ps( secondSse, _mm_xor_ps( mask, invSse ) ) );
+		_mm_storeu_ps( result, _mm_and_ps( middlePart, _mm_cmplt_ps( minusThreeSse, firstSse ) ) );
 
-			first += 4;
-			result += 4;
-			second += 4;
-		}
+		first += 4;
+		result += 4;
+		second += 4;
 	}
 
-	for( int i = 0; i < nonSseSize; ++i ) {
-		if( *first <= -3.f ) {
-			*result = 0.f;
-		} else if( *first >= 3.f ) {
-			*result = *second;
-		} else {
-			*result = *second * ( 1.f / 3.f * *first + 0.5f );
-		}
-		++result;
-		++first;
-		++second;
+	if ( vectorSize > 0 ) {
+		__m128 firstSse = LoadSse( first, vectorSize );
+		__m128 secondSse = LoadSse( second, vectorSize );
+		__m128 middlePart = _mm_mul_ps( secondSse, _mm_add_ps( _mm_mul_ps( firstSse, oneThirdSse ), halfSse ) );
+		__m128 mask = _mm_cmplt_ps( firstSse, threeSse );
+		middlePart = _mm_and_ps( middlePart, mask );
+		middlePart = _mm_or_ps( middlePart, _mm_and_ps( secondSse, _mm_xor_ps( mask, invSse ) ) );
+		StoreSse( _mm_and_ps( middlePart, _mm_cmplt_ps( minusThreeSse, firstSse ) ), result, vectorSize );
 	}
 }
 
@@ -1416,24 +1371,7 @@ void CCpuMathEngine::VectorSigmoid(const CConstFloatHandle& firstHandle, const C
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	CCpuExecutionScope scope;
-
-	const float* first = GetRaw( firstHandle );
-	float* result = GetRaw( resultHandle );
-	const int curThreadCount = IsOmpRelevant( vectorSize, 2 * vectorSize ) ? threadCount : 1;
-	if( simdMathEngine != nullptr ) {
-		simdMathEngine->Sigmoid( result, first, vectorSize, curThreadCount > 1 );
-	} else if( curThreadCount > 1 ) {
-		NEOML_OMP_NUM_THREADS( curThreadCount )
-		{
-			int start;
-			int count;
-			if( OmpGetTaskIndexAndCount( vectorSize, start, count ) ) {
-				vectorSigmoid( first + start, result + start, count );
-			}
-		}
-	} else {
-		vectorSigmoid( first, result, vectorSize );
-	}
+	vectorSigmoid( GetRaw( firstHandle ), GetRaw( resultHandle ), vectorSize );
 }
 
 void CCpuMathEngine::VectorSigmoidDiff(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,

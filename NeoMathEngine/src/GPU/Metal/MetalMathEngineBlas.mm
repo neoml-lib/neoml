@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -567,7 +567,7 @@ void CMetalMathEngine::FindMinValueInColumns( const CConstFloatHandle&, int, int
 }
 
 void CMetalMathEngine::MultiplyMatrixByMatrix( int batchSize, const CConstFloatHandle& firstHandle, int firstHeight,
-    int firstWidth, const CConstFloatHandle& secondHandle, int secondWidth, const CFloatHandle& resultHandle, int /*resultBufferSize*/)
+    int firstWidth, const CConstFloatHandle& secondHandle, int secondWidth, const CFloatHandle& resultHandle, int /*resultBufferSize*/, const CSmallMatricesMultiplyDesc* /*desc*/ )
 {
     ASSERT_EXPR( firstHandle.GetMathEngine() == this );
     ASSERT_EXPR( secondHandle.GetMathEngine() == this );
@@ -624,7 +624,7 @@ void CMetalMathEngine::MultiplyMatrixByMatrix( int batchSize, const CConstFloatH
 
 void CMetalMathEngine::MultiplyMatrixByTransposedMatrix(const CConstFloatHandle& firstHandle, int firstHeight,
     int firstWidth, int firstRowSize, const CConstFloatHandle& secondHandle, int secondHeight, int secondRowSize,
-    const CFloatHandle& resultHandle, int /*resultRowSize*/, int /*resultBufferSize */ )
+    const CFloatHandle& resultHandle, int /*resultRowSize*/, int /*resultBufferSize*/, const CSmallMatricesMultiplyDesc* /*desc*/)
 {
     ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
@@ -680,7 +680,7 @@ void CMetalMathEngine::MultiplyMatrixByTransposedMatrix(const CConstFloatHandle&
 }
 
 void CMetalMathEngine::MultiplyMatrixByTransposedMatrix(int batchSize, const CConstFloatHandle& firstHandle, int firstHeight,
-    int firstWidth, const CConstFloatHandle& secondHandle, int secondHeight, const CFloatHandle& resultHandle, int /*resultBufferSize*/)
+    int firstWidth, const CConstFloatHandle& secondHandle, int secondHeight, const CFloatHandle& resultHandle, int /*resultBufferSize*/, const CSmallMatricesMultiplyDesc* /*desc*/)
 {
     ASSERT_EXPR( firstHandle.GetMathEngine() == this );
     ASSERT_EXPR( secondHandle.GetMathEngine() == this );
@@ -787,7 +787,7 @@ void CMetalMathEngine::multiplyMatrixByTransposedMatrixAndAdd(const CConstFloatH
 
 void CMetalMathEngine::MultiplyTransposedMatrixByMatrixAndAdd(const CConstFloatHandle& firstHandle, int firstHeight, int firstWidth,
     int /*firstRowSize*/, const CConstFloatHandle& secondHandle, int secondWidth, int /*secondRowSize*/,
-	const CFloatHandle& resultHandle, int /*resultRowSize*/, int /*resultSize*/)
+	const CFloatHandle& resultHandle, int /*resultRowSize*/, int /*resultSize*/, const CSmallMatricesMultiplyDesc* /*desc*/)
 {
     ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
@@ -834,7 +834,7 @@ void CMetalMathEngine::MultiplyTransposedMatrixByMatrixAndAdd(const CConstFloatH
 
 
 void CMetalMathEngine::MultiplyTransposedMatrixByMatrix(int batchSize, const CConstFloatHandle& firstHandle, int firstHeight, int firstWidth,
-    const CConstFloatHandle& secondHandle, int secondWidth, const CFloatHandle& resultHandle, int)
+    const CConstFloatHandle& secondHandle, int secondWidth, const CFloatHandle& resultHandle, int, const CSmallMatricesMultiplyDesc*)
 {
     ASSERT_EXPR( firstHandle.GetMathEngine() == this );
     ASSERT_EXPR( secondHandle.GetMathEngine() == this );
@@ -949,17 +949,19 @@ void CMetalMathEngine::Multiply1DiagMatrixByMatrix(int batchSize, const CConstFl
     ASSERT_EXPR( kernel.Run() );
 }
 
-void CMetalMathEngine::MultiplyMatrixByDiagMatrix(const CConstFloatHandle& firstHandle, int firstHeight, int firstWidth,
-	const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int)
+void CMetalMathEngine::BatchMultiplyMatrixByDiagMatrix( int batchSize, const CConstFloatHandle& firstHandle, int height,
+	int width, int firstMatrixOffset, const CConstFloatHandle& secondHandle, int secondMatrixOffset,
+	const CFloatHandle& resultHandle, int )
 {
     ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+    ASSERT_EXPR( batchSize == 1 );
 
-    C2DKernel kernel( *queue, "matrixKernelMultiplyMatrixByDiagMatrix", 1, 1, firstHeight, firstWidth );
+    C2DKernel kernel( *queue, "matrixKernelMultiplyMatrixByDiagMatrix", 1, 1, height, width );
     kernel.SetParam( firstHandle, 0 );
-    kernel.SetParam( firstHeight, 1 );
-    kernel.SetParam( firstWidth, 2 );
+    kernel.SetParam( height, 1 );
+    kernel.SetParam( width, 2 );
     kernel.SetParam( secondHandle, 3 );
     kernel.SetParam( resultHandle, 4 );
     ASSERT_EXPR( kernel.Run() );

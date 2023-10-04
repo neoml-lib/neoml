@@ -24,6 +24,7 @@ limitations under the License.
 #include <NeoMathEngine/SimdMathEngine.h>
 #include <DllLoader.h>
 #include <CPUInfo.h>
+#include <NeoMathEngine/ThreadPool.h>
 
 #if FINE_PLATFORM( FINE_ANDROID ) || FINE_PLATFORM( FINE_LINUX )
 #include <PerformanceCountersCpuLinux.h>
@@ -43,21 +44,21 @@ limitations under the License.
 
 #endif // NEOML_USE_MKL
 
-bool CCPUInfo::HasAvxAndFma = CCPUInfo::IsAvxAndFmaAvailable();
+const bool CCPUInfo::HasAvxAndFma = CCPUInfo::IsAvxAndFmaAvailable();
+const bool CCPUInfo::IsNotIntel = CCPUInfo::GetCpuArch() != CCPUInfo::TCpuArch::Intel;
 
 namespace NeoML {
 
 int NEOMATHENGINE_API FloatAlignment = CCPUInfo::DefineFloatAlignment();
 
-CCpuMathEngine::CCpuMathEngine( int _threadCount, size_t _memoryLimit,
+CCpuMathEngine::CCpuMathEngine( size_t _memoryLimit,
 		std::shared_ptr<CMultiThreadDistributedCommunicator> communicator,
 		const CMathEngineDistributedInfo& distributedInfo ) :
-	threadCount( _threadCount <= 0 ? OmpGetMaxThreadCount() : _threadCount ),
 	floatAlignment( FloatAlignment ),
 	memoryAlignment( floatAlignment * sizeof(float) ),
 	communicator( communicator ),
 	distributedInfo( distributedInfo ),
-	memoryPool( new CMemoryPool( _memoryLimit == 0 ? SIZE_MAX : _memoryLimit, this, distributedInfo.Threads > 1 ) ),
+	memoryPool( new CMemoryPool( _memoryLimit == 0 ? GetRamLimit() : _memoryLimit, this, distributedInfo.Threads > 1 ) ),
 	stackAllocator( new CDeviceStackAllocator( *memoryPool, memoryAlignment ) ),
 	dllLoader( CDllLoader::AVX_DLL ),
 	simdMathEngine( nullptr ),
@@ -65,19 +66,19 @@ CCpuMathEngine::CCpuMathEngine( int _threadCount, size_t _memoryLimit,
 {
 #ifdef NEOML_USE_AVX
 	if( dllLoader.IsLoaded( CDllLoader::AVX_DLL ) ) {
-		simdMathEngine = std::unique_ptr<ISimdMathEngine>( CDllLoader::avxDll->CreateSimdMathEngine( this, threadCount ) );
-		// Don't use custom sgemm function when we are compiled with MKL.
-#ifndef NEOML_USE_MKL
+		simdMathEngine = std::unique_ptr<ISimdMathEngine>( CDllLoader::avxDll->CreateSimdMathEngine( this ) );
+		// Don't use custom sgemm function when we are compiled with MKL or MLAS.
+#if !defined( NEOML_USE_MKL ) && !defined( NEOML_USE_MLAS )
 		customSgemmFunction = simdMathEngine->GetSgemmFunction();
-#endif
+#endif // !defined( NEOML_USE_MKL ) && !defined( NEOML_USE_MLAS )
 	}
-#else // NEOML_USE_AVX
+#else  // !NEOML_USE_AVX
 	// warning fix
 	(void)customSgemmFunction;
-#endif
+#endif // !NEOML_USE_AVX
 #ifdef NEOML_USE_MKL
 	vmlSetMode( VML_ERRMODE_NOERR );
-#endif
+#endif // NEOML_USE_MKL
 }
 
 CCpuMathEngine::~CCpuMathEngine()
@@ -155,11 +156,8 @@ void CCpuMathEngine::CleanUp()
 	stackAllocator->CleanUp();
 	memoryPool->CleanUp();
 #ifdef NEOML_USE_MKL
-	NEOML_OMP_NUM_THREADS( threadCount )
-	{
-		mkl_thread_free_buffers();
-	}
-#endif
+	mkl_thread_free_buffers();
+#endif // NEOML_USE_MKL
 }
 
 void* CCpuMathEngine::GetBuffer( const CMemoryHandle& handle, size_t pos, size_t, bool exchange )

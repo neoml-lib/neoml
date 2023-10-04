@@ -50,7 +50,7 @@ public:
 	// ICudaRowwiseImpl
 	CBlobDesc Reshape( const CBlobDesc& inputSize ) override;
 	int OutputSize() const override { return outputDesc.BlobSize(); }
-	bool IsInPlace() const override { return stride == 1; }
+	bool IsInPlace() const override { return supportsInPlace; }
 	void Process( const CFloatHandle& input, const CFloatHandle& output ) const override;
 
 private:
@@ -68,9 +68,13 @@ private:
 	const CConstFloatHandle downFreeTerm;
 	const int outputChannels;
 	const bool residual;
-	CBlobDesc inputDesc;
-	CBlobDesc outputDesc;
-	std::unique_ptr<CChannelwiseConvolutionDesc> chDesc;
+	// Reshape
+	CBlobDesc inputDesc{};
+	CBlobDesc outputDesc{};
+	std::unique_ptr<CChannelwiseConvolutionDesc> chDesc{};
+	bool supportsInPlace = false;
+
+	friend class CCudaMathEngine;
 };
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -93,15 +97,14 @@ inline CBlobDesc CCudaRowwiseMobileNetV2::Reshape( const CBlobDesc& inputSize )
 	inputDesc.SetDimSize( BD_Channels, inputChannels );
 	outputDesc.SetDimSize( BD_Channels, outputChannels );
 
+	supportsInPlace = inputSize.HasEqualDimensions( outputDesc );
+
 	return outputDesc;
 }
 
 inline void CCudaRowwiseMobileNetV2::Process( const CFloatHandle& input, const CFloatHandle& output ) const
 {
-	expandFilter.GetMathEngine()->MobileNetV2Block( inputDesc, outputDesc, *chDesc, input, expandFilter,
-		expandFreeTerm.IsNull() ? nullptr : &expandFreeTerm, expandActivation, expandReluParam, channelwiseFilter,
-		channelwiseFreeTerm.IsNull() ? nullptr : &channelwiseFreeTerm, channelwiseActivation, channelwiseReluParam,
-		downFilter, downFreeTerm.IsNull() ? nullptr : &downFreeTerm, residual, output );
+	expandFilter.GetMathEngine()->MobileNetV2Block( inputDesc, outputDesc, *this, *chDesc, input, output );
 }
 
 } // namespace NeoML

@@ -35,7 +35,7 @@ static void vectorEltwisePowerImpl( const CTestParams& params, int seed )
 
 	for( int i = 0; i < vectorSize; i++ ) {
 		float expected = powf(a[i], b[i]);
-		ASSERT_NEAR( expected, result[i], 1e-2 );
+		EXPECT_TRUE( FloatEq( expected, result[i] ) ) << expected << '\t' << result[i];
 	}
 }
 

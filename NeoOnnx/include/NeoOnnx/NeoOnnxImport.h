@@ -42,7 +42,9 @@ struct NEOONNX_API CImportSettings {
 
 // Information about ONNX optimizations
 struct NEOONNX_API COnnxOptimizationReport {
+	int Conv1x1 = 0;
 	int GELU = 0;
+	int GRN = 0;
 	int HardSigmoid = 0;
 	int HSwish = 0;
 	int LayerNorm = 0;

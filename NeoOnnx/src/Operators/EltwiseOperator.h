@@ -36,6 +36,7 @@ protected:
 
 private:
 	int getArgsNum() const;
+	CTensorLayout calcOutputLayout( const CTensorArray& inputs ) const;
 	CBroadcast getBroadcast() const;
 	void getOutputShape( const CTensorArray& inputs, CTensorShape& outputShape ) const;
 };
@@ -66,20 +67,13 @@ inline void CEltwiseOperator<Operation>::AddLayers( const CTensorArray& inputs, 
 		return;
 	}
 
-	// Calculate output layout
-	CTensorLayout outputLayout = inputs[0]->Layout();
-	for( int i = 1; i < inputs.Size(); ++i ) {
-		if( inputs[i]->DimCount() > outputLayout.Size() ) {
-			outputLayout = inputs[i]->Layout();
-		}
-	}
-
 	CPtr<COnnxEltwiseLayer> layer = new COnnxEltwiseLayer( dnn.GetMathEngine() );
 	layer->SetName( Name() );
 	layer->SetOperation( Operation );
 	dnn.AddLayer( *layer );
 
 	const CBroadcast broadcast = getBroadcast();
+	const CTensorLayout outputLayout = calcOutputLayout( inputs );
 	for( int i = 0; i < inputs.Size(); ++i ) {
 		CPtr<const CTensorBase> tensor = PrepareForBroadcast( *inputs[i], broadcast, outputLayout.Size() );
 		tensor = ConvertTensor( *tensor, outputLayout );
@@ -112,6 +106,43 @@ inline int CEltwiseOperator<Operation>::getArgsNum() const
 	}
 
 	return 2;
+}
+
+// Calculates output layout for the given inputs
+template<COnnxEltwiseLayer::TOperation Operation>
+inline CTensorLayout CEltwiseOperator<Operation>::calcOutputLayout( const CTensorArray& inputs ) const
+{
+	// Special case: constant data is added to the only non-constant input
+	int onlyNonConstantInput = NotFound;
+	int outputDims = 0;
+	for( int i = 0; i < inputs.Size(); ++i ) {
+		outputDims = inputs[i]->DimCount() > outputDims ? inputs[i]->DimCount() : outputDims;
+		if( inputs[i]->Type() != TTensorType::Data ) {
+			if( onlyNonConstantInput == NotFound ) {
+				onlyNonConstantInput = i; // first non-constant input detected
+			} else {
+				onlyNonConstantInput = NotFound; // multiple non-constant inputs...
+				break; // WARNING: outputDims may contain incorrect value, don't use it in this case
+			}
+		}
+	}
+
+	if( onlyNonConstantInput != NotFound ) {
+		// The idea is to avoid any additional operations over non-constant data
+		// Because operations over constant data can be done once during this import
+		// and they won't affect the performance of the final CDnn
+		// This layout guarantees that PrepareForBroadcast won't add any additional operations to the CDnn
+		return BroadcastTensorLayout( inputs[onlyNonConstantInput]->Layout(), getBroadcast(), outputDims );
+	}
+
+	// Return layout of the tensor with the largest number of dimensions
+	CTensorLayout result = inputs[0]->Layout();
+	for( int i = 1; i < inputs.Size(); ++i ) {
+		if( inputs[i]->DimCount() > result.Size() ) {
+			result = inputs[i]->Layout();
+		}
+	}
+	return result;
 }
 
 // Broadcast rule according to operator type and opset version

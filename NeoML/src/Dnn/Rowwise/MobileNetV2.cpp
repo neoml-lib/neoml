@@ -54,14 +54,17 @@ CRowwiseOperationDesc* CRowwiseMobileNetV2::GetDesc()
 		: channelwiseFreeTerm->GetData<const float>();
 	CConstFloatHandle downFreeTermData = downFreeTerm == nullptr ? CConstFloatHandle()
 		: downFreeTerm->GetData<const float>();
-	return mathEngine.InitRowwiseMobileNetV2( expandFilter->GetChannelsCount(), expandFilter->GetData(),
-		expandFreeTerm == nullptr ? nullptr : &expandFreeTermData,
-		expandFilter->GetObjectCount(), expandActivation.GetType(), MobileNetReluParam( expandActivation ),
-		channelwiseFilter->GetData(),
-		channelwiseFreeTerm == nullptr ? nullptr : &channelwiseFreeTermData,
-		stride, channelwiseActivation.GetType(), MobileNetReluParam( channelwiseActivation ), downFilter->GetData(),
-		downFreeTerm == nullptr ? nullptr : &downFreeTermData,
+
+	CRowwiseOperationDesc* rowwiseDesc = mathEngine.InitRowwiseMobileNetV2( expandFilter->GetChannelsCount(),
+		expandFilter->GetData(), ( expandFreeTerm == nullptr ) ? nullptr : &expandFreeTermData, expandFilter->GetObjectCount(),
+		expandActivation.GetType(), MobileNetReluParam( expandActivation ),
+		channelwiseFilter->GetData(), ( channelwiseFreeTerm == nullptr ) ? nullptr : &channelwiseFreeTermData, stride,
+		channelwiseActivation.GetType(), MobileNetReluParam( channelwiseActivation ),
+		downFilter->GetData(), ( downFreeTerm == nullptr ) ? nullptr : &downFreeTermData,
 		downFilter->GetObjectCount(), residual );
+
+	NeoAssert( rowwiseDesc != nullptr );
+	return rowwiseDesc;
 }
 
 void CRowwiseMobileNetV2::Serialize( CArchive& archive )

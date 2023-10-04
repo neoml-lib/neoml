@@ -51,54 +51,24 @@ void CCpuMathEngine::blobMergeByDimCommon( int dimNum, const CBlobDesc* from, co
 	}
 
 	T* rawTo = GetRaw( toData );
-
-	const int currThreadCount = IsOmpRelevant( objectCount, objectCount * objectSize ) ? threadCount : 1;
-	if( currThreadCount > 1 ) {
-		NEOML_OMP_FOR_NUM_THREADS( currThreadCount )
-		for(int x = 0; x < objectCount; x++) {
-			T* output = rawTo + x * objectSize;
-			for( int i = 0; i < fromCount; ++i ) {
-				dataCopy( output, GetRaw( fromData[i] ) + x * fromObjectSizes[i], fromObjectSizes[i] );
-				output += fromObjectSizes[i];
-			}
-		}
-	} else {
-		for(int x = 0; x < objectCount; x++) {
-			T* output = rawTo + x * objectSize;
-			for( int i = 0; i < fromCount; ++i ) {
-				dataCopy( output, GetRaw( fromData[i] ) + x * fromObjectSizes[i], fromObjectSizes[i] );
-				output += fromObjectSizes[i];
-			}
+	for( int x = 0; x < objectCount; x++ ) {
+		T* output = rawTo + x * objectSize;
+		for( int i = 0; i < fromCount; ++i ) {
+			dataCopy( output, GetRaw( fromData[i] ) + x * fromObjectSizes[i], fromObjectSizes[i] );
+			output += fromObjectSizes[i];
 		}
 	}
 }
 
 template<class T>
 void CCpuMathEngine::blobMergeByDim0( const CBlobDesc* from, const CTypedMemoryHandle<T>* fromData, int fromCount,
-	const CBlobDesc& to, const CTypedMemoryHandle<T>& toData )
+	const CBlobDesc& /*to*/, const CTypedMemoryHandle<T>& toData )
 {
 	T* output = GetRaw( toData );
-	const int currThreadCount = IsOmpRelevant( fromCount, to.BlobSize() ) ? threadCount : 1;
-
-	if( currThreadCount > 1 ) {
-		static_assert( MaxBlobDescs <= 32, "MaxBlobDescs > 32" );
-		int blobOffset[MaxBlobDescs];
-		blobOffset[0] = 0;
-		for( int i = 0; i < fromCount - 1; ++i ) {
-			blobOffset[i + 1] = blobOffset[i] + from[i].BlobSize();
-		}
-
-		NEOML_OMP_FOR_NUM_THREADS( currThreadCount )
-		for( int i = 0; i < fromCount; ++i ) {
-			int blobSize = from[i].BlobSize();
-			dataCopy( output + blobOffset[i], GetRaw( fromData[i] ), blobSize );
-		}
-	} else {
-		for( int i = 0; i < fromCount; ++i ) {
-			int blobSize = from[i].BlobSize();
-			dataCopy( output, GetRaw( fromData[i] ), blobSize );
-			output += blobSize;
-		}
+	for( int i = 0; i < fromCount; ++i ) {
+		const int blobSize = from[i].BlobSize();
+		dataCopy( output, GetRaw( fromData[i] ), blobSize );
+		output += blobSize;
 	}
 }
 
@@ -138,54 +108,24 @@ void CCpuMathEngine::blobSplitByDimCommon( int dimNum, const CBlobDesc& from, co
 	}
 
 	const T* rawFrom = GetRaw( fromData );
-
-	const int currThreadCount = IsOmpRelevant( objectCount, objectCount * objectSize ) ? threadCount : 1;
-	if( currThreadCount > 1 ) {
-		NEOML_OMP_FOR_NUM_THREADS( currThreadCount )
-		for(int x = 0; x < objectCount; x++) {
-			const T* input = rawFrom + x * objectSize;
-			for( int i = 0; i < toCount; ++i ) {
-				dataCopy( GetRaw( toData[i] ) + x * toObjectSizes[i], input, toObjectSizes[i] );
-				input += toObjectSizes[i];
-			}
-		}
-	} else {
-		for(int x = 0; x < objectCount; x++) {
-			const T* input = rawFrom + x * objectSize;
-			for( int i = 0; i < toCount; ++i ) {
-				dataCopy( GetRaw( toData[i] ) + x * toObjectSizes[i], input, toObjectSizes[i] );
-				input += toObjectSizes[i];
-			}
+	for( int x = 0; x < objectCount; x++ ) {
+		const T* input = rawFrom + x * objectSize;
+		for( int i = 0; i < toCount; ++i ) {
+			dataCopy( GetRaw( toData[i] ) + x * toObjectSizes[i], input, toObjectSizes[i] );
+			input += toObjectSizes[i];
 		}
 	}
 }
 
 template<class T>
-void CCpuMathEngine::blobSplitByDim0( const CBlobDesc& from, const CTypedMemoryHandle<const T>& fromData,
+void CCpuMathEngine::blobSplitByDim0( const CBlobDesc& /*from*/, const CTypedMemoryHandle<const T>& fromData,
 	const CBlobDesc* to, const CTypedMemoryHandle<T>* toData, int toCount )
 {
 	const T* input = GetRaw( fromData );
-	const int currThreadCount = IsOmpRelevant( toCount, from.BlobSize() ) ? threadCount : 1;
-
-	if( currThreadCount > 1 ) {
-		static_assert( MaxBlobDescs <= 32, "MaxBlobDescs > 32" );
-		int blobOffset[MaxBlobDescs];
-		blobOffset[0] = 0;
-		for( int i = 0; i < toCount - 1; ++i ) {
-			blobOffset[i + 1] = blobOffset[i] + to[i].BlobSize();
-		}
-
-		NEOML_OMP_FOR_NUM_THREADS( currThreadCount )
-		for( int i = 0; i < toCount; ++i ) {
-			int blobSize = to[i].BlobSize();
-			dataCopy( GetRaw( toData[i] ), input + blobOffset[i], blobSize );
-		}
-	} else {
-		for( int i = 0; i < toCount; ++i ) {
-			int blobSize = to[i].BlobSize();
-			dataCopy( GetRaw( toData[i] ), input, blobSize );
-			input += blobSize;
-		}
+	for( int i = 0; i < toCount; ++i ) {
+		const int blobSize = to[i].BlobSize();
+		dataCopy( GetRaw( toData[i] ), input, blobSize );
+		input += blobSize;
 	}
 }
 
@@ -248,8 +188,6 @@ void CCpuMathEngine::BlobGetSubSequence( const CBlobDesc& from, const CFloatHand
 	const float* rawFrom = GetRaw( fromData );
 
 	// Calculate the subsequence using sequenceLen
-	const int currThreadCount = IsOmpRelevant( subSequenceLen, subSequenceLen * batchWidth * objectSize ) ? threadCount : 1;
-	NEOML_OMP_FOR_NUM_THREADS( currThreadCount )
 	for( int pos = 0; pos < subSequenceLen; ++pos ) {
 		float* curToData = rawToData + pos * batchWidth * objectSize;
 		const int baseIndex = ( isRev ? startPos - pos : startPos + pos ) * batchWidth;
@@ -267,7 +205,7 @@ void CCpuMathEngine::BlobGetSubSequence( const CBlobDesc& from, const CFloatHand
 //------------------------------------------------------------------------------------------------------------
 
 template<class T>
-static void upsampling2DForward( int threadCount, const CBlobDesc& input, const CTypedMemoryHandle<const T>& inputData,
+static void upsampling2DForward( const CBlobDesc& input, const CTypedMemoryHandle<const T>& inputData,
 	int heightCopyCount, int widthCopyCount, const CBlobDesc& result, const CTypedMemoryHandle<T>& resultData )
 {
 	const int inputHeight = input.Height();
@@ -280,8 +218,6 @@ static void upsampling2DForward( int threadCount, const CBlobDesc& input, const 
 	const T* inputStart = GetRaw( inputData );
 	T* outputStart = GetRaw( resultData );
 
-	const int curThreadCount = IsOmpRelevant( objectCount, result.BlobSize() ) ? threadCount : 1;
-	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
 	for(int b = 0; b < objectCount; ++b) {
 		const T* inputPtr = inputStart + b * input.ObjectSize();
 		T* outputPtr = outputStart + b * result.ObjectSize();
@@ -328,7 +264,7 @@ void CCpuMathEngine::Upsampling2DForward( const CBlobDesc& input, const CConstIn
 	ASSERT_EXPR( input.Width() * widthCopyCount == result.Width() );
 	CCpuExecutionScope scope;
 
-	upsampling2DForward<int>( threadCount, input, inputData, heightCopyCount, widthCopyCount, result, resultData );	
+	upsampling2DForward<int>( input, inputData, heightCopyCount, widthCopyCount, result, resultData );	
 }
 
 void CCpuMathEngine::Upsampling2DForward( const CBlobDesc& input, const CConstFloatHandle& inputData, int heightCopyCount, int widthCopyCount,
@@ -346,7 +282,7 @@ void CCpuMathEngine::Upsampling2DForward( const CBlobDesc& input, const CConstFl
 	ASSERT_EXPR( input.Width() * widthCopyCount == result.Width() );
 	CCpuExecutionScope scope;
 
-	upsampling2DForward<float>( threadCount, input, inputData, heightCopyCount, widthCopyCount, result, resultData );	
+	upsampling2DForward<float>( input, inputData, heightCopyCount, widthCopyCount, result, resultData );	
 }
 
 void CCpuMathEngine::Upsampling2DBackward( const CBlobDesc& input, const CConstFloatHandle& inputData, int heightCopyCount, int widthCopyCount,
@@ -478,49 +414,37 @@ void CCpuMathEngine::QrnnFPooling( bool reverse, int sequenceLength, int objectS
 	ASSERT_EXPR( result.GetMathEngine() == this );
 	CCpuExecutionScope scope;
 
-	// Global means outside of OMP
-	const float* globalZ = GetRaw( update );
-	const float* globalF = GetRaw( forget );
-	const float* globalH0 = initialState.IsNull() ? nullptr : GetRaw( initialState );
-	float* globalRes = GetRaw( result );
+	const float* z = GetRaw( update );
+	const float* f = GetRaw( forget );
+	const float* const h0 = initialState.IsNull() ? nullptr : GetRaw( initialState );
+	float* res = GetRaw( result );
 
 	const int nextObjectOffset = reverse ? -objectSize : objectSize;
 
 	if( reverse ) {
 		const int firstElemOffset = ( sequenceLength - 1 ) * objectSize;
-		globalZ += firstElemOffset;
-		globalF += firstElemOffset;
-		globalRes += firstElemOffset;
+		z += firstElemOffset;
+		f += firstElemOffset;
+		res += firstElemOffset;
 	}
 
-	const int currThreadCount = IsOmpRelevant( objectSize, sequenceLength * objectSize ) ? threadCount : 1;
-	NEOML_OMP_NUM_THREADS( currThreadCount )
-	{
-		int start;
-		int count;
-		if( OmpGetTaskIndexAndCount( objectSize, start, count ) ) {
-			const float* z = globalZ + start;
-			const float* f = globalF + start;
-			const float* h0 = globalH0 == nullptr ? nullptr : globalH0 + start;
-			float* res = globalRes + start;
+	const int count = objectSize;
+	const int sseSize = count / 4;
+	const int nonSseSize = count % 4;
 
-			const int sseSize = count / 4;
-			const int nonSseSize = count % 4;
-			if( h0 == nullptr ) {
-				NeoML::qrnnFPoolingFirstStep( z, f, res, sseSize, nonSseSize );
-			} else {
-				NeoML::qrnnFPoolingStep( z, f, h0, res, sseSize, nonSseSize );
-			}
+	if( h0 == nullptr ) {
+		NeoML::qrnnFPoolingFirstStep( z, f, res, sseSize, nonSseSize );
+	} else {
+		NeoML::qrnnFPoolingStep( z, f, h0, res, sseSize, nonSseSize );
+	}
 
-			const float* hPrev = res;
-			for( int step = 0; step < sequenceLength - 1; ++step ) {
-				z += nextObjectOffset;
-				f += nextObjectOffset;
-				res += nextObjectOffset;
-				NeoML::qrnnFPoolingStep( z, f, hPrev, res, sseSize, nonSseSize );
-				hPrev = res;
-			}
-		}
+	const float* hPrev = res;
+	for( int step = 0; step < sequenceLength - 1; ++step ) {
+		z += nextObjectOffset;
+		f += nextObjectOffset;
+		res += nextObjectOffset;
+		NeoML::qrnnFPoolingStep( z, f, hPrev, res, sseSize, nonSseSize );
+		hPrev = res;
 	}
 }
 
@@ -603,53 +527,40 @@ void CCpuMathEngine::QrnnIfPooling( bool reverse, int sequenceLength, int object
 	ASSERT_EXPR( result.GetMathEngine() == this );
 	CCpuExecutionScope scope;
 
-	// Global means outside of OMP
-	const float* globalZ = GetRaw( update );
-	const float* globalF = GetRaw( forget );
-	const float* globalI = GetRaw( input );
-	const float* globalH0 = initialState.IsNull() ? nullptr : GetRaw( initialState );
-	float* globalRes = GetRaw( result );
+	const float* z = GetRaw( update );
+	const float* f = GetRaw( forget );
+	const float* i = GetRaw( input );
+	const float* h0 = initialState.IsNull() ? nullptr : GetRaw( initialState );
+	float* res = GetRaw( result );
 
 	const int nextObjectOffset = reverse ? -objectSize : objectSize;
 
 	if( reverse ) {
 		const int firstElemOffset = ( sequenceLength - 1 ) * objectSize;
-		globalZ += firstElemOffset;
-		globalF += firstElemOffset;
-		globalI += firstElemOffset;
-		globalRes += firstElemOffset;
+		z += firstElemOffset;
+		f += firstElemOffset;
+		i += firstElemOffset;
+		res += firstElemOffset;
 	}
 
-	const int currThreadCount = IsOmpRelevant( objectSize, sequenceLength * objectSize ) ? threadCount : 1;
-	NEOML_OMP_NUM_THREADS( currThreadCount )
-	{
-		int start;
-		int count;
-		if( OmpGetTaskIndexAndCount( objectSize, start, count ) ) {
-			const float* z = globalZ + start;
-			const float* f = globalF + start;
-			const float* i = globalI + start;
-			const float* h0 = globalH0 == nullptr ? nullptr : globalH0 + start;
-			float* res = globalRes + start;
+	const int count = objectSize;
+	const int sseSize = count / 4;
+	const int nonSseSize = count % 4;
 
-			const int sseSize = count / 4;
-			const int nonSseSize = count % 4;
-			if( h0 == nullptr ) {
-				NeoML::vectorEltwiseMultiply( i, z, res, sseSize, nonSseSize );
-			} else {
-				NeoML::qrnnIfPoolingStep( z, f, i, h0, res, sseSize, nonSseSize );
-			}
+	if( h0 == nullptr ) {
+		NeoML::vectorEltwiseMultiply( i, z, res, sseSize, nonSseSize );
+	} else {
+		NeoML::qrnnIfPoolingStep( z, f, i, h0, res, sseSize, nonSseSize );
+	}
 
-			const float* hPrev = res;
-			for( int step = 0; step < sequenceLength - 1; ++step ) {
-				z += nextObjectOffset;
-				f += nextObjectOffset;
-				i += nextObjectOffset;
-				res += nextObjectOffset;
-				NeoML::qrnnIfPoolingStep( z, f, i, hPrev, res, sseSize, nonSseSize );
-				hPrev = res;
-			}
-		}
+	const float* hPrev = res;
+	for( int step = 0; step < sequenceLength - 1; ++step ) {
+		z += nextObjectOffset;
+		f += nextObjectOffset;
+		i += nextObjectOffset;
+		res += nextObjectOffset;
+		NeoML::qrnnIfPoolingStep( z, f, i, hPrev, res, sseSize, nonSseSize );
+		hPrev = res;
 	}
 }
 
@@ -919,7 +830,7 @@ void CCpuMathEngine::IndRnnRecurrentLearn( bool reverse, int sequenceLength, int
 
 template<class T>
 static inline void SpaceToDepthFunc( const T* source, int dataRowCount, int dataRowWidth,
-	int blockChannels, int blockSize, bool isForward, T* result, int threadCount )
+	int blockChannels, int blockSize, bool isForward, T* result )
 {
 	// flattens 3d-block of size (blockSize x blockSize x channels)
 
@@ -936,37 +847,26 @@ static inline void SpaceToDepthFunc( const T* source, int dataRowCount, int data
 	const int resultBlockRowOffset = isForward ? blockRowSize : dataRowWidth * blockRowSize;
 
 	// iterate over data rows
-	const int blobSize = dataRowCount * dataRowWidth * blockSize * blockRowSize;
-	const int curThreadCount = IsOmpRelevant( dataRowCount, blobSize ) ? threadCount : 1;
-	NEOML_OMP_NUM_THREADS( curThreadCount )
-	{
-		int threadRowStart;
-		int threadRowCount;
-		if( OmpGetTaskIndexAndCount( dataRowCount, threadRowStart, threadRowCount ) ) {
-			const T* sourcePtr = source + threadRowStart * dataRowSize;
-			T* resultPtr = result + threadRowStart * dataRowSize;
-			for( int dataRowIndex = 0; dataRowIndex < threadRowCount; ++dataRowIndex ) {
-				const T* sourceRow = sourcePtr;
-				T* resultRow = resultPtr;
-				// iterate over blocks in data row
-				for( int blockIndex = 0; blockIndex < dataRowWidth; ++blockIndex ) {
-					const T* sourceBlock = sourceRow;
-					T* resultBlock = resultRow;
-					// iterate over rows of 3-dimensional (blockSize x blockSize x channels) block
-					for( int blockRowIndex = 0; blockRowIndex < blockSize; ++blockRowIndex ) {
-						// copy current row of 3d-block
-						dataCopy( resultBlock, sourceBlock, blockRowSize );
-						sourceBlock += sourceBlockRowOffset;
-						resultBlock += resultBlockRowOffset;
-					}
-					// switching to the next block
-					sourceRow += sourceBlockOffset;
-					resultRow += resultBlockOffset;
-				}
-				sourcePtr += dataRowSize;
-				resultPtr += dataRowSize;
+	for( int dataRowIndex = 0; dataRowIndex < dataRowCount; ++dataRowIndex ) {
+		const T* sourceRow = source;
+		T* resultRow = result;
+		// iterate over blocks in data row
+		for( int blockIndex = 0; blockIndex < dataRowWidth; ++blockIndex ) {
+			const T* sourceBlock = sourceRow;
+			T* resultBlock = resultRow;
+			// iterate over rows of 3-dimensional (blockSize x blockSize x channels) block
+			for( int blockRowIndex = 0; blockRowIndex < blockSize; ++blockRowIndex ) {
+				// copy current row of 3d-block
+				dataCopy( resultBlock, sourceBlock, blockRowSize );
+				sourceBlock += sourceBlockRowOffset;
+				resultBlock += resultBlockRowOffset;
 			}
+			// switching to the next block
+			sourceRow += sourceBlockOffset;
+			resultRow += resultBlockOffset;
 		}
+		source += dataRowSize;
+		result += dataRowSize;
 	}
 }
 
@@ -984,7 +884,7 @@ void CCpuMathEngine::SpaceToDepth( const CBlobDesc& source, const CConstFloatHan
 	CCpuExecutionScope scope;
 
 	SpaceToDepthFunc( GetRaw( sourceData ), source.ObjectCount() * result.Height(), result.Width(), source.Channels(),
-		blockSize, true, GetRaw( resultData ), threadCount );
+		blockSize, true, GetRaw( resultData ) );
 }
 
 void CCpuMathEngine::SpaceToDepth( const CBlobDesc& source, const CConstIntHandle& sourceData, int blockSize,
@@ -1001,7 +901,7 @@ void CCpuMathEngine::SpaceToDepth( const CBlobDesc& source, const CConstIntHandl
 	CCpuExecutionScope scope;
 
 	SpaceToDepthFunc( GetRaw( sourceData ), source.ObjectCount() * result.Height(), result.Width(), source.Channels(),
-		blockSize, true, GetRaw( resultData ), threadCount );
+		blockSize, true, GetRaw( resultData ) );
 }
 
 void CCpuMathEngine::DepthToSpace( const CBlobDesc& source, const CConstFloatHandle& sourceData, int blockSize,
@@ -1018,7 +918,7 @@ void CCpuMathEngine::DepthToSpace( const CBlobDesc& source, const CConstFloatHan
 	CCpuExecutionScope scope;
 
 	SpaceToDepthFunc( GetRaw( sourceData ), source.ObjectCount() * source.Height(), source.Width(), result.Channels(),
-		blockSize, false, GetRaw( resultData ), threadCount );
+		blockSize, false, GetRaw( resultData ) );
 }
 
 void CCpuMathEngine::DepthToSpace( const CBlobDesc& source, const CConstIntHandle& sourceData, int blockSize,
@@ -1035,7 +935,7 @@ void CCpuMathEngine::DepthToSpace( const CBlobDesc& source, const CConstIntHandl
 	CCpuExecutionScope scope;
 
 	SpaceToDepthFunc( GetRaw( sourceData ), source.ObjectCount() * source.Height(), source.Width(), result.Channels(),
-		blockSize, false, GetRaw( resultData ), threadCount );
+		blockSize, false, GetRaw( resultData ) );
 }
 
 void CCpuMathEngine::BertConv( const CConstFloatHandle& dataHandle, const CConstFloatHandle& kernelHandle, int seqLen,
@@ -1046,8 +946,6 @@ void CCpuMathEngine::BertConv( const CConstFloatHandle& dataHandle, const CConst
 	ASSERT_EXPR( outputHandle.GetMathEngine() == this );
 
 	const int taskCount = seqLen * batchSize * numHeads;
-	const int curThreadCount = IsOmpRelevant( taskCount, taskCount * headSize * kernelSize ) ? threadCount : 1;
-
 	const int pad = ( kernelSize - 1 ) / 2;
 	const int dataSeqStep = batchSize * numHeads * headSize;
 
@@ -1055,7 +953,6 @@ void CCpuMathEngine::BertConv( const CConstFloatHandle& dataHandle, const CConst
 	const float* kernel = GetRaw( kernelHandle );
 	float* output = GetRaw( outputHandle );
 
-	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
 	for( int i = 0; i < taskCount; ++i ) {
 		const int b = i % ( batchSize * numHeads );
 		const int seq = i / ( batchSize * numHeads );
@@ -1091,9 +988,7 @@ void CCpuMathEngine::BertConvBackward( const CConstFloatHandle& dataHandle, cons
 
 	const int pad = ( kernelSize - 1 ) / 2;
 	const int dataSeqStep = batchSize * numHeads * headSize;
-
 	const int taskCount = batchSize * numHeads;
-	const int curThreadCount = IsOmpRelevant( taskCount, seqLen * taskCount * headSize * kernelSize ) ? threadCount : 1;
 
 	const float* data = GetRaw( dataHandle );
 	const float* kernel = GetRaw( kernelHandle );
@@ -1101,7 +996,6 @@ void CCpuMathEngine::BertConvBackward( const CConstFloatHandle& dataHandle, cons
 	float* dataDiff = GetRaw( dataDiffHandle );
 	float* kernelDiff = GetRaw( kernelDiffHandle );
 
-	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
 	for( int b = 0; b < taskCount; ++b ) {
 		for( int seq = 0; seq < seqLen; ++seq ) {
 			int outputOffset = ( seq * batchSize * numHeads + b ) * headSize;
@@ -1190,16 +1084,12 @@ void CCpuMathEngine::LinearInterpolation( const CConstFloatHandle& dataHandle, c
 	const int dataBatchStep = scaledAxis * objectSize;
 	const int resultBatchStep = static_cast<int>( scale * scaledAxis ) * objectSize;
 
-	const int opCount = objectCount * resultBatchStep;
-	const int curThreadCount = IsOmpRelevant( objectCount, opCount ) ? threadCount : 1;
-	CFloatHandleStackVar buff( *this, objectSize * curThreadCount );
-
+	CFloatHandleStackVar buff( *this, objectSize );
 	TCoordTransformer getCoords = getCoordTransformer( coords );
 	TCoordRound roundCoords = getCoordRound( round );
+	float* const currBuff = GetRaw( buff.GetHandle() );
 
-	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
 	for( int b = 0; b < objectCount; ++b ) {
-		float* currBuff = GetRaw( buff.GetHandle() ) + OmpGetThreadNum() * objectSize;
 		float* currResult = result + b * resultBatchStep;
 		const float* currData = data + b * dataBatchStep;
 		for( int i = 0; i < static_cast<int>( scaledAxis * scale ); ++i ) {
@@ -1215,8 +1105,8 @@ void CCpuMathEngine::LinearInterpolation( const CConstFloatHandle& dataHandle, c
 				const float leftCoord = ::floorf( oldCoord );
 				const float leftMul = 1.f - ( oldCoord - leftCoord );
 				const float rightMul = oldCoord - leftCoord;
-				vectorMultiply( currData + static_cast<int>( oldCoord ) * objectSize, currBuff, leftMul, objectSize );
-				vectorMultiply( currData + ( static_cast<int>( oldCoord ) + 1 ) * objectSize, currResult, rightMul, objectSize );
+				vectorMultiply( currData + static_cast<int>( oldCoord ) * objectSize, currBuff, objectSize, leftMul );
+				vectorMultiply( currData + ( static_cast<int>( oldCoord ) + 1 ) * objectSize, currResult, objectSize, rightMul );
 				vectorAdd( currResult, currBuff, currResult, objectSize );
 			}
 			currResult += objectSize;
@@ -1232,7 +1122,6 @@ static void scatterNDImpl( const T* updates, const int* indices, T* data, const 
 	for( int i = indexDims; i < static_cast<int>( BD_Count ); ++i ) {
 		objectSize *= dataDesc.DimSize( i );
 	}
-	const int curThreadCount = IsOmpRelevant( updateCount * ( objectSize + indexDims ) );
 
 	static_assert( BD_Count <= 8, "BD_Count > 8" );
 	int offsets[8];
@@ -1241,7 +1130,6 @@ static void scatterNDImpl( const T* updates, const int* indices, T* data, const 
 		offsets[i] = offsets[i + 1] * dataDesc.DimSize( i + 1 );
 	}
 
-	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
 	for( int updateIndex = 0; updateIndex < updateCount; ++updateIndex ) {
 		int flatIndex = 0;
 		for( int i = 0; i < indexDims; ++i ) {

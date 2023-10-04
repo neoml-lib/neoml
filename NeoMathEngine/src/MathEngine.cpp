@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -70,6 +70,10 @@ CMaxOverTimePoolingDesc::~CMaxOverTimePoolingDesc() = default;
 CLrnDesc::~CLrnDesc() = default;
 CLstmDesc::~CLstmDesc() = default;
 CRowwiseOperationDesc::~CRowwiseOperationDesc() = default;
+CSmallMatricesMultiplyDesc::~CSmallMatricesMultiplyDesc() = default;
+CSmallMatricesMultiplyDescsArray::~CSmallMatricesMultiplyDescsArray() = default;
+
+//------------------------------------------------------------------------------------------------------------
 
 // GPU manager implementation
 class CGpuMathEngineManager : public IGpuMathEngineManager {
@@ -107,20 +111,20 @@ CGpuMathEngineManager::CGpuMathEngineManager() :
 			}
 		}
 	}
-#endif
+#endif // NEOML_USE_CUDA
 
 #ifdef NEOML_USE_VULKAN
 	if (loader.IsLoaded(CDllLoader::VULKAN_DLL)) {
 		LoadVulkanEngineInfo(*CDllLoader::vulkanDll, info);
 	}
-#endif
+#endif // NEOML_USE_VULKAN
 
 #ifdef NEOML_USE_METAL
 	CMathEngineInfo deviceInfo;
 	if( LoadMetalEngineInfo( deviceInfo ) ) {
 		info.push_back( deviceInfo );
 	}
-#endif
+#endif // NEOML_USE_METAL
 }
 
 void CGpuMathEngineManager::GetMathEngineInfo( int index, CMathEngineInfo& result ) const
@@ -212,10 +216,20 @@ IMathEngineExceptionHandler* GetMathEngineExceptionHandler()
 	return exceptionHandler;
 }
 
-IMathEngine* CreateCpuMathEngine( int threadCount, size_t memoryLimit )
+//------------------------------------------------------------------------------------------------------------
+
+IMathEngine* CreateCpuMathEngine( size_t memoryLimit )
 {
-	return new CCpuMathEngine( threadCount, memoryLimit );
+	return new CCpuMathEngine( memoryLimit );
 }
+
+// deprecated
+IMathEngine* CreateCpuMathEngine( int /*deprecated*/, size_t memoryLimit )
+{
+	return CreateCpuMathEngine( memoryLimit );
+}
+
+//------------------------------------------------------------------------------------------------------------
 
 IMathEngine* CreateGpuMathEngine( size_t memoryLimit, int flags )
 {
@@ -227,6 +241,8 @@ IGpuMathEngineManager* CreateGpuMathEngineManager()
 {
 	return new CGpuMathEngineManager();
 }
+
+//------------------------------------------------------------------------------------------------------------
 
 void CreateDistributedCudaMathEngines( IMathEngine** mathEngines, int devsCount, const int* cudaDevs )
 {

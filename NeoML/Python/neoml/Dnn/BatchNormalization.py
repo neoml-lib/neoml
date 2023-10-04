@@ -20,7 +20,7 @@ from neoml.Utils import check_input_layers
 
 
 class BatchNormalization(Layer):
-    """The layer that performs normalization using the formula:
+    r"""The layer that performs normalization using the formula:
     :math:`bn(x)[i][j] = ((x[i][j] - mean[j]) / \sqrt{var[j]}) * gamma[j] + beta[j]`
     
     - gamma and beta are the trainable parameters

@@ -23,6 +23,7 @@ limitations under the License.
 
 #include "NeoOnnxCheck.h"
 #include "Tensor.h"
+#include "Optimization/Graph.h"
 
 namespace NeoOnnx {
 
@@ -153,6 +154,11 @@ CPtr<const CUserTensor> ConvertTensor( const CUserTensor& inputTensor, const CTe
 CPtr<const CDataTensor> ConvertTensor( const CDataTensor& inputTensor, const CTensorLayout& destLayout );
 CPtr<const CShapeTensor> ConvertTensor( const CShapeTensor& inputTensor, const CTensorLayout& destLayout );
 
+// Layout conversion during optimizations
+optimization::CLayerOutput<> ConvertTensor( const optimization::CLayerOutput<>& inputData,
+	const CTensorLayout& inputLayout, const ITensorLayoutValidator& validator,
+	optimization::CGraph& graph, CTensorLayout& outputLayout );
+
 //---------------------------------------------------------------------------------------------------------------------
 // Auxiliary tensor padding functions
 
@@ -201,7 +207,10 @@ struct CBroadcast {
 bool BroadcastTensorShape( const CTensorShape& first, const CTensorShape& second, const CBroadcast& broadcast,
 	CTensorShape& result );
 
-// Prepares user tensor for CBroadcastLayer
+// Generates layout recommended for broadcasting given tensor
+CTensorLayout BroadcastTensorLayout( const CTensorLayout& inputLayout, const CBroadcast& broadcast, int outputDims );
+
+// Prepares tensor for operation with broadcast
 CPtr<const CTensorBase> PrepareForBroadcast( const CTensorBase& input, const CBroadcast& broadcast, int outputDims );
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -221,78 +230,6 @@ CPtr<const CShapeTensor> AsShapeTensor( const CFastArray<float, 8>& data, const 
 // Extracts shape to the given array
 // Throws an exception if CUserTensor is provided (CUserTensor doesn't have shape)
 void GetTensorShape( const CTensorBase& tensor, CTensorShape& shape );
-
-//---------------------------------------------------------------------------------------------------------------------
-// Auxiliary tensor layout functions
-
-// Information about renaming (change dimension names without reordering them in memory)
-struct CTensorLayoutRename {
-	CTensorLayout From;
-	CTensorLayout To;
-};
-
-// Information about transposition (swapping 2 dimensions)
-struct CTensorLayoutTranspose {
-	CTensorLayoutTranspose( TBlobDim first, TBlobDim second ) : First( first ), Second( second ) {}
-
-	TBlobDim First;
-	TBlobDim Second;
-};
-
-// Information about layout conversion
-// The chain is
-//     -> [PreTransposeRename] -> [Transpose]* -> [PostTransposeRename] ->
-// (each part is optional, trivial conversion means no operations at all)
-struct CTensorLayoutConversion {
-	CTensorLayoutRename PreTransposeRename;
-	CFastArray<CTensorLayoutTranspose, 2> Transposes;
-	CTensorLayoutRename PostTransposeRename;
-
-	CTensorLayoutConversion() = default;
-	~CTensorLayoutConversion() = default;
-	CTensorLayoutConversion( const CTensorLayoutConversion& other );
-	CTensorLayoutConversion( CTensorLayoutConversion&& other );
-	CTensorLayoutConversion& operator=( const CTensorLayoutConversion& other );
-	CTensorLayoutConversion& operator=( CTensorLayoutConversion&& other );
-};
-
-inline CTensorLayoutConversion::CTensorLayoutConversion( const CTensorLayoutConversion& other ) :
-	PreTransposeRename( other.PreTransposeRename ),
-	PostTransposeRename( other.PostTransposeRename )
-{
-	other.Transposes.CopyTo( Transposes );
-}
-
-inline CTensorLayoutConversion::CTensorLayoutConversion( CTensorLayoutConversion&& other )
-{
-	other.PreTransposeRename.From.MoveTo( PreTransposeRename.From );
-	other.PreTransposeRename.To.MoveTo( PreTransposeRename.To );
-	other.Transposes.MoveTo( Transposes );
-	other.PostTransposeRename.From.MoveTo( PostTransposeRename.From );
-	other.PostTransposeRename.To.MoveTo( PostTransposeRename.To );
-}
-
-inline CTensorLayoutConversion& CTensorLayoutConversion::operator=( const CTensorLayoutConversion& other )
-{
-	PreTransposeRename = other.PreTransposeRename;
-	other.Transposes.CopyTo( Transposes );
-	PostTransposeRename = other.PostTransposeRename;
-	return *this;
-}
-
-inline CTensorLayoutConversion& CTensorLayoutConversion::operator=( CTensorLayoutConversion&& other )
-{
-	other.PreTransposeRename.From.MoveTo( PreTransposeRename.From );
-	other.PreTransposeRename.To.MoveTo( PreTransposeRename.To );
-	other.Transposes.MoveTo( Transposes );
-	other.PostTransposeRename.From.MoveTo( PostTransposeRename.From );
-	other.PostTransposeRename.To.MoveTo( PostTransposeRename.To );
-	return *this;
-}
-
-// Finds optimal way to convert inputLayout into a valid layout ( validator( layout ) == true )
-CTensorLayout FindConversion( const CTensorLayout& inputLayout, const ITensorLayoutValidator& validator,
-	CTensorLayoutConversion& conversion );
 
 //---------------------------------------------------------------------------------------------------------------------
 // Implementations of ITensorLayoutValidator

@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -46,7 +46,7 @@ public:
 
 	// IMathEngine interface methods
 	TMathEngineType GetType() const override { return MET_Metal; }
-    void SetReuseMemoryMode( bool enable ) override;
+	void SetReuseMemoryMode( bool enable ) override;
 	CMemoryHandle HeapAlloc( size_t count ) override;
 	void HeapFree( const CMemoryHandle& handle ) override;
 	CMemoryHandle StackAlloc( size_t count ) override;
@@ -81,12 +81,12 @@ public:
 	void VectorSumAdd(const CConstFloatHandle& firstHandle, int vectorSize, const CFloatHandle& resultHandle) override;
 	void VectorSumAlongDimension(const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
 		int followingDimension, const CFloatHandle& resultHandle) override;
-	void VectorSumAlongDimensionDiag(const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
-		int followingDimension, const CFloatHandle& resultHandle) override;
 	void VectorCumSumAlongDimension(const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
 		int followingDimension, const CFloatHandle& resultHandle, bool reverse) override;
 	void VectorCumSumAlongDimension( const CConstIntHandle& firstHandle, int precedingDimension, int dimension,
 		int followingDimension, const CIntHandle& resultHandle, bool reverse ) override;
+	void VectorSumAlongDimensionDiag(const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
+		int followingDimension, const CFloatHandle& resultHandle) override;
 	void VectorCumSumAlongDimensionDiag(const CConstFloatHandle& firstHandle, int precedingDimension, int dimension,
 		int followingDimension, const CFloatHandle& resultHandle) override;
 	void VectorEqual( const CConstIntHandle& firstHandle, const CConstIntHandle& secondHandle,
@@ -347,25 +347,29 @@ public:
 		const CConstFloatHandle& firstHandle, int firstSize, const CLookupVector& secondVector) override;
 	void MultiplyMatrixByTransposedMatrix(const CConstFloatHandle& firstHandle, int firstHeight,
 		int firstWidth, int firstRowSize, const CConstFloatHandle& secondHandle, int secondHeight, int secondRowSize,
-		const CFloatHandle& resultHandle, int resultRowSize, int resultBufferSize) override;
+		const CFloatHandle& resultHandle, int resultRowSize, int resultBufferSize,
+		const CSmallMatricesMultiplyDesc* desc = nullptr) override;
 	void MultiplyMatrixByTransposedMatrix(int batchSize, const CConstFloatHandle& firstHandle, int firstHeight, int firstWidth,
-		const CConstFloatHandle& secondHandle, int secondHeight, const CFloatHandle& resultHandle, int resultBufferSize) override;
+		const CConstFloatHandle& secondHandle, int secondHeight, const CFloatHandle& resultHandle, int resultBufferSize,
+		const CSmallMatricesMultiplyDesc* desc = nullptr) override;
 	void MultiplySparseMatrixByTransposedMatrix( int firstHeight, int firstWidth, int secondHeight,
 		const CSparseMatrixDesc& firstDesc, const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle ) override;
-	void MultiplyTransposedMatrixBySparseMatrixAndAdd( int firstHeight, int firstWidth, int secondWidth,
-		const CConstFloatHandle& firstHandle, const CSparseMatrixDesc& secondDesc, const CFloatHandle& resultHandle ) override;
 	void MultiplyTransposedMatrixBySparseMatrix( int firstHeight, int firstWidth, int secondWidth,
 		const CConstFloatHandle& firstHandle, const CSparseMatrixDesc& secondDesc, const CFloatHandle& resultHandle,
 		bool isTransposedSparse ) override;
+	void MultiplyTransposedMatrixBySparseMatrixAndAdd( int firstHeight, int firstWidth, int secondWidth,
+		const CConstFloatHandle& firstHandle, const CSparseMatrixDesc& secondDesc, const CFloatHandle& resultHandle ) override;
 	void MultiplySparseMatrixByMatrix( int firstHeight, int firstWidth, int secondWidth,
 		const CSparseMatrixDesc& firstDesc, const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle ) override;
 	void MultiplyTransposedSparseMatrixByMatrix( int firstHeight, int firstWidth, int secondWidth,
 		const CSparseMatrixDesc& firstDesc, const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle ) override;
 	void MultiplyTransposedMatrixByMatrixAndAdd(const CConstFloatHandle& firstHandle, int firstHeight, int firstWidth,
 		int firstRowSize, const CConstFloatHandle& secondHandle, int secondWidth, int secondRowSize,
-		const CFloatHandle& resultHandle, int resultRowSize, int resultBufferSize) override;
+		const CFloatHandle& resultHandle, int resultRowSize, int resultBufferSize,
+		const CSmallMatricesMultiplyDesc* desc = nullptr) override;
 	void MultiplyTransposedMatrixByMatrix(int batchSize, const CConstFloatHandle& firstHandle, int firstHeight, int firstWidth,
-		const CConstFloatHandle& secondHandle, int secondWidth, const CFloatHandle& resultHandle, int resultBufferSize) override;
+		const CConstFloatHandle& secondHandle, int secondWidth, const CFloatHandle& resultHandle, int resultBufferSize,
+		const CSmallMatricesMultiplyDesc* desc = nullptr) override;
 	void MultiplyDiagMatrixByMatrix(const CConstFloatHandle& firstHandle, int firstSize,
 		const CConstFloatHandle& secondHandle, int secondWidth,
 		const CFloatHandle& resultHandle, int resultBufferSize) override;
@@ -374,9 +378,11 @@ public:
 		const CFloatHandle& resultHandle, int resultBufferSize) override;
 	void MultiplyMatrixByMatrix( int batchSize, const CConstFloatHandle& firstHandle, int firstHeight,
 		int firstWidth, const CConstFloatHandle& secondHandle, int secondWidth,
+		const CFloatHandle& resultHandle, int resultBufferSize,
+		const CSmallMatricesMultiplyDesc* desc = nullptr ) override;
+	void BatchMultiplyMatrixByDiagMatrix( int batchSize, const CConstFloatHandle& firstHandle, int height,
+		int width, int firstMatrixOffset, const CConstFloatHandle& secondHandle, int secondMatrixOffset,
 		const CFloatHandle& resultHandle, int resultBufferSize ) override;
-	void MultiplyMatrixByDiagMatrix(const CConstFloatHandle& firstHandle, int firstHeight, int firstWidth,
-		const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int resultBufferSize) override;
 	void TransposeMatrix(int batchSize, const CConstFloatHandle& firstHandle,
 		int height, int medium, int width, int channels, const CFloatHandle& resultHandle, int resultBufferSize) override;
 	void TransposeMatrix(int batchSize, const CConstIntHandle& firstHandle,
@@ -393,7 +399,7 @@ public:
 	void MatrixSpreadRows(const CConstIntHandle& sourceHandle, int height, int width,
 		const CIntHandle& resultHandle, int resultHeight, const CConstIntHandle& indexHandle,
 		const CConstIntHandle& fillValue) override;
-	void SingularValueDecomposition( const CFloatHandle& a, int n, int m, const CFloatHandle& u, const CFloatHandle& s,
+	void SingularValueDecomposition( const CFloatHandle& a, int height, int width, const CFloatHandle& u, const CFloatHandle& s,
 		const CFloatHandle& vt, const CFloatHandle& superb, bool returnLeftVectors, bool returnRightVectors ) override;
 	void QRFactorization( int height, int width, const CFloatHandle& matrixHandle, const CFloatHandle* qHandle, const CFloatHandle* rHandle,
 		bool inplace, bool returnQ, bool returnR ) override;
@@ -405,17 +411,17 @@ public:
 		const CBlobDesc& to, const CFloatHandle& toData) override;
 	void BlobMergeByDim(TBlobDim dim, const CBlobDesc* from, const CIntHandle* fromData, int fromCount,
 		const CBlobDesc& to, const CIntHandle& toData) override;
-	void BlobSplitByDim(TBlobDim dim, const CBlobDesc& from, const CFloatHandle& fromData,
+	void BlobSplitByDim(TBlobDim dim, const CBlobDesc& from, const CConstFloatHandle& fromData,
 		const CBlobDesc* to, const CFloatHandle* toData, int toCount) override;
-	void BlobSplitByDim(TBlobDim dim, const CBlobDesc& from, const CIntHandle& fromData,
+	void BlobSplitByDim(TBlobDim dim, const CBlobDesc& from, const CConstIntHandle& fromData,
 		const CBlobDesc* to, const CIntHandle* toData, int toCount) override;
 	void BlobResizeImage( const CBlobDesc& from, const CFloatHandle& fromData, int deltaLeft, int deltaRight,
 		int deltaTop, int deltaBottom, TBlobResizePadding padding, float defaultValue,
 		const CBlobDesc& to, const CFloatHandle& toData ) override;
 	void BlobGetSubSequence( const CBlobDesc& from, const CFloatHandle& fromData, const CIntHandle& indexHandle,
 		const CBlobDesc& to, const CFloatHandle& toData, int startPos, bool isRev ) override;
-	CTimeConvolutionDesc* InitTimeConvolution( const CBlobDesc& source, int stride, int paddingFront, int paddingBack,
-		int dilation, const CBlobDesc& filter, const CBlobDesc& result ) override;
+	CTimeConvolutionDesc* InitTimeConvolution( const CBlobDesc& source, int stride, int paddingFront, int paddingBack, int dilation,
+		const CBlobDesc& filter, const CBlobDesc& result ) override;
 	void BlobTimeConvolution( const CTimeConvolutionDesc& desc, const CConstFloatHandle& source,
 		const CConstFloatHandle& filter, const CConstFloatHandle& freeTerm, const CFloatHandle& result ) override;
 	void BlobTimeConvolutionBackward( const CTimeConvolutionDesc& desc, const CConstFloatHandle& outputDiff,
@@ -454,50 +460,56 @@ public:
 	void BlobChannelwiseConvolutionLearnAdd( const CChannelwiseConvolutionDesc& convDesc,
 		const CConstFloatHandle& input, const CConstFloatHandle& outputDiff, const CFloatHandle& filterDiff,
 		const CFloatHandle* freeTermDiff ) override;
+
+	CSmallMatricesMultiplyDesc* InitSmallMatricesMultiplyDesc(
+		int /*firstHeight*/, int /*firstWidth*/, int /*secondWidth*/, int /*secondRowSize*/, int /*resultWidth*/,
+		bool /*resultAdd*/, bool /*trans1*/, bool /*trans2*/ ) const override
+	{ return new CSmallMatricesMultiplyDesc{}; }
+
 	CGlobalMaxPoolingDesc* InitGlobalMaxPooling( const CBlobDesc& source, const CBlobDesc& maxIndices,
 		const CBlobDesc& result ) override;
 	void BlobGlobalMaxPooling( const CGlobalMaxPoolingDesc& desc,
 		const CConstFloatHandle& source, const CIntHandle& maxIndices, const CFloatHandle& result ) override;
 	void BlobGlobalMaxPoolingBackward( const CGlobalMaxPoolingDesc& desc,
-		const CFloatHandle& outputDiff, const CIntHandle& maxIndices, const CFloatHandle& inputDiff ) override;
+		const CConstFloatHandle& resultDiff, const CConstIntHandle& maxIndices, const CFloatHandle& sourceDiff ) override;
 	C3dMaxPoolingDesc* Init3dMaxPooling( const CBlobDesc& source,
 		int filterHeight, int filterWidth, int filterDepth,
 		int strideHeight, int strideWidth, int strideDepth, const CBlobDesc& result ) override;
-	void Blob3dMaxPooling( const C3dMaxPoolingDesc& desc, const CFloatHandle& source,
+	void Blob3dMaxPooling( const C3dMaxPoolingDesc& desc, const CConstFloatHandle& source,
 		const CIntHandle* maxIndices, const CFloatHandle& result ) override;
-	void Blob3dMaxPoolingBackward( const C3dMaxPoolingDesc& desc, const CFloatHandle& outputDiff,
-		const CIntHandle& maxIndices, const CFloatHandle& inputDiff ) override;
+	void Blob3dMaxPoolingBackward( const C3dMaxPoolingDesc& desc, const CConstFloatHandle& resultDiff,
+		const CConstIntHandle& maxIndices, const CFloatHandle& sourceDiff ) override;
 	C3dMeanPoolingDesc* Init3dMeanPooling( const CBlobDesc& source,
 		int filterHeight, int filterWidth, int filterDepth,
 		int strideHeight, int strideWidth, int strideDepth,
 		const CBlobDesc& result ) override;
-	void Blob3dMeanPooling( const C3dMeanPoolingDesc& desc, const CFloatHandle& source, const CFloatHandle& result ) override;
-	void Blob3dMeanPoolingBackward( const C3dMeanPoolingDesc& desc, const CFloatHandle& outputDiff,
-		const CFloatHandle& inputDiff ) override;
+	void Blob3dMeanPooling( const C3dMeanPoolingDesc& desc, const CConstFloatHandle& source, const CFloatHandle& result ) override;
+	void Blob3dMeanPoolingBackward( const C3dMeanPoolingDesc& desc, const CConstFloatHandle& resultDiff,
+		const CFloatHandle& sourceDiff ) override;
 	CMaxPoolingDesc* InitMaxPooling( const CBlobDesc& source,
 		int filterHeight, int filterWidth, int strideHeight, int strideWidth,
 		const CBlobDesc& result ) override;
-	void BlobMaxPooling( const CMaxPoolingDesc& desc, const CFloatHandle& source,
+	void BlobMaxPooling( const CMaxPoolingDesc& desc, const CConstFloatHandle& source,
 		const CIntHandle* maxIndices, const CFloatHandle& result ) override;
-	void BlobMaxPoolingBackward( const CMaxPoolingDesc& desc, const CFloatHandle& outputDiff,
-		const CIntHandle& maxIndices, const CFloatHandle& inputDiff) override;
+	void BlobMaxPoolingBackward( const CMaxPoolingDesc& desc, const CConstFloatHandle& resultDiff,
+		const CConstIntHandle& maxIndices, const CFloatHandle& sourceDiff) override;
 	CMaxOverTimePoolingDesc* InitMaxOverTimePooling( const CBlobDesc& source, int filterLen, int strideLen,
 		const CBlobDesc& result ) override;
-	void BlobMaxOverTimePooling( const CMaxOverTimePoolingDesc& desc, const CFloatHandle& source,
+	void BlobMaxOverTimePooling( const CMaxOverTimePoolingDesc& desc, const CConstFloatHandle& source,
 		const CIntHandle* maxIndices, const CFloatHandle& result ) override;
-	void BlobMaxOverTimePoolingBackward( const CMaxOverTimePoolingDesc& desc, const CFloatHandle& outputDiff,
-		const CIntHandle& maxIndices, const CFloatHandle& inputDiff ) override;
+	void BlobMaxOverTimePoolingBackward( const CMaxOverTimePoolingDesc& desc, const CConstFloatHandle& resultDiff,
+		const CConstIntHandle& maxIndices, const CFloatHandle& sourceDiff ) override;
 	CMeanPoolingDesc* InitMeanPooling( const CBlobDesc& source,
 		int filterHeight, int filterWidth, int strideHeight, int strideWidth,
 		const CBlobDesc& result ) override;
-	void BlobMeanPooling( const CMeanPoolingDesc& desc, const CFloatHandle& source, const CFloatHandle& result ) override;
-	void BlobMeanPoolingBackward( const CMeanPoolingDesc& desc, const CFloatHandle& outputDiff,
-		const CFloatHandle& inputDiff ) override;
+	void BlobMeanPooling( const CMeanPoolingDesc& desc, const CConstFloatHandle& source, const CFloatHandle& result ) override;
+	void BlobMeanPoolingBackward( const CMeanPoolingDesc& desc, const CConstFloatHandle& resultDiff,
+		const CFloatHandle& sourceDiff ) override;
 	CGlobalMaxOverTimePoolingDesc* InitGlobalMaxOverTimePooling( const CBlobDesc& source, const CBlobDesc& result ) override;
-	void BlobGlobalMaxOverTimePooling( const CGlobalMaxOverTimePoolingDesc& desc, const CFloatHandle& source,
+	void BlobGlobalMaxOverTimePooling( const CGlobalMaxOverTimePoolingDesc& desc, const CConstFloatHandle& source,
 		const CIntHandle* maxIndices, const CFloatHandle& result ) override;
-	void BlobGlobalMaxOverTimePoolingBackward( const CGlobalMaxOverTimePoolingDesc& desc, const CFloatHandle& source,
-		const CIntHandle& maxIndices, const CFloatHandle& result ) override;
+	void BlobGlobalMaxOverTimePoolingBackward( const CGlobalMaxOverTimePoolingDesc& desc, const CConstFloatHandle& resultDiff,
+		const CConstIntHandle& maxIndices, const CFloatHandle& sourceDiff ) override;
 	void Upsampling2DForward( const CBlobDesc& input, const CConstIntHandle& inputData, int heightCopyCount,
 		int widthCopyCount, const CBlobDesc& result, const CIntHandle& resultData ) override;
 	void Upsampling2DForward( const CBlobDesc& input, const CConstFloatHandle& inputData, int heightCopyCount,
@@ -527,10 +539,10 @@ public:
 		const CBlobDesc& result, const CFloatHandle& resultData ) override;
 	void DepthToSpace( const CBlobDesc& source, const CConstIntHandle& sourceData, int blockSize,
 		const CBlobDesc& result, const CIntHandle& resultData ) override;
-	void AddWidthIndex( const CBlobDesc& source, const CFloatHandle& sourceData, bool isForward, const CFloatHandle& result ) override;
-	void AddWidthIndex( const CBlobDesc& source, const CIntHandle& sourceData, bool isForward, const CIntHandle& result ) override;
-	void AddHeightIndex( const CBlobDesc& source, const CFloatHandle& sourceData, bool isForward, const CFloatHandle& result ) override;
-	void AddHeightIndex( const CBlobDesc& source, const CIntHandle& sourceData, bool isForward, const CIntHandle& result ) override;
+	void AddWidthIndex( const CBlobDesc& source, const CConstFloatHandle& sourceData, bool isForward, const CFloatHandle& result ) override;
+	void AddWidthIndex( const CBlobDesc& source, const CConstIntHandle& sourceData, bool isForward, const CIntHandle& result ) override;
+	void AddHeightIndex( const CBlobDesc& source, const CConstFloatHandle& sourceData, bool isForward, const CFloatHandle& result ) override;
+	void AddHeightIndex( const CBlobDesc& source, const CConstIntHandle& sourceData, bool isForward, const CIntHandle& result ) override;
 	CDropoutDesc* InitDropout( float rate, bool isSpatial, bool isBatchwise, const CBlobDesc& input,
 		const CBlobDesc& output, int seed ) override;
 	void Dropout( const CDropoutDesc& desc, const CFloatHandle& input, const CFloatHandle& output ) override;
@@ -572,42 +584,39 @@ public:
 	void BertConvBackward( const CConstFloatHandle& dataHandle, const CConstFloatHandle& kernelHandle,
 		const CConstFloatHandle& outDiffHandle, int seqLen, int batchSize, int numHeads, int headSize, int kernelSize,
 		const CFloatHandle& dataDiffHandle, const CFloatHandle& kernelDiffHandle ) override;
-	CLstmDesc* InitLstm(  CLstmDesc* currentDesc, const CFloatHandle& inputFullyConnectedResult, const CFloatHandle& reccurentFullyConnectedResult,
-		int hiddenSize, int objectCount, int objectSize ) override;
-	void Lstm( CLstmDesc& desc,
-		const CFloatHandle& inputWeights, const CConstFloatHandle& inputFreeTerm,
-		const CFloatHandle& recurrentWeights, const CConstFloatHandle& recurrentFreeTerm,
-		const CConstFloatHandle& inputStateBackLink, const CConstFloatHandle& inputMainBackLink, const CConstFloatHandle& input,
-		const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink ) override;
-	void LinearInterpolation( const CConstFloatHandle& dataHandle, const CFloatHandle& resultHandle, TInterpolationCoords coords,
-		TInterpolationRound round, int objectCount, int scaledAxis, int objectSize, float scale ) override;
+	CLstmDesc* InitLstm( int hiddenSize, int objectSize,
+		const CConstFloatHandle& inputWeights, const CConstFloatHandle& inputFreeTerm,
+		const CConstFloatHandle& recurrentWeights, const CConstFloatHandle& recurrentFreeTerm ) override;
+	void Lstm( CLstmDesc& desc, bool reverse, int sequenceLength, int sequenceCount,
+		const CConstFloatHandle& inputStateBackLink, const CConstFloatHandle& inputMainBackLink,
+		const CConstFloatHandle& input, const CFloatHandle& outputStateBackLink,
+		const CFloatHandle& outputMainBackLink) override;
+	void LinearInterpolation( const CConstFloatHandle& dataHandle, const CFloatHandle& resultHandle,
+		TInterpolationCoords coords, TInterpolationRound round, int objectCount, int scaledAxis,
+		int objectSize, float scale ) override;
 	void ScatterND( const CConstIntHandle& indicesHandle, const CConstFloatHandle& updatesHandle,
 		const CFloatHandle& dataHandle, const CBlobDesc& dataDesc, int updateCount, int indexDims ) override;
 	void ScatterND( const CConstIntHandle& indicesHandle, const CConstIntHandle& updatesHandle,
 		const CIntHandle& dataHandle, const CBlobDesc& dataDesc, int updateCount, int indexDims ) override;
 	void ChannelwiseWith1x1( const CBlobDesc& inputDesc, const CBlobDesc& outputDesc,
-		const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& inputHandle,
-		const CConstFloatHandle& channelwiseFilter, const CConstFloatHandle* channelwiseFreeTerm,
-		TActivationFunction activation, float reluParam, const CConstFloatHandle& convFilter,
-		const CConstFloatHandle* convFreeTerm, bool residual, const CFloatHandle& outputHandle ) override;
+		const CRowwiseOperationDesc& rowwiseDesc, const CChannelwiseConvolutionDesc& convDesc,
+		const CConstFloatHandle& inputHandle, const CFloatHandle& outputHandle ) override;
 	void MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobDesc& outputDesc,
-		const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& inputHandle,
-		const CConstFloatHandle& expandFilter, const CConstFloatHandle* expandFreeTerm,
-		TActivationFunction expandActivation, float expandReluParam, const CConstFloatHandle& channelwiseFilter,
-		const CConstFloatHandle* channelwiseFreeTerm, TActivationFunction channelwiseActivation,
-		float channelwiseReluParam, const CConstFloatHandle& downFilter, const CConstFloatHandle* downFreeTerm,
-		bool residual, const CFloatHandle& outputHandle ) override;
+		const CRowwiseOperationDesc& rowwiseDesc, const CChannelwiseConvolutionDesc& convDesc,
+		const CConstFloatHandle& inputHandle, const CFloatHandle& outputHandle ) override;
 	void MobileNetV3PreSEBlock( const CBlobDesc& inputDesc, const CBlobDesc& outputDesc,
 		const CChannelwiseConvolutionDesc& convDesc, const CConstFloatHandle& inputHandle,
 		const CConstFloatHandle& expandFilter, const CConstFloatHandle* expandFreeTerm,
 		TActivationFunction expandActivation, float expandReluParam, const CConstFloatHandle& channelwiseFilter,
 		const CConstFloatHandle* channelwiseFreeTerm, TActivationFunction channelwiseActivation,
-		float channelwiseReluParam, const CFloatHandle& outputHandle ) override;
+		float channelwiseReluParam, const CFloatHandle& outputHandle,
+		const CSmallMatricesMultiplyDescsArray* descs = nullptr ) override;
 	void MobileNetV3PostSEBlock( const CBlobDesc& channelwiseOutputDesc, int outputChannels,
 		const CConstFloatHandle& channelwiseOutputHandle, const CConstFloatHandle& squeezeAndExciteHandle,
 		const CConstFloatHandle* residualHandle, TActivationFunction activation, float reluParam,
 		const CConstFloatHandle& downFilterHandle, const CConstFloatHandle* downFreeTermHandle,
-		const CFloatHandle& outputHandle ) override;
+		const CFloatHandle& outputHandle, const CSmallMatricesMultiplyDescsArray* descs = nullptr ) override;
+	CSmallMatricesMultiplyDescsArray* InitSmallMatricesMultiplyDescsArray() override { return new CSmallMatricesMultiplyDescsArray{}; }
 	// Rowwise computation is ineffective on GPUs
 	CRowwiseOperationDesc* InitRowwiseActivation( const CActivationDesc& ) override
 		{ ASSERT_EXPR( false ); return nullptr; }
@@ -622,9 +631,9 @@ public:
 		TActivationFunction, float, const CConstFloatHandle&, const CConstFloatHandle*, int, TActivationFunction,
 		float, const CConstFloatHandle&, const CConstFloatHandle*, int, bool ) override
 		{ ASSERT_EXPR( false ); return nullptr; }
-	CRowwiseOperationDesc* InitRowwise2DPooling( bool, int, int, int, int ) override
-		{ ASSERT_EXPR( false ); return nullptr; }
 	CRowwiseOperationDesc* InitRowwiseResizeImage( TBlobResizePadding, float, int, int, int, int ) override
+		{ ASSERT_EXPR( false ); return nullptr; }
+	CRowwiseOperationDesc* InitRowwise2DPooling( bool, int, int, int, int ) override
 		{ ASSERT_EXPR( false ); return nullptr; }
 	CBlobDesc RowwiseReshape( CRowwiseOperationDesc**, int, const CBlobDesc& ) override
 		{ ASSERT_EXPR( false ); return CBlobDesc(); }
@@ -666,7 +675,7 @@ private:
 
 	void blobMergeByDim(int dimNum, const CBlobDesc* from, const CFloatHandle* fromData, int fromCount,
 		const CBlobDesc& to, const CFloatHandle& toData);
-	void blobSplitByDim(int dimNum, const CBlobDesc& from, const CFloatHandle& fromData,
+	void blobSplitByDim(int dimNum, const CBlobDesc& from, const CConstFloatHandle& fromData,
 		const CBlobDesc* to, const CFloatHandle* toData, int toCount);
 
 	void multiplyMatrixByTransposedMatrixAndAdd(const CConstFloatHandle& firstHandle,

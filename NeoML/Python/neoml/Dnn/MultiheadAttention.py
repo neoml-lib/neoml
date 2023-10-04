@@ -20,7 +20,7 @@ from neoml.Utils import check_input_layers
 
 
 class MultiheadAttention(Layer):
-    """The multihead self-attention layer that transforms a set of matrices
+    r"""The multihead self-attention layer that transforms a set of matrices
     according to a formula:
 
     :math:`Q = W_Q * Q`,

@@ -22,7 +22,7 @@ namespace NeoML {
 class CDnn;
 
 // Struct which contains the details of optimization result
-struct NEOML_API CDnnOptimizationReport {
+struct NEOML_API CDnnOptimizationReport final {
 	// Number of composite layers which where unpacked
 	// (unpack == content of the layer moved to the root CDnn, composite itself is removed)
 	int UnpackedCompositeLayers = 0;
@@ -44,10 +44,27 @@ struct NEOML_API CDnnOptimizationReport {
 	int MobileNetV3ResidualBlocks = 0;
 	// Number of chains of rowwise operations
 	int RowwiseChainCount = 0;
+
+	bool IsOptimized() const;
 };
 
+// Check for is any optimization succeed
+inline bool CDnnOptimizationReport::IsOptimized() const
+{
+	return UnpackedCompositeLayers > 0
+		|| RemovedTrivialLayers > 0
+		|| FusedBatchNormalizations > 0
+		|| ChannelwiseWith1x1NonResidual > 0
+		|| ChannelwiseWith1x1Residual > 0
+		|| MobileNetV2NonResidualBlocks > 0
+		|| MobileNetV2ResidualBlocks > 0
+		|| MobileNetV3NonResidualBlocks > 0
+		|| MobileNetV3ResidualBlocks > 0
+		|| RowwiseChainCount > 0;
+}
+
 // Settings for optional optimizations
-struct NEOML_API CDnnOptimizationSettings {
+struct NEOML_API CDnnOptimizationSettings final {
 	// Enable additional optimizations which are useful for inference on CPU
 	// Recommended for convolutional nets with at least 20MB RAM usage
 	// (You can measure RAM usage by running the dnn and dnn.GetMathEngine().GetPeakMemoryUsage())

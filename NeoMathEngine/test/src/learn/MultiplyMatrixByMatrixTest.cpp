@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -42,9 +42,16 @@ static void multiplyMatrixByMatrixAndAddTestImpl( const CTestParams& params, int
 
 	batchMultiplyMatrixByMatrixAndAddNaive( batchSize, first, second, firstHeight, firstWidth, secondWidth, expected );
 
-	MathEngine().MultiplyMatrixByMatrix( batchSize, CARRAY_FLOAT_WRAPPER( first ), firstHeight, firstWidth,
-		CARRAY_FLOAT_WRAPPER( second ), secondWidth, CARRAY_FLOAT_WRAPPER( get ), batchSize * firstHeight * secondWidth );
+	CSmallMatricesMultiplyDesc* desc = MathEngine().InitSmallMatricesMultiplyDesc(
+		firstHeight, firstWidth, secondWidth, /*secondRowSize*/secondWidth, /*resultWidth*/secondWidth,
+		/*resultAdd*/false, /*trans1*/false, /*trans2*/false );
 
+	MathEngine().MultiplyMatrixByMatrix( batchSize, CARRAY_FLOAT_WRAPPER( first ), firstHeight, firstWidth,
+		CARRAY_FLOAT_WRAPPER( second ), secondWidth, CARRAY_FLOAT_WRAPPER( get ), batchSize * firstHeight * secondWidth, desc );
+
+	if( desc ) {
+		delete desc;
+	}
 	for( int i = 0; i < batchSize * firstHeight * secondWidth; ++i ) {
 		ASSERT_NEAR( expected[i], get[i], 1e-3 );
 	}
@@ -61,18 +68,14 @@ INSTANTIATE_TEST_CASE_P( CMultiplyMatrixByMatrixTestInstantiation, CMultiplyMatr
 			"Height = (1..50);"
 			"Width = (1..50);"
 			"BatchSize = (1..5);"
-			"VectorSize = (1..20);"
 			"Values = (-1..1);"
-			"Channels = (1..5);"
 			"TestCount = 100;"
 		),
 		CTestParams(
 			"Height = (100..500);"
 			"Width = (100..500);"
 			"BatchSize = (1..5);"
-			"VectorSize = (30..50);"
 			"Values = (-1..1);"
-			"Channels = (1..5);"
 			"TestCount = 5;"
 		)
 	)

@@ -94,11 +94,6 @@ private:
 	CGraph& graph;
 	struct CLayoutChange;
 
-	static bool isValidBlobDim( int dim )
-	{ return dim >= 0 && dim < BD_Count; }
-	static bool isEmptyBlobDim( int index, int dim )
-	{ return dim == index || !isValidBlobDim( dim ); };
-
 	CLayerOutput<> selectLayoutChange( CBaseLayer& inputLayer, int inputIndex, CLayoutChange& change ) const;
 	bool isValidDataLayer( const CDataLayer& dataLayer, TBlobType blobType, int blobSize = NotFound ) const;
 	bool isValidCastLayer( const CCastLayer& castLayer ) const;
@@ -108,8 +103,6 @@ private:
 	// Checks if CPowerLayer is valid for CLayerNormFusionOptimizer conversion
 	bool isValidPowerLayer( const CPowerLayer& powLayer, float exponent ) const
 	{ return powLayer.GetExponent() == exponent && graph.GetInputCount( powLayer ) == 1 && graph.GetOutputCount( powLayer ) == 1; }
-	CLayerOutput<> changeLayout( const CLayerOutput<>& inputData, const CTensorLayout& inputLayout,
-		const ITensorLayoutValidator& validator, CTensorLayout& outputLayout );
 };
 
 } // namespace optimization

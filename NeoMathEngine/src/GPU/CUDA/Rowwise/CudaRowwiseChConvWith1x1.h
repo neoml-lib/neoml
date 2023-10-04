@@ -55,9 +55,12 @@ private:
 	const CConstFloatHandle convFreeTerm;
 	const int outputChannels;
 	const bool residual;
-	CBlobDesc inputDesc;
-	CBlobDesc outputDesc;
-	std::unique_ptr<CChannelwiseConvolutionDesc> chDesc;
+	// Reshape
+	CBlobDesc inputDesc{};
+	CBlobDesc outputDesc{};
+	std::unique_ptr<CChannelwiseConvolutionDesc> chDesc{};
+
+	friend class CCudaMathEngine;
 };
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -79,9 +82,7 @@ inline CBlobDesc CCudaRowwiseChConvWith1x1::Reshape( const CBlobDesc& inputSize 
 
 inline void CCudaRowwiseChConvWith1x1::Process( const CFloatHandle& input, const CFloatHandle& output ) const
 {
-	chFilter.GetMathEngine()->ChannelwiseWith1x1( inputDesc, outputDesc, *chDesc, input, chFilter,
-		chFreeTerm.IsNull() ? nullptr : &chFreeTerm, activation, reluParam, convFilter,
-		convFreeTerm.IsNull() ? nullptr : &convFreeTerm, residual, output );
+	chFilter.GetMathEngine()->ChannelwiseWith1x1( inputDesc, outputDesc, *this, *chDesc, input, output );
 }
 
 } // namespace NeoML

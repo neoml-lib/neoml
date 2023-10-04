@@ -15,6 +15,8 @@ limitations under the License.
 
 #pragma once
 
+#include <memory>
+
 #include "CpuRowwiseCommon.h"
 #include "CpuRowwiseInterface.h"
 #include <CpuMathEngineDnnChannelwiseConv.h>
@@ -36,11 +38,11 @@ public:
 		convFreeTerm( convFreeTerm ),
 		outputChannels( outputChannels ),
 		residual( residual ),
-		desc( 1, 1, stride, stride, CBlobDesc(), CBlobDesc(), CBlobDesc() ),
+		desc( 1, 1, stride, stride, CBlobDesc{}, CBlobDesc{}, CBlobDesc{} ),
 		inputRowRequirement( 0 ),
-		outputRowRequirement( 0 )
-	{
-	}
+		outputRowRequirement( 0 ),
+		smallMatricesMulDescs( mathEngine )
+	{}
 
 	CBlobDesc Reshape( const CBlobDesc& inputSize ) override;
 	int InputRowRequirement() const override { return inputRowRequirement; }
@@ -55,21 +57,29 @@ public:
 
 private:
 	CCpuMathEngine& mathEngine;
-	const float* chFilter;
-	const float* chFreeTerm;
-	TActivationFunction activation;
-	float reluParam;
-	const float* convFilter;
-	const float* convFreeTerm;
-	int outputChannels;
-	bool residual;
+	const float* const chFilter;
+	const float* const chFreeTerm;
+	const TActivationFunction activation;
+	const float reluParam;
+	const float* const convFilter;
+	const float* const convFreeTerm;
+	const int outputChannels;
+	const bool residual;
+
 	CCommonChannelwiseConvolutionDesc desc;
-	int inputRowRequirement;
-	int outputRowRequirement;
+	int inputRowRequirement{};
+	int outputRowRequirement{};
+	// The array of matrices multiplication optimization descriptors
+	CCpuSmallMatricesMultiplyDescsArray</*Height*/> smallMatricesMulDescs;
+	// If ( outputChannels or inputChannels ) is being changed,
+	// for the smallMatricesMulDescs method DestroyAll() should be called to recreate JIT.
 
 	int getMaxOutputRowsPerStep() const;
 };
 
+//--------------------------------------------------------------------------------------------------------------
+
+// NOTICE: This method Reshape() is called from the RunOnce() function, avoid heavy reinitializations here
 inline CBlobDesc CCpuMathEngine::CCpuRowwiseChConvWith1x1::Reshape( const CBlobDesc& inputSize )
 {
 	CBlobDesc outputSize = inputSize;
@@ -129,6 +139,10 @@ inline ICpuRowwiseImpl::CProcessingReport CCpuMathEngine::CCpuRowwiseChConvWith1
 	const int outputWidth = desc.Result.Width();
 	const int inputChannels = desc.Source.Channels();
 
+	const int firstWidth = inputChannels;
+	const int secondHeight = outputChannels;
+	const int resultWidth = secondHeight;
+
 	const float* residualInput = input + ( outputRowIndex - inputRowIndex ) * desc.Source.Width() * desc.Source.Channels();
 	const int maxChRowsPerStep = std::max( 1, RowwiseCacheSize / std::max( chOutputRowSize, chInputRowSize ) );
 
@@ -165,10 +179,14 @@ inline ICpuRowwiseImpl::CProcessingReport CCpuMathEngine::CCpuRowwiseChConvWith1
 			}
 		}
 
-		mathEngine.multiplyMatrixByTransposedWithFreeTerm( buffer, outputRowsThisStep * outputWidth, inputChannels,
-			convFilter, outputChannels, convFreeTerm, output );
+		const int firstHeight = outputRowsThisStep * outputWidth;
+		auto mulDesc = smallMatricesMulDescs.Get( firstHeight,
+			firstHeight, firstWidth, /*secondWidth*/firstWidth, resultWidth );
+
+		mathEngine.multiplyMatrixByTransposedWithFreeTerm( /*first*/buffer, firstHeight, firstWidth,
+			/*second*/convFilter, secondHeight, /*freeTerm*/convFreeTerm, /*result*/output, mulDesc );
 		if( residual ) {
-			vectorAdd( output, residualInput, output, outputRowsThisStep * outputWidth * outputChannels );
+			vectorAdd( output, residualInput, output, firstHeight * outputChannels );
 			residualInput += outputRowsThisStep * desc.Source.Width() * inputChannels;
 		}
 

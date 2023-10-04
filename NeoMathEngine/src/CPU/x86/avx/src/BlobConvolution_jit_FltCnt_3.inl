@@ -43,7 +43,7 @@ inline void CBlobConvolution<3>::CJitConvolution::circularShift( Xbyak::Ymm* dst
 }
 
 template<>
-inline void CBlobConvolution<3>::CJitConvolution::fillBatchProcessingKernel( CBlobConvolution<3>& bc, bool useNarrowProcessing, size_t windowIndex )
+inline void CBlobConvolution<3>::CJitConvolution::fillBatchProcessingKernel( const CBlobConvolution<3>& bc, bool useNarrowProcessing, size_t windowIndex )
 {
 	using namespace Xbyak;
 
@@ -115,7 +115,7 @@ inline void CBlobConvolution<3>::CJitConvolution::fillBatchProcessingKernel( CBl
 }
 
 template<>
-inline void CBlobConvolution<3>::CJitConvolution::fillSingleProcessingKernel( CBlobConvolution<3>& bc, bool useNarrowProcessing, size_t windowIndex )
+inline void CBlobConvolution<3>::CJitConvolution::fillSingleProcessingKernel( const CBlobConvolution<3>& bc, bool useNarrowProcessing, size_t windowIndex )
 {
 	using namespace Xbyak;
 

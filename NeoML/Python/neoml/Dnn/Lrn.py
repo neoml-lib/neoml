@@ -19,7 +19,7 @@ from .Dnn import Layer
 from neoml.Utils import check_input_layers
 
 class Lrn(Layer):
-    """Lrn layer performs local response normlization with the following formula:
+    r"""Lrn layer performs local response normlization with the following formula:
     :math:`LRN(x)[obj][ch] = x[obj][ch] * / ((bias + alpha * sqrSum[obj][ch] / windowSize) ^ beta)`
     where :math:`obj` is index of the object , :math:`ch` is index of the channel,
     :math:`window_size`, :math:`bias`, :math:`alpha` and :math:`beta` are layer settings

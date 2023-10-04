@@ -33,6 +33,8 @@ limitations under the License.
 #define REGISTER_NEOML_LAYER( classType, name ) static NeoML::CLayerClassRegistrar< classType > __merge__1( _RegisterLayer, __LINE__ )( name, 0 );
 #define REGISTER_NEOML_LAYER_EX( classType, name1, name2 ) static NeoML::CLayerClassRegistrar< classType > __merge__1( _RegisterLayer, __LINE__ )( name1, name2 );
 
+//------------------------------------------------------------------------------------------------------------
+
 namespace NeoML {
 
 typedef CPtr<CBaseLayer> ( *TCreateLayerFunction )( IMathEngine& mathEngine );
@@ -86,7 +88,7 @@ class CDnnLayerGraph;
 class CBaseLayer;
 class CCompositeLayer;
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////
+//------------------------------------------------------------------------------------------------------------
 
 // The link between two layers, connecting one layer output to another layer input
 struct CDnnLayerLink {
@@ -117,7 +119,7 @@ struct CDnnLayerLink {
 	bool IsValid() const { return Layer != 0 && OutputNumber >= 0; }
 };
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////
+//------------------------------------------------------------------------------------------------------------
 
 // CBaseLayer is the base class for all layers with which the network can function. 
 // Each layer has a string name that should be unique in the network. Each layer may have 
@@ -406,7 +408,7 @@ private:
 	// If some some blobs are not marked as allocated, they will be freed during this call
 	void setAllocatedBlobs( int newMask );
 
-	//////////////////////////////////////////////////////////////////////////////////////////////////
+	//------------------------------------------------------
 	// The methods and data for interacting with the network
 
 	void setDnn( CDnn* newDnn );
@@ -430,7 +432,7 @@ private:
 	friend class CCompositeLayer;
 };
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////
+//------------------------------------------------------------------------------------------------------------
 
 class CActivationDesc;
 // Common interface for all activation functions
@@ -441,8 +443,8 @@ public:
 	virtual CActivationDesc GetDesc() const = 0;
 };
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////
+//------------------------------------------------------------------------------------------------------------
+
 // CDnnLayerGraph is the base class for a layer graph
 class NEOML_API CDnnLayerGraph {
 public:
@@ -466,29 +468,23 @@ protected:
 	virtual void DeleteLayerImpl( CBaseLayer& layer ) = 0;
 };
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////
+//------------------------------------------------------------------------------------------------------------
 
 // Gets the NeoML exception handler for math engine
 NEOML_API IMathEngineExceptionHandler* GetExceptionHandler();
 
-// Turns the single-thread mode on and off
-// It affects the default math engine to be used: 
-// GetSingleThreadCpuMathEngine() in single-thread mode, GetMultiThreadCpuMathEngine() otherwise
+// deprecated
 void NEOML_API EnableSingleThreadMode( bool enable );
+// deprecated
 bool NEOML_API IsSingleThreadModeOn();
 
-// Gets a math engine that performs calculations on CPU
-// GetSingleThreadCpuMathEngine() or GetMultiThreadCpuMathEngine() is used
-// The engine does not need to be destroyed
+// Gets a math engine that performs calculations on CPU.
+// The engine does not need to be destroyed.
 NEOML_API IMathEngine& GetDefaultCpuMathEngine();
 
-// Gets a math engine that uses one CPU thread
-// The engine does not need to be destroyed
+// deprecated
 NEOML_API IMathEngine& GetSingleThreadCpuMathEngine();
-
-// Gets a math engine that performs calculations on CPU using 
-// the recommended for this CPU number of threads
-// The engine does not need to be destroyed
+// deprecated
 NEOML_API IMathEngine& GetMultiThreadCpuMathEngine();
 
 // Gets a math engine that works on the recommended GPU
@@ -497,8 +493,8 @@ NEOML_API IMathEngine& GetMultiThreadCpuMathEngine();
 // The engine SHOULD be destroyed after use with standart delete
 NEOML_API IMathEngine* GetRecommendedGpuMathEngine( size_t memoryLimit );
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////
+//------------------------------------------------------------------------------------------------------------
+
 // CDnn class represents a neural network
 class NEOML_API CDnn : public CDnnLayerGraph {
 public:
@@ -666,7 +662,7 @@ void NEOML_API SerializeLayer( CArchive& archive, IMathEngine& mathEngine, CPtr<
 
 } // namespace NeoML
 
-//////////////////////////////////////////////////////////////////////////////////////////
+//------------------------------------------------------------------------------------------------------------
 
 #include <NeoML/Dnn/Dnn.inl>
 

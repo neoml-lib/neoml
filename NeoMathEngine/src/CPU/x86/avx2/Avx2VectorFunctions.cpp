@@ -125,6 +125,44 @@ void vectorAdd( const float* first, const float* second, float* result, int vect
 	}
 }
 
+void vectorAddValue( const float* first, float* result, int vectorSize, float value )
+{
+	const __m256 valueSimd = _mm256_set1_ps( value );
+
+	while( vectorSize >= AvxBlockSize ) {
+		_mm256_storeu_ps( result,
+			_mm256_add_ps( _mm256_loadu_ps( first ), valueSimd ) );
+		first += AvxBlockSize;
+		result += AvxBlockSize;
+		vectorSize -= AvxBlockSize;		
+	}
+
+	if( vectorSize > 0 ) { 
+		const __m256i mask = AVX_IO_MASK( vectorSize );
+		_mm256_maskstore_ps( result, mask,
+			_mm256_add_ps( _mm256_maskload_ps( first, mask ), valueSimd ) );
+	}
+}
+
+void vectorMultiply( const float* first, float* result, int vectorSize, float multiplier )
+{
+	const __m256 multSimd = _mm256_set1_ps( multiplier );
+
+	while( vectorSize >= AvxBlockSize ) {
+		_mm256_storeu_ps( result,
+			_mm256_mul_ps( _mm256_loadu_ps( first ), multSimd ) );
+		first += AvxBlockSize;
+		result += AvxBlockSize;
+		vectorSize -= AvxBlockSize;		
+	}
+
+	if( vectorSize > 0 ) { 
+		const __m256i mask = AVX_IO_MASK( vectorSize );
+		_mm256_maskstore_ps( result, mask,
+			_mm256_mul_ps( _mm256_maskload_ps( first, mask ), multSimd ) );
+	}
+}
+
 void vectorEltwiseMultiply( const float* first, const float* second, float* result, int vectorSize )
 {
 	while( vectorSize >= 4 * AvxBlockSize ) {
@@ -233,17 +271,15 @@ void vectorReLU( const float* first, float* result, int vectorSize, float thresh
 
 void vectorHSwish( const float* first, float* result, int vectorSize )
 {
-	const __m256 minusThreeSimd = _mm256_set1_ps( -3.f );
+	const __m256 zeroSimd = _mm256_setzero_ps();
 	const __m256 threeSimd = _mm256_set1_ps( 3.f );
 	const __m256 oneSixthSimd = _mm256_set1_ps( 1.f / 6.f );
 
 	while( vectorSize >= AvxBlockSize ) {
 		__m256 firstSimd = _mm256_loadu_ps( first );
-		__m256 middlePart = _mm256_cmp_ps( minusThreeSimd, firstSimd, _CMP_LT_OQ );
-		middlePart = _mm256_and_ps( middlePart, _mm256_mul_ps( _mm256_mul_ps( firstSimd, oneSixthSimd ),
-			_mm256_add_ps( firstSimd, threeSimd ) ) );
-		__m256 rightPart = _mm256_cmp_ps( firstSimd, threeSimd, _CMP_GE_OQ );
-		_mm256_storeu_ps( result, _mm256_blendv_ps( middlePart, firstSimd, rightPart ) );
+		__m256 middlePart = _mm256_max_ps( _mm256_add_ps( firstSimd, threeSimd ), zeroSimd );
+		middlePart = _mm256_mul_ps( _mm256_mul_ps( firstSimd, oneSixthSimd ), middlePart );
+		_mm256_storeu_ps( result, _mm256_min_ps( middlePart, _mm256_max_ps( firstSimd, threeSimd ) ) );
 
 		first += AvxBlockSize;
 		result += AvxBlockSize;
@@ -253,11 +289,9 @@ void vectorHSwish( const float* first, float* result, int vectorSize )
 	if( vectorSize > 0 ) {
 		const __m256i mask = AVX_IO_MASK( vectorSize );
 		__m256 firstSimd = _mm256_maskload_ps( first, mask );
-		__m256 middlePart = _mm256_cmp_ps( minusThreeSimd, firstSimd, _CMP_LT_OQ );
-		middlePart = _mm256_and_ps( middlePart, _mm256_mul_ps( _mm256_mul_ps( firstSimd, oneSixthSimd ),
-			_mm256_add_ps( firstSimd, threeSimd ) ) );
-		__m256 rightPart = _mm256_cmp_ps( firstSimd, threeSimd, _CMP_GE_OQ );
-		_mm256_maskstore_ps( result, mask, _mm256_blendv_ps( middlePart, firstSimd, rightPart ) );
+		__m256 middlePart = _mm256_max_ps( _mm256_add_ps( firstSimd, threeSimd ), zeroSimd );
+		middlePart = _mm256_mul_ps( _mm256_mul_ps( firstSimd, oneSixthSimd ), middlePart );
+		_mm256_maskstore_ps( result, mask, _mm256_min_ps( middlePart, _mm256_max_ps( firstSimd, threeSimd ) ) );
 	}
 }
 

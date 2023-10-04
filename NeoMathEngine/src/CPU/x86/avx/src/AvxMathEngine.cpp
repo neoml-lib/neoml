@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -50,8 +50,8 @@ CAvxConvolutionDesc::CAvxConvolutionDesc( IMathEngine* mathEngine, const CBlobDe
 
 class CAvxMathEngine : public ISimdMathEngine {
 public:
-	CAvxMathEngine( IMathEngine* _mathEngine, int _threadCount ) :
-		mathEngine( _mathEngine ), threadCount( _threadCount ), primitives( _mathEngine, _threadCount ) {}
+	explicit CAvxMathEngine( IMathEngine* _mathEngine ) :
+		mathEngine( _mathEngine ), primitives( _mathEngine ) {}
 
 	CConvolutionDesc* InitBlobConvolution( const CBlobDesc& source, int paddingHeight, int paddingWidth,
 		int strideHeight, int strideWidth, int dilationHeight, int dilationWidth, const CBlobDesc& filter,
@@ -65,15 +65,13 @@ public:
 
 	SgemmFunc GetSgemmFunction() const override;
 
-	void Tanh( float* dst, const float* src, size_t dataSize, bool isMultithread ) override;
-	void Sigmoid( float* dst, const float* src, size_t dataSize, bool isMultithread ) override;
-	void Exp( float* dst, const float* src, size_t dataSize, bool isMultithread ) override;
-	void RunOnceRestOfLstm( CMathEngineLstmDesc* desc, const CConstFloatHandle& inputStateBackLink,
-		const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink, bool isMultithread ) override;
+	void Tanh( float* dst, const float* src, size_t dataSize ) override;
+	void Exp( float* dst, const float* src, size_t dataSize ) override;
+	void RunOnceRestOfLstm( CMathEngineLstmDesc* desc, int sequenceCount, float* fullyConnectedResult,
+		const float* inputStateBackLink, float* outputStateBackLink, float* outputMainBackLink ) override;
 
 private:
-	IMathEngine* mathEngine;
-	int threadCount;
+	IMathEngine* const mathEngine;
 	CPrimitivesJit primitives;
 };
 
@@ -94,7 +92,7 @@ void CAvxMathEngine::BlobConvolution( const CConvolutionDesc& convDesc, const fl
 	const float* filter, const float* freeTerm, float* result ) const
 {
 	const CAvxConvolutionDesc& desc = static_cast<const CAvxConvolutionDesc&>( convDesc );
-	desc.BlobConvolution->ProcessConvolution( threadCount, source, filter, freeTerm, result );
+	desc.BlobConvolution->ProcessConvolution( source, filter, freeTerm, result );
 }
 
 void CAvxMathEngine::BlobConvolutionRowwise( const CConvolutionDesc& convDesc, const float* source,
@@ -111,33 +109,29 @@ SgemmFunc CAvxMathEngine::GetSgemmFunction() const
 	return AvxMultiplyMatrix;
 }
 
-void CAvxMathEngine::Tanh( float* dst, const float* src, size_t dataSize, bool isMultithread )
+void CAvxMathEngine::Tanh( float* dst, const float* src, size_t dataSize )
 {
-	primitives.Tanh( dst, src, dataSize, isMultithread );
+	primitives.Tanh( dst, src, dataSize );
 }
 
-void CAvxMathEngine::Sigmoid( float* dst, const float* src, size_t dataSize, bool isMultithread )
+void CAvxMathEngine::Exp( float* dst, const float* src, size_t dataSize )
 {
-	primitives.Sigmoid( dst, src, dataSize, isMultithread );
+	primitives.Exp( dst, src, dataSize );
 }
 
-void CAvxMathEngine::Exp( float* dst, const float* src, size_t dataSize, bool isMultithread )
+void CAvxMathEngine::RunOnceRestOfLstm( CMathEngineLstmDesc* desc, int sequenceCount, float* fullyConnectedResult,
+	const float* inputStateBackLink, float* outputStateBackLink, float* outputMainBackLink )
 {
-	primitives.Exp( dst, src, dataSize, isMultithread );
-}
-
-void CAvxMathEngine::RunOnceRestOfLstm( CMathEngineLstmDesc* desc, const CConstFloatHandle& inputStateBackLink,
-	const CFloatHandle& outputStateBackLink, const CFloatHandle& outputMainBackLink, bool isMultithread )
-{
-	primitives.RestOfLstm( desc, inputStateBackLink, outputStateBackLink, outputMainBackLink, isMultithread );
+	primitives.RestOfLstm( desc, sequenceCount, fullyConnectedResult, inputStateBackLink, outputStateBackLink,
+		outputMainBackLink );
 }
 
 extern "C"
 FME_DLL_EXPORT
-ISimdMathEngine* CreateSimdMathEngine( IMathEngine* mathEngine, int threadCount )
+ISimdMathEngine* CreateSimdMathEngine( IMathEngine* mathEngine )
 {
 	try {
-		return new CAvxMathEngine( mathEngine, threadCount );
+		return new CAvxMathEngine( mathEngine );
 	} catch( ... ) {
 		// We cannot throw any exception from C function
 		return nullptr;

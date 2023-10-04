@@ -13,7 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
-// These functions work with raw pointers, may be called from OMP sections and perform no parameter checks
+// These functions work with raw pointers, and perform no parameter checks
 
 #pragma once
 
@@ -312,7 +312,7 @@ inline void alignedVectorMultiplyAndAdd( const float* first, const float* second
 
 //------------------------------------------------------------------------------------------------------------
 
-inline void vectorMultiply( const float* first, float* result, float multiplier, int vectorSize )
+inline void vectorMultiply( const float* first, float* result, int vectorSize, float multiplier )
 {
 	int count = GetCount4( vectorSize );
 	float32x4_t mult = vdupq_n_f32( multiplier );
@@ -331,7 +331,7 @@ inline void vectorMultiply( const float* first, float* result, float multiplier,
 	}
 }
 
-inline void vectorMultiply( const int* first, int* result, int multiplier, int vectorSize )
+inline void vectorMultiply( const int* first, int* result, int vectorSize, int multiplier )
 {
 	int count = GetCount4( vectorSize );
 	int32x4_t mult = vdupq_n_s32( multiplier );
@@ -879,13 +879,11 @@ inline void vectorSigmoid( const float* first, float* result, int vectorSize )
 //------------------------------------------------------------------------------------------------------------
 
 inline float32x4_t vectorHSwishWorker( const float32x4_t& first, const float32x4_t& three,
-	const float32x4_t& minusThree, const float32x4_t& oneSixth )
+	const float32x4_t& zero, const float32x4_t& oneSixth )
 {
-	uint32x4_t middleMask = vandq_u32( vcgtq_f32( first, minusThree ), vcltq_f32( first, three ) );
-	float32x4_t middleValue = vmulq_f32( vaddq_f32( first, three ), vmulq_f32( first, oneSixth ) );
-	middleValue = vreinterpretq_f32_u32( vandq_u32( vreinterpretq_u32_f32( middleValue ), middleMask ) );
-	float32x4_t rightValue = vandq_u32( vreinterpretq_u32_f32( first ), vcgeq_f32( first, three ) );
-	return vaddq_f32( middleValue, rightValue );
+	float32x4_t middlePart = vmaxq_f32( vaddq_f32( first, three ), zero );
+	middlePart = vmulq_f32( vmulq_f32( first, oneSixth ), middlePart );
+	return vminq_f32( middlePart, vmaxq_f32( first, three ) );
 }
 
 inline void vectorHSwish( const float* first, float* result, int vectorSize )
@@ -893,11 +891,11 @@ inline void vectorHSwish( const float* first, float* result, int vectorSize )
 	int count = GetCount4( vectorSize );
 
 	const float32x4_t three = vdupq_n_f32( 3 );
-	const float32x4_t minusThree = vdupq_n_f32( -3 );
+	const float32x4_t zero = vdupq_n_f32( 0.f );
 	const float32x4_t oneSixth = vdupq_n_f32( 1.f / 6 );
 
 	for( int i = 0; i < count; ++i ) {
-		float32x4_t res = vectorHSwishWorker( LoadNeon4( first ), three, minusThree, oneSixth );
+		float32x4_t res = vectorHSwishWorker( LoadNeon4( first ), three, zero, oneSixth );
 		StoreNeon4( res, result );
 
 		first += 4;
@@ -905,7 +903,7 @@ inline void vectorHSwish( const float* first, float* result, int vectorSize )
 	}
 
 	if( vectorSize > 0 ) {
-		float32x4_t res = vectorHSwishWorker( LoadNeon( first, vectorSize ), three, minusThree, oneSixth );
+		float32x4_t res = vectorHSwishWorker( LoadNeon( first, vectorSize ), three, zero, oneSixth );
 		StoreNeon( res, result, vectorSize );
 	}
 }

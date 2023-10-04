@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+﻿/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -34,16 +34,18 @@ public:
 
 	// Returns the number of threads in the pool.
 	virtual int Size() const = 0;
-
 	// Adds a task with parameters for the given thread.
 	virtual bool AddTask( int threadIndex, TFunction function, void* params ) = 0;
-
 	// Waits for all tasks to complete.
 	virtual void WaitAllTask() = 0;
 };
 
 // Number of available CPU cores in current environment (e.g. inside container)
 NEOMATHENGINE_API int GetAvailableCpuCores();
+
+// RAM limit in current environment (e.g. inside container)
+// Returns SIZE_MAX if no limit
+NEOMATHENGINE_API size_t GetRamLimit();
 
 // Creates a thread pool containing the given number of threads.
 // If threadCount is 0 or less then creates a pool with GetAvailableCpuCores() threads
@@ -96,5 +98,119 @@ inline bool GetTaskIndexAndCount( int threadCount, int threadIndex, int fullCoun
 {
 	return GetTaskIndexAndCount( threadCount, threadIndex, fullCount, /*align*/1, index, count );
 }
+
+//------------------------------------------------------------------------------------------------------------
+
+inline int GetTaskGreatestCommonFactorWithAlign( int m, int mAlign, int n )
+{
+	if( ( m % mAlign ) == 0 ) {
+		// If "m" was aligned to start with, preserve the alignment
+		m /= mAlign;
+	}
+
+	// Euclidean algorithm
+	while( true ) {
+		const int k = m % n;
+		if( k == 0 ) {
+			return n;
+		}
+		m = n;
+		n = k;
+	}
+}
+
+// Similar to GetTaskIndexAndCount, only for a 3D "cube" of tasks to be split among the threads
+inline bool GetTaskIndexAndCount3D( int fullCountX, int alignX, int fullCountY, int alignY, int fullCountZ, int alignZ,
+	int& indexX, int& countX, int& indexY, int& countY, int& indexZ, int& countZ, int threadCount, int threadIndex )
+{
+	if( threadCount == 1 ) {
+		indexX = 0;
+		countX = fullCountX;
+		indexY = 0;
+		countY = fullCountY;
+		indexZ = 0;
+		countZ = fullCountZ;
+	} else {
+		// Calculate the thread block size: = mulX x mulY x mulZ
+		// Attempt to divide without a remainder if possible
+		int mulX = GetTaskGreatestCommonFactorWithAlign( fullCountX, alignX, threadCount );
+		threadCount /= mulX;
+		int mulY = GetTaskGreatestCommonFactorWithAlign( fullCountY, alignY, threadCount );
+		threadCount /= mulY;
+		int mulZ = GetTaskGreatestCommonFactorWithAlign( fullCountZ, alignZ, threadCount );
+		threadCount /= mulZ;
+
+		countX = fullCountX / mulX;
+		countY = fullCountY / mulY;
+		countZ = fullCountZ / mulZ;
+
+		// Find the maximum dimension and divide by it, with remainder if necessary
+		int* maxMul = &mulX;
+		int* maxCount = &countX;
+		const int* align = &alignX;
+
+		if( countY / alignY > *maxCount / *align ) {
+			maxMul = &mulY;
+			maxCount = &countY;
+			align = &alignY;
+		}
+		if( countZ / alignZ > *maxCount / *align ) {
+			maxMul = &mulZ;
+			maxCount = &countZ;
+		}
+
+		*maxCount = ( *maxCount + threadCount - 1 ) / threadCount;
+		*maxMul *= threadCount;
+
+		// Align the block size
+		countX = ( countX + alignX - 1 ) / alignX * alignX;
+		countY = ( countY + alignY - 1 ) / alignY * alignY;
+		countZ = ( countZ + alignZ - 1 ) / alignZ * alignZ;
+
+		// Calculate the coordinate for the given thread in a block
+		int threadIndexX = threadIndex % mulX;
+		int threadIndexY = threadIndex / mulX;
+		int threadIndexZ = threadIndexY / mulY;
+		threadIndexY %= mulY;
+
+		// Calculate indeces
+		indexX = countX * threadIndexX;
+		countX = NEOML_THPOOL_MIN( countX, fullCountX - indexX );
+		countX = NEOML_THPOOL_MAX( countX, 0 );
+
+		indexY = countY * threadIndexY;
+		countY = NEOML_THPOOL_MIN( countY, fullCountY - indexY );
+		countY = NEOML_THPOOL_MAX( countY, 0 );
+
+		indexZ = countZ * threadIndexZ;
+		countZ = NEOML_THPOOL_MIN( countZ, fullCountZ - indexZ );
+		countZ = NEOML_THPOOL_MAX( countZ, 0 );
+	}
+	return countX != 0 && countY != 0 && countZ != 0;
+}
+
+inline bool GetTaskIndexAndCount3D( int fullCountX, int fullCountY, int fullCountZ,
+	int& indexX, int& countX, int& indexY, int& countY, int& indexZ, int& countZ, int threadCount, int threadIndex )
+{
+	return GetTaskIndexAndCount3D( fullCountX, 1, fullCountY, 1, fullCountZ, 1,
+		indexX, countX, indexY, countY, indexZ, countZ, threadCount, threadIndex );
+}
+
+inline bool GetTaskIndexAndCount2D( int fullCountX, int alignX, int fullCountY, int alignY,
+	int& indexX, int& countX, int& indexY, int& countY, int threadCount, int threadIndex )
+{
+	int indexZ = 0;
+	int countZ = 0;
+	return GetTaskIndexAndCount3D( fullCountX, alignX, fullCountY, alignY, 1, 1,
+		indexX, countX, indexY, countY, indexZ, countZ, threadCount, threadIndex );
+}
+
+inline bool GetTaskIndexAndCount2D( int fullCountX, int fullCountY,
+	int& indexX, int& countX, int& indexY, int& countY, int threadCount, int threadIndex )
+{
+	return GetTaskIndexAndCount2D( fullCountX, 1, fullCountY, 1,
+		indexX, countX, indexY, countY, threadCount, threadIndex );
+}
+
 
 } // namespace NeoML

@@ -1041,6 +1041,9 @@ void CDnnLambGradientSolver::OnTrain()
 	if( layersGradientNormSquare.IsEmpty() ) {
 		totalGradientNorm = 1.0f;
 	} else {
+		// The order of numbers in layersGradientNormSquare depends on the values of layer pointers
+		// As a result, cloning nets via serialization breaks it (as a result unstable failures in solver tests)
+		layersGradientNormSquare.QuickSort<Ascending<float>>();
 		totalGradientNorm = 0;
 		for( int i = 0; i < layersGradientNormSquare.Size(); ++i ) {
 			totalGradientNorm += layersGradientNormSquare[i];

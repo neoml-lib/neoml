@@ -24,7 +24,7 @@ except ImportError:
     from typing_extensions import Literal
 
 class Linear(Layer):
-    """The layer that calculates a linear activation function
+    r"""The layer that calculates a linear activation function
     for each element of a single input:
     :math:`f(x) = multiplier * x + free\_term`
 
@@ -90,7 +90,7 @@ class Linear(Layer):
 
 
 class ELU(Layer):
-    """The layer that calculates the ELU activation function
+    r"""The layer that calculates the ELU activation function
     for each element of the single input:
 
     - :math:`f(x) = alpha * (e^x - 1)`    if :math:`x < 0`
@@ -144,7 +144,7 @@ class ELU(Layer):
 
 
 class ReLU(Layer):
-    """The layer that calculates the ReLU activation function
+    r"""The layer that calculates the ReLU activation function
     for each element of the single input:
 
     - :math:`f(x) = 0`    if :math:`x \le 0`
@@ -202,7 +202,7 @@ class ReLU(Layer):
 
 
 class LeakyReLU(Layer):
-    """The layer that calculates the "leaky" ReLU activation function
+    r"""The layer that calculates the "leaky" ReLU activation function
     for each element of the single input:
 
     - :math:`f(x) = alpha * x`    if :math:`x \le 0`
@@ -255,7 +255,7 @@ class LeakyReLU(Layer):
 
 
 class HSwish(Layer):
-    """The layer that calculates the H-Swish activation function
+    r"""The layer that calculates the H-Swish activation function
     for each element of the single input:
 
     - :math:`f(x) = 0`                    if :math:`x \le -3`
@@ -401,7 +401,7 @@ class Tanh(Layer):
 
 
 class HardTanh(Layer):
-    """The layer that calculates the HardTanh activation function
+    r"""The layer that calculates the HardTanh activation function
     for each element of the single input:
   
     - :math:`f(x) = -1`    if :math:`x \le -1`
@@ -440,7 +440,7 @@ class HardTanh(Layer):
 
 
 class HardSigmoid(Layer):
-    """The layer that calculates the "hard sigmoid" activation function
+    r"""The layer that calculates the "hard sigmoid" activation function
     for each element of the single input:
 
     - :math:`f(x) = 0`                    if :math:`x \le -bias / slope`

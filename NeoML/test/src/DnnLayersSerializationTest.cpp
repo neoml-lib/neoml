@@ -3233,7 +3233,6 @@ static void setSpecificParams( CRowwiseOperationChainLayer& layer )
 
 GTEST_TEST( SerializeToFile, RowwiseOperationChainLayerSerialization )
 {
-	NEOML_TEST_CPU_ONLY;
 	serializeToFile<CRowwiseOperationChainLayer>( "NeoMLDnnRowwiseOperationChainLayer" );
 }
 
@@ -3273,3 +3272,34 @@ GTEST_TEST( SerializeFromFile, RowwiseOperationChainLayerSerialization )
 	checkSerializeLayer<CRowwiseOperationChainLayer>( "NeoMLDnnRowwiseOperationChainLayer" );
 }
 
+// ====================================================================================================================
+
+// CGrnLayer
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+static void setSpecificParams( CGrnLayer& layer )
+{
+	layer.SetEpsilon( 2e-3f );
+	layer.SetBias( generateBlob( 1, 1, 1, 1, 10 ) );
+}
+
+GTEST_TEST( SerializeToFile, GrnLayerSerialization )
+{
+	serializeToFile<CGrnLayer>( "NeoMLDnnGrnLayer" );
+}
+
+#endif // GENERATE_SERIALIZATION_FILES
+
+template<>
+inline void checkSpecificParams<CGrnLayer>( CGrnLayer& layer )
+{
+	EXPECT_FLOAT_EQ( 2e-3f, layer.GetEpsilon() );
+	EXPECT_EQ( nullptr, layer.GetScale().Ptr() );
+	checkBlob( *layer.GetBias(), 10 );
+}
+
+GTEST_TEST( SerializeFromFile, GrnLayerSerialization )
+{
+	checkSerializeLayer<CGrnLayer>( "NeoMLDnnGrnLayer" );
+}
