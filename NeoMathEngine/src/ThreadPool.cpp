@@ -23,6 +23,7 @@ limitations under the License.
 #include <mutex>
 #include <thread>
 #include <queue>
+#include <cstdint>
 
 #if FINE_PLATFORM( FINE_LINUX )
 #ifndef _GNU_SOURCE
@@ -40,70 +41,93 @@ namespace NeoML {
 // Checks if we're running inside of docker or k8s
 static bool isInDocker()
 {
-	// First method: check the existence of .dockerenv
-	struct stat buffer;
-	if( ::stat( "/.dockerenv", &buffer ) == 0 ) {
-		return true;
-	}
+	auto impl = [] () -> bool
+	{
+		// First method: check the existence of .dockerenv
+		struct stat buffer;
+		if( ::stat( "/.dockerenv", &buffer ) == 0 ) {
+			return true;
+		}
 
-	// Second method: checking the contents of cgroup file
-	std::ifstream cgroupFile( "/proc/self/cgroup" );
-	if( cgroupFile.good() ) {
-		std::string data;
-		while( cgroupFile >> data ) {
-			if( data.find( "docker" ) != std::string::npos || data.find( "kubepods" ) != std::string::npos ) {
-				return true;
+		// Second method: checking the contents of cgroup file
+		std::ifstream cgroupFile( "/proc/self/cgroup" );
+		if( cgroupFile.good() ) {
+			std::string data;
+			while( cgroupFile >> data ) {
+				if( data.find( "docker" ) != std::string::npos || data.find( "kubepods" ) != std::string::npos ) {
+					return true;
+				}
 			}
 		}
-	}
 
-	return false;
+		return false;
+	};
+
+	static const bool isInDocker = impl();
+	return isInDocker;
 }
 
-// Reads integer from file
-// Returns -1 if something goes wrong
-static int readIntFromFile( const char* name )
+// Reads one value from file
+// Returns default if something goes wrong
+template<class T>
+static T readValueFromFile( const char* name, const T defaultValue )
 {
 	std::ifstream stream( name );
-	int result = -1;
+	T result = defaultValue;
 	if( stream.good() && ( stream >> result ) ) {
 		return result;
 	}
-	return -1;
+	return defaultValue;
 }
 #endif // FINE_PLATFORM( FINE_LINUX )
-
-// Returns number of CPU cores available in the current environment
-static int getAvailableCpuCores()
-{
-#if FINE_PLATFORM( FINE_LINUX )
-	if( isInDocker() ) {
-		// Case #1: linux Docker with --cpus value set (or k8s with cpu limits)
-		// When working under cgroups without quotas cfs_quota_us contains -1
-		const int quota = readIntFromFile( "/sys/fs/cgroup/cpu/cpu.cfs_quota_us" );
-		const int period = readIntFromFile( "/sys/fs/cgroup/cpu/cpu.cfs_period_us" );
-		if( quota > 0 && period > 0 ) {
-			// Using ceil because --cpus 0.1 is a valid scenario in docker (0.1 means quota * 10 == period)
-			return ( quota + period - 1 ) / period;
-		}
-
-		// Case #2: linux Docker with --cpuset-cpus
-		cpu_set_t cpuSet;
-		CPU_ZERO( &cpuSet );
-		if( ::pthread_getaffinity_np( ::pthread_self(), sizeof( cpu_set_t ), &cpuSet ) == 0 ) {
-			return static_cast<int>( CPU_COUNT( &cpuSet ) );
-		}
-	}
-#endif // FINE_PLATFORM( FINE_LINUX )
-	// std::thread::hardware_concurrency may return 0 if the value is not well defined or not computable
-	return std::max( static_cast<int>( std::thread::hardware_concurrency() ), 1 );
-}
 
 int GetAvailableCpuCores()
 {
-	static const int availabeCpuCores = getAvailableCpuCores();
+	auto impl = [] () -> int
+	{
+	#if FINE_PLATFORM( FINE_LINUX )
+		if( isInDocker() ) {
+			// Case #1: linux Docker with --cpus value set (or k8s with cpu limits)
+			// When working under cgroups without quotas cfs_quota_us contains -1
+			const int quota = readValueFromFile<int>( "/sys/fs/cgroup/cpu/cpu.cfs_quota_us", -1 );
+			const int period = readValueFromFile<int>( "/sys/fs/cgroup/cpu/cpu.cfs_period_us", -1 );
+			if( quota > 0 && period > 0 ) {
+				// Using ceil because --cpus 0.1 is a valid scenario in docker (0.1 means quota * 10 == period)
+				return ( quota + period - 1 ) / period;
+			}
+
+			// Case #2: linux Docker with --cpuset-cpus
+			cpu_set_t cpuSet;
+			CPU_ZERO( &cpuSet );
+			if( ::pthread_getaffinity_np( ::pthread_self(), sizeof( cpu_set_t ), &cpuSet ) == 0 ) {
+				return static_cast<int>( CPU_COUNT( &cpuSet ) );
+			}
+		}
+	#endif // FINE_PLATFORM( FINE_LINUX )
+		// std::thread::hardware_concurrency may return 0 if the value is not well defined or not computable
+		return std::max( static_cast<int>( std::thread::hardware_concurrency() ), 1 );
+	};
+
+	static const int availabeCpuCores = impl();
 	return availabeCpuCores;
 }
+
+size_t GetRamLimit()
+{
+#if FINE_PLATFORM( FINE_LINUX )
+	if( isInDocker() ) {
+		const uint64_t memLimit = readValueFromFile<uint64_t>( "/sys/fs/cgroup/memory/memory.limit_in_bytes", 0 );
+		const uint64_t memUsed = readValueFromFile<uint64_t>( "/sys/fs/cgroup/memory/memory.usage_in_bytes", 0 );
+		if( memLimit > memUsed ) {
+			return static_cast<size_t>( std::min( SIZE_MAX, memLimit - memUsed ) );
+		}
+	}
+#endif // FINE_PLATFORM( FINE_LINUX )
+
+	return SIZE_MAX; // no limit
+}
+
+// Returns memory limit 
 
 //------------------------------------------------------------------------------------------------------------
 

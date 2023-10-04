@@ -18,6 +18,7 @@ limitations under the License.
 #include <CpuMathEngine.h>
 #include <CpuMathEngineDnnDistributed.h>
 #include <MemoryHandleInternal.h>
+#include <NeoMathEngine/ThreadPool.h>
 
 namespace NeoML {
 
@@ -89,8 +90,9 @@ void CMultiThreadDistributedCommunicator::Broadcast( const CFloatHandle& handle,
 void CreateDistributedCpuMathEngines( IMathEngine** mathEngines, int count )
 {
 	auto communicator = std::make_shared<CMultiThreadDistributedCommunicator>( count );
+	const size_t totalLimit = GetRamLimit();
 	for( int i = 0; i < count; i++ ){
-		mathEngines[i] = new CCpuMathEngine( /*memoryLimit*/0u, communicator, CMathEngineDistributedInfo( i, count ) );
+		mathEngines[i] = new CCpuMathEngine( totalLimit / count, communicator, CMathEngineDistributedInfo( i, count ) );
 	}
 }
 
