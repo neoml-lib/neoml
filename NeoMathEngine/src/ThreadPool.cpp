@@ -74,7 +74,7 @@ template<class T>
 static T readValueFromFile( const char* name, const T defaultValue )
 {
 	std::ifstream stream( name );
-	uint64_t result = defaultValue;
+	T result = defaultValue;
 	if( stream.good() && ( stream >> result ) ) {
 		std::cerr << name << '\t' << result << '\n';
 		return result;
@@ -96,7 +96,7 @@ int GetAvailableCpuCores()
 			const int period = readValueFromFile<int>( "/sys/fs/cgroup/cpu/cpu.cfs_period_us", -1 );
 			if( quota > 0 && period > 0 ) {
 				// Using ceil because --cpus 0.1 is a valid scenario in docker (0.1 means quota * 10 == period)
-				return static_cast<int>( ( quota + period - 1 ) / period );
+				return ( quota + period - 1 ) / period;
 			}
 
 			// Case #2: linux Docker with --cpuset-cpus
