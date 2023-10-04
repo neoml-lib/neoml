@@ -24,7 +24,6 @@ limitations under the License.
 #include <thread>
 #include <queue>
 #include <cstdint>
-#include <iostream>
 
 #if FINE_PLATFORM( FINE_LINUX )
 #ifndef _GNU_SOURCE
@@ -76,10 +75,8 @@ static T readValueFromFile( const char* name, const T defaultValue )
 	std::ifstream stream( name );
 	T result = defaultValue;
 	if( stream.good() && ( stream >> result ) ) {
-		std::cerr << name << '\t' << result << '\n';
 		return result;
 	}
-	std::cerr << name << "\tFAILED(" << defaultValue << ")\n";
 	return defaultValue;
 }
 #endif // FINE_PLATFORM( FINE_LINUX )

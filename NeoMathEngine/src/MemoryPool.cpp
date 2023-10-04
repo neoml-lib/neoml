@@ -22,8 +22,6 @@ limitations under the License.
 #include <algorithm>
 #include <numeric>
 
-#include <iostream>
-
 namespace NeoML {
 
 // An element in the buffer pool
@@ -106,7 +104,6 @@ CMemoryPool::CMemoryPool( size_t _memoryLimit, IRawMemoryManager* _rawMemoryMana
 	freeMemorySize( _memoryLimit ),
 	peakMemoryUsage( 0 )
 {
-	std::cerr << "Creating memory pool with " << memoryLimit << " limit\n";
 }
 
 CMemoryPool::~CMemoryPool()
