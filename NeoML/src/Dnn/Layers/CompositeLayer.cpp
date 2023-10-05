@@ -218,6 +218,7 @@ void CCompositeLayer::AddLayerImpl(CBaseLayer& layer)
 	if(internalDnn != 0) {
 		internalDnn->AddLayer(layer);
 	}
+	ForceReshape();
 }
 
 void CCompositeLayer::DeleteLayerImpl(CBaseLayer& layer)
@@ -234,6 +235,7 @@ void CCompositeLayer::DeleteLayerImpl(CBaseLayer& layer)
 			break;
 		}
 	}
+	ForceReshape();
 }
 
 CString CCompositeLayer::getSourceName(int num) const
