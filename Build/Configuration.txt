@@ -10,6 +10,8 @@ BUILD_RESULTS=\\LINGVO\ABBYY\R&D Department\Tools_Libs\Results
 
 BUILD_USERNAME=buildtech
 
+SENDMAIL_PS1_OPTIONS=-SmtpServer relay.abbyy.com -SmtpPort 587 -SmtpSecure -AttachmentsArchive Logs.zip
+
 #----------------------------------------------------------------------------------------
 
 VCToolsVersion=14.33.31629
@@ -25,9 +27,6 @@ CMAKE_GENERATOR=Visual Studio 17 2022
 CMAKE_GENERATOR_TOOLSET=v143,version=%VCToolsVersion%,host=x64
 
 _ABBYY_UTILS=%ProgramFiles(x86)%\ABBYY Build Utilities
-_GIT=%ProgramFiles%\Git
-_CMAKE=%ProgramFiles%\CMake
-_PYTHON=%ProgramFiles%\Python36
 
 BUILD_PLATFORM=Win32
 
@@ -37,9 +36,9 @@ PATH=%PATH%;%_MSVC%\bin\HostX64\x64
 PATH=%PATH%;%_MSDEV%\Common7\IDE
 PATH=%PATH%;%WindowsSdkDir%\bin\%TargetPlatformVersion%\x64
 PATH=%PATH%;%_ABBYY_UTILS%
-PATH=%PATH%;%_GIT%\bin
-PATH=%PATH%;%_CMAKE%\bin
-PATH=%PATH%;%_PYTHON%
+PATH=%PATH%;%GIT_PATH%
+PATH=%PATH%;%CMAKE_PATH%
+PATH=%PATH%;%PYTHON_PATH%
 PATH=%PATH%;%_MSDEV%\MSBuild\Current\Bin
 
 #----------------------------------------------------------------------------------------
@@ -60,8 +59,9 @@ PATH.x86=%PATH.x86%;%_MSDEV%\Common7\IDE
 PATH.x86=%PATH.x86%;%WindowsSdkDir%\bin\%TargetPlatformVersion%\x64
 PATH.x86=%PATH.x86%;%_ABBYY_UTILS%
 PATH.x86=%PATH.x86%;%_MSDEV%\MSBuild\Current\Bin
-PATH.x86=%PATH.x86%;%_GIT%\bin
-PATH.x86=%PATH.x86%;%_CMAKE%\bin
+PATH.x86=%PATH.x86%;%GIT_PATH%
+PATH.x86=%PATH.x86%;%CMAKE_PATH%
+PATH.x86=%PATH.x86%;%PYTHON_PATH%
 
 LIB.x86=%_MSVC%\Lib\x86;%WindowsSdkDir%\Lib
 LIB.x86=%LIB.x86%;%ProgramFiles(x86)%\Windows Kits\10\lib\%TargetPlatformVersion%\ucrt\x86
@@ -86,8 +86,9 @@ PATH.x64=%PATH.x64%;%_MSDEV%\Common7\IDE
 PATH.x64=%PATH.x64%;%WindowsSdkDir%\bin\%TargetPlatformVersion%\x64
 PATH.x64=%PATH.x64%;%_ABBYY_UTILS%
 PATH.x64=%PATH.x64%;%_MSDEV%\MSBuild\Current\Bin
-PATH.x64=%PATH.x64%;%_GIT%\bin
-PATH.x64=%PATH.x64%;%_CMAKE%\bin
+PATH.x64=%PATH.x64%;%GIT_PATH%
+PATH.x64=%PATH.x64%;%CMAKE_PATH%
+PATH.x64=%PATH.x64%;%PYTHON_PATH%
 
 LIB.x64=%_MSVC%\Lib\x64;%WindowsSdkDir%\Lib\x64
 LIB.x64=%LIB.x64%;%ProgramFiles(x86)%\Windows Kits\10\lib\%TargetPlatformVersion%\ucrt\x64
