@@ -66,6 +66,7 @@ function(configure_target TARGET_NAME)
             $<$<COMPILE_LANGUAGE:CXX>:-Wall>
             $<$<COMPILE_LANGUAGE:CXX>:-Wextra>
             $<$<COMPILE_LANGUAGE:CXX>:-Wpedantic>
+            $<$<COMPILE_LANGUAGE:CXX>:-Wno-deprecated-copy>
             $<$<COMPILE_LANGUAGE:CXX>:-Wno-deprecated-declarations>
             $<$<COMPILE_LANGUAGE:CXX>:-Wno-unused-value>
             $<$<COMPILE_LANGUAGE:CXX>:-Wno-unknown-pragmas>
