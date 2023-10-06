@@ -43,10 +43,6 @@ public:
 // Number of available CPU cores in current environment (e.g. inside container)
 NEOMATHENGINE_API int GetAvailableCpuCores();
 
-// RAM limit in current environment (e.g. inside container)
-// Returns SIZE_MAX if no limit
-NEOMATHENGINE_API size_t GetRamLimit();
-
 // Creates a thread pool containing the given number of threads.
 // If threadCount is 0 or less then creates a pool with GetAvailableCpuCores() threads
 NEOMATHENGINE_API IThreadPool* CreateThreadPool( int threadCount );
