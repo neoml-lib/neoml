@@ -24,7 +24,6 @@ limitations under the License.
 #include <NeoMathEngine/SimdMathEngine.h>
 #include <DllLoader.h>
 #include <CPUInfo.h>
-#include <NeoMathEngine/ThreadPool.h>
 
 #if FINE_PLATFORM( FINE_ANDROID ) || FINE_PLATFORM( FINE_LINUX )
 #include <PerformanceCountersCpuLinux.h>
@@ -58,7 +57,7 @@ CCpuMathEngine::CCpuMathEngine( size_t _memoryLimit,
 	memoryAlignment( floatAlignment * sizeof(float) ),
 	communicator( communicator ),
 	distributedInfo( distributedInfo ),
-	memoryPool( new CMemoryPool( _memoryLimit == 0 ? GetRamLimit() : _memoryLimit, this, distributedInfo.Threads > 1 ) ),
+	memoryPool( new CMemoryPool( _memoryLimit == 0 ? SIZE_MAX : _memoryLimit, this, distributedInfo.Threads > 1 ) ),
 	stackAllocator( new CDeviceStackAllocator( *memoryPool, memoryAlignment ) ),
 	dllLoader( CDllLoader::AVX_DLL ),
 	simdMathEngine( nullptr ),
