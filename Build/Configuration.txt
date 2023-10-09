@@ -4,9 +4,9 @@ BUILD_PARALLELL_TASKS=4
 
 #BUILD_INCREASE_MODIFICATION = 1
 
-BUILD_SOURCES=\\LINGVO\ABBYY\R&D Department\Tools_Libs\Sources
+BUILD_SOURCES=\\LINGVO\ABBYY\R&D Department\EU\Tools_Libs\Sources
 
-BUILD_RESULTS=\\LINGVO\ABBYY\R&D Department\Tools_Libs\Results
+BUILD_RESULTS=\\LINGVO\ABBYY\R&D Department\EU\Tools_Libs\Results
 
 BUILD_USERNAME=buildtech
 
