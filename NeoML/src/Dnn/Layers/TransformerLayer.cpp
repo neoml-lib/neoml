@@ -135,6 +135,7 @@ void CTransformerEncoderLayer::SetFeedForwardSize( int size )
 	NeoAssert( size > 0 );
 
 	fc1->SetNumberOfElements( size );
+	fc2->SetNumberOfElements( size );
 	ForceReshape();
 
 	NeoPresume( GetFeedForwardSize() == size );
