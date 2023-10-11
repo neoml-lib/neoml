@@ -71,6 +71,12 @@ function(configure_target TARGET_NAME)
             $<$<COMPILE_LANGUAGE:CXX>:-Wno-unknown-pragmas>
             $<$<COMPILE_LANGUAGE:CXX>:-Wno-strict-overflow>
         )
+        if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+            # This option is unknown to clang
+            target_compile_options(${TARGET_NAME} PRIVATE
+                $<$<COMPILE_LANGUAGE:CXX>:-Wno-deprecated-copy>
+            )
+        endif()
     endif()
     
     # No extensions use
