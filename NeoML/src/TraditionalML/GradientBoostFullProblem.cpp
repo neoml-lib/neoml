@@ -24,10 +24,10 @@ namespace NeoML {
 
 namespace {
 
-class CSortFeaturesThreadTask : public IGradientBoostThreadTask {
+class CGBoostSortFeaturesThreadTask : public IGradientBoostThreadTask {
 public:
 	// Create a task
-	CSortFeaturesThreadTask( IThreadPool& threadPool,
+	CGBoostSortFeaturesThreadTask( IThreadPool& threadPool,
 			const CArray<int>& curFeaturePos,
 			const CArray<bool>& isUsedFeatureBinary,
 			const CArray<int>& featureValueCount,
@@ -53,7 +53,7 @@ protected:
 	CArray<CFloatVectorElement>& FeatureValues;
 };
 
-void CSortFeaturesThreadTask::Run( int /*threadIndex*/, int startIndex, int count )
+void CGBoostSortFeaturesThreadTask::Run( int /*threadIndex*/, int startIndex, int count )
 {
 	const int endIndex = startIndex + count;
 	for( int index = startIndex; index < endIndex; ++index ) {
@@ -161,7 +161,7 @@ void CGradientBoostFullProblem::Update()
 		}
 	}
 
-	CSortFeaturesThreadTask( *threadPool, curFeaturePos, isUsedFeatureBinary,
+	CGBoostSortFeaturesThreadTask( *threadPool, curFeaturePos, isUsedFeatureBinary,
 		featureValueCount, featurePos, featureValues ).ParallelRun();
 }
 
