@@ -164,7 +164,21 @@ if((DARWIN AND CMAKE_SYSTEM_PROCESSOR MATCHES "^arm64.*") OR (ANDROID AND ANDROI
     source_group("CPU\\arm" REGULAR_EXPRESSION "CPU\/arm\/.*")
     target_include_directories(${PROJECT_NAME} PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/CPU/arm>)
 else()
+    if(CMAKE_SIZEOF_VOID_P EQUAL 8) # x64
+        if(WIN32)
+            set(CPU_X86_ASM_SOURCES
+                CPU/x86/CpuX86FmaCount/fma_shuffle_tpt.asm
+                CPU/x86/CpuX86FmaCount/fma_only_tpt.asm)
+        else() #if(CMAKE_CXX_COMPILER_ID MATCHES Clang OR CMAKE_CXX_COMPILER_ID MATCHES GNU OR CMAKE_CXX_COMPILER_ID MATCHES AppleClang)
+            target_compile_options(${PROJECT_NAME} PRIVATE 
+                $<$<COMPILE_LANGUAGE:ASM>:-x$<SEMICOLON>assembler-with-cpp>)
+            set(CPU_X86_ASM_SOURCES
+                CPU/x86/CpuX86FmaCount/fma_shuffle_tpt.s
+                CPU/x86/CpuX86FmaCount/fma_only_tpt.s)
+        endif()
+    endif()
     set(CPU_X86_SOURCES
+        CPU/x86/CpuX86FmaCount.cpp
         CPU/x86/CpuX86MathEngineBlas.cpp
         CPU/x86/CpuX86MathEngineBlasMkl.cpp
         CPU/x86/CpuX86MathEngineDnn.cpp
@@ -174,6 +188,7 @@ else()
     target_sources(${PROJECT_NAME} 
     PRIVATE
         ${CPU_X86_SOURCES}
+        ${CPU_X86_ASM_SOURCES}
         CPU/x86/CpuX86.h
         CPU/x86/CpuX86Functors.h
         CPU/x86/CpuX86MathEngineVectorMathPrivate.h
