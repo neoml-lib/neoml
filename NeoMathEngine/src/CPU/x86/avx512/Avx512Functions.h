@@ -32,6 +32,10 @@ void vectorFill( float* result, int vectorSize, float value = 0.f );
 
 void vectorAdd( const float* first, const float* second, float* result, int vectorSize );
 
+void vectorAddValue( const float* first, float* result, int vectorSize, float value );
+
+void vectorMultiply( const float* first, float* result, int vectorSize, float multiplier );
+
 void vectorEltwiseMultiply( const float* first, const float* second, float* result, int vectorSize );
 
 void vectorEltwiseMultiplyAdd( const float* first, const float* second, float* result, int vectorSize );

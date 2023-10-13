@@ -128,6 +128,48 @@ void vectorAdd( const float* first, const float* second, float* result, int vect
 	}
 }
 
+void vectorAddValue( const float* first, float* result, int vectorSize, float value )
+{
+	const __m512 valueSimd = _mm512_set1_ps( value );
+	
+	while( vectorSize >= AvxBlockSize ) {
+		_mm512_storeu_ps( result,
+			_mm512_add_ps( _mm512_loadu_ps( first ), valueSimd ) );
+		first += AvxBlockSize;
+		result += AvxBlockSize;
+		vectorSize -= AvxBlockSize;
+	}
+	
+	if( vectorSize > 0 ) {
+		const __m512 zeroSimd = _mm512_setzero_ps(); // copy data from here, where mask bits are false
+		const __mmask16 mask = AVX512_IO_MASK( vectorSize );
+
+		_mm512_mask_storeu_ps( result, mask,
+			_mm512_add_ps( _mm512_mask_load_ps( zeroSimd, mask, first ), valueSimd ) );
+	}
+}
+
+void vectorMultiply( const float* first, float* result, int vectorSize, float multiplier )
+{
+	const __m512 multSimd = _mm512_set1_ps( multiplier );
+	
+	while( vectorSize >= AvxBlockSize ) {
+		_mm512_storeu_ps( result,
+			_mm512_mul_ps( _mm512_loadu_ps( first ), multSimd ) );
+		first += AvxBlockSize;
+		result += AvxBlockSize;
+		vectorSize -= AvxBlockSize;
+	}
+
+	if( vectorSize > 0 ) {
+		const __m512 zeroSimd = _mm512_setzero_ps(); // copy data from here, where mask bits are false
+		const __mmask16 mask = AVX512_IO_MASK( vectorSize );
+
+		_mm512_mask_storeu_ps( result, mask,
+			_mm512_mul_ps( _mm512_mask_loadu_ps( zeroSimd, mask, first ), multSimd ) );
+	}
+}
+
 void vectorEltwiseMultiply( const float* first, const float* second, float* result, int vectorSize )
 {
 	while( vectorSize >= 4 * AvxBlockSize ) {
