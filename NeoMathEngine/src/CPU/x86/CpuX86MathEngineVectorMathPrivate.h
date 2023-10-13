@@ -242,7 +242,7 @@ inline void channelwise1x7( const float* source, const float* filter0, const flo
 
 inline void vectorFill( float* result, float value, int vectorSize )
 {
-	if( CCPUInfo::HasAvx512 && vectorSize >= NeoML::Avx512::VectorMathMinSize ) {
+	if( CCPUInfo::HasAvx512And2Fma && vectorSize >= NeoML::Avx512::VectorMathMinSize ) {
 		NeoML::Avx512::vectorFill( result, vectorSize, value );
 		return;
 	} else if( CCPUInfo::HasAvxAndFma && vectorSize >= NeoML::Avx2::VectorMathMinSize ) {
@@ -322,7 +322,7 @@ inline void vectorFill( int* result, int value, int vectorSize )
 
 inline void vectorFill0( float* result, int vectorSize )
 {
-	if( CCPUInfo::HasAvx512 && vectorSize >= NeoML::Avx512::VectorMathMinSize ) {
+	if( CCPUInfo::HasAvx512And2Fma && vectorSize >= NeoML::Avx512::VectorMathMinSize ) {
 		NeoML::Avx512::vectorFill( result, vectorSize );
 		return;
 	} else if( CCPUInfo::HasAvxAndFma && vectorSize >= NeoML::Avx2::VectorMathMinSize ) {
@@ -405,7 +405,7 @@ inline void vectorEltwiseMax( const float* first, const float* second, float* re
 
 inline void vectorAdd( const float* first, const float* second, float* result, int vectorSize )
 {
-	if( CCPUInfo::HasAvx512 && vectorSize >= NeoML::Avx512::VectorMathMinSize ) {
+	if( CCPUInfo::HasAvx512And2Fma && vectorSize >= NeoML::Avx512::VectorMathMinSize ) {
 		NeoML::Avx512::vectorAdd( first, second, result, vectorSize );
 		return;
 	} else if( CCPUInfo::HasAvxAndFma && vectorSize >= NeoML::Avx2::VectorMathMinSize ) {
@@ -572,7 +572,10 @@ inline __m128i sse2Multiply4SignedInts( const __m128i& first, const __m128i& sec
 
 inline void vectorMultiply( const float* first, float* result, int vectorSize, float multiplier )
 {
-	if( CCPUInfo::HasAvxAndFma && vectorSize >= NeoML::Avx2::VectorMathMinSize ) {
+	if( CCPUInfo::HasAvx512And2Fma && vectorSize >= NeoML::Avx512::VectorMathMinSize ) {
+		NeoML::Avx512::vectorMultiply( first, result, vectorSize, multiplier );
+		return;
+	} else if( CCPUInfo::HasAvxAndFma && vectorSize >= NeoML::Avx2::VectorMathMinSize ) {
 		NeoML::Avx2::vectorMultiply( first, result, vectorSize, multiplier );
 		return;
 	}
@@ -670,7 +673,7 @@ inline void vectorEltwiseMultiply( const float* first, const float* second, floa
 
 inline void vectorEltwiseMultiply( const float* first, const float* second, float* result, int vectorSize )
 {
-	if( CCPUInfo::HasAvx512 && vectorSize >= NeoML::Avx512::VectorMathMinSize ) {
+	if( CCPUInfo::HasAvx512And2Fma && vectorSize >= NeoML::Avx512::VectorMathMinSize ) {
 		NeoML::Avx512::vectorEltwiseMultiply( first, second, result, vectorSize );
 		return;
 	} else if( CCPUInfo::HasAvxAndFma && vectorSize >= NeoML::Avx2::VectorMathMinSize ) {
@@ -746,7 +749,7 @@ inline void vectorEltwiseMultiplyAdd( const float* first, const float* second, f
 		return;
 	}
 
-	if( CCPUInfo::HasAvx512 && vectorSize >= NeoML::Avx512::VectorMathMinSize ) {
+	if( CCPUInfo::HasAvx512And2Fma && vectorSize >= NeoML::Avx512::VectorMathMinSize ) {
 		NeoML::Avx512::vectorEltwiseMultiplyAdd( first, second, result, vectorSize );
 		return;
 	} else if( CCPUInfo::HasAvxAndFma && vectorSize >= NeoML::Avx2::VectorMathMinSize ) {
@@ -801,7 +804,7 @@ inline void vectorEltwiseMultiplyAdd( const float* first, const float* second, f
 
 inline void vectorReLU( const float* first, float* result, int vectorSize )
 {
-	if( CCPUInfo::HasAvx512 && vectorSize >= NeoML::Avx512::VectorMathMinSize ) {
+	if( CCPUInfo::HasAvx512And2Fma && vectorSize >= NeoML::Avx512::VectorMathMinSize ) {
 		NeoML::Avx512::vectorReLU( first, result, vectorSize );
 		return;
 	} else if( CCPUInfo::HasAvxAndFma && vectorSize >= NeoML::Avx2::VectorMathMinSize ) {
@@ -847,7 +850,7 @@ inline void vectorReLU( const float* first, float* result, int vectorSize )
 
 inline void vectorReLU( const float* first, float* result, int vectorSize, float threshold )
 {
-	if( CCPUInfo::HasAvx512 && vectorSize >= NeoML::Avx512::VectorMathMinSize ) {
+	if( CCPUInfo::HasAvx512And2Fma && vectorSize >= NeoML::Avx512::VectorMathMinSize ) {
 		NeoML::Avx512::vectorReLU( first, result, vectorSize, threshold );
 		return;
 	} else if( CCPUInfo::HasAvxAndFma && vectorSize >= NeoML::Avx2::VectorMathMinSize ) {
@@ -896,7 +899,10 @@ inline void vectorReLU( const float* first, float* result, int vectorSize, float
 
 inline void vectorAddValue( const float* first, float* result, int vectorSize, float value )
 {
-	if( CCPUInfo::HasAvxAndFma && vectorSize >= NeoML::Avx2::VectorMathMinSize ) {
+	if( CCPUInfo::HasAvx512And2Fma && vectorSize >= NeoML::Avx512::VectorMathMinSize ) {
+		NeoML::Avx512::vectorAddValue( first, result, vectorSize, value );
+		return;
+	} else if( CCPUInfo::HasAvxAndFma && vectorSize >= NeoML::Avx2::VectorMathMinSize ) {
 		NeoML::Avx2::vectorAddValue( first, result, vectorSize, value );
 		return;
 	}
@@ -1259,7 +1265,7 @@ inline __m128 vectorHSwishWorker( const __m128& first, const __m128& three,
 
 inline void vectorHSwish( const float* first, float* result, int vectorSize )
 {
-	if( CCPUInfo::HasAvx512 && vectorSize >= NeoML::Avx512::VectorMathMinSize ) {
+	if( CCPUInfo::HasAvx512And2Fma && vectorSize >= NeoML::Avx512::VectorMathMinSize ) {
 		NeoML::Avx512::vectorHSwish( first, result, vectorSize );
 		return;
 	} else if( CCPUInfo::HasAvxAndFma && vectorSize >= NeoML::Avx2::VectorMathMinSize ) {

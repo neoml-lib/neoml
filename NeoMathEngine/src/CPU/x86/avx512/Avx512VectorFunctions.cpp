@@ -32,6 +32,7 @@ static constexpr int AvxBlockSize = 16;
 	_cvtu32_mask16( ( 1u << N ) - 1u )
 
 
+#ifdef AVX512_64FLOATS
 #define AVX512_LOAD_64_FLOATS( varPrefix, srcPtr ) \
 	__m512 varPrefix##0 = _mm512_loadu_ps( srcPtr + 0 * AvxBlockSize ); \
 	__m512 varPrefix##1 = _mm512_loadu_ps( srcPtr + 1 * AvxBlockSize ); \
@@ -43,12 +44,14 @@ static constexpr int AvxBlockSize = 16;
 	_mm512_storeu_ps( dstPtr + 1 * AvxBlockSize, varPrefix##1 ); \
 	_mm512_storeu_ps( dstPtr + 2 * AvxBlockSize, varPrefix##2 ); \
 	_mm512_storeu_ps( dstPtr + 3 * AvxBlockSize, varPrefix##3 )
+#endif //AVX512_64FLOATS
 
 
 //---------------------------------------------------------------------------------
 
 void dataCopy( float* dst, const float* src, int vectorSize )
 {
+#ifdef AVX512_64FLOATS
 	while( vectorSize >= 4 * AvxBlockSize ) {
 		AVX512_LOAD_64_FLOATS( data, src );
 		AVX512_STORE_64_FLOATS( data, dst );
@@ -56,6 +59,7 @@ void dataCopy( float* dst, const float* src, int vectorSize )
 		src += 4 * AvxBlockSize;
 		vectorSize -= 4 * AvxBlockSize;
 	}
+#endif //AVX512_64FLOATS
 
 	while( vectorSize >= AvxBlockSize ) {
 		_mm512_storeu_ps( dst, _mm512_loadu_ps( src ) );
@@ -73,6 +77,7 @@ void dataCopy( float* dst, const float* src, int vectorSize )
 void vectorFill( float* result, int vectorSize, float value )
 {
 	const __m512 valueSimd = _mm512_set1_ps( value );
+#ifdef AVX512_64FLOATS
 	while( vectorSize >= 4 * AvxBlockSize ) {
 		_mm512_storeu_ps( result + 0 * AvxBlockSize, valueSimd );
 		_mm512_storeu_ps( result + 1 * AvxBlockSize, valueSimd );
@@ -81,6 +86,7 @@ void vectorFill( float* result, int vectorSize, float value )
 		result += 4 * AvxBlockSize;
 		vectorSize -= 4 * AvxBlockSize;
 	}
+#endif //AVX512_64FLOATS
 
 	while( vectorSize >= AvxBlockSize ) {
 		_mm512_storeu_ps( result, valueSimd );
@@ -95,6 +101,7 @@ void vectorFill( float* result, int vectorSize, float value )
 
 void vectorAdd( const float* first, const float* second, float* result, int vectorSize )
 {
+#ifdef AVX512_64FLOATS
 	while( vectorSize >= 4 * AvxBlockSize ) {
 		AVX512_LOAD_64_FLOATS( first, first );
 		AVX512_LOAD_64_FLOATS( second, second );
@@ -108,6 +115,7 @@ void vectorAdd( const float* first, const float* second, float* result, int vect
 		result += 4 * AvxBlockSize;
 		vectorSize -= 4 * AvxBlockSize;
 	}
+#endif //AVX512_64FLOATS
 
 	while( vectorSize >= AvxBlockSize ) {
 		_mm512_storeu_ps( result,
@@ -131,6 +139,19 @@ void vectorAdd( const float* first, const float* second, float* result, int vect
 void vectorAddValue( const float* first, float* result, int vectorSize, float value )
 {
 	const __m512 valueSimd = _mm512_set1_ps( value );
+#ifdef AVX512_64FLOATS
+	while( vectorSize >= 4 * AvxBlockSize ) {
+		AVX512_LOAD_64_FLOATS( first, first );
+		first0 = _mm512_add_ps( first0, valueSimd );
+		first1 = _mm512_add_ps( first1, valueSimd );
+		first2 = _mm512_add_ps( first2, valueSimd );
+		first3 = _mm512_add_ps( first3, valueSimd );
+		AVX512_STORE_64_FLOATS( first, result );
+		first += 4 * AvxBlockSize;
+		result += 4 * AvxBlockSize;
+		vectorSize -= 4 * AvxBlockSize;
+	}
+#endif //AVX512_64FLOATS
 	
 	while( vectorSize >= AvxBlockSize ) {
 		_mm512_storeu_ps( result,
@@ -141,17 +162,28 @@ void vectorAddValue( const float* first, float* result, int vectorSize, float va
 	}
 	
 	if( vectorSize > 0 ) {
-		const __m512 zeroSimd = _mm512_setzero_ps(); // copy data from here, where mask bits are false
 		const __mmask16 mask = AVX512_IO_MASK( vectorSize );
-
 		_mm512_mask_storeu_ps( result, mask,
-			_mm512_add_ps( _mm512_mask_load_ps( zeroSimd, mask, first ), valueSimd ) );
+			_mm512_add_ps( _mm512_mask_loadu_ps( _mm512_setzero_ps(), mask, first ), valueSimd ) );
 	}
 }
 
 void vectorMultiply( const float* first, float* result, int vectorSize, float multiplier )
 {
 	const __m512 multSimd = _mm512_set1_ps( multiplier );
+#ifdef AVX512_64FLOATS
+	while( vectorSize >= 4 * AvxBlockSize ) {
+		AVX512_LOAD_64_FLOATS( first, first );
+		first0 = _mm512_mul_ps( first0, multSimd );
+		first1 = _mm512_mul_ps( first1, multSimd );
+		first2 = _mm512_mul_ps( first2, multSimd );
+		first3 = _mm512_mul_ps( first3, multSimd );
+		AVX512_STORE_64_FLOATS( first, result );
+		first += 4 * AvxBlockSize;
+		result += 4 * AvxBlockSize;
+		vectorSize -= 4 * AvxBlockSize;
+	}
+#endif //AVX512_64FLOATS
 	
 	while( vectorSize >= AvxBlockSize ) {
 		_mm512_storeu_ps( result,
@@ -162,16 +194,15 @@ void vectorMultiply( const float* first, float* result, int vectorSize, float mu
 	}
 
 	if( vectorSize > 0 ) {
-		const __m512 zeroSimd = _mm512_setzero_ps(); // copy data from here, where mask bits are false
 		const __mmask16 mask = AVX512_IO_MASK( vectorSize );
-
 		_mm512_mask_storeu_ps( result, mask,
-			_mm512_mul_ps( _mm512_mask_loadu_ps( zeroSimd, mask, first ), multSimd ) );
+			_mm512_mul_ps( _mm512_mask_loadu_ps( _mm512_setzero_ps(), mask, first ), multSimd ) );
 	}
 }
 
 void vectorEltwiseMultiply( const float* first, const float* second, float* result, int vectorSize )
 {
+#ifdef AVX512_64FLOATS
 	while( vectorSize >= 4 * AvxBlockSize ) {
 		AVX512_LOAD_64_FLOATS( first, first );
 		AVX512_LOAD_64_FLOATS( second, second );
@@ -185,6 +216,7 @@ void vectorEltwiseMultiply( const float* first, const float* second, float* resu
 		result += 4 * AvxBlockSize;
 		vectorSize -= 4 * AvxBlockSize;
 	}
+#endif //AVX512_64FLOATS
 
 	while( vectorSize >= AvxBlockSize ) {
 		_mm512_storeu_ps( result,
@@ -207,6 +239,7 @@ void vectorEltwiseMultiply( const float* first, const float* second, float* resu
 
 void vectorEltwiseMultiplyAdd( const float* first, const float* second, float* result, int vectorSize )
 {
+#ifdef AVX512_64FLOATS
 	while( vectorSize >= 4 * AvxBlockSize ) {
 		AVX512_LOAD_64_FLOATS( first, first );
 		AVX512_LOAD_64_FLOATS( second, second );
@@ -221,6 +254,7 @@ void vectorEltwiseMultiplyAdd( const float* first, const float* second, float* r
 		result += 4 * AvxBlockSize;
 		vectorSize -= 4 * AvxBlockSize;
 	}
+#endif //AVX512_64FLOATS
 
 	while( vectorSize >= AvxBlockSize ) {
 		_mm512_storeu_ps( result,
@@ -245,6 +279,19 @@ void vectorEltwiseMultiplyAdd( const float* first, const float* second, float* r
 void vectorReLU( const float* first, float* result, int vectorSize )
 {
 	const __m512 zeroSimd = _mm512_setzero_ps();
+#ifdef AVX512_64FLOATS
+	while( vectorSize >= 4 * AvxBlockSize ) {
+		AVX512_LOAD_64_FLOATS( first, first );
+		__m512 result0 = _mm512_max_ps( first0, zeroSimd );
+		__m512 result1 = _mm512_max_ps( first1, zeroSimd );
+		__m512 result2 = _mm512_max_ps( first2, zeroSimd );
+		__m512 result3 = _mm512_max_ps( first3, zeroSimd );
+		AVX512_STORE_64_FLOATS( result, result );
+		first += 4 * AvxBlockSize;
+		result += 4 * AvxBlockSize;
+		vectorSize -= 4 * AvxBlockSize;
+	}
+#endif //AVX512_64FLOATS
 
 	while( vectorSize >= AvxBlockSize ) {
 		_mm512_storeu_ps( result,
@@ -256,7 +303,8 @@ void vectorReLU( const float* first, float* result, int vectorSize )
 
 	if( vectorSize > 0 ) {
 		const __mmask16 mask = AVX512_IO_MASK( vectorSize );
-		_mm512_mask_storeu_ps( result, mask, _mm512_max_ps( _mm512_mask_loadu_ps( zeroSimd, mask, first ), zeroSimd ) );
+		_mm512_mask_storeu_ps( result, mask,
+			_mm512_max_ps( _mm512_mask_loadu_ps( zeroSimd, mask, first ), zeroSimd ) );
 	}
 }
 
@@ -264,6 +312,19 @@ void vectorReLU( const float* first, float* result, int vectorSize, float thresh
 {
 	const __m512 zeroSimd = _mm512_setzero_ps();
 	const __m512 thresholdSimd = _mm512_set1_ps( threshold );
+#ifdef AVX512_64FLOATS
+	while( vectorSize >= 4 * AvxBlockSize ) {
+		AVX512_LOAD_64_FLOATS( first, first );
+		__m512 result0 = _mm512_min_ps( _mm512_max_ps( first0, zeroSimd ), thresholdSimd );
+		__m512 result1 = _mm512_min_ps( _mm512_max_ps( first1, zeroSimd ), thresholdSimd );
+		__m512 result2 = _mm512_min_ps( _mm512_max_ps( first2, zeroSimd ), thresholdSimd );
+		__m512 result3 = _mm512_min_ps( _mm512_max_ps( first3, zeroSimd ), thresholdSimd );
+		AVX512_STORE_64_FLOATS( result, result );
+		first += 4 * AvxBlockSize;
+		result += 4 * AvxBlockSize;
+		vectorSize -= 4 * AvxBlockSize;
+	}
+#endif //AVX512_64FLOATS
 
 	while( vectorSize >= AvxBlockSize ) {
 		_mm512_storeu_ps( result,
@@ -286,17 +347,37 @@ void vectorHSwish( const float* first, float* result, int vectorSize )
 	const __m512 threeSimd = _mm512_set1_ps( 3.f );
 	const __m512 oneSixthSimd = _mm512_set1_ps( 1.f / 6.f );
 
-	//for( int i = 0; i < nonSseSize; ++i ) {
-	//	if( *first <= -3.f ) {
-	//		*result = 0.f;
-	//	} else if( *first >= 3.f ) {
-	//		*result = *first;
-	//	} else {
-	//		*result = *first * ( 1. / 6. ) * ( *first + 3 );
-	//	}
+	//for( int i = 0; i < vectorSize; ++i ) {
+	//	if( *first <= -3 )     *result = ( 0 );
+	//	else if( *first >= 3 ) *result = ( *first );
+	//	else                   *result = ( *first * 1 / 6 ) * ( *first + 3 );
 	//	++result;
 	//	++first;
 	//}
+
+#ifdef AVX512_64FLOATS
+	while( vectorSize >= 4 * AvxBlockSize ) {
+		AVX512_LOAD_64_FLOATS( data, first );
+		__m512 middlePart0 = _mm512_max_ps( _mm512_add_ps( data0, threeSimd ), zeroSimd );
+		__m512 middlePart1 = _mm512_max_ps( _mm512_add_ps( data1, threeSimd ), zeroSimd );
+		__m512 middlePart2 = _mm512_max_ps( _mm512_add_ps( data2, threeSimd ), zeroSimd );
+		__m512 middlePart3 = _mm512_max_ps( _mm512_add_ps( data3, threeSimd ), zeroSimd );
+
+		middlePart0 = _mm512_mul_ps( _mm512_mul_ps( data0, oneSixthSimd ), middlePart0 );
+		middlePart1 = _mm512_mul_ps( _mm512_mul_ps( data1, oneSixthSimd ), middlePart1 );
+		middlePart2 = _mm512_mul_ps( _mm512_mul_ps( data2, oneSixthSimd ), middlePart2 );
+		middlePart3 = _mm512_mul_ps( _mm512_mul_ps( data3, oneSixthSimd ), middlePart3 );
+
+		data0 = _mm512_min_ps( _mm512_max_ps( data0, threeSimd ), middlePart0 );
+		data1 = _mm512_min_ps( _mm512_max_ps( data1, threeSimd ), middlePart1 );
+		data2 = _mm512_min_ps( _mm512_max_ps( data2, threeSimd ), middlePart2 );
+		data3 = _mm512_min_ps( _mm512_max_ps( data3, threeSimd ), middlePart3 );
+		AVX512_STORE_64_FLOATS( data, result );
+		first += 4 * AvxBlockSize;
+		result += 4 * AvxBlockSize;
+		vectorSize -= 4 * AvxBlockSize;
+	}
+#endif //AVX512_64FLOATS
 
 	while( vectorSize >= AvxBlockSize ) {
 		__m512 firstSimd = _mm512_loadu_ps( first );
@@ -311,10 +392,11 @@ void vectorHSwish( const float* first, float* result, int vectorSize )
 
 	if( vectorSize > 0 ) {
 		const __mmask16 mask = AVX512_IO_MASK( vectorSize );
-		__m512 firstSimd = _mm512_mask_loadu_ps( _mm512_setzero_ps(), mask, first );
+		__m512 firstSimd = _mm512_mask_loadu_ps( zeroSimd, mask, first );
 		__m512 middlePart = _mm512_max_ps( _mm512_add_ps( firstSimd, threeSimd ), zeroSimd );
 		middlePart = _mm512_mul_ps( _mm512_mul_ps( firstSimd, oneSixthSimd ), middlePart );
-		_mm512_mask_storeu_ps( result, mask, _mm512_min_ps( middlePart, _mm512_max_ps( firstSimd, threeSimd ) ) );
+		_mm512_mask_storeu_ps( result, mask,
+			_mm512_min_ps( middlePart, _mm512_max_ps( firstSimd, threeSimd ) ) );
 	}
 }
 

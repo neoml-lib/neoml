@@ -27,6 +27,13 @@ limitations under the License.
 
 #include <cstring>
 
+#if FINE_ARCHITECTURE( FINE_X64 )
+// Intel X86/X64 optimization manual
+// https://github.com/intel/optimization-manual/tree/main/chap18/ex25
+int Avx512FmaUnitCount();
+#else   // !x64
+inline int Avx512FmaUnitCount() { return 0; }
+#endif  // !x64
 
 // The structure with CPU information
 struct CCPUInfo final {
@@ -148,6 +155,7 @@ struct CCPUInfo final {
 	}
 
 	static const bool NEOMATHENGINE_API HasAvx512;
+	static const bool HasAvx512And2Fma;
 	static const bool HasAvxAndFma;
 	static const bool IsNotIntel;
 
