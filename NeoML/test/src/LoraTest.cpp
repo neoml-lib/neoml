@@ -295,17 +295,20 @@ TEST( LoraBuilderTest, MergeAndDiscardTest )
 	EXPECT_TRUE( checkLayerClass<CFullyConnectedLayer>( dnn, { "transformer", "FullyConnected2" } ) );
 	EXPECT_TRUE( checkLayerClass<CFullyConnectedLayer>( dnn, { "transformer", "SelfAttention", "K" } ) );
 	CPtr<CDnnBlob> untrainedOutput = CheckCast<CSinkLayer>( dnn.GetLayer( "sink" ) )->GetBlob()->GetCopy();
-	CPtr<CDnnBlob> initialWeights = CheckCast<CFullyConnectedLayer>( 
-		CheckCast<CTransformerEncoderLayer>( dnn.GetLayer( "transformer" ) )->GetLayer( "FullyConnected2" ) )->GetWeightsData();
+	CPtr<CDnnBlob> initialWeights = nullptr;
+	{
+		CTransformerEncoderLayer* enc = CheckCast<CTransformerEncoderLayer>( dnn.GetLayer( "transformer" ) );
+		initialWeights = CheckCast<CFullyConnectedLayer>( enc->GetLayer( "FullyConnected2" ) )->GetWeightsData();
+	}
 
-	// Before building wrappers don't forget that transformer has object normalization which also has trainable params
-	CheckCast<CTransformerEncoderLayer>( dnn.GetLayer( "transformer" ) )->GetLayer( "SelfAttentionNorm" )->DisableLearning();
-	CheckCast<CTransformerEncoderLayer>( dnn.GetLayer( "transformer" ) )->GetLayer( "FeedForwardNorm" )->DisableLearning();
 	CLoraParams params( 8, 2.f, 0.2f );
 	CLoraBuilder builder;
 	EXPECT_EQ( 6, builder.BuildAllFcWrappers( dnn, params ) );
 	EXPECT_TRUE( checkLayerClass<CLoraFullyConnectedLayer>( dnn, { "transformer", "FullyConnected2" } ) );
 	EXPECT_TRUE( checkLayerClass<CLoraFullyConnectedLayer>( dnn, { "transformer", "SelfAttention", "K" } ) );
+	// Before training the net we need to disable training for all non-LoRA layers
+	// There are 2 ObjectNormalization layers inside of transformer
+	EXPECT_EQ( 2, builder.DisableNonLoraTraining( dnn ) );
 
 	dnn.RunOnce();
 	EXPECT_TRUE( CompareBlobs( *untrainedOutput, *CheckCast<CSinkLayer>( dnn.GetLayer( "sink" ) )->GetBlob() ) );
@@ -339,7 +342,7 @@ TEST( LoraBuilderTest, MergeAndDiscardTest )
 	dnn.RunOnce();
 	EXPECT_TRUE( checkLayerClass<CLoraFullyConnectedLayer>( dnn, { "transformer", "FullyConnected2" } ) );
 	EXPECT_TRUE( checkLayerClass<CLoraFullyConnectedLayer>( dnn, { "transformer", "SelfAttention", "K" } ) );
-	CPtr<CDnnBlob> splitWeights  = CheckCast<CLoraFullyConnectedLayer>( 
+	CPtr<CDnnBlob> splitWeights = CheckCast<CLoraFullyConnectedLayer>( 
 		CheckCast<CTransformerEncoderLayer>( dnn.GetLayer( "transformer" ) )->GetLayer( "FullyConnected2" ) )->GetSplitBaseWeightsNoCopy()->GetCopy();
 	EXPECT_TRUE( CompareBlobs( *initialWeights, *splitWeights ) );
 	EXPECT_TRUE( CompareBlobs( *trainedOutput, *CheckCast<CSinkLayer>( dnn.GetLayer( "sink" ) )->GetBlob() ) );

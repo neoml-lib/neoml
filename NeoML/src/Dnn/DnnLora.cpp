@@ -90,6 +90,40 @@ int CLoraBuilder::BuildAllFcWrappers( CDnnLayerGraph& rootGraph, const CLoraPara
 	return impl( rootGraph, impl );
 }
 
+int CLoraBuilder::DisableNonLoraTraining( CDnnLayerGraph& graph ) const
+{
+	auto impl = [this] ( CDnnLayerGraph& currGraph, auto&& impl ) -> int
+	{
+		int result = 0;
+
+		CArray<const char*> layerNames;
+		currGraph.GetLayerList( layerNames );
+		for( const char* layerName : layerNames ) {
+			CPtr<CBaseLayer> layer = currGraph.GetLayer( layerName );
+
+			CLoraFullyConnectedLayer* loraFc = dynamic_cast<CLoraFullyConnectedLayer*>( layer.Ptr() );
+			if( loraFc != nullptr ) {
+				continue; // don't touch LoRA wrappers
+			}
+
+			CCompositeLayer* composite = dynamic_cast<CCompositeLayer*>( layer.Ptr() );
+			if( composite != nullptr ) {
+				result += impl( *composite, impl );
+				continue;
+			}
+
+			if( layer->IsLearnable() && layer->IsLearningEnabled() ) {
+				layer->DisableLearning();
+				++result;
+			}
+		}
+
+		return result;
+	};
+
+	return impl( graph, impl );
+}
+
 // Replaces specific fc wrapper with fc layer
 // mergeWeights defines whether weights of the new fc will be original ones or emulates full LoRA wrapper
 void CLoraBuilder::replaceFcWrapper( CDnnLayerGraph& graph, const char* fcName, bool mergeWeights ) const

@@ -66,6 +66,10 @@ public:
 	// Fully-connected
 	int BuildAllFcWrappers( CDnnLayerGraph& graph, const CLoraParams& params ) const;
 
+	// Disables training of all layers in the net except LoRA wrappers
+	// Affects only trainable non-composite layers which enabled training
+	int DisableNonLoraTraining( CDnnLayerGraph& graph ) const;
+
 	// Replaces specific LoRA wrapper without merging LoRA weights (restores original layer weights)
 	// Fully-connected
 	void DiscardFcWrapper( CDnnLayerGraph& graph, const char* fcName ) const
