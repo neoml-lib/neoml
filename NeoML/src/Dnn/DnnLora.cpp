@@ -44,7 +44,7 @@ CLoraBuilder::CLoraBuilder( const CArray<CString>& _compositeClases )
 	_compositeClases.CopyTo( compositeClasses );
 }
 
-void CLoraBuilder::BuildForFc( CDnnLayerGraph& graph, const char* fcName, const CLoraParams& params ) const
+void CLoraBuilder::BuildFcWrapper( CDnnLayerGraph& graph, const char* fcName, const CLoraParams& params ) const
 {
 	NeoAssert( graph.HasLayer( fcName ) );
 	CPtr<CFullyConnectedLayer> fc = CheckCast<CFullyConnectedLayer>( graph.GetLayer( fcName ) );
@@ -58,7 +58,7 @@ void CLoraBuilder::BuildForFc( CDnnLayerGraph& graph, const char* fcName, const 
 	loraFc->Connect( 0, fc->GetInputName( 0 ), fc->GetInputOutputNumber( 0 ) );
 }
 
-int CLoraBuilder::BuildForAllFcs( CDnnLayerGraph& rootGraph, const CLoraParams& params ) const
+int CLoraBuilder::BuildAllFcWrappers( CDnnLayerGraph& rootGraph, const CLoraParams& params ) const
 {
 	auto impl = [this, &params] ( CDnnLayerGraph& currGraph, auto&& impl ) -> int
 	{
@@ -71,7 +71,7 @@ int CLoraBuilder::BuildForAllFcs( CDnnLayerGraph& rootGraph, const CLoraParams& 
 
 			CFullyConnectedLayer* fc = dynamic_cast<CFullyConnectedLayer*>( layer.Ptr() );
 			if( fc != nullptr ) {
-				BuildForFc( currGraph, layerName, params );
+				BuildFcWrapper( currGraph, layerName, params );
 				++result;
 				continue;
 			}
@@ -88,6 +88,55 @@ int CLoraBuilder::BuildForAllFcs( CDnnLayerGraph& rootGraph, const CLoraParams& 
 	};
 
 	return impl( rootGraph, impl );
+}
+
+// Replaces specific fc wrapper with fc layer
+// mergeWeights defines whether weights of the new fc will be original ones or emulates full LoRA wrapper
+void CLoraBuilder::replaceFcWrapper( CDnnLayerGraph& graph, const char* fcName, bool mergeWeights ) const
+{
+	NeoAssert( graph.HasLayer( fcName ) );
+	CPtr<CLoraFullyConnectedLayer> loraFc = CheckCast<CLoraFullyConnectedLayer>( graph.GetLayer( fcName ) );
+
+	graph.DeleteLayer( *loraFc );
+
+	CPtr<CFullyConnectedLayer> mergedFc = FINE_DEBUG_NEW CFullyConnectedLayer( loraFc->MathEngine(),
+		loraFc->GetName() );
+	mergedFc->SetNumberOfElements( loraFc->OutputSize() );
+	mergedFc->Weights() = mergeWeights ? loraFc->GetMergedBaseWeightsNoCopy() 
+		: loraFc->GetSplitBaseWeightsNoCopy();
+	mergedFc->FreeTerms() = loraFc->GetFreeTermsNoCopy();
+	mergedFc->Connect( 0, loraFc->GetInputName( 0 ), loraFc->GetInputOutputNumber( 0 ) );
+	graph.AddLayer( *mergedFc );
+}
+
+int CLoraBuilder::replaceAllFcWrappers( CDnnLayerGraph& graph, bool mergeWeights ) const
+{
+	auto impl = [this, &mergeWeights] ( CDnnLayerGraph& currGraph, auto&& impl ) -> int
+	{
+		int result = 0;
+
+		CArray<const char*> layerNames;
+		currGraph.GetLayerList( layerNames );
+		for( const char* layerName : layerNames ) {
+			CPtr<CBaseLayer> layer = currGraph.GetLayer( layerName );
+
+			CLoraFullyConnectedLayer* loraFc = dynamic_cast<CLoraFullyConnectedLayer*>( layer.Ptr() );
+			if( loraFc != nullptr ) {
+				replaceFcWrapper( currGraph, layerName, mergeWeights );
+				++result;
+				continue;
+			}
+
+			CCompositeLayer* composite = dynamic_cast<CCompositeLayer*>( layer.Ptr() );
+			if( composite != nullptr ) {
+				result += impl( *composite, impl );
+			}
+		}
+
+		return result;
+	};
+
+	return impl( graph, impl );
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -165,6 +214,8 @@ static int storeLora( CDnn& dnn, CArchive& archive )
 
 static int loadLora( CDnn& dnn, CArchive& archive )
 {
+	CLoraBuilder loraBuilder;
+
 	NeoAssert( archive.IsLoading() );
 	( void ) archive.SerializeVersion( loraSerializerVersion );
 
@@ -193,7 +244,7 @@ static int loadLora( CDnn& dnn, CArchive& archive )
 		check( layerPath.Size() >= 1, ERR_BAD_ARCHIVE, archive.Name() ); // path must contain at least name of last layer
 		// replace fully-connected with lora wrapper if needed
 		if( dynamic_cast<CFullyConnectedLayer*>( currentGraph->GetLayer( layerPath.Last() ).Ptr() ) != nullptr ) {
-			CLoraBuilder().BuildForFc( *currentGraph, layerPath.Last(), params );
+			loraBuilder.BuildFcWrapper( *currentGraph, layerPath.Last(), params );
 		}
 
 		CLoraFullyConnectedLayer* loraFc = dynamic_cast<CLoraFullyConnectedLayer*>( currentGraph->GetLayer( layerPath.Last() ).Ptr() );
@@ -212,7 +263,7 @@ static int loadLora( CDnn& dnn, CArchive& archive )
 
 //----------------------------------------------------------------------------------------------------------------------
 
-int CLoraSerializer::Serialize( CDnn& dnn, CArchive& archive )
+int CLoraSerializer::Serialize( CDnn& dnn, CArchive& archive ) const
 {
 	if( archive.IsStoring() ) {
 		return storeLora( dnn, archive );
@@ -224,7 +275,7 @@ int CLoraSerializer::Serialize( CDnn& dnn, CArchive& archive )
 	return 0;
 }
 
-int CLoraSerializer::SerializeCheckpoint( CDnn& dnn, CArchive& archive )
+int CLoraSerializer::SerializeCheckpoint( CDnn& dnn, CArchive& archive ) const
 {
 	const int result = Serialize( dnn, archive ); // Serializing LoRA weights
 	// Serialize solver
@@ -238,25 +289,5 @@ int CLoraSerializer::SerializeCheckpoint( CDnn& dnn, CArchive& archive )
 	}
 	return result;
 }
-
-//----------------------------------------------------------------------------------------------------------------------
-
-//void CLoraMerger::MergeFc( CDnnLayerGraph& graph, const char* fcName )
-//{
-//	NeoAssert( graph.HasLayer( fcName ) );
-//	CPtr<CLoraFullyConnectedLayer> loraFc = CheckCast<CLoraFullyConnectedLayer>( graph.GetLayer( fcName ) );
-//
-//	graph.DeleteLayer( *loraFc );
-//
-//	CPtr<CFullyConnectedLayer> mergedFc = FINE_DEBUG_NEW CFullyConnectedLayer( loraFc->MathEngine(),
-//		loraFc->GetName() );
-//	mergedFc->SetNumberOfElements( loraFc->OutputSize() );
-//	mergedFc->Weights() = loraFc->GetMergedBaseWeightsNoCopy();
-//	mergedFc->FreeTerms() = loraFc->GetFreeTermsNoCopy();
-//	mergedFc->Connect( 0, loraFc->GetInputName( 0 ), loraFc->GetInputOutputNumber( 0 ) );
-//	graph.AddLayer( *mergedFc );
-//
-//	loraFc.Release();
-//}
 
 } // namespace NeoML

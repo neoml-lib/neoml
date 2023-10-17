@@ -20,7 +20,7 @@ target_sources(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/GradientBoostingTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/InferencePerformanceMultiThreadingTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/LAMBSolverTest.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/LoraFullyConnectedLayerTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/LoraTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/MlTestCommon.h
     ${CMAKE_CURRENT_SOURCE_DIR}/MobileNetV2BlockTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/MobileNetV3BlockTest.cpp
