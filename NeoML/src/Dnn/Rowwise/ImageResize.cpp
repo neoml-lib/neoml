@@ -59,6 +59,8 @@ void CRowwiseImageResize::Serialize( CArchive& archive )
 	archive.Serialize( deltaBottom );
 }
 
+//----------------------------------------------------------------------------------------------------------------------
+
 // Registration
 REGISTER_NEOML_ROWWISE_OPERATION( CRowwiseImageResize, "RowwiseImageResizeOperation" )
 

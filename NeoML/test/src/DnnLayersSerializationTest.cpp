@@ -1,4 +1,4 @@
-/* Copyright © 2021 ABBYY Production LLC
+/* Copyright © 2021-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -673,6 +673,50 @@ GTEST_TEST( SerializeFromFile, FullyConnectedLayerSerialization )
 {
 	checkSerializeLayer<CFullyConnectedLayer>( "FmlCnnFullyConnectedLayer" );
 }
+
+// ====================================================================================================================
+
+// CLoraFullyConnectedLayer
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+static void setSpecificParams( CLoraFullyConnectedLayer& layer )
+{
+	layer.SetNumberOfElements( TestSize );
+	auto blob = generateBlob( 1, 1, 1, 1, TestSize );
+	layer.SetWeightsData( blob );
+	layer.SetFreeTermData( blob );
+
+	layer.BuildLoRA( 1, 1, 0.5f );
+	layer.SetAWeightsLoRAData( blob );
+	layer.SetBWeightsLoRAData( blob );
+}
+
+GTEST_TEST( SerializeToFile, LoraFullyConnectedLayerSerialization )
+{
+	serializeToFile<CLoraFullyConnectedLayer>( "FmlCnnLoraFullyConnectedLayer" );
+}
+
+#endif // GENERATE_SERIALIZATION_FILES
+
+//template<>
+//inline void checkSpecificParams<CLoraFullyConnectedLayer>( CLoraFullyConnectedLayer& layer )
+//{
+//	ASSERT_EQ( layer.GetNumberOfElements(), TestSize );
+//	checkBlob( *layer.GetWeightsData(), TestSize );
+//	checkBlob( *layer.GetWeightsData(), TestSize );
+//
+//	ASSERT_EQ( layer.GetRankLoRA(), 1 );
+//	ASSERT_EQ( layer.GetAlphaLoRA(), 1 );
+//	ASSERT_EQ( layer.GetDropoutRateLoRA(), 0.5f );
+//	checkBlob( *layer.GetWeightsData(), TestSize );
+//	checkBlob( *layer.GetWeightsData(), TestSize );
+//}
+//
+//GTEST_TEST( SerializeFromFile, LoraFullyConnectedLayerSerialization )
+//{
+//	checkSerializeLayer<CLoraFullyConnectedLayer>( "FmlCnnLoraFullyConnectedLayer" );
+//}
 
 // ====================================================================================================================
 

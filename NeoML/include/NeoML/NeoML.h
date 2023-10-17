@@ -57,6 +57,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/FullyConnectedLayer.h>
 #include <NeoML/Dnn/Layers/GlobalMeanPoolingLayer.h>
 #include <NeoML/Dnn/Layers/IndRnnLayer.h>
+#include <NeoML/Dnn/Layers/LoraFullyConnectedLayer.h>
 #include <NeoML/Dnn/Layers/LossLayer.h>
 #include <NeoML/Dnn/Layers/LstmLayer.h>
 #include <NeoML/Dnn/Layers/MatrixMultiplicationLayer.h>
