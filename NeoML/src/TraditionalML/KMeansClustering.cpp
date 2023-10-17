@@ -59,8 +59,8 @@ static CPtr<CDnnBlob> createWeightBlob( IMathEngine& mathEngine, const IClusteri
 
 namespace {
 
-struct CInertia final {
-	explicit CInertia( int count ) { inertia.Add( 0., count ); }
+struct CKMeansInertia final {
+	explicit CKMeansInertia( int count ) { inertia.Add( 0., count ); }
 	const double& Get( int index ) const { return inertia[index]; }
 	double& Get( int index ) { return inertia[index]; }
 	double GetSum() const;
@@ -69,7 +69,7 @@ private:
 	CArray<double> inertia{};
 };
 
-double CInertia::GetSum() const
+double CKMeansInertia::GetSum() const
 {
 	double sum = 0;
 	for( int i = 0; i < inertia.Size(); ++i ) {
@@ -81,16 +81,16 @@ double CInertia::GetSum() const
 //-------------------------------------------------------------------------------------------------------------
 
 // Function to decide run the task in one thread or in parallel
-static inline bool isThreadTaskRelevant( int64_t operationCount )
+static inline bool isKMeansThreadTaskRelevant( int64_t operationCount )
 {
 	constexpr int64_t MinOmpOperationCount = 32768;
 	return operationCount >= MinOmpOperationCount;
 }
 
 // Task which processes a set of elements on a single thread
-struct IThreadTask {
+struct IKMeansThreadTask {
 public:
-	virtual ~IThreadTask() {}
+	virtual ~IKMeansThreadTask() {}
 	// The number of separate executors
 	int ThreadCount() const { return ThreadPool.Size(); }
 
@@ -108,7 +108,7 @@ protected:
 	enum TSplitDims { T_1D = 0, T_2D = 1, T_Size__ };
 
 	// Create a task 1D or 2D
-	IThreadTask( IThreadPool& threadPool, std::initializer_list<int> sizeToParallelize, int alignment = 1 ) :
+	IKMeansThreadTask( IThreadPool& threadPool, std::initializer_list<int> sizeToParallelize, int alignment = 1 ) :
 		ThreadPool( threadPool ),
 		SplitDim( static_cast<TSplitDims>( sizeToParallelize.size() - 1 ) ),
 		SizeToParallelize( *( sizeToParallelize.begin() ) ),
@@ -147,7 +147,7 @@ private:
 	void splitRun2D( int threadIndex );
 };
 
-void IThreadTask::ParallelRun()
+void IKMeansThreadTask::ParallelRun()
 {
 	// Step 1: Try to run in a single thread
 	if( TryRunOneThread() ) {
@@ -155,13 +155,13 @@ void IThreadTask::ParallelRun()
 	}
 	// Step 2: Run in parallel
 	NEOML_NUM_THREADS( ThreadPool, this, []( int threadIndex, void* ptr ) {
-		( ( IThreadTask* )ptr )->RunSplitedByThreads( threadIndex );
+		( ( IKMeansThreadTask* )ptr )->RunSplitedByThreads( threadIndex );
 	} );
 	// Step 3: Combine the answer
 	Reduction();
 }
 
-void IThreadTask::splitRun1D( int threadIndex )
+void IKMeansThreadTask::splitRun1D( int threadIndex )
 {
 	int index = 0;
 	int count = 0;
@@ -171,7 +171,7 @@ void IThreadTask::splitRun1D( int threadIndex )
 	}
 }
 
-void IThreadTask::splitRun2D( int threadIndex )
+void IKMeansThreadTask::splitRun2D( int threadIndex )
 {
 	int heightStarts[2]{};
 	int heightCounts[2]{};
@@ -186,25 +186,25 @@ void IThreadTask::splitRun2D( int threadIndex )
 //-------------------------------------------------------------------------------------------------------------
 
 // Task which processes a set of elements one-by-one on a single thread
-struct IThreadSubTask : public IThreadTask {
+struct IKMeansThreadSubTask : public IKMeansThreadTask {
 public:
 	const CFloatMatrixDesc* const Matrix;
 
 protected:
 	// Create strictly 1 dimensional task
-	IThreadSubTask( IThreadPool& threadPool, int sizeToParallelize ) :
-		IThreadTask( threadPool, /*1D*/{ sizeToParallelize } ),
+	IKMeansThreadSubTask( IThreadPool& threadPool, int sizeToParallelize ) :
+		IKMeansThreadTask( threadPool, /*1D*/{ sizeToParallelize } ),
 		Matrix( nullptr )
 	{}
 	// Create strictly 1 dimensional task
-	IThreadSubTask( IThreadPool& threadPool, const CFloatMatrixDesc* matrix ) :
-		IThreadTask( threadPool, /*1D*/{ 0 } ),
+	IKMeansThreadSubTask( IThreadPool& threadPool, const CFloatMatrixDesc* matrix ) :
+		IKMeansThreadTask( threadPool, /*1D*/{ 0 } ),
 		Matrix( matrix )
 	{}
 
 	// Max number of sub-tasks to perform
 	int ParallelizeSize() const override final
-	{ return Matrix ? Matrix->Height : IThreadTask::ParallelizeSize(); }
+	{ return Matrix ? Matrix->Height : IKMeansThreadTask::ParallelizeSize(); }
 
 	// step 2: special way of run in parallel: perform each element separately
 	void Run( int threadIndex, const int* index, const int* count ) override final;
@@ -212,7 +212,7 @@ protected:
 	virtual void RunOnElement( int threadIndex, int index ) = 0;
 };
 
-void IThreadSubTask::Run( int threadIndex, const int* startIndex, const int* count )
+void IKMeansThreadSubTask::Run( int threadIndex, const int* startIndex, const int* count )
 {
 	const int lastIndex = *startIndex + *count - 1;
 	for( int i = *startIndex; i <= lastIndex; ++i ) {
@@ -223,10 +223,10 @@ void IThreadSubTask::Run( int threadIndex, const int* startIndex, const int* cou
 //-------------------------------------------------------------------------------------------------------------
 
 // Distributes all elements over the existing clusters
-struct CClassifyAllThreadTask : public IThreadSubTask {
+struct CClassifyAllThreadTask : public IKMeansThreadSubTask {
 	CClassifyAllThreadTask( IThreadPool& threadPool, const CFloatMatrixDesc& matrix,
 			const CObjectArray<CCommonCluster>& clusters, TDistanceFunc distanceFunc ) :
-		IThreadSubTask( threadPool, &matrix ),
+		IKMeansThreadSubTask( threadPool, &matrix ),
 		Clusters( clusters ),
 		DistanceFunc( distanceFunc ),
 		ThreadInertia( ThreadCount() )
@@ -243,7 +243,7 @@ protected:
 
 	const CObjectArray<CCommonCluster>& Clusters;
 	const TDistanceFunc DistanceFunc;
-	CInertia ThreadInertia;
+	CKMeansInertia ThreadInertia;
 };
 
 bool CClassifyAllThreadTask::TryRunOneThread()
@@ -275,8 +275,8 @@ void CClassifyAllThreadTask::RunOnElement( int threadIndex, int dataIndex )
 //-------------------------------------------------------------------------------------------------------------
 
 // Updates the clusters and returns true if the clusters were changed, false if they stayed the same
-struct CUpdateClustersThreadTask final : public IThreadTask {
-	CUpdateClustersThreadTask( IThreadPool& threadPool, const CFloatMatrixDesc& matrix,
+struct CKMeansUpdateClustersThreadTask final : public IKMeansThreadTask {
+	CKMeansUpdateClustersThreadTask( IThreadPool& threadPool, const CFloatMatrixDesc& matrix,
 		const CObjectArray<CCommonCluster>& clusters, const CArray<double>& weights, const CArray<int>& data );
 
 	CArray<CClusterCenter> OldCenters{};
@@ -298,9 +298,9 @@ protected:
 	CArray<bool> IsChanged{};
 };
 
-CUpdateClustersThreadTask::CUpdateClustersThreadTask( IThreadPool& threadPool, const CFloatMatrixDesc& matrix,
+CKMeansUpdateClustersThreadTask::CKMeansUpdateClustersThreadTask( IThreadPool& threadPool, const CFloatMatrixDesc& matrix,
 		const CObjectArray<CCommonCluster>& clusters, const CArray<double>& weights, const CArray<int>& data ) :
-	IThreadTask( threadPool, /*1D*/{ clusters.Size() } ),
+	IKMeansThreadTask( threadPool, /*1D*/{ clusters.Size() } ),
 	Matrix( matrix ),
 	Clusters( clusters ),
 	Weights( weights ),
@@ -310,7 +310,7 @@ CUpdateClustersThreadTask::CUpdateClustersThreadTask( IThreadPool& threadPool, c
 	OldCenters.SetSize( ParallelizeSize() );
 }
 
-bool CUpdateClustersThreadTask::TryRunOneThread()
+bool CKMeansUpdateClustersThreadTask::TryRunOneThread()
 {
 	// Store the old cluster centers
 	for( int clusterId = 0; clusterId < ParallelizeSize(); ++clusterId ) {
@@ -318,7 +318,7 @@ bool CUpdateClustersThreadTask::TryRunOneThread()
 		Clusters[clusterId]->Reset( DataClusters.Size() ); //avoid reallocations in threads
 	}
 
-	if( !isThreadTaskRelevant( Complexity() ) ) {
+	if( !isKMeansThreadTaskRelevant( Complexity() ) ) {
 		const int firstClusterId = 0;
 		const int clustersCount = ParallelizeSize();
 		Run( /*threadIndex*/0, &firstClusterId, &clustersCount );
@@ -328,7 +328,7 @@ bool CUpdateClustersThreadTask::TryRunOneThread()
 	return false;
 }
 
-void CUpdateClustersThreadTask::Run( int threadIndex, const int* firstId, const int* count )
+void CKMeansUpdateClustersThreadTask::Run( int threadIndex, const int* firstId, const int* count )
 {
 	const int lastId = *firstId + *count - 1;
 	// Update the cluster contents
@@ -351,7 +351,7 @@ void CUpdateClustersThreadTask::Run( int threadIndex, const int* firstId, const 
 	}
 }
 
-void CUpdateClustersThreadTask::Reduction()
+void CKMeansUpdateClustersThreadTask::Reduction()
 {
 	for( int t = 0; t < ThreadCount(); ++t ) {
 		if ( IsChanged[t] == true ) {
@@ -363,8 +363,8 @@ void CUpdateClustersThreadTask::Reduction()
 
 //-------------------------------------------------------------------------------------------------------------
 
-struct CAssignVectorsThreadTask : public IThreadSubTask {
-	CAssignVectorsThreadTask( IThreadPool& threadPool, const CFloatMatrixDesc& matrix,
+struct CKMeansAssignVectorsThreadTask : public IKMeansThreadSubTask {
+	CKMeansAssignVectorsThreadTask( IThreadPool& threadPool, const CFloatMatrixDesc& matrix,
 		const CKMeansClustering::CParam& params, const CObjectArray<CCommonCluster>& clusters );
 
 	// Element assignments (objectCount)
@@ -398,9 +398,9 @@ protected:
 };
 
 // Initializes all required statistics for Elkan algorithm
-CAssignVectorsThreadTask::CAssignVectorsThreadTask( IThreadPool& threadPool, const CFloatMatrixDesc& matrix,
+CKMeansAssignVectorsThreadTask::CKMeansAssignVectorsThreadTask( IThreadPool& threadPool, const CFloatMatrixDesc& matrix,
 		const CKMeansClustering::CParam& params, const CObjectArray<CCommonCluster>& clusters ) :
-	IThreadSubTask( threadPool, &matrix ),
+	IKMeansThreadSubTask( threadPool, &matrix ),
 	Clusters( clusters ),
 	DistanceFunc( params.DistanceFunc ),
 	InitialClustersCount( params.InitialClustersCount )
@@ -428,7 +428,7 @@ CAssignVectorsThreadTask::CAssignVectorsThreadTask( IThreadPool& threadPool, con
 	MoveDistance.Add( 0, params.InitialClustersCount );
 }
 
-bool CAssignVectorsThreadTask::TryRunOneThread()
+bool CKMeansAssignVectorsThreadTask::TryRunOneThread()
 {
 	NeoAssert( Assignments.Size() == Matrix->Height );
 	NeoAssert( LowerBounds.SizeX() == InitialClustersCount );
@@ -437,14 +437,14 @@ bool CAssignVectorsThreadTask::TryRunOneThread()
 	return false;
 }
 
-bool CAssignVectorsThreadTask::isPruned( int clusterToProcess, int id ) const
+bool CKMeansAssignVectorsThreadTask::isPruned( int clusterToProcess, int id ) const
 {
 	return ( Assignments[id] == clusterToProcess ) ||
 		( UpperBounds[id] <= LowerBounds( clusterToProcess, id ) ) ||
 		( UpperBounds[id] <= 0.5 * ClusterDists( Assignments[id], clusterToProcess ) );
 }
 
-void CAssignVectorsThreadTask::RunOnElement( int /*threadIndex*/, int index )
+void CKMeansAssignVectorsThreadTask::RunOnElement( int /*threadIndex*/, int index )
 {
 	if( UpperBounds[index] > ClosestClusterDist[Assignments[index]] ) {
 		bool recalculate = true;
@@ -477,10 +477,10 @@ void CAssignVectorsThreadTask::RunOnElement( int /*threadIndex*/, int index )
 
 //-------------------------------------------------------------------------------------------------------------
 
-struct CUpdateULBoundsThreadTask : public IThreadSubTask {
-	CUpdateULBoundsThreadTask( IThreadPool& threadPool, const CFloatMatrixDesc& matrix,
-			CAssignVectorsThreadTask& assigns ) :
-		IThreadSubTask( threadPool, &matrix ),
+struct CKMeansUpdateULBoundsThreadTask : public IKMeansThreadSubTask {
+	CKMeansUpdateULBoundsThreadTask( IThreadPool& threadPool, const CFloatMatrixDesc& matrix,
+			CKMeansAssignVectorsThreadTask& assigns ) :
+		IKMeansThreadSubTask( threadPool, &matrix ),
 		Assigns( assigns ),
 		ThreadInertia( ThreadCount() )
 	{}
@@ -491,11 +491,11 @@ protected:
 	bool TryRunOneThread() override { /*empty*/ return false; }
 	void Reduction() override { Inertia = ThreadInertia.GetSum(); }
 
-	CAssignVectorsThreadTask& Assigns;
-	CInertia ThreadInertia;
+	CKMeansAssignVectorsThreadTask& Assigns;
+	CKMeansInertia ThreadInertia;
 };
 
-void CUpdateULBoundsThreadTask::RunOnElement( int threadIndex, int index )
+void CKMeansUpdateULBoundsThreadTask::RunOnElement( int threadIndex, int index )
 {
 	for( int c = 0; c < Assigns.Clusters.Size(); ++c ) {
 		Assigns.LowerBounds( c, index ) = max( Assigns.LowerBounds( c, index ) - Assigns.MoveDistance[c], 0.f );
@@ -508,12 +508,12 @@ void CUpdateULBoundsThreadTask::RunOnElement( int threadIndex, int index )
 
 //-------------------------------------------------------------------------------------------------------------
 
-struct IMathEngineThreadTask : public IThreadTask {
+struct IKMeansMathEngineThreadTask : public IKMeansThreadTask {
 	static constexpr int FloatTaskAlignment = 16;
 	// Create a task 1D or 2D
-	IMathEngineThreadTask( IThreadPool& threadPool, std::initializer_list<int> sizeToParallelize,
+	IKMeansMathEngineThreadTask( IThreadPool& threadPool, std::initializer_list<int> sizeToParallelize,
 			int align, IMathEngine& mathEngine, const CFloatHandle& result ) :
-		IThreadTask( threadPool, sizeToParallelize, align ),
+		IKMeansThreadTask( threadPool, sizeToParallelize, align ),
 		MathEngine( mathEngine ),
 		Result( result )
 	{}
@@ -525,9 +525,9 @@ protected:
 	const CFloatHandle& Result;
 };
 
-bool IMathEngineThreadTask::TryRunOneThread()
+bool IKMeansMathEngineThreadTask::TryRunOneThread()
 {
-	if( !isThreadTaskRelevant( Complexity() ) ) {
+	if( !isKMeansThreadTaskRelevant( Complexity() ) ) {
 		const int starts[]{ 0, 0 };
 		const int counts[]{ ParallelizeSize(), SizeToParallelize2D };
 		Run( /*threadIndex*/0, starts, counts );
@@ -539,12 +539,12 @@ bool IMathEngineThreadTask::TryRunOneThread()
 
 //-------------------------------------------------------------------------------------------------------------
 
-struct IBinaryMathEngineThreadTask : public IMathEngineThreadTask {
+struct IKMeansBinaryMathEngineThreadTask : public IKMeansMathEngineThreadTask {
 	// Create a task 1D or 2D
-	IBinaryMathEngineThreadTask( IThreadPool& threadPool, std::initializer_list<int> sizeToParallelize,
+	IKMeansBinaryMathEngineThreadTask( IThreadPool& threadPool, std::initializer_list<int> sizeToParallelize,
 			int align, IMathEngine& mathEngine, const CConstFloatHandle& first, const CConstFloatHandle& second,
 			const CFloatHandle& result ) :
-		IMathEngineThreadTask( threadPool, sizeToParallelize, align, mathEngine, result ),
+		IKMeansMathEngineThreadTask( threadPool, sizeToParallelize, align, mathEngine, result ),
 		First( first ),
 		Second( second )
 	{}
@@ -555,10 +555,10 @@ protected:
 
 //-------------------------------------------------------------------------------------------------------------
 
-struct CVectorFillZeroThreadTask : public IMathEngineThreadTask {
-	CVectorFillZeroThreadTask( IThreadPool& threadPool, IMathEngine& mathEngine, int vectorSize,
+struct CKMeansVectorFillZeroThreadTask : public IKMeansMathEngineThreadTask {
+	CKMeansVectorFillZeroThreadTask( IThreadPool& threadPool, IMathEngine& mathEngine, int vectorSize,
 			const CFloatHandle& result ) :
-		IMathEngineThreadTask( threadPool, /*1D*/{ vectorSize }, FloatTaskAlignment, mathEngine, result )
+		IKMeansMathEngineThreadTask( threadPool, /*1D*/{ vectorSize }, FloatTaskAlignment, mathEngine, result )
 	{}
 protected:
 	void Run( int /*threadIndex*/, const int* index, const int* count ) override
@@ -567,10 +567,10 @@ protected:
 
 //-------------------------------------------------------------------------------------------------------------
 
-struct CVectorCopyThreadTask : public IMathEngineThreadTask {
-	CVectorCopyThreadTask( IThreadPool& threadPool, IMathEngine& mathEngine, int vectorSize,
+struct CKMeansVectorCopyThreadTask : public IKMeansMathEngineThreadTask {
+	CKMeansVectorCopyThreadTask( IThreadPool& threadPool, IMathEngine& mathEngine, int vectorSize,
 			const CFloatHandle& dest, const CConstFloatHandle& src ) :
-		IMathEngineThreadTask( threadPool, /*1D*/{ vectorSize }, FloatTaskAlignment, mathEngine, dest ),
+		IKMeansMathEngineThreadTask( threadPool, /*1D*/{ vectorSize }, FloatTaskAlignment, mathEngine, dest ),
 		Source( src )
 	{}
 protected:
@@ -582,10 +582,10 @@ protected:
 
 //-------------------------------------------------------------------------------------------------------------
 
-struct CVectorSubThreadTask : public IBinaryMathEngineThreadTask {
-	CVectorSubThreadTask( IThreadPool& threadPool, IMathEngine& mathEngine, int vectorSize,
+struct CKMeansVectorSubThreadTask : public IKMeansBinaryMathEngineThreadTask {
+	CKMeansVectorSubThreadTask( IThreadPool& threadPool, IMathEngine& mathEngine, int vectorSize,
 			const CConstFloatHandle& first, const CConstFloatHandle& second, const CFloatHandle& result ) :
-		IBinaryMathEngineThreadTask( threadPool, /*1D*/{ vectorSize }, FloatTaskAlignment,
+		IKMeansBinaryMathEngineThreadTask( threadPool, /*1D*/{ vectorSize }, FloatTaskAlignment,
 			mathEngine, first, second, result )
 	{}
 protected:
@@ -595,10 +595,10 @@ protected:
 
 //-------------------------------------------------------------------------------------------------------------
 
-struct CVectorMultiplyThreadTask : public IBinaryMathEngineThreadTask {
-	CVectorMultiplyThreadTask( IThreadPool& threadPool, IMathEngine& mathEngine, int vectorSize,
+struct CKMeansVectorMultiplyThreadTask : public IKMeansBinaryMathEngineThreadTask {
+	CKMeansVectorMultiplyThreadTask( IThreadPool& threadPool, IMathEngine& mathEngine, int vectorSize,
 			const CConstFloatHandle& first, const CFloatHandle& result, const CConstFloatHandle& multiplier ) :
-		IBinaryMathEngineThreadTask( threadPool, /*1D*/{ vectorSize }, /*align*/1,
+		IKMeansBinaryMathEngineThreadTask( threadPool, /*1D*/{ vectorSize }, /*align*/1,
 			mathEngine, first, multiplier, result )
 	{}
 protected:
@@ -608,10 +608,10 @@ protected:
 
 //-------------------------------------------------------------------------------------------------------------
 
-struct CVectorEltwiseMultiplyThreadTask : public IBinaryMathEngineThreadTask {
-	CVectorEltwiseMultiplyThreadTask( IThreadPool& threadPool, IMathEngine& mathEngine, int vectorSize,
+struct CKMeansVectorEltwiseMultiplyThreadTask : public IKMeansBinaryMathEngineThreadTask {
+	CKMeansVectorEltwiseMultiplyThreadTask( IThreadPool& threadPool, IMathEngine& mathEngine, int vectorSize,
 			const CConstFloatHandle& first, const CConstFloatHandle& second, const CFloatHandle& result ) :
-		IBinaryMathEngineThreadTask( threadPool, /*1D*/{ vectorSize }, FloatTaskAlignment,
+		IKMeansBinaryMathEngineThreadTask( threadPool, /*1D*/{ vectorSize }, FloatTaskAlignment,
 			mathEngine, first, second, result )
 	{}
 protected:
@@ -621,10 +621,10 @@ protected:
 
 //-------------------------------------------------------------------------------------------------------------
 
-struct CDiagMxMThreadTask : public IBinaryMathEngineThreadTask {
-	CDiagMxMThreadTask( IThreadPool& threadPool, IMathEngine& mathEngine, const CConstFloatHandle& first, int firstSize,
+struct CKMeansDiagMxMThreadTask : public IKMeansBinaryMathEngineThreadTask {
+	CKMeansDiagMxMThreadTask( IThreadPool& threadPool, IMathEngine& mathEngine, const CConstFloatHandle& first, int firstSize,
 			const CConstFloatHandle& second, int secondWidth, const CFloatHandle& result ) :
-		IBinaryMathEngineThreadTask( threadPool, /*1D*/{ firstSize }, /*align*/1,
+		IKMeansBinaryMathEngineThreadTask( threadPool, /*1D*/{ firstSize }, /*align*/1,
 			mathEngine, first, second, result ),
 		SecondWidth( secondWidth )
 	{}
@@ -635,7 +635,7 @@ protected:
 	const int SecondWidth;
 };
 
-void CDiagMxMThreadTask::Run( int /*threadIndex*/, const int* startIndex, const int* count )
+void CKMeansDiagMxMThreadTask::Run( int /*threadIndex*/, const int* startIndex, const int* count )
 {
 	const int endIndex = *startIndex + *count;
 	for( int i = *startIndex; i < endIndex; ++i ) {
@@ -645,11 +645,12 @@ void CDiagMxMThreadTask::Run( int /*threadIndex*/, const int* startIndex, const 
 
 //-------------------------------------------------------------------------------------------------------------
 
-struct CVectorMultichannelLookupAndAddToTableThreadTask : public IMathEngineThreadTask {
-	CVectorMultichannelLookupAndAddToTableThreadTask( IThreadPool& threadPool, IMathEngine& mathEngine, int lookupItemCount,
+struct CKMeansVectorMultichannelLookupAndAddToTableThreadTask : public IKMeansMathEngineThreadTask {
+	CKMeansVectorMultichannelLookupAndAddToTableThreadTask(
+			IThreadPool& threadPool, IMathEngine& mathEngine, int lookupItemCount,
 			int lookupItemSize, int batchSize, const CConstIntHandle& input, const CFloatHandle& lookupResult,
 			const CConstFloatHandle& matrix ) :
-		IMathEngineThreadTask( threadPool, /*1D*/{ lookupItemCount }, /*align*/1, mathEngine, lookupResult ),
+		IKMeansMathEngineThreadTask( threadPool, /*1D*/{ lookupItemCount }, /*align*/1, mathEngine, lookupResult ),
 		BatchSize( batchSize ),
 		LookupItemSize( lookupItemSize ),
 		LookupItemCount( lookupItemCount ),
@@ -667,7 +668,7 @@ protected:
 	const CConstFloatHandle& LookupMatrix;
 };
 
-void CVectorMultichannelLookupAndAddToTableThreadTask::Run( int /*threadIndex*/, const int* firstIndex, const int* count )
+void CKMeansVectorMultichannelLookupAndAddToTableThreadTask::Run( int /*threadIndex*/, const int* firstIndex, const int* count )
 {
 	const int lastIndex = *firstIndex + *count - 1;
 	for( int b = 0; b < BatchSize; ++b ) {
@@ -683,11 +684,11 @@ void CVectorMultichannelLookupAndAddToTableThreadTask::Run( int /*threadIndex*/,
 
 //-------------------------------------------------------------------------------------------------------------
 
-struct CVectorAddToMatrixRowsThreadTask : public IBinaryMathEngineThreadTask {
-	CVectorAddToMatrixRowsThreadTask( IThreadPool& threadPool, IMathEngine& mathEngine,
+struct CKMeansVectorAddToMatrixRowsThreadTask : public IKMeansBinaryMathEngineThreadTask {
+	CKMeansVectorAddToMatrixRowsThreadTask( IThreadPool& threadPool, IMathEngine& mathEngine,
 			const CConstFloatHandle& matrix, int matrixHeight, int matrixWidth,
 			const CConstFloatHandle& vector, const CFloatHandle& result ) :
-		IBinaryMathEngineThreadTask( threadPool, /*2D*/{ matrixWidth, matrixHeight }, /*align*/1,
+		IKMeansBinaryMathEngineThreadTask( threadPool, /*2D*/{ matrixWidth, matrixHeight }, /*align*/1,
 			mathEngine, matrix, vector, result ),
 		MatrixHeight( matrixHeight ),
 		MatrixWidth( matrixWidth )
@@ -701,7 +702,7 @@ protected:
 	const int MatrixWidth;
 };
 
-void CVectorAddToMatrixRowsThreadTask::Run( int /*threadIndex*/, const int* startIndices, const int* counts )
+void CKMeansVectorAddToMatrixRowsThreadTask::Run( int /*threadIndex*/, const int* startIndices, const int* counts )
 {
 	const int offset = startIndices[TMatrixHeight] * MatrixWidth + startIndices[TMatrixWidth];
 	auto matrix = First + offset;
@@ -717,11 +718,11 @@ void CVectorAddToMatrixRowsThreadTask::Run( int /*threadIndex*/, const int* star
 
 //-------------------------------------------------------------------------------------------------------------
 
-struct CMxMTThreadTask : public IBinaryMathEngineThreadTask {
-	CMxMTThreadTask( IThreadPool& threadPool, IMathEngine& mathEngine,
+struct CKMeansMxMTThreadTask : public IKMeansBinaryMathEngineThreadTask {
+	CKMeansMxMTThreadTask( IThreadPool& threadPool, IMathEngine& mathEngine,
 			const CConstFloatHandle& first, int firstHeight, int firstWidth,
 			const CConstFloatHandle& second, int secondHeight, const CFloatHandle& result ) :
-		IBinaryMathEngineThreadTask( threadPool, /*2D*/{ secondHeight, firstHeight }, NeoML::FloatAlignment,
+		IKMeansBinaryMathEngineThreadTask( threadPool, /*2D*/{ secondHeight, firstHeight }, NeoML::FloatAlignment,
 			mathEngine, first, second, result ),
 		FirstHeight( firstHeight ),
 		FirstWidth( firstWidth ),
@@ -737,7 +738,7 @@ protected:
 	const int SecondHeight;
 };
 
-void CMxMTThreadTask::Run( int /*threadIndex*/, const int* startIndices, const int* counts )
+void CKMeansMxMTThreadTask::Run( int /*threadIndex*/, const int* startIndices, const int* counts )
 {
 	const CConstFloatHandle& first = First + startIndices[TFirstHeight] * FirstWidth;
 	const CConstFloatHandle& second = Second + startIndices[TSecondHeight] * FirstWidth;
@@ -1054,7 +1055,7 @@ bool CKMeansClustering::lloydClusterization( const CFloatMatrixDesc& matrix, con
 			}
 		}
 
-		CUpdateClustersThreadTask updateClustersTask( *threadPool, matrix, clusters, weights, classifyTask.DataCluster );
+		CKMeansUpdateClustersThreadTask updateClustersTask( *threadPool, matrix, clusters, weights, classifyTask.DataCluster );
 		updateClustersTask.ParallelRun();
 		if( !updateClustersTask.Result ) {
 			// Cluster centers stay the same, no need to continue
@@ -1070,7 +1071,7 @@ bool CKMeansClustering::elkanClusterization( const CFloatMatrixDesc& matrix, con
 	// Metric must support triangle inequality
 	NeoAssert( params.DistanceFunc == DF_Euclid );
 
-	CAssignVectorsThreadTask assignVectorsTask( *threadPool, matrix, params, clusters );
+	CKMeansAssignVectorsThreadTask assignVectorsTask( *threadPool, matrix, params, clusters );
 	double lastResidual = DBL_MAX;
 	for( int i = 0; i < params.MaxIterations; ++i ) {
 		// Calculaate pairwise and closest cluster distances
@@ -1078,12 +1079,12 @@ bool CKMeansClustering::elkanClusterization( const CFloatMatrixDesc& matrix, con
 		// Reassign vectors
 		assignVectorsTask.ParallelRun();
 		// Recalculate centers
-		CUpdateClustersThreadTask updateClustersTask( *threadPool, matrix, clusters, weights, assignVectorsTask.Assignments );
+		CKMeansUpdateClustersThreadTask updateClustersTask( *threadPool, matrix, clusters, weights, assignVectorsTask.Assignments );
 		updateClustersTask.ParallelRun();
 		// Update move distances
 		updateMoveDistance( updateClustersTask.OldCenters, assignVectorsTask.MoveDistance );
 		// Update bounds based on move distance
-		CUpdateULBoundsThreadTask updateBoundsTask( *threadPool, matrix, assignVectorsTask );
+		CKMeansUpdateULBoundsThreadTask updateBoundsTask( *threadPool, matrix, assignVectorsTask );
 		updateBoundsTask.ParallelRun();
 		inertia = updateBoundsTask.Inertia;
 		// Check stop criteria
@@ -1168,7 +1169,7 @@ void CKMeansClustering::defaultInitialization( const CDnnBlob& data, int seed, C
 
 		for( int i = 0; i < params.InitialClustersCount; ++i ) {
 			const int pos = ( i * step ) % vectorCount;
-			CVectorCopyThreadTask( *threadPool, mathEngine, featureCount,
+			CKMeansVectorCopyThreadTask( *threadPool, mathEngine, featureCount,
 				centers.GetObjectData( i ), data.GetObjectData( pos ) ).ParallelRun();
 		}
 	} else {
@@ -1186,7 +1187,7 @@ void CKMeansClustering::defaultInitialization( const CDnnBlob& data, int seed, C
 		}
 
 		for( int i = 0; i < params.InitialClustersCount; ++i ) {
-			CVectorCopyThreadTask( *threadPool, mathEngine, featureCount,
+			CKMeansVectorCopyThreadTask( *threadPool, mathEngine, featureCount,
 				centers.GetObjectData( i ), data.GetObjectData( perm[i] ) ).ParallelRun();
 		}
 	}
@@ -1202,7 +1203,7 @@ void CKMeansClustering::kMeansPlusPlusInitialization( const CDnnBlob& data, int 
 	const int firstChoice = random.UniformInt( 0, vectorCount - 1 );
 	// Copy first vector
 	IMathEngine& mathEngine = centers.GetMathEngine();
-	CVectorCopyThreadTask( *threadPool, mathEngine, data.GetObjectSize(),
+	CKMeansVectorCopyThreadTask( *threadPool, mathEngine, data.GetObjectSize(),
 		centers.GetData(), data.GetObjectData( firstChoice ) ).ParallelRun();
 
 	CFloatHandleStackVar stackBuff( mathEngine, vectorCount + 1 );
@@ -1240,7 +1241,7 @@ void CKMeansClustering::kMeansPlusPlusInitialization( const CDnnBlob& data, int 
 		NeoAssert( nextCoice != -1 );
 		NeoAssert( !usedVectors.Has( nextCoice ) );
 		usedVectors.Add( nextCoice );
-		CVectorCopyThreadTask( *threadPool, mathEngine, featureCount,
+		CKMeansVectorCopyThreadTask( *threadPool, mathEngine, featureCount,
 			centers.GetObjectData( k ), data.GetObjectData( nextCoice ) ).ParallelRun();
 	}
 }
@@ -1299,11 +1300,11 @@ static void calcClosestDistances( IThreadPool& threadPool, const CDnnBlob& data,
 		batchSize = min( batchSize, vectorCount - batchStart );
 
 		// (a - b)^2 = a^2 + b^2 - 2*a*b
-		CMxMTThreadTask( threadPool, mathEngine, /*first*/centers.GetData(), clusterCount, featureCount,
+		CKMeansMxMTThreadTask( threadPool, mathEngine, /*first*/centers.GetData(), clusterCount, featureCount,
 			/*second*/currData, batchSize, /*result*/distances ).ParallelRun();
-		CVectorMultiplyThreadTask( threadPool, mathEngine, /*vectorSize*/clusterCount * batchSize,
+		CKMeansVectorMultiplyThreadTask( threadPool, mathEngine, /*vectorSize*/clusterCount * batchSize,
 			/*first*/distances, /*result*/distances, /*multiplier*/minusTwo ).ParallelRun();
-		CVectorAddToMatrixRowsThreadTask( threadPool, mathEngine, /*matrix*/distances,
+		CKMeansVectorAddToMatrixRowsThreadTask( threadPool, mathEngine, /*matrix*/distances,
 			 /*height*/clusterCount, /*width*/batchSize, /*vector*/currSquaredData, /*result*/distances ).ParallelRun();
 		mathEngine.AddVectorToMatrixColumns( distances, distances, clusterCount, batchSize, squaredCenters ); // no threads
 		mathEngine.FindMinValueInColumns( distances, clusterCount, batchSize, currClosesDist, currLabels ); // no threads
@@ -1327,7 +1328,7 @@ double CKMeansClustering::assignClosest( const CDnnBlob& data, const CDnnBlob& s
 	CFloatHandle totalDist = stackBuff.GetHandle() + vectorCount;
 	CIntHandle labelsHandle = labels.GetData<int>();
 	calcClosestDistances( *threadPool, data, squaredData, centers, closestDist, labelsHandle );
-	CVectorEltwiseMultiplyThreadTask( *threadPool, mathEngine, /*vectorSize*/vectorCount,
+	CKMeansVectorEltwiseMultiplyThreadTask( *threadPool, mathEngine, /*vectorSize*/vectorCount,
 		/*first*/closestDist, /*second*/weight.GetData(), /*result*/closestDist ).ParallelRun();
 	mathEngine.VectorSum( closestDist, vectorCount, totalDist ); // no threads
 	const double result = static_cast<double>( totalDist.GetValue() );
@@ -1357,7 +1358,7 @@ void CKMeansClustering::recalcCenters( const CDnnBlob& data, const CDnnBlob& wei
 		if( rawSizes[i] > 0 ) {
 			// Update centers for non-emtpy clusters
 			invertedSize.SetValue( 1.f / rawSizes[i] );
-			CVectorMultiplyThreadTask( *threadPool, mathEngine, /*vectorSize*/featureCount,
+			CKMeansVectorMultiplyThreadTask( *threadPool, mathEngine, /*vectorSize*/featureCount,
 				/*first*/newCenter, /*result*/centers.GetObjectData( i ), /*multiplier*/invertedSize ).ParallelRun();
 		}
 		newCenter += featureCount;
@@ -1390,26 +1391,26 @@ void CKMeansClustering::calcClusterVariances( const CDnnBlob& data, const CDnnBl
 		CFloatHandle squaredData = stackBuff.GetHandle();
 		CFloatHandle sumOfSquares = stackBuff.GetHandle() + vectorCount * featureCount;
 
-		CVectorEltwiseMultiplyThreadTask( *threadPool, mathEngine, /*vectorSize*/data.GetDataSize(),
+		CKMeansVectorEltwiseMultiplyThreadTask( *threadPool, mathEngine, /*vectorSize*/data.GetDataSize(),
 			/*first*/data.GetData(), /*second*/data.GetData(), /*result*/squaredData).ParallelRun();
-		CVectorFillZeroThreadTask( *threadPool, mathEngine, /*vectorSize*/clusterCount * featureCount,
+		CKMeansVectorFillZeroThreadTask( *threadPool, mathEngine, /*vectorSize*/clusterCount * featureCount,
 			/*result*/sumOfSquares ).ParallelRun();
-		CVectorMultichannelLookupAndAddToTableThreadTask( *threadPool, mathEngine, /*itemCount*/params.InitialClustersCount,
+		CKMeansVectorMultichannelLookupAndAddToTableThreadTask( *threadPool, mathEngine, /*itemCount*/params.InitialClustersCount,
 			/*itemSize*/featureCount, /*batchSize*/vectorCount, labels.GetData<int>(), /*result*/sumOfSquares, squaredData ).ParallelRun();
 
 		variances.Clear();
 		// Divide sum of squares by cluster size
-		CDiagMxMThreadTask( *threadPool, mathEngine, /*first*/sizeInv->GetData(), clusterCount,
+		CKMeansDiagMxMThreadTask( *threadPool, mathEngine, /*first*/sizeInv->GetData(), clusterCount,
 			/*second*/sumOfSquares, featureCount, /*result*/variances.GetData() ).ParallelRun();
 	}
 
 	{
 		// Calculate squared centers
 		CFloatHandle squaredMean = stackBuff;
-		CVectorEltwiseMultiplyThreadTask( *threadPool, mathEngine, /*vectorSize*/clusterCount * featureCount,
+		CKMeansVectorEltwiseMultiplyThreadTask( *threadPool, mathEngine, /*vectorSize*/clusterCount * featureCount,
 			/*first*/centers.GetData(), /*second*/centers.GetData(), /*result*/squaredMean ).ParallelRun();
 		// Subtract squares from average in order to get variance
-		CVectorSubThreadTask( *threadPool, mathEngine, /*vectorSize*/clusterCount * featureCount,
+		CKMeansVectorSubThreadTask( *threadPool, mathEngine, /*vectorSize*/clusterCount * featureCount,
 			/*first*/variances.GetData(), /*second*/squaredMean, /*result*/variances.GetData() ).ParallelRun();
 	}
 }

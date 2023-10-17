@@ -27,8 +27,6 @@ class CRegressionTree;
 class CLinkedRegressionTree;
 
 template<class T>
-struct CThreadStatistics;
-template<class T>
 struct CGradientBoostNodeStatistics;
 
 // Tree building parameters

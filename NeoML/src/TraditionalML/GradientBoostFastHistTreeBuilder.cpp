@@ -27,12 +27,12 @@ namespace {
 
 // Build the histogram
 template<typename T>
-class CBuildHistogramThreadTask : public IGradientBoostThreadTask {
+class CGBoostBuildHistogramThreadTask : public IGradientBoostThreadTask {
 public:
 	using TNode = typename CGradientBoostFastHistTreeBuilder<T>::CNode;
 	using TArray = CArray<typename T::Type>;
 	// Create a task
-	CBuildHistogramThreadTask( IThreadPool&, const CGradientBoostFastHistProblem&,
+	CGBoostBuildHistogramThreadTask( IThreadPool&, const CGradientBoostFastHistProblem&,
 		const CArray<int>& vectorSet, const CArray<int>& idPos, T* histStats, const TNode&,
 		const TArray& gradients, const TArray& hessians, const CArray<double>& weights,
 		CArray<T>& tempHistStats, int histSize, int predictSize, T& totalStats, bool isMultiThread );
@@ -67,7 +67,7 @@ protected:
 };
 
 template<typename T>
-CBuildHistogramThreadTask<T>::CBuildHistogramThreadTask(
+CGBoostBuildHistogramThreadTask<T>::CGBoostBuildHistogramThreadTask(
 		IThreadPool& threadPool,
 		const CGradientBoostFastHistProblem& problem,
 		const CArray<int>& vectorSet,
@@ -119,7 +119,7 @@ CBuildHistogramThreadTask<T>::CBuildHistogramThreadTask(
 }
 
 template<typename T>
-void CBuildHistogramThreadTask<T>::RunInOneThread()
+void CGBoostBuildHistogramThreadTask<T>::RunInOneThread()
 {
 	NeoAssert( !IsMultiThread );
 	// There are few vectors in the set, build the histogram using only one thread
@@ -131,7 +131,7 @@ void CBuildHistogramThreadTask<T>::RunInOneThread()
 }
 
 template<typename T>
-void CBuildHistogramThreadTask<T>::Run( int threadIndex, int startIndex, int count )
+void CGBoostBuildHistogramThreadTask<T>::Run( int threadIndex, int startIndex, int count )
 {
 	NeoAssert( IsMultiThread );
 	T* histStats = &( TempHistStats[HistSize * threadIndex] );
@@ -145,7 +145,7 @@ void CBuildHistogramThreadTask<T>::Run( int threadIndex, int startIndex, int cou
 }
 
 template<typename T>
-void CBuildHistogramThreadTask<T>::Reduction()
+void CGBoostBuildHistogramThreadTask<T>::Reduction()
 {
 	NeoAssert( IsMultiThread );
 	// Merge the threads' results
@@ -155,7 +155,7 @@ void CBuildHistogramThreadTask<T>::Reduction()
 }
 // Adds a vector to the histogram
 template<class T>
-void CBuildHistogramThreadTask<T>::AddVectorToHist( int vectorIndex, T* histStats )
+void CGBoostBuildHistogramThreadTask<T>::AddVectorToHist( int vectorIndex, T* histStats )
 {
 	const int* vectorPtr = Problem.GetUsedVectorDataPtr( vectorIndex );
 	const int vectorSize = Problem.GetUsedVectorDataSize( vectorIndex );
@@ -173,12 +173,12 @@ void CBuildHistogramThreadTask<T>::AddVectorToHist( int vectorIndex, T* histStat
 
 //-------------------------------------------------------------------------------------------------------------
 
-//
+// Merge many histograms in one summary histogram
 template<typename T>
-class CMergeHistogramsThreadTask : public IGradientBoostThreadTask {
+class CGBoostMergeHistogramsThreadTask : public IGradientBoostThreadTask {
 public:
 	// Create a task
-	CMergeHistogramsThreadTask( IThreadPool& threadPool,
+	CGBoostMergeHistogramsThreadTask( IThreadPool& threadPool,
 			CArray<T>& tempHistStats, T* histStats, int histSize ) :
 		IGradientBoostThreadTask( threadPool ),
 		TempHistStats( tempHistStats ),
@@ -197,7 +197,7 @@ protected:
 };
 
 template<typename T>
-void CMergeHistogramsThreadTask<T>::Run( int /*threadIndex*/, int startIndex, int count )
+void CGBoostMergeHistogramsThreadTask<T>::Run( int /*threadIndex*/, int startIndex, int count )
 {
 	const int endIndex = startIndex + count;
 	for( int index = startIndex; index < endIndex; ++index ) {
@@ -211,10 +211,10 @@ void CMergeHistogramsThreadTask<T>::Run( int /*threadIndex*/, int startIndex, in
 
 // Adding zero values
 template<typename T>
-class CAddNullStatsThreadTask : public IGradientBoostThreadTask {
+class CGBoostAddNullStatsThreadTask : public IGradientBoostThreadTask {
 public:
 	// Create a task
-	CAddNullStatsThreadTask( IThreadPool& threadPool,
+	CGBoostAddNullStatsThreadTask( IThreadPool& threadPool,
 			const CGradientBoostFastHistProblem& problem,
 			const CArray<int>& idPos, T* histStats, const T& totalStats ) :
 		IGradientBoostThreadTask( threadPool ),
@@ -240,7 +240,7 @@ protected:
 };
 
 template<typename T>
-void CAddNullStatsThreadTask<T>::Run( int /*threadIndex*/, int startIndex, int count )
+void CGBoostAddNullStatsThreadTask<T>::Run( int /*threadIndex*/, int startIndex, int count )
 {
 	const int endIndex = startIndex + count;
 	for( int index = startIndex; index < endIndex; ++index ) {
@@ -258,12 +258,12 @@ void CAddNullStatsThreadTask<T>::Run( int /*threadIndex*/, int startIndex, int c
 
 // Calculating the gain
 template<typename T>
-class CCalcSplitGainThreadTask : public IGradientBoostThreadTask {
+class CGBoostCalcSplitGainThreadTask : public IGradientBoostThreadTask {
 public:
 	using TNode = typename CGradientBoostFastHistTreeBuilder<T>::CNode;
 	using TThBuffers = typename CGradientBoostFastHistTreeBuilder<T>::CThreadsBuffers;
 	// Create a task
-	CCalcSplitGainThreadTask( IThreadPool&, const CGradientBoostFastHistProblem&,
+	CGBoostCalcSplitGainThreadTask( IThreadPool&, const CGradientBoostFastHistProblem&,
 		const CGradientBoostFastHistTreeBuilderParams&, const CArray<int>& idPos,
 		TNode& node, const T* histStats, int predictSize, TThBuffers& tb );
 
@@ -292,7 +292,7 @@ protected:
 };
 
 template<typename T>
-CCalcSplitGainThreadTask<T>::CCalcSplitGainThreadTask(
+CGBoostCalcSplitGainThreadTask<T>::CGBoostCalcSplitGainThreadTask(
 		IThreadPool& threadPool,
 		const CGradientBoostFastHistProblem& problem,
 		const CGradientBoostFastHistTreeBuilderParams& params,
@@ -331,7 +331,7 @@ CCalcSplitGainThreadTask<T>::CCalcSplitGainThreadTask(
 }
 
 template<typename T>
-void CCalcSplitGainThreadTask<T>::Run( int threadIndex, int startIndex, int count )
+void CGBoostCalcSplitGainThreadTask<T>::Run( int threadIndex, int startIndex, int count )
 {
 	T LeftCandidate( PredictionSize );
 	T RightCandidate( PredictionSize );
@@ -374,7 +374,7 @@ void CCalcSplitGainThreadTask<T>::Run( int threadIndex, int startIndex, int coun
 }
 
 template<typename T>
-int CCalcSplitGainThreadTask<T>::Reduction()
+int CGBoostCalcSplitGainThreadTask<T>::Reduction()
 {
 	// Choose the best result over all threads
 	int result = NotFound;
@@ -395,11 +395,11 @@ int CCalcSplitGainThreadTask<T>::Reduction()
 
 // Determining to which subtree each vector belongs
 template<typename T>
-class CDetermineSubTreeThreadTask : public IGradientBoostThreadTask {
+class CGBoostDetermineSubTreeThreadTask : public IGradientBoostThreadTask {
 public:
 	using TNode = typename CGradientBoostFastHistTreeBuilder<T>::CNode;
 	// Create a task
-	CDetermineSubTreeThreadTask( IThreadPool& threadPool,
+	CGBoostDetermineSubTreeThreadTask( IThreadPool& threadPool,
 			const CGradientBoostFastHistProblem& problem,
 			CArray<int>& vectorSet, const TNode& node ) :
 		IGradientBoostThreadTask( threadPool ),
@@ -429,7 +429,7 @@ protected:
 };
 
 template<typename T>
-void CDetermineSubTreeThreadTask<T>::Run( int /*threadIndex*/, int startIndex, int count )
+void CGBoostDetermineSubTreeThreadTask<T>::Run( int /*threadIndex*/, int startIndex, int count )
 {
 	const int endIndex = startIndex + count;
 	for( int index = startIndex; index < endIndex; ++index ) {
@@ -645,18 +645,18 @@ void CGradientBoostFastHistTreeBuilder<T>::buildHist( const CGradientBoostFastHi
 	// Check if a multithreading task makes sense
 	const bool isMultiThreads = ( node.VectorSetSize > ( 4 * params.ThreadCount ) );
 	// Building the histogram task in single or parallel threads
-	CBuildHistogramThreadTask<T> task( *threadPool, problem, vectorSet, idPos, histStatsPtr,
+	CGBoostBuildHistogramThreadTask<T> task( *threadPool, problem, vectorSet, idPos, histStatsPtr,
 		node, gradients, hessians, weights, tempHistStats, histSize, predictionSize, totalStats, isMultiThreads );
 	if( isMultiThreads ) {
 		task.ParallelRun();
 		task.Reduction();
 
-		CMergeHistogramsThreadTask<T>( *threadPool, tempHistStats, histStatsPtr, histSize ).ParallelRun();
+		CGBoostMergeHistogramsThreadTask<T>( *threadPool, tempHistStats, histStatsPtr, histSize ).ParallelRun();
 	} else {
 		task.RunInOneThread();
 	}
 	// Adding zero values
-	CAddNullStatsThreadTask<T>( *threadPool, problem, idPos, histStatsPtr, totalStats ).ParallelRun();
+	CGBoostAddNullStatsThreadTask<T>( *threadPool, problem, idPos, histStatsPtr, totalStats ).ParallelRun();
 }
 
 // Calculates the optimal feature value for splitting the node
@@ -671,7 +671,7 @@ int CGradientBoostFastHistTreeBuilder<T>::evaluateSplit( const CGradientBoostFas
 		return NotFound;
 	}
 
-	CCalcSplitGainThreadTask<T> task( *threadPool, problem, params, idPos,
+	CGBoostCalcSplitGainThreadTask<T> task( *threadPool, problem, params, idPos,
 		node, ( histStats.GetPtr() + node.HistPtr ), predictionSize, tb );
 	task.ParallelRun();
 	return task.Reduction();
@@ -685,7 +685,7 @@ void CGradientBoostFastHistTreeBuilder<T>::applySplit( const CGradientBoostFastH
 	NeoAssert( node >= 0 );
 
 	// Determining to which subtree each vector belongs
-	CDetermineSubTreeThreadTask<T>( *threadPool, problem, vectorSet, nodes[node] ).ParallelRun();
+	CGBoostDetermineSubTreeThreadTask<T>( *threadPool, problem, vectorSet, nodes[node] ).ParallelRun();
 
 	const int vectorPtr = nodes[node].VectorSetPtr;
 	const int vectorCount = nodes[node].VectorSetSize;

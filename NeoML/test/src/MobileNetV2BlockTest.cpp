@@ -174,7 +174,7 @@ static void mobileNetV2BlockTestImpl( unsigned int seed, int freeTermMask, float
 
 	CPtr<CDnnBlob> expectedBlob = expectedSink->GetBlob();
 	CPtr<CDnnBlob> actualBlob = actualSink->GetBlob();
-	CompareBlobs( *expectedBlob, *actualBlob );
+	EXPECT_TRUE( CompareBlobs( *expectedBlob, *actualBlob, 1e-3 ) );
 }
 
 TEST( MobileNetV2BlockLayerTest, Run )

@@ -940,8 +940,8 @@ static void ctcTestImpl( const CTestParams& params, int seed )
 
 	EXPECT_TRUE( FloatEq( naiveLoss->GetLastLoss(), actualLoss->GetLastLoss(), 1e-4f ) ) << naiveLoss->GetLastLoss()
 		<< '\t' << actualLoss->GetLastLoss();
-	CompareBlobs( *naiveLoss->GetLastGradient(), *actualLoss->GetLastGradient(), 1e-4f );
-	CompareBlobs( *naiveLearn->ActualDiff, *actualLearn->ActualDiff, 1e-4f );
+	EXPECT_TRUE( CompareBlobs( *naiveLoss->GetLastGradient(), *actualLoss->GetLastGradient(), 1e-4f ) );
+	EXPECT_TRUE( CompareBlobs( *naiveLearn->ActualDiff, *actualLearn->ActualDiff, 1e-4f ) );
 }
 
 TEST_P( CCtcTest, Random )

@@ -24,14 +24,18 @@ limitations under the License.
 
 namespace NeoML {
 
+// Forward declaration
+template<class T>
+struct CGBoostThreadStatistics;
+
 namespace {
 
 // Distribute the vectors
 template<typename T>
-class CDistributeVectorsThreadTask : public IGradientBoostThreadTask {
+class CGBoostDistributeVectorsThreadTask : public IGradientBoostThreadTask {
 public:
 	// Create a task
-	CDistributeVectorsThreadTask( IThreadPool& threadPool,
+	CGBoostDistributeVectorsThreadTask( IThreadPool& threadPool,
 			const CGradientBoostFullProblem& problem, int level,
 			const CArray<CGradientBoostNodeStatistics<T>*>& classifyNodesCache,
 			const CArray<int>& splitFeatures, CArray<int>& vectorNodes ) :
@@ -56,7 +60,7 @@ protected:
 };
 
 template<typename T>
-void CDistributeVectorsThreadTask<T>::Run( int /*threadIndex*/, int startIndex, int count )
+void CGBoostDistributeVectorsThreadTask<T>::Run( int /*threadIndex*/, int startIndex, int count )
 {
 	const int endIndex = startIndex + count;
 	for( int i = startIndex; i < endIndex; ++i ) {
@@ -96,10 +100,10 @@ void CDistributeVectorsThreadTask<T>::Run( int /*threadIndex*/, int startIndex, 
 
 // Finds the best split for each node using the features in the specified range
 template<typename T>
-class CFindSplitsThreadTask : public IGradientBoostThreadTask {
+class CGBoostFindSplitsThreadTask : public IGradientBoostThreadTask {
 public:
 	// Create a task
-	CFindSplitsThreadTask( IThreadPool& threadPool,
+	CGBoostFindSplitsThreadTask( IThreadPool& threadPool,
 			const CGradientBoostFullProblem& problem,
 			const CArray<CGradientBoostNodeStatistics<T>*>& classifyNodesCache,
 			const CArray<CGradientBoostNodeStatistics<T>*>& curLevelStatistics,
@@ -127,7 +131,8 @@ protected:
 	// Find the best split for each node using the specified feature
 	void FindSplits( int threadIndex, int feature, const CFloatVectorElement* ptr, int size );
 	// Checks if splitting using the specified values is possible
-	void CheckSplit( int feature, float firstValue, float secondValue, CThreadStatistics<T>& statistics ) const;
+	void CheckSplit( int feature, float firstValue,
+		float secondValue, CGBoostThreadStatistics<T>& statistics ) const;
 
 	const CGradientBoostFullProblem& Problem;
 	const CArray<CGradientBoostNodeStatistics<T>*>& ClassifyNodesCache;
@@ -139,7 +144,7 @@ protected:
 };
 
 template<class T>
-void CFindSplitsThreadTask<T>::Run( int threadIndex, int startIndex, int count )
+void CGBoostFindSplitsThreadTask<T>::Run( int threadIndex, int startIndex, int count )
 {
 	const int endIndex = startIndex + count;
 	for( int i = startIndex; i < endIndex; ++i ) {
@@ -155,7 +160,7 @@ void CFindSplitsThreadTask<T>::Run( int threadIndex, int startIndex, int count )
 }
 
 template<typename T>
-void CFindSplitsThreadTask<T>::FindBinarySplits( int threadIndex, int feature, const int* ptr, int size )
+void CGBoostFindSplitsThreadTask<T>::FindBinarySplits( int threadIndex, int feature, const int* ptr, int size )
 {
 	if( size == 0 ) {
 		// The feature has no values
@@ -167,7 +172,7 @@ void CFindSplitsThreadTask<T>::FindBinarySplits( int threadIndex, int feature, c
 		if( ClassifyNodesCache[vectorIndex] == 0 ) {
 			continue;
 		}
-		CThreadStatistics<T>& statistics = ClassifyNodesCache[vectorIndex]->ThreadStatistics[threadIndex];
+		CGBoostThreadStatistics<T>& statistics = ClassifyNodesCache[vectorIndex]->ThreadStatistics[threadIndex];
 		if( statistics.Prev == 0 ) {
 			// We have come across this node for the first time
 			statistics.CurRightStatistics.Erase();
@@ -177,7 +182,7 @@ void CFindSplitsThreadTask<T>::FindBinarySplits( int threadIndex, int feature, c
 	}
 	// Try splitting using the accumulated statistics
 	for( int j = 0; j < CurLevelStatistics.Size(); ++j ) {
-		CThreadStatistics<T>& curStatistics = CurLevelStatistics[j]->ThreadStatistics[threadIndex];
+		CGBoostThreadStatistics<T>& curStatistics = CurLevelStatistics[j]->ThreadStatistics[threadIndex];
 		if( curStatistics.Prev == 0 ) {
 			continue;
 		}
@@ -189,13 +194,15 @@ void CFindSplitsThreadTask<T>::FindBinarySplits( int threadIndex, int feature, c
 }
 
 template<typename T>
-void CFindSplitsThreadTask<T>::FindSplits( int threadIndex, int feature, const CFloatVectorElement* ptr, int size )
+void CGBoostFindSplitsThreadTask<T>::FindSplits( int threadIndex, int feature,
+	const CFloatVectorElement* ptr, int size )
 {
 	if( size == 0 ) {
 		// The feature has no values
 		return;
 	}
-	// Iterate from the smallest to the largest and then back, so we don't need to calculate statistics for 0
+	// Iterate from the smallest to the largest and then back, 
+	// So we don't need to calculate statistics for 0
 
 	// First process all negative values
 	for( int i = 0; i < size; i++ ) {
@@ -206,7 +213,7 @@ void CFindSplitsThreadTask<T>::FindSplits( int threadIndex, int feature, const C
 				break; // cannot split: nothing in the left subtree
 			}
 			for( int j = 0; j < CurLevelStatistics.Size(); j++ ) {
-				CThreadStatistics<T>& curStatistics = CurLevelStatistics[j]->ThreadStatistics[threadIndex];
+				CGBoostThreadStatistics<T>& curStatistics = CurLevelStatistics[j]->ThreadStatistics[threadIndex];
 				curStatistics.CurRightStatistics = CurLevelStatistics[j]->TotalStatistics;
 				curStatistics.CurRightStatistics.Sub( curStatistics.CurLeftStatistics );
 				if( curStatistics.Prev != 0 ) { // this node only has positive values
@@ -219,7 +226,7 @@ void CFindSplitsThreadTask<T>::FindSplits( int threadIndex, int feature, const C
 		if( ClassifyNodesCache[vectorIndex] == 0 ) {
 			continue;
 		}
-		CThreadStatistics<T>& statistics = ClassifyNodesCache[vectorIndex]->ThreadStatistics[threadIndex];
+		CGBoostThreadStatistics<T>& statistics = ClassifyNodesCache[vectorIndex]->ThreadStatistics[threadIndex];
 		if( statistics.Prev == 0 ) {
 			// We have come across this node for the first time
 			statistics.CurLeftStatistics.Erase();
@@ -242,7 +249,7 @@ void CFindSplitsThreadTask<T>::FindSplits( int threadIndex, int feature, const C
 				break; // cannot split: nothing in the right subtree
 			}
 			for( int j = 0; j < CurLevelStatistics.Size(); j++ ) {
-				CThreadStatistics<T>& curStatistics = CurLevelStatistics[j]->ThreadStatistics[threadIndex];
+				CGBoostThreadStatistics<T>& curStatistics = CurLevelStatistics[j]->ThreadStatistics[threadIndex];
 				if( curStatistics.Prev != 0 ) { // this node only has negative values
 					curStatistics.CurLeftStatistics = CurLevelStatistics[j]->TotalStatistics;
 					curStatistics.CurLeftStatistics.Sub( curStatistics.CurRightStatistics );
@@ -255,7 +262,7 @@ void CFindSplitsThreadTask<T>::FindSplits( int threadIndex, int feature, const C
 		if( ClassifyNodesCache[vectorIndex] == 0 ) {
 			continue;
 		}
-		CThreadStatistics<T>& statistics = ClassifyNodesCache[vectorIndex]->ThreadStatistics[threadIndex];
+		CGBoostThreadStatistics<T>& statistics = ClassifyNodesCache[vectorIndex]->ThreadStatistics[threadIndex];
 		if( statistics.Prev == 0 ) {
 			// We have come across this node for the first time
 			statistics.CurRightStatistics.Erase();
@@ -272,14 +279,16 @@ void CFindSplitsThreadTask<T>::FindSplits( int threadIndex, int feature, const C
 }
 
 template<typename T>
-void CFindSplitsThreadTask<T>::CheckSplit( int feature, float firstValue, float secondValue, CThreadStatistics<T>& statistics ) const
+void CGBoostFindSplitsThreadTask<T>::CheckSplit( int feature, float firstValue,
+	float secondValue, CGBoostThreadStatistics<T>& statistics ) const
 {
 	T leftStatistics( statistics.CurLeftStatistics );
 	T rightStatistics( statistics.CurRightStatistics );
 
 	double criterion{};
 	if( !T::CalcCriterion( criterion, leftStatistics, rightStatistics, statistics.TotalStatistics,
-		Params.L1RegFactor, Params.L2RegFactor, Params.MinSubsetHessian, Params.MinSubsetWeight, Params.DenseTreeBoostCoefficient ) )
+		Params.L1RegFactor, Params.L2RegFactor, Params.MinSubsetHessian,
+		Params.MinSubsetWeight, Params.DenseTreeBoostCoefficient ) )
 	{
 		return;
 	}
@@ -298,13 +307,14 @@ void CFindSplitsThreadTask<T>::CheckSplit( int feature, float firstValue, float 
 		statistics.RightStatistics = rightStatistics;
 	}
 }
+
 } // namespace
 
 //------------------------------------------------------------------------------------------------------------
 
 // The statistics for one thread
 template<class T>
-struct CThreadStatistics final {
+struct CGBoostThreadStatistics final {
 	// Current data
 	// The value of the feature and the current split threshold are not stored here but iterated through locally
 	// The statistics for nodes are stored because we have to go through the whole tree level when looking for the optimal split threshold
@@ -325,12 +335,12 @@ struct CThreadStatistics final {
 	// The total statistics
 	const T& TotalStatistics;
 
-	CThreadStatistics( const CThreadStatistics& other );
-	explicit CThreadStatistics( float criterion, const T& totalStatistics );
+	CGBoostThreadStatistics( const CGBoostThreadStatistics& other );
+	explicit CGBoostThreadStatistics( float criterion, const T& totalStatistics );
 };
 
 template<class T>
-inline CThreadStatistics<T>::CThreadStatistics( const CThreadStatistics& other ) :
+inline CGBoostThreadStatistics<T>::CGBoostThreadStatistics( const CGBoostThreadStatistics& other ) :
 	CurLeftStatistics( other.CurLeftStatistics ),
 	CurRightStatistics( other.CurRightStatistics ),
 	Prev( other.Prev ),
@@ -344,7 +354,7 @@ inline CThreadStatistics<T>::CThreadStatistics( const CThreadStatistics& other )
 }
 
 template<class T>
-inline CThreadStatistics<T>::CThreadStatistics( float criterion, const T& totalStatistics ) :
+inline CGBoostThreadStatistics<T>::CGBoostThreadStatistics( float criterion, const T& totalStatistics ) :
 	CurLeftStatistics( totalStatistics.ValueSize() ),
 	CurRightStatistics( totalStatistics.ValueSize() ),
 	Prev( 0.0 ),
@@ -368,7 +378,7 @@ struct CGradientBoostNodeStatistics : public virtual IObject {
 	// Each thread works with a subset of features which it searches for the best feature and split threshold
 	// After the threads have finished their search the best overall result is selected 
 	// and written directly into the node statistics (the FeatureIndex and Threshold fields)
-	CArray<CThreadStatistics<T>> ThreadStatistics{};
+	CArray<CGBoostThreadStatistics<T>> ThreadStatistics{};
 
 	// The feature used for split (specified by the index in the subproblem)
 	// If NotFound (-1) the node is a leaf
@@ -401,7 +411,7 @@ template<class T>
 inline void CGradientBoostNodeStatistics<T>::InitThreadStatistics( int threadCount, float l1RegFactor, float l2RegFactor )
 {
 	const float criterion = static_cast<float>( TotalStatistics.CalcCriterion( l1RegFactor, l2RegFactor ) );
-	ThreadStatistics.Add( CThreadStatistics<T>( criterion, TotalStatistics ), threadCount );
+	ThreadStatistics.Add( CGBoostThreadStatistics<T>( criterion, TotalStatistics ), threadCount );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -498,7 +508,7 @@ bool CGradientBoostFullTreeBuilder<T>::buildTreeLevel( const CGradientBoostFullP
 	}
 
 	// Try splitting the nodes on the current level looking for the optimal splitting feature for each node
-	CFindSplitsThreadTask<T>( *threadPool, problem, classifyNodesCache, curLevelStatistics,
+	CGBoostFindSplitsThreadTask<T>( *threadPool, problem, classifyNodesCache, curLevelStatistics,
 		gradients, hessians, weights, params ).ParallelRun();
 
 	// Select the best overall result from the threads' results
@@ -533,7 +543,7 @@ void CGradientBoostFullTreeBuilder<T>::distributeVectorsByNodes( const CGradient
 	splitFeatures.SetSize( newSize );
 
 	// Distribute the vectors
-	CDistributeVectorsThreadTask<T>( *threadPool, problem, level,
+	CGBoostDistributeVectorsThreadTask<T>( *threadPool, problem, level,
 		classifyNodesCache, splitFeatures, vectorNodes ).ParallelRun();
 
 	// Distribute the vectors to the selected subtrees
@@ -567,9 +577,10 @@ template<class T>
 void CGradientBoostFullTreeBuilder<T>::mergeThreadResults()
 {
 	for( int i = 0; i < curLevelStatistics.Size(); i++ ) {
-		float criterion = static_cast<float>( curLevelStatistics[i]->TotalStatistics.CalcCriterion( params.L1RegFactor, params.L2RegFactor ) );
+		float criterion = static_cast<float>(
+			curLevelStatistics[i]->TotalStatistics.CalcCriterion( params.L1RegFactor, params.L2RegFactor ) );
 		for( int j = 0; j < params.ThreadCount; j++ ) {
-			const CThreadStatistics<T>& currThreadStatistics = curLevelStatistics[i]->ThreadStatistics[j];
+			const CGBoostThreadStatistics<T>& currThreadStatistics = curLevelStatistics[i]->ThreadStatistics[j];
 			// The check for equivalence has been added to have a determinate result
 			if( currThreadStatistics.FeatureIndex != NotFound ) {
 				if( currThreadStatistics.Criterion > criterion

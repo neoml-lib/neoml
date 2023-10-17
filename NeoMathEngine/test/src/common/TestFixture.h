@@ -54,6 +54,21 @@ inline bool FloatEq( float val1, float val2, float precision = 1e-05 )
 #define FLT_MIN_LOG -87.33654474f
 #define FLT_MAX_LOG 88.f
 
+inline float ExponentFunc(float f)
+{
+	if (f < FLT_MIN_LOG) {
+		return 0;
+	}
+	else if (f > FLT_MAX_LOG) {
+		return FLT_MAX;
+	}
+	else {
+		return expf(f);
+	}
+}
+
+//------------------------------------------------------------------------------------------------------------
+
 #define CARRAY_WRAPPER(TYPE, arr) CBufferWrapper<TYPE>( MathEngine(), ( arr.data() ), ( static_cast<int>( arr.size() ) ) )
 #define CARRAY_FLOAT_WRAPPER(arr) CARRAY_WRAPPER(float, arr)
 #define CARRAY_INT_WRAPPER(arr) CARRAY_WRAPPER(int, arr)
