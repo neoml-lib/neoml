@@ -16,6 +16,7 @@ limitations under the License.
 #include <TestFixture.h>
 #include <NeoMathEngine/PerformanceCounters.h>
 #include <fstream>
+#include <memory>
 
 using namespace NeoML;
 using namespace NeoMLTest;
@@ -35,76 +36,129 @@ static const char* vectorFunctionsNames[]{
 	"VectorHSwish"
 };
 
-static void vectorBenchmark( int function, int testCount, int vectorSize, const CInterval& vectorValuesInterval,
-	int seed, IPerformanceCounters& counters, std::ofstream& fout )
+//------------------------------------------------------------------------------------------------------------
+
+class VectorBenchmarkParams final {
+public:
+	int Function = -2;
+	int TestCount = -1;
+	int VectorSize = -1;
+	IPerformanceCounters* Counters = nullptr;
+	std::ofstream FOut{};
+
+	VectorBenchmarkParams( int function, int testCount, int vectorSize,
+		const CInterval& valuesInterval, int seed );
+	~VectorBenchmarkParams() { delete Counters; }
+
+	void SetNextSeedForFunction( int function, int seed );
+
+	CFloatWrapper& GetInputBuffer() { return *inputBuf; }
+	CFloatWrapper& GetSecondBuffer() { return *secondBuf; }
+	CFloatWrapper& GetResultBuffer() { return *resultBuf; }
+	CFloatWrapper& GetZeroVal() { return *zeroBuf; }
+	CFloatWrapper& GetMulVal() { return *mulBuf; }
+
+private:
+	const CInterval& valuesInterval;
+	CRandom random;
+
+	std::vector<float> input;
+	std::vector<float> second;
+	std::vector<float> result;
+
+	std::unique_ptr<CFloatWrapper> inputBuf = nullptr;
+	std::unique_ptr<CFloatWrapper> secondBuf = nullptr;
+	std::unique_ptr<CFloatWrapper> resultBuf = nullptr;
+	std::unique_ptr<CFloatWrapper> zeroBuf = nullptr;
+	std::unique_ptr<CFloatWrapper> mulBuf = nullptr;
+};
+
+VectorBenchmarkParams::VectorBenchmarkParams( int function, int testCount, int vectorSize,
+		const CInterval& valuesInterval, int seed  ) :
+	Function( function ),
+	TestCount( testCount ),
+	VectorSize( vectorSize ),
+	Counters( MathEngine().CreatePerformanceCounters() ),
+	FOut( std::ofstream( "VectorBenchmarkTest.csv", std::ios::app ) ),
+	valuesInterval( valuesInterval )
 {
-	CRandom random( seed );
-	CREATE_FILL_FLOAT_ARRAY( input, vectorValuesInterval.Begin, vectorValuesInterval.End, vectorSize, random )
-	CREATE_FILL_FLOAT_ARRAY( second, vectorValuesInterval.Begin, vectorValuesInterval.End, vectorSize, random )
-	std::vector<float> result( vectorSize, 0 );
+	FOut << "\n---------------------------" << std::endl;
+	input.resize( vectorSize );
+	second.resize( vectorSize );
+	result.resize( vectorSize );
+	float zero = 0; 
+	zeroBuf.reset( new CFloatWrapper( MathEngine(), &zero, 1 ) );
 
-	float zero = 0;
-	float multiplier = static_cast<float>( random.Uniform( 1, vectorValuesInterval.End ) );
-	CFloatWrapper zeroVal( MathEngine(), &zero, 1 );
-	CFloatWrapper mulVal( MathEngine(), &multiplier, 1 );
-	ASSERT_EXPR( ( ( CConstFloatHandle )mulVal ).GetValueAt( 0 ) > 0 );
+	SetNextSeedForFunction( function, seed );
+}
 
-	if( function == -1 ) { // warm-up
-		return;
+void VectorBenchmarkParams::SetNextSeedForFunction( int function, int seed )
+{
+	Function = function;
+	random = CRandom( seed );
+	for( int i = 0; i < VectorSize; ++i ) {
+		input[i] = static_cast<float>( random.Uniform( valuesInterval.Begin, valuesInterval.End ) );
+		second[i] = static_cast<float>( random.Uniform( valuesInterval.Begin, valuesInterval.End ) );
+		result[i] = 0;
+	}
+	float multiplier = static_cast<float>( random.Uniform( 1, valuesInterval.End ) );
+	mulBuf.reset( new CFloatWrapper( MathEngine(), &multiplier, 1 ) );
+	CConstFloatHandle mulHandle = *mulBuf;
+	ASSERT_EXPR( mulHandle.GetValueAt( 0 ) > 0 );
+
+	inputBuf.reset( new CFloatWrapper( MathEngine(), input.data(), VectorSize ) );
+	secondBuf.reset( new CFloatWrapper( MathEngine(), second.data(), VectorSize ) );
+	resultBuf.reset( new CFloatWrapper( MathEngine(), result.data(), VectorSize ) );
+}
+
+//------------------------------------------------------------------------------------------------------------
+
+static double vectorBenchmark( VectorBenchmarkParams& params )
+{
+	CFloatWrapper& input = params.GetInputBuffer();
+	CFloatWrapper& second = params.GetSecondBuffer();
+	CFloatWrapper& result = params.GetResultBuffer();
+	CFloatWrapper& zeroVal = params.GetZeroVal();
+	CFloatWrapper& mulVal = params.GetMulVal();
+	const int vectorSize = params.VectorSize;
+
+	if( params.Function == -1 ) { // warm-up
+		MathEngine().VectorCopy( result, input, vectorSize );
+		MathEngine().VectorFill( result, vectorSize, mulVal );
+		MathEngine().VectorAdd( input, second, result, vectorSize );
+		MathEngine().VectorAddValue( input, result, vectorSize, mulVal );
+		MathEngine().VectorMultiply( input, second, vectorSize, mulVal );
+		MathEngine().VectorEltwiseMultiply( input, second, result, vectorSize );
+		MathEngine().VectorEltwiseMultiplyAdd( input, second, result, vectorSize );
+		MathEngine().VectorReLU( input, result, vectorSize, zeroVal ); //Threshold == 0
+		MathEngine().VectorReLU( input, result, vectorSize, mulVal ); //Threshold > 0
+		MathEngine().VectorHSwish( input, result, vectorSize );
+		return 0;
 	}
 
-	counters.Synchronise();
+	params.Counters->Synchronise();
 
-	for( int i = 0; i < testCount; ++i ) {
-		switch( function ) {
-			case 0:
-				MathEngine().VectorCopy( CARRAY_FLOAT_WRAPPER( result ), CARRAY_FLOAT_WRAPPER( input ), vectorSize );
-				break;
-			case 1:
-				MathEngine().VectorFill( CARRAY_FLOAT_WRAPPER( result ), vectorSize, mulVal );
-				break;
-			case 2:
-				MathEngine().VectorAdd( CARRAY_FLOAT_WRAPPER( input ), CARRAY_FLOAT_WRAPPER( second ),
-					CARRAY_FLOAT_WRAPPER( result ), vectorSize );
-				break;
-			case 3:
-				MathEngine().VectorAddValue( CARRAY_FLOAT_WRAPPER( input ), CARRAY_FLOAT_WRAPPER( result ),
-					vectorSize, mulVal );
-				break;
-			case 4:
-				MathEngine().VectorMultiply( CARRAY_FLOAT_WRAPPER( input ),
-					CARRAY_FLOAT_WRAPPER( second ), vectorSize, mulVal );
-				break;
-			case 5:
-				MathEngine().VectorEltwiseMultiply( CARRAY_FLOAT_WRAPPER( input ),
-					CARRAY_FLOAT_WRAPPER( second ), CARRAY_FLOAT_WRAPPER( result ), vectorSize );
-				break;
-			case 6:
-				MathEngine().VectorEltwiseMultiplyAdd( CARRAY_FLOAT_WRAPPER( input ),
-					CARRAY_FLOAT_WRAPPER( second ), CARRAY_FLOAT_WRAPPER( result ), vectorSize );
-				break;
-			case 7:
-				MathEngine().VectorReLU( CARRAY_FLOAT_WRAPPER( input ), CARRAY_FLOAT_WRAPPER( result ),
-					vectorSize, zeroVal ); //Threshold == 0
-				break;
-			case 8:
-				MathEngine().VectorReLU( CARRAY_FLOAT_WRAPPER( input ), CARRAY_FLOAT_WRAPPER( result ),
-					vectorSize, mulVal ); //Threshold > 0
-				break;
-			case 9:
-				MathEngine().VectorHSwish( CARRAY_FLOAT_WRAPPER( input ), CARRAY_FLOAT_WRAPPER( result ),
-					vectorSize );
-				break;
+	for( int i = 0; i < params.TestCount; ++i ) {
+		switch( params.Function ) {
+			case 0: MathEngine().VectorCopy( result, input, vectorSize ); break;
+			case 1: MathEngine().VectorFill( result, vectorSize, mulVal ); break;
+			case 2: MathEngine().VectorAdd( input, second, result, vectorSize ); break;
+			case 3: MathEngine().VectorAddValue( input, result, vectorSize, mulVal ); break;
+			case 4: MathEngine().VectorMultiply( input, second, vectorSize, mulVal ); break;
+			case 5: MathEngine().VectorEltwiseMultiply( input, second, result, vectorSize ); break;
+			case 6: MathEngine().VectorEltwiseMultiplyAdd( input, second, result, vectorSize ); break;
+			case 7: MathEngine().VectorReLU( input, result, vectorSize, zeroVal ); break; //Threshold == 0
+			case 8: MathEngine().VectorReLU( input, result, vectorSize, mulVal ); break; //Threshold > 0
+			case 9: MathEngine().VectorHSwish( input, result, vectorSize ); break;
 			default:
 				ASSERT_EXPR( false );
 		}
 	}
 
-	counters.Synchronise();
-	const double time = double( counters[0].Value ) / 1000000 / testCount; // average time in milliseconds
-
-	GTEST_LOG_( INFO ) << vectorFunctionsNames[function] << ", " << time;
-	fout << vectorFunctionsNames[function] << "," << time << "\n";
+	params.Counters->Synchronise();
+	const double time = double( ( *params.Counters )[0].Value ) / 1000000 / params.TestCount; // average time in milliseconds
+	params.FOut << time << ",";
+	return time;
 }
 
 } // namespace NeoMLTest
@@ -119,6 +173,36 @@ INSTANTIATE_TEST_CASE_P( CMathEngineVectorBenchmarkTestInstantiation, CMathEngin
 		CTestParams(
 			"TestCount = 10000;"
 			"RepeatCount = 10;"
+			"VectorSize = 16;"
+			"VectorValues = (-128..128);"
+		),
+		CTestParams(
+			"TestCount = 10000;"
+			"RepeatCount = 10;"
+			"VectorSize = 25;"
+			"VectorValues = (-128..128);"
+		),
+		CTestParams(
+			"TestCount = 10000;"
+			"RepeatCount = 10;"
+			"VectorSize = 32;"
+			"VectorValues = (-128..128);"
+		),
+		CTestParams(
+			"TestCount = 10000;"
+			"RepeatCount = 10;"
+			"VectorSize = 64;"
+			"VectorValues = (-128..128);"
+		),
+		CTestParams(
+			"TestCount = 10000;"
+			"RepeatCount = 10;"
+			"VectorSize = 69;"
+			"VectorValues = (-128..128);"
+		),
+		CTestParams(
+			"TestCount = 10000;"
+			"RepeatCount = 10;"
 			"VectorSize = 100000;"
 			"VectorValues = (-50..50);"
 		),
@@ -129,9 +213,9 @@ INSTANTIATE_TEST_CASE_P( CMathEngineVectorBenchmarkTestInstantiation, CMathEngin
 			"VectorValues = (-10..10);"
 		),
 		CTestParams(
-			"TestCount = 100000;"
+			"TestCount = 1000;"
 			"RepeatCount = 10;"
-			"VectorSize = 11796480;"
+			"VectorSize = 1179648;"
 			"VectorValues = (-1..1);"
 		)
 	)
@@ -139,24 +223,24 @@ INSTANTIATE_TEST_CASE_P( CMathEngineVectorBenchmarkTestInstantiation, CMathEngin
 
 TEST_P( CMathEngineVectorBenchmarkTest, DISABLED_Random )
 {
-	CTestParams params = GetParam();
+	CTestParams testParams = GetParam();
+	const int testCount = testParams.GetValue<int>( "TestCount" );
+	const int repeatCount = testParams.GetValue<int>( "RepeatCount" );
+	const int vectorSize = testParams.GetValue<int>( "VectorSize" );
+	const CInterval valuesInterval = testParams.GetInterval( "VectorValues" );
 
-	const int testCount = params.GetValue<int>( "TestCount" );
-	const int repeatCount = params.GetValue<int>( "RepeatCount" );
-	const int vectorSize = params.GetValue<int>( "VectorSize" );
-	const CInterval vectorValuesInterval = params.GetInterval( "VectorValues" );
-
-	IPerformanceCounters* counters = MathEngine().CreatePerformanceCounters();
-	std::ofstream fout( "VectorBenchmarkTest.csv", std::ios::app );
-	fout << "---------------------------\n";
-
-	vectorBenchmark( /*warm-up*/-1, testCount, vectorSize, vectorValuesInterval, 282, *counters, fout);
+	VectorBenchmarkParams params( /*warm-up*/-1, testCount, vectorSize, valuesInterval, 282 );
+	vectorBenchmark( params );
 
 	for( int function = 0; function < 10; ++function ) {
+		params.FOut << std::endl << vectorFunctionsNames[function] << ",";
+
+		double timeSum = 0;
 		for( int test = 0; test < repeatCount; ++test ) {
 			const int seed = 282 + test * 10000 + test % 3;
-			vectorBenchmark( function, testCount, vectorSize, vectorValuesInterval, seed, *counters, fout );
+			params.SetNextSeedForFunction( function, seed );
+			timeSum += vectorBenchmark( params );
 		}
+		GTEST_LOG_( INFO ) << vectorFunctionsNames[function] << "\t" << timeSum;
 	}
-	delete counters;
 }
