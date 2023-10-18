@@ -401,13 +401,17 @@ static void loraFcSerializerTestImpl( bool initialize, bool discardBeforeLoad )
 		ASSERT_EQ( 1, CLoraSerializer().Serialize( dnn, archive ) );
 	}
 
+	if( discardBeforeLoad ) {
+		loraFc = CheckCast<CLoraFullyConnectedLayer>( dnn.GetLayer( "full" ) );
+	}
+
 	if( initialize ) {
 		// Check that after serialization A and B matrices were rolled back
 		EXPECT_TRUE( CompareBlobs( *aWeights, *loraFc->GetAWeightsNoCopy() ) );
 		EXPECT_TRUE( CompareBlobs( *bWeights, *loraFc->GetBWeightsNoCopy() ) );
 	} else {
 		EXPECT_EQ( nullptr, loraFc->GetAWeightsNoCopy().Ptr() );
-		EXPECT_EQ( nullptr, loraFc->GetAWeightsNoCopy().Ptr() );
+		EXPECT_EQ( nullptr, loraFc->GetBWeightsNoCopy().Ptr() );
 	}
 }
 
