@@ -402,6 +402,9 @@ static void loraFcSerializerTestImpl( bool initialize, bool discardBeforeLoad )
 	}
 
 	if( discardBeforeLoad ) {
+		// If original loraFc has been discarded then CLoraFullyConnected has been deleted
+		// and then created anew during CLoraSerializer::Serialize
+		// So we need to update the pointer with new layer
 		loraFc = CheckCast<CLoraFullyConnectedLayer>( dnn.GetLayer( "full" ) );
 	}
 
