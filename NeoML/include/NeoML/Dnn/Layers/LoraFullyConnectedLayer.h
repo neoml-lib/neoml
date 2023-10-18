@@ -71,7 +71,7 @@ public:
 	void UpdateParams( const CLoraParams& newParams, CDnnBlob* newA, CDnnBlob* newB );
 
 	// Mostly for testing/debugging
-	CPtr<CDnnBlob> GetRawBaseWeightsNoCopy() { return baseFc->Weights(); }
+	CPtr<CDnnBlob>& GetRawBaseWeightsNoCopy() { return baseFc->Weights(); }
 	bool IsMerged() const { return isMerged; }
 
 protected:

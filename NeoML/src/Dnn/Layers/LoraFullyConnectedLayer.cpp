@@ -114,6 +114,7 @@ void CLoraFullyConnectedLayer::initialize( const CLoraParams& params )
 {
 	baseFc = FINE_DEBUG_NEW CFullyConnectedLayer( MathEngine() );
 	baseFc->SetName( baseFcName );
+	baseFc->SetNumberOfElements( 1 );
 	baseFc->DisableLearning();
 	AddLayer( *baseFc );
 	SetInputMapping( *baseFc );

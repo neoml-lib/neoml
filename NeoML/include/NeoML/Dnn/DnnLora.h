@@ -35,8 +35,8 @@ struct NEOML_API CLoraParams {
 	void Serialize( CArchive& archive );
 };
 
-// This builder is used for adding LoRA to specific layers in graph
-// or recursively adds LoRA to all layers in graph and its subgraphs (composite layers)
+// Mechanism which allows to add/remove/merge LoRA into nets
+// It works with CDnnLayerGraph which allows you to modify CDnn or specific composites (e.g. CTransformerEncoderLayer)
 class NEOML_API CLoraBuilder {
 public:
 	CLoraBuilder();
@@ -60,8 +60,8 @@ public:
 	//    4. CMultiheadAttentionLayer
 	//    5. CTransformerEncoderLayer
 	//
-	// If this list doesn't fit your task you can replace it with your own via non-default constructor
-	// Always replaces CFullyConnectedLayer which are directly inside of grpah
+	// If this list doesn't fit your task you can replace it with your own via constructor
+	// Always replaces CFullyConnectedLayer which are directly inside of graph
 	// Returns the total number of fully-connected layers replaced by this call
 	// Fully-connected
 	int BuildAllFcWrappers( CDnnLayerGraph& graph, const CLoraParams& params ) const;
