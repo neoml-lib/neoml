@@ -92,7 +92,7 @@ int CLoraBuilder::BuildAllFcWrappers( CDnnLayerGraph& rootGraph, const CLoraPara
 
 int CLoraBuilder::DisableNonLoraTraining( CDnnLayerGraph& graph ) const
 {
-	auto impl = [this] ( CDnnLayerGraph& currGraph, auto&& impl ) -> int
+	auto impl = [] ( CDnnLayerGraph& currGraph, auto&& impl ) -> int
 	{
 		int result = 0;
 
