@@ -175,17 +175,25 @@ int CLoraBuilder::replaceAllFcWrappers( CDnnLayerGraph& graph, bool mergeWeights
 
 //----------------------------------------------------------------------------------------------------------------------
 
+namespace {
+
+// Codes for signaling the type of wrapped layer
+enum TLoraLayerType
+{
+	LLT_None, // special value used for signaling that there is no more layers
+	LLT_FullyConnected,
+
+	LLT_Count
+};
+
+} // anonymous namespace
+
 static const int loraSerializerVersion = 0;
 
 static int storeLora( CDnn& dnn, CArchive& archive )
 {
 	NeoAssert( archive.IsStoring() );
 	( void ) archive.SerializeVersion( loraSerializerVersion );
-
-	// Save current file offset in order to overwrite the value afterwards
-	const __int64 loraLayerCountOffset = archive.GetPosition();
-	int loraLayerCount = 0;
-	archive.Serialize( loraLayerCount );
 
 	CArray<CString> layerPath;
 
@@ -195,12 +203,18 @@ static int storeLora( CDnn& dnn, CArchive& archive )
 		CArray<const char*> layerNames;
 		graph.GetLayerList( layerNames );
 		for( const char* layerName : layerNames ) {
+			static_assert( LLT_Count == 2, "LLT_Count != 2" );
+
 			CBaseLayer* layer = graph.GetLayer( layerName ).Ptr();
 
 			// LoRA layers may inherit CCompositeLayer
 			// That's why at first we check if current layer is a LoRA wrapper
-			CLoraFullyConnectedLayer* loraFc = dynamic_cast< CLoraFullyConnectedLayer* >( layer );
+			CLoraFullyConnectedLayer* loraFc = dynamic_cast<CLoraFullyConnectedLayer*>( layer );
 			if( loraFc != nullptr ) {
+				// For now only fully-connected is supported but in future embedding will probably be supported
+				TLoraLayerType loraType = LLT_FullyConnected;
+				archive.SerializeEnum( loraType );
+
 				// Store full path to this layer
 				// We don't use CBaseLayer::GetPath() here because we may get indistinguashable paths
 				// when path separator is used inside of layer names (which sometimes the case esp for exported nets)
@@ -209,9 +223,6 @@ static int storeLora( CDnn& dnn, CArchive& archive )
 				archive.Serialize( layerPath );
 				layerPath.DeleteLast();
 
-				// For now only fully-connected is supported but in future embedding will probably be supported
-				int loraType = 0;
-				archive.Serialize( loraType );
 
 				CLoraParams params( loraFc->Rank(), loraFc->Alpha(), loraFc->Dropout() );
 				params.Serialize( archive );
@@ -224,7 +235,7 @@ static int storeLora( CDnn& dnn, CArchive& archive )
 				continue;
 			}
 
-			CCompositeLayer* composite = dynamic_cast< CCompositeLayer* >( layer );
+			CCompositeLayer* composite = dynamic_cast<CCompositeLayer*>( layer );
 			if( composite != nullptr ) {
 				// Updating current path and make recurrent call
 				layerPath.Add( composite->GetName() );
@@ -235,13 +246,11 @@ static int storeLora( CDnn& dnn, CArchive& archive )
 		return result;
 	};
 
-	loraLayerCount = impl( dnn, impl ); // Store weights and calculate the amount of LoRA layers
+	const int loraLayerCount = impl( dnn, impl ); // Store weights and calculate the amount of LoRA layers
 
-	// Write actual layer count over previously stored offset
-	const __int64 loraEndOffset = archive.GetPosition();
-	archive.Seek( loraLayerCountOffset, CBaseFile::begin );
-	archive.Serialize( loraLayerCount );
-	archive.Seek( loraEndOffset, CBaseFile::begin ); // don't forget to move back to the end of LoRA weightss
+	// Write special value to signal that there is no more LoRA weights in archive
+	TLoraLayerType end = LLT_None;
+	archive.SerializeEnum( end );
 
 	return loraLayerCount;
 }
@@ -254,15 +263,22 @@ static int loadLora( CDnn& dnn, CArchive& archive )
 	( void ) archive.SerializeVersion( loraSerializerVersion );
 
 	int loraLayerCount = 0;
-	archive.Serialize( loraLayerCount );
 
-	for( int loraLayerIndex = 0; loraLayerIndex < loraLayerCount; ++loraLayerIndex ) {
+	while( true ) {
+		static_assert( LLT_Count == 2, "LLT_Count != 2" );
+
+		TLoraLayerType layerType = LLT_None;
+		archive.SerializeEnum( layerType );
+		if( layerType == LLT_None ) {
+			break;
+		}
+
+		// LoRA is supported only for fully-connected layers
+		check( layerType == LLT_FullyConnected, ERR_BAD_ARCHIVE, archive.Name() );
+		loraLayerCount++;
+
 		CArray<CString> layerPath;
 		archive.Serialize( layerPath );
-
-		int layerType = 0;
-		archive.Serialize( layerType );
-		check( layerType == 0, ERR_BAD_ARCHIVE, archive.Name() ); // LoRA is supported only for fully-connected layers
 
 		CLoraParams params;
 		params.Serialize( archive );
@@ -270,19 +286,24 @@ static int loadLora( CDnn& dnn, CArchive& archive )
 		CDnnLayerGraph* currentGraph = &dnn;
 		// Iterating from root dnn over all the composites
 		for( int i = 0; i < layerPath.Size() - 1; ++i ) {
-			CCompositeLayer* composite = dynamic_cast< CCompositeLayer* >( currentGraph->GetLayer( layerPath[i] ).Ptr() );
-			check( composite != nullptr, ERR_BAD_ARCHIVE, archive.Name() ); // Intermediate layer in path must be composite
+			CCompositeLayer* composite
+				= dynamic_cast<CCompositeLayer*>( currentGraph->GetLayer( layerPath[i] ).Ptr() );
+			// Intermediate layer in path must be composite
+			check( composite != nullptr, ERR_BAD_ARCHIVE, archive.Name() );
 			currentGraph = composite;
 		}
 
-		check( layerPath.Size() >= 1, ERR_BAD_ARCHIVE, archive.Name() ); // path must contain at least name of last layer
+		// path must contain at least name of last layer
+		check( layerPath.Size() >= 1, ERR_BAD_ARCHIVE, archive.Name() );
 		// replace fully-connected with lora wrapper if needed
 		if( dynamic_cast<CFullyConnectedLayer*>( currentGraph->GetLayer( layerPath.Last() ).Ptr() ) != nullptr ) {
 			loraBuilder.BuildFcWrapper( *currentGraph, layerPath.Last(), params );
 		}
 
-		CLoraFullyConnectedLayer* loraFc = dynamic_cast<CLoraFullyConnectedLayer*>( currentGraph->GetLayer( layerPath.Last() ).Ptr() );
-		check( loraFc != nullptr, ERR_BAD_ARCHIVE, archive.Name() ); // mismatch between CDnn and lora weights (layer is missing)
+		CLoraFullyConnectedLayer* loraFc
+			= dynamic_cast<CLoraFullyConnectedLayer*>( currentGraph->GetLayer( layerPath.Last() ).Ptr() );
+		// mismatch between CDnn and lora weights (layer is missing)
+		check( loraFc != nullptr, ERR_BAD_ARCHIVE, archive.Name() );
 
 		CPtr<CDnnBlob> aWeights;
 		SerializeBlob( dnn.GetMathEngine(), archive, aWeights );
