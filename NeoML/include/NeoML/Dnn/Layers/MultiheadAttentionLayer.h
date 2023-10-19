@@ -44,7 +44,7 @@ namespace NeoML {
 //  W_* - trainable parameters and W_O is an additional trainable matrix of size (GetHiddenSize() x GetOutputSize())
 //
 // Result has size (1, BatchWidth, ListSize_Q, 1, 1, 1, GetOutputSize())
-class NEOML_API CMultiheadAttentionLayer : public CCompositeLayer {
+class NEOML_API CMultiheadAttentionLayer : public CCompositeLayer, public ILowRankAdapted {
 	NEOML_DNN_LAYER( CMultiheadAttentionLayer )
 public:
 	explicit CMultiheadAttentionLayer( IMathEngine& mathEngine );
@@ -99,12 +99,15 @@ public:
 	void Rebuild( bool forceRebuild );
 
 	// LoRA
-	void BuildLoRA( int rank, float alpha, float dropoutRate = 0.f );
-	void MergeWeightsLoRA();
-	void DestroyUnmergedLoRA();
-	int GetRankLoRA() const;
-	float GetAlphaLoRA() const;
-	float GetDropoutRateLoRA() const;
+	void BuildLoRA( int rank, float alpha, float dropoutRate = 0.f ) override;
+	void MergeWeightsLoRA() override;
+	void DestroyUnmergedLoRA() override;
+	int GetRankLoRA() const override;
+	float GetAlphaLoRA() const override;
+	float GetDropoutRateLoRA() const override;
+	bool GetStoreSeparateLoRA() const override;
+	void SetStoreSeparateLoRA( bool storeSeparate ) override;
+	void SerializeWeightsLoRA( CArchive& ) override;
 
 protected:
 	void Reshape() override;

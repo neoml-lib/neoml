@@ -694,6 +694,7 @@ static void setSpecificParams( CLoraFullyConnectedLayer& layer )
 	layer.BuildLoRA( 7, 3.f, 0.1f );
 	layer.SetAWeightsLoRAData( a );
 	layer.SetBWeightsLoRAData( b );
+	layer.SetStoreSeparateLoRA( false );
 }
 
 GTEST_TEST( SerializeToFile, LoraFullyConnectedLayerSerialization )

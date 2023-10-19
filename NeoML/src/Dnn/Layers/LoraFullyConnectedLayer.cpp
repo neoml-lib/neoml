@@ -20,6 +20,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/ActivationLayers.h>
 #include <NeoML/Dnn/Layers/DropoutLayer.h>
 #include <NeoML/Dnn/Layers/EltwiseLayer.h>
+#include <NeoML/Dnn/DnnDistributed.h>
 #include <NeoMathEngine/NeoMathEngine.h>
 
 namespace NeoML {
@@ -53,9 +54,16 @@ CLoraFullyConnectedLayer::CLoraFullyConnectedLayer( CFullyConnectedLayer& fc ) :
 
 static const int loraFullyConnectedLayerVersion = 0;
 
+// Converted FullyConnectedLayer serialization
 void CLoraFullyConnectedLayer::Serialize( CArchive& archive )
 {
 	( void ) archive.SerializeVersion( loraFullyConnectedLayerVersion );
+	archive.Serialize( loraStoreSeparate );
+
+	if( loraStoreSeparate == true ) {
+		CheckArchitecture( loraRank == 0, GetPath(),
+			"Should contains only baseFc, please mergeLora or destroyLora before call" );
+	}
 	CCompositeLayer::Serialize( archive );
 
 	archive.Serialize( loraRank );
@@ -70,7 +78,7 @@ void CLoraFullyConnectedLayer::Serialize( CArchive& archive )
 			: nullptr;
 
 		if( loraFcA != nullptr ) {
-			NeoAssert( loraRank != 0 && loraAlpha != 0 );
+			NeoAssert( loraRank != 0 && loraAlpha != 0 && loraStoreSeparate == false );
 
 			loraFcB = CheckCast<CFullyConnectedLayer>( GetLayer( loraFcBName ) );
 			loraDropout = HasLayer( loraDropoutName )
@@ -88,6 +96,37 @@ void CLoraFullyConnectedLayer::Serialize( CArchive& archive )
 			loraSum = nullptr;
 		}
 	}
+}
+
+void CLoraFullyConnectedLayer::SerializeWeightsLoRA( CArchive& archive )
+{
+	NeoAssert( loraStoreSeparate == true );
+	NeoAssert( baseFc != nullptr );
+
+	if( archive.IsLoading() ) {
+		int rank = 0;
+		archive.Serialize( rank );
+		float alpha = 0;
+		archive.Serialize( alpha );
+		float dropoutRate = 0;
+		archive.Serialize( dropoutRate );
+
+		DestroyUnmergedLoRA();
+		BuildLoRA( rank, alpha, dropoutRate );
+	} else { // storing
+		NeoAssert( loraRank != 0 && loraAlpha != 0 );
+		archive.Serialize( loraRank );
+		archive.Serialize( loraAlpha );
+		archive.Serialize( loraDropoutRate );
+	}
+
+	CPtr<CDnnBlob> aWeights = AWeightsLoRA(); // No copy
+	SerializeBlob( MathEngine(), archive, aWeights );
+	SetAWeightsLoRAData( aWeights );
+
+	CPtr<CDnnBlob> bWeights = BWeightsLoRA(); // No copy
+	SerializeBlob( MathEngine(), archive, bWeights );
+	SetBWeightsLoRAData( bWeights );
 }
 
 void CLoraFullyConnectedLayer::buildLayer()
@@ -307,6 +346,185 @@ CLayerWrapper<CLoraFullyConnectedLayer> LoraFullyConnected( int numberOfElements
 		result->SetNumberOfElements( numberOfElements );
 		result->SetZeroFreeTerm( isZeroFreeTerm );
 	} );
+}
+
+//----------------------------------------------------------------------------------------------
+
+void LoraExceptSwitchLearnings( CDnnLayerGraph& graph, bool enable )
+{
+	auto impl = [enable]( CDnnLayerGraph& graph, auto&& impl ) -> void
+	{
+		CArray<const char*> layerNames;
+		graph.GetLayerList( layerNames );
+
+		for( const char* layerName : layerNames ) {
+			CBaseLayer* layer = graph.GetLayer( layerName ).Ptr();
+
+			ILowRankAdapted* loraFc = dynamic_cast<ILowRankAdapted*>( layer );
+			if( loraFc != nullptr ) {
+				continue; // skip any lora layers
+			}
+
+			CCompositeLayer* composite = dynamic_cast<CCompositeLayer*>( layer );
+			if( composite != nullptr ) {
+				impl( *composite, impl );
+				continue; // skip any composite layers
+			}
+
+			if( enable ) {
+				layer->EnableLearning();
+			} else {
+				layer->DisableLearning();
+			}
+		}
+	};
+
+	impl( graph, impl );
+}
+
+//----------------------------------------------------------------------------------------------
+
+int CLoraSerializer::storeLora( CDnn& dnn, CArchive& archive )
+{
+	NeoAssert( archive.IsStoring() );
+	( void ) archive.SerializeVersion( loraSerializerVersion );
+
+	CArray<CString> layerPath; // recurrenting accumulation
+
+	auto impl = [&archive, &layerPath]( CDnnLayerGraph& graph, auto&& impl ) -> int
+	{
+		CArray<const char*> layerNames;
+		graph.GetLayerList( layerNames );
+
+		int loraLayerCount = 0;
+		for( const char* layerName : layerNames ) {
+			CBaseLayer* layer = graph.GetLayer( layerName ).Ptr();
+
+			static_assert( LLT_Count == 2, "LLT_Count != 2, LLT_FullyConnected + LLT_End" );
+			// LoRA layer is inherited of CCompositeLayer, check first
+			CLoraFullyConnectedLayer* loraFc = dynamic_cast<CLoraFullyConnectedLayer*>( layer );
+			if( loraFc != nullptr ) {
+				// For now only fully-connected is supported but in future embedding will probably be supported
+				int loraType = LLT_FullyConnected;
+				archive.Serialize( loraType );
+
+				// Store full path to this layer
+				// We don't use CBaseLayer::GetPath() here because we may get indistinguashable paths
+				// when path separator is used inside of layer names (which sometimes the case esp for exported nets)
+				// e.g. "ROOT" / "BLOCK0" / "FC0" vs. "ROOT/BLOCK0" / "FC0" both have path "ROOT/BLOCK0/FC0"
+				layerPath.Add( loraFc->GetName() );
+				archive.Serialize( layerPath );
+				layerPath.DeleteLast();
+
+				loraFc->SetStoreSeparateLoRA( true );
+				loraFc->SerializeWeightsLoRA( archive );
+
+				++loraLayerCount;
+				continue;
+			}
+
+			CCompositeLayer* composite = dynamic_cast<CCompositeLayer*>( layer );
+			if( composite != nullptr ) {
+				// Updating current path and make recurrent call
+				layerPath.Add( composite->GetName() );
+				loraLayerCount += impl( *composite, impl );
+				layerPath.DeleteLast();
+			}
+		}
+		return loraLayerCount;
+	};
+
+	const int loraLayerCount = impl( dnn, impl ); // Store weights and calculate the amount of LoRA layers
+
+	int loraType = LLT_End;
+	archive.Serialize( loraType );
+	return loraLayerCount;
+}
+
+int CLoraSerializer::loadLora( CDnn& dnn, CArchive& archive )
+{
+	NeoAssert( archive.IsLoading() );
+	( void ) archive.SerializeVersion( loraSerializerVersion );
+
+	int loraLayerCount = 0;
+	while( true ) {
+		int layerType = LLT_Count;
+		archive.Serialize( layerType );
+		if( layerType == LLT_End ) {
+			return loraLayerCount;
+		}
+		check( layerType < LLT_End, ERR_BAD_ARCHIVE, archive.Name() ); // Check LoRA supported layers only
+
+		CArray<CString> layerPath;
+		archive.Serialize( layerPath );
+
+		CDnnLayerGraph* graph = &dnn;
+		// Iterating from root dnn over all the composites
+		for( int i = 0; i < layerPath.Size() - 1; ++i ) {
+			CCompositeLayer* composite = dynamic_cast<CCompositeLayer*>( graph->GetLayer( layerPath[i] ).Ptr() );
+			check( composite != nullptr, ERR_BAD_ARCHIVE, archive.Name() ); // Intermediate layer in path must be composite
+			graph = composite;
+		}
+		check( layerPath.Size() >= 1, ERR_BAD_ARCHIVE, archive.Name() ); // Path must contain at least name of last layer
+
+		static_assert( LLT_Count == 2, "LLT_Count != 2, LLT_FullyConnected + LLT_End" );
+		// Now LoRA is only supported FullyConnectedLayer
+		CLoraFullyConnectedLayer* loraFc = dynamic_cast<CLoraFullyConnectedLayer*>( graph->GetLayer( layerPath.Last() ).Ptr() );
+		check( loraFc != nullptr, ERR_BAD_ARCHIVE, archive.Name() ); // Mismatch between CDnn and LoRA weights (layer is missing)
+
+		loraFc->SetStoreSeparateLoRA( true );
+		loraFc->SerializeWeightsLoRA( archive );
+		++loraLayerCount;
+	}
+}
+
+int CLoraSerializer::Serialize( CDnn& dnn, CArchive& archive )
+{
+	if( archive.IsStoring() ) {
+		return storeLora( dnn, archive );
+	} else if( archive.IsLoading() ) {
+		return loadLora( dnn, archive );
+	}
+
+	NeoAssert( false );
+	return 0;
+}
+
+int CLoraSerializer::Serialize( CDistributedTraining& distributed, CArchive& archive )
+{
+	NeoAssert( distributed.GetModelCount() > 0 );
+	if( archive.IsStoring() ) {
+		// Inside distributed weights are in sync so we need to serialize only one of them
+		return storeLora( *distributed.cnns[0], archive );
+	} else if( archive.IsLoading() ) {
+		// Load LoRA weights into every net inside distributed
+		const int64_t pos = archive.GetPosition();
+		const int loadedLayers = loadLora( *distributed.cnns[0], archive );
+		for( int i = 1; i < distributed.cnns.Size(); ++i ) {
+			archive.Seek( pos, CBaseFile::begin );
+			check( loadLora( *distributed.cnns[i], archive ) == loadedLayers, ERR_BAD_ARCHIVE, archive.Name() );
+		}
+		return loadedLayers;
+	}
+
+	NeoAssert( false );
+	return 0;
+}
+
+int CLoraSerializer::SerializeCheckpoint( CDnn& dnn, CArchive& archive )
+{
+	// Serializing LoRA weights
+	const int result = Serialize( dnn, archive );
+	// Serialize solver
+	CPtr<CDnnSolver> solverPtr = nullptr;
+	if( archive.IsStoring() ) {
+		solverPtr = dnn.GetSolver();
+	}
+	SerializeSolver( archive, dnn, solverPtr );
+	if( archive.IsLoading() ) {
+		dnn.SetSolver( solverPtr );
+	}
+	return result;
 }
 
 } // namespace NeoML

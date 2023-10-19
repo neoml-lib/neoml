@@ -20,6 +20,9 @@ limitations under the License.
 
 namespace NeoML {
 
+// Forward declaration
+class CLoraSerializer;
+
 // Interface for setting input to a neural network
 class IDistributedDataset {
 public:
@@ -83,6 +86,9 @@ public:
 	// Save the trained net with the given `index` with its solver state (optional)
 	// An archive with solver state can later be passed to CDnn::SerializeCheckpoint to resume training
 	void StoreDnn( CArchive& archive, int index, bool storeSolver );
+	// Apply a commnad for the LoRA layers inside all nets
+	using TLoraCommand = void( * )( CDnn& );
+	void LoraApplyCommand( TLoraCommand command ) { for( CDnn* cnn : cnns ) { command( *cnn ); } }
 
 private:
 	const bool isCpu;
@@ -95,6 +101,8 @@ private:
 	CString errorMessage;
 
 	void initialize( CArchive& archive, int count, TDistributedInitializer initializer, int seed );
+
+	friend class CLoraSerializer;
 };
 
 } // namespace NeoML

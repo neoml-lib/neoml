@@ -78,7 +78,7 @@ class CActivationDesc;
 //          - BatchWidth and ListSize are equal to the corresponding dims of the first input
 //          - BatchLength, Height, Width and Depth are equal to 1
 //          - Channels is equal to the Channels of the first input
-class NEOML_API CTransformerEncoderLayer : public CCompositeLayer {
+class NEOML_API CTransformerEncoderLayer : public CCompositeLayer, public ILowRankAdapted {
 	NEOML_DNN_LAYER( CTransformerEncoderLayer )
 public:
 	explicit CTransformerEncoderLayer( IMathEngine& mathEngine );
@@ -95,12 +95,15 @@ public:
 	void SetHiddenSize( int hiddenSize );
 
 	// LoRA
-	void BuildLoRA( int rank, float alpha, float dropoutRate = 0.f );
-	void MergeWeightsLoRA();
-	void DestroyUnmergedLoRA();
-	int GetRankLoRA() const;
-	float GetAlphaLoRA() const;
-	float GetDropoutRateLoRA() const;
+	void BuildLoRA( int rank, float alpha, float dropoutRate = 0.f ) override;
+	void MergeWeightsLoRA() override;
+	void DestroyUnmergedLoRA() override;
+	int GetRankLoRA() const override;
+	float GetAlphaLoRA() const override;
+	float GetDropoutRateLoRA() const override;
+	bool GetStoreSeparateLoRA() const override;
+	void SetStoreSeparateLoRA( bool storeSeparate ) override;
+	void SerializeWeightsLoRA( CArchive& ) override;
 
 	// Dropout rate
 	float GetDropoutRate() const;

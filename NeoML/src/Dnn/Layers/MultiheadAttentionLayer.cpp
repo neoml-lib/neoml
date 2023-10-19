@@ -180,47 +180,23 @@ void CMultiheadAttentionLayer::Serialize( CArchive& archive )
 
 void CMultiheadAttentionLayer::BuildLoRA( int rank, float alpha, float dropoutRate )
 {
-	NeoAssert( fcQ != nullptr );
-	fcQ->BuildLoRA( rank, alpha, dropoutRate );
-
-	NeoAssert( fcK != nullptr );
-	fcK->BuildLoRA( rank, alpha, dropoutRate );
-
-	NeoAssert( fcV != nullptr );
-	fcV->BuildLoRA( rank, alpha, dropoutRate );
-
-	NeoAssert( fcOutput != nullptr );
-	fcOutput->BuildLoRA( rank, alpha, dropoutRate );
+	LoraApplyCommand( *this,
+		[rank, alpha, dropoutRate]( ILowRankAdapted& lora ) { lora.BuildLoRA( rank, alpha, dropoutRate ); },
+		/*existedLayers*/4 );
 }
 
 void CMultiheadAttentionLayer::MergeWeightsLoRA()
 {
-	NeoAssert( fcQ != nullptr );
-	fcQ->MergeWeightsLoRA();
-
-	NeoAssert( fcK != nullptr );
-	fcK->MergeWeightsLoRA();
-
-	NeoAssert( fcV != nullptr );
-	fcV->MergeWeightsLoRA();
-
-	NeoAssert( fcOutput != nullptr );
-	fcOutput->MergeWeightsLoRA();
+	LoraApplyCommand( *this,
+		[]( ILowRankAdapted& lora ) { lora.MergeWeightsLoRA(); },
+		/*existedLayers*/4 );
 }
 
 void CMultiheadAttentionLayer::DestroyUnmergedLoRA()
 {
-	NeoAssert( fcQ != nullptr );
-	fcQ->DestroyUnmergedLoRA();
-
-	NeoAssert( fcK != nullptr );
-	fcK->DestroyUnmergedLoRA();
-
-	NeoAssert( fcV != nullptr );
-	fcV->DestroyUnmergedLoRA();
-
-	NeoAssert( fcOutput != nullptr );
-	fcOutput->DestroyUnmergedLoRA();
+	LoraApplyCommand( *this,
+		[]( ILowRankAdapted& lora ) { lora.DestroyUnmergedLoRA(); },
+		/*existedLayers*/4 );
 }
 
 int CMultiheadAttentionLayer::GetRankLoRA() const
@@ -236,6 +212,25 @@ float CMultiheadAttentionLayer::GetAlphaLoRA() const
 float CMultiheadAttentionLayer::GetDropoutRateLoRA() const
 {
 	return ( fcQ != nullptr ) ? fcQ->GetDropoutRateLoRA() : 0.f;
+}
+
+bool CMultiheadAttentionLayer::GetStoreSeparateLoRA() const
+{
+	return ( fcQ != nullptr ) ? fcQ->GetStoreSeparateLoRA() : true;
+}
+
+void CMultiheadAttentionLayer::SetStoreSeparateLoRA( bool storeSeparate )
+{
+	LoraApplyCommand( *this,
+		[storeSeparate]( ILowRankAdapted& lora ) { lora.SetStoreSeparateLoRA( storeSeparate ); },
+		/*existedLayers*/4 );
+}
+
+void CMultiheadAttentionLayer::SerializeWeightsLoRA( CArchive& archive )
+{
+	LoraApplyCommand( *this,
+		[&archive]( ILowRankAdapted& lora ) { lora.SerializeWeightsLoRA( archive ); },
+		/*existedLayers*/4 );
 }
 
 void CMultiheadAttentionLayer::Reshape()

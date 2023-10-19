@@ -197,38 +197,23 @@ void CTransformerEncoderLayer::SetMaskType( CMultiheadAttentionLayer::TMaskType 
 
 void CTransformerEncoderLayer::BuildLoRA( int rank, float alpha, float dropoutRate )
 {
-	NeoAssert( selfAttention != nullptr );
-	selfAttention->BuildLoRA( rank, alpha, dropoutRate );
-
-	NeoAssert( fc1 != nullptr );
-	fc1->BuildLoRA( rank, alpha, dropoutRate );
-
-	NeoAssert( fc2 != nullptr );
-	fc2->BuildLoRA( rank, alpha, dropoutRate );
+	LoraApplyCommand( *this,
+		[rank, alpha, dropoutRate]( ILowRankAdapted& lora ) { lora.BuildLoRA( rank, alpha, dropoutRate ); },
+		/*existedLayers*/3 );
 }
 
 void CTransformerEncoderLayer::MergeWeightsLoRA()
 {
-	NeoAssert( selfAttention != nullptr );
-	selfAttention->MergeWeightsLoRA();
-
-	NeoAssert( fc1 != nullptr );
-	fc1->MergeWeightsLoRA();
-
-	NeoAssert( fc2 != nullptr );
-	fc2->MergeWeightsLoRA();
+	LoraApplyCommand( *this,
+		[]( ILowRankAdapted& lora ) { lora.MergeWeightsLoRA(); },
+		/*existedLayers*/3 );
 }
 
 void CTransformerEncoderLayer::DestroyUnmergedLoRA()
 {
-	NeoAssert( selfAttention != nullptr );
-	selfAttention->DestroyUnmergedLoRA();
-
-	NeoAssert( fc1 != nullptr );
-	fc1->DestroyUnmergedLoRA();
-
-	NeoAssert( fc2 != nullptr );
-	fc2->DestroyUnmergedLoRA();
+	LoraApplyCommand( *this,
+		[]( ILowRankAdapted& lora ) { lora.DestroyUnmergedLoRA(); },
+		/*existedLayers*/3 );
 }
 
 int CTransformerEncoderLayer::GetRankLoRA() const
@@ -244,6 +229,25 @@ float CTransformerEncoderLayer::GetAlphaLoRA() const
 float CTransformerEncoderLayer::GetDropoutRateLoRA() const
 {
 	return ( fc1 != nullptr ) ? fc1->GetDropoutRateLoRA() : 0.f;
+}
+
+bool CTransformerEncoderLayer::GetStoreSeparateLoRA() const
+{
+	return ( fc1 != nullptr ) ? fc1->GetStoreSeparateLoRA() : true;
+}
+
+void CTransformerEncoderLayer::SetStoreSeparateLoRA( bool storeSeparate )
+{
+	LoraApplyCommand( *this,
+		[storeSeparate]( ILowRankAdapted& lora ) { lora.SetStoreSeparateLoRA( storeSeparate ); },
+		/*existedLayers*/3 );
+}
+
+void CTransformerEncoderLayer::SerializeWeightsLoRA( CArchive& archive )
+{
+	LoraApplyCommand( *this,
+		[&archive]( ILowRankAdapted& lora ) { lora.SerializeWeightsLoRA( archive ); },
+		/*existedLayers*/3 );
 }
 
 void CTransformerEncoderLayer::Reshape()

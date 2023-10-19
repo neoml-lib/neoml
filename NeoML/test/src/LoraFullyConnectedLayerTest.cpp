@@ -124,6 +124,7 @@ static void testImpl( const CLoraTestParams& params )
 	CDnn dnn( random, MathEngine() );
 
 	buildDnn( dnn, outputSize );
+	CheckCast<CLoraFullyConnectedLayer>( dnn.GetLayer( "full" ) )->SetStoreSeparateLoRA( false );
 	setDnnInputs( dnn, outputSize );
 
 	dnn.RunAndLearnOnce();
@@ -322,6 +323,7 @@ TEST( LoraFullyConnectedLayerTest, LoadLoraSaved )
 
 	buildDnn( dnn, outputSize );
 	setDnnInputs( dnn, outputSize );
+	CheckCast<CLoraFullyConnectedLayer>( dnn.GetLayer( "full" ) )->SetStoreSeparateLoRA( false );
 
 	CheckCast<CLoraFullyConnectedLayer>( dnn.GetLayer( "full" ) )->BuildLoRA( /*rank*/3, /*alpha*/1.f, /*dropout*/0.f );
 	{ // store the Lora is built and isn't learned
@@ -364,6 +366,7 @@ TEST( LoraFullyConnectedLayerTest, LoadLoraNotSaved )
 
 	dnn.RunAndLearnOnce();
 
+	CheckCast<CLoraFullyConnectedLayer>( dnn.GetLayer( "full" ) )->SetStoreSeparateLoRA( false );
 	CheckCast<CLoraFullyConnectedLayer>( dnn.GetLayer( "full" ) )->BuildLoRA( /*rank*/3, /*alpha*/1.f, /*dropout*/0.f );
 	{ // load the Lora is destroyed (if Lora is built)
 		CArchiveFile file( "lora.archive", CArchive::load, GetPlatformEnv() );
@@ -513,6 +516,25 @@ static void setTransformerInput( CDnn& dnn, CPtr<CDnnBlob> widthsBlob, CPtr<CDnn
 	CheckCast<CSourceLayer>( dnn.GetLayer( "Q" ) )->SetBlob( qBlob );
 }
 
+static void testTransformerArchive( CDnn& dnn )
+{
+	const bool haveLora = CheckCast<CTransformerEncoderLayer>( dnn.GetLayer( "transformer" ) )->GetRankLoRA() > 0;
+	if( haveLora ) {
+		CArchiveFile file( "transformerLora.cnnarch", CArchive::store, GetPlatformEnv() );
+		CArchive archive( &file, CArchive::store );
+		CheckCast<CTransformerEncoderLayer>( dnn.GetLayer( "transformer" ) )->SerializeWeightsLoRA( archive );
+		CheckCast<CTransformerEncoderLayer>( dnn.GetLayer( "transformer" ) )->DestroyUnmergedLoRA();
+	}
+
+	testArchive( dnn, "transformerItself.cnnarch", /*setSolver*/false );
+
+	if( haveLora ) {
+		CArchiveFile file( "transformerLora.cnnarch", CArchive::load, GetPlatformEnv() );
+		CArchive archive( &file, CArchive::load );
+		CheckCast<CTransformerEncoderLayer>( dnn.GetLayer( "transformer" ) )->SerializeWeightsLoRA( archive );
+	}
+}
+
 } // namespace NeoMLTest
 
 //---------------------------------------------------------------------------------------------------------------------------------------
@@ -534,21 +556,21 @@ TEST( LoraFullyConnectedLayerTest, Transformer )
 
 	testLearn( dnn, epochs );
 
-	testArchive( dnn, "transformerLora.cnnarch", /*setSolver*/false );
+	testTransformerArchive( dnn );
 	setTransformerInput( dnn, widthsBlob, qBlob );
 
 	CheckCast<CTransformerEncoderLayer>( dnn.GetLayer( "transformer" ) )->BuildLoRA( /*rank*/2, /*alpha*/2.f, /*dropout*/0.2f );
 
 	testLearn( dnn, epochs );
 
-	testArchive( dnn, "transformerLora.cnnarch", /*setSolver*/false );
+	testTransformerArchive( dnn );
 	setTransformerInput( dnn, widthsBlob, qBlob );
 
 	CheckCast<CTransformerEncoderLayer>( dnn.GetLayer( "transformer" ) )->MergeWeightsLoRA();
 
 	testLearn( dnn, epochs );
 
-	testArchive( dnn, "transformerLora.cnnarch", /*setSolver*/false );
+	testTransformerArchive( dnn );
 	setTransformerInput( dnn, widthsBlob, qBlob );
 
 	dnn.RunOnce();
@@ -933,3 +955,256 @@ TEST( LoraFullyConnectedLayerTest, ConsistenceCheck )
 	}
 }
 
+//---------------------------------------------------------------------------------------------------------------------------------------
+
+namespace NeoMLTest {
+
+static CPtr<CDnnBlob> generateLoraFcBLob( int objectCount, int objectSize )
+{
+	CPtr<CDnnBlob> blob = CDnnBlob::CreateDataBlob( MathEngine(), CT_Float, 1, objectCount, objectSize );
+	CRandom random( ( blob->GetDataSize() << 6 ) + objectCount * 17 - objectSize * 31 );
+	CREATE_FILL_FLOAT_ARRAY( rawData, -1, 1, blob->GetDataSize(), random );
+	blob->CopyFrom( rawData.GetPtr() );
+	return blob;
+}
+
+static void setLoraFcInputs( CDnn& dnn, int inputSize, int outputSize )
+{
+	CArray<float> inArr;
+	inArr.Add( 0.01f, inputSize );
+	CPtr<CDnnBlob> in = CDnnBlob::CreateTensor( dnn.GetMathEngine(), CT_Float, { 1, 1, 1, 1, 1, 1, inputSize } );
+	in->CopyFrom( inArr.GetPtr() );
+
+	CArray<float> labelArr;
+	labelArr.Add( 1.f, outputSize );
+	CPtr<CDnnBlob> labels = CDnnBlob::CreateTensor( dnn.GetMathEngine(), CT_Float, { 1, 1, 1, 1, 1, 1, outputSize } );
+	labels->CopyFrom( labelArr.GetPtr() );
+
+	CheckCast<CSourceLayer>( dnn.GetLayer( "in" ) )->SetBlob( in );
+	CheckCast<CSourceLayer>( dnn.GetLayer( "label" ) )->SetBlob( labels );
+}
+
+static void buildLoraTestDnn( CBaseLayer& coreLayer )
+{
+	CDnn& dnn = *coreLayer.GetDnn();
+	IMathEngine& mathEngine = dnn.GetMathEngine();
+	CPtr<CSourceLayer> dataLayer = new CSourceLayer( mathEngine );
+	dataLayer->SetName( "in" );
+	dataLayer->StoreBlob( true );
+	dnn.AddLayer( *dataLayer );
+
+	coreLayer.Connect( *dataLayer );
+
+	CPtr<CSourceLayer> label = new CSourceLayer( mathEngine );
+	label->SetName( "label" );
+	label->StoreBlob( true );
+	dnn.AddLayer( *label );
+
+	CPtr<CEuclideanLossLayer> loss = new CEuclideanLossLayer( mathEngine );
+	loss->SetName( "loss" );
+	loss->Connect( 0, coreLayer );
+	loss->Connect( 1, *label );
+	dnn.AddLayer( *loss );
+
+	CPtr<CSinkLayer> out = new CSinkLayer( mathEngine );
+	out->SetName( "sink" );
+	out->Connect( coreLayer );
+	dnn.AddLayer( *out );
+
+	CPtr<CDnnSolver> solver = new CDnnAdaptiveGradientSolver( mathEngine );
+	dnn.SetSolver( solver.Ptr() );
+}
+
+static void buildLoraFcDnn( CDnn& dnn, int inputSize, int outputSize, float dropout )
+{
+	CPtr<CDnnBlob> baseFcWeights = generateLoraFcBLob( outputSize, inputSize );
+	CPtr<CDnnBlob> baseFcFreeTerms = generateLoraFcBLob( 1, outputSize );
+
+	CPtr<CLoraFullyConnectedLayer> full = new CLoraFullyConnectedLayer( MathEngine(), "full" );
+	full->SetNumberOfElements( baseFcWeights->GetObjectCount() );
+	full->Weights() = baseFcWeights; // No copy
+	full->FreeTerms() = baseFcFreeTerms; // No copy
+	full->BuildLoRA( 4, 8.f, dropout ); // dropout must be off, otherwise math won't match
+	dnn.AddLayer( *full );
+
+	buildLoraTestDnn( *full );
+	setLoraFcInputs( dnn, inputSize, outputSize );
+}
+
+} // namespace NeoMLTest
+
+TEST( LoraFullyConnectedLayerTest, Initialization )
+{
+	const int inputSize = 6;
+	const int outputSize = 8;
+
+	CPtr<CDnnBlob> baseFcWeights = generateLoraFcBLob( outputSize, inputSize );
+	CPtr<CLoraFullyConnectedLayer> loraFc = new CLoraFullyConnectedLayer( MathEngine(), "full" );
+	loraFc->SetNumberOfElements( baseFcWeights->GetObjectCount() );
+	loraFc->Weights() = baseFcWeights; // No copy
+	loraFc->BuildLoRA( 4, 8.f, 0.1f );
+
+	// Check that uninitialized A and B are nullptrs
+	EXPECT_EQ( nullptr, loraFc->AWeightsLoRA().Ptr() );
+	EXPECT_EQ( nullptr, loraFc->BWeightsLoRA().Ptr() );
+
+	// Check that baseFc weights were taken by loraFc without copying
+	EXPECT_EQ( baseFcWeights.Ptr(), loraFc->Weights().Ptr() );
+
+	baseFcWeights = baseFcWeights->GetCopy();
+	loraFc->MergeWeightsLoRA();
+	// Check that in unitialized state merge/split doesn't cause any changes
+	EXPECT_TRUE( CompareBlobs( *baseFcWeights, *loraFc->Weights(), FLT_EPSILON ) );
+	loraFc->DestroyUnmergedLoRA();
+	EXPECT_TRUE( CompareBlobs( *baseFcWeights, *loraFc->Weights(), FLT_EPSILON ) );
+
+	// Copy through serialization
+	{
+		CMemoryFile file;
+		CPtr<CBaseLayer> baseLoraFc = loraFc.Ptr();
+		loraFc.Release();
+		{
+			CArchive archive( &file, CArchive::store );
+			SerializeLayer( archive, MathEngine(), baseLoraFc );
+		}
+		baseLoraFc.Release();
+		file.SeekToBegin();
+		{
+			CArchive archive( &file, CArchive::load );
+			SerializeLayer( archive, MathEngine(), baseLoraFc );
+		}
+		loraFc = CheckCast<CLoraFullyConnectedLayer>( baseLoraFc );
+	}
+
+	// Check that uninitialized A and B are nullptrs
+	EXPECT_EQ( nullptr, loraFc->AWeightsLoRA().Ptr() );
+	EXPECT_EQ( nullptr, loraFc->BWeightsLoRA().Ptr() );
+	// After copying through serialization check only blob contents
+	EXPECT_TRUE( CompareBlobs( *baseFcWeights, *loraFc->Weights(), FLT_EPSILON ) );
+}
+
+TEST( LoraFullyConnectedLayerTest, InferenceAndLearning )
+{
+	constexpr int inputSize = 32;
+	constexpr int outputSize = 16;
+
+	CRandom random( 0x645 );
+	CDnn dnn( random, MathEngine() );
+	buildLoraFcDnn( dnn, inputSize, outputSize, /*dropout*/0.f );
+	setLoraFcInputs( dnn, inputSize, outputSize );
+
+	CPtr<CLoraFullyConnectedLayer> loraFc = CheckCast<CLoraFullyConnectedLayer>( dnn.GetLayer( "full" ) );
+	CDnnBlob* baseWeightsPtr = loraFc->Weights().Ptr();
+	CPtr<CDnnBlob> copyBaseWeights = baseWeightsPtr->GetCopy();
+
+	// Now merge to base weights before RunOnce
+	loraFc->MergeWeightsLoRA();
+	// Check that weights of A and B are unintialized
+	EXPECT_EQ( NULL, loraFc->AWeightsLoRA().Ptr() );
+	EXPECT_EQ( NULL, loraFc->BWeightsLoRA().Ptr() );
+
+	for( int iteration = 0; iteration < 5; ++iteration ) {
+		// Check that layer after merge works
+		dnn.RunOnce();
+		// Check that no reallocation occured
+		EXPECT_EQ( baseWeightsPtr, loraFc->Weights().Ptr() );
+
+		// Store the output
+		CPtr<CSinkLayer> sink = CheckCast<CSinkLayer>( dnn.GetLayer( "sink" ) );
+		CPtr<CDnnBlob> copyOfOutput = sink->GetBlob()->GetCopy();
+
+		loraFc->BuildLoRA( 4, 8.f, /*dropout*/0.f );
+		dnn.RunAndLearnOnce();
+
+		// Check that previously uninitialized weights were initialized
+		EXPECT_NE( nullptr, loraFc->AWeightsLoRA().Ptr() );
+		EXPECT_NE( nullptr, loraFc->BWeightsLoRA().Ptr() );
+		// Check that during training layer's original weights are untouched
+		EXPECT_TRUE( CompareBlobs( *baseWeightsPtr, *loraFc->Weights() ) );
+		// Check that no reallocation
+		EXPECT_EQ( baseWeightsPtr, loraFc->Weights().Ptr() );
+		// Check that output during first iteration of training matches last output before training
+		EXPECT_TRUE( loraFc->GetDropoutRateLoRA() <= 0.f || CompareBlobs( *copyOfOutput, *sink->GetBlob() ) );
+
+		// Now merge to base weights before RunOnce again
+		loraFc->MergeWeightsLoRA();
+		// The base weights must be at the same location and size
+		EXPECT_EQ( baseWeightsPtr, loraFc->Weights().Ptr() );
+		EXPECT_TRUE( copyBaseWeights->HasEqualDimensions( loraFc->Weights().Ptr() ) );
+		// The base weights must contain different (merged) weights
+		EXPECT_FALSE( CompareBlobs( *copyBaseWeights, *loraFc->Weights() ) );
+		copyBaseWeights = baseWeightsPtr->GetCopy();
+	}
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+namespace NeoMLTest {
+
+static void loraFcSerializerTestImpl( bool initialize, bool discardBeforeLoad )
+{
+	// Setting bigger size (full weights will be ioSize x ioSize matrix)
+	constexpr int ioSize = 100;
+	constexpr __int64 fullMatrixSize = static_cast<__int64>( sizeof( float ) * ioSize * ioSize );
+
+	CRandom random( 0xABBA );
+	CDnn dnn( random, MathEngine() );
+	buildLoraFcDnn( dnn, ioSize, ioSize, /*dropout*/0.1f );
+
+	if( initialize ) {
+		dnn.RunAndLearnOnce();
+	}
+
+	CPtr<CLoraFullyConnectedLayer> loraFc = CheckCast<CLoraFullyConnectedLayer>( dnn.GetLayer( "full" ) );
+	CPtr<CDnnBlob> aWeights = loraFc->AWeightsLoRA() == nullptr ? nullptr : loraFc->AWeightsLoRA()->GetCopy();
+	CPtr<CDnnBlob> bWeights = loraFc->BWeightsLoRA() == nullptr ? nullptr : loraFc->BWeightsLoRA()->GetCopy();
+
+	CMemoryFile file;
+	{
+		CArchive archive( &file, CArchive::store );
+		ASSERT_EQ( 1, CLoraSerializer::Serialize( dnn, archive ) );
+	}
+	// Check that we didn't serialize full matrix
+	ASSERT_GT( fullMatrixSize / 2, file.GetLength() );
+
+	// Let's change weights and roll back to those from serialization
+	dnn.RunAndLearnOnce();
+
+	if( initialize ) {
+		// check that weights changed after last RunAndLearnOnce
+		EXPECT_FALSE( CompareBlobs( *aWeights, *loraFc->AWeightsLoRA(), FLT_EPSILON ) );
+		EXPECT_FALSE( CompareBlobs( *bWeights, *loraFc->BWeightsLoRA(), FLT_EPSILON ) );
+	}
+
+	if( discardBeforeLoad ) {
+		// Destroy previous data
+		loraFc->DestroyUnmergedLoRA();
+	}
+
+	file.SeekToBegin();
+	{
+		CArchive archive( &file, CArchive::SD_Loading );
+		ASSERT_EQ( 1, CLoraSerializer::Serialize( dnn, archive ) );
+	}
+
+	if( initialize ) {
+		EXPECT_TRUE( loraFc->GetRankLoRA() == 4 );
+		// Check that after serialization A and B matrices were rolled back
+		EXPECT_TRUE( CompareBlobs( *aWeights, *loraFc->AWeightsLoRA() ) );
+		EXPECT_TRUE( CompareBlobs( *bWeights, *loraFc->BWeightsLoRA() ) );
+	} else {
+		EXPECT_EQ( nullptr, loraFc->AWeightsLoRA().Ptr() );
+		EXPECT_EQ( nullptr, loraFc->BWeightsLoRA().Ptr() );
+	}
+}
+
+} // namespace NeoMLTest
+
+TEST( LoraFullyConnectedLayerSerializerTest, LoraFc )
+{
+	for( bool initialize : { true, false } ) {
+		for( bool discardBeforeLora : { true, false } ) {
+			loraFcSerializerTestImpl( initialize, discardBeforeLora );
+		}
+	}
+}
