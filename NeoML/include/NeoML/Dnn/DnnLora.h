@@ -97,7 +97,9 @@ private:
 // A special mechanism which allows to serialize only LoRA weights of CDnn
 class NEOML_API CLoraSerializer {
 public:
-	// Returns the number of LoRA layers whose weights were stored
+	// Returns the number of LoRA layers whose weights were stored/load
+	// Weights can be loaded into net with both wrappers or original layers
+	// In second case LoRA wrappers will be built on the fly
 	int Serialize( CDnn& dnn, CArchive& archive ) const;
 	
 	// LoRA checkpoint is serialized LoRA weights + solver (same as CDnn)

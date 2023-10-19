@@ -392,6 +392,7 @@ static void loraFcSerializerTestImpl( bool initialize, bool discardBeforeLoad )
 	}
 
 	if( discardBeforeLoad ) {
+		// This will replace lora wrappers with fcs which will allow us to test loading over raw fcs
 		ASSERT_EQ( 1, CLoraBuilder().DiscardAllFcWrappers( dnn ) );
 	}
 
