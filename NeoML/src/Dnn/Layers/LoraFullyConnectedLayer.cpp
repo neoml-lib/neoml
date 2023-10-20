@@ -83,7 +83,7 @@ void CLoraFullyConnectedLayer::UpdateParams( const CLoraParams& newParams, CDnnB
 
 	dropout->SetDropoutRate( newParams.Dropout );
 	fcA->SetNumberOfElements( newParams.Rank );
-	scaling->SetMultiplier( newParams.Alpha );
+	scaling->SetMultiplier( newParams.Alpha / newParams.Rank );
 
 	fcA->Weights() = newA;
 	fcB->Weights() = newB;
@@ -135,7 +135,7 @@ void CLoraFullyConnectedLayer::initialize( const CLoraParams& params )
 
 	scaling = FINE_DEBUG_NEW CLinearLayer( MathEngine() );
 	scaling->SetName( scalingName );
-	scaling->SetMultiplier( params.Alpha );
+	scaling->SetMultiplier( params.Alpha / params.Rank );
 	scaling->SetFreeTerm( 0.f );
 
 	sum = FINE_DEBUG_NEW CEltwiseSumLayer( MathEngine() );

@@ -65,7 +65,7 @@ public:
 
 	int OutputSize() const { return baseFc->GetNumberOfElements(); }
 	int Rank() const { return fcA->GetNumberOfElements(); }
-	float Alpha() const { return scaling->GetMultiplier(); }
+	float Alpha() const { return scaling->GetMultiplier() * Rank(); }
 	float Dropout() const { return dropout->GetDropoutRate(); }
 
 	void UpdateParams( const CLoraParams& newParams, CDnnBlob* newA, CDnnBlob* newB );
