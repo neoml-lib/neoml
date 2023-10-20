@@ -3337,7 +3337,7 @@ GTEST_TEST( SerializeToFile, LoraFullyConnectedLayerSerialization )
 template<>
 inline void checkSpecificParams<CLoraFullyConnectedLayer>( CLoraFullyConnectedLayer& layer )
 {
-	checkBlob( *layer.GetSplitBaseWeightsNoCopy(), 2 * TestSize * TestSize );
+	checkBlob( *layer.GetSplitWeightsNoCopy(), 2 * TestSize * TestSize );
 	checkBlob( *layer.GetFreeTermsNoCopy(), TestSize );
 
 	ASSERT_EQ( layer.Rank(), 7 );
