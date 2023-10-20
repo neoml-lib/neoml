@@ -46,7 +46,7 @@ void InitializeDropoutLayer( py::module& m )
 		{
 			return new CPyDropoutLayer( *layer.Layer<CDropoutLayer>(), layer.MathEngineOwner() );
 		}))
-		.def( py::init([]( const std::string& name, const CPyLayer& layer, int outputNumber, float dropoutRate,
+		.def( py::init([]( const std::string& name, const py::list& layers, const py::list& outputs, float dropoutRate,
 			bool isSpatial, bool isBatchwise )
 		{
 			py::gil_scoped_release release;
@@ -58,8 +58,10 @@ void InitializeDropoutLayer( py::module& m )
 			dropout->SetBatchwise( isBatchwise );
 			dropout->SetName( FindFreeLayerName( dnn, "Dropout", name ).c_str() );
 			dnn.AddLayer( *dropout );
-			dropout->Connect( 0, layer.BaseLayer(), outputNumber );
-			return new CPyDropoutLayer( *dropout, layer.MathEngineOwner() );
+			for( int i = 0; i < layers.size(); ++i ) {
+				dropout->Connect( i, layers[i].cast<CPyLayer>().BaseLayer(), outputs[i].cast<int>() );
+			}
+			return new CPyDropoutLayer( *dropout, layers[0].cast<CPyLayer>().MathEngineOwner() );
 		}) )
 		.def( "get_rate", &CPyDropoutLayer::GetDropoutRate, py::return_value_policy::reference )
 		.def( "set_rate", &CPyDropoutLayer::SetDropoutRate, py::return_value_policy::reference )
