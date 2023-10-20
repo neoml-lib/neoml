@@ -380,8 +380,7 @@ static void loraFcSerializerTestImpl( bool initialize, bool discardBeforeLoad )
 		CArchive archive( &file, CArchive::SD_Storing );
 		ASSERT_EQ( 1, CLoraSerializer().Serialize( dnn, archive ) );
 	}
-	// Check that we didn't serialize full matrix
-	ASSERT_GT( fullMatrixSize / 2, file.GetLength() );
+	ASSERT_GT( fullMatrixSize / 2, file.GetLength() ); // Check that we didn't serialize full matrix
 
 	// Let's change weights and roll back to those from serialization
 	dnn.RunAndLearnOnce();
@@ -426,5 +425,67 @@ TEST( LoraSerializerTest, LoraFc )
 		for( bool discardBeforeLora : { true, false } ) {
 			loraFcSerializerTestImpl( initialize, discardBeforeLora );
 		}
+	}
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+
+TEST( LoraSerializerTest, Distributed )
+{
+	// We can use empty class cause the data blobs in this tests are serialized with CSourceLayer
+	class CTestDistDataset : public IDistributedDataset {
+		int SetInputBatch( CDnn&, int ) override { return 1; }
+	};
+
+	// Setting bigger size (full weights will be ioSize x ioSize matrix)
+	constexpr int ioSize = 100;
+	constexpr __int64 fullMatrixSize = static_cast<__int64>( sizeof( float ) * ioSize * ioSize );
+
+	CRandom random( 0xABBA );
+	CDnn dnn( random, MathEngine() );
+	buildLoraFcDnn( dnn, ioSize, ioSize, 0.1f );
+	CDistributedTraining distributed( dnn, 4 );
+	CTestDistDataset dataset;
+
+	distributed.RunAndLearnOnce( dataset ); // now A and B matrices are initialized
+
+	dnn.RunOnce();
+	CObjectArray<CDnnBlob> originalBlobs;
+	distributed.GetLastBlob( "sink", originalBlobs );
+	for( CPtr<CDnnBlob>& blob : originalBlobs ) {
+		blob = blob->GetCopy();
+	}
+
+	CMemoryFile file; // dump the matrices
+	{
+		CArchive archive( &file, CArchive::SD_Storing );
+		ASSERT_EQ( 1, CLoraSerializer().Serialize( distributed, archive ) );
+	}
+	ASSERT_GT( fullMatrixSize / 2, file.GetLength() ); // Check that we didn't serialize full matrix
+
+	// Let's make 1 iteration and check that output has been affected by it
+	distributed.RunAndLearnOnce( dataset );
+	CObjectArray<CDnnBlob> actualBlobs;
+	distributed.GetLastBlob( "sink", actualBlobs );
+
+	ASSERT_EQ( originalBlobs.Size(), actualBlobs.Size() );
+	for( int i = 0; i < originalBlobs.Size(); ++i ) {
+		EXPECT_FALSE( CompareBlobs( *originalBlobs[i], *actualBlobs[i] ) );
+	}
+
+	// now lets load LoRA into the distributed
+	{
+		file.SeekToBegin();
+		CArchive archive( &file, CArchive::SD_Loading );
+		ASSERT_EQ( 1, CLoraSerializer().Serialize( distributed, archive ) );
+		EXPECT_EQ( file.GetPosition(), file.GetLength() );
+	}
+
+	// Check that after loading distributed from archive restored the net to original state
+	distributed.RunOnce( dataset );
+	distributed.GetLastBlob( "sink", actualBlobs );
+	ASSERT_EQ( originalBlobs.Size(), actualBlobs.Size() );
+	for( int i = 0; i < originalBlobs.Size(); ++i ) {
+		EXPECT_FALSE( CompareBlobs( *originalBlobs[i], *actualBlobs[i] ) );
 	}
 }

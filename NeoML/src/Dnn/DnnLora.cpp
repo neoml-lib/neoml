@@ -17,7 +17,7 @@ limitations under the License.
 #pragma hdrstop
 
 #include <NeoML/Dnn/DnnLora.h>
-
+#include <NeoML/Dnn/DnnDistributed.h>
 #include <NeoML/Dnn/Layers/CompositeLayer.h>
 #include <NeoML/Dnn/Layers/LoraFullyConnectedLayer.h>
 
@@ -324,6 +324,27 @@ int CLoraSerializer::Serialize( CDnn& dnn, CArchive& archive ) const
 		return storeLora( dnn, archive );
 	} else if( archive.IsLoading() ) {
 		return loadLora( dnn, archive );
+	}
+
+	NeoAssert( false );
+	return 0;
+}
+
+int CLoraSerializer::Serialize( CDistributedTraining& distributed, CArchive& archive ) const
+{
+	NeoAssert( distributed.GetModelCount() > 0 );
+	if( archive.IsStoring() ) {
+		// Inside distributed weights are in sync so we need to serialize only one of them
+		return storeLora( *distributed.cnns[0], archive );
+	} else if( archive.IsLoading() ) {
+		// Load LoRA weights into every net inside distributed
+		const int64_t pos = archive.GetPosition();
+		const int loadedLayers = loadLora( *distributed.cnns[0], archive );
+		for( int i = 1; i < distributed.cnns.Size(); ++i ) {
+			archive.Seek( pos, CBaseFile::begin );
+			check( loadLora( *distributed.cnns[i], archive ) == loadedLayers, ERR_BAD_ARCHIVE, archive.Name() );
+		}
+		return loadedLayers;
 	}
 
 	NeoAssert( false );

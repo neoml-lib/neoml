@@ -17,9 +17,11 @@ limitations under the License.
 
 #include <NeoML/NeoMLDefs.h>
 #include <NeoML/Dnn/Dnn.h>
-#include <NeoML/Dnn/DnnDistributed.h>
 
 namespace NeoML {
+
+// Forward declaration
+class CDistributedTraining;
 
 // Implementation of Low-Ranked Adaption (LoRA)
 // https://arxiv.org/pdf/2106.09685v2.pdf
@@ -101,11 +103,11 @@ public:
 	// Weights can be loaded into net with both wrappers or original layers
 	// In second case LoRA wrappers will be built on the fly
 	int Serialize( CDnn& dnn, CArchive& archive ) const;
-	
+	// The same as above but for distributed training
+	int Serialize( CDistributedTraining& distributed, CArchive& archive ) const;
+
 	// LoRA checkpoint is serialized LoRA weights + solver (same as CDnn)
 	int SerializeCheckpoint( CDnn& dnn, CArchive& archive ) const;
-
-	// TODO: distributed ???
 };
 
 } // namespace NeoML

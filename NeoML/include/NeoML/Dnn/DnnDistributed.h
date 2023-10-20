@@ -20,6 +20,9 @@ limitations under the License.
 
 namespace NeoML {
 
+// Forward declaration
+class CLoraSerializer;
+
 // Interface for setting input to a neural network
 class IDistributedDataset {
 public:
@@ -95,6 +98,8 @@ private:
 	CString errorMessage;
 
 	void initialize( CArchive& archive, int count, TDistributedInitializer initializer, int seed );
+
+	friend class CLoraSerializer;
 };
 
 } // namespace NeoML
