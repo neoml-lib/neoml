@@ -258,10 +258,10 @@ double CGradientBoostingSquareLoss::CalcLossMean( const CArray< CArray<double> >
 namespace {
 
 // Abstract base class
-struct IPredictionsThreadTask : public IGradientBoostThreadTask {
+struct IGBoostPredictionsThreadTask : public IGradientBoostThreadTask {
 protected:
 	// Create a task
-	IPredictionsThreadTask( IThreadPool&, const IMultivariateRegressionProblem&,
+	IGBoostPredictionsThreadTask( IThreadPool&, const IMultivariateRegressionProblem&,
 		const CArray<CGradientBoostEnsemble>& models,
 		CArray<CArray<CGradientBoost::CPredictionCacheItem>>& predictCache,
 		CArray<CArray<double>>& predicts, CArray<CArray<double>>& answers,
@@ -289,7 +289,7 @@ protected:
 	CArray<CFastArray<double, 1>> Predictions{}; //intermediate result
 };
 
-IPredictionsThreadTask::IPredictionsThreadTask(
+IGBoostPredictionsThreadTask::IGBoostPredictionsThreadTask(
 		IThreadPool& threadPool,
 		const IMultivariateRegressionProblem& problem,
 		const CArray<CGradientBoostEnsemble>& models,
@@ -318,7 +318,7 @@ IPredictionsThreadTask::IPredictionsThreadTask(
 	}
 }
 
-void IPredictionsThreadTask::Run( int threadIndex, int startIndex, int count )
+void IGBoostPredictionsThreadTask::Run( int threadIndex, int startIndex, int count )
 {
 	const int endIndex = startIndex + count;
 	for( int index = startIndex; index < endIndex; ++index ) {
@@ -331,7 +331,7 @@ void IPredictionsThreadTask::Run( int threadIndex, int startIndex, int count )
 	}
 }
 
-void IPredictionsThreadTask::RunOnElement( int threadIndex, int index, int usedVectorIndex,
+void IGBoostPredictionsThreadTask::RunOnElement( int threadIndex, int index, int usedVectorIndex,
 	const CFloatVectorDesc& desc, const CFloatVector& value )
 {
 	if( IsMultiTreesModel ) {
@@ -358,9 +358,9 @@ void IPredictionsThreadTask::RunOnElement( int threadIndex, int index, int usedV
 //------------------------------------------------------------------------------------------------------------
 
 // Builds the ensemble predictions for a set of vectors
-struct CBuildPredictionsThreadTask : public IPredictionsThreadTask {
+struct CGBoostBuildPredictionsThreadTask : public IGBoostPredictionsThreadTask {
 	// Create a task
-	CBuildPredictionsThreadTask(
+	CGBoostBuildPredictionsThreadTask(
 			IThreadPool& threadPool,
 			const IMultivariateRegressionProblem& problem,
 			const CArray<CGradientBoostEnsemble>& models,
@@ -370,7 +370,7 @@ struct CBuildPredictionsThreadTask : public IPredictionsThreadTask {
 			const CArray<int>& usedVectors,
 			float learningRate,
 			bool isMultiTreesModel ) :
-		IPredictionsThreadTask( threadPool, problem, models,
+		IGBoostPredictionsThreadTask( threadPool, problem, models,
 			predictCache, predicts, answers, learningRate, isMultiTreesModel ),
 		UsedVectors( usedVectors )
 	{}
@@ -384,9 +384,9 @@ protected:
 //------------------------------------------------------------------------------------------------------------
 
 // Fills the prediction cache with the values of the full problem
-struct CBuildFullPredictionsThreadTask : public IPredictionsThreadTask {
+struct CGBoostBuildFullPredictionsThreadTask : public IGBoostPredictionsThreadTask {
 	// Create a task
-	CBuildFullPredictionsThreadTask( IThreadPool&, const IMultivariateRegressionProblem&,
+	CGBoostBuildFullPredictionsThreadTask( IThreadPool&, const IMultivariateRegressionProblem&,
 			const CArray<CGradientBoostEnsemble>& models,
 			CArray<CArray<CGradientBoost::CPredictionCacheItem>>& predictCache,
 			CArray<CArray<double>>& predicts, CArray<CArray<double>>& answers,
@@ -396,7 +396,7 @@ protected:
 	int UsedVectorIndex( int index ) const override { return index; }
 };
 
-CBuildFullPredictionsThreadTask::CBuildFullPredictionsThreadTask(
+CGBoostBuildFullPredictionsThreadTask::CGBoostBuildFullPredictionsThreadTask(
 		IThreadPool& threadPool,
 		const IMultivariateRegressionProblem& problem,
 		const CArray<CGradientBoostEnsemble>& models,
@@ -405,7 +405,7 @@ CBuildFullPredictionsThreadTask::CBuildFullPredictionsThreadTask(
 		CArray<CArray<double>>& answers,
 		float learningRate,
 		bool isMultiTreesModel ) :
-	IPredictionsThreadTask( threadPool, problem, models,
+	IGBoostPredictionsThreadTask( threadPool, problem, models,
 		predictCache, predicts, answers, learningRate, isMultiTreesModel )
 {
 	for( int i = 0; i < Predicts.Size(); ++i ) {
@@ -671,7 +671,7 @@ void CGradientBoost::executeStep( IGradientBoostingLossFunction& lossFunction,
 	}
 
 	// Build the current model predictions
-	CBuildPredictionsThreadTask( *threadPool, *problem, models,
+	CGBoostBuildPredictionsThreadTask( *threadPool, *problem, models,
 		predictCache, predicts, answers, usedVectors,
 		params.LearningRate, isMultiTreesModel() ).ParallelRun();
 
@@ -870,7 +870,7 @@ template<typename T>
 CPtr<T> CGradientBoost::getModel()
 {
 	// Calculate the last loss values
-	CBuildFullPredictionsThreadTask( *threadPool, *baseProblem, models,
+	CGBoostBuildFullPredictionsThreadTask( *threadPool, *baseProblem, models,
 		predictCache, predicts, answers, params.LearningRate, isMultiTreesModel() ).ParallelRun();
 	loss = lossFunction->CalcLossMean( predicts, answers );
 

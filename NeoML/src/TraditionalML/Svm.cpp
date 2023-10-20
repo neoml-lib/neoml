@@ -30,13 +30,13 @@ namespace NeoML {
 namespace {
 
 // Task which processes in multiple threads
-struct IThreadTask {
-	virtual ~IThreadTask() {}
+struct ISvmThreadTask {
+	virtual ~ISvmThreadTask() {}
 	// Run in a single thread or in parallel, corresponding of task's `ParallelizeSize()`
 	void ParallelRun();
 protected:
 	// Create a task
-	IThreadTask( IThreadPool&, const IProblem& );
+	ISvmThreadTask( IThreadPool&, const IProblem& );
 
 	// The size of parallelization, max number of sub-tasks to perform
 	int ParallelizeSize() const { return Problem.GetVectorCount(); }
@@ -55,7 +55,7 @@ protected:
 	const CFloatMatrixDesc Matrix; //performing problem's sizes
 };
 
-IThreadTask::IThreadTask( IThreadPool& threadPool, const IProblem& problem ) :
+ISvmThreadTask::ISvmThreadTask( IThreadPool& threadPool, const IProblem& problem ) :
 	ThreadPool( threadPool ),
 	Problem( problem ),
 	Matrix( Problem.GetMatrix() )
@@ -64,7 +64,7 @@ IThreadTask::IThreadTask( IThreadPool& threadPool, const IProblem& problem ) :
 	NeoAssert( Matrix.Width == Problem.GetFeatureCount() );
 }
 
-void IThreadTask::ParallelRun()
+void ISvmThreadTask::ParallelRun()
 {
 	if( ParallelizeSize() < MultiThreadMinTasksCount ) {
 		// Run in a single thread
@@ -73,11 +73,11 @@ void IThreadTask::ParallelRun()
 	}
 	// Run in parallel
 	NEOML_NUM_THREADS( ThreadPool, this, []( int threadIndex, void* ptr ) {
-		( ( IThreadTask* )ptr )->RunSplittedByThreads( threadIndex );
+		( ( ISvmThreadTask* )ptr )->RunSplittedByThreads( threadIndex );
 	} );
 }
 
-void IThreadTask::RunSplittedByThreads( int threadIndex )
+void ISvmThreadTask::RunSplittedByThreads( int threadIndex )
 {
 	int index = 0;
 	int count = 0;
@@ -87,7 +87,7 @@ void IThreadTask::RunSplittedByThreads( int threadIndex )
 	}
 }
 
-void IThreadTask::Run( int threadIndex, int startIndex, int count )
+void ISvmThreadTask::Run( int threadIndex, int startIndex, int count )
 {
 	const int endIndex = startIndex + count;
 	for( int index = startIndex; index < endIndex; ++index ) {
@@ -100,10 +100,10 @@ void IThreadTask::Run( int threadIndex, int startIndex, int count )
 
 //------------------------------------------------------------------------------------------------------------
 
-struct CFindPlanesThreadTask : public IThreadTask {
+struct CSvmFindPlanesThreadTask : public ISvmThreadTask {
 	// Create a task
-	CFindPlanesThreadTask( IThreadPool& threadPool, const IProblem& problem, CArray<double>& alpha ) :
-		IThreadTask( threadPool, problem ),
+	CSvmFindPlanesThreadTask( IThreadPool& threadPool, const IProblem& problem, CArray<double>& alpha ) :
+		ISvmThreadTask( threadPool, problem ),
 		Alpha( alpha )
 	{ PlaneReduction.Add( CFloatVector( problem.GetFeatureCount() + 1, 0.f ), ThreadCount() ); }
 	// Get the final result
@@ -115,13 +115,13 @@ protected:
 	CArray<CFloatVector> PlaneReduction{};
 };
 
-void CFindPlanesThreadTask::RunOnElement( int threadIndex, int index, const CFloatVectorDesc& desc )
+void CSvmFindPlanesThreadTask::RunOnElement( int threadIndex, int index, const CFloatVectorDesc& desc )
 {
 	const float alpha = static_cast<float>( Alpha[index] * Problem.GetBinaryClass( index ) );
 	PlaneReduction[threadIndex].MultiplyAndAdd( desc, alpha );
 }
 
-CFloatVector CFindPlanesThreadTask::Reduction( float freeTerm )
+CFloatVector CSvmFindPlanesThreadTask::Reduction( float freeTerm )
 {
 	CFloatVector plane = PlaneReduction[0];
 	for( int t = 1; t < ThreadCount(); ++t ) {
@@ -133,10 +133,10 @@ CFloatVector CFindPlanesThreadTask::Reduction( float freeTerm )
 
 //-------------------------------------------------------------------------------------------------------------
 
-struct CCalcDistancesThreadTask : public IThreadTask {
+struct CSvmCalcDistancesThreadTask : public ISvmThreadTask {
 	// Create a task
-	CCalcDistancesThreadTask( IThreadPool& threadPool, const IProblem& problem, const CFloatVector& plane ) :
-		IThreadTask( threadPool, problem ),
+	CSvmCalcDistancesThreadTask( IThreadPool& threadPool, const IProblem& problem, const CFloatVector& plane ) :
+		ISvmThreadTask( threadPool, problem ),
 		Plane( plane )
 	{ Dist.Add( 0.0, ParallelizeSize() ); }
 	// Get the final result
@@ -194,11 +194,11 @@ CPtr<IModel> CSvm::Train( const IProblem& problem )
 	optimizer.Optimize( alpha, freeTerm );
 
 	if( kernel.KernelType() == CSvmKernel::KT_Linear ) {
-		CFindPlanesThreadTask planeTask( *threadPool, problem, alpha );
+		CSvmFindPlanesThreadTask planeTask( *threadPool, problem, alpha );
 		planeTask.ParallelRun();
 		CFloatVector plane = planeTask.Reduction( freeTerm );
 
-		CCalcDistancesThreadTask distTask( *threadPool, problem, plane );
+		CSvmCalcDistancesThreadTask distTask( *threadPool, problem, plane );
 		distTask.ParallelRun();
 
 		CSigmoid coefficients{};

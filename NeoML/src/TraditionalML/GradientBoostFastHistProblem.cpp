@@ -25,12 +25,12 @@ namespace NeoML {
 namespace {
 
 // Abstract base class
-class IFeaturesThreadTask : public IGradientBoostThreadTask {
+class IGBoostFeaturesThreadTask : public IGradientBoostThreadTask {
 public:
 	using TFeatureValue = CGradientBoostFastHistProblem::CFeatureValue;
 protected:
 	// Create a task
-	IFeaturesThreadTask( IThreadPool& threadPool,
+	IGBoostFeaturesThreadTask( IThreadPool& threadPool,
 			CArray<CArray<TFeatureValue>>& featureValues ) :
 		IGradientBoostThreadTask( threadPool ),
 		FeatureValues( featureValues )
@@ -45,7 +45,7 @@ protected:
 	CArray<CArray<TFeatureValue>>& FeatureValues;
 };
 
-void IFeaturesThreadTask::Run( int /*threadIndex*/, int startIndex, int count )
+void IGBoostFeaturesThreadTask::Run( int /*threadIndex*/, int startIndex, int count )
 {
 	const int endIndex = startIndex + count;
 	for( int index = startIndex; index < endIndex; ++index ) {
@@ -56,19 +56,19 @@ void IFeaturesThreadTask::Run( int /*threadIndex*/, int startIndex, int count )
 //-------------------------------------------------------------------------------------------------------------
 
 // Sorting and merging the same feature values
-class CSortAndMergeFeaturesThreadTask : public IFeaturesThreadTask {
+class CGBoostSortAndMergeFeaturesThreadTask : public IGBoostFeaturesThreadTask {
 public:
 	// Create a task
-	CSortAndMergeFeaturesThreadTask( IThreadPool& threadPool,
+	CGBoostSortAndMergeFeaturesThreadTask( IThreadPool& threadPool,
 			CArray<CArray<TFeatureValue>>& featureValues ) :
-		IFeaturesThreadTask( threadPool, featureValues )
+		IGBoostFeaturesThreadTask( threadPool, featureValues )
 	{}
 protected:
 	// Run on each problem's element separately
 	void RunOnElement( int index ) override;
 };
 
-void CSortAndMergeFeaturesThreadTask::RunOnElement( int index )
+void CGBoostSortAndMergeFeaturesThreadTask::RunOnElement( int index )
 {
 	FeatureValues[index].QuickSort<AscendingByMember<TFeatureValue, float, &TFeatureValue::Value>>();
 	int size = 1;
@@ -86,12 +86,12 @@ void CSortAndMergeFeaturesThreadTask::RunOnElement( int index )
 //-------------------------------------------------------------------------------------------------------------
 
 // Compresses the values of each feature so that there are no more than maxBins different values
-class CCompressFeaturesThreadTask : public IFeaturesThreadTask {
+class CGBoostCompressFeaturesThreadTask : public IGBoostFeaturesThreadTask {
 public:
 	// Create a task
-	CCompressFeaturesThreadTask( IThreadPool& threadPool,
+	CGBoostCompressFeaturesThreadTask( IThreadPool& threadPool,
 			CArray<CArray<TFeatureValue>>& featureValues, int maxBins, double totalWeight ) :
-		IFeaturesThreadTask( threadPool, featureValues ),
+		IGBoostFeaturesThreadTask( threadPool, featureValues ),
 		MaxBins( maxBins ),
 		TotalWeight( totalWeight )
 	{ NeoAssert( MaxBins > 1 ); } // otherwise there can be no split
@@ -103,7 +103,7 @@ protected:
 	const double TotalWeight;
 };
 
-void CCompressFeaturesThreadTask::RunOnElement( int index )
+void CGBoostCompressFeaturesThreadTask::RunOnElement( int index )
 {
 	CArray<TFeatureValue>& currFeatureValues = FeatureValues[index];
 	if( currFeatureValues.Size() <= MaxBins ) {
@@ -233,9 +233,9 @@ void CGradientBoostFastHistProblem::initializeFeatureInfo( int maxBins, const CF
 	}
 
 	// Sorting and merging the same values
-	CSortAndMergeFeaturesThreadTask( *threadPool, featureValues ).ParallelRun();
+	CGBoostSortAndMergeFeaturesThreadTask( *threadPool, featureValues ).ParallelRun();
 
-	CCompressFeaturesThreadTask( *threadPool, featureValues, maxBins, totalWeight ).ParallelRun();
+	CGBoostCompressFeaturesThreadTask( *threadPool, featureValues, maxBins, totalWeight ).ParallelRun();
 
 	// Initializing the internal arrays
 	nullValueIds.Add( NotFound, featureValues.Size() );

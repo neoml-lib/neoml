@@ -18,19 +18,6 @@ limitations under the License.
 using namespace NeoML;
 using namespace NeoMLTest;
 
-inline static float ExponentFunc(float f)
-{
-	if (f < FLT_MIN_LOG) {
-		return 0;
-	}
-	else if (f > FLT_MAX_LOG) {
-		return FLT_MAX;
-	}
-	else {
-		return expf(f);
-	}
-}
-
 static void vectorExpImpl( const CTestParams& params, int seed )
 {
 	CRandom random( seed );

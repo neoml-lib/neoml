@@ -22,11 +22,11 @@ limitations under the License.
 
 namespace NeoML {
 // Start-of-Word token for the internal dictionary
-static const CString BowTokenStr( "/\xFF" );
+static const CString UnigramBowTokenStr( "/\xFF" );
 // End-of-Word token for the internal dictionary
-static const CString EowTokenStr( "\\\xFF" );
+static const CString UnigramEowTokenStr( "\\\xFF" );
 // SentencePiece special token
-static const CString SpSpaceStr( "\xE2\x96\x81" );
+static const CString UnigramSpSpaceStr( "\xE2\x96\x81" );
 
 //----------
 
@@ -91,9 +91,10 @@ CUnigramTrainer::CUnigramTrainer( int vocabSize, TBorderHandling b, bool useByte
 	desiredVocabSize( vocabSize )
 {
 	const bool addBow = b == TBorderHandling::BeginOfWord || b == TBorderHandling::BeginAndEndOfWord;
-	params.StartOfWordToken = addBow ? BowTokenStr : ( b == TBorderHandling::SentencePiece ? SpSpaceStr : "" );
+	params.StartOfWordToken = addBow ? UnigramBowTokenStr
+		: ( b == TBorderHandling::SentencePiece ? UnigramSpSpaceStr : "" );
 	const bool addEow = b == TBorderHandling::EndOfWord || b == TBorderHandling::BeginAndEndOfWord;
-	params.EndOfWordToken = addEow ? EowTokenStr : "";
+	params.EndOfWordToken = addEow ? UnigramEowTokenStr : "";
 	params.UseRawBytes = useByteBpe;
 	params.UnknownTokenId = unknownTokenId;
 
@@ -125,7 +126,7 @@ CPtr<IUnigramEncoder> CUnigramTrainer::Train( const CWordDictionary& frequencyDi
 	addChars( resultVocab );
 
 	CPtr<CUnigramEncoder> encoder = new CUnigramEncoder;
-	if( params.EndOfWordToken == SpSpaceStr ) {
+	if( params.EndOfWordToken == UnigramSpSpaceStr ) {
 		params.EndOfWordToken.Empty();
 	}
 	encoder->Initialize( resultVocab, params );
@@ -139,13 +140,13 @@ int CUnigramTrainer::getTokenLength( const CString& str, int pos ) const
 	}
 
 	if( !params.EndOfWordToken.IsEmpty() &&
-		str.CompareSubstr( pos, EowTokenStr, EowTokenStr.Length() ) == 0 ) 
+		str.CompareSubstr( pos, UnigramEowTokenStr, UnigramEowTokenStr.Length() ) == 0 )
 	{
-		return EowTokenStr.Length();
+		return UnigramEowTokenStr.Length();
 	}
 
 	if( !params.StartOfWordToken.IsEmpty() &&
-		str.CompareSubstr( pos, params.StartOfWordToken, params.StartOfWordToken.Length() ) == 0 ) 
+		str.CompareSubstr( pos, params.StartOfWordToken, params.StartOfWordToken.Length() ) == 0 )
 	{
 		return params.StartOfWordToken.Length();
 	}

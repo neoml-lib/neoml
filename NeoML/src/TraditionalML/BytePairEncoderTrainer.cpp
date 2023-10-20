@@ -22,11 +22,11 @@ limitations under the License.
 
 namespace NeoML {
 // Start-of-Word token for the internal dictionary
-static const CString BowTokenStr( "/\xFF" );
+static const CString BpeBowTokenStr( "/\xFF" );
 // End-of-Word token for the internal dictionary
-static const CString EowTokenStr( "\\\xFF" );
+static const CString BpeEowTokenStr( "\\\xFF" );
 // SentencePiece special token
-static const CString SpSpaceStr( "\xE2\x96\x81" );
+static const CString BpeSpSpaceStr( "\xE2\x96\x81" );
 
 //--------------------
 
@@ -93,21 +93,21 @@ CBpeTrainer::CBpeTrainer( int vocabSize, CSubwordEncoderTrainer::TBorderHandling
 	switch( borderHandling ) {
 		case TBorderHandling::EndOfWord:
 			eowToken = vocabulary.Size();
-			vocabulary.Add( { EowTokenStr, false } );
+			vocabulary.Add( { BpeEowTokenStr, false } );
 			break;
 		case TBorderHandling::BeginOfWord:
 			bowToken = vocabulary.Size();
-			vocabulary.Add( { BowTokenStr, false } );
+			vocabulary.Add( { BpeBowTokenStr, false } );
 			break;
 		case TBorderHandling::SentencePiece:
 			bowToken = vocabulary.Size();
-			vocabulary.Add( { SpSpaceStr, false } );
+			vocabulary.Add( { BpeSpSpaceStr, false } );
 			break;
 		case TBorderHandling::BeginAndEndOfWord:
 			bowToken = vocabulary.Size();
-			vocabulary.Add( { BowTokenStr, false } );
+			vocabulary.Add( { BpeBowTokenStr, false } );
 			eowToken = vocabulary.Size();
-			vocabulary.Add( { EowTokenStr, false } );
+			vocabulary.Add( { BpeEowTokenStr, false } );
 			break;
 		case TBorderHandling::None:
 			break;
@@ -396,14 +396,14 @@ CPtr<IBytePairEncoder> CBpeTrainer::createEncoder()
 
 	switch( borderHandling ) {
 		case TBorderHandling::EndOfWord:
-			params.EndOfWordToken = EowTokenStr;
+			params.EndOfWordToken = BpeEowTokenStr;
 			break;
 		case TBorderHandling::BeginOfWord:
-			params.StartOfWordToken = BowTokenStr;
+			params.StartOfWordToken = BpeBowTokenStr;
 			break;
 		case TBorderHandling::BeginAndEndOfWord:
-			params.EndOfWordToken = EowTokenStr;
-			params.StartOfWordToken = BowTokenStr;
+			params.EndOfWordToken = BpeEowTokenStr;
+			params.StartOfWordToken = BpeBowTokenStr;
 			break;
 		case TBorderHandling::SentencePiece:
 			// SentencePiece treats space as normal symbol. It should be inserted by user.
