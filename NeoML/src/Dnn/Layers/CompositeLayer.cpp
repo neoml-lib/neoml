@@ -53,7 +53,7 @@ void CCompositeSourceLayer::SetBlob(CDnnBlob* _blob)
 }
 
 void CCompositeSourceLayer::SetDiffBlob(CDnnBlob* blob)
-{ 
+{
 	if( GetDnn()->IsRecurrentMode() && blob->GetBatchLength() > 1 ) {
 		diffBlob = CDnnBlob::CreateWindowBlob( blob );
 	} else {
@@ -127,7 +127,7 @@ void CCompositeSinkLayer::RunOnce()
 }
 
 void CCompositeSinkLayer::SetDiffBlob(CDnnBlob* blob)
-{ 
+{
 	if( GetDnn()->IsRecurrentMode() && blob->GetBatchLength() > 1 ) {
 		diffBlob = CDnnBlob::CreateWindowBlob( blob );
 	} else {
@@ -263,6 +263,11 @@ void CCompositeLayer::createSources()
 		internalDnn->AddLayer(*newSource);
 		// Set the ForceBackward flags as needed for the composite layer
 		newSource->SetBackwardForced(IsBackwardNeeded());
+	}
+	// Update ForceBackward flags for sources which have already been created
+	int sourceIndex = 0;
+	while( sourceIndex < sources.Size() && sources[sourceIndex]->GetBackwardForced() != IsBackwardNeeded() ) {
+		sources[sourceIndex++]->SetBackwardForced( IsBackwardNeeded() );
 	}
 }
 
