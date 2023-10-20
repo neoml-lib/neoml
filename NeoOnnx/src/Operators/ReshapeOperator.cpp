@@ -62,6 +62,7 @@ CReshapeOperator::CReshapeOperator( const onnx::NodeProto& reshape, int opsetVer
 	// v5 - removed legacy optimization attribute, "shape" moved from attributes to inputs, supported new data types
 	// v13 - bfloat16 is supported
 	// v14 - allowzer attribute is added
+	// v19 - float-8 is supported
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
 	if( OpsetVersion < 5 ) {

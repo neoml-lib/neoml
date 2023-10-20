@@ -96,13 +96,17 @@ enum Version {
   // - Implicitly add inference graph into each TrainingInfoProto's algorithm.
   IR_VERSION_2020_5_8 = 0x0000000000000007;
 
-  // IR VERSION 8 published on <TBD>
+  // IR VERSION 8 published on July 30, 2021
   // Introduce TypeProto.SparseTensor
   // Introduce TypeProto.Optional
   // Added a list of FunctionProtos local to the model
   // Deprecated since_version and operator status from FunctionProto
-  IR_VERSION = 0x0000000000000008;
+  IR_VERSION_2021_7_30 = 0x0000000000000008;
 
+  // IR VERSION 9 published on TBD
+  // Added AttributeProto to FunctionProto so that default attribute values can be set.
+  // Added FLOAT8E4M3FN, FLOAT8E4M3FNUZ, FLOAT8E5M2, FLOAT8E5M2FNUZ.
+  IR_VERSION = 0x0000000000000009;
 }
 
 // Attributes
@@ -397,13 +401,13 @@ message ModelProto {
   //
   // Name of the function "FunctionProto.name" should be unique within the domain "FunctionProto.domain".
   // In case of any conflicts the behavior (whether the model local functions are given higher priority,
-  // or standard opserator sets are given higher priotity or this is treated as error) is defined by 
+  // or standard opserator sets are given higher priotity or this is treated as error) is defined by
   // the runtimes.
-  // 
+  //
   // The operator sets imported by FunctionProto should be compatible with the ones
-  // imported by ModelProto and other model local FunctionProtos. 
-  // Example, if same operator set say 'A' is imported by a FunctionProto and ModelProto 
-  // or by 2 FunctionProtos then versions for the operator set may be different but, 
+  // imported by ModelProto and other model local FunctionProtos.
+  // Example, if same operator set say 'A' is imported by a FunctionProto and ModelProto
+  // or by 2 FunctionProtos then versions for the operator set may be different but,
   // the operator schema returned for op_type, domain, version combination
   // for both the versions should be same for every node in the function body.
   //
@@ -416,7 +420,7 @@ message ModelProto {
 // See https://developers.google.com/protocol-buffers/docs/proto3#maps
 message StringStringEntryProto {
   optional string key = 1;
-  optional string value= 2;
+  optional string value = 2;
 };
 
 message TensorAnnotation {
@@ -469,13 +473,8 @@ message GraphProto {
   // which means, tensor 'a_scale' and tensor 'a_zero_point' are scale and zero point of tensor 'a' in the model.
   repeated TensorAnnotation quantization_annotation = 14;
 
-  // DO NOT USE the following fields, they were deprecated from earlier versions.
-  // repeated string input = 3;
-  // repeated string output = 4;
-  // optional int64 ir_version = 6;
-  // optional int64 producer_version = 7;
-  // optional string producer_tag = 8;
-  // optional string domain = 9;
+  reserved 3, 4, 6 to 9;
+  reserved "ir_version", "producer_version", "producer_tag", "domain";
 }
 
 // Tensors
@@ -510,6 +509,17 @@ message TensorProto {
     // This format has 1 sign bit, 8 exponent bits, and 7 mantissa bits.
     BFLOAT16 = 16;
 
+    // Non-IEEE floating-point format based on papers
+    // FP8 Formats for Deep Learning, https://arxiv.org/abs/2209.05433,
+    // 8-bit Numerical Formats For Deep Neural Networks, https://arxiv.org/pdf/2206.02915.pdf.
+    // Operators supported FP8 are Cast, CastLike, QuantizeLinear, DequantizeLinear.
+    // The computation usually happens inside a block quantize / dequantize
+    // fused by the runtime.
+    FLOAT8E4M3FN = 17;    // float 8, mostly used for coefficients, supports nan, not inf 
+    FLOAT8E4M3FNUZ = 18;  // float 8, mostly used for coefficients, supports nan, not inf, no negative zero 
+    FLOAT8E5M2 = 19;      // follows IEEE 754, supports nan, inf, mostly used for gradients
+    FLOAT8E5M2FNUZ = 20;  // follows IEEE 754, supports nan, inf, mostly used for gradients, no negative zero
+
     // Future extensions go here.
   }
 
@@ -543,11 +553,11 @@ message TensorProto {
   // When this field is present, the data_type field MUST be FLOAT or COMPLEX64.
   repeated float float_data = 4 [packed = true];
 
-  // For int32, uint8, int8, uint16, int16, bool, and float16 values
-  // float16 values must be bit-wise converted to an uint16_t prior
+  // For int32, uint8, int8, uint16, int16, bool, float8, and float16 values
+  // float16 and float8 values must be bit-wise converted to an uint16_t prior
   // to writing to the buffer.
   // When this field is present, the data_type field MUST be
-  // INT32, INT16, INT8, UINT16, UINT8, BOOL, or FLOAT16
+  // INT32, INT16, INT8, UINT16, UINT8, BOOL, FLOAT16, BFLOAT16, FLOAT8E4M3FN, FLOAT8E4M3FNUZ, FLOAT8E5M2, FLOAT8E5M2FNUZ
   repeated int32 int32_data = 5 [packed = true];
 
   // For strings.
@@ -784,8 +794,15 @@ message FunctionProto {
   repeated string input = 4;
   repeated string output = 5;
 
-  // The attributes of the function.
+  // The attribute parameters of the function.
+  // It is for function parameters without default values.
   repeated string attribute = 6;
+
+  // The attribute protos of the function.
+  // It is for function attributes with default values.
+  // A function attribute shall be represented either as
+  // a string attribute or an AttributeProto, not both.
+  repeated AttributeProto attribute_proto = 11;
 
   // The nodes in the function.
   repeated NodeProto node = 7;
@@ -798,10 +815,10 @@ message FunctionProto {
   // with the same-domain/same-op_type operator with the HIGHEST version
   // in the referenced operator sets. This means at most one version can be relied
   // for one domain.
-  // 
+  //
   // The operator sets imported by FunctionProto should be compatible with the ones
   // imported by ModelProto. Example, if same operator set say 'A' is imported by FunctionProto
-  // and ModelProto then versions for the operator set may be different but, 
+  // and ModelProto then versions for the operator set may be different but,
   // the operator schema returned for op_type, domain, version combination
   // for both the versions should be same.
 

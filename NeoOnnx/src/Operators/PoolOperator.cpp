@@ -112,10 +112,26 @@ CAveragePoolOperator::CAveragePoolOperator( const onnx::NodeProto& averagePool, 
 	CPoolOperatorBase( averagePool, opsetVersion ),
 	includePad( false )
 {
+	// v1 - initial version
+	// v7 - added count_include_pad
+	// v10 - added ceil mode
+	// v19 - added dilations
 	if( OpsetVersion >= 7 ) {
 		int countIncludePad = 0;
 		GetAttribute( "count_include_pad", countIncludePad );
 		includePad = countIncludePad != 0;
+	}
+	if( OpsetVersion >= 10 ) {
+		int ceilMode = 0;
+		GetAttribute( "ceil_mode", ceilMode );
+		CheckNeoOnnxSupport( ceilMode == 0, "ceil_mode", *this );
+	}
+	if( OpsetVersion >= 19 ) {
+		CArray<int> dilations;
+		GetAttribute( "dilations", dilations );
+		for( const int dilation : dilations ) {
+			CheckNeoOnnxSupport( dilation == 1, "non-trivial dilation", *this );
+		}
 	}
 }
 

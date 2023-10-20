@@ -33,6 +33,7 @@ CShapeOperator::CShapeOperator( const onnx::NodeProto& shape, int opsetVersion )
 	// v1 - original
 	// v13 - bfloat16 is supported
 	// v15 - start and end attributes are added
+	// v19 - float-8 is supported
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
 	CheckOnnxProtocol( InputCount() == 1, "operator must have 1 input", *this );

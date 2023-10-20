@@ -31,9 +31,11 @@ CPadOperator::CPadOperator( const onnx::NodeProto& pad, int opsetVersion ) :
 	// In v1 pads are provided by 'paddings' attribute and pad value is provided by 'value' attribute 
 	// In v2 pads are provided by 'pads' attribute and pad value is provided by 'value' attribute 
 	// In v11 pads and pad value are provided by additional inputs instead of node attributes
+	// In v13 bfloat16 is supported
+	// In v18 axes input is added
+	// In v19 wrap mode is added
 	if( opsetVersion < 11 ) {
 		CheckOnnxProtocol( InputCount() == 1, "operator must have 1 input", *this );
-		
 	} else {
 		CheckOnnxProtocol( InputCount() == 2 || InputCount() == 3, "operator must have 2 or 3 inputs", *this );
 	}
