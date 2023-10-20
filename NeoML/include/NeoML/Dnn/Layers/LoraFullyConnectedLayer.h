@@ -81,21 +81,29 @@ public:
 
 	void Serialize( CArchive& ) override;
 
-	CPtr<CDnnBlob> GetSplitBaseWeightsNoCopy() { split(); return baseFc->Weights(); }
-	CPtr<CDnnBlob> GetMergedBaseWeightsNoCopy() { merge(); return baseFc->Weights(); }
-	CPtr<CDnnBlob> GetFreeTermsNoCopy() { return baseFc->FreeTerms(); }
-	CPtr<CDnnBlob> GetAWeightsNoCopy() { return fcA->Weights(); }
-	CPtr<CDnnBlob> GetBWeightsNoCopy() { return fcB->Weights(); }
+	void UpdateParams( const CLoraParams& newParams, CDnnBlob* newA, CDnnBlob* newB );
 
 	int OutputSize() const { return baseFc->GetNumberOfElements(); }
 	int Rank() const { return fcA->GetNumberOfElements(); }
 	float Alpha() const { return scaling->GetMultiplier() * Rank(); }
 	float Dropout() const { return dropout->GetDropoutRate(); }
 
-	void UpdateParams( const CLoraParams& newParams, CDnnBlob* newA, CDnnBlob* newB );
+	// Raw getters for weights
+	// These getters do not copy weights which may lead to difficult-to-debug troubles
+	// But they're necessary for making LoRA work without excessive copying
+	// baseFc weights from "split" state
+	CPtr<CDnnBlob> GetSplitWeightsNoCopy() { split(); return baseFc->Weights(); }
+	// baseFc weights from "merged" state
+	CPtr<CDnnBlob> GetMergedWeightsNoCopy() { merge(); return baseFc->Weights(); }
+	// baseFc free terms
+	CPtr<CDnnBlob> GetFreeTermsNoCopy() { return baseFc->FreeTerms(); }
+	// A LoRA matrix
+	CPtr<CDnnBlob> GetAWeightsNoCopy() { return fcA->Weights(); }
+	// B LoRA matrix
+	CPtr<CDnnBlob> GetBWeightsNoCopy() { return fcB->Weights(); }
 
 	// Mostly for testing/debugging
-	CPtr<CDnnBlob>& GetRawBaseWeightsNoCopy() { return baseFc->Weights(); }
+	CPtr<CDnnBlob>& GetWeightsNoCopy() { return baseFc->Weights(); }
 	bool IsMerged() const { return isMerged; }
 
 protected:

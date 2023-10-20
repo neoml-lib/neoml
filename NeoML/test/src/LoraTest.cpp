@@ -138,12 +138,12 @@ TEST( LoraFullyConnectedLayerTest, Initialization )
 	EXPECT_EQ( nullptr, loraFc->GetBWeightsNoCopy().Ptr() );
 
 	// Check that baseFc weights were taken by loraFc without copying
-	EXPECT_EQ( baseFcWeights.Ptr(), loraFc->GetRawBaseWeightsNoCopy().Ptr() );
+	EXPECT_EQ( baseFcWeights.Ptr(), loraFc->GetWeightsNoCopy().Ptr() );
 
 	baseFcWeights = baseFcWeights->GetCopy();
 	// Check that in unitialized state merge/split doesn't cause any changes
-	EXPECT_TRUE( CompareBlobs( *baseFcWeights, *loraFc->GetSplitBaseWeightsNoCopy(), FLT_EPSILON ) );
-	EXPECT_TRUE( CompareBlobs( *baseFcWeights, *loraFc->GetMergedBaseWeightsNoCopy(), FLT_EPSILON ) );
+	EXPECT_TRUE( CompareBlobs( *baseFcWeights, *loraFc->GetSplitWeightsNoCopy(), FLT_EPSILON ) );
+	EXPECT_TRUE( CompareBlobs( *baseFcWeights, *loraFc->GetMergedWeightsNoCopy(), FLT_EPSILON ) );
 
 	// Copy through serialization
 	{
@@ -167,7 +167,7 @@ TEST( LoraFullyConnectedLayerTest, Initialization )
 	EXPECT_EQ( nullptr, loraFc->GetAWeightsNoCopy().Ptr() );
 	EXPECT_EQ( nullptr, loraFc->GetBWeightsNoCopy().Ptr() );
 	// After copying through serialization check only blob contents
-	EXPECT_TRUE( CompareBlobs( *baseFcWeights, *loraFc->GetRawBaseWeightsNoCopy(), FLT_EPSILON ) );
+	EXPECT_TRUE( CompareBlobs( *baseFcWeights, *loraFc->GetWeightsNoCopy(), FLT_EPSILON ) );
 }
 
 TEST( LoraFullyConnectedLayerTest, InferenceAndLearning )
@@ -181,7 +181,7 @@ TEST( LoraFullyConnectedLayerTest, InferenceAndLearning )
 	setLoraFcInputs( dnn, inputSize, outputSize );
 
 	CPtr<CLoraFullyConnectedLayer> loraFc = CheckCast<CLoraFullyConnectedLayer>( dnn.GetLayer( "full" ) );
-	CDnnBlob* originalWeightsPtr = loraFc->GetRawBaseWeightsNoCopy().Ptr();
+	CDnnBlob* originalWeightsPtr = loraFc->GetWeightsNoCopy().Ptr();
 	CPtr<CDnnBlob> copyOfOriginalWeights = originalWeightsPtr->GetCopy();
 
 	for( int iteration = 0; iteration < 5; ++iteration ) {
@@ -189,7 +189,7 @@ TEST( LoraFullyConnectedLayerTest, InferenceAndLearning )
 		// Check that layer is in the merged state
 		EXPECT_TRUE( loraFc->IsMerged() );
 		// Check that no reallocation occured
-		EXPECT_EQ( originalWeightsPtr, loraFc->GetRawBaseWeightsNoCopy().Ptr() );
+		EXPECT_EQ( originalWeightsPtr, loraFc->GetWeightsNoCopy().Ptr() );
 		// Check that weights of A and B are still unintialized during first iteration
 		if( iteration == 0 ) {
 			EXPECT_EQ( nullptr, loraFc->GetAWeightsNoCopy().Ptr() );
@@ -207,9 +207,9 @@ TEST( LoraFullyConnectedLayerTest, InferenceAndLearning )
 		EXPECT_NE( nullptr, loraFc->GetBWeightsNoCopy().Ptr() );
 		// Check that during training layer is in split state and original weights are untouched
 		EXPECT_FALSE( loraFc->IsMerged() );
-		EXPECT_TRUE( CompareBlobs( *copyOfOriginalWeights, *loraFc->GetRawBaseWeightsNoCopy() ) );
+		EXPECT_TRUE( CompareBlobs( *copyOfOriginalWeights, *loraFc->GetWeightsNoCopy() ) );
 		// Check that no reallocation occured
-		EXPECT_EQ( originalWeightsPtr, loraFc->GetRawBaseWeightsNoCopy().Ptr() );
+		EXPECT_EQ( originalWeightsPtr, loraFc->GetWeightsNoCopy().Ptr() );
 		// Check that output during first iteration of training matches last output before training
 		EXPECT_TRUE( loraFc->Dropout() <= 0.f || CompareBlobs( *copyOfOutput, *sink->GetBlob() ) );
 
@@ -219,9 +219,9 @@ TEST( LoraFullyConnectedLayerTest, InferenceAndLearning )
 		// Check that layer is in the merged state
 		EXPECT_TRUE( loraFc->IsMerged() );
 		// The base weights must be at the same location but must contain different (merged) weights
-		EXPECT_EQ( originalWeightsPtr, loraFc->GetRawBaseWeightsNoCopy().Ptr() );
-		EXPECT_TRUE( copyOfOriginalWeights->HasEqualDimensions( loraFc->GetRawBaseWeightsNoCopy().Ptr() ) );
-		EXPECT_FALSE( CompareBlobs( *copyOfOriginalWeights, *loraFc->GetRawBaseWeightsNoCopy() ) );
+		EXPECT_EQ( originalWeightsPtr, loraFc->GetWeightsNoCopy().Ptr() );
+		EXPECT_TRUE( copyOfOriginalWeights->HasEqualDimensions( loraFc->GetWeightsNoCopy().Ptr() ) );
+		EXPECT_FALSE( CompareBlobs( *copyOfOriginalWeights, *loraFc->GetWeightsNoCopy() ) );
 	}
 }
 
@@ -342,8 +342,9 @@ TEST( LoraBuilderTest, MergeAndDiscardTest )
 	dnn.RunOnce();
 	EXPECT_TRUE( checkLayerClass<CLoraFullyConnectedLayer>( dnn, { "transformer", "FullyConnected2" } ) );
 	EXPECT_TRUE( checkLayerClass<CLoraFullyConnectedLayer>( dnn, { "transformer", "SelfAttention", "K" } ) );
-	CPtr<CDnnBlob> splitWeights = CheckCast<CLoraFullyConnectedLayer>( 
-		CheckCast<CTransformerEncoderLayer>( dnn.GetLayer( "transformer" ) )->GetLayer( "FullyConnected2" ) )->GetSplitBaseWeightsNoCopy()->GetCopy();
+	CPtr<CTransformerEncoderLayer> transformer = CheckCast<CTransformerEncoderLayer>( dnn.GetLayer( "transformer" ) );
+	CPtr<CDnnBlob> splitWeights = CheckCast<CLoraFullyConnectedLayer>(
+		transformer->GetLayer( "FullyConnected2" ) )->GetSplitWeightsNoCopy()->GetCopy();
 	EXPECT_TRUE( CompareBlobs( *initialWeights, *splitWeights ) );
 	EXPECT_TRUE( CompareBlobs( *trainedOutput, *CheckCast<CSinkLayer>( dnn.GetLayer( "sink" ) )->GetBlob() ) );
 

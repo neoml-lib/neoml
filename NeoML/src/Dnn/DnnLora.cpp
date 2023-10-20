@@ -136,8 +136,8 @@ void CLoraBuilder::replaceFcWrapper( CDnnLayerGraph& graph, const char* fcName, 
 	CPtr<CFullyConnectedLayer> mergedFc = FINE_DEBUG_NEW CFullyConnectedLayer( loraFc->MathEngine(),
 		loraFc->GetName() );
 	mergedFc->SetNumberOfElements( loraFc->OutputSize() );
-	mergedFc->Weights() = mergeWeights ? loraFc->GetMergedBaseWeightsNoCopy() 
-		: loraFc->GetSplitBaseWeightsNoCopy();
+	mergedFc->Weights() = mergeWeights ? loraFc->GetMergedWeightsNoCopy() 
+		: loraFc->GetSplitWeightsNoCopy();
 	mergedFc->FreeTerms() = loraFc->GetFreeTermsNoCopy();
 	mergedFc->Connect( 0, loraFc->GetInputName( 0 ), loraFc->GetInputOutputNumber( 0 ) );
 	graph.AddLayer( *mergedFc );
