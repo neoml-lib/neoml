@@ -27,7 +27,14 @@ namespace NeoML {
 
 // Fully Connected Layer with Low Rank Adaptation implements
 // https://arxiv.org/pdf/2106.09685v2.pdf
-// Substitute FullyConnectedLayer
+// LoRA wrapper for CFullyConnectedLayer
+//
+// This layer lazily switches between 2 states
+//
+// 1st: "split" state
+// In this state baseFc contains unmodified weights from the original network
+// the LoRA part is present explicitly as a group of layers
+// Used during training
 //
 //        loraSum
 //           ^
@@ -49,6 +56,23 @@ namespace NeoML {
 //           |
 //       inputData
 //
+// 2nd: "merged" state
+// In this state layer baseFc contains weights which emulate full LoRA
+// and no other layers are present in the composite
+// Used during inference
+//
+//        loraSum
+//           ^
+//           |
+//         baseFc
+//           ^
+//           |
+//       inputData
+//
+// NOTE: even in the merged state this layer has to store A and B matrices
+// in order to switch back to "split" state when needed
+// If you need only inference then you can replace this layer with CFullyConnected with merged weights
+// (this can be done via CLoraBuilder::MergeFcWrapper)
 class NEOML_API CLoraFullyConnectedLayer : public CCompositeLayer {
 	NEOML_DNN_LAYER( CLoraFullyConnectedLayer )
 public:
