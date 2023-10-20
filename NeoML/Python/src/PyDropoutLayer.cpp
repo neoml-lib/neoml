@@ -50,7 +50,7 @@ void InitializeDropoutLayer( py::module& m )
 			bool isSpatial, bool isBatchwise )
 		{
 			py::gil_scoped_release release;
-			CDnn& dnn = layer.Dnn();
+			CDnn& dnn = layers[0].cast<CPyLayer>().Dnn();
 			IMathEngine& mathEngine = dnn.GetMathEngine();
 			CPtr<CDropoutLayer> dropout = new CDropoutLayer( mathEngine );
 			dropout->SetDropoutRate( dropoutRate );
