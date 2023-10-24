@@ -106,8 +106,9 @@ public:
 	// The same as above but for distributed training
 	int Serialize( CDistributedTraining& distributed, CArchive& archive ) const;
 
-	// LoRA checkpoint is serialized LoRA weights + solver (same as CDnn)
+	// LoRA checkpoint is serialized LoRA weights + solver(s)
 	int SerializeCheckpoint( CDnn& dnn, CArchive& archive ) const;
+	int SerializeCheckpoint( CDistributedTraining& distributed, CArchive& archive ) const;
 };
 
 } // namespace NeoML

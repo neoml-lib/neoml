@@ -316,6 +316,19 @@ static int loadLora( CDnn& dnn, CArchive& archive )
 	return loraLayerCount;
 }
 
+static void serializeSolver( CDnn& dnn, CArchive& archive )
+{
+	// Serialize solver
+	CPtr<CDnnSolver> solverPtr = nullptr;
+	if( archive.IsStoring() ) {
+		solverPtr = dnn.GetSolver();
+	}
+	SerializeSolver( archive, dnn, solverPtr );
+	if( archive.IsLoading() ) {
+		dnn.SetSolver( solverPtr );
+	}
+}
+
 //----------------------------------------------------------------------------------------------------------------------
 
 int CLoraSerializer::Serialize( CDnn& dnn, CArchive& archive ) const
@@ -354,14 +367,19 @@ int CLoraSerializer::Serialize( CDistributedTraining& distributed, CArchive& arc
 int CLoraSerializer::SerializeCheckpoint( CDnn& dnn, CArchive& archive ) const
 {
 	const int result = Serialize( dnn, archive ); // Serializing LoRA weights
-	// Serialize solver
-	CPtr<CDnnSolver> solverPtr = nullptr;
-	if( archive.IsStoring() ) {
-		solverPtr = dnn.GetSolver();
-	}
-	SerializeSolver( archive, dnn, solverPtr );
-	if( archive.IsLoading() ) {
-		dnn.SetSolver( solverPtr );
+	serializeSolver( dnn, archive );
+	return result;
+}
+
+int CLoraSerializer::SerializeCheckpoint( CDistributedTraining& distributed, CArchive& archive ) const
+{
+	const int result = Serialize( distributed, archive );
+	// Serialize solvers for each dnn
+	int dnnCount = distributed.GetModelCount();
+	archive.Serialize( dnnCount );
+	check( dnnCount == distributed.GetModelCount(), ERR_BAD_ARCHIVE, archive.Name() );
+	for( int i = 0; i < dnnCount; ++i ) {
+		serializeSolver( *distributed.cnns[i], archive );
 	}
 	return result;
 }

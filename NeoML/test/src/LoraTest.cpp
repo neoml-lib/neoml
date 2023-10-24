@@ -24,9 +24,9 @@ using namespace NeoMLTest;
 
 namespace NeoMLTest {
 
-static CPtr<CDnnBlob> generateLoraFcBLob( int objectCount, int objectSize )
+static CPtr<CDnnBlob> generateLoraFcBLob( IMathEngine& mathEngine, int objectCount, int objectSize )
 {
-	CPtr<CDnnBlob> blob = CDnnBlob::CreateDataBlob( MathEngine(), CT_Float, 1, objectCount, objectSize );
+	CPtr<CDnnBlob> blob = CDnnBlob::CreateDataBlob( mathEngine, CT_Float, 1, objectCount, objectSize );
 	CRandom random( ( blob->GetDataSize() << 6 ) + objectCount * 17 - objectSize * 31 );
 	CREATE_FILL_FLOAT_ARRAY( rawData, -1, 1, blob->GetDataSize(), random );
 	blob->CopyFrom( rawData.GetPtr() );
@@ -77,14 +77,15 @@ static void buildLoraTestDnn( CBaseLayer& coreLayer )
 	dnn.AddLayer( *out );
 
 	CPtr<CDnnAdaptiveGradientSolver> solver = new CDnnAdaptiveGradientSolver( mathEngine );
+	solver->SetLearningRate( 0.1f );
 	dnn.SetSolver( solver.Ptr() );
 }
 
 static void buildLoraFcDnn( CDnn& dnn, int inputSize, int outputSize, float dropout )
 {
 	CLoraParams params( 4, 2.f, dropout ); // dropout must be off otherwise math won't match
-	CPtr<CDnnBlob> baseFcWeights = generateLoraFcBLob( outputSize, inputSize );
-	CPtr<CDnnBlob> baseFcFreeTerms = generateLoraFcBLob( 1, outputSize );
+	CPtr<CDnnBlob> baseFcWeights = generateLoraFcBLob( dnn.GetMathEngine(), outputSize, inputSize );
+	CPtr<CDnnBlob> baseFcFreeTerms = generateLoraFcBLob( dnn.GetMathEngine(), 1, outputSize );
 
 	CPtr<CLoraFullyConnectedLayer> full = new CLoraFullyConnectedLayer( *baseFcWeights, baseFcFreeTerms.Ptr(), params );
 	full->SetName( "full" );
@@ -130,7 +131,7 @@ TEST( LoraFullyConnectedLayerTest, Initialization )
 	const int outputSize = 8;
 	CLoraParams params( 4, 2.f, 0.1f );
 
-	CPtr<CDnnBlob> baseFcWeights = generateLoraFcBLob( outputSize, inputSize );
+	CPtr<CDnnBlob> baseFcWeights = generateLoraFcBLob( MathEngine(), outputSize, inputSize );
 	CPtr<CLoraFullyConnectedLayer> loraFc = new CLoraFullyConnectedLayer( *baseFcWeights, nullptr, params );
 
 	// Check that uninitialized A and B are nullptrs
@@ -430,13 +431,13 @@ TEST( LoraSerializerTest, LoraFc )
 
 //----------------------------------------------------------------------------------------------------------------------
 
+// We can use empty class cause the data blobs in this tests are serialized with CSourceLayer
+class CLoraTestDistDataset : public IDistributedDataset {
+	int SetInputBatch( CDnn&, int ) override { return 1; }
+};
+
 TEST( LoraSerializerTest, Distributed )
 {
-	// We can use empty class cause the data blobs in this tests are serialized with CSourceLayer
-	class CTestDistDataset : public IDistributedDataset {
-		int SetInputBatch( CDnn&, int ) override { return 1; }
-	};
-
 	// Setting bigger size (full weights will be ioSize x ioSize matrix)
 	constexpr int ioSize = 100;
 	constexpr __int64 fullMatrixSize = static_cast<__int64>( sizeof( float ) * ioSize * ioSize );
@@ -445,7 +446,7 @@ TEST( LoraSerializerTest, Distributed )
 	CDnn dnn( random, MathEngine() );
 	buildLoraFcDnn( dnn, ioSize, ioSize, 0.1f );
 	CDistributedTraining distributed( dnn, 4 );
-	CTestDistDataset dataset;
+	CLoraTestDistDataset dataset;
 
 	distributed.RunAndLearnOnce( dataset ); // now A and B matrices are initialized
 
@@ -487,5 +488,61 @@ TEST( LoraSerializerTest, Distributed )
 	ASSERT_EQ( originalBlobs.Size(), actualBlobs.Size() );
 	for( int i = 0; i < originalBlobs.Size(); ++i ) {
 		EXPECT_FALSE( CompareBlobs( *originalBlobs[i], *actualBlobs[i] ) );
+	}
+}
+
+TEST( LoraSerializerTest, DistributedCheckpoint )
+{
+	constexpr int ioSize = 10;
+
+	CRandom random( 0xABBA );
+	CDnn dnn( random, MathEngine() );
+	buildLoraFcDnn( dnn, ioSize, ioSize, 0.f ); // Dropout must be zero
+	CDistributedTraining distributed( dnn, 4 );
+	CLoraTestDistDataset dataset;
+
+	// Learn a couple of times (before creating checkpoints)
+	for( int i = 0; i < 2; ++i ) {
+		distributed.RunAndLearnOnce( dataset );
+	}
+
+	CMemoryFile file; // Store checkpoints
+	{
+		CArchive archive( &file, CArchive::SD_Storing );
+		ASSERT_EQ( 1, CLoraSerializer().SerializeCheckpoint( distributed, archive ) );
+	}
+
+	const int testedIterations = 20;
+	CArray<CObjectArray<CDnnBlob>> storedOutputs;
+	CArray<CArray<float>> storedLosses;
+	// Learn a few times and store outputs on each iteration after checkpoint
+	for( int iter = 0; iter < testedIterations; ++iter ) {
+		distributed.RunAndLearnOnce( dataset );
+		distributed.GetLastBlob( "sink", storedOutputs.Append() );
+		for( CPtr<CDnnBlob>& blob : storedOutputs.Last() ) {
+			blob = blob->GetCopy();
+		}
+		distributed.GetLastLoss( "loss", storedLosses.Append() );
+	}
+
+	// now lets load LoRA checkpoint into the distributed
+	{
+		file.SeekToBegin();
+		CArchive archive( &file, CArchive::SD_Loading );
+		ASSERT_EQ( 1, CLoraSerializer().SerializeCheckpoint( distributed, archive ) );
+		EXPECT_EQ( file.GetPosition(), file.GetLength() );
+	}
+
+	CObjectArray<CDnnBlob> currBlobs;
+	CArray<float> currLosses;
+	for( int iter = 0; iter < testedIterations; ++iter ) {
+		distributed.RunAndLearnOnce( dataset );
+		distributed.GetLastBlob( "sink", currBlobs );
+		distributed.GetLastLoss( "loss", currLosses );
+		ASSERT_EQ( currBlobs.Size(), currLosses.Size() );
+		for( int i = 0; i < currBlobs.Size(); ++i ) {
+			EXPECT_TRUE( CompareBlobs( *currBlobs[i], *storedOutputs[iter][i], FLT_EPSILON ) );
+			EXPECT_FLOAT_EQ( currLosses[i], storedLosses[iter][i] );
+		}
 	}
 }
