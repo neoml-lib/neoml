@@ -33,6 +33,7 @@ CCastOperator::CCastOperator( const onnx::NodeProto& cast, int opsetVersion ) :
 	// v6 - to attrbiute converted to integer instead of string
 	// v9 - string type support is added
 	// v13 - bloaf16 support is added
+	// v19 - float8 support and saturate flag are added
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
 	CheckOnnxProtocol( InputCount() == 1, "operator must have 1 input", *this );

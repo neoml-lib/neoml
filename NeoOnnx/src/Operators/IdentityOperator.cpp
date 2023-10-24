@@ -30,6 +30,7 @@ CIdentityOperator::CIdentityOperator( const onnx::NodeProto& identity, int opset
 	// v13 - bfloat16 is supported
 	// v14 - sequences are supported
 	// v16 - optionals are supported
+	// v19 - float-8 is supported
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
 	CheckOnnxProtocol( InputCount() == 1, "operator must have 1 input", *this );
