@@ -497,7 +497,14 @@ TEST( LoraSerializerTest, DistributedCheckpoint )
 
 	CRandom random( 0xABBA );
 	CDnn dnn( random, MathEngine() );
-	buildLoraFcDnn( dnn, ioSize, ioSize, 0.f ); // Dropout must be zero
+	buildLoraTransformerDnn( dnn, ioSize );
+	dnn.RunOnce();
+
+	CLoraBuilder builder;
+	CLoraParams params( 4, 2.f, 0.f ); // dropout must be zero
+	EXPECT_EQ( 6, builder.BuildAllFcWrappers( dnn, params ) );
+	EXPECT_EQ( 2, builder.DisableNonLoraTraining( dnn ) );
+
 	CDistributedTraining distributed( dnn, 4 );
 	CLoraTestDistDataset dataset;
 
@@ -509,7 +516,7 @@ TEST( LoraSerializerTest, DistributedCheckpoint )
 	CMemoryFile file; // Store checkpoints
 	{
 		CArchive archive( &file, CArchive::SD_Storing );
-		ASSERT_EQ( 1, CLoraSerializer().SerializeCheckpoint( distributed, archive ) );
+		ASSERT_EQ( 6, CLoraSerializer().SerializeCheckpoint( distributed, archive ) );
 	}
 
 	const int testedIterations = 20;
@@ -529,7 +536,7 @@ TEST( LoraSerializerTest, DistributedCheckpoint )
 	{
 		file.SeekToBegin();
 		CArchive archive( &file, CArchive::SD_Loading );
-		ASSERT_EQ( 1, CLoraSerializer().SerializeCheckpoint( distributed, archive ) );
+		ASSERT_EQ( 6, CLoraSerializer().SerializeCheckpoint( distributed, archive ) );
 		EXPECT_EQ( file.GetPosition(), file.GetLength() );
 	}
 
@@ -541,8 +548,8 @@ TEST( LoraSerializerTest, DistributedCheckpoint )
 		distributed.GetLastLoss( "loss", currLosses );
 		ASSERT_EQ( currBlobs.Size(), currLosses.Size() );
 		for( int i = 0; i < currBlobs.Size(); ++i ) {
-			EXPECT_TRUE( CompareBlobs( *currBlobs[i], *storedOutputs[iter][i], FLT_EPSILON ) );
-			EXPECT_FLOAT_EQ( currLosses[i], storedLosses[iter][i] );
+			EXPECT_TRUE( CompareBlobs( *currBlobs[i], *storedOutputs[iter][i], FLT_EPSILON ) ) << "At iter #" << iter << "\tat " << i;
+			EXPECT_FLOAT_EQ( currLosses[i], storedLosses[iter][i] ) << "At iter #" << iter << "\tat " << i;
 		}
 	}
 }
