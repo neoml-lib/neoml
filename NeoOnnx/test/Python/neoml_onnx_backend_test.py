@@ -33,36 +33,54 @@ backend_test.exclude('test_atanh_')  # Atanh
 backend_test.exclude('test_basic_convinteger_')  # ConvInteger
 backend_test.exclude('test_bernoulli_')  # Bernoulli, RandomUniformLike
 backend_test.exclude('test_bitshift_')  # BitShift
+backend_test.exclude('test_bitwise_and_')  # BitwiseAnd
+backend_test.exclude('test_bitwise_not_')  # BitwiseNot
+backend_test.exclude('test_bitwise_or_')  # BitwiseOr
+backend_test.exclude('test_bitwise_xor_')  # BitwiseXor
+backend_test.exclude('test_blackmanwindow_')  # BlackmanWindow (or Cos for expanded version)
 backend_test.exclude('test_castlike_')  # CastLike
 backend_test.exclude('test_ceil_')  # Ceil
 backend_test.exclude('test_celu_(?!expanded)')  # Celu
+backend_test.exclude('test_center_crop_pad')  # CenterCropPad (or Max for expanded version)
+backend_test.exclude('test_col2im_')  # Col2Im
 backend_test.exclude('test_compress_')  # Compress
-backend_test.exclude('test_convinteger_')  # ConvInteger
 backend_test.exclude('test_cos_')  # Cos
 backend_test.exclude('test_cosh_')  # Cosh
+backend_test.exclude('deform_conv')  # DeformConv
 backend_test.exclude('test_depthtospace_')  # DepthToSpace
 backend_test.exclude('test_dequantizelinear_')  # DequantizeLinear
 backend_test.exclude('test_det_')  # Det
+backend_test.exclude('test_dft_')  # DFT
 backend_test.exclude('test_dynamicquantizelinear_')  # DynamicQuantizeLinear
 backend_test.exclude('test_einsum_')  # EinSum
+backend_test.exclude('test_elu_[a-z0-9_]*expanded')  # CastLike
 backend_test.exclude('test_eyelike_')  # EyeLike
 backend_test.exclude('test_floor_')  # Floor
 backend_test.exclude('test_gather_elements_')  # GatherElements
 backend_test.exclude('test_gathernd_')  # GatherND
-backend_test.exclude('test_greater_[a-z0-9_]*_expanded_')  # Or
+backend_test.exclude('test_greater_[a-z0-9_]*expanded_')  # Or
 backend_test.exclude('test_gridsample_') # GridSample
+backend_test.exclude('test_group_normalization_')  # GroupNormalization
 backend_test.exclude('test_gru_')  # GRU
+backend_test.exclude('test_hammingwindow_')  # HammingWindow (or Cos for expanded)
+backend_test.exclude('test_hannwindow_')  # HannWindow (or Cos for expanded)
 backend_test.exclude('test_hardmax_')  # HardMax
+backend_test.exclude('test_hardsigmoid_[a-z0-9_]*expanded')  # Max, Min and CastLike
 backend_test.exclude('test_if_')  # If
 backend_test.exclude('test_isinf_')  # IsInf
 backend_test.exclude('test_isnan_')  # IsNan
-backend_test.exclude('test_less_[a-z0-9_]*_expanded_')  # Or
+backend_test.exclude('test_layer_normalization_')  # LayerNormalization (or Size, Reciprocal for expanded)
+backend_test.exclude('test_leakyrelu_[a-z0-9_]*expanded_')  # CastLike
+backend_test.exclude('test_less_equal_[a-z0-9_]*expanded_')  # Or
 backend_test.exclude('test_loop')  # Loop
+backend_test.exclude('test_lppool_')  # LpPool
 backend_test.exclude('test_matmulinteger_')  # MatMulInteger
 backend_test.exclude('test_max_')  # Max
 backend_test.exclude('test_maxunpool_')  # MaxUnpool
 backend_test.exclude('test_mean_')  # Mean
+backend_test.exclude('test_melweightmatrix_')  # MelWeightMatrix
 backend_test.exclude('test_min_')  # Min
+backend_test.exclude('test_mish_')  # Mish
 backend_test.exclude('test_mod_')  # Mod
 backend_test.exclude('test_mvn_(?!expanded)')  # MeanVarianceNormalization
 backend_test.exclude('test_nllloss_')  # NegativeLogLikelihoodLoss, GatherElements
@@ -77,13 +95,14 @@ backend_test.exclude('test_prelu_')  # PRelu
 backend_test.exclude('test_qlinearconv_')  # QLinearConv
 backend_test.exclude('test_qlinearmatmul_')  # QLinearMatMul
 backend_test.exclude('test_quantizelinear_')  # QuantizeLinear
-backend_test.exclude('test_range_[a-z0-9_]*_expanded_')  # Ceil, Loop
+# backend_test.exclude('test_range_[a-z0-9_]*_expanded_')  # Ceil, Loop
 backend_test.exclude('test_reciprocal_')  # Reciprocal
 backend_test.exclude('test_reduce_l1_')  # ReduceL1
 backend_test.exclude('test_reduce_log_sum_')  # ReduceLogSum
 backend_test.exclude('test_reduce_log_sum_exp_')  # ReduceLogSumExp
 backend_test.exclude('test_reduce_prod_')  # ReduceProd
 backend_test.exclude('test_reduce_sum_square_')  # ReduceSumSquare
+backend_test.exclude('test_relu_[a-z0-9_]*expanded_')  # Max, CastLike
 backend_test.exclude('test_reversesequence_')  # ReverseSequence
 backend_test.exclude('_rnn_')  # RNN
 backend_test.exclude('test_roialign_')  # RoiAlign
@@ -94,6 +113,7 @@ backend_test.exclude('test_scatter_')  # Scatter and ScatterElements
 backend_test.exclude('test_sce_')  # SoftmaxCrossEntropyLoss, NegativeLogLikelihoodLoss
 backend_test.exclude('test_selu_')  # Selu
 backend_test.exclude('test_sequence_insert_')  # SequenceInsert
+backend_test.exclude('test_sequence_map_')  # SequenceMap
 backend_test.exclude('test_shrink_')  # Shrink
 backend_test.exclude('test_sign_')  # Sign
 backend_test.exclude('test_sin_')  # Sin
@@ -105,7 +125,7 @@ backend_test.exclude('test_spacetodepth_')  # SpaceToDepth
 backend_test.exclude('test_strnormalizer_')  # StringNormalizer
 backend_test.exclude('test_tan_')  # Tan
 backend_test.exclude('test_tfidfvectorizer_')  # TfIdfVectorizer
-backend_test.exclude('test_thresholdedrelu_')  # ThreasholdedRelu
+backend_test.exclude('test_thresholdedrelu_')  # ThresholdedRelu
 backend_test.exclude('test_tile_')  # Tile
 backend_test.exclude('test_top_k_')  # TopK
 backend_test.exclude('test_tril_')  # Trilu
@@ -119,25 +139,32 @@ backend_test.exclude('test_xor_')  # Xor
 # Operators partly supported (with comments, why test fails)
 # TODO: analyze nodes that are implemented but can't be tested...
 
-backend_test.exclude('test_argmax_[a-z0-9_]*_select_last_index_')  # NeoML doesn't support last index in ArgMax
-backend_test.exclude('test_averagepool_[a-z0-9_]*_pads_')  # NeoML doesn't support pads for average pooling
+#
+backend_test.exclude('test_argmax_[a-z0-9_]*example[a-z0-9_]select_last_index')  # NeoML doesn't support last index in ArgMax
+# backend_test.exclude('test_averagepool_[a-z0-9_]*_pads_(?!count)')  # NeoML doesn't support pads for average pooling
 backend_test.exclude('test_averagepool_[a-z0-9_]*_same_')  # NeoML doesn't support pads for average pooling
 backend_test.exclude('test_averagepool_[a-z0-9_]*_ceil_')  # NeoML doesn't support ceiling for average pooling
+backend_test.exclude('test_averagepool_[a-z0-9_]*_dilations_')  # NeoML doesn't support dilations for average pooling
 backend_test.exclude('test_averagepool_1d_')  # NeoOnnx supports only 2d average pooling
 backend_test.exclude('test_averagepool_3d_')  # NeoOnnx supports only 2d average pooling
 backend_test.exclude('test_basic_conv_')  # NeoML doesn't support trained filters as input
 backend_test.exclude('test_batchnorm_')  # NeoML doesn't support trained coeffs as net input
 # NeoML supports only INT32 <-> FLOAT32 cast (which isn't tested by ONNX tests anyway...)
 backend_test.exclude('test_cast_')
-backend_test.exclude('test_clip_')  # NeoOnnx doesn't support clip thresholds as net inputs
-backend_test.exclude('test_constant_pad_')  # NeoML doesn't support padding sizes as inputs
-backend_test.exclude('test_constantofshape_')  # NeoML doesn't support tensor size as input
+# NeoOnnx doesn't support clip thresholds as net inputs but we will try to enable expanded tests
+backend_test.exclude('test_clip_.*bounds_cpu')
+backend_test.exclude('test_clip_.*max_cpu')
+backend_test.exclude('test_clip_.*min_cpu')
+backend_test.exclude('test_clip(_example)?_cpu')
+# backend_test.exclude('test_constant_pad_')  # NeoML doesn't support padding sizes as inputs
+# backend_test.exclude('test_constantofshape_')  # NeoML doesn't support tensor size as input
 backend_test.exclude('test_conv_')  # NeoML doesn't support trained filters as input
 backend_test.exclude('test_convtranspose_')  # NeoML doesn't support trained filters as input
 backend_test.exclude('test_cumsum_')  # NeoML doesn't support axis index as input
 backend_test.exclude('test_dropout_default_mask_')  # NeoML doesn't support dropout mask as output
 backend_test.exclude('test_dropout_default_ratio_')  # NeoML doesn't support dropout rate as input
 backend_test.exclude('test_edge_pad_')  # NeoML doesn't support padding sizes as input
+backend_test.exclude('test_equal_string_')  # NeoML doesn't support tensor with strings
 backend_test.exclude('test_expand_')  # NeoML doesn't support shape as input
 backend_test.exclude('test_gemm_')  # NeoML supports only specific case when it's an FC layer (with constant weights)
 backend_test.exclude('test_identity_opt_')  # NeoML doesn't support optional values as inputs
@@ -159,28 +186,23 @@ backend_test.exclude('test_reflect_pad_')  # NeoML doesn't support padding sizes
 backend_test.exclude('test_reshape_')  # NeoML doesn't support shape as input
 backend_test.exclude('test_resize_')  # NeoML doesn't support sizes or scales as inputs
 backend_test.exclude('test_scatternd_add_')  # NeoML doesn't support non-trivial reduction in ScatterND
+backend_test.exclude('test_scatternd_max_')  # NeoML doesn't support non-trivial reduction in ScatterND
+backend_test.exclude('test_scatternd_min_')  # NeoML doesn't support non-trivial reduction in ScatterND
 backend_test.exclude('test_scatternd_multiply_')  # NeoML doesn't support non-trivial reduction in ScatterND
 backend_test.exclude('test_slice_')  # NeoML doesn't support sizes, stars, ends or axes as inputs
-backend_test.exclude('test_split_')  # NeoML doesn't support tensors splits as inputs
-backend_test.exclude('test_squeeze_')  # NeoML doesn't support axes as inputs
-backend_test.exclude('test_unsqueeze_')  # NeoML doesn't support axes as inputs
-backend_test.exclude('test_upsample_')  # NeoML doesn't support scales as input
+# backend_test.exclude('test_split_')  # NeoML doesn't support tensors splits as inputs
+# backend_test.exclude('test_squeeze_')  # NeoML doesn't support axes as inputs
+# backend_test.exclude('test_unsqueeze_')  # NeoML doesn't support axes as inputs
+# backend_test.exclude('test_upsample_')  # NeoML doesn't support scales as input
 
 # OnnxBackendRealModelTest (a bunch of models from the model zoo)
 backend_test.exclude('test_bvlc_alexnet_')  # Contains groupped convolution
 backend_test.exclude('test_inception_v1_')  # Contains average pooling with padding
 backend_test.exclude('test_inception_v2_')  # Contains average pooling with padding
 backend_test.exclude('test_shufflenet_')  # Contains groupped convolution
-# TODO: temporarily disable (download links are broken :-( )
-backend_test.exclude('test_densenet121_')
-backend_test.exclude('test_resnet50_')
-backend_test.exclude('test_squeezenet_')
-backend_test.exclude('test_vgg19_')
-backend_test.exclude('test_zfnet512_')
 
 # OnnxBackendSimpleModelTest (some synthetic test models)
 # Models containing unsupported operators
-backend_test.exclude('test_expand_shape_model')  # Gradient
 backend_test.exclude('test_gradient_of_add_')  # Gradient
 backend_test.exclude('test_sequence_model1_')  # SequenceInsert, SequenceEmpty, SequenceAt
 backend_test.exclude('test_sequence_model2_')  # SequenceConstruct, SequenceErase, SequenceAt
@@ -194,7 +216,7 @@ backend_test.exclude('test_strnorm_model_')  # StringNormalizer
 
 # OnnxBackendPyTorchConvertedModelTest
 
-backend_test.exclude('_sparse_')  # NeoML doesn't support sparse data
+# backend_test.exclude('_sparse_')  # NeoML doesn't support sparse data
 backend_test.exclude('test_AvgPool3d_')  # NeoOnnx supports only 2d avg pooling
 backend_test.exclude('test_Conv[a-z0-9_]*group')  # NeoML doesn't support groupped convolution
 backend_test.exclude('test_Conv[a-z0-9_]*multiplier')  # NeoML doesn't support groupped convolution
@@ -205,24 +227,26 @@ backend_test.exclude('test_MaxPool3d_')  # NeoOnnx supports only 2d max pooling
 backend_test.exclude('test_PReLU')  # Contains PRelu operator
 backend_test.exclude('test_SELU')  # Contains Selu operator
 backend_test.exclude('test_Softplus')  # Contains Softplus operator
+backend_test.exclude('test_Softplus')  # Contains Softplus operator
 
 # OnnxBackendPyTorchOperatorModelTest
 backend_test.exclude('test_operator_add_')  # NeoOnnx doesn't support doubles which can't be casted to float
 backend_test.exclude('test_operator_addconstant_')  # NeoOnnx doesn't support doubles which can't be casted to float
 # NeoML supports only specific case when it's an FC layer (with constant weights)
 backend_test.exclude('test_operator_addmm_')
-backend_test.exclude('test_operator_max_')  # Contains Max operator
-backend_test.exclude('test_operator_maxpool_')  # NeoOnnx supports only 2d max pooling
-backend_test.exclude('test_operator_min_')  # Contains Min operator
+# backend_test.exclude('test_operator_max_')  # Contains Max operator
+# backend_test.exclude('test_operator_maxpool_')  # NeoOnnx supports only 2d max pooling
+# backend_test.exclude('test_operator_min_')  # Contains Min operator
 # NeoML supports only specific case when it's an FC layer (with constant weights)
-backend_test.exclude('test_operator_mm_')
-backend_test.exclude('test_operator_pow_')  # NeoML doesn't support power of the exponent as input
-backend_test.exclude('test_operator_repeat_')  # Contains Tile operator
-backend_test.exclude('test_operator_selu_')  # Contains Selu operator
+# backend_test.exclude('test_operator_mm_')
+# backend_test.exclude('test_operator_pow_')  # NeoML doesn't support power of the exponent as input
+# backend_test.exclude('test_operator_repeat_')  # Contains Tile operator
+# backend_test.exclude('test_operator_selu_')  # Contains Selu operator
 
 # TODO: ALARM!!! Some failing tests for future research (no explanation for failure yet...)
 
-backend_test.exclude('test_momentum_')  # Some WEIRD stuff happens here...
+backend_test.exclude('test_momentum_')  # Some WEIRD stuff happens here... (Default operator set is missing)
+backend_test.exclude('test_ai_onnx_ml')  # Default version missing???
 
 # TODO: ALARM!!! Run ALL the failing tests and fix all the asserts (it should be replaced with some exception)...
 
