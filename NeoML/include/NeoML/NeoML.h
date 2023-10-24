@@ -57,7 +57,6 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/FullyConnectedLayer.h>
 #include <NeoML/Dnn/Layers/GlobalMeanPoolingLayer.h>
 #include <NeoML/Dnn/Layers/IndRnnLayer.h>
-#include <NeoML/Dnn/Layers/LoraFullyConnectedLayer.h>
 #include <NeoML/Dnn/Layers/LossLayer.h>
 #include <NeoML/Dnn/Layers/LstmLayer.h>
 #include <NeoML/Dnn/Layers/MatrixMultiplicationLayer.h>
@@ -98,6 +97,7 @@ limitations under the License.
 #include <NeoML/TraditionalML/WordDictionary.h>
 
 #include <NeoML/Dnn/DnnDistributed.h>
+#include <NeoML/Dnn/DnnLora.h>
 #include <NeoML/Dnn/DnnOptimization.h>
 #include <NeoML/Dnn/Layers/3dPoolingLayer.h>
 #include <NeoML/Dnn/Layers/3dTransposedConvLayer.h>
@@ -126,6 +126,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/InterpolationLayer.h>
 #include <NeoML/Dnn/Layers/IrnnLayer.h>
 #include <NeoML/Dnn/Layers/LogicalLayers.h>
+#include <NeoML/Dnn/Layers/LoraFullyConnectedLayer.h>
 #include <NeoML/Dnn/Layers/LrnLayer.h>
 #include <NeoML/Dnn/Layers/MaxOverTimePoolingLayer.h>
 #include <NeoML/Dnn/Layers/ModelWrapperLayer.h>
