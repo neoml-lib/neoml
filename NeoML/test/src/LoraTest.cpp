@@ -548,8 +548,8 @@ TEST( LoraSerializerTest, DistributedCheckpoint )
 		distributed.GetLastLoss( "loss", currLosses );
 		ASSERT_EQ( currBlobs.Size(), currLosses.Size() );
 		for( int i = 0; i < currBlobs.Size(); ++i ) {
-			EXPECT_TRUE( CompareBlobs( *currBlobs[i], *storedOutputs[iter][i], FLT_EPSILON ) ) << "At iter #" << iter << "\tat " << i;
-			EXPECT_FLOAT_EQ( currLosses[i], storedLosses[iter][i] ) << "At iter #" << iter << "\tat " << i;
+			EXPECT_TRUE( CompareBlobs( *currBlobs[i], *storedOutputs[iter][i], FLT_EPSILON ) );
+			EXPECT_FLOAT_EQ( currLosses[i], storedLosses[iter][i] );
 		}
 	}
 }
