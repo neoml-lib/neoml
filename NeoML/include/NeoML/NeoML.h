@@ -98,7 +98,6 @@ limitations under the License.
 #include <NeoML/TraditionalML/WordDictionary.h>
 
 #include <NeoML/Dnn/DnnDistributed.h>
-#include <NeoML/Dnn/DnnLora.h>
 #include <NeoML/Dnn/DnnOptimization.h>
 #include <NeoML/Dnn/Layers/3dPoolingLayer.h>
 #include <NeoML/Dnn/Layers/3dTransposedConvLayer.h>
