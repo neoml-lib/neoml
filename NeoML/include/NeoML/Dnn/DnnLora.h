@@ -17,6 +17,7 @@ limitations under the License.
 
 #include <NeoML/NeoMLDefs.h>
 #include <NeoML/Dnn/Dnn.h>
+#include <NeoML/Dnn/Layers/LoraFullyConnectedLayer.h>
 
 namespace NeoML {
 
@@ -25,17 +26,6 @@ class CDistributedTraining;
 
 // Implementation of Low-Ranked Adaption (LoRA)
 // https://arxiv.org/pdf/2106.09685v2.pdf
-
-struct NEOML_API CLoraParams {
-	int Rank; // Size of vector in-between A and B matrices of LoRA
-	float Alpha; // Coefficient, the output will be multiplied by Alpha / Rank
-	float Dropout; // Dropout applied to input before matrix multiplications
-
-	explicit CLoraParams( int rank = 1, float alpha = 1.f, float dropout = 0.f )
-		: Rank( rank ), Alpha( alpha ), Dropout( dropout ) {}
-
-	void Serialize( CArchive& archive );
-};
 
 // Mechanism which allows to add/remove/merge LoRA into nets
 // It works with CDnnLayerGraph which allows you to modify CDnn or specific composites (e.g. CTransformerEncoderLayer)
