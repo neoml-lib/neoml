@@ -1,4 +1,4 @@
-/* Copyright © 2021 ABBYY Production LLC
+/* Copyright © 2021-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -3302,4 +3302,52 @@ inline void checkSpecificParams<CGrnLayer>( CGrnLayer& layer )
 GTEST_TEST( SerializeFromFile, GrnLayerSerialization )
 {
 	checkSerializeLayer<CGrnLayer>( "NeoMLDnnGrnLayer" );
+}
+
+// ====================================================================================================================
+
+// CLoraFullyConnectedLayer
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+GTEST_TEST( SerializeToFile, LoraFullyConnectedLayerSerialization )
+{
+	CRandom random;
+	CDnn cnn( random, MathEngine() );
+
+	CLoraParams params( 7, 3.f, 0.1f );
+	CPtr<CDnnBlob> baseW = generateBlob( TestSize, 1, 1, 1, 2 * TestSize );
+	CPtr<CDnnBlob> baseB = generateBlob( 1, 1, 1, 1, TestSize );
+	CPtr<CDnnBlob> a = generateBlob( params.Rank, 1, 1, 1, TestSize );
+	CPtr<CDnnBlob> b = generateBlob( TestSize, 1, 1, 1, params.Rank );
+
+	CPtr<CLoraFullyConnectedLayer> layerPtr = new CLoraFullyConnectedLayer( *baseW, baseB.Ptr(), params );
+	setBaseParams( *layerPtr );
+	layerPtr->SetName( LayerName );
+	layerPtr->UpdateParams( params, a.Ptr(), b.Ptr() );
+	cnn.AddLayer( *layerPtr );
+
+	CArchiveFile file( getFileName( "NeoMLDnnLoraFullyConnectedLayer" ), CArchive::SD_Storing );
+	CArchive archive( &file, CArchive::SD_Storing );
+	archive.Serialize( cnn );
+}
+
+#endif // GENERATE_SERIALIZATION_FILES
+
+template<>
+inline void checkSpecificParams<CLoraFullyConnectedLayer>( CLoraFullyConnectedLayer& layer )
+{
+	checkBlob( *layer.GetSplitWeightsNoCopy(), 2 * TestSize * TestSize );
+	checkBlob( *layer.GetFreeTermsNoCopy(), TestSize );
+
+	ASSERT_EQ( layer.Rank(), 7 );
+	ASSERT_EQ( layer.Alpha(), 3.f );
+	ASSERT_EQ( layer.Dropout(), 0.1f );
+	checkBlob( *layer.GetAWeightsNoCopy(), layer.Rank() * TestSize );
+	checkBlob( *layer.GetBWeightsNoCopy(), layer.Rank() * TestSize );
+}
+
+GTEST_TEST( SerializeFromFile, LoraFullyConnectedLayerSerialization )
+{
+	checkSerializeLayer<CLoraFullyConnectedLayer>( "NeoMLDnnLoraFullyConnectedLayer" );
 }

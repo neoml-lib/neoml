@@ -79,9 +79,9 @@ void CTransformerEncoderLayer::Serialize( CArchive& archive )
 		selfAttention = CheckCast<CMultiheadAttentionLayer>( GetLayer( selfAttentionName ) );
 		dropoutSelfAttention = getOptionalDropout( *this, dropoutSelfAttentionName );
 		selfAttentionSum = CheckCast<CEltwiseSumLayer>( GetLayer( selfAttentionSumName ) );
-		fc1 = CheckCast<CFullyConnectedLayer>( GetLayer( fc1Name ) );
+		fc1 = GetLayer( fc1Name );
 		dropoutFc1 = getOptionalDropout( *this, dropoutFc1Name );
-		fc2 = CheckCast<CFullyConnectedLayer>( GetLayer( fc2Name ) );
+		fc2 = GetLayer( fc2Name );
 		dropoutFc2 = getOptionalDropout( *this, dropoutFc2Name );
 		feedForwardSum = CheckCast<CEltwiseSumLayer>( GetLayer( feedForwardSumName ) );
 	}
@@ -134,7 +134,7 @@ void CTransformerEncoderLayer::SetFeedForwardSize( int size )
 {
 	NeoAssert( size > 0 );
 
-	fc1->SetNumberOfElements( size );
+	CheckCast<CFullyConnectedLayer>( fc1 )->SetNumberOfElements( size );
 	ForceReshape();
 
 	NeoPresume( GetFeedForwardSize() == size );
@@ -192,8 +192,9 @@ void CTransformerEncoderLayer::Reshape()
 	if( selfAttention->GetOutputSize() != inputDescs[0].Channels() ) {
 		selfAttention->SetOutputSize( inputDescs[0].Channels() );
 	}
-	if( fc2->GetNumberOfElements() != inputDescs[0].Channels() ) {
-		fc2->SetNumberOfElements( inputDescs[0].Channels() );
+	CFullyConnectedLayer* fc2Ptr = dynamic_cast<CFullyConnectedLayer*>( fc2.Ptr() );
+	if( fc2Ptr != nullptr && fc2Ptr->GetNumberOfElements() != inputDescs[0].Channels() ) {
+		fc2Ptr->SetNumberOfElements( inputDescs[0].Channels() );
 	}
 
 	if( GetInputCount() == 2 && !selfAttention->GetUseMask() ) {
@@ -236,7 +237,7 @@ void CTransformerEncoderLayer::buildLayer()
 	// First fully-connected of feed-forward
 	fc1 = FINE_DEBUG_NEW CFullyConnectedLayer( MathEngine() );
 	fc1->SetName( fc1Name );
-	fc1->SetNumberOfElements( 1 );
+	CheckCast<CFullyConnectedLayer>( fc1 )->SetNumberOfElements( 1 );
 	fc1->Connect( *selfAttentionNorm );
 	AddLayer( *fc1 );
 
@@ -249,7 +250,7 @@ void CTransformerEncoderLayer::buildLayer()
 	// Second fully-connected of feed-forward
 	fc2 = FINE_DEBUG_NEW CFullyConnectedLayer( MathEngine() );
 	fc2->SetName( fc2Name );
-	fc2->SetNumberOfElements( 1 );
+	CheckCast<CFullyConnectedLayer>( fc2 )->SetNumberOfElements( 1 );
 	fc2->Connect( *activation );
 	AddLayer( *fc2 );
 
