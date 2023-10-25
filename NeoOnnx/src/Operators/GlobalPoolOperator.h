@@ -134,8 +134,6 @@ public:
 		CReducePoolOperatorBase( CGlobalPoolOperatorBase::PT_Sum, onnxNode, opsetVersion )
 	{
 	}
-
-	void PoolAxes( const CTensorArray& inputs, CFastArray<int, 8>& axes ) const override;
 };
 
 // ReduceL2 operator
