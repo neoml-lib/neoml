@@ -60,7 +60,7 @@ void CPadOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArra
 	} else if( mode == "reflect" ) {
 		padding = TBlobResizePadding::Reflect;
 	} else {
-		CheckOnnxProtocol( mode == "constant", "Unknown padding mode", *this );
+		CheckNeoOnnxSupport( mode == "constant", "Unknown padding mode", *this );
 	}
 	outputs.Add( PadUserTensor( *AsUserTensor( *inputs[0], Name() + "_Source", dnn ), pads, padding, value ).Ptr() );
 }
