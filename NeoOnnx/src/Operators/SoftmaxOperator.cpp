@@ -47,7 +47,18 @@ bool CSoftmaxLayoutValidator::operator()( const CTensorLayout& layout ) const
 		}
 		return true;
 	}
-	return layout[axis] == BD_Channels || layout[axis] == BD_ListSize || layout[axis] == BD_BatchLength;
+
+	if( layout[axis] == BD_ListSize ) {
+		// Check compatibility with CSoftmaxLayer::NA_ListSize
+		// In this case no axes after ListSize may be used
+		for( const TBlobDim dim : layout ) {
+			if( dim > BD_ListSize ) {
+				return false;
+			}
+		}
+	}
+
+	return layout[axis] == BD_Channels || layout[axis] == BD_BatchLength;
 }
 
 CSoftmaxOperator::CSoftmaxOperator( const onnx::NodeProto& softmax, int opsetVersion ) :
