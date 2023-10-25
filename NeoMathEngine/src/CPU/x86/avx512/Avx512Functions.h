@@ -24,7 +24,7 @@ namespace NeoML {
 namespace Avx512 {
 
 // The minimum vector size recommended for using AVX512 vector functions
-static constexpr int VectorMathMinSize = 32;
+static constexpr int VectorMathMinSize = 16;
 
 void dataCopy( float* dst, const float* src, int vectorSize );
 

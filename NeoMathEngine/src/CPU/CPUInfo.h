@@ -149,6 +149,9 @@ struct CCPUInfo final {
 #error "Platform isn't supported!"
 #endif // ERROR FINE_PLATFORM
 		}
+		if( HasAvx512And2Fma ) {
+			floatAlignment = 16;
+		}
 
 		return floatAlignment;
 #endif // !NEOML_USE_NEON
