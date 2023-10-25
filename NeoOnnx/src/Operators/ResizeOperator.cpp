@@ -125,7 +125,7 @@ TInterpolationCoords CResizeOperator::getInterpolationCoords() const
 		return TInterpolationCoords::AlignCorners;
 	} else if( coordMode == "asymmetric" ) {
 		return TInterpolationCoords::Asymmetric;
-	} else if( coordMode == "tf_half_pixel_for_nn" || coordMode == "tf_crop_and_resize" ) {
+	} else if( coordMode == "tf_half_pixel_for_nn" || coordMode == "tf_crop_and_resize" || coordMode == "half_pixel_symmetric" ) {
 		CheckNeoOnnxSupport( false, "unsupported 'coordinate_transformation_mode'", *this );
 	}
 	CheckOnnxProtocol( false, "unknown 'coordinate_transformation_mode'", *this );
