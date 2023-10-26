@@ -23,6 +23,29 @@ limitations under the License.
 
 namespace NeoOnnx {
 
+// Gets the maximum number of inputs in the given opset version
+static int getPoolMaxInputCount( const CString& opType, int opsetVersion )
+{
+	if( opsetVersion < 13 ) {
+		return 1;
+	}
+
+	// Since v13 ReduceSum may have 2 inputs
+	if( opType == "ReduceSum" ) {
+		return 2;
+	}
+
+	// Since v18 all other ReduceSmth operators may have 2 inputs
+	if( opsetVersion >= 18 && opType.CompareSubstr( 0, "Reduce", 6 ) == 0 ) {
+		return 2;
+	}
+
+	// Reduce* operators with version in [13;18) must have 1 input (except ReduceSum)
+	return 1;
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
 // Validator for global pool operators
 class CGlobalPoolLayoutValidator : public ITensorLayoutValidator {
 public:
@@ -64,11 +87,8 @@ CGlobalPoolOperatorBase::CGlobalPoolOperatorBase( TPoolType _poolType, const onn
 	CLayerOperator( onnxNode, opsetVersion ),
 	poolType( _poolType )
 {
-	if( OpsetVersion < 13 || Type() != "ReduceSum" ) {
-		CheckOnnxProtocol( InputCount() == 1, "operator must have 1 input", *this );
-	} else {
-		CheckOnnxProtocol( InputCount() == 1 || InputCount() == 2, "operator must have 1 or 2 inputs", *this );
-	}
+	CheckOnnxProtocol( InputCount() >= 1 && InputCount() <= getPoolMaxInputCount( Type(), opsetVersion ),
+		"wrong input count", *this );
 	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
 }
 
@@ -221,10 +241,20 @@ bool CReducePoolOperatorBase::KeepDims() const
 
 void CReducePoolOperatorBase::PoolAxes( const CTensorArray& inputs, CFastArray<int, 8>& axes ) const
 {
-	const int inputDimCount = inputs[0]->DimCount();
-	GetAttribute( "axes", axes );
+	if( inputs.Size() == 1 || inputs[1] == nullptr ) {
+		if( !GetAttribute( "noop_with_empty_axes", axes ) ) {  // For new versions without second input
+			GetAttribute( "axes", axes );  // For old versions
+		}
+	} else {
+		// For new versions with second input: copy axes from this input
+		CheckNeoOnnxSupport( inputs[1]->Type() == TTensorType::Data, "non-constant axes", *this );
+		const CDnnBlob& axesBlob = *dynamic_cast<const CDataTensor&>( *inputs[1] ).Data();
+		axes.SetSize( axesBlob.GetDataSize() );
+		axesBlob.CopyTo( axes.GetPtr() );
+	}
 
-	// If axes attribute is missing then all dimensions must be pooled
+	// If axes are missing then all dimensions must be pooled
+	const int inputDimCount = inputs[0]->DimCount();
 	if( axes.IsEmpty() ) {
 		axes.SetBufferSize( inputDimCount );
 		for( int i = 0; i < inputDimCount; ++i ) {
@@ -233,55 +263,13 @@ void CReducePoolOperatorBase::PoolAxes( const CTensorArray& inputs, CFastArray<i
 		return;
 	}
 
+	// Fix negative axes
 	for( int i = 0; i < axes.Size(); ++i ) {
 		if( axes[i] < 0 ) {
 			axes[i] += inputDimCount;
 		}
 	}
 
-	axes.QuickSort<Ascending<int>>();
-}
-
-// --------------------------------------------------------------------------------------------------------------------
-
-void CReduceSumOperator::PoolAxes( const CTensorArray& inputs, CFastArray<int, 8>& axes ) const
-{
-	// Since v13 ReduceSum axes moved from attributes to inputs
-	// But the rest of Reduce* operators will be changed in this way only in v18
-	if( OpsetVersion < 13 ) {
-		// Before v13 the axis rules were the same for all the operators
-		CReducePoolOperatorBase::PoolAxes( inputs, axes );
-		return;
-	}
-
-	const int inputDimCount = inputs[0]->DimCount();
-
-	// Process case when axes input is missing
-	if( inputs.Size() == 1 || inputs[1] == nullptr ) {
-		axes.Empty();
-
-		int noOpWithEmptyAxes = 0;
-		GetAttribute( "noop_with_empty_axes", noOpWithEmptyAxes );
-		if( noOpWithEmptyAxes == 0 ) {
-			// Reduce all axes when special flag is not set
-			axes.SetSize( inputDimCount );
-			for( int i = 0; i < inputDimCount; ++i ) {
-				axes[i] = i;
-			}
-		}
-	}
-
-	// Copy axes from the second input
-	CheckNeoOnnxSupport( inputs[1]->Type() == TTensorType::Data, "non-constant axes", *this );
-	const CDnnBlob& axesBlob = *dynamic_cast<const CDataTensor&>( *inputs[1] ).Data();
-	axes.SetSize( axesBlob.GetDataSize() );
-	axesBlob.CopyTo( axes.GetPtr() );
-
-	for( int i = 0; i < axes.Size(); ++i ) {
-		if( axes[i] < 0 ) {
-			axes[i] += inputDimCount;
-		}
-	}
 	axes.QuickSort<Ascending<int>>();
 }
 
