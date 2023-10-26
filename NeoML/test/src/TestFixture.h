@@ -154,7 +154,7 @@ inline bool CompareBlobs( CDnnBlob& first, CDnnBlob& second, float precision = 1
 		CDnnBlobBuffer<> firstBuff( first, TDnnBlobBufferAccess::Read );
 		CDnnBlobBuffer<> secondBuff( second, TDnnBlobBufferAccess::Read );
 		for( int i = 0; i < firstBuff.Size(); ++i ) {
-			if( !FloatEq( firstBuff[i], secondBuff[i], precision ) ) {
+			if( !FloatEqImpl( firstBuff[i], secondBuff[i], precision ) ) {
 				return false;
 			}
 		}

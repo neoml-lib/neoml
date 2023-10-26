@@ -98,6 +98,7 @@ set(NeoML_SOURCES_COMPACT
 set(NeoML_SOURCES
     ${NeoML_SOURCES_COMPACT}
     Dnn/DnnDistributed.cpp
+    Dnn/DnnLora.cpp
     Dnn/DnnOptimization.cpp
     Dnn/Layers/3dPoolingLayer.cpp
     Dnn/Layers/3dTransposedConvLayer.cpp
@@ -126,6 +127,7 @@ set(NeoML_SOURCES
     Dnn/Layers/InterpolationLayer.cpp
     Dnn/Layers/IrnnLayer.cpp
     Dnn/Layers/LogicalLayers.cpp
+    Dnn/Layers/LoraFullyConnectedLayer.cpp
     Dnn/Layers/LrnLayer.cpp
     Dnn/Layers/MaxOverTimePoolingLayer.cpp
     Dnn/Layers/MobileNetV3BlockLayer.cpp
@@ -356,6 +358,7 @@ set(NeoML_HEADERS
 
     # Headers
     ../include/NeoML/Dnn/DnnDistributed.h
+    ../include/NeoML/Dnn/DnnLora.h
     ../include/NeoML/Dnn/DnnOptimization.h
     ../include/NeoML/Dnn/Layers/3dPoolingLayer.h
     ../include/NeoML/Dnn/Layers/3dTransposedConvLayer.h
@@ -384,6 +387,7 @@ set(NeoML_HEADERS
     ../include/NeoML/Dnn/Layers/InterpolationLayer.h
     ../include/NeoML/Dnn/Layers/IrnnLayer.h
     ../include/NeoML/Dnn/Layers/LogicalLayers.h
+    ../include/NeoML/Dnn/Layers/LoraFullyConnectedLayer.h
     ../include/NeoML/Dnn/Layers/LrnLayer.h
     ../include/NeoML/Dnn/Layers/MaxOverTimePoolingLayer.h
     ../include/NeoML/Dnn/Layers/MobileNetV3BlockLayer.h
