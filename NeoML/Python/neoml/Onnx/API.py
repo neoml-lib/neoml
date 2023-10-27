@@ -40,9 +40,6 @@ def load_from_file(file_name, math_engine, input_layouts=None, output_layouts=No
 
 
 def load_from_buffer(buffer, math_engine, input_layouts=None, output_layouts=None):
-    # TODO: remove after debugging
-    with open('D:/latest.onnx', 'wb') as file_out:
-        file_out.write(buffer)
     _validate_layouts(input_layouts)
     _validate_layouts(output_layouts)
     dnn = neoml.Dnn.Dnn(math_engine)
