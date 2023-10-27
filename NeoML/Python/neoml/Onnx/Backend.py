@@ -49,11 +49,12 @@ class BackendRep:
         else:
             math_engine = neoml.MathEngine.GpuMathEngine()
         self.dnn, self.info = load_from_buffer(model.SerializeToString(), math_engine)
-        self.output_dtypes = [None] * len(self.info.outputs)
-        self.output_dim_count = [None] * len(self.info.outputs)
+        output_infos = self.info['outputs']
+        self.output_dtypes = [None] * len(output_infos)
+        self.output_dim_count = [None] * len(output_infos)
         for value_info in model.graph.output:
-            for idx, out in enumerate(self.info.outputs):
-                if out.name == value_info.name:
+            for idx, out in enumerate(output_infos):
+                if out == value_info.name:
                     try:
                         self.output_dtypes[idx] = \
                             _onnx_type_to_np[value_info.type.tensor_type.elem_type]
@@ -73,15 +74,16 @@ class BackendRep:
             elif np.issubdtype(orig_dtype, np.integer) or orig_dtype == bool:
                 return np.int32
             raise ValueError(f'{orig_dtype} is not supported by neoml.Onnx.BackendRep')
+        input_infos = self.info['inputs']
         for idx, onnx_input in enumerate(inputs):
             onnx_input = onnx_input.astype(_get_dtype(onnx_input.dtype), copy=False)
             neoml_shape = list(onnx_input.shape) + [1] * (7 - len(onnx_input.shape))
             neoml_blob = neoml.Blob.asblob(self.dnn.math_engine, onnx_input, neoml_shape)
-            neoml_inputs[self.info.inputs[idx].name] = neoml_blob
+            neoml_inputs[input_infos[idx]] = neoml_blob
         neoml_outputs = self.dnn.run(neoml_inputs)
         result = list()
-        for output, onnx_dtype, dim_count in zip(self.info.outputs, self.output_dtypes, self.output_dim_count):
-            out_blob = neoml_outputs[output.name]
+        for output, onnx_dtype, dim_count in zip(self.info['outputs'], self.output_dtypes, self.output_dim_count):
+            out_blob = neoml_outputs[output]
             result.append(out_blob.asarray())
             if dim_count is not None:
                 result[-1].resize(out_blob.shape[:dim_count])

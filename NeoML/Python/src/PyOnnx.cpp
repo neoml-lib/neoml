@@ -1,4 +1,4 @@
-/* Copyright © 2017-2022 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,28 +21,27 @@ limitations under the License.
 
 #include <NeoOnnx/NeoOnnx.h>
 
-py::object wrapResults( const NeoOnnx::CImportedModelInfo& cInfo )
+static py::dict wrapResults( const NeoOnnx::CImportedModelInfo& cInfo )
 {
-	py::object pyModule = py::module::import( "neoml.Onnx" );
-	py::object pyInfoConstructor = pyModule.attr( "ImportedModelInfo" );
-	py::object pyInputConstructor = pyModule.attr( "ImportedModelInputInfo" );
-	py::object pyOutputConstructor = pyModule.attr( "ImportedModelOutputInfo" );
-
-	py::object info = pyInfoConstructor();
-	py::list inputs = info.attr( "inputs" );
-	for( int i = 0; i < cInfo.Inputs.Size(); ++i ) {
-		inputs.append( pyInputConstructor( py::str( cInfo.Inputs[i].Name ) ) );
+	py::list inputList;
+	for( const NeoOnnx::CImportedModelInfo::CInputInfo& inputInfo : cInfo.Inputs ) {
+		inputList.append( py::str( inputInfo.Name ) );
 	}
-	py::list outputs = info.attr( "outputs" );
-	for( int i = 0; i < cInfo.Outputs.Size(); ++i ) {
-		outputs.append( pyOutputConstructor( py::str( cInfo.Outputs[i].Name ) ) );
+	py::list outputList;
+	for( const NeoOnnx::CImportedModelInfo::COutputInfo& outputInfo : cInfo.Outputs ) {
+		outputList.append( py::str( outputInfo.Name ) );
 	}
-	py::dict metadata = info.attr( "metadata" );
+	py::dict metadata;
 	const CMap<CString, CString>& cMapMetadata = cInfo.Metadata;
 	for( int pos = cMapMetadata.GetFirstPosition(); pos != NotFound; pos = cMapMetadata.GetNextPosition( pos ) ) {
 		metadata[py::str( cMapMetadata.GetKey( pos ) )] = py::str( cMapMetadata.GetKey( pos ) );
 	}
-	return info;
+
+	py::dict result;
+	result[py::str( "inputs" )] = inputList;
+	result[py::str( "outputs" )] = outputList;
+	result[py::str( "metadata" )] = metadata;
+	return result;
 }
 
 py::object loadFromFile(const std::string& fileName, CPyDnn& pyDnn)
