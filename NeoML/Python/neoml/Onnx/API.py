@@ -1,4 +1,4 @@
-""" Copyright (c) 2017-2022 ABBYY Production LLC
+""" Copyright (c) 2017-2023 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,15 +17,34 @@ limitations under the License.
 import neoml.PythonWrapper as PythonWrapper
 import neoml.Dnn
 
-def load_from_file(file_name, math_engine):
+
+def _validate_layouts(layouts):
+    if layouts is None:
+        return  # Everything is OK, default behavior
+    for name, layout in layouts.items():
+        if not isinstance(name, str):
+            raise ValueError('name must be a str')
+        rem_dims = {'batch_length', 'batch_width', 'list_size', 'height', 'width', 'depth', 'channels'}
+        for dim in layout:
+            if not dim in rem_dims:
+                raise ValueError('illegal or double dim in layout:' + str(dim))
+            rem_dims.remove(dim)
+
+
+def load_from_file(file_name, math_engine, input_layouts=None, output_layouts=None):
+    _validate_layouts(input_layouts)
+    _validate_layouts(output_layouts)
     dnn = neoml.Dnn.Dnn(math_engine)
-    model_info = PythonWrapper.load_onnx_from_file(file_name, dnn)
+    model_info = PythonWrapper.load_onnx_from_file(file_name, dnn, input_layouts, output_layouts)
     return dnn, model_info
 
 
-def load_from_buffer(buffer, math_engine):
+def load_from_buffer(buffer, math_engine, input_layouts=None, output_layouts=None):
+    # TODO: remove after debugging
     with open('D:/latest.onnx', 'wb') as file_out:
         file_out.write(buffer)
+    _validate_layouts(input_layouts)
+    _validate_layouts(output_layouts)
     dnn = neoml.Dnn.Dnn(math_engine)
-    model_info = PythonWrapper.load_onnx_from_buffer(buffer, dnn)
+    model_info = PythonWrapper.load_onnx_from_buffer(buffer, dnn, input_layouts, output_layouts)
     return dnn, model_info

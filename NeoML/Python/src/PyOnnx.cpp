@@ -16,6 +16,8 @@ limitations under the License.
 #include <common.h>
 #pragma hdrstop
 
+#include <iostream>
+
 #include "PyOnnx.h"
 #include "PyDnn.h"
 
@@ -44,23 +46,55 @@ static py::dict wrapResults( const NeoOnnx::CImportedModelInfo& cInfo )
 	return result;
 }
 
-py::object loadFromFile(const std::string& fileName, CPyDnn& pyDnn)
+static void fillLayouts(py::object pyLayouts, CMap<CString, NeoOnnx::CTensorLayout>& layouts)
+{
+	if( pyLayouts == Py_None ) {
+		return;
+	}
+
+	static const CArray<CString> dims = { CString( "batch_length" ), CString( "batch_width" ),
+		CString( "list_size" ), CString( "height" ), CString( "width" ), CString( "depth" ), CString( "channels" ) };
+	for( const CString& dim : dims ) {
+		std::cerr << static_cast<std::string>( dim ) << ' ';
+	}
+	std::cerr << '\n';
+
+	py::dict layoutDict = pyLayouts.cast<py::dict>();
+	for( const auto& it : layoutDict ) {
+		const CString name( std::string( it.first.cast<py::str>() ) );
+		NeoOnnx::CTensorLayout& layout = layouts.GetOrCreateValue( name );
+		py::list pyLayout = it.second.cast<py::list>();
+		std::cerr << "Name: : " << name << "\tLayout: ";
+		for( const auto& dimStr : pyLayout ) {
+			std::cerr << "'" << std::string( dimStr.cast<py::str>() ) << "'";
+			layout.Add( static_cast<TBlobDim>( dims.Find( CString( dimStr.cast<py::str>() ) ) ) );
+			std::cerr << static_cast<int>( layout.Last() ) << ' ';
+		}
+		std::cerr << "\n";
+	}
+}
+
+py::object loadFromFile(const std::string& fileName, CPyDnn& pyDnn, py::object inputLayouts, py::object outputLayouts)
 {
 	NeoOnnx::CImportedModelInfo modelInfo;
 	{
 		py::gil_scoped_release release;
 		NeoOnnx::CImportSettings settings;
+		fillLayouts( inputLayouts, settings.InputLayouts );
+		fillLayouts( outputLayouts, settings.OutputLayouts );
 		NeoOnnx::LoadFromOnnx( fileName.data(), settings, pyDnn.Dnn(), modelInfo );
 	}
 	return wrapResults( modelInfo );
 }
 
-py::object loadFromBuffer(const std::string& buffer, CPyDnn& pyDnn)
+py::object loadFromBuffer(const std::string& buffer, CPyDnn& pyDnn, py::object inputLayouts, py::object outputLayouts)
 {
 	NeoOnnx::CImportedModelInfo modelInfo;
 	{
 		py::gil_scoped_release release;
 		NeoOnnx::CImportSettings settings;
+		fillLayouts( inputLayouts, settings.InputLayouts );
+		fillLayouts( outputLayouts, settings.OutputLayouts );
 		NeoOnnx::LoadFromOnnx( buffer.data(), buffer.size(), settings, pyDnn.Dnn(), modelInfo );
 	}
 	return wrapResults( modelInfo );
