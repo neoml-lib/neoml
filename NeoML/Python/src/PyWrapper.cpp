@@ -1,4 +1,4 @@
-/* Copyright © 2017-2021 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -87,6 +87,7 @@ limitations under the License.
 #include "PyDifferentialEvolution.h"
 #include "PyPCA.h"
 #include "PyBytePairEncoder.h"
+#include "PyOnnx.h"
 
 PYBIND11_MODULE(PythonWrapper, m) {
 
@@ -169,4 +170,5 @@ PYBIND11_MODULE(PythonWrapper, m) {
 	InitializeDifferentialEvolution( m );
 
 	InitializeBytePairEncoder( m );
+	InitializeOnnx( m );
 }
