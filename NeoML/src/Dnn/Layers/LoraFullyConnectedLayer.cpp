@@ -219,15 +219,17 @@ void CLoraFullyConnectedLayer::recalcBaseWeights()
 	const int rank = fcA->Weights()->GetObjectCount();
 	const int outputSize = fcB->GetNumberOfElements();
 	const int bSize = rank * outputSize;
+	NeoAssert( fcB->Weights()->GetDataSize() == bSize );
 
 	CConstFloatHandle a = fcA->Weights()->GetData();
 	CConstFloatHandle b = fcB->Weights()->GetData();
 
-	CFloatHandleStackVar buff( MathEngine(), fcB->Weights()->GetDataSize() + static_cast<size_t>( 1 ) );
+	CFloatHandleStackVar buff( MathEngine(), bSize + static_cast<size_t>( 1 ) );
 	CFloatHandle bTransposed = buff.GetHandle();
 	CFloatHandle mult = buff.GetHandle() + bSize;
 
-	MathEngine().TransposeMatrix( 1, b, outputSize, 1, rank, 1, bTransposed, buff.Size() - 1 );
+	MathEngine().TransposeMatrix( /*batchSize*/1,
+		b, /*h*/outputSize, /*mid*/1, /*w*/rank, /*channels*/1, bTransposed, bSize );
 
 	// during split we must substract A*B from merged weights
 	const float multValue = isMerged ? scaling->GetMultiplier() : -scaling->GetMultiplier();
@@ -236,8 +238,10 @@ void CLoraFullyConnectedLayer::recalcBaseWeights()
 		MathEngine().VectorMultiply( bTransposed, bTransposed, bSize, mult );
 	}
 
-	MathEngine().MultiplyTransposedMatrixByMatrixAndAdd( bTransposed, rank, outputSize, outputSize,
-		a, inputSize, inputSize, baseFc->Weights()->GetData(), inputSize, inputSize * outputSize );
+	MathEngine().MultiplyTransposedMatrixByMatrixAndAdd(
+		/*first*/bTransposed, rank, outputSize, outputSize,
+		/*second*/a, inputSize, inputSize,
+		/*result*/baseFc->Weights()->GetData(), inputSize, inputSize * outputSize );
 }
 
 } // namespace NeoML
