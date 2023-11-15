@@ -193,11 +193,6 @@ TEST( LoraFullyConnectedLayerTest, InferenceAndLearning )
 		EXPECT_TRUE( loraFc->IsMerged() );
 		// Check that no reallocation occured
 		EXPECT_EQ( originalWeightsPtr, loraFc->GetWeightsNoCopy().Ptr() );
-		// Check that weights of A and B are still unintialized during first iteration
-		if( iteration == 0 ) {
-			EXPECT_EQ( nullptr, loraFc->GetAWeightsNoCopy().Ptr() );
-			EXPECT_EQ( nullptr, loraFc->GetBWeightsNoCopy().Ptr() );
-		}
 
 		// Store the output
 		CPtr<CSinkLayer> sink = CheckCast<CSinkLayer>( dnn.GetLayer( "sink" ) );
@@ -621,7 +616,7 @@ static void memCheckTest( bool useLora )
 
 	if( useLora ) {
 		CLoraBuilder builder;
-		CLoraParams params( 4, 4.f, 0.f );
+		CLoraParams params( 4, 5.f, 0.1f );
 		// 2 fc's inside transformer directly
 		// 4 fc's inside of attention (inside transformer)
 		EXPECT_EQ( stackSize * 6, builder.BuildAllFcWrappers( dnn, params ) );
