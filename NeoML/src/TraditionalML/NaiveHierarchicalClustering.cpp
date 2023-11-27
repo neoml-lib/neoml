@@ -254,7 +254,8 @@ void CNaiveHierarchicalClustering::mergeClusters( int first, int newClusterIndex
 		if( i == first || clusters[i] == nullptr ) {
 			continue;
 		}
-		const float distance = recalcDistance( *clusters[i], *clusters[first], firstSize, secondSize,
+		const float distance = recalcDistance( *clusters[i], *clusters[first], firstSize, 
+			secondSize, clusters[i]->GetElementsCount(),
 			i < first ? distances[i][first] : prevDistances[i],
 			i < second ? distances[i][second] : distances[second][i],
 			mergeDistance );
@@ -275,7 +276,7 @@ void CNaiveHierarchicalClustering::mergeClusters( int first, int newClusterIndex
 
 // Calculates distance between current cluster and merged cluster based on 
 float CNaiveHierarchicalClustering::recalcDistance( const CCommonCluster& currCluster, const CCommonCluster& mergedCluster,
-	int firstSize, int secondSize, float currToFirst, float currToSecond, float firstToSecond ) const
+	int firstSize, int secondSize, int currSize, float currToFirst, float currToSecond, float firstToSecond ) const
 {
 	static_assert( CHierarchicalClustering::L_Count == 5, "L_Count != 5" );
 
@@ -298,9 +299,9 @@ float CNaiveHierarchicalClustering::recalcDistance( const CCommonCluster& currCl
 			return ::fmaxf( currToFirst, currToSecond );
 		case CHierarchicalClustering::L_Ward:
 		{
-			const int mergedSize = firstSize + secondSize;
-			return ( firstSize * currToFirst + secondSize * currToSecond
-				- ( firstSize * secondSize * firstToSecond ) / mergedSize ) / mergedSize;
+			const int sumSize = firstSize + secondSize + currSize;
+			return ( firstSize + currSize ) *  currToFirst / sumSize + ( secondSize + currSize ) * currToSecond / sumSize -
+				currSize * firstToSecond / sumSize;
 		}
 		default:
 			NeoAssert( false );
