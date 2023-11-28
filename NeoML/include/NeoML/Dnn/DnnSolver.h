@@ -457,7 +457,7 @@ public:
 	// Max value for weight norm during WeightDecay
 	// Negative value means no clip
 	// By default is equal to -1
-	float GetWeightDecayClip() { return weightDecayClip; }
+	float GetWeightDecayClip() const { return weightDecayClip; }
 	void SetWeightDecayClip( float value ) { weightDecayClip = value; }
 
 	// Use normalizing multipier
