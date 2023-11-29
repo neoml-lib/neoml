@@ -163,7 +163,7 @@ void CLoraFullyConnectedLayer::RunOnce()
 	const int tempAxBSize = inputHeight * BHeight;
 
 	const bool inference = !IsBackwardPerformed() && !IsLearningPerformed();
-	CFloatHandleStackVar temp( MathEngine(), inference ? 0 : std::max( inputSize, tempAxBSize ) );
+	CFloatHandleStackVar temp( MathEngine(), inference ? 0 : max( inputSize, tempAxBSize ) );
 	CFloatHandle tempAxB = temp.GetHandle();
 
 	/*          +---------+   +--------+                 \  
@@ -250,7 +250,7 @@ void CLoraFullyConnectedLayer::BackwardOnce()
 	const int BWidth = WeightsB()->GetObjectSize();
 	const int tempBDiffSize = outputDiffHeight * BWidth;
 	NeoPresume( inputDiffSize == outputDiffHeight * weightsWidth );
-	CFloatHandleStackVar temp( MathEngine(), std::max( inputDiffSize, tempBDiffSize ) );
+	CFloatHandleStackVar temp( MathEngine(), max( inputDiffSize, tempBDiffSize ) );
 
 	CFloatHandle tempBDiff = temp.GetHandle();
 	MathEngine().MultiplyMatrixByMatrix( /*batchSize*/1,
@@ -306,7 +306,7 @@ void CLoraFullyConnectedLayer::LearnOnce()
 
 	const int tempBDiffSize = outputDiffHeight * BWidth;
 	const int tempInputASize = inputHeight * AHeight;
-	CFloatHandleStackVar temp( MathEngine(), std::max( tempBDiffSize, tempInputASize ) );
+	CFloatHandleStackVar temp( MathEngine(), max( tempBDiffSize, tempInputASize ) );
 
 	{
 		CFloatHandle tempBDiff = temp.GetHandle();
