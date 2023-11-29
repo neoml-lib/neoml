@@ -17,11 +17,6 @@ limitations under the License.
 
 #include <NeoML/NeoMLDefs.h>
 #include <NeoML/Dnn/DnnLora.h>
-#include <NeoML/Dnn/Layers/ActivationLayers.h>
-#include <NeoML/Dnn/Layers/CompositeLayer.h>
-#include <NeoML/Dnn/Layers/DropoutLayer.h>
-#include <NeoML/Dnn/Layers/EltwiseLayer.h>
-#include <NeoML/Dnn/Layers/FullyConnectedLayer.h>
 
 namespace NeoML {
 
@@ -73,57 +68,74 @@ namespace NeoML {
 // in order to switch back to "split" state when needed
 // If you need only inference then you can replace this layer with CFullyConnected with merged weights
 // (this can be done via CLoraBuilder::MergeFcWrapper)
-class NEOML_API CLoraFullyConnectedLayer : public CCompositeLayer {
+class NEOML_API CLoraFullyConnectedLayer : public CBaseLayer {
 	NEOML_DNN_LAYER( CLoraFullyConnectedLayer )
 public:
 	CLoraFullyConnectedLayer( CDnnBlob& baseWeights, CDnnBlob* baseFreeTerms, const CLoraParams& params );
-	explicit CLoraFullyConnectedLayer( IMathEngine& mathEngine ); // used for loading serialized layer
+	explicit CLoraFullyConnectedLayer( IMathEngine& mathEngine, const char* name = nullptr ); // used for loading serialized layer
 
 	void Serialize( CArchive& ) override;
 
 	void UpdateParams( const CLoraParams& newParams, CDnnBlob* newA, CDnnBlob* newB );
 
-	int OutputSize() const { return baseFc->GetNumberOfElements(); }
-	int Rank() const { return fcA->GetNumberOfElements(); }
-	float Alpha() const { return scaling->GetMultiplier() * Rank(); }
-	float Dropout() const { return dropout->GetDropoutRate(); }
+	int OutputSize() const { return NumberOfElements(); }
+	int Rank() const { return lora.Rank; }
+	float Alpha() const { return lora.Alpha; }
+	float Dropout() const { return lora.Dropout; }
 
 	// Raw getters for weights
 	// These getters do not copy weights which may lead to difficult-to-debug troubles
 	// But they're necessary for making LoRA work without excessive copying
 	// baseFc weights from "split" state
-	CPtr<CDnnBlob> GetSplitWeightsNoCopy() { split(); return baseFc->Weights(); }
+	CPtr<CDnnBlob> GetSplitWeightsNoCopy() { split(); return weightsBase; }
 	// baseFc weights from "merged" state
-	CPtr<CDnnBlob> GetMergedWeightsNoCopy() { merge(); return baseFc->Weights(); }
+	CPtr<CDnnBlob> GetMergedWeightsNoCopy() { merge(); return weightsBase; }
 	// baseFc free terms
-	CPtr<CDnnBlob> GetFreeTermsNoCopy() { return baseFc->FreeTerms(); }
+	CPtr<CDnnBlob> GetFreeTermsNoCopy() { return freeTermsBase; }
 	// A LoRA matrix
-	CPtr<CDnnBlob> GetAWeightsNoCopy() { return fcA->Weights(); }
+	CPtr<CDnnBlob> GetAWeightsNoCopy() { return WeightsA(); }
 	// B LoRA matrix
-	CPtr<CDnnBlob> GetBWeightsNoCopy() { return fcB->Weights(); }
+	CPtr<CDnnBlob> GetBWeightsNoCopy() { return WeightsB(); }
 
 	// Mostly for testing/debugging
-	CPtr<CDnnBlob>& GetWeightsNoCopy() { return baseFc->Weights(); }
+	CPtr<CDnnBlob>& GetWeightsNoCopy() { return weightsBase; }
 	bool IsMerged() const { return isMerged; }
 
 protected:
-	~CLoraFullyConnectedLayer() override = default;
+	~CLoraFullyConnectedLayer() override;
 
 	void Reshape() override;
+	void RunOnce() override;
+	void BackwardOnce() override;
+	void LearnOnce() override;
+
+	int BlobsForBackward() const override { return 0; }
+	int BlobsForLearn() const override { return TInputBlobs; }
+
+	CPtr<CDnnBlob>& WeightsA() { return paramBlobs[0]; } // weights A transposed
+	CPtr<CDnnBlob>& WeightsB() { return paramBlobs[1]; } // weights B transposed
+	const CPtr<CDnnBlob>& WeightsA() const { return paramBlobs[0]; } // weights A transposed
+	const CPtr<CDnnBlob>& WeightsB() const { return paramBlobs[1]; } // weights B transposed
+
+	CPtr<CDnnBlob>& WeightsADiff() { return paramDiffBlobs[0]; } // weightsDiff A transposed
+	CPtr<CDnnBlob>& WeightsBDiff() { return paramDiffBlobs[1]; } // weightsDiff B transposed
+	
+	int NumberOfElements() const { return weightsBase->GetObjectCount(); }
 
 private:
 	bool isMerged = true;
-	CPtr<CFullyConnectedLayer> baseFc;
-	CPtr<CDropoutLayer> dropout;
-	CPtr<CFullyConnectedLayer> fcA;
-	CPtr<CFullyConnectedLayer> fcB;
-	CPtr<CLinearLayer> scaling;
-	CPtr<CEltwiseSumLayer> sum;
+	CLoraParams lora;
+	CDropoutDesc* desc = nullptr; // dropout description
+	CPtr<CDnnBlob> weightsBase; // weights Base transposed (as default)
+	CPtr<CDnnBlob> freeTermsBase; // freeTerms Base as default
+	CPtr<CDnnBlob> scaling; // scaling = lora.Alpha / lora.Rank
 
 	void initialize( const CLoraParams& params );
 	void merge();
 	void split();
 	void recalcBaseWeights();
+	void initDropoutDesc();
+	void destroyDropoutDesc();
 };
 
 } // namespace NeoML
