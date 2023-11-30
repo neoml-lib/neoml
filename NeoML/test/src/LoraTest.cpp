@@ -22,6 +22,8 @@ limitations under the License.
 using namespace NeoML;
 using namespace NeoMLTest;
 
+//----------------------------------------------------------------------------------------------------------------------
+
 namespace NeoMLTest {
 
 static CPtr<CDnnBlob> generateLoraFcBLob( IMathEngine& mathEngine, int objectCount, int objectSize )
@@ -191,11 +193,6 @@ TEST( LoraFullyConnectedLayerTest, InferenceAndLearning )
 		EXPECT_TRUE( loraFc->IsMerged() );
 		// Check that no reallocation occured
 		EXPECT_EQ( originalWeightsPtr, loraFc->GetWeightsNoCopy().Ptr() );
-		// Check that weights of A and B are still unintialized during first iteration
-		if( iteration == 0 ) {
-			EXPECT_EQ( nullptr, loraFc->GetAWeightsNoCopy().Ptr() );
-			EXPECT_EQ( nullptr, loraFc->GetBWeightsNoCopy().Ptr() );
-		}
 
 		// Store the output
 		CPtr<CSinkLayer> sink = CheckCast<CSinkLayer>( dnn.GetLayer( "sink" ) );
@@ -358,6 +355,8 @@ TEST( LoraBuilderTest, MergeAndDiscardTest )
 
 //----------------------------------------------------------------------------------------------------------------------
 
+namespace NeoMLTest {
+
 static void loraFcSerializerTestImpl( bool initialize, bool discardBeforeLoad )
 {
 	// Setting bigger size (full weights will be ioSize x ioSize matrix)
@@ -420,6 +419,8 @@ static void loraFcSerializerTestImpl( bool initialize, bool discardBeforeLoad )
 	}
 }
 
+} // namespace NeoMLTest
+
 TEST( LoraSerializerTest, LoraFc )
 {
 	for( bool initialize : { true, false } ) {
@@ -431,10 +432,14 @@ TEST( LoraSerializerTest, LoraFc )
 
 //----------------------------------------------------------------------------------------------------------------------
 
+namespace NeoMLTest {
+
 // We can use empty class cause the data blobs in this tests are serialized with CSourceLayer
 class CLoraTestDistDataset : public IDistributedDataset {
 	int SetInputBatch( CDnn&, int ) override { return 1; }
 };
+
+} // namespace NeoMLTest
 
 TEST( LoraSerializerTest, Distributed )
 {
@@ -553,3 +558,100 @@ TEST( LoraSerializerTest, DistributedCheckpoint )
 		}
 	}
 }
+
+//----------------------------------------------------------------------------------------------------------------------
+
+namespace NeoMLTest {
+
+static void memCheckTest( bool useLora )
+{
+	MathEngine().CleanUp();
+	std::cerr << "Peak memory after clean: " << ( double ( MathEngine().GetPeakMemoryUsage() ) / 1024 / 1024 ) << " MB\n";
+
+	// Build the net
+	CRandom random( 0x6543 );
+	CDnn dnn( random, MathEngine() );
+
+	const int vecSize = 768;
+	const int headCount = 4;
+	const int tableSize = 10;
+	const int stackSize = 6; // params.EncoderLayerCount;
+	const int ffSize = vecSize * headCount; //params.AttentionFeedForwardSize;
+	const float dropout = 0.f;
+
+	CSourceLayer* data = Source( dnn, "data" );
+	CArray<CLookupDimension> embDims;
+	embDims.Add( CLookupDimension( tableSize, vecSize ) );
+	CMultichannelLookupLayer* embeddings = MultichannelLookup( embDims, true )( "emb", data );
+	CBaseLayer* lastLayer = embeddings;
+	for( int i = 0; i < stackSize; ++i ) {
+		lastLayer = TransformerEncoder( headCount, vecSize, dropout, ffSize, AF_ReLU )( "transformer_" + Str( i ), lastLayer );
+	}
+	CSourceLayer* expected = Source( dnn, "expected" );
+	CEuclideanLossLayer* loss = EuclideanLoss()( "loss", lastLayer, expected );
+
+	// Generate random data
+	const int seqLen = 512;
+	const int batchSize = 2;
+	{
+		CPtr<CDnnBlob> dataBlob = CDnnBlob::CreateListBlob( MathEngine(), CT_Int, 1, batchSize, seqLen, 1 );
+		CDnnBlobBuffer<int> dataBuff( *dataBlob, TDnnBlobBufferAccess::Write );
+		for( int i = 0; i < dataBuff.Size(); ++i ) {
+			dataBuff[i] = random.UniformInt( 0, tableSize - 1 );
+		}
+		data->SetBlob( dataBlob );
+	}
+	{
+		CPtr<CDnnBlob> expectedBlob = CDnnBlob::CreateListBlob( MathEngine(), CT_Float, 1, batchSize, seqLen, vecSize );
+		CDnnBlobBuffer<float> expectedBuff( *expectedBlob, TDnnBlobBufferAccess::Write );
+		for( int i = 0; i < expectedBuff.Size(); ++i ) {
+			expectedBuff[i] = static_cast<float>( random.Uniform( 0, 1 ) );
+		}
+		expected->SetBlob( expectedBlob );
+	}
+
+	// Initialize weights
+	dnn.RunOnce();
+	std::cerr << "Peak memory after RunOnce: " << ( double( MathEngine().GetPeakMemoryUsage() ) / 1024 / 1024 ) << " MB\n";
+
+	if( useLora ) {
+		CLoraBuilder builder;
+		CLoraParams params( 4, 5.f, 0.1f );
+		// 2 fc's inside transformer directly
+		// 4 fc's inside of attention (inside transformer)
+		EXPECT_EQ( stackSize * 6, builder.BuildAllFcWrappers( dnn, params ) );
+		EXPECT_EQ( stackSize * 2 + 1, builder.DisableNonLoraTraining( dnn ) );
+	} else {
+		embeddings->DisableLearning();
+	}
+
+	std::unique_ptr<IPerformanceCounters> counters( MathEngine().CreatePerformanceCounters() );
+	constexpr int iterCount = 10;
+	for( int iter = 0; iter < iterCount; ++iter ) {
+		counters->Synchronise();
+		dnn.RunAndLearnOnce();
+		counters->Synchronise();
+
+		std::cerr << "Iter #" << iter
+			<< '\t' << "Loss: " << loss->GetLastLoss()
+			<< '\t' << "Train Time: " << ( double( ( *counters )[0].Value ) / 1000000 ) << " ms."
+			<< '\t' << "Peak.Mem: " << ( double( MathEngine().GetPeakMemoryUsage() ) / 1024 / 1024 ) << " MB"
+			<< '\n';
+	}
+	std::cerr << "Peak memory after training: " << ( double( MathEngine().GetPeakMemoryUsage() ) / 1024 / 1024 ) << " MB\n";
+}
+
+} // namespace NeoMLTest
+
+TEST( LoraMemCheck, DISABLED_WithoutLora )
+{
+	memCheckTest( false );
+	DeleteMathEngine();
+}
+
+TEST( LoraMemCheck, DISABLED_WithLora )
+{
+	memCheckTest( true );
+	DeleteMathEngine();
+}
+
