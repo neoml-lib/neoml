@@ -241,10 +241,10 @@ void CCpuMathEngine::GetMathEngineInfo( CMathEngineInfo& info ) const
 	info.AvailableMemory = SIZE_MAX;
 }
 
-IPerformanceCounters* CCpuMathEngine::CreatePerformanceCounters() const
+IPerformanceCounters* CCpuMathEngine::CreatePerformanceCounters( bool isOnlyTime = false ) const
 {
 #if FINE_PLATFORM( FINE_ANDROID ) || FINE_PLATFORM( FINE_LINUX )
-	return new CPerformanceCountersCpuLinux();
+	return isOnlyTime ? new CPerformanceCountersDefault() : new CPerformanceCountersCpuLinux();
 #elif FINE_PLATFORM( FINE_WINDOWS ) || FINE_PLATFORM( FINE_DARWIN ) || FINE_PLATFORM( FINE_IOS )
 	return new CPerformanceCountersDefault();
 #else
