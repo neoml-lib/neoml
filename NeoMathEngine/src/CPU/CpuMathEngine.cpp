@@ -241,7 +241,7 @@ void CCpuMathEngine::GetMathEngineInfo( CMathEngineInfo& info ) const
 	info.AvailableMemory = SIZE_MAX;
 }
 
-IPerformanceCounters* CCpuMathEngine::CreatePerformanceCounters( bool isOnlyTime = false ) const
+IPerformanceCounters* CCpuMathEngine::CreatePerformanceCounters( bool isOnlyTime ) const
 {
 #if FINE_PLATFORM( FINE_ANDROID ) || FINE_PLATFORM( FINE_LINUX )
 	return isOnlyTime ? new CPerformanceCountersDefault() : new CPerformanceCountersCpuLinux();

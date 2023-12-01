@@ -152,7 +152,7 @@ ResultType CDnnInferencePerformanceTest::Run(
 		sinkBlobData[i].SetSize( sinkBlob->GetDataSize() );
 	}
 
-	std::unique_ptr<IPerformanceCounters> counters( mathEngine.CreatePerformanceCounters() );
+	std::unique_ptr<IPerformanceCounters> counters( mathEngine.CreatePerformanceCounters( true ) );
 	counters->Synchronise();
 
 	for( int run = 0; run < param.RunCount; ++run ) {
