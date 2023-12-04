@@ -640,7 +640,7 @@ public:
 	void RowwiseExecute( const CBlobDesc&, CRowwiseOperationDesc**, int, const CFloatHandle&,
 		const CFloatHandle& ) override { ASSERT_EXPR( false ); }
 
-	IPerformanceCounters* CreatePerformanceCounters( bool isOnlyTime = false ) const override { return new CPerformanceCountersDefault(); }
+	IPerformanceCounters* CreatePerformanceCounters( bool ) const override { return new CPerformanceCountersDefault(); }
 	void AllReduce( const CFloatHandle& /*handle*/, int /*size*/ ) override {};
 	void Broadcast( const CFloatHandle& /*handle*/, int /*size*/, int /*root*/ ) override {};
 
