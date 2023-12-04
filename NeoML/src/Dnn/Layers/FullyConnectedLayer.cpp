@@ -148,7 +148,7 @@ void CFullyConnectedLayer::BackwardOnce()
 		CConstFloatHandle outputDiffData = outputDiffBlobs[outputDiffNumber]->GetData();
 		CFloatHandle inputDiffData = inputDiffBlobs[outputDiffNumber]->GetData();
 
-		const int firstHeight = inputDiffBlobs[outputDiffNumber]->GetObjectCount();
+		const int firstHeight = outputDiffBlobs[outputDiffNumber]->GetObjectCount();
 		const int firstWidth = outputDiffBlobs[outputDiffNumber]->GetObjectSize();
 		const int resultBufferSize = inputDiffBlobs[outputDiffNumber]->GetDataSize();
 
@@ -178,6 +178,7 @@ void CFullyConnectedLayer::LearnOnce()
 
 		const int firstHeight = outputDiffBlobs[outputDiffNumber]->GetObjectCount();
 		const int secondWidth = inputBlobs[outputDiffNumber]->GetObjectSize();
+		NeoPresume( resultWidth == secondWidth );
 
 		const CSmallMatricesMultiplyDesc* mulDesc = initSmallMatricesMulDescs( TSMMD_Learn, outputDiffNumber,
 			firstHeight, firstWidth, secondWidth, resultWidth );
