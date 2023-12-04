@@ -427,7 +427,7 @@ private:
 };
 
 CRunOnceTimer::CRunOnceTimer( bool enable, IMathEngine& mathEngine, int& hitCount,
-		IPerformanceCounters::CCounter::TCounterType& result, bool isOnlyTime ) :
+		IPerformanceCounters::CCounter::TCounterType& result, bool isOnlyTime = false ) :
 	counters( enable ? mathEngine.CreatePerformanceCounters( isOnlyTime ) : nullptr ),
 	result( result )
 {
