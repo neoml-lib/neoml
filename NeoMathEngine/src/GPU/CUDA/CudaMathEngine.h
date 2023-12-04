@@ -637,7 +637,7 @@ public:
 	void RowwiseExecute( const CBlobDesc& inputDesc, CRowwiseOperationDesc** operations, int operationCount,
 		const CFloatHandle& input, const CFloatHandle& output ) override;
 
-	IPerformanceCounters* CreatePerformanceCounters( bool isOnlyTime ) const override { return new CPerformanceCountersDefault(); }
+	IPerformanceCounters* CreatePerformanceCounters( bool isOnlyTime = false ) const override { return new CPerformanceCountersDefault(); }
 	void AllReduce( const CFloatHandle& handle, int size ) override;
 	void Broadcast( const CFloatHandle& handle, int size, int root ) override;
 	void AbortDistributed() override;
