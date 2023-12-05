@@ -241,17 +241,20 @@ void CCpuMathEngine::GetMathEngineInfo( CMathEngineInfo& info ) const
 	info.AvailableMemory = SIZE_MAX;
 }
 
-IPerformanceCounters* CCpuMathEngine::CreatePerformanceCounters( bool isOnlyTime ) const
-{
 #if FINE_PLATFORM( FINE_ANDROID ) || FINE_PLATFORM( FINE_LINUX )
-	return isOnlyTime ? new CPerformanceCountersDefault() : new CPerformanceCountersCpuLinux();
-#elif FINE_PLATFORM( FINE_WINDOWS ) || FINE_PLATFORM( FINE_DARWIN ) || FINE_PLATFORM( FINE_IOS )
-	return new CPerformanceCountersDefault();
-#else
-	#error "Platform is not supported!";
-	return 0;
-#endif
+IPerformanceCounters* CCpuMathEngine::CreatePerformanceCounters( bool isOnlyTime ) const {
+	if ( isOnlyTime )
+		return new CPerformanceCountersDefault();
+	return new CPerformanceCountersCpuLinux();
 }
+#elif FINE_PLATFORM( FINE_WINDOWS ) || FINE_PLATFORM( FINE_DARWIN ) || FINE_PLATFORM( FINE_IOS )
+IPerformanceCounters* CCpuMathEngine::CreatePerformanceCounters( bool ) const { return new CPerformanceCountersDefault(); }
+#else
+IPerformanceCounters* CCpuMathEngine::CreatePerformanceCounters( bool ) const {
+	#error "Platform is not supported!";
+	return 0;	
+}
+#endif
 
 void CCpuMathEngine::AllReduce( const CFloatHandle& handle, int size )
 {
