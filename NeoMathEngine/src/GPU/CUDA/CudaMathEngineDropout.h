@@ -19,20 +19,18 @@ limitations under the License.
 #include <NeoMathEngine/CrtAllocatedObject.h>
 
 namespace NeoML {
+    
+struct CCudaMathEngineDropoutDesc : public CDropoutDesc {
+explicit CCudaMathEngineDropoutDesc( IMathEngine& mathEngine, float rate, bool isSpatial, bool isBatchwise,
+    const CBlobDesc& input, const CBlobDesc& output, int seed );
 
-// Dropout descriptor
-struct CMathEngineDropoutDesc : public CDropoutDesc {
-	explicit CMathEngineDropoutDesc( IMathEngine& mathEngine, float rate, bool isSpatial, bool isBatchwise,
-		const CBlobDesc& input, const CBlobDesc& output );
-
-	CBlobDesc Input; // input blob descriptor
-	CBlobDesc Output; // output blob descriptor
-	const float ForwardRate; // the probability that an element is not dropped out
-	const bool IsSpatial; // indicates if whole channels are dropped out
-	const bool IsBatchwise; // indicates if an element is dropped out of all objects in one batch at the same time
-	// A blob that stores the dropout information for each element on the last run
-	// Only used when learning
-	CFloatHandleVar Mask;
+    CBlobDesc Input;
+    CBlobDesc Output;
+    const float ForwardRate;
+    const bool IsSpatial;
+    const bool IsBatchwise;
+    // seed that will be used later in gpu
+    const int seed;
 };
 
 } // namespace NeoML

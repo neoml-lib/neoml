@@ -35,7 +35,7 @@ static inline int getMaskSize( float rate, bool isSpatial, bool isBatchwise, con
 }
 
 CMathEngineDropoutDesc::CMathEngineDropoutDesc( IMathEngine& mathEngine, float rate, bool isSpatial, bool isBatchwise,
-		const CBlobDesc& input, const CBlobDesc& output, int seed ) :
+		const CBlobDesc& input, const CBlobDesc& output ) :
 	Input( input ),
 	Output( output ),
 	ForwardRate( 1.f - rate ),
@@ -46,7 +46,7 @@ CMathEngineDropoutDesc::CMathEngineDropoutDesc( IMathEngine& mathEngine, float r
 	ASSERT_EXPR( rate >= 0.f && rate < 1.f );
 
 	if( rate != 0 ) {
-		mathEngine.VectorFillBernoulli( Mask.GetHandle(), ForwardRate, Mask.Size(), 1.f / ForwardRate, seed );
+		mathEngine.VectorFillBernoulli( Mask.GetHandle(), ForwardRate, Mask.Size(), 1.f / ForwardRate );
 	}
 }
 

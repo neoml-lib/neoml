@@ -152,7 +152,7 @@ void CCudaMathEngine::VectorConvert(const CConstIntHandle& from, const CFloatHan
 	VectorConvertKernel<<<blockCount, threadCount>>>(GetRaw(from), GetRaw(to), vectorSize);
 }
 
-void CCudaMathEngine::VectorFillBernoulli( const CFloatHandle& result, float p, int vectorSize, float valueHandle, int seed )
+void CCudaMathEngine::VectorFillBernoulli( const CFloatHandle& result, float p, int vectorSize, float valueHandle )
 {
 	ASSERT_EXPR(result.GetMathEngine() == this);
 	SetCudaDevice( device->DeviceNumber );
@@ -161,8 +161,7 @@ void CCudaMathEngine::VectorFillBernoulli( const CFloatHandle& result, float p, 
 	int threadCount;
 	getCudaTaskGrid( blockCount, threadCount, ( vectorSize + 3 ) / 4, VectorFillBernoulliCombine );
 
-	VectorFillBernoulliKernel<<<blockCount, threadCount>>>( GetRaw( result ), p, vectorSize,
-		valueHandle, seed );
+	VectorFillBernoulliKernel<<<blockCount, threadCount>>>( GetRaw( result ), p, vectorSize, valueHandle );
 }
 
 void CCudaMathEngine::FilterSmallValues( const CFloatHandle& data, int dataSize, float threshold )

@@ -68,8 +68,17 @@ void CCudaMathEngine::Dropout( const CDropoutDesc& dropoutDesc, const CFloatHand
 CDropoutDesc* CCudaMathEngine::InitDropout( float rate, bool isSpatial, bool isBatchwise,
 	const CBlobDesc& input, const CBlobDesc& output, int seed )
 {
-	return new CMathEngineDropoutDesc( mathEngine(), rate, isSpatial, isBatchwise, input, output, seed );
+	return new CCudaMathEngineDropoutDesc( mathEngine(), rate, isSpatial, isBatchwise, input, output, seed );
 }
+
+CMathEngineDropoutDesc::CMathEngineDropoutDesc( IMathEngine& mathEngine, float rate, bool isSpatial, bool isBatchwise,
+		const CBlobDesc& input, const CBlobDesc& output, int seed ) :
+	Input( input ),
+	Output( output ),
+	ForwardRate( 1.f - rate ),
+	IsSpatial( isSpatial ),
+	IsBatchwise( isBatchwise ),
+	seed(seed);
 
 } // namespace NeoML
 
