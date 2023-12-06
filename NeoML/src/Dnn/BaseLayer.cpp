@@ -417,8 +417,8 @@ void CBaseLayer::reshape()
 
 class CRunOnceTimer {
 public:
-	CRunOnceTimer( bool enable, IMathEngine& mathEngine, int& hitCount, 
-		IPerformanceCounters::CCounter::TCounterType& result, bool isOnlyTime = false);
+	CRunOnceTimer( bool enable, IMathEngine& mathEngine, int& hitCount,
+		IPerformanceCounters::CCounter::TCounterType& result );
 	~CRunOnceTimer();
 
 private:
@@ -427,8 +427,8 @@ private:
 };
 
 CRunOnceTimer::CRunOnceTimer( bool enable, IMathEngine& mathEngine, int& hitCount,
-		IPerformanceCounters::CCounter::TCounterType& result, bool isOnlyTime ) :
-	counters( enable ? mathEngine.CreatePerformanceCounters( isOnlyTime ) : nullptr ),
+		IPerformanceCounters::CCounter::TCounterType& result ) :
+	counters( enable ? mathEngine.CreatePerformanceCounters( true ) : nullptr ),
 	result( result )
 {
 	if( enable ) {

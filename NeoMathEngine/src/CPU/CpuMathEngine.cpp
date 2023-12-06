@@ -243,16 +243,19 @@ void CCpuMathEngine::GetMathEngineInfo( CMathEngineInfo& info ) const
 
 #if FINE_PLATFORM( FINE_ANDROID ) || FINE_PLATFORM( FINE_LINUX )
 IPerformanceCounters* CCpuMathEngine::CreatePerformanceCounters( bool isOnlyTime ) const {
-	if ( isOnlyTime )
+	if ( isOnlyTime ) {
 		return new CPerformanceCountersDefault();
+	}
 	return new CPerformanceCountersCpuLinux();
 }
 #elif FINE_PLATFORM( FINE_WINDOWS ) || FINE_PLATFORM( FINE_DARWIN ) || FINE_PLATFORM( FINE_IOS )
-IPerformanceCounters* CCpuMathEngine::CreatePerformanceCounters( bool ) const { return new CPerformanceCountersDefault(); }
+IPerformanceCounters* CCpuMathEngine::CreatePerformanceCounters( bool ) const {
+	return new CPerformanceCountersDefault();
+}
 #else
 IPerformanceCounters* CCpuMathEngine::CreatePerformanceCounters( bool ) const {
 	#error "Platform is not supported!";
-	return 0;	
+	return 0;
 }
 #endif
 
