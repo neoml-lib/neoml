@@ -23,7 +23,7 @@ namespace NeoML {
 // Dropout descriptor
 struct CMathEngineDropoutDesc : public CDropoutDesc {
 	explicit CMathEngineDropoutDesc( IMathEngine& mathEngine, float rate, bool isSpatial, bool isBatchwise,
-		const CBlobDesc& input, const CBlobDesc& output );
+		const CBlobDesc& input, const CBlobDesc& output, int seed );
 
 	CBlobDesc Input; // input blob descriptor
 	CBlobDesc Output; // output blob descriptor

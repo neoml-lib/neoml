@@ -78,7 +78,7 @@ CMathEngineDropoutDesc::CMathEngineDropoutDesc( IMathEngine& mathEngine, float r
 	ForwardRate( 1.f - rate ),
 	IsSpatial( isSpatial ),
 	IsBatchwise( isBatchwise ),
-	seed(seed);
+	seed(seed) {};
 
 } // namespace NeoML
 
