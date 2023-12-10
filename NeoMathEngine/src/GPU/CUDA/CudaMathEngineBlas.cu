@@ -22,6 +22,7 @@ limitations under the License.
 #include <MathEngineCommon.h>
 #include <CudaDevice.h>
 
+#include <Kernels/CudaRandom.h>
 #include <Kernels/CudaBlasKernels.h>
 
 namespace NeoML {
@@ -555,6 +556,21 @@ void CCudaMathEngine::BitSetBinarization(int batchSize, int bitSetSize,
 	BitSetBinarizationKernel<<<blockCount, threadCount>>>(batchSize, bitSetSize,
 		GetRaw(inputHandle), outputVectorSize, GetRaw(resultHandle));
 }
+
+//void CCudaMathEngine::RandomMultMatrixByDiagMatrix(const CConstFloatHandle& firstHandle, int firstHeight,
+//	int firstWidth, const CFloatHandle& resultHandle, int resultBufferSize, int seed, float p, float value)
+//{
+//	ASSERT_EXPR(firstHandle.GetMathEngine() == this);
+//	ASSERT_EXPR(resultHandle.GetMathEngine() == this);
+//	SetCudaDevice(device->DeviceNumber);
+//	
+//	dim3 blockCount;
+//	dim3 threadCount;
+//
+//	getCudaTaskGrid2D(blockCount, threadCount, firstHeight, firstWidth);
+//	RandomMultMatrixByDiagMatrixKernel<<<blockCount, threadCount>>>(GetRaw(firstHandle), firstHeight, firstWidth, 
+//		GetRaw(resultHandle), resultBufferSize, seed, p, value);
+//}
 
 void CCudaMathEngine::MultiplyLookupMatrixByLookupVector(int batchSize, const CLookupMatrix& matrix,
 	const CLookupVector& vector, const CFloatHandle& resultHandle, int resultSize)

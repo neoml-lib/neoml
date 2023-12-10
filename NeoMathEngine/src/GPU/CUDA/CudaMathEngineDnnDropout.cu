@@ -34,10 +34,10 @@ void CCudaMathEngine::Dropout( const CDropoutDesc& dropoutDesc, const CFloatHand
 	ASSERT_EXPR( outputData.GetMathEngine() == this );
 	SetCudaDevice( device->DeviceNumber );
 
-	const CMathEngineDropoutDesc& desc = static_cast<const CMathEngineDropoutDesc&>( dropoutDesc );
+	const CCudaMathEngineDropoutDesc& desc = static_cast<const CCudaMathEngineDropoutDesc&>( dropoutDesc );
 	const CBlobDesc& input = desc.Input;
 
-	if( desc.ForwardRate == 1.f ) {
+	if (desc.ForwardRate == 1.f) {
 		VectorCopy( outputData, inputData, input.BlobSize() );
 		return;
 	}
@@ -47,22 +47,28 @@ void CCudaMathEngine::Dropout( const CDropoutDesc& dropoutDesc, const CFloatHand
 	const int batchWidth = input.ObjectCount() / batchLength;
 	const int maskSize = batchWidth * objectSize;
 
-	ASSERT_EXPR( desc.Mask.Size() == maskSize );
+	// ASSERT_EXPR( desc.Mask.Size() == maskSize );
 
-	if( !desc.IsSpatial ) {
-		MultiplyMatrixByDiagMatrix( inputData, batchLength, maskSize, desc.Mask.GetHandle(),
-			outputData, desc.Output.BlobSize() );
+	//if( !desc.IsSpatial ) {
+	//	MultiplyMatrixByDiagMatrix( inputData, batchLength, maskSize, desc.Mask.GetHandle(),
+	//		outputData, desc.Output.BlobSize() );
+	//	return;
+	//}
+
+	if ( !desc.IsSpatial ) {
+		RandomMultMatrixByDiagMatrix(inputData, batchLength, maskSize, outputData, desc.Output.BlobSize(),
+			desc.seed, desc.ForwardRate, 1.f/desc.ForwardRate);
 		return;
 	}
 
 	dim3 blockCount;
 	dim3 threadCount;
 
-	getCudaTaskGrid3D( blockCount, threadCount, input.ObjectCount(), input.ObjectSize() / objectSize,
-		objectSize );
-	ChannelLastBlobSpatialDropoutKernel<<<blockCount, threadCount>>>( GetRaw( inputData ),
-		GetRaw( desc.Mask.GetHandle() ), GetRaw( outputData ), input.ObjectCount(), input.ObjectSize(),
-		batchWidth, objectSize );
+	//getCudaTaskGrid3D( blockCount, threadCount, input.ObjectCount(), input.ObjectSize() / objectSize,
+	//	objectSize );
+	//ChannelLastBlobSpatialDropoutKernel<<<blockCount, threadCount>>>( GetRaw( inputData ),
+	//	GetRaw( desc.Mask.GetHandle() ), GetRaw( outputData ), input.ObjectCount(), input.ObjectSize(),
+	//	batchWidth, objectSize );
 }
 
 CDropoutDesc* CCudaMathEngine::InitDropout( float rate, bool isSpatial, bool isBatchwise,
@@ -71,7 +77,7 @@ CDropoutDesc* CCudaMathEngine::InitDropout( float rate, bool isSpatial, bool isB
 	return new CCudaMathEngineDropoutDesc( mathEngine(), rate, isSpatial, isBatchwise, input, output, seed );
 }
 
-CMathEngineDropoutDesc::CMathEngineDropoutDesc( IMathEngine& mathEngine, float rate, bool isSpatial, bool isBatchwise,
+CCudaMathEngineDropoutDesc::CCudaMathEngineDropoutDesc( IMathEngine& mathEngine, float rate, bool isSpatial, bool isBatchwise,
 		const CBlobDesc& input, const CBlobDesc& output, int seed ) :
 	Input( input ),
 	Output( output ),

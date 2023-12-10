@@ -35,4 +35,17 @@ struct CMathEngineDropoutDesc : public CDropoutDesc {
 	CFloatHandleVar Mask;
 };
 
+struct CCudaMathEngineDropoutDesc : public CDropoutDesc {
+explicit CCudaMathEngineDropoutDesc( IMathEngine& mathEngine, float rate, bool isSpatial, bool isBatchwise,
+    const CBlobDesc& input, const CBlobDesc& output, int seed );
+
+    CBlobDesc Input;
+    CBlobDesc Output;
+    const float ForwardRate;
+    const bool IsSpatial;
+    const bool IsBatchwise;
+    // seed that will be used later in gpu
+    const int seed;
+};
+
 } // namespace NeoML

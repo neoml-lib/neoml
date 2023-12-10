@@ -1176,4 +1176,31 @@ __global__ void MultiplyMatrixByDiagMatrixKernel( int batchSize, const float* __
 	}
 }
 
+__global__ void RandomMultMatrixByDiagMatrixKernel(const float* firstHandle, int firstHeight,
+	int firstWidth, float* res, int resultBufferSize, int seed, float p, const float value)
+{
+	const int matrixSize = firstHeight * firstWidth;
+
+	int index;
+	int step;
+	int actionCount = GetCudaTaskCountAndIndex(matrixSize, 16, index, step);
+	
+	CCudaRandom random(seed);
+	random.Skip(index);
+
+	const unsigned int threshold = p * UINT_MAX;
+
+	for (int i = 0; i < actionCount; ++i) {
+		CIntArray<4> generated = random.Next();
+		const int row = index / firstWidth;
+		const int col = index % firstWidth;
+		for (int j = 0; j < 4 && index + j < matrixSize; ++j) {
+			res[j] = generated[j] <= threshold ? firstHandle[row * firstWidth + col] * value : 0;
+		}
+		index += 4 * step;
+		res += 4 * step;
+		random.Skip(step - 1);
+	}
+}
+
 } // namespace NeoML

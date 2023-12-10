@@ -333,6 +333,8 @@ public:
 		const CFloatHandle& resultHandle ) override;
 	void BitSetBinarization( int batchSize, int bitSetSize,
 		const CConstIntHandle& inputHandle, int outputVectorSize, const CFloatHandle& resultHandle ) override;
+	void RandomMultMatrixByDiagMatrix(const CConstFloatHandle& firstHandle, int firstHeight, int firstWidth,
+		const CFloatHandle& resultHandle, int resultBufferSize, int seed, float p, float rate);
 	void MultiplyLookupMatrixByLookupVector( int batchSize, const CLookupMatrix& matrix,
 		const CLookupVector& vector, const CFloatHandle& result, int resultSize ) override;
 	void MultiplyTransposedLookupMatrixByVector( int batchSize, const CLookupMatrix& matrix,
