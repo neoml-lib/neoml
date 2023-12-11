@@ -24,11 +24,11 @@ limitations under the License.
 #include <NeoMathEngine/SimdMathEngine.h>
 #include <DllLoader.h>
 #include <CPUInfo.h>
+#include <PerformanceCountersDefault.h>
 
 #if FINE_PLATFORM( FINE_ANDROID ) || FINE_PLATFORM( FINE_LINUX )
 #include <PerformanceCountersCpuLinux.h>
 #elif FINE_PLATFORM( FINE_WINDOWS ) || FINE_PLATFORM( FINE_DARWIN ) || FINE_PLATFORM( FINE_IOS )
-#include <PerformanceCountersDefault.h>
 #else
 #error "Platform is not supported!";
 #endif
@@ -241,17 +241,23 @@ void CCpuMathEngine::GetMathEngineInfo( CMathEngineInfo& info ) const
 	info.AvailableMemory = SIZE_MAX;
 }
 
-IPerformanceCounters* CCpuMathEngine::CreatePerformanceCounters() const
-{
 #if FINE_PLATFORM( FINE_ANDROID ) || FINE_PLATFORM( FINE_LINUX )
+IPerformanceCounters* CCpuMathEngine::CreatePerformanceCounters( bool isOnlyTime ) const {
+	if ( isOnlyTime ) {
+		return new CPerformanceCountersDefault();
+	}
 	return new CPerformanceCountersCpuLinux();
+}
 #elif FINE_PLATFORM( FINE_WINDOWS ) || FINE_PLATFORM( FINE_DARWIN ) || FINE_PLATFORM( FINE_IOS )
+IPerformanceCounters* CCpuMathEngine::CreatePerformanceCounters( bool ) const {
 	return new CPerformanceCountersDefault();
+}
 #else
+IPerformanceCounters* CCpuMathEngine::CreatePerformanceCounters( bool ) const {
 	#error "Platform is not supported!";
 	return 0;
-#endif
 }
+#endif
 
 void CCpuMathEngine::AllReduce( const CFloatHandle& handle, int size )
 {
