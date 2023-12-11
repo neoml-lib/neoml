@@ -1228,7 +1228,7 @@ public:
 
 	// Creates a object for aggregating statistics.
 	// This object should be destroyed using the standard delete operator after use.
-	virtual IPerformanceCounters* CreatePerformanceCounters() const = 0;
+	virtual IPerformanceCounters* CreatePerformanceCounters( bool isTimeOnly = false ) const = 0;
 
 	virtual CMathEngineDistributedInfo GetDistributedInfo() { return CMathEngineDistributedInfo(); }
 	virtual void AllReduce( const CFloatHandle& handle, int size ) = 0;
