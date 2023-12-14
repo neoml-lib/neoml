@@ -39,11 +39,11 @@ __global__ void CtcMatrixLogSumExpByColumnsKernel(int batchSize, const float* __
 	float& my = buffer[(threadIdx.z * blockDim.y + threadIdx.y) * blockDim.x + threadIdx.x];
 	my = -FLT_MAX; // NOTE: all threads are not used in the current task, should not interfere in the reduce max or sum
 
-	int combineCount = (height + blockDim.x - 1) / blockDim.x;
+	const int combineCount = (height + blockDim.x - 1) / blockDim.x;
 
 	int index;
 	int step;
-	int count = GetCudaTaskCountAndIndexX(height, combineCount, index, step);
+	const int count = GetCudaTaskCountAndIndexX(height, combineCount, index, step);
 	index *= width;
 	step *= width;
 
@@ -59,14 +59,14 @@ __global__ void CtcMatrixLogSumExpByColumnsKernel(int batchSize, const float* __
 						// find the maximum
 		my = matrix[index];
 		for(int j = 1; j < count; ++j) {
-			float val = matrix[index + j * step];
+			const float val = matrix[index + j * step];
 			if(val > my) {
 				my = val;
 			}
 		}
 	}
 
-	float maxVal = ReduceMaxXSharedBuffer(buffer);
+	const float maxVal = ReduceMaxXSharedBuffer(buffer);
 
 	// Add up the needed part
 	if(xPos < width && zPos < batchSize && count > 0) {
@@ -78,7 +78,7 @@ __global__ void CtcMatrixLogSumExpByColumnsKernel(int batchSize, const float* __
 		my = 0.f;
 	}
 
-	float sumVal = ReduceSumXSharedBuffer(buffer);
+	const float sumVal = ReduceSumXSharedBuffer(buffer);
 
 	if(xPos < width && zPos < batchSize && threadIdx.x == 0) {
 		result[xPos] = maxVal + log(sumVal);
@@ -114,14 +114,14 @@ __global__ void CtcCalcResultLogProbMaskKernel( int resultLen, int batchSize, in
 __global__ void CtcCalcForwardVariableKernel( int resultLen, int batchSize, int classCount, int padLabelLen, bool skipBlanks,
 	const float* blankSkipMask, const float* resultLogProbMask, float* logAlpha )
 {
-	int b = blockIdx.y * blockDim.y + threadIdx.y;
+	const int b = blockIdx.y * blockDim.y + threadIdx.y;
 	if( b < batchSize ) {
 		const int T = resultLen;
 		const int U = padLabelLen;
 		for( int t = 1; t < T; ++t ) {
-			const float* resultLogProbWindow = resultLogProbMask + t * padLabelLen * batchSize;
-			float* logAlphaWindow = logAlpha + t * U * batchSize;
-			float* logAlphaPrevWindow = logAlpha + ( t - 1 ) * U * batchSize;
+			const float* const resultLogProbWindow = resultLogProbMask + t * padLabelLen * batchSize;
+			float* const logAlphaWindow = logAlpha + t * U * batchSize;
+			float* const logAlphaPrevWindow = logAlpha + ( t - 1 ) * U * batchSize;
 
 			// Add up the alternative pairings after the previous moment in time
 			for( int u = threadIdx.x; u < U; u += blockDim.x ) {
@@ -150,15 +150,15 @@ __global__ void CtcCalcForwardVariableKernel( int resultLen, int batchSize, int 
 __global__ void CtcCalcBackwardVariableKernel( int resultLen, int batchSize, int classCount, int padLabelLen, bool skipBlanks,
 	const float* blankSkipMask, const float* resultLogProbMask, float* logBeta )
 {
-	int b = blockIdx.y * blockDim.y + threadIdx.y;
+	const int b = blockIdx.y * blockDim.y + threadIdx.y;
 	if( b < batchSize ) {
 		const int T = resultLen;
 		const int U = padLabelLen;
 
 		for( int t = T - 2; t >= 0; --t ) {
-			const float* resultLogProbWindow = resultLogProbMask + ( t + 1 ) * U * batchSize;
-			float* logBetaPrevWindow = logBeta + ( t + 1 ) * U * batchSize;
-			float* logBetaWindow = logBeta + t * U * batchSize;
+			const float* const resultLogProbWindow = resultLogProbMask + ( t + 1 ) * U * batchSize;
+			float* const logBetaPrevWindow = logBeta + ( t + 1 ) * U * batchSize;
+			float* const logBetaWindow = logBeta + t * U * batchSize;
 
 			for( int u = threadIdx.x; u < U; u += blockDim.x ) {
 				const int idx = u * batchSize + b;

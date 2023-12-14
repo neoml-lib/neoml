@@ -123,7 +123,7 @@ void CCudaMathEngine::BlobMeanPooling( const CMeanPoolingDesc& poolingDesc,
 	dim3 blockCount;
 	dim3 threadCount;
 
-	int totalChannels = result.Depth() * result.Channels();
+	const int totalChannels = result.Depth() * result.Channels();
 
 	getCudaTaskGrid3DMinZYX( 1, 1, 32, blockCount, threadCount,
 		result.ObjectCount(), result.Height() * result.Width(), totalChannels );
@@ -173,8 +173,8 @@ void CCudaMathEngine::BlobGlobalMaxOverTimePooling( const CGlobalMaxOverTimePool
 	const CCudaGlobalMaxOverTimePoolingDescInternal& desc = static_cast<const CCudaGlobalMaxOverTimePoolingDesc&>( poolingDesc ).Internal;
 	const CCudaBlobDesc& source = desc.Source;
 
-	int objectCount = source.BatchLength();
-	int objectSize = source.BlobSize() / objectCount;
+	const int objectCount = source.BatchLength();
+	const int objectSize = source.BlobSize() / objectCount;
 
 	int blockCount;
 	int threadCount;

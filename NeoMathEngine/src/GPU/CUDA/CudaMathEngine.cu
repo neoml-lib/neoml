@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -245,7 +245,7 @@ void CCudaMathEngine::getCudaTaskGrid(int& blockCount, int& threadCount, int tas
 {
 	ASSERT_EXPR( taskCount > 0 );
 	ASSERT_EXPR( combineCount > 0 );
-	int runCount = (taskCount + combineCount - 1) / combineCount;
+	const int runCount = (taskCount + combineCount - 1) / combineCount;
 	threadCount = device->ThreadMaxCount;
 
 	if(threadCount > runCount) {
@@ -276,7 +276,7 @@ void CCudaMathEngine::getCudaTaskGrid2DMinYX(int minY, int minX, dim3& blockCoun
 void CCudaMathEngine::getCudaTaskGrid3DMinZYX(int minZ, int minY, int minX, dim3& blockCount, dim3& threadCount,
 	int batchSize, int height, int width, int _maxThreadCount)
 {
-	int maxThreadCount = min( device->ThreadMaxCount, static_cast<unsigned int>( _maxThreadCount ) );
+	const int maxThreadCount = min( device->ThreadMaxCount, static_cast<unsigned int>( _maxThreadCount ) );
 
 	ASSERT_EXPR(maxThreadCount >= 1);
 	ASSERT_EXPR(minZ > 0 && minY > 0 && minX > 0);
