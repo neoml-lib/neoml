@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -66,7 +66,7 @@ __global__ void BuildTempMatrixKernel( const CCuda3dConvolutionDescInternal desc
 	}
 
 	int step;
-	int count = GetCudaTaskCountAndIndex( matrixWidth, BuildTempMatrixCombine, matrixCol, step );
+	const int count = GetCudaTaskCountAndIndex( matrixWidth, BuildTempMatrixCombine, matrixCol, step );
 	matrix += matrixRow * matrixWidth + matrixCol;
 	matrixRow += heightOffset;
 
@@ -136,7 +136,7 @@ __global__ void BuildInputFromTempMatrixKernel( const CCuda3dConvolutionDescInte
 	const int b = tempRow / desc.Result.Height();
 
 	int step;
-	int count = GetCudaTaskCountAndIndex( matrixWidth, BuildInputFromTempMatrixCombine, tempCol, step );
+	const int count = GetCudaTaskCountAndIndex( matrixWidth, BuildInputFromTempMatrixCombine, tempCol, step );
 	tempMatrix += tempCol;
 
 	const int inputChannels = desc.Source.Channels();

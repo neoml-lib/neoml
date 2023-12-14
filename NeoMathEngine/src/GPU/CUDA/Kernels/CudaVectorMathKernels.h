@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ __global__ void VectorFillKernel(T* mem, T value, int count)
 {
 	int index;
 	int step;
-	int actionCount = GetCudaTaskCountAndIndex(count, VectorFillCombineCount, index, step);
+	const int actionCount = GetCudaTaskCountAndIndex(count, VectorFillCombineCount, index, step);
 
 	mem += index;
 
@@ -44,7 +44,7 @@ __global__ void VectorFillHandleKernel(T* mem, int count, const T* __restrict__ 
 {
 	int index;
 	int step;
-	int actionCount = GetCudaTaskCountAndIndex(count, VectorFillHandleCombineCount, index, step);
+	const int actionCount = GetCudaTaskCountAndIndex(count, VectorFillHandleCombineCount, index, step);
 
 	mem += index;
 
@@ -60,7 +60,7 @@ __global__ void VectorConvertKernel( const From* from, To* to, int count )
 {
 	int index;
 	int step;
-	int actionCount = GetCudaTaskCountAndIndex(count, VectorConvertCombineCount, index, step);
+	const int actionCount = GetCudaTaskCountAndIndex(count, VectorConvertCombineCount, index, step);
 
 	from += index;
 	to += index;
@@ -102,7 +102,7 @@ __global__ void VectorFillBernoulliKernel( float* result, float p, int vectorSiz
 {
 	int index;
 	int step;
-	int actionCount = GetCudaTaskCountAndIndex( ( vectorSize + 3 ) / 4, VectorFillBernoulliCombine, index, step );
+	const int actionCount = GetCudaTaskCountAndIndex( ( vectorSize + 3 ) / 4, VectorFillBernoulliCombine, index, step );
 
 	if( actionCount > 0 ) {
 		CCudaRandom random( randomInit );
@@ -129,7 +129,7 @@ __global__ void FilterSmallValuesKernel( float* data, float threshold, int count
 {
 	int start;
 	int stepSize;
-	int stepCount = GetCudaTaskCountAndIndex( count, VectorFillCombineCount, start, stepSize );
+	const int stepCount = GetCudaTaskCountAndIndex( count, VectorFillCombineCount, start, stepSize );
 
 	data += start;
 
@@ -152,7 +152,8 @@ __global__ void VectorSumKernel(const float* __restrict__ mem, int count, float*
 
 	int index;
 	int step;
-	int actionCount = GetCudaTaskCountAndIndex(count, VectorSumCombineCount, index, step);
+	const int actionCount = GetCudaTaskCountAndIndex( count, VectorSumCombineCount, index, step );
+
 	mem += index;
 	for(int i = 0; i < actionCount; ++i) {
 		sum += *mem;
@@ -262,7 +263,7 @@ __global__ void VectorEqualKernel( const int* first,
 {
 	int index;
 	int step;
-	int actionCount = GetCudaTaskCountAndIndex( count, VectorEqualCombineCount, index, step );
+	const int actionCount = GetCudaTaskCountAndIndex( count, VectorEqualCombineCount, index, step );
 
 	first += index;
 	second += index;
@@ -281,7 +282,7 @@ __global__ void VectorEqualValueKernel( const int* first,
 {
 	int index;
 	int step;
-	int actionCount = GetCudaTaskCountAndIndex( count, VectorEqualCombineCount, index, step );
+	const int actionCount = GetCudaTaskCountAndIndex( count, VectorEqualCombineCount, index, step );
 
 	first += index;
 	result += index;
@@ -300,7 +301,7 @@ __global__ void VectorELUKernel( const float* __restrict__ first, float* result,
 {
 	int index;
 	int step;
-	int actionCount = GetCudaTaskCountAndIndex( count, VectorActivationCombineCount, index, step );
+	const int actionCount = GetCudaTaskCountAndIndex( count, VectorActivationCombineCount, index, step );
 
 	first += index;
 	result += index;
@@ -317,7 +318,7 @@ __global__ void VectorELUDiffKernel( const float* __restrict__ first, const floa
 {
 	int index;
 	int step;
-	int actionCount = GetCudaTaskCountAndIndex( count, VectorActivationCombineCount, index, step );
+	const int actionCount = GetCudaTaskCountAndIndex( count, VectorActivationCombineCount, index, step );
 
 	first += index;
 	second += index;
@@ -335,7 +336,7 @@ __global__ void VectorELUDiffOpKernel( const float* __restrict__ first, const fl
 {
 	int index;
 	int step;
-	int actionCount = GetCudaTaskCountAndIndex( count, VectorActivationCombineCount, index, step );
+	const int actionCount = GetCudaTaskCountAndIndex( count, VectorActivationCombineCount, index, step );
 
 	first += index;
 	second += index;
@@ -354,20 +355,20 @@ __global__ void VectorReLUKernel(const float* first, float* result,
 {
 	int index;
 	int step;
-	int actionCount = GetCudaTaskCountAndIndex(count, VectorActivationCombineCount, index, step);
+	const int actionCount = GetCudaTaskCountAndIndex(count, VectorActivationCombineCount, index, step);
 
 	first += index;
 	result += index;
 	if(*threshold > 0) {
 		for(int i = 0; i < actionCount; ++i) {
-			float value = min(*first, *threshold);
+			const float value = min(*first, *threshold);
 			*result = value > 0 ? value : 0;
 			first += step;
 			result += step;
 		}
 	} else {
 		for(int i = 0; i < actionCount; ++i) {
-			float value = *first;
+			const float value = *first;
 			*result = value > 0 ? value : 0;
 			first += step;
 			result += step;
@@ -379,7 +380,7 @@ __global__ void VectorReLUDiffKernel(const float* __restrict__ first,
 {
 	int index;
 	int step;
-	int actionCount = GetCudaTaskCountAndIndex(count, VectorActivationCombineCount, index, step);
+	const int actionCount = GetCudaTaskCountAndIndex(count, VectorActivationCombineCount, index, step);
 
 	first += index;
 	second += index;
@@ -407,12 +408,12 @@ __global__ void VectorLeakyReLUKernel( const float* __restrict__ first, float* r
 {
 	int index;
 	int step;
-	int actionCount = GetCudaTaskCountAndIndex( count, VectorActivationCombineCount, index, step );
+	const int actionCount = GetCudaTaskCountAndIndex( count, VectorActivationCombineCount, index, step );
 
 	first += index;
 	result += index;
 	for( int i = 0; i < actionCount; ++i ) {
-		float value = *first;
+		const float value = *first;
 		*result = value > 0 ? value : *alpha * value;
 		first += step;
 		result += step;
@@ -424,7 +425,7 @@ __global__ void VectorLeakyReLUDiffKernel( const float* __restrict__ first, cons
 {
 	int index;
 	int step;
-	int actionCount = GetCudaTaskCountAndIndex( count, VectorActivationCombineCount, index, step );
+	const int actionCount = GetCudaTaskCountAndIndex( count, VectorActivationCombineCount, index, step );
 
 	first += index;
 	second += index;
@@ -442,13 +443,13 @@ __global__ void VectorHSwishKernel( const float* first, float* result, int count
 {
 	int index;
 	int step;
-	int actionCount = GetCudaTaskCountAndIndex( count, VectorActivationCombineCount, index, step );
+	const int actionCount = GetCudaTaskCountAndIndex( count, VectorActivationCombineCount, index, step );
 
 	first += index;
 	result += index;
 
 	for( int i = 0; i < actionCount; ++i ) {
-		float value = *first;
+		const float value = *first;
 		if( value <= -3.f ) {
 			*result = 0;
 		} else if( value >= 3.f ) {
@@ -466,14 +467,14 @@ __global__ void VectorHSwishDiffKernel( const float* __restrict__ first, const f
 {
 	int index;
 	int step;
-	int actionCount = GetCudaTaskCountAndIndex( count, VectorActivationCombineCount, index, step );
+	const int actionCount = GetCudaTaskCountAndIndex( count, VectorActivationCombineCount, index, step );
 
 	first += index;
 	second += index;
 	result += index;
 
 	for( int i = 0; i < actionCount; ++i ) {
-		float value = *first;
+		const float value = *first;
 		if( value <= -3.f ) {
 			*result = 0;
 		} else if( value >= 3.f ) {
@@ -492,15 +493,15 @@ __global__ void VectorEltwiseMaxKernel(const float* first, const float* second,
 {
 	int index;
 	int step;
-	int actionCount = GetCudaTaskCountAndIndex(count, VectorEltwiseMaxCombineCount, index, step);
+	const int actionCount = GetCudaTaskCountAndIndex(count, VectorEltwiseMaxCombineCount, index, step);
 
 	first += index;
 	second += index;
 	result += index;
 
 	for(int i = 0; i < actionCount; ++i) {
-		float value1 = *first;
-		float value2 = *second;
+		const float value1 = *first;
+		const float value2 = *second;
 		*result = value1 > value2 ? value1 : value2;
 		first += step;
 		second += step;
@@ -514,15 +515,15 @@ __global__ void VectorEltwiseMinKernel(const float* first, const float* second,
 {
 	int index;
 	int step;
-	int actionCount = GetCudaTaskCountAndIndex(count, VectorEltwiseMinCombineCount, index, step);
+	const int actionCount = GetCudaTaskCountAndIndex(count, VectorEltwiseMinCombineCount, index, step);
 
 	first += index;
 	second += index;
 	result += index;
 
 	for(int i = 0; i < actionCount; ++i) {
-		float value1 = *first;
-		float value2 = *second;
+		const float value1 = *first;
+		const float value2 = *second;
 		*result = value1 < value2 ? value1 : value2;
 		first += step;
 		second += step;
@@ -534,13 +535,13 @@ __global__ void VectorAbsKernel(const float* first, float* result, int count)
 {
 	int index;
 	int step;
-	int actionCount = GetCudaTaskCountAndIndex(count, VectorActivationCombineCount, index, step);
+	const int actionCount = GetCudaTaskCountAndIndex(count, VectorActivationCombineCount, index, step);
 
 	first += index;
 	result += index;
 
 	for(int i = 0; i < actionCount; ++i) {
-		float value = *first;
+		const float value = *first;
 		*result = value > 0 ? value : -value;
 		first += step;
 		result += step;
@@ -552,7 +553,7 @@ __global__ void VectorAbsDiffKernel(const float* __restrict__ first, const float
 {
 	int index;
 	int step;
-	int actionCount = GetCudaTaskCountAndIndex(count, VectorActivationCombineCount, index, step);
+	const int actionCount = GetCudaTaskCountAndIndex(count, VectorActivationCombineCount, index, step);
 
 	first += index;
 	second += index;
@@ -570,13 +571,13 @@ __global__ void VectorHingeKernel(const float* __restrict__ first, float* result
 {
 	int index;
 	int step;
-	int actionCount = GetCudaTaskCountAndIndex(count, VectorActivationCombineCount, index, step);
+	const int actionCount = GetCudaTaskCountAndIndex(count, VectorActivationCombineCount, index, step);
 
 	first += index;
 	result += index;
 
 	for(int i = 0; i < actionCount; ++i) {
-		float value = 1 - *first;
+		const float value = 1 - *first;
 		*result = value > 0 ? value : 0;
 		first += step;
 		result += step;
@@ -588,7 +589,7 @@ __global__ void VectorHingeDiffKernel(const float* __restrict__ first,
 {
 	int index;
 	int step;
-	int actionCount = GetCudaTaskCountAndIndex(count, VectorActivationCombineCount, index, step);
+	const int actionCount = GetCudaTaskCountAndIndex(count, VectorActivationCombineCount, index, step);
 
 	first += index;
 	second += index;
@@ -606,7 +607,7 @@ __global__ void VectorSquaredHingeKernel(const float* __restrict__ first, float*
 {
 	int index;
 	int step;
-	int actionCount = GetCudaTaskCountAndIndex(count, VectorActivationCombineCount, index, step);
+	const int actionCount = GetCudaTaskCountAndIndex(count, VectorActivationCombineCount, index, step);
 
 	first += index;
 	result += index;
@@ -629,7 +630,7 @@ __global__ void VectorSquaredHingeDiffKernel(const float* __restrict__ first,
 {
 	int index;
 	int step;
-	int actionCount = GetCudaTaskCountAndIndex(count, VectorActivationCombineCount, index, step);
+	const int actionCount = GetCudaTaskCountAndIndex(count, VectorActivationCombineCount, index, step);
 
 	first += index;
 	second += index;
@@ -653,7 +654,7 @@ __global__ void VectorHuberKernel(const float* __restrict__ first, float* result
 {
 	int index;
 	int step;
-	int actionCount = GetCudaTaskCountAndIndex(count, VectorActivationCombineCount, index, step);
+	const int actionCount = GetCudaTaskCountAndIndex(count, VectorActivationCombineCount, index, step);
 
 	first += index;
 	result += index;
@@ -676,7 +677,7 @@ __global__ void VectorHuberDiffKernel(const float* __restrict__ first,
 {
 	int index;
 	int step;
-	int actionCount = GetCudaTaskCountAndIndex(count, VectorActivationCombineCount, index, step);
+	const int actionCount = GetCudaTaskCountAndIndex(count, VectorActivationCombineCount, index, step);
 
 	first += index;
 	result += index;
@@ -698,13 +699,13 @@ __global__ void VectorHardTanhKernel(const float* __restrict__ first, float* res
 {
 	int index;
 	int step;
-	int actionCount = GetCudaTaskCountAndIndex(count, VectorActivationCombineCount, index, step);
+	const int actionCount = GetCudaTaskCountAndIndex(count, VectorActivationCombineCount, index, step);
 
 	first += index;
 	result += index;
 
 	for(int i = 0; i < actionCount; ++i) {
-		float value = *first;
+		const float value = *first;
 		if(value < -1) {
 			*result = -1;
 		} else if(value > 1) {
@@ -722,14 +723,14 @@ __global__ void VectorHardTanhDiffKernel(const float* __restrict__ first, const 
 {
 	int index;
 	int step;
-	int actionCount = GetCudaTaskCountAndIndex(count, VectorActivationCombineCount, index, step);
+	const int actionCount = GetCudaTaskCountAndIndex(count, VectorActivationCombineCount, index, step);
 
 	first += index;
 	second += index;
 	result += index;
 
 	for(int i = 0; i < actionCount; ++i) {
-		float value = *first;
+		const float value = *first;
 		if(value <= -1 || value >= 1) {
 			*result = 0;
 		} else {
@@ -745,13 +746,13 @@ __global__ void VectorHardSigmoidKernel(const float* __restrict__ first, float* 
 {
 	int index;
 	int step;
-	int actionCount = GetCudaTaskCountAndIndex(count, VectorActivationCombineCount, index, step);
+	const int actionCount = GetCudaTaskCountAndIndex(count, VectorActivationCombineCount, index, step);
 
 	first += index;
 	result += index;
 
 	for(int i = 0; i < actionCount; ++i) {
-		float value = *first * *slope + *bias;
+		const float value = *first * *slope + *bias;
 		if(value < 0) {
 			*result = 0;
 		} else if(value > 1) {
@@ -769,17 +770,17 @@ __global__ void VectorHardSigmoidDiffKernel(const float* __restrict__ first, con
 {
 	int index;
 	int step;
-	int actionCount = GetCudaTaskCountAndIndex(count, VectorActivationCombineCount, index, step);
+	const int actionCount = GetCudaTaskCountAndIndex(count, VectorActivationCombineCount, index, step);
 
 	first += index;
 	second += index;
 	result += index;
 
-	float minX = -*bias / *slope;
-	float maxX = ( 1.f - *bias ) / *slope;
+	const float minX = -*bias / *slope;
+	const float maxX = ( 1.f - *bias ) / *slope;
 
 	for(int i = 0; i < actionCount; ++i) {
-		float value = *first;
+		const float value = *first;
 		if( ( value <= minX ) || ( value >= maxX ) ) {
 			*result = 0;
 		} else {
@@ -796,14 +797,14 @@ __global__ void VectorHardSigmoidDiffOpKernel(const float* __restrict__ first,
 {
 	int index;
 	int step;
-	int actionCount = GetCudaTaskCountAndIndex(count, VectorActivationCombineCount, index, step);
+	const int actionCount = GetCudaTaskCountAndIndex(count, VectorActivationCombineCount, index, step);
 
 	first += index;
 	second += index;
 	result += index;
 
 	for( int i = 0; i < actionCount; ++i ) {
-		float value = *first;
+		const float value = *first;
 		if( value <= 0 || value >= 1 ) {
 			*result = 0;
 		} else {
@@ -852,7 +853,7 @@ __global__ void VectorBernulliKLDerivativeKernel(const float* __restrict__ first
 {
 	int index;
 	if(GetCudaTaskIndex(count, index)) {
-		float value = first[index];
+		const float value = first[index];
 		float klDer = -*target / value + (1 - *target) / (1 - value);
 		if(klDer < -10) {
 			klDer = -10;
@@ -870,7 +871,7 @@ __global__ void VectorAddKernel(const T* __restrict__ first,
 {
 	int index;
 	int step;
-	int actionCount = GetCudaTaskCountAndIndex(count, VectorAddCombineCount, index, step);
+	const int actionCount = GetCudaTaskCountAndIndex(count, VectorAddCombineCount, index, step);
 
 	first += index;
 	second += index;
@@ -891,7 +892,7 @@ __global__ void VectorAddValueKernel(
 {
 	int index;
 	int step;
-	int actionCount = GetCudaTaskCountAndIndex(count, VectorAddValueCombineCount, index, step);
+	const int actionCount = GetCudaTaskCountAndIndex(count, VectorAddValueCombineCount, index, step);
 
 	first += index;
 	result += index;
@@ -909,7 +910,7 @@ __global__ void VectorSubKernel( const T* __restrict__ first, const T* __restric
 {
 	int index;
 	int step;
-	int actionCount = GetCudaTaskCountAndIndex( count, VectorSubCombineCount, index, step );
+	const int actionCount = GetCudaTaskCountAndIndex( count, VectorSubCombineCount, index, step );
 
 	first += index;
 	second += index;
@@ -928,7 +929,7 @@ __global__ void VectorSubKernel( const float* __restrict__ first,
 {
 	int index;
 	int step;
-	int actionCount = GetCudaTaskCountAndIndex( count, VectorSubCombineCount, index, step );
+	const int actionCount = GetCudaTaskCountAndIndex( count, VectorSubCombineCount, index, step );
 
 	first += index;
 	result += index;
@@ -945,7 +946,7 @@ __global__ void VectorSubKernel( float first,
 {
 	int index;
 	int step;
-	int actionCount = GetCudaTaskCountAndIndex( count, VectorSubCombineCount, index, step );
+	const int actionCount = GetCudaTaskCountAndIndex( count, VectorSubCombineCount, index, step );
 
 	second += index;
 	result += index;
@@ -974,7 +975,7 @@ __global__ void VectorMultiplyKernel(const T* __restrict__ first,
 {
 	int index;
 	int step;
-	int actionCount = GetCudaTaskCountAndIndex(count, VectorMultiplyCombineCount, index, step);
+	const int actionCount = GetCudaTaskCountAndIndex(count, VectorMultiplyCombineCount, index, step);
 
 	first += index;
 	result += index;
@@ -991,12 +992,12 @@ __global__ void VectorNegMultiplyKernel(const float* __restrict__ first,
 {
 	int index;
 	int step;
-	int actionCount = GetCudaTaskCountAndIndex(count, VectorMultiplyCombineCount, index, step);
+	const int actionCount = GetCudaTaskCountAndIndex(count, VectorMultiplyCombineCount, index, step);
 
 	first += index;
 	result += index;
 
-	float mul = -(*multiplier);
+	const float mul = -(*multiplier);
 
 	for(int i = 0; i < actionCount; ++i) {
 		*result = *first * mul;
@@ -1012,7 +1013,7 @@ __global__ void VectorEltwiseMultiplyKernel(const T* __restrict__ first,
 {
 	int index;
 	int step;
-	int actionCount = GetCudaTaskCountAndIndex(count, VectorEltwiseMultiplyCombineCount, index, step);
+	const int actionCount = GetCudaTaskCountAndIndex(count, VectorEltwiseMultiplyCombineCount, index, step);
 
 	first += index;
 	second += index;
@@ -1032,7 +1033,7 @@ __global__ void VectorEltwiseMultiplyAddKernel(const float* __restrict__ first,
 {
 	int index;
 	int step;
-	int actionCount = GetCudaTaskCountAndIndex(count, VectorEltwiseMultiplyAddCombineCount, index, step);
+	const int actionCount = GetCudaTaskCountAndIndex(count, VectorEltwiseMultiplyAddCombineCount, index, step);
 
 	first += index;
 	second += index;
@@ -1052,7 +1053,7 @@ __global__ void VectorEltwiseNegMultiplyKernel(const float* __restrict__ first,
 {
 	int index;
 	int step;
-	int actionCount = GetCudaTaskCountAndIndex(count, VectorEltwiseNegMultiplyCombineCount, index, step);
+	const int actionCount = GetCudaTaskCountAndIndex(count, VectorEltwiseNegMultiplyCombineCount, index, step);
 
 	first += index;
 	second += index;
@@ -1073,7 +1074,7 @@ __global__ void VectorEltwiseDivideKernel(const T* __restrict__ first,
 {
 	int index;
 	int step;
-	int actionCount = GetCudaTaskCountAndIndex(count, VectorEltwiseDivideCombineCount, index, step);
+	const int actionCount = GetCudaTaskCountAndIndex(count, VectorEltwiseDivideCombineCount, index, step);
 
 	first += index;
 	second += index;
@@ -1109,7 +1110,7 @@ __global__ void VectorInvKernel(const float* __restrict__ first, float* result, 
 {
 	int index;
 	int step;
-	int actionCount = GetCudaTaskCountAndIndex(count, VectorInvCombineCount, index, step);
+	const int actionCount = GetCudaTaskCountAndIndex(count, VectorInvCombineCount, index, step);
 
 	first += index;
 	result += index;
@@ -1133,7 +1134,7 @@ __global__ void VectorMinMaxKernel(const float* __restrict__ first, float* resul
 {
 	int index;
 	int step;
-	int actionCount = GetCudaTaskCountAndIndex(count, VectorMinMaxCombineCount, index, step);
+	const int actionCount = GetCudaTaskCountAndIndex(count, VectorMinMaxCombineCount, index, step);
 
 	first += index;
 	result += index;
@@ -1158,8 +1159,8 @@ __global__ void VectorSigmoidDiffKernel(const float* __restrict__ first,
 {
 	int index;
 	if(GetCudaTaskIndex(count, index)) {
-		float expVal = ExponentFunc(-first[index]);
-		float expVal1 = expVal + 1.f;
+		const float expVal = ExponentFunc(-first[index]);
+		const float expVal1 = expVal + 1.f;
 		result[index] = expVal / expVal1 / expVal1;
 		result[index] *= second[index];
 	}
@@ -1171,7 +1172,7 @@ __global__ void VectorSigmoidDiffOpKernel(const float* __restrict__ first, const
 {
 	int index;
 	int step;
-	int actionCount = GetCudaTaskCountAndIndex(vectorSize, VectorSigmoidDiffOpCombineCount, index, step);
+	const int actionCount = GetCudaTaskCountAndIndex(vectorSize, VectorSigmoidDiffOpCombineCount, index, step);
 
 	first += index;
 	second += index;
@@ -1209,7 +1210,7 @@ __global__ void VectorTanhDiffOpKernel(const float* __restrict__ first, const fl
 {
 	int index;
 	int step;
-	int actionCount = GetCudaTaskCountAndIndex(vectorSize, VectorTanhDiffOpCombineCount, index, step);
+	const int actionCount = GetCudaTaskCountAndIndex(vectorSize, VectorTanhDiffOpCombineCount, index, step);
 
 	first += index;
 	second += index;
@@ -1254,15 +1255,15 @@ __global__ void VectorL1DiffAddKernel(const float* __restrict__ first, const flo
 {
 	int index;
 	int step;
-	int actionCount = GetCudaTaskCountAndIndex(vectorSize, VectorActivationCombineCount, index, step);
+	const int actionCount = GetCudaTaskCountAndIndex(vectorSize, VectorActivationCombineCount, index, step);
 
 	first += index;
 	second += index;
 	result += index;
 
-	float negThres = -*threshold;
-	float thres = *threshold;
-	float mulVal = *mult;
+	const float negThres = -*threshold;
+	const float thres = *threshold;
+	const float mulVal = *mult;
 
 	for(int i = 0; i < actionCount; ++i) {
 		float x = *second;
@@ -1353,7 +1354,7 @@ __global__ void VectorFindMaxValueInSetKernel( CCudaConstVectorArray vectors,
 	if(GetCudaTaskIndex(vectorSize, index)) {
 		float res = result[index];
 		for(int j = 0; j < vectors.VectorCount; ++j) {
-			float value = vectors.Vectors[j][index];
+			const float value = vectors.Vectors[j][index];
 			if(value > res) {
 				res = value;
 			}
@@ -1370,7 +1371,7 @@ __global__ void VectorFindMaxValueInSetWithIndicesKernel( CCudaConstVectorArray 
 		float resIndex = rowIndices[index];
 		float res = result[index];
 		for( int j = 0; j < vectors.VectorCount; ++j ) {
-			float value = vectors.Vectors[j][index];
+			const float value = vectors.Vectors[j][index];
 			if( value > res ) {
 				res = value;
 				resIndex = startVectorIndex + j;
@@ -1398,7 +1399,7 @@ __global__ void VectorTopKDiffKernel( const float* __restrict__ source,
 {
 	int k;
 	if( GetCudaTaskIndex( height, k ) ) {
-		int index = indices[k];
+		const int index = indices[k];
 		result[k * width + index] = source[index];
 	}
 }
@@ -1423,8 +1424,8 @@ __global__ void VectorLogDiffKernel( const float* __restrict__ sourceGrad,
 		return;
 	}
 
-	float div = first[num];
-	bool isCloseToZero = ( -FLT_MIN <= div && div <= FLT_MIN );
+	const float div = first[num];
+	const bool isCloseToZero = ( -FLT_MIN <= div && div <= FLT_MIN );
 	index *= VectorLogDiffCombine;
 	sourceGrad += num * gradSize + index;
 	resultGrad += num * gradSize + index;
@@ -1476,7 +1477,7 @@ __global__ void VectorMinMaxDiffKernel( const float* sourceGrad,
 		return;
 	}
 
-	bool isOut = first[num] < *minPtr || first[num] > *maxPtr;
+	const bool isOut = first[num] < *minPtr || first[num] > *maxPtr;
 	index *= VectorMinMaxDiffCombine;
 	sourceGrad += num * gradSize + index;
 	resultGrad += num * gradSize + index;
@@ -1497,7 +1498,7 @@ __global__ void VectorMaxKernel( const float* __restrict__ first,
 {
 	int index;
 	int step;
-	int actionCount = GetCudaTaskCountAndIndex( count, VectorMaxCombineCount, index, step );
+	const int actionCount = GetCudaTaskCountAndIndex( count, VectorMaxCombineCount, index, step );
 
 	first += index;
 	result += index;

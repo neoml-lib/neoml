@@ -98,7 +98,7 @@ __global__ void Blob3dMaxPoolingBackwardKernel( const CCuda3dMaxPoolingDescInter
 		return;
 	}
 
-	float* sourcePtr = sourceDiff + b * source.ObjectSize();
+	float* const sourcePtr = sourceDiff + b * source.ObjectSize();
 
 	const int resultShift = ( b * resultGeomSize + pos ) * result.Channels() + channel;
 	const int index = maxIndices[resultShift] + channel;
@@ -131,7 +131,7 @@ __global__ void Blob3dMeanPoolingKernel( const CCuda3dMeanPoolingDescInternal de
 	const int resultShift = b * resultObjectSize + pos * totalChannels + channel;
 
 	const int sourceGeomSize = source.Depth() * source.Height() * source.Width();
-	const float* sourcePtr = sourceData + b * totalChannels * sourceGeomSize;
+	const float* const sourcePtr = sourceData + b * totalChannels * sourceGeomSize;
 
 	// Output position
 	const int kOut = pos % result.Depth();
@@ -193,7 +193,9 @@ __global__ void Blob3dMeanPoolingBackwardKernel( const CCuda3dMeanPoolingDescInt
 	const int iStart = iOut * desc.StrideWidth;
 	const int kStart = kOut * desc.StrideDepth;
 
-	float* sourcePtr = sourceDiff + ( ( ( b * source.Height() + jStart ) * source.Width() + iStart ) * source.Depth() + kStart ) * totalChannels + channel;
+	float* sourcePtr = sourceDiff
+		+ ( ( ( b * source.Height() + jStart ) * source.Width() + iStart ) * source.Depth() + kStart )
+		* totalChannels + channel;
 	const int sourceWDC = source.Width() * source.Depth() * source.Channels();
 
 	if( isAtomic ) {

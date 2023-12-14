@@ -72,14 +72,14 @@ void CCudaMathEngine::BlobChannelwiseConvolution( const CChannelwiseConvolutionD
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
 	SetCudaDevice( device->DeviceNumber );
 
-	const CCudaChannelwiseConvolutionDescInternal& desc = static_cast<const CCudaChannelwiseConvolutionDesc&>( convDesc ).Internal;
+	const CCudaChannelwiseConvolutionDescInternal& desc
+		= static_cast<const CCudaChannelwiseConvolutionDesc&>( convDesc ).Internal;
+	const CCudaBlobDesc& result = desc.Result;
 
 	dim3 blockCount;
 	dim3 threadCount;
-
-	const CCudaBlobDesc& result = desc.Result;
-
-	getCudaTaskGrid2D( blockCount, threadCount, result.ObjectCount() * result.Height(), result.Width() * result.Channels() );
+	getCudaTaskGrid2D( blockCount, threadCount,
+		result.ObjectCount() * result.Height(), result.Width() * result.Channels() );
 
 	BlobChannelwiseConvolutionKernel<<<blockCount, threadCount>>>( desc, GetRaw( sourceData ), GetRaw( filterData ),
 		freeTermData == 0 ? 0 : GetRaw( *freeTermData ), GetRaw( resultData ) );
@@ -93,15 +93,17 @@ void CCudaMathEngine::BlobChannelwiseConvolutionBackward( const CChannelwiseConv
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
 	SetCudaDevice( device->DeviceNumber );
 
-	const CCudaChannelwiseConvolutionDescInternal& desc = static_cast<const CCudaChannelwiseConvolutionDesc&>( convDesc ).Internal;
+	const CCudaChannelwiseConvolutionDescInternal& desc
+		= static_cast<const CCudaChannelwiseConvolutionDesc&>( convDesc ).Internal;
 	const CCudaBlobDesc& inputDiff = desc.Source;
 
 	dim3 blockCount;
 	dim3 threadCount;
+	getCudaTaskGrid2D( blockCount, threadCount,
+		inputDiff.ObjectCount() * inputDiff.Height(), inputDiff.Width() * inputDiff.Channels() );
 
-	getCudaTaskGrid2D( blockCount, threadCount, inputDiff.ObjectCount() * inputDiff.Height(), inputDiff.Width() * inputDiff.Channels() );
-
-	BlobChannelwiseConvolutionBackwardKernel<<<blockCount, threadCount>>>( desc, GetRaw( sourceData ), GetRaw( filterData ), GetRaw( resultData ) );
+	BlobChannelwiseConvolutionBackwardKernel<<<blockCount, threadCount>>>( desc,
+		GetRaw( sourceData ), GetRaw( filterData ), GetRaw( resultData ) );
 }
 
 void CCudaMathEngine::BlobChannelwiseConvolutionLearnAdd( const CChannelwiseConvolutionDesc& convDesc,
@@ -114,7 +116,8 @@ void CCudaMathEngine::BlobChannelwiseConvolutionLearnAdd( const CChannelwiseConv
 	ASSERT_EXPR( freeTermDiffData == 0 || freeTermDiffData->GetMathEngine() == this );
 	SetCudaDevice( device->DeviceNumber );
 
-	const CCudaChannelwiseConvolutionDescInternal& desc = static_cast<const CCudaChannelwiseConvolutionDesc&>( convDesc ).Internal;
+	const CCudaChannelwiseConvolutionDescInternal& desc
+		= static_cast<const CCudaChannelwiseConvolutionDesc&>( convDesc ).Internal;
 	const CCudaBlobDesc& outputDiff = desc.Result;
 	const CCudaBlobDesc& filterDiff = desc.Filter;
 
@@ -126,10 +129,10 @@ void CCudaMathEngine::BlobChannelwiseConvolutionLearnAdd( const CChannelwiseConv
 
 	dim3 blockCount;
 	dim3 threadCount;
-
 	getCudaTaskGrid2D( blockCount, threadCount, filterDiff.Height() * filterDiff.Width(), filterDiff.Channels() );
 
-	BlobChannelwiseConvolutionLearnAddKernel<<<blockCount, threadCount>>>( desc, GetRaw(inputData), GetRaw(outputDiffData), GetRaw(filterDiffData) );
+	BlobChannelwiseConvolutionLearnAddKernel<<<blockCount, threadCount>>>( desc,
+		GetRaw(inputData), GetRaw(outputDiffData), GetRaw(filterDiffData) );
 }
 
 void CCudaMathEngine::ChannelwiseWith1x1( const CBlobDesc& inputDesc, const CBlobDesc& outputDesc,
@@ -137,7 +140,8 @@ void CCudaMathEngine::ChannelwiseWith1x1( const CBlobDesc& inputDesc, const CBlo
 	const CConstFloatHandle& inputHandle, const CFloatHandle& outputHandle )
 {
 	SetCudaDevice( device->DeviceNumber );
-	const CCudaChannelwiseConvolutionDescInternal& desc = static_cast<const CCudaChannelwiseConvolutionDesc&>( convDesc ).Internal;
+	const CCudaChannelwiseConvolutionDescInternal& desc
+		= static_cast<const CCudaChannelwiseConvolutionDesc&>( convDesc ).Internal;
 	const CCudaRowwiseChConvWith1x1& impl = static_cast<const CCudaRowwiseChConvWith1x1&>( rowwiseDesc );
 	const int inputChannels = desc.Source.Channels();
 
@@ -178,18 +182,18 @@ void CCudaMathEngine::MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobD
 	const CConstFloatHandle& inputHandle, const CFloatHandle& outputHandle )
 {
 	SetCudaDevice( device->DeviceNumber );
-	const CCudaChannelwiseConvolutionDescInternal& desc = static_cast<const CCudaChannelwiseConvolutionDesc&>( convDesc ).Internal;
+	const CCudaChannelwiseConvolutionDescInternal& desc
+		= static_cast<const CCudaChannelwiseConvolutionDesc&>( convDesc ).Internal;
 	const CCudaRowwiseMobileNetV2& impl = static_cast< const CCudaRowwiseMobileNetV2& >( rowwiseDesc );
 
 	CFloatHandleStackVar channelwiseInput( *this, desc.Source.BlobSize() );
 	CFloatHandleStackVar channelwiseOutput( *this, desc.Result.BlobSize() );
 
-	const int expandedChannels = desc.Filter.Channels();
-
 	if( impl.residual && inputHandle != outputHandle ) {
 		VectorCopy( outputHandle, inputHandle, inputDesc.BlobSize() );
 	}
 
+	const int expandedChannels = desc.Filter.Channels();
 	MultiplyMatrixByTransposedMatrix( 1, inputHandle, inputDesc.ObjectCount() * inputDesc.GeometricalSize(),
 		inputDesc.Channels(), impl.expandFilter, expandedChannels, channelwiseInput, channelwiseInput.Size() );
 
@@ -240,12 +244,11 @@ void CCudaMathEngine::MobileNetV3PreSEBlock( const CBlobDesc& inputDesc, const C
 	float channelwiseReluParam, const CFloatHandle& outputHandle )
 {
 	SetCudaDevice( device->DeviceNumber );
-	const CCudaChannelwiseConvolutionDescInternal& desc = static_cast<const CCudaChannelwiseConvolutionDesc&>( convDesc ).Internal;
-
-	CFloatHandleStackVar channelwiseInput( *this, desc.Source.BlobSize() );
-
+	const CCudaChannelwiseConvolutionDescInternal& desc
+		= static_cast<const CCudaChannelwiseConvolutionDesc&>( convDesc ).Internal;
 	const int expandedChannels = desc.Filter.Channels();
 
+	CFloatHandleStackVar channelwiseInput( *this, desc.Source.BlobSize() );
 	MultiplyMatrixByTransposedMatrix( 1, inputHandle, inputDesc.ObjectCount() * inputDesc.GeometricalSize(),
 		inputDesc.Channels(), expandFilter, expandedChannels, channelwiseInput, channelwiseInput.Size() );
 

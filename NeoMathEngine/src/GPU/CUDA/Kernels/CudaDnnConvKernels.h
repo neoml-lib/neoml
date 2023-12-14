@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -54,13 +54,13 @@ __global__ void BuildTempMatrixKernel( const CCudaConvolutionDescInternal desc,
 		y = y % desc.Result.Height();
 		sourceData += b * desc.Source.ObjectSize() + c;
 
-		int startX = strideWidth * x + -paddingWidth;
-		int startY = strideHeight * y + -paddingHeight;
+		const int startX = strideWidth * x + -paddingWidth;
+		const int startY = strideHeight * y + -paddingHeight;
 		int inputY = startY;
 		for( int fy = 0; fy < desc.Filter.Height(); fy++ ) {
 			if( 0 <= inputY && inputY < desc.Source.Height() ) {
 				int inputX = startX;
-				const float* sourceDataPtr = sourceData + inputY * desc.Source.Width() * desc.Source.Channels() * desc.Source.Depth();
+				const float* const sourceDataPtr = sourceData + inputY * desc.Source.Width() * desc.Source.Channels() * desc.Source.Depth();
 				for( int fx = 0; fx < desc.Filter.Width(); fx++ ) {
 					if( 0 <= inputX && inputX < desc.Source.Width() ) {
 						*resultData = sourceDataPtr[inputX * desc.Source.Channels() * desc.Source.Depth()];
@@ -173,14 +173,14 @@ __global__ void Conv3x3s1d1Kernel1x8( const CCudaConvolutionDescInternal desc,
 
 		for( int c = 0; c < inputChannels; ++c ) {
 			if( inRow >= 0 && inRow < inputHeight ) {
-				float3 flt{ *filter, *( filter + inputChannels ), *( filter + 2 * inputChannels ) };
+				const float3 flt{ *filter, *( filter + inputChannels ), *( filter + 2 * inputChannels ) };
 				load4Floats( src0, input, inCol, inputChannels, inputWidth );
 				load3Floats( src1, input + 4 * inputChannels, inCol + 4, inputChannels, inputWidth );
 				load3Floats( src2, input + 7 * inputChannels, inCol + 7, inputChannels, inputWidth );
 				CONV1x3_STRIDE1_8ELEMS( res0, res1, src0, src1, src2, flt );
 			}
 			if( inRow + 1 >= 0 && inRow + 1 < inputHeight ) {
-				float3 flt{ *(filter + 3 * inputChannels), *( filter + 4 * inputChannels ), *( filter + 5 * inputChannels ) };
+				const float3 flt{ *(filter + 3 * inputChannels), *( filter + 4 * inputChannels ), *( filter + 5 * inputChannels ) };
 				load4Floats( src0, input + inputRowSize, inCol, inputChannels, inputWidth );
 				load3Floats( src1, input + inputRowSize + 4 * inputChannels, inCol + 4, inputChannels, inputWidth );
 				load3Floats( src2, input + inputRowSize + 7 * inputChannels, inCol + 7, inputChannels, inputWidth );
@@ -188,7 +188,7 @@ __global__ void Conv3x3s1d1Kernel1x8( const CCudaConvolutionDescInternal desc,
 
 			}
 			if( inRow + 2 >= 0 && inRow + 2 < inputHeight ) {
-				float3 flt{ *(filter + 6 * inputChannels), *( filter + 7 * inputChannels ), *( filter + 8 * inputChannels ) };
+				const float3 flt{ *(filter + 6 * inputChannels), *( filter + 7 * inputChannels ), *( filter + 8 * inputChannels ) };
 				load4Floats( src0, input + 2 * inputRowSize, inCol, inputChannels, inputWidth );
 				load3Floats( src1, input + 2 * inputRowSize + 4 * inputChannels, inCol + 4, inputChannels, inputWidth );
 				load3Floats( src2, input + 2 * inputRowSize + 7 * inputChannels, inCol + 7, inputChannels, inputWidth );
@@ -258,7 +258,7 @@ __global__ void BuildInputFromTempMatrixKernel( const CCudaConvolutionDescIntern
 	const int b = matrixRow / desc.Result.Height();
 
 	int step;
-	int count = GetCudaTaskCountAndIndex( matrixWidth, BuildInputFromTempMatrixCombine, matrixCol, step );
+	const int count = GetCudaTaskCountAndIndex( matrixWidth, BuildInputFromTempMatrixCombine, matrixCol, step );
 	tempMatrix += matrixCol;
 
 	const int inputChannels = desc.Source.Channels() * desc.Source.Depth();

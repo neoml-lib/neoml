@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -73,19 +73,18 @@ __global__ void BlobTimeConvolutionBackwardUnpackKernel( const CCudaTimeConvolut
 	const CCudaBlobDesc& filter = desc.Filter;
 	const CCudaBlobDesc& outputDiff = desc.Result;
 
-	int batch = blockIdx.y * blockDim.y + threadIdx.y;
+	const int batch = blockIdx.y * blockDim.y + threadIdx.y;
 	if( batch >= inputDiff.ObjectCount() ) {
 		return;
 	}
 
-	int objectSize = inputDiff.ObjectSize();
-
-	int seqNum = batch / ( inputDiff.BatchWidth() * inputDiff.ListSize() );
-	int batchNum = batch % ( inputDiff.BatchWidth() * inputDiff.ListSize() );
+	const int objectSize = inputDiff.ObjectSize();
+	const int seqNum = batch / ( inputDiff.BatchWidth() * inputDiff.ListSize() );
+	const int batchNum = batch % ( inputDiff.BatchWidth() * inputDiff.ListSize() );
 
 	int index;
 	int step;
-	int count = GetCudaTaskCountAndIndex(objectSize, combineCount, index, step);
+	const int count = GetCudaTaskCountAndIndex(objectSize, combineCount, index, step);
 
 	// Initialize the sums
 	float sums[BlobTimeConvolutionBackwardUnpackCombine];
@@ -94,14 +93,14 @@ __global__ void BlobTimeConvolutionBackwardUnpackKernel( const CCudaTimeConvolut
 	}
 
 	for( int filterY = 0; filterY < filter.Height(); filterY++ ) {
-		int inSeqNumFirst = seqNum - filterY * desc.Dilation;
+		const int inSeqNumFirst = seqNum - filterY * desc.Dilation;
 		if( inSeqNumFirst < -desc.PaddingFront ) {
 			break; // the next values can only be smaller
 		}
 		if( ( inSeqNumFirst + desc.PaddingFront ) % desc.Stride != 0 ) {
 			continue; // this row is not affected by the current filter row
 		}
-		int outSeqNum = ( inSeqNumFirst + desc.PaddingFront ) / desc.Stride;
+		const int outSeqNum = ( inSeqNumFirst + desc.PaddingFront ) / desc.Stride;
 		if( outSeqNum >= outputDiff.BatchLength() ) {
 			continue;
 		}
@@ -109,7 +108,7 @@ __global__ void BlobTimeConvolutionBackwardUnpackKernel( const CCudaTimeConvolut
 		if( tempMatrixRowIndex < firstRowIndex || tempMatrixRowIndex >= firstRowIndex + currPartHeight ) {
 			continue;
 		}
-		const float* from = data + ((tempMatrixRowIndex - firstRowIndex) * filter.Height() + filterY) * objectSize;
+		const float* const from = data + ((tempMatrixRowIndex - firstRowIndex) * filter.Height() + filterY) * objectSize;
 		int curIndex = index;
 		for(int i = 0; i < count; ++i, curIndex += step) {
 			sums[i] += __ldg(from + curIndex);
@@ -117,7 +116,8 @@ __global__ void BlobTimeConvolutionBackwardUnpackKernel( const CCudaTimeConvolut
 	}
 
 	// Write the results
-	float* curInputDiffData = inputDiffData + (seqNum * inputDiff.BatchWidth() * inputDiff.ListSize() + batchNum) * objectSize;
+	float* const curInputDiffData = inputDiffData
+		+ (seqNum * inputDiff.BatchWidth() * inputDiff.ListSize() + batchNum) * objectSize;
 	for( int i = 0; i < count; ++i, index += step ) {
 		curInputDiffData[index] += sums[i];
 	}
@@ -146,7 +146,7 @@ __global__ void BlobTimeConvolutionLearnFilterKernel( CCudaTimeConvolutionDescIn
 		const int filterNum = index / filterHeight;
 
 		for( int outL = 0; outL < outputLength; ++outL ) {
-			int inL = outL * desc.Stride - desc.PaddingFront + filterRow * desc.Dilation;
+			const int inL = outL * desc.Stride - desc.PaddingFront + filterRow * desc.Dilation;
 			if( inL < 0 || inL >= inputLength ) {
 				continue;
 			}

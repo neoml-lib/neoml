@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -46,8 +46,8 @@ __global__ void BlobChannelwiseConvolutionKernel( const CCudaChannelwiseConvolut
 		const int rowEnd = rowStart + filter.Height();
 		const int colEnd = colStart + filter.Width();
 
-		const float* filterPtr = filterData + channel;
-		const float* sourcePtr = sourceData + b * source.ObjectSize() + channel;
+		const float* const filterPtr = filterData + channel;
+		const float* const sourcePtr = sourceData + b * source.ObjectSize() + channel;
 
 		if( freeTerm != 0 ) {
 			*resultPtr = freeTerm[channel];
@@ -90,11 +90,10 @@ __global__ void BlobChannelwiseConvolutionBackwardKernel( const CCudaChannelwise
 		const int lastFilterX = min( ( outCol + desc.PaddingWidth ) / desc.StrideWidth + 1, outputDiff.Width() );
 		const int lastFilterY = min( ( outRow + desc.PaddingHeight ) / desc.StrideHeight + 1, outputDiff.Height() );
 
+		const float* const filterPtr = filterData + channel;
+		const float* const sourcePtr = sourceData + b * outputDiff.ObjectSize() + channel;
+
 		float res = 0;
-
-		const float* filterPtr = filterData + channel;
-		const float* sourcePtr = sourceData + b * outputDiff.ObjectSize() + channel;
-
 		for( int sourceY = lastFilterY - 1;
 			sourceY >= 0 && outRow < sourceY * desc.StrideHeight - desc.PaddingHeight + filter.Height();
 			--sourceY )
@@ -110,7 +109,6 @@ __global__ void BlobChannelwiseConvolutionBackwardKernel( const CCudaChannelwise
 					* sourcePtr[( sourceY * outputDiff.Width() + sourceX ) * outputDiff.Channels()];
 			}
 		}
-
 		*resultData = res;
 	}
 }
@@ -127,9 +125,9 @@ __global__ void BlobChannelwiseConvolutionLearnAddKernel( const CCudaChannelwise
 	int fb;
 	int hw;
 	if( GetCudaTaskIndex2D( filterDiff.Height() * filterDiff.Width(), filterDiff.Channels(), hw, fb ) ) {
-		int fy = hw / filterDiff.Width();
-		int fx = hw % filterDiff.Width();
-		float* filtData = filterDiffData + hw * filterDiff.Channels() + fb;
+		const int fy = hw / filterDiff.Width();
+		const int fx = hw % filterDiff.Width();
+		float* const filtData = filterDiffData + hw * filterDiff.Channels() + fb;
 
 		const float* curOutputDiffData = outputDiffData + fb;
 		const float* curInputData = inputData + fb;
