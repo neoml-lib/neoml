@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,6 +14,8 @@ limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
 #pragma once
+
+#ifdef NEOML_USE_CUDA
 
 #include <NeoMathEngine/NeoMathEngine.h>
 #include <NeoMathEngine/CrtAllocatedObject.h>
@@ -35,3 +37,5 @@ struct CCudaMathEngineDropoutDesc : public CDropoutDesc {
 };
 
 } // namespace NeoML
+
+#endif // NEOML_USE_CUDA
