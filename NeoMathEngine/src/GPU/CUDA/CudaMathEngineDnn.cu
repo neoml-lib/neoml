@@ -34,8 +34,8 @@ void CCudaMathEngine::blobMergeByDimCuda( int dimNum, const CBlobDesc* from, con
 	ASSERT_EXPR(0 <= dimNum && dimNum < CBlobDesc::MaxDimensions);
 	SetCudaDevice( device->DeviceNumber );
 
-	int s[CBlobDesc::MaxDimensions];
-	CCudaBlobDescArray<T> fromArr;
+	int s[CBlobDesc::MaxDimensions]{};
+	CCudaBlobDescArray<T> fromArr{};
 	fromArr.Count = fromCount;
 	for(int i = 0; i < fromCount; ++i) {
 		fromArr.Descs[i] = from[i];
@@ -88,9 +88,9 @@ void CCudaMathEngine::blobSplitByDimCuda(int dimNum, const CBlobDesc& from, cons
 	ASSERT_EXPR(0 <= dimNum && dimNum < CBlobDesc::MaxDimensions);
 	SetCudaDevice( device->DeviceNumber );
 
-	CCudaBlobDescArray<T> toArr;
+	int s[CBlobDesc::MaxDimensions]{};
+	CCudaBlobDescArray<T> toArr{};
 	toArr.Count = toCount;
-	int s[CBlobDesc::MaxDimensions];
 	for(int i = 0; i < toCount; ++i) {
 		toArr.Descs[i] = to[i];
 		toArr.Data[i] = GetRaw(toData[i]);
@@ -308,8 +308,8 @@ void CCudaMathEngine::BuildIntegerHist( const CConstIntHandle& numbersHandle, in
 
 	VectorFill( resultHandle, 0, maxNumber );
 
-	int blockCount;
-	int threadCount;
+	int blockCount = 0;
+	int threadCount = 0;
 	getCudaTaskGrid( blockCount, threadCount, numbersCount );
 
 	BuildIntegerHistKernel<<<blockCount, threadCount>>>( GetRaw( numbersHandle ),
@@ -724,8 +724,8 @@ void CCudaMathEngine::BertConvBackward( const CConstFloatHandle& dataHandle, con
 	{
 		// dataDiff
 		const int taskCount = seqLen * batchSize * numHeads * headSize;
-		int blockCount;
-		int threadCount;
+		int blockCount = 0;
+		int threadCount = 0;
 		getCudaTaskGrid( blockCount, threadCount, taskCount );
 		BertConvBackwardDataKernel<<<blockCount, threadCount>>>( GetRaw( kernelHandle ), GetRaw( outputDiffHandle ),
 			seqLen, batchSize, numHeads, headSize, kernelSize, GetRaw( dataDiffHandle ) );
@@ -734,8 +734,8 @@ void CCudaMathEngine::BertConvBackward( const CConstFloatHandle& dataHandle, con
 	{
 		// kernelDiff
 		const int taskCount = seqLen * batchSize * numHeads * kernelSize;
-		int blockCount;
-		int threadCount;
+		int blockCount = 0;
+		int threadCount = 0;
 		getCudaTaskGrid( blockCount, threadCount, taskCount );
 		BertConvBackwardKernelKernel<<<blockCount, threadCount>>>( GetRaw( dataHandle ), GetRaw( outputDiffHandle ),
 			seqLen, batchSize, numHeads, headSize, kernelSize, GetRaw( kernelDiffHandle ) );
@@ -750,8 +750,8 @@ void CCudaMathEngine::LinearInterpolation( const CConstFloatHandle& dataHandle, 
 	SetCudaDevice( device->DeviceNumber );
 
 	const int taskCount = objectCount * static_cast<int>( scaledAxis * scale ) * objectSize;
-	int blockCount;
-	int threadCount;
+	int blockCount = 0;
+	int threadCount = 0;
 	getCudaTaskGrid( blockCount, threadCount, taskCount );
 	LinearInterpolationKernel<<<blockCount, threadCount>>>( GetRaw( dataHandle ), GetRaw( resultHandle ),
 		static_cast<int>( coords ), static_cast<int>( round ), objectCount, scaledAxis, objectSize, scale );
@@ -774,8 +774,8 @@ void CCudaMathEngine::ScatterND( const CConstIntHandle& indicesHandle, const CCo
 	CCudaBlobDesc cudaDataDesc( dataDesc );
 
 	const int taskCount = updateCount * objectSize;
-	int blockCount;
-	int threadCount;
+	int blockCount = 0;
+	int threadCount = 0;
 	getCudaTaskGrid( blockCount, threadCount, taskCount );
 	scatterNDKernel<<<blockCount, threadCount>>>( GetRaw( updatesHandle ), GetRaw( indicesHandle ),
 		GetRaw( dataHandle ), cudaDataDesc, updateCount, indexDims, objectSize );
@@ -798,8 +798,8 @@ void CCudaMathEngine::ScatterND( const CConstIntHandle& indicesHandle, const CCo
 	CCudaBlobDesc cudaDataDesc( dataDesc );
 
 	const int taskCount = updateCount * objectSize;
-	int blockCount;
-	int threadCount;
+	int blockCount = 0;
+	int threadCount = 0;
 	getCudaTaskGrid( blockCount, threadCount, taskCount );
 	scatterNDKernel<<<blockCount, threadCount>>>( GetRaw( updatesHandle ), GetRaw( indicesHandle ),
 		GetRaw( dataHandle ), cudaDataDesc, updateCount, indexDims, objectSize );

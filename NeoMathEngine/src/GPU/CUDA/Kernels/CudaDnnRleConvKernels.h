@@ -26,8 +26,8 @@ __global__ void BlobConvertFromRleKernel( const CCudaConvolutionDescInternal con
 {
 	const CCudaBlobDesc& source = convDesc.Source;
 
-	int num;
-	int line;
+	int num = 0;
+	int line = 0;
 	if(!GetCudaTaskIndex2D(source.ObjectCount(), source.Height(), num, line)) {
 		return;
 	}
