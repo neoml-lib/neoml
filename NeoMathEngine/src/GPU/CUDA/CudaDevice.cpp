@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -160,10 +160,11 @@ static inline std::string getCudaDeviceFileName( int busId, int deviceId )
 }
 
 //---------------------------------------------------------------------------------------------------------------------
+
 // File, containing info about slot acquisition for a single device.
 // Its size is 12 * CUDA_DEV_SLOT_COUNT bytes.
 // When slot is captured its bytes contain process pid (4 bytes) and creation time (8 bytes).
-class CDeviceFile {
+class CDeviceFile final {
 public:
 	CDeviceFile( int busId, int deviceId );
 	~CDeviceFile();
@@ -265,7 +266,7 @@ bool CDeviceFile::IsSlotFree( int slotIndex )
 	::lseek( fd, slotIndex * slotEntrySize, SEEK_SET );
 
 	// Lets check slot content.
-	pid_t pid;
+	pid_t pid = -1;
 	ASSERT_EXPR( ::read( fd, &pid, sizeof( pid ) ) == sizeof( pid ) );
 	bool result = false;
 	if( pid != 0 ) {
@@ -339,7 +340,7 @@ static int getDeviceUsage( int busId, int deviceId )
 	return result;
 }
 
-struct CSlotsHandle {
+struct CSlotsHandle final {
 	CSlotsHandle( int busId, int deviceId ) : BusId( busId ), DeviceId( deviceId ) {}
 
 	int BusId;
@@ -408,9 +409,9 @@ CCudaDevice::~CCudaDevice()
 	}
 }
 
-struct CCudaDevUsage {
-	int DevNum;
-	size_t FreeMemory;
+struct CCudaDevUsage final {
+	int DevNum = 0;
+	size_t FreeMemory = 0;
 };
 
 static CCudaDevice* captureSpecifiedCudaDevice( int deviceNumber, size_t deviceMemoryLimit )

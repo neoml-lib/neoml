@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -57,16 +57,17 @@ __global__ void BuildTempMatrixKernel( const CCuda3dConvolutionDescInternal desc
 	const int paddingWidth = desc.PaddingWidth;
 	const int paddingDepth = desc.PaddingDepth;
 
-	int matrixRow;
-	int matrixCol;
+	int matrixRow = 0;
+	int matrixCol = 0;
 
 	GetCudaTaskIndex2D( matrixHeight, matrixWidthNorm, matrixRow, matrixCol );
 	if( matrixRow >= matrixHeight ) {
 		return;
 	}
 
-	int step;
+	int step = 0;
 	const int count = GetCudaTaskCountAndIndex( matrixWidth, BuildTempMatrixCombine, matrixCol, step );
+
 	matrix += matrixRow * matrixWidth + matrixCol;
 	matrixRow += heightOffset;
 
@@ -119,8 +120,8 @@ const int BuildInputFromTempMatrixCombine = 16;
 __global__ void BuildInputFromTempMatrixKernel( const CCuda3dConvolutionDescInternal desc, const float* __restrict__ tempMatrix,
 	int matrixHeight, int matrixWidth, float* result, TBackwardOperationType operation, int widthNorm, int heightOffset )
 {
-	int tempRow;
-	int tempCol;
+	int tempRow = 0;
+	int tempCol = 0;
 	GetCudaTaskIndex2D( matrixHeight, widthNorm, tempRow, tempCol );
 	if( tempRow >= matrixHeight ) {
 		return;
@@ -135,8 +136,9 @@ __global__ void BuildInputFromTempMatrixKernel( const CCuda3dConvolutionDescInte
 	const int outRow = tempRow % desc.Result.Height();
 	const int b = tempRow / desc.Result.Height();
 
-	int step;
+	int step = 0;
 	const int count = GetCudaTaskCountAndIndex( matrixWidth, BuildInputFromTempMatrixCombine, tempCol, step );
+
 	tempMatrix += tempCol;
 
 	const int inputChannels = desc.Source.Channels();

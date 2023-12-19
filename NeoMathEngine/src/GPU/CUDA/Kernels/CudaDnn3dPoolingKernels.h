@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -32,9 +32,9 @@ __global__ void Blob3dMaxPoolingKernel( const CCuda3dMaxPoolingDescInternal desc
 	const int resultObjectSize = result.Channels() * resultGeomSize;
 	const int totalChannels = source.Channels();
 
-	int b;
-	int pos;
-	int channel;
+	int b = 0;
+	int pos = 0;
+	int channel = 0;
 	if( !GetCudaTaskIndex3D( result.ObjectCount(), resultGeomSize, totalChannels, b, pos, channel ) ) {
 		return;
 	}
@@ -91,9 +91,9 @@ __global__ void Blob3dMaxPoolingBackwardKernel( const CCuda3dMaxPoolingDescInter
 
 	const int resultGeomSize = result.Depth() * result.Height() * result.Width();
 
-	int b;
-	int pos;
-	int channel;
+	int b = 0;
+	int pos = 0;
+	int channel = 0;
 	if( !GetCudaTaskIndex3D( result.ObjectCount(), resultGeomSize, result.Channels(), b, pos, channel ) ) {
 		return;
 	}
@@ -121,9 +121,9 @@ __global__ void Blob3dMeanPoolingKernel( const CCuda3dMeanPoolingDescInternal de
 	const int totalChannels = result.Channels();
 	const int resultObjectSize = totalChannels * resultGeomSize;
 
-	int b;
-	int pos;
-	int channel;
+	int b = 0;
+	int pos = 0;
+	int channel = 0;
 	if( !GetCudaTaskIndex3D( result.ObjectCount(), resultGeomSize, result.Channels(), b, pos, channel ) ) {
 		return;
 	}
@@ -172,9 +172,9 @@ __global__ void Blob3dMeanPoolingBackwardKernel( const CCuda3dMeanPoolingDescInt
 	const int resultGeomSize = result.Depth() * result.Height() * result.Width();
 	const int totalChannels = result.Channels();
 
-	int b;
-	int pos;
-	int channel;
+	int b = 0;
+	int pos = 0;
+	int channel = 0;
 	if( !GetCudaTaskIndex3D( result.ObjectCount(), resultGeomSize, totalChannels, b, pos, channel ) ) {
 		return;
 	}

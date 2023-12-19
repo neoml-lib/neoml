@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,11 +22,11 @@ limitations under the License.
 namespace NeoML {
 
 template<class T>
-struct CCudaBlobDescArray {
-	int Count;
-	CCudaBlobDesc Descs[MaxBlobDescs];
-	T* Data[MaxBlobDescs];
-	int Widths[MaxBlobDescs];
+struct CCudaBlobDescArray final {
+	int Count = 0;
+	CCudaBlobDesc Descs[MaxBlobDescs]{};
+	T* Data[MaxBlobDescs]{};
+	int Widths[MaxBlobDescs]{};
 };
 
 const int BlobMergeByDimCombine = 16;
@@ -34,8 +34,8 @@ const int BlobMergeByDimCombine = 16;
 template<class T>
 __global__ void BlobMergeByDimKernel(int height, int width, CCudaBlobDescArray<T> from, CCudaBlobDesc to, T* toData, int heightNorm)
 {
-	int j;
-	int i;
+	int j = 0;
+	int i = 0;
 	if(!GetCudaTaskIndex2D(heightNorm, width, j, i)) {
 		return;
 	}
@@ -71,8 +71,8 @@ const int BlobSplitByDimCombine = 16;
 template<class T>
 __global__ void BlobSplitByDimKernel(int height, int width, CCudaBlobDesc from, const T* fromData, CCudaBlobDescArray<T> to, int heightNorm)
 {
-	int j;
-	int i;
+	int j = 0;
+	int i = 0;
 	if(!GetCudaTaskIndex2D(heightNorm, width, j, i)) {
 		return;
 	}
@@ -108,9 +108,9 @@ __global__ void BlobResizeImageKernel( const CCudaBlobDesc from, const float* __
 	const int geom = to.Height() * to.Width();
 	const int totalChannels = to.Channels() * to.Depth();
 
-	int num;
-	int currGeom;
-	int ch;
+	int num = 0;
+	int currGeom = 0;
+	int ch = 0;
 	if( GetCudaTaskIndex3D( to.ObjectCount(), geom, totalChannels, num, currGeom, ch ) ) {
 		toData += num * totalChannels * geom + totalChannels * currGeom + ch;
 
@@ -139,9 +139,9 @@ const int BlobGetSubSequenceCombine = 16;
 __global__ void BlobGetSubSequenceKernel( CCudaBlobDesc from, const float* fromData, int* index, CCudaBlobDesc to,
 	float* toData, int startPos, bool isRev, int objectSizeNorm )
 {
-	int seqPos;
-	int seqNum;
-	int i;
+	int seqPos = 0;
+	int seqNum = 0;
+	int i = 0;
 	GetCudaTaskIndex3D( to.BatchLength(), to.BatchWidth(), objectSizeNorm, seqPos, seqNum, i );
 
 	if( seqPos >= to.BatchLength() || seqNum >= to.BatchWidth() ) {
@@ -155,7 +155,7 @@ __global__ void BlobGetSubSequenceKernel( CCudaBlobDesc from, const float* fromD
 	const int toPos = seqPos * to.BatchWidth() + seqNum;
 	float* const curToData = toData + toPos * objectSize;
 
-	int step;
+	int step = 0;
 	const int count = GetCudaTaskCountAndIndex(objectSize, BlobGetSubSequenceCombine, i, step);
 
 	if(i == 0 && count > 0 && index != 0) {
@@ -174,8 +174,8 @@ __global__ void Upsampling2DForwardKernel(
 	int batchSize, int inputHeight, int inputRowSize, const T* input,
 	int resultHeight, int resultRowSize, T* result )
 {
-	int resultI;
-	int resultJ;
+	int resultI = 0;
+	int resultJ = 0;
 	if( !GetCudaTaskIndex2D( resultHeight, resultRowSize, resultI, resultJ ) ) {
 		return;
 	}
@@ -194,8 +194,8 @@ __global__ void Upsampling2DBackwardKernel(
 	int batchSize, int inputHeight, int inputRowSize,
 	const float* input, int resultHeight, int resultRowSize, float* result )
 {
-	int inputI;
-	int inputJ;
+	int inputI = 0;
+	int inputJ = 0;
 	if( !GetCudaTaskIndex2D( inputHeight, inputRowSize, inputI, inputJ ) ) {
 		return;
 	}
@@ -212,7 +212,7 @@ __global__ void Upsampling2DBackwardKernel(
 
 static __global__ void BuildIntegerHistKernel( const int* numbers, int numbersCount, int* result )
 {
-	int index;
+	int index = 0;
 	if( GetCudaTaskIndex( numbersCount, index ) ) {
 		const int currNumber = numbers[index];
 		if( currNumber >= 0 ) {
@@ -225,12 +225,13 @@ const int MatrixRowsToVectorSquaredL2DistanceCombineCount = 16;
 __global__ void MatrixRowsToVectorSquaredL2DistanceKernel( const float* matrix, int matrixHeight,
 	int matrixWidth, const float* vector, float* result, int normalizedWidth )
 {
-	int rowIndex;
-	int colIndex;
+	int rowIndex = 0;
+	int colIndex = 0;
 	if( !GetCudaTaskIndex2D( matrixHeight, normalizedWidth, rowIndex, colIndex ) ) {
 		return;
 	}
-	int step;
+
+	int step = 0;
 	const int count = GetCudaTaskCountAndIndex( matrixWidth, MatrixRowsToVectorSquaredL2DistanceCombineCount,
 		colIndex, step );
 
@@ -540,7 +541,8 @@ inline __device__ float cudaReLU( float x ) { return max( 0.f, x ); }
 __global__ void IndRnnRecurrentKernel( bool reverse, int sequenceLength, int batchSize, int objectSize, int activation,
 	const float* wx, const float* mask, const float* u, float* h )
 {
-	int batch, elem;
+	int batch = 0;
+	int elem = 0;
 	if( !GetCudaTaskIndex2D( batchSize, objectSize, batch, elem ) ) {
 		return;
 	}
@@ -581,7 +583,8 @@ inline __device__ float cudaReLUDiffOp( float out, float outDiff ) { return out 
 __global__ void IndRnnRecurrentBackwardKernel( bool reverse, int sequenceLength, int batchSize, int objectSize, int activation,
 	const float* mask, const float* u, const float* out, const float* outDiff, float* wxDiff )
 {
-	int batch, elem;
+	int batch = 0;
+	int elem = 0;
 	if( !GetCudaTaskIndex2D( batchSize, objectSize, batch, elem ) ) {
 		return;
 	}
@@ -627,7 +630,8 @@ __global__ void IndRnnRecurrentBackwardKernel( bool reverse, int sequenceLength,
 __global__ void IndRnnRecurrentLearnKernel( bool reverse, int sequenceLength, int batchSize, int objectSize, int activation,
 	const float* mask, const float* u, const float* out, const float* outDiff, float* uDiff )
 {
-	int batch, elem;
+	int batch = 0;
+	int elem = 0;
 	if( !GetCudaTaskIndex2D( batchSize, objectSize, batch, elem ) ) {
 		return;
 	}
@@ -676,7 +680,7 @@ __global__ void BertConvKernel( const float* data, const float* kernel, int seqL
 	const int batchNumHeads = batchSize * numHeads;
 	const int taskCount = seqLen * batchNumHeads * headSize;
 
-	int index;
+	int index = 0;
 	if( !GetCudaTaskIndex( taskCount, index ) ) {
 		return;
 	}
@@ -711,7 +715,7 @@ __global__ void BertConvBackwardDataKernel( const float* kernel, const float* ou
 	const int batchNumHeads = batchSize * numHeads;
 	const int taskCount = seqLen * batchNumHeads * headSize;
 
-	int index;
+	int index = 0;
 	if( !GetCudaTaskIndex( taskCount, index ) ) {
 		return;
 	}
@@ -785,7 +789,7 @@ __global__ void LinearInterpolationKernel( const float* data, float* result, int
 	const int newSize = static_cast<int>( scaledAxis * scale );
 	const int taskCount = objectCount * newSize * objectSize;
 
-	int taskIndex;
+	int taskIndex = 0;
 	if( !GetCudaTaskIndex( taskCount, taskIndex ) ) {
 		return;
 	}
@@ -852,7 +856,7 @@ __global__ void scatterNDKernel( const T* updates, const int* indices, T* data, 
 {
 	const int taskCount = updateCount * objectSize;
 
-	int index;
+	int index = 0;
 	if( !GetCudaTaskIndex( taskCount, index ) ) {
 		return;
 	}
