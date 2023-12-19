@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -24,9 +24,9 @@ namespace NeoML {
 
 enum HeapType { MinHeap, MaxHeap };
 
-struct IndexedValue {
-	float val;
-	float ind;
+struct IndexedValue final {
+	float val = 0;
+	float ind = 0;
 
 	__device__ bool isLess( const IndexedValue& other ) {
 		return ( val == other.val ) ? ind > other.ind : val < other.val;
@@ -43,9 +43,9 @@ struct IndexedValue {
 };
 
 template<HeapType T>
-struct Heap {
-	IndexedValue* data;
-	int size;
+struct Heap final {
+	IndexedValue* data = 0;
+	int size = 0;
 
 	__device__ Heap( float* _data, int maxCount ) :
 		data( reinterpret_cast<IndexedValue*>( _data ) ),
@@ -425,8 +425,8 @@ const int BlobGlobalMaxPoolingBackwardCombine = 8;
 __global__ void BlobGlobalMaxPoolingBackwardKernel( const CCudaGlobalMaxPoolingDescInternal desc, const float* __restrict__ resultDiff,
 	const int* __restrict__ maxIndices, float* __restrict__ sourceDiff, int poolSize, int maxCount, int fullSize )
 {
-	int index;
-	int step;
+	int index = 0;
+	int step = 0;
 	const int count = GetCudaTaskCountAndIndex( fullSize, BlobGlobalMaxPoolingBackwardCombine, index, step );
 
 	const int totalChannels = desc.Result.Channels();

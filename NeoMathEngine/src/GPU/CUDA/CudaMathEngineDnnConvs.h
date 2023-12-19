@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -28,78 +28,78 @@ namespace NeoML {
 // CUDA does not copy the structures correctly in the case of multiple inheritance
 // So all operation descriptors are stored in the internal part
 
-struct CCudaConvolutionDescInternal {
-	CCudaBlobDesc Source;
-	CCudaBlobDesc Filter;
-	CCudaBlobDesc Result;
+struct CCudaConvolutionDescInternal final {
+	CCudaBlobDesc Source{};
+	CCudaBlobDesc Filter{};
+	CCudaBlobDesc Result{};
 
-	int StrideHeight;
-	int StrideWidth;
+	int StrideHeight = 0;
+	int StrideWidth = 0;
 
-	int PaddingHeight;
-	int PaddingWidth;
+	int PaddingHeight = 0;
+	int PaddingWidth = 0;
 
-	int DilationHeight;
-	int DilationWidth;
+	int DilationHeight = 0;
+	int DilationWidth = 0;
 };
 
 struct CCudaConvolutionDesc : public CConvolutionDesc {
-	CCudaConvolutionDescInternal Internal;
+	CCudaConvolutionDescInternal Internal{};
 };
 
 struct CCuda3dConvolutionDescInternal {
-	CCudaBlobDesc Source;
-	CCudaBlobDesc Filter;
-	CCudaBlobDesc Result;
+	CCudaBlobDesc Source{};
+	CCudaBlobDesc Filter{};
+	CCudaBlobDesc Result{};
 
-	int StrideHeight;
-	int StrideWidth;
-	int StrideDepth;
+	int StrideHeight = 0;
+	int StrideWidth = 0;
+	int StrideDepth = 0;
 
-	int PaddingHeight;
-	int PaddingWidth;
-	int PaddingDepth;
+	int PaddingHeight = 0;
+	int PaddingWidth = 0;
+	int PaddingDepth = 0;
 };
 
 struct CCuda3dConvolutionDesc : public C3dConvolutionDesc {
-	CCuda3dConvolutionDescInternal Internal;
+	CCuda3dConvolutionDescInternal Internal{};
 };
 
 // Channelwise convolution
 struct CCudaChannelwiseConvolutionDescInternal {
-	int PaddingHeight;
-	int PaddingWidth;
-	int StrideHeight;
-	int StrideWidth;
-	CCudaBlobDesc Source;
-	CCudaBlobDesc Filter;
-	CCudaBlobDesc Result;
+	int PaddingHeight = 0;
+	int PaddingWidth = 0;
+	int StrideHeight = 0;
+	int StrideWidth = 0;
+	CCudaBlobDesc Source{};
+	CCudaBlobDesc Filter{};
+	CCudaBlobDesc Result{};
 };
 
 struct CCudaChannelwiseConvolutionDesc : public CChannelwiseConvolutionDesc {
-	CCudaChannelwiseConvolutionDescInternal Internal;
+	CCudaChannelwiseConvolutionDescInternal Internal{};
 };
 
 struct CCudaTimeConvolutionDescInternal {
-	CCudaBlobDesc Source;
-	CCudaBlobDesc Filter;
-	CCudaBlobDesc Result;
-	int Stride;
-	int PaddingFront;
-	int PaddingBack;
-	int Dilation;
+	CCudaBlobDesc Source{};
+	CCudaBlobDesc Filter{};
+	CCudaBlobDesc Result{};
+	int Stride = 0;
+	int PaddingFront = 0;
+	int PaddingBack = 0;
+	int Dilation = 0;
 };
 
 struct CCudaTimeConvolutionDesc : public CTimeConvolutionDesc {
-	CCudaTimeConvolutionDescInternal Internal;
+	CCudaTimeConvolutionDescInternal Internal{};
 };
 
 // RLE convolution descriptor. Should NOT be copied to the GPU
 struct CCudaRleConvolutionDesc : public CRleConvolutionDesc {
-	float StrokeValue;
-	float NonStrokeValue;
+	float StrokeValue = 0.f;
+	float NonStrokeValue = 0.f;
 
-	CCudaConvolutionDesc* ConvDesc;
+	CCudaConvolutionDesc* ConvDesc{};
 };
 
 } // namespace NeoML
