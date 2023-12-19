@@ -21,8 +21,8 @@ limitations under the License.
 #include <CudaDevice.h>
 #include <CudaCommon.h>
 #include <MathEngineCommon.h>
-#include <MathEngineDnnDropout.h>
 #include <MemoryHandleInternal.h>
+#include <CudaMathEngineDnnDropout.h>
 
 #include <Kernels/CudaDnnDropoutKernels.h>
 
@@ -35,7 +35,8 @@ CCudaMathEngineDropoutDesc::CCudaMathEngineDropoutDesc( IMathEngine& mathEngine,
 	ForwardRate(1.f - rate),
 	IsSpatial(isSpatial),
 	IsBatchwise(isBatchwise),
-	seed(seed) {};
+	seed(seed) 
+{}
 
 CDropoutDesc* CCudaMathEngine::InitDropout( float rate, bool isSpatial, bool isBatchwise,
 	const CBlobDesc& input, const CBlobDesc& output, int seed )
@@ -63,7 +64,7 @@ void CCudaMathEngine::Dropout( const CDropoutDesc& dropoutDesc,
 	const int batchWidth = input.ObjectCount() / batchLength;
 	const int maskSize = batchWidth * objectSize;
 
-	if ( !desc.IsSpatial ) {
+	if( !desc.IsSpatial ) {
 		dim3 blockCount;
 		dim3 threadCount;
 

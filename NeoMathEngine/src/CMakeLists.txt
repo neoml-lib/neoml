@@ -300,6 +300,7 @@ if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
                     GPU/CUDA/CudaCommon.h
                     GPU/CUDA/CudaDevice.h
                     GPU/CUDA/CudaMathEngineDnnConvs.h
+                    GPU/CUDA/CudaMathEngineDnnDropout.h
                     GPU/CUDA/CudaMathEngineDnnPoolings.h
                     GPU/CUDA/CudaMathEngine.h
                     GPU/CUDA/CusparseDll.h

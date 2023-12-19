@@ -20,35 +20,21 @@ limitations under the License.
 
 namespace NeoML {
 
-__global__ void ChannelLastBlobSpatialDropoutKernel( const float* __restrict__ input,
-	const float* __restrict__ mask, float* output, int inputObjectCount, int inputObjectSize, int maskObjectCount,
-	int maskObjectSize )
-{
-	int obj;
-	int row;
-	int col;
-	if( GetCudaTaskIndex3D( inputObjectCount, inputObjectSize / maskObjectSize, maskObjectSize, obj, row, col ) ) {
-		int pack = obj % maskObjectCount;
-		int index = obj * inputObjectSize + row * maskObjectSize + col;
-		output[index] = input[index] * mask[maskObjectSize * pack + col];
-	}
-}
-
 __global__ void RandomMatrixDropout( const float* __restrict__ first, int firstHeight,
 	int firstWidth, float* res, int seed, float forwardRate )
 {
 	const unsigned int threshold = forwardRate * UINT_MAX;
 	int row;
 	int col;
-	if (GetCudaTaskIndex2D( firstHeight, ( firstWidth + 3 ) / 4, row, col ) ) {
+	if( GetCudaTaskIndex2D( firstHeight, ( firstWidth + 3 ) / 4, row, col ) ) {
 		CCudaRandom random(seed);
 		random.Skip(col);
 		col *= 4;
 		const int index = row * firstWidth + col;
 
 		CIntArray<4> generated = random.Next();
-		for (int j = 0; j < 4 && col + j < firstWidth; ++j) {
-			res[index + j] = (generated[j] <= threshold) ? (first[index + j] / forwardRate ) : 0.f;
+		for(int j = 0; j < 4 && col + j < firstWidth; ++j) {
+			res[index + j] = (generated[j] <= threshold) ? (first[index + j] / forwardRate) : 0.f;
 		}
 	}
 }
@@ -60,7 +46,7 @@ __global__ void RandomSpatialDropout( const float* __restrict__ input, float* re
 	int obj;
 	int row;
 	int col;
-	if ( GetCudaTaskIndex3D(inputObjectCount, inputObjectSize / maskObjectSize, maskObjectSize, obj, row, col ) ) {
+	if( GetCudaTaskIndex3D( inputObjectCount, inputObjectSize / maskObjectSize, maskObjectSize, obj, row, col ) ) {
 		int pack = obj % maskObjectCount;
 		int index = obj * inputObjectSize + row * maskObjectSize + col;
 		int numBlock = ( pack * maskObjectSize + col ) / 4;
