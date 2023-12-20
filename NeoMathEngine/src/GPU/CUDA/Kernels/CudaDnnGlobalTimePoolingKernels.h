@@ -80,7 +80,7 @@ __global__ void BlobGlobalMaxOverTimePoolingKernel( const CCudaGlobalMaxOverTime
 }
 
 __global__ void BlobGlobalMaxOverTimePoolingBackwardKernel( const CCudaGlobalMaxOverTimePoolingDescInternal desc,
-	const float* __restrict__ resultDiff, const int* __restrict__ maxIndicesData, float* sourceDiff )
+	const float* __restrict__ resultDiff, const int* __restrict__ maxIndicesData, float* __restrict__ sourceDiff )
 {
 	const CCudaBlobDesc& result = desc.Result;
 	int pos;

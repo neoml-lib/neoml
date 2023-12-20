@@ -32,7 +32,7 @@ __global__ void CtcFillPaddingKernel( int maxSeqLen, int batchSize, int classCou
 
 const int CtcMatrixLogSumExpByColumnsCombine = 2;
 __global__ void CtcMatrixLogSumExpByColumnsKernel(int batchSize, const float* __restrict__ matrix, int height, int width,
-	float* result, int heightNorm)
+	float* __restrict__ result, int heightNorm)
 {
 	extern __shared__  float buffer[];
 	float& my = buffer[(threadIdx.z * blockDim.y + threadIdx.y) * blockDim.x + threadIdx.x];

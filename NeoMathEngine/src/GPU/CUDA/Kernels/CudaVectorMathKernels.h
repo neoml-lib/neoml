@@ -254,8 +254,8 @@ __global__ void VectorCumSumAlongDimensionDiagKernel( const float* __restrict__ 
 }
 
 const int VectorEqualCombineCount = 16;
-__global__ void VectorEqualKernel( const int* __restrict__ first,
-	const int* __restrict__ second, float* __restrict__ result, int count )
+__global__ void VectorEqualKernel( const int* first,
+	const int* second, float* result, int count )
 {
 	int index;
 	int step;
@@ -273,8 +273,8 @@ __global__ void VectorEqualKernel( const int* __restrict__ first,
 	}
 }
 
-__global__ void VectorEqualValueKernel( const int* __restrict__ first, 
-	float* __restrict__ result, int count, const int* __restrict__ value )
+__global__ void VectorEqualValueKernel( const int* first, 
+	float* result, int count, const int* __restrict__ value )
 {
 	int index;
 	int step;
@@ -346,7 +346,7 @@ __global__ void VectorELUDiffOpKernel( const float* __restrict__ first, const fl
 	}
 }
 
-__global__ void VectorReLUKernel(const float* __restrict__ first, float* result,
+__global__ void VectorReLUKernel(const float* first, float* result,
 	int count, const float* __restrict__ threshold)
 {
 	int index;
@@ -435,7 +435,7 @@ __global__ void VectorLeakyReLUDiffKernel( const float* __restrict__ first, cons
 	}
 }
 
-__global__ void VectorHSwishKernel( const float* __restrict__ first, float* result, int count )
+__global__ void VectorHSwishKernel( const float* first, float* result, int count )
 {
 	int index;
 	int step;
@@ -484,7 +484,7 @@ __global__ void VectorHSwishDiffKernel( const float* __restrict__ first, const f
 	}
 }
 const int VectorEltwiseMaxCombineCount = 8;
-__global__ void VectorEltwiseMaxKernel(const float* __restrict__ first, const float* __restrict__ second,
+__global__ void VectorEltwiseMaxKernel(const float* first, const float* second,
 	float* result, int count)
 {
 	int index;
@@ -506,7 +506,7 @@ __global__ void VectorEltwiseMaxKernel(const float* __restrict__ first, const fl
 }
 
 const int VectorEltwiseMinCombineCount = 8;
-__global__ void VectorEltwiseMinKernel(const float* __restrict__ first, const float* __restrict__ second,
+__global__ void VectorEltwiseMinKernel(const float* first, const float* second,
 	float* result, int count)
 {
 	int index;
@@ -527,7 +527,7 @@ __global__ void VectorEltwiseMinKernel(const float* __restrict__ first, const fl
 	}
 }
 
-__global__ void VectorAbsKernel(const float* __restrict__ first, float* result, int count)
+__global__ void VectorAbsKernel(const float* first, float* result, int count)
 {
 	int index;
 	int step;
@@ -1437,7 +1437,7 @@ __global__ void VectorLogDiffKernel( const float* __restrict__ sourceGrad,
 }
 
 const int VectorAbsDiffCombine = 16;
-__global__ void VectorAbsDiffKernel( const float* __restrict__ sourceGrad,
+__global__ void VectorAbsDiffKernel( const float* sourceGrad,
 	int gradCount, int gradSize, int gradNorm,
 	const float* __restrict__ first, float* resultGrad )
 {
@@ -1462,7 +1462,7 @@ __global__ void VectorAbsDiffKernel( const float* __restrict__ sourceGrad,
 }
 
 const int VectorMinMaxDiffCombine = 16;
-__global__ void VectorMinMaxDiffKernel( const float* __restrict__ sourceGrad,
+__global__ void VectorMinMaxDiffKernel( const float* sourceGrad,
 	int gradCount, int gradSize, int gradNorm,
 	const float* __restrict__ first, float* resultGrad,
 	const float* __restrict__ minPtr, const float* __restrict__ maxPtr )

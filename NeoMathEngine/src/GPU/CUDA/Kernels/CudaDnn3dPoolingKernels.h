@@ -23,7 +23,7 @@ limitations under the License.
 namespace NeoML {
 
 __global__ void Blob3dMaxPoolingKernel( const CCuda3dMaxPoolingDescInternal desc, const float* __restrict__ sourceData,
-	int* maxIndices, float* resultData )
+	int* __restrict__ maxIndices, float* __restrict__ resultData )
 {
 	const CCudaBlobDesc& result = desc.Result;
 	const CCudaBlobDesc& source = desc.Source;
@@ -83,8 +83,8 @@ __global__ void Blob3dMaxPoolingKernel( const CCuda3dMaxPoolingDescInternal desc
 	}
 }
 
-__global__ void Blob3dMaxPoolingBackwardKernel( const CCuda3dMaxPoolingDescInternal desc, const float* resultDiff,
-	const int* maxIndices, float* sourceDiff, bool isAtomic )
+__global__ void Blob3dMaxPoolingBackwardKernel( const CCuda3dMaxPoolingDescInternal desc, const float* __restrict__ resultDiff,
+	const int* __restrict__ maxIndices, float* __restrict__ sourceDiff, bool isAtomic )
 {
 	const CCudaBlobDesc& result = desc.Result;
 	const CCudaBlobDesc& source = desc.Source;
