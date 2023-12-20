@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -214,10 +214,11 @@ const int SumMatrixColumnsMaxAtomic = 64;
 __global__ void SumMatrixColumnsKernel(float* result, const float* __restrict__ matrix,
 	int matrixHeight, int matrixWidth, bool isNeg, int widthNorm, int combine)
 {
-	extern __shared__ float buffer[];
-	float* acc = buffer + threadIdx.y * blockDim.x + threadIdx.x;
+	assert( threadIdx.z == 0 );
 
-	*acc = 0;
+	extern __shared__ float buffer[];
+	float* const acc = &buffer[threadIdx.y * blockDim.x + threadIdx.x];
+	*acc = 0.f; // NOTE: all threads are not used in the current task, should not interfere in the reduce max or sum
 
 	int index;
 	int y;
@@ -271,10 +272,11 @@ __global__ void SumMatrixColumnsKernel(float* result, const float* __restrict__ 
 const int MatrixLogSumExpByRowsCombine = 2;
 __global__ void MatrixLogSumExpByRowsKernel(const float* __restrict__ matrix, int height, int width, float* result, int widthNorm)
 {
+	assert( threadIdx.z == 0 );
+
 	extern __shared__  float buffer[];
 	float& my = buffer[threadIdx.y * blockDim.x + threadIdx.x];
-
-	my = -FLT_MAX;
+	my = 0.f; // NOTE: all threads are not used in the current task, should not interfere in the reduce max or sum
 
 	int combineCount = (width + blockDim.x - 1) / blockDim.x;
 
@@ -294,16 +296,20 @@ __global__ void MatrixLogSumExpByRowsKernel(const float* __restrict__ matrix, in
 				my = val;
 			}
 		}
+	} else {
+		my = -FLT_MAX;
 	}
 
 	float maxVal = ReduceMaxXSharedBuffer(buffer);
 
 	// Add up the needed part
 	if(yPos < height && count > 0) {
-		my = expf(matrix[index] - maxVal);
+		my = ExponentFunc(matrix[index] - maxVal);
 		for(int i = 1; i < count; ++i) {
-			my += expf(matrix[index + i * step] - maxVal);
+			my += ExponentFunc(matrix[index + i * step] - maxVal);
 		}
+	} else {
+		my = 0.f;
 	}
 
 	float sumVal = ReduceSumXSharedBuffer(buffer);
@@ -317,10 +323,11 @@ const int MatrixSoftmaxByRowsCombine = 2;
 __global__ void MatrixSoftmaxByRowsKernel(const float* matrix,
 	int height, int width, float* result, int widthNorm)
 {
-	extern __shared__  float buffer[];
-	float& my = buffer[threadIdx.y * blockDim.x + threadIdx.x];
+	assert( threadIdx.z == 0 );
 
-	my = -FLT_MAX;
+	extern __shared__ float buffer[];
+	float& my = buffer[threadIdx.y * blockDim.x + threadIdx.x];
+	my = 0.f; // NOTE: all threads are not used in the current task, should not interfere in the reduce max or sum
 
 	int combineCount = (width + blockDim.x - 1) / blockDim.x;
 
@@ -342,23 +349,30 @@ __global__ void MatrixSoftmaxByRowsKernel(const float* matrix,
 				my = val;
 			}
 		}
+	} else {
+		my = -FLT_MAX;
 	}
 
 	float maxVal = ReduceMaxXSharedBuffer(buffer);
 
 	// Put the exponent into result and add up the needed part
 	if(yPos < height && count > 0) {
-		my = result[index] = expf(matrix[index] - maxVal);
+		my = result[index] = ExponentFunc(matrix[index] - maxVal);
 		for(int i = 1; i < count; ++i) {
-			float val = expf(matrix[index + i * step] - maxVal);
+			const float val = ExponentFunc(matrix[index + i * step] - maxVal);
 			result[index + i * step] = val;
 			my += val;
 		}
+	} else {
+		my = 0.f;
 	}
 
-	float sumVal = 1.f / ReduceSumXSharedBuffer(buffer);
+	const float reduce = ReduceSumXSharedBuffer( buffer );
 
 	if(yPos < height && count > 0) {
+		assert( reduce != 0.f );
+		const float sumVal = 1.f / reduce;
+
 		// Divide the needed part by the total
 		for(int i = 0; i < count; ++i) {
 			result[index + i * step] *= sumVal;
@@ -370,10 +384,11 @@ const int MatrixSoftmaxDiffOpByRowsCombine = 2;
 __global__ void MatrixSoftmaxDiffOpByRowsKernel(const float* __restrict__ first,
 	const float* __restrict__ second, int height, int width, float* result, int widthNorm)
 {
-	extern __shared__  float buffer[];
-	float& my = buffer[threadIdx.y * blockDim.x + threadIdx.x];
+	assert( threadIdx.z == 0 );
 
-	my = 0;
+	extern __shared__ float buffer[];
+	float& my = buffer[threadIdx.y * blockDim.x + threadIdx.x];
+	my = 0.f; // NOTE: all threads are not used in the current task, should not interfere in the reduce max or sum
 
 	int combineCount = (width + blockDim.x - 1) / blockDim.x;
 
@@ -409,10 +424,11 @@ const int MatrixSoftmaxByColumnsCombine = 2;
 __global__ void MatrixSoftmaxByColumnsKernel(const float* __restrict__ matrix,
 	int height, int width, float* result, int heightNorm)
 {
-	extern __shared__  float buffer[];
-	float& my = buffer[threadIdx.y * blockDim.x + threadIdx.x];
+	assert( threadIdx.z == 0 );
 
-	my = -FLT_MAX;
+	extern __shared__ float buffer[];
+	float& my = buffer[threadIdx.y * blockDim.x + threadIdx.x];
+	my = 0.f; // NOTE: all threads are not used in the current task, should not interfere in the reduce max or sum
 
 	int combineCount = (height + blockDim.x - 1) / blockDim.x;
 
@@ -437,23 +453,30 @@ __global__ void MatrixSoftmaxByColumnsKernel(const float* __restrict__ matrix,
 				my = val;
 			}
 		}
+	} else {
+		my = -FLT_MAX;
 	}
 
 	float maxVal = ReduceMaxXSharedBuffer(buffer);
 
 	// Put the exponent into result and add up the needed part
 	if(xPos < width && count > 0) {
-		my = result[index] = expf(matrix[index] - maxVal);
+		my = result[index] = ExponentFunc(matrix[index] - maxVal);
 		for(int i = 1; i < count; ++i) {
-			float val = expf(matrix[index + i * step] - maxVal);
+			const float val = ExponentFunc(matrix[index + i * step] - maxVal);
 			result[index + i * step] = val;
 			my += val;
 		}
+	} else {
+		my = 0.f;
 	}
 
-	float sumVal = 1.f / ReduceSumXSharedBuffer(buffer);
+	const float reduce = ReduceSumXSharedBuffer( buffer );
 
 	if(xPos < width && count > 0) {
+		assert( reduce != 0.f );
+		const float sumVal = 1.f / reduce;
+
 		// Divide the needed part by the total
 		for(int i = 0; i < count; ++i) {
 			result[index + i * step] *= sumVal;
@@ -465,10 +488,11 @@ const int MatrixSoftmaxDiffOpByColumnsCombine = 2;
 __global__ void MatrixSoftmaxDiffOpByColumnsKernel(const float* __restrict__ first,
 	const float* __restrict__ second, int height, int width, float* result, int heightNorm)
 {
-	extern __shared__  float buffer[];
-	float& my = buffer[threadIdx.y * blockDim.x + threadIdx.x];
+	assert( threadIdx.z == 0 );
 
-	my = 0;
+	extern __shared__ float buffer[];
+	float& my = buffer[threadIdx.y * blockDim.x + threadIdx.x];
+	my = 0.f; // NOTE: all threads are not used in the current task, should not interfere in the reduce max or sum
 
 	int combineCount = (height + blockDim.x - 1) / blockDim.x;
 
@@ -506,9 +530,11 @@ const int FindMaxValueInRowsCombine = 4;
 __global__ void FindMaxValueWithIndicesInRowsKernel(const float* __restrict__ matrix,
 	int matrixHeight, int matrixWidth, float* result, int* indices, int widthNorm)
 {
-	extern __shared__ CValueWithIndex threadBuffer[];
+	assert( threadIdx.z == 0 );
 
+	extern __shared__ CValueWithIndex threadBuffer[];
 	CValueWithIndex& res = threadBuffer[threadIdx.y * blockDim.x + threadIdx.x];
+	// NOTE: all threads are not used in the current task, should not interfere in the reduce max or sum
 	res.Index = 0;
 	res.Value = -FLT_MAX;
 
@@ -545,10 +571,11 @@ __global__ void FindMaxValueWithIndicesInRowsKernel(const float* __restrict__ ma
 __global__ void FindMaxValueInRowsKernel(const float* __restrict__ matrix,
 	int matrixHeight, int matrixWidth, float* result, int widthNorm)
 {
-	extern __shared__ float maxData[];
+	assert( threadIdx.z == 0 );
 
-	float& res = maxData[threadIdx.y * blockDim.x + threadIdx.x];
-	res = -FLT_MAX;
+	extern __shared__ float buffer[];
+	float& my = buffer[threadIdx.y * blockDim.x + threadIdx.x];
+	my = -FLT_MAX; // NOTE: all threads are not used in the current task, should not interfere in the reduce max or sum
 
 	int yPos;
 	int xPos;
@@ -563,15 +590,15 @@ __global__ void FindMaxValueInRowsKernel(const float* __restrict__ matrix,
 
 		for(int i = 0; i < count; ++i) {
 			float value = matrix[index];
-			if(value > res) {
-				res = value;
+			if(value > my) {
+				my = value;
 			}
 
 			index += step;
 		}
 	}
 
-	float maxVal = ReduceMaxXSharedBuffer(maxData);
+	float maxVal = ReduceMaxXSharedBuffer( buffer );
 
 	if(yPos < matrixHeight && threadIdx.x == 0) {
 		result[yPos] = maxVal;
@@ -583,8 +610,8 @@ __global__ void FindMaxValueInColumnsKernel( int batchSize, const float* __restr
 	int height, int width, float* result, int* indices, int heightNorm )
 {
 	extern __shared__ CValueWithIndex threadBuffer[];
-
 	CValueWithIndex& res = threadBuffer[(threadIdx.z * blockDim.y + threadIdx.y) * blockDim.x + threadIdx.x];
+	// NOTE: all threads are not used in the current task, should not interfere in the reduce max or sum
 	res.Value = -FLT_MAX;
 	res.Index = 0;
 
@@ -808,10 +835,11 @@ __global__ void MultiplyLookupMatrixByLookupVectorKernel(int batchSize, const fl
 	const float* __restrict__ vectorTable, int /*vectorVectorCount*/, const int* __restrict__ vector,
 	float* result, int /*resultSize*/, int widthNorm)
 {
+	assert( threadIdx.z == 0 );
+
 	extern __shared__  float buffer[];
 	float& my = buffer[threadIdx.y * blockDim.x + threadIdx.x];
-
-	my = 0;
+	my = 0.f; // NOTE: all threads are not used in the current task, should not interfere in the reduce max or sum
 
 	int totalY = batchSize * rowCount;
 	int yPos;
@@ -848,10 +876,11 @@ __global__  void MultiplyTransposedLookupMatrixByVectorKernel(int batchSize, con
 	int /*matrixVectorCount*/, int width, const int* __restrict__ rows, int height,
 	const float* __restrict__ vector, float* result, bool isAdd, int heightNorm)
 {
+	assert( threadIdx.z == 0 );
+
 	extern __shared__  float buffer[];
 	float& my = buffer[threadIdx.y * blockDim.x + threadIdx.x];
-
-	my = 0;
+	my = 0.f; // NOTE: all threads are not used in the current task, should not interfere in the reduce max or sum
 
 	// The X coordinate corresponds to Height
 	int totalX = batchSize * width;
@@ -993,28 +1022,25 @@ __global__ void MultiplyDiagMatrixByMatrixAndSumKernel( int batchSize, const flo
 	int firstSize, const float* __restrict__ second, int secondWidth, float* result, int batchSizeNorm )
 {
 	extern __shared__ float buffer[];
-
-	int bufferIndex = ( threadIdx.z * blockDim.y + threadIdx.y ) * blockDim.x + threadIdx.x;
-	buffer[bufferIndex] = 0;
+	float& my = buffer[( threadIdx.z * blockDim.y + threadIdx.y ) * blockDim.x + threadIdx.x];
+	my = 0.f; // NOTE: all threads are not used in the current task, should not interfere in the reduce max or sum
 
 	int batch;
 	int column;
 	int row;
-	GetCudaTaskIndex3D( firstSize, secondWidth, batchSizeNorm,
-		row, column, batch );
+	GetCudaTaskIndex3D( firstSize, secondWidth, batchSizeNorm, row, column, batch );
 
 	bool isValidZY = row < firstSize && column < secondWidth;
 
 	if( isValidZY ) {
 		int step;
-		int count = GetCudaTaskCountAndIndex( batchSize, MultiplyDiagMatrixByMatrixAndSumCombine,
-			batch, step );
+		int count = GetCudaTaskCountAndIndex( batchSize, MultiplyDiagMatrixByMatrixAndSumCombine, batch, step );
 
 		const float* __restrict__ currFirst = first + row + batch * firstSize;
 		const float* __restrict__ currSecond = second + column + row * secondWidth + batch * secondWidth * firstSize;
 
 		for( int i = 0; i < count; ++i ) {
-			buffer[bufferIndex] += *currFirst * *currSecond;
+			my += *currFirst * *currSecond;
 			currFirst += step * firstSize;
 			currSecond += step * secondWidth * firstSize;
 		}
@@ -1037,10 +1063,11 @@ const int RowMultiplyMatrixByMatrixPartial = 64;
 __global__ void RowMultiplyMatrixByMatrixKernel( const float* __restrict__ first,
 	const float* __restrict__ second, int height, int width, float* result, int widthNorm )
 {
-	extern __shared__ float buffer[];
+	assert( threadIdx.z == 0 );
 
-	int bufferIndex = threadIdx.y * blockDim.x + threadIdx.x;
-	buffer[bufferIndex] = 0;
+	extern __shared__ float buffer[];
+	float* const acc = &buffer[threadIdx.y * blockDim.x + threadIdx.x];
+	*acc = 0.f; // NOTE: all threads are not used in the current task, should not interfere in the reduce max or sum
 
 	int row;
 	int column;
@@ -1055,7 +1082,7 @@ __global__ void RowMultiplyMatrixByMatrixKernel( const float* __restrict__ first
 		first += column;
 		second += column;
 		for(int i = 0; i < count; ++i) {
-			buffer[bufferIndex] += (*first) * (*second);
+			*acc += (*first) * (*second);
 			first += step;
 			second += step;
 		}
@@ -1064,9 +1091,9 @@ __global__ void RowMultiplyMatrixByMatrixKernel( const float* __restrict__ first
 	__syncthreads();
 
 	if( row < height && (threadIdx.x % RowMultiplyMatrixByMatrixPartial ) == 0 ) {
-		float tmpRes = buffer[bufferIndex];
+		float tmpRes = *acc;
 		for(int i = 1; i < RowMultiplyMatrixByMatrixPartial && (threadIdx.x + i) < blockDim.x; ++i) {
-			tmpRes += buffer[bufferIndex + i];
+			tmpRes += acc[i];
 		}
 		atomicAdd(result + row, tmpRes);
 	}
