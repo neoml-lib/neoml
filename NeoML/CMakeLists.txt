@@ -5,6 +5,12 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
 endif()
 
 project(NeoML LANGUAGES CXX)
+
+if(IOS AND ${CMAKE_VERSION} GREATER_EQUAL 3.28)
+    # iOS CMake toolchain calls exec_program() which violates CMP0153
+    cmake_policy(CMP0153 OLD)
+endif()
+
 if(ANDROID OR IOS)
     add_compile_definitions(NEOML_COMPACT)
 endif()
