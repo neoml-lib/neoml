@@ -20,7 +20,7 @@ limitations under the License.
 
 namespace NeoML {
 
-__global__ void RandomMatrixDropout( const float* __restrict__ first, int firstHeight,
+__global__ void RandomMatrixDropout( const float* first, int firstHeight,
 	int firstWidth, float* res, int seed, float forwardRate )
 {
 	const unsigned int threshold = forwardRate * UINT_MAX;
@@ -39,7 +39,7 @@ __global__ void RandomMatrixDropout( const float* __restrict__ first, int firstH
 	}
 }
 
-__global__ void RandomSpatialDropout( const float* __restrict__ input, float* res, int inputObjectCount,
+__global__ void RandomSpatialDropout( const float* input, float* res, int inputObjectCount,
 	int inputObjectSize, int maskObjectCount, int maskObjectSize, int seed, float forwardRate )
 {
 	const unsigned int threshold = forwardRate * UINT_MAX;

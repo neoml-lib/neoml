@@ -48,7 +48,7 @@ __global__ void AddVectorToMatrixElementsKernel( float* matrix, int height, int 
 }
 
 const int AddVectorToMatrixElementsMulCombine = 4;
-__global__ void AddVectorToMatrixElementsKernel( float* matrix, int /*height*/, int width,
+__global__ void AddVectorToMatrixElementsKernel( float* __restrict__ matrix, int /*height*/, int width,
 	const int* __restrict__ rowIndices, const int* __restrict__ columnIndices,
 	const float* __restrict__ vector, int vectorSize )
 {
@@ -65,7 +65,7 @@ __global__ void AddVectorToMatrixElementsKernel( float* matrix, int /*height*/, 
 // Assigns the values matrix[rowIndices[i], columnIndices[i]] = vector[i].
 const int SetVectorToMatrixElementsMulCombine = 4;
 __global__ void SetVectorToMatrixElementsKernel(
-	float* matrix, int /*height*/, int width,
+	float* __restrict__ matrix, int /*height*/, int width,
 	const int* __restrict__ rowIndices, const int* __restrict__ columnIndices,
 	const float* __restrict__ vector, int vectorSize )
 {
@@ -314,7 +314,7 @@ __global__ void MatrixLogSumExpByRowsKernel(const float* __restrict__ matrix, in
 }
 
 const int MatrixSoftmaxByRowsCombine = 2;
-__global__ void MatrixSoftmaxByRowsKernel(const float* __restrict__ matrix,
+__global__ void MatrixSoftmaxByRowsKernel(const float* matrix,
 	int height, int width, float* result, int widthNorm)
 {
 	extern __shared__  float buffer[];
