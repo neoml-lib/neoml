@@ -162,7 +162,9 @@ CDnnSolver::CDnnSolver( IMathEngine& _mathEngine ) :
 	learningRate( 0.01f ),
 	regularizationL2( 0.f ),
 	regularizationL1( 0.f ),
-	maxGradientNorm( -1.f )
+	maxGradientNorm( -1.f ),
+	clipGradientMin( -FLT_MAX ),
+	clipGradientMax( FLT_MAX )
 {
 }
 
@@ -265,9 +267,33 @@ void CDnnSolver::allReduce( float distributedCoeff )
 	}
 }
 
+void CDnnSolver::clip( const CObjectArray<CDnnBlob>& paramDiffBlobs )
+{
+	if( clipGradientMin <= -FLT_MAX && clipGradientMax >= FLT_MAX ) {
+		return;
+	}
+
+	CFloatHandleStackVar minVar( MathEngine() );
+	minVar.SetValue( clipGradientMin );
+
+	CFloatHandleStackVar maxVar( MathEngine() );
+	maxVar.SetValue( clipGradientMax );
+
+	for( int i = 0; i < paramDiffBlobs.Size(); ++i ) {
+		MathEngine().VectorMinMax( paramDiffBlobs[i]->GetData(), paramDiffBlobs[i]->GetData(),
+			paramDiffBlobs[i]->GetDataSize(), minVar, maxVar );
+	}
+}
+
 void CDnnSolver::clipGradients(const CObjectArray<CDnnBlob>& paramDiffBlobs)
 {
-	if(maxGradientNorm < 0 || paramDiffBlobs.Size() == 0) {
+	if(paramDiffBlobs.Size() == 0) {
+		return;
+	}
+
+	clip( paramDiffBlobs );
+
+	if( maxGradientNorm < 0 ) {
 		return;
 	}
 
@@ -281,6 +307,7 @@ void CDnnSolver::clipGradients(const CObjectArray<CDnnBlob>& paramDiffBlobs)
 			paramDiffBlobs[i]->GetDataSize(), tempVar.GetHandle());
 		MathEngine().VectorAdd(gradVar.GetHandle(), tempVar.GetHandle(), gradVar.GetHandle(), 1);
 	}
+	NeoPresume( isfinite( gradVar.GetValue() ) );
 	MathEngine().VectorSqrt(gradVar.GetHandle(), gradVar.GetHandle(), 1);
 
 	// Calculate scale
@@ -295,11 +322,11 @@ void CDnnSolver::clipGradients(const CObjectArray<CDnnBlob>& paramDiffBlobs)
 	}
 }
 
-static const int DnnSolverVersion = 0;
+static const int DnnSolverVersion = 1;
 
 void CDnnSolver::Serialize( CArchive& archive, CDnn& dnn )
 {
-	archive.SerializeVersion( DnnSolverVersion );
+	const int version = archive.SerializeVersion( DnnSolverVersion );
 	if( archive.IsStoring() ) {
 		CMap<CBaseLayer*, CString> layerPtrToId;
 		mapLayerPtrToId( dnn, layerPtrToId );
@@ -321,6 +348,7 @@ void CDnnSolver::Serialize( CArchive& archive, CDnn& dnn )
 			SerializeBlobs( mathEngine, archive, layerToGradientHistory.GetValue( pos ) );
 		}
 		archive << learningRate << regularizationL1 << regularizationL2 << maxGradientNorm;
+		archive << clipGradientMin << clipGradientMax;
 	} else {
 		CMap<CString, CBaseLayer*> layerIdToPtr;
 		mapLayerIdToPtr( dnn, layerIdToPtr );
@@ -347,6 +375,12 @@ void CDnnSolver::Serialize( CArchive& archive, CDnn& dnn )
 			SerializeBlobs( mathEngine, archive, layerToGradientHistory.GetOrCreateValue( layerIdToPtr[layerId] ) );
 		}
 		archive >> learningRate >> regularizationL1 >> regularizationL2 >> maxGradientNorm;
+		if( version >= 1 ) {
+			archive >> clipGradientMin >> clipGradientMax;
+		} else {
+			clipGradientMin = -FLT_MAX;
+			clipGradientMax = FLT_MAX;
+		}
 	}
 }
 
