@@ -417,7 +417,7 @@ __global__ void BlobGlobalMaxPoolingGlobalShuffleKernel( const CCudaGlobalMaxPoo
 
 const int BlobGlobalMaxPoolingBackwardCombine = 8;
 __global__ void BlobGlobalMaxPoolingBackwardKernel( const CCudaGlobalMaxPoolingDescInternal desc, const float* __restrict__ resultDiff,
-	const int* maxIndices, float* sourceDiff, int poolSize, int maxCount, int fullSize )
+	const int* __restrict__ maxIndices, float* __restrict__ sourceDiff, int poolSize, int maxCount, int fullSize )
 {
 	int index;
 	int step;
