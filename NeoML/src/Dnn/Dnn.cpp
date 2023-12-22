@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -73,6 +73,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/DepthToSpaceLayer.h>
 #include <NeoML/Dnn/Layers/DotProductLayer.h>
 #include <NeoML/Dnn/Layers/EnumBinarizationLayer.h>
+#include <NeoML/Dnn/Layers/FavorAttentionPerformerLayer.h>
 #include <NeoML/Dnn/Layers/FocalLossLayer.h>
 #include <NeoML/Dnn/Layers/FullyConnectedSourceLayer.h>
 #include <NeoML/Dnn/Layers/GlobalMaxPoolingLayer.h>
@@ -89,6 +90,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/MaxOverTimePoolingLayer.h>
 #include <NeoML/Dnn/Layers/MobileNetV3BlockLayer.h>
 #include <NeoML/Dnn/Layers/ModelWrapperLayer.h>
+#include <NeoML/Dnn/Layers/MultiheadAttentionPerformerLayer.h>
 #include <NeoML/Dnn/Layers/MultiHingeLossLayer.h>
 #include <NeoML/Dnn/Layers/PositionalEmbeddingLayer.h>
 #include <NeoML/Dnn/Layers/PrecisionRecallLayer.h>
@@ -351,6 +353,7 @@ REGISTER_NEOML_LAYER( CCtcDecodingLayer, "FmlCnnCtcDecodingLayer" )
 REGISTER_NEOML_LAYER( CCtcLossLayer, "FmlCnnCtcLossLayer" )
 REGISTER_NEOML_LAYER( CDotProductLayer, "FmlCnnDotProductLayer" )
 REGISTER_NEOML_LAYER( CEnumBinarizationLayer, "FmlCnnEnumBinarizationLayer" )
+REGISTER_NEOML_LAYER( CFavorAttentionPerformerLayer, "NeoMLDnnFavorAttentionPerformerLayer" )
 REGISTER_NEOML_LAYER( CGlobalMaxPoolingLayer, "FmlCnnGlobalMaxPoolingLayer" )
 REGISTER_NEOML_LAYER( CGrnLayer, "NeoMLDnnGrnLayer" )
 REGISTER_NEOML_LAYER( CGruLayer, "FmlCnnGruLayer" )
@@ -362,6 +365,7 @@ REGISTER_NEOML_LAYER( CLoraFullyConnectedLayer, "NeoMLDnnLoraFullyConnectedLayer
 REGISTER_NEOML_LAYER( CMaxOverTimePoolingLayer, "FmlCnnMaxOverTimePoolingLayer" )
 REGISTER_NEOML_LAYER( CMobileNetV3PreSEBlockLayer, "NeoMLDnnMobileNetV3PreSEBlockLayer" )
 REGISTER_NEOML_LAYER( CMobileNetV3PostSEBlockLayer, "NeoMLDnnMobileNetV3PostSEBlockLayer" )
+REGISTER_NEOML_LAYER( CMultiheadAttentionPerformerLayer, "NeoMLDnnMultiheadAttentionPerformerLayer" )
 REGISTER_NEOML_LAYER( CMultiHingeLossLayer, "FmlCnnMultyHingeLossLayer" )
 REGISTER_NEOML_LAYER( CMultiSquaredHingeLossLayer, "FmlCnnMultySquaredHingeLossLayer" )
 REGISTER_NEOML_LAYER( CPixelToImageLayer, "FmlCnnPixelToImageLayerClass" )

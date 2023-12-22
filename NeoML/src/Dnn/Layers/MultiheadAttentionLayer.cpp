@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -45,42 +45,54 @@ void CMultiheadAttentionLayer::SetHeadCount( int _headCount )
 {
 	NeoAssert( _headCount >= 1 );
 
-	headCount = _headCount;
-	DeleteAllLayers();
+	if( headCount != _headCount ) {
+		headCount = _headCount;
+		DeleteAllLayers();
+	}
 }
 
 void CMultiheadAttentionLayer::SetHiddenSize( int _hiddenSize )
 {
 	NeoAssert( _hiddenSize >= 1 );
 
-	hiddenSize = _hiddenSize;
-	DeleteAllLayers();
+	if( hiddenSize != _hiddenSize ) {
+		hiddenSize = _hiddenSize;
+		DeleteAllLayers();
+	}
 }
 
 void CMultiheadAttentionLayer::SetDropoutRate( float _dropoutRate )
 {
-	dropoutRate = _dropoutRate;
-	DeleteAllLayers();
+	if( dropoutRate != _dropoutRate ) {
+		dropoutRate = _dropoutRate;
+		DeleteAllLayers();
+	}
 }
 
 void CMultiheadAttentionLayer::SetUseMask( bool newValue )
 {
-	useMask = newValue;
-	DeleteAllLayers();
+	if( useMask != newValue ) {
+		useMask = newValue;
+		DeleteAllLayers();
+	}
 }
 
 void CMultiheadAttentionLayer::SetMaskType( TMaskType _maskType )
 {
-	maskType = _maskType;
-	DeleteAllLayers();
+	if( maskType != _maskType ) {
+		maskType = _maskType;
+		DeleteAllLayers();
+	}
 }
 
 void CMultiheadAttentionLayer::SetOutputSize( int _outputSize )
 {
 	NeoAssert( _outputSize > 0 );
 
-	outputSize = _outputSize;
-	DeleteAllLayers();
+	if( outputSize != _outputSize ) {
+		outputSize = _outputSize;
+		DeleteAllLayers();
+	}
 }
 
 void CMultiheadAttentionLayer::SetCompatibilityMode( bool value )

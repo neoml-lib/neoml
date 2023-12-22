@@ -116,6 +116,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/DepthToSpaceLayer.h>
 #include <NeoML/Dnn/Layers/DotProductLayer.h>
 #include <NeoML/Dnn/Layers/EnumBinarizationLayer.h>
+#include <NeoML/Dnn/Layers/FavorAttentionPerformerLayer.h>
 #include <NeoML/Dnn/Layers/FocalLossLayer.h>
 #include <NeoML/Dnn/Layers/FullyConnectedSourceLayer.h>
 #include <NeoML/Dnn/Layers/GlobalMaxPoolingLayer.h>
@@ -131,6 +132,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/LrnLayer.h>
 #include <NeoML/Dnn/Layers/MaxOverTimePoolingLayer.h>
 #include <NeoML/Dnn/Layers/ModelWrapperLayer.h>
+#include <NeoML/Dnn/Layers/MultiheadAttentionPerformerLayer.h>
 #include <NeoML/Dnn/Layers/MultiHingeLossLayer.h>
 #include <NeoML/Dnn/Layers/PositionalEmbeddingLayer.h>
 #include <NeoML/Dnn/Layers/PrecisionRecallLayer.h>
