@@ -143,6 +143,9 @@ __global__ void FilterSmallValuesKernel( float* data, float threshold, int count
 const int VectorSumCombineCount = 16;
 __global__ void VectorSumKernel(const float* __restrict__ mem, int count, float* result, bool isNeg, bool setZero)
 {
+	assert( threadIdx.z == 0 );
+	assert( threadIdx.y == 0 );
+
 	extern __shared__ float sumData[];
 
 	float sum = 0;
