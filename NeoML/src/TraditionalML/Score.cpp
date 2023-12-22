@@ -59,7 +59,6 @@ double F1Score( const CArray<CClassificationResult>& classificationResult, const
 	// *Positive means the objects that got the +1 label, *Negative the -1 label
 	double truePositive = 0;
 	double falsePositive = 0;
-	double trueNegative = 0;
 	double falseNegative = 0;
 
 	for( int i = 0; i < classificationResult.Size(); ++i ) {
@@ -72,9 +71,7 @@ double F1Score( const CArray<CClassificationResult>& classificationResult, const
 				}
 				break;
 			case -1:
-				if( GetBinaryClass( problem->GetClass( i ) ) == -1 ) {
-					trueNegative++;
-				} else {
+				if( GetBinaryClass( problem->GetClass( i ) ) != -1 ) {
 					falseNegative++;
 				}
 				break;
