@@ -112,6 +112,8 @@ __launch_bounds__( 1024, 1 )
 __global__ void BlobGlobalMaxPoolingHeapKernel( const CCudaGlobalMaxPoolingDescInternal desc, const float* sourceData,
 	int* maxIndicesData, float* resultData, int poolSize, int maxCount )
 {
+	assert( threadIdx.z == 0 );
+
 	const CCudaBlobDesc& source = desc.Source;
 
 	// Initialize the data
@@ -189,6 +191,8 @@ __launch_bounds__( 1024, 1 )
 __global__ void BlobGlobalMaxPoolingLocalSortKernel( const CCudaGlobalMaxPoolingDescInternal desc, const float* sourceData,
 	int* indicesSorted1, int* indicesSorted2, int poolSize, int bin, int histSize, int* local, int* global )
 {
+	assert( threadIdx.z == 0 );
+
 	extern __shared__ float sharedData[];
 
 	const CCudaBlobDesc& source = desc.Source;
@@ -292,6 +296,8 @@ __global__ void BlobGlobalMaxPoolingLocalSortKernel( const CCudaGlobalMaxPooling
 __launch_bounds__( 1024, 1 )
 __global__ void BlobGlobalMaxPoolingGlobalScanKernel( const CCudaGlobalMaxPoolingDescInternal desc, int histSize, int* global, int blockCountY )
 {
+	assert( threadIdx.z == 0 );
+
 	extern __shared__ float sharedData[];
 
 	const int x = blockIdx.x * blockDim.x + threadIdx.x;
