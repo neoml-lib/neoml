@@ -115,6 +115,14 @@ void CCpuMathEngine::HeapFree( const CMemoryHandle& handle )
 	memoryPool->Free( handle );
 }
 
+void CCpuMathEngine::TransferHandleToThisThread( const CMemoryHandle& handle, size_t size )
+{
+	ASSERT_EXPR( handle.GetMathEngine() == this );
+
+	std::lock_guard<std::mutex> lock( mutex );
+	memoryPool->TransferHandleToThisThread( handle, size );
+}
+
 CMemoryHandle CCpuMathEngine::StackAlloc( size_t size )
 {
 	std::lock_guard<std::mutex> lock( mutex );
