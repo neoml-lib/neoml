@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ limitations under the License.
 #include <CudaMathEngineDnnConvs.h>
 #include <Kernels/CudaGrid.h>
 #include <Kernels/CudaReduce.h>
+#include <CudaCommon.h>
 
 namespace NeoML {
 
@@ -32,12 +33,11 @@ __global__ void CtcFillPaddingKernel( int maxSeqLen, int batchSize, int classCou
 
 const int CtcMatrixLogSumExpByColumnsCombine = 2;
 __global__ void CtcMatrixLogSumExpByColumnsKernel(int batchSize, const float* __restrict__ matrix, int height, int width,
-	float* result, int heightNorm)
+	float* __restrict__ result, int heightNorm)
 {
 	extern __shared__  float buffer[];
 	float& my = buffer[(threadIdx.z * blockDim.y + threadIdx.y) * blockDim.x + threadIdx.x];
-
-	my = -FLT_MAX;
+	my = -FLT_MAX; // NOTE: all threads are not used in the current task, should not interfere in the reduce max or sum
 
 	int combineCount = (height + blockDim.x - 1) / blockDim.x;
 
@@ -70,9 +70,9 @@ __global__ void CtcMatrixLogSumExpByColumnsKernel(int batchSize, const float* __
 
 	// Add up the needed part
 	if(xPos < width && zPos < batchSize && count > 0) {
-		my = expf(matrix[index] - maxVal);
+		my = ExponentFunc(matrix[index] - maxVal);
 		for(int j = 1; j < count; ++j) {
-			my += expf(matrix[index + j * step] - maxVal);
+			my += ExponentFunc(matrix[index + j * step] - maxVal);
 		}
 	} else {
 		my = 0.f;

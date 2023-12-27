@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -69,7 +69,7 @@ inline __device__ float ReduceMaxXSharedBuffer(float* buffer)
 	int indexInWarp = threadIdx.x % xWarp;
 	int baseIndex = (threadIdx.z * blockDim.y +  threadIdx.y) * blockDim.x + indexInWarp;
 	float maxVal = buffer[baseIndex];
-	for(int i = 1; (indexInWarp + i) < blockDim.x; i += xWarp) {
+	for(int i = xWarp; (indexInWarp + i) < blockDim.x; i += xWarp) {
 		if(buffer[baseIndex + i] > maxVal) {
 			maxVal = buffer[baseIndex + i];
 		}
@@ -108,7 +108,7 @@ inline __device__ CValueWithIndex ReduceMaxWithIndexXSharedBuffer(CValueWithInde
 	int indexInWarp = threadIdx.x % xWarp;
 	int baseIndex = (threadIdx.z * blockDim.y +  threadIdx.y) * blockDim.x + indexInWarp;
 	CValueWithIndex maxVal = buffer[baseIndex];
-	for(int i = 1; (indexInWarp + i) < blockDim.x; i += xWarp) {
+	for(int i = xWarp; (indexInWarp + i) < blockDim.x; i += xWarp) {
 		if(buffer[baseIndex + i].Value > maxVal.Value) {
 			maxVal = buffer[baseIndex + i];
 		}

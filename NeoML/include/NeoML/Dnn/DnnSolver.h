@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -50,6 +50,9 @@ public:
 	// Upper limit for gradient norm (if set to < 0, that means no limit)
 	float GetMaxGradientNorm() const { return maxGradientNorm; }
 	void SetMaxGradientNorm(float _maxGradientNorm) { maxGradientNorm = _maxGradientNorm; }
+	// Clipping gradient min and max (if set to -FLT_MAX and FLT_MAX, that means no limit)
+	void GetMinMaxGradientClipping( float& min, float& max ) const { min = clipGradientMin; max = clipGradientMax; }
+	void SetMinMaxGradientClipping( float min, float max ) { clipGradientMin = min; clipGradientMax = max; }
 
 	// Serialize to archive
 	virtual void Serialize( CArchive& archive, CDnn& dnn );
@@ -79,6 +82,8 @@ private:
 	float regularizationL2;
 	float regularizationL1;
 	float maxGradientNorm;
+	float clipGradientMin;
+	float clipGradientMax;
 
 	// The blobs sum
 	struct CDiffBlobSum {
@@ -100,8 +105,10 @@ private:
 	// Averages weights over all threads
 	void allReduce( float distributedCoeff );
 
-	// Clips gradients according to the settings
+	// Clips and normalize gradients according to the settings
 	void clipGradients(const CObjectArray<CDnnBlob>& paramDiffBlobs);
+	// Clips gradients
+	void clip( const CObjectArray<CDnnBlob>& paramDiffBlobs );
 
 	// Telling the compiler that we intentionally using two-parameter Serialize instead of one declared in IObject
 	using IObject::Serialize;

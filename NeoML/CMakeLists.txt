@@ -20,6 +20,9 @@ endif()
 
 include(Settings)
 include(Version)
+# Set cmake default variables and some usefull variables
+set_global_variables()
+
 if(USE_FINE_OBJECTS)
     include(FineInstall)
 else()
@@ -56,9 +59,6 @@ option(NeoOnnx_BUILD "Build NeoOnnx" ON)
 if(NOT (WIN32 OR CMAKE_SYSTEM_NAME MATCHES "Linux" OR CMAKE_SYSTEM_NAME MATCHES "Darwin"))
     set(NeoOnnx_BUILD OFF CACHE BOOL "" FORCE)
 endif()
-
-# Set cmake default variables and some usefull variables
-set_global_variables()
 
 if(USE_FINE_OBJECTS)
     find_package(FineObjects)

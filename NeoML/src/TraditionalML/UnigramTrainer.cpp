@@ -199,7 +199,6 @@ void CUnigramTrainer::fillTrainDict( const CWordDictionary& frequencyDict )
 void CUnigramTrainer::createInitialVocab()
 {
 	CTrieNode<CTrieCounterData> substringTrie;
-	int64_t totalCount = 0;
 
 	for( int i = 0; i < trainDict.Size(); ++i ) {
 		const CString& word = trainDict.GetWord( i );
@@ -225,7 +224,6 @@ void CUnigramTrainer::createInitialVocab()
 					data.End = end;
 				}
 				data.Count += count;
-				totalCount += count;
 
 				if( tokenLength++ == maxSubwordLength ) {
 					break;

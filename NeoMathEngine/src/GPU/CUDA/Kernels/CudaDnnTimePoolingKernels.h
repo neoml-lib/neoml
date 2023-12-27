@@ -30,8 +30,6 @@ __global__ void BlobMaxOverTimePoolingKernel( const CCudaMaxOverTimePoolingDescI
 	const CCudaBlobDesc& source = desc.Source;
 	const CCudaBlobDesc& result = desc.Result;
 
-	int bufferIndex = ( threadIdx.z * blockDim.y + threadIdx.y ) * blockDim.x + threadIdx.x;
-
 	const int objectSize = source.ObjectSize();
 	const int seqElemSize = source.BatchWidth() * objectSize;
 
@@ -46,7 +44,8 @@ __global__ void BlobMaxOverTimePoolingKernel( const CCudaMaxOverTimePoolingDescI
 	const int srcSeqNumEnd = seqNum * desc.StrideLen + desc.FilterLen;
 	int srcSeqNum = seqNum * desc.StrideLen + x;
 
-	CValueWithIndex& val = buf[bufferIndex];
+	CValueWithIndex& val = buf[( threadIdx.z * blockDim.y + threadIdx.y ) * blockDim.x + threadIdx.x];
+	// NOTE: all threads are not used in the current task, should not interfere in the reduce max or sum
 	val.Index = srcSeqNum;
 	val.Value = __ldg( sourceData + srcSeqNum * seqElemSize + srcPos );
 	srcSeqNum += blockDim.x;
@@ -74,8 +73,6 @@ __global__ void BlobMaxOverTimePoolingKernel( const CCudaMaxOverTimePoolingDescI
 	const CCudaBlobDesc& source = desc.Source;
 	const CCudaBlobDesc& result = desc.Result;
 
-	const int bufferIndex = ( threadIdx.z * blockDim.y + threadIdx.y ) * blockDim.x + threadIdx.x;
-
 	const int objectSize = source.ObjectSize();
 	const int seqElemSize = source.BatchWidth() * objectSize;
 
@@ -90,7 +87,8 @@ __global__ void BlobMaxOverTimePoolingKernel( const CCudaMaxOverTimePoolingDescI
 	const int srcSeqNumEnd = seqNum * desc.StrideLen + desc.FilterLen;
 	int srcSeqNum = seqNum * desc.StrideLen + x;
 
-	float& val = buffer[bufferIndex];
+	float& val = buffer[( threadIdx.z * blockDim.y + threadIdx.y ) * blockDim.x + threadIdx.x];
+	// NOTE: all threads are not used in the current task, should not interfere in the reduce max or sum
 	val = __ldg( sourceData + srcSeqNum * seqElemSize + srcPos );
 	srcSeqNum += blockDim.x;
 
