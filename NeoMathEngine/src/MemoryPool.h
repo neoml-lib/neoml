@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ limitations under the License.
 #include <MathEngineAllocator.h>
 #include <NeoMathEngine/MemoryHandle.h>
 #include <NeoMathEngine/CrtAllocatedObject.h>
+#include <NeoMathEngine/NeoMathEngineException.h>
 #include <RawMemoryManager.h>
 #include <unordered_map>
 #include <thread>
@@ -72,11 +73,22 @@ private:
 	>;
 	// The information about a memory block address
 	struct CUsedInfo final {
-		size_t size = 0;
-		CMemoryBuffer* buffer = nullptr;
-
-		CUsedInfo( size_t _size = 0 ) : size( _size ) {}
+		// Either the size of heap memory block
+		CUsedInfo( size_t _size = 0 ) : size( _size | flag ) { ASSERT_EXPR( _size < flag ); }
+		// Or the address to memory block buffer
 		CUsedInfo( CMemoryBuffer* _buffer ) : buffer( _buffer ) {}
+
+		CMemoryBuffer* Buffer() const { return buffer; }
+		size_t Size() const { return size & ~flag; }
+		bool HasPoolBuffer() const { return !( size & flag ); }
+
+	private:
+		// Flag to signal that in unipn is a size, not a buffer
+		static constexpr size_t flag = size_t( 1 ) << ( sizeof( size_t ) * 8 - 1 );
+		union { // Either the size, or a buffer (8 bytes size structure)
+			size_t size;
+			CMemoryBuffer* buffer;
+		};
 	};
 	// The memory blocks addresses map
 	using TUsedAddressMap = std::unordered_map<
