@@ -60,6 +60,7 @@ set(NeoML_SOURCES_COMPACT
     Dnn/Layers/SourceLayer.cpp
     Dnn/Layers/SplitLayer.cpp
     Dnn/Layers/TimeConvLayer.cpp
+    Dnn/Layers/TrainableTransformLayer.cpp
     Dnn/Layers/TransformLayer.cpp
     Dnn/Layers/TransposedConvLayer.cpp
     Dnn/Layers/TransposeLayer.cpp
@@ -301,6 +302,7 @@ set(NeoML_HEADERS_COMPACT
     ../include/NeoML/Dnn/Layers/SourceLayer.h
     ../include/NeoML/Dnn/Layers/SplitLayer.h
     ../include/NeoML/Dnn/Layers/TimeConvLayer.h
+    ../include/NeoML/Dnn/Layers/TrainableTransformLayer.h
     ../include/NeoML/Dnn/Layers/TransformLayer.h
     ../include/NeoML/Dnn/Layers/TransposedConvLayer.h
     ../include/NeoML/Dnn/Layers/TransposeLayer.h

@@ -57,6 +57,7 @@ target_sources(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/RowMultiplyMatrixByMatrixTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/SubVectorFromMatrixColumnsTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/SumMatrixRowsAddTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/TrainableTransformLayerLearnTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/TransposeMatrixTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorCopyTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorEltwiseMultiplyAddTest.cpp
