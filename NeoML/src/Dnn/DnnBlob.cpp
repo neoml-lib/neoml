@@ -22,46 +22,32 @@ limitations under the License.
 
 namespace NeoML {
 
-CDnnBlob::CDnnBlob( IMathEngine& _mathEngine ) :
-	mathEngine( _mathEngine ),
-	dataOwned( true ),
-	parent(0),
-	parentPos(0)
-{
-}
-
 CDnnBlob::CDnnBlob( CDnnBlob&& other ) :
 	mathEngine( other.mathEngine ),
 	desc( std::move( other.desc ) ),
-	data( std::move( other.data ) ),
-	dataOwned( other.dataOwned ),
-	parent( other.parent ),
-	parentPos( other.parentPos )
+	data( std::move( other.data ) )
 {
-	if( !data.IsNull() && parent == nullptr && dataOwned ) {
+	if( !data.IsNull() ) {
 		TransferDataToThisThread();
 	}
-	other.dataOwned = false; // ensure, no premature free
+	other.data = CMemoryHandle{}; // ensure, no premature free
 }
 
 CDnnBlob& CDnnBlob::operator=( CDnnBlob&& other )
 {
 	if( this != &other ) {
-		if( !data.IsNull() && parent == nullptr && dataOwned ) {
+		if( !data.IsNull() ) {
 			mathEngine.HeapFree( data );
 		}
 
 		NeoAssert( &mathEngine == &other.mathEngine );
 		desc = std::move( other.desc );
 		data = std::move( other.data );
-		dataOwned = std::move( other.dataOwned );
-		parent = std::move( other.parent );
-		parentPos = std::move( other.parentPos );
 
-		if( !data.IsNull() && parent == nullptr && dataOwned ) {
+		if( !data.IsNull() ) {
 			TransferDataToThisThread();
 		}
-		other.dataOwned = false; // ensure, no premature free
+		other.data = CMemoryHandle{}; // ensure, no premature free
 	}
 	return *this;
 }
@@ -120,10 +106,15 @@ CDnnBlob* CDnnBlob::Create3DImageBlob(IMathEngine& mathEngine, TBlobType type, i
 	return result;
 }
 
-CDnnBlob* CDnnBlob::CreateWindowBlob(const CPtr<CDnnBlob>& parent, int windowSize)
+CDnnBlob* CDnnBlob::CreateWindowBlob( const CPtr<CDnnBlob>& parent, int windowSize )
 {
-	CDnnBlob* result = FINE_DEBUG_NEW CDnnBlob( parent->GetMathEngine() );
-	result->initializeWindow(parent, windowSize);
+	return CDnnWindowBlob::CreateWindowBlob( parent, windowSize );
+}
+
+CDnnBlob* CDnnWindowBlob::CreateWindowBlob( const CPtr<CDnnBlob>& parent, int windowSize )
+{
+	CDnnWindowBlob* result = FINE_DEBUG_NEW CDnnWindowBlob( parent->GetMathEngine() );
+	result->initializeWindow( parent, windowSize );
 	return result;
 }
 
@@ -151,7 +142,7 @@ void CDnnBlob::initializeTensor(TBlobType type, std::initializer_list<int> dimen
 	initializeByPattern( type, pattern );
 }
 
-void CDnnBlob::initializeWindow(const CPtr<CDnnBlob>& _parent, int windowSize)
+void CDnnWindowBlob::initializeWindow( const CPtr<CDnnBlob>& _parent, int windowSize )
 {
 	NeoAssert(desc.GetDataType() == CT_Invalid);
 
@@ -184,7 +175,7 @@ void CDnnBlob::initializeByPattern(TBlobType type, const CBlobDesc& pattern)
 
 CDnnBlob::~CDnnBlob()
 {
-	if( !data.IsNull() && parent == 0 && dataOwned ) {
+	if( !data.IsNull() ) {
 		mathEngine.HeapFree( data );
 	}
 }
@@ -245,9 +236,7 @@ void CDnnBlob::CopyFrom(const CDnnBlob* other)
 
 void CDnnBlob::TransferDataToThisThread()
 {
-	NeoAssert( dataOwned );
 	NeoAssert( !data.IsNull() );
-	NeoAssert( parent == nullptr );
 	NeoAssert( GetDataType() == CT_Float || GetDataType() == CT_Int );
 
 	const size_t size = GetDataSize()
@@ -384,7 +373,6 @@ void CDnnBlob::TransposeFrom(const CDnnBlob* other, int _d1, int _d2)
 // As the data is unaffected, the total blob size specified by the new descriptor should be the same
 void CDnnBlob::ReinterpretDimensions( const CBlobDesc& newDesc )
 {
-	NeoAssert( parent == 0 );
 	NeoAssert( newDesc.BlobSize() == desc.BlobSize() );
 
 	desc = newDesc;
@@ -547,8 +535,6 @@ static const int BlobVersion = 2000;
 
 void CDnnBlob::Serialize( CArchive& archive )
 {
-	NeoAssert( parent == 0 ); // a blob that links to another may not be serialized
-
 	archive.SerializeVersion( BlobVersion, CDnn::ArchiveMinSupportedVersion );
 
 	if( archive.IsStoring() ) {
@@ -589,7 +575,6 @@ void CDnnBlob::Serialize( CArchive& archive )
 			default:
 				NeoAssert( false );
 		}
-		parentPos = 0;
 	} else {
 		NeoAssert( false );
 	}
