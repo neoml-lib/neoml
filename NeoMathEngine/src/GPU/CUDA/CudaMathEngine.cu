@@ -40,6 +40,7 @@ const int CudaMemoryAlignment = 4;
 
 CCudaMathEngine::CCudaMathEngine( const CCusparse* _cusparse, const CCublas* _cublas,
 		std::unique_ptr<CCudaDevice>& _device, int flags ) :
+	CMemoryEngineMixin( 0 ),
 	loader( CDllLoader::CUDA_DLL ),
 	cusparse( _cusparse ),
 	cublas( _cublas ),

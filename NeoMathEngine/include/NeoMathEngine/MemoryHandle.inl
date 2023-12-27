@@ -23,7 +23,7 @@ template<class T>
 inline void CTypedMemoryHandle<T>::SetValueAt( int index, T value ) const
 {
 	CTypedMemoryHandle<T> result = *this + index;
-	MathEngine->DataExchangeRaw( result, &value, sizeof( T ) );
+	GetMathEngine()->DataExchangeRaw( result, &value, sizeof( T ) );
 }
 
 template<class T>
@@ -31,7 +31,7 @@ inline T CTypedMemoryHandle<T>::GetValueAt( int index ) const
 {
 	char result[sizeof(T)];
 	CTypedMemoryHandle<T> source = *this + index;
-	MathEngine->DataExchangeRaw( result, source, sizeof( T ) );
+	GetMathEngine()->DataExchangeRaw( result, source, sizeof( T ) );
 	T* value = reinterpret_cast<T*>( &result );
 	return *value;
 }
@@ -39,14 +39,14 @@ inline T CTypedMemoryHandle<T>::GetValueAt( int index ) const
 template<class T>
 inline void CTypedMemoryHandle<T>::SetValue( T value ) const
 {
-	MathEngine->DataExchangeRaw( *this, &value, sizeof( T ) );
+	GetMathEngine()->DataExchangeRaw( *this, &value, sizeof( T ) );
 }
 
 template<class T>
 inline T CTypedMemoryHandle<T>::GetValue() const
 {
 	char result[sizeof(T)];
-	MathEngine->DataExchangeRaw( result, *this, sizeof( T ) );
+	GetMathEngine()->DataExchangeRaw( result, *this, sizeof( T ) );
 	T* value = reinterpret_cast<T*>( &result );
 	return *value;
 }

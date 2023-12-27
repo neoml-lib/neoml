@@ -16,7 +16,9 @@ limitations under the License.
 #pragma once
 
 #include <NeoMathEngine/NeoMathEngineDefs.h>
+#include <NeoMathEngine/NeoMathEngineException.h>
 #include <cstddef>
+#include <climits>
 #include <type_traits>
 
 namespace NeoML {
@@ -24,31 +26,66 @@ namespace NeoML {
 class IMathEngine;
 class CMemoryHandleInternal;
 
+// Get pointer to IMathEngine by the given current entity
+NEOMATHENGINE_API IMathEngine* GetMathEngineByIndex( size_t currentEntity );
+// Get current entity from the given pointer to IMathEngine
+NEOMATHENGINE_API size_t GetIndexOfMathEngine( const IMathEngine* mathEngine );
+
 // Wraps the pointer to memory allocated by a math engine
 class NEOMATHENGINE_API CMemoryHandle {
+private:
+#if FINE_PLATFORM( FINE_64_BIT )
+	static constexpr int mathEngineCountWidth = 10; // compress to bitfield
+	static constexpr int mathEngineCountShift = ( sizeof( size_t ) * CHAR_BIT ) - mathEngineCountWidth;
+	static constexpr size_t mathEngineMaxOffset = size_t( 1 ) << mathEngineCountShift;
+#else  // FINE_32_BIT
+	// only for bitfield compiles correct. no compress
+	static constexpr int mathEngineCountWidth = sizeof( size_t ) * CHAR_BIT;
+	static constexpr int mathEngineCountShift = sizeof( size_t ) * CHAR_BIT;
+#endif // FINE_32_BIT
+
 public:
-	constexpr CMemoryHandle() = default;
+	// Any possible number of all mathEngines
+	static constexpr int MaxMathEngineEntities = 1024;
+	static constexpr size_t MathEngineEntityInvalid = size_t( -1 );
+
+	CMemoryHandle() : CMemoryHandle( nullptr, 0, MathEngineEntityInvalid ) {}
 	// Be copied and moved by default
-	
+
 	bool operator!=( const CMemoryHandle& other ) const { return !operator==( other ); }
 	bool operator==( const CMemoryHandle& other ) const
-		{ return MathEngine == other.MathEngine && Object == other.Object && Offset == other.Offset; }
+		{ return Object == other.Object && Offset == other.Offset && Entity == other.Entity; }
 
 	bool IsNull() const { return *this == CMemoryHandle{}; }
 
-	IMathEngine* GetMathEngine() const { return MathEngine; }
+	IMathEngine* GetMathEngine() const { return GetMathEngineByIndex( Entity ); }
 
 protected:
-	IMathEngine* MathEngine = nullptr; // the math engine owner
+	// struct of (16 bytes size for x64 and arm-x64) and (12 bytes size for x86 and arm-x32)
 	const void* Object = nullptr; // the memory allocated base pointer
-	std::ptrdiff_t Offset = 0; // the offset in the memory allocated volume, in bytes
+	// The offset in the memory allocated volume, in bytes
+	size_t Offset : mathEngineCountShift; // (x64) the less significant bits of size_t stores offset in the base object, in bytes
+	// The math engine owner
+	size_t Entity : mathEngineCountWidth; // (x64) the most significant bits of size_t stores the number of IMathEngine entity
 
 	friend class CMemoryHandleInternal;
 
 	explicit CMemoryHandle( IMathEngine* mathEngine, const void* object, ptrdiff_t offset ) :
-		MathEngine( mathEngine ), Object( object ), Offset( offset ) {}
+		CMemoryHandle( object , offset, GetIndexOfMathEngine( mathEngine ) ) {}
 
-	CMemoryHandle Copy( ptrdiff_t shift ) const { return CMemoryHandle( MathEngine, Object, Offset + shift ); }
+	CMemoryHandle Copy( ptrdiff_t shift ) const { return CMemoryHandle( Object, Offset + shift, Entity ); }
+
+private:
+	explicit CMemoryHandle( const void* object, ptrdiff_t offset, size_t entity ) :
+		Object( object ), Offset( offset ), Entity( entity & ( MaxMathEngineEntities - 1 ) )
+	{
+#if FINE_PLATFORM( FINE_64_BIT )
+		static_assert( MaxMathEngineEntities == ( 1 << mathEngineCountWidth ), "Invalid max MathEngine entities" );
+		// Checks that the most significant bits do not interfere the result
+		ASSERT_EXPR( 0 <= offset && size_t( offset ) < mathEngineMaxOffset );
+#endif // FINE_64_BIT
+		ASSERT_EXPR( entity == MathEngineEntityInvalid || entity < ( MaxMathEngineEntities - 1/*Invalid*/ ) );
+	}
 };
 
 //---------------------------------------------------------------------------------------------------------------------

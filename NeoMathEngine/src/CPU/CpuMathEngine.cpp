@@ -51,6 +51,7 @@ int NEOMATHENGINE_API FloatAlignment = CCPUInfo::DefineFloatAlignment();
 CCpuMathEngine::CCpuMathEngine( size_t _memoryLimit,
 		std::shared_ptr<CMultiThreadDistributedCommunicator> communicator,
 		const CMathEngineDistributedInfo& distributedInfo ) :
+	CMemoryEngineMixin( 0 ),
 	floatAlignment( FloatAlignment ),
 	communicator( communicator ),
 	distributedInfo( distributedInfo ),
