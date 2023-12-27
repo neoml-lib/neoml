@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -73,6 +73,7 @@ class CMutex : public std::mutex {
 const int MetalMemoryAlignment = 16;
 
 CMetalMathEngine::CMetalMathEngine( size_t memoryLimit ) :
+	IMathEngine( 0 ),
 	queue( new CMetalCommandQueue() ),
 	memoryPool( new CMemoryPool( MIN( memoryLimit == 0 ? SIZE_MAX : memoryLimit, defineMemoryLimit() ), this, false ) ),
 	deviceStackAllocator( new CDeviceStackAllocator( *memoryPool, MetalMemoryAlignment ) ),

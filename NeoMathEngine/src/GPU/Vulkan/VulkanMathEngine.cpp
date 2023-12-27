@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -71,6 +71,7 @@ bool LoadVulkanEngineInfo( const CVulkanDll& dll, std::vector< CMathEngineInfo, 
 constexpr int VulkanMemoryAlignment = 16;
 
 CVulkanMathEngine::CVulkanMathEngine( std::unique_ptr<const CVulkanDevice>& _device, size_t memoryLimit ) :
+	IMathEngine( 0 ),
 	dllLoader( CDllLoader::VULKAN_DLL ),
 	device( std::move( _device ) ),
 	tmpImages( TVI_Count, nullptr )

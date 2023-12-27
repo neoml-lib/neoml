@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -53,6 +53,7 @@ int NEOMATHENGINE_API FloatAlignment = CCPUInfo::DefineFloatAlignment();
 CCpuMathEngine::CCpuMathEngine( size_t _memoryLimit,
 		std::shared_ptr<CMultiThreadDistributedCommunicator> communicator,
 		const CMathEngineDistributedInfo& distributedInfo ) :
+	IMathEngine( 0 ),
 	floatAlignment( FloatAlignment ),
 	memoryAlignment( floatAlignment * sizeof(float) ),
 	communicator( communicator ),
