@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -271,27 +271,26 @@ void CCpuMathEngine::RowMultiplyMatrixByMatrix( const CConstFloatHandle& firstHa
 	}
 }
 
-static void ColumnMultiplyMatrixByMatrix( CCpuMathEngine* engine, const CConstFloatHandle& firstHandle,
+static void columnMultiplyMatrixByMatrix( const CConstFloatHandle& firstHandle,
 	const CConstFloatHandle& secondHandle, int height, int width, const CFloatHandle& resultHandle )
 {
 	CCpuExecutionScope scope;
 
-	CConstFloatHandle first = firstHandle;
-	CConstFloatHandle second = secondHandle;
+	const float* first = GetRaw( firstHandle );
+	const float* second = GetRaw( secondHandle );
+	float* result = GetRaw( resultHandle );
 
-	engine->VectorEltwiseMultiply( first, second, resultHandle, width );
+	vectorEltwiseMultiply( first, second, result, width );
 	for( int j = 1; j < height; ++j ) {
 		first += width;
 		second += width;
-		engine->VectorEltwiseMultiplyAdd( first, second, resultHandle, width );
+		vectorEltwiseMultiplyAdd( first, second, result, width );
 	}
 }
 
 void CCpuMathEngine::AddVectorToMatrixColumns( const CConstIntHandle& matrixHandle, const CIntHandle& resultHandle,
 	int matrixHeight, int matrixWidth, const CConstIntHandle& vectorHandle )
 {
-	CCpuExecutionScope scope;
-
 	CConstIntHandle matrix = matrixHandle;
 	CIntHandle result = resultHandle;
 	CConstIntHandle vector = vectorHandle;
@@ -309,13 +308,13 @@ void CCpuMathEngine::SubVectorFromMatrixColumns( const CConstFloatHandle& matrix
 {
 	CCpuExecutionScope scope;
 
-	CConstFloatHandle matrix = matrixHandle;
-	CFloatHandle result = resultHandle;
+	const float* matrix = GetRaw( matrixHandle );
 	const float* vector = GetRaw( vectorHandle );
+	float* result = GetRaw( resultHandle );
 
 	for( int i = 0; i < matrixHeight; ++i ) {
-		float value = -( *vector++ );
-		VectorAddValue( matrix, result, matrixWidth, CConstFloatHandle( CMemoryHandleInternal::CreateMemoryHandle( this, &value ) ) );
+		const float value = -( *vector++ );
+		vectorAddValue( matrix, result, matrixWidth, value );
 		matrix += matrixWidth;
 		result += matrixWidth;
 	}
@@ -324,8 +323,6 @@ void CCpuMathEngine::SubVectorFromMatrixColumns( const CConstFloatHandle& matrix
 void CCpuMathEngine::SumMatrixColumns( const CFloatHandle& resultHandle, const CConstFloatHandle& matrixHandle,
 	int matrixHeight, int matrixWidth )
 {
-	CCpuExecutionScope scope;
-
 	CConstFloatHandle matrix = matrixHandle;
 	CFloatHandle result = resultHandle;
 
@@ -346,11 +343,10 @@ void CCpuMathEngine::MatrixColumnsEltwiseDivide( const CConstFloatHandle& matrix
 	float* result = GetRaw( resultHandle );
 
 	for( int i = 0; i < matrixHeight; ++i ) {
-		for( int j = 0; j < matrixWidth; ++j ) {
-			*result = *matrix / *vector;
-			++result;
-			++matrix;
-		}
+		const float multiplier = 1.f / *vector;
+		vectorMultiply( matrix, result, matrixWidth, multiplier );
+		result += matrixWidth;
+		matrix += matrixWidth;
 		++vector;
 	}
 }
@@ -359,7 +355,6 @@ void CCpuMathEngine::sumMatrixColumnsAdd( const CFloatHandle& resultHandle, cons
 	int matrixHeight, int matrixWidth )
 {
 	CConstFloatHandle matrix = matrixHandle;
-
 	CFloatHandle result = resultHandle;
 	for( int j = 0; j < matrixHeight; ++j ) {
 		VectorSumAdd( matrix, matrixWidth, result );
@@ -1210,6 +1205,9 @@ void CCpuMathEngine::MatrixSoftmaxByColumns( const CConstFloatHandle& matrix, in
 void CCpuMathEngine::MatrixSoftmaxDiffOpByColumns( const CConstFloatHandle& firstHandle,
 	const CConstFloatHandle& secondHandle, int height, int width, const CFloatHandle& resultHandle )
 {
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	CCpuExecutionScope scope;
 
 	// The formula: first - y, second - dE/dy, result - dE/dx
@@ -1218,7 +1216,7 @@ void CCpuMathEngine::MatrixSoftmaxDiffOpByColumns( const CConstFloatHandle& firs
 	CFloatHandleStackVar temp( mathEngine(), width );
 
 	// <dE/dy, y>
-	ColumnMultiplyMatrixByMatrix( this, firstHandle, secondHandle, height, width, temp );
+	columnMultiplyMatrixByMatrix( firstHandle, secondHandle, height, width, temp );
 
 	// dE/dyi - <dE/dy, y>
 	subVectorFromMatrixRows( this, secondHandle, resultHandle, height, width, temp );
