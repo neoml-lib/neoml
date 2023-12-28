@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -31,10 +31,10 @@ static void subVectorFromMatrixColumnsTestImpl( const CTestParams& params, int s
 
 	CREATE_FILL_FLOAT_ARRAY( getMatrix, valuesInterval.Begin, valuesInterval.End, height * width, random )
 	CREATE_FILL_FLOAT_ARRAY( vector, valuesInterval.Begin, valuesInterval.End, height, random )
-	std::vector<float> expectedMatrix;
-	expectedMatrix = getMatrix;
+	std::vector<float> expectedMatrix = getMatrix; // copy vector
 
-	MathEngine().SubVectorFromMatrixColumns( CARRAY_FLOAT_WRAPPER( expectedMatrix ), CARRAY_FLOAT_WRAPPER( getMatrix ), height, width, CARRAY_FLOAT_WRAPPER( vector ) );
+	MathEngine().SubVectorFromMatrixColumns( CARRAY_FLOAT_WRAPPER( expectedMatrix ),
+		CARRAY_FLOAT_WRAPPER( getMatrix ), height, width, CARRAY_FLOAT_WRAPPER( vector ) );
 
 	for( int h = 0; h < height; ++h ) {
 		for( int w = 0; w < width; ++w ) {
@@ -47,7 +47,6 @@ static void subVectorFromMatrixColumnsTestImpl( const CTestParams& params, int s
 	}
 }
 
-
 //---------------------------------------------------------------------------------------------------------------------
 
 class CSubVectorFromMatrixColumnsTest : public CTestFixtureWithParams {
@@ -58,19 +57,13 @@ INSTANTIATE_TEST_CASE_P( CSubVectorFromMatrixColumnsTestInstantiation, CSubVecto
 		CTestParams(
 			"Height = (1..50);"
 			"Width = (1..50);"
-			"BatchSize = (1..5);"
-			"VectorSize = (1..20);"
 			"Values = (-1..1);"
-			"Channels = (1..5);"
 			"TestCount = 100;"
 		),
 		CTestParams(
 			"Height = (100..500);"
 			"Width = (100..500);"
-			"BatchSize = (1..5);"
-			"VectorSize = (30..50);"
 			"Values = (-1..1);"
-			"Channels = (1..5);"
 			"TestCount = 5;"
 		)
 	)
