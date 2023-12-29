@@ -23,14 +23,14 @@ namespace NeoML {
 class NEOML_API CParameterLayer : public CBaseLayer {
     NEOML_DNN_LAYER(CParameterLayer)
 public:
-    CParameterLayer(IMathEngine& mathEngine, const char* name = nullptr) :
-        CBaseLayer(mathEngine, name == nullptr ? "ParameterLayer" : name, true) { paramBlobs.SetSize(1); };
+    CParameterLayer( IMathEngine& mathEngine ) :
+        CBaseLayer(mathEngine, "ParameterLayer", true) { paramBlobs.SetSize(1); };
 
     void Serialize(CArchive& archive) override;
     void SetBlob(CDnnBlob* _blob);
     const CPtr<CDnnBlob>& GetBlob() const { return paramBlobs[0]; }
 protected:
-    void AllocateOutputBlobs();
+    void AllocateOutputBlobs() override;
     void Reshape() override;
     void RunOnce() override;
     void BackwardOnce() override;

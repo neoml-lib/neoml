@@ -13,11 +13,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
- #include <common.h>
- #pragma hdrstop
+#include <common.h>
+#pragma hdrstop
 
- #include <NeoML/Dnn/Layers/ParameterLayer.h>
- #include <NeoMathEngine/NeoMathEngine.h>
+#include <NeoML/Dnn/Layers/ParameterLayer.h>
+#include <NeoMathEngine/NeoMathEngine.h>
 
 namespace NeoML {
 
