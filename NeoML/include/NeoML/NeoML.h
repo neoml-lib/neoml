@@ -65,6 +65,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/MultichannelLookupLayer.h>
 #include <NeoML/Dnn/Layers/MultiheadAttentionLayer.h>
 #include <NeoML/Dnn/Layers/ObjectNormalizationLayer.h>
+#include <NeoML/Dnn/Layers/ParameterLayer.h>
 #include <NeoML/Dnn/Layers/PoolingLayer.h>
 #include <NeoML/Dnn/Layers/RecurrentLayer.h>
 #include <NeoML/Dnn/Layers/QrnnLayer.h>
@@ -74,7 +75,6 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/SourceLayer.h>
 #include <NeoML/Dnn/Layers/SplitLayer.h>
 #include <NeoML/Dnn/Layers/TimeConvLayer.h>
-#include <NeoML/Dnn/Layers/ParameterLayer.h>
 #include <NeoML/Dnn/Layers/TransformLayer.h>
 #include <NeoML/Dnn/Layers/TransposedConvLayer.h>
 #include <NeoML/Dnn/Layers/TransposeLayer.h>
@@ -132,6 +132,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/MaxOverTimePoolingLayer.h>
 #include <NeoML/Dnn/Layers/ModelWrapperLayer.h>
 #include <NeoML/Dnn/Layers/MultiHingeLossLayer.h>
+#include <NeoML/Dnn/Layers/ParameterLayer.h>
 #include <NeoML/Dnn/Layers/PositionalEmbeddingLayer.h>
 #include <NeoML/Dnn/Layers/PrecisionRecallLayer.h>
 #include <NeoML/Dnn/Layers/ProjectionPoolingLayer.h>
@@ -143,7 +144,6 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/SpaceToDepthLayer.h>
 #include <NeoML/Dnn/Layers/SubSequenceLayer.h>
 #include <NeoML/Dnn/Layers/TiedEmbeddingsLayer.h>
-#include <NeoML/Dnn/Layers/ParameterLayer.h>
 #include <NeoML/Dnn/Layers/TransformerLayer.h>
 #include <NeoML/Dnn/Layers/TransformerSourceMaskLayer.h>
 #include <NeoML/Dnn/Layers/Upsampling2DLayer.h>

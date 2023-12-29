@@ -19,7 +19,7 @@ limitations under the License.
 #include <NeoML/Dnn/Dnn.h>
 
 namespace NeoML {
-    
+
 class NEOML_API CParameterLayer : public CBaseLayer {
     NEOML_DNN_LAYER(CParameterLayer)
 public:
