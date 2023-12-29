@@ -246,6 +246,18 @@ void CDnnBlob::CopyFrom(const CDnnBlob* other)
 	}
 }
 
+void CDnnBlob::TransferDataToThisThread()
+{
+	NeoAssert( dataOwned );
+	NeoAssert( !data.IsNull() );
+	NeoAssert( parent == nullptr );
+	NeoAssert( GetDataType() == CT_Float || GetDataType() == CT_Int );
+
+	const size_t size = GetDataSize()
+		* ( ( GetDataType() == CT_Float ) ? sizeof( float ) : sizeof( int ) );
+	mathEngine.TransferHandleToThisThread( data, size );
+}
+
 void CDnnBlob::Add(const CDnnBlob* other)
 {
 	NeoPresume(other->GetDataSize() == GetDataSize());
