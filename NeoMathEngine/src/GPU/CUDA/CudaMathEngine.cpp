@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -83,7 +83,15 @@ void CCudaMathEngine::HeapFree( const CMemoryHandle& handle )
 	ASSERT_EXPR( handle.GetMathEngine() == this );
 
 	std::lock_guard<std::mutex> lock( mutex );
-	return memoryPool->Free( handle );
+	memoryPool->Free( handle );
+}
+
+void CCudaMathEngine::TransferHandleToThisThread( const CMemoryHandle& handle, size_t size )
+{
+	ASSERT_EXPR( handle.GetMathEngine() == this );
+
+	std::lock_guard<std::mutex> lock( mutex );
+	memoryPool->TransferHandleToThisThread( handle, size );
 }
 
 CMemoryHandle CCudaMathEngine::StackAlloc( size_t size )

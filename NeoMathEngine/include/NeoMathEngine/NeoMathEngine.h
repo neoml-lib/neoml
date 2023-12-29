@@ -1184,6 +1184,9 @@ public:
 	virtual void SetReuseMemoryMode( bool enable ) = 0;
 	virtual CMemoryHandle HeapAlloc( size_t count ) = 0;
 	virtual void HeapFree( const CMemoryHandle& handle ) = 0;
+	// Transfers memory handle from other thread owner to this thread.
+	// Caution! Do not use this method directly, only through the method CDnnBlob::TransferDataToThisThread()
+	virtual void TransferHandleToThisThread( const CMemoryHandle& handle, size_t size ) = 0;
 
 	// Allocates typed memory
 	template<class T>
