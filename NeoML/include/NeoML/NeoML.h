@@ -74,6 +74,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/SourceLayer.h>
 #include <NeoML/Dnn/Layers/SplitLayer.h>
 #include <NeoML/Dnn/Layers/TimeConvLayer.h>
+#include <NeoML/Dnn/Layers/ParameterLayer.h>
 #include <NeoML/Dnn/Layers/TransformLayer.h>
 #include <NeoML/Dnn/Layers/TransposedConvLayer.h>
 #include <NeoML/Dnn/Layers/TransposeLayer.h>
@@ -142,6 +143,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/SpaceToDepthLayer.h>
 #include <NeoML/Dnn/Layers/SubSequenceLayer.h>
 #include <NeoML/Dnn/Layers/TiedEmbeddingsLayer.h>
+#include <NeoML/Dnn/Layers/ParameterLayer.h>
 #include <NeoML/Dnn/Layers/TransformerLayer.h>
 #include <NeoML/Dnn/Layers/TransformerSourceMaskLayer.h>
 #include <NeoML/Dnn/Layers/Upsampling2DLayer.h>

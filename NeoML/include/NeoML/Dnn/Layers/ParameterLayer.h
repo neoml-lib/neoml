@@ -13,20 +13,20 @@ See the License for the specific language governing permissions and
 limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
- #pragma once
+#pragma once
 
- #include <NeoML/NeoMLDefs.h>
- #include <NeoML/Dnn/Dnn.h>
- #include <NeoML/Dnn/Layers/BaseInPlaceLayer.h>
+#include <NeoML/NeoMLDefs.h>
+#include <NeoML/Dnn/Dnn.h>
 
- namespace NeoML {
+namespace NeoML {
     
-class NEOML_API CTrainableTransformLayer : public CBaseLayer {
-    NEOML_DNN_LAYER(CTrainableTransformLayer)
+class NEOML_API CParameterLayer : public CBaseLayer {
+    NEOML_DNN_LAYER(CParameterLayer)
 public:
-    CTrainableTransformLayer(IMathEngine& mathEngine, const char* name) :
-        CBaseLayer(mathEngine, name == nullptr ? "CTrainableTransformLayer" : name, true) {};
+    CParameterLayer(IMathEngine& mathEngine, const char* name = nullptr) :
+        CBaseLayer(mathEngine, name == nullptr ? "ParameterLayer" : name, true) { paramBlobs.SetSize(1); };
 
+    void Serialize(CArchive& archive) override;
     void SetBlob(CDnnBlob* _blob);
     const CPtr<CDnnBlob>& GetBlob() const { return paramBlobs[0]; }
 protected:
@@ -37,4 +37,4 @@ protected:
     void LearnOnce() override;
 };
 
- } // namespace NeoML
+} // namespace NeoML

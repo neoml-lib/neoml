@@ -43,6 +43,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/MultichannelLookupLayer.h>
 #include <NeoML/Dnn/Layers/MultiheadAttentionLayer.h>
 #include <NeoML/Dnn/Layers/ObjectNormalizationLayer.h>
+#include <NeoML/Dnn/Layers/ParameterLayer.h>
 #include <NeoML/Dnn/Layers/PoolingLayer.h>
 #include <NeoML/Dnn/Layers/RecurrentLayer.h>
 #include <NeoML/Dnn/Layers/QrnnLayer.h>
@@ -255,6 +256,7 @@ REGISTER_NEOML_LAYER( CLstmLayer, "FmlCnnLstmLayer" )
 REGISTER_NEOML_LAYER( CMaxPoolingLayer, "FmlCnnMaxPoolingLayer" )
 REGISTER_NEOML_LAYER( CMeanPoolingLayer, "FmlCnnMeanPoolingLayer" )
 REGISTER_NEOML_LAYER( CMultichannelLookupLayer, "FmlCnnMultychannelLookupLayer" )
+REGISTER_NEOML_LAYER( CParameterLayer, "FmlCnnParameterLayer" )
 REGISTER_NEOML_LAYER( CRecurrentLayer, "FmlCnnRecurrentLayer" )
 REGISTER_NEOML_LAYER( CRleConvLayer, "FmlCnnRleConvLayer" )
 REGISTER_NEOML_LAYER( CSinkLayer, "FmlCnnSinkLayer" )

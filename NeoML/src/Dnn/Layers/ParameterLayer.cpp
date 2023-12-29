@@ -16,18 +16,18 @@ limitations under the License.
  #include <common.h>
  #pragma hdrstop
 
- #include <NeoML/Dnn/Layers/TrainableTransformLayer.h>
+ #include <NeoML/Dnn/Layers/ParameterLayer.h>
  #include <NeoMathEngine/NeoMathEngine.h>
 
 namespace NeoML {
 
-void CTrainableTransformLayer::AllocateOutputBlobs()
+void CParameterLayer::AllocateOutputBlobs()
 {
 	outputBlobs[0] = paramBlobs[0];
 }
 
-void CTrainableTransformLayer::SetBlob(CDnnBlob* _blob) {
-
+void CParameterLayer::SetBlob(CDnnBlob* _blob)
+{
 	if (_blob == paramBlobs[0].Ptr()) {
 		return;
 	}
@@ -48,28 +48,34 @@ void CTrainableTransformLayer::SetBlob(CDnnBlob* _blob) {
 	}
 }
 
-void CTrainableTransformLayer::Reshape() {
+void CParameterLayer::Reshape()
+{
 	CheckOutputs();
 	CheckLayerArchitecture(GetOutputCount() == 1, "layer has more than 1 output");
 	CheckLayerArchitecture(paramBlobs[0].Ptr() != nullptr, "layer has null param blob");
 	outputDescs[0] = paramBlobs[0]->GetDesc();
 }
 
-void CTrainableTransformLayer::RunOnce()
+void CParameterLayer::RunOnce()
 {
-	// Output is equal to the layer's params
-	outputBlobs[0]->CopyFrom( paramBlobs[0] );
+	// Is done while AllocateOutputBlobs()
 }
 
-void CTrainableTransformLayer::LearnOnce()
+void CParameterLayer::LearnOnce()
 {
 	// Layer's derivative is one => equal to outputDiff
 	paramDiffBlobs[0]->Add( outputDiffBlobs[0] );
 }
 
-void CTrainableTransformLayer::BackwardOnce()
+void CParameterLayer::BackwardOnce()
 {
 	// Skip for this layer
+}
+
+void CParameterLayer::Serialize(CArchive& archive)
+{
+	archive.SerializeVersion( 0 );
+	CBaseLayer::Serialize(archive);
 }
 
 } // namespace NeoML

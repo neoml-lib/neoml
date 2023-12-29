@@ -50,6 +50,7 @@ set(NeoML_SOURCES_COMPACT
     Dnn/Layers/MultiheadAttentionLayer.cpp
     Dnn/Layers/MultiHingeLossLayer.cpp
     Dnn/Layers/ObjectNormalizationLayer.cpp
+    Dnn/Layers/ParameterLayer.cpp
     Dnn/Layers/PoolingLayer.cpp
     Dnn/Layers/RecurrentLayer.cpp
     Dnn/Layers/RleConvLayer.cpp
@@ -60,7 +61,6 @@ set(NeoML_SOURCES_COMPACT
     Dnn/Layers/SourceLayer.cpp
     Dnn/Layers/SplitLayer.cpp
     Dnn/Layers/TimeConvLayer.cpp
-    Dnn/Layers/TrainableTransformLayer.cpp
     Dnn/Layers/TransformLayer.cpp
     Dnn/Layers/TransposedConvLayer.cpp
     Dnn/Layers/TransposeLayer.cpp
@@ -155,6 +155,7 @@ set(NeoML_SOURCES
     Dnn/Layers/Onnx/OnnxSplitLayer.cpp
     Dnn/Layers/Onnx/OnnxTransformHelper.cpp
     Dnn/Layers/Onnx/OnnxTransposeHelper.cpp
+    Dnn/Layers/ParameterLayer.cpp
     Dnn/Layers/PositionalEmbeddingLayer.cpp
     Dnn/Layers/PrecisionRecallLayer.cpp
     Dnn/Layers/ProjectionPoolingLayer.cpp
@@ -293,6 +294,7 @@ set(NeoML_HEADERS_COMPACT
     ../include/NeoML/Dnn/Layers/MultichannelLookupLayer.h
     ../include/NeoML/Dnn/Layers/MultiheadAttentionLayer.h
     ../include/NeoML/Dnn/Layers/ObjectNormalizationLayer.h
+    ../include/NeoML/Dnn/Layers/ParameterLayer.h
     ../include/NeoML/Dnn/Layers/PoolingLayer.h
     ../include/NeoML/Dnn/Layers/RecurrentLayer.h
     ../include/NeoML/Dnn/Layers/QrnnLayer.h
@@ -302,7 +304,6 @@ set(NeoML_HEADERS_COMPACT
     ../include/NeoML/Dnn/Layers/SourceLayer.h
     ../include/NeoML/Dnn/Layers/SplitLayer.h
     ../include/NeoML/Dnn/Layers/TimeConvLayer.h
-    ../include/NeoML/Dnn/Layers/TrainableTransformLayer.h
     ../include/NeoML/Dnn/Layers/TransformLayer.h
     ../include/NeoML/Dnn/Layers/TransposedConvLayer.h
     ../include/NeoML/Dnn/Layers/TransposeLayer.h
@@ -417,6 +418,7 @@ set(NeoML_HEADERS
     ../include/NeoML/Dnn/Layers/Onnx/OnnxSplitLayer.h
     ../include/NeoML/Dnn/Layers/Onnx/OnnxTransformHelper.h
     ../include/NeoML/Dnn/Layers/Onnx/OnnxTransposeHelper.h
+    ../include/NeoML/Dnn/Layers/ParameterLayer.h
     ../include/NeoML/Dnn/Layers/PoolingLayer.h
     ../include/NeoML/Dnn/Layers/PositionalEmbeddingLayer.h
     ../include/NeoML/Dnn/Layers/PrecisionRecallLayer.h

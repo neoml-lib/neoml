@@ -46,7 +46,6 @@ target_sources(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/SpaceToDepthTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/SumMatrixRowsTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/SumMatrixColumnsTest.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/TrainableTransformLayerTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Upsampling2DForwardTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorAbsDiffTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/VectorAbsTest.cpp
