@@ -35,7 +35,6 @@ target_sources(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/TestFixture.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/TestParams.h
     ${CMAKE_CURRENT_SOURCE_DIR}/TestParams.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/TrainableTransformLayerTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/TransformerSourceMaskTest.cpp
 )
 

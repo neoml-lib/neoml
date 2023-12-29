@@ -58,7 +58,7 @@ void CParameterLayer::Reshape()
 
 void CParameterLayer::RunOnce()
 {
-	// Is done while AllocateOutputBlobs()
+	// Is done while AllocateOutputBlobs
 }
 
 void CParameterLayer::LearnOnce()

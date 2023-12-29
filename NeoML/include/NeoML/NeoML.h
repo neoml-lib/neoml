@@ -132,7 +132,6 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/MaxOverTimePoolingLayer.h>
 #include <NeoML/Dnn/Layers/ModelWrapperLayer.h>
 #include <NeoML/Dnn/Layers/MultiHingeLossLayer.h>
-#include <NeoML/Dnn/Layers/ParameterLayer.h>
 #include <NeoML/Dnn/Layers/PositionalEmbeddingLayer.h>
 #include <NeoML/Dnn/Layers/PrecisionRecallLayer.h>
 #include <NeoML/Dnn/Layers/ProjectionPoolingLayer.h>

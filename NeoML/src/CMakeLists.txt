@@ -155,7 +155,6 @@ set(NeoML_SOURCES
     Dnn/Layers/Onnx/OnnxSplitLayer.cpp
     Dnn/Layers/Onnx/OnnxTransformHelper.cpp
     Dnn/Layers/Onnx/OnnxTransposeHelper.cpp
-    Dnn/Layers/ParameterLayer.cpp
     Dnn/Layers/PositionalEmbeddingLayer.cpp
     Dnn/Layers/PrecisionRecallLayer.cpp
     Dnn/Layers/ProjectionPoolingLayer.cpp
@@ -418,7 +417,6 @@ set(NeoML_HEADERS
     ../include/NeoML/Dnn/Layers/Onnx/OnnxSplitLayer.h
     ../include/NeoML/Dnn/Layers/Onnx/OnnxTransformHelper.h
     ../include/NeoML/Dnn/Layers/Onnx/OnnxTransposeHelper.h
-    ../include/NeoML/Dnn/Layers/ParameterLayer.h
     ../include/NeoML/Dnn/Layers/PoolingLayer.h
     ../include/NeoML/Dnn/Layers/PositionalEmbeddingLayer.h
     ../include/NeoML/Dnn/Layers/PrecisionRecallLayer.h
