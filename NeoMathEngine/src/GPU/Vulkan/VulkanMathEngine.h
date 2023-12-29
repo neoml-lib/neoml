@@ -61,6 +61,7 @@ public:
 	void SetReuseMemoryMode( bool enable ) override;
 	CMemoryHandle HeapAlloc( size_t count ) override;
 	void HeapFree( const CMemoryHandle& handle ) override;
+	void TransferHandleToThisThread( const CMemoryHandle& /*handle*/, size_t /*size*/ ) override { ASSERT_EXPR( false ); }
 	CMemoryHandle StackAlloc( size_t count ) override;
 	void StackFree( const CMemoryHandle& handle ) override;
 	size_t GetFreeMemorySize() const override;
