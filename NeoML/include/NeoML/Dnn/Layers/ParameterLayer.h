@@ -20,6 +20,7 @@ limitations under the License.
 
 namespace NeoML {
 
+// Layer with blob of trainable parameters ( nn.Parameter analogous )
 class NEOML_API CParameterLayer : public CBaseLayer {
     NEOML_DNN_LAYER(CParameterLayer)
 public:

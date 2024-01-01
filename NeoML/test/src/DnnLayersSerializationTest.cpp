@@ -155,6 +155,7 @@ GTEST_TEST( SerializeToFile, BaseLayerSerialization )
 	serializeToFile<CNotLayer>( "NeoMLDnnNotLayer" );
 	serializeToFile<CErfLayer>( "NeoMLDnnErfLayer" );
 	serializeToFile<CLessLayer>( "NeoMLDnnLessLayer" );
+	serializeToFile<CParameterLayer>( "NeoMLDnnParameterLayer" );
 	serializeToFile<CEqualLayer>( "NeoMLDnnEqualLayer" );
 	serializeToFile<CGlobalSumPoolingLayer>( "NeoMLDnnGlobalSumPoolingLayer" );
 	serializeToFile<CWhereLayer>( "NeoMLDnnWhereLayer" );
@@ -277,6 +278,7 @@ GTEST_TEST( SerializeFromFile, BaseLayerSerialization )
 	checkSerializeLayer<CBaseLayer>( "NeoMLDnnNotLayer" );
 	checkSerializeLayer<CBaseLayer>( "NeoMLDnnErfLayer" );
 	checkSerializeLayer<CBaseLayer>( "NeoMLDnnLessLayer" );
+	checkSerializeLayer<CBaseLayer>( "NeoMLDnnParameterLayer" );
 	checkSerializeLayer<CBaseLayer>( "NeoMLDnnEqualLayer" );
 	checkSerializeLayer<CBaseLayer>( "NeoMLDnnGlobalSumPoolingLayer" );
 	checkSerializeLayer<CBaseLayer>( "NeoMLDnnWhereLayer" );
@@ -1973,6 +1975,42 @@ inline void checkSpecificParams<CMultiheadAttentionLayer>( CMultiheadAttentionLa
 GTEST_TEST( SerializeFromFile, MultiheadAttentionLayerSerialization )
 {
 	checkSerializeLayer<CMultiheadAttentionLayer>( "NeoMLDnnMultiheadAttentionLayer" );
+}
+
+// ====================================================================================================================
+
+// CParameterLayer
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+static void setSpecificParams(CParameterLayer& layer)
+{
+	const int batchWidth = 4;
+	const int imageWidth = 5;
+	const int channelCount = 6;
+	CPtr<CDnnBlob> paramData = generateBlob(batchWidth, 1, 1, imageWidth, channelCount);
+	layer.SetBlob( paramData );
+}
+
+GTEST_TEST(SerializeToFile, ParameterLayerSerialization)
+{
+	serializeToFile<CParameterLayer>("NeoMLDnnParameterLayer");
+}
+
+#endif // GENERATE_SERIALIZATION_FILES
+
+template<>
+inline void checkSpecificParams<CParameterLayer>(CParameterLayer& layer)
+{
+	const int batchWidth = 4;
+	const int imageWidth = 5;
+	const int channelCount = 6;
+	checkBlob( *(layer.GetBlob()), batchWidth * imageWidth * channelCount );
+}
+
+GTEST_TEST(SerializeFromFile, ParameterLayerSerialization)
+{
+	checkSerializeLayer<CParameterLayer>("NeoMLDnnParameterLayer");
 }
 
 // ====================================================================================================================
