@@ -49,7 +49,7 @@ Note that the *L1RegFactor*, *L2RegFactor*, *PruneCriterionValue* parameters are
 The following loss functions are supported:
 
 - *LF_Exponential* — [classification only] exponential loss function: `L(x, y) = exp(-(2y - 1) * x)`;
-- *LF_Binomial* — [classification only] binomial loss function: `L(x, y) = ln(1 + exp(-x)) - x * y`;
+- *LF_Binomial* — [classification only] binomial loss function: `L(x, y) = ln(1 + exp(-x)) + x * (1 - y)`;
 - *LF_SquaredHinge* — [classification only] smoothed square hinge: `L(x, y) = max(0, 1 - (2y - 1)* x) ^ 2`;
 - *LF_L2* — quadratic loss function: `L(x, y) = (y - x)^2 / 2`.
 
