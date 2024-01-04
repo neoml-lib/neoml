@@ -16,28 +16,174 @@ limitations under the License.
 #include <common.h>
 #pragma hdrstop
 
+#include <atomic>
+#include <thread>
 #include <TestFixture.h>
 
-TEST(CDnnBlobTest, InitWindowBlob)
+using namespace NeoML;
+using namespace NeoMLTest;
+
+TEST( CDnnBlobTest, InitWindowBlob )
 {
-    NeoML::IMathEngine& engine = NeoML::GetDefaultCpuMathEngine();
-    CPtr<NeoML::CDnnBlob> parent = NeoML::CDnnBlob::CreateDataBlob( engine, NeoML::CT_Float, 16, 1, 1 );
-    CPtr<NeoML::CDnnBlob> blob = NeoML::CDnnBlob::CreateWindowBlob( parent );
+    CPtr<CDnnBlob> parent = CDnnBlob::CreateDataBlob( MathEngine(), CT_Float, 16, 1, 1 );
+    CPtr<CDnnBlob> blob = CDnnBlob::CreateWindowBlob( parent );
 
     ASSERT_FALSE( blob->GetData().IsNull() );
 }
 
-TEST(CDnnBlobTest, BufferTest)
+TEST( CDnnBlobTest, BufferTest )
 {
-    NeoML::IMathEngine& engine = NeoML::GetDefaultCpuMathEngine();
-    CPtr<NeoML::CDnnBlob> blob = NeoML::CDnnBlob::CreateDataBlob( engine, NeoML::CT_Float, 16, 1, 1 );
+    CPtr<CDnnBlob> blob = CDnnBlob::CreateDataBlob( MathEngine(), CT_Float, 16, 1, 1 );
     ASSERT_FALSE( blob->GetData().IsNull() );
 
-    NeoML::CDnnBlobBuffer<float> buffer( *blob, NeoML::TDnnBlobBufferAccess::Write );
+    CDnnBlobBuffer<float> buffer( *blob, TDnnBlobBufferAccess::Write );
     ASSERT_NE( nullptr, buffer.Ptr() );
-    ::memset( buffer, 0, buffer.Size() * sizeof(float) );
+    ::memset( buffer, 0, buffer.Size() * sizeof( float ) );
 
     EXPECT_FALSE( buffer.IsClosed() );
     buffer.Close();
     EXPECT_TRUE( buffer.IsClosed() );
 }
+
+//---------------------------------------------------------------------------------------------------------------------
+
+#if FINE_PLATFORM( FINE_WINDOWS ) || !defined( NEOML_USE_FINEOBJ )
+
+namespace NeoMLTest {
+
+enum class TTransferType {
+    PoolToPool, PoolToHeap, HeapToPool, HeapToHeap
+};
+
+class CDnnBlobTest : public CNeoMLTestFixture, public ::testing::WithParamInterface<TTransferType> {
+public:
+	static bool InitTestFixture() { return true; }
+	static void DeinitTestFixture() {}
+};
+
+static void testTransferBlobInThreadsImpl( TTransferType type )
+{
+    const TMathEngineType met = MathEngine().GetType();
+    switch( met ) {
+        case MET_Cpu:
+            break;
+        case MET_Cuda:
+            if( TTransferType::PoolToPool == type ) {
+                break;
+            }
+            GTEST_LOG_( INFO ) << "Skipped (" << int( type ) << ") for met=" << met;
+            return;
+        case MET_Metal:
+        case MET_Vulkan:
+            GTEST_LOG_( INFO ) << "Skipped (" << int(type) << ") for met=" << met;
+            return;
+        default:
+            EXPECT_TRUE( false );
+    }
+
+    DeleteMathEngine();
+    IMathEngine& mathEngine = MathEngine(); // create unique MathEngine
+
+    std::atomic<bool> created{ false };
+    std::atomic<bool> transfered{ false };
+    std::atomic<bool> cleaned{ false };
+
+    const int blobSize = 1024; // bytes
+    const int blobCheckSize = 256; // bytes
+    const int blobTransferedSize = 512; // bytes
+
+    CPtr<CDnnBlob> blobTransfer;
+
+    std::thread oldThread( [&]()
+    {
+        EXPECT_TRUE( mathEngine.GetPeakMemoryUsage() == 0 ); // no allocated memory
+        const bool usePools = ( type == TTransferType::PoolToPool || type == TTransferType::PoolToHeap );
+        mathEngine.SetReuseMemoryMode( usePools );
+        EXPECT_TRUE( mathEngine.GetMemoryInPools() == 0 ); // no allocated non-used memory
+
+        {
+            const int blobCount = blobSize / sizeof( float );
+            const int blobCheckCount = blobCheckSize / sizeof( float );
+            const int blobTransferedCount = blobTransferedSize / sizeof( float );
+
+            // Creating blobs
+            CPtr<CDnnBlob> blob = CDnnBlob::CreateDataBlob( mathEngine, CT_Float, blobCount, 1, 1 );
+            CPtr<CDnnBlob> blobCheck = CDnnBlob::CreateDataBlob( mathEngine, CT_Float, blobCheckCount, 1, 1 );
+            blobTransfer = CDnnBlob::CreateDataBlob( mathEngine, CT_Float, blobTransferedCount, 1, 1 );
+
+            // Allocated memory of 3 blobs on OLD thread
+            EXPECT_TRUE( mathEngine.GetPeakMemoryUsage() == ( blobTransferedSize + blobCheckSize + blobSize ) );
+            // All allocated memory is busy, no non-used memory
+            EXPECT_TRUE( mathEngine.GetMemoryInPools() == 0 );
+            ( void ) created.exchange( true );
+
+            while( !transfered ); // wait
+            // Now OLD thread contains memory of only non-trasfered blobs after transfer
+            blob.Release(); // Destroy blob
+
+            // Memory still in pool after the blob's destroyed, if pools used
+            EXPECT_TRUE( mathEngine.GetMemoryInPools() == ( usePools ? blobSize : 0 ) ); // allocated non-used memory
+            // Clean-up non-used memory for this OLD thread
+            mathEngine.CleanUp();
+            EXPECT_TRUE( mathEngine.GetMemoryInPools() == 0 );
+        }  // Destroy blobCheck
+
+        EXPECT_TRUE( mathEngine.GetMemoryInPools() == ( usePools ? blobCheckSize : 0 ) ); // allocated non-used memory
+        // Finally clean-up all non-used memory for this OLD thread
+        mathEngine.CleanUp();
+        EXPECT_TRUE( mathEngine.GetMemoryInPools() == 0 );
+        
+        ( void ) cleaned.exchange( true );
+    } );
+
+    std::thread newThread( [&]()
+    {
+        const bool usePools = ( type == TTransferType::PoolToPool || type == TTransferType::PoolToHeap );
+        mathEngine.SetReuseMemoryMode( usePools );
+        EXPECT_TRUE( mathEngine.GetMemoryInPools() == 0 ); // no non-used allocated memory
+
+        while( !created ); // wait
+
+        // Allocated memory of 3 blobs on OLD thread
+        EXPECT_TRUE( mathEngine.GetPeakMemoryUsage() == ( blobTransferedSize + blobCheckSize + blobSize ) );
+
+        blobTransfer->TransferDataToThisThread();
+        // Now NEW thread contains memory of only one trasfered blob
+
+        // All allocated memory is busy, no non-used memory
+        EXPECT_TRUE( mathEngine.GetMemoryInPools() == 0 );
+        ( void ) transfered.exchange( true );
+        while( !cleaned ); // wait
+
+        blobTransfer->Fill( 2 ); // OK!
+        blobTransfer.Release(); // Destroy blob
+        //blobCheck->Fill( 0 ); // Error! segfault
+
+        // Memory still in pool after the blob's destroyed, if pools used
+        EXPECT_TRUE( mathEngine.GetMemoryInPools() == ( usePools ? blobTransferedSize : 0 ) );
+
+        // Finally clean-up all non-used memory for this NEW thread
+        mathEngine.CleanUp();
+        EXPECT_TRUE( mathEngine.GetMemoryInPools() == 0 );
+        //blobTransfer->Fill( 1 ); // Error! segfault
+    } );
+
+    oldThread.join();
+    newThread.join();
+}
+
+} // namespace NeoMLTest
+
+TEST_P( CDnnBlobTest, TransferBlobInThreads )
+{
+    TTransferType type = GetParam();
+    testTransferBlobInThreadsImpl( type );
+}
+
+INSTANTIATE_TEST_CASE_P( CDnnBlobTestInstantiation, CDnnBlobTest,
+    ::testing::Values(
+        TTransferType::PoolToPool, TTransferType::PoolToHeap, TTransferType::HeapToPool, TTransferType::HeapToHeap
+    )
+);
+
+#endif // FINE_WINDOWS || !NEOML_USE_FINEOBJ

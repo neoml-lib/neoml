@@ -54,6 +54,7 @@ public:
 	void SetReuseMemoryMode( bool enable ) override;
 	CMemoryHandle HeapAlloc( size_t count ) override;
 	void HeapFree( const CMemoryHandle& handle ) override;
+	void TransferHandleToThisThread( const CMemoryHandle& handle, size_t size ) override;
 	CMemoryHandle StackAlloc( size_t count ) override;
 	void StackFree( const CMemoryHandle& handle ) override;
 	size_t GetFreeMemorySize() const override;
@@ -637,7 +638,7 @@ public:
 	void RowwiseExecute( const CBlobDesc& inputDesc, CRowwiseOperationDesc** operations, int operationCount,
 		const CFloatHandle& input, const CFloatHandle& output ) override;
 
-	IPerformanceCounters* CreatePerformanceCounters() const override { 	return new CPerformanceCountersDefault(); }
+	IPerformanceCounters* CreatePerformanceCounters( bool ) const override { return new CPerformanceCountersDefault(); }
 	void AllReduce( const CFloatHandle& handle, int size ) override;
 	void Broadcast( const CFloatHandle& handle, int size, int root ) override;
 	void AbortDistributed() override;

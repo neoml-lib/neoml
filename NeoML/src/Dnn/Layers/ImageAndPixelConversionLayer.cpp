@@ -198,13 +198,23 @@ void CPixelToImageLayer::BackwardOnce()
 void CPixelToImageLayer::SetImageHeight( int newHeight )
 {
 	NeoAssert( newHeight > 0 );
+	if( newHeight == imageHeight ) {
+		return;
+	}
+
 	imageHeight = newHeight;
+	ForceReshape();
 }
 
 void CPixelToImageLayer::SetImageWidth( int newWidth )
 {
 	NeoAssert( newWidth > 0 );
+	if( newWidth == imageWidth ) {
+		return;
+	}
+
 	imageWidth = newWidth;
+	ForceReshape();
 }
 
 CLayerWrapper<CPixelToImageLayer> PixelToImage( int imageHeight, int imageWidth )

@@ -1184,6 +1184,9 @@ public:
 	virtual void SetReuseMemoryMode( bool enable ) = 0;
 	virtual CMemoryHandle HeapAlloc( size_t count ) = 0;
 	virtual void HeapFree( const CMemoryHandle& handle ) = 0;
+	// Transfers memory handle from other thread owner to this thread.
+	// Caution! Do not use this method directly, only through the method CDnnBlob::TransferDataToThisThread()
+	virtual void TransferHandleToThisThread( const CMemoryHandle& handle, size_t size ) = 0;
 
 	// Allocates typed memory
 	template<class T>
@@ -1228,7 +1231,7 @@ public:
 
 	// Creates a object for aggregating statistics.
 	// This object should be destroyed using the standard delete operator after use.
-	virtual IPerformanceCounters* CreatePerformanceCounters() const = 0;
+	virtual IPerformanceCounters* CreatePerformanceCounters( bool isTimeOnly = false ) const = 0;
 
 	virtual CMathEngineDistributedInfo GetDistributedInfo() { return CMathEngineDistributedInfo(); }
 	virtual void AllReduce( const CFloatHandle& handle, int size ) = 0;

@@ -178,6 +178,11 @@ if(LINUX)
     target_compile_options(libprotobuf-lite PRIVATE -Wno-stringop-overflow)
 endif()
 
+if(DARWIN)
+    target_compile_options(libprotobuf PRIVATE -Wno-deprecated-declarations)
+    target_compile_options(libprotobuf-lite PRIVATE -Wno-deprecated-declarations)
+endif()
+
 if(${CMAKE_VERSION} VERSION_GREATER "3.16.0")
     set(CMAKE_UNITY_BUILD ${NeoML_UNITY_BUILD})
 endif()
