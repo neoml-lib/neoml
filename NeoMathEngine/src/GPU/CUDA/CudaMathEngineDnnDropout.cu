@@ -22,26 +22,16 @@ limitations under the License.
 #include <CudaCommon.h>
 #include <MathEngineCommon.h>
 #include <MemoryHandleInternal.h>
-#include <CudaMathEngineDnnDropout.h>
+#include <MathEngineDnnDropout.h>
 
 #include <Kernels/CudaDnnDropoutKernels.h>
 
 namespace NeoML {
 
-CCudaMathEngineDropoutDesc::CCudaMathEngineDropoutDesc( IMathEngine& mathEngine, float rate, bool isSpatial,
-		bool isBatchwise, const CBlobDesc& input, const CBlobDesc& output, int seed ) :
-	Input(input),
-	Output(output),
-	ForwardRate(1.f - rate),
-	IsSpatial(isSpatial),
-	IsBatchwise(isBatchwise),
-	seed(seed) 
-{}
-
 CDropoutDesc* CCudaMathEngine::InitDropout( float rate, bool isSpatial, bool isBatchwise,
 	const CBlobDesc& input, const CBlobDesc& output, int seed )
 {
-	return new CCudaMathEngineDropoutDesc(mathEngine(), rate, isSpatial, isBatchwise, input, output, seed);
+	return new CSeedDropoutDesc(rate, isSpatial, isBatchwise, input, output, seed);
 }
 
 void CCudaMathEngine::Dropout( const CDropoutDesc& dropoutDesc,
@@ -51,7 +41,7 @@ void CCudaMathEngine::Dropout( const CDropoutDesc& dropoutDesc,
 	ASSERT_EXPR( outputData.GetMathEngine() == this );
 	SetCudaDevice( device->DeviceNumber );
 
-	const CCudaMathEngineDropoutDesc& desc = static_cast<const CCudaMathEngineDropoutDesc&>( dropoutDesc );
+	const CSeedDropoutDesc& desc = static_cast<const CSeedDropoutDesc&>( dropoutDesc );
 	const CBlobDesc& input = desc.Input;
 
 	if( desc.ForwardRate == 1.f ) {

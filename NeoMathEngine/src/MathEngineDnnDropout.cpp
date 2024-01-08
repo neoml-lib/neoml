@@ -34,7 +34,7 @@ static inline int getMaskSize( float rate, bool isSpatial, bool isBatchwise, con
 	return batchWidth * objectSize;
 }
 
-CMathEngineDropoutDesc::CMathEngineDropoutDesc( IMathEngine& mathEngine, float rate, bool isSpatial, bool isBatchwise,
+CMaskDropoutDesc::CMaskDropoutDesc( IMathEngine& mathEngine, float rate, bool isSpatial, bool isBatchwise,
 		const CBlobDesc& input, const CBlobDesc& output, int seed ) :
 	Input( input ),
 	Output( output ),
@@ -48,6 +48,18 @@ CMathEngineDropoutDesc::CMathEngineDropoutDesc( IMathEngine& mathEngine, float r
 	if( rate != 0 ) {
 		mathEngine.VectorFillBernoulli( Mask.GetHandle(), ForwardRate, Mask.Size(), 1.f / ForwardRate, seed );
 	}
+}
+
+CSeedDropoutDesc::CSeedDropoutDesc( float rate, bool isSpatial, bool isBatchwise,
+		const CBlobDesc& input, const CBlobDesc& output, int seed ) :
+	Input( input ),
+	Output( output ),
+	ForwardRate( 1.f - rate ),
+	IsSpatial( isSpatial ),
+	IsBatchwise( isBatchwise ),
+	seed(seed)
+{
+	ASSERT_EXPR( rate >= 0.f && rate < 1.f );
 }
 
 } // namespace NeoML
