@@ -15,8 +15,6 @@ limitations under the License.
 
 #pragma once
 
-#include <memory>
-
 #include "CpuRowwiseCommon.h"
 #include "CpuRowwiseInterface.h"
 #include <CpuMathEngineDnnChannelwiseConv.h>
@@ -26,7 +24,8 @@ namespace NeoML {
 
 class CCpuMathEngine::CCpuRowwiseChConvWith1x1 : public ICpuRowwiseImpl, public CRowwiseOperationDesc {
 public:
-	CCpuRowwiseChConvWith1x1( CCpuMathEngine& mathEngine, int stride, const float* chFilter, const float* chFreeTerm,
+	CCpuRowwiseChConvWith1x1( CCpuMathEngine& mathEngine,
+			int stride, const float* chFilter, const float* chFreeTerm,
 			TActivationFunction activation, float reluParam, const float* convFilter,
 			const float* convFreeTerm, int outputChannels, bool residual ) :
 		mathEngine( mathEngine ),
@@ -40,8 +39,7 @@ public:
 		residual( residual ),
 		desc( 1, 1, stride, stride, CBlobDesc{}, CBlobDesc{}, CBlobDesc{} ),
 		inputRowRequirement( 0 ),
-		outputRowRequirement( 0 ),
-		smallMatricesMulDescs( mathEngine )
+		outputRowRequirement( 0 )
 	{}
 
 	CBlobDesc Reshape( const CBlobDesc& inputSize ) override;
@@ -69,10 +67,6 @@ private:
 	CCommonChannelwiseConvolutionDesc desc;
 	int inputRowRequirement{};
 	int outputRowRequirement{};
-	// The array of matrices multiplication optimization descriptors
-	CCpuSmallMatricesMultiplyDescsArray</*Height*/> smallMatricesMulDescs;
-	// If ( outputChannels or inputChannels ) is being changed,
-	// for the smallMatricesMulDescs method DestroyAll() should be called to recreate JIT.
 
 	int getMaxOutputRowsPerStep() const;
 };
@@ -141,7 +135,6 @@ inline ICpuRowwiseImpl::CProcessingReport CCpuMathEngine::CCpuRowwiseChConvWith1
 
 	const int firstWidth = inputChannels;
 	const int secondHeight = outputChannels;
-	const int resultWidth = secondHeight;
 
 	const float* residualInput = input + ( outputRowIndex - inputRowIndex ) * desc.Source.Width() * desc.Source.Channels();
 	const int maxChRowsPerStep = std::max( 1, RowwiseCacheSize / std::max( chOutputRowSize, chInputRowSize ) );
@@ -180,11 +173,9 @@ inline ICpuRowwiseImpl::CProcessingReport CCpuMathEngine::CCpuRowwiseChConvWith1
 		}
 
 		const int firstHeight = outputRowsThisStep * outputWidth;
-		auto mulDesc = smallMatricesMulDescs.Get( firstHeight,
-			firstHeight, firstWidth, /*secondWidth*/firstWidth, resultWidth );
 
 		mathEngine.multiplyMatrixByTransposedWithFreeTerm( /*first*/buffer, firstHeight, firstWidth,
-			/*second*/convFilter, secondHeight, /*freeTerm*/convFreeTerm, /*result*/output, mulDesc );
+			/*second*/convFilter, secondHeight, /*freeTerm*/convFreeTerm, /*result*/output );
 		if( residual ) {
 			vectorAdd( output, residualInput, output, firstHeight * outputChannels );
 			residualInput += outputRowsThisStep * desc.Source.Width() * inputChannels;

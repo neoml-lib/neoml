@@ -35,20 +35,14 @@ struct CCpuConvolutionDesc : public CCommonConvolutionDesc {
 	TConvAlgo BackwardAlgo;
 	std::unique_ptr<CConvolutionDesc> SimdConvolutionDesc{};
 
-	enum { TSMMDA_Forward, TSMMDA_Backward, TSMMDA_Learn, /*...*/ TSMMDA_Count_ };
-	// The C-array of optimization descriptors arrays, which parametrized by matrix height,
-	// to get access to 1 array, use enum above as index.
-	mutable CCpuSmallMatricesMultiplyDescsArray</*Height*/> SmallMatricesMulDescsHeightArrays[TSMMDA_Count_];
-
-	CCpuConvolutionDesc( IMathEngine& mathEngine,
+	CCpuConvolutionDesc(
 			const CBlobDesc& source, const CBlobDesc& result, const CBlobDesc& filter,
 			int paddingHeight, int paddingWidth, int strideHeight, int strideWidth,
 			int dilationHeight, int dilationWidth ) :
 		CCommonConvolutionDesc( source, result, filter, paddingHeight, paddingWidth,
 			strideHeight, strideWidth, dilationHeight, dilationWidth ),
 		ForwardAlgo( getActualForwardAlgo() ),
-		BackwardAlgo( getActualBackwardAlgo() ),
-		SmallMatricesMulDescsHeightArrays{ mathEngine, mathEngine, mathEngine }
+		BackwardAlgo( getActualBackwardAlgo() )
 	{}
 
 private:

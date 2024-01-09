@@ -51,16 +51,9 @@ static void multiplyTransposedMatrixByMatrixAndAddTestImpl( const CTestParams& p
 
 	multiplyTransposedMatrixByMatrixAndAddNaive( first, second, firstHeight, firstWidth, secondWidth, expected );
 
-	CSmallMatricesMultiplyDesc* desc = MathEngine().InitSmallMatricesMultiplyDesc(
-		firstHeight, firstWidth, secondWidth, /*secondRowSize*/secondWidth, /*resultWidth*/secondWidth,
-		/*resultAdd*/true, /*trans1*/true, /*trans2*/false );
-
 	MathEngine().MultiplyTransposedMatrixByMatrixAndAdd( CARRAY_FLOAT_WRAPPER( first ), firstHeight, firstWidth, firstWidth,
-		CARRAY_FLOAT_WRAPPER( second ), secondWidth, secondWidth, CARRAY_FLOAT_WRAPPER( get ), secondWidth, firstWidth * secondWidth, desc );
+		CARRAY_FLOAT_WRAPPER( second ), secondWidth, secondWidth, CARRAY_FLOAT_WRAPPER( get ), secondWidth, firstWidth * secondWidth );
 
-	if( desc ) {
-		delete desc;
-	}
 	for( int i = 0; i < firstWidth * secondWidth; ++i ) {
 		ASSERT_NEAR( expected[i], get[i], 1e-3 );
 	}

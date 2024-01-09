@@ -53,7 +53,7 @@ namespace NeoML {
 
 void CCpuMathEngine::multiplyMatrixByMatrix( const float* first, int firstHeight,
 	int firstWidth, int firstRowSize, const float* second, int secondWidth, int secondRowSize,
-	float* result, int resultRowSize, const CSmallMatricesMultiplyDesc* desc )
+	float* result, int resultRowSize )
 {
 	ASSERT_EXPR( firstWidth <= firstRowSize );
 	ASSERT_EXPR( secondWidth <= secondRowSize );
@@ -69,22 +69,18 @@ void CCpuMathEngine::multiplyMatrixByMatrix( const float* first, int firstHeight
 			MlasGemm( MlasNoTrans, MlasNoTrans, static_cast<size_t>( firstHeight ), static_cast<size_t>( secondWidth ),
 				static_cast<size_t>( firstWidth ), 1, first, static_cast<size_t>( firstRowSize ), second,
 				static_cast<size_t>( secondRowSize ), 0, result, static_cast<size_t>( resultRowSize ), nullptr );
-		} else if( !smallMatricesMultiply( desc, first, second, result ) ) {
+		} else {
 			cblas_sgemm( CblasRowMajor, CblasNoTrans, CblasNoTrans, firstHeight, secondWidth, firstWidth,
 				1.f, first, firstRowSize, second, secondRowSize, 0.f, result, resultRowSize );
 		}
 #elif defined( NEOML_USE_MKL )
-		if( !smallMatricesMultiply( desc, first, second, result ) ) {
 			cblas_sgemm( CblasRowMajor, CblasNoTrans, CblasNoTrans, firstHeight, secondWidth, firstWidth,
 				1.f, first, firstRowSize, second, secondRowSize, 0.f, result, resultRowSize );
-		}
 #elif defined( NEOML_USE_MLAS )
-		( void ) desc;
 		MlasGemm( MlasNoTrans, MlasNoTrans, static_cast<size_t>( firstHeight ), static_cast<size_t>( secondWidth ),
 			static_cast<size_t>( firstWidth ), 1, first, static_cast<size_t>( firstRowSize ), second,
 			static_cast<size_t>( secondRowSize ), 0, result, static_cast<size_t>( resultRowSize ), nullptr );
 #else // !NEOML_USE_MKL && !NEOML_USE_MLAS
-		( void ) desc;
 		nullify( result, firstHeight, secondWidth, resultRowSize );
 		MultiplyMatrix<false, false, CTmpMemoryHandler>( this, CpuInfo, first, firstRowSize, second, secondRowSize,
 			result, resultRowSize, firstHeight, secondWidth, firstWidth );
@@ -94,7 +90,7 @@ void CCpuMathEngine::multiplyMatrixByMatrix( const float* first, int firstHeight
 
 void CCpuMathEngine::multiplyMatrixByMatrixAndAdd( const float* first, int firstHeight,
 	int firstWidth, int firstRowSize, const float* second, int secondWidth, int secondRowSize,
-	float* result, int resultRowSize, const CSmallMatricesMultiplyDesc* desc )
+	float* result, int resultRowSize )
 {
 	ASSERT_EXPR( firstWidth <= firstRowSize );
 	ASSERT_EXPR( secondWidth <= resultRowSize );
@@ -108,22 +104,18 @@ void CCpuMathEngine::multiplyMatrixByMatrixAndAdd( const float* first, int first
 			MlasGemm( MlasNoTrans, MlasNoTrans, static_cast<size_t>( firstHeight ), static_cast<size_t>( secondWidth ),
 				static_cast<size_t>( firstWidth ), 1, first, static_cast<size_t>( firstRowSize ), second,
 				static_cast<size_t>( secondRowSize ), 1, result, static_cast<size_t>( resultRowSize ), nullptr );
-		} else if( !smallMatricesMultiply( desc, first, second, result ) ) {
+		} else {
 			cblas_sgemm( CblasRowMajor, CblasNoTrans, CblasNoTrans, firstHeight, secondWidth, firstWidth,
 				1.f, first, firstRowSize, second, secondRowSize, 1.f, result, resultRowSize );
 		}
 #elif defined( NEOML_USE_MKL )
-		if( !smallMatricesMultiply( desc, first, second, result ) ) {
 			cblas_sgemm( CblasRowMajor, CblasNoTrans, CblasNoTrans, firstHeight, secondWidth, firstWidth,
 				1.f, first, firstRowSize, second, secondRowSize, 1.f, result, resultRowSize );
-		}
 #elif defined( NEOML_USE_MLAS )
-		( void ) desc;
 		MlasGemm( MlasNoTrans, MlasNoTrans, static_cast<size_t>( firstHeight ), static_cast<size_t>( secondWidth ),
 			static_cast<size_t>( firstWidth ), 1, first, static_cast<size_t>( firstRowSize ), second,
 			static_cast<size_t>( secondRowSize ), 1, result, static_cast<size_t>( resultRowSize ), nullptr );
 #else // !NEOML_USE_MKL && !NEOML_USE_MLAS
-		( void ) desc;
 		MultiplyMatrix<false, false, CTmpMemoryHandler>( this, CpuInfo, first, firstRowSize, second, secondRowSize,
 			result, resultRowSize, firstHeight, secondWidth, firstWidth );
 #endif // !NEOML_USE_MKL && !NEOML_USE_MLAS
@@ -132,7 +124,7 @@ void CCpuMathEngine::multiplyMatrixByMatrixAndAdd( const float* first, int first
 
 void CCpuMathEngine::multiplyMatrixByTransposedMatrix( const float* first, int firstHeight,
 	int firstWidth, int firstRowSize, const float* second, int secondHeight, int secondRowSize,
-	float* result, int resultRowSize, const CSmallMatricesMultiplyDesc* desc )
+	float* result, int resultRowSize)
 {
 	ASSERT_EXPR(firstWidth <= firstRowSize);
 	ASSERT_EXPR(firstWidth <= secondRowSize);
@@ -147,22 +139,18 @@ void CCpuMathEngine::multiplyMatrixByTransposedMatrix( const float* first, int f
 			MlasGemm( MlasNoTrans, MlasTrans, static_cast<size_t>( firstHeight ), static_cast<size_t>( secondHeight ),
 				static_cast<size_t>( firstWidth ), 1, first, static_cast<size_t>( firstRowSize ), second,
 				static_cast<size_t>( secondRowSize ), 0, result, static_cast<size_t>( resultRowSize ), nullptr );
-		} else if( !smallMatricesMultiply( desc, first, second, result ) ) {
+		} else {
 			cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasTrans, firstHeight, secondHeight, firstWidth,
 				1.f, first, firstRowSize, second, secondRowSize, 0.f, result, resultRowSize);
 		}
 #elif defined( NEOML_USE_MKL )
-		if( !smallMatricesMultiply( desc, first, second, result ) ) {
 			cblas_sgemm( CblasRowMajor, CblasNoTrans, CblasTrans, firstHeight, secondHeight, firstWidth,
 				1.f, first, firstRowSize, second, secondRowSize, 0.f, result, resultRowSize );
-		}
 #elif defined( NEOML_USE_MLAS )
-		( void ) desc;
 		MlasGemm( MlasNoTrans, MlasTrans, static_cast<size_t>( firstHeight ), static_cast<size_t>( secondHeight ),
 			static_cast<size_t>( firstWidth ), 1, first, static_cast<size_t>( firstRowSize ), second,
 			static_cast<size_t>( secondRowSize ), 0, result, static_cast<size_t>( resultRowSize ), nullptr );
 #else // !NEOML_USE_MKL && !NEOML_USE_MLAS
-		( void ) desc;
 		nullify( result, firstHeight, secondHeight, resultRowSize );
 		MultiplyMatrix<false, true, CTmpMemoryHandler>( this, CpuInfo, first, firstRowSize, second, secondRowSize,
 			result, resultRowSize, firstHeight, secondHeight, firstWidth );
@@ -172,7 +160,7 @@ void CCpuMathEngine::multiplyMatrixByTransposedMatrix( const float* first, int f
 
 void CCpuMathEngine::multiplyMatrixByTransposedMatrixAndAdd( const float* first, int firstHeight,
 	int firstWidth, int firstRowSize, const float* second, int secondHeight, int secondRowSize,
-	float* result, int resultRowSize, const CSmallMatricesMultiplyDesc* desc )
+	float* result, int resultRowSize )
 {
 	if( customSgemmFunction != nullptr ) {
 		customSgemmFunction( false, true, this, first, firstRowSize, second, secondRowSize,
@@ -183,22 +171,18 @@ void CCpuMathEngine::multiplyMatrixByTransposedMatrixAndAdd( const float* first,
 			MlasGemm( MlasNoTrans, MlasTrans, static_cast<size_t>( firstHeight ), static_cast<size_t>( secondHeight ),
 				static_cast<size_t>( firstWidth ), 1, first, static_cast<size_t>( firstRowSize ), second,
 				static_cast<size_t>( secondRowSize ), 1, result, static_cast<size_t>( resultRowSize ), nullptr );
-		} else if( !smallMatricesMultiply( desc, first, second, result ) ) {
+		} else {
 			cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasTrans, firstHeight, secondHeight, firstWidth,
 				1.f, first, firstRowSize, second, secondRowSize, 1.f, result, resultRowSize);
 		}
 #elif defined( NEOML_USE_MKL )
-		if( !smallMatricesMultiply( desc, first, second, result ) ) {
 			cblas_sgemm( CblasRowMajor, CblasNoTrans, CblasTrans, firstHeight, secondHeight, firstWidth,
 				1.f, first, firstRowSize, second, secondRowSize, 1.f, result, resultRowSize );
-		}
 #elif defined( NEOML_USE_MLAS )
-		( void ) desc;
 		MlasGemm( MlasNoTrans, MlasTrans, static_cast<size_t>( firstHeight ), static_cast<size_t>( secondHeight ),
 			static_cast<size_t>( firstWidth ), 1, first, static_cast<size_t>( firstRowSize ), second,
 			static_cast<size_t>( secondRowSize ), 1, result, static_cast<size_t>( resultRowSize ), nullptr );
 #else  // !NEOML_USE_MKL && !NEOML_USE_MLAS
-		( void ) desc;
 		MultiplyMatrix<false, true, CTmpMemoryHandler>( this, CpuInfo, first, firstRowSize, second, secondRowSize,
 			result, resultRowSize, firstHeight, secondHeight, firstWidth );
 #endif // !NEOML_USE_MKL && !NEOML_USE_MLAS
@@ -569,7 +553,7 @@ void CCpuMathEngine::LUFactorization( int height, int width, const CFloatHandle&
 
 void CCpuMathEngine::multiplyTransposedMatrixByMatrix( const float* first, int firstHeight,
 	int firstWidth, const float* second, int secondWidth,
-	float* result, const CSmallMatricesMultiplyDesc* desc )
+	float* result )
 {
 	if( customSgemmFunction != nullptr ) {
 		auto firstRowSize = firstWidth;
@@ -580,12 +564,9 @@ void CCpuMathEngine::multiplyTransposedMatrixByMatrix( const float* first, int f
 			result, resultRowSize, firstWidth, secondWidth, firstHeight );
 	} else {
 #ifdef NEOML_USE_MKL
-		if( !smallMatricesMultiply( desc, first, second, result ) ) {
 			cblas_sgemm( CblasRowMajor, CblasTrans, CblasNoTrans, firstWidth, secondWidth, firstHeight,
 				1.f, first, firstWidth, second, secondWidth, 0.f, result, secondWidth );
-		}
 #else  // !NEOML_USE_MKL
-		( void ) desc;
 		auto firstRowSize = firstWidth;
 		auto secondRowSize = secondWidth;
 		auto resultRowSize = secondWidth;
@@ -599,7 +580,7 @@ void CCpuMathEngine::multiplyTransposedMatrixByMatrix( const float* first, int f
 void CCpuMathEngine::multiplyTransposedMatrixByMatrixAndAdd( const float* first,
 	int firstHeight, int firstWidth, int firstRowSize,
 	const float* second, int secondWidth, int secondRowSize,
-	float* result, int resultRowSize, const CSmallMatricesMultiplyDesc* desc )
+	float* result, int resultRowSize)
 {
 	ASSERT_EXPR(firstWidth <= firstRowSize);
 	ASSERT_EXPR(secondWidth <= secondRowSize);
@@ -610,12 +591,9 @@ void CCpuMathEngine::multiplyTransposedMatrixByMatrixAndAdd( const float* first,
 			result, resultRowSize, firstWidth, secondWidth, firstHeight );
 	} else {
 #ifdef NEOML_USE_MKL
-		if( !smallMatricesMultiply( desc, first, second, result ) ) {
 			cblas_sgemm( CblasRowMajor, CblasTrans, CblasNoTrans, firstWidth, secondWidth, firstHeight,
 				1.f, first, firstRowSize, second, secondRowSize, 1.f, result, resultRowSize );
-		}
 #else  // !NEOML_USE_MKL
-		( void ) desc;
 		MultiplyMatrix<true, false, CTmpMemoryHandler>( this, CpuInfo, first, firstRowSize, second, secondRowSize,
 			result, resultRowSize, firstWidth, secondWidth, firstHeight );
 #endif // !NEOML_USE_MKL

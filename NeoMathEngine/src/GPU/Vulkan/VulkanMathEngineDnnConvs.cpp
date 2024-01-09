@@ -175,7 +175,7 @@ CTimeConvolutionDesc* CVulkanMathEngine::InitTimeConvolution( const CBlobDesc& s
 	ASSERT_EXPR( paddingFront < ( filter.Height() - 1 ) * dilation + 1 );
 	ASSERT_EXPR( paddingBack < ( filter.Height() - 1 ) * dilation + 1 );
 
-	CCommonTimeConvolutionDesc* desc = new CCommonTimeConvolutionDesc( *this,
+	CCommonTimeConvolutionDesc* desc = new CCommonTimeConvolutionDesc(
 		source, filter, result, stride, paddingFront, paddingBack, dilation );
 	return desc;
 }
@@ -250,7 +250,7 @@ C3dConvolutionDesc* CVulkanMathEngine::InitBlob3dConvolution( const CBlobDesc& s
 	int strideHeight, int strideWidth, int strideDepth,
 	const CBlobDesc& filter, const CBlobDesc& result )
 {
-	CCommon3dConvolutionDesc* desc = new CCommon3dConvolutionDesc( *this,
+	CCommon3dConvolutionDesc* desc = new CCommon3dConvolutionDesc(
 		source, result, filter, paddingHeight, paddingWidth, paddingDepth,
 		strideHeight, strideWidth, strideDepth );
 	return desc;

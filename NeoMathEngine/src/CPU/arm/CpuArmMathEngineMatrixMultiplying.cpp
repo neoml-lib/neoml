@@ -35,7 +35,7 @@ namespace NeoML {
 
 void CCpuMathEngine::multiplyMatrixByMatrix(const float* first, int firstHeight,
 	int firstWidth, int firstRowSize, const float* second, int secondWidth, int secondRowSize,
-	float* result, int resultRowSize, const CSmallMatricesMultiplyDesc*)
+	float* result, int resultRowSize)
 {
 	ASSERT_EXPR(firstWidth <= firstRowSize);
 	ASSERT_EXPR(secondWidth <= secondRowSize);
@@ -48,7 +48,7 @@ void CCpuMathEngine::multiplyMatrixByMatrix(const float* first, int firstHeight,
 
 void CCpuMathEngine::multiplyMatrixByMatrixAndAdd(const float* first, int firstHeight,
 	int firstWidth, int firstRowSize, const float* second, int secondWidth, int secondRowSize,
-	float* result, int resultRowSize, const CSmallMatricesMultiplyDesc*)
+	float* result, int resultRowSize)
 {
 	ASSERT_EXPR(firstWidth <= firstRowSize);
 	ASSERT_EXPR(secondWidth <= resultRowSize);
@@ -59,7 +59,7 @@ void CCpuMathEngine::multiplyMatrixByMatrixAndAdd(const float* first, int firstH
 
 void CCpuMathEngine::multiplyMatrixByTransposedMatrix(const float* first, int firstHeight,
 	int firstWidth, int firstRowSize, const float* second, int secondHeight, int secondRowSize,
-	float* result, int resultRowSize, const CSmallMatricesMultiplyDesc*)
+	float* result, int resultRowSize)
 {
 	ASSERT_EXPR(firstWidth <= firstRowSize);
 	ASSERT_EXPR(firstWidth <= secondRowSize);
@@ -71,7 +71,7 @@ void CCpuMathEngine::multiplyMatrixByTransposedMatrix(const float* first, int fi
 }
 
 void CCpuMathEngine::multiplyMatrixByTransposedMatrixAndAdd( const float* first, int firstHeight, int firstWidth, int firstRowSize,
-	const float* second, int secondHeight, int secondRowSize, float* result, int resultRowSize, const CSmallMatricesMultiplyDesc* )
+	const float* second, int secondHeight, int secondRowSize, float* result, int resultRowSize )
 {
 	MultiplyMatrix<false, true, CTmpMemoryHandler>(this, CpuInfo, first, firstRowSize, second, secondRowSize,
 		result, resultRowSize, firstHeight, secondHeight, firstWidth);
@@ -79,7 +79,7 @@ void CCpuMathEngine::multiplyMatrixByTransposedMatrixAndAdd( const float* first,
 
 void CCpuMathEngine::multiplyTransposedMatrixByMatrix(const float* first, int firstHeight,
 	int firstWidth, const float* second, int secondWidth,
-	float* result, const CSmallMatricesMultiplyDesc*)
+	float* result)
 {
 	auto firstRowSize = firstWidth;
 	auto secondRowSize = secondWidth;
@@ -91,7 +91,7 @@ void CCpuMathEngine::multiplyTransposedMatrixByMatrix(const float* first, int fi
 
 void CCpuMathEngine::multiplyTransposedMatrixByMatrixAndAdd(const float* first, int firstHeight,
 	int firstWidth, int firstRowSize, const float* second, int secondWidth, int secondRowSize,
-	float* result, int resultRowSize, const CSmallMatricesMultiplyDesc*)
+	float* result, int resultRowSize)
 {
 	ASSERT_EXPR(firstWidth <= firstRowSize);
 	ASSERT_EXPR(secondWidth <= secondRowSize);
