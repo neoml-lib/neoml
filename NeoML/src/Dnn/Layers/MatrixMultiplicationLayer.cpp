@@ -30,34 +30,8 @@ void CMatrixMultiplicationLayer::Serialize( CArchive& archive )
 {
 	archive.SerializeVersion( MatrixMultiplicationLayerVersion );
 	CBaseLayer::Serialize( archive );
-	if( archive.IsLoading() ) {
-		recreateSmallMatricesMulDescs();
-	}
 }
 
-const CSmallMatricesMultiplyDesc* CMatrixMultiplicationLayer::initSmallMatricesMulDesc(
-	TSMMD type, int firstHeight, int firstWidth, int secondWidth, int resultWidth )
-{
-	NeoPresume( inputBlobs[0] != nullptr || inputDiffBlobs[0] != nullptr );
-	NeoPresume( outputBlobs[0] != nullptr || outputDiffBlobs[0] != nullptr );
-
-	NeoPresume( type < TSMMD_Count_ );
-	if( smallMatricesMulDescs[type] == nullptr ) {
-		CSmallMatricesMultiplyDesc* ptr = MathEngine().InitSmallMatricesMultiplyDesc(
-			firstHeight, firstWidth, secondWidth, /*secondRowSize*/secondWidth, resultWidth,
-			/*resultAdd*/false, /*trans1*/( type == TSMMD_SecondBackward ), /*trans2*/( type == TSMMD_Backward ) );
-		NeoPresume( ptr != nullptr );
-		smallMatricesMulDescs.DetachAndReplaceAt( ptr, type );
-	}
-	return smallMatricesMulDescs[type];
-}
-
-void CMatrixMultiplicationLayer::recreateSmallMatricesMulDescs()
-{
-	smallMatricesMulDescs.DeleteAll(); // delete operator inside
-	smallMatricesMulDescs.SetSize( TSMMD_Count_ ); // init nullptr inside
-	NeoPresume( smallMatricesMulDescs[0] == nullptr );
-}
 
 void CMatrixMultiplicationLayer::Reshape()
 {
@@ -85,7 +59,6 @@ void CMatrixMultiplicationLayer::Reshape()
 	}
 
 	outputDescs[0] = outputDesc;
-	recreateSmallMatricesMulDescs();
 }
 
 void CMatrixMultiplicationLayer::RunOnce()
@@ -93,34 +66,27 @@ void CMatrixMultiplicationLayer::RunOnce()
 	const int firstHeight = inputBlobs[0]->GetGeometricalSize();
 	const int firstWidth  = inputBlobs[0]->GetChannelsCount();
 	const int secondWidth = inputBlobs[1]->GetChannelsCount();
-	const int resultWidth = outputBlobs[0]->GetChannelsCount();
 	const int resultBufferSize = outputBlobs[0]->GetObjectSize();
-
-	const CSmallMatricesMultiplyDesc* mulDesc = initSmallMatricesMulDesc( TSMMD_Forward,
-		firstHeight, firstWidth, secondWidth, resultWidth );
 
 	if( inputBlobs[0]->GetObjectCount() == inputBlobs[1]->GetObjectCount() ) {
 		MathEngine().MultiplyMatrixByMatrix( /*batchSize*/inputBlobs[0]->GetObjectCount(),
 			/*first*/inputBlobs[0]->GetData(), firstHeight, firstWidth,
 			/*second*/inputBlobs[1]->GetData(), secondWidth,
 			/*result*/outputBlobs[0]->GetData(),
-			/*resultBufferSize*/outputBlobs[0]->GetDataSize(),
-			mulDesc );
+			/*resultBufferSize*/outputBlobs[0]->GetDataSize() );
 	} else if( inputBlobs[1]->GetObjectCount() == 1 ) {
 		for( int i = 0; i < inputBlobs[0]->GetObjectCount(); ++i ) {
 			MathEngine().MultiplyMatrixByMatrix( /*batchSize*/1,
 				/*first*/inputBlobs[0]->GetObjectData( i ), firstHeight, firstWidth,
 				/*second*/inputBlobs[1]->GetData(), secondWidth,
-				/*result*/outputBlobs[0]->GetObjectData( i ), resultBufferSize,
-				mulDesc );
+				/*result*/outputBlobs[0]->GetObjectData( i ), resultBufferSize );
 		}
 	} else if( inputBlobs[0]->GetObjectCount() == 1 ) {
 		for( int i = 0; i < inputBlobs[1]->GetObjectCount(); ++i ) {
 			MathEngine().MultiplyMatrixByMatrix( /*batchSize*/1,
 				/*first*/inputBlobs[0]->GetData(), firstHeight, firstWidth,
 				/*second*/inputBlobs[1]->GetObjectData( i ), secondWidth,
-				/*result*/outputBlobs[0]->GetObjectData( i ), resultBufferSize,
-				mulDesc );
+				/*result*/outputBlobs[0]->GetObjectData( i ), resultBufferSize );
 		}
 	} else {
 		NeoAssert( false );
@@ -136,21 +102,15 @@ void CMatrixMultiplicationLayer::BackwardOnce()
 		const int firstHeight = outputDiffBlobs[0]->GetGeometricalSize();
 		const int firstWidth = outputDiffBlobs[0]->GetChannelsCount();
 		const int secondHeight = inputBlobs[1]->GetGeometricalSize();
-		const int secondWidth = inputBlobs[1]->GetChannelsCount();
-		const int resultWidth = inputBlobs[1]->GetGeometricalSize();
 		const int resultBufferSize = inputDiffBlobs[0]->GetDataSize();
 
 		NeoAssert( firstWidth == inputBlobs[1]->GetChannelsCount() );
 		NeoAssert( firstHeight == inputBlobs[0]->GetGeometricalSize() );
 
-		initSmallMatricesMulDesc( TSMMD_Backward,
-			firstHeight, firstWidth, secondWidth, resultWidth );
-
 		MathEngine().MultiplyMatrixByTransposedMatrix( batchSize,
 			/*first*/outputDiffBlobs[0]->GetData(), firstHeight, firstWidth,
 			/*second*/inputBlobs[1]->GetData(), secondHeight,
-			/*result*/inputDiffBlobs[0]->GetData(), resultBufferSize,
-			smallMatricesMulDescs[TSMMD_Backward] );
+			/*result*/inputDiffBlobs[0]->GetData(), resultBufferSize );
 	}
 
 	{
@@ -159,14 +119,10 @@ void CMatrixMultiplicationLayer::BackwardOnce()
 		const int secondWidth = outputDiffBlobs[0]->GetChannelsCount();
 		const int resultBufferSize = inputDiffBlobs[1]->GetDataSize();
 
-		initSmallMatricesMulDesc( TSMMD_SecondBackward,
-			firstHeight, firstWidth, secondWidth, /*resultWidth*/secondWidth );
-
 		MathEngine().MultiplyTransposedMatrixByMatrix( batchSize,
 			/*first*/inputBlobs[0]->GetData(), firstHeight, firstWidth,
 			/*second*/outputDiffBlobs[0]->GetData(), secondWidth,
-			/*result*/inputDiffBlobs[1]->GetData(), resultBufferSize,
-			smallMatricesMulDescs[TSMMD_SecondBackward] );
+			/*result*/inputDiffBlobs[1]->GetData(), resultBufferSize );
 	}
 }
 

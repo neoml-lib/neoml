@@ -63,7 +63,7 @@ void CCudaMathEngine::VectorMultiplyAndAdd( const CConstFloatHandle& firstHandle
 
 void CCudaMathEngine::MultiplyMatrixByTransposedMatrix( const CConstFloatHandle& firstHandle, int firstHeight,
 	int firstWidth, int firstRowSize, const CConstFloatHandle& secondHandle, int secondHeight, int secondRowSize,
-	const CFloatHandle& resultHandle, int resultRowSize, int, const CSmallMatricesMultiplyDesc* )
+	const CFloatHandle& resultHandle, int resultRowSize, int )
 {
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
@@ -77,7 +77,7 @@ void CCudaMathEngine::MultiplyMatrixByTransposedMatrix( const CConstFloatHandle&
 
 void CCudaMathEngine::MultiplyMatrixByTransposedMatrix( int batchSize, const CConstFloatHandle& firstHandle,
 	int firstHeight, int firstWidth, const CConstFloatHandle& secondHandle, int secondHeight,
-	const CFloatHandle& resultHandle, int, const CSmallMatricesMultiplyDesc* )
+	const CFloatHandle& resultHandle, int )
 {
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
@@ -92,7 +92,7 @@ void CCudaMathEngine::MultiplyMatrixByTransposedMatrix( int batchSize, const CCo
 
 void CCudaMathEngine::MultiplyTransposedMatrixByMatrixAndAdd( const CConstFloatHandle& firstHandle, int firstHeight,
 	int firstWidth, int firstRowSize, const CConstFloatHandle& secondHandle, int secondWidth, int secondRowSize,
-	const CFloatHandle& resultHandle, int resultRowSize, int, const CSmallMatricesMultiplyDesc* )
+	const CFloatHandle& resultHandle, int resultRowSize, int )
 {
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
@@ -105,8 +105,7 @@ void CCudaMathEngine::MultiplyTransposedMatrixByMatrixAndAdd( const CConstFloatH
 }
 
 void CCudaMathEngine::MultiplyTransposedMatrixByMatrix( int batchSize, const CConstFloatHandle& firstHandle, int firstHeight,
-	int firstWidth, const CConstFloatHandle& secondHandle, int secondWidth, const CFloatHandle& resultHandle,
-	int, const CSmallMatricesMultiplyDesc* )
+	int firstWidth, const CConstFloatHandle& secondHandle, int secondWidth, const CFloatHandle& resultHandle, int )
 {
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
@@ -121,7 +120,7 @@ void CCudaMathEngine::MultiplyTransposedMatrixByMatrix( int batchSize, const CCo
 
 void CCudaMathEngine::MultiplyMatrixByMatrix( int batchSize, const CConstFloatHandle& firstHandle, int firstHeight,
 	int firstWidth, const CConstFloatHandle& secondHandle, int secondWidth,
-	const CFloatHandle& resultHandle, int, const CSmallMatricesMultiplyDesc* )
+	const CFloatHandle& resultHandle, int )
 {
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( secondHandle.GetMathEngine() == this );

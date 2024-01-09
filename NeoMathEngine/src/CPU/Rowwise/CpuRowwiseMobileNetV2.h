@@ -49,8 +49,7 @@ public:
 		outputChannels( outputChannels ),
 		residual( residual ),
 		inputRowRequirement( 0 ),
-		outputRowRequirement( 0 ),
-		smallMatricesMulDescs{ mathEngine, mathEngine }
+		outputRowRequirement( 0 )
 	{}
 
 	CBlobDesc Reshape( const CBlobDesc& inputSize ) override;
@@ -87,12 +86,6 @@ private:
 	mutable std::unique_ptr<CCpuRowwiseBuffer> chInput{};
 	int inputRowRequirement{};
 	int outputRowRequirement{};
-
-	enum { TSMMDA_ExpandConvInput, TSMMDA_BufferDownFilter, /*...*/ TSMMDA_Count_ };
-	// The array of matrices multiplication optimization descriptors arrays by enum above
-	CCpuSmallMatricesMultiplyDescsArray</*Height*/> smallMatricesMulDescs[TSMMDA_Count_];
-	// If ( outputChannels or expandedChannels or inputChannels ) is being changed,
-	// for each smallMatricesMulDescs method DestroyAll() should be called to recreate JIT.
 
 	int getMaxInputRowsPerStep() const;
 	int getMaxOutputRowsPerStep() const;
@@ -205,13 +198,11 @@ inline ICpuRowwiseImpl::CProcessingReport CCpuMathEngine::CCpuRowwiseMobileNetV2
 
 		if( inputRowsThisStep > 0 ) {
 			const int firstHeight = inputRowsThisStep * inputWidth;
-			auto mulDesc = smallMatricesMulDescs[TSMMDA_ExpandConvInput].Get( firstHeight,
-				firstHeight, /*firstWidth*/inputChannels, /*secondWidth*/inputChannels, /*resultWidth*/expandedChannels );
 
 			const float* expandConvInput = input + ( chInput->DataRowProcessed() - inputRowIndex ) * inputRowSize;
 			// Apply expand convolution with activation
 			mathEngine.multiplyMatrixByTransposedWithFreeTerm( /*first*/expandConvInput, firstHeight, inputChannels,
-				/*second*/expandFilter, expandedChannels, /*freeTerm*/expandFreeTerm, /*result*/chInput->EmptyRows(), mulDesc );
+				/*second*/expandFilter, expandedChannels, /*freeTerm*/expandFreeTerm, /*result*/chInput->EmptyRows() );
 			MOBILENET_ACTIVATION( expandActivation, expandReluParam, chInput->EmptyRows(), inputRowsThisStep * chInput->RowSize() );
 			chInput->AddRows( inputRowsThisStep );
 		}
@@ -260,17 +251,15 @@ inline ICpuRowwiseImpl::CProcessingReport CCpuMathEngine::CCpuRowwiseMobileNetV2
 				const int secondHeight = outputChannels;
 				const int secondWidth = firstWidth;
 				const int resultWidth = secondHeight;
-				auto mulDesc = smallMatricesMulDescs[TSMMDA_BufferDownFilter].Get( firstHeight,
-					firstHeight, firstWidth, secondWidth, resultWidth, /*resultAdd*/( residual && isInPlace ) );
 
 				if( residual && isInPlace ) {
 					// Block input and output are located in the same memory
 					// It's possible to simultaneously calculate down conv output and add the residual connection
 					mathEngine.multiplyMatrixByTransposedMatrixAndAdd( /*first*/buffer, firstHeight, firstWidth, firstWidth,
-						/*second*/downFilter, secondHeight, secondWidth, /*result*/output, resultWidth, mulDesc );
+						/*second*/downFilter, secondHeight, secondWidth, /*result*/output, resultWidth );
 				} else {
 					mathEngine.multiplyMatrixByTransposedMatrix( /*first*/buffer, firstHeight, firstWidth, firstWidth,
-						/*second*/downFilter, secondHeight, secondWidth, /*result*/output, resultWidth, mulDesc );
+						/*second*/downFilter, secondHeight, secondWidth, /*result*/output, resultWidth );
 				}
 				if( downFreeTerm != nullptr ) {
 					mathEngine.addVectorToMatrixRows( output, output, firstHeight, outputChannels,
