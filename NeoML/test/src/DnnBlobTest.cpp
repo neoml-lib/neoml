@@ -1,4 +1,4 @@
-/* Copyright © 2021-2023 ABBYY
+/* Copyright © 2021-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -147,16 +147,18 @@ static void testTransferBlobInThreadsImpl( TTransferType type )
         // Allocated memory of 3 blobs on OLD thread
         EXPECT_TRUE( mathEngine.GetPeakMemoryUsage() == ( blobTransferedSize + blobCheckSize + blobSize ) );
 
-        blobTransfer->TransferDataToThisThread();
+        CPtr<CDnnBlob> blobTransfered = new CDnnBlob( mathEngine ); // create empty blob
+        *blobTransfered = std::move( *blobTransfer ); // TransferDataToThisThread()
         // Now NEW thread contains memory of only one trasfered blob
+        blobTransfer.Release();
 
         // All allocated memory is busy, no non-used memory
         EXPECT_TRUE( mathEngine.GetMemoryInPools() == 0 );
         ( void ) transfered.exchange( true );
         while( !cleaned ); // wait
 
-        blobTransfer->Fill( 2 ); // OK!
-        blobTransfer.Release(); // Destroy blob
+        blobTransfered->Fill( 2 ); // OK!
+        blobTransfered.Release(); // Destroy blob
         //blobCheck->Fill( 0 ); // Error! segfault
 
         // Memory still in pool after the blob's destroyed, if pools used
