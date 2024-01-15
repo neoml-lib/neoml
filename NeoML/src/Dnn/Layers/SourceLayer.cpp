@@ -22,10 +22,6 @@ namespace NeoML {
 
 void CSourceLayer::SetBlob( CDnnBlob* _blob )
 {
-	if( _blob == blob.Ptr() ) {
-		return;
-	}
-
 	blob = _blob;
 
 	if( !outputDescs.IsEmpty() ) {
@@ -45,6 +41,7 @@ void CSourceLayer::SetBlob( CDnnBlob* _blob )
 void CSourceLayer::Reshape()
 {
 	CheckOutputs();
+	CheckLayerArchitecture( GetInputCount() == 0, "layer must not have inputs" );
 	CheckLayerArchitecture( GetOutputCount() == 1, "Source layer has more than 1 output" );
 	CheckLayerArchitecture( blob.Ptr() != 0, "Source layer has null data blob" );
 	outputDescs[0] = blob->GetDesc();
