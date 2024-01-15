@@ -28,10 +28,6 @@ void CParameterLayer::AllocateOutputBlobs()
 
 void CParameterLayer::SetBlob(CDnnBlob* _blob)
 {
-	if (_blob == paramBlobs[0].Ptr()) {
-		return;
-	}
-
 	paramBlobs[0] = _blob;
 
 	if (!outputDescs.IsEmpty()) {
