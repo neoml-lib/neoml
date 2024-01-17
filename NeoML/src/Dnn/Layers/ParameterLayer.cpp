@@ -28,6 +28,7 @@ void CParameterLayer::AllocateOutputBlobs()
 
 void CParameterLayer::SetBlob(CDnnBlob* _blob)
 {
+	bool sameBlob = _blob == paramBlobs[0].Ptr();
 	paramBlobs[0] = _blob;
 
 	if (!outputDescs.IsEmpty()) {
@@ -36,10 +37,12 @@ void CParameterLayer::SetBlob(CDnnBlob* _blob)
 		{
 			outputDescs[0] = paramBlobs[0]->GetDesc();
 			ForceReshape();
+		} else {
+			sameBlob = false;
 		}
 	}
 
-	if (!outputBlobs.IsEmpty()) {
+	if ( !outputBlobs.IsEmpty() && !sameBlob ) {
 		outputBlobs[0] = 0;
 	}
 }
