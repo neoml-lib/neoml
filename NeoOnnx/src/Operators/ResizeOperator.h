@@ -29,8 +29,8 @@ protected:
 	void AddLayers( const CTensorArray& input, CDnn& dnn, CTensorArray& outputs ) const override;
 
 private:
-	TInterpolationCoords getInterpolationCoords() const;
-	TInterpolationRound getInterpolationRound() const;
+	NeoML::TInterpolationCoords getInterpolationCoords() const;
+	NeoML::TInterpolationRound getInterpolationRound() const;
 };
 
 } // namespace NeoOnnx

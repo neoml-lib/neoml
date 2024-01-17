@@ -1,4 +1,4 @@
-/* Copyright © 2017-2021 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ namespace NeoOnnx {
 class CActivationOperatorBase : public CLayerOperator {
 public:
 	CActivationOperatorBase( const onnx::NodeProto& onnxNode, int opsetVersion,
-		TActivationFunction activation );
+		NeoML::TActivationFunction activation );
 
 protected:
 	// CLayerOperator methods
@@ -31,7 +31,7 @@ protected:
 
 private:
 	// Activation function which is applied to the input by this operator
-	const TActivationFunction activation;
+	const NeoML::TActivationFunction activation;
 };
 
 //---------------------------------------------------------------------------------------------------------------------

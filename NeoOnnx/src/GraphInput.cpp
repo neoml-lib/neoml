@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,6 +21,8 @@ limitations under the License.
 #include "GraphInput.h"
 #include "TensorUtils.h"
 #include "NeoOnnxCheck.h"
+
+using namespace NeoML;
 
 namespace NeoOnnx {
 
