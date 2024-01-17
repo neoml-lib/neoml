@@ -22,6 +22,7 @@ namespace NeoML {
 
 void CSourceLayer::SetBlob( CDnnBlob* _blob )
 {
+	bool sameBlob = _blob == blob.Ptr();
 	blob = _blob;
 
 	if( !outputDescs.IsEmpty() ) {
@@ -30,10 +31,12 @@ void CSourceLayer::SetBlob( CDnnBlob* _blob )
 		{
 			outputDescs[0] = blob->GetDesc();
 			ForceReshape();
+		} else {
+			sameBlob = false;
 		}
 	}
 
-	if( !outputBlobs.IsEmpty() ) {
+	if( !outputBlobs.IsEmpty() && !sameBlob ) {
 		outputBlobs[0] = 0;
 	}
 }
