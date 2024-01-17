@@ -47,12 +47,33 @@ void CParameterLayer::SetBlob(CDnnBlob* _blob)
 	}
 }
 
+void CParameterLayer::SetBlobDesc(const CBlobDesc& _desc)
+{
+	bool isReshapeNeeded = desc.GetDataType() == CT_Invalid
+		|| !desc.HasEqualDimensions(_desc)
+		|| desc.GetDataType() != _desc.GetDataType();
+
+	desc = _desc;
+
+	if( isReshapeNeeded ) {
+		ForceReshape();
+		if( !outputBlobs.IsEmpty() ) {
+			outputBlobs[0] = 0;
+		}
+	}
+}
+
 void CParameterLayer::Reshape()
 {
 	CheckOutputs();
 	CheckLayerArchitecture(GetInputCount() == 0, "layer must not have inputs");
 	CheckLayerArchitecture(GetOutputCount() == 1, "layer has more than 1 output");
-	CheckLayerArchitecture(paramBlobs[0].Ptr() != nullptr, "layer has null param blob");
+
+	if( paramBlobs[0].Ptr() == nullptr ) {
+		paramBlobs[0] = CDnnBlob::CreateBlob(MathEngine(), desc);
+		InitializeParamBlob(0, *paramBlobs[0], paramBlobs[0]->GetDataSize());
+	}
+
 	outputDescs[0] = paramBlobs[0]->GetDesc();
 }
 

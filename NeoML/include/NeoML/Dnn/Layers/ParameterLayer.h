@@ -29,6 +29,7 @@ public:
 
     void Serialize(CArchive& archive) override;
     void SetBlob(CDnnBlob* _blob);
+    void SetBlobDesc(const CBlobDesc& _desc);
     const CPtr<CDnnBlob>& GetBlob() const { return paramBlobs[0]; }
 protected:
     void AllocateOutputBlobs() override;
@@ -36,6 +37,8 @@ protected:
     void RunOnce() override;
     void BackwardOnce() override;
     void LearnOnce() override;
+private:
+    CBlobDesc desc;
 };
 
 // To make it more convenient to create a class object
