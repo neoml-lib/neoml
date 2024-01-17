@@ -56,6 +56,7 @@ void CParameterLayer::SetBlobDesc(const CBlobDesc& _desc)
 	desc = _desc;
 
 	if( isReshapeNeeded ) {
+		paramBlobs[0] = 0;
 		ForceReshape();
 		if( !outputBlobs.IsEmpty() ) {
 			outputBlobs[0] = 0;
@@ -97,6 +98,19 @@ void CParameterLayer::Serialize(CArchive& archive)
 {
 	archive.SerializeVersion( 0 );
 	CBaseLayer::Serialize(archive);
+
+	if(archive.IsStoring()) {
+		for(TBlobDim d = TBlobDim(0); d < BD_Count; ++d) {
+			archive << desc.DimSize(d);
+		}
+	} else if(archive.IsLoading()) {
+		CBlobDesc desc(CT_Float);
+		for(TBlobDim d = TBlobDim(0); d < BD_Count; ++d) {
+			int size;
+			archive >> size;
+			desc.SetDimSize(d, size);
+		}
+	}
 }
 
 CParameterLayer* Parameter( CDnn& dnn, const char* name, CDnnBlob* blob ) {
