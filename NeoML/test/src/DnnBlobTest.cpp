@@ -88,9 +88,12 @@ static void testTransferBlobInThreadsImpl( TTransferType type )
     std::atomic<bool> transfered{ false };
     std::atomic<bool> cleaned{ false };
 
-    const int blobSize = 1024; // bytes
-    const int blobCheckSize = 256; // bytes
-    const int blobTransferedSize = 512; // bytes
+    const int blobSize = 1000; // bytes
+    const int blobBufferSize = 1024; // bytes
+    const int blobCheckSize = 200; // bytes
+    const int blobCheckBufferSize = 256; // bytes
+    const int blobTransferedSize = 500; // bytes
+    const int blobTransferedBufferSize = 512; // bytes
 
     CPtr<CDnnBlob> blobTransfer;
 
@@ -112,7 +115,9 @@ static void testTransferBlobInThreadsImpl( TTransferType type )
             blobTransfer = CDnnBlob::CreateDataBlob( mathEngine, CT_Float, blobTransferedCount, 1, 1 );
 
             // Allocated memory of 3 blobs on OLD thread
-            EXPECT_TRUE( mathEngine.GetPeakMemoryUsage() == ( blobTransferedSize + blobCheckSize + blobSize ) );
+            EXPECT_TRUE( mathEngine.GetPeakMemoryUsage() == ( usePools
+                ? ( blobTransferedBufferSize + blobCheckBufferSize + blobBufferSize )
+                : ( blobTransferedSize + blobCheckSize + blobSize ) ) );
             // All allocated memory is busy, no non-used memory
             EXPECT_TRUE( mathEngine.GetMemoryInPools() == 0 );
             ( void ) created.exchange( true );
@@ -122,13 +127,13 @@ static void testTransferBlobInThreadsImpl( TTransferType type )
             blob.Release(); // Destroy blob
 
             // Memory still in pool after the blob's destroyed, if pools used
-            EXPECT_TRUE( mathEngine.GetMemoryInPools() == ( usePools ? blobSize : 0 ) ); // allocated non-used memory
+            EXPECT_TRUE( mathEngine.GetMemoryInPools() == ( usePools ? blobBufferSize : 0 ) ); // allocated non-used memory
             // Clean-up non-used memory for this OLD thread
             mathEngine.CleanUp();
             EXPECT_TRUE( mathEngine.GetMemoryInPools() == 0 );
         }  // Destroy blobCheck
 
-        EXPECT_TRUE( mathEngine.GetMemoryInPools() == ( usePools ? blobCheckSize : 0 ) ); // allocated non-used memory
+        EXPECT_TRUE( mathEngine.GetMemoryInPools() == ( usePools ? blobCheckBufferSize : 0 ) ); // allocated non-used memory
         // Finally clean-up all non-used memory for this OLD thread
         mathEngine.CleanUp();
         EXPECT_TRUE( mathEngine.GetMemoryInPools() == 0 );
@@ -138,31 +143,37 @@ static void testTransferBlobInThreadsImpl( TTransferType type )
 
     std::thread newThread( [&]()
     {
-        const bool usePools = ( type == TTransferType::PoolToPool || type == TTransferType::PoolToHeap );
+        const bool useOldPools = ( type == TTransferType::PoolToPool || type == TTransferType::PoolToHeap );
+        const bool usePools = ( type == TTransferType::PoolToPool || type == TTransferType::HeapToPool );
         mathEngine.SetReuseMemoryMode( usePools );
         EXPECT_TRUE( mathEngine.GetMemoryInPools() == 0 ); // no non-used allocated memory
 
         while( !created ); // wait
 
         // Allocated memory of 3 blobs on OLD thread
-        EXPECT_TRUE( mathEngine.GetPeakMemoryUsage() == ( blobTransferedSize + blobCheckSize + blobSize ) );
+        EXPECT_TRUE( mathEngine.GetPeakMemoryUsage() == ( useOldPools
+            ? ( blobTransferedBufferSize + blobCheckBufferSize + blobBufferSize )
+            : ( blobTransferedSize + blobCheckSize + blobSize ) ) );
 
         CPtr<CDnnBlob> blobTransfered = new CDnnBlob( mathEngine ); // create empty blob
         *blobTransfered = std::move( *blobTransfer ); // TransferDataToThisThread()
+        CPtr<CDnnBlob> blobTransferedAgain = new CDnnBlob( std::move( *blobTransfered ) ); // move again
         // Now NEW thread contains memory of only one trasfered blob
         blobTransfer.Release();
+        blobTransfered.Release();
 
         // All allocated memory is busy, no non-used memory
         EXPECT_TRUE( mathEngine.GetMemoryInPools() == 0 );
         ( void ) transfered.exchange( true );
         while( !cleaned ); // wait
 
-        blobTransfered->Fill( 2 ); // OK!
-        blobTransfered.Release(); // Destroy blob
+        blobTransferedAgain->Fill( 2 ); // OK!
+        blobTransferedAgain.Release(); // Destroy blob
         //blobCheck->Fill( 0 ); // Error! segfault
 
         // Memory still in pool after the blob's destroyed, if pools used
-        EXPECT_TRUE( mathEngine.GetMemoryInPools() == ( usePools ? blobTransferedSize : 0 ) );
+        EXPECT_TRUE( mathEngine.GetMemoryInPools() ==
+            ( ( type == TTransferType::PoolToPool ) ? blobTransferedBufferSize : 0 ) );
 
         // Finally clean-up all non-used memory for this NEW thread
         mathEngine.CleanUp();
