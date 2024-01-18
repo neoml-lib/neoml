@@ -140,6 +140,11 @@ public:
 	// Copies the contents from another blob
 	void CopyFrom(const CDnnBlob* other);
 
+	// Transfers CDnnBlob data from other thread owner to this thread.
+	// By default memory underneath each blob is associated with the thread on which its allocation has occurred.
+	// This method switches this association to the calling thread.
+	void TransferDataToThisThread();
+
 	// Elementwise adds a blob of the same dimensions
 	void Add(const CDnnBlob* other);
 	// Clears the contents
@@ -217,11 +222,6 @@ protected:
 		NeoAssert( desc.GetDataType() != CT_Invalid );
 		NeoAssert( &mathEngine == data.GetMathEngine() );
 	}
-
-	// Transfers CDnnBlob data from other thread owner to this thread.
-	// By default memory underneath each blob is associated with the thread on which its allocation has occurred.
-	// This method switches this association to the calling thread.
-	void TransferDataToThisThread();
 
 private:
 	IMathEngine& mathEngine;
