@@ -38,7 +38,7 @@ public:
 	// Adds corresponding source layer to the dnn and returns its output as a user tensor
 	// If layout is given, it will be used as a layout for this tensor
 	// If layout is not given then CTensorLayout::IOLayout( dimCount ) is used
-	CPtr<const CUserTensor> AddSourceLayer( CDnn& dnn, const CTensorLayout* layout ) const;
+	CPtr<const CUserTensor> AddSourceLayer( NeoML::CDnn& dnn, const CTensorLayout* layout ) const;
 
 private:
 	// Input name

@@ -30,7 +30,7 @@ protected:
 	// AddLayers implementation for the given padding value and pooling layer
 	// The derivatives should call this method from their AddLayers
 	void AddLayersImpl( const CTensorArray& inputs, float padValue,
-		CPoolingLayer& layer, CDnn& dnn, CTensorArray& outputs ) const;
+		NeoML::CPoolingLayer& layer, CDnn& dnn, CTensorArray& outputs ) const;
 
 private:
 	// Padding mode

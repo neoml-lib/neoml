@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -47,6 +47,9 @@ struct CSeedDropoutDesc : public CDropoutDesc {
 	const bool IsBatchwise; // indicates if an element is dropped out of all objects in one batch at the same time
 	// // seed that will be used later to generate mask
 	int seed;
+	const unsigned threshold; // = (unsigned int)((double)desc.ForwardRate * UINT_MAX);
+	const float value; // = 1.f / desc.ForwardRate;
+	CFloatHandleVar Mask;
 };
 
 } // namespace NeoML

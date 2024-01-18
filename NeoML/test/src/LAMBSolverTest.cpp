@@ -1,4 +1,4 @@
-/* Copyright © 2021 ABBYY Production LLC
+/* Copyright © 2021-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,6 +17,8 @@ limitations under the License.
 #pragma hdrstop
 
 #include <TestFixture.h>
+
+using namespace NeoML;
 
 static NeoML::CFullyConnectedLayer* createSimpleNetwork( NeoML::CDnn& dnn )
 {

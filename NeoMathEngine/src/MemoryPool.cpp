@@ -197,7 +197,8 @@ void CMemoryPool::TransferHandleToThisThread( const CMemoryHandle& handle, size_
 			info.buffer->OwnerPool = thisThreadBufferPool;
 		}
 	} else { // Large buffers don't use the pools
-		ASSERT_EXPR( size == info.size );
+		const size_t validSize = *std::lower_bound( std::begin(BufferSizes), std::end( BufferSizes ), size );
+		ASSERT_EXPR( size == info.size || validSize  == info.size );
 		// No need to transfer, because
 		// it wouldn't be cleaned-up for that thread after mathEngine.CleanUp().
 	}

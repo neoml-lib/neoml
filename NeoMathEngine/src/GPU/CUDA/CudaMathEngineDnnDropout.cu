@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -31,7 +31,7 @@ namespace NeoML {
 CDropoutDesc* CCudaMathEngine::InitDropout( float rate, bool isSpatial, bool isBatchwise,
 	const CBlobDesc& input, const CBlobDesc& output, int seed )
 {
-	return new CSeedDropoutDesc(rate, isSpatial, isBatchwise, input, output, seed);
+	return new CSeedDropoutDesc(mathEngine(), rate, isSpatial, isBatchwise, input, output, seed);
 }
 
 void CCudaMathEngine::Dropout( const CDropoutDesc& dropoutDesc,
