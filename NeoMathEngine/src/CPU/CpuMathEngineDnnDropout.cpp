@@ -26,32 +26,28 @@ limitations under the License.
 
 namespace NeoML {
 
-CDropoutDesc* CCpuMathEngine::InitDropout(float rate, bool isSpatial, bool isBatchwise,
-	const CBlobDesc& input, const CBlobDesc& output, int seed)
+CDropoutDesc* CCpuMathEngine::InitDropout( float rate, bool isSpatial, bool isBatchwise,
+	const CBlobDesc& input, const CBlobDesc& output, int seed )
 {
 	return new CSeedDropoutDesc(rate, isSpatial, isBatchwise, input, output, seed);
 }
 
-static void FillCpuDropoutMask(CCpuRandom& random, float* const curr, const CSeedDropoutDesc& desc, const int& index, const int& size)
+static constexpr int maskAlign = 4;
+
+static void FillCpuDropoutMask( CCpuRandom& random, float* const curr, const CSeedDropoutDesc& desc, const int& index, const int& size )
 {
-	const unsigned int threshold = (unsigned int)((double)desc.ForwardRate * UINT_MAX);
+	const unsigned threshold = (unsigned int)((double)desc.ForwardRate * UINT_MAX);
 	const float value = 1.f / desc.ForwardRate;
-	const int currBlock = index / 4;
-	const int leftToFill = (currBlock + 1) * 4 - index;
+
+	ASSERT_EXPR((index % maskAlign) == 0);
+	const int currBlock = index / maskAlign;
 	random.Skip(currBlock);
 	int idx = 0;
 
-	if( leftToFill % 4 ) {
-		CIntArray<4> generated = random.Next();
-		for(; idx < leftToFill && idx < size; ++idx) {
-			curr[idx] = (generated[4 - leftToFill + idx] <= threshold) ? value : 0.f;
-		}
-	}
-
-	const int num = (size - idx + 3) / 4;
-	for(int t = 0; t < num; ++t) {
-		CIntArray<4> generated = random.Next();
-		for (int j = 0; j < 4 && idx < size; ++j) {
+	const int alignedSize = (size + ( maskAlign - 1) ) / maskAlign;
+	for(int i = 0; i < alignedSize; ++i) {
+		CIntArray<maskAlign> generated = random.Next();
+		for (int j = 0; j < maskAlign && idx < size; ++j) {
 			curr[idx++] = (generated[j] <= threshold) ? value : 0.f;
 		}
 	}
@@ -78,25 +74,27 @@ void CCpuMathEngine::Dropout( const CDropoutDesc& dropoutDesc, const CFloatHandl
 	CFloatHandle currOutput = outputData;
 
 	if( !desc.IsSpatial ) {
-		CCpuRandom random(desc.seed);
+		CCpuRandom random( desc.seed );
 		// will construct the dropout mask by samples of L1 cache line size
-		int cacheSize = static_cast<int>(std::min(CCPUInfo::GetCPUInfo().L1CacheSize, static_cast<size_t>(INT_MAX)));
-		cacheSize = std::min(cacheSize, maskSize);
-		// make it divisible by 4 to simplify random numbers generation
-		cacheSize -= (cacheSize % 4);
+		int cacheSize = static_cast<int>( std::min( CCPUInfo::GetCPUInfo().L1CacheSize, static_cast<size_t>(INT_MAX) ) );
+		cacheSize = std::min( cacheSize, maskSize );
+		// aligning and getting convertingn bytes to num of float elements
+		cacheSize -= (cacheSize % maskAlign) / sizeof(float);
+		
+		CFloatHandleStackVar maskVar( mathEngine(), cacheSize );
+		float* const mask = GetRaw( maskVar.GetHandle() );
 
-		CFloatHandleVar mask( mathEngine(), cacheSize );
+		for( int i = 0; i < (maskSize + cacheSize - 1) / cacheSize; ++i ) {
+			const int currSize = std::min( cacheSize, maskSize - i * cacheSize );
+			FillCpuDropoutMask( random, mask, desc, 0, currSize );
 
-		for(int i = 0; i < (maskSize + cacheSize - 1) / cacheSize; ++i) {
-			const int currSize = std::min<int>(cacheSize, maskSize - i * cacheSize);
-			FillCpuDropoutMask(random, GetRaw(mask.GetHandle()), desc, 0, currSize);
+			const float* first = GetRaw( currInput );
+			const float* second = mask;
+			float* result = GetRaw( currOutput );
 
-			const float* first = GetRaw(currInput);
-			const float* second = GetRaw(mask.GetHandle());
-			float* result = GetRaw(currOutput);
+			for( int b = 0; b < batchLength; ++b ) {
+				NeoML::vectorEltwiseMultiply( first, second, result, currSize );
 
-			for (int b = 0; b < batchLength; ++b) {
-				multiplyMatrixByDiagMatrix(first, 1, currSize, second, result);
 				first += maskSize;
 				result += maskSize;
 			}
@@ -104,20 +102,30 @@ void CCpuMathEngine::Dropout( const CDropoutDesc& dropoutDesc, const CFloatHandl
 			currInput += currSize;
 			currOutput += currSize;
 		}
-		return;
-	}
+	} else {
+		const int inputObjectSize = input.ObjectSize();
+		for(int i = 0; i < batchWidth; ++i) {
+			const int index = i * objectSize;
+			CCpuRandom random( desc.seed );
+			CFloatHandleStackVar maskVar( mathEngine(), objectSize + index % maskAlign );
 
-	for( int i = 0; i < input.ObjectCount(); ++i ) {
-		CCpuRandom random(desc.seed);
-		CFloatHandleVar mask(mathEngine(), objectSize);
-		const int index = (i % batchWidth) * objectSize;
-		FillCpuDropoutMask(random, GetRaw(mask.GetHandle()), desc, index, objectSize);
+			float* mask = GetRaw( maskVar.GetHandle() );
+			FillCpuDropoutMask( random, mask, desc, index - index % maskAlign, objectSize + index % maskAlign );
+			mask += ( index % maskAlign );
 
-		MultiplyMatrixByDiagMatrix(currInput, input.ObjectSize() / objectSize, objectSize,
-			mask, currOutput, input.ObjectSize());
+			const float* first = GetRaw( currInput );
+			float* result = GetRaw( currOutput );
 
-		currInput += input.ObjectSize();
-		currOutput += input.ObjectSize();
+			for(int j = 0; j < batchLength; ++j) {
+				multiplyMatrixByDiagMatrix( first, input.ObjectSize() / objectSize, objectSize, mask, result );
+
+				first += inputObjectSize * batchWidth;
+				result += inputObjectSize * batchWidth;
+			}
+
+			currInput += inputObjectSize;
+			currOutput += inputObjectSize;
+		}
 	}
 }
 
