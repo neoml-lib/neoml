@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -98,20 +98,17 @@ struct CDnnLayerLink {
 	int OutputNumber;
 
 	// Default value for optional inputs.
-	CDnnLayerLink() : Layer( 0 ), OutputNumber( -1 ) {}
-	CDnnLayerLink( const CDnnLayerLink& other ) :
-		Layer( other.Layer ), OutputNumber( other.OutputNumber ) {}
-	CDnnLayerLink( CBaseLayer* layer, int outputNumber ) :
+	CDnnLayerLink() : Layer( nullptr ), OutputNumber( -1 ) {}
+	CDnnLayerLink( CBaseLayer* layer, int outputNumber = 0 ) :
 		Layer( layer ),
 		OutputNumber( outputNumber )
 	{
-		NeoAssert( Layer != 0 );
+		NeoAssert( Layer != nullptr );
 		NeoAssert( OutputNumber >= 0 );
 	}
-
-	// Converting constructor
-	CDnnLayerLink( CBaseLayer* layer ) :
-		Layer( layer ), OutputNumber( 0 ) {}
+	CDnnLayerLink( const CDnnLayerLink& other ) :
+		Layer( other.Layer ), OutputNumber( other.OutputNumber )
+	{}
 
 	// Is this layer optional, i.e. created by CLayerOutout() default constructor.
 	bool IsOptional() const { return Layer == 0 && OutputNumber == -1; }

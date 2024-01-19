@@ -265,6 +265,7 @@ set(NeoML_HEADERS_COMPACT
     ../include/NeoML/Dnn/Dnn.inl
     ../include/NeoML/Dnn/DnnBlob.h
     ../include/NeoML/Dnn/DnnInitializer.h
+    ../include/NeoML/Dnn/DnnHead.h
     ../include/NeoML/Dnn/DnnLambdaHolder.h
     ../include/NeoML/Dnn/DnnSolver.h
     ../include/NeoML/Dnn/DnnSparseMatrix.h
