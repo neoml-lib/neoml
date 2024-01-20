@@ -50,6 +50,7 @@ set(NeoML_SOURCES_COMPACT
     Dnn/Layers/MultiheadAttentionLayer.cpp
     Dnn/Layers/MultiHingeLossLayer.cpp
     Dnn/Layers/ObjectNormalizationLayer.cpp
+    Dnn/Layers/ParameterLayer.cpp
     Dnn/Layers/PoolingLayer.cpp
     Dnn/Layers/RecurrentLayer.cpp
     Dnn/Layers/RleConvLayer.cpp
@@ -292,6 +293,7 @@ set(NeoML_HEADERS_COMPACT
     ../include/NeoML/Dnn/Layers/MultichannelLookupLayer.h
     ../include/NeoML/Dnn/Layers/MultiheadAttentionLayer.h
     ../include/NeoML/Dnn/Layers/ObjectNormalizationLayer.h
+    ../include/NeoML/Dnn/Layers/ParameterLayer.h
     ../include/NeoML/Dnn/Layers/PoolingLayer.h
     ../include/NeoML/Dnn/Layers/RecurrentLayer.h
     ../include/NeoML/Dnn/Layers/QrnnLayer.h

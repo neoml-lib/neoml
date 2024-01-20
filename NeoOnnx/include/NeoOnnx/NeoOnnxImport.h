@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -37,7 +37,7 @@ struct NEOONNX_API CImportSettings {
 
 	// After the import the net is passed to NeoML::OptimizeDnn
 	// The settings used by OptimizeDnn
-	CDnnOptimizationSettings DnnOptimizationSettings{};
+	NeoML::CDnnOptimizationSettings DnnOptimizationSettings{};
 };
 
 // Information about ONNX optimizations
@@ -68,7 +68,7 @@ struct NEOONNX_API CImportedModelInfo {
 	// 1. ONNX-only optimizations. Mostly they just removed artifacts from ONNX generation. See OnnxOptimizationReport.
 	// 2. NeoML::OptimizeDnn. See OptimizationReport.
 	COnnxOptimizationReport OnnxOptimizationReport;
-	CDnnOptimizationReport OptimizationReport;
+	NeoML::CDnnOptimizationReport OptimizationReport;
 };
 
 // The load functions build CDnn based on ONNX in the following way:
