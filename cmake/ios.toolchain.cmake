@@ -20,7 +20,8 @@ message(STATUS "Building with Xcode version: ${XCODE_VERSION}")
 # Determine the cmake host system version so we know where to find the iOS SDKs
 find_program(CMAKE_UNAME uname /bin /usr/bin /usr/local/bin)
 if(CMAKE_UNAME)
-    execute_process(COMMAND uname -r OUTPUT_VARIABLE CMAKE_HOST_SYSTEM_VERSION)
+    message(STATUS "uname args: ${ARGS}  -r ${OUTPUT_VARIABLE} ${CMAKE_HOST_SYSTEM_VERSION}")
+    execute_process(COMMAND uname ARGS -r OUTPUT_VARIABLE CMAKE_HOST_SYSTEM_VERSION)
     string (REGEX REPLACE "^([0-9]+)\\.([0-9]+).*$" "\\1" DARWIN_MAJOR_VERSION "${CMAKE_HOST_SYSTEM_VERSION}")
 endif(CMAKE_UNAME)
 
