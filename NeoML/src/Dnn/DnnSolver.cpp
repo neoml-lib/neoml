@@ -307,7 +307,7 @@ void CDnnSolver::clipGradients(const CObjectArray<CDnnBlob>& paramDiffBlobs)
 			paramDiffBlobs[i]->GetDataSize(), tempVar.GetHandle());
 		MathEngine().VectorAdd(gradVar.GetHandle(), tempVar.GetHandle(), gradVar.GetHandle(), 1);
 	}
-	NeoPresume( isfinite( gradVar.GetValue() ) );
+	NeoPresume( std::isfinite( gradVar.GetValue() ) );
 	MathEngine().VectorSqrt(gradVar.GetHandle(), gradVar.GetHandle(), 1);
 
 	// Calculate scale
