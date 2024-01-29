@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,19 +17,28 @@ limitations under the License.
 #pragma hdrstop
 
 #include <MathEngineDnnDropout.h>
+#include <MemoryHandleInternal.h>
 #include <CpuMathEngine.h>
+#include <CpuMathEnginePrivate.h>
 #include <CpuExecutionScope.h>
 #include <CpuRandom.h>
 
 namespace NeoML {
 
-void CCpuMathEngine::Dropout( const CDropoutDesc& dropoutDesc, const CFloatHandle& inputData, const CFloatHandle& outputData )
+static constexpr int maskAlign = 4;
+
+CDropoutDesc* CCpuMathEngine::InitDropout(float rate, bool isSpatial, bool isBatchwise,
+	const CBlobDesc& input, const CBlobDesc& output, int seed)
+{
+	return new CSeedDropoutDesc(mathEngine(), rate, isSpatial, isBatchwise, input, output, seed);
+}
+
+void CCpuMathEngine::Dropout(const CDropoutDesc& dropoutDesc, const CFloatHandle& inputData, const CFloatHandle& outputData)
 {
 	CCpuExecutionScope scope;
 
-	const CMathEngineDropoutDesc& desc = static_cast<const CMathEngineDropoutDesc&>( dropoutDesc );
+	const CSeedDropoutDesc& desc = static_cast<const CSeedDropoutDesc&>(dropoutDesc);
 	const CBlobDesc& input = desc.Input;
-	const CBlobDesc& output = desc.Output;
 
 	if( desc.ForwardRate == 1.f ) {
 		VectorCopy( outputData, inputData, input.BlobSize() );
@@ -40,29 +49,81 @@ void CCpuMathEngine::Dropout( const CDropoutDesc& dropoutDesc, const CFloatHandl
 	const int batchLength = desc.IsBatchwise ? input.ObjectCount() : input.BatchLength();
 	const int batchWidth = input.ObjectCount() / batchLength;
 	const int maskSize = batchWidth * objectSize;
+	
+	CCpuRandom random(desc.seed);
+	CIntArray<maskAlign> generated;
 
-	ASSERT_EXPR( desc.Mask.Size() == maskSize );
+	const int inputObjectSize = input.ObjectSize();
+	const float* inputPointer = GetRaw(inputData);
+	float* outputPointer = GetRaw(outputData);
+	float* mask = GetRaw(desc.Mask.GetHandle());
+	const int cacheSize = desc.Mask.Size();
 
-	if( !desc.IsSpatial ) {
-		MultiplyMatrixByDiagMatrix( inputData, batchLength, maskSize, desc.Mask.GetHandle(),
-			outputData, output.BlobSize() );
-		return;
+	const float* first;
+	float* result;
+
+	if(!desc.IsSpatial) {
+
+		const float* first;
+		float* result;
+		int currSize;
+
+		for(int i = 0; i < (maskSize + cacheSize - 1) / cacheSize; ++i) {
+			currSize = std::min(cacheSize, maskSize - i * cacheSize);
+			int idx = 0;
+
+			first = inputPointer;
+			result = outputPointer;
+
+			const int alignedSize = (currSize + (maskAlign - 1)) / maskAlign;
+			for(int i = 0; i < alignedSize; ++i) {
+				generated = random.Next();
+				for (int j = 0; j < maskAlign && idx < currSize; ++j) {
+					mask[idx++] = (generated[j] <= desc.threshold) ? desc.value : 0.f;
+				}
+			}
+
+			for(int b = 0; b < batchLength; ++b) {
+				vectorEltwiseMultiply(first, mask, result, currSize);
+
+				first += maskSize;
+				result += maskSize;
+			}
+
+			inputPointer += currSize;
+			outputPointer += currSize;
+		}
+	} else {
+		const int reloadIter = cacheSize / objectSize;
+		float* curr = mask;
+
+		for(int i = 0; i < batchWidth; ++i) {
+			if( !(i % reloadIter) ) {
+				int idx = 0;
+				for(int i = 0; i < (desc.Mask.Size() + 3) / 4; ++i) {
+					generated = random.Next();
+					for(int j = 0; j < maskAlign && idx < desc.Mask.Size(); ++j) {
+						mask[idx++] = (generated[j] <= desc.threshold) ? desc.value : 0.f;
+					}
+				}
+				curr = mask;
+			}
+
+			first = inputPointer;
+			result = outputPointer;
+
+			for(int j = 0; j < batchLength; ++j) {
+				multiplyMatrixByDiagMatrix(first, input.ObjectSize() / objectSize, objectSize, curr, result);
+
+				first += inputObjectSize * batchWidth;
+				result += inputObjectSize * batchWidth;
+			}
+
+			inputPointer += inputObjectSize;
+			outputPointer += inputObjectSize;
+			curr += objectSize;
+		}
 	}
-
-	CFloatHandle currInput = inputData;
-	CFloatHandle currOutput = outputData;
-	for( int i = 0; i < input.ObjectCount(); ++i ) {
-		MultiplyMatrixByDiagMatrix( currInput, input.ObjectSize() / objectSize, objectSize,
-			desc.Mask.GetHandle() + ( i % batchWidth ) * objectSize, currOutput, input.ObjectSize() );
-		currInput += input.ObjectSize();
-		currOutput += input.ObjectSize();
-	}
-}
-
-CDropoutDesc* CCpuMathEngine::InitDropout( float rate, bool isSpatial, bool isBatchwise,
-	const CBlobDesc& input, const CBlobDesc& output, int seed )
-{
-	return new CMathEngineDropoutDesc( mathEngine(), rate, isSpatial, isBatchwise, input, output, seed );
 }
 
 } // namespace NeoML
