@@ -455,6 +455,7 @@ public:
 	virtual void GetLayerList( CArray<char const*>& layerList ) const = 0;
 	virtual CPtr<CBaseLayer> GetLayer( const char* name ) = 0;
 	virtual CPtr<const CBaseLayer> GetLayer( const char* name ) const = 0;
+	virtual CPtr<CBaseLayer> GetLayer( const CArray<const char*> path) = 0;
 	virtual bool HasLayer( const char* name ) const = 0;
 
 	void AddLayer(CBaseLayer& layer);
@@ -517,6 +518,7 @@ public:
 	void GetLayerList( CArray<const char*>& layerList ) const override;
 	CPtr<CBaseLayer> GetLayer( const char* name ) override;
 	CPtr<const CBaseLayer> GetLayer( const char* name ) const override;
+	CPtr<CBaseLayer> GetLayer(const CArray<const char*> path) override;
 	bool HasLayer( const char* name ) const override { return layerMap.Has( name ); }
 
 	// Runs the network: all data from the input blobs is used

@@ -35,6 +35,7 @@ public:
 	// Only CMultichannelLookupLayer is supported.
 	const char* GetEmbeddingsLayerName() const { return embeddingsLayerName; }
 	void SetEmbeddingsLayerName( const char* name ) { embeddingsLayerName = name; }
+	void SetEmbeddingsLayerName(const CArray<const char*> &path) { }
 	// Channel index in embeddings layer.
 	int GetChannelIndex() const { return channelIndex; }
 	void SetChannelIndex( int val );

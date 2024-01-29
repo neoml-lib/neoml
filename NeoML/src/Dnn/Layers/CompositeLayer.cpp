@@ -202,6 +202,19 @@ CPtr<const CBaseLayer> CCompositeLayer::GetLayer(const char* name) const
 	return layerMap.Get(name);
 }
 
+CPtr<CBaseLayer> CCompositeLayer::GetLayer( const CArray<const char*> path)
+{
+	CPtr<CCompositeLayer> currComp = this;
+	int i;
+	for( i = 0; i < path.Size() - 1; ++i ) {
+		CheckArchitecture(currComp->layerMap.Has(path[i]), path[i], "layer is not in this composite layer");
+		currComp = dynamic_cast<CCompositeLayer*>( currComp->GetLayer(path[i]).Ptr() );
+		assert( currComp != nullptr );
+	}
+	CheckArchitecture(currComp->layerMap.Has(path[i]), path[i], "layer is not contained by this path");
+	return currComp->GetLayer(path[i]);
+};
+
 bool CCompositeLayer::HasLayer(const char* name) const
 {
 	return layerMap.Has(name);

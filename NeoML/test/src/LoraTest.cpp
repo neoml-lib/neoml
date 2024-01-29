@@ -557,6 +557,66 @@ TEST( LoraSerializerTest, DistributedCheckpoint )
 			EXPECT_FLOAT_EQ( currLosses[i], storedLosses[iter][i] );
 		}
 	}
+
+}
+
+TEST(MyComposite, MyComposite)
+{
+	const int inputSize = 100;
+	const int outputSize = 5;
+	const int epochs = 10;
+
+	CRandom random(42);
+	CDnn dnn(random, MathEngine());
+	// Initialize net
+	CPtr<CSourceLayer> input = new CSourceLayer(dnn.GetMathEngine());
+	input->SetName("input");
+	dnn.AddLayer(*input);
+
+	CPtr<CSourceLayer> label = new CSourceLayer(dnn.GetMathEngine());
+	label->SetName("label");
+	dnn.AddLayer(*label);
+
+	{ // Initialize inputs
+		CArray<float> inArr;
+		inArr.Add(0.01f, inputSize);
+		CPtr<CDnnBlob> in = CDnnBlob::CreateTensor(
+			dnn.GetMathEngine(), CT_Float, { 1, 1, 1, 1, 1, 1, inputSize });
+		in->CopyFrom(inArr.GetPtr());
+
+		CArray<float> labelArr;
+		labelArr.Add(1.f, outputSize);
+		CPtr<CDnnBlob> labels = CDnnBlob::CreateTensor(
+			dnn.GetMathEngine(), CT_Float, { 1, 1, 1, 1, 1, 1, outputSize });
+		labels->CopyFrom(labelArr.GetPtr());
+
+		input->SetBlob(in);
+		label->SetBlob(labels);
+	}
+
+	CPtr<CCompositeLayer> composite = new CCompositeLayer(dnn.GetMathEngine());
+	composite->SetName("composite");
+	composite->Connect(*input);
+	dnn.AddLayer(*composite);
+
+	{ // Initialize composite layer
+		CPtr<CCompositeLayer> composite1 = new CCompositeLayer(dnn.GetMathEngine());
+		composite1->SetName("composite1");
+		composite1->Connect(*input);
+		dnn.AddLayer(*composite1);
+
+		CPtr<CFullyConnectedLayer> full = new CFullyConnectedLayer(dnn.GetMathEngine());
+		full->SetName("full");
+		full->SetZeroFreeTerm(false);
+		full->SetNumberOfElements(outputSize);
+		//composite->SetInputMapping(*full);
+		//composite->SetOutputMapping(*full);
+		composite1->AddLayer(*full);
+		composite->AddLayer(*composite1);
+	}
+
+	auto x = composite->GetLayer({ "composite", "full" });
+	auto name = x->GetName();
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -654,4 +714,3 @@ TEST( LoraMemCheck, DISABLED_WithLora )
 	memCheckTest( true );
 	DeleteMathEngine();
 }
-
