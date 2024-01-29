@@ -35,7 +35,7 @@ public:
 	// Only CMultichannelLookupLayer is supported.
 	const char* GetEmbeddingsLayerName() const { return embeddingsLayerName; }
 	void SetEmbeddingsLayerName( const char* name ) { embeddingsLayerName = name; }
-	void SetEmbeddingsLayerName(const CArray<const char*> &path) { }
+	void SetEmbeddingsLayerPath(const CArray<const char*>& path) { path.CopyTo(embeddingPath); }
 	// Channel index in embeddings layer.
 	int GetChannelIndex() const { return channelIndex; }
 	void SetChannelIndex( int val );
@@ -49,12 +49,15 @@ protected:
 	int BlobsForLearn() const override { return TInputBlobs; }
 
 private:
+	// Path for embedding layer from which matrix is taken
+	CArray<const char*> embeddingPath;
 	// Embedding layer name from which we take the matrix.
 	CString embeddingsLayerName;
 	// Channel index in embedding layer.
 	int channelIndex;
 
-	const CDnnBlob* getEmbeddingsTable() const;
+	const CDnnBlob* getEmbeddingsTable();
+	CMultichannelLookupLayer* getLookUpLayer();
 };
 
 // Tied embeddings.

@@ -16,8 +16,8 @@ limitations under the License.
 #include <common.h>
 #pragma hdrstop
 
-#include <NeoML/Dnn/Layers/TiedEmbeddingsLayer.h>
 #include <NeoML/Dnn/Layers/MultichannelLookupLayer.h>
+#include <NeoML/Dnn/Layers/TiedEmbeddingsLayer.h>
 
 namespace NeoML {
 
@@ -50,15 +50,11 @@ void CTiedEmbeddingsLayer::Serialize( CArchive& archive )
 void CTiedEmbeddingsLayer::Reshape()
 {
 	CheckInputs();
+	const CMultichannelLookupLayer* embeddingsLayer = getLookUpLayer();
 
-	CheckLayerArchitecture( GetDnn()->HasLayer( embeddingsLayerName ),
-		"Network does not contain embeddings layer with that name." );
-	const CMultichannelLookupLayer* embeddingsLayer = dynamic_cast<CMultichannelLookupLayer*>(
-		GetDnn()->GetLayer( embeddingsLayerName ).Ptr() );
 	CheckLayerArchitecture( embeddingsLayer != 0, "The layer is not an embedding layer." );
 
-	const int embeddingsChannelsCount = CheckCast<CMultichannelLookupLayer>(
-		GetDnn()->GetLayer( embeddingsLayerName ) )->GetDimensions().Size();
+	const int embeddingsChannelsCount = embeddingsLayer->GetDimensions().Size();
 	CheckLayerArchitecture( channelIndex < embeddingsChannelsCount,
 		"Wrong channgel index for embeddings" );
 
@@ -129,8 +125,8 @@ void CTiedEmbeddingsLayer::LearnOnce()
 		diffBlob->Clear();
 	}
 
-	CMultichannelLookupLayer* embeddingsLayer =
-		CheckCast<CMultichannelLookupLayer>( GetDnn()->GetLayer( embeddingsLayerName ) );
+	CMultichannelLookupLayer* embeddingsLayer = getLookUpLayer();
+		//CheckCast<CMultichannelLookupLayer>( GetDnn()->GetLayer( embeddingsLayerName ) );
 
 	CObjectArray<CDnnBlob> totalDiffBlobs;
 	const int channelsCount = embeddingsLayer->GetDimensions().Size();
@@ -148,13 +144,11 @@ void CTiedEmbeddingsLayer::LearnOnce()
 }
 
 // Embeddings matrix
-const CDnnBlob* CTiedEmbeddingsLayer::getEmbeddingsTable() const
+const CDnnBlob* CTiedEmbeddingsLayer::getEmbeddingsTable()
 {
 	NeoAssert( channelIndex >= 0 );
 
-	const CMultichannelLookupLayer* embeddingsLayer =
-		CheckCast<CMultichannelLookupLayer>( GetDnn()->GetLayer( embeddingsLayerName ) );
-	return embeddingsLayer->GetEmbeddings( channelIndex );
+	return  getLookUpLayer()->GetEmbeddings( channelIndex );
 }
 
 CLayerWrapper<CTiedEmbeddingsLayer> TiedEmbeddings( const char* name, int channel )
@@ -163,6 +157,22 @@ CLayerWrapper<CTiedEmbeddingsLayer> TiedEmbeddings( const char* name, int channe
 		result->SetEmbeddingsLayerName( name );
 		result->SetChannelIndex( channel );
 	} );
+}
+
+CMultichannelLookupLayer* CTiedEmbeddingsLayer::getLookUpLayer()
+{
+	CMultichannelLookupLayer* embeddingsLayer;
+	if (embeddingsLayerName.IsEmpty()) {
+		embeddingsLayer = CheckCast<CMultichannelLookupLayer>(
+			GetDnn()->GetLayer(embeddingPath).Ptr());
+
+	} else {
+		CheckLayerArchitecture(GetDnn()->HasLayer(embeddingsLayerName),
+			"Network does not contain embeddings layer with that name.");
+		embeddingsLayer = CheckCast<CMultichannelLookupLayer>(
+			GetDnn()->GetLayer(embeddingsLayerName).Ptr());
+	}
+	return embeddingsLayer;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

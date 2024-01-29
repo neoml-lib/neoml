@@ -58,8 +58,9 @@ public:
 	int GetLayerCount() const override { return layers.Size(); }
 	void GetLayerList(CArray<const char*>& layerList) const override;
 	CPtr<CBaseLayer> GetLayer(const char* name) override;
-	CPtr<CBaseLayer> GetLayer( const CArray<const char*> path ) override;
-	CPtr<const CBaseLayer> GetLayer(const char* name) const override;
+	CPtr<CBaseLayer> GetLayer( const CArray<const char*>& path ) override;
+	CPtr<const CBaseLayer> GetLayer( const char* name ) const override;
+	CPtr<const CBaseLayer> GetLayer( const CArray<const char*>& path ) const override;
 	bool HasLayer(const char* name) const override;
 
 	// Returns the total size of the output blobs
