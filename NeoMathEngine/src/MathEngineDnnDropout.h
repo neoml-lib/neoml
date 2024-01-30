@@ -37,7 +37,7 @@ struct CMaskDropoutDesc : public CDropoutDesc {
 
 // Dropout descriptor containing only seed for generating mask (uses less memory)
 struct CSeedDropoutDesc : public CDropoutDesc {
-	explicit CSeedDropoutDesc( float rate, bool isSpatial, bool isBatchwise,
+	explicit CSeedDropoutDesc( IMathEngine& mathEngine, float rate, bool isSpatial, bool isBatchwise,
 		const CBlobDesc& input, const CBlobDesc& output, int seed );
 
 	CBlobDesc Input; // input blob descriptor
@@ -47,6 +47,9 @@ struct CSeedDropoutDesc : public CDropoutDesc {
 	const bool IsBatchwise; // indicates if an element is dropped out of all objects in one batch at the same time
 	// // seed that will be used later to generate mask
 	int seed;
+	const unsigned threshold; // = (unsigned int)((double)desc.ForwardRate * UINT_MAX);
+	const float value; // = 1.f / desc.ForwardRate;
+	CFloatHandleVar Mask;
 };
 
 } // namespace NeoML

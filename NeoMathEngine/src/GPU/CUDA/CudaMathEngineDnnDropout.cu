@@ -31,7 +31,7 @@ namespace NeoML {
 CDropoutDesc* CCudaMathEngine::InitDropout( float rate, bool isSpatial, bool isBatchwise,
 	const CBlobDesc& input, const CBlobDesc& output, int seed )
 {
-	return new CSeedDropoutDesc(rate, isSpatial, isBatchwise, input, output, seed);
+	return new CSeedDropoutDesc(mathEngine(), rate, isSpatial, isBatchwise, input, output, seed);
 }
 
 void CCudaMathEngine::Dropout( const CDropoutDesc& dropoutDesc,

@@ -18,8 +18,12 @@ limitations under the License.
 
 #include <MathEngineDnnDropout.h>
 #include <NeoMathEngine/NeoMathEngine.h>
+#include <CPUInfo.h>
+#include <CpuMathEngine.h>
 
 namespace NeoML {
+
+static const int cacheSize = 64;
 
 static inline int getMaskSize( float rate, bool isSpatial, bool isBatchwise, const CBlobDesc& input )
 {
@@ -50,14 +54,17 @@ CMaskDropoutDesc::CMaskDropoutDesc( IMathEngine& mathEngine, float rate, bool is
 	}
 }
 
-CSeedDropoutDesc::CSeedDropoutDesc( float rate, bool isSpatial, bool isBatchwise,
+CSeedDropoutDesc::CSeedDropoutDesc( IMathEngine& mathEngine, float rate, bool isSpatial, bool isBatchwise,
 		const CBlobDesc& input, const CBlobDesc& output, int seed ) :
 	Input( input ),
 	Output( output ),
 	ForwardRate( 1.f - rate ),
 	IsSpatial( isSpatial ),
 	IsBatchwise( isBatchwise ),
-	seed(seed)
+	seed(seed),
+	threshold( (unsigned int)((double)ForwardRate* UINT_MAX) ),
+	value( 1.f / ForwardRate ),
+	Mask( mathEngine, std::min(getMaskSize(rate, isSpatial, isBatchwise, input), cacheSize) )
 {
 	ASSERT_EXPR( rate >= 0.f && rate < 1.f );
 }
