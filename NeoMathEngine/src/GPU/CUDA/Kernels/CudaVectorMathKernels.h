@@ -307,7 +307,7 @@ __global__ void VectorELUKernel( const float* __restrict__ first, float* result,
 	result += index;
 
 	for( int action = 0; action < actionCount; ++action ) {
-		*result = *first >= 0 ? *first : *alpha * ( ExponentFunc( *first ) - 1. );
+		*result = ( *first >= 0 ) ? *first : ( *alpha * ( ExponentFunc( *first ) - 1. ) );
 		first += step;
 		result += step;
 	}
@@ -325,7 +325,7 @@ __global__ void VectorELUDiffKernel( const float* __restrict__ first, const floa
 	result += index;
 
 	for( int i = 0; i < actionCount; ++i ) {
-		*result = *first >= 0 ? *second : *second * ExponentFunc( *first ) * *alpha;
+		*result = ( *first >= 0 ) ? *second : ( *second * ExponentFunc( *first ) * *alpha );
 		first += step;
 		second += step;
 		result += step;
@@ -343,7 +343,7 @@ __global__ void VectorELUDiffOpKernel( const float* __restrict__ first, const fl
 	result += index;
 
 	for( int i = 0; i < actionCount; ++i ) {
-		*result = *first >= 0 ? *second : *second * ( *first + *alpha );
+		*result = ( *first >= 0 ) ? *second : ( *second * ( *first + *alpha ) );
 		first += step;
 		second += step;
 		result += step;
@@ -395,7 +395,7 @@ __global__ void VectorReLUDiffKernel(const float* __restrict__ first,
 		}
 	} else {
 		for(int i = 0; i < actionCount; ++i) {
-			*result = *first > 0 ? *second : 0;
+			*result = ( *first > 0 ) ? *second : 0;
 			first += step;
 			second += step;
 			result += step;
@@ -414,7 +414,7 @@ __global__ void VectorLeakyReLUKernel( const float* __restrict__ first, float* r
 	result += index;
 	for( int i = 0; i < actionCount; ++i ) {
 		const float value = *first;
-		*result = value > 0 ? value : *alpha * value;
+		*result = ( value > 0 ) ? value : ( *alpha * value );
 		first += step;
 		result += step;
 	}
@@ -432,7 +432,7 @@ __global__ void VectorLeakyReLUDiffKernel( const float* __restrict__ first, cons
 	result += index;
 
 	for( int i = 0; i < actionCount; ++i ) {
-		*result = *first > 0 ? *second : *second * *alpha;
+		*result = ( *first > 0 ) ? *second : ( *second * *alpha );
 		first += step;
 		second += step;
 		result += step;
@@ -502,7 +502,7 @@ __global__ void VectorEltwiseMaxKernel(const float* first, const float* second,
 	for(int i = 0; i < actionCount; ++i) {
 		const float value1 = *first;
 		const float value2 = *second;
-		*result = value1 > value2 ? value1 : value2;
+		*result = ( value1 > value2 ) ? value1 : value2;
 		first += step;
 		second += step;
 		result += step;
@@ -524,7 +524,7 @@ __global__ void VectorEltwiseMinKernel(const float* first, const float* second,
 	for(int i = 0; i < actionCount; ++i) {
 		const float value1 = *first;
 		const float value2 = *second;
-		*result = value1 < value2 ? value1 : value2;
+		*result = ( value1 < value2 ) ? value1 : value2;
 		first += step;
 		second += step;
 		result += step;
@@ -542,7 +542,7 @@ __global__ void VectorAbsKernel(const float* first, float* result, int count)
 
 	for(int i = 0; i < actionCount; ++i) {
 		const float value = *first;
-		*result = value > 0 ? value : -value;
+		*result = ( value > 0 ) ? value : -value;
 		first += step;
 		result += step;
 	}
@@ -560,7 +560,7 @@ __global__ void VectorAbsDiffKernel(const float* __restrict__ first, const float
 	result += index;
 
 	for(int i = 0; i < actionCount; ++i) {
-		*result = *first > 0 ? *second : -*second;
+		*result = ( *first > 0 ) ? *second : ( - *second );
 		first += step;
 		second += step;
 		result += step;
@@ -578,7 +578,7 @@ __global__ void VectorHingeKernel(const float* __restrict__ first, float* result
 
 	for(int i = 0; i < actionCount; ++i) {
 		const float value = 1 - *first;
-		*result = value > 0 ? value : 0;
+		*result = ( value > 0 ) ? value : 0;
 		first += step;
 		result += step;
 	}
@@ -596,7 +596,7 @@ __global__ void VectorHingeDiffKernel(const float* __restrict__ first,
 	result += index;
 
 	for(int i = 0; i < actionCount; ++i) {
-		*result = *first < 1 ? -*second : 0;
+		*result = ( *first < 1 ) ? -*second : 0;
 		first += step;
 		second += step;
 		result += step;
@@ -618,7 +618,7 @@ __global__ void VectorSquaredHingeKernel(const float* __restrict__ first, float*
 			*result = -4 * value;
 		} else {
 			value = 1 - value;
-			*result = value < 0 ? 0 : value * value;
+			*result = ( value < 0 ) ? 0 : ( value * value );
 		}
 		first += step;
 		result += step;
@@ -642,7 +642,7 @@ __global__ void VectorSquaredHingeDiffKernel(const float* __restrict__ first,
 			*result = -4 * (*second);
 		} else {
 			value = 1 - value;
-			*result = value < 0 ? 0 : -2 * value * (*second);
+			*result = ( value < 0 ) ? 0 : ( -2 * value * ( *second ) );
 		}
 		first += step;
 		second += step;
