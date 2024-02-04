@@ -202,28 +202,19 @@ CPtr<const CBaseLayer> CCompositeLayer::GetLayer(const char* name) const
 	return layerMap.Get(name);
 }
 
-CPtr<CBaseLayer> CCompositeLayer::GetLayer( const CArray<const char*>& path)
+CPtr<CBaseLayer> CCompositeLayer::GetLayer(const CArray<CString>& path)
 {
 	CPtr<CCompositeLayer> currComp = this;
-	int i;
-	for( i = 0; i < path.Size() - 1; ++i ) {
+	for(int i = 0; i < path.Size() - 1; ++i ) {
 		CheckArchitecture(currComp->layerMap.Has(path[i]), path[i], "layer is not in this composite layer");
 		currComp = CheckCast<CCompositeLayer>( currComp->GetLayer(path[i]).Ptr() );
 	}
-	CheckArchitecture(currComp->HasLayer(path[i]), path[i], "layer is not contained by this path");
-	return currComp->GetLayer(path[i]);
+	CheckArchitecture(currComp->HasLayer(path.Last()), path.Last(), "layer is not contained by this path");
+	return currComp->GetLayer(path.Last());
 }
 
-CPtr<const CBaseLayer> CCompositeLayer::GetLayer(const CArray<const char*>& path) const
+CPtr<const CBaseLayer> CCompositeLayer::GetLayer(const CArray<CString>& path) const
 {
-	/*Ptr<const CCompositeLayer> currComp = this;
-	int i;
-	for (i = 0; i < path.Size() - 1; ++i) {
-		CheckArchitecture(currComp->layerMap.Has(path[i]), path[i], "layer is not in this composite layer");
-		currComp = CheckCast<const CCompositeLayer>(currComp->GetLayer(path[i]).Ptr());
-	}
-	CheckArchitecture(currComp->HasLayer(path[i]), path[i], "layer is not contained by this path");
-	return currComp->GetLayer(path[i]);*/
 	return const_cast<CCompositeLayer*>(this)->GetLayer(path);
 }
 

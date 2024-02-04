@@ -452,39 +452,25 @@ CPtr<const CBaseLayer> CDnn::GetLayer( const char* name ) const
 	return layerMap.Get( name );
 }
 
-CPtr<CBaseLayer> CDnn::GetLayer( const CArray<const char*>& path)
+CPtr<CBaseLayer> CDnn::GetLayer( const CArray<CString>& path)
 {
-	CheckArchitecture(layerMap.Has(path[0]), path[0], "layer is not in this dnn");
 	if (path.Size() == 1) {
-		return layerMap.Get(path[0]);
+		return GetLayer(path[0]);
 	} else {
+		CheckArchitecture(layerMap.Has(path[0]), path[0], "layer is not in this dnn");
 		CPtr<CCompositeLayer> currComp = CheckCast<CCompositeLayer>( GetLayer(path[0]).Ptr() );
-		int i;
-		for (i = 1; i < path.Size() - 1; ++i) {
+		for (int i = 1; i < path.Size() - 1; ++i) {
 			CheckArchitecture(currComp->HasLayer(path[i]), path[i], "layer is not in this composite layer");
 			currComp = CheckCast<CCompositeLayer>(currComp->GetLayer(path[i]).Ptr());
 		}
-		CheckArchitecture(currComp->HasLayer(path[i]), path[i], "layer is not contained by this path");
-		return currComp->GetLayer(path[i]);
+		CheckArchitecture(currComp->HasLayer(path.Last()), path.Last(), "layer is not contained by this path");
+		return currComp->GetLayer(path.Last());
 	}
 }
 
-CPtr<const CBaseLayer> CDnn::GetLayer(const CArray<const char*>& path) const
+CPtr<const CBaseLayer> CDnn::GetLayer(const CArray<CString>& path) const
 {
-	CheckArchitecture(layerMap.Has(path[0]), path[0], "layer is not in this dnn");
-	if (path.Size() == 1) {
-		return layerMap.Get(path[0]);
-	}
-	else {
-		CPtr<const CCompositeLayer> currComp = CheckCast<const CCompositeLayer>(GetLayer(path[0]).Ptr());
-		int i;
-		for (i = 1; i < path.Size() - 1; ++i) {
-			CheckArchitecture(currComp->HasLayer(path[i]), path[i], "layer is not in this composite layer");
-			currComp = CheckCast<const CCompositeLayer>(currComp->GetLayer(path[i]).Ptr());
-		}
-		CheckArchitecture(currComp->HasLayer(path[i]), path[i], "layer is not contained by this path");
-		return currComp->GetLayer(path[i]);
-	}
+	return const_cast<CDnn*>(this)->GetLayer(path);
 }
 
 void CDnn::AddLayerImpl( CBaseLayer& layer )
