@@ -33,12 +33,14 @@ public:
 	
 	// Embeddings layer name from which we take the matrix.
 	// Only CMultichannelLookupLayer is supported.
-	const char* GetEmbeddingsLayerName() const { return embeddingsLayerName; }
-	void SetEmbeddingsLayerName( const char* name ) { embeddingsLayerName = name; }
-	void SetEmbeddingsLayerPath(const CArray<const char*>& path) { path.CopyTo(embeddingPath); }
+	const CArray<CString>& GetEmbeddingsLayerName() const { return embeddingPath; }
+	void SetEmbeddingsLayerName(const char* name) { embeddingPath = { name }; }
+	void SetEmbeddingsLayerName(const CArray<CString>& path) { path.CopyTo(embeddingPath); }
 	// Channel index in embeddings layer.
 	int GetChannelIndex() const { return channelIndex; }
 	void SetChannelIndex( int val );
+
+	int GetPathSize() const { return embeddingPath.Size(); }
 
 protected:
 	void Reshape() override;
@@ -50,9 +52,9 @@ protected:
 
 private:
 	// Path for embedding layer from which matrix is taken
-	CArray<const char*> embeddingPath;
-	// Embedding layer name from which we take the matrix.
-	CString embeddingsLayerName;
+	// !!! Now it contains the path as array
+	// So in case of no composite layer it is gonna be just { "embeddingName" }
+	CArray<CString> embeddingPath;
 	// Channel index in embedding layer.
 	int channelIndex;
 

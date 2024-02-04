@@ -557,36 +557,6 @@ TEST( LoraSerializerTest, DistributedCheckpoint )
 			EXPECT_FLOAT_EQ( currLosses[i], storedLosses[iter][i] );
 		}
 	}
-
-}
-
-TEST(MyComposite, MyComposite)
-{
-	CRandom random(0x6543);
-	CDnn net(random, MathEngine());
-
-	const int seqLen = 512;
-	const int batchSize = 2;
-	CSourceLayer* data = Source(net, "data");
-	CPtr<CDnnBlob> dataBlob = CDnnBlob::CreateDataBlob(MathEngine(), CT_Int, 1, seqLen, 1);
-	data->SetBlob(dataBlob);
-	//net.AddLayer(*data);
-	// "основной" путь
-	//CPtr<CSourceLayer> source = new CSourceLayer(MathEngine());
-	//net.AddLayer(*source);
-	CPtr<CMultichannelLookupLayer> lookup = new CMultichannelLookupLayer(MathEngine());
-	//lookupSize.SetSize(1);
-	CArray<CLookupDimension> lookupSize;
-	lookupSize.SetSize(1);
-	lookupSize[0].VectorSize = 8;
-	lookupSize[0].VectorCount = 768;
-	lookup->SetDimensions(lookupSize);
-	net.AddLayer(*lookup);
-	lookup->Connect(*data);
-	CPtr<CSinkLayer> output = new CSinkLayer(MathEngine());
-	net.AddLayer(*output);
-	output->Connect(*lookup);
-	net.RunOnce();
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -684,3 +654,4 @@ TEST( LoraMemCheck, DISABLED_WithLora )
 	memCheckTest( true );
 	DeleteMathEngine();
 }
+

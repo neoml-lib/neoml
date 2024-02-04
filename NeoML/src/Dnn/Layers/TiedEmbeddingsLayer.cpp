@@ -36,14 +36,14 @@ void CTiedEmbeddingsLayer::SetChannelIndex( int val )
 	channelIndex = val;
 }
 
-static const int CnnTiedEmbeddingsLayerVersion = 2000;
+static const int CnnTiedEmbeddingsLayerVersion = 2001;
 
 void CTiedEmbeddingsLayer::Serialize( CArchive& archive )
 {
 	archive.SerializeVersion( CnnTiedEmbeddingsLayerVersion, CDnn::ArchiveMinSupportedVersion );
 	CBaseLayer::Serialize( archive );
 
-	archive.Serialize( embeddingsLayerName );
+	archive.Serialize( embeddingPath );;
 	archive.Serialize( channelIndex );
 }
 
@@ -126,8 +126,6 @@ void CTiedEmbeddingsLayer::LearnOnce()
 	}
 
 	CMultichannelLookupLayer* embeddingsLayer = getLookUpLayer();
-		//CheckCast<CMultichannelLookupLayer>( GetDnn()->GetLayer( embeddingsLayerName ) );
-
 	CObjectArray<CDnnBlob> totalDiffBlobs;
 	const int channelsCount = embeddingsLayer->GetDimensions().Size();
 	for( int i = 0; i < channelsCount; i++ ) {
@@ -162,16 +160,8 @@ CLayerWrapper<CTiedEmbeddingsLayer> TiedEmbeddings( const char* name, int channe
 CMultichannelLookupLayer* CTiedEmbeddingsLayer::getLookUpLayer()
 {
 	CMultichannelLookupLayer* embeddingsLayer;
-	if (embeddingsLayerName.IsEmpty()) {
-		embeddingsLayer = CheckCast<CMultichannelLookupLayer>(
-			GetDnn()->GetLayer(embeddingPath).Ptr());
-
-	} else {
-		CheckLayerArchitecture(GetDnn()->HasLayer(embeddingsLayerName),
-			"Network does not contain embeddings layer with that name.");
-		embeddingsLayer = CheckCast<CMultichannelLookupLayer>(
-			GetDnn()->GetLayer(embeddingsLayerName).Ptr());
-	}
+	embeddingsLayer = CheckCast<CMultichannelLookupLayer>(
+		GetDnn()->GetLayer(embeddingPath).Ptr());
 	return embeddingsLayer;
 }
 
