@@ -40,10 +40,20 @@ static const int CnnTiedEmbeddingsLayerVersion = 2001;
 
 void CTiedEmbeddingsLayer::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion( CnnTiedEmbeddingsLayerVersion, CDnn::ArchiveMinSupportedVersion );
+	int version = archive.SerializeVersion(CnnTiedEmbeddingsLayerVersion, CDnn::ArchiveMinSupportedVersion);
 	CBaseLayer::Serialize( archive );
 
-	archive.Serialize( embeddingPath );;
+	if( version < 2001 ) {
+		if( archive.IsLoading() ) {
+			CString embeddingLayerName;
+			archive.Serialize( embeddingLayerName );
+			embeddingPath = { embeddingLayerName };
+		} else {
+			archive.Serialize( embeddingPath.Last() );
+		}
+	} else {
+		archive.Serialize( embeddingPath );
+	}
 	archive.Serialize( channelIndex );
 }
 
@@ -142,11 +152,11 @@ void CTiedEmbeddingsLayer::LearnOnce()
 }
 
 // Embeddings matrix
-const CDnnBlob* CTiedEmbeddingsLayer::getEmbeddingsTable()
+const CDnnBlob* CTiedEmbeddingsLayer::getEmbeddingsTable() const
 {
 	NeoAssert( channelIndex >= 0 );
 
-	return  getLookUpLayer()->GetEmbeddings( channelIndex );
+	return getLookUpLayer()->GetEmbeddings( channelIndex );
 }
 
 CLayerWrapper<CTiedEmbeddingsLayer> TiedEmbeddings( const char* name, int channel )
@@ -157,11 +167,11 @@ CLayerWrapper<CTiedEmbeddingsLayer> TiedEmbeddings( const char* name, int channe
 	} );
 }
 
-CMultichannelLookupLayer* CTiedEmbeddingsLayer::getLookUpLayer()
+CMultichannelLookupLayer* CTiedEmbeddingsLayer::getLookUpLayer() const
 {
 	CMultichannelLookupLayer* embeddingsLayer;
 	embeddingsLayer = CheckCast<CMultichannelLookupLayer>(
-		GetDnn()->GetLayer(embeddingPath).Ptr());
+		const_cast<CDnn*>(GetDnn())->GetLayer(embeddingPath).Ptr());
 	return embeddingsLayer;
 }
 

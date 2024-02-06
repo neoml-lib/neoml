@@ -2182,7 +2182,7 @@ GTEST_TEST( SerializeFromFile, QrnnIfPoolingLayerLayerSerialization )
 
 static void setSpecificParams( CTiedEmbeddingsLayer& layer )
 {
-	layer.SetEmbeddingsLayerName({ "composite", "serialization_test_embeddings" });
+	layer.SetEmbeddingsLayerName( "serialization_test_embeddings" );
 	layer.SetChannelIndex( 4 );
 }
 
@@ -2196,8 +2196,7 @@ GTEST_TEST( SerializeToFile, TiedEmbeddingsLayerSerialization )
 template<>
 inline void checkSpecificParams<CTiedEmbeddingsLayer>( CTiedEmbeddingsLayer& layer )
 {
-	CArray<CString> expected = { "composite", "serialization_test_embeddings" };
-	EXPECT_EQ( expected, layer.GetEmbeddingsLayerName() );
+	EXPECT_EQ( CString( "serialization_test_embeddings" ), layer.GetEmbeddingsLayerName() );
 	EXPECT_EQ( 4, layer.GetChannelIndex() );
 }
 

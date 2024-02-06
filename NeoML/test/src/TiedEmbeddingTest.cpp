@@ -24,8 +24,6 @@ using namespace NeoMLTest;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-namespace NeoMLTest {
-
 TEST(TiedEmbeddingTest, TiedEmbeddingTest)
 {
 	CRandom random(0x6543);
@@ -33,25 +31,22 @@ TEST(TiedEmbeddingTest, TiedEmbeddingTest)
 
 	const int seqLen = 100;
 	const int vectorCount = 200;
+	const int vectorSize = 8;
 	CPtr<CSourceLayer> data = Source(net, "data");
-	CPtr<CDnnBlob> dataBlob = CDnnBlob::CreateDataBlob(MathEngine(), CT_Float, 1, seqLen, 8);
-	for (int i = 0; i < dataBlob->GetDataSize(); ++i) {
-		dataBlob->GetData().SetValueAt(i, random.UniformInt(0, vectorCount - 1));
+	CPtr<CDnnBlob> dataBlob = CDnnBlob::CreateDataBlob(MathEngine(), CT_Float, 1, seqLen, vectorSize);
+	for(int i = 0; i < dataBlob->GetDataSize(); ++i) {
+		dataBlob->GetData().SetValueAt(i, static_cast<float>(random.UniformInt(0, vectorCount - 1)));
 	}
 	data->SetBlob(dataBlob);
 
-	CPtr<CCompositeLayer> compositeInner = new CCompositeLayer(net.GetMathEngine());
-	compositeInner->SetName("compositeInner");
-
 	CPtr<CMultichannelLookupLayer> lookup = new CMultichannelLookupLayer(MathEngine());
-	CArray<CLookupDimension> lookupSize;
-	lookupSize.SetSize(1);
-	lookupSize[0].VectorSize = 8;
-	lookupSize[0].VectorCount = vectorCount;
-	lookup->SetDimensions(lookupSize);
+	lookup->SetDimensions({ {vectorCount, vectorSize } });
 	lookup->SetName("lookup");
 	CPtr<CDnnInitializer> embeddingInitializer = new CDnnUniformInitializer(random);
 	lookup->Initialize(embeddingInitializer);
+
+	CPtr<CCompositeLayer> compositeInner = new CCompositeLayer(net.GetMathEngine());
+	compositeInner->SetName("compositeInner");
 	compositeInner->SetInputMapping(*lookup);
 	compositeInner->SetOutputMapping(*lookup);
 	compositeInner->AddLayer(*lookup);
@@ -64,9 +59,8 @@ TEST(TiedEmbeddingTest, TiedEmbeddingTest)
 	composite->SetOutputMapping(*compositeInner);
 	net.AddLayer(*composite);
 
-
 	CPtr<CTiedEmbeddingsLayer> tiedEmb = new CTiedEmbeddingsLayer(MathEngine());
-	tiedEmb->SetEmbeddingsLayerName({ "composite", "compositeInner", "lookup" });
+	tiedEmb->SetEmbeddingsLayerPath({ "composite", "compositeInner", "lookup" });
 	net.AddLayer(*tiedEmb);
 	tiedEmb->Connect(*data);
 
@@ -79,12 +73,11 @@ TEST(TiedEmbeddingTest, TiedEmbeddingTest)
 	output2->SetName("output2");
 	net.AddLayer(*output2);
 	output2->Connect(*composite);
+
 	net.RunOnce();
 
 	ASSERT_EQ(dynamic_cast<const CCompositeLayer*>(const_cast<const CDnn&>(net).GetLayer({ "composite", "compositeInner" }).Ptr())->GetLayer("lookup"), lookup);
 	ASSERT_EQ(dynamic_cast<CCompositeLayer*>(const_cast<CDnn&>(net).GetLayer({ "composite", "compositeInner" }).Ptr())->GetLayer("lookup"), lookup);
 	ASSERT_EQ(dynamic_cast<CCompositeLayer*>(net.GetLayer("composite").Ptr())->GetLayer({ "compositeInner", "lookup" }), lookup);
-	ASSERT_EQ(net.GetLayer({ "composite", "compositeInner", "lookup" }), lookup);
+	ASSERT_EQ(dynamic_cast<CMultichannelLookupLayer*>(net.GetLayer({ "composite", "compositeInner", "lookup" }).Ptr()), lookup.Ptr());
 }
-
-} // namespace NeoMLTest

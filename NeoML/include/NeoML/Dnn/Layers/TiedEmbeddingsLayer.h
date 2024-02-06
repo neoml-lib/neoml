@@ -33,14 +33,15 @@ public:
 	
 	// Embeddings layer name from which we take the matrix.
 	// Only CMultichannelLookupLayer is supported.
-	const CArray<CString>& GetEmbeddingsLayerName() const { return embeddingPath; }
+	// Storaged as path with size 1
+	const char* GetEmbeddingsLayerName() const { return embeddingPath.Last(); }
 	void SetEmbeddingsLayerName(const char* name) { embeddingPath = { name }; }
-	void SetEmbeddingsLayerName(const CArray<CString>& path) { path.CopyTo(embeddingPath); }
+	// Full path to lookup layer if it is inside of composite
+	const CArray<CString>& GetEmbeddingsLayerPath() const { return embeddingPath; }
+	void SetEmbeddingsLayerPath(const CArray<CString>& path) { path.CopyTo(embeddingPath); }
 	// Channel index in embeddings layer.
 	int GetChannelIndex() const { return channelIndex; }
 	void SetChannelIndex( int val );
-
-	int GetPathSize() const { return embeddingPath.Size(); }
 
 protected:
 	void Reshape() override;
@@ -52,14 +53,14 @@ protected:
 
 private:
 	// Path for embedding layer from which matrix is taken
-	// !!! Now it contains the path as array
-	// So in case of no composite layer it is gonna be just { "embeddingName" }
+	// Now it contains the path as array
+	// So in case of no composite layer it is gonna be { "embeddingName" }
 	CArray<CString> embeddingPath;
 	// Channel index in embedding layer.
 	int channelIndex;
 
-	const CDnnBlob* getEmbeddingsTable();
-	CMultichannelLookupLayer* getLookUpLayer();
+	const CDnnBlob* getEmbeddingsTable() const;
+	CMultichannelLookupLayer* getLookUpLayer() const;
 };
 
 // Tied embeddings.
