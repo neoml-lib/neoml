@@ -24,24 +24,22 @@ using namespace NeoMLTest;
 
 //----------------------------------------------------------------------------------------------------------------------
 
-TEST(TiedEmbeddingTest, TiedEmbeddingTest)
+TEST(TiedEmbeddingTest, CompositeTest)
 {
-	CRandom random(0x6543);
+	CRandom random( 42 );
 	CDnn net(random, MathEngine());
 
-	const int seqLen = 100;
-	const int vectorCount = 200;
-	const int vectorSize = 8;
+	const int vectorCount = 2;
+	const int embeddingSize = 2;
 	CPtr<CSourceLayer> data = Source(net, "data");
-	CPtr<CDnnBlob> dataBlob = CDnnBlob::CreateDataBlob(MathEngine(), CT_Float, 1, seqLen, vectorSize);
-	for(int i = 0; i < dataBlob->GetDataSize(); ++i) {
-		dataBlob->GetData().SetValueAt(i, static_cast<float>(random.UniformInt(0, vectorCount - 1)));
-	}
+	CPtr<CDnnBlob> dataBlob = CDnnBlob::CreateDataBlob(MathEngine(), CT_Float, 1, 1, 1);
+	dataBlob->GetData().SetValue(1.f);
 	data->SetBlob(dataBlob);
 
 	CPtr<CMultichannelLookupLayer> lookup = new CMultichannelLookupLayer(MathEngine());
-	lookup->SetDimensions({ {vectorCount, vectorSize } });
+	lookup->SetDimensions({ { vectorCount, embeddingSize } });
 	lookup->SetName("lookup");
+	lookup->SetUseFrameworkLearning(true);
 	CPtr<CDnnInitializer> embeddingInitializer = new CDnnUniformInitializer(random);
 	lookup->Initialize(embeddingInitializer);
 
@@ -60,24 +58,100 @@ TEST(TiedEmbeddingTest, TiedEmbeddingTest)
 	net.AddLayer(*composite);
 
 	CPtr<CTiedEmbeddingsLayer> tiedEmb = new CTiedEmbeddingsLayer(MathEngine());
+	tiedEmb->SetName("tiedEmb");
 	tiedEmb->SetEmbeddingsLayerPath({ "composite", "compositeInner", "lookup" });
 	net.AddLayer(*tiedEmb);
-	tiedEmb->Connect(*data);
+	tiedEmb->Connect(*composite);
 
-	CPtr<CSinkLayer> output1 = new CSinkLayer(MathEngine());
-	output1->SetName("output1");
-	net.AddLayer(*output1);
-	output1->Connect(*tiedEmb);
+	CPtr<CSoftmaxLayer> softmax = new CSoftmaxLayer(MathEngine());
+	softmax->SetName("softmax");
+	net.AddLayer(*softmax);
+	softmax->Connect(*tiedEmb);
 
-	CPtr<CSinkLayer> output2 = new CSinkLayer(MathEngine());
-	output2->SetName("output2");
-	net.AddLayer(*output2);
-	output2->Connect(*composite);
+	CPtr<CSourceLayer> targets = Source(net, "targets");
+	CPtr<CDnnBlob> targetsBlob = CDnnBlob::CreateDataBlob(MathEngine(), CT_Int, 1, 1, 1);
+	targetsBlob->GetData<int>().SetValueAt(0, 1);
+	targets->SetBlob(targetsBlob);
+
+	CPtr<CCrossEntropyLossLayer> loss = new CCrossEntropyLossLayer(MathEngine());
+	loss->SetName("loss");
+	net.AddLayer(*loss);
+	loss->SetApplySoftmax(false);
+	loss->Connect(0, *softmax);
+	loss->Connect(1, *targets);
+
+	CPtr<CDnnSimpleGradientSolver> solver = new CDnnSimpleGradientSolver(MathEngine());
+	solver->SetL1Regularization(0);
+	solver->SetL2Regularization(0);
+	solver->SetLearningRate(1.f);
+	net.SetSolver(solver.Ptr());
+
+	const int numOfEpochs = 5;
+	for (int i = 0; i < numOfEpochs; ++i) {
+		net.RunAndLearnOnce();
+	}
+
+	ASSERT_NEAR(loss->GetLastLoss(), 0.f, 1e-3f);
+	ASSERT_EQ(dynamic_cast<CMultichannelLookupLayer*>(net.GetLayer({ "composite", "compositeInner", "lookup" }).Ptr()), lookup.Ptr());
+}
+
+TEST(TiedEmbeddingTest, NoCompositeTest)
+{
+	CRandom random( 42 );
+	CDnn net(random, MathEngine());
+
+	const int vectorCount = 2;
+	const int embeddingSize = 2;
+	CPtr<CSourceLayer> data = Source(net, "data");
+	CPtr<CDnnBlob> dataBlob = CDnnBlob::CreateDataBlob(MathEngine(), CT_Float, 1, 1, 1);
+	dataBlob->GetData().SetValue(1.f);
+	data->SetBlob(dataBlob);
+
+	CPtr<CMultichannelLookupLayer> lookup = new CMultichannelLookupLayer(MathEngine());
+	lookup->SetDimensions({ { vectorCount, embeddingSize } });
+	lookup->SetName("lookup");
+	lookup->SetUseFrameworkLearning(true);
+	CPtr<CDnnInitializer> embeddingInitializer = new CDnnUniformInitializer(random);
+	lookup->Initialize(embeddingInitializer);
+	net.AddLayer(*lookup);
+	lookup->Connect(*data);
+
+	CPtr<CTiedEmbeddingsLayer> tiedEmb = new CTiedEmbeddingsLayer(MathEngine());
+	tiedEmb->SetName("tiedEmb");
+	tiedEmb->SetEmbeddingsLayerName("lookup");
+	net.AddLayer(*tiedEmb);
+	tiedEmb->Connect(*lookup);
+
+	CPtr<CSoftmaxLayer> softmax = new CSoftmaxLayer(MathEngine());
+	softmax->SetName("softmax");
+	net.AddLayer(*softmax);
+	softmax->Connect(*tiedEmb);
+
+	CPtr<CSourceLayer> targets = Source(net, "targets");
+	CPtr<CDnnBlob> targetsBlob = CDnnBlob::CreateDataBlob(MathEngine(), CT_Int, 1, 1, 1);
+	targetsBlob->GetData<int>().SetValueAt(0, 1);
+	targets->SetBlob(targetsBlob);
+
+	CPtr<CCrossEntropyLossLayer> loss = new CCrossEntropyLossLayer(MathEngine());
+	loss->SetName("loss");
+	net.AddLayer(*loss);
+	loss->SetApplySoftmax(false);
+	loss->Connect(0, *softmax);
+	loss->Connect(1, *targets);
+
+	CPtr<CDnnSimpleGradientSolver> solver = new CDnnSimpleGradientSolver(MathEngine());
+	solver->SetL1Regularization(0);
+	solver->SetL2Regularization(0);
+	solver->SetLearningRate(1.f);
+	net.SetSolver(solver.Ptr());
 
 	net.RunOnce();
 
-	ASSERT_EQ(dynamic_cast<const CCompositeLayer*>(const_cast<const CDnn&>(net).GetLayer({ "composite", "compositeInner" }).Ptr())->GetLayer("lookup"), lookup);
-	ASSERT_EQ(dynamic_cast<CCompositeLayer*>(const_cast<CDnn&>(net).GetLayer({ "composite", "compositeInner" }).Ptr())->GetLayer("lookup"), lookup);
-	ASSERT_EQ(dynamic_cast<CCompositeLayer*>(net.GetLayer("composite").Ptr())->GetLayer({ "compositeInner", "lookup" }), lookup);
-	ASSERT_EQ(dynamic_cast<CMultichannelLookupLayer*>(net.GetLayer({ "composite", "compositeInner", "lookup" }).Ptr()), lookup.Ptr());
+	const int numOfEpochs = 5;
+	for (int i = 0; i < numOfEpochs; ++i) {
+		net.RunAndLearnOnce();
+	}
+
+	ASSERT_NEAR(loss->GetLastLoss(), 0.f, 1e-3f);
+	ASSERT_EQ(dynamic_cast<CMultichannelLookupLayer*>(net.GetLayer("lookup").Ptr()), lookup.Ptr());
 }

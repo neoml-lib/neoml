@@ -17,6 +17,7 @@ limitations under the License.
 
 #include <NeoML/NeoMLDefs.h>
 #include <NeoML/Dnn/Dnn.h>
+#include <NeoML/Dnn/Layers/MultichannelLookupLayer.h>
 
 namespace NeoML {
 
@@ -31,14 +32,18 @@ public:
 
 	void Serialize( CArchive& archive ) override;
 	
-	// Embeddings layer name from which we take the matrix.
+	// Methods to get/set embeddings layer name from which we take the matrix.
 	// Only CMultichannelLookupLayer is supported.
-	// Storaged as path with size 1
+	// Use this method if the lookupLayer is in the same level of the dnn (in the same composite layer)
 	const char* GetEmbeddingsLayerName() const { return embeddingPath.Last(); }
 	void SetEmbeddingsLayerName(const char* name) { embeddingPath = { name }; }
-	// Full path to lookup layer if it is inside of composite
+
+	// Methods to get/set embeddings layer path from which we take the matrix.
+	// Only CMultichannelLookupLayer is supported.
+	// Use this method if the lookupLayer is in the nested level of the dnn (in some nested composite layer)
 	const CArray<CString>& GetEmbeddingsLayerPath() const { return embeddingPath; }
 	void SetEmbeddingsLayerPath(const CArray<CString>& path) { path.CopyTo(embeddingPath); }
+
 	// Channel index in embeddings layer.
 	int GetChannelIndex() const { return channelIndex; }
 	void SetChannelIndex( int val );

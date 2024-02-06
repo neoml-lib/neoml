@@ -454,6 +454,7 @@ CPtr<const CBaseLayer> CDnn::GetLayer( const char* name ) const
 
 CPtr<CBaseLayer> CDnn::GetLayer( const CArray<CString>& path)
 {
+	CheckArchitecture(path.Size() > 0, "NULL", "can not find layer - empty path");
 	if (path.Size() == 1) {
 		return GetLayer(path[0]);
 	} else {

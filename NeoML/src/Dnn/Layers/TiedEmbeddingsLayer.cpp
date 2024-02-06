@@ -16,8 +16,8 @@ limitations under the License.
 #include <common.h>
 #pragma hdrstop
 
-#include <NeoML/Dnn/Layers/MultichannelLookupLayer.h>
 #include <NeoML/Dnn/Layers/TiedEmbeddingsLayer.h>
+#include <NeoML/Dnn/Layers/MultichannelLookupLayer.h>
 
 namespace NeoML {
 
@@ -43,17 +43,15 @@ void CTiedEmbeddingsLayer::Serialize( CArchive& archive )
 	int version = archive.SerializeVersion(CnnTiedEmbeddingsLayerVersion, CDnn::ArchiveMinSupportedVersion);
 	CBaseLayer::Serialize( archive );
 
-	if( version < 2001 ) {
-		if( archive.IsLoading() ) {
-			CString embeddingLayerName;
-			archive.Serialize( embeddingLayerName );
-			embeddingPath = { embeddingLayerName };
-		} else {
-			archive.Serialize( embeddingPath.Last() );
-		}
-	} else {
-		archive.Serialize( embeddingPath );
+	if (version < 2001 && archive.IsLoading()) {
+		CString embeddingLayerName;
+		archive.Serialize(embeddingLayerName);
+		embeddingPath = { embeddingLayerName };
 	}
+	else {
+		archive.Serialize(embeddingPath);
+	}
+
 	archive.Serialize( channelIndex );
 }
 
@@ -159,20 +157,20 @@ const CDnnBlob* CTiedEmbeddingsLayer::getEmbeddingsTable() const
 	return getLookUpLayer()->GetEmbeddings( channelIndex );
 }
 
-CLayerWrapper<CTiedEmbeddingsLayer> TiedEmbeddings( const char* name, int channel )
-{
-	return CLayerWrapper<CTiedEmbeddingsLayer>( "TiedEmbeddings", [=]( CTiedEmbeddingsLayer* result ) {
-		result->SetEmbeddingsLayerName( name );
-		result->SetChannelIndex( channel );
-	} );
-}
-
 CMultichannelLookupLayer* CTiedEmbeddingsLayer::getLookUpLayer() const
 {
 	CMultichannelLookupLayer* embeddingsLayer;
 	embeddingsLayer = CheckCast<CMultichannelLookupLayer>(
 		const_cast<CDnn*>(GetDnn())->GetLayer(embeddingPath).Ptr());
 	return embeddingsLayer;
+}
+
+CLayerWrapper<CTiedEmbeddingsLayer> TiedEmbeddings( const char* name, int channel )
+{
+	return CLayerWrapper<CTiedEmbeddingsLayer>( "TiedEmbeddings", [=]( CTiedEmbeddingsLayer* result ) {
+		result->SetEmbeddingsLayerName( name );
+		result->SetChannelIndex( channel );
+	} );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
