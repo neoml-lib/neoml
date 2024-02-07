@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -38,6 +38,9 @@ public:
 	void GetBackLinkList(CArray<const char*>& backLinkList) const;
 	void DeleteAllBackLinks();
 	void DeleteAllLayersAndBackLinks();
+	// CCompositeLayer does not allocate outputBlobs in CBaseLayer in runOnce, because they are not used for inference.
+	// CRecurentLayer used its outputBlob to concatenate recurent outputs for its internalDnn.
+	void AllocateOutputBlobs() override { CBaseLayer::AllocateOutputBlobs(); }
 
 	// Retrieves or sets the recurrent layer state
 	void GetState(CObjectArray<CDnnBlob>& state) const;

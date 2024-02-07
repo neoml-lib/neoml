@@ -88,6 +88,11 @@ protected:
 	void FilterLayerParams( float threshold ) override;
 	int BlobsForBackward() const override { return blobsForBackward; }
 	int BlobsForLearn() const override { return blobsForLearn; }
+	// It does not allocate outputBlobs in CBaseLayer in runOnce, because they are not used for inference.
+	// The outputBlob for CCompositeLayer are sinkLayer->GetBlob() of its internalDnn.
+	// NOTE: All class children do not allocate outputBlobs, for normal using cases it is ok
+	//       For special cases (like CRecurentLayer) it should be reinitializated.
+	void AllocateOutputBlobs() override {}
 
 	// The network object for the internal layers
 	const CDnn* GetInternalDnn() const { return internalDnn; }
@@ -195,6 +200,7 @@ protected:
 	void Reshape() override;
 	void RunOnce() override;
 	void BackwardOnce() override;
+	// The outputBlobs are the source blobs
 	void AllocateOutputBlobs() override;
 	int BlobsForBackward() const override { return 0; }
 
@@ -234,6 +240,9 @@ protected:
 	void RunOnce() override;
 	void BackwardOnce() override;
 	int BlobsForBackward() const override { return 0; }
+	// It does not allocate outputBlobs in CBaseLayer in runOnce.
+	// Analogically to the CCompositeLayer, see its comment.
+	void AllocateOutputBlobs() override {}
 };
 
 } // namespace NeoML
