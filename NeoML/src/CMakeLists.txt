@@ -282,6 +282,7 @@ set(NeoML_HEADERS_COMPACT
     ../include/NeoML/Dnn/Layers/ConcatLayer.h
     ../include/NeoML/Dnn/Layers/ConvLayer.h
     ../include/NeoML/Dnn/Layers/DataLayer.h
+    ../include/NeoML/Dnn/Layers/DnnHeadAdapterLayer.h
     ../include/NeoML/Dnn/Layers/DropoutLayer.h
     ../include/NeoML/Dnn/Layers/EltwiseLayer.h
     ../include/NeoML/Dnn/Layers/FullyConnectedLayer.h

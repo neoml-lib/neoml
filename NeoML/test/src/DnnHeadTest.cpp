@@ -17,36 +17,29 @@ limitations under the License.
 #pragma hdrstop
 
 #include <NeoML/Dnn/DnnHead.h>
+#include <NeoML/Dnn/Layers/DnnHeadAdapterLayer.h>
 #include <TestFixture.h>
 
 using namespace NeoML;
 using namespace NeoMLTest;
 
-TEST( CDnnHeadTest, DISABLED_Simple )
+TEST( CDnnHeadTest, DISABLED_Simple ) // TODO: ??? remove "DISABLED_" from name
 {
+    IMathEngine& mathEngine = MathEngine();
     CRandom random( 42 );
-    CDnn dnn( random, MathEngine() );
+    CDnn dnn( random, mathEngine );
 
-    CBaseLayer* x = Source( dnn, "SourceX" );
-    x = FullyConnected( 512 )( x );
-    x = Gelu()( x );
-
-    CBaseLayer* y = Source( dnn, "SourceY" );
-    y = FullyConnected( 512 )( y );
-    y = Gelu()( y );
-
-    CBaseLayer* z = Source( dnn, "SourceZ" );
-    z = FullyConnected( 512 )( z );
-    z = Gelu()( z );
-
-    CDnnHead<
+    // To be able run the same set of layers 3 times
+    // on 3 different inputs to get 3 different outputs links
+    std::shared_ptr<CDnn> head = CDnnHead<
         CFullyConnectedLayer,
         CGELULayer,
         CFullyConnectedLayer,
         CReLULayer,
         CDropoutLayer,
         CFullyConnectedLayer
-    > head(
+    >(
+        random, mathEngine,
         FullyConnected( 128 ),
         Gelu(),
         FullyConnected( 64 ),
@@ -55,11 +48,27 @@ TEST( CDnnHeadTest, DISABLED_Simple )
         FullyConnected( 1 )
     );
 
-    // To be able run the same set of layers 3 times on 3 different inputs to get 3 different outputs links
-    CBaseLayer* out = head( { x, y, z } );
-    out = ConcatChannels()( CDnnLayerLink{ out, 0 }, CDnnLayerLink{ out, 1 }, CDnnLayerLink{ out, 3 } );
+    CBaseLayer* x = Source( dnn, "srcX" );
+    x = FullyConnected( 512 )( x );
+    x = Gelu()( x );
+    x = DnnHeadAdapter( head )( x ); // #1 head dnn call
 
-    CBaseLayer* labels = Source( dnn, "Labels" );
+    CBaseLayer* y = Source( dnn, "srcY" );
+    y = FullyConnected( 512 )( y );
+    y = Gelu()( y );
+    y = DnnHeadAdapter( head )( y ); // #2 head dnn call
+
+    CBaseLayer* z = Source( dnn, "srcZ" );
+    z = FullyConnected( 512 )( z );
+    z = Gelu()( z );
+    z = DnnHeadAdapter( head )( z ); // #3 head dnn call
+
+    CBaseLayer* out = ConcatChannels()( x, y, z );
+
+    CBaseLayer* labels = Source( dnn, "labels" );
     BinaryCrossEntropyLoss()( out, labels );
+
+    // TODO: ???
+    dnn.RunOnce();
 }
 

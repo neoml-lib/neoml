@@ -15,6 +15,7 @@ limitations under the License.
 
 #pragma once
 
+#include <memory>
 #include <initializer_list>
 #include <NeoML/NeoML.h>
 #include <NeoML/Dnn/Dnn.h>
@@ -25,25 +26,19 @@ template <typename T>
 class CLayerWrapper;
 
 template <typename... Ts>
-class CDnnHead final {
-public:
-	CDnnHead( CLayerWrapper<Ts>... linearWrappers )
-	{
-		CBaseLayer* inputLayer = nullptr;
-		CBaseLayer* layers[]{ linearWrappers( inputLayer )... };
-		( void ) layers;
-		// TODO: ???
-	}
+std::shared_ptr<CDnn> CDnnHead(
+	CRandom random, IMathEngine& mathEngine, CLayerWrapper<Ts>... linearWrappers )
+{
+	std::shared_ptr<CDnn> head( new CDnn( random, mathEngine ) );
+	CBaseLayer* inputLayer = Source( *head, "source" );
 
-	CBaseLayer* operator()( std::initializer_list<CBaseLayer*> inputs )
-	{
-		for( CBaseLayer* input : inputs ) {
-			( void ) input;
-			// TODO: ???
-		}
-		return nullptr;
-	}
-};
+	// chain connect wrapped layers
+	using TExpanding = CBaseLayer*[];
+	TExpanding{ inputLayer = linearWrappers( inputLayer )... };
+
+	Sink( inputLayer, "sink" );
+	return head;
+}
 
 } // namespace NeoML
 
