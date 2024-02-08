@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -28,6 +28,42 @@ CDnnBlob::CDnnBlob( IMathEngine& _mathEngine ) :
 	parent(0),
 	parentPos(0)
 {
+}
+
+CDnnBlob::CDnnBlob( CDnnBlob&& other ) :
+	mathEngine( other.mathEngine ),
+	desc( std::move( other.desc ) ),
+	data( std::move( other.data ) ),
+	dataOwned( other.dataOwned ),
+	parent( other.parent ),
+	parentPos( other.parentPos )
+{
+	if( !data.IsNull() && parent == nullptr && dataOwned ) {
+		TransferDataToThisThread();
+	}
+	other.dataOwned = false; // ensure, no premature free
+}
+
+CDnnBlob& CDnnBlob::operator=( CDnnBlob&& other )
+{
+	if( this != &other ) {
+		if( !data.IsNull() && parent == nullptr && dataOwned ) {
+			mathEngine.HeapFree( data );
+		}
+
+		NeoAssert( &mathEngine == &other.mathEngine );
+		desc = std::move( other.desc );
+		data = std::move( other.data );
+		dataOwned = std::move( other.dataOwned );
+		parent = std::move( other.parent );
+		parentPos = std::move( other.parentPos );
+
+		if( !data.IsNull() && parent == nullptr && dataOwned ) {
+			TransferDataToThisThread();
+		}
+		other.dataOwned = false; // ensure, no premature free
+	}
+	return *this;
 }
 
 CDnnBlob* CDnnBlob::CreateVector(IMathEngine& mathEngine, TBlobType type, int vectorSize)

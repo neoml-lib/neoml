@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,6 +18,9 @@ limitations under the License.
 #include <NeoOnnx/TensorLayout.h>
 
 namespace NeoOnnx {
+using IMathEngine = NeoML::IMathEngine;
+using CBaseLayer = NeoML::CBaseLayer;
+using CDnnBlob = NeoML::CDnnBlob;
 
 // Tensor shape
 typedef CFastArray<int, 8> CTensorShape;
@@ -95,7 +98,7 @@ inline bool CTensorBase::checkTensorLayout() const
 	// Check that every dimension is valid and used only once
 	int mask = 0;
 	for( int dimIndex = 0; dimIndex < layout.Size(); ++dimIndex ) {
-		if( layout[dimIndex] < BD_BatchLength || layout[dimIndex] > BD_Count
+		if( layout[dimIndex] < NeoML::BD_BatchLength || layout[dimIndex] > NeoML::BD_Count
 			|| ( mask & ( 1 << layout[dimIndex] ) ) != 0 )
 		{
 			return false;
@@ -188,7 +191,7 @@ private:
 
 inline CDataTensor::CDataTensor( IMathEngine& mathEngine ) :
 	CTensorBase( CTensorLayout(), TTensorType::Data ),
-	data( CDnnBlob::CreateVector( mathEngine, CT_Float, 1 ) )
+	data( CDnnBlob::CreateVector( mathEngine, NeoML::CT_Float, 1 ) )
 {
 	NeoPresume( checkTensorLayout() );
 }
@@ -205,7 +208,7 @@ inline CDataTensor::CDataTensor( const CTensorLayout& layout, const CDnnBlob& _d
 inline bool CDataTensor::checkTensorLayout() const
 {
 	// Checking that shape, layout and CDnnBlob are matching
-	for( TBlobDim i = BD_BatchLength; i < BD_Count; ++i ) {
+	for( TBlobDim i = NeoML::BD_BatchLength; i < NeoML::BD_Count; ++i ) {
 		const int index = Layout().Find( i );
 		if( index == NotFound && data->DimSize( i ) != 1 ) {
 			return false;

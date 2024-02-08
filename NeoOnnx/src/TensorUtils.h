@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ limitations under the License.
 #include "Optimization/Graph.h"
 
 namespace NeoOnnx {
+using CDnn = NeoML::CDnn;
 
 template<class T>
 constexpr const T& Clamp( const T& value, const T& low, const T& high )
@@ -39,7 +40,7 @@ bool IsInteger( float x );
 // Auxiliary tensor's data loading functions
 
 // Gets NeoML blob type from onnx tensor's data type
-TBlobType GetBlobType( const onnx::TensorProto_DataType& onnxDataType );
+NeoML::TBlobType GetBlobType( const onnx::TensorProto_DataType& onnxDataType );
 
 // Loads data from raw bytes as an array of TSrc and stores it as an array of TDst (via static_cast)
 template<class TSrc, class TDst>
@@ -170,7 +171,7 @@ void CalculatePadding( const CString& autoPad, const CTensorShape& kernelShape, 
 // First pads.Size() / 2 numbers determine padding size at the front of the dims
 // Last pads.Size() / 2 numbers determine padding size at the back of the dims
 CPtr<const CUserTensor> PadUserTensor( const CUserTensor& input, const CFastArray<int, 8>& pads,
-	TBlobResizePadding padding, float padValue );
+	NeoML::TBlobResizePadding padding, float padValue );
 
 //---------------------------------------------------------------------------------------------------------------------
 // Auxiliary tensor broadcast functions
@@ -259,12 +260,14 @@ public:
 
 inline bool CNeoMLImageLayoutValidator::operator()( const CTensorLayout& layout ) const
 {
-	if( ( !layout.IsEmpty() && layout[0] >= BD_Height ) || ( layout.Size() > 1 && layout[1] != BD_Channels ) ) {
+	if( ( !layout.IsEmpty() && layout[0] >= NeoML::BD_Height )
+		|| ( layout.Size() > 1 && layout[1] != NeoML::BD_Channels ) )
+	{
 		return false;
 	}
 
 	for( int i = 2; i < layout.Size(); ++i ) {
-		if( layout[i] != BD_Height + ( i - 2 ) ) {
+		if( layout[i] != NeoML::BD_Height + ( i - 2 ) ) {
 			return false;
 		}
 	}
@@ -280,12 +283,14 @@ public:
 
 inline bool CBatchNormLayoutValidator::operator()( const CTensorLayout& layout ) const
 {
-	if( ( !layout.IsEmpty() && layout[0] >= BD_Height ) || ( layout.Size() > 1 && layout[1] != BD_Channels ) ) {
+	if( ( !layout.IsEmpty() && layout[0] >= NeoML::BD_Height )
+		|| ( layout.Size() > 1 && layout[1] != NeoML::BD_Channels ) )
+	{
 		return false;
 	}
 
 	for( int i = 2; i < layout.Size(); ++i ) {
-		if( layout[i] < BD_Height || layout[i] == BD_Channels ) {
+		if( layout[i] < NeoML::BD_Height || layout[i] == NeoML::BD_Channels ) {
 			return false;
 		}
 	}

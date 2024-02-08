@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,6 +18,8 @@ limitations under the License.
 #include "TensorUtils.h"
 
 namespace NeoOnnx {
+using TBlobType = NeoML::TBlobType;
+using CBlobDesc = NeoML::CBlobDesc;
 
 // This file contains getters for different types of onnx attributes
 
@@ -113,7 +115,7 @@ inline void GetAttributeValue<CPtr<CDataTensor>>( const onnx::AttributeProto& at
 	}
 	CPtr<CDnnBlob> resultBlob = CDnnBlob::CreateBlob( value->Data()->GetMathEngine(), resultDataType, desc );
 
-	if( resultDataType == CT_Float ) {
+	if( resultDataType == NeoML::CT_Float ) {
 		LoadBlobData<float>( attribute.t(), *resultBlob );
 	} else {
 		LoadBlobData<int>( attribute.t(), *resultBlob );
