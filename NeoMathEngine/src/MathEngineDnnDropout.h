@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -37,7 +37,7 @@ struct CMaskDropoutDesc : public CDropoutDesc {
 
 // Dropout descriptor containing only seed for generating mask (uses less memory)
 struct CSeedDropoutDesc : public CDropoutDesc {
-	explicit CSeedDropoutDesc( IMathEngine& mathEngine, float rate, bool isSpatial, bool isBatchwise,
+	explicit CSeedDropoutDesc( float rate, bool isSpatial, bool isBatchwise,
 		const CBlobDesc& input, const CBlobDesc& output, int seed );
 
 	CBlobDesc Input; // input blob descriptor

@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,12 +18,10 @@ limitations under the License.
 
 #include <MathEngineDnnDropout.h>
 #include <NeoMathEngine/NeoMathEngine.h>
-#include <CPUInfo.h>
 #include <CpuMathEngine.h>
+#include <algorithm>
 
 namespace NeoML {
-
-static const int cacheSize = 64;
 
 static inline int getMaskSize( float rate, bool isSpatial, bool isBatchwise, const CBlobDesc& input )
 {
@@ -36,6 +34,20 @@ static inline int getMaskSize( float rate, bool isSpatial, bool isBatchwise, con
 	const int batchWidth = input.ObjectCount() / batchLength;
 
 	return batchWidth * objectSize;
+}
+
+static inline int getCacheSize(float rate, bool isSpatial, bool isBatchwise, const CBlobDesc& input)
+{
+	const int cacheSize = 64;
+	const int maskSize = getMaskSize(rate, isSpatial, isBatchwise, input);
+	if (isSpatial) {
+		const int maskAlign = 4;
+		const int blockSize = (cacheSize / input.Channels() + 1) * input.Channels() * maskAlign;
+		return std::min(maskSize, blockSize);
+
+	} else {
+		return std::min(maskSize, cacheSize);
+	}
 }
 
 CMaskDropoutDesc::CMaskDropoutDesc( IMathEngine& mathEngine, float rate, bool isSpatial, bool isBatchwise,
@@ -54,7 +66,7 @@ CMaskDropoutDesc::CMaskDropoutDesc( IMathEngine& mathEngine, float rate, bool is
 	}
 }
 
-CSeedDropoutDesc::CSeedDropoutDesc( IMathEngine& mathEngine, float rate, bool isSpatial, bool isBatchwise,
+CSeedDropoutDesc::CSeedDropoutDesc( float rate, bool isSpatial, bool isBatchwise,
 		const CBlobDesc& input, const CBlobDesc& output, int seed ) :
 	Input( input ),
 	Output( output ),
@@ -64,8 +76,9 @@ CSeedDropoutDesc::CSeedDropoutDesc( IMathEngine& mathEngine, float rate, bool is
 	seed(seed),
 	threshold( (unsigned int)((double)ForwardRate* UINT_MAX) ),
 	value( 1.f / ForwardRate ),
-	Mask( mathEngine, std::min(getMaskSize(rate, isSpatial, isBatchwise, input), cacheSize) )
+	Mask( mathEngine, getCacheSize(rate, isSpatial, isBatchwise, input) )
 {
+
 	ASSERT_EXPR( rate >= 0.f && rate < 1.f );
 }
 

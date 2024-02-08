@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -26,29 +26,12 @@ limitations under the License.
 
 namespace NeoML {
 
+static constexpr int maskAlign = 4;
+
 CDropoutDesc* CCpuMathEngine::InitDropout(float rate, bool isSpatial, bool isBatchwise,
 	const CBlobDesc& input, const CBlobDesc& output, int seed)
 {
 	return new CSeedDropoutDesc(mathEngine(), rate, isSpatial, isBatchwise, input, output, seed);
-}
-
-static constexpr int maskAlign = 4;
-
-static void FillCpuDropoutMask(CCpuRandom& random, float* const curr, const CSeedDropoutDesc& desc, const int& index, const int& size)
-{
-	ASSERT_EXPR((index % maskAlign) == 0);
-	const int currBlock = index / maskAlign;
-	random.Skip(currBlock);
-	int idx = 0;
-	CIntArray<maskAlign> generated;
-
-	const int alignedSize = (size + (maskAlign - 1)) / maskAlign;
-	for (int i = 0; i < alignedSize; ++i) {
-		generated = random.Next();
-		for (int j = 0; j < maskAlign && idx < size; ++j) {
-			curr[idx++] = (generated[j] <= desc.threshold) ? desc.value : 0.f;
-		}
-	}
 }
 
 void CCpuMathEngine::Dropout(const CDropoutDesc& dropoutDesc, const CFloatHandle& inputData, const CFloatHandle& outputData)
@@ -67,22 +50,24 @@ void CCpuMathEngine::Dropout(const CDropoutDesc& dropoutDesc, const CFloatHandle
 	const int batchLength = desc.IsBatchwise ? input.ObjectCount() : input.BatchLength();
 	const int batchWidth = input.ObjectCount() / batchLength;
 	const int maskSize = batchWidth * objectSize;
+	
+	CCpuRandom random(desc.seed);
+	CIntArray<maskAlign> generated;
 
-	CFloatHandle currInput = inputData;
-	CFloatHandle currOutput = outputData;
+	const int inputObjectSize = input.ObjectSize();
+	const float* inputPointer = GetRaw(inputData);
+	float* outputPointer = GetRaw(outputData);
+	float* mask = GetRaw(desc.Mask.GetHandle());
+	const int cacheSize = desc.Mask.Size();
+
+	const float* first;
+	float* result;
 
 	if(!desc.IsSpatial) {
-		CCpuRandom random(desc.seed);
-
-		const float* inputPointer = GetRaw(inputData);
-		float* outputPointer = GetRaw(outputData);
-		float* mask = GetRaw(desc.Mask.GetHandle());
-		CIntArray<maskAlign> generated;
 
 		const float* first;
 		float* result;
 		int currSize;
-		const int cacheSize = desc.Mask.Size();
 
 		for(int i = 0; i < (maskSize + cacheSize - 1) / cacheSize; ++i) {
 			currSize = std::min(cacheSize, maskSize - i * cacheSize);
@@ -109,58 +94,27 @@ void CCpuMathEngine::Dropout(const CDropoutDesc& dropoutDesc, const CFloatHandle
 			inputPointer += currSize;
 			outputPointer += currSize;
 		}
-	}
-	else {
-		CIntArray<maskAlign> generated;
-		CCpuRandom random(desc.seed);
-		int currSize;
+	} else {
+		const int reloadIter = cacheSize / objectSize;
+		float* curr;
 
-		const int inputObjectSize = input.ObjectSize();
-		const float* inputPointer = GetRaw(inputData);
-		float* outputPointer = GetRaw(outputData);
-		float* mask = GetRaw(desc.Mask.GetHandle());
-		const int cacheSize = desc.Mask.Size() - desc.Mask.Size() % objectSize;
-
-		//for (int i = 0; i < batchWidth; ++i) {
-		//	const int index = i * objectSize;
-		//	CCpuRandom random(desc.seed);
-		//	//CFloatHandleStackVar maskVar(mathEngine(), objectSize + index % maskAlign);
-
-		//	float* mask = GetRaw(desc.Mask.GetHandle());
-		//	FillCpuDropoutMask(random, mask, desc, index - index % maskAlign, objectSize + index % maskAlign);
-		//	mask += (index % maskAlign);
-
-		//	const float* first = GetRaw(currInput);
-		//	float* result = GetRaw(currOutput);
-
-		//	for(int j = 0; j < batchLength; ++j) {
-		//		multiplyMatrixByDiagMatrix(first, input.ObjectSize() / objectSize, objectSize, mask, result);
-
-		//		first += inputObjectSize * batchWidth;
-		//		result += inputObjectSize * batchWidth;
-		//	}
-
-		//	currInput += inputObjectSize;
-		//	currOutput += inputObjectSize;
-		//}
-
-		for (int i = 0; i < (batchWidth * objectSize + desc.Mask.Size() - 1) / desc.Mask.Size(); ++i) {
-			currSize = std::min(desc.Mask.Size(), batchWidth * objectSize - i * desc.Mask.Size());
-			int idx = 0;
-
-			const int alignedSize = (currSize + (maskAlign - 1)) / maskAlign;
-			for (int i = 0; i < alignedSize; ++i) {
-				generated = random.Next();
-				for (int j = 0; j < maskAlign && idx < currSize; ++j) {
-					mask[idx++] = (generated[j] <= desc.threshold) ? desc.value : 0.f;
+		for (int i = 0; i < batchWidth; ++i) {
+			if( !(i % reloadIter) ) {
+				int idx = 0;
+				for (int i = 0; i < (desc.Mask.Size() + 3) / 4; ++i) {
+					generated = random.Next();
+					for (int j = 0; j < maskAlign && idx < desc.Mask.Size(); ++j) {
+						mask[idx++] = (generated[j] <= desc.threshold) ? desc.value : 0.f;
+					}
 				}
+				curr = mask;
 			}
 
-			const float* first = inputPointer;
-			float* result = outputPointer;
+			first = inputPointer;
+			result = outputPointer;
 
-			for (int j = 0; j < batchLength; ++j) {
-				multiplyMatrixByDiagMatrix(first, input.ObjectSize() / objectSize, objectSize, mask, result);
+			for(int j = 0; j < batchLength; ++j) {
+				multiplyMatrixByDiagMatrix(first, input.ObjectSize() / objectSize, objectSize, curr, result);
 
 				first += inputObjectSize * batchWidth;
 				result += inputObjectSize * batchWidth;
@@ -168,6 +122,7 @@ void CCpuMathEngine::Dropout(const CDropoutDesc& dropoutDesc, const CFloatHandle
 
 			inputPointer += inputObjectSize;
 			outputPointer += inputObjectSize;
+			curr += objectSize;
 		}
 	}
 }
