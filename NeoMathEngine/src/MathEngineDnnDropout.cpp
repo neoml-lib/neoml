@@ -18,8 +18,6 @@ limitations under the License.
 
 #include <MathEngineDnnDropout.h>
 #include <NeoMathEngine/NeoMathEngine.h>
-#include <CpuMathEngine.h>
-#include <algorithm>
 
 namespace NeoML {
 
