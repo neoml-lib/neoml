@@ -27,7 +27,7 @@ namespace NeoML {
 CDropoutDesc* CMetalMathEngine::InitDropout( float rate, bool isSpatial, bool isBatchwise,
 	const CBlobDesc& input, const CBlobDesc& output, int seed )
 {
-	return new CMathEngineDropoutDesc( mathEngine(), rate, isSpatial, isBatchwise, input, output, seed );
+	return new CMaskDropoutDesc( mathEngine(), rate, isSpatial, isBatchwise, input, output, seed );
 }
 
 void CMetalMathEngine::Dropout( const CDropoutDesc& dropoutDesc, const CFloatHandle& inputData, const CFloatHandle& outputData )
@@ -35,7 +35,7 @@ void CMetalMathEngine::Dropout( const CDropoutDesc& dropoutDesc, const CFloatHan
 	ASSERT_EXPR( inputData.GetMathEngine() == this );
 	ASSERT_EXPR( outputData.GetMathEngine() == this );
 
-	const CMathEngineDropoutDesc& desc = static_cast<const CMathEngineDropoutDesc&>( dropoutDesc );
+	const CMaskDropoutDesc& desc = static_cast<const CMaskDropoutDesc&>( dropoutDesc );
 	const CBlobDesc& input = desc.Input;
     const CBlobDesc& output = desc.Output;
 
