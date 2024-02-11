@@ -59,21 +59,18 @@ void CCpuMathEngine::Dropout(const CDropoutDesc& dropoutDesc, const CFloatHandle
 	float* mask = GetRaw(desc.Mask.GetHandle());
 	const int cacheSize = desc.Mask.Size();
 
-	const float* first;
-	float* result;
-
 	if(!desc.IsSpatial) {
+		const int numOfIter = (maskSize + cacheSize - 1) / cacheSize;
+		int currSize = cacheSize;
 
-		const float* first;
-		float* result;
-		int currSize;
+		for(int i = 0; i < numOfIter; ++i) {
+			if (i == numOfIter - 1) {
+				currSize = maskSize - i * cacheSize;
+			}
 
-		for(int i = 0; i < (maskSize + cacheSize - 1) / cacheSize; ++i) {
-			currSize = std::min(cacheSize, maskSize - i * cacheSize);
 			int idx = 0;
-
-			first = inputPointer;
-			result = outputPointer;
+			const float* first = inputPointer;
+			float* result = outputPointer;
 
 			const int alignedSize = (currSize + (maskAlign - 1)) / maskAlign;
 			for(int i = 0; i < alignedSize; ++i) {
@@ -93,35 +90,39 @@ void CCpuMathEngine::Dropout(const CDropoutDesc& dropoutDesc, const CFloatHandle
 			inputPointer += currSize;
 			outputPointer += currSize;
 		}
-	} else {
-		const int reloadIter = cacheSize / objectSize;
-		float* curr = mask;
+	}
+	else {
+		const int numOfIter = (objectSize + cacheSize - 1) / cacheSize;
+		const int alignedSize = (objectSize + (maskAlign - 1)) / maskAlign;
 
-		for(int i = 0; i < batchWidth; ++i) {
-			if( !(i % reloadIter) ) {
+		for (int i = 0; i < batchWidth; ++i) {
+			const float* first = inputPointer;
+			float* result = outputPointer;
+			int currSize = cacheSize;
+			for (int j = 0; j < alignedSize; ++j) {
 				int idx = 0;
-				for(int i = 0; i < (desc.Mask.Size() + 3) / 4; ++i) {
-					generated = random.Next();
-					for(int j = 0; j < maskAlign && idx < desc.Mask.Size(); ++j) {
-						mask[idx++] = (generated[j] <= desc.threshold) ? desc.value : 0.f;
-					}
+				if (j == numOfIter - 1) {
+					currSize = objectSize - j * cacheSize;
 				}
-				curr = mask;
+				generated = random.Next();
+				for (int k = 0; k < maskAlign && idx < currSize; ++k) {
+					mask[idx++] = (generated[k] <= desc.threshold) ? desc.value : 0.f;
+				}
+
+				for (int j = 0; j < batchLength; ++j) {
+					const float* localFirst = first;
+					float* localResult = result;
+					for (int k = 0; k < inputObjectSize / objectSize; ++k) {
+						vectorEltwiseMultiply(localFirst, mask, localResult, currSize);
+						localFirst += objectSize;
+						localResult += objectSize;
+					}
+					first += batchWidth * inputObjectSize;
+					result += batchWidth * inputObjectSize;
+				}
 			}
-
-			first = inputPointer;
-			result = outputPointer;
-
-			for(int j = 0; j < batchLength; ++j) {
-				multiplyMatrixByDiagMatrix(first, input.ObjectSize() / objectSize, objectSize, curr, result);
-
-				first += inputObjectSize * batchWidth;
-				result += inputObjectSize * batchWidth;
-			}
-
 			inputPointer += inputObjectSize;
 			outputPointer += inputObjectSize;
-			curr += objectSize;
 		}
 	}
 }

@@ -50,6 +50,8 @@ struct CSeedDropoutDesc : public CDropoutDesc {
 	const unsigned threshold; // = (unsigned int)((double)desc.ForwardRate * UINT_MAX);
 	const float value; // = 1.f / desc.ForwardRate;
 	CFloatHandleVar Mask; // mask of fixed size, filled iteratively in dropout
+	static constexpr int maskAlign = 4;
+	static constexpr int cacheSize = 64;
 };
 
 } // namespace NeoML

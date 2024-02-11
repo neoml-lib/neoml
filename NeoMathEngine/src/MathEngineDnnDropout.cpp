@@ -34,12 +34,11 @@ static inline int getMaskSize( float rate, bool isSpatial, bool isBatchwise, con
 	return batchWidth * objectSize;
 }
 
-static inline int getCacheSize(float rate, bool isSpatial, bool isBatchwise, const CBlobDesc& input)
+static inline int getCacheSize(float rate, bool isSpatial, bool isBatchwise, const CBlobDesc& input,
+	const int cacheSize, const int maskAlign)
 {
-	const int cacheSize = 64;
 	const int maskSize = getMaskSize(rate, isSpatial, isBatchwise, input);
 	if(isSpatial) {
-		const int maskAlign = 4;
 		const int blockSize = (cacheSize / input.Channels() + 1) * input.Channels() * maskAlign;
 		return std::min(maskSize, blockSize);
 
@@ -72,11 +71,10 @@ CSeedDropoutDesc::CSeedDropoutDesc( IMathEngine& mathEngine, float rate, bool is
 	IsSpatial( isSpatial ),
 	IsBatchwise( isBatchwise ),
 	seed(seed),
-	threshold( (unsigned int)((double)ForwardRate* UINT_MAX) ),
+	threshold( ForwardRate* UINT_MAX ),
 	value( 1.f / ForwardRate ),
-	Mask( mathEngine, getCacheSize(rate, isSpatial, isBatchwise, input))
+	Mask( mathEngine, cacheSize)//getCacheSize(rate, isSpatial, isBatchwise, input, cacheSize, maskAlign))
 {
-
 	ASSERT_EXPR( rate >= 0.f && rate < 1.f );
 }
 
