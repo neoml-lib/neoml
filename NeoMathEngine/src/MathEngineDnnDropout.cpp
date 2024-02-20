@@ -21,48 +21,31 @@ limitations under the License.
 
 namespace NeoML {
 
-static inline int getMaskSize( float rate, bool isSpatial, bool isBatchwise, const CBlobDesc& input )
+CDropoutDesc::CDropoutDesc() :
+	Input( CT_Float ),
+	Output( CT_Float ),
+	ForwardRate(0.f),
+	IsSpatial( false ),
+	IsBatchwise( false ),
+	Mask( nullptr ),
+	isValid( false )
 {
-	if( rate == 0 ) {
-		return 0;
-	}
-
-	const int objectSize = isSpatial ? input.Channels() : input.ObjectSize();
-	const int batchLength = isBatchwise ? input.ObjectCount() : input.BatchLength();
-	const int batchWidth = input.ObjectCount() / batchLength;
-
-	return batchWidth * objectSize;
 }
 
-CMaskDropoutDesc::CMaskDropoutDesc( IMathEngine& mathEngine, float rate, bool isSpatial, bool isBatchwise,
-		const CBlobDesc& input, const CBlobDesc& output, int seed ) :
-	Input( input ),
-	Output( output ),
-	ForwardRate( 1.f - rate ),
-	IsSpatial( isSpatial ),
-	IsBatchwise( isBatchwise ),
-	Mask( mathEngine, getMaskSize( rate, isSpatial, isBatchwise, input ) )
+CDropoutDesc::~CDropoutDesc()
 {
-	ASSERT_EXPR( rate >= 0.f && rate < 1.f );
-
-	if( rate != 0 ) {
-		mathEngine.VectorFillBernoulli( Mask.GetHandle(), ForwardRate, Mask.Size(), 1.f / ForwardRate, seed );
-	}
+	if(Mask != nullptr)
+		delete Mask;
 }
 
-CSeedDropoutDesc::CSeedDropoutDesc( IMathEngine& mathEngine, float rate, bool isSpatial, bool isBatchwise,
-		const CBlobDesc& input, const CBlobDesc& output, int seed ) :
-	Input( input ),
-	Output( output ),
-	ForwardRate( 1.f - rate ),
-	IsSpatial( isSpatial ),
-	IsBatchwise( isBatchwise ),
-	seed(seed),
-	threshold( (unsigned int)(ForwardRate * UINT_MAX) ),
-	value( 1.f / ForwardRate ),
-	Mask( mathEngine, cacheSize)
+CSeedDropoutDesc::CSeedDropoutDesc(IMathEngine& mathEngine, bool isMask):
+	seed( 0 ),
+	threshold( 0 ),
+	value( 0.f )
 {
-	ASSERT_EXPR( rate >= 0.f && rate < 1.f );
+	if (isMask) {
+		Mask = new CFloatHandleVar(mathEngine, cacheSize);
+	}
 }
 
 } // namespace NeoML

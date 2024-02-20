@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -652,12 +652,25 @@ public:
 };
 
 // Blob operations descriptors
+
+struct NEOMATHENGINE_API CDropoutDesc : public CCrtAllocatedObject {
+public:
+	CDropoutDesc();
+	virtual ~CDropoutDesc();
+	CBlobDesc Input; // input blob descriptor
+	CBlobDesc Output; // output blob descriptor
+	float ForwardRate; // the probability that an element is not dropped out
+	bool IsSpatial; // indicates if whole channels are dropped out
+	bool IsBatchwise; // indicates if an element is dropped out of all objects in one batch at the same time
+	CFloatHandleVar* Mask; // pointer to mask
+	bool isValid; // is the dropout is valid in current state
+};
+
 struct NEOMATHENGINE_API CTimeConvolutionDesc : public CCrtAllocatedObject { public: virtual ~CTimeConvolutionDesc(); };
 struct NEOMATHENGINE_API C3dConvolutionDesc : public CCrtAllocatedObject { public: virtual ~C3dConvolutionDesc(); };
 struct NEOMATHENGINE_API CConvolutionDesc : public CCrtAllocatedObject { public: virtual ~CConvolutionDesc(); };
 struct NEOMATHENGINE_API CChannelwiseConvolutionDesc : public CCrtAllocatedObject { public: virtual ~CChannelwiseConvolutionDesc(); };
 struct NEOMATHENGINE_API CRleConvolutionDesc : public CCrtAllocatedObject { public: virtual ~CRleConvolutionDesc(); };
-struct NEOMATHENGINE_API CDropoutDesc : public CCrtAllocatedObject { public: virtual ~CDropoutDesc(); };
 struct NEOMATHENGINE_API CGlobalMaxPoolingDesc : public CCrtAllocatedObject { public: virtual ~CGlobalMaxPoolingDesc(); };
 struct NEOMATHENGINE_API CMaxPoolingDesc : public CCrtAllocatedObject { public: virtual ~CMaxPoolingDesc(); };
 struct NEOMATHENGINE_API CMeanPoolingDesc : public CCrtAllocatedObject { public: virtual ~CMeanPoolingDesc(); };
@@ -945,8 +958,9 @@ public:
 
 	// Initializes the dropout descriptor.
 	// The dropout descriptor should be destroyed using the standard delete operator after use.
-	virtual CDropoutDesc* InitDropout( float rate, bool isSpatial, bool isBatchwise, const CBlobDesc& input,
-		const CBlobDesc& output, int seed ) = 0;
+	virtual CDropoutDesc* InitDropout() = 0;
+	virtual void UpdateDropout(CDropoutDesc* dropoutDesc, float rate, bool isSpatial, bool isBatchwise,
+		const CBlobDesc& input, const CBlobDesc& output, int seed, bool valid) = 0;
 	// Performs dropout on an input
 	virtual void Dropout( const CDropoutDesc& desc, const CFloatHandle& input, const CFloatHandle& output ) = 0;
 

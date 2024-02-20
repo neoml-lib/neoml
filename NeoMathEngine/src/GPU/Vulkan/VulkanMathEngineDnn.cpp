@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -449,10 +449,30 @@ void CVulkanMathEngine::AddHeightIndex( const CBlobDesc&, const CConstIntHandle&
 	ASSERT_EXPR( false );
 }
 
-CDropoutDesc* CVulkanMathEngine::InitDropout( float rate, bool isSpatial, bool isBatchwise,
-	const CBlobDesc& input, const CBlobDesc& output, int seed )
+CDropoutDesc* CVulkanMathEngine::InitDropout()
 {
-	return new CMaskDropoutDesc( mathEngine(), rate, isSpatial, isBatchwise, input, output, seed );
+	return new CMaskDropoutDesc();
+}
+
+void CVulkanMathEngine::UpdateDropout(CDropoutDesc* dropoutDesc, float rate, bool isSpatial, bool isBatchwise,
+	const CBlobDesc& input, const CBlobDesc& output, int seed, bool valid)
+{
+	auto maskDesc = dynamic_cast<CMaskDropoutDesc*>(dropoutDesc);
+	maskDesc->isValid = valid;
+	if (maskDesc->Mask != 0) {
+		delete maskDesc->Mask;
+		maskDesc->Mask = nullptr;
+	}
+	if(valid) {
+		ASSERT_EXPR(rate >= 0.f && rate < 1.f);
+		maskDesc->ForwardRate = 1.f - rate;
+		maskDesc->IsSpatial = isSpatial;
+		maskDesc->IsBatchwise = isBatchwise;
+		maskDesc->Input = input;
+		maskDesc->Output = output;
+		maskDesc->Mask = new CFloatHandleVar(mathEngine(), getMaskSize(rate, isSpatial, isBatchwise, input));
+		mathEngine().VectorFillBernoulli(maskDesc->Mask->GetHandle(), maskDesc->ForwardRate, maskDesc->Mask->Size(), 1.f / maskDesc->ForwardRate, seed);
+	}
 }
 
 void CVulkanMathEngine::Dropout( const CDropoutDesc& dropoutDesc, const CFloatHandle& inputData, const CFloatHandle& outputData )
@@ -474,16 +494,16 @@ void CVulkanMathEngine::Dropout( const CDropoutDesc& dropoutDesc, const CFloatHa
 	const int batchWidth = input.ObjectCount() / batchLength;
 	const int maskSize = batchWidth * objectSize;
 
-	ASSERT_EXPR( desc.Mask.Size() == maskSize );
+	ASSERT_EXPR( desc.Mask->Size() == maskSize );
 
 	if( !desc.IsSpatial ) {
-		MultiplyMatrixByDiagMatrix( inputData, batchLength, maskSize, desc.Mask, outputData, output.BlobSize() );
+		MultiplyMatrixByDiagMatrix( inputData, batchLength, maskSize, *desc.Mask, outputData, output.BlobSize() );
 		return;
 	}
 
 	const int maskObjectSize = maskSize / batchWidth;
 
-	CMemoryHandle bufs[3] = { inputData, desc.Mask.GetHandle(), outputData };
+	CMemoryHandle bufs[3] = { inputData, desc.Mask->GetHandle(), outputData };
 	size_t sizes[3] = { input.BlobSize() * sizeof(float), maskSize * sizeof(float), output.BlobSize() * sizeof(float) };
 
 	PARAM_STRUCT(BlobSpatialDropout) param = {

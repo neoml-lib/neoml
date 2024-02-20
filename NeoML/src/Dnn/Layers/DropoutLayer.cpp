@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ namespace NeoML {
 
 CDropoutLayer::CDropoutLayer( IMathEngine& mathEngine ) :
 	CBaseInPlaceLayer( mathEngine, "CCnnDropoutLayer" ),
-	desc( 0 ),
+	desc( mathEngine.InitDropout() ),
 	dropoutRate( 0 ),
 	isSpatial( false ),
 	isBatchwise( false )
@@ -50,8 +50,8 @@ void CDropoutLayer::SetDropoutRate( float value )
 	NeoAssert( value >= 0.f && value < 1.f );
 	if( dropoutRate != value ) {
 		dropoutRate = value;
-		if( GetDnn() != 0 ) {
-			destroyDropoutDesc();
+		if( GetDnn() != nullptr) {
+			disableDropoutDesc();
 		}
 	}
 }
@@ -60,8 +60,8 @@ void CDropoutLayer::SetSpatial( bool value )
 {
 	if( value != isSpatial ) {
 		isSpatial = value;
-		if( GetDnn() != 0 ) {
-			destroyDropoutDesc();
+		if( GetDnn() != nullptr ) {
+			disableDropoutDesc();
 		}
 	}
 }
@@ -70,15 +70,15 @@ void CDropoutLayer::SetBatchwise( bool value )
 {
 	if( value != isBatchwise ) {
 		isBatchwise = value;
-		if( GetDnn() != 0 ) {
-			destroyDropoutDesc();
+		if( GetDnn() != nullptr ) {
+			disableDropoutDesc();
 		}
 	}
 }
 
 void CDropoutLayer::OnReshaped()
 {
-	destroyDropoutDesc();
+	disableDropoutDesc();
 }
 
 void CDropoutLayer::RunOnce()
@@ -99,30 +99,40 @@ void CDropoutLayer::RunOnce()
 void CDropoutLayer::BackwardOnce()
 {
 	// Backward pass is only possible when learning
-	NeoAssert( desc != 0 );
+	NeoAssert( desc != nullptr );
 
 	MathEngine().Dropout( *desc, outputDiffBlobs[0]->GetData(), inputDiffBlobs[0]->GetData() );
 
 	if( !GetDnn()->IsRecurrentMode() || GetDnn()->IsFirstSequencePos() ) {
 		// Clear the memory after the whole sequence is processed
-		destroyDropoutDesc();
+		disableDropoutDesc();
 	}
 }
 
 void CDropoutLayer::initDropoutDesc()
 {
-	if( desc == 0 ) {
-		desc = MathEngine().InitDropout( dropoutRate, isSpatial, isBatchwise, inputBlobs[0]->GetDesc(), outputBlobs[0]->GetDesc(),
-			GetDnn()->Random().Next() );
+	if(desc == nullptr) {
+		desc = MathEngine().InitDropout();
+	}
+
+	if (!desc->isValid) {
+		MathEngine().UpdateDropout(desc, dropoutRate, isSpatial, isBatchwise, inputBlobs[0]->GetDesc(), outputBlobs[0]->GetDesc(),
+			GetDnn()->Random().Next(), true);
 	}
 }
 
 void CDropoutLayer::destroyDropoutDesc()
 {
-	if( desc != 0 ) {
+	if( desc != nullptr ) {
 		delete desc;
-		desc = 0;
+		desc = nullptr;
 	}
+}
+
+void CDropoutLayer::disableDropoutDesc()
+{
+	MathEngine().UpdateDropout(desc, 0.f, false, false, {0, 0, 0, 0, 0, 0, 0},
+		{ 0, 0, 0, 0, 0, 0, 0 }, 0, false);
 }
 
 CLayerWrapper<CDropoutLayer> Dropout( float dropoutRate,

@@ -22,26 +22,33 @@ limitations under the License.
 #include <CudaCommon.h>
 #include <MathEngineCommon.h>
 #include <MemoryHandleInternal.h>
-#include <CudaMathEngineDnnDropout.h>
+#include <MathEngineDnnDropout.h>
 
 #include <Kernels/CudaDnnDropoutKernels.h>
 
 namespace NeoML {
 
-CCudaMathEngineDropoutDesc::CCudaMathEngineDropoutDesc( IMathEngine& mathEngine, float rate, bool isSpatial,
-		bool isBatchwise, const CBlobDesc& input, const CBlobDesc& output, int seed ) :
-	Input(input),
-	Output(output),
-	ForwardRate(1.f - rate),
-	IsSpatial(isSpatial),
-	IsBatchwise(isBatchwise),
-	seed(seed)
-{}
-
-CDropoutDesc* CCudaMathEngine::InitDropout( float rate, bool isSpatial, bool isBatchwise,
-	const CBlobDesc& input, const CBlobDesc& output, int seed )
+CDropoutDesc* CCudaMathEngine::InitDropout()
 {
-	return new CCudaMathEngineDropoutDesc(mathEngine(), rate, isSpatial, isBatchwise, input, output, seed);
+	return new CSeedDropoutDesc(mathEngine(), false);
+}
+
+void CCudaMathEngine::UpdateDropout(CDropoutDesc* dropoutDesc, float rate, bool isSpatial, bool isBatchwise,
+	const CBlobDesc& input, const CBlobDesc& output, int seed, bool valid)
+{
+	ASSERT_EXPR(rate >= 0.f && rate < 1.f);
+	auto seedDesc = dynamic_cast<CSeedDropoutDesc*>(dropoutDesc);
+	seedDesc->isValid = valid;
+	if(valid) {
+		seedDesc->ForwardRate = 1.f - rate;
+		seedDesc->IsSpatial = isSpatial;
+		seedDesc->IsBatchwise = isBatchwise;
+		seedDesc->seed = seed;
+		seedDesc->value = 1.f / seedDesc->ForwardRate;
+		seedDesc->Input = input;
+		seedDesc->Output = output;
+		seedDesc->threshold = (unsigned int)(seedDesc->ForwardRate * UINT_MAX);
+	}
 }
 
 void CCudaMathEngine::Dropout( const CDropoutDesc& dropoutDesc,
@@ -51,7 +58,7 @@ void CCudaMathEngine::Dropout( const CDropoutDesc& dropoutDesc,
 	ASSERT_EXPR( outputData.GetMathEngine() == this );
 	SetCudaDevice( device->DeviceNumber );
 
-	const CCudaMathEngineDropoutDesc& desc = static_cast<const CCudaMathEngineDropoutDesc&>( dropoutDesc );
+	const CSeedDropoutDesc& desc = static_cast<const CSeedDropoutDesc&>( dropoutDesc );
 	const CBlobDesc& input = desc.Input;
 
 	if( desc.ForwardRate == 1.f ) {

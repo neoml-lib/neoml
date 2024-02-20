@@ -1,4 +1,4 @@
-/* Copyright © 2023 ABBYY
+/* Copyright © 2023-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -52,8 +52,9 @@ CLoraFullyConnectedLayer::~CLoraFullyConnectedLayer()
 void CLoraFullyConnectedLayer::initDropoutDesc()
 {
 	if( desc == nullptr ) {
-		desc = MathEngine().InitDropout( lora.Dropout, /*isSpatial*/false, /*isBatchwise*/false,
-			inputBlobs[0]->GetDesc(), inputBlobs[0]->GetDesc(), GetDnn()->Random().Next() );
+		desc = MathEngine().InitDropout();
+		MathEngine().UpdateDropout( desc, lora.Dropout, /*isSpatial*/false, /*isBatchwise*/false,
+			inputBlobs[0]->GetDesc(), inputBlobs[0]->GetDesc(), GetDnn()->Random().Next(), true );
 	}
 }
 
