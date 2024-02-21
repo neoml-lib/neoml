@@ -1,4 +1,4 @@
-/* Copyright © 2017-2024 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,28 +21,37 @@ limitations under the License.
 namespace NeoML {
 
 CBaseDropoutDesc::CBaseDropoutDesc() :
-	Input( {0}),
-	Output( {0}),
+	Input( nullptr ),
+	Output( nullptr ),
 	ForwardRate(0.f),
 	IsSpatial( false ),
 	IsBatchwise( false ),
 	Mask( nullptr ),
-	isValid( false ),
-	value( 0.f ), 
-	seed(0),
-	threshold(0)
+	IsValid( false ),
+	Value( 0.f ),
+	Seed( 0 ),
+	Threshold( 0 )
 {
 }
 
 CBaseDropoutDesc::~CBaseDropoutDesc()
 {
-	if(Mask != nullptr)
+	if(Mask != nullptr) {
 		delete Mask;
+	}
+	
+	if(Input != nullptr) {
+		delete Input;
+	}
+
+	if(Output != nullptr) {
+		delete Output;
+	}
 }
 
 CSeedDropoutDesc::CSeedDropoutDesc(IMathEngine& mathEngine, bool isMask)
 {
-	if (isMask) {
+	if(isMask) {
 		Mask = new CFloatHandleVar(mathEngine, cacheSize);
 	}
 }

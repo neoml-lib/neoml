@@ -31,29 +31,34 @@ CDropoutDesc* CMetalMathEngine::InitDropout(float rate, bool isSpatial, bool isB
 	maskDesc->ForwardRate = 1.f - rate;
 	maskDesc->IsSpatial = isSpatial;
 	maskDesc->IsBatchwise = isBatchwise;
-	maskDesc->isValid = false;
-	maskDesc->value = 1.f / maskDesc->ForwardRate;
-	maskDesc->threshold = (unsigned int)(maskDesc->ForwardRate * UINT_MAX);
+	maskDesc->IsValid = false;
+	maskDesc->Value = 1.f / maskDesc->ForwardRate;
+	maskDesc->Threshold = (unsigned int)(maskDesc->ForwardRate * UINT_MAX);
 	return maskDesc;
 }
 
-void CMetalMathEngine::UpdateDropout(CDropoutDesc* dropoutDesc, float rate, bool isSpatial, bool isBatchwise,
-	const CBlobDesc& input, const CBlobDesc& output, int seed, bool valid)
+void CMetalMathEngine::UpdateDropout(CDropoutDesc* dropoutDesc, const CBlobDesc* input, const CBlobDesc* output,
+	int seed, bool valid)
 {
 	auto maskDesc = dynamic_cast<CMaskDropoutDesc*>(dropoutDesc);
-	maskDesc->isValid = valid;
+	if(maskDesc == nullptr) {
+		return;
+	}
+
+	maskDesc->IsValid = valid;
 	if(maskDesc->Mask != nullptr) {
 		delete maskDesc->Mask;
 		maskDesc->Mask = nullptr;
 	}
+	
 	if(valid) {
-		maskDesc->Input = input;
-		maskDesc->Output = output;
-		maskDesc->seed = seed;
-		maskDesc->Mask = new CFloatHandleVar(mathEngine(), getMaskSize(1.f - maskDesc->ForwardRate,
-			maskDesc->IsSpatial, maskDesc->IsBatchwise, input));
+		updateDesc(maskDesc->Input, input);
+		updateDesc(maskDesc->Output, output);
+
+		maskDesc->Seed = seed;
+		maskDesc->Mask = new CFloatHandleVar(mathEngine(), getMaskSize(maskDesc->IsSpatial, maskDesc->IsBatchwise, *input));
 		mathEngine().VectorFillBernoulli(maskDesc->Mask->GetHandle(), maskDesc->ForwardRate, maskDesc->Mask->Size(),
-			1.f / maskDesc->ForwardRate, maskDesc->seed);
+			1.f / maskDesc->ForwardRate, maskDesc->Seed);
 	}
 }
 
@@ -63,8 +68,8 @@ void CMetalMathEngine::Dropout( const CDropoutDesc& dropoutDesc, const CFloatHan
 	ASSERT_EXPR( outputData.GetMathEngine() == this );
 
 	const CMaskDropoutDesc& desc = static_cast<const CMaskDropoutDesc&>( dropoutDesc );
-	const CBlobDesc& input = desc.Input;
-    const CBlobDesc& output = desc.Output;
+	const CBlobDesc& input = *(desc.Input);
+	const CBlobDesc& output = *(desc.Output);
 
 	if( desc.ForwardRate == 1.f ) {
 		VectorCopy( outputData, inputData, input.BlobSize() );
@@ -76,7 +81,7 @@ void CMetalMathEngine::Dropout( const CDropoutDesc& dropoutDesc, const CFloatHan
 	const int batchWidth = input.ObjectCount() / batchLength;
 	const int maskSize = batchWidth * objectSize;
 
-	ASSERT_EXPR( desc.Mask.Size() == maskSize );
+	ASSERT_EXPR( desc.Mask->Size() == maskSize );
 
 	if( !desc.IsSpatial ) {
 		MultiplyMatrixByDiagMatrix( inputData, batchLength, maskSize, desc.Mask, outputData, output.BlobSize() );

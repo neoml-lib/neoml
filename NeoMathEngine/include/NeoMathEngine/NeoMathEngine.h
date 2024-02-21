@@ -947,7 +947,9 @@ public:
 	// Initializes the dropout descriptor.
 	// The dropout descriptor should be destroyed using the standard delete operator after use.
 	virtual CDropoutDesc* InitDropout(float rate, bool isSpatial, bool isBatchwise) = 0;
-	virtual void UpdateDropout(CDropoutDesc* dropoutDesc, const CBlobDesc& input, const CBlobDesc& output, int seed, bool valid) = 0;
+	// Updates current desc accordint to input/output desc, seed for generating mask if valid
+	// Disables the desc if not valid
+	virtual void UpdateDropout(CDropoutDesc* dropoutDesc, const CBlobDesc* input, const CBlobDesc* output, int seed, bool valid) = 0;
 	// Performs dropout on an input
 	virtual void Dropout( const CDropoutDesc& desc, const CFloatHandle& input, const CFloatHandle& output ) = 0;
 

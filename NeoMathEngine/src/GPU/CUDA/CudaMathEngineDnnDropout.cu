@@ -35,21 +35,25 @@ CDropoutDesc* CCudaMathEngine::InitDropout(float rate, bool isSpatial, bool isBa
 	seedDesc->ForwardRate = 1.f - rate;
 	seedDesc->IsSpatial = isSpatial;
 	seedDesc->IsBatchwise = isBatchwise;
-	seedDesc->isValid = false;
-	seedDesc->value = 1.f / seedDesc->ForwardRate;
-	seedDesc->threshold = (unsigned int)(seedDesc->ForwardRate * UINT_MAX);
+	seedDesc->IsValid = false;
+	seedDesc->Value = 1.f / seedDesc->ForwardRate;
+	seedDesc->Threshold = (unsigned int)(seedDesc->ForwardRate * UINT_MAX);
 	return seedDesc;
 }
 
 void CCudaMathEngine::UpdateDropout(CDropoutDesc* dropoutDesc,
-	const CBlobDesc& input, const CBlobDesc& output, int seed, bool valid)
+	const CBlobDesc* input, const CBlobDesc* output, int seed, bool valid)
 {
 	auto seedDesc = dynamic_cast<CSeedDropoutDesc*>(dropoutDesc);
-	seedDesc->isValid = valid;
+	if (seedDesc == nullptr) {
+		return;
+	}
+
+	seedDesc->IsValid = valid;
 	if(valid) {
-		seedDesc->seed = seed;
-		seedDesc->Input = input;
-		seedDesc->Output = output;
+		seedDesc->Seed = seed;
+		updateDesc(seedDesc->Input, input);
+		updateDesc(seedDesc->Output, output);
 	}
 }
 
@@ -61,7 +65,7 @@ void CCudaMathEngine::Dropout( const CDropoutDesc& dropoutDesc,
 	SetCudaDevice( device->DeviceNumber );
 
 	const CSeedDropoutDesc& desc = static_cast<const CSeedDropoutDesc&>( dropoutDesc );
-	const CBlobDesc& input = desc.Input;
+	const CBlobDesc& input = *desc.Input;
 
 	if( desc.ForwardRate == 1.f ) {
 		VectorCopy( outputData, inputData, input.BlobSize() );
@@ -77,9 +81,9 @@ void CCudaMathEngine::Dropout( const CDropoutDesc& dropoutDesc,
 		dim3 blockCount;
 		dim3 threadCount;
 
-		getCudaTaskGrid2D(blockCount, threadCount, batchLength, (maskSize + 3) / 4);
+		getCudaTaskGrid2D(blockCount, threadCount, batchLength, (maskSize + desc.maskAlign - 1) / desc.maskAlign);
 		RandomMatrixDropout<<<blockCount, threadCount>>>( GetRaw(inputData), batchLength, maskSize,
-			GetRaw(outputData), desc.seed, desc.ForwardRate );
+			GetRaw(outputData), desc.Seed, desc.ForwardRate );
 		return;
 	}
 
@@ -88,7 +92,7 @@ void CCudaMathEngine::Dropout( const CDropoutDesc& dropoutDesc,
 
 	getCudaTaskGrid3D( blockCount, threadCount, input.ObjectCount(), input.ObjectSize() / objectSize, objectSize );
 	RandomSpatialDropout<<<blockCount, threadCount>>>( GetRaw( inputData ), GetRaw( outputData ),
-		input.ObjectCount(), input.ObjectSize(), batchWidth, objectSize, desc.seed, desc.ForwardRate );
+		input.ObjectCount(), input.ObjectSize(), batchWidth, objectSize, desc.Seed, desc.ForwardRate );
 }
 
 } // namespace NeoML

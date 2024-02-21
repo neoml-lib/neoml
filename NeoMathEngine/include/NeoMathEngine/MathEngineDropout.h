@@ -22,17 +22,21 @@ namespace NeoML {
 
 struct CBaseDropoutDesc : public CDropoutDesc {
 	CBaseDropoutDesc();
+	CBaseDropoutDesc(const CBaseDropoutDesc&) = delete;
+	CBaseDropoutDesc& operator=(const CBaseDropoutDesc&) = delete;
+
 	virtual ~CBaseDropoutDesc();
-	CBlobDesc Input; // input blob descriptor
-	CBlobDesc Output; // output blob descriptor
+
+	CBlobDesc* Input; // input blob descriptor
+	CBlobDesc* Output; // output blob descriptor
 	float ForwardRate; // the probability that an element is not dropped out
 	bool IsSpatial; // indicates if whole channels are dropped out
 	bool IsBatchwise; // indicates if an element is dropped out of all objects in one batch at the same time
 	CFloatHandleVar* Mask; // pointer to mask
-	bool isValid; // is the dropout is valid in current state
-	float value; // = 1.f / desc.ForwardRate;
-	int seed; // seed for generation mask
-	unsigned threshold; // = (unsigned int)(desc.ForwardRate * UINT_MAX);
+	bool IsValid; // is the dropout is valid in current state
+	float Value; // = 1.f / desc.ForwardRate;
+	int Seed; // seed for generation mask
+	unsigned Threshold; // = (unsigned int)(desc.ForwardRate * UINT_MAX);
 };
 
 } // namespace NeoML

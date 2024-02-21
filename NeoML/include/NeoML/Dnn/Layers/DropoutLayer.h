@@ -45,7 +45,7 @@ public:
 	void SetBatchwise( bool value );
 
 protected:
-	~CDropoutLayer() override { destroyDropoutDesc(); }
+	~CDropoutLayer() override;
 
 	// CBaseLayer methods
 	void RunOnce() override;
@@ -60,7 +60,6 @@ private:
 	bool isBatchwise; // the batchwise mode
 
 	void initDropoutDesc();
-	void destroyDropoutDesc();
 	void disableDropoutDesc();
 };
 

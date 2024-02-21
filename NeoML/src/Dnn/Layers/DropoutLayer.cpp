@@ -42,7 +42,7 @@ void CDropoutLayer::Serialize( CArchive& archive )
 	archive.Serialize( isBatchwise );
 
 	if( archive.IsLoading() ) {
-		destroyDropoutDesc();
+		disableDropoutDesc();
 	}
 }
 
@@ -79,7 +79,7 @@ void CDropoutLayer::SetBatchwise( bool value )
 
 void CDropoutLayer::OnReshaped()
 {
-	if(desc == nullptr) {
+	if( desc == nullptr ) {
 		desc = static_cast<CBaseDropoutDesc*>(MathEngine().InitDropout(dropoutRate, isSpatial, isBatchwise));
 	}
 }
@@ -103,7 +103,7 @@ void CDropoutLayer::BackwardOnce()
 {
 	// Backward pass is only possible when learning
 	NeoAssert( desc != nullptr );
-	NeoAssert( desc->isValid );
+	NeoAssert( desc->IsValid );
 
 	MathEngine().Dropout( *desc, outputDiffBlobs[0]->GetData(), inputDiffBlobs[0]->GetData() );
 
@@ -115,13 +115,13 @@ void CDropoutLayer::BackwardOnce()
 
 void CDropoutLayer::initDropoutDesc()
 {
-	if (!desc->isValid) {
-		MathEngine().UpdateDropout(desc, inputBlobs[0]->GetDesc(), outputBlobs[0]->GetDesc(),
+	if( !desc->IsValid ) {
+		MathEngine().UpdateDropout(desc, &(inputBlobs[0]->GetDesc()), &(outputBlobs[0]->GetDesc()),
 			GetDnn()->Random().Next(), true);
 	}
 }
 
-void CDropoutLayer::destroyDropoutDesc()
+CDropoutLayer::~CDropoutLayer()
 {
 	if( desc != nullptr ) {
 		delete desc;
@@ -131,7 +131,7 @@ void CDropoutLayer::destroyDropoutDesc()
 
 void CDropoutLayer::disableDropoutDesc()
 {
-	MathEngine().UpdateDropout(desc, {0}, {0}, 0, false);
+	MathEngine().UpdateDropout(desc, nullptr, nullptr, 0, false);
 }
 
 CLayerWrapper<CDropoutLayer> Dropout( float dropoutRate,

@@ -46,23 +46,22 @@ CLoraFullyConnectedLayer::CLoraFullyConnectedLayer( CDnnBlob& baseWeights, CDnnB
 
 CLoraFullyConnectedLayer::~CLoraFullyConnectedLayer()
 {
-	destroyDropoutDesc();
+	if (desc != nullptr) {
+		delete desc;
+		desc = nullptr;
+	}
 }
 
 void CLoraFullyConnectedLayer::initDropoutDesc()
 {
 	if( desc == nullptr ) {
 		desc = MathEngine().InitDropout(lora.Dropout, false, false);
-		MathEngine().UpdateDropout( desc, inputBlobs[0]->GetDesc(), inputBlobs[0]->GetDesc(), GetDnn()->Random().Next(), true );
 	}
 }
 
-void CLoraFullyConnectedLayer::destroyDropoutDesc()
+void CLoraFullyConnectedLayer::disableDropoutDesc()
 {
-	if( desc != nullptr ) {
-		delete desc;
-		desc = nullptr;
-	}
+	MathEngine().UpdateDropout(desc, nullptr, nullptr, 0, false);
 }
 
 static const int LoraFullyConnectedLayerVersion = 0;
@@ -81,7 +80,7 @@ void CLoraFullyConnectedLayer::Serialize( CArchive& archive )
 
 	if( archive.IsLoading() ) {
 		initialize( params );
-		destroyDropoutDesc();
+		disableDropoutDesc();
 	}
 }
 
@@ -97,6 +96,10 @@ void CLoraFullyConnectedLayer::UpdateParams( const CLoraParams& newParams, CDnnB
 
 void CLoraFullyConnectedLayer::Reshape()
 {
+	if (desc == nullptr) {
+		desc = MathEngine().InitDropout(lora.Dropout, false, false);
+	}
+
 	CheckLayerArchitecture( GetInputCount() == 1, "LoraFullyConnected Layer must have only 1 input" );
 	CheckLayerArchitecture( GetOutputCount() == 1, "LoraFullyConnected Layer must have only 1 output" );
 
@@ -136,12 +139,12 @@ void CLoraFullyConnectedLayer::Reshape()
 	outputDescs[0].SetDimSize( BD_Width, 1 );
 	outputDescs[0].SetDimSize( BD_Depth, 1 );
 	outputDescs[0].SetDimSize( BD_Channels, NumberOfElements() );
-
-	destroyDropoutDesc();
 }
 
 void CLoraFullyConnectedLayer::RunOnce()
 {
+	MathEngine().UpdateDropout(desc, &(inputBlobs[0]->GetDesc()), &(inputBlobs[0]->GetDesc()), GetDnn()->Random().Next(), true);
+
 	CConstFloatHandle inputData = inputBlobs[0]->GetData();
 	const int inputHeight = inputBlobs[0]->GetObjectCount();
 	const int inputWidth = inputBlobs[0]->GetObjectSize();
@@ -277,7 +280,7 @@ void CLoraFullyConnectedLayer::BackwardOnce()
 		NeoAssert( desc != nullptr ); // Backward pass is only possible when learning
 		MathEngine().Dropout( *desc, inputDiff, tempInputDiff );
 		if( !GetDnn()->IsRecurrentMode() || GetDnn()->IsFirstSequencePos() ) {
-			destroyDropoutDesc(); // Clear the memory after the whole sequence is processed
+			disableDropoutDesc(); // Clear the memory after the whole sequence is processed
 		}
 	}
 

@@ -128,7 +128,7 @@ static void dropoutTestImpl( const CTestParams& params, int seed )
 
 	// actual
 	CDropoutDesc* dropoutDesc = MathEngine().InitDropout(rate, isSpatial, isBatchwise);
-	MathEngine().UpdateDropout(dropoutDesc, input.GetDesc(), output.GetDesc(), seed, true);
+	MathEngine().UpdateDropout(dropoutDesc, &(input.GetDesc()), &(output.GetDesc()), seed, true);
 	MathEngine().Dropout( *dropoutDesc, input.GetData(), output.GetData() );
 	delete dropoutDesc;
 	std::vector<float> result;

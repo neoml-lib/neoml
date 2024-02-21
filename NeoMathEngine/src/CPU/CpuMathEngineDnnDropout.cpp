@@ -32,21 +32,25 @@ CDropoutDesc* CCpuMathEngine::InitDropout(float rate, bool isSpatial, bool isBat
 	seedDesc->ForwardRate = 1.f - rate;
 	seedDesc->IsSpatial = isSpatial;
 	seedDesc->IsBatchwise = isBatchwise;
-	seedDesc->isValid = false;
-	seedDesc->value = 1.f / seedDesc->ForwardRate;
-	seedDesc->threshold = (unsigned int)(seedDesc->ForwardRate * UINT_MAX);
+	seedDesc->IsValid = false;
+	seedDesc->Value = 1.f / seedDesc->ForwardRate;
+	seedDesc->Threshold = (unsigned int)(seedDesc->ForwardRate * UINT_MAX);
 	return seedDesc;
 }
 
-void CCpuMathEngine::UpdateDropout(CDropoutDesc* dropoutDesc, const CBlobDesc& input,
-	const CBlobDesc& output, int seed, bool valid) 
+void CCpuMathEngine::UpdateDropout(CDropoutDesc* dropoutDesc, const CBlobDesc* input,
+	const CBlobDesc* output, int seed, bool valid)
 {
 	auto seedDesc = dynamic_cast<CSeedDropoutDesc*>(dropoutDesc);
-	seedDesc->isValid = valid;;
+	if (seedDesc == nullptr) {
+		return;
+	}
+
+	seedDesc->IsValid = valid;;
 	if (valid) {
-		seedDesc->seed = seed;
-		seedDesc->Input = input;
-		seedDesc->Output = output;
+		seedDesc->Seed = seed;
+		updateDesc(seedDesc->Input, input);
+		updateDesc(seedDesc->Output, output);
 	}
 }
 
@@ -55,7 +59,7 @@ void CCpuMathEngine::Dropout(const CDropoutDesc& dropoutDesc, const CFloatHandle
 	CCpuExecutionScope scope;
 
 	const CSeedDropoutDesc& desc = static_cast<const CSeedDropoutDesc&>(dropoutDesc);
-	const CBlobDesc& input = desc.Input;
+	const CBlobDesc& input = *desc.Input;
 
 	if( desc.ForwardRate == 1.f ) {
 		VectorCopy( outputData, inputData, input.BlobSize() );
@@ -67,15 +71,15 @@ void CCpuMathEngine::Dropout(const CDropoutDesc& dropoutDesc, const CFloatHandle
 	const int batchWidth = input.ObjectCount() / batchLength;
 	const int maskSize = batchWidth * objectSize;
 
-	CCpuRandom random(desc.seed);
+	CCpuRandom random(desc.Seed);
 	CIntArray<CSeedDropoutDesc::maskAlign> generated;
 
 	const int inputObjectSize = input.ObjectSize();
 	const float* inputPointer = GetRaw(inputData);
 	float* outputPointer = GetRaw(outputData);
 	float* mask = GetRaw(desc.Mask->GetHandle());
-	const unsigned int threshold = desc.threshold;
-	const float value = desc.value;
+	const unsigned int threshold = desc.Threshold;
+	const float value = desc.Value;
 	constexpr int cacheSize = CSeedDropoutDesc::cacheSize;
 	constexpr int maskAlign = CSeedDropoutDesc::maskAlign;
 	constexpr int numOfGenerations = CSeedDropoutDesc::numOfGenerations;

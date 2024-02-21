@@ -1,4 +1,4 @@
-/* Copyright © 2017-2024 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,12 +20,16 @@ limitations under the License.
 
 namespace NeoML {
 
-static inline int getMaskSize(float rate, bool isSpatial, bool isBatchwise, const CBlobDesc& input)
-{
-	if(rate == 0) {
-		return 0;
+static inline void updateDesc(CBlobDesc*& destDesc, const CBlobDesc* srcDesc) {
+	if(destDesc == nullptr) {
+		destDesc = new CBlobDesc(*srcDesc);
+	} else {
+		*destDesc = *srcDesc;
 	}
+}
 
+static inline int getMaskSize(bool isSpatial, bool isBatchwise, const CBlobDesc& input)
+{
 	const int objectSize = isSpatial ? input.Channels() : input.ObjectSize();
 	const int batchLength = isBatchwise ? input.ObjectCount() : input.BatchLength();
 	const int batchWidth = input.ObjectCount() / batchLength;

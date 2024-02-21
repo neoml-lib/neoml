@@ -17,7 +17,7 @@ limitations under the License.
 
 #include <NeoML/NeoMLDefs.h>
 #include <NeoML/Dnn/DnnLora.h>
-#include <NeoMathEngine/MathEngineDropout.h>
+#include <NeoMathEngine/NeoMathEngine.h>
 
 namespace NeoML {
 
@@ -136,7 +136,7 @@ private:
 	void split();
 	void recalcBaseWeights();
 	void initDropoutDesc();
-	void destroyDropoutDesc();
+	void disableDropoutDesc();
 };
 
 } // namespace NeoML
