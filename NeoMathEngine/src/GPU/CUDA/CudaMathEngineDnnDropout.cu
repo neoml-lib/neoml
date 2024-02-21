@@ -1,4 +1,4 @@
-/* Copyright © 2017-2024 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -28,26 +28,28 @@ limitations under the License.
 
 namespace NeoML {
 
-CDropoutDesc* CCudaMathEngine::InitDropout()
-{
-	return new CSeedDropoutDesc(mathEngine(), false);
-}
-
-void CCudaMathEngine::UpdateDropout(CDropoutDesc* dropoutDesc, float rate, bool isSpatial, bool isBatchwise,
-	const CBlobDesc& input, const CBlobDesc& output, int seed, bool valid)
+CDropoutDesc* CCudaMathEngine::InitDropout(float rate, bool isSpatial, bool isBatchwise)
 {
 	ASSERT_EXPR(rate >= 0.f && rate < 1.f);
+	auto seedDesc = new CSeedDropoutDesc(mathEngine(), false);
+	seedDesc->ForwardRate = 1.f - rate;
+	seedDesc->IsSpatial = isSpatial;
+	seedDesc->IsBatchwise = isBatchwise;
+	seedDesc->isValid = false;
+	seedDesc->value = 1.f / seedDesc->ForwardRate;
+	seedDesc->threshold = (unsigned int)(seedDesc->ForwardRate * UINT_MAX);
+	return seedDesc;
+}
+
+void CCudaMathEngine::UpdateDropout(CDropoutDesc* dropoutDesc,
+	const CBlobDesc& input, const CBlobDesc& output, int seed, bool valid)
+{
 	auto seedDesc = dynamic_cast<CSeedDropoutDesc*>(dropoutDesc);
 	seedDesc->isValid = valid;
 	if(valid) {
-		seedDesc->ForwardRate = 1.f - rate;
-		seedDesc->IsSpatial = isSpatial;
-		seedDesc->IsBatchwise = isBatchwise;
 		seedDesc->seed = seed;
-		seedDesc->value = 1.f / seedDesc->ForwardRate;
 		seedDesc->Input = input;
 		seedDesc->Output = output;
-		seedDesc->threshold = (unsigned int)(seedDesc->ForwardRate * UINT_MAX);
 	}
 }
 

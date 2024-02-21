@@ -17,6 +17,7 @@ limitations under the License.
 
 #include <NeoML/NeoMLDefs.h>
 #include <NeoML/Dnn/DnnLora.h>
+#include <NeoMathEngine/MathEngineDropout.h>
 
 namespace NeoML {
 

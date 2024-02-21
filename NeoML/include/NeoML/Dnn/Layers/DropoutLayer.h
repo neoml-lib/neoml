@@ -1,4 +1,4 @@
-/* Copyright © 2017-2024 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ limitations under the License.
 #include <NeoML/NeoMLDefs.h>
 #include <NeoML/Dnn/Dnn.h>
 #include <NeoML/Dnn/Layers/BaseInPlaceLayer.h>
+#include <NeoMathEngine/MathEngineDropout.h>
 
 namespace NeoML {
 
@@ -53,7 +54,7 @@ protected:
 	int BlobsForBackward() const override { return 0; }
 
 private:
-	CDropoutDesc* desc; // the dropout description
+	CBaseDropoutDesc* desc; // the dropout description
 	float dropoutRate; // the dropout rate
 	bool isSpatial; // the spatial mode (channel-wise)
 	bool isBatchwise; // the batchwise mode

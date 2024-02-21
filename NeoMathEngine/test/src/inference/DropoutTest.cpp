@@ -1,4 +1,4 @@
-/* Copyright © 2017-2024 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -127,8 +127,8 @@ static void dropoutTestImpl( const CTestParams& params, int seed )
 	dropoutNaive( batchLength, batchWidth, height, width, depth, channels, rate, isSpatial, isBatchwise, seed, inputData.data(), expected.data() );
 
 	// actual
-	CDropoutDesc *dropoutDesc = MathEngine().InitDropout();
-	MathEngine().UpdateDropout(dropoutDesc, rate, isSpatial, isBatchwise, input.GetDesc(), output.GetDesc(), seed, true);
+	CDropoutDesc* dropoutDesc = MathEngine().InitDropout(rate, isSpatial, isBatchwise);
+	MathEngine().UpdateDropout(dropoutDesc, input.GetDesc(), output.GetDesc(), seed, true);
 	MathEngine().Dropout( *dropoutDesc, input.GetData(), output.GetData() );
 	delete dropoutDesc;
 	std::vector<float> result;

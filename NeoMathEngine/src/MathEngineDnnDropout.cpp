@@ -17,31 +17,30 @@ limitations under the License.
 #pragma hdrstop
 
 #include <MathEngineDnnDropout.h>
-#include <NeoMathEngine/NeoMathEngine.h>
 
 namespace NeoML {
 
-CDropoutDesc::CDropoutDesc() :
-	Input( CT_Float ),
-	Output( CT_Float ),
+CBaseDropoutDesc::CBaseDropoutDesc() :
+	Input( {0}),
+	Output( {0}),
 	ForwardRate(0.f),
 	IsSpatial( false ),
 	IsBatchwise( false ),
 	Mask( nullptr ),
-	isValid( false )
+	isValid( false ),
+	value( 0.f ), 
+	seed(0),
+	threshold(0)
 {
 }
 
-CDropoutDesc::~CDropoutDesc()
+CBaseDropoutDesc::~CBaseDropoutDesc()
 {
 	if(Mask != nullptr)
 		delete Mask;
 }
 
-CSeedDropoutDesc::CSeedDropoutDesc(IMathEngine& mathEngine, bool isMask):
-	seed( 0 ),
-	threshold( 0 ),
-	value( 0.f )
+CSeedDropoutDesc::CSeedDropoutDesc(IMathEngine& mathEngine, bool isMask)
 {
 	if (isMask) {
 		Mask = new CFloatHandleVar(mathEngine, cacheSize);

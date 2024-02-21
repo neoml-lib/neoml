@@ -544,9 +544,8 @@ public:
 	void AddWidthIndex( const CBlobDesc& source, const CConstIntHandle& sourceData, bool isForward, const CIntHandle& result ) override;
 	void AddHeightIndex( const CBlobDesc& source, const CConstFloatHandle& sourceData, bool isForward, const CFloatHandle& result ) override;
 	void AddHeightIndex( const CBlobDesc& source, const CConstIntHandle& sourceData, bool isForward, const CIntHandle& result ) override;
-	CDropoutDesc* InitDropout() override;
-	void UpdateDropout(CDropoutDesc* dropoutDesc, float rate, bool isSpatial, bool isBatchwise,
-		const CBlobDesc& input, const CBlobDesc& output, int seed, bool valid) override;
+	CDropoutDesc* InitDropout(float rate, bool isSpatial, bool isBatchwise) override;
+	void UpdateDropout(CDropoutDesc* dropoutDesc, const CBlobDesc& input, const CBlobDesc& output, int seed, bool valid) override;
 	void Dropout( const CDropoutDesc& desc, const CFloatHandle& input, const CFloatHandle& output ) override;
 	void QrnnFPooling( bool reverse, int sequenceLength, int objectSize,
 		const CConstFloatHandle& update, const CConstFloatHandle& forget, const CConstFloatHandle& initialState,

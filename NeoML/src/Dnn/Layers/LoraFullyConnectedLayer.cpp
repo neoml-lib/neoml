@@ -52,9 +52,8 @@ CLoraFullyConnectedLayer::~CLoraFullyConnectedLayer()
 void CLoraFullyConnectedLayer::initDropoutDesc()
 {
 	if( desc == nullptr ) {
-		desc = MathEngine().InitDropout();
-		MathEngine().UpdateDropout( desc, lora.Dropout, /*isSpatial*/false, /*isBatchwise*/false,
-			inputBlobs[0]->GetDesc(), inputBlobs[0]->GetDesc(), GetDnn()->Random().Next(), true );
+		desc = MathEngine().InitDropout(lora.Dropout, false, false);
+		MathEngine().UpdateDropout( desc, inputBlobs[0]->GetDesc(), inputBlobs[0]->GetDesc(), GetDnn()->Random().Next(), true );
 	}
 }
 

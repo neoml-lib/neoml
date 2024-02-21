@@ -1,4 +1,4 @@
-/* Copyright © 2017-2024 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,12 +17,13 @@ limitations under the License.
 #pragma hdrstop
 
 #include <NeoML/Dnn/Layers/DropoutLayer.h>
+#include <NeoMathEngine/NeoMathEngine.h>
 
 namespace NeoML {
 
 CDropoutLayer::CDropoutLayer( IMathEngine& mathEngine ) :
 	CBaseInPlaceLayer( mathEngine, "CCnnDropoutLayer" ),
-	desc( mathEngine.InitDropout() ),
+	desc( nullptr ),
 	dropoutRate( 0 ),
 	isSpatial( false ),
 	isBatchwise( false )
@@ -78,7 +79,9 @@ void CDropoutLayer::SetBatchwise( bool value )
 
 void CDropoutLayer::OnReshaped()
 {
-	disableDropoutDesc();
+	if(desc == nullptr) {
+		desc = static_cast<CBaseDropoutDesc*>(MathEngine().InitDropout(dropoutRate, isSpatial, isBatchwise));
+	}
 }
 
 void CDropoutLayer::RunOnce()
@@ -100,6 +103,7 @@ void CDropoutLayer::BackwardOnce()
 {
 	// Backward pass is only possible when learning
 	NeoAssert( desc != nullptr );
+	NeoAssert( desc->isValid );
 
 	MathEngine().Dropout( *desc, outputDiffBlobs[0]->GetData(), inputDiffBlobs[0]->GetData() );
 
@@ -111,12 +115,8 @@ void CDropoutLayer::BackwardOnce()
 
 void CDropoutLayer::initDropoutDesc()
 {
-	if(desc == nullptr) {
-		desc = MathEngine().InitDropout();
-	}
-
 	if (!desc->isValid) {
-		MathEngine().UpdateDropout(desc, dropoutRate, isSpatial, isBatchwise, inputBlobs[0]->GetDesc(), outputBlobs[0]->GetDesc(),
+		MathEngine().UpdateDropout(desc, inputBlobs[0]->GetDesc(), outputBlobs[0]->GetDesc(),
 			GetDnn()->Random().Next(), true);
 	}
 }
@@ -131,8 +131,7 @@ void CDropoutLayer::destroyDropoutDesc()
 
 void CDropoutLayer::disableDropoutDesc()
 {
-	MathEngine().UpdateDropout(desc, 0.f, false, false, {0, 0, 0, 0, 0, 0, 0},
-		{ 0, 0, 0, 0, 0, 0, 0 }, 0, false);
+	MathEngine().UpdateDropout(desc, {0}, {0}, 0, false);
 }
 
 CLayerWrapper<CDropoutLayer> Dropout( float dropoutRate,

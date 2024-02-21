@@ -15,7 +15,7 @@ limitations under the License.
 
 #pragma once
 
-#include <NeoMathEngine/NeoMathEngine.h>
+#include <NeoMathEngine/MathEngineDropout.h>
 #include <NeoMathEngine/CrtAllocatedObject.h>
 
 namespace NeoML {
@@ -34,15 +34,12 @@ static inline int getMaskSize(float rate, bool isSpatial, bool isBatchwise, cons
 }
 
 // Dropout descriptor containing whole mask
-struct CMaskDropoutDesc : public CDropoutDesc {};
+struct CMaskDropoutDesc : public CBaseDropoutDesc {};
 
 // Dropout descriptor containing fixed memory for generating mask parts iteratively
-struct CSeedDropoutDesc : public CDropoutDesc {
-	explicit CSeedDropoutDesc( IMathEngine& mathEngine, bool isMask);
+struct CSeedDropoutDesc : public CBaseDropoutDesc {
+	explicit CSeedDropoutDesc(IMathEngine& mathEngine, bool isMask);
 
-	int seed; // seed for generation mask
-	unsigned threshold; // = (unsigned int)((double)desc.ForwardRate * UINT_MAX);
-	float value; // = 1.f / desc.ForwardRate;
 	static constexpr int cacheSize = 64;
 	static constexpr int maskAlign = 4;
 	static constexpr int numOfGenerations = (cacheSize + (maskAlign - 1)) / maskAlign;
