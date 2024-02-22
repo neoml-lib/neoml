@@ -21,8 +21,8 @@ limitations under the License.
 namespace NeoML {
 
 CBaseDropoutDesc::CBaseDropoutDesc() :
-	Input( nullptr ),
-	Output( nullptr ),
+	Input( CT_Float ),
+	Output( CT_Float ),
 	ForwardRate(0.f),
 	IsSpatial( false ),
 	IsBatchwise( false ),
@@ -38,14 +38,6 @@ CBaseDropoutDesc::~CBaseDropoutDesc()
 {
 	if(Mask != nullptr) {
 		delete Mask;
-	}
-	
-	if(Input != nullptr) {
-		delete Input;
-	}
-
-	if(Output != nullptr) {
-		delete Output;
 	}
 }
 

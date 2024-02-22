@@ -20,14 +20,6 @@ limitations under the License.
 
 namespace NeoML {
 
-static inline void updateDesc(CBlobDesc*& destDesc, const CBlobDesc* srcDesc) {
-	if(destDesc == nullptr) {
-		destDesc = new CBlobDesc(*srcDesc);
-	} else {
-		*destDesc = *srcDesc;
-	}
-}
-
 static inline int getMaskSize(bool isSpatial, bool isBatchwise, const CBlobDesc& input)
 {
 	const int objectSize = isSpatial ? input.Channels() : input.ObjectSize();

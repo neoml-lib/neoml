@@ -42,7 +42,8 @@ void CDropoutLayer::Serialize( CArchive& archive )
 	archive.Serialize( isBatchwise );
 
 	if( archive.IsLoading() ) {
-		disableDropoutDesc();
+		destroyDropoutDesc();
+		initDropoutDesc();
 	}
 }
 
@@ -52,7 +53,8 @@ void CDropoutLayer::SetDropoutRate( float value )
 	if( dropoutRate != value ) {
 		dropoutRate = value;
 		if( GetDnn() != nullptr) {
-			disableDropoutDesc();
+			destroyDropoutDesc();
+			initDropoutDesc();
 		}
 	}
 }
@@ -62,7 +64,8 @@ void CDropoutLayer::SetSpatial( bool value )
 	if( value != isSpatial ) {
 		isSpatial = value;
 		if( GetDnn() != nullptr ) {
-			disableDropoutDesc();
+			destroyDropoutDesc();
+			initDropoutDesc();
 		}
 	}
 }
@@ -72,16 +75,15 @@ void CDropoutLayer::SetBatchwise( bool value )
 	if( value != isBatchwise ) {
 		isBatchwise = value;
 		if( GetDnn() != nullptr ) {
-			disableDropoutDesc();
+			destroyDropoutDesc();
+			initDropoutDesc();
 		}
 	}
 }
 
 void CDropoutLayer::OnReshaped()
 {
-	if( desc == nullptr ) {
-		desc = static_cast<CBaseDropoutDesc*>(MathEngine().InitDropout(dropoutRate, isSpatial, isBatchwise));
-	}
+	initDropoutDesc();
 }
 
 void CDropoutLayer::RunOnce()
@@ -94,7 +96,10 @@ void CDropoutLayer::RunOnce()
 		return;
 	}
 
-	initDropoutDesc();
+	if(!desc->IsValid) {
+		MathEngine().UpdateDropout(desc, &(inputBlobs[0]->GetDesc()), &(outputBlobs[0]->GetDesc()),
+			GetDnn()->Random().Next(), true);
+	}
 
 	MathEngine().Dropout( *desc, inputBlobs[0]->GetData(), outputBlobs[0]->GetData() );
 }
@@ -113,15 +118,17 @@ void CDropoutLayer::BackwardOnce()
 	}
 }
 
-void CDropoutLayer::initDropoutDesc()
+CDropoutLayer::~CDropoutLayer()
 {
-	if( !desc->IsValid ) {
-		MathEngine().UpdateDropout(desc, &(inputBlobs[0]->GetDesc()), &(outputBlobs[0]->GetDesc()),
-			GetDnn()->Random().Next(), true);
-	}
+	destroyDropoutDesc();
 }
 
-CDropoutLayer::~CDropoutLayer()
+void CDropoutLayer::disableDropoutDesc()
+{
+	MathEngine().UpdateDropout(desc, nullptr, nullptr, 0, false);
+}
+
+void CDropoutLayer::destroyDropoutDesc()
 {
 	if( desc != nullptr ) {
 		delete desc;
@@ -129,9 +136,11 @@ CDropoutLayer::~CDropoutLayer()
 	}
 }
 
-void CDropoutLayer::disableDropoutDesc()
+void CDropoutLayer::initDropoutDesc()
 {
-	MathEngine().UpdateDropout(desc, nullptr, nullptr, 0, false);
+	if (desc == nullptr) {
+		desc = static_cast<CBaseDropoutDesc*>(MathEngine().InitDropout(dropoutRate, isSpatial, isBatchwise));
+	}
 }
 
 CLayerWrapper<CDropoutLayer> Dropout( float dropoutRate,

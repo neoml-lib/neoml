@@ -44,16 +44,18 @@ CDropoutDesc* CCudaMathEngine::InitDropout(float rate, bool isSpatial, bool isBa
 void CCudaMathEngine::UpdateDropout(CDropoutDesc* dropoutDesc,
 	const CBlobDesc* input, const CBlobDesc* output, int seed, bool valid)
 {
-	auto seedDesc = dynamic_cast<CSeedDropoutDesc*>(dropoutDesc);
-	if (seedDesc == nullptr) {
-		return;
-	}
+	ASSERT_EXPR( dropoutDesc != nullptr );
+	auto seedDesc = static_cast<CSeedDropoutDesc*>(dropoutDesc);
 
 	seedDesc->IsValid = valid;
 	if(valid) {
 		seedDesc->Seed = seed;
-		updateDesc(seedDesc->Input, input);
-		updateDesc(seedDesc->Output, output);
+
+		ASSERT_EXPR(input != nullptr);
+		ASSERT_EXPR(output != nullptr);
+
+		seedDesc->Input = *input;
+		seedDesc->Output = *output;
 	}
 }
 
@@ -65,7 +67,7 @@ void CCudaMathEngine::Dropout( const CDropoutDesc& dropoutDesc,
 	SetCudaDevice( device->DeviceNumber );
 
 	const CSeedDropoutDesc& desc = static_cast<const CSeedDropoutDesc&>( dropoutDesc );
-	const CBlobDesc& input = *desc.Input;
+	const CBlobDesc& input = desc.Input;
 
 	if( desc.ForwardRate == 1.f ) {
 		VectorCopy( outputData, inputData, input.BlobSize() );

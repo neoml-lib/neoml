@@ -464,10 +464,8 @@ CDropoutDesc* CVulkanMathEngine::InitDropout(float rate, bool isSpatial, bool is
 
 void CVulkanMathEngine::UpdateDropout(CDropoutDesc* dropoutDesc, const CBlobDesc* input, const CBlobDesc* output, int seed, bool valid)
 {
-	auto maskDesc = dynamic_cast<CMaskDropoutDesc*>(dropoutDesc);
-	if(maskDesc == nullptr) {
-		return;
-	}
+	ASSERT_EXPR( dropoutDesc != nullptr );
+	auto maskDesc = static_cast<CMaskDropoutDesc*>(dropoutDesc);
 
 	maskDesc->IsValid = valid;
 	if(maskDesc->Mask != nullptr) {
@@ -476,8 +474,11 @@ void CVulkanMathEngine::UpdateDropout(CDropoutDesc* dropoutDesc, const CBlobDesc
 	}
 
 	if(valid) {
-		updateDesc(maskDesc->Input, input);
-		updateDesc(maskDesc->Output, output);
+		ASSERT_EXPR(input != nullptr);
+		ASSERT_EXPR(output != nullptr);
+
+		maskDesc->Input = *input;
+		maskDesc->Output = *output;
 
 		maskDesc->Seed = seed;
 		maskDesc->Mask = new CFloatHandleVar(mathEngine(), getMaskSize(maskDesc->IsSpatial, maskDesc->IsBatchwise, *input));
@@ -492,8 +493,8 @@ void CVulkanMathEngine::Dropout( const CDropoutDesc& dropoutDesc, const CFloatHa
 	ASSERT_EXPR( outputData.GetMathEngine() == this );
 
 	const CMaskDropoutDesc& desc = static_cast<const CMaskDropoutDesc&>( dropoutDesc );
-	const CBlobDesc& input = *(desc.Input);
-	const CBlobDesc& output = *(desc.Output);
+	const CBlobDesc& input = desc.Input;
+	const CBlobDesc& output = desc.Output;
 
 	if( desc.ForwardRate == 1.f ) {
 		VectorCopy( outputData, inputData, input.BlobSize() );

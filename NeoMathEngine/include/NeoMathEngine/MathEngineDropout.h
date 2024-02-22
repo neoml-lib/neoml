@@ -21,14 +21,11 @@ limitations under the License.
 namespace NeoML {
 
 struct CBaseDropoutDesc : public CDropoutDesc {
-	CBaseDropoutDesc();
-	CBaseDropoutDesc(const CBaseDropoutDesc&) = delete;
-	CBaseDropoutDesc& operator=(const CBaseDropoutDesc&) = delete;
-
+public:
 	virtual ~CBaseDropoutDesc();
 
-	CBlobDesc* Input; // input blob descriptor
-	CBlobDesc* Output; // output blob descriptor
+	CBlobDesc Input; // input blob descriptor
+	CBlobDesc Output; // output blob descriptor
 	float ForwardRate; // the probability that an element is not dropped out
 	bool IsSpatial; // indicates if whole channels are dropped out
 	bool IsBatchwise; // indicates if an element is dropped out of all objects in one batch at the same time
@@ -37,6 +34,11 @@ struct CBaseDropoutDesc : public CDropoutDesc {
 	float Value; // = 1.f / desc.ForwardRate;
 	int Seed; // seed for generation mask
 	unsigned Threshold; // = (unsigned int)(desc.ForwardRate * UINT_MAX);
+
+protected:
+	CBaseDropoutDesc();
+	CBaseDropoutDesc(const CBaseDropoutDesc&) = delete;
+	CBaseDropoutDesc& operator=(const CBaseDropoutDesc&) = delete;
 };
 
 } // namespace NeoML

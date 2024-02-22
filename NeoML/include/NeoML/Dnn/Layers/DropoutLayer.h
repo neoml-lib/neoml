@@ -59,8 +59,9 @@ private:
 	bool isSpatial; // the spatial mode (channel-wise)
 	bool isBatchwise; // the batchwise mode
 
-	void initDropoutDesc();
 	void disableDropoutDesc();
+	void destroyDropoutDesc();
+	void initDropoutDesc();
 };
 
 NEOML_API CLayerWrapper<CDropoutLayer> Dropout( float dropoutRate,
