@@ -91,7 +91,6 @@ target_sources(${PROJECT_NAME}
     ../include/NeoMathEngine/LookupData.h
     ../include/NeoMathEngine/MemoryHandle.h
     ../include/NeoMathEngine/MemoryHandle.inl
-    ../include/NeoMathEngine/MathEngineDropout.h
     ../include/NeoMathEngine/SparseMatrixDesc.h
     ../include/NeoMathEngine/NeoMathEngine.h
     ../include/NeoMathEngine/NeoMathEngineException.h

@@ -28,14 +28,7 @@ namespace NeoML {
 CDropoutDesc* CCpuMathEngine::InitDropout(float rate, bool isSpatial, bool isBatchwise)
 {
 	ASSERT_EXPR(rate >= 0.f && rate < 1.f);
-	auto seedDesc = new CSeedDropoutDesc(mathEngine(), true);
-	seedDesc->ForwardRate = 1.f - rate;
-	seedDesc->IsSpatial = isSpatial;
-	seedDesc->IsBatchwise = isBatchwise;
-	seedDesc->IsValid = false;
-	seedDesc->Value = 1.f / seedDesc->ForwardRate;
-	seedDesc->Threshold = (unsigned int)(seedDesc->ForwardRate * UINT_MAX);
-	return seedDesc;
+	return new CSeedDropoutDesc(mathEngine(), rate, isSpatial, isBatchwise, true);;
 }
 
 void CCpuMathEngine::UpdateDropout(CDropoutDesc* dropoutDesc, const CBlobDesc* input,
@@ -43,17 +36,7 @@ void CCpuMathEngine::UpdateDropout(CDropoutDesc* dropoutDesc, const CBlobDesc* i
 {
 	ASSERT_EXPR(dropoutDesc != nullptr);
 	auto seedDesc = static_cast<CSeedDropoutDesc*>(dropoutDesc);
-
-	seedDesc->IsValid = valid;;
-	if (valid) {
-		seedDesc->Seed = seed;
-		
-		ASSERT_EXPR(input != nullptr);
-		ASSERT_EXPR(output != nullptr);
-
-		seedDesc->Input = *input;
-		seedDesc->Output = *output;
-	}
+	seedDesc->UpdateDesc(input, output, seed, valid);
 }
 
 void CCpuMathEngine::Dropout(const CDropoutDesc& dropoutDesc, const CFloatHandle& inputData, const CFloatHandle& outputData)
@@ -61,6 +44,8 @@ void CCpuMathEngine::Dropout(const CDropoutDesc& dropoutDesc, const CFloatHandle
 	CCpuExecutionScope scope;
 
 	const CSeedDropoutDesc& desc = static_cast<const CSeedDropoutDesc&>(dropoutDesc);
+	ASSERT_EXPR( desc.IsValid );
+
 	const CBlobDesc& input = desc.Input;
 
 	if( desc.ForwardRate == 1.f ) {

@@ -17,7 +17,6 @@ limitations under the License.
 #pragma hdrstop
 
 #include <NeoML/Dnn/Layers/LoraFullyConnectedLayer.h>
-#include <NeoMathEngine/NeoMathEngine.h>
 
 namespace NeoML {
 
@@ -65,7 +64,7 @@ void CLoraFullyConnectedLayer::destroyDropoutDesc()
 void CLoraFullyConnectedLayer::initDropoutDesc()
 {
 	if(desc == nullptr) {
-		desc = static_cast<CBaseDropoutDesc*>(MathEngine().InitDropout(lora.Dropout, false, false));
+		desc = MathEngine().InitDropout(lora.Dropout, false, false);
 	}
 }
 
@@ -190,9 +189,7 @@ void CLoraFullyConnectedLayer::RunOnce()
 
 		CConstFloatHandle tempInputData = inputData;
 		if( lora.Dropout > 0.f ) {
-			if (!desc->IsValid) {
-				MathEngine().UpdateDropout(desc, &(inputBlobs[0]->GetDesc()), &(inputBlobs[0]->GetDesc()), GetDnn()->Random().Next(), true);
-			}
+			MathEngine().UpdateDropout(desc, &(inputBlobs[0]->GetDesc()), &(inputBlobs[0]->GetDesc()), GetDnn()->Random().Next(), true);
 			MathEngine().Dropout( *desc, inputBlobs[0]->GetData(), temp.GetHandle() );
 			tempInputData = temp.GetHandle();
 		}
@@ -280,7 +277,6 @@ void CLoraFullyConnectedLayer::BackwardOnce()
 	const bool dropout = lora.Dropout > 0.f;
 	if( dropout ) {
 		NeoAssert( desc != nullptr ); // Backward pass is only possible when learning
-		NeoAssert( desc->IsValid );
 		MathEngine().Dropout( *desc, inputDiff, tempInputDiff );
 		if( !GetDnn()->IsRecurrentMode() || GetDnn()->IsFirstSequencePos() ) {
 			disableDropoutDesc(); // Clear the memory after the whole sequence is processed

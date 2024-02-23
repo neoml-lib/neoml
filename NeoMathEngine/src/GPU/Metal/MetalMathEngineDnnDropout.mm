@@ -27,14 +27,7 @@ namespace NeoML {
 CDropoutDesc* CMetalMathEngine::InitDropout(float rate, bool isSpatial, bool isBatchwise)
 {
 	ASSERT_EXPR(rate >= 0.f && rate < 1.f);
-	auto maskDesc = new CMaskDropoutDesc();
-	maskDesc->ForwardRate = 1.f - rate;
-	maskDesc->IsSpatial = isSpatial;
-	maskDesc->IsBatchwise = isBatchwise;
-	maskDesc->IsValid = false;
-	maskDesc->Value = 1.f / maskDesc->ForwardRate;
-	maskDesc->Threshold = (unsigned int)(maskDesc->ForwardRate * UINT_MAX);
-	return maskDesc;
+	return new CMaskDropoutDesc(mathEngine(), rate, isSpatial, isBatchwise);
 }
 
 void CMetalMathEngine::UpdateDropout(CDropoutDesc* dropoutDesc, const CBlobDesc* input, const CBlobDesc* output,
@@ -42,25 +35,7 @@ void CMetalMathEngine::UpdateDropout(CDropoutDesc* dropoutDesc, const CBlobDesc*
 {
 	ASSERT_EXPR( dropoutDesc != nullptr );
 	auto maskDesc = static_cast<CMaskDropoutDesc*>(dropoutDesc);
-
-	maskDesc->IsValid = valid;
-	if(maskDesc->Mask != nullptr) {
-		delete maskDesc->Mask;
-		maskDesc->Mask = nullptr;
-	}
-	
-	if(valid) {
-		ASSERT_EXPR(input != nullptr);
-		ASSERT_EXPR(output != nullptr);
-
-		maskDesc->Input = *input;
-		maskDesc->Output = *output;
-
-		maskDesc->Seed = seed;
-		maskDesc->Mask = new CFloatHandleVar(mathEngine(), getMaskSize(maskDesc->IsSpatial, maskDesc->IsBatchwise, *input));
-		mathEngine().VectorFillBernoulli(maskDesc->Mask->GetHandle(), maskDesc->ForwardRate, maskDesc->Mask->Size(),
-			1.f / maskDesc->ForwardRate, maskDesc->Seed);
-	}
+	maskDesc->UpdateDesc(input, output, seed, valid);
 }
 
 void CMetalMathEngine::Dropout( const CDropoutDesc& dropoutDesc, const CFloatHandle& inputData, const CFloatHandle& outputData )
@@ -69,6 +44,8 @@ void CMetalMathEngine::Dropout( const CDropoutDesc& dropoutDesc, const CFloatHan
 	ASSERT_EXPR( outputData.GetMathEngine() == this );
 
 	const CMaskDropoutDesc& desc = static_cast<const CMaskDropoutDesc&>( dropoutDesc );
+	ASSERT_EXPR( desc.IsValid );
+	
 	const CBlobDesc& input = desc.Input;
 	const CBlobDesc& output = desc.Output;
 

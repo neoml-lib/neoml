@@ -18,7 +18,6 @@ limitations under the License.
 #include <NeoML/NeoMLDefs.h>
 #include <NeoML/Dnn/DnnLora.h>
 #include <NeoMathEngine/NeoMathEngine.h>
-#include <NeoMathEngine/MathEngineDropout.h>
 
 namespace NeoML {
 
@@ -127,7 +126,7 @@ protected:
 private:
 	bool isMerged = true;
 	CLoraParams lora;
-	CBaseDropoutDesc* desc = nullptr; // dropout description
+	CDropoutDesc* desc = nullptr; // dropout description
 	CPtr<CDnnBlob> weightsBase; // weights Base transposed (as default)
 	CPtr<CDnnBlob> freeTermsBase; // freeTerms Base as default
 	CPtr<CDnnBlob> scaling; // scaling = lora.Alpha / lora.Rank

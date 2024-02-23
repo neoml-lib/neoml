@@ -18,7 +18,6 @@ limitations under the License.
 #include <NeoML/NeoMLDefs.h>
 #include <NeoML/Dnn/Dnn.h>
 #include <NeoML/Dnn/Layers/BaseInPlaceLayer.h>
-#include <NeoMathEngine/MathEngineDropout.h>
 
 namespace NeoML {
 
@@ -54,7 +53,7 @@ protected:
 	int BlobsForBackward() const override { return 0; }
 
 private:
-	CBaseDropoutDesc* desc; // the dropout description
+	CDropoutDesc* desc; // the dropout description
 	float dropoutRate; // the dropout rate
 	bool isSpatial; // the spatial mode (channel-wise)
 	bool isBatchwise; // the batchwise mode

@@ -20,17 +20,17 @@ limitations under the License.
 
 namespace NeoML {
 
-CBaseDropoutDesc::CBaseDropoutDesc() :
+CBaseDropoutDesc::CBaseDropoutDesc(float rate, bool isSpatial, bool isBatchwise) :
 	Input( CT_Float ),
 	Output( CT_Float ),
-	ForwardRate(0.f),
-	IsSpatial( false ),
-	IsBatchwise( false ),
+	ForwardRate( 1.f - rate ),
+	IsSpatial(isSpatial),
+	IsBatchwise(isBatchwise),
 	Mask( nullptr ),
 	IsValid( false ),
-	Value( 0.f ),
+	Value(1.f / (1.f - rate)),
 	Seed( 0 ),
-	Threshold( 0 )
+	Threshold((unsigned int)(ForwardRate* UINT_MAX))
 {
 }
 
@@ -41,10 +41,62 @@ CBaseDropoutDesc::~CBaseDropoutDesc()
 	}
 }
 
-CSeedDropoutDesc::CSeedDropoutDesc(IMathEngine& mathEngine, bool isMask)
+CMaskDropoutDesc::CMaskDropoutDesc(IMathEngine& mathEngine, float rate, bool isSpatial, bool isBatchwise) :
+	CBaseDropoutDesc(rate, isSpatial, isBatchwise),
+	mathEngine( mathEngine )
 {
-	if(isMask) {
+}
+
+void CMaskDropoutDesc::UpdateDesc(const CBlobDesc* input, const CBlobDesc* output, int seed, bool valid)
+{
+	if(IsValid == valid) {
+		return;
+	}
+
+	IsValid = valid;
+	if(Mask != nullptr) {
+		delete Mask;
+		Mask = nullptr;
+	}
+
+	if (valid) {
+		ASSERT_EXPR(input != nullptr);
+		ASSERT_EXPR(output != nullptr);
+
+		Input = *input;
+		Output = *output;
+
+		Seed = seed;
+
+		Mask = new CFloatHandleVar(mathEngine, CMaskDropoutDesc::getMaskSize(IsSpatial, IsBatchwise, *input));
+		mathEngine.VectorFillBernoulli(Mask->GetHandle(), ForwardRate, Mask->Size(),
+			1.f / ForwardRate, Seed);
+	}
+}
+
+CSeedDropoutDesc::CSeedDropoutDesc(IMathEngine& mathEngine, float rate, bool isSpatial, bool isBatchwise, bool isMask) :
+	CBaseDropoutDesc(rate, isSpatial, isBatchwise)
+{
+	if (isMask) {
 		Mask = new CFloatHandleVar(mathEngine, cacheSize);
+	}
+}
+
+void CSeedDropoutDesc::UpdateDesc(const CBlobDesc* input, const CBlobDesc* output, int seed, bool valid)
+{
+	if (IsValid == valid) {
+		return;
+	}
+
+	IsValid = valid;;
+	if (valid) {
+		Seed = seed;
+
+		ASSERT_EXPR(input != nullptr);
+		ASSERT_EXPR(output != nullptr);
+
+		Input = *input;
+		Output = *output;
 	}
 }
 
