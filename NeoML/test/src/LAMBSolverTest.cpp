@@ -19,6 +19,7 @@ limitations under the License.
 #include <TestFixture.h>
 
 using namespace NeoML;
+using namespace NeoMLTest;
 
 static NeoML::CFullyConnectedLayer* createSimpleNetwork( NeoML::CDnn& dnn )
 {
@@ -66,6 +67,12 @@ static float blobsDiff( const NeoML::CDnnBlob* left, const NeoML::CDnnBlob* righ
 
 TEST(CLAMBSolverTest, ExcludeByLayerName)
 {
+    const auto met = MathEngine().GetType();
+    if(met != MET_Cpu && met != MET_Cuda) {
+        GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+        return;
+    }
+
     struct CNetwork {
         NeoML::CRandom Random;
         NeoML::CDnn Dnn;

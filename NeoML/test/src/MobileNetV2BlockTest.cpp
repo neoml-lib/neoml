@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -179,6 +179,12 @@ static void mobileNetV2BlockTestImpl( unsigned int seed, int freeTermMask, float
 
 TEST( MobileNetV2BlockLayerTest, Run )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	// This test is allowed on GPU because of backward compatibility
 	std::initializer_list<int> inputDims = { 1, 3, 1, 26, 31, 1, 8 };
 	CRandom seedRandom( 0x654 );
@@ -195,6 +201,12 @@ TEST( MobileNetV2BlockLayerTest, Run )
 
 TEST( MobileNetV2BlockLayerTest, CornerCases )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	// This test is allowed on GPU because of backward compatibility
 	CRandom seedRandom( 0x654 );
 	mobileNetV2BlockTestImpl( seedRandom.Next(), 0, 0, 7, 1, true, { 1, 7, 1, 1, 3, 1, 3 } );

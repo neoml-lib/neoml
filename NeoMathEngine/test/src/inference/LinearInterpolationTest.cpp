@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -29,7 +29,7 @@ static void testLinearInterpolation( TInterpolationCoords coords, TInterpolation
 		coords, round, objectCount, scaledAxis, objectSize, scale );
 
 	for( size_t i = 0; i < expected.size(); ++i ) {
-		ASSERT_NEAR( actual[i], expected[i], 1e-3f );
+		EXPECT_NEAR( actual[i], expected[i], 1e-3f );
 	}
 }
 
@@ -141,6 +141,12 @@ class CMathEngineLinearInterpolationTest : public CTestFixtureWithParams {
 
 TEST_F( CMathEngineLinearInterpolationTest, Precalc_FlatAsymmetric )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	std::vector<float> input{ 0.1f, 0.4f, 0.7f };
 	std::vector<float> expected{ 0.1f, 0.2f, 0.3f, 0.4f, 0.5f, 0.6f, 0.7f, 0.7f, 0.7f };
 	testLinearInterpolation( TInterpolationCoords::Asymmetric, TInterpolationRound::None, input, expected, 1, 3, 1, 3.f );
@@ -148,6 +154,12 @@ TEST_F( CMathEngineLinearInterpolationTest, Precalc_FlatAsymmetric )
 
 TEST_F( CMathEngineLinearInterpolationTest, Precalc_FlatPytorchHalfPixel )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	std::vector<float> input{ 0.f, 1.f, 2.f };
 	std::vector<float> expected{ 0.f, 0.f, 1.f / 3, 2.f / 3, 1., 4.f / 3, 5.f / 3, 2.f, 2.f };
 	testLinearInterpolation( TInterpolationCoords::PytorchHalfPixel, TInterpolationRound::None, input, expected, 1, 3, 1, 3.f );
@@ -155,6 +167,12 @@ TEST_F( CMathEngineLinearInterpolationTest, Precalc_FlatPytorchHalfPixel )
 
 TEST_F( CMathEngineLinearInterpolationTest, Precal_3DAsymmetrict )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	std::vector<float> input{
 		1, 2,
 		3, 4,
@@ -180,6 +198,12 @@ TEST_F( CMathEngineLinearInterpolationTest, Precal_3DAsymmetrict )
 
 TEST_P( CMathEngineLinearInterpolationTest, Random )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	RUN_TEST_IMPL( testLinearInterpolationWithParams );
 }
 

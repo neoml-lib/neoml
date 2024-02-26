@@ -37,6 +37,12 @@ static float getFcCoeff( const CFullyConnectedLayer* fcLayer )
 // Check build/change correctness with gradient accumulation enabled
 TEST( CDnnSolverTest, NetworkModificationOnGradientAccumulation )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	// Sinus approximation.
 	const int DataCount = 10;
 	CArray<float> x, y;
@@ -275,6 +281,12 @@ void testSolver( CDnnSolver* solver, const CArray<CArray<float>>& expected )
 
 TEST( CDnnSolverTest, SgdNoReg )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	CArray<CArray<float>> expected;
 	expected.SetSize( 5 );
 	expected[0] = { -0.415048f, 0.782767f, 0.215048f, -0.582767f };
@@ -293,6 +305,12 @@ TEST( CDnnSolverTest, SgdNoReg )
 
 TEST( CDnnSolverTest, SgdL1 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	CArray<CArray<float>> expected;
 	expected.SetSize( 5 );
 	expected[0] = { -0.165048f, 0.332767f, 0.065048f, -0.232767f };
@@ -311,6 +329,12 @@ TEST( CDnnSolverTest, SgdL1 )
 
 TEST( CDnnSolverTest, SgdL2 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	CArray<CArray<float>> expected;
 	expected.SetSize( 5 );
 	expected[0] = { -0.290048f, 0.557766f, 0.140048f, -0.407767f };
@@ -331,6 +355,12 @@ TEST( CDnnSolverTest, SgdL2 )
 
 TEST( CDnnSolverTest, SgdCompatNoReg )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	CArray<CArray<float>> expected;
 	expected.SetSize( 5 );
 	expected[0] = { -0.491505f, 0.888277f, 0.291505f, -0.688277f };
@@ -349,6 +379,12 @@ TEST( CDnnSolverTest, SgdCompatNoReg )
 
 TEST( CDnnSolverTest, SgdCompatL1 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	CArray<CArray<float>> expected;
 	expected.SetSize( 5 );
 	expected[0] = { -0.241505f, 0.638277f, 0.141505f, -0.438277f };
@@ -367,6 +403,12 @@ TEST( CDnnSolverTest, SgdCompatL1 )
 
 TEST( CDnnSolverTest, SgdCompatL2 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	CArray<CArray<float>> expected;
 	expected.SetSize( 5 );
 	expected[0] = { -0.479005f, 0.865777f, 0.284005f, -0.670777f };
@@ -389,6 +431,12 @@ TEST( CDnnSolverTest, SgdCompatL2 )
 
 TEST( CDnnSolverTest, AdamNoReg )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	CArray<CArray<float>> expected;
 	expected.SetSize( 5 );
 	expected[0] = { -0.000001f, 0.400001f, -0.199999f, -0.200001f };
@@ -410,6 +458,12 @@ TEST( CDnnSolverTest, AdamNoReg )
 
 TEST( CDnnSolverTest, AdamL1 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	CArray<CArray<float>> expected;
 	expected.SetSize( 5 );
 	expected[0] = { -0.000000f, 0.400000f, -0.200000f, -0.200000f };
@@ -431,6 +485,12 @@ TEST( CDnnSolverTest, AdamL1 )
 
 TEST( CDnnSolverTest, AdamL2 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	CArray<CArray<float>> expected;
 	expected.SetSize( 5 );
 	expected[0] = { -0.000000f, 0.400000f, -0.199999f, -0.200000f };
@@ -453,6 +513,12 @@ TEST( CDnnSolverTest, AdamL2 )
 // Adam with backward compatibility.
 TEST( CDnnSolverTest, AdamCompatNoReg )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	CArray<CArray<float>> expected;
 	expected.SetSize( 5 );
 	expected[0] = { -0.450000f, 0.850000f, 0.250000f, -0.650000f };
@@ -474,6 +540,12 @@ TEST( CDnnSolverTest, AdamCompatNoReg )
 
 TEST( CDnnSolverTest, AdamCompatL1 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	CArray<CArray<float>> expected;
 	expected.SetSize( 5 );
 	expected[0] = { -0.450000f, 0.850000f, 0.250000f, -0.650000f };
@@ -495,6 +567,12 @@ TEST( CDnnSolverTest, AdamCompatL1 )
 
 TEST( CDnnSolverTest, AdamCompatL2 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	CArray<CArray<float>> expected;
 	expected.SetSize( 5 );
 	expected[0] = { -0.450000f, 0.850000f, 0.250000f, -0.650000f };
@@ -520,6 +598,12 @@ TEST( CDnnSolverTest, AdamCompatL2 )
 
 TEST( CDnnSolverTest, NadamNoReg )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	CArray<CArray<float>> expected;
 	expected.SetSize( 5 );
 	expected[0] = { 0.028226f, 0.371774f, -0.228226f, -0.171774f };
@@ -540,6 +624,12 @@ TEST( CDnnSolverTest, NadamNoReg )
 
 TEST( CDnnSolverTest, NadamL1 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	CArray<CArray<float>> expected;
 	expected.SetSize( 5 );
 	expected[0] = { -0.806726f, 0.504541f, 0.036822f, -1.039008f };
@@ -560,6 +650,12 @@ TEST( CDnnSolverTest, NadamL1 )
 
 TEST( CDnnSolverTest, NadamL2 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	CArray<CArray<float>> expected;
 	expected.SetSize( 5 );
 	expected[0] = { -0.681726f, 0.529541f, 0.111822f, -0.964008f };
@@ -741,6 +837,12 @@ static void solverSerializationTestImpl( CPtr<CDnnSolver> firstSolver, bool trai
 
 TEST( CDnnSimpleGradientSolverTest, Serialization1 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	CPtr<CDnnSimpleGradientSolver> sgd = new CDnnSimpleGradientSolver( MathEngine() );
 	sgd->SetCompatibilityMode( false );
 	sgd->SetL1Regularization( 1e-3 );
@@ -753,6 +855,12 @@ TEST( CDnnSimpleGradientSolverTest, Serialization1 )
 
 TEST( CDnnSimpleGradientSolverTest, Serialization2 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	CPtr<CDnnSimpleGradientSolver> sgd = new CDnnSimpleGradientSolver( MathEngine() );
 	sgd->SetCompatibilityMode( true );
 	sgd->SetL1Regularization( 0.f );
@@ -769,6 +877,12 @@ TEST( CDnnSimpleGradientSolverTest, Serialization2 )
 
 TEST( CDnnAdaptiveGradientSolverTest, Serialization1 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	CPtr<CDnnAdaptiveGradientSolver> adam = new CDnnAdaptiveGradientSolver( MathEngine() );
 	adam->EnableAmsGrad( false );
 	adam->EnableDecoupledWeightDecay( false );
@@ -785,6 +899,12 @@ TEST( CDnnAdaptiveGradientSolverTest, Serialization1 )
 
 TEST( CDnnAdaptiveGradientSolverTest, Serialization2 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	CPtr<CDnnAdaptiveGradientSolver> adam = new CDnnAdaptiveGradientSolver( MathEngine() );
 	adam->EnableAmsGrad( true );
 	adam->EnableDecoupledWeightDecay( true );
@@ -801,6 +921,12 @@ TEST( CDnnAdaptiveGradientSolverTest, Serialization2 )
 
 TEST( CDnnNesterovGradientSolverTest, Serialization1 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	CPtr<CDnnNesterovGradientSolver> nadam = new CDnnNesterovGradientSolver( MathEngine() );
 	nadam->EnableAmsGrad( false );
 	nadam->EnableDecoupledWeightDecay( false );
@@ -816,6 +942,12 @@ TEST( CDnnNesterovGradientSolverTest, Serialization1 )
 
 TEST( CDnnNesterovGradientSolverTest, Serialization2 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	CPtr<CDnnNesterovGradientSolver> nadam = new CDnnNesterovGradientSolver( MathEngine() );
 	nadam->EnableAmsGrad( true );
 	nadam->EnableDecoupledWeightDecay( true );
@@ -835,6 +967,12 @@ TEST( CDnnNesterovGradientSolverTest, Serialization2 )
 
 TEST( CDnnLambGradientSolverTest, Serialization1 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	CPtr<CDnnLambGradientSolver> lamb = new CDnnLambGradientSolver( MathEngine() );
 	lamb->ExcludeWeightDecayLayer( "_lstm", CDnnLambGradientSolver::ELNMT_Include, 1 );
 	lamb->SetEpsilon( 1e-3 );
@@ -852,6 +990,12 @@ TEST( CDnnLambGradientSolverTest, Serialization1 )
 
 TEST( CDnnLambGradientSolverTest, Serialization2 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	CPtr<CDnnLambGradientSolver> lamb = new CDnnLambGradientSolver( MathEngine() );
 	lamb->SetEpsilon( 2e-5 );
 	lamb->SetL1Regularization( 1e-5f );
@@ -868,6 +1012,12 @@ TEST( CDnnLambGradientSolverTest, Serialization2 )
 
 TEST( CDnnLambGradientSolverTest, Serialization3 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	CPtr<CDnnLambGradientSolver> lamb = new CDnnLambGradientSolver( MathEngine() );
 	lamb->SetEpsilon( 1e-6 );
 	lamb->SetL1Regularization( 3e-5f );
@@ -884,6 +1034,12 @@ TEST( CDnnLambGradientSolverTest, Serialization3 )
 
 TEST( CDnnLambGradientSolverTest, Serialization4 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	CPtr<CDnnLambGradientSolver> lamb = new CDnnLambGradientSolver( MathEngine() );
 	lamb->SetEpsilon( 1e-4 );
 	lamb->SetL1Regularization( 0 );
@@ -902,6 +1058,12 @@ TEST( CDnnLambGradientSolverTest, Serialization4 )
 
 TEST( CDnnSolverTest, CompositeLearningRate )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	// There was a bug when only BaseLearningRate of the layer itself was taken into account
 	// Even when the layer was inside the reccurent which was inside the recurrent/composite
 	CRandom random( 0x1234 );

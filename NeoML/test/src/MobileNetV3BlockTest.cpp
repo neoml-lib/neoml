@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -306,6 +306,12 @@ static std::initializer_list<CActivationDesc> mnv3SeActivations = {
 
 TEST( MobileNetV3BlockLayerTest, Run )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	// This test is allowed on GPU because of backward compatibility
 	CRandom seedRandom( 0x654 );
 

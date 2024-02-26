@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -166,6 +166,12 @@ static void channelwiseWith1x1TestImpl( unsigned int seed, int freeTermMask, TAc
 
 TEST( ChannelwiseWith1x1LayerTest, Run )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	// This test is allowed on GPU because of backward compatibility
 	std::initializer_list<int> inputDims = { 1, 3, 1, 26, 31, 1, 8 };
 	CRandom seedRandom( 0x654 );
@@ -183,6 +189,12 @@ TEST( ChannelwiseWith1x1LayerTest, Run )
 
 TEST( ChannelwiseWith1x1LayerTest, CornerCases )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	// This test is allowed on GPU because of backward compatibility
 	CRandom seedRandom( 0x654 );
 	channelwiseWith1x1TestImpl( seedRandom.Next(), 0, AF_ReLU, 0, 1, true, { 1, 7, 1, 1, 3, 1, 3 } );

@@ -1,4 +1,4 @@
-/* Copyright © 2023 ABBYY
+/* Copyright © 2023-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -70,6 +70,12 @@ static void rowwiseTestImpl( TChainBuilder buildChain, int seed )
 
 TEST( RowwiseTest, ActivationOp )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	auto buildChain = [] ( CSourceLayer* source ) -> CBaseLayer* {
 		CBaseLayer* curr = source;
 		curr = Elu( 0.01f )( curr );
@@ -93,6 +99,12 @@ TEST( RowwiseTest, ActivationOp )
 
 TEST( RowwiseTest, ChannelwiseConvOp )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	auto buildChain = [] ( CSourceLayer* source ) -> CBaseLayer* {
 		CBaseLayer* curr = source;
 		curr = ChannelwiseConv( RowwiseTestChannels, CConvAxisParams( 3 ), CConvAxisParams( 3 ), true )( curr );
@@ -108,6 +120,12 @@ TEST( RowwiseTest, ChannelwiseConvOp )
 
 TEST( RowwiseTest, ConvOp )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	auto buildChain = [] ( CSourceLayer* source ) -> CBaseLayer* {
 		CBaseLayer* curr = source;
 		curr = Conv( 34, CConvAxisParams( 4, 3, 2, 1 ), CConvAxisParams( 5, 4, 3, 2 ), true )( curr );
@@ -123,6 +141,12 @@ TEST( RowwiseTest, ConvOp )
 
 TEST( RowwiseTest, PoolingOp )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	auto buildChain = [] ( CSourceLayer* source ) -> CBaseLayer* {
 		CBaseLayer* curr = source;
 		curr = MaxPooling( 3, 3 )( curr );
@@ -138,6 +162,12 @@ TEST( RowwiseTest, PoolingOp )
 
 TEST( RowwiseTest, ResizeImageOp )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	auto buildChain = [] ( CSourceLayer* source ) -> CBaseLayer* {
 		CBaseLayer* curr = source;
 		curr = ImageResize( 2, 3, 4, 5, 0.f, TBlobResizePadding::Edge )( curr );
@@ -154,6 +184,12 @@ TEST( RowwiseTest, ResizeImageOp )
 
 TEST( RowwiseTest, Optimize2Chains )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	auto buildChain = [] ( CSourceLayer* source ) -> CBaseLayer* {
 		IMathEngine& mathEngine = source->MathEngine();
 		CDnn& dnn = *source->GetDnn();
@@ -182,6 +218,12 @@ TEST( RowwiseTest, Optimize2Chains )
 
 TEST( RowwiseTest, OptimizeOpInFrontOfChain )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	auto buildChain = [] ( CSourceLayer* source ) -> CBaseLayer* {
 		CBaseLayer* curr = source;
 		IMathEngine& mathEngine = source->MathEngine();

@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -193,6 +193,12 @@ using namespace NeoMLTest;
 
 TEST_P( CDnnInferencePerformanceTest, OneMathEngine )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	const auto& param = GetParam();
 
 	auto& mathEngine = MathEngine();
@@ -221,6 +227,12 @@ TEST_P( CDnnInferencePerformanceTest, OneMathEngine )
 
 TEST_P( CDnnInferencePerformanceTest, LocalMathEngine )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	const auto& param = GetParam();
 
 	std::vector<std::future<ResultType>> results;

@@ -1,4 +1,4 @@
-/* Copyright © 2021 ABBYY Production LLC
+/* Copyright © 2021-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -112,6 +112,12 @@ static void jacobianCommonTestImpl( const CArray<float>& vectorA, const CArray<f
 
 TEST_F( CAutoDiffTest, TestStack1 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	jacobianCommonTestImpl(
 		{ 0.28, 0.3, 0.2 , 0.73, 0.73, 0.72, 0.33, 0.11,
 		  0.08, 0.49, 0.09, 0.76, 0.05, 0.65, 0.28, 0.97 },
@@ -135,6 +141,12 @@ TEST_F( CAutoDiffTest, TestStack1 )
 
 TEST_F( CAutoDiffTest, TestStack2 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	jacobianTestImpl(
 		{ 0.18, 0.73, 0.51, 0.32 },
 		{ 0.16, 0.66, 0.08, 0.28, 0.58, 0.32, 0.91, 0.45, 0.3, 0.31, 0.0, 0.81 },
@@ -157,6 +169,12 @@ TEST_F( CAutoDiffTest, TestStack2 )
 
 TEST_F( CAutoDiffTest, TestReshape )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	jacobianCommonTestImpl(
 		{ 0.28, 0.3, 0.2 , 0.73, 0.73, 0.72, 0.33, 0.11,
 		  0.08, 0.49, 0.09, 0.76, 0.05, 0.65, 0.28, 0.97 },
@@ -176,6 +194,12 @@ TEST_F( CAutoDiffTest, TestReshape )
 
 TEST_F( CAutoDiffTest, TestBroadcast1 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	jacobianTestImpl(
 		{ 1 },
 		{ 1 },
@@ -192,6 +216,12 @@ TEST_F( CAutoDiffTest, TestBroadcast1 )
 
 TEST_F( CAutoDiffTest, TestBroadcast2 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	jacobianTestImpl(
 		{ 0.4, 0.5 },
 		{ 0.72, 0.96, 0.49, 0.41, 0.39, 0.96, 0.95, 0.8,
@@ -212,6 +242,12 @@ TEST_F( CAutoDiffTest, TestBroadcast2 )
 
 TEST_F( CAutoDiffTest, TestBroadcast3 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	jacobianTestImpl(
 		{ 0.52, 0.73, 0.76, 0.05 },
 		{ 0.25, 0.08 },
@@ -231,6 +267,12 @@ TEST_F( CAutoDiffTest, TestBroadcast3 )
 
 TEST_F( CAutoDiffTest, TestPow1 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	jacobianTestImpl(
 		{ 0.28, 0.3, 0.2 , 0.73, 0.73, 0.72, 0.33, 0.11,
 		  0.08, 0.49, 0.09, 0.76, 0.05, 0.65, 0.28, 0.97 },
@@ -253,6 +295,12 @@ TEST_F( CAutoDiffTest, TestPow1 )
 
 TEST_F( CAutoDiffTest, TestPow2 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	jacobianTestImpl(
 		{ 0.28, 0.3, 0.2 , 0.73, 0.73, 0.72, 0.33, 0.11,
 		  0.08, 0.49, 0.09, 0.76, 0.05, 0.65, 0.28, 0.97 },
@@ -275,6 +323,12 @@ TEST_F( CAutoDiffTest, TestPow2 )
 
 TEST_F( CAutoDiffTest, TestPow3 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	jacobianTestImpl(
 		{ 0.28, 0.3, 0.2 , 0.73, 0.73, 0.72, 0.33, 0.11,
 		  0.08, 0.49, 0.09, 0.76, 0.05, 0.65, 0.28, 0.97 },
@@ -297,6 +351,12 @@ TEST_F( CAutoDiffTest, TestPow3 )
 
 TEST_F( CAutoDiffTest, TestPow4 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	jacobianTestImpl(
 		{ 0.28, 0.3, 0.2 , 0.73, 0.73, 0.72, 0.33, 0.11,
 		  0.08, 0.49, 0.09, 0.76, 0.05, 0.65, 0.28, 0.97 },
@@ -319,6 +379,12 @@ TEST_F( CAutoDiffTest, TestPow4 )
 
 TEST_F( CAutoDiffTest, TestPow5 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	jacobianTestImpl(
 		{ 0.28, 0.0, 0.0, 0.73, 0.73, 0.0, 0.0, 0.11,
 		  0.0, 0.49, 0.09, 0.0, 0.0, 0.65, 0.28, 0.0 },
@@ -338,6 +404,12 @@ TEST_F( CAutoDiffTest, TestPow5 )
 
 TEST_F( CAutoDiffTest, TestPow6 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	jacobianTestImpl(
 		{ 0.28, 0.0, 0.0, 0.73, 0.73, 0.0, 0.0, 0.11,
 		  0.0, 0.49, 0.09, 0.0, 0.0, 0.65, 0.28, 0.0 },
@@ -357,6 +429,12 @@ TEST_F( CAutoDiffTest, TestPow6 )
 
 TEST_F( CAutoDiffTest, TestAdd1 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	CGradientTape tape;
 
 	const int VectorSize = 16;
@@ -406,6 +484,12 @@ TEST_F( CAutoDiffTest, TestAdd1 )
 
 TEST_F( CAutoDiffTest, TestAdd2 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	jacobianCommonTestImpl(
 		{ 501, 1, 2, 3, 4, 4, 5, 505, 10, 10, 11, 490, 489, 488, 487, 491 },
 		{ 1, 401, 2, 3, 4, 4, 5, 10, 405, 10, 11, 289, 390, 288, 391, 291 },
@@ -426,6 +510,12 @@ TEST_F( CAutoDiffTest, TestAdd2 )
 
 TEST_F( CAutoDiffTest, TestSub1 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	CGradientTape tape;
 
 	const int VectorSize = 16;
@@ -480,6 +570,12 @@ TEST_F( CAutoDiffTest, TestSub1 )
 
 TEST_F( CAutoDiffTest, TestSum1 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	for( int axis : { -1, 6 } ) {
 		CGradientTape tape;
 
@@ -540,6 +636,12 @@ TEST_F( CAutoDiffTest, TestSum1 )
 
 TEST_F( CAutoDiffTest, TestSum2 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	CGradientTape tape;
 
 	const int VectorSize = 16;
@@ -592,6 +694,12 @@ TEST_F( CAutoDiffTest, TestSum2 )
 
 TEST_F( CAutoDiffTest, TestSum3 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	CGradientTape tape;
 
 	const int VectorSize = 16;
@@ -644,6 +752,12 @@ TEST_F( CAutoDiffTest, TestSum3 )
 
 TEST_F( CAutoDiffTest, TestCumSum1 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	CGradientTape tape;
 
 	const int VectorSize = 16;
@@ -699,6 +813,12 @@ TEST_F( CAutoDiffTest, TestCumSum1 )
 
 TEST_F( CAutoDiffTest, TestCumSum2 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	CGradientTape tape;
 
 	const int VectorSize = 16;
@@ -752,6 +872,12 @@ TEST_F( CAutoDiffTest, TestCumSum2 )
 
 TEST_F( CAutoDiffTest, TestMean1 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	for( int axis : { -1, 6 } ) {
 		CGradientTape tape;
 
@@ -812,6 +938,12 @@ TEST_F( CAutoDiffTest, TestMean1 )
 
 TEST_F( CAutoDiffTest, TestMean2 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	CGradientTape tape;
 
 	const int VectorSize = 16;
@@ -864,6 +996,12 @@ TEST_F( CAutoDiffTest, TestMean2 )
 
 TEST_F( CAutoDiffTest, TestMean3 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+		
 	CGradientTape tape;
 
 	const int VectorSize = 16;
@@ -916,6 +1054,12 @@ TEST_F( CAutoDiffTest, TestMean3 )
 
 TEST_F( CAutoDiffTest, TestMean4 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	jacobianCommonTestImpl(
 		{ 0.28, 0.3, 0.2 , 0.73, 0.73, 0.72, 0.33, 0.11,
 		  0.08, 0.49, 0.09, 0.76, 0.05, 0.65, 0.28, 0.97 },
@@ -935,6 +1079,12 @@ TEST_F( CAutoDiffTest, TestMean4 )
 
 TEST_F( CAutoDiffTest, TestClip )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	CGradientTape tape;
 
 	const int VectorSize = 16;
@@ -989,6 +1139,12 @@ TEST_F( CAutoDiffTest, TestClip )
 
 TEST_F( CAutoDiffTest, TestMax )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	CGradientTape tape;
 
 	const int VectorSize = 16;
@@ -1046,6 +1202,12 @@ TEST_F( CAutoDiffTest, TestMax )
 
 TEST_F( CAutoDiffTest, TestMult1 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	jacobianCommonTestImpl(
 		{ 501, 1, 2, 3, 4, 4, 5, 505, 10, 10, 11, 490, 489, 488, 487, 491 },
 		{ 1, 401, 2, 3, 4, 4, 5, 10, 405, 10, 11, 289, 390, 288, 391, 291 },
@@ -1068,6 +1230,12 @@ TEST_F( CAutoDiffTest, TestMult1 )
 
 TEST_F( CAutoDiffTest, TestDiv1 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	CGradientTape tape;
 
 	const int VectorSize = 4;
@@ -1114,6 +1282,12 @@ TEST_F( CAutoDiffTest, TestDiv1 )
 
 TEST_F( CAutoDiffTest, TestDiv2 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	jacobianCommonTestImpl(
 		{ 0.501, 0.001, 0.002, 0.003, 0.004, 0.004, 0.005, 0.505,
 		  0.010, 0.010, 0.011, 0.490, 0.489, 0.488, 0.487, 0.491 },
@@ -1142,6 +1316,12 @@ TEST_F( CAutoDiffTest, TestDiv2 )
 
 TEST_F( CAutoDiffTest, TestLog )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	CGradientTape tape;
 
 	const int VectorSize = 16;
@@ -1194,6 +1374,12 @@ TEST_F( CAutoDiffTest, TestLog )
 
 TEST_F( CAutoDiffTest, TestExp )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	CGradientTape tape;
 
 	const int VectorSize = 16;
@@ -1248,6 +1434,12 @@ TEST_F( CAutoDiffTest, TestExp )
 
 TEST_F( CAutoDiffTest, TestAbs )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	CGradientTape tape;
 
 	const int VectorSize = 16;
@@ -1303,6 +1495,12 @@ TEST_F( CAutoDiffTest, TestAbs )
 
 TEST_F( CAutoDiffTest, TestNeg )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	CGradientTape tape;
 
 	const int VectorSize = 16;
@@ -1354,6 +1552,12 @@ TEST_F( CAutoDiffTest, TestNeg )
 
 TEST_F( CAutoDiffTest, TestTopK )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	CGradientTape tape;
 
 	const int VectorSize = 16;
@@ -1392,6 +1596,12 @@ TEST_F( CAutoDiffTest, TestTopK )
 
 TEST_F( CAutoDiffTest, TestBinaryCrossEntropy )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	CGradientTape tape;
 
 	const int VectorSize = 16;
@@ -1446,6 +1656,12 @@ TEST_F( CAutoDiffTest, TestBinaryCrossEntropy )
 
 TEST_F( CAutoDiffTest, TestLess )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	const int VectorSize = 16;
 
 	CArray<float> xData;

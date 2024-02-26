@@ -1,4 +1,4 @@
-/* Copyright © 2023 ABBYY
+/* Copyright © 2023-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -175,6 +175,12 @@ TEST( LoraFullyConnectedLayerTest, Initialization )
 
 TEST( LoraFullyConnectedLayerTest, InferenceAndLearning )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	constexpr int inputSize = 32;
 	constexpr int outputSize = 16;
 
@@ -283,6 +289,12 @@ TEST( LoraBuilderTest, BuildNoRecurrentReplacement )
 
 TEST( LoraBuilderTest, MergeAndDiscardTest )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	constexpr int ioSize = 12;
 
 	CRandom random( 0xACCA );
@@ -423,6 +435,12 @@ static void loraFcSerializerTestImpl( bool initialize, bool discardBeforeLoad )
 
 TEST( LoraSerializerTest, LoraFc )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	for( bool initialize : { true, false } ) {
 		for( bool discardBeforeLora : { true, false } ) {
 			loraFcSerializerTestImpl( initialize, discardBeforeLora );
