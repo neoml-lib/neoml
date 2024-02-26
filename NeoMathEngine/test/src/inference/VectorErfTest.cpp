@@ -22,8 +22,7 @@ using namespace NeoMLTest;
 static void vectorErfImpl( const CTestParams& params, int seed )
 {
 	const auto met = MathEngine().GetType();
-	if (met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+	if(met != MET_Cpu && met != MET_Cuda) {
 		return;
 	}
 

@@ -30,7 +30,6 @@ static void globalMaxOverTimePoolingTestImpl( const CTestParams& params, int see
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
 		return;
 	}
 
