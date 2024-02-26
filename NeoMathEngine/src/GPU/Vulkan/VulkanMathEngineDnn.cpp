@@ -451,7 +451,6 @@ void CVulkanMathEngine::AddHeightIndex( const CBlobDesc&, const CConstIntHandle&
 
 CDropoutDesc* CVulkanMathEngine::InitDropout(float rate, bool isSpatial, bool isBatchwise)
 {
-	ASSERT_EXPR(rate >= 0.f && rate < 1.f);
 	return new CMaskDropoutDesc(mathEngine(), rate, isSpatial, isBatchwise);
 }
 

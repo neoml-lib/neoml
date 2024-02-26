@@ -26,7 +26,6 @@ namespace NeoML {
 
 CDropoutDesc* CMetalMathEngine::InitDropout(float rate, bool isSpatial, bool isBatchwise)
 {
-	ASSERT_EXPR(rate >= 0.f && rate < 1.f);
 	return new CMaskDropoutDesc(mathEngine(), rate, isSpatial, isBatchwise);
 }
 

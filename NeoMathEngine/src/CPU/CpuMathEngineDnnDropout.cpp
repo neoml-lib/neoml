@@ -27,7 +27,6 @@ namespace NeoML {
 
 CDropoutDesc* CCpuMathEngine::InitDropout(float rate, bool isSpatial, bool isBatchwise)
 {
-	ASSERT_EXPR(rate >= 0.f && rate < 1.f);
 	return new CSeedDropoutDesc(mathEngine(), rate, isSpatial, isBatchwise, true);;
 }
 
@@ -59,7 +58,7 @@ void CCpuMathEngine::Dropout(const CDropoutDesc& dropoutDesc, const CFloatHandle
 	const int maskSize = batchWidth * objectSize;
 
 	CCpuRandom random(desc.Seed);
-	CIntArray<CSeedDropoutDesc::maskAlign> generated;
+	CIntArray<CSeedDropoutDesc::MaskAlign> generated;
 
 	const int inputObjectSize = input.ObjectSize();
 	const float* inputPointer = GetRaw(inputData);
@@ -67,9 +66,9 @@ void CCpuMathEngine::Dropout(const CDropoutDesc& dropoutDesc, const CFloatHandle
 	float* mask = GetRaw(desc.Mask->GetHandle());
 	const unsigned int threshold = desc.Threshold;
 	const float value = desc.Value;
-	constexpr int cacheSize = CSeedDropoutDesc::cacheSize;
-	constexpr int maskAlign = CSeedDropoutDesc::maskAlign;
-	constexpr int numOfGenerations = CSeedDropoutDesc::numOfGenerations;
+	constexpr int cacheSize = CSeedDropoutDesc::CacheSize;
+	constexpr int maskAlign = CSeedDropoutDesc::MaskAlign;
+	constexpr int numOfGenerations = CSeedDropoutDesc::NumOfGenerations;
 
 	if(!desc.IsSpatial) {
 		const int numOfIter = (maskSize + cacheSize - 1) / cacheSize;
@@ -83,7 +82,7 @@ void CCpuMathEngine::Dropout(const CDropoutDesc& dropoutDesc, const CFloatHandle
 			int idx = 0;
 			for(int i = 0; i < numOfGenerations; ++i) {
 				generated = random.Next();
-				for (int j = 0; j < maskAlign && idx < cacheSize; ++j) {
+				for(int j = 0; j < maskAlign; ++j) {
 					mask[idx++] = (generated[j] <= threshold) ? value : 0.f;
 				}
 			}
@@ -104,14 +103,14 @@ void CCpuMathEngine::Dropout(const CDropoutDesc& dropoutDesc, const CFloatHandle
 		float* result = outputPointer;
 
 		int idx = 0;
-		for (int i = 0; i < lastGenerations; ++i) {
+		for(int i = 0; i < lastGenerations; ++i) {
 			generated = random.Next();
 			for (int j = 0; j < maskAlign && idx < currSize; ++j) {
 				mask[idx++] = (generated[j] <= threshold) ? value : 0.f;
 			}
 		}
 
-		for (int b = 0; b < batchLength; ++b) {
+		for(int b = 0; b < batchLength; ++b) {
 			vectorEltwiseMultiply(first, mask, result, currSize);
 
 			first += maskSize;
@@ -131,7 +130,7 @@ void CCpuMathEngine::Dropout(const CDropoutDesc& dropoutDesc, const CFloatHandle
 				int idx = 0;
 				for( int g = 0; g < numOfGenerations; ++g ) {
 					generated = random.Next();
-					for (int k = 0; k < maskAlign && idx < cacheSize; ++k) {
+					for( int k = 0; k < maskAlign; ++k ) {
 						mask[idx++] = (generated[k] <= threshold) ? value : 0.f;
 					}
 				}
@@ -153,19 +152,19 @@ void CCpuMathEngine::Dropout(const CDropoutDesc& dropoutDesc, const CFloatHandle
 
 			// last generation
 			int idx = 0;
-			for (int g = 0; g < lastGenerations; ++g) {
+			for(int g = 0; g < lastGenerations; ++g) {
 				generated = random.Next();
-				for (int k = 0; k < desc.maskAlign && idx < currSize; ++k) {
+				for (int k = 0; k < desc.MaskAlign && idx < currSize; ++k) {
 					mask[idx++] = (generated[k] <= threshold) ? value : 0.f;
 				}
 			}
 
-			first = inputPointer + (numOfIter - 1) * desc.cacheSize;
-			result = outputPointer + (numOfIter - 1) * desc.cacheSize;
-			for (int b = 0; b < batchLength; ++b) {
+			first = inputPointer + (numOfIter - 1) * cacheSize;
+			result = outputPointer + (numOfIter - 1) * cacheSize;
+			for(int b = 0; b < batchLength; ++b) {
 				const float* localFirst = first;
 				float* localResult = result;
-				for (int k = 0; k < channelIter; ++k) {
+				for( int k = 0; k < channelIter; ++k ) {
 					vectorEltwiseMultiply(localFirst, mask, localResult, currSize);
 					localFirst += objectSize;
 					localResult += objectSize;

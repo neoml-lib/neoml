@@ -17,6 +17,7 @@ limitations under the License.
 #pragma hdrstop
 
 #include <NeoML/Dnn/Layers/LoraFullyConnectedLayer.h>
+#include <NeoMathEngine/NeoMathEngine.h>
 
 namespace NeoML {
 

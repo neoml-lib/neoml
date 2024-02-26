@@ -32,6 +32,7 @@ CBaseDropoutDesc::CBaseDropoutDesc(float rate, bool isSpatial, bool isBatchwise)
 	Seed( 0 ),
 	Threshold((unsigned int)(ForwardRate* UINT_MAX))
 {
+	ASSERT_EXPR(rate >= 0.f && rate < 1.f);
 }
 
 CBaseDropoutDesc::~CBaseDropoutDesc()
@@ -68,7 +69,7 @@ void CMaskDropoutDesc::UpdateDesc(const CBlobDesc* input, const CBlobDesc* outpu
 
 		Seed = seed;
 
-		Mask = new CFloatHandleVar(mathEngine, CMaskDropoutDesc::getMaskSize(IsSpatial, IsBatchwise, *input));
+		Mask = new CFloatHandleVar(mathEngine, CMaskDropoutDesc::GetMaskSize(IsSpatial, IsBatchwise, *input));
 		mathEngine.VectorFillBernoulli(Mask->GetHandle(), ForwardRate, Mask->Size(),
 			1.f / ForwardRate, Seed);
 	}
@@ -78,7 +79,7 @@ CSeedDropoutDesc::CSeedDropoutDesc(IMathEngine& mathEngine, float rate, bool isS
 	CBaseDropoutDesc(rate, isSpatial, isBatchwise)
 {
 	if (isMask) {
-		Mask = new CFloatHandleVar(mathEngine, cacheSize);
+		Mask = new CFloatHandleVar(mathEngine, CacheSize);
 	}
 }
 

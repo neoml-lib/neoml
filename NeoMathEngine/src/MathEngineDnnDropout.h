@@ -15,8 +15,8 @@ limitations under the License.
 
 #pragma once
 
-#include <NeoMathEngine/CrtAllocatedObject.h>
 #include <NeoMathEngine/NeoMathEngine.h>
+#include <NeoMathEngine/CrtAllocatedObject.h>
 
 namespace NeoML {
 
@@ -47,7 +47,7 @@ struct CMaskDropoutDesc : public CBaseDropoutDesc {
 public:
 	explicit CMaskDropoutDesc(IMathEngine& mathEngine, float rate, bool isSpatial, bool isBatchwise);
 	void UpdateDesc(const CBlobDesc* input, const CBlobDesc* output, int seed, bool valid) override;
-	static inline int getMaskSize(bool isSpatial, bool isBatchwise, const CBlobDesc& input);
+	static inline int GetMaskSize(bool isSpatial, bool isBatchwise, const CBlobDesc& input);
 
 private:
 	IMathEngine& mathEngine;
@@ -59,12 +59,12 @@ public:
 	explicit CSeedDropoutDesc(IMathEngine& mathEngine, float rate, bool isSpatial, bool isBatchwise, bool isMask);
 	void UpdateDesc(const CBlobDesc* input, const CBlobDesc* output, int seed, bool valid) override;
 
-	static constexpr int cacheSize = 64;
-	static constexpr int maskAlign = 4;
-	static constexpr int numOfGenerations = (cacheSize + (maskAlign - 1)) / maskAlign;
+	static constexpr int CacheSize = 64;
+	static constexpr int MaskAlign = 4;
+	static constexpr int NumOfGenerations = (CacheSize + (MaskAlign - 1)) / MaskAlign;
 };
 
-inline int CMaskDropoutDesc::getMaskSize(bool isSpatial, bool isBatchwise, const CBlobDesc& input)
+inline int CMaskDropoutDesc::GetMaskSize(bool isSpatial, bool isBatchwise, const CBlobDesc& input)
 {
 	const int objectSize = isSpatial ? input.Channels() : input.ObjectSize();
 	const int batchLength = isBatchwise ? input.ObjectCount() : input.BatchLength();

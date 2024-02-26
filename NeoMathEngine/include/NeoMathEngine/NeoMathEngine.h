@@ -652,7 +652,6 @@ public:
 };
 
 // Blob operations descriptors
-
 struct NEOMATHENGINE_API CTimeConvolutionDesc : public CCrtAllocatedObject { public: virtual ~CTimeConvolutionDesc(); };
 struct NEOMATHENGINE_API C3dConvolutionDesc : public CCrtAllocatedObject { public: virtual ~C3dConvolutionDesc(); };
 struct NEOMATHENGINE_API CConvolutionDesc : public CCrtAllocatedObject { public: virtual ~CConvolutionDesc(); };

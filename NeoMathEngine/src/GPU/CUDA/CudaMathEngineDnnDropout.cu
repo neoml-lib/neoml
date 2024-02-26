@@ -30,7 +30,6 @@ namespace NeoML {
 
 CDropoutDesc* CCudaMathEngine::InitDropout(float rate, bool isSpatial, bool isBatchwise)
 {
-	ASSERT_EXPR(rate >= 0.f && rate < 1.f);
 	return new CSeedDropoutDesc(mathEngine(), rate, isSpatial, isBatchwise, false);;
 }
 
@@ -68,7 +67,7 @@ void CCudaMathEngine::Dropout( const CDropoutDesc& dropoutDesc,
 		dim3 blockCount;
 		dim3 threadCount;
 
-		getCudaTaskGrid2D(blockCount, threadCount, batchLength, (maskSize + desc.maskAlign - 1) / desc.maskAlign);
+		getCudaTaskGrid2D(blockCount, threadCount, batchLength, (maskSize + desc.MaskAlign - 1) / desc.MaskAlign);
 		RandomMatrixDropout<<<blockCount, threadCount>>>( GetRaw(inputData), batchLength, maskSize,
 			GetRaw(outputData), desc.Seed, desc.ForwardRate );
 		return;
