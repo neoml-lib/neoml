@@ -58,6 +58,12 @@ static void batchConvolutionLearnAdd( const float* input, float* filter, float* 
 
 static void blobConvolutionLearnAddImpl( const CTestParams& params, int seed )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	CRandom random( seed );
 
 	const CInterval lengthInterval = params.GetInterval( "InputLength" );

@@ -28,6 +28,12 @@ static void globalMaxOverTimePoolingBackwardNaive( const float* resultDiff, int 
 
 static void globalMaxOverTimePoolingTestImpl( const CTestParams& params, int seed )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	CRandom random( seed );
 
 	const CInterval batchLengthInterval = params.GetInterval( "BatchLength" );

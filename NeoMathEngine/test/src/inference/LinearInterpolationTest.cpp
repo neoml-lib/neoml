@@ -21,15 +21,22 @@ using namespace NeoMLTest;
 static void testLinearInterpolation( TInterpolationCoords coords, TInterpolationRound round, std::vector<float>& input,
 	const std::vector<float>& expected, int objectCount, int scaledAxis, int objectSize, float scale )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	ASSERT_EQ( input.size(), static_cast<size_t>( objectCount ) * scaledAxis * objectSize );
 	ASSERT_EQ( expected.size(), static_cast<size_t>( objectCount ) * static_cast<int>( scaledAxis * scale ) * objectSize );
 
 	std::vector<float> actual( expected.size() );
+
 	MathEngine().LinearInterpolation( CARRAY_FLOAT_WRAPPER( input ), CARRAY_FLOAT_WRAPPER( actual ),
 		coords, round, objectCount, scaledAxis, objectSize, scale );
 
 	for( size_t i = 0; i < expected.size(); ++i ) {
-		ASSERT_NEAR( actual[i], expected[i], 1e-3f );
+		EXPECT_NEAR( actual[i], expected[i], 1e-3f );
 	}
 }
 

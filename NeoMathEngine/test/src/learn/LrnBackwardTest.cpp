@@ -56,7 +56,14 @@ TEST_F( CLrnBackwardTest, Precalc )
 		0.73792887f, 0.7746171f, 0.81177235f };
 
 	for( int i = 0; i < dataSize; ++i ) {
-		ASSERT_NEAR( expectedOutput[i], output[i], 1e-5f ) << " at index " << i;
+		EXPECT_NEAR( expectedOutput[i], output[i], 1e-5f ) << " at index " << i;
+	}
+
+	const auto met = MathEngine().GetType();
+
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
 	}
 
 	std::vector<float> outputDiff = { -0.98930526f, 0.011084413f, 0.011485575f, 0.011884379f, 0.012298462f, 0.012723494f,

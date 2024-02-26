@@ -141,7 +141,7 @@ static void blobTimeConvolutionForwardTestImpl( const CTestParams& params, int s
 
 	output.CopyTo( actual.data() );
 	for( size_t i = 0; i < expected.size(); ++i ) {
-		ASSERT_NEAR( expected[i], actual[i], precision ) << "\nForward check failed"
+		EXPECT_NEAR( expected[i], actual[i], precision ) << "\nForward check failed"
 			<< params;
 	}
 }	
