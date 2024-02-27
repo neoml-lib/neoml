@@ -56,11 +56,6 @@ static void bertConvBackwardNaive( const std::vector<float>& data, const std::ve
 
 static void bertConvBackwardTestImpl( const CTestParams& params, int seed )
 {
-	const auto met = MathEngine().GetType();
-	if(met != MET_Cpu && met != MET_Cuda) {
-		return;
-	}
-
 	CRandom random( seed );
 
 	const CInterval seqLenInterval = params.GetInterval( "SeqLen" );
@@ -129,6 +124,12 @@ class CMathEngineBertConvBackwardTest : public CTestFixtureWithParams {
 
 TEST_P( CMathEngineBertConvBackwardTest, Random )
 {
+	const auto met = MathEngine().GetType();
+	if (met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	RUN_TEST_IMPL( bertConvBackwardTestImpl )
 }
 

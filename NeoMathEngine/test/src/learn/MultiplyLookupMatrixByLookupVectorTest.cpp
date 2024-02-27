@@ -20,11 +20,6 @@ using namespace NeoMLTest;
 
 static void multiplyLookupMatrixByLookupVectorTestImpl( const CTestParams& params, int seed )
 {
-	const auto met = MathEngine().GetType();
-	if(met != MET_Cpu && met != MET_Cuda) {
-		return;
-	}
-
 	CRandom random( seed );
 
 	const CInterval heightInterval = params.GetInterval( "Height" );
@@ -107,5 +102,11 @@ INSTANTIATE_TEST_CASE_P( CMultiplyLookupMatrixByLookupVectorTestInstantiation, C
 
 TEST_P( CMultiplyLookupMatrixByLookupVectorTest, Random )
 {
+	const auto met = MathEngine().GetType();
+	if (met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	RUN_TEST_IMPL( multiplyLookupMatrixByLookupVectorTestImpl )
 }

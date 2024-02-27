@@ -59,11 +59,6 @@ static void mean3dPoolingBackwardNaive( const C3dPoolingTestParams& params, cons
 
 static void blob3dMeanPoolingBackwardTestImpl( const CTestParams& params, int seed )
 {
-	const auto met = MathEngine().GetType();
-	if(met != MET_Cpu && met != MET_Cuda) {
-		return;
-	}
-
 	CRandom random( seed );
 	auto poolingParams = get3dPoolingParams( params, random );
 	const CInterval valuesInterval = params.GetInterval( "Values" );
@@ -124,5 +119,11 @@ INSTANTIATE_TEST_CASE_P( CMathEngineBlob3dMeanPoolingBackwardTestInstantiation, 
 
 TEST_P( CMathEngineBlob3dMeanPoolingBackwardTest, Random )
 {
+	const auto met = MathEngine().GetType();
+	if (met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	RUN_TEST_IMPL( blob3dMeanPoolingBackwardTestImpl )
 }

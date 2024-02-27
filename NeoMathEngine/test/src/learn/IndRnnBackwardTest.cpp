@@ -55,11 +55,6 @@ static void indRnnRecurrentBackwardNaive( bool reverse, int seqLength, int batch
 
 static void indRnnBackwardTestImpl( const CTestParams& params, int seed )
 {
-	const auto met = MathEngine().GetType();
-	if(met != MET_Cpu && met != MET_Cuda) {
-		return;
-	}
-
 	CRandom random( seed );
 	const CInterval batchLengthInterval = params.GetInterval( "BatchLength" );
 	const CInterval batchWidthInterval = params.GetInterval( "BatchWidth" );
@@ -146,5 +141,11 @@ INSTANTIATE_TEST_CASE_P( CIndRnnBackwardTest, CIndRnnBackwardTest,
 
 TEST_P( CIndRnnBackwardTest, Random )
 {
+	const auto met = MathEngine().GetType();
+	if (met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	RUN_TEST_IMPL( indRnnBackwardTestImpl );
 }

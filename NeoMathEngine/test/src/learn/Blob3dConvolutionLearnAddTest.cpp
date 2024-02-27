@@ -80,11 +80,6 @@ static void batchConvolutionLearnAdd( const CConv3dTestParams& params,
 
 static void blob3dConvolutionLearnAddImpl( const CTestParams& params, int seed )
 {
-	const auto met = MathEngine().GetType();
-	if(met != MET_Cpu && met != MET_Cuda) {
-		return;
-	}
-
 	CRandom random( seed );
 	CConv3dTestParams convParams = getConv3dParams( params, random );
 	const CInterval valuesInterval = params.GetInterval( "Values" );
@@ -210,5 +205,11 @@ INSTANTIATE_TEST_CASE_P( CBlob3dConvolutionLearnAddTestInstantiation, CBlob3dCon
 
 TEST_P( CBlob3dConvolutionLearnAddTest, Random )
 {
+	const auto met = MathEngine().GetType();
+	if (met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	RUN_TEST_IMPL( blob3dConvolutionLearnAddImpl );
 }

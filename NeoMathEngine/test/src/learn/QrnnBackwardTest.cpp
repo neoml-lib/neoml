@@ -64,11 +64,6 @@ static void naiveFPoolingBackward( bool reverse, int seqLength, int objSize,
 
 static void fPoolingBackwardImpl( const CTestParams& params, int seed )
 {
-	const auto met = MathEngine().GetType();
-	if(met != MET_Cpu && met != MET_Cuda) {
-		return;
-	}
-
 	CRandom random( seed );
 	const CInterval batchLengthInterval = params.GetInterval( "BatchLength" );
 	const CInterval batchWidthInterval = params.GetInterval( "BatchWidth" );
@@ -187,11 +182,6 @@ static void naiveIfPoolingBackward( bool reverse, int seqLength, int objSize,
 
 static void ifPoolingBackwardImpl( const CTestParams& params, int seed )
 {
-	const auto met = MathEngine().GetType();
-	if(met != MET_Cpu && met != MET_Cuda) {
-		return;
-	}
-
 	CRandom random( seed );
 	const CInterval batchLengthInterval = params.GetInterval( "BatchLength" );
 	const CInterval batchWidthInterval = params.GetInterval( "BatchWidth" );
@@ -291,10 +281,22 @@ INSTANTIATE_TEST_CASE_P( CQrnnBackwardTest, CQrnnBackwardTest,
 
 TEST_P( CQrnnBackwardTest, FPoolingRandom )
 {
+	const auto met = MathEngine().GetType();
+	if (met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	RUN_TEST_IMPL( fPoolingBackwardImpl );
 }
 
 TEST_P( CQrnnBackwardTest, IfPoolingRandom )
 {
+	const auto met = MathEngine().GetType();
+	if (met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	RUN_TEST_IMPL( ifPoolingBackwardImpl );
 }

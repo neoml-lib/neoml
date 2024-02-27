@@ -42,11 +42,6 @@ static void vectorCumSumAlongDimensionImpl( const T* input, T* output,
 template<class T>
 static void vectorCumSumAlongDimensionTestImpl( const CTestParams& params, int seed )
 {
-	const auto met = MathEngine().GetType();
-	if(met != MET_Cpu && met != MET_Cuda) {
-		return;
-	}
-
 	CRandom random( seed );
 
 	const CInterval precedingInterval = params.GetInterval( "Preceding" );
@@ -91,6 +86,12 @@ INSTANTIATE_TEST_CASE_P( CVectorCumSumAlongDimensionsTestInstantiation, CVectorC
 
 TEST_P( CVectorCumSumAlongDimensionsTest, Random )
 {
+	const auto met = MathEngine().GetType();
+	if (met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	RUN_TEST_IMPL( vectorCumSumAlongDimensionTestImpl<float> )
 	RUN_TEST_IMPL( vectorCumSumAlongDimensionTestImpl<int> )
 }

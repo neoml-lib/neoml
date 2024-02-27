@@ -23,11 +23,6 @@ using namespace NeoMLTest;
 template<class T>
 static void scatterNDTestImpl( const CTestParams& params, int seed )
 {
-	const auto met = MathEngine().GetType();
-	if(met != MET_Cpu && met != MET_Cuda) {
-		return;
-	}
-
 	CRandom random( seed );
 
 	const CInterval indexDimsInterval = params.GetInterval( "IndexDims" );
@@ -101,6 +96,12 @@ INSTANTIATE_TEST_CASE_P( CMathEngineScatterNDTestInstantiation, CMathEngineScatt
 
 TEST_P( CMathEngineScatterNDTest, Random )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	RUN_TEST_IMPL( scatterNDTestImpl<int> );
 	RUN_TEST_IMPL( scatterNDTestImpl<float> );
 }

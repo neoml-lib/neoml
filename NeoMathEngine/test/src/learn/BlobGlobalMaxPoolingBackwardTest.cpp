@@ -39,11 +39,6 @@ static void blobGlobalMaxPoolingBackwardNaive( float* sourceDiff, const float* r
 
 static void globalMaxPoolingBackwardImpl( const CTestParams& params, int seed )
 {
-	const auto met = MathEngine().GetType();
-	if(met != MET_Cpu && met != MET_Cuda) {
-		return;
-	}
-
 	CRandom random( seed );
 
 	const CInterval batchLengthInterval = params.GetInterval( "BatchLength" );
@@ -192,5 +187,11 @@ INSTANTIATE_TEST_CASE_P( CGlobalMaxPoolingBackwardTestInstantiation, CGlobalMaxP
 
 TEST_P( CGlobalMaxPoolingBackwardTest, Random )
 {
+	const auto met = MathEngine().GetType();
+	if (met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	RUN_TEST_IMPL( globalMaxPoolingBackwardImpl );
 }

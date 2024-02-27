@@ -40,11 +40,6 @@ static void maxPoolingBackwardNaive( const CPoolingTestParams& params, const flo
 
 static void blobMaxPoolingBackwardTestImpl( const CTestParams& params, int seed )
 {
-	const auto met = MathEngine().GetType();
-	if(met != MET_Cpu && met != MET_Cuda) {
-		return;
-	}
-
 	CRandom random( seed );
 	const auto poolingParams = getPoolingParams( params, random );
 	const CInterval valuesInterval = params.GetInterval( "Values" );
@@ -121,5 +116,11 @@ INSTANTIATE_TEST_CASE_P( CMathEngineBlobMaxPoolingBackwardTestInstantiation, CMa
 
 TEST_P( CMathEngineBlobMaxPoolingBackwardTest, Random )
 {
+	const auto met = MathEngine().GetType();
+	if (met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	RUN_TEST_IMPL( blobMaxPoolingBackwardTestImpl )
 }

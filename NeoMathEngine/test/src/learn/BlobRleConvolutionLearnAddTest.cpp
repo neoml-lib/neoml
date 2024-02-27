@@ -96,11 +96,6 @@ static void blobConvolutionLearnAddNaive( int batchSize, int inputHeight, int in
 
 static void blobRleConvolutionLearnAddImpl( const CTestParams& params, int seed )
 {
-	const auto met = MathEngine().GetType();
-	if(met != MET_Cpu && met != MET_Cuda) {
-		return;
-	}
-
 	CRandom random( seed );
 
 	const CInterval batchSizeInterval = params.GetInterval( "BatchSize" );
@@ -206,5 +201,11 @@ INSTANTIATE_TEST_CASE_P( CMathEngineBlobRleConvolutionLearnAddTestInstantiation,
 
 TEST_P( CMathEngineBlobRleConvolutionLearnAddTest, Random )
 {
+	const auto met = MathEngine().GetType();
+	if (met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	RUN_TEST_IMPL( blobRleConvolutionLearnAddImpl )
 }

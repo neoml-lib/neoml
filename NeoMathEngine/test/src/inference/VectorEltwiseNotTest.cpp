@@ -20,11 +20,6 @@ using namespace NeoMLTest;
 
 static void vectorEltwiseNotImpl( const CTestParams& params, int seed )
 {
-	const auto met = MathEngine().GetType();
-	if(met != MET_Cpu && met != MET_Cuda) {
-		return;
-	}
-
 	CRandom random( seed );
 	const CInterval vectorSizeInterval = params.GetInterval( "VectorSize" );
 	const CInterval valuesInterval = params.GetInterval( "Values" );
@@ -58,5 +53,11 @@ INSTANTIATE_TEST_CASE_P( CVectorEltwiseNotTestInstantiation, CVectorEltwiseNotTe
 
 TEST_P( CVectorEltwiseNotTest, Random )
 {
+	const auto met = MathEngine().GetType();
+	if (met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	RUN_TEST_IMPL( vectorEltwiseNotImpl );
 }

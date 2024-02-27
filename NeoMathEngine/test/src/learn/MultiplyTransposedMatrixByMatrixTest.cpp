@@ -37,11 +37,6 @@ static void multiplyTransposedMatrixByMatrixNaive( int batchSize, const std::vec
 
 static void multiplyTransposedMatrixByMatrixTestImpl( const CTestParams& params, int seed )
 {
-	const auto met = MathEngine().GetType();
-	if(met != MET_Cpu && met != MET_Cuda) {
-		return;
-	}
-
 	CRandom random( seed );
 
 	const CInterval batchSizeInterval = params.GetInterval( "BatchSize" );
@@ -103,5 +98,11 @@ INSTANTIATE_TEST_CASE_P( CMultiplyTransposedMatrixByMatrixTestInstantiation, CMu
 
 TEST_P( CMultiplyTransposedMatrixByMatrixTest, Random )
 {
+	const auto met = MathEngine().GetType();
+	if (met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	RUN_TEST_IMPL( multiplyTransposedMatrixByMatrixTestImpl )
 }
