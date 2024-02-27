@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -35,6 +35,10 @@ namespace NeoML {
 class NEOML_API CDnnBlob : public IObject {
 public:
 	explicit CDnnBlob( IMathEngine& mathEngine );
+
+	// Move other's Blob state to this Blob and transfer its data (if dataOwned) to this thread
+	CDnnBlob( CDnnBlob&& other );
+	CDnnBlob& operator=( CDnnBlob&& other );
 
 	// Create blobs of various kinds
 	static CDnnBlob* CreateVector(IMathEngine& mathEngine, TBlobType type, int vectorSize);

@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,9 +23,9 @@ namespace optimization {
 
 // NeoOnnx::optimization aliases for NeoML::optimization
 using CGraph = NeoML::optimization::CGraph;
-template<typename TLayer = CBaseLayer>
+template<typename TLayer = NeoML::CBaseLayer>
 using CLayerInput = NeoML::optimization::CLayerInput<TLayer>;
-template<typename TLayer = CBaseLayer>
+template<typename TLayer = NeoML::CBaseLayer>
 using CLayerOutput = NeoML::optimization::CLayerOutput<TLayer>;
 
 } // namespace optimization
