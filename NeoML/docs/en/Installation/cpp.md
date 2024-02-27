@@ -7,6 +7,7 @@
 - [Linux/macOS](#linux/macos)
 - [Android](#android)
 - [iOS](#ios)
+- [Troubleshooting](#troubleshooting)
 
 <!-- /TOC -->
 
@@ -36,6 +37,7 @@ cmake -G "Visual Studio 14 2015" -A <arch> <path_to_src>/NeoML -DCMAKE_INSTALL_P
 ```
 
 * \<arch> can be win32 or x64.
+* \<install_path> is the **Build** directory created at the previous step.
 
 Now you can build the project using Visual Studio or this command line:
 
@@ -104,3 +106,14 @@ cmake --build . --target install --config <cfg>
 * \<cfg> can take the values: Debug, Release, RelWithDebInfo, MinSizeRel.
 
 You will get three frameworks as a result: **NeoML.framework**, **NeoMathEngine.framework**, and **NeoOnnx.framework**.
+
+## Troubleshooting
+
+**Protobuf**
+
+On Windows, CMake sometimes can't see the path to the Protobuf library. To handle this, you can specify it yourself by adding `-DCMAKE_PREFIX_PATH=<path_to_Protobuf>` to the CMake command, that creates a project.
+
+In this case, you will get the following CMake command:
+``` console 
+cmake -G "Visual Studio 14 2015" -A <arch> <path_to_src>/NeoML -DCMAKE_INSTALL_PREFIX=<install_path> -DCMAKE_PREFIX_PATH=<path_to_Protobuf>
+``` 

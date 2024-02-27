@@ -7,6 +7,7 @@
 - [Linux/macOS](#linux/macos)
 - [Android](#android)
 - [iOS](#ios)
+- [Troubleshooting](#troubleshooting)
 
 <!-- /TOC -->
 
@@ -38,6 +39,8 @@ cmake -G "Visual Studio 14 2015" -A <arch> <path_to_src>/NeoML -DCMAKE_INSTALL_P
 ```
 
 * \<arch> может принимать значение win32 или x64.
+* \<install_path> путь к **Build** директории, созданной на предыдущем шаге.
+
 
 Теперь можно открыть проект и собрать его с помощью Visual Studio, либо воспользоваться командой:
 
@@ -106,3 +109,14 @@ cmake --build . --target install --config <cfg>
 * \<cfg> может принимать одно из следующих значений: Debug, Release, RelWithDebInfo, MinSizeRel.
 
 Результатами сборки будут три фреймворка: **NeoML.framework**, **NeoMathEngine.framework** и **NeoOnnx.framework**.
+
+## Troubleshooting
+
+**Protobuf**
+
+Иногда на ОС Windows, CMake не может найти путь к библиотеке Protobuf во время генерации проекта. Чтобы это исправить, можно самому указать путь к корневой папке библиотеке с помощью добавления аргумента `-DCMAKE_PREFIX_PATH=<path_to_Protobuf>` к команде CMake, которая генерирует проект.
+
+В этом случае, команда CMake выглядит следующим образом:
+``` console 
+cmake -G "Visual Studio 14 2015" -A <arch> <path_to_src>/NeoML -DCMAKE_INSTALL_PREFIX=<install_path> -DCMAKE_PREFIX_PATH=<path_to_Protobuf>
+```
