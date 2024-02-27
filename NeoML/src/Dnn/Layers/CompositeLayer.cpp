@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -200,6 +200,22 @@ CPtr<const CBaseLayer> CCompositeLayer::GetLayer(const char* name) const
 {
 	CheckArchitecture( layerMap.Has(name), name, "layer is not in this composite layer" );
 	return layerMap.Get(name);
+}
+
+CPtr<CBaseLayer> CCompositeLayer::GetLayer(const CArray<CString>& path)
+{
+	CPtr<CCompositeLayer> currComp = this;
+	for(int i = 0; i < path.Size() - 1; ++i ) {
+		CheckArchitecture(currComp->layerMap.Has(path[i]), path[i], "layer is not in this composite layer");
+		currComp = CheckCast<CCompositeLayer>( currComp->GetLayer(path[i]).Ptr() );
+	}
+	CheckArchitecture(currComp->HasLayer(path.Last()), path.Last(), "layer is not contained by this path");
+	return currComp->GetLayer(path.Last());
+}
+
+CPtr<const CBaseLayer> CCompositeLayer::GetLayer(const CArray<CString>& path) const
+{
+	return const_cast<CCompositeLayer*>(this)->GetLayer(path);
 }
 
 bool CCompositeLayer::HasLayer(const char* name) const
