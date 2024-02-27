@@ -151,6 +151,12 @@ size_t CCpuMathEngine::GetPeakMemoryUsage() const
 	return memoryPool->GetPeakMemoryUsage();
 }
 
+void CCpuMathEngine::ResetPeakMemoryUsage()
+{
+	std::lock_guard<std::mutex> lock( mutex );
+	memoryPool->ResetPeakMemoryUsage();
+}
+
 size_t CCpuMathEngine::GetMemoryInPools() const
 {
 	std::lock_guard<std::mutex> lock( mutex );

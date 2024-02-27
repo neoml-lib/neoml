@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -450,6 +450,28 @@ CPtr<const CBaseLayer> CDnn::GetLayer( const char* name ) const
 {
 	CheckArchitecture( layerMap.Has( name ), name, "layer is not in this dnn" );
 	return layerMap.Get( name );
+}
+
+CPtr<CBaseLayer> CDnn::GetLayer( const CArray<CString>& path)
+{
+	CheckArchitecture(path.Size() > 0, "NULL", "can not find layer - empty path");
+	if (path.Size() == 1) {
+		return GetLayer(path[0]);
+	} else {
+		CheckArchitecture(layerMap.Has(path[0]), path[0], "layer is not in this dnn");
+		CPtr<CCompositeLayer> currComp = CheckCast<CCompositeLayer>( GetLayer(path[0]).Ptr() );
+		for (int i = 1; i < path.Size() - 1; ++i) {
+			CheckArchitecture(currComp->HasLayer(path[i]), path[i], "layer is not in this composite layer");
+			currComp = CheckCast<CCompositeLayer>(currComp->GetLayer(path[i]).Ptr());
+		}
+		CheckArchitecture(currComp->HasLayer(path.Last()), path.Last(), "layer is not contained by this path");
+		return currComp->GetLayer(path.Last());
+	}
+}
+
+CPtr<const CBaseLayer> CDnn::GetLayer(const CArray<CString>& path) const
+{
+	return const_cast<CDnn*>(this)->GetLayer(path);
 }
 
 void CDnn::AddLayerImpl( CBaseLayer& layer )
