@@ -28,17 +28,10 @@ limitations under the License.
 
 namespace NeoML {
 
-CDropoutDesc* CCudaMathEngine::InitDropout(float rate, bool isSpatial, bool isBatchwise)
+CDropoutDesc* CCudaMathEngine::InitDropout(float rate, bool isSpatial, bool isBatchwise,
+	const CBlobDesc& input, const CBlobDesc& output, int seed)
 {
-	return new CSeedDropoutDesc(mathEngine(), rate, isSpatial, isBatchwise, false);;
-}
-
-void CCudaMathEngine::UpdateDropout(CDropoutDesc* dropoutDesc,
-	const CBlobDesc* input, const CBlobDesc* output, int seed, bool valid)
-{
-	ASSERT_EXPR(dropoutDesc != nullptr);
-	auto seedDesc = static_cast<CSeedDropoutDesc*>(dropoutDesc);
-	seedDesc->UpdateDesc(input, output, seed, valid);
+	return new CSeedDropoutDesc(rate, isSpatial, isBatchwise, input, output, seed);
 }
 
 void CCudaMathEngine::Dropout( const CDropoutDesc& dropoutDesc,
@@ -49,7 +42,6 @@ void CCudaMathEngine::Dropout( const CDropoutDesc& dropoutDesc,
 	SetCudaDevice( device->DeviceNumber );
 
 	const CSeedDropoutDesc& desc = static_cast<const CSeedDropoutDesc&>( dropoutDesc );
-	ASSERT_EXPR( desc.IsValid );
 
 	const CBlobDesc& input = desc.Input;
 

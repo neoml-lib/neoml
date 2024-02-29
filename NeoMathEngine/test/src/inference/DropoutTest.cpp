@@ -40,7 +40,7 @@ static void dropoutNaive( int batchLength, int batchWidth, int h, int w, int d, 
 	CExpectedRandom expectedRandom(seed);
 	const unsigned int threshold = (unsigned int)((double)forwardRate * UINT_MAX);
 
-	const int generatedSize = 4;
+	constexpr int generatedSize = 4;
 	int maskSize;
 	int generatingLine;
 
@@ -127,8 +127,7 @@ static void dropoutTestImpl( const CTestParams& params, int seed )
 	dropoutNaive( batchLength, batchWidth, height, width, depth, channels, rate, isSpatial, isBatchwise, seed, inputData.data(), expected.data() );
 
 	// actual
-	CDropoutDesc* dropoutDesc = MathEngine().InitDropout(rate, isSpatial, isBatchwise);
-	MathEngine().UpdateDropout(dropoutDesc, &(input.GetDesc()), &(output.GetDesc()), seed, true);
+	CDropoutDesc* dropoutDesc = MathEngine().InitDropout( rate, isSpatial, isBatchwise, input.GetDesc(), output.GetDesc(), seed );
 	MathEngine().Dropout( *dropoutDesc, input.GetData(), output.GetData() );
 	delete dropoutDesc;
 	std::vector<float> result;

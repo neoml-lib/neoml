@@ -134,9 +134,8 @@ private:
 	void merge();
 	void split();
 	void recalcBaseWeights();
-	void disableDropoutDesc();
-	void destroyDropoutDesc();
 	void initDropoutDesc();
+	void destroyDropoutDesc();
 };
 
 } // namespace NeoML

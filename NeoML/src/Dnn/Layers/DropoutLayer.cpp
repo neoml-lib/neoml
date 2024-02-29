@@ -1,4 +1,4 @@
-/* Copyright © 2017-2024 ABBYY
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,13 +17,12 @@ limitations under the License.
 #pragma hdrstop
 
 #include <NeoML/Dnn/Layers/DropoutLayer.h>
-#include <NeoMathEngine/NeoMathEngine.h>
 
 namespace NeoML {
 
 CDropoutLayer::CDropoutLayer( IMathEngine& mathEngine ) :
 	CBaseInPlaceLayer( mathEngine, "CCnnDropoutLayer" ),
-	desc( nullptr ),
+	desc( 0 ),
 	dropoutRate( 0 ),
 	isSpatial( false ),
 	isBatchwise( false )
@@ -42,7 +41,7 @@ void CDropoutLayer::Serialize( CArchive& archive )
 	archive.Serialize( isBatchwise );
 
 	if( archive.IsLoading() ) {
-		OnReshaped();
+		destroyDropoutDesc();
 	}
 }
 
@@ -51,8 +50,8 @@ void CDropoutLayer::SetDropoutRate( float value )
 	NeoAssert( value >= 0.f && value < 1.f );
 	if( dropoutRate != value ) {
 		dropoutRate = value;
-		if( GetDnn() != nullptr) {
-			OnReshaped();
+		if( GetDnn() != 0 ) {
+			destroyDropoutDesc();
 		}
 	}
 }
@@ -61,8 +60,8 @@ void CDropoutLayer::SetSpatial( bool value )
 {
 	if( value != isSpatial ) {
 		isSpatial = value;
-		if( GetDnn() != nullptr ) {
-			OnReshaped();
+		if( GetDnn() != 0 ) {
+			destroyDropoutDesc();
 		}
 	}
 }
@@ -71,8 +70,8 @@ void CDropoutLayer::SetBatchwise( bool value )
 {
 	if( value != isBatchwise ) {
 		isBatchwise = value;
-		if( GetDnn() != nullptr ) {
-			OnReshaped();
+		if( GetDnn() != 0 ) {
+			destroyDropoutDesc();
 		}
 	}
 }
@@ -80,7 +79,6 @@ void CDropoutLayer::SetBatchwise( bool value )
 void CDropoutLayer::OnReshaped()
 {
 	destroyDropoutDesc();
-	initDropoutDesc();
 }
 
 void CDropoutLayer::RunOnce()
@@ -93,8 +91,7 @@ void CDropoutLayer::RunOnce()
 		return;
 	}
 
-	MathEngine().UpdateDropout(desc, &(inputBlobs[0]->GetDesc()), &(outputBlobs[0]->GetDesc()),
-		GetDnn()->Random().Next(), true);
+	initDropoutDesc();
 
 	MathEngine().Dropout( *desc, inputBlobs[0]->GetData(), outputBlobs[0]->GetData() );
 }
@@ -102,38 +99,29 @@ void CDropoutLayer::RunOnce()
 void CDropoutLayer::BackwardOnce()
 {
 	// Backward pass is only possible when learning
-	NeoAssert( desc != nullptr );
+	NeoAssert( desc != 0 );
 
 	MathEngine().Dropout( *desc, outputDiffBlobs[0]->GetData(), inputDiffBlobs[0]->GetData() );
 
 	if( !GetDnn()->IsRecurrentMode() || GetDnn()->IsFirstSequencePos() ) {
 		// Clear the memory after the whole sequence is processed
-		disableDropoutDesc();
-	}
-}
-
-CDropoutLayer::~CDropoutLayer()
-{
-	destroyDropoutDesc();
-}
-
-void CDropoutLayer::disableDropoutDesc()
-{
-	MathEngine().UpdateDropout(desc, nullptr, nullptr, 0, false);
-}
-
-void CDropoutLayer::destroyDropoutDesc()
-{
-	if( desc != nullptr ) {
-		delete desc;
-		desc = nullptr;
+		destroyDropoutDesc();
 	}
 }
 
 void CDropoutLayer::initDropoutDesc()
 {
-	if (desc == nullptr) {
-		desc = MathEngine().InitDropout(dropoutRate, isSpatial, isBatchwise);
+	if( desc == 0 ) {
+		desc = MathEngine().InitDropout( dropoutRate, isSpatial, isBatchwise, inputBlobs[0]->GetDesc(), outputBlobs[0]->GetDesc(),
+			GetDnn()->Random().Next() );
+	}
+}
+
+void CDropoutLayer::destroyDropoutDesc()
+{
+	if( desc != 0 ) {
+		delete desc;
+		desc = 0;
 	}
 }
 

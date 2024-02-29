@@ -25,17 +25,10 @@ limitations under the License.
 
 namespace NeoML {
 
-CDropoutDesc* CCpuMathEngine::InitDropout(float rate, bool isSpatial, bool isBatchwise)
+CDropoutDesc* CCpuMathEngine::InitDropout(float rate, bool isSpatial, bool isBatchwise,
+	const CBlobDesc& input, const CBlobDesc& output, int seed)
 {
-	return new CSeedDropoutDesc(mathEngine(), rate, isSpatial, isBatchwise, true);;
-}
-
-void CCpuMathEngine::UpdateDropout(CDropoutDesc* dropoutDesc, const CBlobDesc* input,
-	const CBlobDesc* output, int seed, bool valid)
-{
-	ASSERT_EXPR(dropoutDesc != nullptr);
-	auto seedDesc = static_cast<CSeedDropoutDesc*>(dropoutDesc);
-	seedDesc->UpdateDesc(input, output, seed, valid);
+	return new CSeedDropoutDesc(rate, isSpatial, isBatchwise, input, output, seed);;
 }
 
 void CCpuMathEngine::Dropout(const CDropoutDesc& dropoutDesc, const CFloatHandle& inputData, const CFloatHandle& outputData)
@@ -43,7 +36,6 @@ void CCpuMathEngine::Dropout(const CDropoutDesc& dropoutDesc, const CFloatHandle
 	CCpuExecutionScope scope;
 
 	const CSeedDropoutDesc& desc = static_cast<const CSeedDropoutDesc&>(dropoutDesc);
-	ASSERT_EXPR( desc.IsValid );
 
 	const CBlobDesc& input = desc.Input;
 
@@ -61,121 +53,52 @@ void CCpuMathEngine::Dropout(const CDropoutDesc& dropoutDesc, const CFloatHandle
 	CIntArray<CSeedDropoutDesc::MaskAlign> generated;
 
 	const int inputObjectSize = input.ObjectSize();
-	const float* inputPointer = GetRaw(inputData);
-	float* outputPointer = GetRaw(outputData);
-	float* mask = GetRaw(desc.Mask->GetHandle());
 	const unsigned int threshold = desc.Threshold;
 	const float value = desc.Value;
 	constexpr int cacheSize = CSeedDropoutDesc::CacheSize;
 	constexpr int maskAlign = CSeedDropoutDesc::MaskAlign;
-	constexpr int numOfGenerations = CSeedDropoutDesc::NumOfGenerations;
 
-	if(!desc.IsSpatial) {
-		const int numOfIter = (maskSize + cacheSize - 1) / cacheSize;
-		const int currSize = maskSize - (numOfIter - 1) * cacheSize;
-		const int lastGenerations = (currSize + (maskAlign - 1)) / maskAlign;
+	const float* inputPointer = GetRaw(inputData);
+	float* outputPointer = GetRaw(outputData);
+	float mask[cacheSize];
 
-		for(int i = 0; i < numOfIter - 1; ++i) {
-			const float* first = inputPointer;
-			float* result = outputPointer;
+	const int unitSize = desc.IsSpatial ? objectSize : maskSize;
+	const int numOfIter = (unitSize + cacheSize - 1) / cacheSize;
+	const int channelsIterations = desc.IsSpatial ? (inputObjectSize / objectSize) : 1;
+	const int batchIterations = desc.IsSpatial ? batchWidth : 1;
+	const int batchWiseSize = desc.IsSpatial ? inputObjectSize : 0;
+	const int nextBatchStep = desc.IsSpatial ? batchWidth * inputObjectSize : unitSize;
 
+	for (int i = 0; i < batchIterations; ++i) {
+		for (int j = 0; j < numOfIter; ++j) {
+			int currSize = std::min(cacheSize, unitSize - j * cacheSize);
+			const int numOfGenerations = (currSize + (maskAlign - 1)) / maskAlign;
 			int idx = 0;
-			for(int i = 0; i < numOfGenerations; ++i) {
+			for (int g = 0; g < numOfGenerations; ++g) {
 				generated = random.Next();
-				for(int j = 0; j < maskAlign; ++j) {
-					mask[idx++] = (generated[j] <= threshold) ? value : 0.f;
-				}
-			}
-
-			for(int b = 0; b < batchLength; ++b) {
-				vectorEltwiseMultiply(first, mask, result, cacheSize);
-
-				first += maskSize;
-				result += maskSize;
-			}
-
-			inputPointer += cacheSize;
-			outputPointer += cacheSize;
-		}
-
-		// last generation
-		const float* first = inputPointer;
-		float* result = outputPointer;
-
-		int idx = 0;
-		for(int i = 0; i < lastGenerations; ++i) {
-			generated = random.Next();
-			for (int j = 0; j < maskAlign && idx < currSize; ++j) {
-				mask[idx++] = (generated[j] <= threshold) ? value : 0.f;
-			}
-		}
-
-		for(int b = 0; b < batchLength; ++b) {
-			vectorEltwiseMultiply(first, mask, result, currSize);
-
-			first += maskSize;
-			result += maskSize;
-		}
-	} else {
-		const int numOfIter = (objectSize + cacheSize - 1) / cacheSize;
-		const int currSize = objectSize - (numOfIter - 1) * cacheSize;
-		const int lastGenerations = (currSize + (maskAlign - 1)) / maskAlign;
-		const int channelIter = (inputObjectSize / objectSize);
-
-		for( int i = 0; i < batchWidth; ++i ) {
-			const float* first = inputPointer;
-			float* result = outputPointer;
-
-			for( int j = 0; j < numOfIter - 1; ++j ) {
-				int idx = 0;
-				for( int g = 0; g < numOfGenerations; ++g ) {
-					generated = random.Next();
-					for( int k = 0; k < maskAlign; ++k ) {
-						mask[idx++] = (generated[k] <= threshold) ? value : 0.f;
-					}
-				}
-
-				first = inputPointer + j * cacheSize;
-				result = outputPointer + j * cacheSize;
-				for( int b = 0; b < batchLength; ++b ) {
-					const float* localFirst = first;
-					float* localResult = result;
-					for( int k = 0; k < channelIter; ++k ) {
-						vectorEltwiseMultiply(localFirst, mask, localResult, cacheSize);
-						localFirst += objectSize;
-						localResult += objectSize;
-					}
-					first += batchWidth * inputObjectSize;
-					result += batchWidth * inputObjectSize;
-				}
-			}
-
-			// last generation
-			int idx = 0;
-			for(int g = 0; g < lastGenerations; ++g) {
-				generated = random.Next();
-				for (int k = 0; k < desc.MaskAlign && idx < currSize; ++k) {
+				for (int k = 0; k < maskAlign; ++k) {
 					mask[idx++] = (generated[k] <= threshold) ? value : 0.f;
 				}
 			}
 
-			first = inputPointer + (numOfIter - 1) * cacheSize;
-			result = outputPointer + (numOfIter - 1) * cacheSize;
-			for(int b = 0; b < batchLength; ++b) {
+			const float* first = inputPointer + j * cacheSize;
+			float* result = outputPointer + j * cacheSize;
+			for (int b = 0; b < batchLength; ++b) {
 				const float* localFirst = first;
 				float* localResult = result;
-				for( int k = 0; k < channelIter; ++k ) {
+				for (int k = 0; k < channelsIterations; ++k) {
 					vectorEltwiseMultiply(localFirst, mask, localResult, currSize);
+
 					localFirst += objectSize;
 					localResult += objectSize;
 				}
-				first += batchWidth * inputObjectSize;
-				result += batchWidth * inputObjectSize;
+				first += nextBatchStep;
+				result += nextBatchStep;
 			}
-
-			inputPointer += inputObjectSize;
-			outputPointer += inputObjectSize;
 		}
+
+		inputPointer += batchWiseSize;
+		outputPointer += batchWiseSize;
 	}
 }
 

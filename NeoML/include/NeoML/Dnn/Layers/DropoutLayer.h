@@ -1,4 +1,4 @@
-/* Copyright © 2017-2024 ABBYY
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -44,7 +44,7 @@ public:
 	void SetBatchwise( bool value );
 
 protected:
-	~CDropoutLayer() override;
+	~CDropoutLayer() override { destroyDropoutDesc(); }
 
 	// CBaseLayer methods
 	void RunOnce() override;
@@ -58,9 +58,8 @@ private:
 	bool isSpatial; // the spatial mode (channel-wise)
 	bool isBatchwise; // the batchwise mode
 
-	void disableDropoutDesc();
-	void destroyDropoutDesc();
 	void initDropoutDesc();
+	void destroyDropoutDesc();
 };
 
 NEOML_API CLayerWrapper<CDropoutLayer> Dropout( float dropoutRate,

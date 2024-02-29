@@ -1,4 +1,4 @@
-/* Copyright © 2023-2024 ABBYY
+/* Copyright © 2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -49,23 +49,19 @@ CLoraFullyConnectedLayer::~CLoraFullyConnectedLayer()
 	destroyDropoutDesc();
 }
 
-void CLoraFullyConnectedLayer::disableDropoutDesc()
+void CLoraFullyConnectedLayer::initDropoutDesc()
 {
-	MathEngine().UpdateDropout(desc, nullptr, nullptr, 0, false);
+	if( desc == nullptr ) {
+		desc = MathEngine().InitDropout( lora.Dropout, /*isSpatial*/false, /*isBatchwise*/false,
+			inputBlobs[0]->GetDesc(), inputBlobs[0]->GetDesc(), GetDnn()->Random().Next() );
+	}
 }
 
 void CLoraFullyConnectedLayer::destroyDropoutDesc()
 {
-	if(desc != nullptr) {
+	if( desc != nullptr ) {
 		delete desc;
 		desc = nullptr;
-	}
-}
-
-void CLoraFullyConnectedLayer::initDropoutDesc()
-{
-	if(desc == nullptr) {
-		desc = MathEngine().InitDropout(lora.Dropout, false, false);
 	}
 }
 
@@ -85,6 +81,7 @@ void CLoraFullyConnectedLayer::Serialize( CArchive& archive )
 
 	if( archive.IsLoading() ) {
 		initialize( params );
+		destroyDropoutDesc();
 	}
 }
 
@@ -100,8 +97,6 @@ void CLoraFullyConnectedLayer::UpdateParams( const CLoraParams& newParams, CDnnB
 
 void CLoraFullyConnectedLayer::Reshape()
 {
-	initDropoutDesc();
-
 	CheckLayerArchitecture( GetInputCount() == 1, "LoraFullyConnected Layer must have only 1 input" );
 	CheckLayerArchitecture( GetOutputCount() == 1, "LoraFullyConnected Layer must have only 1 output" );
 
@@ -141,6 +136,8 @@ void CLoraFullyConnectedLayer::Reshape()
 	outputDescs[0].SetDimSize( BD_Width, 1 );
 	outputDescs[0].SetDimSize( BD_Depth, 1 );
 	outputDescs[0].SetDimSize( BD_Channels, NumberOfElements() );
+
+	destroyDropoutDesc();
 }
 
 void CLoraFullyConnectedLayer::RunOnce()
@@ -190,7 +187,7 @@ void CLoraFullyConnectedLayer::RunOnce()
 
 		CConstFloatHandle tempInputData = inputData;
 		if( lora.Dropout > 0.f ) {
-			MathEngine().UpdateDropout(desc, &(inputBlobs[0]->GetDesc()), &(inputBlobs[0]->GetDesc()), GetDnn()->Random().Next(), true);
+			initDropoutDesc();
 			MathEngine().Dropout( *desc, inputBlobs[0]->GetData(), temp.GetHandle() );
 			tempInputData = temp.GetHandle();
 		}
@@ -280,7 +277,7 @@ void CLoraFullyConnectedLayer::BackwardOnce()
 		NeoAssert( desc != nullptr ); // Backward pass is only possible when learning
 		MathEngine().Dropout( *desc, inputDiff, tempInputDiff );
 		if( !GetDnn()->IsRecurrentMode() || GetDnn()->IsFirstSequencePos() ) {
-			disableDropoutDesc(); // Clear the memory after the whole sequence is processed
+			destroyDropoutDesc(); // Clear the memory after the whole sequence is processed
 		}
 	}
 
@@ -364,8 +361,6 @@ void CLoraFullyConnectedLayer::initialize( const CLoraParams& params )
 		scaling = CDnnBlob::CreateVector( MathEngine(), CT_Float, 1 );
 	}
 	scaling->GetData().SetValue( scale );
-	destroyDropoutDesc();
-	initDropoutDesc();
 }
 
 void CLoraFullyConnectedLayer::merge()
