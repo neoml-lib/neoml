@@ -1204,6 +1204,8 @@ public:
 
 	// Gets the peak memory usage achieved during processing
 	virtual size_t GetPeakMemoryUsage() const = 0;
+	// Reset the peak memory counter to the current memory usage value
+	virtual void ResetPeakMemoryUsage() = 0;
 
 	// The current size of memory in the pools
 	virtual size_t GetMemoryInPools() const = 0;

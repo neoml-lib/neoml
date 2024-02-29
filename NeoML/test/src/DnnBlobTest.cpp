@@ -183,6 +183,10 @@ static void testTransferBlobInThreadsImpl( TTransferType type )
 
     oldThread.join();
     newThread.join();
+
+    EXPECT_TRUE( mathEngine.GetPeakMemoryUsage() > 0 );
+    mathEngine.ResetPeakMemoryUsage();
+    EXPECT_TRUE( mathEngine.GetPeakMemoryUsage() == 0 );
 }
 
 } // namespace NeoMLTest

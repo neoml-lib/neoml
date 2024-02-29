@@ -57,6 +57,12 @@ size_t CCudaMathEngine::GetPeakMemoryUsage() const
 	return memoryPool->GetPeakMemoryUsage();
 }
 
+void CCudaMathEngine::ResetPeakMemoryUsage()
+{
+	std::lock_guard<std::mutex> lock( mutex );
+	memoryPool->ResetPeakMemoryUsage();
+}
+
 size_t CCudaMathEngine::GetMemoryInPools() const
 {
 	std::lock_guard<std::mutex> lock( mutex );
