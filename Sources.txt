@@ -23,8 +23,3 @@ copy;%ROOT%/../NeoOnnx;%ROOT%/NeoML/NeoOnnx
 copy;%ROOT%/../NeoProxy;%ROOT%/NeoML/NeoProxy
 copy;%ROOT%/../cmake;%ROOT%/NeoML/cmake
 copy;%ROOT%/../Build;%ROOT%/NeoML/Build
-
-if(met != MET_Cpu && met != MET_Cuda) {
-	GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
-	return;
-}

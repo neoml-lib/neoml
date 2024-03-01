@@ -172,6 +172,12 @@ static void checkSerializedNet( const CString& fileName )
 // Checks serialization of the old versions of CDnn
 TEST_P( CDnnSerializationTest, PreviousVersions )
 {
+	const auto met = MathEngine().GetType();
+	if (met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	CTestParams params = GetParam();
 	const CString fileName = params.GetStrValue( "FileName" );
 	checkSerializedNet( fileName );

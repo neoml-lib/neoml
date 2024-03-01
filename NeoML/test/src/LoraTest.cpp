@@ -175,6 +175,12 @@ TEST( LoraFullyConnectedLayerTest, Initialization )
 
 TEST( LoraFullyConnectedLayerTest, InferenceAndLearning )
 {
+	const auto met = MathEngine().GetType();
+	if (met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	constexpr int inputSize = 32;
 	constexpr int outputSize = 16;
 
@@ -227,6 +233,12 @@ TEST( LoraFullyConnectedLayerTest, InferenceAndLearning )
 
 TEST( LoraBuilderTest, DefaultTransformer )
 {
+	const auto met = MathEngine().GetType();
+	if (met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	constexpr int ioSize = 48;
 
 	CRandom random( 0xABBA );
@@ -253,6 +265,12 @@ TEST( LoraBuilderTest, DefaultTransformer )
 
 TEST( LoraBuilderTest, BuildNoRecurrentReplacement )
 {
+	const auto met = MathEngine().GetType();
+	if (met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	constexpr int ioSize = 48;
 
 	CRandom random( 0xABBA );
@@ -283,6 +301,12 @@ TEST( LoraBuilderTest, BuildNoRecurrentReplacement )
 
 TEST( LoraBuilderTest, MergeAndDiscardTest )
 {
+	const auto met = MathEngine().GetType();
+	if (met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	constexpr int ioSize = 12;
 
 	CRandom random( 0xACCA );
@@ -423,6 +447,12 @@ static void loraFcSerializerTestImpl( bool initialize, bool discardBeforeLoad )
 
 TEST( LoraSerializerTest, LoraFc )
 {
+	const auto met = MathEngine().GetType();
+	if (met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	for( bool initialize : { true, false } ) {
 		for( bool discardBeforeLora : { true, false } ) {
 			loraFcSerializerTestImpl( initialize, discardBeforeLora );
@@ -443,6 +473,12 @@ class CLoraTestDistDataset : public IDistributedDataset {
 
 TEST( LoraSerializerTest, Distributed )
 {
+	const auto met = MathEngine().GetType();
+	if (met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	// Setting bigger size (full weights will be ioSize x ioSize matrix)
 	constexpr int ioSize = 100;
 	constexpr __int64 fullMatrixSize = static_cast<__int64>( sizeof( float ) * ioSize * ioSize );
@@ -498,6 +534,12 @@ TEST( LoraSerializerTest, Distributed )
 
 TEST( LoraSerializerTest, DistributedCheckpoint )
 {
+	const auto met = MathEngine().GetType();
+	if (met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	constexpr int ioSize = 10;
 
 	CRandom random( 0xABBA );

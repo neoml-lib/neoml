@@ -25,7 +25,6 @@ static void testLinearInterpolation( TInterpolationCoords coords, TInterpolation
 	ASSERT_EQ( expected.size(), static_cast<size_t>( objectCount ) * static_cast<int>( scaledAxis * scale ) * objectSize );
 
 	std::vector<float> actual( expected.size() );
-
 	MathEngine().LinearInterpolation( CARRAY_FLOAT_WRAPPER( input ), CARRAY_FLOAT_WRAPPER( actual ),
 		coords, round, objectCount, scaledAxis, objectSize, scale );
 
