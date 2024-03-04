@@ -175,5 +175,11 @@ INSTANTIATE_TEST_CASE_P( CMathEngineBlobChannelwiseConvolutionLearnAddTestInstan
 
 TEST_P( CMathEngineBlobChannelwiseConvolutionLearnAddTest, Random )
 {
+	const auto met = MathEngine().GetType();
+	if (met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	RUN_TEST_IMPL( blobChannelwiseConvolutionLearnAddImpl );
 }

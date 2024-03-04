@@ -306,6 +306,12 @@ static std::initializer_list<CActivationDesc> mnv3SeActivations = {
 
 TEST( MobileNetV3BlockLayerTest, Run )
 {
+	const auto met = MathEngine().GetType();
+	if (met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	// This test is allowed on GPU because of backward compatibility
 	CRandom seedRandom( 0x654 );
 

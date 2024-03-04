@@ -58,6 +58,12 @@ INSTANTIATE_TEST_CASE_P( CVectorEltwiseWhereTestInstantiation, CVectorEltwiseWhe
 
 TEST_P( CVectorEltwiseWhereTest, Random )
 {
+	const auto met = MathEngine().GetType();
+	if (met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	RUN_TEST_IMPL( vectorEltwiseWhereImpl<float> );
 	RUN_TEST_IMPL( vectorEltwiseWhereImpl<int> );
 }

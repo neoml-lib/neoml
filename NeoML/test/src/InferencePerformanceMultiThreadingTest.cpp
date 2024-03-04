@@ -193,6 +193,12 @@ using namespace NeoMLTest;
 
 TEST_P( CDnnInferencePerformanceTest, OneMathEngine )
 {
+	const auto met = MathEngine().GetType();
+	if (met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	const auto& param = GetParam();
 
 	auto& mathEngine = MathEngine();
@@ -221,6 +227,12 @@ TEST_P( CDnnInferencePerformanceTest, OneMathEngine )
 
 TEST_P( CDnnInferencePerformanceTest, LocalMathEngine )
 {
+	const auto met = MathEngine().GetType();
+	if (met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	const auto& param = GetParam();
 
 	std::vector<std::future<ResultType>> results;

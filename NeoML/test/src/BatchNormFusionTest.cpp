@@ -50,6 +50,12 @@ void checkBnFusion( CDnn& dnn, CSinkLayer* sink, int expectedFusions )
 
 TEST( BatchNormFusionTest, SimpleFusion )
 {
+	const auto met = MathEngine().GetType();
+	if (met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	CRandom random( 0x654 );
 	CDnn dnn( random, MathEngine() );
 	CSourceLayer* data = Source( dnn, "source" );
@@ -71,6 +77,12 @@ TEST( BatchNormFusionTest, SimpleFusion )
 
 TEST( BatchNormFusionTest, DoubleFusion )
 {
+	const auto met = MathEngine().GetType();
+	if (met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	CRandom random( 0x654 );
 	CDnn dnn( random, MathEngine() );
 	CSourceLayer* data = Source( dnn, "source" );
@@ -86,6 +98,12 @@ TEST( BatchNormFusionTest, DoubleFusion )
 
 TEST( BatchNormFusionTest, ImpossibleFusion )
 {
+	const auto met = MathEngine().GetType();
+	if (met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	CRandom random( 0x654 );
 	CDnn dnn( random, MathEngine() );
 	CSourceLayer* data = Source( dnn, "source" );

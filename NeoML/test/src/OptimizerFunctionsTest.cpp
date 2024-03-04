@@ -165,6 +165,12 @@ REGISTER_NEOML_LAYER( CTwoConvActivationTestLayer, "CTwoConvActivationTestLayer"
 
 TEST( UnpackCompositeOptimizerTest, Sample )
 {
+	const auto met = MathEngine().GetType();
+	if (met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	CRandom random( 0x9845 );
 	CDnn dnn( random, MathEngine() );
 	CSourceLayer* source = Source( dnn, "source" );

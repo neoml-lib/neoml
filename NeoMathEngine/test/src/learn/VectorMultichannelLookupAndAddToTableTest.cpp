@@ -119,6 +119,12 @@ class CMathEngineMultichannelLookupAndAddToTableTest : public CTestFixtureWithPa
 
 TEST_P( CMathEngineMultichannelLookupAndAddToTableTest, Random )
 {
+	const auto met = MathEngine().GetType();
+	if (met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+
+	}
 	RUN_TEST_IMPL( multichannelLookupAndAddToTableImpl<float> )
 	RUN_TEST_IMPL( multichannelLookupAndAddToTableImpl<int> )
 }

@@ -26,7 +26,7 @@ static void filterSmallValuesImpl( const CTestParams& params, int seed )
 
 	const float threshold = static_cast<float>( random.Uniform( 0.01, valuesInterval.End ) );
 	const int vectorSize = random.UniformInt( vectorSizeInterval.Begin, vectorSizeInterval.End );
-	CREATE_FILL_FLOAT_ARRAY( vector, valuesInterval.Begin, valuesInterval.End, vectorSize, random )
+	CREATE_FILL_FLOAT_ARRAY(vector, valuesInterval.Begin, valuesInterval.End, vectorSize, random);
 	std::vector<float> vectorCopy;
 	vectorCopy = vector;
 
@@ -57,5 +57,11 @@ INSTANTIATE_TEST_CASE_P( CFilterSmallValuesTestInstantiation, CFilterSmallValues
 
 TEST_P( CFilterSmallValuesTest, Random )
 {
+	const auto met = MathEngine().GetType();
+	if (met != MET_Cpu && met != MET_Cuda) {
+		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		return;
+	}
+
 	RUN_TEST_IMPL( filterSmallValuesImpl );
 }
