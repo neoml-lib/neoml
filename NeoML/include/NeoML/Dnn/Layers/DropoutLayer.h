@@ -44,8 +44,6 @@ public:
 	void SetBatchwise( bool value );
 
 protected:
-	~CDropoutLayer() override { destroyDropoutDesc(); }
-
 	// CBaseLayer methods
 	void RunOnce() override;
 	void BackwardOnce() override;
@@ -53,13 +51,13 @@ protected:
 	int BlobsForBackward() const override { return 0; }
 
 private:
-	CDropoutDesc* desc; // the dropout description
+	CPointerArray<CDropoutDesc> descs; // the dropout descriptions
 	float dropoutRate; // the dropout rate
 	bool isSpatial; // the spatial mode (channel-wise)
 	bool isBatchwise; // the batchwise mode
 
-	void initDropoutDesc();
-	void destroyDropoutDesc();
+	void initDropoutDescs();
+	void destroyDropoutDescs();
 };
 
 NEOML_API CLayerWrapper<CDropoutLayer> Dropout( float dropoutRate,

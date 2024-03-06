@@ -22,7 +22,6 @@ namespace NeoML {
 
 CDropoutLayer::CDropoutLayer( IMathEngine& mathEngine ) :
 	CBaseInPlaceLayer( mathEngine, "CCnnDropoutLayer" ),
-	desc( 0 ),
 	dropoutRate( 0 ),
 	isSpatial( false ),
 	isBatchwise( false )
@@ -41,7 +40,7 @@ void CDropoutLayer::Serialize( CArchive& archive )
 	archive.Serialize( isBatchwise );
 
 	if( archive.IsLoading() ) {
-		destroyDropoutDesc();
+		destroyDropoutDescs();
 	}
 }
 
@@ -51,7 +50,7 @@ void CDropoutLayer::SetDropoutRate( float value )
 	if( dropoutRate != value ) {
 		dropoutRate = value;
 		if( GetDnn() != 0 ) {
-			destroyDropoutDesc();
+			destroyDropoutDescs();
 		}
 	}
 }
@@ -61,7 +60,7 @@ void CDropoutLayer::SetSpatial( bool value )
 	if( value != isSpatial ) {
 		isSpatial = value;
 		if( GetDnn() != 0 ) {
-			destroyDropoutDesc();
+			destroyDropoutDescs();
 		}
 	}
 }
@@ -71,57 +70,63 @@ void CDropoutLayer::SetBatchwise( bool value )
 	if( value != isBatchwise ) {
 		isBatchwise = value;
 		if( GetDnn() != 0 ) {
-			destroyDropoutDesc();
+			destroyDropoutDescs();
 		}
 	}
 }
 
 void CDropoutLayer::OnReshaped()
 {
-	destroyDropoutDesc();
+	destroyDropoutDescs();
 }
 
 void CDropoutLayer::RunOnce()
 {
-	CheckInput1();
-
 	if( !IsBackwardPerformed() ) {
-		MathEngine().VectorCopy( outputBlobs[0]->GetData(), inputBlobs[0]->GetData(),
-			inputBlobs[0]->GetDataSize() );
+		for( int i = 0; i < inputBlobs.Size(); ++i ) {
+			MathEngine().VectorCopy( outputBlobs[i]->GetData(), inputBlobs[i]->GetData(),
+				inputBlobs[i]->GetDataSize() );
+		}
 		return;
 	}
 
-	initDropoutDesc();
+	initDropoutDescs();
 
-	MathEngine().Dropout( *desc, inputBlobs[0]->GetData(), outputBlobs[0]->GetData() );
+	for( int i = 0; i < inputBlobs.Size(); ++i ) {
+		MathEngine().Dropout( *descs[i], inputBlobs[0]->GetData(), outputBlobs[0]->GetData());
+	}
 }
 
 void CDropoutLayer::BackwardOnce()
 {
-	// Backward pass is only possible when learning
-	NeoAssert( desc != 0 );
+	for( int i = 0; i < outputDiffBlobs.Size(); ++i ) {
+		// Backward pass is only possible when learning
+		NeoAssert( descs[i] != 0 );
 
-	MathEngine().Dropout( *desc, outputDiffBlobs[0]->GetData(), inputDiffBlobs[0]->GetData() );
+		MathEngine().Dropout( *descs[i], outputDiffBlobs[i]->GetData(), inputDiffBlobs[i]->GetData());
+	}
 
 	if( !GetDnn()->IsRecurrentMode() || GetDnn()->IsFirstSequencePos() ) {
 		// Clear the memory after the whole sequence is processed
-		destroyDropoutDesc();
+		destroyDropoutDescs();
 	}
 }
 
-void CDropoutLayer::initDropoutDesc()
+void CDropoutLayer::initDropoutDescs()
 {
-	if( desc == 0 ) {
-		desc = MathEngine().InitDropout( dropoutRate, isSpatial, isBatchwise, inputBlobs[0]->GetDesc(), outputBlobs[0]->GetDesc(),
-			GetDnn()->Random().Next() );
+	descs.SetSize( inputBlobs.Size() );
+	for( int i = 0; i < descs.Size(); ++i ) {
+		if( descs[i] == nullptr ) {
+			descs.ReplaceAt( MathEngine().InitDropout( dropoutRate, isSpatial, isBatchwise, inputBlobs[0]->GetDesc(),
+				outputBlobs[0]->GetDesc(), GetDnn()->Random().Next() ), i );
+		}
 	}
 }
 
-void CDropoutLayer::destroyDropoutDesc()
+void CDropoutLayer::destroyDropoutDescs()
 {
-	if( desc != 0 ) {
-		delete desc;
-		desc = 0;
+	for( int i = 0; i < descs.Size(); ++i ) {
+		descs.ReplaceAt( nullptr, i );
 	}
 }
 
