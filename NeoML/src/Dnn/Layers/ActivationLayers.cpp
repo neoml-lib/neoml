@@ -230,28 +230,32 @@ CActivationDesc CLinearLayer::GetDesc() const
 
 void CLinearLayer::RunOnce()
 {
-	const int dataSize = outputBlobs[0]->GetDataSize();
+	for( int i = 0; i < inputBlobs.Size(); ++i ) {
+		const int dataSize = outputBlobs[i]->GetDataSize();
 
-	if( inputBlobs[0]->GetDataType() == CT_Float ) {
-		linearRunOnce( inputBlobs[0]->GetData<const float>(), multiplier, freeTerm, dataSize, outputBlobs[0]->GetData() );
-	} else {
-		linearRunOnce( inputBlobs[0]->GetData<const int>(), static_cast<int>( multiplier ),
-			static_cast<int>( freeTerm ), dataSize, outputBlobs[0]->GetData<int>() );
+		if( inputBlobs[i]->GetDataType() == CT_Float ) {
+			linearRunOnce( inputBlobs[i]->GetData<const float>(), multiplier, freeTerm, dataSize, outputBlobs[i]->GetData() );
+		} else {
+			linearRunOnce( inputBlobs[i]->GetData<const int>(), static_cast<int>( multiplier ),
+				static_cast< int >( freeTerm ), dataSize, outputBlobs[i]->GetData<int>() );
+		}
 	}
 }
 
 void CLinearLayer::BackwardOnce()
 {
-	CConstFloatHandle outputDiffPtr = outputDiffBlobs[0]->GetData();
-	CFloatHandle inputDiffPtr = inputDiffBlobs[0]->GetData();
-	int dataSize = outputDiffBlobs[0]->GetDataSize();
+	for( int i = 0; i < outputBlobs.Size(); ++i ) {
+		CConstFloatHandle outputDiffPtr = outputDiffBlobs[i]->GetData();
+		CFloatHandle inputDiffPtr = inputDiffBlobs[i]->GetData();
+		int dataSize = outputDiffBlobs[i]->GetDataSize();
 
-	if( multiplier != 1.f ) {
-		CFloatHandleStackVar multiplierValue( MathEngine() );
-		multiplierValue.SetValue( multiplier );
-		MathEngine().VectorMultiply( outputDiffPtr, inputDiffPtr, dataSize, multiplierValue );
-	} else if( outputDiffPtr != inputDiffPtr ) {
-		MathEngine().VectorCopy( inputDiffPtr, outputDiffPtr, dataSize );
+		if( multiplier != 1.f ) {
+			CFloatHandleStackVar multiplierValue( MathEngine() );
+			multiplierValue.SetValue( multiplier );
+			MathEngine().VectorMultiply( outputDiffPtr, inputDiffPtr, dataSize, multiplierValue );
+		} else if( outputDiffPtr != inputDiffPtr ) {
+			MathEngine().VectorCopy( inputDiffPtr, outputDiffPtr, dataSize );
+		}
 	}
 }
 
