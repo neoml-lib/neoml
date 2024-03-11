@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.11 FATAL_ERROR)
 
-project(NeoMathEngine LANGUAGES CXX)
+project(NeoMathEngine LANGUAGES CXX C ASM)
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../cmake)
 if(USE_FINE_OBJECTS)
