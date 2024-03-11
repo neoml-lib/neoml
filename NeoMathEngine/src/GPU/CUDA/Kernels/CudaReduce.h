@@ -86,9 +86,9 @@ inline __device__ float ReduceMaxXSharedBuffer(float* buffer)
 	return maxVal;
 }
 
-struct CValueWithIndex {
-	float Value;
-	int Index;
+struct CValueWithIndex final {
+	float Value = 0;
+	int Index = -1;
 };
 
 inline __device__ CValueWithIndex ReduceMaxWithIndexXSharedBuffer(CValueWithIndex* buffer)

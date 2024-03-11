@@ -38,9 +38,8 @@ __global__ void BuildTempMatrixKernel( const CCudaTimeConvolutionDescInternal de
 	const int padFront = desc.PaddingFront;
 	const int dilation = desc.Dilation;
 
-	int matrixRow;
-	int matrixCol;
-
+	int matrixRow = 0;
+	int matrixCol = 0;
 	if( !GetCudaTaskIndex2D( matrixPartHeight, matrixWidth, matrixRow, matrixCol ) ) {
 		return;
 	}
@@ -83,8 +82,8 @@ __global__ void BlobTimeConvolutionBackwardUnpackKernel( const CCudaTimeConvolut
 	int seqNum = batch / ( inputDiff.BatchWidth() * inputDiff.ListSize() );
 	int batchNum = batch % ( inputDiff.BatchWidth() * inputDiff.ListSize() );
 
-	int index;
-	int step;
+	int index = 0;
+	int step = 0;
 	int count = GetCudaTaskCountAndIndex(objectSize, combineCount, index, step);
 
 	// Initialize the sums
@@ -135,16 +134,16 @@ __global__ void BlobTimeConvolutionLearnFilterKernel( CCudaTimeConvolutionDescIn
 
 	const int batchWidth = desc.Source.BatchWidth();
 
-	int index;
+	int index = 0;
 	if( GetCudaTaskIndex( desc.Filter.BlobSize(), index ) ) {
 		filterDiff += index;
-		float res = 0;
 
 		const int filterChannel = index % objectSize;
 		index /= objectSize;
 		const int filterRow = index % filterHeight;
 		const int filterNum = index / filterHeight;
 
+		float res = 0;
 		for( int outL = 0; outL < outputLength; ++outL ) {
 			int inL = outL * desc.Stride - desc.PaddingFront + filterRow * desc.Dilation;
 			if( inL < 0 || inL >= inputLength ) {
