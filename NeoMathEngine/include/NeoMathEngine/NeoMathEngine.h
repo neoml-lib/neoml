@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -1235,14 +1235,45 @@ public:
 	// This object should be destroyed using the standard delete operator after use.
 	virtual IPerformanceCounters* CreatePerformanceCounters( bool isTimeOnly = false ) const = 0;
 
+	// Methods group for the DnnDistributed execution only
 	virtual CMathEngineDistributedInfo GetDistributedInfo() { return CMathEngineDistributedInfo(); }
 	virtual void AllReduce( const CFloatHandle& handle, int size ) = 0;
 	virtual void Broadcast( const CFloatHandle& handle, int size, int root ) = 0;
 	virtual void AbortDistributed() {};
 	virtual bool IsDistributed() { return false; }
+
+	// Get CurrentEntity for IMathEngine
+	size_t GetCurrentEntity() const { return CurrentEntity; }
+
+protected:
+	// All below is need to avoid excess (8 bytes) field in each CMemoryHandler
+
+	// Special constructor
+	explicit IMathEngine( int/*cannot be no call*/ ) :
+		CurrentEntity( ++MathEngineEntitiesNumerator )
+	{
+		ASSERT_EXPR( CurrentEntity < CMemoryHandle::MaxMathEngineEntities );
+		MathEngineEntitiesArray[CurrentEntity] = this;
+	}
+
+	// Generation for indices of all IMathEngine entities,
+	// Incremets evey moment new MathEngine created to generate its CurrentEntity value.
+	static size_t MathEngineEntitiesNumerator;
+	// Array for pointers to all entities of IMathEngine
+	// No cache ping-pong, because pointers are created once and never changes
+	static IMathEngine* MathEngineEntitiesArray[CMemoryHandle::MaxMathEngineEntities];
+	// Index of the current IMathEngine entity
+	const size_t CurrentEntity;
+
+	friend IMathEngine* GetMathEngineByIndex( size_t currentEntity );
 };
 
 //------------------------------------------------------------------------------------------------------------
+
+// Get pointer to IMathEngine by the given CurrentEntity
+inline IMathEngine* GetMathEngineByIndex( size_t currentEntity ) { return IMathEngine::MathEngineEntitiesArray[currentEntity]; }
+// Get current entity from the given pointer to IMathEngine
+inline size_t GetIndexOfMathEngine( const IMathEngine* mathEngine ) { return mathEngine->GetCurrentEntity(); }
 
 // Creates a math engine that uses a CPU for calculations.
 // You should call SetMathEngineExceptionHandler() before this call.

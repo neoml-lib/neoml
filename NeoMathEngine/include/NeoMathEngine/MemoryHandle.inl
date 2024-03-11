@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ template<class T>
 inline void CTypedMemoryHandle<T>::SetValueAt( int index, T value ) const
 {
 	CTypedMemoryHandle<T> result = *this + index;
-	mathEngine->DataExchangeRaw( result, &value, sizeof( T ) );
+	GetMathEngine()->DataExchangeRaw( result, &value, sizeof( T ) );
 }
 
 template<class T>
@@ -31,7 +31,7 @@ inline T CTypedMemoryHandle<T>::GetValueAt( int index ) const
 {
 	char result[sizeof(T)];
 	CTypedMemoryHandle<T> source = *this + index;
-	mathEngine->DataExchangeRaw( result, source, sizeof( T ) );
+	GetMathEngine()->DataExchangeRaw( result, source, sizeof( T ) );
 	T* value = reinterpret_cast<T*>( &result );
 	return *value;
 }
@@ -39,14 +39,14 @@ inline T CTypedMemoryHandle<T>::GetValueAt( int index ) const
 template<class T>
 inline void CTypedMemoryHandle<T>::SetValue( T value ) const
 {
-	mathEngine->DataExchangeRaw( *this, &value, sizeof( T ) );
+	GetMathEngine()->DataExchangeRaw( *this, &value, sizeof( T ) );
 }
 
 template<class T>
 inline T CTypedMemoryHandle<T>::GetValue() const
 {
 	char result[sizeof(T)];
-	mathEngine->DataExchangeRaw( result, *this, sizeof( T ) );
+	GetMathEngine()->DataExchangeRaw( result, *this, sizeof( T ) );
 	T* value = reinterpret_cast<T*>( &result );
 	return *value;
 }
