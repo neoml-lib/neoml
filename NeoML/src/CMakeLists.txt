@@ -265,6 +265,7 @@ set(NeoML_HEADERS_COMPACT
     ../include/NeoML/Dnn/Dnn.inl
     ../include/NeoML/Dnn/DnnBlob.h
     ../include/NeoML/Dnn/DnnInitializer.h
+    ../include/NeoML/Dnn/DnnHead.h
     ../include/NeoML/Dnn/DnnLambdaHolder.h
     ../include/NeoML/Dnn/DnnSolver.h
     ../include/NeoML/Dnn/DnnSparseMatrix.h
@@ -281,6 +282,7 @@ set(NeoML_HEADERS_COMPACT
     ../include/NeoML/Dnn/Layers/ConcatLayer.h
     ../include/NeoML/Dnn/Layers/ConvLayer.h
     ../include/NeoML/Dnn/Layers/DataLayer.h
+    ../include/NeoML/Dnn/Layers/DnnHeadAdapterLayer.h
     ../include/NeoML/Dnn/Layers/DropoutLayer.h
     ../include/NeoML/Dnn/Layers/EltwiseLayer.h
     ../include/NeoML/Dnn/Layers/FullyConnectedLayer.h
