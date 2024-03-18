@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -163,9 +163,16 @@ CDnnSolver::CDnnSolver( IMathEngine& _mathEngine ) :
 	regularizationL2( 0.f ),
 	regularizationL1( 0.f ),
 	maxGradientNorm( -1.f ),
-	clipGradientMin( -FLT_MAX ),
-	clipGradientMax( FLT_MAX )
+	tempClipVars( CDnnBlob::CreateVector( mathEngine, CT_Float, TCV_Count ) )
 {
+	SetMinMaxGradientClipping( /*min*/-FLT_MAX, /*max*/FLT_MAX );
+}
+
+void CDnnSolver::SetMinMaxGradientClipping( float min, float max )
+{
+	clipGradientVars[TCV_Min] = min;
+	clipGradientVars[TCV_Max] = max;
+	tempClipVars->CopyFrom( clipGradientVars );
 }
 
 // Calculates the layer parameter gradients to then use them in Train method
@@ -269,19 +276,12 @@ void CDnnSolver::allReduce( float distributedCoeff )
 
 void CDnnSolver::clip( const CObjectArray<CDnnBlob>& paramDiffBlobs )
 {
-	if( clipGradientMin <= -FLT_MAX && clipGradientMax >= FLT_MAX ) {
+	if( clipGradientVars[TCV_Min] <= -FLT_MAX && clipGradientVars[TCV_Max] >= FLT_MAX ) {
 		return;
 	}
-
-	CFloatHandleStackVar minVar( MathEngine() );
-	minVar.SetValue( clipGradientMin );
-
-	CFloatHandleStackVar maxVar( MathEngine() );
-	maxVar.SetValue( clipGradientMax );
-
 	for( int i = 0; i < paramDiffBlobs.Size(); ++i ) {
 		MathEngine().VectorMinMax( paramDiffBlobs[i]->GetData(), paramDiffBlobs[i]->GetData(),
-			paramDiffBlobs[i]->GetDataSize(), minVar, maxVar );
+			paramDiffBlobs[i]->GetDataSize(), tempClipVars->GetData( { TCV_Min } ), tempClipVars->GetData( { TCV_Max } ) );
 	}
 }
 
@@ -348,7 +348,7 @@ void CDnnSolver::Serialize( CArchive& archive, CDnn& dnn )
 			SerializeBlobs( mathEngine, archive, layerToGradientHistory.GetValue( pos ) );
 		}
 		archive << learningRate << regularizationL1 << regularizationL2 << maxGradientNorm;
-		archive << clipGradientMin << clipGradientMax;
+		archive << clipGradientVars[TCV_Min] << clipGradientVars[TCV_Max];
 	} else {
 		CMap<CString, CBaseLayer*> layerIdToPtr;
 		mapLayerIdToPtr( dnn, layerIdToPtr );
@@ -376,10 +376,11 @@ void CDnnSolver::Serialize( CArchive& archive, CDnn& dnn )
 		}
 		archive >> learningRate >> regularizationL1 >> regularizationL2 >> maxGradientNorm;
 		if( version >= 1 ) {
+			float clipGradientMin, clipGradientMax;
 			archive >> clipGradientMin >> clipGradientMax;
+			SetMinMaxGradientClipping( clipGradientMin, clipGradientMax );
 		} else {
-			clipGradientMin = -FLT_MAX;
-			clipGradientMax = FLT_MAX;
+			SetMinMaxGradientClipping( /*min*/-FLT_MAX, /*max*/FLT_MAX );
 		}
 	}
 }

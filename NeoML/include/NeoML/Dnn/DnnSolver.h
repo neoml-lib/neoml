@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -51,8 +51,8 @@ public:
 	float GetMaxGradientNorm() const { return maxGradientNorm; }
 	void SetMaxGradientNorm(float _maxGradientNorm) { maxGradientNorm = _maxGradientNorm; }
 	// Clipping gradient min and max (if set to -FLT_MAX and FLT_MAX, that means no limit)
-	void GetMinMaxGradientClipping( float& min, float& max ) const { min = clipGradientMin; max = clipGradientMax; }
-	void SetMinMaxGradientClipping( float min, float max ) { clipGradientMin = min; clipGradientMax = max; }
+	void GetMinMaxGradientClipping( float& min, float& max ) const { min = clipGradientVars[TCV_Min]; max = clipGradientVars[TCV_Max]; }
+	void SetMinMaxGradientClipping( float min, float max );
 
 	// Serialize to archive
 	virtual void Serialize( CArchive& archive, CDnn& dnn );
@@ -82,8 +82,16 @@ private:
 	float regularizationL2;
 	float regularizationL1;
 	float maxGradientNorm;
-	float clipGradientMin;
-	float clipGradientMax;
+
+	// Temporary variables of Handle type, used for clipping gradient
+	enum TTempClippingVar {
+		TCV_Min = 0,
+		TCV_Max,
+		TCV_Count
+	};
+	float clipGradientVars[TCV_Count]{};
+	// Temporary Handle variables for clipping gradient
+	CPtr<CDnnBlob> tempClipVars;
 
 	// The blobs sum
 	struct CDiffBlobSum {
