@@ -127,7 +127,7 @@ CDnnBlob* CDnnBlob::CreateWindowBlob(const CPtr<CDnnBlob>& parent, int windowSiz
 	return result;
 }
 
-CDnnBlob* CDnnBlob::CreateChildBlob(const CPtr<CDnnBlob>& parent)
+CDnnBlob* CDnnBlob::CreateRefenceBlob(const CPtr<CDnnBlob>& parent)
 {
 	return CreateWindowBlob(parent, parent->GetDesc().BatchLength());
 }

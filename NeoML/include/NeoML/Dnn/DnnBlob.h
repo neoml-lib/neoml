@@ -60,8 +60,8 @@ public:
 		int imageHeight, int imageWidth, int imageDepth, int channelsCount );
 	// Creates a "window" blob to represent a subsequence of objects from the parent blob
 	static CDnnBlob* CreateWindowBlob(const CPtr<CDnnBlob>& parent, int windowSize = 1);
-	// Creates a copy blob pointing to same memory as parent blob
-	static CDnnBlob* CreateChildBlob(const CPtr<CDnnBlob>& parent);
+	// Creates a reference blob pointing to same memory as parent blob
+	static CDnnBlob* CreateRefenceBlob(const CPtr<CDnnBlob>& parent);
 	// Creates a blob according to the provided descriptor
 	static CDnnBlob* CreateBlob(IMathEngine& mathEngine, const CBlobDesc& pattern);
 	static CDnnBlob* CreateBlob(IMathEngine& mathEngine, TBlobType type, const CBlobDesc& pattern);
