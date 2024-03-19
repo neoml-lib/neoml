@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -452,49 +452,13 @@ void CVulkanMathEngine::AddHeightIndex( const CBlobDesc&, const CConstIntHandle&
 CDropoutDesc* CVulkanMathEngine::InitDropout( float rate, bool isSpatial, bool isBatchwise,
 	const CBlobDesc& input, const CBlobDesc& output, int seed )
 {
-	return new CMathEngineDropoutDesc( mathEngine(), rate, isSpatial, isBatchwise, input, output, seed );
+	ASSERT_EXPR(false);
+	return nullptr;
 }
 
 void CVulkanMathEngine::Dropout( const CDropoutDesc& dropoutDesc, const CFloatHandle& inputData, const CFloatHandle& outputData )
 {
-	ASSERT_EXPR( inputData.GetMathEngine() == this );
-	ASSERT_EXPR( outputData.GetMathEngine() == this );
-
-	const CMathEngineDropoutDesc& desc = static_cast<const CMathEngineDropoutDesc&>( dropoutDesc );
-	const CBlobDesc& input = desc.Input;
-	const CBlobDesc& output = desc.Output;
-
-	if( desc.ForwardRate == 1.f ) {
-		VectorCopy( outputData, inputData, input.BlobSize() );
-		return;
-	}
-
-	const int objectSize = desc.IsSpatial ? input.Channels() : input.ObjectSize();
-	const int batchLength = desc.IsBatchwise ? input.ObjectCount() : input.BatchLength();
-	const int batchWidth = input.ObjectCount() / batchLength;
-	const int maskSize = batchWidth * objectSize;
-
-	ASSERT_EXPR( desc.Mask.Size() == maskSize );
-
-	if( !desc.IsSpatial ) {
-		MultiplyMatrixByDiagMatrix( inputData, batchLength, maskSize, desc.Mask, outputData, output.BlobSize() );
-		return;
-	}
-
-	const int maskObjectSize = maskSize / batchWidth;
-
-	CMemoryHandle bufs[3] = { inputData, desc.Mask.GetHandle(), outputData };
-	size_t sizes[3] = { input.BlobSize() * sizeof(float), maskSize * sizeof(float), output.BlobSize() * sizeof(float) };
-
-	PARAM_STRUCT(BlobSpatialDropout) param = {
-		input.ObjectCount(),
-		input.ObjectSize(),
-		batchWidth,
-		maskObjectSize, 
-	};
-
-	runShader( shaderLoader->GET_SHADER_DATA(BlobSpatialDropout, true, 0, 0, 3), &param, sizeof(param),
-		0, 0, 0, 0, bufs, sizes, 3, maskObjectSize, input.ObjectSize() / maskObjectSize, input.ObjectCount() );
+	ASSERT_EXPR(false);
 }
 
 void CVulkanMathEngine::QrnnFPooling( bool reverse, int sequenceLength, int objectSize,

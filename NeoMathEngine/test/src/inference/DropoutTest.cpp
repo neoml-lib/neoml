@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -36,13 +36,24 @@ static void dropoutNaive( int batchLength, int batchWidth, int h, int w, int d, 
 	const int dropoutBatchLength = isBatchwise ? batchWidth * batchLength : batchLength;
 	const int dropoutBatchWidth = batchWidth * batchLength / dropoutBatchLength;
 
-	int maskSize = dropoutBatchWidth * objectSize;
-
 	std::vector<float> mask;
-	mask.resize( maskSize );
-	CExpectedRandom expectedRandom( seed );
+	CExpectedRandom expectedRandom(seed);
+	const unsigned int threshold = (unsigned int)((double)forwardRate * UINT_MAX);
 
-	const unsigned int threshold = ( unsigned int ) ( ( double ) forwardRate * UINT_MAX );
+	constexpr int generatedSize = 4;
+	int maskSize;
+	int generatingLine;
+
+	// due to fixed size mask array, when isSpatial generation needs to be a bit different
+	if( isSpatial && MathEngine().GetType() == TMathEngineType::MET_Cpu ) {
+		maskSize = dropoutBatchWidth * (objectSize + generatedSize - 1) / generatedSize * generatedSize;
+		generatingLine = (objectSize + generatedSize - 1) / generatedSize * generatedSize;
+	} else {
+		maskSize = dropoutBatchWidth * objectSize;
+		generatingLine = objectSize;
+	}
+
+	mask.resize(maskSize);
 	int index = 0;
 	for( int i = 0; i < ( maskSize + 3 ) / 4; ++i ) {
 		CIntArray<4> generated = expectedRandom.Next();
@@ -66,7 +77,7 @@ static void dropoutNaive( int batchLength, int batchWidth, int h, int w, int d, 
 	for( int b = 0; b < batchLength * batchWidth; b++ ) {
 		for( int i = 0; i < h * w * d * c / objectSize; i++ ) {
 			for( int j = 0; j < objectSize; j++ ) {
-				currOutput[i * objectSize + j] = currInput[i * objectSize + j] * mask[( b % dropoutBatchWidth) * objectSize + j];
+				currOutput[i * objectSize + j] = currInput[i * objectSize + j] * mask[( b % dropoutBatchWidth) * generatingLine + j];
 			}
 		}
 		currInput += h * w * d * c;
@@ -116,7 +127,7 @@ static void dropoutTestImpl( const CTestParams& params, int seed )
 	dropoutNaive( batchLength, batchWidth, height, width, depth, channels, rate, isSpatial, isBatchwise, seed, inputData.data(), expected.data() );
 
 	// actual
-	CDropoutDesc *dropoutDesc = MathEngine().InitDropout( rate, isSpatial, isBatchwise, input.GetDesc(), output.GetDesc(), seed );
+	CDropoutDesc* dropoutDesc = MathEngine().InitDropout( rate, isSpatial, isBatchwise, input.GetDesc(), output.GetDesc(), seed );
 	MathEngine().Dropout( *dropoutDesc, input.GetData(), output.GetData() );
 	delete dropoutDesc;
 	std::vector<float> result;
