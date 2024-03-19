@@ -31,7 +31,7 @@ TEST( CDnnBlobTest, InitWindowBlob )
     ASSERT_FALSE( blob->GetData().IsNull() );
 }
 
-TEST(CDnnBlobTest, ReferenceBlobTest)
+TEST( CDnnBlobTest, ReferenceBlobTest )
 {
     CPtr<CDnnBlob> parent = CDnnBlob::CreateDataBlob(MathEngine(), CT_Float, 16, 1, 1);
     CPtr<CDnnBlob> blob = CDnnBlob::CreateRefenceBlob(parent);
