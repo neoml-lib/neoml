@@ -127,6 +127,11 @@ CDnnBlob* CDnnBlob::CreateWindowBlob(const CPtr<CDnnBlob>& parent, int windowSiz
 	return result;
 }
 
+CDnnBlob* CDnnBlob::CreateChildBlob(const CPtr<CDnnBlob>& parent)
+{
+	return CreateWindowBlob(parent, parent->GetDesc().BatchLength());
+}
+
 CDnnBlob* CDnnBlob::CreateBlob(IMathEngine& mathEngine, TBlobType type, const CBlobDesc& pattern)
 {
 	CDnnBlob* result = FINE_DEBUG_NEW CDnnBlob( mathEngine );

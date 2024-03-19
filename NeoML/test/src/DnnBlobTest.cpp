@@ -31,6 +31,14 @@ TEST( CDnnBlobTest, InitWindowBlob )
     ASSERT_FALSE( blob->GetData().IsNull() );
 }
 
+TEST(CDnnBlobTest, ChildBlobTest)
+{
+    CPtr<CDnnBlob> parent = CDnnBlob::CreateDataBlob(MathEngine(), CT_Float, 16, 1, 1);
+    CPtr<CDnnBlob> blob = CDnnBlob::CreateChildBlob(parent);
+
+    EXPECT_TRUE(CompareBlobs(*blob, *parent));
+}
+
 TEST( CDnnBlobTest, BufferTest )
 {
     CPtr<CDnnBlob> blob = CDnnBlob::CreateDataBlob( MathEngine(), CT_Float, 16, 1, 1 );
