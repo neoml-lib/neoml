@@ -564,6 +564,8 @@ public:
 	// Checks if the network is going to be rebuilt before the next run
 	// The method may be useful for controlling the rebuild frequency
 	bool IsRebuildRequested() const { return isRebuildNeeded; }
+	// Make copy of the network with references to parameters (copy uses the origin's dnn parameters)
+	CDnn* CreateReferenceDnn();
 
 	// Gets a reference to the random numbers generator
 	CRandom& Random() { return random; }

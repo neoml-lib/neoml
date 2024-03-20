@@ -497,6 +497,32 @@ void CDnn::ForceRebuild()
 	sourceLayers.SetSize( 0 );
 }
 
+CDnn* CDnn::CreateReferenceDnn()
+{
+	CDnn* newDnn = new CDnn(Random(), mathEngine);
+	for (int i = 0; i < layers.Size(); ++i) {
+		CPtr<CBaseLayer> copyLayer;
+		CMemoryFile file;
+		{
+			CArchive archive(&file, CArchive::SD_Storing);
+			CPtr<CBaseLayer> originalPtr(layers[i]);
+			SerializeLayer(archive, layers[i]->MathEngine(), originalPtr);
+		}
+		file.SeekToBegin();
+		CPtr<CBaseLayer> result;
+		CArchive archive(&file, CArchive::SD_Loading);
+		SerializeLayer(archive, layers[i]->MathEngine(), copyLayer);
+
+		newDnn->AddLayer(*copyLayer);
+
+		for (int j = 0; j < copyLayer->paramBlobs.Size(); ++j)
+		{
+			copyLayer->paramBlobs[j] = CDnnBlob::CreateRefenceBlob(layers[i]->paramBlobs[j]);
+		}
+	}
+	return newDnn;
+}
+
 void CDnn::DeleteLayerImpl( CBaseLayer& layer )
 {
 	layer.CheckLayerArchitecture( HasLayer( layer.GetName() ), "deletion of the layer which is not in this dnn" );
