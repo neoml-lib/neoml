@@ -274,8 +274,6 @@ protected:
 
 	virtual void OnDnnChanged( CDnn* ) {}
 
-	void SetOutputBlob(int num, CDnnBlob* blob);
-
 	// Fills with zeros the parameters that are less (but not equal) than a given threshold
 	virtual void FilterLayerParams( float /*threshold*/ ) {}
 
