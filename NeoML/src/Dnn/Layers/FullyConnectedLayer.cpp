@@ -29,39 +29,6 @@ CFullyConnectedLayer::CFullyConnectedLayer( IMathEngine& mathEngine, const char*
 	paramBlobs.SetSize(2);
 }
 
-const CSmallMatricesMultiplyDesc* CFullyConnectedLayer::initSmallMatricesMulDescs( TSMMD type, int inputNumber,
-	int firstHeight, int firstWidth, int secondWidth, int resultWidth )
-{
-	NeoPresume( inputBlobs[0] != nullptr || inputDiffBlobs[0] != nullptr );
-	NeoPresume( outputBlobs[0] != nullptr || outputDiffBlobs[0] != nullptr );
-
-	NeoPresume( type < TSMMD_Count_ );
-	NeoPresume( inputNumber < GetInputCount() );
-	if( smallMatricesMulDescs[type][inputNumber] == nullptr ) {
-		CSmallMatricesMultiplyDesc* ptr = MathEngine().InitSmallMatricesMultiplyDesc(
-			firstHeight, firstWidth, secondWidth, /*secondRowSize*/secondWidth, resultWidth,
-			/*resultAdd*/( type == TSMMD_Learn ), /*trans1*/( type == TSMMD_Learn ), /*trans2*/( type == TSMMD_Forward ) );
-		NeoPresume( ptr != nullptr );
-		smallMatricesMulDescs[type].DetachAndReplaceAt( ptr, inputNumber );
-	}
-	return smallMatricesMulDescs[type][inputNumber];
-}
-
-void CFullyConnectedLayer::recreateSmallMatricesMulDescs()
-{
-	const int inputCount = GetInputCount();
-	NeoPresume( inputCount >= 0 );
-
-	for( int type = 0; type < TSMMD_Count_; ++type ) {
-		smallMatricesMulDescs[type].DeleteAll(); // delete operator inside
-
-		if( inputCount > 0 ) { // serialization loading
-			smallMatricesMulDescs[type].SetSize( inputCount ); // init nullptr inside
-			NeoPresume( smallMatricesMulDescs[type][0] == nullptr );
-		}
-	}
-}
-
 void CFullyConnectedLayer::Reshape()
 {
 	CheckInputs();
@@ -100,7 +67,6 @@ void CFullyConnectedLayer::Reshape()
 		outputDescs[i].SetDimSize( BD_Depth, 1 );
 		outputDescs[i].SetDimSize( BD_Channels, numberOfElements );
 	}
-	recreateSmallMatricesMulDescs();
 }
 
 void CFullyConnectedLayer::RunOnce()
@@ -122,13 +88,10 @@ void CFullyConnectedLayer::RunOnce()
 		NeoPresume( firstWidth == secondWidth );
 		NeoPresume( resultWidth == secondHeight );
 
-		const CSmallMatricesMultiplyDesc* mulDesc = initSmallMatricesMulDescs( TSMMD_Forward, inputNumber,
-			firstHeight, firstWidth, secondWidth, resultWidth );
-
 		MathEngine().MultiplyMatrixByTransposedMatrix(
 			/*first*/inputData, firstHeight, firstWidth, firstWidth,
 			/*second*/weightData, secondHeight, secondWidth,
-			/*result*/outputData, resultWidth, /*unused*/0, mulDesc );
+			/*result*/outputData, resultWidth, /*unused*/0 );
 
 		if( !isZeroFreeTerm ) {
 			MathEngine().AddVectorToMatrixRows( /*batchSize*/1, outputData,
@@ -152,13 +115,10 @@ void CFullyConnectedLayer::BackwardOnce()
 		const int firstWidth = outputDiffBlobs[outputDiffNumber]->GetObjectSize();
 		const int resultBufferSize = inputDiffBlobs[outputDiffNumber]->GetDataSize();
 
-		const CSmallMatricesMultiplyDesc* mulDesc = initSmallMatricesMulDescs( TSMMD_Backward, outputDiffNumber,
-			firstHeight, firstWidth, secondWidth, /*resultWidth*/secondWidth );
-
 		MathEngine().MultiplyMatrixByMatrix( /*batchSize*/1,
 			/*first*/outputDiffData, firstHeight, firstWidth,
 			/*second*/weightData, secondWidth,
-			/*result*/inputDiffData, resultBufferSize, mulDesc );
+			/*result*/inputDiffData, resultBufferSize );
 	}
 }
 
@@ -180,13 +140,10 @@ void CFullyConnectedLayer::LearnOnce()
 		const int secondWidth = inputBlobs[outputDiffNumber]->GetObjectSize();
 		NeoPresume( resultWidth == secondWidth );
 
-		const CSmallMatricesMultiplyDesc* mulDesc = initSmallMatricesMulDescs( TSMMD_Learn, outputDiffNumber,
-			firstHeight, firstWidth, secondWidth, resultWidth );
-
 		MathEngine().MultiplyTransposedMatrixByMatrixAndAdd(
 			/*first*/outputDiffData, firstHeight, firstWidth, firstWidth,
 			/*second*/inputData, secondWidth, secondWidth,
-			/*result*/weightsDiffData, resultWidth, resultBufferSize, mulDesc );
+			/*result*/weightsDiffData, resultWidth, resultBufferSize );
 
 		if( !isZeroFreeTerm ) {
 			MathEngine().SumMatrixRowsAdd( /*batchSize*/1, FreeTermsDiffData,
@@ -310,7 +267,6 @@ void CFullyConnectedLayer::Serialize( CArchive& archive )
 			desc.SetDimSize( 0, freeTerms->GetDataSize() );
 			freeTerms->ReinterpretDimensions( desc );
 		}
-		recreateSmallMatricesMulDescs();
 	}
 }
 

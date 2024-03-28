@@ -47,7 +47,7 @@ CTimeConvolutionDesc* CCpuMathEngine::InitTimeConvolution( const CBlobDesc& sour
 	ASSERT_EXPR( paddingFront < ( filter.Height() - 1 ) * dilation + 1 );
 	ASSERT_EXPR( paddingBack < ( filter.Height() - 1 ) * dilation + 1 );
 
-	CCommonTimeConvolutionDesc* desc = new CCommonTimeConvolutionDesc( *this, source, result, filter, stride, paddingFront, paddingBack, dilation );
+	CCommonTimeConvolutionDesc* desc = new CCommonTimeConvolutionDesc( source, result, filter, stride, paddingFront, paddingBack, dilation );
 	return desc;
 }
 
@@ -94,20 +94,16 @@ void CCpuMathEngine::BlobTimeConvolution( const CTimeConvolutionDesc& convDesc, 
 		const float* inputPtr = sourceDataRaw + inputRowStart * inputRowSize;
 		const float* filterPtr = filterDataRaw + filterRowStart * filter.Channels();
 
-		auto mulDesc = desc.smallMatricesMultiplyDescs.Get( CCommonTimeConvolutionDesc::TSMMD_Forward_MxMT,
-			firstHeight, firstWidth, secondWidth, resultWidth );
-		auto mulDescAdd = desc.smallMatricesMultiplyDescs.Get( CCommonTimeConvolutionDesc::TSMMD_Forward_MxMT_Add,
-			firstHeight, firstWidth, secondWidth, resultWidth, /*resultAdd*/true );
 
 		multiplyMatrixByTransposedMatrix( /*first*/inputPtr, firstHeight, firstWidth, firstWidth,
-			/*second*/filterPtr, secondHeight, secondWidth, /*result*/outputPtr, resultWidth, mulDesc );
+			/*second*/filterPtr, secondHeight, secondWidth, /*result*/outputPtr, resultWidth );
 
 		for( int i = 1; i < filterRowCount; ++i ) {
 			inputPtr += inputRowSize * desc.Dilation;
 			filterPtr += filter.Channels();
 
 			multiplyMatrixByTransposedMatrixAndAdd( /*first*/inputPtr, firstHeight, firstWidth, firstWidth,
-				/*second*/filterPtr, secondHeight, secondWidth, /*result*/outputPtr, resultWidth, mulDescAdd );
+				/*second*/filterPtr, secondHeight, secondWidth, /*result*/outputPtr, resultWidth );
 		}
 	}
 
@@ -137,9 +133,6 @@ void CCpuMathEngine::BlobTimeConvolutionBackward( const CTimeConvolutionDesc& co
 	const int secondWidth = filter.Channels();
 	const int secondRowSize = filter.Height() * filter.Channels();
 	const int resultWidth = inputDiff.ObjectSize();
-	auto mulDesc = desc.smallMatricesMultiplyDescs.Get( CCommonTimeConvolutionDesc::TSMMD_Backward_MxM_Add,
-		firstHeight, firstWidth, secondWidth, secondRowSize, resultWidth,
-		/*resultAdd*/true, /*trans1*/false, /*trans2*/false  );
 
 	const int inputRowSize = inputDiff.BatchWidth() * resultWidth;
 	const int outputRowSize = firstHeight * firstWidth;
@@ -165,7 +158,7 @@ void CCpuMathEngine::BlobTimeConvolutionBackward( const CTimeConvolutionDesc& co
 			const float* const filterPtr = filterDataRaw + filterRow * filter.Channels();
 
 			multiplyMatrixByMatrixAndAdd( /*first*/outputDiffPtr, firstHeight, firstWidth, firstWidth,
-				/*second*/filterPtr, secondWidth, secondRowSize, /*result*/inputDiffDataPtr, resultWidth, mulDesc );
+				/*second*/filterPtr, secondWidth, secondRowSize, /*result*/inputDiffDataPtr, resultWidth );
 		}
 	}
 }
@@ -193,8 +186,6 @@ void CCpuMathEngine::BlobTimeConvolutionLearnAdd( const CTimeConvolutionDesc& co
 	const int firstWidth = filterDiff.BatchWidth();
 	const int secondWidth = filterDiff.Channels();
 	const int resultWidth = filterDiff.Height() * filterDiff.Channels();
-	auto mulDesc = desc.smallMatricesMultiplyDescs.Get( CCommonTimeConvolutionDesc::TSMMD_Learn_MTxM_Add,
-		firstHeight, firstWidth, secondWidth, resultWidth, /*resultAdd*/true, /*trans1*/true, /*trans2*/false );
 
 	for( int outSeqNum = 0; outSeqNum < outputDiff.BatchLength(); ++outSeqNum ) {
 		const float* const outputDiffPtr = outputDiffDataRaw + outSeqNum * firstHeight * outputDiff.ObjectSize();
@@ -209,7 +200,7 @@ void CCpuMathEngine::BlobTimeConvolutionLearnAdd( const CTimeConvolutionDesc& co
 			float* const filterDiffPtr = filterDiffDataRaw + filterRow * filterDiff.Channels();
 
 			multiplyTransposedMatrixByMatrixAndAdd( /*first*/outputDiffPtr, firstHeight, firstWidth, firstWidth,
-				/*second*/inputPtr, secondWidth, secondWidth, /*result*/filterDiffPtr, resultWidth, mulDesc );
+				/*second*/inputPtr, secondWidth, secondWidth, /*result*/filterDiffPtr, resultWidth );
 		}
 	}
 	// Train the free term

@@ -24,16 +24,16 @@ namespace NeoML {
 
 class CCpuMathEngine::CCpuRowwiseConv : public ICpuRowwiseImpl, public CRowwiseOperationDesc {
 public:
-	CCpuRowwiseConv( CCpuMathEngine& mathEngine, int inputChannels, int padH, int padW, int strideH, int strideW,
+	CCpuRowwiseConv( CCpuMathEngine& mathEngine,
+			int inputChannels, int padH, int padW, int strideH, int strideW,
 			int dilH, int dilW, int fC, int fH, int fW, const float* filter, const float* freeTerm ) :
 		mathEngine( mathEngine ),
-		desc( mathEngine, CBlobDesc{}, CBlobDesc{}, CBlobDesc( { 1, fC, 1, fH, fW, 1, inputChannels } ), padH, padW,
+		desc( CBlobDesc{}, CBlobDesc{}, CBlobDesc( { 1, fC, 1, fH, fW, 1, inputChannels } ), padH, padW,
 			strideH, strideW, dilH, dilW ),
 		filter( filter ),
 		freeTerm( freeTerm ),
 		inputRowRequirement( 0 ),
-		outputRowRequirement( 0 ),
-		smallMatricesMulDescs{ mathEngine, mathEngine }
+		outputRowRequirement( 0 )
 	{}
 
 	CBlobDesc Reshape( const CBlobDesc& inputSize ) override;
@@ -55,9 +55,6 @@ private:
 	int inputRowRequirement{};
 	int outputRowRequirement{};
 
-	enum { TSMMDA_Input, TSMMDA_Buffer, /*...*/ TSMMDA_Count_ };
-	// The array of matrices multiplication optimization descriptors arrays by enum above
-	CCpuSmallMatricesMultiplyDescsArray</*Height*/> smallMatricesMulDescs[TSMMDA_Count_];
 
 	bool is1x1Conv() const { return desc.Filter.GeometricalSize() == 1 && desc.PaddingHeight == 0
 		&& desc.PaddingWidth == 0 && desc.StrideHeight == 1 && desc.StrideWidth == 1; }
@@ -96,10 +93,6 @@ inline CBlobDesc CCpuMathEngine::CCpuRowwiseConv::Reshape( const CBlobDesc& inpu
 		// (only SIMD algo doesn't have matmul inside)
 		outputRowRequirement = ( RowwiseMatMulRequiredHeight + desc.Result.Width() - 1 ) / desc.Result.Width();
 		inputRowRequirement = effectiveFilterSize + desc.StrideHeight * ( outputRowRequirement - 1 );
-	}
-	// Destroy optimizer to recreate it with updated sizes at use
-	for( auto& desc : smallMatricesMulDescs ) {
-		desc.DestroyAll();
 	}
 	return desc.Result;
 }
@@ -147,11 +140,9 @@ inline ICpuRowwiseImpl::CProcessingReport CCpuMathEngine::CCpuRowwiseConv::Proce
 		const int secondHeight = desc.Result.Channels();
 		const int secondWidth = firstWidth;
 		const int resultWidth = secondHeight;
-		auto mulDesc = smallMatricesMulDescs[TSMMDA_Input].Get( firstHeight,
-			firstHeight, firstWidth, secondWidth, resultWidth );
 
 		mathEngine.multiplyMatrixByTransposedMatrix( input, firstHeight, firstWidth, firstWidth,
-			filter, secondHeight, secondWidth, output, resultWidth, mulDesc );
+			filter, secondHeight, secondWidth, output, resultWidth );
 		if( freeTerm != nullptr ) {
 			mathEngine.addVectorToMatrixRows( output, output, firstHeight,
 				resultWidth, resultWidth, resultWidth, freeTerm );
@@ -181,11 +172,9 @@ inline ICpuRowwiseImpl::CProcessingReport CCpuMathEngine::CCpuRowwiseConv::Proce
 		float* resultDataPtr = output + index * filterObjectCount;
 
 		const int firstHeight = size;
-		auto mulDesc = smallMatricesMulDescs[TSMMDA_Buffer].Get( firstHeight,
-			firstHeight, firstWidth, secondWidth, resultWidth );
 
 		mathEngine.multiplyMatrixByTransposedMatrix( buffer, firstHeight, firstWidth, firstWidth,
-			filter, secondHeight, secondWidth, resultDataPtr, resultWidth, mulDesc );
+			filter, secondHeight, secondWidth, resultDataPtr, resultWidth );
 
 		if( freeTerm!= nullptr ) {
 			mathEngine.addVectorToMatrixRows( resultDataPtr, resultDataPtr, size,

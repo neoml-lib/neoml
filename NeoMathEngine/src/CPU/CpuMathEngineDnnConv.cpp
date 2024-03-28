@@ -63,7 +63,7 @@ CConvolutionDesc* CCpuMathEngine::InitBlobConvolution( const CBlobDesc& source, 
 	ASSERT_EXPR( result.Channels() == filter.BatchWidth() );
 	ASSERT_EXPR( result.Depth() == 1 );
 
-	CCpuConvolutionDesc* desc = new CCpuConvolutionDesc( *this, source, result, filter,
+	CCpuConvolutionDesc* desc = new CCpuConvolutionDesc( source, result, filter,
 		paddingHeight, paddingWidth, strideHeight, strideWidth, dilationHeight, dilationWidth );
 	if( simdMathEngine != nullptr ) {
 		desc->SimdConvolutionDesc.reset( simdMathEngine->InitBlobConvolution( source, paddingHeight, paddingWidth,
@@ -323,16 +323,12 @@ void CCpuMathEngine::blobConvolutionForwardAlgo0( const CCpuConvolutionDesc& des
 	for( int index = 0; index < resultItemCount; ) {
 		const int size = std::min( resultItemCount - index, cacheItemCount );
 
-		const int firstHeight = size;
-		auto mulDesc = desc.SmallMatricesMulDescsHeightArrays[CCpuConvolutionDesc::TSMMDA_Forward].Get( firstHeight,
-			firstHeight, firstWidth, secondWidth, resultWidth );
-
 		fillTempData( sourceData, tempDataPtr, desc, index, size );
 
 		float* const resultDataPtr = resultData + index * resultWidth;
 
 		multiplyMatrixByTransposedMatrix( /*first*/tempDataPtr, size, firstWidth, firstWidth,
-			/*second*/filterData, secondHeight, secondWidth, /*result*/resultDataPtr, resultWidth, mulDesc );
+			/*second*/filterData, secondHeight, secondWidth, /*result*/resultDataPtr, resultWidth );
 
 		if( freeTermData != nullptr ) {
 			addVectorToMatrixRows( resultDataPtr, resultDataPtr, size,
@@ -369,8 +365,6 @@ void CCpuMathEngine::blobConvolutionForwardAlgo1( const CCpuConvolutionDesc& des
 	const int secondHeight = filter.BatchWidth();
 	const int secondWidth = filter.ObjectSize();
 	const int resultWidth = secondHeight;
-	auto mulDesc = desc.SmallMatricesMulDescsHeightArrays[CCpuConvolutionDesc::TSMMDA_Forward].Get( firstHeight,
-		firstHeight, firstWidth, secondWidth, resultWidth, /*resultAdd*/( freeTermData != nullptr ) );
 
 	for( int batch = 0; batch < batchCount; ++batch ) {
 		// Fill the temporary matrix
@@ -384,10 +378,10 @@ void CCpuMathEngine::blobConvolutionForwardAlgo1( const CCpuConvolutionDesc& des
 			setVectorToMatrixRows( outputTransposedPtr, firstHeight, outputChannels, freeTermDataRaw );
 
 			multiplyMatrixByTransposedMatrixAndAdd( /*first*/tempBlobPtr, firstHeight, firstWidth, firstWidth,
-				/*second*/filterData, secondHeight, secondWidth, /*result*/outputTransposedPtr, resultWidth, mulDesc );
+				/*second*/filterData, secondHeight, secondWidth, /*result*/outputTransposedPtr, resultWidth );
 		} else {
 			multiplyMatrixByTransposedMatrix( /*first*/tempBlobPtr, firstHeight, firstWidth, firstWidth,
-				/*second*/filterData, secondHeight, secondWidth, /*result*/outputTransposedPtr, resultWidth, mulDesc );
+				/*second*/filterData, secondHeight, secondWidth, /*result*/outputTransposedPtr, resultWidth );
 		}
 		// Transpose the result
 		transposeResult( desc, outputTransposedPtr, batch, /*resultStart*/0, resultCount, resultData );
@@ -428,7 +422,7 @@ void CCpuMathEngine::BlobConvolution( const CConvolutionDesc& convDesc, const CC
 		{
 			const bool needsFlatten = ( desc.Source.Depth() != 1 );
 			blob3dConvolution1x1x1( needsFlatten ? flatten( desc.Source ) : desc.Source, desc.Result,
-				desc.StrideHeight, desc.StrideWidth, /*StrideDepth*/1, sourceRaw, filterRaw, freeTermRaw, resultRaw, nullptr );
+				desc.StrideHeight, desc.StrideWidth, /*StrideDepth*/1, sourceRaw, filterRaw, freeTermRaw, resultRaw );
 			break;
 		}
 		default:
@@ -554,7 +548,6 @@ void CCpuMathEngine::blobConvolutionBackwardAlgo1( const CCpuConvolutionDesc& de
 	const int firstWidth = sourceChannelsCount;
 	const int secondWidth = filterObjectSize;
 	const int resultWidth = secondWidth;
-	const auto& mulDescs = desc.SmallMatricesMulDescsHeightArrays[CCpuConvolutionDesc::TSMMDA_Backward];
 
 	auto updateRingBuf = [&]( CRingBuffer& ringBuf, int batch, int sourceRowStart, int& prevBatchedSourceRowStart )
 	{
@@ -570,8 +563,7 @@ void CCpuMathEngine::blobConvolutionBackwardAlgo1( const CCpuConvolutionDesc& de
 				const int firstHeight = sourceRealHeight * source.Width();
 				multiplyMatrixByMatrix(
 					/*first*/( sourceRaw + ( batchedSourceRowStart + sourceRowExistShift ) * sourceRowSize ), firstHeight, firstWidth, firstWidth,
-					/*second*/filterRaw, secondWidth, secondWidth, /*result*/ringBuf.GetBufPtrForAddingItems( sourceRealHeight ), resultWidth,
-					mulDescs.Get( firstHeight, firstHeight, firstWidth, secondWidth, resultWidth, /*resultAdd*/false, /*trans1*/false, /*trans2*/false ) );
+					/*second*/filterRaw, secondWidth, secondWidth, /*result*/ringBuf.GetBufPtrForAddingItems( sourceRealHeight ), resultWidth );
 
 				// Make twice because of Ring-buffer, from end to start
 				if( sourceNeedHeight > ( sourceRowExistShift + sourceRealHeight ) ) {
@@ -580,8 +572,7 @@ void CCpuMathEngine::blobConvolutionBackwardAlgo1( const CCpuConvolutionDesc& de
 					const int firstHeightRest = sourceRealHeight * source.Width();
 					multiplyMatrixByMatrix(
 						/*first*/( sourceRaw + ( batchedSourceRowStart + sourceRowExistShiftRest ) * sourceRowSize ), firstHeightRest, firstWidth, firstWidth,
-						/*second*/filterRaw, secondWidth, secondWidth, /*result*/ringBuf.GetBufPtrForAddingItems( sourceRealHeightRest ), resultWidth,
-						mulDescs.Get( firstHeightRest, firstHeightRest, firstWidth, secondWidth, resultWidth, /*resultAdd*/false, /*trans1*/false, /*trans2*/false ) );
+						/*second*/filterRaw, secondWidth, secondWidth, /*result*/ringBuf.GetBufPtrForAddingItems( sourceRealHeightRest ), resultWidth );
 					ASSERT_EXPR( sourceNeedHeight <= ( sourceRowExistShiftRest + sourceRealHeightRest ) );
 				}
 			}
@@ -759,7 +750,6 @@ void CCpuMathEngine::blobConvolutionBackwardAlgo2( const CCpuConvolutionDesc& de
 	const float* const filterRaw = tempFilterRaw;
 	const float* const tempRaw = GetRaw( tempBlobForLearn.GetHandle() );
 
-	const auto& mulDescs = desc.SmallMatricesMulDescsHeightArrays[CCpuConvolutionDesc::TSMMDA_Backward];
 
 	for( int j = 0; j < batchSize; ++j ) {
 		float* resultRawPtr = resultRaw + j * resultObjectSize;
@@ -777,9 +767,7 @@ void CCpuMathEngine::blobConvolutionBackwardAlgo2( const CCpuConvolutionDesc& de
 				const float* const tempSourcePtr = tempSourceStartPtr + ( w - filter.Width() + 1 ) * tempDepthChannels;
 				const int firstHeight = ( tempHeightWidth + filter.Width() - w - 1 ) / filter.Width();
 				multiplyMatrixByMatrixAndAdd( /*first*/tempSourcePtr, firstHeight, firstWidth, firstWidth,
-					/*second*/filterRawPtr, secondWidth, secondWidth, /*result*/resultMatrix, resultWidth,
-					mulDescs.Get( firstHeight, firstHeight, firstWidth, secondWidth, resultWidth,
-						/*resultAdd*/true, /*trans1*/false, /*trans2*/false ) );
+					/*second*/filterRawPtr, secondWidth, secondWidth, /*result*/resultMatrix, resultWidth );
 			}
 			resultRawPtr += result.Width() * resultDepthChannels;
 			filterRawPtr += tempFilterObjectSize;
@@ -852,9 +840,6 @@ void CCpuMathEngine::blobConvolutionLearnAlgo1( const CCpuConvolutionDesc& desc,
 	const int firstHeight = outputDiffTransHeight;
 	const int firstWidth = outputDiffTransWidth;
 	const int secondWidth = tempBlobHolderWidth;
-	const int resultWidth = secondWidth;
-	auto mulDesc = desc.SmallMatricesMulDescsHeightArrays[CCpuConvolutionDesc::TSMMDA_Learn].Get( firstHeight,
-		firstHeight, firstWidth, secondWidth, resultWidth, /*resultAdd*/false, /*trans1*/true, /*trans2*/false );
 
 	for( int b = 0; b < outputDiff.ObjectCount(); ++b ) {
 		if( desc.DilationHeight > 1 || desc.DilationWidth > 1 ) {
@@ -869,7 +854,7 @@ void CCpuMathEngine::blobConvolutionLearnAlgo1( const CCpuConvolutionDesc& desc,
 
 		// Calculate diffs
 		multiplyTransposedMatrixByMatrix( /*first*/outputDiffTransDataRaw, firstHeight, firstWidth,
-			/*second*/tempBlobHolderDataRaw, secondWidth, /*result*/outputTempDataRaw, mulDesc );
+			/*second*/tempBlobHolderDataRaw, secondWidth, /*result*/outputTempDataRaw );
 
 		vectorAdd( filterDiffDataRaw, outputTempDataRaw, filterDiffDataRaw, filterDiffSize );
 
@@ -932,7 +917,6 @@ void CCpuMathEngine::blobConvolutionLearnAlgo2( const CCpuConvolutionDesc& desc,
 	const int firstWidth = tempBlobDepthChannels;
 	const int secondWidth = inputDepthChannels;
 	const int resultWidth = filterDiff.ObjectSize();
-	const auto& mulDescs = desc.SmallMatricesMulDescsHeightArrays[CCpuConvolutionDesc::TSMMDA_Learn];
 
 	for( int j = 0; j < outputDiff.ObjectCount(); ++j ) {
 		// filter diff
@@ -943,9 +927,7 @@ void CCpuMathEngine::blobConvolutionLearnAlgo2( const CCpuConvolutionDesc& desc,
 				const float* const inputMatrix = inputDataRaw + ( ( j * input.Height() + h ) * input.Width() + w ) * inputDepthChannels;
 				multiplyTransposedMatrixByMatrixAndAdd( /*first*/tempBlobForLearnRaw + ( j + 1 ) * tempBlobObjectSize,
 					firstHeight, firstWidth, firstWidth,
-					/*second*/inputMatrix, secondWidth, secondWidth, /*result*/filterMatrix, resultWidth,
-					mulDescs.Get( firstHeight, firstHeight, firstWidth, secondWidth, resultWidth,
-						/*resultAdd*/true, /*trans1*/true, /*trans2*/false ) );
+					/*second*/inputMatrix, secondWidth, secondWidth, /*result*/filterMatrix, resultWidth );
 			}
 		}
 
@@ -1079,7 +1061,7 @@ void CCpuMathEngine::BlobChannelwiseConvolutionBackward( const CChannelwiseConvo
 		// Multiply the inputRepacked and filter matrices
 		PRESUME_EXPR( temp.Size() >= inputRepackedWidth * inputGeo );
 		batchMultiplyMatrixByTransposedMatrix( inputRepackedWidth, inputRepacked.GetHandle(), inputGeo, /*firstWidth*/1,
-			filterTransposed.GetHandle(), filterGeo, temp.GetHandle(), nullptr );
+			filterTransposed.GetHandle(), filterGeo, temp.GetHandle() );
 
 		// Add the subvectors from the resulting matrix to the required positions in outputRepacked
 		for( int step = 0; step < output.Height() * output.Channels(); ++step ) {
@@ -1200,7 +1182,7 @@ void CCpuMathEngine::BlobChannelwiseConvolutionLearnAdd( const CChannelwiseConvo
 		batchMultiplyTransposedMatrixByMatrix( outputDiffTransRepackedWidth,
 			outputDiffTransRepackedDataRaw, outputDiffTransRepackedHeight, /*firstWidth*/1,
 			tempBlobRepackedDataRaw, filterDiff.Height() * filterDiff.Width(),
-			filterTempDataRaw, nullptr );
+			filterTempDataRaw );
 
 		// Update the accumulator
 		vectorAdd( filterDiffReductionDataRaw, filterTempDataRaw, filterDiffReductionDataRaw, filterTempSize );

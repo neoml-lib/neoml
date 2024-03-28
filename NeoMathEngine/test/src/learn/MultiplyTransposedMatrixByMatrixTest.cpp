@@ -57,16 +57,9 @@ static void multiplyTransposedMatrixByMatrixTestImpl( const CTestParams& params,
 
 	multiplyTransposedMatrixByMatrixNaive( batchSize, first, second, firstHeight, firstWidth, secondWidth, expected );
 
-	CSmallMatricesMultiplyDesc* desc = MathEngine().InitSmallMatricesMultiplyDesc(
-		firstHeight, firstWidth, secondWidth, /*secondRowSize*/secondWidth, /*resultWidth*/secondWidth,
-		/*resultAdd*/false, /*trans1*/true, /*trans2*/false );
-
 	MathEngine().MultiplyTransposedMatrixByMatrix( batchSize, CARRAY_FLOAT_WRAPPER( first ), firstHeight, firstWidth,
-		CARRAY_FLOAT_WRAPPER( second ), secondWidth, CARRAY_FLOAT_WRAPPER( actual ), static_cast<int>( actual.size() ), desc );
+		CARRAY_FLOAT_WRAPPER( second ), secondWidth, CARRAY_FLOAT_WRAPPER( actual ), static_cast<int>( actual.size() ) );
 
-	if( desc ) {
-		delete desc;
-	}
 	for( int i = 0; i < firstWidth * secondWidth; ++i ) {
 		ASSERT_NEAR( expected[i], actual[i], 1e-3 ) << i;
 	}

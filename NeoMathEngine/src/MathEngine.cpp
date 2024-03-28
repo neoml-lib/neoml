@@ -70,8 +70,6 @@ CMaxOverTimePoolingDesc::~CMaxOverTimePoolingDesc() = default;
 CLrnDesc::~CLrnDesc() = default;
 CLstmDesc::~CLstmDesc() = default;
 CRowwiseOperationDesc::~CRowwiseOperationDesc() = default;
-CSmallMatricesMultiplyDesc::~CSmallMatricesMultiplyDesc() = default;
-CSmallMatricesMultiplyDescsArray::~CSmallMatricesMultiplyDescsArray() = default;
 
 //------------------------------------------------------------------------------------------------------------
 
