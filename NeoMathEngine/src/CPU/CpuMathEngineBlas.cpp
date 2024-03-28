@@ -845,8 +845,7 @@ void CCpuMathEngine::Multiply1DiagMatrixByMatrix( int batchSize, const CConstFlo
 
 void CCpuMathEngine::MultiplyMatrixByMatrix( int batchSize, const CConstFloatHandle& firstHandle, int firstHeight,
 	int firstWidth, const CConstFloatHandle& secondHandle, int secondWidth,
-	const CFloatHandle& resultHandle, int resultBufferSize,
-	const CSmallMatricesMultiplyDesc* desc )
+	const CFloatHandle& resultHandle, int resultBufferSize )
 {
 	ASSERT_EXPR( resultBufferSize >= batchSize * firstHeight * secondWidth );
 	CCpuExecutionScope scope;
@@ -857,7 +856,7 @@ void CCpuMathEngine::MultiplyMatrixByMatrix( int batchSize, const CConstFloatHan
 
 	for( int b = 0; b < batchSize; ++b ) {
 		multiplyMatrixByMatrix( first, firstHeight, firstWidth, firstWidth, second,
-			secondWidth, secondWidth, result, secondWidth, desc );
+			secondWidth, secondWidth, result, secondWidth );
 		first += firstHeight * firstWidth;
 		second += firstWidth * secondWidth;
 		result += firstHeight * secondWidth;
@@ -867,31 +866,29 @@ void CCpuMathEngine::MultiplyMatrixByMatrix( int batchSize, const CConstFloatHan
 void CCpuMathEngine::MultiplyTransposedMatrixByMatrixAndAdd( const CConstFloatHandle& firstHandle,
 	int firstHeight, int firstWidth, int firstRowSize,
 	const CConstFloatHandle& secondHandle, int secondWidth, int secondRowSize,
-	const CFloatHandle& resultHandle, int resultRowSize, int resultBufferSize,
-	const CSmallMatricesMultiplyDesc* desc )
+	const CFloatHandle& resultHandle, int resultRowSize, int resultBufferSize )
 {
 	ASSERT_EXPR( ( firstWidth - 1 ) * resultRowSize + secondWidth <= resultBufferSize );
 	CCpuExecutionScope scope;
 
 	multiplyTransposedMatrixByMatrixAndAdd( GetRaw( firstHandle ),
 		firstHeight, firstWidth, firstRowSize, GetRaw( secondHandle ), secondWidth, secondRowSize,
-		GetRaw( resultHandle ), resultRowSize, desc );
+		GetRaw( resultHandle ), resultRowSize );
 }
 
 void CCpuMathEngine::MultiplyTransposedMatrixByMatrix( int batchSize, const CConstFloatHandle& firstHandle, int firstHeight,
-	int firstWidth, const CConstFloatHandle& secondHandle, int secondWidth, const CFloatHandle& resultHandle, int resultBufferSize,
-	const CSmallMatricesMultiplyDesc* desc )
+	int firstWidth, const CConstFloatHandle& secondHandle, int secondWidth, const CFloatHandle& resultHandle, int resultBufferSize )
 {
 	ASSERT_EXPR( resultBufferSize >= batchSize * firstWidth * secondWidth );
 	CCpuExecutionScope scope;
 
 	batchMultiplyTransposedMatrixByMatrix( batchSize, GetRaw( firstHandle ), firstHeight, firstWidth,
-		GetRaw( secondHandle ), secondWidth, GetRaw( resultHandle ), desc );
+		GetRaw( secondHandle ), secondWidth, GetRaw( resultHandle ) );
 }
 
 void CCpuMathEngine::batchMultiplyMatrixByTransposedMatrix( int batchSize, const CConstFloatHandle& firstHandle, int firstHeight,
 	int firstWidth, const CConstFloatHandle& secondHandle, int secondHeight,
-	const CFloatHandle& resultHandle, const CSmallMatricesMultiplyDesc* desc )
+	const CFloatHandle& resultHandle )
 {
 	CConstFloatHandle first = firstHandle;
 	CConstFloatHandle second = secondHandle;
@@ -899,7 +896,7 @@ void CCpuMathEngine::batchMultiplyMatrixByTransposedMatrix( int batchSize, const
 
 	for( int b = 0; b < batchSize; ++b ) {
 		MultiplyMatrixByTransposedMatrix( first, firstHeight, firstWidth, firstWidth, second, secondHeight, firstWidth, result,
-			secondHeight, firstHeight * secondHeight, desc );
+			secondHeight, firstHeight * secondHeight );
 		first += firstHeight * firstWidth;
 		second += firstWidth * secondHeight;
 		result += firstHeight * secondHeight;
@@ -908,7 +905,7 @@ void CCpuMathEngine::batchMultiplyMatrixByTransposedMatrix( int batchSize, const
 
 void CCpuMathEngine::MultiplyMatrixByTransposedMatrix( const CConstFloatHandle& firstHandle, int firstHeight,
 	int firstWidth, int firstRowSize, const CConstFloatHandle& secondHandle, int secondHeight, int secondRowSize,
-	const CFloatHandle& resultHandle, int resultRowSize, int, const CSmallMatricesMultiplyDesc* desc )
+	const CFloatHandle& resultHandle, int resultRowSize, int )
 {
 	CCpuExecutionScope scope;
 
@@ -917,12 +914,12 @@ void CCpuMathEngine::MultiplyMatrixByTransposedMatrix( const CConstFloatHandle& 
 	float* const result = GetRaw( resultHandle );
 
 	multiplyMatrixByTransposedMatrix( first, firstHeight, firstWidth, firstRowSize,
-		second, secondHeight, secondRowSize, result, resultRowSize, desc );
+		second, secondHeight, secondRowSize, result, resultRowSize );
 }
 
 void CCpuMathEngine::MultiplyMatrixByTransposedMatrix( int batchSize, const CConstFloatHandle& firstHandle,
 	int firstHeight, int firstWidth, const CConstFloatHandle& secondHandle, int secondHeight,
-	const CFloatHandle& resultHandle, int resultBufferSize, const CSmallMatricesMultiplyDesc* desc )
+	const CFloatHandle& resultHandle, int resultBufferSize )
 {
 	ASSERT_EXPR( resultBufferSize >= batchSize * firstHeight * secondHeight );
 	CCpuExecutionScope scope;
@@ -933,7 +930,7 @@ void CCpuMathEngine::MultiplyMatrixByTransposedMatrix( int batchSize, const CCon
 
 	for( int b = 0; b < batchSize; ++b ) {
 		MultiplyMatrixByTransposedMatrix( first, firstHeight, firstWidth, firstWidth, second, secondHeight,
-			firstWidth, result, secondHeight, firstHeight * secondHeight, desc );
+			firstWidth, result, secondHeight, firstHeight * secondHeight );
 		first += firstHeight * firstWidth;
 		second += firstWidth * secondHeight;
 		result += firstHeight * secondHeight;
@@ -943,10 +940,10 @@ void CCpuMathEngine::MultiplyMatrixByTransposedMatrix( int batchSize, const CCon
 void CCpuMathEngine::batchMultiplyTransposedMatrixByMatrix( int batchSize,
 	const float* first, int firstHeight, int firstWidth,
 	const float* second, int secondWidth,
-	float* result, const CSmallMatricesMultiplyDesc* desc )
+	float* result )
 {
 	for( int b = 0; b < batchSize; ++b ) {
-		multiplyTransposedMatrixByMatrix( first, firstHeight, firstWidth, second, secondWidth, result, desc );
+		multiplyTransposedMatrixByMatrix( first, firstHeight, firstWidth, second, secondWidth, result );
 
 		first += firstHeight * firstWidth;
 		second += firstHeight * secondWidth;

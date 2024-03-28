@@ -697,14 +697,14 @@ void CMetalMathEngine::MobileNetV2Block( const CBlobDesc&, const CBlobDesc&,
 
 void CMetalMathEngine::MobileNetV3PreSEBlock( const CBlobDesc&, const CBlobDesc&, const CChannelwiseConvolutionDesc&,
     const CConstFloatHandle&, const CConstFloatHandle&, const CConstFloatHandle*, TActivationFunction, float,
-    const CConstFloatHandle&, const CConstFloatHandle*, TActivationFunction, float, const CFloatHandle&, const CSmallMatricesMultiplyDescsArray* )
+    const CConstFloatHandle&, const CConstFloatHandle*, TActivationFunction, float, const CFloatHandle& )
 {
     ASSERT_EXPR( false );
 }
 
 void CMetalMathEngine::MobileNetV3PostSEBlock( const CBlobDesc&, int, const CConstFloatHandle&,
     const CConstFloatHandle&, const CConstFloatHandle*, TActivationFunction, float, const CConstFloatHandle&,
-    const CConstFloatHandle*, const CFloatHandle&, const CSmallMatricesMultiplyDescsArray* )
+    const CConstFloatHandle*, const CFloatHandle& )
 {
     ASSERT_EXPR( false );
 }

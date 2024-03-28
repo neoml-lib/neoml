@@ -63,7 +63,7 @@ static const float* initLstmFreeTerm( const CFloatHandleVar* freeTermVar, const 
 
 //-------------------------------------------------------------------------------------------------------------------------
 
-CMathEngineLstmDesc::CMathEngineLstmDesc( CCpuMathEngine& mathEngine,
+CMathEngineLstmDesc::CMathEngineLstmDesc(
 		int hiddenSize, int objectSize, const CConstFloatHandle& inputWeights,
 		const CConstFloatHandle& inputFreeTerm, const CConstFloatHandle& recurWeights,
 		const CConstFloatHandle& recurFreeTerm ) :
@@ -73,10 +73,7 @@ CMathEngineLstmDesc::CMathEngineLstmDesc( CCpuMathEngine& mathEngine,
 	RecurWeightsVar( transposeLstmWeights( recurWeights, 4 * hiddenSize, hiddenSize ) ),
 	RecurWeights( GetRaw( RecurWeightsVar->GetHandle() ) ),
 	FreeTermVar( createLstmFreeTermVar( inputFreeTerm, recurFreeTerm, hiddenSize ) ),
-	FreeTerm( initLstmFreeTerm( FreeTermVar.get(), inputFreeTerm, recurFreeTerm) ),
-	smallMatricesMulDescsArrays{
-		std::unique_ptr<CSmallMatricesMultiplyDescsArray>( mathEngine.InitSmallMatricesMultiplyDescsArray() ),
-		std::unique_ptr<CSmallMatricesMultiplyDescsArray>( mathEngine.InitSmallMatricesMultiplyDescsArray() ) }
+	FreeTerm( initLstmFreeTerm( FreeTermVar.get(), inputFreeTerm, recurFreeTerm))
 {}
 
 CMathEngineLstmDesc::~CMathEngineLstmDesc() = default;
@@ -85,7 +82,7 @@ CLstmDesc* CCpuMathEngine::InitLstm( int hiddenSize, int objectSize,
 	const CConstFloatHandle& inputWeights, const CConstFloatHandle& inputFreeTerm,
 	const CConstFloatHandle& recurrentWeights, const CConstFloatHandle& recurrentFreeTerm )
 {
-	return new CMathEngineLstmDesc( *this, hiddenSize, objectSize, inputWeights, inputFreeTerm,
+	return new CMathEngineLstmDesc( hiddenSize, objectSize, inputWeights, inputFreeTerm,
 		recurrentWeights, recurrentFreeTerm );
 }
 
@@ -179,28 +176,21 @@ void CCpuMathEngine::Lstm( CLstmDesc& desc, bool reverse, int sequenceLength, in
 
 			const int firstHeight = seqElemsInBuffer * sequenceCount;
 			const int firstWidth = lstmDesc.ObjectSize;
-			const auto& mulDescs = static_cast<const CCpuSmallMatricesMultiplyDescsArray<>&>(
-				*lstmDesc.smallMatricesMulDescsArrays[CMathEngineLstmDesc::TSMMDA_MxMT] );
 
 			multiplyMatrixByTransposedMatrix(
 				/*first*/input[bufferIdx * fullyConnectedResult.SequenceLength()], firstHeight, firstWidth, firstWidth,
 				/*second*/lstmDesc.InputWeights, secondHeight, /*secondWidth*/firstWidth,
-				/*result*/fullyConnectedResult[0], resultWidth,
-				mulDescs.Get( firstHeight, firstHeight, firstWidth, /*secondWidth*/firstWidth, resultWidth ) );
+				/*result*/fullyConnectedResult[0], resultWidth );
 		}
 
 		{
 			const int firstHeight = sequenceCount;
 			const int firstWidth = lstmDesc.HiddenSize;
-			const auto& mulDescs = static_cast<const CCpuSmallMatricesMultiplyDescsArray<>&>(
-				*lstmDesc.smallMatricesMulDescsArrays[CMathEngineLstmDesc::TSMMDA_MxM] );
 
 			multiplyMatrixByMatrixAndAdd(
 				/*first*/mainBackLink[inputPos], firstHeight, firstWidth, firstWidth,
 				/*second*/lstmDesc.RecurWeights, /*secondWidth*/resultWidth, /*secondWidth*/resultWidth,
-				/*result*/fullyConnectedResult[outputPos], resultWidth,
-				mulDescs.Get( firstHeight, firstHeight, firstWidth, /*secondWidth*/resultWidth, resultWidth,
-					/*resultAdd*/true, /*trans1*/false, /*trans2*/false ) );
+				/*result*/fullyConnectedResult[outputPos], resultWidth );
 		}
 		if( lstmDesc.FreeTerm != nullptr ) {
 			addVectorToMatrixRows( fullyConnectedResult[outputPos], fullyConnectedResult[outputPos],
