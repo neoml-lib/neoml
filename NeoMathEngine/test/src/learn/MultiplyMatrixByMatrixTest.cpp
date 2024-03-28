@@ -42,16 +42,9 @@ static void multiplyMatrixByMatrixAndAddTestImpl( const CTestParams& params, int
 
 	batchMultiplyMatrixByMatrixAndAddNaive( batchSize, first, second, firstHeight, firstWidth, secondWidth, expected );
 
-	CSmallMatricesMultiplyDesc* desc = MathEngine().InitSmallMatricesMultiplyDesc(
-		firstHeight, firstWidth, secondWidth, /*secondRowSize*/secondWidth, /*resultWidth*/secondWidth,
-		/*resultAdd*/false, /*trans1*/false, /*trans2*/false );
-
 	MathEngine().MultiplyMatrixByMatrix( batchSize, CARRAY_FLOAT_WRAPPER( first ), firstHeight, firstWidth,
-		CARRAY_FLOAT_WRAPPER( second ), secondWidth, CARRAY_FLOAT_WRAPPER( get ), batchSize * firstHeight * secondWidth, desc );
+		CARRAY_FLOAT_WRAPPER( second ), secondWidth, CARRAY_FLOAT_WRAPPER( get ), batchSize * firstHeight * secondWidth );
 
-	if( desc ) {
-		delete desc;
-	}
 	for( int i = 0; i < batchSize * firstHeight * secondWidth; ++i ) {
 		ASSERT_NEAR( expected[i], get[i], 1e-3 );
 	}

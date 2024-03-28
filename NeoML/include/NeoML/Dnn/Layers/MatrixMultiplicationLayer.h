@@ -20,9 +20,6 @@ limitations under the License.
 
 namespace NeoML {
 
-// Forward declaration
-struct CSmallMatricesMultiplyDesc;
-
 // Matrix multiplication
 // Has 2 inputs
 // Each input contains BatchLength * BatchWidth * ListSize matrices of size (Height * Width * Depth) x Chanells
@@ -44,14 +41,6 @@ protected:
 	void RunOnce() override;
 	void BackwardOnce() override;
 	int BlobsForBackward() const override { return TInputBlobs; }
-
-private:
-	enum TSMMD { TSMMD_Forward, TSMMD_Backward, TSMMD_SecondBackward, /*...*/ TSMMD_Count_ };
-	CPointerArray<CSmallMatricesMultiplyDesc> smallMatricesMulDescs{}; // execution descriptors
-
-	const CSmallMatricesMultiplyDesc* initSmallMatricesMulDesc( TSMMD,
-		int firstHeight, int firstWidth, int secondWidth, int resultWidth );
-	void recreateSmallMatricesMulDescs();
 };
 
 NEOML_API CLayerWrapper<CMatrixMultiplicationLayer> MatrixMultiplication();

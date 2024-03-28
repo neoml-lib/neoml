@@ -25,11 +25,8 @@ limitations under the License.
 
 namespace NeoML {
 
-// Forward declaration
-class CCpuMathEngine;
-
 struct CMathEngineLstmDesc : public CLstmDesc {
-	CMathEngineLstmDesc( CCpuMathEngine& mathEngine,
+	CMathEngineLstmDesc(
 		int hiddenSize, int objectSize, const CConstFloatHandle& inputWeights,
 		const CConstFloatHandle& inputFreeTerm, const CConstFloatHandle& recurWeights,
 		const CConstFloatHandle& recurFreeTerm );
@@ -44,10 +41,6 @@ struct CMathEngineLstmDesc : public CLstmDesc {
 	const float* const RecurWeights;
 	const std::unique_ptr<CFloatHandleVar> FreeTermVar;
 	const float* const FreeTerm;
-
-	enum { TSMMDA_MxMT, TSMMDA_MxM, /*...*/ TSMMDA_Count_ };
-	// The array of matrices multiplication optimization descriptors arrays by enum above
-	std::unique_ptr<CSmallMatricesMultiplyDescsArray> smallMatricesMulDescsArrays[TSMMDA_Count_]{};
 
 	virtual void RunOnceRestOfLstm( int objectCount, float* fullyConnectedResult, const float* inputStateBackLink,
 		float* outputStateBackLink, float* outputMainBackLink );

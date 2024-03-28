@@ -21,9 +21,6 @@ limitations under the License.
 
 namespace NeoML {
 
-// Forward declaration
-struct CSmallMatricesMultiplyDesc;
-
 // CFullyConnectedLayer implements a fully-connected layer
 class NEOML_API CFullyConnectedLayer : public CBaseLayer {
 	NEOML_DNN_LAYER( CFullyConnectedLayer )
@@ -82,13 +79,6 @@ protected:
 private:
 	int numberOfElements = 0; // the number of elements (neurons) of the fully-connected layer
 	bool isZeroFreeTerm = false; // indicates if the free term should be set to zero
-
-	enum TSMMD { TSMMD_Forward, TSMMD_Backward, TSMMD_Learn, /*...*/  TSMMD_Count_ };
-	CPointerArray<CSmallMatricesMultiplyDesc> smallMatricesMulDescs[TSMMD_Count_]; // execution descriptors for each input
-
-	const CSmallMatricesMultiplyDesc* initSmallMatricesMulDescs( TSMMD type, int inputNumber,
-		int firstHeight, int firstWidth, int secondWidth, int resultWidth );
-	void recreateSmallMatricesMulDescs();
 };
 
 NEOML_API CLayerWrapper<CFullyConnectedLayer> FullyConnected(

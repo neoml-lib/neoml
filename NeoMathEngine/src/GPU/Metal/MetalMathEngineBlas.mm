@@ -567,7 +567,7 @@ void CMetalMathEngine::FindMinValueInColumns( const CConstFloatHandle&, int, int
 }
 
 void CMetalMathEngine::MultiplyMatrixByMatrix( int batchSize, const CConstFloatHandle& firstHandle, int firstHeight,
-    int firstWidth, const CConstFloatHandle& secondHandle, int secondWidth, const CFloatHandle& resultHandle, int /*resultBufferSize*/, const CSmallMatricesMultiplyDesc* /*desc*/ )
+    int firstWidth, const CConstFloatHandle& secondHandle, int secondWidth, const CFloatHandle& resultHandle, int /*resultBufferSize*/)
 {
     ASSERT_EXPR( firstHandle.GetMathEngine() == this );
     ASSERT_EXPR( secondHandle.GetMathEngine() == this );
@@ -624,7 +624,7 @@ void CMetalMathEngine::MultiplyMatrixByMatrix( int batchSize, const CConstFloatH
 
 void CMetalMathEngine::MultiplyMatrixByTransposedMatrix(const CConstFloatHandle& firstHandle, int firstHeight,
     int firstWidth, int firstRowSize, const CConstFloatHandle& secondHandle, int secondHeight, int secondRowSize,
-    const CFloatHandle& resultHandle, int /*resultRowSize*/, int /*resultBufferSize*/, const CSmallMatricesMultiplyDesc* /*desc*/)
+    const CFloatHandle& resultHandle, int /*resultRowSize*/, int /*resultBufferSize*/ )
 {
     ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
@@ -680,7 +680,7 @@ void CMetalMathEngine::MultiplyMatrixByTransposedMatrix(const CConstFloatHandle&
 }
 
 void CMetalMathEngine::MultiplyMatrixByTransposedMatrix(int batchSize, const CConstFloatHandle& firstHandle, int firstHeight,
-    int firstWidth, const CConstFloatHandle& secondHandle, int secondHeight, const CFloatHandle& resultHandle, int /*resultBufferSize*/, const CSmallMatricesMultiplyDesc* /*desc*/)
+    int firstWidth, const CConstFloatHandle& secondHandle, int secondHeight, const CFloatHandle& resultHandle, int /*resultBufferSize*/)
 {
     ASSERT_EXPR( firstHandle.GetMathEngine() == this );
     ASSERT_EXPR( secondHandle.GetMathEngine() == this );
@@ -787,7 +787,7 @@ void CMetalMathEngine::multiplyMatrixByTransposedMatrixAndAdd(const CConstFloatH
 
 void CMetalMathEngine::MultiplyTransposedMatrixByMatrixAndAdd(const CConstFloatHandle& firstHandle, int firstHeight, int firstWidth,
     int /*firstRowSize*/, const CConstFloatHandle& secondHandle, int secondWidth, int /*secondRowSize*/,
-	const CFloatHandle& resultHandle, int /*resultRowSize*/, int /*resultSize*/, const CSmallMatricesMultiplyDesc* /*desc*/)
+	const CFloatHandle& resultHandle, int /*resultRowSize*/, int /*resultSize*/)
 {
     ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
@@ -834,7 +834,7 @@ void CMetalMathEngine::MultiplyTransposedMatrixByMatrixAndAdd(const CConstFloatH
 
 
 void CMetalMathEngine::MultiplyTransposedMatrixByMatrix(int batchSize, const CConstFloatHandle& firstHandle, int firstHeight, int firstWidth,
-    const CConstFloatHandle& secondHandle, int secondWidth, const CFloatHandle& resultHandle, int, const CSmallMatricesMultiplyDesc*)
+    const CConstFloatHandle& secondHandle, int secondWidth, const CFloatHandle& resultHandle, int)
 {
     ASSERT_EXPR( firstHandle.GetMathEngine() == this );
     ASSERT_EXPR( secondHandle.GetMathEngine() == this );
