@@ -24,14 +24,14 @@ limitations under the License.
 
 namespace NeoML {
 
-CDropoutDesc* CMetalMathEngine::InitDropout( float rate, bool isSpatial, bool isBatchwise,
-	const CBlobDesc& input, const CBlobDesc& output, int seed )
+CDropoutDesc* CMetalMathEngine::InitDropout( float /*rate*/, bool /*isSpatial*/, bool /*isBatchwise*/,
+	const CBlobDesc& /*input*/, const CBlobDesc& /*output*/, int /*seed*/ )
 {
 	ASSERT_EXPR(false);
 	return nullptr;
 }
 
-void CMetalMathEngine::Dropout( const CDropoutDesc& dropoutDesc, const CFloatHandle& inputData, const CFloatHandle& outputData )
+void CMetalMathEngine::Dropout( const CDropoutDesc& /*dropoutDesc*/, const CFloatHandle& /*inputData*/, const CFloatHandle& /*outputData*/ )
 {
 	ASSERT_EXPR(false);
 }

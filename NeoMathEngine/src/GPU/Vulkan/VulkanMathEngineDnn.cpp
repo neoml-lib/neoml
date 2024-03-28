@@ -449,14 +449,14 @@ void CVulkanMathEngine::AddHeightIndex( const CBlobDesc&, const CConstIntHandle&
 	ASSERT_EXPR( false );
 }
 
-CDropoutDesc* CVulkanMathEngine::InitDropout( float rate, bool isSpatial, bool isBatchwise,
-	const CBlobDesc& input, const CBlobDesc& output, int seed )
+CDropoutDesc* CVulkanMathEngine::InitDropout( float /*rate*/, bool /*isSpatial*/, bool /*isBatchwise*/,
+	const CBlobDesc& /*input*/, const CBlobDesc& /*output*/, int /*seed*/ )
 {
 	ASSERT_EXPR(false);
 	return nullptr;
 }
 
-void CVulkanMathEngine::Dropout( const CDropoutDesc& dropoutDesc, const CFloatHandle& inputData, const CFloatHandle& outputData )
+void CVulkanMathEngine::Dropout( const CDropoutDesc& /*dropoutDesc*/, const CFloatHandle& /*inputData*/, const CFloatHandle& /*outputData*/ )
 {
 	ASSERT_EXPR(false);
 }
