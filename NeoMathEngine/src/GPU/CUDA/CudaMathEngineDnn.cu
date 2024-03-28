@@ -28,7 +28,8 @@ limitations under the License.
 namespace NeoML {
 
 template<class T>
-void CCudaMathEngine::blobMergeByDimCuda( int dimNum, const CBlobDesc* from, const CTypedMemoryHandle<T>* fromData, int fromCount, const CBlobDesc& to, const CTypedMemoryHandle<T>& toData )
+void CCudaMathEngine::blobMergeByDimCuda( int dimNum, const CBlobDesc* from, const CTypedMemoryHandle<T>* fromData, int fromCount,
+	const CBlobDesc& to, const CTypedMemoryHandle<T>& toData )
 {
 	ASSERT_EXPR(fromCount <= MaxBlobDescs);
 	ASSERT_EXPR(0 <= dimNum && dimNum < CBlobDesc::MaxDimensions);
@@ -51,8 +52,9 @@ void CCudaMathEngine::blobMergeByDimCuda( int dimNum, const CBlobDesc* from, con
 	for(int z  = 0; z < dimNum; z++) {
 		height *= s[z];
 	}
- 	int width = to.BlobSize() / height;
-	int heightNorm = (height + BlobMergeByDimCombine - 1) / BlobMergeByDimCombine;
+ 	const int width = to.BlobSize() / height;
+	const int heightNorm = (height + BlobMergeByDimCombine - 1) / BlobMergeByDimCombine;
+
 	dim3 blockCount;
 	dim3 threadCount;
 	getCudaTaskGrid2D(blockCount, threadCount, heightNorm, width);
@@ -61,18 +63,20 @@ void CCudaMathEngine::blobMergeByDimCuda( int dimNum, const CBlobDesc* from, con
 }
 
 template<class T>
-void CCudaMathEngine::blobMergeByDim0(const CBlobDesc* from, const CTypedMemoryHandle<T>* fromData, int fromCount, const CTypedMemoryHandle<T>& toData)
+void CCudaMathEngine::blobMergeByDim0(const CBlobDesc* from, const CTypedMemoryHandle<T>* fromData, int fromCount,
+	const CTypedMemoryHandle<T>& toData)
 {
 	CTypedMemoryHandle<T> output = toData;
 	for(int i = 0; i < fromCount; ++i) {
-		int blobSize = from[i].BlobSize();
+		const int blobSize = from[i].BlobSize();
 		VectorCopy(output, fromData[i], blobSize);
 		output += blobSize;
 	}
 }
 
 template<class T>
-void CCudaMathEngine::blobMergeByDim( int dim, const CBlobDesc* from, const CTypedMemoryHandle<T>* fromData, int fromCount, const CBlobDesc& to, const CTypedMemoryHandle<T>& toData )
+void CCudaMathEngine::blobMergeByDim( int dim, const CBlobDesc* from, const CTypedMemoryHandle<T>* fromData, int fromCount,
+	const CBlobDesc& to, const CTypedMemoryHandle<T>& toData )
 {
 	if(dim == 0) {
 		return blobMergeByDim0(from, fromData, fromCount, toData);
@@ -82,7 +86,8 @@ void CCudaMathEngine::blobMergeByDim( int dim, const CBlobDesc* from, const CTyp
 }
 
 template<class T>
-void CCudaMathEngine::blobSplitByDimCuda(int dimNum, const CBlobDesc& from, const CTypedMemoryHandle<const T>& fromData, const CBlobDesc* to, const CTypedMemoryHandle<T>* toData, int toCount)
+void CCudaMathEngine::blobSplitByDimCuda(int dimNum, const CBlobDesc& from, const CTypedMemoryHandle<const T>& fromData,
+	const CBlobDesc* to, const CTypedMemoryHandle<T>* toData, int toCount)
 {
 	ASSERT_EXPR(toCount <= MaxBlobDescs);
 	ASSERT_EXPR(0 <= dimNum && dimNum < CBlobDesc::MaxDimensions);
@@ -94,7 +99,6 @@ void CCudaMathEngine::blobSplitByDimCuda(int dimNum, const CBlobDesc& from, cons
 	for(int i = 0; i < toCount; ++i) {
 		toArr.Descs[i] = to[i];
 		toArr.Data[i] = GetRaw(toData[i]);
-
 		to[i].GetDimSizes(s);
  		toArr.Widths[i] = 1;
 		for(int z = dimNum; z < CBlobDesc::MaxDimensions; z++) {
@@ -106,8 +110,8 @@ void CCudaMathEngine::blobSplitByDimCuda(int dimNum, const CBlobDesc& from, cons
 	for(int z  = 0; z < dimNum; z++) {
 		height *= s[z];
 	}
- 	int width = from.BlobSize() / height;
-	int heightNorm = (height + BlobSplitByDimCombine - 1) / BlobSplitByDimCombine;
+ 	const int width = from.BlobSize() / height;
+	const int heightNorm = (height + BlobSplitByDimCombine - 1) / BlobSplitByDimCombine;
 
 	dim3 blockCount;
 	dim3 threadCount;
@@ -117,18 +121,20 @@ void CCudaMathEngine::blobSplitByDimCuda(int dimNum, const CBlobDesc& from, cons
 }
 
 template<class T>
-void CCudaMathEngine::blobSplitByDim0(const CBlobDesc& from, const CTypedMemoryHandle<const T>& fromData, const CBlobDesc* to, const CTypedMemoryHandle<T>* toData, int toCount)
+void CCudaMathEngine::blobSplitByDim0(const CBlobDesc& from, const CTypedMemoryHandle<const T>& fromData,
+	const CBlobDesc* to, const CTypedMemoryHandle<T>* toData, int toCount)
 {
 	CTypedMemoryHandle<const T> input = fromData;
 	for( int i = 0; i < toCount; ++i ) {
-		int blobSize = to[i].BlobSize();
+		const int blobSize = to[i].BlobSize();
 		VectorCopy( toData[i], input, blobSize );
 		input += blobSize;
 	}
 }
 
 template<class T>
-void CCudaMathEngine::blobSplitByDim( int dim, const CBlobDesc& from, const CTypedMemoryHandle<const T>& fromData, const CBlobDesc* to, const CTypedMemoryHandle<T>* toData, int toCount )
+void CCudaMathEngine::blobSplitByDim( int dim, const CBlobDesc& from, const CTypedMemoryHandle<const T>& fromData,
+	const CBlobDesc* to, const CTypedMemoryHandle<T>* toData, int toCount )
 {
 	if(dim == 0) {
 		return blobSplitByDim0(from, fromData, to, toData, toCount);
@@ -137,25 +143,29 @@ void CCudaMathEngine::blobSplitByDim( int dim, const CBlobDesc& from, const CTyp
 	}
 }
 
-void CCudaMathEngine::BlobMergeByDim(TBlobDim dim, const CBlobDesc* from, const CFloatHandle* fromData, int fromCount, const CBlobDesc& to, const CFloatHandle& toData)
+void CCudaMathEngine::BlobMergeByDim(TBlobDim dim, const CBlobDesc* from, const CFloatHandle* fromData, int fromCount,
+	const CBlobDesc& to, const CFloatHandle& toData)
 {
 	ASSERT_EXPR(dim < BD_Count && fromCount <= MaxBlobDescs);
 	blobMergeByDim(dim, from, fromData, fromCount, to, toData);
 }
 
-void CCudaMathEngine::BlobMergeByDim(TBlobDim dim, const CBlobDesc* from, const CIntHandle* fromData, int fromCount, const CBlobDesc& to, const CIntHandle& toData)
+void CCudaMathEngine::BlobMergeByDim(TBlobDim dim, const CBlobDesc* from, const CIntHandle* fromData, int fromCount,
+	const CBlobDesc& to, const CIntHandle& toData)
 {
 	ASSERT_EXPR(dim < BD_Count && fromCount <= MaxBlobDescs);
 	blobMergeByDim(dim, from, fromData, fromCount, to, toData);
 }
 
-void CCudaMathEngine::BlobSplitByDim(TBlobDim dim, const CBlobDesc& from, const CConstFloatHandle& fromData, const CBlobDesc* to, const CFloatHandle* toData, int toCount)
+void CCudaMathEngine::BlobSplitByDim(TBlobDim dim, const CBlobDesc& from, const CConstFloatHandle& fromData,
+	const CBlobDesc* to, const CFloatHandle* toData, int toCount)
 {
 	ASSERT_EXPR(dim < BD_Count && toCount <= MaxBlobDescs);
 	blobSplitByDim(dim, from, fromData, to, toData, toCount);
 }
 
-void CCudaMathEngine::BlobSplitByDim(TBlobDim dim, const CBlobDesc& from, const CConstIntHandle& fromData, const CBlobDesc* to, const CIntHandle* toData, int toCount)
+void CCudaMathEngine::BlobSplitByDim(TBlobDim dim, const CBlobDesc& from, const CConstIntHandle& fromData,
+	const CBlobDesc* to, const CIntHandle* toData, int toCount)
 {
 	ASSERT_EXPR(dim < BD_Count && toCount <= MaxBlobDescs);
 	blobSplitByDim(dim, from, fromData, to, toData, toCount);
@@ -172,24 +182,24 @@ void CCudaMathEngine::BlobResizeImage( const CBlobDesc& from, const CFloatHandle
 	dim3 blockCount;
 	dim3 threadCount;
 	getCudaTaskGrid3D( blockCount, threadCount, to.ObjectCount(), to.Height() * to.Width(), to.Channels() * to.Depth() );
+
 	BlobResizeImageKernel<<<blockCount, threadCount>>>( from, GetRaw( fromData ), deltaLeft, deltaTop,
 		static_cast<int>( padding ), defaultValue, to, GetRaw( toData ) );
 }
 
-void CCudaMathEngine::BlobGetSubSequence( const CBlobDesc& from, const CFloatHandle& fromData, const CIntHandle& indexHandle, const CBlobDesc& to,
-	const CFloatHandle& toData, int startPos, bool isRev )
+void CCudaMathEngine::BlobGetSubSequence( const CBlobDesc& from, const CFloatHandle& fromData, const CIntHandle& indexHandle,
+	const CBlobDesc& to, const CFloatHandle& toData, int startPos, bool isRev )
 {
 	ASSERT_EXPR( fromData.GetMathEngine() == this );
 	ASSERT_EXPR( indexHandle.IsNull() || indexHandle.GetMathEngine() == this );
 	ASSERT_EXPR( toData.GetMathEngine() == this );
 	SetCudaDevice( device->DeviceNumber );
 
-	int objectSize = from.ObjectSize() * from.ListSize();
-	int objectSizeNorm = (objectSize + BlobGetSubSequenceCombine - 1) / BlobGetSubSequenceCombine;
+	const int objectSize = from.ObjectSize() * from.ListSize();
+	const int objectSizeNorm = (objectSize + BlobGetSubSequenceCombine - 1) / BlobGetSubSequenceCombine;
 
 	dim3 blockCount;
 	dim3 threadCount;
-
 	getCudaTaskGrid3D(blockCount, threadCount, to.BatchLength(), to.BatchWidth(), objectSizeNorm);
 
 	BlobGetSubSequenceKernel<<<blockCount, threadCount>>>(from, GetRaw(fromData), GetRaw(indexHandle),
@@ -220,9 +230,11 @@ void CCudaMathEngine::Upsampling2DForward( const CBlobDesc& input, const CConstI
 	const int pixelSize = input.Depth() * input.Channels();
 	const int resultHeight = result.Height();
 	const int resultRowSize = result.Width() * result.Depth() * result.Channels();
+
 	dim3 blockCount;
 	dim3 threadCount;
 	getCudaTaskGrid2D( blockCount, threadCount, resultHeight, resultRowSize );
+
 	Upsampling2DForwardKernel<<<blockCount, threadCount>>>(
 		heightCopyCount, widthCopyCount, pixelSize,
 		input.ObjectCount(), inputHeight, inputRowSize, GetRaw( inputData ),
@@ -253,9 +265,11 @@ void CCudaMathEngine::Upsampling2DForward( const CBlobDesc& input, const CConstF
 	const int pixelSize = input.Depth() * input.Channels();
 	const int resultHeight = result.Height();
 	const int resultRowSize = result.Width() * result.Depth() * result.Channels();
+
 	dim3 blockCount;
 	dim3 threadCount;
 	getCudaTaskGrid2D( blockCount, threadCount, resultHeight, resultRowSize );
+
 	Upsampling2DForwardKernel<<<blockCount, threadCount>>>(
 		heightCopyCount, widthCopyCount, pixelSize,
 		input.ObjectCount(), inputHeight, inputRowSize, GetRaw( inputData ),
@@ -290,9 +304,11 @@ void CCudaMathEngine::Upsampling2DBackward( const CBlobDesc& input, const CConst
 	const int pixelSize = input.Depth() * input.Channels();
 	const int resultHeight = result.Height();
 	const int resultRowSize = result.Width() * result.Depth() * result.Channels();
+
 	dim3 blockCount;
 	dim3 threadCount;
 	getCudaTaskGrid2D( blockCount, threadCount, inputHeight, inputRowSize );
+
 	Upsampling2DBackwardKernel<<<blockCount, threadCount>>>(
 		heightCopyCount, widthCopyCount, pixelSize,
 		input.ObjectCount(), inputHeight, inputRowSize, GetRaw( inputData ),
@@ -349,6 +365,7 @@ void CCudaMathEngine::Reorg( const CBlobDesc& source, const CFloatHandle& source
 	int blockCount = 0;
 	int threadCount = 0;
 	getCudaTaskGrid( blockCount, threadCount, source.BlobSize() );
+
 	if( !isForward ) {
 		ReorgKernel<<<blockCount, threadCount>>>( GetRaw( sourceData ), result.Width(), result.Height(),
 			result.Channels(), result.ObjectCount(), stride, isForward, GetRaw( resultData ) );
@@ -368,6 +385,7 @@ void CCudaMathEngine::Reorg( const CBlobDesc& source, const CIntHandle& sourceDa
 	int blockCount = 0;
 	int threadCount = 0;
 	getCudaTaskGrid( blockCount, threadCount, source.BlobSize() );
+
 	if( !isForward ) {
 		ReorgKernel<<<blockCount, threadCount>>>( GetRaw( sourceData ), result.Width(), result.Height(),
 			result.Channels(), result.ObjectCount(), stride, isForward, GetRaw( resultData ) );
@@ -393,6 +411,7 @@ void CCudaMathEngine::SpaceToDepth( const CBlobDesc& source, const CConstFloatHa
 	dim3 threadCount;
 	getCudaTaskGrid2D( blockCount, threadCount, source.ObjectCount() * result.Height(),
 		blockSize * source.Width() * source.Channels() );
+
 	SpaceToDepthKernel<<<blockCount, threadCount>>>( GetRaw( sourceData ), source.ObjectCount() * result.Height(),
 		result.Width(), source.Channels(), blockSize, true, GetRaw( resultData ) );
 }
@@ -413,6 +432,7 @@ void CCudaMathEngine::SpaceToDepth( const CBlobDesc& source, const CConstIntHand
 	dim3 threadCount;
 	getCudaTaskGrid2D( blockCount, threadCount, source.ObjectCount() * result.Height(),
 		blockSize * source.Width() * source.Channels() );
+
 	SpaceToDepthKernel<<<blockCount, threadCount>>>( GetRaw( sourceData ), source.ObjectCount() * result.Height(),
 		result.Width(), source.Channels(), blockSize, true, GetRaw( resultData ) );
 }
@@ -433,6 +453,7 @@ void CCudaMathEngine::DepthToSpace( const CBlobDesc& source, const CConstFloatHa
 	dim3 threadCount;
 	getCudaTaskGrid2D( blockCount, threadCount, source.ObjectCount() * result.Height(),
 		blockSize * result.Width() * result.Channels() );
+
 	SpaceToDepthKernel<<<blockCount, threadCount>>>( GetRaw( sourceData ), source.ObjectCount() * source.Height(),
 		source.Width(), result.Channels(), blockSize, false, GetRaw( resultData ) );
 }
@@ -453,11 +474,13 @@ void CCudaMathEngine::DepthToSpace( const CBlobDesc& source, const CConstIntHand
 	dim3 threadCount;
 	getCudaTaskGrid2D( blockCount, threadCount, source.ObjectCount() * result.Height(),
 		blockSize * result.Width() * result.Channels() );
+
 	SpaceToDepthKernel<<<blockCount, threadCount>>>( GetRaw( sourceData ), source.ObjectCount() * source.Height(),
 		source.Width(), result.Channels(), blockSize, false, GetRaw( resultData ) );
 }
 
-void CCudaMathEngine::AddWidthIndex( const CBlobDesc& source, const CConstFloatHandle& sourceData, bool isForward, const CFloatHandle& resultData )
+void CCudaMathEngine::AddWidthIndex( const CBlobDesc& source, const CConstFloatHandle& sourceData, bool isForward,
+	const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
@@ -472,7 +495,8 @@ void CCudaMathEngine::AddWidthIndex( const CBlobDesc& source, const CConstFloatH
 		source.Channels(), source.ObjectCount(), isForward, GetRaw( resultData ) );
 }
 
-void CCudaMathEngine::AddWidthIndex( const CBlobDesc& source, const CConstIntHandle& sourceData, bool isForward, const CIntHandle& resultData )
+void CCudaMathEngine::AddWidthIndex( const CBlobDesc& source, const CConstIntHandle& sourceData, bool isForward,
+	const CIntHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
@@ -487,7 +511,8 @@ void CCudaMathEngine::AddWidthIndex( const CBlobDesc& source, const CConstIntHan
 		source.Channels(), source.ObjectCount(), isForward, GetRaw( resultData ) );
 }
 
-void CCudaMathEngine::AddHeightIndex( const CBlobDesc& source, const CConstFloatHandle& sourceData, bool isForward, const CFloatHandle& resultData )
+void CCudaMathEngine::AddHeightIndex( const CBlobDesc& source, const CConstFloatHandle& sourceData, bool isForward,
+	const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );

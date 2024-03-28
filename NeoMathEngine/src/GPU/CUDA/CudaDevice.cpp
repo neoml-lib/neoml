@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -233,7 +233,7 @@ bool CDeviceFile::Open()
 	// Second lock: flock for sync between processes.
 	while( ::flock( localFd, LOCK_EX | LOCK_NB ) == -1 ) {
 		cnow = std::chrono::steady_clock::now().time_since_epoch();
-		auto now = std::chrono::duration_cast<std::chrono::milliseconds>(cnow).count();
+		const auto now = std::chrono::duration_cast<std::chrono::milliseconds>(cnow).count();
 		if( now - lockStart > maxTimeoutMs ) {
 			// Failed to acquire lock for a device file in time.
 			mutex.unlock();
@@ -424,9 +424,9 @@ static CCudaDevice* captureSpecifiedCudaDevice( int deviceNumber, size_t deviceM
 		return nullptr;
 	}
 
-	size_t slotSize = devProp.totalGlobalMem / CUDA_DEV_SLOT_COUNT;
-	int slotCount = static_cast<int>( ( deviceMemoryLimit + slotSize - 1 ) / slotSize );
-	void* handle = captureDeviceSlots( devProp.pciBusID, devProp.pciDeviceID, slotCount );
+	const size_t slotSize = devProp.totalGlobalMem / CUDA_DEV_SLOT_COUNT;
+	const int slotCount = static_cast<int>( ( deviceMemoryLimit + slotSize - 1 ) / slotSize );
+	void* const handle = captureDeviceSlots( devProp.pciBusID, devProp.pciDeviceID, slotCount );
 
 	if( handle == nullptr ) {
 		return nullptr;

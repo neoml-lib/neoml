@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -47,10 +47,10 @@ __global__ void RandomSpatialDropout( const float* input, float* res, int inputO
 	int row;
 	int col;
 	if( GetCudaTaskIndex3D( inputObjectCount, inputObjectSize / maskObjectSize, maskObjectSize, obj, row, col ) ) {
-		int pack = obj % maskObjectCount;
-		int index = obj * inputObjectSize + row * maskObjectSize + col;
-		int numBlock = ( pack * maskObjectSize + col ) / 4;
-		int numLeft = ( pack * maskObjectSize + col ) % 4;
+		const int pack = obj % maskObjectCount;
+		const int index = obj * inputObjectSize + row * maskObjectSize + col;
+		const int numBlock = ( pack * maskObjectSize + col ) / 4;
+		const int numLeft = ( pack * maskObjectSize + col ) % 4;
 		CCudaRandom random(seed);
 		random.Skip(numBlock);
 
