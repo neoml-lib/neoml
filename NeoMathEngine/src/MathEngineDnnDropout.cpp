@@ -29,7 +29,7 @@ CSeedDropoutDesc::CSeedDropoutDesc(float rate, bool isSpatial, bool isBatchwise,
 		IsBatchwise(isBatchwise),
 		Value(1.f / (1.f - rate)),
 		Seed( seed ),
-		Threshold((unsigned int)(ForwardRate* UINT_MAX))
+		Threshold((unsigned int)((double)ForwardRate* UINT_MAX))
 {
 	ASSERT_EXPR(rate >= 0.f && rate < 1.f);
 }
