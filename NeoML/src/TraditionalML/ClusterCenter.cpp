@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -108,7 +108,7 @@ double CalcDistance( const CClusterCenter& first, const CClusterCenter& second, 
 	NeoPresume( distanceFunc >= 0 );
 	NeoPresume( distanceFunc < DF_Count );
 
-	return (*clusterDistanceFuncs[distanceFunc])( first, second );
+	return max( 0., (*clusterDistanceFuncs[distanceFunc])( first, second ) );
 }
 
 // Calculates the distance from an element to the cluster center
@@ -117,7 +117,7 @@ double CalcDistance( const CClusterCenter& cluster, const CFloatVector& element,
 	NeoPresume( distanceFunc >= 0 );
 	NeoPresume( distanceFunc < DF_Count );
 
-	return (*vectorDistanceFuncs[distanceFunc])( cluster, element );
+	return max( 0., (*vectorDistanceFuncs[distanceFunc])( cluster, element ) );
 }
 
 } // namespace NeoML
