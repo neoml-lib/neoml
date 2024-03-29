@@ -50,10 +50,10 @@ void CCudaMathEngine::VectorMultiplyAndAdd( const CConstFloatHandle& firstHandle
 	ASSERT_EXPR( multHandle.GetMathEngine() == this );
 	SetCudaDevice( device->DeviceNumber );
 
-	const float* first = GetRaw( firstHandle );
-	const float* second = GetRaw( secondHandle );
-	float* result = GetRaw( resultHandle );
-	const float* mult = GetRaw( multHandle );
+	const float* const first = GetRaw( firstHandle );
+	const float* const second = GetRaw( secondHandle );
+	float* const result = GetRaw( resultHandle );
+	const float* const mult = GetRaw( multHandle );
 
 	if( result != first ) {
 		ASSERT_CUDA( cudaMemcpy( result, first, vectorSize * sizeof( float ), cudaMemcpyDeviceToDevice ) );

@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -39,21 +39,21 @@ void CCudaMathEngine::MultiplySparseMatrixByTransposedMatrix( int firstHeight, i
 	CFloatHandle tResultPtr = tResult.GetHandle();
 
 	cusparseSpMatDescr_t firstCuDesc = 0;
-	int* firstRows = GetRaw( firstDesc.Rows );
-	int* firstColumns = GetRaw( firstDesc.Columns );
-	float* firstValues = GetRaw( firstDesc.Values );
+	int* const firstRows = GetRaw( firstDesc.Rows );
+	int* const firstColumns = GetRaw( firstDesc.Columns );
+	float* const firstValues = GetRaw( firstDesc.Values );
 
 	ASSERT_CUSPARSE( cusparse->CreateCsr( &firstCuDesc, firstHeight, firstWidth, firstDesc.ElementCount,
 		firstRows, firstColumns, firstValues, CUSPARSE_INDEX_32I, CUSPARSE_INDEX_32I, CUSPARSE_INDEX_BASE_ZERO,
 		CUDA_R_32F ) );
 
-	float* secondValues = const_cast<float*>( GetRaw( secondHandle ) );
+	float* const secondValues = const_cast<float*>( GetRaw( secondHandle ) );
 	cusparseDnMatDescr_t secondDesc = 0;
 	ASSERT_CUSPARSE( cusparse->CreateDnMat( &secondDesc, firstWidth, secondHeight, firstWidth,
 		secondValues, CUDA_R_32F, CUSPARSE_ORDER_COL ) );
 	
 	cusparseDnMatDescr_t resultDesc = 0;
-	float* resultValues = GetRaw( tResultPtr );
+	float* const resultValues = GetRaw( tResultPtr );
 	ASSERT_CUSPARSE( cusparse->CreateDnMat( &resultDesc, firstHeight, secondHeight, firstHeight,
 		resultValues, CUDA_R_32F, CUSPARSE_ORDER_COL ) );
 
@@ -99,22 +99,23 @@ void CCudaMathEngine::MultiplyTransposedMatrixBySparseMatrixAndAdd( int firstHei
 	TransposeMatrix( 1, first, firstHeight, 1, firstWidth, 1, tFirstPtr, static_cast<int>( tFirst.Size() ) );
 
 	cusparseDnMatDescr_t tFirstDesc = 0;
-	void* firstValues = GetRaw( tFirst );
+	void* const firstValues = GetRaw( tFirst );
 	ASSERT_CUSPARSE( cusparse->CreateDnMat( &tFirstDesc, firstHeight, firstWidth, firstHeight,
 		firstValues, CUDA_R_32F, CUSPARSE_ORDER_COL ) );
 	
 	cusparseSpMatDescr_t secondCuDesc = 0;
-	int* secondtRows = GetRaw( secondDesc.Rows );
-	int* secondColumns = GetRaw( secondDesc.Columns );
-	float* secondValues = GetRaw( secondDesc.Values );
+	int* const secondtRows = GetRaw( secondDesc.Rows );
+	int* const secondColumns = GetRaw( secondDesc.Columns );
+	float* const secondValues = GetRaw( secondDesc.Values );
 	ASSERT_CUSPARSE( cusparse->CreateCsr( &secondCuDesc, firstHeight, secondWidth, secondDesc.ElementCount,
 		secondtRows, secondColumns, secondValues, CUSPARSE_INDEX_32I, CUSPARSE_INDEX_32I, CUSPARSE_INDEX_BASE_ZERO,
 		CUDA_R_32F ) );
 
 	cusparseDnMatDescr_t resultDesc = 0;
-	float* resultValues = GetRaw( resultHandle );
+	float* const resultValues = GetRaw( resultHandle );
 	ASSERT_CUSPARSE( cusparse->CreateDnMat( &resultDesc, secondWidth, firstWidth, secondWidth,
 		resultValues, CUDA_R_32F, CUSPARSE_ORDER_COL ) );
+
 	float alpha = 1.0;
 	float beta = 1.0;
 

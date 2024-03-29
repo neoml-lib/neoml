@@ -37,9 +37,10 @@ inline __device__ float ReduceSumXSharedBuffer(float* buffer)
 	}
 
 	// Calculate the partial sum over each warp
+	const int indexInWarp = threadIdx.x % xWarp;
+	const int baseIndex = (threadIdx.z * blockDim.y +  threadIdx.y) * blockDim.x + indexInWarp;
+
 	float sum = 0;
-	int indexInWarp = threadIdx.x % xWarp;
-	int baseIndex = (threadIdx.z * blockDim.y +  threadIdx.y) * blockDim.x + indexInWarp;
 	for(int i = 0; (indexInWarp + i) < blockDim.x; i += xWarp) {
 		sum += buffer[baseIndex + i];
 	}
@@ -66,8 +67,9 @@ inline __device__ float ReduceMaxXSharedBuffer(float* buffer)
 	}
 
 	// Calculate the maximum over each warp
-	int indexInWarp = threadIdx.x % xWarp;
-	int baseIndex = (threadIdx.z * blockDim.y +  threadIdx.y) * blockDim.x + indexInWarp;
+	const int indexInWarp = threadIdx.x % xWarp;
+	const int baseIndex = (threadIdx.z * blockDim.y +  threadIdx.y) * blockDim.x + indexInWarp;
+
 	float maxVal = buffer[baseIndex];
 	for(int i = xWarp; (indexInWarp + i) < blockDim.x; i += xWarp) {
 		if(buffer[baseIndex + i] > maxVal) {
@@ -77,7 +79,7 @@ inline __device__ float ReduceMaxXSharedBuffer(float* buffer)
 
 	// Find maximum inside the warp (butterfly reduction)
 	for(int laneMask = xWarp >> 1; laneMask >= 1; laneMask >>= 1) {
-		float otherVal = __shfl_xor_sync(0xffffffff, maxVal, laneMask);
+		const float otherVal = __shfl_xor_sync(0xffffffff, maxVal, laneMask);
 		if(otherVal > maxVal) {
 			maxVal = otherVal;
 		}
@@ -105,8 +107,9 @@ inline __device__ CValueWithIndex ReduceMaxWithIndexXSharedBuffer(CValueWithInde
 	}
 
 	// Calculate the maximum over each warp
-	int indexInWarp = threadIdx.x % xWarp;
-	int baseIndex = (threadIdx.z * blockDim.y +  threadIdx.y) * blockDim.x + indexInWarp;
+	const int indexInWarp = threadIdx.x % xWarp;
+	const int baseIndex = ( threadIdx.z * blockDim.y + threadIdx.y ) * blockDim.x + indexInWarp;
+
 	CValueWithIndex maxVal = buffer[baseIndex];
 	for(int i = xWarp; (indexInWarp + i) < blockDim.x; i += xWarp) {
 		if(buffer[baseIndex + i].Value > maxVal.Value) {
@@ -116,8 +119,8 @@ inline __device__ CValueWithIndex ReduceMaxWithIndexXSharedBuffer(CValueWithInde
 
 	// Find maximum inside the warp (butterfly reduction)
 	for(int laneMask = xWarp >> 1; laneMask >= 1; laneMask >>= 1) {
-		long long maxValWarp = reinterpret_cast<const long long&>(maxVal);
-		long long otherValWarp = __shfl_xor_sync(0xffffffff, maxValWarp, laneMask);
+		const long long maxValWarp = reinterpret_cast<const long long&>(maxVal);
+		const long long otherValWarp = __shfl_xor_sync(0xffffffff, maxValWarp, laneMask);
 		const CValueWithIndex& otherVal = reinterpret_cast<const CValueWithIndex&>(otherValWarp);
 		if(otherVal.Value > maxVal.Value) {
 			maxVal = otherVal;
