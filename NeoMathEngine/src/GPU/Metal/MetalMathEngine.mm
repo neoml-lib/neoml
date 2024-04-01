@@ -150,6 +150,12 @@ void CMetalMathEngine::ResetPeakMemoryUsage()
 	memoryPool->ResetPeakMemoryUsage();
 }
 
+size_t CMetalMathEngine::GetCurrentMemoryUsage() const
+{
+	std::lock_guard<std::mutex> lock( *mutex );
+	return memoryPool->GetCurrentMemoryUsage();
+}
+
 size_t CMetalMathEngine::GetMemoryInPools() const
 {
 	std::lock_guard<std::mutex> lock( *mutex );

@@ -156,6 +156,12 @@ void CVulkanMathEngine::ResetPeakMemoryUsage()
 	memoryPool->ResetPeakMemoryUsage();
 }
 
+size_t CVulkanMathEngine::GetCurrentMemoryUsage() const
+{
+	std::lock_guard<std::mutex> lock( mutex );
+	return memoryPool->GetCurrentMemoryUsage();
+}
+
 size_t CVulkanMathEngine::GetMemoryInPools() const
 {
 	std::lock_guard<std::mutex> lock( mutex );

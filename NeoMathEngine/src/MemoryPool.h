@@ -51,7 +51,8 @@ public:
 	size_t GetPeakMemoryUsage() const { return peakMemoryUsage; }
 	// Reset the peak memory counter to the current memory usage value
 	void ResetPeakMemoryUsage() { peakMemoryUsage = allocatedMemory; }
-
+	// The current memory usage size
+	size_t GetCurrentMemoryUsage() const { return allocatedMemory; }
 	// Gets the amount of memory used for the pools
 	size_t GetMemoryInPools() const;
 
