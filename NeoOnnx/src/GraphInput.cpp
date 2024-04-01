@@ -63,6 +63,7 @@ CPtr<const CUserTensor> CGraphInput::AddSourceLayer( CDnn& dnn, const CTensorLay
 		outputBlobDesc.SetDimSize( outputLayout[dimIndex], outputShape[dimIndex] );
 	}
 	CPtr<CDnnBlob> inputBlob = CDnnBlob::CreateBlob( dnn.GetMathEngine(), outputBlobDesc.GetDataType(), outputBlobDesc );
+	inputBlob->Fill( 0 );
 	source->SetBlob( inputBlob );
 
 	dnn.AddLayer( *source );
