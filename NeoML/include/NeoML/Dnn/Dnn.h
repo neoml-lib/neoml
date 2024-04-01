@@ -149,7 +149,10 @@ public:
 	//
 	// e.g. layer "InputHidden" inside of CLstmLayer named "LSTM", which is inside of CCompositeLayer named "Encoder"
 	// has path "Encoder/LSTM/InputHidden"
-	CString GetPath() const;
+	CString GetPath( const char* sep = "/" ) const;
+	// Path in form suitable for dnn->GetLayer( CArray<CString>& path );
+	// Returns an empty array if the path cannot be constructed.
+	void GetPath( CArray<CString>& path ) const;
 
 	// Connects this layer's inputNumber input to the specified layer's outputNumber output
 	virtual void Connect( int inputNumber, const char* layer, int outputNumber = 0 );
@@ -390,7 +393,8 @@ private:
 
 	// Set the 'dist' layer's paramBlobs to point to the data of this layer's paramBlobs
 	void transferParamsBlob(CBaseLayer& dist) const;
-
+	// Technical method for recursion in GetPath( CArray<CString>& path )
+	void getPath( CArray<CString>& path ) const;
 	// Switches the specified blobs into sequence processing mode
 	void switchBlobsToSequentialMode(CObjectArray<CDnnBlob>& blobs, TBlobCacheType cacheType, bool storeParent);
 	void switchBlobsToNonSequentialMode(CObjectArray<CDnnBlob>& blobs, TBlobCacheType cacheType, bool clear);
