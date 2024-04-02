@@ -1,4 +1,4 @@
-/* Copyright © 2017-2021 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -31,6 +31,10 @@ class CActivationDesc;
 // Encoder from the "Attention is all you need"
 // Optional layers are mentioned in (brackets)
 //
+// ------------------------------------------------------------
+// 
+// Standard architecture
+// 
 //     feedForwardNorm
 //           |
 //     feedForwardSum
@@ -56,6 +60,38 @@ class CActivationDesc;
 //      +----------+     |
 //           |           |
 //       inputData  (inputMask)
+// 
+// ------------------------------------------------------------
+// 
+// Architecture with pre-normalization (if preNorm set)
+// 
+//     feedForwardNorm
+//           |
+//     feedForwardSum
+//      |          |
+//      |      (dropout)
+//      |          |
+//      |         fc2
+//      |          |
+//      |      (dropout)
+//      |          |
+//      |   fc1 + activation
+//      |          |
+//      +----------+
+//           |
+//    selfAttentionSum
+//      |          |
+//      |      (dropout)
+//      |          |
+//      |       selfAttention
+//      |          |     |
+//      +----------+     |
+//           |           |
+//    selfAttentionNorm  |
+//           |           |
+//       inputData  (inputMask)
+// 
+// ------------------------------------------------------------
 //
 // Inputs:
 //      1. input data - float blob of size:
@@ -78,12 +114,17 @@ class CActivationDesc;
 //          - BatchWidth and ListSize are equal to the corresponding dims of the first input
 //          - BatchLength, Height, Width and Depth are equal to 1
 //          - Channels is equal to the Channels of the first input
+//
 class NEOML_API CTransformerEncoderLayer : public CCompositeLayer {
 	NEOML_DNN_LAYER( CTransformerEncoderLayer )
 public:
 	explicit CTransformerEncoderLayer( IMathEngine& mathEngine );
 
 	void Serialize( CArchive& archive ) override;
+
+	// Place of normalization layer: right after input or before feedForward as usual
+	bool GetPreNorm() const { return preNorm; }
+	void SetPreNorm( bool preNorm );
 
 	// Number of heads in the self-attention
 	int GetHeadCount() const { return selfAttention->GetHeadCount(); }
@@ -94,9 +135,13 @@ public:
 	int GetHiddenSize() const { return selfAttention->GetHiddenSize(); }
 	void SetHiddenSize( int hiddenSize );
 
-	// Dropout rate
+	// Set probability of zero values in 3 dropout layers in the transformer layer
 	float GetDropoutRate() const;
 	void SetDropoutRate( float rate );
+
+	// Set probability of zero values in a dropout layer in the self-attention layer
+	float GetSelfAttentionDropoutRate() const { return selfAttention->GetDropoutRate(); }
+	void SetSelfAttentionDropoutRate( float rate ){ selfAttention->SetDropoutRate( rate ); }
 
 	// Sets the size of the first fully-connected layer inside of feed-forward
 	int GetFeedForwardSize() const { return CheckCast<CFullyConnectedLayer>( fc1 )->GetNumberOfElements(); }
@@ -115,6 +160,11 @@ protected:
 	void Reshape() override;
 
 private:
+	enum TInpits {
+		I_Sequence, // Input sequence
+		I_Mask // Mask for attention (optional)
+	};
+
 	CPtr<CMultiheadAttentionLayer> selfAttention;
 	CPtr<CDropoutLayer> dropoutSelfAttention;
 	CPtr<CEltwiseSumLayer> selfAttentionSum;
@@ -124,12 +174,14 @@ private:
 	CPtr<CDropoutLayer> dropoutFc2;
 	CPtr<CEltwiseSumLayer> feedForwardSum;
 
+	bool preNorm = false; // if true place normalization before attention, else as usual
+
 	void buildLayer();
 	void addDropoutLayers();
 	void removeDropoutLayers();
 };
 
 NEOML_API CLayerWrapper<CTransformerEncoderLayer> TransformerEncoder( int headCount, int hiddenSize,
-	float dropout, int feedForwardSize, TActivationFunction activation );
+	float dropout, int feedForwardSize, TActivationFunction activation, bool preNorm = false );
 
 } // namespace NeoML
