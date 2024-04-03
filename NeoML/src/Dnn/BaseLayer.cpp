@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -676,7 +676,7 @@ void CBaseLayer::transferDiffBlob( CDnnBlob* diffBlob, int outputNum )
 		// If an output is connected to several inputs, create a copy of the diff blob and then add it to the others
 		if(readyOutputDiffs[outputNum] == 0) {
 			if( outputDiffBlobs[outputNum] == 0 ) {
-				outputDiffBlobs[outputNum] = cloneBlobForDiff(diffBlob->GetDesc());
+				outputDiffBlobs[outputNum] = CDnnBlob::CreateBlob( MathEngine(), diffBlob->GetDesc() );
 			}
 			outputDiffBlobs[outputNum]->CopyFrom( diffBlob );
 		} else {
