@@ -87,6 +87,12 @@ protected:
 	// Get MathEngine value of a variable by TVariable index to be changed
 	CFloatHandle UseVar( int index ) const;
 
+	// Intermediate result storing blob
+	// hide it to private, its allocated size may > actual
+	CFloatHandle TempData();
+	// Reinit intermediate result storing blob
+	bool ReInitTempBlob( int dataSize );
+
 	// Called once on Reset method call
 	// Resets the stats in the inheriting instances to the initial state
 	virtual void OnReset() {}
@@ -106,6 +112,9 @@ private:
 	CPtr<CDnnBlob> engineVariables;
 	// Calculation variables
 	CArray<float> variables;
+	// Intermediate result storing
+	// hide it to private, its allocated size may > actual
+	CPtr<CDnnBlob> temporaryBlob;
 
 	// The blobs sum
 	struct CDiffBlobSum final {
@@ -307,8 +316,6 @@ private:
 	bool isDecoupledWeightDecay;
 	// Backward compatibility mode
 	bool isInCompatibilityMode = false;
-
-	CPtr<CDnnBlob> temporaryBlob;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -406,7 +413,6 @@ private:
 	float muTPlusOne; // the mu coefficient for the next step
 	float productMuT; // the product of mu coefficient over all steps including the current one
 
-	CPtr<CDnnBlob> temporaryBlob;
 	// m with a stroke (from the paper referred to)
 	// It is a weighted sum of the gradient and the first moment
 	CPtr<CDnnBlob> mBarBlob;
@@ -528,8 +534,6 @@ private:
 	// Is NVLamb modification used
 	bool useNvLamb;
 
-	CPtr<CDnnBlob> tempBlob;
-
 	CArray<float> layersGradientNormSquare;
 	float totalGradientNorm;
 
@@ -545,10 +549,12 @@ private:
 	};
 	// Layers excluded from weight decay
 	CArray<CExcludedLayer> excludedLayers;
+	mutable CPtr<CDnnBlob> tempNormBlob;
 
 	void calcL2NormAverage( const CConstFloatHandle& data, int dataSize, int normId ) const;
 	void getWeightDecayIndices( const CBaseLayer& layer, int paramsCount, CHashTable<int>& indexes ) const;
-	void calcNormalizeMultiplier( const CDnnBlob& weights, const CDnnBlob& update, const CFloatHandle& multiplier ) const;
+	void calcNormalizeMultiplier( const CDnnBlob& weights, const CConstFloatHandle& update, int updateSize,
+		const CFloatHandle& multiplier ) const;
 };
 
 template<typename TLayer>
