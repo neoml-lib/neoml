@@ -15,6 +15,7 @@ limitations under the License.
 
 #pragma once
 
+#include <initializer_list>
 #include <NeoML/NeoMLDefs.h>
 #include <NeoMathEngine/NeoMathEngine.h>
 
@@ -78,6 +79,8 @@ protected:
 	// Gets the reference to the math engine
 	IMathEngine& MathEngine() const { return mathEngine; }
 
+	// Set value of a variable by TVariable index
+	void SetRowNearVariables( int start, std::initializer_list<float> values );
 	// Set value of a variable by TVariable index
 	void SetVariable( int index, float value );
 	// Get value of a variable by TVariable index

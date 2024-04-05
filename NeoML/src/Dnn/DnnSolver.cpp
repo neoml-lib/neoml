@@ -18,6 +18,7 @@ limitations under the License.
 
 #include <cmath>
 #include <cfloat>
+#include <algorithm>
 
 #include <NeoML/Dnn/DnnSolver.h>
 #include <NeoML/Dnn/Dnn.h>
@@ -140,11 +141,19 @@ CDnnSolver::CDnnSolver( IMathEngine& _mathEngine, int numVariables ) :
 	SetMaxGradientNorm( -1.f );
 }
 
+void CDnnSolver::SetRowNearVariables( int start, std::initializer_list<float> values )
+{
+	NeoPresume( start >= 0 && static_cast<int>( start + values.size() ) <= variables.Size() );
+	std::copy(values.begin(), values.end(), &variables[start]);;
+	// CUDA sync
+	MathEngine().DataExchangeTyped( engineVariables->GetData( { start } ), &variables[start], values.size() );
+}
+
 void CDnnSolver::SetVariable( int index, float value )
 {
 	NeoPresume( variables.IsValidIndex( index ) );
 	variables[index] = value;
-	MathEngine().VectorFill( engineVariables->GetData( { index } ), value, 1 );
+	engineVariables->GetData( { index } ).SetValue( value ); // CUDA sync
 }
 
 float CDnnSolver::GetVariable( int index ) const
@@ -191,7 +200,7 @@ void CDnnSolver::AddDiff( CBaseLayer* layer, const CObjectArray<CDnnBlob>& param
 	}
 
 	CDiffBlobSum& paramDiffBlobsSum = layerToParamDiffBlobsSum.GetOrCreateValue( layer->GetPath( layerPathSeparator ) );
-	if( paramDiffBlobsSum.Count == 0 ) {
+	if( paramDiffBlobsSum.LayerOwner == nullptr ) {
 		paramDiffBlobsSum.LayerOwner = layer;
 	}
 	if( !sharedWeights ) {
@@ -487,8 +496,10 @@ void CDnnSimpleGradientSolver::Serialize( CArchive& archive, const CDnn& dnn )
 
 void CDnnSimpleGradientSolver::SetMomentDecayRate( float decayRate )
 {
-	SetVariable( TV_MomentDecayRate, decayRate );
-	SetVariable( TV_OpMomentDecayRate, 1 - decayRate );
+	SetRowNearVariables( TV_MomentDecayRate, {
+		/*TV_MomentDecayRate*/ decayRate,
+		/*TV_OpMomentDecayRate*/ 1 - decayRate
+	} );
 }
 
 void CDnnSimpleGradientSolver::TrainLayer( const CBaseLayer* layer, const CObjectArray<CDnnBlob>& paramBlobs,
@@ -507,10 +518,12 @@ void CDnnSimpleGradientSolver::TrainLayer( const CBaseLayer* layer, const CObjec
 	const float regL2 = layer->GetL2RegularizationMult() * GetL2Regularization();
 
 	// Set the values of the variables
-	SetVariable( TV_OpRegL2MomentDecayRate, IsInCompatibilityMode() ? ( ( 1 - GetMomentDecayRate() ) * regL2 ) : ( -rate * regL2 ) );
-	SetVariable( TV_Rate, -rate );
-	SetVariable( TV_L1Threshold, regL1 );
-	SetVariable( TV_L1Mult, IsInCompatibilityMode() ? 1.f : ( -rate ) );
+	SetRowNearVariables( TV_OpRegL2MomentDecayRate, {
+		/*TV_OpRegL2MomentDecayRate*/ IsInCompatibilityMode() ? ( ( 1 - GetMomentDecayRate() ) * regL2 ) : ( -rate * regL2 ),
+		/*TV_Rate*/ -rate,
+		/*TV_L1Threshold*/ regL1,
+		/*TV_L1Mult*/ IsInCompatibilityMode() ? 1.f : ( -rate )
+	} );
 
 	for( int i = 0; i < paramBlobs.Size(); ++i ) {
 		const int dataSize = paramBlobs[i]->GetDataSize();
@@ -600,14 +613,18 @@ void CDnnAdaptiveGradientSolver::Serialize( CArchive& archive, const CDnn& dnn )
 
 void CDnnAdaptiveGradientSolver::SetMomentDecayRate( float decayRate )
 {
-	SetVariable( TV_MomentDecayRate, decayRate );
-	SetVariable( TV_OpMomentDecayRate, 1 - decayRate );
+	SetRowNearVariables( TV_MomentDecayRate, {
+		/*TV_MomentDecayRate*/ decayRate,
+		/*TV_OpMomentDecayRate*/ 1 - decayRate
+	} );
 }
 
 void CDnnAdaptiveGradientSolver::SetSecondMomentDecayRate( float decayRate )
 {
-	SetVariable( TV_SecondMomentDecayRate, decayRate );
-	SetVariable( TV_OpSecondMomentDecayRate, 1 - decayRate );
+	SetRowNearVariables( TV_SecondMomentDecayRate, {
+		/*TV_SecondMomentDecayRate*/ decayRate,
+		/*TV_OpSecondMomentDecayRate*/ 1 - decayRate
+	} );
 }
 
 void CDnnAdaptiveGradientSolver::OnReset()
@@ -670,9 +687,11 @@ void CDnnAdaptiveGradientSolver::TrainLayer( const CBaseLayer* layer, const CObj
 	const float regL2 = layer->GetL2RegularizationMult() * GetL2Regularization();
 
 	// Set the values of the variables
-	SetVariable( TV_RegL2, regL2 );
-	SetVariable( TV_Rate, -rate );
-	SetVariable( TV_L1Threshold, regL1 );
+	SetRowNearVariables( TV_RegL2, {
+		/*TV_RegL2*/ regL2,
+		/*TV_Rate*/ -rate,
+		/*TV_L1Threshold*/ regL1
+	} );
 
 	for( int i = 0; i < paramBlobs.Size(); ++i ) {
 		const int dataSize = paramBlobs[i]->GetDataSize();
@@ -788,14 +807,18 @@ void CDnnNesterovGradientSolver::Serialize( CArchive& archive, const CDnn& dnn )
 
 void CDnnNesterovGradientSolver::SetMomentDecayRate( float decayRate )
 {
-	SetVariable( TV_MomentDecayRate, decayRate );
-	SetVariable( TV_OpMomentDecayRate, 1 - decayRate );
+	SetRowNearVariables( TV_MomentDecayRate, {
+		/*TV_MomentDecayRate*/ decayRate,
+		/*TV_OpMomentDecayRate*/ 1 - decayRate
+	} );
 }
 
 void CDnnNesterovGradientSolver::SetSecondMomentDecayRate( float decayRate )
 {
-	SetVariable( TV_SecondMomentDecayRate, decayRate );
-	SetVariable( TV_OpSecondMomentDecayRate, 1 - decayRate );
+	SetRowNearVariables( TV_SecondMomentDecayRate, {
+		/*TV_SecondMomentDecayRate*/ decayRate,
+		/*TV_OpSecondMomentDecayRate*/ 1 - decayRate
+	} );
 }
 
 void CDnnNesterovGradientSolver::OnReset()
@@ -838,12 +861,14 @@ void CDnnNesterovGradientSolver::TrainLayer( const CBaseLayer* layer, const CObj
 	const float regL2 = layer->GetL2RegularizationMult() * GetL2Regularization();
 
 	// Set the values for the variables
-	SetVariable( TV_RegL2, regL2 );
-	SetVariable( TV_Rate, -rate );
-	SetVariable( TV_L1Threshold, regL1 );
-	SetVariable( TV_MBarGradMult, ( 1.f - muT ) / ( 1.f - productMuT ) );
-	SetVariable( TV_MBarMomentMult, muTPlusOne / ( 1.f - productMuT * muTPlusOne ) );
-	SetVariable( TV_InvOpSecondMomentDecayRateN, 1.f / ( 1 - secondMomentDecayRateN ) );
+	SetRowNearVariables( TV_RegL2, {
+		/*TV_RegL2*/ regL2,
+		/*TV_Rate*/ -rate,
+		/*TV_L1Threshold*/ regL1,
+		/*TV_InvOpSecondMomentDecayRateN*/ 1.f / ( 1 - secondMomentDecayRateN ),
+		/*TV_MBarGradMult*/ ( 1.f - muT ) / ( 1.f - productMuT ),
+		/*TV_MBarMomentMult*/ muTPlusOne / ( 1.f - productMuT * muTPlusOne )
+	} );
 
 	for( int i = 0; i < paramBlobs.Size(); ++i ) {
 		const int dataSize = paramBlobs[i]->GetDataSize();
@@ -998,14 +1023,18 @@ void CDnnLambGradientSolver::Serialize( CArchive& archive, const CDnn& dnn )
 
 void CDnnLambGradientSolver::SetMomentDecayRate( float decayRate )
 {
-	SetVariable( TV_MomentDecayRate, decayRate );
-	SetVariable( TV_OpMomentDecayRate, 1 - decayRate );
+	SetRowNearVariables( TV_MomentDecayRate, {
+		/*TV_MomentDecayRate*/ decayRate,
+		/*TV_OpMomentDecayRate*/ 1 - decayRate
+	} );
 }
 
 void CDnnLambGradientSolver::SetSecondMomentDecayRate( float decayRate )
 {
-	SetVariable( TV_SecondMomentDecayRate, decayRate );
-	SetVariable( TV_OpSecondMomentDecayRate, 1 - decayRate );
+	SetRowNearVariables( TV_SecondMomentDecayRate, {
+		/*TV_SecondMomentDecayRate*/ decayRate,
+		/*TV_OpSecondMomentDecayRate*/ 1 - decayRate
+	} );
 }
 
 void CDnnLambGradientSolver::TrainLayer( const CBaseLayer* layer, const CObjectArray<CDnnBlob>& paramBlobs,
@@ -1027,9 +1056,12 @@ void CDnnLambGradientSolver::TrainLayer( const CBaseLayer* layer, const CObjectA
 	const float clipMultiplier = 1.0f / max( 1.0f, totalGradientNorm );
 
 	// Set the values for the variables
-	SetVariable( TV_Rate, -rate );
-	SetVariable( TV_WeightDecay, layerWeighDecay );
-	SetVariable( TV_ClipMultiplier, clipMultiplier );
+	SetRowNearVariables( TV_Rate, {
+		/*TV_Rate*/ -rate,
+		/*TV_WeightDecay*/ layerWeighDecay,
+		/*TV_ClipMultiplier*/ TV_ClipMultiplier,
+		/*TV_LayerNorm*/ 0.f
+	} );
 
 	// Getting parameters affected by weight decay
 	CHashTable<int> weightDecayParamIndexes;
@@ -1060,7 +1092,6 @@ void CDnnLambGradientSolver::TrainLayer( const CBaseLayer* layer, const CObjectA
 		// Add squared L2-norm for calculation of L2-norm of the whole mode
 		if( useNvLamb ) {
 			const float invSquareClipMultiplier = 1.0f / ( clipMultiplier * clipMultiplier );
-			MathEngine().VectorFill( UseVar( TV_LayerNorm ), 0.f, 1 );
 			MathEngine().VectorSum( TempData(), dataSize, UseVar( TV_LayerNorm ) );
 			layersGradientNormSquare.Add( invSquareClipMultiplier * Var( TV_LayerNorm ).GetValue() ); // CUDA sync
 		}
@@ -1104,10 +1135,9 @@ void CDnnLambGradientSolver::calcL2NormAverage( const CConstFloatHandle& data, i
 	NeoAssert( dataSize > 0 );
 	NeoAssert( normId >= TV_L2WeightNorm && normId <= TV_L2UpdateNorm );
 
-	MathEngine().VectorFill( UseVar( normId ), 1.f / dataSize, 1 );
+	UseVar( normId ).SetValue( 1.f / dataSize ); // CUDA sync
 	MathEngine().VectorMultiply( data, tempNormBlob->GetData(), dataSize, Var( normId ) );
 
-	MathEngine().VectorFill( UseVar( normId ), 0.f, 1 );
 	MathEngine().VectorDotProduct( tempNormBlob->GetData(), tempNormBlob->GetData(), dataSize, UseVar( normId ) );
 	MathEngine().VectorSqrt( Var( normId ), UseVar( normId ), 1 );
 }
