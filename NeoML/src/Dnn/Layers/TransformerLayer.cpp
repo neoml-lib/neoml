@@ -80,9 +80,7 @@ void CTransformerEncoderLayer::Serialize( CArchive& archive )
 		selfAttention = CheckCast<CMultiheadAttentionLayer>( GetLayer( selfAttentionName ) );
 		dropoutSelfAttention = getOptionalDropout( *this, dropoutSelfAttentionName );
 		selfAttentionSum = CheckCast<CEltwiseSumLayer>( GetLayer( selfAttentionSumName ) );
-		fc1 = GetLayer( fc1Name );
 		dropoutFc1 = getOptionalDropout( *this, dropoutFc1Name );
-		fc2 = GetLayer( fc2Name );
 		dropoutFc2 = getOptionalDropout( *this, dropoutFc2Name );
 		feedForwardSum = CheckCast<CEltwiseSumLayer>( GetLayer( feedForwardSumName ) );
 		if( version == 1 ) {
@@ -144,11 +142,16 @@ void CTransformerEncoderLayer::SetDropoutRate( float rate )
 	}
 }
 
+int CTransformerEncoderLayer::GetFeedForwardSize() const
+{
+	return CheckCast<CFullyConnectedLayer>( GetLayer( fc1Name ) )->GetNumberOfElements();
+}
+
 void CTransformerEncoderLayer::SetFeedForwardSize( int size )
 {
 	NeoAssert( size > 0 );
 
-	CheckCast<CFullyConnectedLayer>( fc1 )->SetNumberOfElements( size );
+	CheckCast<CFullyConnectedLayer>( GetLayer( fc1Name ) )->SetNumberOfElements( size );
 	ForceReshape();
 
 	NeoPresume( GetFeedForwardSize() == size );
@@ -161,9 +164,9 @@ void CTransformerEncoderLayer::SetActivation( const CActivationDesc& param )
 	DeleteLayer( activationName );
 	CPtr<CBaseLayer> activation = CreateActivationLayer( MathEngine(), param );
 	activation->SetName( activationName );
-	activation->Connect( *fc1 );
+	activation->Connect( fc1Name );
 	if( dropoutFc1 == nullptr ) {
-		fc2->Connect( *activation );
+		GetLayer( fc2Name )->Connect( *activation );
 	} else {
 		dropoutFc1->Connect( *activation );
 	}
@@ -206,7 +209,7 @@ void CTransformerEncoderLayer::Reshape()
 	if( selfAttention->GetOutputSize() != inputDescs[0].Channels() ) {
 		selfAttention->SetOutputSize( inputDescs[0].Channels() );
 	}
-	CFullyConnectedLayer* fc2Ptr = dynamic_cast<CFullyConnectedLayer*>( fc2.Ptr() );
+	auto* fc2Ptr = dynamic_cast<CFullyConnectedLayer*>( GetLayer( fc2Name ).Ptr() );
 	if( fc2Ptr != nullptr && fc2Ptr->GetNumberOfElements() != inputDescs[0].Channels() ) {
 		fc2Ptr->SetNumberOfElements( inputDescs[0].Channels() );
 	}
@@ -243,7 +246,7 @@ void CTransformerEncoderLayer::buildLayer()
 	AddLayer( *selfAttentionNorm );
 
 	// First fully-connected of feed-forward
-	fc1 = FINE_DEBUG_NEW CFullyConnectedLayer( MathEngine() );
+	CPtr<CFullyConnectedLayer> fc1 = FINE_DEBUG_NEW CFullyConnectedLayer( MathEngine() );
 	fc1->SetName( fc1Name );
 	CheckCast<CFullyConnectedLayer>( fc1 )->SetNumberOfElements( 1 );
 	AddLayer( *fc1 );
@@ -254,7 +257,7 @@ void CTransformerEncoderLayer::buildLayer()
 	AddLayer( *activation );
 
 	// Second fully-connected of feed-forward
-	fc2 = FINE_DEBUG_NEW CFullyConnectedLayer( MathEngine() );
+	CPtr<CFullyConnectedLayer> fc2 = FINE_DEBUG_NEW CFullyConnectedLayer( MathEngine() );
 	fc2->SetName( fc2Name );
 	CheckCast<CFullyConnectedLayer>( fc2 )->SetNumberOfElements( 1 );
 	AddLayer( *fc2 );
@@ -321,12 +324,12 @@ void CTransformerEncoderLayer::addDropoutLayers()
 	dropoutFc1 = FINE_DEBUG_NEW CDropoutLayer( MathEngine() );
 	dropoutFc1->SetName( dropoutFc1Name );
 	dropoutFc1->Connect( activationName );
-	fc2->Connect( *dropoutFc1 );
+	GetLayer( fc2Name )->Connect( *dropoutFc1 );
 	AddLayer( *dropoutFc1 );
 
 	dropoutFc2 = FINE_DEBUG_NEW CDropoutLayer( MathEngine() );
 	dropoutFc2->SetName( dropoutFc2Name );
-	dropoutFc2->Connect( *fc2 );
+	dropoutFc2->Connect( fc2Name );
 	feedForwardSum->Connect( *dropoutFc2 );
 	AddLayer( *dropoutFc2 );
 
@@ -351,11 +354,11 @@ void CTransformerEncoderLayer::removeDropoutLayers()
 
 	DeleteLayer( *dropoutFc1 );
 	dropoutFc1 = nullptr;
-	fc2->Connect( activationName );
+	GetLayer( fc2Name )->Connect( activationName );
 
 	DeleteLayer( *dropoutFc2 );
 	dropoutFc2 = nullptr;
-	feedForwardSum->Connect( *fc2 );
+	feedForwardSum->Connect( fc2Name );
 
 	NeoPresume( dropoutSelfAttention == nullptr && !HasLayer( dropoutSelfAttentionName ) );
 	NeoPresume( dropoutFc1 == nullptr && !HasLayer( dropoutFc1Name ) );

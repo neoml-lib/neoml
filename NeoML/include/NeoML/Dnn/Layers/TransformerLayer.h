@@ -144,7 +144,7 @@ public:
 	void SetSelfAttentionDropoutRate( float rate ){ selfAttention->SetDropoutRate( rate ); }
 
 	// Sets the size of the first fully-connected layer inside of feed-forward
-	int GetFeedForwardSize() const { return CheckCast<CFullyConnectedLayer>( fc1 )->GetNumberOfElements(); }
+	int GetFeedForwardSize() const;
 	void SetFeedForwardSize( int size );
 
 	// Sets activation between fully-connected layers inside of feed-forward
@@ -168,9 +168,7 @@ private:
 	CPtr<CMultiheadAttentionLayer> selfAttention;
 	CPtr<CDropoutLayer> dropoutSelfAttention;
 	CPtr<CEltwiseSumLayer> selfAttentionSum;
-	CPtr<CBaseLayer> fc1;
 	CPtr<CDropoutLayer> dropoutFc1;
-	CPtr<CBaseLayer> fc2;
 	CPtr<CDropoutLayer> dropoutFc2;
 	CPtr<CEltwiseSumLayer> feedForwardSum;
 
