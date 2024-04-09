@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@ limitations under the License.
 #pragma once
 
 #include <NeoMathEngine/NeoMathEngineDefs.h>
+#include <NeoMathEngine/NeoMathEngineException.h>
 #include <cstddef>
 #include <type_traits>
 
@@ -24,47 +25,77 @@ namespace NeoML {
 class IMathEngine;
 class CMemoryHandleInternal;
 
+// Get pointer to IMathEngine by the given CurrentEntity
+inline IMathEngine* GetMathEngineByIndex( size_t currentEntity );
+// Get current entity from the given pointer to IMathEngine
+inline size_t GetIndexOfMathEngine( const IMathEngine* mathEngine );
+
 // Wraps the pointer to memory allocated by a math engine
 class NEOMATHENGINE_API CMemoryHandle {
+private:
+#if FINE_PLATFORM( FINE_64_BIT )
+	static constexpr int MathEngineCountWidth = 10; // compress to bitfield
+	static constexpr int MathEngineCountShift = ( sizeof( size_t ) * 8 /*bits*/ ) - MathEngineCountWidth;
+	static constexpr size_t MathEngineEntityInvalid = ( ( size_t( 1 ) << MathEngineCountWidth ) - 1 );
+	static constexpr size_t MathEngineMaxOffset = size_t( 1 ) << MathEngineCountShift;
+#else  // FINE_32_BIT
+	// only for bitfield compiles correct. no compress
+	static constexpr int MathEngineCountWidth = sizeof( size_t ) * 8;
+	static constexpr int MathEngineCountShift = sizeof( size_t ) * 8;
+	static constexpr size_t MathEngineEntityInvalid = size_t( -1 );
+#endif // FINE_32_BIT
+
 public:
-	CMemoryHandle() : mathEngine( 0 ), object( 0 ), offset( 0 ) {}
-	CMemoryHandle( const CMemoryHandle& other ) : mathEngine( other.mathEngine ), object( other.object ), offset( other.offset ) {}
+	// Any possible number of all mathEngines
+	static constexpr int MaxMathEngineEntities = 1024;
+
+	CMemoryHandle() : object( nullptr ), offset( 0 ), entity( MathEngineEntityInvalid ) {}
+	CMemoryHandle( const CMemoryHandle& other ) : object( other.object ), offset( other.offset ), entity( other.entity ) {}
 
 	CMemoryHandle& operator=( const CMemoryHandle& other )
 	{
-		mathEngine = other.mathEngine;
-		object = other.object;
-		offset = other.offset;
+		if( this != &other ) {
+			object = other.object;
+			offset = other.offset;
+			entity = other.entity;
+		}
 		return *this;
 	}
 
 	bool operator==( const CMemoryHandle& other ) const
-	{
-		return mathEngine == other.mathEngine && object == other.object && offset == other.offset;
-	}
+	{ return object == other.object && offset == other.offset && entity == other.entity; }
 
-	bool operator!=( const CMemoryHandle& other ) const
-	{
-		return !operator==( other );
-	}
+	bool operator!=( const CMemoryHandle& other ) const { return !operator==( other ); }
 
-	bool IsNull() const
-	{
-		return mathEngine == 0 && object == 0 && offset == 0;
-	}
+	bool IsNull() const { return object == nullptr && offset == 0 && entity == MathEngineEntityInvalid; }
 
-	IMathEngine* GetMathEngine() const { return mathEngine; }
+	IMathEngine* GetMathEngine() const { return GetMathEngineByIndex( entity ); }
 
 protected:
-	IMathEngine* mathEngine; // the math engine
+	// struct of (16 bytes size for x64 and arm-x64) and (12 bytes size for x86 and arm-x32)
 	const void* object; // the base object
-	std::ptrdiff_t offset; // the offset in the base object, in bytes
+	size_t offset : MathEngineCountShift; // (x64) the less significant bits of size_t stores offset in the base object, in bytes
+	size_t entity : MathEngineCountWidth; // (x64) the most significant bits of size_t stores the number of IMathEngine entity
 
 	friend class CMemoryHandleInternal;
 
-	explicit CMemoryHandle( IMathEngine* _mathEngine, const void* _object, ptrdiff_t _offset ) : mathEngine( _mathEngine ), object( _object ), offset( _offset ) {}
+	explicit CMemoryHandle( IMathEngine* _mathEngine, const void* _object, ptrdiff_t _offset ) :
+		CMemoryHandle( _object , _offset, GetIndexOfMathEngine( _mathEngine ) )
+	{}
 
-	CMemoryHandle CopyMemoryHandle( ptrdiff_t shift ) const { return CMemoryHandle( mathEngine, object, offset + shift ); }
+	CMemoryHandle CopyMemoryHandle( ptrdiff_t shift ) const { return CMemoryHandle( object, offset + shift, entity ); }
+
+private:
+	explicit CMemoryHandle( const void* _object, ptrdiff_t _offset, size_t _entity ) :
+		object( _object ), offset( _offset ), entity( _entity )
+	{
+#if FINE_PLATFORM( FINE_64_BIT )
+		static_assert( MaxMathEngineEntities == ( 1 << MathEngineCountWidth ), "Invalid MaxMathEngineEntities" );
+		// Checks that the most significant bits do not interfere the result
+		ASSERT_EXPR( 0 <= _offset && size_t( _offset ) < MathEngineMaxOffset );
+#endif // FINE_64_BIT
+		ASSERT_EXPR( _entity < MaxMathEngineEntities );
+	}
 };
 
 //------------------------------------------------------------------------------------------------------------
