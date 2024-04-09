@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -28,6 +28,7 @@ class CActivationDesc;
 class NEOML_API CLinearLayer : public CBaseInPlaceLayer, public IActivationLayer {
 	NEOML_DNN_LAYER( CLinearLayer )
 public:
+	enum TParam { TP_Multiplier, TP_FreeTerm, /*...*/ TP_Count };
 	using CParam = CLinearActivationParam;
 	static constexpr float DefaultMultiplier = CParam::DefaultMultiplier;
 	static constexpr float DefaultFreeTerm = CParam::DefaultFreeTerm;
@@ -37,14 +38,15 @@ public:
 	void Serialize( CArchive& archive ) override;
 
 	float GetMultiplier() const { return multiplier; }
-	void SetMultiplier( float _multiplier ) { multiplier = _multiplier; }
+	void SetMultiplier( float _multiplier ) { multiplier = _multiplier; ForceReshape(); }
 	float GetFreeTerm() const { return freeTerm; }
-	void SetFreeTerm( float _freeTerm ) { freeTerm = _freeTerm; }
+	void SetFreeTerm( float _freeTerm ) { freeTerm = _freeTerm; ForceReshape(); }
 
 	void ApplyParam( CParam param ) { SetMultiplier( param.Multiplier ); SetFreeTerm( param.FreeTerm ); }
 	CActivationDesc GetDesc() const override;
 
 protected:
+	void OnReshaped() override;
 	void RunOnce() override;
 	void BackwardOnce() override;
 	int BlobsForBackward() const override { return 0; }
@@ -52,6 +54,7 @@ protected:
 private:
 	float multiplier = DefaultMultiplier;
 	float freeTerm = DefaultFreeTerm;
+	CPtr<CDnnBlob> vars;
 };
 
 NEOML_API CLayerWrapper<CLinearLayer> Linear( float multiplier, float freeTerm );
@@ -359,7 +362,7 @@ NEOML_API CLayerWrapper<CLogLayer> Log();
 class NEOML_API CErfLayer : public CBaseLayer, public IActivationLayer {
 	NEOML_DNN_LAYER( CErfLayer )
 public:
-	explicit CErfLayer( IMathEngine& mathEngine ) : CBaseLayer( mathEngine, "CErfLayer", false ) {}
+	explicit CErfLayer( IMathEngine& mathEngine );
 
 	void Serialize( CArchive& archive ) override;
 
@@ -370,6 +373,9 @@ protected:
 	void RunOnce() override;
 	void BackwardOnce() override;
 	int BlobsForBackward() const override { return TInputBlobs; }
+
+private:
+	CPtr<CDnnBlob> mult;
 };
 
 NEOML_API CLayerWrapper<CErfLayer> Erf();

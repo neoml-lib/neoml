@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -189,31 +189,44 @@ CActivationDesc LoadActivationDesc( CArchive& archive )
 	return result;
 }
 
-///////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////
+//---------------------------------------------------------------------------------------------------
+
 CLinearLayer::CLinearLayer( IMathEngine& mathEngine ) :
 	CBaseInPlaceLayer( mathEngine, "CCnnLinearLayer" )
 {
 }
 
+void CLinearLayer::OnReshaped()
+{
+	if( inputDescs[0].GetDataType() == CT_Float ) {
+		if( vars == nullptr || vars->GetDataType() != CT_Float ) {
+			vars = CDnnBlob::CreateVector( MathEngine(), CT_Float, TP_Count );
+		}
+		vars->GetData().SetValueAt( TP_Multiplier, multiplier );
+		vars->GetData().SetValueAt( TP_FreeTerm, freeTerm );
+	} else {
+		if( vars == nullptr || vars->GetDataType() != CT_Int ) {
+			vars = CDnnBlob::CreateVector( MathEngine(), CT_Int, TP_Count );
+		}
+		vars->GetData<int>().SetValueAt( TP_Multiplier, static_cast<int>( multiplier ) );
+		vars->GetData<int>().SetValueAt( TP_FreeTerm, static_cast<int>( freeTerm ) );
+	}
+}
+
 template<class T>
 static void linearRunOnce( const CTypedMemoryHandle<const T>& input, T multiplier, T freeTerm, int dataSize,
-	const CTypedMemoryHandle<T>& output )
+	const CDnnBlob& vars, const CTypedMemoryHandle<T>& output )
 {
 	IMathEngine& mathEngine = *input.GetMathEngine();
 	CTypedMemoryHandle<const T> currInput = input;
 
 	if( multiplier != static_cast<T>( 1 ) ) {
-		CMemoryHandleStackVar<T> multiplierVar( mathEngine );
-		multiplierVar.SetValue( multiplier );
-		mathEngine.VectorMultiply( currInput, output, dataSize, multiplierVar );
+		mathEngine.VectorMultiply( currInput, output, dataSize, vars.GetData<const T>( { CLinearLayer::TP_Multiplier } ) );
 		currInput = output;
 	}
 
-	if( freeTerm != static_cast< T >( 0 ) ) {
-		CMemoryHandleStackVar<T> freeTermVar( mathEngine );
-		freeTermVar.SetValue( freeTerm );
-		mathEngine.VectorAddValue( currInput, output, dataSize, freeTermVar );
+	if( freeTerm != static_cast<T>( 0 ) ) {
+		mathEngine.VectorAddValue( currInput, output, dataSize, vars.GetData<const T>( { CLinearLayer::TP_FreeTerm } ) );
 		currInput = output;
 	}
 
@@ -224,7 +237,7 @@ static void linearRunOnce( const CTypedMemoryHandle<const T>& input, T multiplie
 
 CActivationDesc CLinearLayer::GetDesc() const
 {
-	CParam param{ multiplier, freeTerm };
+	CParam param{ GetMultiplier(), GetFreeTerm() };
 	return { AF_Linear, param };
 }
 
@@ -233,10 +246,11 @@ void CLinearLayer::RunOnce()
 	const int dataSize = outputBlobs[0]->GetDataSize();
 
 	if( inputBlobs[0]->GetDataType() == CT_Float ) {
-		linearRunOnce( inputBlobs[0]->GetData<const float>(), multiplier, freeTerm, dataSize, outputBlobs[0]->GetData() );
+		linearRunOnce( inputBlobs[0]->GetData<const float>(), multiplier,
+			freeTerm, dataSize, *vars, outputBlobs[0]->GetData() );
 	} else {
 		linearRunOnce( inputBlobs[0]->GetData<const int>(), static_cast<int>( multiplier ),
-			static_cast<int>( freeTerm ), dataSize, outputBlobs[0]->GetData<int>() );
+			static_cast<int>( freeTerm ), dataSize, *vars, outputBlobs[0]->GetData<int>() );
 	}
 }
 
@@ -247,9 +261,7 @@ void CLinearLayer::BackwardOnce()
 	int dataSize = outputDiffBlobs[0]->GetDataSize();
 
 	if( multiplier != 1.f ) {
-		CFloatHandleStackVar multiplierValue( MathEngine() );
-		multiplierValue.SetValue( multiplier );
-		MathEngine().VectorMultiply( outputDiffPtr, inputDiffPtr, dataSize, multiplierValue );
+		MathEngine().VectorMultiply( outputDiffPtr, inputDiffPtr, dataSize, vars->GetData( { TP_Multiplier } ) );
 	} else if( outputDiffPtr != inputDiffPtr ) {
 		MathEngine().VectorCopy( inputDiffPtr, outputDiffPtr, dataSize );
 	}
@@ -510,7 +522,7 @@ void CAbsLayer::RunOnce()
 {
 	CConstFloatHandle inputPtr = inputBlobs[0]->GetData();
 	CFloatHandle outputPtr = outputBlobs[0]->GetData();
-	int dataSize = inputBlobs[0]->GetDataSize();
+	const int dataSize = inputBlobs[0]->GetDataSize();
 
 	MathEngine().VectorAbs(inputPtr, outputPtr, dataSize);
 }
@@ -780,6 +792,13 @@ CLayerWrapper<CLogLayer> Log()
 
 //---------------------------------------------------------------------------------------------------
 
+CErfLayer::CErfLayer( IMathEngine& mathEngine ) :
+	CBaseLayer( mathEngine, "CErfLayer", false ),
+	mult( CDnnBlob::CreateVector( mathEngine, CT_Float, 1 ) )
+{
+	mult->GetData().SetValue( 1.1283791671f ); // 2 / sqrt( pi )
+}
+
 static const int ErfLayerVersion = 0;
 
 void CErfLayer::Serialize( CArchive& archive )
@@ -812,9 +831,7 @@ void CErfLayer::BackwardOnce()
 	CFloatHandle inputDiff = inputDiffBlobs[0]->GetData();
 	MathEngine().VectorNegMultiply( inputBlobs[0]->GetData(), inputBlobs[0]->GetData(), dataSize, inputDiff );
 	MathEngine().VectorExp( inputDiff, inputDiff, dataSize );
-	CFloatHandleStackVar mult( MathEngine() );
-	mult.SetValue( 1.1283791671f ); // 2 / sqrt( pi )
-	MathEngine().VectorMultiply( inputDiff, inputDiff, dataSize, mult );
+	MathEngine().VectorMultiply( inputDiff, inputDiff, dataSize, mult->GetData() );
 	MathEngine().VectorEltwiseMultiply( inputDiff, outputDiffBlobs[0]->GetData(), inputDiff, dataSize );
 }
 
