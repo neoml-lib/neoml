@@ -678,10 +678,10 @@ void CDnn::RunAndLearnOnce()
 	solver->Train();
 }
 
-void CDnn::CleanUp()
+void CDnn::CleanUp( bool totalCleanUp )
 {
 	for( int i = 0; i < layers.Size(); i++ ) {
-		layers[i]->CleanUp();
+		layers[i]->CleanUp( totalCleanUp );
 	}
 }
 

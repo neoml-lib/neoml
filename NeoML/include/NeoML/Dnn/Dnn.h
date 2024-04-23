@@ -204,7 +204,7 @@ public:
 	virtual size_t GetOutputBlobsSize() const;
 
 	// Releases all temporary resources allocated for the layer
-	virtual void CleanUp();
+	virtual void CleanUp( bool totalCleanUp = false );
 
 	// Returns the total size of trainable parameters in this layer
 	// Returns the total size of trainable parameters of its internal layers, if layer is composite or recurrent
@@ -529,7 +529,7 @@ public:
 	void RunAndLearnOnce();
 
 	// Releases all temporary resources allocated for RunAndBackwardOnce()
-	void CleanUp();
+	void CleanUp( bool totalCleanUp = false );
 
 	// Gets the maximum sequence length
 	int GetMaxSequenceLength() const { return maxSequenceLength; }

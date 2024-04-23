@@ -33,6 +33,8 @@ public:
 	// After each call to RunOnce this blob contains the results
 	const CPtr<CDnnBlob>& GetBlob() const;
 
+	void CleanUp( bool totalCleanUp = false ) override { CBaseLayer::CleanUp( totalCleanUp ); blob = nullptr; }
+
 protected:
 	CPtr<CDnnBlob> blob;
 

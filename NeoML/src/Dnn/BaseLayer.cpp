@@ -272,12 +272,27 @@ size_t CBaseLayer::GetOutputBlobsSize() const
 	return result;
 }
 
-void CBaseLayer::CleanUp()
+void CBaseLayer::CleanUp( bool totalCleanUp )
 {
 	inputBlobs.DeleteAll();
 	inputBlobs.SetSize(inputDescs.Size());
 	outputBlobs.DeleteAll();
 	outputBlobs.SetSize(outputDescs.Size());
+	allocatedBlobs = 0;
+
+	if ( totalCleanUp ) {
+		for( int cacheType = 0; cacheType < BCT_Count; ++cacheType ) {
+			blobCache[cacheType].DeleteAll();
+		}
+
+		inputDiffBlobs.DeleteAll();
+		outputDiffBlobs.DeleteAll();
+		paramDiffBlobs.DeleteAll();
+		readyOutputDiffs.DeleteAll();
+		clearAllRuntimeBlobs();
+
+		ForceReshape();
+	}
 }
 
 size_t CBaseLayer::GetTrainableParametersSize() const

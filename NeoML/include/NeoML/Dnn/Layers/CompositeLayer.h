@@ -67,7 +67,7 @@ public:
 	size_t GetOutputBlobsSize() const override;
 
 	// Releases all temporary resources allocated for the layer
-	void CleanUp() override;
+	void CleanUp( bool totalCleanUp = false ) override;
 
 	// Returns the total size of trainable parameters
 	size_t GetTrainableParametersSize() const override;
