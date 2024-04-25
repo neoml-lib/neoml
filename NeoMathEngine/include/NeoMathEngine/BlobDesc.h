@@ -59,6 +59,15 @@ public:
 	explicit CBlobDesc( TBlobType dataType = CT_Invalid );
 	CBlobDesc( std::initializer_list<int> list );
 
+	CBlobDesc( CBlobDesc&& ) = default;
+	CBlobDesc( const CBlobDesc& ) = default;
+
+	CBlobDesc& operator=( CBlobDesc&& ) = default;
+	CBlobDesc& operator=( const CBlobDesc& other );
+
+	bool operator==( const CBlobDesc& other ) const { return type == other.type && HasEqualDimensions( other ); }
+	bool operator!=( const CBlobDesc& other ) const { return !( *this == other ); }
+
 	// The maximum possible sequence length for a recurrent network
 	int BatchLength() const { return dimensions[BD_BatchLength]; }
 	// The number of sequences in the blob
@@ -75,6 +84,8 @@ public:
 	int Channels() const { return dimensions[BD_Channels]; }
 	// The blob size, in elements
 	int BlobSize() const;
+	// The empirically better size for this blob, in elements
+	int MemorySize() const { return memorySize; }
 	// The size of one object in the blob
 	int ObjectSize() const { return Height() * Width() * Depth() * Channels(); }
 	// The number of objects in the blob
@@ -85,8 +96,10 @@ public:
 	// The size of the dimension with a given index
 	int DimSize( int d ) const { return dimensions[d]; }
 	// Sets the size of the dimension with a given index
-	void SetDimSize( int d, int size ) { dimensions[d] = size; }
+	void SetDimSize( int d, int size );
 
+	// If memory size of original blob >= required, the dimensions could be reinterpreted
+	bool FitForReinterpretDimensions( const CBlobDesc& other ) const;
 	// Checks if the described blob has the same dimensions
 	bool HasEqualDimensions( const CBlobDesc& other ) const;
 	bool HasEqualDimensions( const CBlobDesc& other, std::initializer_list<int> dimensions ) const;
@@ -99,12 +112,16 @@ public:
 private:
 	int dimensions[MaxDimensions]{};
 	TBlobType type = CT_Invalid;
+	int memorySize = 0; // empirically better size for this blob, count in elements
+
+	void setMemorySize( int blobSize ) { memorySize = ( memorySize > blobSize ) ? memorySize : blobSize; }
 };
 
 //---------------------------------------------------------------------------------------------------------------------
 
 inline CBlobDesc::CBlobDesc( TBlobType dataType ) :
-	type( dataType )
+	type( dataType ),
+	memorySize( 1 )
 {
 	for( int i = 0; i < MaxDimensions; i++ ) {
 		dimensions[i] = 1;
@@ -112,7 +129,8 @@ inline CBlobDesc::CBlobDesc( TBlobType dataType ) :
 }
 
 inline CBlobDesc::CBlobDesc( std::initializer_list<int> list ) :
-	type( CT_Float )
+	type( CT_Float ),
+	memorySize( 0 )
 {
 	int i = BD_Count - 1;
 	int j = static_cast<int>( list.size() ) - 1;
@@ -127,6 +145,19 @@ inline CBlobDesc::CBlobDesc( std::initializer_list<int> list ) :
 		dimensions[i] = 1;
 		i--;
 	}
+	setMemorySize( BlobSize() );
+}
+
+inline CBlobDesc& CBlobDesc::operator=( const CBlobDesc& other )
+{
+	if( this != &other ) {
+		for( int i = 0; i < MaxDimensions; i++ ) {
+			dimensions[i] = other.dimensions[i];
+		}
+		type = other.type;
+		setMemorySize( other.BlobSize() );
+	}
+	return *this;
 }
 
 inline int CBlobDesc::BlobSize() const
@@ -136,6 +167,17 @@ inline int CBlobDesc::BlobSize() const
 		blobSize *= dimensions[i];
 	}
 	return blobSize;
+}
+
+inline void CBlobDesc::SetDimSize( int d, int size )
+{
+	dimensions[d] = size;
+	setMemorySize( BlobSize() );
+}
+
+inline bool CBlobDesc::FitForReinterpretDimensions( const CBlobDesc& other ) const
+{
+	return BlobSize() <= other.MemorySize();
 }
 
 inline bool CBlobDesc::HasEqualDimensions( const CBlobDesc& other ) const
