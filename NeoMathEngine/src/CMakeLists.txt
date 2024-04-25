@@ -135,12 +135,13 @@ endif()
 
 set(BUILD_ARCH  ${CMAKE_SYSTEM_PROCESSOR})
 # macOS cross-compilation
-if(USE_FINE_OBJECTS)
-    set(BUILD_ARCH  FINE_CMAKE_BUILD_ARCH)
+if(USE_FINE_OBJECTS AND DEFINED CMAKE_OSX_ARCHITECTURES AND NOT "${CMAKE_OSX_ARCHITECTURES}" STREQUAL "")
+    set(BUILD_ARCH  ${CMAKE_OSX_ARCHITECTURES})
 endif()
 
 # CPU specific settings
 if((DARWIN AND BUILD_ARCH MATCHES "^arm64.*") OR (ANDROID AND ANDROID_ABI MATCHES "^arm.*") OR (IOS AND IOS_ARCH MATCHES "^arm.*"))
+    message(STATUS "USE ARM SOURCES")
     set(CPU_ARM_SOURCES
         CPU/arm/CpuArmMathEngineBlas.cpp
         CPU/arm/CpuArmMathEngineDnn.cpp
@@ -168,6 +169,7 @@ if((DARWIN AND BUILD_ARCH MATCHES "^arm64.*") OR (ANDROID AND ANDROID_ABI MATCHE
     source_group("CPU\\arm" REGULAR_EXPRESSION "CPU\/arm\/.*")
     target_include_directories(${PROJECT_NAME} PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/CPU/arm>)
 else()
+    message(STATUS "USE X86 SOURCES")
     set(CPU_X86_SOURCES
         CPU/x86/CpuX86MathEngineBlas.cpp
         CPU/x86/CpuX86MathEngineBlasMkl.cpp
@@ -495,8 +497,8 @@ if(ANDROID AND ANDROID_ABI STREQUAL "armeabi-v7a")
 endif()
 
 # MKL
-if(NOT ANDROID AND NOT IOS AND BUILD_ARCH MATCHES "(x86.*)|(amd64)|(AMD64)")
-
+if(NOT ANDROID AND NOT IOS AND BUILD_ARCH MATCHES "(x86.*)|(amd64)|(AMD64)" AND "${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "${BUILD_ARCH}") # cannot link in cross-compilation for macOS
+    message(STATUS "USE MKL")
     if(USE_FINE_OBJECTS)
         set(ENV{MKLROOT} ${FINE_ROOT}/ThirdParty/MKL/${CMAKE_SYSTEM_NAME})
     endif()
