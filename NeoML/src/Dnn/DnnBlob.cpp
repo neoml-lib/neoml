@@ -167,13 +167,14 @@ void CDnnBlob::initializeByPattern(TBlobType type, const CBlobDesc& pattern)
 {
 	NeoAssert(desc.GetDataType() == CT_Invalid);
 
-	const int size = pattern.BlobSize();
+	const int allocSize = pattern.MemorySize();
+	NeoAssert( allocSize >= pattern.BlobSize() );
 	switch(type) {
 		case CT_Float:
-			data = mathEngine.HeapAllocTyped<float>( size );
+			data = mathEngine.HeapAllocTyped<float>( allocSize );
 			break;
 		case CT_Int:
-			data = mathEngine.HeapAllocTyped<int>( size );
+			data = mathEngine.HeapAllocTyped<int>( allocSize );
 			break;
 		default:
 			NeoAssert( false );
@@ -381,11 +382,11 @@ void CDnnBlob::TransposeFrom(const CDnnBlob* other, int _d1, int _d2)
 
 // Changes the blob dimensions "names" without moving the data
 // In effect, only the blob descriptor is changed
-// As the data is unaffected, the total blob size specified by the new descriptor should be the same
+// As the data is unaffected, the total blob size specified by the new descriptor should be less or the same
 void CDnnBlob::ReinterpretDimensions( const CBlobDesc& newDesc )
 {
 	NeoAssert( parent == 0 );
-	NeoAssert( newDesc.BlobSize() == desc.BlobSize() );
+	NeoAssert( newDesc.BlobSize() <= desc.MemorySize() );
 
 	desc = newDesc;
 }

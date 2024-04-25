@@ -164,7 +164,7 @@ public:
 
 	// Changes the blob dimensions "names" without moving the data
 	// In effect, only the blob description is changed
-	// As the data is unaffected, the total blob size specified by the new descriptor should be the same
+	// As the data is unaffected, the total blob size specified by the new descriptor should be less or the same
 	void ReinterpretDimensions( const CBlobDesc& newDesc );
 
 	// Merges blobs along the given dimension
