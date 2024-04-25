@@ -1,4 +1,4 @@
-/* Copyright © 2023 ABBYY
+/* Copyright © 2023-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -44,31 +44,31 @@ TEST( OnnxLayerTest, ReshapeCallTest )
 	// Step 1: check initial run
 	source->SetBlob( CDnnBlob::CreateDataBlob( MathEngine(), CT_Float, 1, 3, 5 ) );
 	dnn.RunOnce();
-	ASSERT_EQ( 6, sink->GetBlob()->GetData<int>().GetValue() );
+	EXPECT_EQ( 6, sink->GetBlob()->GetData<int>().GetValue() );
 
 	// Step 2: change the shape of the input
 	source->SetBlob( CDnnBlob::CreateDataBlob( MathEngine(), CT_Float, 1, 5, 3 ) );
 	dnn.RunOnce();
-	ASSERT_EQ( 10, sink->GetBlob()->GetData<int>().GetValue() );
+	EXPECT_EQ( 10, sink->GetBlob()->GetData<int>().GetValue() );
 
 	// Step 3: change the multiplier coeff
 	data->Blob()->Fill<int>( 3 );
 	dnn.RunOnce();
-	ASSERT_EQ( 15, sink->GetBlob()->GetData<int>().GetValue() );
+	EXPECT_EQ( 15, sink->GetBlob()->GetData<int>().GetValue() );
 
 	// Step 4: change the operation from Mul to Add
 	eltwise->SetOperation( COnnxEltwiseLayer::TOperation::Add );
 	dnn.RunOnce();
-	ASSERT_EQ( 8, sink->GetBlob()->GetData<int>().GetValue() );
+	EXPECT_EQ( 8, sink->GetBlob()->GetData<int>().GetValue() );
 
 	// Step 5: change addendum
 	data->Blob()->Fill<int>( -10 );
 	dnn.RunOnce();
-	ASSERT_EQ( -5, sink->GetBlob()->GetData<int>().GetValue() );
+	EXPECT_EQ( -5, sink->GetBlob()->GetData<int>().GetValue() );
 
 	// Step 6: change the shape of the input
 	source->SetBlob( CDnnBlob::CreateDataBlob( MathEngine(), CT_Float, 1, 12, 1 ) );
 	dnn.RunOnce();
-	ASSERT_EQ( 2, sink->GetBlob()->GetData<int>().GetValue() );
+	EXPECT_EQ( 2, sink->GetBlob()->GetData<int>().GetValue() );
 }
 
