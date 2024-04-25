@@ -139,27 +139,8 @@ void CDnnBlob::initializeBlob(TBlobType type,
 {
 	NeoAssert(desc.GetDataType() == CT_Invalid);
 
-	int allocSize = batchLength * batchWidth * listSize * height * width * depth * channels;
-
-	switch(type) {
-		case CT_Float:
-			desc.SetDataType( CT_Float );
-			data = mathEngine.HeapAllocTyped<float>( allocSize );
-			break;
-		case CT_Int:
-			desc.SetDataType( CT_Int );
-			data = mathEngine.HeapAllocTyped<int>( allocSize );
-			break;
-		default:
-			NeoAssert( false );
-	}
-	desc.SetDimSize(BD_BatchLength, batchLength);
-	desc.SetDimSize(BD_BatchWidth, batchWidth);
-	desc.SetDimSize(BD_ListSize, listSize);
-	desc.SetDimSize(BD_Height, height);
-	desc.SetDimSize(BD_Width, width);
-	desc.SetDimSize(BD_Depth, depth);
-	desc.SetDimSize(BD_Channels, channels);
+	CBlobDesc pattern( { batchLength, batchWidth, listSize, height, width, depth, channels } );
+	initializeByPattern( type, pattern );
 }
 
 void CDnnBlob::initializeTensor(TBlobType type, std::initializer_list<int> dimensions)
@@ -167,25 +148,11 @@ void CDnnBlob::initializeTensor(TBlobType type, std::initializer_list<int> dimen
 	NeoAssert(desc.GetDataType() == CT_Invalid);
 	NeoAssert(dimensions.size() <= CBlobDesc::MaxDimensions);
 
-	int allocSize = 1;
-	for( int i = 0; i < static_cast<int>(dimensions.size()); i++) {
-		allocSize *= dimensions.begin()[i];
+	CBlobDesc pattern( type );
+	for( int i = 0; i < CBlobDesc::MaxDimensions; ++i ) {
+		pattern.SetDimSize( i, i < static_cast<int>( dimensions.size() ) ? dimensions.begin()[i] : 1 );
 	}
-	switch(type) {
-		case CT_Float:
-			desc.SetDataType( CT_Float );
-			data = mathEngine.HeapAllocTyped<float>( allocSize );
-			break;
-		case CT_Int:
-			desc.SetDataType( CT_Int );
-			data = mathEngine.HeapAllocTyped<int>( allocSize );
-			break;
-		default:
-			NeoAssert( false );
-	}
-	for( int i = 0; i < static_cast<int>(dimensions.size()); i++) {
-		desc.SetDimSize(i, dimensions.begin()[i]);
-	}
+	initializeByPattern( type, pattern );
 }
 
 void CDnnBlob::initializeWindow(const CPtr<CDnnBlob>& _parent, int windowSize)
@@ -203,18 +170,18 @@ void CDnnBlob::initializeWindow(const CPtr<CDnnBlob>& _parent, int windowSize)
 void CDnnBlob::initializeByPattern(TBlobType type, const CBlobDesc& pattern)
 {
 	NeoAssert(desc.GetDataType() == CT_Invalid);
-	CBlobDesc newPattern = pattern;
+
+	desc = pattern;
+	desc.SetDataType( type );
+	const int allocSize = desc.MemorySize();
+	NeoAssert( allocSize >= desc.BlobSize() );
 
 	switch(type) {
 		case CT_Float:
-			desc = newPattern;
-			desc.SetDataType( type );
-			data = mathEngine.HeapAllocTyped<float>( newPattern.BlobSize() );
+			data = mathEngine.HeapAllocTyped<float>( allocSize );
 			break;
 		case CT_Int:
-			desc = newPattern;
-			desc.SetDataType( type );
-			data = mathEngine.HeapAllocTyped<int>( newPattern.BlobSize() );
+			data = mathEngine.HeapAllocTyped<int>( allocSize );
 			break;
 		default:
 			NeoAssert( false );
@@ -420,11 +387,11 @@ void CDnnBlob::TransposeFrom(const CDnnBlob* other, int _d1, int _d2)
 
 // Changes the blob dimensions "names" without moving the data
 // In effect, only the blob descriptor is changed
-// As the data is unaffected, the total blob size specified by the new descriptor should be the same
+// As the data is unaffected, the total blob size specified by the new descriptor should be less or the same
 void CDnnBlob::ReinterpretDimensions( const CBlobDesc& newDesc )
 {
 	NeoAssert( parent == 0 );
-	NeoAssert( newDesc.BlobSize() == desc.BlobSize() );
+	NeoAssert( newDesc.BlobSize() <= desc.MemorySize() );
 
 	desc = newDesc;
 }

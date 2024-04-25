@@ -164,7 +164,7 @@ public:
 
 	// Changes the blob dimensions "names" without moving the data
 	// In effect, only the blob description is changed
-	// As the data is unaffected, the total blob size specified by the new descriptor should be the same
+	// As the data is unaffected, the total blob size specified by the new descriptor should be less or the same
 	void ReinterpretDimensions( const CBlobDesc& newDesc );
 
 	// Merges blobs along the given dimension
@@ -224,13 +224,13 @@ protected:
 	}
 
 private:
-	IMathEngine& mathEngine;
-	CBlobDesc desc;
-	CMemoryHandle data;
-	bool dataOwned;
+	IMathEngine& mathEngine; // math engine owner
+	CBlobDesc desc; // actual typed sizes description of the blob, its sum may be <= size
+	CMemoryHandle data; // pointer to the data storage
+	bool dataOwned; // ownership of the data storage
 
-	CPtr<CDnnBlob> parent;	// parent blob
-	int parentPos;
+	CPtr<CDnnBlob> parent;	// parent blob, for sequential recurent mode
+	int parentPos; // offset for sequential recurent mode
 
 	void initializeBlob(TBlobType _type, int batchLength, int batchWidth, int listSize, int height, int width,
 		int depth, int channels);
