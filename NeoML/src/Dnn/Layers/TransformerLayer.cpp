@@ -95,8 +95,30 @@ void CTransformerEncoderLayer::Serialize( CArchive& archive )
 
 void CTransformerEncoderLayer::SetPreNorm( bool _preNorm )
 {
-	preNorm = _preNorm;
-	DeleteAllLayers();
+	if( preNorm != _preNorm ) {
+		preNorm = _preNorm;
+
+		const auto headCount = GetHeadCount();
+		const auto hiddenSize = GetHiddenSize();
+		const auto dropoutRate = GetDropoutRate();
+		const auto attentionDropoutRate = GetSelfAttentionDropoutRate();
+		const auto feedForwardSize = GetFeedForwardSize();
+		const auto maskType = GetMaskType();
+
+		const auto& activationLayer = dynamic_cast<const IActivationLayer&>( *GetLayer( activationName ) );
+		const auto activation = activationLayer.GetDesc();
+
+		DeleteAllLayers();
+		buildLayer();
+
+		SetHeadCount( headCount );
+		SetHiddenSize( hiddenSize );
+		SetDropoutRate( dropoutRate );
+		SetSelfAttentionDropoutRate( attentionDropoutRate );
+		SetFeedForwardSize( feedForwardSize );
+		SetMaskType( maskType );
+		SetActivation( activation );
+	}
 }
 
 void CTransformerEncoderLayer::SetHeadCount( int headCount )
