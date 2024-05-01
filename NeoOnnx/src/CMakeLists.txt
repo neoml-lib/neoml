@@ -32,6 +32,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Operators/ConvOperator.cpp
     Operators/ConvTransposeOperator.cpp
     Operators/CumSumOperator.cpp
+    Operators/DepthToSpaceOperator.cpp
     Operators/DropoutOperator.cpp
     Operators/ExpandOperator.cpp
     Operators/FlattenOperator.cpp

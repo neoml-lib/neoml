@@ -16,10 +16,11 @@ limitations under the License.
 #include "../common.h"
 #pragma hdrstop
 
-#include "DepthToSpaceOperator.h"
 #include "NeoOnnxCheck.h"
 
 #include "onnx.pb.h"
+
+#include "DepthToSpaceOperator.h"
 
 namespace NeoOnnx {
 
@@ -30,10 +31,10 @@ CDepthToSpaceOperator::CDepthToSpaceOperator( const onnx::NodeProto& depthToSpac
     // v11 - added "mode" attribute 
     // v13 - bfloat16 is supported
     CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
-    /*
     CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
     CheckOnnxProtocol( InputCount() == 1, "operator must have 1 input", *this );
     GetAttribute( "blocksize", blockSize );
+    CheckNeoOnnxSupport( blockSize > 1, "blocksize attribute must be more than 1", *this );
 
     CString mode {"DCR"};
     if( opsetVersion > 11 ) {
@@ -50,17 +51,16 @@ CDepthToSpaceOperator::CDepthToSpaceOperator( const onnx::NodeProto& depthToSpac
     //    batch_length B list_size (H block_size) (W block_size) C'
     // CDepthToSpaceLayer is equivalent to DCR, while CRD is not supported by NeoML
     CheckNeoOnnxSupport( mode == "DCR", "DCR is supported, CRD is not supported", *this );
-    */
 }
 
 void CDepthToSpaceOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
     CheckNoShapeInputs( inputs );
-    /*
     CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
     CheckNeoOnnxSupport( inputs[0]->DimCount() == 4, "can convert only 4d input", *this );
 
-    CPtr<const CUserTensor> userInput = AsUserTensor( *inputs[0], Name() + "_Source", dnn );
+    CPtr<const CUserTensor> userInput = AsUserTensor( 
+        *ConvertTensor( *inputs[0], CNeoMLImageLayoutValidator() ), Name() + "_Source", dnn );
 
     CPtr<CDepthToSpaceLayer> depthToSpace = new CDepthToSpaceLayer( dnn.GetMathEngine() );
     depthToSpace->SetName( Name() );
@@ -69,9 +69,6 @@ void CDepthToSpaceOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CT
     dnn.AddLayer( *depthToSpace );
 
     outputs.Add( new CUserTensor( userInput->Layout(), CLayerOutput( depthToSpace, 0 ) ) );
-    */
-    outputs;
-
 }
 
 } // namespace NeoOnnx
