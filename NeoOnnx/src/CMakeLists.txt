@@ -90,6 +90,7 @@ target_sources( ${PROJECT_NAME} PRIVATE
     Operators/ConvOperator.h
     Operators/ConvTransposeOperator.h
     Operators/CumSumOperator.h
+    Operators/DepthToSpaceOperator.h
     Operators/DropoutOperator.h
     Operators/EltwiseOperator.h
     Operators/ExpandOperator.h
