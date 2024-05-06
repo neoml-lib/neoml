@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,6 +23,8 @@ class CDnn;
 
 // Struct which contains the details of optimization result
 struct NEOML_API CDnnOptimizationReport final {
+	// Number of HeadAdapters layers which internal dnn is optimized
+	int OptimizedHeadAdapters = 0;
 	// Number of composite layers which where unpacked
 	// (unpack == content of the layer moved to the root CDnn, composite itself is removed)
 	int UnpackedCompositeLayers = 0;
@@ -51,7 +53,8 @@ struct NEOML_API CDnnOptimizationReport final {
 // Check for is any optimization succeed
 inline bool CDnnOptimizationReport::IsOptimized() const
 {
-	return UnpackedCompositeLayers > 0
+	return OptimizedHeadAdapters > 0
+		|| UnpackedCompositeLayers > 0
 		|| RemovedTrivialLayers > 0
 		|| FusedBatchNormalizations > 0
 		|| ChannelwiseWith1x1NonResidual > 0

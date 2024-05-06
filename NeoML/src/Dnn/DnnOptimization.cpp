@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ limitations under the License.
 #include "Optimization/MobileNetV3Optimizer.h"
 #include "Optimization/OptimizerFunctions.h"
 #include <NeoML/Dnn/Layers/RowwiseOperationChainLayer.h>
+#include <NeoML/Dnn/Layers/DnnHeadAdapterLayer.h>
 #include <NeoML/Dnn/Dnn.h>
 
 namespace NeoML {
@@ -33,6 +34,7 @@ CDnnOptimizationReport OptimizeDnn( CDnn& dnn, const CDnnOptimizationSettings& s
 	CDnnOptimizationReport report;
 	optimization::CGraph graph( dnn );
 
+	report.OptimizedHeadAdapters = optimization::OptimizeDnnHeadAdapters( graph );
 	report.UnpackedCompositeLayers = optimization::UnpackComposites( graph );
 	report.RemovedTrivialLayers = optimization::RemoveTrivialLayers( graph );
 	optimization::CBatchNormFusionOptimizer( graph ).Apply( report );

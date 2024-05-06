@@ -98,20 +98,18 @@ struct CDnnLayerLink {
 	int OutputNumber;
 
 	// Default value for optional inputs.
-	CDnnLayerLink() : Layer( 0 ), OutputNumber( -1 ) {}
-	CDnnLayerLink( const CDnnLayerLink& other ) :
-		Layer( other.Layer ), OutputNumber( other.OutputNumber ) {}
-	CDnnLayerLink( CBaseLayer* layer, int outputNumber ) :
+	CDnnLayerLink() : Layer( nullptr ), OutputNumber( -1 ) {}
+	CDnnLayerLink( CBaseLayer* layer, int outputNumber = 0 ) :
 		Layer( layer ),
 		OutputNumber( outputNumber )
 	{
-		NeoAssert( Layer != 0 );
+		NeoAssert( Layer != nullptr );
 		NeoAssert( OutputNumber >= 0 );
 	}
-
-	// Converting constructor
-	CDnnLayerLink( CBaseLayer* layer ) :
-		Layer( layer ), OutputNumber( 0 ) {}
+	CDnnLayerLink( CDnnLayerLink&& ) = default;
+	CDnnLayerLink( const CDnnLayerLink& other ) :
+		Layer( other.Layer ), OutputNumber( other.OutputNumber )
+	{}
 
 	// Is this layer optional, i.e. created by CLayerOutout() default constructor.
 	bool IsOptional() const { return Layer == 0 && OutputNumber == -1; }
@@ -436,6 +434,7 @@ private:
 	friend class CDnnLayerGraph;
 	friend class CDnnSolver;
 	friend class CCompositeLayer;
+	friend class CDnnHeadAdapterLayer;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -688,6 +687,7 @@ private:
 	friend class CCompositeLayer;
 	friend class CRecurrentLayer;
 	friend class CDnnReferenceRegister;
+	friend class CDnnHeadAdapterLayer;
 };
 
 inline CArchive& operator<<( CArchive& archive, const CDnn& dnn)
