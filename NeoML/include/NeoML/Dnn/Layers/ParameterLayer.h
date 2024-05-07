@@ -1,4 +1,4 @@
-/* Copyright © 2024 ABBYY Production LLC
+/* Copyright © 2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -31,12 +31,14 @@ public:
     void SetBlob(CDnnBlob* _blob);
     void SetBlobDesc(const CBlobDesc& _desc);
     const CPtr<CDnnBlob>& GetBlob() const { return paramBlobs[0]; }
+
 protected:
     void AllocateOutputBlobs() override;
     void Reshape() override;
     void RunOnce() override;
     void BackwardOnce() override;
     void LearnOnce() override;
+
 private:
     CBlobDesc desc;
 };

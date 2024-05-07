@@ -1,4 +1,4 @@
-/* Copyright © 2024 ABBYY Production LLC
+/* Copyright © 2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -31,9 +31,10 @@ void CParameterLayer::SetBlob(CDnnBlob* _blob)
 	bool sameBlob = _blob == paramBlobs[0].Ptr();
 	paramBlobs[0] = _blob;
 
-	if (!outputDescs.IsEmpty()) {
-		if (paramBlobs[0]->GetDataType() != outputDescs[0].GetDataType()
-			|| !paramBlobs[0]->GetDesc().HasEqualDimensions(outputDescs[0]))
+	if( !outputDescs.IsEmpty() ) {
+		if( _blob != nullptr
+			&& ( _blob->GetDataType() != outputDescs[0].GetDataType()
+			|| !_blob->GetDesc().HasEqualDimensions( outputDescs[0] ) ) )
 		{
 			outputDescs[0] = paramBlobs[0]->GetDesc();
 			ForceReshape();
