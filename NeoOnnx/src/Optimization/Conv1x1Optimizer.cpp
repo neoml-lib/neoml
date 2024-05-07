@@ -1,4 +1,4 @@
-/* Copyright © 2023 ABBYY
+/* Copyright © 2023-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,6 +21,8 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/DataLayer.h>
 #include <NeoML/Dnn/Layers/MatrixMultiplicationLayer.h>
 #include <NeoML/Dnn/Layers/Onnx/OnnxEltwiseLayer.h>
+
+using namespace NeoML;
 
 namespace NeoOnnx {
 
