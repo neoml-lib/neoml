@@ -33,6 +33,7 @@ limitations under the License.
 #include "Operators/ConvOperator.h"
 #include "Operators/ConvTransposeOperator.h"
 #include "Operators/CumSumOperator.h"
+#include "Operators/DepthToSpaceOperator.h"
 #include "Operators/DropoutOperator.h"
 #include "Operators/EltwiseOperator.h"
 #include "Operators/ExpandOperator.h"
@@ -130,6 +131,7 @@ REGISTER_OPERATOR( CConvOperator, "Conv" )
 REGISTER_OPERATOR( CConvTransposeOperator, "ConvTranspose" )
 REGISTER_OPERATOR( CCumSumOperator, "CumSum" )
 REGISTER_OPERATOR( CEltwiseOperator<COnnxEltwiseLayer::TOperation::Div>, "Div" )
+REGISTER_OPERATOR( CDepthToSpaceOperator, "DepthToSpace" )
 REGISTER_OPERATOR( CDropoutOperator, "Dropout" )
 REGISTER_OPERATOR( CEluOperator, "Elu" )
 REGISTER_OPERATOR( CEltwiseOperator<COnnxEltwiseLayer::TOperation::Equal>, "Equal" )

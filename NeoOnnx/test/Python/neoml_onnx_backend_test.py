@@ -48,7 +48,7 @@ backend_test.exclude('test_convinteger_')  # ConvInteger
 backend_test.exclude('test_cos_')  # Cos
 backend_test.exclude('test_cosh_')  # Cosh
 backend_test.exclude('deform_conv')  # DeformConv
-backend_test.exclude('test_depthtospace_')  # DepthToSpace
+backend_test.exclude('test_depthtospace_crd_mode_')  # DepthToSpace in CRD mode
 backend_test.exclude('test_dequantizelinear_')  # DequantizeLinear
 backend_test.exclude('test_det_')  # Det
 backend_test.exclude('test_dft_')  # DFT
