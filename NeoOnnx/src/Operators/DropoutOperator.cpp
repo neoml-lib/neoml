@@ -82,4 +82,3 @@ float CDropoutOperator::getRatio( const CTensorArray& inputs ) const
 }
 
 } // namespace NeoOnnx
-
