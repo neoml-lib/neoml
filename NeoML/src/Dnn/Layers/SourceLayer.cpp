@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -26,8 +26,9 @@ void CSourceLayer::SetBlob( CDnnBlob* _blob )
 	blob = _blob;
 
 	if( !outputDescs.IsEmpty() ) {
-		if( blob->GetDataType() != outputDescs[0].GetDataType()
-			|| !blob->GetDesc().HasEqualDimensions( outputDescs[0] ) )
+		if( blob != nullptr
+			&& ( blob->GetDataType() != outputDescs[0].GetDataType()
+			|| !blob->GetDesc().HasEqualDimensions( outputDescs[0] ) ) )
 		{
 			outputDescs[0] = blob->GetDesc();
 			ForceReshape();
@@ -91,6 +92,12 @@ void CSourceLayer::Serialize( CArchive& archive )
 	} else if( archive.IsLoading() ) {
 		storeBlob = false;
 	}
+}
+
+void CSourceLayer::CleanUp( bool totalCleanUp )
+{
+	CBaseLayer::CleanUp( totalCleanUp );
+	SetBlob( nullptr );
 }
 
 CSourceLayer* Source( CDnn& network, const char* name )
