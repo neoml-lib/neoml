@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -90,6 +90,10 @@ static const unsigned int BufferSizes[] = {
 template <typename T, int size>
 inline constexpr int lengthof( T(&)[size] ) { return size; }
 
+const size_t CMemoryPool::CThreadData::DefaultBufferMemoryThreshold = BufferSizes[lengthof( BufferSizes ) - 1];
+
+//------------------------------------------------------------------------------------------------------------
+
 CMemoryPool::CMemoryPool( size_t _memoryLimit, IRawMemoryManager* _rawMemoryManager, bool reuseMemoryMode ) :
 	memoryLimit( _memoryLimit ),
 	rawMemoryManager( _rawMemoryManager ),
@@ -114,6 +118,12 @@ void CMemoryPool::SetReuseMemoryMode( bool enable )
 {
 	const std::thread::id id = std::this_thread::get_id();
 	getThreadData( id )->Enabled = enable;
+}
+
+void CMemoryPool::SetThreadBufferMemoryThreshold( size_t threshold )
+{
+	const std::thread::id id = std::this_thread::get_id();
+	getThreadData( id )->BufferMemoryThreshold = threshold;
 }
 
 CMemoryHandle CMemoryPool::Alloc( size_t size )
@@ -197,7 +207,7 @@ void CMemoryPool::TransferHandleToThisThread( const CMemoryHandle& handle, size_
 			info.buffer->OwnerPool = thisThreadBufferPool;
 		}
 	} else { // Large buffers don't use the pools
-		const size_t validSize = *std::lower_bound( std::begin(BufferSizes), std::end( BufferSizes ), size );
+		const size_t validSize = *std::lower_bound( std::begin( BufferSizes ), std::end( BufferSizes ), size );
 		ASSERT_EXPR( size == info.size || validSize  == info.size );
 		// No need to transfer, because
 		// it wouldn't be cleaned-up for that thread after mathEngine.CleanUp().
@@ -253,7 +263,7 @@ inline static bool poolsCompare( const CMemoryBufferPool* a, const size_t& b )
 // Tries to allocate memory
 CMemoryHandle CMemoryPool::tryAlloc( size_t size, CThreadData& data )
 {
-	if( !data.Enabled || size > BufferSizes[lengthof(BufferSizes) - 1] ) {
+	if( !data.Enabled || size > data.BufferMemoryThreshold ) {
 		// Allocate without using the buffers pool
 		CMemoryHandle result = alloc( size );
 		if( !result.IsNull() ) {
