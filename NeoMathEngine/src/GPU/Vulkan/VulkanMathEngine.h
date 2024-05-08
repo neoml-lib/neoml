@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -59,6 +59,7 @@ public:
 	// IMathEngine interface methods
 	TMathEngineType GetType() const override { return MET_Vulkan; }
 	void SetReuseMemoryMode( bool enable ) override;
+	void SetThreadBufferMemoryThreshold( size_t threshold ) override;
 	CMemoryHandle HeapAlloc( size_t count ) override;
 	void HeapFree( const CMemoryHandle& handle ) override;
 	void TransferHandleToThisThread( const CMemoryHandle& /*handle*/, size_t /*size*/ ) override { ASSERT_EXPR( false ); }

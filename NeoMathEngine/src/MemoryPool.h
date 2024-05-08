@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -35,6 +35,8 @@ public:
 
 	// Turns on and off the memory reuse mode for the current thread
 	void SetReuseMemoryMode( bool enable );
+	// Change the memory blocks' sizes threshold for this thread from 1GB to the user size in bytes
+	void SetThreadBufferMemoryThreshold( size_t threshold );
 
 	// Allocates the specified amount of memory
 	CMemoryHandle Alloc( size_t size );
@@ -63,8 +65,10 @@ private:
 	using TMemoryBufferPoolVector = std::vector<CMemoryBufferPool*, CrtAllocator<CMemoryBufferPool*>>;
 	// The information about all of memory buffers pools of unused non-cleared blocks
 	struct CThreadData final {
+		static const size_t DefaultBufferMemoryThreshold;
 		TMemoryBufferPoolVector Pool;
-		bool Enabled{};
+		bool Enabled = false; // default 'reuse' mode is disabled
+		size_t BufferMemoryThreshold = DefaultBufferMemoryThreshold; // default max = 1GB
 	};
 	using TThreadDataMap = std::unordered_map<
 		std::thread::id, CThreadData, // (key, value)
