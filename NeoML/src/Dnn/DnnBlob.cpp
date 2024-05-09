@@ -167,7 +167,7 @@ void CDnnBlob::initializeByPattern(TBlobType type, const CBlobDesc& pattern)
 {
 	NeoAssert(desc.GetDataType() == CT_Invalid);
 
-	const int allocSize = pattern.MemorySize();
+	const int allocSize = mathEngine.GetReuseMemoryMode() ? pattern.MemorySize() : pattern.BlobSize();
 	NeoAssert( allocSize >= pattern.BlobSize() );
 	switch(type) {
 		case CT_Float:

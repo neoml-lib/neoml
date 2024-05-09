@@ -234,13 +234,15 @@ bool CBaseLayer::InputsMayBeOverwritten() const
 // The class that switches memory reuse mode
 class CMemoryModeSwitcher {
 public:
-	explicit CMemoryModeSwitcher( IMathEngine& _mathEngine, bool _need ) : mathEngine( _mathEngine ), need( _need )
-		{ if( need ) { mathEngine.SetReuseMemoryMode( true ); } }
+	explicit CMemoryModeSwitcher( IMathEngine& _mathEngine, bool _need ) :
+		mathEngine( _mathEngine ), need( _need ), mode( mathEngine.GetReuseMemoryMode() )
+		{ if( need > mode ) { mathEngine.SetReuseMemoryMode( true ); } }
 	~CMemoryModeSwitcher()
-		{ if( need ) { mathEngine.SetReuseMemoryMode( false ); } }
+		{ if( need > mode ) { mathEngine.SetReuseMemoryMode( false ); } }
 public:
 	IMathEngine& mathEngine;
 	bool need;
+	bool mode;
 };
 
 void CBaseLayer::AllocateOutputBlobs()
