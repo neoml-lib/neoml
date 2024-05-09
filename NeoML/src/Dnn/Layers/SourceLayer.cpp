@@ -97,7 +97,9 @@ void CSourceLayer::Serialize( CArchive& archive )
 void CSourceLayer::CleanUp( bool totalCleanUp )
 {
 	CBaseLayer::CleanUp( totalCleanUp );
-	SetBlob( nullptr );
+	if( totalCleanUp ) {
+		SetBlob( nullptr );
+	}
 }
 
 CSourceLayer* Source( CDnn& network, const char* name )
