@@ -26,8 +26,7 @@ limitations under the License.
 #include <MathEngineAllocator.h>
 #include <MathEngineCommon.h>
 #include <MemoryHandleInternal.h>
-#include <MathEngineDeviceStackAllocator.h>
-#include <MathEngineHostStackAllocator.h>
+#include <MemoryPool.h>
 #include <cuda_runtime.h>
 #include <string>
 #include <vector>
@@ -149,7 +148,7 @@ void* CCudaMathEngine::GetBuffer( const CMemoryHandle& handle, size_t pos, size_
 	ASSERT_EXPR(handle.GetMathEngine() == this);
 
 	size_t realSize = size + 16;
-	char* result = reinterpret_cast<char*>( hostStackRunTime->Alloc( realSize ) );
+	char* result = static_cast<char*>( ( void* ) hostStackRunTime->Alloc( realSize ) );
 	size_t* posPtr = reinterpret_cast<size_t*>( result );
 	*posPtr = pos;
 	size_t* sizePtr = reinterpret_cast<size_t*>( result ) + 1;

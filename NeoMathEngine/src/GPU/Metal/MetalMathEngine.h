@@ -23,13 +23,13 @@ limitations under the License.
 #include <NeoMathEngine/NeoMathEngine.h>
 #include <MathEngineCommon.h>
 #include <RawMemoryManager.h>
+#include <MathEngineStackAllocator.h>
 #include <PerformanceCountersDefault.h>
 
 namespace NeoML {
 
 class CMetalCommandQueue;
 class CMemoryPool;
-class CDeviceStackAllocator;
 class CMutex;
 struct CMetalRleConvolutionDesc;
 
@@ -644,11 +644,14 @@ protected:
 
 private:
 	// STL cannot be used here
-	template<class T>
+	struct DefaultDeleter final : public CCrtAllocatedObject {
+		void operator()( const void* ptr ) const { delete ptr; }
+	};
+	template<class T, class Deleter = DefaultDeleter>
 	class CUniquePtr : public CCrtAllocatedObject {
 	public:
 		explicit CUniquePtr( T* _ptr ) : ptr( _ptr ) {}
-		~CUniquePtr() { delete ptr; }
+		~CUniquePtr() { Deleter{}( ptr ); }
 
 		operator T*() { return ptr; }
 		operator const T*() const { return ptr; }
@@ -661,7 +664,7 @@ private:
 
 	CUniquePtr<CMetalCommandQueue> queue; // the default command queue for a metal device
 	CUniquePtr<CMemoryPool> memoryPool; // the memory manager
-	CUniquePtr<CDeviceStackAllocator> deviceStackAllocator; // the stack allocator of GPU memory
+	CUniquePtr<IStackAllocator, CStackAllocatorDeleter> deviceStackAllocator; // the stack allocator of GPU memory
 	mutable CUniquePtr<CMutex> mutex; // protecting allocations
 
 	IMathEngine& mathEngine() { IMathEngine* engine = this; return *engine; }

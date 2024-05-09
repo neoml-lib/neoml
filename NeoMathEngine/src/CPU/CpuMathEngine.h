@@ -17,6 +17,7 @@ limitations under the License.
 
 #include <NeoMathEngine/NeoMathEngine.h>
 #include <NeoMathEngine/SimdMathEngine.h>
+#include <MathEngineStackAllocator.h>
 #include <RawMemoryManager.h>
 #include <DllLoader.h>
 #include <mutex>
@@ -30,7 +31,6 @@ struct CCommon2DPoolingDesc;
 struct CCommonMaxPoolingDesc;
 struct CCommon3dConvolutionDesc;
 struct CCommonChannelwiseConvolutionDesc;
-class CDeviceStackAllocator;
 class CMemoryPool;
 class ISimdMathEngine;
 
@@ -643,7 +643,7 @@ private:
 	std::shared_ptr<CMultiThreadDistributedCommunicator> communicator;
 	CMathEngineDistributedInfo distributedInfo;
 	const std::unique_ptr<CMemoryPool> memoryPool; // the memory manager
-	const std::unique_ptr<CDeviceStackAllocator> stackAllocator; // the stack memory allocator
+	const std::unique_ptr<IStackAllocator, CStackAllocatorDeleter> stackAllocator; // the stack memory allocator
 	mutable std::mutex mutex; // to protect the allocations
 
 	CDllLoader dllLoader; // loading library for simd instructions

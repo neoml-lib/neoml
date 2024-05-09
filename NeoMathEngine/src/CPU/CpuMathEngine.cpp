@@ -17,8 +17,7 @@ limitations under the License.
 #pragma hdrstop
 
 #include <CpuMathEngine.h>
-#include <MathEngineDeviceStackAllocator.h>
-#include <MathEngineHostStackAllocator.h>
+#include <MemoryPool.h>
 #include <MemoryHandleInternal.h>
 #include <MathEngineCommon.h>
 #include <NeoMathEngine/SimdMathEngine.h>
@@ -58,7 +57,7 @@ CCpuMathEngine::CCpuMathEngine( size_t _memoryLimit,
 	communicator( communicator ),
 	distributedInfo( distributedInfo ),
 	memoryPool( new CMemoryPool( _memoryLimit == 0 ? SIZE_MAX : _memoryLimit, this, distributedInfo.Threads > 1 ) ),
-	stackAllocator( new CDeviceStackAllocator( *memoryPool, memoryAlignment ) ),
+	stackAllocator( CreateStackAllocator( TSA_Device, memoryPool.get(), memoryAlignment ) ),
 	dllLoader( CDllLoader::AVX_DLL ),
 	simdMathEngine( nullptr ),
 	customSgemmFunction( nullptr )

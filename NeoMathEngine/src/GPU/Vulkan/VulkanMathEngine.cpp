@@ -24,9 +24,8 @@ limitations under the License.
 #include <DllLoader.h>
 #include <VulkanMathEngine.h>
 #include <MathEngineCommon.h>
-#include <MathEngineDeviceStackAllocator.h>
-#include <MathEngineHostStackAllocator.h>
 #include <MemoryHandleInternal.h>
+#include <MemoryPool.h>
 #include <VulkanDll.h>
 #include <VulkanCommandQueue.h>
 #include <VulkanShader.h>
@@ -80,8 +79,8 @@ CVulkanMathEngine::CVulkanMathEngine( std::unique_ptr<const CVulkanDevice>& _dev
 	commandQueue = std::unique_ptr<CVulkanCommandQueue>( new CVulkanCommandQueue( *device ) );
 	memoryLimit = std::min<size_t>( memoryLimit == 0 ? SIZE_MAX : memoryLimit, device->AvailableMemory );
 	memoryPool = std::unique_ptr<CMemoryPool>( new CMemoryPool( memoryLimit, this, false ) );
-	deviceStackAllocator = std::unique_ptr<CDeviceStackAllocator>( new CDeviceStackAllocator( *memoryPool, VulkanMemoryAlignment ) );
-	hostStackAllocator = std::unique_ptr<CHostStackAllocator>( new CHostStackAllocator( VulkanMemoryAlignment ) );
+	deviceStackAllocator = std::unique_ptr<IStackAllocator, CStackAllocatorDeleter>( CreateStackAllocator( TSA_Device, memoryPool.get(), VulkanMemoryAlignment ) );
+	hostStackAllocator = std::unique_ptr<IStackAllocator, CStackAllocatorDeleter>( CreateStackAllocator( TSA_Host, 0, VulkanMemoryAlignment ) );
 }
 
 CVulkanMathEngine::~CVulkanMathEngine()
@@ -198,7 +197,7 @@ void* CVulkanMathEngine::GetBuffer( const CMemoryHandle& handle, size_t pos, siz
 	ASSERT_EXPR(handle.GetMathEngine() == this);
 
 	size_t realSize = size + 16;
-	char* result = reinterpret_cast<char*>( hostStackAllocator->Alloc( realSize ) );
+	char* result = static_cast<char*>( ( void* ) hostStackAllocator->Alloc( realSize ) );
 	size_t* posPtr = reinterpret_cast<size_t*>( result );
 	*posPtr = pos;
 	size_t* sizePtr = reinterpret_cast<size_t*>( result ) + 1;

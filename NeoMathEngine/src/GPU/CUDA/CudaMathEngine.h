@@ -22,6 +22,7 @@ limitations under the License.
 #include <NeoMathEngine/NeoMathEngine.h>
 #include <DllLoader.h>
 #include <RawMemoryManager.h>
+#include <MathEngineStackAllocator.h>
 #include <cusparse.h>
 #include <cublas.h>
 #include <mutex>
@@ -38,8 +39,6 @@ struct CCuda3dConvolutionDescInternal;
 struct CCusparse;
 struct CCublas;
 struct CCudaDevice;
-class CDeviceStackAllocator;
-class CHostStackAllocator;
 class CMemoryPool;
 
 // CUDA math engine
@@ -661,8 +660,8 @@ private:
 	cublasHandle_t cublasHandle; // cublas library handle
 	cusparseHandle_t cusparseHandle; // cusparse library handle
 	std::unique_ptr<CMemoryPool> memoryPool; // memory manager
-	std::unique_ptr<CDeviceStackAllocator> deviceStackRunTime; // GPU memory stack allocator
-	std::unique_ptr<CHostStackAllocator> hostStackRunTime; // regular memory stack allocator
+	std::unique_ptr<IStackAllocator, CStackAllocatorDeleter> deviceStackRunTime; // GPU memory stack allocator
+	std::unique_ptr<IStackAllocator, CStackAllocatorDeleter> hostStackRunTime; // regular memory stack allocator
 	CMathEngineDistributedInfo distributedInfo;
 #ifdef NEOML_USE_NCCL
 	std::unique_ptr<CCudaDistributedCommunicator> ncclCommunicator = nullptr;
