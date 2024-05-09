@@ -173,7 +173,7 @@ void CDnnBlob::initializeByPattern(TBlobType type, const CBlobDesc& pattern)
 
 	desc = pattern;
 	desc.SetDataType( type );
-	const int allocSize = desc.MemorySize();
+	const int allocSize = mathEngine.GetReuseMemoryMode() ? desc.MemorySize() : desc.BlobSize();
 	NeoAssert( allocSize >= desc.BlobSize() );
 
 	switch(type) {
