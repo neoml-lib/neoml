@@ -129,7 +129,7 @@ public:
 	CBaseLayer( IMathEngine& mathEngine, const char* name, bool isLearnable );
 
 	// Retrieves the reference to the IMathEngine with which the layer was created
-	IMathEngine& MathEngine() const;
+	IMathEngine& MathEngine() const { return mathEngine; }
 
 	// The current network (described by a CDnn class) to which the layer belongs
 	// While a layer is connected to a network, you may not change its basic configuration,
@@ -413,6 +413,7 @@ private:
 	void link();
 	void addOutput(int number);
 	void unlink();
+	void cleanUp( bool total, bool unlink );
 	void buildOrder();
 	void reshape();
 	void setInputDesc(int i);

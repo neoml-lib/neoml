@@ -82,26 +82,40 @@ void CBaseLayer::SetBackwardForced( bool forced )
 // Unlink all connections
 void CBaseLayer::unlink()
 {
-	NeoAssert( dnn != 0 ); // the links can be established and deleted only if the layer is in a network
+	NeoAssert( dnn != nullptr ); // the links can be established and deleted only if the layer is in a network
+	cleanUp( /*total*/true, /*linked*/false );
+}
 
+void CBaseLayer::cleanUp( bool total, bool linked )
+{
 	inputBlobs.DeleteAll();
 	outputBlobs.DeleteAll();
-	for( int cacheType = 0; cacheType < BCT_Count; ++cacheType ) {
-		blobCache[cacheType].DeleteAll();
+	allocatedBlobs = 0;
+
+	if( total ) {
+		for( int cacheType = 0; cacheType < BCT_Count; ++cacheType ) {
+			blobCache[cacheType].DeleteAll();
+		}
+
+		inputDiffBlobs.DeleteAll();
+		outputDiffBlobs.DeleteAll();
+		paramDiffBlobs.DeleteAll();
+		readyOutputDiffs.DeleteAll();
+		clearAllRuntimeBlobs();
+
+		if( linked ) {
+			ForceReshape();
+		}
 	}
-	
-	inputLinks.DeleteAll();
-	outputs.DeleteAll();
-	lastOutputUser.DeleteAll();
 
-	inputDiffBlobs.DeleteAll();
-	outputDiffBlobs.DeleteAll();
-
-	paramDiffBlobs.DeleteAll();
-
-	readyOutputDiffs.DeleteAll();
-
-	clearAllRuntimeBlobs();
+	if( linked ) {
+		inputBlobs.SetSize( inputDescs.Size() );
+		outputBlobs.SetSize( outputDescs.Size() );
+	} else {
+		inputLinks.DeleteAll();
+		outputs.DeleteAll();
+		lastOutputUser.DeleteAll();
+	}
 }
 
 void CBaseLayer::buildOrder()
@@ -217,11 +231,6 @@ bool CBaseLayer::InputsMayBeOverwritten() const
 	return true;
 }
 
-IMathEngine& CBaseLayer::MathEngine() const
-{
-	return mathEngine;
-}
-
 // The class that switches memory reuse mode
 class CMemoryModeSwitcher {
 public:
@@ -274,25 +283,7 @@ size_t CBaseLayer::GetOutputBlobsSize() const
 
 void CBaseLayer::CleanUp( bool totalCleanUp )
 {
-	inputBlobs.DeleteAll();
-	inputBlobs.SetSize(inputDescs.Size());
-	outputBlobs.DeleteAll();
-	outputBlobs.SetSize(outputDescs.Size());
-	allocatedBlobs = 0;
-
-	if ( totalCleanUp ) {
-		for( int cacheType = 0; cacheType < BCT_Count; ++cacheType ) {
-			blobCache[cacheType].DeleteAll();
-		}
-
-		inputDiffBlobs.DeleteAll();
-		outputDiffBlobs.DeleteAll();
-		paramDiffBlobs.DeleteAll();
-		readyOutputDiffs.DeleteAll();
-		clearAllRuntimeBlobs();
-
-		ForceReshape();
-	}
+	cleanUp( totalCleanUp, /*linked*/true );
 }
 
 size_t CBaseLayer::GetTrainableParametersSize() const
@@ -409,8 +400,10 @@ void CBaseLayer::reshape()
 	clearAllRuntimeBlobs();
 	isInPlace = false;
 
-	if( MathEngine().GetType() == MET_Cpu && !GetDnn()->IsBackwardPerformed()
-		&& !MathEngine().IsDistributed() && MathEngine().GetMemoryInPools() > MaxMemoryInPools )
+	if( MathEngine().GetType() == MET_Cpu
+		&& GetDnn()->IsBackwardPerformed() == false
+		&& MathEngine().IsDistributed() == false
+		&& MathEngine().GetMemoryInPools() > MaxMemoryInPools )
 	{
 		MathEngine().CleanUp();
 	}
@@ -710,28 +703,15 @@ void CBaseLayer::setDnn( CDnn* newDnn )
 	if( newDnn == dnn ) {
 		return;
 	}
-	NeoAssert( newDnn == 0 || &newDnn->GetMathEngine() == &mathEngine );
+	NeoAssert( newDnn == nullptr || &newDnn->GetMathEngine() == &mathEngine );
 	CDnn* oldDnn = dnn;
 	dnn = newDnn;
 
-	if( dnn != 0 ) {
+	if( dnn != nullptr ) {
 		lastRunNumber = dnn->runNumber;
 	}
-
 	// Clear the links and blobs arrays to save memory
-	inputLinks.DeleteAll();
-	inputBlobs.DeleteAll();
-	for( int cacheType = 0; cacheType < BCT_Count; ++cacheType ) {
-		blobCache[cacheType].DeleteAll();
-	}
-	outputBlobs.DeleteAll();
-	outputs.DeleteAll();
-	lastOutputUser.DeleteAll();
-	outputDiffBlobs.DeleteAll();
-	inputDiffBlobs.DeleteAll();
-	readyOutputDiffs.DeleteAll();
-
-	clearAllRuntimeBlobs();
+	cleanUp( /*total*/true, /*linked*/false );
 
 	OnDnnChanged( oldDnn );
 }
