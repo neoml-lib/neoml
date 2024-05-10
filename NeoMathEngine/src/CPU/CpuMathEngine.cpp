@@ -113,6 +113,12 @@ void CCpuMathEngine::SetThreadBufferMemoryThreshold( size_t threshold )
 	memoryPool->SetThreadBufferMemoryThreshold( threshold );
 }
 
+size_t CCpuMathEngine::GetThreadBufferMemoryThreshold() const
+{
+	std::lock_guard<std::mutex> lock( mutex );
+	return memoryPool->GetThreadBufferMemoryThreshold();
+}
+
 CMemoryHandle CCpuMathEngine::HeapAlloc( size_t size )
 {
 	std::lock_guard<std::mutex> lock( mutex );

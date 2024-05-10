@@ -103,6 +103,12 @@ void CMetalMathEngine::SetThreadBufferMemoryThreshold( size_t threshold )
 	memoryPool->SetThreadBufferMemoryThreshold( threshold );
 }
 
+size_t CMetalMathEngine::GetThreadBufferMemoryThreshold() const
+{
+	std::lock_guard<CMutex> lock( *mutex );
+	return memoryPool->GetThreadBufferMemoryThreshold();
+}
+
 CMemoryHandle CMetalMathEngine::HeapAlloc( size_t size )
 {
 	std::lock_guard<CMutex> lock( *mutex );

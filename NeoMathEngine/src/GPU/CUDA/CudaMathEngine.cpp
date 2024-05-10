@@ -92,6 +92,12 @@ void CCudaMathEngine::SetThreadBufferMemoryThreshold( size_t threshold )
 	memoryPool->SetThreadBufferMemoryThreshold( threshold );
 }
 
+size_t CCudaMathEngine::GetThreadBufferMemoryThreshold() const
+{
+	std::lock_guard<std::mutex> lock( mutex );
+	return memoryPool->GetThreadBufferMemoryThreshold();
+}
+
 CMemoryHandle CCudaMathEngine::HeapAlloc( size_t size )
 {
 	std::lock_guard<std::mutex> lock( mutex );

@@ -37,8 +37,11 @@ public:
 	void SetReuseMemoryMode( bool enable );
 	// Get the memory reuse mode state for the current thread
 	bool GetReuseMemoryMode() const;
+
 	// Change the memory blocks' sizes threshold for this thread from 1GB to the user size in bytes
 	void SetThreadBufferMemoryThreshold( size_t threshold );
+	// Get the memory blocks' sizes threshold for this thread
+	size_t GetThreadBufferMemoryThreshold() const;
 
 	// Allocates the specified amount of memory
 	CMemoryHandle Alloc( size_t size );

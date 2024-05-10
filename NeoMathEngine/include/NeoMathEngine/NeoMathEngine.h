@@ -1169,6 +1169,8 @@ public:
 	// memory blocks of a size <= this threshold would be allocated in buffers if 'reuse' mode enabled
 	// memory blocks of a size >  this threshold would be allocated in raw RAM memory (malloc/free)
 	virtual void SetThreadBufferMemoryThreshold( size_t threshold ) = 0;
+	// Get the memory blocks' sizes threshold for this thread
+	virtual size_t GetThreadBufferMemoryThreshold() const = 0;
 
 	virtual CMemoryHandle HeapAlloc( size_t count ) = 0;
 	virtual void HeapFree( const CMemoryHandle& handle ) = 0;

@@ -47,6 +47,7 @@ public:
 	void SetReuseMemoryMode( bool enabled ) override;
 	bool GetReuseMemoryMode() const override;
 	void SetThreadBufferMemoryThreshold( size_t threshold ) override;
+	size_t GetThreadBufferMemoryThreshold() const override;
 	CMemoryHandle HeapAlloc( size_t count ) override;
 	void HeapFree( const CMemoryHandle& handle ) override;
 	void TransferHandleToThisThread( const CMemoryHandle& handle, size_t size ) override;

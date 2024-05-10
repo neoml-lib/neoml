@@ -109,6 +109,12 @@ void CVulkanMathEngine::SetThreadBufferMemoryThreshold( size_t threshold )
 	memoryPool->SetThreadBufferMemoryThreshold( threshold );
 }
 
+size_t CVulkanMathEngine::GetThreadBufferMemoryThreshold() const
+{
+	std::lock_guard<std::mutex> lock( mutex );
+	return memoryPool->GetThreadBufferMemoryThreshold();
+}
+
 CMemoryHandle CVulkanMathEngine::HeapAlloc( size_t size )
 {
 	std::lock_guard<std::mutex> lock( mutex );

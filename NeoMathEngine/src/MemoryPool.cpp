@@ -130,6 +130,14 @@ void CMemoryPool::SetThreadBufferMemoryThreshold( size_t threshold )
 	getThreadData()->BufferMemoryThreshold = threshold;
 }
 
+size_t CMemoryPool::GetThreadBufferMemoryThreshold() const
+{
+	const CThreadData* threadData = getThreadData();
+	return ( threadData != nullptr )
+		? threadData->BufferMemoryThreshold
+		: CThreadData::DefaultBufferMemoryThreshold;
+}
+
 CMemoryHandle CMemoryPool::Alloc( size_t size )
 {
 	CThreadData& threadData = *getThreadData();
