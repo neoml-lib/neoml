@@ -20,13 +20,12 @@ limitations under the License.
 #ifdef NEOML_USE_VULKAN
 
 #include <vector>
-#include <mutex>
 #include <memory>
 #include <vulkan/vulkan.h>
 #include <NeoMathEngine/NeoMathEngine.h>
 #include <MathEngineAllocator.h>
 #include <VulkanImage.h>
-#include <RawMemoryManager.h>
+#include <MemoryEngineMixin.h>
 #include <PerformanceCountersDefault.h>
 #include <DllLoader.h>
 
@@ -39,10 +38,7 @@ struct CVulkanDevice;
 struct CVulkanRleConvolutionDesc;
 class CVulkanCommandQueue;
 class CVulkanShaderLoader;
-class CDeviceStackAllocator;
-class CHostStackAllocator;
 class CVulkanImage;
-class CMemoryPool;
 
 // Adds the information about available vulkan devices into the result array
 // Returns true if at least one device has been added
@@ -51,34 +47,17 @@ bool LoadVulkanEngineInfo( const CVulkanDll& dll, std::vector< CMathEngineInfo, 
 //------------------------------------------------------------------------------------------------------------
 
 // The math engine on vulkan
-class CVulkanMathEngine : public IMathEngine, public IRawMemoryManager {
+class CVulkanMathEngine : public CMemoryEngineMixin, public IRawMemoryManager {
 public:
 	CVulkanMathEngine( std::unique_ptr<const CVulkanDevice>& device, size_t memoryLimit );
 	~CVulkanMathEngine() override;
 
 	// IMathEngine interface methods
 	TMathEngineType GetType() const override { return MET_Vulkan; }
-	void SetReuseMemoryMode( bool enable ) override;
-	bool GetReuseMemoryMode() const override;
-	void SetThreadBufferMemoryThreshold( size_t threshold ) override;
-	size_t GetThreadBufferMemoryThreshold() const override;
-	CMemoryHandle HeapAlloc( size_t count ) override;
-	void HeapFree( const CMemoryHandle& handle ) override;
-	void TransferHandleToThisThread( const CMemoryHandle& /*handle*/, size_t /*size*/ ) override { ASSERT_EXPR( false ); }
-	CMemoryHandle StackAlloc( size_t count ) override;
-	void StackFree( const CMemoryHandle& handle ) override;
-	size_t GetFreeMemorySize() const override;
-	size_t GetPeakMemoryUsage() const override;
-	void ResetPeakMemoryUsage() override;
-	size_t GetCurrentMemoryUsage() const override;
-	size_t GetMemoryInPools() const override;
-	void CleanUp() override;
-	void* GetBuffer( const CMemoryHandle& handle, size_t pos, size_t size, bool exchange ) override;
-	void ReleaseBuffer( const CMemoryHandle& handle, void* ptr, bool exchange ) override;
+	void GetMathEngineInfo( CMathEngineInfo& info ) const override;
+
 	void DataExchangeRaw( const CMemoryHandle& handle, const void* data, size_t size ) override;
 	void DataExchangeRaw( void* data, const CMemoryHandle& handle, size_t size ) override;
-	CMemoryHandle CopyFrom( const CMemoryHandle& handle, size_t size ) override;
-	void GetMathEngineInfo( CMathEngineInfo& info ) const override;
 
 	// IVectorMathematicsEngine interface methods
 	void VectorFill( const CFloatHandle& result, float value, int vectorSize ) override;
@@ -654,15 +633,13 @@ protected:
 	CMemoryHandle Alloc( size_t size ) override;
 	void Free( const CMemoryHandle& handle ) override;
 
+	void CleanUpSpecial() override;
+
 private:
 	CDllLoader dllLoader; // vulkan dll wrapper
-	mutable std::mutex mutex; // protecting the data below from non-thread-safe use
 	std::unique_ptr<const CVulkanDevice> device; // device descriptor
 	std::unique_ptr<CVulkanShaderLoader> shaderLoader; // shader loader
 	std::unique_ptr<CVulkanCommandQueue> commandQueue; // shader execution queue
-	std::unique_ptr<CMemoryPool> memoryPool; // memory manager
-	std::unique_ptr<CDeviceStackAllocator> deviceStackAllocator; // stack allocator for GPU memory
-	std::unique_ptr<CHostStackAllocator> hostStackAllocator; // stack allocator for host memory
 	std::vector< CVulkanImage*, CrtAllocator<CVulkanImage*> > tmpImages; // temporary images
 
 	IMathEngine& mathEngine() { IMathEngine* engine = this; return *engine; }
