@@ -80,6 +80,12 @@ void CCudaMathEngine::SetReuseMemoryMode( bool )
 	// Always true, because allocation is sync
 }
 
+bool CCudaMathEngine::GetReuseMemoryMode() const
+{
+	// Always true, because allocation is sync
+	return true;
+}
+
 void CCudaMathEngine::SetThreadBufferMemoryThreshold( size_t threshold )
 {
 	std::lock_guard<std::mutex> lock( mutex );

@@ -45,6 +45,7 @@ public:
 	// IMathEngine interface methods
 	TMathEngineType GetType() const override { return MET_Cpu; }
 	void SetReuseMemoryMode( bool enabled ) override;
+	bool GetReuseMemoryMode() const override;
 	void SetThreadBufferMemoryThreshold( size_t threshold ) override;
 	CMemoryHandle HeapAlloc( size_t count ) override;
 	void HeapFree( const CMemoryHandle& handle ) override;
@@ -628,7 +629,8 @@ public:
 	void Broadcast( const CFloatHandle& handle, int size, int root ) override;
 	void AbortDistributed() override;
 	CMathEngineDistributedInfo GetDistributedInfo() override { return distributedInfo; }
-	bool IsDistributed() override { return distributedInfo.Threads > 1; }
+	bool IsDistributed() const override { return distributedInfo.Threads > 1; }
+
 protected:
 	// IRawMemoryManager interface methods
 	CMemoryHandle Alloc( size_t size ) override;

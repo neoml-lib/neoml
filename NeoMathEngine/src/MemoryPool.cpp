@@ -106,8 +106,8 @@ CMemoryPool::CMemoryPool( size_t _memoryLimit, IRawMemoryManager* _rawMemoryMana
 
 CMemoryPool::~CMemoryPool()
 {
-	for( auto curPool : pools ) {
-		cleanUp( curPool.first );
+	for( auto& curPool : pools ) {
+		cleanUp( &curPool.second );
 		for( auto curMemBufferPool : curPool.second.Pool ) {
 			delete curMemBufferPool;
 		}
@@ -116,20 +116,23 @@ CMemoryPool::~CMemoryPool()
 
 void CMemoryPool::SetReuseMemoryMode( bool enable )
 {
-	const std::thread::id id = std::this_thread::get_id();
-	getThreadData( id )->Enabled = enable;
+	getThreadData()->Enabled = enable;
+}
+
+bool CMemoryPool::GetReuseMemoryMode() const
+{
+	const CThreadData* threadData = getThreadData();
+	return ( threadData != nullptr ) ? threadData->Enabled : false;
 }
 
 void CMemoryPool::SetThreadBufferMemoryThreshold( size_t threshold )
 {
-	const std::thread::id id = std::this_thread::get_id();
-	getThreadData( id )->BufferMemoryThreshold = threshold;
+	getThreadData()->BufferMemoryThreshold = threshold;
 }
 
 CMemoryHandle CMemoryPool::Alloc( size_t size )
 {
-	const std::thread::id id = std::this_thread::get_id();
-	CThreadData& threadData = *getThreadData( id );
+	CThreadData& threadData = *getThreadData();
 	CMemoryHandle result = tryAlloc( size, threadData );
 	if( !result.IsNull() ) {
 		return result;
@@ -159,19 +162,17 @@ void CMemoryPool::Free( const CMemoryHandle& handle )
 
 size_t CMemoryPool::GetMemoryInPools() const
 {
-	std::thread::id id = std::this_thread::get_id();
-	auto pool = pools.find( id );
-	if( pool == pools.end() ) {
+	const CThreadData* threadData = getThreadData();
+	if( threadData == nullptr ) {
 		return 0;
 	}
-	const TMemoryBufferPoolVector& threadPools = pool->second.Pool;
-	return std::accumulate( threadPools.begin(), threadPools.end(), size_t( 0 ),
+	return std::accumulate( threadData->Pool.begin(), threadData->Pool.end(), size_t( 0 ),
 		[] ( const size_t& sum, const CMemoryBufferPool* cur ) { return sum + cur->GetMemoryInPool(); } );
 }
 
 void CMemoryPool::CleanUp()
 {
-	cleanUp( std::this_thread::get_id() );
+	cleanUp( getThreadData( /*forceCreate*/false ) );
 }
 
 // Transfers handle from other thread owner to this thread
@@ -186,8 +187,7 @@ void CMemoryPool::TransferHandleToThisThread( const CMemoryHandle& handle, size_
 		ASSERT_EXPR( size <= otherThreadBufferPool->BufferSize );
 		size = otherThreadBufferPool->BufferSize; // set actual allocated size
 
-		const std::thread::id id = std::this_thread::get_id();
-		CThreadData& thisThreadData = *getThreadData( id );
+		CThreadData& thisThreadData = *getThreadData();
 		// If on this thread pools are turned off
 		if( !thisThreadData.Enabled ) {
 			// Transfer the handle from that thread's pool just to heap, so
@@ -214,37 +214,40 @@ void CMemoryPool::TransferHandleToThisThread( const CMemoryHandle& handle, size_
 	}
 }
 
-CMemoryPool::CThreadData* CMemoryPool::getThreadData( std::thread::id id, bool forceCreate )
+const CMemoryPool::CThreadData* CMemoryPool::getThreadData() const
 {
+	auto it = pools.find( std::this_thread::get_id() );
+	return ( it == pools.end() ) ? nullptr : &( it->second );
+}
+
+CMemoryPool::CThreadData* CMemoryPool::getThreadData( bool forceCreate )
+{
+	std::thread::id id = std::this_thread::get_id();
 	auto it = pools.find( id );
 	if( it == pools.end() ) {
 		if( !forceCreate ) {
 			return nullptr;
 		}
-		createPools( id );
-		it = pools.find( id );
+		return createPools( id );
 	}
 	return &( it->second );
 }
 
-void CMemoryPool::createPools( std::thread::id id )
+CMemoryPool::CThreadData* CMemoryPool::createPools( std::thread::id id )
 {
 	CThreadData threadData;
 	threadData.Enabled = defaultReuseMemoryMode;
 	for( size_t i = 0; i < sizeof( BufferSizes ) / sizeof( *BufferSizes ); ++i ) {
 		threadData.Pool.push_back( new CMemoryBufferPool( BufferSizes[i] ) );
 	}
-
-	pools[id] = threadData;
+	return &( pools[id] = threadData );
 }
 
-void CMemoryPool::cleanUp( std::thread::id id )
+void CMemoryPool::cleanUp( CThreadData* threadData )
 {
-	CThreadData* const threadData = getThreadData( id, /*forceCreate*/false );
 	if( threadData == nullptr ) {
 		return;
 	}
-
 	for( CMemoryBufferPool* pool : threadData->Pool ) {
 		CMemoryBuffer* buffer = pool->TryAlloc();
 		while( buffer != 0 ) {

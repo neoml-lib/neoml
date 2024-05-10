@@ -97,6 +97,12 @@ void CVulkanMathEngine::SetReuseMemoryMode( bool enable )
 	memoryPool->SetReuseMemoryMode( enable );
 }
 
+bool CVulkanMathEngine::GetReuseMemoryMode() const
+{
+	std::lock_guard<std::mutex> lock( mutex );
+	return memoryPool->GetReuseMemoryMode();
+}
+
 void CVulkanMathEngine::SetThreadBufferMemoryThreshold( size_t threshold )
 {
 	std::lock_guard<std::mutex> lock( mutex );

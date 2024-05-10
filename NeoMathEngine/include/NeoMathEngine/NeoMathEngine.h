@@ -1164,6 +1164,7 @@ public:
 	// Turns on and off the memory reuse mode
 	// In this mode, the allocated memory blocks will not be deleted on HeapFree() and may be used until CleanUp()
 	virtual void SetReuseMemoryMode( bool enable ) = 0;
+	virtual bool GetReuseMemoryMode() const = 0;
 	// Specialize the size threshold in bytes for the current thread, so
 	// memory blocks of a size <= this threshold would be allocated in buffers if 'reuse' mode enabled
 	// memory blocks of a size >  this threshold would be allocated in raw RAM memory (malloc/free)
@@ -1228,7 +1229,7 @@ public:
 	virtual void AllReduce( const CFloatHandle& handle, int size ) = 0;
 	virtual void Broadcast( const CFloatHandle& handle, int size, int root ) = 0;
 	virtual void AbortDistributed() {};
-	virtual bool IsDistributed() { return false; }
+	virtual bool IsDistributed() const { return false; }
 };
 
 //------------------------------------------------------------------------------------------------------------

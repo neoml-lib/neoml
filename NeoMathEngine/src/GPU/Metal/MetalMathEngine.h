@@ -47,6 +47,7 @@ public:
 	// IMathEngine interface methods
 	TMathEngineType GetType() const override { return MET_Metal; }
 	void SetReuseMemoryMode( bool enable ) override;
+	bool GetReuseMemoryMode() const override;
 	void SetThreadBufferMemoryThreshold( size_t threshold ) override;
 	CMemoryHandle HeapAlloc( size_t count ) override;
 	void HeapFree( const CMemoryHandle& handle ) override;

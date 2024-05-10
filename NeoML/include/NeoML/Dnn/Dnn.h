@@ -413,7 +413,7 @@ private:
 	void link();
 	void addOutput(int number);
 	void unlink();
-	void cleanUp( bool total, bool unlink );
+	void cleanUp( bool total, bool linked );
 	void buildOrder();
 	void reshape();
 	void setInputDesc(int i);

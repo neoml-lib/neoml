@@ -87,13 +87,19 @@ CMetalMathEngine::~CMetalMathEngine()
 
 void CMetalMathEngine::SetReuseMemoryMode( bool enable )
 {
-	std::lock_guard<std::mutex> lock( *mutex );
+	std::lock_guard<CMutex> lock( *mutex );
 	memoryPool->SetReuseMemoryMode( enable );
 }
 
-void CVulkanMathEngine::SetThreadBufferMemoryThreshold( size_t threshold )
+bool CMetalMathEngine::GetReuseMemoryMode() const
 {
-	std::lock_guard<std::mutex> lock( *mutex );
+	std::lock_guard<CMutex> lock( *mutex );
+	return memoryPool->GetReuseMemoryMode();
+}
+
+void CMetalMathEngine::SetThreadBufferMemoryThreshold( size_t threshold )
+{
+	std::lock_guard<CMutex> lock( *mutex );
 	memoryPool->SetThreadBufferMemoryThreshold( threshold );
 }
 
@@ -118,7 +124,7 @@ void CMetalMathEngine::HeapFree( const CMemoryHandle& handle )
 
 CMemoryHandle CMetalMathEngine::StackAlloc( size_t size )
 {
-	std::lock_guard<std::mutex> lock( *mutex );
+	std::lock_guard<CMutex> lock( *mutex );
 	CMemoryHandle result = deviceStackAllocator->Alloc( size );
 	if( result.IsNull() ) {
 		THROW_MEMORY_EXCEPTION;
@@ -128,7 +134,7 @@ CMemoryHandle CMetalMathEngine::StackAlloc( size_t size )
 
 void CMetalMathEngine::StackFree( const CMemoryHandle& ptr )
 {
-	std::lock_guard<std::mutex> lock( *mutex );
+	std::lock_guard<CMutex> lock( *mutex );
 	deviceStackAllocator->Free( ptr );
 }
 
@@ -140,25 +146,25 @@ size_t CMetalMathEngine::GetFreeMemorySize() const
 
 size_t CMetalMathEngine::GetPeakMemoryUsage() const
 {
-	std::lock_guard<std::mutex> lock( *mutex );
+	std::lock_guard<CMutex> lock( *mutex );
 	return memoryPool->GetPeakMemoryUsage();
 }
 
 void CMetalMathEngine::ResetPeakMemoryUsage()
 {
-	std::lock_guard<std::mutex> lock( *mutex );
+	std::lock_guard<CMutex> lock( *mutex );
 	memoryPool->ResetPeakMemoryUsage();
 }
 
 size_t CMetalMathEngine::GetCurrentMemoryUsage() const
 {
-	std::lock_guard<std::mutex> lock( *mutex );
+	std::lock_guard<CMutex> lock( *mutex );
 	return memoryPool->GetCurrentMemoryUsage();
 }
 
 size_t CMetalMathEngine::GetMemoryInPools() const
 {
-	std::lock_guard<std::mutex> lock( *mutex );
+	std::lock_guard<CMutex> lock( *mutex );
 	return memoryPool->GetMemoryInPools();
 }
 
