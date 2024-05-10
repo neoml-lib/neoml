@@ -22,15 +22,12 @@ limitations under the License.
 #include <NeoMathEngine/CrtAllocatedObject.h>
 #include <NeoMathEngine/NeoMathEngine.h>
 #include <MathEngineCommon.h>
-#include <RawMemoryManager.h>
+#include <MemoryEngine.h>
 #include <PerformanceCountersDefault.h>
 
 namespace NeoML {
 
 class CMetalCommandQueue;
-class CMemoryPool;
-class CDeviceStackAllocator;
-class CMutex;
 struct CMetalRleConvolutionDesc;
 
 // Gets the information about an available device
@@ -39,34 +36,19 @@ bool LoadMetalEngineInfo( CMathEngineInfo& info );
 //------------------------------------------------------------------------------------------------------------
 
 // The math engine using metal
-class CMetalMathEngine : public IMathEngine, public IRawMemoryManager {
+class CMetalMathEngine : public CMemoryEngine, public IRawMemoryManager {
 public:
 	explicit CMetalMathEngine( size_t memoryLimit );
 	~CMetalMathEngine() override;
 
 	// IMathEngine interface methods
 	TMathEngineType GetType() const override { return MET_Metal; }
-	void SetReuseMemoryMode( bool enable ) override;
-	bool GetReuseMemoryMode() const override;
-	void SetThreadBufferMemoryThreshold( size_t threshold ) override;
-	size_t GetThreadBufferMemoryThreshold() const override;
-	CMemoryHandle HeapAlloc( size_t count ) override;
-	void HeapFree( const CMemoryHandle& handle ) override;
-	void TransferHandleToThisThread( const CMemoryHandle& /*handle*/, size_t /*size*/ ) override { ASSERT_EXPR( false ); }
-	CMemoryHandle StackAlloc( size_t count ) override;
-	void StackFree( const CMemoryHandle& handle ) override;
-	size_t GetFreeMemorySize() const override;
-	size_t GetPeakMemoryUsage() const override;
-	void ResetPeakMemoryUsage() override;
-	size_t GetCurrentMemoryUsage() const override;
-	size_t GetMemoryInPools() const override;
-	void CleanUp() override;
-	void* GetBuffer( const CMemoryHandle& handle, size_t pos, size_t size, bool exchange ) override;
-	void ReleaseBuffer( const CMemoryHandle& handle, void* ptr, bool exchange ) override;
+	void GetMathEngineInfo( CMathEngineInfo& info ) const override;
+
+	void* GetBuffer( const CMemoryHandle& handle, size_t pos, size_t size, bool exchange ) override; // specialize
+	void ReleaseBuffer( const CMemoryHandle& handle, void* ptr, bool exchange ) override; // specialize
 	void DataExchangeRaw( const CMemoryHandle& handle, const void* data, size_t size ) override;
 	void DataExchangeRaw( void* data, const CMemoryHandle& handle, size_t size ) override;
-	CMemoryHandle CopyFrom( const CMemoryHandle& handle, size_t size ) override;
-	void GetMathEngineInfo( CMathEngineInfo& info ) const override;
 
 	// IVectorMathematicsEngine interface methods
 	void VectorFill(const CFloatHandle& result, float value, int vectorSize) override;
@@ -660,9 +642,6 @@ private:
 	};
 
 	CUniquePtr<CMetalCommandQueue> queue; // the default command queue for a metal device
-	CUniquePtr<CMemoryPool> memoryPool; // the memory manager
-	CUniquePtr<CDeviceStackAllocator> deviceStackAllocator; // the stack allocator of GPU memory
-	mutable CUniquePtr<CMutex> mutex; // protecting allocations
 
 	IMathEngine& mathEngine() { IMathEngine* engine = this; return *engine; }
 
