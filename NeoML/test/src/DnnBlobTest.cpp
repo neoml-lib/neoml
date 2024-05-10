@@ -26,14 +26,15 @@ using namespace NeoMLTest;
 TEST( CDnnBlobTest, InitWindowBlob )
 {
     MathEngine().CleanUp();
+    MathEngine().ResetPeakMemoryUsage();
     {
         CPtr<CDnnBlob> parent = CDnnBlob::CreateDataBlob( MathEngine(), CT_Float, 16, 1, 1 );
         CPtr<CDnnBlob> window = CDnnBlob::CreateWindowBlob( parent );
 
         EXPECT_TRUE( window->GetData().IsNull() == false );
     }
-    EXPECT_TRUE( MathEngine().GetPeakMemoryUsage() == 16 * sizeof( float ) );
     EXPECT_TRUE( MathEngine().GetCurrentMemoryUsage() == 0 );
+    EXPECT_EQ( MathEngine().GetPeakMemoryUsage(), 16 * sizeof( float ) );
 }
 
 TEST( CDnnBlobTest, BufferTest )
