@@ -97,10 +97,22 @@ void CVulkanMathEngine::SetReuseMemoryMode( bool enable )
 	memoryPool->SetReuseMemoryMode( enable );
 }
 
+bool CVulkanMathEngine::GetReuseMemoryMode() const
+{
+	std::lock_guard<std::mutex> lock( mutex );
+	return memoryPool->GetReuseMemoryMode();
+}
+
 void CVulkanMathEngine::SetThreadBufferMemoryThreshold( size_t threshold )
 {
 	std::lock_guard<std::mutex> lock( mutex );
 	memoryPool->SetThreadBufferMemoryThreshold( threshold );
+}
+
+size_t CVulkanMathEngine::GetThreadBufferMemoryThreshold() const
+{
+	std::lock_guard<std::mutex> lock( mutex );
+	return memoryPool->GetThreadBufferMemoryThreshold();
 }
 
 CMemoryHandle CVulkanMathEngine::HeapAlloc( size_t size )
@@ -154,6 +166,12 @@ void CVulkanMathEngine::ResetPeakMemoryUsage()
 {
 	std::lock_guard<std::mutex> lock( mutex );
 	memoryPool->ResetPeakMemoryUsage();
+}
+
+size_t CVulkanMathEngine::GetCurrentMemoryUsage() const
+{
+	std::lock_guard<std::mutex> lock( mutex );
+	return memoryPool->GetCurrentMemoryUsage();
 }
 
 size_t CVulkanMathEngine::GetMemoryInPools() const

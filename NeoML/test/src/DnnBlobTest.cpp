@@ -25,10 +25,15 @@ using namespace NeoMLTest;
 
 TEST( CDnnBlobTest, InitWindowBlob )
 {
-    CPtr<CDnnBlob> parent = CDnnBlob::CreateDataBlob( MathEngine(), CT_Float, 16, 1, 1 );
-    CPtr<CDnnBlob> blob = CDnnBlob::CreateWindowBlob( parent );
+    MathEngine().CleanUp();
+    {
+        CPtr<CDnnBlob> parent = CDnnBlob::CreateDataBlob( MathEngine(), CT_Float, 16, 1, 1 );
+        CPtr<CDnnBlob> window = CDnnBlob::CreateWindowBlob( parent );
 
-    EXPECT_FALSE( blob->GetData().IsNull() );
+        EXPECT_TRUE( window->GetData().IsNull() == false );
+    }
+    EXPECT_TRUE( MathEngine().GetPeakMemoryUsage() == 16 * sizeof( float ) );
+    EXPECT_TRUE( MathEngine().GetCurrentMemoryUsage() == 0 );
 }
 
 TEST( CDnnBlobTest, BufferTest )
@@ -57,21 +62,19 @@ TEST( CDnnBlobTest, BufferMemoryThresholdTest )
             MathEngine().SetThreadBufferMemoryThreshold( threshold );
         }
 
-        MathEngine().ResetPeakMemoryUsage();
-        const size_t peakMemory = MathEngine().GetPeakMemoryUsage();
+        const size_t peakMemory = MathEngine().GetCurrentMemoryUsage();
         const size_t reusedMemory = ( init ? 0 : threshold );
         {
             CPtr<CDnnBlob> blob1 = CDnnBlob::CreateDataBlob( MathEngine(), CT_Float, int(threshold / sizeof( float )), 1, 1 );
             ASSERT_TRUE( blob1 != nullptr && !blob1->GetData().IsNull() );
             CPtr<CDnnBlob> blob2 = CDnnBlob::CreateDataBlob( MathEngine(), CT_Float, int( threshold / sizeof( float ) + 1), 1, 1 );
             ASSERT_TRUE( blob2 != nullptr && !blob2->GetData().IsNull() );
-            EXPECT_EQ( MathEngine().GetPeakMemoryUsage(), peakMemory + threshold - reusedMemory + threshold + sizeof( float ) );
+            EXPECT_EQ( MathEngine().GetCurrentMemoryUsage(), peakMemory + threshold - reusedMemory + threshold + sizeof( float ) );
         }
         const size_t memoryInPools = MathEngine().GetMemoryInPools() - reusedMemory;
         EXPECT_EQ( memoryInPools, threshold - reusedMemory );
 
-        MathEngine().ResetPeakMemoryUsage();
-        EXPECT_EQ( MathEngine().GetPeakMemoryUsage() - memoryInPools, peakMemory );
+        EXPECT_EQ( MathEngine().GetCurrentMemoryUsage() - memoryInPools, peakMemory );
         sumMemoryInPools += memoryInPools;
     };
 

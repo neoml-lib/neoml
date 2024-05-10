@@ -35,12 +35,16 @@ public:
 
 	// Turns on and off the memory reuse mode for the current thread
 	void SetReuseMemoryMode( bool enable );
+	// Get the memory reuse mode state for the current thread
+	bool GetReuseMemoryMode() const;
+
 	// Change the memory blocks' sizes threshold for this thread from 1GB to the user size in bytes
 	void SetThreadBufferMemoryThreshold( size_t threshold );
+	// Get the memory blocks' sizes threshold for this thread
+	size_t GetThreadBufferMemoryThreshold() const;
 
 	// Allocates the specified amount of memory
 	CMemoryHandle Alloc( size_t size );
-	
 	// Frees the memory
 	void Free( const CMemoryHandle& handle );
 
@@ -51,7 +55,8 @@ public:
 	size_t GetPeakMemoryUsage() const { return peakMemoryUsage; }
 	// Reset the peak memory counter to the current memory usage value
 	void ResetPeakMemoryUsage() { peakMemoryUsage = allocatedMemory; }
-
+	// The current memory usage size
+	size_t GetCurrentMemoryUsage() const { return allocatedMemory; }
 	// Gets the amount of memory used for the pools
 	size_t GetMemoryInPools() const;
 
@@ -102,9 +107,10 @@ private:
 	size_t peakMemoryUsage; // peak memory usage
 	TUsedAddressMap usedMap;
 
-	CThreadData* getThreadData( std::thread::id id, bool forceCreate = true );
-	void createPools( std::thread::id id );
-	void cleanUp( std::thread::id id );
+	const CThreadData* getThreadData() const;
+	CThreadData* getThreadData( bool forceCreate = true );
+	CThreadData* createPools( std::thread::id id );
+	void cleanUp( CThreadData* threadData );
 	CMemoryHandle tryAlloc( size_t size, CThreadData& data );
 	CMemoryHandle alloc( size_t size );
 	void freeMemory( size_t size, const CMemoryHandle& data );

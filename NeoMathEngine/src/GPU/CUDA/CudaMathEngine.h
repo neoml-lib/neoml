@@ -52,7 +52,9 @@ public:
 	TMathEngineType GetType() const override { return MET_Cuda; }
 	void GetMathEngineInfo( CMathEngineInfo& info ) const override;
 	void SetReuseMemoryMode( bool enable ) override;
+	bool GetReuseMemoryMode() const override;
 	void SetThreadBufferMemoryThreshold( size_t threshold ) override;
+	size_t GetThreadBufferMemoryThreshold() const override;
 	CMemoryHandle HeapAlloc( size_t count ) override;
 	void HeapFree( const CMemoryHandle& handle ) override;
 	void TransferHandleToThisThread( const CMemoryHandle& handle, size_t size ) override;
@@ -61,6 +63,7 @@ public:
 	size_t GetFreeMemorySize() const override;
 	size_t GetPeakMemoryUsage() const override;
 	void ResetPeakMemoryUsage() override;
+	size_t GetCurrentMemoryUsage() const override;
 	size_t GetMemoryInPools() const override;
 	void CleanUp() override;
 	void* GetBuffer( const CMemoryHandle& handle, size_t pos, size_t size, bool exchange ) override;
@@ -629,15 +632,17 @@ public:
 		const CFloatHandle& input, const CFloatHandle& output ) override;
 
 	IPerformanceCounters* CreatePerformanceCounters( bool ) const override { return new CPerformanceCountersDefault(); }
+	// For Distributed only
 	void AllReduce( const CFloatHandle& handle, int size ) override;
 	void Broadcast( const CFloatHandle& handle, int size, int root ) override;
 	void AbortDistributed() override;
 	CMathEngineDistributedInfo GetDistributedInfo() override { return distributedInfo; }
-	bool IsDistributed() override { return distributedInfo.Threads > 1; }
+	bool IsDistributed() const override { return distributedInfo.Threads > 1; }
 #ifdef NEOML_USE_NCCL
 	void SetDistributedCommunicator( const ncclUniqueId& uniqueId, const CMathEngineDistributedInfo& info,
 		std::shared_ptr<std::atomic<bool>> isAbort );
 #endif
+
 protected:
 	// IRawMemoryManager interface methods
 	CMemoryHandle Alloc( size_t size ) override;
