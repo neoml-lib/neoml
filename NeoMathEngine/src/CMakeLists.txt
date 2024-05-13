@@ -249,6 +249,7 @@ if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
     check_language(CUDA)
 
     if(CMAKE_CUDA_COMPILER)
+        message(STATUS "USE CUDA")
         # Using CUDA
         enable_language(CUDA)
         
@@ -359,7 +360,7 @@ if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
 elseif(IOS)
     # Apple metal
     if(NeoMathEngine_ENABLE_METAL)
-
+        message(STATUS "USE METAL")
         target_compile_definitions(${PROJECT_NAME} PRIVATE NEOML_USE_METAL)
 
         set(IOS_SOURCES
@@ -399,6 +400,7 @@ endif()
 
 if(NeoMathEngine_ENABLE_VULKAN)
     if(WIN32 OR ANDROID)
+        message(STATUS "USE VULKAN")
         # Vulkan
         if(USE_FINE_OBJECTS)
             set(ENV{VULKAN_SDK} ${FINE_ROOT}/ThirdParty/Vulkan/${CMAKE_HOST_SYSTEM_NAME})
@@ -497,7 +499,7 @@ if(ANDROID AND ANDROID_ABI STREQUAL "armeabi-v7a")
 endif()
 
 # MKL
-if(NOT ANDROID AND NOT IOS AND BUILD_ARCH MATCHES "(x86.*)|(amd64)|(AMD64)" AND "${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "${BUILD_ARCH}") # cannot link in cross-compilation for macOS
+if(NOT ANDROID AND NOT IOS AND BUILD_ARCH MATCHES "(x86.*)|(amd64)|(AMD64)")
     message(STATUS "USE MKL")
     if(USE_FINE_OBJECTS)
         set(ENV{MKLROOT} ${FINE_ROOT}/ThirdParty/MKL/${CMAKE_SYSTEM_NAME})
@@ -535,6 +537,7 @@ configure_target(${PROJECT_NAME})
 
 # Install
 if(NeoMathEngine_INSTALL)
+    message(STATUS "NeoMathEngine INSTALL")
     if(USE_FINE_OBJECTS)
         fine_install(${PROJECT_NAME})
         if(WIN32 AND CMAKE_CUDA_COMPILER)
