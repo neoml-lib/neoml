@@ -19,11 +19,8 @@ limitations under the License.
 #include <NeoMathEngine/NeoMathEngine.h>
 #include <MathEngineAllocator.h>
 #include <MathEngineCommon.h>
-#include <MathEngineDeviceStackAllocator.h>
-#include <MathEngineHostStackAllocator.h>
 #include <MemoryEngine.h>
 #include <MemoryHandleInternal.h>
-#include <MemoryPool.h>
 
 namespace NeoML {
 
@@ -32,9 +29,9 @@ void IMemoryEngine::InitializeMemory( IRawMemoryManager* _rawManager, size_t _me
 {
 	MemoryAlignment = _memoryAlignment;
 	MemoryPool.reset( new CMemoryPool( _memoryLimit == 0 ? SIZE_MAX : _memoryLimit, _rawManager, _reuse ) );
-	DeviceStackAllocator.reset( new CDeviceStackAllocator( *MemoryPool, MemoryAlignment ) );
+	DeviceStackAllocator.reset( CreateStackAllocator( TSA_Device, MemoryPool.get(), MemoryAlignment ) );
 	if( _hostStack == true ) {
-		HostStackAllocator.reset( new CHostStackAllocator( MemoryAlignment ) );
+		HostStackAllocator.reset( CreateStackAllocator( TSA_Host, 0, MemoryAlignment ) );
 	}
 }
 
@@ -189,7 +186,7 @@ void* IMemoryEngine::GetBuffer( const CMemoryHandle& handle, size_t pos, size_t 
 	ASSERT_EXPR( handle.GetMathEngine() == this );
 
 	size_t realSize = size + 16;
-	char* result = static_cast<char*>( HostStackAllocator->Alloc( realSize ) );
+	char* result = static_cast<char*>( ( void* ) HostStackAllocator->Alloc( realSize ) );
 	size_t* posPtr = reinterpret_cast<size_t*>( result );
 	*posPtr = pos;
 	size_t* sizePtr = reinterpret_cast<size_t*>( result ) + 1;
