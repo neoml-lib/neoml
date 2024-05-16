@@ -626,11 +626,14 @@ protected:
 
 private:
 	// STL cannot be used here
-	template<class T>
+	struct DefaultDeleter final : public CCrtAllocatedObject {
+		void operator()( const void* ptr ) const { delete ptr; }
+	};
+	template<class T, class Deleter = DefaultDeleter>
 	class CUniquePtr : public CCrtAllocatedObject {
 	public:
 		explicit CUniquePtr( T* _ptr ) : ptr( _ptr ) {}
-		~CUniquePtr() { delete ptr; }
+		~CUniquePtr() { Deleter{}( ptr ); }
 
 		operator T*() { return ptr; }
 		operator const T*() const { return ptr; }
