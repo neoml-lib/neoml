@@ -24,8 +24,6 @@ limitations under the License.
 #include <DllLoader.h>
 #include <VulkanMathEngine.h>
 #include <MathEngineCommon.h>
-#include <MathEngineDeviceStackAllocator.h>
-#include <MathEngineHostStackAllocator.h>
 #include <MemoryHandleInternal.h>
 #include <VulkanDll.h>
 #include <VulkanCommandQueue.h>
