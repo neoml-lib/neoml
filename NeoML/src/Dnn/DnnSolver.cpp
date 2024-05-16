@@ -18,6 +18,7 @@ limitations under the License.
 
 #include <cmath>
 #include <cfloat>
+#include <algorithm>
 
 #include <NeoML/Dnn/DnnSolver.h>
 #include <NeoML/Dnn/Dnn.h>
@@ -128,15 +129,63 @@ REGISTER_NEOML_SOLVER( CDnnLambGradientSolver, "NeoMLDnnLambGradientSolver" )
 
 static constexpr const char* const layerPathSeparator = "/";
 
-CDnnSolver::CDnnSolver( IMathEngine& _mathEngine ) :
+CDnnSolver::CDnnSolver( IMathEngine& _mathEngine, int numVariables ) :
 	mathEngine( _mathEngine ),
-	learningRate( 0.01f ),
-	regularizationL2( 0.f ),
-	regularizationL1( 0.f ),
-	maxGradientNorm( -1.f ),
-	clipGradientMin( -FLT_MAX ),
-	clipGradientMax( FLT_MAX )
+	engineVariables( CDnnBlob::CreateVector( _mathEngine, CT_Float, numVariables ) )
 {
+	variables.Add( 0, numVariables );
+	SetMinMaxGradientClipping( /*min*/-FLT_MAX, /*max*/FLT_MAX );
+	SetLearningRate( 0.01f );
+	SetL2Regularization( 0.f );
+	SetL1Regularization( 0.f );
+	SetMaxGradientNorm( -1.f );
+}
+
+void CDnnSolver::SetRowNearVariables( int start, std::initializer_list<float> values )
+{
+	NeoPresume( start >= 0 && static_cast<int>( start + values.size() ) <= variables.Size() );
+	std::copy(values.begin(), values.end(), &variables[start]);;
+	// CUDA sync
+	MathEngine().DataExchangeTyped( engineVariables->GetData( { start } ), &variables[start], values.size() );
+}
+
+void CDnnSolver::SetVariable( int index, float value )
+{
+	NeoPresume( variables.IsValidIndex( index ) );
+	variables[index] = value;
+	engineVariables->GetData( { index } ).SetValue( value ); // CUDA sync
+}
+
+float CDnnSolver::GetVariable( int index ) const
+{
+	NeoPresume( variables.IsValidIndex( index ) );
+	return variables[index];
+}
+
+CConstFloatHandle CDnnSolver::Var( int index ) const
+{
+	NeoPresume( variables.IsValidIndex( index ) );
+	return engineVariables->GetData( { index } );
+}
+
+CFloatHandle CDnnSolver::UseVar( int index ) const
+{
+	NeoPresume( variables.IsValidIndex( index ) );
+	return engineVariables->GetData( { index } );
+}
+
+CFloatHandle CDnnSolver::TempData()
+{
+	return temporaryBlob->GetData();
+}
+
+bool CDnnSolver::ReInitTempBlob( int dataSize )
+{
+	if( temporaryBlob == nullptr || temporaryBlob->GetDataSize() < dataSize ) {
+		temporaryBlob = CDnnBlob::CreateVector( MathEngine(), CT_Float, dataSize );
+		return true;
+	}
+	return false;
 }
 
 // Calculates the layer parameter gradients to then use them in Train method
@@ -174,8 +223,6 @@ void CDnnSolver::Train( float distributedCoeff )
 {
 	OnTrain();
 
-	CFloatHandleStackVar oneDivEpoch( mathEngine );
-
 	for( TMapPosition pos = layerToParamDiffBlobsSum.GetFirstPosition(); pos != NotFound;
 		pos = layerToParamDiffBlobsSum.GetNextPosition( pos ) )
 	{
@@ -191,10 +238,10 @@ void CDnnSolver::Train( float distributedCoeff )
 		// Take the average of the gradients to simulate that the elements from all runs were in the same batch
 		// TODO: weighted average
 		if( paramDiffBlobsSum.Count > 1 ) {
-			oneDivEpoch.SetValue( 1.f / paramDiffBlobsSum.Count );
+			MathEngine().VectorFill( UseVar( TVS_OneDivEpoch ), 1.f / paramDiffBlobsSum.Count, 1 );
 			for( int i = 0; i < paramDiffBlobsSum.Sum.Size(); i++ ) {
 				MathEngine().VectorMultiply( paramDiffBlobsSum.Sum[i]->GetData(), paramDiffBlobsSum.Sum[i]->GetData(),
-					paramDiffBlobsSum.Sum[i]->GetDataSize(), oneDivEpoch );
+					paramDiffBlobsSum.Sum[i]->GetDataSize(), Var( TVS_OneDivEpoch ) );
 			}
 		}
 
@@ -222,10 +269,9 @@ void CDnnSolver::Reset()
 
 void CDnnSolver::allReduce( float distributedCoeff )
 {
-	const bool isCoeffNontrivial = ::fabsf( distributedCoeff - 1.f ) >= FLT_EPSILON;
-	CFloatHandleStackVar coeffVar( MathEngine() );
+	const bool isCoeffNontrivial = ( ::fabsf( distributedCoeff - 1.f ) >= FLT_EPSILON );
 	if( isCoeffNontrivial ) {
-		coeffVar.SetValue( distributedCoeff );
+		SetVariable( TVS_DistributedCoeff, distributedCoeff );
 	}
 
 	for( int i = 0; i < reduceOrder.Size(); ++i ) {
@@ -235,7 +281,8 @@ void CDnnSolver::allReduce( float distributedCoeff )
 		const CObjectArray<CDnnBlob>& params = reduceOrder[i]->paramBlobs;
 		for( int j = 0; j < params.Size(); j++ ) {
 			if( isCoeffNontrivial ) {
-				MathEngine().VectorMultiply( params[j]->GetData(), params[j]->GetData(), params[j]->GetDataSize(), coeffVar );
+				MathEngine().VectorMultiply( params[j]->GetData(), params[j]->GetData(), params[j]->GetDataSize(),
+					Var( TVS_DistributedCoeff ) );
 			}
 			MathEngine().AllReduce( params[j]->GetData(), params[j]->GetDataSize() );
 		}
@@ -244,19 +291,12 @@ void CDnnSolver::allReduce( float distributedCoeff )
 
 void CDnnSolver::clip( const CObjectArray<CDnnBlob>& paramDiffBlobs )
 {
-	if( clipGradientMin <= -FLT_MAX && clipGradientMax >= FLT_MAX ) {
+	if( GetVariable( TVS_MinClipping ) <= -FLT_MAX && GetVariable( TVS_MaxClipping ) >= FLT_MAX ) {
 		return;
 	}
-
-	CFloatHandleStackVar minVar( MathEngine() );
-	minVar.SetValue( clipGradientMin );
-
-	CFloatHandleStackVar maxVar( MathEngine() );
-	maxVar.SetValue( clipGradientMax );
-
 	for( int i = 0; i < paramDiffBlobs.Size(); ++i ) {
 		MathEngine().VectorMinMax( paramDiffBlobs[i]->GetData(), paramDiffBlobs[i]->GetData(),
-			paramDiffBlobs[i]->GetDataSize(), minVar, maxVar );
+			paramDiffBlobs[i]->GetDataSize(), Var( TVS_MinClipping ), Var( TVS_MaxClipping ) );
 	}
 }
 
@@ -268,32 +308,28 @@ void CDnnSolver::clipGradients(const CObjectArray<CDnnBlob>& paramDiffBlobs)
 
 	clip( paramDiffBlobs );
 
-	if( maxGradientNorm < 0 ) {
+	if( GetVariable( TVS_MaxGradNorm ) < 0 ) {
 		return;
 	}
 
 	// Calculate the parameter gradient norm
-	CFloatHandleStackVar tempVar( MathEngine() );
-	CFloatHandleStackVar gradVar( MathEngine() );
-	MathEngine().VectorDotProduct(paramDiffBlobs[0]->GetData(), paramDiffBlobs[0]->GetData(),
-		paramDiffBlobs[0]->GetDataSize(), gradVar.GetHandle());
+	MathEngine().VectorDotProduct( paramDiffBlobs[0]->GetData(), paramDiffBlobs[0]->GetData(),
+		paramDiffBlobs[0]->GetDataSize(), UseVar( TVS_GradVar ) );
 	for(int i = 1; i < paramDiffBlobs.Size(); ++i) {
-		MathEngine().VectorDotProduct(paramDiffBlobs[i]->GetData(), paramDiffBlobs[i]->GetData(),
-			paramDiffBlobs[i]->GetDataSize(), tempVar.GetHandle());
-		MathEngine().VectorAdd(gradVar.GetHandle(), tempVar.GetHandle(), gradVar.GetHandle(), 1);
+		MathEngine().VectorDotProduct( paramDiffBlobs[i]->GetData(), paramDiffBlobs[i]->GetData(),
+			paramDiffBlobs[i]->GetDataSize(), UseVar( TVS_TempVar ) );
+		MathEngine().VectorAdd( Var( TVS_GradVar ), Var( TVS_TempVar ), UseVar( TVS_GradVar ), 1 );
 	}
-	NeoPresume( std::isfinite( gradVar.GetValue() ) );
-	MathEngine().VectorSqrt(gradVar.GetHandle(), gradVar.GetHandle(), 1);
+	MathEngine().VectorSqrt( Var( TVS_GradVar ), UseVar( TVS_GradVar ), 1 );
 
 	// Calculate scale
-	tempVar.SetValue(maxGradientNorm);
-	MathEngine().VectorEltwiseMax(gradVar.GetHandle(), tempVar.GetHandle(), gradVar.GetHandle(), 1);
-	MathEngine().VectorEltwiseDivide(tempVar.GetHandle(), gradVar.GetHandle(), tempVar.GetHandle(), 1);
+	MathEngine().VectorEltwiseMax( Var( TVS_GradVar ), Var( TVS_MaxGradNorm ), UseVar( TVS_GradVar ), 1 );
+	MathEngine().VectorEltwiseDivide( Var( TVS_MaxGradNorm ), Var( TVS_GradVar ), UseVar( TVS_TempVar ), 1 );
 
 	// Decrease the gradient
 	for(int i = 0; i < paramDiffBlobs.Size(); ++i) {
-		MathEngine().VectorMultiply(paramDiffBlobs[i]->GetData(), paramDiffBlobs[i]->GetData(),
-			paramDiffBlobs[i]->GetDataSize(), tempVar.GetHandle());
+		MathEngine().VectorMultiply( paramDiffBlobs[i]->GetData(), paramDiffBlobs[i]->GetData(),
+			paramDiffBlobs[i]->GetDataSize(), Var( TVS_TempVar ) );
 	}
 }
 
@@ -384,8 +420,8 @@ void CDnnSolver::Serialize( CArchive& archive, const CDnn& dnn )
 				SerializeBlobs( mathEngine, archive, layerToGradientHistory.GetValue( pos ) );
 			}
 		}
-		archive << learningRate << regularizationL1 << regularizationL2 << maxGradientNorm;
-		archive << clipGradientMin << clipGradientMax;
+		archive << GetLearningRate() << GetL1Regularization() << GetL2Regularization() << GetMaxGradientNorm();
+		archive << GetVariable( TVS_MinClipping ) << GetVariable( TVS_MaxClipping );
 	} else {
 		layerToParamDiffBlobsSum.DeleteAll();
 		layerToGradientHistory.DeleteAll();
@@ -415,12 +451,21 @@ void CDnnSolver::Serialize( CArchive& archive, const CDnn& dnn )
 		} else {
 			loadPrevVersionDnnSolverMaps( archive, dnn );
 		}
+
+		float learningRate, regularizationL1, regularizationL2, maxGradientNorm;
 		archive >> learningRate >> regularizationL1 >> regularizationL2 >> maxGradientNorm;
+
+		SetLearningRate( learningRate );
+		SetL1Regularization( regularizationL1 );
+		SetL2Regularization( regularizationL2 );
+		SetMaxGradientNorm( maxGradientNorm );
+
 		if( version >= 1 ) {
+			float clipGradientMin, clipGradientMax;
 			archive >> clipGradientMin >> clipGradientMax;
+			SetMinMaxGradientClipping( clipGradientMin, clipGradientMax );
 		} else {
-			clipGradientMin = -FLT_MAX;
-			clipGradientMax = FLT_MAX;
+			SetMinMaxGradientClipping( /*min*/-FLT_MAX, /*max*/FLT_MAX );
 		}
 	}
 }
@@ -428,11 +473,9 @@ void CDnnSolver::Serialize( CArchive& archive, const CDnn& dnn )
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 CDnnSimpleGradientSolver::CDnnSimpleGradientSolver( IMathEngine& mathEngine ) :
-	CDnnSolver( mathEngine ),
-	momentDecayRate( 0.9f ),
-	isInCompatibilityMode( false ),
-	tempVariables( CDnnBlob::CreateVector( mathEngine, CT_Float, TV_Count ) )
+	CDnnSolver( mathEngine, TV_Count )
 {
+	SetMomentDecayRate( 0.9f );
 }
 
 static const int DnnSimpleGradientSolverVersion = 0;
@@ -441,8 +484,22 @@ void CDnnSimpleGradientSolver::Serialize( CArchive& archive, const CDnn& dnn )
 {
 	archive.SerializeVersion( DnnSimpleGradientSolverVersion );
 	CDnnSolver::Serialize( archive, dnn );
+
+	float momentDecayRate = GetMomentDecayRate();
 	archive.Serialize( momentDecayRate );
 	archive.Serialize( isInCompatibilityMode );
+
+	if( archive.IsLoading() ) {
+		SetMomentDecayRate( momentDecayRate );
+	}
+}
+
+void CDnnSimpleGradientSolver::SetMomentDecayRate( float decayRate )
+{
+	SetRowNearVariables( TV_MomentDecayRate, {
+		/*TV_MomentDecayRate*/ decayRate,
+		/*TV_OpMomentDecayRate*/ 1 - decayRate
+	} );
 }
 
 void CDnnSimpleGradientSolver::TrainLayer( const CBaseLayer* layer, const CObjectArray<CDnnBlob>& paramBlobs,
@@ -456,46 +513,40 @@ void CDnnSimpleGradientSolver::TrainLayer( const CBaseLayer* layer, const CObjec
 		}
 	}
 
-	float rate = layer->GetLearningRate() * GetLearningRate();
-	float regL1 = layer->GetL1RegularizationMult() * GetL1Regularization();
-	float regL2 = layer->GetL2RegularizationMult() * GetL2Regularization();
+	const float rate = layer->GetLearningRate() * GetLearningRate();
+	const float regL1 = layer->GetL1RegularizationMult() * GetL1Regularization();
+	const float regL2 = layer->GetL2RegularizationMult() * GetL2Regularization();
 
 	// Set the values of the variables
-	CFastArray<float, TV_Count> varValues;
-	varValues.SetSize( TV_Count );
+	SetRowNearVariables( TV_OpRegL2MomentDecayRate, {
+		/*TV_OpRegL2MomentDecayRate*/ IsInCompatibilityMode() ? ( ( 1 - GetMomentDecayRate() ) * regL2 ) : ( -rate * regL2 ),
+		/*TV_Rate*/ -rate,
+		/*TV_L1Threshold*/ regL1,
+		/*TV_L1Mult*/ IsInCompatibilityMode() ? 1.f : ( -rate )
+	} );
 
-	varValues[TV_MomentDecayRateVar] = momentDecayRate;
-	varValues[TV_OpMomentDecayRateVar] = 1 - momentDecayRate;
-	varValues[TV_OpRegL2MomentDecayRateVar] = isInCompatibilityMode ? ( 1 - momentDecayRate ) * regL2 : -rate * regL2;
-	varValues[TV_RateVar] = (-rate);
-	varValues[TV_L1Threshold] = regL1;
-	varValues[TV_L1Mult] = isInCompatibilityMode ? 1.f : -rate;
+	for( int i = 0; i < paramBlobs.Size(); ++i ) {
+		const int dataSize = paramBlobs[i]->GetDataSize();
 
-	MathEngine().DataExchangeTyped( tempVariables->GetData(), varValues.GetPtr(), TV_Count );
-
-	for(int i = 0; i < paramBlobs.Size(); ++i) {
-		int dataSize = paramBlobs[i]->GetDataSize();
 		// Update the gradient in history
 		MathEngine().VectorMultiply( gradientHistory[i]->GetData(),
-			gradientHistory[i]->GetData(), dataSize, tempVariables->GetData( {TV_MomentDecayRateVar} ) );
-		MathEngine().VectorMultiplyAndAdd( gradientHistory[i]->GetData(), paramDiffBlobs[i]->GetData(), 
-			gradientHistory[i]->GetData(), dataSize,
-			tempVariables->GetData( { isInCompatibilityMode ? TV_OpMomentDecayRateVar : TV_RateVar } ) );
+			gradientHistory[i]->GetData(), dataSize, Var( TV_MomentDecayRate ) );
+		MathEngine().VectorMultiplyAndAdd( gradientHistory[i]->GetData(), paramDiffBlobs[i]->GetData(),
+			gradientHistory[i]->GetData(), dataSize, Var( IsInCompatibilityMode() ? TV_OpMomentDecayRate : TV_Rate ) );
 
 		if(regL2 > 0) {
 			MathEngine().VectorMultiplyAndAdd( gradientHistory[i]->GetData(), paramBlobs[i]->GetData(),
-				gradientHistory[i]->GetData(), dataSize, tempVariables->GetData( {TV_OpRegL2MomentDecayRateVar} ) );
+				gradientHistory[i]->GetData(), dataSize, Var( TV_OpRegL2MomentDecayRate ) );
 		}
 		if(regL1 > 0) {
 			MathEngine().VectorL1DiffAdd( gradientHistory[i]->GetData(), paramBlobs[i]->GetData(),
-				gradientHistory[i]->GetData(), dataSize, tempVariables->GetData( {TV_L1Threshold} ),
-					tempVariables->GetData( {TV_L1Mult} ) );
+				gradientHistory[i]->GetData(), dataSize, Var( TV_L1Threshold ), Var( TV_L1Mult ) );
 		}
 
 		// Add regularization and gradient
 		if( isInCompatibilityMode ) {
 			MathEngine().VectorMultiplyAndAdd( paramBlobs[i]->GetData(), gradientHistory[i]->GetData(),
-				paramBlobs[i]->GetData(), dataSize, tempVariables->GetData( { TV_RateVar } ) );
+				paramBlobs[i]->GetData(), dataSize, Var( TV_Rate ) );
 		} else {
 			MathEngine().VectorAdd( paramBlobs[i]->GetData(), gradientHistory[i]->GetData(),
 				paramBlobs[i]->GetData(), dataSize );
@@ -506,17 +557,16 @@ void CDnnSimpleGradientSolver::TrainLayer( const CBaseLayer* layer, const CObjec
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 CDnnAdaptiveGradientSolver::CDnnAdaptiveGradientSolver( IMathEngine& mathEngine ) :
-	CDnnSolver( mathEngine ),
-	momentDecayRate(0.9f),
-	momentDecayRateN(1.f),
-	secondMomentDecayRate(0.99f),
-	secondMomentDecayRateN(1.f),
-	epsilon(1e-6f),
+	CDnnSolver( mathEngine, TV_Count ),
+	momentDecayRateN( 1.f ),
+	secondMomentDecayRateN( 1.f ),
 	isAmsGradEnabled( false ),
-	isDecoupledWeightDecay( false ),
-	isInCompatibilityMode( false ),
-	tempVariables( CDnnBlob::CreateVector( mathEngine, CT_Float, TV_Count ) )
+	isDecoupledWeightDecay( false )
 {
+	SetMomentDecayRate( 0.9f );
+	SetSecondMomentDecayRate( 0.999f );
+	SetEpsilon( 1e-6f );
+	SetVariable( TV_L1Mult, 1.f );
 }
 
 // Turns on the AMSGrad mode; you can call this method only before training
@@ -538,10 +588,14 @@ void CDnnAdaptiveGradientSolver::Serialize( CArchive& archive, const CDnn& dnn )
 {
 	const int version = archive.SerializeVersion( DnnAdaptiveGradientSolver );
 	CDnnSolver::Serialize( archive, dnn );
+
+	float momentDecayRate = GetMomentDecayRate();
 	archive.Serialize( momentDecayRate );
 	archive.Serialize( momentDecayRateN );
+	float secondMomentDecayRate = GetSecondMomentDecayRate();
 	archive.Serialize( secondMomentDecayRate );
 	archive.Serialize( secondMomentDecayRateN );
+	float epsilon = GetEpsilon();
 	archive.Serialize( epsilon );
 	archive.Serialize( isAmsGradEnabled );
 	if( version < 1 ) {
@@ -550,6 +604,27 @@ void CDnnAdaptiveGradientSolver::Serialize( CArchive& archive, const CDnn& dnn )
 		archive.Serialize( isDecoupledWeightDecay );
 	}
 	archive.Serialize( isInCompatibilityMode );
+	if( archive.IsLoading() ) {
+		SetMomentDecayRate( momentDecayRate );
+		SetSecondMomentDecayRate( secondMomentDecayRate );
+		SetEpsilon( epsilon );
+	}
+}
+
+void CDnnAdaptiveGradientSolver::SetMomentDecayRate( float decayRate )
+{
+	SetRowNearVariables( TV_MomentDecayRate, {
+		/*TV_MomentDecayRate*/ decayRate,
+		/*TV_OpMomentDecayRate*/ 1 - decayRate
+	} );
+}
+
+void CDnnAdaptiveGradientSolver::SetSecondMomentDecayRate( float decayRate )
+{
+	SetRowNearVariables( TV_SecondMomentDecayRate, {
+		/*TV_SecondMomentDecayRate*/ decayRate,
+		/*TV_OpSecondMomentDecayRate*/ 1 - decayRate
+	} );
 }
 
 void CDnnAdaptiveGradientSolver::OnReset()
@@ -562,33 +637,37 @@ void CDnnAdaptiveGradientSolver::OnReset()
 void CDnnAdaptiveGradientSolver::OnTrain()
 {
 	// Update the solver parameters that depend on run number
-	momentDecayRateN *= momentDecayRate;
-	secondMomentDecayRateN *= secondMomentDecayRate;
+	momentDecayRateN *= GetMomentDecayRate();
+	secondMomentDecayRateN *= GetSecondMomentDecayRate();
 }
 
 // Add regularization
-static CDnnBlob* addRegularization( IMathEngine& mathEngine, CDnnBlob* diffBlob, CDnnBlob* params, float regL1, float regL2,
-	const CFloatHandle& l1Threshold, const CFloatHandle& l1Mult, const CFloatHandle& l2Reg, CPtr<CDnnBlob> temporaryBlob )
+static CConstFloatHandle addRegularization( IMathEngine& mathEngine,
+	const CConstFloatHandle& diffHandle, const CDnnBlob* params, float regL1, float regL2,
+	const CConstFloatHandle& l1Threshold, const CConstFloatHandle& l1Mult, const CConstFloatHandle& l2Reg,
+	const CFloatHandle& temporary )
 {
+	const CConstFloatHandle* result = &diffHandle;
+	const CConstFloatHandle& temp = temporary;
 	if( regL2 > 0 ) {
-		mathEngine.VectorMultiplyAndAdd( diffBlob->GetData(), params->GetData(),
-			temporaryBlob->GetData(), params->GetDataSize(), l2Reg );
-		diffBlob = temporaryBlob;
+		mathEngine.VectorMultiplyAndAdd( diffHandle, params->GetData(),
+			temporary, params->GetDataSize(), l2Reg );
+		result = &temp;
 	}
 	if( regL1 > 0 ) {
-		mathEngine.VectorL1DiffAdd( diffBlob->GetData(), params->GetData(),
-			temporaryBlob->GetData(), params->GetDataSize(), l1Threshold, l1Mult );
-		diffBlob = temporaryBlob;
+		mathEngine.VectorL1DiffAdd( diffHandle, params->GetData(),
+			temporary, params->GetDataSize(), l1Threshold, l1Mult );
+		result = &temp;
 	}
-	return diffBlob;
+	return *result;
 }
 
-void CDnnAdaptiveGradientSolver::TrainLayer( const CBaseLayer* layer, const CObjectArray<CDnnBlob>& paramBlobs, 
+void CDnnAdaptiveGradientSolver::TrainLayer( const CBaseLayer* layer, const CObjectArray<CDnnBlob>& paramBlobs,
 	const CObjectArray<CDnnBlob>& paramDiffBlobs, CObjectArray<CDnnBlob>& gradientHistory )
 {
 	if(gradientHistory.Size() == 0) {
 		// Create blobs
-		int gradientHistoryTypeCount = IsAmsGradEnabled() ? GHTC_AmsGrad : GHTC_Default;
+		const int gradientHistoryTypeCount = IsAmsGradEnabled() ? GHTC_AmsGrad : GHTC_Default;
 		for( int j = 0; j < gradientHistoryTypeCount; j++ ) {
 			for(int i = 0; i < paramDiffBlobs.Size(); ++i) {
 				CDnnBlob* blob = paramDiffBlobs[i]->GetClone();
@@ -599,100 +678,88 @@ void CDnnAdaptiveGradientSolver::TrainLayer( const CBaseLayer* layer, const CObj
 	}
 
 	// Add regularization and add diffs to parameters
-	float rate = layer->GetLearningRate() * GetLearningRate() * sqrtf(1 - secondMomentDecayRateN);
+	float rate = layer->GetLearningRate() * GetLearningRate() * sqrtf( 1 - secondMomentDecayRateN );
 	if( !isInCompatibilityMode ) {
-		rate /= (1 - momentDecayRateN);
+		rate /= ( 1 - momentDecayRateN );
 	}
 
-	float regL1 = layer->GetL1RegularizationMult() * GetL1Regularization();
-	float regL2 = layer->GetL2RegularizationMult() * GetL2Regularization();
+	const float regL1 = layer->GetL1RegularizationMult() * GetL1Regularization();
+	const float regL2 = layer->GetL2RegularizationMult() * GetL2Regularization();
 
 	// Set the values of the variables
-	CFastArray<float, TV_Count> varValues;
-	varValues.SetSize( TV_Count );
+	SetRowNearVariables( TV_RegL2, {
+		/*TV_RegL2*/ regL2,
+		/*TV_Rate*/ -rate,
+		/*TV_L1Threshold*/ regL1
+	} );
 
-	varValues[TV_MomentDecayRateVar] = momentDecayRate;
-	varValues[TV_SecondMomentDecayRateVar] = secondMomentDecayRate;
-	varValues[TV_RegL2Var] = regL2;
-	varValues[TV_OpMomentDecayRateVar] = 1 - momentDecayRate;
-	varValues[TV_OpSecondMomentDecayRateVar] = 1 - secondMomentDecayRate;
-	varValues[TV_RateVar] = -rate;
-	varValues[TV_L1Threshold] = regL1;
-	varValues[TV_L1Mult] = 1.f;
-	varValues[TV_EpsilonVar] = epsilon;
-
-	MathEngine().DataExchangeTyped<float>( tempVariables->GetData(), varValues.GetPtr(), TV_Count );
-
-	for(int i = 0; i < paramBlobs.Size(); ++i) {
-		int dataSize = paramBlobs[i]->GetDataSize();
+	for( int i = 0; i < paramBlobs.Size(); ++i ) {
+		const int dataSize = paramBlobs[i]->GetDataSize();
 		CDnnBlob* moment = gradientHistory[i];
 		CDnnBlob* secondMoment = gradientHistory[i + paramDiffBlobs.Size() * GHT_SecondMomentAverage];
+		const CDnnBlob* paramDiffBlob = paramDiffBlobs[i];
 
-		if(temporaryBlob == 0 || temporaryBlob->GetDataSize() < paramDiffBlobs[i]->GetDataSize()) {
-			temporaryBlob = CDnnBlob::CreateVector( MathEngine(), CT_Float, paramDiffBlobs[i]->GetDataSize() );
-		}
+		ReInitTempBlob( paramDiffBlob->GetDataSize() );
 
-		CDnnBlob* paramDiffBlob = paramDiffBlobs[i];
+		CConstFloatHandle paramDiffHandle = paramDiffBlob->GetData();
 		if( !IsDecoupledWeightDecay() ) {
-			paramDiffBlob = addRegularization( MathEngine(), paramDiffBlob, paramBlobs[i], regL1, regL2,
-				tempVariables->GetData( {TV_L1Threshold} ), tempVariables->GetData( {TV_L1Mult} ),
-				tempVariables->GetData( {TV_RegL2Var} ), temporaryBlob );
+			paramDiffHandle = addRegularization( MathEngine(), paramDiffHandle, paramBlobs[i], regL1, regL2,
+				Var( TV_L1Threshold ), Var( TV_L1Mult ), Var( TV_RegL2 ), TempData() );
 		}
 
 		// Update the historical gradient
-		MathEngine().VectorMultiply(moment->GetData(), moment->GetData(), dataSize,
-			tempVariables->GetData( {TV_MomentDecayRateVar} ));
-		MathEngine().VectorMultiplyAndAdd(moment->GetData(), paramDiffBlob->GetData(),
-			moment->GetData(), dataSize, tempVariables->GetData( {TV_OpMomentDecayRateVar} ));
+		MathEngine().VectorMultiply( moment->GetData(), moment->GetData(), dataSize,
+			Var( TV_MomentDecayRate ) );
+		MathEngine().VectorMultiplyAndAdd( moment->GetData(), paramDiffHandle,
+			moment->GetData(), dataSize, Var( TV_OpMomentDecayRate ) );
 		// Calculate the historical average squared gradient
-		MathEngine().VectorEltwiseMultiply(paramDiffBlob->GetData(), paramDiffBlob->GetData(),
-			temporaryBlob->GetData(), dataSize);
-		MathEngine().VectorMultiply(secondMoment->GetData(), secondMoment->GetData(), dataSize,
-			tempVariables->GetData( {TV_SecondMomentDecayRateVar} ));
-		MathEngine().VectorMultiplyAndAdd(secondMoment->GetData(), temporaryBlob->GetData(), 
-			secondMoment->GetData(), dataSize, tempVariables->GetData( {TV_OpSecondMomentDecayRateVar} ));
+		MathEngine().VectorEltwiseMultiply( paramDiffHandle, paramDiffHandle, TempData(), dataSize );
+		MathEngine().VectorMultiply( secondMoment->GetData(), secondMoment->GetData(), dataSize,
+			Var( TV_SecondMomentDecayRate ) );
+		MathEngine().VectorMultiplyAndAdd( secondMoment->GetData(), TempData(),
+			secondMoment->GetData(), dataSize, Var( TV_OpSecondMomentDecayRate ) );
 		if( IsAmsGradEnabled() ) {
 			// Update the maximum of the average
 			CDnnBlob* secondMomentMaxAverage = gradientHistory[i + paramDiffBlobs.Size() * GHT_SecondMomentMaxAverage];
 			MathEngine().VectorEltwiseMax( secondMomentMaxAverage->GetData(), secondMoment->GetData(),
 				secondMomentMaxAverage->GetData(), secondMomentMaxAverage->GetDataSize() );
 			// Calculate the square root of the historical maximum of average squared gradient
-			MathEngine().VectorSqrt( secondMomentMaxAverage->GetData(), temporaryBlob->GetData(), dataSize );
+			MathEngine().VectorSqrt( secondMomentMaxAverage->GetData(), TempData(), dataSize );
 		} else {
 			// Calculate the square root of the historical average squared gradient
-			MathEngine().VectorSqrt( secondMoment->GetData(), temporaryBlob->GetData(), dataSize );
+			MathEngine().VectorSqrt( secondMoment->GetData(), TempData(), dataSize );
 		}
 		// Add epsilon before dividing
-		MathEngine().VectorAddValue(temporaryBlob->GetData(), temporaryBlob->GetData(), dataSize,
-			tempVariables->GetData( {TV_EpsilonVar} ));
+		MathEngine().VectorAddValue( TempData(), TempData(), dataSize, Var( TV_Epsilon ) );
 		// Divide the historical gradient by the square root
-		MathEngine().VectorEltwiseDivide(moment->GetData(), temporaryBlob->GetData(), 
-			temporaryBlob->GetData(), dataSize);
+		MathEngine().VectorEltwiseDivide( moment->GetData(), TempData(),
+			TempData(), dataSize );
+
+		CConstFloatHandle tempHandle = TempData();
 		if( IsDecoupledWeightDecay() ) {
-			temporaryBlob = addRegularization( MathEngine(), temporaryBlob, paramBlobs[i], regL1, regL2,
-				tempVariables->GetData( {TV_L1Threshold} ), tempVariables->GetData( {TV_L1Mult} ),
-				tempVariables->GetData( {TV_RegL2Var} ), temporaryBlob );
+			tempHandle = addRegularization( MathEngine(), TempData(), paramBlobs[i], regL1, regL2,
+				Var( TV_L1Threshold ), Var( TV_L1Mult ), Var( TV_RegL2 ), TempData() );
 		}
 		// Add the gradient
-		MathEngine().VectorMultiplyAndAdd(paramBlobs[i]->GetData(), temporaryBlob->GetData(),
-			paramBlobs[i]->GetData(), dataSize, tempVariables->GetData( {TV_RateVar} ));
+		MathEngine().VectorMultiplyAndAdd( paramBlobs[i]->GetData(), tempHandle,
+			paramBlobs[i]->GetData(), dataSize, Var( TV_Rate ) );
 	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 CDnnNesterovGradientSolver::CDnnNesterovGradientSolver( IMathEngine& mathEngine ) :
-	CDnnSolver( mathEngine ),
-	momentDecayRate( 0.9f ),
-	secondMomentDecayRate( 0.99f ),
+	CDnnSolver( mathEngine, TV_Count ),
 	secondMomentDecayRateN( 1.f ),
-	epsilon( 1e-6f ),
 	isAmsGradEnabled( false ),
 	isDecoupledWeightDecay( false ),
 	trainCount( 0 ),
-	productMuT( 1.f ),
-	tempVariables( CDnnBlob::CreateVector( mathEngine, CT_Float, TV_Count ) )
+	productMuT( 1.f )
 {
+	SetMomentDecayRate( 0.9f );
+	SetSecondMomentDecayRate( 0.99f );
+	SetEpsilon( 1e-6f );
+	SetVariable( TV_L1Mult, 1.f );
 }
 
 // Turns on the AMSGrad mode. The solver will be reset to initial state
@@ -714,9 +781,13 @@ void CDnnNesterovGradientSolver::Serialize( CArchive& archive, const CDnn& dnn )
 {
 	const int version = archive.SerializeVersion( DnnNesterovGradientSolverVersion );
 	CDnnSolver::Serialize( archive, dnn );
+
+	float momentDecayRate = GetMomentDecayRate();
 	archive.Serialize( momentDecayRate );
+	float secondMomentDecayRate = GetSecondMomentDecayRate();
 	archive.Serialize( secondMomentDecayRate );
 	archive.Serialize( secondMomentDecayRateN );
+	float epsilon = GetEpsilon();
 	archive.Serialize( epsilon );
 	archive.Serialize( isAmsGradEnabled );
 	if( version < 1 ) {
@@ -726,6 +797,28 @@ void CDnnNesterovGradientSolver::Serialize( CArchive& archive, const CDnn& dnn )
 	}
 	archive.Serialize( trainCount );
 	archive.Serialize( productMuT );
+
+	if( archive.IsLoading() ) {
+		SetMomentDecayRate( momentDecayRate );
+		SetSecondMomentDecayRate( secondMomentDecayRate );
+		SetEpsilon( epsilon );
+	}
+}
+
+void CDnnNesterovGradientSolver::SetMomentDecayRate( float decayRate )
+{
+	SetRowNearVariables( TV_MomentDecayRate, {
+		/*TV_MomentDecayRate*/ decayRate,
+		/*TV_OpMomentDecayRate*/ 1 - decayRate
+	} );
+}
+
+void CDnnNesterovGradientSolver::SetSecondMomentDecayRate( float decayRate )
+{
+	SetRowNearVariables( TV_SecondMomentDecayRate, {
+		/*TV_SecondMomentDecayRate*/ decayRate,
+		/*TV_OpSecondMomentDecayRate*/ 1 - decayRate
+	} );
 }
 
 void CDnnNesterovGradientSolver::OnReset()
@@ -739,11 +832,11 @@ void CDnnNesterovGradientSolver::OnReset()
 void CDnnNesterovGradientSolver::OnTrain()
 {
 	// Update the solver parameters that depend on run number
-	secondMomentDecayRateN *= secondMomentDecayRate;
+	secondMomentDecayRateN *= GetSecondMomentDecayRate();
 	// The "magic numbers" are from the reference paper
 	trainCount++;
-	muT = momentDecayRate * ( 1 - 0.5f * powf( 0.96f, trainCount * 0.004f ) );
-	muTPlusOne = momentDecayRate * ( 1 - 0.5f * powf( 0.96f, ( trainCount + 1 ) * 0.004f ) );
+	muT = GetMomentDecayRate() * ( 1 - 0.5f * powf( 0.96f, trainCount * 0.004f ) );
+	muTPlusOne = GetMomentDecayRate() * ( 1 - 0.5f * powf( 0.96f, ( trainCount + 1 ) * 0.004f ) );
 	productMuT *= muT;
 }
 
@@ -763,66 +856,57 @@ void CDnnNesterovGradientSolver::TrainLayer( const CBaseLayer* layer, const CObj
 	}
 
 	// Apply regularization and add diffs to the parameters
-	float rate = layer->GetLearningRate() * GetLearningRate();
-	float regL1 = layer->GetL1RegularizationMult() * GetL1Regularization();
-	float regL2 = layer->GetL2RegularizationMult() * GetL2Regularization();
+	const float rate = layer->GetLearningRate() * GetLearningRate();
+	const float regL1 = layer->GetL1RegularizationMult() * GetL1Regularization();
+	const float regL2 = layer->GetL2RegularizationMult() * GetL2Regularization();
 
 	// Set the values for the variables
-	CFastArray<float, TV_Count> varValues;
-	varValues.SetSize( TV_Count );
-
-	varValues[TV_MomentDecayRateVar] = momentDecayRate;
-	varValues[TV_SecondMomentDecayRateVar] = secondMomentDecayRate;
-	varValues[TV_RegL2Var] = regL2;
-	varValues[TV_OpMomentDecayRateVar] = 1 - momentDecayRate;
-	varValues[TV_OpSecondMomentDecayRateVar] = 1 - secondMomentDecayRate;
-	varValues[TV_RateVar] = -rate;
-	varValues[TV_L1Threshold] = regL1;
-	varValues[TV_L1Mult] = 1.f;
-	varValues[TV_EpsilonVar] = epsilon;
-	varValues[TV_MBarGradMultVar] = ( 1.f - muT ) / ( 1.f - productMuT );
-	varValues[TV_MBarMomentMultVar] = muTPlusOne / ( 1.f - productMuT * muTPlusOne );
-	varValues[TV_InvOpSecondMomentDecayRateNVar] = 1 / ( 1 - secondMomentDecayRateN );
-
-	MathEngine().DataExchangeTyped( tempVariables->GetData(), varValues.GetPtr(), TV_Count );
+	SetRowNearVariables( TV_RegL2, {
+		/*TV_RegL2*/ regL2,
+		/*TV_Rate*/ -rate,
+		/*TV_L1Threshold*/ regL1,
+		/*TV_InvOpSecondMomentDecayRateN*/ 1.f / ( 1 - secondMomentDecayRateN ),
+		/*TV_MBarGradMult*/ ( 1.f - muT ) / ( 1.f - productMuT ),
+		/*TV_MBarMomentMult*/ muTPlusOne / ( 1.f - productMuT * muTPlusOne )
+	} );
 
 	for( int i = 0; i < paramBlobs.Size(); ++i ) {
-		int dataSize = paramBlobs[i]->GetDataSize();
+		const int dataSize = paramBlobs[i]->GetDataSize();
 		CDnnBlob* moment = gradientHistory[i];
 		CDnnBlob* secondMoment = gradientHistory[i + paramDiffBlobs.Size() * GHT_SecondMomentAverage];
+		const CDnnBlob* paramDiffBlob = paramDiffBlobs[i];
 
-		if( temporaryBlob == 0 || temporaryBlob->GetDataSize() < paramDiffBlobs[i]->GetDataSize() ) {
-			temporaryBlob = CDnnBlob::CreateVector( MathEngine(), CT_Float, paramDiffBlobs[i]->GetDataSize() );
-			mBarBlob = temporaryBlob->GetClone();
+		const int paramDiffBlobSize = paramDiffBlob->GetDataSize();
+		if( ReInitTempBlob( paramDiffBlobSize ) ) {
+			if( mBarBlob == nullptr || mBarBlob->GetDataSize() < paramDiffBlobSize ) {
+				mBarBlob = CDnnBlob::CreateVector( MathEngine(), CT_Float, paramDiffBlobSize );
+			}
+			MathEngine().VectorCopy( mBarBlob->GetData(), TempData(), paramDiffBlobSize );
 		}
 
-		CDnnBlob* paramDiffBlob = paramDiffBlobs[i];
+		CConstFloatHandle paramDiffHandle = paramDiffBlob->GetData();
 		if( !IsDecoupledWeightDecay() ) {
-			paramDiffBlob = addRegularization( MathEngine(), paramDiffBlob, paramBlobs[i], regL1, regL2,
-				tempVariables->GetData( {TV_L1Threshold} ), tempVariables->GetData( {TV_L1Mult} ),
-				tempVariables->GetData( {TV_RegL2Var} ), temporaryBlob );
+			paramDiffHandle = addRegularization( MathEngine(), paramDiffHandle, paramBlobs[i], regL1, regL2,
+				Var( TV_L1Threshold ), Var( TV_L1Mult ), Var( TV_RegL2 ), TempData() );
 		}
 
 		// Update the historical gradient
 		MathEngine().VectorMultiply( moment->GetData(), moment->GetData(), dataSize,
-			tempVariables->GetData( {TV_MomentDecayRateVar}) );
-		MathEngine().VectorMultiplyAndAdd( moment->GetData(), paramDiffBlob->GetData(),
-			moment->GetData(), dataSize, tempVariables->GetData( {TV_OpMomentDecayRateVar} ) );
+			Var( TV_MomentDecayRate ) );
+		MathEngine().VectorMultiplyAndAdd( moment->GetData(), paramDiffHandle,
+			moment->GetData(), dataSize, Var( TV_OpMomentDecayRate ) );
 		// Calculate the historical average squared gradient
-		MathEngine().VectorEltwiseMultiply( paramDiffBlob->GetData(), paramDiffBlob->GetData(),
-			temporaryBlob->GetData(), dataSize );
+		MathEngine().VectorEltwiseMultiply( paramDiffHandle, paramDiffHandle, TempData(), dataSize );
 		MathEngine().VectorMultiply( secondMoment->GetData(), secondMoment->GetData(), dataSize,
-			tempVariables->GetData( {TV_SecondMomentDecayRateVar} ) );
-		MathEngine().VectorMultiplyAndAdd( secondMoment->GetData(), temporaryBlob->GetData(),
-			secondMoment->GetData(), dataSize, tempVariables->GetData( {TV_OpSecondMomentDecayRateVar} ) );
+			Var( TV_SecondMomentDecayRate ) );
+		MathEngine().VectorMultiplyAndAdd( secondMoment->GetData(), TempData(),
+			secondMoment->GetData(), dataSize, Var( TV_OpSecondMomentDecayRate ) );
 
 		// Calculate the auxiliary variables (notations taken from the reference paper)
 		// m with a dash
 		CFloatHandle mBar = mBarBlob->GetData();
-		MathEngine().VectorMultiply( paramDiffBlob->GetData(), mBar, dataSize,
-			tempVariables->GetData( {TV_MBarGradMultVar} ) );
-		MathEngine().VectorMultiplyAndAdd( mBar, moment->GetData(), mBar, dataSize,
-			tempVariables->GetData( {TV_MBarMomentMultVar} ) );
+		MathEngine().VectorMultiply( paramDiffHandle, mBar, dataSize, Var( TV_MBarGradMult ) );
+		MathEngine().VectorMultiplyAndAdd( mBar, moment->GetData(), mBar, dataSize, Var( TV_MBarMomentMult ) );
 
 		// sqrt(n with a hat) + eps
 		if( IsAmsGradEnabled() ) {
@@ -831,43 +915,48 @@ void CDnnNesterovGradientSolver::TrainLayer( const CBaseLayer* layer, const CObj
 			MathEngine().VectorEltwiseMax( secondMomentMaxAverage->GetData(), secondMoment->GetData(),
 				secondMomentMaxAverage->GetData(), secondMomentMaxAverage->GetDataSize() );
 			// n with a hat calculated for the maximum of the second moment moving mean
-			MathEngine().VectorMultiply( secondMomentMaxAverage->GetData(), temporaryBlob->GetData(), dataSize, 
-				tempVariables->GetData( { TV_InvOpSecondMomentDecayRateNVar } ) );
+			MathEngine().VectorMultiply( secondMomentMaxAverage->GetData(), TempData(), dataSize,
+				Var( TV_InvOpSecondMomentDecayRateN ) );
 		} else {
 			// n with a hat calculated for the second momentum moving mean
-			MathEngine().VectorMultiply( secondMoment->GetData(), temporaryBlob->GetData(), dataSize,
-				tempVariables->GetData( { TV_InvOpSecondMomentDecayRateNVar } ) );
+			MathEngine().VectorMultiply( secondMoment->GetData(), TempData(), dataSize,
+				Var( TV_InvOpSecondMomentDecayRateN ) );
 		}
-		MathEngine().VectorSqrt( temporaryBlob->GetData(), temporaryBlob->GetData(), dataSize );
-		MathEngine().VectorAddValue( temporaryBlob->GetData(), temporaryBlob->GetData(), dataSize,
-			tempVariables->GetData( { TV_EpsilonVar } ) );
+		MathEngine().VectorSqrt( TempData(), TempData(), dataSize );
+		MathEngine().VectorAddValue( TempData(), TempData(), dataSize, Var( TV_Epsilon ) );
 		// Calculate the final diff
-		MathEngine().VectorEltwiseDivide( mBar, temporaryBlob->GetData(), temporaryBlob->GetData(), dataSize );
+		MathEngine().VectorEltwiseDivide( mBar, TempData(), TempData(), dataSize );
+
+		CConstFloatHandle tempHandle = TempData();
 		if( IsDecoupledWeightDecay() ) {
-			temporaryBlob = addRegularization( MathEngine(), temporaryBlob, paramBlobs[i], regL1, regL2,
-				tempVariables->GetData( {TV_L1Threshold} ), tempVariables->GetData( {TV_L1Mult} ),
-				tempVariables->GetData( {TV_RegL2Var} ), temporaryBlob );
+			tempHandle = addRegularization( MathEngine(), TempData(), paramBlobs[i], regL1, regL2,
+				Var( TV_L1Threshold ), Var( TV_L1Mult ), Var( TV_RegL2 ), TempData() );
 		}
 		// Update parameters
-		MathEngine().VectorMultiplyAndAdd( paramBlobs[i]->GetData(), temporaryBlob->GetData(),
-			paramBlobs[i]->GetData(), dataSize, tempVariables->GetData( {TV_RateVar} ) );
+		MathEngine().VectorMultiplyAndAdd( paramBlobs[i]->GetData(), tempHandle,
+			paramBlobs[i]->GetData(), dataSize, Var( TV_Rate ) );
 	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 CDnnLambGradientSolver::CDnnLambGradientSolver( IMathEngine& mathEngine ) :
-	CDnnSolver( mathEngine ),
-	momentDecayRate( 0.9f ),
-	secondMomentDecayRate( 0.999f ),
-	epsilon( 1e-6f ),
-	weightDecayClip( -1.f ),
+	CDnnSolver( mathEngine, TV_Count ),
 	useTrustRatio( true ),
 	useNvLamb( false ),
-	tempVariables( CDnnBlob::CreateVector( mathEngine, CT_Float, TV_Count ) ),
 	totalGradientNorm( 1.0f )
 {
 	SetL2Regularization( 0.01f );
+	// External config variables
+	SetMomentDecayRate( 0.9f );
+	SetSecondMomentDecayRate( 0.999f );
+	SetEpsilon( 1e-6f );
+	SetWeightDecayClip( -1.f );
+	// Internal calculations variables
+	SetVariable( TV_LayerNorm, 0.f );
+	SetVariable( TV_TrustRatio, 0.f );
+	SetVariable( TV_L2WeightNorm, 0.f );
+	SetVariable( TV_L2UpdateNorm, 0.f );
 }
 
 void CDnnLambGradientSolver::ExcludeWeightDecayLayer( const char* layerName, TExcludeLayerNameMatchType type,
@@ -899,9 +988,14 @@ void CDnnLambGradientSolver::Serialize( CArchive& archive, const CDnn& dnn )
 {
 	archive.SerializeVersion( DnnLambGradientSolverVersion );
 	CDnnSolver::Serialize( archive, dnn );
+
+	float momentDecayRate = GetMomentDecayRate();
 	archive.Serialize( momentDecayRate );
+	float secondMomentDecayRate = GetSecondMomentDecayRate();
 	archive.Serialize( secondMomentDecayRate );
+	float epsilon = GetEpsilon();
 	archive.Serialize( epsilon );
+	float weightDecayClip = GetWeightDecayClip();
 	archive.Serialize( weightDecayClip );
 	archive.Serialize( useTrustRatio );
 	archive.Serialize( useNvLamb );
@@ -911,6 +1005,10 @@ void CDnnLambGradientSolver::Serialize( CArchive& archive, const CDnn& dnn )
 	archive.Serialize( excludedLayersCount );
 
 	if( archive.IsLoading() ) {
+		SetMomentDecayRate( momentDecayRate );
+		SetSecondMomentDecayRate( secondMomentDecayRate );
+		SetEpsilon( epsilon );
+		SetWeightDecayClip( weightDecayClip );
 		excludedLayers.SetSize( excludedLayersCount );
 	}
 
@@ -921,6 +1019,22 @@ void CDnnLambGradientSolver::Serialize( CArchive& archive, const CDnn& dnn )
 		excludedLayers[i].MatchType = static_cast<TExcludeLayerNameMatchType>( matchType );
 		archive.Serialize( excludedLayers[i].ParamIndex );
 	}
+}
+
+void CDnnLambGradientSolver::SetMomentDecayRate( float decayRate )
+{
+	SetRowNearVariables( TV_MomentDecayRate, {
+		/*TV_MomentDecayRate*/ decayRate,
+		/*TV_OpMomentDecayRate*/ 1 - decayRate
+	} );
+}
+
+void CDnnLambGradientSolver::SetSecondMomentDecayRate( float decayRate )
+{
+	SetRowNearVariables( TV_SecondMomentDecayRate, {
+		/*TV_SecondMomentDecayRate*/ decayRate,
+		/*TV_OpSecondMomentDecayRate*/ 1 - decayRate
+	} );
 }
 
 void CDnnLambGradientSolver::TrainLayer( const CBaseLayer* layer, const CObjectArray<CDnnBlob>& paramBlobs,
@@ -936,116 +1050,96 @@ void CDnnLambGradientSolver::TrainLayer( const CBaseLayer* layer, const CObjectA
 		}
 	}
 
+	// Apply regularization and add diffs to the parameters
 	const float rate = layer->GetLearningRate() * GetLearningRate();
 	const float layerWeighDecay = GetL2Regularization() * layer->GetL2RegularizationMult();
 	const float clipMultiplier = 1.0f / max( 1.0f, totalGradientNorm );
 
-	CFastArray<float, TV_Count> varValues;
-	varValues.SetSize( TV_Count );
-
-	varValues[TV_MomentDecayRateVar] = momentDecayRate;
-	varValues[TV_SecondMomentDecayRateVar] = secondMomentDecayRate;
-	varValues[TV_OpMomentDecayRateVar] = 1.f - momentDecayRate;
-	varValues[TV_OpSecondMomentDecayRateVar] = 1.f - secondMomentDecayRate;
-	varValues[TV_RateVar] = -rate;
-	varValues[TV_EpsilonVar] = epsilon;
-	varValues[TV_WeightDecayVar] = layerWeighDecay;
-	varValues[TV_ClipMultiplierVar] = clipMultiplier;
-	varValues[TV_LayerNormVar] = 0.f;
-	varValues[TV_TrustRatioVar] = 0.f;
-	varValues[TV_L2NormVar] = 0.f;
-
-	MathEngine().DataExchangeTyped( tempVariables->GetData(), varValues.GetPtr(), TV_Count );
+	// Set the values for the variables
+	SetRowNearVariables( TV_Rate, {
+		/*TV_Rate*/ -rate,
+		/*TV_WeightDecay*/ layerWeighDecay,
+		/*TV_ClipMultiplier*/ TV_ClipMultiplier,
+		/*TV_LayerNorm*/ 0.f
+	} );
 
 	// Getting parameters affected by weight decay
 	CHashTable<int> weightDecayParamIndexes;
 	getWeightDecayIndices( *layer, paramBlobs.Size(), weightDecayParamIndexes );
 
 	for( int i = 0; i < paramBlobs.Size(); ++i ) {
-		int dataSize = paramBlobs[i]->GetDataSize();
+		const int dataSize = paramBlobs[i]->GetDataSize();
 		CDnnBlob* moment = gradientHistory[i];
 		CDnnBlob* secondMoment = gradientHistory[i + paramDiffBlobs.Size() * GHT_SecondMomentAverage];
+		CDnnBlob* paramDiffBlob = paramDiffBlobs[i];
 
-		if( tempBlob == 0 || tempBlob->GetDataSize() != paramDiffBlobs[i]->GetDataSize() ) {
-			tempBlob = CDnnBlob::CreateVector( MathEngine(), CT_Float, paramDiffBlobs[i]->GetDataSize() );
-		}
+		const int paramDiffSize = paramDiffBlob->GetDataSize();
+		ReInitTempBlob( paramDiffSize );
 
-		CPtr<CDnnBlob> paramDiffBlob = paramDiffBlobs[i];
-
+		CFloatHandle paramDiffHandle = paramDiffBlob->GetData();
 		if( useNvLamb ) {
-			MathEngine().VectorMultiply( paramDiffBlob->GetData(), paramDiffBlob->GetData(), dataSize,
-				tempVariables->GetData( { TV_ClipMultiplierVar } ) );
+			MathEngine().VectorMultiply( paramDiffHandle, paramDiffHandle, dataSize, Var( TV_ClipMultiplier ) );
 		}
 
 		// Update the historical gradient
-		MathEngine().VectorMultiply( moment->GetData(), moment->GetData(), dataSize, 
-			tempVariables->GetData( { TV_MomentDecayRateVar } ) );
-		MathEngine().VectorMultiplyAndAdd( moment->GetData(), paramDiffBlob->GetData(),
-			moment->GetData(), dataSize, tempVariables->GetData( { TV_OpMomentDecayRateVar } ) );
+		MathEngine().VectorMultiply( moment->GetData(), moment->GetData(), dataSize, Var( TV_MomentDecayRate ) );
+		MathEngine().VectorMultiplyAndAdd( moment->GetData(), paramDiffHandle,
+			moment->GetData(), dataSize, Var( TV_OpMomentDecayRate ) );
 
 		// Calculate the historical average squared gradient
-		MathEngine().VectorEltwiseMultiply( paramDiffBlob->GetData(), paramDiffBlob->GetData(),
-			tempBlob->GetData(), dataSize );
+		MathEngine().VectorEltwiseMultiply( paramDiffHandle, paramDiffHandle, TempData(), dataSize );
 
 		// Add squared L2-norm for calculation of L2-norm of the whole mode
 		if( useNvLamb ) {
 			const float invSquareClipMultiplier = 1.0f / ( clipMultiplier * clipMultiplier );
-			MathEngine().VectorSum( tempBlob->GetData(), dataSize, tempVariables->GetData( { TV_LayerNormVar } ) );
-			layersGradientNormSquare.Add( invSquareClipMultiplier * tempVariables->GetData( { TV_LayerNormVar } ).GetValue() );
+			MathEngine().VectorSum( TempData(), dataSize, UseVar( TV_LayerNorm ) );
+			layersGradientNormSquare.Add( invSquareClipMultiplier * Var( TV_LayerNorm ).GetValue() ); // CUDA sync
 		}
 
 		MathEngine().VectorMultiply( secondMoment->GetData(), secondMoment->GetData(), dataSize,
-			tempVariables->GetData( { TV_SecondMomentDecayRateVar } ) );
-		MathEngine().VectorMultiplyAndAdd( secondMoment->GetData(), tempBlob->GetData(),
-			secondMoment->GetData(), dataSize, tempVariables->GetData( { TV_OpSecondMomentDecayRateVar } ) );
+			Var( TV_SecondMomentDecayRate ) );
+		MathEngine().VectorMultiplyAndAdd( secondMoment->GetData(), TempData(),
+			secondMoment->GetData(), dataSize, Var( TV_OpSecondMomentDecayRate ) );
 
 		// square root of the second moment
-		MathEngine().VectorSqrt( secondMoment->GetData(), tempBlob->GetData(), dataSize );
+		MathEngine().VectorSqrt( secondMoment->GetData(), TempData(), dataSize );
 
 		// add epsilon before division
-		MathEngine().VectorAddValue( tempBlob->GetData(), tempBlob->GetData(), dataSize,
-			tempVariables->GetData( { TV_EpsilonVar } ));
+		MathEngine().VectorAddValue( TempData(), TempData(), dataSize, Var( TV_Epsilon ) );
 
 		// divide historical gradient by the square root
-		MathEngine().VectorEltwiseDivide( moment->GetData(), tempBlob->GetData(),
-			tempBlob->GetData(), dataSize );
+		MathEngine().VectorEltwiseDivide( moment->GetData(), TempData(),
+			TempData(), dataSize );
 
 		// weightDecay
 		if( weightDecayParamIndexes.Has( i ) && layerWeighDecay > 0 ) {
-			MathEngine().VectorMultiplyAndAdd( tempBlob->GetData(), paramBlobs[i]->GetData(),
-				tempBlob->GetData(), tempBlob->GetDataSize(), tempVariables->GetData( { TV_WeightDecayVar } ) );
+			MathEngine().VectorMultiplyAndAdd( TempData(), paramBlobs[i]->GetData(),
+				TempData(), paramDiffSize, Var( TV_WeightDecay ) );
 		}
 
 		if( useTrustRatio ) {
 			// apply normalizing multiplier
-			calcNormalizeMultiplier( *paramBlobs[i], *tempBlob, tempVariables->GetData( { TV_TrustRatioVar } ) );
-			MathEngine().VectorMultiply( tempBlob->GetData(),
-				tempBlob->GetData(), dataSize, tempVariables->GetData( { TV_TrustRatioVar } ) );
+			calcNormalizeMultiplier( *paramBlobs[i], TempData(), paramDiffSize, UseVar( TV_TrustRatio ) );
+			MathEngine().VectorMultiply( TempData(), TempData(), dataSize, Var( TV_TrustRatio ) );
 		}
 
 		// adding gradient
-		MathEngine().VectorMultiplyAndAdd( paramBlobs[i]->GetData(), tempBlob->GetData(),
-			paramBlobs[i]->GetData(), dataSize, tempVariables->GetData( { TV_RateVar } ) );
+		MathEngine().VectorMultiplyAndAdd( paramBlobs[i]->GetData(), TempData(),
+			paramBlobs[i]->GetData(), dataSize, Var( TV_Rate ) );
 	}
 }
 
 // L2 norm of a vector devided by vector size.
-float CDnnLambGradientSolver::calcL2NormAverage( const CConstFloatHandle& data, int dataSize ) const
+void CDnnLambGradientSolver::calcL2NormAverage( const CConstFloatHandle& data, int dataSize, int normId ) const
 {
 	NeoAssert( dataSize > 0 );
+	NeoAssert( normId >= TV_L2WeightNorm && normId <= TV_L2UpdateNorm );
 
-	tempVariables->GetData( { TV_L2NormVar } ).SetValue( 0.f );
+	UseVar( normId ).SetValue( 1.f / dataSize ); // CUDA sync
+	MathEngine().VectorMultiply( data, tempNormBlob->GetData(), dataSize, Var( normId ) );
 
-	CFloatHandleStackVar multiplier{ MathEngine() };
-	multiplier.SetValue( 1.0f / dataSize );
-
-	CPtr<CDnnBlob> temp = CDnnBlob::CreateVector( MathEngine(), CT_Float, dataSize );
-	MathEngine().VectorMultiply( data, temp->GetData(), dataSize, multiplier );
-
-	MathEngine().VectorDotProduct( temp->GetData(), temp->GetData(), dataSize, tempVariables->GetData( { TV_L2NormVar } ) );
-
-	const float result = tempVariables->GetData( { TV_L2NormVar } ).GetValue();
-	return static_cast<float>( sqrt( result ) );
+	MathEngine().VectorDotProduct( tempNormBlob->GetData(), tempNormBlob->GetData(), dataSize, UseVar( normId ) );
+	MathEngine().VectorSqrt( Var( normId ), UseVar( normId ), 1 );
 }
 
 // Parameter indices, used in weightDecay
@@ -1092,23 +1186,27 @@ void CDnnLambGradientSolver::getWeightDecayIndices( const CBaseLayer& layer, int
 }
 
 // Calculate normalizing multiplier
-void CDnnLambGradientSolver::calcNormalizeMultiplier( const CDnnBlob& weights, const CDnnBlob& update,
-	const CFloatHandle& multiplierVar ) const
+void CDnnLambGradientSolver::calcNormalizeMultiplier( const CDnnBlob& weights,
+	const CConstFloatHandle& update, int updateSize,
+	const CFloatHandle& multiplier ) const
 {
-	float weightNorm = calcL2NormAverage( weights.GetData(), weights.GetDataSize() );
-	if( weightDecayClip > 0 ) {
-		weightNorm = min( weightNorm, weightDecayClip );
+	const int dataSize = max( weights.GetDataSize(), updateSize );
+	if( tempNormBlob == nullptr || tempNormBlob->GetDataSize() < dataSize ) {
+		tempNormBlob = CDnnBlob::CreateVector( MathEngine(), CT_Float, dataSize );
 	}
 
-	const float updateNorm = calcL2NormAverage( update.GetData(), update.GetDataSize() );
+	calcL2NormAverage( weights.GetData(), weights.GetDataSize(), TV_L2WeightNorm );
+	if( GetVariable( TV_WeightDecayClip ) > 0 ) {
+		MathEngine().VectorEltwiseMin( Var( TV_L2WeightNorm ), Var( TV_WeightDecayClip ), UseVar( TV_L2WeightNorm ), 1 );
+	}
+	calcL2NormAverage( update, updateSize, TV_L2UpdateNorm );
 
-	float multiplier = 0;
-	if( weightNorm > 0 && updateNorm > 0 ) {
-		multiplier = weightNorm / updateNorm;
+	MathEngine().VectorEltwiseMin( Var( TV_L2WeightNorm ), Var( TV_L2UpdateNorm ), multiplier, 1 );
+	if( multiplier.GetValue() > 0 ) { // CUDA sync
+		MathEngine().VectorEltwiseDivide( Var( TV_L2WeightNorm ), Var( TV_L2UpdateNorm ), multiplier, 1 );
 	} else {
-		multiplier = 1.0f;
+		MathEngine().VectorFill( multiplier, 1.f, 1 );
 	}
-	multiplierVar.SetValue( multiplier );
 }
 
 void CDnnLambGradientSolver::OnTrain()
@@ -1131,10 +1229,9 @@ void CDnnLambGradientSolver::OnTrain()
 	}
 
 	// Preventing division by zero
-	if( totalGradientNorm < epsilon ) {
+	if( totalGradientNorm < GetEpsilon() ) {
 		totalGradientNorm = 1.0f;
 	}
-
 	layersGradientNormSquare.Empty();
 }
 
