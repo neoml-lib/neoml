@@ -25,8 +25,6 @@ limitations under the License.
 #include <CudaAssert.h>
 #include <MathEngineCommon.h>
 #include <MemoryHandleInternal.h>
-#include <MathEngineDeviceStackAllocator.h>
-#include <MathEngineHostStackAllocator.h>
 #include <math.h>
 #include <float.h>
 #include <cuda_runtime.h>

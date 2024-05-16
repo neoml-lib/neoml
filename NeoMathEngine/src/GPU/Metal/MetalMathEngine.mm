@@ -26,7 +26,6 @@ limitations under the License.
 @import std.vector;
 
 #include <MemoryPool.h>
-#include <MathEngineDeviceStackAllocator.h>
 
 @import Foundation;
 @import MetalKit;

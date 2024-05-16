@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -28,30 +28,17 @@ class CMemoryHandleInternal;
 class NEOMATHENGINE_API CMemoryHandle {
 public:
 	CMemoryHandle() : mathEngine( 0 ), object( 0 ), offset( 0 ) {}
-	CMemoryHandle( const CMemoryHandle& other ) : mathEngine( other.mathEngine ), object( other.object ), offset( other.offset ) {}
+	CMemoryHandle( CMemoryHandle&& other ) = default;
+	CMemoryHandle( const CMemoryHandle& other ) = default;
 
-	CMemoryHandle& operator=( const CMemoryHandle& other )
-	{
-		mathEngine = other.mathEngine;
-		object = other.object;
-		offset = other.offset;
-		return *this;
-	}
-
+	CMemoryHandle& operator=( CMemoryHandle&& other ) = default;
+	CMemoryHandle& operator=( const CMemoryHandle& other ) = default;
+	
+	bool operator!=( const CMemoryHandle& other ) const { return !operator==( other ); }
 	bool operator==( const CMemoryHandle& other ) const
-	{
-		return mathEngine == other.mathEngine && object == other.object && offset == other.offset;
-	}
+	{ return mathEngine == other.mathEngine && object == other.object && offset == other.offset; }
 
-	bool operator!=( const CMemoryHandle& other ) const
-	{
-		return !operator==( other );
-	}
-
-	bool IsNull() const
-	{
-		return mathEngine == 0 && object == 0 && offset == 0;
-	}
+	bool IsNull() const { return mathEngine == 0 && object == 0 && offset == 0; }
 
 	IMathEngine* GetMathEngine() const { return mathEngine; }
 
@@ -62,8 +49,9 @@ protected:
 
 	friend class CMemoryHandleInternal;
 
-	explicit CMemoryHandle( IMathEngine* _mathEngine, const void* _object, ptrdiff_t _offset ) : mathEngine( _mathEngine ), object( _object ), offset( _offset ) {}
-
+	CMemoryHandle( IMathEngine* _mathEngine, const void* _object, ptrdiff_t _offset ) :
+		mathEngine( _mathEngine ), object( _object ), offset( _offset )
+	{}
 	CMemoryHandle CopyMemoryHandle( ptrdiff_t shift ) const { return CMemoryHandle( mathEngine, object, offset + shift ); }
 };
 
