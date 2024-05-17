@@ -393,6 +393,9 @@ private:
 
 	// Technical method for recursion in GetPath( CArray<CString>& path )
 	void getPath( CArray<CString>& path ) const;
+
+	void sequentialModeIfRecurrent();
+	void nonSequentialModeIfRecurrent();
 	// Switches the specified blobs into sequence processing mode
 	void switchBlobsToSequentialMode(CObjectArray<CDnnBlob>& blobs, TBlobCacheType cacheType, bool storeParent);
 	void switchBlobsToNonSequentialMode(CObjectArray<CDnnBlob>& blobs, TBlobCacheType cacheType, bool clear);

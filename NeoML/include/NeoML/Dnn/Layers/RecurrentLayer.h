@@ -39,7 +39,7 @@ public:
 	void DeleteAllBackLinks();
 	void DeleteAllLayersAndBackLinks();
 	// CCompositeLayer does not allocate outputBlobs in CBaseLayer in runOnce, because they are not used for inference.
-	// CRecurentLayer used its outputBlob to concatenate recurent outputs for its internalDnn.
+	// CRecurrentLayer used its outputBlob to concatenate recurent outputs for its internalDnn.
 	void AllocateOutputBlobs() override { CBaseLayer::AllocateOutputBlobs(); }
 
 	// Retrieves or sets the recurrent layer state
