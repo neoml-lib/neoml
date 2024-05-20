@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ limitations under the License.
 namespace NeoML {
 
 // The functions of the cusparse library used by the CUDA implementation of MathEngine
-struct CCusparse {
+struct CCusparse final {
 	// typedef for convenience
 	typedef cusparseStatus_t( CUSPARSEAPI *TCusparseCreate ) ( cusparseHandle_t *handle );
 	typedef cusparseStatus_t( CUSPARSEAPI *TCusparseDestroy ) ( cusparseHandle_t handle );
@@ -44,15 +44,15 @@ struct CCusparse {
 		cusparseDnMatDescr_t matC, cudaDataType computeType, cusparseSpMMAlg_t alg, void* externalBuffer );
 	typedef const char*( CUSPARSEAPI *TCusparseGetErrorString ) ( cusparseStatus_t status );
 
-	TCusparseCreate Create;
-	TCusparseDestroy Destroy;
-	TCusparseCreateCsr CreateCsr;
-	TCusparseDestroySpMat DestroySpMat;
-	TCusparseCreateDnMat CreateDnMat;
-	TCusparseDestroyDnMat DestroyDnMat;
-	TCusparseSpMM_bufferSize SpMM_bufferSize;
-	TCusparseSpMM SpMM;
-	TCusparseGetErrorString GetErrorString;
+	TCusparseCreate Create{};
+	TCusparseDestroy Destroy{};
+	TCusparseCreateCsr CreateCsr{};
+	TCusparseDestroySpMat DestroySpMat{};
+	TCusparseCreateDnMat CreateDnMat{};
+	TCusparseDestroyDnMat DestroyDnMat{};
+	TCusparseSpMM_bufferSize SpMM_bufferSize{};
+	TCusparseSpMM SpMM{};
+	TCusparseGetErrorString GetErrorString{};
 };
 
 } // namespace NeoML

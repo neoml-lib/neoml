@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,10 +21,12 @@ limitations under the License.
 
 namespace NeoML {
 
-__global__ void LrnKernel( const float* input, float* invSum, float* invSumBeta, float* output, int vectorCount, int vectorSize, int windowSize,
+__global__ void LrnKernel( const float* input, float* invSum, float* invSumBeta, float* output,
+	int vectorCount, int vectorSize, int windowSize,
 	float bias, float alpha, float beta )
 {
-	int vectorIndex, channelIndex;
+	int vectorIndex = 0;
+	int channelIndex = 0;
 	if( !GetCudaTaskIndex2D( vectorCount, vectorSize, vectorIndex, channelIndex ) ) {
 		return;
 	}
@@ -38,7 +40,6 @@ __global__ void LrnKernel( const float* input, float* invSum, float* invSumBeta,
 	output += vectorIndex * vectorSize + channelIndex;
 
 	float res = 0;
-
 	for( int i = firstC; i <= lastC; ++i ) {
 		res += input[i] * input[i];
 	}
@@ -54,7 +55,8 @@ __global__ void LrnKernel( const float* input, float* invSum, float* invSumBeta,
 __global__ void LrnBackwardKernel( const float* input, const float* output, const float* outputDiff, const float* invSum,
 	const float* invSumBeta, float* inputDiff, int vectorCount, int vectorSize, int windowSize, float alpha, float beta )
 {
-	int vectorIndex, channelIndex;
+	int vectorIndex = 0;
+	int channelIndex = 0;
 	if( !GetCudaTaskIndex2D( vectorCount, vectorSize, vectorIndex, channelIndex ) ) {
 		return;
 	}
@@ -76,7 +78,6 @@ __global__ void LrnBackwardKernel( const float* input, const float* output, cons
 	}
 
 	res *= -2.f * alpha * beta * *input / windowSize;
-
 	*inputDiff = *invSumBeta * outputDiff[channelIndex] + res;
 }
 

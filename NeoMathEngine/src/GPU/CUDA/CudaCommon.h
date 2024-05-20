@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -26,16 +26,16 @@ limitations under the License.
 
 namespace NeoML {
 
-struct CCudaVectorArray {
+struct CCudaVectorArray final {
 	static const int MaxSize = 16;
-	float* Vectors[MaxSize];
-	int VectorCount;
+	float* Vectors[MaxSize]{};
+	int VectorCount = 0;
 };
 
-struct CCudaConstVectorArray {
+struct CCudaConstVectorArray final {
 	static const int MaxSize = 16;
-	const float* Vectors[MaxSize];
-	int VectorCount;
+	const float* Vectors[MaxSize]{};
+	int VectorCount = 0;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -69,17 +69,17 @@ inline __device__ float LogSumExpFunc(float f, float s)
 //------------------------------------------------------------------------------------------------------------
 
 // RLE image
-struct CCudaRleStroke {
-	short Start;	// stroke start
-	short End;		// stroke end (first position after it ends)
+struct CCudaRleStroke final {
+	short Start = 0; // stroke start
+	short End = 0;   // stroke end (first position after it ends)
 };
 
-struct CCudaRleImage {
-	int StrokesCount;
-	int Height;
-	int Width;
-	CCudaRleStroke Stub;
-	CCudaRleStroke Lines[1];
+struct CCudaRleImage final {
+	int StrokesCount = 0;
+	int Height = 0;
+	int Width = 0;
+	CCudaRleStroke Stub{};
+	CCudaRleStroke Lines[1]{};
 };
 
 //------------------------------------------------------------------------------------------------------------

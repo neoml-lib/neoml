@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -107,6 +107,7 @@ void CCudaMathEngine::CtcLossForward( int resultLen, int batchSize, int classCou
 		dim3 blockCount;
 		dim3 threadCount;
 		getCudaTaskGrid3D( blockCount, threadCount, resultLen, padLabelLen, batchSize );
+
 		CtcCalcResultLogProbMaskKernel<<<blockCount, threadCount>>>( resultLen, batchSize, classCount, padLabelLen, blankLabel, logZero, logOneNeg,
 			GetRaw( resultLens ), GetRaw( padLabels.GetHandle() ), GetRaw( resultProb.GetHandle() ), GetRaw( resultLogProbMask.GetHandle() ) );
 	}
@@ -116,9 +117,11 @@ void CCudaMathEngine::CtcLossForward( int resultLen, int batchSize, int classCou
 		CFloatHandle logAlpha = logAlphaBeta.GetHandle();
 		ctcCalcForwardVariables( resultLen, batchSize, classCount, padLabelLen, skipBlanks,
 			blankSkipMask, resultLogProbMask, logAlpha );
+
 		CFloatHandleStackVar logBeta( *this, resultLen * padLabelLen * batchSize );
 		ctcCalcBackwardVariables( resultLen, batchSize, classCount, padLabelLen, skipBlanks,
 			blankSkipMask, resultLogProbMask, resultLens, labelLens, logBeta );
+
 		VectorAdd( logAlpha, logBeta, logAlphaBeta, resultLen * padLabelLen * batchSize );
 	}
 
@@ -127,6 +130,7 @@ void CCudaMathEngine::CtcLossForward( int resultLen, int batchSize, int classCou
 	{
 		int heightNorm = (padLabelLen + CtcMatrixLogSumExpByColumnsCombine - 1) / CtcMatrixLogSumExpByColumnsCombine;
 		heightNorm = alignXSizeForWarp(heightNorm);
+
 		dim3 blockCount;
 		dim3 threadCount;
 		// Rows over the X instead of Y axis, so we could reduce by X
@@ -168,9 +172,12 @@ void CCudaMathEngine::ctcCalcForwardVariables( int resultLen, int batchSize, int
 
 	// Align the result sequence T elements long with the labels and spaces sequence U elements long
 	const int padLabelLenForWarp = alignXSizeForWarp( padLabelLen );
-	dim3 blockCount, threadCount;
+
+	dim3 blockCount;
+	dim3 threadCount;
 	getCudaTaskGrid2DMinYX( 1, 1024, blockCount, threadCount, batchSize, padLabelLenForWarp );
 	blockCount.x = 1;
+
 	CtcCalcForwardVariableKernel<<<blockCount, threadCount>>>( resultLen, batchSize, classCount, padLabelLen, skipBlanks,
 		GetRaw( blankSkipMask ), GetRaw( resultLogProbMask ), GetRaw( logAlpha ) );
 }
@@ -229,9 +236,12 @@ void CCudaMathEngine::ctcCalcBackwardVariables( int resultLen, int batchSize, in
 	}
 
 	const int padLabelLenForWarp = alignXSizeForWarp( padLabelLen );
-	dim3 blockCount, threadCount;
+
+	dim3 blockCount;
+	dim3 threadCount;
 	getCudaTaskGrid2DMinYX( 1, 1024, blockCount, threadCount, batchSize, padLabelLenForWarp );
 	blockCount.x = 1;
+
 	CtcCalcBackwardVariableKernel<<<blockCount, threadCount>>>( resultLen, batchSize, classCount, padLabelLen, skipBlanks,
 		GetRaw( blankSkipMask ), GetRaw( resultLogProbMask ), GetRaw( logBeta ) );
 }
@@ -249,6 +259,7 @@ void CCudaMathEngine::ctcCalcGradient( int resultLen, int batchSize, int classCo
 		dim3 blockCount;
 		dim3 threadCount;
 		getCudaTaskGrid2D( blockCount, threadCount, resultLen, batchSize );
+
 		CtcCalcProbSumKernel<<<blockCount, threadCount>>>( resultLen, batchSize, classCount, padLabelLen,
 			GetRaw( padLabels ), GetRaw( logAlphaBeta ), GetRaw( probSum.GetHandle() ) );
 	}
@@ -256,6 +267,7 @@ void CCudaMathEngine::ctcCalcGradient( int resultLen, int batchSize, int classCo
 		dim3 blockCount;
 		dim3 threadCount;
 		getCudaTaskGrid3D( blockCount, threadCount, resultLen, batchSize, classCount );
+
 		CtcCalcGradientKernel<<<blockCount, threadCount>>>( resultLen, batchSize, classCount, skipBlanks,
 			GetRaw( resultProb ), GetRaw( totalLogProb ), GetRaw( probSum.GetHandle() ), GetRaw( lossGradient ) );
 	}
@@ -267,6 +279,7 @@ void CCudaMathEngine::ctcFillPadding( int maxSeqLen, int batchSize, int classCou
 	dim3 blockCount;
 	dim3 threadCount;
 	getCudaTaskGrid3D( blockCount, threadCount, maxSeqLen, batchSize, classCount );
+
 	CtcFillPaddingKernel<<<blockCount, threadCount>>>( maxSeqLen, batchSize, classCount,
 		GetRaw( dataHandle ), GetRaw( seqLensHandle ) );
 }

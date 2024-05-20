@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -88,9 +88,9 @@ inline __device__ float ReduceMaxXSharedBuffer(float* buffer)
 	return maxVal;
 }
 
-struct CValueWithIndex {
-	float Value;
-	int Index;
+struct CValueWithIndex final {
+	float Value = 0;
+	int Index = -1;
 };
 
 inline __device__ CValueWithIndex ReduceMaxWithIndexXSharedBuffer(CValueWithIndex* buffer)

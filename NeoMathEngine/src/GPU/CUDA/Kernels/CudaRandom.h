@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@ namespace NeoML {
 
 // An unsigned int array of constant size that can be copied
 template<int size>
-class CIntArray {
+class CIntArray final {
 public:
 	__device__ CIntArray();
 
@@ -44,7 +44,7 @@ inline __device__ CIntArray<size>::CIntArray()
 
 // ====================================================================================================================
 // The generator for dropout
-class CCudaRandom {
+class CCudaRandom final {
 public:
 	__device__ CCudaRandom() {}
 	// Initialize based on an array of four unsigned int
@@ -141,12 +141,12 @@ static inline __device__ void multiplyHighLow( unsigned int x, unsigned int y, u
 
 inline __device__ CIntArray<4> CCudaRandom::computeSingleRound( const CIntArray<4>& counter, const CIntArray<2>& key )
 {
-	unsigned int firstLow;
-	unsigned int firstHigh;
+	unsigned int firstLow = 0;
+	unsigned int firstHigh = 0;
 	multiplyHighLow( kPhiloxM4x32A, counter[0], &firstLow, &firstHigh );
 
-	unsigned int secondLow;
-	unsigned int secondHigh;
+	unsigned int secondLow = 0;
+	unsigned int secondHigh = 0;
 	multiplyHighLow( kPhiloxM4x32B, counter[2], &secondLow, &secondHigh );
 
 	CIntArray<4> result;
