@@ -28,14 +28,13 @@ class CDnn;
 class NEOML_API CDnnSolver : virtual public IObject {
 public:
 	// Stores the calculated values of layer parameters gradients for further use in Train method
-	// forSharedWeightsLayer=true should only be used within layers that share weights with other layers.
-	void AddDiff( const CBaseLayer* layer, const CObjectArray<CDnnBlob>& paramDiffBlobs, 
+	// sharedWeights=true should only be used within layers that share weights with other layers.
+	void AddDiff( const CBaseLayer* layer, const CObjectArray<CDnnBlob>& paramDiffBlobs,
 		bool sharedWeights = false );
 
 	// Modifies the trainable parameters of the network layers, 
 	// using the accumulated gradients and previous steps' history (moment, etc.) 
 	void Train( float distributedCoeff = 1.f );
-
 	// Resets to the initial state
 	void Reset();
 
@@ -62,11 +61,17 @@ protected:
 
 	// Gets the reference to the math engine
 	IMathEngine& MathEngine() const { return mathEngine; }
+	// Get the intermediate result storing blob
+	const CDnnBlob& TempBlob() const { return *temporaryBlob; }
+	// Intermediate result storing blob
+	// hide it to private, its allocated size may > actual
+	CFloatHandle TempData();
+	// Reinitialize the intermediate result storing blob
+	bool ReInitTempBlob( int dataSize );
 
 	// Called once on Reset method call
 	// Resets the stats in the inheriting instances to the initial state
 	virtual void OnReset() {}
-
 	// On each training step the method is called once, before the call to TrainLayer for all layers
 	virtual void OnTrain() {}
 
@@ -78,12 +83,19 @@ protected:
 
 private:
 	IMathEngine& mathEngine;
+	CPtr<CDnnBlob> gradParams;
+
+	// MathEngine memory stored variables for calculations
 	float learningRate;
 	float regularizationL2;
 	float regularizationL1;
 	float maxGradientNorm;
 	float clipGradientMin;
 	float clipGradientMax;
+
+	// Intermediate result storing
+	// hide it to private, its allocated size may > actual
+	CPtr<CDnnBlob> temporaryBlob;
 
 	// The blobs sum
 	struct CDiffBlobSum final {
@@ -141,7 +153,7 @@ void NEOML_API SerializeSolver( CArchive& archive, CDnn& dnn, CPtr<CDnnSolver>& 
 //---------------------------------------------------------------------------------------------------------------------
 
 template<class T>
-class CSolverClassRegistrar {
+class CSolverClassRegistrar final {
 public:
 	explicit CSolverClassRegistrar( const char* solverName );
 	~CSolverClassRegistrar();
@@ -168,40 +180,27 @@ inline CSolverClassRegistrar<T>::~CSolverClassRegistrar()
 class NEOML_API CDnnSimpleGradientSolver : public CDnnSolver {
 	NEOML_DNN_SOLVER( CDnnSimpleGradientSolver )
 public:
-	CDnnSimpleGradientSolver( IMathEngine& mathEngine );
+	explicit CDnnSimpleGradientSolver( IMathEngine& mathEngine );
 
 	// Moment decay rate (moment is a weighted sum of previous gradients)
 	float GetMomentDecayRate() const { return momentDecayRate; }
 	void SetMomentDecayRate(float decayRate) { momentDecayRate = decayRate; }
-
+	// Backward compatibility mode
 	bool IsInCompatibilityMode() const { return isInCompatibilityMode; }
 	void SetCompatibilityMode( bool compatibilityMode ) { isInCompatibilityMode = compatibilityMode; }
 
 	void Serialize( CArchive& archive, const CDnn& dnn ) override;
 
 protected:
+	// Updates the trainable weights of the layer
 	void TrainLayer( const CBaseLayer* layer, const CObjectArray<CDnnBlob>& paramBlobs, 
 		const CObjectArray<CDnnBlob>& paramDiffBlobs, CObjectArray<CDnnBlob>& gradientHistory ) override;
 
 private:
 	// Moment decay rate (moment is a weighted sum of previous gradients)
 	float momentDecayRate;
-
 	// Backward compatibility mode
 	bool isInCompatibilityMode;
-
-	// Temporary variables of Handle type, used for calculations
-	enum TTempVariable {
-		TV_MomentDecayRateVar = 0,
-		TV_OpMomentDecayRateVar,
-		TV_OpRegL2MomentDecayRateVar,
-		TV_RateVar,
-		TV_L1Threshold,
-		TV_L1Mult,
-		TV_Count
-	};
-
-	CPtr<CDnnBlob> tempVariables;
 };
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -210,7 +209,7 @@ private:
 class NEOML_API CDnnAdaptiveGradientSolver : public CDnnSolver {
 	NEOML_DNN_SOLVER( CDnnAdaptiveGradientSolver )
 public:
-	CDnnAdaptiveGradientSolver( IMathEngine& mathEngine );
+	explicit CDnnAdaptiveGradientSolver( IMathEngine& mathEngine );
 
 	// Retrieves and sets the moment decay rate (moment is a weighted sum of previous gradients)
 	float GetMomentDecayRate() const { return momentDecayRate; }
@@ -222,7 +221,7 @@ public:
 	// Retrieves and sets the espilon used to avoid division by zero when calculating second moment
 	float GetEpsilon() const { return epsilon; }
 	void SetEpsilon( float newEpsilon ) { epsilon = newEpsilon; }
-
+	// Backward compatibility mode
 	bool IsInCompatibilityMode() const { return isInCompatibilityMode; }
 	void SetCompatibilityMode( bool compatibilityMode ) { isInCompatibilityMode = compatibilityMode; }
 
@@ -249,7 +248,7 @@ protected:
 	// Prepares for the next training step
 	void OnTrain() override;
 	// Updates the trainable weights of the layer
-	virtual void TrainLayer( const CBaseLayer* layer, const CObjectArray<CDnnBlob>& paramBlobs,
+	void TrainLayer( const CBaseLayer* layer, const CObjectArray<CDnnBlob>& paramBlobs,
 		const CObjectArray<CDnnBlob>& paramDiffBlobs, CObjectArray<CDnnBlob>& gradientHistory ) override;
 
 private:
@@ -284,27 +283,8 @@ private:
 	bool isAmsGradEnabled;
 	// Perform weight decay after calculating the moving averages
 	bool isDecoupledWeightDecay;
-
 	// Backward compatibility mode
 	bool isInCompatibilityMode;
-
-	enum TTempVariable {
-		TV_MomentDecayRateVar = 0,
-		TV_SecondMomentDecayRateVar,
-		TV_RegL2Var,
-		TV_OpMomentDecayRateVar,
-		TV_OpSecondMomentDecayRateVar,
-		TV_RateVar,
-		TV_L1Threshold,
-		TV_L1Mult,
-		TV_EpsilonVar,
-		TV_Count
-	};
-
-	// Temporary Handle variables for calculations
-	CPtr<CDnnBlob> tempVariables;
-
-	CPtr<CDnnBlob> temporaryBlob;
 };
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -389,26 +369,6 @@ private:
 	float muTPlusOne; // the mu coefficient for the next step
 	float productMuT; // the product of mu coefficient over all steps including the current one
 
-	enum TTempVariable {
-		TV_MomentDecayRateVar = 0,
-		TV_SecondMomentDecayRateVar,
-		TV_RegL2Var,
-		TV_OpMomentDecayRateVar,
-		TV_OpSecondMomentDecayRateVar,
-		TV_RateVar,
-		TV_L1Threshold,
-		TV_L1Mult,
-		TV_EpsilonVar,
-		TV_InvOpSecondMomentDecayRateNVar, // 1 / (1 - secondMomentDecay ^ N)
-		TV_MBarGradMultVar, // the gradient coefficient in the total sum
-		TV_MBarMomentMultVar, // the moment coefficient in the total sum
-		TV_Count
-	};
-
-	// Temporary blobs for calculations
-	CPtr<CDnnBlob> tempVariables;
-
-	CPtr<CDnnBlob> temporaryBlob;
 	// m with a stroke (from the paper referred to)
 	// It is a weighted sum of the gradient and the first moment
 	CPtr<CDnnBlob> mBarBlob;
@@ -492,10 +452,11 @@ public:
 	void Serialize( CArchive& archive, const CDnn& dnn ) override;
 
 protected:
+	// Prepares for the next training step
+	void OnTrain() override;
+	// Updates the trainable weights of the layer
 	void TrainLayer( const CBaseLayer* layer, const CObjectArray<CDnnBlob>& paramBlobs,
 		const CObjectArray<CDnnBlob>& paramDiffBlobs, CObjectArray<CDnnBlob>& gradientHistory ) override;
-
-	void OnTrain() override;
 
 private:
 	// The gradientHistory array stores the previous values of gradients of different types
@@ -519,48 +480,28 @@ private:
 	// Is NVLamb modification used
 	bool useNvLamb;
 
-	enum TTempVariable {
-		TV_MomentDecayRateVar,
-		TV_SecondMomentDecayRateVar,
-		TV_OpMomentDecayRateVar,
-		TV_OpSecondMomentDecayRateVar,
-		TV_RateVar,
-		TV_EpsilonVar,
-		TV_WeightDecayVar,
-		TV_ClipMultiplierVar,
-		TV_LayerNormVar,
-		TV_TrustRatioVar,
-		TV_L2NormVar,
-
-		TV_Count
-	};
-
-	CPtr<CDnnBlob> tempVariables;
-
-	CPtr<CDnnBlob> tempBlob;
-
+	CPtr<CDnnBlob> normL2Var;
 	CArray<float> layersGradientNormSquare;
 	float totalGradientNorm;
 
 	// Layer excluded from optimization
-	struct CExcludedLayer {
+	struct CExcludedLayer final {
 		// Layer name (or substring)
 		CString LayerName;
 		// Match type (exact or substring)
-		TExcludeLayerNameMatchType MatchType;
+		TExcludeLayerNameMatchType MatchType{ ELNMT_Exact };
 		// Parameter number
 		// -1 if all parameters
-		int ParamIndex;
-
-		CExcludedLayer() : MatchType( ELNMT_Exact ), ParamIndex( NotFound ) {}
+		int ParamIndex{ NotFound };
 	};
 	// Layers excluded from weight decay
 	CArray<CExcludedLayer> excludedLayers;
+	mutable CPtr<CDnnBlob> tempNormBlob;
 
 	float calcL2NormAverage( const CConstFloatHandle& data, int dataSize ) const;
 	void getWeightDecayIndices( const CBaseLayer& layer, int paramsCount, CHashTable<int>& indexes ) const;
 
-	void calcNormalizeMultiplier( const CDnnBlob& weights, const CDnnBlob& update, const CFloatHandle& multiplier ) const;
+	float calcNormalizeMultiplier( const CDnnBlob& weights, const CDnnBlob& update ) const;
 };
 
 template<typename TLayer>
