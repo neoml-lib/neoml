@@ -25,30 +25,71 @@ using namespace NeoMLTest;
 
 TEST( CDnnBlobTest, InitWindowBlob )
 {
-    MathEngine().CleanUp();
-    MathEngine().ResetPeakMemoryUsage();
-    {
-        CPtr<CDnnBlob> parent = CDnnBlob::CreateDataBlob( MathEngine(), CT_Float, 16, 1, 1 );
-        CPtr<CDnnBlob> window = CDnnBlob::CreateWindowBlob( parent );
+    IMathEngine& mathEngine = MathEngine();
 
-        EXPECT_TRUE( window->GetData().IsNull() == false );
+    mathEngine.CleanUp();
+    mathEngine.ResetPeakMemoryUsage();
+
+    // 256 used, because for `reuse` mode minimal size of buffer is 256
+    // To make a valid test for no matter what used mode in the MathEngine
+    const int blobSize = 256;
+    {
+        CPtr<CDnnBlob> parent = CDnnBlob::CreateDataBlob( mathEngine, CT_Float, blobSize, 1, 1 );
+        parent->Fill( -1.f );
+        // Used the same blob size, instead 1 to use `CompareBlobs` without changes
+        CPtr<CDnnBlob> window = CDnnBlob::CreateWindowBlob( parent, blobSize );
+
+        EXPECT_EQ( window->GetData().IsNull(), false ); // created
+        EXPECT_TRUE( CompareBlobs( *window, *parent ) ); // same data
+        EXPECT_EQ( window->GetData(), parent->GetData() ); // same pointers
+        // No more memory created, except the parent blob
+        EXPECT_EQ( mathEngine.GetCurrentMemoryUsage(), blobSize * sizeof( float ) );
     }
-    EXPECT_TRUE( MathEngine().GetCurrentMemoryUsage() == 0 );
-    EXPECT_EQ( MathEngine().GetPeakMemoryUsage(), 16 * sizeof( float ) );
+    if( mathEngine.GetReuseMemoryMode() == true ) {
+        EXPECT_EQ( mathEngine.GetCurrentMemoryUsage(), blobSize * sizeof( float ) );
+        EXPECT_EQ( mathEngine.GetCurrentMemoryUsage(), mathEngine.GetMemoryInPools() );
+    } else {
+        EXPECT_EQ( mathEngine.GetCurrentMemoryUsage(), 0 );
+    }
+    EXPECT_EQ( mathEngine.GetPeakMemoryUsage(), blobSize * sizeof( float ) );
+
+    {
+        CPtr<CDnnBlob> parent = CDnnBlob::CreateDataBlob( mathEngine, CT_Float, blobSize, 1, 1 );
+        CPtr<CDnnBlob> shifted_window = CDnnBlob::CreateWindowBlob( parent, 1 );
+
+        // Set different data
+        for( int i = 0; i < parent->GetDataSize(); ++i ) {
+            parent->GetData().SetValueAt( i, 1.f + i );
+        }
+
+        // Check for exact data and pointers
+        for( int i = 0; i < parent->GetDesc().BatchLength(); ++i ) {
+            shifted_window->SetParentPos( i );
+            EXPECT_EQ( shifted_window->GetData(), parent->GetObjectData( i ) ); // same pointers
+            EXPECT_EQ( shifted_window->GetData().GetValue(), parent->GetObjectData( i ).GetValue() ); // same data
+        }
+        EXPECT_EQ( mathEngine.GetCurrentMemoryUsage(), blobSize * sizeof( float ) );
+    }
 }
 
 TEST( CDnnBlobTest, BufferTest )
 {
+    CPtr<CDnnBlob> check = CDnnBlob::CreateDataBlob( MathEngine(), CT_Float, 16, 1, 1 );
+    check->Clear(); // zeroes
+
     CPtr<CDnnBlob> blob = CDnnBlob::CreateDataBlob( MathEngine(), CT_Float, 16, 1, 1 );
     EXPECT_FALSE( blob->GetData().IsNull() );
+    blob->Fill( -1.f ); // some data
 
     CDnnBlobBuffer<float> buffer( *blob, TDnnBlobBufferAccess::Write );
     EXPECT_NE( nullptr, buffer.Ptr() );
-    ::memset( buffer, 0, buffer.Size() * sizeof( float ) );
+    ::memset( buffer, 0, buffer.Size() * sizeof( float ) ); // zeroes
 
     EXPECT_FALSE( buffer.IsClosed() );
     buffer.Close();
     EXPECT_TRUE( buffer.IsClosed() );
+
+    EXPECT_TRUE( CompareBlobs( *check, *blob ) ); // same data
 }
 
 //---------------------------------------------------------------------------------------------------------------------
