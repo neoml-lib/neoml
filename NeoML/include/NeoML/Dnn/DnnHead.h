@@ -56,6 +56,8 @@ public:
 		dnn = head;
 	}
 
+	CDnn& GetDnn() { return *dnn; }
+
 private:
 	~CDnnHead() override
 	{

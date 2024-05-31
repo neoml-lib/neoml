@@ -38,6 +38,7 @@ public:
 
 	// Get Dnn head
 	const CDnnHead* GetDnnHead() const { return head; };
+	CDnnHead* GetDnnHead() { return head; };
 
 protected:
 	void Reshape() override;
