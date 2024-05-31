@@ -23,14 +23,16 @@ limitations under the License.
 
 namespace NeoML {
 
-static const int HeadAdapterLayerVersion = 1001;
+static const int DnnHeadAdapterLayerVersion = 0;
 
 void CDnnHeadAdapterLayer::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion(HeadAdapterLayerVersion, CDnn::ArchiveMinSupportedVersion);
+	archive.SerializeVersion( DnnHeadAdapterLayerVersion );
 	CBaseLayer::Serialize(archive);
 
-	if(head == nullptr) {
+	bool existHead = ( head != nullptr );
+	archive.Serialize( existHead );
+	if( !existHead ) {
 		return;
 	}
 
@@ -40,6 +42,7 @@ void CDnnHeadAdapterLayer::Serialize( CArchive& archive )
 			CString name(head->connections[0]->GetName());
 			archive << name;
 		} else {
+			NeoAssert( head->dnn != nullptr );
 			archive << head->dnn->layers.Size();
 			for (int i = 0; i < head->dnn->layers.Size(); i++) {
 				SerializeLayer(archive, MathEngine(), head->dnn->layers[i]);
