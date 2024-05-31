@@ -27,251 +27,179 @@ using namespace NeoMLTest;
 
 namespace NeoMLTest {
 
-static void initializeDnnBlobs(CDnn& dnn)
+static void initializeDnnBlobs( CDnn& dnn )
 {
-    CRandom random(0);
-    CDnnUniformInitializer init(random, -0.5, 0.5);
+    CRandom random( 0 );
+    CDnnUniformInitializer init( random, -0.5, 0.5 );
 
-    CDnnBlob* source1Blob = CDnnBlob::CreateTensor(MathEngine(), CT_Float, { 1, 1, 1, 4, 2, 3, 10 });
-    init.InitializeLayerParams(*source1Blob, -1);
-    static_cast<CSourceLayer*>(dnn.GetLayer("source1").Ptr())->SetBlob(source1Blob);
+    CDnnBlob* source1Blob = CDnnBlob::CreateTensor( MathEngine(), CT_Float, { 1, 1, 1, 4, 2, 3, 10 } );
+    init.InitializeLayerParams( *source1Blob, -1 );
+    CheckCast<CSourceLayer>( dnn.GetLayer( "source1" ).Ptr() )->SetBlob( source1Blob );
 
-    CDnnBlob* source2Blob = CDnnBlob::CreateTensor(MathEngine(), CT_Float, { 1, 1, 1, 4, 2, 3, 10 });
-    init.InitializeLayerParams(*source2Blob, -1);
-    static_cast<CSourceLayer*>(dnn.GetLayer("source2").Ptr())->SetBlob(source2Blob);
+    CDnnBlob* source2Blob = CDnnBlob::CreateTensor( MathEngine(), CT_Float, { 1, 1, 1, 4, 2, 3, 10 } );
+    init.InitializeLayerParams( *source2Blob, -1 );
+    CheckCast<CSourceLayer>( dnn.GetLayer( "source2" ).Ptr() )->SetBlob( source2Blob );
 
-    CDnnBlob* source3Blob = CDnnBlob::CreateTensor(MathEngine(), CT_Float, { 1, 1, 1, 4, 2, 3, 10 });
-    init.InitializeLayerParams(*source3Blob, -1);
-    static_cast<CSourceLayer*>(dnn.GetLayer("source3").Ptr())->SetBlob(source3Blob);
+    CDnnBlob* source3Blob = CDnnBlob::CreateTensor( MathEngine(), CT_Float, { 1, 1, 1, 4, 2, 3, 10 } );
+    init.InitializeLayerParams( *source3Blob, -1 );
+    CheckCast<CSourceLayer>( dnn.GetLayer( "source3" ).Ptr() )->SetBlob( source3Blob );
 
-    CDnnBlob* targetBlob = CDnnBlob::CreateTensor(MathEngine(), CT_Float, { 1, 1, 1, 1, 1, 1, 3 });
-    targetBlob->GetData().SetValueAt(0, -1.5f);
-    targetBlob->GetData().SetValueAt(1, 2.4f);
-    targetBlob->GetData().SetValueAt(2, 4.8f);
-    static_cast<CSourceLayer*>(dnn.GetLayer("target").Ptr())->SetBlob(targetBlob);
+    CDnnBlob* targetBlob = CDnnBlob::CreateTensor( MathEngine(), CT_Float, { 1, 1, 1, 1, 1, 1, 3 } );
+    targetBlob->GetData().SetValueAt( 0, -1.5f );
+    targetBlob->GetData().SetValueAt( 1, 2.4f );
+    targetBlob->GetData().SetValueAt( 2, 4.8f );
+    CheckCast<CSourceLayer>( dnn.GetLayer( "target" ).Ptr() )->SetBlob( targetBlob );
 }
 
-static void createDnnHeadAdapter(CDnn& dnn, bool useDropout = true)
+static void createDnn( CDnn& dnn, bool isNaive, int complexity = 1000, float dropoutRate = 0.3f, bool freeTerm = false )
 {
-    //        +----------------+
-    //        |                |                                                    [Target]
-    //        |                v                                                        |
-    //    [source1]        |-----------------------------------------|                  v
-    //                     | [Fc1]-->[Gelu]-->[Fc2]-->[Relu]-->[Fc3] | -> [Concat] ->[Loss]
-    //    [source2]        |-----------------------------------------|
-    //        |                ^
-    //        |                |
-    //        +----------------+
+    CPtr<CSourceLayer> source1 = Source( dnn, "source1" );
+    CPtr<CSourceLayer> source2 = Source( dnn, "source2" );
+    CPtr<CSourceLayer> source3 = Source( dnn, "source3" );
+    CPtr<CSourceLayer> targets = Source( dnn, "target" );
 
-    CPtr<CDnnHead> head = new CDnnHead(
-        dnn.Random(), dnn.GetMathEngine(),
-        FullyConnected(3000),
-        Gelu(),
-        FullyConnected(1000),
-        Relu(),
-        Dropout(useDropout ? 0.3f : 0.f),
-        FullyConnected(1)
-    );
+    CPtr<CFullyConnectedLayer> fc01 = FullyConnected( complexity, freeTerm )( "fc01", source1.Ptr() );
+    CPtr<CFullyConnectedLayer> fc02 = FullyConnected( complexity, freeTerm )( "fc02", source2.Ptr() );
+    CPtr<CFullyConnectedLayer> fc03 = FullyConnected( complexity, freeTerm )( "fc03", source3.Ptr() );
 
-    CPtr<CSourceLayer> source1 = Source(dnn, "source1");
-
-    CPtr<CFullyConnectedLayer> fc1 = new CFullyConnectedLayer(MathEngine(), "fc1");
-    fc1->SetNumberOfElements(50);
-    fc1->Connect(*source1);
-    dnn.AddLayer(*fc1);
-
-    CPtr<CDnnHeadAdapterLayer> head1 = new CDnnHeadAdapterLayer(MathEngine());
-    head1->SetName("head1");
-    head1->Connect(*fc1);
-    head1->SetDnnHead(head);
-    dnn.AddLayer(*head1);
-
-    CPtr<CSourceLayer> source2 = Source(dnn, "source2");
-
-    CPtr<CFullyConnectedLayer> fc2 = new CFullyConnectedLayer(MathEngine(), "fc2");
-    fc2->SetNumberOfElements(50);
-    fc2->Connect(*source2);
-    dnn.AddLayer(*fc2);
-
-    CPtr<CDnnHeadAdapterLayer> head2 = new CDnnHeadAdapterLayer(MathEngine());
-    head2->SetName("head2");
-    head2->Connect(*fc2);
-    head2->SetDnnHead(head);
-    dnn.AddLayer(*head2);
-
-    CPtr<CSourceLayer> source3 = Source(dnn, "source3");
-
-    CPtr<CFullyConnectedLayer> fc3 = new CFullyConnectedLayer(MathEngine(), "fc3");
-    fc3->SetNumberOfElements(50);
-    fc3->Connect(*source3);
-    dnn.AddLayer(*fc3);
-
-    CPtr<CDnnHeadAdapterLayer> head3 = new CDnnHeadAdapterLayer(MathEngine());
-    head3->SetName("head3");
-    head3->Connect(*fc3);
-    head3->SetDnnHead(head);
-    dnn.AddLayer(*head3);
-
-    CPtr<CConcatChannelsLayer> concat = new CConcatChannelsLayer(MathEngine());
-    dnn.AddLayer(*concat);
-    concat->Connect(0, *head1, 0);
-    concat->Connect(1, *head2, 0);
-    concat->Connect(2, *head3, 0);
-
-    CPtr<CSourceLayer> targets = Source(dnn, "target");
-
-    CPtr<CEuclideanLossLayer> loss = new CEuclideanLossLayer(MathEngine());
-    loss->SetName("loss");
-    dnn.AddLayer(*loss);
-    loss->Connect(0, *concat, 0);
-    loss->Connect(1, *targets, 0);
-
-    CPtr<CSinkLayer> sink = new CSinkLayer(MathEngine());
-    sink->SetName("sink");
-    dnn.AddLayer(*sink);
-    sink->Connect(0, *concat, 0);
+    CPtr<CConcatChannelsLayer> concat;
     
-    CPtr<CDnnAdaptiveGradientSolver> solver = new CDnnAdaptiveGradientSolver(MathEngine());
-    const float learningRate = 1e-3f;
-    solver->SetLearningRate(learningRate);
-    dnn.SetSolver(solver.Ptr());
+    if( isNaive ) {
+        // Same architecture but without Head to compare                                         [target]
+        //                                                                                          |
+        //    [source1] --> [fc01] -->  [   ]-->[gelu]-->[   ]-->[relu]-->[   ]  --> [      ]       v
+        //                              |fc1]            |fc2|            |fc3|      |concat| --> [loss]
+        //    [source2] --> [fc02] -->  [   ]-->[gelu]-->[   ]-->[relu]-->[   ]  --> [      ]
+        //
 
-    initializeDnnBlobs(dnn);
+        CPtr<CFullyConnectedLayer> fc1 = FullyConnected( complexity / 20, freeTerm )( "fc1", fc01.Ptr(), fc02.Ptr(), fc03.Ptr() );
+        CPtr<CGELULayer> gelu1 = Gelu()( "gelu1", CDnnLayerLink{ fc1, 0 } );
+        CPtr<CGELULayer> gelu2 = Gelu()( "gelu2", CDnnLayerLink{ fc1, 1 } );
+        CPtr<CGELULayer> gelu3 = Gelu()( "gelu3", CDnnLayerLink{ fc1, 2 } );
+
+        CPtr<CFullyConnectedLayer> fc2 = FullyConnected( complexity / 60, freeTerm )( "fc2", gelu1.Ptr(), gelu2.Ptr(), gelu3.Ptr() );
+        CPtr<CReLULayer> relu1 = Relu()( "relu1", CDnnLayerLink{ fc2, 0 } );
+        CPtr<CReLULayer> relu2 = Relu()( "relu2", CDnnLayerLink{ fc2, 1 } );
+        CPtr<CReLULayer> relu3 = Relu()( "relu3", CDnnLayerLink{ fc2, 2 } );
+
+        CPtr<CDropoutLayer> dropout1 = Dropout( dropoutRate )( "dp1", relu1.Ptr() );
+        CPtr<CDropoutLayer> dropout2 = Dropout( dropoutRate )( "dp2", relu2.Ptr() );
+        CPtr<CDropoutLayer> dropout3 = Dropout( dropoutRate )( "dp3", relu3.Ptr() );
+        CPtr<CFullyConnectedLayer> fc3 = FullyConnected( 1 )( "fc3", dropout1.Ptr(), dropout2.Ptr(), dropout3.Ptr() );
+
+        concat = ConcatChannels()( "concat",
+            CDnnLayerLink{ fc3, 0 }, CDnnLayerLink{ fc3, 1 }, CDnnLayerLink{ fc3, 2 } );
+
+    } else {
+        //        +-----[fc01]- ---+
+        //        |                |                              +-----------+     [target]
+        //        |                v                              |           |        |
+        //    [source1]     |-----------------------------------------|       v        v
+        //                  |[fc1]->[gelu]->[fc2]->[relu]->[dp]->[fc3]|    [concat]->[loss]
+        //    [source2]     |-----------------------------------------|       ^
+        //        |                ^                              |           |
+        //        |                |                              +-----------+
+        //        +-----[fc02]-----+
+
+        CPtr<CDnnHead> head = new CDnnHead(
+            dnn.Random(), dnn.GetMathEngine(),
+            FullyConnected( complexity / 20, freeTerm ), // "fc1"
+            Gelu(),
+            FullyConnected( complexity / 60, freeTerm ), // "fc2"
+            Relu(),
+            Dropout( dropoutRate ),
+            FullyConnected( 1 ) // "fc3",
+        );
+
+        CPtr<CDnnHeadAdapterLayer> head1 = DnnHeadAdapter( head )( "head1", fc01.Ptr() );
+        CPtr<CDnnHeadAdapterLayer> head2 = DnnHeadAdapter( head )( "head2", fc02.Ptr() );
+        CPtr<CDnnHeadAdapterLayer> head3 = DnnHeadAdapter( head )( "head3", fc03.Ptr() );
+
+        concat = ConcatChannels()( "concat", head1.Ptr(), head2.Ptr(), head3.Ptr() );
+    }
+
+    CPtr<CEuclideanLossLayer> loss = EuclideanLoss()( "loss", concat.Ptr(), targets.Ptr() );
+    CPtr<CSinkLayer> sink = Sink( concat.Ptr(), "sink" );
+    
+    CPtr<CDnnAdaptiveGradientSolver> solver = new CDnnAdaptiveGradientSolver( MathEngine() );
+    solver->SetLearningRate( /*learningRate*/1e-3f );
+    dnn.SetSolver( solver.Ptr() );
+
+    initializeDnnBlobs( dnn );
 }
 
-static void createDnnHeadNaive(CDnn& dnn, bool useDropout = true)
+static void testDnnAdapterPerformace( bool isNaive, int interations = 1000, bool train = true )
 {
-    // Same architecture but without Head to compare
-    //
-    //                                                                       [Target]
-    //                                                                          |
-    //    [source1]-->[   ]-->[Gelu]-->[   ]-->[Relu]-->[   ]--->[        ]     v
-    //                |Fc1]            |Fc2|            |Fc3|    | Concat |-->[Loss]
-    //    [source2]-->[   ]-->[Gelu]-->[   ]-->[Relu]-->[   ]--->[        ]
-    //
+    IPerformanceCounters* counters = MathEngine().CreatePerformanceCounters();
+    const char* fileName = "DnnAdapter.cnnarch";
 
-    const float dropoutRate = useDropout ? 0.3f : 0.f;
-    CPtr<CSourceLayer> source1 = Source(dnn, "source1");;
+    GTEST_LOG_( INFO ) << "\n interations = " << interations << "   is_naive = " << isNaive << "\n"
+        << "|" << std::setw( 10 ) << "size "
+        << "|" << std::setw( 21 ) << "Train " << "|" << std::setw( 21 ) << "Inference " << "|\n"
+        << "|" << std::setw( 10 ) << ""
+        << "|" << std::setw( 10 ) << "time (ms) " << "|" << std::setw( 10 ) << "mem (MB) "
+        << "|" << std::setw( 10 ) << "time (ms) " << "|" << std::setw( 10 ) << "mem (MB) " << "|\n";
 
-    CPtr<CFullyConnectedLayer> fc0_1 = new CFullyConnectedLayer(MathEngine());
-    fc0_1->SetName("fc0_1");
-    dnn.AddLayer(*fc0_1);
-    fc0_1->SetNumberOfElements(50);
-    fc0_1->Connect(0, *source1);
+    const int complexity = 1000;
+    for( int size = 1 * complexity; size <= 4 * complexity; size += complexity ) {
+        {
+            CRandom random( 0 );
+            CDnn dnn( random, MathEngine() );
 
-    CPtr<CSourceLayer> source2 = Source(dnn, "source2");
+            createDnn( dnn, isNaive, size );
+            OptimizeDnn( dnn );
 
-    CPtr<CFullyConnectedLayer> fc0_2 = new CFullyConnectedLayer(MathEngine());
-    fc0_2->SetName("fc0_2");
-    dnn.AddLayer(*fc0_2);
-    fc0_2->SetNumberOfElements(50);
-    fc0_2->Connect(0, *source2);
+            dnn.CleanUp( /*force*/true );
+            initializeDnnBlobs( dnn );
 
-    CPtr<CSourceLayer> source3 = Source(dnn, "source3");
+            MathEngine().CleanUp();
+            MathEngine().ResetPeakMemoryUsage();
 
-    CPtr<CFullyConnectedLayer> fc0_3 = new CFullyConnectedLayer(MathEngine());
-    fc0_3->SetName("fc0_3");
-    dnn.AddLayer(*fc0_3);
-    fc0_3->SetNumberOfElements(50);
-    fc0_3->Connect(0, *source3);
+            if( train ) {
+                dnn.RunAndLearnOnce();
+                counters->Synchronise();
+                for( int i = 0; i < interations; ++i ) {
+                    dnn.RunAndLearnOnce();
+                }
+                counters->Synchronise();
+            }
+            CArchiveFile file( fileName, CArchive::store, GetPlatformEnv() );
+            CArchive archive( &file, CArchive::store );
+            archive << dnn;
+        }
+        double train_time = train ? ( double( ( *counters )[0].Value ) / 1000000 ) : 0.;
+        double train_mem = train ? ( double( MathEngine().GetPeakMemoryUsage() ) / 1024 / 1024 ) : 0.;
 
-    CPtr<CFullyConnectedLayer> fc1 = new CFullyConnectedLayer(MathEngine());
-    fc1->SetName("fc1");
-    dnn.AddLayer(*fc1);
-    fc1->SetNumberOfElements(3000);
-    fc1->Connect(0, *fc0_1);
-    fc1->Connect(1, *fc0_2);
-    fc1->Connect(2, *fc0_3);
+        {
+            CRandom random( 0 );
+            CDnn dnn( random, MathEngine() );
 
-    CPtr<CGELULayer> gelu1 = new CGELULayer(MathEngine());
-    gelu1->SetName("gelu1");
-    dnn.AddLayer(*gelu1);
-    gelu1->Connect(0, *fc1, 0);
+            CArchiveFile file( fileName, CArchive::load, GetPlatformEnv() );
+            CArchive archive( &file, CArchive::load );
+            archive >> dnn;
 
-    CPtr<CGELULayer> gelu2 = new CGELULayer(MathEngine());
-    gelu2->SetName("gelu2");
-    dnn.AddLayer(*gelu2);
-    gelu2->Connect(0, *fc1, 1);
+            dnn.CleanUp( /*force*/true );
+            initializeDnnBlobs( dnn );
 
-    CPtr<CGELULayer> gelu3 = new CGELULayer(MathEngine());
-    gelu3->SetName("gelu3");
-    dnn.AddLayer(*gelu3);
-    gelu3->Connect(0, *fc1, 2);
+            MathEngine().CleanUp();
+            MathEngine().ResetPeakMemoryUsage();
 
-    CPtr<CFullyConnectedLayer> fc2 = new CFullyConnectedLayer(MathEngine());
-    fc2->SetName("fc2");
-    dnn.AddLayer(*fc2);
-    fc2->SetNumberOfElements(1000);
-    fc2->Connect(0, *gelu1);
-    fc2->Connect(1, *gelu2);
-    fc2->Connect(2, *gelu3);
+            dnn.RunOnce();
+            counters->Synchronise();
+            for( int i = 0; i < interations; ++i ) {
+                dnn.RunOnce();
+            }
+            counters->Synchronise();
+        }
+        double inference_time = double( ( *counters )[0].Value ) / 1000000;
+        double inference_mem = double( MathEngine().GetPeakMemoryUsage() ) / 1024 / 1024;
 
-    CPtr<CReLULayer> relu1 = new CReLULayer(MathEngine());
-    relu1->SetName("relu1");
-    dnn.AddLayer(*relu1);
-    relu1->Connect(0, *fc2, 0);
-
-    CPtr<CReLULayer> relu2 = new CReLULayer(MathEngine());
-    relu2->SetName("relu2");
-    dnn.AddLayer(*relu2);
-    relu2->Connect(0, *fc2, 1);
-
-    CPtr<CReLULayer> relu3 = new CReLULayer(MathEngine());
-    relu3->SetName("relu3");
-    dnn.AddLayer(*relu3);
-    relu3->Connect(0, *fc2, 2);
-
-    CPtr<CDropoutLayer> dropout1 = new CDropoutLayer(MathEngine());
-    dropout1->SetName("dp1");
-    dnn.AddLayer(*dropout1);
-    dropout1->SetDropoutRate(dropoutRate);
-    dropout1->Connect(0, *relu1);
-
-    CPtr<CDropoutLayer> dropout2 = new CDropoutLayer(MathEngine());
-    dropout2->SetName("dp2");
-    dnn.AddLayer(*dropout2);
-    dropout2->SetDropoutRate(dropoutRate);
-    dropout2->Connect(0, *relu2);
-
-    CPtr<CDropoutLayer> dropout3 = new CDropoutLayer(MathEngine());
-    dropout3->SetName("dp3");
-    dnn.AddLayer(*dropout3);
-    dropout3->SetDropoutRate(dropoutRate);
-    dropout3->Connect(0, *relu3);
-
-    CPtr<CFullyConnectedLayer> fc3 = new CFullyConnectedLayer(MathEngine());
-    fc3->SetName("fc3");
-    fc3->SetNumberOfElements(1);
-    dnn.AddLayer(*fc3);
-    fc3->Connect(0, *dropout1);
-    fc3->Connect(1, *dropout2);
-    fc3->Connect(2, *dropout3);
-
-    CPtr<CConcatChannelsLayer> concat = new CConcatChannelsLayer(MathEngine());
-    dnn.AddLayer(*concat);
-    concat->Connect(0, *fc3, 0);
-    concat->Connect(1, *fc3, 1);
-    concat->Connect(2, *fc3, 2);
-
-    CPtr<CSourceLayer> targets = Source(dnn, "target");
-
-    CPtr<CEuclideanLossLayer> loss = new CEuclideanLossLayer(MathEngine());
-    loss->SetName("loss");
-    dnn.AddLayer(*loss);
-    loss->Connect(0, *concat, 0);
-    loss->Connect(1, *targets, 0);
-
-    CPtr<CSinkLayer> sink = new CSinkLayer(MathEngine());
-    sink->SetName("sink");
-    dnn.AddLayer(*sink);
-    sink->Connect(0, *concat, 0);
-
-    CPtr<CDnnAdaptiveGradientSolver> solver = new CDnnAdaptiveGradientSolver(MathEngine());
-    const float learningRate = 1e-3f;
-    solver->SetLearningRate(learningRate);
-    dnn.SetSolver(solver.Ptr());
-
-    initializeDnnBlobs(dnn);
+        std::cout
+            << "|" << std::setw( 10 ) << size
+            << "|" << std::setw( 10 ) << train_time << "|" << std::setw( 10 ) << train_mem
+            << "|" << std::setw( 10 ) << inference_time << "|" << std::setw( 10 ) << inference_mem << "|\n";
+    }
+    delete counters;
 }
 
 } // namespace NeoMLTest
@@ -280,66 +208,71 @@ static void createDnnHeadNaive(CDnn& dnn, bool useDropout = true)
 
 TEST( CDnnHeadTest, DnnHeadAdapterLearnTest )
 {
-    CRandom random( 0 );
-    CDnn dnn( random, MathEngine());
-    createDnnHeadAdapter(dnn);
+    CRandom random( 0x17 );
+    CDnn dnn( random, MathEngine() );
+    createDnn( dnn, /*isNaive*/false, /*complexity*/1000, /*dropout*/0.f );
 
-    for(int i = 0; i < 100; ++i) {
+    for( int i = 0; i < 200; ++i ) {
         dnn.RunAndLearnOnce();
     }
 
-    EXPECT_NEAR(static_cast<CLossLayer*>(dnn.GetLayer("loss").Ptr())->GetLastLoss(), 0, 1e-3f);
+    EXPECT_NEAR( CheckCast<CLossLayer>( dnn.GetLayer( "loss" ).Ptr() )->GetLastLoss(), 0, 1e-3f );
 }
 
-TEST(CDnnHeadTest, CheckDnnHeadAdapterInferenceMatch)
+TEST( CDnnHeadTest, DnnHeadAdapterInferenceMatch )
 {
-    CRandom random(0);
-    CPtr<CDnnUniformInitializer> init = new CDnnUniformInitializer(random, 0.05f, 0.05f);
+    auto runOnce = []( bool isNaive )
+    {
+        CRandom random( 0x11 );
+        CPtr<CDnnUniformInitializer> init = new CDnnUniformInitializer( random, 0.05f, 0.05f );
 
-    CDnn dnnNoAdapters(random, MathEngine());
-    dnnNoAdapters.SetInitializer(init.Ptr());
-    createDnnHeadNaive(dnnNoAdapters);
-    dnnNoAdapters.RunOnce();
-    CDnnBlob* output0 = static_cast<CSinkLayer*>(dnnNoAdapters.GetLayer("sink").Ptr())->GetBlob();
+        CDnn dnn( random, MathEngine() );
+        dnn.SetInitializer( init.Ptr() );
+        createDnn( dnn, isNaive );
 
-    CDnn dnnWithAdapters(random, MathEngine());
-    dnnWithAdapters.SetInitializer(init.Ptr());
-    createDnnHeadAdapter(dnnWithAdapters);
-    dnnWithAdapters.RunOnce();
-    CDnnBlob* output1 = static_cast<CSinkLayer*>(dnnWithAdapters.GetLayer("sink").Ptr())->GetBlob();
+        dnn.RunOnce();
+        return CheckCast<CSinkLayer>( dnn.GetLayer( "sink" ).Ptr() )->GetBlob();
+    };
 
-    EXPECT_TRUE(CompareBlobs(*output0, *output1));
+    CPtr<CDnnBlob> expected = runOnce( /*isNaive*/false );
+    CPtr<CDnnBlob> output = runOnce( /*isNaive*/true );
+
+    EXPECT_TRUE( CompareBlobs( *expected, *output ) );
 }
 
-TEST(CDnnHeadTest, CheckDnnHeadAdapterLearningMatch)
+TEST( CDnnHeadTest, DnnHeadAdapterLearningMatch )
 {
-    CRandom random(0);
-    CPtr<CDnnUniformInitializer> init = new CDnnUniformInitializer(random, 0.05f, 0.05f);
-    
-    CDnn dnnNoAdapters(random, MathEngine());
-    dnnNoAdapters.SetInitializer(init.Ptr());
-    createDnnHeadNaive(dnnNoAdapters, false);
+    CRandom random( 0x01 );
+    CPtr<CDnnUniformInitializer> init = new CDnnUniformInitializer( random, 0.05f, 0.05f );
 
-    CDnn dnnWithAdapters(random, MathEngine());
-    dnnWithAdapters.SetInitializer(init.Ptr());
-    createDnnHeadAdapter(dnnWithAdapters, false);
+    CDnn dnnNoAdapters( random, MathEngine() );
+    dnnNoAdapters.SetInitializer( init.Ptr() );
+    createDnn( dnnNoAdapters, /*isNaive*/true, /*complexity*/1000, /*dropout*/0.f, /*freeTerm*/false );
 
-    for(int i = 0; i < 100; ++i) {
+    CRandom randomWithAdapters( 0x01 );
+    CDnn dnnWithAdapters( randomWithAdapters, MathEngine() );
+    dnnWithAdapters.SetInitializer( init.Ptr() );
+    createDnn( dnnWithAdapters, /*isNaive*/false, /*complexity*/1000, /*dropout*/0.f, /*freeTerm*/false );
+
+    CPtr<CLossLayer> expectedLoss = CheckCast<CLossLayer>( dnnNoAdapters.GetLayer( "loss" ).Ptr() );
+    CPtr<CLossLayer> outputLoss = CheckCast<CLossLayer>( dnnWithAdapters.GetLayer( "loss" ).Ptr() );
+
+    for( int i = 0; i < 100; ++i ) {
         dnnNoAdapters.RunAndLearnOnce();
         dnnWithAdapters.RunAndLearnOnce();
-        EXPECT_EQ(static_cast<CLossLayer*>(dnnNoAdapters.GetLayer("loss").Ptr())->GetLastLoss(),
-            static_cast<CLossLayer*>(dnnWithAdapters.GetLayer("loss").Ptr())->GetLastLoss());
+        EXPECT_NEAR( expectedLoss->GetLastLoss(), outputLoss->GetLastLoss(), 1e-3f );
     }
 }
 
-TEST(CDnnHeadTest, DnnHeadAdapterSerializationTest)
+TEST( CDnnHeadTest, DnnHeadAdapterSerializationTest )
 {
-    CRandom random(0);
-    CDnn dnn(random, MathEngine());
+    CRandom random( 0 );
+    CDnn dnn( random, MathEngine() );
 
-    createDnnHeadAdapter(dnn);
+    createDnn( dnn, /*isNaive*/false );
     dnn.RunOnce();
-    CPtr<CDnnBlob> expected = static_cast<CSinkLayer*>(dnn.GetLayer("sink").Ptr())->GetBlob();
+
+    CPtr<CDnnBlob> expected = CheckCast<CSinkLayer>( dnn.GetLayer( "sink" ).Ptr() )->GetBlob();
     {
         CMemoryFile file;
         {
@@ -352,52 +285,17 @@ TEST(CDnnHeadTest, DnnHeadAdapterSerializationTest)
             dnn.Serialize( archive );
         }
     }
-    initializeDnnBlobs(dnn);
+    initializeDnnBlobs( dnn );
     dnn.RunOnce();
-    CPtr<CDnnBlob> output = static_cast<CSinkLayer*>(dnn.GetLayer("sink").Ptr())->GetBlob();
+    CPtr<CDnnBlob> output = CheckCast<CSinkLayer>( dnn.GetLayer( "sink" ).Ptr() )->GetBlob();
     EXPECT_TRUE( CompareBlobs( *expected, *output ) );
 }
 
 TEST( CDnnHeadTest, DISABLED_DnnHeadAdapterInferencePerfomance )
 {
-    CRandom random( 0 );
-    CDnn dnn( random, MathEngine() );
+    DeleteMathEngine();
+    testDnnAdapterPerformace( /*isNaive*/false, /*interations*/200 );
 
-    createDnnHeadAdapter( dnn );
-    OptimizeDnn( dnn );
-    dnn.RunOnce();
-
-    IPerformanceCounters* counters = MathEngine().CreatePerformanceCounters();
-    counters->Synchronise();
-    for( int i = 0; i < 1000; ++i ) {
-        dnn.RunOnce();
-    }
-    counters->Synchronise();
-
-    std::cerr << "Inference Time: " << ( double( ( *counters )[0].Value ) / 1000000 ) << " ms."
-        << '\t' << "Peak.Mem: " << ( double( MathEngine().GetPeakMemoryUsage() ) / 1024 / 1024 ) << " MB"
-        << '\n';
-    delete counters;
-}
-
-TEST( CDnnHeadTest, DISABLED_DnnHeadNaiveInferencePerfomance )
-{
-    CRandom random( 0 );
-    CDnn dnn( random, MathEngine() );
-
-    createDnnHeadNaive( dnn );
-    OptimizeDnn( dnn );
-    dnn.RunOnce();
-
-    IPerformanceCounters* counters = MathEngine().CreatePerformanceCounters();
-    counters->Synchronise();
-    for( int i = 0; i < 1000; ++i ) {
-        dnn.RunOnce();
-    }
-    counters->Synchronise();
-
-    std::cerr << "Inference Time: " << ( double( ( *counters )[0].Value ) / 1000000 ) << " ms."
-        << '\t' << "Peak.Mem: " << ( double( MathEngine().GetPeakMemoryUsage() ) / 1024 / 1024 ) << " MB"
-        << '\n';
-    delete counters;
+    DeleteMathEngine();
+    testDnnAdapterPerformace( /*isNaive*/true, /*interations*/200 );
 }
