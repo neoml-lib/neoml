@@ -31,7 +31,6 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/ConcatLayer.h>
 #include <NeoML/Dnn/Layers/ConvLayer.h>
 #include <NeoML/Dnn/Layers/DataLayer.h>
-#include <NeoML/Dnn/Layers/DnnHeadAdapterLayer.h>
 #include <NeoML/Dnn/Layers/DropoutLayer.h>
 #include <NeoML/Dnn/Layers/EltwiseLayer.h>
 #include <NeoML/Dnn/Layers/FullyConnectedLayer.h>
@@ -72,6 +71,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/CtcLayer.h>
 #include <NeoML/Dnn/Layers/CumSumLayer.h>
 #include <NeoML/Dnn/Layers/DepthToSpaceLayer.h>
+#include <NeoML/Dnn/Layers/DnnHeadAdapterLayer.h>
 #include <NeoML/Dnn/Layers/DotProductLayer.h>
 #include <NeoML/Dnn/Layers/EnumBinarizationLayer.h>
 #include <NeoML/Dnn/Layers/FocalLossLayer.h>
@@ -278,7 +278,6 @@ REGISTER_NEOML_LAYER( CAddToObjectLayer, "NeoMLDnnAddToObjectLayer" )
 REGISTER_NEOML_LAYER( CBroadcastLayer, "NeoMLDnnBroadcastLayer" )
 REGISTER_NEOML_LAYER( CCastLayer, "NeoMLDnnCastLayer" )
 REGISTER_NEOML_LAYER( CDataLayer, "NeoMLDnnDataLayer" )
-REGISTER_NEOML_LAYER( CDnnHeadAdapterLayer, "NeoMLDnnHeadAdapterLayer" )
 REGISTER_NEOML_LAYER( CEltwiseSubLayer, "NeoMLDnnEltwiseSubLayer" )
 REGISTER_NEOML_LAYER( CEltwiseDivLayer, "NeoMLDnnEltwiseDivLayer" )
 REGISTER_NEOML_LAYER( CGELULayer, "NeoMLDnnGELULayer" )
@@ -351,6 +350,7 @@ REGISTER_NEOML_LAYER( CCrfLayer, "FmlCnnCrfLayer" )
 REGISTER_NEOML_LAYER( CCrfLossLayer, "FmlCnnCrfLossLayer" )
 REGISTER_NEOML_LAYER( CCtcDecodingLayer, "FmlCnnCtcDecodingLayer" )
 REGISTER_NEOML_LAYER( CCtcLossLayer, "FmlCnnCtcLossLayer" )
+REGISTER_NEOML_LAYER( CDnnHeadAdapterLayer, "NeoMLDnnHeadAdapterLayer" )
 REGISTER_NEOML_LAYER( CDotProductLayer, "FmlCnnDotProductLayer" )
 REGISTER_NEOML_LAYER( CEnumBinarizationLayer, "FmlCnnEnumBinarizationLayer" )
 REGISTER_NEOML_LAYER( CGlobalMaxPoolingLayer, "FmlCnnGlobalMaxPoolingLayer" )
