@@ -107,7 +107,7 @@ static void indRnnBackwardTestImpl( const CTestParams& params, int seed )
 	std::vector<float> actualData( dataSize );
 	actualBlob.CopyTo( actualData.data() );
 
-	ASSERT_EQ( expectedData.size(), actualData.size() );
+	EXPECT_EQ( expectedData.size(), actualData.size() );
 	for( int i = 0; i < dataSize; ++i ) {
 		EXPECT_TRUE( FloatEq( expectedData[i], actualData[i], 1e-2f ) );
 	}
@@ -143,7 +143,7 @@ TEST_P( CIndRnnBackwardTest, Random )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
 		return;
 	}
 

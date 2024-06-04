@@ -101,7 +101,7 @@ static void globalMaxPoolingBackwardImpl( const CTestParams& params, int seed )
 		resultHeight * resultWidth * resultDepth, channels, sourceHeight * sourceWidth * sourceDepth * channels );
 
 	for( size_t i = 0; i < expectedDiff.size(); ++i ) {
-		ASSERT_FLOAT_EQ( expectedDiff[i], actualDiff[i] );
+		EXPECT_FLOAT_EQ( expectedDiff[i], actualDiff[i] );
 	}
 }
 
@@ -189,7 +189,7 @@ TEST_P( CGlobalMaxPoolingBackwardTest, Random )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
 		return;
 	}
 

@@ -167,7 +167,8 @@ TEST( UnpackCompositeOptimizerTest, Sample )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// RowwiseChain
 		return;
 	}
 

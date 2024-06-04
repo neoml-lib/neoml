@@ -34,7 +34,7 @@ static void vectorErfImpl( const CTestParams& params, int seed )
 
 	for( int i = 0; i < vectorSize; i++ ) {
 		float expected = std::erff( a[i] );
-		ASSERT_NEAR( result[i], expected, 1e-5 );
+		EXPECT_NEAR( result[i], expected, 1e-5 );
 	}
 }
 
@@ -67,7 +67,7 @@ TEST_P( CMathEngineVectorErfTest, Random )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
 		return;
 	}
 

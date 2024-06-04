@@ -128,9 +128,9 @@ static void checkResults( const CPtr<CDnnBlob>& actualBlob, const CPtr<CDnnBlob>
 	expectedBlob->CopyTo( expectedData.GetPtr() );
 	actualBlob->CopyTo( actualData.GetPtr() );
 
-	ASSERT_EQ( expectedData.Size(), actualData.Size() );
+	EXPECT_EQ( expectedData.Size(), actualData.Size() );
 	for( int i = 0; i < expectedData.Size(); i++ ) {
-		ASSERT_NEAR( expectedData[i], actualData[i], 1E-2 ) << i;
+		EXPECT_NEAR( expectedData[i], actualData[i], 1E-2 ) << i;
 	}
 }
 
@@ -195,7 +195,7 @@ TEST_P( CDnnInferencePerformanceTest, OneMathEngine )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skip for met=" << met << ", unable use threads.\n";
 		return;
 	}
 
@@ -229,7 +229,7 @@ TEST_P( CDnnInferencePerformanceTest, LocalMathEngine )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skip for met=" << met << ", unable use threads.\n";
 		return;
 	}
 
@@ -247,7 +247,7 @@ TEST_P( CDnnInferencePerformanceTest, LocalMathEngine )
 
 	for( int i = 0; i < param.ThreadCount; ++i ) {
 		auto mathEngine = CreateMathEngine( MathEngineType(), memoryLimit );
-		ASSERT_TRUE( mathEngine != nullptr ) << i;
+		EXPECT_TRUE( mathEngine != nullptr ) << i;
 		mathEngines.emplace_back( mathEngine );
 		results.push_back( std::async( std::launch::async, Run, std::ref( param ), std::ref( *mathEngine ) ) );
 	}

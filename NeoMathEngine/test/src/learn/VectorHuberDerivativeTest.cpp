@@ -40,7 +40,7 @@ static void vectorHuberDerivativeImpl( const CTestParams& params, int seed )
 		} else {
 			expected = vector[i];
 		}
-		ASSERT_TRUE( FloatEq( expected, result[i] ) );
+		EXPECT_TRUE( FloatEq( expected, result[i] ) );
 	}
 }
 
@@ -63,7 +63,7 @@ TEST_P( CVectorHuberDerivativeTest, Random )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
 		return;
 	}
 

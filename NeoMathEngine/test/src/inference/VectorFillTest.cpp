@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -31,7 +31,7 @@ static void vectorFillTestImpl( const CTestParams& params, int seed )
 	result.resize( vectorSize );
 	MathEngine().VectorFill( CARRAY_FLOAT_WRAPPER( result ), value, vectorSize );
 	for( int i = 0; i < vectorSize; i++ ) {
-		ASSERT_EQ( value, result[i] );
+		EXPECT_EQ( value, result[i] ) << i;
 	}
 }
 

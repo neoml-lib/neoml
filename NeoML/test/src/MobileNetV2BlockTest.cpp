@@ -181,7 +181,8 @@ TEST( MobileNetV2BlockLayerTest, Run )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// RowwiseMobileNetV2
 		return;
 	}
 
@@ -203,7 +204,8 @@ TEST( MobileNetV2BlockLayerTest, CornerCases )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// RowwiseMobileNetV2
 		return;
 	}
 
@@ -251,9 +253,9 @@ TEST( MobileNetV2OptimizerTest, SimpleNonResidual )
 			CConvLayer* downConv = Conv( 8, CConvAxisParams( 1 ), CConvAxisParams( 1 ) )( "downConv", channelwiseActivation.Ptr() );
 			Sink( downConv, "sink" );
 			CDnnOptimizationReport report = OptimizeDnn( dnn );
-			ASSERT_EQ( 1, report.MobileNetV2NonResidualBlocks );
-			ASSERT_EQ( 0, report.MobileNetV2ResidualBlocks );
-			ASSERT_EQ( 3, dnn.GetLayerCount() );
+			EXPECT_EQ( 1, report.MobileNetV2NonResidualBlocks );
+			EXPECT_EQ( 0, report.MobileNetV2ResidualBlocks );
+			EXPECT_EQ( 3, dnn.GetLayerCount() );
 		}
 	}
 }
@@ -272,9 +274,9 @@ TEST( MobileNetV2OptimizerTest, SimpleResidual )
 	CEltwiseSumLayer* residual = Sum()( "residual", data, downConv );
 	Sink( residual, "sink" );
 	CDnnOptimizationReport report = OptimizeDnn( dnn );
-	ASSERT_EQ( 0, report.MobileNetV2NonResidualBlocks );
-	ASSERT_EQ( 1, report.MobileNetV2ResidualBlocks );
-	ASSERT_EQ( 3, dnn.GetLayerCount() );
+	EXPECT_EQ( 0, report.MobileNetV2NonResidualBlocks );
+	EXPECT_EQ( 1, report.MobileNetV2ResidualBlocks );
+	EXPECT_EQ( 3, dnn.GetLayerCount() );
 }
 
 TEST( MobileNetV2OptimizerTest, ResidualResidual )
@@ -292,9 +294,9 @@ TEST( MobileNetV2OptimizerTest, ResidualResidual )
 	CEltwiseSumLayer* doubleResidual = Sum()( "doubleResidual", data, residual );
 	Sink( doubleResidual, "sink" );
 	CDnnOptimizationReport report = OptimizeDnn( dnn );
-	ASSERT_EQ( 0, report.MobileNetV2NonResidualBlocks );
-	ASSERT_EQ( 1, report.MobileNetV2ResidualBlocks );
-	ASSERT_EQ( 4, dnn.GetLayerCount() );
+	EXPECT_EQ( 0, report.MobileNetV2NonResidualBlocks );
+	EXPECT_EQ( 1, report.MobileNetV2ResidualBlocks );
+	EXPECT_EQ( 4, dnn.GetLayerCount() );
 }
 
 TEST( MobileNetV2OptimizerTest, NeighboringResiduals )
@@ -313,9 +315,9 @@ TEST( MobileNetV2OptimizerTest, NeighboringResiduals )
 	CEltwiseSumLayer* secondResidual = Sum()( "secondResidual", data, downConv );
 	Sink( secondResidual, "secondSink" );
 	CDnnOptimizationReport report = OptimizeDnn( dnn );
-	ASSERT_EQ( 1, report.MobileNetV2NonResidualBlocks );
-	ASSERT_EQ( 0, report.MobileNetV2ResidualBlocks );
-	ASSERT_EQ( 6, dnn.GetLayerCount() );
+	EXPECT_EQ( 1, report.MobileNetV2NonResidualBlocks );
+	EXPECT_EQ( 0, report.MobileNetV2ResidualBlocks );
+	EXPECT_EQ( 6, dnn.GetLayerCount() );
 }
 
 TEST( MobileNetV2OptimizerTest, SinkFromTheMiddle )
@@ -333,8 +335,8 @@ TEST( MobileNetV2OptimizerTest, SinkFromTheMiddle )
 	CEltwiseSumLayer* residual = Sum()( "residual", data, downConv );
 	Sink( residual, "sink" );
 	CDnnOptimizationReport report = OptimizeDnn( dnn );
-	ASSERT_EQ( 0, report.MobileNetV2NonResidualBlocks );
-	ASSERT_EQ( 0, report.MobileNetV2ResidualBlocks );
+	EXPECT_EQ( 0, report.MobileNetV2NonResidualBlocks );
+	EXPECT_EQ( 0, report.MobileNetV2ResidualBlocks );
 }
 
 TEST( MobileNetV2OptimizerTest, SinkDisablesResidual )
@@ -352,7 +354,7 @@ TEST( MobileNetV2OptimizerTest, SinkDisablesResidual )
 	CEltwiseSumLayer* residual = Sum()( "residual", data, downConv );
 	Sink( residual, "sink" );
 	CDnnOptimizationReport report = OptimizeDnn( dnn );
-	ASSERT_EQ( 1, report.MobileNetV2NonResidualBlocks );
-	ASSERT_EQ( 0, report.MobileNetV2ResidualBlocks );
-	ASSERT_EQ( 5, dnn.GetLayerCount() );
+	EXPECT_EQ( 1, report.MobileNetV2NonResidualBlocks );
+	EXPECT_EQ( 0, report.MobileNetV2ResidualBlocks );
+	EXPECT_EQ( 5, dnn.GetLayerCount() );
 }

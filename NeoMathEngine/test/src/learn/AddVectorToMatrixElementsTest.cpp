@@ -43,7 +43,7 @@ static void addVectorToMatrixElementsTestImpl( const CTestParams& params, int se
 		initMatrix[h * width + indices[h]] += vector1[h];
 	}
 	for( size_t i = 0; i < matrix.size(); ++i ) {
-		ASSERT_NEAR( initMatrix[i], matrix[i], 1e-3 );
+		EXPECT_NEAR( initMatrix[i], matrix[i], 1e-3 );
 	}
 	
 	matrix = initMatrix;
@@ -57,7 +57,7 @@ static void addVectorToMatrixElementsTestImpl( const CTestParams& params, int se
 		initMatrix[rowIndices[i] * width + columnIndices[i]] += vector2[i];
 	}
 	for( size_t i = 0; i < matrix.size(); ++i ) {
-		ASSERT_NEAR( initMatrix[i], matrix[i], 1e-3 );
+		EXPECT_NEAR( initMatrix[i], matrix[i], 1e-3 );
 	}
 }
 
@@ -93,7 +93,7 @@ TEST_P( CAddVectorToMatrixElementsTest, Random )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
 		return;
 	}
 

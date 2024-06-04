@@ -59,7 +59,7 @@ static void multiplyTransposedLookupMatrixByVectorTestImpl( const CTestParams& p
 		batchMultiplyMatrixByMatrixAndAddNaive( batchSize, vector, matrixData, 1, height, width, expected );
 
 		for( size_t i = 0; i < expected.size(); ++i ) {
-			ASSERT_NEAR( get[i], expected[i], 1e-3 );
+			EXPECT_NEAR( get[i], expected[i], 1e-3 );
 		}
 	}
 }
@@ -92,7 +92,7 @@ TEST_P( CMultiplyTransposedLookupMatrixByVectorTest, Random )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
 		return;
 	}
 

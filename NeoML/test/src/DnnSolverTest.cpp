@@ -39,7 +39,8 @@ TEST( CDnnSolverTest, NetworkModificationOnGradientAccumulation )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// dnn.RunAndLearnOnce -> VectorHuberDerivative
 		return;
 	}
 
@@ -283,7 +284,8 @@ TEST( CDnnSolverTest, SgdNoReg )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// dnn.RunAndLearnOnce -> VectorHuberDerivative
 		return;
 	}
 
@@ -300,6 +302,7 @@ TEST( CDnnSolverTest, SgdNoReg )
 	sgd->SetMomentDecayRate( 0.9f );
 	sgd->SetLearningRate( 0.5f );
 	sgd->SetCompatibilityMode( false );
+
 	testSolver( sgd, expected );
 }
 
@@ -307,7 +310,8 @@ TEST( CDnnSolverTest, SgdL1 )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// dnn.RunAndLearnOnce -> VectorHuberDerivative
 		return;
 	}
 
@@ -324,6 +328,7 @@ TEST( CDnnSolverTest, SgdL1 )
 	sgd->SetMomentDecayRate( 0.9f );
 	sgd->SetLearningRate( 0.5f );
 	sgd->SetCompatibilityMode( false );
+
 	testSolver( sgd, expected );
 }
 
@@ -331,7 +336,8 @@ TEST( CDnnSolverTest, SgdL2 )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// dnn.RunAndLearnOnce -> VectorHuberDerivative
 		return;
 	}
 
@@ -348,6 +354,7 @@ TEST( CDnnSolverTest, SgdL2 )
 	sgd->SetMomentDecayRate( 0.9f );
 	sgd->SetLearningRate( 0.5f );
 	sgd->SetCompatibilityMode( false );
+
 	testSolver( sgd, expected );
 }
 
@@ -357,7 +364,8 @@ TEST( CDnnSolverTest, SgdCompatNoReg )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// dnn.RunAndLearnOnce -> VectorHuberDerivative
 		return;
 	}
 
@@ -374,6 +382,7 @@ TEST( CDnnSolverTest, SgdCompatNoReg )
 	sgd->SetMomentDecayRate( 0.9f );
 	sgd->SetLearningRate( 0.5f );
 	sgd->SetCompatibilityMode( true );
+
 	testSolver( sgd, expected );
 }
 
@@ -381,7 +390,8 @@ TEST( CDnnSolverTest, SgdCompatL1 )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// dnn.RunAndLearnOnce -> VectorHuberDerivative
 		return;
 	}
 
@@ -398,6 +408,7 @@ TEST( CDnnSolverTest, SgdCompatL1 )
 	sgd->SetMomentDecayRate( 0.9f );
 	sgd->SetLearningRate( 0.5f );
 	sgd->SetCompatibilityMode( true );
+
 	testSolver( sgd, expected );
 }
 
@@ -405,7 +416,8 @@ TEST( CDnnSolverTest, SgdCompatL2 )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// dnn.RunAndLearnOnce -> VectorHuberDerivative
 		return;
 	}
 
@@ -422,6 +434,7 @@ TEST( CDnnSolverTest, SgdCompatL2 )
 	sgd->SetMomentDecayRate( 0.9f );
 	sgd->SetLearningRate( 0.5f );
 	sgd->SetCompatibilityMode( true );
+
 	testSolver( sgd, expected );
 }
 
@@ -433,7 +446,8 @@ TEST( CDnnSolverTest, AdamNoReg )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// dnn.RunAndLearnOnce -> VectorHuberDerivative
 		return;
 	}
 
@@ -460,7 +474,8 @@ TEST( CDnnSolverTest, AdamL1 )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// dnn.RunAndLearnOnce -> VectorHuberDerivative
 		return;
 	}
 
@@ -487,7 +502,8 @@ TEST( CDnnSolverTest, AdamL2 )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// dnn.RunAndLearnOnce -> VectorHuberDerivative
 		return;
 	}
 
@@ -515,7 +531,8 @@ TEST( CDnnSolverTest, AdamCompatNoReg )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// dnn.RunAndLearnOnce -> VectorHuberDerivative
 		return;
 	}
 
@@ -542,7 +559,8 @@ TEST( CDnnSolverTest, AdamCompatL1 )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// dnn.RunAndLearnOnce -> VectorHuberDerivative
 		return;
 	}
 
@@ -569,7 +587,8 @@ TEST( CDnnSolverTest, AdamCompatL2 )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// dnn.RunAndLearnOnce -> VectorHuberDerivative
 		return;
 	}
 
@@ -600,7 +619,8 @@ TEST( CDnnSolverTest, NadamNoReg )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// dnn.RunAndLearnOnce -> VectorHuberDerivative
 		return;
 	}
 
@@ -626,7 +646,8 @@ TEST( CDnnSolverTest, NadamL1 )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// dnn.RunAndLearnOnce -> VectorHuberDerivative
 		return;
 	}
 
@@ -652,7 +673,8 @@ TEST( CDnnSolverTest, NadamL2 )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// dnn.RunAndLearnOnce -> VectorHuberDerivative
 		return;
 	}
 
@@ -839,7 +861,8 @@ TEST( CDnnSimpleGradientSolverTest, Serialization1 )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// dnn.RunAndLearnOnce -> VectorHuberDerivative
 		return;
 	}
 
@@ -857,7 +880,8 @@ TEST( CDnnSimpleGradientSolverTest, Serialization2 )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// dnn.RunAndLearnOnce -> VectorHuberDerivative
 		return;
 	}
 
@@ -879,7 +903,8 @@ TEST( CDnnAdaptiveGradientSolverTest, Serialization1 )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// dnn.RunAndLearnOnce -> VectorHuberDerivative
 		return;
 	}
 
@@ -901,7 +926,8 @@ TEST( CDnnAdaptiveGradientSolverTest, Serialization2 )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// dnn.RunAndLearnOnce -> VectorHuberDerivative
 		return;
 	}
 
@@ -923,7 +949,8 @@ TEST( CDnnNesterovGradientSolverTest, Serialization1 )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// dnn.RunAndLearnOnce -> VectorHuberDerivative
 		return;
 	}
 
@@ -944,7 +971,8 @@ TEST( CDnnNesterovGradientSolverTest, Serialization2 )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// dnn.RunAndLearnOnce -> VectorHuberDerivative
 		return;
 	}
 
@@ -969,7 +997,8 @@ TEST( CDnnLambGradientSolverTest, Serialization1 )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// dnn.RunAndLearnOnce -> VectorHuberDerivative
 		return;
 	}
 
@@ -992,7 +1021,8 @@ TEST( CDnnLambGradientSolverTest, Serialization2 )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// dnn.RunAndLearnOnce -> VectorHuberDerivative
 		return;
 	}
 
@@ -1014,7 +1044,8 @@ TEST( CDnnLambGradientSolverTest, Serialization3 )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// dnn.RunAndLearnOnce -> VectorHuberDerivative
 		return;
 	}
 
@@ -1036,7 +1067,8 @@ TEST( CDnnLambGradientSolverTest, Serialization4 )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// dnn.RunAndLearnOnce -> VectorHuberDerivative
 		return;
 	}
 
@@ -1060,7 +1092,8 @@ TEST( CDnnSolverTest, CompositeLearningRate )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// BatchCalculateLossAndGradient -> VectorEltwiseNotNegative
 		return;
 	}
 

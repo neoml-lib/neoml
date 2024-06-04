@@ -54,25 +54,25 @@ static void rowwiseTestImpl( TChainBuilder buildChain, int seed )
 
 	// Just to be on a safe side
 	// Let's check that layers didn't overwrite input data
-	ASSERT_TRUE( CompareBlobs( *originalInput, *source->GetBlob() ) );
+	EXPECT_TRUE( CompareBlobs( *originalInput, *source->GetBlob() ) );
 
 	CDnnOptimizationReport report = OptimizeDnn( dnn );
-	ASSERT_EQ( 1, report.RowwiseChainCount );
-	ASSERT_EQ( 3, dnn.GetLayerCount() );
+	EXPECT_EQ( 1, report.RowwiseChainCount );
+	EXPECT_EQ( 3, dnn.GetLayerCount() );
 
 	dnn.RunOnce();
 
 	// Check that rowwise doesn't overwrite its input
-	ASSERT_TRUE( CompareBlobs( *originalInput, *source->GetBlob() ) );
+	EXPECT_TRUE( CompareBlobs( *originalInput, *source->GetBlob() ) );
 	// Check that rowwise returns the same output
-	ASSERT_TRUE( CompareBlobs( *originalOutput, *sink->GetBlob() ) );
+	EXPECT_TRUE( CompareBlobs( *originalOutput, *sink->GetBlob() ) );
 }
 
 TEST( RowwiseTest, ActivationOp )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
 		return;
 	}
 
@@ -101,7 +101,7 @@ TEST( RowwiseTest, ChannelwiseConvOp )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
 		return;
 	}
 
@@ -122,7 +122,7 @@ TEST( RowwiseTest, ConvOp )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
 		return;
 	}
 
@@ -143,7 +143,7 @@ TEST( RowwiseTest, PoolingOp )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
 		return;
 	}
 
@@ -164,7 +164,7 @@ TEST( RowwiseTest, ResizeImageOp )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
 		return;
 	}
 
@@ -186,7 +186,7 @@ TEST( RowwiseTest, Optimize2Chains )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
 		return;
 	}
 
@@ -220,7 +220,7 @@ TEST( RowwiseTest, OptimizeOpInFrontOfChain )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
 		return;
 	}
 

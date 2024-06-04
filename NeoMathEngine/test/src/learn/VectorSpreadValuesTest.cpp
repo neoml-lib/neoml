@@ -42,7 +42,7 @@ static void vectorSpreadValuesImpl( const CTestParams& params, int seed )
 
 	for( int i = 0; i < vectorSize; i++ ) {
 		const int vectorIndex = indices[i];
-		ASSERT_FLOAT_EQ( vectors[vectorIndex].GetValueAt( i ), source[i] );
+		EXPECT_FLOAT_EQ( vectors[vectorIndex].GetValueAt( i ), source[i] );
 	}
 
 	for( int i = 0; i < vectorCount; i++ ) {
@@ -70,7 +70,7 @@ TEST_P( CVectorSpreadValuesTest, Random )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
 		return;
 	}
 

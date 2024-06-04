@@ -35,7 +35,7 @@ static void vectorEltwiseLessImpl( const CTestParams& params, int seed )
 
 	for( int i = 0; i < vectorSize; i++ ) {
 		const TDst expected = static_cast<TDst>( first[i] < second[i] ? 1 : 0 );
-		ASSERT_EQ( expected, result[i] );
+		EXPECT_EQ( expected, result[i] );
 	}
 }
 
@@ -58,7 +58,7 @@ TEST_P( CVectorEltwiseLessTest, Random )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
 		return;
 	}
 
@@ -66,4 +66,5 @@ TEST_P( CVectorEltwiseLessTest, Random )
 	RUN_TEST_IMPL( vectorEltwiseLessImpl<float VecEltwiseLessTestComma float> );
 	RUN_TEST_IMPL( vectorEltwiseLessImpl<float VecEltwiseLessTestComma int> );
 	RUN_TEST_IMPL( vectorEltwiseLessImpl<int VecEltwiseLessTestComma int> );
+#undef VecEltwiseLessTestComma
 }

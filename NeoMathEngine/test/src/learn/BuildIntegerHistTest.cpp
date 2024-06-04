@@ -51,7 +51,7 @@ static void buildIntegerHistTestImpl( const CTestParams& params, int seed )
 	resultBlob.CopyTo( result.data() );
 
 	for( int i = 0; i < maxValue; ++i ) {
-		ASSERT_EQ( expected[i], result[i] ) << "at index " << i;
+		EXPECT_EQ( expected[i], result[i] ) << "at index " << i;
 	}
 }
 
@@ -74,7 +74,7 @@ TEST_P( CBuildIntegerHistTest, Random )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skip for MathEngine type= " << met << " , investigate later.\n";
 		return;
 	}
 

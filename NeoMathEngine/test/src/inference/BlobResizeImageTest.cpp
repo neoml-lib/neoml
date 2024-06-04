@@ -19,6 +19,10 @@ limitations under the License.
 using namespace NeoML;
 using namespace NeoMLTest;
 
+namespace NeoMLTest {
+
+static bool paddingConstant = 0;
+
 static void blobResizeImageTestImpl( const CTestParams& params, int seed )
 {
 	CRandom random( seed );
@@ -26,7 +30,7 @@ static void blobResizeImageTestImpl( const CTestParams& params, int seed )
 	const CInterval batchSizeInterval = params.GetInterval( "BatchSize" );
 	std::vector<CInterval> imageSizeInterval;
 	params.GetArray( "ImageSize", imageSizeInterval );
-	ASSERT_EQ( imageSizeInterval.size(), 3 );
+	EXPECT_EQ( imageSizeInterval.size(), 3 );
 	const CInterval deltaLeftInterval = params.GetInterval( "DeltaLeft" );
 	const CInterval deltaRightInterval = params.GetInterval( "DeltaRight" );
 	const CInterval deltaTopInterval = params.GetInterval( "DeltaTop" );
@@ -52,6 +56,10 @@ static void blobResizeImageTestImpl( const CTestParams& params, int seed )
 		defaultValueInterval.End ) );
 
 	for( TBlobResizePadding padding : { TBlobResizePadding::Constant, TBlobResizePadding::Edge, TBlobResizePadding::Reflect } ) {
+		if( paddingConstant && padding != TBlobResizePadding::Constant ) {
+			continue;
+		}
+
 		CFloatBlob input( MathEngine(), batchSize, height, width, channels );
 		CFloatBlob output( MathEngine(), batchSize, height + deltaTop + deltaBottom, width + deltaLeft + deltaRight, channels );
 		std::vector<float> inputBuff;
@@ -100,7 +108,7 @@ static void blobResizeImageTestImpl( const CTestParams& params, int seed )
 			deltaBottom, padding, defaultValue, output.GetDesc(), output.GetData() );
 		output.CopyTo( actual.data() );
 		for( size_t i = 0; i < expected.size(); ++i ) {
-			ASSERT_NEAR( expected[i], actual[i], 1e-3 ) << params;
+			EXPECT_NEAR( expected[i], actual[i], 1e-3 ) << params;
 		}
 	}
 }
@@ -109,6 +117,8 @@ static void blobResizeImageTestImpl( const CTestParams& params, int seed )
 
 class CMathEngineBlobResizeImageTest : public CTestFixtureWithParams {
 };
+
+} // namespace NeoMLTest
 
 INSTANTIATE_TEST_CASE_P( CMathEngineBlobResizeImageTestInstantiation, CMathEngineBlobResizeImageTest,
 	::testing::Values(
@@ -147,10 +157,11 @@ INSTANTIATE_TEST_CASE_P( CMathEngineBlobResizeImageTestInstantiation, CMathEngin
 
 TEST_P( CMathEngineBlobResizeImageTest, Random )
 {
+	paddingConstant = 0;
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
-		return;
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped SOME of test for MathEngine type=" << met << " because no implementation.\n";
+		paddingConstant = 1;
 	}
 
 	RUN_TEST_IMPL(blobResizeImageTestImpl)

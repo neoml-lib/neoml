@@ -133,7 +133,7 @@ static void blob3dConvolutionBackwardImpl( const CTestParams& params, int seed )
 	batchConvolutionBackward( convParams, inputData.data(), filterData.data(), addFreeTerm ? freeTermData.data() : 0, outputData.data() );
 
 	for( size_t i = 0; i < resultData.size(); i++ ) {
-		ASSERT_NEAR( inputData[i], resultData[i], 1e-2 );
+		EXPECT_NEAR( inputData[i], resultData[i], 1e-2 );
 	}
 }
 
@@ -208,7 +208,7 @@ TEST_P( CBlob3dConvolutionBackwardTest, Random )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skip for MathEngine type= " << met << " , investigate later.\n";
 		return;
 	}
 

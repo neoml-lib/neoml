@@ -288,9 +288,9 @@ static void mobileNetV3BlockTestImpl( unsigned int seed, int freeTermMask, const
 	CDnnBlobBuffer<float> expected( *expectedBlob, TDnnBlobBufferAccess::Read );
 	CDnnBlobBuffer<float> actual( *actualBlob, TDnnBlobBufferAccess::Read );
 
-	ASSERT_EQ( expected.Size(), actual.Size() ) << "output size mismatch";
+	EXPECT_EQ( expected.Size(), actual.Size() ) << "output size mismatch";
 	for( int i = 0; i < expected.Size(); ++i ) {
-		ASSERT_NEAR( expected[i], actual[i], 1e-3 ) << "at index " << i;
+		EXPECT_NEAR( expected[i], actual[i], 1e-3 ) << "at index " << i;
 	}
 }
 
@@ -308,7 +308,8 @@ TEST( MobileNetV3BlockLayerTest, Run )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// MobileNetV3PreSEBlock
 		return;
 	}
 
@@ -365,9 +366,9 @@ TEST( MobileNetV3OptimizerTest, SimpleNonResidual )
 						CBaseLayer* postSE = addMNv3PostSE( postSEParams, *data, *preSE, *se );
 						Sink( postSE, "sink" );
 						CDnnOptimizationReport report = OptimizeDnn( dnn );
-						ASSERT_EQ( 1, report.MobileNetV3NonResidualBlocks );
-						ASSERT_EQ( 0, report.MobileNetV3ResidualBlocks );
-						ASSERT_EQ( 9, dnn.GetLayerCount() );
+						EXPECT_EQ( 1, report.MobileNetV3NonResidualBlocks );
+						EXPECT_EQ( 0, report.MobileNetV3ResidualBlocks );
+						EXPECT_EQ( 9, dnn.GetLayerCount() );
 					}
 				}
 			}
@@ -395,9 +396,9 @@ TEST( MobileNetV3OptimizerTest, SimpleResidual )
 	CBaseLayer* postSE = addMNv3PostSE( postSEParams, *data, *preSE, *se );
 	Sink( postSE, "sink" );
 	CDnnOptimizationReport report = OptimizeDnn( dnn );
-	ASSERT_EQ( 0, report.MobileNetV3NonResidualBlocks );
-	ASSERT_EQ( 1, report.MobileNetV3ResidualBlocks );
-	ASSERT_EQ( 9, dnn.GetLayerCount() );
+	EXPECT_EQ( 0, report.MobileNetV3NonResidualBlocks );
+	EXPECT_EQ( 1, report.MobileNetV3ResidualBlocks );
+	EXPECT_EQ( 9, dnn.GetLayerCount() );
 }
 
 TEST( MobileNetV3OptimizerTest, ResidualResidual )
@@ -422,9 +423,9 @@ TEST( MobileNetV3OptimizerTest, ResidualResidual )
 	CEltwiseSumLayer* secondResidual = Sum()( "secondResidual", data, postSE );
 	Sink( secondResidual, "secondSink" );
 	CDnnOptimizationReport report = OptimizeDnn( dnn );
-	ASSERT_EQ( 0, report.MobileNetV3NonResidualBlocks );
-	ASSERT_EQ( 1, report.MobileNetV3ResidualBlocks );
-	ASSERT_EQ( 11, dnn.GetLayerCount() );
+	EXPECT_EQ( 0, report.MobileNetV3NonResidualBlocks );
+	EXPECT_EQ( 1, report.MobileNetV3ResidualBlocks );
+	EXPECT_EQ( 11, dnn.GetLayerCount() );
 }
 
 TEST( MobileNetV3OptimizerTest, NeighboringResiduals )
@@ -449,9 +450,9 @@ TEST( MobileNetV3OptimizerTest, NeighboringResiduals )
 	CEltwiseSumLayer* secondResidual = Sum()( "secondResidual", dnn.GetLayer( "DownConv" ).Ptr(), postSE );
 	Sink( secondResidual, "secondSink" );
 	CDnnOptimizationReport report = OptimizeDnn( dnn );
-	ASSERT_EQ( 1, report.MobileNetV3NonResidualBlocks );
-	ASSERT_EQ( 0, report.MobileNetV3ResidualBlocks );
-	ASSERT_EQ( 12, dnn.GetLayerCount() );
+	EXPECT_EQ( 1, report.MobileNetV3NonResidualBlocks );
+	EXPECT_EQ( 0, report.MobileNetV3ResidualBlocks );
+	EXPECT_EQ( 12, dnn.GetLayerCount() );
 }
 
 TEST( MobileNetV3OptimizerTest, SinkFromTheMiddle )
@@ -491,8 +492,8 @@ TEST( MobileNetV3OptimizerTest, SinkFromTheMiddle )
 				FAIL();
 		}
 		CDnnOptimizationReport report = OptimizeDnn( dnn );
-		ASSERT_EQ( 0, report.MobileNetV3NonResidualBlocks );
-		ASSERT_EQ( 0, report.MobileNetV3ResidualBlocks );
+		EXPECT_EQ( 0, report.MobileNetV3NonResidualBlocks );
+		EXPECT_EQ( 0, report.MobileNetV3ResidualBlocks );
 	}
 }
 
@@ -517,8 +518,8 @@ TEST( MobileNetV3OptimizerTest, SinkDisablesResidual )
 	Sink( postSE, "sink" );
 	Sink( dnn.GetLayer( "DownConv" ).Ptr(), "secondSink" );
 	CDnnOptimizationReport report = OptimizeDnn( dnn );
-	ASSERT_EQ( 1, report.MobileNetV3NonResidualBlocks );
-	ASSERT_EQ( 0, report.MobileNetV3ResidualBlocks );
-	ASSERT_EQ( 11, dnn.GetLayerCount() );
+	EXPECT_EQ( 1, report.MobileNetV3NonResidualBlocks );
+	EXPECT_EQ( 0, report.MobileNetV3ResidualBlocks );
+	EXPECT_EQ( 11, dnn.GetLayerCount() );
 }
 

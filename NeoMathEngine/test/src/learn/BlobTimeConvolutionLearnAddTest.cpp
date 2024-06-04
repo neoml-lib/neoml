@@ -82,7 +82,7 @@ static void blobTimeConvolutionLearnAddTestImpl( const CTestParams& params, int 
 		inputDesc.SetDimSize( BD_Channels, objectSize );
 		break;
 	default:
-		ASSERT_TRUE( false );
+		EXPECT_TRUE( false );
 	}
 
 	CFloatBlob input( MathEngine(), batchLength, batchSize, 1, inputDesc.Height(), inputDesc.Width(), 1, inputDesc.Channels() );
@@ -130,12 +130,12 @@ static void blobTimeConvolutionLearnAddTestImpl( const CTestParams& params, int 
 	freeTerm.CopyTo( actualFreeTermBuff.data() );
 
 	for( size_t i = 0; i < expectedFilterBuff.size(); ++i ) {
-		ASSERT_TRUE( FloatEq( expectedFilterBuff[i], actualFilterBuff[i], 1e-2f ) )
+		EXPECT_TRUE( FloatEq( expectedFilterBuff[i], actualFilterBuff[i], 1e-2f ) )
 			<< "\nFilter diff check failed" << params;
 	}
 
 	for( size_t i = 0; i < expectedFreeTermBuff.size(); ++i ) {
-		ASSERT_TRUE( FloatEq( expectedFreeTermBuff[i], actualFreeTermBuff[i], 1e-2f ) )
+		EXPECT_TRUE( FloatEq( expectedFreeTermBuff[i], actualFreeTermBuff[i], 1e-2f ) )
 			<< "\nFree term diff check failed" << params;
 	}
 }
@@ -394,7 +394,7 @@ TEST_P( CBlobTimeConvolutionLearnAddTest, Random )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
 		return;
 	}
 

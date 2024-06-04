@@ -68,7 +68,7 @@ static void multiplyLookupMatrixByLookupVectorTestImpl( const CTestParams& param
 		CARRAY_FLOAT_WRAPPER( vectorData ), 1, CARRAY_FLOAT_WRAPPER( res1 ), batchSize * height );
 
 	for( size_t i = 0; i < res0.size(); ++i ) {
-		ASSERT_NEAR( res0[i], res1[i], 1e-3 );
+		EXPECT_NEAR( res0[i], res1[i], 1e-3 );
 	}
 }
 
@@ -100,7 +100,7 @@ TEST_P( CMultiplyLookupMatrixByLookupVectorTest, Random )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
 		return;
 	}
 

@@ -45,7 +45,7 @@ static void matrixLogSumExpByRowsTestImpl( const CTestParams& params, int seed )
 	}
 
 	for( int i = 0; i < height; ++i ) {
-		ASSERT_TRUE( FloatEq( expectedVector[i], getVector[i], 1e-3f ) );
+		EXPECT_TRUE( FloatEq( expectedVector[i], getVector[i], 1e-3f ) );
 	}
 }
 
@@ -75,7 +75,7 @@ TEST_P( CMatrixLogSumExpByRowsTest, Random )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skip for MathEngine type= " << met << " , investigate later.\n";
 		return;
 	}
 

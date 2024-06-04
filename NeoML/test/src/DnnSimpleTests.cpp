@@ -805,6 +805,13 @@ TEST_F( CDnnSimpleTest, EltwiseDivTest )
 
 TEST_F( CDnnSimpleTest, EltwiseMaxTest )
 {
+	const auto met = MathEngine().GetType();
+	if( met != MET_Cpu && met != MET_Cuda ) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// VectorSpreadValues
+		return;
+	}
+
 	CDnnEltwiseMaxLayerChecker checker;
 	checker.Check( /*inputCount*/2 );
 	checker.Check( /*inputCount*/3 );
@@ -862,6 +869,13 @@ TEST_F( CDnnSimpleTest, EnumBinarizationTest )
 
 TEST_F( CDnnSimpleTest, SoftmaxTest )
 {
+	const auto met = MathEngine().GetType();
+	if( met != MET_Cpu && met != MET_Cuda ) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// Softmax Backward
+		return;
+	}
+
 	auto createBlob23 = []( const float* data )
 	{
 		CPtr<CDnnBlob> blob = CDnnBlob::CreateDataBlob( MathEngine(), CT_Float, 1, 2, 3 );
@@ -890,6 +904,13 @@ TEST_F( CDnnSimpleTest, SoftmaxTest )
 
 TEST_F( CDnnSimpleTest, DropSmallValuesTest )
 {
+	const auto met = MathEngine().GetType();
+	if( met != MET_Cpu && met != MET_Cuda ) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// FilterLayersParams
+		return;
+	}
+
 	const int filterHeight = 3;
 	const int filterWidth = 4;
 	const int filterDepth = 2;

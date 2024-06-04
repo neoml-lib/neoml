@@ -48,14 +48,14 @@ static void addWidthIndexImpl( const CTestParams& params, int seed )
 	outputBlob.CopyTo( getData.data() );
 
 	for( size_t i = 0; i < size; ++i ) {
-		ASSERT_EQ( outputData[i], getData[i] );
+		EXPECT_EQ( outputData[i], getData[i] );
 	}
 
 	MathEngine().AddWidthIndex( inputBlob.GetDesc(), outputBlob.GetData(), /*isForward*/false, inputBlob.GetData() );
 
 	inputBlob.CopyTo( getData.data() );
 	for( size_t i = 0; i < size; ++i ) {
-		ASSERT_EQ( inputData[i], getData[i] );
+		EXPECT_EQ( inputData[i], getData[i] );
 	}
 }
 
@@ -81,7 +81,7 @@ TEST_P( CAddWidthIndexTest, Random )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
 		return;
 	}
 

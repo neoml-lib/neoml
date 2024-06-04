@@ -37,7 +37,7 @@ static void setVectorToMatrixRowsTestImpl(const CTestParams& params, int seed)
 
 	for (int i = 0; i < matrixHeight; ++i) {
 		for (int j = 0; j < matrixWidth; ++j) {
-			ASSERT_NEAR( vector[j], result[i * matrixWidth + j], 1e-3 );
+			EXPECT_NEAR( vector[j], result[i * matrixWidth + j], 1e-3 );
 		}
 	}
 }
@@ -51,7 +51,7 @@ TEST_P(CMathEngineSetVectorToMatrixRowsTest, Inference_SetVectorToMatrixRows)
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skip for MathEngine type= " << int(met) << " , investigate later.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skip for MathEngine type= " << met << " , investigate later.\n";
 		return;
 	}
 

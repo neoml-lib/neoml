@@ -66,7 +66,7 @@ static void scatterNDTestImpl( const CTestParams& params, int seed )
 		dataDesc, updateCount, indexDims );
 
 	for( size_t i = 0; i < data.size(); ++i ) {
-		ASSERT_EQ( expected[i], data[i] );
+		EXPECT_EQ( expected[i], data[i] );
 	}
 }
 
@@ -98,7 +98,7 @@ TEST_P( CMathEngineScatterNDTest, Random )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
 		return;
 	}
 

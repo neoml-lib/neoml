@@ -61,7 +61,7 @@ TEST_F( CLrnBackwardTest, Precalc )
 
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_( INFO ) << "Skipped rest of test for MathEngine type=" << int( met ) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
 		return;
 	}
 
@@ -92,6 +92,6 @@ TEST_F( CLrnBackwardTest, Precalc )
 	inputDiffBlob.CopyTo( inputDiff.data() );
 
 	for( int i = 0; i < dataSize; ++i ) {
-		ASSERT_NEAR( expectedInputDiff[i], inputDiff[i], 1e-5f ) << " at index " << i;
+		EXPECT_NEAR( expectedInputDiff[i], inputDiff[i], 1e-5f ) << " at index " << i;
 	}
 }

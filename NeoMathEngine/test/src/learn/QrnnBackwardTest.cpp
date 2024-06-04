@@ -119,8 +119,8 @@ static void fPoolingBackwardImpl( const CTestParams& params, int seed )
 	std::vector<float> actualFDiffData( actualFDiffBlob.GetDataSize() );
 	actualFDiffBlob.CopyTo( actualFDiffData.data() );
 
-	ASSERT_EQ( expectedZDiffData.size(), actualZDiffData.size() );
-	ASSERT_EQ( expectedFDiffData.size(), actualFDiffData.size() );
+	EXPECT_EQ( expectedZDiffData.size(), actualZDiffData.size() );
+	EXPECT_EQ( expectedFDiffData.size(), actualFDiffData.size() );
 	for( int i = 0; i < dataSize; ++i ) {
 		EXPECT_TRUE( FloatEq( expectedZDiffData[i], actualZDiffData[i], 1e-4f ) );
 		EXPECT_TRUE( FloatEq( expectedFDiffData[i], actualFDiffData[i], 1e-4f ) );
@@ -245,9 +245,9 @@ static void ifPoolingBackwardImpl( const CTestParams& params, int seed )
 	std::vector<float> actualIDiffData( actualIDiffBlob.GetDataSize() );
 	actualIDiffBlob.CopyTo( actualIDiffData.data() );
 
-	ASSERT_EQ( expectedZDiffData.size(), actualZDiffData.size() );
-	ASSERT_EQ( expectedFDiffData.size(), actualFDiffData.size() );
-	ASSERT_EQ( expectedIDiffData.size(), actualIDiffData.size() );
+	EXPECT_EQ( expectedZDiffData.size(), actualZDiffData.size() );
+	EXPECT_EQ( expectedFDiffData.size(), actualFDiffData.size() );
+	EXPECT_EQ( expectedIDiffData.size(), actualIDiffData.size() );
 	for( int i = 0; i < dataSize; ++i ) {
 		EXPECT_TRUE( FloatEq( expectedZDiffData[i], actualZDiffData[i], 1e-4f ) );
 		EXPECT_TRUE( FloatEq( expectedFDiffData[i], actualFDiffData[i], 1e-4f ) );
@@ -283,7 +283,7 @@ TEST_P( CQrnnBackwardTest, FPoolingRandom )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
 		return;
 	}
 
@@ -294,7 +294,7 @@ TEST_P( CQrnnBackwardTest, IfPoolingRandom )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
 		return;
 	}
 

@@ -63,7 +63,7 @@ static void vectorCumSumAlongDimensionTestImpl( const CTestParams& params, int s
 		CARRAY_WRAPPER( T, actual ), reverse );
 	
 	for( size_t i = 0; i < expected.size(); ++i ) {
-		ASSERT_NEAR( static_cast<float>( expected[i] ), static_cast<float>( actual[i] ), 1e-4f );
+		EXPECT_NEAR( static_cast<float>( expected[i] ), static_cast<float>( actual[i] ), 1e-4f );
 	}
 }
 
@@ -88,7 +88,7 @@ TEST_P( CVectorCumSumAlongDimensionsTest, Random )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
 		return;
 	}
 

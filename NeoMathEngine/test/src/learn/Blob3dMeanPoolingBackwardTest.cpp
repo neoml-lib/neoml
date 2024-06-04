@@ -88,7 +88,7 @@ static void blob3dMeanPoolingBackwardTestImpl( const CTestParams& params, int se
 	mean3dPoolingBackwardNaive( poolingParams, resultDiffData.data(), expectedDiff.data() );
 
 	for( int i = 0; i < sourceDiffSize; ++i ) {
-		ASSERT_NEAR( expectedDiff[i], actualDiff[i], 1e-3 );
+		EXPECT_NEAR( expectedDiff[i], actualDiff[i], 1e-3 );
 	}
 }
 
@@ -121,7 +121,7 @@ TEST_P( CMathEngineBlob3dMeanPoolingBackwardTest, Random )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
 		return;
 	}
 

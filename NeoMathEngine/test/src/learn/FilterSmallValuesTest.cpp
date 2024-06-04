@@ -34,7 +34,7 @@ static void filterSmallValuesImpl( const CTestParams& params, int seed )
 
 	for( int i = 0; i < vectorSize; i++ ) {
 		if( fabs( vectorCopy[i] ) < threshold ) {
-			ASSERT_TRUE( FloatEq( vector[i], 0 ) );
+			EXPECT_TRUE( FloatEq( vector[i], 0 ) );
 		}
 	}
 }
@@ -58,7 +58,7 @@ TEST_P( CFilterSmallValuesTest, Random )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
 		return;
 	}
 

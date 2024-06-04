@@ -177,7 +177,8 @@ TEST( LoraFullyConnectedLayerTest, InferenceAndLearning )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// CEuclideanLossLayer -- > VectorHuber
 		return;
 	}
 
@@ -291,7 +292,8 @@ TEST( LoraBuilderTest, MergeAndDiscardTest )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// dropout
 		return;
 	}
 
@@ -390,9 +392,9 @@ static void loraFcSerializerTestImpl( bool initialize, bool discardBeforeLoad )
 	CMemoryFile file;
 	{
 		CArchive archive( &file, CArchive::SD_Storing );
-		ASSERT_EQ( 1, CLoraSerializer().Serialize( dnn, archive ) );
+		EXPECT_EQ( 1, CLoraSerializer().Serialize( dnn, archive ) );
 	}
-	ASSERT_GT( fullMatrixSize / 2, file.GetLength() ); // Check that we didn't serialize full matrix
+	EXPECT_GT( fullMatrixSize / 2, file.GetLength() ); // Check that we didn't serialize full matrix
 
 	// Let's change weights and roll back to those from serialization
 	dnn.RunAndLearnOnce();
@@ -405,13 +407,13 @@ static void loraFcSerializerTestImpl( bool initialize, bool discardBeforeLoad )
 
 	if( discardBeforeLoad ) {
 		// This will replace lora wrappers with fcs which will allow us to test loading over raw fcs
-		ASSERT_EQ( 1, CLoraBuilder().DiscardAllFcWrappers( dnn ) );
+		EXPECT_EQ( 1, CLoraBuilder().DiscardAllFcWrappers( dnn ) );
 	}
 
 	file.SeekToBegin();
 	{
 		CArchive archive( &file, CArchive::SD_Loading );
-		ASSERT_EQ( 1, CLoraSerializer().Serialize( dnn, archive ) );
+		EXPECT_EQ( 1, CLoraSerializer().Serialize( dnn, archive ) );
 	}
 
 	if( discardBeforeLoad ) {
@@ -437,7 +439,8 @@ TEST( LoraSerializerTest, LoraFc )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// dropout
 		return;
 	}
 
@@ -483,16 +486,16 @@ TEST( LoraSerializerTest, Distributed )
 	CMemoryFile file; // dump the matrices
 	{
 		CArchive archive( &file, CArchive::SD_Storing );
-		ASSERT_EQ( 1, CLoraSerializer().Serialize( distributed, archive ) );
+		EXPECT_EQ( 1, CLoraSerializer().Serialize( distributed, archive ) );
 	}
-	ASSERT_GT( fullMatrixSize / 2, file.GetLength() ); // Check that we didn't serialize full matrix
+	EXPECT_GT( fullMatrixSize / 2, file.GetLength() ); // Check that we didn't serialize full matrix
 
 	// Let's make 1 iteration and check that output has been affected by it
 	distributed.RunAndLearnOnce( dataset );
 	CObjectArray<CDnnBlob> actualBlobs;
 	distributed.GetLastBlob( "sink", actualBlobs );
 
-	ASSERT_EQ( originalBlobs.Size(), actualBlobs.Size() );
+	EXPECT_EQ( originalBlobs.Size(), actualBlobs.Size() );
 	for( int i = 0; i < originalBlobs.Size(); ++i ) {
 		EXPECT_FALSE( CompareBlobs( *originalBlobs[i], *actualBlobs[i] ) );
 	}
@@ -501,14 +504,14 @@ TEST( LoraSerializerTest, Distributed )
 	{
 		file.SeekToBegin();
 		CArchive archive( &file, CArchive::SD_Loading );
-		ASSERT_EQ( 1, CLoraSerializer().Serialize( distributed, archive ) );
+		EXPECT_EQ( 1, CLoraSerializer().Serialize( distributed, archive ) );
 		EXPECT_EQ( file.GetPosition(), file.GetLength() );
 	}
 
 	// Check that after loading distributed from archive restored the net to original state
 	distributed.RunOnce( dataset );
 	distributed.GetLastBlob( "sink", actualBlobs );
-	ASSERT_EQ( originalBlobs.Size(), actualBlobs.Size() );
+	EXPECT_EQ( originalBlobs.Size(), actualBlobs.Size() );
 	for( int i = 0; i < originalBlobs.Size(); ++i ) {
 		EXPECT_FALSE( CompareBlobs( *originalBlobs[i], *actualBlobs[i] ) );
 	}
@@ -539,7 +542,7 @@ TEST( LoraSerializerTest, DistributedCheckpoint )
 	CMemoryFile file; // Store checkpoints
 	{
 		CArchive archive( &file, CArchive::SD_Storing );
-		ASSERT_EQ( 6, CLoraSerializer().SerializeCheckpoint( distributed, archive ) );
+		EXPECT_EQ( 6, CLoraSerializer().SerializeCheckpoint( distributed, archive ) );
 	}
 
 	const int testedIterations = 20;
@@ -559,7 +562,7 @@ TEST( LoraSerializerTest, DistributedCheckpoint )
 	{
 		file.SeekToBegin();
 		CArchive archive( &file, CArchive::SD_Loading );
-		ASSERT_EQ( 6, CLoraSerializer().SerializeCheckpoint( distributed, archive ) );
+		EXPECT_EQ( 6, CLoraSerializer().SerializeCheckpoint( distributed, archive ) );
 		EXPECT_EQ( file.GetPosition(), file.GetLength() );
 	}
 
@@ -569,7 +572,7 @@ TEST( LoraSerializerTest, DistributedCheckpoint )
 		distributed.RunAndLearnOnce( dataset );
 		distributed.GetLastBlob( "sink", currBlobs );
 		distributed.GetLastLoss( "loss", currLosses );
-		ASSERT_EQ( currBlobs.Size(), currLosses.Size() );
+		EXPECT_EQ( currBlobs.Size(), currLosses.Size() );
 		for( int i = 0; i < currBlobs.Size(); ++i ) {
 			EXPECT_TRUE( CompareBlobs( *currBlobs[i], *storedOutputs[iter][i], FLT_EPSILON ) );
 			EXPECT_FLOAT_EQ( currLosses[i], storedLosses[iter][i] );
@@ -663,12 +666,26 @@ static void memCheckTest( bool useLora )
 
 TEST( LoraMemCheck, DISABLED_WithoutLora )
 {
+	const auto met = MathEngine().GetType();
+	if( met != MET_Cpu && met != MET_Cuda ) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// VectorHuberDerivative, dropout
+		return;
+	}
+
 	memCheckTest( false );
 	DeleteMathEngine();
 }
 
 TEST( LoraMemCheck, DISABLED_WithLora )
 {
+	const auto met = MathEngine().GetType();
+	if( met != MET_Cpu && met != MET_Cuda ) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// VectorHuberDerivative, dropout
+		return;
+	}
+
 	memCheckTest( true );
 	DeleteMathEngine();
 }

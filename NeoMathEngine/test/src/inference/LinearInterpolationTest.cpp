@@ -21,8 +21,8 @@ using namespace NeoMLTest;
 static void testLinearInterpolation( TInterpolationCoords coords, TInterpolationRound round, std::vector<float>& input,
 	const std::vector<float>& expected, int objectCount, int scaledAxis, int objectSize, float scale )
 {
-	ASSERT_EQ( input.size(), static_cast<size_t>( objectCount ) * scaledAxis * objectSize );
-	ASSERT_EQ( expected.size(), static_cast<size_t>( objectCount ) * static_cast<int>( scaledAxis * scale ) * objectSize );
+	EXPECT_EQ( input.size(), static_cast<size_t>( objectCount ) * scaledAxis * objectSize );
+	EXPECT_EQ( expected.size(), static_cast<size_t>( objectCount ) * static_cast<int>( scaledAxis * scale ) * objectSize );
 
 	std::vector<float> actual( expected.size() );
 	MathEngine().LinearInterpolation( CARRAY_FLOAT_WRAPPER( input ), CARRAY_FLOAT_WRAPPER( actual ),
@@ -54,7 +54,7 @@ static void naiveLinearInterpolation( TInterpolationCoords coords, TInterpolatio
 					xOld = xNew / scale;
 					break;
 				default:
-					ASSERT_TRUE( false ) << "Unknown coordinate system";
+					EXPECT_TRUE( false ) << "Unknown coordinate system";
 			}
 			switch( round ) {
 				case TInterpolationRound::None:
@@ -76,7 +76,7 @@ static void naiveLinearInterpolation( TInterpolationCoords coords, TInterpolatio
 					xOld = ::ceilf( xOld );
 					break;
 				default:
-					ASSERT_TRUE( false ) << "Unknown rounding";
+					EXPECT_TRUE( false ) << "Unknown rounding";
 			}
 			const float* currInput = input + obj * scaledAxis * objectSize;
 			for( int elem = 0; elem < objectSize; ++elem ) {
@@ -143,7 +143,7 @@ TEST_F( CMathEngineLinearInterpolationTest, Precalc_FlatAsymmetric )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
 		return;
 	}
 
@@ -156,7 +156,7 @@ TEST_F( CMathEngineLinearInterpolationTest, Precalc_FlatPytorchHalfPixel )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
 		return;
 	}
 
@@ -169,7 +169,7 @@ TEST_F( CMathEngineLinearInterpolationTest, Precal_3DAsymmetrict )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
 		return;
 	}
 
@@ -200,7 +200,7 @@ TEST_P( CMathEngineLinearInterpolationTest, Random )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
 		return;
 	}
 

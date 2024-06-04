@@ -32,7 +32,7 @@ static void vectorEltwiseNotImpl( const CTestParams& params, int seed )
 
 	for( int i = 0; i < vectorSize; i++ ) {
 		const int expected = ( vector[i] == 0 ) ? 1 : 0;
-		ASSERT_EQ( expected, result[i] );
+		EXPECT_EQ( expected, result[i] );
 	}
 }
 
@@ -55,7 +55,7 @@ TEST_P( CVectorEltwiseNotTest, Random )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
 		return;
 	}
 

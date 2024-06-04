@@ -68,7 +68,7 @@ static void globalMaxOverTimePoolingTestImpl( const CTestParams& params, int see
 	globalMaxOverTimePoolingBackwardNaive( resultDiffData.data(), batchWidth, objectSize, expected.data(), maxIndices.data() );
 
 	for( int i = 0; i < objectSize * batchWidth; i++ ) {
-		ASSERT_NEAR( expected[i], actual[i], 1e-3 );
+		EXPECT_NEAR( expected[i], actual[i], 1e-3 );
 	}
 }
 
@@ -93,7 +93,7 @@ TEST_P( CMathEngineBlobGlobalMaxOverTimePoolingBackwardTest, Random )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
 		return;
 	}
 

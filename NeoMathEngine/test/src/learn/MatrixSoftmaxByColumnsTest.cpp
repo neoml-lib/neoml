@@ -40,7 +40,7 @@ static void matrixSoftmaxByColumnsTestImpl( const CTestParams& params, int seed 
 	softmaxImpl( matrix, height, width, false, expected );
 
 	for( int i = 0; i < height; ++i ) {
-		ASSERT_NEAR( expected[i], get[i], 1e-3 );
+		EXPECT_NEAR( expected[i], get[i], 1e-3 );
 	}
 }
 
@@ -70,7 +70,7 @@ TEST_P( CMatrixSoftmaxByColumnsTest, Random )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skip for MathEngine type= " << met << " , investigate later.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skip for MathEngine type= " << met << " , investigate later.\n";
 		return;
 	}
 

@@ -18,6 +18,10 @@ limitations under the License.
 using namespace NeoML;
 using namespace NeoMLTest;
 
+namespace NeoMLTest {
+
+static bool batchSize1 = false;
+
 static void multiplyMatrixByDiagMatrixTestImpl( const CTestParams& params, int seed )
 {
 	CRandom random( seed );
@@ -28,6 +32,9 @@ static void multiplyMatrixByDiagMatrixTestImpl( const CTestParams& params, int s
 	const CInterval valuesInterval = params.GetInterval( "Values" );
 
 	const int batch = random.UniformInt( batchInterval.Begin, batchInterval.End );
+	if( batchSize1 && batch > 1 ) {
+		return;
+	}
 	const int height = random.UniformInt( heightInterval.Begin, heightInterval.End );
 	const int width = random.UniformInt( widthInterval.Begin, widthInterval.End );
 	const int matrixSize = height * width;
@@ -57,7 +64,7 @@ static void multiplyMatrixByDiagMatrixTestImpl( const CTestParams& params, int s
 				CARRAY_FLOAT_WRAPPER( actual ), dataSize );
 
 			for( int i = 0; i < dataSize; ++i ) {
-				ASSERT_NEAR( expected[i], actual[i], 1e-3 );
+				EXPECT_NEAR( expected[i], actual[i], 1e-3 );
 			}
 		}
 	}
@@ -67,6 +74,8 @@ static void multiplyMatrixByDiagMatrixTestImpl( const CTestParams& params, int s
 
 class CMultiplyMatrixByDiagMatrixTest : public CTestFixtureWithParams {
 };
+
+} // namespace NeoMLTest
 
 INSTANTIATE_TEST_CASE_P( CMultiplyMatrixByDiagMatrixTestInstantiation, CMultiplyMatrixByDiagMatrixTest,
 	::testing::Values(
@@ -131,10 +140,11 @@ INSTANTIATE_TEST_CASE_P( CMultiplyMatrixByDiagMatrixTestInstantiation, CMultiply
 
 TEST_P( CMultiplyMatrixByDiagMatrixTest, Random )
 {
+	batchSize1 = false;
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
-		return;
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped SOME of test for MathEngine type=" << met << " because no implementation.\n";
+		batchSize1 = true;
 	}
 
 	RUN_TEST_IMPL( multiplyMatrixByDiagMatrixTestImpl )

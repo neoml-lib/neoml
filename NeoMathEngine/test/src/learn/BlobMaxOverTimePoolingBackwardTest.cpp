@@ -86,7 +86,7 @@ static void maxOverTimePoolingBackwardImpl( const CTestParams& params, int seed 
 		resultDiffData.data(), maxIndices.data(), expectedDiff.data() );
 
 	for( int i = 0; i < sourceSize; i++ ) {
-		ASSERT_TRUE( FloatEq( expectedDiff[i], actualDiff[i] ) );
+		EXPECT_TRUE( FloatEq( expectedDiff[i], actualDiff[i] ) );
 	}
 }
 
@@ -113,7 +113,7 @@ TEST_P( CMathEngineBlobMaxOverTimePoolingBackwardTest, Random )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
 		return;
 	}
 

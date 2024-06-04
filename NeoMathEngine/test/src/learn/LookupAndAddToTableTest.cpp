@@ -61,9 +61,9 @@ static void lookupAndAddToTableTestImpl( const CTestParams& params, int seed )
 	std::vector<float> paramDiff;
 	paramDiff.resize( paramDiffBlob.GetDataSize() );
 	paramDiffBlob.CopyTo( paramDiff.data() );
-	ASSERT_EQ( expected.size(), paramDiff.size() );
+	EXPECT_EQ( expected.size(), paramDiff.size() );
 	for( size_t i = 0; i < paramDiff.size(); ++i ) {
-		ASSERT_NEAR( expected[i], paramDiff[i], 1e-3 );
+		EXPECT_NEAR( expected[i], paramDiff[i], 1e-3 );
 	}
 }
 
@@ -93,8 +93,9 @@ TEST_P( CLookupAndAddToTableTest, Random )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
 		return;
 	}
+
 	RUN_TEST_IMPL( lookupAndAddToTableTestImpl )
 }

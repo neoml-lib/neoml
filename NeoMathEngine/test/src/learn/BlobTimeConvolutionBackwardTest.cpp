@@ -128,8 +128,7 @@ static void blobTimeConvolutionBackwardTestImpl( const CTestParams& params, int 
 
 	input.CopyTo( actual.data() );
 	for( size_t i = 0; i < expected.size(); ++i ) {
-		ASSERT_NEAR( expected[i], actual[i], 1e-2 ) << "\nForward check failed"
-			<< params;
+		EXPECT_NEAR( expected[i], actual[i], 1e-2 ) << "\nForward check failed" << params;
 	}
 }
 
@@ -375,7 +374,7 @@ TEST_P( CBlobTimeConvolutionBackwardTest, Random )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
 		return;
 	}
 

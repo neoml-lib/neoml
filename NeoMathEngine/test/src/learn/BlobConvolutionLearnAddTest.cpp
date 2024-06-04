@@ -134,13 +134,13 @@ static void blobConvolutionLearnAddImpl( const CTestParams& params, int seed )
 		dilationHeight, dilationWidth, strideHeight, strideWidth );
 
 	for( size_t i = 0; i < expectedFilterData.size(); ++i ) {
-		ASSERT_NEAR( expectedFilterData[i], filterData[i], 1e-2f );
+		EXPECT_NEAR( expectedFilterData[i], filterData[i], 1e-2f );
 	}
 
 	if( !isZeroFreeTerm ) {
 		freeTermBlob.CopyTo( freeTermData.data() );
 		for( size_t i = 0; i < expectedFreeTermData.size(); ++i ) {
-			ASSERT_NEAR( expectedFreeTermData[i], freeTermData[i], 0.1f );
+			EXPECT_NEAR( expectedFreeTermData[i], freeTermData[i], 0.1f );
 		}
 	}
 }
@@ -519,7 +519,7 @@ TEST_P( CMathEngineBlobConvolutionLearnAddTest, Random )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
 		return;
 	}
 

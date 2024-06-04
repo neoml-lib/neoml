@@ -43,7 +43,7 @@ static void subVectorFromMatrixColumnsTestImpl( const CTestParams& params, int s
 	}
 
 	for( int i = 0; i < height * width; ++i ) {
-		ASSERT_NEAR( expectedMatrix[i], getMatrix[i], 1e-3 );
+		EXPECT_NEAR( expectedMatrix[i], getMatrix[i], 1e-3 );
 	}
 }
 
@@ -74,7 +74,7 @@ TEST_P( CSubVectorFromMatrixColumnsTest, Random )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
 		return;
 	}
 

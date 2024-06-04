@@ -70,7 +70,7 @@ static void multiplyVectorByTransposedLookupVectorAndAddToTableTestImpl( const C
 	}
 
 	for( size_t i = 0; i < matrixTable.size(); ++i ) {
-		ASSERT_NEAR( expectedTable[i], matrixTable[i], 1e-3 );
+		EXPECT_NEAR( expectedTable[i], matrixTable[i], 1e-3 );
 	}
 }
 
@@ -102,7 +102,7 @@ TEST_P( CMultiplyVectorByTransposedLookupVectorAndAddToTableTest, Random )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
 		return;
 	}
 

@@ -86,7 +86,7 @@ static void blobMaxPoolingBackwardTestImpl( const CTestParams& params, int seed 
 	maxPoolingBackwardNaive( poolingParams, resultDiffData.data(), maxIndices.data(), expectedDiff.data() );
 
 	for( int i = 0; i < sourceSize; ++i ) {
-		ASSERT_NEAR( expectedDiff[i], actualDiff[i], 1e-3 );
+		EXPECT_NEAR( expectedDiff[i], actualDiff[i], 1e-3 );
 	}
 }
 
@@ -118,7 +118,7 @@ TEST_P( CMathEngineBlobMaxPoolingBackwardTest, Random )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
 		return;
 	}
 

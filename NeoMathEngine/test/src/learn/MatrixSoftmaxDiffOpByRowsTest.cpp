@@ -47,7 +47,7 @@ static void matrixSoftmaxDiffOpByRowsTestImpl( const CTestParams& params, int se
 		}
 		for( int w = 0; w < width; ++w ) {
 			float res = get[h * width + w] * ( matrix[h * width + w] - sum );
-			ASSERT_NEAR( res, getDiff[h * width + w], 1e-3f );
+			EXPECT_NEAR( res, getDiff[h * width + w], 1e-3f );
 		}
 	}
 }
@@ -78,7 +78,7 @@ TEST_P( CMatrixSoftmaxDiffOpByRowsTest, Random )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
 		return;
 	}
 

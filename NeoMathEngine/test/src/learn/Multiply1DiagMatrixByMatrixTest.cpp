@@ -51,7 +51,7 @@ static void multiply1DiagMatrixByMatrixTestImpl( const CTestParams& params, int 
 		CARRAY_FLOAT_WRAPPER( secondData ), secondWidth, CARRAY_FLOAT_WRAPPER( get ), static_cast<int>( get.size() ) );
 
 	for( int i = 0; i < batchSize * firstSize * secondWidth; ++i ) {
-		ASSERT_NEAR( expected[i], get[i], 1e-3 );
+		EXPECT_NEAR( expected[i], get[i], 1e-3 );
 	}
 }
 
@@ -83,7 +83,7 @@ TEST_P( CMultiply1DiagMatrixByMatrixTest, Random )
 {
 	const auto met = MathEngine().GetType();
 	if(met != MET_Cpu && met != MET_Cuda) {
-		GTEST_LOG_(INFO) << "Skipped rest of test for MathEngine type=" << int(met) << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
 		return;
 	}
 

@@ -136,7 +136,7 @@ static void dropoutTestImpl( const CTestParams& params, int seed )
 
 	// check
 	for( size_t i = 0; i < result.size(); i++ ) {
-		ASSERT_NEAR( expected[i], result[i], 1e-3f ) << i;
+		EXPECT_NEAR( expected[i], result[i], 1e-3f ) << i;
 	}
 }
 
@@ -167,7 +167,7 @@ TEST_P(CMathEngineDropoutTest, Random)
 {
 	const auto met = MathEngine().GetType();
 	if( met != MET_Cpu && met != MET_Cuda ) {
-		GTEST_LOG_( INFO ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) )<< "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
 		return;
 	}
 
