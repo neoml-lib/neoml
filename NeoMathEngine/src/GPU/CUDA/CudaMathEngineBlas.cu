@@ -517,7 +517,7 @@ void CCudaMathEngine::VectorMultichannelLookupAndCopy(int batchSize, int channel
 
 void CCudaMathEngine::VectorMultichannelLookupAndAddToTable(int batchSize, int channelCount, const CConstFloatHandle& inputHandle,
 	const CFloatHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
-	float mult, const CConstFloatHandle& matrixHandle, int outputChannelsCount)
+	CFloatParam mult, const CConstFloatHandle& matrixHandle, int outputChannelsCount)
 {
 	ASSERT_EXPR( inputHandle.GetMathEngine() == this );
 	ASSERT_EXPR( matrixHandle.GetMathEngine() == this );
@@ -528,7 +528,7 @@ void CCudaMathEngine::VectorMultichannelLookupAndAddToTable(int batchSize, int c
 
 void CCudaMathEngine::VectorMultichannelLookupAndAddToTable(int batchSize, int channelCount, const CConstIntHandle& inputHandle,
 	const CFloatHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
-	float mult, const CConstFloatHandle& matrixHandle, int outputChannelsCount)
+	CFloatParam mult, const CConstFloatHandle& matrixHandle, int outputChannelsCount)
 {
 	ASSERT_EXPR( inputHandle.GetMathEngine() == this );
 	ASSERT_EXPR( matrixHandle.GetMathEngine() == this );
@@ -978,7 +978,7 @@ void CCudaMathEngine::vectorMultichannelLookupAndCopy(int batchSize, int channel
 template<class T>
 void CCudaMathEngine::vectorMultichannelLookupAndAddToTable(int batchSize, int channelCount, const CTypedMemoryHandle<const T>& inputHandle,
 	const CFloatHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
-	float mult, const CConstFloatHandle& matrixHandle, int outputChannelsCount)
+	CFloatParam mult, const CConstFloatHandle& matrixHandle, int outputChannelsCount)
 {
 	SetCudaDevice( device->DeviceNumber );
 	const int batchNorm = (batchSize + BatchVectorLookupAndAddToTableCombine - 1) / BatchVectorLookupAndAddToTableCombine;

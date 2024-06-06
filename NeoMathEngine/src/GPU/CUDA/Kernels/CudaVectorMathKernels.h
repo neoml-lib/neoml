@@ -19,8 +19,24 @@ limitations under the License.
 #include <CudaCommon.h>
 #include <Kernels/CudaRandom.h>
 #include <CudaBlobDesc.h>
+#include <MemoryHandleInternal.h>
 
 namespace NeoML {
+
+template <typename T>
+class CCudaScalarParameter final {
+public:
+	__host__ CCudaScalarParameter( const CScalarParameter<T>& scalar ) :
+		value( scalar.Handle.IsNull() ? scalar.Value : 0 ),
+		ptr( scalar.Handle.IsNull() ? nullptr : GetRaw( scalar.Handle ) )
+	{}
+
+	__host__ __device__ operator T() const { return ptr == nullptr ? value : *ptr; }
+
+private:
+	T value{};
+	const T* ptr{};
+};
 
 const int VectorFillCombineCount = 8;
 template<class T>
@@ -279,7 +295,7 @@ __global__ void VectorEqualKernel( const int* first,
 }
 
 __global__ void VectorEqualValueKernel( const int* first, 
-	float* result, int count, const int value )
+	float* result, int count, CCudaScalarParameter<int> value )
 {
 	int index = 0;
 	int step = 0;
@@ -297,7 +313,8 @@ __global__ void VectorEqualValueKernel( const int* first,
 
 const int VectorActivationCombineCount = 8;
 
-__global__ void VectorELUKernel( const float* __restrict__ first, float* result, int count, const float alpha )
+__global__ void VectorELUKernel( const float* __restrict__ first,
+	float* result, int count, CCudaScalarParameter<float> alpha )
 {
 	int index = 0;
 	int step = 0;
@@ -314,7 +331,7 @@ __global__ void VectorELUKernel( const float* __restrict__ first, float* result,
 }
 
 __global__ void VectorELUDiffKernel( const float* __restrict__ first, const float* __restrict__ second,
-	float* result, int count, const float alpha )
+	float* result, int count, CCudaScalarParameter<float> alpha )
 {
 	int index = 0;
 	int step = 0;
@@ -333,7 +350,7 @@ __global__ void VectorELUDiffKernel( const float* __restrict__ first, const floa
 }
 
 __global__ void VectorELUDiffOpKernel( const float* __restrict__ first, const float* __restrict__ second,
-	float* result, int count, const float alpha )
+	float* result, int count, CCudaScalarParameter<float> alpha )
 {
 	int index = 0;
 	int step = 0;
@@ -352,7 +369,7 @@ __global__ void VectorELUDiffOpKernel( const float* __restrict__ first, const fl
 }
 
 __global__ void VectorReLUKernel(const float* first, float* result,
-	int count, const float threshold)
+	int count, CCudaScalarParameter<float> threshold)
 {
 	int index = 0;
 	int step = 0;
@@ -378,7 +395,7 @@ __global__ void VectorReLUKernel(const float* first, float* result,
 }
 
 __global__ void VectorReLUDiffKernel(const float* __restrict__ first,
-	const float* __restrict__ second, float* result, int count, const float threshold)
+	const float* __restrict__ second, float* result, int count, CCudaScalarParameter<float> threshold)
 {
 	int index = 0;
 	int step = 0;
@@ -406,7 +423,7 @@ __global__ void VectorReLUDiffKernel(const float* __restrict__ first,
 }
 
 __global__ void VectorLeakyReLUKernel( const float* __restrict__ first, float* result,
-	int count, const float alpha )
+	int count, CCudaScalarParameter<float> alpha )
 {
 	int index = 0;
 	int step = 0;
@@ -423,7 +440,7 @@ __global__ void VectorLeakyReLUKernel( const float* __restrict__ first, float* r
 }
 
 __global__ void VectorLeakyReLUDiffKernel( const float* __restrict__ first, const float* __restrict__ second,
-	float* result, int count, const float alpha )
+	float* result, int count, CCudaScalarParameter<float> alpha )
 {
 	int index = 0;
 	int step = 0;
@@ -745,7 +762,8 @@ __global__ void VectorHardTanhDiffKernel(const float* __restrict__ first, const 
 	}
 }
 
-__global__ void VectorHardSigmoidKernel(const float* __restrict__ first, float* result, int count, const float slope, const float bias)
+__global__ void VectorHardSigmoidKernel(const float* __restrict__ first, float* result, int count,
+	CCudaScalarParameter<float> slope, CCudaScalarParameter<float> bias)
 {
 	int index = 0;
 	int step = 0;
@@ -769,7 +787,7 @@ __global__ void VectorHardSigmoidKernel(const float* __restrict__ first, float* 
 }
 
 __global__ void VectorHardSigmoidDiffKernel(const float* __restrict__ first, const float* __restrict__ second,
-	float* result, int count, const float slope, const float bias)
+	float* result, int count, CCudaScalarParameter<float> slope, CCudaScalarParameter<float> bias)
 {
 	int index = 0;
 	int step = 0;
@@ -796,7 +814,7 @@ __global__ void VectorHardSigmoidDiffKernel(const float* __restrict__ first, con
 }
 
 __global__ void VectorHardSigmoidDiffOpKernel(const float* __restrict__ first,
-	const float* __restrict__ second, float* result, int count, const float slope)
+	const float* __restrict__ second, float* result, int count, CCudaScalarParameter<float> slope)
 {
 	int index = 0;
 	int step = 0;
@@ -852,7 +870,7 @@ __global__ void VectorErfKernel(const float* __restrict__ first, float* result, 
 }
 
 __global__ void VectorBernulliKLDerivativeKernel(const float* __restrict__ first,
-	float* result, int count, const float target)
+	float* result, int count, CCudaScalarParameter<float> target)
 {
 	int index = 0;
 	if(GetCudaTaskIndex(count, index)) {
@@ -891,7 +909,7 @@ __global__ void VectorAddKernel(const T* __restrict__ first,
 const int VectorAddValueCombineCount = 8;
 template<class T>
 __global__ void VectorAddValueKernel(
-	const T* __restrict__ first, T* result, int count, const T addition )
+	const T* __restrict__ first, T* result, int count, CCudaScalarParameter<T> addition )
 {
 	int index = 0;
 	int step = 0;
@@ -961,7 +979,7 @@ __global__ void VectorSubKernel( float first, const float* __restrict__ second, 
 
 // MultiplyAndSub
 __global__ void VectorMultiplyAndSubKernel(const float* __restrict__ first,
-	const float* __restrict__ second, float* result, int count, const float mult)
+	const float* __restrict__ second, float* result, int count, CCudaScalarParameter<float> mult)
 {
 	int index = 0;
 	if(GetCudaTaskIndex(count, index)) {
@@ -972,7 +990,7 @@ __global__ void VectorMultiplyAndSubKernel(const float* __restrict__ first,
 const int VectorMultiplyCombineCount = 8;
 template<class T>
 __global__ void VectorMultiplyKernel(const T* __restrict__ first,
-	T* result, int count, const T multiplier)
+	T* result, int count, CCudaScalarParameter<T> multiplier)
 {
 	int index = 0;
 	int step = 0;
@@ -989,7 +1007,7 @@ __global__ void VectorMultiplyKernel(const T* __restrict__ first,
 }
 
 __global__ void VectorNegMultiplyKernel(const float* __restrict__ first,
-	float* result, int count, const float multiplier)
+	float* result, int count, CCudaScalarParameter<float> multiplier)
 {
 	int index = 0;
 	int step = 0;
@@ -1131,7 +1149,7 @@ __global__ void VectorInvKernel(const float* __restrict__ first, float* result, 
 
 const int VectorMinMaxCombineCount = 8;
 __global__ void VectorMinMaxKernel(const float* __restrict__ first, float* result, int count,
-	const float minValue, const float maxValue)
+	CCudaScalarParameter<float> minValue, CCudaScalarParameter<float> maxValue)
 {
 	int index = 0;
 	int step = 0;
@@ -1252,7 +1270,7 @@ __global__ void VectorPowerDiffOpKernel(float exponent, const float* __restrict_
 }
 
 __global__ void VectorL1DiffAddKernel(const float* __restrict__ first, const float* __restrict__ second,
-	float* result, int vectorSize, const float threshold, const float mult)
+	float* result, int vectorSize, CCudaScalarParameter<float> threshold, CCudaScalarParameter<float> mult)
 {
 	int index = 0;
 	int step = 0;
@@ -1468,7 +1486,7 @@ const int VectorMinMaxDiffCombine = 16;
 __global__ void VectorMinMaxDiffKernel( const float* sourceGrad,
 	int gradCount, int gradSize, int gradNorm,
 	const float* __restrict__ first, float* resultGrad,
-	const float minValue, const float maxValue )
+	CCudaScalarParameter<float> minValue, CCudaScalarParameter<float> maxValue )
 {
 	int num = 0;
 	int index = 0;
@@ -1493,7 +1511,7 @@ __global__ void VectorMinMaxDiffKernel( const float* sourceGrad,
 
 const int VectorMaxCombineCount = 16;
 __global__ void VectorMaxKernel( const float* __restrict__ first,
-	float value, float* __restrict__ result, int count )
+	CCudaScalarParameter<float> value, float* __restrict__ result, int count )
 {
 	int index = 0;
 	int step = 0;
@@ -1511,7 +1529,7 @@ __global__ void VectorMaxKernel( const float* __restrict__ first,
 
 const int VectorMaxDiffCombineCount = 16;
 __global__ void VectorMaxDiffKernel( float* grad, int gradCount, int gradSize, int gradNorm,
-	const float* __restrict__ first, float secondValue )
+	const float* __restrict__ first, CCudaScalarParameter<float> secondValue )
 {
 	int num = 0;
 	int index = 0;

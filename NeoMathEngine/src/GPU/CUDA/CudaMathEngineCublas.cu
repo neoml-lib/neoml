@@ -41,8 +41,8 @@ void CCudaMathEngine::VectorDotProduct(const CConstFloatHandle& firstHandle, con
 		GetRaw( secondHandle ), 1, GetRaw( resultHandle ) ) );
 }
 
-void CCudaMathEngine::vectorMultiplyAndAdd( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
-	const CFloatHandle& resultHandle, int vectorSize, float multValue, const CConstFloatHandle* multHandle )
+void CCudaMathEngine::VectorMultiplyAndAdd( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
+	const CFloatHandle& resultHandle, int vectorSize, CFloatParam multParam )
 {
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
@@ -61,13 +61,13 @@ void CCudaMathEngine::vectorMultiplyAndAdd( const CConstFloatHandle& firstHandle
 		ASSERT_CUBLAS( cublas->Saxpy( cublasHandle, vectorSize, mult, second, 1, result, 1 ) );
 	};
 
-	if( multHandle != nullptr ) {
-		ASSERT_EXPR( multHandle->GetMathEngine() == this );
-		mult = GetRaw( *multHandle );
+	if( !multParam.Handle.IsNull() ) {
+		ASSERT_EXPR( multParam.Handle.GetMathEngine() == this );
+		mult = GetRaw( multParam.Handle );
 		operation();
 	} else {
 		CFloatHandleStackVar multVar( *this );
-		multVar.SetValue( multValue );
+		multVar.SetValue( multParam.Value );
 		mult = GetRaw( multVar.GetHandle() );
 		operation();
 	}
@@ -169,7 +169,7 @@ void CCudaMathEngine::BatchMultiplyMatrixByDiagMatrix( int batchSize, const CCon
 		VectorEltwiseMultiply( firstHandle, secondHandle, resultHandle, width );
 		return;
 	} else if( width == 1 && batchSize == 1 ) {
-		IVectorMathEngine::VectorMultiply( firstHandle, resultHandle, height, secondHandle );
+		VectorMultiply( firstHandle, resultHandle, height, secondHandle );
 		return;
 	}
 
