@@ -217,7 +217,7 @@ void CVulkanMathEngine::BroadcastCopy( const CFloatHandle& /*toHandle*/, const C
 }
 
 void CVulkanMathEngine::VectorELU(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle,
-	int vectorSize, float alpha)
+	int vectorSize, CFloatParam alpha)
 {
 	CFloatHandleStackVar alphaHandle( *this );
 	alphaHandle.SetValue( alpha );
@@ -229,7 +229,7 @@ void CVulkanMathEngine::VectorELU(const CConstFloatHandle& firstHandle, const CF
 }
 
 void CVulkanMathEngine::VectorELUDiff(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
-	const CFloatHandle& resultHandle, int vectorSize, float alpha)
+	const CFloatHandle& resultHandle, int vectorSize, CFloatParam alpha)
 {
 	CFloatHandleStackVar alphaHandle( *this );
 	alphaHandle.SetValue( alpha );
@@ -242,7 +242,7 @@ void CVulkanMathEngine::VectorELUDiff(const CConstFloatHandle& firstHandle, cons
 }
 
 void CVulkanMathEngine::VectorELUDiffOp(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
-	const CFloatHandle& resultHandle, int vectorSize, float alpha)
+	const CFloatHandle& resultHandle, int vectorSize, CFloatParam alpha)
 {
 	CFloatHandleStackVar alphaHandle( *this );
 	alphaHandle.SetValue( alpha );
@@ -255,7 +255,7 @@ void CVulkanMathEngine::VectorELUDiffOp(const CConstFloatHandle& firstHandle, co
 }
 
 void CVulkanMathEngine::VectorReLU(const CConstFloatHandle& firstHandle,
-	const CFloatHandle& resultHandle, int vectorSize, float upperThreshold)
+	const CFloatHandle& resultHandle, int vectorSize, CFloatParam upperThreshold)
 {
 	CFloatHandleStackVar var( *this );
 	var.SetValue( upperThreshold );
@@ -281,7 +281,7 @@ void CVulkanMathEngine::VectorReLU(const CConstFloatHandle& firstHandle,
 }
 
 void CVulkanMathEngine::VectorReLUDiff(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
-	const CFloatHandle& resultHandle, int vectorSize, float upperThreshold)
+	const CFloatHandle& resultHandle, int vectorSize, CFloatParam upperThreshold)
 {
 	CFloatHandleStackVar upperThresholdHandle( *this );
 	upperThresholdHandle.SetValue( upperThreshold );
@@ -294,7 +294,7 @@ void CVulkanMathEngine::VectorReLUDiff(const CConstFloatHandle& firstHandle, con
 }
 
 void CVulkanMathEngine::VectorLeakyReLU(const CConstFloatHandle& firstHandle,
-	const CFloatHandle& resultHandle, int vectorSize, float alpha)
+	const CFloatHandle& resultHandle, int vectorSize, CFloatParam alpha)
 {
 	CFloatHandleStackVar alphaHandle( *this );
 	alphaHandle.SetValue( alpha );
@@ -307,7 +307,7 @@ void CVulkanMathEngine::VectorLeakyReLU(const CConstFloatHandle& firstHandle,
 
 void CVulkanMathEngine::VectorLeakyReLUDiff(const CConstFloatHandle& firstHandle,
 	const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int vectorSize,
-	float alpha)
+	CFloatParam alpha)
 {
 	CFloatHandleStackVar alphaHandle( *this );
 	alphaHandle.SetValue( alpha );
@@ -459,7 +459,7 @@ void CVulkanMathEngine::VectorHardTanhDiff(const CConstFloatHandle& firstHandle,
 }
 
 void CVulkanMathEngine::VectorHardSigmoid(const CConstFloatHandle& firstHandle,
-	const CFloatHandle& resultHandle, int vectorSize, float slope, float bias)
+	const CFloatHandle& resultHandle, int vectorSize, CFloatParam slope, CFloatParam bias)
 {
 	CFloatHandleStackVar var( *this, 2 );
 	var.SetValueAt( 0, slope );
@@ -474,7 +474,7 @@ void CVulkanMathEngine::VectorHardSigmoid(const CConstFloatHandle& firstHandle,
 
 void CVulkanMathEngine::VectorHardSigmoidDiff(const CConstFloatHandle& firstHandle,
 	const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int vectorSize,
-	float slope, float bias )
+	CFloatParam slope, CFloatParam bias )
 {
 	CFloatHandleStackVar var( *this, 2 );
 	var.SetValueAt( 0, slope );
@@ -489,7 +489,7 @@ void CVulkanMathEngine::VectorHardSigmoidDiff(const CConstFloatHandle& firstHand
 
 void CVulkanMathEngine::VectorHardSigmoidDiffOp( const CConstFloatHandle& firstHandle,
 	const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int vectorSize,
-	float slope, float /*bias*/ )
+	CFloatParam slope, CFloatParam /*bias*/ )
 {
 	CFloatHandleStackVar slopeHandle( *this );
 	slopeHandle.SetValue( slope );
@@ -539,7 +539,7 @@ void CVulkanMathEngine::VectorErf( const CConstFloatHandle&, const CFloatHandle&
 }
 
 void CVulkanMathEngine::VectorBernulliKLDerivative(const CConstFloatHandle& estimationHandle,
-	const CFloatHandle& resultHandle, int vectorSize, float target)
+	const CFloatHandle& resultHandle, int vectorSize, CFloatParam target)
 {
 	CFloatHandleStackVar targetHandle( *this );
 	targetHandle.SetValue( target );
@@ -588,7 +588,7 @@ void CVulkanMathEngine::VectorAdd(const CConstIntHandle& firstHandle,
 }
 
 void CVulkanMathEngine::VectorAddValue(const CConstFloatHandle& firstHandle,
-	const CFloatHandle& resultHandle, int vectorSize, float addition)
+	const CFloatHandle& resultHandle, int vectorSize, CFloatParam addition)
 {
 	CFloatHandleStackVar additionHandle( *this );
 	additionHandle.SetValue( addition );
@@ -600,7 +600,7 @@ void CVulkanMathEngine::VectorAddValue(const CConstFloatHandle& firstHandle,
 }
 
 void CVulkanMathEngine::VectorAddValue(const CConstIntHandle& firstHandle,
-	const CIntHandle& resultHandle, int vectorSize, int addition)
+	const CIntHandle& resultHandle, int vectorSize, CIntParam addition)
 {
 	CIntHandleStackVar additionHandle( *this );
 	additionHandle.SetValue( addition );
@@ -635,7 +635,7 @@ void CVulkanMathEngine::VectorSub(const CConstFloatHandle& firstHandle,
 
 void CVulkanMathEngine::VectorMultiplyAndAdd(const CConstFloatHandle& firstHandle,
 	const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle,
-	int vectorSize, float mult)
+	int vectorSize, CFloatParam mult)
 {
 	CFloatHandleStackVar multHandle( *this );
 	multHandle.SetValue( mult );
@@ -649,7 +649,7 @@ void CVulkanMathEngine::VectorMultiplyAndAdd(const CConstFloatHandle& firstHandl
 
 void CVulkanMathEngine::VectorMultiplyAndSub(const CConstFloatHandle& firstHandle,
 	const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle,
-	int vectorSize, float mult)
+	int vectorSize, CFloatParam mult)
 {
 	CFloatHandleStackVar multHandle( *this );
 	multHandle.SetValue( mult );
@@ -662,7 +662,7 @@ void CVulkanMathEngine::VectorMultiplyAndSub(const CConstFloatHandle& firstHandl
 }
 
 void CVulkanMathEngine::VectorMultiply(const CConstFloatHandle& firstHandle,
-	const CFloatHandle& resultHandle, int vectorSize, float mult)
+	const CFloatHandle& resultHandle, int vectorSize, CFloatParam mult)
 {
 	CFloatHandleStackVar multiplierHandle( *this );
 	multiplierHandle.SetValue( mult );
@@ -675,13 +675,13 @@ void CVulkanMathEngine::VectorMultiply(const CConstFloatHandle& firstHandle,
 		&param, sizeof(param), 0, 0, 0, 0, bufs, sizes, 3, Ceil(vectorSize, VectorCombine));
 }
 
-void CVulkanMathEngine::VectorMultiply(const CConstIntHandle&, const CIntHandle&, int, int)
+void CVulkanMathEngine::VectorMultiply(const CConstIntHandle&, const CIntHandle&, int, CIntParam )
 {
     ASSERT_EXPR( false );
 }
 
 void CVulkanMathEngine::VectorNegMultiply(const CConstFloatHandle& firstHandle,
-	const CFloatHandle& resultHandle, int vectorSize, float mult)
+	const CFloatHandle& resultHandle, int vectorSize, CFloatParam mult)
 {
 	CFloatHandleStackVar multiplierHandle( *this );
 	multiplierHandle.SetValue( mult );
@@ -793,7 +793,7 @@ void CVulkanMathEngine::VectorInv(const CConstFloatHandle& firstHandle,
 }
 
 void CVulkanMathEngine::VectorMinMax(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle,
-	int vectorSize, float min, float max)
+	int vectorSize, CFloatParam min, CFloatParam max)
 {
 	CFloatHandleStackVar var( *this, 2 );
 	var.SetValueAt( 0, min );
@@ -908,7 +908,7 @@ void CVulkanMathEngine::VectorPowerDiffOp(float exponent, const CConstFloatHandl
 }
 
 void CVulkanMathEngine::VectorL1DiffAdd(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
-	const CFloatHandle& resultHandle, int vectorSize, float hubertThreshold, float mult)
+	const CFloatHandle& resultHandle, int vectorSize, CFloatParam hubertThreshold, CFloatParam mult)
 {
 	CFloatHandleStackVar var( *this, 2 );
 	var.SetValueAt( 0, hubertThreshold );
@@ -1104,7 +1104,7 @@ void CVulkanMathEngine::VectorEqual(const CConstIntHandle& firstHandle, const CC
 }
 
 void CVulkanMathEngine::VectorEqualValue(const CConstIntHandle& firstHandle,
-	const CFloatHandle& resultHandle, int vectorSize, int value)
+	const CFloatHandle& resultHandle, int vectorSize, CIntParam value)
 {
 	CIntHandleStackVar valueHandle( *this );
 	valueHandle.SetValue( value );
@@ -1117,13 +1117,13 @@ void CVulkanMathEngine::VectorEqualValue(const CConstIntHandle& firstHandle,
 		0, 0, 0, 0, bufs, sizes, 3, Ceil(vectorSize, VectorCombine));
 }
 
-void CVulkanMathEngine::VectorMax( const CConstFloatHandle& /*firstHandle*/, float /*secondValue*/, const CFloatHandle& /*resultHandle*/,
+void CVulkanMathEngine::VectorMax( const CConstFloatHandle& /*firstHandle*/, CFloatParam /*secondValue*/, const CFloatHandle& /*resultHandle*/,
 	int /*vectorSize*/ )
 {
 	ASSERT_EXPR( false );
 }
 
-void CVulkanMathEngine::VectorMaxDiff( const CConstFloatHandle& /*firstHandle*/, float /*secondValue*/, const CFloatHandle& /*gradHandle*/,
+void CVulkanMathEngine::VectorMaxDiff( const CConstFloatHandle& /*firstHandle*/, CFloatParam /*secondValue*/, const CFloatHandle& /*gradHandle*/,
 	int /*gradHeight*/, int /*gradWidth*/ )
 {
 	ASSERT_EXPR( false );
@@ -1171,7 +1171,7 @@ void CVulkanMathEngine::VectorAbsDiff(const CConstFloatHandle& /*sourceGradHandl
 }
 
 void CVulkanMathEngine::VectorMinMaxDiff(const CConstFloatHandle& /*sourceGradHandle*/, int /*gradHeight*/, int /*gradWidth*/,
-	const CConstFloatHandle& /*firstHandle*/, const CFloatHandle& /*resultHandle*/, float /*min*/, float /*max*/)
+	const CConstFloatHandle& /*firstHandle*/, const CFloatHandle& /*resultHandle*/, CFloatParam /*min*/, CFloatParam /*max*/)
 {
 	ASSERT_EXPR( false );
 }

@@ -18,6 +18,7 @@ limitations under the License.
 #include <Kernels/CudaGrid.h>
 #include <CudaCommon.h>
 #include <Kernels/CudaReduce.h>
+#include <CudaScalarParameter.h>
 
 namespace NeoML {
 
@@ -715,7 +716,7 @@ __global__ void BatchVectorChannelCopyKernel(int batchSize, const TInput* __rest
 const int BatchVectorLookupAndAddToTableCombine = 8;
 template<class T>
 __global__ void VectorChannelLookupAndAddToTableKernel(int batchSize, const T* __restrict__ input, int inputChannel,
-	float* lookup, int vectorSize, float mult, const float* __restrict__ matrix, int outputChannel, int batchNorm)
+	float* lookup, int vectorSize, CCudaScalarParameter<float> multParam, const float* __restrict__ matrix, int outputChannel, int batchNorm)
 {
 	int b = 0;
 	int index = 0;
@@ -726,6 +727,7 @@ __global__ void VectorChannelLookupAndAddToTableKernel(int batchSize, const T* _
 	b *= BatchVectorLookupAndAddToTableCombine;
 	const int bLast = min( batchSize, b + BatchVectorLookupAndAddToTableCombine );
 	const int count = bLast - b;
+	const float mult = multParam;
 
 	input += b * inputChannel;
 	matrix += b * outputChannel + index;
