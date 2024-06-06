@@ -513,7 +513,7 @@ void CCpuMathEngine::VectorMultichannelLookupAndCopy( int batchSize, int channel
 
 void CCpuMathEngine::VectorMultichannelLookupAndAddToTable( int batchSize, int channelCount, const CConstFloatHandle& inputHandle,
 	const CFloatHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
-	float mult, const CConstFloatHandle& matrixHandle, int /*outputChannels*/ )
+	CFloatParam mult, const CConstFloatHandle& matrixHandle, int /*outputChannels*/ )
 {
 	ASSERT_EXPR( lookupCount <= channelCount );
 	CCpuExecutionScope scope;
@@ -542,7 +542,7 @@ void CCpuMathEngine::VectorMultichannelLookupAndAddToTable( int batchSize, int c
 
 void CCpuMathEngine::VectorMultichannelLookupAndAddToTable( int batchSize, int channelCount, const CConstIntHandle& inputHandle,
 	const CFloatHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
-	float mult, const CConstFloatHandle& matrixHandle, int /*outputChannels*/ )
+	CFloatParam mult, const CConstFloatHandle& matrixHandle, int /*outputChannels*/ )
 {
 	ASSERT_EXPR( lookupCount <= channelCount );
 	CCpuExecutionScope scope;

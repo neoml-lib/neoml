@@ -149,6 +149,7 @@ public:
 
 	operator CTypedMemoryHandle<T>() const { isCopyBack = true; return CTypedMemoryHandle<T>( mathData ); }
 	operator CTypedMemoryHandle<const T>() const { return CTypedMemoryHandle<const T>( mathData ); }
+	operator CScalarParameter<T>() const { return CScalarParameter<T>( mathData ); }
 
 private:
 	IMathEngine& mathEngine;

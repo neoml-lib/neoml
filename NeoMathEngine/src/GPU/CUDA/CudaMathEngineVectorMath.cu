@@ -313,7 +313,7 @@ void CCudaMathEngine::VectorEqual( const CConstIntHandle& firstHandle, const CCo
 }
 
 void CCudaMathEngine::VectorEqualValue( const CConstIntHandle& firstHandle,
-	const CFloatHandle& resultHandle, int vectorSize, int value )
+	const CFloatHandle& resultHandle, int vectorSize, CIntParam value )
 {
 	ASSERT_EXPR(firstHandle.GetMathEngine() == this);
 	ASSERT_EXPR(resultHandle.GetMathEngine() == this);
@@ -327,7 +327,7 @@ void CCudaMathEngine::VectorEqualValue( const CConstIntHandle& firstHandle,
 		(GetRaw( firstHandle ), GetRaw( resultHandle ), vectorSize, value);
 }
 
-void CCudaMathEngine::VectorMax( const CConstFloatHandle& firstHandle, float secondValue, const CFloatHandle& resultHandle,
+void CCudaMathEngine::VectorMax( const CConstFloatHandle& firstHandle, CFloatParam secondValue, const CFloatHandle& resultHandle,
 	int vectorSize )
 {
 	ASSERT_EXPR(firstHandle.GetMathEngine() == this);
@@ -343,7 +343,7 @@ void CCudaMathEngine::VectorMax( const CConstFloatHandle& firstHandle, float sec
 		( GetRaw( firstHandle ), secondValue, GetRaw( resultHandle ), vectorSize );
 }
 
-void CCudaMathEngine::VectorMaxDiff( const CConstFloatHandle& firstHandle, float secondValue, const CFloatHandle& gradHandle,
+void CCudaMathEngine::VectorMaxDiff( const CConstFloatHandle& firstHandle, CFloatParam secondValue, const CFloatHandle& gradHandle,
 	int gradHeight, int gradWidth )
 {
 	ASSERT_EXPR(firstHandle.GetMathEngine() == this);
@@ -365,7 +365,7 @@ void CCudaMathEngine::VectorMaxDiff( const CConstFloatHandle& firstHandle, float
 }
 
 void CCudaMathEngine::VectorELU( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle,
-	int vectorSize, float alpha )
+	int vectorSize, CFloatParam alpha )
 {
 	ASSERT_EXPR(firstHandle.GetMathEngine() == this);
 	ASSERT_EXPR(resultHandle.GetMathEngine() == this);
@@ -380,7 +380,7 @@ void CCudaMathEngine::VectorELU( const CConstFloatHandle& firstHandle, const CFl
 }
 
 void CCudaMathEngine::VectorELUDiff( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
-	const CFloatHandle& resultHandle, int vectorSize, float alpha )
+	const CFloatHandle& resultHandle, int vectorSize, CFloatParam alpha )
 {
 	ASSERT_EXPR(firstHandle.GetMathEngine() == this);
 	ASSERT_EXPR(secondHandle.GetMathEngine() == this);
@@ -396,7 +396,7 @@ void CCudaMathEngine::VectorELUDiff( const CConstFloatHandle& firstHandle, const
 }
 
 void CCudaMathEngine::VectorELUDiffOp( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
-	const CFloatHandle& resultHandle, int vectorSize, float alpha )
+	const CFloatHandle& resultHandle, int vectorSize, CFloatParam alpha )
 {
 	ASSERT_EXPR(firstHandle.GetMathEngine() == this);
 	ASSERT_EXPR(secondHandle.GetMathEngine() == this);
@@ -412,7 +412,7 @@ void CCudaMathEngine::VectorELUDiffOp( const CConstFloatHandle& firstHandle, con
 }
 
 void CCudaMathEngine::VectorReLU(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle,
-	int vectorSize, float upperThreshold)
+	int vectorSize, CFloatParam upperThreshold)
 {
 	ASSERT_EXPR(firstHandle.GetMathEngine() == this);
 	ASSERT_EXPR(resultHandle.GetMathEngine() == this);
@@ -427,7 +427,7 @@ void CCudaMathEngine::VectorReLU(const CConstFloatHandle& firstHandle, const CFl
 }
 
 void CCudaMathEngine::VectorReLUDiff(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
-	const CFloatHandle& resultHandle, int vectorSize, float upperThreshold)
+	const CFloatHandle& resultHandle, int vectorSize, CFloatParam upperThreshold)
 {
 	ASSERT_EXPR(firstHandle.GetMathEngine() == this);
 	ASSERT_EXPR(secondHandle.GetMathEngine() == this);
@@ -443,7 +443,7 @@ void CCudaMathEngine::VectorReLUDiff(const CConstFloatHandle& firstHandle, const
 }
 
 void CCudaMathEngine::VectorLeakyReLU( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle,
-	int vectorSize, float alpha )
+	int vectorSize, CFloatParam alpha )
 {
 	ASSERT_EXPR(firstHandle.GetMathEngine() == this);
 	ASSERT_EXPR(resultHandle.GetMathEngine() == this);
@@ -459,7 +459,7 @@ void CCudaMathEngine::VectorLeakyReLU( const CConstFloatHandle& firstHandle, con
 
 void CCudaMathEngine::VectorLeakyReLUDiff( const CConstFloatHandle& firstHandle,
 	const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int vectorSize,
-	float alpha )
+	CFloatParam alpha )
 {
 	ASSERT_EXPR(firstHandle.GetMathEngine() == this);
 	ASSERT_EXPR(secondHandle.GetMathEngine() == this);
@@ -680,7 +680,7 @@ void CCudaMathEngine::VectorHardTanhDiff(const CConstFloatHandle& firstHandle, c
 }
 
 void CCudaMathEngine::VectorHardSigmoid( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize,
-	float slope, float bias )
+	CFloatParam slope, CFloatParam bias )
 {
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
@@ -695,7 +695,7 @@ void CCudaMathEngine::VectorHardSigmoid( const CConstFloatHandle& firstHandle, c
 }
 
 void CCudaMathEngine::VectorHardSigmoidDiff(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
-	const CFloatHandle& resultHandle, int vectorSize, float slope, float bias)
+	const CFloatHandle& resultHandle, int vectorSize, CFloatParam slope, CFloatParam bias)
 {
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
@@ -711,7 +711,7 @@ void CCudaMathEngine::VectorHardSigmoidDiff(const CConstFloatHandle& firstHandle
 }
 
 void CCudaMathEngine::VectorHardSigmoidDiffOp( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
-	const CFloatHandle& resultHandle, int vectorSize, float slope, float /*bias*/ )
+	const CFloatHandle& resultHandle, int vectorSize, CFloatParam slope, CFloatParam /*bias*/ )
 {
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
@@ -813,7 +813,7 @@ void CCudaMathEngine::VectorErf(const CConstFloatHandle& firstHandle, const CFlo
 }
 
 void CCudaMathEngine::VectorBernulliKLDerivative(const CConstFloatHandle& firstHandle,
-	const CFloatHandle& resultHandle, int vectorSize, float target)
+	const CFloatHandle& resultHandle, int vectorSize, CFloatParam target)
 {
 	ASSERT_EXPR(firstHandle.GetMathEngine() == this);
 	ASSERT_EXPR(resultHandle.GetMathEngine() == this);
@@ -860,7 +860,7 @@ void CCudaMathEngine::VectorAdd( const CConstIntHandle& firstHandle, const CCons
 }
 
 void CCudaMathEngine::VectorAddValue(const CConstFloatHandle& firstHandle,
-	const CFloatHandle& resultHandle, int vectorSize, float addition)
+	const CFloatHandle& resultHandle, int vectorSize, CFloatParam addition)
 {
 	ASSERT_EXPR(firstHandle.GetMathEngine() == this);
 	ASSERT_EXPR(resultHandle.GetMathEngine() == this);
@@ -871,11 +871,11 @@ void CCudaMathEngine::VectorAddValue(const CConstFloatHandle& firstHandle,
 	getCudaTaskGrid(blockCount, threadCount, vectorSize, VectorAddValueCombineCount);
 
 	VectorAddValueKernel<<<blockCount, threadCount>>>
-		(GetRaw(firstHandle), GetRaw(resultHandle), vectorSize, addition);
+		(GetRaw(firstHandle), GetRaw(resultHandle), vectorSize, CCudaScalarParameter<float>(addition));
 }
 
 void CCudaMathEngine::VectorAddValue(const CConstIntHandle& firstHandle, const CIntHandle& resultHandle,
-	int vectorSize, int addition)
+	int vectorSize, CIntParam addition)
 {
 	ASSERT_EXPR(firstHandle.GetMathEngine() == this);
 	ASSERT_EXPR(resultHandle.GetMathEngine() == this);
@@ -886,7 +886,7 @@ void CCudaMathEngine::VectorAddValue(const CConstIntHandle& firstHandle, const C
 	getCudaTaskGrid( blockCount, threadCount, vectorSize, VectorAddValueCombineCount );
 
 	VectorAddValueKernel<<<blockCount, threadCount>>>(
-		GetRaw( firstHandle ), GetRaw( resultHandle ), vectorSize, addition);
+		GetRaw( firstHandle ), GetRaw( resultHandle ), vectorSize, CCudaScalarParameter<int>(addition));
 }
 
 void CCudaMathEngine::VectorSub(const CConstIntHandle& firstHandle, const CConstIntHandle& secondHandle,
@@ -952,7 +952,7 @@ void CCudaMathEngine::VectorSub(float first, const CConstFloatHandle& secondHand
 }
 
 void CCudaMathEngine::VectorMultiplyAndSub(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
-	const CFloatHandle& resultHandle, int vectorSize, float mult)
+	const CFloatHandle& resultHandle, int vectorSize, CFloatParam mult)
 {
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
@@ -968,7 +968,7 @@ void CCudaMathEngine::VectorMultiplyAndSub(const CConstFloatHandle& firstHandle,
 }
 
 void CCudaMathEngine::VectorMultiply(const CConstFloatHandle& firstHandle,
-	const CFloatHandle& resultHandle, int vectorSize, float mult)
+	const CFloatHandle& resultHandle, int vectorSize, CFloatParam mult)
 {
 	ASSERT_EXPR(firstHandle.GetMathEngine() == this);
 	ASSERT_EXPR(resultHandle.GetMathEngine() == this);
@@ -979,11 +979,11 @@ void CCudaMathEngine::VectorMultiply(const CConstFloatHandle& firstHandle,
 	getCudaTaskGrid(blockCount, threadCount, vectorSize, VectorMultiplyCombineCount);
 
 	VectorMultiplyKernel<<<blockCount, threadCount>>>
-		(GetRaw(firstHandle),GetRaw(resultHandle), vectorSize, mult);
+		(GetRaw(firstHandle),GetRaw(resultHandle), vectorSize, CCudaScalarParameter<float>(mult));
 }
 
 void CCudaMathEngine::VectorMultiply(const CConstIntHandle& firstHandle,
-	const CIntHandle& resultHandle, int vectorSize, int mult)
+	const CIntHandle& resultHandle, int vectorSize, CIntParam mult)
 {
 	ASSERT_EXPR(firstHandle.GetMathEngine() == this);
 	ASSERT_EXPR(resultHandle.GetMathEngine() == this);
@@ -994,11 +994,11 @@ void CCudaMathEngine::VectorMultiply(const CConstIntHandle& firstHandle,
 	getCudaTaskGrid(blockCount, threadCount, vectorSize, VectorMultiplyCombineCount);
 
 	VectorMultiplyKernel<<<blockCount, threadCount>>>
-		(GetRaw(firstHandle),GetRaw(resultHandle), vectorSize, mult);
+		(GetRaw(firstHandle),GetRaw(resultHandle), vectorSize, CCudaScalarParameter<int>(mult));
 }
 
 void CCudaMathEngine::VectorNegMultiply(const CConstFloatHandle& firstHandle,
-	const CFloatHandle& resultHandle, int vectorSize, float mult)
+	const CFloatHandle& resultHandle, int vectorSize, CFloatParam mult)
 {
 	ASSERT_EXPR(firstHandle.GetMathEngine() == this);
 	ASSERT_EXPR(resultHandle.GetMathEngine() == this);
@@ -1151,7 +1151,7 @@ void CCudaMathEngine::VectorInv(const CConstFloatHandle& firstHandle, const CFlo
 }
 
 void CCudaMathEngine::VectorMinMax(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize,
-	float min, float max)
+	CFloatParam min, CFloatParam max)
 {
 	ASSERT_EXPR(firstHandle.GetMathEngine() == this);
 	ASSERT_EXPR(resultHandle.GetMathEngine() == this);
@@ -1301,7 +1301,7 @@ void CCudaMathEngine::VectorPowerDiffOp(float exponent, const CConstFloatHandle&
 }
 
 void CCudaMathEngine::VectorL1DiffAdd(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
-	const CFloatHandle& resultHandle, int vectorSize, float hubertThreshold, float mult)
+	const CFloatHandle& resultHandle, int vectorSize, CFloatParam hubertThreshold, CFloatParam mult)
 {
 	ASSERT_EXPR(firstHandle.GetMathEngine() == this);
 	ASSERT_EXPR(secondHandle.GetMathEngine() == this);
@@ -1636,7 +1636,7 @@ void CCudaMathEngine::VectorAbsDiff(const CConstFloatHandle& sourceGradHandle, i
 }
 
 void CCudaMathEngine::VectorMinMaxDiff(const CConstFloatHandle& sourceGradHandle, int gradHeight, int gradWidth,
-	const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, float min, float max)
+	const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, CFloatParam min, CFloatParam max)
 {
 	ASSERT_EXPR( sourceGradHandle.GetMathEngine() == this );
 	ASSERT_EXPR( gradHeight > 0 );
