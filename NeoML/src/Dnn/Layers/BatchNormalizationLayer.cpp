@@ -93,9 +93,6 @@ void CBatchNormalizationLayer::initializeFromFinalParams()
 	CFloatHandle gamma = paramBlobs[0]->GetObjectData( PN_Gamma );
 	CFloatHandle beta = paramBlobs[0]->GetObjectData(  PN_Beta );
 
-	CPtr<CDnnBlob> ones = CDnnBlob::CreateVector( MathEngine(), CT_Float, paramSize );
-	ones->Fill( 1.f );
-
 	// Deduce the gamma, beta, slowVar, slowAvg values from the final data
 	// We suppose the slow parameters to be equal to the current one because no history is available
 
@@ -154,6 +151,9 @@ void CBatchNormalizationLayer::Reshape()
 		finalParams = CDnnBlob::CreateBlob(MathEngine(), CT_Float, paramDesc);
 		MathEngine().VectorFill(finalParams->GetObjectData( PN_Gamma), 1.0, finalParams->GetObjectSize());
 		MathEngine().VectorFill(finalParams->GetObjectData( PN_Beta), 0.0, finalParams->GetObjectSize());
+
+		ones = CDnnBlob::CreateVector( MathEngine(), CT_Float, finalParams->GetObjectSize() );
+		ones->Fill( 1.f );
 	} else {
 		CheckLayerArchitecture( finalParams->GetObjectCount() == PN_Count, "Parameters batch size must be 2" );
 		CheckLayerArchitecture( finalParams->GetObjectSize() == objectSize, 
@@ -367,32 +367,33 @@ void CBatchNormalizationLayer::backwardWhenLearning()
 
 	CFloatHandleStackVar averageDiff(MathEngine(), paramBlobs[0]->GetObjectSize());
 	CFloatHandleStackVar averageNormDiff(MathEngine(), paramBlobs[0]->GetObjectSize());
-	CFloatHandleStackVar normGamma(MathEngine(), paramBlobs[0]->GetObjectSize());
 	CFloatHandleStackVar temp(MathEngine(), outputDiffBlobs[0]->GetDataSize());
 
-	CConstFloatHandle gamma = paramBlobs[0]->GetObjectData( PN_Gamma );
-	CConstFloatHandle invSqrtVariance = internalParams->GetObjectData( IPN_InvSqrtVariance );
 	CConstFloatHandle normalizedData = normalized->GetData();
-
-	MathEngine().VectorEltwiseMultiply(gamma, invSqrtVariance, normGamma, objectSize);
-
 	CConstFloatHandle outputDiff = outputDiffBlobs[0]->GetData();
 
-	MathEngine().SumMatrixRows(1, averageDiff, outputDiff, fullBatchSize, objectSize);
 	MathEngine().VectorEltwiseMultiply(outputDiff, normalizedData, temp, temp.Size());
 	MathEngine().SumMatrixRows(1, averageNormDiff, temp, fullBatchSize, objectSize);
-	MathEngine().VectorNegMultiply(averageDiff, averageDiff, objectSize, fullBatchInv);
 	MathEngine().VectorMultiply(averageNormDiff, averageNormDiff, objectSize, fullBatchInv);
 
 	// Calculate inputDiff
 	CFloatHandle inputDiff = inputDiffBlobs[0]->GetData();
 
+	MathEngine().SumMatrixRows( 1, averageDiff, outputDiff, fullBatchSize, objectSize );
+	MathEngine().VectorNegMultiply( averageDiff, averageDiff, objectSize, fullBatchInv );
 	MathEngine().AddVectorToMatrixRows(1, outputDiff, inputDiff, fullBatchSize, objectSize, averageDiff);
 	MathEngine().MultiplyMatrixByDiagMatrix(normalizedData, fullBatchSize, objectSize, averageNormDiff,
 		temp, temp.Size());
 	MathEngine().VectorSub(inputDiff, temp, inputDiff, temp.Size());
-	MathEngine().MultiplyMatrixByDiagMatrix(inputDiff, fullBatchSize, objectSize, normGamma,
-		inputDiff, inputDiffBlobs[0]->GetDataSize());
+	{
+		CConstFloatHandle gamma = paramBlobs[0]->GetObjectData( PN_Gamma );
+		CConstFloatHandle invSqrtVariance = internalParams->GetObjectData( IPN_InvSqrtVariance );
+		CFloatHandle normGamma = averageDiff;
+
+		MathEngine().VectorEltwiseMultiply( gamma, invSqrtVariance, normGamma, objectSize );
+		MathEngine().MultiplyMatrixByDiagMatrix( inputDiff, fullBatchSize, objectSize, normGamma,
+			inputDiff, inputDiffBlobs[0]->GetDataSize() );
+	}
 }
 
 // Performs backward propagation when not learning
