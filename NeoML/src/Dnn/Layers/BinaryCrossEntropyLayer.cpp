@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -59,78 +59,70 @@ void CBinaryCrossEntropyLossLayer::BatchCalculateLossAndGradient( int batchSize,
 	CFloatHandleStackVar positiveWeightMinusOne( MathEngine() );
 	positiveWeightMinusOne.SetValue( positiveWeightMinusOneValue );
 
+	// reduced memory usage for calculation
+	CFloatHandleStackVar temp( MathEngine(), batchSize * 3 );
 	// Convert the target values to [0, 1] range using the binaryLabel = 0.5 * ( label + 1 ) formula
-	CFloatHandleStackVar binaryLabel( MathEngine(), batchSize );
+	CFloatHandle binaryLabel = temp.GetHandle();
 	MathEngine().VectorAddValue( label, binaryLabel, batchSize, one );
 	MathEngine().VectorMultiply( binaryLabel, binaryLabel, batchSize, half );
 
 	// Notations:
-	// x = logits, z = labels, q = pos_weight, l = 1 + (q - 1) * z
+	// x = logits, z = labels, q = pos_weight, lCoef = 1 + (q - 1) * z
 
 	// The original loss function formula:
-	// loss =  (1 - z) * x + l * log(1 + exp(-x))
+	// loss = (1 - z) * x + lCoef * log(1 + exp(-x))
 
 	// The formula to avoid overflow for large exponent power in exp(-x):
-	// loss = (1 - z) * x + l * (log(1 + exp(-abs(x))) + max(-x, 0))
+	// loss = (1 - z) * x + lCoef * (log(1 + exp(-abs(x))) + max(-x, 0))
 
-	// (1-z)*x
-	CFloatHandleStackVar temp( MathEngine(), batchSize);
-	MathEngine().VectorAddValue( binaryLabel, temp, batchSize, minusOne );
-	MathEngine().VectorEltwiseNegMultiply( temp, data, temp, batchSize );
+	CFloatHandle lCoef = temp.GetHandle() + batchSize;
+	CFloatHandle xValue = temp.GetHandle() + batchSize * 2;
+	CFloatHandle logValue = lossValue; // reduced memory usage for calculation
 
-	// l = (1 + (q - 1) * z), 
-	CFloatHandleStackVar temp2( MathEngine(), batchSize );
-	MathEngine().VectorMultiply( binaryLabel, temp2, batchSize, positiveWeightMinusOne );
-	MathEngine().VectorAddValue( temp2, temp2, batchSize, one );
+	// log( 1 + exp(-abs(x)) )
+	MathEngine().VectorAbs( data, logValue, batchSize );
+	MathEngine().VectorNegMultiply( logValue, logValue, batchSize, one );
+	MathEngine().VectorExp( logValue, logValue, batchSize );
+	MathEngine().VectorAddValue( logValue, logValue, batchSize, one );
+	MathEngine().VectorLog( logValue, logValue, batchSize );
 
 	// max(-x, 0)
-	CFloatHandleStackVar temp3( MathEngine(), batchSize );
-	MathEngine().VectorNegMultiply( data, temp3, batchSize, one );
-	MathEngine().VectorReLU( temp3, temp3, batchSize, zero );
+	MathEngine().VectorNegMultiply( data, xValue, batchSize, one );
+	MathEngine().VectorReLU( xValue, xValue, batchSize, zero );
+	// lossValue = log( 1 + exp(-abs(x)) ) + max(-x, 0)
+	MathEngine().VectorAdd( xValue, logValue, lossValue, batchSize );
 
-	// log( 1 + e^-|x|)
-	CFloatHandleStackVar temp4( MathEngine(), batchSize );
-	MathEngine().VectorAbs( data, temp4, batchSize );
-	MathEngine().VectorNegMultiply( temp4, temp4, batchSize, one );
-	MathEngine().VectorExp( temp4, temp4, batchSize );
-	MathEngine().VectorAddValue( temp4, temp4, batchSize, one );
-	MathEngine().VectorLog( temp4, temp4, batchSize );
+	// lCoef = (1 + (q - 1) * z)
+	MathEngine().VectorMultiply( binaryLabel, lCoef, batchSize, positiveWeightMinusOne );
+	MathEngine().VectorAddValue( lCoef, lCoef, batchSize, one );
+	// lCoef * lossValue
+	MathEngine().VectorEltwiseMultiply( lossValue, lCoef, lossValue, batchSize );
 
-	// l * (log(1 + exp(-abs(x))) + max(-x, 0))
-	MathEngine().VectorAdd( temp3, temp4, lossValue, batchSize );
-	MathEngine().VectorEltwiseMultiply( lossValue, temp2, lossValue, batchSize );
-
-	// The loss
-	MathEngine().VectorAdd( lossValue, temp, lossValue, batchSize );
+	// The total loss
+	{
+		// binaryLabel = (1 - z)
+		MathEngine().VectorSub( 1.f, binaryLabel, binaryLabel, batchSize );
+		// lossValue += (1 - z) * x
+		MathEngine().VectorEltwiseMultiply( binaryLabel, data, xValue, batchSize );
+		MathEngine().VectorAdd( lossValue, xValue, lossValue, batchSize );
+	}
 
 	if( !lossGradient.IsNull() ) {
-		// loss' = (1-z) - l / ( 1+exp(x) ) = (1-z) - l * sigmoid(-x) 
-
-		// (z-1)
-		CFloatHandleStackVar temp5( MathEngine(), batchSize );
-		MathEngine().VectorAddValue( binaryLabel, temp5, batchSize, minusOne );
+		// loss' = (1 - z) - lCoef / ( 1 + exp(x) ) = (1 - z) - lCoef * sigmoid(-x) 
 
 		// -x
-		CFloatHandleStackVar temp6( MathEngine(), batchSize );
-		MathEngine().VectorNegMultiply( data, temp6, batchSize, one );
-
+		MathEngine().VectorNegMultiply( data, lossGradient, batchSize, one );
 		// sigmoid(-x)
-		calculateStableSigmoid( temp6, temp6, batchSize );
-		//MathEngine().VectorSigmoid( temp6, temp6, batchSize );
-
-		// l * sigmoid(-x)
-		MathEngine().VectorEltwiseMultiply( temp6, temp2, temp6, batchSize );
-
-		// (z-1) + l * sigmoid(-x)
-		MathEngine().VectorAdd( temp5, temp6, lossGradient, batchSize );
-
-		//(1-z) - l * sigmoid(-x)
-		MathEngine().VectorNegMultiply( lossGradient, lossGradient, batchSize, one );
+		calculateStableSigmoid( lossGradient, xValue, batchSize );
+		// lCoef * sigmoid(-x)
+		MathEngine().VectorEltwiseMultiply( xValue, lCoef, lossGradient, batchSize );
+		// (1 - z) - lCoef * sigmoid(-x)
+		MathEngine().VectorSub( binaryLabel, lossGradient, lossGradient, batchSize );
 	}
 }
 
 // Overflow-safe sigmoid calculation
-void CBinaryCrossEntropyLossLayer::calculateStableSigmoid( const CConstFloatHandle& firstHandle,
+void CBinaryCrossEntropyLossLayer::calculateStableSigmoid( const CFloatHandle& firstHandle,
 	const CFloatHandle& resultHandle, int vectorSize ) const
 {
 	CFloatHandleStackVar one( MathEngine() );
@@ -138,28 +130,33 @@ void CBinaryCrossEntropyLossLayer::calculateStableSigmoid( const CConstFloatHand
 	CFloatHandleStackVar zero( MathEngine() );
 	zero.SetValue( 0.f );
 
+	NeoPresume( !firstHandle.IsNull() );
+	NeoPresume( !resultHandle.IsNull() );
+	NeoPresume( firstHandle != resultHandle );
+	// reduced memory usage for calculation
+	CFloatHandle numerator = firstHandle;
+	CFloatHandle denominator = resultHandle;
+
 	// The sigmoid formula:
-	// Sigmoid(x) = 1 / (1 + e^-x )
+	// Sigmoid(x) = 1 / ( 1 + e^-x )
 
 	// The formula to avoid overflow for large exponent power in exp(-x):
-	// Sigmoid(x) = e^(-max(-x, 0) ) / ( 1 + e^-|x| ) 
+	// Sigmoid(x) = e^( -max(-x, 0) ) / ( 1 + e^-|x| ) 
 
-	// e^(-max(-x, 0) )
-	CFloatHandleStackVar temp( MathEngine(), vectorSize );
-	MathEngine().VectorNegMultiply( firstHandle, temp, vectorSize, one );
-	MathEngine().VectorReLU( temp, temp, vectorSize, zero );
-	MathEngine().VectorNegMultiply( temp, temp, vectorSize, one );
-	MathEngine().VectorExp( temp, temp, vectorSize );
+	// e^( -max(-x, 0) )
+	MathEngine().VectorNegMultiply( firstHandle, numerator, vectorSize, one );
+	MathEngine().VectorReLU( numerator, numerator, vectorSize, zero );
+	MathEngine().VectorNegMultiply( numerator, numerator, vectorSize, one );
+	MathEngine().VectorExp( numerator, numerator, vectorSize );
 
 	// ( 1 + e^-|x| ) 
-	CFloatHandleStackVar temp2( MathEngine(), vectorSize );
-	MathEngine().VectorAbs( firstHandle, temp2, vectorSize );
-	MathEngine().VectorNegMultiply( temp2, temp2, vectorSize, one );
-	MathEngine().VectorExp( temp2, temp2, vectorSize );
-	MathEngine().VectorAddValue( temp2, temp2, vectorSize, one );
+	MathEngine().VectorAbs( firstHandle, denominator, vectorSize );
+	MathEngine().VectorNegMultiply( denominator, denominator, vectorSize, one );
+	MathEngine().VectorExp( denominator, denominator, vectorSize );
+	MathEngine().VectorAddValue( denominator, denominator, vectorSize, one );
 
 	// The sigmoid
-	MathEngine().VectorEltwiseDivide( temp, temp2, resultHandle, vectorSize );
+	MathEngine().VectorEltwiseDivide( numerator, denominator, resultHandle, vectorSize );
 }
 
 static const int BinaryCrossEntropyLossLayerVersion = 2000;
@@ -168,8 +165,11 @@ void CBinaryCrossEntropyLossLayer::Serialize( CArchive& archive )
 {
 	archive.SerializeVersion( BinaryCrossEntropyLossLayerVersion, CDnn::ArchiveMinSupportedVersion );
 	CLossLayer::Serialize( archive );
-	
+
 	archive.Serialize( positiveWeightMinusOneValue );
+	if( archive.IsLoading() ) {
+		SetPositiveWeight( GetPositiveWeight() ); // set device memory parameter
+	}
 }
 
 CLayerWrapper<CBinaryCrossEntropyLossLayer> BinaryCrossEntropyLoss(

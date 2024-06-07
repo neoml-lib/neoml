@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -50,6 +50,9 @@ private:
 	int negativesTotal;
 	int positivesCorrect;
 	int negativesCorrect;
+
+	enum TParams { TP_PositivesCount, TP_NegativesCount, TP_TrueNegativeCount, TP_TruePositivesCount, TP_Count_ };
+	CPtr<CDnnBlob> params; // store consts in device memory to avoid excess syncs
 };
 
 NEOML_API CLayerWrapper<CPrecisionRecallLayer> PrecisionRecall();

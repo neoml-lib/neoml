@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -25,8 +25,10 @@ CPrecisionRecallLayer::CPrecisionRecallLayer( IMathEngine& mathEngine ) :
 	positivesTotal( 0 ),
 	negativesTotal( 0 ),
 	positivesCorrect( 0 ),
-	negativesCorrect( 0 )
+	negativesCorrect( 0 ),
+	params( CDnnBlob::CreateVector( mathEngine, CT_Float, TP_Count_ ) )
 {
+	params->Clear();
 }
 
 void CPrecisionRecallLayer::Reshape()
@@ -68,78 +70,81 @@ void CPrecisionRecallLayer::RunOnceAfterReset()
 	CConstFloatHandle groundtruth = inputBlobs[1]->GetData();
 
 	const int vectorSize = inputBlobs[0]->GetDataSize();
-	CFloatHandleStackVar ones( MathEngine(), vectorSize );
-	MathEngine().VectorFill( ones, 1.0f, vectorSize );
+	CFloatHandleStackVar tempVar( MathEngine(), vectorSize * 3 );
+	CFloatHandle binarizedLabel = tempVar.GetHandle() + vectorSize;
+	CFloatHandle binarizedCalculation = tempVar.GetHandle() + 2 * vectorSize;
 
-	// Mask of the elements classified as +1 class (logits are positive)
 	CFloatHandleStackVar zero( MathEngine() );
-	zero.SetValue( 0 );
-	CFloatHandleStackVar binarizedCalculation( MathEngine(), vectorSize );
-	MathEngine().VectorReLUDiff( calculatedLogit, ones, binarizedCalculation, vectorSize, zero );
-
-	// Mask of the elements whose ground truth is +1
-	CFloatHandleStackVar binarizedLabel( MathEngine(), vectorSize );
-	MathEngine().VectorReLUDiff( groundtruth, ones, binarizedLabel, vectorSize, zero );
-
-	// Mask of the correctly classified +1 objects
-	CFloatHandleStackVar truePositives( MathEngine(), vectorSize );
-	// 1 only if corresponding numbers in both vectors are 1 (otherwise it's 0)
-	MathEngine().VectorEltwiseMin( binarizedLabel, binarizedCalculation, truePositives, vectorSize );
-
-	// Number of the correctly classified +1 objects
-	CFloatHandleStackVar truePositivesCount( MathEngine() );
-	MathEngine().VectorSum( truePositives, vectorSize, truePositivesCount );
-
-	// Number of the +1 objects (ground truth)
-	CFloatHandleStackVar positivesCount( MathEngine(), 1 );
-	CFloatHandleStackVar temp( MathEngine(), vectorSize );
-	MathEngine().VectorCopy( temp, binarizedLabel, vectorSize );
-	MathEngine().VectorSum( temp, vectorSize, positivesCount );
-
-	// Mask of the correctly classified -1 objects
-	CFloatHandleStackVar trueNegative( MathEngine(), vectorSize );
-	// 0 only if corresponding numbers in both vectors are 0 (otherwise 1)
-	MathEngine().VectorEltwiseMax( binarizedLabel, binarizedCalculation, trueNegative, vectorSize );
-	// At this moment true negative elements are marked as 0
-	// Inverting this vector
-	// {0, 1} -> {-1, 0}
+	zero.SetValue( 0.f );
 	CFloatHandleStackVar minusOne( MathEngine() );
-	minusOne.SetValue( -1 );
-	MathEngine().VectorAddValue( trueNegative, trueNegative, vectorSize, minusOne );
-	// {-1, 0} -> {1, 0}
-	MathEngine().VectorAbs( trueNegative, trueNegative, vectorSize );
+	minusOne.SetValue( -1.f );
 
-	// Number of the correctly classified -1 objects
-	CFloatHandleStackVar trueNegativeCount( MathEngine() );
-	MathEngine().VectorSum( trueNegative, vectorSize, trueNegativeCount );
-
+	{
+		CFloatHandle ones = tempVar.GetHandle(); // reduced memory usage for calculation
+		MathEngine().VectorFill( ones, 1.0f, vectorSize );
+		// Mask of the elements classified as +1 class (logits are positive)
+		MathEngine().VectorReLUDiff( calculatedLogit, ones, binarizedCalculation, vectorSize, zero );
+		// Mask of the elements whose ground truth is +1
+		MathEngine().VectorReLUDiff( groundtruth, ones, binarizedLabel, vectorSize, zero );
+	}
+	{
+		// Mask of the correctly classified +1 objects
+		CFloatHandle truePositives = tempVar.GetHandle(); // reduced memory usage for calculation
+		// 1 only if corresponding numbers in both vectors are 1 (otherwise it's 0)
+		MathEngine().VectorEltwiseMin( binarizedLabel, binarizedCalculation, truePositives, vectorSize );
+		// Number of the correctly classified +1 objects
+		MathEngine().VectorSum( truePositives, vectorSize, params->GetData( { TP_TruePositivesCount } ) );
+	}
+	{
+		// Number of the +1 objects (ground truth)
+		CFloatHandle temp = tempVar.GetHandle(); // reduced memory usage for calculation
+		MathEngine().VectorCopy( temp, binarizedLabel, vectorSize );
+		MathEngine().VectorSum( temp, vectorSize, params->GetData( { TP_PositivesCount } ) );
+	}
+	{
+		// Mask of the correctly classified -1 objects
+		CFloatHandle trueNegative = tempVar.GetHandle(); // reduced memory usage for calculation
+		// 0 only if corresponding numbers in both vectors are 0 (otherwise 1)
+		MathEngine().VectorEltwiseMax( binarizedLabel, binarizedCalculation, trueNegative, vectorSize );
+		// At this moment true negative elements are marked as 0
+		// Inverting this vector
+		// {0, 1} -> {-1, 0}
+		MathEngine().VectorAddValue( trueNegative, trueNegative, vectorSize, minusOne );
+		// {-1, 0} -> {1, 0}
+		MathEngine().VectorAbs( trueNegative, trueNegative, vectorSize );
+		// Number of the correctly classified -1 objects
+		MathEngine().VectorSum( trueNegative, vectorSize, params->GetData( { TP_TrueNegativeCount } ) );
+	}
 	// Number of the -1 objects (ground truth)
-	CFloatHandleStackVar negativesCount( MathEngine() );
 	// At this moment -1 objects are marked as 0
 	// Inverting this vector
 	// {0, 1} -> {-1, 0}
 	MathEngine().VectorAddValue( binarizedLabel, binarizedLabel, vectorSize, minusOne );
 	// {-1, 0} -> {1, 0}
 	MathEngine().VectorAbs( binarizedLabel, binarizedLabel, vectorSize );
-	MathEngine().VectorSum( binarizedLabel, vectorSize, negativesCount );
+	MathEngine().VectorSum( binarizedLabel, vectorSize, params->GetData( { TP_NegativesCount } ) );
+	{
+		float buffer[TP_Count_];
+		params->CopyTo( buffer );
 
-	PositivesTotal() += to<int>( positivesCount.GetValue() );
-	NegativesTotal() += to<int>( negativesCount.GetValue() );
-	PositivesCorrect() += to<int>( truePositivesCount.GetValue() );
-	NegativesCorrect() += to<int>( trueNegativeCount.GetValue() );
-
+		PositivesTotal() += to<int>( buffer[TP_PositivesCount] );
+		NegativesTotal() += to<int>( buffer[TP_NegativesCount] );
+		PositivesCorrect() += to<int>( buffer[TP_TruePositivesCount] );
+		NegativesCorrect() += to<int>( buffer[TP_TrueNegativeCount] );
+	}
 	NeoAssert( PositivesTotal() >= 0 );
 	NeoAssert( NegativesTotal() >= 0 );
 	NeoAssert( PositivesCorrect() <= PositivesTotal() );
 	NeoAssert( NegativesCorrect() <= NegativesTotal() );
-
-	CFastArray<float, 1> buffer;
-	buffer.Add( static_cast<float>( PositivesCorrect() ) );
-	buffer.Add( static_cast<float>( PositivesTotal() ) );
-	buffer.Add( static_cast<float>( NegativesCorrect() ) );
-	buffer.Add( static_cast<float>( NegativesTotal() ) );
-
-	outputBlobs[0]->CopyFrom( buffer.GetPtr() );
+	{
+		float buffer[4]{
+			static_cast<float>( PositivesCorrect() ),
+			static_cast<float>( PositivesTotal() ),
+			static_cast<float>( NegativesCorrect() ),
+			static_cast<float>( NegativesTotal() )
+		};
+		outputBlobs[0]->CopyFrom( buffer );
+	}
 }
 
 static const int PrecisionRecallLayerVersion = 2000;

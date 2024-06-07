@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -191,7 +191,7 @@ private:
 	// constants used for calculating the function value
 	float positiveWeightMinusOneValue;
 
-	void calculateStableSigmoid( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize ) const;
+	void calculateStableSigmoid( const CFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize ) const;
 };
 
 NEOML_API CLayerWrapper<CBinaryCrossEntropyLossLayer> BinaryCrossEntropyLoss(
