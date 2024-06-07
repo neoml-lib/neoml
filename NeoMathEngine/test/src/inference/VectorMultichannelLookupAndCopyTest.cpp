@@ -96,7 +96,7 @@ static void multichannelLookupAndCopyImpl( const CTestParams& params, int seed )
 		}
 	}
 
-	CMemoryHandleVar<TIndex> inputHandle( MathEngine(), inputData.size() );
+	CMemoryHandleStackVar<TIndex> inputHandle( MathEngine(), inputData.size() );
 	MathEngine().DataExchangeTyped( inputHandle.GetHandle(), inputData.data(), inputData.size() );
 
 	std::vector<TLookup> result;

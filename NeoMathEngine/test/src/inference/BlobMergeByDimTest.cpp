@@ -93,7 +93,7 @@ static void blobMergeByDimTestImpl( const CTestParams& params, int seed )
 	expected.resize( resultDesc.BlobSize() );
 	blobMergeByDimNaive( mergeDim, sourceDescs.data(), sourceData, fromCount, resultDesc, expected );
 
-	CFloatHandleVar resultHandle( MathEngine(), resultDesc.BlobSize() );
+	CFloatHandleStackVar resultHandle( MathEngine(), resultDesc.BlobSize() );
 	MathEngine().BlobMergeByDim( static_cast<TBlobDim>( mergeDim ), sourceDescs.data(), fromHandles.data(), fromCount, resultDesc, resultHandle.GetHandle() );
 	
 	for(size_t i = 0; i < fromHandleVars.size(); i++) {

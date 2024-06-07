@@ -55,9 +55,9 @@ static void transposeMatrixTestImpl( const CTestParams& params, int seed )
 		}
 	}
 
-	CMemoryHandleVar<T> from( MathEngine(), matrixSize );
+	CMemoryHandleStackVar<T> from( MathEngine(), matrixSize );
 	MathEngine().DataExchangeTyped<T>( from, matrix.data(), matrixSize );
-	CMemoryHandleVar<T> result( MathEngine(), matrixSize );
+	CMemoryHandleStackVar<T> result( MathEngine(), matrixSize );
 	MathEngine().TransposeMatrix( batchSize, from, height, medium, width, channels, result, matrixSize );
 	MathEngine().DataExchangeTyped<T>( matrix.data(), result, matrixSize );
 
