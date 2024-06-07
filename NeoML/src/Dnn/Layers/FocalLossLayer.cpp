@@ -61,36 +61,37 @@ void CFocalLossLayer::BatchCalculateLossAndGradient( int batchSize, CConstFloatH
 	CConstFloatHandle label, int labelSize, CFloatHandle lossValue, CFloatHandle lossGradient )
 {
 	const int dataSize = vectorSize * batchSize;
-	CFloatHandleVar tempMatrixHandle( MathEngine(), dataSize );
-	// tempMatrix: P_t * y_t
-	MathEngine().VectorEltwiseMultiply( data, label, tempMatrixHandle.GetHandle(), dataSize );
+	CFloatHandleStackVar temp( MathEngine(), dataSize + batchSize * 3 );
 
+	CFloatHandle tempMatrix = temp;
+	CFloatHandle remainderVector = temp + dataSize;
+	CFloatHandle entropyPerBatch = remainderVector + batchSize;
+	CFloatHandle correctClassProbabilityPerBatch = entropyPerBatch + batchSize;
+
+	// tempMatrix: P_t * y_t
+	MathEngine().VectorEltwiseMultiply( data, label, tempMatrix, dataSize );
 	// correctClassProbabilityPerBatch: P_t * y_t
-	CFloatHandleVar correctClassProbabilityPerBatch( MathEngine(), batchSize );
-	MathEngine().SumMatrixColumns( correctClassProbabilityPerBatch.GetHandle(), tempMatrixHandle.GetHandle(),
-		batchSize, labelSize );
+	MathEngine().SumMatrixColumns( correctClassProbabilityPerBatch, tempMatrix, batchSize, labelSize );
 
 	// tempMatrix: (1 - P_t) * y_t
 	// remainderVector: (1 - P_t) * y_t
-	MathEngine().VectorFill( tempMatrixHandle.GetHandle(), 1.0, batchSize * vectorSize );
-	MathEngine().VectorSub( tempMatrixHandle.GetHandle(), data, tempMatrixHandle.GetHandle(), dataSize );
-	MathEngine().VectorEltwiseMultiply( tempMatrixHandle.GetHandle(), label, tempMatrixHandle.GetHandle(), dataSize );
-	CFloatHandleVar remainderVector( MathEngine(), batchSize );
-	MathEngine().SumMatrixColumns( remainderVector.GetHandle(), tempMatrixHandle.GetHandle(), batchSize, labelSize );
+	MathEngine().VectorFill( tempMatrix, 1.0, batchSize * vectorSize );
+	MathEngine().VectorSub( tempMatrix, data, tempMatrix, dataSize );
+	MathEngine().VectorEltwiseMultiply( tempMatrix, label, tempMatrix, dataSize );
+	MathEngine().SumMatrixColumns( remainderVector, tempMatrix, batchSize, labelSize );
 
 	// batchEntropy: -log(P_t)
-	CFloatHandleVar entropyPerBatch( MathEngine(), batchSize );
-	MathEngine().VectorNegLog( correctClassProbabilityPerBatch.GetHandle(), entropyPerBatch.GetHandle(), batchSize );
+	MathEngine().VectorNegLog( correctClassProbabilityPerBatch, entropyPerBatch, batchSize );
 
 	// Loss
 	// tempMatrix: (1-P_t)^focalForce
-	MathEngine().VectorPower( focalForce, remainderVector.GetHandle(), tempMatrixHandle.GetHandle(), batchSize );
-	MathEngine().VectorEltwiseMultiply( tempMatrixHandle.GetHandle(), entropyPerBatch.GetHandle(), lossValue, batchSize );
+	MathEngine().VectorPower( focalForce, remainderVector, tempMatrix, batchSize );
+	MathEngine().VectorEltwiseMultiply( tempMatrix, entropyPerBatch, lossValue, batchSize );
 
 	// Gradient
 	if( !lossGradient.IsNull() ) {
-		calculateGradient( correctClassProbabilityPerBatch.GetHandle(), batchSize, labelSize, remainderVector.GetHandle(),
-			entropyPerBatch.GetHandle(), tempMatrixHandle.GetHandle(), label, lossGradient );
+		calculateGradient( correctClassProbabilityPerBatch, batchSize, labelSize, remainderVector,
+			entropyPerBatch, tempMatrix, label, lossGradient );
 	}
 }
 
@@ -107,8 +108,7 @@ void CFocalLossLayer::calculateGradient( CFloatHandle correctClassProbabilityPer
 
 	// diffPart: (1 - P_t )^focalForce / P_t
 	CFloatHandle diffPart = inversedProbailitiesHandle;
-	MathEngine().VectorEltwiseMultiply( tempMatrixHandle, inversedProbailitiesHandle,
-		diffPart, batchSize );
+	MathEngine().VectorEltwiseMultiply( tempMatrixHandle, inversedProbailitiesHandle, diffPart, batchSize );
 
 	// tempMatrix: (1 - P_t )^(focalForce - 1)
 	MathEngine().VectorPower( focalForce - 1, remainderVectorHandle,
