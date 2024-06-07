@@ -64,7 +64,7 @@ private:
 	// The internal blobs
 	CPtr<CDnnBlob> classCentersBlob;
 
-	void updateCenters(const CFloatHandle& tempDiffHandle);
+	void updateCenters(const CConstFloatHandle& tempDiff);
 };
 
 NEOML_API CLayerWrapper<CCenterLossLayer> CenterLoss( int numberOfClasses,
