@@ -77,6 +77,7 @@ private:
 	float varianceNorm;
 	float residual;
 	CPtr<CDnnBlob> normalized;
+	CPtr<CDnnBlob> ones;
 
 	// The training parameters names
 	enum TParamName {
