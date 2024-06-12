@@ -1,4 +1,4 @@
-/* Copyright © 2021-2023 ABBYY
+/* Copyright © 2021-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -1975,6 +1975,76 @@ inline void checkSpecificParams<CMultiheadAttentionLayer>( CMultiheadAttentionLa
 GTEST_TEST( SerializeFromFile, MultiheadAttentionLayerSerialization )
 {
 	checkSerializeLayer<CMultiheadAttentionLayer>( "NeoMLDnnMultiheadAttentionLayer" );
+}
+
+// ====================================================================================================================
+
+// CMultiheadAttentionPerformerLayer
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+static void setSpecificParams( CMultiheadAttentionPerformerLayer& layer )
+{
+	layer.SetHeadCount( 5 );
+	layer.SetHiddenSize( 25 );
+	layer.SetOutputSize( 123 );
+	layer.SetActivationKernel( /*ReLU*/1, /*randomFeaturesCount*/7, /*casual*/true );
+}
+
+GTEST_TEST( SerializeToFile, MultiheadAttentionPerformerLayerSerialization )
+{
+	serializeToFile<CMultiheadAttentionPerformerLayer>( "NeoMLDnnMultiheadAttentionPerformerLayer" );
+}
+
+#endif // GENERATE_SERIALIZATION_FILES
+
+template<>
+inline void checkSpecificParams<CMultiheadAttentionPerformerLayer>( CMultiheadAttentionPerformerLayer& layer )
+{
+	EXPECT_EQ( 5, layer.GetHeadCount() );
+	EXPECT_EQ( 25, layer.GetHiddenSize() );
+	EXPECT_EQ( 123, layer.GetOutputSize() );
+	EXPECT_EQ( /*ReLU*/1, layer.GetActivationKernel() );
+	EXPECT_EQ( 7, layer.GetRandomFeaturesCount() );
+	EXPECT_EQ( true, layer.GetCasual() );
+}
+
+GTEST_TEST( SerializeFromFile, MultiheadAttentionPerformerLayerSerialization )
+{
+	checkSerializeLayer<CMultiheadAttentionPerformerLayer>( "NeoMLDnnMultiheadAttentionPerformerLayer" );
+}
+
+// ====================================================================================================================
+
+// CFavorAttentionPerformerLayer
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+static void setSpecificParams( CFavorAttentionPerformerLayer& layer )
+{
+	layer.SetRandomFeaturesCount( 5 );
+	layer.SetActivationKernel( /*ReLU*/1 );
+	layer.SetCausal( true );
+}
+
+GTEST_TEST( SerializeToFile, FavorAttentionPerformerLayerSerialization )
+{
+	serializeToFile<CFavorAttentionPerformerLayer>( "NeoMLDnnFavorAttentionPerformerLayer" );
+}
+
+#endif // GENERATE_SERIALIZATION_FILES
+
+template<>
+inline void checkSpecificParams<CFavorAttentionPerformerLayer>( CFavorAttentionPerformerLayer& layer )
+{
+	EXPECT_EQ( 5, layer.GetRandomFeaturesCount() );
+	EXPECT_EQ( /*ReLU*/1, layer.GetActivationKernel() );
+	EXPECT_EQ( true, layer.GetCausal() );
+}
+
+GTEST_TEST( SerializeFromFile, FavorAttentionPerformerLayerSerialization )
+{
+	checkSerializeLayer<CFavorAttentionPerformerLayer>( "NeoMLDnnFavorAttentionPerformerLayer" );
 }
 
 // ====================================================================================================================

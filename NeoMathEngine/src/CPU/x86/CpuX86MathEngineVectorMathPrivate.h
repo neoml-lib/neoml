@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -779,6 +779,63 @@ inline void vectorEltwiseMultiplyAdd( const float* first, const float* second, f
 
 	for( int i = 0; i < nonSseSize; ++i ) {
 		*result++ += *first++ * *second++;
+	}
+}
+
+//------------------------------------------------------------------------------------------------------------
+
+inline void vectorEltwiseDivide( const float* first, const float* second, float* result, int vectorSize )
+{
+	int sseSize;
+	int nonSseSize;
+	checkSse( vectorSize, sseSize, nonSseSize );
+
+	while( sseSize >= 4 ) {
+		__m128 first0 = LoadSse4( first );
+		__m128 first1 = LoadSse4( first + 4 );
+		__m128 first2 = LoadSse4( first + 8 );
+		__m128 first3 = LoadSse4( first + 12 );
+		first += 16;
+
+		__m128 second0 = LoadSse4( second );
+		__m128 second1 = LoadSse4( second + 4 );
+		__m128 second2 = LoadSse4( second + 8 );
+		__m128 second3 = LoadSse4( second + 12 );
+		second += 16;
+
+		__m128 res0 = _mm_div_ps( first0, second0 );
+		__m128 res1 = _mm_div_ps( first1, second1 );
+		__m128 res2 = _mm_div_ps( first2, second2 );
+		__m128 res3 = _mm_div_ps( first3, second3 );
+
+		StoreSse4( res0, result );
+		StoreSse4( res1, result + 4 );
+		StoreSse4( res2, result + 8 );
+		StoreSse4( res3, result + 12 );
+		result += 16;
+
+		sseSize -= 4;
+	}
+
+	while( sseSize > 0 ) {
+		__m128 first0 = LoadSse4( first );
+		first += 4;
+
+		__m128 second0 = LoadSse4( second );
+		second += 4;
+
+		__m128 res0 = _mm_div_ps( first0, second0 );
+		StoreSse4( res0, result );
+		result += 4;
+
+		sseSize--;
+	}
+
+	if( nonSseSize ) {
+		__m128 first0 = LoadSse( first, nonSseSize );
+		__m128 second0 = LoadSse( second, nonSseSize );
+		__m128 res0 = _mm_div_ps( first0, second0 );
+		StoreSse( res0, result, nonSseSize );
 	}
 }
 
