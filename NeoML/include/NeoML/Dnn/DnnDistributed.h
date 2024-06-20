@@ -1,4 +1,5 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
@@ -26,6 +27,7 @@ class CLoraSerializer;
 // Interface for setting input to a neural network
 class IDistributedDataset {
 public:
+	virtual ~IDistributedDataset() {}
 	// This method must set batches for all of the source layers in CDnn
 	// Returns the current batch size (or 0, if there is no data for this thread on this run)
 	// This batch size affects weights balance between different threads
@@ -57,7 +59,7 @@ public:
 	CDistributedTraining( CArchive& archive, const CArray<int>& cudaDevs,
 		TDistributedInitializer initializer = TDistributedInitializer::Xavier, int seed = 42 );
 
-	~CDistributedTraining();
+	virtual ~CDistributedTraining();
 
 	// Gets the number of models in disitrbuted traning
 	int GetModelCount() const { return cnns.Size(); }
@@ -67,6 +69,7 @@ public:
 	void SetLearningRate( float rate );
 	// Returns the current learning rate
 	float GetLearningRate() const;
+
 	// Runs the networks without backward and training
 	void RunOnce( IDistributedDataset& data );
 	// Runs the networks and performs a backward pass
@@ -75,12 +78,14 @@ public:
 	void RunAndLearnOnce( IDistributedDataset& data );
 	// Updates the trainable weights of all models (after RunAndBackwardOnce)
 	void Train();
+
 	// Returns last loss of `layerName` for all models
 	// `layerName` should correspond to CLossLayer, CCtcLossLayer or CCrfLossLayer
-	void GetLastLoss( const CString& layerName, CArray<float>& losses );
+	void GetLastLoss( const CString& layerName, CArray<float>& losses ) const;
 	// Returns last blobs of `layerName` for all models
 	// `layerName` should correspond to CSinkLayer
-	void GetLastBlob( const CString& layerName, CObjectArray<CDnnBlob>& blobs );
+	void GetLastBlob( const CString& layerName, CObjectArray<CDnnBlob>& blobs ) const;
+
 	// Save trained net
 	void Serialize( CArchive& archive );
 	// Save the trained net with the given `index` with its solver state (optional)
@@ -88,15 +93,16 @@ public:
 	void StoreDnn( CArchive& archive, int index, bool storeSolver );
 
 private:
-	const bool isCpu;
-	IThreadPool* threadPool;
+	enum class TRunType { Invalid, RunOnce, RunBackwardOnce, Train };
+	class CParams;
+	CParams* const params = nullptr;
+	IThreadPool* const threadPool = nullptr;
 	CArray<IMathEngine*> mathEngines;
 	CArray<CRandom*> rands;
 	CArray<CDnn*> cnns;
 	CArray<int> batchSize;
-	bool isFirstRun = true;
-	CString errorMessage;
 
+	void runOnce( IDistributedDataset*, TRunType );
 	void initialize( CArchive& archive, int count, TDistributedInitializer initializer, int seed );
 
 	friend class CLoraSerializer;
