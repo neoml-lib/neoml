@@ -15,6 +15,7 @@ target_sources(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/DnnDistributedTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DnnLayersSerializationTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DnnSerializationTest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/DnnSimpleTests.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/DnnSolverTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/FloatVectorTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/GradientBoostingTest.cpp
