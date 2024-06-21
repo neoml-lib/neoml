@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -24,7 +24,9 @@ namespace NeoML {
 
 __global__ void CtcFillPaddingKernel( int maxSeqLen, int batchSize, int classCount, float* data, const int* seqLens )
 {
-	int seq, b, classIndex;
+	int seq = 0;
+	int b = 0;
+	int classIndex = 0;
 	if( GetCudaTaskIndex3D( maxSeqLen, batchSize, classCount, seq, b, classIndex ) && seq >= seqLens[b] ) {
 		data[( seq * batchSize + b ) * classCount + classIndex] = 0.f;
 	}
@@ -41,15 +43,16 @@ __global__ void CtcMatrixLogSumExpByColumnsKernel(int batchSize, const float* __
 
 	const int combineCount = (height + blockDim.x - 1) / blockDim.x;
 
-	int index;
-	int step;
+	int index = 0;
+	int step = 0;
 	const int count = GetCudaTaskCountAndIndexX(height, combineCount, index, step);
+
 	index *= width;
 	step *= width;
 
-	int xPos;
-	int yPos;
-	int zPos;
+	int xPos = 0;
+	int yPos = 0;
+	int zPos = 0;
 	GetCudaTaskIndex3D(batchSize, width, heightNorm, zPos, xPos, yPos);
 	if(xPos < width && zPos < batchSize && count > 0) {
 		matrix += zPos * height * width;
@@ -88,9 +91,9 @@ __global__ void CtcMatrixLogSumExpByColumnsKernel(int batchSize, const float* __
 __global__ void CtcCalcResultLogProbMaskKernel( int resultLen, int batchSize, int classCount, int padLabelLen, int blankLabel,
 	float logZero, float logOneNeg, const int* resultLens, const int* padLabels, const float* resultProb, float* resultLogProbMask )
 {
-	int t;
-	int u;
-	int b;
+	int t = 0;
+	int u = 0;
+	int b = 0;
 	if( GetCudaTaskIndex3D( resultLen, padLabelLen, batchSize, t, u, b ) ) {
 		resultLogProbMask += ( t * padLabelLen + u ) * batchSize + b;
 		resultProb += ( t * batchSize + b ) * classCount;
@@ -184,8 +187,8 @@ __global__ void CtcCalcBackwardVariableKernel( int resultLen, int batchSize, int
 __global__ void CtcCalcProbSumKernel( int resultLen, int batchSize, int classCount, int padLabelLen,
 	const int* padLabels, const float* logAlphaBeta, float* probSum )
 {
-	int t;
-	int b;
+	int t = 0;
+	int b = 0;
 	if( GetCudaTaskIndex2D( resultLen, batchSize, t, b ) ) {
 		padLabels += b;
 		logAlphaBeta += t * padLabelLen * batchSize + b;
@@ -202,7 +205,9 @@ __global__ void CtcCalcProbSumKernel( int resultLen, int batchSize, int classCou
 __global__ void CtcCalcGradientKernel( int resultLen, int batchSize, int classCount, bool skipBlanks,
 	const float* resultProb, const float* totalLogProb, const float* probSum, float* lossGradient )
 {
-	int t, b, c;
+	int t = 0;
+	int b = 0;
+	int c = 0;
 	if( GetCudaTaskIndex3D( resultLen, batchSize, classCount, t, b, c ) ) {
 		const int offset = ( t * batchSize + b ) * classCount + c;
 		resultProb += offset;

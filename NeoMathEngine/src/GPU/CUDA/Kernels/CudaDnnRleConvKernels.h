@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -26,8 +26,8 @@ __global__ void BlobConvertFromRleKernel( const CCudaConvolutionDescInternal con
 {
 	const CCudaBlobDesc& source = convDesc.Source;
 
-	int num;
-	int line;
+	int num = 0;
+	int line = 0;
 	if(!GetCudaTaskIndex2D(source.ObjectCount(), source.Height(), num, line)) {
 		return;
 	}
