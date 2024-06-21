@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -43,6 +43,9 @@ public:
 	bool IsBatchwise() const { return isBatchwise; }
 	void SetBatchwise( bool value );
 
+	// Set number of connected HeadAdapterLayers
+	void SetHeadCounter(int num) { headConnections = num; }
+
 protected:
 	~CDropoutLayer() override { destroyDropoutDesc(); }
 
@@ -57,6 +60,9 @@ private:
 	float dropoutRate; // the dropout rate
 	bool isSpatial; // the spatial mode (channel-wise)
 	bool isBatchwise; // the batchwise mode
+
+	int headConnections = 1; // stores number of HeadAdapter's using the dropout
+	int headCount = 0; // counter for BackwardOnce(), if headCount == headConnections, delete desc
 
 	void initDropoutDesc();
 	void destroyDropoutDesc();

@@ -3410,3 +3410,79 @@ GTEST_TEST( SerializeFromFile, LoraFullyConnectedLayerSerialization )
 {
 	checkSerializeLayer<CLoraFullyConnectedLayer>( "NeoMLDnnLoraFullyConnectedLayer" );
 }
+
+// ====================================================================================================================
+
+// CDnnHeadAdapterLayer
+
+static CPtr<CDnnHeadAdapterLayer> createDnnHeadAdapterNet( CDnn& dnn )
+{
+	CPtr<CDnnHead> head = new CDnnHead( dnn.Random(), MathEngine(),
+		FullyConnected( 300 ),
+		Relu()
+	);
+
+	CPtr<CDnnHeadAdapterLayer> layerPtr = new CDnnHeadAdapterLayer( MathEngine() );
+	layerPtr->SetName( LayerName );
+	layerPtr->SetDnnHead( head );
+	dnn.AddLayer( *layerPtr );
+
+	return layerPtr;
+}
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+GTEST_TEST( SerializeToFile, DnnHeadAdapterLayerSerialization )
+{
+	CRandom random;
+	CDnn dnn( random, MathEngine() );
+
+	CPtr<CDnnHeadAdapterLayer> layerPtr = createDnnHeadAdapterNet( dnn );
+	setBaseParams( *layerPtr );
+
+	CArchiveFile file( getFileName( "NeoMLDnnHeadAdapterLayer" ), CArchive::store );
+	CArchive archive( &file, CArchive::store );
+	archive.Serialize( dnn );
+}
+
+#endif // GENERATE_SERIALIZATION_FILES
+
+template<>
+inline void checkSpecificParams<CDnnHeadAdapterLayer>( CDnnHeadAdapterLayer& layer )
+{
+	auto runOnce = []( CDnn& dnn, CDnnHeadAdapterLayer& adapter )
+	{
+		CSourceLayer* source = dnn.HasLayer( "source" )
+			? CheckCast<CSourceLayer>( dnn.GetLayer( "source" ).Ptr() )
+			: Source( dnn, "source" );
+
+		CPtr<CDnnBlob> blob = CDnnBlob::CreateVector( MathEngine(), CT_Float, 2 );
+		blob->Fill( TestFloatValue );
+
+		source->SetBlob( blob );
+		adapter.Connect( *source );
+
+		CSinkLayer* sink = dnn.HasLayer( "sink" )
+			? CheckCast<CSinkLayer>( dnn.GetLayer( "sink" ).Ptr() )
+			: Sink( &adapter, "sink" );
+
+		dnn.RunOnce();
+		return sink->GetBlob();
+	};
+
+	CRandom random;
+	CDnn dnn( random, MathEngine() );
+
+	CPtr<CDnnBlob> expected = runOnce( dnn, *createDnnHeadAdapterNet( dnn ) );
+	CPtr<CDnnBlob> output = runOnce( *layer.GetDnn(), layer );
+	EXPECT_TRUE( CompareBlobs( *expected, *output ) );
+	EXPECT_TRUE( layer.GetDnnHead() ); // found and inited
+}
+
+GTEST_TEST( SerializeFromFile, DnnHeadAdapterLayerSerialization )
+{
+	checkSerializeLayer<CDnnHeadAdapterLayer>( "NeoMLDnnHeadAdapterLayer" );
+}
+
+// ====================================================================================================================
+

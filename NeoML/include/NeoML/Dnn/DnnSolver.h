@@ -112,6 +112,8 @@ private:
 
 	// Telling the compiler that we intentionally using two-parameter Serialize instead of one declared in IObject
 	using IObject::Serialize;
+
+	friend class CDnnHeadAdapterLayer;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
