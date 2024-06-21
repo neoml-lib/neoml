@@ -504,6 +504,8 @@ class NEOML_API CDnnReferenceRegister final {
 public:
 	CDnnReferenceRegister() = default;
 	explicit CDnnReferenceRegister( CDnn* _originalDnn );
+	CDnnReferenceRegister( CDnnReferenceRegister&& other ) = default;
+
 	CDnnReferenceRegister& operator=( CDnnReferenceRegister&& other );
 
 private:

@@ -30,7 +30,7 @@ CDnnReferenceRegister::CDnnReferenceRegister( CDnn* _originalDnn ) :
 	if( originalDnn->referenceDnnRegister.referenceCounter == 0 ) {
 		originalDnn->referenceDnnRegister.learningState = originalDnn->IsLearningEnabled();
 	}
-	++( originalDnn->referenceDnnRegister.referenceCounter );
+	originalDnn->referenceDnnRegister.referenceCounter += 1;
 }
 
 CDnnReferenceRegister::~CDnnReferenceRegister()
@@ -39,7 +39,7 @@ CDnnReferenceRegister::~CDnnReferenceRegister()
 		"CDnnReferenceRegister: delete reference dnns before original dnn" );
 
 	if( originalDnn != nullptr ) {
-		--( originalDnn->referenceDnnRegister.referenceCounter );
+		originalDnn->referenceDnnRegister.referenceCounter -= 1;
 	}
 	if( referenceCounter == -1
 		&& originalDnn->referenceDnnRegister.referenceCounter == 0
@@ -56,15 +56,9 @@ CDnnReferenceRegister::~CDnnReferenceRegister()
 CDnnReferenceRegister& CDnnReferenceRegister::operator=( CDnnReferenceRegister&& other )
 {
 	if( this != &other ) {
-		learningState = other.learningState;
-		referenceCounter = other.referenceCounter;
-		originalDnn = other.originalDnn;
-		originalRandom = other.originalRandom;
-
-		other.originalDnn = nullptr;
-		other.referenceCounter = 0;
-		other.learningState = false;
-		other.originalRandom = nullptr;
+		this->~CDnnReferenceRegister();
+		::new( this ) CDnnReferenceRegister( std::move( other ) );
+		::new( &other ) CDnnReferenceRegister(); // be sure no delete in 'other' object
 	}
 	return *this;
 }
