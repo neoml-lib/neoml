@@ -110,9 +110,32 @@ TEST( CDnnDistributedTest, DnnDistributedArchiveTest )
 	CCustomDataset dataset( inputSize, outputSize );
 	CString archiveName = "distributed";
 	{
-		CArchiveFile file( archiveName, CArchive::store, GetPlatformEnv() );
-		CArchive archive( &file, CArchive::SD_Storing );
-		archive.Serialize( dnn );
+		CDistributedTraining distributed( dnn, 2 );
+		distributed.RunAndLearnOnce( dataset );
+
+		CArray<float> losses;
+		distributed.GetLastLoss( "loss", losses );
+		EXPECT_EQ( 2, losses.Size() );
+		EXPECT_EQ( losses[0], losses[1] );
+
+		distributed.RunOnce( dataset );
+
+		CObjectArray<CDnnBlob> blobs;
+		distributed.GetLastBlob( "sink", blobs );
+		for( int i = 1; i < blobs.Size(); ++i ) {
+			EXPECT_TRUE( CompareBlobs( *( blobs[0] ), *( blobs[i] ) ) );
+		}
+
+		{ // store trained dnn also to check distributed inference
+			CArchiveFile file( archiveName, CArchive::store, GetPlatformEnv() );
+			CArchive archive( &file, CArchive::store );
+			distributed.Serialize( archive );
+		}
+		{ // store trained output to check distributed inference
+			CArchiveFile out_file( archiveName + ".out", CArchive::store, GetPlatformEnv() );
+			CArchive archive( &out_file, CArchive::store );
+			SerializeBlob( *mathEngine, archive, blobs[0] );
+		}
 	}
 
 	CArchiveFile archiveFile( archiveName, CArchive::load, GetPlatformEnv() );
@@ -122,16 +145,17 @@ TEST( CDnnDistributedTest, DnnDistributedArchiveTest )
 	archive.Close();
 	archiveFile.Close();
 
+	CString archiveSolverName = "distributed.solver";
 	{
 		CPtr<CDnnSolver> solver = new CDnnAdaptiveGradientSolver( dnn.GetMathEngine() );
 		dnn.SetSolver( solver.Ptr() );
 
-		CArchiveFile storeFile( archiveName, CArchive::store, GetPlatformEnv() );
+		CArchiveFile storeFile( archiveSolverName, CArchive::store, GetPlatformEnv() );
 		CArchive storeArchive( &storeFile, CArchive::store );
 		SerializeSolver( storeArchive, dnn, solver );
 	}
 	{
-		CArchiveFile loadFile( archiveName, CArchive::load, GetPlatformEnv() );
+		CArchiveFile loadFile( archiveSolverName, CArchive::load, GetPlatformEnv() );
 		CArchive loadArchive( &loadFile, CArchive::load );
 		distributed.SetSolver( loadArchive );
 	}
@@ -211,4 +235,76 @@ TEST( CDnnDistributedTest, DnnDistributedAutoThreadCountTest )
 	GTEST_LOG_( INFO ) << "Distributed default thread count is " << distributed.GetModelCount();
 	EXPECT_LT( 0, distributed.GetModelCount() );
 	EXPECT_EQ( GetAvailableCpuCores(), distributed.GetModelCount() );
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
+TEST( CDnnDistributedTest, DnnDistributedInferenceArchived )
+{
+	IMathEngine& mathEngine = MathEngine();
+	if( mathEngine.GetType() != MET_Cpu ) {
+		GTEST_LOG_( INFO ) << "Skipped for mathEngine type != MET_Cpu";
+		return;
+	}
+
+	CString archiveName = "distributed";
+	CCustomDataset dataset( inputSize, outputSize );
+
+	CRandom random( 42 );
+	CDnn dnn( random, MathEngine() );
+
+	CPtr<CDnnBlob> expected;
+	{ // Check the dnn is stored in the file valid
+		{
+			CArchiveFile file( archiveName, CArchive::load, GetPlatformEnv() );
+			CArchive archive( &file, CArchive::load );
+			dnn.Serialize( archive );
+
+			dataset.SetInputBatch( dnn, 0 );
+			dnn.RunOnce();
+		}
+		CPtr<CDnnBlob> blob = CheckCast<CSinkLayer>( dnn.GetLayer( "sink" ) )->GetBlob();
+		{
+			CArchiveFile out( archiveName + ".out", CArchive::load, GetPlatformEnv() );
+			CArchive archive( &out, CArchive::load );
+			SerializeBlob( mathEngine, archive, expected );
+		}
+		EXPECT_TRUE( CompareBlobs( *blob, *expected ) );
+	}
+
+	{ // Check dnn constructor
+		CDistributedInference distributed( dnn, /*count*/0, dataset );
+		EXPECT_LT( 0, distributed.GetModelCount() );
+		EXPECT_EQ( GetAvailableCpuCores(), distributed.GetModelCount() );
+
+		distributed.RunOnce( dataset );
+
+		CObjectArray<CDnnBlob> blobs;
+		distributed.GetLastBlob( "sink", blobs );
+		for( int i = 0; i < blobs.Size(); ++i ) {
+			EXPECT_TRUE( CompareBlobs( *( blobs[i] ), *expected ) );
+		}
+
+		distributed.RunOnce( dataset );
+
+		distributed.GetLastBlob( "sink", blobs );
+		for( int i = 0; i < blobs.Size(); ++i ) {
+			EXPECT_TRUE( CompareBlobs( *( blobs[i] ), *expected ) );
+		}
+	}
+
+	{ // Check archive constructor
+		CArchiveFile file( archiveName, CArchive::load, GetPlatformEnv() );
+		CArchive archive( &file, CArchive::load );
+		CDistributedInference distributed( mathEngine, archive, /*count*/4, dataset, /*seed*/42 );
+		EXPECT_EQ( 4, distributed.GetModelCount() );
+
+		distributed.RunOnce( dataset );
+
+		CObjectArray<CDnnBlob> blobs;
+		distributed.GetLastBlob( "sink", blobs );
+		for( int i = 0; i < blobs.Size(); ++i ) {
+			EXPECT_TRUE( CompareBlobs( *( blobs[i] ), *expected ) );
+		}
+	}
 }
