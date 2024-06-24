@@ -507,22 +507,92 @@ NEOML_API IMathEngine* GetRecommendedGpuMathEngine( size_t memoryLimit );
 
 //------------------------------------------------------------------------------------------------------------
 
+// IDnnReference is the interface that represents a neural network with shared weights for inference only
+class NEOML_API IDnnReference : public CDnnLayerGraph {
+public:
+	// Sets a text stream for logging processing
+	// By default logging is off (set to null to turn off)
+	virtual CTextStream* GetLog() = 0;
+	virtual void SetLog( CTextStream* newLog ) = 0;
+	// Sets the logging frequence (by default, each 100th Run or RunAndLearn call is recorded)
+	virtual int GetLogFrequency() const = 0;
+	virtual void SetLogFrequency( int _logFrequency ) = 0;
+	// Indicates if the current run is logged
+	virtual bool IsLogging() const = 0;
+
+	// Runs the network: all data from the input blobs is used
+	virtual void RunOnce() = 0;
+
+	// Releases all temporary resources allocated for RunAndBackwardOnce()
+	virtual void CleanUp( bool totalCleanUp = false ) = 0;
+
+	// Gets the maximum sequence length
+	virtual int GetMaxSequenceLength() const = 0;
+	// Gets the current position in sequence (makes sense when calling from one of the Run... methods)
+	virtual int GetCurrentSequencePos() const = 0;
+	// Indicates if the sequence is processed in reverse order
+	virtual bool IsReverseSequense() const = 0;
+	// Indicates if the current position is the first in sequential processing
+	virtual bool IsFirstSequencePos() const = 0;
+	// Indicates if the current position is the last in sequential processing
+	virtual bool IsLastSequencePos() const = 0;
+	// Indicates if the network is working in recurrent mode
+	virtual bool IsRecurrentMode() const = 0;
+	// Indicates that backpropagation was turned on for the current or the previous step
+	virtual bool IsBackwardPerformed() const = 0;
+	// Starts processing the sequence from the beginning
+	virtual void RestartSequence() = 0;
+	// Enables or disables learning
+	virtual bool IsLearningEnabled() const = 0;
+	// Checks and sets the auto-restart mode for each call to RunOnce/RunAndLearnOnce()
+	virtual bool GetAutoRestartMode() const = 0;
+	virtual void SetAutoRestartMode(bool mode) = 0;
+	// Called by the layers to indicate that the layer should be reshaped before the next run
+	// This may be necessary if the blob sizes change
+	virtual void RequestReshape(bool forcedReshape = false) = 0;
+	// Called by the layers to indicate that the network must be rebuilt before the next run
+	virtual void ForceRebuild() = 0;
+	// Checks if the network is going to be rebuilt before the next run
+	// The method may be useful for controlling the rebuild frequency
+	virtual bool IsRebuildRequested() const = 0;
+	// Shares its weights with other reference dnns
+	virtual bool IsReferenceDnn() const = 0;
+
+	// Gets a reference to the random numbers generator
+	virtual CRandom& Random() = 0;
+	virtual const CRandom& Random() const = 0;
+	// Gets a reference to the math engine
+	virtual IMathEngine& GetMathEngine() const = 0;
+	// Enables profiling for all the layers in the network
+	virtual void EnableProfile( bool profile ) = 0;
+
+private:
+	// Accessing the layers
+	// Were inherited as public, change it to private via a using declaration
+	using CDnnLayerGraph::AddLayer;
+	using CDnnLayerGraph::DeleteLayer;
+	using CDnnLayerGraph::DeleteAllLayers;
+	// Change then public again
+	friend class CDnn;
+};
+
+//------------------------------------------------------------------------------------------------------------
+
 // CDnn class represents a neural network
-class NEOML_API CDnn : public CDnnLayerGraph {
+class NEOML_API CDnn : public IDnnReference {
 public:
 	CDnn( CRandom& random, IMathEngine& mathEngine, const CCompositeLayer* owner = nullptr );
 	~CDnn() override;
 
 	// Sets a text stream for logging processing
 	// By default logging is off (set to null to turn off)
-	CTextStream* GetLog() { return log; }
-	void SetLog( CTextStream* newLog ) { log = newLog; }
-
+	CTextStream* GetLog() override { return log; }
+	void SetLog( CTextStream* newLog ) override { log = newLog; }
 	// Sets the logging frequence (by default, each 100th Run or RunAndLearn call is recorded)
-	int GetLogFrequency() const { return logFrequency; }
-	void SetLogFrequency(int _logFrequency) { logFrequency = _logFrequency; }
+	int GetLogFrequency() const override { return logFrequency; }
+	void SetLogFrequency( int _logFrequency ) override { logFrequency = _logFrequency; }
 	// Indicates if the current run is logged
-	bool IsLogging() const { return log != 0 && runNumber % logFrequency == 0; }
+	bool IsLogging() const override { return log != 0 && runNumber % logFrequency == 0; }
 
 	// Accessing the layers
 	int GetLayerCount() const override { return layerMap.Size(); }
@@ -532,57 +602,61 @@ public:
 	CPtr<CBaseLayer> GetLayer(const CArray<CString>& path) override;
 	CPtr<const CBaseLayer> GetLayer(const CArray<CString>& path) const override;
 	bool HasLayer( const char* name ) const override { return layerMap.Has( name ); }
+	// Change it back to public via a using declaration
+	using IDnnReference::AddLayer;
+	using IDnnReference::DeleteLayer;
+	using IDnnReference::DeleteAllLayers;
 
 	// Runs the network: all data from the input blobs is used
-	void RunOnce();
+	void RunOnce() override;
 	// Runs the network and performs a backward pass with the input data
 	void RunAndBackwardOnce();
 	// Runs the network, performs a backward pass and updates the trainable weights
 	void RunAndLearnOnce();
 
 	// Releases all temporary resources allocated for RunAndBackwardOnce()
-	void CleanUp( bool totalCleanUp = false );
+	void CleanUp( bool totalCleanUp = false ) override;
 
 	// Gets the maximum sequence length
-	int GetMaxSequenceLength() const { return maxSequenceLength; }
+	int GetMaxSequenceLength() const override { return maxSequenceLength; }
 	// Gets the current position in sequence (makes sense when calling from one of the Run... methods)
-	int GetCurrentSequencePos() const { return currentSequencePos; }
+	int GetCurrentSequencePos() const override { return currentSequencePos; }
 	// Indicates if the sequence is processed in reverse order
-	bool IsReverseSequense() const { return isReverseSequense; }
+	bool IsReverseSequense() const override { return isReverseSequense; }
 	// Indicates if the current position is the first in sequential processing
-	bool IsFirstSequencePos() const { return GetCurrentSequencePos() == (IsReverseSequense() ? GetMaxSequenceLength() - 1 : 0); }
+	bool IsFirstSequencePos() const override { return GetCurrentSequencePos() == (IsReverseSequense() ? GetMaxSequenceLength() - 1 : 0); }
 	// Indicates if the current position is the last in sequential processing
-	bool IsLastSequencePos() const { return GetCurrentSequencePos() == (IsReverseSequense() ? 0 : GetMaxSequenceLength() - 1); }
+	bool IsLastSequencePos() const override { return GetCurrentSequencePos() == (IsReverseSequense() ? 0 : GetMaxSequenceLength() - 1); }
 	// Indicates if the network is working in recurrent mode
-	bool IsRecurrentMode() const { return isRecurrentMode; }
+	bool IsRecurrentMode() const override { return isRecurrentMode; }
 	// Indicates that backpropagation was turned on for the current or the previous step
-	bool IsBackwardPerformed() const { return isBackwardPerformed; }
+	bool IsBackwardPerformed() const override { return isBackwardPerformed; }
 	// Starts processing the sequence from the beginning
-	void RestartSequence();
+	void RestartSequence() override;
 	// Enables or disables learning
 	void DisableLearning();
 	void EnableLearning();
-	bool IsLearningEnabled() const { return isLearningEnabled; }
+	bool IsLearningEnabled() const override { return isLearningEnabled; }
 	// Checks and sets the auto-restart mode for each call to RunOnce/RunAndLearnOnce()
-	bool GetAutoRestartMode() const { return autoRestartMode; }
-	void SetAutoRestartMode(bool mode) { autoRestartMode = mode; }
+	bool GetAutoRestartMode() const override { return autoRestartMode; }
+	void SetAutoRestartMode(bool mode) override { autoRestartMode = mode; }
 	// Called by the layers to indicate that the layer should be reshaped before the next run
 	// This may be necessary if the blob sizes change
-	void RequestReshape(bool forcedReshape = false);
+	void RequestReshape( bool forcedReshape = false ) override;
 	// Called by the layers to indicate that the network must be rebuilt before the next run
-	void ForceRebuild();
+	void ForceRebuild() override;
 	// Checks if the network is going to be rebuilt before the next run
 	// The method may be useful for controlling the rebuild frequency
-	bool IsRebuildRequested() const { return isRebuildNeeded; }
+	bool IsRebuildRequested() const override { return isRebuildNeeded; }
 	// Shares its weights with other reference dnns
-	bool IsReferenceDnn() const { return !referenceDnnInfo.IsNull(); }
+	bool IsReferenceDnn() const override { return !referenceDnnInfo.IsNull(); }
 
 	// Gets a reference to the random numbers generator
-	CRandom& Random() { return random; }
-	const CRandom& Random() const { return random; }
+	CRandom& Random() override { return random; }
+	const CRandom& Random() const override { return random; }
 
 	// Gets a reference to the math engine
-	IMathEngine& GetMathEngine() const { return mathEngine; }
+	IMathEngine& GetMathEngine() const override { return mathEngine; }
 
 	// Accessing the optimizer
 	CDnnSolver* GetSolver() { return solver; }
@@ -600,13 +674,12 @@ public:
 	static const int ArchiveMinSupportedVersion = 1001;
 
 	void Serialize( CArchive& archive );
-
 	// Serializes network with data, required to resume training
 	// When loading from checkpoint creates new solver (old pointers will point to an object, not used by this net anymore)
 	void SerializeCheckpoint( CArchive& archive );
 
 	// Enables profiling for all the layers in the network
-	void EnableProfile( bool profile );
+	void EnableProfile( bool profile ) override;
 
 private:
 	const CBaseLayer* owner; // the composite containing this CDnn (if exists)
@@ -687,20 +760,6 @@ void NEOML_API SerializeLayer( CArchive& archive, IMathEngine& mathEngine, CPtr<
 
 //------------------------------------------------------------------------------------------------------------
 
-// Result of CReferenceDnnFactory::CreateReferenceDnn
-// NOTE: Class CDnnReference should be created using CPtr only.
-class NEOML_API CDnnReference : public IObject {
-public:
-	CDnn Dnn;
-
-protected:
-	CDnnReference( CRandom& random, IMathEngine& mathEngine ) : Dnn( random, mathEngine ) {}
-	// Use CPtr<CDnnReference> to create the class
-	~CDnnReference() = default;
-
-	friend class CReferenceDnnFactory;
-};
-
 // This class can initialize a reference dnn, that has the same configuration as the original dnn
 // and shares parameter blobs with the original dnn to save memory.
 // Useful for multi-threaded inference where each thread can operate own reference dnn independently.
@@ -721,24 +780,24 @@ public:
 	CReferenceDnnFactory( CDnn&& dnn, bool optimizeDnn = true );
 
 	// Thread-safe coping of originalDnn, increments the counter
-	// NOTE: The original dnn used to copy reference dnns may be also used as one more reference dnn (optimization)
-	//       The 'getOriginDnn' flag must be used strictly for the only thread.
-	CPtr<CDnnReference> CreateReferenceDnn( bool getOriginDnn = false );
+	CPtrOwner<IDnnReference> CreateReferenceDnn();
+	// The original dnn used to copy reference dnns may be also used as one more reference dnn 
+	IDnnReference& GetOriginalDnn() { return *originalDnn; }
 
 protected:
 	// Use CPtr<CReferenceDnnFactory> to create the class
-	~CReferenceDnnFactory() = default;
+	~CReferenceDnnFactory() override = default;
 
 private:
-	CPtr<CDnnReference> Origin; // The dnn to make reference dnns
+	CPtrOwner<CDnn> originalDnn; // The dnn to make reference dnns
 
 	// Technical constructor
 	CReferenceDnnFactory( CRandom random, IMathEngine& mathEngine );
 
-	// Internal method of loading the dnn
+	// Internal method of loading to the origin dnn
 	void serialize( CArchive& archive, bool optimizeDnn );
-	// Thread-safe coping of original dnn to reference dnn
-	void initializeReferenceDnn( CDnn& dnn, CDnn& referenceDnn, TPtrOwnerReferenceDnnInfo&& info );
+	// Thread-safe coping statate without paramBlobs of a dnn to a new dnn
+	void initializeReferenceDnn( CDnn& dnn, CDnn& newDnn, TPtrOwnerReferenceDnnInfo&& info );
 };
 
 } // namespace NeoML

@@ -68,24 +68,24 @@ CReferenceDnnFactory::CReferenceDnnFactory( CDnn&& dnn, bool optimizeDnn ) :
 
 	// Allow to createReferenceDnn() from the non-reference dnn this time
 	NeoAssert( !dnn.IsReferenceDnn() );
-	NeoAssert( Origin->Dnn.IsReferenceDnn() );
+	NeoAssert( originalDnn->IsReferenceDnn() );
 
 	// Temporal convert an ordinary dnn to a reference dnn
 	// by capturing non-empty referenceDnnInfo from the original dnn
-	swap( dnn.referenceDnnInfo, Origin->Dnn.referenceDnnInfo );
+	swap( dnn.referenceDnnInfo, originalDnn->referenceDnnInfo );
 	// The original dnn has empty referenceDnnInfo now
 
 	// Copy state with moving of the paramBlobs
-	initializeReferenceDnn( dnn, Origin->Dnn, TPtrOwnerReferenceDnnInfo{} );
+	initializeReferenceDnn( dnn, *originalDnn, TPtrOwnerReferenceDnnInfo{} );
 	if( optimizeDnn == true ) {
-		( void ) OptimizeDnn( Origin->Dnn );
+		( void ) OptimizeDnn( *originalDnn );
 	}
 	// The original dnn still has empty referenceDnnInfo
 
 	// Convert everything back
 	// - set back the original dnn as a reference dnn with its referenceDnnInfo
-	Origin->Dnn.DisableLearning();
-	swap( dnn.referenceDnnInfo, Origin->Dnn.referenceDnnInfo );
+	originalDnn->DisableLearning();
+	swap( dnn.referenceDnnInfo, originalDnn->referenceDnnInfo );
 	// - set the dnn as ordinary and of an empty state
 	// Destroy used pointers in the dnn
 	dnn.~CDnn();
@@ -93,7 +93,7 @@ CReferenceDnnFactory::CReferenceDnnFactory( CDnn&& dnn, bool optimizeDnn ) :
 	new( &dnn ) CDnn( randomCopy, mathEngineCopy );
 
 	// Check the consistence
-	NeoAssert( Origin->Dnn.IsReferenceDnn() );
+	NeoAssert( originalDnn->IsReferenceDnn() );
 	NeoAssert( !dnn.IsReferenceDnn() );
 }
 
@@ -104,45 +104,42 @@ CReferenceDnnFactory::CReferenceDnnFactory( CRandom random, IMathEngine& mathEng
 	TPtrOwnerReferenceDnnInfo originDnnInfo( new CReferenceDnnInfo( std::move( random ), /*factory*/nullptr ) );
 	// Factory pointer in the origin dnn should be 0 to avoid cyclic references
 
-	Origin = new CDnnReference( originDnnInfo->Random, mathEngine );
+	originalDnn = new CDnn( originDnnInfo->Random, mathEngine );
 	// Enable this pointer is to add the restriction to change this dnn.
 	// Used for the origin dnn and all reference dnns
-	Origin->Dnn.referenceDnnInfo = std::move( originDnnInfo );
+	originalDnn->referenceDnnInfo = std::move( originDnnInfo );
 }
 
 void CReferenceDnnFactory::serialize( CArchive& archive, bool optimizeDnn )
 {
 	// Allow to Serialize() this time
 	TPtrOwnerReferenceDnnInfo tmp;
-	swap( tmp, Origin->Dnn.referenceDnnInfo );
+	swap( tmp, originalDnn->referenceDnnInfo );
 
 	NeoAssert( archive.IsLoading() );
-	Origin->Dnn.Serialize( archive );
+	originalDnn->Serialize( archive );
 	archive.Close();
 
 	if( optimizeDnn == true ) {
-		( void ) OptimizeDnn( Origin->Dnn );
+		( void ) OptimizeDnn( *originalDnn );
 	}
 
 	// And revert back the restrictions
-	Origin->Dnn.DisableLearning();
-	swap( tmp, Origin->Dnn.referenceDnnInfo );
-	NeoAssert( Origin->Dnn.IsReferenceDnn() );
+	originalDnn->DisableLearning();
+	swap( tmp, originalDnn->referenceDnnInfo );
+	NeoAssert( originalDnn->IsReferenceDnn() );
 }
 
-CPtr<CDnnReference> CReferenceDnnFactory::CreateReferenceDnn( bool getOriginDnn )
+CPtrOwner<IDnnReference> CReferenceDnnFactory::CreateReferenceDnn()
 {
-	if( getOriginDnn ) {
-		return Origin;
-	}
-	TPtrOwnerReferenceDnnInfo referenceDnnInfo( new CReferenceDnnInfo( Origin->Dnn.Random(), this ) );
-	CPtr<CDnnReference> reference( new CDnnReference( referenceDnnInfo->Random, Origin->Dnn.GetMathEngine() ) );
+	TPtrOwnerReferenceDnnInfo referenceDnnInfo( new CReferenceDnnInfo( originalDnn->Random(), this ) );
+	CPtrOwner<IDnnReference> referenceDnn( new CDnn( referenceDnnInfo->Random, originalDnn->GetMathEngine() ) );
 
-	initializeReferenceDnn( Origin->Dnn, reference->Dnn, std::move( referenceDnnInfo ) );
-	NeoAssert( reference->Dnn.IsReferenceDnn() );
+	initializeReferenceDnn( *originalDnn, dynamic_cast<CDnn&>( *referenceDnn ), std::move( referenceDnnInfo ) );
+	NeoAssert( referenceDnn->IsReferenceDnn() );
 
-	NeoAssertMsg( !reference->Dnn.IsLearningEnabled(), "CReferenceDnnFactory: learning enabled for reference dnn" );
-	return reference;
+	NeoAssertMsg( !referenceDnn->IsLearningEnabled(), "CReferenceDnnFactory: learning enabled for reference dnn" );
+	return referenceDnn;
 }
 
 void CReferenceDnnFactory::initializeReferenceDnn( CDnn& dnn, CDnn& newDnn, TPtrOwnerReferenceDnnInfo&& info )

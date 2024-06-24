@@ -34,6 +34,7 @@ public:
 	// Batch size doesn't affect different runs on the same thread (multiple RunAndBackwardOnce)
 	// Batch size 0 isn't supported on the first run (because of CDnn initialization)
 	virtual int SetInputBatch( CDnn& dnn, int thread ) = 0;
+	int SetInputBatch( IDnnReference& dnn, int thread ) { return SetInputBatch( dynamic_cast<CDnn&>( dnn ), thread ); }
 };
 
 // Initializer to use in distributed training
@@ -135,10 +136,10 @@ public:
 	CDistributedInference( CArchive& archive, int threadsCount, int seed = 42,
 		bool optimizeDnn = true, size_t memoryLimit = 0 );
 
-	virtual ~CDistributedInference() = default;
+	virtual ~CDistributedInference();
 
 	// Gets the created models number
-	int GetModelCount() const { return threadParams.Refs.Size(); }
+	int GetModelCount() const { return threadParams.Dnns.Size(); }
 	// Runs the inference for all of the networks
 	// NOTE: Main thread waits while all tasks are done
 	void RunOnce( IDistributedDataset& data );
@@ -152,7 +153,7 @@ private:
 	// Params to transfer to all threads function
 	struct CThreadParams final {
 		IDistributedDataset* Data = nullptr; // Pointer to data for the inference for all dnns
-		CObjectArray<CDnnReference> Refs; // Separate dnn for each thread
+		CPointerArray<IDnnReference> Dnns; // Separate dnn for each thread
 		CString ErrorMessage; // Container for error if it happened
 	};
 
