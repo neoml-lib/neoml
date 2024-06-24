@@ -71,6 +71,8 @@ static void getTestDnns( CPointerArray<CDnn>& dnns, CArray<CRandom>& randoms, bo
 		sourceLayers[i] = CheckCast<CSourceLayer>( dnns[i]->GetLayer( "in" ).Ptr() );
 		CPtr<CDnnBlob> blob = CDnnBlob::CreateTensor( MathEngine(), CT_Float, { 1, 1, 1, 8, 20, 30, 10 } );
 		sourceLayers[i]->SetBlob( blob );
+
+		dnns[i]->RunOnce(); // reshaped
 	}
 
 	for( int i = 0; i < numOfThreads; ++i ) {
