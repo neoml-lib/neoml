@@ -27,6 +27,7 @@ class CLoraSerializer;
 // Interface for setting input to a neural network
 class IDistributedDataset {
 public:
+	virtual ~IDistributedDataset() = default;
 	// This method must set batches for all of the source layers in CDnn
 	// Returns the current batch size (or 0, if there is no data for this thread on this run)
 	// This batch size affects weights balance between different threads
@@ -48,8 +49,7 @@ enum class TDistributedInitializer {
 class NEOML_API CDistributedTraining {
 public:
 	// Creates `count` cpu models
-	// If `count` is 0 or less then creates a number of models
-	// equal to the number of available CPU cores
+	// If `count` is 0 or less, then the models number equal to the number of available CPU cores
 	CDistributedTraining( CDnn& dnn, int count,
 		TDistributedInitializer initializer = TDistributedInitializer::Xavier, int seed = 42 );
 	CDistributedTraining( CArchive& archive, int count,
@@ -60,7 +60,7 @@ public:
 	CDistributedTraining( CArchive& archive, const CArray<int>& cudaDevs,
 		TDistributedInitializer initializer = TDistributedInitializer::Xavier, int seed = 42 );
 
-	~CDistributedTraining();
+	virtual ~CDistributedTraining();
 
 	// Gets the number of models in disitrbuted traning
 	int GetModelCount() const { return cnns.Size(); }
@@ -80,10 +80,10 @@ public:
 	void Train();
 	// Returns last loss of `layerName` for all models
 	// `layerName` should correspond to CLossLayer, CCtcLossLayer or CCrfLossLayer
-	void GetLastLoss( const CString& layerName, CArray<float>& losses );
+	void GetLastLoss( const CString& layerName, CArray<float>& losses ) const;
 	// Returns last blobs of `layerName` for all models
 	// `layerName` should correspond to CSinkLayer
-	void GetLastBlob( const CString& layerName, CObjectArray<CDnnBlob>& blobs );
+	void GetLastBlob( const CString& layerName, CObjectArray<CDnnBlob>& blobs ) const;
 	// Save trained net
 	void Serialize( CArchive& archive );
 	// Save the trained net with the given `index` with its solver state (optional)
@@ -103,6 +103,42 @@ private:
 	void initialize( CArchive& archive, int count, TDistributedInitializer initializer, int seed );
 
 	friend class CLoraSerializer;
+};
+
+//---------------------------------------------------------------------------------------------------------------------
+
+// Single process, multiple threads distributed inference on CPU
+class NEOML_API CDistributedInference {
+public:
+	// Creates `count` cpu models
+	// If `count` is 0 or less, then the models number equal to the number of available CPU cores
+	CDistributedInference( CDnn& dnn, int count, IDistributedDataset& init_data );
+	CDistributedInference( IMathEngine& mathEngine, CArchive& archive, int count,
+		IDistributedDataset& init_data, int seed = 42 );
+
+	virtual ~CDistributedInference();
+
+	// Gets the created models number
+	int GetModelCount() const { return params.Dnns.Size(); }
+	// Runs the inference for all of the networks
+	void RunOnce( IDistributedDataset& data );
+	// Returns last blobs of `layerName` for all models
+	// `layerName` should correspond to CSinkLayer
+	void GetLastBlob( const CString& layerName, CObjectArray<CDnnBlob>& blobs ) const;
+
+private:
+	struct CParams {
+		bool IsFirstRun = true;
+		IDistributedDataset* Data = nullptr;
+		CArray<CDnn*> Dnns;
+		CString ErrorMessage;
+	};
+
+	CRandom random;
+	IThreadPool* const threadPool;
+	CParams params;
+
+	void initialize( IMathEngine& mathEngine, CArchive& archive, int count, IDistributedDataset& data );
 };
 
 } // namespace NeoML
