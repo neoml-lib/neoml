@@ -497,6 +497,37 @@ void CDnn::ForceRebuild()
 	sourceLayers.SetSize( 0 );
 }
 
+CDnn* CDnn::CreateReferenceDnn()
+{
+	CDnn* originalDnn = ( referenceDnnRegister.referenceCounter == -1 ) ? referenceDnnRegister.originalDnn : this;
+	originalDnn->reshape();
+
+	CDnnReferenceRegister referenceRegister( originalDnn );
+	CDnn* newDnn = new CDnn( *referenceRegister.originalRandom, mathEngine );
+	newDnn->referenceDnnRegister = std::move( referenceRegister );
+
+	CMemoryFile file;
+	for( int i = 0; i < originalDnn->layers.Size(); ++i ) {
+		file.SeekToBegin();
+		{
+			CArchive archive( &file, CArchive::store );
+			SerializeLayer( archive, originalDnn->layers[i]->MathEngine(), originalDnn->layers[i] );
+		}
+		file.SeekToBegin();
+		CPtr<CBaseLayer> copyLayer;
+		{
+			CArchive archive( &file, CArchive::load );
+			SerializeLayer( archive, originalDnn->layers[i]->MathEngine(), copyLayer );
+			originalDnn->layers[i]->transferParamsBlob( *copyLayer );
+		}
+		newDnn->AddLayer( *copyLayer );
+	}
+
+	newDnn->DisableLearning();
+	originalDnn->DisableLearning();
+	return newDnn;
+}
+
 void CDnn::DeleteLayerImpl( CBaseLayer& layer )
 {
 	layer.CheckLayerArchitecture( HasLayer( layer.GetName() ), "deletion of the layer which is not in this dnn" );
@@ -539,6 +570,9 @@ void CDnn::DisableLearning()
 
 void CDnn::EnableLearning()
 {
+	NeoAssertMsg(referenceDnnRegister.referenceCounter == 0,
+		"learning restricted if reference dnn exist");
+
 	if( isLearningEnabled ) {
 		return;
 	}

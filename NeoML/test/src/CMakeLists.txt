@@ -31,6 +31,7 @@ target_sources(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/PCATest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/RandomProblem.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/RandomProblem.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/ReferenceDnnTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/RowwiseTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/SparseFloatMatrixTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/TestFixture.h

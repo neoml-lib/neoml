@@ -301,6 +301,27 @@ size_t CBaseLayer::GetTrainableParametersSize() const
 	return result;
 }
 
+void CBaseLayer::transferParamsBlob( CBaseLayer& dist ) const
+{
+	CCompositeLayer* compositeTo = dynamic_cast<CCompositeLayer*>( &dist );
+	if( compositeTo != nullptr ) {
+		const CCompositeLayer* compositeFrom = CheckCast<const CCompositeLayer>( this );
+
+		CArray<const char*> fromLayers;
+		compositeFrom->GetLayerList( fromLayers );
+		for( const char* layerName : fromLayers ) {
+			compositeFrom->GetLayer( layerName )->transferParamsBlob( *compositeTo->GetLayer( layerName ) );
+		}
+	} else {
+		dist.paramBlobs.SetSize( paramBlobs.Size() );
+		// Create reference copy of dist.paramBlobs with shared buffer
+		// Takes a pointer to parent's blob to access memory
+		for( int j = 0; j < dist.paramBlobs.Size(); ++j ) {
+			dist.paramBlobs[j] = CDnnBlob::CreateWindowBlob( paramBlobs[j], paramBlobs[j]->GetDesc().BatchLength() );
+		}
+	}
+}
+
 void CBaseLayer::switchBlobsToSequentialMode(CObjectArray<CDnnBlob>& blobs, TBlobCacheType cacheType, bool storeParent)
 {
 	CObjectArray<CDnnBlob>& cache = blobCache[cacheType];
