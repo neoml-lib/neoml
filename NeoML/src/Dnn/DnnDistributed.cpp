@@ -515,24 +515,24 @@ void CDistributedTraining::StoreDnn( CArchive& archive, int index, bool storeSol
 
 //---------------------------------------------------------------------------------------------------------------------
 
-void CDistributedInference::initialize( IMathEngine& mathEngine, CArchive& archive, int count, IDistributedDataset& data )
+void CDistributedInference::initialize( IMathEngine& mathEngine, CArchive& archive, int threads_count )
 {
 	initThreadGroupInfo();
 
 	NeoAssert( archive.IsLoading() );
-	params.Dnns.SetSize( count );
+	params.Dnns.SetSize( threads_count );
 	params.Dnns[0] = new CDnn( random, mathEngine );
 	params.Dnns[0]->Serialize( archive );
-	// Sources cannot be empty to make a reference dnn
-	data.SetInputBatch( *params.Dnns[0], 0 );
-	// Create the reference dnns
-	for( int i = 1; i < count; ++i ) {
+	// Create reference dnns
+	// To create a reference dnn the original network should be trained or at least reshaped
+	// All training paramBlobs should exist
+	for( int i = 1; i < threads_count; ++i ) {
 		params.Dnns[i] = params.Dnns[0]->CreateReferenceDnn();
 	}
 	archive.Close();
 }
 
-CDistributedInference::CDistributedInference( CDnn& dnn, int count, IDistributedDataset& init_data ) :
+CDistributedInference::CDistributedInference( CDnn& dnn, int count ) :
 	random( dnn.Random() ),
 	threadPool( CreateThreadPool( count ) )
 {
@@ -545,16 +545,15 @@ CDistributedInference::CDistributedInference( CDnn& dnn, int count, IDistributed
 	archive.Open( &file, CArchive::load );
 
 	// if count was <= 0 the pool has been initialized with the number of available CPU cores
-	initialize( dnn.GetMathEngine(), archive, threadPool->Size(), init_data );
+	initialize( dnn.GetMathEngine(), archive, threadPool->Size() );
 }
 
-CDistributedInference::CDistributedInference( IMathEngine& mathEngine, CArchive& archive, int count,
-		IDistributedDataset& init_data, int seed ) :
+CDistributedInference::CDistributedInference( IMathEngine& mathEngine, CArchive& archive, int count, int seed ) :
 	random( seed ),
 	threadPool( CreateThreadPool( count ) )
 {
 	// if count was <= 0 the pool has been initialized with the number of available CPU cores
-	initialize( mathEngine, archive, threadPool->Size(), init_data );
+	initialize( mathEngine, archive, threadPool->Size() );
 }
 
 CDistributedInference::~CDistributedInference()
@@ -574,15 +573,12 @@ void CDistributedInference::RunOnce( IDistributedDataset& data )
 	{
 		CParams& params = *static_cast<CParams*>( ptr );
 		try {
-			CThreadGroupSwitcher groupSwitcher( /*IsCpu*/true, threadIndex, params.Dnns.Size() );
+			CThreadGroupSwitcher groupSwitcher( /*isCpu*/true, threadIndex, params.Dnns.Size() );
 			// Returns the current batch size (or 0, if there is no data for this thread on this run)
 			const int currBatchSize = params.Data->SetInputBatch( *params.Dnns[threadIndex], threadIndex );
-			// Batch size 0 isn't supported on the first run (because of CDnn initialization)
-			NeoAssert( currBatchSize > 0 || ( currBatchSize == 0 && !params.IsFirstRun ) );
-			if( currBatchSize > 0 ) { // thread has some data to perform
+			if( currBatchSize > 0 ) { // If thread has some data to perform
 				params.Dnns[threadIndex]->RunOnce();
 			}
-			params.IsFirstRun = false;
 		} catch( std::exception& e ) {
 			if( params.ErrorMessage.IsEmpty() ) {
 				params.ErrorMessage = e.what();

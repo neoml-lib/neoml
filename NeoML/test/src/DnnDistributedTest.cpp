@@ -273,7 +273,7 @@ TEST( CDnnDistributedTest, DnnDistributedInferenceArchived )
 	}
 
 	{ // Check dnn constructor
-		CDistributedInference distributed( dnn, /*count*/0, dataset );
+		CDistributedInference distributed( dnn, /*count*/0 );
 		EXPECT_LT( 0, distributed.GetModelCount() );
 		EXPECT_EQ( GetAvailableCpuCores(), distributed.GetModelCount() );
 
@@ -296,7 +296,7 @@ TEST( CDnnDistributedTest, DnnDistributedInferenceArchived )
 	{ // Check archive constructor
 		CArchiveFile file( archiveName, CArchive::load, GetPlatformEnv() );
 		CArchive archive( &file, CArchive::load );
-		CDistributedInference distributed( mathEngine, archive, /*count*/4, dataset, /*seed*/42 );
+		CDistributedInference distributed( mathEngine, archive, /*count*/4, /*seed*/42 );
 		EXPECT_EQ( 4, distributed.GetModelCount() );
 
 		distributed.RunOnce( dataset );

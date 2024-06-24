@@ -112,9 +112,8 @@ class NEOML_API CDistributedInference {
 public:
 	// Creates `count` cpu models
 	// If `count` is 0 or less, then the models number equal to the number of available CPU cores
-	CDistributedInference( CDnn& dnn, int count, IDistributedDataset& init_data );
-	CDistributedInference( IMathEngine& mathEngine, CArchive& archive, int count,
-		IDistributedDataset& init_data, int seed = 42 );
+	CDistributedInference( CDnn& dnn, int count );
+	CDistributedInference( IMathEngine& mathEngine, CArchive& archive, int count, int seed = 42 );
 
 	virtual ~CDistributedInference();
 
@@ -128,7 +127,6 @@ public:
 
 private:
 	struct CParams {
-		bool IsFirstRun = true;
 		IDistributedDataset* Data = nullptr;
 		CArray<CDnn*> Dnns;
 		CString ErrorMessage;
@@ -138,7 +136,7 @@ private:
 	IThreadPool* const threadPool;
 	CParams params;
 
-	void initialize( IMathEngine& mathEngine, CArchive& archive, int count, IDistributedDataset& data );
+	void initialize( IMathEngine& mathEngine, CArchive& archive, int threads_count );
 };
 
 } // namespace NeoML
