@@ -1,4 +1,5 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
@@ -84,11 +85,13 @@ void initThreadGroupInfo()
 	}
 }
 
-#else // FINE_PLATFORM( FINE_WINDOWS )
+#else  // !FINE_PLATFORM( FINE_WINDOWS )
 
 static void initThreadGroupInfo() {}
 
-#endif
+#endif // !FINE_PLATFORM( FINE_WINDOWS )
+
+//---------------------------------------------------------------------------------------------------------------------
 
 // RAII switcher of current thread's group
 class CThreadGroupSwitcher {
@@ -128,9 +131,9 @@ public:
 
 private:
 #if FINE_PLATFORM( FINE_WINDOWS )
-	bool isAffinitySet;
-	GROUP_AFFINITY prevAffinity;
-#endif
+	bool isAffinitySet = false;
+	GROUP_AFFINITY prevAffinity{};
+#endif // FINE_PLATFORM( FINE_WINDOWS )
 };
 
 static CPtr<CDnnInitializer> createInitializer( TDistributedInitializer type, CRandom& random )
@@ -147,6 +150,8 @@ static CPtr<CDnnInitializer> createInitializer( TDistributedInitializer type, CR
 	}
 	return nullptr;
 }
+
+//---------------------------------------------------------------------------------------------------------------------
 
 void CDistributedTraining::initialize( CArchive& archive, int count, TDistributedInitializer initializer, int seed )
 {
@@ -328,7 +333,7 @@ void CDistributedTraining::RunOnce( IDistributedDataset& data )
 			cnns[threadIndex]->GetMathEngine().AbortDistributed();
 			delete e;
 		}
-#endif
+#endif // NEOML_USE_FINEOBJ
 	};
 	NEOML_NUM_THREADS( *threadPool, &function_params, f );
 
@@ -385,7 +390,7 @@ void CDistributedTraining::RunAndBackwardOnce( IDistributedDataset& data )
 			cnns[threadIndex]->GetMathEngine().AbortDistributed();
 			delete e;
 		}
-#endif
+#endif // NEOML_USE_FINEOBJ
 	};
 	NEOML_NUM_THREADS( *threadPool, &function_params, f );
 
@@ -448,7 +453,7 @@ void CDistributedTraining::Train()
 			cnns[threadIndex]->GetMathEngine().AbortDistributed();
 			delete e;
 		}
-#endif
+#endif // NEOML_USE_FINEOBJ
 	};
 	NEOML_NUM_THREADS( *threadPool, &function_params, f );
 
