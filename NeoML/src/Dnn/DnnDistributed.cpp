@@ -517,6 +517,7 @@ void CDistributedTraining::StoreDnn( CArchive& archive, int index, bool storeSol
 
 void CDistributedInference::initialize( IMathEngine& mathEngine, CArchive& archive, int threads_count )
 {
+	NeoAssertMsg( mathEngine.GetType() == MET_Cpu, "CDistributedInference: Allowed only for CPU mathEngine" );
 	initThreadGroupInfo();
 
 	NeoAssert( archive.IsLoading() );
