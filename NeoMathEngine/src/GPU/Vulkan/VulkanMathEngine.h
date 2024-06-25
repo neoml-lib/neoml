@@ -25,6 +25,7 @@ limitations under the License.
 #include <vulkan/vulkan.h>
 #include <NeoMathEngine/NeoMathEngine.h>
 #include <MathEngineAllocator.h>
+#include <MathEngineStackAllocator.h>
 #include <VulkanImage.h>
 #include <RawMemoryManager.h>
 #include <PerformanceCountersDefault.h>
@@ -39,8 +40,6 @@ struct CVulkanDevice;
 struct CVulkanRleConvolutionDesc;
 class CVulkanCommandQueue;
 class CVulkanShaderLoader;
-class CDeviceStackAllocator;
-class CHostStackAllocator;
 class CVulkanImage;
 class CMemoryPool;
 
@@ -661,8 +660,8 @@ private:
 	std::unique_ptr<CVulkanShaderLoader> shaderLoader; // shader loader
 	std::unique_ptr<CVulkanCommandQueue> commandQueue; // shader execution queue
 	std::unique_ptr<CMemoryPool> memoryPool; // memory manager
-	std::unique_ptr<CDeviceStackAllocator> deviceStackAllocator; // stack allocator for GPU memory
-	std::unique_ptr<CHostStackAllocator> hostStackAllocator; // stack allocator for host memory
+	std::unique_ptr<IStackAllocator, CStackAllocatorDeleter> deviceStackAllocator; // stack allocator for GPU memory
+	std::unique_ptr<IStackAllocator, CStackAllocatorDeleter> hostStackAllocator; // stack allocator for host memory
 	std::vector< CVulkanImage*, CrtAllocator<CVulkanImage*> > tmpImages; // temporary images
 
 	IMathEngine& mathEngine() { IMathEngine* engine = this; return *engine; }

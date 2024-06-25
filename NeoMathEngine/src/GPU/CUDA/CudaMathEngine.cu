@@ -24,9 +24,8 @@ limitations under the License.
 #include <CudaDevice.h>
 #include <CudaAssert.h>
 #include <MathEngineCommon.h>
+#include <MemoryPool.h>
 #include <MemoryHandleInternal.h>
-#include <MathEngineDeviceStackAllocator.h>
-#include <MathEngineHostStackAllocator.h>
 #include <math.h>
 #include <float.h>
 #include <cuda_runtime.h>
@@ -73,8 +72,8 @@ CCudaMathEngine::CCudaMathEngine( const CCusparse* _cusparse, const CCublas* _cu
 	ASSERT_CUDA( cudaGetSymbolAddress((void**)&cudaConstOne, OneDev) );
 
 	memoryPool = std::unique_ptr<CMemoryPool>( new CMemoryPool( device->MemoryLimit, this, true ) );
-	deviceStackRunTime = std::unique_ptr<CDeviceStackAllocator>( new CDeviceStackAllocator( *memoryPool, CudaMemoryAlignment ) );
-	hostStackRunTime = std::unique_ptr<CHostStackAllocator>( new CHostStackAllocator( CudaMemoryAlignment ) );
+	deviceStackRunTime = std::unique_ptr<IStackAllocator, CStackAllocatorDeleter>( CreateStackAllocator( TSA_Device, memoryPool.get(), CudaMemoryAlignment ) );
+	hostStackRunTime = std::unique_ptr<IStackAllocator, CStackAllocatorDeleter>( CreateStackAllocator( TSA_Host, 0, CudaMemoryAlignment ) );
 }
 
 CCudaMathEngine::~CCudaMathEngine()
