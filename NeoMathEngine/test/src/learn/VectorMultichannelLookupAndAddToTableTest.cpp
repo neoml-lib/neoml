@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -85,7 +85,7 @@ static void multichannelLookupAndAddToTableImpl( const CTestParams& params, int 
 	for( int i = 0; i < batchSize; ++i ) {
 		for( int j = 0; j < lookupCount; ++j ) {
 			int index = ( int )inputData[inputDataIndex++];
-			ASSERT_TRUE( 0 <= index && index < lookupDimensions[j].VectorCount );
+			EXPECT_TRUE( 0 <= index && index < lookupDimensions[j].VectorCount );
 			int vectorSize = lookupDimensions[j].VectorSize;
 			for( int c = 0; c < vectorSize; c++ ) {
 				lookupData[j][index * vectorSize + c] += mult * matrix[expectedIndex + c];
@@ -103,7 +103,7 @@ static void multichannelLookupAndAddToTableImpl( const CTestParams& params, int 
 		getData.resize( lookupData[i].size() );
 		MathEngine().DataExchangeTyped<float>( getData.data(), lookupHandles[i], lookupData[i].size() );
 		for( size_t j = 0; j < lookupData[i].size(); j++ ) {
-			ASSERT_NEAR( getData[j], lookupData[i][j], 1e-3 );
+			EXPECT_NEAR( getData[j], lookupData[i][j], 1e-3 );
 		}
 	}
 
@@ -119,6 +119,11 @@ class CMathEngineMultichannelLookupAndAddToTableTest : public CTestFixtureWithPa
 
 TEST_P( CMathEngineMultichannelLookupAndAddToTableTest, Random )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		return;
+	}
 	RUN_TEST_IMPL( multichannelLookupAndAddToTableImpl<float> )
 	RUN_TEST_IMPL( multichannelLookupAndAddToTableImpl<int> )
 }

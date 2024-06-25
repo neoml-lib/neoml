@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -86,7 +86,7 @@ static void maxOverTimePoolingBackwardImpl( const CTestParams& params, int seed 
 		resultDiffData.data(), maxIndices.data(), expectedDiff.data() );
 
 	for( int i = 0; i < sourceSize; i++ ) {
-		ASSERT_TRUE( FloatEq( expectedDiff[i], actualDiff[i] ) );
+		EXPECT_TRUE( FloatEq( expectedDiff[i], actualDiff[i] ) );
 	}
 }
 
@@ -111,5 +111,11 @@ INSTANTIATE_TEST_CASE_P( CMathEngineBlobMaxOverTimePoolingBackwardTestInstantiat
 
 TEST_P( CMathEngineBlobMaxOverTimePoolingBackwardTest, Random )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		return;
+	}
+
 	RUN_TEST_IMPL( maxOverTimePoolingBackwardImpl )
 }

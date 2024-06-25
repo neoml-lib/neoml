@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -98,7 +98,7 @@ inline void CTestParams::GetArray<int>( const std::string& key, std::vector<int>
 	value.reserve( arrayStrings.size() );
 	for( size_t i = 0; i < arrayStrings.size(); ++i ) {
 		int currentValue;
-		ASSERT_TRUE( Value( arrayStrings[i], currentValue ) );
+		EXPECT_TRUE( Value( arrayStrings[i], currentValue ) );
 		value.push_back( currentValue );
 	}
 }

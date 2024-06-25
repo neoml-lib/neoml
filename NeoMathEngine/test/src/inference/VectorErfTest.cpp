@@ -1,4 +1,4 @@
-/* Copyright © 2017-2022 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -34,7 +34,7 @@ static void vectorErfImpl( const CTestParams& params, int seed )
 
 	for( int i = 0; i < vectorSize; i++ ) {
 		float expected = std::erff( a[i] );
-		ASSERT_NEAR( result[i], expected, 1e-5 );
+		EXPECT_NEAR( result[i], expected, 1e-5 );
 	}
 }
 
@@ -65,5 +65,11 @@ INSTANTIATE_TEST_CASE_P( CMathEngineVectorErfTestInstantiation, CMathEngineVecto
 
 TEST_P( CMathEngineVectorErfTest, Random )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		return;
+	}
+
 	RUN_TEST_IMPL( vectorErfImpl );
 }

@@ -1,4 +1,4 @@
-/* Copyright © 2017-2022 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -35,7 +35,7 @@ static void vectorEltwiseLessImpl( const CTestParams& params, int seed )
 
 	for( int i = 0; i < vectorSize; i++ ) {
 		const TDst expected = static_cast<TDst>( first[i] < second[i] ? 1 : 0 );
-		ASSERT_EQ( expected, result[i] );
+		EXPECT_EQ( expected, result[i] );
 	}
 }
 
@@ -56,8 +56,15 @@ INSTANTIATE_TEST_CASE_P( CVectorEltwiseLessTestInstantiation, CVectorEltwiseLess
 
 TEST_P( CVectorEltwiseLessTest, Random )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		return;
+	}
+
 #define VecEltwiseLessTestComma ,
 	RUN_TEST_IMPL( vectorEltwiseLessImpl<float VecEltwiseLessTestComma float> );
 	RUN_TEST_IMPL( vectorEltwiseLessImpl<float VecEltwiseLessTestComma int> );
 	RUN_TEST_IMPL( vectorEltwiseLessImpl<int VecEltwiseLessTestComma int> );
+#undef VecEltwiseLessTestComma
 }

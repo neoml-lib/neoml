@@ -1,4 +1,4 @@
-/* Copyright © 2017-2022 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -41,7 +41,7 @@ static void vectorEltwiseEqualImpl( const CTestParams& params, int seed )
 
 	for( int i = 0; i < vectorSize; i++ ) {
 		const int expected = first[i] == second[i] ? 1 : 0;
-		ASSERT_EQ( expected, result[i] );
+		EXPECT_EQ( expected, result[i] );
 	}
 }
 
@@ -62,6 +62,12 @@ INSTANTIATE_TEST_CASE_P( CVectorEltwiseEqualTestInstantiation, CVectorEltwiseEqu
 
 TEST_P( CVectorEltwiseEqualTest, Random )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		return;
+	}
+
 	RUN_TEST_IMPL( vectorEltwiseEqualImpl<float> );
 	RUN_TEST_IMPL( vectorEltwiseEqualImpl<int> );
 }

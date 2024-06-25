@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -29,6 +29,33 @@ namespace NeoMLTest {
 int RunTests( int argc, char* argv[] );
 
 IMathEngine& MathEngine();
+
+//------------------------------------------------------------------------------------------------------------
+
+// Yellow output
+class NeoMLTestHighlightedOutput final {
+public:
+	NeoMLTestHighlightedOutput( ::std::ostream& _log ) : log( _log ) { log << "\u001b[33m"; }
+	~NeoMLTestHighlightedOutput() { log << "\u001b[0m"; }
+
+	template <typename T> ::std::ostream& operator<<( T t ) { return log << t; }
+private:
+	::std::ostream& log;
+};
+
+#define NEOML_HILIGHT( log )   NeoMLTestHighlightedOutput( log )
+
+inline ::std::ostream& operator<<( ::std::ostream& s, TMathEngineType met )
+{
+	switch( met ) {
+		case MET_Cpu: s << "MET_Cpu"; break;
+		case MET_Cuda: s << "MET_Cuda"; break;
+		case MET_Metal: s << "MET_Metal"; break;
+		case MET_Vulkan: s << "MET_Vulkan"; break;
+		default: ASSERT_EXPR( false );
+	}
+	return s;
+}
 
 //------------------------------------------------------------------------------------------------------------
 
@@ -204,7 +231,7 @@ class CTestFixtureWithParams : public CTestFixture, public ::testing::WithParamI
 //------------------------------------------------------------------------------------------------------------
 
 #define RUN_TEST_IMPL( impl ) { \
-	CTestParams params = GetParam(); \
+	const CTestParams& params = GetParam(); \
 	const int testCount = params.GetValue<int>( "TestCount" ); \
 	for( int test = 0; test < testCount; ++test ) { \
 		impl ( params, 282 + test * 10000 + test % 3  ); \

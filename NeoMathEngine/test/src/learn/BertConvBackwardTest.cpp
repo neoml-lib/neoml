@@ -1,4 +1,4 @@
-/* Copyright © 2017-2021 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -100,20 +100,20 @@ static void bertConvBackwardTestImpl( const CTestParams& params, int seed )
 	bertConvBackwardNaive( dataArr, kernelArr, outputDiffArr, seqLen, batchSize, numHeads, headSize, kernelSize,
 		expectedDataDiffArr, expectedKernelDiffArr );
 
-	ASSERT_EQ(expectedDataDiffArr.size(), dataDiffArr.size());
+	EXPECT_EQ(expectedDataDiffArr.size(), dataDiffArr.size());
 	for( size_t i = 0; i < expectedDataDiffArr.size(); ++i ) {
 		if( ::fabsf( expectedDataDiffArr[i] - dataDiffArr[i] ) >= 1e-3f ) {
 			::printf( "hrere\n" );
 		}
-		ASSERT_NEAR( expectedDataDiffArr[i], dataDiffArr[i], 1e-3f );
+		EXPECT_NEAR( expectedDataDiffArr[i], dataDiffArr[i], 1e-3f );
 	}
 
-	ASSERT_EQ( expectedKernelDiffArr.size(), kernelDiffArr.size() );
+	EXPECT_EQ( expectedKernelDiffArr.size(), kernelDiffArr.size() );
 	for( size_t i = 0; i < expectedKernelDiffArr.size(); ++i ) {
 		if( ::fabsf( expectedKernelDiffArr[i] - kernelDiffArr[i] ) >= 1e-3f ) {
 			::printf( "hrere\n" );
 		}
-		ASSERT_NEAR( expectedKernelDiffArr[i], kernelDiffArr[i], 1e-3f );
+		EXPECT_NEAR( expectedKernelDiffArr[i], kernelDiffArr[i], 1e-3f );
 	}
 }
 
@@ -124,6 +124,12 @@ class CMathEngineBertConvBackwardTest : public CTestFixtureWithParams {
 
 TEST_P( CMathEngineBertConvBackwardTest, Random )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		return;
+	}
+
 	RUN_TEST_IMPL( bertConvBackwardTestImpl )
 }
 

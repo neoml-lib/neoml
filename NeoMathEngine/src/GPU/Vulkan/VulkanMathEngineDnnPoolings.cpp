@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -186,10 +186,9 @@ CMaxOverTimePoolingDesc* CVulkanMathEngine::InitMaxOverTimePooling( const CBlobD
 void CVulkanMathEngine::BlobMaxOverTimePooling( const CMaxOverTimePoolingDesc& poolingDesc, const CConstFloatHandle& sourceData,
 	const CIntHandle* maxIndicesData, const CFloatHandle& resultData )
 {
-	ASSERT_EXPR( maxIndicesData == 0 );
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
-	ASSERT_EXPR( maxIndicesData == 0 );
+	ASSERT_EXPR( maxIndicesData == nullptr );
 
 	const CCommonMaxOverTimePoolingDesc& desc = static_cast<const CCommonMaxOverTimePoolingDesc&>( poolingDesc );
 	const CBlobDesc& source = desc.Source;
@@ -221,7 +220,7 @@ CGlobalMaxPoolingDesc* CVulkanMathEngine::InitGlobalMaxPooling( const CBlobDesc&
 	ASSERT_EXPR( result.ObjectCount() == source.ObjectCount() && maxIndices.ObjectCount() == result.ObjectCount() );
 	ASSERT_EXPR( maxIndices.ObjectSize() == result.ObjectSize() );
 
-	CCommonGlobalMaxPoolingDesc* desc = new CCommonGlobalMaxPoolingDesc( source, result, maxIndices );
+	CCommonGlobalMaxPoolingDesc* desc = new CCommonGlobalMaxPoolingDesc( source, maxIndices, result );
 	return desc;
 }
 

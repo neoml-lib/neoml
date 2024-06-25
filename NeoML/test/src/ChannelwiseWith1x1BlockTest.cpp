@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,6 +17,9 @@ limitations under the License.
 #pragma hdrstop
 
 #include <TestFixture.h>
+
+using namespace NeoML;
+using namespace NeoMLTest;
 
 namespace NeoMLTest {
 
@@ -88,12 +91,6 @@ CChannelwiseWith1x1Composite::CChannelwiseWith1x1Composite( IMathEngine& mathEng
 	}
 }
 
-} // namespace NeoMLTest
-
-using namespace NeoML;
-using namespace NeoMLTest;
-
-
 static void channelwiseWith1x1TestImpl( unsigned int seed, int freeTermMask, TActivationFunction activation,
 	float reluParam, int stride, bool residual, const std::initializer_list<int>& inputDims )
 {
@@ -158,14 +155,23 @@ static void channelwiseWith1x1TestImpl( unsigned int seed, int freeTermMask, TAc
 	CDnnBlobBuffer<float> expected( *expectedBlob, TDnnBlobBufferAccess::Read );
 	CDnnBlobBuffer<float> actual( *actualBlob, TDnnBlobBufferAccess::Read );
 
-	ASSERT_EQ( expected.Size(), actual.Size() ) << "output size mismatch";
+	EXPECT_EQ( expected.Size(), actual.Size() ) << "output size mismatch";
 	for( int i = 0; i < expected.Size(); ++i ) {
-		ASSERT_NEAR( expected[i], actual[i], 1e-3 ) << "at index " << i;
+		EXPECT_NEAR( expected[i], actual[i], 1e-3 ) << "at index " << i;
 	}
 }
 
+} // namespace NeoMLTest
+
 TEST( ChannelwiseWith1x1LayerTest, Run )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// InitRowwiseChWith1x1
+		return;
+	}
+
 	// This test is allowed on GPU because of backward compatibility
 	std::initializer_list<int> inputDims = { 1, 3, 1, 26, 31, 1, 8 };
 	CRandom seedRandom( 0x654 );
@@ -183,6 +189,13 @@ TEST( ChannelwiseWith1x1LayerTest, Run )
 
 TEST( ChannelwiseWith1x1LayerTest, CornerCases )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// InitRowwiseChWith1x1
+		return;
+	}
+
 	// This test is allowed on GPU because of backward compatibility
 	CRandom seedRandom( 0x654 );
 	channelwiseWith1x1TestImpl( seedRandom.Next(), 0, AF_ReLU, 0, 1, true, { 1, 7, 1, 1, 3, 1, 3 } );
@@ -210,9 +223,9 @@ TEST( ChannelwiseWith1x1OptimizerTest, SimpleNonResidual )
 	CConvLayer* conv = Conv( 8, CConvAxisParams( 1 ), CConvAxisParams( 1 ) )( "conv", channelwiseReLU );
 	Sink( conv, "sink" );
 	CDnnOptimizationReport report = OptimizeDnn( dnn );
-	ASSERT_EQ( 1, report.ChannelwiseWith1x1NonResidual );
-	ASSERT_EQ( 0, report.ChannelwiseWith1x1Residual );
-	ASSERT_EQ( 3, dnn.GetLayerCount() );
+	EXPECT_EQ( 1, report.ChannelwiseWith1x1NonResidual );
+	EXPECT_EQ( 0, report.ChannelwiseWith1x1Residual );
+	EXPECT_EQ( 3, dnn.GetLayerCount() );
 }
 
 TEST( ChannelwiseWith1x1OptimizerTest, SimpleResidual )
@@ -227,9 +240,9 @@ TEST( ChannelwiseWith1x1OptimizerTest, SimpleResidual )
 	CEltwiseSumLayer* residual = Sum()( "residual", data, conv );
 	Sink( residual, "sink" );
 	CDnnOptimizationReport report = OptimizeDnn( dnn );
-	ASSERT_EQ( 0, report.ChannelwiseWith1x1NonResidual );
-	ASSERT_EQ( 1, report.ChannelwiseWith1x1Residual );
-	ASSERT_EQ( 3, dnn.GetLayerCount() );
+	EXPECT_EQ( 0, report.ChannelwiseWith1x1NonResidual );
+	EXPECT_EQ( 1, report.ChannelwiseWith1x1Residual );
+	EXPECT_EQ( 3, dnn.GetLayerCount() );
 }
 
 TEST( ChannelwiseWith1x1OptimizerTest, ResidualResidual )
@@ -245,9 +258,9 @@ TEST( ChannelwiseWith1x1OptimizerTest, ResidualResidual )
 	CEltwiseSumLayer* doubleResidual = Sum()( "doubleResidual", data, residual );
 	Sink( doubleResidual, "sink" );
 	CDnnOptimizationReport report = OptimizeDnn( dnn );
-	ASSERT_EQ( 0, report.ChannelwiseWith1x1NonResidual );
-	ASSERT_EQ( 1, report.ChannelwiseWith1x1Residual );
-	ASSERT_EQ( 4, dnn.GetLayerCount() );
+	EXPECT_EQ( 0, report.ChannelwiseWith1x1NonResidual );
+	EXPECT_EQ( 1, report.ChannelwiseWith1x1Residual );
+	EXPECT_EQ( 4, dnn.GetLayerCount() );
 }
 
 TEST( ChannelwiseWith1x1OptimizerTest, NeighboringResiduals )
@@ -264,9 +277,9 @@ TEST( ChannelwiseWith1x1OptimizerTest, NeighboringResiduals )
 	CEltwiseSumLayer* secondResidual = Sum()( "secondResidual", data, conv );
 	Sink( secondResidual, "secondSink" );
 	CDnnOptimizationReport report = OptimizeDnn( dnn );
-	ASSERT_EQ( 1, report.ChannelwiseWith1x1NonResidual );
-	ASSERT_EQ( 0, report.ChannelwiseWith1x1Residual );
-	ASSERT_EQ( 6, dnn.GetLayerCount() );
+	EXPECT_EQ( 1, report.ChannelwiseWith1x1NonResidual );
+	EXPECT_EQ( 0, report.ChannelwiseWith1x1Residual );
+	EXPECT_EQ( 6, dnn.GetLayerCount() );
 }
 
 TEST( ChannelwiseWith1x1OptimizerTest, SinkFromTheMiddle )
@@ -282,8 +295,8 @@ TEST( ChannelwiseWith1x1OptimizerTest, SinkFromTheMiddle )
 	CEltwiseSumLayer* residual = Sum()( "residual", data, conv );
 	Sink( residual, "sink" );
 	CDnnOptimizationReport report = OptimizeDnn( dnn );
-	ASSERT_EQ( 0, report.ChannelwiseWith1x1NonResidual );
-	ASSERT_EQ( 0, report.ChannelwiseWith1x1Residual );
+	EXPECT_EQ( 0, report.ChannelwiseWith1x1NonResidual );
+	EXPECT_EQ( 0, report.ChannelwiseWith1x1Residual );
 }
 
 TEST( ChannelwiseWith1x1OptimizerTest, SinkDisablesResidual )
@@ -299,7 +312,7 @@ TEST( ChannelwiseWith1x1OptimizerTest, SinkDisablesResidual )
 	CEltwiseSumLayer* residual = Sum()( "residual", data, conv );
 	Sink( residual, "sink" );
 	CDnnOptimizationReport report = OptimizeDnn( dnn );
-	ASSERT_EQ( 1, report.ChannelwiseWith1x1NonResidual );
-	ASSERT_EQ( 0, report.ChannelwiseWith1x1Residual );
-	ASSERT_EQ( 5, dnn.GetLayerCount() );
+	EXPECT_EQ( 1, report.ChannelwiseWith1x1NonResidual );
+	EXPECT_EQ( 0, report.ChannelwiseWith1x1Residual );
+	EXPECT_EQ( 5, dnn.GetLayerCount() );
 }

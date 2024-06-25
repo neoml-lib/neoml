@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -122,13 +122,13 @@ static void blobChannelwiseConvolutionLearnAddImpl( const CTestParams& params, i
 
 	filterBlob.CopyTo( filterData.data() );
 	for( size_t i = 0; i < filterData.size(); ++i ) {
-		ASSERT_NEAR( expectedFilterData[i], filterData[i], 1e-2f );
+		EXPECT_NEAR( expectedFilterData[i], filterData[i], 1e-2f );
 	}
 
 	if( addFreeTerm ) {
 		freeTermBlob.CopyTo( freeTermData.data() );
 		for( size_t i = 0; i < freeTermData.size(); ++i ) {
-			ASSERT_NEAR( expectedFreeTermData[i], freeTermData[i], 1e-2f );
+			EXPECT_NEAR( expectedFreeTermData[i], freeTermData[i], 1e-2f );
 		}
 	}
 }
@@ -175,5 +175,11 @@ INSTANTIATE_TEST_CASE_P( CMathEngineBlobChannelwiseConvolutionLearnAddTestInstan
 
 TEST_P( CMathEngineBlobChannelwiseConvolutionLearnAddTest, Random )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		return;
+	}
+
 	RUN_TEST_IMPL( blobChannelwiseConvolutionLearnAddImpl );
 }

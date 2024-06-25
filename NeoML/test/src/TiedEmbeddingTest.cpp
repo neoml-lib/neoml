@@ -26,6 +26,13 @@ using namespace NeoMLTest;
 
 TEST(TiedEmbeddingTest, CompositeTest)
 {
+	const auto met = MathEngine().GetType();
+	if( met != MET_Cpu && met != MET_Cuda ) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// CrossEntropyLoss --> VectorEltwiseNotNegative
+		return;
+	}
+
 	CRandom random( 42 );
 	CDnn net(random, MathEngine());
 
@@ -97,6 +104,13 @@ TEST(TiedEmbeddingTest, CompositeTest)
 
 TEST(TiedEmbeddingTest, NoCompositeTest)
 {
+	const auto met = MathEngine().GetType();
+	if( met != MET_Cpu && met != MET_Cuda ) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// CrossEntropyLoss --> VectorEltwiseNotNegative
+		return;
+	}
+
 	CRandom random( 42 );
 	CDnn net(random, MathEngine());
 

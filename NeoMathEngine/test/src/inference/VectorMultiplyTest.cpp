@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -35,7 +35,7 @@ static void vectorMultiplyImpl( const CTestParams& params, int seed )
 
 	for( int i = 0; i < vectorSize; i++ ) {
 		const float expected = static_cast<float>( a[i] * mult );
-		ASSERT_NEAR( expected, static_cast<float>( result[i] ), 1e-3 );
+		EXPECT_NEAR( expected, static_cast<float>( result[i] ), 1e-3 );
 	}
 }
 
@@ -67,5 +67,12 @@ INSTANTIATE_TEST_CASE_P( CMathEngineVectorMultiplyTestInstantiation, CMathEngine
 TEST_P( CMathEngineVectorMultiplyTest, Random )
 {
 	RUN_TEST_IMPL( vectorMultiplyImpl<float> );
+
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		return;
+	}
+
 	RUN_TEST_IMPL( vectorMultiplyImpl<int> );
 }

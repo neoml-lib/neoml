@@ -1,4 +1,4 @@
-/* Copyright © 2021 ABBYY Production LLC
+/* Copyright © 2021-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -247,8 +247,12 @@ TEST_F( CSparseFloatMatrixTest, CreationFromSparseAndDenseDesc )
 // disable this test due to occasional error on linux build VM
 TEST_F( CSparseFloatMatrixTest, DISABLED_CreateHuge )
 {
+	const auto met = MathEngine().GetType();
 	const int maxLength = 128;
-	const int rowsCount = 17000000;
+	const int rowsCount = ( met == MET_Cpu || met == MET_Cuda )
+		? 17000000
+		: 16000000; // Vulkan implementation does not support bigger
+
 	try {
 		CSparseFloatMatrix matrix( maxLength, rowsCount );
 		for( int i = 0; i < rowsCount; ++i ) {

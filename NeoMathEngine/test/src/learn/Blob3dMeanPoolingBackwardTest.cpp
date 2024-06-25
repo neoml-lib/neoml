@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -88,7 +88,7 @@ static void blob3dMeanPoolingBackwardTestImpl( const CTestParams& params, int se
 	mean3dPoolingBackwardNaive( poolingParams, resultDiffData.data(), expectedDiff.data() );
 
 	for( int i = 0; i < sourceDiffSize; ++i ) {
-		ASSERT_NEAR( expectedDiff[i], actualDiff[i], 1e-3 );
+		EXPECT_NEAR( expectedDiff[i], actualDiff[i], 1e-3 );
 	}
 }
 
@@ -119,5 +119,11 @@ INSTANTIATE_TEST_CASE_P( CMathEngineBlob3dMeanPoolingBackwardTestInstantiation, 
 
 TEST_P( CMathEngineBlob3dMeanPoolingBackwardTest, Random )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		return;
+	}
+
 	RUN_TEST_IMPL( blob3dMeanPoolingBackwardTestImpl )
 }

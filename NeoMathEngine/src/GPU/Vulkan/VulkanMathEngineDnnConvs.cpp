@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -176,7 +176,8 @@ CTimeConvolutionDesc* CVulkanMathEngine::InitTimeConvolution( const CBlobDesc& s
 	ASSERT_EXPR( paddingBack < ( filter.Height() - 1 ) * dilation + 1 );
 
 	CCommonTimeConvolutionDesc* desc = new CCommonTimeConvolutionDesc(
-		source, filter, result, stride, paddingFront, paddingBack, dilation );
+		source, result, filter, stride, paddingFront, paddingBack, dilation );
+	ASSERT_EXPR( ( desc->Result.BatchLength() * desc->Source.BatchWidth() ) * desc->Filter.ObjectCount() <= desc->Result.BlobSize() );
 	return desc;
 }
 
@@ -192,11 +193,9 @@ void CVulkanMathEngine::BlobTimeConvolution( const CTimeConvolutionDesc& convDes
 	const CBlobDesc& source = desc.Source;
 	const CBlobDesc& filter = desc.Filter;
 	const CBlobDesc& result = desc.Result;
+	const bool useTempMatrix = desc.Stride > 1 || filter.Height() > 1;
 
 	int workspaceSize = 0;
-
-	bool useTempMatrix = desc.Stride > 1 || filter.Height() > 1;
-
 	if( useTempMatrix ) {
 		// Create a temporary matrix
 		workspaceSize = result.BatchLength() * source.BatchWidth() * filter.Height() * source.ObjectSize();
