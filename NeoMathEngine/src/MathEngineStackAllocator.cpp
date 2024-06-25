@@ -178,9 +178,11 @@ CStackAllocResult CStackBlockManager::Alloc( size_t size )
 	if( head == nullptr || ( head->Prev == nullptr && head->GetBlockSize() < maxAllocSize && head->GetAllocSize() == 0 ) ) {
 		// Allocate a new block for all required memory
 		if( head != nullptr ) {
-			delete head;
+			head->~CStackBlock();
+			::new( head ) CStackBlock( manager, maxAllocSize, nullptr );
+		} else {
+			head = new CStackBlock( manager, maxAllocSize, nullptr );
 		}
-		head = new CStackBlock( manager, maxAllocSize, 0 );
 		return head->Alloc( size );
 	}
 
