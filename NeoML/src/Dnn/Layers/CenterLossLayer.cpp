@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -24,12 +24,8 @@ namespace NeoML {
 CCenterLossLayer::CCenterLossLayer( IMathEngine& mathEngine ) :
 	CLossLayer( mathEngine, "CCnnCenterLossLayer" ),
 	numberOfClasses( 0 ),
-	classCentersConvergenceRate( CDnnBlob::CreateVector( mathEngine, CT_Float, 1 ) ),
-	oneMult( CDnnBlob::CreateVector( mathEngine, CT_Float, 1 ) )
-{
-	classCentersConvergenceRate->GetData().SetValue( 0.0f );
-	oneMult->GetData().SetValue( 1.f );
-}
+	classCentersConvergenceRate( 0.f )
+{}
 
 static const int CenterLossLayerVersion = 2000;
 
@@ -120,7 +116,7 @@ void CCenterLossLayer::updateCenters(const CFloatHandle& tempDiffHandle)
 	handlesArray[0] = classCentersUpdatesNumerator.GetHandle();
 
 	MathEngine().VectorMultichannelLookupAndAddToTable( objectCount, 1, labels, 
-		handlesArray, &lookupDimension, 1, oneMult->GetData(), tempDiffHandle, numberOfFeatures );
+		handlesArray, &lookupDimension, 1, 1.f, tempDiffHandle, numberOfFeatures );
 
 	CFloatHandleVar onesTemporaryBlob(MathEngine(), inputBlobs[0]->GetDataSize());
 	MathEngine().VectorFill(onesTemporaryBlob.GetHandle(), 1.0f, onesTemporaryBlob.Size());
@@ -130,13 +126,13 @@ void CCenterLossLayer::updateCenters(const CFloatHandle& tempDiffHandle)
 	handlesArray[0] = classCentersUpdatesDenominator.GetHandle();
 
 	MathEngine().VectorMultichannelLookupAndAddToTable( objectCount, 1, labels, 
-		handlesArray, &lookupDimension, 1, oneMult->GetData(), onesTemporaryBlob.GetHandle(), numberOfFeatures );
+		handlesArray, &lookupDimension, 1, 1.f, onesTemporaryBlob.GetHandle(), numberOfFeatures );
 
 	// The final correction = \alpha * numerator / denominator
 	MathEngine().VectorEltwiseDivide( classCentersUpdatesNumerator.GetHandle(), classCentersUpdatesDenominator.GetHandle(),
 		classCentersUpdatesNumerator.GetHandle(), classCentersBlob->GetDataSize() );
 	MathEngine().VectorMultiply( classCentersUpdatesNumerator.GetHandle(), classCentersUpdatesNumerator.GetHandle(),
-		classCentersBlob->GetDataSize(), classCentersConvergenceRate->GetData() );
+		classCentersBlob->GetDataSize(), classCentersConvergenceRate );
 	MathEngine().VectorAdd( classCenters, classCentersUpdatesNumerator.GetHandle(), classCenters,
 		classCentersBlob->GetDataSize() );
 }
