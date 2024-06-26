@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -52,10 +52,8 @@ void CCrossEntropyLossLayer::BatchCalculateLossAndGradient( int batchSize, CCons
 		MathEngine().MatrixSoftmaxByRows( data, batchSize, vectorSize, activation );
 	} else {
 		// For computational stability
-		CFloatHandleStackVar maxValue( MathEngine() );
-		maxValue.SetValue( 1.f - FLT_EPSILON );
-		CFloatHandleStackVar minValue( MathEngine() );
-		minValue.SetValue( FLT_EPSILON );
+		const float maxValue( 1.f - FLT_EPSILON );
+		const float minValue( FLT_EPSILON );
 		MathEngine().VectorMinMax( data, activation, totalSize, minValue, maxValue );
 	}
 
@@ -99,17 +97,15 @@ void CCrossEntropyLossLayer::BatchCalculateLossAndGradient( int batchSize, CCons
 
 	CheckLayerArchitecture( vectorSize >= 2, "CrossEntropyLoss layer works only with multi-class classification" );
 
-	CFloatHandleStackVar activationMul( MathEngine(), batchSize );
-	CFloatHandleStackVar activation( MathEngine(), totalSize );
+	CFloatHandleStackVar activationMul( MathEngine(), batchSize + totalSize );
+	CFloatHandle activation = activationMul.GetHandle() + batchSize;
 
 	if( isSoftmaxApplied ) {
 		MathEngine().MatrixSoftmaxByRows( data, batchSize, vectorSize, activation );
 	} else {
 		// For computational stability
-		CFloatHandleStackVar maxValue( MathEngine() );
-		maxValue.SetValue( 1.f - FLT_EPSILON );
-		CFloatHandleStackVar minValue( MathEngine() );
-		minValue.SetValue( FLT_EPSILON );
+		const float maxValue( 1.f - FLT_EPSILON );
+		const float minValue( FLT_EPSILON );
 		MathEngine().VectorMinMax( data, activation, totalSize, minValue, maxValue );
 	}
 
@@ -127,9 +123,7 @@ void CCrossEntropyLossLayer::BatchCalculateLossAndGradient( int batchSize, CCons
 		MathEngine().VectorFill( activationMul, -1, batchSize );
 	} else {
 		MathEngine().VectorInv( activation, activation, totalSize );
-		CFloatHandleStackVar minusOne( MathEngine() );
-		minusOne.SetValue( -1 );
-		MathEngine().VectorMultiply( activation, activation, totalSize, minusOne );
+		MathEngine().VectorMultiply( activation, activation, totalSize, -1.f );
 		MathEngine().VectorFill( activationMul, 0, batchSize );
 		MathEngine().AddMatrixElementsToVector( activation, batchSize, vectorSize, label, activationMul, batchSize );
 		MathEngine().VectorFill( activation, 1, totalSize );
