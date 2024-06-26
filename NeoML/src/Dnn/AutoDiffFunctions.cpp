@@ -1,4 +1,4 @@
-/* Copyright © 2017-2021 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -207,10 +207,8 @@ CPtr<const CDnnBlob> Add( const CDnnBlob* first, float second )
 	const CTapeBlob* tapeBlob = dynamic_cast<const CTapeBlob*>( first );
 	IGradientTape* tape = tapeBlob != 0 ? tapeBlob->Tape() : 0;
 
-	CFloatHandleStackVar secondHandle( mathEngine, 1 );
-	secondHandle.SetValue( second );
 	CPtr<CTapeBlob> result( new CTapeBlob( tape, first->GetMathEngine(), first->GetDesc() ) );
-	mathEngine.VectorAddValue(first->GetData(), result->GetData(), result->GetDataSize(), secondHandle );
+	mathEngine.VectorAddValue(first->GetData(), result->GetData(), result->GetDataSize(), second );
 
 	if( tape != 0 ) {
 		CPtr<ITapeOperation> operation( new CTapeAdd( first, nullptr ) ); 
@@ -901,17 +899,17 @@ CTapeMean::CTapeMean( const CDnnBlob& _first, const CArray<int>& _axes ) :
 
 void CTapeMean::DivideByCount( const CDnnBlob* first, CDnnBlob* result, const CArray<int>& axes )
 {
-	CPtr<CDnnBlob> div = CDnnBlob::CreateVector( result->GetMathEngine(), CT_Float, 1 );
+	float div = 0;
 	if( axes.IsEmpty() ) {
-		div->GetData().SetValue( 1.f / static_cast< float >( first->GetDataSize() ) );
+		div = ( 1.f / static_cast< float >( first->GetDataSize() ) );
 	} else {
 		int count = 1;
 		for( int i = 0; i < axes.Size(); i++ ) {
 			count *= first->DimSize( axes[i] );
 		}
-		div->GetData().SetValue( 1.f / static_cast< float >( count ) );
+		div = ( 1.f / static_cast< float >( count ) );
 	}
-	result->GetMathEngine().VectorMultiply( result->GetData(), result->GetData(), result->GetDataSize(), div->GetData() );
+	result->GetMathEngine().VectorMultiply( result->GetData(), result->GetData(), result->GetDataSize(), div );
 }
 
 CPtr<CDnnBlob> CTapeMean::Jacobian( const CTapeBlob* var ) const
@@ -1245,13 +1243,9 @@ CPtr<CDnnBlob> CTapeClip::Jacobian( const CTapeBlob* var ) const
 
 	IMathEngine& mathEngine = first->GetMathEngine();
 
-	CFloatHandleStackVar minHandle( mathEngine, 1 );
-	minHandle.SetValue( minValue );
-	CFloatHandleStackVar maxHandle( mathEngine, 1 );
-	maxHandle.SetValue( maxValue );
 	CPtr<CDnnBlob> result = CDnnBlob::CreateBlob( mathEngine, jacobian->GetDesc() );
 	mathEngine.VectorMinMaxDiff( jacobian->GetData(), jacobian->GetObjectCount(), jacobian->GetObjectSize(), first->GetData(),
-		result->GetData(), minHandle, maxHandle );
+		result->GetData(), minValue, maxValue );
 	return result.Ptr();
 }
 
@@ -1263,13 +1257,8 @@ CPtr<const CDnnBlob> Clip( const CDnnBlob* first, float minValue, float maxValue
 	const CTapeBlob* tapeBlob = dynamic_cast<const CTapeBlob*>( first );
 	IGradientTape* tape = tapeBlob != 0 ? tapeBlob->Tape() : 0;
 
-	CFloatHandleStackVar minHandle( mathEngine, 1 );
-	minHandle.SetValue( minValue );
-	CFloatHandleStackVar maxHandle( mathEngine, 1 );
-	maxHandle.SetValue( maxValue );
-
 	CPtr<CTapeBlob> result( new CTapeBlob( tape, mathEngine, first->GetDesc() ) );
-	mathEngine.VectorMinMax( first->GetData(), result->GetData(), first->GetDataSize(), minHandle, maxHandle );
+	mathEngine.VectorMinMax( first->GetData(), result->GetData(), first->GetDataSize(), minValue, maxValue );
 
 	if( tape != 0 ) {
 		CPtr<ITapeOperation> operation( new CTapeClip( *tapeBlob, minValue, maxValue ) ); 
