@@ -1,4 +1,4 @@
-/* Copyright © 2021 ABBYY Production LLC
+/* Copyright © 2021-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,6 +23,16 @@ limitations under the License.
 
 using namespace NeoML;
 using namespace NeoMLTest;
+
+namespace FObj {
+
+inline void swap( FObj::CArray<int>*& a, FObj::CArray<int>*& b ) { std::swap( a, b ); }
+
+inline void swap( FObj::CArray<float>*& a, FObj::CArray < float >*& b ) { std::swap( a, b ); }
+
+} // namespace FObj
+
+//---------------------------------------------------------------------------------------------------------------------
 
 namespace NeoMLTest {
 
@@ -62,8 +72,8 @@ public:
 	void SetBlankLabel(int _blankLabel) { blankLabel = _blankLabel; }
 
 	// Total loss weight
-	float GetLossWeight() const { return lossWeight->GetData().GetValue(); }
-	void SetLossWeight(float _lossWeight) { lossWeight->GetData().SetValue(_lossWeight); }
+	float GetLossWeight() const { return lossWeight; }
+	void SetLossWeight(float _lossWeight) { lossWeight = _lossWeight; }
 
 	// Gets the last loss value
 	float GetLastLoss() const { return loss->GetData().GetValue(); }
@@ -71,7 +81,7 @@ public:
 	// The maximum loss gradient value
 	// The system may not function as intended with very large loss gradient,
 	// so we don't recommend changing this value
-	float GetMaxGradientValue() const { return maxGradient->GetData().GetValue(); }
+	float GetMaxGradientValue() const { return maxGradient; }
 	void SetMaxGradientValue(float maxValue);
 
 	// Indicates if the blank labels may be skipped when aligning
@@ -87,14 +97,13 @@ protected:
 	int BlobsForBackward() const override { return 0; }
 
 private:
-	CPtr<CDnnBlob> lossWeight; // scale multiplier for the loss function
+	float lossWeight; // scale multiplier for the loss function
 	CPtr<CDnnBlob> loss; // the loss value on the last tep
-	CPtr<CDnnBlob> lossDivider; // the averaging factor for calculating the loss value
-	CPtr<CDnnBlob> lossGradientDivider; // the averaging factor for calculating the loss gradient (taking lossWeight into account)
+	float lossDivider; // the averaging factor for calculating the loss value
 	CPtr<CDnnBlob> weights;	// the vector weights
 
-	CPtr<CDnnBlob> minGradient;
-	CPtr<CDnnBlob> maxGradient;
+	float minGradient;
+	float maxGradient;
 
 	int blankLabel; // the blank label
 	CPtr<CDnnBlob> paddedLabels; // the sequence of labels separated by blanks { 2 * LabelLength + 1, BW, 1 } int
@@ -125,8 +134,6 @@ private:
 	CPtr<CDnnBlob> endOfLabelPosition;
 	CPtr<CDnnBlob> endOfLabelSample;
 
-	// The integer constant -1
-	CPtr<CDnnBlob> minusOneInt;
 	// The array of float zeros of BatchWidth size
 	CPtr<CDnnBlob> batchOfZeros;
 
@@ -140,12 +147,13 @@ private:
 		CDnnBlob* targetBlob, CDnnBlob* targetBlobWindow );
 };
 
-static const float MaxGradientValue = 1e+6;
-static const float logZero = -FLT_MAX / 4;
+static const float naiveLossMaxGradientValue = 1e+6;
+static const float naiveLossLogZero = -FLT_MAX / 4;
 // log(1-). Using 0.0 may lead to denormalized numbers
-static const float logOneNeg = -FLT_MIN * 2;
+static const float naiveLossLogOneNeg = -FLT_MIN * 2;
 
-/////////////////////////////////////////////////////////////////////////////////////////
+//---------------------------------------------------------------------------------------------------------------------
+
 // These two methods are only called from Reshape, so their efficiency is not critical
 // May be rewritten as CMathEngine primitives if needed
 
@@ -296,34 +304,29 @@ static void eltwiseLogSumExpVectorToMatrixElements(const CFloatHandle& matrixHan
 	mathEngine.DataExchangeTyped<float>( matrixHandle, matrix.GetPtr(), height * width );
 }
 
-/////////////////////////////////////////////////////////////////////////////////////////
+//---------------------------------------------------------------------------------------------------------------------
+
 // CCtcLossNaiveLayer
 
 CCtcLossNaiveLayer::CCtcLossNaiveLayer( IMathEngine& mathEngine ) :
 	CBaseLayer( mathEngine, "CCnnCtcLossLayer", false ),
-	lossWeight( CDnnBlob::CreateVector( mathEngine, CT_Float, 1 ) ),
+	lossWeight( 1.f ),
 	loss( CDnnBlob::CreateVector( mathEngine, CT_Float, 1 ) ),
-	lossDivider( CDnnBlob::CreateVector( mathEngine, CT_Float, 1 ) ),
-	lossGradientDivider( CDnnBlob::CreateVector( mathEngine, CT_Float, 1 ) ),
-	minGradient( CDnnBlob::CreateVector( mathEngine, CT_Float, 1 ) ),
-	maxGradient( CDnnBlob::CreateVector( mathEngine, CT_Float, 1 ) ),
+	lossDivider( 0.f ),
+	minGradient( -naiveLossMaxGradientValue ),
+	maxGradient( naiveLossMaxGradientValue ),
 	blankLabel( 0 ),
-	minusOneInt( CDnnBlob::CreateVector( mathEngine, CT_Int, 1 ) ),
 	allowBlankLabelSkip( false )
 {
-	SetLossWeight(1.);
 	loss->GetData().SetValue( 0 );
-	minGradient->GetData().SetValue( -MaxGradientValue );
-	maxGradient->GetData().SetValue( MaxGradientValue );
-	minusOneInt->GetData<int>().SetValue( -1 );
 }
 
 void CCtcLossNaiveLayer::SetMaxGradientValue(float maxValue)
 {
 	NeoAssert(maxValue > 0);
 
-	minGradient->GetData().SetValue(-maxValue);
-	maxGradient->GetData().SetValue(maxValue);
+	minGradient = (-maxValue);
+	maxGradient = (maxValue);
 }
 
 void CCtcLossNaiveLayer::Reshape()
@@ -431,13 +434,7 @@ void CCtcLossNaiveLayer::Reshape()
 	logBetaPrev2 = logBetaWindow->GetClone();
 	lossGradient = 0;
 	lossGradientWindow = 0;
-
-	CFloatHandleStackVar tempLossDivider( MathEngine() );
-	tempLossDivider.SetValue( 1.f / inputDescs[I_Result].BatchWidth() );
-	MathEngine().VectorEltwiseMultiply( tempLossDivider.GetHandle(), lossWeight->GetData(),
-		lossGradientDivider->GetData(), 1 );
-	// Change the sign before the lossDivider:
-	MathEngine().VectorNeg( tempLossDivider.GetHandle(), lossDivider->GetData(), 1 );
+	lossDivider = ( 1.f / inputDescs[I_Result].BatchWidth() );
 }
 
 // Calculates the logarithms of prefix probability logAlpha on a forward pass
@@ -454,7 +451,7 @@ void CCtcLossNaiveLayer::calculateForwardVariables()
 	MathEngine().VectorFill(logAlphaWindow->GetObjectData( 0 ), 0.f, 
 		logAlphaWindow->GetObjectSize() * 2);
 	MathEngine().VectorFill(
-		logAlphaWindow->GetObjectData( 2 ), logZero,
+		logAlphaWindow->GetObjectData( 2 ), naiveLossLogZero,
 		logAlphaWindow->GetObjectSize() * (U - 2) );
 	// Add the logarithm of probability of label recognition
 	MathEngine().AddMatrixElementsToVector(resultLogProbWindow->GetData(), 
@@ -500,11 +497,6 @@ void CCtcLossNaiveLayer::calculateBackwardVariables( CDnnBlob* labelsLengths, CD
 {
 	NeoAssert(paddedLabels->GetBatchLength() == logBeta->GetBatchWidth());
 
-	CFloatHandleStackVar logZeroVal( MathEngine() );
-	logZeroVal.SetValue( logZero );
-	CFloatHandleStackVar logOneNegVal( MathEngine() );
-	logOneNegVal.SetValue( logOneNeg );
-	
 	const int T = logBeta->GetBatchLength();
 	const int U = logBeta->GetBatchWidth();
 	const int batchWidth = logBeta->GetObjectSize();
@@ -517,12 +509,10 @@ void CCtcLossNaiveLayer::calculateBackwardVariables( CDnnBlob* labelsLengths, CD
 	// The sequence may end either with a space or with the actual last element
 	// Therefore logBetaWindow is filled with logZero everywhere except two positions per sample
 	// which should be filled with zero
-	MathEngine().VectorFill(
-		logBetaWindow->GetData(), logZero, logBetaWindow->GetDataSize() );
+	MathEngine().VectorFill( logBetaWindow->GetData(), naiveLossLogZero, logBetaWindow->GetDataSize() );
 	if( labelsLengths == 0 ) {
 		// Fixed length. Fill the two last positions with zero
-		MathEngine().VectorFill(
-			logBetaWindow->GetObjectData( U - 2 ), 0.f, 2 * batchWidth );
+		MathEngine().VectorFill( logBetaWindow->GetObjectData( U - 2 ), 0.f, 2 * batchWidth );
 	} else {
 		// Variable length. Fill the (2 * labelsLengths[j]) and (2 * labelsLengths[j] - 1) positions with zero
 		MathEngine().VectorAdd(
@@ -533,7 +523,7 @@ void CCtcLossNaiveLayer::calculateBackwardVariables( CDnnBlob* labelsLengths, CD
 			endOfLabelPosition->GetData<int>(), endOfLabelSample->GetData<int>(),
 			batchOfZeros->GetData(), batchWidth );
 		MathEngine().VectorAddValue( endOfLabelPosition->GetData<int>(), endOfLabelPosition->GetData<int>(),
-			batchWidth, minusOneInt->GetData<int>() );
+			batchWidth, -1 );
 		if( inputsLengths != 0 ) {
 			CArray<int> buffer;
 			buffer.SetSize( batchWidth );
@@ -594,7 +584,7 @@ void CCtcLossNaiveLayer::calculateGradient(CFloatHandle totalLogProb)
 // See Alex Graves "Supervised Sequence Labelling with Recurrent Neural Networks", 
 // chapter 7.4.1
 	for(int t = 0; t < T; t++) {
-		probSum->Fill(logZero);
+		probSum->Fill( naiveLossLogZero );
 		resultProbWindow->SetParentPos(t);
 		logAlphaWindow->SetParentPos(t);
 		logBetaWindow->SetParentPos(t);
@@ -630,8 +620,6 @@ void CCtcLossNaiveLayer::calculateGradient(CFloatHandle totalLogProb)
 // Calculates the space-skipping mask. Formula: mask[i] = log(I{i < len(paddedLabel) - 2} * I{paddedLabel[i] != paddedLabel[i+2]})
 void CCtcLossNaiveLayer::calculateBlankSkipMasks()
 {
-	CFloatHandleStackVar logZeroVal( MathEngine() );
-	MathEngine().DataExchangeTyped<float>( logZeroVal, &logZero, 1 );
 	// The two last elements are equal to logZero
 	MathEngine().VectorFill( blankSkipMask->GetObjectData( paddedLabels->GetBatchLength() - 2 ), 1.0f, 
 		blankSkipMask->GetObjectSize() * 2 );
@@ -640,7 +628,7 @@ void CCtcLossNaiveLayer::calculateBlankSkipMasks()
 		paddedLabels->GetObjectData<int>( 2 * paddedLabels->GetBatchWidth() ), blankSkipMask->GetData(),
 		effectiveMaskSize  );
 	MathEngine().VectorMultiply( blankSkipMask->GetData(), blankSkipMask->GetData(),
-		blankSkipMask->GetDataSize(), logZeroVal );
+		blankSkipMask->GetDataSize(), naiveLossLogZero );
 }
 
 // Fills the sequence ends (the elements after inputLengths[i]) in targetBlob with the paddingBlob values
@@ -708,8 +696,8 @@ void CCtcLossNaiveLayer::RunOnce()
 		resultLogProb->GetDataSize());
 
 	// Fill the ends with blanks
-	paddingResultValue->Fill( logZero );
-	paddingResultValue->GetData().SetValueAt( blankLabel, logOneNeg );
+	paddingResultValue->Fill( naiveLossLogZero );
+	paddingResultValue->GetData().SetValueAt( blankLabel, naiveLossLogOneNeg );
 	applyInputLengthsPadding( inputLengths, paddingResultValue, resultLogProb, resultLogProbWindow );
 
 	// Calculate the logarithm of prefix probability with a forward pass
@@ -732,9 +720,8 @@ void CCtcLossNaiveLayer::RunOnce()
 	// Take weights into account
 	MathEngine().VectorDotProduct(weights->GetData(), totalLogProb, batchWidth,
 		loss->GetData());
-	// lossDivider is negative, so loss = -totalLogProb
-	MathEngine().VectorMultiply(loss->GetData(), loss->GetData(), 1,
-		lossDivider->GetData());
+	// lossDivider is negative multiplied, so loss = -totalLogProb
+	MathEngine().VectorNegMultiply( loss->GetData(), loss->GetData(), 1, lossDivider );
 
 	// Calculate the loss function gradient
 	if(IsBackwardPerformed()) {
@@ -744,21 +731,22 @@ void CCtcLossNaiveLayer::RunOnce()
 
 void CCtcLossNaiveLayer::BackwardOnce()
 {
+	// Averaging factor for calculating the loss gradient, taking lossWeight into account
+	const float lossGradientDivider = lossDivider * lossWeight;
 	// Take weights into account
 	MathEngine().Multiply1DiagMatrixByMatrix( lossGradient->GetBatchLength(), weights->GetData(),
 		lossGradient->GetBatchWidth(), lossGradient->GetData(), lossGradient->GetObjectSize(),
 		inputDiffBlobs[I_Result]->GetData(), inputDiffBlobs[I_Result]->GetDataSize() );
 	MathEngine().VectorMultiply(inputDiffBlobs[I_Result]->GetData(), 
-		inputDiffBlobs[I_Result]->GetData(), inputDiffBlobs[I_Result]->GetDataSize(), 
-		lossGradientDivider->GetData());
+		inputDiffBlobs[I_Result]->GetData(), inputDiffBlobs[I_Result]->GetDataSize(), lossGradientDivider);
 	// In case of "huge" gradients the system behavior may be incorrect,
 	// so cut these values down
 	MathEngine().VectorMinMax(inputDiffBlobs[I_Result]->GetData(), 
 		inputDiffBlobs[I_Result]->GetData(), inputDiffBlobs[I_Result]->GetDataSize(), 
-		minGradient->GetData(), maxGradient->GetData());
+		minGradient, maxGradient);
 }
 
-// ====================================================================================================================
+//---------------------------------------------------------------------------------------------------------------------
 
 class CDummyLearn : public CBaseLayer
 {
@@ -790,7 +778,7 @@ protected:
 	int BlobsForLearn() const override { return 0; }
 };
 
-// ====================================================================================================================
+//---------------------------------------------------------------------------------------------------------------------
 
 class CCtcTest : public CNeoMLTestFixture, public ::testing::WithParamInterface<CTestParams> {
 public:
@@ -798,12 +786,7 @@ public:
 	static void DeinitTestFixture() {}
 };
 
-} // namespace NeoMLTest
-
-// ====================================================================================================================
-
-using namespace NeoML;
-using namespace NeoMLTest;
+//---------------------------------------------------------------------------------------------------------------------
 
 static void normalizeData( int classCount, CArray<float>& data )
 {
@@ -866,15 +849,6 @@ static CPtr<CTC> buildDnn( int resultLen, int batchSize, int classCount, int lab
 	}
 
 	return ctc;
-}
-
-namespace FObj {
-	inline void swap( FObj::CArray<int>*& a, FObj::CArray<int>*& b ) {
-		std::swap( a, b );
-	}
-	inline void swap( FObj::CArray<float>*& a, FObj::CArray < float >*& b ) {
-		std::swap( a, b );
-	}
 }
 
 static void ctcTestImpl( const CTestParams& params, int seed )
@@ -943,6 +917,10 @@ static void ctcTestImpl( const CTestParams& params, int seed )
 	EXPECT_TRUE( CompareBlobs( *naiveLoss->GetLastGradient(), *actualLoss->GetLastGradient(), 1e-4f ) );
 	EXPECT_TRUE( CompareBlobs( *naiveLearn->ActualDiff, *actualLearn->ActualDiff, 1e-4f ) );
 }
+
+} // namespace NeoMLTest
+
+//---------------------------------------------------------------------------------------------------------------------
 
 TEST_P( CCtcTest, Random )
 {
