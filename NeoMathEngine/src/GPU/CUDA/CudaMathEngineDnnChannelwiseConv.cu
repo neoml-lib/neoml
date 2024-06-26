@@ -157,9 +157,7 @@ void CCudaMathEngine::ChannelwiseWith1x1( const CBlobDesc& inputDesc, const CBlo
 	if( impl.activation == AF_HSwish ) {
 		VectorHSwish( channelwiseOutput, channelwiseOutput, channelwiseOutput.Size() );
 	} else if( impl.activation == AF_ReLU ) {
-		CFloatHandleStackVar reLUThreshold( *this );
-		reLUThreshold.GetHandle().SetValue( impl.reluParam );
-		VectorReLU( channelwiseOutput, channelwiseOutput, channelwiseOutput.Size(), reLUThreshold );
+		VectorReLU( channelwiseOutput, channelwiseOutput, channelwiseOutput.Size(), impl.reluParam );
 	}
 
 	if( impl.residual ) {
@@ -205,9 +203,7 @@ void CCudaMathEngine::MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobD
 	if( impl.expandActivation == AF_HSwish ) {
 		VectorHSwish( channelwiseInput, channelwiseInput, channelwiseInput.Size() );
 	} else if( impl.expandActivation == AF_ReLU ) {
-		CFloatHandleStackVar expandReLUThreshold( *this );
-		expandReLUThreshold.GetHandle().SetValue( impl.expandReluParam );
-		VectorReLU( channelwiseInput, channelwiseInput, channelwiseInput.Size(), expandReLUThreshold );
+		VectorReLU( channelwiseInput, channelwiseInput, channelwiseInput.Size(), impl.expandReluParam );
 	}
 
 	const auto* chFreeTerm = impl.channelwiseFreeTerm.IsNull() ? nullptr : &impl.channelwiseFreeTerm;
@@ -216,9 +212,7 @@ void CCudaMathEngine::MobileNetV2Block( const CBlobDesc& inputDesc, const CBlobD
 	if( impl.channelwiseActivation == AF_HSwish ) {
 		VectorHSwish( channelwiseOutput, channelwiseOutput, channelwiseOutput.Size() );
 	} else if( impl.channelwiseActivation == AF_ReLU ) {
-		CFloatHandleStackVar channelwiseReLUThreshold( *this );
-		channelwiseReLUThreshold.GetHandle().SetValue( impl.channelwiseReluParam );
-		VectorReLU( channelwiseOutput, channelwiseOutput, channelwiseOutput.Size(), channelwiseReLUThreshold );
+		VectorReLU( channelwiseOutput, channelwiseOutput, channelwiseOutput.Size(), impl.channelwiseReluParam );
 	}
 
 	if( impl.residual ) {
@@ -260,8 +254,7 @@ void CCudaMathEngine::MobileNetV3PreSEBlock( const CBlobDesc& inputDesc, const C
 	if( expandActivation == AF_HSwish ) {
 		VectorHSwish( channelwiseInput, channelwiseInput, channelwiseInput.Size() );
 	} else if( expandActivation == AF_ReLU ) {
-		CFloatHandleStackVar expandReLUThreshold( *this );
-		expandReLUThreshold.GetHandle().SetValue( expandReluParam );
+		const float expandReLUThreshold( expandReluParam );
 		VectorReLU( channelwiseInput, channelwiseInput, channelwiseInput.Size(), expandReLUThreshold );
 	}
 
@@ -270,8 +263,7 @@ void CCudaMathEngine::MobileNetV3PreSEBlock( const CBlobDesc& inputDesc, const C
 	if( channelwiseActivation == AF_HSwish ) {
 		VectorHSwish( outputHandle, outputHandle, desc.Result.BlobSize() );
 	} else if( channelwiseActivation == AF_ReLU ) {
-		CFloatHandleStackVar channelwiseReLUThreshold( *this );
-		channelwiseReLUThreshold.GetHandle().SetValue( channelwiseReluParam );
+		const float channelwiseReLUThreshold( channelwiseReluParam );
 		VectorReLU( outputHandle, outputHandle, desc.Result.BlobSize(), channelwiseReLUThreshold);
 	}
 }
@@ -299,8 +291,7 @@ void CCudaMathEngine::MobileNetV3PostSEBlock( const CBlobDesc& channelwiseOutput
 	if( activation == AF_HSwish ) {
 		VectorHSwish( squeezedAndExcited, squeezedAndExcited, inputSize );
 	} else if( activation == AF_ReLU ) {
-		CFloatHandleStackVar reLUThreshold( *this );
-		reLUThreshold.GetHandle().SetValue( reluParam );
+		const float reLUThreshold( reluParam );
 		VectorReLU( squeezedAndExcited, squeezedAndExcited, inputSize, reLUThreshold );
 	}
 

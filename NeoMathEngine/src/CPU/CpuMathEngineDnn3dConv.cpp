@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -54,7 +54,7 @@ void CCpuMathEngine::blob3dConvolution1x1x1( const CBlobDesc& source, const CBlo
 		multiplyMatrixByTransposedMatrixAndAdd( /*first*/sourceData, firstHeight, firstWidth, firstWidth,
 			/*second*/filterData, secondHeight, secondWidth, /*result*/resultData, resultWidth );
 	} else {
-		CFloatHandleVar repackedHolder( mathEngine(), firstHeight * firstWidth );
+		CFloatHandleStackVar repackedHolder( mathEngine(), firstHeight * firstWidth );
 		float* const repackedData = GetRaw( repackedHolder.GetHandle() );
 		// Repack the input blob, removing the unused data
 		for( int out = 0; out < geomSize; ++out ) {
@@ -97,7 +97,7 @@ void CCpuMathEngine::blob3dConvolution1x1x1Backward( const CCommon3dConvolutionD
 		resultBlobHolderSize = resultBlob.BlobSize();
 	}
 
-	CFloatHandleVar resultBlobHolder( mathEngine(), resultBlobHolderSize );
+	CFloatHandleStackVar resultBlobHolder( mathEngine(), resultBlobHolderSize );
 
 	if( isRepackNeeded ) {
 		resultData = GetRaw( resultBlobHolder.GetHandle() );
@@ -172,7 +172,7 @@ void CCpuMathEngine::blob3dConvolution1x1x1LearnAdd( const CCommon3dConvolutionD
 		inputBlobHolderSize = inputBlob.BlobSize();	
 	}
 
-	CFloatHandleVar inputBlobHolder( mathEngine(), inputBlobHolderSize );
+	CFloatHandleStackVar inputBlobHolder( mathEngine(), inputBlobHolderSize );
 
 	if( isRepackNeeded ) {
 		inputBlobData = inputBlobHolder.GetHandle();
