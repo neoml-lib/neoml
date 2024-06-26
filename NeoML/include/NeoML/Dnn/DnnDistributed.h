@@ -92,10 +92,10 @@ public:
 
 private:
 	const bool isCpu;
-	IThreadPool* threadPool;
+	IThreadPool* const threadPool;
 	CArray<IMathEngine*> mathEngines;
-	CArray<CRandom*> rands;
-	CArray<CDnn*> cnns;
+	CPointerArray<CRandom> rands;
+	CPointerArray<CDnn> cnns;
 	CArray<int> batchSize;
 	bool isFirstRun = true;
 	CString errorMessage;
@@ -126,9 +126,9 @@ public:
 	void GetLastBlob( const CString& layerName, CObjectArray<CDnnBlob>& blobs ) const;
 
 private:
-	struct CParams {
+	struct CParams final {
 		IDistributedDataset* Data = nullptr;
-		CArray<CDnn*> Dnns;
+		CPointerArray<CDnn> Dnns;
 		CString ErrorMessage;
 	};
 
