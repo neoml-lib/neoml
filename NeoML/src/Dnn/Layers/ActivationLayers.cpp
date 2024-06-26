@@ -191,42 +191,20 @@ CActivationDesc LoadActivationDesc( CArchive& archive )
 
 //---------------------------------------------------------------------------------------------------
 
-CLinearLayer::CLinearLayer( IMathEngine& mathEngine ) :
-	CBaseInPlaceLayer( mathEngine, "CCnnLinearLayer" )
-{
-}
-
-void CLinearLayer::OnReshaped()
-{
-	if( inputDescs[0].GetDataType() == CT_Float ) {
-		if( vars == nullptr || vars->GetDataType() != CT_Float ) {
-			vars = CDnnBlob::CreateVector( MathEngine(), CT_Float, TP_Count );
-		}
-		vars->GetData().SetValueAt( TP_Multiplier, multiplier );
-		vars->GetData().SetValueAt( TP_FreeTerm, freeTerm );
-	} else {
-		if( vars == nullptr || vars->GetDataType() != CT_Int ) {
-			vars = CDnnBlob::CreateVector( MathEngine(), CT_Int, TP_Count );
-		}
-		vars->GetData<int>().SetValueAt( TP_Multiplier, static_cast<int>( multiplier ) );
-		vars->GetData<int>().SetValueAt( TP_FreeTerm, static_cast<int>( freeTerm ) );
-	}
-}
-
 template<class T>
 static void linearRunOnce( const CTypedMemoryHandle<const T>& input, T multiplier, T freeTerm, int dataSize,
-	const CDnnBlob& vars, const CTypedMemoryHandle<T>& output )
+	const CTypedMemoryHandle<T>& output )
 {
 	IMathEngine& mathEngine = *input.GetMathEngine();
 	CTypedMemoryHandle<const T> currInput = input;
 
 	if( multiplier != static_cast<T>( 1 ) ) {
-		mathEngine.VectorMultiply( currInput, output, dataSize, vars.GetData<const T>( { CLinearLayer::TP_Multiplier } ) );
+		mathEngine.VectorMultiply( currInput, output, dataSize, static_cast<T>( multiplier ) );
 		currInput = output;
 	}
 
 	if( freeTerm != static_cast<T>( 0 ) ) {
-		mathEngine.VectorAddValue( currInput, output, dataSize, vars.GetData<const T>( { CLinearLayer::TP_FreeTerm } ) );
+		mathEngine.VectorAddValue( currInput, output, dataSize, static_cast<T>( freeTerm ) );
 		currInput = output;
 	}
 
@@ -235,22 +213,15 @@ static void linearRunOnce( const CTypedMemoryHandle<const T>& input, T multiplie
 	}
 }
 
-CActivationDesc CLinearLayer::GetDesc() const
-{
-	CParam param{ GetMultiplier(), GetFreeTerm() };
-	return { AF_Linear, param };
-}
-
 void CLinearLayer::RunOnce()
 {
 	const int dataSize = outputBlobs[0]->GetDataSize();
-
 	if( inputBlobs[0]->GetDataType() == CT_Float ) {
 		linearRunOnce( inputBlobs[0]->GetData<const float>(), multiplier,
-			freeTerm, dataSize, *vars, outputBlobs[0]->GetData() );
+			freeTerm, dataSize, outputBlobs[0]->GetData() );
 	} else {
 		linearRunOnce( inputBlobs[0]->GetData<const int>(), static_cast<int>( multiplier ),
-			static_cast<int>( freeTerm ), dataSize, *vars, outputBlobs[0]->GetData<int>() );
+			static_cast<int>( freeTerm ), dataSize, outputBlobs[0]->GetData<int>() );
 	}
 }
 
@@ -258,32 +229,24 @@ void CLinearLayer::BackwardOnce()
 {
 	CConstFloatHandle outputDiffPtr = outputDiffBlobs[0]->GetData();
 	CFloatHandle inputDiffPtr = inputDiffBlobs[0]->GetData();
-	int dataSize = outputDiffBlobs[0]->GetDataSize();
+	const int dataSize = outputDiffBlobs[0]->GetDataSize();
 
 	if( multiplier != 1.f ) {
-		MathEngine().VectorMultiply( outputDiffPtr, inputDiffPtr, dataSize, vars->GetData( { TP_Multiplier } ) );
+		MathEngine().VectorMultiply( outputDiffPtr, inputDiffPtr, dataSize, multiplier );
 	} else if( outputDiffPtr != inputDiffPtr ) {
 		MathEngine().VectorCopy( inputDiffPtr, outputDiffPtr, dataSize );
 	}
 }
 
-static const int LinearLayerVersion = 2000;
+constexpr int linearLayerVersion = 2000;
 
 void CLinearLayer::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion( LinearLayerVersion, CDnn::ArchiveMinSupportedVersion );
+	archive.SerializeVersion( linearLayerVersion, CDnn::ArchiveMinSupportedVersion );
 	CBaseInPlaceLayer::Serialize( archive );
 
-	if( archive.IsStoring() ) {
-		archive << GetMultiplier() << GetFreeTerm();
-	} else if( archive.IsLoading() ) {
-		float temp, tempFreeTerm;
-		archive >> temp >> tempFreeTerm;
-		SetMultiplier(temp);
-		SetFreeTerm(tempFreeTerm);
-	} else {
-		NeoAssert( false );
-	}
+	archive.Serialize( multiplier );
+	archive.Serialize( freeTerm );
 }
 
 CLayerWrapper<CLinearLayer> Linear( float multiplier, float freeTerm )
@@ -296,46 +259,36 @@ CLayerWrapper<CLinearLayer> Linear( float multiplier, float freeTerm )
 
 //---------------------------------------------------------------------------------------------------
 
-CELULayer::CELULayer( IMathEngine& mathEngine ) :
-	CBaseInPlaceLayer( mathEngine, "CCnnELULayer" )
-{
-	paramBlobs.Add( CDnnBlob::CreateVector( mathEngine, CT_Float, 1 ) );
-	SetAlpha( DefaultAlpha );
-}
-
-static const int ELULayerVersion = 2000;
+constexpr int eluLayerVersion = 2001;
 
 void CELULayer::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion( ELULayerVersion, CDnn::ArchiveMinSupportedVersion );
+	const int version = archive.SerializeVersion( eluLayerVersion, CDnn::ArchiveMinSupportedVersion );
+
+	if( version < 2001 ) {
+		NeoAssert( archive.IsLoading() );
+		paramBlobs.Add( CDnnBlob::CreateVector( MathEngine(), CT_Float, 1 ) );
+	}
 	CBaseInPlaceLayer::Serialize( archive );
-}
 
-float CELULayer::GetAlpha() const
-{
-	return paramBlobs[0]->GetData().GetValue();
-}
-
-void CELULayer::SetAlpha( float alpha )
-{
-	paramBlobs[0]->GetData().SetValue( alpha );
-}
-
-CActivationDesc CELULayer::GetDesc() const
-{
-	return { AF_ELU, CParam{ GetAlpha() } };
+	if( version < 2001 ) {
+		SetAlpha( paramBlobs[0]->GetData().GetValue() );
+		paramBlobs.SetSize( 0 );
+	} else {
+		archive.Serialize( alpha );
+	}
 }
 
 void CELULayer::RunOnce()
 {
 	MathEngine().VectorELU( inputBlobs[0]->GetData(), outputBlobs[0]->GetData(),
-		outputBlobs[0]->GetDataSize(), paramBlobs[0]->GetData() );
+		outputBlobs[0]->GetDataSize(), alpha );
 }
 
 void CELULayer::BackwardOnce()
 {
 	MathEngine().VectorELUDiffOp( outputBlobs[0]->GetData(), outputDiffBlobs[0]->GetData(),
-		inputDiffBlobs[0]->GetData(), inputDiffBlobs[0]->GetDataSize(), paramBlobs[0]->GetData() );
+		inputDiffBlobs[0]->GetData(), inputDiffBlobs[0]->GetDataSize(), alpha );
 }
 
 CLayerWrapper<CELULayer> Elu( float alpha )
@@ -347,49 +300,29 @@ CLayerWrapper<CELULayer> Elu( float alpha )
 
 //---------------------------------------------------------------------------------------------------
 
-static const int ReLULayerVersion = 2000;
-
-CReLULayer::CReLULayer( IMathEngine& mathEngine ) :
-	CBaseInPlaceLayer( mathEngine, "CCnnReLULayer" ),
-	upperThreshold( CDnnBlob::CreateVector( mathEngine, CT_Float, 1 ) )
-{
-	SetUpperThreshold( DefaultUpperThreshold );
-}
+constexpr int reluLayerVersion = 2000;
 
 void CReLULayer::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion( ReLULayerVersion, CDnn::ArchiveMinSupportedVersion );
+	archive.SerializeVersion( reluLayerVersion, CDnn::ArchiveMinSupportedVersion );
 	CBaseInPlaceLayer::Serialize( archive );
 
-	if( archive.IsStoring() ) {
-		archive << GetUpperThreshold();
-	} else if( archive.IsLoading() ) {
-		float threshold = 0;
-		archive >> threshold;
-		SetUpperThreshold(threshold);
-	} else {
-		NeoAssert( false );
-	}
-}
-
-CActivationDesc CReLULayer::GetDesc() const
-{
-	return { AF_ReLU, CParam{ GetUpperThreshold() } };
+	archive.Serialize( upperThreshold );
 }
 
 void CReLULayer::RunOnce()
 {
 	CConstFloatHandle inputPtr = inputBlobs[0]->GetData();
 	CFloatHandle outputPtr = outputBlobs[0]->GetData();
-	int dataSize = outputBlobs[0]->GetDataSize();
+	const int dataSize = outputBlobs[0]->GetDataSize();
 	
-	MathEngine().VectorReLU( inputPtr, outputPtr, dataSize, upperThreshold->GetData() );
+	MathEngine().VectorReLU( inputPtr, outputPtr, dataSize, upperThreshold );
 }
 
 void CReLULayer::BackwardOnce()
 {
 	MathEngine().VectorReLUDiffOp( outputBlobs[0]->GetData(), outputDiffBlobs[0]->GetData(),
-		inputDiffBlobs[0]->GetData(), inputDiffBlobs[0]->GetDataSize(), upperThreshold->GetData() );
+		inputDiffBlobs[0]->GetData(), inputDiffBlobs[0]->GetDataSize(), upperThreshold );
 }
 
 CLayerWrapper<CReLULayer> Relu( float threshold )
@@ -401,42 +334,31 @@ CLayerWrapper<CReLULayer> Relu( float threshold )
 
 //---------------------------------------------------------------------------------------------------
 
-static const int LeakyReLULayerVersion = 2000;
+constexpr int leakyReluLayerVersion = 2001;
 
 void CLeakyReLULayer::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion( LeakyReLULayerVersion, CDnn::ArchiveMinSupportedVersion );
+	const int version = archive.SerializeVersion( leakyReluLayerVersion, CDnn::ArchiveMinSupportedVersion );
+
+	if( version < 2001 ) {
+		NeoAssert( archive.IsLoading() );
+		paramBlobs.Add( CDnnBlob::CreateVector( MathEngine(), CT_Float, 1 ) );
+	}
 	CBaseInPlaceLayer::Serialize( archive );
-}
 
-float CLeakyReLULayer::GetAlpha() const
-{
-	return paramBlobs[0]->GetData().GetValue();
-}
-
-void CLeakyReLULayer::SetAlpha( float alpha )
-{
-	paramBlobs[0]->GetData().SetValue( alpha );
-}
-
-CLeakyReLULayer::CLeakyReLULayer( IMathEngine& mathEngine ) :
-	CBaseInPlaceLayer( mathEngine, "CCnnLeakyReLULayer" )
-{
-	paramBlobs.Add( CDnnBlob::CreateVector( mathEngine, CT_Float, 1 ) );
-	SetAlpha( DefaultAlpha );
-}
-
-CActivationDesc CLeakyReLULayer::GetDesc() const
-{
-	return { AF_LeakyReLU, CParam{ GetAlpha() } };
+	if( version < 2001 ) {
+		SetAlpha( paramBlobs[0]->GetData().GetValue() );
+		paramBlobs.SetSize( 0 );
+	} else {
+		archive.Serialize( alpha );
+	}
 }
 
 void CLeakyReLULayer::RunOnce()
 {
 	CConstFloatHandle inputPtr = inputBlobs[0]->GetData();
-	CConstFloatHandle alpha = paramBlobs[0]->GetData();
 	CFloatHandle outputPtr = outputBlobs[0]->GetData();
-	int dataSize = outputBlobs[0]->GetDataSize();
+	const int dataSize = outputBlobs[0]->GetDataSize();
 
 	MathEngine().VectorLeakyReLU( inputPtr, outputPtr, dataSize, alpha );
 }
@@ -444,7 +366,7 @@ void CLeakyReLULayer::RunOnce()
 void CLeakyReLULayer::BackwardOnce()
 {
 	MathEngine().VectorLeakyReLUDiffOp( outputBlobs[0]->GetData(), outputDiffBlobs[0]->GetData(),
-		inputDiffBlobs[0]->GetData(), inputDiffBlobs[0]->GetDataSize(), paramBlobs[0]->GetData() );
+		inputDiffBlobs[0]->GetData(), inputDiffBlobs[0]->GetDataSize(), alpha );
 }
 
 CLayerWrapper<CLeakyReLULayer> LeakyRelu( float alpha )
@@ -456,17 +378,12 @@ CLayerWrapper<CLeakyReLULayer> LeakyRelu( float alpha )
 
 //---------------------------------------------------------------------------------------------------
 
-static const int HSwishLayerVersion = 2000;
+constexpr int hswishLayerVersion = 2000;
 
 void CHSwishLayer::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion( HSwishLayerVersion, CDnn::ArchiveMinSupportedVersion );
+	archive.SerializeVersion( hswishLayerVersion, CDnn::ArchiveMinSupportedVersion );
 	CBaseLayer::Serialize( archive );
-}
-
-CActivationDesc CHSwishLayer::GetDesc() const
-{
-	return { AF_HSwish };
 }
 
 void CHSwishLayer::Reshape()
@@ -498,17 +415,12 @@ CLayerWrapper<CHSwishLayer> HSwish()
 
 //---------------------------------------------------------------------------------------------------
 
-static const int AbsLayerVersion = 2000;
+constexpr int absLayerVersion = 2000;
 
 void CAbsLayer::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion( AbsLayerVersion, CDnn::ArchiveMinSupportedVersion );
+	archive.SerializeVersion( absLayerVersion, CDnn::ArchiveMinSupportedVersion );
 	CBaseLayer::Serialize( archive );
-}
-
-CActivationDesc CAbsLayer::GetDesc() const
-{
-	return { AF_Abs };
 }
 
 void CAbsLayer::Reshape()
@@ -540,17 +452,12 @@ CLayerWrapper<CAbsLayer> Abs()
 
 //---------------------------------------------------------------------------------------------------
 
-static const int SigmoidLayerVersion = 2000;
+constexpr int sigmoidLayerVersion = 2000;
 
 void CSigmoidLayer::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion( SigmoidLayerVersion, CDnn::ArchiveMinSupportedVersion );
+	archive.SerializeVersion( sigmoidLayerVersion, CDnn::ArchiveMinSupportedVersion );
 	CBaseInPlaceLayer::Serialize( archive );
-}
-
-CActivationDesc CSigmoidLayer::GetDesc() const
-{
-	return { AF_Sigmoid };
 }
 
 void CSigmoidLayer::RunOnce()
@@ -571,17 +478,12 @@ CLayerWrapper<CSigmoidLayer> Sigmoid()
 
 //---------------------------------------------------------------------------------------------------
 
-static const int TanhLayerVersion = 2000;
+constexpr int tanhLayerVersion = 2000;
 
 void CTanhLayer::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion( TanhLayerVersion, CDnn::ArchiveMinSupportedVersion );
+	archive.SerializeVersion( tanhLayerVersion, CDnn::ArchiveMinSupportedVersion );
 	CBaseInPlaceLayer::Serialize( archive );
-}
-
-CActivationDesc CTanhLayer::GetDesc() const
-{
-	return { AF_Tanh };
 }
 
 void CTanhLayer::RunOnce()
@@ -602,17 +504,12 @@ CLayerWrapper<CTanhLayer> Tanh()
 
 //---------------------------------------------------------------------------------------------------
 
-static const int HardTanhLayerVersion = 2000;
+constexpr int hardTanhLayerVersion = 2000;
 
 void CHardTanhLayer::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion( HardTanhLayerVersion, CDnn::ArchiveMinSupportedVersion );
+	archive.SerializeVersion( hardTanhLayerVersion, CDnn::ArchiveMinSupportedVersion );
 	CBaseInPlaceLayer::Serialize( archive );
-}
-
-CActivationDesc CHardTanhLayer::GetDesc() const
-{
-	return { AF_HardTanh };
 }
 
 void CHardTanhLayer::RunOnce()
@@ -633,46 +530,43 @@ CLayerWrapper<CHardTanhLayer> HardTanh()
 
 //---------------------------------------------------------------------------------------------------
 
-static const int HardSigmoidLayerVersion = 2001;
-
-void CHardSigmoidLayer::setDefaultParamBlobs( IMathEngine& mathEngine )
-{
-	paramBlobs.Add( CDnnBlob::CreateVector( mathEngine, CT_Float, 1 ) );
-	SetSlope( DefaultSlope );
-	paramBlobs.Add( CDnnBlob::CreateVector( mathEngine, CT_Float, 1 ) );
-	SetBias( DefaultBias );
-}
+constexpr int HardSigmoidLayerVersion = 2002;
 
 void CHardSigmoidLayer::Serialize( CArchive& archive )
 {
 	const int version = archive.SerializeVersion( HardSigmoidLayerVersion, CDnn::ArchiveMinSupportedVersion );
+
+	if( version == 2001 ) {
+		NeoAssert( archive.IsLoading() );
+		paramBlobs.Add( CDnnBlob::CreateVector( MathEngine(), CT_Float, 1 ) );
+		paramBlobs.Add( CDnnBlob::CreateVector( MathEngine(), CT_Float, 1 ) );
+	}
 	CBaseInPlaceLayer::Serialize( archive );
 
-	if( version <= 2000 && archive.IsLoading() ) {
-		setDefaultParamBlobs( MathEngine() );
+	if( version >= 2002 ) {
+		archive.Serialize( slope );
+		archive.Serialize( bias );
+	} else if( version == 2001 ) {
+		SetSlope( paramBlobs[0]->GetData().GetValue() );
+		SetBias( paramBlobs[1]->GetData().GetValue() );
+		paramBlobs.SetSize( 0 );
+	} else {
+		NeoAssert( archive.IsLoading() );
+		SetSlope( CParam::DefaultSlope );
+		SetBias( CParam::DefaultBias );
 	}
-}
-
-CHardSigmoidLayer::CHardSigmoidLayer( IMathEngine& mathEngine ) : CBaseInPlaceLayer( mathEngine, "CCnnHardSigmoidLayer" )
-{
-	setDefaultParamBlobs( mathEngine );
-}
-
-CActivationDesc CHardSigmoidLayer::GetDesc() const
-{
-	return { AF_HardSigmoid, CParam{ GetSlope(), GetBias() } };
 }
 
 void CHardSigmoidLayer::RunOnce()
 {
 	MathEngine().VectorHardSigmoid( inputBlobs[0]->GetData(), outputBlobs[0]->GetData(), outputBlobs[0]->GetDataSize(),
-		paramBlobs[0]->GetData(), paramBlobs[1]->GetData() );
+		slope, bias );
 }
 
 void CHardSigmoidLayer::BackwardOnce()
 {
 	MathEngine().VectorHardSigmoidDiffOp( outputBlobs[0]->GetData(), outputDiffBlobs[0]->GetData(),
-		inputDiffBlobs[0]->GetData(), inputDiffBlobs[0]->GetDataSize(), paramBlobs[0]->GetData(), paramBlobs[1]->GetData() );
+		inputDiffBlobs[0]->GetData(), inputDiffBlobs[0]->GetDataSize(), slope, bias );
 }
 
 CLayerWrapper<CHardSigmoidLayer> HardSigmoid( float slope, float bias )
@@ -685,23 +579,13 @@ CLayerWrapper<CHardSigmoidLayer> HardSigmoid( float slope, float bias )
 
 //---------------------------------------------------------------------------------------------------
 
-static const int PowerLayerVersion = 2000;
-
-CPowerLayer::CPowerLayer( IMathEngine& mathEngine ) :
-	CBaseInPlaceLayer( mathEngine, "CCnnPowerLayer" )
-{
-}
+constexpr int powerLayerVersion = 2000;
 
 void CPowerLayer::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion( PowerLayerVersion, CDnn::ArchiveMinSupportedVersion );
+	archive.SerializeVersion( powerLayerVersion, CDnn::ArchiveMinSupportedVersion );
 	CBaseInPlaceLayer::Serialize( archive );
 	archive.Serialize( exponent );
-}
-
-CActivationDesc CPowerLayer::GetDesc() const
-{
-	return { AF_Power, CParam{ exponent } };
 }
 
 void CPowerLayer::RunOnce()
@@ -724,17 +608,12 @@ CLayerWrapper<CPowerLayer> Power( float exponent )
 
 //---------------------------------------------------------------------------------------------------
 
-static const int ExpLayerVersion = 0;
+constexpr int expLayerVersion = 0;
 
 void CExpLayer::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion( ExpLayerVersion );
+	archive.SerializeVersion( expLayerVersion );
 	CBaseInPlaceLayer::Serialize( archive );
-}
-
-CActivationDesc CExpLayer::GetDesc() const
-{
-	return { AF_Exp };
 }
 
 void CExpLayer::RunOnce()
@@ -755,17 +634,12 @@ CLayerWrapper<CExpLayer> Exp()
 
 //---------------------------------------------------------------------------------------------------
 
-static const int LogLayerVersion = 0;
+constexpr int logLayerVersion = 0;
 
 void CLogLayer::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion( LogLayerVersion );
+	archive.SerializeVersion( logLayerVersion );
 	CBaseInPlaceLayer::Serialize( archive );
-}
-
-CActivationDesc CLogLayer::GetDesc() const
-{
-	return { AF_Log };
 }
 
 void CLogLayer::RunOnce()
@@ -792,24 +666,12 @@ CLayerWrapper<CLogLayer> Log()
 
 //---------------------------------------------------------------------------------------------------
 
-CErfLayer::CErfLayer( IMathEngine& mathEngine ) :
-	CBaseLayer( mathEngine, "CErfLayer", false ),
-	mult( CDnnBlob::CreateVector( mathEngine, CT_Float, 1 ) )
-{
-	mult->GetData().SetValue( 1.1283791671f ); // 2 / sqrt( pi )
-}
-
-static const int ErfLayerVersion = 0;
+constexpr int erfLayerVersion = 0;
 
 void CErfLayer::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion( ErfLayerVersion );
+	archive.SerializeVersion( erfLayerVersion );
 	CBaseLayer::Serialize( archive );
-}
-
-CActivationDesc CErfLayer::GetDesc() const
-{
-	return { AF_Erf };
 }
 
 void CErfLayer::Reshape()
@@ -831,7 +693,7 @@ void CErfLayer::BackwardOnce()
 	CFloatHandle inputDiff = inputDiffBlobs[0]->GetData();
 	MathEngine().VectorNegMultiply( inputBlobs[0]->GetData(), inputBlobs[0]->GetData(), dataSize, inputDiff );
 	MathEngine().VectorExp( inputDiff, inputDiff, dataSize );
-	MathEngine().VectorMultiply( inputDiff, inputDiff, dataSize, mult->GetData() );
+	MathEngine().VectorMultiply( inputDiff, inputDiff, dataSize, /*2/sqrt(pi)*/1.1283791671f );
 	MathEngine().VectorEltwiseMultiply( inputDiff, outputDiffBlobs[0]->GetData(), inputDiff, dataSize );
 }
 
