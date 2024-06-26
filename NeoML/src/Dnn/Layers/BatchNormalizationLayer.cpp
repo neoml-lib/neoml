@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,25 +22,13 @@ limitations under the License.
 namespace NeoML {
 
 // The minimum batch size for correct operation of the algorithm
-static const int MinBatchSize = 8;
+static constexpr int batchNormMinBatchSize = 8;
 // A small value to be added to the variance to avoid zero
-static const float VarianceEpsilon = 1e-12f;
+static constexpr float batchNormVarianceEpsilon = 1e-12f;
 
 CBatchNormalizationLayer::CBatchNormalizationLayer( IMathEngine& mathEngine ) :
-	CBaseLayer( mathEngine, "CCnnBatchNormalizationLayer", true ),
-	isChannelBased( true ),
-	isZeroFreeTerm( false ),
-	slowConvergenceRate( CDnnBlob::CreateVector( mathEngine, CT_Float, 1 ) ),
-	varianceEpsilon( CDnnBlob::CreateVector( mathEngine, CT_Float, 1 ) ),
-	fullBatchInv( CDnnBlob::CreateVector( mathEngine, CT_Float, 1 ) ),
-	varianceNorm( CDnnBlob::CreateVector( mathEngine, CT_Float, 1 ) ),
-	residual( CDnnBlob::CreateVector( mathEngine, CT_Float, 1 ) ),
-	varianceMult( CDnnBlob::CreateVector( mathEngine, CT_Float, 1 ) ),
-	useFinalParamsForInitialization( false ),
-	isFinalParamDirty( false )
+	CBaseLayer( mathEngine, "CCnnBatchNormalizationLayer", /*isLearnable*/true )
 {
-	SetSlowConvergenceRate(0.01f);
-	varianceEpsilon->GetData().SetValue(VarianceEpsilon);
 	paramBlobs.SetSize(1);
 	SetBaseL1RegularizationMult(0); // by default, no regularization for batch normalization layer
 	SetBaseL2RegularizationMult(0);
@@ -89,15 +77,13 @@ void CBatchNormalizationLayer::initializeFromFinalParams()
 {
 	const int paramSize = finalParams->GetObjectSize();
 
-	CPtr<CDnnBlob> params = finalParams;
-
-	CConstFloatHandle finalBeta = params->GetObjectData( PN_Beta );
-	CConstFloatHandle finalGamma = params->GetObjectData( PN_Gamma );
+	CConstFloatHandle finalBeta = finalParams->GetObjectData( PN_Beta );
+	CConstFloatHandle finalGamma = finalParams->GetObjectData( PN_Gamma );
 
 	CFloatHandle slowAverage = internalParams->GetObjectData( IPN_SlowAverage );
 	CFloatHandle slowVariance = internalParams->GetObjectData( IPN_SlowVariance );
 	CFloatHandle gamma = paramBlobs[0]->GetObjectData( PN_Gamma );
-	CFloatHandle beta = paramBlobs[0]->GetObjectData(  PN_Beta );
+	CFloatHandle beta = paramBlobs[0]->GetObjectData( PN_Beta );
 
 	CPtr<CDnnBlob> ones = CDnnBlob::CreateVector( MathEngine(), CT_Float, paramSize );
 	ones->Fill( 1.f );
@@ -130,7 +116,7 @@ void CBatchNormalizationLayer::getFullBatchAndObjectSize(int& fullBatchSize, int
 void CBatchNormalizationLayer::SetSlowConvergenceRate(float rate)
 {
 	NeoAssert(0 < rate && rate <= 1);
-	slowConvergenceRate->GetData().SetValue( rate );
+	slowConvergenceRate = rate;
 	ForceReshape();
 }
 
@@ -166,14 +152,11 @@ void CBatchNormalizationLayer::Reshape()
 			"Object data size from params must be equal to actual object size" );
 	}
 
-	fullBatchInv->GetData().SetValue(1.f / fullBatchSize);
-	float varianceNormValue  = (fullBatchSize > 1) ? (float)fullBatchSize / (fullBatchSize - 1) : 0;
-	varianceNorm->GetData().SetValue(varianceNormValue);
-	residual->GetData().SetValue(1);
-	MathEngine().VectorSub(residual->GetData(), slowConvergenceRate->GetData(), residual->GetData(), 1);
-	MathEngine().VectorEltwiseMultiply(slowConvergenceRate->GetData(), varianceNorm->GetData(), varianceMult->GetData(), 1);
+	fullBatchInv = (1.f / fullBatchSize);
+	varianceNorm = (fullBatchSize > 1) ? ( static_cast<float>( fullBatchSize ) / (fullBatchSize - 1) ) : 0;
+	residual = ( 1.f - slowConvergenceRate );
 	
-	normalized  = 0;
+	normalized = nullptr;
 	if( IsLearningPerformed() ) {
 		normalized = CDnnBlob::CreateBlob( MathEngine(), inputDescs[0] );
 		RegisterRuntimeBlob(normalized);
@@ -186,7 +169,7 @@ void CBatchNormalizationLayer::RunOnce()
 		int fullBatchSize;
 		int objectSize;
 		getFullBatchAndObjectSize(fullBatchSize, objectSize);
-		CheckLayerArchitecture( fullBatchSize >= MinBatchSize,
+		CheckLayerArchitecture( fullBatchSize >= batchNormMinBatchSize,
 			"in batch normalization fullBatchSize is more than MinBatchSize" );
 
 		runWhenLearning();
@@ -226,7 +209,7 @@ void CBatchNormalizationLayer::calculateAverage()
 	CConstFloatHandle input = inputBlobs[0]->GetData();
 
 	MathEngine().SumMatrixRows(1, averageData, input, fullBatchSize, objectSize);
-	MathEngine().VectorNegMultiply(averageData, averageData, objectSize, fullBatchInv->GetData());
+	MathEngine().VectorNegMultiply(averageData, averageData, objectSize, fullBatchInv);
 }
 
 void CBatchNormalizationLayer::calculateVariance()
@@ -247,8 +230,8 @@ void CBatchNormalizationLayer::calculateVariance()
 	MathEngine().SumMatrixRows(1, varianceData, temp, fullBatchSize, objectSize);
 
 	// Normalize the variance and calculate the inverse to the standard deviation
-	MathEngine().VectorMultiply(varianceData, varianceData, objectSize, fullBatchInv->GetData());
-	MathEngine().VectorAddValue(varianceData, invSqrtVarianceData, objectSize, varianceEpsilon->GetData());
+	MathEngine().VectorMultiply(varianceData, varianceData, objectSize, fullBatchInv);
+	MathEngine().VectorAddValue(varianceData, invSqrtVarianceData, objectSize, batchNormVarianceEpsilon);
 	MathEngine().VectorInv(invSqrtVarianceData, invSqrtVarianceData, objectSize);
 	MathEngine().VectorSqrt(invSqrtVarianceData, invSqrtVarianceData, objectSize);
 }
@@ -289,10 +272,10 @@ void CBatchNormalizationLayer::updateSlowParams(bool isInit)
 	}
 
 	// Average the variance and average values over the batches
-	MathEngine().VectorMultiply(slowAverage, slowAverage, objectSize, residual->GetData());
-	MathEngine().VectorMultiplyAndSub(slowAverage, average, slowAverage, objectSize, slowConvergenceRate->GetData());
-	MathEngine().VectorMultiply(slowVariance, slowVariance, objectSize, residual->GetData());
-	MathEngine().VectorMultiplyAndAdd(slowVariance, variance, slowVariance, objectSize, varianceMult->GetData());
+	MathEngine().VectorMultiply(slowAverage, slowAverage, objectSize, residual);
+	MathEngine().VectorMultiplyAndSub(slowAverage, average, slowAverage, objectSize, slowConvergenceRate);
+	MathEngine().VectorMultiply(slowVariance, slowVariance, objectSize, residual);
+	MathEngine().VectorMultiplyAndAdd(slowVariance, variance, slowVariance, objectSize, (slowConvergenceRate * varianceNorm));
 
 	isFinalParamDirty = true;
 }
@@ -318,7 +301,7 @@ void CBatchNormalizationLayer::updateFinalParams()
 	CFloatHandle finalGamma = finalParams->GetObjectData( PN_Gamma );
 	CFloatHandle finalBeta = finalParams->GetObjectData( PN_Beta );
 
-	MathEngine().VectorAddValue(slowVariance, finalBeta, objectSize, varianceEpsilon->GetData());
+	MathEngine().VectorAddValue(slowVariance, finalBeta, objectSize, batchNormVarianceEpsilon);
 	MathEngine().VectorSqrt(finalBeta, finalBeta, objectSize);
 	MathEngine().VectorEltwiseDivide(gamma, finalBeta, finalGamma, objectSize);
 
@@ -390,8 +373,8 @@ void CBatchNormalizationLayer::backwardWhenLearning()
 	MathEngine().SumMatrixRows(1, averageDiff, outputDiff, fullBatchSize, objectSize);
 	MathEngine().VectorEltwiseMultiply(outputDiff, normalizedData, temp, temp.Size());
 	MathEngine().SumMatrixRows(1, averageNormDiff, temp, fullBatchSize, objectSize);
-	MathEngine().VectorNegMultiply(averageDiff, averageDiff, objectSize, fullBatchInv->GetData());
-	MathEngine().VectorMultiply(averageNormDiff, averageNormDiff, objectSize, fullBatchInv->GetData());
+	MathEngine().VectorNegMultiply(averageDiff, averageDiff, objectSize, fullBatchInv);
+	MathEngine().VectorMultiply(averageNormDiff, averageNormDiff, objectSize, fullBatchInv);
 
 	// Calculate inputDiff
 	CFloatHandle inputDiff = inputDiffBlobs[0]->GetData();
