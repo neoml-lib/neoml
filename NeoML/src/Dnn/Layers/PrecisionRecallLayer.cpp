@@ -74,18 +74,13 @@ void CPrecisionRecallLayer::RunOnceAfterReset()
 	CFloatHandle binarizedLabel = tempVar.GetHandle() + vectorSize;
 	CFloatHandle binarizedCalculation = tempVar.GetHandle() + 2 * vectorSize;
 
-	CFloatHandleStackVar zero( MathEngine() );
-	zero.SetValue( 0.f );
-	CFloatHandleStackVar minusOne( MathEngine() );
-	minusOne.SetValue( -1.f );
-
 	{
 		CFloatHandle ones = tempVar.GetHandle(); // reduced memory usage for calculation
 		MathEngine().VectorFill( ones, 1.0f, vectorSize );
 		// Mask of the elements classified as +1 class (logits are positive)
-		MathEngine().VectorReLUDiff( calculatedLogit, ones, binarizedCalculation, vectorSize, zero );
+		MathEngine().VectorReLUDiff( calculatedLogit, ones, binarizedCalculation, vectorSize, 0.f );
 		// Mask of the elements whose ground truth is +1
-		MathEngine().VectorReLUDiff( groundtruth, ones, binarizedLabel, vectorSize, zero );
+		MathEngine().VectorReLUDiff( groundtruth, ones, binarizedLabel, vectorSize, 0.f );
 	}
 	{
 		// Mask of the correctly classified +1 objects
@@ -109,7 +104,7 @@ void CPrecisionRecallLayer::RunOnceAfterReset()
 		// At this moment true negative elements are marked as 0
 		// Inverting this vector
 		// {0, 1} -> {-1, 0}
-		MathEngine().VectorAddValue( trueNegative, trueNegative, vectorSize, minusOne );
+		MathEngine().VectorAddValue( trueNegative, trueNegative, vectorSize, -1.f );
 		// {-1, 0} -> {1, 0}
 		MathEngine().VectorAbs( trueNegative, trueNegative, vectorSize );
 		// Number of the correctly classified -1 objects
@@ -119,7 +114,7 @@ void CPrecisionRecallLayer::RunOnceAfterReset()
 	// At this moment -1 objects are marked as 0
 	// Inverting this vector
 	// {0, 1} -> {-1, 0}
-	MathEngine().VectorAddValue( binarizedLabel, binarizedLabel, vectorSize, minusOne );
+	MathEngine().VectorAddValue( binarizedLabel, binarizedLabel, vectorSize, -1.f );
 	// {-1, 0} -> {1, 0}
 	MathEngine().VectorAbs( binarizedLabel, binarizedLabel, vectorSize );
 	MathEngine().VectorSum( binarizedLabel, vectorSize, params->GetData( { TP_NegativesCount } ) );
