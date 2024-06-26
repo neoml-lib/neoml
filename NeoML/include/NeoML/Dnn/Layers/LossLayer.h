@@ -102,11 +102,12 @@ private:
 	CObjectArray<CDnnBlob> lossGradientBlobs;
 
 	template<class T>
-	float testImpl(int batchSize, CConstFloatHandle data, int vectorSize, CTypedMemoryHandle<const T> label, int labelSize,
-		CConstFloatHandle dataDelta);
+	float testImpl(int batchSize, CConstFloatHandle data, int vectorSize, CTypedMemoryHandle<const T> label,
+		int labelSize, CConstFloatHandle dataDelta);
 };
 
-///////////////////////////////////////////////////////////////////////////////////
+//---------------------------------------------------------------------------------------------------------------------
+
 // CCrossEntropyLossLayer implements a layer that calculates the loss value as cross-entropy between the result and the standard
 // By default, softmax function is additionally applied to the results
 /*
@@ -164,7 +165,7 @@ private:
 NEOML_API CLayerWrapper<CCrossEntropyLossLayer> CrossEntropyLoss(
 	bool isSoftmaxApplied = true, float lossWeight = 1.0f );
 
-///////////////////////////////////////////////////////////////////////////////////
+//---------------------------------------------------------------------------------------------------------------------
 
 // CBinaryCrossEntropyLossLayer is a binary variant of cross-entropy
 // It takes non-normalized probabilities of +1 class of size BatchSize x 1 as the first input (network response)
@@ -172,12 +173,13 @@ NEOML_API CLayerWrapper<CCrossEntropyLossLayer> CrossEntropyLoss(
 class NEOML_API CBinaryCrossEntropyLossLayer : public CLossLayer {
 	NEOML_DNN_LAYER( CBinaryCrossEntropyLossLayer )
 public:
-	explicit CBinaryCrossEntropyLossLayer( IMathEngine& mathEngine );
+	explicit CBinaryCrossEntropyLossLayer( IMathEngine& mathEngine ) :
+		CLossLayer( mathEngine, "CCnnBinaryCrossEntropyLossLayer" ) {}
 
 	// The weight for the positive side of the sigmoid
 	// Values over 1 increase recall, values below 1 increase precision
-	void SetPositiveWeight( float value );
-	float GetPositiveWeight() const;
+	void SetPositiveWeight( float value ) { positiveWeightMinusOne = value - 1; }
+	float GetPositiveWeight() const { return positiveWeightMinusOne + 1; }
 
 	void Serialize( CArchive& archive ) override;
 
@@ -189,7 +191,7 @@ protected:
 
 private:
 	// constants used for calculating the function value
-	float positiveWeightMinusOneValue;
+	float positiveWeightMinusOne = 0;
 
 	void calculateStableSigmoid( const CFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize ) const;
 };
@@ -197,7 +199,7 @@ private:
 NEOML_API CLayerWrapper<CBinaryCrossEntropyLossLayer> BinaryCrossEntropyLoss(
 	float positiveWeight = 1.0f, float lossWeight = 1.0f );
 
-///////////////////////////////////////////////////////////////////////////////////
+//---------------------------------------------------------------------------------------------------------------------
 
 // CEuclideanLossLayer implements a layer that calculates the loss function 
 // equal to the sum of squared differences between the result and the standard
@@ -218,7 +220,7 @@ protected:
 
 NEOML_API CLayerWrapper<CEuclideanLossLayer> EuclideanLoss( float lossWeight = 1.0f );
 
-///////////////////////////////////////////////////////////////////////////////////
+//---------------------------------------------------------------------------------------------------------------------
 
 // CL1LossLayer implements a layer that estimates the loss value as abs(result - standard)
 // The layer has two inputs: #0 - result, #1 - standard
@@ -237,7 +239,7 @@ protected:
 
 NEOML_API CLayerWrapper<CL1LossLayer> L1Loss( float lossWeight = 1.0f );
 
-///////////////////////////////////////////////////////////////////////////////////
+//---------------------------------------------------------------------------------------------------------------------
 
 // CHingeLossLayer implements a layer that estimates the loss value as max(0, 1 - result * standard)
 // The layer has two inputs: #0 - result, #1 - standard
@@ -257,7 +259,7 @@ protected:
 
 NEOML_API CLayerWrapper<CHingeLossLayer> HingeLoss( float lossWeight = 1.0f );
 
-///////////////////////////////////////////////////////////////////////////////////
+//---------------------------------------------------------------------------------------------------------------------
 
 // CSquaredHingeLossLayer implements a layer that estimates the loss value as max(0, 1 - result * standard)**2
 // The layer has two inputs: #0 - result, #1 - standard
@@ -276,7 +278,6 @@ protected:
 		int labelSize, CFloatHandle lossValue, CFloatHandle lossGradient) override;
 };
 
-NEOML_API CLayerWrapper<CSquaredHingeLossLayer> SquaredHingeLoss(
-	float lossWeight = 1.0f );
+NEOML_API CLayerWrapper<CSquaredHingeLossLayer> SquaredHingeLoss( float lossWeight = 1.0f );
 
 } // namespace NeoML
