@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -41,7 +41,7 @@ public:
 	// Convergence rate for slow statistics (gathered across several batches)
 	// This value may be from (0; 1] interval
 	// The smaller this value, the more statistics takes previous data into account (~ 1 / rate)
-	float GetSlowConvergenceRate() const { return slowConvergenceRate->GetData().GetValue(); }
+	float GetSlowConvergenceRate() const { return slowConvergenceRate; }
 	void SetSlowConvergenceRate(float rate);
 
 	// The final normalization parameters
@@ -69,18 +69,14 @@ protected:
 private:
 	bool isChannelBased;
 	bool isZeroFreeTerm; // indicates if the free term is zero
-	CPtr<CDnnBlob> slowConvergenceRate; // the convergence rate for slow statistics
+	float slowConvergenceRate; // the convergence rate for slow statistics
 	CPtr<CDnnBlob> finalParams; // the final linear operation parameters (gamma, beta)
 
 	// The variables used to calculate statistics
-	CPtr<CDnnBlob> varianceEpsilon;
-	CPtr<CDnnBlob> fullBatchInv;
-	CPtr<CDnnBlob> varianceNorm;
-	CPtr<CDnnBlob> residual;
-
+	float fullBatchInv;
+	float varianceNorm;
+	float residual;
 	CPtr<CDnnBlob> normalized;
-
-	CPtr<CDnnBlob> varianceMult;
 
 	// The training parameters names
 	enum TParamName {
