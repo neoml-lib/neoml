@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -30,20 +30,20 @@ public:
 	void Serialize( CArchive& archive ) override;
 
 	// Total loss weight
-	float GetLossWeight() const { return params->GetData().GetValueAt( P_LossWeight ); }
-	void SetLossWeight(float _lossWeight) { params->GetData().SetValueAt( P_LossWeight, _lossWeight ); }
+	float GetLossWeight() const { return lossWeight; }
+	void SetLossWeight(float _lossWeight) { lossWeight = _lossWeight; }
 
 	// Turns on and off the labels training mode
 	bool TrainLabels() const { return trainLabels; }
 	void SetTrainLabels( bool toSet );
 
 	// Retrieves the value of the loss function on the last step
-	float GetLastLoss() const { return params->GetData().GetValueAt( P_Loss ); }
+	float GetLastLoss() const { return lossParam->GetData().GetValue(); }
 
 	// The maximum loss gradient value
 	// The system may not function as intended with very large loss gradient,
 	// so we don't recommend changing this value
-	float GetMaxGradientValue() const { return params->GetData().GetValueAt( P_MaxGradient ); }
+	float GetMaxGradientValue() const { return maxGradient; }
 	void SetMaxGradientValue(float maxValue);
 
 	// Tests the layer performance on the basis of the given data and shift vector.
@@ -84,18 +84,13 @@ protected:
 		int labelSize, CFloatHandle lossValue, CFloatHandle lossGradient);
 
 private:
-	enum TParameter {
-		P_LossWeight = 0, // the weight for the loss function
-		P_Loss, // the loss value on the last step
-		P_LossDivider, // the averaging factor for calculating the loss value
-		P_LossGradientDivider, // the averaging factor for calculating the loss gradient (takes lossWeight into account)
-		P_MinGradient,
-		P_MaxGradient,
-		P_Count
-	};
+	float lossDivider; // the averaging factor for calculating the loss value
+	float lossWeight;  // the weight for the loss function
+	float minGradient;
+	float maxGradient;
 
 	bool trainLabels; // indicates if the first input should be trained against the correct result
-	CPtr<CDnnBlob> params; // the blob with all the parameters
+	CPtr<CDnnBlob> lossParam; // the loss value on the last step
 	CPtr<CDnnBlob> resultBuffer; // the memory buffer for the errors vector
 	CPtr<CDnnBlob> weights;	// the vector weights
 	// The blobs that contain loss gradients over the input and the labels
@@ -191,7 +186,7 @@ private:
 	// constants used for calculating the function value
 	float positiveWeightMinusOneValue;
 
-	void calculateStableSigmoid( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize ) const;
+	void calculateStableSigmoid( const CFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize ) const;
 };
 
 NEOML_API CLayerWrapper<CBinaryCrossEntropyLossLayer> BinaryCrossEntropyLoss(
