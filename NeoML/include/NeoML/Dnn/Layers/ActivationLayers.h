@@ -28,7 +28,6 @@ class CActivationDesc;
 class NEOML_API CLinearLayer : public CBaseInPlaceLayer, public IActivationLayer {
 	NEOML_DNN_LAYER( CLinearLayer )
 public:
-	enum TParam { TP_Multiplier, TP_FreeTerm, /*...*/ TP_Count };
 	using CParam = CLinearActivationParam;
 	static constexpr float DefaultMultiplier = CParam::DefaultMultiplier;
 	static constexpr float DefaultFreeTerm = CParam::DefaultFreeTerm;
@@ -38,15 +37,14 @@ public:
 	void Serialize( CArchive& archive ) override;
 
 	float GetMultiplier() const { return multiplier; }
-	void SetMultiplier( float _multiplier ) { multiplier = _multiplier; ForceReshape(); }
+	void SetMultiplier( float _multiplier ) { multiplier = _multiplier; }
 	float GetFreeTerm() const { return freeTerm; }
-	void SetFreeTerm( float _freeTerm ) { freeTerm = _freeTerm; ForceReshape(); }
+	void SetFreeTerm( float _freeTerm ) { freeTerm = _freeTerm; }
 
 	void ApplyParam( CParam param ) { SetMultiplier( param.Multiplier ); SetFreeTerm( param.FreeTerm ); }
 	CActivationDesc GetDesc() const override;
 
 protected:
-	void OnReshaped() override;
 	void RunOnce() override;
 	void BackwardOnce() override;
 	int BlobsForBackward() const override { return 0; }
@@ -54,7 +52,6 @@ protected:
 private:
 	float multiplier = DefaultMultiplier;
 	float freeTerm = DefaultFreeTerm;
-	CPtr<CDnnBlob> vars;
 };
 
 NEOML_API CLayerWrapper<CLinearLayer> Linear( float multiplier, float freeTerm );
@@ -84,6 +81,9 @@ protected:
 	void RunOnce() override;
 	void BackwardOnce() override;
 	int BlobsForBackward() const override { return TOutputBlobs; }
+
+private:
+	float alpha = DefaultAlpha;
 };
 
 NEOML_API CLayerWrapper<CELULayer> Elu( float alpha = CELULayer::DefaultAlpha );
@@ -104,8 +104,8 @@ public:
 	// The upper cutoff for the function value. If you set it to a value > 0, 
 	// the function will be ReLU(x) = Upper_Threshold for x > Upper_Threshold
 	// The default value is 0: no cutoff
-	float GetUpperThreshold() const { return upperThreshold->GetData().GetValue(); }
-	void SetUpperThreshold( float threshold ) { upperThreshold->GetData().SetValue( threshold ); }
+	float GetUpperThreshold() const { return upperThreshold; }
+	void SetUpperThreshold( float threshold ) { upperThreshold = threshold; }
 
 	void ApplyParam( CParam param ) { SetUpperThreshold( param.UpperThreshold ); }
 	CActivationDesc GetDesc() const override;
@@ -116,7 +116,7 @@ protected:
 	int BlobsForBackward() const override { return TOutputBlobs; }
 
 private:
-	CPtr<CDnnBlob> upperThreshold;
+	float upperThreshold = DefaultUpperThreshold;
 };
 
 NEOML_API CLayerWrapper<CReLULayer> Relu( float threshold = CReLULayer::DefaultUpperThreshold );
@@ -146,6 +146,9 @@ protected:
 	void RunOnce() override;
 	void BackwardOnce() override;
 	int BlobsForBackward() const override { return TOutputBlobs; }
+
+private:
+	float alpha = DefaultAlpha;
 };
 
 NEOML_API CLayerWrapper<CLeakyReLULayer> LeakyRelu( float alpha = CLeakyReLULayer::DefaultAlpha );
@@ -268,10 +271,10 @@ public:
 
 	void Serialize( CArchive& archive ) override;
 
-	float GetSlope() const { return paramBlobs[0]->GetData().GetValue(); }
-	void SetSlope( float slope ) { paramBlobs[0]->GetData().SetValue( slope ); }
-	float GetBias() const { return paramBlobs[1]->GetData().GetValue(); }
-	void SetBias( float bias ) { paramBlobs[1]->GetData().SetValue( bias ); }
+	float GetSlope() const { return slope; }
+	void SetSlope( float _slope ) { slope = _slope; }
+	float GetBias() const { return bias; }
+	void SetBias( float _bias ) { bias = _bias; }
 
 	void ApplyParam( CParam param ) { SetSlope( param.Slope ); SetBias( param.Bias ); }
 	CActivationDesc GetDesc() const override;
@@ -282,7 +285,8 @@ protected:
 	int BlobsForBackward() const override { return TOutputBlobs; }
 
 private:
-	void setDefaultParamBlobs( IMathEngine& mathEngine );
+	float slope = DefaultSlope;
+	float bias = DefaultBias;
 };
 
 NEOML_API CLayerWrapper<CHardSigmoidLayer> HardSigmoid( float slope, float bias );
@@ -373,9 +377,6 @@ protected:
 	void RunOnce() override;
 	void BackwardOnce() override;
 	int BlobsForBackward() const override { return TInputBlobs; }
-
-private:
-	CPtr<CDnnBlob> mult;
 };
 
 NEOML_API CLayerWrapper<CErfLayer> Erf();
@@ -415,18 +416,6 @@ protected:
 
 private:
 	TCalculationMode mode = DefaultCalculationMode;
-
-	// 1
-	CFloatHandleVar oneVar;
-	// 0.5
-	CFloatHandleVar halfVar;
-	// 1/sqrt(2)
-	CFloatHandleVar sqrt2InvVar;
-	// 1/sqrt(2pi)
-	CFloatHandleVar sqrt2PiInvVar;
-	// 1.702f
-	CFloatHandleVar approxScaleVar;
-
 	CPtr<CDnnBlob> erfMemoization;
 
 	void runPrecise();
