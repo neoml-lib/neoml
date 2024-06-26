@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -294,10 +294,10 @@ void CCpuMathEngine::AddVectorToMatrixColumns( const CConstIntHandle& matrixHand
 
 	CConstIntHandle matrix = matrixHandle;
 	CIntHandle result = resultHandle;
-	CConstIntHandle vector = vectorHandle;
+	const int* vector = GetRaw( vectorHandle );
 
 	for( int i = 0; i < matrixHeight; ++i ) {
-		VectorAddValue( matrix, result, matrixWidth, vector );
+		VectorAddValue( matrix, result, matrixWidth, *vector );
 		matrix += matrixWidth;
 		result += matrixWidth;
 		++vector;
@@ -314,8 +314,8 @@ void CCpuMathEngine::SubVectorFromMatrixColumns( const CConstFloatHandle& matrix
 	const float* vector = GetRaw( vectorHandle );
 
 	for( int i = 0; i < matrixHeight; ++i ) {
-		float value = -( *vector++ );
-		VectorAddValue( matrix, result, matrixWidth, CConstFloatHandle( CMemoryHandleInternal::CreateMemoryHandle( this, &value ) ) );
+		const float value = -( *vector++ );
+		VectorAddValue( matrix, result, matrixWidth, value );
 		matrix += matrixWidth;
 		result += matrixWidth;
 	}
@@ -513,7 +513,7 @@ void CCpuMathEngine::VectorMultichannelLookupAndCopy( int batchSize, int channel
 
 void CCpuMathEngine::VectorMultichannelLookupAndAddToTable( int batchSize, int channelCount, const CConstFloatHandle& inputHandle,
 	const CFloatHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
-	const CConstFloatHandle& multHandle, const CConstFloatHandle& matrixHandle, int /*outputChannels*/ )
+	float mult, const CConstFloatHandle& matrixHandle, int /*outputChannels*/ )
 {
 	ASSERT_EXPR( lookupCount <= channelCount );
 	CCpuExecutionScope scope;
@@ -529,7 +529,7 @@ void CCpuMathEngine::VectorMultichannelLookupAndAddToTable( int batchSize, int c
 				PRESUME_EXPR( 0 <= index && index < lookupDimensions[j].VectorCount );
 				const int vectorSize = lookupDimensions[j].VectorSize;
 				CFloatHandle pos = lookupHandles[j] + index * vectorSize;
-				VectorMultiplyAndAdd( pos, matrix, pos, vectorSize, multHandle );
+				VectorMultiplyAndAdd( pos, matrix, pos, vectorSize, mult );
 				matrix += vectorSize;
 			}
 		}
@@ -542,8 +542,7 @@ void CCpuMathEngine::VectorMultichannelLookupAndAddToTable( int batchSize, int c
 
 void CCpuMathEngine::VectorMultichannelLookupAndAddToTable( int batchSize, int channelCount, const CConstIntHandle& inputHandle,
 	const CFloatHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
-	const CConstFloatHandle& multHandle,
-	const CConstFloatHandle& matrixHandle, int /*outputChannels*/ )
+	float mult, const CConstFloatHandle& matrixHandle, int /*outputChannels*/ )
 {
 	ASSERT_EXPR( lookupCount <= channelCount );
 	CCpuExecutionScope scope;
@@ -559,7 +558,7 @@ void CCpuMathEngine::VectorMultichannelLookupAndAddToTable( int batchSize, int c
 				PRESUME_EXPR( 0 <= index && index < lookupDimensions[j].VectorCount );
 				const int vectorSize = lookupDimensions[j].VectorSize;
 				CFloatHandle pos = lookupHandles[j] + index * vectorSize;
-				VectorMultiplyAndAdd( pos, matrix, pos, vectorSize, multHandle );
+				VectorMultiplyAndAdd( pos, matrix, pos, vectorSize, mult );
 				matrix += vectorSize;
 			}
 		}
@@ -833,9 +832,9 @@ void CCpuMathEngine::Multiply1DiagMatrixByMatrix( int batchSize, const CConstFlo
 	CFloatHandle result = resultHandle;
 
 	for( int b = 0; b < batchSize; ++b ) {
-		CConstFloatHandle first = firstHandle;
+		const float* first = GetRaw( firstHandle );
 		for( int j = 0; j < firstSize; ++j ) {
-			VectorMultiply( second, result, secondWidth, first );
+			VectorMultiply( second, result, secondWidth, *first );
 			second += secondWidth;
 			result += secondWidth;
 			++first;
@@ -1047,14 +1046,14 @@ void CCpuMathEngine::MultiplyTransposedLookupMatrixByVector( int batchSize, cons
 	ASSERT_EXPR( resultSize >= batchSize * matrix.Width() );
 	CCpuExecutionScope scope;
 
-	CConstFloatHandle vector = vectorHandle;
+	const float* vector = GetRaw( vectorHandle );
 	CFloatHandle result = resultHandle;
 	const int* rows = GetRaw( matrix.Rows );
 
-	for( int b = 0; b < batchSize; ++b ) {
-		VectorMultiply( matrix.Table + ( *rows++ ) * matrix.Width(), result, matrix.Width(), vector++ );
+	for( int b = 0, i = 0; b < batchSize; ++b ) {
+		VectorMultiply( matrix.Table + ( *rows++ ) * matrix.Width(), result, matrix.Width(), vector[i++] );
 		for( int j = 1; j < matrix.RowCount; ++j ) {
-			VectorMultiplyAndAdd( result, matrix.Table + ( *rows++ ) * matrix.Width(), result, matrix.Width(), vector++ );
+			VectorMultiplyAndAdd( result, matrix.Table + ( *rows++ ) * matrix.Width(), result, matrix.Width(), vector[i++] );
 		}
 
 		result += matrix.Width();
@@ -1067,13 +1066,13 @@ void CCpuMathEngine::MultiplyTransposedLookupMatrixByVectorAndAdd( int batchSize
 	ASSERT_EXPR( resultSize >= batchSize * matrix.Width() );
 	CCpuExecutionScope scope;
 
-	CConstFloatHandle vector = vectorHandle;
+	const float* vector = GetRaw( vectorHandle );
 	CFloatHandle result = resultHandle;
 	const int* rows = GetRaw( matrix.Rows );
 
-	for( int b = 0; b < batchSize; ++b ) {
+	for( int b = 0, i = 0; b < batchSize; ++b ) {
 		for( int j = 0; j < matrix.RowCount; ++j ) {
-			VectorMultiplyAndAdd( result, matrix.Table + ( *rows++ ) * matrix.Width(), result, matrix.Width(), vector++ );
+			VectorMultiplyAndAdd( result, matrix.Table + ( *rows++ ) * matrix.Width(), result, matrix.Width(), vector[i++] );
 		}
 
 		result += matrix.Width();
@@ -1087,15 +1086,15 @@ void CCpuMathEngine::MultiplyVectorByTransposedLookupVectorAndAddToTable( int ba
 	ASSERT_EXPR( vectorSize == second.VectorSize() );
 	CCpuExecutionScope scope;
 
-	CConstFloatHandle first = firstHandle;
+	const float* first = GetRaw( firstHandle );
 	const int* index = GetRaw( indexHandle );
 	const int* vectorIndex = GetRaw( second.Vector );
 
-	for( int b = 0; b < batchSize; ++b ) {
+	for( int b = 0, i = 0; b < batchSize; ++b ) {
 		CConstFloatHandle secondVec = second.Table + ( *vectorIndex++ ) * vectorSize;
 		for( int j = 0; j < firstSize; ++j ) {
 			CFloatHandle tableRow = table + ( *index++ ) * vectorSize;
-			VectorMultiplyAndAdd( tableRow, secondVec, tableRow, vectorSize, first++ );
+			VectorMultiplyAndAdd( tableRow, secondVec, tableRow, vectorSize, first[i++] );
 		}
 	}
 }
@@ -1106,24 +1105,19 @@ void CCpuMathEngine::MatrixLogSumExpByRows( const CConstFloatHandle& matrixHandl
 	ASSERT_EXPR( resultSize >= height );
 	CCpuExecutionScope scope;
 
-	CFloatHandleStackVar temp( mathEngine(), height * width );
-	CFloatHandleStackVar tempVec( mathEngine(), height );
+	CFloatHandleStackVar tempVec( mathEngine(), height * ( width + 1 ) );
+	CFloatHandle temp = tempVec.GetHandle() + height;
 
 	// Find maximum in each row
 	FindMaxValueInRows( matrixHandle, height, width, resultHandle, height );
-
 	// Subtract the maximum and save the result to a temporary variable
 	SubVectorFromMatrixColumns( matrixHandle, temp, height, width, resultHandle );
-
 	// exp
 	VectorExp( temp, temp, height * width );
-
 	// Add up the columns, putting the result into tempVec
 	SumMatrixColumns( tempVec, temp, height, width );
-
 	// log
 	VectorLog( tempVec, tempVec, height );
-
 	// Add the logarithm to the maximum
 	VectorAdd( resultHandle, tempVec, resultHandle, height );
 }
@@ -1135,27 +1129,22 @@ void CCpuMathEngine::MatrixSoftmaxByRows( const CConstFloatHandle& matrixHandle,
 #ifdef NEOML_USE_MLAS
 	MlasComputeSoftmax( GetRaw( matrixHandle ), GetRaw( resultHandle ), static_cast<size_t>( height ),
 		static_cast<size_t>( width ), false, nullptr );
-#else
+#else  // !NEOML_USE_MLAS
 	CFloatHandleStackVar temp( mathEngine(), height );
 
 	// Find maximum in each row
 	FindMaxValueInRows( matrixHandle, height, width, temp, height );
-
 	// Subtract the maximum and save the result to a temporary variable
 	SubVectorFromMatrixColumns( matrixHandle, resultHandle, height, width, temp );
-
 	// exp
 	VectorExp( resultHandle, resultHandle, height * width );
-
 	// Add up the columns, putting the result into tempVec (exp(x0) + exp(x1) + ...)
 	SumMatrixColumns( temp, resultHandle, height, width );
-
 	// Calculate the denominator 1. / (exp(x0) + exp(x1) + ...)
 	VectorInv( temp, temp, height );
-
 	// Multiply the result matrix rows by 1. / (exp(x0) + exp(x1) + ...)
 	MultiplyDiagMatrixByMatrix( temp, height, resultHandle, width, resultHandle, height * width );
-#endif
+#endif // !NEOML_USE_MLAS
 }
 
 void CCpuMathEngine::MatrixSoftmaxDiffOpByRows( const CConstFloatHandle& firstHandle,
@@ -1170,10 +1159,8 @@ void CCpuMathEngine::MatrixSoftmaxDiffOpByRows( const CConstFloatHandle& firstHa
 
 	// <dE/dy, y>
 	RowMultiplyMatrixByMatrix( firstHandle, secondHandle, height, width, temp );
-
 	// dE/dyi - <dE/dy, y>
 	SubVectorFromMatrixColumns( secondHandle, resultHandle, height, width, temp );
-
 	// dE/dxi = yi * (dE/dyi - <dE/dy, y>)
 	VectorEltwiseMultiply( resultHandle, firstHandle, resultHandle, height * width );
 }
@@ -1187,19 +1174,14 @@ void CCpuMathEngine::MatrixSoftmaxByColumns( const CConstFloatHandle& matrix, in
 
 	// Find maximum in each column
 	findMaxValueInColumns( GetRaw( temp.GetHandle() ), GetRaw( matrix ), height, width );
-
 	// Subtract the maximum and save the result to a temporary variable
 	subVectorFromMatrixRows( this, matrix, result, height, width, temp );
-
 	// exp
 	VectorExp( result, result, height * width );
-
 	// Add up the rows, putting the result into temp (exp(x0) + exp(x1) + ...)
 	SumMatrixRows( 1, temp, result, height, width );
-
 	// Calculate the denominator 1. / (exp(x0) + exp(x1) + ...)
 	VectorInv( temp, temp, width );
-
 	// Multiply the result matrix rows by 1. / (exp(x0) + exp(x1) + ...)
 	MultiplyMatrixByDiagMatrix( result, height, width, temp, result, height * width );
 }
@@ -1216,10 +1198,8 @@ void CCpuMathEngine::MatrixSoftmaxDiffOpByColumns( const CConstFloatHandle& firs
 
 	// <dE/dy, y>
 	ColumnMultiplyMatrixByMatrix( this, firstHandle, secondHandle, height, width, temp );
-
 	// dE/dyi - <dE/dy, y>
 	subVectorFromMatrixRows( this, secondHandle, resultHandle, height, width, temp );
-
 	// dE/dxi = yi * (dE/dyi - <dE/dy, y>)
 	VectorEltwiseMultiply( resultHandle, firstHandle, resultHandle, height * width );
 }

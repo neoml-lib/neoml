@@ -124,7 +124,7 @@ public:
 		const CFloatHandle& resultHandle, int vectorSize ) = 0;
 	// result = (first == value) ? 1.0 : 0.0 elementwise
 	virtual void VectorEqualValue( const CConstIntHandle& firstHandle,
-		const CFloatHandle& resultHandle, int vectorSize, const CConstIntHandle& valueHandle ) = 0;
+		const CFloatHandle& resultHandle, int vectorSize, int value ) = 0;
 
 	// result = max( first, second )
 	virtual void VectorMax( const CConstFloatHandle& firstHandle, float secondValue, const CFloatHandle& resultHandle,
@@ -134,29 +134,31 @@ public:
 
 	// ELU
 	virtual void VectorELU(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle,
-		int vectorSize, const CConstFloatHandle& alpha) = 0;
+		int vectorSize, float alpha) = 0;
 	virtual void VectorELUDiff(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
-		const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& alpha) = 0;
+		const CFloatHandle& resultHandle, int vectorSize, float alpha) = 0;
 	virtual void VectorELUDiffOp(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
-		const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& alpha) = 0;
+		const CFloatHandle& resultHandle, int vectorSize, float alpha) = 0;
 
 	// ReLU (if upperThreshold > 0, ReLU will be limited by upperThreshold)
 	virtual void VectorReLU(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize,
-		const CConstFloatHandle& upperThresholdHandle) = 0;
+		float upperThreshold) = 0;
 	virtual void VectorReLUDiff(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
-		const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& upperThresholdHandle) = 0;
-	virtual void VectorReLUDiffOp(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
-		const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& upperThresholdHandle) = 0;
+		const CFloatHandle& resultHandle, int vectorSize, float upperThreshold) = 0;
+	inline void VectorReLUDiffOp( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
+		const CFloatHandle& resultHandle, int vectorSize, float upperThreshold )
+	{ VectorReLUDiff( firstHandle, secondHandle, resultHandle, vectorSize, upperThreshold ); }
 
 	// LeakyReLU
 	virtual void VectorLeakyReLU( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle,
-		int vectorSize, const CConstFloatHandle& alpha ) = 0;
+		int vectorSize, float alpha ) = 0;
 	virtual void VectorLeakyReLUDiff( const CConstFloatHandle& firstHandle,
 		const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle,
-		int vectorSize, const CConstFloatHandle& alpha ) = 0;
-	virtual void VectorLeakyReLUDiffOp( const CConstFloatHandle& firstHandle,
+		int vectorSize, float alpha ) = 0;
+	inline void VectorLeakyReLUDiffOp( const CConstFloatHandle& firstHandle,
 		const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle,
-		int vectorSize, const CConstFloatHandle& alpha ) = 0;
+		int vectorSize, float alpha )
+	{ VectorLeakyReLUDiff( firstHandle, secondHandle, resultHandle, vectorSize, alpha ); }
 
 	// H-Swish. f(x) = x * relu6(x + 3) / 6
 	virtual void VectorHSwish( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle,
@@ -197,16 +199,17 @@ public:
 	virtual void VectorHardTanh(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize) = 0;
 	virtual void VectorHardTanhDiff(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
 		const CFloatHandle& resultHandle, int vectorSize) = 0;
-	virtual void VectorHardTanhDiffOp(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
-		const CFloatHandle& resultHandle, int vectorSize) = 0;
+	inline void VectorHardTanhDiffOp( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
+		const CFloatHandle& resultHandle, int vectorSize )
+	{ VectorHardTanhDiff( firstHandle, secondHandle, resultHandle, vectorSize ); }
 
 	// HardSigmoid function (0 : x <= -1; (x + 1) / 2 : -1 < x < 1; 1 : x >= 1)
-	virtual void VectorHardSigmoid(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize, 
-		const CConstFloatHandle& slopeHandle, const CConstFloatHandle& biasHandle) = 0;
+	virtual void VectorHardSigmoid(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize,
+		float slope, float bias) = 0;
 	virtual void VectorHardSigmoidDiff(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
-		const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& slopeHandle, const CConstFloatHandle& biasHandle) = 0;
+		const CFloatHandle& resultHandle, int vectorSize, float slope, float bias) = 0;
 	virtual void VectorHardSigmoidDiffOp(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
-		const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& slopeHandle, const CConstFloatHandle& biasHandle) = 0;
+		const CFloatHandle& resultHandle, int vectorSize, float slope, float bias) = 0;
 
 	// result = -first
 	virtual void VectorNeg(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize) = 0;
@@ -229,7 +232,7 @@ public:
 
 	// Calculates the Kullback-Leibler distance derivative for a Bernoulli distribution using the distribution parameters
 	virtual void VectorBernulliKLDerivative(const CConstFloatHandle& estimationHandle,
-		const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& target) = 0;
+		const CFloatHandle& resultHandle, int vectorSize, float target) = 0;
 
 	// Vector addition
 	// result = first + second
@@ -238,9 +241,9 @@ public:
 	virtual void VectorAdd( const CConstIntHandle& firstHandle,
 		const CConstIntHandle& secondHandle, const CIntHandle& resultHandle, int vectorSize ) = 0;
 	virtual void VectorAddValue(const CConstFloatHandle& firstHandle,
-		const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& addition) = 0;
+		const CFloatHandle& resultHandle, int vectorSize, float addition) = 0;
 	virtual void VectorAddValue( const CConstIntHandle& firstHandle,
-		const CIntHandle& resultHandle, int vectorSize, const CConstIntHandle& addition ) = 0;
+		const CIntHandle& resultHandle, int vectorSize, int addition ) = 0;
 
 	// Vector substraction
 	// result = first - second
@@ -257,21 +260,21 @@ public:
 	// result = first + mult * second
 	// You may NOT pass the same handle as secondHandle and resultHandle parameters
 	virtual void VectorMultiplyAndAdd(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
-		const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& multHandle) = 0;
+		const CFloatHandle& resultHandle, int vectorSize, float mult) = 0;
 	// result = first - mult * second
 	// You may NOT pass the same handle as secondHandle and resultHandle parameters
 	virtual void VectorMultiplyAndSub(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
-		const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& multHandle) = 0;
+		const CFloatHandle& resultHandle, int vectorSize, float mult) = 0;
 
 	// Multiplies a vector by a number
 	// result = first * multiplier
 	virtual void VectorMultiply(const CConstFloatHandle& firstHandle,
-		const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& multiplierHandle) = 0;
+		const CFloatHandle& resultHandle, int vectorSize, float mult) = 0;
 	virtual void VectorMultiply(const CConstIntHandle& firstHandle,
-		const CIntHandle& resultHandle, int vectorSize, const CConstIntHandle& multiplierHandle) = 0;
+		const CIntHandle& resultHandle, int vectorSize, int mult) = 0;
 	// result = -first * multiplier
 	virtual void VectorNegMultiply(const CConstFloatHandle& firstHandle,
-		const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& multiplierHandle) = 0;
+		const CFloatHandle& resultHandle, int vectorSize, float mult) = 0;
 
 	// result = first * second elementwise
 	virtual void VectorEltwiseMultiply( const CConstIntHandle& firstHandle,
@@ -303,10 +306,10 @@ public:
 
 	// result = min(max(first, minValue), maxValue)
 	virtual void VectorMinMax(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize,
-		const CConstFloatHandle& minHandle, const CConstFloatHandle& maxHandle) = 0;
+		float min, float max) = 0;
 	virtual void VectorMinMaxDiff(const CConstFloatHandle& sourceGradHandle, int gradHeight, int gradWidth,
 		const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle,
-		const CConstFloatHandle& minHandle, const CConstFloatHandle& maxHandle) = 0;
+		float min, float max) = 0;
 
 	virtual void VectorSigmoid(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize) = 0;
 	// resultHandle = sigmoid-derivative(firstHandle) * secondHandle
@@ -333,8 +336,7 @@ public:
 	// L1-regularization (adding a scaled gradient of L1-regularizer). L1 is represented by a Hubert function
 	// result = first + mult * L1Diff(hubertThreshold, second), where mult and hubertThreshold have scalar values
 	virtual void VectorL1DiffAdd(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
-		const CFloatHandle& resultHandle, int vectorSize,
-		const CConstFloatHandle& hubertThresholdHandle, const CConstFloatHandle& multHandle) = 0;
+		const CFloatHandle& resultHandle, int vectorSize, float hubertThreshold, float mult) = 0;
 
 	virtual void VectorDotProduct(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle, int vectorSize,
 		const CFloatHandle& resultHandle) = 0;
@@ -491,11 +493,11 @@ public:
 		const CIntHandle& outputHandle, int outputChannels) = 0;
 	// Finds the position in the representation table for the channel and adds a row from the specified matrix (of batchSize height)
 	virtual void VectorMultichannelLookupAndAddToTable(int batchSize, int channelCount, const CConstFloatHandle& inputHandle,
-		const CFloatHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount, 
-		const CConstFloatHandle& multHandle, const CConstFloatHandle& matrixHandle, int outputChannels) = 0;
+		const CFloatHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
+		float mult, const CConstFloatHandle& matrixHandle, int outputChannels) = 0;
 	virtual void VectorMultichannelLookupAndAddToTable(int batchSize, int channelCount, const CConstIntHandle& inputHandle,
 		const CFloatHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
-		const CConstFloatHandle& multHandle, const CConstFloatHandle& matrixHandle, int outputChannels) = 0;
+		float mult, const CConstFloatHandle& matrixHandle, int outputChannels) = 0;
 
 	virtual void LookupAndSum( const CConstIntHandle& indicesHandle, int batchSize, int indexCount,
 		const CConstFloatHandle& tableHandle, int vectorSize, const CFloatHandle& result ) = 0;
@@ -588,12 +590,10 @@ public:
 	virtual void BatchMultiplyMatrixByDiagMatrix( int batchSize, const CConstFloatHandle& firstHandle, int height,
 		int width, int firstMatrixOffset, const CConstFloatHandle& secondHandle, int secondMatrixOffset,
 		const CFloatHandle& resultHandle, int resultBufferSize ) = 0;
-	void MultiplyMatrixByDiagMatrix( const CConstFloatHandle& firstHandle, int firstHeight, int firstWidth,
+	inline void MultiplyMatrixByDiagMatrix( const CConstFloatHandle& firstHandle, int firstHeight, int firstWidth,
 		const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int resultBufferSize )
-	{
-		BatchMultiplyMatrixByDiagMatrix( 1, firstHandle, firstHeight, firstWidth, firstHeight * firstWidth,
-			secondHandle, firstWidth, resultHandle, resultBufferSize );
-	}
+	{ BatchMultiplyMatrixByDiagMatrix( 1, firstHandle, firstHeight, firstWidth, firstHeight * firstWidth,
+			secondHandle, firstWidth, resultHandle, resultBufferSize ); }
 
 	// Transposes a set of matrices stored one after another. A matrix cell is of "channels" size
 	virtual void TransposeMatrix(int batchSize, const CConstFloatHandle& firstHandle,

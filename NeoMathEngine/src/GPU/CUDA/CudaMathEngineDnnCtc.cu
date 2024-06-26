@@ -60,12 +60,10 @@ static void calcBlankSkipMask( int padLabelLen, int batchSize, const CConstIntHa
 	const CFloatHandle& blankSkipMask )
 {
 	IMathEngine& mathEngine = *padLabels.GetMathEngine();
-	CFloatHandleStackVar logZeroVar( mathEngine );
-	logZeroVar.SetValue( logZero );
 	mathEngine.VectorFill( blankSkipMask + batchSize * ( padLabelLen - 2 ), 1.f, batchSize * 2 );
 	const int effectiveMaskSize = ( padLabelLen - 2 ) * batchSize;
 	mathEngine.VectorEqual( padLabels, padLabels + 2 * batchSize, blankSkipMask, effectiveMaskSize );
-	mathEngine.VectorMultiply( blankSkipMask, blankSkipMask, padLabelLen * batchSize, logZeroVar );
+	mathEngine.VectorMultiply( blankSkipMask, blankSkipMask, padLabelLen * batchSize, logZero );
 }
 
 // --------------------------------------------------------------------------------------------------------------------
@@ -215,9 +213,7 @@ void CCudaMathEngine::ctcCalcBackwardVariables( int resultLen, int batchSize, in
 
 		setVectorToMatrixElements( logBetaWindow, U, batchSize, endOfLabelPos, endOfLabelSample,
 			batchOfZeros, batchSize );
-		CIntHandleStackVar minusOneInt( *this );
-		minusOneInt.SetValue( -1 );
-		VectorAddValue( endOfLabelPos, endOfLabelPos, batchSize, minusOneInt );
+		VectorAddValue( endOfLabelPos, endOfLabelPos, batchSize, -1 );
 
 		if( !resultLens.IsNull() ) {
 			std::vector<int> buffer;

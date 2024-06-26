@@ -42,18 +42,18 @@ void CCudaMathEngine::VectorDotProduct(const CConstFloatHandle& firstHandle, con
 }
 
 void CCudaMathEngine::VectorMultiplyAndAdd( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
-	const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& multHandle )
+	const CFloatHandle& resultHandle, int vectorSize, float multValue )
 {
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-	ASSERT_EXPR( multHandle.GetMathEngine() == this );
 	SetCudaDevice( device->DeviceNumber );
 
 	const float* const first = GetRaw( firstHandle );
 	const float* const second = GetRaw( secondHandle );
 	float* const result = GetRaw( resultHandle );
-	const float* const mult = GetRaw( multHandle );
+	// cublasSaxpy allows (host or device) pointer
+	const float* mult = &multValue;
 
 	if( result != first ) {
 		ASSERT_CUDA( cudaMemcpy( result, first, vectorSize * sizeof( float ), cudaMemcpyDeviceToDevice ) );

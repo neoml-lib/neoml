@@ -517,28 +517,24 @@ void CCudaMathEngine::VectorMultichannelLookupAndCopy(int batchSize, int channel
 
 void CCudaMathEngine::VectorMultichannelLookupAndAddToTable(int batchSize, int channelCount, const CConstFloatHandle& inputHandle,
 	const CFloatHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
-	const CConstFloatHandle& multHandle,
-	const CConstFloatHandle& matrixHandle, int outputChannelsCount)
+	float mult, const CConstFloatHandle& matrixHandle, int outputChannelsCount)
 {
 	ASSERT_EXPR( inputHandle.GetMathEngine() == this );
-	ASSERT_EXPR( multHandle.GetMathEngine() == this );
 	ASSERT_EXPR( matrixHandle.GetMathEngine() == this );
 
 	vectorMultichannelLookupAndAddToTable(batchSize, channelCount, inputHandle,
-		lookupHandles, lookupDimensions, lookupCount, multHandle, matrixHandle, outputChannelsCount);
+		lookupHandles, lookupDimensions, lookupCount, mult, matrixHandle, outputChannelsCount);
 }
 
 void CCudaMathEngine::VectorMultichannelLookupAndAddToTable(int batchSize, int channelCount, const CConstIntHandle& inputHandle,
 	const CFloatHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
-	const CConstFloatHandle& multHandle,
-	const CConstFloatHandle& matrixHandle, int outputChannelsCount)
+	float mult, const CConstFloatHandle& matrixHandle, int outputChannelsCount)
 {
 	ASSERT_EXPR( inputHandle.GetMathEngine() == this );
-	ASSERT_EXPR( multHandle.GetMathEngine() == this );
 	ASSERT_EXPR( matrixHandle.GetMathEngine() == this );
 
 	vectorMultichannelLookupAndAddToTable(batchSize, channelCount, inputHandle,
-		lookupHandles, lookupDimensions, lookupCount, multHandle, matrixHandle, outputChannelsCount);
+		lookupHandles, lookupDimensions, lookupCount, mult, matrixHandle, outputChannelsCount);
 }
 
 void CCudaMathEngine::BitSetBinarization(int batchSize, int bitSetSize,
@@ -982,12 +978,10 @@ void CCudaMathEngine::vectorMultichannelLookupAndCopy(int batchSize, int channel
 template<class T>
 void CCudaMathEngine::vectorMultichannelLookupAndAddToTable(int batchSize, int channelCount, const CTypedMemoryHandle<const T>& inputHandle,
 	const CFloatHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
-	const CConstFloatHandle& multHandle, const CConstFloatHandle& matrixHandle, int outputChannelsCount)
+	float mult, const CConstFloatHandle& matrixHandle, int outputChannelsCount)
 {
 	SetCudaDevice( device->DeviceNumber );
 	const int batchNorm = (batchSize + BatchVectorLookupAndAddToTableCombine - 1) / BatchVectorLookupAndAddToTableCombine;
-
-	const float mult = multHandle.GetValue();
 
 	int outputChannel = 0;
 	for (int j = 0; j < lookupCount; ++j) {

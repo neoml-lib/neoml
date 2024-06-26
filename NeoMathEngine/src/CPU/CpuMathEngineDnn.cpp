@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -644,13 +644,13 @@ void CCpuMathEngine::QrnnIfPoolingBackward( bool reverse, int sequenceLength, in
 }
 
 static inline void sigmoidActivation( const CConstFloatHandle& from, const CFloatHandle& to, int dataSize,
-	const CConstFloatHandle& )
+	float )
 {
 	from.GetMathEngine()->VectorSigmoid( from, to, dataSize );
 }
 
 static inline void reLUActivation( const CConstFloatHandle& from, const CFloatHandle& to, int dataSize,
-	const CConstFloatHandle& threshold )
+	float threshold )
 {
 	from.GetMathEngine()->VectorReLU( from, to, dataSize, threshold );
 }
@@ -673,12 +673,11 @@ void CCpuMathEngine::IndRnnRecurrent( bool reverse, int sequenceLength, int batc
 
 	ASSERT_EXPR( activation == AF_Sigmoid || activation == AF_ReLU );
 
-	void ( *applyActivation )( const CConstFloatHandle&, const CFloatHandle&, int, const CConstFloatHandle& )
+	void ( *applyActivation )( const CConstFloatHandle&, const CFloatHandle&, int, float )
 		= activation == AF_Sigmoid ? sigmoidActivation : reLUActivation;
 
 	// Upper threshold variable (for ReLU)
-	CFloatHandleStackVar threshold( *this );
-	threshold.GetHandle().SetValue( 0.f );
+	const float threshold( 0.f );
 	applyActivation( wx + firstStepOffset, h + firstStepOffset, batchSize * objectSize, threshold );
 
 	CConstFloatHandle hPrev = h + firstStepOffset;
@@ -710,13 +709,13 @@ void CCpuMathEngine::IndRnnRecurrent( bool reverse, int sequenceLength, int batc
 }
 
 static inline void sigmoidActivationDiffOp( const CConstFloatHandle& output, const CConstFloatHandle& outDiff,
-	const CFloatHandle& inDiff, int dataSize, const CConstFloatHandle& )
+	const CFloatHandle& inDiff, int dataSize, float )
 {
 	output.GetMathEngine()->VectorSigmoidDiffOp( output, outDiff, inDiff, dataSize );
 }
 
 static inline void reLUActivationDiffOp( const CConstFloatHandle& output, const CConstFloatHandle& outDiff,
-	const CFloatHandle& inDiff, int dataSize, const CConstFloatHandle& threshold )
+	const CFloatHandle& inDiff, int dataSize, float threshold )
 {
 	output.GetMathEngine()->VectorReLUDiffOp( output, outDiff, inDiff, dataSize, threshold );
 }
@@ -739,13 +738,12 @@ void CCpuMathEngine::IndRnnRecurrentBackward( bool reverse, int sequenceLength, 
 	const int stepOffset = reverse ? -batchSize * objectSize : batchSize * objectSize;
 	const int firstStepOffset = reverse ? ( sequenceLength - 1 ) * batchSize * objectSize : 0;
 
-	void ( *activationDiffOp )( const CConstFloatHandle&, const CConstFloatHandle&, const CFloatHandle&, int, const CConstFloatHandle& )
+	void ( *activationDiffOp )( const CConstFloatHandle&, const CConstFloatHandle&, const CFloatHandle&, int, float )
 		= activation == AF_Sigmoid ? sigmoidActivationDiffOp : reLUActivationDiffOp;
 
-	CFloatHandleStackVar totalHDiff( *this, batchSize * objectSize + 1 );
+	CFloatHandleStackVar totalHDiff( *this, batchSize * objectSize );
 	VectorCopy( totalHDiff.GetHandle(), hDiff + firstStepOffset, batchSize * objectSize );
-	CFloatHandle threshold = totalHDiff.GetHandle() + batchSize * objectSize;
-	threshold.SetValue( 0.f );
+	const float threshold( 0.f );
 
 	for( int step = 0; step < sequenceLength - 1; ++step ) {
 		CConstFloatHandle currMask = mask;
@@ -794,14 +792,13 @@ void CCpuMathEngine::IndRnnRecurrentLearn( bool reverse, int sequenceLength, int
 	const int stepOffset = reverse ? -batchSize * objectSize : batchSize * objectSize;
 	const int firstStepOffset = reverse ? ( sequenceLength - 1 ) * batchSize * objectSize : 0;
 
-	void ( *activationDiffOp )( const CConstFloatHandle&, const CConstFloatHandle&, const CFloatHandle&, int, const CConstFloatHandle& )
+	void ( *activationDiffOp )( const CConstFloatHandle&, const CConstFloatHandle&, const CFloatHandle&, int, float )
 		= activation == AF_Sigmoid ? sigmoidActivationDiffOp : reLUActivationDiffOp;
 
-	CFloatHandleStackVar totalHDiff( *this, batchSize * objectSize + objectSize + 1 );
+	CFloatHandleStackVar totalHDiff( *this, batchSize * objectSize + objectSize );
 	VectorCopy( totalHDiff.GetHandle(), hDiff + firstStepOffset, batchSize * objectSize );
 	CFloatHandle buff = totalHDiff.GetHandle() + batchSize * objectSize;
-	CFloatHandle threshold = buff + objectSize;
-	threshold.SetValue( 0.f );
+	const float threshold( 0.f );
 
 	for( int step = 0; step < sequenceLength - 1; ++step ) {
 		CConstFloatHandle currMask = mask;
