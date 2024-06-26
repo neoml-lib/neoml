@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ namespace NeoML {
 
 CGlobalMeanPoolingLayer::CGlobalMeanPoolingLayer( IMathEngine& mathEngine ) :
 	CBaseLayer( mathEngine, "CCnnGlobalMeanPoolingLayer", false ),
-	coeff( CDnnBlob::CreateVector( mathEngine, CT_Float, 1 ) )
+	coeff( 1.f )
 {
 }
 
@@ -49,7 +49,7 @@ void CGlobalMeanPoolingLayer::Reshape()
 	outputDescs[0].SetDimSize( BD_Width, 1 );
 	outputDescs[0].SetDimSize( BD_Depth, 1 );
 
-	coeff->GetData().SetValue( 1.f / inputDesc.GeometricalSize() );
+	coeff = ( 1.f / inputDesc.GeometricalSize() );
 }
 
 void CGlobalMeanPoolingLayer::RunOnce()
@@ -61,7 +61,7 @@ void CGlobalMeanPoolingLayer::RunOnce()
 		MathEngine().SumMatrixRows( inputBlobs[0]->GetObjectCount(), outputBlobs[0]->GetData(), inputBlobs[0]->GetData(), inputBlobs[0]->GetGeometricalSize(),
 			inputBlobs[0]->GetChannelsCount() );
 	}
-	MathEngine().VectorMultiply( outputBlobs[0]->GetData(), outputBlobs[0]->GetData(), outputBlobs[0]->GetDataSize(), coeff->GetData() );
+	MathEngine().VectorMultiply( outputBlobs[0]->GetData(), outputBlobs[0]->GetData(), outputBlobs[0]->GetDataSize(), coeff );
 }
 
 void CGlobalMeanPoolingLayer::BackwardOnce()
@@ -74,7 +74,7 @@ void CGlobalMeanPoolingLayer::BackwardOnce()
 		MathEngine().AddVectorToMatrixRows( inputDiffBlobs[0]->GetObjectCount(), inputDiffBlobs[0]->GetData(), inputDiffBlobs[0]->GetData(),
 			inputDiffBlobs[0]->GetGeometricalSize(), inputDiffBlobs[0]->GetChannelsCount(), outputDiffBlobs[0]->GetData() );
 	}
-	MathEngine().VectorMultiply( inputDiffBlobs[0]->GetData(), inputDiffBlobs[0]->GetData(), inputDiffBlobs[0]->GetDataSize(), coeff->GetData() );
+	MathEngine().VectorMultiply( inputDiffBlobs[0]->GetData(), inputDiffBlobs[0]->GetData(), inputDiffBlobs[0]->GetDataSize(), coeff );
 }
 
 CLayerWrapper<CGlobalMeanPoolingLayer> GlobalMeanPooling()

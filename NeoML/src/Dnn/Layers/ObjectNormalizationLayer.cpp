@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,11 +23,9 @@ namespace NeoML {
 
 CObjectNormalizationLayer::CObjectNormalizationLayer( IMathEngine& mathEngine ) :
 	CBaseInPlaceLayer( mathEngine, "CObjectNormalizationLayer", true ),
-	epsilon( CDnnBlob::CreateVector( mathEngine, CT_Float, 1 ) ),
-	invObjectSize( CDnnBlob::CreateVector( mathEngine, CT_Float, 1 ) )
+	epsilon( 1e-5f )
 {
 	paramBlobs.SetSize( PN_Count );
-	SetEpsilon( 1e-5f );
 }
 
 static const int ObjectNormalizationLayerVersion = 2000;
@@ -49,12 +47,12 @@ void CObjectNormalizationLayer::Serialize( CArchive& archive )
 void CObjectNormalizationLayer::SetEpsilon( float newEpsilon )
 {
 	NeoAssert( newEpsilon > 0 );
-	epsilon->GetData().SetValue( newEpsilon );
+	epsilon = ( newEpsilon );
 }
 
 float CObjectNormalizationLayer::GetEpsilon() const
 {
-	return epsilon->GetData().GetValue();
+	return epsilon;
 }
 
 void CObjectNormalizationLayer::SetScale( const CPtr<CDnnBlob>& newScale )
@@ -159,7 +157,7 @@ void CObjectNormalizationLayer::OnReshaped()
 		}
 	}
 
-	invObjectSize->GetData().SetValue( 1.f / inputDescs[0].ObjectSize() );
+	invObjectSize = ( 1.f / inputDescs[0].ObjectSize() );
 
 	inputDescs.CopyTo( outputDescs );
 }
@@ -192,7 +190,7 @@ void CObjectNormalizationLayer::calcMean( const CFloatHandle& negMean )
 	MathEngine().SumMatrixColumns( negMean, inputBlobs[0]->GetData(),
 		inputBlobs[0]->GetObjectCount(), inputBlobs[0]->GetObjectSize() );
 	MathEngine().VectorNegMultiply( negMean, negMean, inputBlobs[0]->GetObjectCount(),
-		invObjectSize->GetData() );
+		invObjectSize );
 }
 
 void CObjectNormalizationLayer::calcVar( const CConstFloatHandle& negMean, const CFloatHandle& invSqrtVar )
@@ -209,8 +207,8 @@ void CObjectNormalizationLayer::calcVar( const CConstFloatHandle& negMean, const
 	MathEngine().SumMatrixColumns( invSqrtVar, temp, objectCount, objectSize );
 
 	// Normalize the variance and calculate the inverse to the standard deviation.
-	MathEngine().VectorMultiply( invSqrtVar, invSqrtVar, objectCount, invObjectSize->GetData() );
-	MathEngine().VectorAddValue( invSqrtVar, invSqrtVar, objectCount, epsilon->GetData() );
+	MathEngine().VectorMultiply( invSqrtVar, invSqrtVar, objectCount, invObjectSize );
+	MathEngine().VectorAddValue( invSqrtVar, invSqrtVar, objectCount, epsilon );
 	MathEngine().VectorSqrt( invSqrtVar, invSqrtVar, objectCount );
 	MathEngine().VectorInv( invSqrtVar, invSqrtVar, objectCount );
 }
@@ -269,7 +267,7 @@ void CObjectNormalizationLayer::BackwardOnce()
 		CFloatHandle outDiffMultipliedByInput = buff.GetHandle();
 		MathEngine().VectorEltwiseMultiply( outputDiff, input, outDiffMultipliedByInput, dataSize );
 		MathEngine().MultiplyMatrixByMatrix( 1, outDiffMultipliedByInput, objectCount, objectSize, scale, 1, inputMultiplier, internalParams->GetObjectSize() );
-		MathEngine().VectorNegMultiply( inputMultiplier, inputMultiplier, objectCount, invObjectSize->GetData() );
+		MathEngine().VectorNegMultiply( inputMultiplier, inputMultiplier, objectCount, invObjectSize );
 		// The value of inputMultiplier will be used later.
 		// Now it's allowed to overwrite values in inputDiff.
 	}
@@ -279,7 +277,7 @@ void CObjectNormalizationLayer::BackwardOnce()
 	{
 		CFloatHandle avgOfScaledOutDiff = buff.GetHandle();
 		MathEngine().SumMatrixColumns( avgOfScaledOutDiff, inputDiff, objectCount, objectSize );
-		MathEngine().VectorNegMultiply( avgOfScaledOutDiff, avgOfScaledOutDiff, objectCount, invObjectSize->GetData() );
+		MathEngine().VectorNegMultiply( avgOfScaledOutDiff, avgOfScaledOutDiff, objectCount, invObjectSize );
 		MathEngine().AddVectorToMatrixColumns( inputDiff, inputDiff, objectCount, objectSize, avgOfScaledOutDiff );
 	}
 

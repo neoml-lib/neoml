@@ -1,4 +1,4 @@
-/* Copyright © 2023 ABBYY
+/* Copyright © 2023-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -41,7 +41,7 @@ public:
 	// By default, epsilon is equal to 1e-6
 	// This value must be positive
 	void SetEpsilon( float newEpsilon );
-	float GetEpsilon() const { return epsilon.GetValue(); }
+	float GetEpsilon() const { return epsilon; }
 
 	// Returns or sets the scale
 	// The blob should be of Channels size
@@ -73,9 +73,8 @@ private:
 		PN_Count,
 	};
 
-	CFloatHandleVar epsilon;
-	CFloatHandleVar invChannels;
-	CFloatHandleVar one;
+	float epsilon;
+	float invChannels;
 
 	void setParam( TParamName name, const CPtr<CDnnBlob>& newValue );
 	CPtr<CDnnBlob> getParam( TParamName name ) const;
