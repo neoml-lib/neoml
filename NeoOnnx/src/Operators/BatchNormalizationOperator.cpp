@@ -45,10 +45,8 @@ static CPtr<CDnnBlob> calculateFinalParams( float eps, const CTensorArray& input
 	// Calculate final params
 	CPtr<CDnnBlob> finalParams = CDnnBlob::CreateDataBlob( mathEngine, CT_Float, 1, 2, channels );
 
-	CFloatHandleStackVar epsVar( mathEngine );
-	epsVar.SetValue( eps );
 	CFloatHandle gamma = finalParams->GetObjectData( 0 );
-	mathEngine.VectorAddValue( var->GetData(), gamma, channels, epsVar );
+	mathEngine.VectorAddValue( var->GetData(), gamma, channels, eps );
 	mathEngine.VectorSqrt( gamma, gamma, channels );
 	mathEngine.VectorEltwiseDivide( scale->GetData(), gamma, gamma, channels );
 

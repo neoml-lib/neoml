@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -39,18 +39,18 @@ public:
 	// By default, epsilon is equal to 1e-5
 	// This value must be positive
 	void SetEpsilon( float newEpsilon );
-	float GetEpsilon() const;
+	float GetEpsilon() const { return epsilon; }
 
 	// Returns or sets the scale
 	// The blob should be of ObjectSize size
 	// May be null if the scale has not been initialized (or must be reset)
-	CPtr<CDnnBlob> GetScale() const;
+	CPtr<CDnnBlob> GetScale() const { return ( Scale() == nullptr ) ? nullptr : Scale()->GetCopy(); }
 	void SetScale( const CPtr<CDnnBlob>& newScale );
 
 	// Returns or sets the bias
 	// The blob should be of ObjectSize size
 	// May be null if the bias has not been initialized (or must be reset)
-	CPtr<CDnnBlob> GetBias() const;
+	CPtr<CDnnBlob> GetBias() const { return ( Bias() == nullptr ) ? nullptr : Bias()->GetCopy(); }
 	void SetBias( const CPtr<CDnnBlob>& newBias );
 
 protected:
@@ -62,8 +62,8 @@ protected:
 	int BlobsForLearn() const override { return 0; }
 
 private:
-	CPtr<CDnnBlob> epsilon;
-	CPtr<CDnnBlob> invObjectSize;
+	float epsilon = 1e-5f;
+	float invObjectSize = 0;
 
 	// The training parameters names
 	enum TParamName {
