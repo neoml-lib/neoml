@@ -164,6 +164,8 @@ static CPtr<CDnnInitializer> createInitializer( TDistributedInitializer type, CR
 void CDistributedTraining::initialize( CArchive& archive, int count, TDistributedInitializer initializer, int seed )
 {
 	NeoAssert( archive.IsLoading() );
+	rands.SetBufferSize( count );
+	cnns.SetBufferSize( count );
 	for( int i = 0; i < count; i++ ){
 		rands.Add( new CRandom( seed ) );
 		cnns.Add( new CDnn( *rands[i], *mathEngines[i] ) );
@@ -175,7 +177,8 @@ void CDistributedTraining::initialize( CArchive& archive, int count, TDistribute
 	batchSize.Add( 0, count );
 }
 
-CDistributedTraining::CDistributedTraining( CDnn& dnn, int count, TDistributedInitializer initializer, int seed ) :
+CDistributedTraining::CDistributedTraining( CDnn& dnn, int count,
+		TDistributedInitializer initializer, int seed ) :
 	isCpu( true ),
 	threadPool( CreateThreadPool( count ) )
 {
@@ -206,7 +209,8 @@ CDistributedTraining::CDistributedTraining( CDnn& dnn, int count, TDistributedIn
 	SetSolver( archive );
 }
 
-CDistributedTraining::CDistributedTraining( CArchive& archive, int count, TDistributedInitializer initializer, int seed ) :
+CDistributedTraining::CDistributedTraining( CArchive& archive, int count,
+		TDistributedInitializer initializer, int seed ) :
 	isCpu( true ),
 	threadPool( CreateThreadPool( count ) )
 {
@@ -260,9 +264,9 @@ CDistributedTraining::CDistributedTraining( CArchive& archive, const CArray<int>
 CDistributedTraining::~CDistributedTraining()
 {
 	delete threadPool;
-	for( int i = 0; i < cnns.Size(); i++ ){
-		delete cnns[i];
-		delete rands[i];
+	cnns.DeleteAll();
+	rands.DeleteAll();
+	for( int i = 0; i < mathEngines.Size(); ++i ){
 		delete mathEngines[i];
 	}
 }
@@ -296,12 +300,13 @@ void CDistributedTraining::RunOnce( IDistributedDataset& data )
 	struct CFunctionParams {
 		bool& IsFirstRun;
 		IDistributedDataset& Data;
-		CArray<CDnn*>& Cnns;
+		CPointerArray<CDnn>& Cnns;
 		CArray<int>& BatchSize;
 		bool IsCpu;
 		CString& ErrorMessage;
 
-		CFunctionParams(bool& isFirstRun, IDistributedDataset& data, CArray<CDnn*>& cnns, CArray<int>& batchSize, bool isCpu, CString& errorMessage) :
+		CFunctionParams(bool& isFirstRun, IDistributedDataset& data, CPointerArray<CDnn>& cnns,
+				CArray<int>& batchSize, bool isCpu, CString& errorMessage) :
 			IsFirstRun(isFirstRun),
 			Data(data),
 			Cnns(cnns),
@@ -315,7 +320,7 @@ void CDistributedTraining::RunOnce( IDistributedDataset& data )
 	IThreadPool::TFunction f = [](int threadIndex, void* ptr)
 	{
 		CFunctionParams& function_params = *(CFunctionParams*)ptr;
-		CArray<CDnn*>& cnns = function_params.Cnns;
+		CPointerArray<CDnn>& cnns = function_params.Cnns;
 		CArray<int>& batchSize = function_params.BatchSize;
 		CString& errorMessage = function_params.ErrorMessage;
 		try {
@@ -353,12 +358,13 @@ void CDistributedTraining::RunAndBackwardOnce( IDistributedDataset& data )
 	struct CFunctionParams {
 		bool& IsFirstRun;
 		IDistributedDataset& Data;
-		CArray<CDnn*>& Cnns;
+		CPointerArray<CDnn>& Cnns;
 		CArray<int>& BatchSize;
 		bool IsCpu;
 		CString& ErrorMessage;
 
-		CFunctionParams(bool& isFirstRun, IDistributedDataset& data, CArray<CDnn*>& cnns, CArray<int>& batchSize, bool isCpu, CString& errorMessage) :
+		CFunctionParams(bool& isFirstRun, IDistributedDataset& data, CPointerArray<CDnn>& cnns,
+				CArray<int>& batchSize, bool isCpu, CString& errorMessage) :
 			IsFirstRun(isFirstRun),
 			Data(data),
 			Cnns(cnns),
@@ -372,7 +378,7 @@ void CDistributedTraining::RunAndBackwardOnce( IDistributedDataset& data )
 	IThreadPool::TFunction f = [](int threadIndex, void* ptr)
 	{
 		CFunctionParams& function_params = *(CFunctionParams*)ptr;
-		CArray<CDnn*>& cnns = function_params.Cnns;
+		CPointerArray<CDnn>& cnns = function_params.Cnns;
 		CArray<int>& batchSize = function_params.BatchSize;
 		CString& errorMessage = function_params.ErrorMessage;
 		try {
@@ -420,13 +426,13 @@ void CDistributedTraining::Train()
 	}
 
 	struct CFunctionParams {
-		CArray<CDnn*>& Cnns;
+		CPointerArray<CDnn>& Cnns;
 		CArray<int>& BatchSize;
 		int TotalBatch;
 		bool IsCpu;
 		CString& ErrorMessage;
 
-		CFunctionParams(CArray<CDnn*>& cnns, CArray<int>& batchSize, int totalBatch, bool isCpu, CString& errorMessage) :
+		CFunctionParams(CPointerArray<CDnn>& cnns, CArray<int>& batchSize, int totalBatch, bool isCpu, CString& errorMessage) :
 			Cnns(cnns),
 			BatchSize(batchSize),
 			TotalBatch(totalBatch),
@@ -439,7 +445,7 @@ void CDistributedTraining::Train()
 	IThreadPool::TFunction f = [](int threadIndex, void* ptr)
 	{
 		CFunctionParams& function_params = *(CFunctionParams*)ptr;
-		CArray<CDnn*>& cnns = function_params.Cnns;
+		CPointerArray<CDnn>& cnns = function_params.Cnns;
 		CArray<int>& batchSize = function_params.BatchSize;
 		CString& errorMessage = function_params.ErrorMessage;
 
@@ -521,14 +527,14 @@ void CDistributedInference::initialize( IMathEngine& mathEngine, CArchive& archi
 	initThreadGroupInfo();
 
 	NeoAssert( archive.IsLoading() );
-	params.Dnns.SetSize( threads_count );
-	params.Dnns[0] = new CDnn( random, mathEngine );
+	params.Dnns.SetBufferSize( threads_count );
+	params.Dnns.Add( new CDnn( random, mathEngine ) );
 	params.Dnns[0]->Serialize( archive );
 	// Create reference dnns
 	// To create a reference dnn the original network should be trained or at least reshaped
 	// All training paramBlobs should exist
 	for( int i = 1; i < threads_count; ++i ) {
-		params.Dnns[i] = params.Dnns[0]->CreateReferenceDnn();
+		params.Dnns.Add( params.Dnns[0]->CreateReferenceDnn() );
 	}
 	archive.Close();
 }
@@ -561,9 +567,9 @@ CDistributedInference::~CDistributedInference()
 {
 	delete threadPool;
 	// delete reference dnns before original dnn
-	for( int i = params.Dnns.Size() - 1; i >= 0; --i ) {
-		delete params.Dnns[i];
-	}
+	CDnn* originalDnn = params.Dnns.DetachAndReplaceAt( nullptr, 0 );
+	params.Dnns.DeleteAll();
+	delete originalDnn;
 }
 
 void CDistributedInference::RunOnce( IDistributedDataset& data )
