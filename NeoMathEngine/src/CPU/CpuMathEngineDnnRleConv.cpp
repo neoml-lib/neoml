@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -53,7 +53,7 @@ static inline unsigned long long pow2MinusOne( int x )
 	return x == 64 ? 0xFFFFFFFFFFFFFFFF : ( ( 1ULL << x ) - 1 );
 }
 
-// ====================================================================================================================
+//---------------------------------------------------------------------------------------------------------------------
 
 // RLE convolution descriptor
 struct CCpuRleConvolutionDesc : public CRleConvolutionDesc {
@@ -120,10 +120,8 @@ static inline void updateFilterConv( IMathEngine& mathEngine, CCpuRleConvolution
 		zeroFilterConvPtr += filterCount;
 	}
 
-	CFloatHandleStackVar nonStroke( mathEngine );
-	nonStroke.SetValue( desc.NonStrokeValue );
 	mathEngine.VectorMultiply( desc.FilterConv.GetHandle(), desc.FilterConv.GetHandle(), filterConvRowSize,
-		nonStroke );
+		desc.NonStrokeValue );
 
 	// Fill in the rest of the convolutions as diff with the previous ones (start with zero that has been filled in already)
 	float mult = desc.StrokeValue - desc.NonStrokeValue;
@@ -149,15 +147,15 @@ static inline void updateFilterConv( IMathEngine& mathEngine, CCpuRleConvolution
 		CFloatHandleStackVar freeTermConv( mathEngine, filterCount );
 		CFloatHandle freeTermConvData = freeTermConv.GetHandle();
 
-		CFloatHandleStackVar filterHeightInv( mathEngine );
-		filterHeightInv.SetValue( 1.f / filterHeight );
+		const float filterHeightInv( 1.f / filterHeight );
 		mathEngine.VectorMultiply( *freeTermData, freeTermConvData, freeTermConv.Size(), filterHeightInv );
 		mathEngine.AddVectorToMatrixRows( 1, desc.FilterConv.GetHandle(), desc.FilterConv.GetHandle(),
 			filterHeight * ( 1 << filterWidth ), filterCount, freeTermConvData );
 	}
 }
 
-// ====================================================================================================================
+//---------------------------------------------------------------------------------------------------------------------
+
 CRleConvolutionDesc* CCpuMathEngine::InitBlobRleConvolution( const CBlobDesc& source, float strokeValue,
 	float nonStrokeValue, int strideHeight, int strideWidth, const CBlobDesc& filter,
 	const CBlobDesc& result )

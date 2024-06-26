@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -630,13 +630,13 @@ void CVulkanMathEngine::VectorMultichannelLookupAndCopy( int batchSize, int chan
 }
 
 void CVulkanMathEngine::VectorMultichannelLookupAndAddToTable( int, int, const CConstFloatHandle&,
-	const CFloatHandle*, const CLookupDimension*, int, const CConstFloatHandle&, const CConstFloatHandle&, int )
+	const CFloatHandle*, const CLookupDimension*, int, float, const CConstFloatHandle&, int )
 {
 	ASSERT_EXPR( false );
 }
 
 void CVulkanMathEngine::VectorMultichannelLookupAndAddToTable( int, int, const CConstIntHandle&,
-	const CFloatHandle*, const CLookupDimension*, int, const CConstFloatHandle&, const CConstFloatHandle&, int )
+	const CFloatHandle*, const CLookupDimension*, int, float, const CConstFloatHandle&, int )
 {
 	ASSERT_EXPR( false );
 }

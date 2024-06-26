@@ -41,24 +41,36 @@ void CCudaMathEngine::VectorDotProduct(const CConstFloatHandle& firstHandle, con
 		GetRaw( secondHandle ), 1, GetRaw( resultHandle ) ) );
 }
 
-void CCudaMathEngine::VectorMultiplyAndAdd( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
-	const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& multHandle )
+void CCudaMathEngine::vectorMultiplyAndAdd( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
+	const CFloatHandle& resultHandle, int vectorSize, float multValue, const CConstFloatHandle* multHandle )
 {
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-	ASSERT_EXPR( multHandle.GetMathEngine() == this );
 	SetCudaDevice( device->DeviceNumber );
 
 	const float* const first = GetRaw( firstHandle );
 	const float* const second = GetRaw( secondHandle );
 	float* const result = GetRaw( resultHandle );
-	const float* const mult = GetRaw( multHandle );
+	const float* mult = nullptr;
 
-	if( result != first ) {
-		ASSERT_CUDA( cudaMemcpy( result, first, vectorSize * sizeof( float ), cudaMemcpyDeviceToDevice ) );
+	auto operation = [&]() {
+		if( result != first ) {
+			ASSERT_CUDA( cudaMemcpy( result, first, vectorSize * sizeof( float ), cudaMemcpyDeviceToDevice ) );
+		}
+		ASSERT_CUBLAS( cublas->Saxpy( cublasHandle, vectorSize, mult, second, 1, result, 1 ) );
+	};
+
+	if( multHandle != nullptr ) {
+		ASSERT_EXPR( multHandle->GetMathEngine() == this );
+		mult = GetRaw( *multHandle );
+		operation();
+	} else {
+		CFloatHandleStackVar multVar( *this );
+		multVar.SetValue( multValue );
+		mult = GetRaw( multVar.GetHandle() );
+		operation();
 	}
-	ASSERT_CUBLAS( cublas->Saxpy( cublasHandle, vectorSize, mult, second, 1, result, 1 ) );
 }
 
 void CCudaMathEngine::MultiplyMatrixByTransposedMatrix( const CConstFloatHandle& firstHandle, int firstHeight,
@@ -157,7 +169,7 @@ void CCudaMathEngine::BatchMultiplyMatrixByDiagMatrix( int batchSize, const CCon
 		VectorEltwiseMultiply( firstHandle, secondHandle, resultHandle, width );
 		return;
 	} else if( width == 1 && batchSize == 1 ) {
-		VectorMultiply( firstHandle, resultHandle, height, secondHandle );
+		IVectorMathEngine::VectorMultiply( firstHandle, resultHandle, height, secondHandle );
 		return;
 	}
 

@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -59,12 +59,7 @@ void CCpuMathEngine::VectorLog(const CConstFloatHandle& firstHandle, const CFloa
 	CCpuExecutionScope scope;
 
 #ifdef NEOML_USE_MKL
-	CFloatHandleStackVar minVal( mathEngine(), 1 );
-	minVal.SetValue( FLT_MIN );
-	CFloatHandleStackVar maxVal( mathEngine(), 1 );
-	maxVal.SetValue( FLT_MAX );
-
-	VectorMinMax(firstHandle, resultHandle, vectorSize, minVal, maxVal);
+	VectorMinMax(firstHandle, resultHandle, vectorSize, FLT_MIN, FLT_MAX );
 	vsLn(vectorSize, GetRaw(resultHandle), GetRaw(resultHandle));
 #else  // !NEOML_USE_MKL
 	const float* first = GetRaw(firstHandle);
@@ -77,19 +72,16 @@ void CCpuMathEngine::VectorLog(const CConstFloatHandle& firstHandle, const CFloa
 }
 
 void CCpuMathEngine::VectorMultiplyAndAdd( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
-	const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& multHandle )
+	const CFloatHandle& resultHandle, int vectorSize, float mult )
 {
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
-	ASSERT_EXPR( multHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	CCpuExecutionScope scope;
 
 	const float* first = GetRaw( firstHandle );
 	const float* second = GetRaw( secondHandle );
 	float* result = GetRaw( resultHandle );
-
-	float mult = *GetRaw( multHandle );
 
 #ifdef NEOML_USE_MKL
 	if( first != result ) {
@@ -159,7 +151,7 @@ void CCpuMathEngine::vectorEltwiseLogSumExp(const CConstFloatHandle& firstHandle
 	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 
-	CFloatHandleVar tempBuffer( mathEngine(), vectorSize );
+	CFloatHandleStackVar tempBuffer( mathEngine(), vectorSize );
 
 	// Go through the vector and put the maximum into the result max, and -abs(first - second) into the tempBuffer
 	int sseSize;
