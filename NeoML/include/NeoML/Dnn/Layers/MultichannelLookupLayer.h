@@ -26,7 +26,8 @@ namespace NeoML {
 class NEOML_API CMultichannelLookupLayer : public CBaseLayer {
 	NEOML_DNN_LAYER( CMultichannelLookupLayer )
 public:
-	explicit CMultichannelLookupLayer( IMathEngine& mathEngine );
+	explicit CMultichannelLookupLayer( IMathEngine& mathEngine ) :
+		CBaseLayer( mathEngine, "CCnnMultichannelLookupLayer", /*isLearnable*/true ) {}
 
 	void Serialize( CArchive& archive ) override;
 
@@ -86,7 +87,7 @@ private:
 	CArray<CLookupDimension> dimensions;
 
 	// Indicates that "external" training should be used
-	bool useFrameworkLearning;
+	bool useFrameworkLearning = false;
 
 	CObjectArray<CDnnBlob> ownParams; // "internal" training parameters
 	CObjectArray<CDnnBlob>& getParams() { return useFrameworkLearning ? paramBlobs : ownParams; }

@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,12 +19,6 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/MultichannelLookupLayer.h>
 
 namespace NeoML {
-
-CMultichannelLookupLayer::CMultichannelLookupLayer( IMathEngine& mathEngine ) :
-	CBaseLayer( mathEngine, "CCnnMultichannelLookupLayer", true ),
-	useFrameworkLearning( false )
-{
-}
 
 void CMultichannelLookupLayer::SetDimensions(const CArray<CLookupDimension>& d)
 {
@@ -202,10 +196,8 @@ void CMultichannelLookupLayer::BackwardOnce()
 
 void CMultichannelLookupLayer::LearnOnce()
 {
-	CFloatHandleStackVar learningRate( MathEngine() );
-
 	if(useFrameworkLearning) {
-		learningRate.SetValue( 1 );
+		const float learningRate = ( 1.f );
 
 		CArray<CFloatHandle> lookupTables;
 		for( int j = 0; j < getParams().Size(); j++ ) {
@@ -229,7 +221,7 @@ void CMultichannelLookupLayer::LearnOnce()
 		}
 	} else {
 		const float rate = GetDnn()->GetSolver()->GetLearningRate() * GetBaseLearningRate();
-		learningRate.SetValue( -rate );
+		const float learningRate = ( -rate );
 
 		CArray<CFloatHandle> lookupTables;
 		for( int j = 0; j < getParams().Size(); j++ ) {
@@ -277,14 +269,13 @@ void CMultichannelLookupLayer::Word2VecStep( IMathEngine& mathEngine, int batchS
 	CFloatHandle context2vec = context2vecLayer.getParams()[0]->GetData();
 
 	// Execute
-	int totalPositive = batchSize * positiveCount;
-	int totalNegative = batchSize * negativeCount;
+	const int totalPositive = batchSize * positiveCount;
+	const int totalNegative = batchSize * negativeCount;
 
-	CFloatHandleStackVar buffer( mathEngine, totalPositive + totalNegative + batchSize * vectorLen + 1 );
+	CFloatHandleStackVar buffer( mathEngine, totalPositive + totalNegative + batchSize * vectorLen );
 	CFloatHandle positiveRes = buffer.GetHandle();
 	CFloatHandle negativeRes = positiveRes + totalPositive;
 	CFloatHandle diff = negativeRes + totalNegative;
-	CFloatHandle temp = buffer.GetHandle() + buffer.Size() - 1;
 
 	// Calculate correlation between the word vectors and their contexts
 	// Should be positive for positive contexts and negative for negative contexts
@@ -319,13 +310,12 @@ void CMultichannelLookupLayer::Word2VecStep( IMathEngine& mathEngine, int batchS
 		}
 
 		mathEngine.VectorSum(positiveTemp, totalPositive + totalNegative, loss);
-		temp.SetValue( 1.f / (totalPositive + totalNegative) );
-		mathEngine.VectorEltwiseMultiply(loss, temp, loss, 1);
+		const float coeff( 1.f / (totalPositive + totalNegative) );
+		mathEngine.VectorMultiply( loss, loss, 1, coeff );
 	}
 
 	// Calculate loss gradient
-	temp.SetValue(-1.f);
-	mathEngine.VectorAddValue(positiveRes, positiveRes, totalPositive, temp);
+	mathEngine.VectorAddValue(positiveRes, positiveRes, totalPositive, -1.f );
 
 	// Take weights into account
 	if(!positiveWeights.IsNull()) {
