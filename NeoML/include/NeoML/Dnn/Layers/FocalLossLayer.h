@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -40,7 +40,7 @@ public:
 	// The focal force, that is, the degree to which learning will concentrate on similar objects.
 	// The greater the number, the more focused the learning will become. Always > 0
 	// In the paper referred to it is called gamma
-	float GetFocalForce() const { return focalForce->GetData().GetValue(); }
+	float GetFocalForce() const { return focalForce; }
 	void SetFocalForce( float value );
 	
 protected:
@@ -51,14 +51,7 @@ protected:
 private:
 	// The gamma parameter from the paper
 	// Specifies the degree to which learning will concentrate on difficult-to-distinguish objects
-	CPtr<CDnnBlob> focalForce;
-
-	// -1
-	CPtr<CDnnBlob> minusOne;
-
-	// The handle for acceptable minimum and maximum probability values (so that separation can be performed correctly)
-	CPtr<CDnnBlob> minProbValue;
-	CPtr<CDnnBlob> maxProbValue;
+	float focalForce;
 
 	// Calculates the function gradient
 	void calculateGradient( CFloatHandle correctClassProbabilityPerBatchHandle, int batchSize, int labelSize,
