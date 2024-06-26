@@ -21,34 +21,15 @@ limitations under the License.
 
 namespace NeoML {
 
-CCenterLossLayer::CCenterLossLayer( IMathEngine& mathEngine ) :
-	CLossLayer( mathEngine, "CCnnCenterLossLayer" ),
-	numberOfClasses( 0 ),
-	classCentersConvergenceRate( CDnnBlob::CreateVector( mathEngine, CT_Float, 1 ) ),
-	oneMult( CDnnBlob::CreateVector( mathEngine, CT_Float, 1 ) )
-{
-	classCentersConvergenceRate->GetData().SetValue( 0.0f );
-	oneMult->GetData().SetValue( 1.f );
-}
-
-static const int CenterLossLayerVersion = 2000;
+static constexpr int centerLossLayerVersion = 2000;
 
 void CCenterLossLayer::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion( CenterLossLayerVersion, CDnn::ArchiveMinSupportedVersion );
+	archive.SerializeVersion( centerLossLayerVersion, CDnn::ArchiveMinSupportedVersion );
 	CLossLayer::Serialize( archive );
 
 	archive.Serialize( numberOfClasses );
-
-	if( archive.IsStoring() ) {
-		archive << GetClassCentersConvergenceRate();
-	} else if( archive.IsLoading() ) {
-		float tmp;
-		archive >> tmp;
-		SetClassCentersConvergenceRate( tmp );
-	} else {
-		NeoAssert( false );
-	}
+	archive.Serialize( classCentersConvergenceRate );
 }
 
 void CCenterLossLayer::Reshape()
@@ -105,7 +86,6 @@ void CCenterLossLayer::updateCenters( const CConstFloatHandle& tempDiff )
 	const int classCentersSize = classCentersBlob->GetDataSize();
 
 	CFloatHandleStackVar temp( MathEngine(), classCentersSize * 2 + inputSize );
-
 	CFloatHandle classCentersNumerator = temp;
 	CFloatHandle classCentersDenominator = temp + classCentersSize;
 	CFloatHandle onesTempBlob = temp + classCentersSize * 2;
@@ -120,23 +100,22 @@ void CCenterLossLayer::updateCenters( const CConstFloatHandle& tempDiff )
 
 	CLookupDimension lookupDimension( /*count*/numberOfClasses, /*size*/numberOfFeatures );
 	MathEngine().VectorMultichannelLookupAndAddToTable( objectCount, 1, labels,
-		handlesArray, &lookupDimension, 1, oneMult->GetData(), tempDiff, numberOfFeatures );
+		handlesArray, &lookupDimension, 1, 1.f, tempDiff, numberOfFeatures );
 
-	MathEngine().VectorFill( onesTempBlob, 1.0f, inputSize );
+	MathEngine().VectorFill( onesTempBlob, 1.f, inputSize );
 	// The denominator of the correction: 1 + the number of elements of this class in the batch
-	MathEngine().VectorFill(classCentersDenominator, 1.0f, classCentersSize);
+	MathEngine().VectorFill(classCentersDenominator, 1.f, classCentersSize);
 	handlesArray[0] = classCentersDenominator;
 
 	MathEngine().VectorMultichannelLookupAndAddToTable( objectCount, 1, labels,
-		handlesArray, &lookupDimension, 1, oneMult->GetData(), onesTempBlob, numberOfFeatures );
+		handlesArray, &lookupDimension, 1, 1.f, onesTempBlob, numberOfFeatures );
 
-	// The final correction = \alpha * numerator / denominator
+	// The final correction = alpha * numerator / denominator
 	MathEngine().VectorEltwiseDivide( classCentersNumerator, classCentersDenominator,
 		classCentersNumerator, classCentersSize );
 	MathEngine().VectorMultiply( classCentersNumerator, classCentersNumerator,
-		classCentersSize, classCentersConvergenceRate->GetData() );
-	MathEngine().VectorAdd( classCenters, classCentersNumerator, classCenters,
-		classCentersSize );
+		classCentersSize, classCentersConvergenceRate );
+	MathEngine().VectorAdd( classCenters, classCentersNumerator, classCenters, classCentersSize );
 }
 
 CLayerWrapper<CCenterLossLayer> CenterLoss(
