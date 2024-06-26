@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,17 +22,11 @@ limitations under the License.
 
 namespace NeoML {
 
-CCrossEntropyLossLayer::CCrossEntropyLossLayer( IMathEngine& mathEngine ) :
-	CLossLayer( mathEngine, "CCnnCrossEntropyLossLayer" ),
-	isSoftmaxApplied( true )
-{
-}
-
 void CCrossEntropyLossLayer::BatchCalculateLossAndGradient( int batchSize, CConstFloatHandle data, int vectorSize,
 	CConstFloatHandle label, int labelSize, CFloatHandle lossValue, CFloatHandle lossGradient )
 {
 	BatchCalculateLossAndGradient( batchSize, data, vectorSize, label, labelSize,
-		lossValue, lossGradient, CFloatHandle() );
+		lossValue, lossGradient, CFloatHandle{} );
 }
 
 void CCrossEntropyLossLayer::BatchCalculateLossAndGradient( int batchSize, CConstFloatHandle data, int vectorSize,
@@ -40,22 +34,18 @@ void CCrossEntropyLossLayer::BatchCalculateLossAndGradient( int batchSize, CCons
 {
 	CheckLayerArchitecture( labelSize == vectorSize,
 		"for float labels the dimensions should be equal to the first input dimensions" );
-
-	int totalSize = batchSize * vectorSize;
-
 	CheckLayerArchitecture( vectorSize >= 2, "CrossEntropyLoss layer works only with multi-class classification" );
 
-	CFloatHandleStackVar activation( MathEngine(), totalSize );
-	CFloatHandleStackVar activationEltwiseMul( MathEngine(), totalSize );
+	const int totalSize = batchSize * vectorSize;
+	CFloatHandleStackVar activation( MathEngine(), totalSize * 2 );
+	CFloatHandle activationEltwiseMul = activation.GetHandle() + totalSize;
 
 	if( isSoftmaxApplied ) {
 		MathEngine().MatrixSoftmaxByRows( data, batchSize, vectorSize, activation );
 	} else {
 		// For computational stability
-		CFloatHandleStackVar maxValue( MathEngine() );
-		maxValue.SetValue( 1.f - FLT_EPSILON );
-		CFloatHandleStackVar minValue( MathEngine() );
-		minValue.SetValue( FLT_EPSILON );
+		const float maxValue = ( 1.f - FLT_EPSILON );
+		const float minValue = ( FLT_EPSILON );
 		MathEngine().VectorMinMax( data, activation, totalSize, minValue, maxValue );
 	}
 
@@ -83,7 +73,7 @@ void CCrossEntropyLossLayer::BatchCalculateLossAndGradient( int batchSize, CCons
 	}
 
 	// Put 0 for those elements for which the label sum is 0
-	CFloatHandleStackVar& labelSum = activation;
+	CFloatHandle labelSum = activation;
 	MathEngine().SumMatrixColumns( labelSum, label, batchSize, vectorSize );
 	MathEngine().MultiplyDiagMatrixByMatrix( labelSum, batchSize, activationEltwiseMul, vectorSize,
 		lossGradient, totalSize );
@@ -94,22 +84,18 @@ void CCrossEntropyLossLayer::BatchCalculateLossAndGradient( int batchSize, CCons
 {
 	CheckLayerArchitecture( labelSize == 1,
 		"for int labels each object in the blob should contain the number of the class" );
-
-	int totalSize = batchSize * vectorSize;
-
 	CheckLayerArchitecture( vectorSize >= 2, "CrossEntropyLoss layer works only with multi-class classification" );
 
-	CFloatHandleStackVar activationMul( MathEngine(), batchSize );
-	CFloatHandleStackVar activation( MathEngine(), totalSize );
+	const int totalSize = batchSize * vectorSize;
+	CFloatHandleStackVar activationMul( MathEngine(), batchSize + totalSize );
+	CFloatHandle activation = activationMul.GetHandle() + batchSize;
 
 	if( isSoftmaxApplied ) {
 		MathEngine().MatrixSoftmaxByRows( data, batchSize, vectorSize, activation );
 	} else {
 		// For computational stability
-		CFloatHandleStackVar maxValue( MathEngine() );
-		maxValue.SetValue( 1.f - FLT_EPSILON );
-		CFloatHandleStackVar minValue( MathEngine() );
-		minValue.SetValue( FLT_EPSILON );
+		const float maxValue = ( 1.f - FLT_EPSILON );
+		const float minValue = ( FLT_EPSILON );
 		MathEngine().VectorMinMax( data, activation, totalSize, minValue, maxValue );
 	}
 
@@ -127,9 +113,7 @@ void CCrossEntropyLossLayer::BatchCalculateLossAndGradient( int batchSize, CCons
 		MathEngine().VectorFill( activationMul, -1, batchSize );
 	} else {
 		MathEngine().VectorInv( activation, activation, totalSize );
-		CFloatHandleStackVar minusOne( MathEngine() );
-		minusOne.SetValue( -1 );
-		MathEngine().VectorMultiply( activation, activation, totalSize, minusOne );
+		MathEngine().VectorMultiply( activation, activation, totalSize, -1.f );
 		MathEngine().VectorFill( activationMul, 0, batchSize );
 		MathEngine().AddMatrixElementsToVector( activation, batchSize, vectorSize, label, activationMul, batchSize );
 		MathEngine().VectorFill( activation, 1, totalSize );
@@ -141,7 +125,7 @@ void CCrossEntropyLossLayer::BatchCalculateLossAndGradient( int batchSize, CCons
 	MathEngine().MultiplyDiagMatrixByMatrix( activationMul, batchSize, activation, vectorSize, lossGradient, totalSize );
 }
 
-static const int CrossEntropyLossLayerVersion = 2000;
+static constexpr int CrossEntropyLossLayerVersion = 2000;
 
 void CCrossEntropyLossLayer::Serialize( CArchive& archive )
 {
@@ -151,8 +135,7 @@ void CCrossEntropyLossLayer::Serialize( CArchive& archive )
 	archive.Serialize( isSoftmaxApplied );
 }
 
-CLayerWrapper<CCrossEntropyLossLayer> CrossEntropyLoss(
-	bool isSoftmaxApplied, float lossWeight )
+CLayerWrapper<CCrossEntropyLossLayer> CrossEntropyLoss( bool isSoftmaxApplied, float lossWeight )
 {
 	return CLayerWrapper<CCrossEntropyLossLayer>( "CrossEntropyLoss", [=]( CCrossEntropyLossLayer* result ) {
 		result->SetApplySoftmax( isSoftmaxApplied );
