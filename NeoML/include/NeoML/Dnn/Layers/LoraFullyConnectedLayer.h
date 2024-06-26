@@ -1,4 +1,4 @@
-/* Copyright © 2023 ABBYY
+/* Copyright © 2023-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -128,7 +128,7 @@ private:
 	CDropoutDesc* desc = nullptr; // dropout description
 	CPtr<CDnnBlob> weightsBase; // weights Base transposed (as default)
 	CPtr<CDnnBlob> freeTermsBase; // freeTerms Base as default
-	CPtr<CDnnBlob> scaling; // scaling = lora.Alpha / lora.Rank
+	float scaling; // scaling = lora.Alpha / lora.Rank
 
 	void initialize( const CLoraParams& params );
 	void merge();
