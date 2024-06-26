@@ -1,4 +1,4 @@
-/* Copyright © 2023 ABBYY
+/* Copyright © 2023-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,8 +20,6 @@ limitations under the License.
 #include <NeoMathEngine/NeoMathEngine.h>
 
 namespace NeoML {
-
-//----------------------------------------------------------------------------------------------
 
 CLoraFullyConnectedLayer::CLoraFullyConnectedLayer( IMathEngine& mathEngine, const char* name ) :
 	CBaseLayer( mathEngine, ( name != nullptr ) ? name : "CDnnLoraFullyConnectedLayer", /*isLearnable*/true )
@@ -199,8 +197,8 @@ void CLoraFullyConnectedLayer::RunOnce()
 			/*second*/WeightsA()->GetData(), AHeight,
 			/*result*/tempInputA, tempInputASize );
 
-		if( scaling->GetData().GetValue() != 1.f ) {
-			MathEngine().VectorMultiply( tempInputA, tempInputA, tempInputASize, scaling->GetData() );
+		if( scaling != 1.f ) {
+			MathEngine().VectorMultiply( tempInputA, tempInputA, tempInputASize, scaling );
 		}
 
 		MathEngine().MultiplyMatrixByTransposedMatrix( /*batchSize*/1,
@@ -258,8 +256,8 @@ void CLoraFullyConnectedLayer::BackwardOnce()
 		/*second*/WeightsB()->GetData(), BWidth,
 		/*result*/tempBDiff, tempBDiffSize );
 
-	if( scaling->GetData().GetValue() != 1.f ) {
-		MathEngine().VectorMultiply( tempBDiff, tempBDiff, tempBDiffSize, scaling->GetData() );
+	if( scaling != 1.f ) {
+		MathEngine().VectorMultiply( tempBDiff, tempBDiff, tempBDiffSize, scaling );
 	}
 
 	const int AWidth = WeightsA()->GetObjectSize();
@@ -316,8 +314,8 @@ void CLoraFullyConnectedLayer::LearnOnce()
 			/*second*/WeightsB()->GetData(), BWidth,
 			/*result*/tempBDiff, tempBDiffSize );
 
-		if( scaling->GetData().GetValue() != 1.f ) {
-			MathEngine().VectorMultiply( tempBDiff, tempBDiff, tempBDiffSize, scaling->GetData() );
+		if( scaling != 1.f ) {
+			MathEngine().VectorMultiply( tempBDiff, tempBDiff, tempBDiffSize, scaling );
 		}
 
 		const int AWidth = WeightsADiff()->GetObjectSize();
@@ -354,13 +352,8 @@ void CLoraFullyConnectedLayer::initialize( const CLoraParams& params )
 	NeoAssert( params.Alpha > 0.f );
 
 	lora = params;
-	const float scale = lora.Alpha / lora.Rank;
-	NeoAssert( scale > 0.f );
-
-	if( scaling == nullptr ) {
-		scaling = CDnnBlob::CreateVector( MathEngine(), CT_Float, 1 );
-	}
-	scaling->GetData().SetValue( scale );
+	scaling = lora.Alpha / lora.Rank;
+	NeoAssert( scaling > 0.f );
 }
 
 void CLoraFullyConnectedLayer::merge()
@@ -399,18 +392,13 @@ void CLoraFullyConnectedLayer::recalcBaseWeights()
 	const int bSize = lora.Rank * outputSize;
 	NeoAssert( WeightsB()->GetDataSize() == bSize );
 
-	CFloatHandleStackVar temp( MathEngine(), static_cast<size_t>( bSize + 1 ) );
-	CFloatHandle bTransposed = temp.GetHandle();
-	CFloatHandle mult = temp.GetHandle() + bSize;
-
+	CFloatHandleStackVar bTransposed( MathEngine(), static_cast<size_t>( bSize ) );
 	MathEngine().TransposeMatrix( /*batchSize*/1, WeightsB()->GetData(),
 		/*h*/outputSize, /*mid*/1, /*w*/lora.Rank, /*channels*/1, bTransposed, bSize );
 
 	// during split we must substract A*B from merged weights
-	const float scale = scaling->GetData().GetValue();
-	const float multValue = IsMerged() ? scale : -scale;
-	if( multValue != 1 ) {
-		mult.SetValue( multValue );
+	const float mult = IsMerged() ? scaling : -scaling;
+	if( mult != 1 ) {
 		MathEngine().VectorMultiply( bTransposed, bTransposed, bSize, mult );
 	}
 
