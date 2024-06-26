@@ -396,7 +396,9 @@ public:
 	static const TCalculationMode CM_Precise = CParam::TCalculationMode::CM_Precise;
 	static const TCalculationMode CM_SigmoidApproximate = CParam::TCalculationMode::CM_SigmoidApproximate;
 
-	explicit CGELULayer( IMathEngine& mathEngine );
+	explicit CGELULayer( IMathEngine& mathEngine ) :
+		CBaseLayer( mathEngine, "CGELULayer", false )
+	{}
 
 	void Serialize( CArchive& archive ) override;
 
