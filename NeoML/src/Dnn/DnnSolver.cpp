@@ -285,18 +285,16 @@ void CDnnSolver::clipGradients( const CObjectArray<CDnnBlob>& paramDiffBlobs )
 			paramDiffBlobs[i]->GetDataSize(), tempVar );
 		MathEngine().VectorAdd( gradVar, tempVar, gradVar, 1 );
 	}
-	NeoPresume( std::isfinite( gradVar.GetValue() ) );
-	MathEngine().VectorSqrt( gradVar, gradVar, 1 );
 
+	float grad = gradVar.GetValue(); // CUDA sync
+	NeoPresume( std::isfinite( grad ) );
 	// Calculate scale
-	MathEngine().VectorMax( gradVar, maxGradientNorm, gradVar, 1 );
-	MathEngine().VectorInv( gradVar, tempVar, 1 );
-	MathEngine().VectorMultiply( tempVar, tempVar, 1, maxGradientNorm );
+	grad = maxGradientNorm / std::max( sqrtf( grad ), maxGradientNorm );
 
 	// Decrease the gradient
 	for( int i = 0; i < paramDiffBlobs.Size(); ++i ) {
 		MathEngine().VectorMultiply( paramDiffBlobs[i]->GetData(), paramDiffBlobs[i]->GetData(),
-			paramDiffBlobs[i]->GetDataSize(), tempVar );
+			paramDiffBlobs[i]->GetDataSize(), grad );
 	}
 }
 
@@ -934,7 +932,6 @@ void CDnnLambGradientSolver::TrainLayer( const CBaseLayer* layer, const CObjectA
 		// Add squared L2-norm for calculation of L2-norm of the whole mode
 		if( useNvLamb ) {
 			const float invSquareClipMultiplier = 1.0f / ( clipMultiplier * clipMultiplier );
-			//normL2Var->GetData().SetValue( 0.f ); // CUDA sync
 			MathEngine().VectorSum( TempData(), dataSize, normL2Var->GetData() );
 			const float layerNormL2 = normL2Var->GetData().GetValue(); // CUDA sync
 			layersGradientNormSquare.Add( invSquareClipMultiplier * layerNormL2 );
@@ -977,10 +974,8 @@ float CDnnLambGradientSolver::calcL2NormAverage( const CConstFloatHandle& data, 
 	const float multiplier( 1.f / dataSize );
 	MathEngine().VectorMultiply( data, tempNormBlob->GetData(), dataSize, multiplier );
 
-	//normL2Var->GetData().SetValue( 0.f ); // CUDA sync
 	MathEngine().VectorDotProduct( tempNormBlob->GetData(), tempNormBlob->GetData(), dataSize, normL2Var->GetData() );
-	MathEngine().VectorSqrt( normL2Var->GetData(), normL2Var->GetData(), 1 );
-	return normL2Var->GetData().GetValue(); // CUDA sync
+	return sqrtf( normL2Var->GetData().GetValue() ); // CUDA sync
 }
 
 // Parameter indices, used in weightDecay
