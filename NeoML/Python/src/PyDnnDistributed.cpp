@@ -69,7 +69,7 @@ py::array CPyDistributedTraining::LastLosses( const std::string& layer )
 {
 	CArray<float> losses;
 	GetLastLoss( layer, losses );
-	py::array_t<float, py::array::c_style> lastLosses( { losses.Size() } );
+	py::array_t<float, py::array::c_style> lastLosses( ssize_t{ losses.Size() } );
 	memcpy( static_cast<float*>( lastLosses.request().ptr ), losses.GetPtr(), losses.Size() * sizeof( float ) );
 	return lastLosses;
 }

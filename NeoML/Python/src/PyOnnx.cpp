@@ -48,7 +48,7 @@ static py::dict wrapResults( const NeoOnnx::CImportedModelInfo& cInfo )
 
 static void fillLayouts(py::object pyLayouts, CMap<CString, NeoOnnx::CTensorLayout>& layouts)
 {
-	if( pyLayouts == Py_None ) {
+	if( pyLayouts.is_none() ) {
 		return;
 	}
 

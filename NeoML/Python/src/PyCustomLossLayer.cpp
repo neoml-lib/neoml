@@ -121,7 +121,7 @@ protected:
 		CheckArchitecture( false, GetName(), "The custom loss layer doesn't support int labels!" );
 	}
 
-	void Serialize( CArchive& archive )
+	void Serialize( CArchive& archive ) override
 	{
 		archive.SerializeVersion( PythonLossLayerVersion, 1 );
 		CLossLayer::Serialize( archive );

@@ -21,7 +21,7 @@ limitations under the License.
 
 static inline py::array getArray( const CArray<float>& matr )
 {
-	py::array_t<float, py::array::c_style> array( { matr.Size() } );
+	py::array_t<float, py::array::c_style> array( ssize_t{ matr.Size() } );
 	memcpy( static_cast<float*>( array.request().ptr ), matr.GetPtr(), matr.Size() * sizeof( float ) );
 	return array;
 }
@@ -217,7 +217,7 @@ void InitializePCA(py::module& m)
 			leftArray.resize( { height, components } );
 			memcpy( static_cast<float*>( leftArray.request().ptr ), leftVectors.GetPtr(), height * components * sizeof( float ) );
 		}
-		py::array_t<float, py::array::c_style> singularArray( { components } );
+		py::array_t<float, py::array::c_style> singularArray( ssize_t{ components } );
 		memcpy( static_cast<float*>( singularArray.request().ptr ), singularValues.GetPtr(), components * sizeof( float ) );
 		py::array_t<float, py::array::c_style> rightArray;
 		if( returnRightVectors ) {

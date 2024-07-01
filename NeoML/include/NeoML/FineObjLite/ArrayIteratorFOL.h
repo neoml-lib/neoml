@@ -96,7 +96,7 @@ inline CConstArrayIterator<TArray>::CConstArrayIterator( const TElement* _ptr, c
 #ifdef _DEBUG
 	arr = _arr;
 #else // !_DEBUG
-	_arr;
+	( void ) _arr;
 #endif // _DEBUG
 }
 
