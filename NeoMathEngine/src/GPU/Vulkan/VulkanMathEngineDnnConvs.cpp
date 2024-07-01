@@ -139,7 +139,7 @@ void CVulkanMathEngine::BlobRleConvolution( const CRleConvolutionDesc& desc, con
 	const CVulkanRleConvolutionDesc& rleDesc = static_cast<const CVulkanRleConvolutionDesc&>( desc );
 	const CCommonConvolutionDesc* convDesc = static_cast<const CCommonConvolutionDesc*>( rleDesc.ConvDesc );
 
-	CFloatHandleVar inputConverted( mathEngine(), convDesc->Source.BlobSize() );
+	CFloatHandleStackVar inputConverted( mathEngine(), convDesc->Source.BlobSize() );
 	blobConvertFromRleCommon( rleDesc, sourceData, inputConverted );
 	BlobConvolution( *(rleDesc.ConvDesc), inputConverted, filterData, freeTermData, resultData );
 }

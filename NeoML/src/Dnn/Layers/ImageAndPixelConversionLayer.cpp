@@ -54,9 +54,7 @@ static void shiftIndices( int imageSize, IMathEngine& mathEngine, CDnnBlob& indi
 	mathEngine.VectorFill( result.GetData<int>(), 0, result.GetDataSize() );
 	// Add imageSize value to negative indices
 	mathEngine.VectorEltwiseLess( indices.GetData<int>(), result.GetData<int>(), result.GetData<int>(), result.GetDataSize() );
-	CIntHandleStackVar imageSizeVar( mathEngine );
-	imageSizeVar.SetValue( imageSize );
-	mathEngine.VectorMultiply( result.GetData<int>(), result.GetData<int>(), result.GetDataSize(), imageSizeVar );
+	mathEngine.VectorMultiply( result.GetData<int>(), result.GetData<int>(), result.GetDataSize(), imageSize );
 	mathEngine.VectorAdd( result.GetData<int>(), indices.GetData<int>(), result.GetData<int>(), result.GetDataSize() );
 	// Add shift to emulate big batchSize x height x width lookup table
 	mathEngine.AddVectorToMatrixColumns( result.GetData<int>(), result.GetData<int>(),

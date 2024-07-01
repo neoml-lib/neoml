@@ -254,4 +254,34 @@ void CreateDistributedCudaMathEngines( IMathEngine** mathEngines, int devsCount,
 #endif
 }
 
+//------------------------------------------------------------------------------------------------------------
+
+void IVectorMathEngine::VectorReLUDiffOp( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
+	const CFloatHandle& resultHandle, int vectorSize, CFloatParam upperThreshold )
+{
+	VectorReLUDiff( firstHandle, secondHandle, resultHandle, vectorSize, upperThreshold );
+}
+
+void IVectorMathEngine::VectorLeakyReLUDiffOp( const CConstFloatHandle& firstHandle,
+	const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle,
+	int vectorSize, CFloatParam alpha )
+{
+	VectorLeakyReLUDiff( firstHandle, secondHandle, resultHandle, vectorSize, alpha );
+}
+
+void IVectorMathEngine::VectorHardTanhDiffOp( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
+	const CFloatHandle& resultHandle, int vectorSize )
+{
+	VectorHardTanhDiff( firstHandle, secondHandle, resultHandle, vectorSize );
+}
+
+//------------------------------------------------------------------------------------------------------------
+
+void IBlasEngine::MultiplyMatrixByDiagMatrix( const CConstFloatHandle& firstHandle, int firstHeight, int firstWidth,
+	const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int resultBufferSize )
+{
+	BatchMultiplyMatrixByDiagMatrix( 1, firstHandle, firstHeight, firstWidth, firstHeight * firstWidth,
+		secondHandle, firstWidth, resultHandle, resultBufferSize );
+}
+
 } // namespace NeoML

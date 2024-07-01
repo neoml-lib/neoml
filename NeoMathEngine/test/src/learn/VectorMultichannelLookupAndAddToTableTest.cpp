@@ -72,7 +72,7 @@ static void multichannelLookupAndAddToTableImpl( const CTestParams& params, int 
 		resultChannelCount += lookupDimensions[i].VectorSize;
 	}
 
-	CMemoryHandleVar<T> inputHandle( MathEngine(), inputData.size() );
+	CMemoryHandleStackVar<T> inputHandle( MathEngine(), inputData.size() );
 	MathEngine().DataExchangeTyped( inputHandle.GetHandle(), inputData.data(), inputData.size() );
 	CREATE_FILL_FLOAT_ARRAY( matrix, valuesInterval.Begin, valuesInterval.End, batchSize * resultChannelCount, random )
 
