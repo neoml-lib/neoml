@@ -71,18 +71,25 @@ public:
 	// Returns the current learning rate
 	float GetLearningRate() const;
 	// Runs the networks without backward and training
+	// NOTE: Main thread waits while all tasks are done
 	void RunOnce( IDistributedDataset& data );
 	// Runs the networks and performs a backward pass
+	// NOTE: Main thread waits while all tasks are done
 	void RunAndBackwardOnce( IDistributedDataset& data );
 	// Runs the networks, performs a backward pass and updates the trainable weights of all models
+	// NOTE: Main thread waits while all tasks are done
 	void RunAndLearnOnce( IDistributedDataset& data );
 	// Updates the trainable weights of all models (after RunAndBackwardOnce)
+	// NOTE: Main thread waits while all tasks are done
 	void Train();
 	// Returns last loss of `layerName` for all models
 	// `layerName` should correspond to CLossLayer, CCtcLossLayer or CCrfLossLayer
 	void GetLastLoss( const CString& layerName, CArray<float>& losses ) const;
 	// Returns last blobs of `layerName` for all models
 	// `layerName` should correspond to CSinkLayer
+	// NOTE: This blobs are part of the dnn and may be overwritten by next task of 
+	//       `RunOnce`, `RunAndBackwardOnce` or `RunAndLearnOnce`.
+	//       Use it after each task and copy them if you need to store the result.
 	void GetLastBlob( const CString& layerName, CObjectArray<CDnnBlob>& blobs ) const;
 	// Save trained net
 	void Serialize( CArchive& archive );
@@ -91,13 +98,22 @@ public:
 	void StoreDnn( CArchive& archive, int index, bool storeSolver );
 
 private:
+	// Either multi-threads on a CPU or multi-devices GPU
 	const bool isCpu;
+	// If multi-threads on a CPU, it is an operator of worker threads
 	IThreadPool* const threadPool;
-	CArray<IMathEngine*> mathEngines;
+	// Separate mathEngine for each thread or device both for CPU and GPU training
+	CArray<IMathEngine*> mathEngines; // (cannot use CPointerArray, as a raw array needs to initialize engines)
+	// Separate random generator for each dnn in a thread
 	CPointerArray<CRandom> rands;
+	// Separate dnn for each thread
 	CPointerArray<CDnn> cnns;
+	// Separate `batchSize` for each dnn (may be empty) in a thread
 	CArray<int> batchSize;
+	// `Train()` cannot be called if it `isFirstRun`
+	// `batchSize` may not be equal 0, if it `isFirstRun` for `RunOnce`, `RunAndBackwardOnce` or `RunAndLearnOnce`.
 	bool isFirstRun = true;
+	// Container for error if it happened
 	CString errorMessage;
 
 	void initialize( CArchive& archive, int count, TDistributedInitializer initializer, int seed );
@@ -120,20 +136,25 @@ public:
 	// Gets the created models number
 	int GetModelCount() const { return params.Dnns.Size(); }
 	// Runs the inference for all of the networks
+	// NOTE: Main thread waits while all tasks are done
 	void RunOnce( IDistributedDataset& data );
 	// Returns last blobs of `layerName` for all models
 	// `layerName` should correspond to CSinkLayer
+	// NOTE: This blobs are part of the dnn and may be overwritten by next `RunOnce` task
+	//       Use it after each `RunOnce` task and copy them if you need to stare the result.
 	void GetLastBlob( const CString& layerName, CObjectArray<CDnnBlob>& blobs ) const;
 
 private:
 	struct CParams final {
-		IDistributedDataset* Data = nullptr;
-		CPointerArray<CDnn> Dnns;
-		CString ErrorMessage;
+		IDistributedDataset* Data = nullptr; // Pointer to data for the inference for all dnns
+		CPointerArray<CDnn> Dnns; // Separate dnn for each thread
+		CString ErrorMessage; // Container for error if it happened
 	};
-
+	// The random generator for original dnn, reference dnn stores their randoms for themselves
 	CRandom random;
+	// The operator of worker threads
 	IThreadPool* const threadPool;
+	// Each `RunOnce` task parameters
 	CParams params;
 
 	void initialize( IMathEngine& mathEngine, CArchive& archive, int threads_count );
