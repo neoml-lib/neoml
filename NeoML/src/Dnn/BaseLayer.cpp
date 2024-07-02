@@ -313,10 +313,14 @@ void CBaseLayer::transferParamsBlob( CBaseLayer& dist ) const
 			compositeFrom->GetLayer( layerName )->transferParamsBlob( *compositeTo->GetLayer( layerName ) );
 		}
 	} else {
-		dist.paramBlobs.SetSize( paramBlobs.Size() );
+		NeoAssertMsg( dist.paramBlobs.Size() == paramBlobs.Size(), "transferParamsBlob: It isn't a copy of the layer" );
+
+		NeoAssertMsg( !dist.IsLearnable() || paramBlobs.Size() > 0,
+			"transferParamsBlob: The origin dnn should be trained and reshaped to create a reference dnn" );
 		// Create reference copy of dist.paramBlobs with shared buffer
 		// Takes a pointer to parent's blob to access memory
 		for( int j = 0; j < dist.paramBlobs.Size(); ++j ) {
+			NeoAssertMsg( paramBlobs[j] != nullptr, "transferParamsBlob: All trainable paramBlobs should exist" );
 			dist.paramBlobs[j] = CDnnBlob::CreateWindowBlob( paramBlobs[j], paramBlobs[j]->GetDesc().BatchLength() );
 		}
 	}
