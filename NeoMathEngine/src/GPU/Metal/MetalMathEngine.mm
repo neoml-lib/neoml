@@ -64,19 +64,12 @@ bool LoadMetalEngineInfo( CMathEngineInfo& info )
 
 //----------------------------------------------------------------------------------------------------------------------------
 
-// Not using STL in headers
-class CMutex : public std::mutex {
-};
-
-//----------------------------------------------------------------------------------------------------------------------------
-
 const int MetalMemoryAlignment = 16;
 
 CMetalMathEngine::CMetalMathEngine( size_t memoryLimit ) :
 	queue( new CMetalCommandQueue() ),
 	memoryPool( new CMemoryPool( MIN( memoryLimit == 0 ? SIZE_MAX : memoryLimit, defineMemoryLimit() ), this, false ) ),
-	deviceStackAllocator( new CDeviceStackAllocator( *memoryPool, MetalMemoryAlignment ) ),
-	mutex( new CMutex() )
+	deviceStackAllocator( new CDeviceStackAllocator( *memoryPool, MetalMemoryAlignment ) )
 {
 	ASSERT_EXPR( queue->Create() );
 }
@@ -87,31 +80,31 @@ CMetalMathEngine::~CMetalMathEngine()
 
 void CMetalMathEngine::SetReuseMemoryMode( bool enable )
 {
-	std::lock_guard<CMutex> lock( *mutex );
+	std::lock_guard<std::mutex> lock( mutex );
 	memoryPool->SetReuseMemoryMode( enable );
 }
 
 bool CMetalMathEngine::GetReuseMemoryMode() const
 {
-	std::lock_guard<CMutex> lock( *mutex );
+	std::lock_guard<std::mutex> lock( mutex );
 	return memoryPool->GetReuseMemoryMode();
 }
 
 void CMetalMathEngine::SetThreadBufferMemoryThreshold( size_t threshold )
 {
-	std::lock_guard<CMutex> lock( *mutex );
+	std::lock_guard<std::mutex> lock( mutex );
 	memoryPool->SetThreadBufferMemoryThreshold( threshold );
 }
 
 size_t CMetalMathEngine::GetThreadBufferMemoryThreshold() const
 {
-	std::lock_guard<CMutex> lock( *mutex );
+	std::lock_guard<std::mutex> lock( mutex );
 	return memoryPool->GetThreadBufferMemoryThreshold();
 }
 
 CMemoryHandle CMetalMathEngine::HeapAlloc( size_t size )
 {
-	std::lock_guard<CMutex> lock( *mutex );
+	std::lock_guard<std::mutex> lock( mutex );
 	CMemoryHandle result = memoryPool->Alloc( size );
 	if( result.IsNull() ) {
 		THROW_MEMORY_EXCEPTION;
@@ -124,13 +117,13 @@ void CMetalMathEngine::HeapFree( const CMemoryHandle& handle )
 {
 	ASSERT_EXPR( handle.GetMathEngine() == this );
 
-	std::lock_guard<CMutex> lock( *mutex );
+	std::lock_guard<std::mutex> lock( mutex );
 	return memoryPool->Free( handle );
 }
 
 CMemoryHandle CMetalMathEngine::StackAlloc( size_t size )
 {
-	std::lock_guard<CMutex> lock( *mutex );
+	std::lock_guard<std::mutex> lock( mutex );
 	CMemoryHandle result = deviceStackAllocator->Alloc( size );
 	if( result.IsNull() ) {
 		THROW_MEMORY_EXCEPTION;
@@ -140,43 +133,43 @@ CMemoryHandle CMetalMathEngine::StackAlloc( size_t size )
 
 void CMetalMathEngine::StackFree( const CMemoryHandle& ptr )
 {
-	std::lock_guard<CMutex> lock( *mutex );
+	std::lock_guard<std::mutex> lock( mutex );
 	deviceStackAllocator->Free( ptr );
 }
 
 size_t CMetalMathEngine::GetFreeMemorySize() const
 {
-	std::lock_guard<CMutex> lock( *mutex );
+	std::lock_guard<std::mutex> lock( mutex );
 	return memoryPool->GetFreeMemorySize();
 }
 
 size_t CMetalMathEngine::GetPeakMemoryUsage() const
 {
-	std::lock_guard<CMutex> lock( *mutex );
+	std::lock_guard<std::mutex> lock( mutex );
 	return memoryPool->GetPeakMemoryUsage();
 }
 
 void CMetalMathEngine::ResetPeakMemoryUsage()
 {
-	std::lock_guard<CMutex> lock( *mutex );
+	std::lock_guard<std::mutex> lock( mutex );
 	memoryPool->ResetPeakMemoryUsage();
 }
 
 size_t CMetalMathEngine::GetCurrentMemoryUsage() const
 {
-	std::lock_guard<CMutex> lock( *mutex );
+	std::lock_guard<std::mutex> lock( mutex );
 	return memoryPool->GetCurrentMemoryUsage();
 }
 
 size_t CMetalMathEngine::GetMemoryInPools() const
 {
-	std::lock_guard<CMutex> lock( *mutex );
+	std::lock_guard<std::mutex> lock( mutex );
 	return memoryPool->GetMemoryInPools();
 }
 
 void CMetalMathEngine::CleanUp()
 {
-	std::lock_guard<CMutex> lock( *mutex );
+	std::lock_guard<std::mutex> lock( mutex );
 	deviceStackAllocator->CleanUp();
 	memoryPool->CleanUp();
 }

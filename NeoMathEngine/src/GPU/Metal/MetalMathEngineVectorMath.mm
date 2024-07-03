@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -262,11 +262,13 @@ void CMetalMathEngine::VectorEqual( const CConstIntHandle& firstHandle, const CC
 }
 
 void CMetalMathEngine::VectorEqualValue( const CConstIntHandle& firstHandle,
-    const CFloatHandle& resultHandle, int vectorSize, const CConstIntHandle& valueHandle )
+    const CFloatHandle& resultHandle, int vectorSize, CIntParam value )
 {
     ASSERT_EXPR( firstHandle.GetMathEngine() == this );
-    ASSERT_EXPR( valueHandle.GetMathEngine() == this );
     ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+    CIntHandleStackVar valueHandle( *this );
+    valueHandle.SetValue( value );
 
     C1DKernel kernel( *queue, "vectorKernelEqualValue", VectorCombineCount, vectorSize );
     kernel.SetParam( firstHandle, 0 );
@@ -277,60 +279,68 @@ void CMetalMathEngine::VectorEqualValue( const CConstIntHandle& firstHandle,
 }
 
 void CMetalMathEngine::VectorELU( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle,
-    int vectorSize, const CConstFloatHandle& alpha )
+    int vectorSize, CFloatParam alpha )
 {
     ASSERT_EXPR( firstHandle.GetMathEngine() == this );
-    ASSERT_EXPR( alpha.GetMathEngine() == this );
     ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+    CFloatHandleStackVar alphaVar( *this );
+    alphaVar.SetValue( alpha );
 
     C1DKernel kernel( *queue, "vectorKernelELU", VectorCombineCount, vectorSize );
     kernel.SetParam( firstHandle, 0 );
     kernel.SetParam( resultHandle, 1 );
     kernel.SetParam( vectorSize, 2 );
-    kernel.SetParam( alpha, 3 );
+    kernel.SetParam( alphaVar, 3 );
     ASSERT_EXPR( kernel.Run() );
 }
 
 void CMetalMathEngine::VectorELUDiff( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
-    const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& alpha )
+    const CFloatHandle& resultHandle, int vectorSize, CFloatParam alpha )
 {
     ASSERT_EXPR( firstHandle.GetMathEngine() == this );
     ASSERT_EXPR( secondHandle.GetMathEngine() == this );
     ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-    ASSERT_EXPR( alpha.GetMathEngine() == this );    
+
+    CFloatHandleStackVar alphaVar( *this );
+    alphaVar.SetValue( alpha );
 
     C1DKernel kernel( *queue, "vectorKernelELUDiff", VectorCombineCount, vectorSize );
     kernel.SetParam( firstHandle, 0 );
     kernel.SetParam( secondHandle, 1 );
     kernel.SetParam( resultHandle, 2 );
     kernel.SetParam( vectorSize, 3 );
-    kernel.SetParam( alpha, 4 );
+    kernel.SetParam( alphaVar, 4 );
     ASSERT_EXPR( kernel.Run() );
 }
 
 void CMetalMathEngine::VectorELUDiffOp( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
-    const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& alpha )
+    const CFloatHandle& resultHandle, int vectorSize, CFloatParam alpha )
 {
     ASSERT_EXPR( firstHandle.GetMathEngine() == this );
     ASSERT_EXPR( secondHandle.GetMathEngine() == this );
     ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-    ASSERT_EXPR( alpha.GetMathEngine() == this );    
+
+    CFloatHandleStackVar alphaVar( *this );
+    alphaVar.SetValue( alpha );
 
     C1DKernel kernel( *queue, "vectorKernelELUDiffOp", VectorCombineCount, vectorSize );
     kernel.SetParam( firstHandle, 0 );
     kernel.SetParam( secondHandle, 1 );
     kernel.SetParam( resultHandle, 2 );
     kernel.SetParam( vectorSize, 3 );
-    kernel.SetParam( alpha, 4 );
+    kernel.SetParam( alphaVar, 4 );
     ASSERT_EXPR( kernel.Run() );
 }
 
 void CMetalMathEngine::VectorReLU(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize,
-    const CConstFloatHandle& upperThresholdHandle )
+    CFloatParam upperThreshold)
 {
     ASSERT_EXPR( firstHandle.GetMathEngine() == this );
     ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-    ASSERT_EXPR( upperThresholdHandle.GetMathEngine() == this );    
+
+    CFloatHandleStackVar upperThresholdHandle( *this );
+    upperThresholdHandle.SetValue( upperThreshold );
 
     if( vectorSize >= 16 ) {
         C1DKernel kernel( *queue, "vectorKernelReLUFloat4", 16, vectorSize - vectorSize % 16 );
@@ -352,12 +362,14 @@ void CMetalMathEngine::VectorReLU(const CConstFloatHandle& firstHandle, const CF
 }
 
 void CMetalMathEngine::VectorReLUDiff(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
-    const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& upperThresholdHandle)
+    const CFloatHandle& resultHandle, int vectorSize, CFloatParam upperThreshold)
 {
     ASSERT_EXPR( firstHandle.GetMathEngine() == this );
     ASSERT_EXPR( secondHandle.GetMathEngine() == this );
     ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-    ASSERT_EXPR( upperThresholdHandle.GetMathEngine() == this );   
+
+    CFloatHandleStackVar upperThresholdHandle( *this );
+    upperThresholdHandle.SetValue( upperThreshold );
 
     C1DKernel kernel( *queue, "vectorKernelReLUDiff", VectorCombineCount, vectorSize );
     kernel.SetParam( firstHandle, 0 );
@@ -369,34 +381,38 @@ void CMetalMathEngine::VectorReLUDiff(const CConstFloatHandle& firstHandle, cons
 }
 
 void CMetalMathEngine::VectorLeakyReLU( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle,
-    int vectorSize, const CConstFloatHandle& alpha )
+    int vectorSize, CFloatParam alpha )
 {
     ASSERT_EXPR( firstHandle.GetMathEngine() == this );
     ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-    ASSERT_EXPR( alpha.GetMathEngine() == this );
+
+    CFloatHandleStackVar alphaVar( *this );
+    alphaVar.SetValue( alpha );
 
     C1DKernel kernel( *queue, "vectorKernelLeakyReLU", VectorCombineCount, vectorSize );
     kernel.SetParam( firstHandle, 0 );
     kernel.SetParam( resultHandle, 1 );
     kernel.SetParam( vectorSize, 2 );
-    kernel.SetParam( alpha, 3 );
+    kernel.SetParam( alphaVar, 3 );
     ASSERT_EXPR( kernel.Run() );
 }
 
 void CMetalMathEngine::VectorLeakyReLUDiff( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
-    const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& alpha )
+    const CFloatHandle& resultHandle, int vectorSize, CFloatParam alpha )
 {
     ASSERT_EXPR( firstHandle.GetMathEngine() == this );
     ASSERT_EXPR( secondHandle.GetMathEngine() == this );
     ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-    ASSERT_EXPR( alpha.GetMathEngine() == this );   
+
+    CFloatHandleStackVar alphaVar( *this );
+    alphaVar.SetValue( alpha );
 
     C1DKernel kernel( *queue, "vectorKernelLeakyReLUDiff", VectorCombineCount, vectorSize );
     kernel.SetParam( firstHandle, 0 );
     kernel.SetParam( secondHandle, 1 );
     kernel.SetParam( resultHandle, 2 );
     kernel.SetParam( vectorSize, 3 );
-    kernel.SetParam( alpha, 4 );
+    kernel.SetParam( alphaVar, 4 );
     ASSERT_EXPR( kernel.Run() );
 }
 
@@ -591,10 +607,15 @@ void CMetalMathEngine::VectorHardTanhDiff(const CConstFloatHandle& firstHandle, 
 }
 
 void CMetalMathEngine::VectorHardSigmoid(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize, 
-	const CConstFloatHandle& slopeHandle, const CConstFloatHandle& biasHandle)
+	CFloatParam slope, CFloatParam bias)
 {
     ASSERT_EXPR( firstHandle.GetMathEngine() == this );
     ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+    CFloatHandleStackVar slopeHandle( *this );
+    slopeHandle.SetValue( slope );
+    CFloatHandleStackVar biasHandle( *this );
+    biasHandle.SetValue( bias );
 
     C1DKernel kernel( *queue, "vectorKernelHardSigmoid", VectorCombineCount, vectorSize );
     kernel.SetParam( firstHandle, 0 );
@@ -606,11 +627,16 @@ void CMetalMathEngine::VectorHardSigmoid(const CConstFloatHandle& firstHandle, c
 }
 
 void CMetalMathEngine::VectorHardSigmoidDiff(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
-    const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& slopeHandle, const CConstFloatHandle& biasHandle)
+    const CFloatHandle& resultHandle, int vectorSize, CFloatParam slope, CFloatParam bias)
 {
     ASSERT_EXPR( firstHandle.GetMathEngine() == this );
     ASSERT_EXPR( secondHandle.GetMathEngine() == this );
     ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+    CFloatHandleStackVar slopeHandle( *this );
+    slopeHandle.SetValue( slope );
+    CFloatHandleStackVar biasHandle( *this );
+    biasHandle.SetValue( bias );
 
     C1DKernel kernel( *queue, "vectorKernelHardSigmoidDiff", VectorCombineCount, vectorSize );
     kernel.SetParam( firstHandle, 0 );
@@ -623,11 +649,14 @@ void CMetalMathEngine::VectorHardSigmoidDiff(const CConstFloatHandle& firstHandl
 }
 
 void CMetalMathEngine::VectorHardSigmoidDiffOp(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
-    const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& slopeHandle, const CConstFloatHandle& /*biasHandle*/)
+    const CFloatHandle& resultHandle, int vectorSize, CFloatParam slope, CFloatParam /*bias*/)
 {
     ASSERT_EXPR( firstHandle.GetMathEngine() == this );
     ASSERT_EXPR( secondHandle.GetMathEngine() == this );
     ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+    CFloatHandleStackVar slopeHandle( *this );
+    slopeHandle.SetValue( slope );
 
     C1DKernel kernel( *queue, "vectorKernelHardSigmoidDiffOp", VectorCombineCount, vectorSize );
     kernel.SetParam( firstHandle, 0 );
@@ -680,11 +709,13 @@ void CMetalMathEngine::VectorErf( const CConstFloatHandle&, const CFloatHandle&,
 }
 
 void CMetalMathEngine::VectorBernulliKLDerivative(const CConstFloatHandle& firstHandle,
-    const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& targetHandle)
+    const CFloatHandle& resultHandle, int vectorSize, CFloatParam target)
 {
     ASSERT_EXPR( firstHandle.GetMathEngine() == this );
-    ASSERT_EXPR( targetHandle.GetMathEngine() == this );
     ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+    CFloatHandleStackVar targetHandle( *this );
+    targetHandle.SetValue( target );
 
     C1DKernel kernel( *queue, "vectorKernelBernulliKLDerivative", 1, vectorSize );
     kernel.SetParam( firstHandle, 0 );
@@ -710,11 +741,13 @@ void CMetalMathEngine::VectorAdd(const CConstFloatHandle& firstHandle, const CCo
 }
 
 void CMetalMathEngine::VectorAddValue(const CConstFloatHandle& firstHandle,
-    const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& additionHandle)
+    const CFloatHandle& resultHandle, int vectorSize, CFloatParam addition)
 {
     ASSERT_EXPR( firstHandle.GetMathEngine() == this );
     ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-    ASSERT_EXPR( additionHandle.GetMathEngine() == this );   
+
+    CFloatHandleStackVar additionHandle( *this );
+    additionHandle.SetValue( addition );
 
     C1DKernel kernel( *queue, "vectorKernelAddValueFloat", VectorCombineCount, vectorSize );
     kernel.SetParam( firstHandle, 0 );
@@ -740,11 +773,13 @@ void CMetalMathEngine::VectorAdd(const CConstIntHandle& firstHandle, const CCons
 }
 
 void CMetalMathEngine::VectorAddValue(const CConstIntHandle& firstHandle,
-    const CIntHandle& resultHandle, int vectorSize, const CConstIntHandle& additionHandle)
+    const CIntHandle& resultHandle, int vectorSize, CIntParam addition)
 {
     ASSERT_EXPR( firstHandle.GetMathEngine() == this );
-    ASSERT_EXPR( additionHandle.GetMathEngine() == this );
     ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+    CIntHandleStackVar additionHandle( *this );
+    additionHandle.SetValue( addition );
 
     C1DKernel kernel( *queue, "vectorKernelAddValueInt", VectorCombineCount, vectorSize );
     kernel.SetParam( firstHandle, 0 );
@@ -785,11 +820,13 @@ void CMetalMathEngine::VectorSub(const CConstFloatHandle& firstHandle, const CCo
 }
 
 void CMetalMathEngine::VectorMultiply(const CConstFloatHandle& firstHandle,
-    const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& multiplierHandle)
+    const CFloatHandle& resultHandle, int vectorSize, CFloatParam mult)
 {
     ASSERT_EXPR( firstHandle.GetMathEngine() == this );
-    ASSERT_EXPR( multiplierHandle.GetMathEngine() == this );
     ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+    CFloatHandleStackVar multiplierHandle( *this );
+    multiplierHandle.SetValue( mult );
 
     C1DKernel kernel( *queue, "vectorKernelMultiply", VectorCombineCount, vectorSize );
     kernel.SetParam( firstHandle, 0 );
@@ -799,17 +836,19 @@ void CMetalMathEngine::VectorMultiply(const CConstFloatHandle& firstHandle,
     ASSERT_EXPR( kernel.Run() );
 }
 
-void CMetalMathEngine::VectorMultiply(const CConstFloatHandle&, const CFloatHandle&, int, const CConstFloatHandle&)
+void CMetalMathEngine::VectorMultiply(const CConstIntHandle&, const CIntHandle&, int, CIntParam)
 {
     ASSERT_EXPR( false );
 }
 
 void CMetalMathEngine::VectorNegMultiply(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle,
-    int vectorSize, const CConstFloatHandle& multiplierHandle)
+    int vectorSize, CFloatParam mult)
 {
     ASSERT_EXPR( firstHandle.GetMathEngine() == this );
-    ASSERT_EXPR( multiplierHandle.GetMathEngine() == this );
     ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+    CFloatHandleStackVar multiplierHandle( *this );
+    multiplierHandle.SetValue( mult );
 
     C1DKernel kernel( *queue, "vectorKernelNegMultiply", VectorCombineCount, vectorSize );
     kernel.SetParam( firstHandle, 0 );
@@ -949,12 +988,15 @@ void CMetalMathEngine::VectorInv(const CConstFloatHandle& firstHandle, const CFl
 }
 
 void CMetalMathEngine::VectorMinMax(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize,
-    const CConstFloatHandle& minHandle, const CConstFloatHandle& maxHandle)
+    CFloatParam min, CFloatParam max)
 {
     ASSERT_EXPR( firstHandle.GetMathEngine() == this );
     ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-    ASSERT_EXPR( minHandle.GetMathEngine() == this );
-    ASSERT_EXPR( maxHandle.GetMathEngine() == this );   
+
+    CIntHandleStackVar minHandle( *this );
+    minHandle.SetValue( min );
+    CIntHandleStackVar maxHandle( *this );
+    maxHandle.SetValue( max );
 
     C1DKernel kernel( *queue, "vectorKernelMinMax", VectorCombineCount, vectorSize );
     kernel.SetParam( firstHandle, 0 );
@@ -1095,13 +1137,16 @@ void CMetalMathEngine::VectorPowerDiffOp(float exponent, const CConstFloatHandle
 }
 
 void CMetalMathEngine::VectorL1DiffAdd(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
-    const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& hubertThresholdHandle, const CConstFloatHandle& multHandle)
+    const CFloatHandle& resultHandle, int vectorSize, CFloatParam hubertThreshold, CFloatParam mult)
 {
     ASSERT_EXPR( firstHandle.GetMathEngine() == this );
     ASSERT_EXPR( secondHandle.GetMathEngine() == this );
     ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-    ASSERT_EXPR( hubertThresholdHandle.GetMathEngine() == this );   
-    ASSERT_EXPR( multHandle.GetMathEngine() == this );       
+
+    CIntHandleStackVar hubertThresholdHandle( *this );
+    hubertThresholdHandle.SetValue( hubertThreshold );
+    CIntHandleStackVar multHandle( *this );
+    multHandle.SetValue( mult );
 
     C1DKernel kernel( *queue, "vectorKernelL1DiffAdd", VectorCombineCount, vectorSize );
     kernel.SetParam( firstHandle, 0 );
@@ -1113,113 +1158,63 @@ void CMetalMathEngine::VectorL1DiffAdd(const CConstFloatHandle& firstHandle, con
     ASSERT_EXPR( kernel.Run() );
 }
 
-void CMetalMathEngine::VectorMax( const CConstFloatHandle& firstHandle, float secondValue, const CFloatHandle& resultHandle,
-	int vectorSize )
+void CMetalMathEngine::VectorMax( const CConstFloatHandle& /*firstHandle*/, CFloatParam /*secondValue*/, const CFloatHandle& /*resultHandle*/,
+	int /*vectorSize*/ )
 {
-	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
-	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-	ASSERT_EXPR( vectorSize > 0 );
-	ASSERT_EXPR( false );
-	secondValue;	
-}
-
-void CMetalMathEngine::VectorMaxDiff( const CConstFloatHandle& firstHandle, float secondValue, const CFloatHandle& gradHandle,
-	int gradHeight, int gradWidth )
-{
-	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
-	ASSERT_EXPR( gradHandle.GetMathEngine() == this );
-	ASSERT_EXPR( gradHeight > 0 );
-	ASSERT_EXPR( gradWidth > 0 );
-	ASSERT_EXPR( false );
-	secondValue;	
-}
-
-void CMetalMathEngine::VectorNeg(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize)
-{
-	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
-	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-	ASSERT_EXPR( vectorSize >= 0 );
 	ASSERT_EXPR( false );
 }
 
-void CMetalMathEngine::VectorLogDiff( const CConstFloatHandle& sourceGradHandle, int sourceGradHeight, int sourceGradWidth,
-	const CConstFloatHandle& valueHandle, const CFloatHandle& resultHandle )
+void CMetalMathEngine::VectorMaxDiff( const CConstFloatHandle& /*firstHandle*/, CFloatParam /*secondValue*/, const CFloatHandle& /*gradHandle*/,
+	int /*gradHeight*/, int /*gradWidth*/ )
 {
-	ASSERT_EXPR( sourceGradHandle.GetMathEngine() == this );
-	ASSERT_EXPR( valueHandle.GetMathEngine() == this );
-	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-	ASSERT_EXPR( sourceGradHeight > 0 );
-	ASSERT_EXPR( sourceGradWidth > 0 );
 	ASSERT_EXPR( false );
 }
 
-void CMetalMathEngine::VectorSub(const CConstFloatHandle& firstHandle, float second, const CFloatHandle& resultHandle,
-	int vectorSize)
+void CMetalMathEngine::VectorNeg( const CConstFloatHandle& /*firstHandle*/, const CFloatHandle& /*resultHandle*/, int /*vectorSize*/ )
 {
-	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
-	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-	ASSERT_EXPR( vectorSize > 0 );
-	ASSERT_EXPR( false );
-	second;
-}
-
-void CMetalMathEngine::VectorSub(float first, const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle,
-	int vectorSize)
-{
-	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
-	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-	ASSERT_EXPR( vectorSize > 0 );
-	ASSERT_EXPR( false );
-	first;
-}
-
-void CMetalMathEngine::VectorTopK(const CConstFloatHandle& first, int firstSize, int k, const CFloatHandle& result,
-	const CIntHandle& indices)
-{
-	ASSERT_EXPR( first.GetMathEngine() == this );
-	ASSERT_EXPR( result.GetMathEngine() == this );
-	ASSERT_EXPR( indices.GetMathEngine() == this );
-	ASSERT_EXPR( firstSize > 0 );
-	ASSERT_EXPR( k > 0 );
 	ASSERT_EXPR( false );
 }
 
-void CMetalMathEngine::VectorTopKDiff(const CConstFloatHandle& sourceGrad, int sourceGradHeight, int sourceGradWidth,
-	const CConstIntHandle& indices, int k, const CFloatHandle& resultGrad)
+void CMetalMathEngine::VectorLogDiff( const CConstFloatHandle& /*sourceGradHandle*/, int /*sourceGradHeight*/, int /*sourceGradWidth*/,
+	const CConstFloatHandle& /*valueHandle*/, const CFloatHandle& /*resultHandle*/ )
 {
-	ASSERT_EXPR( sourceGrad.GetMathEngine() == this );
-	ASSERT_EXPR( resultGrad.GetMathEngine() == this );
-	ASSERT_EXPR( indices.GetMathEngine() == this );
-	ASSERT_EXPR( sourceGradHeight > 0 );
-	ASSERT_EXPR( sourceGradWidth > 0 );
-	ASSERT_EXPR( k > 0 );
 	ASSERT_EXPR( false );
 }
 
-void CMetalMathEngine::VectorAbsDiff(const CConstFloatHandle& sourceGradHandle, int gradHeight, int gradWidth,
-	const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle)
+void CMetalMathEngine::VectorSub( const CConstFloatHandle& /*firstHandle*/, float /*second*/, const CFloatHandle& /*resultHandle*/,
+	int /*vectorSize*/ )
 {
-	ASSERT_EXPR( sourceGradHandle.GetMathEngine() == this );
-	ASSERT_EXPR( gradHeight > 0 );
-	ASSERT_EXPR( gradWidth > 0 );
-	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
-	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-
 	ASSERT_EXPR( false );
 }
 
-void CMetalMathEngine::VectorMinMaxDiff(const CConstFloatHandle& sourceGradHandle, int gradHeight, int gradWidth,
-	const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle,
-	const CConstFloatHandle& minHandle, const CConstFloatHandle& maxHandle)
+void CMetalMathEngine::VectorSub( float /*first*/, const CConstFloatHandle& /*secondHandle*/, const CFloatHandle& /*resultHandle*/,
+	int /*vectorSize*/ )
 {
-	ASSERT_EXPR( sourceGradHandle.GetMathEngine() == this );
-	ASSERT_EXPR( gradHeight > 0 );
-	ASSERT_EXPR( gradWidth > 0 );
-	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
-	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-	ASSERT_EXPR( minHandle.GetMathEngine() == this );
-	ASSERT_EXPR( maxHandle.GetMathEngine() == this );
+	ASSERT_EXPR( false );
+}
 
+void CMetalMathEngine::VectorTopK( const CConstFloatHandle& /*first*/, int /*firstSize*/, int /*k*/, const CFloatHandle& /*result*/,
+	const CIntHandle& /*indices*/ )
+{
+	ASSERT_EXPR( false );
+}
+
+void CMetalMathEngine::VectorTopKDiff( const CConstFloatHandle& /*sourceGrad*/, int /*sourceGradHeight*/, int /*sourceGradWidth*/,
+	const CConstIntHandle& /*indices*/, int /*k*/, const CFloatHandle& /*resultGrad*/ )
+{
+	ASSERT_EXPR( false );
+}
+
+void CMetalMathEngine::VectorAbsDiff( const CConstFloatHandle& /*sourceGradHandle*/, int /*gradHeight*/, int /*gradWidth*/,
+	const CConstFloatHandle& /*firstHandle*/, const CFloatHandle& /*resultHandle*/ )
+{
+	ASSERT_EXPR( false );
+}
+
+void CMetalMathEngine::VectorMinMaxDiff( const CConstFloatHandle& /*sourceGradHandle*/, int /*gradHeight*/, int /*gradWidth*/,
+	const CConstFloatHandle& /*firstHandle*/, const CFloatHandle& /*resultHandle*/,
+	CFloatParam /*min*/, CFloatParam /*max*/ )
+{
 	ASSERT_EXPR( false );
 }
 
