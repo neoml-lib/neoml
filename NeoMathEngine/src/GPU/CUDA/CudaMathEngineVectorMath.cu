@@ -951,6 +951,22 @@ void CCudaMathEngine::VectorSub(float first, const CConstFloatHandle& secondHand
 		( first, GetRaw( secondHandle ), GetRaw(resultHandle), vectorSize);
 }
 
+void CCudaMathEngine::VectorMultiplyAndAdd(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
+	const CFloatHandle& resultHandle, int vectorSize, CFloatParam mult)
+{
+	ASSERT_EXPR(firstHandle.GetMathEngine() == this);
+	ASSERT_EXPR(secondHandle.GetMathEngine() == this);
+	ASSERT_EXPR(resultHandle.GetMathEngine() == this);
+	SetCudaDevice(device->DeviceNumber);
+
+	int blockCount = 0;
+	int threadCount = 0;
+	getCudaTaskGrid(blockCount, threadCount, vectorSize);
+
+	VectorMultiplyAndAddKernel<<<blockCount, threadCount>>>
+		( GetRaw(firstHandle), GetRaw(secondHandle), GetRaw(resultHandle), vectorSize, mult );
+}
+
 void CCudaMathEngine::VectorMultiplyAndSub(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
 	const CFloatHandle& resultHandle, int vectorSize, CFloatParam mult)
 {

@@ -41,25 +41,6 @@ void CCudaMathEngine::VectorDotProduct(const CConstFloatHandle& firstHandle, con
 		GetRaw( secondHandle ), 1, GetRaw( resultHandle ) ) );
 }
 
-void CCudaMathEngine::VectorMultiplyAndAdd( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
-	const CFloatHandle& resultHandle, int vectorSize, CFloatParam multParam )
-{
-	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
-	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
-	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
-	SetCudaDevice( device->DeviceNumber );
-
-	const float* const first = GetRaw( firstHandle );
-	const float* const second = GetRaw( secondHandle );
-	float* const result = GetRaw( resultHandle );
-	// cublasSaxpy allows (host or device) pointer
-	const float* mult = multParam.Handle.IsNull() ? &multParam.Value : GetRaw( multParam.Handle );
-
-	if( result != first ) {
-		ASSERT_CUDA( cudaMemcpy( result, first, vectorSize * sizeof( float ), cudaMemcpyDeviceToDevice ) );
-	}
-	ASSERT_CUBLAS( cublas->Saxpy( cublasHandle, vectorSize, mult, second, 1, result, 1 ) );
-}
 
 void CCudaMathEngine::MultiplyMatrixByTransposedMatrix( const CConstFloatHandle& firstHandle, int firstHeight,
 	int firstWidth, int firstRowSize, const CConstFloatHandle& secondHandle, int secondHeight, int secondRowSize,

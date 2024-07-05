@@ -979,6 +979,16 @@ __global__ void VectorSubKernel( float first, const float* __restrict__ second, 
 	}
 }
 
+// MultiplyAndAdd
+__global__ void VectorMultiplyAndAddKernel( const float* __restrict__ first,
+	const float* __restrict__ second, float* result, int count, CCudaScalarParameter<float> mult )
+{
+	int index = 0;
+	if( GetCudaTaskIndex( count, index ) ) {
+		result[index] = first[index] + mult * second[index];
+	}
+}
+
 // MultiplyAndSub
 __global__ void VectorMultiplyAndSubKernel(const float* __restrict__ first,
 	const float* __restrict__ second, float* result, int count, CCudaScalarParameter<float> mult)
