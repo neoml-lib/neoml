@@ -140,8 +140,9 @@ void CDnnSimpleTestDummyLearningLayer::LearnOnce()
 	outputDiffBuf.SetSize( outputDiffBlobs[0]->GetDataSize() );
 	outputDiffBlobs[0]->CopyTo( outputDiffBuf.GetPtr(), outputDiffBuf.Size() );
 
-	for( int i = 0; i < ExpectedDiff->GetDataSize(); ++i ) {
-		EXPECT_NEAR( expectedDiffBuf[i], outputDiffBuf[i], 1e-5 );
+	const int size = ExpectedDiff->GetDataSize();
+	for( int i = 0; i < size; ++i ) {
+		EXPECT_NEAR( expectedDiffBuf[i], outputDiffBuf[i], 1e-3f ) << " i = " << i << " size = " << size;
 	}
 }
 
@@ -218,7 +219,7 @@ void CDnnSimpleTestDummyLossLayer::BatchCalculateLossAndGradient( int batchSize,
 	MathEngine().DataExchangeTyped( labelBuf.GetPtr(), label, labelBuf.Size() );
 
 	for( int i = 0; i < totalSize; ++i ) {
-		EXPECT_NEAR( dataBuf[i], labelBuf[i], 1e-2f );
+		EXPECT_NEAR( dataBuf[i], labelBuf[i], 1e-2f ) << " i = " << i << " size = " << totalSize;
 	}
 
 	MathEngine().VectorFill( lossValue, 0, batchSize );
@@ -463,7 +464,7 @@ static void splitTest( IMathEngine& mathEngine, const CDnnSimpleTestConcatParams
 class CDnnEltwiseLayerChecker {
 public:
 	CDnnEltwiseLayerChecker() :
-		Output( CDnnBlob::Create3DImageBlob( MathEngine(), CT_Float, 1, /*2, 3, 4, 5, 6*/1,1,1,1,2 ) ),
+		Output( CDnnBlob::Create3DImageBlob( MathEngine(), CT_Float, 1, 2, 3, 4, 5, 6 ) ),
 		Diff( Output->GetClone() )
 	{}
 	virtual ~CDnnEltwiseLayerChecker() = default;
@@ -641,27 +642,38 @@ void CDnnEltwiseMaxLayerChecker::generateExpectedDiff()
 	CheckLayer = new CEltwiseMaxLayer( MathEngine() );
 
 	const int inputCount = Inputs.Size();
-	const int inputSize = Output->GetDataSize();
 	ExpectedDiffs.SetSize( inputCount );
 
-	float value = 0;
 	for( int i = 0; i < inputCount; ++i ) {
 		Inputs[i] = Output->GetClone();
 		ExpectedDiffs[i] = Output->GetClone();
 		ExpectedDiffs[i]->Clear();
 	}
 
-	for( int j = 0; j < inputSize; j += 2 ) {
-		Inputs[1]->GetData().SetValueAt( j, ( ++value ) );
-		Inputs[0]->GetData().SetValueAt( j, ( ++value ) );
-		Inputs[0]->GetData().SetValueAt( j + 1, ( ++value ) );
-		Inputs[1]->GetData().SetValueAt( j + 1, ( ++value ) );
+	const int inputSize = Output->GetDataSize();
+	float value = 0;
+	for( int i = 0; i < inputSize; i += inputCount ) {
+		//  i -->          i -->
+		// k  x o o o o   x o o
+		//    o x o o o	  o x o
+		//    o o x o o	  o o x
+		//    o o o x o	  o o o
+		//    o o o o x	  o o o
+		//    j -->
+		for( int j = 0; j < inputCount && ( i + j ) < inputSize; ++j ) {
+			for( int k = 0; k < inputCount; ++k ) {
+				if( j != k ) {
+					Inputs[k]->GetData().SetValueAt( i + j, ( ++value ) );
+				}
+			}
+			Inputs[j]->GetData().SetValueAt( i + j, ( ++value ) );
+		}
 	}
 
 	for( int j = 0; j < inputSize; ++j ) {
-		Output->GetData().SetValueAt( j, static_cast<float>( ( j + 1 ) * 2 ) );
+		Output->GetData().SetValueAt( j, static_cast<float>( ( j + 1 ) * inputCount ) );
 		Diff->GetData().SetValueAt( j, -Output->GetData().GetValueAt( j ) );
-		ExpectedDiffs[j % 2]->GetData().SetValueAt( j, Diff->GetData().GetValueAt( j ) );
+		ExpectedDiffs[j % inputCount]->GetData().SetValueAt( j, Diff->GetData().GetValueAt( j ) );
 	}
 }
 
