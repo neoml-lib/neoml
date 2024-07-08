@@ -15,7 +15,7 @@ git;https://github.com/abbyyProduct/ThirdParty-protobuf
 get;ThirdParty/protobuf;/;v3.11.4
 
 git;https://dev.azure.com/abbyy-hq/Tools_Libs/_git/NeoMLTest
-get;NeoMLTest;/;NeoMLTest-master 1.0.69.0
+get;NeoMLTest;/;NeoMLTest-master 1.0.70.0
 
 copy;%ROOT%/../NeoML;%ROOT%/NeoML/NeoML
 copy;%ROOT%/../NeoMathEngine;%ROOT%/NeoML/NeoMathEngine
