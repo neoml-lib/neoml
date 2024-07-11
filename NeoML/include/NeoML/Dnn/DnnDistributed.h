@@ -50,15 +50,15 @@ class NEOML_API CDistributedTraining {
 public:
 	// Creates `count` cpu models
 	// If `count` is 0 or less, then the models number equal to the number of available CPU cores
-	CDistributedTraining( const CDnn& dnn, int count,
-		TDistributedInitializer initializer = TDistributedInitializer::Xavier, int seed = 42 );
-	CDistributedTraining( CArchive& archive, int count,
-		TDistributedInitializer initializer = TDistributedInitializer::Xavier, int seed = 42 );
+	CDistributedTraining( const CDnn& dnn, int threadsCount,
+		TDistributedInitializer initializer = TDistributedInitializer::Xavier, int seed = 42, size_t memoryLimit = 0 );
+	CDistributedTraining( CArchive& archive, int threadsCount,
+		TDistributedInitializer initializer = TDistributedInitializer::Xavier, int seed = 42, size_t memoryLimit = 0 );
 	// Creates gpu models, `devs` should contain numbers of using devices
 	CDistributedTraining( const CDnn& dnn, const CArray<int>& cudaDevs,
-		TDistributedInitializer initializer = TDistributedInitializer::Xavier, int seed = 42 );
+		TDistributedInitializer initializer = TDistributedInitializer::Xavier, int seed = 42, size_t memoryLimit = 0 );
 	CDistributedTraining( CArchive& archive, const CArray<int>& cudaDevs,
-		TDistributedInitializer initializer = TDistributedInitializer::Xavier, int seed = 42 );
+		TDistributedInitializer initializer = TDistributedInitializer::Xavier, int seed = 42, size_t memoryLimit = 0 );
 
 	virtual ~CDistributedTraining();
 
@@ -129,15 +129,16 @@ private:
 // Single process, multiple threads distributed inference on CPU
 class NEOML_API CDistributedInference {
 public:
-	// Creates `count` cpu models
-	// If `count` is 0 or less, then the models number equal to the number of available CPU cores
-	CDistributedInference( const CDnn& dnn, int count );
-	CDistributedInference( CArchive& archive, int count, int seed = 42 );
+	// Creates `threadsCount` dnns for inference on CPU
+	// If `threadsCount` is 0 or less, then the models number equal to the number of available CPU cores
+	CDistributedInference( const CDnn& dnn, int threadsCount, bool optimizeDnn = true, size_t memoryLimit = 0 );
+	CDistributedInference( CArchive& archive, int threadsCount, int seed = 42,
+		bool optimizeDnn = true, size_t memoryLimit = 0 );
 
-	virtual ~CDistributedInference();
+	virtual ~CDistributedInference() = default;
 
 	// Gets the created models number
-	int GetModelCount() const { return threadParams.Dnns.Size(); }
+	int GetModelCount() const { return threadParams.Refs.Size(); }
 	// Runs the inference for all of the networks
 	// NOTE: Main thread waits while all tasks are done
 	void RunOnce( IDistributedDataset& data );
@@ -151,7 +152,7 @@ private:
 	// Params to transfer to all threads function
 	struct CThreadParams final {
 		IDistributedDataset* Data = nullptr; // Pointer to data for the inference for all dnns
-		CPointerArray<CDnn> Dnns; // Separate dnn for each thread
+		CObjectArray<CDnnReference> Refs; // Separate dnn for each thread
 		CString ErrorMessage; // Container for error if it happened
 	};
 
@@ -159,12 +160,12 @@ private:
 	CPtrOwner<IThreadPool> threadPool;
 	// Own CPU Math Engine
 	CPtrOwner<IMathEngine> mathEngine;
-	// The random generator for original dnn, reference dnn stores their randoms for themselves
-	CRandom random;
+	// Class to create reference dnns
+	CPtr<CReferenceDnnFactory> referenceDnnFactory;
 	// Each `RunOnce` task parameters
 	CThreadParams threadParams;
 
-	void initialize( CArchive& archive, int threads_count );
+	void initialize( int threadsCount );
 };
 
 } // namespace NeoML

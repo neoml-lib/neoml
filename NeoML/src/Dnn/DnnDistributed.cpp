@@ -178,7 +178,7 @@ void CDistributedTraining::initialize( CArchive& archive, int count, TDistribute
 }
 
 CDistributedTraining::CDistributedTraining( const CDnn& dnn, int count,
-		TDistributedInitializer initializer, int seed ) :
+		TDistributedInitializer initializer, int seed, size_t memoryLimit ) :
 	isCpu( true ),
 	threadPool( CreateThreadPool( count ) )
 {
@@ -187,7 +187,7 @@ CDistributedTraining::CDistributedTraining( const CDnn& dnn, int count,
 
 	initThreadGroupInfo();
 	mathEngines.SetSize( count );
-	CreateDistributedCpuMathEngines( mathEngines.GetPtr(), count );
+	CreateDistributedCpuMathEngines( mathEngines.GetPtr(), count, memoryLimit );
 	CMemoryFile file;
 	CArchive archive( &file, CArchive::SD_Storing );
 	const_cast<CDnn&>( dnn ).Serialize( archive );
@@ -210,7 +210,7 @@ CDistributedTraining::CDistributedTraining( const CDnn& dnn, int count,
 }
 
 CDistributedTraining::CDistributedTraining( CArchive& archive, int count,
-		TDistributedInitializer initializer, int seed ) :
+		TDistributedInitializer initializer, int seed, size_t memoryLimit ) :
 	isCpu( true ),
 	threadPool( CreateThreadPool( count ) )
 {
@@ -219,17 +219,17 @@ CDistributedTraining::CDistributedTraining( CArchive& archive, int count,
 
 	initThreadGroupInfo();
 	mathEngines.SetSize( count );
-	CreateDistributedCpuMathEngines( mathEngines.GetPtr(), count );
+	CreateDistributedCpuMathEngines( mathEngines.GetPtr(), count, memoryLimit );
 	initialize( archive, count, initializer, seed );
 }
 
 CDistributedTraining::CDistributedTraining( const CDnn& dnn, const CArray<int>& cudaDevs,
-		TDistributedInitializer initializer, int seed ) :
+		TDistributedInitializer initializer, int seed, size_t memoryLimit ) :
 	isCpu( false ),
 	threadPool( CreateThreadPool(cudaDevs.Size()) )
 {
 	mathEngines.SetSize( cudaDevs.Size() );
-	CreateDistributedCudaMathEngines( mathEngines.GetPtr(), cudaDevs.Size(), cudaDevs.GetPtr() );
+	CreateDistributedCudaMathEngines( mathEngines.GetPtr(), cudaDevs.Size(), cudaDevs.GetPtr(), memoryLimit );
 	CMemoryFile file;
 	CArchive archive( &file, CArchive::SD_Storing );
 	const_cast<CDnn&>( dnn ).Serialize( archive );
@@ -252,12 +252,12 @@ CDistributedTraining::CDistributedTraining( const CDnn& dnn, const CArray<int>& 
 }
 
 CDistributedTraining::CDistributedTraining( CArchive& archive, const CArray<int>& cudaDevs,
-		TDistributedInitializer initializer, int seed ) :
+		TDistributedInitializer initializer, int seed, size_t memoryLimit ) :
 	isCpu( false ),
 	threadPool( CreateThreadPool(cudaDevs.Size()) )
 {
 	mathEngines.SetSize( cudaDevs.Size() );
-	CreateDistributedCudaMathEngines( mathEngines.GetPtr(), cudaDevs.Size(), cudaDevs.GetPtr() );
+	CreateDistributedCudaMathEngines( mathEngines.GetPtr(), cudaDevs.Size(), cudaDevs.GetPtr(), memoryLimit );
 	initialize( archive, cudaDevs.Size(), initializer, seed );
 }
 
@@ -531,56 +531,40 @@ void CDistributedTraining::StoreDnn( CArchive& archive, int index, bool storeSol
 
 //---------------------------------------------------------------------------------------------------------------------
 
-void CDistributedInference::initialize( CArchive& archive, int threads_count )
+void CDistributedInference::initialize( int threadsCount )
 {
 	initThreadGroupInfo();
 
-	NeoAssert( archive.IsLoading() );
-	threadParams.Dnns.SetBufferSize( threads_count );
-	threadParams.Dnns.Add( new CDnn( random, *mathEngine ) );
-	threadParams.Dnns[0]->Serialize( archive );
 	// Create reference dnns
 	// To create a reference dnn the original network should be trained or at least reshaped
 	// All training paramBlobs should exist
-	for( int i = 1; i < threads_count; ++i ) {
-		threadParams.Dnns.Add( threadParams.Dnns[0]->CreateReferenceDnn() );
+	threadParams.Refs.SetBufferSize( threadsCount );
+	for( int i = 1; i < threadsCount; ++i ) {
+		threadParams.Refs.Add( referenceDnnFactory->CreateReferenceDnn() );
 	}
-	archive.Close();
+	// Here it can be either a one more reference dnn
+	// Or also the original dnn, because no one can create a new reference dnn, while this inference
+	threadParams.Refs.Add( referenceDnnFactory->CreateReferenceDnn( /*getOriginalDnn*/true ) );
 }
 
-CDistributedInference::CDistributedInference( const CDnn& dnn, int count ) :
-	threadPool( CreateThreadPool( count ) ),
-	mathEngine( CreateCpuMathEngine( /*memoryLimit*/0u ) ),
-	random( const_cast<CDnn&>( dnn ).Random() )
-{
-	// Copy dnn using serialization to get the new dnn of necessary life time
-	CMemoryFile file;
-	CArchive archive( &file, CArchive::store );
-	const_cast<CDnn&>( dnn ).Serialize( archive );
-	archive.Close();
-	file.SeekToBegin();
-	archive.Open( &file, CArchive::load );
-
-	// if count was <= 0 the pool has been initialized with the number of available CPU cores
-	initialize( archive, threadPool->Size() );
-}
-
-CDistributedInference::CDistributedInference( CArchive& archive, int count, int seed ) :
-	threadPool( CreateThreadPool( count ) ),
-	mathEngine( CreateCpuMathEngine( /*memoryLimit*/0u ) ),
-	random( seed )
+CDistributedInference::CDistributedInference( const CDnn& dnn, int threadsCount,
+		bool optimizeDnn, size_t memoryLimit ) :
+	threadPool( CreateThreadPool( threadsCount ) ),
+	mathEngine( CreateCpuMathEngine( memoryLimit ) ),
+	referenceDnnFactory( new CReferenceDnnFactory( *mathEngine, dnn, optimizeDnn ) )
 {
 	// if count was <= 0 the pool has been initialized with the number of available CPU cores
-	initialize( archive, threadPool->Size() );
+	initialize( threadPool->Size() );
 }
 
-CDistributedInference::~CDistributedInference()
+CDistributedInference::CDistributedInference( CArchive& archive, int threadsCount, int seed,
+		bool optimizeDnn, size_t memoryLimit ) :
+	threadPool( CreateThreadPool( threadsCount ) ),
+	mathEngine( CreateCpuMathEngine( memoryLimit ) ),
+	referenceDnnFactory( new CReferenceDnnFactory( *mathEngine, archive, seed, optimizeDnn ) )
 {
-	// delete reference dnns before original dnn
-	CDnn* originalDnn = threadParams.Dnns.DetachAndReplaceAt( nullptr, 0 );
-	threadParams.Dnns.DeleteAll();
-	delete originalDnn;
-	// As mathEngine is owned, there are no buffers in pools left for any thread
+	// if count was <= 0 the pool has been initialized with the number of available CPU cores
+	initialize( threadPool->Size() );
 }
 
 void CDistributedInference::RunOnce( IDistributedDataset& data )
@@ -591,24 +575,24 @@ void CDistributedInference::RunOnce( IDistributedDataset& data )
 	{
 		CThreadParams& threadParams = *static_cast<CThreadParams*>( ptr );
 		try {
-			CThreadGroupSwitcher groupSwitcher( /*isCpu*/true, threadIndex, threadParams.Dnns.Size() );
+			CThreadGroupSwitcher groupSwitcher( /*isCpu*/true, threadIndex, threadParams.Refs.Size() );
 			// Returns the current batch size (or 0, if there is no data for this thread on this run)
-			const int currBatchSize = threadParams.Data->SetInputBatch( *threadParams.Dnns[threadIndex], threadIndex );
+			const int currBatchSize = threadParams.Data->SetInputBatch( threadParams.Refs[threadIndex]->Dnn, threadIndex );
 			if( currBatchSize > 0 ) { // If thread has some data to perform
-				threadParams.Dnns[threadIndex]->RunOnce();
+				threadParams.Refs[threadIndex]->Dnn.RunOnce();
 			}
 		} catch( std::exception& e ) {
 			if( threadParams.ErrorMessage.IsEmpty() ) {
 				threadParams.ErrorMessage = e.what();
 			}
-			threadParams.Dnns[threadIndex]->GetMathEngine().AbortDistributed();
+			threadParams.Refs[threadIndex]->Dnn.GetMathEngine().AbortDistributed();
 		}
 #ifdef NEOML_USE_FINEOBJ
 		catch( CCheckException* e ) {
 			if( threadParams.ErrorMessage.IsEmpty() ) {
 				threadParams.ErrorMessage = e->MessageText().CreateString();
 			}
-			threadParams.Dnns[threadIndex]->GetMathEngine().AbortDistributed();
+			threadParams.Refs[threadIndex]->Dnn.GetMathEngine().AbortDistributed();
 			delete e;
 		}
 #endif // NEOML_USE_FINEOBJ
@@ -621,9 +605,9 @@ void CDistributedInference::RunOnce( IDistributedDataset& data )
 
 void CDistributedInference::GetLastBlob( const CString& layerName, CObjectArray<const CDnnBlob>& blobs ) const
 {
-	blobs.SetSize( threadParams.Dnns.Size() );
-	for( int i = 0; i < threadParams.Dnns.Size(); ++i ) {
-		blobs[i] = CheckCast<const CSinkLayer>( threadParams.Dnns[i]->GetLayer( layerName ) )->GetBlob();
+	blobs.SetSize( threadParams.Refs.Size() );
+	for( int i = 0; i < threadParams.Refs.Size(); ++i ) {
+		blobs[i] = CheckCast<const CSinkLayer>( threadParams.Refs[i]->Dnn.GetLayer( layerName ) )->GetBlob();
 	}
 }
 

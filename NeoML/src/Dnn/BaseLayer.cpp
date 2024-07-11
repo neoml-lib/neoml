@@ -159,7 +159,7 @@ void CBaseLayer::link()
 		if(dnn->HasLayer(inputs[i].Name)) {
 			CDnnLayerLink link;
 			link.OutputNumber = inputs[i].OutputNumber;
-			link.Layer = dnn->GetLayer(inputs[i].Name);
+			link.Layer = dnn->getLayer(inputs[i].Name);
 			inputLinks.InsertAt(link, 0);
 			link.Layer->addOutput(inputs[i].OutputNumber);
 		} else {
@@ -797,7 +797,15 @@ void CBaseLayer::Serialize( CArchive& archive )
 		archive << isBackwardForced;
 		archive << isLearningEnabled;
 		archive << baseLearningRate << baseL2RegularizationMult << baseL1RegularizationMult;
-		SerializeBlobs( mathEngine, archive, paramBlobs );
+
+		const bool nonReferenceDnnLayer = ( GetDnn() == nullptr || !GetDnn()->IsReferenceDnn() );
+		if( nonReferenceDnnLayer ) {
+			SerializeBlobs( mathEngine, archive, paramBlobs );
+		} else { // Reference dnns will point to original dnn paramBlobs
+			CObjectArray<CDnnBlob> emptyParamBlobs;
+			emptyParamBlobs.SetSize( paramBlobs.Size() );
+			SerializeBlobs( mathEngine, archive, emptyParamBlobs );
+		}
 	} else if( archive.IsLoading() ) {
 		if( dnn != 0 ) {
 			unlink();
