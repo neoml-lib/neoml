@@ -1,4 +1,4 @@
-/* Copyright @ 2024 ABBYY
+﻿/* Copyright © 2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,47 +20,73 @@ limitations under the License.
 
 namespace NeoML {
 
-CDnnReferenceRegister::CDnnReferenceRegister( CDnn* _originalDnn ) :
-	learningState( false ),
-	referenceCounter( -1 ),
-	originalDnn( _originalDnn ),
-	originalRandom( new CRandom( _originalDnn->Random() ) )
+CDnnReferenceRegister::CDnnReferenceRegister( IMathEngine& mathEngine, CArchive& archive, int seed ) :
+	CDnnReferenceRegister( new CReferenceDnnInfo( CRandom( seed ), nullptr ), mathEngine )
 {
-	NeoAssert( _originalDnn != nullptr );
-	if( originalDnn->referenceDnnRegister.referenceCounter == 0 ) {
-		originalDnn->referenceDnnRegister.learningState = originalDnn->IsLearningEnabled();
-	}
-	originalDnn->referenceDnnRegister.referenceCounter += 1;
+	// Allow to Serialize() this time
+	CReferenceDnnInfo* tmp = nullptr;
+	swap( tmp, originalDnn.referenceDnnInfo );
+
+	NeoAssert( archive.IsLoading() );
+	originalDnn.Serialize( archive );
+	archive.Close();
+
+	// And revert back the restrictions
+	originalDnn.DisableLearning();
+	swap( tmp, originalDnn.referenceDnnInfo );
+	NeoAssert( originalDnn.referenceDnnInfo != nullptr );
+}
+
+CDnnReferenceRegister::CDnnReferenceRegister( IMathEngine& mathEngine, CDnn& dnn ) :
+	CDnnReferenceRegister( new CReferenceDnnInfo( dnn.Random(), nullptr ), mathEngine )
+{
+	// Copy dnn using serialization to get the new dnn of necessary life time
+	CMemoryFile file;
+	CArchive archive( &file, CArchive::store );
+	dnn.Serialize( archive );
+	archive.Close();
+	file.SeekToBegin();
+
+	// Allow to Serialize() this time
+	CReferenceDnnInfo* tmp = nullptr;
+	swap( tmp, originalDnn.referenceDnnInfo );
+
+	archive.Open( &file, CArchive::load );
+	originalDnn.Serialize( archive );
+	archive.Close();
+
+	// And revert back the restrictions
+	originalDnn.DisableLearning();
+	swap( tmp, originalDnn.referenceDnnInfo );
+	NeoAssert( originalDnn.referenceDnnInfo != nullptr );
+}
+
+CDnnReferenceRegister::CDnnReferenceRegister( CReferenceDnnInfo* referenceDnnInfo, IMathEngine& mathEngine ) :
+	originalDnn( referenceDnnInfo->Random(), mathEngine )
+{
+	// Enable this pointer is to add the restriction to change this dnn.
+	// Used for the original dnn and all reference dnns
+	originalDnn.referenceDnnInfo = referenceDnnInfo;
+	NeoAssertMsg( mathEngine.GetType() == MET_Cpu, "CDnnReferenceRegister: Allowed only for CPU mathEngine" );
 }
 
 CDnnReferenceRegister::~CDnnReferenceRegister()
 {
-	NeoAssertMsg( originalDnn != nullptr || referenceCounter == 0,
-		"CDnnReferenceRegister: delete reference dnns before original dnn" );
-
-	if( originalDnn != nullptr ) {
-		originalDnn->referenceDnnRegister.referenceCounter -= 1;
-	}
-	if( referenceCounter == -1
-		&& originalDnn->referenceDnnRegister.referenceCounter == 0
-		&& originalDnn->referenceDnnRegister.learningState == true )
-	{
-		originalDnn->EnableLearning();
-	}
-
-	if( originalRandom != nullptr ) {
-		delete originalRandom;
-	}
+	NeoAssertMsg( counter == 0, "CDnnReferenceRegister: Cannot be destroyed before any reference dnns" );
 }
 
-CDnnReferenceRegister& CDnnReferenceRegister::operator=( CDnnReferenceRegister&& other )
+CDnn* CDnnReferenceRegister::CreateReferenceDnn()
 {
-	if( this != &other ) {
-		this->~CDnnReferenceRegister();
-		::new( this ) CDnnReferenceRegister( std::move( other ) );
-		::new( &other ) CDnnReferenceRegister(); // be sure no delete in 'other' object
-	}
-	return *this;
+	CDnn* referenceDnn = originalDnn.createReferenceDnn( *this );
+	++counter;
+	NeoAssertMsg( !referenceDnn->IsLearningEnabled(), "CDnnReferenceRegister: learning enabled for reference dnn" );
+	return referenceDnn;
+}
+
+void CDnnReferenceRegister::destoyReferenceDnn()
+{
+	NeoAssertMsg( counter > 0, "CDnnReferenceRegister: Cannot be destroyed non reference dnns" );
+	--counter;
 }
 
 } // namespace NeoML

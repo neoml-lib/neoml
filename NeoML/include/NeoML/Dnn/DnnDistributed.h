@@ -159,12 +159,12 @@ private:
 	CPtrOwner<IThreadPool> threadPool;
 	// Own CPU Math Engine
 	CPtrOwner<IMathEngine> mathEngine;
-	// The random generator for original dnn, reference dnn stores their randoms for themselves
-	CRandom random;
+	// Class to create reference dnns
+	CDnnReferenceRegister referenceDnnRegister;
 	// Each `RunOnce` task parameters
 	CThreadParams threadParams;
 
-	void initialize( CArchive& archive, int threads_count );
+	void initialize( int threads_count );
 };
 
 } // namespace NeoML

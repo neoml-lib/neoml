@@ -1,4 +1,4 @@
-/* Copyright @ 2024 ABBYY
+﻿/* Copyright © 2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -55,29 +55,42 @@ static void initializeBlob( CDnnBlob& blob, CRandom& random, double min, double 
 	}
 }
 
-static void getTestDnns( CPointerArray<CDnn>& dnns, CArray<CRandom>& randoms, bool useReference, const int& numOfThreads )
+static CDnnReferenceRegister* getTestDnns( CPointerArray<CDnn>& dnns, CArray<CRandom>& randoms, bool useReference, int numOfThreads )
 {
+	CDnnReferenceRegister* referenceDnnRegister = nullptr; 
+
 	CObjectArray<CSourceLayer> sourceLayers;
 	sourceLayers.Add( nullptr, numOfThreads );
 
 	dnns.SetBufferSize( numOfThreads );
 	for( int i = 0; i < numOfThreads; ++i ) {
 		if( i == 0 || !useReference ) {
-			dnns.Add( createDnn( randoms[i] ) );
+			CDnn* dnn = createDnn( randoms[i] );
+			if( i == 0 ) {
+				referenceDnnRegister = new CDnnReferenceRegister( *dnn );
+				dnns.Add( &( referenceDnnRegister->GetOriginalDnn() ) );
+				delete dnn;
+			} else {
+				dnns.Add( dnn );
+			}
 		} else {
-			dnns.Add( dnns[i - 1]->CreateReferenceDnn() );
+			dnns.Add( referenceDnnRegister->CreateReferenceDnn() );
 		}
 
 		sourceLayers[i] = CheckCast<CSourceLayer>( dnns[i]->GetLayer( "in" ).Ptr() );
 		CPtr<CDnnBlob> blob = CDnnBlob::CreateTensor( MathEngine(), CT_Float, { 1, 1, 1, 8, 20, 30, 10 } );
 		sourceLayers[i]->SetBlob( blob );
 
-		dnns[i]->RunOnce(); // reshaped
+		if( i == 0 || !useReference ) {
+			dnns[i]->RunOnce(); // reshaped
+		}
 	}
 
 	for( int i = 0; i < numOfThreads; ++i ) {
 		initializeBlob( *sourceLayers[i]->GetBlob(), dnns[i]->Random(), /*min*/0., /*max*/1. );
 	}
+	EXPECT_NE( referenceDnnRegister, nullptr );
+	return referenceDnnRegister;
 }
 
 static void runMultithreadInference( CPointerArray<CDnn>& dnns, const int numOfThreads )
@@ -104,11 +117,9 @@ static void perfomanceTest( bool useReference, const int numOfThreads = 4 )
 		randoms.Add( CRandom( 0 ) );
 	}
 
-	CDnn* originDnn = nullptr;
 	{
 		CPointerArray<CDnn> dnns;
-		getTestDnns( dnns, randoms, useReference, numOfThreads );
-
+		CDnnReferenceRegister* originalDnn = getTestDnns( dnns, randoms, useReference, numOfThreads );
 		IPerformanceCounters* counters( MathEngine().CreatePerformanceCounters() );
 
 		counters->Synchronise();
@@ -120,9 +131,10 @@ static void perfomanceTest( bool useReference, const int numOfThreads = 4 )
 			<< '\t' << "Peak.Mem: " << ( double( MathEngine().GetPeakMemoryUsage() ) / 1024 / 1024 ) << " MB \n";
 
 		delete counters;
-		originDnn = dnns.DetachAndReplaceAt( nullptr, 0 );
-	} // delete references first
-	delete originDnn;
+		( void ) dnns.DetachAndReplaceAt( nullptr, 0 );
+		dnns.DeleteAll(); // delete reference dnns first
+		delete originalDnn;
+	}
 }
 
 } // namespace NeoMLTest
@@ -137,16 +149,15 @@ TEST( ReferenceDnnTest, ReferenceDnnInferenceTest )
 		return;
 	}
 
-	CDnn* originDnn = nullptr;
 	{
 		CPointerArray<CDnn> dnns;
 		CArray<CRandom> randoms = { CRandom( 0x123 ) };
 
 		const int numOfThreads = 4;
-		getTestDnns( dnns, randoms, /*useReference*/true, numOfThreads );
+		CDnnReferenceRegister* referenceDnnRegister = getTestDnns( dnns, randoms, /*useReference*/true, numOfThreads );
 		runMultithreadInference( dnns, numOfThreads );
 
-		originDnn = dnns.DetachAndReplaceAt( nullptr, 0 );
+		CDnn* originDnn = dnns.DetachAndReplaceAt( nullptr, 0 );
 		CPtr<CDnnBlob> sourceBlob = static_cast<CSourceLayer*>( originDnn->GetLayer( "in" ).Ptr() )->GetBlob();
 		CPtr<CDnnBlob> sinkBlob = static_cast<CSourceLayer*>( originDnn->GetLayer( "sink" ).Ptr() )->GetBlob();
 
@@ -159,8 +170,9 @@ TEST( ReferenceDnnTest, ReferenceDnnInferenceTest )
 				*( static_cast<CSinkLayer*>( dnns[i]->GetLayer( "sink" ).Ptr() )->GetBlob() ) )
 			);
 		}
-	} // delete references first
-	delete originDnn;
+		dnns.DeleteAll(); // delete reference dnns first
+		delete referenceDnnRegister;
+	}
 }
 
 TEST( ReferenceDnnTest, CDnnReferenceRegisterTest )
@@ -202,13 +214,15 @@ TEST( ReferenceDnnTest, CDnnReferenceRegisterTest )
 	originDnn->DeleteLayer( "labels" );
 	originDnn->DeleteLayer( "loss" );
 
+	CDnnReferenceRegister* referenceDnnRegister = new CDnnReferenceRegister( *originDnn );
+	delete originDnn;
 	{
 		CPointerArray<CDnn> dnns;
 		dnns.SetBufferSize( numOfThreads );
 
 		dnns.Add( originDnn );
 		for( int i = 1; i < numOfThreads; ++i ) {
-			dnns.Add( originDnn->CreateReferenceDnn() );
+			dnns.Add( referenceDnnRegister->CreateReferenceDnn() );
 
 			CPtr<CDnnBlob> blob = CDnnBlob::CreateTensor( MathEngine(), CT_Float, { 1, 1, 1, 8, 20, 30, 10 } );
 			initializeBlob( *blob, random, /*min*/0., /*max*/1. );
@@ -218,18 +232,11 @@ TEST( ReferenceDnnTest, CDnnReferenceRegisterTest )
 		EXPECT_TRUE( !dnns[0]->IsLearningEnabled() );
 		runMultithreadInference( dnns, numOfThreads );
 
-		dnns.DetachAndReplaceAt( nullptr, 0 );
-	} // delete references first
+		( void ) dnns.DetachAndReplaceAt( nullptr, 0 );
+	} // delete reference dnns first
 
-	// 3. Learn again
-	originDnn->AddLayer( *labels );
-	originDnn->AddLayer( *loss );
-
-	EXPECT_TRUE( originDnn->IsLearningEnabled() );
-	for( int i = 0; i < interations; ++i ) {
-		originDnn->RunAndLearnOnce();
-	}
-	delete originDnn;
+	// Cannot 3. Learn again
+	delete referenceDnnRegister;
 }
 
 TEST( ReferenceDnnTest, DISABLED_PerfomanceReferenceDnnsThreads )

@@ -424,6 +424,10 @@ CDnn::CDnn( CRandom& _random, IMathEngine& _mathEngine, const CCompositeLayer* o
 
 CDnn::~CDnn()
 {
+	if( referenceDnnInfo != nullptr ) {
+		delete referenceDnnInfo;
+		referenceDnnInfo = nullptr;
+	}
 	for( int i = layers.Size() - 1; i >= 0; i-- ) {
 		CPtr<CBaseLayer> layer = layers[i];
 		DeleteLayer( *layer );
@@ -497,34 +501,30 @@ void CDnn::ForceRebuild()
 	sourceLayers.SetSize( 0 );
 }
 
-CDnn* CDnn::CreateReferenceDnn()
+CDnn* CDnn::createReferenceDnn( CDnnReferenceRegister& referenceDnnRegister )
 {
-	NeoAssertMsg( mathEngine.GetType() == MET_Cpu, "CreateReferenceDnn: Allowed only for CPU mathEngine" );
-	CDnn* originalDnn = ( referenceDnnRegister.referenceCounter == -1 ) ? referenceDnnRegister.originalDnn : this;
-
-	CDnnReferenceRegister referenceRegister( originalDnn );
-	CDnn* newDnn = new CDnn( *referenceRegister.originalRandom, mathEngine );
-	newDnn->referenceDnnRegister = std::move( referenceRegister );
+	auto* referenceDnnInfo = new CReferenceDnnInfo( random, &referenceDnnRegister );
+	auto* newDnn = new CDnn( referenceDnnInfo->Random(), mathEngine );
 
 	CMemoryFile file;
-	for( int i = 0; i < originalDnn->layers.Size(); ++i ) {
+	for( int i = 0; i < layers.Size(); ++i ) {
 		file.SeekToBegin();
 		{
 			CArchive archive( &file, CArchive::store );
-			SerializeLayer( archive, originalDnn->layers[i]->MathEngine(), originalDnn->layers[i] );
+			SerializeLayer( archive, mathEngine, layers[i] );
 		}
 		file.SeekToBegin();
 		CPtr<CBaseLayer> copyLayer;
 		{
 			CArchive archive( &file, CArchive::load );
-			SerializeLayer( archive, originalDnn->layers[i]->MathEngine(), copyLayer );
-			originalDnn->layers[i]->transferParamsBlob( *copyLayer );
+			SerializeLayer( archive, mathEngine, copyLayer );
+			layers[i]->transferParamsBlob( *copyLayer );
 		}
 		newDnn->AddLayer( *copyLayer );
 	}
 
+	newDnn->referenceDnnInfo = referenceDnnInfo;
 	newDnn->DisableLearning();
-	originalDnn->DisableLearning();
 	return newDnn;
 }
 
@@ -570,9 +570,7 @@ void CDnn::DisableLearning()
 
 void CDnn::EnableLearning()
 {
-	NeoAssertMsg(referenceDnnRegister.referenceCounter == 0,
-		"learning restricted if reference dnn exist");
-
+	NeoAssertMsg( referenceDnnInfo == nullptr, "For ReferenceDnn learning is restricted" );
 	if( isLearningEnabled ) {
 		return;
 	}
@@ -805,6 +803,7 @@ size_t CDnn::getOutputBlobsSize() const
 
 void CDnn::FilterLayersParams( float threshold )
 {
+	NeoAssertMsg( referenceDnnInfo == nullptr, "For ReferenceDnn filtering layers parameters is restricted" );
 	for( int i = 0; i < layers.Size(); ++i ) {
 		layers[i]->FilterLayerParams( threshold );
 	}
@@ -812,6 +811,7 @@ void CDnn::FilterLayersParams( float threshold )
 
 void CDnn::FilterLayersParams( const CArray<const char*>& layers, float threshold )
 {
+	NeoAssertMsg( referenceDnnInfo == nullptr, "For ReferenceDnn filtering layers parameters is restricted" );
 	for( int i = 0; i < layers.Size(); ++i ) {
 		GetLayer( layers[i] )->FilterLayerParams( threshold );
 	}
@@ -821,6 +821,7 @@ static const int DnnVersion = 2000;
 
 void CDnn::Serialize( CArchive& archive )
 {
+	NeoAssertMsg( referenceDnnInfo == nullptr, "For ReferenceDnn serializing is restricted" );
 	if( archive.IsStoring() ) {
 		archive << DnnVersion;
 		archive << logFrequency;

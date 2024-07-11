@@ -15,6 +15,7 @@ limitations under the License.
 
 #pragma once
 
+#include <atomic>
 #include <NeoML/NeoMLDefs.h>
 #include <NeoML/Random.h>
 #include <NeoML/Dnn/DnnSolver.h>
@@ -83,10 +84,15 @@ inline CLayerClassRegistrar<T>::~CLayerClassRegistrar()
 	UnregisterLayerClass( typeid( T ) );
 }
 
+//------------------------------------------------------------------------------------------------------------
+
+// Forward declarations
 class CDnn;
 class CDnnLayerGraph;
 class CBaseLayer;
 class CCompositeLayer;
+class CDnnReferenceRegister;
+class CReferenceDnnInfo;
 
 //------------------------------------------------------------------------------------------------------------
 
@@ -499,30 +505,6 @@ NEOML_API IMathEngine* GetRecommendedGpuMathEngine( size_t memoryLimit );
 
 //------------------------------------------------------------------------------------------------------------
 
-// Manages reference counts and initial states for CDnn objects, restoring configurations once all references are removed
-class NEOML_API CDnnReferenceRegister final {
-public:
-	CDnnReferenceRegister() = default;
-	explicit CDnnReferenceRegister( CDnn* _originalDnn );
-	CDnnReferenceRegister( CDnnReferenceRegister&& other ) = default;
-
-	CDnnReferenceRegister& operator=( CDnnReferenceRegister&& other );
-
-private:
-	~CDnnReferenceRegister();
-
-	bool learningState = true; // Initial learning state of original Dnn (before creating references)
-	// For reference dnn counter = -1, else for original dnn it stores number of created reference dnns
-	int referenceCounter = 0;
-	CDnn* originalDnn = nullptr; // Pointer to the original dnn if it's reference dnn ( nullptr otherwise )
-	// Holds a copy of the original network's random number generator, used by CDnn's CRandom& reference
-	CRandom* originalRandom = nullptr;
-
-	friend class CDnn;
-};
-
-//------------------------------------------------------------------------------------------------------------
-
 // CDnn class represents a neural network
 class NEOML_API CDnn : public CDnnLayerGraph {
 public:
@@ -590,12 +572,6 @@ public:
 	// Checks if the network is going to be rebuilt before the next run
 	// The method may be useful for controlling the rebuild frequency
 	bool IsRebuildRequested() const { return isRebuildNeeded; }
-	// This function initializes a new DNN with the same configuration as the original but uses shared parameter blobs to save memory
-	// Useful for multithreaded inference where each thread can operate independently without duplicating memory for network parameters
-	// Learning is disabled in both the original and the reference DNN
-	// Uses the same random generator as the original dnn
-	// Pointer allocates memory using the new operator => the memory must be manually deallocated.
-	CDnn* CreateReferenceDnn();
 
 	// Gets a reference to the random numbers generator
 	CRandom& Random() { return random; }
@@ -632,12 +608,20 @@ private:
 	void AddLayerImpl(CBaseLayer& layer) override;
 	void DeleteLayerImpl(CBaseLayer& layer) final;
 
+	// This method creates a reference dnn, that has the same configuration as the original dnn
+	// and shares parameter blobs with the original dnn to save memory.
+	// Useful for multi-threaded inference where each thread can operate own reference dnn independently.
+	// Learning is disabled for both the original dnn and the reference dnn.
+	// Creates a copy of the original dnn's random generator to use it for inference.
+	// NOTE: Pointer allocates memory using the `new` operator => the memory must be manually deallocated.
+	CDnn* createReferenceDnn( CDnnReferenceRegister& referenceDnnRegister );
+
 	const CBaseLayer* owner; // the composite containing this CDnn (if exists)
 	CTextStream* log; // the logging stream
-	int logFrequency;	// the logging frequency
-	CPtr<CDnnSolver> solver;	// the layer parameter optimizer
+	int logFrequency; // the logging frequency
+	CPtr<CDnnSolver> solver; // the layer parameter optimizer
 
-	CRandom& random;	// the reference to the random numbers generator
+	CRandom& random; // the reference to the random numbers generator
 	IMathEngine& mathEngine; // the reference to the math engine
 
 	// The layer map
@@ -669,9 +653,9 @@ private:
 	bool autoRestartMode;
 	// The low memory use mode
 	bool isReuseMemoryMode;
-	
-	// Reference information 
-	CDnnReferenceRegister referenceDnnRegister;
+
+	// Reference information
+	CReferenceDnnInfo* referenceDnnInfo = nullptr;
 
 	void setProcessingParams(bool isRecurrentMode, int sequenceLength, bool isReverseSequense, bool isBackwardPerformed);
 	void runOnce(int curSequencePos);
@@ -699,6 +683,54 @@ inline CArchive& operator>>( CArchive& archive, CDnn& dnn)
 }
 
 void NEOML_API SerializeLayer( CArchive& archive, IMathEngine& mathEngine, CPtr<CBaseLayer>& layer );
+
+//------------------------------------------------------------------------------------------------------------
+
+// This class can initialize a reference dnn, that has the same configuration as the original dnn
+// and shares parameter blobs with the original dnn to save memory.
+// Useful for multi-threaded inference where each thread can operate own reference dnn independently.
+// Learning is disabled for both the original dnn and the reference dnn.
+// Creates a copy of the original dnn's random generator to use it for inference.
+class NEOML_API CDnnReferenceRegister final {
+public:
+	// NOTE: mathEngine should live longer than CDnnReferenceRegister
+	CReferenceDnnFactory( IMathEngine& mathEngine, CArchive& archive, int seed = 42 );
+	CReferenceDnnFactory( IMathEngine& mathEngine, const CDnn& dnn );
+
+	~CDnnReferenceRegister();
+
+	// Thread-safe coping of originalDnn, increments the counter
+	// NOTE: Pointer allocates memory using the `new` operator => the memory must be manually deallocated.
+	CDnn* CreateReferenceDnn();
+
+private:
+	CDnnReferenceRegister( CReferenceDnnInfo* referenceDnnInfo, IMathEngine& mathEngine );
+	// Called in destructor of reference dnn to decrease the counter and allow destroy this register class
+	void destoyReferenceDnn();
+
+	// NOTE: First field should be CDnn for CDistributedInference
+	CDnn originalDnn; // The dnn to make reference dnns
+	std::atomic<int> counter{}; // Stores the number of created reference dnns
+
+	friend class CReferenceDnnInfo;
+};
+
+//---------------------------------------------------------------------------------------------------------
+
+// Internal technical class
+class CReferenceDnnInfo final {
+public:
+	CReferenceDnnInfo( CRandom rand, CDnnReferenceRegister* ptr ) : random( rand ), registerPtr( ptr ) {}
+
+	~CReferenceDnnInfo() { if( registerPtr != nullptr ) { registerPtr->destoyReferenceDnn(); } }
+
+	CRandom& Random() { return random; }
+
+private:
+	CRandom random; // Stores the dnn's own external random class inside this dnn class
+	// For reference dnn != 0, and original dnn == 0 only
+	CDnnReferenceRegister* registerPtr = nullptr; // This pointer is not owned
+};
 
 } // namespace NeoML
 
