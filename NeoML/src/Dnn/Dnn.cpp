@@ -446,6 +446,17 @@ void CDnn::GetLayerList( CArray<const char*>& layerList ) const
 
 CPtr<CBaseLayer> CDnn::GetLayer( const char* name )
 {
+	CBaseLayer* layer = getLayer( name );
+
+	NeoAssertMsg( referenceDnnInfo == nullptr
+		|| dynamic_cast<CSourceLayer*>( layer ) != nullptr
+		|| dynamic_cast<CSinkLayer*>( layer ) != nullptr,
+		"For ReferenceDnn changing layers is restricted" );
+	return layer;
+}
+
+CBaseLayer* CDnn::getLayer( const char* name )
+{
 	CheckArchitecture( layerMap.Has( name ), name, "layer is not in this dnn" );
 	return layerMap.Get( name );
 }
@@ -456,14 +467,25 @@ CPtr<const CBaseLayer> CDnn::GetLayer( const char* name ) const
 	return layerMap.Get( name );
 }
 
-CPtr<CBaseLayer> CDnn::GetLayer( const CArray<CString>& path)
+CPtr<CBaseLayer> CDnn::GetLayer( const CArray<CString>& path )
+{
+	CBaseLayer* layer = getLayer( path );
+
+	NeoAssertMsg( referenceDnnInfo == nullptr
+		|| dynamic_cast<CSourceLayer*>( layer ) != nullptr
+		|| dynamic_cast<CSinkLayer*>( layer ) != nullptr,
+		"For ReferenceDnn changing layers is restricted" );
+	return layer;
+}
+
+CBaseLayer* CDnn::getLayer( const CArray<CString>& path )
 {
 	CheckArchitecture(path.Size() > 0, "NULL", "can not find layer - empty path");
 	if (path.Size() == 1) {
-		return GetLayer(path[0]);
+		return getLayer( path[0] );
 	} else {
 		CheckArchitecture(layerMap.Has(path[0]), path[0], "layer is not in this dnn");
-		CPtr<CCompositeLayer> currComp = CheckCast<CCompositeLayer>( GetLayer(path[0]).Ptr() );
+		CPtr<CCompositeLayer> currComp = CheckCast<CCompositeLayer>( getLayer( path[0] ) );
 		for (int i = 1; i < path.Size() - 1; ++i) {
 			CheckArchitecture(currComp->HasLayer(path[i]), path[i], "layer is not in this composite layer");
 			currComp = CheckCast<CCompositeLayer>(currComp->GetLayer(path[i]).Ptr());
@@ -475,11 +497,12 @@ CPtr<CBaseLayer> CDnn::GetLayer( const CArray<CString>& path)
 
 CPtr<const CBaseLayer> CDnn::GetLayer(const CArray<CString>& path) const
 {
-	return const_cast<CDnn*>(this)->GetLayer(path);
+	return const_cast<CDnn*>(this)->getLayer(path);
 }
 
 void CDnn::AddLayerImpl( CBaseLayer& layer )
 {
+	NeoAssertMsg( referenceDnnInfo == nullptr, "For ReferenceDnn adding layers is restricted" );
 	layer.CheckLayerArchitecture( !layerMap.Has( layer.GetName() ), "layer already in this dnn" );
 	layer.CheckLayerArchitecture( layer.GetDnn() == 0, "layer already added to other dnn" );
 
@@ -503,6 +526,7 @@ void CDnn::ForceRebuild()
 
 CDnn* CDnn::createReferenceDnn( CDnnReferenceRegister& referenceDnnRegister )
 {
+	NeoAssertMsg( referenceDnnInfo != nullptr, "ReferenceDnn can be created from originDnn only" );
 	auto* referenceDnnInfo = new CReferenceDnnInfo( random, &referenceDnnRegister );
 	auto* newDnn = new CDnn( referenceDnnInfo->Random(), mathEngine );
 
@@ -530,6 +554,7 @@ CDnn* CDnn::createReferenceDnn( CDnnReferenceRegister& referenceDnnRegister )
 
 void CDnn::DeleteLayerImpl( CBaseLayer& layer )
 {
+	NeoAssertMsg( referenceDnnInfo == nullptr, "For ReferenceDnn deleting layers is restricted" );
 	layer.CheckLayerArchitecture( HasLayer( layer.GetName() ), "deletion of the layer which is not in this dnn" );
 
 	// Set the flag that indicates the network should be rebuilt (configuration has changed)

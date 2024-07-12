@@ -159,7 +159,7 @@ void CBaseLayer::link()
 		if(dnn->HasLayer(inputs[i].Name)) {
 			CDnnLayerLink link;
 			link.OutputNumber = inputs[i].OutputNumber;
-			link.Layer = dnn->GetLayer(inputs[i].Name);
+			link.Layer = dnn->getLayer(inputs[i].Name);
 			inputLinks.InsertAt(link, 0);
 			link.Layer->addOutput(inputs[i].OutputNumber);
 		} else {

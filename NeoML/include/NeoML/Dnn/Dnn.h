@@ -607,6 +607,10 @@ private:
 	// Adds or deletes a layer
 	void AddLayerImpl(CBaseLayer& layer) override;
 	void DeleteLayerImpl(CBaseLayer& layer) final;
+	// Should be called in all internals methods
+	CBaseLayer* getLayer( const char* name );
+	// Should be called in all internals methods
+	CBaseLayer* getLayer( const CArray<CString>& path );
 
 	// This method creates a reference dnn, that has the same configuration as the original dnn
 	// and shares parameter blobs with the original dnn to save memory.
