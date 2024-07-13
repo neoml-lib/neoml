@@ -797,7 +797,15 @@ void CBaseLayer::Serialize( CArchive& archive )
 		archive << isBackwardForced;
 		archive << isLearningEnabled;
 		archive << baseLearningRate << baseL2RegularizationMult << baseL1RegularizationMult;
-		SerializeBlobs( mathEngine, archive, paramBlobs );
+
+		const bool nonReferenceDnnLayer = ( GetDnn() == nullptr || GetDnn()->referenceDnnInfo == nullptr );
+		if( nonReferenceDnnLayer ) {
+			SerializeBlobs( mathEngine, archive, paramBlobs );
+		} else { // Reference dnns will point to original dnn paramBlobs
+			CObjectArray<CDnnBlob> emptyParamBlobs;
+			emptyParamBlobs.SetSize( paramBlobs.Size() );
+			SerializeBlobs( mathEngine, archive, emptyParamBlobs );
+		}
 	} else if( archive.IsLoading() ) {
 		if( dnn != 0 ) {
 			unlink();

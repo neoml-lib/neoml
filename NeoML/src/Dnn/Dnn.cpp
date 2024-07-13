@@ -531,18 +531,18 @@ CDnn* CDnn::createReferenceDnn( CDnnReferenceRegister& referenceDnnRegister )
 	auto* newDnn = new CDnn( referenceDnnInfo->Random(), mathEngine );
 
 	CMemoryFile file;
-	for( int i = 0; i < layers.Size(); ++i ) {
+	for( CPtr<CBaseLayer>& layer : layers ) {
 		file.SeekToBegin();
 		{
 			CArchive archive( &file, CArchive::store );
-			SerializeLayer( archive, mathEngine, layers[i] );
+			SerializeLayer( archive, mathEngine, layer ); // if referenceDnnInfo != 0, do not serialize paramBlobs
 		}
 		file.SeekToBegin();
 		CPtr<CBaseLayer> copyLayer;
 		{
 			CArchive archive( &file, CArchive::load );
 			SerializeLayer( archive, mathEngine, copyLayer );
-			layers[i]->transferParamsBlob( *copyLayer );
+			layer->transferParamsBlob( *copyLayer );
 		}
 		newDnn->AddLayer( *copyLayer );
 	}

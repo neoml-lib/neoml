@@ -27,33 +27,50 @@ namespace NeoMLTest {
 static constexpr int iterationsRunOnce = 10;
 
 struct CReferenceDnnTestParam final {
-	CReferenceDnnTestParam( CDnnReferenceRegister& reg, CDnnBlob& in, CDnnBlob& out,
-			bool useReference, bool checkOutput = true ) :
-		ReferenceDnnRegister( reg ),
-		Input( in ),
-		Expected( out ),
-		UseReference( useReference ),
-		CheckOutput( checkOutput )
-	{}
+	CReferenceDnnTestParam( CDnnReferenceRegister& ref, CDnnBlob& in, CDnnBlob& out ) :
+		CReferenceDnnTestParam( in, out, /*useReference*/true, /*useDnn*/false )
+	{ ReferenceDnnRegister = &ref; }
 
-	CDnnReferenceRegister& ReferenceDnnRegister;
+	CReferenceDnnTestParam( CDnn& dnn, CDnnBlob& in, CDnnBlob& out, bool useReference ) :
+		CReferenceDnnTestParam( in, out, useReference, /*useDnn*/true )
+	{ Dnn = &dnn; }
+
 	CDnnBlob& Input;
 	CDnnBlob& Expected;
 	const bool UseReference;
 	const bool CheckOutput;
+	const bool UseDnn;
+	union {
+		CDnnReferenceRegister* ReferenceDnnRegister;
+		CDnn* Dnn;
+	};
+
+private:
+	CReferenceDnnTestParam( CDnnBlob& in, CDnnBlob& out, bool useReference, bool useDnn, bool checkOutput = true ) :
+		Input( in ), Expected( out ), UseReference( useReference ), CheckOutput( checkOutput ), UseDnn( useDnn )
+	{}
 };
 
-static void runDnn( int, void* params )
+static void runDnn( int thread, void* arg )
 {
-	CDnn& dnn = *static_cast<CDnn*>( params );
+	CReferenceDnnTestParam& params = static_cast<CReferenceDnnTestParam*>( arg )[thread];
+	ASSERT_TRUE( params.UseDnn );
+	CDnn& dnn = *params.Dnn;
 
 	for( int i = 0; i < iterationsRunOnce; ++i ) {
 		dnn.RunOnce();
+
+		if( params.CheckOutput ) {
+			CPtr<CDnnBlob> input = CheckCast<CSourceLayer>( dnn.GetLayer( "in" ).Ptr() )->GetBlob();
+			EXPECT_TRUE( CompareBlobs( params.Input, *input ) ) << " thread = " << thread;
+
+			CPtr<CDnnBlob> result = CheckCast<CSinkLayer>( dnn.GetLayer( "sink" ).Ptr() )->GetBlob();
+			EXPECT_TRUE( CompareBlobs( params.Expected, *result ) ) << " thread = " << thread;
+		}
 	}
 
-	CPtr<CDnnBlob> input = CheckCast<CSourceLayer>( dnn.GetLayer( "in" ).Ptr() )->GetBlob();
 	// for reference dnns only
-	if( !dnn.IsLearningEnabled() ) {
+	if( params.UseReference ) {
 		const CDnn& dnnConst = dnn;
 		EXPECT_NO_THROW( dnn.RequestReshape() );
 		EXPECT_NO_THROW( dnn.RequestReshape( true ); );
@@ -61,7 +78,7 @@ static void runDnn( int, void* params )
 		// learning
 		EXPECT_NO_THROW( dnn.DisableLearning(); );
 		NEOML_EXPECT_THROW( dnn.EnableLearning() );
-		bool isLearningEnabled;
+		bool isLearningEnabled{};
 		EXPECT_NO_THROW( isLearningEnabled = dnn.IsLearningEnabled(); );
 		EXPECT_EQ( isLearningEnabled, false );
 		EXPECT_NO_THROW( dnn.RunAndLearnOnce() );
@@ -101,17 +118,17 @@ static void runDnn( int, void* params )
 		EXPECT_NO_THROW( dnn.IsBackwardPerformed(); );
 		EXPECT_NO_THROW( dnn.RestartSequence(); );
 		EXPECT_NO_THROW( dnn.EnableProfile( false ); );
-		bool autoRestartMode;
+		bool autoRestartMode{};
 		EXPECT_NO_THROW( autoRestartMode = dnn.GetAutoRestartMode(); );
 		EXPECT_NO_THROW( dnn.SetAutoRestartMode( autoRestartMode ); );
 		EXPECT_NO_THROW( dnn.ForceRebuild(); );
 		EXPECT_NO_THROW( dnn.IsRebuildRequested(); );
 		EXPECT_NO_THROW( dnn.Random(); );
 		EXPECT_NO_THROW( dnn.GetMathEngine(); );
-		const CDnnSolver* solverConst;
+		const CDnnSolver* solverConst{};
 		EXPECT_NO_THROW( solverConst = dnnConst.GetSolver(); );
 		EXPECT_NE( solverConst, nullptr );
-		CDnnSolver* solver;
+		CDnnSolver* solver{};
 		EXPECT_NO_THROW( solver = dnn.GetSolver(); );
 		EXPECT_NE( solver, nullptr );
 		EXPECT_NO_THROW( dnn.SetSolver( solver ); );
@@ -126,9 +143,6 @@ static void runDnn( int, void* params )
 		NEOML_EXPECT_THROW( dnn.Serialize( archive ) );
 		NEOML_EXPECT_THROW( dnn.SerializeCheckpoint( archive ) );
 	}
-	// keep the result
-	CheckCast<CSourceLayer>( dnn.GetLayer( "in" ).Ptr() )->SetBlob( input );
-	dnn.RunOnce();
 }
 
 static void createDnn( CDnn& dnn, bool learn = false, float dropoutRate = 0.1f )
@@ -183,7 +197,7 @@ static void learnDnn( CDnn& dnn, int interations = 10 )
 	dnn.DeleteLayer( "loss" );
 }
 
-static CDnn* copyDnn( const CDnn& oldDnn, CRandom& random )
+static CDnn* copyDnn( CDnn& oldDnn, CRandom& random )
 {
 	CDnn* dnn = new CDnn( random, oldDnn.GetMathEngine() );
 
@@ -194,10 +208,8 @@ static CDnn* copyDnn( const CDnn& oldDnn, CRandom& random )
 	for( const char* layerName : layersList ) {
 		file.SeekToBegin();
 		{
+			CPtr<CBaseLayer> layer = oldDnn.GetLayer( layerName );
 			CArchive archive( &file, CArchive::store );
-			const CPtr<const CBaseLayer> layerConst = oldDnn.GetLayer( layerName );
-			// This hack is need, because Serialize() is not const, but actually doesn't change anything while storing
-			CPtr<CBaseLayer> layer = const_cast<CBaseLayer*>( layerConst.Ptr() );
 			SerializeLayer( archive, oldDnn.GetMathEngine(), layer );
 		}
 		file.SeekToBegin();
@@ -220,25 +232,34 @@ static void runDnnCreation( int thread, void* arg )
 		CPtrOwner<CDnn> dnn;
 
 		if( params.UseReference ) {
-			dnn = params.ReferenceDnnRegister.CreateReferenceDnn();
+			dnn = params.ReferenceDnnRegister->CreateReferenceDnn();
 		} else {
-			CDnn& oldDnn = *reinterpret_cast<CDnn*>( &params.ReferenceDnnRegister );
-			random = new CRandom( oldDnn.Random() );
-			dnn = copyDnn( oldDnn, *random );
+			ASSERT_TRUE( params.UseDnn );
+			random = new CRandom( params.Dnn->Random() );
+			dnn = copyDnn( *params.Dnn, *random );
 		}
 		setInputDnn( *dnn, params.Input );
 
 		for( int i = 0; i < 2; ++i ) {
 			dnn->RunOnce();
 		}
+
+		if( params.CheckOutput ) {
+			CPtr<CDnnBlob> input = CheckCast<CSourceLayer>( dnn->GetLayer( "in" ).Ptr() )->GetBlob();
+			EXPECT_TRUE( CompareBlobs( params.Input, *input ) ) << " thread = " << thread;
+
+			CPtr<CDnnBlob> result = CheckCast<CSinkLayer>( dnn->GetLayer( "sink" ).Ptr() )->GetBlob();
+			EXPECT_TRUE( CompareBlobs( params.Expected, *result ) ) << " thread = " << thread;
+		}
 	}
 }
 
 static CDnnReferenceRegister* getTestDnns( IMathEngine& mathEngine, CPointerArray<CDnn>& dnns, CArray<CRandom>& randoms,
-	bool useReference, int numOfThreads )
+	bool useReference, bool learn, int numOfThreads )
 {
 	CRandom random( 0 );
 	CPtr<CDnnBlob> blob = getInitedBlob( mathEngine, random, { 1, 1, 1, 8, 20, 30, 100 } );
+	CPtr<CDnnBlob> labelBlob = getInitedBlob( mathEngine, random, { 1, 1, 1, 1, 1, 1, 10 } );
 	CDnnReferenceRegister* referenceDnnRegister = nullptr;
 
 	dnns.SetBufferSize( numOfThreads );
@@ -252,7 +273,11 @@ static CDnnReferenceRegister* getTestDnns( IMathEngine& mathEngine, CPointerArra
 		} else if( i == 0 ) {
 			CRandom rand( random );
 			CDnn dnn( rand, mathEngine );
-			createDnn( dnn );
+			createDnn( dnn, learn );
+			setInputDnn( dnn, *blob, ( learn ? labelBlob.Ptr() : nullptr ), /*reshape*/true );
+			if( learn ) {
+				learnDnn( dnn );
+			}
 			referenceDnnRegister = new CDnnReferenceRegister( mathEngine, dnn );
 			// Like in class CDistributedInference
 			// Here either a one more reference dnn can be used
@@ -267,45 +292,38 @@ static CDnnReferenceRegister* getTestDnns( IMathEngine& mathEngine, CPointerArra
 	return referenceDnnRegister;
 }
 
-static void runMultiThreadInference( std::function<void*( int )> getter, void( *run )( int, void* ), int numOfThreads )
+static void runMultiThreadInference( CReferenceDnnTestParam* params, IThreadPool::TFunction run, int numOfThreads )
 {
 	CPtrOwner<IThreadPool> threadPool( CreateThreadPool( numOfThreads ) );
-	for( int i = 0; i < threadPool->Size(); ++i ) {
-		threadPool->AddTask( i, run, getter( i ) );
-	}
-	threadPool->WaitAllTask();
+	NEOML_NUM_THREADS( *threadPool, params, run )
 }
 
 // Scenario: learn dnn, then use multi-threaded inference
-static void perfomanceTest( IMathEngine& mathEngine, bool useReference, int numOfThreads = 4 )
+static void perfomanceTest( IMathEngine& mathEngine, bool useReference, bool learn = true, int numOfThreads = 4 )
 {
 	CArray<CRandom> randoms;
 	CPointerArray<CDnn> dnns;
-	CDnnReferenceRegister* referenceDnnRegister = getTestDnns( mathEngine, dnns, randoms, useReference, numOfThreads );
+	CDnnReferenceRegister* referenceDnnRegister = getTestDnns( mathEngine, dnns, randoms, useReference, learn, numOfThreads );
+
+	CPtr<CDnnBlob> sourceBlob = CheckCast<CSourceLayer>( dnns[0]->GetLayer( "in" ).Ptr() )->GetBlob();
+	CPtr<CDnnBlob> sinkBlob = CheckCast<CSinkLayer>( dnns[0]->GetLayer( "sink" ).Ptr() )->GetBlob();
+
+	CArray<CReferenceDnnTestParam> params;
+	params.SetBufferSize( numOfThreads );
+	for( int i = 0; i < numOfThreads; ++i ) {
+		params.Add( CReferenceDnnTestParam( *( dnns[i] ), *sourceBlob, *sinkBlob, useReference ) );
+	}
 
 	CPtrOwner<IPerformanceCounters> counters( mathEngine.CreatePerformanceCounters() );
 	mathEngine.ResetPeakMemoryUsage();
 
 	counters->Synchronise();
-	runMultiThreadInference( [&]( int thread ) { return dnns[thread]; }, runDnn, numOfThreads );
+	runMultiThreadInference( params.GetPtr(), runDnn, numOfThreads );
 	counters->Synchronise();
 
 	GTEST_LOG_( INFO ) << "Run once multi-threaded " << ( useReference ? "(ref)" : "(cpy)" )
 		<< "\nTime: " << ( double( ( *counters )[0].Value ) / 1000000 ) << " ms. "
 		<< "\tPeak.Mem: " << ( double( mathEngine.GetPeakMemoryUsage() ) / 1024 / 1024 ) << " MB \n";
-
-	CPtr<CDnnBlob> sourceBlob = CheckCast<CSourceLayer>( dnns[0]->GetLayer( "in" ).Ptr() )->GetBlob();
-	CPtr<CDnnBlob> sinkBlob = CheckCast<CSinkLayer>( dnns[0]->GetLayer( "sink" ).Ptr() )->GetBlob();
-
-	for( int i = 1; i < numOfThreads; ++i ) {
-		EXPECT_TRUE( CompareBlobs( *sourceBlob,
-			*( CheckCast<CSourceLayer>( dnns[i]->GetLayer( "in" ).Ptr() )->GetBlob() ) )
-		) << " i = " << i;
-
-		EXPECT_TRUE( CompareBlobs( *sinkBlob,
-			*( CheckCast<CSinkLayer>( dnns[i]->GetLayer( "sink" ).Ptr() )->GetBlob() ) )
-		) << " i = " << i;
-	}
 
 	if( referenceDnnRegister != nullptr ) {
 		( void ) dnns.DetachAndReplaceAt( nullptr, 0 );
@@ -332,20 +350,25 @@ static void implTest( IMathEngine& mathEngine, bool useReference, bool learn = t
 	dnn.RunOnce();
 	CPtr<CDnnBlob> sinkBlob = CheckCast<CSinkLayer>( dnn.GetLayer( "sink" ).Ptr() )->GetBlob();
 
-	CDnnReferenceRegister referenceDnnRegister( mathEngine, dnn );
-	CReferenceDnnTestParam param( referenceDnnRegister, *blob, *sinkBlob, useReference );
+	CPtrOwner<CDnnReferenceRegister> referenceDnnRegister;
+	CPtrOwner<CReferenceDnnTestParam> param;
+	if( useReference ) {
+		referenceDnnRegister = new CDnnReferenceRegister( mathEngine, dnn );
+		param = new CReferenceDnnTestParam( *referenceDnnRegister, *blob, *sinkBlob );
+	} else {
+		param = new CReferenceDnnTestParam( dnn, *blob, *sinkBlob, useReference );
+	}
 
 	CPtrOwner<IPerformanceCounters> counters( mathEngine.CreatePerformanceCounters() );
 	mathEngine.ResetPeakMemoryUsage();
 
 	// 2. Run multi-threaded inference
 	counters->Synchronise();
-	runMultiThreadInference( [&param]( int ) { return &param; }, runDnnCreation, numOfThreads );
+	runMultiThreadInference( param, runDnnCreation, numOfThreads );
 	counters->Synchronise();
 
 	GTEST_LOG_( INFO ) << "Run multi-threaded inference and creation "
 		<< "\t" << ( useReference ? "(ref)" : "(cpy)" )
-		<< "\t" << ( learn ? "(learn)" : "" )
 		<< "\nTime: " << ( double( ( *counters )[0].Value ) / 1000000 ) << " ms. "
 		<< "\tPeak.Mem: " << ( double( mathEngine.GetPeakMemoryUsage() ) / 1024 / 1024 ) << " MB \n";
 }
