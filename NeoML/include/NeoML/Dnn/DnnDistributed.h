@@ -129,7 +129,7 @@ public:
 	// Creates `count` cpu models
 	// If `count` is 0 or less, then the models number equal to the number of available CPU cores
 	CDistributedInference( CDnn& dnn, int count );
-	CDistributedInference( IMathEngine& mathEngine, CArchive& archive, int count, int seed = 42 );
+	CDistributedInference( CArchive& archive, int count, int seed = 42 );
 
 	virtual ~CDistributedInference();
 
@@ -150,14 +150,17 @@ private:
 		CPointerArray<CDnn> Dnns; // Separate dnn for each thread
 		CString ErrorMessage; // Container for error if it happened
 	};
+
+	// The operator of worker threads
+	CPtrOwner<IThreadPool> threadPool;
+	// Own CPU Math Engine
+	CPtrOwner<IMathEngine> mathEngine;
 	// The random generator for original dnn, reference dnn stores their randoms for themselves
 	CRandom random;
-	// The operator of worker threads
-	IThreadPool* const threadPool;
 	// Each `RunOnce` task parameters
 	CParams params;
 
-	void initialize( IMathEngine& mathEngine, CArchive& archive, int threads_count );
+	void initialize( CArchive& archive, int threads_count );
 };
 
 } // namespace NeoML

@@ -266,6 +266,7 @@ CDistributedTraining::~CDistributedTraining()
 	delete threadPool;
 	cnns.DeleteAll();
 	rands.DeleteAll();
+	// As mathEngines are owned, there are no buffers in pools left for any thread
 	for( int i = 0; i < mathEngines.Size(); ++i ){
 		delete mathEngines[i];
 	}
@@ -521,14 +522,13 @@ void CDistributedTraining::StoreDnn( CArchive& archive, int index, bool storeSol
 
 //---------------------------------------------------------------------------------------------------------------------
 
-void CDistributedInference::initialize( IMathEngine& mathEngine, CArchive& archive, int threads_count )
+void CDistributedInference::initialize( CArchive& archive, int threads_count )
 {
-	NeoAssertMsg( mathEngine.GetType() == MET_Cpu, "CDistributedInference: Allowed only for CPU mathEngine" );
 	initThreadGroupInfo();
 
 	NeoAssert( archive.IsLoading() );
 	params.Dnns.SetBufferSize( threads_count );
-	params.Dnns.Add( new CDnn( random, mathEngine ) );
+	params.Dnns.Add( new CDnn( random, *mathEngine ) );
 	params.Dnns[0]->Serialize( archive );
 	// Create reference dnns
 	// To create a reference dnn the original network should be trained or at least reshaped
@@ -540,8 +540,9 @@ void CDistributedInference::initialize( IMathEngine& mathEngine, CArchive& archi
 }
 
 CDistributedInference::CDistributedInference( CDnn& dnn, int count ) :
-	random( dnn.Random() ),
-	threadPool( CreateThreadPool( count ) )
+	threadPool( CreateThreadPool( count ) ),
+	mathEngine( CreateCpuMathEngine( /*memoryLimit*/0u ) ),
+	random( dnn.Random() )
 {
 	// Copy dnn using serialization to get the new dnn of necessary life time
 	CMemoryFile file;
@@ -552,24 +553,25 @@ CDistributedInference::CDistributedInference( CDnn& dnn, int count ) :
 	archive.Open( &file, CArchive::load );
 
 	// if count was <= 0 the pool has been initialized with the number of available CPU cores
-	initialize( dnn.GetMathEngine(), archive, threadPool->Size() );
+	initialize( archive, threadPool->Size() );
 }
 
-CDistributedInference::CDistributedInference( IMathEngine& mathEngine, CArchive& archive, int count, int seed ) :
-	random( seed ),
-	threadPool( CreateThreadPool( count ) )
+CDistributedInference::CDistributedInference( CArchive& archive, int count, int seed ) :
+	threadPool( CreateThreadPool( count ) ),
+	mathEngine( CreateCpuMathEngine( /*memoryLimit*/0u ) ),
+	random( seed )
 {
 	// if count was <= 0 the pool has been initialized with the number of available CPU cores
-	initialize( mathEngine, archive, threadPool->Size() );
+	initialize( archive, threadPool->Size() );
 }
 
 CDistributedInference::~CDistributedInference()
 {
-	delete threadPool;
 	// delete reference dnns before original dnn
 	CDnn* originalDnn = params.Dnns.DetachAndReplaceAt( nullptr, 0 );
 	params.Dnns.DeleteAll();
 	delete originalDnn;
+	// As mathEngine is owned, there are no buffers in pools left for any thread
 }
 
 void CDistributedInference::RunOnce( IDistributedDataset& data )

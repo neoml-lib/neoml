@@ -241,12 +241,6 @@ TEST( CDnnDistributedTest, DnnDistributedAutoThreadCountTest )
 
 TEST( CDnnDistributedTest, DnnDistributedInferenceArchived )
 {
-	IMathEngine& mathEngine = MathEngine();
-	if( mathEngine.GetType() != MET_Cpu ) {
-		GTEST_LOG_( INFO ) << "Skipped for mathEngine type != MET_Cpu";
-		return;
-	}
-
 	CString archiveName = "distributed";
 	CCustomDataset dataset( inputSize, outputSize );
 
@@ -267,7 +261,7 @@ TEST( CDnnDistributedTest, DnnDistributedInferenceArchived )
 		{
 			CArchiveFile out( archiveName + ".out", CArchive::load, GetPlatformEnv() );
 			CArchive archive( &out, CArchive::load );
-			SerializeBlob( mathEngine, archive, expected );
+			SerializeBlob( MathEngine(), archive, expected );
 		}
 		EXPECT_TRUE( CompareBlobs( *blob, *expected ) );
 	}
@@ -296,7 +290,7 @@ TEST( CDnnDistributedTest, DnnDistributedInferenceArchived )
 	{ // Check archive constructor
 		CArchiveFile file( archiveName, CArchive::load, GetPlatformEnv() );
 		CArchive archive( &file, CArchive::load );
-		CDistributedInference distributed( mathEngine, archive, /*count*/4, /*seed*/42 );
+		CDistributedInference distributed( archive, /*count*/4, /*seed*/42 );
 		EXPECT_EQ( 4, distributed.GetModelCount() );
 
 		distributed.RunOnce( dataset );
