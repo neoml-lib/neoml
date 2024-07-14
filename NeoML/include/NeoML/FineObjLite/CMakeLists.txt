@@ -14,21 +14,21 @@ set(${PROJECT_NAME}_SOURCES
     ArrayIteratorFOL.h
     AscendingFOL.h
     BaseFileFOL.h
-    internal/CriticalSectionFOL.h
+    CriticalSectionFOL.h
     DescendingFOL.h
-    internal/DynamicBitSetFOL.h
-    ErrorsFOL.h
-    internal/FastArrayFOL.h
+    DynamicBitSetFOL.h
+    FastArrayFOL.h
     FineObjLite.h
-    internal/HashTableAllocatorFOL.h
-    internal/HashTableFOL.h
-    internal/IntervalFOL.h
-    internal/MapFOL.h
+    ErrorsFOL.h
+    HashTableAllocatorFOL.h
+    HashTableFOL.h
+    IntervalFOL.h
+    MapFOL.h
     MathFOL.h
     MemoryFileFOL.h
     ObjectFOL.h
-    internal/PointerArrayFOL.h
-    internal/PriorityQueueFOL.h
+    PointerArrayFOL.h
+    PriorityQueueFOL.h
     PtrOwnerFOL.h
     SortFOL.h
     StringFOL.h

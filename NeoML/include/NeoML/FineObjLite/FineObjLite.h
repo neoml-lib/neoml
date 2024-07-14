@@ -15,35 +15,38 @@ limitations under the License.
 
 #pragma once 
 
-#include "FineObjLiteDefs.h"
-#include "StringFOL.h"
-#include "ErrorsFOL.h"
-#include "MathFOL.h"
-#include "AllocFOL.h"
-#include "BaseFileFOL.h"
-#include "ArchiveFOL.h"
-#include "MemoryFileFOL.h"
-#include "internal/FastArrayFOL.h"
-#include "ObjectFOL.h"
-#include "ArrayFOL.h"
-#include "ArrayIteratorFOL.h"
-#include "internal/PointerArrayFOL.h"
-#include "internal/HashTableAllocatorFOL.h"
-#include "internal/HashTableFOL.h"
-#include "internal/MapFOL.h"
-#include "TextStreamFOL.h"
-#include "internal/PriorityQueueFOL.h"
-#include "AscendingFOL.h"
-#include "DescendingFOL.h"
-#include "internal/DynamicBitSetFOL.h"
-#include "internal/IntervalFOL.h"
-#include "SortFOL.h"
-#include "internal/CriticalSectionFOL.h"
-#include "PtrOwnerFOL.h"
+#include <FineObjLiteDefs.h>
 
 namespace FObj {
-
 using std::swap;
+}
+
+#include <AllocFOL.h>
+#include <ArchiveFOL.h>
+#include <ArrayFOL.h>
+#include <ArrayIteratorFOL.h>
+#include <AscendingFOL.h>
+#include <BaseFileFOL.h>
+#include <CriticalSectionFOL.h>
+#include <DescendingFOL.h>
+#include <DynamicBitSetFOL.h>
+#include <ErrorsFOL.h>
+#include <FastArrayFOL.h>
+#include <HashTableAllocatorFOL.h>
+#include <HashTableFOL.h>
+#include <IntervalFOL.h>
+#include <ObjectFOL.h>
+#include <MapFOL.h>
+#include <MathFOL.h>
+#include <MemoryFileFOL.h>
+#include <PointerArrayFOL.h>
+#include <PriorityQueueFOL.h>
+#include <PtrOwnerFOL.h>
+#include <SortFOL.h>
+#include <StringFOL.h>
+#include <TextStreamFOL.h>
+
+namespace FObj {
 
 constexpr const char* GetDefaultDelimiter( char ) { return ", "; }
 
