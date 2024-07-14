@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,6 +15,8 @@ limitations under the License.
 
 #pragma once
 
+#include <MathFOL.h>
+
 namespace FObj {
 
 // The class to sort ascending, by the elements values
@@ -23,7 +25,7 @@ class Ascending {
 public:
 	bool Predicate( const T& first, const T& second ) const { return first < second; }
 	bool IsEqual( const T& first, const T& second ) const { return first == second; }
-	void Swap( T& first, T& second ) const { std::swap<T>( first, second ); }
+	void Swap( T& first, T& second ) const { FObj::swap<T>( first, second ); }
 };
 
 // The class to sort ascending by the Member field, of the TMemberType type
@@ -37,7 +39,7 @@ public:
 	bool IsEqual( const T& first, const T& second ) const { return ( first.*Member ) == ( second.*Member ); }
 	bool IsEqual( const TMemberType& first, const T& second ) const { return first == ( second.*Member ); }
 	bool IsEqual( const T& first, const TMemberType& second ) const { return ( first.*Member ) == second; }
-	void Swap( T& first, T& second ) const { std::swap<T>( first, second ); }
+	void Swap( T& first, T& second ) const { FObj::swap<T>( first, second ); }
 };
 
 // The class to sort ascending by the Method value, of the TMethodReturnType Method() const signature
@@ -51,7 +53,7 @@ public:
 	bool IsEqual( const T& first, const T& second ) const { return ( first.*Method )() == ( second.*Method )(); }
 	bool IsEqual( const TMethodReturnType& first, const T& second ) const { return first == ( second.*Method )(); }
 	bool IsEqual( const T& first, const TMethodReturnType& second ) const { return ( first.*Method )() == second; }
-	void Swap( T& first, T& second ) const { std::swap<T>( first, second ); }
+	void Swap( T& first, T& second ) const { FObj::swap<T>( first, second ); }
 };
 
 // A special version for constant references
@@ -64,7 +66,7 @@ public:
 	bool IsEqual( const T& first, const T& second ) const { return ( first.*Method )() == ( second.*Method )(); }
 	bool IsEqual( const TMethodReturnType& first, const T& second ) const { return first == ( second.*Method )(); }
 	bool IsEqual( const T& first, const TMethodReturnType& second ) const { return ( first.*Method )() == second; }
-	void Swap( T& first, T& second ) const { std::swap<T>( first, second ); }
+	void Swap( T& first, T& second ) const { FObj::swap<T>( first, second ); }
 };
 
 // The class to sort ascending an array of pointers, by comparing the objects the pointers refer to
@@ -73,8 +75,8 @@ class AscendingPtr {
 public:
 	bool Predicate( const T* first, const T* second ) const { return *first < *second; }
 	bool IsEqual( const T* first, const T* second ) const { return *first == *second; }
-	void Swap( T*& first, T*& second ) const { std::swap( first, second ); }
-	void Swap( CPtr<T>& first, CPtr<T>& second ) const { std::swap( first, second ); }
+	void Swap( T*& first, T*& second ) const { FObj::swap( first, second ); }
+	void Swap( CPtr<T>& first, CPtr<T>& second ) const { FObj::swap( first, second ); }
 };
 
 // The class to sort ascending an array of pointers by comparing the objects' Member field, of the TMemberType type
@@ -88,8 +90,8 @@ public:
 	bool IsEqual( const T* first, const T* second ) const { return ( first->*Member ) == ( second->*Member ); }
 	bool IsEqual( const TMemberType& first, const T* second ) const { return first == ( second->*Member ); }
 	bool IsEqual( const T* first, const TMemberType& second ) const { return ( first->*Member ) == second; }
-	void Swap( T*& first, T*& second ) const { std::swap( first, second ); }
-	void Swap( CPtr<T>& first, CPtr<T>& second ) const { std::swap( first, second ); }
+	void Swap( T*& first, T*& second ) const { FObj::swap( first, second ); }
+	void Swap( CPtr<T>& first, CPtr<T>& second ) const { FObj::swap( first, second ); }
 };
 
 // The class to sort ascending an array of pointers by the Method value, of the TMethodReturnType Method() const signature
@@ -103,8 +105,8 @@ public:
 	bool IsEqual( const T* first, const T* second ) const { return ( first->*Method )() == ( second->*Method )(); }
 	bool IsEqual( const TMethodReturnType& first, const T* second ) const { return first == ( second->*Method )(); }
 	bool IsEqual( const T* first, const TMethodReturnType& second ) const { return ( first->*Method )() == second; }
-	void Swap( T*& first, T*& second ) const { std::swap( first, second ); }
-	void Swap( CPtr<T>& first, CPtr<T>& second ) const { std::swap( first, second ); }
+	void Swap( T*& first, T*& second ) const { FObj::swap( first, second ); }
+	void Swap( CPtr<T>& first, CPtr<T>& second ) const { FObj::swap( first, second ); }
 };
 
 // A special version for constant references
@@ -117,38 +119,42 @@ public:
 	bool IsEqual( const T* first, const T* second ) const { return ( first->*Method )() == ( second->*Method )(); }
 	bool IsEqual( const TMethodReturnType& first, const T* second ) const { return first == ( second->*Method )(); }
 	bool IsEqual( const T* first, const TMethodReturnType& second ) const { return ( first->*Method )() == second; }
-	void Swap( T*& first, T*& second ) const { std::swap( first, second ); }
-	void Swap( CPtr<T>& first, CPtr<T>& second ) const { std::swap( first, second ); }
+	void Swap( T*& first, T*& second ) const { FObj::swap( first, second ); }
+	void Swap( CPtr<T>& first, CPtr<T>& second ) const { FObj::swap( first, second ); }
 };
 
 // Composite sorting
 // Sorts by the first comparer. The elements that are the same are then sorted by the second comparer
-template<class T, class COMPARE1, class COMPARE2>
-class CompositeComparer {
+template<class T, class... COMPARES>
+class CompositeComparer;
+
+template<class T, class COMPARE1, class... COMPARES>
+class CompositeComparer<T, COMPARE1, COMPARES...> : private COMPARE1, CompositeComparer<T, COMPARES...> {
+	using Base1 = COMPARE1;
+	using Base2 = CompositeComparer<T, COMPARES...>;
 public:
 	bool Predicate( const T& first, const T& second ) const;
 	bool IsEqual( const T& first, const T& second ) const;
-	void Swap( T& first, T& second ) const { std::swap<T>( first, second ); }
-
-private:
-	COMPARE1 comparer1;
-	COMPARE2 comparer2;
+	void Swap( T& first, T& second ) const { FObj::swap<T>( first, second ); }
 };
 
-template<class T, class COMPARE1, class COMPARE2>
-inline bool CompositeComparer<T, COMPARE1, COMPARE2>::Predicate( const T& first, const T& second ) const
-{
-	if( comparer1.IsEqual(first, second) ) {
-		return comparer2.Predicate(first, second);
-	}
+template<class T, class COMPARE1>
+class CompositeComparer<T, COMPARE1> : public COMPARE1 {
+};
 
-	return comparer1.Predicate(first, second);
+template<class T, class COMPARE1, class... COMPARES>
+bool CompositeComparer<T, COMPARE1, COMPARES...>::Predicate( const T& first, const T& second ) const
+{
+	if( Base1::IsEqual(first, second) ) {
+		return Base2::Predicate(first, second);
+	}
+	return Base1::Predicate(first, second);
 }
 
-template<class T, class COMPARE1, class COMPARE2>
-inline bool CompositeComparer<T, COMPARE1, COMPARE2>::IsEqual( const T& first, const T& second ) const
+template<class T, class COMPARE1, class... COMPARES>
+bool CompositeComparer<T, COMPARE1, COMPARES...>::IsEqual( const T& first, const T& second ) const
 {
-	return comparer1.IsEqual(first, second) && comparer2.IsEqual(first, second);
+	return Base1::IsEqual(first, second) && Base2::IsEqual(first, second);
 }
 
 } // namespace FObj

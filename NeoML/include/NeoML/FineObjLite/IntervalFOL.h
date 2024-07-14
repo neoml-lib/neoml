@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,9 +15,9 @@ limitations under the License.
 
 #pragma once
 
-#include "../ErrorsFOL.h"
-#include "../ArchiveFOL.h"
-#include "HashTableFOL.h"
+#include <ErrorsFOL.h>
+#include <ArchiveFOL.h>
+#include <HashTableFOL.h>
 
 namespace FObj {
 
@@ -50,9 +50,11 @@ public:
 	bool Overlaps( const CInterval& other ) const;
 	bool Contains( int x ) const;
 	bool Contains( const CInterval& other ) const;
+
+	void Serialize( CArchive& archive );
 };
 
-//------------------------------------------------------------------------------------------------------------
+//---------------------------------------------------------------------------------------------------------------------
 
 inline CInterval::CInterval() :
 	Begin(0),
@@ -195,6 +197,14 @@ inline bool CInterval::Contains( const CInterval& other ) const
 	return Begin <= other.Begin && other.End <= End;
 }
 
+inline void CInterval::Serialize( CArchive& archive )
+{
+	archive.Serialize( Begin );
+	archive.Serialize( End );
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
 inline bool operator == ( const CInterval& a, const CInterval& b )
 {
 	PresumeFO( a.IsValid() );
@@ -273,6 +283,8 @@ inline int Gap( const CInterval& a, const CInterval& b )
 
 	return max( b.Begin - a.End, a.Begin - b.End );
 }
+
+//---------------------------------------------------------------------------------------------------------------------
 
 inline CArchive& operator<<( CArchive& archive, const CInterval& interval )
 {

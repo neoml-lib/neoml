@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -25,11 +25,16 @@ namespace FObj {
 // Predicate == true for the found element and false for the previous one
 // The library has standard comparer implementations that use the < and = operators (see AscendingFOL.h, DescendingFOL.h)
 
+// Для массивов меньшего размера эффективней использовать сортировку вставками
+const int QuickSortCutoff = 8;
+
+//----------------------------------------------------------------------------------------------------------------
+// Вспомогательные функции
 template<class TYPE, class COMPARE>
 int divideArray( TYPE* arr, int size, COMPARE* param );
 
 template<class TYPE, class COMPARE>
-void doQuickSort( TYPE* arr, int size, COMPARE* param = 0 );
+void doQuickSort( TYPE* arr, int size, COMPARE* param );
 
 template<class TYPE, class COMPARE, class SEARCHED_TYPE>
 int doFindInsertionPoint( const SEARCHED_TYPE& element, const TYPE* arr, int size, COMPARE* param );
@@ -40,6 +45,7 @@ bool isSorted( const TYPE* arr, int size, COMPARE* param );
 template<class TYPE, class COMPARE>
 inline void QuickSort( TYPE* arr, int size, COMPARE* param )
 {
+	AssertFO( std::is_empty<COMPARE>::value || param != nullptr || size <= 1 );
 	doQuickSort( arr, size, param );
 }
 
@@ -53,6 +59,7 @@ inline void QuickSort( TYPE* arr, int size )
 template<class TYPE, class COMPARE>
 inline bool IsSorted( const TYPE* arr, int size, COMPARE* compare )
 {
+	AssertFO( std::is_empty<COMPARE>::value || compare != nullptr || size <= 1 );
 	return isSorted<TYPE, COMPARE>( arr, size, compare );
 }
 
@@ -71,6 +78,7 @@ inline bool IsSorted( const TYPE* arr, int size )
 template<class TYPE, class COMPARE, class SEARCHED_TYPE>
 inline int FindInsertionPoint( const SEARCHED_TYPE& element, const TYPE* arr, int size, COMPARE* param )
 {
+	AssertFO( std::is_empty<COMPARE>::value || param != nullptr || size <= 1 );
 	return doFindInsertionPoint( element, arr, size, param );
 }
 
@@ -85,7 +93,6 @@ inline int FindInsertionPoint( const SEARCHED_TYPE& element, const TYPE* arr, in
 template<class TYPE>
 int FindInsPoint( const TYPE& element, const TYPE* arr, int size, int ( *compareFunc )( const TYPE*, const TYPE* ) )
 {
-	PresumeFO( IsSortedByFunction( arr, size, compareFunc ) );
 	int first = 0;
 	int last = size;
 	while( first < last ) {
@@ -111,18 +118,49 @@ bool isSorted( const TYPE* arr, int size, COMPARE* compare )
 }
 
 template<class TYPE, class COMPARE>
+inline void sort2( TYPE& a, TYPE& b, COMPARE* param )
+{
+	if( param->Predicate( b, a ) ) {
+		param->Swap( a, b );
+	}
+}
+
+template<class TYPE, class COMPARE>
+inline void sort3( TYPE& a, TYPE& b, TYPE& c, COMPARE* param )
+{
+	const bool ab = param->Predicate( b, a );
+	const bool bc = param->Predicate( c, b );
+	if( ab && bc ) {
+		param->Swap( a, c );
+	} else if( ab ) {
+		param->Swap( a, b );
+		sort2( b, c, param );
+	} else if( bc ) {
+		param->Swap( b, c );
+		sort2( a, b, param );
+	}
+}
+
+template<class TYPE, class COMPARE>
 void InsertionSort( TYPE* arr, int size, COMPARE* param )
 {
-	for( int i = size - 1; i > 0; i-- ) {
-		int best = i;
-		for( int j = i - 1; j >= 0; j-- ) {
-			if( param->Predicate( arr[best], arr[j] ) ) {
-				best = j;
+	AssertFO( std::is_empty<COMPARE>::value || param != nullptr || size <= 1 );
+	if( size == 2 ) {
+		sort2( arr[0], arr[1], param );
+	} else if( size == 3 ) {
+		sort3( arr[0], arr[1], arr[2], param );
+	} else {
+		for( int i = size - 1; i > 0; i-- ) {
+			int best = i;
+			for( int j = i - 1; j >= 0; j-- ) {
+				if( param->Predicate( arr[best], arr[j] ) ) {
+					best = j;
+				}
 			}
-		}
 
-		if( i != best ) {
-			param->Swap( arr[best], arr[i] );
+			if( i != best ) {
+				param->Swap( arr[best], arr[i] );
+			}
 		}
 	}
 }
@@ -135,13 +173,13 @@ void doQuickSort( TYPE* arr, int size, COMPARE* param )
 	if( size < 2 ) {
 		return;
 	}
-	
+
 	TYPE* arrayStack[QsortStackSize];
 	int sizeStack[QsortStackSize];
 	int stackPtr = 0;
 
 	while( true ) {
-		if( size <= 8 ) {
+		if( size <= QuickSortCutoff ) {
 			InsertionSort( arr, size, param );
 		} else {
 			int mean = divideArray( arr, size, param );
@@ -175,34 +213,48 @@ void doQuickSort( TYPE* arr, int size, COMPARE* param )
 		stackPtr--;
 		arr = arrayStack[stackPtr];
 		size = sizeStack[stackPtr];
-	}	
+	}
 }
 
 template<class TYPE, class COMPARE>
 int divideArray( TYPE* arr, int size, COMPARE* param )
 {
-	PresumeFO( size >= 2 );
+	PresumeFO( size >= 3 );
 
-	param->Swap( arr[0], arr[size / 2] );
+	const int mid = size / 2;
+	sort3( arr[0], arr[mid], arr[size-1], param );
 
-	const int indicatorPlace = 0;
-	int currentLessPlace = 0;
-	int currentGreaterPlace = size;
+	int indicatorPlace = 1;
+	int currentGreaterPlace = size - 1;
+	for( ; indicatorPlace < mid && param->Predicate( arr[indicatorPlace], arr[mid] ); ++indicatorPlace );
+	if( indicatorPlace < mid ) {
+		param->Swap( arr[indicatorPlace], arr[mid] );
+		do {
+			--currentGreaterPlace;
+		} while( currentGreaterPlace > mid && param->Predicate( arr[indicatorPlace], arr[currentGreaterPlace] ) );
+		if( currentGreaterPlace > mid ) {
+			param->Swap( arr[mid], arr[currentGreaterPlace] );
+		}
+	}
+	int currentLessPlace = indicatorPlace;
 	while( true ) {
 		do {
 			currentLessPlace++;
-		} while( currentLessPlace < size && param->Predicate( arr[currentLessPlace], arr[indicatorPlace] ) );
+		} while( currentLessPlace < currentGreaterPlace &&
+			param->Predicate( arr[currentLessPlace], arr[indicatorPlace] ) );
 		do {
 			currentGreaterPlace--;
-		} while( currentGreaterPlace > 0 && param->Predicate( arr[indicatorPlace], arr[currentGreaterPlace] ) );
+		} while( currentGreaterPlace >= currentLessPlace &&
+			param->Predicate( arr[indicatorPlace], arr[currentGreaterPlace] ) );
 
 		if( currentGreaterPlace < currentLessPlace ) {
 			break;
 		}
+		PresumeFO( !param->Predicate( arr[currentLessPlace], arr[currentGreaterPlace] ) );
 		param->Swap( arr[currentLessPlace], arr[currentGreaterPlace] );
 	}
 
-	if( indicatorPlace != currentGreaterPlace ) {
+	if( indicatorPlace != currentGreaterPlace && param->Predicate( arr[currentGreaterPlace], arr[indicatorPlace] ) ) {
 		param->Swap( arr[indicatorPlace], arr[currentGreaterPlace] );
 	}
 	return currentGreaterPlace;
