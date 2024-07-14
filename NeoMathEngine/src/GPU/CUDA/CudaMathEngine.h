@@ -672,14 +672,14 @@ private:
 	CCudaDevice* captureCudaDevice( int deviceNumber, size_t memoryLimit );
 	CCudaDevice* captureSpecifiedCudaDevice( int deviceNumber, size_t memoryLimit, bool reuseDevice );
 
-	int alignXSizeForWarp( int xSize );
-	int getCudaTempMatrixMaxHeight( int matrixHeight, int matrixWidth );
-	void getCudaTaskGrid( int& blockCount, int& threadCount, int taskCount, int combineCount = 1 );
-	void getCudaTaskGrid2D( dim3& blockCount, dim3& threadCount, int height, int width, int _maxThreadCount = UINT_MAX );
-	void getCudaTaskGrid3D( dim3& blockCount, dim3& threadCount, int batchSize, int height, int width, int _maxThreadCount = UINT_MAX );
-	void getCudaTaskGrid2DMinYX( int minY, int minX, dim3& blockCount, dim3& threadCount, int height, int width, int _maxThreadCount = UINT_MAX );
+	int alignXSizeForWarp( int xSize ) const;
+	int getCudaTempMatrixMaxHeight( int matrixHeight, int matrixWidth ) const;
+	void getCudaTaskGrid( int& blockCount, int& threadCount, int taskCount, int combineCount = 1 ) const;
+	void getCudaTaskGrid2D( dim3& blockCount, dim3& threadCount, int height, int width, int _maxThreadCount = INT_MAX ) const;
+	void getCudaTaskGrid3D( dim3& blockCount, dim3& threadCount, int batchSize, int height, int width, int _maxThreadCount = INT_MAX ) const;
+	void getCudaTaskGrid2DMinYX( int minY, int minX, dim3& blockCount, dim3& threadCount, int height, int width, int _maxThreadCount = INT_MAX ) const;
 	void getCudaTaskGrid3DMinZYX( int minZ, int minY, int minX, dim3& blockCount, dim3& threadCount,
-		int batchSize, int height, int width, int _maxThreadCount = UINT_MAX );
+		int batchSize, int height, int width, int _maxThreadCount = INT_MAX ) const;
 
 	template<class T>
 	void transposeMatrixImpl( int batchSize, const CTypedMemoryHandle<const T>& firstHandle,
