@@ -178,7 +178,7 @@ void CDistributedTraining::initialize( CArchive& archive, int count, TDistribute
 }
 
 CDistributedTraining::CDistributedTraining( const CDnn& dnn, int count,
-		TDistributedInitializer initializer, int seed ) :
+		TDistributedInitializer initializer, int seed, size_t memoryLimit ) :
 	isCpu( true ),
 	threadPool( CreateThreadPool( count ) )
 {
@@ -187,7 +187,7 @@ CDistributedTraining::CDistributedTraining( const CDnn& dnn, int count,
 
 	initThreadGroupInfo();
 	mathEngines.SetSize( count );
-	CreateDistributedCpuMathEngines( mathEngines.GetPtr(), count );
+	CreateDistributedCpuMathEngines( mathEngines.GetPtr(), count, memoryLimit );
 	CMemoryFile file;
 	CArchive archive( &file, CArchive::SD_Storing );
 	const_cast<CDnn&>( dnn ).Serialize( archive );
@@ -210,7 +210,7 @@ CDistributedTraining::CDistributedTraining( const CDnn& dnn, int count,
 }
 
 CDistributedTraining::CDistributedTraining( CArchive& archive, int count,
-		TDistributedInitializer initializer, int seed ) :
+		TDistributedInitializer initializer, int seed, size_t memoryLimit ) :
 	isCpu( true ),
 	threadPool( CreateThreadPool( count ) )
 {
@@ -219,17 +219,17 @@ CDistributedTraining::CDistributedTraining( CArchive& archive, int count,
 
 	initThreadGroupInfo();
 	mathEngines.SetSize( count );
-	CreateDistributedCpuMathEngines( mathEngines.GetPtr(), count );
+	CreateDistributedCpuMathEngines( mathEngines.GetPtr(), count, memoryLimit );
 	initialize( archive, count, initializer, seed );
 }
 
 CDistributedTraining::CDistributedTraining( const CDnn& dnn, const CArray<int>& cudaDevs,
-		TDistributedInitializer initializer, int seed ) :
+		TDistributedInitializer initializer, int seed, size_t memoryLimit ) :
 	isCpu( false ),
 	threadPool( CreateThreadPool(cudaDevs.Size()) )
 {
 	mathEngines.SetSize( cudaDevs.Size() );
-	CreateDistributedCudaMathEngines( mathEngines.GetPtr(), cudaDevs.Size(), cudaDevs.GetPtr() );
+	CreateDistributedCudaMathEngines( mathEngines.GetPtr(), cudaDevs.Size(), cudaDevs.GetPtr(), memoryLimit );
 	CMemoryFile file;
 	CArchive archive( &file, CArchive::SD_Storing );
 	const_cast<CDnn&>( dnn ).Serialize( archive );
@@ -252,12 +252,12 @@ CDistributedTraining::CDistributedTraining( const CDnn& dnn, const CArray<int>& 
 }
 
 CDistributedTraining::CDistributedTraining( CArchive& archive, const CArray<int>& cudaDevs,
-		TDistributedInitializer initializer, int seed ) :
+		TDistributedInitializer initializer, int seed, size_t memoryLimit ) :
 	isCpu( false ),
 	threadPool( CreateThreadPool(cudaDevs.Size()) )
 {
 	mathEngines.SetSize( cudaDevs.Size() );
-	CreateDistributedCudaMathEngines( mathEngines.GetPtr(), cudaDevs.Size(), cudaDevs.GetPtr() );
+	CreateDistributedCudaMathEngines( mathEngines.GetPtr(), cudaDevs.Size(), cudaDevs.GetPtr(), memoryLimit );
 	initialize( archive, cudaDevs.Size(), initializer, seed );
 }
 
@@ -547,18 +547,18 @@ void CDistributedInference::initialize( int threads_count )
 	threadParams.Dnns.Add( reinterpret_cast<CDnn*>( &referenceDnnRegister ) );
 }
 
-CDistributedInference::CDistributedInference( const CDnn& dnn, int count ) :
+CDistributedInference::CDistributedInference( const CDnn& dnn, int count, size_t memoryLimit ) :
 	threadPool( CreateThreadPool( count ) ),
-	mathEngine( CreateCpuMathEngine( /*memoryLimit*/0u ) ),
+	mathEngine( CreateCpuMathEngine( memoryLimit ) ),
 	referenceDnnRegister( *mathEngine, dnn )
 {
 	// if count was <= 0 the pool has been initialized with the number of available CPU cores
 	initialize( threadPool->Size() );
 }
 
-CDistributedInference::CDistributedInference( CArchive& archive, int count, int seed ) :
+CDistributedInference::CDistributedInference( CArchive& archive, int count, int seed, size_t memoryLimit ) :
 	threadPool( CreateThreadPool( count ) ),
-	mathEngine( CreateCpuMathEngine( /*memoryLimit*/0u ) ),
+	mathEngine( CreateCpuMathEngine( memoryLimit ) ),
 	referenceDnnRegister( *mathEngine, archive, seed )
 {
 	// if count was <= 0 the pool has been initialized with the number of available CPU cores

@@ -51,14 +51,14 @@ public:
 	// Creates `count` cpu models
 	// If `count` is 0 or less, then the models number equal to the number of available CPU cores
 	CDistributedTraining( const CDnn& dnn, int count,
-		TDistributedInitializer initializer = TDistributedInitializer::Xavier, int seed = 42 );
+		TDistributedInitializer initializer = TDistributedInitializer::Xavier, int seed = 42, size_t memoryLimit = 0 );
 	CDistributedTraining( CArchive& archive, int count,
-		TDistributedInitializer initializer = TDistributedInitializer::Xavier, int seed = 42 );
+		TDistributedInitializer initializer = TDistributedInitializer::Xavier, int seed = 42, size_t memoryLimit = 0 );
 	// Creates gpu models, `devs` should contain numbers of using devices
 	CDistributedTraining( const CDnn& dnn, const CArray<int>& cudaDevs,
-		TDistributedInitializer initializer = TDistributedInitializer::Xavier, int seed = 42 );
+		TDistributedInitializer initializer = TDistributedInitializer::Xavier, int seed = 42, size_t memoryLimit = 0 );
 	CDistributedTraining( CArchive& archive, const CArray<int>& cudaDevs,
-		TDistributedInitializer initializer = TDistributedInitializer::Xavier, int seed = 42 );
+		TDistributedInitializer initializer = TDistributedInitializer::Xavier, int seed = 42, size_t memoryLimit = 0 );
 
 	virtual ~CDistributedTraining();
 
@@ -131,8 +131,8 @@ class NEOML_API CDistributedInference {
 public:
 	// Creates `count` cpu models
 	// If `count` is 0 or less, then the models number equal to the number of available CPU cores
-	CDistributedInference( const CDnn& dnn, int count );
-	CDistributedInference( CArchive& archive, int count, int seed = 42 );
+	CDistributedInference( const CDnn& dnn, int count, size_t memoryLimit = 0 );
+	CDistributedInference( CArchive& archive, int count, int seed = 42, size_t memoryLimit = 0 );
 
 	virtual ~CDistributedInference();
 
