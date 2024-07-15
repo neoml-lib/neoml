@@ -213,8 +213,8 @@ public:
 	// Releases all temporary resources allocated for the layer
 	virtual void CleanUp( bool totalCleanUp = false );
 
-	// Returns the total size of trainable parameters in this layer
-	// Returns the total size of trainable parameters of its internal layers, if layer is composite or recurrent
+	// Returns the number of trainable parameters (floats or ints) in all of this layer's parameters blobs
+	// Returns the number of trainable parameters of its internal layers, if layer is composite or recurrent
 	virtual size_t GetTrainableParametersSize() const;
 
 	// Enable profile timer for RunOnce
@@ -398,6 +398,8 @@ private:
 	// Set the 'dist' layer's paramBlobs to point to the data of this layer's paramBlobs
 	void transferParamsBlob(CBaseLayer& dist) const;
 
+	void sequentialModeIfRecurrent();
+	void nonSequentialModeIfRecurrent();
 	// Switches the specified blobs into sequence processing mode
 	void switchBlobsToSequentialMode(CObjectArray<CDnnBlob>& blobs, TBlobCacheType cacheType, bool storeParent);
 	void switchBlobsToNonSequentialMode(CObjectArray<CDnnBlob>& blobs, TBlobCacheType cacheType, bool clear);
