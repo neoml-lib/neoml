@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,7 +16,6 @@ limitations under the License.
 #pragma once
 
 #include <NeoMathEngine/NeoMathEngineDefs.h>
-#include <NeoMathEngine/MemoryHandle.h>
 #include <NeoMathEngine/BlobType.h>
 #include <initializer_list>
 
@@ -49,37 +48,16 @@ constexpr inline TBlobDim operator+( TBlobDim d, int i )
 	return TBlobDim( int( d ) + i );
 }
 
-// struct CBlobDesc - the base blob descriptor for Math Engine functions
-class NEOMATHENGINE_API CBlobDesc {
+//---------------------------------------------------------------------------------------------------------------------
+
+// CBlobDesc is the base blob descriptor for Math Engine functions
+class NEOMATHENGINE_API CBlobDesc final {
 public:
 	static const int MaxDimensions = BD_Count;
 	static const int FirstObjectDim = 3; // the number of the first object dimension (BD_Height)
 
-	explicit CBlobDesc( TBlobType dataType = CT_Invalid ) :
-		type( dataType )
-	{
-		for( int i = 0; i < MaxDimensions; i++ ) {
-			dimensions[i] = 1;
-		}
-	}
-
-	CBlobDesc( std::initializer_list<int> list ) :
-		type( CT_Float )
-	{
-		int i = BD_Count - 1;
-		int j = static_cast<int>(list.size()) - 1;
-
-		while( i >= 0 && j >= 0 ) {
-			dimensions[i] = list.begin()[j];
-			i--;
-			j--;
-		}
-
-		while( i >= 0 ) {
-			dimensions[i] = 1;
-			i--;
-		}
-	}
+	explicit CBlobDesc( TBlobType dataType = CT_Invalid );
+	CBlobDesc( std::initializer_list<int> list );
 
 	// The maximum possible sequence length for a recurrent network
 	int BatchLength() const { return dimensions[BD_BatchLength]; }
@@ -95,15 +73,8 @@ public:
 	int Depth() const { return dimensions[BD_Depth]; }
 	// The number of "color" channels
 	int Channels() const { return dimensions[BD_Channels]; }
-	// The blob size
-	int BlobSize() const
-	{
-		int blobSize = 1;
-		for( int i = 0; i < MaxDimensions; i++ ) {
-			blobSize *= dimensions[i];
-		}
-		return blobSize;
-	}
+	// The blob size, in elements
+	int BlobSize() const;
 	// The size of one object in the blob
 	int ObjectSize() const { return Height() * Width() * Depth() * Channels(); }
 	// The number of objects in the blob
@@ -120,29 +91,52 @@ public:
 	bool HasEqualDimensions( const CBlobDesc& other ) const;
 	bool HasEqualDimensions( const CBlobDesc& other, std::initializer_list<int> dimensions ) const;
 	// Gets the dimensions of the blob
-	void GetDimSizes( int s[MaxDimensions] ) const
-	{
-		for( int i = 0; i < MaxDimensions; i++ ) { s[i] = dimensions[i]; }
-	}
+	void GetDimSizes( int s[MaxDimensions] ) const;
 
 	TBlobType GetDataType() const { return type; }
 	void SetDataType( TBlobType dataType ) { type = dataType; }
 
 private:
-	int dimensions[MaxDimensions];
-	TBlobType type;
-
-	// The index of the dimension specified by name
-	static int getDimIndex( TBlobDim d )
-	{
-		return static_cast<int>( d );
-	}
-
-	static TBlobDim getDimName( int d )
-	{
-		return DimensionName[d];
-	}
+	int dimensions[MaxDimensions]{};
+	TBlobType type = CT_Invalid;
 };
+
+//---------------------------------------------------------------------------------------------------------------------
+
+inline CBlobDesc::CBlobDesc( TBlobType dataType ) :
+	type( dataType )
+{
+	for( int i = 0; i < MaxDimensions; i++ ) {
+		dimensions[i] = 1;
+	}
+}
+
+inline CBlobDesc::CBlobDesc( std::initializer_list<int> list ) :
+	type( CT_Float )
+{
+	int i = BD_Count - 1;
+	int j = static_cast<int>( list.size() ) - 1;
+
+	while( i >= 0 && j >= 0 ) {
+		dimensions[i] = list.begin()[j];
+		i--;
+		j--;
+	}
+
+	while( i >= 0 ) {
+		dimensions[i] = 1;
+		i--;
+	}
+}
+
+inline int CBlobDesc::BlobSize() const
+{
+	int blobSize = 1;
+	for( int i = 0; i < MaxDimensions; i++ ) {
+		blobSize *= dimensions[i];
+	}
+	return blobSize;
+}
 
 inline bool CBlobDesc::HasEqualDimensions( const CBlobDesc& other ) const
 {
@@ -163,6 +157,13 @@ inline bool CBlobDesc::HasEqualDimensions( const CBlobDesc& other,
 		}
 	}
 	return true;
+}
+
+inline void CBlobDesc::GetDimSizes( int s[MaxDimensions] ) const
+{
+	for( int i = 0; i < MaxDimensions; i++ ) {
+		s[i] = dimensions[i];
+	}
 }
 
 } // namespace NeoML
