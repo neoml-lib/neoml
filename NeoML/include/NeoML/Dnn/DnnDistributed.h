@@ -134,7 +134,7 @@ public:
 	virtual ~CDistributedInference();
 
 	// Gets the created models number
-	int GetModelCount() const { return params.Dnns.Size(); }
+	int GetModelCount() const { return threadParams.Dnns.Size(); }
 	// Runs the inference for all of the networks
 	// NOTE: Main thread waits while all tasks are done
 	void RunOnce( IDistributedDataset& data );
@@ -147,7 +147,8 @@ public:
 	void GetLastBlobCopy( const CString& layerName, CObjectArray<CDnnBlob>& blobs ) const;
 
 private:
-	struct CParams final {
+	// Params to transfer to all threads function
+	struct CThreadParams final {
 		IDistributedDataset* Data = nullptr; // Pointer to data for the inference for all dnns
 		CPointerArray<CDnn> Dnns; // Separate dnn for each thread
 		CString ErrorMessage; // Container for error if it happened
@@ -160,7 +161,7 @@ private:
 	// The random generator for original dnn, reference dnn stores their randoms for themselves
 	CRandom random;
 	// Each `RunOnce` task parameters
-	CParams params;
+	CThreadParams threadParams;
 
 	void initialize( CArchive& archive, int threads_count );
 };

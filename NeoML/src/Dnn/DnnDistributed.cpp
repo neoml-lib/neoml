@@ -527,14 +527,14 @@ void CDistributedInference::initialize( CArchive& archive, int threads_count )
 	initThreadGroupInfo();
 
 	NeoAssert( archive.IsLoading() );
-	params.Dnns.SetBufferSize( threads_count );
-	params.Dnns.Add( new CDnn( random, *mathEngine ) );
-	params.Dnns[0]->Serialize( archive );
+	threadParams.Dnns.SetBufferSize( threads_count );
+	threadParams.Dnns.Add( new CDnn( random, *mathEngine ) );
+	threadParams.Dnns[0]->Serialize( archive );
 	// Create reference dnns
 	// To create a reference dnn the original network should be trained or at least reshaped
 	// All training paramBlobs should exist
 	for( int i = 1; i < threads_count; ++i ) {
-		params.Dnns.Add( params.Dnns[0]->CreateReferenceDnn() );
+		threadParams.Dnns.Add( threadParams.Dnns[0]->CreateReferenceDnn() );
 	}
 	archive.Close();
 }
@@ -568,61 +568,61 @@ CDistributedInference::CDistributedInference( CArchive& archive, int count, int 
 CDistributedInference::~CDistributedInference()
 {
 	// delete reference dnns before original dnn
-	CDnn* originalDnn = params.Dnns.DetachAndReplaceAt( nullptr, 0 );
-	params.Dnns.DeleteAll();
+	CDnn* originalDnn = threadParams.Dnns.DetachAndReplaceAt( nullptr, 0 );
+	threadParams.Dnns.DeleteAll();
 	delete originalDnn;
 	// As mathEngine is owned, there are no buffers in pools left for any thread
 }
 
 void CDistributedInference::RunOnce( IDistributedDataset& data )
 {
-	params.Data = &data;
+	threadParams.Data = &data;
 
 	IThreadPool::TFunction f = []( int threadIndex, void* ptr )
 	{
-		CParams& params = *static_cast<CParams*>( ptr );
+		CThreadParams& threadParams = *static_cast<CThreadParams*>( ptr );
 		try {
-			CThreadGroupSwitcher groupSwitcher( /*isCpu*/true, threadIndex, params.Dnns.Size() );
+			CThreadGroupSwitcher groupSwitcher( /*isCpu*/true, threadIndex, threadParams.Dnns.Size() );
 			// Returns the current batch size (or 0, if there is no data for this thread on this run)
-			const int currBatchSize = params.Data->SetInputBatch( *params.Dnns[threadIndex], threadIndex );
+			const int currBatchSize = threadParams.Data->SetInputBatch( *threadParams.Dnns[threadIndex], threadIndex );
 			if( currBatchSize > 0 ) { // If thread has some data to perform
-				params.Dnns[threadIndex]->RunOnce();
+				threadParams.Dnns[threadIndex]->RunOnce();
 			}
 		} catch( std::exception& e ) {
-			if( params.ErrorMessage.IsEmpty() ) {
-				params.ErrorMessage = e.what();
+			if( threadParams.ErrorMessage.IsEmpty() ) {
+				threadParams.ErrorMessage = e.what();
 			}
-			params.Dnns[threadIndex]->GetMathEngine().AbortDistributed();
+			threadParams.Dnns[threadIndex]->GetMathEngine().AbortDistributed();
 		}
 #ifdef NEOML_USE_FINEOBJ
 		catch( CCheckException* e ) {
-			if( params.ErrorMessage.IsEmpty() ) {
-				params.ErrorMessage = e->MessageText().CreateString();
+			if( threadParams.ErrorMessage.IsEmpty() ) {
+				threadParams.ErrorMessage = e->MessageText().CreateString();
 			}
-			params.Dnns[threadIndex]->GetMathEngine().AbortDistributed();
+			threadParams.Dnns[threadIndex]->GetMathEngine().AbortDistributed();
 			delete e;
 		}
 #endif // NEOML_USE_FINEOBJ
 	};
-	NEOML_NUM_THREADS( *threadPool, &params, f );
+	NEOML_NUM_THREADS( *threadPool, &threadParams, f );
 
-	CheckArchitecture( params.ErrorMessage.IsEmpty(), "DistributedInference", params.ErrorMessage );
-	params.Data = nullptr;
+	CheckArchitecture( threadParams.ErrorMessage.IsEmpty(), "DistributedInference", threadParams.ErrorMessage );
+	threadParams.Data = nullptr;
 }
 
 void CDistributedInference::GetLastBlob( const CString& layerName, CObjectArray<const CDnnBlob>& blobs ) const
 {
-	blobs.SetSize( params.Dnns.Size() );
-	for( int i = 0; i < params.Dnns.Size(); ++i ) {
-		blobs[i] = CheckCast<const CSinkLayer>( params.Dnns[i]->GetLayer( layerName ) )->GetBlob();
+	blobs.SetSize( threadParams.Dnns.Size() );
+	for( int i = 0; i < threadParams.Dnns.Size(); ++i ) {
+		blobs[i] = CheckCast<const CSinkLayer>( threadParams.Dnns[i]->GetLayer( layerName ) )->GetBlob();
 	}
 }
 
 void CDistributedInference::GetLastBlobCopy( const CString& layerName, CObjectArray<CDnnBlob>& blobs ) const
 {
-	blobs.SetSize( params.Dnns.Size() );
-	for( int i = 0; i < params.Dnns.Size(); ++i ) {
-		blobs[i] = CheckCast<const CSinkLayer>( params.Dnns[i]->GetLayer( layerName ) )->GetBlob()->GetCopy();
+	blobs.SetSize( threadParams.Dnns.Size() );
+	for( int i = 0; i < threadParams.Dnns.Size(); ++i ) {
+		blobs[i] = CheckCast<const CSinkLayer>( threadParams.Dnns[i]->GetLayer( layerName ) )->GetBlob()->GetCopy();
 	}
 }
 
