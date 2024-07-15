@@ -142,7 +142,9 @@ public:
 	// `layerName` should correspond to CSinkLayer
 	// NOTE: This blobs are part of the dnn and may be overwritten by next `RunOnce` task
 	//       Use it after each `RunOnce` task and copy them if you need to stare the result.
-	void GetLastBlob( const CString& layerName, CObjectArray<CDnnBlob>& blobs ) const;
+	void GetLastBlob( const CString& layerName, CObjectArray<const CDnnBlob>& blobs ) const;
+	// Returns copy last blobs of `layerName` for all models
+	void GetLastBlobCopy( const CString& layerName, CObjectArray<CDnnBlob>& blobs ) const;
 
 private:
 	struct CParams final {

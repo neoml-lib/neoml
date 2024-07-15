@@ -610,11 +610,19 @@ void CDistributedInference::RunOnce( IDistributedDataset& data )
 	params.Data = nullptr;
 }
 
-void CDistributedInference::GetLastBlob( const CString& layerName, CObjectArray<CDnnBlob>& blobs ) const
+void CDistributedInference::GetLastBlob( const CString& layerName, CObjectArray<const CDnnBlob>& blobs ) const
 {
 	blobs.SetSize( params.Dnns.Size() );
 	for( int i = 0; i < params.Dnns.Size(); ++i ) {
 		blobs[i] = CheckCast<const CSinkLayer>( params.Dnns[i]->GetLayer( layerName ) )->GetBlob();
+	}
+}
+
+void CDistributedInference::GetLastBlobCopy( const CString& layerName, CObjectArray<CDnnBlob>& blobs ) const
+{
+	blobs.SetSize( params.Dnns.Size() );
+	for( int i = 0; i < params.Dnns.Size(); ++i ) {
+		blobs[i] = CheckCast<const CSinkLayer>( params.Dnns[i]->GetLayer( layerName ) )->GetBlob()->GetCopy();
 	}
 }
 

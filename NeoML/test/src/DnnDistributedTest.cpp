@@ -273,17 +273,17 @@ TEST( CDnnDistributedTest, DnnDistributedInferenceArchived )
 
 		distributed.RunOnce( dataset );
 
-		CObjectArray<CDnnBlob> blobs;
+		CObjectArray<const CDnnBlob> blobs;
 		distributed.GetLastBlob( "sink", blobs );
 		for( int i = 0; i < blobs.Size(); ++i ) {
-			EXPECT_TRUE( CompareBlobs( *( blobs[i] ), *expected ) );
+			EXPECT_TRUE( CompareBlobs( const_cast<CDnnBlob&>( *( blobs[i] ) ), *expected ) );
 		}
 
 		distributed.RunOnce( dataset );
 
 		distributed.GetLastBlob( "sink", blobs );
 		for( int i = 0; i < blobs.Size(); ++i ) {
-			EXPECT_TRUE( CompareBlobs( *( blobs[i] ), *expected ) );
+			EXPECT_TRUE( CompareBlobs( const_cast<CDnnBlob&>( *( blobs[i] ) ), *expected ) );
 		}
 	}
 
@@ -295,10 +295,10 @@ TEST( CDnnDistributedTest, DnnDistributedInferenceArchived )
 
 		distributed.RunOnce( dataset );
 
-		CObjectArray<CDnnBlob> blobs;
+		CObjectArray<const CDnnBlob> blobs;
 		distributed.GetLastBlob( "sink", blobs );
 		for( int i = 0; i < blobs.Size(); ++i ) {
-			EXPECT_TRUE( CompareBlobs( *( blobs[i] ), *expected ) );
+			EXPECT_TRUE( CompareBlobs( const_cast<CDnnBlob&>( *( blobs[i] ) ), *expected ) );
 		}
 	}
 }
