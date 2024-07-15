@@ -91,7 +91,7 @@ class CDnn;
 class CDnnLayerGraph;
 class CBaseLayer;
 class CCompositeLayer;
-class CDnnReferenceRegister;
+class CReferenceDnnFactory;
 class CReferenceDnnInfo;
 
 //------------------------------------------------------------------------------------------------------------
@@ -618,7 +618,7 @@ private:
 	// Learning is disabled for both the original dnn and the reference dnn.
 	// Creates a copy of the original dnn's random generator to use it for inference.
 	// NOTE: Pointer allocates memory using the `new` operator => the memory must be manually deallocated.
-	CDnn* createReferenceDnn( CDnnReferenceRegister& referenceDnnRegister );
+	CDnn* createReferenceDnn( CReferenceDnnFactory& factory );
 
 	const CBaseLayer* owner; // the composite containing this CDnn (if exists)
 	CTextStream* log; // the logging stream
@@ -671,7 +671,7 @@ private:
 	friend class CBaseLayer;
 	friend class CCompositeLayer;
 	friend class CRecurrentLayer;
-	friend class CDnnReferenceRegister;
+	friend class CReferenceDnnFactory;
 };
 
 inline CArchive& operator<<( CArchive& archive, const CDnn& dnn)
@@ -695,28 +695,35 @@ void NEOML_API SerializeLayer( CArchive& archive, IMathEngine& mathEngine, CPtr<
 // Useful for multi-threaded inference where each thread can operate own reference dnn independently.
 // Learning is disabled for both the original dnn and the reference dnn.
 // Creates a copy of the original dnn's random generator to use it for inference.
-class NEOML_API CDnnReferenceRegister final {
+class NEOML_API CReferenceDnnFactory final {
 public:
-	// NOTE: mathEngine should live longer than CDnnReferenceRegister
+	// Archive should contain trained dnn, ready for inference
+	// NOTE: mathEngine should be CPU only and live longer than CReferenceDnnFactory
 	CReferenceDnnFactory( IMathEngine& mathEngine, CArchive& archive, int seed = 42 );
+	// Dnn should be trained and ready for inference,
+	// Dnn will be copied for internal storage to be non-disturbed, one can use argument dnn further as one wants
+	// NOTE: mathEngine should be CPU only and live longer than CReferenceDnnFactory
 	CReferenceDnnFactory( IMathEngine& mathEngine, const CDnn& dnn );
 
-	~CDnnReferenceRegister();
+	~CReferenceDnnFactory();
 
 	// Thread-safe coping of originalDnn, increments the counter
-	// NOTE: Pointer allocates memory using the `new` operator => the memory must be manually deallocated.
-	CDnn* CreateReferenceDnn();
+	CPtrOwner<CDnn> CreateReferenceDnn();
 
 private:
-	CDnnReferenceRegister( CReferenceDnnInfo* referenceDnnInfo, IMathEngine& mathEngine );
-	// Called in destructor of reference dnn to decrease the counter and allow destroy this register class
-	void destoyReferenceDnn();
-
-	// NOTE: First field should be CDnn for CDistributedInference
 	CDnn originalDnn; // The dnn to make reference dnns
 	std::atomic<int> counter{}; // Stores the number of created reference dnns
 
+	// Technical constructor
+	CReferenceDnnFactory( CReferenceDnnInfo* referenceDnnInfo, IMathEngine& mathEngine );
+
+	// Called in destructor of reference dnn to decrease the counter and allow destroy this factory class
+	void destroyReferenceDnn();
+	// Internal method of loading the dnn
+	void serialize( CArchive& archive );
+
 	friend class CReferenceDnnInfo;
+	friend class CDistributedInference;
 };
 
 //---------------------------------------------------------------------------------------------------------
@@ -724,16 +731,16 @@ private:
 // Internal technical class
 class CReferenceDnnInfo final {
 public:
-	CReferenceDnnInfo( CRandom rand, CDnnReferenceRegister* ptr ) : random( rand ), registerPtr( ptr ) {}
+	CReferenceDnnInfo( CRandom rand, CReferenceDnnFactory* ptr ) : random( std::move( rand ) ), factory( ptr ) {}
 
-	~CReferenceDnnInfo() { if( registerPtr != nullptr ) { registerPtr->destoyReferenceDnn(); } }
+	~CReferenceDnnInfo() { if( factory != nullptr ) { factory->destroyReferenceDnn(); } }
 
 	CRandom& Random() { return random; }
 
 private:
 	CRandom random; // Stores the dnn's own external random class inside this dnn class
 	// For reference dnn != 0, and original dnn == 0 only
-	CDnnReferenceRegister* registerPtr = nullptr; // This pointer is not owned
+	CReferenceDnnFactory* factory = nullptr; // This pointer is not owned
 };
 
 } // namespace NeoML

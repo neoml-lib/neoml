@@ -524,10 +524,10 @@ void CDnn::ForceRebuild()
 	sourceLayers.SetSize( 0 );
 }
 
-CDnn* CDnn::createReferenceDnn( CDnnReferenceRegister& referenceDnnRegister )
+CDnn* CDnn::createReferenceDnn( CReferenceDnnFactory& factory )
 {
 	NeoAssertMsg( referenceDnnInfo != nullptr, "ReferenceDnn can be created from originDnn only" );
-	auto* referenceDnnInfo = new CReferenceDnnInfo( random, &referenceDnnRegister );
+	auto* referenceDnnInfo = new CReferenceDnnInfo( random, &factory );
 	auto* newDnn = new CDnn( referenceDnnInfo->Random(), mathEngine );
 
 	CMemoryFile file;

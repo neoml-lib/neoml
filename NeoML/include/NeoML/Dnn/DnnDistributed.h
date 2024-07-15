@@ -50,9 +50,9 @@ class NEOML_API CDistributedTraining {
 public:
 	// Creates `count` cpu models
 	// If `count` is 0 or less, then the models number equal to the number of available CPU cores
-	CDistributedTraining( const CDnn& dnn, int count,
+	CDistributedTraining( const CDnn& dnn, int threadsCount,
 		TDistributedInitializer initializer = TDistributedInitializer::Xavier, int seed = 42, size_t memoryLimit = 0 );
-	CDistributedTraining( CArchive& archive, int count,
+	CDistributedTraining( CArchive& archive, int threadsCount,
 		TDistributedInitializer initializer = TDistributedInitializer::Xavier, int seed = 42, size_t memoryLimit = 0 );
 	// Creates gpu models, `devs` should contain numbers of using devices
 	CDistributedTraining( const CDnn& dnn, const CArray<int>& cudaDevs,
@@ -131,8 +131,8 @@ class NEOML_API CDistributedInference {
 public:
 	// Creates `count` cpu models
 	// If `count` is 0 or less, then the models number equal to the number of available CPU cores
-	CDistributedInference( const CDnn& dnn, int count, size_t memoryLimit = 0 );
-	CDistributedInference( CArchive& archive, int count, int seed = 42, size_t memoryLimit = 0 );
+	CDistributedInference( const CDnn& dnn, int threadsCount, size_t memoryLimit = 0 );
+	CDistributedInference( CArchive& archive, int threadsCount, int seed = 42, size_t memoryLimit = 0 );
 
 	virtual ~CDistributedInference();
 
@@ -160,11 +160,11 @@ private:
 	// Own CPU Math Engine
 	CPtrOwner<IMathEngine> mathEngine;
 	// Class to create reference dnns
-	CDnnReferenceRegister referenceDnnRegister;
+	CReferenceDnnFactory referenceDnnFactory;
 	// Each `RunOnce` task parameters
 	CThreadParams threadParams;
 
-	void initialize( int threads_count );
+	void initialize( int threadsCount );
 };
 
 } // namespace NeoML
