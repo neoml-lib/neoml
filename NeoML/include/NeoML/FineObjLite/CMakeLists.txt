@@ -29,6 +29,7 @@ set(${PROJECT_NAME}_SOURCES
     ObjectFOL.h
     internal/PointerArrayFOL.h
     internal/PriorityQueueFOL.h
+    PtrOwnerFOL.h
     SortFOL.h
     StringFOL.h
     TextStreamFOL.h
