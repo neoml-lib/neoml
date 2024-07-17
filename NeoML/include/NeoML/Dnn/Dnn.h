@@ -98,20 +98,18 @@ struct CDnnLayerLink {
 	int OutputNumber;
 
 	// Default value for optional inputs.
-	CDnnLayerLink() : Layer( 0 ), OutputNumber( -1 ) {}
-	CDnnLayerLink( const CDnnLayerLink& other ) :
-		Layer( other.Layer ), OutputNumber( other.OutputNumber ) {}
-	CDnnLayerLink( CBaseLayer* layer, int outputNumber ) :
+	CDnnLayerLink() : Layer( nullptr ), OutputNumber( -1 ) {}
+	CDnnLayerLink( CBaseLayer* layer, int outputNumber = 0 ) :
 		Layer( layer ),
 		OutputNumber( outputNumber )
 	{
-		NeoAssert( Layer != 0 );
+		NeoAssert( Layer != nullptr );
 		NeoAssert( OutputNumber >= 0 );
 	}
-
-	// Converting constructor
-	CDnnLayerLink( CBaseLayer* layer ) :
-		Layer( layer ), OutputNumber( 0 ) {}
+	CDnnLayerLink( CDnnLayerLink&& ) = default;
+	CDnnLayerLink( const CDnnLayerLink& other ) :
+		Layer( other.Layer ), OutputNumber( other.OutputNumber )
+	{}
 
 	// Is this layer optional, i.e. created by CLayerOutout() default constructor.
 	bool IsOptional() const { return Layer == 0 && OutputNumber == -1; }
@@ -149,7 +147,10 @@ public:
 	//
 	// e.g. layer "InputHidden" inside of CLstmLayer named "LSTM", which is inside of CCompositeLayer named "Encoder"
 	// has path "Encoder/LSTM/InputHidden"
-	CString GetPath() const;
+	CString GetPath( const char* sep = "/" ) const;
+	// Path in form suitable for dnn->GetLayer( CArray<CString>& path );
+	// Returns an empty array if the path cannot be constructed.
+	void GetPath( CArray<CString>& path ) const;
 
 	// Connects this layer's inputNumber input to the specified layer's outputNumber output
 	virtual void Connect( int inputNumber, const char* layer, int outputNumber = 0 );
@@ -390,7 +391,8 @@ private:
 
 	// Set the 'dist' layer's paramBlobs to point to the data of this layer's paramBlobs
 	void transferParamsBlob(CBaseLayer& dist) const;
-
+	// Technical method for recursion in GetPath( CArray<CString>& path )
+	void getPath( CArray<CString>& path ) const;
 	// Switches the specified blobs into sequence processing mode
 	void switchBlobsToSequentialMode(CObjectArray<CDnnBlob>& blobs, TBlobCacheType cacheType, bool storeParent);
 	void switchBlobsToNonSequentialMode(CObjectArray<CDnnBlob>& blobs, TBlobCacheType cacheType, bool clear);
@@ -432,6 +434,7 @@ private:
 	friend class CDnnLayerGraph;
 	friend class CDnnSolver;
 	friend class CCompositeLayer;
+	friend class CDnnHeadAdapterLayer;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -684,6 +687,7 @@ private:
 	friend class CCompositeLayer;
 	friend class CRecurrentLayer;
 	friend class CDnnReferenceRegister;
+	friend class CDnnHeadAdapterLayer;
 };
 
 inline CArchive& operator<<( CArchive& archive, const CDnn& dnn)

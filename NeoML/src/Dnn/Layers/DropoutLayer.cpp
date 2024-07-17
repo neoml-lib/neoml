@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -103,7 +103,8 @@ void CDropoutLayer::BackwardOnce()
 
 	MathEngine().Dropout( *desc, outputDiffBlobs[0]->GetData(), inputDiffBlobs[0]->GetData() );
 
-	if( !GetDnn()->IsRecurrentMode() || GetDnn()->IsFirstSequencePos() ) {
+	if( ( !GetDnn()->IsRecurrentMode() || GetDnn()->IsFirstSequencePos() ) && ++headCount == headConnections ) {
+		headCount = 0;
 		// Clear the memory after the whole sequence is processed
 		destroyDropoutDesc();
 	}
@@ -112,8 +113,8 @@ void CDropoutLayer::BackwardOnce()
 void CDropoutLayer::initDropoutDesc()
 {
 	if( desc == 0 ) {
-		desc = MathEngine().InitDropout( dropoutRate, isSpatial, isBatchwise, inputBlobs[0]->GetDesc(), outputBlobs[0]->GetDesc(),
-			GetDnn()->Random().Next() );
+		desc = MathEngine().InitDropout( dropoutRate, isSpatial, isBatchwise, inputBlobs[0]->GetDesc(),
+			outputBlobs[0]->GetDesc(), GetDnn()->Random().Next() );
 	}
 }
 

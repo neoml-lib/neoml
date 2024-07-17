@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ limitations under the License.
 #include "OptimizerFunctions.h"
 #include <NeoML/Dnn/Layers/ActivationLayers.h>
 #include <NeoML/Dnn/Layers/CompositeLayer.h>
+#include <NeoML/Dnn/Layers/DnnHeadAdapterLayer.h>
 #include <NeoML/Dnn/Layers/DropoutLayer.h>
 #include <NeoML/Dnn/Layers/RecurrentLayer.h>
 #include <NeoML/Dnn/Optimization/Graph.h>
@@ -28,7 +29,7 @@ namespace NeoML {
 namespace optimization {
 
 // Returns copy of an original layer
-CPtr<CBaseLayer> copyLayer( CBaseLayer& original )
+static CPtr<CBaseLayer> copyLayer( CBaseLayer& original )
 {
 	CMemoryFile file;
 	{
@@ -150,6 +151,27 @@ int UnpackComposites( CGraph& graph )
 
 //---------------------------------------------------------------------------------------------------------------------
 
+int OptimizeDnnHeadAdapters( CGraph& graph )
+{
+	CArray<CBaseLayer*> layers;
+	graph.GetLayers( layers );
+
+	int result = 0;
+	for( CBaseLayer* layer : layers ) {
+		CDnnHeadAdapterLayer* adapter = dynamic_cast<CDnnHeadAdapterLayer*>( layer );
+		if( adapter != nullptr ) {
+			CDnnHead* head = adapter->GetDnnHead();
+			NeoAssert( head != nullptr );
+			if( OptimizeDnn( head->GetDnn() ).IsOptimized() ) {
+				++result;
+			}
+		}
+	}
+	return result;
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
 int RemoveTrivialLayers( CGraph& graph )
 {
 	int trivialLayersRemoved = 0;
@@ -176,6 +198,6 @@ int RemoveTrivialLayers( CGraph& graph )
 	return trivialLayersRemoved;
 }
 
-}
+} // namespace optimization
 
-}
+} // namespace NeoML

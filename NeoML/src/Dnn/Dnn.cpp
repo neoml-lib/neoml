@@ -71,6 +71,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/CtcLayer.h>
 #include <NeoML/Dnn/Layers/CumSumLayer.h>
 #include <NeoML/Dnn/Layers/DepthToSpaceLayer.h>
+#include <NeoML/Dnn/Layers/DnnHeadAdapterLayer.h>
 #include <NeoML/Dnn/Layers/DotProductLayer.h>
 #include <NeoML/Dnn/Layers/EnumBinarizationLayer.h>
 #include <NeoML/Dnn/Layers/FocalLossLayer.h>
@@ -349,6 +350,7 @@ REGISTER_NEOML_LAYER( CCrfLayer, "FmlCnnCrfLayer" )
 REGISTER_NEOML_LAYER( CCrfLossLayer, "FmlCnnCrfLossLayer" )
 REGISTER_NEOML_LAYER( CCtcDecodingLayer, "FmlCnnCtcDecodingLayer" )
 REGISTER_NEOML_LAYER( CCtcLossLayer, "FmlCnnCtcLossLayer" )
+REGISTER_NEOML_LAYER( CDnnHeadAdapterLayer, "NeoMLDnnHeadAdapterLayer" )
 REGISTER_NEOML_LAYER( CDotProductLayer, "FmlCnnDotProductLayer" )
 REGISTER_NEOML_LAYER( CEnumBinarizationLayer, "FmlCnnEnumBinarizationLayer" )
 REGISTER_NEOML_LAYER( CGlobalMaxPoolingLayer, "FmlCnnGlobalMaxPoolingLayer" )

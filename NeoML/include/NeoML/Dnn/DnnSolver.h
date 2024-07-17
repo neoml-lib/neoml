@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -55,7 +55,7 @@ public:
 	void SetMinMaxGradientClipping( float min, float max ) { clipGradientMin = min; clipGradientMax = max; }
 
 	// Serialize to archive
-	virtual void Serialize( CArchive& archive, CDnn& dnn );
+	virtual void Serialize( CArchive& archive, const CDnn& dnn );
 
 protected:
 	explicit CDnnSolver( IMathEngine& mathEngine );
@@ -86,18 +86,17 @@ private:
 	float clipGradientMax;
 
 	// The blobs sum
-	struct CDiffBlobSum {
-		CDiffBlobSum() : Count( 0 ) {}
-
-		CObjectArray<CDnnBlob> Sum; // the blobs sums
-		int Count; // the number of terms in each sum
+	struct CDiffBlobSum final {
+		const CBaseLayer* LayerOwner{}; // for the given layer
+		CObjectArray<CDnnBlob> Sum{}; // the blobs sums
+		int Count{}; // the number of terms in each sum
 	};
 
 	// The buffers used to add up the gradients from several AddDiff calls
-	CMap<CBaseLayer*, CDiffBlobSum> layerToParamDiffBlobsSum;
+	CMap<CString, CDiffBlobSum> layerToParamDiffBlobsSum;
 	// The buffers for storing gradients history and moment
 	// Used in the inheriting classes
-	CMap<CBaseLayer*, CObjectArray<CDnnBlob>> layerToGradientHistory;
+	CMap<CString, CObjectArray<CDnnBlob>> layerToGradientHistory;
 	// Layers which require reduction across distributed solver
 	CHashTable<CBaseLayer*> layersToReduce; // Fast check if layer is included already
 	CArray<CBaseLayer*> reduceOrder; // Correct order across all of the distributed nets
@@ -112,6 +111,10 @@ private:
 
 	// Telling the compiler that we intentionally using two-parameter Serialize instead of one declared in IObject
 	using IObject::Serialize;
+	// Convert maps from the previous serialization format
+	void loadPrevVersionDnnSolverMaps( CArchive& archive, const CDnn& dnn );
+
+	friend class CDnnHeadAdapterLayer;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -170,7 +173,7 @@ public:
 	bool IsInCompatibilityMode() const { return isInCompatibilityMode; }
 	void SetCompatibilityMode( bool compatibilityMode ) { isInCompatibilityMode = compatibilityMode; }
 
-	void Serialize( CArchive& archive, CDnn& dnn ) override;
+	void Serialize( CArchive& archive, const CDnn& dnn ) override;
 
 protected:
 	void TrainLayer( const CBaseLayer* layer, const CObjectArray<CDnnBlob>& paramBlobs, 
@@ -234,7 +237,7 @@ public:
 	// May be called only before training starts.
 	void EnableDecoupledWeightDecay( bool enable );
 
-	void Serialize( CArchive& archive, CDnn& dnn ) override;
+	void Serialize( CArchive& archive, const CDnn& dnn ) override;
 
 protected:
 	// Resets to the initial state
@@ -335,7 +338,7 @@ public:
 	// May be called only before training starts.
 	void EnableDecoupledWeightDecay( bool enable );
 
-	void Serialize( CArchive& archive, CDnn& dnn ) override;
+	void Serialize( CArchive& archive, const CDnn& dnn ) override;
 
 protected:
 	// Resets to the initial state
@@ -482,7 +485,7 @@ public:
 	bool GetUseNVLamb() const { return useNvLamb; }
 	void SetUseNVLamb( bool value ) { useNvLamb = value; }
 
-	void Serialize( CArchive& archive, CDnn& dnn ) override;
+	void Serialize( CArchive& archive, const CDnn& dnn ) override;
 
 protected:
 	void TrainLayer( const CBaseLayer* layer, const CObjectArray<CDnnBlob>& paramBlobs,
