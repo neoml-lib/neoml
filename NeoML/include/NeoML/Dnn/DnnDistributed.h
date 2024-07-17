@@ -129,10 +129,11 @@ private:
 // Single process, multiple threads distributed inference on CPU
 class NEOML_API CDistributedInference {
 public:
-	// Creates `count` cpu models
-	// If `count` is 0 or less, then the models number equal to the number of available CPU cores
-	CDistributedInference( const CDnn& dnn, int threadsCount, size_t memoryLimit = 0 );
-	CDistributedInference( CArchive& archive, int threadsCount, int seed = 42, size_t memoryLimit = 0 );
+	// Creates `threadsCount` dnns for inference on CPU
+	// If `threadsCount` is 0 or less, then the models number equal to the number of available CPU cores
+	CDistributedInference( const CDnn& dnn, int threadsCount, bool optimizeDnn = true, size_t memoryLimit = 0 );
+	CDistributedInference( CArchive& archive, int threadsCount, int seed = 42,
+		bool optimizeDnn = true, size_t memoryLimit = 0 );
 
 	virtual ~CDistributedInference();
 

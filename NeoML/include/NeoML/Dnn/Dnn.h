@@ -699,11 +699,11 @@ class NEOML_API CReferenceDnnFactory final {
 public:
 	// Archive should contain trained dnn, ready for inference
 	// NOTE: mathEngine should be CPU only and live longer than CReferenceDnnFactory
-	CReferenceDnnFactory( IMathEngine& mathEngine, CArchive& archive, int seed = 42 );
+	CReferenceDnnFactory( IMathEngine& mathEngine, CArchive& archive, int seed = 42, bool optimizeDnn = true );
 	// Dnn should be trained and ready for inference,
 	// Dnn will be copied for internal storage to be non-disturbed, one can use argument dnn further as one wants
 	// NOTE: mathEngine should be CPU only and live longer than CReferenceDnnFactory
-	CReferenceDnnFactory( IMathEngine& mathEngine, const CDnn& dnn );
+	CReferenceDnnFactory( IMathEngine& mathEngine, const CDnn& dnn, bool optimizeDnn = true );
 
 	~CReferenceDnnFactory();
 
@@ -720,7 +720,7 @@ private:
 	// Called in destructor of reference dnn to decrease the counter and allow destroy this factory class
 	void destroyReferenceDnn();
 	// Internal method of loading the dnn
-	void serialize( CArchive& archive );
+	void serialize( CArchive& archive, bool optimizeDnn );
 
 	friend class CReferenceDnnInfo;
 	friend class CDistributedInference;

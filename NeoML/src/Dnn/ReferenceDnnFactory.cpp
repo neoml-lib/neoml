@@ -17,17 +17,24 @@ limitations under the License.
 #pragma hdrstop
 
 #include <NeoML/Dnn/Dnn.h>
+#ifdef NEOML_COMPACT // No optimizations in mobile assembly
+namespace NeoML {
+static void OptimizeDnn( CDnn& ) {}
+}
+#else  // !NEOML_COMPACT
+#include <NeoML/Dnn/DnnOptimization.h>
+#endif // !NEOML_COMPACT
 
 namespace NeoML {
 
-CReferenceDnnFactory::CReferenceDnnFactory( IMathEngine& mathEngine, CArchive& archive, int seed ) :
-	CReferenceDnnFactory( new CReferenceDnnInfo( CRandom( seed ), nullptr ), mathEngine )
+CReferenceDnnFactory::CReferenceDnnFactory( IMathEngine& mathEngine, CArchive& archive, int seed, bool optimizeDnn ) :
+	CReferenceDnnFactory( new CReferenceDnnInfo( CRandom( seed ), /*originalDnn*/nullptr ), mathEngine )
 {
-	serialize( archive );
+	serialize( archive, optimizeDnn );
 }
 
-CReferenceDnnFactory::CReferenceDnnFactory( IMathEngine& mathEngine, const CDnn& dnn ) :
-	CReferenceDnnFactory( new CReferenceDnnInfo( const_cast<CDnn&>( dnn ).Random(), nullptr ), mathEngine )
+CReferenceDnnFactory::CReferenceDnnFactory( IMathEngine& mathEngine, const CDnn& dnn, bool optimizeDnn ) :
+	CReferenceDnnFactory( new CReferenceDnnInfo( const_cast<CDnn&>( dnn ).Random(), /*originalDnn*/nullptr ), mathEngine )
 {
 	// Copy dnn using serialization to get the new dnn of necessary life time
 	CMemoryFile file;
@@ -37,7 +44,7 @@ CReferenceDnnFactory::CReferenceDnnFactory( IMathEngine& mathEngine, const CDnn&
 	file.SeekToBegin();
 
 	archive.Open( &file, CArchive::load );
-	serialize( archive );
+	serialize( archive, optimizeDnn );
 }
 
 CReferenceDnnFactory::CReferenceDnnFactory( CReferenceDnnInfo* referenceDnnInfo, IMathEngine& mathEngine ) :
@@ -54,7 +61,7 @@ CReferenceDnnFactory::~CReferenceDnnFactory()
 	NeoAssertMsg( counter == 0, "CReferenceDnnFactory: Cannot be destroyed before any reference dnns" );
 }
 
-void CReferenceDnnFactory::serialize( CArchive& archive )
+void CReferenceDnnFactory::serialize( CArchive& archive, bool optimizeDnn )
 {
 	// Allow to Serialize() this time
 	CReferenceDnnInfo* tmp = nullptr;
@@ -63,6 +70,10 @@ void CReferenceDnnFactory::serialize( CArchive& archive )
 	NeoAssert( archive.IsLoading() );
 	originalDnn.Serialize( archive );
 	archive.Close();
+
+	if( optimizeDnn == true ) {
+		( void ) OptimizeDnn( originalDnn );
+	}
 
 	// And revert back the restrictions
 	originalDnn.DisableLearning();

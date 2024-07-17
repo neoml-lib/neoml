@@ -547,19 +547,21 @@ void CDistributedInference::initialize( int threadsCount )
 	threadParams.Dnns.Add( &referenceDnnFactory.originalDnn );
 }
 
-CDistributedInference::CDistributedInference( const CDnn& dnn, int threadsCount, size_t memoryLimit ) :
+CDistributedInference::CDistributedInference( const CDnn& dnn, int threadsCount,
+		bool optimizeDnn, size_t memoryLimit ) :
 	threadPool( CreateThreadPool( threadsCount ) ),
 	mathEngine( CreateCpuMathEngine( memoryLimit ) ),
-	referenceDnnFactory( *mathEngine, dnn )
+	referenceDnnFactory( *mathEngine, dnn, optimizeDnn )
 {
 	// if count was <= 0 the pool has been initialized with the number of available CPU cores
 	initialize( threadPool->Size() );
 }
 
-CDistributedInference::CDistributedInference( CArchive& archive, int threadsCount, int seed, size_t memoryLimit ) :
+CDistributedInference::CDistributedInference( CArchive& archive, int threadsCount, int seed,
+		bool optimizeDnn, size_t memoryLimit ) :
 	threadPool( CreateThreadPool( threadsCount ) ),
 	mathEngine( CreateCpuMathEngine( memoryLimit ) ),
-	referenceDnnFactory( *mathEngine, archive, seed )
+	referenceDnnFactory( *mathEngine, archive, seed, optimizeDnn )
 {
 	// if count was <= 0 the pool has been initialized with the number of available CPU cores
 	initialize( threadPool->Size() );
