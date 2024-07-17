@@ -27,6 +27,25 @@ static void OptimizeDnn( CDnn& ) {}
 
 namespace NeoML {
 
+// Internal technical class
+class CReferenceDnnInfo final {
+public:
+	CReferenceDnnInfo( CRandom rand, CReferenceDnnFactory* ptr ) : random( std::move( rand ) ), factory( ptr ) {}
+
+	~CReferenceDnnInfo() { if( factory != nullptr ) { factory->destroyReferenceDnn(); } }
+
+	CRandom& Random() { return random; }
+
+private:
+	CRandom random; // Stores the dnn's own external random class inside this dnn class
+	// For reference dnn != 0, and original dnn == 0 only
+	CReferenceDnnFactory* factory = nullptr; // This pointer is not owned
+};
+
+void CReferenceDnnInfoDeleter::operator()( CReferenceDnnInfo* info ) { if( info != nullptr ) { delete info; } }
+
+//---------------------------------------------------------------------------------------------------------
+
 CReferenceDnnFactory::CReferenceDnnFactory( IMathEngine& mathEngine, CArchive& archive, int seed, bool optimizeDnn ) :
 	CReferenceDnnFactory( new CReferenceDnnInfo( CRandom( seed ), /*originalDnn*/nullptr ), mathEngine )
 {
@@ -91,7 +110,7 @@ CReferenceDnnFactory::~CReferenceDnnFactory()
 void CReferenceDnnFactory::serialize( CArchive& archive, bool optimizeDnn )
 {
 	// Allow to Serialize() this time
-	CReferenceDnnInfo* tmp = nullptr;
+	CPtrOwner<CReferenceDnnInfo, CReferenceDnnInfoDeleter> tmp;
 	swap( tmp, originalDnn.referenceDnnInfo );
 
 	NeoAssert( archive.IsLoading() );

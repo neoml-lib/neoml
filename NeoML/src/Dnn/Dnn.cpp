@@ -424,10 +424,7 @@ CDnn::CDnn( CRandom& _random, IMathEngine& _mathEngine, const CCompositeLayer* o
 
 CDnn::~CDnn()
 {
-	if( referenceDnnInfo != nullptr ) {
-		delete referenceDnnInfo;
-		referenceDnnInfo = nullptr;
-	}
+	referenceDnnInfo.Release();
 	for( int i = layers.Size() - 1; i >= 0; i-- ) {
 		CPtr<CBaseLayer> layer = layers[i];
 		DeleteLayer( *layer );

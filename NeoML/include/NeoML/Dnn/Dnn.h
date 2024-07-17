@@ -93,6 +93,7 @@ class CBaseLayer;
 class CCompositeLayer;
 class CReferenceDnnFactory;
 class CReferenceDnnInfo;
+struct CReferenceDnnInfoDeleter { void operator()( CReferenceDnnInfo* ); };
 
 //------------------------------------------------------------------------------------------------------------
 
@@ -660,7 +661,7 @@ private:
 	bool isReuseMemoryMode;
 
 	// Reference information
-	CReferenceDnnInfo* referenceDnnInfo = nullptr;
+	CPtrOwner<CReferenceDnnInfo, CReferenceDnnInfoDeleter> referenceDnnInfo;
 
 	void setProcessingParams(bool isRecurrentMode, int sequenceLength, bool isReverseSequense, bool isBackwardPerformed);
 	void runOnce(int curSequencePos);
@@ -728,23 +729,6 @@ private:
 
 	friend class CReferenceDnnInfo;
 	friend class CDistributedInference;
-};
-
-//---------------------------------------------------------------------------------------------------------
-
-// Internal technical class
-class CReferenceDnnInfo final {
-public:
-	CReferenceDnnInfo( CRandom rand, CReferenceDnnFactory* ptr ) : random( std::move( rand ) ), factory( ptr ) {}
-
-	~CReferenceDnnInfo() { if( factory != nullptr ) { factory->destroyReferenceDnn(); } }
-
-	CRandom& Random() { return random; }
-
-private:
-	CRandom random; // Stores the dnn's own external random class inside this dnn class
-	// For reference dnn != 0, and original dnn == 0 only
-	CReferenceDnnFactory* factory = nullptr; // This pointer is not owned
 };
 
 } // namespace NeoML
