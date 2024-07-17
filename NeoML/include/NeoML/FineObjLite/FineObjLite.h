@@ -39,6 +39,7 @@ limitations under the License.
 #include "internal/IntervalFOL.h"
 #include "SortFOL.h"
 #include "internal/CriticalSectionFOL.h"
+#include "PtrOwnerFOL.h"
 
 namespace FObj {
 	using std::swap;
