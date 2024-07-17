@@ -276,7 +276,7 @@ static CReferenceDnnFactory* getTestDnns( IMathEngine& mathEngine, CPointerArray
 			if( learn ) {
 				learnDnn( dnn );
 			}
-			referenceDnnFactory = new CReferenceDnnFactory( mathEngine, dnn );
+			referenceDnnFactory = new CReferenceDnnFactory( std::move( dnn ) );
 			// Like in class CDistributedInference
 			// Here either a one more reference dnn can be used
 			// Or also the original dnn, because no one can create a new reference dnn, while the inference

@@ -575,6 +575,7 @@ public:
 
 	// Gets a reference to the random numbers generator
 	CRandom& Random() { return random; }
+	const CRandom& Random() const { return random; }
 
 	// Gets a reference to the math engine
 	IMathEngine& GetMathEngine() const { return mathEngine; }
@@ -618,7 +619,7 @@ private:
 	// Learning is disabled for both the original dnn and the reference dnn.
 	// Creates a copy of the original dnn's random generator to use it for inference.
 	// NOTE: Pointer allocates memory using the `new` operator => the memory must be manually deallocated.
-	CDnn* createReferenceDnn( CReferenceDnnFactory& factory );
+	void createReferenceDnn( CDnn* newDnn, CReferenceDnnInfo* referenceDnnInfo );
 
 	const CBaseLayer* owner; // the composite containing this CDnn (if exists)
 	CTextStream* log; // the logging stream
@@ -704,6 +705,9 @@ public:
 	// Dnn will be copied for internal storage to be non-disturbed, one can use argument dnn further as one wants
 	// NOTE: mathEngine should be CPU only and live longer than CReferenceDnnFactory
 	CReferenceDnnFactory( IMathEngine& mathEngine, const CDnn& dnn, bool optimizeDnn = true );
+	// Dnn should be trained and ready for inference, it will be moved inside and cannot be used outside.
+	// NOTE: mathEngine should be CPU only and live longer than CReferenceDnnFactory
+	CReferenceDnnFactory( CDnn&& dnn, bool optimizeDnn = true );
 
 	~CReferenceDnnFactory();
 
