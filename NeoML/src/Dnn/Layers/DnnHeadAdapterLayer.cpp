@@ -1,4 +1,4 @@
-/* Copyright © 2017-2024 ABBYY
+/* Copyright © 2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ static const int DnnHeadAdapterLayerVersion = 0;
 void CDnnHeadAdapterLayer::Serialize( CArchive& archive )
 {
 	archive.SerializeVersion( DnnHeadAdapterLayerVersion );
-	CBaseLayer::Serialize(archive);
+	CBaseLayer::Serialize( archive );
 
 	bool existHead = ( head != nullptr );
 	archive.Serialize( existHead );
@@ -36,57 +36,55 @@ void CDnnHeadAdapterLayer::Serialize( CArchive& archive )
 		return;
 	}
 
-	if(archive.IsStoring()) {
+	if( archive.IsStoring() ) {
 		archive << head->headCounter;
-		if(head->headCounter > 0) {
-			CString name(head->connections[0]->GetName());
+		if( head->headCounter > 0 ) {
+			CString name( head->connections[0]->GetName() );
 			archive << name;
 		} else {
 			NeoAssert( head->dnn != nullptr );
 			archive << head->dnn->layers.Size();
-			for (int i = 0; i < head->dnn->layers.Size(); i++) {
-				SerializeLayer(archive, MathEngine(), head->dnn->layers[i]);
+			for( int i = 0; i < head->dnn->layers.Size(); i++ ) {
+				SerializeLayer( archive, MathEngine(), head->dnn->layers[i] );
 			}
 		}
 
 		head->increment();
-	}
-	else if(archive.IsLoading()) {
+	} else if( archive.IsLoading() ) {
 		int num;
 		archive >> num;
-		if(num > 0) {
+		if( num > 0 ) {
 			archive >> firstAdapter;
 		} else {
 			int layerSize;
 			archive >> layerSize;
-			layers.SetSize(layerSize);
-			for (int i = 0; i < layerSize; i++) {
-				SerializeLayer(archive, MathEngine(), layers[i]);
+			layers.SetSize( layerSize );
+			for( int i = 0; i < layerSize; i++ ) {
+				SerializeLayer( archive, MathEngine(), layers[i] );
 			}
 		}
-	}
-	else {
-		NeoAssert(false);
+	} else {
+		NeoAssert( false );
 	}
 }
 
-void CDnnHeadAdapterLayer::OnDnnChanged(CDnn*)
+void CDnnHeadAdapterLayer::OnDnnChanged( CDnn* )
 {
 	// If first adapter - create head dnn and initialize layers
 	// Else sets the internal DNN head using the first connected adapter layer after serialization
-	if(head == nullptr) {
-		if(!firstAdapter.IsEmpty()) {
-			SetDnnHead(static_cast<CDnnHeadAdapterLayer*>((GetDnn()->GetLayer(firstAdapter).Ptr()))->head);
-		} else if (!layers.IsEmpty()) {
-			if (GetDnn() != 0) {
-				CDnn* internalDnn = FINE_DEBUG_NEW CDnn(GetDnn()->Random(), GetDnn()->GetMathEngine());
+	if( head == nullptr ) {
+		if( !firstAdapter.IsEmpty() ) {
+			SetDnnHead( static_cast<CDnnHeadAdapterLayer*>( ( GetDnn()->GetLayer( firstAdapter ).Ptr() ) )->head );
+		} else if( !layers.IsEmpty() ) {
+			if( GetDnn() != 0 ) {
+				CDnn* internalDnn = FINE_DEBUG_NEW CDnn( GetDnn()->Random(), GetDnn()->GetMathEngine() );
 
-				for (int i = 0; i < layers.Size(); ++i) {
-					internalDnn->AddLayer(*layers[i]);
+				for( int i = 0; i < layers.Size(); ++i ) {
+					internalDnn->AddLayer( *layers[i] );
 				}
 				head = new CDnnHead();
 				head->dnn = internalDnn;
-				SetDnnHead(head);
+				SetDnnHead( head );
 				layers.DeleteAll();
 			}
 		}
@@ -95,7 +93,7 @@ void CDnnHeadAdapterLayer::OnDnnChanged(CDnn*)
 
 void CDnnHeadAdapterLayer::Reshape()
 {
-	if(head->headCounter > 0) {
+	if( head->headCounter > 0 ) {
 		configureFromHead();
 		return;
 	}
@@ -105,29 +103,29 @@ void CDnnHeadAdapterLayer::Reshape()
 
 void CDnnHeadAdapterLayer::RunOnce()
 {
-	NeoAssert(inputBlobs.Size() == 1);
-	NeoAssert(head->dnn != 0);
+	NeoAssert( inputBlobs.Size() == 1 );
+	NeoAssert( head->dnn != nullptr );
 
-	head->sourceLayer->SetBlob(inputBlobs[0]);
+	head->sourceLayer->SetBlob( inputBlobs[0] );
 	head->dnn->isReuseMemoryMode = GetDnn()->isReuseMemoryMode;
-	head->dnn->runOnce(GetDnn()->GetCurrentSequencePos());
+	head->dnn->runOnce( GetDnn()->GetCurrentSequencePos() );
 	outputBlobs[0] = head->sinkLayer->GetInputBlob()->GetCopy();
 
 	// save blobs required for next backward/learn
-	if(IsBackwardNeeded() || IsLearningEnabled()) {
+	if( IsBackwardNeeded() || IsLearningEnabled() ) {
 		saveBlobs();
 	}
 }
 
 void CDnnHeadAdapterLayer::processBackwardOrLearn()
 {
-	NeoAssert(head->dnn->isBackwardPerformed == GetDnn()->isBackwardPerformed);
+	NeoAssert( head->dnn->isBackwardPerformed == GetDnn()->isBackwardPerformed );
 
-	if(IsBackwardNeeded()) {
-		head->sourceLayer->SetDiffBlob(inputDiffBlobs[0]);
+	if( IsBackwardNeeded() ) {
+		head->sourceLayer->SetDiffBlob( inputDiffBlobs[0] );
 	}
 
-	head->sinkLayer->SetDiffBlob(outputDiffBlobs[0]);
+	head->sinkLayer->SetDiffBlob( outputDiffBlobs[0] );
 
 	// loading blobs for backward/learn from last RunOnce
 	loadBlobs();
@@ -154,38 +152,38 @@ void CDnnHeadAdapterLayer::BackwardOnce()
 
 void CDnnHeadAdapterLayer::LearnOnce()
 {
-	if(!IsBackwardPerformed()) {
+	if( !IsBackwardPerformed() ) {
 		processBackwardOrLearn();
 	}
 }
 
-void CDnnHeadAdapterLayer::SetDnnHead(const CPtr<CDnnHead>& _head)
+void CDnnHeadAdapterLayer::SetDnnHead( CPtr<CDnnHead> _head )
 {
 	head = _head;
 	num = head->connections.Size();
-	head->connections.Add(this);
+	head->connections.Add( this );
 	ForceReshape();
 }
 
 void CDnnHeadAdapterLayer::configureAdapter()
 {
-	NeoAssert(head->dnn != 0);
-	head->sinkLayer = static_cast<CCompositeSinkLayer*>(head->dnn->GetLayer("sink").Ptr());
-	head->sourceLayer = static_cast<CCompositeSourceLayer*>(head->dnn->GetLayer("source").Ptr());
-	if(head->sourceLayer->GetBackwardForced() != IsBackwardNeeded()) {
-		head->sourceLayer->SetBackwardForced(IsBackwardNeeded());
+	NeoAssert( head->dnn != nullptr );
+	head->sinkLayer = CheckCast<CCompositeSinkLayer>( head->dnn->GetLayer( "sink" ).Ptr() );
+	head->sourceLayer = CheckCast<CCompositeSourceLayer>( head->dnn->GetLayer( "source" ).Ptr() );
+	if( head->sourceLayer->GetBackwardForced() != IsBackwardNeeded() ) {
+		head->sourceLayer->SetBackwardForced( IsBackwardNeeded() );
 	}
-	head->sourceLayer->SetBlobDesc(inputDescs[0]);
+	head->sourceLayer->SetBlobDesc( inputDescs[0] );
 	// If the backward pass requirements have changed, call reshape
 	bool forcedReshape = head->dnn->IsBackwardPerformed() != GetDnn()->IsBackwardPerformed();
 
 	// Set the internal network parameters from the external network parameters
-	head->dnn->setProcessingParams(GetDnn()->IsRecurrentMode(), GetDnn()->GetMaxSequenceLength(),
-		GetDnn()->IsReverseSequense(), GetDnn()->IsBackwardPerformed());
-	head->dnn->RequestReshape(forcedReshape);
-	head->dnn->SetInitializer(GetDnn()->GetInitializer());
+	head->dnn->setProcessingParams( GetDnn()->IsRecurrentMode(), GetDnn()->GetMaxSequenceLength(),
+		GetDnn()->IsReverseSequense(), GetDnn()->IsBackwardPerformed() );
+	head->dnn->RequestReshape( forcedReshape );
+	head->dnn->SetInitializer( GetDnn()->GetInitializer() );
 
-	head->dnn->SetSolver(GetDnn()->GetSolver());
+	head->dnn->SetSolver( GetDnn()->GetSolver() );
 	head->dnn->reshape();
 	configureForBackwardAndLearn();
 
@@ -202,22 +200,22 @@ void CDnnHeadAdapterLayer::configureFromHead()
 
 void CDnnHeadAdapterLayer::saveBlobs()
 {
-	for(int i = 0; i < head->inputLayers.Size(); ++i) {
-		innerInputBlobs.Add(head->inputLayers[i]->inputBlobs[0]->GetCopy());
+	for( int i = 0; i < head->inputLayers.Size(); ++i ) {
+		innerInputBlobs.Add( head->inputLayers[i]->inputBlobs[0]->GetCopy() );
 	}
 
-	for(int i = 0; i < head->outputLayers.Size(); ++i) {
-		innerOutputBlobs.Add(head->outputLayers[i]->outputBlobs[0]->GetCopy());
+	for( int i = 0; i < head->outputLayers.Size(); ++i ) {
+		innerOutputBlobs.Add( head->outputLayers[i]->outputBlobs[0]->GetCopy() );
 	}
 }
 
 void CDnnHeadAdapterLayer::loadBlobs()
 {
-	for(int i = 0; i < head->inputLayers.Size(); ++i) {
+	for( int i = 0; i < head->inputLayers.Size(); ++i ) {
 		head->inputLayers[i]->inputBlobs[0] = innerInputBlobs[i];
 	}
 
-	for(int i = 0; i < head->outputLayers.Size(); ++i) {
+	for( int i = 0; i < head->outputLayers.Size(); ++i ) {
 		head->outputLayers[i]->outputBlobs[0] = innerOutputBlobs[i];
 	}
 }
@@ -231,40 +229,40 @@ void CDnnHeadAdapterLayer::configureForBackwardAndLearn()
 
 	for( int i = 0; i < head->dnn->layers.Size(); ++i ) {
 		hasLearn |= head->dnn->layers[i]->IsLearningPerformed();
-		auto layer = dynamic_cast<CDropoutLayer*>(head->dnn->layers[i].Ptr());
-		if(layer != nullptr) {
-			layer->SetHeadCounter(head->connections.Size());
+		auto layer = dynamic_cast<CDropoutLayer*>( head->dnn->layers[i].Ptr() );
+		if( layer != nullptr ) {
+			layer->SetHeadCounter( head->connections.Size() );
 		}
 	}
 
-	if(!hasBackward && !hasLearn) {
+	if( !hasBackward && !hasLearn ) {
 		return;
 	}
 
-	for(int layerIndex = 0; layerIndex < head->dnn->layers.Size(); ++layerIndex) {
+	for( int layerIndex = 0; layerIndex < head->dnn->layers.Size(); ++layerIndex ) {
 		const CBaseLayer& layer = *head->dnn->layers[layerIndex];
-		if(layer.IsBackwardPerformed() && (layer.BlobsForBackward() & TInputBlobs)) {
-			head->inputLayers.Add(head->dnn->layers[layerIndex]);
-		} else if(layer.IsLearningPerformed() && (layer.BlobsForLearn() & TInputBlobs)) {
-			head->inputLayers.Add(head->dnn->layers[layerIndex]);
+		if( layer.IsBackwardPerformed() && ( layer.BlobsForBackward() & TInputBlobs ) ) {
+			head->inputLayers.Add( head->dnn->layers[layerIndex] );
+		} else if( layer.IsLearningPerformed() && ( layer.BlobsForLearn() & TInputBlobs ) ) {
+			head->inputLayers.Add( head->dnn->layers[layerIndex] );
 		}
 
-		if(layer.IsBackwardPerformed() && (layer.BlobsForBackward() & TOutputBlobs)) {
-			head->outputLayers.Add(head->dnn->layers[layerIndex]);
-		} else if(layer.IsLearningPerformed() && (layer.BlobsForLearn() & TOutputBlobs)) {
-			head->outputLayers.Add(head->dnn->layers[layerIndex]);
+		if( layer.IsBackwardPerformed() && ( layer.BlobsForBackward() & TOutputBlobs ) ) {
+			head->outputLayers.Add( head->dnn->layers[layerIndex] );
+		} else if( layer.IsLearningPerformed() && ( layer.BlobsForLearn() & TOutputBlobs ) ) {
+			head->outputLayers.Add( head->dnn->layers[layerIndex] );
 		}
 
-		if((!hasBackward || head->blobsForBackward != 0) && (!hasLearn || head->blobsForLearn != 0)) {
+		if( ( !hasBackward || head->blobsForBackward != 0 ) && ( !hasLearn || head->blobsForLearn != 0 ) ) {
 			break;
 		}
 
-		for(int inputIndex = 0; inputIndex < layer.GetInputCount(); ++inputIndex) {
-			if(dynamic_cast<const CCompositeSourceLayer*>(layer.GetInputLayer(inputIndex)) != nullptr) {
-				if(hasBackward && layer.IsBackwardPerformed() && (layer.BlobsForBackward() & TInputBlobs) != 0) {
+		for( int inputIndex = 0; inputIndex < layer.GetInputCount(); ++inputIndex ) {
+			if( dynamic_cast<const CCompositeSourceLayer*>( layer.GetInputLayer( inputIndex ) ) != nullptr ) {
+				if( hasBackward && layer.IsBackwardPerformed() && ( layer.BlobsForBackward() & TInputBlobs ) != 0 ) {
 					head->blobsForBackward |= TInputBlobs;
 				}
-				if(hasLearn && layer.IsLearningPerformed() && (layer.BlobsForLearn() & TInputBlobs) != 0) {
+				if( hasLearn && layer.IsLearningPerformed() && ( layer.BlobsForLearn() & TInputBlobs ) != 0 ) {
 					head->blobsForLearn |= TInputBlobs;
 				}
 				break;
@@ -273,4 +271,4 @@ void CDnnHeadAdapterLayer::configureForBackwardAndLearn()
 	}
 }
 
-}
+} // namespace NeoML

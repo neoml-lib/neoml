@@ -31,10 +31,10 @@ public:
 		: CBaseLayer( mathEngine, name == nullptr ? "CDnnHeadAdapterLayer" : name, /*isLearnable*/true )
 	{}
 
-	void Serialize(CArchive& archive) override;
+	void Serialize( CArchive& archive ) override;
 
 	// Internal shared Dnn between DnnHeadAdapters
-	void SetDnnHead(const CPtr<CDnnHead>& _head);
+	void SetDnnHead( CPtr<CDnnHead> head );
 
 	// Get Dnn head
 	const CDnnHead* GetDnnHead() const { return head; };
@@ -45,7 +45,7 @@ protected:
 	void BackwardOnce() override;
 	void LearnOnce() override;
 	// It does not allocate outputBlobs in CBaseLayer in runOnce, because they are not used for inference.
-	// The outputBlob for CCompositeLayer are sinkLayer->GetBlob() of its internalDnn.
+	// The outputBlob for CDnnHeadAdapterLayer are sinkLayer->GetBlob() of its internalDnn.
 	void AllocateOutputBlobs() override {}
 	int BlobsForBackward() const override { return head->blobsForBackward; }
 	int BlobsForLearn() const override { return head->blobsForLearn; }
@@ -63,7 +63,7 @@ private:
 	CObjectArray<CDnnBlob> innerInputBlobs;
 	CObjectArray<CDnnBlob> innerOutputBlobs;
 
-	void OnDnnChanged(CDnn*) override;
+	void OnDnnChanged( CDnn* ) override;
 	void processBackwardOrLearn();
 	void configureAdapter();
 	void configureFromHead();
