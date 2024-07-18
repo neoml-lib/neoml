@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,16 +15,48 @@ limitations under the License.
 
 #pragma once 
 
+#include <PtrOwnerFOL.h>
+
 namespace FObj {
 
-template<class T, class Allocator = CurrentMemoryManager>
-class CPointerArray {
-public:
-	typedef T* TElement;
-	typedef Allocator AllocatorType;
+template<class T, class Allocator, class Deleter>
+class CPointerArray;
 
-	CPointerArray();
+namespace DetailsCPointerArray {
+template<class T>
+struct DefaultDeleter {
+	void operator() ( T*& value ) 
+	{
+		delete value;
+		value = nullptr;
+	}
+};
+} // namespace DetailsCPointerArray
+
+template<class T, class TAllocator, class TDeleter>
+struct IsMemmoveable< CPointerArray<T, TAllocator, TDeleter> > {
+	static constexpr bool Value = true;
+};
+
+//---------------------------------------------------------------------------------------------------------------------
+
+template <class T, class Allocator = CurrentMemoryManager, class Deleter = DetailsCPointerArray::DefaultDeleter<T> >
+class CPointerArray final : private Deleter {
+public:
+	using TElement = T*;
+	using AllocatorType = Allocator;
+	using TConstIterator = CConstArrayIterator<CArray<const T*, Allocator>>;
+	using TIterator = CConstArrayIterator<CArray<T*, Allocator>>;
+	using TDeleter = Deleter;
+	using FuncComp = int ( * )( T* const*, T* const* );
+
+	CPointerArray() = default;
+	CPointerArray( CPointerArray&& ) = default;
+	CPointerArray( const CPointerArray& ) = delete;
 	~CPointerArray();
+
+	CPointerArray& operator=( CPointerArray&& ) = default;
+	CPointerArray& operator=( const CPointerArray& ) = delete;
 
 	void MoveTo( CPointerArray& other );
 	void AppendTo( CPointerArray& other );
@@ -34,6 +66,7 @@ public:
 	void SetSize( int newSize );
 	void SetBufferSize( int newSize );
 	void Grow( int newSize );
+	void ShrinkBuffer() { body.ShrinkBuffer(); }
 
 	bool IsEmpty() const;
 	void Empty() { DeleteAll(); }
@@ -50,9 +83,19 @@ public:
 	const CArray<T*, Allocator>& GetAllPointers() const { return body; }
 
 	void ReplaceAt( T* element, int location );
+	void ReplaceAt( CPtrOwner<T>& elementPtr, int location ) = delete;
+	void ReplaceAt( CPtrOwner<T>&& elementPtr, int location ) { ReplaceAt( elementPtr.Detach(), location ); }
 	void Add( T* element );
+	void Add( CPtrOwner<T>& elementPtr ) = delete;
+	void Add( CPtrOwner<T>&& elementPtr );
 	void InsertAt( T* element, int location );
+	void InsertAt( CPtrOwner<T>& elementPtr, int location ) = delete;
+	void InsertAt( CPtrOwner<T>&& elementPtr, int location );
 	T* DetachAndReplaceAt( T* element, int location );
+	T* DetachAndReplaceAt( CPtrOwner<T>& elementPtr, int location ) = delete;
+	T* DetachAndReplaceAt( CPtrOwner<T>&& elementPtr, int location )
+	{ return DetachAndReplaceAt( elementPtr.Detach(), location ); }
+
 	T* DetachAt( int location );
 	void DetachAt( int location, int count );
 	bool Detach( const T* element );
@@ -65,6 +108,8 @@ public:
 
 	int Find( const T* element, int from = 0 ) const;
 	bool Has( const T* what ) const { return Find( what ) != NotFound; }
+
+	void MoveElement( int from, int to );
 
 	template <class COMPARE>
 	void QuickSort( COMPARE* param );
@@ -83,88 +128,87 @@ public:
 
 	void Serialize( CArchive& archive );
 
-private:
-	CArray<T*, Allocator> body;
+	TConstIterator begin() const { return GetArrayOfPointers().begin(); }
+	TConstIterator end() const { return GetArrayOfPointers().end(); }
+	TIterator begin() { return GetAllPointers().begin(); }
+	TIterator end() { return GetAllPointers().end(); }
 
-	CPointerArray( const CPointerArray& );
-	CPointerArray& operator=( const CPointerArray& );
+private:
+	CArray<T*, Allocator> body = {};
 };
 
-template<class T, class Allocator>
-inline CPointerArray<T, Allocator>::CPointerArray()
-{
-}
+//---------------------------------------------------------------------------------------------------------------------
 
-template<class T, class Allocator>
-inline CPointerArray<T, Allocator>::~CPointerArray()
+template<class T, class Allocator, class Deleter>
+CPointerArray<T, Allocator, Deleter>::~CPointerArray()
 {
 	DeleteAll();
 }
 
-template<class T, class Allocator>
-inline int CPointerArray<T, Allocator>::Size() const
+template<class T, class Allocator, class Deleter>
+int CPointerArray<T, Allocator, Deleter>::Size() const
 {
 	return body.Size();
 }
 
-template<class T, class Allocator>
-inline bool CPointerArray<T, Allocator>::IsEmpty() const
+template<class T, class Allocator, class Deleter>
+bool CPointerArray<T, Allocator, Deleter>::IsEmpty() const
 {
 	return Size() == 0;
 }
 
-template<class T, class Allocator>
-inline const T* CPointerArray<T, Allocator>::operator[]( int index ) const
+template<class T, class Allocator, class Deleter>
+inline const T* CPointerArray<T, Allocator, Deleter>::operator[]( int index ) const
 {
 	PresumeFO( 0 <= index );
 	PresumeFO( index < Size() );
 	return body[index];
 }
 
-template<class T, class Allocator>
-inline T* CPointerArray<T, Allocator>::operator[]( int index )
+template<class T, class Allocator, class Deleter>
+inline T* CPointerArray<T, Allocator, Deleter>::operator[]( int index )
 {
 	PresumeFO( 0 <= index );
 	PresumeFO( index < Size() );
 	return body[index];
 }
 
-template<class T, class Allocator>
-inline const T* CPointerArray<T, Allocator>::Last() const
+template<class T, class Allocator, class Deleter>
+inline const T* CPointerArray<T, Allocator, Deleter>::Last() const
 {
 	PresumeFO( Size() > 0 );
 	return body.Last();
 }
 
-template<class T, class Allocator>
-inline T* CPointerArray<T, Allocator>::Last()
+template<class T, class Allocator, class Deleter>
+inline T* CPointerArray<T, Allocator, Deleter>::Last()
 {
 	PresumeFO( Size() > 0 );
 	return body.Last();
 }
 
-template<class T, class Allocator>
-inline const T* CPointerArray<T, Allocator>::First() const
+template<class T, class Allocator, class Deleter>
+inline const T* CPointerArray<T, Allocator, Deleter>::First() const
 {
 	PresumeFO( Size() > 0 );
 	return body.First();
 }
 
-template<class T, class Allocator>
-inline T* CPointerArray<T, Allocator>::First()
+template<class T, class Allocator, class Deleter>
+inline T* CPointerArray<T, Allocator, Deleter>::First()
 {
 	PresumeFO( Size() > 0 );
 	return body.First();
 }
 
-template<class T, class Allocator>
-const CArray<const T*, Allocator>& CPointerArray<T, Allocator>::GetArrayOfPointers() const
+template<class T, class Allocator, class Deleter>
+const CArray<const T*, Allocator>& CPointerArray<T, Allocator, Deleter>::GetArrayOfPointers() const
 {
 	return ToConst( body );
 }
 
-template<class T, class Allocator>
-inline void CPointerArray<T, Allocator>::SetSize( int newSize )
+template<class T, class Allocator, class Deleter>
+inline void CPointerArray<T, Allocator, Deleter>::SetSize( int newSize )
 {
 	PresumeFO( newSize >= 0 );
 
@@ -172,87 +216,101 @@ inline void CPointerArray<T, Allocator>::SetSize( int newSize )
 	if( newSize < oldSize ) {
 		DeleteAt( newSize, oldSize - newSize );
 	} else {
-		body.Add( 0, newSize - oldSize );
+		body.Add( nullptr, newSize - oldSize );
 	}
 }
 
-template<class T, class Allocator>
-inline void CPointerArray<T, Allocator>::SetBufferSize( int newSize )
+template<class T, class Allocator, class Deleter>
+void CPointerArray<T, Allocator, Deleter>::SetBufferSize( int newSize )
 {
 	body.SetBufferSize( newSize );
 }
 
-template<class T, class Allocator>
-inline void CPointerArray<T, Allocator>::Grow( int newSize )
+template<class T, class Allocator, class Deleter>
+void CPointerArray<T, Allocator, Deleter>::Grow( int newSize )
 {
 	body.Grow( newSize );
 }
 
-template<class T, class Allocator>
-inline void CPointerArray<T, Allocator>::ReplaceAt( T* obj, int location )
+template<class T, class Allocator, class Deleter>
+inline void CPointerArray<T, Allocator, Deleter>::ReplaceAt( T* obj, int location )
 {
 	T* current = body[location];
 	if( current != obj ) {
 		body[location] = obj;
-		delete current;
+		Deleter::operator() ( current );
 	}
 }
 
-template<class T, class Allocator>
-inline void CPointerArray<T, Allocator>::Add( T* obj )
+template<class T, class Allocator, class Deleter>
+void CPointerArray<T, Allocator, Deleter>::Add( T* obj )
 {
 	body.Add( obj );
 }
 
-template<class T, class Allocator>
-inline void CPointerArray<T, Allocator>::InsertAt( T* obj, int location )
+template<class T, class Allocator, class Deleter>
+void CPointerArray<T, Allocator, Deleter>::Add( CPtrOwner<T>&& objPtr )
+{
+	body.Grow( body.Size() + 1 );
+	body.Add( objPtr.Detach() );
+}
+
+template<class T, class Allocator, class Deleter>
+void CPointerArray<T, Allocator, Deleter>::InsertAt( T* obj, int location )
 {
 	body.InsertAt( obj, location );
 }
 
-template<class T, class Allocator>
-inline T* CPointerArray<T, Allocator>::DetachAndReplaceAt( T* obj, int location )
+template<class T, class Allocator, class Deleter>
+void CPointerArray<T, Allocator, Deleter>::InsertAt( CPtrOwner<T>&& objPtr, int location )
+{
+	body.Grow( body.Size() + 1 );
+	body.InsertAt( objPtr.Detach(), location );
+}
+
+template<class T, class Allocator, class Deleter>
+inline T* CPointerArray<T, Allocator, Deleter>::DetachAndReplaceAt( T* obj, int location )
 {
 	T* ret = body[location];
 	body[location] = obj;
 	return ret;
 }
 
-template<class T, class Allocator>
-inline T* CPointerArray<T, Allocator>::DetachAt( int location )
+template<class T, class Allocator, class Deleter>
+inline T* CPointerArray<T, Allocator, Deleter>::DetachAt( int location )
 {
 	T* ret = body[location];
 	body.DeleteAt( location );
 	return ret;
 }
 
-template<class T, class Allocator>
-inline void CPointerArray<T, Allocator>::DetachAt( int location, int num )
+template<class T, class Allocator, class Deleter>
+void CPointerArray<T, Allocator, Deleter>::DetachAt( int location, int num )
 {
 	body.DeleteAt( location, num );
 }
 
-template<class T, class Allocator>
-inline void CPointerArray<T, Allocator>::DetachAll()
+template<class T, class Allocator, class Deleter>
+void CPointerArray<T, Allocator, Deleter>::DetachAll()
 { 
 	body.DeleteAll();
 }
 
-template<class T, class Allocator>
-inline void CPointerArray<T, Allocator>::DeleteAll()
+template<class T, class Allocator, class Deleter>
+void CPointerArray<T, Allocator, Deleter>::DeleteAll()
 {
 	DeleteAt( 0, Size() );
 }
 
-template<class T, class Allocator>
-inline void CPointerArray<T, Allocator>::FreeBuffer()
+template<class T, class Allocator, class Deleter>
+inline void CPointerArray<T, Allocator, Deleter>::FreeBuffer()
 {
 	DeleteAll();
 	body.FreeBuffer();
 }
 
-template<class T, class Allocator>
-inline void CPointerArray<T, Allocator>::MoveTo( CPointerArray<T, Allocator>& other )
+template<class T, class Allocator, class Deleter>
+inline void CPointerArray<T, Allocator, Deleter>::MoveTo( CPointerArray& other )
 {
 	if( &other == this ) {
 		return;
@@ -262,8 +320,8 @@ inline void CPointerArray<T, Allocator>::MoveTo( CPointerArray<T, Allocator>& ot
 	body.MoveTo( other.body );
 }
 
-template<class T, class Allocator>
-inline void CPointerArray<T, Allocator>::AppendTo( CPointerArray<T, Allocator>& other )
+template<class T, class Allocator, class Deleter>
+inline void CPointerArray<T, Allocator, Deleter>::AppendTo( CPointerArray& other )
 {
 	AssertFO( &other != this );
 
@@ -271,44 +329,44 @@ inline void CPointerArray<T, Allocator>::AppendTo( CPointerArray<T, Allocator>& 
 	body.DeleteAll();
 }
 
-template<class T, class Allocator> template <class COMPARE>
-inline void CPointerArray<T, Allocator>::QuickSort( COMPARE* param )
+template<class T, class Allocator, class Deleter> template <class COMPARE>
+void CPointerArray<T, Allocator, Deleter>::QuickSort( COMPARE* param )
 {
 	body.QuickSort( param );
 }
 
-template<class T, class Allocator> template <class COMPARE>
-inline void CPointerArray<T, Allocator>::QuickSort()
+template<class T, class Allocator, class Deleter> template <class COMPARE>
+void CPointerArray<T, Allocator, Deleter>::QuickSort()
 {
 	body.template QuickSort<COMPARE>();
 }
 
-template<class T, class Allocator> template<class COMPARE>
-inline bool CPointerArray<T, Allocator>::IsSorted( COMPARE* compare ) const
+template<class T, class Allocator, class Deleter> template<class COMPARE>
+bool CPointerArray<T, Allocator, Deleter>::IsSorted( COMPARE* compare ) const
 {
 	return body.IsSorted( compare );
 }
 
-template<class T, class Allocator> template<class COMPARE>
-inline bool CPointerArray<T, Allocator>::IsSorted() const
+template<class T, class Allocator, class Deleter> template<class COMPARE>
+bool CPointerArray<T, Allocator, Deleter>::IsSorted() const
 {
 	return body.template IsSorted<COMPARE>();
 }
 
-template<class T, class Allocator> template<class COMPARE, class SEARCHED_TYPE>
-inline int CPointerArray<T, Allocator>::FindInsertionPoint( const SEARCHED_TYPE& what, COMPARE* param ) const
+template<class T, class Allocator, class Deleter> template<class COMPARE, class SEARCHED_TYPE>
+int CPointerArray<T, Allocator, Deleter>::FindInsertionPoint( const SEARCHED_TYPE& what, COMPARE* param ) const
 {
-	return body.template FindInsertionPoint<COMPARE, SEARCHED_TYPE>( what, param );
+	return body.FindInsertionPoint( what, param );
 }
 
-template<class T, class Allocator> template<class COMPARE, class SEARCHED_TYPE>
-inline int CPointerArray<T, Allocator>::FindInsertionPoint( const SEARCHED_TYPE& what ) const
+template<class T, class Allocator, class Deleter> template<class COMPARE, class SEARCHED_TYPE>
+int CPointerArray<T, Allocator, Deleter>::FindInsertionPoint( const SEARCHED_TYPE& what ) const
 {
-	return body.template FindInsertionPoint<COMPARE, SEARCHED_TYPE>( what );
+	return body.template FindInsertionPoint<COMPARE>( what );
 }
 
-template<class T, class Allocator>
-int CPointerArray<T, Allocator>::Find( const T* obj, int start ) const
+template<class T, class Allocator, class Deleter>
+inline int CPointerArray<T, Allocator, Deleter>::Find( const T* obj, int start ) const
 {
 	AssertFO( start >= 0 );
 	AssertFO( start <= Size() );
@@ -321,8 +379,14 @@ int CPointerArray<T, Allocator>::Find( const T* obj, int start ) const
 	return NotFound;
 }
 
-template<class T, class Allocator>
-bool CPointerArray<T, Allocator>::Detach( const T* obj )
+template<class T, class Allocator, class Deleter>
+void CPointerArray<T, Allocator, Deleter>::MoveElement( int from, int to )
+{
+	body.MoveElement( from, to );
+}
+
+template<class T, class Allocator, class Deleter>
+bool CPointerArray<T, Allocator, Deleter>::Detach( const T* obj )
 {
 	int pos = Find( obj );
 	if( pos != NotFound ) {
@@ -333,8 +397,8 @@ bool CPointerArray<T, Allocator>::Detach( const T* obj )
 	}
 }
 
-template<class T, class Allocator>
-bool CPointerArray<T, Allocator>::Delete( T* obj )
+template<class T, class Allocator, class Deleter>
+bool CPointerArray<T, Allocator, Deleter>::Delete( T* obj )
 {
 	int pos = Find( obj );
 	if( pos != NotFound ) {
@@ -345,8 +409,8 @@ bool CPointerArray<T, Allocator>::Delete( T* obj )
 	}
 }
 
-template<class T, class Allocator>
-void CPointerArray<T, Allocator>::DeleteAt( int location, int num )
+template<class T, class Allocator, class Deleter>
+void CPointerArray<T, Allocator, Deleter>::DeleteAt( int location, int num )
 {
 	AssertFO( location >= 0 );
 	AssertFO( location <= Size() );
@@ -358,27 +422,29 @@ void CPointerArray<T, Allocator>::DeleteAt( int location, int num )
 	}
 	for( int pos = location; pos < location + num; pos++ ) {
 		T* current = body[pos];
-		body[pos] = 0;
-		delete current;
+		body[pos] = nullptr;
+		Deleter::operator() ( current );
 	}
 	body.DeleteAt( location, num );
 }
 
-template<class T, class Allocator>
-void CPointerArray<T, Allocator>::DeleteLast()
+template<class T, class Allocator, class Deleter>
+void CPointerArray<T, Allocator, Deleter>::DeleteLast()
 {
 	T* current = body.Last();
 	body.DeleteLast();
-	delete current;
+	Deleter::operator() ( current );
 }
 
-template<class T, class Allocator>
-void CPointerArray<T, Allocator>::Serialize( CArchive& ar )
+//---------------------------------------------------------------------------------------------------------------------
+
+template<class T, class Allocator, class Deleter>
+void CPointerArray<T, Allocator, Deleter>::Serialize( CArchive& ar )
 {
 	if( ar.IsStoring() ) {
 		ar << static_cast<unsigned int>( Size() );
 		for( int i = 0; i < Size(); i++ ) {
-			if( ( *this )[i] != 0 ) {
+			if( ( *this )[i] != nullptr ) {
 				ar << static_cast<unsigned int>( i );
 				ar << *( *this )[i];
 			}
@@ -403,15 +469,15 @@ void CPointerArray<T, Allocator>::Serialize( CArchive& ar )
 	}
 }
 
-//-------------------------------------------------------------------------------------------
+//---------------------------------------------------------------------------------------------------------------------
 
-template<class T, class Allocator>
-inline void ArrayMemMoveElement( CPointerArray<T, Allocator>* dest, CPointerArray<T, Allocator>* src )
+template<class T, class Allocator, class Deleter>
+inline void ArrayMemMoveElement( CPointerArray<T, Allocator, Deleter>* dest, CPointerArray<T, Allocator, Deleter>* src )
 {
 	PresumeFO( dest != src );
-	::new( dest ) CPointerArray<T, Allocator>;
+	::new( dest ) CPointerArray<T, Allocator, Deleter>;
 	src->MoveTo( *dest );
-	src->~CPointerArray<T, Allocator>();
+	src->~CPointerArray<T, Allocator, Deleter>();
 }
 
 } // namespace FObj
