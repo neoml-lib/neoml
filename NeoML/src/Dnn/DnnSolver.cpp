@@ -297,15 +297,6 @@ void CDnnSolver::clipGradients(const CObjectArray<CDnnBlob>& paramDiffBlobs)
 	}
 }
 
-static CString concatLayerPath( const CArray<CString>& path )
-{
-	CString layerPath = path[0];
-	for( int i = 1; i < path.Size(); ++i ) {
-		layerPath += layerPathSeparator + path[i];
-	}
-	return layerPath;
-}
-
 static const int DnnSolverVersion = 2;
 
 void CDnnSolver::Serialize( CArchive& archive, const CDnn& dnn )
@@ -333,7 +324,7 @@ void CDnnSolver::Serialize( CArchive& archive, const CDnn& dnn )
 			CArray<CString> path;
 			for( int i = 0; i < size; ++i ) {
 				serializePath( archive, path, /*layer*/nullptr );
-				const CString layerPath = concatLayerPath( path );
+				const CString layerPath = JoinStrings( path, layerPathSeparator );
 				serializeDiffBlobSum( archive, layerToParamDiffBlobsSum.CreateValue( layerPath ), dnn.GetLayer( path ) );
 
 				serializeGradientHistory( archive, layerPath );
@@ -387,7 +378,7 @@ void CDnnSolver::serializeLoadMapsPrevVersion( CArchive& archive, const CDnn& dn
 		if( layer != nullptr ) {
 			*layer = dnn.GetLayer( path );
 		}
-		return concatLayerPath( path );
+		return JoinStrings( path, layerPathSeparator );
 	};
 
 	for( int i = 0; i < size; ++i ) {
