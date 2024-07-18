@@ -521,7 +521,7 @@ void CDnn::ForceRebuild()
 	sourceLayers.SetSize( 0 );
 }
 
-void CDnn::createReferenceDnn( CDnn* newDnn, CReferenceDnnInfo* referenceDnnInfo )
+void CDnn::createReferenceDnn( CDnn& newDnn, CReferenceDnnInfo* referenceDnnInfo )
 {
 	NeoAssertMsg( this->referenceDnnInfo != nullptr, "ReferenceDnn can be created from originDnn only" );
 
@@ -539,11 +539,11 @@ void CDnn::createReferenceDnn( CDnn* newDnn, CReferenceDnnInfo* referenceDnnInfo
 			SerializeLayer( archive, mathEngine, copyLayer );
 			layer->transferParamsBlob( *copyLayer );
 		}
-		newDnn->AddLayer( *copyLayer );
+		newDnn.AddLayer( *copyLayer );
 	}
 
-	newDnn->referenceDnnInfo = referenceDnnInfo;
-	newDnn->DisableLearning();
+	newDnn.referenceDnnInfo = referenceDnnInfo;
+	newDnn.DisableLearning();
 }
 
 void CDnn::DeleteLayerImpl( CBaseLayer& layer )

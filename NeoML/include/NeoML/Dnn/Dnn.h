@@ -606,22 +606,6 @@ public:
 	void EnableProfile( bool profile );
 
 private:
-	// Adds or deletes a layer
-	void AddLayerImpl(CBaseLayer& layer) override;
-	void DeleteLayerImpl(CBaseLayer& layer) final;
-	// Should be called in all internals methods
-	CBaseLayer* getLayer( const char* name );
-	// Should be called in all internals methods
-	CBaseLayer* getLayer( const CArray<CString>& path );
-
-	// This method creates a reference dnn, that has the same configuration as the original dnn
-	// and shares parameter blobs with the original dnn to save memory.
-	// Useful for multi-threaded inference where each thread can operate own reference dnn independently.
-	// Learning is disabled for both the original dnn and the reference dnn.
-	// Creates a copy of the original dnn's random generator to use it for inference.
-	// NOTE: Pointer allocates memory using the `new` operator => the memory must be manually deallocated.
-	void createReferenceDnn( CDnn* newDnn, CReferenceDnnInfo* referenceDnnInfo );
-
 	const CBaseLayer* owner; // the composite containing this CDnn (if exists)
 	CTextStream* log; // the logging stream
 	int logFrequency; // the logging frequency
@@ -662,6 +646,22 @@ private:
 
 	// Reference information
 	CPtrOwner<CReferenceDnnInfo, CReferenceDnnInfoDeleter> referenceDnnInfo;
+
+	// Adds or deletes a layer
+	void AddLayerImpl( CBaseLayer& layer ) override;
+	void DeleteLayerImpl( CBaseLayer& layer ) final;
+	// Should be called in all internals methods
+	CBaseLayer* getLayer( const char* name );
+	// Should be called in all internals methods
+	CBaseLayer* getLayer( const CArray<CString>& path );
+
+	// This method creates a reference dnn, that has the same configuration as the original dnn
+	// and shares parameter blobs with the original dnn to save memory.
+	// Useful for multi-threaded inference where each thread can operate own reference dnn independently.
+	// Learning is disabled for both the original dnn and the reference dnn.
+	// Creates a copy of the original dnn's random generator to use it for inference.
+	// NOTE: Pointer allocates memory using the `new` operator => the memory must be manually deallocated.
+	void createReferenceDnn( CDnn& newDnn, CReferenceDnnInfo* referenceDnnInfo );
 
 	void setProcessingParams(bool isRecurrentMode, int sequenceLength, bool isReverseSequense, bool isBackwardPerformed);
 	void runOnce(int curSequencePos);
@@ -717,13 +717,11 @@ public:
 
 private:
 	CDnn originalDnn; // The dnn to make reference dnns
-	std::atomic<int> counter{}; // Stores the number of created reference dnns
+	std::atomic<unsigned> counter{}; // Stores the number of created reference dnns
 
 	// Technical constructor
 	CReferenceDnnFactory( CReferenceDnnInfo* referenceDnnInfo, IMathEngine& mathEngine );
 
-	// Called in destructor of reference dnn to decrease the counter and allow destroy this factory class
-	void destroyReferenceDnn();
 	// Internal method of loading the dnn
 	void serialize( CArchive& archive, bool optimizeDnn );
 
