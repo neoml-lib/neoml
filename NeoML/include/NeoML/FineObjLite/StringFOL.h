@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -35,6 +35,7 @@ public:
 
 	void Empty() { clear(); }
 	bool IsEmpty() const { return empty(); }
+	void SetBufferLength( int length ) { reserve( length ); }
 	int Length() const { return static_cast<int>( size() ); }
 	int Find( const CString& other, int startPos = 0 ) const;
 

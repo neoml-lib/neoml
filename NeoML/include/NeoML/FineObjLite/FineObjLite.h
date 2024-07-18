@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -42,7 +42,43 @@ limitations under the License.
 #include "PtrOwnerFOL.h"
 
 namespace FObj {
-	using std::swap;
+
+using std::swap;
+
+constexpr const char* GetDefaultDelimiter( char ) { return ", "; }
+
+inline CString JoinStrings( const CArray<CString>& strings, const char* delimiter )
+{
+	if( strings.IsEmpty() ) {
+		return CString{};
+	}
+
+	// reserve space
+	size_t length = strlen( delimiter ) * ( strings.Size() - 1 );
+	for( int i = 0; i < strings.Size(); i++ ) {
+		length += strings[i].Length();
+	}
+
+	CString result;
+	result.SetBufferLength( static_cast<int>( length ) );
+
+	result += strings[0];
+	for( int i = 1; i < strings.Size(); ++i ) {
+		result += delimiter + strings[i];
+	}
+	return result;
 }
+
+inline CString JoinStrings( const CArray<CString>& strings, const CString& delimiter )
+{
+	return JoinStrings( strings, delimiter.data() );
+}
+
+inline CString JoinStrings( const CArray<CString>& strings )
+{
+	return JoinStrings( strings, GetDefaultDelimiter( char{} ) );
+}
+
+} // namespace FObj
 
 using namespace FObj;
