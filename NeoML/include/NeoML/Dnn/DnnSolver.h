@@ -111,11 +111,17 @@ private:
 
 	// Telling the compiler that we intentionally using two-parameter Serialize instead of one declared in IObject
 	using IObject::Serialize;
-	// Convert maps from the previous serialization format
-	void loadPrevVersionDnnSolverMaps( CArchive& archive, const CDnn& dnn );
+	// Serialize load of the previous version of the dnn solver maps and convert them to new format
+	void serializeLoadMapsPrevVersion( CArchive& archive, const CDnn& dnn, int size );
+	// Serialize the layer's path array
+	void serializePath( CArchive& archive, CArray<CString>& path, const CBaseLayer* layer );
+	// Serialize the layer's parameters diff blobs sum struct
+	void serializeDiffBlobSum( CArchive& archive, CDiffBlobSum& blobsSum, const CBaseLayer* layer );
+	// Serialize the layer's gradient history
+	void serializeGradientHistory( CArchive& archive, const CString& layerPath );
 };
 
-////////////////////////////////////////////////////////////////////////////////////////////////
+//---------------------------------------------------------------------------------------------------------------------
 
 // The macros for the internal name of a NeoML solver
 // If this macros is used when declaring a class, that class may be registered as a NeoML solver
@@ -132,7 +138,7 @@ void NEOML_API UnregisterSolverName( const std::type_info& typeInfo );
 
 void NEOML_API SerializeSolver( CArchive& archive, CDnn& dnn, CPtr<CDnnSolver>& solver);
 
-////////////////////////////////////////////////////////////////////////////////////////////////
+//---------------------------------------------------------------------------------------------------------------------
 
 template<class T>
 class CSolverClassRegistrar {
@@ -156,7 +162,7 @@ inline CSolverClassRegistrar<T>::~CSolverClassRegistrar()
 	UnregisterSolverName( typeid( T ) );
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////
+//---------------------------------------------------------------------------------------------------------------------
 
 // Stochastic gradient descent with moment
 class NEOML_API CDnnSimpleGradientSolver : public CDnnSolver {
@@ -198,7 +204,7 @@ private:
 	CPtr<CDnnBlob> tempVariables;
 };
 
-////////////////////////////////////////////////////////////////////////////////////////////////
+//---------------------------------------------------------------------------------------------------------------------
 
 // Stochastic gradient descent with moment and adapting stride for each coordinate
 class NEOML_API CDnnAdaptiveGradientSolver : public CDnnSolver {
@@ -301,7 +307,7 @@ private:
 	CPtr<CDnnBlob> temporaryBlob;
 };
 
-////////////////////////////////////////////////////////////////////////////////////////////////
+//---------------------------------------------------------------------------------------------------------------------
 
 // The optimizer that uses Nesterov moment
 // http://cs229.stanford.edu/proj2015/054_report.pdf (Algo 8).
@@ -408,7 +414,7 @@ private:
 	CPtr<CDnnBlob> mBarBlob;
 };
 
-////////////////////////////////////////////////////////////////////////////////////////////////
+//---------------------------------------------------------------------------------------------------------------------
 
 // Lamb optimizer.
 // https://arxiv.org/pdf/1904.00962.pdf
@@ -558,7 +564,8 @@ private:
 };
 
 template<typename TLayer>
-inline void CDnnLambGradientSolver::ExcludeWeightDecayLayer( int paramIndex ) {
+inline void CDnnLambGradientSolver::ExcludeWeightDecayLayer( int paramIndex )
+{
 	CPtr<TLayer> layer = new TLayer( MathEngine() );
 	ExcludeWeightDecayLayer( GetLayerClass( *layer ), ELNMT_LayerClass, paramIndex );
 }
