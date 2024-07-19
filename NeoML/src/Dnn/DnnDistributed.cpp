@@ -177,7 +177,7 @@ void CDistributedTraining::initialize( CArchive& archive, int count, TDistribute
 	batchSize.Add( 0, count );
 }
 
-CDistributedTraining::CDistributedTraining( CDnn& dnn, int count,
+CDistributedTraining::CDistributedTraining( const CDnn& dnn, int count,
 		TDistributedInitializer initializer, int seed ) :
 	isCpu( true ),
 	threadPool( CreateThreadPool( count ) )
@@ -190,7 +190,7 @@ CDistributedTraining::CDistributedTraining( CDnn& dnn, int count,
 	CreateDistributedCpuMathEngines( mathEngines.GetPtr(), count );
 	CMemoryFile file;
 	CArchive archive( &file, CArchive::SD_Storing );
-	dnn.Serialize( archive );
+	const_cast<CDnn&>( dnn ).Serialize( archive );
 	archive.Close();
 	file.SeekToBegin();
 
@@ -200,8 +200,8 @@ CDistributedTraining::CDistributedTraining( CDnn& dnn, int count,
 	file.SeekToBegin();
 
 	archive.Open( &file, CArchive::SD_Storing );
-	CPtr<CDnnSolver> solver = dnn.GetSolver();
-	SerializeSolver( archive, dnn, solver );
+	CPtr<CDnnSolver> solver = const_cast<CDnn&>( dnn ).GetSolver();
+	SerializeSolver( archive, const_cast<CDnn&>( dnn ), solver );
 	archive.Close();
 	file.SeekToBegin();
 
@@ -223,7 +223,7 @@ CDistributedTraining::CDistributedTraining( CArchive& archive, int count,
 	initialize( archive, count, initializer, seed );
 }
 
-CDistributedTraining::CDistributedTraining( CDnn& dnn, const CArray<int>& cudaDevs,
+CDistributedTraining::CDistributedTraining( const CDnn& dnn, const CArray<int>& cudaDevs,
 		TDistributedInitializer initializer, int seed ) :
 	isCpu( false ),
 	threadPool( CreateThreadPool(cudaDevs.Size()) )
@@ -232,7 +232,7 @@ CDistributedTraining::CDistributedTraining( CDnn& dnn, const CArray<int>& cudaDe
 	CreateDistributedCudaMathEngines( mathEngines.GetPtr(), cudaDevs.Size(), cudaDevs.GetPtr() );
 	CMemoryFile file;
 	CArchive archive( &file, CArchive::SD_Storing );
-	dnn.Serialize( archive );
+	const_cast<CDnn&>( dnn ).Serialize( archive );
 	archive.Close();
 	file.SeekToBegin();
 
@@ -242,8 +242,8 @@ CDistributedTraining::CDistributedTraining( CDnn& dnn, const CArray<int>& cudaDe
 	file.SeekToBegin();
 
 	archive.Open( &file, CArchive::SD_Storing );
-	CPtr<CDnnSolver> solver = dnn.GetSolver();
-	SerializeSolver( archive, dnn, solver );
+	CPtr<CDnnSolver> solver = const_cast<CDnn&>( dnn ).GetSolver();
+	SerializeSolver( archive, const_cast<CDnn&>( dnn ), solver );
 	archive.Close();
 	file.SeekToBegin();
 
@@ -494,6 +494,23 @@ void CDistributedTraining::GetLastLoss( const CString& layerName, CArray<float>&
 	}
 }
 
+void CDistributedTraining::GetLastBlob( const CString& layerName, CObjectArray<const CDnnBlob>& blobs ) const
+{
+	blobs.SetSize( cnns.Size() );
+	for( int i = 0; i < cnns.Size(); ++i ) {
+		blobs[i] = CheckCast<const CSinkLayer>( cnns[i]->GetLayer( layerName ) )->GetBlob();
+	}
+}
+
+void CDistributedTraining::GetLastBlobCopy( const CString& layerName, CObjectArray<CDnnBlob>& blobs ) const
+{
+	blobs.SetSize( cnns.Size() );
+	for( int i = 0; i < cnns.Size(); ++i ) {
+		blobs[i] = CheckCast<const CSinkLayer>( cnns[i]->GetLayer( layerName ) )->GetBlob()->GetCopy();
+	}
+}
+
+// depreceted
 void CDistributedTraining::GetLastBlob( const CString& layerName, CObjectArray<CDnnBlob>& blobs ) const
 {
 	blobs.SetSize( cnns.Size() );
@@ -539,15 +556,15 @@ void CDistributedInference::initialize( CArchive& archive, int threads_count )
 	archive.Close();
 }
 
-CDistributedInference::CDistributedInference( CDnn& dnn, int count ) :
+CDistributedInference::CDistributedInference( const CDnn& dnn, int count ) :
 	threadPool( CreateThreadPool( count ) ),
 	mathEngine( CreateCpuMathEngine( /*memoryLimit*/0u ) ),
-	random( dnn.Random() )
+	random( const_cast<CDnn&>( dnn ).Random() )
 {
 	// Copy dnn using serialization to get the new dnn of necessary life time
 	CMemoryFile file;
 	CArchive archive( &file, CArchive::store );
-	dnn.Serialize( archive );
+	const_cast<CDnn&>( dnn ).Serialize( archive );
 	archive.Close();
 	file.SeekToBegin();
 	archive.Open( &file, CArchive::load );

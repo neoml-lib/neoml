@@ -50,12 +50,12 @@ class NEOML_API CDistributedTraining {
 public:
 	// Creates `count` cpu models
 	// If `count` is 0 or less, then the models number equal to the number of available CPU cores
-	CDistributedTraining( CDnn& dnn, int count,
+	CDistributedTraining( const CDnn& dnn, int count,
 		TDistributedInitializer initializer = TDistributedInitializer::Xavier, int seed = 42 );
 	CDistributedTraining( CArchive& archive, int count,
 		TDistributedInitializer initializer = TDistributedInitializer::Xavier, int seed = 42 );
 	// Creates gpu models, `devs` should contain numbers of using devices
-	CDistributedTraining( CDnn& dnn, const CArray<int>& cudaDevs,
+	CDistributedTraining( const CDnn& dnn, const CArray<int>& cudaDevs,
 		TDistributedInitializer initializer = TDistributedInitializer::Xavier, int seed = 42 );
 	CDistributedTraining( CArchive& archive, const CArray<int>& cudaDevs,
 		TDistributedInitializer initializer = TDistributedInitializer::Xavier, int seed = 42 );
@@ -90,6 +90,10 @@ public:
 	// NOTE: This blobs are part of the dnn and may be overwritten by next task of 
 	//       `RunOnce`, `RunAndBackwardOnce` or `RunAndLearnOnce`.
 	//       Use it after each task and copy them if you need to store the result.
+	void GetLastBlob( const CString& layerName, CObjectArray<const CDnnBlob>& blobs ) const;
+	// Returns copy last blobs of `layerName` for all models
+	void GetLastBlobCopy( const CString& layerName, CObjectArray<CDnnBlob>& blobs ) const;
+	/// depreceted
 	void GetLastBlob( const CString& layerName, CObjectArray<CDnnBlob>& blobs ) const;
 	// Save trained net
 	void Serialize( CArchive& archive );
@@ -128,7 +132,7 @@ class NEOML_API CDistributedInference {
 public:
 	// Creates `count` cpu models
 	// If `count` is 0 or less, then the models number equal to the number of available CPU cores
-	CDistributedInference( CDnn& dnn, int count );
+	CDistributedInference( const CDnn& dnn, int count );
 	CDistributedInference( CArchive& archive, int count, int seed = 42 );
 
 	virtual ~CDistributedInference();
