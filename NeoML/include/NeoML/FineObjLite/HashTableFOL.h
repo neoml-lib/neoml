@@ -48,7 +48,7 @@ inline int GetMBCStringHash( const char* string )
 //------------------------------------------------------------------------------------------------------------
 
 template< typename KEY > 
-struct CDefaultHash {
+struct CDefaultHash final {
 	static int HashKey( const KEY& key )
 	{ 
 		return key.HashKey();
@@ -61,7 +61,7 @@ struct CDefaultHash {
 };
 
 template< class KEY >
-struct CDefaultHash<KEY*> {
+struct CDefaultHash<KEY*> final {
 	static int HashKey( KEY* const& key )
 	{
 		return static_cast<int>( reinterpret_cast<size_t>( key ) );
@@ -71,6 +71,8 @@ struct CDefaultHash<KEY*> {
 		return first == second;
 	}
 };
+
+//------------------------------------------------------------------------------------------------------------
 
 template<> 
 inline int CDefaultHash<char>::HashKey( const char& key )
@@ -148,8 +150,10 @@ inline int CDefaultHash<CString>::HashKey( const CString& str )
 	return result;
 }
 
+//------------------------------------------------------------------------------------------------------------
+
 template<> 
-struct CDefaultHash<const char*> {
+struct CDefaultHash<const char*> final {
 	static int HashKey( const char* string )
 	{ 
 		return GetMBCStringHash( string );
@@ -162,17 +166,21 @@ struct CDefaultHash<const char*> {
 
 //------------------------------------------------------------------------------------------------------------
 
-template<class VALUE, class HASHINFO = CDefaultHash<VALUE>, class ALLOCATOR = CurrentMemoryManager>
-class CHashTable {
+template<class T, class HASHINFO = CDefaultHash<T>, class ALLOCATOR = CurrentMemoryManager>
+class CHashTable final {
 public:
-	typedef VALUE TElement;
+	typedef T TElement;
 	typedef ALLOCATOR AllocatorType;
 	typedef HASHINFO HashInfoType;
 
 	CHashTable();
 	explicit CHashTable( int hashSize );
-	CHashTable( const VALUE* data, int dataSize );
+	CHashTable( const T* data, int dataSize );
+	CHashTable( CHashTable&& ) = default;
+
 	~CHashTable();
+
+	CHashTable& operator=( CHashTable&& ) = default;
 
 	void CopyTo( CHashTable& ) const;
 	void MoveTo( CHashTable& );
@@ -182,13 +190,13 @@ public:
 
 	bool IsEmpty() const { return Size() == 0; }
 	void Empty() { DeleteAll(); }
-	void Set( const VALUE& value );
-	void Add( const VALUE& value ) { Set( value ); }
+	void Set( const T& value );
+	void Add( const T& value ) { Set( value ); }
 	template<class TARRAY> void AddArray( const TARRAY& values );
 
-	bool Has( const VALUE& ) const;
+	bool Has( const T& ) const;
 
-	void Delete( const VALUE& );
+	void Delete( const T& );
 	void DeleteAt( THashTablePosition );
 	void DeleteAll();
 	void FreeBuffer();
@@ -196,11 +204,11 @@ public:
 	THashTablePosition GetFirstPosition() const;
 	THashTablePosition GetNextPosition( THashTablePosition pos ) const;
 
-	THashTablePosition GetPosition( const VALUE& ) const;
+	THashTablePosition GetPosition( const T& ) const;
 
-	const VALUE& GetValue( THashTablePosition ) const;
-	const VALUE& operator [] ( THashTablePosition pos ) const { return GetValue( pos ); }
-	const VALUE& GetOrCreateValue( const VALUE& );
+	const T& GetValue( THashTablePosition ) const;
+	const T& operator [] ( THashTablePosition pos ) const { return GetValue( pos ); }
+	const T& GetOrCreateValue( const T& );
 
 	void Serialize( CArchive& ar );
 
@@ -210,22 +218,22 @@ private:
 		CIndexEntry() : Data( 0 ) { PresumeFO( IsFree() ); }
 		explicit CIndexEntry( unsigned int groupStart ) : Data( ( groupStart << 1 ) | 1 )
 			{ static_assert( sizeof(unsigned int) == 4, "sizeof(unsigned int) != 4" ); PresumeFO( ( groupStart >> 31 ) == 0 ); PresumeFO( IsGroupPointer() ); }
-		explicit CIndexEntry( VALUE* dataPointer ) : Data( reinterpret_cast<size_t>( dataPointer ) )
+		explicit CIndexEntry( T* dataPointer ) : Data( reinterpret_cast<size_t>( dataPointer ) )
 			{ PresumeFO( IsDataPointer() ); }
 
 		bool IsFree() const { return Data == 0; }
 		bool IsDataPointer() const { return !IsFree() && !IsGroupPointer(); }
 		bool IsGroupPointer() const { return ( Data & 1 ) != 0; }
 
-		VALUE* DataPointer() const { PresumeFO( IsDataPointer() ); return reinterpret_cast<VALUE*>( Data ); }
+		T* DataPointer() const { PresumeFO( IsDataPointer() ); return reinterpret_cast<T*>( Data ); }
 		int NextGroupStart() const { PresumeFO( IsGroupPointer() ); return static_cast<int>( Data >> 1 ); }
 		
 	private:
 		size_t Data;
 	};
 
-	enum { AllocatorBlockSize = sizeof( VALUE ) > MinHashTableAllocatorBlockSize 
-		? sizeof( VALUE ) 
+	enum { AllocatorBlockSize = sizeof( T ) > MinHashTableAllocatorBlockSize 
+		? sizeof( T ) 
 		: MinHashTableAllocatorBlockSize };
 
 	CArray<CIndexEntry, ALLOCATOR> index;
@@ -236,10 +244,10 @@ private:
 
 	void growIndex( int minSize );
 	void init( int hashSize );
-	VALUE* addValue( int hash, const VALUE& value );
+	T* addValue( int hash, const T& value );
 	THashTablePosition findIndexFreePos( int hash, int hashTableSize, CArray<CIndexEntry, ALLOCATOR>& index ) const;
 	bool canRehash() const;
-	THashTablePosition findValueInIndex( const VALUE&, THashTablePosition from ) const;
+	THashTablePosition findValueInIndex( const T&, THashTablePosition from ) const;
 
 	THashTablePosition first( int hash, int hashTableSize, const CArray<CIndexEntry, ALLOCATOR>& index ) const;
 	THashTablePosition first( int hash ) const;
@@ -248,7 +256,7 @@ private:
 	THashTablePosition next( THashTablePosition ) const;
 	
 	static int getIndexSize( int hashSize );
-	static VALUE* constructByCopy( void* where, const VALUE& copyFrom );
+	static T* constructByCopy( void* where, const T& copyFrom );
 
 	CHashTable( const CHashTable& );
 	void operator=( const CHashTable& );
@@ -258,16 +266,16 @@ private:
 
 int UpperPrimeNumber( int number );
 
-template<class VALUE, class HASHINFO, class ALLOCATOR>
-inline CHashTable<VALUE, HASHINFO, ALLOCATOR>::CHashTable() :
+template<class T, class HASHINFO, class ALLOCATOR>
+inline CHashTable<T, HASHINFO, ALLOCATOR>::CHashTable() :
 	valuesCount( 0 ),
 	hashTableSize( 0 ),
 	initialHashTableSize( DefHashTableSize )
 {
 }
 
-template<class VALUE, class HASHINFO, class ALLOCATOR>
-inline CHashTable<VALUE, HASHINFO, ALLOCATOR>::CHashTable( int hashSize ) :
+template<class T, class HASHINFO, class ALLOCATOR>
+inline CHashTable<T, HASHINFO, ALLOCATOR>::CHashTable( int hashSize ) :
 	hashTableSize( 0 ),
 	valuesCount( 0 ),
 	initialHashTableSize( UpperPrimeNumber( hashSize - 1 ) )
@@ -276,8 +284,8 @@ inline CHashTable<VALUE, HASHINFO, ALLOCATOR>::CHashTable( int hashSize ) :
 	dataAllocator.Reserve( hashSize );
 }
 
-template<class VALUE, class HASHINFO, class ALLOCATOR>
-inline CHashTable<VALUE, HASHINFO, ALLOCATOR>::CHashTable( const VALUE* data, int dataSize ) :
+template<class T, class HASHINFO, class ALLOCATOR>
+inline CHashTable<T, HASHINFO, ALLOCATOR>::CHashTable( const T* data, int dataSize ) :
 	hashTableSize( 0 ),
 	valuesCount( 0 ),
 	initialHashTableSize( UpperPrimeNumber( dataSize - 1 ) )
@@ -293,14 +301,14 @@ inline CHashTable<VALUE, HASHINFO, ALLOCATOR>::CHashTable( const VALUE* data, in
 	}
 }
 
-template<class VALUE, class HASHINFO, class ALLOCATOR>
-inline CHashTable<VALUE, HASHINFO, ALLOCATOR>::~CHashTable()
+template<class T, class HASHINFO, class ALLOCATOR>
+inline CHashTable<T, HASHINFO, ALLOCATOR>::~CHashTable()
 {
 	FreeBuffer();
 }
 
-template<class VALUE, class HASHINFO, class ALLOCATOR>
-inline void CHashTable<VALUE, HASHINFO, ALLOCATOR>::CopyTo( CHashTable<VALUE, HASHINFO, ALLOCATOR>& dest ) const
+template<class T, class HASHINFO, class ALLOCATOR>
+inline void CHashTable<T, HASHINFO, ALLOCATOR>::CopyTo( CHashTable<T, HASHINFO, ALLOCATOR>& dest ) const
 {
 	if( &dest == this ) {
 		return;
@@ -318,8 +326,8 @@ inline void CHashTable<VALUE, HASHINFO, ALLOCATOR>::CopyTo( CHashTable<VALUE, HA
 	}
 }
 
-template<class VALUE, class HASHINFO, class ALLOCATOR>
-inline void CHashTable<VALUE, HASHINFO, ALLOCATOR>::MoveTo( CHashTable& dest )
+template<class T, class HASHINFO, class ALLOCATOR>
+inline void CHashTable<T, HASHINFO, ALLOCATOR>::MoveTo( CHashTable& dest )
 {
 	if( &dest == this ) {
 		return;
@@ -333,14 +341,14 @@ inline void CHashTable<VALUE, HASHINFO, ALLOCATOR>::MoveTo( CHashTable& dest )
 	dataAllocator.MoveTo( dest.dataAllocator );
 }
 
-template<class VALUE, class HASHINFO, class ALLOCATOR>
-inline int CHashTable<VALUE, HASHINFO, ALLOCATOR>::Size() const
+template<class T, class HASHINFO, class ALLOCATOR>
+inline int CHashTable<T, HASHINFO, ALLOCATOR>::Size() const
 {
 	return valuesCount;
 }
 
-template<class VALUE, class HASHINFO, class ALLOCATOR>
-inline void CHashTable<VALUE, HASHINFO, ALLOCATOR>::SetHashTableSize( int size )
+template<class T, class HASHINFO, class ALLOCATOR>
+inline void CHashTable<T, HASHINFO, ALLOCATOR>::SetHashTableSize( int size )
 {
 	dataAllocator.Reserve( size );
 	if( size > hashTableSize ) {
@@ -348,29 +356,29 @@ inline void CHashTable<VALUE, HASHINFO, ALLOCATOR>::SetHashTableSize( int size )
 	}
 }
 
-template<class VALUE, class HASHINFO, class ALLOCATOR>
-inline void CHashTable<VALUE, HASHINFO, ALLOCATOR>::init( int hashSize )
+template<class T, class HASHINFO, class ALLOCATOR>
+inline void CHashTable<T, HASHINFO, ALLOCATOR>::init( int hashSize )
 {
 	hashTableSize = hashSize;
 	index.DeleteAll();
 	index.SetSize( hashTableSize );
 }
 
-template<class VALUE, class HASHINFO, class ALLOCATOR>
-inline int CHashTable<VALUE, HASHINFO, ALLOCATOR>::getIndexSize( int hashSize )
+template<class T, class HASHINFO, class ALLOCATOR>
+inline int CHashTable<T, HASHINFO, ALLOCATOR>::getIndexSize( int hashSize )
 {
 	return hashSize + CeilTo( hashSize / 2, HashIndexGroupLength );
 }
 
-template<class VALUE, class HASHINFO, class ALLOCATOR>
-inline VALUE* CHashTable<VALUE, HASHINFO, ALLOCATOR>::constructByCopy( void* where, const VALUE& copyFrom )
+template<class T, class HASHINFO, class ALLOCATOR>
+inline T* CHashTable<T, HASHINFO, ALLOCATOR>::constructByCopy( void* where, const T& copyFrom )
 {
-	PresumeFO( where != AddressOfObject<VALUE>( copyFrom ) );
-	return ::new( where ) VALUE( copyFrom );
+	PresumeFO( where != AddressOfObject<T>( copyFrom ) );
+	return ::new( where ) T( copyFrom );
 }
 
-template<class VALUE, class HASHINFO, class ALLOCATOR>
-inline void CHashTable<VALUE, HASHINFO, ALLOCATOR>::Set( const VALUE& value )
+template<class T, class HASHINFO, class ALLOCATOR>
+inline void CHashTable<T, HASHINFO, ALLOCATOR>::Set( const T& value )
 {
 	if( index.Size() == 0 ) {
 		init( initialHashTableSize );
@@ -381,47 +389,47 @@ inline void CHashTable<VALUE, HASHINFO, ALLOCATOR>::Set( const VALUE& value )
 	if( position == NotFound ) {
 		addValue( hash, value );
 	} else {
-		VALUE* ptr = index[position].DataPointer();
+		T* ptr = index[position].DataPointer();
 		PresumeFO( ptr != AddressOfObject( value ) );
-		ptr->~VALUE();
+		ptr->~T();
 		constructByCopy( ptr, value );
 	}
 }
 
-template<class VALUE, class HASHINFO, class ALLOCATOR>
+template<class T, class HASHINFO, class ALLOCATOR>
 template<class TARRAY>
-inline void CHashTable<VALUE, HASHINFO, ALLOCATOR>::AddArray( const TARRAY& values )
+inline void CHashTable<T, HASHINFO, ALLOCATOR>::AddArray( const TARRAY& values )
 {
 	for( int i = 0; i < values.Size(); i++ ) {
 		Add( values[i] );
 	}
 }
 
-template<class VALUE, class HASHINFO, class ALLOCATOR>
-inline void CHashTable<VALUE, HASHINFO, ALLOCATOR>::Delete( const VALUE& value )
+template<class T, class HASHINFO, class ALLOCATOR>
+inline void CHashTable<T, HASHINFO, ALLOCATOR>::Delete( const T& value )
 {
 	THashTablePosition pos = GetPosition( value );
 	AssertFO( pos != NotFound );
 	DeleteAt( pos );
 }
 
-template<class VALUE, class HASHINFO, class ALLOCATOR>
-inline void CHashTable<VALUE, HASHINFO, ALLOCATOR>::DeleteAt( THashTablePosition pos )
+template<class T, class HASHINFO, class ALLOCATOR>
+inline void CHashTable<T, HASHINFO, ALLOCATOR>::DeleteAt( THashTablePosition pos )
 {
-	VALUE* data = index[pos].DataPointer();
+	T* data = index[pos].DataPointer();
 	index[pos] = CIndexEntry();
 	valuesCount--;
-	data->~VALUE();
+	data->~T();
 	dataAllocator.Free( data );
 }
 
-template<class VALUE, class HASHINFO, class ALLOCATOR>
-inline void CHashTable<VALUE, HASHINFO, ALLOCATOR>::DeleteAll()
+template<class T, class HASHINFO, class ALLOCATOR>
+inline void CHashTable<T, HASHINFO, ALLOCATOR>::DeleteAll()
 {
 	if( valuesCount != 0 ) {
 		for( int i = 0; i < index.Size(); i++ ) {
 			if( index[i].IsDataPointer() ) {
-				index[i].DataPointer()->~VALUE();
+				index[i].DataPointer()->~T();
 				dataAllocator.Free( index[i].DataPointer() );
 			}
 			index[i] = CIndexEntry();
@@ -431,8 +439,8 @@ inline void CHashTable<VALUE, HASHINFO, ALLOCATOR>::DeleteAll()
 	}
 }
 
-template<class VALUE, class HASHINFO, class ALLOCATOR>
-inline THashTablePosition CHashTable<VALUE, HASHINFO, ALLOCATOR>::first( int hashCode, int tableSize,
+template<class T, class HASHINFO, class ALLOCATOR>
+inline THashTablePosition CHashTable<T, HASHINFO, ALLOCATOR>::first( int hashCode, int tableSize,
 	const CArray<CIndexEntry, ALLOCATOR>& indexEntry ) const
 {
 	if( indexEntry.Size() == 0 ) {
@@ -449,14 +457,14 @@ inline THashTablePosition CHashTable<VALUE, HASHINFO, ALLOCATOR>::first( int has
 	}
 }
 
-template<class VALUE, class HASHINFO, class ALLOCATOR>
-inline THashTablePosition CHashTable<VALUE, HASHINFO, ALLOCATOR>::first( int hashCode ) const
+template<class T, class HASHINFO, class ALLOCATOR>
+inline THashTablePosition CHashTable<T, HASHINFO, ALLOCATOR>::first( int hashCode ) const
 {
 	return first( hashCode, hashTableSize, index );
 }
 
-template<class VALUE, class HASHINFO, class ALLOCATOR>
-inline THashTablePosition CHashTable<VALUE, HASHINFO, ALLOCATOR>::next( THashTablePosition pos, int tableSize,
+template<class T, class HASHINFO, class ALLOCATOR>
+inline THashTablePosition CHashTable<T, HASHINFO, ALLOCATOR>::next( THashTablePosition pos, int tableSize,
 	const CArray<CIndexEntry, ALLOCATOR>& indexEntry ) const
 {
 	if( pos < tableSize || ( ( pos - tableSize + 1 ) % HashIndexGroupLength ) == 0 ) {
@@ -471,19 +479,19 @@ inline THashTablePosition CHashTable<VALUE, HASHINFO, ALLOCATOR>::next( THashTab
 	}
 }
 
-template<class VALUE, class HASHINFO, class ALLOCATOR>
-inline THashTablePosition CHashTable<VALUE, HASHINFO, ALLOCATOR>::next( THashTablePosition pos ) const
+template<class T, class HASHINFO, class ALLOCATOR>
+inline THashTablePosition CHashTable<T, HASHINFO, ALLOCATOR>::next( THashTablePosition pos ) const
 {
 	return next( pos, hashTableSize, index );
 }
 
-template<class VALUE, class HASHINFO, class ALLOCATOR>
-inline void CHashTable<VALUE, HASHINFO, ALLOCATOR>::FreeBuffer()
+template<class T, class HASHINFO, class ALLOCATOR>
+inline void CHashTable<T, HASHINFO, ALLOCATOR>::FreeBuffer()
 {
 	if( valuesCount != 0 ) {
 		for( int i = 0; i < index.Size(); i++ ) {
 			if( index[i].IsDataPointer() ) {
-				index[i].DataPointer()->~VALUE();
+				index[i].DataPointer()->~T();
 			}
 		}
 		valuesCount = 0;
@@ -494,14 +502,14 @@ inline void CHashTable<VALUE, HASHINFO, ALLOCATOR>::FreeBuffer()
 	hashTableSize = 0;
 }
 
-template<class VALUE, class HASHINFO, class ALLOCATOR>
-inline bool CHashTable<VALUE, HASHINFO, ALLOCATOR>::Has( const VALUE& value ) const
+template<class T, class HASHINFO, class ALLOCATOR>
+inline bool CHashTable<T, HASHINFO, ALLOCATOR>::Has( const T& value ) const
 {
 	return GetPosition( value ) != NotFound;
 }
 
-template<class VALUE, class HASHINFO, class ALLOCATOR>
-inline THashTablePosition CHashTable<VALUE, HASHINFO, ALLOCATOR>::GetFirstPosition() const
+template<class T, class HASHINFO, class ALLOCATOR>
+inline THashTablePosition CHashTable<T, HASHINFO, ALLOCATOR>::GetFirstPosition() const
 {
 	for( int i = 0; i < index.Size(); i++ ) {
 		if( index[i].IsDataPointer() ) {
@@ -511,15 +519,15 @@ inline THashTablePosition CHashTable<VALUE, HASHINFO, ALLOCATOR>::GetFirstPositi
 	return NotFound;
 }
 
-template<class VALUE, class HASHINFO, class ALLOCATOR>
-inline THashTablePosition CHashTable<VALUE, HASHINFO, ALLOCATOR>::GetPosition( const VALUE& value ) const
+template<class T, class HASHINFO, class ALLOCATOR>
+inline THashTablePosition CHashTable<T, HASHINFO, ALLOCATOR>::GetPosition( const T& value ) const
 {
 	int hash = HASHINFO::HashKey( value );
 	return findValueInIndex( value, first( hash ) );
 }
 
-template<class VALUE, class HASHINFO, class ALLOCATOR>
-inline THashTablePosition CHashTable<VALUE, HASHINFO, ALLOCATOR>::GetNextPosition( THashTablePosition pos ) const
+template<class T, class HASHINFO, class ALLOCATOR>
+inline THashTablePosition CHashTable<T, HASHINFO, ALLOCATOR>::GetNextPosition( THashTablePosition pos ) const
 {
 	for( int i = pos + 1; i < index.Size(); i++ ) {
 		if( index[i].IsDataPointer() ) {
@@ -529,14 +537,14 @@ inline THashTablePosition CHashTable<VALUE, HASHINFO, ALLOCATOR>::GetNextPositio
 	return NotFound;
 }
 
-template<class VALUE, class HASHINFO, class ALLOCATOR>
-inline const VALUE& CHashTable<VALUE, HASHINFO, ALLOCATOR>::GetValue( THashTablePosition pos ) const
+template<class T, class HASHINFO, class ALLOCATOR>
+inline const T& CHashTable<T, HASHINFO, ALLOCATOR>::GetValue( THashTablePosition pos ) const
 {
 	return *index[pos].DataPointer();
 }
 
-template<class VALUE, class HASHINFO, class ALLOCATOR>
-inline const VALUE& CHashTable<VALUE, HASHINFO, ALLOCATOR>::GetOrCreateValue( const VALUE& value )
+template<class T, class HASHINFO, class ALLOCATOR>
+inline const T& CHashTable<T, HASHINFO, ALLOCATOR>::GetOrCreateValue( const T& value )
 {
 	if( index.Size() == 0 ) {
 		init( initialHashTableSize );
@@ -550,8 +558,8 @@ inline const VALUE& CHashTable<VALUE, HASHINFO, ALLOCATOR>::GetOrCreateValue( co
 	return *index[position].DataPointer();
 }
 
-template<class VALUE, class HASHINFO, class ALLOCATOR>
-inline THashTablePosition CHashTable<VALUE, HASHINFO, ALLOCATOR>::findValueInIndex( const VALUE& value, 
+template<class T, class HASHINFO, class ALLOCATOR>
+inline THashTablePosition CHashTable<T, HASHINFO, ALLOCATOR>::findValueInIndex( const T& value, 
 	THashTablePosition from ) const
 {
 	for( THashTablePosition pos = from; pos != NotFound; pos = next( pos ) ) {
@@ -562,8 +570,8 @@ inline THashTablePosition CHashTable<VALUE, HASHINFO, ALLOCATOR>::findValueInInd
 	return NotFound;
 }
 
-template<class VALUE, class HASHINFO, class ALLOCATOR>
-inline VALUE* CHashTable<VALUE, HASHINFO, ALLOCATOR>::addValue( int hash, const VALUE& value )
+template<class T, class HASHINFO, class ALLOCATOR>
+inline T* CHashTable<T, HASHINFO, ALLOCATOR>::addValue( int hash, const T& value )
 {
 	THashTablePosition freePos = findIndexFreePos( hash, hashTableSize, index );
 	if( freePos == NotFound && canRehash() ) {
@@ -575,14 +583,14 @@ inline VALUE* CHashTable<VALUE, HASHINFO, ALLOCATOR>::addValue( int hash, const 
 		freePos = findIndexFreePos( hash, hashTableSize, index );
 	}
 
-	VALUE* ptr = constructByCopy( dataAllocator.Alloc(), value );
+	T* ptr = constructByCopy( dataAllocator.Alloc(), value );
 	index[freePos] = CIndexEntry( ptr );
 	valuesCount++;
 	return ptr;
 }
 
-template<class VALUE, class HASHINFO, class ALLOCATOR>
-inline THashTablePosition CHashTable<VALUE, HASHINFO, ALLOCATOR>::findIndexFreePos( int hash, int tableSize,
+template<class T, class HASHINFO, class ALLOCATOR>
+inline THashTablePosition CHashTable<T, HASHINFO, ALLOCATOR>::findIndexFreePos( int hash, int tableSize,
 	CArray<CIndexEntry, ALLOCATOR>& indexEntry ) const
 {
 	THashTablePosition lastDataPos = NotFound;
@@ -610,14 +618,14 @@ inline THashTablePosition CHashTable<VALUE, HASHINFO, ALLOCATOR>::findIndexFreeP
 	return groupPos + 1;
 }
 
-template<class VALUE, class HASHINFO, class ALLOCATOR>
-inline bool CHashTable<VALUE, HASHINFO, ALLOCATOR>::canRehash() const
+template<class T, class HASHINFO, class ALLOCATOR>
+inline bool CHashTable<T, HASHINFO, ALLOCATOR>::canRehash() const
 {
 	return ( valuesCount + 1 < hashTableSize / 4 );
 }
 
-template<class VALUE, class HASHINFO, class ALLOCATOR>
-inline void CHashTable<VALUE, HASHINFO, ALLOCATOR>::growIndex( int minSize )
+template<class T, class HASHINFO, class ALLOCATOR>
+inline void CHashTable<T, HASHINFO, ALLOCATOR>::growIndex( int minSize )
 {
 	CArray<CIndexEntry, ALLOCATOR> newIndex;
 	int newHashTableSize = minSize - 1;
@@ -632,7 +640,7 @@ inline void CHashTable<VALUE, HASHINFO, ALLOCATOR>::growIndex( int minSize )
 			if( !index[i].IsDataPointer() ) {
 				continue;
 			}
-			VALUE* data = index[i].DataPointer();
+			T* data = index[i].DataPointer();
 			int hash = HASHINFO::HashKey( *data );
 
 			THashTablePosition freePos = findIndexFreePos( hash, newHashTableSize, newIndex );
@@ -647,8 +655,8 @@ inline void CHashTable<VALUE, HASHINFO, ALLOCATOR>::growIndex( int minSize )
 	hashTableSize = newHashTableSize;
 }
 
-template<class VALUE, class HASHINFO, class ALLOCATOR>
-inline void CHashTable<VALUE, HASHINFO, ALLOCATOR>::Serialize( CArchive& ar )
+template<class T, class HASHINFO, class ALLOCATOR>
+inline void CHashTable<T, HASHINFO, ALLOCATOR>::Serialize( CArchive& ar )
 {
 	if( ar.IsStoring() ) {
 		int count = Size();
@@ -663,24 +671,24 @@ inline void CHashTable<VALUE, HASHINFO, ALLOCATOR>::Serialize( CArchive& ar )
 		ar >> count;
 		init( UpperPrimeNumber( count - 1 ) );
 		for( int i = 0; i < count; i++ ) {
-			VALUE value;
+			T value;
 			ar >> value;
 			Set( value );
 		}
 	}
 }
 
-template<class VALUE, class HASHINFO, class ALLOCATOR>
-inline CArchive& operator>>( CArchive& archive, CHashTable<VALUE, HASHINFO, ALLOCATOR>& hashTable )
+template<class T, class HASHINFO, class ALLOCATOR>
+inline CArchive& operator>>( CArchive& archive, CHashTable<T, HASHINFO, ALLOCATOR>& hashTable )
 {
 	hashTable.Serialize( archive );
 	return archive;
 }
 
-template<class VALUE, class HASHINFO, class ALLOCATOR>
-inline CArchive& operator<<( CArchive& archive, const CHashTable<VALUE, HASHINFO, ALLOCATOR>& hashTable )
+template<class T, class HASHINFO, class ALLOCATOR>
+inline CArchive& operator<<( CArchive& archive, const CHashTable<T, HASHINFO, ALLOCATOR>& hashTable )
 {
-	const_cast< CHashTable<VALUE, HASHINFO, ALLOCATOR>& >( hashTable ).Serialize( archive );
+	const_cast< CHashTable<T, HASHINFO, ALLOCATOR>& >( hashTable ).Serialize( archive );
 	return archive;
 }
 
