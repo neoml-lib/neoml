@@ -521,31 +521,6 @@ void CDnn::ForceRebuild()
 	sourceLayers.SetSize( 0 );
 }
 
-void CDnn::createReferenceDnn( CDnn& newDnn, TPtrOwnerReferenceDnnInfo referenceDnnInfo )
-{
-	NeoAssertMsg( IsReferenceDnn(), "ReferenceDnn can be created from originDnn only" );
-
-	CMemoryFile file;
-	for( CPtr<CBaseLayer>& layer : layers ) {
-		file.SeekToBegin();
-		{
-			CArchive archive( &file, CArchive::store );
-			SerializeLayer( archive, mathEngine, layer ); // if referenceDnnInfo != 0, do not serialize paramBlobs
-		}
-		file.SeekToBegin();
-		CPtr<CBaseLayer> copyLayer;
-		{
-			CArchive archive( &file, CArchive::load );
-			SerializeLayer( archive, mathEngine, copyLayer );
-			layer->transferParamsBlob( *copyLayer );
-		}
-		newDnn.AddLayer( *copyLayer );
-	}
-
-	newDnn.referenceDnnInfo = std::move( referenceDnnInfo );
-	newDnn.DisableLearning();
-}
-
 void CDnn::DeleteLayerImpl( CBaseLayer& layer )
 {
 	NeoAssertMsg( !IsReferenceDnn(), "For ReferenceDnn deleting layers is restricted" );

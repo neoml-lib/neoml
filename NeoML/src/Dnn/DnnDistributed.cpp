@@ -544,7 +544,7 @@ void CDistributedInference::initialize( int threadsCount )
 	}
 	// Here it can be either a one more reference dnn
 	// Or also the original dnn, because no one can create a new reference dnn, while this inference
-	threadParams.Dnns.Add( &referenceDnnFactory.originalDnn );
+	threadParams.Dnns.Add( &referenceDnnFactory.GetOriginalDnn() );
 }
 
 CDistributedInference::CDistributedInference( const CDnn& dnn, int threadsCount,

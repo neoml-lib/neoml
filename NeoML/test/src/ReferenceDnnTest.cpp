@@ -230,7 +230,11 @@ static void runDnnCreation( int thread, void* arg )
 		CPtrOwner<CDnn> dnn;
 
 		if( params.UseReference ) {
-			dnn = params.ReferenceDnnFactory->CreateReferenceDnn();
+			if( thread == 0 ) {
+				dnn = &params.ReferenceDnnFactory->GetOriginalDnn();
+			} else {
+				dnn = params.ReferenceDnnFactory->CreateReferenceDnn();
+			}
 		} else {
 			ASSERT_TRUE( params.UseDnn );
 			random = new CRandom( params.Dnn->Random() );
@@ -249,6 +253,14 @@ static void runDnnCreation( int thread, void* arg )
 			CPtr<CDnnBlob> result = CheckCast<CSinkLayer>( dnn->GetLayer( "sink" ).Ptr() )->GetBlob();
 			EXPECT_TRUE( CompareBlobs( params.Expected, *result ) ) << " thread = " << thread;
 		}
+
+		IMathEngine& mathEngine = dnn->GetMathEngine();
+		if( thread == 0 ) {
+			dnn.Detach();
+		} else {
+			dnn.Release();
+		}
+		mathEngine.CleanUp();
 	}
 }
 
@@ -280,7 +292,7 @@ static CReferenceDnnFactory* getTestDnns( IMathEngine& mathEngine, CPointerArray
 			// Like in class CDistributedInference
 			// Here either a one more reference dnn can be used
 			// Or also the original dnn, because no one can create a new reference dnn, while the inference
-			dnns.Add( reinterpret_cast<CDnn*>( referenceDnnFactory ) );
+			dnns.Add( &referenceDnnFactory->GetOriginalDnn() );
 		} else {
 			dnns.Add( referenceDnnFactory->CreateReferenceDnn().Detach() );
 		}

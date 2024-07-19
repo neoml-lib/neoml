@@ -92,7 +92,7 @@ class CDnnLayerGraph;
 class CBaseLayer;
 class CCompositeLayer;
 class CReferenceDnnFactory;
-class CReferenceDnnInfo;
+struct CReferenceDnnInfo;
 struct CReferenceDnnInfoDeleter { void operator()( CReferenceDnnInfo* ); };
 using TPtrOwnerReferenceDnnInfo = CPtrOwner<CReferenceDnnInfo, CReferenceDnnInfoDeleter>;
 
@@ -440,6 +440,7 @@ private:
 	friend class CDnnLayerGraph;
 	friend class CDnnSolver;
 	friend class CCompositeLayer;
+	friend class CReferenceDnnFactory;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -658,14 +659,6 @@ private:
 	// Should be called in all internals methods
 	CBaseLayer* getLayer( const CArray<CString>& path );
 
-	// This method creates a reference dnn, that has the same configuration as the original dnn
-	// and shares parameter blobs with the original dnn to save memory.
-	// Useful for multi-threaded inference where each thread can operate own reference dnn independently.
-	// Learning is disabled for both the original dnn and the reference dnn.
-	// Creates a copy of the original dnn's random generator to use it for inference.
-	// NOTE: Pointer allocates memory using the `new` operator => the memory must be manually deallocated.
-	void createReferenceDnn( CDnn& newDnn, TPtrOwnerReferenceDnnInfo referenceDnnInfo );
-
 	void setProcessingParams(bool isRecurrentMode, int sequenceLength, bool isReverseSequense, bool isBackwardPerformed);
 	void runOnce(int curSequencePos);
 	void backwardRunAndLearnOnce(int curSequencePos);
@@ -717,19 +710,22 @@ public:
 
 	// Thread-safe coping of originalDnn, increments the counter
 	CPtrOwner<CDnn> CreateReferenceDnn();
+	// The original dnn used to copy reference dnns may be also used as one more reference dnn 
+	CDnn& GetOriginalDnn() { return originalDnn; }
 
 private:
 	CDnn originalDnn; // The dnn to make reference dnns
 	std::atomic<unsigned> counter{}; // Stores the number of created reference dnns
 
 	// Technical constructor
-	CReferenceDnnFactory( CPtrOwner<CReferenceDnnInfo> referenceDnnInfo, IMathEngine& mathEngine );
+	CReferenceDnnFactory( CPtrOwner<CReferenceDnnInfo>&& referenceDnnInfo, IMathEngine& mathEngine );
 
 	// Internal method of loading the dnn
 	void serialize( CArchive& archive, bool optimizeDnn );
+	// Thread-safe coping of original dnn to reference dnn
+	void initializeReferenceDnn( CDnn& originalDnn, CDnn& referenceDnn, TPtrOwnerReferenceDnnInfo&& info );
 
-	friend class CReferenceDnnInfo;
-	friend class CDistributedInference;
+	friend struct CReferenceDnnInfo;
 };
 
 } // namespace NeoML

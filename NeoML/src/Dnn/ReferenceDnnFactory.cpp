@@ -28,26 +28,20 @@ static void OptimizeDnn( CDnn& ) {}
 namespace NeoML {
 
 // Internal technical class
-class CReferenceDnnInfo final {
-public:
-	CReferenceDnnInfo( CRandom rand, CReferenceDnnFactory& ref ) : random( std::move( rand ) ), owner( ref )
-	{ owner.counter += 1; }
+struct CReferenceDnnInfo final {
+	CRandom Random; // Stores the dnn's own external random class inside this dnn class
+	CReferenceDnnFactory& Owner; // The factory accounts the number of owned reference dnns
+
+	CReferenceDnnInfo( CRandom rand, CReferenceDnnFactory& ref ) : Random( std::move( rand ) ), Owner( ref )
+	{ Owner.counter += 1; }
 
 	~CReferenceDnnInfo()
-	{ owner.counter -= 1; }
-
-	CRandom& Random() { return random; }
-
-private:
-	// Stores the dnn's own external random class inside this dnn class
-	CRandom random;
-	// The factory accounts the number of owned reference dnns
-	CReferenceDnnFactory& owner;
+	{ Owner.counter -= 1; }
 };
 
-void CReferenceDnnInfoDeleter::operator()( CReferenceDnnInfo* info ) { if( info != nullptr ) { delete info; } }
+void CReferenceDnnInfoDeleter::operator()( CReferenceDnnInfo* info ) { delete info; }
 
-//---------------------------------------------------------------------------------------------------------
+//---------------------------------------------------------------------------------------------------------------------
 
 CReferenceDnnFactory::CReferenceDnnFactory( IMathEngine& mathEngine, CArchive& archive, int seed, bool optimizeDnn ) :
 	CReferenceDnnFactory( MakeCPtrOwner<CReferenceDnnInfo>( CRandom( seed ), *this ), mathEngine )
@@ -81,7 +75,7 @@ CReferenceDnnFactory::CReferenceDnnFactory( CDnn&& dnn, bool optimizeDnn ) :
 	swap( dnn.referenceDnnInfo, originalDnn.referenceDnnInfo );
 
 	// Copy state with moving of the paramBlobs
-	dnn.createReferenceDnn( originalDnn, TPtrOwnerReferenceDnnInfo{} );
+	initializeReferenceDnn( dnn, originalDnn, TPtrOwnerReferenceDnnInfo{} );
 	if( optimizeDnn == true ) {
 		( void ) OptimizeDnn( originalDnn );
 	}
@@ -93,11 +87,11 @@ CReferenceDnnFactory::CReferenceDnnFactory( CDnn&& dnn, bool optimizeDnn ) :
 	NeoAssert( !dnn.IsReferenceDnn() );
 
 	dnn.~CDnn(); // Destroy used pointers in the arg dnn
-	new( &dnn ) CDnn( randomCopy, mathEngineCopy ); // Ensure, the dtor will be called moramlly
+	new( &dnn ) CDnn( randomCopy, mathEngineCopy ); // Ensure the dtor will be called normally
 }
 
-CReferenceDnnFactory::CReferenceDnnFactory( CPtrOwner<CReferenceDnnInfo> referenceDnnInfo, IMathEngine& mathEngine ) :
-	originalDnn( referenceDnnInfo->Random(), mathEngine )
+CReferenceDnnFactory::CReferenceDnnFactory( CPtrOwner<CReferenceDnnInfo>&& referenceDnnInfo, IMathEngine& mathEngine ) :
+	originalDnn( referenceDnnInfo->Random, mathEngine )
 {
 	// Enable this pointer is to add the restriction to change this dnn.
 	// Used for the original dnn and all reference dnns
@@ -133,13 +127,39 @@ void CReferenceDnnFactory::serialize( CArchive& archive, bool optimizeDnn )
 CPtrOwner<CDnn> CReferenceDnnFactory::CreateReferenceDnn()
 {
 	TPtrOwnerReferenceDnnInfo referenceDnnInfo( new CReferenceDnnInfo( originalDnn.Random(), *this ) );
-	CPtrOwner<CDnn> referenceDnn( new CDnn( referenceDnnInfo->Random(), originalDnn.GetMathEngine() ) );
+	CPtrOwner<CDnn> referenceDnn( new CDnn( referenceDnnInfo->Random, originalDnn.GetMathEngine() ) );
 
-	originalDnn.createReferenceDnn( *referenceDnn, std::move( referenceDnnInfo ) );
+	initializeReferenceDnn( originalDnn, *referenceDnn, std::move( referenceDnnInfo ) );
+	NeoAssert( referenceDnn->IsReferenceDnn() );
 
 	NeoAssertMsg( counter > 0, "CReferenceDnnFactory: non-accounted reference dnn" );
 	NeoAssertMsg( !referenceDnn->IsLearningEnabled(), "CReferenceDnnFactory: learning enabled for reference dnn" );
 	return referenceDnn;
+}
+
+void CReferenceDnnFactory::initializeReferenceDnn( CDnn& originalDnn, CDnn& referenceDnn, TPtrOwnerReferenceDnnInfo&& info )
+{
+	NeoAssert( originalDnn.IsReferenceDnn() );
+
+	CMemoryFile file;
+	for( CPtr<CBaseLayer>& layer : originalDnn.layers ) {
+		file.SeekToBegin();
+		{
+			CArchive archive( &file, CArchive::store );
+			SerializeLayer( archive, originalDnn.mathEngine, layer ); // if referenceDnnInfo != 0 to do not duplicate paramBlobs
+		}
+		file.SeekToBegin();
+		CPtr<CBaseLayer> copyLayer;
+		{
+			CArchive archive( &file, CArchive::load );
+			SerializeLayer( archive, originalDnn.mathEngine, copyLayer );
+			layer->transferParamsBlob( *copyLayer );
+		}
+		referenceDnn.AddLayer( *copyLayer );
+	}
+
+	referenceDnn.referenceDnnInfo = std::move( info );
+	referenceDnn.DisableLearning();
 }
 
 } // namespace NeoML
