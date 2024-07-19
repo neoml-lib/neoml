@@ -94,6 +94,7 @@ class CCompositeLayer;
 class CReferenceDnnFactory;
 class CReferenceDnnInfo;
 struct CReferenceDnnInfoDeleter { void operator()( CReferenceDnnInfo* ); };
+using TPtrOwnerReferenceDnnInfo = CPtrOwner<CReferenceDnnInfo, CReferenceDnnInfoDeleter>;
 
 //------------------------------------------------------------------------------------------------------------
 
@@ -647,7 +648,7 @@ private:
 	bool isReuseMemoryMode;
 
 	// Reference information
-	CPtrOwner<CReferenceDnnInfo, CReferenceDnnInfoDeleter> referenceDnnInfo;
+	TPtrOwnerReferenceDnnInfo referenceDnnInfo;
 
 	// Adds or deletes a layer
 	void AddLayerImpl( CBaseLayer& layer ) override;
@@ -663,7 +664,7 @@ private:
 	// Learning is disabled for both the original dnn and the reference dnn.
 	// Creates a copy of the original dnn's random generator to use it for inference.
 	// NOTE: Pointer allocates memory using the `new` operator => the memory must be manually deallocated.
-	void createReferenceDnn( CDnn& newDnn, CReferenceDnnInfo* referenceDnnInfo );
+	void createReferenceDnn( CDnn& newDnn, TPtrOwnerReferenceDnnInfo referenceDnnInfo );
 
 	void setProcessingParams(bool isRecurrentMode, int sequenceLength, bool isReverseSequense, bool isBackwardPerformed);
 	void runOnce(int curSequencePos);
@@ -722,7 +723,7 @@ private:
 	std::atomic<unsigned> counter{}; // Stores the number of created reference dnns
 
 	// Technical constructor
-	CReferenceDnnFactory( CReferenceDnnInfo* referenceDnnInfo, IMathEngine& mathEngine );
+	CReferenceDnnFactory( CPtrOwner<CReferenceDnnInfo> referenceDnnInfo, IMathEngine& mathEngine );
 
 	// Internal method of loading the dnn
 	void serialize( CArchive& archive, bool optimizeDnn );

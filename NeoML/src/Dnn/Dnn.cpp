@@ -521,7 +521,7 @@ void CDnn::ForceRebuild()
 	sourceLayers.SetSize( 0 );
 }
 
-void CDnn::createReferenceDnn( CDnn& newDnn, CReferenceDnnInfo* referenceDnnInfo )
+void CDnn::createReferenceDnn( CDnn& newDnn, TPtrOwnerReferenceDnnInfo referenceDnnInfo )
 {
 	NeoAssertMsg( IsReferenceDnn(), "ReferenceDnn can be created from originDnn only" );
 
@@ -542,7 +542,7 @@ void CDnn::createReferenceDnn( CDnn& newDnn, CReferenceDnnInfo* referenceDnnInfo
 		newDnn.AddLayer( *copyLayer );
 	}
 
-	newDnn.referenceDnnInfo = referenceDnnInfo;
+	newDnn.referenceDnnInfo = std::move( referenceDnnInfo );
 	newDnn.DisableLearning();
 }
 
