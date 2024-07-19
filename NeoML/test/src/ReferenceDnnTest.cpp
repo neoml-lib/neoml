@@ -26,14 +26,19 @@ namespace NeoMLTest {
 
 constexpr int iterationsRunOnce = 10;
 
+struct CDnnReferenceTest : public CDnnReference {
+	CDnnReferenceTest( CRandom& random, IMathEngine& mathEngine ) :
+		CDnnReference( random, mathEngine )  {}
+};
+
 struct CReferenceDnnTestParam final {
 	CReferenceDnnTestParam( CReferenceDnnFactory& ref, CDnnBlob& in, CDnnBlob& out ) :
 		CReferenceDnnTestParam( in, out, /*useReference*/true, /*useDnn*/false )
 	{ ReferenceDnnFactory = &ref; }
 
-	CReferenceDnnTestParam( CDnn& dnn, CDnnBlob& in, CDnnBlob& out, bool useReference ) :
+	CReferenceDnnTestParam( CDnnReference& dnnRef, CDnnBlob& in, CDnnBlob& out, bool useReference ) :
 		CReferenceDnnTestParam( in, out, useReference, /*useDnn*/true )
-	{ Dnn = &dnn; }
+	{ DnnRef = &dnnRef; }
 
 	CDnnBlob& Input;
 	CDnnBlob& Expected;
@@ -41,7 +46,7 @@ struct CReferenceDnnTestParam final {
 	const bool CheckOutput;
 	const bool UseDnn;
 	CReferenceDnnFactory* ReferenceDnnFactory = nullptr;
-	CDnn* Dnn = nullptr;
+	CDnnReference* DnnRef = nullptr;
 
 private:
 	CReferenceDnnTestParam( CDnnBlob& in, CDnnBlob& out, bool useReference, bool useDnn, bool checkOutput = true ) :
@@ -53,7 +58,7 @@ static void runDnn( int thread, void* arg )
 {
 	CReferenceDnnTestParam& params = static_cast<CReferenceDnnTestParam*>( arg )[thread];
 	ASSERT_TRUE( params.UseDnn );
-	CDnn& dnn = *params.Dnn;
+	CDnn& dnn = params.DnnRef->Dnn;
 
 	for( int i = 0; i < iterationsRunOnce; ++i ) {
 		dnn.RunOnce();
@@ -195,9 +200,9 @@ static void learnDnn( CDnn& dnn, int interations = 10 )
 	dnn.DeleteLayer( "loss" );
 }
 
-static CDnn* copyDnn( CDnn& oldDnn, CRandom& random )
+static CPtr<CDnnReference> copyDnn( CDnn& oldDnn, CRandom& random )
 {
-	CDnn* dnn = new CDnn( random, oldDnn.GetMathEngine() );
+	CPtr<CDnnReference> dnnRef = new CDnnReferenceTest( random, oldDnn.GetMathEngine() );
 
 	CArray<const char*> layersList;
 	oldDnn.GetLayerList( layersList );
@@ -216,9 +221,9 @@ static CDnn* copyDnn( CDnn& oldDnn, CRandom& random )
 			CArchive archive( &file, CArchive::load );
 			SerializeLayer( archive, oldDnn.GetMathEngine(), copyLayer );
 		}
-		dnn->AddLayer( *copyLayer );
+		dnnRef->Dnn.AddLayer( *copyLayer );
 	}
-	return dnn;
+	return dnnRef;
 }
 
 static void runDnnCreation( int thread, void* arg )
@@ -227,19 +232,16 @@ static void runDnnCreation( int thread, void* arg )
 
 	for( int i = 0; i < iterationsRunOnce; ++i ) {
 		CPtrOwner<CRandom> random;
-		CPtrOwner<CDnn> dnn;
+		CPtr<CDnnReference> dnnRef;
 
 		if( params.UseReference ) {
-			if( thread == 0 ) {
-				dnn = &params.ReferenceDnnFactory->GetOriginalDnn();
-			} else {
-				dnn = params.ReferenceDnnFactory->CreateReferenceDnn();
-			}
+			dnnRef = params.ReferenceDnnFactory->CreateReferenceDnn( /*getOriginDnn*/( thread == 0 ) );
 		} else {
 			ASSERT_TRUE( params.UseDnn );
-			random = new CRandom( params.Dnn->Random() );
-			dnn = copyDnn( *params.Dnn, *random );
+			random = new CRandom( params.DnnRef->Dnn.Random() );
+			dnnRef = copyDnn( params.DnnRef->Dnn, *random );
 		}
+		CDnn* dnn = &dnnRef->Dnn;
 		setInputDnn( *dnn, params.Input );
 
 		for( int i = 0; i < 2; ++i ) {
@@ -255,31 +257,27 @@ static void runDnnCreation( int thread, void* arg )
 		}
 
 		IMathEngine& mathEngine = dnn->GetMathEngine();
-		if( thread == 0 ) {
-			dnn.Detach();
-		} else {
-			dnn.Release();
-		}
+		dnnRef.Release();
 		mathEngine.CleanUp();
 	}
 }
 
-static CReferenceDnnFactory* getTestDnns( IMathEngine& mathEngine, CPointerArray<CDnn>& dnns, CArray<CRandom>& randoms,
-	bool useReference, bool learn, int numOfThreads )
+static CPtr<CReferenceDnnFactory> getTestDnns( IMathEngine& mathEngine, CObjectArray<CDnnReference>& dnnRefs,
+	CArray<CRandom>& randoms, bool useReference, bool learn, int numOfThreads )
 {
 	CRandom random( 0 );
 	CPtr<CDnnBlob> blob = getInitedBlob( mathEngine, random, { 1, 1, 1, 8, 20, 30, 100 } );
 	CPtr<CDnnBlob> labelBlob = getInitedBlob( mathEngine, random, { 1, 1, 1, 1, 1, 1, 10 } );
-	CReferenceDnnFactory* referenceDnnFactory = nullptr;
+	CPtr<CReferenceDnnFactory> referenceDnnFactory = nullptr;
 
-	dnns.SetBufferSize( numOfThreads );
+	dnnRefs.SetBufferSize( numOfThreads );
 	randoms.SetBufferSize( numOfThreads );
 
 	for( int i = 0; i < numOfThreads; ++i ) {
 		if( !useReference ) {
 			randoms.Add( random );
-			dnns.Add( new CDnn( randoms.Last(), mathEngine ) );
-			createDnn( *dnns.Last() );
+			dnnRefs.Add( new CDnnReferenceTest( randoms.Last(), mathEngine ) );
+			createDnn( dnnRefs.Last()->Dnn );
 		} else if( i == 0 ) {
 			CRandom rand( random );
 			CDnn dnn( rand, mathEngine );
@@ -292,11 +290,11 @@ static CReferenceDnnFactory* getTestDnns( IMathEngine& mathEngine, CPointerArray
 			// Like in class CDistributedInference
 			// Here either a one more reference dnn can be used
 			// Or also the original dnn, because no one can create a new reference dnn, while the inference
-			dnns.Add( &referenceDnnFactory->GetOriginalDnn() );
+			dnnRefs.Add( referenceDnnFactory->CreateReferenceDnn( /*getOriginDnn*/true ) );
 		} else {
-			dnns.Add( referenceDnnFactory->CreateReferenceDnn().Detach() );
+			dnnRefs.Add( referenceDnnFactory->CreateReferenceDnn() );
 		}
-		setInputDnn( *dnns.Last(), *blob, nullptr, /*reshape*/( i == 0 || !useReference ) );
+		setInputDnn( dnnRefs.Last()->Dnn, *blob, nullptr, /*reshape*/( i == 0 || !useReference ) );
 	}
 	EXPECT_TRUE( !useReference || referenceDnnFactory != nullptr );
 	return referenceDnnFactory;
@@ -312,16 +310,18 @@ static void runMultiThreadInference( CReferenceDnnTestParam* params, IThreadPool
 static void perfomanceTest( IMathEngine& mathEngine, bool useReference, bool learn = true, int numOfThreads = 4 )
 {
 	CArray<CRandom> randoms;
-	CPointerArray<CDnn> dnns;
-	CReferenceDnnFactory* referenceDnnFactory = getTestDnns( mathEngine, dnns, randoms, useReference, learn, numOfThreads );
+	CObjectArray<CDnnReference> dnnRefs;
+	CPtr<CReferenceDnnFactory> referenceDnnFactory = getTestDnns( mathEngine, dnnRefs,
+		randoms, useReference, learn, numOfThreads );
+	referenceDnnFactory.Release(); // try to release the factory, to check dtor deletion order
 
-	CPtr<CDnnBlob> sourceBlob = CheckCast<CSourceLayer>( dnns[0]->GetLayer( "in" ).Ptr() )->GetBlob();
-	CPtr<CDnnBlob> sinkBlob = CheckCast<CSinkLayer>( dnns[0]->GetLayer( "sink" ).Ptr() )->GetBlob();
+	CPtr<CDnnBlob> sourceBlob = CheckCast<CSourceLayer>( dnnRefs[0]->Dnn.GetLayer( "in" ).Ptr() )->GetBlob();
+	CPtr<CDnnBlob> sinkBlob = CheckCast<CSinkLayer>( dnnRefs[0]->Dnn.GetLayer( "sink" ).Ptr() )->GetBlob();
 
 	CArray<CReferenceDnnTestParam> params;
 	params.SetBufferSize( numOfThreads );
 	for( int i = 0; i < numOfThreads; ++i ) {
-		params.Add( CReferenceDnnTestParam( *( dnns[i] ), *sourceBlob, *sinkBlob, useReference ) );
+		params.Add( CReferenceDnnTestParam( *( dnnRefs[i] ), *sourceBlob, *sinkBlob, useReference ) );
 	}
 
 	CPtrOwner<IPerformanceCounters> counters( mathEngine.CreatePerformanceCounters() );
@@ -334,12 +334,6 @@ static void perfomanceTest( IMathEngine& mathEngine, bool useReference, bool lea
 	GTEST_LOG_( INFO ) << "Run once multi-threaded " << ( useReference ? "(ref)" : "(cpy)" )
 		<< "\nTime: " << ( double( ( *counters )[0].Value ) / 1000000 ) << " ms. "
 		<< "\tPeak.Mem: " << ( double( mathEngine.GetPeakMemoryUsage() ) / 1024 / 1024 ) << " MB \n";
-
-	if( referenceDnnFactory != nullptr ) {
-		( void ) dnns.DetachAndReplaceAt( nullptr, 0 );
-		dnns.DeleteAll(); // delete reference dnns first
-		delete referenceDnnFactory;
-	}
 }
 
 // Scenario: learn dnn, then use multi-threaded inference, each thread creates reference dnn by itself
@@ -350,7 +344,8 @@ static void implTest( IMathEngine& mathEngine, bool useReference, bool learn = t
 	CPtr<CDnnBlob> blob = getInitedBlob( mathEngine, random, { 1, 1, 1, 8, 20, 30, 100 } );
 	CPtr<CDnnBlob> labelBlob = getInitedBlob( mathEngine, random, { 1, 1, 1, 1, 1, 1, 10 } );
 
-	CDnn dnn( random, mathEngine );
+	CPtr<CDnnReference> dnnRef = new CDnnReferenceTest( random, mathEngine );
+	CDnn& dnn = dnnRef->Dnn;
 	createDnn( dnn, learn );
 	setInputDnn( dnn, *blob, ( learn ? labelBlob.Ptr() : nullptr ), /*reshape*/true );
 	if( learn ) {
@@ -360,13 +355,14 @@ static void implTest( IMathEngine& mathEngine, bool useReference, bool learn = t
 	dnn.RunOnce();
 	CPtr<CDnnBlob> sinkBlob = CheckCast<CSinkLayer>( dnn.GetLayer( "sink" ).Ptr() )->GetBlob();
 
-	CPtrOwner<CReferenceDnnFactory> referenceDnnFactory;
+	CPtr<CReferenceDnnFactory> referenceDnnFactory;
 	CPtrOwner<CReferenceDnnTestParam> param;
 	if( useReference ) {
 		referenceDnnFactory = new CReferenceDnnFactory( mathEngine, dnn );
+		dnnRef.Release(); // check for factory do not depends on given dnn by const ref
 		param = new CReferenceDnnTestParam( *referenceDnnFactory, *blob, *sinkBlob );
 	} else {
-		param = new CReferenceDnnTestParam( dnn, *blob, *sinkBlob, useReference );
+		param = new CReferenceDnnTestParam( *dnnRef, *blob, *sinkBlob, useReference );
 	}
 
 	CPtrOwner<IPerformanceCounters> counters( mathEngine.CreatePerformanceCounters() );
@@ -381,6 +377,15 @@ static void implTest( IMathEngine& mathEngine, bool useReference, bool learn = t
 		<< "\t" << ( useReference ? "(ref)" : "(cpy)" )
 		<< "\nTime: " << ( double( ( *counters )[0].Value ) / 1000000 ) << " ms. "
 		<< "\tPeak.Mem: " << ( double( mathEngine.GetPeakMemoryUsage() ) / 1024 / 1024 ) << " MB \n";
+
+	if( referenceDnnFactory != nullptr ) {
+		CPtr<CDnnReference> originDnn = referenceDnnFactory->CreateReferenceDnn( /*originDnn*/true );
+		referenceDnnFactory.Release(); // try to release the factory, to check dtor deletion order
+
+		originDnn->Dnn.RunOnce();
+		CPtr<CDnnBlob> result = CheckCast<CSinkLayer>( originDnn->Dnn.GetLayer( "sink" ).Ptr() )->GetBlob();
+		EXPECT_TRUE( CompareBlobs( *sinkBlob, *result ) );
+	}
 }
 
 } // namespace NeoMLTest

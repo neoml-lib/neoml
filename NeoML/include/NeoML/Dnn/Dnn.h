@@ -15,7 +15,6 @@ limitations under the License.
 
 #pragma once
 
-#include <atomic>
 #include <NeoML/NeoMLDefs.h>
 #include <NeoML/Random.h>
 #include <NeoML/Dnn/DnnSolver.h>
@@ -688,12 +687,27 @@ void NEOML_API SerializeLayer( CArchive& archive, IMathEngine& mathEngine, CPtr<
 
 //------------------------------------------------------------------------------------------------------------
 
+// Result of CReferenceDnnFactory::CreateReferenceDnn
+// NOTE: Class CDnnReference should be created using CPtr only.
+class NEOML_API CDnnReference : public IObject {
+public:
+	CDnn Dnn;
+
+protected:
+	CDnnReference( CRandom& random, IMathEngine& mathEngine ) : Dnn( random, mathEngine ) {}
+	// Use CPtr<CDnnReference> to create the class
+	~CDnnReference() = default;
+
+	friend class CReferenceDnnFactory;
+};
+
 // This class can initialize a reference dnn, that has the same configuration as the original dnn
 // and shares parameter blobs with the original dnn to save memory.
 // Useful for multi-threaded inference where each thread can operate own reference dnn independently.
 // Learning is disabled for both the original dnn and the reference dnn.
 // Creates a copy of the original dnn's random generator to use it for inference.
-class NEOML_API CReferenceDnnFactory final {
+// NOTE: Class CReferenceDnnFactory should be created using CPtr only.
+class NEOML_API CReferenceDnnFactory : public IObject {
 public:
 	// Archive should contain trained dnn, ready for inference
 	// NOTE: mathEngine should be CPU only and live longer than CReferenceDnnFactory
@@ -706,26 +720,25 @@ public:
 	// NOTE: mathEngine should be CPU only and live longer than CReferenceDnnFactory
 	CReferenceDnnFactory( CDnn&& dnn, bool optimizeDnn = true );
 
-	~CReferenceDnnFactory();
-
 	// Thread-safe coping of originalDnn, increments the counter
-	CPtrOwner<CDnn> CreateReferenceDnn();
-	// The original dnn used to copy reference dnns may be also used as one more reference dnn 
-	CDnn& GetOriginalDnn() { return originalDnn; }
+	// NOTE: The original dnn used to copy reference dnns may be also used as one more reference dnn (optimization)
+	//       The 'getOriginDnn' flag must be used strictly for the only thread.
+	CPtr<CDnnReference> CreateReferenceDnn( bool getOriginDnn = false );
+
+protected:
+	// Use CPtr<CReferenceDnnFactory> to create the class
+	~CReferenceDnnFactory() = default;
 
 private:
-	CDnn originalDnn; // The dnn to make reference dnns
-	std::atomic<unsigned> counter{}; // Stores the number of created reference dnns
+	CPtr<CDnnReference> Origin; // The dnn to make reference dnns
 
 	// Technical constructor
-	CReferenceDnnFactory( CPtrOwner<CReferenceDnnInfo>&& referenceDnnInfo, IMathEngine& mathEngine );
+	CReferenceDnnFactory( CRandom random, IMathEngine& mathEngine );
 
 	// Internal method of loading the dnn
 	void serialize( CArchive& archive, bool optimizeDnn );
 	// Thread-safe coping of original dnn to reference dnn
 	void initializeReferenceDnn( CDnn& originalDnn, CDnn& referenceDnn, TPtrOwnerReferenceDnnInfo&& info );
-
-	friend struct CReferenceDnnInfo;
 };
 
 } // namespace NeoML
