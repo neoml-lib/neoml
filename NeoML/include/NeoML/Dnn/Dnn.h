@@ -573,6 +573,8 @@ public:
 	// Checks if the network is going to be rebuilt before the next run
 	// The method may be useful for controlling the rebuild frequency
 	bool IsRebuildRequested() const { return isRebuildNeeded; }
+	// Shares its weights with other reference dnns
+	bool IsReferenceDnn() const { return !( referenceDnnInfo.IsNull() ); }
 
 	// Gets a reference to the random numbers generator
 	CRandom& Random() { return random; }

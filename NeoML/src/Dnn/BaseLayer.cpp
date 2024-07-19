@@ -798,7 +798,7 @@ void CBaseLayer::Serialize( CArchive& archive )
 		archive << isLearningEnabled;
 		archive << baseLearningRate << baseL2RegularizationMult << baseL1RegularizationMult;
 
-		const bool nonReferenceDnnLayer = ( GetDnn() == nullptr || GetDnn()->referenceDnnInfo == nullptr );
+		const bool nonReferenceDnnLayer = ( GetDnn() == nullptr || !GetDnn()->IsReferenceDnn() );
 		if( nonReferenceDnnLayer ) {
 			SerializeBlobs( mathEngine, archive, paramBlobs );
 		} else { // Reference dnns will point to original dnn paramBlobs

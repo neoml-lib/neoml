@@ -76,8 +76,8 @@ CReferenceDnnFactory::CReferenceDnnFactory( CDnn&& dnn, bool optimizeDnn ) :
 	auto& randomCopy = dnn.Random();
 
 	// Allow to createReferenceDnn() this time
-	NeoAssert( dnn.referenceDnnInfo == nullptr );
-	NeoAssert( originalDnn.referenceDnnInfo != nullptr );
+	NeoAssert( !dnn.IsReferenceDnn() );
+	NeoAssert( originalDnn.IsReferenceDnn() );
 	swap( dnn.referenceDnnInfo, originalDnn.referenceDnnInfo );
 
 	// Copy state with moving of the paramBlobs
@@ -89,8 +89,8 @@ CReferenceDnnFactory::CReferenceDnnFactory( CDnn&& dnn, bool optimizeDnn ) :
 	// And revert back the restrictions
 	originalDnn.DisableLearning();
 	swap( dnn.referenceDnnInfo, originalDnn.referenceDnnInfo );
-	NeoAssert( originalDnn.referenceDnnInfo != nullptr );
-	NeoAssert( dnn.referenceDnnInfo == nullptr );
+	NeoAssert( originalDnn.IsReferenceDnn() );
+	NeoAssert( !dnn.IsReferenceDnn() );
 
 	dnn.~CDnn(); // Destroy used pointers in the arg dnn
 	new( &dnn ) CDnn( randomCopy, mathEngineCopy ); // Ensure, the dtor will be called moramlly
@@ -127,7 +127,7 @@ void CReferenceDnnFactory::serialize( CArchive& archive, bool optimizeDnn )
 	// And revert back the restrictions
 	originalDnn.DisableLearning();
 	swap( tmp, originalDnn.referenceDnnInfo );
-	NeoAssert( originalDnn.referenceDnnInfo != nullptr );
+	NeoAssert( originalDnn.IsReferenceDnn() );
 }
 
 CPtrOwner<CDnn> CReferenceDnnFactory::CreateReferenceDnn()

@@ -445,7 +445,7 @@ CPtr<CBaseLayer> CDnn::GetLayer( const char* name )
 {
 	CBaseLayer* layer = getLayer( name );
 
-	NeoAssertMsg( referenceDnnInfo == nullptr
+	NeoAssertMsg( !IsReferenceDnn()
 		|| dynamic_cast<CSourceLayer*>( layer ) != nullptr
 		|| dynamic_cast<CSinkLayer*>( layer ) != nullptr,
 		"For ReferenceDnn changing layers is restricted" );
@@ -468,7 +468,7 @@ CPtr<CBaseLayer> CDnn::GetLayer( const CArray<CString>& path )
 {
 	CBaseLayer* layer = getLayer( path );
 
-	NeoAssertMsg( referenceDnnInfo == nullptr
+	NeoAssertMsg( !IsReferenceDnn()
 		|| dynamic_cast<CSourceLayer*>( layer ) != nullptr
 		|| dynamic_cast<CSinkLayer*>( layer ) != nullptr,
 		"For ReferenceDnn changing layers is restricted" );
@@ -499,7 +499,7 @@ CPtr<const CBaseLayer> CDnn::GetLayer(const CArray<CString>& path) const
 
 void CDnn::AddLayerImpl( CBaseLayer& layer )
 {
-	NeoAssertMsg( referenceDnnInfo == nullptr, "For ReferenceDnn adding layers is restricted" );
+	NeoAssertMsg( !IsReferenceDnn(), "For ReferenceDnn adding layers is restricted" );
 	layer.CheckLayerArchitecture( !layerMap.Has( layer.GetName() ), "layer already in this dnn" );
 	layer.CheckLayerArchitecture( layer.GetDnn() == 0, "layer already added to other dnn" );
 
@@ -523,7 +523,7 @@ void CDnn::ForceRebuild()
 
 void CDnn::createReferenceDnn( CDnn& newDnn, CReferenceDnnInfo* referenceDnnInfo )
 {
-	NeoAssertMsg( this->referenceDnnInfo != nullptr, "ReferenceDnn can be created from originDnn only" );
+	NeoAssertMsg( IsReferenceDnn(), "ReferenceDnn can be created from originDnn only" );
 
 	CMemoryFile file;
 	for( CPtr<CBaseLayer>& layer : layers ) {
@@ -548,7 +548,7 @@ void CDnn::createReferenceDnn( CDnn& newDnn, CReferenceDnnInfo* referenceDnnInfo
 
 void CDnn::DeleteLayerImpl( CBaseLayer& layer )
 {
-	NeoAssertMsg( referenceDnnInfo == nullptr, "For ReferenceDnn deleting layers is restricted" );
+	NeoAssertMsg( !IsReferenceDnn(), "For ReferenceDnn deleting layers is restricted" );
 	layer.CheckLayerArchitecture( HasLayer( layer.GetName() ), "deletion of the layer which is not in this dnn" );
 
 	// Set the flag that indicates the network should be rebuilt (configuration has changed)
@@ -589,7 +589,7 @@ void CDnn::DisableLearning()
 
 void CDnn::EnableLearning()
 {
-	NeoAssertMsg( referenceDnnInfo == nullptr, "For ReferenceDnn learning is restricted" );
+	NeoAssertMsg( !IsReferenceDnn(), "For ReferenceDnn learning is restricted" );
 	if( isLearningEnabled ) {
 		return;
 	}
@@ -822,7 +822,7 @@ size_t CDnn::getOutputBlobsSize() const
 
 void CDnn::FilterLayersParams( float threshold )
 {
-	NeoAssertMsg( referenceDnnInfo == nullptr, "For ReferenceDnn filtering layers parameters is restricted" );
+	NeoAssertMsg( !IsReferenceDnn(), "For ReferenceDnn filtering layers parameters is restricted" );
 	for( int i = 0; i < layers.Size(); ++i ) {
 		layers[i]->FilterLayerParams( threshold );
 	}
@@ -830,7 +830,7 @@ void CDnn::FilterLayersParams( float threshold )
 
 void CDnn::FilterLayersParams( const CArray<const char*>& layers, float threshold )
 {
-	NeoAssertMsg( referenceDnnInfo == nullptr, "For ReferenceDnn filtering layers parameters is restricted" );
+	NeoAssertMsg( !IsReferenceDnn(), "For ReferenceDnn filtering layers parameters is restricted" );
 	for( int i = 0; i < layers.Size(); ++i ) {
 		GetLayer( layers[i] )->FilterLayerParams( threshold );
 	}
@@ -840,7 +840,7 @@ static const int DnnVersion = 2000;
 
 void CDnn::Serialize( CArchive& archive )
 {
-	NeoAssertMsg( referenceDnnInfo == nullptr, "For ReferenceDnn serializing is restricted" );
+	NeoAssertMsg( !IsReferenceDnn(), "For ReferenceDnn serializing is restricted" );
 	if( archive.IsStoring() ) {
 		archive << DnnVersion;
 		archive << logFrequency;
