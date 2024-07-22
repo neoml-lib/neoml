@@ -448,7 +448,7 @@ CPtr<CBaseLayer> CDnn::GetLayer( const char* name )
 	NeoAssertMsg( !IsReferenceDnn()
 		|| dynamic_cast<CSourceLayer*>( layer ) != nullptr
 		|| dynamic_cast<CSinkLayer*>( layer ) != nullptr,
-		"For ReferenceDnn changing layers is restricted" );
+		"For ReferenceDnn changing layers is restricted. Use const version instead." );
 	return layer;
 }
 
@@ -471,7 +471,7 @@ CPtr<CBaseLayer> CDnn::GetLayer( const CArray<CString>& path )
 	NeoAssertMsg( !IsReferenceDnn()
 		|| dynamic_cast<CSourceLayer*>( layer ) != nullptr
 		|| dynamic_cast<CSinkLayer*>( layer ) != nullptr,
-		"For ReferenceDnn changing layers is restricted" );
+		"For ReferenceDnn changing layers is restricted. Use const version instead." );
 	return layer;
 }
 

@@ -517,7 +517,6 @@ public:
 	// By default logging is off (set to null to turn off)
 	CTextStream* GetLog() { return log; }
 	void SetLog( CTextStream* newLog ) { log = newLog; }
-
 	// Sets the logging frequence (by default, each 100th Run or RunAndLearn call is recorded)
 	int GetLogFrequency() const { return logFrequency; }
 	void SetLogFrequency(int _logFrequency) { logFrequency = _logFrequency; }
@@ -575,7 +574,7 @@ public:
 	// The method may be useful for controlling the rebuild frequency
 	bool IsRebuildRequested() const { return isRebuildNeeded; }
 	// Shares its weights with other reference dnns
-	bool IsReferenceDnn() const { return !( referenceDnnInfo.IsNull() ); }
+	bool IsReferenceDnn() const { return !referenceDnnInfo.IsNull(); }
 
 	// Gets a reference to the random numbers generator
 	CRandom& Random() { return random; }
@@ -600,7 +599,6 @@ public:
 	static const int ArchiveMinSupportedVersion = 1001;
 
 	void Serialize( CArchive& archive );
-
 	// Serializes network with data, required to resume training
 	// When loading from checkpoint creates new solver (old pointers will point to an object, not used by this net anymore)
 	void SerializeCheckpoint( CArchive& archive );
@@ -696,7 +694,7 @@ public:
 protected:
 	CDnnReference( CRandom& random, IMathEngine& mathEngine ) : Dnn( random, mathEngine ) {}
 	// Use CPtr<CDnnReference> to create the class
-	~CDnnReference() = default;
+	~CDnnReference() override = default;
 
 	friend class CReferenceDnnFactory;
 };
@@ -727,7 +725,7 @@ public:
 
 protected:
 	// Use CPtr<CReferenceDnnFactory> to create the class
-	~CReferenceDnnFactory() = default;
+	~CReferenceDnnFactory() override = default;
 
 private:
 	CPtr<CDnnReference> Origin; // The dnn to make reference dnns
@@ -735,10 +733,10 @@ private:
 	// Technical constructor
 	CReferenceDnnFactory( CRandom random, IMathEngine& mathEngine );
 
-	// Internal method of loading the dnn
+	// Internal method of loading to the origin dnn
 	void serialize( CArchive& archive, bool optimizeDnn );
-	// Thread-safe coping of original dnn to reference dnn
-	void initializeReferenceDnn( CDnn& originalDnn, CDnn& referenceDnn, TPtrOwnerReferenceDnnInfo&& info );
+	// Thread-safe coping the state (with no copy paramBlobs the pointers used) of a dnn to a new dnn
+	void initializeReferenceDnn( CDnn& dnn, CDnn& newDnn, TPtrOwnerReferenceDnnInfo&& info );
 };
 
 } // namespace NeoML

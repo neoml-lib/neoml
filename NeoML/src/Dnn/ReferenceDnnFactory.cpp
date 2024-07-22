@@ -66,25 +66,35 @@ CReferenceDnnFactory::CReferenceDnnFactory( CDnn&& dnn, bool optimizeDnn ) :
 	auto& mathEngineCopy = dnn.GetMathEngine();
 	auto& randomCopy = dnn.Random();
 
-	// Allow to createReferenceDnn() this time
+	// Allow to createReferenceDnn() from the non-reference dnn this time
 	NeoAssert( !dnn.IsReferenceDnn() );
 	NeoAssert( Origin->Dnn.IsReferenceDnn() );
+
+	// Temporal convert an ordinary dnn to a reference dnn
+	// by capturing non-empty referenceDnnInfo from the original dnn
 	swap( dnn.referenceDnnInfo, Origin->Dnn.referenceDnnInfo );
+	// The original dnn has empty referenceDnnInfo now
 
 	// Copy state with moving of the paramBlobs
 	initializeReferenceDnn( dnn, Origin->Dnn, TPtrOwnerReferenceDnnInfo{} );
 	if( optimizeDnn == true ) {
 		( void ) OptimizeDnn( Origin->Dnn );
 	}
+	// The original dnn still has empty referenceDnnInfo
 
-	// And revert back the restrictions
+	// Convert everything back
+	// - set back the original dnn as a reference dnn with its referenceDnnInfo
 	Origin->Dnn.DisableLearning();
 	swap( dnn.referenceDnnInfo, Origin->Dnn.referenceDnnInfo );
+	// - set the dnn as ordinary and of an empty state
+	// Destroy used pointers in the dnn
+	dnn.~CDnn();
+	// Ensure the dtor will be called normally outside
+	new( &dnn ) CDnn( randomCopy, mathEngineCopy );
+
+	// Check the consistence
 	NeoAssert( Origin->Dnn.IsReferenceDnn() );
 	NeoAssert( !dnn.IsReferenceDnn() );
-
-	dnn.~CDnn(); // Destroy used pointers in the arg dnn
-	new( &dnn ) CDnn( randomCopy, mathEngineCopy ); // Ensure the dtor will be called normally
 }
 
 CReferenceDnnFactory::CReferenceDnnFactory( CRandom random, IMathEngine& mathEngine )
@@ -92,7 +102,7 @@ CReferenceDnnFactory::CReferenceDnnFactory( CRandom random, IMathEngine& mathEng
 	NeoAssertMsg( mathEngine.GetType() == MET_Cpu, "CReferenceDnnFactory: Allowed only for CPU mathEngine" );
 
 	TPtrOwnerReferenceDnnInfo originDnnInfo( new CReferenceDnnInfo( std::move( random ), /*factory*/nullptr ) );
-	// Factory pointer for origin dnn should be 0 to avoid cyclic references
+	// Factory pointer in the origin dnn should be 0 to avoid cyclic references
 
 	Origin = new CDnnReference( originDnnInfo->Random, mathEngine );
 	// Enable this pointer is to add the restriction to change this dnn.
@@ -135,27 +145,30 @@ CPtr<CDnnReference> CReferenceDnnFactory::CreateReferenceDnn( bool getOriginDnn 
 	return reference;
 }
 
-void CReferenceDnnFactory::initializeReferenceDnn( CDnn& originalDnn, CDnn& newDnn, TPtrOwnerReferenceDnnInfo&& info )
+void CReferenceDnnFactory::initializeReferenceDnn( CDnn& dnn, CDnn& newDnn, TPtrOwnerReferenceDnnInfo&& info )
 {
-	NeoAssert( originalDnn.IsReferenceDnn() );
+	// To initialize the newDnn from the dnn without fair coping the paramBlobs
+	// Check the dnn should be a CDnnReference, its referenceDnnInfo should be != 0
+	NeoAssert( dnn.IsReferenceDnn() );
 
 	CMemoryFile file;
-	for( CPtr<CBaseLayer>& layer : originalDnn.layers ) {
+	for( CPtr<CBaseLayer>& layer : dnn.layers ) {
 		file.SeekToBegin();
 		{
 			CArchive archive( &file, CArchive::store );
-			SerializeLayer( archive, originalDnn.mathEngine, layer ); // if referenceDnnInfo != 0 to do not duplicate paramBlobs
+			SerializeLayer( archive, dnn.mathEngine, layer ); // if referenceDnnInfo != 0 to do not duplicate paramBlobs
 		}
 		file.SeekToBegin();
 		CPtr<CBaseLayer> copyLayer;
 		{
 			CArchive archive( &file, CArchive::load );
-			SerializeLayer( archive, originalDnn.mathEngine, copyLayer );
+			SerializeLayer( archive, dnn.mathEngine, copyLayer );
 			layer->transferParamsBlob( *copyLayer );
 		}
 		newDnn.AddLayer( *copyLayer );
 	}
 
+	// Convert the newDnn to CDnnReference
 	newDnn.referenceDnnInfo = std::move( info );
 	newDnn.DisableLearning();
 }

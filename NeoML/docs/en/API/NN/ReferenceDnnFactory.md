@@ -69,6 +69,9 @@ This class can be obtained as a result from the `CreateReferenceDnn` method of t
 There is no need to pay attention to when `CPtr<CDnnReference>` will be cleared.
 
 For the user, there is no difference between a reference dnn and the original dnn.
+User cannot serialize or modify both `CDnnReference` instances the reference dnn and the original dnn that is hidden inside the factory.
+Both of them are received from factory's `CreateReferenceDnn` method. New `CDnnReference` instances would be created using factory class only.
+
 If there is no desire to use the original dnn for optimization, default parameters can simply be used.
 The class `CDnnReference` is not part of the `CDnn` hierarchy.
 
