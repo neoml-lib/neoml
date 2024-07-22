@@ -499,8 +499,8 @@ void CDnn::ForceRebuild()
 
 CDnn* CDnn::CreateReferenceDnn()
 {
+	NeoAssertMsg( mathEngine.GetType() == MET_Cpu, "CreateReferenceDnn: Allowed only for CPU mathEngine" );
 	CDnn* originalDnn = ( referenceDnnRegister.referenceCounter == -1 ) ? referenceDnnRegister.originalDnn : this;
-	originalDnn->reshape();
 
 	CDnnReferenceRegister referenceRegister( originalDnn );
 	CDnn* newDnn = new CDnn( *referenceRegister.originalRandom, mathEngine );
