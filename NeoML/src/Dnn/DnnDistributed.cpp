@@ -502,15 +502,7 @@ void CDistributedTraining::GetLastBlob( const CString& layerName, CObjectArray<c
 	}
 }
 
-void CDistributedTraining::GetLastBlobCopy( const CString& layerName, CObjectArray<CDnnBlob>& blobs ) const
-{
-	blobs.SetSize( cnns.Size() );
-	for( int i = 0; i < cnns.Size(); ++i ) {
-		blobs[i] = CheckCast<const CSinkLayer>( cnns[i]->GetLayer( layerName ) )->GetBlob()->GetCopy();
-	}
-}
-
-// depreceted
+// deprecated
 void CDistributedTraining::GetLastBlob( const CString& layerName, CObjectArray<CDnnBlob>& blobs ) const
 {
 	blobs.SetSize( cnns.Size() );
@@ -632,14 +624,6 @@ void CDistributedInference::GetLastBlob( const CString& layerName, CObjectArray<
 	blobs.SetSize( threadParams.Dnns.Size() );
 	for( int i = 0; i < threadParams.Dnns.Size(); ++i ) {
 		blobs[i] = CheckCast<const CSinkLayer>( threadParams.Dnns[i]->GetLayer( layerName ) )->GetBlob();
-	}
-}
-
-void CDistributedInference::GetLastBlobCopy( const CString& layerName, CObjectArray<CDnnBlob>& blobs ) const
-{
-	blobs.SetSize( threadParams.Dnns.Size() );
-	for( int i = 0; i < threadParams.Dnns.Size(); ++i ) {
-		blobs[i] = CheckCast<const CSinkLayer>( threadParams.Dnns[i]->GetLayer( layerName ) )->GetBlob()->GetCopy();
 	}
 }
 

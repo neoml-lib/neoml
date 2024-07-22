@@ -91,9 +91,7 @@ public:
 	//       `RunOnce`, `RunAndBackwardOnce` or `RunAndLearnOnce`.
 	//       Use it after each task and copy them if you need to store the result.
 	void GetLastBlob( const CString& layerName, CObjectArray<const CDnnBlob>& blobs ) const;
-	// Returns copy last blobs of `layerName` for all models
-	void GetLastBlobCopy( const CString& layerName, CObjectArray<CDnnBlob>& blobs ) const;
-	/// depreceted
+	/// deprecated
 	void GetLastBlob( const CString& layerName, CObjectArray<CDnnBlob>& blobs ) const;
 	// Save trained net
 	void Serialize( CArchive& archive );
@@ -107,7 +105,8 @@ private:
 	// If multi-threads on a CPU, it is an operator of worker threads
 	IThreadPool* const threadPool;
 	// Separate mathEngine for each thread or device both for CPU and GPU training
-	CArray<IMathEngine*> mathEngines; // (cannot use CPointerArray, as a raw array needs to initialize engines)
+	// Cannot use CPointerArray, as CreateDistributedCpuMathEngines requires a raw array to initialize engines
+	CArray<IMathEngine*> mathEngines;
 	// Separate random generator for each dnn in a thread
 	CPointerArray<CRandom> rands;
 	// Separate dnn for each thread
@@ -147,8 +146,6 @@ public:
 	// NOTE: This blobs are part of the dnn and may be overwritten by next `RunOnce` task
 	//       Use it after each `RunOnce` task and copy them if you need to stare the result.
 	void GetLastBlob( const CString& layerName, CObjectArray<const CDnnBlob>& blobs ) const;
-	// Returns copy last blobs of `layerName` for all models
-	void GetLastBlobCopy( const CString& layerName, CObjectArray<CDnnBlob>& blobs ) const;
 
 private:
 	// Params to transfer to all threads function
