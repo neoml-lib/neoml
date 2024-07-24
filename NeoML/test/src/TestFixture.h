@@ -45,6 +45,22 @@ int RunTests( int argc, char* argv[], void* platformEnv = nullptr );
 
 //------------------------------------------------------------------------------------------------------------
 
+#ifdef NEOML_USE_FINEOBJ
+#define NEOML_EXPECT_THROW( expr ) \
+	try { \
+		( expr ); \
+		FAIL() << "No exception has been thrown during '" << #expr << "'"; \
+	} catch( CInternalError* err ) { \
+		err->Delete(); \
+	} catch( CCheckException* err ) { \
+		err->Delete(); \
+	} catch( ... ) { \
+		FAIL() << "Wrong exception has been thrown during '" << #expr << "'"; \
+	}
+#else
+#define NEOML_EXPECT_THROW( expr ) EXPECT_THROW( ( expr ), CInternalError )
+#endif
+
 #define FLT_MIN_LOG -87.33654474f
 #define FLT_MAX_LOG 88.f
 

@@ -130,6 +130,8 @@ TEST( CDnnBlobTest, BufferMemoryThresholdTest )
         testMethod( 256, /*init*/false, sumMemoryInPools );
     }
     EXPECT_EQ( sumMemoryInPools, 256 + 512 );
+
+    DeleteMathEngine(); // clear memory in pools
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -168,7 +170,7 @@ static void testTransferBlobInThreadsImpl( TTransferType type )
             EXPECT_TRUE( false );
     }
 
-    DeleteMathEngine();
+    DeleteMathEngine(); // first time
     IMathEngine& mathEngine = MathEngine(); // create unique MathEngine
 
     std::atomic<bool> created{ false };
@@ -274,6 +276,8 @@ static void testTransferBlobInThreadsImpl( TTransferType type )
     EXPECT_TRUE( mathEngine.GetPeakMemoryUsage() > 0 );
     mathEngine.ResetPeakMemoryUsage();
     EXPECT_TRUE( mathEngine.GetPeakMemoryUsage() == 0 );
+
+    DeleteMathEngine(); // clear memory in pools
 }
 
 } // namespace NeoMLTest

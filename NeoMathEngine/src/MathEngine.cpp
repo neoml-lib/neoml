@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -242,16 +242,17 @@ IGpuMathEngineManager* CreateGpuMathEngineManager()
 
 //------------------------------------------------------------------------------------------------------------
 
-void CreateDistributedCudaMathEngines( IMathEngine** mathEngines, int devsCount, const int* cudaDevs )
+void CreateDistributedCudaMathEngines( IMathEngine** mathEngines, int devsCount, const int* cudaDevs, size_t memoryLimit )
 {
 	ASSERT_EXPR( mathEngines != nullptr );
 	ASSERT_EXPR( devsCount > 0 );
 	ASSERT_EXPR( cudaDevs != nullptr );
 #ifdef NEOML_USE_NCCL
-	CreateDistributedCudaMathEnginesNccl( mathEngines, devsCount, cudaDevs );
-#else
+	CreateDistributedCudaMathEnginesNccl( mathEngines, devsCount, cudaDevs, memoryLimit );
+#else  // !NEOML_USE_NCCL
+	( void ) memoryLimit;
 	ASSERT_EXPR( false );
-#endif
+#endif // !NEOML_USE_NCCL
 }
 
 } // namespace NeoML
