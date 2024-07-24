@@ -52,6 +52,8 @@ int RunTests( int argc, char* argv[], void* platformEnv = nullptr );
 		FAIL() << "No exception has been thrown during '" << #expr << "'"; \
 	} catch( CInternalError* err ) { \
 		err->Delete(); \
+	} catch( CCheckException* err ) { \
+		err->Delete(); \
 	} catch( ... ) { \
 		FAIL() << "Wrong exception has been thrown during '" << #expr << "'"; \
 	}

@@ -50,6 +50,11 @@ private:
 	const int labelSize;
 };
 
+class CErrorDataset : public IDistributedDataset {
+public:
+	int SetInputBatch( CDnn&, int ) override { NeoAssertMsg( false, "Test error generated" ); return false; }
+};
+
 static void buildDnn( CDnn& dnn, int outputSize )
 {
 	CPtr<CSourceLayer> data = Source( dnn, "data" );
@@ -167,6 +172,9 @@ TEST( CDnnDistributedTest, DnnDistributedArchiveTest )
 	distributed.GetLastLoss( "loss", losses );
 	EXPECT_EQ( 2, losses.Size() );
 	EXPECT_EQ( losses[0], losses[1] );
+
+	CErrorDataset error;
+	NEOML_EXPECT_THROW( distributed.RunOnce( error ) );
 }
 
 TEST( CDnnDistributedTest, DnnDistributedSerializeTest )
@@ -300,5 +308,8 @@ TEST( CDnnDistributedTest, DnnDistributedInferenceArchived )
 		for( int i = 0; i < blobs.Size(); ++i ) {
 			EXPECT_TRUE( CompareBlobs( const_cast<CDnnBlob&>( *( blobs[i] ) ), *expected ) );
 		}
+
+		CErrorDataset error;
+		NEOML_EXPECT_THROW( distributed.RunOnce( error ) );
 	}
 }

@@ -100,6 +100,8 @@ public:
 	void StoreDnn( CArchive& archive, int index, bool storeSolver );
 
 private:
+	struct CThreadParams;
+
 	// Either multi-threads on a CPU or multi-devices GPU
 	const bool isCpu;
 	// If multi-threads on a CPU, it is an operator of worker threads
@@ -116,8 +118,8 @@ private:
 	// `Train()` cannot be called if it `isFirstRun`
 	// `batchSize` may not be equal 0, if it `isFirstRun` for `RunOnce`, `RunAndBackwardOnce` or `RunAndLearnOnce`.
 	bool isFirstRun = true;
-	// Container for error if it happened
-	CString errorMessage;
+	// Containers for errors if it happened
+	CArray<CString> errorMessages;
 
 	void initialize( CArchive& archive, int count, TDistributedInitializer initializer, int seed );
 
@@ -153,7 +155,8 @@ private:
 	struct CThreadParams final {
 		IDistributedDataset* Data = nullptr; // Pointer to data for the inference for all dnns
 		CObjectArray<CDnnReference> Refs; // Separate dnn for each thread
-		CString ErrorMessage; // Container for error if it happened
+		CArray<CString> ErrorMessages; // Containers for errors if it happened
+		bool IsErrorHappened = false;
 	};
 
 	// The operator of worker threads
