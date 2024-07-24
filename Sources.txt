@@ -1,6 +1,6 @@
 
 git;https://github.com/abbyyProduct/Tools_Libs-FineObjects15
-get;FineObjects;/;FineObjects15-master_15.0.65.0
+get;FineObjects;/;master
 
 git;https://github.com/abbyyProduct/ThirdParty-CUDA
 get;ThirdParty/CUDA;/;CUDA v11.8 1.0.1.0
