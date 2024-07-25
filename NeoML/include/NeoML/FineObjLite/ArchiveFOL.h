@@ -15,9 +15,9 @@ limitations under the License.
 
 #pragma once
 
-#include "ErrorsFOL.h"
-#include "MathFOL.h"
-#include "BaseFileFOL.h"
+#include <ErrorsFOL.h>
+#include <MathFOL.h>
+#include <BaseFileFOL.h>
 
 namespace FObj {
 
@@ -33,15 +33,21 @@ public:
 		store = SD_Storing
 	};
 
-	explicit CArchive();
-	CArchive( CBaseFile* baseFile, TDirection direction );
-	virtual ~CArchive();
+	explicit CArchive() = default;
+	CArchive( CBaseFile* baseFile, TDirection direction ) { Open( baseFile, direction ); }
+	CArchive( CArchive&& ) = default;
+
+	virtual ~CArchive() { Close(); }
+
+	CArchive& operator=( CArchive&& ) = default;
 
 	const char* Name() const { return name; }
 
-	void Open( CBaseFile* baseFile, TDirection direction );
+	void Open( CBaseFile*, TDirection );
 	void Close();
-	bool IsOpen() const { return file != 0; }
+	bool IsOpen() const { return ( file != nullptr ); }
+
+	int GetBufferSize() const { return bufferSize; }
 
 	void Read( void* ptr, int size );
 	void Write( const void* ptr, int size );
@@ -60,13 +66,15 @@ public:
 	// because the archive may be reading/writing with offset from the file beginning
 	__int64 GetPosition() const;
 	int GetPosition32() const;
-	// Navigate through file
-	__int64 Seek( __int64 offset, CBaseFile::TSeekPosition from );
-	int Seek32( int offset, CBaseFile::TSeekPosition from );
 	// Gets the current archive length
 	// Note that it may not be the same as file length because some of the data may not have been written into the file yet
 	__int64 GetLength() const;
 	int GetLength32() const;
+	// Navigate through file
+	__int64 Seek( __int64 offset, CBaseFile::TSeekPosition from );
+	int Seek32( int offset, CBaseFile::TSeekPosition from );
+
+	const CBaseFile* GetFile() const { return file; }
 
 	// Read and write standard data types
 	friend CArchive& operator <<( CArchive&, const CString& string );
@@ -115,19 +123,19 @@ public:
 	void SerializeEnum( T& variable );
 
 private:
-	const int DefaultArchiveBufferSize = 4096;
+	static constexpr int defaultArchiveBufferSize = 4096;
 
-	CBaseFile* file;
+	CBaseFile* file = nullptr;
 	CString name;
-	TDirection direction;
-	char buffer[4096];
-	int bufferSize;
-	__int64 beginOfArchive;
-	__int64 filePosition;
-	__int64 fileLength;
-	int currentPosition;
-	int leftInBuffer;
-	bool isActualizedFileParameters;
+	TDirection direction = SD_Undefined;
+	char buffer[defaultArchiveBufferSize]{};
+	int bufferSize = defaultArchiveBufferSize;
+	__int64 beginOfArchive = 0;
+	__int64 filePosition = 0;
+	__int64 fileLength = 0;
+	int currentPosition = 0;
+	int leftInBuffer = 0;
+	bool isActualizedFileParameters = false;
 
 	template<class T>
 	void writeSimpleType( T object );
@@ -143,32 +151,7 @@ private:
 	void throwEofException();
 };
 
-inline CArchive::CArchive( CBaseFile* _file, CArchive::TDirection _direction ) :
-	file( 0 ),
-	direction( SD_Undefined ),
-	bufferSize( DefaultArchiveBufferSize ),
-	beginOfArchive( 0 ),
-	filePosition( 0 ),
-	fileLength( 0 ),
-	currentPosition( 0 ),
-	leftInBuffer( 0 ),
-	isActualizedFileParameters( false )
-{
-	Open( _file, _direction );
-}
-
-inline CArchive::CArchive() :
-	file( 0 ),
-	direction( SD_Undefined ),
-	bufferSize( DefaultArchiveBufferSize ),
-	beginOfArchive( 0 ),
-	filePosition( 0 ),
-	fileLength( 0 ),
-	currentPosition( 0 ),
-	leftInBuffer( 0 ),
-	isActualizedFileParameters( false )
-{
-}
+//---------------------------------------------------------------------------------------------------------------------
 
 inline void CArchive::Open( CBaseFile* _file, CArchive::TDirection _direction )
 {
@@ -184,11 +167,6 @@ inline void CArchive::Open( CBaseFile* _file, CArchive::TDirection _direction )
 	isActualizedFileParameters = false;
 	currentPosition = 0;
 	leftInBuffer = 0;
-}
-
-inline CArchive::~CArchive()
-{
-	Close();
 }
 
 inline void CArchive::Close()
@@ -321,7 +299,7 @@ inline void CArchive::CopyTo( CArchive& dest, __int64 size )
 			currentPosition = 0;
 
 			const int readBufferSize = ( bufferSize > 0 ) ? bufferSize
-				: static_cast<int>( min( size, static_cast<__int64>( DefaultArchiveBufferSize ) ) );
+				: static_cast<int>( min( size, static_cast<__int64>( defaultArchiveBufferSize ) ) );
 			leftInBuffer = file->Read( buffer, readBufferSize );
 			filePosition += leftInBuffer;
 			if( leftInBuffer < static_cast<int>( min( size, static_cast<__int64>( readBufferSize ) ) ) ) {
@@ -764,7 +742,6 @@ inline void CArchive::actualizeFileParameters()
 	fileLength = max( file->GetLength(), beginOfArchive + fileLength );
 	isActualizedFileParameters = true;
 }
-
 
 inline void CArchive::seekWhenLoading( __int64 newArchivePosition )
 {
