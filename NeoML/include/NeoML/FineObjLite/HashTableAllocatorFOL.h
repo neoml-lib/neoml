@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,37 +15,52 @@ limitations under the License.
 
 #pragma once
 
+#include <AllocFOL.h>
+
 namespace FObj {
 
-struct CHashTableAllocatorFreeBlock {
+struct CHashTableAllocatorFreeBlock final {
 	CHashTableAllocatorFreeBlock* NextBlock;
 };
 
-struct CHashTableAllocatorPage {
+struct CHashTableAllocatorPage final {
 	CHashTableAllocatorPage* PrevPage;
 	int DataSize;
-	char* Data()
-	{
-		return reinterpret_cast<char*>( this + 1 );
-	}
+
+	char* Data() { return reinterpret_cast<char*>( this + 1 ); }
 };
 
-const int MinHashTableAllocatorBlockSize = sizeof( CHashTableAllocatorFreeBlock );
+constexpr int MinHashTableAllocatorBlockSize = sizeof( CHashTableAllocatorFreeBlock );
+
+//---------------------------------------------------------------------------------------------------------------------
 
 template<class BaseAllocator, int BlockSize>
-class CHashTableAllocator {
+class CHashTableAllocator;
+
+template<class BaseAllocator, int BlockSize>
+struct IsMemmoveable<CHashTableAllocator<BaseAllocator, BlockSize>>
+{
+	static constexpr bool Value = true;
+};
+
+//---------------------------------------------------------------------------------------------------------------------
+
+template<class BaseAllocator, int BlockSize>
+class CHashTableAllocator final {
 public:
 	CHashTableAllocator();
+	CHashTableAllocator( const CHashTableAllocator& ) = delete;
+	CHashTableAllocator( CHashTableAllocator&& );
 	~CHashTableAllocator();
 
+	CHashTableAllocator& operator=( const CHashTableAllocator& ) = delete;
+	CHashTableAllocator& operator=( CHashTableAllocator&& );
+
 	void* Alloc();
-
-	void Free( void* block ); 
-
+	void Free( void* block );
 	void MoveTo( CHashTableAllocator& dest );
 
 	void Reserve( int blocksCount );
-
 	void FreeBuffer();
 
 private:
@@ -55,25 +70,28 @@ private:
 		MaxPageDataSize = 1 << 20
 	};
 
-	CHashTableAllocatorPage* currentPage;
-	CHashTableAllocatorFreeBlock* firstFreeBlock;
-	int allocatedInCurrentPage;
-	int nextPageDataSize;
+	CHashTableAllocatorPage* currentPage = nullptr;
+	CHashTableAllocatorFreeBlock* firstFreeBlock = nullptr;
+	int allocatedInCurrentPage = 0;
+	int nextPageDataSize = MinPageDataSize;
 
 	void allocPage();
 	void freeAllPages();
-
-	CHashTableAllocator( const CHashTableAllocator& );
-	void operator=( const CHashTableAllocator& );
 };
 
+//---------------------------------------------------------------------------------------------------------------------
+
 template<class BaseAllocator, int BlockSize>
-CHashTableAllocator<BaseAllocator, BlockSize>::CHashTableAllocator() :
-	currentPage( 0 ),
-	firstFreeBlock( 0 ),
-	allocatedInCurrentPage( 0 )
+CHashTableAllocator<BaseAllocator, BlockSize>::CHashTableAllocator()
 {
-	nextPageDataSize = MinPageDataSize;
+	static_assert( BlockSize >= MinHashTableAllocatorBlockSize, "" );
+}
+
+template<class BaseAllocator, int BlockSize>
+CHashTableAllocator<BaseAllocator, BlockSize>::CHashTableAllocator( CHashTableAllocator&& other ) :
+	CHashTableAllocator()
+{
+	FObj::swap( *this, other );
 }
 
 template<class BaseAllocator, int BlockSize>
@@ -85,8 +103,8 @@ CHashTableAllocator<BaseAllocator, BlockSize>::~CHashTableAllocator()
 template<class BaseAllocator, int BlockSize>
 inline void* CHashTableAllocator<BaseAllocator, BlockSize>::Alloc()
 {
-	if( firstFreeBlock == 0 ) {
-		if( currentPage == 0 || allocatedInCurrentPage + BlockSize > currentPage->DataSize ) {
+	if( firstFreeBlock == nullptr ) {
+		if( currentPage == nullptr || allocatedInCurrentPage + BlockSize > currentPage->DataSize ) {
 			allocPage();
 		}
 		void* ret = currentPage->Data() + allocatedInCurrentPage;
@@ -118,10 +136,17 @@ inline void CHashTableAllocator<BaseAllocator, BlockSize>::MoveTo( CHashTableAll
 	dest.firstFreeBlock = firstFreeBlock;
 	dest.allocatedInCurrentPage = allocatedInCurrentPage;
 	dest.nextPageDataSize = nextPageDataSize;
-	currentPage = 0;
-	firstFreeBlock = 0;
+	currentPage = nullptr;
+	firstFreeBlock = nullptr;
 	allocatedInCurrentPage = 0;
 	nextPageDataSize = MinPageDataSize;
+}
+
+template<class BaseAllocator, int BlockSize>
+auto CHashTableAllocator<BaseAllocator, BlockSize>::operator =( CHashTableAllocator&& other ) -> CHashTableAllocator&
+{
+	FObj::swap( *this, other );
+	return *this;
 }
 
 template<class BaseAllocator, int BlockSize>
@@ -129,7 +154,7 @@ void CHashTableAllocator<BaseAllocator, BlockSize>::Reserve(int blocksCount)
 {
 	int size = blocksCount * BlockSize;
 	int totalDataSize = 0;
-	for(CHashTableAllocatorPage* page = currentPage; page != 0; page = page->PrevPage) {
+	for(CHashTableAllocatorPage* page = currentPage; page != nullptr; page = page->PrevPage) {
 		totalDataSize += page->DataSize;
 	}
 	if(totalDataSize < size) {
@@ -144,7 +169,7 @@ void CHashTableAllocator<BaseAllocator, BlockSize>::Reserve(int blocksCount)
 template<class BaseAllocator, int BlockSize>
 void CHashTableAllocator<BaseAllocator, BlockSize>::FreeBuffer()
 {
-	firstFreeBlock = 0;
+	firstFreeBlock = nullptr;
 	allocatedInCurrentPage = 0;
 	freeAllPages();
 	nextPageDataSize = MinPageDataSize;
@@ -154,7 +179,7 @@ template<class BaseAllocator, int BlockSize>
 void CHashTableAllocator<BaseAllocator, BlockSize>::allocPage()
 {
 	CHashTableAllocatorPage* page = static_cast<CHashTableAllocatorPage*>( 
-		ALLOCATE_MEMORY( BaseAllocator, sizeof( CHashTableAllocatorPage ) + nextPageDataSize ) );
+		BaseAllocator::Alloc( sizeof( CHashTableAllocatorPage ) + nextPageDataSize ) );
 	page->PrevPage = currentPage;
 	page->DataSize = nextPageDataSize;
 	currentPage = page;
@@ -165,7 +190,7 @@ void CHashTableAllocator<BaseAllocator, BlockSize>::allocPage()
 template<class BaseAllocator, int BlockSize>
 inline void CHashTableAllocator<BaseAllocator, BlockSize>::freeAllPages()
 {
-	while( currentPage != 0 ) {
+	while( currentPage != nullptr ) {
 		CHashTableAllocatorPage* page = currentPage;
 		currentPage = page->PrevPage;
 		BaseAllocator::Free( page );
