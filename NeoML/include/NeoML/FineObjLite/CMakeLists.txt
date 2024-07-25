@@ -25,6 +25,8 @@ set(${PROJECT_NAME}_SOURCES
     HashTableFOL.h
     IntervalFOL.h
     MapFOL.h
+    MapIteratorFOL.h
+    MapPositionIteratorFOL.h
     MathFOL.h
     MemoryFileFOL.h
     ObjectFOL.h

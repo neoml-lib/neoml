@@ -33,6 +33,8 @@ limitations under the License.
 #include <IntervalFOL.h>
 #include <ObjectFOL.h>
 #include <MapFOL.h>
+#include <MapIteratorFOL.h>
+#include <MapPositionIteratorFOL.h>
 #include <MathFOL.h>
 #include <MemoryFileFOL.h>
 #include <PointerArrayFOL.h>
