@@ -23,6 +23,7 @@ set(${PROJECT_NAME}_SOURCES
     ErrorsFOL.h
     HashTableAllocatorFOL.h
     HashTableFOL.h
+    HashTableIteratorFOL.h
     IntervalFOL.h
     MapFOL.h
     MapIteratorFOL.h

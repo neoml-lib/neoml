@@ -30,6 +30,7 @@ limitations under the License.
 #include <FastArrayFOL.h>
 #include <HashTableAllocatorFOL.h>
 #include <HashTableFOL.h>
+#include <HashTableIteratorFOL.h>
 #include <IntervalFOL.h>
 #include <ObjectFOL.h>
 #include <MapFOL.h>
