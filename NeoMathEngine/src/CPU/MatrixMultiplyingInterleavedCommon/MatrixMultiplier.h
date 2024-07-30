@@ -291,11 +291,12 @@ struct CMatrixMultiplier {
 		size_t kBlock =
 			(cpuInfo.L1CacheSize - Kernel::height * Kernel::width * sizeof(float) - 64 * 4) /
 			((Kernel::height + Kernel::width) * sizeof(float));
+		kBlock = ( kBlock > 0 ) ? kBlock : 1;
 		kBlock = Ceildiv(k, Ceildiv(k, kBlock));
 
 		// 10% L2 should be left for overhead, in addition to L1
-		size_t nBlock = (cpuInfo.L2CacheSize * 90 / 100 - cpuInfo.L1CacheSize) /
-			(kBlock * sizeof(float));
+		size_t nBlock = (cpuInfo.L2CacheSize * 90 / 100 - cpuInfo.L1CacheSize) / (kBlock * sizeof(float));
+		nBlock = ( nBlock > 0 ) ? nBlock : 1;
 		nBlock = Ceildiv(n, Ceildiv(n, nBlock));
 		if( nBlock > Kernel::width && nBlock < n ) {
 			nBlock = nBlock / Kernel::width * Kernel::width;
