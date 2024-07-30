@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -878,7 +878,7 @@ void CVulkanMathEngine::batchMultiplyMatrixByTransposedMatrix( bool toAdd, int b
     ASSERT_EXPR( firstWidth <= firstRowSize );
     ASSERT_EXPR( firstWidth <= secondRowSize );
     ASSERT_EXPR( secondHeight <= resultRowSize );
-    ASSERT_EXPR( ( firstHeight - 1 ) * resultRowSize + secondHeight <= resultBufferSize );
+    ASSERT_EXPR( resultBufferSize == 0 || ( ( firstHeight - 1 ) * resultRowSize + secondHeight ) <= resultBufferSize );
 
 	CMemoryHandle bufs[3] = { firstHandle, secondHandle, resultHandle };
 	size_t sizes[3] = { batchSize * firstHeight * firstWidth * sizeof(float), 

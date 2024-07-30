@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -66,7 +66,7 @@ static void scatterNDTestImpl( const CTestParams& params, int seed )
 		dataDesc, updateCount, indexDims );
 
 	for( size_t i = 0; i < data.size(); ++i ) {
-		ASSERT_EQ( expected[i], data[i] );
+		EXPECT_EQ( expected[i], data[i] );
 	}
 }
 
@@ -96,6 +96,12 @@ INSTANTIATE_TEST_CASE_P( CMathEngineScatterNDTestInstantiation, CMathEngineScatt
 
 TEST_P( CMathEngineScatterNDTest, Random )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		return;
+	}
+
 	RUN_TEST_IMPL( scatterNDTestImpl<int> );
 	RUN_TEST_IMPL( scatterNDTestImpl<float> );
 }

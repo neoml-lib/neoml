@@ -1,4 +1,4 @@
-/* Copyright © 2017-2021 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -107,7 +107,7 @@ static void indRnnLearnTestImpl( const CTestParams& params, int seed )
 	std::vector<float> actualData( channels );
 	actualBlob.CopyTo( actualData.data() );
 
-	ASSERT_EQ( expectedData.size(), actualData.size() );
+	EXPECT_EQ( expectedData.size(), actualData.size() );
 	for( int i = 0; i < channels; ++i ) {
 		EXPECT_TRUE( FloatEq( expectedData[i], actualData[i], 1e-2f ) );
 	}
@@ -141,5 +141,11 @@ INSTANTIATE_TEST_CASE_P( CIndRnnLearnTest, CIndRnnLearnTest,
 
 TEST_P( CIndRnnLearnTest, Random )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		return;
+	}
+
 	RUN_TEST_IMPL( indRnnLearnTestImpl );
 }

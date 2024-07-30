@@ -1,4 +1,4 @@
-/* Copyright © 2021 ABBYY Production LLC
+/* Copyright © 2021-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -24,7 +24,6 @@ using namespace NeoML;
 using namespace NeoMLTest;
 
 struct CAutoDiffTestParam {
-
 };
 
 class CAutoDiffTest : public CNeoMLTestFixture, public ::testing::WithParamInterface<CAutoDiffTestParam> {
@@ -43,20 +42,20 @@ TEST_F( CAutoDiffTest, TestConst )
 	const1Data.SetSize( const1->GetDataSize() );
 	const1->CopyTo( const1Data.GetPtr() );
 
-	ASSERT_EQ( const1->GetChannelsCount(), 50 );
-	ASSERT_EQ( const1->GetWidth(), 200 );
-	ASSERT_EQ( const1->GetHeight(), 100 );
+	EXPECT_EQ( const1->GetChannelsCount(), 50 );
+	EXPECT_EQ( const1->GetWidth(), 200 );
+	EXPECT_EQ( const1->GetHeight(), 100 );
 	for( int i = 0; i < const1Data.Size(); i++ ) {
-		ASSERT_NEAR( 42.42, const1Data[i], 1e-4 );
+		EXPECT_NEAR( 42.42, const1Data[i], 1e-4 );
 	}
 
 	const1 = Const( MathEngine(), const1Data.GetPtr(), {const1Data.Size()} );
 	const1Data.SetSize( const1->GetDataSize() );
 	const1->CopyTo( const1Data.GetPtr() );
 
-	ASSERT_EQ( const1->GetChannelsCount(), 50 * 200 * 100 );
+	EXPECT_EQ( const1->GetChannelsCount(), 50 * 200 * 100 );
 	for( int i = 0; i < const1Data.Size(); i++ ) {
-		ASSERT_NEAR( 42.42, const1Data[i], 1e-4 );
+		EXPECT_NEAR( 42.42, const1Data[i], 1e-4 );
 	}
 }
 
@@ -88,7 +87,7 @@ static void jacobianTestImpl( const CArray<float>& vectorA, const CArray<float>&
 	loss->CopyTo( lossData.GetPtr() );
 
 	for( int i = 0; i < expectedLoss.Size(); i++ ) {
-		ASSERT_NEAR( expectedLoss[i], lossData[i], 1e-4 );
+		EXPECT_NEAR( expectedLoss[i], lossData[i], 1e-4 );
 	}
 
 	CPtr<const CDnnBlob> grad = tape.Gradient( *loss, *x );
@@ -98,7 +97,7 @@ static void jacobianTestImpl( const CArray<float>& vectorA, const CArray<float>&
 	grad->CopyTo( gradData.GetPtr() );
 
 	for( int i = 0; i < expectedGradient.Size(); i++ ) {
-		ASSERT_NEAR( expectedGradient[i], gradData[i], 1e-4 );
+		EXPECT_NEAR( expectedGradient[i], gradData[i], 1e-4 );
 	}
 }
 
@@ -112,6 +111,13 @@ static void jacobianCommonTestImpl( const CArray<float>& vectorA, const CArray<f
 
 TEST_F( CAutoDiffTest, TestStack1 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// Sum -> VectorSumAlongDimension
+		return;
+	}
+
 	jacobianCommonTestImpl(
 		{ 0.28, 0.3, 0.2 , 0.73, 0.73, 0.72, 0.33, 0.11,
 		  0.08, 0.49, 0.09, 0.76, 0.05, 0.65, 0.28, 0.97 },
@@ -135,6 +141,13 @@ TEST_F( CAutoDiffTest, TestStack1 )
 
 TEST_F( CAutoDiffTest, TestStack2 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// Sum -> VectorSumAlongDimension
+		return;
+	}
+
 	jacobianTestImpl(
 		{ 0.18, 0.73, 0.51, 0.32 },
 		{ 0.16, 0.66, 0.08, 0.28, 0.58, 0.32, 0.91, 0.45, 0.3, 0.31, 0.0, 0.81 },
@@ -157,6 +170,13 @@ TEST_F( CAutoDiffTest, TestStack2 )
 
 TEST_F( CAutoDiffTest, TestReshape )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// BroadcastCopy
+		return;
+	}
+
 	jacobianCommonTestImpl(
 		{ 0.28, 0.3, 0.2 , 0.73, 0.73, 0.72, 0.33, 0.11,
 		  0.08, 0.49, 0.09, 0.76, 0.05, 0.65, 0.28, 0.97 },
@@ -176,6 +196,13 @@ TEST_F( CAutoDiffTest, TestReshape )
 
 TEST_F( CAutoDiffTest, TestBroadcast1 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// VectorSumAlongDimension
+		return;
+	}
+
 	jacobianTestImpl(
 		{ 1 },
 		{ 1 },
@@ -192,6 +219,13 @@ TEST_F( CAutoDiffTest, TestBroadcast1 )
 
 TEST_F( CAutoDiffTest, TestBroadcast2 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// BroadcastCopy
+		return;
+	}
+
 	jacobianTestImpl(
 		{ 0.4, 0.5 },
 		{ 0.72, 0.96, 0.49, 0.41, 0.39, 0.96, 0.95, 0.8,
@@ -212,6 +246,13 @@ TEST_F( CAutoDiffTest, TestBroadcast2 )
 
 TEST_F( CAutoDiffTest, TestBroadcast3 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// BroadcastCopy
+		return;
+	}
+
 	jacobianTestImpl(
 		{ 0.52, 0.73, 0.76, 0.05 },
 		{ 0.25, 0.08 },
@@ -231,6 +272,13 @@ TEST_F( CAutoDiffTest, TestBroadcast3 )
 
 TEST_F( CAutoDiffTest, TestPow1 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// VectorSub
+		return;
+	}
+
 	jacobianTestImpl(
 		{ 0.28, 0.3, 0.2 , 0.73, 0.73, 0.72, 0.33, 0.11,
 		  0.08, 0.49, 0.09, 0.76, 0.05, 0.65, 0.28, 0.97 },
@@ -253,6 +301,13 @@ TEST_F( CAutoDiffTest, TestPow1 )
 
 TEST_F( CAutoDiffTest, TestPow2 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// VectorSumAlongDimension
+		return;
+	}
+
 	jacobianTestImpl(
 		{ 0.28, 0.3, 0.2 , 0.73, 0.73, 0.72, 0.33, 0.11,
 		  0.08, 0.49, 0.09, 0.76, 0.05, 0.65, 0.28, 0.97 },
@@ -275,6 +330,13 @@ TEST_F( CAutoDiffTest, TestPow2 )
 
 TEST_F( CAutoDiffTest, TestPow3 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// VectorSumAlongDimension
+		return;
+	}
+
 	jacobianTestImpl(
 		{ 0.28, 0.3, 0.2 , 0.73, 0.73, 0.72, 0.33, 0.11,
 		  0.08, 0.49, 0.09, 0.76, 0.05, 0.65, 0.28, 0.97 },
@@ -297,6 +359,13 @@ TEST_F( CAutoDiffTest, TestPow3 )
 
 TEST_F( CAutoDiffTest, TestPow4 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// VectorSumAlongDimension
+		return;
+	}
+
 	jacobianTestImpl(
 		{ 0.28, 0.3, 0.2 , 0.73, 0.73, 0.72, 0.33, 0.11,
 		  0.08, 0.49, 0.09, 0.76, 0.05, 0.65, 0.28, 0.97 },
@@ -319,6 +388,13 @@ TEST_F( CAutoDiffTest, TestPow4 )
 
 TEST_F( CAutoDiffTest, TestPow5 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// VectorSub
+		return;
+	}
+
 	jacobianTestImpl(
 		{ 0.28, 0.0, 0.0, 0.73, 0.73, 0.0, 0.0, 0.11,
 		  0.0, 0.49, 0.09, 0.0, 0.0, 0.65, 0.28, 0.0 },
@@ -338,6 +414,13 @@ TEST_F( CAutoDiffTest, TestPow5 )
 
 TEST_F( CAutoDiffTest, TestPow6 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// VectorSub
+		return;
+	}
+
 	jacobianTestImpl(
 		{ 0.28, 0.0, 0.0, 0.73, 0.73, 0.0, 0.0, 0.11,
 		  0.0, 0.49, 0.09, 0.0, 0.0, 0.65, 0.28, 0.0 },
@@ -357,6 +440,13 @@ TEST_F( CAutoDiffTest, TestPow6 )
 
 TEST_F( CAutoDiffTest, TestAdd1 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// VectorTopK
+		return;
+	}
+
 	CGradientTape tape;
 
 	const int VectorSize = 16;
@@ -389,7 +479,7 @@ TEST_F( CAutoDiffTest, TestAdd1 )
 
 	float lossRes[4] = { 910, 902, 882, 880 };
 	for( int i = 0; i < _countof(lossRes); i++ ) {
-		ASSERT_EQ( lossRes[i], lossData[i] );
+		EXPECT_EQ( lossRes[i], lossData[i] );
 	}
 
 	CPtr<const CDnnBlob> grad = tape.Gradient( *loss, *x );
@@ -400,12 +490,19 @@ TEST_F( CAutoDiffTest, TestAdd1 )
 
 	float gradRes[VectorSize] = { 501, 401, 0, 0, 0, 0, 0, 505, 405, 0, 0, 490, 390, 0, 391, 491 };
 	for( int i = 0; i < _countof(gradRes); i++ ) {
-		ASSERT_EQ( gradRes[i], gradData[i] );
+		EXPECT_EQ( gradRes[i], gradData[i] );
 	}
 }
 
 TEST_F( CAutoDiffTest, TestAdd2 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// VectorTopK
+		return;
+	}
+
 	jacobianCommonTestImpl(
 		{ 501, 1, 2, 3, 4, 4, 5, 505, 10, 10, 11, 490, 489, 488, 487, 491 },
 		{ 1, 401, 2, 3, 4, 4, 5, 10, 405, 10, 11, 289, 390, 288, 391, 291 },
@@ -426,6 +523,13 @@ TEST_F( CAutoDiffTest, TestAdd2 )
 
 TEST_F( CAutoDiffTest, TestSub1 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// VectorTopK
+		return;
+	}
+
 	CGradientTape tape;
 
 	const int VectorSize = 16;
@@ -460,7 +564,7 @@ TEST_F( CAutoDiffTest, TestSub1 )
 
 	float lossRes[4] = { 0.099999, 0.099999, 0.099999, 0.10000 };
 	for( int i = 0; i < _countof(lossRes); i++ ) {
-		ASSERT_NEAR( lossRes[i], lossData[i], 1e-3 );
+		EXPECT_NEAR( lossRes[i], lossData[i], 1e-3 );
 	}
 
 	CPtr<const CDnnBlob> grad = tape.Gradient( *loss, *x );
@@ -474,12 +578,19 @@ TEST_F( CAutoDiffTest, TestSub1 )
 								  -0.405, 0, 0, 0.49,
 								  -0.39, 0, -0.391, 0.491 };
 	for( int i = 0; i < _countof(gradRes); i++ ) {
-		ASSERT_NEAR( gradRes[i], gradData[i], 1e-3 );
+		EXPECT_NEAR( gradRes[i], gradData[i], 1e-3 );
 	}
 }
 
 TEST_F( CAutoDiffTest, TestSum1 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// VectorTopK
+		return;
+	}
+
 	for( int axis : { -1, 6 } ) {
 		CGradientTape tape;
 
@@ -519,7 +630,7 @@ TEST_F( CAutoDiffTest, TestSum1 )
 
 		float lossRes[1] = { 3.574 };
 		for( int i = 0; i < _countof( lossRes ); i++ ) {
-			ASSERT_NEAR( lossRes[i], lossData[i], 1e-3 );
+			EXPECT_NEAR( lossRes[i], lossData[i], 1e-3 );
 		}
 
 		CPtr<const CDnnBlob> grad = tape.Gradient( *loss, *x );
@@ -533,13 +644,20 @@ TEST_F( CAutoDiffTest, TestSum1 )
 			0.405, 0, 0, 0.49,
 			0.39, 0, 0.391, 0.491 };
 		for( int i = 0; i < _countof( gradRes ); i++ ) {
-			ASSERT_NEAR( gradRes[i], gradData[i], 1e-3 );
+			EXPECT_NEAR( gradRes[i], gradData[i], 1e-3 );
 		}
 	}
 }
 
 TEST_F( CAutoDiffTest, TestSum2 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// VectorSumAlongDimension
+		return;
+	}
+
 	CGradientTape tape;
 
 	const int VectorSize = 16;
@@ -572,7 +690,7 @@ TEST_F( CAutoDiffTest, TestSum2 )
 
 	float lossRes[4] = { 2.66, 2.62, 1.72, 5.03 };
 	for( int i = 0; i < _countof(lossRes); i++ ) {
-		ASSERT_NEAR( lossRes[i], lossData[i], 1e-3 );
+		EXPECT_NEAR( lossRes[i], lossData[i], 1e-3 );
 	}
 
 	CPtr<const CDnnBlob> grad = tape.Gradient( *loss, *x );
@@ -586,12 +704,19 @@ TEST_F( CAutoDiffTest, TestSum2 )
 								  0.18, 0.89, 0.46, 1.17,
 								  0.37, 1.18, 0.71, 1.79 };
 	for( int i = 0; i < _countof(gradRes); i++ ) {
-		ASSERT_NEAR( gradRes[i], gradData[i], 1e-3 );
+		EXPECT_NEAR( gradRes[i], gradData[i], 1e-3 );
 	}
 }
 
 TEST_F( CAutoDiffTest, TestSum3 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// VectorSumAlongDimension
+		return;
+	}
+
 	CGradientTape tape;
 
 	const int VectorSize = 16;
@@ -624,7 +749,7 @@ TEST_F( CAutoDiffTest, TestSum3 )
 
 	float lossRes[2] = { 3.61, 3.31 };
 	for( int i = 0; i < _countof(lossRes); i++ ) {
-		ASSERT_NEAR( lossRes[i], lossData[i], 1e-3 );
+		EXPECT_NEAR( lossRes[i], lossData[i], 1e-3 );
 	}
 
 	CPtr<const CDnnBlob> grad = tape.Gradient( *loss, *x );
@@ -638,12 +763,19 @@ TEST_F( CAutoDiffTest, TestSum3 )
 								  0, 0, 0, 0,
 								  0.37, 1.18, 0.71, 1.79 };
 	for( int i = 0; i < _countof(gradRes); i++ ) {
-		ASSERT_NEAR( gradRes[i], gradData[i], 1e-3 );
+		EXPECT_NEAR( gradRes[i], gradData[i], 1e-3 );
 	}
 }
 
 TEST_F( CAutoDiffTest, TestCumSum1 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// VectorCumSumAlongDimension
+		return;
+	}
+
 	CGradientTape tape;
 
 	const int VectorSize = 16;
@@ -679,7 +811,7 @@ TEST_F( CAutoDiffTest, TestCumSum1 )
 	                      0.18, 0.89, 0.64, 2.06,
 	                      1.01, 3.24, 1.72, 5.03 };
 	for( int i = 0; i < _countof(lossRes); i++ ) {
-		ASSERT_NEAR( lossRes[i], lossData[i], 1e-3 );
+		EXPECT_NEAR( lossRes[i], lossData[i], 1e-3 );
 	}
 
 	CPtr<const CDnnBlob> grad = tape.Gradient( *loss, *x );
@@ -693,12 +825,19 @@ TEST_F( CAutoDiffTest, TestCumSum1 )
 								  0.72, 3.56, 1.38, 3.51,
 								  0.74, 2.36, 0.71, 1.79 };
 	for( int i = 0; i < _countof(gradRes); i++ ) {
-		ASSERT_NEAR( gradRes[i], gradData[i], 1e-3 );
+		EXPECT_NEAR( gradRes[i], gradData[i], 1e-3 );
 	}
 }
 
 TEST_F( CAutoDiffTest, TestCumSum2 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// VectorSumAlongDimension
+		return;
+	}
+
 	CGradientTape tape;
 
 	const int VectorSize = 16;
@@ -732,7 +871,7 @@ TEST_F( CAutoDiffTest, TestCumSum2 )
 	float lossRes[8] = { 0.38, 1.205, 2.085, 2.64,
 		                 0.535, 1.35, 2.125, 3.375 };
 	for( int i = 0; i < _countof(lossRes); i++ ) {
-		ASSERT_NEAR( lossRes[i], lossData[i], 1e-3 );
+		EXPECT_NEAR( lossRes[i], lossData[i], 1e-3 );
 	}
 
 	CPtr<const CDnnBlob> grad = tape.Gradient( *loss, *x );
@@ -746,12 +885,19 @@ TEST_F( CAutoDiffTest, TestCumSum2 )
 								  0.36, 1.78, 0.69, 1.755,
 								  0.37, 1.18, 0.355, 0.895 };
 	for( int i = 0; i < _countof(gradRes); i++ ) {
-		ASSERT_NEAR( gradRes[i], gradData[i], 1e-3 );
+		EXPECT_NEAR( gradRes[i], gradData[i], 1e-3 );
 	}
 }
 
 TEST_F( CAutoDiffTest, TestMean1 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// VectorTopK
+		return;
+	}
+
 	for( int axis : { -1, 6 } ) {
 		CGradientTape tape;
 
@@ -791,7 +937,7 @@ TEST_F( CAutoDiffTest, TestMean1 )
 
 		float lossRes[1] = { 1.4575 };
 		for( int i = 0; i < _countof( lossRes ); i++ ) {
-			ASSERT_NEAR( lossRes[i], lossData[i], 1e-3 );
+			EXPECT_NEAR( lossRes[i], lossData[i], 1e-3 );
 		}
 
 		CPtr<const CDnnBlob> grad = tape.Gradient( *loss, *x );
@@ -805,13 +951,20 @@ TEST_F( CAutoDiffTest, TestMean1 )
 			0., 0., 0., 0.1725,
 			0., 0., 0., 0.1875 };
 		for( int i = 0; i < _countof( gradRes ); i++ ) {
-			ASSERT_NEAR( gradRes[i], gradData[i], 1e-3 );
+			EXPECT_NEAR( gradRes[i], gradData[i], 1e-3 );
 		}
 	}
 }
 
 TEST_F( CAutoDiffTest, TestMean2 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// VectorSumAlongDimension
+		return;
+	}
+
 	CGradientTape tape;
 
 	const int VectorSize = 16;
@@ -844,7 +997,7 @@ TEST_F( CAutoDiffTest, TestMean2 )
 
 	float lossRes[2] = { 1.2575, 0.665 };
 	for( int i = 0; i < _countof(lossRes); i++ ) {
-		ASSERT_NEAR( lossRes[i], lossData[i], 1e-3 );
+		EXPECT_NEAR( lossRes[i], lossData[i], 1e-3 );
 	}
 
 	CPtr<const CDnnBlob> grad = tape.Gradient( *loss, *x );
@@ -858,12 +1011,19 @@ TEST_F( CAutoDiffTest, TestMean2 )
 								  0, 0.2225, 0, 0.2925,
 								  0, 0.295, 0, 0.4475 };
 	for( int i = 0; i < _countof(gradRes); i++ ) {
-		ASSERT_NEAR( gradRes[i], gradData[i], 1e-3 );
+		EXPECT_NEAR( gradRes[i], gradData[i], 1e-3 );
 	}
 }
 
 TEST_F( CAutoDiffTest, TestMean3 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// VectorSumAlongDimension
+		return;
+	}
+		
 	CGradientTape tape;
 
 	const int VectorSize = 16;
@@ -896,7 +1056,7 @@ TEST_F( CAutoDiffTest, TestMean3 )
 
 	float lossRes[2] = { 2.64, 3.375 };
 	for( int i = 0; i < _countof(lossRes); i++ ) {
-		ASSERT_NEAR( lossRes[i], lossData[i], 1e-3 );
+		EXPECT_NEAR( lossRes[i], lossData[i], 1e-3 );
 	}
 
 	CPtr<const CDnnBlob> grad = tape.Gradient( *loss, *x );
@@ -910,12 +1070,19 @@ TEST_F( CAutoDiffTest, TestMean3 )
 								  0.09, 0.445, 0.23, 0.585,
 								  0.185, 0.59, 0.355, 0.895 };
 	for( int i = 0; i < _countof(gradRes); i++ ) {
-		ASSERT_NEAR( gradRes[i], gradData[i], 1e-3 );
+		EXPECT_NEAR( gradRes[i], gradData[i], 1e-3 );
 	}
 }
 
 TEST_F( CAutoDiffTest, TestMean4 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// VectorSumAlongDimension
+		return;
+	}
+
 	jacobianCommonTestImpl(
 		{ 0.28, 0.3, 0.2 , 0.73, 0.73, 0.72, 0.33, 0.11,
 		  0.08, 0.49, 0.09, 0.76, 0.05, 0.65, 0.28, 0.97 },
@@ -935,6 +1102,13 @@ TEST_F( CAutoDiffTest, TestMean4 )
 
 TEST_F( CAutoDiffTest, TestClip )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// VectorTopK
+		return;
+	}
+
 	CGradientTape tape;
 
 	const int VectorSize = 16;
@@ -969,7 +1143,7 @@ TEST_F( CAutoDiffTest, TestClip )
 
 	float lossRes[4] = { 0.903, 0.901999, 0.881999, 0.8815 };
 	for( int i = 0; i < _countof(lossRes); i++ ) {
-		ASSERT_NEAR( lossRes[i], lossData[i], 1e-3 );
+		EXPECT_NEAR( lossRes[i], lossData[i], 1e-3 );
 	}
 
 	CPtr<const CDnnBlob> grad = tape.Gradient( *loss, *x );
@@ -983,12 +1157,19 @@ TEST_F( CAutoDiffTest, TestClip )
 								  0, 0, 0, 0,
 								  0, 0, 0.391, 0.491 };
 	for( int i = 0; i < _countof(gradRes); i++ ) {
-		ASSERT_NEAR( gradRes[i], gradData[i], 1e-3 );
+		EXPECT_NEAR( gradRes[i], gradData[i], 1e-3 );
 	}
 }
 
 TEST_F( CAutoDiffTest, TestMax )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// VectorMax
+		return;
+	}
+
 	CGradientTape tape;
 
 	const int VectorSize = 16;
@@ -1026,7 +1207,7 @@ TEST_F( CAutoDiffTest, TestMax )
 								  0.705, 0.5, 0.5, 0.779,
 								  0.878999, 0.776, 0.878, 0.782 };
 	for( int i = 0; i < _countof(lossRes); i++ ) {
-		ASSERT_NEAR( lossRes[i], lossData[i], 1e-3 );
+		EXPECT_NEAR( lossRes[i], lossData[i], 1e-3 );
 	}
 
 	CPtr<const CDnnBlob> grad = tape.Gradient( *loss, *x );
@@ -1040,12 +1221,19 @@ TEST_F( CAutoDiffTest, TestMax )
 								  0.405, 0, 0, 0.779,
 								  0.878999, 0.776, 0.878, 0.782 };
 	for( int i = 0; i < _countof(gradRes); i++ ) {
-		ASSERT_NEAR( gradRes[i], gradData[i], 1e-3 );
+		EXPECT_NEAR( gradRes[i], gradData[i], 1e-3 );
 	}
 }
 
 TEST_F( CAutoDiffTest, TestMult1 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// VectorTopK
+		return;
+	}
+
 	jacobianCommonTestImpl(
 		{ 501, 1, 2, 3, 4, 4, 5, 505, 10, 10, 11, 490, 489, 488, 487, 491 },
 		{ 1, 401, 2, 3, 4, 4, 5, 10, 405, 10, 11, 289, 390, 288, 391, 291 },
@@ -1068,6 +1256,13 @@ TEST_F( CAutoDiffTest, TestMult1 )
 
 TEST_F( CAutoDiffTest, TestDiv1 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// VectorTopK
+		return;
+	}
+
 	CGradientTape tape;
 
 	const int VectorSize = 4;
@@ -1097,7 +1292,7 @@ TEST_F( CAutoDiffTest, TestDiv1 )
 
 	float lossRes[VectorSize] = { 1.2493765, 1., 1., 1. };
 	for( int i = 0; i < _countof(lossRes); i++ ) {
-		ASSERT_NEAR( lossRes[i], lossData[i], 1e-3 );
+		EXPECT_NEAR( lossRes[i], lossData[i], 1e-3 );
 	}
 
 	CPtr<const CDnnBlob> grad = tape.Gradient( *loss, *x );
@@ -1108,12 +1303,19 @@ TEST_F( CAutoDiffTest, TestDiv1 )
 
 	float gradRes[VectorSize] = { 0.2493765, -0.2493765, 0, 0 };
 	for( int i = 0; i < _countof(gradRes); i++ ) {
-		ASSERT_NEAR( gradRes[i], gradData[i], 1e-3 );
+		EXPECT_NEAR( gradRes[i], gradData[i], 1e-3 );
 	}
 }
 
 TEST_F( CAutoDiffTest, TestDiv2 )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// VectorTopK
+		return;
+	}
+
 	jacobianCommonTestImpl(
 		{ 0.501, 0.001, 0.002, 0.003, 0.004, 0.004, 0.005, 0.505,
 		  0.010, 0.010, 0.011, 0.490, 0.489, 0.488, 0.487, 0.491 },
@@ -1142,6 +1344,13 @@ TEST_F( CAutoDiffTest, TestDiv2 )
 
 TEST_F( CAutoDiffTest, TestLog )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// VectorTopK
+		return;
+	}
+
 	CGradientTape tape;
 
 	const int VectorSize = 16;
@@ -1176,7 +1385,7 @@ TEST_F( CAutoDiffTest, TestLog )
 
 	float lossRes[4] = { -0.09431072, -0.10314082, -0.12556326, -0.12783338 };
 	for( int i = 0; i < _countof(lossRes); i++ ) {
-		ASSERT_NEAR( lossRes[i], lossData[i], 1e-4 );
+		EXPECT_NEAR( lossRes[i], lossData[i], 1e-4 );
 	}
 
 	CPtr<const CDnnBlob> grad = tape.Gradient( *loss, *x );
@@ -1188,12 +1397,19 @@ TEST_F( CAutoDiffTest, TestLog )
 	float gradRes[VectorSize] = { 0.5554324, 0.44456762, 0, 0, 0, 0, 0, 0.55494505, 0.44505498, 0, 0, 0.5568182, 0.44318178, 0,
 		0.44331068, 0.5566894 };
 	for( int i = 0; i < _countof(gradRes); i++ ) {
-		ASSERT_NEAR( gradRes[i], gradData[i], 1e-4 );
+		EXPECT_NEAR( gradRes[i], gradData[i], 1e-4 );
 	}
 }
 
 TEST_F( CAutoDiffTest, TestExp )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// VectorTopK
+		return;
+	}
+
 	CGradientTape tape;
 
 	const int VectorSize = 16;
@@ -1228,7 +1444,7 @@ TEST_F( CAutoDiffTest, TestExp )
 
 	float lossRes[4] = { 2.484333, 2.464527, 2.415726, 2.410899 };
 	for( int i = 0; i < _countof(lossRes); i++ ) {
-		ASSERT_NEAR( lossRes[i], lossData[i], 1e-4 );
+		EXPECT_NEAR( lossRes[i], lossData[i], 1e-4 );
 	}
 
 	CPtr<const CDnnBlob> grad = tape.Gradient( *loss, *x );
@@ -1242,12 +1458,19 @@ TEST_F( CAutoDiffTest, TestExp )
 								  1.006150, 0, 0, 1.181340,
 								  0.940250, 0, 0.944548, 1.186121 };
 	for( int i = 0; i < _countof(gradRes); i++ ) {
-		ASSERT_NEAR( gradRes[i], gradData[i], 1e-4 );
+		EXPECT_NEAR( gradRes[i], gradData[i], 1e-4 );
 	}
 }
 
 TEST_F( CAutoDiffTest, TestAbs )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// VectorTopK
+		return;
+	}
+
 	CGradientTape tape;
 
 	const int VectorSize = 16;
@@ -1282,7 +1505,7 @@ TEST_F( CAutoDiffTest, TestAbs )
 
 	float lossRes[4] = { 0.404, 0.399, 0.388, 0.385999 };
 	for( int i = 0; i < _countof(lossRes); i++ ) {
-		ASSERT_NEAR( lossRes[i], lossData[i], 1e-4 );
+		EXPECT_NEAR( lossRes[i], lossData[i], 1e-4 );
 	}
 
 	CPtr<const CDnnBlob> grad = tape.Gradient( *loss, *x );
@@ -1297,12 +1520,19 @@ TEST_F( CAutoDiffTest, TestAbs )
 								  0.39, 0, 0.391, 0. };
 
 	for( int i = 0; i < _countof(gradRes); i++ ) {
-		ASSERT_NEAR( gradRes[i], gradData[i], 1e-4 );
+		EXPECT_NEAR( gradRes[i], gradData[i], 1e-4 );
 	}
 }
 
 TEST_F( CAutoDiffTest, TestNeg )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// VectorTopK
+		return;
+	}
+
 	CGradientTape tape;
 
 	const int VectorSize = 16;
@@ -1337,7 +1567,7 @@ TEST_F( CAutoDiffTest, TestNeg )
 
 	float lossRes[4] = { -0.9099999, -0.90199995, -0.88199997, -0.88 };
 	for( int i = 0; i < _countof(lossRes); i++ ) {
-		ASSERT_NEAR( lossRes[i], lossData[i], 1e-4 );
+		EXPECT_NEAR( lossRes[i], lossData[i], 1e-4 );
 	}
 
 	CPtr<const CDnnBlob> grad = tape.Gradient( *loss, *x );
@@ -1348,12 +1578,19 @@ TEST_F( CAutoDiffTest, TestNeg )
 
 	float gradRes[VectorSize] = { -0.501, -0.401, 0, 0, 0, 0, 0, -0.505, -0.405, 0, 0, -0.49, -0.39, 0, -0.391, -0.491 };
 	for( int i = 0; i < _countof(gradRes); i++ ) {
-		ASSERT_NEAR( gradRes[i], gradData[i], 1e-4 );
+		EXPECT_NEAR( gradRes[i], gradData[i], 1e-4 );
 	}
 }
 
 TEST_F( CAutoDiffTest, TestTopK )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// VectorTopK
+		return;
+	}
+
 	CGradientTape tape;
 
 	const int VectorSize = 16;
@@ -1375,7 +1612,7 @@ TEST_F( CAutoDiffTest, TestTopK )
 
 	float lossRes[4] = { 15, 14, 13, 12 };
 	for( int i = 0; i < _countof(lossRes); i++ ) {
-		ASSERT_EQ( lossRes[i], lossData[i] );
+		EXPECT_EQ( lossRes[i], lossData[i] );
 	}
 
 	CPtr<const CDnnBlob> grad = tape.Gradient( *loss, *x );
@@ -1386,12 +1623,19 @@ TEST_F( CAutoDiffTest, TestTopK )
 
 	float gradRes[VectorSize] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1 };
 	for( int i = 0; i < _countof(gradRes); i++ ) {
-		ASSERT_EQ( gradRes[i], gradData[i] );
+		EXPECT_EQ( gradRes[i], gradData[i] );
 	}
 }
 
 TEST_F( CAutoDiffTest, TestBinaryCrossEntropy )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// VectorTopK
+		return;
+	}
+
 	CGradientTape tape;
 
 	const int VectorSize = 16;
@@ -1426,7 +1670,7 @@ TEST_F( CAutoDiffTest, TestBinaryCrossEntropy )
 
 	float lossRes[4] = { 0.7134542, 0.71354485, 0.7135042, 0.71347916 };
 	for( int i = 0; i < _countof(lossRes); i++ ) {
-		ASSERT_NEAR( lossRes[i], lossData[i], 1e-4 );
+		EXPECT_NEAR( lossRes[i], lossData[i], 1e-4 );
 	}
 
 	CPtr<const CDnnBlob> grad = tape.Gradient( *loss, *x );
@@ -1440,12 +1684,19 @@ TEST_F( CAutoDiffTest, TestBinaryCrossEntropy )
 						  -0.168067, 0., 0., 0.219183,
 						  -0.163934, 0., -0.164203, 0.217567};
 	for( int i = 0; i < _countof(gradRes); i++ ) {
-		ASSERT_NEAR( gradRes[i], gradData[i], 1e-4 );
+		EXPECT_NEAR( gradRes[i], gradData[i], 1e-4 );
 	}
 }
 
 TEST_F( CAutoDiffTest, TestLess )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// VectorEltwiseLess
+		return;
+	}
+
 	const int VectorSize = 16;
 
 	CArray<float> xData;
@@ -1465,6 +1716,6 @@ TEST_F( CAutoDiffTest, TestLess )
 
 	CArray<float> expected( { 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 1 } );
 	for( int i = 0; i < expected.Size(); i++ ) {
-		ASSERT_NEAR( resData[i], expected[i], 1e-4 );
+		EXPECT_NEAR( resData[i], expected[i], 1e-4 );
 	}
 }

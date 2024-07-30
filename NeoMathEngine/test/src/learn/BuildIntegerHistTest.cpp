@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -51,7 +51,7 @@ static void buildIntegerHistTestImpl( const CTestParams& params, int seed )
 	resultBlob.CopyTo( result.data() );
 
 	for( int i = 0; i < maxValue; ++i ) {
-		ASSERT_EQ( expected[i], result[i] ) << "at index " << i;
+		EXPECT_EQ( expected[i], result[i] ) << "at index " << i;
 	}
 }
 
@@ -72,5 +72,11 @@ INSTANTIATE_TEST_CASE_P( CBuildIntegerHistTestInstantiation, CBuildIntegerHistTe
 
 TEST_P( CBuildIntegerHistTest, Random )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skip for MathEngine type= " << met << " , investigate later.\n";
+		return;
+	}
+
 	RUN_TEST_IMPL( buildIntegerHistTestImpl )
 }

@@ -96,6 +96,12 @@ TEST( CDnnBlobTest, BufferTest )
 
 TEST( CDnnBlobTest, BufferMemoryThresholdTest )
 {
+    const auto met = MathEngine().GetType();
+    if( met != MET_Cpu && met != MET_Cuda ) {
+        NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped for met=" << met << ", unable use threads.\n";
+        return;
+    }
+
     auto testMethod = []( size_t threshold, bool init, size_t &sumMemoryInPools )
     {
         if( init ) {
@@ -160,11 +166,11 @@ static void testTransferBlobInThreadsImpl( TTransferType type )
             if( TTransferType::PoolToPool == type ) {
                 break;
             }
-            GTEST_LOG_( INFO ) << "Skipped (" << int( type ) << ") for met=" << met;
+            NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped (" << int( type ) << ") for met=" << met << ", unable use threads.\n";
             return;
         case MET_Metal:
         case MET_Vulkan:
-            GTEST_LOG_( INFO ) << "Skipped (" << int(type) << ") for met=" << met;
+            NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped (" << int( type ) << ") for met=" << met << ", unable use threads.\n";
             return;
         default:
             EXPECT_TRUE( false );
