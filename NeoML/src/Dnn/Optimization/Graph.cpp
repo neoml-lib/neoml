@@ -269,6 +269,9 @@ void CGraph::SwitchOutputs( CBaseLayer& oldOutputLayer, int oldOutputIndex,
 	NeoAssert( oldLayerPos != NotFound );
 	NeoAssert( graphLinks.GetNextPosition( &oldOutputLayer, oldLayerPos ) == NotFound );
 	CLayerLinks& oldLayerLinks = graphLinks.GetValue( oldLayerPos );
+	if ( oldOutputIndex >= oldLayerLinks.Outputs.Size() ) {
+		return; // Sink has no connection
+	}
 	NeoAssert( oldOutputIndex < oldLayerLinks.Outputs.Size() );
 
 	// Making local copy of inputs because of graph modifications during Disconnect/Connect calls
