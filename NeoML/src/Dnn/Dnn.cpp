@@ -499,7 +499,10 @@ CPtr<const CBaseLayer> CDnn::GetLayer(const CArray<CString>& path) const
 
 void CDnn::AddLayerImpl( CBaseLayer& layer )
 {
-	NeoAssertMsg( !IsReferenceDnn(), "For ReferenceDnn adding layers is restricted" );
+	NeoAssertMsg( !IsReferenceDnn()
+		|| dynamic_cast<CCompositeSourceLayer*>( &layer ) != nullptr
+		|| dynamic_cast<CCompositeSinkLayer*>( &layer ) != nullptr,
+		"For ReferenceDnn adding layers is restricted" );
 	layer.CheckLayerArchitecture( !layerMap.Has( layer.GetName() ), "layer already in this dnn" );
 	layer.CheckLayerArchitecture( layer.GetDnn() == 0, "layer already added to other dnn" );
 
@@ -523,7 +526,10 @@ void CDnn::ForceRebuild()
 
 void CDnn::DeleteLayerImpl( CBaseLayer& layer )
 {
-	NeoAssertMsg( !IsReferenceDnn(), "For ReferenceDnn deleting layers is restricted" );
+	NeoAssertMsg( !IsReferenceDnn()
+		|| dynamic_cast<CCompositeSourceLayer*>( &layer ) != nullptr
+		|| dynamic_cast<CCompositeSinkLayer*>( &layer ) != nullptr,
+		"For ReferenceDnn deleting layers is restricted" );
 	layer.CheckLayerArchitecture( HasLayer( layer.GetName() ), "deletion of the layer which is not in this dnn" );
 
 	// Set the flag that indicates the network should be rebuilt (configuration has changed)

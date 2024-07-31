@@ -165,6 +165,7 @@ void CReferenceDnnFactory::initializeReferenceDnn( CDnn& dnn, CDnn& newDnn, TPtr
 			SerializeLayer( archive, dnn.mathEngine, copyLayer );
 			layer->transferParamsBlob( *copyLayer );
 		}
+		copyLayer->DisableLearning();
 		newDnn.AddLayer( *copyLayer );
 	}
 

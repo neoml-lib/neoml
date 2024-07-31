@@ -574,7 +574,7 @@ public:
 	// The method may be useful for controlling the rebuild frequency
 	bool IsRebuildRequested() const { return isRebuildNeeded; }
 	// Shares its weights with other reference dnns
-	bool IsReferenceDnn() const { return !referenceDnnInfo.IsNull(); }
+	bool IsReferenceDnn() const { return ( getOwnerDnn().referenceDnnInfo != nullptr ); }
 
 	// Gets a reference to the random numbers generator
 	CRandom& Random() { return random; }
@@ -662,6 +662,8 @@ private:
 	void reshape();
 	void rebuild();
 	size_t getOutputBlobsSize() const;
+	const CDnn& getOwnerDnn() const
+		{ return ( owner == nullptr || owner->GetDnn() == nullptr ) ? *this : owner->GetDnn()->getOwnerDnn(); }
 
 	friend class CBaseLayer;
 	friend class CCompositeLayer;
