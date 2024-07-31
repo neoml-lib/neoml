@@ -19,8 +19,13 @@ limitations under the License.
 
 #include <cmath>
 
-namespace NeoMLTest {
 using namespace NeoML;
+
+namespace NeoML {
+class IPerformanceCounters;
+}
+
+namespace NeoMLTest {
 
 CString GetTestDataFilePath( const CString& relativePath, const CString& fileName );
 
@@ -36,6 +41,11 @@ void SetPlatformEnv( void* platformEnv );
 void* GetPlatformEnv();
 
 NeoML::IMathEngine* CreateMathEngine( TMathEngineType type, std::size_t memoryLimit );
+
+// Get time duration (default in milli seconds)
+double GetTimeScaled( IPerformanceCounters&, int scale = 1000000 /*ms*/ );
+// Get peak memory size (default in mega bytes)
+double GetPeakMemScaled( IMathEngine&, int scale = 1024 * 1024 /*MB*/ );
 
 #ifdef NEOML_USE_FINEOBJ
 int RunTests( int argc, wchar_t* argv[], void* platformEnv = nullptr );
