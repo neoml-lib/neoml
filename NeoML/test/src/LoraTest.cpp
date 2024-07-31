@@ -587,7 +587,8 @@ namespace NeoMLTest {
 static void memCheckTest( bool useLora, int optimizeDnnIterations = 0, int encodersCount = 6, int iterationsCount = 10 )
 {
 	MathEngine().CleanUp();
-	std::cerr << "Peak memory after clean: " << ( double ( MathEngine().GetPeakMemoryUsage() ) / 1024 / 1024 ) << " MB\n";
+	GTEST_LOG_( INFO ) << ( useLora ? "Used LoRA" : "no LoRA" ) << "\n "
+		<< "Peak memory after clean: " << GetPeakMemScaled( MathEngine() ) << " MB\n";
 
 	// Build the net
 	CRandom random( 0x6543 );
@@ -634,7 +635,8 @@ static void memCheckTest( bool useLora, int optimizeDnnIterations = 0, int encod
 
 	// Initialize weights
 	dnn.RunOnce();
-	std::cerr << "Peak memory after RunOnce: " << ( double( MathEngine().GetPeakMemoryUsage() ) / 1024 / 1024 ) << " MB\n";
+	GTEST_LOG_( INFO ) << "\n "
+		<< "Peak memory after RunOnce: " << GetPeakMemScaled( MathEngine() ) << " MB\n";
 
 	if( useLora ) {
 		CLoraBuilder builder;
@@ -657,11 +659,12 @@ static void memCheckTest( bool useLora, int optimizeDnnIterations = 0, int encod
 
 		GTEST_LOG_( INFO ) << "Iter #" << iter
 			<< '\t' << "Loss: " << loss->GetLastLoss()
-			<< '\t' << "Train Time: " << ( double( ( *counters )[0].Value ) / 1000000 ) << " ms."
-			<< '\t' << "Peak.Mem: " << ( double( MathEngine().GetPeakMemoryUsage() ) / 1024 / 1024 ) << " MB"
+			<< '\t' << "Train Time: " << GetTimeScaled( *counters ) << " ms."
+			<< '\t' << "Peak.Mem: " << GetPeakMemScaled( MathEngine() ) << " MB"
 			<< '\n';
 	}
-	std::cerr << "Peak memory after training: " << ( double( MathEngine().GetPeakMemoryUsage() ) / 1024 / 1024 ) << " MB\n";
+	GTEST_LOG_( INFO ) << "\n "
+		<< "Peak memory after training: " << GetPeakMemScaled( MathEngine() ) << " MB\n";
 
 	if ( optimizeDnnIterations > 0 ) // Check OptimizeDnn
 	{
@@ -673,6 +676,7 @@ static void memCheckTest( bool useLora, int optimizeDnnIterations = 0, int encod
 		}
 		counters->Synchronise();
 
+		const double unoptTime = GetTimeScaled( *counters );
 		CPtr<CDnnBlob> expectedBlob = CheckCast<CSinkLayer>( dnn.GetLayer( "sink" ) )->GetBlob();
 
 		OptimizeDnn( dnn );
@@ -685,7 +689,14 @@ static void memCheckTest( bool useLora, int optimizeDnnIterations = 0, int encod
 		}
 		counters->Synchronise();
 
+		const double optTime = GetTimeScaled( *counters );
 		CPtr<CDnnBlob> sinkBlob = CheckCast<CSinkLayer>( dnn.GetLayer( "sink" ) )->GetBlob();
+
+		GTEST_LOG_( INFO )
+			<< "\n RunOnce " << iters << " (unopt) Time: " << unoptTime << " ms. per inter " << ( unoptTime / iters )
+			<< "\n RunOnce " << iters << "   (opt) Time: " << optTime << " ms. per inter " << ( optTime / iters )
+			<< "\n Peak.Mem: " << GetPeakMemScaled( MathEngine() ) << " MB"
+			<< "\n";
 
 		// Check for consistence
 		EXPECT_TRUE( CompareBlobs( *expectedBlob, *sinkBlob ) );
