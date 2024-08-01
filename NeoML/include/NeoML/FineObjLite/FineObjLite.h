@@ -17,10 +17,6 @@ limitations under the License.
 
 #include <FineObjLiteDefs.h>
 
-namespace FObj {
-using std::swap;
-}
-
 #include <AllocFOL.h>
 #include <ArchiveFOL.h>
 #include <ArrayFOL.h>

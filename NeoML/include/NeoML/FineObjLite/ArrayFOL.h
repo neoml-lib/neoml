@@ -23,13 +23,6 @@ limitations under the License.
 
 namespace FObj {
 
-// Check if the type may be bitwise moved in memory
-template<typename T>
-struct IsMemmoveable {
-	static const bool Value =
-		sizeof(T) <= sizeof( void* ) || std::is_trivially_copyable<T>::value;
-};
-
 template<class T>
 inline void ArrayMemMoveElement( T* dest, T* source );
 
