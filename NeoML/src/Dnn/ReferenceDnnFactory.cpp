@@ -70,6 +70,10 @@ CReferenceDnnFactory::CReferenceDnnFactory( CDnn&& dnn, bool optimizeDnn ) :
 	NeoAssert( !dnn.IsReferenceDnn() );
 	NeoAssert( Origin->Dnn.IsReferenceDnn() );
 
+	if( optimizeDnn == true ) {
+		( void ) OptimizeDnn( dnn );
+	}
+
 	// Temporal convert an ordinary dnn to a reference dnn
 	// by capturing non-empty referenceDnnInfo from the original dnn
 	swap( dnn.referenceDnnInfo, Origin->Dnn.referenceDnnInfo );
@@ -77,9 +81,6 @@ CReferenceDnnFactory::CReferenceDnnFactory( CDnn&& dnn, bool optimizeDnn ) :
 
 	// Copy state with moving of the paramBlobs
 	initializeReferenceDnn( dnn, Origin->Dnn, TPtrOwnerReferenceDnnInfo{} );
-	if( optimizeDnn == true ) {
-		( void ) OptimizeDnn( Origin->Dnn );
-	}
 	// The original dnn still has empty referenceDnnInfo
 
 	// Convert everything back
@@ -121,6 +122,7 @@ void CReferenceDnnFactory::serialize( CArchive& archive, bool optimizeDnn )
 	archive.Close();
 
 	if( optimizeDnn == true ) {
+		NeoAssert( !Origin->Dnn.IsReferenceDnn() );
 		( void ) OptimizeDnn( Origin->Dnn );
 	}
 
