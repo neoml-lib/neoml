@@ -119,7 +119,6 @@ void CReferenceDnnFactory::serialize( CArchive& archive, bool optimizeDnn )
 
 	NeoAssert( archive.IsLoading() );
 	Origin->Dnn.Serialize( archive );
-	archive.Close();
 
 	NeoAssert( !Origin->Dnn.IsReferenceDnn() );
 	if( optimizeDnn ) {
