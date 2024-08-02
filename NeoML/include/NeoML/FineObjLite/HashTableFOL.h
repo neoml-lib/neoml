@@ -301,12 +301,12 @@ private:
 int UpperPrimeNumber( int number );
 
 template<class T, class HASHINFO, class ALLOCATOR>
-inline CHashTable<T, HASHINFO, ALLOCATOR>::CHashTable() :
+CHashTable<T, HASHINFO, ALLOCATOR>::CHashTable() :
 	initialHashTableSize( DefHashTableSize )
 {}
 
 template<class T, class HASHINFO, class ALLOCATOR>
-inline CHashTable<T, HASHINFO, ALLOCATOR>::CHashTable( int hashSize ) :
+CHashTable<T, HASHINFO, ALLOCATOR>::CHashTable( int hashSize ) :
 	initialHashTableSize( UpperPrimeNumber( hashSize - 1 ) )
 {
 	PresumeFO( hashSize >= 0 );
@@ -314,7 +314,7 @@ inline CHashTable<T, HASHINFO, ALLOCATOR>::CHashTable( int hashSize ) :
 }
 
 template<class T, class HASHINFO, class ALLOCATOR>
-inline CHashTable<T, HASHINFO, ALLOCATOR>::CHashTable( const T* data, int dataSize ) :
+CHashTable<T, HASHINFO, ALLOCATOR>::CHashTable( const T* data, int dataSize ) :
 	initialHashTableSize( UpperPrimeNumber( dataSize - 1 ) )
 {
 	AssertFO( data != 0 );
@@ -329,7 +329,7 @@ inline CHashTable<T, HASHINFO, ALLOCATOR>::CHashTable( const T* data, int dataSi
 }
 
 template<class T, class HASHINFO, class ALLOCATOR>
-inline CHashTable<T, HASHINFO, ALLOCATOR>::CHashTable( const std::initializer_list<T>& list ) :
+CHashTable<T, HASHINFO, ALLOCATOR>::CHashTable( const std::initializer_list<T>& list ) :
 	CHashTable()
 {
 	Add( list );
@@ -343,13 +343,13 @@ CHashTable<T, HASHINFO, ALLOCATOR>::CHashTable( CHashTable&& other ) :
 }
 
 template<class T, class HASHINFO, class ALLOCATOR>
-inline CHashTable<T, HASHINFO, ALLOCATOR>::~CHashTable()
+CHashTable<T, HASHINFO, ALLOCATOR>::~CHashTable()
 {
 	FreeBuffer();
 }
 
 template<class T, class HASHINFO, class ALLOCATOR>
-inline auto CHashTable<T, HASHINFO, ALLOCATOR>::operator=( const std::initializer_list<T>& list ) -> CHashTable&
+auto CHashTable<T, HASHINFO, ALLOCATOR>::operator=( const std::initializer_list<T>& list ) -> CHashTable&
 {
 	DeleteAll();
 	Add( list );
@@ -357,14 +357,14 @@ inline auto CHashTable<T, HASHINFO, ALLOCATOR>::operator=( const std::initialize
 }
 
 template<class T, class HASHINFO, class ALLOCATOR>
-inline auto CHashTable<T, HASHINFO, ALLOCATOR>::operator=( CHashTable&& other ) -> CHashTable&
+auto CHashTable<T, HASHINFO, ALLOCATOR>::operator=( CHashTable&& other ) -> CHashTable&
 {
 	FObj::swap( *this, other );
 	return *this;
 }
 
 template<class T, class HASHINFO, class ALLOCATOR>
-inline void CHashTable<T, HASHINFO, ALLOCATOR>::CopyTo( CHashTable& dest ) const
+void CHashTable<T, HASHINFO, ALLOCATOR>::CopyTo( CHashTable& dest ) const
 {
 	if( &dest == this ) {
 		return;
@@ -383,7 +383,7 @@ inline void CHashTable<T, HASHINFO, ALLOCATOR>::CopyTo( CHashTable& dest ) const
 }
 
 template<class T, class HASHINFO, class ALLOCATOR>
-inline void CHashTable<T, HASHINFO, ALLOCATOR>::AppendTo( CHashTable& dest ) const
+void CHashTable<T, HASHINFO, ALLOCATOR>::AppendTo( CHashTable& dest ) const
 {
 	if( &dest == this ) {
 		return;
@@ -400,7 +400,7 @@ inline void CHashTable<T, HASHINFO, ALLOCATOR>::AppendTo( CHashTable& dest ) con
 }
 
 template<class T, class HASHINFO, class ALLOCATOR>
-inline void CHashTable<T, HASHINFO, ALLOCATOR>::MoveTo( CHashTable& dest )
+void CHashTable<T, HASHINFO, ALLOCATOR>::MoveTo( CHashTable& dest )
 {
 	if( &dest == this ) {
 		return;
@@ -415,13 +415,13 @@ inline void CHashTable<T, HASHINFO, ALLOCATOR>::MoveTo( CHashTable& dest )
 }
 
 template<class T, class HASHINFO, class ALLOCATOR>
-inline int CHashTable<T, HASHINFO, ALLOCATOR>::Size() const
+int CHashTable<T, HASHINFO, ALLOCATOR>::Size() const
 {
 	return valuesCount;
 }
 
 template<class T, class HASHINFO, class ALLOCATOR>
-inline void CHashTable<T, HASHINFO, ALLOCATOR>::SetHashTableSize( int size )
+void CHashTable<T, HASHINFO, ALLOCATOR>::SetHashTableSize( int size )
 {
 	dataAllocator.Reserve( size );
 	if( size > hashTableSize ) {
@@ -430,7 +430,7 @@ inline void CHashTable<T, HASHINFO, ALLOCATOR>::SetHashTableSize( int size )
 }
 
 template<class T, class HASHINFO, class ALLOCATOR>
-inline void CHashTable<T, HASHINFO, ALLOCATOR>::init( int hashSize )
+void CHashTable<T, HASHINFO, ALLOCATOR>::init( int hashSize )
 {
 	hashTableSize = hashSize;
 	index.DeleteAll();
@@ -438,34 +438,34 @@ inline void CHashTable<T, HASHINFO, ALLOCATOR>::init( int hashSize )
 }
 
 template<class T, class HASHINFO, class ALLOCATOR>
-inline int CHashTable<T, HASHINFO, ALLOCATOR>::getIndexSize( int hashSize )
+int CHashTable<T, HASHINFO, ALLOCATOR>::getIndexSize( int hashSize )
 {
 	return hashSize + CeilTo( hashSize / 2, HashIndexGroupLength );
 }
 
 template<class T, class HASHINFO, class ALLOCATOR>
 template<class Arg>
-inline auto CHashTable<T, HASHINFO, ALLOCATOR>::constructAt( void* where, Arg&& value ) -> T*
+auto CHashTable<T, HASHINFO, ALLOCATOR>::constructAt( void* where, Arg&& value ) -> T*
 {
 	PresumeFO( where != AddressOfObject<T>( value ) );
 	return ::new( where ) T( std::forward<Arg>( value ) );
 }
 
 template<class T, class HASHINFO, class ALLOCATOR>
-inline void CHashTable<T, HASHINFO, ALLOCATOR>::Set( const T& value )
+void CHashTable<T, HASHINFO, ALLOCATOR>::Set( const T& value )
 {
 	setImpl( value );
 }
 
 template<class T, class HASHINFO, class ALLOCATOR>
-inline void CHashTable<T, HASHINFO, ALLOCATOR>::Set( T&& value )
+void CHashTable<T, HASHINFO, ALLOCATOR>::Set( T&& value )
 {
 	setImpl( std::move( value ) );
 }
 
 template<class T, class HASHINFO, class ALLOCATOR>
 template<class Arg>
-inline void CHashTable<T, HASHINFO, ALLOCATOR>::setImpl( Arg&& value )
+void CHashTable<T, HASHINFO, ALLOCATOR>::setImpl( Arg&& value )
 {
 	if( index.Size() == 0 ) {
 		init( initialHashTableSize );
@@ -484,7 +484,7 @@ inline void CHashTable<T, HASHINFO, ALLOCATOR>::setImpl( Arg&& value )
 }
 
 template<class T, class HASHINFO, class ALLOCATOR>
-inline void CHashTable<T, HASHINFO, ALLOCATOR>::Add( const std::initializer_list<T>& list )
+void CHashTable<T, HASHINFO, ALLOCATOR>::Add( const std::initializer_list<T>& list )
 {
 	SetHashTableSize( Size() + to<int>( list.size() ) );
 	for( const T& value : list ) {
@@ -494,7 +494,7 @@ inline void CHashTable<T, HASHINFO, ALLOCATOR>::Add( const std::initializer_list
 
 template<class T, class HASHINFO, class ALLOCATOR>
 template<class TARRAY, std::enable_if_t< std::is_lvalue_reference<TARRAY>::value, int > >
-inline void CHashTable<T, HASHINFO, ALLOCATOR>::AddArray( TARRAY&& values )
+void CHashTable<T, HASHINFO, ALLOCATOR>::AddArray( TARRAY&& values )
 {
 	for( const T& value : values ) {
 		Add( value );
@@ -503,7 +503,7 @@ inline void CHashTable<T, HASHINFO, ALLOCATOR>::AddArray( TARRAY&& values )
 
 template<class T, class HASHINFO, class ALLOCATOR>
 template<class TARRAY, std::enable_if_t< std::is_rvalue_reference<TARRAY&&>::value, int > >
-inline void CHashTable<T, HASHINFO, ALLOCATOR>::AddArray( TARRAY&& values )
+void CHashTable<T, HASHINFO, ALLOCATOR>::AddArray( TARRAY&& values )
 {
 	for( T& value : values ) {
 		Add( std::move( value ) );
@@ -511,19 +511,19 @@ inline void CHashTable<T, HASHINFO, ALLOCATOR>::AddArray( TARRAY&& values )
 }
 
 template<class T, class HASHINFO, class ALLOCATOR>
-inline void CHashTable<T, HASHINFO, ALLOCATOR>::Add( const CHashTable& values )
+void CHashTable<T, HASHINFO, ALLOCATOR>::Add( const CHashTable& values )
 {
 	values.AppendTo( *this );
 }
 
 template<class T, class HASHINFO, class ALLOCATOR>
-inline void CHashTable<T, HASHINFO, ALLOCATOR>::Add( CHashTable&& values )
+void CHashTable<T, HASHINFO, ALLOCATOR>::Add( CHashTable&& values )
 {
 	values.AppendTo( *this );
 }
 
 template<class T, class HASHINFO, class ALLOCATOR>
-inline bool CHashTable<T, HASHINFO, ALLOCATOR>::Delete( const T& value )
+bool CHashTable<T, HASHINFO, ALLOCATOR>::Delete( const T& value )
 {
 	THashTablePosition pos = GetPosition( value );
 	if( pos != NotFound ) {
@@ -535,7 +535,7 @@ inline bool CHashTable<T, HASHINFO, ALLOCATOR>::Delete( const T& value )
 }
 
 template<class T, class HASHINFO, class ALLOCATOR>
-inline void CHashTable<T, HASHINFO, ALLOCATOR>::DeleteAt( THashTablePosition pos )
+void CHashTable<T, HASHINFO, ALLOCATOR>::DeleteAt( THashTablePosition pos )
 {
 	T* data = index[pos].DataPointer();
 	index[pos] = CIndexEntry();
@@ -545,7 +545,7 @@ inline void CHashTable<T, HASHINFO, ALLOCATOR>::DeleteAt( THashTablePosition pos
 }
 
 template<class T, class HASHINFO, class ALLOCATOR>
-inline void CHashTable<T, HASHINFO, ALLOCATOR>::DeleteAll()
+void CHashTable<T, HASHINFO, ALLOCATOR>::DeleteAll()
 {
 	if( valuesCount == 0 ) {
 		return;
@@ -562,7 +562,7 @@ inline void CHashTable<T, HASHINFO, ALLOCATOR>::DeleteAll()
 }
 
 template<class T, class HASHINFO, class ALLOCATOR>
-inline auto CHashTable<T, HASHINFO, ALLOCATOR>::first( int hashCode, int tableSize,
+auto CHashTable<T, HASHINFO, ALLOCATOR>::first( int hashCode, int tableSize,
 	const CArray<CIndexEntry, ALLOCATOR>& indexEntry ) const -> THashTablePosition
 {
 	if( indexEntry.Size() == 0 ) {
@@ -580,13 +580,13 @@ inline auto CHashTable<T, HASHINFO, ALLOCATOR>::first( int hashCode, int tableSi
 }
 
 template<class T, class HASHINFO, class ALLOCATOR>
-inline auto CHashTable<T, HASHINFO, ALLOCATOR>::first( int hashCode ) const -> THashTablePosition
+auto CHashTable<T, HASHINFO, ALLOCATOR>::first( int hashCode ) const -> THashTablePosition
 {
 	return first( hashCode, hashTableSize, index );
 }
 
 template<class T, class HASHINFO, class ALLOCATOR>
-inline auto CHashTable<T, HASHINFO, ALLOCATOR>::next( THashTablePosition pos, int tableSize,
+auto CHashTable<T, HASHINFO, ALLOCATOR>::next( THashTablePosition pos, int tableSize,
 	const CArray<CIndexEntry, ALLOCATOR>& indexEntry ) const -> THashTablePosition
 {
 	if( pos < tableSize || ( ( pos - tableSize + 1 ) % HashIndexGroupLength ) == 0 ) {
@@ -602,13 +602,13 @@ inline auto CHashTable<T, HASHINFO, ALLOCATOR>::next( THashTablePosition pos, in
 }
 
 template<class T, class HASHINFO, class ALLOCATOR>
-inline auto CHashTable<T, HASHINFO, ALLOCATOR>::next( THashTablePosition pos ) const -> THashTablePosition
+auto CHashTable<T, HASHINFO, ALLOCATOR>::next( THashTablePosition pos ) const -> THashTablePosition
 {
 	return next( pos, hashTableSize, index );
 }
 
 template<class T, class HASHINFO, class ALLOCATOR>
-inline void CHashTable<T, HASHINFO, ALLOCATOR>::FreeBuffer()
+void CHashTable<T, HASHINFO, ALLOCATOR>::FreeBuffer()
 {
 	if( valuesCount != 0 ) {
 		for( CIndexEntry& entry : index ) {
@@ -625,13 +625,13 @@ inline void CHashTable<T, HASHINFO, ALLOCATOR>::FreeBuffer()
 }
 
 template<class T, class HASHINFO, class ALLOCATOR>
-inline bool CHashTable<T, HASHINFO, ALLOCATOR>::Has( const T& value ) const
+bool CHashTable<T, HASHINFO, ALLOCATOR>::Has( const T& value ) const
 {
 	return GetPosition( value ) != NotFound;
 }
 
 template<class T, class HASHINFO, class ALLOCATOR>
-inline auto CHashTable<T, HASHINFO, ALLOCATOR>::GetFirstPosition() const -> THashTablePosition
+auto CHashTable<T, HASHINFO, ALLOCATOR>::GetFirstPosition() const -> THashTablePosition
 {
 	THashTablePosition result = 0;
 	for( const CIndexEntry& entry : index ) {
@@ -644,14 +644,14 @@ inline auto CHashTable<T, HASHINFO, ALLOCATOR>::GetFirstPosition() const -> THas
 }
 
 template<class T, class HASHINFO, class ALLOCATOR>
-inline auto CHashTable<T, HASHINFO, ALLOCATOR>::GetPosition( const T& value ) const -> THashTablePosition
+auto CHashTable<T, HASHINFO, ALLOCATOR>::GetPosition( const T& value ) const -> THashTablePosition
 {
 	int hash = HASHINFO::HashKey( value );
 	return findValueInIndex( value, first( hash ) );
 }
 
 template<class T, class HASHINFO, class ALLOCATOR>
-inline auto CHashTable<T, HASHINFO, ALLOCATOR>::GetNextPosition( THashTablePosition pos ) const -> THashTablePosition
+auto CHashTable<T, HASHINFO, ALLOCATOR>::GetNextPosition( THashTablePosition pos ) const -> THashTablePosition
 {
 	for( THashTablePosition i = pos + 1; i < index.Size(); i++ ) {
 		if( index[i].IsDataPointer() ) {
@@ -662,26 +662,26 @@ inline auto CHashTable<T, HASHINFO, ALLOCATOR>::GetNextPosition( THashTablePosit
 }
 
 template<class T, class HASHINFO, class ALLOCATOR>
-inline auto CHashTable<T, HASHINFO, ALLOCATOR>::GetValue( THashTablePosition pos ) const -> const T&
+auto CHashTable<T, HASHINFO, ALLOCATOR>::GetValue( THashTablePosition pos ) const -> const T&
 {
 	return *index[pos].DataPointer();
 }
 
 template<class T, class HASHINFO, class ALLOCATOR>
-inline auto CHashTable<T, HASHINFO, ALLOCATOR>::GetOrCreateValue( const T& value ) -> const T&
+auto CHashTable<T, HASHINFO, ALLOCATOR>::GetOrCreateValue( const T& value ) -> const T&
 {
 	return getOrCreateValueImpl( value );
 }
 
 template<class T, class HASHINFO, class ALLOCATOR>
-inline auto CHashTable<T, HASHINFO, ALLOCATOR>::GetOrCreateValue( T&& value ) -> const T&
+auto CHashTable<T, HASHINFO, ALLOCATOR>::GetOrCreateValue( T&& value ) -> const T&
 {
 	return getOrCreateValueImpl( std::move( value ) );
 }
 
 template<class T, class HASHINFO, class ALLOCATOR>
 template<class Arg>
-inline auto CHashTable<T, HASHINFO, ALLOCATOR>::getOrCreateValueImpl( Arg&& value ) -> const T&
+auto CHashTable<T, HASHINFO, ALLOCATOR>::getOrCreateValueImpl( Arg&& value ) -> const T&
 {
 	if( index.Size() == 0 ) {
 		init( initialHashTableSize );
@@ -696,7 +696,7 @@ inline auto CHashTable<T, HASHINFO, ALLOCATOR>::getOrCreateValueImpl( Arg&& valu
 }
 
 template<class T, class HASHINFO, class ALLOCATOR>
-inline auto CHashTable<T, HASHINFO, ALLOCATOR>::findValueInIndex( const T& value, THashTablePosition from ) const -> THashTablePosition
+auto CHashTable<T, HASHINFO, ALLOCATOR>::findValueInIndex( const T& value, THashTablePosition from ) const -> THashTablePosition
 {
 	for( THashTablePosition pos = from; pos != NotFound; pos = next( pos ) ) {
 		if( index[pos].IsDataPointer() && HASHINFO::IsEqual( *index[pos].DataPointer(), value ) ) {
@@ -708,7 +708,7 @@ inline auto CHashTable<T, HASHINFO, ALLOCATOR>::findValueInIndex( const T& value
 
 template<class T, class HASHINFO, class ALLOCATOR>
 template<class Arg>
-inline auto CHashTable<T, HASHINFO, ALLOCATOR>::addValue( int hash, Arg&& value ) -> T*
+auto CHashTable<T, HASHINFO, ALLOCATOR>::addValue( int hash, Arg&& value ) -> T*
 {
 	THashTablePosition freePos = findIndexFreePos( hash, hashTableSize, index );
 	if( freePos == NotFound && canRehash() ) {
@@ -727,7 +727,7 @@ inline auto CHashTable<T, HASHINFO, ALLOCATOR>::addValue( int hash, Arg&& value 
 }
 
 template<class T, class HASHINFO, class ALLOCATOR>
-inline auto CHashTable<T, HASHINFO, ALLOCATOR>::findIndexFreePos( int hash, int tableSize,
+auto CHashTable<T, HASHINFO, ALLOCATOR>::findIndexFreePos( int hash, int tableSize,
 	CArray<CIndexEntry, ALLOCATOR>& indexEntry ) const -> THashTablePosition
 {
 	THashTablePosition lastDataPos = NotFound;
@@ -756,13 +756,13 @@ inline auto CHashTable<T, HASHINFO, ALLOCATOR>::findIndexFreePos( int hash, int 
 }
 
 template<class T, class HASHINFO, class ALLOCATOR>
-inline bool CHashTable<T, HASHINFO, ALLOCATOR>::canRehash() const
+bool CHashTable<T, HASHINFO, ALLOCATOR>::canRehash() const
 {
 	return ( valuesCount + 1 < hashTableSize / 4 );
 }
 
 template<class T, class HASHINFO, class ALLOCATOR>
-inline void CHashTable<T, HASHINFO, ALLOCATOR>::growIndex( int minSize )
+void CHashTable<T, HASHINFO, ALLOCATOR>::growIndex( int minSize )
 {
 	CArray<CIndexEntry, ALLOCATOR> newIndex;
 	int newHashTableSize = minSize - 1;
@@ -793,7 +793,7 @@ inline void CHashTable<T, HASHINFO, ALLOCATOR>::growIndex( int minSize )
 }
 
 template<class T, class HASHINFO, class ALLOCATOR>
-inline bool CHashTable<T, HASHINFO, ALLOCATOR>::operator==( const CHashTable& values ) const
+bool CHashTable<T, HASHINFO, ALLOCATOR>::operator==( const CHashTable& values ) const
 {
 	if( &values == this ) {
 		return true;
@@ -810,7 +810,7 @@ inline bool CHashTable<T, HASHINFO, ALLOCATOR>::operator==( const CHashTable& va
 }
 
 template<class T, class HASHINFO, class ALLOCATOR>
-inline bool CHashTable<T, HASHINFO, ALLOCATOR>::operator!=( const CHashTable& values ) const
+bool CHashTable<T, HASHINFO, ALLOCATOR>::operator!=( const CHashTable& values ) const
 {
 	return !( *this == values );
 }
@@ -820,7 +820,7 @@ inline bool CHashTable<T, HASHINFO, ALLOCATOR>::operator!=( const CHashTable& va
 // Serialize
 
 template<class T, class HASHINFO, class ALLOCATOR>
-inline void CHashTable<T, HASHINFO, ALLOCATOR>::Serialize( CArchive& ar )
+void CHashTable<T, HASHINFO, ALLOCATOR>::Serialize( CArchive& ar )
 {
 	if( ar.IsStoring() ) {
 		int count = Size();
@@ -843,14 +843,14 @@ inline void CHashTable<T, HASHINFO, ALLOCATOR>::Serialize( CArchive& ar )
 }
 
 template<class T, class HASHINFO, class ALLOCATOR>
-inline CArchive& operator>>( CArchive& archive, CHashTable<T, HASHINFO, ALLOCATOR>& hashTable )
+CArchive& operator>>( CArchive& archive, CHashTable<T, HASHINFO, ALLOCATOR>& hashTable )
 {
 	hashTable.Serialize( archive );
 	return archive;
 }
 
 template<class T, class HASHINFO, class ALLOCATOR>
-inline CArchive& operator<<( CArchive& archive, const CHashTable<T, HASHINFO, ALLOCATOR>& hashTable )
+CArchive& operator<<( CArchive& archive, const CHashTable<T, HASHINFO, ALLOCATOR>& hashTable )
 {
 	const_cast< CHashTable<T, HASHINFO, ALLOCATOR>& >( hashTable ).Serialize( archive );
 	return archive;

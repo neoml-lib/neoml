@@ -180,7 +180,7 @@ private:
 //---------------------------------------------------------------------------------------------------------------------
 
 template<class T, int initialBufferSize, class Allocator>
-inline CFastArray<T, initialBufferSize, Allocator>::CFastArray() :
+CFastArray<T, initialBufferSize, Allocator>::CFastArray() :
 	size( 0 ),
 	bufferSize( initialBufferSize )
 {
@@ -189,7 +189,7 @@ inline CFastArray<T, initialBufferSize, Allocator>::CFastArray() :
 }
 
 template<class T, int initialBufferSize, class Allocator>
-inline CFastArray<T, initialBufferSize, Allocator>::CFastArray( const std::initializer_list<T>& list ) :
+CFastArray<T, initialBufferSize, Allocator>::CFastArray( const std::initializer_list<T>& list ) :
 	CFastArray()
 {
 	Add( list );
@@ -197,14 +197,14 @@ inline CFastArray<T, initialBufferSize, Allocator>::CFastArray( const std::initi
 
 template<class T, int initialBufferSize, class Allocator>
 template<int rhsInitBufSize>
-inline CFastArray<T, initialBufferSize, Allocator>::CFastArray( TFastArray<rhsInitBufSize>&& other ) :
+CFastArray<T, initialBufferSize, Allocator>::CFastArray( TFastArray<rhsInitBufSize>&& other ) :
 	CFastArray()
 {
 	*this = std::move( other );
 }
 
 template<class T, int initialBufferSize, class Allocator>
-inline CFastArray<T, initialBufferSize, Allocator>::~CFastArray()
+CFastArray<T, initialBufferSize, Allocator>::~CFastArray()
 {
 	if( dataPtr != ( T* ) buffer ) {
 		Allocator::Free( dataPtr );
@@ -228,13 +228,13 @@ auto CFastArray<T, initialBufferSize, Allocator>::operator=( TFastArray<rhsInitB
 }
 
 template<class T, int initialBufferSize, class Allocator>
-inline int CFastArray<T, initialBufferSize, Allocator>::Size() const
+int CFastArray<T, initialBufferSize, Allocator>::Size() const
 {
 	return size;
 }
 
 template<class T, int initialBufferSize, class Allocator>
-inline int CFastArray<T, initialBufferSize, Allocator>::BufferSize() const
+int CFastArray<T, initialBufferSize, Allocator>::BufferSize() const
 {
 	return bufferSize;
 }
@@ -246,7 +246,7 @@ constexpr int CFastArray<T, initialBufferSize, Allocator>::InitialBufferSize()
 }
 
 template<class T, int initialBufferSize, class Allocator>
-inline void CFastArray<T, initialBufferSize, Allocator>::SetSize( int newSize )
+void CFastArray<T, initialBufferSize, Allocator>::SetSize( int newSize )
 {
 	PresumeFO( newSize >= 0 );
 	if( newSize > bufferSize ) {
@@ -256,7 +256,7 @@ inline void CFastArray<T, initialBufferSize, Allocator>::SetSize( int newSize )
 }
 
 template<class T, int initialBufferSize, class Allocator>
-inline void CFastArray<T, initialBufferSize, Allocator>::grow( int newSize )
+void CFastArray<T, initialBufferSize, Allocator>::grow( int newSize )
 {
 	PresumeFO( newSize >= 0 );
 	if( newSize > bufferSize ) {
@@ -266,7 +266,7 @@ inline void CFastArray<T, initialBufferSize, Allocator>::grow( int newSize )
 }
 
 template<class T, int initialBufferSize, class Allocator>
-inline void CFastArray<T, initialBufferSize, Allocator>::SetBufferSize( int newSize )
+void CFastArray<T, initialBufferSize, Allocator>::SetBufferSize( int newSize )
 {
 	PresumeFO( newSize >= 0 );
 	if( newSize > bufferSize ) {
@@ -293,7 +293,7 @@ auto CFastArray<T, initialBufferSize, Allocator>::GetPtr() const -> const T*
 }
 
 template<class T, int initialBufferSize, class Allocator>
-inline void CFastArray<T, initialBufferSize, Allocator>::Add( const T& elem )
+void CFastArray<T, initialBufferSize, Allocator>::Add( const T& elem )
 {
 	addImplEl( elem );
 }
@@ -314,14 +314,14 @@ void CFastArray<T, initialBufferSize, Allocator>::addImplEl( Arg&& arg )
 }
 
 template<class T, int initialBufferSize, class Allocator>
-inline void CFastArray<T, initialBufferSize, Allocator>::Add( const T& elem, int count )
+void CFastArray<T, initialBufferSize, Allocator>::Add( const T& elem, int count )
 {
 	InsertAt( elem, Size(), count );
 }
 
 template<class T, int initialBufferSize, class Allocator>
 template<int rhsInitBufSize>
-inline void CFastArray<T, initialBufferSize, Allocator>::Add( const TFastArray<rhsInitBufSize>& ar )
+void CFastArray<T, initialBufferSize, Allocator>::Add( const TFastArray<rhsInitBufSize>& ar )
 {
 	addImplArr( ar, &::memcpy );
 }
@@ -335,7 +335,7 @@ void CFastArray<T, initialBufferSize, Allocator>::Add( TFastArray<rhsInitBufSize
 
 template<class T, int initialBufferSize, class Allocator>
 template<class Arg, class Func>
-inline void CFastArray<T, initialBufferSize, Allocator>::addImplArr( Arg&& arg, Func func )
+void CFastArray<T, initialBufferSize, Allocator>::addImplArr( Arg&& arg, Func func )
 {
 	insertAtImplArr( std::forward<Arg>( arg ), size, func );
 }
@@ -399,13 +399,13 @@ auto CFastArray<T, initialBufferSize, Allocator>::First() -> T&
 }
 
 template<class T, int initialBufferSize, class Allocator>
-inline bool CFastArray<T, initialBufferSize, Allocator>::IsValidIndex( int index ) const
+bool CFastArray<T, initialBufferSize, Allocator>::IsValidIndex( int index ) const
 {
 	return index >= 0 && index < size;
 }
 
 template<class T, int initialBufferSize, class Allocator>
-inline void CFastArray<T, initialBufferSize, Allocator>::ReplaceAt( const T& elem, int location )
+void CFastArray<T, initialBufferSize, Allocator>::ReplaceAt( const T& elem, int location )
 {
 	replaceAtImplEl( elem, location );
 }
@@ -426,7 +426,7 @@ void CFastArray<T, initialBufferSize, Allocator>::replaceAtImplEl( Arg&& arg, in
 }
 
 template<class T, int initialBufferSize, class Allocator>
-inline void CFastArray<T, initialBufferSize, Allocator>::growAt( int pos, int newSize )
+void CFastArray<T, initialBufferSize, Allocator>::growAt( int pos, int newSize )
 {
 	PresumeFO( newSize > size );
 
@@ -440,7 +440,7 @@ inline void CFastArray<T, initialBufferSize, Allocator>::growAt( int pos, int ne
 }
 
 template<class T, int initialBufferSize, class Allocator>
-inline void CFastArray<T, initialBufferSize, Allocator>::InsertAt( const T& elem, int location )
+void CFastArray<T, initialBufferSize, Allocator>::InsertAt( const T& elem, int location )
 {
 	insertAtImplEl( elem, location );
 }
@@ -464,7 +464,7 @@ void CFastArray<T, initialBufferSize, Allocator>::insertAtImplEl( Arg&& arg, int
 }
 
 template<class T, int initialBufferSize, class Allocator>
-inline void CFastArray<T, initialBufferSize, Allocator>::InsertAt( const T& elem, int location, int count )
+void CFastArray<T, initialBufferSize, Allocator>::InsertAt( const T& elem, int location, int count )
 {
 	PresumeFO( location >= 0 );
 	PresumeFO( location <= size );
@@ -510,7 +510,7 @@ void CFastArray<T, initialBufferSize, Allocator>::insertAtImplArr( Arg&& arg, in
 }
 
 template<class T, int initialBufferSize, class Allocator>
-inline void CFastArray<T, initialBufferSize, Allocator>::InsertAt( const std::initializer_list<T>& list, int location )
+void CFastArray<T, initialBufferSize, Allocator>::InsertAt( const std::initializer_list<T>& list, int location )
 {
 	PresumeFO( location >= 0 );
 	PresumeFO( location <= size );
@@ -527,7 +527,7 @@ inline void CFastArray<T, initialBufferSize, Allocator>::InsertAt( const std::in
 }
 
 template<class T, int initialBufferSize, class Allocator>
-inline void CFastArray<T, initialBufferSize, Allocator>::DeleteAt( int location )
+void CFastArray<T, initialBufferSize, Allocator>::DeleteAt( int location )
 {
 	PresumeFO( location >= 0 );
 	PresumeFO( location < size );
@@ -540,7 +540,7 @@ inline void CFastArray<T, initialBufferSize, Allocator>::DeleteAt( int location 
 }
 
 template<class T, int initialBufferSize, class Allocator>
-inline void CFastArray<T, initialBufferSize, Allocator>::DeleteAt( int location, int count )
+void CFastArray<T, initialBufferSize, Allocator>::DeleteAt( int location, int count )
 {
 	PresumeFO( count >= 0 );
 	PresumeFO( location >= 0 );
@@ -556,45 +556,45 @@ inline void CFastArray<T, initialBufferSize, Allocator>::DeleteAt( int location,
 }
 
 template<class T, int initialBufferSize, class Allocator>
-inline void CFastArray<T, initialBufferSize, Allocator>::DeleteLast()
+void CFastArray<T, initialBufferSize, Allocator>::DeleteLast()
 {
 	PresumeFO( size > 0 );
 	size--;
 }
 
 template<class T, int initialBufferSize, class Allocator>
-inline void CFastArray<T, initialBufferSize, Allocator>::DeleteAll()
+void CFastArray<T, initialBufferSize, Allocator>::DeleteAll()
 {
 	size = 0;
 }
 
 template<class T, int initialBufferSize, class Allocator>
-inline void CFastArray<T, initialBufferSize, Allocator>::FreeBuffer()
+void CFastArray<T, initialBufferSize, Allocator>::FreeBuffer()
 {
 	DeleteAll();
 	reallocateBuffer( 0 );
 }
 
 template<class T, int initialBufferSize, class Allocator> template <class COMPARE>
-inline void CFastArray<T, initialBufferSize, Allocator>::QuickSort( COMPARE* param )
+void CFastArray<T, initialBufferSize, Allocator>::QuickSort( COMPARE* param )
 {
 	FObj::QuickSort<T, COMPARE>( GetPtr(), Size(), param );
 }
 
 template<class T, int initialBufferSize, class Allocator> template <class COMPARE>
-inline void CFastArray<T, initialBufferSize, Allocator>::QuickSort()
+void CFastArray<T, initialBufferSize, Allocator>::QuickSort()
 {
 	FObj::QuickSort<T, COMPARE>( GetPtr(), Size() );
 }
 
 template<class T, int initialBufferSize, class Allocator> template <class COMPARE>
-inline bool CFastArray<T, initialBufferSize, Allocator>::IsSorted( COMPARE* compare ) const
+bool CFastArray<T, initialBufferSize, Allocator>::IsSorted( COMPARE* compare ) const
 {
 	return FObj::IsSorted<T, COMPARE>( GetPtr(), Size(), compare );
 }
 
 template<class T, int initialBufferSize, class Allocator> template <class COMPARE>
-inline bool CFastArray<T, initialBufferSize, Allocator>::IsSorted() const
+bool CFastArray<T, initialBufferSize, Allocator>::IsSorted() const
 {
 	return FObj::IsSorted<T, COMPARE>( GetPtr(), Size() );
 }
@@ -607,7 +607,7 @@ inline int CFastArray<T, initialBufferSize, Allocator>::FindInsertionPoint( cons
 }
 
 template<class T, int initialBufferSize, class Allocator> template <class COMPARE, class SEARCHED_TYPE>
-inline int CFastArray<T, initialBufferSize, Allocator>::FindInsertionPoint( const SEARCHED_TYPE& what ) const
+int CFastArray<T, initialBufferSize, Allocator>::FindInsertionPoint( const SEARCHED_TYPE& what ) const
 {
 	return FObj::FindInsertionPoint<T, COMPARE, SEARCHED_TYPE>( what, GetPtr(), Size() );
 }
@@ -633,7 +633,7 @@ inline void CFastArray<T, initialBufferSize, Allocator>::Serialize( CArchive& ar
 //---------------------------------------------------------------------------------------------------------------------
 
 template<class T, int initialBufferSize, class Allocator>
-inline void CFastArray<T, initialBufferSize, Allocator>::reallocateBuffer( int newSize )
+void CFastArray<T, initialBufferSize, Allocator>::reallocateBuffer( int newSize )
 {
 	if( newSize == bufferSize ) {
 		return;
@@ -696,7 +696,7 @@ void CFastArray<T, initialBufferSize, Allocator>::CopyTo( TFastArray<rhsInitBufS
 
 template<class T, int initialBufferSize, class Allocator>
 template<int destInitBufSize>
-inline void CFastArray<T, initialBufferSize, Allocator>::MoveTo( CFastArray<T, destInitBufSize, Allocator>& dest )
+void CFastArray<T, initialBufferSize, Allocator>::MoveTo( CFastArray<T, destInitBufSize, Allocator>& dest )
 {
 	if( addrsEq( dest, *this ) ) {
 		return;
@@ -725,7 +725,7 @@ inline void CFastArray<T, initialBufferSize, Allocator>::MoveTo( CFastArray<T, d
 
 template<class T, int initialBufferSize, class Allocator>
 template<int rhsInitBufSize>
-inline bool CFastArray<T, initialBufferSize, Allocator>::operator==( const TFastArray<rhsInitBufSize>& other ) const
+bool CFastArray<T, initialBufferSize, Allocator>::operator==( const TFastArray<rhsInitBufSize>& other ) const
 {
 	if( addrsEq( *this, other ) ) {
 		return true;
@@ -743,13 +743,13 @@ inline bool CFastArray<T, initialBufferSize, Allocator>::operator==( const TFast
 
 template<class T, int initialBufferSize, class Allocator>
 template<int rhsInitBufSize>
-inline bool CFastArray<T, initialBufferSize, Allocator>::operator!=( const TFastArray<rhsInitBufSize>& other ) const
+bool CFastArray<T, initialBufferSize, Allocator>::operator!=( const TFastArray<rhsInitBufSize>& other ) const
 {
 	return !( *this == other );
 }
 
 template<class T, int initialBufferSize, class Allocator>
-inline int CFastArray<T, initialBufferSize, Allocator>::Find( const T& what, int startPos ) const
+int CFastArray<T, initialBufferSize, Allocator>::Find( const T& what, int startPos ) const
 {
 	PresumeFO( startPos >= 0 );
 	for( int i = startPos; i < Size(); i++ ) {
@@ -771,7 +771,7 @@ bool CFastArray<T, initialBufferSize, Allocator>::addrsEq( const Arg1& arg1, con
 
 template<class T, int InitialBufferSize, class Allocator,
 	class TFastArray = CFastArray<T, InitialBufferSize, Allocator>>
-inline void ArrayMemMoveElement( TFastArray* dest, TFastArray* source )
+void ArrayMemMoveElement( TFastArray* dest, TFastArray* source )
 {
 	PresumeFO( dest != source );
 	::new( dest ) TFastArray;

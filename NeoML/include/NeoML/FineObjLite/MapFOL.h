@@ -236,7 +236,7 @@ CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::CMap() :
 }
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
-inline CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::CMap( int hashSize ) :
+CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::CMap( int hashSize ) :
 	initialHashTableSize( UpperPrimeNumber( hashSize - 1 ) )
 {
 	PresumeFO( hashSize >= 0 );
@@ -245,7 +245,7 @@ inline CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::CMap( int hashSize ) :
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
 template<class MapInitStruct>
-inline CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::CMap( const MapInitStruct* data, int dataSize ) :
+CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::CMap( const MapInitStruct* data, int dataSize ) :
 	initialHashTableSize( UpperPrimeNumber( dataSize - 1 ) )
 {
 	AssertFO( data != 0 );
@@ -261,27 +261,27 @@ inline CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::CMap( const MapInitStruct* data
 }
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
-inline CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::CMap( const std::initializer_list<TElement>& list ) :
+CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::CMap( const std::initializer_list<TElement>& list ) :
 	CMap()
 {
 	Add( list );
 }
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
-inline CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::CMap( CMap&& other ) :
+CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::CMap( CMap&& other ) :
 	CMap()
 {
 	FObj::swap( *this, other );
 }
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
-inline CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::~CMap()
+CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::~CMap()
 {
 	FreeBuffer();
 }
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
-inline auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::operator=( const std::initializer_list<TElement>& list ) -> CMap&
+auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::operator=( const std::initializer_list<TElement>& list ) -> CMap&
 {
 	DeleteAll();
 	Add( list );
@@ -289,20 +289,20 @@ inline auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::operator=( const std::init
 }
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
-inline auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::operator=( CMap&& other ) -> CMap&
+auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::operator=( CMap&& other ) -> CMap&
 {
 	FObj::swap( *this, other );
 	return *this;
 }
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
-inline int CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::Size() const
+int CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::Size() const
 {
 	return valuesCount;
 }
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
-inline void CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::SetHashTableSize( int size )
+void CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::SetHashTableSize( int size )
 {
 	dataAllocator.Reserve( size );
 	if( size > hashTableSize ) {
@@ -311,7 +311,7 @@ inline void CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::SetHashTableSize( int size
 }
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
-inline void CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::init( int hashSize )
+void CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::init( int hashSize )
 {
 	hashTableSize = hashSize;
 	index.DeleteAll();
@@ -319,13 +319,13 @@ inline void CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::init( int hashSize )
 }
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
-inline int CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::getIndexSize( int hashSize )
+int CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::getIndexSize( int hashSize )
 {
 	return hashSize + CeilTo( hashSize / 2, MapIndexGroupLength );
 }
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
-inline void CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::Set( const KEY& key, const VALUE& value )
+void CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::Set( const KEY& key, const VALUE& value )
 {
 	const int hash = KEYHASHINFO::HashKey( key );
 	deleteAllValues( hash, key );
@@ -334,7 +334,7 @@ inline void CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::Set( const KEY& key, const
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
 template<class Arg, std::enable_if_t< DetailsCMap::IsRvalueSupported<Arg, VALUE>(), int > >
-inline void CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::Set( const KEY& key, Arg&& value )
+void CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::Set( const KEY& key, Arg&& value )
 {
 	const int hash = KEYHASHINFO::HashKey( key );
 	deleteAllValues( hash, key );
@@ -343,13 +343,13 @@ inline void CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::Set( const KEY& key, Arg&&
 
 // DEPRECATED !!! Use CreateOrReplaceValue instead
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
-inline auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::CreateValue( const KEY& key ) -> VALUE&
+auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::CreateValue( const KEY& key ) -> VALUE&
 {
 	return CreateOrReplaceValue( key );
 }
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
-inline auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::CreateOrReplaceValue( const KEY& key ) -> VALUE&
+auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::CreateOrReplaceValue( const KEY& key ) -> VALUE&
 {
 	const int hash = KEYHASHINFO::HashKey( key );
 	deleteAllValues( hash, key );
@@ -357,7 +357,7 @@ inline auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::CreateOrReplaceValue( cons
 }
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
-inline auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::CreateNewValue( const KEY& key ) -> VALUE&
+auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::CreateNewValue( const KEY& key ) -> VALUE&
 {
 	const TMapPosition pos = GetFirstPosition( key );
 	AssertFO( pos == NotFound );
@@ -366,7 +366,7 @@ inline auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::CreateNewValue( const KEY&
 }
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
-inline void CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::Add( const KEY& key, const VALUE& value )
+void CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::Add( const KEY& key, const VALUE& value )
 {
 	const int hash = KEYHASHINFO::HashKey( key );
 	addValue( hash, key, value );
@@ -374,14 +374,14 @@ inline void CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::Add( const KEY& key, const
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
 template<class Arg, std::enable_if_t< DetailsCMap::IsRvalueSupported<Arg, VALUE>(), int > >
-inline void CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::Add( const KEY& key, Arg&& value )
+void CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::Add( const KEY& key, Arg&& value )
 {
 	const int hash = KEYHASHINFO::HashKey( key );
 	addValue( hash, key, std::move( value ) );
 }
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
-inline void CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::Add( const std::initializer_list<TElement>& list )
+void CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::Add( const std::initializer_list<TElement>& list )
 {
 	SetHashTableSize( Size() + static_cast<int>( list.size() ) );
 	for( const TElement& element : list ) {
@@ -390,13 +390,13 @@ inline void CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::Add( const std::initialize
 }
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
-inline void CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::Add( const CMap& values )
+void CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::Add( const CMap& values )
 {
 	values.AppendTo( *this );
 }
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
-inline void CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::Add( CMap&& values )
+void CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::Add( CMap&& values )
 {
 	SetHashTableSize( Size() + values.Size() );
 	for( const TElement& element : values ) {
@@ -405,14 +405,14 @@ inline void CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::Add( CMap&& values )
 }
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
-inline auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::AddValue( const KEY& key ) -> VALUE&
+auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::AddValue( const KEY& key ) -> VALUE&
 {
 	const int hash = KEYHASHINFO::HashKey( key );
 	return addValue( hash, key );
 }
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
-inline bool CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::Lookup( const KEY& key, VALUE& value ) const
+bool CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::Lookup( const KEY& key, VALUE& value ) const
 {
 	const TMapPosition position = GetFirstPosition( key );
 	if( position == NotFound ) {
@@ -424,7 +424,7 @@ inline bool CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::Lookup( const KEY& key, VA
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
 template<class TValue>
-inline auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::Lookup( const KEY& key )
+auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::Lookup( const KEY& key )
 	-> std::enable_if_t< std::is_same<TValue, VALUE>::value && !std::is_reference<TValue>::value, TValue* >
 {
 	const TMapPosition position = GetFirstPosition( key );
@@ -436,7 +436,7 @@ inline auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::Lookup( const KEY& key )
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
 template<class TValue>
-inline auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::Lookup( const KEY& key ) const
+auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::Lookup( const KEY& key ) const
 	-> std::enable_if_t< std::is_same<TValue, VALUE>::value && !std::is_reference<TValue>::value, const TValue* >
 {
 	const TMapPosition position = GetFirstPosition( key );
@@ -448,7 +448,7 @@ inline auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::Lookup( const KEY& key ) c
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
 template<class ARRAY>
-inline bool CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::LookupAllValues( const KEY& key, ARRAY& values ) const
+bool CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::LookupAllValues( const KEY& key, ARRAY& values ) const
 {
 	values.DeleteAll();
 	const int hash = KEYHASHINFO::HashKey( key );
@@ -463,7 +463,7 @@ inline bool CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::LookupAllValues( const KEY
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
 template<class ARRAY>
-inline bool CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::LookupAllValues( const KEY& key, ARRAY& values )
+bool CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::LookupAllValues( const KEY& key, ARRAY& values )
 {
 	values.DeleteAll();
 	const int hash = KEYHASHINFO::HashKey( key );
@@ -477,7 +477,7 @@ inline bool CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::LookupAllValues( const KEY
 }
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
-inline auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::Get( const KEY& key ) -> VALUE&
+auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::Get( const KEY& key ) -> VALUE&
 {
 	TMapPosition position = GetFirstPosition( key );
 	AssertFO( position != NotFound );
@@ -485,7 +485,7 @@ inline auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::Get( const KEY& key ) -> V
 }
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
-inline auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::Get( const KEY& key ) const -> const VALUE&
+auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::Get( const KEY& key ) const -> const VALUE&
 {
 	TMapPosition position = GetFirstPosition( key );
 	AssertFO( position != NotFound );
@@ -493,7 +493,7 @@ inline auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::Get( const KEY& key ) cons
 }
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
-inline auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::GetOrCreateValue( const KEY& key ) -> VALUE&
+auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::GetOrCreateValue( const KEY& key ) -> VALUE&
 {
 	const int hash = KEYHASHINFO::HashKey( key );
 	TMapPosition position = findKeyInIndex( key, first( hash ) );
@@ -504,21 +504,21 @@ inline auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::GetOrCreateValue( const KE
 }
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
-inline auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::GetOrCreateValue( const KEY& key, const VALUE& value ) -> VALUE&
+auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::GetOrCreateValue( const KEY& key, const VALUE& value ) -> VALUE&
 {
 	return getOrCreateValueImpl( key, value );
 }
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
 template<class Arg, std::enable_if_t< DetailsCMap::IsRvalueSupported<Arg, VALUE>(), int > >
-inline auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::GetOrCreateValue( const KEY& key, Arg&& value ) -> VALUE&
+auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::GetOrCreateValue( const KEY& key, Arg&& value ) -> VALUE&
 {
 	return getOrCreateValueImpl( key, std::move( value ) );
 }
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
 template<class Arg>
-inline auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::getOrCreateValueImpl( const KEY& key, Arg&& arg ) -> VALUE&
+auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::getOrCreateValueImpl( const KEY& key, Arg&& arg ) -> VALUE&
 {
 	const int hash = KEYHASHINFO::HashKey( key );
 	const TMapPosition position = findKeyInIndex( key, first( hash ) );
@@ -530,7 +530,7 @@ inline auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::getOrCreateValueImpl( cons
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
 template<class Arg>
-inline auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::addValue( int hash, const KEY& key, Arg&& arg ) -> VALUE&
+auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::addValue( int hash, const KEY& key, Arg&& arg ) -> VALUE&
 {
 	const TMapPosition freePos = findIndexFreePosWithGrow( hash );
 	CMapData<KEY, VALUE>* ptr = new( dataAllocator.Alloc() ) CMapData<KEY, VALUE>( key, std::forward<Arg>( arg ) );
@@ -540,7 +540,7 @@ inline auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::addValue( int hash, const 
 }
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
-inline auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::addValue( int hash, const KEY& key ) -> VALUE&
+auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::addValue( int hash, const KEY& key ) -> VALUE&
 {
 	TMapPosition freePos = findIndexFreePosWithGrow( hash );
 	CMapData<KEY, VALUE>* ptr = new( dataAllocator.Alloc() ) CMapData<KEY, VALUE>( key );
@@ -550,7 +550,7 @@ inline auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::addValue( int hash, const 
 }
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
-inline int CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::Delete( const KEY& key )
+int CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::Delete( const KEY& key )
 {
 	const int hash = KEYHASHINFO::HashKey( key );
 	return deleteAllValues( hash, key );
@@ -570,7 +570,7 @@ int CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::deleteAllValues( int hash, const K
 }
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
-inline void CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::DeleteAt( TMapPosition pos )
+void CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::DeleteAt( TMapPosition pos )
 {
 	CMapData<KEY, VALUE>* data = index[pos].DataPointer();
 	index[pos] = CIndexEntry();
@@ -580,7 +580,7 @@ inline void CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::DeleteAt( TMapPosition pos
 }
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
-inline void CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::DeleteAll()
+void CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::DeleteAll()
 {
 	if( valuesCount == 0 ) {
 		return;
@@ -597,7 +597,7 @@ inline void CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::DeleteAll()
 }
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
-inline void CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::CopyTo( CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>& dest ) const
+void CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::CopyTo( CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>& dest ) const
 {
 	if( &dest == this ) {
 		return;
@@ -617,7 +617,7 @@ inline void CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::CopyTo( CMap<KEY, VALUE, K
 }
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
-inline void CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::MoveTo( CMap& dest )
+void CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::MoveTo( CMap& dest )
 {
 	if( &dest == this ) {
 		return;
@@ -634,7 +634,7 @@ inline void CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::MoveTo( CMap& dest )
 }
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
-inline void CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::AppendTo( CMap& dest ) const
+void CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::AppendTo( CMap& dest ) const
 {
 	if( &dest == this ) {
 		return;
@@ -648,13 +648,13 @@ inline void CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::AppendTo( CMap& dest ) con
 }
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
-inline auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::first( int hashCode ) const -> TMapPosition
+auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::first( int hashCode ) const -> TMapPosition
 {
 	return first( hashCode, hashTableSize, index );
 }
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
-inline auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::first( int hashCode, int tableSize, const TIndex& indexEntry ) const -> TMapPosition
+auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::first( int hashCode, int tableSize, const TIndex& indexEntry ) const -> TMapPosition
 {
 	if( indexEntry.Size() == 0 ) {
 		return NotFound;
@@ -675,13 +675,13 @@ inline auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::first( int hashCode, int t
 }
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
-inline auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::next( TMapPosition pos ) const -> TMapPosition
+auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::next( TMapPosition pos ) const -> TMapPosition
 {
 	return next( pos, hashTableSize, index );
 }
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
-inline auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::next( TMapPosition pos, int tableSize, const TIndex& indexEntry ) const -> TMapPosition
+auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::next( TMapPosition pos, int tableSize, const TIndex& indexEntry ) const -> TMapPosition
 {
 	if( pos < tableSize || ( ( pos - tableSize + 1 ) % MapIndexGroupLength ) == 0 ) {
 		return NotFound;
@@ -696,7 +696,7 @@ inline auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::next( TMapPosition pos, in
 }
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
-inline void CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::FreeBuffer()
+void CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::FreeBuffer()
 {
 	if( valuesCount != 0 ) {
 		for( CIndexEntry& entry : index ) {
@@ -713,13 +713,13 @@ inline void CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::FreeBuffer()
 }
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
-inline bool CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::Has( const KEY& key ) const
+bool CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::Has( const KEY& key ) const
 {
 	return GetFirstPosition( key ) != NotFound;
 }
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
-inline auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::GetFirstPosition() const -> TMapPosition
+auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::GetFirstPosition() const -> TMapPosition
 {
 	TMapPosition result = 0;
 	for( const CIndexEntry& entry : index ) {
@@ -732,14 +732,14 @@ inline auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::GetFirstPosition() const -
 }
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
-inline auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::GetFirstPosition( const KEY& key ) const -> TMapPosition
+auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::GetFirstPosition( const KEY& key ) const -> TMapPosition
 {
 	const int hash = KEYHASHINFO::HashKey( key );
 	return findKeyInIndex( key, first( hash ) );
 }
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
-inline auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::GetNextPosition( TMapPosition pos ) const -> TMapPosition
+auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::GetNextPosition( TMapPosition pos ) const -> TMapPosition
 {
 	for( TMapPosition i = pos + 1; i < index.Size(); i++ ) {
 		if( index[i].IsDataPointer() ) {
@@ -750,43 +750,43 @@ inline auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::GetNextPosition( TMapPosit
 }
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
-inline auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::GetNextPosition( const KEY& key, TMapPosition prev ) const -> TMapPosition
+auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::GetNextPosition( const KEY& key, TMapPosition prev ) const -> TMapPosition
 {
 	return findKeyInIndex( key, next( prev ) );
 }
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
-inline auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::GetValue( TMapPosition pos ) const -> const VALUE&
+auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::GetValue( TMapPosition pos ) const -> const VALUE&
 {
 	return index[pos].DataPointer()->Value;
 }
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
-inline auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::GetValue( TMapPosition pos ) -> VALUE&
+auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::GetValue( TMapPosition pos ) -> VALUE&
 {
 	return index[pos].DataPointer()->Value;
 }
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
-inline auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::GetKey( TMapPosition pos ) const -> const KEY&
+auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::GetKey( TMapPosition pos ) const -> const KEY&
 {
 	return index[pos].DataPointer()->Key;
 }
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
-inline auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::GetKeyValue( TMapPosition pos ) const -> const TElement&
+auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::GetKeyValue( TMapPosition pos ) const -> const TElement&
 {
 	return *reinterpret_cast<TElement*>( index[pos].DataPointer() );
 }
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
-inline auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::GetKeyValue( TMapPosition pos ) -> TElement&
+auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::GetKeyValue( TMapPosition pos ) -> TElement&
 {
 	return *reinterpret_cast<TElement*>( index[pos].DataPointer() );
 }
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
-inline bool CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::operator==( const CMap& values ) const
+bool CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::operator==( const CMap& values ) const
 {
 	if( &values == this ) {
 		return true;
@@ -808,13 +808,13 @@ inline bool CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::operator==( const CMap& va
 }
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
-inline bool CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::operator!=( const CMap& values ) const
+bool CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::operator!=( const CMap& values ) const
 {
 	return !( *this == values );
 }
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
-inline auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::findKeyInIndex( const KEY& key, TMapPosition from ) const -> TMapPosition
+auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::findKeyInIndex( const KEY& key, TMapPosition from ) const -> TMapPosition
 {
 	for( TMapPosition pos = from; pos != NotFound; pos = next( pos ) ) {
 		if( index[pos].IsDataPointer() && KEYHASHINFO::IsEqual( index[pos].DataPointer()->Key, key ) ) {
@@ -825,7 +825,7 @@ inline auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::findKeyInIndex( const KEY&
 }
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
-inline auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::findIndexFreePos( int hash, int tableSize, TIndex& indexEntry ) const -> TMapPosition
+auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::findIndexFreePos( int hash, int tableSize, TIndex& indexEntry ) const -> TMapPosition
 {
 	TMapPosition lastDataPos = NotFound;
 	TMapPosition pos = first( hash, tableSize, indexEntry );
@@ -854,7 +854,7 @@ inline auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::findIndexFreePos( int hash
 }
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
-inline bool CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::canRehash() const
+bool CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::canRehash() const
 {
 	return ( valuesCount + 1 < hashTableSize / 4 );
 }
@@ -879,7 +879,7 @@ auto CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::findIndexFreePosWithGrow( int has
 }
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
-inline void CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::growIndex( int minSize )
+void CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::growIndex( int minSize )
 {
 	TIndex newIndex;
 	int newHashTableSize = minSize - 1;
@@ -913,7 +913,7 @@ inline void CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::growIndex( int minSize )
 // Serialize
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
-inline void CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::Serialize( CArchive& ar )
+void CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::Serialize( CArchive& ar )
 {
 	if( ar.IsStoring() ) {
 		int count = Size();
@@ -938,14 +938,14 @@ inline void CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>::Serialize( CArchive& ar )
 }
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
-inline CArchive& operator>>( CArchive& archive, CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>& map )
+CArchive& operator>>( CArchive& archive, CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>& map )
 {
 	map.Serialize( archive );
 	return archive;
 }
 
 template<class KEY, class VALUE, class KEYHASHINFO, class ALLOCATOR>
-inline CArchive& operator<<( CArchive& archive, const CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>& map )
+CArchive& operator<<( CArchive& archive, const CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>& map )
 {
 	const_cast< CMap<KEY, VALUE, KEYHASHINFO, ALLOCATOR>& >( map ).Serialize( archive );
 	return archive;

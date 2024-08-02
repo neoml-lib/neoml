@@ -101,7 +101,7 @@ CHashTableAllocator<BaseAllocator, BlockSize>::~CHashTableAllocator()
 }
 
 template<class BaseAllocator, int BlockSize>
-inline void* CHashTableAllocator<BaseAllocator, BlockSize>::Alloc()
+void* CHashTableAllocator<BaseAllocator, BlockSize>::Alloc()
 {
 	if( firstFreeBlock == nullptr ) {
 		if( currentPage == nullptr || allocatedInCurrentPage + BlockSize > currentPage->DataSize ) {
@@ -118,7 +118,7 @@ inline void* CHashTableAllocator<BaseAllocator, BlockSize>::Alloc()
 }
 
 template<class BaseAllocator, int BlockSize>
-inline void CHashTableAllocator<BaseAllocator, BlockSize>::Free( void* block )
+void CHashTableAllocator<BaseAllocator, BlockSize>::Free( void* block )
 {
 	PresumeFO( block != 0 );
 	CHashTableAllocatorFreeBlock* freeHeader = new( block ) CHashTableAllocatorFreeBlock;
@@ -127,7 +127,7 @@ inline void CHashTableAllocator<BaseAllocator, BlockSize>::Free( void* block )
 }
 
 template<class BaseAllocator, int BlockSize>
-inline void CHashTableAllocator<BaseAllocator, BlockSize>::MoveTo( CHashTableAllocator& dest )
+void CHashTableAllocator<BaseAllocator, BlockSize>::MoveTo( CHashTableAllocator& dest )
 {
 	PresumeFO( &dest != this );
 	dest.FreeBuffer();
@@ -188,7 +188,7 @@ void CHashTableAllocator<BaseAllocator, BlockSize>::allocPage()
 }
 
 template<class BaseAllocator, int BlockSize>
-inline void CHashTableAllocator<BaseAllocator, BlockSize>::freeAllPages()
+void CHashTableAllocator<BaseAllocator, BlockSize>::freeAllPages()
 {
 	while( currentPage != nullptr ) {
 		CHashTableAllocatorPage* page = currentPage;

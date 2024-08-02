@@ -24,11 +24,11 @@ limitations under the License.
 namespace FObj {
 
 template<class T>
-inline void ArrayMemMoveElement( T* dest, T* source );
+void ArrayMemMoveElement( T* dest, T* source );
 
 // The template function used by CArray to move elements in the buffer
 template<class T>
-inline void ArrayMemMove( T* dest, T* source, int count )
+void ArrayMemMove( T* dest, T* source, int count )
 {
 	if( dest > source ) {
 		for( int i = count - 1; i >= 0; i-- ) {
@@ -42,7 +42,7 @@ inline void ArrayMemMove( T* dest, T* source, int count )
 }
 
 template<class T>
-inline void ArrayMemMoveElement( T* dest, T* source )
+void ArrayMemMoveElement( T* dest, T* source )
 {
 	PresumeFO( dest != source );
 	::new( dest ) T( std::move( *source ) );
@@ -50,7 +50,7 @@ inline void ArrayMemMoveElement( T* dest, T* source )
 }
 
 template<class T>
-inline void ArrayMemMoveBitwize( T* dest, T* source, int count )
+void ArrayMemMoveBitwize( T* dest, T* source, int count )
 {
 	::memmove( reinterpret_cast<char*>( dest ), reinterpret_cast<char*>( source ), count * sizeof( T ) );
 }
@@ -275,20 +275,20 @@ private:
 };
 
 template<class T, class Allocator>
-inline CArray<T, Allocator>::CArray()
+CArray<T, Allocator>::CArray()
 {
 	static_assert( sizeof( T ) == sizeof( CDataHolder ), "sizeof( T ) != sizeof( CDataHolder )" );
 }
 
 template<class T, class Allocator>
-inline CArray<T, Allocator>::CArray( const std::initializer_list<T>& list ) :
+CArray<T, Allocator>::CArray( const std::initializer_list<T>& list ) :
 	CArray()
 {
 	Add( list );
 }
 
 template<class T, class Allocator>
-inline CArray<T, Allocator>& CArray<T, Allocator>::operator=( const std::initializer_list<T>& list )
+CArray<T, Allocator>& CArray<T, Allocator>::operator=( const std::initializer_list<T>& list )
 {
 	DeleteAll();
 	Add( list );
@@ -303,26 +303,26 @@ CArray<T, Allocator>::CArray( CArray&& rhs ) :
 }
 
 template<class T, class Allocator>
-inline CArray<T, Allocator>& CArray<T, Allocator>::operator=( CArray&& rhs )
+CArray<T, Allocator>& CArray<T, Allocator>::operator=( CArray&& rhs )
 {
 	FObj::swap( *this, rhs );
 	return *this;
 }
 
 template<class T, class Allocator>
-inline int CArray<T, Allocator>::Size() const
+int CArray<T, Allocator>::Size() const
 {
 	return size;
 }
 
 template<class T, class Allocator>
-inline int CArray<T, Allocator>::BufferSize() const
+int CArray<T, Allocator>::BufferSize() const
 {
 	return bufferSize;
 }
 
 template<class T, class Allocator>
-inline T* CArray<T, Allocator>::GetPtr()
+T* CArray<T, Allocator>::GetPtr()
 {
 	if( Size() == 0 ) {
 		return 0;
@@ -331,7 +331,7 @@ inline T* CArray<T, Allocator>::GetPtr()
 }
 
 template<class T, class Allocator>
-inline const T* CArray<T, Allocator>::GetPtr() const
+const T* CArray<T, Allocator>::GetPtr() const
 {
 	if( Size() == 0 ) {
 		return 0;
@@ -340,7 +340,7 @@ inline const T* CArray<T, Allocator>::GetPtr() const
 }
 
 template<class T, class Allocator>
-inline const T& CArray<T, Allocator>::operator [] ( int location ) const
+const T& CArray<T, Allocator>::operator [] ( int location ) const
 {
 	PresumeFO( location >= 0 );
 	PresumeFO( location < size );
@@ -348,7 +348,7 @@ inline const T& CArray<T, Allocator>::operator [] ( int location ) const
 }
 
 template<class T, class Allocator>
-inline T& CArray<T, Allocator>::operator [] ( int location )
+T& CArray<T, Allocator>::operator [] ( int location )
 {
 	PresumeFO( location >= 0 );
 	PresumeFO( location < size );
@@ -356,41 +356,41 @@ inline T& CArray<T, Allocator>::operator [] ( int location )
 }
 
 template<class T, class Allocator>
-inline const T& CArray<T, Allocator>::Last() const
+const T& CArray<T, Allocator>::Last() const
 {
 	PresumeFO( size > 0 );
 	return dataPtr[size - 1].Data;
 }
 
 template<class T, class Allocator>
-inline T& CArray<T, Allocator>::Last()
+T& CArray<T, Allocator>::Last()
 {
 	PresumeFO( size > 0 );
 	return dataPtr[size - 1].Data;
 }
 
 template<class T, class Allocator>
-inline const T& CArray<T, Allocator>::First() const
+const T& CArray<T, Allocator>::First() const
 {
 	PresumeFO( size > 0 );
 	return dataPtr[0].Data;
 }
 
 template<class T, class Allocator>
-inline T& CArray<T, Allocator>::First()
+T& CArray<T, Allocator>::First()
 {
 	PresumeFO( size > 0 );
 	return dataPtr[0].Data;
 }
 
 template<class T, class Allocator>
-inline bool CArray<T, Allocator>::IsValidIndex( int index ) const
+bool CArray<T, Allocator>::IsValidIndex( int index ) const
 {
 	return index >= 0 && index < size;
 }
 
 template<class T, class Allocator>
-inline void CArray<T, Allocator>::SetBufferSize( int newSize )
+void CArray<T, Allocator>::SetBufferSize( int newSize )
 {
 	PresumeFO( newSize >= 0 );
 	if( newSize > bufferSize ) {
@@ -399,7 +399,7 @@ inline void CArray<T, Allocator>::SetBufferSize( int newSize )
 }
 
 template<class T, class Allocator>
-inline void CArray<T, Allocator>::SetSize( int newSize )
+void CArray<T, Allocator>::SetSize( int newSize )
 {
 	PresumeFO( newSize >= 0 );
 	if( size < newSize ) {
@@ -414,7 +414,7 @@ inline void CArray<T, Allocator>::SetSize( int newSize )
 }
 
 template<class T, class Allocator>
-inline void CArray<T, Allocator>::Add( const T& what )
+void CArray<T, Allocator>::Add( const T& what )
 {
 	addImplEl( what );
 }
@@ -467,7 +467,7 @@ void CArray<T, Allocator>::EmplaceBack( Args&&... args )
 }
 
 template<class T, class Allocator>
-inline void CArray<T, Allocator>::InsertAt( const T& what, int location )
+void CArray<T, Allocator>::InsertAt( const T& what, int location )
 {
 	insertAtImplEl( what, location );
 }
@@ -500,7 +500,7 @@ void CArray<T, Allocator>::insertAtImplEl( El&& what, int location )
 }
 
 template<class T, class Allocator>
-inline void CArray<T, Allocator>::InsertAt( const T& what, int location, int count )
+void CArray<T, Allocator>::InsertAt( const T& what, int location, int count )
 {
 	PresumeFO( location >= 0 );
 	PresumeFO( location <= size );
@@ -525,7 +525,7 @@ inline void CArray<T, Allocator>::InsertAt( const T& what, int location, int cou
 }
 
 template<class T, class Allocator>
-inline void CArray<T, Allocator>::InsertAt( const CArray& what, int location )
+void CArray<T, Allocator>::InsertAt( const CArray& what, int location )
 {
 	const auto op = [this]( const T& el, int pos ) { constructAt( pos, el ); };
 	insertAtImplArray( what, location, op );
@@ -566,7 +566,7 @@ void CArray<T, Allocator>::insertAtImplArray( Arr&& what, int location, FuncOp o
 }
 
 template<class T, class Allocator>
-inline void CArray<T, Allocator>::InsertAt( const std::initializer_list<T>& list, int location )
+void CArray<T, Allocator>::InsertAt( const std::initializer_list<T>& list, int location )
 {
 	PresumeFO( location >= 0 );
 	PresumeFO( location <= size );
@@ -590,7 +590,7 @@ inline void CArray<T, Allocator>::InsertAt( const std::initializer_list<T>& list
 }
 
 template<class T, class Allocator>
-inline void CArray<T, Allocator>::ReplaceAt( const T& newElem, int location )
+void CArray<T, Allocator>::ReplaceAt( const T& newElem, int location )
 {
 	replaceAtImplEl( newElem, location );
 }
@@ -621,7 +621,7 @@ void CArray<T, Allocator>::replaceAtImplEl( El&& newElem, int location )
 }
 
 template<class T, class Allocator>
-inline void CArray<T, Allocator>::DeleteAt( int location, int num )
+void CArray<T, Allocator>::DeleteAt( int location, int num )
 {
 	PresumeFO( num >= 0 );
 	PresumeFO( num <= size );
@@ -638,7 +638,7 @@ inline void CArray<T, Allocator>::DeleteAt( int location, int num )
 }
 
 template<class T, class Allocator>
-inline void CArray<T, Allocator>::DeleteLast()
+void CArray<T, Allocator>::DeleteLast()
 {
 	PresumeFO( size > 0 );
 
@@ -647,14 +647,14 @@ inline void CArray<T, Allocator>::DeleteLast()
 }
 
 template<class T, class Allocator>
-inline void CArray<T, Allocator>::DeleteAll()
+void CArray<T, Allocator>::DeleteAll()
 {
 	destruct( 0, size );
 	size = 0;
 }
 
 template<class T, class Allocator>
-inline void CArray<T, Allocator>::FreeBuffer()
+void CArray<T, Allocator>::FreeBuffer()
 {
 	DeleteAll();
 
@@ -667,7 +667,7 @@ inline void CArray<T, Allocator>::FreeBuffer()
 }
 
 template<class T, class Allocator>
-inline void CArray<T, Allocator>::MoveElement( int from, int to )
+void CArray<T, Allocator>::MoveElement( int from, int to )
 {
 	PresumeFO( from >= 0 && from < size );
 	PresumeFO( to >= 0 && to < size );
@@ -700,7 +700,7 @@ void CArray<T, Allocator>::CopyTo( CArray& dest ) const
 }
 
 template<class T, class Allocator>
-inline void CArray<T, Allocator>::MoveTo( CArray& dest )
+void CArray<T, Allocator>::MoveTo( CArray& dest )
 {
 	if( &dest == this ) {
 		return;
@@ -716,7 +716,7 @@ inline void CArray<T, Allocator>::MoveTo( CArray& dest )
 }
 
 template<class T, class Allocator>
-inline bool CArray<T, Allocator>::operator==( const CArray& other ) const
+bool CArray<T, Allocator>::operator==( const CArray& other ) const
 {
 	if( this == &other ) {
 		return true;
@@ -733,13 +733,13 @@ inline bool CArray<T, Allocator>::operator==( const CArray& other ) const
 }
 
 template<class T, class Allocator>
-inline bool CArray<T, Allocator>::operator!=( const CArray& other ) const
+bool CArray<T, Allocator>::operator!=( const CArray& other ) const
 {
 	return !( *this == other );
 }
 
 template<class T, class Allocator>
-inline int CArray<T, Allocator>::Find( const T& what, int startPos ) const
+int CArray<T, Allocator>::Find( const T& what, int startPos ) const
 {
 	PresumeFO( startPos >= 0 );
 	for( int i = startPos; i < Size(); i++ ) {
@@ -751,25 +751,25 @@ inline int CArray<T, Allocator>::Find( const T& what, int startPos ) const
 }
 
 template<class T, class Allocator> template<class COMPARE>
-inline void CArray<T, Allocator>::QuickSort( COMPARE* param )
+void CArray<T, Allocator>::QuickSort( COMPARE* param )
 {
 	FObj::QuickSort<T, COMPARE>( GetPtr(), Size(), param );
 }
 
 template<class T, class Allocator> template<class COMPARE>
-inline void CArray<T, Allocator>::QuickSort()
+void CArray<T, Allocator>::QuickSort()
 {
 	FObj::QuickSort<T, COMPARE>( GetPtr(), Size() );
 }
 
 template<class T, class Allocator> template<class COMPARE>
-inline bool CArray<T, Allocator>::IsSorted( COMPARE* compare ) const
+bool CArray<T, Allocator>::IsSorted( COMPARE* compare ) const
 {
 	return FObj::IsSorted<T, COMPARE>( GetPtr(), Size(), compare );
 }
 
 template<class T, class Allocator> template<class COMPARE>
-inline bool CArray<T, Allocator>::IsSorted() const
+bool CArray<T, Allocator>::IsSorted() const
 {
 	return FObj::IsSorted<T, COMPARE>( GetPtr(), Size() );
 }
@@ -781,7 +781,7 @@ inline int CArray<T, Allocator>::FindInsertionPoint( const SEARCHED_TYPE& what, 
 }
 
 template<class T, class Allocator> template<class COMPARE, class SEARCHED_TYPE>
-inline int CArray<T, Allocator>::FindInsertionPoint( const SEARCHED_TYPE& what ) const
+int CArray<T, Allocator>::FindInsertionPoint( const SEARCHED_TYPE& what ) const
 {
 	return FObj::FindInsertionPoint<T, COMPARE, SEARCHED_TYPE>( what, GetPtr(), Size() );
 }
@@ -792,7 +792,7 @@ static const int MinBufferGrowSize = 8;
 
 template<class T, class Allocator>
 template<class U, class CArrayDataHolder>
-inline auto CArray<T, Allocator>::moveData( CArrayDataHolder* destDataPtr, int destIndex,
+auto CArray<T, Allocator>::moveData( CArrayDataHolder* destDataPtr, int destIndex,
 	CArrayDataHolder* srcDataPtr, int srcIndex, int count ) -> IsMemmoveableWrapperTrue<U>
 {
 	if( count <= 0 ) {
@@ -815,7 +815,7 @@ auto CArray<T, Allocator>::moveData( CArrayDataHolder* destDataPtr, int destInde
 }
 
 template<class T, class Allocator>
-inline void CArray<T, Allocator>::growAt( int location, int count )
+void CArray<T, Allocator>::growAt( int location, int count )
 {
 	PresumeFO( count > 0 );
 	PresumeFO( location <= size );
@@ -839,7 +839,7 @@ void CArray<T, Allocator>::destruct( int begin, int end )
 }
 
 template<class T, class Allocator>
-inline void CArray<T, Allocator>::grow( int newSize )
+void CArray<T, Allocator>::grow( int newSize )
 {
 	PresumeFO( newSize >= 0 );
 	if( newSize > bufferSize ) {
@@ -858,7 +858,7 @@ auto CArray<T, Allocator>::constructAt( int location, Args&&... args ) -> CDataH
 }
 
 template<class T, class Allocator>
-inline void CArray<T, Allocator>::reallocateBuffer( int newSize )
+void CArray<T, Allocator>::reallocateBuffer( int newSize )
 {
 	if( newSize == bufferSize ) {
 		return;
@@ -891,7 +891,7 @@ void CArray<T, Allocator>::addElementsImpl( TOther&& element, TElements&&... ele
 // Serialization
 
 template<class T, class Allocator>
-inline void CArray<T, Allocator>::Serialize( CArchive& archive )
+void CArray<T, Allocator>::Serialize( CArchive& archive )
 {
 	unsigned size = static_cast<unsigned>( Size() );
 	archive.Serialize( size );
@@ -908,14 +908,14 @@ inline void CArray<T, Allocator>::Serialize( CArchive& archive )
 }
 
 template<class T, class Allocator>
-inline CArchive& operator>>( CArchive& archive, CArray<T, Allocator>& arr )
+CArchive& operator>>( CArchive& archive, CArray<T, Allocator>& arr )
 {
 	arr.Serialize( archive );
 	return archive;
 }
 
 template<class T, class Allocator>
-inline CArchive& operator<<( CArchive& archive, const CArray<T, Allocator>& arr )
+CArchive& operator<<( CArchive& archive, const CArray<T, Allocator>& arr )
 {
 	const_cast<CArray<T, Allocator>&>( arr ).Serialize( archive );
 	return archive;
@@ -933,7 +933,7 @@ using CObjectArray = CArray<CPtr<T>, Allocator>;
 // Specialized ArrayMemMove for the types that may be bitwise moved in memory
 
 template<class T, class Allocator>
-inline void ArrayMemMove( CArray<T, Allocator>* dest, CArray<T, Allocator>* source, int count )
+void ArrayMemMove( CArray<T, Allocator>* dest, CArray<T, Allocator>* source, int count )
 {
 	ArrayMemMoveBitwize( dest, source, count );
 }
