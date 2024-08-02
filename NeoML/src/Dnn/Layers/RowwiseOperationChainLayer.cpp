@@ -62,6 +62,7 @@ void CRowwiseOperationChainLayer::Serialize( CArchive& archive )
 			operation->Serialize( archive );
 		}
 	} else {
+		deleteRowwiseDescs();
 		operations.DeleteAll();
 		int operationCount = 0;
 		archive >> operationCount;
@@ -74,6 +75,7 @@ void CRowwiseOperationChainLayer::Serialize( CArchive& archive )
 				"restoring unknown rowwise operation from archive" );
 			operations.Last()->Serialize( archive );
 		}
+		initRowwiseDescs();
 	}
 }
 
@@ -91,9 +93,7 @@ void CRowwiseOperationChainLayer::Reshape()
 	NeoPresume( operationDescs.IsEmpty() );
 	outputDescs[0] = inputDescs[0];
 
-	for( IRowwiseOperation* operation : operations ) {
-		operationDescs.Add( operation->GetDesc() );
-	}
+	initRowwiseDescs();
 
 	outputDescs[0] = MathEngine().RowwiseReshape( operationDescs.GetPtr(), operations.Size(), outputDescs[0] );
 }
@@ -107,6 +107,13 @@ void CRowwiseOperationChainLayer::RunOnce()
 void CRowwiseOperationChainLayer::BackwardOnce()
 {
 	NeoAssert( false );
+}
+
+void CRowwiseOperationChainLayer::initRowwiseDescs()
+{
+	for( IRowwiseOperation* operation : operations ) {
+		operationDescs.Add( operation->GetDesc() );
+	}
 }
 
 void CRowwiseOperationChainLayer::deleteRowwiseDescs()
