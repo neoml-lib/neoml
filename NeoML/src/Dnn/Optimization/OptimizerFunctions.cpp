@@ -28,9 +28,9 @@ namespace NeoML {
 namespace optimization {
 
 // Returns copy of an original layer
-CPtr<CBaseLayer> copyLayer( CBaseLayer& original )
+static CPtr<CBaseLayer> copyLayer( CMemoryFile& file, CBaseLayer& original )
 {
-	CMemoryFile file;
+	file.SeekToBegin();
 	{
 		CArchive archive( &file, CArchive::SD_Storing );
 		CPtr<CBaseLayer> originalPtr( &original );
@@ -38,8 +38,10 @@ CPtr<CBaseLayer> copyLayer( CBaseLayer& original )
 	}
 	file.SeekToBegin();
 	CPtr<CBaseLayer> result;
-	CArchive archive( &file, CArchive::SD_Loading );
-	SerializeLayer( archive, original.MathEngine(), result );
+	{
+		CArchive archive( &file, CArchive::SD_Loading );
+		SerializeLayer( archive, original.MathEngine(), result );
+	}
 	return result;
 }
 
@@ -81,10 +83,11 @@ static void unpackComposite( CGraph& graph, CCompositeLayer& composite )
 	// GetLayerList doesn't return CCompositeSource and CCompositeSink
 	composite.GetLayerList( subLayerNames );
 
+	CMemoryFile file;
 	// Copy internal layers from composite to graph (without connections)
 	for( const char* subLayerName : subLayerNames ) {
 		CBaseLayer* subLayer = composite.GetLayer( subLayerName );
-		CPtr<CBaseLayer> newLayer = copyLayer( *subLayer );
+		CPtr<CBaseLayer> newLayer = copyLayer( file, *subLayer );
 		newLayer->SetName( subLayer->GetPath() ); // Avoid conflict of names
 		graph.AddLayer( *newLayer );
 	}
