@@ -38,7 +38,10 @@ constexpr void AddToHashKey( int valueToAdd, int& result ) noexcept
 
 constexpr int GetMBCStringHash( const char* string ) noexcept
 {
-	if( *string == 0 ) {
+	if( string == nullptr ) { // invalid pointer
+		return 0;
+	}
+	if( *string == 0 ) { // is empty string
 		return 0;
 	}
 	int result = *string;
@@ -125,7 +128,7 @@ inline int CDefaultHash<bool>::HashKey( const bool& key ) { return CDefaultHash<
 template <>
 inline int CDefaultHash<CString>::HashKey( const CString& str )
 {
-	const char* ptr = str.data();
+	const char* ptr = str.Ptr();
 	if( *ptr == 0 ) {
 		return 0;
 	}

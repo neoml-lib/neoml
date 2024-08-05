@@ -73,13 +73,18 @@ inline CString JoinStrings( const CArray<CString>& strings, const char* delimite
 
 inline CString JoinStrings( const CArray<CString>& strings, const CString& delimiter )
 {
-	return JoinStrings( strings, delimiter.data() );
+	return JoinStrings( strings, delimiter.Ptr() );
 }
 
 inline CString JoinStrings( const CArray<CString>& strings )
 {
 	return JoinStrings( strings, GetDefaultDelimiter( char{} ) );
 }
+
+template<>
+struct IsMemmoveable<CString> {
+	static const bool Value = false;
+};
 
 } // namespace FObj
 

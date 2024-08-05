@@ -408,8 +408,8 @@ inline __int64 CArchive::GetLength() const
 
 inline CArchive& operator<<( CArchive& stream, const CString& string )
 {
-	stream.WriteSmallValue( static_cast<int>( string.length() ) );
-	stream.Write( string.data(), static_cast<int>( string.length() ) );
+	stream.WriteSmallValue( string.Length() );
+	stream.Write( string.Ptr(), string.Length() );
 	return stream;
 }
 
@@ -495,14 +495,14 @@ inline CArchive& operator<<( CArchive& archive, unsigned __int64 variable )
 
 inline CArchive& operator>>( CArchive& stream, CString& string )
 {
-	string.erase();
+	string.Empty();
 	int length = stream.ReadSmallValue();
 	check( length >= 0, ERR_BAD_ARCHIVE, stream.Name() );
 	if( length == 0 ) {
 		return stream;
 	}
 	string.resize( length );
-	char* ptr = const_cast<char*>( string.data() );
+	char* ptr = const_cast<char*>( string.Ptr() );
 	stream.Read( ptr, length );
 	return stream;
 }
