@@ -26,8 +26,6 @@ limitations under the License.
 #include <MathEngineAllocator.h>
 #include <MathEngineCommon.h>
 #include <MemoryHandleInternal.h>
-#include <MathEngineDeviceStackAllocator.h>
-#include <MathEngineHostStackAllocator.h>
 #include <cuda_runtime.h>
 #include <string>
 #include <vector>
@@ -36,145 +34,6 @@ limitations under the License.
 #include <CudaCommon.h>
 
 namespace NeoML {
-
-void CCudaMathEngine::CleanUp()
-{
-	std::lock_guard<std::mutex> lock( mutex );
-	deviceStackRunTime->CleanUp();
-	hostStackRunTime->CleanUp();
-	memoryPool->CleanUp();
-}
-
-size_t CCudaMathEngine::GetFreeMemorySize() const
-{
-	std::lock_guard<std::mutex> lock( mutex );
-	return memoryPool->GetFreeMemorySize();
-}
-
-size_t CCudaMathEngine::GetPeakMemoryUsage() const
-{
-	std::lock_guard<std::mutex> lock( mutex );
-	return memoryPool->GetPeakMemoryUsage();
-}
-
-void CCudaMathEngine::ResetPeakMemoryUsage()
-{
-	std::lock_guard<std::mutex> lock( mutex );
-	memoryPool->ResetPeakMemoryUsage();
-}
-
-size_t CCudaMathEngine::GetCurrentMemoryUsage() const
-{
-	std::lock_guard<std::mutex> lock( mutex );
-	return memoryPool->GetCurrentMemoryUsage();
-}
-
-size_t CCudaMathEngine::GetMemoryInPools() const
-{
-	std::lock_guard<std::mutex> lock( mutex );
-	return memoryPool->GetMemoryInPools();
-}
-
-void CCudaMathEngine::SetReuseMemoryMode( bool )
-{
-	// Always true, because allocation is sync
-}
-
-bool CCudaMathEngine::GetReuseMemoryMode() const
-{
-	// Always true, because allocation is sync
-	return true;
-}
-
-void CCudaMathEngine::SetThreadBufferMemoryThreshold( size_t threshold )
-{
-	std::lock_guard<std::mutex> lock( mutex );
-	memoryPool->SetThreadBufferMemoryThreshold( threshold );
-}
-
-size_t CCudaMathEngine::GetThreadBufferMemoryThreshold() const
-{
-	std::lock_guard<std::mutex> lock( mutex );
-	return memoryPool->GetThreadBufferMemoryThreshold();
-}
-
-CMemoryHandle CCudaMathEngine::HeapAlloc( size_t size )
-{
-	std::lock_guard<std::mutex> lock( mutex );
-	CMemoryHandle result = memoryPool->Alloc( size );
-	if( result.IsNull() ) {
-		THROW_MEMORY_EXCEPTION;
-	}
-	return result;
-}
-
-void CCudaMathEngine::HeapFree( const CMemoryHandle& handle )
-{
-	ASSERT_EXPR( handle.GetMathEngine() == this );
-
-	std::lock_guard<std::mutex> lock( mutex );
-	memoryPool->Free( handle );
-}
-
-void CCudaMathEngine::TransferHandleToThisThread( const CMemoryHandle& handle, size_t size )
-{
-	ASSERT_EXPR( handle.GetMathEngine() == this );
-
-	std::lock_guard<std::mutex> lock( mutex );
-	memoryPool->TransferHandleToThisThread( handle, size );
-}
-
-CMemoryHandle CCudaMathEngine::StackAlloc( size_t size )
-{
-	ASSERT_EXPR( deviceStackRunTime != 0 );
-
-	std::lock_guard<std::mutex> lock( mutex );
-	CMemoryHandle result = deviceStackRunTime->Alloc( size );
-	if( result.IsNull() ) {
-		THROW_MEMORY_EXCEPTION;
-	}
-	return result;
-}
-
-void CCudaMathEngine::StackFree( const CMemoryHandle& ptr )
-{
-	ASSERT_EXPR(ptr.GetMathEngine() == this);
-
-	std::lock_guard<std::mutex> lock( mutex );
-	deviceStackRunTime->Free( ptr );
-}
-
-void* CCudaMathEngine::GetBuffer( const CMemoryHandle& handle, size_t pos, size_t size, bool exchange )
-{
-	ASSERT_EXPR(handle.GetMathEngine() == this);
-
-	size_t realSize = size + 16;
-	char* result = reinterpret_cast<char*>( hostStackRunTime->Alloc( realSize ) );
-	size_t* posPtr = reinterpret_cast<size_t*>( result );
-	*posPtr = pos;
-	size_t* sizePtr = reinterpret_cast<size_t*>( result ) + 1;
-	*sizePtr = size;
-	if( exchange ) {
-		DataExchangeRaw( result + 16, handle, size );
-	}
-	return result + 16;
-}
-
-void CCudaMathEngine::ReleaseBuffer( const CMemoryHandle& handle, void* ptr, bool exchange )
-{
-	ASSERT_EXPR(handle.GetMathEngine() == this);
-
-	if( exchange ) {
-		size_t* posPtr = reinterpret_cast<size_t*>( reinterpret_cast<char*>( ptr ) - 16 );
-		size_t pos = *posPtr;
-		size_t* sizePtr = posPtr + 1;
-		size_t size = *sizePtr;
-
-		DataExchangeRaw( CTypedMemoryHandle<char>( handle ) + pos, ptr, size );
-	}
-
-	hostStackRunTime->Free( reinterpret_cast<char*>( ptr ) - 16 );
-}
 
 void CCudaMathEngine::DataExchangeRaw(const CMemoryHandle& handle, const void* data, size_t size)
 {
@@ -186,20 +45,6 @@ void CCudaMathEngine::DataExchangeRaw(void* data, const CMemoryHandle& handle, s
 {
 	ASSERT_EXPR(handle.GetMathEngine() == this);
 	ASSERT_CUDA(cudaMemcpy(data, GetRaw(handle), size, cudaMemcpyDeviceToHost));
-}
-
-CMemoryHandle CCudaMathEngine::CopyFrom( const CMemoryHandle& handle, size_t size )
-{
-	CMemoryHandle result = HeapAlloc( size );
-
-	IMathEngine* otherMathEngine = handle.GetMathEngine();
-	void* ptr = otherMathEngine->GetBuffer( handle, 0, size, true );
-
-	DataExchangeRaw( result, ptr, size );
-
-	otherMathEngine->ReleaseBuffer( handle, ptr, false );
-
-	return result;
 }
 
 CMemoryHandle CCudaMathEngine::Alloc( size_t size )
@@ -237,7 +82,7 @@ void CCudaMathEngine::AllReduce( const CFloatHandle& handle, int size )
 	if( ncclCommunicator != nullptr ){
 		ncclCommunicator->AllReduce( handle, size );
 	}
-#endif
+#endif //NEOML_USE_NCCL
 }
 
 void CCudaMathEngine::AbortDistributed()
@@ -246,7 +91,7 @@ void CCudaMathEngine::AbortDistributed()
 	if( ncclCommunicator != nullptr ){
 		ncclCommunicator->Abort();
 	}
-#endif
+#endif //NEOML_USE_NCCL
 }
 
 void CCudaMathEngine::Broadcast( const CFloatHandle& handle, int size, int root )
@@ -258,7 +103,7 @@ void CCudaMathEngine::Broadcast( const CFloatHandle& handle, int size, int root 
 	if( ncclCommunicator != nullptr ){
 		ncclCommunicator->Broadcast( handle, size, root );
 	}
-#endif
+#endif //NEOML_USE_NCCL
 }
 
 #ifdef NEOML_USE_NCCL
@@ -268,7 +113,7 @@ void CCudaMathEngine::SetDistributedCommunicator( const ncclUniqueId& uniqueId, 
 	ncclCommunicator = std::make_unique<CCudaDistributedCommunicator>( uniqueId, info, isAbort );
 	distributedInfo = info;
 }
-#endif
+#endif //NEOML_USE_NCCL
 
 } // namespace NeoML
 

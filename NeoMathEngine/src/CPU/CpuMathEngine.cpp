@@ -17,8 +17,6 @@ limitations under the License.
 #pragma hdrstop
 
 #include <CpuMathEngine.h>
-#include <MathEngineDeviceStackAllocator.h>
-#include <MathEngineHostStackAllocator.h>
 #include <MemoryHandleInternal.h>
 #include <MathEngineCommon.h>
 #include <NeoMathEngine/SimdMathEngine.h>
@@ -54,15 +52,12 @@ CCpuMathEngine::CCpuMathEngine( size_t _memoryLimit,
 		std::shared_ptr<CMultiThreadDistributedCommunicator> communicator,
 		const CMathEngineDistributedInfo& distributedInfo ) :
 	floatAlignment( FloatAlignment ),
-	memoryAlignment( floatAlignment * sizeof(float) ),
 	communicator( communicator ),
 	distributedInfo( distributedInfo ),
-	memoryPool( new CMemoryPool( _memoryLimit == 0 ? SIZE_MAX : _memoryLimit, this, distributedInfo.Threads > 1 ) ),
-	stackAllocator( new CDeviceStackAllocator( *memoryPool, memoryAlignment ) ),
-	dllLoader( CDllLoader::AVX_DLL ),
-	simdMathEngine( nullptr ),
-	customSgemmFunction( nullptr )
+	dllLoader( CDllLoader::AVX_DLL )
 {
+	InitializeMemory( this, _memoryLimit, static_cast<int>( floatAlignment * sizeof( float ) ),
+		/*reuse*/IsDistributed(), /*hostStack*/false );
 #ifdef NEOML_USE_AVX
 	if( dllLoader.IsLoaded( CDllLoader::AVX_DLL ) ) {
 		simdMathEngine = std::unique_ptr<ISimdMathEngine>( CDllLoader::avxDll->CreateSimdMathEngine( this ) );
@@ -73,7 +68,7 @@ CCpuMathEngine::CCpuMathEngine( size_t _memoryLimit,
 	}
 #else  // !NEOML_USE_AVX
 	// warning fix
-	(void)customSgemmFunction;
+	( void ) customSgemmFunction;
 #endif // !NEOML_USE_AVX
 #ifdef NEOML_USE_MKL
 	vmlSetMode( VML_ERRMODE_NOERR );
@@ -85,117 +80,8 @@ CCpuMathEngine::~CCpuMathEngine()
 	CleanUp();
 }
 
-void CCpuMathEngine::SetReuseMemoryMode( bool enable )
+void CCpuMathEngine::CleanUpSpecial()
 {
-	// Distributed CPU math engine always uses memory pools
-	// because big simultaneous allocations on multiple (20+) threads are extremely slow
-	if( IsDistributed() ) {
-		return;
-	}
-
-	std::lock_guard<std::mutex> lock( mutex );
-	memoryPool->SetReuseMemoryMode( enable );
-}
-
-bool CCpuMathEngine::GetReuseMemoryMode() const
-{
-	// Distributed CPU math engine always uses memory pools
-	if( IsDistributed() ) {
-		return true;
-	}
-	std::lock_guard<std::mutex> lock( mutex );
-	return memoryPool->GetReuseMemoryMode();
-}
-
-void CCpuMathEngine::SetThreadBufferMemoryThreshold( size_t threshold )
-{
-	std::lock_guard<std::mutex> lock( mutex );
-	memoryPool->SetThreadBufferMemoryThreshold( threshold );
-}
-
-size_t CCpuMathEngine::GetThreadBufferMemoryThreshold() const
-{
-	std::lock_guard<std::mutex> lock( mutex );
-	return memoryPool->GetThreadBufferMemoryThreshold();
-}
-
-CMemoryHandle CCpuMathEngine::HeapAlloc( size_t size )
-{
-	std::lock_guard<std::mutex> lock( mutex );
-	CMemoryHandle result = memoryPool->Alloc( size );
-	if( result.IsNull() ) {
-		THROW_MEMORY_EXCEPTION;
-	}
-	return result;
-}
-
-void CCpuMathEngine::HeapFree( const CMemoryHandle& handle )
-{
-	ASSERT_EXPR( handle.GetMathEngine() == this );
-
-	std::lock_guard<std::mutex> lock( mutex );
-	memoryPool->Free( handle );
-}
-
-void CCpuMathEngine::TransferHandleToThisThread( const CMemoryHandle& handle, size_t size )
-{
-	ASSERT_EXPR( handle.GetMathEngine() == this );
-
-	std::lock_guard<std::mutex> lock( mutex );
-	memoryPool->TransferHandleToThisThread( handle, size );
-}
-
-CMemoryHandle CCpuMathEngine::StackAlloc( size_t size )
-{
-	std::lock_guard<std::mutex> lock( mutex );
-	CMemoryHandle result = stackAllocator->Alloc(size);
-	if( result.IsNull() ) {
-		THROW_MEMORY_EXCEPTION;
-	}
-	return result;
-}
-
-void CCpuMathEngine::StackFree( const CMemoryHandle& ptr )
-{
-	std::lock_guard<std::mutex> lock( mutex );
-	stackAllocator->Free( ptr );
-}
-
-size_t CCpuMathEngine::GetFreeMemorySize() const
-{
-	std::lock_guard<std::mutex> lock( mutex );
-	return memoryPool->GetFreeMemorySize();
-}
-
-size_t CCpuMathEngine::GetPeakMemoryUsage() const
-{
-	std::lock_guard<std::mutex> lock( mutex );
-	return memoryPool->GetPeakMemoryUsage();
-}
-
-void CCpuMathEngine::ResetPeakMemoryUsage()
-{
-	std::lock_guard<std::mutex> lock( mutex );
-	memoryPool->ResetPeakMemoryUsage();
-}
-
-size_t CCpuMathEngine::GetCurrentMemoryUsage() const
-{
-	std::lock_guard<std::mutex> lock( mutex );
-	return memoryPool->GetCurrentMemoryUsage();
-}
-
-size_t CCpuMathEngine::GetMemoryInPools() const
-{
-	std::lock_guard<std::mutex> lock( mutex );
-	return memoryPool->GetMemoryInPools();
-}
-
-void CCpuMathEngine::CleanUp()
-{
-	std::lock_guard<std::mutex> lock( mutex );
-	stackAllocator->CleanUp();
-	memoryPool->CleanUp();
 #ifdef NEOML_USE_MKL
 	mkl_thread_free_buffers();
 #endif // NEOML_USE_MKL
@@ -203,7 +89,7 @@ void CCpuMathEngine::CleanUp()
 
 void* CCpuMathEngine::GetBuffer( const CMemoryHandle& handle, size_t pos, size_t, bool exchange )
 {
-	(void) exchange; // always returned, no need to copy
+	( void ) exchange; // always returned, no need to copy
 	return reinterpret_cast<char*>( GetRaw( handle ) ) + pos;
 }
 
@@ -215,38 +101,26 @@ void CCpuMathEngine::ReleaseBuffer( const CMemoryHandle&, void*, bool )
 void CCpuMathEngine::DataExchangeRaw( const CMemoryHandle& handle, const void* data, size_t size )
 {
 	ASSERT_EXPR( handle.GetMathEngine() == this );
-
 	::memcpy( GetRaw( handle ), data, size );
 }
 
 void CCpuMathEngine::DataExchangeRaw( void* data, const CMemoryHandle& handle, size_t size )
 {
 	ASSERT_EXPR( handle.GetMathEngine() == this );
-
 	::memcpy( data, GetRaw( handle ), size );
-}
-
-CMemoryHandle CCpuMathEngine::CopyFrom( const CMemoryHandle& handle, size_t size )
-{
-	CMemoryHandle result = HeapAlloc( size );
-
-	IMathEngine* otherMathEngine = handle.GetMathEngine();
-	otherMathEngine->DataExchangeRaw( GetRaw( result ), handle, size );
-
-	return result;
 }
 
 CMemoryHandle CCpuMathEngine::Alloc( size_t size )
 {
 	// Ensure the correct alignment
 	void* ptr = 0;
-	if( MEMORY_ALLOCATION_ALIGNMENT % memoryAlignment == 0 ) {
+	if( MEMORY_ALLOCATION_ALIGNMENT % MemoryAlignment == 0 ) {
 		ptr = malloc(size);
 	} else {
-		char* p = static_cast<char*>(malloc(size + memoryAlignment));
+		char* p = static_cast<char*>(malloc(size + MemoryAlignment));
 		if( p != 0 ) {
-			const intptr_t delta = memoryAlignment - std::abs( ( reinterpret_cast<intptr_t>( p ) % memoryAlignment ) );
-			ASSERT_EXPR( delta > 0 && delta <= static_cast<intptr_t>( memoryAlignment ) );
+			const intptr_t delta = MemoryAlignment - std::abs( ( reinterpret_cast<intptr_t>( p ) % MemoryAlignment ) );
+			ASSERT_EXPR( delta > 0 && delta <= static_cast<intptr_t>( MemoryAlignment ) );
 
 			p[delta - 1] = static_cast<char>( delta - 1 );
 			ptr = p + delta;
@@ -266,7 +140,7 @@ void CCpuMathEngine::Free( const CMemoryHandle& handle )
 
 	char* ptr = GetRaw( CTypedMemoryHandle<char>( handle ) );
 
-	if( MEMORY_ALLOCATION_ALIGNMENT % memoryAlignment == 0 ) {
+	if( MEMORY_ALLOCATION_ALIGNMENT % MemoryAlignment == 0 ) {
 		free(ptr);
 		return;
 	}
