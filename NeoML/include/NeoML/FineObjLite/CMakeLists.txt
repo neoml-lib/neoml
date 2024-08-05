@@ -17,6 +17,7 @@ set(${PROJECT_NAME}_SOURCES
     CriticalSectionFOL.h
     DescendingFOL.h
     DynamicBitSetFOL.h
+    DynamicBitSetIteratorFOL.h
     FastArrayFOL.h
     FineObjLite.h
     ErrorsFOL.h
