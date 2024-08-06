@@ -1,4 +1,5 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
@@ -20,7 +21,7 @@ limitations under the License.
 
 class CPyDistributedDataset : public IDistributedDataset {
 public:
-	CPyDistributedDataset( const py::object& data ) : getData( data ) {};
+	CPyDistributedDataset( const py::object& data ) : getData( data ) {}
 	int SetInputBatch( CDnn& dnn, int thread ) override;
 private:
 	py::object getData;
@@ -29,13 +30,14 @@ private:
 class CPyDistributedTraining : public CDistributedTraining {
 public:
 	CPyDistributedTraining( CDnn& dnn, int count, TDistributedInitializer initializer, int seed )
-		: CDistributedTraining( dnn, count, initializer, seed ) {};
+		: CDistributedTraining( dnn, count, initializer, seed ) {}
 	CPyDistributedTraining( CArchive& archive, int count, TDistributedInitializer initializer, int seed )
-		: CDistributedTraining( archive, count, initializer, seed ) {};
+		: CDistributedTraining( archive, count, initializer, seed ) {}
 	CPyDistributedTraining( CDnn& dnn, const CArray<int>& cudaDevs, TDistributedInitializer initializer, int seed )
-		: CDistributedTraining( dnn, cudaDevs, initializer, seed ) {};
+		: CDistributedTraining( dnn, cudaDevs, initializer, seed ) {}
 	CPyDistributedTraining( CArchive& archive, const CArray<int>& cudaDevs, TDistributedInitializer initializer, int seed )
-		: CDistributedTraining( archive, cudaDevs, initializer, seed ) {};
+		: CDistributedTraining( archive, cudaDevs, initializer, seed ) {}
+
 	void Run( const py::object& data );
 	void RunAndBackward( const py::object& data );
 	void Learn( const py::object& data );
@@ -46,4 +48,4 @@ public:
 	void Save( const std::string& path );
 };
 
-void InitializeDistributedTraining(py::module& m);
+void InitializeDistributedTraining( py::module& m );
