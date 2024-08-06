@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -47,7 +47,7 @@ void CBytePairEncoder::Decode( const CArray<int>& tokenIds, CArray<CString>& wor
 	if( decoder == nullptr ) {
 		CMap<int, CString> idToToken;
 		GetIdToTokenMapping( idToToken );
-		decoder = std::make_unique<CSubwordDecoder>( params, std::move( idToToken ) );
+		decoder = MakeCPtrOwner<CSubwordDecoder>( params, std::move( idToToken ) );
 	}
 	decoder->Decode( tokenIds, words );
 }
@@ -170,7 +170,7 @@ void CBytePairEncoder::DoEncode( const CString& word, CArray<int>& tokenIds,
 		int bestPairIndex = getShiftedTokenIndex( tokens.Last() ) + 1;
 		int bestMergePos = NotFound;
 		for( int i = 0; i < wordTokens.Size() - 1; i++ ) {
-			const CString pair = mergeTokens( wordTokens[i], wordTokens[i + 1] );
+			const CString pair = ( wordTokens[i] + wordTokens[i + 1] );
 			const int pairIndex = getShiftedTokenIndex( pair );
 			if( pairIndex != UnknownTokenId() && pairIndex < bestPairIndex ) {
 				bestPairIndex = pairIndex;
@@ -182,8 +182,7 @@ void CBytePairEncoder::DoEncode( const CString& word, CArray<int>& tokenIds,
 			break;
 		}
 
-		wordTokens[bestMergePos] = mergeTokens( wordTokens[bestMergePos],
-			wordTokens[bestMergePos + 1] );
+		wordTokens[bestMergePos] += wordTokens[bestMergePos + 1];
 		wordTokenLengths[bestMergePos] += wordTokenLengths[bestMergePos + 1];
 
 		wordTokens.DeleteAt( bestMergePos + 1 );
@@ -216,6 +215,7 @@ void CBytePairEncoder::splitWordIntoInitialTokens( const CString& word,
 {
 	NeoAssert( !word.IsEmpty() );
 
+	initialTokens.SetBufferSize( word.Length() + 2 );
 	if( UseStartOfWordToken() ) {
 		initialTokens.Add( params.StartOfWordToken );
 	}
@@ -244,9 +244,4 @@ void CBytePairEncoder::splitWordIntoInitialTokens( const CString& word,
 	}
 }
 
-// Concatenates tokens.
-CString CBytePairEncoder::mergeTokens( const CString& first, const CString& second )
-{
-	return first + second;
-}
 } // namespace NeoML
