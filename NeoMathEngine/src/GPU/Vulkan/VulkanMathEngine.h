@@ -39,9 +39,9 @@ struct CVulkanDevice;
 struct CVulkanRleConvolutionDesc;
 class CVulkanCommandQueue;
 class CVulkanShaderLoader;
+class CVulkanImage;
 class CDeviceStackAllocator;
 class CHostStackAllocator;
-class CVulkanImage;
 class CMemoryPool;
 
 // Adds the information about available vulkan devices into the result array
@@ -110,31 +110,26 @@ public:
 	void VectorEqual( const CConstIntHandle& firstHandle, const CConstIntHandle& secondHandle,
 		const CFloatHandle& resultHandle, int vectorSize ) override;
 	void VectorEqualValue( const CConstIntHandle& firstHandle,
-		const CFloatHandle& resultHandle, int vectorSize, const CConstIntHandle& valueHandle ) override;
-	void VectorMax( const CConstFloatHandle& firstHandle, float secondValue, const CFloatHandle& resultHandle,
+		const CFloatHandle& resultHandle, int vectorSize, CIntParam value ) override;
+	void VectorMax( const CConstFloatHandle& firstHandle, CFloatParam secondValue, const CFloatHandle& resultHandle,
 		int vectorSize ) override;
-	void VectorMaxDiff( const CConstFloatHandle& firstHandle, float secondValue, const CFloatHandle& gradHandle,
+	void VectorMaxDiff( const CConstFloatHandle& firstHandle, CFloatParam secondValue, const CFloatHandle& gradHandle,
 		int gradHeight, int gradWidth ) override;
 	void VectorELU( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle,
-		int vectorSize, const CConstFloatHandle& alpha ) override;
+		int vectorSize, CFloatParam alpha ) override;
 	void VectorELUDiff( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
-		const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& alpha ) override;
+		const CFloatHandle& resultHandle, int vectorSize, CFloatParam alpha ) override;
 	void VectorELUDiffOp( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
-		const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& alpha ) override;
+		const CFloatHandle& resultHandle, int vectorSize, CFloatParam alpha ) override;
 	void VectorReLU( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize,
-		const CConstFloatHandle& upperThresholdHandle ) override;
+		CFloatParam upperThreshold ) override;
 	void VectorReLUDiff( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
-		const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& upperThresholdHandle ) override;
-	void VectorReLUDiffOp( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
-		const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& upperThresholdHandle ) override;
+		const CFloatHandle& resultHandle, int vectorSize, CFloatParam upperThreshold ) override;
 	void VectorLeakyReLU( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle,
-		int vectorSize, const CConstFloatHandle& alpha ) override;
+		int vectorSize, CFloatParam alpha ) override;
 	void VectorLeakyReLUDiff( const CConstFloatHandle& firstHandle,
 		const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle,
-		int vectorSize, const CConstFloatHandle& alpha ) override;
-	void VectorLeakyReLUDiffOp( const CConstFloatHandle& firstHandle,
-		const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle,
-		int vectorSize, const CConstFloatHandle& alpha ) override;
+		int vectorSize, CFloatParam alpha ) override;
 	void VectorHSwish( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle,
 		int vectorSize ) override;
 	void VectorHSwishDiff( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
@@ -159,16 +154,12 @@ public:
 	void VectorHardTanh( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize ) override;
 	void VectorHardTanhDiff( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
 		const CFloatHandle& resultHandle, int vectorSize ) override;
-	void VectorHardTanhDiffOp( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
-		const CFloatHandle& resultHandle, int vectorSize ) override;
 	void VectorHardSigmoid( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize,
-		const CConstFloatHandle& slopeHandle, const CConstFloatHandle& biasHandle ) override;
+		CFloatParam slope, CFloatParam bias ) override;
 	void VectorHardSigmoidDiff( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
-		const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& slopeHandle,
-		const CConstFloatHandle& biasHandle ) override;
+		const CFloatHandle& resultHandle, int vectorSize, CFloatParam slope, CFloatParam bias ) override;
 	void VectorHardSigmoidDiffOp( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
-		const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& slopeHandle,
-		const CConstFloatHandle& biasHandle ) override;
+		const CFloatHandle& resultHandle, int vectorSize, CFloatParam slope, CFloatParam bias ) override;
 	void VectorNeg( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize ) override;
 	void VectorExp( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize ) override;
 	void VectorLog( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle,
@@ -178,15 +169,15 @@ public:
 	void VectorNegLog( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize ) override;
 	void VectorErf( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize ) override;
 	void VectorBernulliKLDerivative( const CConstFloatHandle& estimationHandle,
-		const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& target ) override;
+		const CFloatHandle& resultHandle, int vectorSize, CFloatParam target ) override;
 	void VectorAdd( const CConstFloatHandle& firstHandle,
 		const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int vectorSize ) override;
 	void VectorAdd( const CConstIntHandle& firstHandle,
 		const CConstIntHandle& secondHandle, const CIntHandle& resultHandle, int vectorSize ) override;
 	void VectorAddValue( const CConstFloatHandle& firstHandle,
-		const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& addition ) override;
+		const CFloatHandle& resultHandle, int vectorSize, CFloatParam value ) override;
 	void VectorAddValue( const CConstIntHandle& firstHandle,
-		const CIntHandle& resultHandle, int vectorSize, const CConstIntHandle& addition ) override;
+		const CIntHandle& resultHandle, int vectorSize, CIntParam value ) override;
 	void VectorSub( const CConstIntHandle& firstHandle,
 		const CConstIntHandle& secondHandle, const CIntHandle& resultHandle, int vectorSize ) override;
 	void VectorSub( const CConstFloatHandle& firstHandle,
@@ -196,15 +187,15 @@ public:
 	void VectorSub( float first,
 		const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int vectorSize ) override;
 	void VectorMultiplyAndAdd( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
-		const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& multHandle ) override;
+		const CFloatHandle& resultHandle, int vectorSize, CFloatParam mult ) override;
 	void VectorMultiplyAndSub( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
-		const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& multHandle ) override;
+		const CFloatHandle& resultHandle, int vectorSize, CFloatParam mult ) override;
 	void VectorMultiply( const CConstFloatHandle& firstHandle,
-		const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& multiplierHandle ) override;
+		const CFloatHandle& resultHandle, int vectorSize, CFloatParam mult ) override;
 	void VectorMultiply( const CConstIntHandle& firstHandle,
-		const CIntHandle& resultHandle, int vectorSize, const CConstIntHandle& multiplierHandle ) override;
+		const CIntHandle& resultHandle, int vectorSize, CIntParam mult ) override;
 	void VectorNegMultiply( const CConstFloatHandle& firstHandle,
-		const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& multiplierHandle ) override;
+		const CFloatHandle& resultHandle, int vectorSize, CFloatParam mult ) override;
 	void VectorEltwiseMultiply( const CConstIntHandle& firstHandle,
 		const CConstIntHandle& secondHandle, const CIntHandle& resultHandle, int vectorSize ) override;
 	void VectorEltwiseMultiply( const CConstFloatHandle& firstHandle,
@@ -222,10 +213,10 @@ public:
 	void VectorSqrt( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize ) override;
 	void VectorInv( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize ) override;
 	void VectorMinMax( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize,
-		const CConstFloatHandle& minHandle, const CConstFloatHandle& maxHandle ) override;
+		CFloatParam min, CFloatParam max ) override;
 	void VectorMinMaxDiff( const CConstFloatHandle& sourceGradHandle, int gradHeight, int gradWidth,
 		const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle,
-		const CConstFloatHandle& minHandle, const CConstFloatHandle& maxHandle ) override;
+		CFloatParam min, CFloatParam max ) override;
 	void VectorSigmoid( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize ) override;
 	void VectorSigmoidDiff( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
 		const CFloatHandle& resultHandle, int vectorSize ) override;
@@ -243,8 +234,7 @@ public:
 	void VectorPowerDiffOp( float exponent, const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
 		const CFloatHandle& resultHandle, int vectorSize ) override;
 	void VectorL1DiffAdd( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
-		const CFloatHandle& resultHandle, int vectorSize,
-		const CConstFloatHandle& hubertThresholdHandle, const CConstFloatHandle& multHandle ) override;
+		const CFloatHandle& resultHandle, int vectorSize, CFloatParam hubertThreshold, CFloatParam mult ) override;
 	void VectorDotProduct( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle, int vectorSize,
 		const CFloatHandle& resultHandle ) override;
 	void VectorEltwiseNot( const CConstIntHandle& firstHandle, const CIntHandle& resultHandle, int vectorSize ) override;
@@ -340,10 +330,10 @@ public:
 		const CIntHandle& outputHandle, int outputChannels ) override;
 	void VectorMultichannelLookupAndAddToTable( int batchSize, int channelCount, const CConstFloatHandle& inputHandle,
 		const CFloatHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
-		const CConstFloatHandle& multHandle, const CConstFloatHandle& matrixHandle, int outputChannels ) override;
+		CFloatParam mult, const CConstFloatHandle& matrixHandle, int outputChannels ) override;
 	void VectorMultichannelLookupAndAddToTable( int batchSize, int channelCount, const CConstIntHandle& inputHandle,
 		const CFloatHandle* lookupHandles, const CLookupDimension* lookupDimensions, int lookupCount,
-		const CConstFloatHandle& multHandle, const CConstFloatHandle& matrixHandle, int outputChannels ) override;
+		CFloatParam mult, const CConstFloatHandle& matrixHandle, int outputChannels ) override;
 	void LookupAndSum( const CConstIntHandle& indicesHandle, int batchSize, int indexCount,
 		const CConstFloatHandle& tableHandle, int vectorSize, const CFloatHandle& result ) override;
 	void LookupAndAddToTable( const CConstIntHandle& indicesHandle, int batchSize, int indexCount,
@@ -646,8 +636,8 @@ public:
 
 	IPerformanceCounters* CreatePerformanceCounters( bool ) const override { return new CPerformanceCountersDefault(); }
 	// For Distributed only
-	void AllReduce( const CFloatHandle& /*handle*/, int /*size*/ ) override {};
-	void Broadcast( const CFloatHandle& /*handle*/, int /*size*/, int /*root*/ ) override {};
+	void AllReduce( const CFloatHandle& /*handle*/, int /*size*/ ) override {}
+	void Broadcast( const CFloatHandle& /*handle*/, int /*size*/, int /*root*/ ) override {}
 
 protected:
 	// IRawMemoryManager interface methods
@@ -760,25 +750,6 @@ private:
 	void findMaxValueInColumns( const CFloatHandle& resultHandle, const CConstFloatHandle& matrixHandle,
 		int matrixHeight, int matrixWidth );
 };
-
-inline void CVulkanMathEngine::VectorReLUDiffOp( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
-	const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& upperThresholdHandle )
-{
-	VectorReLUDiff( firstHandle, secondHandle, resultHandle, vectorSize, upperThresholdHandle );
-}
-
-inline void CVulkanMathEngine::VectorLeakyReLUDiffOp( const CConstFloatHandle& firstHandle,
-	const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle,
-	int vectorSize, const CConstFloatHandle& alpha )
-{
-	VectorLeakyReLUDiff( firstHandle, secondHandle, resultHandle, vectorSize, alpha );
-}
-
-inline void CVulkanMathEngine::VectorHardTanhDiffOp( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
-	const CFloatHandle& resultHandle, int vectorSize )
-{
-	VectorHardTanhDiff( firstHandle, secondHandle, resultHandle, vectorSize );
-}
 
 } // namespace NeoML
 

@@ -1,4 +1,4 @@
-/* Copyright © 2023 ABBYY
+/* Copyright © 2023-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -39,7 +39,7 @@ private:
 
 //---------------------------------------------------------------------------------------------------------------------
 
-CBlobDesc CCudaRowwiseActivation::Reshape( const CBlobDesc& inputSize )
+inline CBlobDesc CCudaRowwiseActivation::Reshape( const CBlobDesc& inputSize )
 {
 	dataSize = inputSize.BlobSize();
 	return inputSize;
@@ -48,24 +48,16 @@ CBlobDesc CCudaRowwiseActivation::Reshape( const CBlobDesc& inputSize )
 inline void CCudaRowwiseActivation::Process( const CFloatHandle& input, const CFloatHandle& output ) const
 {
 	IMathEngine& mathEngine = *input.GetMathEngine();
-	switch( desc.GetType() ) {
+	switch( Type() ) {
 		case AF_ELU:
-		{
-			CFloatHandleStackVar alphaVar( mathEngine );
-			alphaVar.SetValue( desc.GetParam<CELUActivationParam>().Alpha );
-			mathEngine.VectorELU( input, output, dataSize, alphaVar.GetHandle() );
+			mathEngine.VectorELU( input, output, dataSize,
+				desc.GetParam<CELUActivationParam>().Alpha );
 			break;
-		}
 		case AF_HardSigmoid:
-		{
-			CFloatHandleStackVar buff( mathEngine, 2 );
-			buff.SetValueAt( 0, desc.GetParam<CHardSigmoidActivationParam>().Slope );
-			CConstFloatHandle slope = buff.GetHandle();
-			buff.SetValueAt( 1, desc.GetParam<CHardSigmoidActivationParam>().Bias );
-			CConstFloatHandle bias = slope + 1;
-			mathEngine.VectorHardSigmoid( input, output, dataSize, slope, bias );
+			mathEngine.VectorHardSigmoid( input, output, dataSize,
+				desc.GetParam<CHardSigmoidActivationParam>().Slope,
+				desc.GetParam<CHardSigmoidActivationParam>().Bias );
 			break;
-		}
 		case AF_HardTanh:
 			mathEngine.VectorHardTanh( input, output, dataSize );
 			break;
@@ -73,25 +65,20 @@ inline void CCudaRowwiseActivation::Process( const CFloatHandle& input, const CF
 			mathEngine.VectorHSwish( input, output, dataSize );
 			break;
 		case AF_LeakyReLU:
-		{
-			CFloatHandleStackVar alphaVar( mathEngine );
-			alphaVar.SetValue( desc.GetParam<CLeakyReLUActivationParam>().Alpha );
-			mathEngine.VectorLeakyReLU( input, output, dataSize, alphaVar.GetHandle() );
+			mathEngine.VectorLeakyReLU( input, output, dataSize,
+				desc.GetParam<CLeakyReLUActivationParam>().Alpha );
 			break;
-		}
 		case AF_Linear:
 		{
 			CConstFloatHandle currInput = input;
 			if( desc.GetParam<CLinearActivationParam>().Multiplier != 1.f ) {
-				CFloatHandleStackVar mulVar( mathEngine );
-				mulVar.SetValue( desc.GetParam<CLinearActivationParam>().Multiplier );
-				mathEngine.VectorMultiply( currInput, output, dataSize, mulVar );
+				mathEngine.VectorMultiply( currInput, output, dataSize,
+					desc.GetParam<CLinearActivationParam>().Multiplier );
 				currInput = output;
 			}
 			if( desc.GetParam<CLinearActivationParam>().FreeTerm != 0.f ) {
-				CFloatHandleStackVar freeTermVar( mathEngine );
-				freeTermVar.SetValue( desc.GetParam<CLinearActivationParam>().FreeTerm );
-				mathEngine.VectorAddValue( currInput, output, dataSize, freeTermVar );
+				mathEngine.VectorAddValue( currInput, output, dataSize,
+					desc.GetParam<CLinearActivationParam>().FreeTerm );
 				currInput = output;
 			}
 			if( currInput != output ) {
@@ -101,12 +88,9 @@ inline void CCudaRowwiseActivation::Process( const CFloatHandle& input, const CF
 			break;
 		}
 		case AF_ReLU:
-		{
-			CFloatHandleStackVar thresholdVar( mathEngine );
-			thresholdVar.SetValue( desc.GetParam<CReLUActivationParam>().UpperThreshold );
-			mathEngine.VectorReLU( input, output, dataSize, thresholdVar );
+			mathEngine.VectorReLU( input, output, dataSize,
+				desc.GetParam<CReLUActivationParam>().UpperThreshold );
 			break;
-		}
 		case AF_Sigmoid:
 			mathEngine.VectorSigmoid( input, output, dataSize );
 			break;

@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,9 +15,9 @@ limitations under the License.
 
 #pragma once 
 
-namespace FObj {
+#include <FineObjLiteDefs.h>
 
-#define ALLOCATE_MEMORY( allocator, size ) allocator::Alloc( ( size ) )
+namespace FObj {
 
 // A common base class for all memory management classes
 class IMemoryManager {
@@ -37,8 +37,12 @@ public:
 // Working with memory on the current memory manager
 class CurrentMemoryManager {
 public:
+	template <typename T>
+	static auto Alloc( size_t size ) -> std::enable_if_t<std::is_trivially_constructible<T>::value, T*>
+	{ return static_cast<T*>( Alloc( size ) ); }
+
 	static void* Alloc( size_t size );
-	static void Free( void* ptr );
+	static void Free( void* ptr ) noexcept;
 };
 
 inline void* CurrentMemoryManager::Alloc( size_t size )
@@ -46,7 +50,7 @@ inline void* CurrentMemoryManager::Alloc( size_t size )
 	return ::operator new( size );
 }
 
-inline void CurrentMemoryManager::Free( void* ptr )
+inline void CurrentMemoryManager::Free( void* ptr ) noexcept
 {
 	::operator delete( ptr );
 }

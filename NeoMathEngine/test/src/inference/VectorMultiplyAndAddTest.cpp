@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -33,6 +33,19 @@ static void vectorMultiplyAndAddImpl( const CTestParams& params, int seed )
 	result.resize( vectorSize );
 
 	MathEngine().VectorMultiplyAndAdd( CARRAY_FLOAT_WRAPPER( a ), CARRAY_FLOAT_WRAPPER( b ), CARRAY_FLOAT_WRAPPER( result ), vectorSize, FLOAT_WRAPPER( &mult ) );
+
+	for( int i = 0; i < vectorSize; i++ ) {
+		float expected = a[i] + mult * b[i];
+		ASSERT_NEAR( expected, result[i], 1e-3 );
+	}
+
+	{
+		auto resultWrapper = CARRAY_FLOAT_WRAPPER( result );
+		{
+			float multTemp = mult;
+			MathEngine().VectorMultiplyAndAdd( CARRAY_FLOAT_WRAPPER( a ), CARRAY_FLOAT_WRAPPER( b ), resultWrapper, vectorSize, multTemp );
+		}
+	}
 
 	for( int i = 0; i < vectorSize; i++ ) {
 		float expected = a[i] + mult * b[i];

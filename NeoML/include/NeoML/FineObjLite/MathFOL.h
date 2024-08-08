@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -38,6 +38,37 @@ inline const char** AddressOfObject<const char*>( const char* const& what )
 {
 	return const_cast<const char**>( &what );
 }
+
+//---------------------------------------------------------------------------------------------------------------------
+
+// Check if the type may be bitwise moved in memory
+template<typename T, typename Enable = void>
+struct IsMemmoveable {
+	static const bool Value = sizeof( T ) <= sizeof( void* ) || std::is_trivially_copyable<T>::value;
+};
+
+template<typename T>
+void BitwiseSwap( T& a, T& b ) noexcept
+{
+	BYTE t[sizeof( T )];
+	memcpy( reinterpret_cast<char*>( AddressOfObject( t ) ), reinterpret_cast<const char*>( AddressOfObject( a ) ), sizeof( T ) );
+	memcpy( reinterpret_cast<char*>( AddressOfObject( a ) ), reinterpret_cast<const char*>( AddressOfObject( b ) ), sizeof( T ) );
+	memcpy( reinterpret_cast<char*>( AddressOfObject( b ) ), reinterpret_cast<const char*>( AddressOfObject( t ) ), sizeof( T ) );
+}
+
+template<typename T, typename std::enable_if_t< IsMemmoveable<T>::Value, int > = 0>
+void swap( T& a, T& b )
+{
+	BitwiseSwap( a, b );
+}
+
+template<typename T, typename std::enable_if_t< !IsMemmoveable<T>::Value, int> = 0>
+void swap( T& a, T& b )
+{
+	std::swap( a, b );
+}
+
+//---------------------------------------------------------------------------------------------------------------------
 
 const int Megabyte = 1024 * 1024;
 const int Gigabyte = 1024 * Megabyte;

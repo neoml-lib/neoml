@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -89,7 +89,7 @@ void CCudaMathEngine::BlobRleConvolution( const CRleConvolutionDesc& desc, const
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
 
 	const CCudaConvolutionDescInternal& convDesc = static_cast<const CCudaRleConvolutionDesc&>( desc ).ConvDesc->Internal;
-	CFloatHandleVar inputConverted( mathEngine(), convDesc.Source.BlobSize() );
+	CFloatHandleStackVar inputConverted( mathEngine(), convDesc.Source.BlobSize() );
 	blobConvertFromRle( static_cast<const CCudaRleConvolutionDesc&>(desc), sourceData, inputConverted );
 	BlobConvolution( *static_cast<const CCudaRleConvolutionDesc&>(desc).ConvDesc, inputConverted, filterData, freeTermData, resultData );
 }
@@ -99,7 +99,7 @@ void CCudaMathEngine::BlobRleConvolutionLearnAdd( const CRleConvolutionDesc& des
 	const CFloatHandle* freeTermDiffData )
 {
 	const CCudaConvolutionDescInternal& convDesc = static_cast<const CCudaRleConvolutionDesc&>( desc ).ConvDesc->Internal;
-	CFloatHandleVar inputConverted( mathEngine(), convDesc.Source.BlobSize() );
+	CFloatHandleStackVar inputConverted( mathEngine(), convDesc.Source.BlobSize() );
 	blobConvertFromRle( static_cast<const CCudaRleConvolutionDesc&>(desc), sourceData, inputConverted );
 	BlobConvolutionLearnAdd( *static_cast<const CCudaRleConvolutionDesc&>(desc).ConvDesc, inputConverted, outputDiffData, filterDiffData,
 		freeTermDiffData, false );

@@ -1,4 +1,4 @@
-/* Copyright © 2017-2022 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,7 +18,6 @@ limitations under the License.
 #include <NeoML/NeoMLDefs.h>
 #include <NeoML/TraditionalML/SubwordEncoder.h>
 #include <SubwordDecoder.h>
-#include <memory>
 
 namespace NeoML {
 
@@ -52,8 +51,7 @@ public:
 protected:
 	~CBytePairEncoder() override = default;
 	// ISubwordEncoderWithCache:
-	void DoEncode( const CString& word, CArray<int>& tokenIds,
-		CArray<int>& tokenLengths ) const override;
+	void DoEncode( const CString& word, CArray<int>& tokenIds, CArray<int>& tokenLengths ) const override;
 
 private:
 	// Index map Id -> Token. Note that the ids are being shifted by UnknownTokenId() + 1 while encoding.
@@ -63,13 +61,12 @@ private:
 	// Encoder parameters
 	CParams params;
 	// Lazy-initialized mechanism for Decode() function
-	mutable std::unique_ptr<CSubwordDecoder> decoder;
+	mutable CPtrOwner<CSubwordDecoder> decoder;
 
 	bool isValidToken( const CString& token, const CArray<CString>& auxTokens ) const;
 	int getShiftedTokenIndex( const CString& token ) const;
 	void splitWordIntoInitialTokens( const CString& word, 
 		CArray<CString>& initialTokens, CArray<int>* initialTokensLength = nullptr ) const;
-	static CString mergeTokens( const CString& first, const CString& second );
 };
 
 } // namespace NeoML

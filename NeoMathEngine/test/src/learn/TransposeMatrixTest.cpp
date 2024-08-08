@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -55,9 +55,9 @@ static void transposeMatrixTestImpl( const CTestParams& params, int seed )
 		}
 	}
 
-	CMemoryHandleVar<T> from( MathEngine(), matrixSize );
+	CMemoryHandleStackVar<T> from( MathEngine(), matrixSize );
 	MathEngine().DataExchangeTyped<T>( from, matrix.data(), matrixSize );
-	CMemoryHandleVar<T> result( MathEngine(), matrixSize );
+	CMemoryHandleStackVar<T> result( MathEngine(), matrixSize );
 	MathEngine().TransposeMatrix( batchSize, from, height, medium, width, channels, result, matrixSize );
 	MathEngine().DataExchangeTyped<T>( matrix.data(), result, matrixSize );
 

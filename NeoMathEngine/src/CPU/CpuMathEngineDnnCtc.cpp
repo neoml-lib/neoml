@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -84,12 +84,11 @@ static void calcBlankSkipMask( int padLabelLen, int batchSize, const CConstIntHa
 	const CFloatHandle& blankSkipMask )
 {
 	IMathEngine& mathEngine = *padLabels.GetMathEngine();
-	CFloatHandleStackVar logZeroVar( mathEngine );
-	logZeroVar.SetValue( logZero );
+
 	mathEngine.VectorFill( blankSkipMask + batchSize * ( padLabelLen - 2 ), 1.f, batchSize * 2 );
 	const int effectiveMaskSize = ( padLabelLen - 2 ) * batchSize;
 	mathEngine.VectorEqual( padLabels, padLabels + 2 * batchSize, blankSkipMask, effectiveMaskSize );
-	mathEngine.VectorMultiply( blankSkipMask, blankSkipMask, padLabelLen * batchSize, logZeroVar );
+	mathEngine.VectorMultiply( blankSkipMask, blankSkipMask, padLabelLen * batchSize, logZero );
 }
 
 static void fillPadding( int maxSeqLen, int batchSize, int classCount, int blankLabel,
@@ -357,9 +356,7 @@ void CCpuMathEngine::ctcCalcBackwardVariables( int resultLen, int batchSize, int
 
 		setVectorToMatrixElements( logBetaWindow, U, batchSize, endOfLabelPos, endOfLabelSample,
 			batchOfZeros, batchSize );
-		CIntHandleStackVar minusOneInt( *this );
-		minusOneInt.SetValue( -1 );
-		VectorAddValue( endOfLabelPos, endOfLabelPos, batchSize, minusOneInt );
+		VectorAddValue( endOfLabelPos, endOfLabelPos, batchSize, -1 );
 
 		if( !resultLens.IsNull() ) {
 			std::vector<int> buffer;

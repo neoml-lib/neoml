@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,19 +21,20 @@ limitations under the License.
 
 namespace NeoML {
 
-static const float MaxGradientValue = 1e+6;
+static const float lossDefaultMaxGradientValue = 1e+6;
 
 // The base loss function layer
 // Can have 2 to 3 inputs: #0 - the network response, #1 - the correct result, #2 - vector weights (optional)
 CLossLayer::CLossLayer( IMathEngine& mathEngine, const char* name, bool trainLabels ) :
 	CBaseLayer( mathEngine, name, false ),
+	lossDivider( 0.f ),
+	lossWeight( 1.f ),
+	minGradient( -lossDefaultMaxGradientValue ),
+	maxGradient( lossDefaultMaxGradientValue ),
 	trainLabels( trainLabels ),
-	params( CDnnBlob::CreateVector( mathEngine, CT_Float, P_Count ) )
+	lossParam( CDnnBlob::CreateVector( mathEngine, CT_Float, 1 ) )
 {
-	params->GetData().SetValueAt( P_LossWeight, 1 );
-	params->GetData().SetValueAt( P_Loss, 0 );
-	params->GetData().SetValueAt( P_MinGradient, -MaxGradientValue );
-	params->GetData().SetValueAt( P_MaxGradient, MaxGradientValue );
+	lossParam->GetData().SetValue( 0 );
 }
 
 void CLossLayer::SetTrainLabels( bool toSet )
@@ -48,8 +49,8 @@ void CLossLayer::SetMaxGradientValue(float maxValue)
 {
 	NeoAssert(maxValue > 0);
 
-	params->GetData().SetValueAt( P_MinGradient, -maxValue );
-	params->GetData().SetValueAt( P_MaxGradient, maxValue );
+	minGradient = -maxValue;
+	maxGradient = maxValue;
 }
 
 void CLossLayer::Reshape()
@@ -66,12 +67,9 @@ void CLossLayer::Reshape()
 			"weights batch width doesn't match result batch width" );
 	}
 
-	params->GetData().SetValueAt( P_LossDivider, 1.f / inputDescs[0].ObjectCount() );
-	MathEngine().VectorEltwiseMultiply( params->GetData( {P_LossDivider} ), params->GetData( {P_LossWeight} ),
-		params->GetData( {P_LossGradientDivider} ), 1 );
-
-	resultBuffer = 0;
-	weights = 0;
+	lossDivider = ( 1.f / inputDescs[0].ObjectCount() );
+	resultBuffer = nullptr;
+	weights = nullptr;
 
 	lossGradientBlobs.DeleteAll();
 	if( IsBackwardPerformed() ) {
@@ -98,9 +96,9 @@ void CLossLayer::Serialize( CArchive& archive )
 		float tmp;
 		archive >> tmp;
 		SetLossWeight(tmp);
-		params->GetData().SetValueAt( P_Loss, 0 );
-		weights = 0;
-		resultBuffer = 0;
+		lossParam->GetData().SetValue( 0 );
+		weights = nullptr;
+		resultBuffer = nullptr;
 	} else {
 		NeoAssert( false );
 	}
@@ -126,7 +124,7 @@ void CLossLayer::RunOnce()
 {
 	// Set the weights
 	if(inputBlobs.Size() <= 2) {
-		if(weights == 0) {
+		if(weights == nullptr) {
 			weights = CDnnBlob::CreateListBlob(MathEngine(), CT_Float, inputBlobs[0]->GetBatchLength(), 
 				inputBlobs[0]->GetBatchWidth(), inputBlobs[0]->GetListSize(), 1);
 			weights->Fill(1);
@@ -136,14 +134,15 @@ void CLossLayer::RunOnce()
 		weights = inputBlobs[2];
 	}
 	// Calculate the loss value
-	if(resultBuffer == 0) {
+	if(resultBuffer == nullptr) {
 		resultBuffer = CDnnBlob::CreateListBlob(MathEngine(), CT_Float, inputBlobs[0]->GetBatchLength(), 
 			inputBlobs[0]->GetBatchWidth(), inputBlobs[0]->GetListSize(), 1);
 	}
-	CFloatHandle dataLossGradient, labelLossGradient;
+	CFloatHandle dataLossGradient;
 	if(lossGradientBlobs.Size() > 0) {
 		dataLossGradient = lossGradientBlobs[0]->GetData();
 	}
+	CFloatHandle labelLossGradient;
 	if(lossGradientBlobs.Size() > 1) {
 		labelLossGradient = lossGradientBlobs[1]->GetData();
 	}
@@ -169,24 +168,26 @@ void CLossLayer::RunOnce()
 	}
 	// Take weights into account
 	MathEngine().VectorDotProduct(weights->GetData(), resultBuffer->GetData(),
-		resultBuffer->GetObjectCount(), params->GetData( { P_Loss } ) );
-	MathEngine().VectorMultiply( params->GetData( { P_Loss } ), params->GetData( { P_Loss } ),
-		1, params->GetData( { P_LossDivider } ) );
+		resultBuffer->GetObjectCount(), lossParam->GetData() );
+	MathEngine().VectorMultiply( lossParam->GetData(), lossParam->GetData(), 1, lossDivider );
 }
 
 void CLossLayer::BackwardOnce()
 {
+	// Averaging factor for calculating the loss gradient, takes lossWeight into account
+	const float lossGradientDivider = lossDivider * lossWeight;
+
 	for(int i = 0; i < lossGradientBlobs.Size(); i++) {
 		// Take weights into account
 		MathEngine().MultiplyDiagMatrixByMatrix( weights->GetData(), weights->GetDataSize(),
 			lossGradientBlobs[i]->GetData(), inputDiffBlobs[i]->GetObjectSize(),
 			inputDiffBlobs[i]->GetData(), inputDiffBlobs[i]->GetDataSize() );
 		MathEngine().VectorMultiply( inputDiffBlobs[i]->GetData(), inputDiffBlobs[i]->GetData(),
-			inputDiffBlobs[i]->GetDataSize(), params->GetData( { P_LossGradientDivider } ) );
+			inputDiffBlobs[i]->GetDataSize(), lossGradientDivider );
 		// The gradients might take "huge" values that will lead to incorrect behaviour
 		// Cut these values down
 		MathEngine().VectorMinMax( inputDiffBlobs[i]->GetData(), inputDiffBlobs[i]->GetData(),
-			inputDiffBlobs[i]->GetDataSize(), params->GetData( { P_MinGradient } ), params->GetData( { P_MaxGradient } ) );
+			inputDiffBlobs[i]->GetDataSize(), minGradient, maxGradient );
 	}
 }
 
@@ -194,14 +195,15 @@ template<class T>
 float CLossLayer::testImpl(int batchSize, CConstFloatHandle data, int vectorSize, CTypedMemoryHandle<const T> label,
 	int labelSize, CConstFloatHandle dataDelta)
 {
-	int totalSize = batchSize * vectorSize;
+	const int totalSize = batchSize * vectorSize;
+	CFloatHandleStackVar temp( MathEngine(), ( 2 * totalSize ) + ( 3 * batchSize ) + 1 );
 
-	CFloatHandleVar lossValue(MathEngine(), batchSize);	// the function value in data point
-	CFloatHandleVar lossGradient(MathEngine(), totalSize); // the function gradient in data point
-	CFloatHandleVar dataShift(MathEngine(), totalSize); // the data + dataDelta point
-	CFloatHandleVar lossValueShift(MathEngine(), batchSize); // the function value in data + dataDelta point
-	CFloatHandleVar lossValueShiftApp(MathEngine(), batchSize); // the function approximation in data + dataDelta point
-	CFloatHandleStackVar l2( MathEngine() ); // L2-measure (lossValueShiftApp - lossValueShift)
+	CFloatHandle lossValue = temp; // the function value in data point
+	CFloatHandle lossGradient = lossValue + batchSize; // the function gradient in data point
+	CFloatHandle dataShift = lossGradient + totalSize; // the data + dataDelta point
+	CFloatHandle lossValueShift = dataShift + totalSize; // the function value in data + dataDelta point
+	CFloatHandle lossValueShiftApp = lossValueShift + batchSize; // the function approximation in data + dataDelta point
+	CFloatHandle l2 = lossValueShiftApp + batchSize; // L2-measure (lossValueShiftApp - lossValueShift)
 
 	CPtr<CDnnBlob> oldWeights = weights;
 	weights = CDnnBlob::CreateVector(MathEngine(), CT_Float, batchSize);
@@ -209,24 +211,24 @@ float CLossLayer::testImpl(int batchSize, CConstFloatHandle data, int vectorSize
 
 	// Estimate
 	BatchCalculateLossAndGradient(batchSize, data, vectorSize,
-		label, labelSize, lossValue.GetHandle(), lossGradient.GetHandle());
+		label, labelSize, lossValue, lossGradient);
 
-	MathEngine().VectorAdd(data, dataDelta, dataShift.GetHandle(), totalSize);
-	BatchCalculateLossAndGradient(batchSize, dataShift.GetHandle(), vectorSize,
-		label, labelSize, lossValueShift.GetHandle(), CFloatHandle());
+	MathEngine().VectorAdd(data, dataDelta, dataShift, totalSize);
+	BatchCalculateLossAndGradient(batchSize, dataShift, vectorSize,
+		label, labelSize, lossValueShift, CFloatHandle{});
 
 	for(int i = 0; i < batchSize; ++i) {
-		MathEngine().VectorDotProduct(lossGradient.GetHandle() + i * vectorSize,
-			dataDelta + i * vectorSize, vectorSize, lossValueShiftApp.GetHandle() + i);
+		MathEngine().VectorDotProduct(lossGradient + i * vectorSize,
+			dataDelta + i * vectorSize, vectorSize, lossValueShiftApp + i);
 	}
-	MathEngine().VectorAdd(lossValueShiftApp.GetHandle(), lossValue.GetHandle(),
-		lossValueShiftApp.GetHandle(), batchSize);
-	MathEngine().VectorSub(lossValueShiftApp.GetHandle(), lossValueShift.GetHandle(),
-		lossValueShiftApp.GetHandle(), batchSize);
-	MathEngine().VectorDotProduct(lossValueShiftApp.GetHandle(), lossValueShiftApp.GetHandle(),
-		batchSize, l2.GetHandle());
+	MathEngine().VectorAdd(lossValueShiftApp, lossValue,
+		lossValueShiftApp, batchSize);
+	MathEngine().VectorSub(lossValueShiftApp, lossValueShift,
+		lossValueShiftApp, batchSize);
+	MathEngine().VectorDotProduct(lossValueShiftApp, lossValueShiftApp,
+		batchSize, l2);
 
-	float res = l2.GetHandle().GetValue() / batchSize;
+	float res = l2.GetValue() / batchSize;
 
 	weights = oldWeights; // restore the old weight values
 
@@ -248,67 +250,73 @@ float CLossLayer::Test(int batchSize, CConstFloatHandle data, int vectorSize, CC
 float CLossLayer::TestRandom(CRandom& random, int batchSize, float dataLabelMin, float dataLabelMax, float deltaAbsMax,
 	int vectorSize)
 {
-	int totalSize = batchSize * vectorSize;
+	NeoAssert( batchSize > 0 && vectorSize > 0 );
+	NeoAssert( dataLabelMin < dataLabelMax && deltaAbsMax > 0 );
 
-	CArray<float> temp;
+	const int totalSize = batchSize * vectorSize;
+	CFloatHandleStackVar temp( MathEngine(), totalSize * 3 );
 
-	CFloatHandleVar data( MathEngine(), totalSize );
-	temp.SetSize(totalSize);
-	for(int i = 0; i < totalSize; ++i) {
-		temp[i] = (float)random.Uniform(dataLabelMin, dataLabelMax);
+	CFloatHandle data = temp;
+	CFloatHandle label = data + totalSize;
+	CFloatHandle delta = label + totalSize;
+	{
+		CArray<float> buf;
+		buf.SetSize( totalSize );
+
+		for( int i = 0; i < totalSize; ++i ) {
+			buf[i] = static_cast<float>( random.Uniform(dataLabelMin, dataLabelMax) );
+		}
+		MathEngine().DataExchangeTyped(data, buf.GetPtr(), totalSize);
+
+		for( int i = 0; i < totalSize; ++i ) {
+			buf[i] = static_cast<float>( random.Uniform(dataLabelMin, dataLabelMax) );
+		}
+		MathEngine().DataExchangeTyped(label, buf.GetPtr(), totalSize);
+
+		for( int i = 0; i < totalSize; ++i ) {
+			buf[i] = static_cast<float>( random.Uniform(-deltaAbsMax, deltaAbsMax) );
+		}
+		MathEngine().DataExchangeTyped(delta, buf.GetPtr(), totalSize);
 	}
-	MathEngine().DataExchangeTyped(data.GetHandle(), temp.GetPtr(), totalSize);
-
-	CFloatHandleVar label( MathEngine(), totalSize );
-	temp.SetSize(totalSize);
-	for(int i = 0; i < totalSize; ++i) {
-		temp[i] = (float)random.Uniform(dataLabelMin, dataLabelMax);
-	}
-	MathEngine().DataExchangeTyped(label.GetHandle(), temp.GetPtr(), totalSize);
-
-	NeoAssert(deltaAbsMax > 0);
-	CFloatHandleVar delta( MathEngine(), totalSize );
-	temp.SetSize(totalSize);
-	for(int i = 0; i < totalSize; ++i) {
-		temp[i] = (float)random.Uniform(-deltaAbsMax, deltaAbsMax);
-	}
-	MathEngine().DataExchangeTyped(delta.GetHandle(), temp.GetPtr(), totalSize);
-
-	return Test(batchSize, data.GetHandle(), vectorSize, label.GetHandle(), vectorSize, delta.GetHandle());
+	return Test(batchSize, data, vectorSize, label, vectorSize, delta);
 }
 
-float CLossLayer::TestRandom(CRandom& random, int batchSize, float dataMin, float dataMax, int labelMax, float deltaAbsMax,
-	int vectorSize)
+float CLossLayer::TestRandom( CRandom& random, int batchSize, float dataMin, float dataMax, int labelMax, float deltaAbsMax,
+	int vectorSize )
 {
-	int totalSize = batchSize * vectorSize;
+	NeoAssert( batchSize > 0 && vectorSize > 0 );
+	NeoAssert( dataMin < dataMax && labelMax > 0 && deltaAbsMax > 0 );
 
-	CArray<float> temp;
+	const int totalSize = batchSize * vectorSize;
+	CFloatHandleStackVar temp( MathEngine(), totalSize * 2 );
 
-	CFloatHandleVar data( MathEngine(), totalSize );
-	temp.SetSize(totalSize);
-	for(int i = 0; i < totalSize; ++i) {
-		temp[i] = (float)random.Uniform(dataMin, dataMax);
+	CFloatHandle data = temp;
+	CFloatHandle delta = data + totalSize;
+	{
+		CArray<float> buf;
+		buf.SetSize( totalSize );
+
+		for( int i = 0; i < totalSize; ++i ) {
+			buf[i] = static_cast<float>( random.Uniform(dataMin, dataMax) );
+		}
+		MathEngine().DataExchangeTyped(data, buf.GetPtr(), totalSize);
+
+		for( int i = 0; i < totalSize; ++i ) {
+			buf[i] = static_cast<float>( random.Uniform(-deltaAbsMax, deltaAbsMax) );
+		}
+		MathEngine().DataExchangeTyped(delta, buf.GetPtr(), totalSize);
 	}
-	MathEngine().DataExchangeTyped(data.GetHandle(), temp.GetPtr(), totalSize);
 
-	NeoAssert(labelMax > 0);
-	CPtr<CDnnBlob> label = CDnnBlob::CreateVector(MathEngine(), CT_Int, batchSize);
-	CArray<int> tempInt;
-	tempInt.SetSize(batchSize);
-	for(int i = 0; i < batchSize; ++i) {
-		tempInt[i] = random.UniformInt(0, labelMax - 1);
+	CIntHandleStackVar label(MathEngine(), batchSize);
+	{
+		CArray<int> bufInt;
+		bufInt.SetSize( batchSize );
+		for( int i = 0; i < batchSize; ++i ) {
+			bufInt[i] = random.UniformInt(0, labelMax - 1);
+		}
+		MathEngine().DataExchangeTyped<int>(label, bufInt.GetPtr(), batchSize);
 	}
-	MathEngine().DataExchangeTyped(label->GetData<int>(), tempInt.GetPtr(), batchSize);
-
-	NeoAssert(deltaAbsMax > 0);
-	CFloatHandleVar delta( MathEngine(), totalSize );
-	temp.SetSize(totalSize);
-	for(int i = 0; i < totalSize; ++i) {
-		temp[i] = (float)random.Uniform(-deltaAbsMax, deltaAbsMax);
-	}
-	MathEngine().DataExchangeTyped(delta.GetHandle(), temp.GetPtr(), totalSize);
-
-	return Test(batchSize, data.GetHandle(), vectorSize, label->GetData<int>(), 1, delta.GetHandle());
+	return Test(batchSize, data, vectorSize, label, 1, delta);
 }
 
 } // namespace NeoML

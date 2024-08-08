@@ -1,4 +1,4 @@
-/* Copyright © 2017-2024 ABBYY
+/* Copyright © 2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,30 +15,27 @@ limitations under the License.
 
 #pragma once
 
-#include <NeoML/NeoMLDefs.h>
-#include <NeoML/Dnn/Dnn.h>
+#ifdef NEOML_USE_CUDA
+
+#include <MemoryHandleInternal.h>
 
 namespace NeoML {
 
-// CGlobalMeanPoolingLayer implements a layer which performs mean pooling on `Height`, `Width`, and `Depth` dimensions of the input.
-class NEOML_API CGlobalMeanPoolingLayer : public CBaseLayer {
-	NEOML_DNN_LAYER( CGlobalMeanPoolingLayer )
+template <typename T>
+class CCudaScalarParameter final {
 public:
-	explicit CGlobalMeanPoolingLayer( IMathEngine& mathEngine );
+	__host__ CCudaScalarParameter( const CScalarParameter<T>& scalar ) :
+		value( scalar.Handle.IsNull() ? scalar.Value : 0 ),
+		ptr( scalar.Handle.IsNull() ? nullptr : GetRaw( scalar.Handle ) )
+	{}
 
-	void Serialize( CArchive& archive ) override;
-
-protected:
-	// CBaseLayer methods
-	void Reshape() override;
-	void RunOnce() override;
-	void BackwardOnce() override;
-	int BlobsForBackward() const override { return 0; }
+	__host__ __device__ operator T() const { return ptr == nullptr ? value : *ptr; }
 
 private:
-	float coeff;
+	T value{};
+	const T* ptr{};
 };
 
-NEOML_API CLayerWrapper<CGlobalMeanPoolingLayer> GlobalMeanPooling();
-
 } // namespace NeoML
+
+#endif // NEOML_USE_CUDA

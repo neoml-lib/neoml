@@ -704,11 +704,7 @@ namespace NeoMLTest {
 
 static bool checkBlobEquality( CDnnBlob& firstBlob, CDnnBlob& secondBlob )
 {
-	if( !firstBlob.HasEqualDimensions( &secondBlob ) ) {
-		// When this happens test must fail
-		EXPECT_TRUE( false );
-		return false;
-	}
+	EXPECT_TRUE( firstBlob.HasEqualDimensions( &secondBlob ) );
 	CDnnBlobBuffer<float> first( firstBlob, TDnnBlobBufferAccess::Read );
 	CDnnBlobBuffer<float> second( secondBlob, TDnnBlobBufferAccess::Read );
 	for( int i = 0; i < first.Size(); ++i ) {
@@ -831,7 +827,7 @@ static void solverSerializationTestImpl( CPtr<CDnnSolver> firstSolver, bool trai
 			firstSolver->Train();
 			secondSolver->Train();
 		}
-		ASSERT_TRUE( FloatEq( loss->GetLastLoss(), secondLoss->GetLastLoss() ) );
+		EXPECT_NEAR( loss->GetLastLoss(), secondLoss->GetLastLoss(), 1e-5 );
 	}
 
 	CConvLayer* conv = CheckCast<CConvLayer>( firstNet.GetLayer( "conv" ) );
