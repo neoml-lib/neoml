@@ -411,8 +411,8 @@ void CLogRegression::SetArgument( const CFloatVector& arg )
 				valuePrivate += weight * log1p( expCoeff );
 
 				bool isNaN = false;
-				for( int i = 0; i < desc.Size; ++i ) {
-					if( desc.Values[i] != desc.Values[i] ) {
+				for( int k = 0; k < desc.Size; ++k ) {
+					if( desc.Values[k] != desc.Values[k] ) {
 						isNaN = true;
 						break;
 					}
