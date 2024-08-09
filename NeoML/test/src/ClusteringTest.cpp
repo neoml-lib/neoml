@@ -1,4 +1,4 @@
-/* Copyright © 2021-2023 ABBYY
+/* Copyright © 2021-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,13 +21,39 @@ limitations under the License.
 using namespace NeoML;
 using namespace NeoMLTest;
 
-typedef void (*TClusteringFunction)( IClusteringData* data, CClusteringResult& result );
+namespace NeoMLTest {
 
-class CClusteringTest : public CNeoMLTestFixture, public ::testing::WithParamInterface<TClusteringFunction> {
-public:
+//---------------------------------------------------------------------------------------------------------------------
+
+typedef void ( *TClusteringFunction )( IClusteringData* data, CClusteringResult& result );
+
+struct CClusteringTestParams {
+	TClusteringFunction Clusterize{};
+	CClusteringTestParams( TClusteringFunction f ) : Clusterize( f ) {}
+};
+
+struct CClusteringTest : public CNeoMLTestFixture, public ::testing::WithParamInterface<CClusteringTestParams> {
 	static bool InitTestFixture() { return true; }
 	static void DeinitTestFixture() {}
 };
+
+//---------------------------------------------------------------------------------------------------------------------
+
+typedef void ( *THierarchicalDendrogram )( IClusteringData* data, CClusteringResult& result,
+	CArray<CHierarchicalClustering::CMergeInfo>& dendrogram, CArray<int>& dendrogramIndices );
+
+struct CClusteringDendrogramTestParams {
+	THierarchicalDendrogram Dendrogram{};
+	CClusteringDendrogramTestParams( THierarchicalDendrogram f ) : Dendrogram( f ) {}
+};
+
+struct CClusteringDendrogramTest : public CNeoMLTestFixture,
+		public ::testing::WithParamInterface<CClusteringDendrogramTestParams> {
+	static bool InitTestFixture() { return true; }
+	static void DeinitTestFixture() {}
+};
+
+//---------------------------------------------------------------------------------------------------------------------
 
 class CClusteringTestData : public IClusteringData {
 public:
@@ -83,7 +109,8 @@ CClusteringTestData::CClusteringTestData( const CArray<CSparseFloatVector>& vect
 	desc.PointerE = desc.PointerB + 1;
 }
 
-// --------------------------------------------------------------------------------------------------------------------
+//---------------------------------------------------------------------------------------------------------------------
+
 // Data functions
 
 static void getSampleData( CPtr<IClusteringData>& sparseData, CPtr<IClusteringData>& denseData )
@@ -141,7 +168,8 @@ static void generateData( int vectorCount, int featureCount, int seed,
 	denseData = new CClusteringTestData( vectors, featureCount, true );
 }
 
-// --------------------------------------------------------------------------------------------------------------------
+//---------------------------------------------------------------------------------------------------------------------
+
 // Clustering functions
 
 static void firstComeClustering( IClusteringData* data, CClusteringResult& result )
@@ -215,7 +243,8 @@ static void kmeansElkanClustering( IClusteringData* data, CClusteringResult& res
 	kMeans.Clusterize( data, result );
 }
 
-// --------------------------------------------------------------------------------------------------------------------
+//---------------------------------------------------------------------------------------------------------------------
+
 // Result check functions
 
 static const float eps = 1e-4f;
@@ -280,50 +309,8 @@ static CFloatVector buildFloatVector( const CArray<float>& data )
 	return res;
 }
 
-// --------------------------------------------------------------------------------------------------------------------
-// test implementation
+//---------------------------------------------------------------------------------------------------------------------
 
-// Check on trivial sample
-TEST_P( CClusteringTest, Sample )
-{
-	TClusteringFunction clusterize = GetParam();
-
-	CPtr<IClusteringData> sparseData = nullptr;
-	CPtr<IClusteringData> denseData = nullptr;
-
-	getSampleData( sparseData, denseData );
-
-	CClusteringResult sparseResult;
-	clusterize( sparseData, sparseResult );
-
-	CClusteringResult denseResult;
-	clusterize( denseData, denseResult );
-
-	EXPECT_TRUE( isEqual( sparseResult, denseResult ) );
-	EXPECT_TRUE( isCorrectSampleResult( sparseResult ) );
-	EXPECT_TRUE( isCorrectSampleResult( denseResult ) );
-}
-
-// Compare sparse vs dense on generated data
-TEST_P( CClusteringTest, Generated )
-{
-	TClusteringFunction clusterize = GetParam();
-
-	CPtr<IClusteringData> sparseData = nullptr;
-	CPtr<IClusteringData> denseData = nullptr;
-
-	generateData( 512, 32, 0x1984, sparseData, denseData );
-
-	CClusteringResult sparseResult;
-	clusterize( sparseData, sparseResult );
-
-	CClusteringResult denseResult;
-	clusterize( denseData, denseResult );
-
-	EXPECT_TRUE( isEqual( sparseResult, denseResult ) );
-}
-
-// --------------------------------------------------------------------------------------------------------------------
 // Check backward compatibility
 
 static void precalcTestImpl( TClusteringFunction clusterize, const CClusteringResult& expectedResult )
@@ -344,51 +331,6 @@ static void precalcTestImpl( TClusteringFunction clusterize, const CClusteringRe
 	EXPECT_TRUE( isEqual( denseResult, expectedResult ) );
 }
 
-TEST_F( CClusteringTest, PrecalcFirstCome )
-{
-	CClusteringResult expectedResult;
-	expectedResult.ClusterCount = 2;
-	expectedResult.Clusters.SetSize( 2 );
-	expectedResult.Clusters[0].Mean = buildFloatVector( { 0.561685, 0.627736, 0.710235 } );
-	expectedResult.Clusters[0].Disp = buildFloatVector( { 0.290764, 0.269636, 0.278547 } );
-	expectedResult.Clusters[0].Norm = 1.213978;
-	expectedResult.Clusters[1].Mean = buildFloatVector( { -0.675586, -0.655485, -0.643366 } );
-	expectedResult.Clusters[1].Disp = buildFloatVector( { 0.215411, 0.280084, 0.265546 } );
-	expectedResult.Clusters[1].Norm = 1.299998;
-
-	precalcTestImpl( firstComeClustering, expectedResult );
-}
-
-TEST_F( CClusteringTest, PrecalcHierarchicalCentroid )
-{
-	CClusteringResult expectedResult;
-	expectedResult.ClusterCount = 2;
-	expectedResult.Clusters.SetSize( 2 );
-	expectedResult.Clusters[0].Mean = buildFloatVector( { 0.580782, 0.636106, 0.719705 } );
-	expectedResult.Clusters[0].Disp = buildFloatVector( { 0.266925, 0.267907, 0.275445 } );
-	expectedResult.Clusters[0].Norm = 1.259914;
-	expectedResult.Clusters[1].Mean = buildFloatVector( { -0.679265, -0.643118, -0.631227 } );
-	expectedResult.Clusters[1].Disp = buildFloatVector( { 0.212050, 0.282753, 0.268198 } );
-	expectedResult.Clusters[1].Norm = 1.273450;
-
-	precalcTestImpl( hierarchicalClustering<CHierarchicalClustering::L_Centroid>, expectedResult );
-}
-
-TEST_F( CClusteringTest, PrecalcIsoData )
-{
-	CClusteringResult expectedResult;
-	expectedResult.ClusterCount = 2;
-	expectedResult.Clusters.SetSize( 2 );
-	expectedResult.Clusters[0].Mean = buildFloatVector( { -0.256940, -0.233290, -0.418645 } );
-	expectedResult.Clusters[0].Disp = buildFloatVector( { 0.604588, 0.636909, 0.282105 } );
-	expectedResult.Clusters[0].Norm = 0.295706;
-	expectedResult.Clusters[1].Mean = buildFloatVector( { 0.551979, 0.636387, 1.063543 } );
-	expectedResult.Clusters[1].Disp = buildFloatVector( { 0.269381, 0.263475, 0.052157 } );
-	expectedResult.Clusters[1].Norm = 1.840793;
-
-	precalcTestImpl( isoDataClustering, expectedResult );
-}
-
 static void kmeansElkanDefaultInitClustering( IClusteringData* data, CClusteringResult& result )
 {
 	CKMeansClustering::CParam params;
@@ -401,23 +343,6 @@ static void kmeansElkanDefaultInitClustering( IClusteringData* data, CClustering
 
 	CKMeansClustering kMeans( params );
 	kMeans.Clusterize( data, result );
-}
-
-TEST_F( CClusteringTest, PrecalcKmeans )
-{
-	CClusteringResult expectedResult;
-	expectedResult.ClusterCount = 2;
-	expectedResult.Clusters.SetSize( 2 );
-	expectedResult.Clusters[0].Mean = buildFloatVector( { -0.679265, -0.643118, -0.631227 } );
-	expectedResult.Clusters[0].Disp = buildFloatVector( { 0.212050, 0.282753, 0.268198 } );
-	expectedResult.Clusters[0].Norm = 1.273450;
-	expectedResult.Clusters[1].Mean = buildFloatVector( { 0.580782, 0.636106, 0.719705 } );
-	expectedResult.Clusters[1].Disp = buildFloatVector( { 0.266925, 0.267907, 0.275445 } );
-	expectedResult.Clusters[1].Norm = 1.259914;
-
-	precalcTestImpl( kmeansLloydClustering, expectedResult );
-	// Check that different algos with the same initialization return similar results
-	precalcTestImpl( kmeansElkanDefaultInitClustering, expectedResult );
 }
 
 // Returns data with a specific dendrogram (only Distances may vary)
@@ -518,17 +443,136 @@ static inline bool compareCenters( const CClusterCenter& first, const CClusterCe
 		&& ::abs( first.Norm - second.Norm ) < eps && ::abs( first.Weight - second.Weight ) < eps;
 }
 
-TEST_F( CClusteringTest, HierarchicalDendrogram )
-{
-	CArray<THierarchicalClusteringFunction> functions = {
-		hierarchicalDendrogram<CHierarchicalClustering::L_Centroid>,
-		hierarchicalDendrogram<CHierarchicalClustering::L_Single>,
-		hierarchicalDendrogram<CHierarchicalClustering::L_Average>,
-		hierarchicalDendrogram<CHierarchicalClustering::L_Complete>,
-		hierarchicalDendrogram<CHierarchicalClustering::L_Ward>
-	};
+} // namespace NeoMLTest
 
-	for( int step = 0; step < functions.Size(); ++step ) {
+//---------------------------------------------------------------------------------------------------------------------
+
+// Tests implementation
+
+TEST_F( CClusteringTest, PrecalcFirstCome )
+{
+	CClusteringResult expectedResult;
+	expectedResult.ClusterCount = 2;
+	expectedResult.Clusters.SetSize( 2 );
+	expectedResult.Clusters[0].Mean = buildFloatVector( { 0.561685, 0.627736, 0.710235 } );
+	expectedResult.Clusters[0].Disp = buildFloatVector( { 0.290764, 0.269636, 0.278547 } );
+	expectedResult.Clusters[0].Norm = 1.213978;
+	expectedResult.Clusters[1].Mean = buildFloatVector( { -0.675586, -0.655485, -0.643366 } );
+	expectedResult.Clusters[1].Disp = buildFloatVector( { 0.215411, 0.280084, 0.265546 } );
+	expectedResult.Clusters[1].Norm = 1.299998;
+
+	precalcTestImpl( firstComeClustering, expectedResult );
+}
+
+TEST_F( CClusteringTest, PrecalcHierarchicalCentroid )
+{
+	CClusteringResult expectedResult;
+	expectedResult.ClusterCount = 2;
+	expectedResult.Clusters.SetSize( 2 );
+	expectedResult.Clusters[0].Mean = buildFloatVector( { 0.580782, 0.636106, 0.719705 } );
+	expectedResult.Clusters[0].Disp = buildFloatVector( { 0.266925, 0.267907, 0.275445 } );
+	expectedResult.Clusters[0].Norm = 1.259914;
+	expectedResult.Clusters[1].Mean = buildFloatVector( { -0.679265, -0.643118, -0.631227 } );
+	expectedResult.Clusters[1].Disp = buildFloatVector( { 0.212050, 0.282753, 0.268198 } );
+	expectedResult.Clusters[1].Norm = 1.273450;
+
+	precalcTestImpl( hierarchicalClustering<CHierarchicalClustering::L_Centroid>, expectedResult );
+}
+
+TEST_F( CClusteringTest, PrecalcIsoData )
+{
+	CClusteringResult expectedResult;
+	expectedResult.ClusterCount = 2;
+	expectedResult.Clusters.SetSize( 2 );
+	expectedResult.Clusters[0].Mean = buildFloatVector( { -0.256940, -0.233290, -0.418645 } );
+	expectedResult.Clusters[0].Disp = buildFloatVector( { 0.604588, 0.636909, 0.282105 } );
+	expectedResult.Clusters[0].Norm = 0.295706;
+	expectedResult.Clusters[1].Mean = buildFloatVector( { 0.551979, 0.636387, 1.063543 } );
+	expectedResult.Clusters[1].Disp = buildFloatVector( { 0.269381, 0.263475, 0.052157 } );
+	expectedResult.Clusters[1].Norm = 1.840793;
+
+	precalcTestImpl( isoDataClustering, expectedResult );
+}
+
+TEST_F( CClusteringTest, PrecalcKmeans )
+{
+	CClusteringResult expectedResult;
+	expectedResult.ClusterCount = 2;
+	expectedResult.Clusters.SetSize( 2 );
+	expectedResult.Clusters[0].Mean = buildFloatVector( { -0.679265, -0.643118, -0.631227 } );
+	expectedResult.Clusters[0].Disp = buildFloatVector( { 0.212050, 0.282753, 0.268198 } );
+	expectedResult.Clusters[0].Norm = 1.273450;
+	expectedResult.Clusters[1].Mean = buildFloatVector( { 0.580782, 0.636106, 0.719705 } );
+	expectedResult.Clusters[1].Disp = buildFloatVector( { 0.266925, 0.267907, 0.275445 } );
+	expectedResult.Clusters[1].Norm = 1.259914;
+
+	precalcTestImpl( kmeansLloydClustering, expectedResult );
+	// Check that different algos with the same initialization return similar results
+	precalcTestImpl( kmeansElkanDefaultInitClustering, expectedResult );
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
+// Check on trivial sample
+TEST_P( CClusteringTest, Sample )
+{
+	TClusteringFunction clusterize = GetParam().Clusterize;
+
+	CPtr<IClusteringData> sparseData = nullptr;
+	CPtr<IClusteringData> denseData = nullptr;
+
+	getSampleData( sparseData, denseData );
+
+	CClusteringResult sparseResult;
+	clusterize( sparseData, sparseResult );
+
+	CClusteringResult denseResult;
+	clusterize( denseData, denseResult );
+
+	EXPECT_TRUE( isEqual( sparseResult, denseResult ) );
+	EXPECT_TRUE( isCorrectSampleResult( sparseResult ) );
+	EXPECT_TRUE( isCorrectSampleResult( denseResult ) );
+}
+
+// Compare sparse vs dense on generated data
+TEST_P( CClusteringTest, Generated )
+{
+	TClusteringFunction clusterize = GetParam().Clusterize;
+
+	CPtr<IClusteringData> sparseData = nullptr;
+	CPtr<IClusteringData> denseData = nullptr;
+
+	generateData( 512, 32, 0x1984, sparseData, denseData );
+
+	CClusteringResult sparseResult;
+	clusterize( sparseData, sparseResult );
+
+	CClusteringResult denseResult;
+	clusterize( denseData, denseResult );
+
+	EXPECT_TRUE( isEqual( sparseResult, denseResult ) );
+}
+
+INSTANTIATE_TEST_CASE_P( CClusteringTestInstantiation, CClusteringTest,
+	::testing::Values(
+		firstComeClustering,
+		hierarchicalClustering<CHierarchicalClustering::L_Centroid>,
+		hierarchicalClustering<CHierarchicalClustering::L_Single>,
+		hierarchicalClustering<CHierarchicalClustering::L_Average>,
+		hierarchicalClustering<CHierarchicalClustering::L_Complete>,
+		hierarchicalClustering<CHierarchicalClustering::L_Ward>,
+		isoDataClustering,
+		kmeansElkanClustering,
+		kmeansLloydClustering
+	)
+);
+
+//---------------------------------------------------------------------------------------------------------------------
+
+TEST_P( CClusteringDendrogramTest, HierarchicalDendrogram )
+{
+	THierarchicalDendrogram dendrogram = GetParam().Dendrogram;
+	{
 		CPtr<IClusteringData> data;
 		CArray<CHierarchicalClustering::CMergeInfo> expectedDendrogram;
 		CArray<int> expectedIndices;
@@ -537,7 +581,7 @@ TEST_F( CClusteringTest, HierarchicalDendrogram )
 		CClusteringResult result;
 		CArray<CHierarchicalClustering::CMergeInfo> actualDendrogram;
 		CArray<int> actualIndices;
-		functions[step]( data, result, actualDendrogram, actualIndices );
+		dendrogram( data, result, actualDendrogram, actualIndices );
 
 		ASSERT_EQ( expectedDendrogram.Size(), actualDendrogram.Size() );
 		for( int i = 0; i < expectedDendrogram.Size(); ++i ) {
@@ -571,17 +615,12 @@ TEST_F( CClusteringTest, HierarchicalDendrogram )
 	}
 }
 
-INSTANTIATE_TEST_CASE_P( CClusteringTestInstantiation, CClusteringTest,
+INSTANTIATE_TEST_CASE_P( CClusteringTestDendrogramInstantiation, CClusteringDendrogramTest,
 	::testing::Values(
-		firstComeClustering,
-		hierarchicalClustering<CHierarchicalClustering::L_Centroid>,
-		hierarchicalClustering<CHierarchicalClustering::L_Single>,
-		hierarchicalClustering<CHierarchicalClustering::L_Average>,
-		hierarchicalClustering<CHierarchicalClustering::L_Complete>,
-		hierarchicalClustering<CHierarchicalClustering::L_Ward>,
-		isoDataClustering,
-		kmeansElkanClustering,
-		kmeansLloydClustering
+		hierarchicalDendrogram<CHierarchicalClustering::L_Centroid>,
+		hierarchicalDendrogram<CHierarchicalClustering::L_Single>,
+		hierarchicalDendrogram<CHierarchicalClustering::L_Average>,
+		hierarchicalDendrogram<CHierarchicalClustering::L_Complete>,
+		hierarchicalDendrogram<CHierarchicalClustering::L_Ward>
 	)
 );
-
