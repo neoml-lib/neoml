@@ -427,6 +427,59 @@ void CLogRegression::SetArgument( const CFloatVector& arg )
 
 	value /= logf( 2.f );
 	value += rValue;
+
+	auto fContainsNaN = []( const CFloatVector& v ) -> bool 
+	{
+		for( float f : v ) {
+			if( f != f )
+				return true;
+		}
+		return false;
+	};
+
+	auto dContainsNaN = []( const CArray<double> & v ) -> bool
+	{
+		for( double f : v ) {
+			if( f != f )
+				return true;
+		}
+		return false;
+	};
+
+	auto printV = []( const CFloatVector& v, const char* name )
+	{
+		printf( " %s = { ", name );
+		for( float f : v ) {
+			printf( "%f ", f );
+		}
+		printf( "}\n" );
+	};
+
+	static bool isPrinted = false;
+	if( isPrinted ) {
+		return;
+	}
+	if( fContainsNaN( arg )
+		|| fContainsNaN( answers )
+		|| fContainsNaN( weights )
+		|| fContainsNaN( gradient )
+		|| dContainsNaN( hessian )
+		)
+	{
+		isPrinted = true;
+		printf( "CLogRegression: value = %lf \n", value );
+
+		printV( arg, "arg" );
+		printV( answers, "answers" );
+		printV( weights, "weights" );
+		printV( gradient, "gradient" );
+
+		printf( " hessian = { " );
+		for( double f : hessian ) {
+			printf( "%lf ", f );
+		}
+		printf( "}\n" );
+	}
 }
 
 CFloatVector CLogRegression::HessianProduct( const CFloatVector& arg )
