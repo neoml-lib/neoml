@@ -111,6 +111,29 @@ CPtr<IRegressionModel> CLinear::TrainRegression( const IRegressionProblem& probl
 
 CPtr<IModel> CLinear::Train( const IProblem& trainingClassificationData )
 {
+	auto matrix = trainingClassificationData.GetMatrix();
+	for( int i = 0; i < matrix.Height; ++i ) {
+		auto vector = matrix.GetRow( i );
+
+		bool is_nan_ = false;
+		for( int k = 0; k < vector.Size; ++k ) {
+			if( vector.Values[k] != vector.Values[k] ) {
+				is_nan_ = true;
+				break;
+			}
+		}
+
+		if( is_nan_ ) {
+			printf( " i = %d, size = %d { ", i, vector.Size );
+			for( int k = 0; k < vector.Size; ++k ) {
+				printf( "(%d %f) ", vector.Indexes[k], vector.Values[k] );
+			}
+			printf( "}\n" );
+			break;
+		}
+	}
+
+
 	if( trainingClassificationData.GetClassCount() > 2 ) {
 		static_assert( MM_Count == 3, "MM_Count != 3" );
 		switch( params.MulticlassMode ) {
