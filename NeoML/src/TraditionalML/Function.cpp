@@ -409,9 +409,23 @@ void CLogRegression::SetArgument( const CFloatVector& arg )
 				double expCoeff = exponentFunc( -answer * dot );
 
 				valuePrivate += weight * log1p( expCoeff );
+
+				bool isNaN = false;
+				for( int i = 0; i < desc.Size; ++i ) {
+					if( desc.Values[i] != desc.Values[i] ) {
+						isNaN = true;
+						break;
+					}
+				}
+
 				static bool isPrinted = false;
-				if( !isPrinted && (expCoeff != expCoeff || valuePrivate != valuePrivate || dot != dot) ) {
+				if( !isPrinted && ( isNaN || expCoeff != expCoeff || valuePrivate != valuePrivate || dot != dot ) ) {
 					printf( " dot = %lf, exp = %lf, v = %lf, %lf \n", dot, expCoeff, valuePrivate, ( -weight * logNormalizer * answer * expCoeff / ( 1.f + expCoeff ) ) );
+					printf( " index = %d, desc = { ", index );
+					for( int i = 0; i < desc.Size; ++i ) {
+						printf( "(%d %f) ", desc.Indexes[i], desc.Values[i] );
+					}
+					printf( "}\n" );
 					isPrinted = true;
 				}
 
