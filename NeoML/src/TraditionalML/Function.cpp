@@ -409,6 +409,11 @@ void CLogRegression::SetArgument( const CFloatVector& arg )
 				double expCoeff = exponentFunc( -answer * dot );
 
 				valuePrivate += weight * log1p( expCoeff );
+				static bool isPrinted = false;
+				if( !isPrinted && (expCoeff != expCoeff || valuePrivate != valuePrivate || dot != dot) ) {
+					printf( " dot = %lf, exp = %lf, v = %lf, %lf \n", dot, expCoeff, valuePrivate, ( -weight * logNormalizer * answer * expCoeff / ( 1.f + expCoeff ) ) );
+					isPrinted = true;
+				}
 
 				gradientPrivate.MultiplyAndAddExt( desc, -weight * logNormalizer * answer * expCoeff / ( 1.f + expCoeff ) );
 				hessian[index] = weight * logNormalizer * expCoeff / ( 1.f + expCoeff ) / ( 1.f + expCoeff );
