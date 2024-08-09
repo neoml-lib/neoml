@@ -21,6 +21,21 @@ limitations under the License.
 
 namespace NeoML {
 
+// Exponent function with limitations to avoid NaN
+static inline double exponentFunc( double f )
+{
+	constexpr double DBL_LOG_MAX = 709.;
+	constexpr double DBL_LOG_MIN = -709.;
+
+	if( f < DBL_LOG_MIN ) {
+		return 0;
+	} else if( f > DBL_LOG_MAX ) {
+		return DBL_MAX;
+	} else {
+		return exp( f );
+	}
+}
+
 // Calculates the L1 regularization factor
 static void calcL1Regularization( const CFloatVector& w, float l1Coeff, double& value, CFloatVector& gradient )
 {
@@ -391,7 +406,7 @@ void CLogRegression::SetArgument( const CFloatVector& arg )
 				matrix.GetRow( index, desc );
 
 				double dot = LinearFunction( arg, desc );
-				double expCoeff = exp( -answer * dot );
+				double expCoeff = exponentFunc( -answer * dot );
 
 				valuePrivate += weight * log1p( expCoeff );
 
@@ -412,6 +427,59 @@ void CLogRegression::SetArgument( const CFloatVector& arg )
 
 	value /= logf( 2.f );
 	value += rValue;
+
+	auto fContainsNaN = []( const CFloatVector& v ) -> bool 
+	{
+		for( float f : v ) {
+			if( f != f )
+				return true;
+		}
+		return false;
+	};
+
+	auto dContainsNaN = []( const CArray<double> & v ) -> bool
+	{
+		for( double f : v ) {
+			if( f != f )
+				return true;
+		}
+		return false;
+	};
+
+	auto printV = []( const CFloatVector& v, const char* name )
+	{
+		printf( " %s = { ", name );
+		for( float f : v ) {
+			printf( "%f ", f );
+		}
+		printf( "}\n" );
+	};
+
+	static bool isPrinted = false;
+	if( isPrinted ) {
+		return;
+	}
+	if( fContainsNaN( arg )
+		|| fContainsNaN( answers )
+		|| fContainsNaN( weights )
+		|| fContainsNaN( gradient )
+		|| dContainsNaN( hessian )
+		)
+	{
+		isPrinted = true;
+		printf( "CLogRegression: value = %lf \n", value );
+
+		printV( arg, "arg" );
+		printV( answers, "answers" );
+		printV( weights, "weights" );
+		printV( gradient, "gradient" );
+
+		printf( " hessian = { " );
+		for( double f : hessian ) {
+			printf( "%lf ", f );
+		}
+		printf( "}\n" );
+	}
 }
 
 CFloatVector CLogRegression::HessianProduct( const CFloatVector& arg )

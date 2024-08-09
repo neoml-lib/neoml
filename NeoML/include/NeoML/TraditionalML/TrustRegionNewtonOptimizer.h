@@ -55,7 +55,7 @@ private:
 	CTextStream* log; // the logging stream
 
 	int conjugateGradientSearch(double trustRegionSize, const CFloatVector& gradient,
-		CFloatVector& shift, CFloatVector& residue, bool& reach_boundary);
+		CFloatVector& shift, CFloatVector& residue);
 };
 
 } // namespace NeoML
