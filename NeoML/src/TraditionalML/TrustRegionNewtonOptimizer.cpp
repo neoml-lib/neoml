@@ -61,14 +61,13 @@ void CTrustRegionNewtonOptimizer::Optimize()
 	// Set the initial trust region size
 	double trustRegionSize = gradientNorm; // trust region size
 	double initialGradientNorm = gradientNorm; // the initial gradient norm
-
-	bool reach_boundary = false;
+	
 	for(int i = 1; i <= maxIterations; ) {
 		// Search for the estimated minimum of the quadratic approximation for the target function
 		// in a sphere of trustRegionSize diameter
 		// The quadratic approximation: value = gradient*shift + shift*Hessian*shift / 2
 		// The quadratic approximation anti-gradient: residue = -gradient - Hessian*shift 
-		int cgIterations = conjugateGradientSearch( trustRegionSize, gradient, shift, residue, reach_boundary );
+		int cgIterations = conjugateGradientSearch(trustRegionSize, gradient, shift, residue);
 		// The new approximation on the next step
 		CFloatVector newArgument = currentArgument + shift;
 		double gradient_shift = DotProduct(gradient, shift);
@@ -98,13 +97,8 @@ void CTrustRegionNewtonOptimizer::Optimize()
 			trustRegionSize = max(sigma1 * trustRegionSize, min(alpha, sigma2 * trustRegionSize));
 		else if (actualReduction < eta2 * predictedReduction)
 			trustRegionSize = max(sigma1 * trustRegionSize, min(alpha, sigma3 * trustRegionSize));
-		else {
-			if( reach_boundary ) {
-				trustRegionSize = sigma3 * trustRegionSize;
-			} else {
-				trustRegionSize = max( trustRegionSize, min( alpha, sigma3 * trustRegionSize ) );
-			}
-		}
+		else
+			trustRegionSize = max(trustRegionSize, min(alpha, sigma3 * trustRegionSize));
 		// Log the current iteration parameters
 		if(log != 0) {
 			*log << "iter = " << i << ", actual = " << actualReduction << ", predicted = " << predictedReduction 
@@ -159,8 +153,8 @@ void CTrustRegionNewtonOptimizer::Optimize()
 // The solution is represented as decomposition into conjugate directions:
 // shift = sum(alpha * conjugateVector)
 
-int CTrustRegionNewtonOptimizer::conjugateGradientSearch( double trustRegionSize, 
-	const CFloatVector& gradient, CFloatVector& shift, CFloatVector& residue, bool& reach_boundary )
+int CTrustRegionNewtonOptimizer::conjugateGradientSearch(double trustRegionSize, 
+	const CFloatVector& gradient, CFloatVector& shift, CFloatVector& residue)
 {
 	// Maximum number of iterations
 	const int maxAllowedIterations = 10000;
@@ -179,7 +173,6 @@ int CTrustRegionNewtonOptimizer::conjugateGradientSearch( double trustRegionSize
 
 	double cgTolerance = 0.1 * gradient.Norm(); // the approximate solution accuracy
 
-	reach_boundary = false;
 	int iteration = 0;
 	for(;;)	{
 		if(sqrt(residue2) <= cgTolerance) {
@@ -219,7 +212,6 @@ int CTrustRegionNewtonOptimizer::conjugateGradientSearch( double trustRegionSize
 				}
 				// Undo the last step
 				shift = oldShift;
-				reach_boundary = true;
 			}
 		}
 		// Find the coefficient before the conjugate vector alpha such that the solution is exactly on the trust region boundary

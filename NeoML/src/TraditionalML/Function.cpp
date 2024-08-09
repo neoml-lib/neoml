@@ -21,6 +21,21 @@ limitations under the License.
 
 namespace NeoML {
 
+// Exponent function with limitations to avoid NaN
+static inline double exponentFunc( double f )
+{
+	constexpr double DBL_LOG_MAX = 709.;
+	constexpr double DBL_LOG_MIN = -709.;
+
+	if( f < DBL_LOG_MIN ) {
+		return 0;
+	} else if( f > DBL_LOG_MAX ) {
+		return DBL_MAX;
+	} else {
+		return exp( f );
+	}
+}
+
 // Calculates the L1 regularization factor
 static void calcL1Regularization( const CFloatVector& w, float l1Coeff, double& value, CFloatVector& gradient )
 {
@@ -391,7 +406,7 @@ void CLogRegression::SetArgument( const CFloatVector& arg )
 				matrix.GetRow( index, desc );
 
 				double dot = LinearFunction( arg, desc );
-				double expCoeff = exp( -answer * dot );
+				double expCoeff = exponentFunc( -answer * dot );
 
 				valuePrivate += weight * log1p( expCoeff );
 
