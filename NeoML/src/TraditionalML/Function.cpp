@@ -422,8 +422,8 @@ void CLogRegression::SetArgument( const CFloatVector& arg )
 				if( !isPrinted && ( isNaN || expCoeff != expCoeff || valuePrivate != valuePrivate || dot != dot ) ) {
 					printf( " dot = %lf, exp = %lf, v = %lf, %lf \n", dot, expCoeff, valuePrivate, ( -weight * logNormalizer * answer * expCoeff / ( 1.f + expCoeff ) ) );
 					printf( " index = %d, desc = { ", index );
-					for( int i = 0; i < desc.Size; ++i ) {
-						printf( "(%d %f) ", desc.Indexes[i], desc.Values[i] );
+					for( int k = 0; k < desc.Size; ++k ) {
+						printf( "(%d %f) ", desc.Indexes[k], desc.Values[k] );
 					}
 					printf( "}\n" );
 					isPrinted = true;
