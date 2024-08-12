@@ -739,6 +739,8 @@ private:
 	void serialize( CArchive& archive, bool optimizeDnn );
 	// Thread-safe coping the state (with no copy paramBlobs the pointers used) of a dnn to a new dnn
 	void initializeReferenceDnn( CDnn& dnn, CDnn& newDnn, TPtrOwnerReferenceDnnInfo&& info );
+	// Update layers' settings for a better paramBlobs sharing
+	static void allowLayersToShareParamBlobs( CDnn& dnn );
 };
 
 } // namespace NeoML

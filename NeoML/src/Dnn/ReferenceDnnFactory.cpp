@@ -17,6 +17,7 @@ limitations under the License.
 #pragma hdrstop
 
 #include <NeoML/Dnn/Dnn.h>
+#include <NeoML/Dnn/Layers/MultichannelLookupLayer.h>
 #ifdef NEOML_COMPACT // No optimizations in mobile assembly
 namespace NeoML {
 static void OptimizeDnn( CDnn& ) {}
@@ -85,6 +86,7 @@ CReferenceDnnFactory::CReferenceDnnFactory( CDnn&& dnn, bool optimizeDnn ) :
 
 	// Convert everything back
 	// - set back the original dnn as a reference dnn with its referenceDnnInfo
+	allowLayersToShareParamBlobs( Origin->Dnn );
 	Origin->Dnn.DisableLearning();
 	swap( dnn.referenceDnnInfo, Origin->Dnn.referenceDnnInfo );
 	// - set the dnn as ordinary and of an empty state
@@ -126,9 +128,23 @@ void CReferenceDnnFactory::serialize( CArchive& archive, bool optimizeDnn )
 	}
 
 	// And revert back the restrictions
+	allowLayersToShareParamBlobs( Origin->Dnn );
 	Origin->Dnn.DisableLearning();
 	swap( tmp, Origin->Dnn.referenceDnnInfo );
 	NeoAssert( Origin->Dnn.IsReferenceDnn() );
+}
+
+void CReferenceDnnFactory::allowLayersToShareParamBlobs( CDnn& dnn )
+{
+	for( CPtr<CBaseLayer>& layer : dnn.layers ) {
+		auto* lookup = dynamic_cast<CMultichannelLookupLayer*>( layer.Ptr() );
+		if( lookup != nullptr ) {
+			// Move paramBLobs from external to internal storage to allow the sharing
+			// TODO: consider to remove non-framework learning in CMultichannelLookupLayer
+			lookup->SetUseFrameworkLearning( true );
+		}
+	}
+	// TODO: Add other optimizations
 }
 
 CPtr<CDnnReference> CReferenceDnnFactory::CreateReferenceDnn( bool getOriginDnn )
