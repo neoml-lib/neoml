@@ -336,8 +336,8 @@ static void perfomanceTest( IMathEngine& mathEngine, bool useReference, bool lea
 	counters->Synchronise();
 
 	GTEST_LOG_( INFO ) << "Run once multi-threaded " << ( useReference ? "(ref)" : "(cpy)" )
-		<< "\nTime: " << ( double( ( *counters )[0].Value ) / 1000000 ) << " ms. "
-		<< "\tPeak.Mem: " << ( double( mathEngine.GetPeakMemoryUsage() ) / 1024 / 1024 ) << " MB \n";
+		<< "\nTime: " << GetTimeScaled( *counters ) << " ms. "
+		<< "\tPeak.Mem: " << GetPeakMemScaled( mathEngine ) << " MB \n";
 }
 
 // Scenario: learn dnn, then use multi-threaded inference, each thread creates reference dnn by itself
@@ -381,8 +381,8 @@ static void implTest( IMathEngine& mathEngine, bool useReference, bool learn = t
 
 	GTEST_LOG_( INFO ) << "Run multi-threaded inference and creation "
 		<< "\t" << ( useReference ? "(ref)" : "(cpy)" )
-		<< "\nTime: " << ( double( ( *counters )[0].Value ) / 1000000 ) << " ms. "
-		<< "\tPeak.Mem: " << ( double( mathEngine.GetPeakMemoryUsage() ) / 1024 / 1024 ) << " MB \n";
+		<< "\nTime: " << GetTimeScaled( *counters ) << " ms. "
+		<< "\tPeak.Mem: " << GetPeakMemScaled( MathEngine() ) << " MB \n";
 
 	if( referenceDnnFactory != nullptr ) {
 		CPtr<CDnnReference> originDnn = referenceDnnFactory->CreateReferenceDnn( /*originDnn*/true );
