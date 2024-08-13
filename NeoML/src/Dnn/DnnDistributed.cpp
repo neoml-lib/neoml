@@ -508,47 +508,73 @@ void CDistributedTraining::StoreDnn( CArchive& archive, int index, bool storeSol
 
 //---------------------------------------------------------------------------------------------------------------------
 
-void CDistributedInference::initialize( int threadsCount )
+// Params to transfer to all threads function
+struct CDistributedInference::CThreadParams final {
+	IDistributedDataset* Data = nullptr; // Pointer to data for the inference for all dnns
+	CObjectArray<CDnnReference> Refs; // Separate dnn for each thread
+	CArray<bool> IsDnnInferenced; // Indicates for what dnns the inference was performed
+	CArray<CString> ErrorMessages; // Containers for errors if it happened
+	bool IsErrorHappened = false;
+
+	CThreadParams( int threadsCount, CReferenceDnnFactory& referenceDnnFactory );
+	void Initialize( IDistributedDataset& data );
+};
+
+CDistributedInference::CThreadParams::CThreadParams( int threadsCount, CReferenceDnnFactory& referenceDnnFactory )
 {
 	initThreadGroupInfo();
 
-	threadParams.ErrorMessages.Add( {}, threadsCount );
 	// Create reference dnns
 	// To create a reference dnn the original network should be trained or at least reshaped
 	// All training paramBlobs should exist
-	threadParams.Refs.SetBufferSize( threadsCount );
+	Refs.SetBufferSize( threadsCount );
 	for( int i = 1; i < threadsCount; ++i ) {
-		threadParams.Refs.Add( referenceDnnFactory->CreateReferenceDnn() );
+		Refs.Add( referenceDnnFactory.CreateReferenceDnn() );
 	}
 	// Here it can be either a one more reference dnn
 	// Or also the original dnn, because no one can create a new reference dnn, while this inference
-	threadParams.Refs.Add( referenceDnnFactory->CreateReferenceDnn( /*getOriginalDnn*/true ) );
+	Refs.Add( referenceDnnFactory.CreateReferenceDnn( /*getOriginalDnn*/true ) );
 }
+
+void CDistributedInference::CThreadParams::Initialize( IDistributedDataset& data )
+{
+	Data = &data;
+	IsDnnInferenced.DeleteAll();
+	IsDnnInferenced.Add( false, Refs.Size() );
+	ErrorMessages.DeleteAll();
+	ErrorMessages.Add( CString{}, Refs.Size() );
+	IsErrorHappened = false;
+}
+
+//---------------------------------------------------------------------------------------------------------------------
 
 CDistributedInference::CDistributedInference( const CDnn& dnn, int threadsCount,
 		bool optimizeDnn, size_t memoryLimit ) :
 	threadPool( CreateThreadPool( threadsCount ) ),
 	mathEngine( CreateCpuMathEngine( memoryLimit ) ),
-	referenceDnnFactory( new CReferenceDnnFactory( *mathEngine, dnn, optimizeDnn ) )
-{
+	referenceDnnFactory( new CReferenceDnnFactory( *mathEngine, dnn, optimizeDnn ) ),
 	// if count was <= 0 the pool has been initialized with the number of available CPU cores
-	initialize( threadPool->Size() );
+	threadParams( new CThreadParams( threadPool->Size(), *referenceDnnFactory ) )
+{
 }
 
 CDistributedInference::CDistributedInference( CArchive& archive, int threadsCount, int seed,
 		bool optimizeDnn, size_t memoryLimit ) :
 	threadPool( CreateThreadPool( threadsCount ) ),
 	mathEngine( CreateCpuMathEngine( memoryLimit ) ),
-	referenceDnnFactory( new CReferenceDnnFactory( *mathEngine, archive, seed, optimizeDnn ) )
-{
+	referenceDnnFactory( new CReferenceDnnFactory( *mathEngine, archive, seed, optimizeDnn ) ),
 	// if count was <= 0 the pool has been initialized with the number of available CPU cores
-	initialize( threadPool->Size() );
+	threadParams( new CThreadParams( threadPool->Size(), *referenceDnnFactory ) )
+{
+}
+
+CDistributedInference::~CDistributedInference()
+{
 }
 
 void CDistributedInference::RunOnce( IDistributedDataset& data )
 {
-	threadParams.Data = &data;
-	threadParams.IsErrorHappened = false;
+	threadParams->Initialize( data );
 
 	IThreadPool::TFunction f = []( int threadIndex, void* ptr )
 	{
@@ -559,6 +585,7 @@ void CDistributedInference::RunOnce( IDistributedDataset& data )
 			const int currBatchSize = threadParams.Data->SetInputBatch( threadParams.Refs[threadIndex]->Dnn, threadIndex );
 			if( currBatchSize > 0 ) { // If thread has some data to perform
 				threadParams.Refs[threadIndex]->Dnn.RunOnce();
+				threadParams.IsDnnInferenced[threadIndex] = true;
 			}
 		} catch( std::exception& e ) {
 			threadParams.IsErrorHappened = true;
@@ -572,18 +599,21 @@ void CDistributedInference::RunOnce( IDistributedDataset& data )
 		}
 #endif // NEOML_USE_FINEOBJ
 	};
-	NEOML_NUM_THREADS( *threadPool, &threadParams, f );
+	NEOML_NUM_THREADS( *threadPool, threadParams, f );
 
-	CheckArchitecture( !threadParams.IsErrorHappened, "DistributedTraining",
-		JoinStrings( threadParams.ErrorMessages ) );
-	threadParams.Data = nullptr;
+	CheckArchitecture( !threadParams->IsErrorHappened, "DistributedTraining",
+		JoinStrings( threadParams->ErrorMessages ) );
+	threadParams->Data = nullptr;
 }
 
 void CDistributedInference::GetLastBlob( const CString& layerName, CObjectArray<const CDnnBlob>& blobs ) const
 {
-	blobs.SetSize( threadParams.Refs.Size() );
-	for( int i = 0; i < threadParams.Refs.Size(); ++i ) {
-		blobs[i] = CheckCast<const CSinkLayer>( threadParams.Refs[i]->Dnn.GetLayer( layerName ) )->GetBlob();
+	blobs.DeleteAll();
+	blobs.Add( nullptr, threadParams->Refs.Size() );
+	for( int i = 0; i < threadParams->Refs.Size(); ++i ) {
+		if( threadParams->IsDnnInferenced[i] ) {
+			blobs[i] = CheckCast<const CSinkLayer>( threadParams->Refs[i]->Dnn.GetLayer( layerName ) )->GetBlob();
+		}
 	}
 }
 

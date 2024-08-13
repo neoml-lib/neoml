@@ -148,14 +148,18 @@ static void runDnn( int thread, void* arg )
 	}
 }
 
-static void createDnn( CDnn& dnn, bool learn = false, float dropoutRate = 0.1f )
+static void createDnn( CDnn& dnn, bool learn = false, bool composite = false, float dropoutRate = 0.1f )
 {
 	CBaseLayer* layer = Source( dnn, "in" );
-	layer = FullyConnected( 50, true )( "fc1", layer );
-	layer = Dropout( dropoutRate )( "dp1", layer );
-	layer = FullyConnected( 200 )( "fc2", layer );
-	layer = Dropout( dropoutRate )( "dp2", layer );
-	layer = FullyConnected( 10 )( "fc3", layer );
+	if( composite ) {
+		layer = TransformerEncoder( 2, 8, dropoutRate, 10, TActivationFunction::AF_ReLU )( "te", layer );
+	} else {
+		layer = FullyConnected( 50, true )( "fc1", layer );
+		layer = Dropout( dropoutRate )( "dp1", layer );
+		layer = FullyConnected( 200 )( "fc2", layer );
+		layer = Dropout( dropoutRate )( "dp2", layer );
+		layer = FullyConnected( 10 )( "fc3", layer );
+	}
 	( void ) Sink( layer, "sink" );
 
 	if( learn ) {
@@ -332,21 +336,23 @@ static void perfomanceTest( IMathEngine& mathEngine, bool useReference, bool lea
 	counters->Synchronise();
 
 	GTEST_LOG_( INFO ) << "Run once multi-threaded " << ( useReference ? "(ref)" : "(cpy)" )
-		<< "\nTime: " << ( double( ( *counters )[0].Value ) / 1000000 ) << " ms. "
-		<< "\tPeak.Mem: " << ( double( mathEngine.GetPeakMemoryUsage() ) / 1024 / 1024 ) << " MB \n";
+		<< "\nTime: " << GetTimeScaled( *counters ) << " ms. "
+		<< "\tPeak.Mem: " << GetPeakMemScaled( mathEngine ) << " MB \n";
 }
 
 // Scenario: learn dnn, then use multi-threaded inference, each thread creates reference dnn by itself
-static void implTest( IMathEngine& mathEngine, bool useReference, bool learn = true, int numOfThreads = 4 )
+static void implTest( IMathEngine& mathEngine, bool useReference, bool learn = true, int numOfThreads = 4,
+	bool composite = false )
 {
 	// 1. Create and learn dnn
 	CRandom random( 0x123 );
-	CPtr<CDnnBlob> blob = getInitedBlob( mathEngine, random, { 1, 1, 1, 8, 20, 30, 100 } );
-	CPtr<CDnnBlob> labelBlob = getInitedBlob( mathEngine, random, { 1, 1, 1, 1, 1, 1, 10 } );
+	CPtr<CDnnBlob> blob = getInitedBlob( mathEngine, random,
+		{ 1, 1, 1, (composite ? 1 : 8), (composite ? 1 : 20), (composite ? 1 : 30), 100 } );
+	CPtr<CDnnBlob> labelBlob = getInitedBlob( mathEngine, random, { 1, 1, 1, 1, 1, 1, (composite ? 100 : 10) } );
 
 	CPtr<CDnnReference> dnnRef = new CDnnReferenceTest( random, mathEngine );
 	CDnn& dnn = dnnRef->Dnn;
-	createDnn( dnn, learn );
+	createDnn( dnn, learn, composite );
 	setInputDnn( dnn, *blob, ( learn ? labelBlob.Ptr() : nullptr ), /*reshape*/true );
 	if( learn ) {
 		learnDnn( dnn );
@@ -375,8 +381,8 @@ static void implTest( IMathEngine& mathEngine, bool useReference, bool learn = t
 
 	GTEST_LOG_( INFO ) << "Run multi-threaded inference and creation "
 		<< "\t" << ( useReference ? "(ref)" : "(cpy)" )
-		<< "\nTime: " << ( double( ( *counters )[0].Value ) / 1000000 ) << " ms. "
-		<< "\tPeak.Mem: " << ( double( mathEngine.GetPeakMemoryUsage() ) / 1024 / 1024 ) << " MB \n";
+		<< "\nTime: " << GetTimeScaled( *counters ) << " ms. "
+		<< "\tPeak.Mem: " << GetPeakMemScaled( MathEngine() ) << " MB \n";
 
 	if( referenceDnnFactory != nullptr ) {
 		CPtr<CDnnReference> originDnn = referenceDnnFactory->CreateReferenceDnn( /*originDnn*/true );
@@ -400,6 +406,16 @@ TEST( ReferenceDnnTest, CReferenceDnnFactoryTest )
 	implTest( *mathEngine, /*useReference*/true );
 
 	implTest( *mathEngine, /*useReference*/false );
+}
+
+TEST( ReferenceDnnTest, CReferenceDnnFactoryCompositeTest )
+{
+	// As mathEngine is owned, there are no buffers in pools left for any thread
+	CPtrOwner<IMathEngine> mathEngine( CreateCpuMathEngine( /*memoryLimit*/0u ) );
+
+	implTest( *mathEngine, /*useReference*/true, /*learn*/true, /*numOfThreads*/5, /*composite*/true );
+
+	implTest( *mathEngine, /*useReference*/false, /*learn*/true, /*numOfThreads*/5, /*composite*/true );
 }
 
 TEST( ReferenceDnnTest, InferenceReferenceDnns )

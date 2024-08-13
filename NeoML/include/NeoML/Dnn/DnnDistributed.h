@@ -137,10 +137,10 @@ public:
 	CDistributedInference( CArchive& archive, int threadsCount, int seed = 42,
 		bool optimizeDnn = true, size_t memoryLimit = 0 );
 
-	virtual ~CDistributedInference() = default;
+	virtual ~CDistributedInference();
 
 	// Gets the created models number
-	int GetModelCount() const { return threadParams.Refs.Size(); }
+	int GetModelCount() const { return threadPool->Size(); }
 	// Runs the inference for all of the networks
 	// NOTE: Main thread waits while all tasks are done
 	void RunOnce( IDistributedDataset& data );
@@ -152,12 +152,7 @@ public:
 
 private:
 	// Params to transfer to all threads function
-	struct CThreadParams final {
-		IDistributedDataset* Data = nullptr; // Pointer to data for the inference for all dnns
-		CObjectArray<CDnnReference> Refs; // Separate dnn for each thread
-		CArray<CString> ErrorMessages; // Containers for errors if it happened
-		bool IsErrorHappened = false;
-	};
+	struct CThreadParams;
 
 	// The operator of worker threads
 	CPtrOwner<IThreadPool> threadPool;
@@ -166,9 +161,7 @@ private:
 	// Class to create reference dnns
 	CPtr<CReferenceDnnFactory> referenceDnnFactory;
 	// Each `RunOnce` task parameters
-	CThreadParams threadParams;
-
-	void initialize( int threadsCount );
+	CPtrOwner<CThreadParams> threadParams;
 };
 
 } // namespace NeoML
