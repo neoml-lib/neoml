@@ -1103,7 +1103,8 @@ __global__ void MatrixSpreadRowsKernel(const T* __restrict__ source, int height,
 	source += j * width + i;
 	result += indices[j] * width + i;
 	for(int c = 0; c < count; ++c) {
-		*result = *source;
+		// In CGatherLayer the indices may contain repeated values, what can lead to races
+		atomicAdd(result, *source);
 		source += step;
 		result += step;
 	}
