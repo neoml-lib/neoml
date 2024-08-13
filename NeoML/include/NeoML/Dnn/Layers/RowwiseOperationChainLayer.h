@@ -48,6 +48,7 @@ private:
 	// MathEngine descriptors of operations in chain
 	CArray<CRowwiseOperationDesc*> operationDescs;
 
+	void initRowwiseDescs();
 	void deleteRowwiseDescs();
 };
 
