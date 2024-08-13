@@ -317,11 +317,9 @@ protected:
 
 private:
 	// Describes an input connection
-	struct CInputInfo {
+	struct CInputInfo final {
 		CString Name; // the name of the layer that is connected to the input
-		int OutputNumber; // the number of that layer's output that is connected to the input
-	
-		CInputInfo() { OutputNumber = NotFound; }
+		int OutputNumber = NotFound; // the number of that layer's output that is connected to the input
 	};
 
 	IMathEngine& mathEngine; 	// the layer's MathEngine
@@ -331,7 +329,6 @@ private:
 
 	// Indicates if the layer may be trained
 	const bool isLearnable;
-
 	// Indicates if learning is enabled for the layer
 	bool isLearningEnabled;
 	// The base learning rate (may vary inside the network depending on the learning strategy)
@@ -339,6 +336,7 @@ private:
 	// Base regularization multiplier (may vary inside the network depending on the learning strategy)
 	float baseL2RegularizationMult;
 	float baseL1RegularizationMult;
+
 	// Indicates if backpropagation should be performed for the layer
 	enum TBackwardStatus {
 		BS_Unknown,
@@ -387,7 +385,6 @@ private:
 
 	// The number of graphs with which the layer is connected
 	int graphCount;
-
 	// Use timer to calculate run once time and hit count
 	bool useTimer;
 	// The total number of RunOnce calls since last Reshape
@@ -396,24 +393,20 @@ private:
 	IPerformanceCounters::CCounter::TCounterType runOnceTime;
 	// Indicates if the layer performs in-place processing (after the Reshape method call)
 	bool isInPlace;
+	// Fields used for memory optimization during training
+	int allocatedBlobs; // the mask of currently allocated blobs
+	int blobsNeededForBackward; // the mask of blobs needed for backward and learn
 
 	// Set the 'dist' layer's paramBlobs to point to the data of this layer's paramBlobs
 	void transferParamsBlob(CBaseLayer& dist) const;
-
 	// Switches the specified blobs into sequence processing mode
 	void switchBlobsToSequentialMode(CObjectArray<CDnnBlob>& blobs, TBlobCacheType cacheType, bool storeParent);
 	void switchBlobsToNonSequentialMode(CObjectArray<CDnnBlob>& blobs, TBlobCacheType cacheType, bool clear);
 	void clearAllRuntimeBlobs();
-
 	// Clones a blob to store diffs
 	CDnnBlob* cloneBlobForDiff(const CBlobDesc& desc);
-
 	// Indicates if the layer is composite (contains another sub-network)
 	virtual bool isComposite() const { return false; }
-
-	// Fields used for memory optimization during training
-	int allocatedBlobs; // the mask of currently allocated blobs
-	int blobsNeededForBackward; // the mask of blobs needed for backward and learn
 	// Sets the mask of allocated blobs
 	// If some some blobs are not marked as allocated, they will be freed during this call
 	void setAllocatedBlobs( int newMask );
@@ -433,9 +426,6 @@ private:
 	void recheckBackwardNeeded();
 	void backwardRunAndLearnOnce();
 	void transferDiffBlob( CDnnBlob* diffBlob, int outputNum );
-
-	// Indicates if the layer may be used for in-place processing (the output blobs replace the input blobs)
-	bool isInPlaceProcessAvailable() const;
 
 	friend class CDnn;
 	friend class CDnnLayerGraph;
