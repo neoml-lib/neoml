@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -57,6 +57,9 @@ protected:
 	void Reshape() override;
 	void RunOnce() override;
 	void BackwardOnce() override { NeoAssert( false ); }
+	// Specialization for transferParamsBlob
+	bool ContainsEmptyParamBlob( int i ) const override
+		{ return paramBlobs[i] == nullptr && ( i == P_ChannelwiseFreeTerm || i == P_ConvFreeTerm ); }
 
 private:
 	// paramBlobs indices
@@ -69,14 +72,14 @@ private:
 		P_Count
 	};
 
-	void recreateConvDesc();
-	void recreateRowwiseDesc();
-
 	int stride; // stride of channnelwise convolution
 	CActivationDesc activation; // activation after channelwise convolution
 	bool residual; // Does block have residual connection?
 	CChannelwiseConvolutionDesc* convDesc = nullptr; // descriptor of channelwise convolution
 	CRowwiseOperationDesc* rowwiseDesc = nullptr; // matrix multiplication optimization
+
+	void recreateConvDesc();
+	void recreateRowwiseDesc();
 };
 
 } // namespace NeoML

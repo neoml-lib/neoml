@@ -17,6 +17,7 @@ limitations under the License.
 #pragma hdrstop
 
 #include <NeoML/Dnn/Dnn.h>
+#include <NeoML/Dnn/Layers/MultichannelLookupLayer.h>
 #ifdef NEOML_COMPACT // No optimizations in mobile assembly
 namespace NeoML {
 static void OptimizeDnn( CDnn& ) {}
@@ -70,6 +71,10 @@ CReferenceDnnFactory::CReferenceDnnFactory( CDnn&& dnn, bool optimizeDnn ) :
 	NeoAssert( !dnn.IsReferenceDnn() );
 	NeoAssert( Origin->Dnn.IsReferenceDnn() );
 
+	if( optimizeDnn ) {
+		( void ) OptimizeDnn( dnn );
+	}
+
 	// Temporal convert an ordinary dnn to a reference dnn
 	// by capturing non-empty referenceDnnInfo from the original dnn
 	swap( dnn.referenceDnnInfo, Origin->Dnn.referenceDnnInfo );
@@ -77,13 +82,11 @@ CReferenceDnnFactory::CReferenceDnnFactory( CDnn&& dnn, bool optimizeDnn ) :
 
 	// Copy state with moving of the paramBlobs
 	initializeReferenceDnn( dnn, Origin->Dnn, TPtrOwnerReferenceDnnInfo{} );
-	if( optimizeDnn == true ) {
-		( void ) OptimizeDnn( Origin->Dnn );
-	}
 	// The original dnn still has empty referenceDnnInfo
 
 	// Convert everything back
 	// - set back the original dnn as a reference dnn with its referenceDnnInfo
+	allowLayersToShareParamBlobs( Origin->Dnn );
 	Origin->Dnn.DisableLearning();
 	swap( dnn.referenceDnnInfo, Origin->Dnn.referenceDnnInfo );
 	// - set the dnn as ordinary and of an empty state
@@ -118,16 +121,30 @@ void CReferenceDnnFactory::serialize( CArchive& archive, bool optimizeDnn )
 
 	NeoAssert( archive.IsLoading() );
 	Origin->Dnn.Serialize( archive );
-	archive.Close();
 
-	if( optimizeDnn == true ) {
+	NeoAssert( !Origin->Dnn.IsReferenceDnn() );
+	if( optimizeDnn ) {
 		( void ) OptimizeDnn( Origin->Dnn );
 	}
 
 	// And revert back the restrictions
+	allowLayersToShareParamBlobs( Origin->Dnn );
 	Origin->Dnn.DisableLearning();
 	swap( tmp, Origin->Dnn.referenceDnnInfo );
 	NeoAssert( Origin->Dnn.IsReferenceDnn() );
+}
+
+void CReferenceDnnFactory::allowLayersToShareParamBlobs( CDnn& dnn )
+{
+	for( CPtr<CBaseLayer>& layer : dnn.layers ) {
+		auto* lookup = dynamic_cast<CMultichannelLookupLayer*>( layer.Ptr() );
+		if( lookup != nullptr ) {
+			// Move paramBLobs from external to internal storage to allow the sharing
+			// TODO: consider to remove non-framework learning in CMultichannelLookupLayer
+			lookup->SetUseFrameworkLearning( true );
+		}
+	}
+	// TODO: Add other optimizations
 }
 
 CPtr<CDnnReference> CReferenceDnnFactory::CreateReferenceDnn( bool getOriginDnn )
@@ -165,6 +182,7 @@ void CReferenceDnnFactory::initializeReferenceDnn( CDnn& dnn, CDnn& newDnn, TPtr
 			SerializeLayer( archive, dnn.mathEngine, copyLayer );
 			layer->transferParamsBlob( *copyLayer );
 		}
+		copyLayer->DisableLearning();
 		newDnn.AddLayer( *copyLayer );
 	}
 

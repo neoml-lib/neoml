@@ -320,6 +320,10 @@ void CBaseLayer::transferParamsBlob( CBaseLayer& dist ) const
 		// Create reference copy of dist.paramBlobs with shared buffer
 		// Takes a pointer to parent's blob to access memory
 		for( int j = 0; j < dist.paramBlobs.Size(); ++j ) {
+			if( ContainsEmptyParamBlob( j ) ) {
+				dist.paramBlobs[j] = nullptr; // may contain empty parameter
+				continue;
+			}
 			NeoAssertMsg( paramBlobs[j] != nullptr, "transferParamsBlob: All trainable paramBlobs should exist" );
 			dist.paramBlobs[j] = CDnnBlob::CreateWindowBlob( paramBlobs[j], paramBlobs[j]->GetDesc().BatchLength() );
 		}

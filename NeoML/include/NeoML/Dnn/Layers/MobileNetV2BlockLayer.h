@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -74,6 +74,9 @@ protected:
 	void Reshape() override;
 	void RunOnce() override;
 	void BackwardOnce() override { NeoAssert( false ); }
+	// Specialization for transferParamsBlob
+	bool ContainsEmptyParamBlob( int i ) const override
+		{ return !paramBlobs[i] && ( i == P_ChannelwiseFreeTerm || i == P_DownFreeTerm || i == P_ExpandFreeTerm ); }
 
 private:
 	// paramBlobs indices

@@ -584,7 +584,7 @@ TEST( LoraSerializerTest, DistributedCheckpoint )
 
 namespace NeoMLTest {
 
-static void memCheckTest( bool useLora )
+static void memCheckTest( bool useLora, int optimizeDnnIterations = 0, int encodersCount = 6, int iterationsCount = 10 )
 {
 	MathEngine().CleanUp();
 	std::cerr << "Peak memory after clean: " << ( double ( MathEngine().GetPeakMemoryUsage() ) / 1024 / 1024 ) << " MB\n";
@@ -596,8 +596,7 @@ static void memCheckTest( bool useLora )
 	const int vecSize = 768;
 	const int headCount = 4;
 	const int tableSize = 10;
-	const int stackSize = 6; // params.EncoderLayerCount;
-	const int ffSize = vecSize * headCount; //params.AttentionFeedForwardSize;
+	const int ffSize = vecSize * headCount;
 	const float dropout = 0.f;
 
 	CSourceLayer* data = Source( dnn, "data" );
@@ -605,9 +604,11 @@ static void memCheckTest( bool useLora )
 	embDims.Add( CLookupDimension( tableSize, vecSize ) );
 	CMultichannelLookupLayer* embeddings = MultichannelLookup( embDims, true )( "emb", data );
 	CBaseLayer* lastLayer = embeddings;
-	for( int i = 0; i < stackSize; ++i ) {
+	for( int i = 0; i < encodersCount; ++i ) {
 		lastLayer = TransformerEncoder( headCount, vecSize, dropout, ffSize, AF_ReLU )( "transformer_" + Str( i ), lastLayer );
 	}
+	Sink( lastLayer, "sink" );
+
 	CSourceLayer* expected = Source( dnn, "expected" );
 	CEuclideanLossLayer* loss = EuclideanLoss()( "loss", lastLayer, expected );
 
@@ -640,31 +641,60 @@ static void memCheckTest( bool useLora )
 		CLoraParams params( 4, 5.f, 0.1f );
 		// 2 fc's inside transformer directly
 		// 4 fc's inside of attention (inside transformer)
-		EXPECT_EQ( stackSize * 6, builder.BuildAllFcWrappers( dnn, params ) );
-		EXPECT_EQ( stackSize * 2 + 1, builder.DisableNonLoraTraining( dnn ) );
+		EXPECT_EQ( encodersCount * 6, builder.BuildAllFcWrappers( dnn, params ) );
+		EXPECT_EQ( encodersCount * 2 + 1, builder.DisableNonLoraTraining( dnn ) );
 	} else {
 		embeddings->DisableLearning();
 	}
 
-	std::unique_ptr<IPerformanceCounters> counters( MathEngine().CreatePerformanceCounters() );
-	constexpr int iterCount = 10;
-	for( int iter = 0; iter < iterCount; ++iter ) {
+	MathEngine().ResetPeakMemoryUsage();
+
+	CPtrOwner<IPerformanceCounters> counters( MathEngine().CreatePerformanceCounters() );
+	for( int iter = 0; iter < iterationsCount; ++iter ) {
 		counters->Synchronise();
 		dnn.RunAndLearnOnce();
 		counters->Synchronise();
 
-		std::cerr << "Iter #" << iter
+		GTEST_LOG_( INFO ) << "Iter #" << iter
 			<< '\t' << "Loss: " << loss->GetLastLoss()
 			<< '\t' << "Train Time: " << ( double( ( *counters )[0].Value ) / 1000000 ) << " ms."
 			<< '\t' << "Peak.Mem: " << ( double( MathEngine().GetPeakMemoryUsage() ) / 1024 / 1024 ) << " MB"
 			<< '\n';
 	}
 	std::cerr << "Peak memory after training: " << ( double( MathEngine().GetPeakMemoryUsage() ) / 1024 / 1024 ) << " MB\n";
+
+	if ( optimizeDnnIterations > 0 ) // Check OptimizeDnn
+	{
+		const int iters = optimizeDnnIterations;
+
+		counters->Synchronise();
+		for( int iter = 0; iter < iters; ++iter ) {
+			dnn.RunOnce();
+		}
+		counters->Synchronise();
+
+		CPtr<CDnnBlob> expectedBlob = CheckCast<CSinkLayer>( dnn.GetLayer( "sink" ) )->GetBlob();
+
+		OptimizeDnn( dnn );
+
+		MathEngine().ResetPeakMemoryUsage();
+
+		counters->Synchronise();
+		for( int iter = 0; iter < iters; ++iter ) {
+			dnn.RunOnce();
+		}
+		counters->Synchronise();
+
+		CPtr<CDnnBlob> sinkBlob = CheckCast<CSinkLayer>( dnn.GetLayer( "sink" ) )->GetBlob();
+
+		// Check for consistence
+		EXPECT_TRUE( CompareBlobs( *expectedBlob, *sinkBlob ) );
+	}
 }
 
 } // namespace NeoMLTest
 
-TEST( LoraMemCheck, DISABLED_WithoutLora )
+TEST( LoraMemCheck, OptimizeTest )
 {
 	const auto met = MathEngine().GetType();
 	if( met != MET_Cpu && met != MET_Cuda ) {
@@ -673,11 +703,25 @@ TEST( LoraMemCheck, DISABLED_WithoutLora )
 		return;
 	}
 
-	memCheckTest( false );
+	memCheckTest( /*lora*/true, /*optimizeDnnIterations*/10, /*encodersCount*/2, /*iterationsCount*/3 );
+
+	memCheckTest( /*lora*/false, /*optimizeDnnIterations*/10, /*encodersCount*/2, /*iterationsCount*/3 );
+}
+
+TEST( LoraMemCheck, DISABLED_PerformanceTestWithoutLora )
+{
+	const auto met = MathEngine().GetType();
+	if( met != MET_Cpu && met != MET_Cuda ) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// VectorHuberDerivative, dropout
+		return;
+	}
+
+	memCheckTest( /*lora*/false );
 	DeleteMathEngine();
 }
 
-TEST( LoraMemCheck, DISABLED_WithLora )
+TEST( LoraMemCheck, DISABLED_PerformanceTestWithLora )
 {
 	const auto met = MathEngine().GetType();
 	if( met != MET_Cpu && met != MET_Cuda ) {
@@ -686,7 +730,7 @@ TEST( LoraMemCheck, DISABLED_WithLora )
 		return;
 	}
 
-	memCheckTest( true );
+	memCheckTest( /*lora*/true );
 	DeleteMathEngine();
 }
 
