@@ -295,7 +295,7 @@ void CDnnSolver::clipGradients(const CObjectArray<CDnnBlob>& paramDiffBlobs)
 	}
 }
 
-static const int DnnSolverVersion = 2;
+constexpr int DnnSolverVersion = 2;
 
 void CDnnSolver::Serialize( CArchive& archive, const CDnn& dnn )
 {
@@ -440,7 +440,7 @@ CDnnSimpleGradientSolver::CDnnSimpleGradientSolver( IMathEngine& mathEngine ) :
 {
 }
 
-static const int DnnSimpleGradientSolverVersion = 0;
+constexpr int DnnSimpleGradientSolverVersion = 0;
 
 void CDnnSimpleGradientSolver::Serialize( CArchive& archive, const CDnn& dnn )
 {
@@ -537,7 +537,7 @@ void CDnnAdaptiveGradientSolver::EnableDecoupledWeightDecay( bool enable )
 	isDecoupledWeightDecay = enable;
 }
 
-static const int DnnAdaptiveGradientSolver = 1;
+constexpr int DnnAdaptiveGradientSolver = 1;
 
 void CDnnAdaptiveGradientSolver::Serialize( CArchive& archive, const CDnn& dnn )
 {
@@ -713,7 +713,7 @@ void CDnnNesterovGradientSolver::EnableDecoupledWeightDecay( bool enable )
 	isDecoupledWeightDecay = enable;
 }
 
-static const int DnnNesterovGradientSolverVersion = 1;
+constexpr int DnnNesterovGradientSolverVersion = 1;
 
 void CDnnNesterovGradientSolver::Serialize( CArchive& archive, const CDnn& dnn )
 {
@@ -898,7 +898,7 @@ void CDnnLambGradientSolver::ExcludeBiasParamLayers()
 	ExcludeWeightDecayLayer<CTransposedConvLayer>( 1 );
 }
 
-static const int DnnLambGradientSolverVersion = 0;
+constexpr int DnnLambGradientSolverVersion = 0;
 
 void CDnnLambGradientSolver::Serialize( CArchive& archive, const CDnn& dnn )
 {
