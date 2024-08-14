@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -121,17 +121,6 @@ private:
 	CPtr<IBytePairEncoder> createEncoder();
 
 	int64_t checkNaive( CCandidateData* );
-
-	friend void ArrayMemMoveElement( CWordWithCount* dest, CWordWithCount* src );
 };
-
-inline void ArrayMemMoveElement( CBpeTrainer::CWordWithCount* dest, CBpeTrainer::CWordWithCount* src )
-{
-	NeoPresume( dest != src );
-	::new( dest ) CBpeTrainer::CWordWithCount;
-	src->Text.MoveTo( dest->Text );
-	dest->Count = src->Count;
-	src->~CWordWithCount();
-}
 
 } // namespace NeoML
