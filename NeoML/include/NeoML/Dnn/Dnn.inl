@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -56,9 +56,26 @@ inline bool CBaseLayer::IsBackwardNeeded() const
 	return isBackwardNeeded == BS_NeedsBackward;
 }
 
-inline CString CBaseLayer::GetPath() const
+inline CString CBaseLayer::GetPath( const char* sep ) const
 {
-	return dnn == nullptr || dnn->owner == nullptr ? name : dnn->owner->GetPath() + "/" + name;
+	return ( dnn == nullptr || dnn->owner == nullptr ) ? name : ( dnn->owner->GetPath( sep ) + sep + name );
+}
+
+inline void CBaseLayer::GetPath( CArray<CString>& path ) const
+{
+	path.DeleteAll();
+	getPath( path );
+}
+
+inline void CBaseLayer::getPath( CArray<CString>& path ) const
+{
+	if( dnn == nullptr ) {
+		return;
+	}
+	if( dnn->owner != nullptr ) {
+		dnn->owner->getPath( path );
+	}
+	path.Add( name );
 }
 
 inline void CBaseLayer::CheckLayerArchitecture( bool expr, const char* message ) const
