@@ -332,26 +332,28 @@ void CBaseLayer::transferParamsBlob( CBaseLayer& dist ) const
 
 void CBaseLayer::sequentialModeIfRecurrent()
 {
-	if( dnn->IsRecurrentMode() ) {
-		// Switch the input and output blobs to sequential mode (to the current position in sequence)
-		switchBlobsToSequentialMode( inputBlobs, BCT_Input, GetDnn()->isReuseMemoryMode );
-		switchBlobsToSequentialMode( outputBlobs, BCT_Output, GetDnn()->isReuseMemoryMode );
-		switchBlobsToSequentialMode( runtimeBlobs, BCT_Runtime, false );
-		for( int i = 0; i < runtimeBlobs.Size(); i++ ) {
-			*runtimeBlobPtrs[i] = runtimeBlobs[i];
-		}
+	if( !dnn->IsRecurrentMode() ) {
+		return;
+	}
+	// Switch the input and output blobs to sequential mode (to the current position in sequence)
+	switchBlobsToSequentialMode( inputBlobs, BCT_Input, GetDnn()->isReuseMemoryMode );
+	switchBlobsToSequentialMode( outputBlobs, BCT_Output, GetDnn()->isReuseMemoryMode );
+	switchBlobsToSequentialMode( runtimeBlobs, BCT_Runtime, false );
+	for( int i = 0; i < runtimeBlobs.Size(); i++ ) {
+		*runtimeBlobPtrs[i] = runtimeBlobs[i];
 	}
 }
 
 void CBaseLayer::nonSequentialModeIfRecurrent()
 {
-	if( dnn->IsRecurrentMode() ) {
-		switchBlobsToNonSequentialMode( inputBlobs, BCT_Input, GetDnn()->isReuseMemoryMode );
-		switchBlobsToNonSequentialMode( outputBlobs, BCT_Output, GetDnn()->isReuseMemoryMode );
-		switchBlobsToNonSequentialMode( runtimeBlobs, BCT_Runtime, false );
-		for( int i = 0; i < runtimeBlobs.Size(); i++ ) {
-			*runtimeBlobPtrs[i] = runtimeBlobs[i];
-		}
+	if( !dnn->IsRecurrentMode() ) {
+		return;
+	}
+	switchBlobsToNonSequentialMode( inputBlobs, BCT_Input, GetDnn()->isReuseMemoryMode );
+	switchBlobsToNonSequentialMode( outputBlobs, BCT_Output, GetDnn()->isReuseMemoryMode );
+	switchBlobsToNonSequentialMode( runtimeBlobs, BCT_Runtime, false );
+	for( int i = 0; i < runtimeBlobs.Size(); i++ ) {
+		*runtimeBlobPtrs[i] = runtimeBlobs[i];
 	}
 }
 
