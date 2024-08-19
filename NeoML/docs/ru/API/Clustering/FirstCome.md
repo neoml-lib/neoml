@@ -28,7 +28,7 @@
 В данном примере алгоритм по первому пришедшему используется для кластеризации набора данных [Iris Data Set](http://archive.ics.uci.edu/ml/datasets/Iris):
 
 ```c++
-void Clusterize( IClusteringData& irisDataSet, CClusteringResult& result )
+void Clusterize( const IClusteringData& irisDataSet, CClusteringResult& result )
 {
 	CFirstComeClustering::CParam params;
 	params.Threshold = 5;
