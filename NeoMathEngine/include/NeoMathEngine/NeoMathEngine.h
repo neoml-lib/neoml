@@ -1222,10 +1222,10 @@ public:
 	// Typed data exchange
 	template<class T>
 	void DataExchangeTyped( const CTypedMemoryHandle<T>& result, const T* source, size_t size )
-	{ DataExchangeRaw( result, source, size * sizeof(T) ); }
+		{ DataExchangeRaw( result, source, size * sizeof(T) ); }
 	template<class T>
 	void DataExchangeTyped( T* result, const CTypedMemoryHandle<const T>& source, size_t size )
-	{ DataExchangeRaw( result, source, size * sizeof(T) ); }
+		{ DataExchangeRaw( result, source, size * sizeof(T) ); }
 
 	// Creates a handle with data from another math engine
 	virtual CMemoryHandle CopyFrom( const CMemoryHandle& handle, size_t size ) = 0;

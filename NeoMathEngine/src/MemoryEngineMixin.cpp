@@ -183,21 +183,24 @@ void CMemoryEngineMixin::CleanUp()
 	MemoryPool->CleanUp();
 }
 
+constexpr size_t bufferHeaderSize = 2 * sizeof( size_t );
+
 void* CMemoryEngineMixin::GetBuffer( const CMemoryHandle& handle, size_t pos, size_t size, bool exchange )
 {
 	ASSERT_EXPR( HostStackAllocator != nullptr );
 	ASSERT_EXPR( handle.GetMathEngine() == this );
 
-	size_t realSize = size + 16;
+	const size_t realSize = size + bufferHeaderSize;
 	char* result = static_cast<char*>( HostStackAllocator->Alloc( realSize ) );
-	size_t* posPtr = reinterpret_cast<size_t*>( result );
-	*posPtr = pos;
-	size_t* sizePtr = reinterpret_cast<size_t*>( result ) + 1;
-	*sizePtr = size;
+
+	size_t* header = reinterpret_cast<size_t*>( result );
+	header[0] = pos;
+	header[1] = size;
+
 	if( exchange ) {
-		DataExchangeRaw( result + 16, handle, size );
+		DataExchangeRaw( result + bufferHeaderSize, handle, size );
 	}
-	return result + 16;
+	return result + bufferHeaderSize;
 }
 
 void CMemoryEngineMixin::ReleaseBuffer( const CMemoryHandle& handle, void* ptr, bool exchange )
@@ -206,14 +209,13 @@ void CMemoryEngineMixin::ReleaseBuffer( const CMemoryHandle& handle, void* ptr, 
 	ASSERT_EXPR( handle.GetMathEngine() == this );
 
 	if( exchange ) {
-		size_t* posPtr = reinterpret_cast<size_t*>( static_cast<char*>( ptr ) - 16 );
-		size_t pos = *posPtr;
-		size_t* sizePtr = posPtr + 1;
-		size_t size = *sizePtr;
+		size_t* header = reinterpret_cast<size_t*>( static_cast<char*>( ptr ) - bufferHeaderSize );
+		size_t pos = header[0];
+		size_t size = header[1];
 
 		DataExchangeRaw( CTypedMemoryHandle<char>( handle ) + pos, ptr, size );
 	}
-	HostStackAllocator->Free( static_cast<char*>( ptr ) - 16 );
+	HostStackAllocator->Free( static_cast<char*>( ptr ) - bufferHeaderSize );
 }
 
 CMemoryHandle CMemoryEngineMixin::CopyFrom( const CMemoryHandle& handle, size_t size )
