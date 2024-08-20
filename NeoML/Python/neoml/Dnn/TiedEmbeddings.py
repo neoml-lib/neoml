@@ -14,11 +14,9 @@ limitations under the License.
 --------------------------------------------------------------------------------------------------------------
 """
 
-import numpy
 import neoml.PythonWrapper as PythonWrapper
 from .Dnn import Layer
 from neoml.Utils import check_input_layers
-import neoml.Blob as Blob
 
 
 class TiedEmbeddings(Layer):

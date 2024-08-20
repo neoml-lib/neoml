@@ -1,4 +1,4 @@
-""" Copyright (c) 2017-2021 ABBYY Production LLC
+""" Copyright (c) 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,10 +14,9 @@ limitations under the License.
 --------------------------------------------------------------------------------------------------------------
 """
 
-import numpy
 from .Utils import convert_data, get_data
-from scipy.sparse import csr_matrix
 import neoml.PythonWrapper as PythonWrapper
+
 
 """
 Singular Value Decomposition of a given matrix into matrices u, s, v.
@@ -50,6 +49,7 @@ def svd(matrix, compute_u = True, compute_v = False, algorithm = 'full', compone
         raise ValueError("`components` must be in range [1, min(matrix.height, matrix.width)].")
     return PythonWrapper.singular_value_decomposition(*x.shape, *get_data(x),
         compute_u, compute_v, algorithm == 'full', components)
+
 
 class PCA(PythonWrapper.PCA) :
     """Principal components analysis (PCA) algorithm. 
