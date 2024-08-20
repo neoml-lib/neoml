@@ -3,9 +3,6 @@ name: "CodeQL"
 on:
   push:
     branches: [ "master" ]
-  schedule:
-    - cron: '0 3 * * *'
-      displayName: Daily night check
 
 jobs:
   analyze:
