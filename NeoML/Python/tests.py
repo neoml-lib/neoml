@@ -1676,7 +1676,7 @@ class LayersTestCase(MultithreadedTestCase):
         dnn = neoml.Dnn.Dnn(math_engine)
         input_data = neoml.Dnn.Source(dnn, 'input_data')
         transformer_encoder = neoml.Dnn.TransformerEncoder(input_data, head_count=2, hidden_size=8,
-            dropout=0.2, feed_forward_size=3, activation='tanh', name='transformer_encoder')
+            dropout=0.2, sa_dropout=0.3, feed_forward_size=3, activation='tanh', pre_norm=False, name='transformer_encoder')
         sink = neoml.Dnn.Sink(transformer_encoder, name='sink')
         # getters/setters tests
         self.assertEqual(transformer_encoder.head_count, 2)
@@ -1688,9 +1688,13 @@ class LayersTestCase(MultithreadedTestCase):
         self.assertAlmostEqual(transformer_encoder.dropout, 0.2, delta=1e-6)
         transformer_encoder.dropout = 0.1
         self.assertAlmostEqual(transformer_encoder.dropout, 0.1, delta=1e-6)
+        self.assertAlmostEqual(transformer_encoder.sa_dropout, 0.3, delta=1e-6)
+        transformer_encoder.sa_dropout = 0.15
+        self.assertAlmostEqual(transformer_encoder.sa_dropout, 0.15, delta=1e-6)
         self.assertEqual(transformer_encoder.feed_forward_size, 3)
         transformer_encoder.feed_forward_size = 15
         self.assertEqual(transformer_encoder.feed_forward_size, 15)
+        self.assertEqual(transformer_encoder.pre_norm, False)
         self.assertEqual(transformer_encoder.name, 'transformer_encoder')
         # run with different mask config
         for step in range(20):
@@ -1707,6 +1711,30 @@ class LayersTestCase(MultithreadedTestCase):
                 dnn.delete_layer('input_mask')
                 input_data_blob = self._transformer_test_data(math_engine, batch_size, list_size_in, obj_size_in, seed=123545+step*5)
                 outputs = dnn.run({'input_data': input_data_blob})
+            self.assertEqual(outputs['sink'].shape, (1, batch_size, list_size_in, 1, 1, 1, obj_size_in))
+
+    def test_transformer_encoder_pre_norm(self):
+        batch_size = 2
+        list_size_in = 13
+        obj_size_in = 11
+        math_engine = neoml.MathEngine.CpuMathEngine()
+        dnn = neoml.Dnn.Dnn(math_engine)
+        input_data = neoml.Dnn.Source(dnn, 'input_data')
+        transformer_encoder = neoml.Dnn.TransformerEncoder(input_data, head_count=5, hidden_size=25,
+            dropout=0.1, sa_dropout=0.15, feed_forward_size=15, activation='tanh', pre_norm=True, name='transformer_encoder_pre')
+        sink = neoml.Dnn.Sink(transformer_encoder, name='sink')
+        # getters/setters tests
+        self.assertEqual(transformer_encoder.head_count, 5)
+        self.assertEqual(transformer_encoder.hidden_size, 25)
+        self.assertAlmostEqual(transformer_encoder.dropout, 0.1, delta=1e-6)
+        self.assertAlmostEqual(transformer_encoder.sa_dropout, 0.15, delta=1e-6)
+        self.assertEqual(transformer_encoder.feed_forward_size, 15)
+        self.assertEqual(transformer_encoder.pre_norm, True)
+        self.assertEqual(transformer_encoder.name, 'transformer_encoder_pre')
+        # run no mask config
+        for step in range(20):
+            input_data_blob = self._transformer_test_data(math_engine, batch_size, list_size_in, obj_size_in, seed=123545+step*5)
+            outputs = dnn.run({'input_data': input_data_blob})
             self.assertEqual(outputs['sink'].shape, (1, batch_size, list_size_in, 1, 1, 1, obj_size_in))
 
     def test_bert_conv(self):
