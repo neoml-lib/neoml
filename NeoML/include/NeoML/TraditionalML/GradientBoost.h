@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ limitations under the License.
 
 namespace NeoML {
 
+class IThreadPool;
 class IRegressionTreeNode;
 template<class T>
 class CGradientBoostFullTreeBuilder;
@@ -36,10 +37,7 @@ class CGradientBoostFullProblem;
 class CGradientBoostFastHistProblem;
 
 // Decision tree ensemble that has been built by gradient boosting
-class CGradientBoostEnsemble : public CObjectArray<IRegressionTreeNode> {
-public:
-	CGradientBoostEnsemble() {}
-};
+using CGradientBoostEnsemble = CObjectArray<IRegressionTreeNode>;
 
 inline void ArrayMemMoveElement( CGradientBoostEnsemble* dest, CGradientBoostEnsemble* src )
 {
@@ -71,7 +69,7 @@ enum TGradientBoostTreeBuilder {
 
 // Different model representations CGradientBoost can produce.
 enum TGradientBoostModelRepresentation {
-	// Straightforward representation used during trainig and for backward compatibility.
+	// Straightforward representation used during training and for backward compatibility.
 	GBMR_Linked,
 	// Optimized for low memory impact.
 	// Limited to 64K nodes per tree and (64K - 1) features.
@@ -93,108 +91,86 @@ public:
 	};
 
 	// Classification parameters
-	struct CParams {
-		TLossFunction LossFunction; // the loss function
-		int IterationsCount; // the maximum number of iterations (the number of trees in the ensemble)
-		float LearningRate; // the multiplier of each classifier
-		float Subsample; // the fraction of input data that is used for building one tree; may be from 0 to 1
-		float Subfeature; // the fraction of features that is used for building one tree; may be from 0 to 1
-		CRandom* Random; // the random numbers generator for selecting Subsample vectors and Subfeature features out of the whole
-		int MaxTreeDepth; // the maximum depth of each tree
-		int MaxNodesCount; // the maximum number of nodes in a tree (set to -1 for no limitation)
+	struct CParams final {
+		TLossFunction LossFunction = LF_Binomial; // the loss function
+		int IterationsCount = 100; // the maximum number of iterations (the number of trees in the ensemble)
+		float LearningRate = 0.1f; // the multiplier of each classifier
+		float Subsample = 1.f; // the fraction of input data that is used for building one tree; may be from 0 to 1
+		float Subfeature = 1.f; // the fraction of features that is used for building one tree; may be from 0 to 1
+		CRandom* Random = 0; // the random numbers generator for selecting Subsample vectors and Subfeature features out of the whole
+		int MaxTreeDepth = 10; // the maximum depth of each tree
+		int MaxNodesCount = NotFound; // the maximum number of nodes in a tree (set to -1 for no limitation)
 		// Note that the L1RegFactor, L2RegFactor, PruneCriterionValue parameters are applied 
 		// to the values depending on the total vector weight in the corresponding tree node. 
 		// Therefore when setting up these parameters, you need to take into consideration 
 		// the number and weights of the vectors in your training data set.
-		float L1RegFactor; // the L1 regularization factor
-		float L2RegFactor; // the L2 regularization factor
+		float L1RegFactor = 0.f; // the L1 regularization factor
+		float L2RegFactor = 1.f; // the L2 regularization factor
 		// The value of criterion difference when the nodes should be merged (set to 0 to never merge)
-		float PruneCriterionValue;
-		int ThreadCount; // the number of processing threads to be used while training the model
-		TGradientBoostTreeBuilder TreeBuilder; // the type of tree builder used
-		int MaxBins; // the largest possible histogram size to be used in *GBTB_FastHist* mode
-		float MinSubsetWeight; // the minimum subtree weight (set to 0 to have no lower limit)
-		float DenseTreeBoostCoefficient; // the dense tree boost coefficient (only for GBTB_MultiFull)
+		float PruneCriterionValue = 0.f;
+		int ThreadCount = 1; // the number of processing threads to be used while training the model
+		TGradientBoostTreeBuilder TreeBuilder = GBTB_Full; // the type of tree builder used
+		int MaxBins = 32; // the largest possible histogram size to be used in *GBTB_FastHist* mode
+		float MinSubsetWeight = 0.f; // the minimum subtree weight (set to 0 to have no lower limit)
+		float DenseTreeBoostCoefficient = 0.f; // the dense tree boost coefficient (only for GBTB_MultiFull)
 		// Representation of training result.
-		TGradientBoostModelRepresentation Representation;
+		TGradientBoostModelRepresentation Representation = GBMR_Compact;
 
-		CParams() :
-			LossFunction( LF_Binomial ),
-			IterationsCount( 100 ),
-			LearningRate( 0.1f ),
-			Subsample( 1.f ),
-			Subfeature( 1.f ),
-			Random( 0 ),
-			MaxTreeDepth( 10 ),
-			MaxNodesCount( NotFound ),
-			L1RegFactor( 0.f ),
-			L2RegFactor( 1.f ),
-			PruneCriterionValue( 0.f ),
-			ThreadCount( 1 ),
-			TreeBuilder( GBTB_Full ),
-			MaxBins( 32 ),
-			MinSubsetWeight( 0.f ),
-			DenseTreeBoostCoefficient( 0.f ),
-			Representation( GBMR_Compact )
-		{
-		}
+		CParams() = default;
+		CParams( const CParams& ) = default;
+		CParams( const CParams& params, int realThreadCount ) : CParams( params ) { ThreadCount = realThreadCount; }
 	};
 
-	explicit CGradientBoost( const CParams& params );
-	virtual ~CGradientBoost();
+	explicit CGradientBoost( const CParams& );
+	~CGradientBoost() override;
 
 	// Sets a text stream for logging processing
 	void SetLog( CTextStream* newLog ) { logStream = newLog; }
 
 	// Trains the multivariate regression model
 	CPtr<IMultivariateRegressionModel> TrainRegression(
-		const IMultivariateRegressionProblem& problem );
+		const IMultivariateRegressionProblem& );
 
 	// IRegressionTrainingModel interface methods:
-	virtual CPtr<IRegressionModel> TrainRegression( const IRegressionProblem& problem );
+	CPtr<IRegressionModel> TrainRegression( const IRegressionProblem& ) override;
 
 	// ITrainingModel interface methods:
-	virtual CPtr<IModel> Train( const IProblem& problem );
+	CPtr<IModel> Train( const IProblem& ) override;
 
 	// Returns the last loss mean
 	double GetLastLossMean() const { return loss; }
 
 	// Train one iteration
 	// returns true if currentIteration >= params.IterationsCount
-	bool TrainStep( const IProblem& _problem );
-	bool TrainStep( const IRegressionProblem& _problem );
-	bool TrainStep( const IMultivariateRegressionProblem& _problem );
+	bool TrainStep( const IProblem& );
+	bool TrainStep( const IRegressionProblem& );
+	bool TrainStep( const IMultivariateRegressionProblem& );
 
 	// Save/load checkpoint
-	void Serialize( CArchive& archive );
+	void Serialize( CArchive& );
 
 	// Get final model
-	CPtr<IModel> GetClassificationModel( const IProblem& _problem );
-	CPtr<IRegressionModel> GetRegressionModel( const IRegressionProblem& _problem );
-	CPtr<IMultivariateRegressionModel> GetMultivariateRegressionModel( const IMultivariateRegressionProblem& _problem );
+	CPtr<IModel> GetClassificationModel( const IProblem& );
+	CPtr<IRegressionModel> GetRegressionModel( const IRegressionProblem& );
+	CPtr<IMultivariateRegressionModel> GetMultivariateRegressionModel( const IMultivariateRegressionProblem& );
 
-private:
 	// A cache element that contains the ensemble predictions for a vector on a given step
-	struct CPredictionCacheItem {
-		int Step; // the number of the step on which the value was calculated
-		double Value; // the calculated value
+	struct CPredictionCacheItem final {
+		int Step{}; // the number of the step on which the value was calculated
+		double Value{}; // the calculated value
 
 		friend inline CArchive& operator <<( CArchive& archive, CPredictionCacheItem& item )
-		{
-			archive << item.Step << item.Value;
-			return archive;
-		}
+		{ return archive << item.Step << item.Value; }
 
 		friend inline CArchive& operator >>( CArchive& archive, CPredictionCacheItem& item )
-		{
-			archive >> item.Step >> item.Value;
-			return archive;
-		}
+		{ return archive >> item.Step >> item.Value; }
 	};
 
+private:
+	IThreadPool* const threadPool; // the parallel executors
 	const CParams params; // the classification parameters
-	CRandom defaultRandom; // the default random number generator
-	CTextStream* logStream; // the logging stream
+	CRandom defaultRandom{}; // the default random number generator
+	CTextStream* logStream = nullptr; // the logging stream
 	CPtr<CGradientBoostFullTreeBuilder<CGradientBoostStatisticsSingle>> fullSingleClassTreeBuilder; // TGBT_Full tree builder for single class
 	CPtr<CGradientBoostFullTreeBuilder<CGradientBoostStatisticsMulti>> fullMultiClassTreeBuilder; // TGBT_Full tree builder for multi class
 	CPtr<CGradientBoostFastHistTreeBuilder<CGradientBoostStatisticsSingle>> fastHistSingleClassTreeBuilder; // TGBT_FastHist tree builder for single class
@@ -202,29 +178,29 @@ private:
 	CPtr<IMultivariateRegressionProblem> baseProblem; // base problem
 	CPtr<CGradientBoostFullProblem> fullProblem; // the problem data for TGBT_Full mode
 	CPtr<CGradientBoostFastHistProblem> fastHistProblem; // the problem data for TGBT_FastHist mode
-	CArray< CArray<CPredictionCacheItem> > predictCache; // the cache for predictions of the models being built
+	CArray<CArray<CPredictionCacheItem>> predictCache{}; // the cache for predictions of the models being built
 	// In the predicts, answers, gradients, hessians arrays the first index corresponds to the number of the class
 	// if you are training a multi-class classifier; 
 	// for a binary classifier, these arrays have the length of 1, and the first index is always 0
 	// The second index represents the vector number in the truncated training set (see usedVectors)
-	CArray< CArray<double> > predicts; // the current algorithm predictions on each step
-	CArray< CArray<double> > answers; // the correct answers for the vectors used on each step
-	CArray< CArray<double> > gradients; // the gradients on each step
-	CArray< CArray<double> > hessians; // the hessians on each step
-	double loss; // the last loss mean
+	CArray<CArray<double>> predicts{}; // the current algorithm predictions on each step
+	CArray<CArray<double>> answers{}; // the correct answers for the vectors used on each step
+	CArray<CArray<double>> gradients{}; // the gradients on each step
+	CArray<CArray<double>> hessians{}; // the hessians on each step
+	double loss = 0; // the last loss mean
 	// The vectors used on each step
 	// Contains the mapping of the index in the truncated training set for the given step to the index in the full set
 	// The array length is N * CParams::Subsample, where N is the original training set length
-	CArray<int> usedVectors;
+	CArray<int> usedVectors{};
 	// The features used on each step
 	// Contains the mapping of the index in the truncated feature set for the given step to the index in the full set
 	// The array length is N * CParams::Subfeature, where N is the total number of features
-	CArray<int> usedFeatures;
+	CArray<int> usedFeatures{};
 	// The inverse mapping of features
 	// The array length is equal to the total number of features
-	CArray<int> featureNumbers;
+	CArray<int> featureNumbers{};
 	// The current models ensemble (ensembles are used for multi-class classification)
-	CArray<CGradientBoostEnsemble> models;
+	CArray<CGradientBoostEnsemble> models{};
 	// Loss function
 	CPtr<IGradientBoostingLossFunction> lossFunction;
 
@@ -237,9 +213,7 @@ private:
 	void initialize();
 	bool trainStep();
 	void executeStep( IGradientBoostingLossFunction& lossFunction,
-		const IMultivariateRegressionProblem* problem, CObjectArray<IRegressionTreeNode>& curModels );
-	void buildPredictions( const IMultivariateRegressionProblem& problem, const CArray<CGradientBoostEnsemble>& models, int curStep );
-	void buildFullPredictions( const IMultivariateRegressionProblem& problem, const CArray<CGradientBoostEnsemble>& models );
+		const IMultivariateRegressionProblem* problem, CGradientBoostEnsemble& curModels );
 	CPtr<IObject> createOutputRepresentation(
 		CArray<CGradientBoostEnsemble>& models, int predictionSize );
 	bool isMultiTreesModel() { return params.TreeBuilder == GBTB_MultiFull || params.TreeBuilder == GBTB_MultiFastHist; }
@@ -254,13 +228,13 @@ DECLARE_NEOML_MODEL_NAME( GradientBoostModelName, "FmlGradientBoostModel" )
 // Gradient boosting classification model interface
 class NEOML_API IGradientBoostModel : public IModel {
 public:
-	virtual ~IGradientBoostModel();
+	~IGradientBoostModel() override;
 
 	// Gets the tree ensemble
 	virtual const CArray<CGradientBoostEnsemble>& GetEnsemble() const = 0;
 
 	// Serializes the model
-	virtual void Serialize( CArchive& ) = 0;
+	void Serialize( CArchive& ) override = 0;
 
 	// Gets the learning rate
 	virtual double GetLearningRate() const = 0;
@@ -289,13 +263,13 @@ DECLARE_NEOML_MODEL_NAME( GradientBoostRegressionModelName, "FmlGradientBoostMod
 // Gradient boosting regression model interface
 class NEOML_API IGradientBoostRegressionModel : public IRegressionModel, public IMultivariateRegressionModel {
 public:
-	virtual ~IGradientBoostRegressionModel();
+	~IGradientBoostRegressionModel() override;
 	
     // Gets the tree ensemble
 	virtual const CArray<CGradientBoostEnsemble>& GetEnsemble() const = 0;
 
 	// Serializes the model
-	virtual void Serialize( CArchive& ) = 0;
+	void Serialize( CArchive& ) override = 0;
 
 	// Gets the learning rate
 	virtual double GetLearningRate() const = 0;
@@ -326,15 +300,15 @@ enum TRegressionTreeNodeType {
 };
 
 // Regression tree node information
-struct CRegressionTreeNodeInfo {
-	TRegressionTreeNodeType Type; // the node type
+struct CRegressionTreeNodeInfo final {
+	TRegressionTreeNodeType Type = RTNT_Undefined; // the node type
 	// The index of the feature used for splitting - only for RTNT_Continuous
-	int FeatureIndex;
+	int FeatureIndex = NotFound;
 	// The Value[0] of the feature used for splitting - only for RTNT_Continuous
 	// For RTNT_Const/RTNT_MultiConst - the result
-	CFastArray<double, 1> Value;
+	CFastArray<double, 1> Value{ 0 };
 
-	CRegressionTreeNodeInfo() : Type( RTNT_Undefined ), FeatureIndex( NotFound ), Value( { 0 } ) {}
+	CRegressionTreeNodeInfo() = default;
 
 	// Copies the node information to another node
 	void CopyTo( CRegressionTreeNodeInfo& newInfo ) const;
@@ -367,7 +341,7 @@ inline CArchive& operator<<( CArchive& archive, const CRegressionTreeNodeInfo& i
 	archive.SerializeEnum( const_cast<CRegressionTreeNodeInfo&>( info ).Type );
 	archive << info.FeatureIndex;
 	if( info.Type == RTNT_MultiConst ) {
-		const_cast< CRegressionTreeNodeInfo& >( info ).Value.Serialize( archive );
+		const_cast<CRegressionTreeNodeInfo&>( info ).Value.Serialize( archive );
 	} else {
 		archive << info.Value[0];
 	}
@@ -392,7 +366,7 @@ inline CArchive& operator >> ( CArchive& archive, CRegressionTreeNodeInfo& info 
 // Can be used for iterating through the boosting results.
 class NEOML_API IRegressionTreeNode : virtual public IObject {
 public:
-	virtual ~IRegressionTreeNode();
+	~IRegressionTreeNode() override;
 
 	// Gets the child nodes
 	virtual CPtr<const IRegressionTreeNode> GetLeftChild() const = 0;

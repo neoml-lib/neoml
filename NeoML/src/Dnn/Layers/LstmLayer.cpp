@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ limitations under the License.
 #include <NeoML/Dnn/Layers/ConcatLayer.h>
 #include <NeoML/Dnn/Layers/SplitLayer.h>
 
+
 namespace NeoML {
 
 // Names used in versions < 2001.
@@ -33,44 +34,51 @@ static const char* recurDropoutName = "RecurDropout";
 static const char* inputHiddenLayerName = "InputHidden";
 static const char* recurHiddenLayerName = "RecurHidden";
 
+//--------------------------------------------------------------------------
 CLstmLayer::CLstmLayer( IMathEngine& mathEngine ) :
 	CRecurrentLayer( mathEngine, "CCnnLstmLayer" ),
 	recurrentActivation( AF_Sigmoid ),
-	isInCompatibilityMode( false )
+	isInCompatibilityMode( false ),
+	lstmDesc( nullptr )
 {
-	buildLayer(0);
+	buildLayer( /*dropout*/0 );
+}
+
+CLstmLayer::~CLstmLayer()
+{
+	delete lstmDesc;
 }
 
 // Builds the layer
-void CLstmLayer::buildLayer(float dropout)
+void CLstmLayer::buildLayer( float dropout )
 {
 	// Initialize a back link
 	if( mainBackLink == nullptr ) {
 		mainBackLink = FINE_DEBUG_NEW CBackLinkLayer( MathEngine() );
-		CString mainBackLinkName = mainBackLink->GetName() + CString(".main");
-		mainBackLink->SetName(mainBackLinkName);
+		CString mainBackLinkName = mainBackLink->GetName() + CString( ".main" );
+		mainBackLink->SetName( mainBackLinkName );
 	}
-	AddBackLink(*mainBackLink);
+	AddBackLink( *mainBackLink );
 
 	if( stateBackLink == nullptr ) {
 		stateBackLink = FINE_DEBUG_NEW CBackLinkLayer( MathEngine() );
-		CString stateBackLinkName = stateBackLink->GetName() + CString(".state");
-		stateBackLink->SetName(stateBackLinkName);
+		CString stateBackLinkName = stateBackLink->GetName() + CString( ".state" );
+		stateBackLink->SetName( stateBackLinkName );
 	}
-	AddBackLink(*stateBackLink);
+	AddBackLink( *stateBackLink );
 
 	if( dropout > 0 ) {
 		inputDropoutLayer = FINE_DEBUG_NEW CDropoutLayer( MathEngine() );
-		inputDropoutLayer->SetName(inputDropoutName);
-		inputDropoutLayer->SetDropoutRate(dropout);
-		SetInputMapping(*inputDropoutLayer);
-		AddLayer(*inputDropoutLayer);
+		inputDropoutLayer->SetName( inputDropoutName );
+		inputDropoutLayer->SetDropoutRate( dropout );
+		SetInputMapping( *inputDropoutLayer );
+		AddLayer( *inputDropoutLayer );
 
 		recurDropoutLayer = FINE_DEBUG_NEW CDropoutLayer( MathEngine() );
-		recurDropoutLayer->SetName(recurDropoutName);
-		recurDropoutLayer->SetDropoutRate(dropout);
-		recurDropoutLayer->Connect(*mainBackLink);
-		AddLayer(*recurDropoutLayer);
+		recurDropoutLayer->SetName( recurDropoutName );
+		recurDropoutLayer->SetDropoutRate( dropout );
+		recurDropoutLayer->Connect( *mainBackLink );
+		AddLayer( *recurDropoutLayer );
 	} else {
 		inputDropoutLayer = nullptr;
 		recurDropoutLayer = nullptr;
@@ -103,81 +111,81 @@ void CLstmLayer::buildLayer(float dropout)
 	CPtr<CEltwiseSumLayer> hiddenLayerSum = FINE_DEBUG_NEW CEltwiseSumLayer( MathEngine() );
 	hiddenLayerSum->SetName( "HiddenLayerSum" );
 	hiddenLayerSum->Connect( *inputHiddenLayer );
-	hiddenLayerSum->Connect( 1, *recurHiddenLayer, 0 );
+	hiddenLayerSum->Connect( /*inputNumber*/1, *recurHiddenLayer, 0 );
 	AddLayer( *hiddenLayerSum );
 
 	if( splitLayer == 0 ) {
 		splitLayer = FINE_DEBUG_NEW CSplitChannelsLayer( MathEngine() );
-		splitLayer->SetOutputCounts4(0, 0, 0);
+		splitLayer->SetOutputCounts4( 0, 0, 0 );
 	}
-	splitLayer->Connect(*hiddenLayerSum);
-	AddLayer(*splitLayer);
+	splitLayer->Connect( *hiddenLayerSum );
+	AddLayer( *splitLayer );
 
 	CPtr<CTanhLayer> mainTanh = FINE_DEBUG_NEW CTanhLayer( MathEngine() );
-	CString mainTanhName = mainTanh->GetName() + CString(".main");
-	mainTanh->SetName(mainTanhName);
-	mainTanh->Connect(0, *splitLayer, G_Main);
-	AddLayer(*mainTanh);
+	CString mainTanhName = mainTanh->GetName() + CString( ".main" );
+	mainTanh->SetName( mainTanhName );
+	mainTanh->Connect( /*inputNumber*/0, *splitLayer, G_Main );
+	AddLayer( *mainTanh );
 
 	CPtr<CBaseLayer> inputSigmoid = CreateActivationLayer( MathEngine(), recurrentActivation );
-	CString inputSigmoidName = inputSigmoid->GetName() + CString(".input");
-	inputSigmoid->SetName(inputSigmoidName);
-	inputSigmoid->Connect(0, *splitLayer, G_Input);
-	AddLayer(*inputSigmoid);
+	CString inputSigmoidName = inputSigmoid->GetName() + CString( ".input" );
+	inputSigmoid->SetName( inputSigmoidName );
+	inputSigmoid->Connect( /*inputNumber*/0, *splitLayer, G_Input );
+	AddLayer( *inputSigmoid );
 
 	CPtr<CBaseLayer> forgetSigmoid = CreateActivationLayer( MathEngine(), recurrentActivation );
-	CString forgetSigmoidName = forgetSigmoid->GetName() + CString(".forget");
-	forgetSigmoid->SetName(forgetSigmoidName);
-	forgetSigmoid->Connect(0, *splitLayer, G_Forget);
-	AddLayer(*forgetSigmoid);
+	CString forgetSigmoidName = forgetSigmoid->GetName() + CString( ".forget" );
+	forgetSigmoid->SetName( forgetSigmoidName );
+	forgetSigmoid->Connect( /*inputNumber*/0, *splitLayer, G_Forget );
+	AddLayer( *forgetSigmoid );
 
 	CPtr<CBaseLayer> resetSigmoid = CreateActivationLayer( MathEngine(), recurrentActivation );
-	CString resetSigmoidName = resetSigmoid->GetName() + CString(".reset");
-	resetSigmoid->SetName(resetSigmoidName);
-	resetSigmoid->Connect(0, *splitLayer, G_Reset);
-	AddLayer(*resetSigmoid);
+	CString resetSigmoidName = resetSigmoid->GetName() + CString( ".reset" );
+	resetSigmoid->SetName( resetSigmoidName );
+	resetSigmoid->Connect( /*inputNumber*/0, *splitLayer, G_Reset );
+	AddLayer( *resetSigmoid );
 
 	CPtr<CEltwiseMulLayer> inputGate = FINE_DEBUG_NEW CEltwiseMulLayer( MathEngine() );
-	CString inputGateName = inputGate->GetName() + CString(".input");
-	inputGate->SetName(inputGateName);
-	inputGate->Connect(0, *inputSigmoid);
-	inputGate->Connect(1, *mainTanh);
-	AddLayer(*inputGate);
+	CString inputGateName = inputGate->GetName() + CString( ".input" );
+	inputGate->SetName( inputGateName );
+	inputGate->Connect( /*inputNumber*/0, *inputSigmoid );
+	inputGate->Connect( /*inputNumber*/1, *mainTanh );
+	AddLayer( *inputGate );
 
 	CPtr<CEltwiseMulLayer> forgetGate = FINE_DEBUG_NEW CEltwiseMulLayer( MathEngine() );
-	CString forgetGateName = forgetGate->GetName() + CString(".forget");
-	forgetGate->SetName(forgetGateName);
-	forgetGate->Connect(0, *forgetSigmoid);
-	forgetGate->Connect(1, *stateBackLink);
-	AddLayer(*forgetGate);
+	CString forgetGateName = forgetGate->GetName() + CString( ".forget" );
+	forgetGate->SetName( forgetGateName );
+	forgetGate->Connect( /*inputNumber*/0, *forgetSigmoid );
+	forgetGate->Connect( /*inputNumber*/1, *stateBackLink );
+	AddLayer( *forgetGate );
 
 	CPtr<CEltwiseSumLayer> newState = FINE_DEBUG_NEW CEltwiseSumLayer( MathEngine() );
-	newState->Connect(0, *inputGate);
-	newState->Connect(1, *forgetGate);
-	AddLayer(*newState);
+	newState->Connect( /*inputNumber*/0, *inputGate );
+	newState->Connect( /*inputNumber*/1, *forgetGate );
+	AddLayer( *newState );
 
 	outputTanh = FINE_DEBUG_NEW CTanhLayer( MathEngine() );
-	CString outputTanhName = outputTanh->GetName() + CString(".output");
-	outputTanh->SetName(outputTanhName);
-	outputTanh->Connect(*newState);
-	AddLayer(*outputTanh);
+	CString outputTanhName = outputTanh->GetName() + CString( ".output" );
+	outputTanh->SetName( outputTanhName );
+	outputTanh->Connect( *newState );
+	AddLayer( *outputTanh );
 
 	resetGate = FINE_DEBUG_NEW CEltwiseMulLayer( MathEngine() );
-	CString resetGateName = resetGate->GetName() + CString(".reset");
-	resetGate->SetName(resetGateName);
-	resetGate->Connect(0, *resetSigmoid);
-	resetGate->Connect(1, *outputTanh);
-	AddLayer(*resetGate);
+	CString resetGateName = resetGate->GetName() + CString( ".reset" );
+	resetGate->SetName( resetGateName );
+	resetGate->Connect( /*inputNumber*/0, *resetSigmoid );
+	resetGate->Connect( /*inputNumber*/1, *outputTanh );
+	AddLayer( *resetGate );
 
 	// Connect the back links
-	mainBackLink->Connect(*resetGate);
-	stateBackLink->Connect(*newState);
+	mainBackLink->Connect( *resetGate );
+	stateBackLink->Connect( *newState );
 
 	// Initial state
-	SetInputMapping( 1, *stateBackLink, 1 );
+	SetInputMapping( /*outputNumber*/1, *stateBackLink, /*internalLayerInput*/1 );
 
 	// Initial history
-	SetInputMapping( 2, *mainBackLink, 1 );
+	SetInputMapping( /*outputNumber*/2, *mainBackLink, /*internalLayerInput*/1 );
 
 	// The output
 	if( isInCompatibilityMode ) {
@@ -187,27 +195,54 @@ void CLstmLayer::buildLayer(float dropout)
 	}
 
 	// Output the hidden state
-	SetOutputMapping(1, *newState);
+	SetOutputMapping( /*outputNumber*/1, *newState );
+	freeDesc();
 }
 
-void CLstmLayer::SetDropoutRate(float newDropoutRate)
+void CLstmLayer::SetHiddenSize( int size )
 {
-	if( ( newDropoutRate > 0 && inputDropoutLayer == 0 ) || ( newDropoutRate <= 0 && inputDropoutLayer != 0 ) ) {
+	inputHiddenLayer->SetNumberOfElements( size * G_Count );
+	recurHiddenLayer->SetNumberOfElements( size * G_Count );
+	splitLayer->SetOutputCounts4( size, size, size );
+	mainBackLink->SetDimSize( BD_Channels, size );
+	stateBackLink->SetDimSize( BD_Channels, size );
+}
+
+void CLstmLayer::SetInputWeightsData( const CPtr<CDnnBlob>& inputWeights )
+{
+	inputHiddenLayer->SetWeightsData( inputWeights );
+	freeDesc();
+}
+
+void CLstmLayer::SetInputFreeTermData( const CPtr<CDnnBlob>& inputFreeTerm )
+{
+	inputHiddenLayer->SetFreeTermData( inputFreeTerm );
+	freeDesc();
+}
+
+void CLstmLayer::SetRecurWeightsData( const CPtr<CDnnBlob>& recurWeights )
+{
+	recurHiddenLayer->SetWeightsData( recurWeights );
+	freeDesc();
+}
+
+void CLstmLayer::SetRecurFreeTermData( const CPtr<CDnnBlob>& recurFreeTerm )
+{
+	recurHiddenLayer->SetFreeTermData( recurFreeTerm );
+	freeDesc();
+}
+
+void CLstmLayer::SetDropoutRate( float newDropoutRate )
+{
+	if( ( newDropoutRate > 0 && inputDropoutLayer == 0 )
+		|| ( newDropoutRate <= 0 && inputDropoutLayer != 0 ) )
+	{
 		DeleteAllLayersAndBackLinks();
-		buildLayer(newDropoutRate);
+		buildLayer( newDropoutRate );
 	} else if( inputDropoutLayer != 0 ) {
-		inputDropoutLayer->SetDropoutRate(newDropoutRate);
-		recurDropoutLayer->SetDropoutRate(newDropoutRate);
+		inputDropoutLayer->SetDropoutRate( newDropoutRate );
+		recurDropoutLayer->SetDropoutRate( newDropoutRate );
 	}
-}
-
-void CLstmLayer::SetHiddenSize(int size)
-{
-	inputHiddenLayer->SetNumberOfElements(size * G_Count);
-	recurHiddenLayer->SetNumberOfElements(size * G_Count);
-	splitLayer->SetOutputCounts4(size, size, size);
-	mainBackLink->SetDimSize(BD_Channels, size);
-	stateBackLink->SetDimSize(BD_Channels, size);
 }
 
 void CLstmLayer::SetRecurrentActivation( TActivationFunction newActivation )
@@ -268,9 +303,9 @@ void CLstmLayer::Serialize( CArchive& archive )
 			inputDropoutLayer = nullptr;
 			recurDropoutLayer = nullptr;
 		}
-		splitLayer = CheckCast<CSplitChannelsLayer>(GetLayer(splitLayer->GetName()));
-		mainBackLink = CheckCast<CBackLinkLayer>(GetLayer(mainBackLink->GetName()));
-		stateBackLink = CheckCast<CBackLinkLayer>(GetLayer(stateBackLink->GetName()));
+		splitLayer = CheckCast<CSplitChannelsLayer>( GetLayer( splitLayer->GetName() ) );
+		mainBackLink = CheckCast<CBackLinkLayer>( GetLayer( mainBackLink->GetName() ) );
+		stateBackLink = CheckCast<CBackLinkLayer>( GetLayer( stateBackLink->GetName() ) );
 		outputTanh = CheckCast<CTanhLayer>( GetLayer( outputTanh->GetName() ) );
 		resetGate = CheckCast<CEltwiseMulLayer>( GetLayer( resetGate->GetName() ) );
 		isInCompatibilityMode = GetOutputMapping( 0 ).InternalLayerName == outputTanh->GetName();
@@ -309,6 +344,67 @@ void CLstmLayer::Serialize( CArchive& archive )
 		}
 	} else {
 		NeoAssert( false );
+	}
+}
+
+void CLstmLayer::RunOnce()
+{
+	if( MathEngine().GetType() == MET_Cpu &&
+		!isInCompatibilityMode &&
+		!IsBackwardPerformed() &&
+		!IsLearningPerformed() &&
+		recurrentActivation == AF_Sigmoid )
+	{
+		initDesc();
+		CConstFloatHandle inputStateBackLink = inputBlobs.Size() > 1 ? inputBlobs[1]->GetData() : CConstFloatHandle();
+		CConstFloatHandle inputMainBackLink = inputBlobs.Size() > 2 ? inputBlobs[2]->GetData() : CConstFloatHandle();
+		CFloatHandle outputState = outputBlobs.Size() > 1 ? outputBlobs[1]->GetData() : CFloatHandle();
+		MathEngine().Lstm( *lstmDesc, IsReverseSequence(), inputBlobs[0]->GetBatchLength(),
+			inputBlobs[0]->GetBatchWidth(), inputStateBackLink, inputMainBackLink, inputBlobs[0]->GetData(),
+			outputState, outputBlobs[0]->GetData() );
+	} else {
+		freeDesc();
+		CRecurrentLayer::RunOnce();
+	}
+}
+
+void CLstmLayer::Reshape()
+{
+	checkBlobDescs();
+	CRecurrentLayer::Reshape();
+	freeDesc();
+}
+
+// Checks layer input and output descs
+void CLstmLayer::checkBlobDescs() const
+{
+	CheckLayerArchitecture( inputDescs.Size() >= 1 && inputDescs.Size() <= 3, "LSTM must have 1 to 3 inputs" );
+	CheckLayerArchitecture( outputDescs.Size() == 1 || outputDescs.Size() == 2, "LSTM must have 1 or 2 outputs" );
+
+	const int batchSize = inputDescs[0].BatchWidth();
+	const int hiddenSize = GetHiddenSize();
+
+	CheckLayerArchitecture( inputDescs[0].GetDataType() == CT_Float, "LSTM's data input must be CT_Float" );
+	CheckLayerArchitecture( inputDescs[0].ListSize() == 1, "LSTM's data input's BD_ListSize must be 1" );
+
+	if( inputDescs.Size() > 1 ) {
+		CheckLayerArchitecture( inputDescs[1].GetDataType() == CT_Float, "LSTM's initial state must be CT_Float" );
+		CheckLayerArchitecture( inputDescs[1].BatchLength() == 1, "LSTM's initial state's BD_BatchLength must be 1" );
+		CheckLayerArchitecture( inputDescs[1].BatchWidth() == batchSize,
+			"LSTM's initial state's BD_BatchWidth must be equal to the BD_BatchWidth of the data input" );
+		CheckLayerArchitecture( inputDescs[1].ListSize() == 1, "LSTM's initial state's BD_ListSize must be 1" );
+		CheckLayerArchitecture( inputDescs[1].ObjectSize() == hiddenSize,
+			"LSTM's initial state's object size must be equal to the hidden size" );
+	}
+
+	if( inputDescs.Size() > 2 ) {
+		CheckLayerArchitecture( inputDescs[2].GetDataType() == CT_Float, "LSTM's initial story must be CT_Float" );
+		CheckLayerArchitecture( inputDescs[2].BatchLength() == 1, "LSTM's initial story's BD_BatchLength must be 1" );
+		CheckLayerArchitecture( inputDescs[2].BatchWidth() == batchSize,
+			"LSTM's initial story's BD_BatchWidth must be equal to the BD_BatchWidth of the data input" );
+		CheckLayerArchitecture( inputDescs[2].ListSize() == 1, "LSTM's initial story's BD_ListSize must be 1" );
+		CheckLayerArchitecture( inputDescs[2].ObjectSize() == hiddenSize,
+			"LSTM's initial story's object size must be equal to the hidden size" );
 	}
 }
 
@@ -361,14 +457,34 @@ void CLstmLayer::setWeightsData( const CPtr<CDnnBlob>& newWeights )
 	splitData.Add( splitWeights[0]->GetData() );
 	splitData.Add( splitWeights[1]->GetData() );
 
-	MathEngine().BlobSplitByDim( BD_Channels, weightDesc, newWeights->GetData(), splitDesc.GetPtr(), splitData.GetPtr(), 2 );
+	MathEngine().BlobSplitByDim( BD_Channels, weightDesc, newWeights->GetData(),
+		splitDesc.GetPtr(), splitData.GetPtr(), /*toCount*/2 );
 
 	SetInputWeightsData( splitWeights[0] );
 	SetRecurWeightsData( splitWeights[1] );
 }
 
-CLayerWrapper<CLstmLayer> Lstm(
-	int hiddenSize, float dropoutRate, bool isInCompatibilityMode )
+void CLstmLayer::initDesc()
+{
+	if( lstmDesc == nullptr ) {
+		CConstFloatHandle inputFreeTerm = inputHiddenLayer->FreeTerms() == nullptr ? CConstFloatHandle()
+			: inputHiddenLayer->FreeTerms()->GetData();
+		CConstFloatHandle recurrentFreeTerm = recurHiddenLayer->FreeTerms() == nullptr ? CConstFloatHandle()
+			: recurHiddenLayer->FreeTerms()->GetData();
+		lstmDesc = MathEngine().InitLstm( GetHiddenSize(), inputBlobs[0]->GetObjectSize(),
+			inputHiddenLayer->Weights()->GetData(), inputFreeTerm,
+			recurHiddenLayer->Weights()->GetData(), recurrentFreeTerm );
+	}
+}
+
+void CLstmLayer::freeDesc()
+{
+	delete lstmDesc;
+	lstmDesc = nullptr;
+}
+
+//--------------------------------------------------------------------------
+CLayerWrapper<CLstmLayer> Lstm( int hiddenSize, float dropoutRate, bool isInCompatibilityMode )
 {
 	return CLayerWrapper<CLstmLayer>( "", [=]( CLstmLayer* result ) {
 		result->SetHiddenSize( hiddenSize );

@@ -20,8 +20,7 @@ limitations under the License.
 
 namespace NeoML {
 
-ILinearRegressionModel::~ILinearRegressionModel()
-{}
+ILinearRegressionModel::~ILinearRegressionModel() = default;
 
 REGISTER_NEOML_MODEL( CLinearBinaryModel, LinearBinaryModelName )
 

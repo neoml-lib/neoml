@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -31,28 +31,33 @@ public:
 		KT_Sigmoid
 	};
 
-	CSvmKernel() : kernelType( KT_Undefined ), degree( 0 ), gamma( 0 ), coef0( 0 ) {}
-	CSvmKernel(TKernelType kernelType, int degree, double gamma, double coef0);
+	CSvmKernel() = default;
+	CSvmKernel( TKernelType kernelType, int degree, double gamma, double coef0 ) :
+		kernelType( kernelType ),
+		degree( degree ),
+		gamma( gamma ),
+		coef0( coef0 )
+	{}
 
 	// The kernel type
 	TKernelType KernelType() const { return kernelType; }
 	// Calculates the kernel value on given vectors
-	double Calculate(const CFloatVectorDesc& x1, const CFloatVectorDesc& x2) const;
-	double Calculate(const CFloatVector& x1, const CFloatVectorDesc& x2) const { return Calculate( x1.GetDesc(), x2 ); }
+	double Calculate( const CFloatVectorDesc& x1, const CFloatVectorDesc& x2 ) const;
+	double Calculate( const CFloatVector& x1, const CFloatVectorDesc& x2 ) const { return Calculate( x1.GetDesc(), x2 ); }
 
 	friend CArchive& operator << ( CArchive& archive, const CSvmKernel& center );
 	friend CArchive& operator >> ( CArchive& archive, CSvmKernel& center );
 
 private:
-	TKernelType kernelType;
-	int degree;
-	double gamma;
-	double coef0;
+	TKernelType kernelType = KT_Undefined;
+	int degree = 0;
+	double gamma = 0;
+	double coef0 = 0;
 
-	double linear(const CFloatVectorDesc& x1, const CFloatVectorDesc& x2) const;
-	double poly(const CFloatVectorDesc& x1, const CFloatVectorDesc& x2) const;
-	double rbf(const CFloatVectorDesc& x1, const CFloatVectorDesc& x2) const;
-	double sigmoid(const CFloatVectorDesc& x1, const CFloatVectorDesc& x2) const;
+	double linear( const CFloatVectorDesc& x1, const CFloatVectorDesc& x2 ) const;
+	double poly( const CFloatVectorDesc& x1, const CFloatVectorDesc& x2 ) const;
+	double rbf( const CFloatVectorDesc& x1, const CFloatVectorDesc& x2 ) const;
+	double sigmoid( const CFloatVectorDesc& x1, const CFloatVectorDesc& x2 ) const;
 
 	double rbfDenseBySparse( const CFloatVectorDesc& x1, const CFloatVectorDesc& x2 ) const;
 	double rbfDenseByDense( const CFloatVectorDesc& x1, const CFloatVectorDesc& x2 ) const;

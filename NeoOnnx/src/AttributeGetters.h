@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,6 +18,8 @@ limitations under the License.
 #include "TensorUtils.h"
 
 namespace NeoOnnx {
+using TBlobType = NeoML::TBlobType;
+using CBlobDesc = NeoML::CBlobDesc;
 
 // This file contains getters for different types of onnx attributes
 
@@ -59,13 +61,7 @@ inline void GetAttributeValue<CArray<int>>( const onnx::AttributeProto& attribut
 	value.Empty();
 	value.SetBufferSize( attribute.ints_size() );
 	for( int64_t element : attribute.ints() ) {
-		if( element >= static_cast<int64_t>( INT_MAX ) ) {
-			value.Add( INT_MAX );
-		} else if( element <= static_cast<int64_t>( INT_MIN ) ) {
-			value.Add( INT_MIN );
-		} else {
-			value.Add( static_cast<int>( element ) );
-		}
+		value.Add( static_cast<int>( Clamp( element, static_cast<int64_t>( INT_MIN ), static_cast<int64_t>( INT_MAX ) ) ) );
 	}
 }
 
@@ -87,13 +83,17 @@ inline void GetAttributeValue<CFastArray<int, 8>>( const onnx::AttributeProto& a
 	CheckOnnxProtocol( attribute.type() == onnx::AttributeProto_AttributeType_INTS,
 		( attribute.name() + " attribute is not an array of ints" ).c_str(), op );
 	for( int64_t element : attribute.ints() ) {
-		if( element >= static_cast<int64_t>( INT_MAX ) ) {
-			value.Add( INT_MAX );
-		} else if( element <= static_cast<int64_t>( INT_MIN ) ) {
-			value.Add( INT_MIN );
-		} else {
-			value.Add( static_cast<int>( element ) );
-		}
+		value.Add( static_cast<int>( Clamp( element, static_cast<int64_t>( INT_MIN ), static_cast<int64_t>( INT_MAX ) ) ) );
+	}
+}
+
+template<>
+inline void GetAttributeValue<CFastArray<float, 8>>( const onnx::AttributeProto& attribute, CFastArray<float, 8>& value, const COperator& op )
+{
+	CheckOnnxProtocol( attribute.type() == onnx::AttributeProto_AttributeType_FLOATS,
+		( attribute.name() + " attribute is not an array of floats" ).c_str(), op );
+	for( float element : attribute.floats() ) {
+		value.Add( element );
 	}
 }
 
@@ -106,19 +106,21 @@ inline void GetAttributeValue<CPtr<CDataTensor>>( const onnx::AttributeProto& at
 	TBlobType resultDataType = GetBlobType( static_cast<onnx::TensorProto_DataType>( attribute.t().data_type() ) );
 	CTensorLayout resultLayout( attribute.t().dims().size() );
 	CBlobDesc desc( resultDataType );
-	CTensorShape resultShape;
 	for( int i = 0; i < attribute.t().dims().size(); ++i ) {
 		desc.SetDimSize( resultLayout[i], static_cast<int>( attribute.t().dims( i ) ) );
-		resultShape.Add( static_cast<int>( attribute.t().dims( i ) ) );
+	}
+	if( desc.BlobSize() == 0 ) {
+		value = nullptr;
+		return;
 	}
 	CPtr<CDnnBlob> resultBlob = CDnnBlob::CreateBlob( value->Data()->GetMathEngine(), resultDataType, desc );
 
-	if( resultDataType == CT_Float ) {
+	if( resultDataType == NeoML::CT_Float ) {
 		LoadBlobData<float>( attribute.t(), *resultBlob );
 	} else {
 		LoadBlobData<int>( attribute.t(), *resultBlob );
 	}
-	value = new CDataTensor( resultShape, resultLayout, *resultBlob );
+	value = new CDataTensor( resultLayout, *resultBlob );
 }
 
 } // namespace NeoOnnx

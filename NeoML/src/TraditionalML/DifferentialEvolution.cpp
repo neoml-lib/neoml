@@ -259,4 +259,4 @@ void CDifferentialEvolution::LogPopulation()
 	*log << "<<<<<<<<DiffEvolution<<<<<<<<--------\n";
 }
 
-}
+} // namespace NeoML

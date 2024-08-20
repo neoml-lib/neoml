@@ -151,7 +151,7 @@ static void blob3dConvolutionImpl( const CTestParams& params, int seed )
 	const int paddingWidth = random.UniformInt( paddingWidthInterval.Begin, paddingWidthInterval.End );
 	const int paddingDepth = random.UniformInt( paddingDepthInterval.Begin, paddingDepthInterval.End );
     
-    const bool addFreeTerm = random.UniformInt( 0, 1 ) == 1 ? true : false;
+    const bool addFreeTerm = random.UniformInt( 0, 2 ) != 0 ? true : false;
 
 	const int geometrySize = inputHeight * inputWidth * inputDepth;
 	const int blobSize = batchSize * geometrySize * inputChannels;
@@ -187,7 +187,7 @@ static void blob3dConvolutionImpl( const CTestParams& params, int seed )
 	
 	CFloatBlob outBlob( MathEngine(), batchSize, outHeight, outWidth, outDepth, filterCount );
 
-	CFloatHandle ft = freeTermBlob.GetData();
+	CConstFloatHandle ft = freeTermBlob.GetData();
 
 	C3dConvolutionDesc *convDesc = MathEngine().InitBlob3dConvolution( inputBlob.GetDesc(),
 		paddingHeight, paddingWidth, paddingDepth, strideHeight, strideWidth, strideDepth, filterBlob.GetDesc(), outBlob.GetDesc() );

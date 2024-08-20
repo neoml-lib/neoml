@@ -59,15 +59,6 @@ inline float32x4_t LoadNeon(const float* data, int count, float defVal = 0)
 	return ret;
 }
 
-inline float32x4_t LoadNeonFromVector(const float* data, int count, float defVal = 0)
-{
-	if(count >= 4) {
-		return LoadNeon4(data);
-	} else {
-		return LoadNeon(data, count, defVal);
-	}
-}
-
 inline int32x4_t LoadIntNeon4(const int* data)
 {
 	return vld1q_s32(data);
@@ -86,15 +77,6 @@ inline int32x4_t LoadIntNeon(const int* data, int count, int defVal = 0)
 		}
 	}
 	return ret;
-}
-
-inline int32x4_t LoadIntNeonFromVector(const int* data, int count, int defVal = 0)
-{
-	if(count >= 4) {
-		return LoadIntNeon4(data);
-	} else {
-		return LoadIntNeon(data, count, defVal);
-	}
 }
 
 inline void StoreNeon4(const float32x4_t& val, float* data)
@@ -256,7 +238,7 @@ public:
 	const float DefVal;
 	const int DefIntVal;
 
-	CLoadStoreNeon(int len, float defVal = 0, int defIntVal = 0) :
+	explicit CLoadStoreNeon(int len, float defVal = 0, int defIntVal = 0) :
 		Len(len), DefVal(defVal), DefIntVal(defIntVal)
 	{
 	}
@@ -564,19 +546,26 @@ inline float32x4_t Polynom8Neon(const float32x4_t& x,
 	const float32x4_t& poly0, const float32x4_t& poly1, const float32x4_t& poly2, const float32x4_t& poly3,
 	const float32x4_t& poly4, const float32x4_t& poly5, const float32x4_t& poly6, const float32x4_t& poly7)
 {
-	float32x4_t t01 = MultiplyAndAddNeon(poly0, poly1, x);
-	float32x4_t t23 = MultiplyAndAddNeon(poly2, poly3, x);
-	float32x4_t t45 = MultiplyAndAddNeon(poly4, poly5, x);
-	float32x4_t t67 = MultiplyAndAddNeon(poly6, poly7, x);
-	float32x4_t x2 = vmulq_f32(x, x);
-	float32x4_t t0123 = MultiplyAndAddNeon(t01, t23, x2);
-	float32x4_t t4567 = MultiplyAndAddNeon(t45, t67, x2);
-	float32x4_t x4 = vmulq_f32(x2, x2);
-	return MultiplyAndAddNeon(t0123, t4567, x4);
+	float32x4_t tail = MultiplyAndAddNeon( poly6, x, poly7 );
+	tail = MultiplyAndAddNeon( poly5, x, tail );
+	tail = MultiplyAndAddNeon( poly4, x, tail );
+	tail = MultiplyAndAddNeon( poly3, x, tail );
+	tail = MultiplyAndAddNeon( poly2, x, tail );
+	tail = MultiplyAndAddNeon( poly1, x, tail );
+	return MultiplyAndAddNeon( poly0, x, tail );
 }
-inline float32x4_t Polynom8Neon(const float32x4_t& x, const float32x4_t* poly)
+
+// A 6th degree polynomial
+inline float32x4_t Polynom7Neon(const float32x4_t& x,
+	const float32x4_t& poly0, const float32x4_t& poly1, const float32x4_t& poly2, const float32x4_t& poly3,
+	const float32x4_t& poly4, const float32x4_t& poly5, const float32x4_t& poly6)
 {
-	return Polynom8Neon(x, poly[0], poly[1], poly[2], poly[3], poly[4], poly[5], poly[6], poly[7]);
+	float32x4_t tail = MultiplyAndAddNeon( poly5, x, poly6 );
+	tail = MultiplyAndAddNeon( poly4, x, tail );
+	tail = MultiplyAndAddNeon( poly3, x, tail );
+	tail = MultiplyAndAddNeon( poly2, x, tail );
+	tail = MultiplyAndAddNeon( poly1, x, tail );
+	return MultiplyAndAddNeon( poly0, x, tail );
 }
 
 // sqrt
@@ -584,7 +573,7 @@ class CSqrtNeon : public CCrtAllocatedObject {
 public:
 	CSqrtNeon() : MinVal(vdupq_n_f32(FLT_MIN)) {}
 
-	float32x4_t Execute(const float32x4_t& val)
+	float32x4_t Execute(const float32x4_t& val) const
 	{
 		return vmulq_f32(val, InvSqrtNeon(vmaxq_f32(MinVal, val)));
 	}
@@ -594,6 +583,7 @@ private:
 };
 
 // exponent
+// Based on Cephes math library exp implementation https://github.com/jeremybarnes/cephes/blob/master/cmath/exp.c
 // We use a polynomial approximation exp(x) of 7 degree over the [-ln(2), ln(2)] interval with the Remez method
 // The approximation uses Sollya 6.0 (http://sollya.gforge.inria.fr/)
 // > remez(exp(x), 7, [-log(2); log(2)]);
@@ -604,8 +594,8 @@ private:
 class CExpNeon : public CCrtAllocatedObject {
 public:
 	CExpNeon() :
-		Log2(vdupq_n_f32(0.69314718055994530941723212145817656807550013436025)),
 		InvLog2(vdupq_n_f32(1.442695040888963407359924681001892137426645954153)),
+		NegLog2(vdupq_n_f32(-0.69314718055994530941723212145817656807550013436025)),
 		Poly0(vdupq_n_f32(0.99999998955224326136737550445628323296402203000823)),
 		Poly1(vdupq_n_f32(0.99999999071360726125072399571785309591215423779367)),
 		Poly2(vdupq_n_f32(0.50000069538458801897792933938736419406478763215156)),
@@ -616,67 +606,69 @@ public:
 		Poly7(vdupq_n_f32(2.01747050601364376282735084344647908949985061826444e-4)),
 		MaxLog(vdupq_n_f32(FLT_MAX_LOG)),
 		MinLog(vdupq_n_f32(FLT_MIN_LOG)),
-		MaxResult(vdupq_n_f32(FLT_MAX)),
-		MinResult(vdupq_n_f32(0))
+		FloatBias(vdupq_n_s32(127))
 	{
 	}
 
 	// Calculates the exponent without checking data. Overflow may occur because of values over FLT_MAX_LOG or below FLT_MIN_LOG
-	float32x4_t ExecuteNoCheck(const float32x4_t& x) const
+	float32x4_t ExecuteNoCheck( const float32x4_t& x ) const
 	{
-		// The formula: exp(x) = r * 2^n, where n = (int)(x / ln(2)), r = exp(x - n * ln(2))
-		// Use the polynomial approximation to calculate r
-		int32x4_t n = vcvtq_s32_f32(vmulq_f32(x, InvLog2));
+		// The formula: exp(x) = r * 2^n, where n = floor(0.5 + x / ln(2)), r = exp(x - n * ln(2))
+		float32x4_t n = MultiplyAndAddNeon( vdupq_n_f32( 0.5f ), x, InvLog2 );
+
+		// Perform a floorf
+		float32x4_t toIntAndBack = vcvtq_f32_s32( vcvtq_s32_f32( n ) );
+		uint32x4_t mask = vcgtq_f32( toIntAndBack, n );
+		mask = vandq_u32( mask, vreinterpretq_u32_f32( vdupq_n_f32( 1.f ) ) );
+		n = vsubq_f32( toIntAndBack, vreinterpretq_f32_u32( mask ) );
 
 		// Calculate r (via the polynomial)
-		float32x4_t r = Polynom8Neon(vsubq_f32(x, vmulq_f32(vcvtq_f32_s32(n), Log2)),
-			Poly0, Poly1, Poly2, Poly3, Poly4, Poly5, Poly6, Poly7);
+		float32x4_t r = Polynom8Neon( MultiplyAndAddNeon( x, n, NegLog2 ),
+			Poly0, Poly1, Poly2, Poly3, Poly4, Poly5, Poly6, Poly7 );
 
-		// Calculate r * 2^n. Use the fact that r stores the binary exponent in bit positions from 23 to 30 (the 31 bit stores the sign)
-		return vreinterpretq_f32_s32(vaddq_s32(vreinterpretq_s32_f32(r), vshlq_n_s32(n, 23)));
+		// Calculate r * 2^n. Use the fact that n stores the binary exponent in bit positions from 23 to 30 (the 31 bit stores the sign)
+		int32x4_t pow2n = vshlq_n_s32( vaddq_s32( vcvtq_s32_f32( n ), FloatBias ), 23 );
+		return vmulq_f32( r, vreinterpretq_f32_s32( pow2n ) );
 	}
 
 	// Calculate the exponent with saturation
-	float32x4_t Execute(const float32x4_t& x) const
+	float32x4_t Execute( float32x4_t x ) const
 	{
-		uint32x4_t maskMin = vcltq_f32(x, MinLog);
-		uint32x4_t maskMax = vcgtq_f32(x, MaxLog);
-		float32x4_t result = ExecuteNoCheck(x);
-		return Condition2Neon(maskMin, maskMax, MinResult, MaxResult, result);
+		x = vminq_f32( x, MaxLog );
+		x = vmaxq_f32( x, MinLog );
+		return ExecuteNoCheck( x );
 	}
 
 private:
 	// The constants used in the algorithm
-	const float32x4_t Log2;
 	const float32x4_t InvLog2;
+	const float32x4_t NegLog2;
 	const float32x4_t Poly0, Poly1, Poly2, Poly3, Poly4, Poly5, Poly6, Poly7;
 	const float32x4_t MaxLog;
 	const float32x4_t MinLog;
-	const float32x4_t MaxResult;
-	const float32x4_t MinResult;
+	const int32x4_t FloatBias;
 };
 
 // Logarithm
 // We use a polynomial approximation ln(x) of 7 degree over the [1, 2] interval with the Remez method
 // The approximation uses Sollya 6.0 (http://sollya.gforge.inria.fr/)
-// > remez(log(x), 7, [1; 2]);
-// -2.2496354384323994835209829226495141810521420107384 + 4.9448910244549799872106325311521085580266870326504 * x +
-// -5.1945351982243051696422411814528666698483563209764 * x^2 + 4.0073882206207432223548376040428533830499620725419 * x^3 +
-// -2.06905895742501636916193336058740532558260222207 * x^4 + 0.6779636853241939027852947156614612589585157662135 * x^5 +
-// -0.12749724414788236804817747106717809620960121948297 * x^6 + 1.04841000320826930139331087157692539801107792338888e-2 * x^7
-// The multipliers are corrected to give a total of exactly 0 (ln(1))
+// > remez(log(x), 6, [1;2]);
+// -2.1071953427564344295122963014090989522041472639445 + x * (4.237183152619261253421766625961639740027090054326
+// + x * (-3.7027847460076218516685270898694185493924718806403 + x * (2.2780481433007002668331900406602093429675780572517
+// + x * (-0.87816081548743026896802039053362903831062288758336 + x * (0.19071859332252785069042252306360131284095575481521
+// + x * (-1.78077056586194959278022568035459347663733758888735e-2))))))
+// The Poly0 is corrected to give a total of exactly 0 (ln(1))
 class CLogNeon : public CCrtAllocatedObject {
 public:
 	CLogNeon() :
 		Log2(vdupq_n_f32(0.69314718055994530941723212145817656807550013436025)),
-		Poly0(vdupq_n_f32(-2.2496354384323994835209829226495141810521420107384)),
-		Poly1(vdupq_n_f32(4.9448910244549799872106325311521085580266870326504)),
-		Poly2(vdupq_n_f32(-5.1945351982243051696422411814528666698483563209764)),
-		Poly3(vdupq_n_f32(4.0073882206207432223548376040428533830499620725419)),
-		Poly4(vdupq_n_f32(-2.06905895742501636916193336058740532558260222207)),
-		Poly5(vdupq_n_f32(0.6779636853241939027852947156614612589585157662135)),
-		Poly6(vdupq_n_f32(-0.12749724414788236804817747106717809620960121948297 - 1e-8)),
-		Poly7(vdupq_n_f32(1.04841000320826930139331087157692539801107792338888e-2)),
+		Poly0(vdupq_n_f32(-2.1071953427564344295122963014090989522041472639445 - 9.53674316406250000000e-07)),
+		Poly1(vdupq_n_f32(4.237183152619261253421766625961639740027090054326)),
+		Poly2(vdupq_n_f32(-3.7027847460076218516685270898694185493924718806403)),
+		Poly3(vdupq_n_f32(2.2780481433007002668331900406602093429675780572517)),
+		Poly4(vdupq_n_f32(-0.87816081548743026896802039053362903831062288758336)),
+		Poly5(vdupq_n_f32(0.19071859332252785069042252306360131284095575481521)),
+		Poly6(vdupq_n_f32(-1.78077056586194959278022568035459347663733758888735e-2)),
 		MinValue(vdupq_n_f32(FLT_MIN)),
 		FloatBias(vdupq_n_s32(127))
 	{
@@ -693,8 +685,8 @@ public:
 		int32x4_t n = vsubq_s32(vshrq_n_s32(vreinterpretq_s32_f32(x), 23), FloatBias);
 
 		// Calculate r (via the polynomial)
-		float32x4_t r = Polynom8Neon(vreinterpretq_f32_s32(vsubq_s32(x, vshlq_n_s32(n, 23))),
-			Poly0, Poly1, Poly2, Poly3, Poly4, Poly5, Poly6, Poly7);
+		float32x4_t r = Polynom7Neon(vreinterpretq_f32_s32(vsubq_s32(x, vshlq_n_s32(n, 23))),
+			Poly0, Poly1, Poly2, Poly3, Poly4, Poly5, Poly6);
 
 		return vaddq_f32(r, vmulq_f32(vcvtq_f32_s32(n), Log2));
 	}
@@ -708,7 +700,7 @@ public:
 private:
 	// The constants used in the algorithm
 	const float32x4_t Log2;
-	const float32x4_t Poly0, Poly1, Poly2, Poly3, Poly4, Poly5, Poly6, Poly7;
+	const float32x4_t Poly0, Poly1, Poly2, Poly3, Poly4, Poly5, Poly6;
 	const float32x4_t MinValue;
 	const int32x4_t FloatBias;
 };

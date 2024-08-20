@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -53,7 +53,7 @@ void CCompositeSourceLayer::SetBlob(CDnnBlob* _blob)
 }
 
 void CCompositeSourceLayer::SetDiffBlob(CDnnBlob* blob)
-{ 
+{
 	if( GetDnn()->IsRecurrentMode() && blob->GetBatchLength() > 1 ) {
 		diffBlob = CDnnBlob::CreateWindowBlob( blob );
 	} else {
@@ -127,7 +127,7 @@ void CCompositeSinkLayer::RunOnce()
 }
 
 void CCompositeSinkLayer::SetDiffBlob(CDnnBlob* blob)
-{ 
+{
 	if( GetDnn()->IsRecurrentMode() && blob->GetBatchLength() > 1 ) {
 		diffBlob = CDnnBlob::CreateWindowBlob( blob );
 	} else {
@@ -157,6 +157,8 @@ void CCompositeSinkLayer::Serialize( CArchive& archive )
 CCompositeLayer::CCompositeLayer( IMathEngine& mathEngine, const char* name ) :
 	CBaseLayer( mathEngine, name == nullptr ? "CCnnCompositeLayer" : name, true ),
 	internalDnn( 0 ),
+	blobsForBackward( 0 ),
+	blobsForLearn( 0 ),
 	areInternalLogsEnabled( true )
 {
 }
@@ -200,6 +202,22 @@ CPtr<const CBaseLayer> CCompositeLayer::GetLayer(const char* name) const
 	return layerMap.Get(name);
 }
 
+CPtr<CBaseLayer> CCompositeLayer::GetLayer(const CArray<CString>& path)
+{
+	CPtr<CCompositeLayer> currComp = this;
+	for(int i = 0; i < path.Size() - 1; ++i ) {
+		CheckArchitecture(currComp->layerMap.Has(path[i]), path[i], "layer is not in this composite layer");
+		currComp = CheckCast<CCompositeLayer>( currComp->GetLayer(path[i]).Ptr() );
+	}
+	CheckArchitecture(currComp->HasLayer(path.Last()), path.Last(), "layer is not contained by this path");
+	return currComp->GetLayer(path.Last());
+}
+
+CPtr<const CBaseLayer> CCompositeLayer::GetLayer(const CArray<CString>& path) const
+{
+	return const_cast<CCompositeLayer*>(this)->GetLayer(path);
+}
+
 bool CCompositeLayer::HasLayer(const char* name) const
 {
 	return layerMap.Has(name);
@@ -207,7 +225,7 @@ bool CCompositeLayer::HasLayer(const char* name) const
 
 void CCompositeLayer::AddLayerImpl(CBaseLayer& layer)
 {
-	CheckArchitecture( !layerMap.Has(layer.GetName()), layer.GetName(), "Layer already in this composite layer" );
+	layer.CheckLayerArchitecture( !layerMap.Has(layer.GetName()), "Layer already in this composite layer" );
 
 	// Add the layer
 	layerMap.Add(layer.GetName(), &layer);
@@ -216,6 +234,7 @@ void CCompositeLayer::AddLayerImpl(CBaseLayer& layer)
 	if(internalDnn != 0) {
 		internalDnn->AddLayer(layer);
 	}
+	ForceReshape();
 }
 
 void CCompositeLayer::DeleteLayerImpl(CBaseLayer& layer)
@@ -232,6 +251,7 @@ void CCompositeLayer::DeleteLayerImpl(CBaseLayer& layer)
 			break;
 		}
 	}
+	ForceReshape();
 }
 
 CString CCompositeLayer::getSourceName(int num) const
@@ -260,13 +280,18 @@ void CCompositeLayer::createSources()
 		// Set the ForceBackward flags as needed for the composite layer
 		newSource->SetBackwardForced(IsBackwardNeeded());
 	}
+	// Update ForceBackward flags for sources which have already been created
+	int sourceIndex = 0;
+	while( sourceIndex < sources.Size() && sources[sourceIndex]->GetBackwardForced() != IsBackwardNeeded() ) {
+		sources[sourceIndex++]->SetBackwardForced( IsBackwardNeeded() );
+	}
 }
 
 // Creates composite layer outputs
 void CCompositeLayer::createSinks()
 {
 	int count = GetOutputCount();
-	CheckArchitecture( count <= outputMappings.Size(), GetName(), "composite layer has too many ouputs" );
+	CheckLayerArchitecture( count <= outputMappings.Size(), "composite layer has too many ouputs" );
 	for( int i = 0; i < min( count, sinks.Size() ); ++i ) {
 		const char* inputInfoName = sinks[i]->GetInputName( 0 );
 		int inputInfoOutputNumber = sinks[i]->GetInputOutputNumber( 0 );
@@ -320,6 +345,51 @@ void CCompositeLayer::setOutputDescs()
 	NeoPresume( sinks.Size() == GetOutputCount() );
 	for( int i = 0; i < sinks.Size(); ++i ) {
 		outputDescs[i] = sinks[i]->GetInputDesc();
+	}
+}
+
+void CCompositeLayer::calcBlobsForBackwardAndLearn()
+{
+	blobsForBackward = 0;
+	blobsForLearn = 0;
+	const bool hasBackward = IsBackwardPerformed();
+	const bool hasLearn = IsLearningPerformed();
+
+	if( !hasBackward && !hasLearn ) {
+		return;
+	}
+
+	for( int layerIndex = 0; layerIndex < layers.Size(); ++layerIndex ) {
+		if( ( !hasBackward || blobsForBackward != 0 ) && ( !hasLearn || blobsForLearn != 0 ) ) {
+			break;
+		}
+		const CBaseLayer& layer = *layers[layerIndex];
+		for( int inputIndex = 0; inputIndex < layer.GetInputCount(); ++inputIndex ) {
+			if( dynamic_cast<const CCompositeSourceLayer*>( layer.GetInputLayer( inputIndex ) ) != nullptr ) {
+				if( hasBackward && layer.IsBackwardPerformed() && ( layer.BlobsForBackward() & TInputBlobs ) != 0 ) {
+					blobsForBackward |= TInputBlobs;
+				}
+				if( hasLearn && layer.IsLearningPerformed() && ( layer.BlobsForLearn() & TInputBlobs ) != 0 ) {
+					blobsForLearn |= TInputBlobs;
+				}
+				break;
+			}
+		}
+	}
+
+	for( int outputIndex = 0; outputIndex < outputMappings.Size(); ++outputIndex ) {
+		if( ( !hasBackward || ( blobsForBackward & TOutputBlobs ) != 0 )
+			&& ( !hasLearn || ( blobsForLearn & TOutputBlobs ) != 0 ) )
+		{
+			break;
+		}
+		const CBaseLayer& layer = *GetLayer( outputMappings[outputIndex].InternalLayerName );
+		if( hasBackward && layer.IsBackwardPerformed() && ( layer.BlobsForBackward() & TOutputBlobs ) != 0 ) {
+			blobsForBackward |= TOutputBlobs;
+		}
+		if( hasLearn && layer.IsLearningPerformed() && ( layer.BlobsForLearn() & TOutputBlobs ) != 0 ) {
+			blobsForLearn |= TOutputBlobs;
+		}
 	}
 }
 
@@ -383,7 +453,7 @@ void CCompositeLayer::OnDnnChanged( CDnn* )
 	sources.DeleteAll();
 	sinks.DeleteAll();
 	if(GetDnn() != 0) {
-		internalDnn = FINE_DEBUG_NEW CDnn(GetDnn()->Random(), GetDnn()->GetMathEngine());
+		internalDnn = FINE_DEBUG_NEW CDnn(GetDnn()->Random(), GetDnn()->GetMathEngine(), this);
 
 		for(int i = 0; i < layers.Size(); ++i) {
 			internalDnn->AddLayer(*layers[i]);
@@ -412,7 +482,7 @@ void CCompositeLayer::SetInternalDnnParams()
 	internalDnn->SetLogFrequency(GetDnn()->GetLogFrequency());
 	internalDnn->RequestReshape(forcedReshape);
 	// Switch learning on or off
-	if(IsLearningEnabled()) {
+	if( GetDnn()->IsLearningEnabled() ) {
 		internalDnn->EnableLearning();
 	} else {
 		internalDnn->DisableLearning();
@@ -429,10 +499,11 @@ size_t CCompositeLayer::GetOutputBlobsSize() const
 	return result;
 }
 
-void CCompositeLayer::CleanUp()
+void CCompositeLayer::CleanUp( bool totalCleanUp )
 {
+	CBaseLayer::CleanUp( totalCleanUp );
 	for( int i = 0; i < internalDnn->layers.Size(); i++ ) {
-		internalDnn->layers[i]->CleanUp();
+		internalDnn->layers[i]->CleanUp( totalCleanUp );
 	}
 }
 
@@ -476,6 +547,8 @@ void CCompositeLayer::Reshape()
 	internalDnn->reshape();
 	// Get the output descriptors
 	setOutputDescs();
+	// Determine which blobs will be used during backward and learn
+	calcBlobsForBackwardAndLearn();
 }
 
 // Runs the internal network forward pass as defined in children
@@ -489,6 +562,7 @@ void CCompositeLayer::RunOnce()
 {
 	NeoAssert(GetDnn() != 0 && internalDnn != 0);
 	NeoAssert(internalDnn->IsBackwardPerformed() == GetDnn()->IsBackwardPerformed());
+	internalDnn->isReuseMemoryMode = GetDnn()->isReuseMemoryMode;
 
 	if(internalDnn->GetLog() != 0) {
 		*internalDnn->GetLog() << "\n";
@@ -554,22 +628,12 @@ void CCompositeLayer::processBackwardOrLearn()
 	// Reset the learning parameters because they may have changed after the last run
 	CDnnSolver* solver = externalDnn->GetSolver();
 	internalDnn->SetSolver(solver);
-	float oldLearningRate = solver->GetLearningRate();
-	solver->SetLearningRate(oldLearningRate * GetBaseLearningRate());
-	float oldRegularizationL1 = solver->GetL1Regularization();
-	solver->SetL1Regularization(oldRegularizationL1 * GetBaseL1RegularizationMult());
-	float oldRegularizationL2 = solver->GetL2Regularization();
-	solver->SetL2Regularization(oldRegularizationL2 * GetBaseL2RegularizationMult());
 
 	if(internalDnn->GetLog()) {
 		*internalDnn->GetLog() << "\n";
 	}
 	// Run a backward pass for the internal network
 	RunInternalDnnBackward();
-
-	solver->SetL1Regularization(oldRegularizationL1);
-	solver->SetL2Regularization(oldRegularizationL2);
-	solver->SetLearningRate(oldLearningRate);
 
 	internalDnn->SetLog(0);
 }

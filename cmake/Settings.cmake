@@ -1,7 +1,12 @@
 
 # Define global cmake variables and some usefull variables
 macro(set_global_variables)
-    
+    # Allow environment variables <PackageName>_ROOT
+    if(POLICY CMP0074)
+        set(CMAKE_POLICY_DEFAULT_CMP0074 NEW)
+        cmake_policy(SET CMP0074 NEW)
+    endif()
+
     # Usefull variables
     if(UNIX AND APPLE AND NOT IOS)
         set(DARWIN TRUE)
@@ -9,8 +14,12 @@ macro(set_global_variables)
         set(LINUX TRUE)
     endif()
 
-    if(NOT DEFINED ENV{READTHEDOCS} AND (CMAKE_SIZEOF_VOID_P EQUAL 8) AND (WIN32 OR LINUX OR DARWIN) AND NOT CMAKE_SYSTEM_PROCESSOR MATCHES "arm.*")
+    if(NOT DEFINED ENV{READTHEDOCS} AND (CMAKE_SIZEOF_VOID_P EQUAL 8) AND (WIN32 OR LINUX) AND NOT CMAKE_SYSTEM_PROCESSOR MATCHES "arm.*")
         set(NEOML_USE_AVX TRUE)
+    endif()
+
+    if(NOT MSVC AND USE_FINE_OBJECTS)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-strict-aliasing")
     endif()
 
     # Cmake default variables
@@ -28,7 +37,7 @@ macro(set_global_variables)
         set(CMAKE_SKIP_RPATH FALSE)
         set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
         if(LINUX)
-            set(CMAKE_INSTALL_RPATH "\$ORIGIN" "\$ORIGIN/../lib")
+            set(CMAKE_INSTALL_RPATH "\$ORIGIN" "\$ORIGIN/../lib64" "\$ORIGIN/../lib")
         elseif(DARWIN)
             set(CMAKE_INSTALL_NAME_DIR "@rpath")
             set(CMAKE_INSTALL_RPATH "@executable_path" "@executable_path/../lib")
@@ -62,6 +71,12 @@ function(configure_target TARGET_NAME)
             $<$<COMPILE_LANGUAGE:CXX>:-Wno-unknown-pragmas>
             $<$<COMPILE_LANGUAGE:CXX>:-Wno-strict-overflow>
         )
+        if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+            # This option is unknown to clang
+            target_compile_options(${TARGET_NAME} PRIVATE
+                $<$<COMPILE_LANGUAGE:CXX>:-Wno-deprecated-copy>
+            )
+        endif()
     endif()
     
     # No extensions use
@@ -73,7 +88,7 @@ function(configure_target TARGET_NAME)
     if(IOS)
         set_target_properties(${TARGET_NAME} PROPERTIES 
             XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET 11.0
-            XCODE_ATTRIBUTE_ENABLE_BITCODE "YES"
+            XCODE_ATTRIBUTE_ENABLE_BITCODE "NO"
             XCODE_ATTRIBUTE_ONLY_ACTIVE_ARCH[variant=Debug] "YES"
         )
 
@@ -107,24 +122,30 @@ function(configure_target TARGET_NAME)
             target_link_options(${TARGET_NAME} PRIVATE "$<$<NOT:$<CONFIG:Debug>>:/LTCG>")
         endif()
     endif()
-endfunction()
 
-function(link_openmp TARGET_NAME)
-    find_package(OpenMP REQUIRED)
-    target_compile_definitions(${TARGET_NAME} PUBLIC NEOML_USE_OMP)
-    string(REPLACE " " ";" OpenMP_CXX_FLAGS ${OpenMP_CXX_FLAGS})
-    target_compile_options(${TARGET_NAME} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:${OpenMP_CXX_FLAGS}>)
-    target_include_directories(${TARGET_NAME} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:${OpenMP_CXX_INCLUDE_DIRS}>)
-    if(OpenMP_CXX_LIBRARIES)
-        if(ANDROID)
-            get_filename_component(OMP_SUFFIX ${OpenMP_omp_LIBRARY} EXT)
-            if(OMP_SUFFIX STREQUAL ".so")
-                target_link_libraries(${TARGET_NAME} PUBLIC -fopenmp -static-openmp)
-            else()
-                target_link_libraries(${TARGET_NAME} PUBLIC ${OpenMP_CXX_LIBRARIES})
-            endif()
+    if(TARGET_TYPE STREQUAL "SHARED_LIBRARY" AND USE_FINE_OBJECTS AND (USE_STATIC_PART OR USE_STL_STATIC_PART))
+        set(STATIC_PART_NAME FineObjStaticPart)
+        set(STATIC_PART_PREFIX FineObj)
+        if(USE_STL_STATIC_PART)
+            set(STATIC_PART_NAME FineStlStaticPart)
+            set(STATIC_PART_PREFIX FineStl)
+        endif()
+
+        if(TARGET ${STATIC_PART_NAME})
+            set(STATIC_PART_FILENAME $<TARGET_FILE:${STATIC_PART_NAME}>)
+            add_dependencies(${PROJECT_NAME} ${STATIC_PART_NAME})
         else()
-            target_link_libraries(${TARGET_NAME} PUBLIC ${OpenMP_CXX_LIBRARIES})
+            set(STATIC_PART_FILENAME ${${STATIC_PART_PREFIX}_STATIC_PART_LIBRARY})
+        endif()
+
+        if(APPLE)
+            target_link_options(${PROJECT_NAME} BEFORE PRIVATE -force_load ${STATIC_PART_FILENAME})
+        elseif(UNIX)
+            target_link_options(${PROJECT_NAME} BEFORE PRIVATE -Wl,--whole-archive ${STATIC_PART_FILENAME} -Wl,--no-whole-archive)
+        endif()
+
+        if(LINUX)
+            target_link_libraries(${PROJECT_NAME} PRIVATE dl)
         endif()
     endif()
 endfunction()

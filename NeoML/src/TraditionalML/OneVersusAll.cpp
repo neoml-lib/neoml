@@ -37,7 +37,7 @@ public:
 	int GetDiscretizationValue( int index ) const override { return data->GetDiscretizationValue( index ); }
 
 protected:
-	virtual ~COneVersusAllTrainingData() {} // delete prohibited
+	~COneVersusAllTrainingData() override = default; // delete prohibited
 
 private:
 	const CPtr<const IProblem> data; // the source data

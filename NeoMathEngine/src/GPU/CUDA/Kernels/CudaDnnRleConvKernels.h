@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -26,8 +26,8 @@ __global__ void BlobConvertFromRleKernel( const CCudaConvolutionDescInternal con
 {
 	const CCudaBlobDesc& source = convDesc.Source;
 
-	int num;
-	int line;
+	int num = 0;
+	int line = 0;
 	if(!GetCudaTaskIndex2D(source.ObjectCount(), source.Height(), num, line)) {
 		return;
 	}
@@ -35,8 +35,8 @@ __global__ void BlobConvertFromRleKernel( const CCudaConvolutionDescInternal con
 		(const char*)sourceData + num * objectSize);
 	float* output = GetBlobPtr(source, resultData, num, line, 0, 0);
 
-	int imageStart = (source.Height() - image->Height) / 2;
-	int imageStop = imageStart + image->Height;
+	const int imageStart = (source.Height() - image->Height) / 2;
+	const int imageStop = imageStart + image->Height;
 
 	if(line < imageStart || line >= imageStop) {
 		// Empty row
@@ -57,7 +57,7 @@ __global__ void BlobConvertFromRleKernel( const CCudaConvolutionDescInternal con
 	}
 
 	// Fill the row start with empty values
-	int startPos = (source.Width() - image->Width) / 2;
+	const int startPos = (source.Width() - image->Width) / 2;
 	for(int i = 0; i < startPos; ++i) {
 		*output++ = nonStrokeValue;
 	}
@@ -75,7 +75,7 @@ __global__ void BlobConvertFromRleKernel( const CCudaConvolutionDescInternal con
 	}
 
 	// Fill the rest of the row with empty values
-	int rest = source.Width() - pos - startPos;
+	const int rest = source.Width() - pos - startPos;
 	for(int i = 0; i < rest; ++i) {
 		*output++ = nonStrokeValue;
 	}

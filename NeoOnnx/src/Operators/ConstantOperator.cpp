@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,6 +21,8 @@ limitations under the License.
 
 #include "onnx.pb.h"
 
+using namespace NeoML;
+
 namespace NeoOnnx {
 
 CConstantOperator::CConstantOperator( const onnx::NodeProto& constant, int opsetVersion ) :
@@ -30,6 +32,7 @@ CConstantOperator::CConstantOperator( const onnx::NodeProto& constant, int opset
 	// v9 - supported new data types
 	// v11 - "sparse_value" attribute are added
 	// v12 - new attributes are added: "value_float", "value_ints" etc.
+	// v13 - bfloat16 is supported
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
 	CheckOnnxProtocol( InputCount() == 0, "operator must have no inputs", *this );

@@ -68,8 +68,8 @@ public:
     };
 public:
 #ifndef JIT_DEBUG
-    CJitDebug( ... ) {}
-    ~CJitDebug() {}
+    CJitDebug( ... ) = default;
+    ~CJitDebug() = default;
     void StartPrepare() {}
     void StopPrepare() {}
     void StartProcess() {}
@@ -155,7 +155,7 @@ std::unordered_map<CJitDebug::CKey, CJitDebug::CResult, CJitDebug::CKey::Hasher>
 
 class CJitDebugHolder {
 public:
-    CJitDebugHolder() {}
+    CJitDebugHolder() = default;
     ~CJitDebugHolder() {
 #ifdef JIT_DEBUG
         CJitDebug::PrintResult();

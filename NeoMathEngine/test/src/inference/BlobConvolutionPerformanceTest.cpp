@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright Â© 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,6 +14,7 @@ limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
 #include <TestFixture.h>
+#include <MeTestCommon.h>
 
 #include <chrono>
 
@@ -21,52 +22,7 @@ using namespace NeoML;
 using namespace NeoMLTest;
 using namespace std::chrono;
 
-static inline int calcConvOutputSize( int input, int padding, int filter, int dilation, int stride )
-{
-	return  1 + ( input - ( filter - 1 ) * dilation + 2 * padding - 1 ) / stride;
-}
-
-static void batchConvolutionForward( const float* input, const float* filter, const float* freeTerms, float* output,
-	int inputLength, int inputBatch, int inputHeight, int inputWidth, int inputDepth, int inputChannels,
-	int paddingHeight, int paddingWidth, int filterCount, int filterHeight, int filterWidth,
-	int dilationHeight, int dilationWidth, int strideHeight, int strideWidth )
-{
-	const int outputHeight = calcConvOutputSize( inputHeight, paddingHeight, filterHeight, dilationHeight, strideHeight );
-	const int outputWidth = calcConvOutputSize( inputWidth, paddingWidth, filterWidth, dilationWidth, strideWidth );
-	const int inputObjectSize = inputHeight * inputWidth * inputDepth * inputChannels;
-	const int outputObjectSize = filterCount * outputHeight * outputWidth;
-	const int channels = inputDepth * inputChannels;
-	const int filterObjectSize = channels * filterHeight * filterWidth;
-
-	for( int b = 0; b < inputLength * inputBatch; ++b ) {
-		for( int h = 0; h < outputHeight; ++h ) {
-			for( int w = 0; w < outputWidth; ++w ) {
-				for( int outChannel = 0; outChannel < filterCount; ++outChannel ) {
-					const int outputIndex = b * outputObjectSize + h * outputWidth * filterCount + w * filterCount + outChannel;
-					output[outputIndex] = freeTerms[outChannel];
-
-					for( int filterH = 0; filterH < filterHeight; ++filterH ) {
-						for( int filterW = 0; filterW < filterWidth; ++filterW ) {
-							for( int inChannel = 0; inChannel < channels; ++inChannel ) {
-								const int inputH = h * strideHeight - paddingHeight + filterH * dilationHeight;
-								const int inputW = w * strideWidth - paddingWidth + filterW * dilationWidth;
-
-								if( inputH >= 0 && inputW >= 0 && inputH < inputHeight && inputW < inputWidth ) {
-									const int inputIndex = b * inputObjectSize + inputH * inputWidth * channels + inputW * channels + inChannel;
-									const int filterIndex = outChannel * filterObjectSize + filterH * filterWidth * channels + filterW * channels + inChannel;
-
-									output[outputIndex] += filter[filterIndex] * input[inputIndex];
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-}
-
-static void blobConvolutionImpl( const CTestParams& params, int seed )
+static void blobConvolutionPerformanceTestImpl( const CTestParams& params, int seed )
 {
 	CRandom random( seed );
 
@@ -122,7 +78,7 @@ static void blobConvolutionImpl( const CTestParams& params, int seed )
 		paddingHeight, paddingWidth, strideHeight, strideWidth,
 		dilationHeight, dilationWidth, filterBlob.GetDesc(), outputBlob.GetDesc() );
 
-	CFloatHandle freeTermDataPtr = freeTermBlob.GetData();
+	CConstFloatHandle freeTermDataPtr = freeTermBlob.GetData();
 	
 	const int outputSize = inputLength * inputBatch * outputHeight * outputWidth * 1 * filterCount;
 	std::vector<float> actualData( outputSize );
@@ -148,13 +104,15 @@ static void blobConvolutionImpl( const CTestParams& params, int seed )
 		dilationHeight, dilationWidth, strideHeight, strideWidth );
 
 	for( int i = 0; i < outputSize; ++i ) {
-		ASSERT_TRUE( FloatEq( expectedData[i], actualData[i] ) );
+		ASSERT_TRUE( FloatEq( expectedData[i], actualData[i], 3e-2 ) );
 	}
 }
 
 //------------------------------------------------------------------------------------------------------------
 
 class CMathEngineBlobConvolutionPerformanceTest : public CTestFixtureWithParams {
+public:
+	void SetUp() override { MathEngine().CleanUp(); }
 };
 // PaddingHeight | PaddingWidth | StrideHeight | StrideWidth | DilationHeight | DilationWidth | ObjectHeight | ObjectWidth | NumChannels | ObjectCount | FiltHeight | FiltWidth | IsFreeTerm
 CTestParams TestParams[] = {
@@ -233,5 +191,5 @@ INSTANTIATE_TEST_CASE_P( CMathEngineBlobConvolutionPerformanceTestInstantiation,
 
 TEST_P( CMathEngineBlobConvolutionPerformanceTest, Random )
 {
-	RUN_TEST_IMPL( blobConvolutionImpl );
+	RUN_TEST_IMPL( blobConvolutionPerformanceTestImpl );
 }

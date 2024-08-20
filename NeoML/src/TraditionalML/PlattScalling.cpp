@@ -86,9 +86,9 @@ double CLikelihoodFunction::CalculateValue( const CSigmoid& coefficients ) const
 	for( int i = 0; i < values.Size(); i++ ) {
 		double temp = values[i] * coefficients.A + coefficients.B;
 		if( temp >= 0 ) {
-			result += weights[i] * ( t[i] * temp + log( 1 + exp( -temp ) ) );
+			result += weights[i] * ( t[i] * temp + log1p( exp( -temp ) ) );
 		} else {
-			result += weights[i] * ( ( t[i] - 1 ) * temp + log( 1 + exp( temp ) ) );
+			result += weights[i] * ( ( t[i] - 1 ) * temp + log1p( exp( temp ) ) );
 		}
 	}
 	return result;
@@ -111,11 +111,11 @@ void CLikelihoodFunction::SetArgument( const CSigmoid& coefficients )
 		double p = 0.0;
 		double q = 0.0;
 		if( temp >= 0 ) {
-			value += weights[i] * ( t[i] * temp + log( 1 + exp( -temp ) ) );
+			value += weights[i] * ( t[i] * temp + log1p( exp( -temp ) ) );
 			p = exp( -temp ) / ( 1.0 + exp( -temp ) );
 			q = 1.0 / ( 1.0 + exp( -temp ) );
 		} else {
-			value += weights[i] * ( ( t[i] - 1 ) * temp + log( 1 + exp( temp ) ) );
+			value += weights[i] * ( ( t[i] - 1 ) * temp + log1p( exp( temp ) ) );
 			p = 1.0 / ( 1.0 + exp( temp ) );
 			q = exp( temp ) / ( 1.0 + exp( temp ) );
 		}

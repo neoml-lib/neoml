@@ -16,13 +16,15 @@ set(CPU_COMMON_SOURCES
     CPU/CpuMathEngineDnnChannelwiseConv.cpp
     CPU/CpuMathEngineDnnDropout.cpp
     CPU/CpuMathEngineDnnLrn.cpp
+    CPU/CpuMathEngineDnnLstm.cpp
     CPU/CpuMathEngineDnn.cpp
     CPU/CpuMathEngineDnnPooling.cpp
     CPU/CpuMathEngineDnnRleConv.cpp
+    CPU/CpuMathEngineDnnRowwise.cpp
     CPU/CpuMathEngineDnnTimeConv.cpp
     CPU/CpuMathEngine.cpp
-    CPU/CpuMathEngineVectorMath.cpp
     CPU/CpuMathEngineDnnDistributed.cpp
+    CPU/CpuMathEngineVectorMath.cpp
     CrtAllocatedObject.cpp
     DllLoader.cpp
     MathEngineDeviceStackAllocator.cpp
@@ -30,6 +32,7 @@ set(CPU_COMMON_SOURCES
     MathEngine.cpp
     MathEngineHostStackAllocator.cpp
     MemoryPool.cpp
+    ThreadPool.cpp
     common.cpp
 )
 
@@ -50,11 +53,17 @@ target_sources(${PROJECT_NAME}
     MemoryHandleInternal.h
     MemoryPool.h
     RawMemoryManager.h
+    CPU/CpuExecutionScope.h
+    CPU/CpuFunctorCommon.h
+    CPU/CPUInfo.h
     CPU/CpuMathEngine.h
-    CPU/CpuRandom.h
-    CPU/CpuMathEnginePrivate.h
-    CPU/CpuMathEngineOmp.h
+    CPU/CpuMathEngineDnnChannelwiseConv.h
+    CPU/CpuMathEngineDnnConv.h
     CPU/CpuMathEngineDnnDistributed.h
+    CPU/CpuMathEngineDnnLstm.h
+    CPU/CpuMathEngineDnnPooling.h
+    CPU/CpuMathEnginePrivate.h
+    CPU/CpuRandom.h
 
     CPU/MatrixMultiplyingInterleavedCommon/CpuMemoryHelper.h
     CPU/MatrixMultiplyingInterleavedCommon/MatrixMultiplier.h
@@ -62,7 +71,19 @@ target_sources(${PROJECT_NAME}
     CPU/MatrixMultiplyingInterleavedCommon/Interleavers/InterleaverBase.h
     CPU/MatrixMultiplyingInterleavedCommon/MicroKernels/MicroKernelBase.h
 
+    CPU/Rowwise/CpuRowwiseActivation.h
+    CPU/Rowwise/CpuRowwiseBuffer.h
+    CPU/Rowwise/CpuRowwiseChConv.h
+    CPU/Rowwise/CpuRowwiseChConvWith1x1.h
+    CPU/Rowwise/CpuRowwiseCommon.h
+    CPU/Rowwise/CpuRowwiseConv.h
+    CPU/Rowwise/CpuRowwiseInterface.h
+    CPU/Rowwise/CpuRowwiseMobileNetV2.h
+    CPU/Rowwise/CpuRowwisePooling.h
+    CPU/Rowwise/CpuRowwiseResizeImage.h
+
     ../include/NeoMathEngine/NeoMathEngineDefs.h
+    ../include/NeoMathEngine/ActivationDesc.h
     ../include/NeoMathEngine/BlobDesc.h
     ../include/NeoMathEngine/BlobType.h
     ../include/NeoMathEngine/LookupData.h
@@ -72,6 +93,7 @@ target_sources(${PROJECT_NAME}
     ../include/NeoMathEngine/NeoMathEngine.h
     ../include/NeoMathEngine/NeoMathEngineException.h
     ../include/NeoMathEngine/SimdMathEngine.h
+    ../include/NeoMathEngine/ThreadPool.h
 )
 
 add_library(NeoML::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
@@ -82,10 +104,11 @@ set_target_properties( ${PROJECT_NAME} PROPERTIES
 set_property(SOURCE ${CPU_COMMON_SOURCES} PROPERTY UNITY_GROUP 1)
 set_property(SOURCE MathEngineDeviceStackAllocator.cpp PROPERTY SKIP_UNITY_BUILD_INCLUSION ON)
 
-target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_11)
+target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_14)
 
 source_group("Header Files\\NeoMathEngine" REGULAR_EXPRESSION "^.*NeoMathEngine/.+\.h|inl$")
 source_group("CPU" REGULAR_EXPRESSION "CPU\/.*")
+source_group("CPU\\Rowwise" REGULAR_EXPRESSION "CPU\/Rowwise\/.*")
 
 target_include_directories(${PROJECT_NAME}
     PUBLIC
@@ -110,20 +133,26 @@ if(ANDROID OR LINUX)
     )
 endif()
 
+set(BUILD_ARCH  ${CMAKE_SYSTEM_PROCESSOR})
+# macOS cross-compilation
+if(USE_FINE_OBJECTS AND DEFINED CMAKE_OSX_ARCHITECTURES AND NOT "${CMAKE_OSX_ARCHITECTURES}" STREQUAL "")
+    set(BUILD_ARCH  ${CMAKE_OSX_ARCHITECTURES})
+endif()
+
 # CPU specific settings
-if((DARWIN AND CMAKE_SYSTEM_PROCESSOR MATCHES "^arm64.*") OR (ANDROID AND ANDROID_ABI MATCHES "^arm.*") OR (IOS AND IOS_ARCH MATCHES "^arm.*"))
+if((DARWIN AND BUILD_ARCH MATCHES "^arm64.*") OR (ANDROID AND ANDROID_ABI MATCHES "^arm.*") OR (IOS AND IOS_ARCH MATCHES "^arm.*"))
+    message(STATUS "USE ARM SOURCES")
     set(CPU_ARM_SOURCES
         CPU/arm/CpuArmMathEngineBlas.cpp
         CPU/arm/CpuArmMathEngineDnn.cpp
         CPU/arm/CpuArmMathEngineVectorMath.cpp
-        CPU/arm/CpuArmMathEngineDnn3dConv.cpp
         CPU/arm/CpuArmMathEngineMatrixMultiplying.cpp
     )
     target_sources(${PROJECT_NAME} 
     PRIVATE
         ${CPU_ARM_SOURCES}
         CPU/arm/CpuArm.h
-        CPU/arm/CpuArmMathEngineBlasPrivate.h
+        CPU/arm/CpuArmFunctors.h
         CPU/arm/CpuArmMathEngineVectorMathPrivate.h
         CPU/arm/MatrixMultiplyingInterleaved/Interleavers/Interleaver_ARM64.h
         CPU/arm/MatrixMultiplyingInterleaved/MicroKernels/Kernel_ARM32NEON_6x8.h
@@ -140,24 +169,39 @@ if((DARWIN AND CMAKE_SYSTEM_PROCESSOR MATCHES "^arm64.*") OR (ANDROID AND ANDROI
     source_group("CPU\\arm" REGULAR_EXPRESSION "CPU\/arm\/.*")
     target_include_directories(${PROJECT_NAME} PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/CPU/arm>)
 else()
+    message(STATUS "USE X86 SOURCES")
     set(CPU_X86_SOURCES
         CPU/x86/CpuX86MathEngineBlas.cpp
         CPU/x86/CpuX86MathEngineBlasMkl.cpp
         CPU/x86/CpuX86MathEngineDnn.cpp
         CPU/x86/CpuX86MathEngineVectorMath.cpp
         CPU/x86/CpuX86MathEngineVectorMathMkl.cpp
-        CPU/x86/CpuX86MathEngineDnn3dConv.cpp
     )
     target_sources(${PROJECT_NAME} 
     PRIVATE
         ${CPU_X86_SOURCES}
         CPU/x86/CpuX86.h
-        CPU/x86/CpuX86MathEngineBlasPrivate.h
+        CPU/x86/CpuX86Functors.h
         CPU/x86/CpuX86MathEngineVectorMathPrivate.h
     )
     set_property(SOURCE ${CPU_X86_SOURCES} PROPERTY UNITY_GROUP 1)
     source_group("CPU\\x86" REGULAR_EXPRESSION "CPU\/x86\/.*")
     target_include_directories(${PROJECT_NAME} PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/CPU/x86>)
+
+    set(CPU_AVX_SOURCES
+        CPU/x86/avx2/Avx2VectorFunctions.cpp
+    )
+    target_sources(${PROJECT_NAME} PRIVATE
+        ${CPU_AVX_SOURCES}
+        CPU/x86/avx2/Avx2Functions.h
+    )
+    set_property(SOURCE ${CPU_AVX_SOURCES} PROPERTY UNITY_GROUP 3)
+    if(WIN32)
+        set_property(SOURCE ${CPU_AVX_SOURCES} PROPERTY COMPILE_OPTIONS /arch:AVX2)
+    else()
+        set_property(SOURCE ${CPU_AVX_SOURCES} PROPERTY COMPILE_OPTIONS $<$<COMPILE_LANGUAGE:CXX>:-mavx2 -mfma>)
+    endif()
+
     if(NEOML_USE_AVX)
         target_sources(${PROJECT_NAME}
         PRIVATE
@@ -168,6 +212,18 @@ else()
         add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/CPU/x86/avx)
         set_target_properties(${PROJECT_NAME} PROPERTIES BUILD_RPATH "\$ORIGIN")
     endif()
+endif()
+
+if(WIN32 OR LINUX)
+    if(${CMAKE_VERSION} VERSION_GREATER "3.16.0")
+        set(CMAKE_UNITY_BUILD OFF)
+    endif()
+    add_subdirectory(CPU/mlas EXCLUDE_FROM_ALL)
+    if(${CMAKE_VERSION} VERSION_GREATER "3.16.0")
+        set(CMAKE_UNITY_BUILD ${NeoML_UNITY_BUILD})
+    endif()
+    target_link_libraries(${PROJECT_NAME} PRIVATE onnxruntime_mlas)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE NEOML_USE_MLAS)
 endif()
 
 # GPU specific source and settings
@@ -193,6 +249,7 @@ if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
     check_language(CUDA)
 
     if(CMAKE_CUDA_COMPILER)
+        message(STATUS "USE CUDA")
         # Using CUDA
         enable_language(CUDA)
         
@@ -201,22 +258,18 @@ if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
         list(GET NEOML_CUDA_VERSION_LIST 0 NEOML_CUDA_VERSION_MAJOR)
         list(GET NEOML_CUDA_VERSION_LIST 1 NEOML_CUDA_VERSION_MINOR)
 
-        if(NOT "${NEOML_CUDA_VERSION_MAJOR}" STREQUAL "11" OR NOT "${NEOML_CUDA_VERSION_MINOR}" STREQUAL "2")
-            if(USE_FINE_OBJECTS)
-                # Internal build must fail in case of version mismatch
-                message(FATAL_ERROR "CUDA 11.2 required for build (found: ${NEOML_CUDA_VERSION_MAJOR}.${NEOML_CUDA_VERSION_MINOR})")
-            else()
-                # OSS build can continue
-                # TODO: TEMPORARY FAILING FOR DEBUG, replace FATAL_ERROR with STATUS afterwards
-                message(FATAL_ERROR "CUDA 11.2 required for build (found: ${NEOML_CUDA_VERSION_MAJOR}.${NEOML_CUDA_VERSION_MINOR})")
-            endif()
+        if(USE_FINE_OBJECTS AND (NOT "${NEOML_CUDA_VERSION_MAJOR}" STREQUAL "11" OR NOT "${NEOML_CUDA_VERSION_MINOR}" STREQUAL "8"))
+            message(FATAL_ERROR "CUDA 11.8 is required for build with FineObjects (found: ${NEOML_CUDA_VERSION_MAJOR}.${NEOML_CUDA_VERSION_MINOR})")
+        elseif(NOT USE_FINE_OBJECTS AND NOT "${NEOML_CUDA_VERSION_MAJOR}" STREQUAL "11")
+            message(FATAL_ERROR "CUDA 11 is required for build (found: ${NEOML_CUDA_VERSION_MAJOR}.${NEOML_CUDA_VERSION_MINOR})")
         else()
             target_compile_definitions(${PROJECT_NAME} PRIVATE NEOML_USE_CUDA)
             target_compile_options(${PROJECT_NAME} PRIVATE
                 $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_35,code=compute_35>
                 $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_61,code=sm_61>
                 $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_75,code=sm_75>
-                $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_86,code=sm_86>)
+                $<$<COMPILE_LANGUAGE:CUDA>:-gencode=arch=compute_86,code=sm_86>
+                $<$<COMPILE_LANGUAGE:CUDA>:-Wno-deprecated-gpu-targets>)
             target_sources(${PROJECT_NAME}
                 PRIVATE
                     GPU/CUDA/CublasDll.cpp
@@ -226,22 +279,24 @@ if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
                     GPU/CUDA/CusparseDll.cpp
                     GPU/CUDA/NcclDll.cpp
                     # CUDA Sources
+                    GPU/CUDA/CudaMathEngine.cu
                     GPU/CUDA/CudaMathEngineBlas.cu
                     GPU/CUDA/CudaMathEngineCublas.cu
                     GPU/CUDA/CudaMathEngineCusparse.cu
+                    GPU/CUDA/CudaMathEngineDnn.cu
                     GPU/CUDA/CudaMathEngineDnn3dConv.cu
                     GPU/CUDA/CudaMathEngineDnnChannelwiseConv.cu
                     GPU/CUDA/CudaMathEngineDnnConv.cu
                     GPU/CUDA/CudaMathEngineDnnCtc.cu
-                    GPU/CUDA/CudaMathEngineDnn.cu
+                    GPU/CUDA/CudaMathEngineDnnDistributed.cpp
                     GPU/CUDA/CudaMathEngineDnnDropout.cu
                     GPU/CUDA/CudaMathEngineDnnLrn.cu
+                    GPU/CUDA/CudaMathEngineDnnLstm.cu
                     GPU/CUDA/CudaMathEngineDnnPoolings.cu
                     GPU/CUDA/CudaMathEngineDnnRleConv.cu
+                    GPU/CUDA/CudaMathEngineDnnRowwise.cpp
                     GPU/CUDA/CudaMathEngineDnnTimeConv.cu
-                    GPU/CUDA/CudaMathEngine.cu
                     GPU/CUDA/CudaMathEngineVectorMath.cu
-                    GPU/CUDA/CudaMathEngineDnnDistributed.cpp
                     # Headers
                     GPU/CUDA/CublasDll.h
                     GPU/CUDA/CublasFunctions.h
@@ -275,11 +330,20 @@ if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
                     GPU/CUDA/Kernels/CudaRandom.h
                     GPU/CUDA/Kernels/CudaReduce.h
                     GPU/CUDA/Kernels/CudaVectorMathKernels.h
+                    GPU/CUDA/Rowwise/CudaRowwiseActivation.h
+                    GPU/CUDA/Rowwise/CudaRowwiseChConv.h
+                    GPU/CUDA/Rowwise/CudaRowwiseChConvWith1x1.h
+                    GPU/CUDA/Rowwise/CudaRowwiseConv.h
+                    GPU/CUDA/Rowwise/CudaRowwiseInterface.h
+                    GPU/CUDA/Rowwise/CudaRowwiseMobileNetV2.h
+                    GPU/CUDA/Rowwise/CudaRowwisePooling.h
+                    GPU/CUDA/Rowwise/CudaRowwiseResizeImage.h
             )
             target_include_directories(${PROJECT_NAME} PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/GPU/CUDA>)
             target_include_directories(${PROJECT_NAME} PRIVATE $<BUILD_INTERFACE:${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}>)
             source_group("GPU\\CUDA" REGULAR_EXPRESSION "GPU\/CUDA\/[A-Za-z0-9_]+\.(h|cpp|cu)")
             source_group("GPU\\CUDA\\Kernels" REGULAR_EXPRESSION "GPU\/CUDA\/Kernels\/.+")
+            source_group("GPU\\CUDA\\Rowwise" REGULAR_EXPRESSION "GPU\/CUDA\/Rowwise\/.+")
 
             find_path(NCCL_INCLUDE_DIR NAMES nccl.h PATHS ${NCCL_ROOT_DIR})
 
@@ -295,41 +359,48 @@ if((WIN32 OR LINUX) AND CMAKE_SIZEOF_VOID_P EQUAL 8)
     
 elseif(IOS)
     # Apple metal
-    set(IOS_SOURCES
-        GPU/Metal/MetalMathEngine.h
-        GPU/Metal/MetalMathEngine.mm
-        GPU/Metal/MetalMathEngineVectorMath.mm
-        GPU/Metal/MetalMathEngineBlas.mm
-        GPU/Metal/MetalMathEngineDnn.mm
-        GPU/Metal/MetalMathEngineDnnConvs.mm
-        GPU/Metal/MetalMathEngineDnnDropout.mm
-        GPU/Metal/MetalMathEngineDnnPoolings.mm
-        GPU/Metal/MetalMathEngineDnnLrn.mm
-        GPU/Metal/MetalKernel.h
-        GPU/Metal/MetalKernel.mm
-        GPU/Metal/MetalCommandQueue.h
-        GPU/Metal/MetalCommandQueue.mm
-    )
+    if(NeoMathEngine_ENABLE_METAL)
+        message(STATUS "USE METAL")
+        target_compile_definitions(${PROJECT_NAME} PRIVATE NEOML_USE_METAL)
 
-    set_source_files_properties(${IOS_SOURCES} PROPERTIES COMPILE_FLAGS -fmodules)
-    target_include_directories(${PROJECT_NAME} PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/GPU/Metal>)
-    target_sources(${PROJECT_NAME} PRIVATE ${IOS_SOURCES})
+        set(IOS_SOURCES
+            GPU/Metal/MetalMathEngine.h
+            GPU/Metal/MetalMathEngine.mm
+            GPU/Metal/MetalMathEngineVectorMath.mm
+            GPU/Metal/MetalMathEngineBlas.mm
+            GPU/Metal/MetalMathEngineDnn.mm
+            GPU/Metal/MetalMathEngineDnnConvs.mm
+            GPU/Metal/MetalMathEngineDnnDropout.mm
+            GPU/Metal/MetalMathEngineDnnPoolings.mm
+            GPU/Metal/MetalMathEngineDnnLrn.mm
+            GPU/Metal/MetalMathEngineDnnLstm.mm
+            GPU/Metal/MetalKernel.h
+            GPU/Metal/MetalKernel.mm
+            GPU/Metal/MetalCommandQueue.h
+            GPU/Metal/MetalCommandQueue.mm
+        )
+
+        set_source_files_properties(${IOS_SOURCES} PROPERTIES COMPILE_FLAGS -fmodules)
+        target_include_directories(${PROJECT_NAME} PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/GPU/Metal>)
+        target_sources(${PROJECT_NAME} PRIVATE ${IOS_SOURCES})
     
-    add_subdirectory(GPU/Metal/NeoMetalLib ${CMAKE_BINARY_DIR}/NeoMetalLib)
-    add_dependencies(${PROJECT_NAME} NeoMetalLib)
+        add_subdirectory(GPU/Metal/NeoMetalLib ${CMAKE_BINARY_DIR}/NeoMetalLib)
+        add_dependencies(${PROJECT_NAME} NeoMetalLib)
     
-    get_target_property(METAL_LIB NeoMetalLib OUTPUT_NAME)
+        get_target_property(METAL_LIB NeoMetalLib OUTPUT_NAME)
     
-    set_property(SOURCE ${METAL_LIB} PROPERTY GENERATED ON)
-    target_sources(${PROJECT_NAME} PRIVATE ${METAL_LIB})
+        set_property(SOURCE ${METAL_LIB} PROPERTY GENERATED ON)
+        target_sources(${PROJECT_NAME} PRIVATE ${METAL_LIB})
     
-    if(NeoMathEngine_BUILD_SHARED)
-        set_target_properties(${PROJECT_NAME} PROPERTIES RESOURCE ${METAL_LIB})
+        if(NeoMathEngine_BUILD_SHARED)
+            set_target_properties(${PROJECT_NAME} PROPERTIES RESOURCE ${METAL_LIB})
+        endif()
     endif()
 endif()
 
 if(NeoMathEngine_ENABLE_VULKAN)
     if(WIN32 OR ANDROID)
+        message(STATUS "USE VULKAN")
         # Vulkan
         if(USE_FINE_OBJECTS)
             set(ENV{VULKAN_SDK} ${FINE_ROOT}/ThirdParty/Vulkan/${CMAKE_HOST_SYSTEM_NAME})
@@ -372,6 +443,7 @@ if(NeoMathEngine_ENABLE_VULKAN)
                 GPU/Vulkan/VulkanMathEngineDnn.cpp
                 GPU/Vulkan/VulkanMathEngineDnnPoolings.cpp
                 GPU/Vulkan/VulkanMathEngineDnnLrn.cpp
+                GPU/Vulkan/VulkanMathEngineDnnLstm.cpp
                 GPU/Vulkan/VulkanMathEngine.cpp
                 GPU/Vulkan/VulkanMathEngineVectorMath.cpp
                 GPU/Vulkan/VulkanShader.cpp
@@ -414,16 +486,10 @@ if(NOT NeoMathEngine_BUILD_SHARED)
     target_compile_definitions(${PROJECT_NAME} PUBLIC STATIC_NEOMATHENGINE)
 endif()
 
-
-# OpenMP
-if(NOT IOS AND NOT (DARWIN AND CMAKE_SYSTEM_PROCESSOR MATCHES "arm64?"))
-    link_openmp(${PROJECT_NAME})
-endif()
-
 # SSE2
 if(WIN32 AND CMAKE_SIZEOF_VOID_P EQUAL 4)
     target_compile_options(${PROJECT_NAME} PRIVATE /arch:SSE2)
-elseif(((LINUX OR DARWIN) AND CMAKE_SYSTEM_PROCESSOR MATCHES "x86.*") OR (ANDROID AND ANDROID_ABI MATCHES "^x86.*") OR (IOS_ARCH MATCHES "^x86.*"))
+elseif(((LINUX OR DARWIN) AND BUILD_ARCH MATCHES "x86.*") OR (ANDROID AND ANDROID_ABI MATCHES "^x86.*") OR (IOS_ARCH MATCHES "^x86.*"))
     target_compile_options(${PROJECT_NAME} PRIVATE $<$<COMPILE_LANGUAGE:CXX>:-msse2>)
 endif()
 
@@ -433,8 +499,8 @@ if(ANDROID AND ANDROID_ABI STREQUAL "armeabi-v7a")
 endif()
 
 # MKL
-if(NOT ANDROID AND NOT IOS AND CMAKE_SYSTEM_PROCESSOR MATCHES "(x86.*)|(amd64)|(AMD64)")
-
+if(NOT ANDROID AND NOT IOS AND BUILD_ARCH MATCHES "(x86.*)|(amd64)|(AMD64)")
+    message(STATUS "USE MKL")
     if(USE_FINE_OBJECTS)
         set(ENV{MKLROOT} ${FINE_ROOT}/ThirdParty/MKL/${CMAKE_SYSTEM_NAME})
     endif()
@@ -471,6 +537,7 @@ configure_target(${PROJECT_NAME})
 
 # Install
 if(NeoMathEngine_INSTALL)
+    message(STATUS "NeoMathEngine INSTALL")
     if(USE_FINE_OBJECTS)
         fine_install(${PROJECT_NAME})
         if(WIN32 AND CMAKE_CUDA_COMPILER)

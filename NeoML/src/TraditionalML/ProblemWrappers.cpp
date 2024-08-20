@@ -20,29 +20,17 @@ limitations under the License.
 
 namespace NeoML {
 
-IProblem::~IProblem()
-{
-}
+IProblem::~IProblem() = default;
 
-IBaseRegressionProblem::~IBaseRegressionProblem()
-{
-}
+IBaseRegressionProblem::~IBaseRegressionProblem() = default;
 
-IRegressionProblem::~IRegressionProblem()
-{
-}
+IRegressionProblem::~IRegressionProblem() = default;
 
-IMultivariateRegressionProblem::~IMultivariateRegressionProblem()
-{
-}
+IMultivariateRegressionProblem::~IMultivariateRegressionProblem() = default;
 
-IDataAccumulator::~IDataAccumulator()
-{
-}
+IDataAccumulator::~IDataAccumulator() = default;
 
-ISubProblem::~ISubProblem()
-{
-}
+ISubProblem::~ISubProblem() = default;
 
 /////////////////////////////////////////////////////////////////////////////////////////
 // CMultivariateRegressionOverUnivariate

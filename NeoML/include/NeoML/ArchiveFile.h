@@ -22,11 +22,11 @@ namespace NeoML {
 // NeoML archive file
 class NEOML_API CArchiveFile : public CBaseFile {
 public:
-	CArchiveFile() : file( 0 ) {}
+	CArchiveFile() = default;
 	// Creates an object and creates or opens a file
 	// The same as calling a constructor without parameters and then the Open method
 	CArchiveFile( const char* fileName, CArchive::TDirection direction, void* platformEnv = nullptr );
-	virtual ~CArchiveFile() { Abort(); }
+	~CArchiveFile() override { Abort(); }
 
 	// Checks if the file is open
 	bool IsOpen() const { return file != 0; }
@@ -36,26 +36,26 @@ public:
 
 	// CBaseFile class methods
 #ifdef FINEOBJ_VERSION
-	virtual CUnicodeString GetFileName() const { return fileName.CreateUnicodeString( CP_UTF8 ); }
+	CUnicodeString GetFileName() const override { return fileName.CreateUnicodeString( CP_UTF8 ); }
 #else
-	virtual const char* GetFileName() const { return fileName; }
+	const char* GetFileName() const override { return fileName; }
 #endif
-	virtual int Read( void*, int bytesCount );
-	virtual void Write( const void*, int bytesCount );
-	virtual __int64 GetPosition() const;
-	virtual __int64 Seek( __int64 offset, TSeekPosition from );
-	virtual void SetLength( __int64 newLength );
-	virtual __int64 GetLength() const;
-	virtual void Abort();
-	virtual void Flush();
-	virtual void Close();
-	virtual bool IsEndOfFile() const;
+	int Read( void*, int bytesCount ) override;
+	void Write( const void*, int bytesCount ) override;
+	__int64 GetPosition() const override;
+	__int64 Seek( __int64 offset, TSeekPosition from ) override;
+	void SetLength( __int64 newLength ) override;
+	__int64 GetLength() const override;
+	void Abort() final;
+	void Flush() override;
+	void Close() override;
+	bool IsEndOfFile() const override;
 
 	void ReadRecord( void* buff, int size );
 	unsigned char ReadByte();
 
 private:
-	void* file; // the base object
+	void* file{}; // the base object
 	CString fileName; // the file name (needed for the CBaseFile::GetFileName() method)
 };
 

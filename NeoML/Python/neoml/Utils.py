@@ -20,8 +20,8 @@ from neoml.Dnn.Dnn import Layer
 
 
 def check_input_layers(input_layers, layer_count):
-    min_count = 0;
-    max_count = 0;
+    min_count = 0
+    max_count = 0
     if isinstance(layer_count, int):
         if layer_count == 0:
             min_count = 1
@@ -36,40 +36,30 @@ def check_input_layers(input_layers, layer_count):
     layers = []
     outputs = []
 
-    if isinstance(input_layers, Layer):
-        if 1 < min_count or 1 > max_count:
-            raise ValueError('The layer has (' + str(min_count) + ', ' + str(max_count) + ') inputs.')
-        layers.append(input_layers._internal)
-        outputs.append(0)
-        return layers, outputs
+    # helper functions to detect if an object is a link to another layer and add this link
+    _is_link = lambda link: isinstance(link, Layer) \
+        or (len(link) == 2 and isinstance(link[0], Layer) and isinstance(link[1], int))
 
-    if len(input_layers) == 2 and isinstance(input_layers[0], Layer) and isinstance(input_layers[1], int):
-        if max_count != 0 and ( 1 < min_count or 1 > max_count ):
-            raise ValueError('The layer has (' + str(min_count) + ', ' + str(max_count) + ') inputs.')
+    def _add_link(link):
+        internal_layer, index = (link._internal, 0) if isinstance(link, Layer) \
+            else (link[0]._internal, int(link[1]))
+        if index < 0:
+            raise ValueError('The indices in the `input_layers` must be non-negative')
+        layers.append(internal_layer)
+        outputs.append(index)
 
-        layers.append(input_layers[0]._internal)
-        outputs.append(int(input_layers[1]))
-        return layers, outputs
+    if _is_link(input_layers):
+        _add_link(input_layers)
+    else:
+        if len(input_layers) == 0:
+            raise ValueError('The `input_layers` must contain at least one layer.')
+        for input_layer in input_layers:
+            if not _is_link(input_layer):
+                raise ValueEror('Each entry of `input_layers` must be Layer or tuple(Layer, int)')
+            _add_link(input_layer)
 
-    if len(input_layers) == 0:
-        raise ValueError('The `input_layers` must contain at least one layer.')
-
-    if max_count != 0 and (len(input_layers) < min_count or len(input_layers) > max_count):
+    if len(layers) < min_count or len(layers) > max_count:
         raise ValueError('The layer has (' + str(min_count) + ', ' + str(max_count) + ') inputs.')
-
-    for i in input_layers:
-        if isinstance(i, Layer):
-            layers.append(i._internal)
-            outputs.append(0)
-        elif isinstance(i, (list, tuple)) and len(i) == 2 and isinstance(i[0], Layer) and isinstance(i[1], int):
-            if int(i[1]) < 0 or int(i[1]) >= i[0].output_count():
-                raise ValueError('Invalid value `input_layers`.'
-                                 ' It must be a list of layers or a list of (layer, output).')
-            layers.append(i[0]._internal)
-            outputs.append(int(i[1]))
-        else:
-            raise ValueError('Invalid value `input_layers`. It must be a list of layers or a list of (layer, output).')
-
     return layers, outputs
 
 def convert_data(X):

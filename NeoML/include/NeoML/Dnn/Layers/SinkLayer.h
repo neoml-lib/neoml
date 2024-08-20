@@ -33,12 +33,15 @@ public:
 	// After each call to RunOnce this blob contains the results
 	const CPtr<CDnnBlob>& GetBlob() const;
 
+	void CleanUp( bool totalCleanUp = false ) override { CBaseLayer::CleanUp( totalCleanUp ); blob = nullptr; }
+
 protected:
 	CPtr<CDnnBlob> blob;
 
 	void Reshape() override;
 	void RunOnce() override;
 	void BackwardOnce() override;
+	int BlobsForBackward() const override { return 0; }
 };
 
 // Creates CSinkLayer with name

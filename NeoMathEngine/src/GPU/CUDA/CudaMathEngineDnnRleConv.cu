@@ -28,7 +28,7 @@ limitations under the License.
 
 namespace NeoML {
 
-void CCudaMathEngine::blobConvertFromRle( const CCudaRleConvolutionDesc& desc, const CFloatHandle& sourceData,
+void CCudaMathEngine::blobConvertFromRle( const CCudaRleConvolutionDesc& desc, const CConstFloatHandle& sourceData,
 	const CFloatHandle& resultData )
 {
 	const CCudaConvolutionDescInternal& convDesc = static_cast<const CCudaConvolutionDesc*>( desc.ConvDesc )->Internal;
@@ -80,8 +80,8 @@ CRleConvolutionDesc* CCudaMathEngine::InitBlobRleConvolution( const CBlobDesc& s
 	return desc;
 }
 
-void CCudaMathEngine::BlobRleConvolution( const CRleConvolutionDesc& desc, const CFloatHandle& sourceData,
-	const CFloatHandle& filterData, const CFloatHandle* freeTermData, const CFloatHandle& resultData )
+void CCudaMathEngine::BlobRleConvolution( const CRleConvolutionDesc& desc, const CConstFloatHandle& sourceData,
+	const CConstFloatHandle& filterData, const CConstFloatHandle* freeTermData, const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( filterData.GetMathEngine() == this );
@@ -95,7 +95,7 @@ void CCudaMathEngine::BlobRleConvolution( const CRleConvolutionDesc& desc, const
 }
 
 void CCudaMathEngine::BlobRleConvolutionLearnAdd( const CRleConvolutionDesc& desc,
-	const CFloatHandle& sourceData, const CFloatHandle& outputDiffData, const CFloatHandle& filterDiffData,
+	const CConstFloatHandle& sourceData, const CConstFloatHandle& outputDiffData, const CFloatHandle& filterDiffData,
 	const CFloatHandle* freeTermDiffData )
 {
 	const CCudaConvolutionDescInternal& convDesc = static_cast<const CCudaRleConvolutionDesc&>( desc ).ConvDesc->Internal;

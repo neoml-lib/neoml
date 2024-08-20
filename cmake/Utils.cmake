@@ -33,6 +33,15 @@ function(add_gtest_for_target TARGET_NAME MATH_ENGINE_TYPE WORKING_DIR)
                     COMMENT "Copy FineObjects"
                 )
             endif()
+            if(TARGET NeoOnnx)
+                get_target_property(LIB_TYPE NeoOnnx TYPE)
+                if(LIB_TYPE STREQUAL "SHARED_LIBRARY")
+                    add_custom_command(TARGET ${TARGET_NAME} POST_BUILD 
+                        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:NeoOnnx> $<TARGET_FILE_DIR:${TARGET_NAME}>
+                        COMMENT "Copy NeoOnnx to ${TARGET_NAME} binary dir to discover tests."
+                    )
+                endif()
+            endif()
         endif()
     endif()
 
@@ -84,7 +93,7 @@ macro(add_gtest_target)
         FetchContent_Declare(
             GoogleTest
             GIT_REPOSITORY https://github.com/google/googletest.git
-            GIT_TAG release-1.10.0
+            GIT_TAG v1.14.0
         )
 
         FetchContent_GetProperties(GoogleTest)
@@ -93,8 +102,11 @@ macro(add_gtest_target)
             add_subdirectory(${googletest_SOURCE_DIR} ${googletest_BINARY_DIR} EXCLUDE_FROM_ALL)
         endif()
     else()
-        set(CMAKE_CXX_STANDARD 11)
+        set(CMAKE_CXX_STANDARD 14)
         add_subdirectory(${FINE_ROOT}/FineObjects/FineGTest/gmock-1.7.0/gtest ${CMAKE_BINARY_DIR}/gmock-1.7.0/gtest EXCLUDE_FROM_ALL)
+        if(MSVC)
+            target_compile_options(gtest PUBLIC /wd4996)
+        endif()
         if(NOT WIN32)
             target_compile_options(gtest PUBLIC -Wno-sign-compare)
         endif()

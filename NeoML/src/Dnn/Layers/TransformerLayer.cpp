@@ -1,4 +1,4 @@
-/* Copyright © 2017-2021 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,15 +22,16 @@ limitations under the License.
 
 namespace NeoML {
 
-static const char* selfAttentionName = "SelfAttention";
-static const char* selfAttentionSumName = "SelfAttentionSum";
-static const char* dropoutSelfAttentionName = "DropoutSelfAttention";
-static const char* fc1Name = "FullyConnected1";
-static const char* activationName = "Activation";
-static const char* dropoutFc1Name = "DropoutFc1";
-static const char* fc2Name = "FullyConnected2";
-static const char* dropoutFc2Name = "DropoutFc2";
-static const char* feedForwardSumName = "FeedForwardSum";
+static const char* const selfAttentionNormName = "SelfAttentionNorm";
+static const char* const selfAttentionName = "SelfAttention";
+static const char* const selfAttentionSumName = "SelfAttentionSum";
+static const char* const dropoutSelfAttentionName = "DropoutSelfAttention";
+static const char* const fc1Name = "FullyConnected1";
+static const char* const activationName = "Activation";
+static const char* const dropoutFc1Name = "DropoutFc1";
+static const char* const fc2Name = "FullyConnected2";
+static const char* const dropoutFc2Name = "DropoutFc2";
+static const char* const feedForwardSumName = "FeedForwardSum";
 
 static CPtr<CDropoutLayer> getOptionalDropout( CDnnLayerGraph& dnn, const char* name )
 {
@@ -69,21 +70,54 @@ CTransformerEncoderLayer::CTransformerEncoderLayer( IMathEngine& mathEngine )
 	buildLayer();
 }
 
-static const int transformerEncoderLayerVersion = 0;
+static const int transformerEncoderLayerVersion = 1;
 
 void CTransformerEncoderLayer::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion( transformerEncoderLayerVersion );
+	const int version = archive.SerializeVersion( transformerEncoderLayerVersion );
 	CCompositeLayer::Serialize( archive );
 	if( archive.IsLoading() ) {
 		selfAttention = CheckCast<CMultiheadAttentionLayer>( GetLayer( selfAttentionName ) );
 		dropoutSelfAttention = getOptionalDropout( *this, dropoutSelfAttentionName );
 		selfAttentionSum = CheckCast<CEltwiseSumLayer>( GetLayer( selfAttentionSumName ) );
-		fc1 = CheckCast<CFullyConnectedLayer>( GetLayer( fc1Name ) );
 		dropoutFc1 = getOptionalDropout( *this, dropoutFc1Name );
-		fc2 = CheckCast<CFullyConnectedLayer>( GetLayer( fc2Name ) );
 		dropoutFc2 = getOptionalDropout( *this, dropoutFc2Name );
 		feedForwardSum = CheckCast<CEltwiseSumLayer>( GetLayer( feedForwardSumName ) );
+		if( version == 1 ) {
+			archive.Serialize( preNorm );
+		} else {
+			preNorm = false;
+		}
+	} else {
+		archive.Serialize( preNorm );
+	}
+}
+
+void CTransformerEncoderLayer::SetPreNorm( bool _preNorm )
+{
+	if( preNorm != _preNorm ) {
+		preNorm = _preNorm;
+
+		const auto headCount = GetHeadCount();
+		const auto hiddenSize = GetHiddenSize();
+		const auto dropoutRate = GetDropoutRate();
+		const auto attentionDropoutRate = GetSelfAttentionDropoutRate();
+		const auto feedForwardSize = GetFeedForwardSize();
+		const auto maskType = GetMaskType();
+
+		const auto& activationLayer = dynamic_cast<const IActivationLayer&>( *GetLayer( activationName ) );
+		const auto activation = activationLayer.GetDesc();
+
+		DeleteAllLayers();
+		buildLayer();
+
+		SetHeadCount( headCount );
+		SetHiddenSize( hiddenSize );
+		SetDropoutRate( dropoutRate );
+		SetSelfAttentionDropoutRate( attentionDropoutRate );
+		SetFeedForwardSize( feedForwardSize );
+		SetMaskType( maskType );
+		SetActivation( activation );
 	}
 }
 
@@ -130,26 +164,31 @@ void CTransformerEncoderLayer::SetDropoutRate( float rate )
 	}
 }
 
+int CTransformerEncoderLayer::GetFeedForwardSize() const
+{
+	return CheckCast<CFullyConnectedLayer>( GetLayer( fc1Name ) )->GetNumberOfElements();
+}
+
 void CTransformerEncoderLayer::SetFeedForwardSize( int size )
 {
 	NeoAssert( size > 0 );
 
-	fc1->SetNumberOfElements( size );
+	CheckCast<CFullyConnectedLayer>( GetLayer( fc1Name ) )->SetNumberOfElements( size );
 	ForceReshape();
 
 	NeoPresume( GetFeedForwardSize() == size );
 }
 
-void CTransformerEncoderLayer::SetActivation( TActivationFunction newFunction )
+void CTransformerEncoderLayer::SetActivation( const CActivationDesc& param )
 {
 	NeoAssert( HasLayer( activationName ) );
 
 	DeleteLayer( activationName );
-	CPtr<CBaseLayer> activation = CreateActivationLayer( MathEngine(), newFunction );
+	CPtr<CBaseLayer> activation = CreateActivationLayer( MathEngine(), param );
 	activation->SetName( activationName );
-	activation->Connect( *fc1 );
+	activation->Connect( fc1Name );
 	if( dropoutFc1 == nullptr ) {
-		fc2->Connect( *activation );
+		GetLayer( fc2Name )->Connect( *activation );
 	} else {
 		dropoutFc1->Connect( *activation );
 	}
@@ -158,26 +197,48 @@ void CTransformerEncoderLayer::SetActivation( TActivationFunction newFunction )
 	NeoPresume( HasLayer( activationName ) );
 }
 
+void CTransformerEncoderLayer::SetMaskType( CMultiheadAttentionLayer::TMaskType type )
+{
+	if( GetMaskType() == type ) {
+		return;
+	}
+	selfAttention->SetMaskType( type );
+	ForceReshape();
+	NeoPresume( GetMaskType() == type );
+}
+
 void CTransformerEncoderLayer::Reshape()
 {
-	CheckArchitecture( GetHiddenSize() % GetHeadCount() == 0, GetName(), "HiddenSize must be a multiple of HeadCount" );
-	CheckArchitecture( GetInputCount() == 1 || GetInputCount() == 2, GetName(), "Layer must have 1 or 2 inputs" );
-	checkBlob( inputDescs[0], GetName(), "input data", -1, -1, 1, -1 );
+	CheckLayerArchitecture( GetHiddenSize() % GetHeadCount() == 0, "HiddenSize must be a multiple of HeadCount" );
+	CheckLayerArchitecture( GetInputCount() == 1 || GetInputCount() == 2, "Layer must have 1 or 2 inputs" );
+	checkBlob( inputDescs[0], GetPath(), "input data", -1, -1, 1, -1 );
 
 	if( GetInputCount() == 2 ) {
-		checkBlob( inputDescs[1], GetName(), "input mask", 1, 1, inputDescs[0].ListSize(), inputDescs[0].ListSize() );
+		switch( GetMaskType() ) {
+			case CMultiheadAttentionLayer::MT_OneObject:
+				checkBlob( inputDescs[1], GetPath(), "input mask",
+					1, 1, inputDescs[0].ListSize(), inputDescs[0].ListSize() );
+				break;
+			case CMultiheadAttentionLayer::MT_Eltwise:
+				checkBlob( inputDescs[1], GetPath(), "input mask",
+					inputDescs[0].BatchWidth(), GetHeadCount(), inputDescs[0].ListSize(), inputDescs[0].ListSize() );
+				break;
+			default:
+				NeoAssert( false );
+		}
 	}
 
 	if( selfAttention->GetOutputSize() != inputDescs[0].Channels() ) {
 		selfAttention->SetOutputSize( inputDescs[0].Channels() );
 	}
-	if( fc2->GetNumberOfElements() != inputDescs[0].Channels() ) {
-		fc2->SetNumberOfElements( inputDescs[0].Channels() );
+	auto* fc2Ptr = dynamic_cast<CFullyConnectedLayer*>( GetLayer( fc2Name ).Ptr() );
+	if( fc2Ptr != nullptr && fc2Ptr->GetNumberOfElements() != inputDescs[0].Channels() ) {
+		fc2Ptr->SetNumberOfElements( inputDescs[0].Channels() );
 	}
 
 	if( GetInputCount() == 2 && !selfAttention->GetUseMask() ) {
 		selfAttention->SetUseMask( true );
-		SetInputMapping( 1, *selfAttention, 3 );
+		SetInputMapping( I_Mask, *selfAttention, 3 );
 	} else if( GetInputCount() == 1 && selfAttention->GetUseMask() ) {
 		selfAttention->SetUseMask( false );
 	}
@@ -194,56 +255,75 @@ void CTransformerEncoderLayer::buildLayer()
 	selfAttention->SetHeadCount( 1 );
 	selfAttention->SetHiddenSize( 1 );
 	selfAttention->SetOutputSize( 1 );
-	SetInputMapping( 0, *selfAttention, 0 );
-	SetInputMapping( 0, *selfAttention, 1 );
-	SetInputMapping( 0, *selfAttention, 2 );
 	AddLayer( *selfAttention );
 
 	// Sum attention result with the original input
 	selfAttentionSum = FINE_DEBUG_NEW CEltwiseSumLayer( MathEngine() );
 	selfAttentionSum->SetName( selfAttentionSumName );
-	SetInputMapping( 0, *selfAttentionSum, 0 );
-	selfAttentionSum->Connect( 1, *selfAttention );
 	AddLayer( *selfAttentionSum );
 
 	// Normalize the sum
 	CPtr<CObjectNormalizationLayer> selfAttentionNorm = FINE_DEBUG_NEW CObjectNormalizationLayer( MathEngine() );
-	selfAttentionNorm->SetName( "SelfAttentionNorm" );
-	selfAttentionNorm->Connect( *selfAttentionSum );
+	selfAttentionNorm->SetName( selfAttentionNormName );
 	AddLayer( *selfAttentionNorm );
 
 	// First fully-connected of feed-forward
-	fc1 = FINE_DEBUG_NEW CFullyConnectedLayer( MathEngine() );
+	CPtr<CFullyConnectedLayer> fc1 = FINE_DEBUG_NEW CFullyConnectedLayer( MathEngine() );
 	fc1->SetName( fc1Name );
-	fc1->SetNumberOfElements( 1 );
-	fc1->Connect( *selfAttentionNorm );
+	CheckCast<CFullyConnectedLayer>( fc1 )->SetNumberOfElements( 1 );
 	AddLayer( *fc1 );
 
 	// Add activation (ReLU by default)
 	CPtr<CBaseLayer> activation = FINE_DEBUG_NEW CReLULayer( MathEngine() );
 	activation->SetName( activationName );
-	activation->Connect( *fc1 );
 	AddLayer( *activation );
 
 	// Second fully-connected of feed-forward
-	fc2 = FINE_DEBUG_NEW CFullyConnectedLayer( MathEngine() );
+	CPtr<CFullyConnectedLayer> fc2 = FINE_DEBUG_NEW CFullyConnectedLayer( MathEngine() );
 	fc2->SetName( fc2Name );
-	fc2->SetNumberOfElements( 1 );
-	fc2->Connect( *activation );
+	CheckCast<CFullyConnectedLayer>( fc2 )->SetNumberOfElements( 1 );
 	AddLayer( *fc2 );
 
 	// Sum normalized attention with the feed-forward result
 	feedForwardSum = FINE_DEBUG_NEW CEltwiseSumLayer( MathEngine() );
 	feedForwardSum->SetName( feedForwardSumName );
-	feedForwardSum->Connect( 0, *fc2 );
-	feedForwardSum->Connect( 1, *selfAttentionNorm );
 	AddLayer( *feedForwardSum );
 
 	// Normalize output
 	CPtr<CObjectNormalizationLayer> feedForwardNorm = FINE_DEBUG_NEW CObjectNormalizationLayer( MathEngine() );
 	feedForwardNorm->SetName( "FeedForwardNorm" );
-	feedForwardNorm->Connect( *feedForwardSum );
 	AddLayer( *feedForwardNorm );
+
+	CBaseLayer* feedForwardInput = nullptr;
+	if( preNorm ) {
+		SetInputMapping( I_Sequence, *selfAttentionNorm );
+
+		selfAttention->Connect( 0, *selfAttentionNorm );
+		selfAttention->Connect( 1, *selfAttentionNorm );
+		selfAttention->Connect( 2, *selfAttentionNorm );
+
+		SetInputMapping( I_Sequence, *selfAttentionSum, 0 );
+		selfAttentionSum->Connect( 1, *selfAttention );
+
+		feedForwardInput = selfAttentionSum;
+	} else {
+		SetInputMapping( I_Sequence, *selfAttention, 0 );
+		SetInputMapping( I_Sequence, *selfAttention, 1 );
+		SetInputMapping( I_Sequence, *selfAttention, 2 );
+
+		SetInputMapping( I_Sequence, *selfAttentionSum, 0 );
+		selfAttentionSum->Connect( 1, *selfAttention );
+
+		selfAttentionNorm->Connect( *selfAttentionSum );
+
+		feedForwardInput = selfAttentionNorm;
+	}
+	fc1->Connect( *feedForwardInput );
+	activation->Connect( *fc1 );
+	fc2->Connect( *activation );
+	feedForwardSum->Connect( 0, *fc2 );
+	feedForwardSum->Connect( 1, *feedForwardInput );
+	feedForwardNorm->Connect( *feedForwardSum );
 
 	SetOutputMapping( *feedForwardNorm );
 }
@@ -266,12 +346,12 @@ void CTransformerEncoderLayer::addDropoutLayers()
 	dropoutFc1 = FINE_DEBUG_NEW CDropoutLayer( MathEngine() );
 	dropoutFc1->SetName( dropoutFc1Name );
 	dropoutFc1->Connect( activationName );
-	fc2->Connect( *dropoutFc1 );
+	GetLayer( fc2Name )->Connect( *dropoutFc1 );
 	AddLayer( *dropoutFc1 );
 
 	dropoutFc2 = FINE_DEBUG_NEW CDropoutLayer( MathEngine() );
 	dropoutFc2->SetName( dropoutFc2Name );
-	dropoutFc2->Connect( *fc2 );
+	dropoutFc2->Connect( fc2Name );
 	feedForwardSum->Connect( *dropoutFc2 );
 	AddLayer( *dropoutFc2 );
 
@@ -296,11 +376,11 @@ void CTransformerEncoderLayer::removeDropoutLayers()
 
 	DeleteLayer( *dropoutFc1 );
 	dropoutFc1 = nullptr;
-	fc2->Connect( activationName );
+	GetLayer( fc2Name )->Connect( activationName );
 
 	DeleteLayer( *dropoutFc2 );
 	dropoutFc2 = nullptr;
-	feedForwardSum->Connect( *fc2 );
+	feedForwardSum->Connect( fc2Name );
 
 	NeoPresume( dropoutSelfAttention == nullptr && !HasLayer( dropoutSelfAttentionName ) );
 	NeoPresume( dropoutFc1 == nullptr && !HasLayer( dropoutFc1Name ) );
@@ -308,9 +388,10 @@ void CTransformerEncoderLayer::removeDropoutLayers()
 }
 
 CLayerWrapper<CTransformerEncoderLayer> TransformerEncoder( int headCount, int hiddenSize,
-	float dropout, int feedForwardSize, TActivationFunction activation )
+	float dropout, int feedForwardSize, TActivationFunction activation, bool preNorm )
 {
 	return CLayerWrapper<CTransformerEncoderLayer>( "CTransformerEncoderLayer", [=]( CTransformerEncoderLayer* result ) {
+		result->SetPreNorm( preNorm );
 		result->SetHeadCount( headCount );
 		result->SetHiddenSize( hiddenSize );
 		result->SetDropoutRate( dropout );

@@ -1,8 +1,10 @@
-/* Copyright © 2017-2021 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
+
 	http://www.apache.org/licenses/LICENSE-2.0
+
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -12,25 +14,36 @@ limitations under the License.
 
 #pragma once
 
+#include "PyDnn.h"
 #include "PyDnnBlob.h"
 #include <NeoML/Dnn/DnnDistributed.h>
 
 class CPyDistributedDataset : public IDistributedDataset {
 public:
-    CPyDistributedDataset( const py::object& data ) : getData( data ) {};
-    void SetInputBatch( CDnn& dnn, int thread ) override;
+	CPyDistributedDataset( const py::object& data ) : getData( data ) {};
+	int SetInputBatch( CDnn& dnn, int thread ) override;
 private:
-    py::object getData;
+	py::object getData;
 };
 
 class CPyDistributedTraining : public CDistributedTraining {
 public:
-    CPyDistributedTraining( CArchive& archive, int count )
-        : CDistributedTraining( archive, count ) {};
-    CPyDistributedTraining( CArchive& archive, const CArray<int>& cudaDevs )
-        : CDistributedTraining( archive, cudaDevs ) {};
-    void Learn( const py::object& data );
-    py::array LastLosses( const std::string& layer );
+	CPyDistributedTraining( CDnn& dnn, int count, TDistributedInitializer initializer, int seed )
+		: CDistributedTraining( dnn, count, initializer, seed ) {};
+	CPyDistributedTraining( CArchive& archive, int count, TDistributedInitializer initializer, int seed )
+		: CDistributedTraining( archive, count, initializer, seed ) {};
+	CPyDistributedTraining( CDnn& dnn, const CArray<int>& cudaDevs, TDistributedInitializer initializer, int seed )
+		: CDistributedTraining( dnn, cudaDevs, initializer, seed ) {};
+	CPyDistributedTraining( CArchive& archive, const CArray<int>& cudaDevs, TDistributedInitializer initializer, int seed )
+		: CDistributedTraining( archive, cudaDevs, initializer, seed ) {};
+	void Run( const py::object& data );
+	void RunAndBackward( const py::object& data );
+	void Learn( const py::object& data );
+	void Train_();
+	py::array LastLosses( const std::string& layer );
+	py::list GetOutput( const std::string& layer );
+	void SetSolver_( const std::string& path );
+	void Save( const std::string& path );
 };
 
 void InitializeDistributedTraining(py::module& m);

@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright Â© 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,16 +14,10 @@ limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
 #include <TestFixture.h>
+#include <MeTestCommon.h>
 
 using namespace NeoML;
 using namespace NeoMLTest;
-
-static inline int getFlatIndex( const CFloatBlob& blob, int seq, int batch, int list, int channel, int depth,
-	int row, int column )
-{
-	return ( list + blob.GetDesc().ListSize() * ( batch + blob.GetDesc().BatchWidth() * seq ) ) * blob.GetDesc().ObjectSize()
-		+ channel + blob.GetDesc().Channels() * ( depth + blob.GetDesc().Depth() * ( column + row * blob.GetDesc().Width() ) );
-}
 
 static void blobTimeConvolutionBackwardTestImpl( const CTestParams& params, int seed )
 {
@@ -134,8 +128,7 @@ static void blobTimeConvolutionBackwardTestImpl( const CTestParams& params, int 
 
 	input.CopyTo( actual.data() );
 	for( size_t i = 0; i < expected.size(); ++i ) {
-		ASSERT_NEAR( expected[i], actual[i], 1e-2 ) << "\nForward check failed"
-			<< params;
+		EXPECT_NEAR( expected[i], actual[i], 1e-2 ) << "\nForward check failed" << params;
 	}
 }
 
@@ -379,5 +372,11 @@ INSTANTIATE_TEST_CASE_P( CBlobTimeConvolutionBackwardTestInstantiation, CBlobTim
 
 TEST_P( CBlobTimeConvolutionBackwardTest, Random )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		return;
+	}
+
 	RUN_TEST_IMPL( blobTimeConvolutionBackwardTestImpl )
 }

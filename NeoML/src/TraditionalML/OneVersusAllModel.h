@@ -22,7 +22,7 @@ namespace NeoML {
 // One versus all classifier
 class COneVersusAllModel : public IOneVersusAllModel {
 public:
-	COneVersusAllModel() {}
+	COneVersusAllModel() = default;
 	explicit COneVersusAllModel( CObjectArray<IModel>& classifiers );
 
 	// For serialization
@@ -40,7 +40,7 @@ public:
 	bool ClassifyEx( const CFloatVector& data, COneVersusAllClassificationResult& result ) const override;
 
 protected:
-	virtual ~COneVersusAllModel() {} // delete prohibited
+	~COneVersusAllModel() override = default; // delete prohibited
 
 private:
 	CObjectArray<IModel> classifiers; // the binary classifiers for each of the classes in turn

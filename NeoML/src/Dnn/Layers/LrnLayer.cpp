@@ -87,8 +87,8 @@ void CLrnLayer::Reshape()
 {
 	CheckInputs();
 	CheckOutputs();
-	CheckArchitecture( GetInputCount() == 1, GetName(), "LRN with multiple inputs" );
-	CheckArchitecture( GetOutputCount() == 1, GetName(), "LRN with multiple outputs" );
+	CheckLayerArchitecture( GetInputCount() == 1, "LRN with multiple inputs" );
+	CheckLayerArchitecture( GetOutputCount() == 1, "LRN with multiple outputs" );
 
 	outputDescs[0] = inputDescs[0];
 

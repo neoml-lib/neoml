@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -87,8 +87,26 @@ CMetalMathEngine::~CMetalMathEngine()
 
 void CMetalMathEngine::SetReuseMemoryMode( bool enable )
 {
-	std::lock_guard<std::mutex> lock( *mutex );
+	std::lock_guard<CMutex> lock( *mutex );
 	memoryPool->SetReuseMemoryMode( enable );
+}
+
+bool CMetalMathEngine::GetReuseMemoryMode() const
+{
+	std::lock_guard<CMutex> lock( *mutex );
+	return memoryPool->GetReuseMemoryMode();
+}
+
+void CMetalMathEngine::SetThreadBufferMemoryThreshold( size_t threshold )
+{
+	std::lock_guard<CMutex> lock( *mutex );
+	memoryPool->SetThreadBufferMemoryThreshold( threshold );
+}
+
+size_t CMetalMathEngine::GetThreadBufferMemoryThreshold() const
+{
+	std::lock_guard<CMutex> lock( *mutex );
+	return memoryPool->GetThreadBufferMemoryThreshold();
 }
 
 CMemoryHandle CMetalMathEngine::HeapAlloc( size_t size )
@@ -112,7 +130,7 @@ void CMetalMathEngine::HeapFree( const CMemoryHandle& handle )
 
 CMemoryHandle CMetalMathEngine::StackAlloc( size_t size )
 {
-	std::lock_guard<std::mutex> lock( *mutex );
+	std::lock_guard<CMutex> lock( *mutex );
 	CMemoryHandle result = deviceStackAllocator->Alloc( size );
 	if( result.IsNull() ) {
 		THROW_MEMORY_EXCEPTION;
@@ -122,7 +140,7 @@ CMemoryHandle CMetalMathEngine::StackAlloc( size_t size )
 
 void CMetalMathEngine::StackFree( const CMemoryHandle& ptr )
 {
-	std::lock_guard<std::mutex> lock( *mutex );
+	std::lock_guard<CMutex> lock( *mutex );
 	deviceStackAllocator->Free( ptr );
 }
 
@@ -134,13 +152,25 @@ size_t CMetalMathEngine::GetFreeMemorySize() const
 
 size_t CMetalMathEngine::GetPeakMemoryUsage() const
 {
-	std::lock_guard<std::mutex> lock( *mutex );
+	std::lock_guard<CMutex> lock( *mutex );
 	return memoryPool->GetPeakMemoryUsage();
+}
+
+void CMetalMathEngine::ResetPeakMemoryUsage()
+{
+	std::lock_guard<CMutex> lock( *mutex );
+	memoryPool->ResetPeakMemoryUsage();
+}
+
+size_t CMetalMathEngine::GetCurrentMemoryUsage() const
+{
+	std::lock_guard<CMutex> lock( *mutex );
+	return memoryPool->GetCurrentMemoryUsage();
 }
 
 size_t CMetalMathEngine::GetMemoryInPools() const
 {
-	std::lock_guard<std::mutex> lock( *mutex );
+	std::lock_guard<CMutex> lock( *mutex );
 	return memoryPool->GetMemoryInPools();
 }
 

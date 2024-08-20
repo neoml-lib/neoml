@@ -1,4 +1,4 @@
-/* Copyright © 2017-2021 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,12 +23,13 @@ CPyMathEngine::CPyMathEngine( CPyMathEngineOwner& owner ) :
 {
 }
 
-CPyMathEngine::CPyMathEngine( const std::string& type, int threadCount, int index )
+CPyMathEngine::CPyMathEngine( const std::string& type, int index )
 {
 	if( type == "cpu" ) {
-		mathEngineOwner = new CPyMathEngineOwner( CreateCpuMathEngine( threadCount, 0 ) );
+		mathEngineOwner = new CPyMathEngineOwner( CreateCpuMathEngine( /*memoryLimit*/0u ) );
 	} else if( type == "gpu" ) {
-		mathEngineOwner = new CPyMathEngineOwner( CreateGpuMathEngine( index, 0 ) );
+		std::unique_ptr<IGpuMathEngineManager> manager( CreateGpuMathEngineManager() );
+		mathEngineOwner = new CPyMathEngineOwner( manager->CreateMathEngine( index, /*memoryLimit*/0u ) );
 	} else {
 		assert( false );
 	}
@@ -72,7 +73,7 @@ void InitializeMathEngine(py::module& m)
 {
 	py::class_<CPyMathEngine>(m, "MathEngine")
 		.def( py::init([]( const CPyMathEngine& mathEngine ) { return new CPyMathEngine( mathEngine.MathEngineOwner() ); }) )
-		.def( py::init([]( const std::string& type, int threadCount, int index ) { return new CPyMathEngine( type, threadCount, index ); }) )
+		.def( py::init([]( const std::string& type, int index ) { return new CPyMathEngine( type, index ); }) )
 		.def( "get_info", &CPyMathEngine::GetInfo, py::return_value_policy::reference )
 		.def( "get_peak_memory_usage", &CPyMathEngine::GetPeakMemoryUsage, py::return_value_policy::reference )
 		.def( "clean_up", &CPyMathEngine::CleanUp, py::return_value_policy::reference )

@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,6 +21,8 @@ limitations under the License.
 
 #include "onnx.pb.h"
 
+using namespace NeoML;
+
 namespace NeoOnnx {
 
 CDropoutOperator::CDropoutOperator( const onnx::NodeProto& dropout, int opsetVersion ) :
@@ -31,6 +33,7 @@ CDropoutOperator::CDropoutOperator( const onnx::NodeProto& dropout, int opsetVer
 	// v7 - removed "is_test" attribute
 	// v10 - changed second output data type
 	// v12 - added "seed" attribute, "ratio" moved from attributes to inputs, "training_mode" added
+	// v13 - bfloat16 is supported
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
 	if( OpsetVersion < 12 ) {
@@ -43,6 +46,7 @@ CDropoutOperator::CDropoutOperator( const onnx::NodeProto& dropout, int opsetVer
 
 void CDropoutOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
+	CheckNoShapeInputs( inputs );
 	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
 	CPtr<const CUserTensor> userInput = AsUserTensor( *inputs[0], Name() + "_Source", dnn );
 
@@ -52,7 +56,7 @@ void CDropoutOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensor
 	dropout->Connect( 0, *userInput->Layer(), userInput->OutputIndex() );
 	dnn.AddLayer( *dropout );
 
-	outputs.Add( new CUserTensor( userInput->Shape(), userInput->Layout(), CLayerOutput( dropout, 0 ) ) );
+	outputs.Add( new CUserTensor( userInput->Layout(), CLayerOutput( dropout, 0 ) ) );
 	if( OutputCount() == 2 ) {
 		// neoml::CDropoutLayer doesn't support mask as output
 		outputs.Add( nullptr );
@@ -73,7 +77,7 @@ float CDropoutOperator::getRatio( const CTensorArray& inputs ) const
 	}
 
 	// Extracting data from input
-	CheckNeoOnnxSupport( inputs[1]->IsCalculated(), "User-provided ratio", *this );
+	CheckNeoOnnxSupport( inputs[1]->Type() == TTensorType::Data, "User-provided ratio", *this );
 	return dynamic_cast<const CDataTensor*>( inputs[1].Ptr() )->Data()->GetData().GetValue();
 }
 

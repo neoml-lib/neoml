@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -46,27 +46,32 @@ limitations under the License.
 namespace NeoML {
 
 // Interface destructors
-IVectorMathEngine::~IVectorMathEngine() {}
-IBlasEngine::~IBlasEngine() {}
-IDnnEngine::~IDnnEngine() {}
-IMathEngine::~IMathEngine() {}
-IMathEngineExceptionHandler::~IMathEngineExceptionHandler() {}
-IGpuMathEngineManager::~IGpuMathEngineManager() {}
+IVectorMathEngine::~IVectorMathEngine() = default;
+IBlasEngine::~IBlasEngine() = default;
+IDnnEngine::~IDnnEngine() = default;
+IMathEngine::~IMathEngine() = default;
+IMathEngineExceptionHandler::~IMathEngineExceptionHandler() = default;
+IGpuMathEngineManager::~IGpuMathEngineManager() = default;
+IThreadPool::~IThreadPool() = default;
 
-CTimeConvolutionDesc::~CTimeConvolutionDesc() {}
-C3dConvolutionDesc::~C3dConvolutionDesc() {}
-CConvolutionDesc::~CConvolutionDesc() {}
-CChannelwiseConvolutionDesc::~CChannelwiseConvolutionDesc() {}
-CRleConvolutionDesc::~CRleConvolutionDesc() {}
-CDropoutDesc::~CDropoutDesc() {}
-CGlobalMaxPoolingDesc::~CGlobalMaxPoolingDesc() {}
-CMaxPoolingDesc::~CMaxPoolingDesc() {}
-CMeanPoolingDesc::~CMeanPoolingDesc() {}
-C3dMaxPoolingDesc::~C3dMaxPoolingDesc() {}
-C3dMeanPoolingDesc::~C3dMeanPoolingDesc() {}
-CGlobalMaxOverTimePoolingDesc::~CGlobalMaxOverTimePoolingDesc() {}
-CMaxOverTimePoolingDesc::~CMaxOverTimePoolingDesc() {}
-CLrnDesc::~CLrnDesc() {}
+CTimeConvolutionDesc::~CTimeConvolutionDesc() = default;
+C3dConvolutionDesc::~C3dConvolutionDesc() = default;
+CConvolutionDesc::~CConvolutionDesc() = default;
+CChannelwiseConvolutionDesc::~CChannelwiseConvolutionDesc() = default;
+CRleConvolutionDesc::~CRleConvolutionDesc() = default;
+CDropoutDesc::~CDropoutDesc() = default;
+CGlobalMaxPoolingDesc::~CGlobalMaxPoolingDesc() = default;
+CMaxPoolingDesc::~CMaxPoolingDesc() = default;
+CMeanPoolingDesc::~CMeanPoolingDesc() = default;
+C3dMaxPoolingDesc::~C3dMaxPoolingDesc() = default;
+C3dMeanPoolingDesc::~C3dMeanPoolingDesc() = default;
+CGlobalMaxOverTimePoolingDesc::~CGlobalMaxOverTimePoolingDesc() = default;
+CMaxOverTimePoolingDesc::~CMaxOverTimePoolingDesc() = default;
+CLrnDesc::~CLrnDesc() = default;
+CLstmDesc::~CLstmDesc() = default;
+CRowwiseOperationDesc::~CRowwiseOperationDesc() = default;
+
+//------------------------------------------------------------------------------------------------------------
 
 // GPU manager implementation
 class CGpuMathEngineManager : public IGpuMathEngineManager {
@@ -84,7 +89,7 @@ private:
 };
 
 CGpuMathEngineManager::CGpuMathEngineManager() :
-	loader( CDllLoader::CUDA_DLL | CDllLoader::VULKAN_DLL | CDllLoader::NCCL_DLL )
+	loader( CDllLoader::CUDA_DLL | CDllLoader::VULKAN_DLL )
 {
 #ifdef NEOML_USE_CUDA
 	if( loader.IsLoaded( CDllLoader::CUDA_DLL ) ) {
@@ -104,20 +109,20 @@ CGpuMathEngineManager::CGpuMathEngineManager() :
 			}
 		}
 	}
-#endif
+#endif // NEOML_USE_CUDA
 
 #ifdef NEOML_USE_VULKAN
 	if (loader.IsLoaded(CDllLoader::VULKAN_DLL)) {
 		LoadVulkanEngineInfo(*CDllLoader::vulkanDll, info);
 	}
-#endif
+#endif // NEOML_USE_VULKAN
 
 #ifdef NEOML_USE_METAL
 	CMathEngineInfo deviceInfo;
 	if( LoadMetalEngineInfo( deviceInfo ) ) {
 		info.push_back( deviceInfo );
 	}
-#endif
+#endif // NEOML_USE_METAL
 }
 
 void CGpuMathEngineManager::GetMathEngineInfo( int index, CMathEngineInfo& result ) const
@@ -165,7 +170,7 @@ IMathEngine* CGpuMathEngineManager::CreateMathEngine( int index, size_t memoryLi
 	case MET_Undefined:
 	default:
 	{
-		memoryLimit;
+		(void)memoryLimit;
 		return nullptr;
 	}
 	}
@@ -175,7 +180,7 @@ IMathEngine* CGpuMathEngineManager::CreateMathEngine( int index, size_t memoryLi
 
 class CDefaultMathEngineExceptionHandler : public IMathEngineExceptionHandler {
 public:
-	~CDefaultMathEngineExceptionHandler() override {}
+	~CDefaultMathEngineExceptionHandler() override = default;
 
 	void OnAssert( const char* message, const wchar_t*, int, int ) override
 	{
@@ -194,7 +199,7 @@ public:
 	}
 
 private:
-	CDefaultMathEngineExceptionHandler() {}
+	CDefaultMathEngineExceptionHandler() = default;
 };
 
 static IMathEngineExceptionHandler* exceptionHandler = CDefaultMathEngineExceptionHandler::GetInstance();
@@ -209,10 +214,20 @@ IMathEngineExceptionHandler* GetMathEngineExceptionHandler()
 	return exceptionHandler;
 }
 
-IMathEngine* CreateCpuMathEngine( int threadCount, size_t memoryLimit )
+//------------------------------------------------------------------------------------------------------------
+
+IMathEngine* CreateCpuMathEngine( size_t memoryLimit )
 {
-	return new CCpuMathEngine( threadCount, memoryLimit );
+	return new CCpuMathEngine( memoryLimit );
 }
+
+// deprecated
+IMathEngine* CreateCpuMathEngine( int /*deprecated*/, size_t memoryLimit )
+{
+	return CreateCpuMathEngine( memoryLimit );
+}
+
+//------------------------------------------------------------------------------------------------------------
 
 IMathEngine* CreateGpuMathEngine( size_t memoryLimit, int flags )
 {
@@ -225,16 +240,19 @@ IGpuMathEngineManager* CreateGpuMathEngineManager()
 	return new CGpuMathEngineManager();
 }
 
-void CreateDistributedCudaMathEngines( IMathEngine** mathEngines, int devsCount, const int* cudaDevs )
+//------------------------------------------------------------------------------------------------------------
+
+void CreateDistributedCudaMathEngines( IMathEngine** mathEngines, int devsCount, const int* cudaDevs, size_t memoryLimit )
 {
 	ASSERT_EXPR( mathEngines != nullptr );
 	ASSERT_EXPR( devsCount > 0 );
 	ASSERT_EXPR( cudaDevs != nullptr );
 #ifdef NEOML_USE_NCCL
-	CreateDistributedCudaMathEnginesNccl( mathEngines, devsCount, cudaDevs );
-#else
+	CreateDistributedCudaMathEnginesNccl( mathEngines, devsCount, cudaDevs, memoryLimit );
+#else  // !NEOML_USE_NCCL
+	( void ) memoryLimit;
 	ASSERT_EXPR( false );
-#endif
+#endif // !NEOML_USE_NCCL
 }
 
 } // namespace NeoML

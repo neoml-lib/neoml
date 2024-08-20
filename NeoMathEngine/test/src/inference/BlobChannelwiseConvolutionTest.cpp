@@ -69,7 +69,58 @@ static void blobChannelwiseConvolutionNaive( int inputCount, int inputChannels, 
 	}
 }
 
-static void blobChannelwiseConvolutionTestImpl( const CTestParams& params, int seed )
+static void blobChannelwiseConvolutionTestImpl( CRandom& random, int batchLength, int batchWidth, int listSize,
+	int inputHeight, int inputWidth, int channels, int filterHeight, int filterWidth,
+	int paddingHeight, int paddingWidth, int strideHeight, int strideWidth, float minValue, float maxValue )
+{
+	const int blobSize = batchLength * batchWidth * listSize * inputHeight * inputWidth * channels;
+
+	CREATE_FILL_FLOAT_ARRAY( inputData, minValue, maxValue, blobSize, random )
+		CFloatBlob inputBlob( MathEngine(), batchLength, batchWidth, listSize, inputHeight, inputWidth, 1, channels );
+	inputBlob.CopyFrom( inputData.data() );
+
+	CREATE_FILL_FLOAT_ARRAY( filterData, minValue, maxValue, channels * filterHeight * filterWidth, random )
+		CFloatBlob filterBlob( MathEngine(), 1, filterHeight, filterWidth, 1, channels );
+	filterBlob.CopyFrom( filterData.data() );
+
+	std::vector<float> freeTermData;
+	freeTermData.resize( channels );
+	for( size_t i = 0; i < freeTermData.size(); i++ ) {
+		freeTermData[i] = static_cast<float>( random.Uniform( minValue, maxValue ) );
+	}
+	CFloatBlob freeTermBlob( MathEngine(), 1, 1, 1, channels );
+	freeTermBlob.CopyFrom( freeTermData.data() );
+
+	const int outHeight = 1 + ( inputHeight + 2 * paddingHeight - filterHeight ) / strideHeight;
+	const int outWidth = 1 + ( inputWidth + 2 * paddingWidth - filterWidth ) / strideWidth;
+	std::vector<float> expectedData;
+	expectedData.resize( batchLength * batchWidth * listSize * outHeight * outWidth * channels );
+
+	blobChannelwiseConvolutionNaive( batchLength * batchWidth * listSize, channels, inputHeight, inputWidth,
+		filterHeight, filterWidth,
+		paddingHeight, paddingWidth,
+		strideHeight, strideWidth,
+		inputData.data(), filterData.data(), freeTermData.data(), expectedData.data() );
+
+	CFloatBlob outBlob( MathEngine(), batchLength, batchWidth, listSize, outHeight, outWidth, 1, channels );
+	CConstFloatHandle ft = freeTermBlob.GetData();
+
+	CChannelwiseConvolutionDesc* convDesc = MathEngine().InitBlobChannelwiseConvolution( inputBlob.GetDesc(),
+		paddingHeight, paddingWidth, strideHeight, strideWidth, filterBlob.GetDesc(), &freeTermBlob.GetDesc(), outBlob.GetDesc() );
+	MathEngine().BlobChannelwiseConvolution( *convDesc, inputBlob.GetData(),
+		filterBlob.GetData(), &ft, outBlob.GetData() );
+	delete convDesc;
+
+	std::vector<float> resultData;
+	resultData.resize( batchLength * batchWidth * listSize * outHeight * outWidth * channels );
+	outBlob.CopyTo( resultData.data() );
+
+	for( size_t i = 0; i < resultData.size(); i++ ) {
+		ASSERT_NEAR( expectedData[i], resultData[i], 1e-3f ) << "At index " << i;
+	}
+}
+
+static void blobChannelwiseConvolutionParameterizedTestImpl( const CTestParams& params, int seed )
 {
 	CRandom random( seed );
 
@@ -100,51 +151,9 @@ static void blobChannelwiseConvolutionTestImpl( const CTestParams& params, int s
 	const int strideHeight = random.UniformInt( strideHeightInterval.Begin, strideHeightInterval.End );
 	const int strideWidth = random.UniformInt( strideWidthInterval.Begin, strideWidthInterval.End );
 
-	const int blobSize = batchLength * batchWidth * listSize * inputHeight * inputWidth * channels;
-
-	CREATE_FILL_FLOAT_ARRAY( inputData, valuesInterval.Begin, valuesInterval.End, blobSize, random )
-	CFloatBlob inputBlob( MathEngine(), batchLength, batchWidth, listSize, inputHeight, inputWidth, 1, channels );
-	inputBlob.CopyFrom( inputData.data() );
-
-	CREATE_FILL_FLOAT_ARRAY( filterData, valuesInterval.Begin, valuesInterval.End, channels * filterHeight * filterWidth, random )
-	CFloatBlob filterBlob( MathEngine(), 1, filterHeight, filterWidth, 1, channels );
-	filterBlob.CopyFrom( filterData.data() );
-
-	std::vector<float> freeTermData;
-	freeTermData.resize( channels );
-	for( size_t i = 0; i < freeTermData.size(); i++ ) {
-		freeTermData[i] = static_cast<float>( random.Uniform( valuesInterval.Begin, valuesInterval.End ) );
-	}
-	CFloatBlob freeTermBlob( MathEngine(), 1, 1, 1, channels );
-	freeTermBlob.CopyFrom( freeTermData.data() );
-
-	const int outHeight = 1 + ( inputHeight + 2 * paddingHeight - filterHeight ) / strideHeight;
-	const int outWidth = 1 + ( inputWidth + 2 * paddingWidth - filterWidth ) / strideWidth;
-	std::vector<float> expectedData;
-	expectedData.resize( batchLength * batchWidth * listSize * outHeight * outWidth * channels );
-
-	blobChannelwiseConvolutionNaive( batchLength * batchWidth * listSize, channels, inputHeight, inputWidth,
-		filterHeight, filterWidth,
-		paddingHeight, paddingWidth,
-		strideHeight, strideWidth,
-		inputData.data(), filterData.data(), freeTermData.data(), expectedData.data() );
-
-	CFloatBlob outBlob( MathEngine(), batchLength, batchWidth, listSize, outHeight, outWidth, 1, channels );
-	CConstFloatHandle ft = freeTermBlob.GetData();
-
-	CChannelwiseConvolutionDesc* convDesc = MathEngine().InitBlobChannelwiseConvolution( inputBlob.GetDesc(),
-		paddingHeight, paddingWidth, strideHeight, strideWidth, filterBlob.GetDesc(), &freeTermBlob.GetDesc(), outBlob.GetDesc() );
-	MathEngine().BlobChannelwiseConvolution( *convDesc, inputBlob.GetData(),
-		filterBlob.GetData(), &ft, outBlob.GetData() );
-	delete convDesc;
-
-	std::vector<float> resultData;
-	resultData.resize( batchLength * batchWidth * listSize * outHeight * outWidth * channels );
-	outBlob.CopyTo( resultData.data() );
-
-	for( size_t i = 0; i < resultData.size(); i++ ) {
-		ASSERT_NEAR( expectedData[i], resultData[i], 1e-3f );
-	}
+	blobChannelwiseConvolutionTestImpl( random, batchLength, batchWidth, listSize, inputHeight, inputWidth, channels,
+		filterHeight, filterWidth, paddingHeight, paddingWidth, strideHeight, strideWidth,
+		static_cast<float>( valuesInterval.Begin ), static_cast<float>( valuesInterval.End ) );
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -249,11 +258,565 @@ INSTANTIATE_TEST_CASE_P( CMathEngineBlobChannelwiseConvolutionTestInstantiation,
 			"StrideWidth = 2;"
 			"Values = (-10..10);"
 			"TestCount = 1;"
+		),
+		CTestParams(
+			"InputHeight = 2;"
+			"InputWidth = 2;"
+			"Channels = 4;"
+			"BatchLength = 1;"
+			"BatchWidth = 1;"
+			"ListSize = 1;"
+			"FilterHeight = 3;"
+			"FilterWidth = 3;"
+			"PaddingHeight = 1;"
+			"PaddingWidth = 1;"
+			"StrideHeight = 2;"
+			"StrideWidth = 2;"
+			"Values = (-10..10);"
+			"TestCount = 1;"
+		)
+	)
+);
+
+INSTANTIATE_TEST_CASE_P(CMobileNetV3Channelwise5x5, CMathEngineBlobChannelwiseConvolutionTest,
+	::testing::Values(
+		CTestParams(
+			"InputHeight = 8;"
+			"InputWidth = 8;"
+			"Channels = 48;"
+			"BatchLength = 10;"
+			"BatchWidth = 1;"
+			"ListSize = 1;"
+			"FilterHeight = 5;"
+			"FilterWidth = 5;"
+			"PaddingHeight = 2;"
+			"PaddingWidth = 2;"
+			"StrideHeight = 2;"
+			"StrideWidth = 2;"
+			"Values = (-10..10);"
+			"TestCount = 1;"
+		),
+		CTestParams(
+			"InputHeight = 32;"
+			"InputWidth = 24;"
+			"Channels = 240;"
+			"BatchLength = 1;"
+			"BatchWidth = 1;"
+			"ListSize = 1;"
+			"FilterHeight = 5;"
+			"FilterWidth = 5;"
+			"PaddingHeight = 2;"
+			"PaddingWidth = 2;"
+			"StrideHeight = 1;"
+			"StrideWidth = 1;"
+			"Values = (-10..10);"
+			"TestCount = 1;"
+		),
+		CTestParams(
+			"InputHeight = 1;"
+			"InputWidth = 3;"
+			"Channels = 1248;"
+			"BatchLength = 1;"
+			"BatchWidth = 1;"
+			"ListSize = 1;"
+			"FilterHeight = 5;"
+			"FilterWidth = 5;"
+			"PaddingHeight = 2;"
+			"PaddingWidth = 2;"
+			"StrideHeight = 1;"
+			"StrideWidth = 1;"
+			"Values = (-10..10);"
+			"TestCount = 1;"
+		),
+		CTestParams(
+			"InputHeight = 296;"
+			"InputWidth = 208;"
+			"Channels = 72;"
+			"BatchLength = 1;"
+			"BatchWidth = 1;"
+			"ListSize = 1;"
+			"FilterHeight = 5;"
+			"FilterWidth = 5;"
+			"PaddingHeight = 2;"
+			"PaddingWidth = 2;"
+			"StrideHeight = 2;"
+			"StrideWidth = 2;"
+			"Values = (-10..10);"
+			"TestCount = 1;"
+		),
+		CTestParams(
+			"InputHeight = 148;"
+			"InputWidth = 104;"
+			"Channels = 120;"
+			"BatchLength = 1;"
+			"BatchWidth = 1;"
+			"ListSize = 1;"
+			"FilterHeight = 5;"
+			"FilterWidth = 5;"
+			"PaddingHeight = 2;"
+			"PaddingWidth = 2;"
+			"StrideHeight = 1;"
+			"StrideWidth = 1;"
+			"Values = (-10..10);"
+			"TestCount = 1;"
+		),
+		CTestParams(
+			"InputHeight = 74;"
+			"InputWidth = 52;"
+			"Channels = 672;"
+			"BatchLength = 1;"
+			"BatchWidth = 1;"
+			"ListSize = 1;"
+			"FilterHeight = 5;"
+			"FilterWidth = 5;"
+			"PaddingHeight = 2;"
+			"PaddingWidth = 2;"
+			"StrideHeight = 2;"
+			"StrideWidth = 2;"
+			"Values = (-10..10);"
+			"TestCount = 1;"
+		),
+		CTestParams(
+			"InputHeight = 16;"
+			"InputWidth = 16;"
+			"Channels = 120;"
+			"BatchLength = 1;"
+			"BatchWidth = 1;"
+			"ListSize = 1;"
+			"FilterHeight = 5;"
+			"FilterWidth = 5;"
+			"PaddingHeight = 2;"
+			"PaddingWidth = 2;"
+			"StrideHeight = 1;"
+			"StrideWidth = 1;"
+			"Values = (-10..10);"
+			"TestCount = 1;"
+		),
+		CTestParams(
+			"InputHeight = 37;"
+			"InputWidth = 26;"
+			"Channels = 960;"
+			"BatchLength = 1;"
+			"BatchWidth = 1;"
+			"ListSize = 1;"
+			"FilterHeight = 5;"
+			"FilterWidth = 5;"
+			"PaddingHeight = 2;"
+			"PaddingWidth = 2;"
+			"StrideHeight = 1;"
+			"StrideWidth = 1;"
+			"Values = (-10..10);"
+			"TestCount = 1;"
+		),
+		CTestParams(
+			"InputHeight = 32;"
+			"InputWidth = 24;"
+			"Channels = 288;"
+			"BatchLength = 1;"
+			"BatchWidth = 1;"
+			"ListSize = 1;"
+			"FilterHeight = 5;"
+			"FilterWidth = 5;"
+			"PaddingHeight = 2;"
+			"PaddingWidth = 2;"
+			"StrideHeight = 2;"
+			"StrideWidth = 2;"
+			"Values = (-10..10);"
+			"TestCount = 1;"
+		),
+		CTestParams(
+			"InputHeight = 64;"
+			"InputWidth = 48;"
+			"Channels = 96;"
+			"BatchLength = 1;"
+			"BatchWidth = 1;"
+			"ListSize = 1;"
+			"FilterHeight = 5;"
+			"FilterWidth = 5;"
+			"PaddingHeight = 2;"
+			"PaddingWidth = 2;"
+			"StrideHeight = 2;"
+			"StrideWidth = 2;"
+			"Values = (-10..10);"
+			"TestCount = 1;"
+		),
+		CTestParams(
+			"InputHeight = 14;"
+			"InputWidth = 14;"
+			"Channels = 240;"
+			"BatchLength = 1;"
+			"BatchWidth = 1;"
+			"ListSize = 1;"
+			"FilterHeight = 5;"
+			"FilterWidth = 5;"
+			"PaddingHeight = 2;"
+			"PaddingWidth = 2;"
+			"StrideHeight = 1;"
+			"StrideWidth = 1;"
+			"Values = (-10..10);"
+			"TestCount = 1;"
+		),
+		CTestParams(
+			"InputHeight = 28;"
+			"InputWidth = 28;"
+			"Channels = 96;"
+			"BatchLength = 1;"
+			"BatchWidth = 1;"
+			"ListSize = 1;"
+			"FilterHeight = 5;"
+			"FilterWidth = 5;"
+			"PaddingHeight = 2;"
+			"PaddingWidth = 2;"
+			"StrideHeight = 2;"
+			"StrideWidth = 2;"
+			"Values = (-10..10);"
+			"TestCount = 1;"
+		),
+		CTestParams(
+			"InputHeight = 32;"
+			"InputWidth = 24;"
+			"Channels = 120;"
+			"BatchLength = 1;"
+			"BatchWidth = 1;"
+			"ListSize = 1;"
+			"FilterHeight = 5;"
+			"FilterWidth = 5;"
+			"PaddingHeight = 2;"
+			"PaddingWidth = 2;"
+			"StrideHeight = 1;"
+			"StrideWidth = 1;"
+			"Values = (-10..10);"
+			"TestCount = 1;"
+		),
+		CTestParams(
+			"InputHeight = 16;"
+			"InputWidth = 12;"
+			"Channels = 576;"
+			"BatchLength = 1;"
+			"BatchWidth = 1;"
+			"ListSize = 1;"
+			"FilterHeight = 5;"
+			"FilterWidth = 5;"
+			"PaddingHeight = 2;"
+			"PaddingWidth = 2;"
+			"StrideHeight = 1;"
+			"StrideWidth = 1;"
+			"Values = (-10..10);"
+			"TestCount = 1;"
+		),
+		CTestParams(
+			"InputHeight = 14;"
+			"InputWidth = 14;"
+			"Channels = 288;"
+			"BatchLength = 1;"
+			"BatchWidth = 1;"
+			"ListSize = 1;"
+			"FilterHeight = 5;"
+			"FilterWidth = 5;"
+			"PaddingHeight = 2;"
+			"PaddingWidth = 2;"
+			"StrideHeight = 2;"
+			"StrideWidth = 2;"
+			"Values = (-10..10);"
+			"TestCount = 1;"
+		),
+		CTestParams(
+			"InputHeight = 32;"
+			"InputWidth = 32;"
+			"Channels = 48;"
+			"BatchLength = 1;"
+			"BatchWidth = 1;"
+			"ListSize = 1;"
+			"FilterHeight = 5;"
+			"FilterWidth = 5;"
+			"PaddingHeight = 2;"
+			"PaddingWidth = 2;"
+			"StrideHeight = 2;"
+			"StrideWidth = 2;"
+			"Values = (-10..10);"
+			"TestCount = 1;"
+		),
+		CTestParams(
+			"InputHeight = 14;"
+			"InputWidth = 14;"
+			"Channels = 120;"
+			"BatchLength = 1;"
+			"BatchWidth = 1;"
+			"ListSize = 1;"
+			"FilterHeight = 5;"
+			"FilterWidth = 5;"
+			"PaddingHeight = 2;"
+			"PaddingWidth = 2;"
+			"StrideHeight = 1;"
+			"StrideWidth = 1;"
+			"Values = (-10..10);"
+			"TestCount = 1;"
+		),
+		CTestParams(
+			"InputHeight = 14;"
+			"InputWidth = 14;"
+			"Channels = 144;"
+			"BatchLength = 1;"
+			"BatchWidth = 1;"
+			"ListSize = 1;"
+			"FilterHeight = 5;"
+			"FilterWidth = 5;"
+			"PaddingHeight = 2;"
+			"PaddingWidth = 2;"
+			"StrideHeight = 1;"
+			"StrideWidth = 1;"
+			"Values = (-10..10);"
+			"TestCount = 1;"
+		),
+		CTestParams(
+			"InputHeight = 7;"
+			"InputWidth = 7;"
+			"Channels = 576;"
+			"BatchLength = 1;"
+			"BatchWidth = 1;"
+			"ListSize = 1;"
+			"FilterHeight = 5;"
+			"FilterWidth = 5;"
+			"PaddingHeight = 2;"
+			"PaddingWidth = 2;"
+			"StrideHeight = 1;"
+			"StrideWidth = 1;"
+			"Values = (-10..10);"
+			"TestCount = 1;"
+		),
+		CTestParams(
+			"InputHeight = 4;"
+			"InputWidth = 4;"
+			"Channels = 120;"
+			"BatchLength = 10;"
+			"BatchWidth = 1;"
+			"ListSize = 1;"
+			"FilterHeight = 5;"
+			"FilterWidth = 5;"
+			"PaddingHeight = 2;"
+			"PaddingWidth = 2;"
+			"StrideHeight = 1;"
+			"StrideWidth = 1;"
+			"Values = (-10..10);"
+			"TestCount = 1;"
+		),
+		CTestParams(
+			"InputHeight = 1;"
+			"InputWidth = 16;"
+			"Channels = 72;"
+			"BatchLength = 1;"
+			"BatchWidth = 1;"
+			"ListSize = 1;"
+			"FilterHeight = 5;"
+			"FilterWidth = 5;"
+			"PaddingHeight = 2;"
+			"PaddingWidth = 2;"
+			"StrideHeight = 2;"
+			"StrideWidth = 2;"
+			"Values = (-10..10);"
+			"TestCount = 1;"
+		),
+		CTestParams(
+			"InputHeight = 1;"
+			"InputWidth = 8;"
+			"Channels = 120;"
+			"BatchLength = 1;"
+			"BatchWidth = 1;"
+			"ListSize = 1;"
+			"FilterHeight = 5;"
+			"FilterWidth = 5;"
+			"PaddingHeight = 2;"
+			"PaddingWidth = 2;"
+			"StrideHeight = 1;"
+			"StrideWidth = 1;"
+			"Values = (-10..10);"
+			"TestCount = 1;"
+		),
+		CTestParams(
+			"InputHeight = 1;"
+			"InputWidth = 4;"
+			"Channels = 672;"
+			"BatchLength = 1;"
+			"BatchWidth = 1;"
+			"ListSize = 1;"
+			"FilterHeight = 5;"
+			"FilterWidth = 5;"
+			"PaddingHeight = 2;"
+			"PaddingWidth = 2;"
+			"StrideHeight = 2;"
+			"StrideWidth = 2;"
+			"Values = (-10..10);"
+			"TestCount = 1;"
+		),
+		CTestParams(
+			"InputHeight = 1;"
+			"InputWidth = 2;"
+			"Channels = 960;"
+			"BatchLength = 1;"
+			"BatchWidth = 1;"
+			"ListSize = 1;"
+			"FilterHeight = 5;"
+			"FilterWidth = 5;"
+			"PaddingHeight = 2;"
+			"PaddingWidth = 2;"
+			"StrideHeight = 1;"
+			"StrideWidth = 1;"
+			"Values = (-10..10);"
+			"TestCount = 1;"
+		),
+		CTestParams(
+			"InputHeight = 1;"
+			"InputWidth = 24;"
+			"Channels = 96;"
+			"BatchLength = 1;"
+			"BatchWidth = 1;"
+			"ListSize = 1;"
+			"FilterHeight = 5;"
+			"FilterWidth = 5;"
+			"PaddingHeight = 2;"
+			"PaddingWidth = 2;"
+			"StrideHeight = 2;"
+			"StrideWidth = 2;"
+			"Values = (-10..10);"
+			"TestCount = 1;"
+		),
+		CTestParams(
+			"InputHeight = 1;"
+			"InputWidth = 16;"
+			"Channels = 120;"
+			"BatchLength = 1;"
+			"BatchWidth = 1;"
+			"ListSize = 1;"
+			"FilterHeight = 5;"
+			"FilterWidth = 5;"
+			"PaddingHeight = 2;"
+			"PaddingWidth = 2;"
+			"StrideHeight = 1;"
+			"StrideWidth = 1;"
+			"Values = (-10..10);"
+			"TestCount = 1;"
+		),
+		CTestParams(
+			"InputHeight = 1;"
+			"InputWidth = 12;"
+			"Channels = 168;"
+			"BatchLength = 1;"
+			"BatchWidth = 1;"
+			"ListSize = 1;"
+			"FilterHeight = 5;"
+			"FilterWidth = 5;"
+			"PaddingHeight = 2;"
+			"PaddingWidth = 2;"
+			"StrideHeight = 1;"
+			"StrideWidth = 1;"
+			"Values = (-10..10);"
+			"TestCount = 1;"
+		),
+		CTestParams(
+			"InputHeight = 1;"
+			"InputWidth = 6;"
+			"Channels = 864;"
+			"BatchLength = 1;"
+			"BatchWidth = 1;"
+			"ListSize = 1;"
+			"FilterHeight = 5;"
+			"FilterWidth = 5;"
+			"PaddingHeight = 2;"
+			"PaddingWidth = 2;"
+			"StrideHeight = 2;"
+			"StrideWidth = 2;"
+			"Values = (-10..10);"
+			"TestCount = 1;"
+		),
+		CTestParams(
+			"InputHeight = 1;"
+			"InputWidth = 32;"
+			"Channels = 72;"
+			"BatchLength = 1;"
+			"BatchWidth = 1;"
+			"ListSize = 1;"
+			"FilterHeight = 5;"
+			"FilterWidth = 5;"
+			"PaddingHeight = 2;"
+			"PaddingWidth = 2;"
+			"StrideHeight = 2;"
+			"StrideWidth = 2;"
+			"Values = (-10..10);"
+			"TestCount = 1;"
+		),
+		CTestParams(
+			"InputHeight = 1;"
+			"InputWidth = 8;"
+			"Channels = 672;"
+			"BatchLength = 1;"
+			"BatchWidth = 1;"
+			"ListSize = 1;"
+			"FilterHeight = 5;"
+			"FilterWidth = 5;"
+			"PaddingHeight = 2;"
+			"PaddingWidth = 2;"
+			"StrideHeight = 2;"
+			"StrideWidth = 2;"
+			"Values = (-10..10);"
+			"TestCount = 1;"
+		),
+		CTestParams(
+			"InputHeight = 1;"
+			"InputWidth = 4;"
+			"Channels = 960;"
+			"BatchLength = 1;"
+			"BatchWidth = 1;"
+			"ListSize = 1;"
+			"FilterHeight = 5;"
+			"FilterWidth = 5;"
+			"PaddingHeight = 2;"
+			"PaddingWidth = 2;"
+			"StrideHeight = 1;"
+			"StrideWidth = 1;"
+			"Values = (-10..10);"
+			"TestCount = 1;"
 		)
 	)
 );
 
 TEST_P(CMathEngineBlobChannelwiseConvolutionTest, Random)
 {
-	RUN_TEST_IMPL(blobChannelwiseConvolutionTestImpl)
+	RUN_TEST_IMPL(blobChannelwiseConvolutionParameterizedTestImpl)
+}
+
+TEST_F(CMathEngineBlobChannelwiseConvolutionTest, Conv3x3)
+{
+	CRandom random( 0x666 );
+	constexpr int filterSize = 3;
+	constexpr int maxSize = filterSize * 3;
+	for( int stride = 1; stride <= 2; ++stride ) {
+		for( int inputSize = 1; inputSize <= maxSize; ++inputSize ) {
+			blobChannelwiseConvolutionTestImpl( random, 1, 3, 1, inputSize, inputSize, 13, filterSize, filterSize,
+				filterSize / 2, filterSize / 2, stride, stride, -10.f, 10.f );
+		}
+	}
+}
+
+TEST_F(CMathEngineBlobChannelwiseConvolutionTest, Conv5x5)
+{
+	CRandom random( 0x666 );
+	constexpr int filterSize = 5;
+	constexpr int maxSize = filterSize * 3;
+	for( int stride = 1; stride <= 2; ++stride ) {
+		for( int inputSize = 1; inputSize <= maxSize; ++inputSize ) {
+			blobChannelwiseConvolutionTestImpl( random, 1, 3, 1, inputSize, inputSize, 13, filterSize, filterSize,
+				filterSize / 2, filterSize / 2, stride, stride, -10.f, 10.f );
+		}
+	}
+}
+
+TEST_F( CMathEngineBlobChannelwiseConvolutionTest, Conv7x7 )
+{
+	CRandom random( 0x666 );
+	constexpr int filterSize = 7;
+	constexpr int maxSize = filterSize * 2;
+	for( int inputSize = 1; inputSize <= maxSize; ++inputSize ) {
+		blobChannelwiseConvolutionTestImpl( random, 1, 3, 1, inputSize, inputSize, 13, filterSize, filterSize,
+			filterSize / 2, filterSize / 2, 1, 1, -10.f, 10.f );
+	}
 }

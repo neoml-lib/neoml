@@ -86,9 +86,7 @@ private:
 // The manager class
 class CHostStackMemoryManager : public CCrtAllocatedObject {
 public:
-	explicit CHostStackMemoryManager() : head(0), maxAllocSize(0), curAllocSize(0)
-	{
-	}
+	CHostStackMemoryManager() = default;
 
 	~CHostStackMemoryManager()
 	{
@@ -145,9 +143,9 @@ public:
 	}
 
 private:
-	CHostStackBlock *head;
-	size_t maxAllocSize;
-	size_t curAllocSize;
+	CHostStackBlock *head{};
+	size_t maxAllocSize{};
+	size_t curAllocSize{};
 
 	void cleanUpWorker()
 	{
@@ -177,9 +175,9 @@ CHostStackAllocator::~CHostStackAllocator()
 
 void CHostStackAllocator::CleanUp()
 {
-	thread::id id = this_thread::get_id();
+	std::thread::id id = std::this_thread::get_id();
 
-	lock_guard<std::mutex> lock( mutex );
+	std::lock_guard<std::mutex> lock( mutex );
 	auto iterator = stackManagers.find( id );
 	if( iterator != stackManagers.end() ) {
 		iterator->second->CleanUp();
@@ -191,10 +189,10 @@ void* CHostStackAllocator::Alloc( size_t size )
 	// Align size to keep correct data alignment
 	size = ( ( size + memoryAlignment - 1 ) / memoryAlignment ) * memoryAlignment;
 	CHostStackMemoryManager* hostManager = 0;
-	thread::id id = this_thread::get_id();
+	std::thread::id id = std::this_thread::get_id();
 
 	{
-		lock_guard<std::mutex> lock( mutex );
+		std::lock_guard<std::mutex> lock( mutex );
 		auto result = stackManagers.find( id );
 		if( result == stackManagers.end() ) {
 			result = stackManagers.insert( make_pair( id, new CHostStackMemoryManager() ) ).first;
@@ -212,10 +210,10 @@ void CHostStackAllocator::Free( void* ptr )
 	}
 
 	CHostStackMemoryManager* hostManager = 0;
-	thread::id id = this_thread::get_id();
+	std::thread::id id = std::this_thread::get_id();
 
 	{
-		lock_guard<std::mutex> lock( mutex );
+		std::lock_guard<std::mutex> lock( mutex );
 
 		auto pair = stackManagers.find( id );
 		hostManager = pair->second;

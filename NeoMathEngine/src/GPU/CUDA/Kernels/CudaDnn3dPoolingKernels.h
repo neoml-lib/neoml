@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,51 +23,50 @@ limitations under the License.
 namespace NeoML {
 
 __global__ void Blob3dMaxPoolingKernel( const CCuda3dMaxPoolingDescInternal desc, const float* __restrict__ sourceData,
-	int* maxIndicesData, float* resultData )
+	int* __restrict__ maxIndices, float* __restrict__ resultData )
 {
 	const CCudaBlobDesc& result = desc.Result;
 	const CCudaBlobDesc& source = desc.Source;
 
-	int b;
-	int channel;
-	int pos;
+	const int resultGeomSize = result.Depth() * result.Height() * result.Width();
+	const int resultObjectSize = result.Channels() * resultGeomSize;
+	const int totalChannels = source.Channels();
 
-	int resultGeomSize = result.Depth() * result.Height() * result.Width();
-	int resultObjectSize = result.Channels() * resultGeomSize;
-	int totalChannels = source.Channels();
-
-	if(!GetCudaTaskIndex3D( result.ObjectCount(), resultGeomSize, totalChannels, b, pos, channel)) {
+	int b = 0;
+	int pos = 0;
+	int channel = 0;
+	if( !GetCudaTaskIndex3D( result.ObjectCount(), resultGeomSize, totalChannels, b, pos, channel ) ) {
 		return;
 	}
 
-	int resultShift = b * resultObjectSize + pos * totalChannels + channel;
+	const int resultShift = b * resultObjectSize + pos * totalChannels + channel;
 
-	int inputHW = source.Height() * source.Width();
-	int inputGeom = source.Depth() * inputHW;
-	const float* inputData = sourceData + b * totalChannels * inputGeom;
+	const int sourceHW = source.Height() * source.Width();
+	const int sourceGeomSize = source.Depth() * sourceHW;
+	const float* sourcePtr = sourceData + b * totalChannels * sourceGeomSize;
 
 	// Output position
-	int kOut = pos % result.Depth();
+	const int kOut = pos % result.Depth();
 	pos /= result.Depth();
-	int iOut = pos % result.Width();
-	int jOut = pos / result.Width();
+	const int iOut = pos % result.Width();
+	const int jOut = pos / result.Width();
 
 	// Input position
-	int jStart = jOut * desc.StrideHeight;
-	int iStart = iOut * desc.StrideWidth;
-	int kStart = kOut * desc.StrideDepth;
+	const int jStart = jOut * desc.StrideHeight;
+	const int iStart = iOut * desc.StrideWidth;
+	const int kStart = kOut * desc.StrideDepth;
 
 	float maxValue = -FLT_MAX;
 	int maxIndex = 0;
-
 	int jIndex = jStart * source.Width() * source.Depth() * totalChannels + channel;
-	for(int j = 0; j < desc.FilterHeight; ++j) {
+
+	for( int j = 0; j < desc.FilterHeight; ++j ) {
 		int iIndex = jIndex + iStart * source.Depth() * totalChannels;
-		for(int i = 0; i < desc.FilterWidth; ++i) {
+		for( int i = 0; i < desc.FilterWidth; ++i ) {
 			int index = iIndex + kStart * totalChannels;
 			for( int k = 0; k < desc.FilterDepth; ++k ) {
-				float value = __ldg(inputData + index);
-				if(value >= maxValue) {
+				const float value = __ldg( sourcePtr + index );
+				if( value >= maxValue ) {
 					maxIndex = index;
 					maxValue = value;
 				}
@@ -79,37 +78,36 @@ __global__ void Blob3dMaxPoolingKernel( const CCuda3dMaxPoolingDescInternal desc
 	}
 
 	resultData[resultShift] = maxValue;
-	if( maxIndicesData != 0 ) {
-		maxIndicesData[resultShift] = maxIndex - channel;
+	if( maxIndices != 0 ) {
+		maxIndices[resultShift] = maxIndex - channel;
 	}
 }
 
-__global__ void Blob3dMaxPoolingBackwardKernel( const CCuda3dMaxPoolingDescInternal desc, const float* outputDiffData,
-	const int* maxIndicesData, float* inputDiffData, bool isAtomic )
+__global__ void Blob3dMaxPoolingBackwardKernel( const CCuda3dMaxPoolingDescInternal desc, const float* __restrict__ resultDiff,
+	const int* __restrict__ maxIndices, float* __restrict__ sourceDiff, bool isAtomic )
 {
-	const CCudaBlobDesc& outputDiff = desc.Result;
-	const CCudaBlobDesc& inputDiff = desc.Source;
+	const CCudaBlobDesc& result = desc.Result;
+	const CCudaBlobDesc& source = desc.Source;
 
-	int b;
-	int pos;
-	int channel;
+	const int resultGeomSize = result.Depth() * result.Height() * result.Width();
 
-	int outputGeomSize = outputDiff.Depth() * outputDiff.Height() * outputDiff.Width();
-
-	if(!GetCudaTaskIndex3D(outputDiff.ObjectCount(), outputGeomSize, outputDiff.Channels(), b, pos, channel)) {
+	int b = 0;
+	int pos = 0;
+	int channel = 0;
+	if( !GetCudaTaskIndex3D( result.ObjectCount(), resultGeomSize, result.Channels(), b, pos, channel ) ) {
 		return;
 	}
 
-	float* curInputDiffData = inputDiffData + b * inputDiff.ObjectSize();
+	float* const sourcePtr = sourceDiff + b * source.ObjectSize();
 
-	int outputShift = (b * outputGeomSize + pos) * outputDiff.Channels() + channel;
-	int index = maxIndicesData[outputShift] + channel;
-	float value = __ldg(outputDiffData + outputShift);
+	const int resultShift = ( b * resultGeomSize + pos ) * result.Channels() + channel;
+	const int index = maxIndices[resultShift] + channel;
+	const float value = __ldg( resultDiff + resultShift );
 
-	if(isAtomic) {
-		atomicAdd(curInputDiffData + index, value);
+	if( isAtomic ) {
+		atomicAdd( sourcePtr + index, value );
 	} else {
-		curInputDiffData[index] = value;
+		sourcePtr[index] = value;
 	}
 }
 
@@ -119,43 +117,42 @@ __global__ void Blob3dMeanPoolingKernel( const CCuda3dMeanPoolingDescInternal de
 	const CCudaBlobDesc& result = desc.Result;
 	const CCudaBlobDesc& source = desc.Source;
 
-	int b;
-	int channel;
-	int pos;
+	const int resultGeomSize = result.Depth() * result.Height() * result.Width();
+	const int totalChannels = result.Channels();
+	const int resultObjectSize = totalChannels * resultGeomSize;
 
-	int resultGeomSize = result.Depth() * result.Height() * result.Width();
-	int totalChannels = result.Channels();
-	int resultObjectSize = totalChannels * resultGeomSize;
-
-	if(!GetCudaTaskIndex3D(result.ObjectCount(), resultGeomSize, result.Channels(), b, pos, channel)) {
+	int b = 0;
+	int pos = 0;
+	int channel = 0;
+	if( !GetCudaTaskIndex3D( result.ObjectCount(), resultGeomSize, result.Channels(), b, pos, channel ) ) {
 		return;
 	}
 
-	int resultShift = b * resultObjectSize + pos * totalChannels + channel;
+	const int resultShift = b * resultObjectSize + pos * totalChannels + channel;
 
-	int inputGeom = source.Depth() * source.Height() * source.Width();
-	const float* inputData = sourceData + b * totalChannels * inputGeom;
+	const int sourceGeomSize = source.Depth() * source.Height() * source.Width();
+	const float* const sourcePtr = sourceData + b * totalChannels * sourceGeomSize;
 
 	// Output position
-	int kOut = pos % result.Depth();
+	const int kOut = pos % result.Depth();
 	pos /= result.Depth();
-	int iOut = pos % result.Width();
-	int jOut = pos / result.Width();
+	const int iOut = pos % result.Width();
+	const int jOut = pos / result.Width();
 
 	// Input position
-	int jStart = jOut * desc.StrideHeight;
-	int iStart = iOut * desc.StrideWidth;
-	int kStart = kOut * desc.StrideDepth;
+	const int jStart = jOut * desc.StrideHeight;
+	const int iStart = iOut * desc.StrideWidth;
+	const int kStart = kOut * desc.StrideDepth;
 
 	float sumValue = 0;
-
 	int jIndex = jStart * source.Width() * source.Depth() * totalChannels + channel;
-	for(int j = 0; j < desc.FilterHeight; ++j) {
+
+	for( int j = 0; j < desc.FilterHeight; ++j ) {
 		int iIndex = jIndex + iStart * source.Depth() * totalChannels;
-		for(int i = 0; i < desc.FilterWidth; ++i) {
+		for( int i = 0; i < desc.FilterWidth; ++i ) {
 			int index = iIndex + kStart * totalChannels;
 			for( int k = 0; k < desc.FilterDepth; ++k ) {
-				sumValue += __ldg(inputData + index);
+				sumValue += __ldg( sourcePtr + index );
 				index += totalChannels;
 			}
 			iIndex += source.Depth() * totalChannels;
@@ -166,66 +163,66 @@ __global__ void Blob3dMeanPoolingKernel( const CCuda3dMeanPoolingDescInternal de
 	resultData[resultShift] = sumValue / desc.FilterHeight / desc.FilterWidth / desc.FilterDepth;
 }
 
-__global__ void Blob3dMeanPoolingBackwardKernel( const CCuda3dMeanPoolingDescInternal desc, const float* outputDiffData,
-	float* inputDiffData, bool isAtomic )
+__global__ void Blob3dMeanPoolingBackwardKernel( const CCuda3dMeanPoolingDescInternal desc, const float* resultDiff,
+	float* sourceDiff, bool isAtomic )
 {
-	const CCudaBlobDesc& outputDiff = desc.Result;
-	const CCudaBlobDesc& inputDiff = desc.Source;
+	const CCudaBlobDesc& result = desc.Result;
+	const CCudaBlobDesc& source = desc.Source;
 
-	int b;
-	int channel;
-	int pos;
+	const int resultGeomSize = result.Depth() * result.Height() * result.Width();
+	const int totalChannels = result.Channels();
 
-	int outputGeomSize = outputDiff.Depth() * outputDiff.Height() * outputDiff.Width();
-	int totalChannels = outputDiff.Channels();
-
-	if(!GetCudaTaskIndex3D(outputDiff.ObjectCount(), outputGeomSize, totalChannels, b, pos, channel)) {
+	int b = 0;
+	int pos = 0;
+	int channel = 0;
+	if( !GetCudaTaskIndex3D( result.ObjectCount(), resultGeomSize, totalChannels, b, pos, channel ) ) {
 		return;
 	}
 
-	int outputShift = (b * outputGeomSize + pos ) * totalChannels + channel;
-	float value = __ldg(outputDiffData + outputShift) / desc.FilterHeight / desc.FilterWidth / desc.FilterDepth;
+	const int resultShift = ( b * resultGeomSize + pos ) * totalChannels + channel;
+	const float value = __ldg( resultDiff + resultShift ) / desc.FilterHeight / desc.FilterWidth / desc.FilterDepth;
 
 	// Output position
-	int kOut = pos % outputDiff.Depth();
-	pos /= outputDiff.Depth();
-	int iOut = pos % outputDiff.Width();
-	int jOut = pos / outputDiff.Width();
+	const int kOut = pos % result.Depth();
+	pos /= result.Depth();
+	const int iOut = pos % result.Width();
+	const int jOut = pos / result.Width();
 
 	// Input position
-	int jStart = jOut * desc.StrideHeight;
-	int iStart = iOut * desc.StrideWidth;
-	int kStart = kOut * desc.StrideDepth;
+	const int jStart = jOut * desc.StrideHeight;
+	const int iStart = iOut * desc.StrideWidth;
+	const int kStart = kOut * desc.StrideDepth;
 
-	float* curInputDiffData = inputDiffData + ( ( ( b * inputDiff.Height() + jStart ) * inputDiff.Width() + iStart ) * inputDiff.Depth() + kStart ) * totalChannels + channel;
+	float* sourcePtr = sourceDiff
+		+ ( ( ( b * source.Height() + jStart ) * source.Width() + iStart ) * source.Depth() + kStart )
+		* totalChannels + channel;
+	const int sourceWDC = source.Width() * source.Depth() * source.Channels();
 
-	int inputWDC = inputDiff.Width() * inputDiff.Depth() * inputDiff.Channels();
-
-	if(isAtomic) {
-		for(int j = 0; j < desc.FilterHeight; ++j) {
-			float* inputColumnData = curInputDiffData;
-			for(int i = 0; i < desc.FilterWidth; ++i) {
-				float* inputPixelData = inputColumnData;
+	if( isAtomic ) {
+		for( int j = 0; j < desc.FilterHeight; ++j ) {
+			float* sourceColumnData = sourcePtr;
+			for( int i = 0; i < desc.FilterWidth; ++i ) {
+				float* sourcePixelData = sourceColumnData;
 				for( int k = 0; k < desc.FilterDepth; ++k ) {
-					atomicAdd(inputPixelData, value);
-					inputPixelData += totalChannels;
+					atomicAdd( sourcePixelData, value );
+					sourcePixelData += totalChannels;
 				}
-				inputColumnData += inputDiff.Depth() * totalChannels;
+				sourceColumnData += source.Depth() * totalChannels;
 			}
-			curInputDiffData += inputWDC;
+			sourcePtr += sourceWDC;
 		}
 	} else {
 		for( int j = 0; j < desc.FilterHeight; ++j ) {
-			float* inputColumnData = curInputDiffData;
+			float* sourceColumnData = sourcePtr;
 			for( int i = 0; i < desc.FilterWidth; ++i ) {
-				float* inputPixelData = inputColumnData;
+				float* sourcePixelData = sourceColumnData;
 				for( int k = 0; k < desc.FilterDepth; ++k ) {
-					*inputPixelData = value;
-					inputPixelData += totalChannels;
+					*sourcePixelData = value;
+					sourcePixelData += totalChannels;
 				}
-				inputColumnData += inputDiff.Depth() * totalChannels;
+				sourceColumnData += source.Depth() * totalChannels;
 			}
-			curInputDiffData += inputWDC;
+			sourcePtr += sourceWDC;
 		}
 	}
 }

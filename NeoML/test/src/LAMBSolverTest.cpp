@@ -1,4 +1,4 @@
-/* Copyright © 2021 ABBYY Production LLC
+/* Copyright © 2021-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,6 +18,9 @@ limitations under the License.
 
 #include <TestFixture.h>
 
+using namespace NeoML;
+using namespace NeoMLTest;
+
 static NeoML::CFullyConnectedLayer* createSimpleNetwork( NeoML::CDnn& dnn )
 {
     // Single FC architecture
@@ -27,16 +30,16 @@ static NeoML::CFullyConnectedLayer* createSimpleNetwork( NeoML::CDnn& dnn )
     NeoML::CrossEntropyLoss()( fc, etalon );
 
     // Non-zero free term
-    auto freeTerm = NeoML::CDnnBlob::CreateDataBlob( dnn.GetMathEngine(), NeoML::CT_Float, 1, 1, 4);
+    CPtr<CDnnBlob> freeTerm = NeoML::CDnnBlob::CreateDataBlob( dnn.GetMathEngine(), NeoML::CT_Float, 1, 1, 4);
     dnn.GetInitializer()->InitializeLayerParams( *freeTerm, 4 );
     fc->SetFreeTermData( freeTerm );
 
     // Simple data for forward pass
-    auto inputData = NeoML::CDnnBlob::CreateDataBlob( dnn.GetMathEngine(), NeoML::CT_Float, 4, 4, 4 );
+    CPtr<CDnnBlob> inputData = NeoML::CDnnBlob::CreateDataBlob( dnn.GetMathEngine(), NeoML::CT_Float, 4, 4, 4 );
     inputData->Fill<float>( 1.f );
     input->SetBlob( inputData );
 
-    auto etalonData = NeoML::CDnnBlob::CreateDataBlob( dnn.GetMathEngine(), NeoML::CT_Int, 4, 4, 1 );
+    CPtr<CDnnBlob> etalonData = NeoML::CDnnBlob::CreateDataBlob( dnn.GetMathEngine(), NeoML::CT_Int, 4, 4, 1 );
     etalonData->Fill<int>( 0 );
     etalon->SetBlob( etalonData );
 
@@ -64,6 +67,13 @@ static float blobsDiff( const NeoML::CDnnBlob* left, const NeoML::CDnnBlob* righ
 
 TEST(CLAMBSolverTest, ExcludeByLayerName)
 {
+    const auto met = MathEngine().GetType();
+    if(met != MET_Cpu && met != MET_Cuda) {
+        NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+        // CrossEntropyLoss --> VectorEltwiseNotNegative
+        return;
+    }
+
     struct CNetwork {
         NeoML::CRandom Random;
         NeoML::CDnn Dnn;

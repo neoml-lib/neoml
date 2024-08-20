@@ -175,12 +175,8 @@ class Dnn(PythonWrapper.Dnn):
             input_list.append(inputs[layer_name]._internal)
 
         dnn_outputs = self._run(input_list)
-
-        outputs = {}
-        for layer_name in dnn_outputs:
-            outputs[layer_name] = neoml.Blob.Blob(dnn_outputs[layer_name])
-
-        return outputs
+        outputs_blobs = { k: neoml.Blob.Blob(v) for k, v in dnn_outputs.items() }
+        return outputs_blobs 
 
     def run_and_backward(self, inputs):
         """Runs the network and performs a backward pass with the input data.
@@ -207,7 +203,9 @@ class Dnn(PythonWrapper.Dnn):
         for layer_name in dnn_inputs:
             input_list.append(inputs[layer_name]._internal)
 
-        return self._run_and_backward(input_list)
+        dnn_outputs = self._run_and_backward(input_list)
+        outputs_blobs = { k: neoml.Blob.Blob(v) for k, v in dnn_outputs.items() }
+        return outputs_blobs 
 
     def learn(self, inputs):
         """Runs the network, performs a backward pass 
@@ -235,7 +233,9 @@ class Dnn(PythonWrapper.Dnn):
         for layer_name in dnn_inputs:
             input_list.append(inputs[layer_name]._internal)
 
-        self._learn(input_list)
+        dnn_outputs = self._learn(input_list)
+        outputs_blobs = { k: neoml.Blob.Blob(v) for k, v in dnn_outputs.items() }
+        return outputs_blobs 
 
 # -------------------------------------------------------------------------------------------------------------
 
@@ -269,7 +269,29 @@ class Layer:
             self._internal.enable_learning()
         else:
             self._internal.disable_learning()    
-    
+
+    @property
+    def input_names(self):
+        """Tuple in which i'th element contains the name of the layer, connected to the i'th inputs of `self`
+        """
+        return tuple(name for name, output_idx in self.input_links)
+
+    @property
+    def input_links(self):
+        """Tuple in which i'th element contains complete information about the link between i'th input layer
+        and `self` (layer name, output idx)
+        """
+        return tuple(
+            (self._internal.get_input_name(idx), self._internal.get_input_output_idx(idx))
+            for idx in range(self._internal.get_input_count())
+        )
+
+    @property
+    def class_name(self):
+        """String containing NeoML class of the layer
+        """
+        return self._internal.get_class_name()
+
     def connect(self, layer, output_index=0, input_index=0):
         """Connects this layer to another.
         

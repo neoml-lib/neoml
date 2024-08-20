@@ -5,6 +5,12 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
 endif()
 
 project(NeoML LANGUAGES CXX)
+if(ANDROID OR IOS)
+    add_compile_definitions(NEOML_COMPACT)
+endif()
+
+message(STATUS "CMAKE_SYSTEM_PROCESSOR=${CMAKE_SYSTEM_PROCESSOR}")
+message(STATUS "CMAKE_VERSION=${CMAKE_VERSION}")
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../cmake)
 if(USE_FINE_OBJECTS)
@@ -14,6 +20,9 @@ endif()
 
 include(Settings)
 include(Version)
+# Set cmake default variables and some usefull variables
+set_global_variables()
+
 if(USE_FINE_OBJECTS)
     include(FineInstall)
 else()
@@ -47,12 +56,9 @@ option(NeoML_INSTALL "Install NeoML" ON)
 
 # Build NeoOnnx library
 option(NeoOnnx_BUILD "Build NeoOnnx" ON)
-if(USE_FINE_OBJECTS)
-    set(NeoOnnx_BUILD OFF CACHE BOOL "" FORCE) 
+if(NOT (WIN32 OR CMAKE_SYSTEM_NAME MATCHES "Linux" OR CMAKE_SYSTEM_NAME MATCHES "Darwin"))
+    set(NeoOnnx_BUILD OFF CACHE BOOL "" FORCE)
 endif()
-
-# Set cmake default variables and some usefull variables
-set_global_variables()
 
 if(USE_FINE_OBJECTS)
     find_package(FineObjects)
@@ -73,8 +79,12 @@ endif()
 if(NeoML_BUILD_TESTS AND NOT IS_SUBPROJECT AND NOT ANDROID AND NOT IOS)
     enable_testing()
     add_subdirectory(test/desktop)
+    add_subdirectory(../NeoMathEngine/test/FullTestDesktop ${CMAKE_BINARY_DIR}/NeoMathEngineTest)
     if(USE_FINE_OBJECTS)
         add_subdirectory(${ROOT_PATH}/NeoMLTest/test ${CMAKE_BINARY_DIR}/test)
+    endif()
+    if(NeoOnnx_BUILD AND NeoOnnxModelTest_DIR)
+        add_subdirectory(${NeoOnnxModelTest_DIR}/src ${CMAKE_BINARY_DIR}/NeoOnnxModelTest)
     endif()
 endif()
 
@@ -83,6 +93,9 @@ if(NeoML_INSTALL)
     set(INSTALLED_TARGETS NeoML NeoMathEngine)
     if(NeoOnnx_BUILD)
         list(APPEND INSTALLED_TARGETS NeoOnnx)
+        if (NOT ANDROID AND NOT IOS)
+            list(APPEND INSTALLED_TARGETS Onnx2NeoML)
+        endif()
     endif()
     
     if(USE_FINE_OBJECTS)

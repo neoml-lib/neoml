@@ -25,7 +25,7 @@ namespace NeoML {
 template<class T>
 class CCompactRegressionTree : public CRegressionTree {
 public:
-	CCompactRegressionTree() {}
+	CCompactRegressionTree() = default;
 	explicit CCompactRegressionTree( const IRegressionTreeNode* source );
 
 	// Actual implementation of IRegressionTreeNode for this class and CNodeWrapper,
@@ -34,23 +34,23 @@ public:
 	void GetNodeInfo( int nodeIndex , CRegressionTreeNodeInfo& info ) const;
 
 	// CRegressionTree methods implementation.
-	virtual void Predict(
+	void Predict(
 		const CFloatVector& features, CPrediction& result ) const override;
-	virtual void Predict(
+	void Predict(
 		const CFloatVectorDesc& features, CPrediction& result ) const override;
-	virtual double Predict( const CFloatVector& features ) const override;
-	virtual double Predict( const CFloatVectorDesc& features ) const override;
-	virtual void CalcFeatureStatistics( int maxFeature, CArray<int>& result ) const override;
+	double Predict( const CFloatVector& features ) const override;
+	double Predict( const CFloatVectorDesc& features ) const override;
+	void CalcFeatureStatistics( int maxFeature, CArray<int>& result ) const override;
 
 	// IRegressionTreeNode interface methods
-	virtual CPtr<const IRegressionTreeNode> GetLeftChild() const override
+	CPtr<const IRegressionTreeNode> GetLeftChild() const override
 		{ return GetLeftChild(0); }
-	virtual CPtr<const IRegressionTreeNode> GetRightChild() const override
+	CPtr<const IRegressionTreeNode> GetRightChild() const override
 		{ return GetRightChild(0); }
-	virtual void GetNodeInfo( CRegressionTreeNodeInfo& info ) const override
+	void GetNodeInfo( CRegressionTreeNodeInfo& info ) const override
 		{ GetNodeInfo( 0, info ); }
 
-	virtual void Serialize( CArchive& archive ) override;
+	void Serialize( CArchive& archive ) override;
 
 	// Feature number cannot exceeed this.
 	static const uint64_t MaxFeature = ( std::numeric_limits<T>::max )() - 2;
@@ -91,7 +91,7 @@ private:
 	// The size of value stored in leaf nodes.
 	int predictionSize = NotFound;
 
-	virtual ~CCompactRegressionTree() override = default;
+	~CCompactRegressionTree() override = default;
 
 	void importNodes( const IRegressionTreeNode* source );
 
@@ -116,11 +116,11 @@ public:
 		index( _index )
 	{}
 
-	virtual CPtr<const IRegressionTreeNode> GetLeftChild() const override
+	CPtr<const IRegressionTreeNode> GetLeftChild() const override
 		{ return tree.GetLeftChild( index ); }
-	virtual CPtr<const IRegressionTreeNode> GetRightChild() const override
+	CPtr<const IRegressionTreeNode> GetRightChild() const override
 		{ return tree.GetRightChild( index ); }
-	virtual void GetNodeInfo( CRegressionTreeNodeInfo& info ) const override
+	void GetNodeInfo( CRegressionTreeNodeInfo& info ) const override
 		{ tree.GetNodeInfo( index, info ); }
 
 private:

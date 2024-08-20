@@ -1,12 +1,14 @@
-from unittest import TestCase
+from unittest import TestCase, skipIf
 import os
+import sys
 import tempfile
 import pickle
 import itertools
 import numpy as np
-from scipy import sparse
+from scipy import sparse, special
 import neoml
 import threading
+import random
 
 
 class MultithreadedTestCase(TestCase):
@@ -73,7 +75,7 @@ class MathEngineTestCase(MultithreadedTestCase):
 
 class BlobTestCase(MultithreadedTestCase):
     def test_pickle(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         a = np.ones((2, 3, 4, 5), dtype=np.int32)
         shape = (2, 3, 1, 4, 1, 1, 5)
 
@@ -96,7 +98,7 @@ class BlobTestCase(MultithreadedTestCase):
         self.assertEqual(blob.shape, loaded_blob.shape)
 
     def test_load_store(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         a = np.ones((2, 3, 4, 5), dtype=np.int32)
         shape = (2, 3, 1, 4, 1, 1, 5)
 
@@ -115,7 +117,7 @@ class BlobTestCase(MultithreadedTestCase):
         self.assertEqual(blob.shape, loaded_blob.shape)
  
     def test_copy(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
 
         a = np.ones((4, 4, 4, 4), dtype=np.int32)
         shape = (4, 4, 1, 4, 4, 1, 1)
@@ -129,7 +131,7 @@ class BlobTestCase(MultithreadedTestCase):
         self.assertEqual(a2.shape, a.shape)
 
     def test_asblob(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
 
         float_array = np.ones((2, 5, 7, 16), dtype=np.float32)
         shape = (1, 2, 1, 5, 7, 1, 16)
@@ -157,7 +159,7 @@ class BlobTestCase(MultithreadedTestCase):
         self.assertEqual(1.0, blob_float_array2[0][1][1][1])
 
     def test_vector(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         float_blob = neoml.Blob.vector(math_engine, 16, "float32")
         self.assertEqual(float_blob.batch_len, 16)
         self.assertEqual(float_blob.batch_width, 1)
@@ -171,7 +173,7 @@ class BlobTestCase(MultithreadedTestCase):
         self.assertEqual(float_blob.object_size, 1)
 
     def test_matrix(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         float_blob = neoml.Blob.matrix(math_engine, 16, 32, "int32")
         self.assertEqual(float_blob.batch_len, 16)
         self.assertEqual(float_blob.batch_width, 32)
@@ -185,7 +187,7 @@ class BlobTestCase(MultithreadedTestCase):
         self.assertEqual(float_blob.object_size, 1)
 
     def test_tensor(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         shape = (1, 2, 3, 4, 5, 6, 7)
         float_blob = neoml.Blob.tensor(math_engine, shape, "int32")
         self.assertEqual(float_blob.batch_len, 1)
@@ -200,7 +202,7 @@ class BlobTestCase(MultithreadedTestCase):
         self.assertEqual(float_blob.object_size, 4 * 5 * 6 * 7)
 
     def test_list_blob(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         float_blob = neoml.Blob.list_blob(math_engine, 2, 3, 4, 5, "int32")
         self.assertEqual(float_blob.batch_len, 2)
         self.assertEqual(float_blob.batch_width, 3)
@@ -214,7 +216,7 @@ class BlobTestCase(MultithreadedTestCase):
         self.assertEqual(float_blob.object_size, 5)
 
     def test_image2d(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         float_blob = neoml.Blob.image2d(math_engine, 2, 3, 4, 5, 6, "float32")
         self.assertEqual(float_blob.batch_len, 2)
         self.assertEqual(float_blob.batch_width, 3)
@@ -228,7 +230,7 @@ class BlobTestCase(MultithreadedTestCase):
         self.assertEqual(float_blob.object_size, 4 * 5 * 6)
 
     def test_image3d(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         float_blob = neoml.Blob.image3d(math_engine, 2, 3, 4, 5, 6, 7, "float32")
         self.assertEqual(float_blob.batch_len, 2)
         self.assertEqual(float_blob.batch_width, 3)
@@ -241,13 +243,25 @@ class BlobTestCase(MultithreadedTestCase):
         self.assertEqual(float_blob.object_count, 2 * 3)
         self.assertEqual(float_blob.object_size, 4 * 5 * 6 * 7)
 
+    def test_asarray(self):
+        math_engine = neoml.MathEngine.CpuMathEngine()
+        array_shape = (2, 5, 7, 16)
+        blob_shape = (1, 2, 1, 5, 7, 1, 16)
+        orig_array = np.ones(array_shape, dtype=np.float32)
+        blob = neoml.Blob.asblob(math_engine, orig_array, blob_shape, False)
+        array_default = blob.asarray()
+        self.assertEqual(array_shape, array_default.shape)
+        array_keep_dims = blob.asarray(keep_dims=True)
+        self.assertEqual(blob_shape, array_keep_dims.shape)
+
 
 class SolverTestCase(MultithreadedTestCase):
     def test_nesterov_gradient(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         solver = neoml.Dnn.NesterovGradient(math_engine, learning_rate=0.6, l1=0.6, l2=0.6,
                                                moment_decay_rate=0.6, max_gradient_norm=0.6,
-                                               second_moment_decay_rate=0.6, epsilon=0.6, ams_grad=True)
+                                               second_moment_decay_rate=0.6, epsilon=0.6, ams_grad=True,
+                                               decoupled_weight_decay=True)
 
         self.assertAlmostEqual(solver.l1, 0.6, delta=1e-3)
         self.assertAlmostEqual(solver.l2, 0.6, delta=1e-3)
@@ -257,9 +271,10 @@ class SolverTestCase(MultithreadedTestCase):
         self.assertAlmostEqual(solver.second_moment_decay_rate, 0.6, delta=1e-3)
         self.assertAlmostEqual(solver.epsilon, 0.6, delta=1e-3)
         self.assertEqual(solver.ams_grad, True)
+        self.assertEqual(solver.decoupled_weight_decay, True)
 
     def test_adaptive_gradient(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         solver = neoml.Dnn.AdaptiveGradient(math_engine, learning_rate=0.6, l1=0.6, l2=0.6,
                                                moment_decay_rate=0.6, max_gradient_norm=0.6,
                                                second_moment_decay_rate=0.6, epsilon=0.6,
@@ -276,7 +291,7 @@ class SolverTestCase(MultithreadedTestCase):
         self.assertEqual(solver.decoupled_weight_decay, True)
 
     def test_simple_gradient(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         solver = neoml.Dnn.SimpleGradient(math_engine, learning_rate=0.6, l1=0.6, l2=0.6,
                                              moment_decay_rate=0.6, max_gradient_norm=0.6)
 
@@ -289,7 +304,7 @@ class SolverTestCase(MultithreadedTestCase):
 
 class LayersTestCase(MultithreadedTestCase):
     def test_lstm(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source1 = neoml.Dnn.Source(dnn, "source1")
         lstm = neoml.Dnn.Lstm(source1, 7, 0.6, name="lstm")
@@ -343,7 +358,7 @@ class LayersTestCase(MultithreadedTestCase):
         self.assertEqual(free_term.shape, (28,))
 
     def test_fully_connected(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source1 = neoml.Dnn.Source(dnn, "source1")
         source2 = neoml.Dnn.Source(dnn, "source2")
@@ -381,9 +396,13 @@ class LayersTestCase(MultithreadedTestCase):
 
         self.assertEqual(weights.shape, (5, 16))
         self.assertEqual(free_term.shape, (5,))
+        
+        # Call reshape twice test
+        inputs = {"source1": input2, "source2": input1}
+        outputs = dnn.run(inputs)
 
     def test_concat_channels(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source1 = neoml.Dnn.Source(dnn, "source1")
         source2 = neoml.Dnn.Source(dnn, "source2")
@@ -403,7 +422,7 @@ class LayersTestCase(MultithreadedTestCase):
         self.assertEqual(a.size, 32)
 
     def test_concat_depth(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source1 = neoml.Dnn.Source(dnn, "source1")
         source2 = neoml.Dnn.Source(dnn, "source2")
@@ -423,7 +442,7 @@ class LayersTestCase(MultithreadedTestCase):
         self.assertEqual(a.size, 32)
 
     def test_concat_width(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source1 = neoml.Dnn.Source(dnn, "source1")
         source2 = neoml.Dnn.Source(dnn, "source2")
@@ -443,7 +462,7 @@ class LayersTestCase(MultithreadedTestCase):
         self.assertEqual(a.size, 32)
 
     def test_concat_height(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source1 = neoml.Dnn.Source(dnn, "source1")
         source2 = neoml.Dnn.Source(dnn, "source2")
@@ -463,7 +482,7 @@ class LayersTestCase(MultithreadedTestCase):
         self.assertEqual(a.size, 32)
 
     def test_concat_batch_width(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source1 = neoml.Dnn.Source(dnn, "source1")
         source2 = neoml.Dnn.Source(dnn, "source2")
@@ -483,7 +502,7 @@ class LayersTestCase(MultithreadedTestCase):
         self.assertEqual(a.size, 32)
 
     def test_concat_batch_length(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source1 = neoml.Dnn.Source(dnn, "source1")
         source2 = neoml.Dnn.Source(dnn, "source2")
@@ -503,7 +522,7 @@ class LayersTestCase(MultithreadedTestCase):
         self.assertEqual(a.size, 31)
 
     def test_concat_list_size(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source1 = neoml.Dnn.Source(dnn, "source1")
         source2 = neoml.Dnn.Source(dnn, "source2")
@@ -523,7 +542,7 @@ class LayersTestCase(MultithreadedTestCase):
         self.assertEqual(a.size, 31)
 
     def test_concat_object(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source1 = neoml.Dnn.Source(dnn, "source1")
         source2 = neoml.Dnn.Source(dnn, "source2")
@@ -543,7 +562,7 @@ class LayersTestCase(MultithreadedTestCase):
         self.assertEqual(a.size, 136)
 
     def test_enum_binarization(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source1 = neoml.Dnn.Source(dnn, "source1")
         bin = neoml.Dnn.EnumBinarization(source1, 5, "bin")
@@ -565,7 +584,7 @@ class LayersTestCase(MultithreadedTestCase):
         self.assertEqual(a.shape, (4, 1, 1, 3, 3, 3, 4))
 
     def test_bitset_vectorization(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source1 = neoml.Dnn.Source(dnn, "source1")
         bin = neoml.Dnn.BitSetVectorization(source1, 5, "bin")
@@ -587,7 +606,7 @@ class LayersTestCase(MultithreadedTestCase):
         self.assertEqual(a.shape, (4, 1, 1, 3, 3, 3, 4))
 
     def test_dotproduct(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source1 = neoml.Dnn.Source(dnn, "source1")
         source2 = neoml.Dnn.Source(dnn, "source2")
@@ -607,7 +626,7 @@ class LayersTestCase(MultithreadedTestCase):
         self.assertEqual(a[0], 16)
 
     def test_dropout(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source = neoml.Dnn.Source(dnn, "source")
         dropout = neoml.Dnn.Dropout(source, 0.5, True, True, "dropout")
@@ -627,7 +646,7 @@ class LayersTestCase(MultithreadedTestCase):
         self.assertEqual(layer.rate, 0.5)
 
     def test_accumulative_lookup(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source = neoml.Dnn.Source(dnn, "source")
         lookup = neoml.Dnn.AccumulativeLookup(source, 5, 6, "lookup")
@@ -645,7 +664,7 @@ class LayersTestCase(MultithreadedTestCase):
         self.assertEqual(out.shape, (2, 6))
 
     def test_multichannel_lookup(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source = neoml.Dnn.Source(dnn, "source")
         lookup = neoml.Dnn.MultichannelLookup((source,), [(1, 4)], "lookup")
@@ -670,7 +689,7 @@ class LayersTestCase(MultithreadedTestCase):
         lookup.initialize(uniform)
 
     def test_tied_embeddings(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source = neoml.Dnn.Source(dnn, "source")
         tied = neoml.Dnn.TiedEmbeddings((source,), "embeddings", 0, "tied")
@@ -688,7 +707,7 @@ class LayersTestCase(MultithreadedTestCase):
         self.assertEqual(tied.embeddings_layer_name, "embeddings2")
 
     def test_accuracy(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source1 = neoml.Dnn.Source(dnn, "source1")
         source2 = neoml.Dnn.Source(dnn, "source2")
@@ -711,7 +730,7 @@ class LayersTestCase(MultithreadedTestCase):
         self.assertAlmostEqual(a[0], 1.0, delta=1e-3)
 
     def test_confusion_matrix(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source1 = neoml.Dnn.Source(dnn, "source1")
         source2 = neoml.Dnn.Source(dnn, "source2")
@@ -736,7 +755,7 @@ class LayersTestCase(MultithreadedTestCase):
         self.assertAlmostEqual(a[0][0], 16.0, delta=1e-3)
 
     def _test_activation(self, layer, kwargs={}):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source = neoml.Dnn.Source(dnn, "source")
         activation = getattr(neoml.Dnn, layer)(source, name="activation", **kwargs)
@@ -779,6 +798,8 @@ class LayersTestCase(MultithreadedTestCase):
     def test_activation_gelu(self):
         out = self._test_activation('GELU')
         self.assertTrue(np.isclose(out, 0.84579575).all())
+        out = self._test_activation('GELU', dict(calculation_mode='precise'))
+        self.assertTrue(np.isclose(out, 0.8413447).all())
 
     def test_activation_abs(self):
         out = self._test_activation('Abs')
@@ -804,8 +825,20 @@ class LayersTestCase(MultithreadedTestCase):
         out = self._test_activation('Power', dict(exponent=5.5))
         self.assertTrue(np.isclose(out, 1).all())
 
+    def test_activation_exp(self):
+        out = self._test_activation('Exp')
+        self.assertTrue(np.isclose(out, np.exp(1)).all())
+
+    def test_activation_log(self):
+        out = self._test_activation('Log')
+        self.assertTrue(np.isclose(out, np.log(1)).all())
+
+    def test_activation_erf(self):
+        out = self._test_activation('Erf')
+        self.assertTrue(np.isclose(out, special.erf(1)).all())
+
     def test_add_object(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source1 = neoml.Dnn.Source(dnn, "source1")
         source2 = neoml.Dnn.Source(dnn, "source2")
@@ -825,7 +858,7 @@ class LayersTestCase(MultithreadedTestCase):
         self.assertAlmostEqual(a[1][1][1], 2.0, delta=1e-3)
 
     def test_argmax(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source = neoml.Dnn.Source(dnn, "source")
         argmax = neoml.Dnn.Argmax(source, dimension="channels", name="argmax")
@@ -844,7 +877,7 @@ class LayersTestCase(MultithreadedTestCase):
         self.assertEqual(out, 2)
 
     def test_attention_decoder(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source1 = neoml.Dnn.Source(dnn, "source1")
         source2 = neoml.Dnn.Source(dnn, "source2")
@@ -883,7 +916,7 @@ class LayersTestCase(MultithreadedTestCase):
         self.assertSequenceEqual(out, [1])
 
     def test_batch_norm(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source = neoml.Dnn.Source(dnn, "source")
         batch_norm = neoml.Dnn.BatchNormalization(source, True, True, 0.3, "batch_norm")
@@ -906,7 +939,7 @@ class LayersTestCase(MultithreadedTestCase):
         self.assertAlmostEqual(layer.slow_convergence_rate, 0.3, delta=1e-3)
 
     def test_matrix_multiplication(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source1 = neoml.Dnn.Source(dnn, "source1")
         source2 = neoml.Dnn.Source(dnn, "source2")
@@ -926,7 +959,7 @@ class LayersTestCase(MultithreadedTestCase):
         self.assertTrue(np.array_equal(out, mult1 * mult2))
 
     def test_multihead_attention(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source1 = neoml.Dnn.Source(dnn, "source1")
         source2 = neoml.Dnn.Source(dnn, "source2")
@@ -964,14 +997,14 @@ class LayersTestCase(MultithreadedTestCase):
 
         input1 = neoml.Blob.asblob(math_engine, np.ones((4, 3, 3), dtype=np.float32), (1, 4, 3, 1, 1, 1, 3))
         input2 = neoml.Blob.asblob(math_engine, np.ones((4, 2, 3), dtype=np.float32), (1, 4, 2, 1, 1, 1, 3))
-        input3 = neoml.Blob.asblob(math_engine, np.ones((4, 2, 2), dtype=np.float32), (1, 4, 2, 1, 1, 1, 4))
+        input3 = neoml.Blob.asblob(math_engine, np.ones((4, 2, 4), dtype=np.float32), (1, 4, 2, 1, 1, 1, 4))
         inputs = {"source1": input1, "source2": input2, "source3": input3}
         outputs = dnn.run(inputs)
         out = outputs["sink"].asarray()
         self.assertEqual(out.shape, (4, 3, 8))
 
     def test_image_to_pixel(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source1 = neoml.Dnn.Source(dnn, "source1")
         source2 = neoml.Dnn.Source(dnn, "source2")
@@ -988,7 +1021,7 @@ class LayersTestCase(MultithreadedTestCase):
         self.assertEqual(out.shape, (4, 3, 2))
 
     def test_pixel_to_image(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source1 = neoml.Dnn.Source(dnn, "source1")
         source2 = neoml.Dnn.Source(dnn, "source2")
@@ -1016,7 +1049,7 @@ class LayersTestCase(MultithreadedTestCase):
         self.assertEqual(out.shape, (4, 5, 9, 2))
 
     def test_image_resize(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source1 = neoml.Dnn.Source(dnn, "source1")
         conv = neoml.Dnn.ImageResize(source1, [5, 6, 7, 8], 0.1, "conv")
@@ -1042,7 +1075,7 @@ class LayersTestCase(MultithreadedTestCase):
         self.assertEqual(out.shape, (2, 17, 14, 2))
 
     def test_crf(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source1 = neoml.Dnn.Source(dnn, "source1")
         source2 = neoml.Dnn.Source(dnn, "source2")
@@ -1095,7 +1128,7 @@ class LayersTestCase(MultithreadedTestCase):
         self.assertEqual(out3.shape, (1,))
 
     def test_crf_loss(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source1 = neoml.Dnn.Source(dnn, "source1")
         source2 = neoml.Dnn.Source(dnn, "source2")
@@ -1124,7 +1157,7 @@ class LayersTestCase(MultithreadedTestCase):
         self.assertAlmostEqual(crfLoss.last_loss, -2, delta=1e-3)
 
     def test_crf_best_sequence(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source1 = neoml.Dnn.Source(dnn, "source1")
         source2 = neoml.Dnn.Source(dnn, "source2")
@@ -1141,7 +1174,7 @@ class LayersTestCase(MultithreadedTestCase):
         self.assertTrue(np.equal(out, [0., 0., 0.]).all())
 
     def test_ctc_loss(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source1 = neoml.Dnn.Source(dnn, "source1")
         source2 = neoml.Dnn.Source(dnn, "source2")
@@ -1168,7 +1201,7 @@ class LayersTestCase(MultithreadedTestCase):
         ctcLoss.skip = True
         self.assertEqual(ctcLoss.skip, True)
 
-        input1 = neoml.Blob.asblob(math_engine, np.ones((64, 4, 5), dtype=np.float32), (3, 4, 1, 1, 1, 1, 5))
+        input1 = neoml.Blob.asblob(math_engine, np.ones((3, 4, 5), dtype=np.float32), (3, 4, 1, 1, 1, 1, 5))
         input2 = neoml.Blob.asblob(math_engine, np.ones((2, 4), dtype=np.int32), (2, 4, 1, 1, 1, 1, 1))
         inputs = {"source1": input1, "source2": input2}
         dnn.run(inputs)
@@ -1176,7 +1209,7 @@ class LayersTestCase(MultithreadedTestCase):
         self.assertAlmostEqual(layer.last_loss, 4.8283, delta=1e-4)
 
     def test_ctc_decoding(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source1 = neoml.Dnn.Source(dnn, "source1")
         source2 = neoml.Dnn.Source(dnn, "source2")
@@ -1210,7 +1243,7 @@ class LayersTestCase(MultithreadedTestCase):
         dnn.run(inputs)
 
     def test_gru(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source1 = neoml.Dnn.Source(dnn, "source1")
         gru = neoml.Dnn.Gru((source1,), 5, "gru")
@@ -1242,7 +1275,7 @@ class LayersTestCase(MultithreadedTestCase):
         self.assertEqual(out.shape, (3, 2, 6))
 
     def _test_eltwise(self, layer, check_f):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source1 = neoml.Dnn.Source(dnn, "source1")
         source2 = neoml.Dnn.Source(dnn, "source2")
@@ -1278,7 +1311,7 @@ class LayersTestCase(MultithreadedTestCase):
         self._test_eltwise('EltwiseMax', lambda x: (x == 3).all())
 
     def test_conv(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source1 = neoml.Dnn.Source(dnn, "source1")
         source2 = neoml.Dnn.Source(dnn, "source2")
@@ -1321,7 +1354,7 @@ class LayersTestCase(MultithreadedTestCase):
         self.assertEqual(out2.shape, (2, 3, 4, 3, 3, 17))
 
     def test_transposed_conv(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source1 = neoml.Dnn.Source(dnn, "source1")
         source2 = neoml.Dnn.Source(dnn, "source2")
@@ -1363,7 +1396,7 @@ class LayersTestCase(MultithreadedTestCase):
         self.assertEqual(out2.shape, (2, 3, 4, 9, 9, 17))
 
     def test_channelwise_conv(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source1 = neoml.Dnn.Source(dnn, "source1")
         source2 = neoml.Dnn.Source(dnn, "source2")
@@ -1401,7 +1434,7 @@ class LayersTestCase(MultithreadedTestCase):
         self.assertEqual(out2.shape, (2, 3, 4, 3, 3, 7))
 
     def test_time_conv(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source1 = neoml.Dnn.Source(dnn, "source1")
         source2 = neoml.Dnn.Source(dnn, "source2")
@@ -1449,7 +1482,7 @@ class LayersTestCase(MultithreadedTestCase):
         self.assertEqual(out2.shape, (3, 8))
 
     def test_conv3d(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source1 = neoml.Dnn.Source(dnn, "source1")
         source2 = neoml.Dnn.Source(dnn, "source2")
@@ -1487,7 +1520,7 @@ class LayersTestCase(MultithreadedTestCase):
         self.assertEqual(out2.shape, (9, 3, 5, 3, 2, 7))
 
     def test_transposedconv3d(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source1 = neoml.Dnn.Source(dnn, "source1")
         source2 = neoml.Dnn.Source(dnn, "source2")
@@ -1525,7 +1558,7 @@ class LayersTestCase(MultithreadedTestCase):
         self.assertEqual(out2.shape, (9, 3, 14, 11, 9, 7))
 
     def test_depthtospace(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source = neoml.Dnn.Source(dnn, 'source')
         depth_to_space = neoml.Dnn.DepthToSpace(source, block_size=3, name='depth_to_space')
@@ -1542,7 +1575,7 @@ class LayersTestCase(MultithreadedTestCase):
         self.assertEqual(out.shape, (2, 3, 5, 8, 16, 3))
 
     def test_spacetodepth(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source = neoml.Dnn.Source(dnn, 'source')
         space_to_depth = neoml.Dnn.SpaceToDepth(source, block_size=3, name='space_to_depth')
@@ -1559,7 +1592,7 @@ class LayersTestCase(MultithreadedTestCase):
         self.assertEqual(out.shape, (2, 3, 5, 2, 4, 48))
 
     def test_lrn(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source = neoml.Dnn.Source(dnn, 'source')
         lrn = neoml.Dnn.Lrn(source, window_size=3, bias=-2., alpha=0.456, beta=0.123, name='lrn')
@@ -1582,7 +1615,7 @@ class LayersTestCase(MultithreadedTestCase):
             np_type = np.float32 if type == 'float' else np.int32
             return  np.arange(5, dtype=np_type)
 
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source = neoml.Dnn.Source(dnn, 'source')
         cast = neoml.Dnn.Cast(source, output_type=type_to)
@@ -1620,7 +1653,7 @@ class LayersTestCase(MultithreadedTestCase):
         batch_size = 17
         list_size_in = 13
         obj_size_in = 11
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         input_data = neoml.Dnn.Source(dnn, 'input_data')
         transformer_encoder = neoml.Dnn.TransformerEncoder(input_data, head_count=2, hidden_size=8,
@@ -1657,11 +1690,146 @@ class LayersTestCase(MultithreadedTestCase):
                 outputs = dnn.run({'input_data': input_data_blob})
             self.assertEqual(outputs['sink'].shape, (1, batch_size, list_size_in, 1, 1, 1, obj_size_in))
 
+    def test_bert_conv(self):
+        seq_len = 7
+        batch_size = 16
+        num_heads = 8
+        head_size = 12
+        kernel_size = 5
+
+        math_engine = neoml.MathEngine.CpuMathEngine()
+        dnn = neoml.Dnn.Dnn(math_engine)
+        data = neoml.Dnn.Source(dnn, 'data')
+        kernel = neoml.Dnn.Source(dnn, 'kernel')
+        bert_conv = neoml.Dnn.BertConv([data, kernel], 'bert_conv')
+        sink = neoml.Dnn.Sink(bert_conv, 'sink')
+        
+        data_arr = np.ones(seq_len * batch_size * num_heads * head_size, dtype=np.float32)
+        data_blob = neoml.Blob.asblob(math_engine, data_arr, (seq_len, batch_size, 1, 1, 1, 1, num_heads * head_size))
+        kernel_arr = np.zeros(seq_len * batch_size * num_heads * kernel_size, dtype=np.float32)
+        kernel_blob = neoml.Blob.asblob(math_engine, kernel_arr, (seq_len, batch_size * num_heads, 1, kernel_size, 1, 1, 1))
+
+        outputs = dnn.run({'data': data_blob, 'kernel': kernel_blob})
+        self.assertEqual(outputs['sink'].shape, (seq_len, batch_size * num_heads, 1, head_size, 1, 1, 1))
+        self.assertTrue(np.equal(outputs['sink'].asarray(), np.zeros((seq_len, batch_size * num_heads, head_size), np.float32)).all())
+    
+    def test_broadcast(self):
+        math_engine = neoml.MathEngine.CpuMathEngine()
+        dnn = neoml.Dnn.Dnn(math_engine)
+        first_data = neoml.Dnn.Source(dnn, 'first_data')
+        second_data = neoml.Dnn.Source(dnn, 'second_data')
+        broadcast = neoml.Dnn.Broadcast((first_data, second_data), 'broadcast')
+        first_sink = neoml.Dnn.Sink((broadcast, 0), 'first_sink')
+        second_sink = neoml.Dnn.Sink((broadcast, 1), 'second_sink')
+
+        first_blob = neoml.Blob.asblob(math_engine, np.ones(3*5*7, np.float32), [1, 3, 1, 5, 1, 7, 1])
+        second_blob = neoml.Blob.asblob(math_engine, np.zeros(2*4*6*8, np.float32), [2, 1, 4, 1, 6, 1, 8])
+        outputs = dnn.run({'first_data': first_blob, 'second_data': second_blob})
+        self.assertEqual(len(outputs), 2)
+        output_shape = (2, 3, 4, 5, 6, 7, 8)
+        self.assertTrue('first_sink' in outputs)
+        self.assertEqual(outputs['first_sink'].shape, output_shape)
+        self.assertTrue(np.equal(outputs['first_sink'].asarray(), np.ones(output_shape, np.float32)).all())
+        self.assertTrue('second_sink' in outputs)
+        self.assertEqual(outputs['second_sink'].shape, output_shape)
+        self.assertTrue(np.equal(outputs['second_sink'].asarray(), np.zeros(output_shape, np.float32)).all())
+
+    def _test_cumsum(self, dtype, reverse):
+        math_engine = neoml.MathEngine.CpuMathEngine()
+        dnn = neoml.Dnn.Dnn(math_engine)
+        source = neoml.Dnn.Source(dnn, 'source')
+        cumsum = neoml.Dnn.CumSum(source, dimension='width', reverse=True, name='cumsum')
+        sink = neoml.Dnn.Sink(cumsum, 'sink')
+        
+        self.assertEqual('width', cumsum.dimension)
+        self.assertTrue(cumsum.reverse)
+        cumsum.dimension = 'channels'
+        cumsum.reverse = False
+        self.assertEqual('channels', cumsum.dimension)
+        self.assertFalse(cumsum.reverse)
+        cumsum.dimension = 'height'
+        cumsum.reverse = reverse
+
+        layer = dnn.layers[cumsum.name]
+        self.assertEqual(layer.name, 'cumsum')
+
+        data_shape = (2,3,4)
+        blob_shape = (1,2,1,3,1,4,1)
+        data = np.random.uniform(-100, 100, data_shape).astype(dtype)
+        blob = neoml.Blob.asblob(math_engine, data, blob_shape)
+        out_blob = dnn.run({source.name: blob})[sink.name]
+        self.assertEqual(out_blob.shape, blob_shape)
+        out_data = out_blob.asarray()
+        self.assertEqual(out_data.shape, data_shape)
+        self.assertEqual(out_data.dtype, dtype)
+
+        if reverse:
+            expected = np.flip(np.cumsum(np.flip(data, 1), 1), 1)
+        else:
+            expected = np.cumsum(data, 1)
+
+        self.assertTrue((np.abs(expected - out_data) < 1e-4).all())
+
+    def test_cumsum(self):
+        self._test_cumsum(np.int32, False)
+        self._test_cumsum(np.int32, True)
+        self._test_cumsum(np.float32, False)
+        self._test_cumsum(np.float32, True)
+
+    def _test_scatter_nd(self, is_integer):
+        math_engine = neoml.MathEngine.CpuMathEngine()
+        dnn = neoml.Dnn.Dnn(math_engine)
+        first_source_name = 'source0'
+        second_source_name = 'source1'
+        third_source_name = 'source2'
+        scatter_layer_name = 'scatter_nd'
+        sink_name = 'sink'
+
+        first_source = neoml.Dnn.Source(dnn, first_source_name)
+        second_source = neoml.Dnn.Source(dnn, second_source_name)
+        third_source = neoml.Dnn.Source(dnn, third_source_name)
+        scatter_layer = neoml.Dnn.ScatterND((first_source, second_source, third_source), scatter_layer_name)
+        sink = neoml.Dnn.Sink(scatter_layer, sink_name)
+        layer = dnn.layers[scatter_layer_name]
+        self.assertEqual(layer.name, scatter_layer_name)
+
+        orig_shape = [2, 3, 4, 5]
+        updates_shape = [2, 3, 5]
+        indices_shape = [2, 3, 3]
+        indices_data = np.array([[x // 12, (x // 4) % 3, x % 4] for x in random.sample(range(24), 6)], dtype=np.int32).reshape(indices_shape)
+        if is_integer:
+            orig_data = np.random.randint(-10, 10, orig_shape, np.int32)
+            updates_data = np.random.randint(-10, 10, updates_shape, np.int32)
+        else:
+            orig_data = np.random.uniform(-10, 10, orig_shape).astype(np.float32)
+            updates_data = np.random.uniform(-10, 10, updates_shape).astype(np.float32)
+        orig_blob = neoml.Blob.asblob(math_engine, orig_data, orig_shape + [1] * (7 - len(orig_shape)))
+        updates_blob = neoml.Blob.asblob(math_engine, updates_data, updates_shape + [1] * (7 - len(updates_shape)))
+        indices_blob_shape = indices_shape[:-1] + [1] * (7 - len(indices_shape)) + indices_shape[-1:]
+        indices_blob = neoml.Blob.asblob(math_engine, indices_data, indices_blob_shape)
+        outputs = dnn.run({first_source_name: orig_blob,
+            second_source_name: indices_blob,
+            third_source_name: updates_blob})
+        self.assertTrue(sink_name in outputs)
+        result = outputs[sink.name].asarray()
+
+        self.assertEqual(result.shape, tuple(orig_shape))
+        self.assertEqual(result.dtype, np.int32 if is_integer else np.float32)
+
+        expected_data = orig_data
+        for idx in np.ndindex(indices_data.shape[:-1]):
+            expected_data[tuple(indices_data[idx])] = updates_data[idx]
+        self.assertTrue(np.equal(expected_data, result).all())
+
+    def test_scatter_nd(self):
+        self._test_scatter_nd(False)
+        self._test_scatter_nd(True)
+
 
 class PoolingTestCase(MultithreadedTestCase):
     def _test_pooling(self, layer, init_params={}, changed_params={},
-                      input_shape=(2, 1, 2, 3, 5, 4, 2)):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+                      input_shape=(2, 1, 2, 3, 5, 4, 2), is_integer=False):
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source = neoml.Dnn.Source(dnn, "source")
         pooling = getattr(neoml.Dnn, layer)(source, name="pooling", **init_params)
@@ -1680,7 +1848,7 @@ class PoolingTestCase(MultithreadedTestCase):
                                    msg='Changed param {} of {} differs'.format(k, layer))
             self.assertEqual(getattr(pooling, k), getattr(layer, k))
 
-        input = neoml.Blob.asblob(math_engine, np.ones(input_shape, dtype=np.float32), input_shape)
+        input = neoml.Blob.asblob(math_engine, np.ones(input_shape, dtype=(np.int32 if is_integer else np.float32)), input_shape)
         inputs = {"source": input}
         outputs = dnn.run(inputs)
         out = outputs["sink"].asarray()
@@ -1720,6 +1888,12 @@ class PoolingTestCase(MultithreadedTestCase):
     def test_global_mean_pooling(self):
         out = self._test_pooling('GlobalMeanPooling')
         self.assertTrue(np.equal(out, np.ones((2, 2, 2), dtype=np.float32)).all())
+    
+    def test_global_sum_pooling(self):
+        out = self._test_pooling('GlobalSumPooling')
+        self.assertTrue(np.equal(out, np.ones((2, 2, 2), dtype=np.float32) * 60).all())
+        out = self._test_pooling('GlobalSumPooling', is_integer=True)
+        self.assertTrue(np.equal(out, np.ones((2, 2, 2), dtype=np.int32) * 60).all())
 
     def test_max_over_time_pooling(self):
         out = self._test_pooling('MaxOverTimePooling',
@@ -1735,7 +1909,7 @@ class PoolingTestCase(MultithreadedTestCase):
         self.assertTrue(np.equal(out, np.ones((2, 3, 5, 4), dtype=np.float32)).all())
 
     def test_object_norm(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source1 = neoml.Dnn.Source(dnn, "source1")
         norm = neoml.Dnn.ObjectNormalization(source1, 0.01, "norm")
@@ -1764,7 +1938,7 @@ class PoolingTestCase(MultithreadedTestCase):
         self.assertEqual(a.shape, input1.shape)
 
     def test_positional_embedding(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source1 = neoml.Dnn.Source(dnn, "source1")
         pos = neoml.Dnn.PositionalEmbedding(source1, "transformers", "pos")
@@ -1790,7 +1964,7 @@ class PoolingTestCase(MultithreadedTestCase):
         self.assertEqual(a.shape, input1.shape)
 
     def test_precision_recall(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source1 = neoml.Dnn.Source(dnn, "source1")
         source2 = neoml.Dnn.Source(dnn, "source2")
@@ -1814,12 +1988,12 @@ class PoolingTestCase(MultithreadedTestCase):
         self.assertEqual(a.size, 4)
 
     def test_qrnn(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source1 = neoml.Dnn.Source(dnn, "source1")
         source2 = neoml.Dnn.Source(dnn, "source2")
         qrnn = neoml.Dnn.Qrnn((source1, source2), 'fo', 7, 4, 2, (1, 1), "sigmoid", 0.6, "direct", "qrnn")
-        filter = neoml.Blob.asblob(math_engine, np.ones((21, 5, 6), dtype=np.float32), (1, 21, 1, 4, 1, 1, 6))
+        filter = neoml.Blob.asblob(math_engine, np.ones((21, 4, 6), dtype=np.float32), (1, 21, 1, 4, 1, 1, 6))
         qrnn.filter = filter
         free_term = neoml.Blob.asblob(math_engine, np.ones((21,), dtype=np.float32), (1, 21, 1, 1, 1, 1, 1))
         qrnn.free_term = free_term
@@ -1849,7 +2023,7 @@ class PoolingTestCase(MultithreadedTestCase):
         self.assertEqual(a.shape, (1, 3, 1, 1, 1, 1, 7 ))
 
     def test_reorg(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source = neoml.Dnn.Source(dnn, "source1")
         reorg = neoml.Dnn.Reorg(source, 3, "reorg")
@@ -1868,7 +2042,7 @@ class PoolingTestCase(MultithreadedTestCase):
         self.assertEqual(out.shape, (1, 3, 1, 4, 4, 1, 16))
 
     def test_repeat_count(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source = neoml.Dnn.Source(dnn, "source1")
         repeat_count = neoml.Dnn.RepeatSequence(source, 5, "layer")
@@ -1887,7 +2061,7 @@ class PoolingTestCase(MultithreadedTestCase):
         self.assertTrue(np.equal(out, np.ones((10, 3, 2, 2), dtype=np.float32)).all())
 
     def test_softmax(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source = neoml.Dnn.Source(dnn, "source1")
         softmax = neoml.Dnn.Softmax(source, "list_size", "layer")
@@ -1906,7 +2080,7 @@ class PoolingTestCase(MultithreadedTestCase):
         self.assertTrue(np.equal(out, 0.1 * np.ones((2, 10), dtype=np.float32)).all())
 
     def test_split(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source = neoml.Dnn.Source(dnn, "source1")
 
@@ -1931,7 +2105,7 @@ class PoolingTestCase(MultithreadedTestCase):
             self.assertTrue(np.equal(out2, expected2).all())
 
     def test_sub_sequence(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source = neoml.Dnn.Source(dnn, "source1")
         subsequence = neoml.Dnn.SubSequence(source, 1, 3, "layer")
@@ -1960,7 +2134,7 @@ class PoolingTestCase(MultithreadedTestCase):
         self.assertEqual(out2.shape, (5, 3, 4))
 
     def test_upsampling2d(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source = neoml.Dnn.Source(dnn, "source1")
         upsampling = neoml.Dnn.Upsampling2D(source, 4, 5, "layer")
@@ -1983,7 +2157,7 @@ class PoolingTestCase(MultithreadedTestCase):
         self.assertTrue(np.equal(out, np.ones((2, 3, 2, 6), dtype=np.float32)).all())
 
     def test_transform(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source = neoml.Dnn.Source(dnn, "source1")
         trans = [("set", 3), ("set", 1), ("set", 5), ("set", 4), ("divide", 4), ("multiply", 2), ("remainder", 4)]
@@ -2003,7 +2177,7 @@ class PoolingTestCase(MultithreadedTestCase):
         self.assertEqual(out.shape, (3, 5, 4, 2))
 
     def test_transpose(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source = neoml.Dnn.Source(dnn, "source1")
         transpose = neoml.Dnn.Transpose(source, "height", "width", "layer")
@@ -2019,14 +2193,14 @@ class PoolingTestCase(MultithreadedTestCase):
         layer.second_dim = "channels"
         self.assertEqual(layer.second_dim, "channels")
 
-        input1 = neoml.Blob.asblob(math_engine, np.ones((2, 3, 4, 5), dtype=np.float32), (1, 2, 1, 2, 1, 5, 5))
+        input1 = neoml.Blob.asblob(math_engine, np.ones((2, 3, 4, 5), dtype=np.float32), (1, 2, 1, 3, 1, 4, 5))
         inputs = {"source1": input1}
         outputs = dnn.run(inputs)
         out = outputs["sink"].asarray()
-        self.assertTrue(np.equal(out, np.ones((2, 2, 5, 5), dtype=np.float32)).all())
+        self.assertTrue(np.equal(out, np.ones((2, 3, 5, 4), dtype=np.float32)).all())
 
     def test_sequence_sum(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source = neoml.Dnn.Source(dnn, "source1")
         sequence_sum = neoml.Dnn.SequenceSum(source, "layer")
@@ -2041,7 +2215,7 @@ class PoolingTestCase(MultithreadedTestCase):
         self.assertTrue(np.equal(out, [[5., 5.], [5., 5.]]).all())
 
     def test_irnn(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
 
         batch_length = 12
@@ -2072,7 +2246,7 @@ class PoolingTestCase(MultithreadedTestCase):
         self.assertEqual(a.shape, (batch_length, batch_width, 1, 1, 1, 1, hidden_size))
 
     def test_indrnn(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
 
         batch_length = 12
@@ -2104,6 +2278,130 @@ class PoolingTestCase(MultithreadedTestCase):
         self.assertEqual(indrnn.activation, activation)
 
 
+class LogicalLayerTestCase(MultithreadedTestCase):
+    def test_not(self):
+        math_engine = neoml.MathEngine.CpuMathEngine()
+        dnn = neoml.Dnn.Dnn(math_engine)
+        source_layer_name = 'source'
+        test_layer_name = 'not'
+        sink_layer_name = 'sink'
+
+        source = neoml.Dnn.Source(dnn, source_layer_name)
+        not_layer = neoml.Dnn.Not(source, test_layer_name)
+        sink = neoml.Dnn.Sink(not_layer, 'sink')
+        layer = dnn.layers[test_layer_name]
+        self.assertEqual(layer.name, test_layer_name)
+
+        shape = (2,3,4,5,6,7,8)
+        input_data = np.random.randint(-5, 5, shape, dtype=np.int32)
+        input_blob = neoml.Blob.asblob(math_engine, input_data, shape)
+        outputs = dnn.run({source_layer_name: input_blob})
+        self.assertTrue(sink_layer_name in outputs)
+        result = outputs[sink.name].asarray()
+
+        self.assertEqual(result.shape, shape)
+        self.assertEqual(result.dtype, np.int32)
+        self.assertTrue(np.equal(result, np.vectorize(lambda x: 1 if x == 0 else 0)(input_data)).all)
+
+    def _test_logical(self, is_integer, op_type):
+        math_engine = neoml.MathEngine.CpuMathEngine()
+        dnn = neoml.Dnn.Dnn(math_engine)
+        first_source_name = 'source0'
+        second_source_name = 'source1'
+        op_layer_name = 'logical'
+        sink_name = 'sink'
+
+        first_source = neoml.Dnn.Source(dnn, first_source_name)
+        second_source = neoml.Dnn.Source(dnn, second_source_name)
+        if op_type == 'less':
+            op_layer = neoml.Dnn.Less((first_source, second_source), op_layer_name)
+        elif op_type == 'equal':
+            op_layer = neoml.Dnn.Equal((first_source, second_source), op_layer_name)
+        else:
+            self.fail('wrong op_type')
+        sink = neoml.Dnn.Sink(op_layer, sink_name)
+        layer = dnn.layers[op_layer_name]
+        self.assertEqual(layer.name, op_layer_name)
+
+        shape = (2,3,4,5,6,7,8)
+        if is_integer:
+            first_data = np.random.randint(-5, 5, shape, dtype=np.int32)
+            second_data = np.random.randint(-5, 5, shape, dtype=np.int32)
+        else:
+            first_data = np.random.uniform(-5, 5, shape).astype(np.float32)
+            second_data = np.random.uniform(-5, 5, shape).astype(np.float32)
+            index = np.random.choice(8, 1)
+            second_data[:,:,:,:,:,:,index] = first_data[:,:,:,:,:,:,index]
+
+        first_blob = neoml.Blob.asblob(math_engine, first_data, shape)
+        second_blob = neoml.Blob.asblob(math_engine, second_data, shape)
+        outputs = dnn.run({first_source_name: first_blob, second_source_name: second_blob})
+        self.assertTrue(sink_name in outputs)
+        result = outputs[sink.name].asarray()
+
+        self.assertEqual(result.shape, shape)
+        self.assertEqual(result.dtype, np.int32)
+        if op_type == 'less':
+            func = lambda x, y: 1 if x < y else 0
+        elif op_type == 'equal':
+            func = lambda x, y: 1 if x == y else 0
+        else:
+            self.fail('wrong op_type')
+        self.assertTrue(np.equal(result, np.vectorize(func)(first_data, second_data)).all)
+
+    def test_less(self):
+        self._test_logical(False, 'less')
+        self._test_logical(True, 'less')
+
+    def test_equal(self):
+        self._test_logical(False, 'equal')
+        self._test_logical(True, 'equal')
+
+    def _test_where(self, is_integer):
+        math_engine = neoml.MathEngine.CpuMathEngine()
+        dnn = neoml.Dnn.Dnn(math_engine)
+        first_source_name = 'source0'
+        second_source_name = 'source1'
+        third_source_name = 'source2'
+        where_layer_name = 'where'
+        sink_name = 'sink'
+
+        first_source = neoml.Dnn.Source(dnn, first_source_name)
+        second_source = neoml.Dnn.Source(dnn, second_source_name)
+        third_source = neoml.Dnn.Source(dnn, third_source_name)
+        where_layer = neoml.Dnn.Where((first_source, second_source, third_source), where_layer_name)
+        sink = neoml.Dnn.Sink(where_layer, sink_name)
+        layer = dnn.layers[where_layer_name]
+        self.assertEqual(layer.name, where_layer_name)
+
+        shape = (2,3,4,5,6,7,8)
+        first_data = np.random.randint(0, 3, shape, dtype=np.int32)
+        if is_integer:
+            second_data = np.random.randint(-10, 10, shape, dtype=np.int32)
+            third_data = np.random.randint(-10, 10, shape, dtype=np.int32)
+        else:
+            second_data = np.random.uniform(-10, 10, shape).astype(np.float32)
+            third_data = np.random.uniform(-10, 10, shape).astype(np.float32)
+        
+        first_blob = neoml.Blob.asblob(math_engine, first_data, shape)
+        second_blob = neoml.Blob.asblob(math_engine, second_data, shape)
+        third_blob = neoml.Blob.asblob(math_engine, third_data, shape)
+        outputs = dnn.run({first_source_name: first_blob,
+            second_source_name: second_blob,
+            third_source_name: third_blob})
+        self.assertTrue(sink_name in outputs)
+        result = outputs[sink.name].asarray()
+        
+        self.assertEqual(result.shape, shape)
+        self.assertEqual(result.dtype, np.int32 if is_integer else np.float32)
+        func = lambda x, y, z: y if x != 0 else z
+        self.assertTrue(np.equal(result, np.vectorize(func)(first_data, second_data, third_data)).all)
+
+    def test_where(self):
+        self._test_where(False)
+        self._test_where(True)
+
+
 class MulLossCalculator(neoml.Dnn.CustomLossCalculatorBase):
     def calc(self, data, labels):
         return neoml.AutoDiff.mul(data - labels, data - labels)
@@ -2120,7 +2418,7 @@ class LossTestCase(MultithreadedTestCase):
                    labels_type=np.float32,
                    last_loss=0.):
         shape = (2, 3, 1, 1, 1, 1, 1 if n_classes == 2 else n_classes)
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source1 = neoml.Dnn.Source(dnn, "source1")
         source2 = neoml.Dnn.Source(dnn, "source2")
@@ -2144,7 +2442,7 @@ class LossTestCase(MultithreadedTestCase):
         self.assertAlmostEqual(layer.last_loss, last_loss, delta=1e-3)
 
     def _test_custom_loss(self, loss_calculator, result_loss):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         shape = (2, 3, 1, 1, 1, 1, 1)
         source1 = neoml.Dnn.Source(dnn, "source1")
@@ -2187,7 +2485,7 @@ class LossTestCase(MultithreadedTestCase):
 
     def test_autodiff_functions(self):
         import neoml.AutoDiff as ad
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         shape = (2, 3, 1, 1, 1, 2, 3)
         const0 = ad.const(math_engine, shape, 0)
         const2 = ad.const(math_engine, shape, 2)
@@ -2238,7 +2536,7 @@ class LossTestCase(MultithreadedTestCase):
         self.assertTrue( np.equal(broadcasted.asarray(), np.ones((3, 3, 2, 2, 2, 2))).all() )
 
     def test_cross_entropy_loss(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source1 = neoml.Dnn.Source(dnn, "source1")
         source2 = neoml.Dnn.Source(dnn, "source2")
@@ -2268,6 +2566,9 @@ class LossTestCase(MultithreadedTestCase):
 
     def test_euclidean_loss(self):
         self._test_loss('EuclideanLoss', dict(loss_weight=7.7), last_loss=0.)
+
+    def test_l1_loss(self):
+        self._test_loss('L1Loss', dict(loss_weight=7.7), last_loss=0.)
 
     def test_hinge_loss(self):
         self._test_loss('HingeLoss', dict(loss_weight=7.7), last_loss=0.)
@@ -2300,16 +2601,20 @@ class LossTestCase(MultithreadedTestCase):
 
 class DnnTestCase(MultithreadedTestCase):
     def test_load_store(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         dnn.solver = neoml.Dnn.AdaptiveGradient(math_engine)
         source = neoml.Dnn.Source(dnn, "source")
         argmax = neoml.Dnn.Argmax(source, name="argmax")
         sink = neoml.Dnn.Sink(argmax, "sink")
 
-        self.assertTrue(len(dnn.input_layers), 1)
-        self.assertTrue(len(dnn.layers), 3)
-        self.assertTrue(len(dnn.output_layers), 1)
+        self.assertEqual(len(dnn.input_layers), 1)
+        self.assertEqual(len(dnn.layers), 3)
+        self.assertEqual(len(dnn.output_layers), 1)
+
+        self.assertEqual(len(source.input_names), 0)
+        self.assertEqual(argmax.input_names, ('source',))
+        self.assertEqual(sink.input_names, ('argmax',))
 
         dir = tempfile.mkdtemp()
 
@@ -2323,12 +2628,27 @@ class DnnTestCase(MultithreadedTestCase):
         os.rmdir(dir)
 
         self.assertTrue(isinstance(dnn_loaded.solver, neoml.Dnn.AdaptiveGradient))
-        self.assertTrue(len(dnn_loaded.input_layers), 1)
-        self.assertTrue(len(dnn_loaded.layers), 3)
-        self.assertTrue(len(dnn_loaded.output_layers), 1)
+        self.assertEqual(len(dnn_loaded.input_layers), 1)
+        self.assertEqual(len(dnn_loaded.layers), 3)
+        self.assertEqual(len(dnn_loaded.output_layers), 1)
+
+    def test_links(self):
+        math_engine = neoml.MathEngine.CpuMathEngine()
+
+        # y[N, 2] (X[N, 4]) = X[N, 2:] - X[N, :2]
+        dnn = neoml.Dnn.Dnn(math_engine)
+        source = neoml.Dnn.Source(dnn, "source")
+        split_chan = neoml.Dnn.SplitChannels(source, (2, 2), name="Split_A2_B2")
+        sub = neoml.Dnn.EltwiseSub([(split_chan, 1), (split_chan, 0)], name="Sub_B2_A2")
+        sink = neoml.Dnn.Sink(sub, "sink")
+
+        # sub both inputs come from split_chan
+        self.assertEqual(sub.input_names, (split_chan.name, split_chan.name))
+        # but their order is inversed
+        self.assertEqual(sub.input_links, ((split_chan.name, 1), (split_chan.name, 0)))
 
     def test_solver(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
 
         dnn.solver = neoml.Dnn.NesterovGradient(math_engine)
@@ -2341,7 +2661,7 @@ class DnnTestCase(MultithreadedTestCase):
         self.assertTrue(isinstance(dnn.solver, neoml.Dnn.SimpleGradient))
 
     def test_initializer(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
 
         random = neoml.Random.Random(0)
 
@@ -2357,12 +2677,12 @@ class DnnTestCase(MultithreadedTestCase):
         self.assertTrue(isinstance(dnn.initializer, neoml.Dnn.XavierUniform))
 
     def test_math_engine(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         self.assertTrue(isinstance(dnn.math_engine, neoml.MathEngine.CpuMathEngine))
 
     def test_default_math_engine(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         data = [1, 2]
         first_blob = neoml.Blob.asblob(math_engine, np.array(data, dtype=np.int32), (2, 1, 1, 1, 1, 1, 1))
         second_blob = first_blob.copy(neoml.MathEngine.default_math_engine())
@@ -2370,7 +2690,7 @@ class DnnTestCase(MultithreadedTestCase):
         self.assertEqual(list(second_blob.asarray()), data)
 
     def test_properties(self):
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source = neoml.Dnn.Source(dnn, "source")
         argmax = neoml.Dnn.Argmax(source, name="argmax")
@@ -2535,18 +2855,192 @@ class ClusteringTestCase(MultithreadedTestCase):
         self._test_clusterize('KMeans', dict(max_iteration_count=100, cluster_count=6, init='k++'))
 
 
+class TestPca(TestCase):
+    def test_full_svd(self):
+        from neoml.PCA import svd
+        x = np.array([[2, 1, 3, 2], [2, 4, 4, 1], [2, 4, 1, 1], [4, 4, 3, 4]], dtype=np.float32)
+        u, s, v = svd(x, compute_u=True, compute_v=True, algorithm='full')
+        expected_s = [11.011665,  2.7114089,  2.315459,  0.17357856]
+        self.assertTrue(u.shape == (4, 4))
+        self.assertTrue(s.shape == (4,))
+        self.assertTrue(all([abs(s[i] - expected_s[i]) < 1e-3 for i in range(4)]))
+        self.assertTrue(v.shape == (4, 4))
+
+    def test_sparse_svd(self):
+        from neoml.PCA import svd
+        components = 2
+        x = np.array([[2, 1, 3, 2], [2, 4, 4, 1], [2, 4, 1, 1], [4, 4, 3, 4]], dtype=np.float32)
+        expected_s = [11.011665,  2.7114089,  2.315459,  0.17357856]
+        u, s, v = svd(x, compute_u=True, compute_v=True, algorithm='randomized', components=components)
+        self.assertTrue(u.shape == (4, components))
+        self.assertTrue(s.shape == (components,))
+        self.assertTrue(all([abs(s[i] - expected_s[i]) < 1e-3 for i in range(components)]))
+        self.assertTrue(v.shape == (components, 4))
+
+    def test_pca(self):
+        n_samples, n_components = 1000, 2
+        X = np.empty((2 *  n_samples, 4), dtype=np.float32)
+        a, b = 3., 2.
+        for i in range(n_samples):
+            x = -a + 2 * i * a / n_samples
+            y = np.sqrt(1 - (x * x) / (a * a)) * b
+            X[2 * i] = [x, y, 1, 0]
+            X[2 * i + 1] = [x, -y, 1, 0]
+
+        for s in ('fit + transform', 'fit_transform'):
+            pca = neoml.PCA.PCA(2)
+            if s == 'fit + transform':
+                pca.fit(X)
+                transformedX = pca.transform(X)
+            else:
+                transformedX = pca.fit_transform(X)
+            self.assertEqual( pca.components.tolist(), [[1, 0, 0, 0], [0, 1, 0, 0]] )
+            self.assertEqual( pca.singular_values.size, n_components )
+            self.assertEqual( pca.explained_variance.size, n_components )
+            self.assertEqual( pca.explained_variance_ratio.size, n_components )
+            self.assertTrue( pca.n_components == n_components )
+            self.assertTrue( abs(pca.noise_variance) < 1e-5 )
+
+    def test_pickle(self):
+        x = np.array([[2, 1, 3, 2], [2, 4, 4, 1], [2, 4, 1, 1], [4, 4, 3, 4]], dtype=np.float32)
+        expected_s = [3.04067, 2.6677]
+        components = 2
+        pca = neoml.PCA.PCA(components)
+        pca.fit(x)
+
+        dir = tempfile.mkdtemp()
+
+        path = os.path.join(dir, 'pca.pickle')
+        binary_file = open(path, mode='wb')
+        pickle.dump(pca, binary_file)
+        binary_file.close()
+
+        binary_file = open(path, mode='rb')
+        loaded_pca = pickle.load(binary_file)
+        binary_file.close()
+
+        os.remove(path)
+        os.rmdir(dir)
+
+        s = loaded_pca.singular_values
+        transformed = loaded_pca.transform(x)
+        self.assertTrue(all([abs(s[i] - expected_s[i]) < 1e-3 for i in range(components)]))
+        self.assertEqual(transformed.shape, (4, components))
+
+    def test_load_store(self):
+        x = np.array([[2, 1, 3, 2], [2, 4, 4, 1], [2, 4, 1, 1], [4, 4, 3, 4]], dtype=np.float32)
+        expected_s = [3.04067, 2.6677]
+        components = 2
+        pca = neoml.PCA.PCA(components)
+        pca.fit(x)
+
+        dir = tempfile.mkdtemp()
+
+        path = os.path.join(dir, 'pca.pickle')
+        pca.store(path)
+
+        loaded_pca = neoml.PCA.PCA()
+        loaded_pca.load(path)
+
+        os.remove(path)
+        os.rmdir(dir)
+
+        s = loaded_pca.singular_values
+        transformed = loaded_pca.transform(x)
+        self.assertTrue(all([abs(s[i] - expected_s[i]) < 1e-3 for i in range(components)]))
+        self.assertEqual(transformed.shape, (4, components))
+
+
+@skipIf(sys.platform == 'darwin', 'Not supposed to work on MacOS')
 class DnnDistributedTestCase(TestCase):
     def test_distributed(self):
         def set_data(math_engine, thread):
             source = neoml.Blob.asblob(math_engine, np.ones((20,), dtype=np.float32), (1, 1, 1, 1, 1, 1, 20))
             labels = neoml.Blob.asblob(math_engine, np.ones((5,), dtype=np.float32), (1, 1, 1, 1, 1, 1, 5))
-            return dict(source=source, labels=labels)
-        math_engine = neoml.MathEngine.CpuMathEngine(1)
+            return 1, dict(source=source, labels=labels)
+        math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source = neoml.Dnn.Source(dnn, "source")
         labels = neoml.Dnn.Source(dnn, 'labels')
         fully = neoml.Dnn.FullyConnected(source, 5, False, "fully")
         loss = neoml.Dnn.CrossEntropyLoss((fully, labels), name='loss')
-        distributed = neoml.Dnn.DnnDistributed(dnn, 'cpu', 4)
+        sink = neoml.Dnn.Sink(fully, 'sink')
+        distributed = neoml.Dnn.DnnDistributed(dnn, 'cpu', 3)
+        distributed.run(set_data)
         distributed.learn(set_data)
-        self.assertEqual(distributed.last_losses("loss").shape, (4,))
+        distributed.run_and_backward(set_data)
+        distributed.train()
+
+        losses = distributed.last_losses("loss")
+        self.assertEqual(losses.shape, (3,))
+        self.assertEqual(losses[0], losses[1])
+
+        output = distributed.get_output("sink")
+        self.assertEqual(len(output), 3)
+        self.assertTrue((output[0].asarray() == output[1].asarray()).all())
+        self.assertTrue((output[1].asarray() == output[2].asarray()).all())
+
+        dir = tempfile.mkdtemp()
+        path = os.path.join(dir, 'distributed')
+        distributed.save(path)
+        math_engine = neoml.MathEngine.CpuMathEngine()
+        dnn_loaded = neoml.Dnn.Dnn(math_engine)
+        dnn_loaded.load(path)
+        self.assertEqual(len(dnn_loaded.layers), 5)
+
+        dnn_loaded.load(path)
+        distributed = neoml.Dnn.DnnDistributed(path, 'cpu', 3)
+        distributed.run(set_data)
+        output = distributed.get_output("sink")
+        self.assertEqual(len(output), 3)
+
+        os.remove(path)
+        os.rmdir(dir)
+
+
+class TestBPE(TestCase):
+    def test_saveload(self):
+        word_dictionary = [ "aa", "bb", "ab", "a", "b" ]
+
+        bpe = neoml.BytePairEncoder.BytePairEncoder(word_dictionary, eow="", sow="")
+        self.assertEqual(6, bpe.size)
+        self.assertFalse(bpe.use_sow)
+        self.assertFalse(bpe.use_eow)
+
+        res = bpe.encode("aabcb")
+        self.assertEqual([1, 5, 0, 5], res[0])
+
+        dir = tempfile.mkdtemp()
+        path = os.path.join(dir, 'bpe')
+        bpe.store(path)
+
+        loaded_bpe = neoml.BytePairEncoder.BytePairEncoder.load(path)
+        self.assertEqual(6, loaded_bpe.size)
+        self.assertFalse(loaded_bpe.use_sow)
+        self.assertFalse(loaded_bpe.use_eow)
+
+        loaded_res = loaded_bpe.encode("aabcb")
+        self.assertEqual(res, loaded_res)
+
+    def test_train(self):
+        corpus_stats = {
+            "abbb": 1,
+            "bab": 2,
+            "aa": 5,
+            "bb": 4,
+            "ab": 3,
+            "a": 2
+        }
+        bpe = neoml.BytePairEncoder.BytePairEncoder.train(corpus_stats, vocab_size=5)
+        self.assertEqual(5, bpe.size)
+        self.assertFalse(bpe.use_sow)
+        self.assertTrue(bpe.use_eow)
+
+        text = ["aabb", "baaba"]
+        encoded = bpe.encode(text)
+        print(encoded)
+        decoded = bpe.decode(encoded[0])
+        self.assertEqual(text, decoded)
+
+        bpe.cache_period = 10
+        self.assertEqual(10, bpe.cache_period)

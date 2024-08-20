@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -34,7 +34,7 @@ public:
 
 	// Modifies the trainable parameters of the network layers, 
 	// using the accumulated gradients and previous steps' history (moment, etc.) 
-	void Train();
+	void Train( float distributedCoeff = 1.f );
 
 	// Resets to the initial state
 	void Reset();
@@ -50,9 +50,12 @@ public:
 	// Upper limit for gradient norm (if set to < 0, that means no limit)
 	float GetMaxGradientNorm() const { return maxGradientNorm; }
 	void SetMaxGradientNorm(float _maxGradientNorm) { maxGradientNorm = _maxGradientNorm; }
+	// Clipping gradient min and max (if set to -FLT_MAX and FLT_MAX, that means no limit)
+	void GetMinMaxGradientClipping( float& min, float& max ) const { min = clipGradientMin; max = clipGradientMax; }
+	void SetMinMaxGradientClipping( float min, float max ) { clipGradientMin = min; clipGradientMax = max; }
 
 	// Serialize to archive
-	virtual void Serialize( CArchive& archive, CDnn& dnn );
+	virtual void Serialize( CArchive& archive, const CDnn& dnn );
 
 protected:
 	explicit CDnnSolver( IMathEngine& mathEngine );
@@ -79,32 +82,46 @@ private:
 	float regularizationL2;
 	float regularizationL1;
 	float maxGradientNorm;
+	float clipGradientMin;
+	float clipGradientMax;
 
 	// The blobs sum
-	struct CDiffBlobSum {
-		CDiffBlobSum() : Count( 0 ) {}
-
-		CObjectArray<CDnnBlob> Sum; // the blobs sums
-		int Count; // the number of terms in each sum
+	struct CDiffBlobSum final {
+		const CBaseLayer* LayerOwner{}; // for the given layer
+		CObjectArray<CDnnBlob> Sum{}; // the blobs sums
+		int Count{}; // the number of terms in each sum
 	};
 
 	// The buffers used to add up the gradients from several AddDiff calls
-	CMap<CBaseLayer*, CDiffBlobSum> layerToParamDiffBlobsSum;
+	CMap<CString, CDiffBlobSum> layerToParamDiffBlobsSum;
 	// The buffers for storing gradients history and moment
 	// Used in the inheriting classes
-	CMap<CBaseLayer*, CObjectArray<CDnnBlob>> layerToGradientHistory;
+	CMap<CString, CObjectArray<CDnnBlob>> layerToGradientHistory;
+	// Layers which require reduction across distributed solver
+	CHashTable<CBaseLayer*> layersToReduce; // Fast check if layer is included already
+	CArray<CBaseLayer*> reduceOrder; // Correct order across all of the distributed nets
 
 	// Averages weights over all threads
-	void allReduce();
+	void allReduce( float distributedCoeff );
 
-	// Clips gradients according to the settings
+	// Clips and normalize gradients according to the settings
 	void clipGradients(const CObjectArray<CDnnBlob>& paramDiffBlobs);
+	// Clips gradients
+	void clip( const CObjectArray<CDnnBlob>& paramDiffBlobs );
 
 	// Telling the compiler that we intentionally using two-parameter Serialize instead of one declared in IObject
 	using IObject::Serialize;
+	// Serialize load of the previous version of the dnn solver maps and convert them to new format
+	void serializeLoadMapsPrevVersion( CArchive& archive, const CDnn& dnn, int size );
+	// Serialize the layer's path array
+	void serializePath( CArchive& archive, CArray<CString>& path, const CBaseLayer* layer );
+	// Serialize the layer's parameters diff blobs sum struct
+	void serializeDiffBlobSum( CArchive& archive, CDiffBlobSum& blobsSum, const CBaseLayer* layer );
+	// Serialize the layer's gradient history
+	void serializeGradientHistory( CArchive& archive, const CString& layerPath );
 };
 
-////////////////////////////////////////////////////////////////////////////////////////////////
+//---------------------------------------------------------------------------------------------------------------------
 
 // The macros for the internal name of a NeoML solver
 // If this macros is used when declaring a class, that class may be registered as a NeoML solver
@@ -121,7 +138,7 @@ void NEOML_API UnregisterSolverName( const std::type_info& typeInfo );
 
 void NEOML_API SerializeSolver( CArchive& archive, CDnn& dnn, CPtr<CDnnSolver>& solver);
 
-////////////////////////////////////////////////////////////////////////////////////////////////
+//---------------------------------------------------------------------------------------------------------------------
 
 template<class T>
 class CSolverClassRegistrar {
@@ -145,7 +162,7 @@ inline CSolverClassRegistrar<T>::~CSolverClassRegistrar()
 	UnregisterSolverName( typeid( T ) );
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////
+//---------------------------------------------------------------------------------------------------------------------
 
 // Stochastic gradient descent with moment
 class NEOML_API CDnnSimpleGradientSolver : public CDnnSolver {
@@ -160,7 +177,7 @@ public:
 	bool IsInCompatibilityMode() const { return isInCompatibilityMode; }
 	void SetCompatibilityMode( bool compatibilityMode ) { isInCompatibilityMode = compatibilityMode; }
 
-	void Serialize( CArchive& archive, CDnn& dnn ) override;
+	void Serialize( CArchive& archive, const CDnn& dnn ) override;
 
 protected:
 	void TrainLayer( const CBaseLayer* layer, const CObjectArray<CDnnBlob>& paramBlobs, 
@@ -187,7 +204,7 @@ private:
 	CPtr<CDnnBlob> tempVariables;
 };
 
-////////////////////////////////////////////////////////////////////////////////////////////////
+//---------------------------------------------------------------------------------------------------------------------
 
 // Stochastic gradient descent with moment and adapting stride for each coordinate
 class NEOML_API CDnnAdaptiveGradientSolver : public CDnnSolver {
@@ -216,10 +233,15 @@ public:
 	// Turns AMSGrad mode on. May be called only before training starts.
 	void EnableAmsGrad( bool enable );
 
+	// Decoupled Weight Decay Regularization.
+	// Used to improve regularization by decoupling the weight decay from the gradient-based update
+	// See https://openreview.net/pdf?id=Bkg6RiCqY7.
 	bool IsDecoupledWeightDecay() const { return isDecoupledWeightDecay; }
+	// Enables using of Decoupled Weight Decay Regularization.
+	// May be called only before training starts.
 	void EnableDecoupledWeightDecay( bool enable );
 
-	void Serialize( CArchive& archive, CDnn& dnn ) override;
+	void Serialize( CArchive& archive, const CDnn& dnn ) override;
 
 protected:
 	// Resets to the initial state
@@ -283,12 +305,9 @@ private:
 	CPtr<CDnnBlob> tempVariables;
 
 	CPtr<CDnnBlob> temporaryBlob;
-
-	// Add regularization
-	CDnnBlob* addRegularization( CDnnBlob* diffBlob, CDnnBlob* params, float regL1, float regL2 );
 };
 
-////////////////////////////////////////////////////////////////////////////////////////////////
+//---------------------------------------------------------------------------------------------------------------------
 
 // The optimizer that uses Nesterov moment
 // http://cs229.stanford.edu/proj2015/054_report.pdf (Algo 8).
@@ -315,7 +334,15 @@ public:
 	// Turns on AMSGrad mode. The algorithm is reset to initial state
 	void EnableAmsGrad( bool enable );
 
-	void Serialize( CArchive& archive, CDnn& dnn ) override;
+	// Decoupled Weight Decay Regularization.
+	// Used to improve regularization by decoupling the weight decay from the gradient-based update
+	// See https://openreview.net/pdf?id=Bkg6RiCqY7.
+	bool IsDecoupledWeightDecay() const { return isDecoupledWeightDecay; }
+	// Enables using of Decoupled Weight Decay Regularization.
+	// May be called only before training starts.
+	void EnableDecoupledWeightDecay( bool enable );
+
+	void Serialize( CArchive& archive, const CDnn& dnn ) override;
 
 protected:
 	// Resets to the initial state
@@ -353,6 +380,8 @@ private:
 	float epsilon;
 	// Indicates if AMSGrad is used
 	bool isAmsGradEnabled;
+	// Perform weight decay after calculating the moving averages
+	bool isDecoupledWeightDecay;
 	
 	// Coefficients for moment schedule
 	int trainCount; // the number of calls to Train
@@ -385,7 +414,7 @@ private:
 	CPtr<CDnnBlob> mBarBlob;
 };
 
-////////////////////////////////////////////////////////////////////////////////////////////////
+//---------------------------------------------------------------------------------------------------------------------
 
 // Lamb optimizer.
 // https://arxiv.org/pdf/1904.00962.pdf
@@ -442,7 +471,7 @@ public:
 	// Max value for weight norm during WeightDecay
 	// Negative value means no clip
 	// By default is equal to -1
-	float GetWeightDecayClip() { return weightDecayClip; }
+	float GetWeightDecayClip() const { return weightDecayClip; }
 	void SetWeightDecayClip( float value ) { weightDecayClip = value; }
 
 	// Use normalizing multipier
@@ -460,7 +489,7 @@ public:
 	bool GetUseNVLamb() const { return useNvLamb; }
 	void SetUseNVLamb( bool value ) { useNvLamb = value; }
 
-	void Serialize( CArchive& archive, CDnn& dnn ) override;
+	void Serialize( CArchive& archive, const CDnn& dnn ) override;
 
 protected:
 	void TrainLayer( const CBaseLayer* layer, const CObjectArray<CDnnBlob>& paramBlobs,
@@ -535,10 +564,10 @@ private:
 };
 
 template<typename TLayer>
-inline void CDnnLambGradientSolver::ExcludeWeightDecayLayer( int paramIndex ) {
+inline void CDnnLambGradientSolver::ExcludeWeightDecayLayer( int paramIndex )
+{
 	CPtr<TLayer> layer = new TLayer( MathEngine() );
 	ExcludeWeightDecayLayer( GetLayerClass( *layer ), ELNMT_LayerClass, paramIndex );
 }
-
 
 } // namespace NeoML

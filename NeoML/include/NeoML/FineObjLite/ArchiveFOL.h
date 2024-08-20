@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,7 +15,9 @@ limitations under the License.
 
 #pragma once
 
-#include "BaseFileFOL.h"
+#include <ErrorsFOL.h>
+#include <MathFOL.h>
+#include <BaseFileFOL.h>
 
 namespace FObj {
 
@@ -31,15 +33,21 @@ public:
 		store = SD_Storing
 	};
 
-	explicit CArchive();
-	CArchive( CBaseFile* baseFile, TDirection direction );
-	virtual ~CArchive();
+	explicit CArchive() = default;
+	CArchive( CBaseFile* baseFile, TDirection direction ) { Open( baseFile, direction ); }
+	CArchive( CArchive&& ) = default;
+
+	virtual ~CArchive() { Close(); }
+
+	CArchive& operator=( CArchive&& ) = default;
 
 	const char* Name() const { return name; }
 
-	void Open( CBaseFile* baseFile, TDirection direction );
+	void Open( CBaseFile*, TDirection );
 	void Close();
-	bool IsOpen() const { return file != 0; }
+	bool IsOpen() const { return ( file != nullptr ); }
+
+	int GetBufferSize() const { return bufferSize; }
 
 	void Read( void* ptr, int size );
 	void Write( const void* ptr, int size );
@@ -58,13 +66,15 @@ public:
 	// because the archive may be reading/writing with offset from the file beginning
 	__int64 GetPosition() const;
 	int GetPosition32() const;
-	// Navigate through file
-	__int64 Seek( __int64 offset, CBaseFile::TSeekPosition from );
-	int Seek32( int offset, CBaseFile::TSeekPosition from );
 	// Gets the current archive length
 	// Note that it may not be the same as file length because some of the data may not have been written into the file yet
 	__int64 GetLength() const;
 	int GetLength32() const;
+	// Navigate through file
+	__int64 Seek( __int64 offset, CBaseFile::TSeekPosition from );
+	int Seek32( int offset, CBaseFile::TSeekPosition from );
+
+	const CBaseFile* GetFile() const { return file; }
 
 	// Read and write standard data types
 	friend CArchive& operator <<( CArchive&, const CString& string );
@@ -113,19 +123,19 @@ public:
 	void SerializeEnum( T& variable );
 
 private:
-	const int DefaultArchiveBufferSize = 4096;
+	static constexpr int defaultArchiveBufferSize = 4096;
 
-	CBaseFile* file;
+	CBaseFile* file = nullptr;
 	CString name;
-	TDirection direction;
-	char buffer[4096];
-	int bufferSize;
-	__int64 beginOfArchive;
-	__int64 filePosition;
-	__int64 fileLength;
-	int currentPosition;
-	int leftInBuffer;
-	bool isActualizedFileParameters;
+	TDirection direction = SD_Undefined;
+	char buffer[defaultArchiveBufferSize]{};
+	int bufferSize = defaultArchiveBufferSize;
+	__int64 beginOfArchive = 0;
+	__int64 filePosition = 0;
+	__int64 fileLength = 0;
+	int currentPosition = 0;
+	int leftInBuffer = 0;
+	bool isActualizedFileParameters = false;
 
 	template<class T>
 	void writeSimpleType( T object );
@@ -141,32 +151,7 @@ private:
 	void throwEofException();
 };
 
-inline CArchive::CArchive( CBaseFile* _file, CArchive::TDirection _direction ) :
-	file( 0 ),
-	direction( SD_Undefined ),
-	bufferSize( DefaultArchiveBufferSize ),
-	beginOfArchive( 0 ),
-	filePosition( 0 ),
-	fileLength( 0 ),
-	currentPosition( 0 ),
-	leftInBuffer( 0 ),
-	isActualizedFileParameters( false )
-{
-	Open( _file, _direction );
-}
-
-inline CArchive::CArchive() :
-	file( 0 ),
-	direction( SD_Undefined ),
-	bufferSize( DefaultArchiveBufferSize ),
-	beginOfArchive( 0 ),
-	filePosition( 0 ),
-	fileLength( 0 ),
-	currentPosition( 0 ),
-	leftInBuffer( 0 ),
-	isActualizedFileParameters( false )
-{
-}
+//---------------------------------------------------------------------------------------------------------------------
 
 inline void CArchive::Open( CBaseFile* _file, CArchive::TDirection _direction )
 {
@@ -182,11 +167,6 @@ inline void CArchive::Open( CBaseFile* _file, CArchive::TDirection _direction )
 	isActualizedFileParameters = false;
 	currentPosition = 0;
 	leftInBuffer = 0;
-}
-
-inline CArchive::~CArchive()
-{
-	Close();
 }
 
 inline void CArchive::Close()
@@ -319,7 +299,7 @@ inline void CArchive::CopyTo( CArchive& dest, __int64 size )
 			currentPosition = 0;
 
 			const int readBufferSize = ( bufferSize > 0 ) ? bufferSize
-				: static_cast<int>( min( size, static_cast<__int64>( DefaultArchiveBufferSize ) ) );
+				: static_cast<int>( min( size, static_cast<__int64>( defaultArchiveBufferSize ) ) );
 			leftInBuffer = file->Read( buffer, readBufferSize );
 			filePosition += leftInBuffer;
 			if( leftInBuffer < static_cast<int>( min( size, static_cast<__int64>( readBufferSize ) ) ) ) {
@@ -428,8 +408,8 @@ inline __int64 CArchive::GetLength() const
 
 inline CArchive& operator<<( CArchive& stream, const CString& string )
 {
-	stream.WriteSmallValue( static_cast<int>( string.length() ) );
-	stream.Write( string.data(), static_cast<int>( string.length() ) );
+	stream.WriteSmallValue( string.Length() );
+	stream.Write( string.Ptr(), string.Length() );
 	return stream;
 }
 
@@ -515,16 +495,23 @@ inline CArchive& operator<<( CArchive& archive, unsigned __int64 variable )
 
 inline CArchive& operator>>( CArchive& stream, CString& string )
 {
-	string.erase();
+	string.Empty();
 	int length = stream.ReadSmallValue();
 	check( length >= 0, ERR_BAD_ARCHIVE, stream.Name() );
 	if( length == 0 ) {
 		return stream;
 	}
 	string.resize( length );
-	char* ptr = const_cast<char*>( string.data() );
+	char* ptr = const_cast<char*>( string.Ptr() );
 	stream.Read( ptr, length );
 	return stream;
+}
+
+template<typename T, typename std::enable_if<std::is_enum<T>::value, int>::type = 0>
+inline CArchive& operator<<( CArchive& archive, T variable )
+{
+	archive << static_cast<typename std::underlying_type_t<T>>( variable );
+	return archive;
 }
 
 inline CArchive& operator>>( CArchive& archive, char& variable )
@@ -608,6 +595,15 @@ inline CArchive& operator>>( CArchive& archive, unsigned __int64& variable )
 	return archive;
 }
 
+template<typename T, typename std::enable_if<std::is_enum<T>::value, int>::type = 0>
+inline CArchive& operator>>( CArchive& archive, T& variable )
+{
+	typename std::underlying_type_t<T> integralValue = 0;
+	archive >> integralValue;
+	variable = static_cast<T>( integralValue );
+	return archive;
+}
+
 template<class T>
 inline void CArchive::Serialize( T& variable )
 {
@@ -624,7 +620,7 @@ inline void CArchive::SerializeEnum( T& variable )
 	if( IsLoading() ) {
 		variable = static_cast<T>( ReadSmallValue() );
 	} else {
-		WriteSmallValue( variable );
+		WriteSmallValue( static_cast<int>( variable ) );
 	}
 }
 
@@ -746,7 +742,6 @@ inline void CArchive::actualizeFileParameters()
 	fileLength = max( file->GetLength(), beginOfArchive + fileLength );
 	isActualizedFileParameters = true;
 }
-
 
 inline void CArchive::seekWhenLoading( __int64 newArchivePosition )
 {

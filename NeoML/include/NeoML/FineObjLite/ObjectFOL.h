@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,8 +17,19 @@ limitations under the License.
 
 namespace FObj {
 
+template<class T>
+class CPtr;
+
+template<class T>
+struct IsMemmoveable< CPtr<T> > {
+	static constexpr bool Value = true;
+};
+
+//---------------------------------------------------------------------------------------------------------------------
+
 // The base class for all interfaces with reference counting
 // They should virtually inherit from this class and use CPtr for all pointers
+// Thread-safe
 class NEOML_API IObject {
 public:
 	int RefCount() const;
@@ -29,14 +40,48 @@ public:
 	void WriteToArchive( CArchive& archive ) const;
 
 protected:
-	IObject();
+	IObject() : refCounter( 0 ) {}
+	// copy restricted
+	IObject( const IObject& ) = delete;
 	virtual ~IObject();
 
+	// copy restricted
+	IObject& operator=( const IObject& ) = delete;
+	
 private:
 	mutable std::atomic_int refCounter;
 
-	IObject( const IObject& );
-	IObject& operator=( const IObject& );
+	void addRef() const;
+	void release() const;
+	void detach();
+	bool weakAddRef() const;
+
+	template<class T>
+	friend class CPtr;
+	
+	template<class T>
+	friend class CCopyOnWritePtr;
+};
+
+//---------------------------------------------------------------------------------------------------------------------
+
+// Ananlog IObject
+// Non-thread-safe
+class CFastObject {
+public:
+	int RefCount() const;
+
+protected:
+	CFastObject() : refCounter( 0 ) {}
+	// copy restricted
+	CFastObject( const CFastObject& ) = delete;
+	virtual ~CFastObject();
+
+	// copy restricted
+	CFastObject& operator=( const CFastObject& ) = delete;
+
+private:
+	mutable int refCounter;
 	
 	void addRef() const;
 	void release() const;
@@ -50,15 +95,31 @@ private:
 	friend class CCopyOnWritePtr;
 };
 
-//---------------------------------------------------------------------------------------------
+//---------------------------------------------------------------------------------------------------------------------
 
 // Smart pointer template for the interfaces that inherit from IObject
 template<class T>
-class CPtr {
+class CPtr final {
 public:
-	CPtr();
-	CPtr( T* );
-	CPtr( const CPtr& );
+	using TElement = T;
+
+	CPtr() noexcept = default;
+	
+	CPtr( std::nullptr_t ) noexcept : CPtr() {}
+
+	template <typename U, std::enable_if_t<std::is_convertible<U*, T*>::value, bool> = true>
+	CPtr( U* ) noexcept;
+
+	CPtr( const CPtr& ) noexcept;
+
+	template <typename U, std::enable_if_t<std::is_convertible<U*, T*>::value, bool> = true>
+	CPtr( const CPtr<U>& ) noexcept;
+
+	CPtr( CPtr&& ) noexcept;
+
+	template <typename U, std::enable_if_t<std::is_convertible<U*, T*>::value, bool> = true>
+	CPtr( CPtr<U>&& ) noexcept;
+
 	~CPtr();
 
 	void Release();
@@ -68,26 +129,35 @@ public:
 	// and false otherwise (because weakPtr is 0 or the object is already being destroyed)
 	bool PinWeakPtr( T* weakPtr );
 
-	int HashKey() const;
+	int HashKey() const { return static_cast<int>( reinterpret_cast<UINT_PTR>( ptr ) ); }
 
-	T& operator*() const;
-	T* operator->() const;
+	auto operator*() const -> T&;
+	auto operator->() const -> T*;
+	auto Ptr() const -> T* { return ptr; }
 	operator T*() const { return ptr; }
-	T* Ptr() const { return ptr; }
 
-	const CPtr<T>& operator =( T* );
-	const CPtr<T>& operator =( const CPtr<T>& );
+	auto operator =( const CPtr& ) noexcept -> CPtr&;
+	auto operator =( CPtr&& ) noexcept -> CPtr&;
 
-	void Swap( CPtr<T>& );
+	template <typename U, std::enable_if_t<std::is_convertible<U*, T*>::value, bool> = true>
+	CPtr& operator=( const CPtr<U>& );
+
+	template <typename U, std::enable_if_t<std::is_convertible<U*, T*>::value, bool> = true>
+	CPtr& operator=( CPtr<U>&& );
+
+	void Swap( CPtr& ) noexcept;
 
 private:
-	T* ptr;
+	T* ptr = nullptr;
 
-	const CPtr<T>& assignPtr( T* );
-	void replacePtr( T* newPtr );
+	auto assignPtr( T* ) -> CPtr&;
+	void replacePtr( T* );
+
+	template<class U>
+	friend class CPtr;
 };
 
-//---------------------------------------------------------------------------------------------
+//---------------------------------------------------------------------------------------------------------------------
 
 template<typename TDest, typename TSrc>
 inline TDest* CheckCast( TSrc* ptr )
@@ -117,164 +187,27 @@ inline const TDest* CheckCast( const IObject* ptr )
 	return CheckCast<TDest, IObject>( ptr );
 }
 
-//---------------------------------------------------------------------------------------------
+//---------------------------------------------------------------------------------------------------------------------
 
-inline IObject::IObject() : refCounter( 0 )
+template <typename T>
+bool operator==( const CPtr<T>& p, std::nullptr_t ) noexcept
 {
-}
-    
-inline int IObject::RefCount() const
-{
-	return refCounter;
+	return p.Ptr() == nullptr;
 }
 
-inline void IObject::addRef() const
+template <typename T>
+bool operator!=( const CPtr<T>& p, std::nullptr_t ) noexcept
 {
-	refCounter++;
+	return !( p == nullptr );
 }
 
-inline void IObject::release() const
-{
-	if( refCounter.fetch_sub( 1 ) == 1 ) {
-		delete this;
-	}
-}
-
-inline void IObject::detach()
-{
-	refCounter.exchange( 0 );
-}
-
-inline bool IObject::weakAddRef() const
-{
-	while(1) {
-		int curValue = refCounter;
-		if( curValue <= 0 ) {
-			return false;
-		}
-		if( refCounter.compare_exchange_weak( curValue, curValue + 1 ) ) {
-			return true;
-		}
-	}
-	return false;
-}
-
-//---------------------------------------------------------------------------------------------
-
-template<class T>
-inline CPtr<T>::CPtr()
-{
-	ptr = 0;
-}
-
-template<class T>
-inline CPtr<T>::CPtr( T* _ptr )
-{
-	ptr = _ptr;
-	if( ptr != 0 ) {
-		ptr->addRef();
-	}
-}
-
-template<class T>
-inline CPtr<T>::CPtr( const CPtr<T>& _ptr )
-{
-	ptr = _ptr.ptr;
-	if( ptr != 0 ) {
-		ptr->addRef();
-	}
-}
-
-template<class T>
-inline CPtr<T>::~CPtr()
-{
-	Release();
-}
-
-template<class T>
-inline void CPtr<T>::Release()
-{
-	T* tempPtr = ptr;
-	if( tempPtr != 0 ) {
-		ptr = 0;
-		tempPtr->release();
-	}
-}
-
-template<class T>
-inline T& CPtr<T>::operator*() const
-{
-	AssertFO( ptr != 0 );
-	return *ptr;
-}
-
-template<class T>
-inline T* CPtr<T>::operator->() const
-{
-	AssertFO( ptr != 0 );
-	return ptr;
-}
-
-template<class T>
-inline const CPtr<T>& CPtr<T>::operator =( T* newPtr )
-{
-	return assignPtr( newPtr );
-}
-
-template<class T>
-inline const CPtr<T>& CPtr<T>::operator =( const CPtr<T>& newPtr )
-{
-	return assignPtr( newPtr.ptr );
-}
-
-template<class T>
-inline void CPtr<T>::Swap( CPtr<T>& other )
-{
-	std::swap<T*>( ptr, other.ptr );
-}
-
-template<class T>
-inline bool CPtr<T>::PinWeakPtr( T* weakPtr )
-{
-	if( weakPtr == 0 || !weakPtr->weakAddRef() ) {
-		return false;
-	}
-
-	replacePtr( weakPtr );
-	return true;
-}
-
-template<class T>
-inline int CPtr<T>::HashKey() const
-{
-	return static_cast<int>(reinterpret_cast<UINT_PTR>(ptr));
-}
-
-template<class T>
-inline const CPtr<T>& CPtr<T>::assignPtr( T* newPtr )
-{
-	if( newPtr != 0 ) {
-		newPtr->addRef();
-	}
-	replacePtr( newPtr );
-	return *this;
-}
-
-template<class T>
-inline void CPtr<T>::replacePtr( T* newPtr )
-{
-	T* oldPtr = ptr;
-	ptr = newPtr;
-	if( oldPtr != 0 ) {
-		oldPtr->release();
-	}
-}
-
-//---------------------------------------------------------------------------------------------
+//---------------------------------------------------------------------------------------------------------------------
 
 template<class T>
 class CCopyOnWritePtr {
 public:
+	using TElement = T;
+
 	CCopyOnWritePtr();
 	CCopyOnWritePtr( const CCopyOnWritePtr& other );
 	CCopyOnWritePtr( T* other );
@@ -298,7 +231,246 @@ private:
 	const CCopyOnWritePtr<T>& assignPtr( T* );
 };
 
-//---------------------------------------------------------------------------------------------
+//---------------------------------------------------------------------------------------------------------------------
+
+// Implementation IObject
+
+// NeoML.cpp
+//inline IObject::~IObject()
+//{
+//	PresumeFO( refCounter == 0 );
+//}
+
+inline int IObject::RefCount() const
+{
+	return refCounter;
+}
+
+inline void IObject::addRef() const
+{
+	PresumeFO( refCounter >= 0 );
+	PresumeFO( refCounter < INT_MAX );
+	refCounter++;
+}
+
+inline void IObject::release() const
+{
+	PresumeFO( refCounter > 0 );
+	if( refCounter.fetch_sub( 1 ) == 1 ) {
+		delete this;
+	}
+}
+
+inline void IObject::detach()
+{
+	refCounter.exchange( 0 );
+}
+
+// Increment the reference count given only a weak reference to the object.
+// Returns false if the reference count is 0 (the object is already in the destructor).
+inline bool IObject::weakAddRef() const
+{
+	while( 1 ) {
+		int curValue = refCounter;
+		if( curValue <= 0 ) {
+			return false;
+		}
+		if( refCounter.compare_exchange_weak( curValue, curValue + 1 ) ) {
+			return true;
+		}
+	}
+	return false;
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
+// Implementation CFastObject
+
+inline CFastObject::~CFastObject()
+{
+	PresumeFO( refCounter == 0 );
+}
+
+inline void CFastObject::addRef() const
+{
+	PresumeFO( refCounter >= 0 );
+	PresumeFO( refCounter < INT_MAX );
+	refCounter++;
+}
+
+inline void CFastObject::release() const
+{
+	PresumeFO( refCounter > 0 );
+	if( --refCounter == 0 ) {
+		delete this;
+	}
+}
+
+inline void CFastObject::detach()
+{
+	refCounter = 0;
+}
+
+inline bool CFastObject::weakAddRef() const
+{
+	PresumeFO( refCounter > 0 );
+	addRef();
+	return true;
+}
+
+inline int CFastObject::RefCount() const
+{
+	return refCounter;
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
+// Implementation CPtr
+
+template <typename T>
+template <typename U, std::enable_if_t<std::is_convertible<U*, T*>::value, bool>>
+CPtr<T>::CPtr( U* _ptr ) noexcept :
+	ptr( _ptr )
+{
+	if( _ptr != nullptr ) {
+		_ptr->addRef();
+	}
+}
+
+template <typename T>
+template <typename U, std::enable_if_t<std::is_convertible<U*, T*>::value, bool>>
+CPtr<T>::CPtr( const CPtr<U>& other ) noexcept :
+	CPtr( other.ptr )
+{}
+
+template<class T>
+CPtr<T>::CPtr( const CPtr<T>& other ) noexcept :
+	ptr( other.ptr )
+{
+	if( ptr != nullptr ) {
+		ptr->addRef();
+	}
+}
+
+template<class T>
+CPtr<T>::CPtr( CPtr&& other ) noexcept
+{
+	Swap( other );
+}
+
+template <typename T>
+template <typename U, std::enable_if_t<std::is_convertible<U*, T*>::value, bool>>
+CPtr<T>::CPtr( CPtr<U>&& other ) noexcept
+{
+	ptr = other.ptr;
+	other.ptr = nullptr;
+}
+
+template<class T>
+CPtr<T>::~CPtr()
+{
+	Release();
+}
+
+template<class T>
+void CPtr<T>::Release()
+{
+	T* tempPtr = ptr;
+	if( tempPtr != nullptr ) {
+		ptr = nullptr;
+		tempPtr->release();
+	}
+}
+
+template<class T>
+auto CPtr<T>::operator*() const -> T&
+{
+	AssertFO( ptr != nullptr );
+	return *ptr;
+}
+
+template<class T>
+auto CPtr<T>::operator->() const -> T*
+{
+	AssertFO( ptr != nullptr );
+	return ptr;
+}
+
+template<class T>
+auto CPtr<T>::operator =( const CPtr& newPtr ) noexcept -> CPtr&
+{
+	return assignPtr( newPtr.ptr );
+}
+
+template<class T>
+auto CPtr<T>::operator =( CPtr&& newPtr ) noexcept -> CPtr&
+{
+	Swap( newPtr );
+	return *this;
+}
+
+template <class T>
+template <typename U, std::enable_if_t<std::is_convertible<U*, T*>::value, bool>>
+CPtr<T>& CPtr<T>::operator=( const CPtr<U>& newPtr )
+{
+	return assignPtr( newPtr.ptr );
+}
+
+template <class T>
+template <typename U, std::enable_if_t<std::is_convertible<U*, T*>::value, bool>>
+CPtr<T>& CPtr<T>::operator=( CPtr<U>&& newPtr )
+{
+	T* oldPtr = ptr;
+	ptr = newPtr.ptr;
+	newPtr.ptr = nullptr;
+	if( oldPtr != nullptr ) {
+		oldPtr->release();
+	}
+	return *this;
+}
+
+template<class T>
+void CPtr<T>::Swap( CPtr& other ) noexcept
+{
+	swap( *this, other );
+}
+
+template<class T>
+bool CPtr<T>::PinWeakPtr( T* weakPtr )
+{
+	if( weakPtr == nullptr || !weakPtr->weakAddRef() ) {
+		return false;
+	}
+
+	replacePtr( weakPtr );
+	return true;
+}
+
+template<class T>
+auto CPtr<T>::assignPtr( T* newPtr ) -> CPtr&
+{
+	if( newPtr != nullptr ) {
+		newPtr->addRef();
+	}
+	replacePtr( newPtr );
+	return *this;
+}
+
+template<class T>
+void CPtr<T>::replacePtr( T* newPtr )
+{
+	// Assigning a new value must be done before calling release on the old pointer
+	// so that in case of an exception when destroying the old object, CPtr remains in the correct state
+	T* oldPtr = ptr;
+	ptr = newPtr;
+	if( oldPtr != nullptr ) {
+		oldPtr->release();
+	}
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
+// Implementation CCopyOnWritePtr
 
 template<class T>
 inline CCopyOnWritePtr<T>::CCopyOnWritePtr()
@@ -381,6 +553,8 @@ inline const CCopyOnWritePtr<T>& CCopyOnWritePtr<T>::assignPtr( T* newPtr )
 	if( newPtr != 0 ) {
 		newPtr->addRef();
 	}
+	// Assigning a new value must be done before calling release on the old pointer
+	// so that in case of an exception when destroying the old object, CPtr remains in the correct state
 	T* oldPtr = ptr;
 	ptr = newPtr;
 	if( oldPtr != 0 ) {
@@ -389,7 +563,10 @@ inline const CCopyOnWritePtr<T>& CCopyOnWritePtr<T>::assignPtr( T* newPtr )
 	return *this;
 }
 
-//------------------------------------------------------------------------------------------------
+//---------------------------------------------------------------------------------------------------------------------
+
+// CPtr and CCopyOnWritePtr allow bitwise movement in memory.
+// Therefore, you can write a corresponding specialization of ArrayMemMove
 
 template<class T>
 inline void ArrayMemMove( CPtr<T>* dest, CPtr<T>* source, int count )
@@ -403,5 +580,14 @@ inline void ArrayMemMove( CCopyOnWritePtr<T>* dest, CCopyOnWritePtr<T>* source, 
 	ArrayMemMoveBitwize( dest, source, count );
 }
 
-} // namespace FObj
+//---------------------------------------------------------------------------------------------------------------------
 
+// Function for creating an IObject descendant object and wrapping it in CPtr
+// Example: const auto ptr = MakeCPtr<CMyType>( param1, param2, param3 );
+template<class T, class... Ts, typename = std::enable_if_t<std::is_base_of<IObject, T>::value>>
+CPtr<T> MakeCPtr( Ts&&... params ) noexcept( std::is_nothrow_constructible<T, Ts...>::value )
+{
+	return { new T( std::forward<Ts>( params ) ... ) };
+}
+
+} // namespace FObj

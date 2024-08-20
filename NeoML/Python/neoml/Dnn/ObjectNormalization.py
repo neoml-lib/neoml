@@ -21,7 +21,7 @@ import neoml.Blob as Blob
 
 
 class ObjectNormalization(Layer):
-    """The layer that performs object normalization using the formula:
+    r"""The layer that performs object normalization using the formula:
     :math:`objectNorm(x)[i][j] = ((x[i][j] - mean[i]) / \sqrt{var[i] + epsilon}) * scale[j] + bias[j]`
     
     :param input_layer: The input layer and the number of its output. If no number

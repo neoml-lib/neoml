@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -44,8 +44,8 @@ CConvolutionDesc* CCudaMathEngine::InitBlobConvolution( const CBlobDesc& input, 
 	int paddingWidth, int strideHeight, int strideWidth, int dilationHeight, int dilationWidth,
 	const CBlobDesc& filter, const CBlobDesc& output )
 {
-	int totalInputChannels = input.Channels() * input.Depth();
-	int totalOutputChannels = output.Channels() * output.Depth();
+	const int totalInputChannels = input.Channels() * input.Depth();
+	const int totalOutputChannels = output.Channels() * output.Depth();
 
 	CCudaConvolutionDesc* desc = new CCudaConvolutionDesc();
 	desc->Internal.Source = input;
@@ -61,7 +61,7 @@ CConvolutionDesc* CCudaMathEngine::InitBlobConvolution( const CBlobDesc& input, 
 }
 
 void CCudaMathEngine::BlobConvolution( const CConvolutionDesc& convDesc,
-	const CFloatHandle& sourceData, const CFloatHandle& filterData, const CFloatHandle* freeTermData,
+	const CConstFloatHandle& sourceData, const CConstFloatHandle& filterData, const CConstFloatHandle* freeTermData,
 	const CFloatHandle& resultData )
 {
 	SetCudaDevice( device->DeviceNumber );
@@ -75,12 +75,13 @@ void CCudaMathEngine::BlobConvolution( const CConvolutionDesc& convDesc,
 		&& desc.DilationHeight == 1 && desc.DilationWidth == 1
 		&& source.Channels() * source.Depth() < 16 )
 	{
+		const int widthNorm = ( desc.Result.Width() + 7 ) / 8;
 		// Use a convolution kernel of size 3*3 with stride 1
 		dim3 blockCount;
 		dim3 threadCount;
-		int widthNorm = ( desc.Result.Width() + 7 ) / 8;
 		getCudaTaskGrid3DMinZYX( 1, 1, 1024, blockCount, threadCount, result.ObjectCount() * result.Height(), widthNorm,
 			filter.ObjectCount(), 512 );
+
 		Conv3x3s1d1Kernel1x8<<<blockCount, threadCount>>>( desc, GetRaw( sourceData ), GetRaw( filterData ),
 			freeTermData == 0 ? 0 : GetRaw( *freeTermData ), GetRaw( resultData ), widthNorm );
 		return;
@@ -119,11 +120,12 @@ void CCudaMathEngine::BlobConvolution( const CConvolutionDesc& convDesc,
 
 	int tempMatrixHeightIndex = 0;
 	while( tempMatrixHeightIndex < tempMatrixHeight ) {
-		int curTempMatrixHeight = min( tempMatrixHeight - tempMatrixHeightIndex, tempMatrixHeightBatchSize );
+		const int curTempMatrixHeight = min( tempMatrixHeight - tempMatrixHeightIndex, tempMatrixHeightBatchSize );
 
 		dim3 blockCount;
 		dim3 threadCount;
 		getCudaTaskGrid2D( blockCount, threadCount, curTempMatrixHeight, source.Depth() * source.Channels() );
+
 		BuildTempMatrixKernel<<<blockCount, threadCount>>>( desc, GetRaw( sourceData ),
 			tempMatrixHeightIndex, curTempMatrixHeight, GetRaw( tempMatrix.GetHandle() ) );
 
@@ -143,8 +145,8 @@ void CCudaMathEngine::BlobConvolution( const CConvolutionDesc& convDesc,
 
 }
 
-void CCudaMathEngine::BlobConvolutionBackward( const CConvolutionDesc& convDesc, const CFloatHandle& outputDiff,
-	const CFloatHandle& filter, const CFloatHandle* freeTerm, const CFloatHandle& inputDiff )
+void CCudaMathEngine::BlobConvolutionBackward( const CConvolutionDesc& convDesc, const CConstFloatHandle& outputDiff,
+	const CConstFloatHandle& filter, const CConstFloatHandle* freeTerm, const CFloatHandle& inputDiff )
 {
 	SetCudaDevice( device->DeviceNumber );
 	const CCudaConvolutionDescInternal& desc = static_cast<const CCudaConvolutionDesc&>( convDesc ).Internal;
@@ -189,15 +191,16 @@ void CCudaMathEngine::BlobConvolutionBackward( const CConvolutionDesc& convDesc,
 
 	int tempMatrixHeightIndex = 0;
 	while( tempMatrixHeightIndex < matrixHeight ) {
-		int curTempMatrixHeight = min( matrixHeight - tempMatrixHeightIndex, tempMatrixHeightBatchSize );
+		const int curTempMatrixHeight = min( matrixHeight - tempMatrixHeightIndex, tempMatrixHeightBatchSize );
 		MultiplyMatrixByMatrix( 1, outputDiff + tempMatrixHeightIndex * filterCount, curTempMatrixHeight, filterCount,
 			filter, filterObjectSize, tempMatrix, tempMatrix.Size() );
 
+		const int widthNorm = ( matrixWidth + BuildInputFromTempMatrixCombine - 1 ) / BuildInputFromTempMatrixCombine;
 		// Get the input gradients from the temporary matrix data
 		dim3 blockCount;
 		dim3 threadCount;
-		int widthNorm = ( matrixWidth + BuildInputFromTempMatrixCombine - 1 ) / BuildInputFromTempMatrixCombine;
 		getCudaTaskGrid2D( blockCount, threadCount, curTempMatrixHeight, widthNorm );
+
 		BuildInputFromTempMatrixKernel<<<blockCount, threadCount>>>( desc, GetRaw( tempMatrix.GetHandle() ),
 			curTempMatrixHeight, matrixWidth, GetRaw( inputDiff ), operation, widthNorm, tempMatrixHeightIndex );
 		tempMatrixHeightIndex += curTempMatrixHeight;
@@ -205,7 +208,7 @@ void CCudaMathEngine::BlobConvolutionBackward( const CConvolutionDesc& convDesc,
 }
 
 void CCudaMathEngine::BlobConvolutionLearnAdd( const CConvolutionDesc& convDesc,
-	const CFloatHandle& input, const CFloatHandle& outputDiff, const CFloatHandle& filterDiff,
+	const CConstFloatHandle& input, const CConstFloatHandle& outputDiff, const CFloatHandle& filterDiff,
 	const CFloatHandle* freeTermDiff, bool isFreeTermDiffFromInput )
 {
 	SetCudaDevice( device->DeviceNumber );
@@ -231,10 +234,12 @@ void CCudaMathEngine::BlobConvolutionLearnAdd( const CConvolutionDesc& convDesc,
 
 	int tempMatrixHeightIndex = 0;
 	while( tempMatrixHeightIndex < matrixHeight ) {
-		int curTempMatrixHeight = min( matrixHeight - tempMatrixHeightIndex, tempMatrixHeightBatchSize );
+		const int curTempMatrixHeight = min( matrixHeight - tempMatrixHeightIndex, tempMatrixHeightBatchSize );
+
 		dim3 blockCount;
 		dim3 threadCount;
 		getCudaTaskGrid2D( blockCount, threadCount, curTempMatrixHeight, desc.Source.Depth() * desc.Source.Channels() );
+
 		BuildTempMatrixKernel<<<blockCount, threadCount>>>( desc, GetRaw( input ), tempMatrixHeightIndex, curTempMatrixHeight,
 			GetRaw( tempMatrix.GetHandle() ) );
 

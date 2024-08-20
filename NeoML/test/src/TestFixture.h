@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,6 +19,12 @@ limitations under the License.
 
 #include <cmath>
 
+using namespace NeoML;
+
+namespace NeoML {
+class IPerformanceCounters;
+}
+
 namespace NeoMLTest {
 
 CString GetTestDataFilePath( const CString& relativePath, const CString& fileName );
@@ -34,7 +40,12 @@ void SetPlatformEnv( void* platformEnv );
 
 void* GetPlatformEnv();
 
-NeoML::IMathEngine* CreateMathEngine( TMathEngineType type, std::size_t memoryLimit = 0u, int threadCount = 0 );
+NeoML::IMathEngine* CreateMathEngine( TMathEngineType type, std::size_t memoryLimit );
+
+// Get time duration (default in milli seconds)
+double GetTimeScaled( IPerformanceCounters&, int scale = 1000000 /*ms*/ );
+// Get peak memory size (default in mega bytes)
+double GetPeakMemScaled( IMathEngine&, int scale = 1024 * 1024 /*MB*/ );
 
 #ifdef NEOML_USE_FINEOBJ
 int RunTests( int argc, wchar_t* argv[], void* platformEnv = nullptr );
@@ -43,6 +54,22 @@ int RunTests( int argc, char* argv[], void* platformEnv = nullptr );
 #endif
 
 //------------------------------------------------------------------------------------------------------------
+
+#ifdef NEOML_USE_FINEOBJ
+#define NEOML_EXPECT_THROW( expr ) \
+	try { \
+		( expr ); \
+		FAIL() << "No exception has been thrown during '" << #expr << "'"; \
+	} catch( CInternalError* err ) { \
+		err->Delete(); \
+	} catch( CCheckException* err ) { \
+		err->Delete(); \
+	} catch( ... ) { \
+		FAIL() << "Wrong exception has been thrown during '" << #expr << "'"; \
+	}
+#else
+#define NEOML_EXPECT_THROW( expr ) EXPECT_THROW( ( expr ), CInternalError )
+#endif
 
 #define FLT_MIN_LOG -87.33654474f
 #define FLT_MAX_LOG 88.f
@@ -105,6 +132,33 @@ typedef CBufferWrapper<int> CIntWrapper;
 
 //------------------------------------------------------------------------------------------------------------
 
+// Yellow output
+class NeoMLTestHighlightedOutput final {
+public:
+	NeoMLTestHighlightedOutput( ::std::ostream& _log ) : log( _log ) { log << "\u001b[33m"; }
+	~NeoMLTestHighlightedOutput() { log << "\u001b[0m"; }
+
+	template <typename T> ::std::ostream& operator<<( T t ) { return log << t; }
+private:
+	::std::ostream& log;
+};
+
+#define NEOML_HILIGHT( log )   NeoMLTestHighlightedOutput( log )
+
+inline ::std::ostream& operator<<( ::std::ostream& s, TMathEngineType met )
+{
+	switch( met ) {
+		case MET_Cpu: s << "MET_Cpu"; break;
+		case MET_Cuda: s << "MET_Cuda"; break;
+		case MET_Metal: s << "MET_Metal"; break;
+		case MET_Vulkan: s << "MET_Vulkan"; break;
+		default: ASSERT_EXPR( false );
+	}
+	return s;
+}
+
+//------------------------------------------------------------------------------------------------------------
+
 inline int GetFlatIndex( const CDnnBlob& blob, int seq, int batch, int list, int channel, int depth,
 	int row, int column )
 {
@@ -138,6 +192,37 @@ inline bool FloatEq( float val1, float val2, float precision = 1e-05 )
 	bool ret = FloatEqImpl(val1, val2, precision);
 	NeoPresume(ret);
 	return ret;
+}
+
+inline bool CompareBlobs( CDnnBlob& first, CDnnBlob& second, float precision = 1e-5f )
+{
+	if( first.GetDataType() != second.GetDataType() ) {
+		return false;
+	}
+
+	if( !first.HasEqualDimensions( &second ) ) {
+		return false;
+	}
+
+	if( first.GetDataType() == CT_Float ) {
+		CDnnBlobBuffer<> firstBuff( first, TDnnBlobBufferAccess::Read );
+		CDnnBlobBuffer<> secondBuff( second, TDnnBlobBufferAccess::Read );
+		for( int i = 0; i < firstBuff.Size(); ++i ) {
+			if( !FloatEqImpl( firstBuff[i], secondBuff[i], precision ) ) {
+				return false;
+			}
+		}
+	} else {
+		CDnnBlobBuffer<int> firstBuff( first, TDnnBlobBufferAccess::Read );
+		CDnnBlobBuffer<int> secondBuff( second, TDnnBlobBufferAccess::Read );
+		for( int i = 0; i < firstBuff.Size(); ++i ) {
+			if( firstBuff[i] != secondBuff[i] ) {
+				return false;
+			}
+		}
+	}
+
+	return true;
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -188,10 +273,10 @@ class CNeoMlTestFixtureWithParams : public CNeoMLTestFixture, public ::testing::
 //------------------------------------------------------------------------------------------------------------
 
 #define RUN_TEST_IMPL( impl ) { \
-	CTestParams params = GetParam(); \
+	const CTestParams& params = GetParam(); \
 	const int testCount = params.GetValue<int>( "TestCount" ); \
 	for( int test = 0; test < testCount; ++test ) { \
 		impl ( params, 282 + test * 10000 + test % 3  ); \
-	} } \
+	} }
 
 } // namespace NeoMLTest

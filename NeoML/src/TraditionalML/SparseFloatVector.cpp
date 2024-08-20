@@ -73,25 +73,34 @@ CSparseFloatVector::CSparseFloatVectorBody::CSparseFloatVectorBody( const CFloat
 //------------------------------------------------------------------------------------------------------------
 
 // Calculates the number of elements of two sparse vectors union
-static inline int calcUnionElementsCount( const CSparseFloatVector& vector1, const CSparseFloatVector& vector2 )
+static inline int calcUnionElementsCount( const CSparseFloatVector& vector1, const CSparseFloatVectorDesc& body2 )
 {
 	const CFloatVectorDesc& body1 = vector1.GetDesc();
 	const int size1 = vector1.NumberOfElements();
-	const CFloatVectorDesc& body2 = vector2.GetDesc();
-	const int size2 = vector2.NumberOfElements();
+	const int size2 = body2.Size;
 
 	int i = 0;
 	int j = 0;
 	int count = 0; // the number of common elements
-	while( i < size1 && j < size2 ) {
-		if( body1.Indexes[i] == body2.Indexes[j] ) {
-			i++;
+	if( body2.Indexes == nullptr ) {
+		while( i < size1 && j < size2 ) {
+			if( body1.Indexes[i] == j ) {
+				i++;
+				count++;
+			}
 			j++;
-			count++;
-		} else if( body1.Indexes[i] < body2.Indexes[j] ) {
-			i++;
-		} else {
-			j++;
+		}
+	} else {
+		while( i < size1 && j < size2 ) {
+			if( body1.Indexes[i] == body2.Indexes[j] ) {
+				i++;
+				j++;
+				count++;
+			} else if( body1.Indexes[i] < body2.Indexes[j] ) {
+				i++;
+			} else {
+				j++;
+			}
 		}
 	}
 	return size1 + size2 - count;
@@ -255,69 +264,20 @@ CSparseFloatVector& CSparseFloatVector::operator = ( const CSparseFloatVector& v
 
 CSparseFloatVector& CSparseFloatVector::operator += ( const CSparseFloatVector& vector )
 {
-	const int otherSize = vector.NumberOfElements();
-	if( otherSize == 0 ) {
-		return *this;
-	}
-	const CFloatVectorDesc& otherDesc = vector.GetDesc();
-
-	const int size = NumberOfElements();
-	if( size == 0 ) {
-		*this = vector;
-		return *this;
-	}
-	const CFloatVectorDesc& desc = GetDesc();
-
-	const int newSize = calcUnionElementsCount( *this, vector );
-	CSparseFloatVectorBody* newBody = FINE_DEBUG_NEW CSparseFloatVectorBody( newSize );
-
-	int i = 0;
-	int j = 0;
-	int k = 0;
-	while( i < size && j < otherSize ) {
-		if( desc.Indexes[i] == otherDesc.Indexes[j] ) {
-			newBody->Desc.Indexes[k] = desc.Indexes[i];
-			newBody->Desc.Values[k] = desc.Values[i] + otherDesc.Values[j];
-			i++;
-			j++;
-		} else if( desc.Indexes[i] < otherDesc.Indexes[j] ) {
-			newBody->Desc.Indexes[k] = desc.Indexes[i];
-			newBody->Desc.Values[k] = desc.Values[i];
-			i++;
-		} else {
-			newBody->Desc.Indexes[k] = otherDesc.Indexes[j];
-			newBody->Desc.Values[k] = otherDesc.Values[j];
-			j++;
-		}
-		k++;
-	}
-
-	while( i < size ) {
-		newBody->Desc.Indexes[k] = desc.Indexes[i];
-		newBody->Desc.Values[k] = desc.Values[i];
-		i++;
-		k++;
-	}
-
-	while( j < otherSize ) {
-		newBody->Desc.Indexes[k] = otherDesc.Indexes[j];
-		newBody->Desc.Values[k] = otherDesc.Values[j];
-		j++;
-		k++;
-	}
-
-	newBody->Desc.Size = k;
-	body = newBody;
-	return *this;
+	return *this += vector.GetDesc();
 }
 
 CSparseFloatVector& CSparseFloatVector::operator -= ( const CSparseFloatVector& vector )
 {
-	const int otherSize = vector.NumberOfElements();
+	return *this -= vector.GetDesc();
+}
+
+CSparseFloatVector& CSparseFloatVector::operator += ( const CFloatVectorDesc& vector )
+{
+	const int otherSize = vector.Size;
 	if( otherSize == 0 ) {
 		return *this;
 	}
-	const CFloatVectorDesc& otherDesc = vector.GetDesc();
 
 	const int size = NumberOfElements();
 	const CFloatVectorDesc& desc = GetDesc();
@@ -328,22 +288,37 @@ CSparseFloatVector& CSparseFloatVector::operator -= ( const CSparseFloatVector& 
 	int i = 0;
 	int j = 0;
 	int k = 0;
-	while( i < size && j < otherSize ) {
-		if( desc.Indexes[i] == otherDesc.Indexes[j] ) {
-			newBody->Desc.Indexes[k] = desc.Indexes[i];
-			newBody->Desc.Values[k] = desc.Values[i] - otherDesc.Values[j];
-			i++;
+	if( vector.Indexes == nullptr ) {
+		while( i < size && j < otherSize ) {
+			if( desc.Indexes[i] == j ) {
+				newBody->Desc.Indexes[k] = j;
+				newBody->Desc.Values[k] = desc.Values[i] + vector.Values[j];
+				i++;
+			} else {
+				newBody->Desc.Indexes[k] = j;
+				newBody->Desc.Values[k] = vector.Values[j];
+			}
 			j++;
-		} else if( desc.Indexes[i] < otherDesc.Indexes[j] ) {
-			newBody->Desc.Indexes[k] = desc.Indexes[i];
-			newBody->Desc.Values[k] = desc.Values[i];
-			i++;
-		} else {
-			newBody->Desc.Indexes[k] = otherDesc.Indexes[j];
-			newBody->Desc.Values[k] = -otherDesc.Values[j];
-			j++;
+			k++;
 		}
-		k++;
+	} else {
+		while( i < size && j < otherSize ) {
+			if( desc.Indexes[i] == vector.Indexes[j] ) {
+				newBody->Desc.Indexes[k] = desc.Indexes[i];
+				newBody->Desc.Values[k] = desc.Values[i] + vector.Values[j];
+				i++;
+				j++;
+			} else if( desc.Indexes[i] < vector.Indexes[j] ) {
+				newBody->Desc.Indexes[k] = desc.Indexes[i];
+				newBody->Desc.Values[k] = desc.Values[i];
+				i++;
+			} else {
+				newBody->Desc.Indexes[k] = vector.Indexes[j];
+				newBody->Desc.Values[k] = vector.Values[j];
+				j++;
+			}
+			k++;
+		}
 	}
 
 	while( i < size ) {
@@ -353,11 +328,97 @@ CSparseFloatVector& CSparseFloatVector::operator -= ( const CSparseFloatVector& 
 		k++;
 	}
 
-	while( j < otherSize ) {
-		newBody->Desc.Indexes[k] = otherDesc.Indexes[j];
-		newBody->Desc.Values[k] = -otherDesc.Values[j];
-		j++;
+	if( vector.Indexes == nullptr ) {
+		while( j < otherSize ) {
+			newBody->Desc.Indexes[k] = j;
+			newBody->Desc.Values[k] = vector.Values[j];
+			j++;
+			k++;
+		}
+	} else {
+		while( j < otherSize ) {
+			newBody->Desc.Indexes[k] = vector.Indexes[j];
+			newBody->Desc.Values[k] = vector.Values[j];
+			j++;
+			k++;
+		}
+	}
+
+	newBody->Desc.Size = k;
+	body = newBody;
+	return *this;
+}
+
+CSparseFloatVector& CSparseFloatVector::operator -= ( const CFloatVectorDesc& vector )
+{
+	const int otherSize = vector.Size;
+	if( otherSize == 0 ) {
+		return *this;
+	}
+
+	const int size = NumberOfElements();
+	const CFloatVectorDesc& desc = GetDesc();
+
+	const int elementsCount = calcUnionElementsCount( *this, vector );
+	CSparseFloatVectorBody* newBody = FINE_DEBUG_NEW CSparseFloatVectorBody( elementsCount );
+
+	int i = 0;
+	int j = 0;
+	int k = 0;
+	if( vector.Indexes == nullptr ) {
+		while( i < size && j < otherSize ) {
+			if( desc.Indexes[i] == j ) {
+				newBody->Desc.Indexes[k] = j;
+				newBody->Desc.Values[k] = desc.Values[i] - vector.Values[j];
+				i++;
+			} else {
+				newBody->Desc.Indexes[k] = j;
+				newBody->Desc.Values[k] = -vector.Values[j];
+			}
+			j++;
+			k++;
+		}
+	} else {
+		while( i < size && j < otherSize ) {
+			if( desc.Indexes[i] == vector.Indexes[j] ) {
+				newBody->Desc.Indexes[k] = desc.Indexes[i];
+				newBody->Desc.Values[k] = desc.Values[i] - vector.Values[j];
+				i++;
+				j++;
+			} else if( desc.Indexes[i] < vector.Indexes[j] ) {
+				newBody->Desc.Indexes[k] = desc.Indexes[i];
+				newBody->Desc.Values[k] = desc.Values[i];
+				i++;
+			} else {
+				newBody->Desc.Indexes[k] = vector.Indexes[j];
+				newBody->Desc.Values[k] = -vector.Values[j];
+				j++;
+			}
+			k++;
+		}
+	}
+
+	while( i < size ) {
+		newBody->Desc.Indexes[k] = desc.Indexes[i];
+		newBody->Desc.Values[k] = desc.Values[i];
+		i++;
 		k++;
+	}
+
+	if( vector.Indexes == nullptr ) {
+		while( j < otherSize ) {
+			newBody->Desc.Indexes[k] = j;
+			newBody->Desc.Values[k] = -vector.Values[j];
+			j++;
+			k++;
+		}
+	} else {
+		while( j < otherSize ) {
+			newBody->Desc.Indexes[k] = vector.Indexes[j];
+			newBody->Desc.Values[k] = -vector.Values[j];
+			j++;
+			k++;
+		}
 	}
 
 	newBody->Desc.Size = k;
@@ -386,7 +447,7 @@ CSparseFloatVector& CSparseFloatVector::MultiplyAndAdd( const CSparseFloatVector
 	const int size = NumberOfElements();
 	const CFloatVectorDesc& desc = GetDesc();
 
-	const int newSize = calcUnionElementsCount( *this, vector );
+	const int newSize = calcUnionElementsCount( *this, vector.GetDesc() );
 	CSparseFloatVectorBody* newBody = FINE_DEBUG_NEW CSparseFloatVectorBody( newSize );
 
 	int i = 0;

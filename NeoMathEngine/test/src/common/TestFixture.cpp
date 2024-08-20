@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -79,20 +79,16 @@ using TCharType = wchar_t;
 using TCharType = char;
 #endif
 
-static constexpr TCharType mathEngineArg[] = { '-', '-', 'M', 'a', 't', 'h', 'E', 'n', 'g', 'i', 'n', 'e', '=' };
-static constexpr TCharType threadCount[] = { '-', '-', 'T', 'h', 'r', 'e', 'a', 'd', 'C', 'o', 'u', 'n', 't', '=' };
+static constexpr TCharType mathEngineArg[]{ '-', '-', 'M', 'a', 't', 'h', 'E', 'n', 'g', 'i', 'n', 'e', '=' };
+static constexpr TCharType cpuArg[]{ 'c', 'p', 'u' };
+static constexpr TCharType gpu[]{ 'g', 'p', 'u' };
+static constexpr TCharType cuda[]{ 'c', 'u', 'd', 'a' };
+static constexpr TCharType vulkan[]{ 'v', 'u', 'l', 'k', 'a', 'n' };
+static constexpr TCharType metal[]{ 'm', 'e', 't', 'a', 'l' };
 
-static constexpr TCharType cpuArg[] = { 'c', 'p', 'u' };
-static constexpr TCharType gpu[] = { 'g', 'p', 'u' };
-static constexpr TCharType cuda[] = { 'c', 'u', 'd', 'a' };
-static constexpr TCharType vulkan[] = { 'v', 'u', 'l', 'k', 'a', 'n' };
-static constexpr TCharType metal[] = { 'm', 'e', 't', 'a', 'l' };
-
-template<typename T>
-TMathEngineArgType getMathEngineArgType( int argc, T* argv[] )
+static TMathEngineArgType getMathEngineArgType( int argc, TCharType* argv[] )
 {
-	const T* rawArg = argValue( argc, argv, mathEngineArg );
-
+	auto rawArg = argValue( argc, argv, mathEngineArg );
 	if( rawArg != nullptr ) {
 		if( equal( rawArg, cpuArg ) ) {
 			return TMathEngineArgType::Cpu;
@@ -106,40 +102,8 @@ TMathEngineArgType getMathEngineArgType( int argc, T* argv[] )
 			return TMathEngineArgType::Metal;
 		}
 	}
-
 	return TMathEngineArgType::Undefined;
 }
-
-#ifdef NEOML_USE_FINEOBJ
-
-int getThreadCount( int argc, wchar_t* argv[] )
-{
-	const wchar_t* value = argValue( argc, argv, ThreadCount );
-	int res = 0;
-	if( value && FObj::Value( value, res ) ) {
-		return res;
-	}
-	return 0;
-}
-
-#else // NEOML_USE_FINEOBJ
-
-int getThreadCount( int argc, char* argv[] )
-{
-	const char* rawThreadCount = argValue( argc, argv, threadCount );
-
-	if( rawThreadCount != nullptr ) {
-		try {
-			return std::stoi( rawThreadCount );
-		} catch( std::exception& ) {
-			return 0;
-		}
-	}
-
-	return 0;
-}
-
-#endif // NEOML_USE_FINEOBJ
 
 static std::string toString( TMathEngineType type )
 {
@@ -158,7 +122,7 @@ static std::string toString( TMathEngineType type )
 	return "UNKNOWN";
 }
 
-static IMathEngine* createMathEngine( TMathEngineArgType argType, int threadCount )
+static IMathEngine* createMathEngine( TMathEngineArgType argType )
 {
 	switch( argType ) {
 		case TMathEngineArgType::Cuda:
@@ -175,7 +139,7 @@ static IMathEngine* createMathEngine( TMathEngineArgType argType, int threadCoun
 				CMathEngineInfo info;
 				manager->GetMathEngineInfo( i, info );
 				if( info.Type == meType ) {
-					IMathEngine* mathEngine = manager->CreateMathEngine( i, 0 );
+					IMathEngine* mathEngine = manager->CreateMathEngine( i, /*memoryLimit*/0 );
 					if( mathEngine != nullptr ) {
 						return mathEngine;
 					}
@@ -190,7 +154,7 @@ static IMathEngine* createMathEngine( TMathEngineArgType argType, int threadCoun
 				return nullptr;
 			}
 			for( int i = 0; i < manager->GetMathEngineCount(); ++i ) {
-				IMathEngine* mathEngine = manager->CreateMathEngine( i, 0 );
+				IMathEngine* mathEngine = manager->CreateMathEngine( i, /*memoryLimit*/0 );
 				if( mathEngine != nullptr ) {
 					return mathEngine;
 				}
@@ -201,7 +165,7 @@ static IMathEngine* createMathEngine( TMathEngineArgType argType, int threadCoun
 			GTEST_LOG_( WARNING ) << "Unknown type of MathEngine!";
 			// fall through
 		case TMathEngineArgType::Cpu:
-			return CreateCpuMathEngine( threadCount, 0 );
+			return CreateCpuMathEngine( /*memoryLimit*/0u );
 		default:
 			return nullptr;
 	}
@@ -213,9 +177,7 @@ int RunTests( int argc, char* argv[] )
 	::testing::InitGoogleTest( &argc, argv );
 	
 	auto type = getMathEngineArgType( argc, argv );
-	const int threadCount = getThreadCount( argc, argv );
-
-	IMathEngine* mathEngine = createMathEngine( type, threadCount );
+	IMathEngine* mathEngine = createMathEngine( type );
 
 	if( mathEngine != nullptr ) {
 		CMathEngineInfo info;

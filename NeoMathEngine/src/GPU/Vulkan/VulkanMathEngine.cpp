@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -78,7 +78,7 @@ CVulkanMathEngine::CVulkanMathEngine( std::unique_ptr<const CVulkanDevice>& _dev
 	ASSERT_EXPR( device != 0 ); // failed to create the device
 	shaderLoader = std::unique_ptr<CVulkanShaderLoader>( new CVulkanShaderLoader( *device ) );
 	commandQueue = std::unique_ptr<CVulkanCommandQueue>( new CVulkanCommandQueue( *device ) );
-	memoryLimit = min( memoryLimit == 0 ? SIZE_MAX : memoryLimit, device->AvailableMemory );
+	memoryLimit = std::min<size_t>( memoryLimit == 0 ? SIZE_MAX : memoryLimit, device->AvailableMemory );
 	memoryPool = std::unique_ptr<CMemoryPool>( new CMemoryPool( memoryLimit, this, false ) );
 	deviceStackAllocator = std::unique_ptr<CDeviceStackAllocator>( new CDeviceStackAllocator( *memoryPool, VulkanMemoryAlignment ) );
 	hostStackAllocator = std::unique_ptr<CHostStackAllocator>( new CHostStackAllocator( VulkanMemoryAlignment ) );
@@ -95,6 +95,24 @@ void CVulkanMathEngine::SetReuseMemoryMode( bool enable )
 {
 	std::lock_guard<std::mutex> lock( mutex );
 	memoryPool->SetReuseMemoryMode( enable );
+}
+
+bool CVulkanMathEngine::GetReuseMemoryMode() const
+{
+	std::lock_guard<std::mutex> lock( mutex );
+	return memoryPool->GetReuseMemoryMode();
+}
+
+void CVulkanMathEngine::SetThreadBufferMemoryThreshold( size_t threshold )
+{
+	std::lock_guard<std::mutex> lock( mutex );
+	memoryPool->SetThreadBufferMemoryThreshold( threshold );
+}
+
+size_t CVulkanMathEngine::GetThreadBufferMemoryThreshold() const
+{
+	std::lock_guard<std::mutex> lock( mutex );
+	return memoryPool->GetThreadBufferMemoryThreshold();
 }
 
 CMemoryHandle CVulkanMathEngine::HeapAlloc( size_t size )
@@ -142,6 +160,18 @@ size_t CVulkanMathEngine::GetPeakMemoryUsage() const
 {
 	std::lock_guard<std::mutex> lock( mutex );
 	return memoryPool->GetPeakMemoryUsage();
+}
+
+void CVulkanMathEngine::ResetPeakMemoryUsage()
+{
+	std::lock_guard<std::mutex> lock( mutex );
+	memoryPool->ResetPeakMemoryUsage();
+}
+
+size_t CVulkanMathEngine::GetCurrentMemoryUsage() const
+{
+	std::lock_guard<std::mutex> lock( mutex );
+	return memoryPool->GetCurrentMemoryUsage();
 }
 
 size_t CVulkanMathEngine::GetMemoryInPools() const
@@ -407,7 +437,7 @@ void CVulkanMathEngine::runVectorShader( const CVulkanShaderData& shader, const 
 {
 	int groupCountX = Ceil(count, shader.GroupSizeX);
 	int groupCountY = Ceil(groupCountX, VulkanMaxVectorXGroupCount);
-	groupCountX = min(groupCountX, VulkanMaxVectorXGroupCount);
+	groupCountX = std::min<int>(groupCountX, VulkanMaxVectorXGroupCount);
 
 	ASSERT_EXPR(shader.GroupSizeY == 1 && shader.GroupSizeZ == 1);
 
@@ -419,7 +449,7 @@ void CVulkanMathEngine::runVectorShader( const CVulkanShaderData& shader, const 
 const CVulkanImage& CVulkanMathEngine::batchVectorToImage( int batchSize, const CConstFloatHandle& vector, int size, int imageId )
 {
 	int size4 = Ceil(size, 4);
-	const CVulkanImage* images[] = { getTmpImage((TTmpVulkanImage)imageId, size4, batchSize) };
+	const CVulkanImage* images[1] = { getTmpImage((TTmpVulkanImage)imageId, size4, batchSize) };
 
 	CMemoryHandle bufs[1] = { vector };
 	size_t sizes[1] = { static_cast<size_t>( batchSize ) * size * sizeof( float ) };

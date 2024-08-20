@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,9 +15,12 @@ limitations under the License.
 
 namespace NeoML {
 
-bool CBlobConvolutionFabric::IsBlobConvolutionAvailable( int FltCnt, int FltH, int FltW )
+bool CBlobConvolutionFabric::IsBlobConvolutionAvailable( int SrcPixelCnt, int FltCnt, int FltH, int FltW )
 {
     if( FltH % 2 == 0 || FltW % 2 == 0 ) {
+        return false;
+    }
+    if( FltH == 1 && FltW == 1 && SrcPixelCnt < 32 ) {
         return false;
     }
     if(
@@ -130,15 +133,15 @@ CBlobConvolution<FltCnt>::CBlobConvolution(
 
 template<int FltCnt>
 void CBlobConvolution<FltCnt>::ProcessConvolution(
-    int threadCount, const float* sourceData, const float* filterData, const float* freeTermData, float* resultData )
+    const float* sourceData, const float* filterData, const float* freeTermData, float* resultData )
 {
     CFloatHandleStackVar filterTempBuffer( *mathEngine, FltW * FltH * FltCntM8 * ChCnt );
     CFloatHandleStackVar freeTermTempBuffer( *mathEngine, FltCntM8 );
 
-    src = sourceData;
     // Filter offset also are calculated from center
     flt = rearrangeFilter( filterData, filterTempBuffer ) + ( FltW * FltH ) / 2 * ChCnt * FltCntM8;
     freeTerm = rearrangeFreeTerm( freeTermData, freeTermTempBuffer );
+    src = sourceData;
     res = resultData;
 
     if( !jitIsInited ) {
@@ -146,59 +149,77 @@ void CBlobConvolution<FltCnt>::ProcessConvolution(
         jitIsInited = true;
     }
 
+    const int resRowCount = ResObjCnt * ResH;
+    processConvolutionRowwise( /*resRowStartIndex*/0, resRowCount );
+}
+
+template<int FltCnt>
+void CBlobConvolution<FltCnt>::ProcessConvolutionRowwise( const float* sourceData, int sourceRowIndex,
+    const float* filterData, const float* freeTermData, float* resultData, int resultRowIndex, int resultRowCount )
+{
+    // Filter offset also are calculated from center
+    if( rowwiseFlt == nullptr ) {
+        rowwiseFlt.reset( new CFloatHandleVar( *mathEngine, FltW * FltH * FltCntM8 * ChCnt ) );
+        rowwiseFreeTerm.reset( new CFloatHandleVar( *mathEngine, FltCntM8 ) );
+        flt = rearrangeFilter( filterData, *rowwiseFlt ) + ( FltW * FltH ) / 2 * ChCnt * FltCntM8;
+        freeTerm = rearrangeFreeTerm( freeTermData, *rowwiseFreeTerm );
+    }
+
+    src = sourceData - sourceRowIndex * SrcLineStride;
+    res = resultData - resultRowIndex * ResLineStride;
+
+    if( !jitIsInited ) {
+        initJitCodes();
+        jitIsInited = true;
+    }
+
+    processConvolutionRowwise( resultRowIndex, resultRowCount );
+}
+
+template<int FltCnt>
+void CBlobConvolution<FltCnt>::processConvolutionRowwise( int rowIdx, int rowCount )
+{
     const int SrcObjSize = SrcW * SrcH * ChCnt;
     const int ResObjSize = ResW * ResH * FltCnt;
-    const int ResRowCount = ResObjCnt * ResH;
-    const int curThreadCount = IsOmpRelevant( ResRowCount, ResRowCount * ResW * FltCnt * FltW * FltH * ChCnt ) ? threadCount : 1;
 
     // Coordinates of the most top and left position of the center of the filter over the source image.
     const int srcXOffset = FltW / 2 * DilationW - PaddingW;
     const int srcYOffset = FltH / 2 * DilationH - PaddingH;
 
-    NEOML_OMP_NUM_THREADS( curThreadCount )
-    {
-        // Index of row in whole result array
-        int rowIdx;
-        // Count of rows for current thread
-        int rowCount;
-        if( OmpGetTaskIndexAndCount( ResRowCount, rowIdx, rowCount ) ) {
+    while( rowCount > 0 ) {
+        // Index of result image in output batch
+        const int resIdx = rowIdx / ResH;
+        // Offset in current result image
+        const int ryStart = rowIdx % ResH;
+        // Number of rows for processing ( or number of rows till the end of current result image ).
+        const int ryCount = std::min( ResH - ryStart, rowCount );
+        rowIdx += ryCount;
+        rowCount -= ryCount;
 
-            while( rowCount > 0 ) {
-                // Index of result image in output batch
-                int resIdx = rowIdx / ResH;
-                // Offset in current result image
-                int ryStart = rowIdx % ResH;
-                // Number of rows for processing ( or number of rows till the end of current result image ).
-                int ryCount = min( ResH - ryStart, rowCount );
-                rowIdx += ryCount;
-                rowCount -= ryCount;
+        // Pointers to src and res for current thread
+        const float* const realSrcStart = src + resIdx * SrcObjSize + srcXOffset * ChCnt;
+        float* const realResStart = res + resIdx * ResObjSize;
 
-                // Pointers to src and res for current thread
-                const float* realSrcStart = src + resIdx * SrcObjSize + srcXOffset * ChCnt;
-                float* realResStart = res + resIdx * ResObjSize;
+        // Iterate through result, left->right, top->bottom
+        const int currentRH = std::min( ResH, ryStart + ryCount );
+        int ry = ryStart;
+        int yStep = 0;
 
-                // Iterate through result, left->right, top->bottom
-                const int currentRH = min( ResH, ryStart + ryCount );
-                int ry = ryStart;
-                int yStep = 0;
+        // Iterate through all combination of intersections
+        for( int yStepIndex = 0; yStepIndex < PixelOffsetResStepsWidthY.size(); yStepIndex++ ) {
 
-                // Iterate through all combination of intersections
-                for( int yStepIndex = 0; yStepIndex < PixelOffsetResStepsWidthY.size(); yStepIndex++ ) {
+            // Last index of res for current intersection.
+            yStep += PixelOffsetResStepsWidthY[yStepIndex];
+            // Process up to current step or up to and of current butch
+            int ryEnd = std::min( yStep, currentRH );
+            for( ; ry < ryEnd; ) {
+                const float* srcPtr = realSrcStart + srcYOffset * SrcLineStride + ry * SrcYStep;
+                float* resPtr = realResStart + ry * ResLineStride;
+                bool useNarrowProcessing = ryEnd - ry >= NarrowBatchProcessSize.Height;
 
-                    // Last index of res for current intersection.
-                    yStep += PixelOffsetResStepsWidthY[yStepIndex];
-                    // Process up to current step or up to and of current butch
-                    int ryEnd = min( yStep, currentRH );
-                    for( ; ry < ryEnd; ) {
-                        const float* srcPtr = realSrcStart + srcYOffset * SrcLineStride + ry * SrcYStep;
-                        float* resPtr = realResStart + ry * ResLineStride;
-                        bool useNarrowProcessing = ryEnd - ry >= NarrowBatchProcessSize.Height;
-
-                        jitCodes[yStepIndex]->Run( useNarrowProcessing, srcPtr, flt, freeTerm, resPtr );
-                        
-                        ry += useNarrowProcessing ? NarrowBatchProcessSize.Height : WideBatchProcessSize.Height;
-                    }
-                }
+                jitCodes[yStepIndex]->Run( useNarrowProcessing, srcPtr, flt, freeTerm, resPtr );
+                
+                ry += useNarrowProcessing ? NarrowBatchProcessSize.Height : WideBatchProcessSize.Height;
             }
         }
     }
@@ -227,7 +248,7 @@ inline void CBlobConvolution<FltCnt>::initJitCodes()
 }
 
 template<int FltCnt>
-const float* CBlobConvolution<FltCnt>::rearrangeFilter( const float* filterData, CFloatHandleStackVar& filterTempBuffer )
+const float* CBlobConvolution<FltCnt>::rearrangeFilter( const float* filterData, CMemoryHandleVarBase<float>& filterTempBuffer )
 {
     // Rearrange filter data.
     // Initial packing:
@@ -280,7 +301,7 @@ const float* CBlobConvolution<FltCnt>::rearrangeFilter( const float* filterData,
 }
 
 template<int FltCnt>
-const float* CBlobConvolution<FltCnt>::rearrangeFreeTerm( const float* freeTermData, CFloatHandleStackVar& freeTermTempBuffer )
+const float* CBlobConvolution<FltCnt>::rearrangeFreeTerm( const float* freeTermData, CMemoryHandleVarBase<float>& freeTermTempBuffer )
 {
     if( freeTermData == nullptr ) {
         return nullptr;
@@ -299,7 +320,7 @@ const float* CBlobConvolution<FltCnt>::rearrangeFreeTerm( const float* freeTermD
 template<int FltCnt>
 std::vector<int> CBlobConvolution<FltCnt>::getPixelOffsetSrcSteps( int srcDim, int fDim, int dDim, int sDim, int pDim )
 {
-    vector<int> ret( fDim );
+    std::vector<int> ret( fDim );
     const int halfFDim = fDim / 2;
 
     // First offset of center of the filter window (Take in consideration paddings)
@@ -316,12 +337,12 @@ std::vector<int> CBlobConvolution<FltCnt>::getPixelOffsetSrcSteps( int srcDim, i
     }
 
 
-    for( int i = fDim - 1, j = 1; i > fDim / 2; i--, j++ ) {
+    for( int i = fDim - 1, j = 1; i > halfFDim; i--, j++ ) {
         // from last to next to middle
         ret[i] = ( ( ( srcDim - j * dDim ) - firstOffset ) + sDim - 1 ) / sDim * sDim + firstOffset;
     }
 
-    sort( ret.begin(), ret.end() );
+    std::sort( ret.begin(), ret.end() );
 
     // Remove out of range and repeated items
     auto start = ret.begin();
@@ -338,20 +359,19 @@ std::vector<int> CBlobConvolution<FltCnt>::getPixelOffsetSrcSteps( int srcDim, i
     }
     end++;
 
-    return vector<int>( start, end );
+    return std::vector<int>( start, end );
 }
 
 template<int FltCnt>
 void CBlobConvolution<FltCnt>::fillPixelOffset()
 {
-    using namespace std;
-    vector<int> pixelOffsetSrcStepsX = getPixelOffsetSrcSteps( SrcW, FltW, DilationW, StrideW, PaddingW );
-    vector<int> pixelOffsetSrcStepsY = getPixelOffsetSrcSteps( SrcH, FltH, DilationH, StrideH, PaddingH );
+    std::vector<int> pixelOffsetSrcStepsX = getPixelOffsetSrcSteps( SrcW, FltW, DilationW, StrideW, PaddingW );
+    std::vector<int> pixelOffsetSrcStepsY = getPixelOffsetSrcSteps( SrcH, FltH, DilationH, StrideH, PaddingH );
 
     // Calculate offset on the source image where intersection of filter and image is changed.
     auto getPixelOffsetResStepsWidth = []( const std::vector<int>& pixelOffsetSrcSteps, int srcDim, int fDim, int dDim, int sDim, int pDim )
     {
-        vector<int> ret( pixelOffsetSrcSteps.size() );
+        std::vector<int> ret( pixelOffsetSrcSteps.size() );
         const int firstOffset = fDim / 2 * dDim - pDim;
         const int lastSrcPixelIdx = srcDim - 1;
         const int lastOffset = firstOffset + ( lastSrcPixelIdx - 2 * firstOffset ) / sDim * sDim;
@@ -369,25 +389,25 @@ void CBlobConvolution<FltCnt>::fillPixelOffset()
     PixelOffsetResStepsWidthY = getPixelOffsetResStepsWidth( pixelOffsetSrcStepsY, SrcH, FltH, DilationH, StrideH, PaddingH );
 
     // Get size of intersection of filter window and source image
-    auto getFilterWindowSize = []( const vector<int>& pixelOffsetSrcSteps, int srcDim, int fDim, int dDim ) -> vector<pair<int, int>> {
+    auto getFilterWindowSize = []( const std::vector<int>& pixelOffsetSrcSteps, int srcDim, int fDim, int dDim ) -> std::vector<std::pair<int, int>> {
         // first - count of items in filter from center to top
         // second - count of items in filter from center to bottom
-        vector<pair<int, int>> ret( pixelOffsetSrcSteps.size() );
+        std::vector<std::pair<int, int>> ret( pixelOffsetSrcSteps.size() );
         for( int i = 0; i < pixelOffsetSrcSteps.size(); i++ ) {
             const int halfFDim = fDim / 2;
-            ret[i] = make_pair(
-                min( pixelOffsetSrcSteps[i] / dDim, halfFDim ),
-                min( ( ( srcDim - 1 ) - pixelOffsetSrcSteps[i] ) / dDim, halfFDim ) );
+            ret[i] = std::make_pair(
+                std::min( pixelOffsetSrcSteps[i] / dDim, halfFDim ),
+                std::min( ( ( srcDim - 1 ) - pixelOffsetSrcSteps[i] ) / dDim, halfFDim ) );
         }
         return ret;
     };
 
-    vector<pair<int, int>> offsetSizeX = getFilterWindowSize( pixelOffsetSrcStepsX, SrcW, FltW, DilationW );
-    vector<pair<int, int>> offsetSizeY = getFilterWindowSize( pixelOffsetSrcStepsY, SrcH, FltH, DilationH );
+    std::vector<std::pair<int, int>> offsetSizeX = getFilterWindowSize( pixelOffsetSrcStepsX, SrcW, FltW, DilationW );
+    std::vector<std::pair<int, int>> offsetSizeY = getFilterWindowSize( pixelOffsetSrcStepsY, SrcH, FltH, DilationH );
 
     // Calculate resulted offsets of pixels in window.
-    auto fillPixelOffset = [&]( size_t hStride, size_t wStride ) ->vector<vector<int>> {
-        vector<vector<int>> offsets( offsetSizeX.size() * offsetSizeY.size() );
+    auto fillPixelOffset = [&]( size_t hStride, size_t wStride ) -> std::vector<std::vector<int>> {
+        std::vector<std::vector<int>> offsets( offsetSizeX.size() * offsetSizeY.size() );
         auto it = offsets.begin();
 
         for( const auto& y : offsetSizeY ) {
@@ -407,7 +427,6 @@ void CBlobConvolution<FltCnt>::fillPixelOffset()
 
     SrcPixelsOffset = fillPixelOffset( SrcYDilation, SrcXDilation );
     FltPixelsOffset = fillPixelOffset( FltW * ChCnt * FltCntM8, ChCnt * FltCntM8 );
-
 }
 
 } // namespace NeoML

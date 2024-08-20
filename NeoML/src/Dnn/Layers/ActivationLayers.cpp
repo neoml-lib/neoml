@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,23 +18,32 @@ limitations under the License.
 
 #include <NeoML/Dnn/Dnn.h>
 #include <NeoML/Dnn/Layers/ActivationLayers.h>
-#include <NeoML/Dnn/Layers/GELULayer.h>
 #include <NeoMathEngine/NeoMathEngine.h>
 
 namespace NeoML {
 
-CPtr<CBaseLayer> CreateActivationLayer( IMathEngine& mathEngine, TActivationFunction type )
+template<class CActivationLayer>
+static CPtr<CBaseLayer> createActivationWithParam( IMathEngine& mathEngine, const CActivationDesc& desc )
 {
-	static_assert( AF_Count == 12, "AF_Count != 12" );
-	switch( type ) {
+	CPtr<CActivationLayer> result = FINE_DEBUG_NEW CActivationLayer( mathEngine );
+	if( desc.HasParam() ) {
+		result->ApplyParam( desc.GetParam<typename CActivationLayer::CParam>() );
+	}
+	return result.Ptr();
+}
+
+CPtr<CBaseLayer> CreateActivationLayer( IMathEngine& mathEngine, const CActivationDesc& desc )
+{
+	static_assert( AF_Count == 15, "AF_Count != 15" );
+	switch( desc.GetType() ) {
 		case AF_Linear:
-			return FINE_DEBUG_NEW CLinearLayer( mathEngine );
+			return createActivationWithParam<CLinearLayer>( mathEngine, desc );
 		case AF_ELU:
-			return FINE_DEBUG_NEW CELULayer( mathEngine );
+			return createActivationWithParam<CELULayer>( mathEngine, desc );
 		case AF_ReLU:
-			return FINE_DEBUG_NEW CReLULayer( mathEngine );
+			return createActivationWithParam<CReLULayer>( mathEngine, desc );
 		case AF_LeakyReLU:
-			return FINE_DEBUG_NEW CLeakyReLULayer( mathEngine );
+			return createActivationWithParam<CLeakyReLULayer>( mathEngine, desc );
 		case AF_Abs:
 			return FINE_DEBUG_NEW CAbsLayer( mathEngine );
 		case AF_Sigmoid:
@@ -44,53 +53,204 @@ CPtr<CBaseLayer> CreateActivationLayer( IMathEngine& mathEngine, TActivationFunc
 		case AF_HardTanh:
 			return FINE_DEBUG_NEW CHardTanhLayer( mathEngine );
 		case AF_HardSigmoid:
-			return FINE_DEBUG_NEW CHardSigmoidLayer( mathEngine );
+			return createActivationWithParam<CHardSigmoidLayer>( mathEngine, desc );
 		case AF_Power:
-			return FINE_DEBUG_NEW CPowerLayer( mathEngine );
+			return createActivationWithParam<CPowerLayer>( mathEngine, desc );
 		case AF_HSwish:
 			return FINE_DEBUG_NEW CHSwishLayer( mathEngine );
 		case AF_GELU:
-			return FINE_DEBUG_NEW CGELULayer( mathEngine );
+			return createActivationWithParam<CGELULayer>( mathEngine, desc );
+		case AF_Exp:
+			return FINE_DEBUG_NEW CExpLayer( mathEngine );
+		case AF_Log:
+			return FINE_DEBUG_NEW CLogLayer( mathEngine );
+		case AF_Erf:
+			return FINE_DEBUG_NEW CErfLayer( mathEngine );
 		default:
 			NeoAssert( false );
 	}
 	return 0;
 }
 
-///////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////
+void StoreActivationDesc( const CActivationDesc& desc, CArchive& archive )
+{
+	TActivationFunction type = desc.GetType();
+
+	archive.SerializeEnum( type );
+	switch( type ) {
+		case AF_Linear:
+			archive << desc.GetParam<CLinearLayer::CParam>().Multiplier
+				<< desc.GetParam<CLinearLayer::CParam>().FreeTerm;
+			break;
+		case AF_ELU:
+			archive << desc.GetParam<CELULayer::CParam>().Alpha;
+			break;
+		case AF_ReLU:
+			archive << desc.GetParam<CReLULayer::CParam>().UpperThreshold;
+			break;
+		case AF_LeakyReLU:
+			archive << desc.GetParam<CLeakyReLULayer::CParam>().Alpha;
+			break;
+		case AF_HardSigmoid:
+			archive << desc.GetParam<CHardSigmoidLayer::CParam>().Slope
+				<< desc.GetParam<CHardSigmoidLayer::CParam>().Bias;
+			break;
+		case AF_Power:
+			archive << desc.GetParam<CPowerLayer::CParam>().Exponent;
+			break;
+		case AF_GELU:
+			archive << static_cast<int>( desc.GetParam<CGELULayer::CParam>().Mode );
+			break;
+		case AF_Abs:
+		case AF_Sigmoid:
+		case AF_Tanh:
+		case AF_HardTanh:
+		case AF_HSwish:
+		case AF_Exp:
+		case AF_Log:
+		case AF_Erf:
+			break;
+		default:
+			NeoAssert( false );
+	}
+}
+
+CActivationDesc LoadActivationDesc( CArchive& archive )
+{
+	TActivationFunction type = AF_Count;
+	archive.SerializeEnum( type );
+	CActivationDesc result = CActivationDesc( type );
+
+	switch( type ) {
+		case AF_Linear:
+		{
+			CLinearLayer::CParam param;
+			archive >> param.Multiplier >> param.FreeTerm;
+			result.SetParam( param );
+			break;
+		}
+		case AF_ELU:
+		{
+			CELULayer::CParam param;
+			archive >> param.Alpha;
+			result.SetParam( param );
+			break;
+		}
+		case AF_ReLU:
+		{
+			CReLULayer::CParam param;
+			archive >> param.UpperThreshold;
+			result.SetParam( param );
+			break;
+		}
+		case AF_LeakyReLU:
+		{
+			CLeakyReLULayer::CParam param;
+			archive >> param.Alpha;
+			result.SetParam( param );
+			break;
+		}
+		case AF_HardSigmoid:
+		{
+			CHardSigmoidLayer::CParam param;
+			archive >> param.Slope >> param.Bias;
+			result.SetParam( param );
+			break;
+		}
+		case AF_Power:
+		{
+			CPowerLayer::CParam param;
+			archive >> param.Exponent;
+			result.SetParam( param );
+			break;
+		}
+		case AF_GELU:
+		{
+			CGELULayer::CParam param;
+			int intMode = 0;
+			archive >> intMode;
+			param.Mode = static_cast<CGELULayer::TCalculationMode>( intMode );
+			result.SetParam( param );
+			break;
+		}
+		case AF_Abs:
+		case AF_Sigmoid:
+		case AF_Tanh:
+		case AF_HardTanh:
+		case AF_HSwish:
+		case AF_Exp:
+		case AF_Log:
+		case AF_Erf:
+			break;
+		default:
+			NeoAssert( false );
+	}
+
+	return result;
+}
+
+//---------------------------------------------------------------------------------------------------
+
 CLinearLayer::CLinearLayer( IMathEngine& mathEngine ) :
 	CBaseInPlaceLayer( mathEngine, "CCnnLinearLayer" )
 {
-	SetMultiplier(1.f);
-	SetFreeTerm(0);
+}
+
+void CLinearLayer::OnReshaped()
+{
+	if( inputDescs[0].GetDataType() == CT_Float ) {
+		if( vars == nullptr || vars->GetDataType() != CT_Float ) {
+			vars = CDnnBlob::CreateVector( MathEngine(), CT_Float, TP_Count );
+		}
+		vars->GetData().SetValueAt( TP_Multiplier, multiplier );
+		vars->GetData().SetValueAt( TP_FreeTerm, freeTerm );
+	} else {
+		if( vars == nullptr || vars->GetDataType() != CT_Int ) {
+			vars = CDnnBlob::CreateVector( MathEngine(), CT_Int, TP_Count );
+		}
+		vars->GetData<int>().SetValueAt( TP_Multiplier, static_cast<int>( multiplier ) );
+		vars->GetData<int>().SetValueAt( TP_FreeTerm, static_cast<int>( freeTerm ) );
+	}
+}
+
+template<class T>
+static void linearRunOnce( const CTypedMemoryHandle<const T>& input, T multiplier, T freeTerm, int dataSize,
+	const CDnnBlob& vars, const CTypedMemoryHandle<T>& output )
+{
+	IMathEngine& mathEngine = *input.GetMathEngine();
+	CTypedMemoryHandle<const T> currInput = input;
+
+	if( multiplier != static_cast<T>( 1 ) ) {
+		mathEngine.VectorMultiply( currInput, output, dataSize, vars.GetData<const T>( { CLinearLayer::TP_Multiplier } ) );
+		currInput = output;
+	}
+
+	if( freeTerm != static_cast<T>( 0 ) ) {
+		mathEngine.VectorAddValue( currInput, output, dataSize, vars.GetData<const T>( { CLinearLayer::TP_FreeTerm } ) );
+		currInput = output;
+	}
+
+	if( currInput != output ) {
+		mathEngine.VectorCopy( output, currInput, dataSize );
+	}
+}
+
+CActivationDesc CLinearLayer::GetDesc() const
+{
+	CParam param{ GetMultiplier(), GetFreeTerm() };
+	return { AF_Linear, param };
 }
 
 void CLinearLayer::RunOnce()
 {
-	CheckInput1();
+	const int dataSize = outputBlobs[0]->GetDataSize();
 
-	CConstFloatHandle inputPtr = inputBlobs[0]->GetData();
-	CFloatHandle outputPtr = outputBlobs[0]->GetData();
-	int dataSize = outputBlobs[0]->GetDataSize();
-
-	if( multiplier != 1.f ) {
-		CFloatHandleStackVar multiplierValue( MathEngine() );
-		multiplierValue.SetValue( multiplier );
-		MathEngine().VectorMultiply( inputPtr, outputPtr, dataSize, multiplierValue );
-		inputPtr = outputPtr;
-	}
-
-	if( freeTerm != 0.f ) {
-		CFloatHandleStackVar freeTermValue( MathEngine() );
-		freeTermValue.SetValue( freeTerm );
-		MathEngine().VectorAddValue( inputPtr, outputPtr, dataSize, freeTermValue );
-		inputPtr = outputPtr;
-	}
-
-	if( inputPtr != outputPtr ) {
-		// The only case when we need to copy data is when mult == 1 && ft == 0 && !inPlace
-		MathEngine().VectorCopy( outputPtr, inputPtr, dataSize );
+	if( inputBlobs[0]->GetDataType() == CT_Float ) {
+		linearRunOnce( inputBlobs[0]->GetData<const float>(), multiplier,
+			freeTerm, dataSize, *vars, outputBlobs[0]->GetData() );
+	} else {
+		linearRunOnce( inputBlobs[0]->GetData<const int>(), static_cast<int>( multiplier ),
+			static_cast<int>( freeTerm ), dataSize, *vars, outputBlobs[0]->GetData<int>() );
 	}
 }
 
@@ -98,12 +258,10 @@ void CLinearLayer::BackwardOnce()
 {
 	CConstFloatHandle outputDiffPtr = outputDiffBlobs[0]->GetData();
 	CFloatHandle inputDiffPtr = inputDiffBlobs[0]->GetData();
-	int dataSize = outputBlobs[0]->GetDataSize();
+	int dataSize = outputDiffBlobs[0]->GetDataSize();
 
 	if( multiplier != 1.f ) {
-		CFloatHandleStackVar multiplierValue( MathEngine() );
-		multiplierValue.SetValue( multiplier );
-		MathEngine().VectorMultiply( outputDiffPtr, inputDiffPtr, dataSize, multiplierValue );
+		MathEngine().VectorMultiply( outputDiffPtr, inputDiffPtr, dataSize, vars->GetData( { TP_Multiplier } ) );
 	} else if( outputDiffPtr != inputDiffPtr ) {
 		MathEngine().VectorCopy( inputDiffPtr, outputDiffPtr, dataSize );
 	}
@@ -142,7 +300,7 @@ CELULayer::CELULayer( IMathEngine& mathEngine ) :
 	CBaseInPlaceLayer( mathEngine, "CCnnELULayer" )
 {
 	paramBlobs.Add( CDnnBlob::CreateVector( mathEngine, CT_Float, 1 ) );
-	SetAlpha( 0.01f );
+	SetAlpha( DefaultAlpha );
 }
 
 static const int ELULayerVersion = 2000;
@@ -163,10 +321,13 @@ void CELULayer::SetAlpha( float alpha )
 	paramBlobs[0]->GetData().SetValue( alpha );
 }
 
+CActivationDesc CELULayer::GetDesc() const
+{
+	return { AF_ELU, CParam{ GetAlpha() } };
+}
+
 void CELULayer::RunOnce()
 {
-	CheckInput1();
-
 	MathEngine().VectorELU( inputBlobs[0]->GetData(), outputBlobs[0]->GetData(),
 		outputBlobs[0]->GetDataSize(), paramBlobs[0]->GetData() );
 }
@@ -188,6 +349,13 @@ CLayerWrapper<CELULayer> Elu( float alpha )
 
 static const int ReLULayerVersion = 2000;
 
+CReLULayer::CReLULayer( IMathEngine& mathEngine ) :
+	CBaseInPlaceLayer( mathEngine, "CCnnReLULayer" ),
+	upperThreshold( CDnnBlob::CreateVector( mathEngine, CT_Float, 1 ) )
+{
+	SetUpperThreshold( DefaultUpperThreshold );
+}
+
 void CReLULayer::Serialize( CArchive& archive )
 {
 	archive.SerializeVersion( ReLULayerVersion, CDnn::ArchiveMinSupportedVersion );
@@ -204,10 +372,13 @@ void CReLULayer::Serialize( CArchive& archive )
 	}
 }
 
+CActivationDesc CReLULayer::GetDesc() const
+{
+	return { AF_ReLU, CParam{ GetUpperThreshold() } };
+}
+
 void CReLULayer::RunOnce()
 {
-	CheckInput1();
-
 	CConstFloatHandle inputPtr = inputBlobs[0]->GetData();
 	CFloatHandle outputPtr = outputBlobs[0]->GetData();
 	int dataSize = outputBlobs[0]->GetDataSize();
@@ -252,12 +423,16 @@ CLeakyReLULayer::CLeakyReLULayer( IMathEngine& mathEngine ) :
 	CBaseInPlaceLayer( mathEngine, "CCnnLeakyReLULayer" )
 {
 	paramBlobs.Add( CDnnBlob::CreateVector( mathEngine, CT_Float, 1 ) );
-	SetAlpha( 0.01f );
+	SetAlpha( DefaultAlpha );
+}
+
+CActivationDesc CLeakyReLULayer::GetDesc() const
+{
+	return { AF_LeakyReLU, CParam{ GetAlpha() } };
 }
 
 void CLeakyReLULayer::RunOnce()
 {
-	CheckInput1();
 	CConstFloatHandle inputPtr = inputBlobs[0]->GetData();
 	CConstFloatHandle alpha = paramBlobs[0]->GetData();
 	CFloatHandle outputPtr = outputBlobs[0]->GetData();
@@ -287,6 +462,11 @@ void CHSwishLayer::Serialize( CArchive& archive )
 {
 	archive.SerializeVersion( HSwishLayerVersion, CDnn::ArchiveMinSupportedVersion );
 	CBaseLayer::Serialize( archive );
+}
+
+CActivationDesc CHSwishLayer::GetDesc() const
+{
+	return { AF_HSwish };
 }
 
 void CHSwishLayer::Reshape()
@@ -326,6 +506,11 @@ void CAbsLayer::Serialize( CArchive& archive )
 	CBaseLayer::Serialize( archive );
 }
 
+CActivationDesc CAbsLayer::GetDesc() const
+{
+	return { AF_Abs };
+}
+
 void CAbsLayer::Reshape()
 {
 	CheckInput1();
@@ -337,7 +522,7 @@ void CAbsLayer::RunOnce()
 {
 	CConstFloatHandle inputPtr = inputBlobs[0]->GetData();
 	CFloatHandle outputPtr = outputBlobs[0]->GetData();
-	int dataSize = inputBlobs[0]->GetDataSize();
+	const int dataSize = inputBlobs[0]->GetDataSize();
 
 	MathEngine().VectorAbs(inputPtr, outputPtr, dataSize);
 }
@@ -363,10 +548,13 @@ void CSigmoidLayer::Serialize( CArchive& archive )
 	CBaseInPlaceLayer::Serialize( archive );
 }
 
+CActivationDesc CSigmoidLayer::GetDesc() const
+{
+	return { AF_Sigmoid };
+}
+
 void CSigmoidLayer::RunOnce()
 {
-	CheckInput1();
-
 	MathEngine().VectorSigmoid(inputBlobs[0]->GetData(), outputBlobs[0]->GetData(), outputBlobs[0]->GetDataSize());
 }
 
@@ -391,10 +579,13 @@ void CTanhLayer::Serialize( CArchive& archive )
 	CBaseInPlaceLayer::Serialize( archive );
 }
 
+CActivationDesc CTanhLayer::GetDesc() const
+{
+	return { AF_Tanh };
+}
+
 void CTanhLayer::RunOnce()
 {
-	CheckInput1();
-
 	MathEngine().VectorTanh(inputBlobs[0]->GetData(), outputBlobs[0]->GetData(), outputBlobs[0]->GetDataSize());
 }
 
@@ -419,10 +610,13 @@ void CHardTanhLayer::Serialize( CArchive& archive )
 	CBaseInPlaceLayer::Serialize( archive );
 }
 
+CActivationDesc CHardTanhLayer::GetDesc() const
+{
+	return { AF_HardTanh };
+}
+
 void CHardTanhLayer::RunOnce()
 {
-	CheckInput1();
-
 	MathEngine().VectorHardTanh(inputBlobs[0]->GetData(), outputBlobs[0]->GetData(), outputBlobs[0]->GetDataSize());
 }
 
@@ -444,9 +638,9 @@ static const int HardSigmoidLayerVersion = 2001;
 void CHardSigmoidLayer::setDefaultParamBlobs( IMathEngine& mathEngine )
 {
 	paramBlobs.Add( CDnnBlob::CreateVector( mathEngine, CT_Float, 1 ) );
-	SetSlope( 0.5f );
+	SetSlope( DefaultSlope );
 	paramBlobs.Add( CDnnBlob::CreateVector( mathEngine, CT_Float, 1 ) );
-	SetBias( 0.5f );
+	SetBias( DefaultBias );
 }
 
 void CHardSigmoidLayer::Serialize( CArchive& archive )
@@ -464,10 +658,13 @@ CHardSigmoidLayer::CHardSigmoidLayer( IMathEngine& mathEngine ) : CBaseInPlaceLa
 	setDefaultParamBlobs( mathEngine );
 }
 
+CActivationDesc CHardSigmoidLayer::GetDesc() const
+{
+	return { AF_HardSigmoid, CParam{ GetSlope(), GetBias() } };
+}
+
 void CHardSigmoidLayer::RunOnce()
 {
-	CheckInput1();
-
 	MathEngine().VectorHardSigmoid( inputBlobs[0]->GetData(), outputBlobs[0]->GetData(), outputBlobs[0]->GetDataSize(),
 		paramBlobs[0]->GetData(), paramBlobs[1]->GetData() );
 }
@@ -490,6 +687,11 @@ CLayerWrapper<CHardSigmoidLayer> HardSigmoid( float slope, float bias )
 
 static const int PowerLayerVersion = 2000;
 
+CPowerLayer::CPowerLayer( IMathEngine& mathEngine ) :
+	CBaseInPlaceLayer( mathEngine, "CCnnPowerLayer" )
+{
+}
+
 void CPowerLayer::Serialize( CArchive& archive )
 {
 	archive.SerializeVersion( PowerLayerVersion, CDnn::ArchiveMinSupportedVersion );
@@ -497,10 +699,13 @@ void CPowerLayer::Serialize( CArchive& archive )
 	archive.Serialize( exponent );
 }
 
+CActivationDesc CPowerLayer::GetDesc() const
+{
+	return { AF_Power, CParam{ exponent } };
+}
+
 void CPowerLayer::RunOnce()
 {
-	CheckInput1();
-
 	MathEngine().VectorPower(exponent, inputBlobs[0]->GetData(), outputBlobs[0]->GetData(), outputBlobs[0]->GetDataSize());
 }
 
@@ -515,6 +720,124 @@ CLayerWrapper<CPowerLayer> Power( float exponent )
 	return CLayerWrapper<CPowerLayer>( "Power", [=]( CPowerLayer* result ) {
 		result->SetExponent( exponent );
 	} );
+}
+
+//---------------------------------------------------------------------------------------------------
+
+static const int ExpLayerVersion = 0;
+
+void CExpLayer::Serialize( CArchive& archive )
+{
+	archive.SerializeVersion( ExpLayerVersion );
+	CBaseInPlaceLayer::Serialize( archive );
+}
+
+CActivationDesc CExpLayer::GetDesc() const
+{
+	return { AF_Exp };
+}
+
+void CExpLayer::RunOnce()
+{
+	MathEngine().VectorExp( inputBlobs[0]->GetData(), outputBlobs[0]->GetData(), outputBlobs[0]->GetDataSize() );
+}
+
+void CExpLayer::BackwardOnce()
+{
+	MathEngine().VectorEltwiseMultiply( outputBlobs[0]->GetData(), outputDiffBlobs[0]->GetData(),
+		inputDiffBlobs[0]->GetData(), outputBlobs[0]->GetDataSize() );
+}
+
+CLayerWrapper<CExpLayer> Exp()
+{
+	return CLayerWrapper<CExpLayer>( "Exp" );
+}
+
+//---------------------------------------------------------------------------------------------------
+
+static const int LogLayerVersion = 0;
+
+void CLogLayer::Serialize( CArchive& archive )
+{
+	archive.SerializeVersion( LogLayerVersion );
+	CBaseInPlaceLayer::Serialize( archive );
+}
+
+CActivationDesc CLogLayer::GetDesc() const
+{
+	return { AF_Log };
+}
+
+void CLogLayer::RunOnce()
+{
+	MathEngine().VectorLog( inputBlobs[0]->GetData(), outputBlobs[0]->GetData(), outputBlobs[0]->GetDataSize() );
+}
+
+void CLogLayer::BackwardOnce()
+{
+	if( inputBlobs[0].Ptr() == outputBlobs[0].Ptr() || inputBlobs[0].Ptr() == nullptr ) {
+		MathEngine().VectorExp( outputBlobs[0]->GetData(), inputDiffBlobs[0]->GetData(), outputBlobs[0]->GetDataSize());
+		MathEngine().VectorEltwiseDivide( outputDiffBlobs[0]->GetData(), inputDiffBlobs[0]->GetData(),
+			inputDiffBlobs[0]->GetData(), outputBlobs[0]->GetDataSize() );
+	} else {
+		MathEngine().VectorEltwiseDivide( outputDiffBlobs[0]->GetData(), inputBlobs[0]->GetData(),
+			inputDiffBlobs[0]->GetData(), inputBlobs[0]->GetDataSize() );
+	}
+}
+
+CLayerWrapper<CLogLayer> Log()
+{
+	return CLayerWrapper<CLogLayer>( "Log" );
+}
+
+//---------------------------------------------------------------------------------------------------
+
+CErfLayer::CErfLayer( IMathEngine& mathEngine ) :
+	CBaseLayer( mathEngine, "CErfLayer", false ),
+	mult( CDnnBlob::CreateVector( mathEngine, CT_Float, 1 ) )
+{
+	mult->GetData().SetValue( 1.1283791671f ); // 2 / sqrt( pi )
+}
+
+static const int ErfLayerVersion = 0;
+
+void CErfLayer::Serialize( CArchive& archive )
+{
+	archive.SerializeVersion( ErfLayerVersion );
+	CBaseLayer::Serialize( archive );
+}
+
+CActivationDesc CErfLayer::GetDesc() const
+{
+	return { AF_Erf };
+}
+
+void CErfLayer::Reshape()
+{
+	CheckInput1();
+	CheckOutputs();
+	CheckLayerArchitecture( inputDescs[0].GetDataType() == CT_Float, "Layer works only with float data" );
+	outputDescs[0] = inputDescs[0];
+}
+
+void CErfLayer::RunOnce()
+{
+	MathEngine().VectorErf( inputBlobs[0]->GetData(), outputBlobs[0]->GetData(), outputBlobs[0]->GetDataSize() );
+}
+
+void CErfLayer::BackwardOnce()
+{
+	const int dataSize = inputBlobs[0]->GetDataSize();
+	CFloatHandle inputDiff = inputDiffBlobs[0]->GetData();
+	MathEngine().VectorNegMultiply( inputBlobs[0]->GetData(), inputBlobs[0]->GetData(), dataSize, inputDiff );
+	MathEngine().VectorExp( inputDiff, inputDiff, dataSize );
+	MathEngine().VectorMultiply( inputDiff, inputDiff, dataSize, mult->GetData() );
+	MathEngine().VectorEltwiseMultiply( inputDiff, outputDiffBlobs[0]->GetData(), inputDiff, dataSize );
+}
+
+CLayerWrapper<CErfLayer> Erf()
+{
+	return CLayerWrapper<CErfLayer>( "Erf" );
 }
 
 } // namespace NeoML

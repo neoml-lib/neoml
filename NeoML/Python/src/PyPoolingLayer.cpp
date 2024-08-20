@@ -95,6 +95,20 @@ public:
 
 //------------------------------------------------------------------------------------------------------------
 
+class CPyGlobalSumPoolingLayer : public CPyLayer {
+public:
+	explicit CPyGlobalSumPoolingLayer(CGlobalSumPoolingLayer& layer, CPyMathEngineOwner& mathEngineOwner) : CPyLayer(layer, mathEngineOwner) {}
+
+	py::object CreatePythonObject() const
+	{
+		py::object pyModule = py::module::import( "neoml.Dnn" );
+		py::object pyConstructor = pyModule.attr( "GlobalSumPooling" );
+		return pyConstructor( py::cast(this) );
+	}
+};
+
+//------------------------------------------------------------------------------------------------------------
+
 class CPyMaxOverTimePoolingLayer : public CPyLayer {
 public:
 	explicit CPyMaxOverTimePoolingLayer(CMaxOverTimePoolingLayer& layer, CPyMathEngineOwner& mathEngineOwner) : CPyLayer(layer, mathEngineOwner) {}
@@ -294,6 +308,28 @@ void InitializePoolingLayer( py::module& m )
 
 			pooling->Connect(0, layer.BaseLayer(), outputNumber);
 			return new CPyGlobalMeanPoolingLayer(*pooling, layer.MathEngineOwner());
+		}))
+	;
+
+	//------------------------------------------------------------------------------------------------------------
+
+	py::class_<CPyGlobalSumPoolingLayer, CPyLayer>(m, "GlobalSumPooling")
+		.def(py::init([](const CPyLayer& layer)
+		{
+			return CPyGlobalSumPoolingLayer(*layer.Layer<CGlobalSumPoolingLayer>(), layer.MathEngineOwner());
+		}))
+		.def(py::init([](const std::string& name, const CPyLayer& layer, int outputNumber)
+		{
+			py::gil_scoped_release release;
+			CDnn& dnn = layer.Dnn();
+			IMathEngine& mathEngine = dnn.GetMathEngine();
+
+			CPtr<CGlobalSumPoolingLayer> pooling = new CGlobalSumPoolingLayer(mathEngine);
+			pooling->SetName( FindFreeLayerName(dnn, "GlobalSumPooling", name).c_str() );
+			dnn.AddLayer(*pooling);
+
+			pooling->Connect(0, layer.BaseLayer(), outputNumber);
+			return new CPyGlobalSumPoolingLayer(*pooling, layer.MathEngineOwner());
 		}))
 	;
 

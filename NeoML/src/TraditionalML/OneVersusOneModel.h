@@ -22,7 +22,7 @@ namespace NeoML {
 // One versus one classifier
 class COneVersusOneModel : public IModel {
 public:
-	COneVersusOneModel() {}
+	COneVersusOneModel() = default;
 	explicit COneVersusOneModel( CObjectArray<IModel>& classifiers );
 
 	// For serialization
@@ -36,7 +36,7 @@ public:
 	void Serialize( CArchive& archive ) override;
 
 protected:
-	virtual ~COneVersusOneModel() = default; // disable public delete
+	~COneVersusOneModel() override = default; // disable public delete
 
 private:
 	CObjectArray<IModel> classifiers; // binary classifiers for each pair of classes

@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ limitations under the License.
 #include <memory>
 #include <cstring>
 #include <functional>
+#include <memory>
 
 #include <NeoMathEngine/NeoMathEngine.h>
 #include <JitCommon.h>
@@ -31,7 +32,11 @@ using reg64_t = Xbyak::Reg64;
 class CBlobConvolutionBase : public CCrtAllocatedObject {
 public:
     virtual ~CBlobConvolutionBase() = default;
-    virtual void ProcessConvolution( int threadCount, const float* sourceData, const float* filterData, const float* freeTermData, float* resultData ) = 0;
+    virtual void ProcessConvolution(
+        const float* sourceData, const float* filterData, const float* freeTermData, float* resultData ) = 0;
+    virtual void ProcessConvolutionRowwise( const float* sourceData, int sourceRowIndex,
+        const float* filterData, const float* freeTermData, float* resultData,
+        int rowIdx, int rowCount ) = 0;
 };
 
 template<int FltCnt>
@@ -44,8 +49,10 @@ public:
         int dilationHeight, int dilationWidth, int resultHeight, int resultWidth, int resObjCnt );
     ~CBlobConvolution() override = default;
 
-    void ProcessConvolution( int threadCount,
+    void ProcessConvolution(
         const float* sourceData, const float* filterData, const float* freeTermData, float* resultData ) override;
+    void ProcessConvolutionRowwise( const float* sourceData, int sourceRowIndex, const float* filterData,
+        const float* freeTermData, float* resultData, int resultRowIndex, int resultRowCount ) override;
 
 private:
     struct CSize {
@@ -62,12 +69,10 @@ private:
     class CJitConvolution : public Xbyak::CodeGenerator {
     public:
         // Init JIT code main routine
-        CJitConvolution( CBlobConvolution& bc, int yStepIndex );
+        CJitConvolution( const CBlobConvolution& bc, int yStepIndex );
 
         void Run( bool useNarrowProcessing, const float* srcPtr, const float* fltPtr, const float* freeTermPtr, float* resPtr );
 
-        static constexpr unsigned int NumFloatInYmm = 8;
-        static constexpr unsigned int SizeOfYmm = NumFloatInYmm * sizeof( float );
     private:
         // Passed to 'Run()' function as arguments
         const reg64_t regUseNarrowProcessing = Param1;
@@ -94,23 +99,23 @@ private:
             L( label );
         }
 
-        void fillBatchProcessingKernel( CBlobConvolution<FltCnt>& bc, bool useNarrowProcessing, size_t windowIndex );
-        void fillSingleProcessingKernel( CBlobConvolution<FltCnt>& bc, bool useNarrowProcessing, size_t windowIndex );
+        void fillBatchProcessingKernel( const CBlobConvolution<FltCnt>& bc, bool useNarrowProcessing, size_t windowIndex );
+        void fillSingleProcessingKernel( const CBlobConvolution<FltCnt>& bc, bool useNarrowProcessing, size_t windowIndex );
 
         // Initialize result registers with data from freeTerm (if it isn't nullptr)
         void initResRegs( size_t stepCount, size_t stepSize );
         // Flush result registers
         // 'fillKernel' will be called for filling of kernel in main loop
         // 'callBeforeFlush' will be called before flushing of result registers. It can be captured labda function.
-        void flushResRegs( CBlobConvolution<FltCnt>& bc, size_t stepCount, size_t stepSize, bool useNarrowProcessing );
-        void initProcessingMainLoop( CBlobConvolution<FltCnt>& bc,
-            size_t stepCount, size_t stepSize, int batchChannelSize, std::function<void( int )>& fillKernel,
-            size_t windowIndex, bool useNarrowProcessing = false, std::function<void()>* callBeforeFlush = nullptr );
+        void flushResRegs( const CBlobConvolution<FltCnt>& bc, size_t stepCount, size_t stepSize, bool useNarrowProcessing );
+        void initProcessingMainLoop( const CBlobConvolution<FltCnt>& bc,
+            size_t stepCount, size_t stepSize, int batchChannelSize, const std::function<void( int )>& fillKernel,
+            size_t windowIndex, bool useNarrowProcessing = false, const std::function<void()>* callBeforeFlush = nullptr );
 
         void circularShift( Xbyak::Ymm* dst, Xbyak::Ymm* src, Xbyak::Ymm* temp = nullptr ) {}
     };
 
-    IMathEngine* mathEngine;
+    IMathEngine* const mathEngine;
 
     const int ChCnt;
     const int FltH;
@@ -135,6 +140,8 @@ private:
     const float* src;
     const float* flt;
     const float* freeTerm;
+    std::unique_ptr<CFloatHandleVar> rowwiseFlt;
+    std::unique_ptr<CFloatHandleVar> rowwiseFreeTerm;
     float* res;
 
     // !!! SrcXStep, SrcYStep and ResLineStride are read from JIT as 8-byte values, hence they must have 8 byte length.
@@ -179,9 +186,11 @@ private:
 
     void initJitCodes();
 
+    void processConvolutionRowwise( int rowIdx, int rowCount );
+
     // Rearrange filter and fill 'Filter' and 'FreeTerm' members.
-    const float* rearrangeFilter( const float* filterData, CFloatHandleStackVar& Filter );
-    const float* rearrangeFreeTerm( const float* freeTermData, CFloatHandleStackVar& FreeTerm );
+    const float* rearrangeFilter( const float* filterData, CMemoryHandleVarBase<float>& Filter );
+    const float* rearrangeFreeTerm( const float* freeTermData, CMemoryHandleVarBase<float>& FreeTerm );
     // Function calculates offsets of center of filter window over the source image, where intersection over
     // them is changed. This function helps to calculate further PixelOffsetResStepsWidthX/Y, SrcPixelsOffset and FltPixelsOffset.
     // Src (source), F(filter), D(dilation), S(stride) and P(padding) linear dimention by X or Y axis.
@@ -199,7 +208,7 @@ const int CBlobConvolution<FltCnt>::NarrowBatchKernelWidth = INT_MAX;
 
 class CBlobConvolutionFabric : public CCrtAllocatedObject {
 public:
-    static bool IsBlobConvolutionAvailable( int FltCnt, int FltH, int FltW );
+    static bool IsBlobConvolutionAvailable( int SrcPixelCnt, int FltCnt, int FltH, int FltW );
     static std::unique_ptr<CBlobConvolutionBase> GetProperInstance(
         IMathEngine* mathEngine, int FltCnt,
         int channelCount, int filterHeight, int filterWidth, int sourceHeight, int sourceWidth,

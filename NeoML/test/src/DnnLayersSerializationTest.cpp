@@ -1,4 +1,4 @@
-/* Copyright © 2021 ABBYY Production LLC
+/* Copyright © 2021-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,6 +15,10 @@ limitations under the License.
 
 #include <common.h>
 #pragma hdrstop
+
+#include <NeoML/Dnn/Layers/Onnx/OnnxLayers.h>
+#include <NeoML/Dnn/Layers/RowwiseOperationChainLayer.h>
+#include <NeoML/Dnn/Rowwise/Activation.h>
 
 #include <TestFixture.h>
 
@@ -39,6 +43,11 @@ GTEST_TEST( LayerSerialization, CheckRegisteredLayers )
 	CHashTable<CString> ignoredLayers;
 	ignoredLayers.Add( "FmlCCnnChannelwiseSoftmaxLayer" ); // It's an alternative name for CSoftmaxLayer
 	ignoredLayers.Add( "FmlCnnGlobalMainPoolingLayer" ); // It's an alternative name for CGlobalMeanPoolingLayer
+	// Layers from other tests
+	ignoredLayers.Add( "CConvActivationTestLayer" ); // from UnpackCompositeOptimizerTest
+	ignoredLayers.Add( "CTwoConvActivationTestLayer" ); // from UnpackCompositeOptimizerTest
+	ignoredLayers.Add( "NeoMLDnnSimpleTestDummyLearningLayer" ); // from CDnnSimpleTest
+	ignoredLayers.Add( "NeoMLDnnSimpleTestDummyLossLayer" ); // from CDnnSimpleTest
 
 	CArray<const char*> layerClasses;
 	GetRegisteredLayerClasses( layerClasses );
@@ -141,6 +150,21 @@ GTEST_TEST( SerializeToFile, BaseLayerSerialization )
 	serializeToFile<CGELULayer>( "NeoMLDnnGELULayer" );
 	serializeToFile<CGlobalMeanPoolingLayer>( "FmlCnnGlobalAveragePoolingLayer" );
 	serializeToFile<CDataLayer>( "NeoMLDnnDataLayer" );
+	serializeToFile<CBertConvLayer>( "NeoMLDnnBertConvLayer" );
+	serializeToFile<CBroadcastLayer>( "NeoMLDnnBroadcastLayer" );
+	serializeToFile<CExpLayer>( "NeoMLDnnExpLayer" );
+	serializeToFile<CLogLayer>( "NeoMLDnnLogLayer" );
+	serializeToFile<CNotLayer>( "NeoMLDnnNotLayer" );
+	serializeToFile<CErfLayer>( "NeoMLDnnErfLayer" );
+	serializeToFile<CLessLayer>( "NeoMLDnnLessLayer" );
+	serializeToFile<CParameterLayer>( "NeoMLDnnParameterLayer" );
+	serializeToFile<CEqualLayer>( "NeoMLDnnEqualLayer" );
+	serializeToFile<CGlobalSumPoolingLayer>( "NeoMLDnnGlobalSumPoolingLayer" );
+	serializeToFile<CWhereLayer>( "NeoMLDnnWhereLayer" );
+	serializeToFile<CScatterNDLayer>( "NeoMLDnnScatterNDLayer" );
+	serializeToFile<COnnxOneHotLayer>( "NeoMLDnnOnnxOneHotLayer" );
+	serializeToFile<COnnxRangeLayer>( "NeoMLDnnOnnxRangeLayer" );
+	serializeToFile<COnnxShapeToBlobLayer>( "NeoMLDnnOnnxShapeToBlobLayer" );
 }
 
 #endif // GENERATE_SERIALIZATION_FILES
@@ -151,7 +175,7 @@ static void checkBlob( const CDnnBlob& blob, int expectedSize )
 	buff.SetSize( blob.GetDataSize() );
 	blob.CopyTo( buff.GetPtr() );
 
-	ASSERT_EQ( buff.Size(), expectedSize );
+	EXPECT_EQ( buff.Size(), expectedSize );
 	for( int i = 0; i < expectedSize; ++i ) {
 		EXPECT_NEAR( buff[i], TestFloatValue, 1e-3 );
 	}
@@ -159,11 +183,11 @@ static void checkBlob( const CDnnBlob& blob, int expectedSize )
 
 static void checkBaseParams( const CBaseLayer& layer )
 {
-	ASSERT_NEAR( layer.GetBaseLearningRate(), TestFloatValue, 1e-3 );
-	ASSERT_NEAR( layer.GetBaseL1RegularizationMult(), 2 * TestFloatValue, 1e-3 );
-	ASSERT_NEAR( layer.GetBaseL2RegularizationMult(), 3 * TestFloatValue, 1e-3 );
-	ASSERT_EQ( layer.IsLearningEnabled(), static_cast<bool>( TestIntValue ) );
-	ASSERT_EQ( layer.GetName(), LayerName );
+	EXPECT_NEAR( layer.GetBaseLearningRate(), TestFloatValue, 1e-3 );
+	EXPECT_NEAR( layer.GetBaseL1RegularizationMult(), 2 * TestFloatValue, 1e-3 );
+	EXPECT_NEAR( layer.GetBaseL2RegularizationMult(), 3 * TestFloatValue, 1e-3 );
+	EXPECT_EQ( layer.IsLearningEnabled(), static_cast<bool>( TestIntValue ) );
+	EXPECT_EQ( layer.GetName(), LayerName );
 }
 
 template <typename T>
@@ -198,6 +222,15 @@ static void checkSerializeLayer( const CString& layerName )
 
 	cnn.DeleteAllLayers();
 	checkSerializeFromFile<T>( cnn, newVersionFileName );
+}
+
+template<class TDataType, class TArray>
+static void checkFObjArray( const std::initializer_list<TDataType> expected, const TArray& actual )
+{
+	EXPECT_EQ( expected.size(), static_cast<size_t>( actual.Size() ) );
+	for( int i = 0; i < actual.Size(); ++i ) {
+		EXPECT_EQ( expected.begin()[i], actual[i]);
+	}
 }
 
 GTEST_TEST( SerializeFromFile, BaseLayerSerialization )
@@ -240,6 +273,20 @@ GTEST_TEST( SerializeFromFile, BaseLayerSerialization )
 	checkSerializeLayer<CBaseLayer>( "NeoMLDnnGELULayer" );
 	checkSerializeLayer<CBaseLayer>( "FmlCnnGlobalAveragePoolingLayer" );
 	checkSerializeLayer<CBaseLayer>( "NeoMLDnnDataLayer" );
+	checkSerializeLayer<CBaseLayer>( "NeoMLDnnBertConvLayer" );
+	checkSerializeLayer<CBaseLayer>( "NeoMLDnnBroadcastLayer" );
+	checkSerializeLayer<CBaseLayer>( "NeoMLDnnExpLayer" );
+	checkSerializeLayer<CBaseLayer>( "NeoMLDnnLogLayer" );
+	checkSerializeLayer<CBaseLayer>( "NeoMLDnnNotLayer" );
+	checkSerializeLayer<CBaseLayer>( "NeoMLDnnErfLayer" );
+	checkSerializeLayer<CBaseLayer>( "NeoMLDnnLessLayer" );
+	checkSerializeLayer<CBaseLayer>( "NeoMLDnnParameterLayer" );
+	checkSerializeLayer<CBaseLayer>( "NeoMLDnnEqualLayer" );
+	checkSerializeLayer<CBaseLayer>( "NeoMLDnnGlobalSumPoolingLayer" );
+	checkSerializeLayer<CBaseLayer>( "NeoMLDnnWhereLayer" );
+	checkSerializeLayer<CBaseLayer>( "NeoMLDnnScatterNDLayer" );
+	checkSerializeLayer<CBaseLayer>( "NeoMLDnnOnnxOneHotLayer" );
+	checkSerializeLayer<CBaseLayer>( "NeoMLDnnOnnxRangeLayer" );
 }
 
 // ====================================================================================================================
@@ -266,9 +313,9 @@ GTEST_TEST( SerializeToFile, PoolingLayerSerialization )
 template<>
 inline void checkSpecificParams<CPoolingLayer>( CPoolingLayer& layer )
 {
-	ASSERT_EQ( layer.GetStrideWidth(), TestIntValue );
-	ASSERT_EQ( layer.GetFilterWidth(), 2 * TestIntValue );
-	ASSERT_EQ( layer.GetFilterHeight(), 3 * TestIntValue );
+	EXPECT_EQ( layer.GetStrideWidth(), TestIntValue );
+	EXPECT_EQ( layer.GetFilterWidth(), 2 * TestIntValue );
+	EXPECT_EQ( layer.GetFilterHeight(), 3 * TestIntValue );
 }
 
 GTEST_TEST( SerializeFromFile, PoolingLayerSerialization )
@@ -301,9 +348,9 @@ GTEST_TEST( SerializeToFile, 3dPoolingLayerSerialization )
 template<>
 inline void checkSpecificParams<C3dPoolingLayer>( C3dPoolingLayer& layer )
 {
-	ASSERT_EQ( layer.GetFilterWidth(), TestIntValue );
-	ASSERT_EQ( layer.GetFilterHeight(), 2 * TestIntValue );
-	ASSERT_EQ( layer.GetStrideDepth(), 3 * TestIntValue );
+	EXPECT_EQ( layer.GetFilterWidth(), TestIntValue );
+	EXPECT_EQ( layer.GetFilterHeight(), 2 * TestIntValue );
+	EXPECT_EQ( layer.GetStrideDepth(), 3 * TestIntValue );
 }
 
 GTEST_TEST( SerializeFromFile, 3dPoolingLayerSerialization )
@@ -323,7 +370,7 @@ static void setSpecificParams( CBaseConvLayer& layer )
 	layer.SetFilterWidth( TestIntValue );
 	layer.SetStrideWidth( TestIntValue );
 	layer.SetPaddingHeight( TestIntValue );
-	layer.SetFilterData( generateBlob( TestSize, 1, 1, 1, 1 ) );
+	layer.SetFilterData( generateBlob( 1, 1, 1, 1, TestSize ) );
 	layer.SetFreeTermData( generateBlob( 1, 1, 1, 1, TestSize ) );
 }
 
@@ -341,9 +388,9 @@ GTEST_TEST( SerializeToFile, BaseConvLayerSerialization )
 template<>
 inline void checkSpecificParams<CBaseConvLayer>( CBaseConvLayer& layer )
 {
-	ASSERT_EQ( layer.GetFilterWidth(), TestIntValue );
-	ASSERT_EQ( layer.GetStrideWidth(), TestIntValue );
-	ASSERT_EQ( layer.GetPaddingHeight(), TestIntValue );
+	EXPECT_EQ( layer.GetFilterWidth(), TestIntValue );
+	EXPECT_EQ( layer.GetStrideWidth(), TestIntValue );
+	EXPECT_EQ( layer.GetPaddingHeight(), TestIntValue );
 	checkBlob( *layer.GetFreeTermData(), TestSize );
 	checkBlob( *layer.GetFilterData(), TestSize );
 }
@@ -383,8 +430,8 @@ inline void checkSpecificParams<CBatchNormalizationLayer>( CBatchNormalizationLa
 {
 	auto blob = layer.GetFinalParams();
 	checkBlob( *blob, TestSize );
-	ASSERT_NEAR( layer.GetSlowConvergenceRate(), 0.5, 1e-3 );
-	ASSERT_EQ( layer.IsZeroFreeTerm(), static_cast<bool>( TestIntValue ) );
+	EXPECT_NEAR( layer.GetSlowConvergenceRate(), 0.5, 1e-3 );
+	EXPECT_EQ( layer.IsZeroFreeTerm(), static_cast<bool>( TestIntValue ) );
 }
 
 GTEST_TEST( SerializeFromFile, BatchNormalizationLayerSerialization )
@@ -414,8 +461,8 @@ GTEST_TEST( SerializeToFile, LinearLayerSerialization )
 template<>
 inline void checkSpecificParams<CLinearLayer>( CLinearLayer& layer )
 {
-	ASSERT_NEAR( layer.GetMultiplier(), TestFloatValue, 1e-3 );
-	ASSERT_NEAR( layer.GetFreeTerm(), TestFloatValue, 1e-3 );
+	EXPECT_NEAR( layer.GetMultiplier(), TestFloatValue, 1e-3 );
+	EXPECT_NEAR( layer.GetFreeTerm(), TestFloatValue, 1e-3 );
 }
 
 GTEST_TEST( SerializeFromFile, LinearLayerSerialization )
@@ -454,9 +501,9 @@ inline void checkSpecificParams<CBaseSplitLayer>( CBaseSplitLayer& layer )
 {
 	CArray<int> buf;
 	layer.GetOutputCounts().CopyTo( buf );
-	ASSERT_EQ( buf.Size(), TestSize );
+	EXPECT_EQ( buf.Size(), TestSize );
 	for( int i = 0; i < buf.Size(); ++i) {
-		ASSERT_EQ( buf[i], TestIntValue );
+		EXPECT_EQ( buf[i], TestIntValue );
 	}
 }
 
@@ -493,7 +540,7 @@ GTEST_TEST( SerializeToFile, ELULayerSerialization )
 template<>
 inline void checkSpecificParams<CELULayer>( CELULayer& layer )
 {
-	ASSERT_NEAR( layer.GetAlpha(), TestFloatValue, 1e-3 );
+	EXPECT_NEAR( layer.GetAlpha(), TestFloatValue, 1e-3 );
 }
 
 GTEST_TEST( SerializeFromFile, ELULayerSerialization )
@@ -524,8 +571,8 @@ GTEST_TEST( SerializeToFile, HardSigmoidLayerSerialization )
 template<>
 inline void checkSpecificParams<CHardSigmoidLayer>( CHardSigmoidLayer& layer )
 {
-	ASSERT_NEAR( layer.GetSlope(), 0.3f, 1e-3 );
-	ASSERT_NEAR( layer.GetBias(), 0.4f, 1e-3 );
+	EXPECT_NEAR( layer.GetSlope(), 0.3f, 1e-3 );
+	EXPECT_NEAR( layer.GetBias(), 0.4f, 1e-3 );
 }
 
 GTEST_TEST( SerializeFromFile, HardSigmoidLayerSerialization )
@@ -554,7 +601,7 @@ GTEST_TEST( SerializeToFile, ReLULayerSerialization )
 template<>
 inline void checkSpecificParams<CReLULayer>( CReLULayer& layer )
 {
-	ASSERT_NEAR( layer.GetUpperThreshold(), TestFloatValue, 1e-3 );
+	EXPECT_NEAR( layer.GetUpperThreshold(), TestFloatValue, 1e-3 );
 }
 
 GTEST_TEST( SerializeFromFile, ReLULayerSerialization )
@@ -586,10 +633,10 @@ GTEST_TEST( SerializeToFile, RleConvLayerSerialization )
 template<>
 inline void checkSpecificParams<CRleConvLayer>( CRleConvLayer& layer )
 {
-	ASSERT_NEAR( layer.GetStrokeValue(), TestFloatValue, 1e-3 );
-	ASSERT_NEAR( layer.GetNonStrokeValue(), TestFloatValue, 1e-3 );
+	EXPECT_NEAR( layer.GetStrokeValue(), TestFloatValue, 1e-3 );
+	EXPECT_NEAR( layer.GetNonStrokeValue(), TestFloatValue, 1e-3 );
 	checkBlob( *layer.GetFilterData(), TestSize );
-	ASSERT_EQ( layer.GetFilterHeight(), TestSize );
+	EXPECT_EQ( layer.GetFilterHeight(), TestSize );
 }
 
 GTEST_TEST( SerializeFromFile, RleConvLayerSerialization )
@@ -621,7 +668,7 @@ GTEST_TEST( SerializeToFile, FullyConnectedLayerSerialization )
 template<>
 inline void checkSpecificParams<CFullyConnectedLayer>( CFullyConnectedLayer& layer )
 {
-	ASSERT_EQ( layer.GetNumberOfElements(), TestSize );
+	EXPECT_EQ( layer.GetNumberOfElements(), TestSize );
 	checkBlob( *layer.GetWeightsData(), TestSize );
 	checkBlob( *layer.GetWeightsData(), TestSize );
 }
@@ -653,8 +700,8 @@ GTEST_TEST( SerializeToFile, FullyConnectedSourceLayerSerialization )
 template<>
 inline void checkSpecificParams<CFullyConnectedSourceLayer>( CFullyConnectedSourceLayer& layer )
 {
-	ASSERT_EQ( layer.GetBatchSize(), TestSize );
-	ASSERT_EQ( layer.GetMaxBatchCount(), TestSize );
+	EXPECT_EQ( layer.GetBatchSize(), TestSize );
+	EXPECT_EQ( layer.GetMaxBatchCount(), TestSize );
 }
 
 GTEST_TEST( SerializeFromFile, FullyConnectedSourceLayerSerialization )
@@ -681,6 +728,7 @@ GTEST_TEST( SerializeToFile, LossLayerSerialization )
 	serializeToFile<CCrfInternalLossLayer>( "FmlCnnCrfInternalLossLayer" );
 	serializeToFile<CMultiHingeLossLayer>( "FmlCnnMultyHingeLossLayer" );
 	serializeToFile<CMultiSquaredHingeLossLayer>( "FmlCnnMultySquaredHingeLossLayer" );
+	serializeToFile<CL1LossLayer>( "NeoMLDnnL1LossLayer" );
 }
 
 #endif
@@ -688,7 +736,7 @@ GTEST_TEST( SerializeToFile, LossLayerSerialization )
 template<>
 inline void checkSpecificParams<CLossLayer>( CLossLayer& layer )
 {
-	ASSERT_NEAR( layer.GetLossWeight(), 0.5, 1e-3 );
+	EXPECT_NEAR( layer.GetLossWeight(), 0.5, 1e-3 );
 }
 
 GTEST_TEST( SerializeFromFile, LossLayerSerialization )
@@ -699,6 +747,7 @@ GTEST_TEST( SerializeFromFile, LossLayerSerialization )
 	checkSerializeLayer<CLossLayer>( "FmlCnnCrfInternalLossLayer" );
 	checkSerializeLayer<CLossLayer>( "FmlCnnMultyHingeLossLayer" );
 	checkSerializeLayer<CLossLayer>( "FmlCnnMultySquaredHingeLossLayer" );
+	checkSerializeLayer<CLossLayer>( "NeoMLDnnL1LossLayer" );
 }
 
 // ====================================================================================================================
@@ -708,7 +757,7 @@ GTEST_TEST( SerializeFromFile, LossLayerSerialization )
 template<>
 inline void checkSpecificParams<CCrossEntropyLossLayer>( CCrossEntropyLossLayer& layer )
 {
-	ASSERT_EQ( layer.IsSoftmaxApplied(), static_cast<bool>( TestIntValue ) );
+	EXPECT_EQ( layer.IsSoftmaxApplied(), static_cast<bool>( TestIntValue ) );
 }
 
 #ifdef GENERATE_SERIALIZATION_FILES
@@ -737,7 +786,7 @@ GTEST_TEST( SerializeFromFile, CrossEntropyLossLayerSerialization )
 template<>
 inline void checkSpecificParams<CBinaryCrossEntropyLossLayer>( CBinaryCrossEntropyLossLayer& layer )
 {
-	ASSERT_NEAR( layer.GetPositiveWeight(), TestFloatValue, 1e-3 );
+	EXPECT_NEAR( layer.GetPositiveWeight(), TestFloatValue, 1e-3 );
 }
 
 #ifdef GENERATE_SERIALIZATION_FILES
@@ -766,8 +815,8 @@ GTEST_TEST( SerializeFromFile, BinaryCrossEntropyLossLayerSerialization )
 template<>
 inline void checkSpecificParams<CProblemSourceLayer>( CProblemSourceLayer& layer )
 {
-	ASSERT_EQ( TestIntValue, layer.GetBatchSize() );
-	ASSERT_EQ( TBlobType::CT_Int, layer.GetLabelType() );
+	EXPECT_EQ( TestIntValue, layer.GetBatchSize() );
+	EXPECT_EQ( TBlobType::CT_Int, layer.GetLabelType() );
 }
 
 #ifdef GENERATE_SERIALIZATION_FILES
@@ -797,9 +846,9 @@ GTEST_TEST( SerializeFromFile, ProblemSourceLayerSerialization )
 template<>
 inline void checkSpecificParams<CDropoutLayer>( CDropoutLayer& layer )
 {
-	ASSERT_NEAR( layer.GetDropoutRate(), 0.5, 1e-3 );
-	ASSERT_EQ( true, layer.IsSpatial() );
-	ASSERT_EQ( true, layer.IsBatchwise() );
+	EXPECT_NEAR( layer.GetDropoutRate(), 0.5, 1e-3 );
+	EXPECT_EQ( true, layer.IsSpatial() );
+	EXPECT_EQ( true, layer.IsBatchwise() );
 }
 
 #ifdef GENERATE_SERIALIZATION_FILES
@@ -830,8 +879,9 @@ GTEST_TEST( SerializeFromFile, DropoutLayerSerialization )
 template<>
 inline void checkSpecificParams<CImageResizeLayer>( CImageResizeLayer& layer )
 {
-	ASSERT_EQ( TestIntValue, layer.GetDelta( CImageResizeLayer::TImageSide::IS_Top ) );
-	ASSERT_NEAR( TestFloatValue, layer.GetDefaultValue(), 1e-3 );
+	EXPECT_EQ( TestIntValue, layer.GetDelta( CImageResizeLayer::TImageSide::IS_Top ) );
+	EXPECT_NEAR( TestFloatValue, layer.GetDefaultValue(), 1e-3 );
+	EXPECT_EQ( TBlobResizePadding::Constant, layer.GetPadding() );
 }
 
 #ifdef GENERATE_SERIALIZATION_FILES
@@ -862,14 +912,14 @@ template<>
 inline void checkSpecificParams<CMultichannelLookupLayer>( CMultichannelLookupLayer& layer )
 {
 	const CArray<CLookupDimension>& dimensions = layer.GetDimensions();
-	ASSERT_EQ( 2, dimensions.Size() );
-	ASSERT_EQ( dimensions[0].VectorCount, 3 );
-	ASSERT_EQ( dimensions[0].VectorSize, 5 );
-	ASSERT_EQ( dimensions[1].VectorCount, 2 );
-	ASSERT_EQ( dimensions[1].VectorSize, 4 );
+	EXPECT_EQ( 2, dimensions.Size() );
+	EXPECT_EQ( dimensions[0].VectorCount, 3 );
+	EXPECT_EQ( dimensions[0].VectorSize, 5 );
+	EXPECT_EQ( dimensions[1].VectorCount, 2 );
+	EXPECT_EQ( dimensions[1].VectorSize, 4 );
 	checkBlob( *layer.GetEmbeddings( 0 ), 15 );
 	checkBlob( *layer.GetEmbeddings( 1 ), 8 );
-	ASSERT_EQ( true, layer.IsUseFrameworkLearning() );
+	EXPECT_EQ( true, layer.IsUseFrameworkLearning() );
 }
 
 #ifdef GENERATE_SERIALIZATION_FILES
@@ -902,12 +952,12 @@ GTEST_TEST( SerializeFromFile, MultychannelLookupLayerSerialization )
 template<>
 inline void checkSpecificParams<CCompositeLayer>( CCompositeLayer& layer )
 {
-	ASSERT_EQ( true, layer.AreInternalLogsEnabled() );
+	EXPECT_EQ( true, layer.AreInternalLogsEnabled() );
 	CArray<const char*> layers;
 	layer.GetLayerList( layers );
-	ASSERT_EQ( 2, layers.Size() );
-	ASSERT_EQ( "Layer0", CString( layers[0] ) );
-	ASSERT_EQ( "Layer1", CString( layers[1] ) );
+	EXPECT_EQ( 2, layers.Size() );
+	EXPECT_EQ( "Layer0", CString( layers[0] ) );
+	EXPECT_EQ( "Layer1", CString( layers[1] ) );
 }
 
 #ifdef GENERATE_SERIALIZATION_FILES
@@ -946,8 +996,8 @@ GTEST_TEST( SerializeFromFile, CompositeLayerSerialization )
 template<>
 inline void checkSpecificParams<CSubSequenceLayer>( CSubSequenceLayer& layer )
 {
-	ASSERT_EQ( 1, layer.GetStartPos() );
-	ASSERT_EQ( 3, layer.GetLength() );
+	EXPECT_EQ( 1, layer.GetStartPos() );
+	EXPECT_EQ( 3, layer.GetLength() );
 }
 
 #ifdef GENERATE_SERIALIZATION_FILES
@@ -977,9 +1027,9 @@ GTEST_TEST( SerializeFromFile, SubSequenceLayerSerialization )
 template<>
 inline void checkSpecificParams<CBackLinkLayer>( CBackLinkLayer& layer )
 {
-	ASSERT_EQ( 4, layer.GetDimSize( TBlobDim::BD_Height ) );
-	ASSERT_EQ( 5, layer.GetDimSize( TBlobDim::BD_Width ) );
-	ASSERT_NEAR( layer.CaptureSink()->GetBaseLearningRate(), 0.5, 1e-3 );
+	EXPECT_EQ( 4, layer.GetDimSize( TBlobDim::BD_Height ) );
+	EXPECT_EQ( 5, layer.GetDimSize( TBlobDim::BD_Width ) );
+	EXPECT_NEAR( layer.CaptureSink()->GetBaseLearningRate(), 0.5, 1e-3 );
 }
 
 #ifdef GENERATE_SERIALIZATION_FILES
@@ -993,7 +1043,7 @@ static void setSpecificParams( CBackLinkLayer& layer )
 
 GTEST_TEST( SerializeToFile, BackLinkSerialization )
 {
-	serializeToFile<CBackLinkLayer>( "FmlBackLinkClassName" );
+	serializeToFile<CBackLinkLayer>( "FmlCnnBackLink" );
 }
 
 #endif
@@ -1010,7 +1060,7 @@ GTEST_TEST( SerializeFromFile, BackLinkSerialization )
 template<>
 inline void checkSpecificParams<CEnumBinarizationLayer>( CEnumBinarizationLayer& layer )
 {
-	ASSERT_EQ( 5, layer.GetEnumSize() );
+	EXPECT_EQ( 5, layer.GetEnumSize() );
 }
 
 #ifdef GENERATE_SERIALIZATION_FILES
@@ -1039,7 +1089,7 @@ GTEST_TEST( SerializeFromFile, EnumBinarizationLayerSerialization )
 template<>
 inline void checkSpecificParams<CBitSetVectorizationLayer>( CBitSetVectorizationLayer& layer )
 {
-	ASSERT_EQ( 5, layer.GetBitSetSize() );
+	EXPECT_EQ( 5, layer.GetBitSetSize() );
 }
 
 #ifdef GENERATE_SERIALIZATION_FILES
@@ -1068,7 +1118,7 @@ GTEST_TEST( SerializeFromFile, BitSetVectorizationLayerSerialization )
 template<>
 inline void checkSpecificParams<CSoftmaxLayer>( CSoftmaxLayer& layer )
 {
-	ASSERT_EQ( CSoftmaxLayer::TNormalizationArea::NA_ListSize, layer.GetNormalizationArea() );
+	EXPECT_EQ( CSoftmaxLayer::TNormalizationArea::NA_ListSize, layer.GetNormalizationArea() );
 }
 
 #ifdef GENERATE_SERIALIZATION_FILES
@@ -1097,7 +1147,7 @@ GTEST_TEST( SerializeFromFile, SoftmaxLayerSerialization )
 template<>
 inline void checkSpecificParams<CGlobalMaxPoolingLayer>( CGlobalMaxPoolingLayer& layer )
 {
-	ASSERT_EQ( 5, layer.GetMaxCount() );
+	EXPECT_EQ( 5, layer.GetMaxCount() );
 }
 
 #ifdef GENERATE_SERIALIZATION_FILES
@@ -1150,10 +1200,10 @@ static CPtr<CDnnBlob> concatLstmWeights( CDnnBlob& inputWeights, CDnnBlob& recur
 template<>
 inline void checkSpecificParams<CLstmLayer>( CLstmLayer& layer )
 {
-	ASSERT_EQ( TActivationFunction::AF_LeakyReLU, layer.GetRecurrentActivation() );
+	EXPECT_EQ( TActivationFunction::AF_LeakyReLU, layer.GetRecurrentActivation() );
 	checkBlob( *concatLstmWeights( *layer.GetInputWeightsData(), *layer.GetRecurWeightsData() ), TestSize * TestSize );
 	checkBlob( *layer.GetInputFreeTermData(), TestSize );
-	ASSERT_EQ( layer.GetRecurFreeTermData(), nullptr );
+	EXPECT_EQ( layer.GetRecurFreeTermData(), nullptr );
 }
 
 #ifdef GENERATE_SERIALIZATION_FILES
@@ -1220,8 +1270,8 @@ GTEST_TEST( SerializeFromFile, GruLayerSerialization )
 template<>
 inline void checkSpecificParams<CMaxOverTimePoolingLayer>( CMaxOverTimePoolingLayer& layer )
 {
-	ASSERT_EQ( 4, layer.GetFilterLength() );
-	ASSERT_EQ( 5, layer.GetStrideLength() );
+	EXPECT_EQ( 4, layer.GetFilterLength() );
+	EXPECT_EQ( 5, layer.GetStrideLength() );
 }
 
 #ifdef GENERATE_SERIALIZATION_FILES
@@ -1251,9 +1301,9 @@ GTEST_TEST( SerializeFromFile, MaxOverTimePoolingLayerSerialization )
 template<>
 inline void checkSpecificParams<CTimeConvLayer>( CTimeConvLayer& layer )
 {
-	ASSERT_EQ( 4, layer.GetDilation() );
-	ASSERT_EQ( 5, layer.GetPadding() );
-	ASSERT_EQ( 6, layer.GetStride() );
+	EXPECT_EQ( 4, layer.GetDilation() );
+	EXPECT_EQ( 5, layer.GetPadding() );
+	EXPECT_EQ( 6, layer.GetStride() );
 }
 
 #ifdef GENERATE_SERIALIZATION_FILES
@@ -1287,9 +1337,9 @@ GTEST_TEST( SerializeFromFile, TimeConvLayerSerialization )
 template<>
 inline void checkSpecificParams<CCrfLayer>( CCrfLayer& layer )
 {
-	ASSERT_EQ( 4, layer.GetNumberOfClasses() );
-	ASSERT_EQ( 2, layer.GetPaddingClass() );
-	ASSERT_NEAR( layer.GetDropoutRate(), 0.5, 1e-3 );
+	EXPECT_EQ( 4, layer.GetNumberOfClasses() );
+	EXPECT_EQ( 2, layer.GetPaddingClass() );
+	EXPECT_NEAR( layer.GetDropoutRate(), 0.5, 1e-3 );
 }
 
 #ifdef GENERATE_SERIALIZATION_FILES
@@ -1322,7 +1372,7 @@ GTEST_TEST( SerializeFromFile, CrfLayerSerialization )
 template<>
 inline void checkSpecificParams<CCrfLossLayer>( CCrfLossLayer& layer )
 {
-	ASSERT_NEAR( layer.GetLossWeight(), 0.5, 1e-3 );
+	EXPECT_NEAR( layer.GetLossWeight(), 0.5, 1e-3 );
 }
 
 #ifdef GENERATE_SERIALIZATION_FILES
@@ -1351,8 +1401,8 @@ GTEST_TEST( SerializeFromFile, CrfLossLayerSerialization )
 template<>
 inline void checkSpecificParams<CUpsampling2DLayer>( CUpsampling2DLayer& layer )
 {
-	ASSERT_EQ( 4, layer.GetHeightCopyCount() );
-	ASSERT_EQ( 3, layer.GetWidthCopyCount() );
+	EXPECT_EQ( 4, layer.GetHeightCopyCount() );
+	EXPECT_EQ( 3, layer.GetWidthCopyCount() );
 }
 
 #ifdef GENERATE_SERIALIZATION_FILES
@@ -1382,7 +1432,7 @@ GTEST_TEST( SerializeFromFile, Upsampling2DLayerSerialization )
 template<>
 inline void checkSpecificParams<CQualityControlLayer>( CQualityControlLayer& layer )
 {
-	ASSERT_EQ( true, layer.IsResetNeeded() );
+	EXPECT_EQ( true, layer.IsResetNeeded() );
 }
 
 #ifdef GENERATE_SERIALIZATION_FILES
@@ -1415,8 +1465,8 @@ GTEST_TEST( SerializeFromFile, QualityControlLayerSerialization )
 template<>
 inline void checkSpecificParams<CCenterLossLayer>( CCenterLossLayer& layer )
 {
-	ASSERT_EQ( 3, layer.GetNumberOfClasses() );
-	ASSERT_NEAR( 0.5, layer.GetClassCentersConvergenceRate(), 1e-3 );
+	EXPECT_EQ( 3, layer.GetNumberOfClasses() );
+	EXPECT_NEAR( 0.5, layer.GetClassCentersConvergenceRate(), 1e-3 );
 }
 
 #ifdef GENERATE_SERIALIZATION_FILES
@@ -1446,13 +1496,13 @@ GTEST_TEST( SerializeFromFile, CenterLossLayerSerialization )
 template<>
 inline void checkSpecificParams<CFocalLossLayer>( CFocalLossLayer& layer )
 {
-	ASSERT_NEAR( 0.5, layer.GetFocalForce(), 1e-3 );
+	EXPECT_NEAR( 0.5, layer.GetFocalForce(), 1e-3 );
 }
 
 template<>
 inline void checkSpecificParams<CBinaryFocalLossLayer>( CBinaryFocalLossLayer& layer )
 {
-	ASSERT_NEAR( 0.5, layer.GetFocalForce(), 1e-3 );
+	EXPECT_NEAR( 0.5, layer.GetFocalForce(), 1e-3 );
 }
 
 #ifdef GENERATE_SERIALIZATION_FILES
@@ -1488,10 +1538,10 @@ GTEST_TEST( SerializeFromFile, FocalLossLayerSerialization )
 template<>
 inline void checkSpecificParams<CCtcLossLayer>( CCtcLossLayer& layer )
 {
-	ASSERT_NEAR( 0.5, layer.GetLossWeight(), 1e-3 );
-	ASSERT_NEAR( 5., layer.GetMaxGradientValue(), 1e-3 );
-	ASSERT_EQ( true, layer.GetAllowBlankLabelSkips() );
-	ASSERT_EQ( 2, layer.GetBlankLabel() );
+	EXPECT_NEAR( 0.5, layer.GetLossWeight(), 1e-3 );
+	EXPECT_NEAR( 5., layer.GetMaxGradientValue(), 1e-3 );
+	EXPECT_EQ( true, layer.GetAllowBlankLabelSkips() );
+	EXPECT_EQ( 2, layer.GetBlankLabel() );
 }
 
 #ifdef GENERATE_SERIALIZATION_FILES
@@ -1523,9 +1573,9 @@ GTEST_TEST( SerializeFromFile, CtcLossLayerSerialization )
 template<>
 inline void checkSpecificParams<CCtcDecodingLayer>( CCtcDecodingLayer& layer )
 {
-	ASSERT_NEAR( 0.5, layer.GetArcProbabilityThreshold(), 1e-3 );
-	ASSERT_NEAR( 0.75, layer.GetBlankProbabilityThreshold(), 1e-3 );
-	ASSERT_EQ( 2, layer.GetBlankLabel() );
+	EXPECT_NEAR( 0.5, layer.GetArcProbabilityThreshold(), 1e-3 );
+	EXPECT_NEAR( 0.75, layer.GetBlankProbabilityThreshold(), 1e-3 );
+	EXPECT_EQ( 2, layer.GetBlankLabel() );
 }
 
 #ifdef GENERATE_SERIALIZATION_FILES
@@ -1571,8 +1621,8 @@ GTEST_TEST( SerializeToFile, PixelToImageLayerSerialization )
 template<>
 inline void checkSpecificParams<CPixelToImageLayer>( CPixelToImageLayer& layer )
 {
-	ASSERT_EQ( 37, layer.GetImageHeight() );
-	ASSERT_EQ( 42, layer.GetImageWidth() );
+	EXPECT_EQ( 37, layer.GetImageHeight() );
+	EXPECT_EQ( 42, layer.GetImageWidth() );
 }
 
 GTEST_TEST( SerializeFromFile, PixelToImageLayerSerialization )
@@ -1604,8 +1654,8 @@ inline void checkSpecificParams<CTransposeLayer>( CTransposeLayer& layer )
 	TBlobDim first = BD_BatchLength;
 	TBlobDim second = BD_BatchLength;
 	layer.GetTransposedDimensions( first, second );
-	ASSERT_EQ( BD_Depth, first );
-	ASSERT_EQ( BD_ListSize, second );
+	EXPECT_EQ( BD_Depth, first );
+	EXPECT_EQ( BD_ListSize, second );
 }
 
 GTEST_TEST( SerializeFromFile, TransposeLayerSerialization )
@@ -1639,26 +1689,26 @@ GTEST_TEST( SerializeToFile, TransformLayerSerialization )
 template<>
 inline void checkSpecificParams<CTransformLayer>( CTransformLayer& layer )
 {
-	ASSERT_EQ( CTransformLayer::O_SetSize, layer.GetDimensionRule( BD_BatchLength ).Operation );
-	ASSERT_EQ( 2, layer.GetDimensionRule( BD_BatchLength ).Parameter );
+	EXPECT_EQ( CTransformLayer::O_SetSize, layer.GetDimensionRule( BD_BatchLength ).Operation );
+	EXPECT_EQ( 2, layer.GetDimensionRule( BD_BatchLength ).Parameter );
 
-	ASSERT_EQ( CTransformLayer::O_Remainder, layer.GetDimensionRule( BD_BatchWidth ).Operation );
+	EXPECT_EQ( CTransformLayer::O_Remainder, layer.GetDimensionRule( BD_BatchWidth ).Operation );
 
-	ASSERT_EQ( CTransformLayer::O_Multiply, layer.GetDimensionRule( BD_ListSize ).Operation );
-	ASSERT_EQ( 3, layer.GetDimensionRule( BD_ListSize ).Parameter );
+	EXPECT_EQ( CTransformLayer::O_Multiply, layer.GetDimensionRule( BD_ListSize ).Operation );
+	EXPECT_EQ( 3, layer.GetDimensionRule( BD_ListSize ).Parameter );
 
-	ASSERT_EQ( CTransformLayer::O_Divide, layer.GetDimensionRule( BD_Height ).Operation );
-	ASSERT_EQ( 7, layer.GetDimensionRule( BD_Height ).Parameter );
+	EXPECT_EQ( CTransformLayer::O_Divide, layer.GetDimensionRule( BD_Height ).Operation );
+	EXPECT_EQ( 7, layer.GetDimensionRule( BD_Height ).Parameter );
 
-	ASSERT_EQ( CTransformLayer::O_SetSize, layer.GetDimensionRule( BD_Width ).Operation );
-	ASSERT_EQ( 5, layer.GetDimensionRule( BD_Width ).Parameter );
+	EXPECT_EQ( CTransformLayer::O_SetSize, layer.GetDimensionRule( BD_Width ).Operation );
+	EXPECT_EQ( 5, layer.GetDimensionRule( BD_Width ).Parameter );
 
-	ASSERT_EQ( CTransformLayer::O_Divide, layer.GetDimensionRule( BD_Channels ).Operation );
-	ASSERT_EQ( 4, layer.GetDimensionRule( BD_Channels ).Parameter );
+	EXPECT_EQ( CTransformLayer::O_Divide, layer.GetDimensionRule( BD_Channels ).Operation );
+	EXPECT_EQ( 4, layer.GetDimensionRule( BD_Channels ).Parameter );
 
 	// Check default operation
-	ASSERT_EQ( CTransformLayer::O_Multiply, layer.GetDimensionRule( BD_Depth ).Operation );
-	ASSERT_EQ( 1, layer.GetDimensionRule( BD_Depth ).Parameter );
+	EXPECT_EQ( CTransformLayer::O_Multiply, layer.GetDimensionRule( BD_Depth ).Operation );
+	EXPECT_EQ( 1, layer.GetDimensionRule( BD_Depth ).Parameter );
 }
 
 GTEST_TEST( SerializeFromFile, TransformLayerSerialization )
@@ -1687,7 +1737,7 @@ GTEST_TEST( SerializeToFile, ArgmaxLayerSerialization )
 template<>
 inline void checkSpecificParams<CArgmaxLayer>( CArgmaxLayer& layer )
 {
-	ASSERT_EQ( BD_ListSize, layer.GetDimension() );
+	EXPECT_EQ( BD_ListSize, layer.GetDimension() );
 }
 
 GTEST_TEST( SerializeFromFile, ArgmaxLayerSerialization )
@@ -1719,9 +1769,9 @@ GTEST_TEST( SerializeToFile, AttentionDecoderLayerSerialization )
 template<>
 inline void checkSpecificParams<CAttentionDecoderLayer>( CAttentionDecoderLayer& layer )
 {
-	ASSERT_EQ( 5 * TestIntValue, layer.GetOutputObjectSize() );
-	ASSERT_EQ( 7 * TestIntValue, layer.GetOutputSequenceLen() );
-	ASSERT_EQ( 42 * TestIntValue, layer.GetHiddenLayerSize() );
+	EXPECT_EQ( 5 * TestIntValue, layer.GetOutputObjectSize() );
+	EXPECT_EQ( 7 * TestIntValue, layer.GetOutputSequenceLen() );
+	EXPECT_EQ( 42 * TestIntValue, layer.GetHiddenLayerSize() );
 }
 
 GTEST_TEST( SerializeFromFile, AttentionDecoderLayerSerialization )
@@ -1751,7 +1801,7 @@ GTEST_TEST( SerializeToFile, AttentionRecurrentLayerSerialization )
 template<>
 inline void checkSpecificParams<CAttentionRecurrentLayer>( CAttentionRecurrentLayer& layer )
 {
-	ASSERT_EQ( 5 * TestIntValue, layer.GetOutputObjectSize() );
+	EXPECT_EQ( 5 * TestIntValue, layer.GetOutputObjectSize() );
 }
 
 GTEST_TEST( SerializeFromFile, AttentionRecurrentLayerSerialization )
@@ -1819,7 +1869,7 @@ GTEST_TEST( SerializeToFile, RepeatSequenceLayerSerialization )
 template<>
 inline void checkSpecificParams<CRepeatSequenceLayer>( CRepeatSequenceLayer& layer )
 {
-	ASSERT_EQ( 3 * TestIntValue, layer.GetRepeatCount() );
+	EXPECT_EQ( 3 * TestIntValue, layer.GetRepeatCount() );
 }
 
 GTEST_TEST( SerializeFromFile, RepeatSequenceLayerSerialization )
@@ -1840,7 +1890,7 @@ static void setSpecificParams( CReorgLayer& layer )
 
 GTEST_TEST( SerializeToFile, ReorgLayerSerialization )
 {
-	serializeToFile<CReorgLayer>( "FmlCnnCompositeSourceLayer" );
+	serializeToFile<CReorgLayer>( "FmlCnnReorgLayerClass" );
 }
 
 #endif // GENERATE_SERIALIZATION_FILES
@@ -1848,7 +1898,7 @@ GTEST_TEST( SerializeToFile, ReorgLayerSerialization )
 template<>
 inline void checkSpecificParams<CReorgLayer>( CReorgLayer& layer )
 {
-	ASSERT_EQ( 3 * TestIntValue, layer.GetStride() );
+	EXPECT_EQ( 3 * TestIntValue, layer.GetStride() );
 }
 
 GTEST_TEST( SerializeFromFile, ReorgLayerSerialization )
@@ -1884,7 +1934,7 @@ inline void checkSpecificParams<CObjectNormalizationLayer>( CObjectNormalization
 	checkBlob( *blob, TestSize );
 	blob = layer.GetBias();
 	checkBlob( *blob, TestSize );
-	ASSERT_NEAR( layer.GetEpsilon(), 4e-3, 1e-5 );
+	EXPECT_NEAR( layer.GetEpsilon(), 4e-3, 1e-5 );
 }
 
 GTEST_TEST( SerializeFromFile, ObjectNormalizationLayerSerialization )
@@ -1927,6 +1977,42 @@ inline void checkSpecificParams<CMultiheadAttentionLayer>( CMultiheadAttentionLa
 GTEST_TEST( SerializeFromFile, MultiheadAttentionLayerSerialization )
 {
 	checkSerializeLayer<CMultiheadAttentionLayer>( "NeoMLDnnMultiheadAttentionLayer" );
+}
+
+// ====================================================================================================================
+
+// CParameterLayer
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+static void setSpecificParams(CParameterLayer& layer)
+{
+	const int batchWidth = 4;
+	const int imageWidth = 5;
+	const int channelCount = 6;
+	CPtr<CDnnBlob> paramData = generateBlob(batchWidth, 1, 1, imageWidth, channelCount);
+	layer.SetBlob( paramData );
+}
+
+GTEST_TEST(SerializeToFile, ParameterLayerSerialization)
+{
+	serializeToFile<CParameterLayer>("NeoMLDnnParameterLayer");
+}
+
+#endif // GENERATE_SERIALIZATION_FILES
+
+template<>
+inline void checkSpecificParams<CParameterLayer>(CParameterLayer& layer)
+{
+	const int batchWidth = 4;
+	const int imageWidth = 5;
+	const int channelCount = 6;
+	checkBlob( *(layer.GetBlob()), batchWidth * imageWidth * channelCount );
+}
+
+GTEST_TEST(SerializeFromFile, ParameterLayerSerialization)
+{
+	checkSerializeLayer<CParameterLayer>("NeoMLDnnParameterLayer");
 }
 
 // ====================================================================================================================
@@ -2017,7 +2103,7 @@ GTEST_TEST( SerializeToFile, QrnnLayerSerialization )
 template<>
 inline void checkSpecificParams<CQrnnLayer>( CQrnnLayer& layer )
 {
-	EXPECT_EQ( AF_HardSigmoid, layer.GetActivation() );
+	EXPECT_EQ( AF_HardSigmoid, layer.GetActivation().GetType() );
 	EXPECT_EQ( 0.05f, layer.GetDropout() );
 	EXPECT_EQ( 15, layer.GetHiddenSize() );
 	EXPECT_EQ( 4, layer.GetPaddingFront() );
@@ -2375,4 +2461,952 @@ inline void checkSpecificParams<CTransformerEncoderLayer>( CTransformerEncoderLa
 GTEST_TEST( SerializeFromFile, TransformerEncoderLayerSerialization )
 {
 	checkSerializeLayer<CTransformerEncoderLayer>( "NeoMLDnnTransformerEncoderLayer" );
+}
+
+// ====================================================================================================================
+
+// CInterpolationLayer
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+static void setSpecificParams( CInterpolationLayer& layer )
+{
+	layer.SetRule( BD_ListSize, CInterpolationLayer::CRule::Resize( 71 ) );
+	layer.SetRule( BD_Depth, CInterpolationLayer::CRule::Scale( 0.5f ) );
+	layer.SetCoords( TInterpolationCoords::AlignCorners );
+	layer.SetRound( TInterpolationRound::RoundPreferCeil );
+}
+
+GTEST_TEST( SerializeToFile, InterpolationLayerSerialization )
+{
+	serializeToFile<CInterpolationLayer>( "NeoMLDnnInterpolationLayer" );
+}
+
+#endif
+
+template<>
+inline void checkSpecificParams<CInterpolationLayer>( CInterpolationLayer& layer )
+{
+	EXPECT_EQ( CInterpolationLayer::TRuleType::Resize, layer.GetRule( BD_ListSize ).Type );
+	EXPECT_EQ( 71, layer.GetRule( BD_ListSize ).NewSize );
+	EXPECT_EQ( CInterpolationLayer::TRuleType::Scale, layer.GetRule( BD_Depth ).Type );
+	EXPECT_FLOAT_EQ( 0.5f, layer.GetRule( BD_Depth ).ScaleCoeff );
+	EXPECT_EQ( TInterpolationCoords::AlignCorners, layer.GetCoords() );
+	EXPECT_EQ( TInterpolationRound::RoundPreferCeil, layer.GetRound() );
+}
+
+GTEST_TEST( SerializeFromFile, InterpolationLayerSerialization )
+{
+	checkSerializeLayer<CInterpolationLayer>( "NeoMLDnnInterpolationLayer" );
+}
+
+// ====================================================================================================================
+
+// CCumSumLayer
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+static void setSpecificParams( CCumSumLayer& layer )
+{
+	layer.SetDimension( BD_ListSize );
+	layer.SetReverse( true );
+}
+
+GTEST_TEST( SerializeToFile, CumSumLayerSerialization )
+{
+	serializeToFile<CCumSumLayer>( "NeoMLDnnCumSumLayer" );
+}
+
+#endif
+
+template<>
+inline void checkSpecificParams<CCumSumLayer>( CCumSumLayer& layer )
+{
+	EXPECT_EQ( BD_ListSize, layer.GetDimension() );
+	EXPECT_TRUE( layer.IsReverse() );
+}
+
+GTEST_TEST( SerializeFromFile, CumSumLayerSerialization )
+{
+	checkSerializeLayer<CCumSumLayer>( "NeoMLDnnCumSumLayer" );
+}
+
+// ====================================================================================================================
+
+// CTransformerSourceMaskLayer
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+static void setSpecificParams( CTransformerSourceMaskLayer& layer )
+{
+	layer.SetHeadCount( 5 );
+}
+
+GTEST_TEST( SerializeToFile, TransformerSourceMaskLayerSerialization )
+{
+	serializeToFile<CTransformerSourceMaskLayer>( "NeoMLDnnTransformerSourceMaskLayer" );
+}
+
+#endif // GENERATE_SERIALIZATION_FILES
+
+template<>
+inline void checkSpecificParams<CTransformerSourceMaskLayer>( CTransformerSourceMaskLayer& layer )
+{
+	EXPECT_EQ( 5, layer.GetHeadCount() );
+}
+
+GTEST_TEST( SerializeFromFile, TransformerSourceMaskLayerSerialization )
+{
+	checkSerializeLayer<CTransformerSourceMaskLayer>( "NeoMLDnnTransformerSourceMaskLayer" );
+}
+
+// ====================================================================================================================
+
+// CMobileNetV2BlockLayer
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+GTEST_TEST( SerializeToFile, MobileNetV2BlockLayerSerialization )
+{
+	const int inputChannels = 2;
+	const int expandChannels = 4;
+	const int outputChannels = 3;
+
+	CRandom random;
+	CDnn dnn( random, MathEngine() );
+
+	CPtr<CMobileNetV2BlockLayer> layerPtr = new CMobileNetV2BlockLayer( MathEngine(),
+		/*expandFilter*/generateBlob( expandChannels, 1, 1, 1, inputChannels ),
+		/*expandFreeTerm*/generateBlob( 1, 1, 1, 1, expandChannels ),
+		/*expandActivation*/CActivationDesc( AF_ReLU, CReLULayer::CParam{ 666.f } ),
+		/*stride*/2,
+		/*channelwiseFilter*/generateBlob( 1, 3, 3, 1, expandChannels ),
+		/*channelwiseFreeTerm*/nullptr,
+		/*channelwiseActivation*/CActivationDesc( AF_ReLU, CReLULayer::CParam{ 777.f } ),
+		/*downFilter*/generateBlob( outputChannels, 1, 1, 1, expandChannels ),
+		/*downFreeTerm*/generateBlob( 1, 1, 1, 1, outputChannels ),
+		/*residual*/false ); // inputChannnels != outputChannels and stride == 2
+
+	setBaseParams( *layerPtr );
+	layerPtr->SetName( LayerName );
+	dnn.AddLayer( *layerPtr );
+
+	CArchiveFile file( getFileName( "NeoMLDnnMobileNetV2BlockLayer" ), CArchive::store );
+	CArchive archive( &file, CArchive::store );
+	archive.Serialize( dnn );
+}
+
+#endif // GENERATE_SERIALIZATION_FILES
+
+template<>
+inline void checkSpecificParams<CMobileNetV2BlockLayer>( CMobileNetV2BlockLayer& layer )
+{
+	const int inputChannels = 2;
+	const int expandChannels = 4;
+	const int outputChannels = 3;
+
+	checkBlob( *layer.ExpandFilter(), expandChannels * inputChannels );
+	checkBlob( *layer.ExpandFreeTerm(), expandChannels );
+	EXPECT_FLOAT_EQ( 666.f, layer.ExpandActivation().GetParam<CReLULayer::CParam>().UpperThreshold );
+
+	EXPECT_EQ( 2, layer.Stride() );
+	checkBlob( *layer.ChannelwiseFilter(), 3 * 3 * expandChannels );
+	EXPECT_EQ( nullptr, layer.ChannelwiseFreeTerm() );
+	EXPECT_FLOAT_EQ( 777.f, layer.ChannelwiseActivation().GetParam<CReLULayer::CParam>().UpperThreshold );
+
+	checkBlob( *layer.DownFilter(), outputChannels * expandChannels );
+	checkBlob( *layer.DownFreeTerm(), outputChannels );
+
+	EXPECT_FALSE( layer.Residual() );
+}
+
+GTEST_TEST( SerializeFromFile, MobileNetV2BlockLayerSerialization )
+{
+	checkSerializeLayer<CMobileNetV2BlockLayer>( "NeoMLDnnMobileNetV2BlockLayer" );
+}
+
+// ====================================================================================================================
+
+// COnnxCastLayer
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+static void setSpecificParams( COnnxCastLayer& layer )
+{
+	layer.SetOutputType( CT_Int );
+}
+
+GTEST_TEST( SerializeToFile, OnnxCastLayerSerialization )
+{
+	serializeToFile<COnnxCastLayer>( "NeoMLDnnOnnxCastLayer" );
+}
+
+#endif // GENERATE_SERIALIZATION_FILES
+
+template<>
+inline void checkSpecificParams<COnnxCastLayer>( COnnxCastLayer& layer )
+{
+	EXPECT_EQ( CT_Int, layer.GetOutputType() );
+}
+
+GTEST_TEST( SerializeFromFile, OnnxCastLayerSerialization )
+{
+	checkSerializeLayer<COnnxCastLayer>( "NeoMLDnnOnnxCastLayer" );
+}
+
+// ====================================================================================================================
+
+// COnnxConcatLayer
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+static void setSpecificParams( COnnxConcatLayer& layer )
+{
+	layer.SetConcatDim( BD_ListSize );
+}
+
+GTEST_TEST( SerializeToFile, OnnxConcatLayerSerialization )
+{
+	serializeToFile<COnnxConcatLayer>( "NeoMLDnnOnnxConcatLayer" );
+}
+
+#endif // GENERATE_SERIALIZATION_FILES
+
+template<>
+inline void checkSpecificParams<COnnxConcatLayer>( COnnxConcatLayer& layer )
+{
+	EXPECT_EQ( BD_ListSize, layer.GetConcatDim() );
+}
+
+GTEST_TEST( SerializeFromFile, OnnxConcatLayerSerialization )
+{
+	checkSerializeLayer<COnnxConcatLayer>( "NeoMLDnnOnnxConcatLayer" );
+}
+
+// ====================================================================================================================
+
+// COnnxConstantOfShapeLayer
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+static void setSpecificParams( COnnxConstantOfShapeLayer& layer )
+{
+	CPtr<CDnnBlob> newValue = CDnnBlob::CreateVector( GetSingleThreadCpuMathEngine(), CT_Int, 1 );
+	newValue->GetData<int>().SetValue( 1 );
+	layer.SetValue( *newValue );
+}
+
+GTEST_TEST( SerializeToFile, OnnxConstantOfShapeLayerSerialization )
+{
+	serializeToFile<COnnxConstantOfShapeLayer>( "NeoMLDnnOnnxConstantOfShapeLayer" );
+}
+
+#endif // GENERATE_SERIALIZATION_FILES
+
+template<>
+inline void checkSpecificParams<COnnxConstantOfShapeLayer>( COnnxConstantOfShapeLayer& layer )
+{
+	EXPECT_EQ( CT_Int, layer.GetValue().GetDataType() );
+	EXPECT_EQ( 1, layer.GetValue().GetData<const int>().GetValue() );
+}
+
+GTEST_TEST( SerializeFromFile, OnnxConstantOfShapeLayerSerialization )
+{
+	checkSerializeLayer<COnnxConstantOfShapeLayer>( "NeoMLDnnOnnxConstantOfShapeLayer" );
+}
+
+// ====================================================================================================================
+
+// COnnxConvTransposeLayer
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+static void setSpecificParams( COnnxConvTransposeLayer& layer )
+{
+	layer.AutoPad() = "SAME_UPPER";
+	layer.Pads().Add( { 1, 2, 3, 4 } );
+	layer.OutputPadding().Add( { 5, 7 } );
+	layer.OutputShape().Add( { 123, 125 } );
+}
+
+GTEST_TEST( SerializeToFile, OnnxConvTransposeLayerSerialization )
+{
+	serializeToFile<COnnxConvTransposeLayer>( "NeoMLDnnOnnxConvTransposeLayer" );
+}
+
+#endif // GENERATE_SERIALIZATION_FILES
+
+template<>
+inline void checkSpecificParams<COnnxConvTransposeLayer>( COnnxConvTransposeLayer& layer )
+{
+	EXPECT_EQ( "SAME_UPPER", layer.AutoPad() );
+	checkFObjArray( { 1, 2, 3, 4 }, layer.Pads() );
+	checkFObjArray( { 5, 7 }, layer.OutputPadding() );
+	checkFObjArray( { 123, 125 }, layer.OutputShape() );
+}
+
+GTEST_TEST( SerializeFromFile, OnnxConvTransposeLayerSerialization )
+{
+	checkSerializeLayer<COnnxConvTransposeLayer>( "NeoMLDnnOnnxConvTransposeLayer" );
+}
+
+// ====================================================================================================================
+
+// COnnxEltwiseLayer
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+static void setSpecificParams( COnnxEltwiseLayer& layer )
+{
+	layer.SetOperation( COnnxEltwiseLayer::TOperation::GreaterOrEqual );
+}
+
+GTEST_TEST( SerializeToFile, OnnxEltwiseLayerSerialization )
+{
+	serializeToFile<COnnxEltwiseLayer>( "NeoMLDnnOnnxEltwiseLayer" );
+}
+
+#endif // GENERATE_SERIALIZATION_FILES
+
+template<>
+inline void checkSpecificParams<COnnxEltwiseLayer>( COnnxEltwiseLayer& layer )
+{
+	EXPECT_EQ( COnnxEltwiseLayer::TOperation::GreaterOrEqual, layer.GetOperation() );
+}
+
+GTEST_TEST( SerializeFromFile, OnnxEltwiseLayerSerialization )
+{
+	checkSerializeLayer<COnnxEltwiseLayer>( "NeoMLDnnOnnxEltwiseLayer" );
+}
+
+// ====================================================================================================================
+
+// COnnxExpandLayer
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+static void setSpecificParams( COnnxExpandLayer& layer )
+{
+	layer.TensorLayout().Add( { BD_Channels, BD_Height } );
+}
+
+GTEST_TEST( SerializeToFile, OnnxExpandLayerSerialization )
+{
+	serializeToFile<COnnxExpandLayer>( "NeoMLDnnOnnxExpandLayer" );
+}
+
+#endif // GENERATE_SERIALIZATION_FILES
+
+template<>
+inline void checkSpecificParams<COnnxExpandLayer>( COnnxExpandLayer& layer )
+{
+	checkFObjArray( { BD_Channels, BD_Height }, layer.TensorLayout() );
+}
+
+GTEST_TEST( SerializeFromFile, OnnxExpandLayerSerialization )
+{
+	checkSerializeLayer<COnnxExpandLayer>( "NeoMLDnnOnnxExpandLayer" );
+}
+
+// ====================================================================================================================
+
+// COnnxGatherLayer
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+static void setSpecificParams( COnnxGatherLayer& layer )
+{
+	layer.SetGatherDim( BD_Width );
+}
+
+GTEST_TEST( SerializeToFile, OnnxGatherLayerSerialization )
+{
+	serializeToFile<COnnxGatherLayer>( "NeoMLDnnOnnxGatherLayer" );
+}
+
+#endif // GENERATE_SERIALIZATION_FILES
+
+template<>
+inline void checkSpecificParams<COnnxGatherLayer>( COnnxGatherLayer& layer )
+{
+	EXPECT_EQ( BD_Width, layer.GetGatherDim() );
+}
+
+GTEST_TEST( SerializeFromFile, OnnxGatherLayerSerialization )
+{
+	checkSerializeLayer<COnnxGatherLayer>( "NeoMLDnnOnnxGatherLayer" );
+}
+
+// ====================================================================================================================
+
+// COnnxNonZeroLayer
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+static void setSpecificParams( COnnxNonZeroLayer& layer )
+{
+	layer.InputLayout().Add( { BD_Channels, BD_ListSize, BD_Height } );
+}
+
+GTEST_TEST( SerializeToFile, OnnxNonZeroLayerSerialization )
+{
+	serializeToFile<COnnxNonZeroLayer>( "NeoMLDnnOnnxNonZeroLayer" );
+}
+
+#endif // GENERATE_SERIALIZATION_FILES
+
+template<>
+inline void checkSpecificParams<COnnxNonZeroLayer>( COnnxNonZeroLayer& layer )
+{
+	checkFObjArray( { BD_Channels, BD_ListSize, BD_Height }, layer.InputLayout() );
+}
+
+GTEST_TEST( SerializeFromFile, OnnxNonZeroLayerSerialization )
+{
+	checkSerializeLayer<COnnxNonZeroLayer>( "NeoMLDnnOnnxNonZeroLayer" );
+}
+
+// ====================================================================================================================
+
+// COnnxReshapeLayer
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+static void setSpecificParams( COnnxReshapeLayer& layer )
+{
+	layer.InputLayout().Add( { BD_Channels, BD_Height, BD_Width, BD_BatchWidth } );
+	layer.OutputLayout().Add( { BD_ListSize, BD_Height } );
+}
+
+GTEST_TEST( SerializeToFile, OnnxReshapeLayerSerialization )
+{
+	serializeToFile<COnnxReshapeLayer>( "NeoMLDnnOnnxReshapeLayer" );
+}
+
+#endif // GENERATE_SERIALIZATION_FILES
+
+template<>
+inline void checkSpecificParams<COnnxReshapeLayer>( COnnxReshapeLayer& layer )
+{
+	checkFObjArray( { BD_Channels, BD_Height, BD_Width, BD_BatchWidth }, layer.InputLayout() );
+	checkFObjArray( { BD_ListSize, BD_Height }, layer.OutputLayout() );
+}
+
+GTEST_TEST( SerializeFromFile, OnnxReshapeLayerSerialization )
+{
+	checkSerializeLayer<COnnxReshapeLayer>( "NeoMLDnnOnnxReshapeLayer" );
+}
+
+// ====================================================================================================================
+
+// COnnxResizeLayer
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+static void setSpecificParams( COnnxResizeLayer& layer )
+{
+	layer.TensorLayout().Add( { BD_Width, BD_Channels } );
+}
+
+GTEST_TEST( SerializeToFile, OnnxResizeLayerSerialization )
+{
+	serializeToFile<COnnxResizeLayer>( "NeoMLDnnOnnxResizeLayer" );
+}
+
+#endif // GENERATE_SERIALIZATION_FILES
+
+template<>
+inline void checkSpecificParams<COnnxResizeLayer>( COnnxResizeLayer& layer )
+{
+	checkFObjArray( { BD_Width, BD_Channels }, layer.TensorLayout() );
+}
+
+GTEST_TEST( SerializeFromFile, OnnxResizeLayerSerialization )
+{
+	checkSerializeLayer<COnnxResizeLayer>( "NeoMLDnnOnnxResizeLayer" );
+}
+
+// ====================================================================================================================
+
+// COnnxShapeLayer
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+static void setSpecificParams( COnnxShapeLayer& layer )
+{
+	layer.TensorLayout().Add( { BD_Width, BD_Channels, BD_Height } );
+}
+
+GTEST_TEST( SerializeToFile, OnnxShapeLayerSerialization )
+{
+	serializeToFile<COnnxShapeLayer>( "NeoMLDnnOnnxShapeLayer" );
+}
+
+#endif // GENERATE_SERIALIZATION_FILES
+
+template<>
+inline void checkSpecificParams<COnnxShapeLayer>( COnnxShapeLayer& layer )
+{
+	checkFObjArray( { BD_Width, BD_Channels, BD_Height }, layer.TensorLayout() );
+}
+
+GTEST_TEST( SerializeFromFile, OnnxShapeLayerSerialization )
+{
+	checkSerializeLayer<COnnxShapeLayer>( "NeoMLDnnOnnxShapeLayer" );
+}
+
+// ====================================================================================================================
+
+// COnnxSliceLayer
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+static void setSpecificParams( COnnxSliceLayer& layer )
+{
+	layer.TensorLayout().Add( { BD_ListSize, BD_Width, BD_Channels, BD_Height } );
+}
+
+GTEST_TEST( SerializeToFile, OnnxSliceLayerSerialization )
+{
+	serializeToFile<COnnxSliceLayer>( "NeoMLDnnOnnxSliceLayer" );
+}
+
+#endif // GENERATE_SERIALIZATION_FILES
+
+template<>
+inline void checkSpecificParams<COnnxSliceLayer>( COnnxSliceLayer& layer )
+{
+	checkFObjArray( { BD_ListSize, BD_Width, BD_Channels, BD_Height }, layer.TensorLayout() );
+}
+
+GTEST_TEST( SerializeFromFile, OnnxSliceLayerSerialization )
+{
+	checkSerializeLayer<COnnxSliceLayer>( "NeoMLDnnOnnxSliceLayer" );
+}
+
+// ====================================================================================================================
+
+// COnnxSourceHelper
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+static void setSpecificParams( COnnxSourceHelper& layer )
+{
+	layer.Blob() = generateBlob( 2, 3, 7, 4, 5 );
+}
+
+GTEST_TEST( SerializeToFile, OnnxSourceHelperSerialization )
+{
+	serializeToFile<COnnxSourceHelper>( "NeoMLDnnOnnxSourceHelper" );
+}
+
+#endif // GENERATE_SERIALIZATION_FILES
+
+template<>
+inline void checkSpecificParams<COnnxSourceHelper>( COnnxSourceHelper& layer )
+{
+	checkBlob( *layer.Blob(), 2 * 3 * 7 * 4 * 5 );
+}
+
+GTEST_TEST( SerializeFromFile, OnnxSourceHelperSerialization )
+{
+	checkSerializeLayer<COnnxSourceHelper>( "NeoMLDnnOnnxSourceHelper" );
+}
+
+// ====================================================================================================================
+
+// COnnxSplitLayer
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+static void setSpecificParams( COnnxSplitLayer& layer )
+{
+	layer.SetSplitDim( BD_Depth );
+}
+
+GTEST_TEST( SerializeToFile, OnnxSplitLayerSerialization )
+{
+	serializeToFile<COnnxSplitLayer>( "NeoMLDnnOnnxSplitLayer" );
+}
+
+#endif // GENERATE_SERIALIZATION_FILES
+
+template<>
+inline void checkSpecificParams<COnnxSplitLayer>( COnnxSplitLayer& layer )
+{
+	EXPECT_EQ( BD_Depth, layer.GetSplitDim() );
+}
+
+GTEST_TEST( SerializeFromFile, OnnxSplitLayerSerialization )
+{
+	checkSerializeLayer<COnnxSplitLayer>( "NeoMLDnnOnnxSplitLayer" );
+}
+
+// ====================================================================================================================
+
+// COnnxTransformHelper
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+static void setSpecificParams( COnnxTransformHelper& layer )
+{
+	layer.SetRule( BD_Height, BD_Width );
+	layer.SetRule( BD_Width, BD_Channels );
+	layer.SetRule( BD_Channels, BD_Height );
+}
+
+GTEST_TEST( SerializeToFile, OnnxTransformHelperSerialization )
+{
+	serializeToFile<COnnxTransformHelper>( "NeoMLDnnOnnxTransformHelper" );
+}
+
+#endif // GENERATE_SERIALIZATION_FILES
+
+template<>
+inline void checkSpecificParams<COnnxTransformHelper>( COnnxTransformHelper& layer )
+{
+	EXPECT_EQ( BD_Height, layer.GetRule( BD_Width ) );
+	EXPECT_EQ( BD_Width, layer.GetRule( BD_Channels ) );
+	EXPECT_EQ( BD_Channels, layer.GetRule( BD_Height ) );
+}
+
+GTEST_TEST( SerializeFromFile, OnnxTransformHelperSerialization )
+{
+	checkSerializeLayer<COnnxTransformHelper>( "NeoMLDnnOnnxTransformHelper" );
+}
+
+// ====================================================================================================================
+
+// COnnxTransposeHelper
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+static void setSpecificParams( COnnxTransposeHelper& layer )
+{
+	layer.SetDims( BD_ListSize, BD_Depth );
+}
+
+GTEST_TEST( SerializeToFile, OnnxTransposeHelperSerialization )
+{
+	serializeToFile<COnnxTransposeHelper>( "NeoMLDnnOnnxTransposeHelper" );
+}
+
+#endif // GENERATE_SERIALIZATION_FILES
+
+template<>
+inline void checkSpecificParams<COnnxTransposeHelper>( COnnxTransposeHelper& layer )
+{
+	TBlobDim firstDim = BD_Count;
+	TBlobDim secondDim = BD_Count;
+	layer.GetDims( firstDim, secondDim );
+	EXPECT_EQ( BD_ListSize, firstDim );
+	EXPECT_EQ( BD_Depth, secondDim );
+}
+
+GTEST_TEST( SerializeFromFile, OnnxTransposeHelperSerialization )
+{
+	checkSerializeLayer<COnnxTransposeHelper>( "NeoMLDnnOnnxTransposeHelper" );
+}
+
+// ====================================================================================================================
+
+// CMobileNetV3PreSEBlockLayer
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+GTEST_TEST( SerializeToFile, MobileNetV3PreSEBlockLayerSerialization )
+{
+	const int inputChannels = 2;
+	const int expandChannels = 4;
+
+	CRandom random;
+	CDnn dnn( random, MathEngine() );
+
+	CPtr<CMobileNetV3PreSEBlockLayer> layerPtr = new CMobileNetV3PreSEBlockLayer( MathEngine(),
+		/*expandFilter*/generateBlob( expandChannels, 1, 1, 1, inputChannels ),
+		/*expandFreeTerm*/generateBlob( 1, 1, 1, 1, expandChannels ),
+		/*expandActivation*/CActivationDesc( AF_ReLU, CReLULayer::CParam{ 666.f } ),
+		/*stride*/2,
+		/*channelwiseFilter*/generateBlob( 1, 3, 3, 1, expandChannels ),
+		/*channelwiseFreeTerm*/nullptr,
+		/*channelwiseActivation*/CActivationDesc( AF_Linear, CLinearLayer::CParam{ 1.f, 0.f } ) );
+
+	setBaseParams( *layerPtr );
+	layerPtr->SetName( LayerName );
+	dnn.AddLayer( *layerPtr );
+
+	CArchiveFile file( getFileName( "NeoMLDnnMobileNetV3PreSEBlockLayer" ), CArchive::store );
+	CArchive archive( &file, CArchive::store );
+	archive.Serialize( dnn );
+}
+
+#endif // GENERATE_SERIALIZATION_FILES
+
+template<>
+inline void checkSpecificParams<CMobileNetV3PreSEBlockLayer>( CMobileNetV3PreSEBlockLayer& layer )
+{
+	const int inputChannels = 2;
+	const int expandChannels = 4;
+
+	checkBlob( *layer.ExpandFilter(), expandChannels * inputChannels );
+	checkBlob( *layer.ExpandFreeTerm(), expandChannels );
+	EXPECT_EQ( AF_ReLU, layer.ExpandActivation().GetType() );
+	EXPECT_FLOAT_EQ( 666.f, layer.ExpandActivation().GetParam<CReLULayer::CParam>().UpperThreshold );
+
+	EXPECT_EQ( 2, layer.Stride() );
+	checkBlob( *layer.ChannelwiseFilter(), 3 * 3 * expandChannels );
+	EXPECT_EQ( nullptr, layer.ChannelwiseFreeTerm() );
+	EXPECT_EQ( AF_Linear, layer.ChannelwiseActivation().GetType() );
+	EXPECT_FLOAT_EQ( 1.f, layer.ChannelwiseActivation().GetParam<CLinearLayer::CParam>().Multiplier );
+	EXPECT_FLOAT_EQ( 0.f, layer.ChannelwiseActivation().GetParam<CLinearLayer::CParam>().FreeTerm );
+}
+
+GTEST_TEST( SerializeFromFile, MobileNetV3PreSEBlockLayerSerialization )
+{
+	checkSerializeLayer<CMobileNetV3PreSEBlockLayer>( "NeoMLDnnMobileNetV3PreSEBlockLayer" );
+}
+
+// ====================================================================================================================
+
+// CMobileNetV3PostSEBlockLayer
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+GTEST_TEST( SerializeToFile, MobileNetV3PostSEBlockLayerSerialization )
+{
+	const int expandChannels = 4;
+	const int outputChannels = 3;
+
+	CRandom random;
+	CDnn dnn( random, MathEngine() );
+
+	CPtr<CMobileNetV3PostSEBlockLayer> layerPtr = new CMobileNetV3PostSEBlockLayer( MathEngine(),
+		/*activation*/CActivationDesc( AF_ReLU, CReLULayer::CParam{ 456.f } ),
+		/*downFilter*/generateBlob( outputChannels, 1, 1, 1, expandChannels ),
+		/*downFreeTerm*/generateBlob( 1, 1, 1, 1, outputChannels ) );
+
+	setBaseParams( *layerPtr );
+	layerPtr->SetName( LayerName );
+	dnn.AddLayer( *layerPtr );
+
+	CArchiveFile file( getFileName( "NeoMLDnnMobileNetV3PostSEBlockLayer" ), CArchive::store );
+	CArchive archive( &file, CArchive::store );
+	archive.Serialize( dnn );
+}
+
+#endif // GENERATE_SERIALIZATION_FILES
+
+template<>
+inline void checkSpecificParams<CMobileNetV3PostSEBlockLayer>( CMobileNetV3PostSEBlockLayer& layer )
+{
+	const int expandChannels = 4;
+	const int outputChannels = 3;
+
+	checkBlob( *layer.DownFilter(), outputChannels * expandChannels );
+	checkBlob( *layer.DownFreeTerm(), outputChannels );
+
+	const CActivationDesc& activation = layer.Activation();
+	EXPECT_EQ( AF_ReLU, activation.GetType() );
+	EXPECT_TRUE( activation.HasParam() );
+	EXPECT_EQ( 456.f, activation.GetParam<CReLULayer::CParam>().UpperThreshold );
+}
+
+GTEST_TEST( SerializeFromFile, MobileNetV3PostSEBlockLayerSerialization )
+{
+	checkSerializeLayer<CMobileNetV3PostSEBlockLayer>( "NeoMLDnnMobileNetV3PostSEBlockLayer" );
+}
+
+// ====================================================================================================================
+
+// CChannelwiseWith1x1Layer
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+GTEST_TEST( SerializeToFile, ChannelwiseWith1x1LayerSerialization )
+{
+	const int expandChannels = 4;
+	const int outputChannels = 3;
+
+	CRandom random;
+	CDnn dnn( random, MathEngine() );
+
+	CPtr<CChannelwiseWith1x1Layer> layerPtr = new CChannelwiseWith1x1Layer( MathEngine(),
+		/*stride*/2,
+		/*channelwiseFilter*/generateBlob( 1, 3, 3, 1, expandChannels ),
+		/*channelwiseFreeTerm*/nullptr,
+		/*activation*/CActivationDesc( AF_ReLU, CReLULayer::CParam{ 777.f } ),
+		/*convFilter*/generateBlob( outputChannels, 1, 1, 1, expandChannels ),
+		/*convFreeTerm*/generateBlob( 1, 1, 1, 1, outputChannels ),
+		/*residual*/false ); // stride == 2
+
+	setBaseParams( *layerPtr );
+	layerPtr->SetName( LayerName );
+	dnn.AddLayer( *layerPtr );
+
+	CArchiveFile file( getFileName( "NeoMLDnnChannelwiseWith1x1Layer" ), CArchive::store );
+	CArchive archive( &file, CArchive::store );
+	archive.Serialize( dnn );
+}
+
+#endif // GENERATE_SERIALIZATION_FILES
+
+template<>
+inline void checkSpecificParams<CChannelwiseWith1x1Layer>( CChannelwiseWith1x1Layer& layer )
+{
+	const int expandChannels = 4;
+	const int outputChannels = 3;
+
+	EXPECT_EQ( 2, layer.Stride() );
+	checkBlob( *layer.ChannelwiseFilter(), 3 * 3 * expandChannels );
+	EXPECT_EQ( nullptr, layer.ChannelwiseFreeTerm() );
+	EXPECT_EQ( AF_ReLU, layer.Activation().GetType() );
+	EXPECT_FLOAT_EQ( 777.f, layer.Activation().GetParam<CReLULayer::CParam>().UpperThreshold );
+
+	checkBlob( *layer.ConvFilter(), outputChannels * expandChannels );
+	checkBlob( *layer.ConvFreeTerm(), outputChannels );
+
+	EXPECT_FALSE( layer.Residual() );
+}
+
+GTEST_TEST( SerializeFromFile, ChannelwiseWith1x1LayerSerialization )
+{
+	checkSerializeLayer<CChannelwiseWith1x1Layer>( "NeoMLDnnChannelwiseWith1x1Layer" );
+}
+
+// ====================================================================================================================
+
+// CRowwiseOperationChainLayer
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+static void setSpecificParams( CRowwiseOperationChainLayer& layer )
+{
+	layer.AddOperation( new CRowwiseActivation( MathEngine(),
+		CActivationDesc( AF_ReLU, CReLULayer::CParam{ -1.f } ) ) );
+	layer.AddOperation( new CRowwiseActivation( MathEngine(),
+		CActivationDesc( AF_ReLU, CReLULayer::CParam{ 6.f } ) ) );
+	layer.AddOperation( new CRowwiseActivation( MathEngine(), CActivationDesc( AF_HSwish ) ) );
+	layer.AddOperation( new CRowwiseActivation( MathEngine(),
+		CActivationDesc( AF_Linear, CLinearLayer::CParam{ 1.f, 0.f } ) ) );
+}
+
+GTEST_TEST( SerializeToFile, RowwiseOperationChainLayerSerialization )
+{
+	serializeToFile<CRowwiseOperationChainLayer>( "NeoMLDnnRowwiseOperationChainLayer" );
+}
+
+#endif // GENERATE_SERIALIZATION_FILES
+
+template<>
+inline void checkSpecificParams<CRowwiseOperationChainLayer>( CRowwiseOperationChainLayer& layer )
+{
+	EXPECT_EQ( 4, layer.OperationCount() );
+	constexpr TActivationFunction expectedTypes[4] = { AF_ReLU, AF_ReLU, AF_HSwish, AF_Linear };
+
+	for( int i = 0; i < layer.OperationCount(); ++i ) {
+		const CRowwiseActivation* rowwise = dynamic_cast<const CRowwiseActivation*>( layer.GetOperation( i ) );
+		EXPECT_NE( nullptr, rowwise );
+		EXPECT_EQ( expectedTypes[i], rowwise->Activation().GetType());
+		switch( i ) {
+			case 0:
+				EXPECT_FLOAT_EQ( -1.f, rowwise->Activation().GetParam<CReLULayer::CParam>().UpperThreshold );
+				break;
+			case 1:
+				EXPECT_FLOAT_EQ( 6.f, rowwise->Activation().GetParam<CReLULayer::CParam>().UpperThreshold );
+				break;
+			case 2:
+				break;
+			case 3:
+				EXPECT_FLOAT_EQ( 1.f, rowwise->Activation().GetParam<CLinearLayer::CParam>().Multiplier );
+				EXPECT_FLOAT_EQ( 0.f, rowwise->Activation().GetParam<CLinearLayer::CParam>().FreeTerm );
+				break;
+			default:
+				FAIL();
+		}
+	}
+}
+
+GTEST_TEST( SerializeFromFile, RowwiseOperationChainLayerSerialization )
+{
+	checkSerializeLayer<CRowwiseOperationChainLayer>( "NeoMLDnnRowwiseOperationChainLayer" );
+}
+
+// ====================================================================================================================
+
+// CGrnLayer
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+static void setSpecificParams( CGrnLayer& layer )
+{
+	layer.SetEpsilon( 2e-3f );
+	layer.SetBias( generateBlob( 1, 1, 1, 1, 10 ) );
+}
+
+GTEST_TEST( SerializeToFile, GrnLayerSerialization )
+{
+	serializeToFile<CGrnLayer>( "NeoMLDnnGrnLayer" );
+}
+
+#endif // GENERATE_SERIALIZATION_FILES
+
+template<>
+inline void checkSpecificParams<CGrnLayer>( CGrnLayer& layer )
+{
+	EXPECT_FLOAT_EQ( 2e-3f, layer.GetEpsilon() );
+	EXPECT_EQ( nullptr, layer.GetScale().Ptr() );
+	checkBlob( *layer.GetBias(), 10 );
+}
+
+GTEST_TEST( SerializeFromFile, GrnLayerSerialization )
+{
+	checkSerializeLayer<CGrnLayer>( "NeoMLDnnGrnLayer" );
+}
+
+// ====================================================================================================================
+
+// CLoraFullyConnectedLayer
+
+#ifdef GENERATE_SERIALIZATION_FILES
+
+GTEST_TEST( SerializeToFile, LoraFullyConnectedLayerSerialization )
+{
+	CRandom random;
+	CDnn cnn( random, MathEngine() );
+
+	CLoraParams params( 7, 3.f, 0.1f );
+	CPtr<CDnnBlob> baseW = generateBlob( TestSize, 1, 1, 1, 2 * TestSize );
+	CPtr<CDnnBlob> baseB = generateBlob( 1, 1, 1, 1, TestSize );
+	CPtr<CDnnBlob> a = generateBlob( params.Rank, 1, 1, 1, TestSize );
+	CPtr<CDnnBlob> b = generateBlob( TestSize, 1, 1, 1, params.Rank );
+
+	CPtr<CLoraFullyConnectedLayer> layerPtr = new CLoraFullyConnectedLayer( *baseW, baseB.Ptr(), params );
+	setBaseParams( *layerPtr );
+	layerPtr->SetName( LayerName );
+	layerPtr->UpdateParams( params, a.Ptr(), b.Ptr() );
+	cnn.AddLayer( *layerPtr );
+
+	CArchiveFile file( getFileName( "NeoMLDnnLoraFullyConnectedLayer" ), CArchive::SD_Storing );
+	CArchive archive( &file, CArchive::SD_Storing );
+	archive.Serialize( cnn );
+}
+
+#endif // GENERATE_SERIALIZATION_FILES
+
+template<>
+inline void checkSpecificParams<CLoraFullyConnectedLayer>( CLoraFullyConnectedLayer& layer )
+{
+	checkBlob( *layer.GetSplitWeightsNoCopy(), 2 * TestSize * TestSize );
+	checkBlob( *layer.GetFreeTermsNoCopy(), TestSize );
+
+	EXPECT_EQ( layer.Rank(), 7 );
+	EXPECT_EQ( layer.Alpha(), 3.f );
+	EXPECT_EQ( layer.Dropout(), 0.1f );
+	checkBlob( *layer.GetAWeightsNoCopy(), layer.Rank() * TestSize );
+	checkBlob( *layer.GetBWeightsNoCopy(), layer.Rank() * TestSize );
+}
+
+GTEST_TEST( SerializeFromFile, LoraFullyConnectedLayerSerialization )
+{
+	checkSerializeLayer<CLoraFullyConnectedLayer>( "NeoMLDnnLoraFullyConnectedLayer" );
 }

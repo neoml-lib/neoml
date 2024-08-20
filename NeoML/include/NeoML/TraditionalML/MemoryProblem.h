@@ -50,20 +50,20 @@ public:
 	void SetClass( int index, int newClass );
 
 	// IProblem interface methods:
-	virtual int GetClassCount() const { return classCount; }
-	virtual int GetFeatureCount() const { return featureCount; }
-	virtual bool IsDiscreteFeature( int index ) const { return isDiscreteFeature[index]; }
-	virtual int GetVectorCount() const { return matrix.GetHeight(); }
-	virtual int GetClass( int index ) const { return classes[index]; }
-	virtual CFloatMatrixDesc GetMatrix() const { return matrix.GetDesc(); }
-	virtual double GetVectorWeight( int index ) const { return weights[index]; };
-	virtual int GetDiscretizationValue( int index ) const { return discretizationValues[index]; }
+	int GetClassCount() const override { return classCount; }
+	int GetFeatureCount() const override { return featureCount; }
+	bool IsDiscreteFeature( int index ) const override { return isDiscreteFeature[index]; }
+	int GetVectorCount() const override { return matrix.GetHeight(); }
+	int GetClass( int index ) const override { return classes[index]; }
+	CFloatMatrixDesc GetMatrix() const override { return matrix.GetDesc(); }
+	double GetVectorWeight( int index ) const override { return weights[index]; };
+	int GetDiscretizationValue( int index ) const override { return discretizationValues[index]; }
 
 	// IObject
-	virtual void Serialize( CArchive& archive );
+	void Serialize( CArchive& archive ) override;
 
 protected:
-	virtual ~CMemoryProblem() {} // delete operation prohibited
+	~CMemoryProblem() override = default; // delete operation prohibited
 
 private:
 	CSparseFloatMatrix matrix; // all vectors of the set

@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -24,11 +24,11 @@ limitations under the License.
 #include <NeoMathEngine/SimdMathEngine.h>
 #include <DllLoader.h>
 #include <CPUInfo.h>
+#include <PerformanceCountersDefault.h>
 
 #if FINE_PLATFORM( FINE_ANDROID ) || FINE_PLATFORM( FINE_LINUX )
 #include <PerformanceCountersCpuLinux.h>
 #elif FINE_PLATFORM( FINE_WINDOWS ) || FINE_PLATFORM( FINE_DARWIN ) || FINE_PLATFORM( FINE_IOS )
-#include <PerformanceCountersDefault.h>
 #else
 #error "Platform is not supported!";
 #endif
@@ -43,16 +43,21 @@ limitations under the License.
 
 #endif // NEOML_USE_MKL
 
+const bool CCPUInfo::HasAvxAndFma = CCPUInfo::IsAvxAndFmaAvailable();
+const bool CCPUInfo::IsNotIntel = CCPUInfo::GetCpuArch() != CCPUInfo::TCpuArch::Intel;
+
 namespace NeoML {
 
-static int FloatAlignment = CCPUInfo::DefineFloatAlignment();
-static CCPUInfo::TCpuArch CPUArch = CCPUInfo::GetCpuArch();
+int NEOMATHENGINE_API FloatAlignment = CCPUInfo::DefineFloatAlignment();
 
-CCpuMathEngine::CCpuMathEngine( int _threadCount, size_t _memoryLimit ) :
-	threadCount( _threadCount <= 0 ? OmpGetMaxThreadCount() : _threadCount ),
+CCpuMathEngine::CCpuMathEngine( size_t _memoryLimit,
+		std::shared_ptr<CMultiThreadDistributedCommunicator> communicator,
+		const CMathEngineDistributedInfo& distributedInfo ) :
 	floatAlignment( FloatAlignment ),
 	memoryAlignment( floatAlignment * sizeof(float) ),
-	memoryPool( new CMemoryPool( _memoryLimit == 0 ? SIZE_MAX : _memoryLimit, this, false ) ),
+	communicator( communicator ),
+	distributedInfo( distributedInfo ),
+	memoryPool( new CMemoryPool( _memoryLimit == 0 ? SIZE_MAX : _memoryLimit, this, distributedInfo.Threads > 1 ) ),
 	stackAllocator( new CDeviceStackAllocator( *memoryPool, memoryAlignment ) ),
 	dllLoader( CDllLoader::AVX_DLL ),
 	simdMathEngine( nullptr ),
@@ -60,24 +65,19 @@ CCpuMathEngine::CCpuMathEngine( int _threadCount, size_t _memoryLimit ) :
 {
 #ifdef NEOML_USE_AVX
 	if( dllLoader.IsLoaded( CDllLoader::AVX_DLL ) ) {
-		simdMathEngine = unique_ptr<ISimdMathEngine>( CDllLoader::avxDll->CreateSimdMathEngine( this, threadCount ) );
-		// Don't use custom sgemm function when we are compiled with MKL and when we are on Intel CPU.
-		if( CPUArch == CCPUInfo::TCpuArch::Intel ) {
-#ifndef NEOML_USE_MKL
-			customSgemmFunction = simdMathEngine->GetSgemmFunction();
-#endif
-		} else {
-			// Non Intel architectures
-			customSgemmFunction = simdMathEngine->GetSgemmFunction();
-		}
+		simdMathEngine = std::unique_ptr<ISimdMathEngine>( CDllLoader::avxDll->CreateSimdMathEngine( this ) );
+		// Don't use custom sgemm function when we are compiled with MKL or MLAS.
+#if !defined( NEOML_USE_MKL ) && !defined( NEOML_USE_MLAS )
+		customSgemmFunction = simdMathEngine->GetSgemmFunction();
+#endif // !defined( NEOML_USE_MKL ) && !defined( NEOML_USE_MLAS )
 	}
-#else // NEOML_USE_AVX
+#else  // !NEOML_USE_AVX
 	// warning fix
 	(void)customSgemmFunction;
-#endif
+#endif // !NEOML_USE_AVX
 #ifdef NEOML_USE_MKL
 	vmlSetMode( VML_ERRMODE_NOERR );
-#endif
+#endif // NEOML_USE_MKL
 }
 
 CCpuMathEngine::~CCpuMathEngine()
@@ -87,8 +87,36 @@ CCpuMathEngine::~CCpuMathEngine()
 
 void CCpuMathEngine::SetReuseMemoryMode( bool enable )
 {
+	// Distributed CPU math engine always uses memory pools
+	// because big simultaneous allocations on multiple (20+) threads are extremely slow
+	if( IsDistributed() ) {
+		return;
+	}
+
 	std::lock_guard<std::mutex> lock( mutex );
 	memoryPool->SetReuseMemoryMode( enable );
+}
+
+bool CCpuMathEngine::GetReuseMemoryMode() const
+{
+	// Distributed CPU math engine always uses memory pools
+	if( IsDistributed() ) {
+		return true;
+	}
+	std::lock_guard<std::mutex> lock( mutex );
+	return memoryPool->GetReuseMemoryMode();
+}
+
+void CCpuMathEngine::SetThreadBufferMemoryThreshold( size_t threshold )
+{
+	std::lock_guard<std::mutex> lock( mutex );
+	memoryPool->SetThreadBufferMemoryThreshold( threshold );
+}
+
+size_t CCpuMathEngine::GetThreadBufferMemoryThreshold() const
+{
+	std::lock_guard<std::mutex> lock( mutex );
+	return memoryPool->GetThreadBufferMemoryThreshold();
 }
 
 CMemoryHandle CCpuMathEngine::HeapAlloc( size_t size )
@@ -107,6 +135,14 @@ void CCpuMathEngine::HeapFree( const CMemoryHandle& handle )
 
 	std::lock_guard<std::mutex> lock( mutex );
 	memoryPool->Free( handle );
+}
+
+void CCpuMathEngine::TransferHandleToThisThread( const CMemoryHandle& handle, size_t size )
+{
+	ASSERT_EXPR( handle.GetMathEngine() == this );
+
+	std::lock_guard<std::mutex> lock( mutex );
+	memoryPool->TransferHandleToThisThread( handle, size );
 }
 
 CMemoryHandle CCpuMathEngine::StackAlloc( size_t size )
@@ -137,6 +173,18 @@ size_t CCpuMathEngine::GetPeakMemoryUsage() const
 	return memoryPool->GetPeakMemoryUsage();
 }
 
+void CCpuMathEngine::ResetPeakMemoryUsage()
+{
+	std::lock_guard<std::mutex> lock( mutex );
+	memoryPool->ResetPeakMemoryUsage();
+}
+
+size_t CCpuMathEngine::GetCurrentMemoryUsage() const
+{
+	std::lock_guard<std::mutex> lock( mutex );
+	return memoryPool->GetCurrentMemoryUsage();
+}
+
 size_t CCpuMathEngine::GetMemoryInPools() const
 {
 	std::lock_guard<std::mutex> lock( mutex );
@@ -149,11 +197,8 @@ void CCpuMathEngine::CleanUp()
 	stackAllocator->CleanUp();
 	memoryPool->CleanUp();
 #ifdef NEOML_USE_MKL
-	NEOML_OMP_NUM_THREADS( threadCount )
-	{
-		mkl_thread_free_buffers();
-	}
-#endif
+	mkl_thread_free_buffers();
+#endif // NEOML_USE_MKL
 }
 
 void* CCpuMathEngine::GetBuffer( const CMemoryHandle& handle, size_t pos, size_t, bool exchange )
@@ -167,18 +212,18 @@ void CCpuMathEngine::ReleaseBuffer( const CMemoryHandle&, void*, bool )
 	// no action needed
 }
 
-void CCpuMathEngine::DataExchangeRaw(const CMemoryHandle& handle, const void* data, size_t size)
+void CCpuMathEngine::DataExchangeRaw( const CMemoryHandle& handle, const void* data, size_t size )
 {
 	ASSERT_EXPR( handle.GetMathEngine() == this );
 
-	::memcpy( GetRaw(handle), data, size);
+	::memcpy( GetRaw( handle ), data, size );
 }
 
-void CCpuMathEngine::DataExchangeRaw(void* data, const CMemoryHandle& handle, size_t size)
+void CCpuMathEngine::DataExchangeRaw( void* data, const CMemoryHandle& handle, size_t size )
 {
 	ASSERT_EXPR( handle.GetMathEngine() == this );
 
-	::memcpy( data, GetRaw(handle), size );
+	::memcpy( data, GetRaw( handle ), size );
 }
 
 CMemoryHandle CCpuMathEngine::CopyFrom( const CMemoryHandle& handle, size_t size )
@@ -238,23 +283,23 @@ void CCpuMathEngine::GetMathEngineInfo( CMathEngineInfo& info ) const
 	info.AvailableMemory = SIZE_MAX;
 }
 
-IPerformanceCounters* CCpuMathEngine::CreatePerformanceCounters() const
-{
 #if FINE_PLATFORM( FINE_ANDROID ) || FINE_PLATFORM( FINE_LINUX )
+IPerformanceCounters* CCpuMathEngine::CreatePerformanceCounters( bool isOnlyTime ) const {
+	if ( isOnlyTime ) {
+		return new CPerformanceCountersDefault();
+	}
 	return new CPerformanceCountersCpuLinux();
+}
 #elif FINE_PLATFORM( FINE_WINDOWS ) || FINE_PLATFORM( FINE_DARWIN ) || FINE_PLATFORM( FINE_IOS )
+IPerformanceCounters* CCpuMathEngine::CreatePerformanceCounters( bool ) const {
 	return new CPerformanceCountersDefault();
+}
 #else
+IPerformanceCounters* CCpuMathEngine::CreatePerformanceCounters( bool ) const {
 	#error "Platform is not supported!";
 	return 0;
+}
 #endif
-}
-
-void CCpuMathEngine::SetDistributedCommunicator( std::shared_ptr<CMultiThreadDistributedCommunicator> comm, const CMathEngineDistributedInfo& info )
-{
-	communicator = comm;
-	distributedInfo = info;
-}
 
 void CCpuMathEngine::AllReduce( const CFloatHandle& handle, int size )
 {
@@ -270,6 +315,13 @@ void CCpuMathEngine::Broadcast( const CFloatHandle& handle, int size, int root )
 	}
 }
 
+void CCpuMathEngine::AbortDistributed() 
+{
+	if( communicator != nullptr ){
+		communicator->Abort();
+	}
+}
+
 void CpuMathEngineCleanUp()
 {
 #ifdef NEOML_USE_MKL
@@ -278,4 +330,16 @@ void CpuMathEngineCleanUp()
 	mkl_free_buffers();
 #endif
 }
+
+void DeinitializeNeoMathEngine()
+{
+#ifdef NEOML_USE_MKL
+	mkl_free_buffers();
+#if FINE_PLATFORM( FINE_WINDOWS )
+	MKLFreeTls( DLL_PROCESS_DETACH );
+#endif
+	mkl_finalize();
+#endif
+}
+
 } // namespace NeoML

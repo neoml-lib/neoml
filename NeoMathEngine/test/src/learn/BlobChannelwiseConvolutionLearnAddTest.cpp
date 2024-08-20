@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright Â© 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,22 +14,18 @@ limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
 #include <TestFixture.h>
+#include <MeTestCommon.h>
 
 using namespace NeoML;
 using namespace NeoMLTest;
-
-static inline int calcConvOutputSize( int input, int padding, int filter, int stride )
-{
-	return  1 + ( input - filter + 2 * padding ) / stride;
-}
 
 static void blobChannelwiseConvolutionLearnAddNaive(
 	const float* input, float* filter, float* freeTerm, const float* output,
 	int batchSize, int channels, int inputHeight, int inputWidth, int filterHeight, int filterWidth,
 	int paddingHeight, int paddingWidth, int strideHeight, int strideWidth )
 {
-	const int outputHeight = calcConvOutputSize( inputHeight, paddingHeight, filterHeight, strideHeight );
-	const int outputWidth = calcConvOutputSize( inputWidth, paddingWidth, filterWidth, strideWidth );
+	const int outputHeight = calcConvOutputSize( inputHeight, paddingHeight, filterHeight, 1, strideHeight );
+	const int outputWidth = calcConvOutputSize( inputWidth, paddingWidth, filterWidth, 1, strideWidth );
 	const int outputObjectSize = outputWidth * outputHeight * channels;
 	const int inputObjectSize = inputHeight * inputWidth * channels;
 
@@ -91,8 +87,8 @@ static void blobChannelwiseConvolutionLearnAddImpl( const CTestParams& params, i
 	const int filterHeight = random.UniformInt( filterHeightInterval.Begin, filterHeightInterval.End );
 	const int filterWidth = random.UniformInt( filterWidthInterval.Begin, filterWidthInterval.End );
 
-	const int outputHeight = calcConvOutputSize( inputHeight, paddingHeight, filterHeight, strideHeight );
-	const int outputWidth = calcConvOutputSize( inputWidth, paddingWidth, filterWidth, strideWidth );
+	const int outputHeight = calcConvOutputSize( inputHeight, paddingHeight, filterHeight, 1, strideHeight );
+	const int outputWidth = calcConvOutputSize( inputWidth, paddingWidth, filterWidth, 1, strideWidth );
 
 	CREATE_FILL_FLOAT_ARRAY( outputDiffData, valuesInterval.Begin, valuesInterval.End, batchSize * outputHeight * outputWidth * channels, random )
 	CFloatBlob outputDiffBlob( MathEngine(), batchSize, outputHeight, outputWidth, 1, channels );
@@ -126,13 +122,13 @@ static void blobChannelwiseConvolutionLearnAddImpl( const CTestParams& params, i
 
 	filterBlob.CopyTo( filterData.data() );
 	for( size_t i = 0; i < filterData.size(); ++i ) {
-		ASSERT_NEAR( expectedFilterData[i], filterData[i], 1e-2f );
+		EXPECT_NEAR( expectedFilterData[i], filterData[i], 1e-2f );
 	}
 
 	if( addFreeTerm ) {
 		freeTermBlob.CopyTo( freeTermData.data() );
 		for( size_t i = 0; i < freeTermData.size(); ++i ) {
-			ASSERT_NEAR( expectedFreeTermData[i], freeTermData[i], 1e-2f );
+			EXPECT_NEAR( expectedFreeTermData[i], freeTermData[i], 1e-2f );
 		}
 	}
 }
@@ -179,5 +175,11 @@ INSTANTIATE_TEST_CASE_P( CMathEngineBlobChannelwiseConvolutionLearnAddTestInstan
 
 TEST_P( CMathEngineBlobChannelwiseConvolutionLearnAddTest, Random )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		return;
+	}
+
 	RUN_TEST_IMPL( blobChannelwiseConvolutionLearnAddImpl );
 }

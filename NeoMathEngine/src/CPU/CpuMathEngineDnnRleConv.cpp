@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,8 +20,8 @@ limitations under the License.
 #include <NeoMathEngine/CrtAllocatedObject.h>
 
 #include <CpuMathEngine.h>
+#include <CpuExecutionScope.h>
 #include <CpuMathEnginePrivate.h>
-#include <CpuMathEngineOmp.h>
 #include <MemoryHandleInternal.h>
 #include <MathEngineCommon.h>
 
@@ -94,8 +94,8 @@ CCpuRleConvolutionDesc::CCpuRleConvolutionDesc( IMathEngine& mathEngine, float s
 {
 }
 
-static inline void updateFilterConv( IMathEngine& mathEngine, CCpuRleConvolutionDesc& desc, const CFloatHandle& filterData,
-	const CFloatHandle* freeTermData )
+static inline void updateFilterConv( IMathEngine& mathEngine, CCpuRleConvolutionDesc& desc, const CConstFloatHandle& filterData,
+	const CConstFloatHandle* freeTermData )
 {
 	desc.UpdateNeeded = false;
 
@@ -185,13 +185,14 @@ CRleConvolutionDesc* CCpuMathEngine::InitBlobRleConvolution( const CBlobDesc& so
 	return desc;
 }
 
-void CCpuMathEngine::BlobRleConvolution( const CRleConvolutionDesc& convDesc, const CFloatHandle& sourceData,
-	const CFloatHandle& filterData, const CFloatHandle* freeTerm, const CFloatHandle& resultData )
+void CCpuMathEngine::BlobRleConvolution( const CRleConvolutionDesc& convDesc, const CConstFloatHandle& sourceData,
+	const CConstFloatHandle& filterData, const CConstFloatHandle* freeTerm, const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( filterData.GetMathEngine() == this );
 	ASSERT_EXPR( freeTerm == 0 || freeTerm->GetMathEngine() == this );
 	ASSERT_EXPR( resultData.GetMathEngine() == this );
+	CCpuExecutionScope scope;
 
 	const CCpuRleConvolutionDesc& desc = static_cast<const CCpuRleConvolutionDesc&>( convDesc );
 	const CBlobDesc& source = desc.Source;
@@ -217,11 +218,8 @@ void CCpuMathEngine::BlobRleConvolution( const CRleConvolutionDesc& convDesc, co
 	const float* filterConvPtr = GetRaw( desc.FilterConv.GetHandle() );
 	float* resultDataPtr = GetRaw( resultData );
 
-	const int curThreadCount = IsOmpRelevant( objectCount ) ? threadCount : 1;
-
-	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
 	for( int b = 0; b < objectCount; ++b ) {
-		const CRleImage* inputImage = reinterpret_cast<CRleImage*>( GetRaw( sourceData + source.ObjectSize() * b ) );
+		const CRleImage* inputImage = reinterpret_cast<const CRleImage*>( GetRaw( sourceData + source.ObjectSize() * b ) );
 		int imageStartPos = ( source.Width() - inputImage->Width ) / 2;
 		int imageStartLine = ( source.Height() - inputImage->Height ) / 2;
 		int imageStopLine = imageStartLine + inputImage->Height;
@@ -258,7 +256,7 @@ void CCpuMathEngine::BlobRleConvolution( const CRleConvolutionDesc& convDesc, co
 
 			// Traverse all filters that have this row
 			float* output = outputObj + firstJFilter * outputRowSize;
-			int filterLineNumber = max( 0, lineNumber - firstJFilter * strideHeight );
+			int filterLineNumber = std::max( 0, lineNumber - firstJFilter * strideHeight );
 			const float* filterConvData = filterConvPtr + ( filterHeight - filterLineNumber - 1 ) * filterCount;
 
 			for( int i = 0; i < outputWidth; ++i ) {
@@ -276,13 +274,14 @@ void CCpuMathEngine::BlobRleConvolution( const CRleConvolutionDesc& convDesc, co
 	}
 }
 
-void CCpuMathEngine::BlobRleConvolutionLearnAdd( const CRleConvolutionDesc& convDesc, const CFloatHandle& inputData,
-	const CFloatHandle& outputDiffData, const CFloatHandle& filterDiffData, const CFloatHandle* freeTermDiffData )
+void CCpuMathEngine::BlobRleConvolutionLearnAdd( const CRleConvolutionDesc& convDesc, const CConstFloatHandle& inputData,
+	const CConstFloatHandle& outputDiffData, const CFloatHandle& filterDiffData, const CFloatHandle* freeTermDiffData )
 {
 	ASSERT_EXPR( inputData.GetMathEngine() == this );
 	ASSERT_EXPR( outputDiffData.GetMathEngine() == this );
 	ASSERT_EXPR( filterDiffData.GetMathEngine() == this );
-	ASSERT_EXPR( freeTermDiffData == 0 || freeTermDiffData->GetMathEngine() == this );
+	ASSERT_EXPR( freeTermDiffData == nullptr || freeTermDiffData->GetMathEngine() == this );
+	CCpuExecutionScope scope;
 
 	const CCpuRleConvolutionDesc& desc = static_cast<const CCpuRleConvolutionDesc&>( convDesc );
 	const CBlobDesc& input = desc.Source;
@@ -300,39 +299,20 @@ void CCpuMathEngine::BlobRleConvolutionLearnAdd( const CRleConvolutionDesc& conv
 
 	const int strideHeight = desc.StrideHeight;
 	const int strideWidth = desc.StrideWidth;
-
 	const int filterJCount = outputDiff.Height();
 
-	TransposeMatrix( 1, filterDiffData, filterCount, 1, filterHeight * filterWidth, 1,
+	TransposeMatrix( /*batchSize*/1, filterDiffData, filterCount, /*medium*/1, filterHeight * filterWidth, /*channels*/1,
 		desc.ConvertedFilterDiff.GetHandle(), desc.ConvertedFilterDiff.Size() );
 
-	const int curThreadCount = IsOmpRelevant( objectCount ) ? threadCount : 1;
+	float* const freeTermDiffDataRaw = ( freeTermDiffData != nullptr ) ? GetRaw( *freeTermDiffData ) : nullptr;
+	float* const filterDiffDataRaw = GetRaw( desc.ConvertedFilterDiff.GetHandle() );
+	const float* const outputDiffDataRaw = GetRaw( outputDiffData );
 
-	unique_ptr<COmpReduction1DData> freeTermDiffItem( nullptr );
-	unique_ptr<COmpReduction<COmpReduction1DData>> freeTermDiffReduction( nullptr );
-
-	if( freeTermDiffData != nullptr ) {
-		freeTermDiffItem.reset( new COmpReduction1DData( mathEngine(), *freeTermDiffData, desc.Filter.ObjectCount() ) );
-		freeTermDiffReduction.reset( new COmpReduction<COmpReduction1DData>( curThreadCount, *freeTermDiffItem ) );
-	}
-
-	COmpReduction1DData filterDiffItem( mathEngine(), desc.ConvertedFilterDiff, filterHeight * filterWidth * filterCount );
-	COmpReduction<COmpReduction1DData> filterDiffReduction( curThreadCount, filterDiffItem );
-
-	CFloatHandleStackVar mults( mathEngine(), curThreadCount );
-	float* multsPtr = GetRaw( mults.GetHandle() );
-	const float* outputDiffDataRaw = GetRaw( outputDiffData );
-
-	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
 	for( int b = 0; b < objectCount; ++b ) {
-		const CRleImage* inputImage = reinterpret_cast<CRleImage*>( GetRaw( inputData + input.ObjectSize() * b ) );
-		int imageStartPos = ( input.Width() - inputImage->Width ) / 2;
-		int imageStartLine = ( input.Height() - inputImage->Height ) / 2;
-		int imageStopLine = imageStartLine + inputImage->Height;
-
-		float* filterDiffReductionPrivatePtr = GetRaw( filterDiffReduction.GetPrivate().Data );
-		float* freeTermDiffReductionPrivatePtr = freeTermDiffData == nullptr ? nullptr :
-			GetRaw( freeTermDiffReduction->GetPrivate().Data );
+		const CRleImage* const inputImage = reinterpret_cast<const CRleImage*>( GetRaw( inputData + input.ObjectSize() * b ) );
+		const int imageStartPos = ( input.Width() - inputImage->Width ) / 2;
+		const int imageStartLine = ( input.Height() - inputImage->Height ) / 2;
+		const int imageStopLine = imageStartLine + inputImage->Height;
 
 		const CRleStroke* inputDataPtr = inputImage->Lines;
 		const float* outputDiffDataPtr = outputDiffDataRaw + outputDiff.ObjectSize() * b;
@@ -347,14 +327,8 @@ void CCpuMathEngine::BlobRleConvolutionLearnAdd( const CRleConvolutionDesc& conv
 				++inputDataPtr;
 			}
 			// Find the filter steps for this row
-			int firstJFilter = ( lineNumber - filterHeight + strideHeight ) / strideHeight;
-			if( firstJFilter < 0 ) {
-				firstJFilter = 0;
-			}
-			int lastJFilter = lineNumber / strideHeight + 1;
-			if( lastJFilter > filterJCount ) {
-				lastJFilter = filterJCount;
-			}
+			const int firstJFilter = std::max( 0, ( lineNumber - filterHeight + strideHeight ) / strideHeight );
+			const int lastJFilter = std::min( filterJCount, lineNumber / strideHeight + 1 );
 			// Iterate through all filter positions horizontally
 			for( int outCol = 0; outCol < outputDiff.Width(); ++outCol ) {
 				const float* currOutputDiff = outputDiffDataPtr + ( firstJFilter * outputDiff.Width() + outCol ) * outputDiff.Channels();
@@ -362,11 +336,10 @@ void CCpuMathEngine::BlobRleConvolutionLearnAdd( const CRleConvolutionDesc& conv
 				for( int outRow = firstJFilter; outRow < lastJFilter; ++outRow ) {
 					// The index of the filter row that goes over the current input row
 					const int filterRow = lineNumber - strideHeight * outRow;
-					float* currFilterDiff = filterDiffReductionPrivatePtr + filterRow * filterWidth * filterCount;
+					float* currFilterDiff = filterDiffDataRaw + filterRow * filterWidth * filterCount;
 					for( int filterCol = 0; filterCol < filterWidth; ++filterCol ) {
-						float* mult = multsPtr + OmpGetThreadNum();
-						*mult = ( ( ( 1ULL << filterCol ) & line ) != 0 ) ? strokeValue : nonStrokeValue;
-						alignedVectorMultiplyAndAdd( currFilterDiff, currOutputDiff, currFilterDiff, filterCount, mult );
+						const float mult = ( ( ( 1ULL << filterCol ) & line ) != 0 ) ? strokeValue : nonStrokeValue;
+						alignedVectorMultiplyAndAdd( currFilterDiff, currOutputDiff, currFilterDiff, filterCount, &mult );
 						currFilterDiff += filterCount;
 					}
 					currOutputDiff += filterCount * outputDiff.Width();
@@ -379,20 +352,15 @@ void CCpuMathEngine::BlobRleConvolutionLearnAdd( const CRleConvolutionDesc& conv
 			// Calculate diff separately for the free terms
 			for( int j = 0; j < outputDiff.Height(); ++j ) {
 				for( int k = 0; k < outputDiff.Width(); ++k ) {
-					alignedVectorAdd( freeTermDiffReductionPrivatePtr, outputDiffDataPtr, filterCount );
+					alignedVectorAdd( freeTermDiffDataRaw, outputDiffDataPtr, filterCount );
 					outputDiffDataPtr += filterCount;
 				}
 			}
 		}
 	}
 
-	if( freeTermDiffData != 0 ) {
-		freeTermDiffReduction->Reduce();
-	}
-	filterDiffReduction.Reduce();
-
-	TransposeMatrix( 1, desc.ConvertedFilterDiff.GetHandle(), filterHeight * filterWidth,
-		1, filterCount, 1, filterDiffData, filterDiff.BlobSize() );
+	TransposeMatrix( /*batchSize*/1, desc.ConvertedFilterDiff.GetHandle(), filterHeight * filterWidth,
+		/*medium*/1, filterCount, /*channels*/1, filterDiffData, filterDiff.BlobSize() );
 
 	desc.UpdateNeeded = true; // after learning, on the next forward pass FilterConv should be updated
 }

@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,56 +14,12 @@ limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
 #include <TestFixture.h>
+#include <MeTestCommon.h>
 
 using namespace NeoML;
 using namespace NeoMLTest;
 
-static void softmaxImpl( const std::vector<float>& input, int height, int width, bool byRow, std::vector<float>& output )
-{
-	std::vector<float> maxima;
-	maxima.resize( byRow ? height : width );
-	output = input;
-
-	for( int i = 0; i < height; ++i ) {
-		for( int j = 0; j < width; ++j ) {
-			if( byRow ) {
-				maxima[i] = j == 0 ? input[i * width + j] : std::max( maxima[i], input[i * width + j] );
-			}
-			else {
-				maxima[j] = i == 0 ? input[i * width + j] : std::max( maxima[j], input[i * width + j] );
-			}
-		}
-	}
-
-	for( int i = 0; i < height; ++i ) {
-		for( int j = 0; j < width; ++j ) {
-			output[i * width + j] -= byRow ? maxima[i] : maxima[j];
-			output[i * width + j] = expf( std::min( FLT_MAX_LOG, std::max( FLT_MIN_LOG, output[i * width + j] ) ) );
-		}
-	}
-
-	std::vector<float> sums;
-	sums.resize( byRow ? height : width );
-
-	for( int i = 0; i < height; ++i ) {
-		for( int j = 0; j < width; ++j ) {
-			if( byRow ) {
-				sums[i] = j == 0 ? output[i * width + j] : sums[i] + output[i * width + j];
-			}
-			else {
-				sums[j] = i == 0 ? output[i * width + j] : sums[j] + output[i * width + j];
-			}
-		}
-	}
-
-	for( int i = 0; i < height; ++i ) {
-		for( int j = 0; j < width; ++j ) {
-			output[i * width + j] /= byRow ? sums[i] : sums[j];
-		}
-	}
-}
-
-static void matrixSoftmaxByColumnsTestImpl( const CTestParams& params, int seed )
+static void matrixSoftmaxDiffOpByColumnsTestImpl( const CTestParams& params, int seed )
 {
 	CRandom random( seed );
 
@@ -91,7 +47,7 @@ static void matrixSoftmaxByColumnsTestImpl( const CTestParams& params, int seed 
 		}
 		for( int h = 0; h < height; ++h ) {
 			float res = get[h * width + w] * ( matrix[h * width + w] - sum );
-			ASSERT_NEAR( res, getDiff[h * width + w], 1e-3f );
+			EXPECT_NEAR( res, getDiff[h * width + w], 1e-3f );
 		}
 	}
 }
@@ -126,5 +82,11 @@ INSTANTIATE_TEST_CASE_P( CMatrixSoftmaxDiffOpByColumnsTestInstantiation, CMatrix
 
 TEST_P( CMatrixSoftmaxDiffOpByColumnsTest, Random )
 {
-	RUN_TEST_IMPL( matrixSoftmaxByColumnsTestImpl )
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		return;
+	}
+
+	RUN_TEST_IMPL( matrixSoftmaxDiffOpByColumnsTestImpl )
 }

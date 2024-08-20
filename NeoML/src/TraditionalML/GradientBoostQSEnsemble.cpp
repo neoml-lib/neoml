@@ -113,7 +113,7 @@ inline static void findQsLeaves( const IRegressionTreeNode* root, CHashTable<con
 // Serialization interface for the optimized tree
 class IQsSerializer {
 public:
-	virtual ~IQsSerializer() {}
+	virtual ~IQsSerializer() = default;
 	
 	// Reads a node
 	virtual void Read( int& featureIndex, float& value, bool& isQsLeaf ) = 0;
@@ -662,7 +662,7 @@ inline bool CQSNodeAscending::Predicate( const CQSNode& first, const CQSNode& se
 	const bool firstIsInverted = HasFlag( first.PropertiesMask, PM_Inverted );
 	const bool secondIsInverted = HasFlag( second.PropertiesMask, PM_Inverted );
 	if( firstIsInverted != secondIsInverted ) {
-		return ( firstIsInverted < secondIsInverted );
+		return secondIsInverted;
 	}
 
 	const int firstTreeOrderIndex = treeOffsets[first.Tree] + first.Order;

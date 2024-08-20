@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,6 +14,7 @@ limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
 #include <TestFixture.h>
+#include <MeTestCommon.h>
 
 using namespace NeoML;
 using namespace NeoMLTest;
@@ -34,9 +35,9 @@ static void generateRleBlob( int batchCount, int height, int width, float stroke
 		while( i < height * width ) {
 			CRleStroke cur = Sentinel;
 			for( int j = 0; j < width; j++ ) {
-				const int value = random.UniformInt( 0, 1 );
-				resultNative[b * height * width + i + j] = value == 1 ? stroke : nonStroke;
-				if( value == 1 ) {
+				const int value = random.UniformInt( 0, 2 );
+				resultNative[b * height * width + i + j] = value != 0 ? stroke : nonStroke;
+				if( value != 0 ) {
 					if( cur.Start == Sentinel.Start ) {
 						cur.Start = ( short )( j );
 					}
@@ -58,11 +59,6 @@ static void generateRleBlob( int batchCount, int height, int width, float stroke
 		rleImage->StrokesCount = pos;
 		imageStart += height * width;
 	}
-}
-
-static inline int calcConvOutputSize( int input, int padding, int filter, int dilation, int stride )
-{
-	return  1 + ( input - ( filter - 1 ) * dilation + 2 * padding - 1 ) / stride;
 }
 
 static void blobConvolutionLearnAddNaive( int batchSize, int inputHeight, int inputWidth, int filterCount, int filterHeight, int filterWidth,
@@ -130,7 +126,7 @@ static void blobRleConvolutionLearnAddImpl( const CTestParams& params, int seed 
 	const int outputHeight = calcConvOutputSize( inputHeight, 0, filterHeight, 1, strideHeight );
 	const int outputWidth = calcConvOutputSize( inputWidth, 0, filterWidth, 1, strideWidth );
 
-	const bool isZeroFreeTerm = random.UniformInt( 0, 1 ) == 1;
+	const bool isZeroFreeTerm = random.UniformInt( 0, 2 ) != 0;
 
 	std::vector<float> inputDataNative;
 	std::vector<float> inputDataRle;
@@ -171,11 +167,11 @@ static void blobRleConvolutionLearnAddImpl( const CTestParams& params, int seed 
 	freeTermBlob.CopyTo( getFreeTermData.data()  );
 
 	for( size_t i = 0; i < getFilterData.size(); i++ ) {
-		ASSERT_NEAR( getFilterData[i], filterData[i], 0.05 );
+		EXPECT_NEAR( getFilterData[i], filterData[i], 0.05 );
 	}
 	if( !isZeroFreeTerm ) {
 		for( size_t i = 0; i < freeTermData.size(); i++ ) {
-			ASSERT_NEAR( getFreeTermData[i], freeTermData[i], 0.05 );
+			EXPECT_NEAR( getFreeTermData[i], freeTermData[i], 0.05 );
 		}
 	}
 }
@@ -205,5 +201,11 @@ INSTANTIATE_TEST_CASE_P( CMathEngineBlobRleConvolutionLearnAddTestInstantiation,
 
 TEST_P( CMathEngineBlobRleConvolutionLearnAddTest, Random )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		return;
+	}
+
 	RUN_TEST_IMPL( blobRleConvolutionLearnAddImpl )
 }

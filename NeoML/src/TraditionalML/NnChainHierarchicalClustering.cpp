@@ -25,7 +25,7 @@ namespace NeoML {
 // Recalculates distance between current and the result of the merge of the first and second clusters
 // Doesn't support centroid linkage!
 static float recalcDistance( CHierarchicalClustering::TLinkage linkage, TDistanceFunc distance, int firstSize, int secondSize,
-	float currToFirst, float currToSecond, float firstToSecond )
+	int currSize, float currToFirst, float currToSecond, float firstToSecond )
 {
 	switch( linkage ) {
 		case CHierarchicalClustering::L_Single:
@@ -44,9 +44,9 @@ static float recalcDistance( CHierarchicalClustering::TLinkage linkage, TDistanc
 			return ::fmaxf( currToFirst, currToSecond );
 		case CHierarchicalClustering::L_Ward:
 		{
-			const int mergedSize = firstSize + secondSize;
-			return ( firstSize * currToFirst + secondSize * currToSecond
-				- ( firstSize * secondSize * firstToSecond ) / mergedSize ) / mergedSize;
+			const int sumSize = firstSize + secondSize + currSize;
+			return ( firstSize + currSize ) *  currToFirst / sumSize + ( secondSize + currSize ) * currToSecond / sumSize -
+				currSize * firstToSecond / sumSize;
 		}
 		case CHierarchicalClustering::L_Centroid:
 		default:
@@ -211,7 +211,8 @@ void CNnChainHierarchicalClustering::mergeClusters( int first, int second )
 			continue;
 		}
 		// We can pass ref to any cluster here because linkage isn't centroid
-		const float distance = recalcDistance( params.Linkage, params.DistanceType, firstSize, secondSize,
+		const float distance = recalcDistance( params.Linkage, params.DistanceType, firstSize, 
+			secondSize, clusterSizes[i],
 			i < first ? distances[i][first] : distances[first][i],
 			i < second ? distances[i][second] : distances[second][i],
 			mergeDistance );

@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright Â© 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -29,12 +29,10 @@ class CCudaBlobDesc : public CCrtAllocatedObject {
 public:
 	static const int MaxDimensions = BD_Count;
 
-	__host__ CCudaBlobDesc( const CBlobDesc& blob )
-	{
-		blob.GetDimSizes( dimensions );
-	}
-
-	__host__ __device__ explicit CCudaBlobDesc()
+	// Constructor
+	__host__ CCudaBlobDesc( const CBlobDesc& blob ) { blob.GetDimSizes( dimensions ); }
+	// Default constructor
+	__host__ __device__ CCudaBlobDesc()
 	{
 		for( int i = 0; i < MaxDimensions; i++ ) {
 			dimensions[i] = 1;
@@ -70,15 +68,11 @@ public:
 	__host__ __device__ int ObjectCount() const { return BatchLength() * BatchWidth() * ListSize(); }
 	// The geometrical size
 	__host__ __device__ int GeometricalSize() const { return Height() * Width() * Depth(); }
-	
 	// The size of the specified dimension
-	__host__ __device__ int DimSize( int d ) const
-	{
-		return dimensions[d];
-	}
+	__host__ __device__ int DimSize( int d ) const { return dimensions[d]; }
 
 private:
-	int dimensions[BD_Count];
+	int dimensions[BD_Count]{};
 };
 
 //------------------------------------------------------------------------------------------------------------

@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,10 +21,13 @@ limitations under the License.
 #ifdef NEOML_USE_SSE
 
 #include <CpuMathEngine.h>
+#include <CpuExecutionScope.h>
 #include <CpuX86.h>
 #include <float.h>
 #include <MemoryHandleInternal.h>
 #include <MathEngineCommon.h>
+#include <cmath>
+#include <CpuMathEnginePrivate.h>
 
 #ifdef NEOML_USE_MKL
 #if FINE_PLATFORM( FINE_WINDOWS ) || FINE_PLATFORM( FINE_LINUX ) || FINE_PLATFORM( FINE_DARWIN )
@@ -32,50 +35,28 @@ limitations under the License.
 #else
 #error Unknown platform
 #endif
+#endif // NEOML_USE_MKL
+
+#ifdef NEOML_USE_MLAS
+#include "mlas/inc/mlas.h"
 #endif
 
 namespace NeoML {
 
-void CCpuMathEngine::VectorExp(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize)
+void CCpuMathEngine::VectorExp( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize )
 {
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	CCpuExecutionScope scope;
 
-	const int curThreadCount = IsOmpRelevant( vectorSize, 2 * vectorSize ) ? threadCount : 1;
-
-#ifdef NEOML_USE_MKL
-	CFloatHandleStackVar minLimit( mathEngine(), 1 );
-	minLimit.SetValue( FLT_MIN_LOG );
-	CFloatHandleStackVar maxLimit( mathEngine(), 1 );
-	maxLimit.SetValue( FLT_MAX_LOG );
-	VectorMinMax(firstHandle, resultHandle, vectorSize, minLimit, maxLimit);
-	float* result = GetRaw( resultHandle );
-	if( curThreadCount > 1 ) {
-		NEOML_OMP_NUM_THREADS( curThreadCount )
-		{
-			int start;
-			int count;
-			if( OmpGetTaskIndexAndCount( vectorSize, start, count ) ) {
-				vsExp(count, result + start, result + start);
-			}
-		}
-	} else {
-		vsExp(vectorSize, result, result);
-	}
-#else
-	const float* first = GetRaw(firstHandle);
-	float* result = GetRaw(resultHandle);
-	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
-	for(int i = 0; i < vectorSize; ++i) {
-		result[i] = ExponentFunc(first[i]);
-	}
-#endif
+	NeoML::vectorExp( GetRaw( firstHandle ), GetRaw( resultHandle ), vectorSize );
 }
 
 void CCpuMathEngine::VectorLog(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize)
 {
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	CCpuExecutionScope scope;
 
 #ifdef NEOML_USE_MKL
 	CFloatHandleStackVar minVal( mathEngine(), 1 );
@@ -85,99 +66,90 @@ void CCpuMathEngine::VectorLog(const CConstFloatHandle& firstHandle, const CFloa
 
 	VectorMinMax(firstHandle, resultHandle, vectorSize, minVal, maxVal);
 	vsLn(vectorSize, GetRaw(resultHandle), GetRaw(resultHandle));
-#else
+#else  // !NEOML_USE_MKL
 	const float* first = GetRaw(firstHandle);
 	float* result = GetRaw(resultHandle);
 	for(int i = 0; i < vectorSize; ++i) {
-		*result++ = logf(min(max(*first, FLT_MIN), FLT_MAX));
+		*result++ = std::log( std::min(std::max(*first, FLT_MIN), FLT_MAX));
 		first++;
 	}
-#endif
+#endif // !NEOML_USE_MKL
 }
 
-void CCpuMathEngine::VectorMultiplyAndAdd(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
-	const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& multHandle)
+void CCpuMathEngine::VectorMultiplyAndAdd( const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
+	const CFloatHandle& resultHandle, int vectorSize, const CConstFloatHandle& multHandle )
 {
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
 	ASSERT_EXPR( multHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	CCpuExecutionScope scope;
 
-	const float* first = GetRaw(firstHandle);
-	const float* second = GetRaw(secondHandle);
-	float* result = GetRaw(resultHandle);
+	const float* first = GetRaw( firstHandle );
+	const float* second = GetRaw( secondHandle );
+	float* result = GetRaw( resultHandle );
 
-	float mult = *GetRaw(multHandle);
+	float mult = *GetRaw( multHandle );
 
 #ifdef NEOML_USE_MKL
-	if(first != result) {
-		VectorCopy(resultHandle, firstHandle, vectorSize);
+	if( first != result ) {
+		VectorCopy( resultHandle, firstHandle, vectorSize );
 	}
-	cblas_saxpy(vectorSize, mult, second, 1, result, 1);
-#else
+	cblas_saxpy( vectorSize, mult, second, 1, result, 1 );
+#else  // !NEOML_USE_MKL
 	int sseSize;
 	int nonSseSize;
-	checkSse(vectorSize, sseSize, nonSseSize);
+	checkSse( vectorSize, sseSize, nonSseSize );
 
-	if(sseSize > 0) {
-		__m128 multSse = _mm_set_ps1(mult);
-		for(int i = 0; i < sseSize; ++i) {
-			_mm_storeu_ps(result, _mm_add_ps(_mm_loadu_ps(first), _mm_mul_ps(_mm_loadu_ps(second), multSse)));
+	if( sseSize > 0 ) {
+		__m128 multSse = _mm_set_ps1( mult );
+		for( int i = 0; i < sseSize; ++i ) {
+			_mm_storeu_ps( result, _mm_add_ps( _mm_loadu_ps( first ), _mm_mul_ps( _mm_loadu_ps( second ), multSse ) ) );
 			first += 4;
 			second += 4;
 			result += 4;
 		}
 	}
 
-	for(int i = 0; i < nonSseSize; ++i) {
+	for( int i = 0; i < nonSseSize; ++i ) {
 		*result++ = *first++ + *second++ * mult;
 	}
-#endif
+#endif // !NEOML_USE_MKL
 }
 
-void CCpuMathEngine::VectorTanh(const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize)
+void CCpuMathEngine::VectorTanh( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize )
 {
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	CCpuExecutionScope scope;
 
-	const int curThreadCount = IsOmpRelevant( vectorSize, 8 * vectorSize ) ? threadCount : 1;
-#ifdef NEOML_USE_MKL
-	if( curThreadCount > 1 ) {
-		NEOML_OMP_NUM_THREADS( curThreadCount )
-		{
-			int start;
-			int count;
-			if( OmpGetTaskIndexAndCount( vectorSize, start, count ) ) {
-				vsTanh(count, GetRaw(firstHandle) + start, GetRaw(resultHandle) + start);
-			}
-		}
-	} else {
-		vsTanh(vectorSize, GetRaw(firstHandle), GetRaw(resultHandle));
-	}
-#else
-	const float* first = GetRaw(firstHandle);
-	float* result = GetRaw(resultHandle);
-	NEOML_OMP_FOR_NUM_THREADS( curThreadCount )
-	for(int i = 0; i < vectorSize; ++i) {
-		result[i] = -1.f + 2 / (1.f + ExponentFunc(-2 * first[i]));
-	}
-#endif
+	NeoML::vectorTanh( GetRaw( firstHandle ),  GetRaw( resultHandle ), vectorSize );
 }
 
-void CCpuMathEngine::VectorPower(float exponent, const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize)
+void CCpuMathEngine::VectorPower( float exponent, const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize )
 {
 	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	CCpuExecutionScope scope;
 
+	const float* first = GetRaw( firstHandle );
+	float* result = GetRaw( resultHandle );
+
+	// Profiler showed that vsPowx is effective in 2 cases:
+	//    1. Non-integer exponent
+	//    2. Exponent is integer == 2
 #ifdef NEOML_USE_MKL
-	vsPowx(vectorSize, GetRaw(firstHandle), exponent, GetRaw(resultHandle));
-#else
-	const float* first = GetRaw(firstHandle);
-	float* result = GetRaw(resultHandle);
-	for(int i = 0; i < vectorSize; ++i) {
-		*result++ = powf(*first++, exponent);
+	if( std::fabs( std::roundf( exponent ) - exponent ) >= FLT_EPSILON
+		|| std::fabs( 2.0f - exponent ) < FLT_EPSILON )
+	{
+		vsPowx( vectorSize, first, exponent, result );
+		return;
 	}
-#endif
+#endif // NEOML_USE_MKL
+
+	for( int i = 0; i < vectorSize; ++i ) {
+		*result++ = powf( *first++, exponent );
+	}
 }
 
 void CCpuMathEngine::vectorEltwiseLogSumExp(const CConstFloatHandle& firstHandle, const CConstFloatHandle& secondHandle,
@@ -231,14 +203,39 @@ void CCpuMathEngine::vectorEltwiseLogSumExp(const CConstFloatHandle& firstHandle
 	VectorExp(tempBuffer.GetHandle(), tempBuffer.GetHandle(), vectorSize);
 #ifdef NEOML_USE_MKL
 	vsLog1p(vectorSize, temp, temp);
-#else
+#else  // !NEOML_USE_MKL
 	for( int i = 0; i < vectorSize; ++i ) {
-		*temp = logf( min( 1.f + max( *temp, FLT_MIN ), FLT_MAX ) );
+		*temp = std::log( std::min( 1.f + std::max( *temp, FLT_MIN ), FLT_MAX ) );
 		temp++;
 	}
-#endif
+#endif // !NEOML_USE_MKL
 
 	VectorAdd(resultHandle, tempBuffer.GetHandle(), resultHandle, vectorSize);
+}
+
+void CCpuMathEngine::VectorErf( const CConstFloatHandle& firstHandle, const CFloatHandle& resultHandle, int vectorSize )
+{
+	ASSERT_EXPR( firstHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	CCpuExecutionScope scope;
+
+	const float* first = GetRaw( firstHandle );
+	float* result = GetRaw( resultHandle );
+#if defined( NEOML_USE_MLAS ) && defined( NEOML_USE_MKL )
+	if( CCPUInfo::IsNotIntel ) {
+		MlasComputeErf( first, result, static_cast<size_t>( vectorSize ) );
+	} else {
+		vsErf( vectorSize, first, result );
+	}
+#elif defined( NEOML_USE_MKL )
+	vsErf( vectorSize, first, result );
+#elif defined( NEOML_USE_MLAS )
+	MlasComputeErf( first, result, static_cast<size_t>( vectorSize ) );
+#else
+	for( int i = 0; i < vectorSize; ++i ) {
+		*result++ = std::erff( *first++ );
+	}
+#endif
 }
 
 } // namespace NeoML

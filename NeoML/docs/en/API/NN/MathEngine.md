@@ -26,10 +26,10 @@ The **NeoML** library supports various processing devices and platform technolog
 
 Platform | CPU | GPU
 ----------|-----|-----
-Windows | OpenMP + MKL | CUDA
-Linux | OpenMP + MKL | -
-MacOS | OpenMP + MKL | -
-Android | OpenMP + ARM Neon | Vulkan
+Windows | MKL | CUDA
+Linux | MKL | -
+MacOS | MKL | -
+Android | ARM Neon | Vulkan
 iOS | ARM Neon | Metal
 
 ## General principles
@@ -140,14 +140,13 @@ This math engine should be deleted after use.
 ### Create a CPU math engine
 
 ```c++
-IMathEngine* CreateCpuMathEngine( int threadCount, size_t memoryLimit );
+IMathEngine* CreateCpuMathEngine( size_t memoryLimit );
 ```
 
-Creates a math engine working on CPU, setting the memory limitation, the number of threads and the custom exception handler.
+Creates a math engine working on CPU, setting the memory limitation, and the custom exception handler.
 
 #### Parameters
 
-* *threadCount* - the maximum number of threads in use.
 * *memoryLimit* - the memory limitation for the math engine. Set to `0` to use all available memory.
 
 This math engine should be deleted after use.

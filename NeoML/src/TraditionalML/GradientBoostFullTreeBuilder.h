@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,25 +22,30 @@ limitations under the License.
 
 namespace NeoML {
 
+class IThreadPool;
 class CRegressionTree;
 class CLinkedRegressionTree;
 
 template<class T>
-struct CThreadStatistics;
-template<class T>
 struct CGradientBoostNodeStatistics;
 
 // Tree building parameters
-struct CGradientBoostFullTreeBuilderParams {
-	float L1RegFactor; // L1 regularization factor
-	float L2RegFactor; // L2 regularization factor
-	float MinSubsetHessian; // the minimum hessian value for a subtree
-	int ThreadCount; // the number of processing threads to be used
-	int MaxTreeDepth; // the maximum tree depth
-	float PruneCriterionValue; // the value of criterion difference when the nodes should be merged (set to 0 to never merge)
-	int MaxNodesCount; // the maximum number of nodes in a tree (set to NotFound == -1 for no limitation)
-	float MinSubsetWeight; // the minimum subtree weight
-	float DenseTreeBoostCoefficient; // the dense tree boost coefficient 
+struct CGradientBoostFullTreeBuilderParams final {
+	float L1RegFactor{}; // L1 regularization factor
+	float L2RegFactor{}; // L2 regularization factor
+	float MinSubsetHessian{}; // the minimum hessian value for a subtree
+	int ThreadCount{}; // the number of processing threads to be used
+	int MaxTreeDepth{}; // the maximum tree depth
+	float PruneCriterionValue{}; // the value of criterion difference when the nodes should be merged (set to 0 to never merge)
+	int MaxNodesCount{}; // the maximum number of nodes in a tree (set to NotFound == -1 for no limitation)
+	float MinSubsetWeight{}; // the minimum subtree weight
+	float DenseTreeBoostCoefficient{}; // the dense tree boost coefficient
+
+	CGradientBoostFullTreeBuilderParams() = default;
+	CGradientBoostFullTreeBuilderParams( const CGradientBoostFullTreeBuilderParams& ) = default;
+	CGradientBoostFullTreeBuilderParams( const CGradientBoostFullTreeBuilderParams& params, int realThreadCount ) :
+		CGradientBoostFullTreeBuilderParams( params )
+	{ ThreadCount = realThreadCount; }
 };
 
 // Tree builder
@@ -56,9 +61,10 @@ public:
 		const CArray<double>& weights, double weightsSum );
 
 protected:
-	virtual ~CGradientBoostFullTreeBuilder() {} // delete prohibited
+	~CGradientBoostFullTreeBuilder() override; // delete prohibited
 
 private:
+	IThreadPool* const threadPool; // executors
 	const CGradientBoostFullTreeBuilderParams params; // classifier parameters
 	CTextStream* const logStream; // the logging stream
 	// The leaf cache
@@ -75,13 +81,6 @@ private:
 	bool buildTreeLevel( const CGradientBoostFullProblem& problem, int level, const CArray<typename T::Type>& gradients,
 		const CArray<typename T::Type>& hessians, const CArray<double>& weights );
 	void distributeVectorsByNodes( const CGradientBoostFullProblem& problem, int level );
-	void findSplits( const CGradientBoostFullProblem& problem, const CArray<typename T::Type>& gradients,
-		const CArray<typename T::Type>& hessians, const CArray<double>& weights );
-	void findBinarySplits( int threadNumber, const CArray<typename T::Type>& gradients, const CArray<typename T::Type>& hessians,
-		const CArray<double>& weights, int feature, const int* ptr, int size );
-	void findSplits( int threadNumber, const CArray<typename T::Type>& gradients, const CArray<typename T::Type>& hessians,
-		const CArray<double>& weights, int feature, const CFloatVectorElement* ptr, int size );
-	void checkSplit( int feature, float firstValue, float secondValue, CThreadStatistics<T>& statistics ) const;
 	void mergeThreadResults();
 	bool split();
 	bool prune( CGradientBoostNodeStatistics<T>& node ) const;

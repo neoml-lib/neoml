@@ -1,4 +1,4 @@
-/* Copyright Â© 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -30,7 +30,7 @@ protected:
 	// AddLayers implementation for the given padding value and pooling layer
 	// The derivatives should call this method from their AddLayers
 	void AddLayersImpl( const CTensorArray& inputs, float padValue,
-		CPoolingLayer& layer, CDnn& dnn, CTensorArray& outputs ) const;
+		NeoML::CPoolingLayer& layer, CDnn& dnn, CTensorArray& outputs ) const;
 
 private:
 	// Padding mode

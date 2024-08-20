@@ -107,6 +107,8 @@ public:
 	CSparseFloatVector& operator = ( const CSparseFloatVector& vector );
 	CSparseFloatVector& operator += ( const CSparseFloatVector& vector );
 	CSparseFloatVector& operator -= ( const CSparseFloatVector& vector );
+	CSparseFloatVector& operator += ( const CFloatVectorDesc& vector );
+	CSparseFloatVector& operator -= ( const CFloatVectorDesc& vector );
 	CSparseFloatVector& operator *= ( double factor );
 	CSparseFloatVector& operator /= ( double factor ) { return *this *= (1 / factor); }
 

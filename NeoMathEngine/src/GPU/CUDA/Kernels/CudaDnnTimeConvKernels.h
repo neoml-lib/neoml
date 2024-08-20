@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -38,9 +38,8 @@ __global__ void BuildTempMatrixKernel( const CCudaTimeConvolutionDescInternal de
 	const int padFront = desc.PaddingFront;
 	const int dilation = desc.Dilation;
 
-	int matrixRow;
-	int matrixCol;
-
+	int matrixRow = 0;
+	int matrixCol = 0;
 	if( !GetCudaTaskIndex2D( matrixPartHeight, matrixWidth, matrixRow, matrixCol ) ) {
 		return;
 	}
@@ -73,19 +72,18 @@ __global__ void BlobTimeConvolutionBackwardUnpackKernel( const CCudaTimeConvolut
 	const CCudaBlobDesc& filter = desc.Filter;
 	const CCudaBlobDesc& outputDiff = desc.Result;
 
-	int batch = blockIdx.y * blockDim.y + threadIdx.y;
+	const int batch = blockIdx.y * blockDim.y + threadIdx.y;
 	if( batch >= inputDiff.ObjectCount() ) {
 		return;
 	}
 
-	int objectSize = inputDiff.ObjectSize();
+	const int objectSize = inputDiff.ObjectSize();
+	const int seqNum = batch / ( inputDiff.BatchWidth() * inputDiff.ListSize() );
+	const int batchNum = batch % ( inputDiff.BatchWidth() * inputDiff.ListSize() );
 
-	int seqNum = batch / ( inputDiff.BatchWidth() * inputDiff.ListSize() );
-	int batchNum = batch % ( inputDiff.BatchWidth() * inputDiff.ListSize() );
-
-	int index;
-	int step;
-	int count = GetCudaTaskCountAndIndex(objectSize, combineCount, index, step);
+	int index = 0;
+	int step = 0;
+	const int count = GetCudaTaskCountAndIndex(objectSize, combineCount, index, step);
 
 	// Initialize the sums
 	float sums[BlobTimeConvolutionBackwardUnpackCombine];
@@ -94,14 +92,14 @@ __global__ void BlobTimeConvolutionBackwardUnpackKernel( const CCudaTimeConvolut
 	}
 
 	for( int filterY = 0; filterY < filter.Height(); filterY++ ) {
-		int inSeqNumFirst = seqNum - filterY * desc.Dilation;
+		const int inSeqNumFirst = seqNum - filterY * desc.Dilation;
 		if( inSeqNumFirst < -desc.PaddingFront ) {
 			break; // the next values can only be smaller
 		}
 		if( ( inSeqNumFirst + desc.PaddingFront ) % desc.Stride != 0 ) {
 			continue; // this row is not affected by the current filter row
 		}
-		int outSeqNum = ( inSeqNumFirst + desc.PaddingFront ) / desc.Stride;
+		const int outSeqNum = ( inSeqNumFirst + desc.PaddingFront ) / desc.Stride;
 		if( outSeqNum >= outputDiff.BatchLength() ) {
 			continue;
 		}
@@ -109,7 +107,7 @@ __global__ void BlobTimeConvolutionBackwardUnpackKernel( const CCudaTimeConvolut
 		if( tempMatrixRowIndex < firstRowIndex || tempMatrixRowIndex >= firstRowIndex + currPartHeight ) {
 			continue;
 		}
-		const float* from = data + ((tempMatrixRowIndex - firstRowIndex) * filter.Height() + filterY) * objectSize;
+		const float* const from = data + ((tempMatrixRowIndex - firstRowIndex) * filter.Height() + filterY) * objectSize;
 		int curIndex = index;
 		for(int i = 0; i < count; ++i, curIndex += step) {
 			sums[i] += __ldg(from + curIndex);
@@ -117,7 +115,8 @@ __global__ void BlobTimeConvolutionBackwardUnpackKernel( const CCudaTimeConvolut
 	}
 
 	// Write the results
-	float* curInputDiffData = inputDiffData + (seqNum * inputDiff.BatchWidth() * inputDiff.ListSize() + batchNum) * objectSize;
+	float* const curInputDiffData = inputDiffData
+		+ (seqNum * inputDiff.BatchWidth() * inputDiff.ListSize() + batchNum) * objectSize;
 	for( int i = 0; i < count; ++i, index += step ) {
 		curInputDiffData[index] += sums[i];
 	}
@@ -135,18 +134,18 @@ __global__ void BlobTimeConvolutionLearnFilterKernel( CCudaTimeConvolutionDescIn
 
 	const int batchWidth = desc.Source.BatchWidth();
 
-	int index;
+	int index = 0;
 	if( GetCudaTaskIndex( desc.Filter.BlobSize(), index ) ) {
 		filterDiff += index;
-		float res = 0;
 
 		const int filterChannel = index % objectSize;
 		index /= objectSize;
 		const int filterRow = index % filterHeight;
 		const int filterNum = index / filterHeight;
 
+		float res = 0;
 		for( int outL = 0; outL < outputLength; ++outL ) {
-			int inL = outL * desc.Stride - desc.PaddingFront + filterRow * desc.Dilation;
+			const int inL = outL * desc.Stride - desc.PaddingFront + filterRow * desc.Dilation;
 			if( inL < 0 || inL >= inputLength ) {
 				continue;
 			}

@@ -23,6 +23,16 @@ void SetEmbeddingsLayerName( const char* name )
 ```
 Использовать слой эмбеддингов `name`. Поддерживается только [CMultichannelLookupLayer](DiscreteFeaturesLayers/MultichannelLookupLayer.md).
 
+### EmbeddingsLayerPath
+
+```c++
+void SetEmbeddingsLayerPath( const CArray<CString>& path )
+```
+
+Если слой эмбеддингов находится в [CompositeLayer](https://github.com/neoml-lib/neoml/blob/master/NeoML/include/NeoML/Dnn/Layers/CompositeLayer.h), то надо указать полный путь до него.
+
+Пример: {"composite1", "composite2", ..., "embeddingName"}
+
 ### ChannelIndex
 
 ```c++

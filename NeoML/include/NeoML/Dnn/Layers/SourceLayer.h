@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -24,7 +24,8 @@ namespace NeoML {
 class NEOML_API CSourceLayer : public CBaseLayer {
 	NEOML_DNN_LAYER( CSourceLayer )
 public:
-	explicit CSourceLayer( IMathEngine& mathEngine ) : CBaseLayer( mathEngine, "CCnnSourceLayer", false ), storeBlob( false ) {}
+	explicit CSourceLayer( IMathEngine& mathEngine ) :
+		CBaseLayer( mathEngine, "CCnnSourceLayer", false ), storeBlob( false ) {}
 
 	// Sets the input data blob
 	void SetBlob( CDnnBlob* blob );
@@ -38,14 +39,18 @@ public:
 
 	void Serialize( CArchive& archive ) override;
 
+	void CleanUp( bool totalCleanUp = false ) override;
+
 protected:
 	CPtr<CDnnBlob> blob;
 	bool storeBlob;
+
 	// CBaseLayer class methods
 	void Reshape() override;
 	void RunOnce() override;
 	void BackwardOnce() override;
 	void AllocateOutputBlobs() override;
+	int BlobsForBackward() const override { return 0; }
 };
 
 // Creates CSourceLayer with name

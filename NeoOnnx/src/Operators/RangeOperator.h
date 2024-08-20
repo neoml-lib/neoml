@@ -15,18 +15,18 @@ limitations under the License.
 
 #pragma once
 
-#include "../Operator.h"
+#include "../LayerOperator.h"
 
 namespace NeoOnnx {
 
 // Range operator
-class CRangeOperator : public COperator {
+class CRangeOperator : public CLayerOperator {
 public:
 	CRangeOperator( const onnx::NodeProto& range, int opsetVersion );
 
 protected:
 	// COperator methods
-	void ProcessTensors( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
+	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
 };
 
 } // namespace NeoOnnx

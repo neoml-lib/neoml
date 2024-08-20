@@ -87,7 +87,7 @@ static void testLrn( const CTestParams& params, int seed )
 	outputBlob.CopyTo( output.data() );
 
 	for( int i = 0; i < inputBlob.GetDataSize(); ++i ) {
-		ASSERT_NEAR( expected[i], output[i], 1e-3f ) << " at index " << i;
+		EXPECT_TRUE( FloatEq( expected[i], output[i] ) )<< " at " << i << '\t' << expected[i] << '\t' << output[i];
 	}
 }
 

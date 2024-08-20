@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -29,8 +29,8 @@ __global__ void BlobChannelwiseConvolutionKernel( const CCudaChannelwiseConvolut
 	const CCudaBlobDesc& filter = desc.Filter;
 	const CCudaBlobDesc& result = desc.Result;
 
-	int taskY;
-	int taskX;
+	int taskY = 0;
+	int taskX = 0;
 
 	if( GetCudaTaskIndex2D( result.ObjectCount() * result.Height(), result.Width() * result.Channels(), taskY, taskX ) ) {
 		float* resultPtr = resultData + taskY * result.Channels() * result.Width() + taskX;
@@ -46,8 +46,8 @@ __global__ void BlobChannelwiseConvolutionKernel( const CCudaChannelwiseConvolut
 		const int rowEnd = rowStart + filter.Height();
 		const int colEnd = colStart + filter.Width();
 
-		const float* filterPtr = filterData + channel;
-		const float* sourcePtr = sourceData + b * source.ObjectSize() + channel;
+		const float* const filterPtr = filterData + channel;
+		const float* const sourcePtr = sourceData + b * source.ObjectSize() + channel;
 
 		if( freeTerm != 0 ) {
 			*resultPtr = freeTerm[channel];
@@ -77,9 +77,8 @@ __global__ void BlobChannelwiseConvolutionBackwardKernel( const CCudaChannelwise
 	const CCudaBlobDesc& filter = desc.Filter;
 	const CCudaBlobDesc& inputDiff = desc.Source;
 
-	int taskX;
-	int taskY;
-
+	int taskX = 0;
+	int taskY = 0;
 	if( GetCudaTaskIndex2D( inputDiff.ObjectCount() * inputDiff.Height(), inputDiff.Width() * inputDiff.Channels(), taskY, taskX ) ) {
 		resultData += taskY * inputDiff.Width() * inputDiff.Channels() + taskX;
 		const int channel = taskX % inputDiff.Channels();
@@ -90,11 +89,10 @@ __global__ void BlobChannelwiseConvolutionBackwardKernel( const CCudaChannelwise
 		const int lastFilterX = min( ( outCol + desc.PaddingWidth ) / desc.StrideWidth + 1, outputDiff.Width() );
 		const int lastFilterY = min( ( outRow + desc.PaddingHeight ) / desc.StrideHeight + 1, outputDiff.Height() );
 
+		const float* const filterPtr = filterData + channel;
+		const float* const sourcePtr = sourceData + b * outputDiff.ObjectSize() + channel;
+
 		float res = 0;
-
-		const float* filterPtr = filterData + channel;
-		const float* sourcePtr = sourceData + b * outputDiff.ObjectSize() + channel;
-
 		for( int sourceY = lastFilterY - 1;
 			sourceY >= 0 && outRow < sourceY * desc.StrideHeight - desc.PaddingHeight + filter.Height();
 			--sourceY )
@@ -110,7 +108,6 @@ __global__ void BlobChannelwiseConvolutionBackwardKernel( const CCudaChannelwise
 					* sourcePtr[( sourceY * outputDiff.Width() + sourceX ) * outputDiff.Channels()];
 			}
 		}
-
 		*resultData = res;
 	}
 }
@@ -124,12 +121,12 @@ __global__ void BlobChannelwiseConvolutionLearnAddKernel( const CCudaChannelwise
 	const CCudaBlobDesc& filterDiff = desc.Filter;
 	const CCudaBlobDesc& outputDiff = desc.Result;
 
-	int fb;
-	int hw;
+	int fb = 0;
+	int hw = 0;
 	if( GetCudaTaskIndex2D( filterDiff.Height() * filterDiff.Width(), filterDiff.Channels(), hw, fb ) ) {
-		int fy = hw / filterDiff.Width();
-		int fx = hw % filterDiff.Width();
-		float* filtData = filterDiffData + hw * filterDiff.Channels() + fb;
+		const int fy = hw / filterDiff.Width();
+		const int fx = hw % filterDiff.Width();
+		float* const filtData = filterDiffData + hw * filterDiff.Channels() + fb;
 
 		const float* curOutputDiffData = outputDiffData + fb;
 		const float* curInputData = inputData + fb;

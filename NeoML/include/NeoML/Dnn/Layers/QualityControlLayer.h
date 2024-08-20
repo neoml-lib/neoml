@@ -32,10 +32,11 @@ public:
 
 protected:
 	CQualityControlLayer( IMathEngine& mathEngine, const char* name );
-	~CQualityControlLayer() {}
+	~CQualityControlLayer() override = default;
 
 	void Reshape() override;
 	void BackwardOnce() override;
+	int BlobsForBackward() const override { return 0; }
 
 	// User-implemented
 	virtual void OnReset() = 0;

@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,10 +21,14 @@ limitations under the License.
 
 #include "onnx.pb.h"
 
+#include <NeoML/Dnn/Layers/Onnx/OnnxConstantOfShapeLayer.h>
+
+using namespace NeoML;
+
 namespace NeoOnnx {
 
 CConstantOfShapeOperator::CConstantOfShapeOperator( const onnx::NodeProto& constantOfShape, int opsetVersion ) :
-	COperator( constantOfShape, opsetVersion )
+	CLayerOperator( constantOfShape, opsetVersion )
 {
 	// v9 - original
 	CheckOnnxProtocol( OpsetVersion >= 9, "wrong opset version", *this );
@@ -34,45 +38,37 @@ CConstantOfShapeOperator::CConstantOfShapeOperator( const onnx::NodeProto& const
 	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
 }
 
-void CConstantOfShapeOperator::ProcessTensors( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
+void CConstantOfShapeOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
-	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
-	CheckNeoOnnxSupport( inputs[0]->IsCalculated(), "user-provided input", *this );
-	const CDnnBlob* inputShapeBlob = dynamic_cast<const CDataTensor*>( inputs[0].Ptr() )->Data();
-	CheckNeoOnnxSupport( inputShapeBlob->GetDataType() == CT_Int, "non-integer input tensor", *this );
+	CheckNoNullInputs( inputs );
+
+	CheckNeoOnnxSupport( inputs[0]->Type() != TTensorType::User, "user-provided input", *this );
+
 	IMathEngine& mathEngine = dnn.GetMathEngine();
 
 	// If "value" attribute is not set then float 0.f is assumed
 	CPtr<const CDnnBlob> valueBlob;
-	CPtr<CDataTensor> dataTensor( new CDataTensor( mathEngine ) );
-	if( GetAttribute( "value", dataTensor ) ) {
-		valueBlob = dataTensor->Data();
+	CPtr<CDataTensor> valueTensor( new CDataTensor( mathEngine ) );
+	if( GetAttribute( "value", valueTensor ) ) {
+		valueBlob = valueTensor->Data();
 	} else {
 		CPtr<CDnnBlob> zero = CDnnBlob::CreateVector( mathEngine, CT_Float, 1 );
 		zero->Clear();
 		valueBlob = zero;
 	}
-	dataTensor = nullptr;
+	valueTensor = nullptr;
 
-	// Getting output shape from blob
-	CTensorShape outputShape;
-	outputShape.SetSize( inputShapeBlob->GetDataSize() );
-	inputShapeBlob->CopyTo( outputShape.GetPtr() );
+	CPtr<const CShapeTensor> inputShapeTensor = AsShapeTensor( *inputs[0], Name() + "_ShapeSource", dnn );
 
-	// Generating output blob
-	CTensorLayout outputLayout( outputShape.Size() );
-	CBlobDesc outputBlobDesc( valueBlob->GetDataType() );
-	for( int i = 0; i < outputShape.Size(); ++i ) {
-		outputBlobDesc.SetDimSize( outputLayout[i], outputShape[i] );
-	}
-	CPtr<CDnnBlob> outputBlob = CDnnBlob::CreateBlob( mathEngine, valueBlob->GetDataType(), outputBlobDesc );
-	if( outputBlob->GetDataType() == CT_Float ) {
-		outputBlob->Fill( valueBlob->GetData().GetValue() );
-	} else {
-		outputBlob->Fill<int>( valueBlob->GetData<int>().GetValue() );
-	}
-	
-	outputs.Add( new CDataTensor( outputShape, outputLayout, *outputBlob ) );
+	CPtr<COnnxConstantOfShapeLayer> layer = new COnnxConstantOfShapeLayer( mathEngine );
+	layer->SetName( Name() );
+	layer->SetValue( *valueBlob );
+	layer->Connect( 0, *inputShapeTensor->Layer(), inputShapeTensor->OutputIndex() );
+	dnn.AddLayer( *layer );
+
+	const CTensorLayout outputLayout = CTensorLayout::IOLayout( inputShapeTensor->DimCount() == 0 ? 0
+		: inputShapeTensor->Shape()[0] );
+	outputs.Add( new CUserTensor( outputLayout, CLayerOutput( layer, 0 ) ) );
 }
 
 } // namespace NeoOnnx

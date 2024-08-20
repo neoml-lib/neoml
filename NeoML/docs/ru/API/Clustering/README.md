@@ -50,9 +50,6 @@ public:
 	// Количество признаков в наборе.
 	virtual int GetFeaturesCount() const = 0;
 
-	// Получить вектор из набора.
-	virtual CFloatVectorDesc GetVector( int index ) const = 0;
-
 	// Получить все вектора набора в виде матрицы размера GetVectorCount() x GetFeaturesCount().
 	virtual CFloatMatrixDesc GetMatrix() const = 0;
 
@@ -72,7 +69,7 @@ public:
 
 	// Выполнить разбиение выборки на кластеры.
 	// Возвращает true, если удалось успешно разбить данные на кластеры с заданными параметрами.
-	virtual bool Clusterize( IClusteringData* data, CClusteringResult& result ) = 0;
+	virtual bool Clusterize( const IClusteringData* data, CClusteringResult& result ) = 0;
 };
 ```
 

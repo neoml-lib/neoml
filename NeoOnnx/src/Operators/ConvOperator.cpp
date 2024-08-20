@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,31 +22,16 @@ limitations under the License.
 #include "NeoOnnxCheck.h"
 #include "TensorUtils.h"
 
+using namespace NeoML;
+
 namespace NeoOnnx {
 
 // Gets kernel shape
-static void getKernelShape( const CTensorArray& inputs, CTensorShape& kernelShape )
+static void getConvKernelShape( int dimCount, const CDataTensor& filter, CTensorShape& kernelShape )
 {
-	const CTensorShape& inputShape = inputs[0]->Shape();
-	kernelShape.SetBufferSize( inputShape.Size() - 2 );
-	for( int dimIndex = 2; dimIndex < inputShape.Size(); ++dimIndex ) {
-		kernelShape.Add( inputs[1]->Shape()[dimIndex] );
-	}
-}
-
-// Calculates output shape based on the convolution parameters
-static void calcOutputShape( const CTensorArray& inputs, const CTensorShape& kernelShape, const CFastArray<int, 8>& strides,
-	const CFastArray<int, 8>& pads, const CFastArray<int, 8>& dilations, int group, CTensorShape& outputShape )
-{
-	const CTensorShape& inputShape = inputs[0]->Shape();
-	inputShape.CopyTo( outputShape );
-	if( group == 1 ) {
-		outputShape[1] = inputs[1]->Shape()[0];
-	}
-	const int convDims = inputShape.Size() - 2;
-	for( int dimIndex = 0; dimIndex < convDims; ++dimIndex ) {
-		outputShape[dimIndex + 2] = ( inputShape[dimIndex + 2] + pads[dimIndex] + pads[dimIndex + convDims]
-			- ( kernelShape[dimIndex] - 1 ) * dilations[dimIndex] - 1 ) / strides[dimIndex] + 1;
+	kernelShape.SetBufferSize( dimCount - 2 );
+	for( int dimIndex = 2; dimIndex < dimCount; ++dimIndex ) {
+		kernelShape.Add( filter.DimSize( dimIndex ) );
 	}
 }
 
@@ -58,7 +43,7 @@ CConvOperator::CConvOperator( const onnx::NodeProto& conv, int opsetVersion ) :
 	autoPad( "NOTSET" )
 {
 	// v1 - original
-	// v6 - default values for 'strides' and 'dilations' attributes are added
+	// v11 - default values for 'strides' and 'dilations' attributes are added
 	CheckNeoOnnxSupport( OpsetVersion >= 1 && OpsetVersion <= MaxOpsetVersion, "opset version", *this );
 
 	CheckOnnxProtocol( InputCount() == 2 || InputCount() == 3, "operator must have 2 or 3 inputs", *this );
@@ -70,27 +55,24 @@ CConvOperator::CConvOperator( const onnx::NodeProto& conv, int opsetVersion ) :
 
 void CConvOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
+	CheckNoShapeInputs( inputs );
+
 	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
 
-	const CTensorShape& inputShape = inputs[0]->Shape();
-	CheckNeoOnnxSupport( inputShape.Size() > 2 && inputShape.Size() <= 5,
+	CheckNeoOnnxSupport( inputs[0]->DimCount() > 2 && inputs[0]->DimCount() <= 5,
 		"wrong input tensor's dimensions number", *this );
 
-	// Check groups (NeoML supports only 2D, 3D and Channelwise2D convolutions)
-	CheckNeoOnnxSupport( group == 1 || ( group == inputShape[1] && inputShape.Size() <= 4 ),
-		"groupped convolution (3d or non-channelwise)", *this );
-
 	CheckOnnxProtocol( inputs[1] != nullptr, "input can't be optional", *this );
-	CheckNeoOnnxSupport( inputs[1]->IsCalculated(), "user-provided weights", *this );
+	CheckNeoOnnxSupport( inputs[1]->Type() == TTensorType::Data, "user-provided weights", *this );
 	if( InputCount() == 3 && inputs[2] != nullptr ) {
-		CheckNeoOnnxSupport( inputs[2]->IsCalculated(), "user-provided bias", *this );
+		CheckNeoOnnxSupport( inputs[2]->Type() == TTensorType::Data, "user-provided bias", *this );
 	}
 
-	if( inputShape.Size() == 4 ) {
+	if( inputs[0]->DimCount() == 4 ) {
 		add2dConvLayer( inputs, false, dnn, outputs );
-	} else if( inputShape.Size() == 5 ) {
+	} else if( inputs[0]->DimCount() == 5 ) {
 		add3dConvLayer( inputs, dnn, outputs );
-	} else if ( inputShape.Size() == 3 ) {
+	} else if ( inputs[0]->DimCount() == 3 ) {
 		add2dConvLayer( inputs, true, dnn, outputs );
 	} else {
 		CheckNeoOnnxSupport( false, "3+-dimensional convolution", *this );
@@ -100,38 +82,34 @@ void CConvOperator::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArr
 // Adds 2-dimensional convolution (also used for emulation of 1-dimensional convolution)
 void CConvOperator::add2dConvLayer( const CTensorArray& inputs, bool is1dConv, CDnn& dnn, CTensorArray& outputs ) const
 {
-	CTensorLayout neoMLLayout( { BD_BatchWidth, BD_Channels, BD_Height, BD_Width }  );
-	if( is1dConv ) {
-		neoMLLayout.SetSize( 3 );
-	}
+	CPtr<const CDataTensor> filter = dynamic_cast<const CDataTensor*>( inputs[1].Ptr() );
 
 	CTensorShape kernelShape;
-	getKernelShape( inputs, kernelShape );
+	getConvKernelShape( inputs[0]->DimCount(), *filter, kernelShape);
 	CFastArray<int, 8> strides;
 	getStrides( inputs, strides );
 	CFastArray<int, 8> pads;
 	getPads( inputs, kernelShape, pads );
 	CFastArray<int, 8> dilations;
 	getDilations( inputs, dilations );
-	CTensorShape outputShape;
-	calcOutputShape( inputs, kernelShape, strides, pads, dilations, group, outputShape );
 
 	CPtr<CBaseConvLayer> conv = nullptr;
 	IMathEngine& mathEngine = dnn.GetMathEngine();
 
-	CPtr<const CDataTensor> filter = dynamic_cast<const CDataTensor*>( inputs[1].Ptr() );
-	const int filterCount = filter->Shape()[0];
-	const int inputChannels = inputs[0]->Shape()[1];
-
+	const int filterCount = filter->DimSize( 0 );
 	if( group == 1 ) {
 		// Non-groupped convolution can be calculated via CConvLayer
+		CTensorLayout neoMLLayout( { BD_BatchWidth, BD_Channels, BD_Height, BD_Width } );
+		if( is1dConv ) {
+			neoMLLayout.SetSize( 3 );
+		}
+
 		conv = new CConvLayer( mathEngine );
 		filter = dynamic_cast<const CDataTensor*>( ConvertTensor( *inputs[1], neoMLLayout ).Ptr() );
 	} else {
-		// If number of groups is equal to number of channels then this conv can be calculated via CChannelwiseConvLayer
 		// Other cases of groupped convolution aren't supported by NeoML
-		CheckNeoOnnxSupport( filterCount == inputChannels, "non-trivial groupped conv", *this );
-		CheckNeoOnnxSupport( group == inputChannels, "non-trivial groupped conv", *this );
+		CheckNeoOnnxSupport( filter->DimSize( 1 ) == 1, "non-trivial groupped conv", *this );
+		CheckNeoOnnxSupport( inputs[0]->DimCount() <= 4, "3D+ channelwise convolution");
 		conv = new CChannelwiseConvLayer( mathEngine );
 		// In channelwise convolution filter has specific layout
 		CTensorLayout filterLayout( { BD_Channels, BD_BatchWidth, BD_Height, BD_Width } );
@@ -147,8 +125,9 @@ void CConvOperator::add2dConvLayer( const CTensorArray& inputs, bool is1dConv, C
 	conv->SetFilterWidth( is1dConv ? 1 : kernelShape[1] );
 	conv->SetStrideHeight( strides[0] );
 	conv->SetStrideWidth( is1dConv ? 1 : strides[1] );
-	CPtr<const CUserTensor> currInput = AsUserTensor( *ConvertTensor( *inputs[0], neoMLLayout ), Name() + "_Source", dnn );
 
+	CPtr<const CUserTensor> currInput = AsUserTensor( *ConvertTensor( *inputs[0], CNeoMLImageLayoutValidator() ),
+		Name() + "_Source", dnn );
 	if( ( is1dConv && pads[0] >= pads[1] )
 		|| ( !is1dConv && pads[0] >= pads[2] && pads[1] >= pads[3] ) )
 	{
@@ -159,7 +138,7 @@ void CConvOperator::add2dConvLayer( const CTensorArray& inputs, bool is1dConv, C
 		// In NeoML convolution doesn't support cases when bottom padding is larger than upper padding
 		// (the same goes for other spatial dimensions)
 		// In this case we have to add explicit padding layer
-		currInput = PadUserTensor( *currInput, pads, 0.f );
+		currInput = PadUserTensor( *currInput, pads, TBlobResizePadding::Constant, 0.f );
 	}
 	conv->SetDilationHeight( dilations[0] );
 	conv->SetDilationWidth( is1dConv ? 1 : dilations[1] );
@@ -174,24 +153,24 @@ void CConvOperator::add2dConvLayer( const CTensorArray& inputs, bool is1dConv, C
 	conv->Connect( 0, *currInput->Layer(), currInput->OutputIndex() );
 	dnn.AddLayer( *conv );
 
-	outputs.Add( new CUserTensor( outputShape, neoMLLayout, CLayerOutput( conv, 0 ) ) );
+	outputs.Add( new CUserTensor( currInput->Layout(), CLayerOutput( conv, 0 ) ) );
 }
 
 // Adds 3-dimensional convolution
 void CConvOperator::add3dConvLayer( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
-	const CTensorLayout neoML3dLayout( { BD_BatchWidth, BD_Channels, BD_Height, BD_Width, BD_Depth } );
+	CTensorLayout neoMLLayout( { BD_BatchWidth, BD_Channels, BD_Height, BD_Width, BD_Depth } );
+	CPtr<const CDataTensor> filter = dynamic_cast<const CDataTensor*>(
+		ConvertTensor( *inputs[1], neoMLLayout ).Ptr() );
 
 	CTensorShape kernelShape;
-	getKernelShape( inputs, kernelShape );
+	getConvKernelShape( inputs[0]->DimCount(), *filter, kernelShape );
 	CFastArray<int, 8> strides;
 	getStrides( inputs, strides );
 	CFastArray<int, 8> pads;
 	getPads( inputs, kernelShape, pads );
 	CFastArray<int, 8> dilations;
 	getDilations( inputs, dilations );
-	CTensorShape outputShape;
-	calcOutputShape( inputs, kernelShape, strides, pads, dilations, group, outputShape );
 
 	// In NeoML there is no channelwise convolution for 3-dimensional images
 	CheckNeoOnnxSupport( group == 1, "groupped 3d convolution", *this );
@@ -201,15 +180,16 @@ void CConvOperator::add3dConvLayer( const CTensorArray& inputs, CDnn& dnn, CTens
 
 	CPtr<C3dConvLayer> conv = new C3dConvLayer( dnn.GetMathEngine() );
 	conv->SetName( Name() );
-	conv->SetFilterCount( inputs[1]->Shape()[0] );
+	conv->SetFilterCount( filter->DimSize( 0 ) );
 	conv->SetFilterHeight( kernelShape[0] );
 	conv->SetFilterWidth( kernelShape[1] );
 	conv->SetFilterDepth( kernelShape[2] );
 	conv->SetStrideHeight( strides[0] );
 	conv->SetStrideWidth( strides[1] );
 	conv->SetStrideDepth( strides[2] );
-	CPtr<const CUserTensor> currInput = AsUserTensor( *ConvertTensor( *inputs[0], neoML3dLayout ), Name() + "_Source", dnn );
 	
+	CPtr<const CUserTensor> currInput = AsUserTensor( *ConvertTensor( *inputs[0], CNeoMLImageLayoutValidator() ),
+		Name() + "_Source", dnn );
 	if( pads[0] >= pads[3] && pads[1] >= pads[4] && pads[2] >= pads[5] ) {
 		// This is a valid padding for a convolution in NeoML
 		conv->SetPaddingHeight( pads[0] );
@@ -219,10 +199,9 @@ void CConvOperator::add3dConvLayer( const CTensorArray& inputs, CDnn& dnn, CTens
 		// In NeoML convolution doesn't support cases when bottom padding is larger than upper padding
 		// (the same goes for other spatial dimensions)
 		// In this case we have to add explicit padding layer
-		currInput = PadUserTensor( *currInput, pads, 0.f );
+		currInput = PadUserTensor( *currInput, pads, TBlobResizePadding::Constant, 0.f );
 	}
 
-	CPtr<const CDataTensor> filter = dynamic_cast<const CDataTensor*>( ConvertTensor( *inputs[1], neoML3dLayout ).Ptr() );
 	conv->SetFilterData( filter->Data()->GetCopy() );
 	if( InputCount() == 3 && inputs[2] != nullptr ) {
 		conv->SetFreeTermData( dynamic_cast<const CDataTensor*>( inputs[2].Ptr() )->Data()->GetCopy() );
@@ -233,7 +212,7 @@ void CConvOperator::add3dConvLayer( const CTensorArray& inputs, CDnn& dnn, CTens
 	conv->Connect( 0, *currInput->Layer(), currInput->OutputIndex() );
 	dnn.AddLayer( *conv );
 
-	outputs.Add( new CUserTensor( outputShape, neoML3dLayout, CLayerOutput( conv, 0 ) ) );
+	outputs.Add( new CUserTensor( currInput->Layout(), CLayerOutput( conv, 0 ) ) );
 }
 
 // Gets strides
@@ -241,7 +220,7 @@ void CConvOperator::getStrides( const CTensorArray& inputs, CFastArray<int, 8>& 
 {
 	GetAttribute( "strides", strides );
 	if( strides.IsEmpty() ) {
-		const int convDims = static_cast<int>( inputs[0]->Shape().Size() ) - 2;
+		const int convDims = static_cast<int>( inputs[0]->DimCount() ) - 2;
 		strides.Add( 1, convDims );
 	}
 }
@@ -251,7 +230,7 @@ void CConvOperator::getPads( const CTensorArray& inputs, const CTensorShape& ker
 {
 	GetAttribute( "pads", pads );
 	if( pads.IsEmpty() ) {
-		const int convDims = static_cast<int>( inputs[0]->Shape().Size() ) - 2;
+		const int convDims = static_cast<int>( inputs[0]->DimCount() ) - 2;
 		pads.Add( 0, 2 * convDims );
 	}
 	if( autoPad == "SAME_UPPER" || autoPad == "SAME_LOWER" ) {
@@ -264,7 +243,7 @@ void CConvOperator::getDilations( const CTensorArray& inputs, CFastArray<int, 8>
 {
 	GetAttribute( "dilations", dilations );
 	if( dilations.IsEmpty() ) {
-		const int convDims = static_cast<int>( inputs[0]->Shape().Size() ) - 2;
+		const int convDims = static_cast<int>( inputs[0]->DimCount() ) - 2;
 		dilations.Add( 1, convDims );
 	}
 }

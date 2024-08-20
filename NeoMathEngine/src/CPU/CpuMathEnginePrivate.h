@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
-// These functions only use raw pointers, do not contain any omp sections inside and perform no checks
+// These functions only use raw pointers, and perform no checks
 
 #pragma once
 
@@ -21,13 +21,15 @@ limitations under the License.
 
 #if defined(NEOML_USE_SSE)
 
-#include <CpuX86.h>
-#include <CpuX86MathEngineVectorMathPrivate.h>
+#include <x86/CpuX86.h>
+#include <x86/CpuX86Functors.h>
+#include <x86/CpuX86MathEngineVectorMathPrivate.h>
 
 #elif defined(NEOML_USE_NEON)
 
-#include <CpuArm.h>
-#include <CpuArmMathEngineVectorMathPrivate.h>
+#include <arm/CpuArm.h>
+#include <arm/CpuArmFunctors.h>
+#include <arm/CpuArmMathEngineVectorMathPrivate.h>
 
 #else
 

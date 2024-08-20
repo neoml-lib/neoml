@@ -143,8 +143,8 @@ void CMultichannelLookupLayer::Reshape()
 	CheckInputs();
 
 	for( int i = 0; i < inputDescs.Size(); i++ ) {
-		CheckArchitecture( inputDescs[i].Channels() >= GetDimensions().Size(),
-			GetName(), "MultichannelLookup layer must have input with more channels" );
+		CheckLayerArchitecture( inputDescs[i].Channels() >= GetDimensions().Size(),
+			"MultichannelLookup layer must have input with more channels" );
 	}
 
 	Initialize(GetDnn()->GetInitializer());
@@ -218,13 +218,13 @@ void CMultichannelLookupLayer::LearnOnce()
 					inputBlobs[i]->GetObjectCount() * inputBlobs[i]->GetGeometricalSize(),
 					inputBlobs[i]->GetChannelsCount(), inputBlobs[i]->GetData(),
 					lookupTables.GetPtr(), GetDimensions().GetPtr(), GetDimensions().Size(),
-					learningRate, outputDiffBlobs[i]->GetData(), outputBlobs[i]->GetChannelsCount() );
+					learningRate, outputDiffBlobs[i]->GetData(), outputDiffBlobs[i]->GetChannelsCount() );
 			} else {
 				MathEngine().VectorMultichannelLookupAndAddToTable( 
 					inputBlobs[i]->GetObjectCount() * inputBlobs[i]->GetGeometricalSize(),
 					inputBlobs[i]->GetChannelsCount(), inputBlobs[i]->GetData<int>(),
 					lookupTables.GetPtr(), GetDimensions().GetPtr(), GetDimensions().Size(),
-					learningRate, outputDiffBlobs[i]->GetData(), outputBlobs[i]->GetChannelsCount() );
+					learningRate, outputDiffBlobs[i]->GetData(), outputDiffBlobs[i]->GetChannelsCount() );
 			}
 		}
 	} else {
@@ -243,13 +243,13 @@ void CMultichannelLookupLayer::LearnOnce()
 					inputBlobs[i]->GetObjectCount() * inputBlobs[i]->GetGeometricalSize(),
 					inputBlobs[i]->GetChannelsCount(), inputBlobs[i]->GetData(),
 					lookupTables.GetPtr(), GetDimensions().GetPtr(), GetDimensions().Size(),
-					learningRate, outputDiffBlobs[i]->GetData(), outputBlobs[i]->GetChannelsCount() );
+					learningRate, outputDiffBlobs[i]->GetData(), outputDiffBlobs[i]->GetChannelsCount() );
 			} else {
 				MathEngine().VectorMultichannelLookupAndAddToTable(
 					inputBlobs[i]->GetObjectCount() * inputBlobs[i]->GetGeometricalSize(),
 					inputBlobs[i]->GetChannelsCount(), inputBlobs[i]->GetData<int>(),
 					lookupTables.GetPtr(), GetDimensions().GetPtr(), GetDimensions().Size(),
-					learningRate, outputDiffBlobs[i]->GetData(), outputBlobs[i]->GetChannelsCount() );
+					learningRate, outputDiffBlobs[i]->GetData(), outputDiffBlobs[i]->GetChannelsCount() );
 			}
 		}
 	}
@@ -377,4 +377,4 @@ CLayerWrapper<CMultichannelLookupLayer> Embeddings( int count, int size )
 	} );
 }
 
-}
+} //namespace NeoML

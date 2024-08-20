@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,20 +21,28 @@ limitations under the License.
 #include <CudaDevice.h>
 #include <CudaCommon.h>
 #include <MathEngineCommon.h>
-#include <MathEngineDnnDropout.h>
 #include <MemoryHandleInternal.h>
+#include <MathEngineDnnDropout.h>
 
 #include <Kernels/CudaDnnDropoutKernels.h>
 
 namespace NeoML {
 
-void CCudaMathEngine::Dropout( const CDropoutDesc& dropoutDesc, const CFloatHandle& inputData, const CFloatHandle& outputData )
+CDropoutDesc* CCudaMathEngine::InitDropout(float rate, bool isSpatial, bool isBatchwise,
+	const CBlobDesc& input, const CBlobDesc& output, int seed)
+{
+	return new CSeedDropoutDesc(rate, isSpatial, isBatchwise, input, output, seed);
+}
+
+void CCudaMathEngine::Dropout( const CDropoutDesc& dropoutDesc,
+	const CFloatHandle& inputData, const CFloatHandle& outputData )
 {
 	ASSERT_EXPR( inputData.GetMathEngine() == this );
 	ASSERT_EXPR( outputData.GetMathEngine() == this );
 	SetCudaDevice( device->DeviceNumber );
 
-	const CMathEngineDropoutDesc& desc = static_cast<const CMathEngineDropoutDesc&>( dropoutDesc );
+	const CSeedDropoutDesc& desc = static_cast<const CSeedDropoutDesc&>( dropoutDesc );
+
 	const CBlobDesc& input = desc.Input;
 
 	if( desc.ForwardRate == 1.f ) {
@@ -47,27 +55,22 @@ void CCudaMathEngine::Dropout( const CDropoutDesc& dropoutDesc, const CFloatHand
 	const int batchWidth = input.ObjectCount() / batchLength;
 	const int maskSize = batchWidth * objectSize;
 
-	ASSERT_EXPR( desc.Mask.Size() == maskSize );
-
 	if( !desc.IsSpatial ) {
-		MultiplyMatrixByDiagMatrix( inputData, batchLength, maskSize, desc.Mask.GetHandle(), outputData, desc.Output.BlobSize() );
+		dim3 blockCount;
+		dim3 threadCount;
+
+		getCudaTaskGrid2D(blockCount, threadCount, batchLength, (maskSize + desc.MaskAlign - 1) / desc.MaskAlign);
+		RandomMatrixDropout<<<blockCount, threadCount>>>( GetRaw(inputData), batchLength, maskSize,
+			GetRaw(outputData), desc.Seed, desc.ForwardRate );
 		return;
 	}
 
 	dim3 blockCount;
 	dim3 threadCount;
 
-	getCudaTaskGrid3D( blockCount, threadCount, input.ObjectCount(), input.ObjectSize() / objectSize,
-		objectSize );
-	ChannelLastBlobSpatialDropoutKernel<<<blockCount, threadCount>>>( GetRaw( inputData ),
-		GetRaw( desc.Mask.GetHandle() ), GetRaw( outputData ), input.ObjectCount(), input.ObjectSize(),
-		batchWidth, objectSize );
-}
-
-CDropoutDesc* CCudaMathEngine::InitDropout( float rate, bool isSpatial, bool isBatchwise,
-	const CBlobDesc& input, const CBlobDesc& output, int seed )
-{
-	return new CMathEngineDropoutDesc( mathEngine(), rate, isSpatial, isBatchwise, input, output, seed );
+	getCudaTaskGrid3D( blockCount, threadCount, input.ObjectCount(), input.ObjectSize() / objectSize, objectSize );
+	RandomSpatialDropout<<<blockCount, threadCount>>>( GetRaw( inputData ), GetRaw( outputData ),
+		input.ObjectCount(), input.ObjectSize(), batchWidth, objectSize, desc.Seed, desc.ForwardRate );
 }
 
 } // namespace NeoML

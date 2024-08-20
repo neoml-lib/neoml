@@ -31,14 +31,21 @@ public:
 	template<class T>
 	T* Layer() const { return dynamic_cast<T*>(baseLayer.Ptr()); }
 
-	int GetOutputCount() const { return baseLayer->GetOutputCount(); }
 	std::string GetName() const { return std::string( baseLayer->GetName() ); }
+	int GetInputCount() const { return baseLayer->GetInputCount(); }
+	std::string GetInputName( int inputIdx ) const;
+	int GetInputOutputIdx( int inputIdx ) const;
+	std::string GetLayerClass() const;
 
 	void DisableLearning() { baseLayer->DisableLearning(); }
 	void EnableLearning() { baseLayer->EnableLearning(); }
 	bool IsLearningEnabled() const { return baseLayer->IsLearningEnabled(); }
 
-	virtual py::object CreatePythonObject() const { NeoAssert(false); return py::cast(0); }
+	virtual py::object CreatePythonObject() const {
+		py::object pyModule = py::module::import( "neoml.Dnn" );
+		py::object pyConstructor = pyModule.attr( "Layer" );
+		return pyConstructor( py::cast(this) );
+	}
 
 	void Connect( CPyLayer& layer, int outputIndex, int inputIndex );
 

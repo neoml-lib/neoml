@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,24 +17,468 @@ limitations under the License.
 #pragma hdrstop
 
 #include <GradientBoostFastHistTreeBuilder.h>
+#include <GradientBoostThreadTask.h>
 #include <LinkedRegressionTree.h>
-#include <NeoMathEngine/OpenMP.h>
+#include <NeoMathEngine/ThreadPool.h>
 
 namespace NeoML {
 
+namespace {
+
+// Build the histogram
+template<typename T>
+class CGBoostBuildHistogramThreadTask : public IGradientBoostThreadTask {
+public:
+	using TNode = typename CGradientBoostFastHistTreeBuilder<T>::CNode;
+	using TArray = CArray<typename T::Type>;
+	// Create a task
+	CGBoostBuildHistogramThreadTask( IThreadPool&, const CGradientBoostFastHistProblem&,
+		const CArray<int>& vectorSet, const CArray<int>& idPos, T* histStats, const TNode&,
+		const TArray& gradients, const TArray& hessians, const CArray<double>& weights,
+		CArray<T>& tempHistStats, int histSize, int predictSize, T& totalStats, bool isMultiThread );
+
+	// Run the process in the one main thread
+	void RunInOneThread();
+	// Combine the answer for the parallel run
+	void Reduction();
+protected:
+	// The size of parallelization, max number of elements to perform
+	int ParallelizeSize() const override { return Node.VectorSetSize; }
+	// Run the process in a separate thread
+	void Run( int threadIndex, int startIndex, int count ) override;
+
+	// Adds a vector to the histogram
+	void AddVectorToHist( int vectorIndex, T* histStats );
+
+	const CGradientBoostFastHistProblem& Problem;
+	const CArray<int>& VectorSet;
+	const CArray<int>& IdPos;
+	T* HistStats;
+	const TNode& Node;
+	const TArray& Gradients;
+	const TArray& Hessians;
+	const CArray<double>& Weights;
+	CArray<T>& TempHistStats;
+	const int HistSize;
+	T& TotalStats;
+	const bool IsMultiThread;
+
+	CArray<T> Results{};
+};
+
+template<typename T>
+CGBoostBuildHistogramThreadTask<T>::CGBoostBuildHistogramThreadTask(
+		IThreadPool& threadPool,
+		const CGradientBoostFastHistProblem& problem,
+		const CArray<int>& vectorSet,
+		const CArray<int>& idPos,
+		T* histStats,
+		const TNode& node,
+		const TArray& gradients,
+		const TArray& hessians,
+		const CArray<double>& weights,
+		CArray<T>& tempHistStats,
+		int histSize,
+		int predictionSize,
+		T& totalStats,
+		bool isMultiThread ) :
+	IGradientBoostThreadTask( threadPool ),
+	Problem( problem ),
+	VectorSet( vectorSet ),
+	IdPos( idPos ),
+	HistStats( histStats ),
+	Node( node ),
+	Gradients( gradients ),
+	Hessians( hessians ),
+	Weights( weights ),
+	TempHistStats( tempHistStats ),
+	HistSize( histSize ),
+	TotalStats( totalStats ),
+	IsMultiThread( isMultiThread )
+{
+	for( int i = 0; i < histSize; ++i ) {
+		HistStats[i].Erase();
+	}
+
+	totalStats.SetSize( predictionSize );
+	totalStats.Erase();
+
+	if( !IsMultiThread )
+		return;
+
+	const int threadCount = ThreadPool.Size();
+	// There are many vectors in the set, so we'll use several threads to build the histogram
+	Results.Add( T( predictionSize ), threadCount );
+
+	const int valueSize = HistStats[0].ValueSize();
+	TempHistStats.SetSize( threadCount * HistSize );
+	for( int t = 0; t < threadCount * HistSize; ++t ) {
+		TempHistStats[t].SetSize( valueSize );
+		TempHistStats[t].Erase();
+	}
+}
+
+template<typename T>
+void CGBoostBuildHistogramThreadTask<T>::RunInOneThread()
+{
+	NeoAssert( !IsMultiThread );
+	// There are few vectors in the set, build the histogram using only one thread
+	for( int index = 0; index < ParallelizeSize(); ++index ) {
+		const int vectorIndex = VectorSet[Node.VectorSetPtr + index];
+		AddVectorToHist( vectorIndex, HistStats );
+		TotalStats.Add( Gradients, Hessians, Weights, vectorIndex );
+	}
+}
+
+template<typename T>
+void CGBoostBuildHistogramThreadTask<T>::Run( int threadIndex, int startIndex, int count )
+{
+	NeoAssert( IsMultiThread );
+	T* histStats = &( TempHistStats[HistSize * threadIndex] );
+	// Build the histogram using all existing threads
+	const int endIndex = startIndex + count;
+	for( int index = startIndex; index < endIndex; ++index ) {
+		const int vectorIndex = VectorSet[Node.VectorSetPtr + index];
+		AddVectorToHist( vectorIndex, histStats );
+		Results[threadIndex].Add( Gradients, Hessians, Weights, vectorIndex );
+	}
+}
+
+template<typename T>
+void CGBoostBuildHistogramThreadTask<T>::Reduction()
+{
+	NeoAssert( IsMultiThread );
+	// Merge the threads' results
+	for( int t = 0; t < ThreadPool.Size(); ++t ) {
+		TotalStats.Add( Results[t] );
+	}
+}
+// Adds a vector to the histogram
 template<class T>
-CGradientBoostFastHistTreeBuilder<T>::CGradientBoostFastHistTreeBuilder( const CGradientBoostFastHistTreeBuilderParams& _params, CTextStream* _logStream, int _predictionSize ) :
-	params( _params ),
+void CGBoostBuildHistogramThreadTask<T>::AddVectorToHist( int vectorIndex, T* histStats )
+{
+	const int* vectorPtr = Problem.GetUsedVectorDataPtr( vectorIndex );
+	const int vectorSize = Problem.GetUsedVectorDataSize( vectorIndex );
+
+	NeoPresume( vectorPtr != 0 );
+	NeoPresume( vectorSize >= 0 );
+
+	for( int i = 0; i < vectorSize; ++i ) {
+		const int id = IdPos[vectorPtr[i]];
+		if( id != NotFound ) {
+			histStats[id].Add( Gradients, Hessians, Weights, vectorIndex );
+		}
+	}
+}
+
+//-------------------------------------------------------------------------------------------------------------
+
+// Merge many histograms in one summary histogram
+template<typename T>
+class CGBoostMergeHistogramsThreadTask : public IGradientBoostThreadTask {
+public:
+	// Create a task
+	CGBoostMergeHistogramsThreadTask( IThreadPool& threadPool,
+			CArray<T>& tempHistStats, T* histStats, int histSize ) :
+		IGradientBoostThreadTask( threadPool ),
+		TempHistStats( tempHistStats ),
+		HistStats( histStats ),
+		HistSize( histSize )
+	{}
+protected:
+	// The size of parallelization, max number of elements to perform
+	int ParallelizeSize() const override { return HistSize; }
+	// Run the process in a separate thread
+	void Run( int threadIndex, int startIndex, int count ) override;
+
+	CArray<T>& TempHistStats;
+	T* HistStats;
+	const int HistSize;
+};
+
+template<typename T>
+void CGBoostMergeHistogramsThreadTask<T>::Run( int /*threadIndex*/, int startIndex, int count )
+{
+	const int endIndex = startIndex + count;
+	for( int index = startIndex; index < endIndex; ++index ) {
+		for( int t = 0; t < ThreadPool.Size(); ++t ) {
+			HistStats[index].Add( TempHistStats[t * HistSize + index] );
+		}
+	}
+}
+
+//-------------------------------------------------------------------------------------------------------------
+
+// Adding zero values
+template<typename T>
+class CGBoostAddNullStatsThreadTask : public IGradientBoostThreadTask {
+public:
+	// Create a task
+	CGBoostAddNullStatsThreadTask( IThreadPool& threadPool,
+			const CGradientBoostFastHistProblem& problem,
+			const CArray<int>& idPos, T* histStats, const T& totalStats ) :
+		IGradientBoostThreadTask( threadPool ),
+		IdPos( idPos ),
+		UsedFeatures( problem.GetUsedFeatures() ),
+		FeaturePos( problem.GetFeaturePos() ),
+		FeatureNullValueId( problem.GetFeatureNullValueId() ),
+		HistStats( histStats ),
+		TotalStats( totalStats )
+	{}
+protected:
+	// The size of parallelization, max number of elements to perform
+	int ParallelizeSize() const override { return UsedFeatures.Size(); }
+	// Run the process in a separate thread
+	void Run( int threadIndex, int startIndex, int count ) override;
+
+	const CArray<int>& IdPos;
+	const CArray<int>& UsedFeatures;
+	const CArray<int>& FeaturePos;
+	const CArray<int>& FeatureNullValueId;
+	T* HistStats;
+	const T& TotalStats;
+};
+
+template<typename T>
+void CGBoostAddNullStatsThreadTask<T>::Run( int /*threadIndex*/, int startIndex, int count )
+{
+	const int endIndex = startIndex + count;
+	for( int index = startIndex; index < endIndex; ++index ) {
+		const int usedIndex = UsedFeatures[index];
+		const int nullFeatureId = FeatureNullValueId[usedIndex];
+		T nullStatistics( TotalStats );
+		for( int j = FeaturePos[usedIndex]; j < FeaturePos[usedIndex + 1]; ++j ) {
+			nullStatistics.Sub( HistStats[IdPos[j]] );
+		}
+		HistStats[IdPos[nullFeatureId]].Add( nullStatistics );
+	}
+}
+
+//-------------------------------------------------------------------------------------------------------------
+
+// Calculating the gain
+template<typename T>
+class CGBoostCalcSplitGainThreadTask : public IGradientBoostThreadTask {
+public:
+	using TNode = typename CGradientBoostFastHistTreeBuilder<T>::CNode;
+	using TThBuffers = typename CGradientBoostFastHistTreeBuilder<T>::CThreadsBuffers;
+	// Create a task
+	CGBoostCalcSplitGainThreadTask( IThreadPool&, const CGradientBoostFastHistProblem&,
+		const CGradientBoostFastHistTreeBuilderParams&, const CArray<int>& idPos,
+		TNode& node, const T* histStats, int predictSize, TThBuffers& tb );
+
+	// Combine the answer for the parallel run
+	int Reduction();
+protected:
+	// The size of parallelization, max number of elements to perform
+	int ParallelizeSize() const override { return UsedFeatures.Size(); }
+	// Run the process in a separate thread
+	void Run( int threadIndex, int startIndex, int count ) override;
+
+	const CGradientBoostFastHistTreeBuilderParams& Params;
+	const CArray<int>& IdPos;
+	TNode& Node;
+	const CArray<int>& UsedFeatures;
+	const CArray<int>& FeaturePos;
+	const T* HistStats;
+	const int PredictionSize;
+	// Caching threads temporary memory in the builder
+	CArray<int>& SplitIdsByThread;
+	CArray<double>& SplitGainsByThread;
+	CArray<T>& LeftCandidatesByThread;
+	CArray<T>& RightCandidatesByThread;
+
+	double BestValue{};
+};
+
+template<typename T>
+CGBoostCalcSplitGainThreadTask<T>::CGBoostCalcSplitGainThreadTask(
+		IThreadPool& threadPool,
+		const CGradientBoostFastHistProblem& problem,
+		const CGradientBoostFastHistTreeBuilderParams& params,
+		const CArray<int>& idPos,
+		TNode& node,
+		const T* histStats,
+		int predictSize,
+		TThBuffers& tb ) :
+	IGradientBoostThreadTask( threadPool ),
+	Params( params ),
+	IdPos( idPos ),
+	Node( node ),
+	UsedFeatures( problem.GetUsedFeatures() ),
+	FeaturePos( problem.GetFeaturePos() ),
+	HistStats( histStats ),
+	PredictionSize( predictSize ),
+	SplitIdsByThread( tb.SplitIdsBuffer ),
+	SplitGainsByThread( tb.SplitGainsBuffer ),
+	LeftCandidatesByThread( tb.LeftCandidates ),
+	RightCandidatesByThread( tb.RightCandidates ),
+	BestValue( Node.Statistics.CalcCriterion( Params.L1RegFactor, Params.L2RegFactor ) )
+{
+	const int threadCount = ThreadPool.Size();
+	// Initializing the search results for each thread
+	// The default bestValue is the parent's Gain (the node is not split by default)
+	SplitGainsByThread.DeleteAll();
+	SplitGainsByThread.Add( BestValue, threadCount );
+	SplitIdsByThread.DeleteAll();
+	SplitIdsByThread.Add( NotFound, threadCount );
+
+	if( LeftCandidatesByThread.Size() == 0 ) {
+		LeftCandidatesByThread.Add( T( PredictionSize ), threadCount );
+		RightCandidatesByThread.Add( T( PredictionSize ), threadCount );
+	}
+
+}
+
+template<typename T>
+void CGBoostCalcSplitGainThreadTask<T>::Run( int threadIndex, int startIndex, int count )
+{
+	T LeftCandidate( PredictionSize );
+	T RightCandidate( PredictionSize );
+	// Iterate through features (a separate subset for each thread)
+	const int endIndex = startIndex + count;
+	for( int index = startIndex; index < endIndex; ++index ) {
+		const int usedIndex = UsedFeatures[index];
+		T left( PredictionSize ); // the gain for the left node after the split
+		T right( PredictionSize ); // for the right node after the split (calculated as the complement to the parent)
+		const int firstFeatureIndex = FeaturePos[usedIndex];
+		const int lastFeatureIndex = FeaturePos[usedIndex + 1];
+		// Iterate through feature values (sorted ascending) looking for the split position
+		for( int j = firstFeatureIndex; j < lastFeatureIndex; ++j ) {
+			const T& featureStats = HistStats[IdPos[j]];
+			left.Add( featureStats );
+			right = Node.Statistics;
+			right.Sub( left );
+			LeftCandidate = left;
+			RightCandidate = right;
+
+			// Calculating the gain: if the node is split at this position, 
+			// the criterion loses the parent node (bestValue) and replaces it by left.CalcCriterion and right.CalcCriterion
+			// In the reference paper, a gamma coefficient is also needed for a new node, but we take that into account while pruning
+			double criterion = 0.;
+			if( !T::CalcCriterion( criterion, LeftCandidate, RightCandidate, Node.Statistics,
+				Params.L1RegFactor, Params.L2RegFactor, Params.MinSubsetHessian, Params.MinSubsetWeight, Params.DenseTreeBoostCoefficient ) )
+			{
+				continue;
+			}
+
+			if( SplitGainsByThread[threadIndex] < criterion ) {
+				SplitGainsByThread[threadIndex] = criterion;
+				SplitIdsByThread[threadIndex] = j;  // this number refers both to the feature and its value
+				// save statistics for childs for case when class if not splitting further
+				LeftCandidatesByThread[threadIndex] = LeftCandidate;
+				RightCandidatesByThread[threadIndex] = RightCandidate;
+			}
+		}
+	}
+}
+
+template<typename T>
+int CGBoostCalcSplitGainThreadTask<T>::Reduction()
+{
+	// Choose the best result over all threads
+	int result = NotFound;
+	for( int t = 0; t < SplitGainsByThread.Size(); ++t ) {
+		const double& threadBestGain = SplitGainsByThread[t];
+		const int threadBestFeature = SplitIdsByThread[t]; // the coordinate in the array witha all values of all features
+		if( BestValue < threadBestGain || ( BestValue == threadBestGain && threadBestFeature < result ) ) {
+			BestValue = threadBestGain;
+			result = threadBestFeature;
+			Node.LeftStatistics = LeftCandidatesByThread[t];
+			Node.RightStatistics = RightCandidatesByThread[t];
+		}
+	}
+	return result;
+}
+
+//-------------------------------------------------------------------------------------------------------------
+
+// Determining to which subtree each vector belongs
+template<typename T>
+class CGBoostDetermineSubTreeThreadTask : public IGradientBoostThreadTask {
+public:
+	using TNode = typename CGradientBoostFastHistTreeBuilder<T>::CNode;
+	// Create a task
+	CGBoostDetermineSubTreeThreadTask( IThreadPool& threadPool,
+			const CGradientBoostFastHistProblem& problem,
+			CArray<int>& vectorSet, const TNode& node ) :
+		IGradientBoostThreadTask( threadPool ),
+		Problem( problem ),
+		VectorSet( vectorSet ),
+		Node( node ),
+		FeatureIndexes( Problem.GetFeatureIndexes() ),
+		FeatureNullValueId( Problem.GetFeatureNullValueId() ),
+		FeatureIndex( FeatureIndexes[Node.SplitFeatureId] ),
+		VectorPtr( Node.VectorSetPtr ),
+		NextId( Problem.GetFeaturePos()[FeatureIndex + 1] - 1 )
+	{}
+protected:
+	// The size of parallelization, max number of elements to perform
+	int ParallelizeSize() const override { return Node.VectorSetSize; }
+	// Run the process in a separate thread
+	void Run( int threadIndex, int startIndex, int count ) override;
+
+	const CGradientBoostFastHistProblem& Problem;
+	CArray<int>& VectorSet;
+	const TNode& Node;
+	const CArray<int>& FeatureIndexes;
+	const CArray<int>& FeatureNullValueId;
+	const int FeatureIndex;
+	const int VectorPtr;
+	const int NextId;
+};
+
+template<typename T>
+void CGBoostDetermineSubTreeThreadTask<T>::Run( int /*threadIndex*/, int startIndex, int count )
+{
+	const int endIndex = startIndex + count;
+	for( int index = startIndex; index < endIndex; ++index ) {
+		const int* vectorDataPtr = Problem.GetUsedVectorDataPtr( VectorSet[VectorPtr + index] );
+		const int vectorDataSize = Problem.GetUsedVectorDataSize( VectorSet[VectorPtr + index] );
+
+		const int pos = FindInsertionPoint<int, Ascending<int>, int>( NextId, vectorDataPtr, vectorDataSize );
+		int vectorFeatureId = NotFound; // the ID of the feature value used for split for this vector
+		if( pos == 0 || ( FeatureIndexes[vectorDataPtr[pos - 1]] != FeatureIndex ) ) {
+			// The vector contains no feature value for the split, therefore this value is 0
+			vectorFeatureId = FeatureNullValueId[FeatureIndex];
+		} else {
+			vectorFeatureId = vectorDataPtr[pos - 1];
+		}
+
+		if( vectorFeatureId <= Node.SplitFeatureId ) { // the value is smaller for the smaller ID
+			// The vector belongs to the left subtree
+			VectorSet[VectorPtr + index] = -( VectorSet[VectorPtr + index] + 1 );
+		} // To the right subtree otherwise (no action needed)
+	}
+}
+
+} // namespace
+
+//-------------------------------------------------------------------------------------------------------------
+
+template<class T>
+CGradientBoostFastHistTreeBuilder<T>::CGradientBoostFastHistTreeBuilder(
+		const CGradientBoostFastHistTreeBuilderParams& _params, CTextStream* _logStream, int _predictionSize ) :
+	threadPool( CreateThreadPool( _params.ThreadCount ) ),
+	params( _params, threadPool->Size() ),
 	logStream( _logStream ),
 	predictionSize( _predictionSize  ),
 	histSize( NotFound )
 {
+	NeoAssert( threadPool != nullptr );
+	NeoAssert( params.ThreadCount > 0 );
+
 	NeoAssert( params.MaxTreeDepth > 0 );
 	NeoAssert( params.MaxNodesCount > 0 || params.MaxNodesCount == NotFound );
 	NeoAssert( abs( params.MinSubsetHessian ) > 0 );
-	NeoAssert( params.ThreadCount > 0 );
 	NeoAssert( params.MaxBins > 1 );
 	NeoAssert( params.MinSubsetWeight >= 0 );
+}
+
+template<class T>
+CGradientBoostFastHistTreeBuilder<T>::~CGradientBoostFastHistTreeBuilder()
+{
+	delete threadPool;
 }
 
 template<class T>
@@ -43,7 +487,7 @@ CPtr<CRegressionTree> CGradientBoostFastHistTreeBuilder<T>::Build( const CGradie
 {
 	NeoAssert( gradients.Size() == hessians.Size() );
 
-	if( logStream != 0 ) {
+	if( logStream != nullptr ) {
 		*logStream << L"\nGradient boost float problem tree building started:\n";
 	}
 
@@ -52,7 +496,7 @@ CPtr<CRegressionTree> CGradientBoostFastHistTreeBuilder<T>::Build( const CGradie
 	initHistData( problem );
 
 	// Creating the tree root
-	CNode root( 0, 0, vectorSet.Size() );
+	CNode root( /*level*/0, /*vectorSetPtr*/0, vectorSet.Size() );
 	root.HistPtr = allocHist();
 	buildHist( problem, root, gradients, hessians, weights, root.Statistics );
 	nodes.Empty();
@@ -73,7 +517,7 @@ CPtr<CRegressionTree> CGradientBoostFastHistTreeBuilder<T>::Build( const CGradie
 		nodes[node].SplitFeatureId = evaluateSplit( problem, nodes[node] );
 		if( nodes[node].SplitFeatureId != NotFound ) {
 			// The split is possible
-			if( logStream != 0 ) {
+			if( logStream != nullptr ) {
 				*logStream << L"Split result: index = " << featureIndexes[nodes[node].SplitFeatureId]
 					<< L" threshold = " << cuts[nodes[node].SplitFeatureId]
 					<< L", criterion = " << nodes[node].Statistics.CalcCriterion( params.L1RegFactor, params.L2RegFactor )
@@ -108,7 +552,7 @@ CPtr<CRegressionTree> CGradientBoostFastHistTreeBuilder<T>::Build( const CGradie
 			nodes[rightNode].Statistics.NullifyLeafClasses( nodes[node].RightStatistics );
 		} else {
 			// The node could not be split
-			if( logStream != 0 ) {
+			if( logStream != nullptr ) {
 				*logStream << L"Split result: created const node.\t\t"
 					<< L"criterion = " << nodes[node].Statistics.CalcCriterion( params.L1RegFactor, params.L2RegFactor )
 					<< L" \n";
@@ -119,16 +563,16 @@ CPtr<CRegressionTree> CGradientBoostFastHistTreeBuilder<T>::Build( const CGradie
 		
 	}
 
-	if( logStream != 0 ) {
+	if( logStream != nullptr ) {
 		*logStream << L"\nGradient boost float problem tree building finished:\n";
 	}
 
 	// Pruning
 	if( params.PruneCriterionValue != 0 ) {
-		prune( 0 );
+		prune( /*node*/0 );
 	}
 
-	return buildTree( 0, featureIndexes, cuts ).Ptr();
+	return buildTree( /*node*/0, featureIndexes, cuts ).Ptr();
 }
 
 // Initializes the array of node vector sets
@@ -137,7 +581,7 @@ void CGradientBoostFastHistTreeBuilder<T>::initVectorSet( int size )
 {
 	// For a start, all vectors are assigned to the root node
 	vectorSet.SetSize( size );
-	for( int i = 0; i < size; i++ ) {
+	for( int i = 0; i < size; ++i ) {
 		vectorSet[i] = i;
 	}
 }
@@ -153,18 +597,18 @@ void CGradientBoostFastHistTreeBuilder<T>::initHistData( const CGradientBoostFas
 	idPos.Empty();
 	idPos.Add( NotFound, featurePos.Last() );
 	histSize = 0;
-	for( int i = 0; i < usedFeatures.Size(); i++ ) {
+	for( int i = 0; i < usedFeatures.Size(); ++i ) {
 		const int featureIndex = usedFeatures[i];
-		for( int j = featurePos[featureIndex]; j < featurePos[featureIndex + 1]; j++ ) {
+		for( int j = featurePos[featureIndex]; j < featurePos[featureIndex + 1]; ++j ) {
 			idPos[j] = histSize;
-			histSize++;
+			++histSize;
 		}
 	}
 
 	// The histogram size of tree depth + 1 is sufficient
 	histStats.Add( T( predictionSize ), histSize * ( params.MaxTreeDepth + 1 ) );
 	freeHists.Empty();
-	for( int i = 0; i <= params.MaxTreeDepth; i++ ) {
+	for( int i = 0; i <= params.MaxTreeDepth; ++i ) {
 		freeHists.Add( i * histSize ); // a histogram is identified by the pointer to its start in the histData array
 	}
 }
@@ -176,24 +620,16 @@ int CGradientBoostFastHistTreeBuilder<T>::allocHist()
 {
 	NeoAssert( !freeHists.IsEmpty() );
 
-	int result = freeHists.Last();
+	const int result = freeHists.Last();
 	freeHists.DeleteLast();
 	return result;
-}
-
-// Free the unnecessary histogram
-// A histogram is identified by the pointer to its start in the histData array
-template<class T>
-void CGradientBoostFastHistTreeBuilder<T>::freeHist( int ptr )
-{
-	freeHists.Add( ptr );
 }
 
 // Subtract histograms
 template<class T>
 void CGradientBoostFastHistTreeBuilder<T>::subHist( int firstPtr, int secondPtr )
 {
-	for( int i = 0; i < histSize; i++ ) {
+	for( int i = 0; i < histSize; ++i ) {
 		histStats[firstPtr + i].Sub( histStats[secondPtr + i] );
 	}
 }
@@ -204,94 +640,23 @@ void CGradientBoostFastHistTreeBuilder<T>::buildHist( const CGradientBoostFastHi
 	const CArray<typename T::Type>& gradients, const CArray<typename T::Type>& hessians, const CArray<double>& weights,
 	T& totalStats )
 {
-	T* histStatsPtr = histStats.GetPtr() + node.HistPtr;
-	for( int i = 0; i < histSize; i++ ) {
-		histStatsPtr[i].Erase();
-	}
+	T* const histStatsPtr = histStats.GetPtr() + node.HistPtr;
 
-	totalStats.SetSize( predictionSize );
-	totalStats.Erase();
+	// Check if a multithreading task makes sense
+	const bool isMultiThreads = ( node.VectorSetSize > ( 4 * params.ThreadCount ) );
+	// Building the histogram task in single or parallel threads
+	CGBoostBuildHistogramThreadTask<T> task( *threadPool, problem, vectorSet, idPos, histStatsPtr,
+		node, gradients, hessians, weights, tempHistStats, histSize, predictionSize, totalStats, isMultiThreads );
+	if( isMultiThreads ) {
+		task.ParallelRun();
+		task.Reduction();
 
-	const bool isOmp = ( node.VectorSetSize > 4 * params.ThreadCount ); // check if using OpenMP makes sense
-	if( isOmp ) {
-		// There are many vectors in the set, so we'll use several threads to build the histogram
-		CArray<T> results;
-		results.Add( T( predictionSize ), params.ThreadCount );
-
-		const int valueSize = histStatsPtr[0].ValueSize();
-		tempHistStats.SetSize( params.ThreadCount * histSize );
-		for( int i = 0; i < params.ThreadCount * histSize; i++ ) {
-			tempHistStats[i].SetSize( valueSize );
-			tempHistStats[i].Erase();
-		}
-
-		NEOML_OMP_NUM_THREADS(params.ThreadCount)
-		{
-			const int threadNumber = OmpGetThreadNum();
-			NeoAssert( threadNumber < params.ThreadCount );
-			int i = threadNumber;
-			while( i < node.VectorSetSize ) {
-				const int vectorIndex = vectorSet[node.VectorSetPtr + i];
-				addVectorToHist( problem.GetUsedVectorDataPtr( vectorIndex ), problem.GetUsedVectorDataSize( vectorIndex ),
-					gradients, hessians, weights, tempHistStats.GetPtr() + histSize * threadNumber, vectorIndex );
-				results[threadNumber].Add( gradients, hessians, weights, vectorIndex );
-				i += params.ThreadCount;
-			}
-		}
-
-		// Merge the threads' results
-		for( int i = 0; i < params.ThreadCount; i++ ) {
-			totalStats.Add( results[i] );
-		}
-
-		NEOML_OMP_FOR_NUM_THREADS( params.ThreadCount )
-		for( int i = 0; i < histSize; i++ ) {
-			for( int j = 0; j < params.ThreadCount; j++ ) {
-				const int index = j * histSize + i;
-				histStatsPtr[i].Add( tempHistStats[index] );
-			}
-		}
+		CGBoostMergeHistogramsThreadTask<T>( *threadPool, tempHistStats, histStatsPtr, histSize ).ParallelRun();
 	} else {
-		// There are few vectors in the set, build the histogram using only one thread
-		for( int i = 0; i < node.VectorSetSize; i++ ) {
-			const int vectorIndex = vectorSet[node.VectorSetPtr + i];
-			addVectorToHist( problem.GetUsedVectorDataPtr( vectorIndex ), problem.GetUsedVectorDataSize( vectorIndex ),
-				gradients, hessians, weights, histStatsPtr, vectorIndex );
-			totalStats.Add( gradients, hessians, weights, vectorIndex );
-		}
+		task.RunInOneThread();
 	}
-
 	// Adding zero values
-	const CArray<int>& usedFeatures = problem.GetUsedFeatures();
-	const CArray<int>& featurePos = problem.GetFeaturePos();
-	const CArray<int>& featureNullValueId = problem.GetFeatureNullValueId();
-
-	NEOML_OMP_FOR_NUM_THREADS( params.ThreadCount )
-	for( int i = 0; i < usedFeatures.Size(); i++ ) {
-		const int nullFeatureId = featureNullValueId[usedFeatures[i]];
-
-		T nullStatistics( totalStats );
-		for( int j = featurePos[usedFeatures[i]]; j < featurePos[usedFeatures[i] + 1]; j++ ) {
-			nullStatistics.Sub( histStatsPtr[idPos[j]] );
-		}
-		histStatsPtr[idPos[nullFeatureId]].Add( nullStatistics );
-	}
-}
-
-// Adds a vector to the histogram
-template<class T>
-void CGradientBoostFastHistTreeBuilder<T>::addVectorToHist( const int* vectorPtr, int vectorSize,
-	const CArray<typename T::Type>& gradients, const CArray<typename T::Type>& hessians, const CArray<double>& weights, T* stats, int vectorIndex )
-{
-	NeoPresume( vectorPtr != 0 );
-	NeoPresume( vectorSize >= 0 );
-
-	for( int i = 0; i < vectorSize; i++ ) {
-		const int id = idPos[vectorPtr[i]];
-		if( id != NotFound ) {
-			stats[id].Add( gradients, hessians, weights, vectorIndex );
-		}
-	}
+	CGBoostAddNullStatsThreadTask<T>( *threadPool, problem, idPos, histStatsPtr, totalStats ).ParallelRun();
 }
 
 // Calculates the optimal feature value for splitting the node
@@ -299,86 +664,17 @@ void CGradientBoostFastHistTreeBuilder<T>::addVectorToHist( const int* vectorPtr
 template<class T>
 int CGradientBoostFastHistTreeBuilder<T>::evaluateSplit( const CGradientBoostFastHistProblem& problem, CNode& node ) const
 {
-	if( ( params.MaxNodesCount != NotFound && nodes.Size() + 2 > params.MaxNodesCount )
-		|| ( node.Level >= params.MaxTreeDepth ) ) {
+	if( ( params.MaxNodesCount != NotFound && ( nodes.Size() + 2 ) > params.MaxNodesCount )
+		|| ( node.Level >= params.MaxTreeDepth ) )
+	{
 		// The nodes limit has been reached
 		return NotFound;
 	}
 
-	const CArray<int>& usedFeatures = problem.GetUsedFeatures();
-	const CArray<int>& featurePos = problem.GetFeaturePos();
-	double bestValue = node.Statistics.CalcCriterion( params.L1RegFactor, params.L2RegFactor );
-	const T* histStatsPtr = histStats.GetPtr() + node.HistPtr;
-
-	// Initializing the search results for each thread
-	// The default bestValue is the parent's Gain (the node is not split by default)
-	CArray<double>& splitGainsByThread = splitGainsByThreadBuffer;
-	splitGainsByThread.DeleteAll();
-	splitGainsByThread.Add( bestValue, params.ThreadCount );
-	CArray<int>& splitIds = splitIdsBuffer;
-	splitIds.DeleteAll();
-	splitIds.Add( NotFound, params.ThreadCount );
-	if( leftCandidates.Size() == 0 ) {
-		leftCandidates.Add( T( predictionSize ), params.ThreadCount );
-		rightCandidates.Add( T( predictionSize ), params.ThreadCount );
-	}
-
-	NEOML_OMP_NUM_THREADS(params.ThreadCount)
-	{
-		const int threadNumber = OmpGetThreadNum();
-		NeoAssert( threadNumber < params.ThreadCount );
-		T leftCandidate( predictionSize );
-		T rightCandidate( predictionSize );
-
-		// Iterate through features (a separate subset for each thread)
-		for( int i = threadNumber; i < usedFeatures.Size(); i += params.ThreadCount ) {
-			T left( predictionSize ); // the gain for the left node after the split
-			T right( predictionSize ); // for the right node after the split (calculated as the complement to the parent)
-			const int firstFeatureIndex = featurePos[usedFeatures[i]];
-			const int lastFeatureIndex = featurePos[usedFeatures[i] + 1];
-			// Iterate through feature values (sorted ascending) looking for the split position
-			for( int j = firstFeatureIndex; j < lastFeatureIndex; j++ ) {
-				const T& featureStats = histStatsPtr[idPos[j]];
-				left.Add( featureStats );
-				right = node.Statistics;
-				right.Sub( left );
-				leftCandidate = left;
-				rightCandidate = right;
-
-				// Calculating the gain: if the node is split at this position, 
-				// the criterion loses the parent node (bestValue) and replaces it by left.CalcCriterion and right.CalcCriterion
-				// In the reference paper, a gamma coefficient is also needed for a new node, but we take that into account while pruning
-				double criterion;
-				if( !T::CalcCriterion( criterion, leftCandidate, rightCandidate, node.Statistics,
-					params.L1RegFactor, params.L2RegFactor, params.MinSubsetHessian, params.MinSubsetWeight, params.DenseTreeBoostCoefficient ) )
-				{
-					continue;
-				}
-
-				if( splitGainsByThread[threadNumber] < criterion ) {
-					splitGainsByThread[threadNumber] = criterion;
-					splitIds[threadNumber] = j;  // this number refers both to the feature and its value
-					// save statistics for childs for case when class if not splitting further
-					leftCandidates[threadNumber] = leftCandidate;
-					rightCandidates[threadNumber] = rightCandidate;
-				}
-			}
-		}
-	}
-
-	// Choose the best result over all threads
-	int result = NotFound;
-	for( int i = 0; i < splitGainsByThread.Size(); i++ ) {
-		const double& threadBestGain = splitGainsByThread[i];
-		const int threadBestFeature = splitIds[i]; // the coordinate in the array witha all values of all features
-		if( bestValue < threadBestGain || ( bestValue == threadBestGain && threadBestFeature < result ) ) {
-			bestValue = threadBestGain;
-			result = threadBestFeature;
-			node.LeftStatistics = leftCandidates[i];
-			node.RightStatistics = rightCandidates[i];
-		}
-	}
-	return result;
+	CGBoostCalcSplitGainThreadTask<T> task( *threadPool, problem, params, idPos,
+		node, ( histStats.GetPtr() + node.HistPtr ), predictionSize, tb );
+	task.ParallelRun();
+	return task.Reduction();
 }
 
 // Splits a node
@@ -388,41 +684,11 @@ void CGradientBoostFastHistTreeBuilder<T>::applySplit( const CGradientBoostFastH
 {
 	NeoAssert( node >= 0 );
 
-	const CArray<int>& featureIndexes = problem.GetFeatureIndexes();
-	const CArray<int>& featureNullValueId = problem.GetFeatureNullValueId();
+	// Determining to which subtree each vector belongs
+	CGBoostDetermineSubTreeThreadTask<T>( *threadPool, problem, vectorSet, nodes[node] ).ParallelRun();
 
 	const int vectorPtr = nodes[node].VectorSetPtr;
 	const int vectorCount = nodes[node].VectorSetSize;
-	const int featureIndex = featureIndexes[nodes[node].SplitFeatureId];
-	const int nextId = problem.GetFeaturePos()[featureIndex + 1] - 1;
-
-	// Determining to which subtree each vector belongs
-	NEOML_OMP_NUM_THREADS(params.ThreadCount)
-	{
-		const int threadNumber = OmpGetThreadNum();
-		NeoAssert( threadNumber < params.ThreadCount );
-		int i = threadNumber;
-		while( i < vectorCount ) {
-			const int* vectorDataPtr = problem.GetUsedVectorDataPtr( vectorSet[vectorPtr + i] );
-			const int vectorDataSize = problem.GetUsedVectorDataSize( vectorSet[vectorPtr + i] );
-
-			const int pos = FindInsertionPoint<int, Ascending<int>, int>( nextId, vectorDataPtr, vectorDataSize );
-			int vectorFeatureId = NotFound; // the ID of the feature value used for split for this vector
-			if( pos == 0 || ( featureIndexes[vectorDataPtr[pos - 1]] != featureIndex ) ) {
-				// The vector contains no feature value for the split, therefore this value is 0
-				vectorFeatureId = featureNullValueId[featureIndex];
-			} else {
-				vectorFeatureId = vectorDataPtr[pos - 1];
-			}
-
-			if( vectorFeatureId <= nodes[node].SplitFeatureId ) { // the value is smaller for the smaller ID
-				// The vector belongs to the left subtree
-				vectorSet[vectorPtr + i] = -( vectorSet[vectorPtr + i] + 1 );
-			} // To the right subtree otherwise (no action needed)
-
-			i += params.ThreadCount;
-		}
-	}
 
 	// Reordering the vectors of the node
 	int leftIndex = 0;

@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -33,8 +33,8 @@ void CCudaMathEngine::SetVectorToMatrixRows(const CFloatHandle& resultHandle,
 	ASSERT_EXPR( vectorHandle.GetMathEngine() == this );
 	SetCudaDevice( device->DeviceNumber );
 
-	int blockCount;
-	int threadCount;
+	int blockCount = 0;
+	int threadCount = 0;
 	getCudaTaskGrid( blockCount, threadCount, matrixHeight * matrixWidth );
 
 	SetVectorToMatrixRowsKernel<<<blockCount, threadCount>>>
@@ -49,8 +49,8 @@ void CCudaMathEngine::AddVectorToMatrixElements(const CFloatHandle& matrix, int 
 	ASSERT_EXPR( vector.GetMathEngine() == this );
 	SetCudaDevice( device->DeviceNumber );
 
-	int blockCount;
-	int threadCount;
+	int blockCount = 0;
+	int threadCount = 0;
 	getCudaTaskGrid(blockCount, threadCount, height, AddVectorToMatrixElementsCombine);
 
 	AddVectorToMatrixElementsKernel<<<blockCount, threadCount>>>(GetRaw(matrix),
@@ -67,8 +67,8 @@ void CCudaMathEngine::AddVectorToMatrixElements(const CFloatHandle& matrixHandle
 	ASSERT_EXPR( vectorHandle.GetMathEngine() == this );
 	SetCudaDevice( device->DeviceNumber );
 
-	int blockCount;
-	int threadCount;
+	int blockCount = 0;
+	int threadCount = 0;
 	getCudaTaskGrid(blockCount, threadCount, vectorSize, AddVectorToMatrixElementsMulCombine);
 
 	AddVectorToMatrixElementsKernel<<<blockCount, threadCount>>>(GetRaw(matrixHandle), height, width,
@@ -87,10 +87,9 @@ void CCudaMathEngine::setVectorToMatrixElements(
 	ASSERT_EXPR( vectorHandle.GetMathEngine() == this );
 	SetCudaDevice( device->DeviceNumber );
 
-	int blockCount;
-	int threadCount;
-	getCudaTaskGrid(
-		blockCount, threadCount, vectorSize, SetVectorToMatrixElementsMulCombine );
+	int blockCount = 0;
+	int threadCount = 0;
+	getCudaTaskGrid( blockCount, threadCount, vectorSize, SetVectorToMatrixElementsMulCombine );
 
 	SetVectorToMatrixElementsKernel<<<blockCount, threadCount>>>(
 		GetRaw( matrixHandle ), height, width,
@@ -107,8 +106,8 @@ void CCudaMathEngine::AddMatrixElementsToVector(const CConstFloatHandle& matrix,
 	ASSERT_EXPR(vectorSize >= height);
 	SetCudaDevice( device->DeviceNumber );
 
-	int blockCount;
-	int threadCount;
+	int blockCount = 0;
+	int threadCount = 0;
 	getCudaTaskGrid(blockCount, threadCount, height, AddMatrixElementsToVectorCombine);
 
 	AddMatrixElementsToVectorKernel<<<blockCount, threadCount>>>(GetRaw(matrix),
@@ -125,8 +124,8 @@ void CCudaMathEngine::AddMatrixElementsToVector(const CConstFloatHandle& matrix,
 	ASSERT_EXPR( result.GetMathEngine() == this );
 	SetCudaDevice( device->DeviceNumber );
 
-	int blockCount;
-	int threadCount;
+	int blockCount = 0;
+	int threadCount = 0;
 	getCudaTaskGrid(blockCount, threadCount, vectorSize, AddMatrixElementsToVectorMulCombine);
 
 	AddMatrixElementsToVectorKernel<<<blockCount, threadCount>>>(GetRaw(matrix),
@@ -141,8 +140,8 @@ void CCudaMathEngine::AddMatrixElementsToMatrix(const CConstFloatHandle& matrix,
 	ASSERT_EXPR( indices.GetMathEngine() == this );
 	SetCudaDevice( device->DeviceNumber );
 
-	int blockCount;
-	int threadCount;
+	int blockCount = 0;
+	int threadCount = 0;
 	getCudaTaskGrid(blockCount, threadCount, height, AddMatrixElementsToMatrixCombine);
 
 	AddMatrixElementsToMatrixKernel<<<blockCount, threadCount>>>(GetRaw(matrix),
@@ -236,6 +235,25 @@ void CCudaMathEngine::SubVectorFromMatrixColumns(const CConstFloatHandle& matrix
 		(GetRaw(matrixHandle), GetRaw(resultHandle), matrixHeight, matrixWidth, GetRaw(vectorHandle));
 }
 
+void CCudaMathEngine::SumMatrixRows( int batchSize, const CIntHandle& resultHandle,
+	const CConstIntHandle& matrixHandle, int matrixHeight, int matrixWidth )
+{
+	ASSERT_EXPR( matrixHandle.GetMathEngine() == this );
+	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+	SetCudaDevice( device->DeviceNumber );
+
+	VectorFill( resultHandle, 0, batchSize * matrixWidth );
+
+	const int height = ( matrixHeight + SumMatrixRowsAddCombineCount - 1 ) / SumMatrixRowsAddCombineCount;
+
+	dim3 blockCount;
+	dim3 threadCount;
+	getCudaTaskGrid3D( blockCount, threadCount, batchSize, height, matrixWidth );
+
+	SumMatrixRowsAddKernel<<<blockCount, threadCount>>>
+		( batchSize, GetRaw(resultHandle), GetRaw(matrixHandle), matrixHeight, matrixWidth );
+}
+
 void CCudaMathEngine::SumMatrixRowsAdd( 
 	int batchSize, const CFloatHandle& resultHandle, const CConstFloatHandle& matrixHandle,
 	int matrixHeight, int matrixWidth )
@@ -295,6 +313,7 @@ void CCudaMathEngine::MatrixLogSumExpByRows(const CConstFloatHandle& matrix, int
 	dim3 threadCount;
 	getCudaTaskGrid2DMinYX(1, 1024, blockCount, threadCount, height, widthNorm);
 	blockCount.x = 1;
+
 	const int sharedSize = threadCount.x * threadCount.y * sizeof(float);
 	MatrixLogSumExpByRowsKernel<<<blockCount, threadCount, sharedSize>>>(GetRaw(matrix), height, width,
 		GetRaw(result), widthNorm);
@@ -455,8 +474,8 @@ void CCudaMathEngine::FindMinValueInColumns( const CConstFloatHandle& matrixHand
 	VectorCopy( resultHandle, matrixHandle, matrixWidth );
 	VectorFill( columnIndices, 0, matrixWidth );
 
-	int blockCount;
-	int threadCount;
+	int blockCount = 0;
+	int threadCount = 0;
 	getCudaTaskGrid( blockCount, threadCount, matrixWidth );
 
 	FindMinValueInColumnsKernel<<<blockCount, threadCount>>>( GetRaw( matrixHandle ), matrixHeight,
@@ -529,8 +548,8 @@ void CCudaMathEngine::BitSetBinarization(int batchSize, int bitSetSize,
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	SetCudaDevice( device->DeviceNumber );
 
-	int blockCount;
-	int threadCount;
+	int blockCount = 0;
+	int threadCount = 0;
 	getCudaTaskGrid( blockCount, threadCount, batchSize * outputVectorSize );
 
 	BitSetBinarizationKernel<<<blockCount, threadCount>>>(batchSize, bitSetSize,
@@ -595,7 +614,7 @@ void CCudaMathEngine::MultiplyVectorByTransposedLookupVectorAndAddToTable(int ba
 	ASSERT_EXPR(vectorSize == second.VectorSize());
 	SetCudaDevice( device->DeviceNumber );
 
-	int vectorSizeNorm = (vectorSize + MultiplyVectorByTransposedLookupVectorAndAddToTableCombine - 1) /
+	const int vectorSizeNorm = (vectorSize + MultiplyVectorByTransposedLookupVectorAndAddToTableCombine - 1) /
 		MultiplyVectorByTransposedLookupVectorAndAddToTableCombine;
 
 	dim3 blockCount;
@@ -618,7 +637,6 @@ void CCudaMathEngine::MultiplyDiagMatrixByMatrix(const CConstFloatHandle& firstH
 
 	dim3 blockCount;
 	dim3 threadCount;
-
 	getCudaTaskGrid2D(blockCount, threadCount, firstSize, secondWidth);
 
 	MultiplyDiagMatrixByMatrixKernel<<<blockCount, threadCount>>>
@@ -634,12 +652,11 @@ void CCudaMathEngine::Multiply1DiagMatrixByMatrix(int batchSize, const CConstFlo
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	SetCudaDevice( device->DeviceNumber );
 
-	dim3 blockCount;
-	dim3 threadCount;
-
-	int batchNorm = (batchSize + Multiply1DiagMatrixByMatrixCombine - 1) /
+	const int batchNorm = (batchSize + Multiply1DiagMatrixByMatrixCombine - 1) /
 		Multiply1DiagMatrixByMatrixCombine;
 
+	dim3 blockCount;
+	dim3 threadCount;
 	getCudaTaskGrid2DMinYX(1, 256, blockCount, threadCount, batchNorm, firstSize * secondWidth);
 
 	Multiply1DiagMatrixByMatrixKernel<<<blockCount, threadCount>>>
@@ -678,11 +695,9 @@ void CCudaMathEngine::MultiplyDiagMatrixByMatrixAndAdd( int batchSize, const CCo
 
 	dim3 blockCount;
 	dim3 threadCount;
-
 	getCudaTaskGrid3DMinZYX( 1, 1, 512, blockCount, threadCount, firstSize, secondWidth, batchSizeNorm );
 
 	int sharedSize = threadCount.x * threadCount.y * threadCount.z * sizeof( float );
-
 	MultiplyDiagMatrixByMatrixAndSumKernel<<<blockCount, threadCount, sharedSize>>>( batchSize,
 		GetRaw( firstHandle ), firstSize, GetRaw( secondHandle ), secondWidth, GetRaw( resultHandle ),
 		batchSizeNorm );
@@ -697,7 +712,7 @@ void CCudaMathEngine::RowMultiplyMatrixByMatrix( const CConstFloatHandle& firstH
 	SetCudaDevice( device->DeviceNumber );
 
 	VectorFill( resultHandle, 0, height );
-	int widthNorm = ( width + RowMultiplyMatrixByMatrixCombine - 1 ) / RowMultiplyMatrixByMatrixCombine;
+	const int widthNorm = ( width + RowMultiplyMatrixByMatrixCombine - 1 ) / RowMultiplyMatrixByMatrixCombine;
 
 	dim3 blockCount;
 	dim3 threadCount;
@@ -729,11 +744,10 @@ void CCudaMathEngine::MatrixSpreadRowsAdd(const CConstFloatHandle& sourceHandle,
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	SetCudaDevice( device->DeviceNumber );
 
-	int widthNorm = (width + MatrixSpreadRowsCombine - 1) / MatrixSpreadRowsCombine;
+	const int widthNorm = (width + MatrixSpreadRowsCombine - 1) / MatrixSpreadRowsCombine;
 
 	dim3 blockCount;
 	dim3 threadCount;
-
 	getCudaTaskGrid2D(blockCount, threadCount, height, widthNorm);
 
 	MatrixSpreadRowsAddKernel<<<blockCount, threadCount>>>(GetRaw(sourceHandle), height, width,
@@ -753,6 +767,23 @@ void CCudaMathEngine::MatrixSpreadRows(const CConstIntHandle& sourceHandle, int 
 		resultHandle, resultHeight, GetRaw(indexHandle), fillValue);
 }
 
+void CCudaMathEngine::SingularValueDecomposition( const CFloatHandle& a, int height, int width, const CFloatHandle& u, const CFloatHandle& s,
+	const CFloatHandle& vt, const CFloatHandle& superb, bool returnLeftVectors, bool returnRightVectors )
+{
+	ASSERT_EXPR( false );
+}
+
+void CCudaMathEngine::QRFactorization( int height, int width, const CFloatHandle& matrixHandle, const CFloatHandle* qHandle, const CFloatHandle* rHandle,
+	bool inplace, bool returnQ, bool returnR )
+{
+	ASSERT_EXPR( false );
+}
+
+void CCudaMathEngine::LUFactorization( int, int, const CFloatHandle& )
+{
+	ASSERT_EXPR( false );
+}
+
 void CCudaMathEngine::LookupAndSum( const CConstIntHandle& indicesHandle, int batchSize, int indexCount,
 	const CConstFloatHandle& tableHandle, int vectorSize, const CFloatHandle& result )
 {
@@ -761,7 +792,8 @@ void CCudaMathEngine::LookupAndSum( const CConstIntHandle& indicesHandle, int ba
 	ASSERT_EXPR( result.GetMathEngine() == this );
 	SetCudaDevice( device->DeviceNumber );
 
-	dim3 blockCount, threadCount;
+	dim3 blockCount;
+	dim3 threadCount;
 	getCudaTaskGrid2D( blockCount, threadCount, batchSize, vectorSize );
 
 	LookupAndSumKernel<<<blockCount, threadCount>>>( GetRaw( indicesHandle ), batchSize, indexCount,
@@ -778,7 +810,8 @@ void CCudaMathEngine::LookupAndAddToTable( const CConstIntHandle& indicesHandle,
 
 	VectorFill( tableHandle, 0.f, vectorSize * vectorCount );
 
-	dim3 blockCount, threadCount;
+	dim3 blockCount;
+	dim3 threadCount;
 	getCudaTaskGrid3D( blockCount, threadCount, batchSize, indexCount, vectorSize );
 
 	LookupAndAddToTableKernel<<<blockCount, threadCount>>>( GetRaw( indicesHandle ), batchSize, indexCount,
@@ -792,8 +825,8 @@ void CCudaMathEngine::EnumBinarization(int batchSize,
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	SetCudaDevice( device->DeviceNumber );
 
-	int blockCount;
-	int threadCount;
+	int blockCount = 0;
+	int threadCount = 0;
 	getCudaTaskGrid(blockCount, threadCount, batchSize * enumSize, EnumBinarizationCombine);
 
 	EnumBinarizationKernel<<<blockCount, threadCount>>>(batchSize,
@@ -807,8 +840,8 @@ void CCudaMathEngine::EnumBinarization(int batchSize,
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	SetCudaDevice( device->DeviceNumber );
 
-	int blockCount;
-	int threadCount;
+	int blockCount = 0;
+	int threadCount = 0;
 	getCudaTaskGrid(blockCount, threadCount, batchSize * enumSize, EnumBinarizationCombine);
 
 	EnumBinarizationKernel<<<blockCount, threadCount>>>(batchSize,
@@ -819,12 +852,18 @@ template<class T>
 void CCudaMathEngine::transposeMatrixImpl(int batchSize, const CTypedMemoryHandle<const T>& firstHandle,
 	int height, int medium, int width, int channels, const CTypedMemoryHandle<T>& resultHandle, int resultBufferSize)
 {
-	int size = batchSize * height * medium * width * channels;
+	const int size = batchSize * height * medium * width * channels;
 	ASSERT_EXPR(resultBufferSize >= size);
+
+	if( medium == 1 && ( height == 1 || width == 1 ) ) {
+		VectorCopy( resultHandle, firstHandle, size );
+		return;
+	}
+
 	SetCudaDevice( device->DeviceNumber );
 
-	int blockCount;
-	int threadCount;
+	int blockCount = 0;
+	int threadCount = 0;
 	getCudaTaskGrid(blockCount, threadCount, size, TransposeMatrixCombine);
 
 	TransposeMatrixKernel<<<blockCount, threadCount>>>(batchSize, GetRaw(firstHandle),
@@ -837,10 +876,12 @@ void CCudaMathEngine::sumMatrixColumnsKernelFunc(const CFloatHandle& resultHandl
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
 	SetCudaDevice( device->DeviceNumber );
 
-	int widthNorm = (matrixWidth + SumMatrixColumnsCombine - 1) / SumMatrixColumnsCombine;
+	const int widthNorm = (matrixWidth + SumMatrixColumnsCombine - 1) / SumMatrixColumnsCombine;
+
 	dim3 blockCount;
 	dim3 threadCount;
 	getCudaTaskGrid2DMinYX(1, 256, blockCount, threadCount, matrixHeight, widthNorm);
+
 	int maxAtomicPerX =  SumMatrixColumnsMaxAtomic / blockCount.y;
 	if(maxAtomicPerX <= 0) {
 		maxAtomicPerX = 1;
@@ -848,12 +889,11 @@ void CCudaMathEngine::sumMatrixColumnsKernelFunc(const CFloatHandle& resultHandl
 	if((int)blockCount.x > maxAtomicPerX) {
 		blockCount.x = maxAtomicPerX;
 	}
-	int totalThreadXCount = threadCount.x * blockCount.x;
-	int combine = (matrixWidth + totalThreadXCount - 1) / totalThreadXCount;
-
 	if( blockCount.x > 1 ) {
 		VectorFill(resultHandle, 0, matrixHeight);
 	}
+	const int totalThreadXCount = threadCount.x * blockCount.x;
+	const int combine = (matrixWidth + totalThreadXCount - 1) / totalThreadXCount;
 
 	const int sharedSize = threadCount.y * threadCount.x * sizeof(float);
 	SumMatrixColumnsKernel<<<blockCount, threadCount, sharedSize>>>
@@ -900,11 +940,10 @@ void CCudaMathEngine::matrixSpreadRowsImpl(const T* source, int height, int widt
 		VectorFill( result, resultHeight * width, fillValue);
 	}
 
-	int widthNorm = (width + MatrixSpreadRowsCombine - 1) / MatrixSpreadRowsCombine;
+	const int widthNorm = (width + MatrixSpreadRowsCombine - 1) / MatrixSpreadRowsCombine;
 
 	dim3 blockCount;
 	dim3 threadCount;
-
 	getCudaTaskGrid2D(blockCount, threadCount, height, widthNorm);
 
 	MatrixSpreadRowsKernel<T><<<blockCount, threadCount>>>(source, height, width,
@@ -917,7 +956,7 @@ void CCudaMathEngine::vectorMultichannelLookupAndCopy(int batchSize, int channel
 	const CTypedMemoryHandle<TLookup>& outputHandle, int outputChannelsCount)
 {
 	SetCudaDevice( device->DeviceNumber );
-	int batchNorm = (batchSize + BatchVectorLookupAndCopyCombineBatch - 1) / BatchVectorLookupAndCopyCombineBatch;
+	const int batchNorm = (batchSize + BatchVectorLookupAndCopyCombineBatch - 1) / BatchVectorLookupAndCopyCombineBatch;
 
 	int outputChannel = 0;
 	for(int j = 0; j < lookupCount; ++j) {
@@ -946,9 +985,9 @@ void CCudaMathEngine::vectorMultichannelLookupAndAddToTable(int batchSize, int c
 	const CConstFloatHandle& multHandle, const CConstFloatHandle& matrixHandle, int outputChannelsCount)
 {
 	SetCudaDevice( device->DeviceNumber );
-	int batchNorm = (batchSize + BatchVectorLookupAndAddToTableCombine - 1) / BatchVectorLookupAndAddToTableCombine;
+	const int batchNorm = (batchSize + BatchVectorLookupAndAddToTableCombine - 1) / BatchVectorLookupAndAddToTableCombine;
 
-	float mult = multHandle.GetValue();
+	const float mult = multHandle.GetValue();
 
 	int outputChannel = 0;
 	for (int j = 0; j < lookupCount; ++j) {
@@ -961,6 +1000,20 @@ void CCudaMathEngine::vectorMultichannelLookupAndAddToTable(int batchSize, int c
 
 		outputChannel += lookupDimensions[j].VectorSize;
 	}
+}
+
+void CCudaMathEngine::multiplyMatrixByDiagMatrix( int batchSize, const CConstFloatHandle& firstHandle, int height,
+	int width, int firstMatrixOffset, const CConstFloatHandle& secondHandle, int secondMatrixOffset,
+	const CFloatHandle& resultHandle )
+{
+	SetCudaDevice( device->DeviceNumber );
+
+	int blockCount = 0;
+	int threadCount = 0;
+	getCudaTaskGrid( blockCount, threadCount, height * width * batchSize, MultiplyMatrixByDiagMatrixCombine );
+
+	MultiplyMatrixByDiagMatrixKernel<<<blockCount, threadCount>>>( batchSize, GetRaw( firstHandle ), height, width,
+		firstMatrixOffset, GetRaw( secondHandle ), secondMatrixOffset, GetRaw( resultHandle ) );
 }
 
 } // namespace NeoML

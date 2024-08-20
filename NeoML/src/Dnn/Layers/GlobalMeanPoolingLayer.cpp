@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright Â© 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -38,8 +38,8 @@ void CGlobalMeanPoolingLayer::Serialize( CArchive& archive )
 void CGlobalMeanPoolingLayer::Reshape()
 {
 	CheckInputs();
-	CheckArchitecture( GetInputCount() == 1, GetName(), "multiple inputs" );
-	CheckArchitecture( GetOutputCount() == 1, GetName(), "multiple outputs" );
+	CheckLayerArchitecture( GetInputCount() == 1, "multiple inputs" );
+	CheckLayerArchitecture( GetOutputCount() == 1, "multiple outputs" );
 
 	NeoAssert( inputDescs.Size() == 1 );
 	const CBlobDesc& inputDesc = inputDescs[0];
@@ -54,16 +54,26 @@ void CGlobalMeanPoolingLayer::Reshape()
 
 void CGlobalMeanPoolingLayer::RunOnce()
 {
-	MathEngine().SumMatrixRows( inputBlobs[0]->GetObjectCount(), outputBlobs[0]->GetData(), inputBlobs[0]->GetData(), inputBlobs[0]->GetGeometricalSize(),
-		inputBlobs[0]->GetChannelsCount() );
+	if( inputBlobs[0]->GetChannelsCount() == 1 ) {
+		MathEngine().SumMatrixColumns( outputBlobs[0]->GetData(), inputBlobs[0]->GetData(),
+			inputBlobs[0]->GetObjectCount(), inputBlobs[0]->GetGeometricalSize() );
+	} else {
+		MathEngine().SumMatrixRows( inputBlobs[0]->GetObjectCount(), outputBlobs[0]->GetData(), inputBlobs[0]->GetData(), inputBlobs[0]->GetGeometricalSize(),
+			inputBlobs[0]->GetChannelsCount() );
+	}
 	MathEngine().VectorMultiply( outputBlobs[0]->GetData(), outputBlobs[0]->GetData(), outputBlobs[0]->GetDataSize(), coeff->GetData() );
 }
 
 void CGlobalMeanPoolingLayer::BackwardOnce()
 {
 	MathEngine().VectorFill( inputDiffBlobs[0]->GetData(), 0.0f, inputDiffBlobs[0]->GetDataSize() );
-	MathEngine().AddVectorToMatrixRows( inputDiffBlobs[0]->GetObjectCount(), inputDiffBlobs[0]->GetData(), inputDiffBlobs[0]->GetData(),
-		inputDiffBlobs[0]->GetGeometricalSize(), inputDiffBlobs[0]->GetChannelsCount(), outputDiffBlobs[0]->GetData() );
+	if( inputDiffBlobs[0]->GetChannelsCount() == 1 ) {
+		MathEngine().AddVectorToMatrixColumns( inputDiffBlobs[0]->GetData(), inputDiffBlobs[0]->GetData(),
+			inputDiffBlobs[0]->GetObjectCount(), inputDiffBlobs[0]->GetGeometricalSize(), outputDiffBlobs[0]->GetData() );
+	} else {
+		MathEngine().AddVectorToMatrixRows( inputDiffBlobs[0]->GetObjectCount(), inputDiffBlobs[0]->GetData(), inputDiffBlobs[0]->GetData(),
+			inputDiffBlobs[0]->GetGeometricalSize(), inputDiffBlobs[0]->GetChannelsCount(), outputDiffBlobs[0]->GetData() );
+	}
 	MathEngine().VectorMultiply( inputDiffBlobs[0]->GetData(), inputDiffBlobs[0]->GetData(), inputDiffBlobs[0]->GetDataSize(), coeff->GetData() );
 }
 

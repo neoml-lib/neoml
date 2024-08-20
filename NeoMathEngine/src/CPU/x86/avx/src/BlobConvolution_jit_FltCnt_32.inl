@@ -27,7 +27,7 @@ template<>
 const int CBlobConvolution<32>::WideBatchKernelWidth = 2;
 
 template<>
-inline void CBlobConvolution<32>::CJitConvolution::fillBatchProcessingKernel( CBlobConvolution<32>& bc, bool useNarrowProcessing, size_t windowIndex )
+inline void CBlobConvolution<32>::CJitConvolution::fillBatchProcessingKernel( const CBlobConvolution<32>& bc, bool useNarrowProcessing, size_t windowIndex )
 {
     using namespace Xbyak;
 
@@ -68,7 +68,7 @@ inline void CBlobConvolution<32>::CJitConvolution::fillBatchProcessingKernel( CB
 }
 
 template<>
-inline void CBlobConvolution<32>::CJitConvolution::fillSingleProcessingKernel( CBlobConvolution<32>& bc, bool useNarrowProcessing, size_t windowIndex )
+inline void CBlobConvolution<32>::CJitConvolution::fillSingleProcessingKernel( const CBlobConvolution<32>& bc, bool useNarrowProcessing, size_t windowIndex )
 {
     using namespace Xbyak;
 
@@ -84,7 +84,7 @@ inline void CBlobConvolution<32>::CJitConvolution::fillSingleProcessingKernel( C
         const int InnerBatchStepSize = 2;
         int offset = 0;
         for( int batchStep = channelCount; batchStep > 0; batchStep -= InnerBatchStepSize ) {
-            const int innerChannelCount = min( InnerBatchStepSize, batchStep );
+            const int innerChannelCount = std::min( InnerBatchStepSize, batchStep );
             size_t fltOffset = offset * FltCntM8 * sizeof( float );
             size_t srcOffset = offset * sizeof( float );
 

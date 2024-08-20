@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,36 +21,107 @@ limitations under the License.
 
 #include "onnx.pb.h"
 
+using namespace NeoML;
+
 namespace NeoOnnx {
+
+// Gets the maximum number of inputs in the given opset version
+static int getPoolMaxInputCount( const CString& opType, int opsetVersion )
+{
+	if( opsetVersion < 13 ) {
+		return 1;
+	}
+
+	// Since v13 ReduceSum may have 2 inputs
+	if( opType == "ReduceSum" ) {
+		return 2;
+	}
+
+	// Since v18 all other ReduceSmth operators may have 2 inputs
+	if( opsetVersion >= 18 && opType.CompareSubstr( 0, "Reduce", 6 ) == 0 ) {
+		return 2;
+	}
+
+	// Reduce* operators with version in [13;18) must have 1 input (except ReduceSum)
+	return 1;
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
+// Validator for global pool operators
+class CGlobalPoolLayoutValidator : public ITensorLayoutValidator {
+public:
+	explicit CGlobalPoolLayoutValidator( const CFastArray<int, 8>& _pooledAxes );
+
+	bool operator()( const CTensorLayout& layout ) const override;
+
+private:
+	CFastArray<int, 8> pooledAxes;
+};
+
+CGlobalPoolLayoutValidator::CGlobalPoolLayoutValidator( const CFastArray<int, 8>& _pooledAxes )
+{
+	_pooledAxes.CopyTo( pooledAxes );
+	CheckNeoOnnxSupport( pooledAxes.Size() <= 3, "Global pooling may have up to 3 pooled dims" );
+	for( int i = 0; i < pooledAxes.Size(); ++i ) {
+		NeoAssert( pooledAxes[i] >= 0 );
+		NeoAssert( i == 0 || pooledAxes[i - 1] < pooledAxes[i] );
+	}
+}
+
+bool CGlobalPoolLayoutValidator::operator()( const CTensorLayout& layout ) const
+{
+	NeoAssert( layout.Size() >= pooledAxes.Size() );
+	CheckNeoOnnxSupport( layout.Size() - pooledAxes.Size() <= 4, "Global pooling may have up to 4 unpooled dims" );
+	for( int i = 0; i < layout.Size(); ++i ) {
+		if( pooledAxes.Find( i ) == NotFound && layout[i] >= BD_Height && layout[i] <= BD_Depth ) {
+			return false; // non-pooled axes must be in { BD_BatchLength, BD_BatchWidth, BD_ListSize, BD_Channels }
+		} else if( pooledAxes.Find( i ) != NotFound && ( layout[i] < BD_Height || layout[i] == BD_Channels ) ) {
+			return false; // pooled axes must be in { BD_Height, BD_Width, BD_Depth }
+		}
+	}
+	return true;
+}
+
+//---------------------------------------------------------------------------------------------------------------------
 
 CGlobalPoolOperatorBase::CGlobalPoolOperatorBase( TPoolType _poolType, const onnx::NodeProto& onnxNode, int opsetVersion ) :
 	CLayerOperator( onnxNode, opsetVersion ),
 	poolType( _poolType )
 {
-	CheckOnnxProtocol( InputCount() == 1, "operator must have 1 input", *this );
+	CheckOnnxProtocol( InputCount() >= 1 && InputCount() <= getPoolMaxInputCount( Type(), opsetVersion ),
+		"wrong input count", *this );
 	CheckOnnxProtocol( OutputCount() == 1, "operator must have 1 output", *this );
 }
 
-void CGlobalPoolOperatorBase::PoolAxes( const CTensorShape& inputShape, CFastArray<int, 8>& axes ) const
+void CGlobalPoolOperatorBase::PoolAxes( const CTensorArray& inputs, CFastArray<int, 8>& axes ) const
 {
 	// Global pooling interpret tensor as (B x C x D0 x D1 x .. x DN)
 	// Where D0 ... DN are pooled dimensions
-	CheckOnnxProtocol( inputShape.Size() >= 2, "Global pool input must be at least 2-dimensional", *this );
-	axes.SetBufferSize( inputShape.Size() - 2 );
-	for( int i = 2; i < inputShape.Size(); ++i ) {
+	const int inputDimCount = inputs[0]->DimCount();
+	CheckOnnxProtocol( inputDimCount >= 2, "Global pool input must be at least 2-dimensional", *this );
+	axes.SetBufferSize( inputDimCount - 2 );
+	for( int i = 2; i < inputDimCount; ++i ) {
 		axes.Add( i );
 	}
 }
 
 void CGlobalPoolOperatorBase::AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
-	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
+	CheckNeoOnnxSupport( inputs[0] != nullptr, "data input must be present", *this );
+	CheckNoShapeInputs( inputs );
 
 	CFastArray<int, 8> axes;
-	PoolAxes( inputs[0]->Shape(), axes );
+	PoolAxes( inputs, axes );
 
-	CPtr<const CUserTensor> curr = AsUserTensor( *inputs[0], Name() + "_Source", dnn );
-	curr = prepareInput( *curr, axes, dnn );
+	if( axes.IsEmpty() ) {
+		outputs.Add( inputs[0] );
+		return;
+	}
+
+	CPtr<const CUserTensor> curr = AsUserTensor( *ConvertTensor( *inputs[0], CGlobalPoolLayoutValidator( axes ) ),
+		Name() + "_Source", dnn );
+	curr = prepareInput( *curr, dnn );
 	curr = addPoolingLayer( *curr, axes, dnn );
 	curr = addPostProcessing( *curr, dnn );
 
@@ -58,112 +129,36 @@ void CGlobalPoolOperatorBase::AddLayers( const CTensorArray& inputs, CDnn& dnn, 
 }
 
 // Prepares input for NeoML's CGlobal*PoolingLayer
-CPtr<const CUserTensor> CGlobalPoolOperatorBase::prepareInput( const CUserTensor& input, const CFastArray<int, 8>& axes, CDnn& dnn ) const
+CPtr<const CUserTensor> CGlobalPoolOperatorBase::prepareInput( const CUserTensor& input, CDnn& dnn ) const
 {
-	// Step 1: converting to proper layout (if needed)
-	CPtr<const CUserTensor> result = convertInputLayout( input, axes );
-
-	// Step 2: add pre-processing layers if needed
+	// Add pre-processing layers if needed
+	static_assert( PT_Count == 5, "PT_Count != 5" );
 	if( poolType == PT_Min ) {
 		// MinPool( x ) == -1 * MaxPool( -1 * x )
 		CPtr<CLinearLayer> linear = new CLinearLayer( dnn.GetMathEngine() );
 		linear->SetName( Name() + "_preProcess" );
 		linear->SetMultiplier( -1 );
-		linear->Connect( 0, *result->Layer(), result->OutputIndex() );
+		linear->Connect( 0, *input.Layer(), input.OutputIndex() );
 		dnn.AddLayer( *linear );
-		result = new CUserTensor( result->Shape(), result->Layout(), CLayerOutput( linear, 0 ) );
+		return new CUserTensor( input.Layout(), CLayerOutput( linear, 0 ) );
+	} else if( poolType == PT_L2 ) {
+		// L2Pool = Sqrt(SumPool(x^2))
+		CPtr<CPowerLayer> sqare = new CPowerLayer( dnn.GetMathEngine() );
+		sqare->SetName( Name() + "_preProcess" );
+		sqare->SetExponent( 2.f );
+		sqare->Connect( 0, *input.Layer(), input.OutputIndex() );
+		dnn.AddLayer( *sqare );
+		return new CUserTensor( input.Layout(), CLayerOutput( sqare, 0 ) );
 	}
 
-	return result;
-}
-
-// Check if current layout is compatible with Global*PoolingLayer
-static bool isCompatibleLayout( const CTensorLayout& layout, const CFastArray<int, 8>& pooledDims,
-	const CFastArray<int, 8>& remainingDims )
-{
-	// Check that pooled axes are BD_Height, BD_Width or BD_Depth
-	for( int i = 0; i < pooledDims.Size(); ++i ) {
-		if( layout[pooledDims[i]] < BD_Height || layout[pooledDims[i]] == BD_Channels ) {
-			return false;
-		}
-	}
-
-	// Check that remaining axes are BD_BatchLength, BD_BatchWidth, BD_ListSize or BD_Channels
-	for( int i = 0; i < remainingDims.Size(); ++i ) {
-		if( layout[remainingDims[i]] >= BD_Height && layout[remainingDims[i]] <= BD_Depth ) {
-			return false;
-		}
-	}
-
-	return true;
-}
-
-// Convert input's layout into compatible with NeoML's CGlobal*PoolingLayer
-CPtr<const CUserTensor> CGlobalPoolOperatorBase::convertInputLayout( const CUserTensor& input,
-	const CFastArray<int, 8>& axes ) const
-{
-	const CTensorShape& inputShape = input.Shape();
-	const CTensorLayout& inputLayout = input.Layout();
-
-	// Non-trivial dims to be pooled
-	CFastArray<int, 8> pooledDims;
-	// Non-trivial dims not to be pooled
-	CFastArray<int, 8> remainingDims;
-	int axeIndex = 0;
-	for( int dimIndex = 0; dimIndex < inputShape.Size(); ++dimIndex ) {
-		if( axeIndex < axes.Size() && dimIndex == axes[axeIndex] ) {
-			if( inputShape[dimIndex] > 1 ) {
-				pooledDims.Add( dimIndex );
-			}
-			axeIndex++;
-		} else if( inputShape[dimIndex] > 1 ) {
-			remainingDims.Add( dimIndex );
-		}
-	}
-	CheckNeoOnnxSupport( pooledDims.Size() <= 3 && remainingDims.Size() <= 4,
-		"Global pooling which can't be emulated by NeoML", *this );
-
-	if( isCompatibleLayout( inputLayout, pooledDims, remainingDims ) ) {
-		return &input;
-	}
-
-	CTensorLayout convertedLayout;
-	convertedLayout.Add( BD_Count, inputShape.Size() );
-
-	// Distribute dimensions which can be pooled between non-trivial pooled dims
-	for( int i = 0; i < pooledDims.Size(); ++i ) {
-		convertedLayout[pooledDims[i]] = BD_Height + i;
-	}
-
-	{
-		// Distribute dimensions which can't be pooled between non-trivial remaining dims
-		CTensorLayout possibleRemainingDims( { BD_BatchLength, BD_BatchWidth, BD_ListSize, BD_Channels } );
-		for( int i = 0; i < remainingDims.Size(); ++i ) {
-			convertedLayout[remainingDims[i]] = possibleRemainingDims[i];
-		}
-	}
-
-	// Distribute unused dimensions between the rest (trivial) of tensor dimensions
-	TBlobDim currDim = BD_BatchLength;
-	for( int i = 0; i < convertedLayout.Size(); ++i ) {
-		if( convertedLayout[i] == BD_Count ) {
-			while( convertedLayout.Find( currDim ) != NotFound && currDim != BD_Count ) {
-				++currDim;
-			}
-			// Double-check
-			NeoAssert( currDim != BD_Count );
-			convertedLayout[i] = currDim;
-		}
-	}
-
-	return ConvertTensor( input, convertedLayout );
+	return &input;
 }
 
 // Adds CGlobal*Pooling layer
 CPtr<const CUserTensor> CGlobalPoolOperatorBase::addPoolingLayer( const CUserTensor& preparedInput,
 	const CFastArray<int, 8>& axes, CDnn& dnn ) const
 {
-	static_assert( PT_Count == 3, "PT_Count != 3" );
+	static_assert( PT_Count == 5, "PT_Count != 5" );
 	CPtr<CBaseLayer> pooling;
 	switch( poolType ) {
 		case PT_Max:
@@ -173,6 +168,10 @@ CPtr<const CUserTensor> CGlobalPoolOperatorBase::addPoolingLayer( const CUserTen
 		case PT_Mean:
 			pooling = new CGlobalMeanPoolingLayer( dnn.GetMathEngine() );
 			break;
+		case PT_Sum:
+		case PT_L2:
+			pooling = new CGlobalSumPoolingLayer( dnn.GetMathEngine() );
+			break;
 		default:
 			NeoAssert( false );
 	}
@@ -181,31 +180,7 @@ CPtr<const CUserTensor> CGlobalPoolOperatorBase::addPoolingLayer( const CUserTen
 	pooling->Connect( 0, *preparedInput.Layer(), preparedInput.OutputIndex() );
 	dnn.AddLayer( *pooling );
 
-	CTensorShape outputShape;
-	calcOutputShape( preparedInput.Shape(), axes, outputShape );
-
-	return new CUserTensor( outputShape, calcOutputLayout( preparedInput.Layout(), axes ), CLayerOutput( pooling, 0 ) );
-}
-
-// Calculate this operator's output shape
-void CGlobalPoolOperatorBase::calcOutputShape( const CTensorShape& inputShape, const CFastArray<int, 8>& axes, CTensorShape& outputShape ) const
-{
-	const bool keepDims = KeepDims();
-
-	outputShape.DeleteAll();
-	outputShape.SetBufferSize( keepDims ? inputShape.Size() : inputShape.Size() - axes.Size() );
-
-	int axeIndex = 0;
-	for( int dimIndex = 0; dimIndex < inputShape.Size(); ++dimIndex ) {
-		if( axeIndex < axes.Size() && dimIndex == axes[axeIndex] ) {
-			if( keepDims ) {
-				outputShape.Add( 1 );
-			}
-			axeIndex++;
-		} else {
-			outputShape.Add( inputShape[dimIndex] );
-		}
-	}
+	return new CUserTensor( calcOutputLayout( preparedInput.Layout(), axes ), CLayerOutput( pooling, 0 ) );
 }
 
 // Calculate this operator's output shape
@@ -234,18 +209,26 @@ CTensorLayout CGlobalPoolOperatorBase::calcOutputLayout( const CTensorLayout& in
 // Adds additional layers after pooling if needed.
 CPtr<const CUserTensor> CGlobalPoolOperatorBase::addPostProcessing( const CUserTensor& layerOutput, CDnn& dnn ) const
 {
-	if( poolType != PT_Min ) {
-		// Post-processing is needed only when MinPooling
-		return &layerOutput;
+	static_assert( PT_Count == 5, "PT_Count != 5" );
+	if( poolType == PT_Min ) {
+		// MinPool( x ) == -1 * MaxPool( -1 * x )
+		CPtr<CLinearLayer> linear = new CLinearLayer( dnn.GetMathEngine() );
+		linear->SetName( Name() + "_postProcess" );
+		linear->SetMultiplier( -1 );
+		linear->Connect( 0, *layerOutput.Layer(), layerOutput.OutputIndex() );
+		dnn.AddLayer( *linear );
+		return new CUserTensor( layerOutput.Layout(), CLayerOutput( linear, 0 ) );
+	} else if( poolType == PT_L2 ) {
+		// L2Pool( x ) = Sqrt( SumPool( x^2 ) )
+		CPtr<CPowerLayer> power = new CPowerLayer( dnn.GetMathEngine() );
+		power->SetName( Name() + "_postProcess" );
+		power->SetExponent( 0.5f );
+		power->Connect( 0, *layerOutput.Layer(), layerOutput.OutputIndex() );
+		dnn.AddLayer( *power );
+		return new CUserTensor( layerOutput.Layout(), CLayerOutput( power, 0 ) );
 	}
 
-	// MinPool( x ) == -1 * MaxPool( -1 * x )
-	CPtr<CLinearLayer> linear = new CLinearLayer( dnn.GetMathEngine() );
-	linear->SetName( Name() + "_postProcess" );
-	linear->SetMultiplier( -1 );
-	linear->Connect( 0, *layerOutput.Layer(), layerOutput.OutputIndex() );
-	dnn.AddLayer( *linear );
-	return new CUserTensor( layerOutput.Shape(), layerOutput.Layout(), CLayerOutput( linear, 0 ) );
+	return &layerOutput;
 }
 
 // --------------------------------------------------------------------------------------------------------------------
@@ -258,23 +241,34 @@ bool CReducePoolOperatorBase::KeepDims() const
 	return keepDims != 0;
 }
 
-void CReducePoolOperatorBase::PoolAxes( const CTensorShape& inputShape, CFastArray<int, 8>& axes ) const
+void CReducePoolOperatorBase::PoolAxes( const CTensorArray& inputs, CFastArray<int, 8>& axes ) const
 {
-	GetAttribute( "axes", axes );
+	if( inputs.Size() == 1 || inputs[1] == nullptr ) {
+		if( !GetAttribute( "noop_with_empty_axes", axes ) ) {  // For new versions without second input
+			GetAttribute( "axes", axes );  // For old versions
+		}
+	} else {
+		// For new versions with second input: copy axes from this input
+		CheckNeoOnnxSupport( inputs[1]->Type() == TTensorType::Data, "non-constant axes", *this );
+		const CDnnBlob& axesBlob = *dynamic_cast<const CDataTensor&>( *inputs[1] ).Data();
+		axes.SetSize( axesBlob.GetDataSize() );
+		axesBlob.CopyTo( axes.GetPtr() );
+	}
 
-	// If axes attribute is missing then all dimensions must be pooled
+	// If axes are missing then all dimensions must be pooled
+	const int inputDimCount = inputs[0]->DimCount();
 	if( axes.IsEmpty() ) {
-		axes.SetBufferSize( inputShape.Size() );
-		for( int i = 0; i < inputShape.Size(); ++i ) {
+		axes.SetBufferSize( inputDimCount );
+		for( int i = 0; i < inputDimCount; ++i ) {
 			axes.Add( i );
 		}
 		return;
 	}
 
+	// Fix negative axes
 	for( int i = 0; i < axes.Size(); ++i ) {
 		if( axes[i] < 0 ) {
-			CheckOnnxProtocol( OpsetVersion >= 11, "negative axes indices are supported since v11", *this );
-			axes[i] += inputShape.Size();
+			axes[i] += inputDimCount;
 		}
 	}
 

@@ -47,10 +47,10 @@ void C3dTransposedConvLayer::calcOutputBlobSize(int& outputHeight, int& outputWi
 void C3dTransposedConvLayer::Reshape()
 {
 	CheckInputs();
-	CheckArchitecture( GetInputCount() == GetOutputCount(),
-		GetName(), "different number of inputs and outputs in conv layer" );
-	CheckArchitecture( paddingHeight < filterHeight && paddingWidth < filterWidth && paddingDepth < filterDepth,
-		GetName(), "padding is more or equal to filter size" );
+	CheckLayerArchitecture( GetInputCount() == GetOutputCount(),
+		"different number of inputs and outputs in conv layer" );
+	CheckLayerArchitecture( paddingHeight < filterHeight && paddingWidth < filterWidth && paddingDepth < filterDepth,
+		"padding is more or equal to filter size" );
 
 	int outputHeight, outputWidth, outputDepth;
 	calcOutputBlobSize(outputHeight, outputWidth, outputDepth);
@@ -74,8 +74,8 @@ void C3dTransposedConvLayer::Reshape()
 			// Initialize
 			FreeTerms()->Fill(0);
 		} else {
-			CheckArchitecture( FreeTerms()->GetDataSize() == filterCount,
-				GetName(), "number of free members in convolution is not equal to number of filters" );
+			CheckLayerArchitecture( FreeTerms()->GetDataSize() == filterCount,
+				"number of free members in convolution is not equal to number of filters" );
 		}
 
 		// For each layer element there is a channel in the output blob
@@ -91,8 +91,12 @@ void C3dTransposedConvLayer::Reshape()
 void C3dTransposedConvLayer::initConvDesc()
 {
 	if( convDesc == 0 ) {
-		convDesc = MathEngine().InitBlob3dConvolution(outputBlobs[0]->GetDesc(), paddingHeight, paddingWidth, paddingDepth,
-			strideHeight, strideWidth, strideDepth, Filter()->GetDesc(), inputBlobs[0]->GetDesc());
+		NeoPresume( inputBlobs[0] != nullptr || inputDiffBlobs[0] != nullptr );
+		NeoPresume( outputBlobs[0] != nullptr || outputDiffBlobs[0] != nullptr );
+		convDesc = MathEngine().InitBlob3dConvolution(
+			outputBlobs[0] != nullptr ? outputBlobs[0]->GetDesc() : outputDiffBlobs[0]->GetDesc(),
+			paddingHeight, paddingWidth, paddingDepth, strideHeight, strideWidth, strideDepth, Filter()->GetDesc(),
+			inputBlobs[0] != nullptr ? inputBlobs[0]->GetDesc() : inputDiffBlobs[0]->GetDesc());
 	}
 }
 
@@ -108,7 +112,7 @@ void C3dTransposedConvLayer::RunOnce()
 {
 	initConvDesc();
 
-	CFloatHandle freeTerm = FreeTerms()->GetData();
+	CConstFloatHandle freeTerm = FreeTerms()->GetData();
 	for( int i = 0; i < outputBlobs.Size(); ++i ) {
 		MathEngine().Blob3dConvolutionBackward( *convDesc, inputBlobs[i]->GetData(),
 			Filter()->GetData(), IsZeroFreeTerm() ? 0 : &freeTerm, outputBlobs[i]->GetData());

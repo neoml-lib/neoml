@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -28,14 +28,10 @@ namespace NeoML {
 class CMemoryBuffer : public CCrtAllocatedObject {
 public:
 	CMemoryHandle Data; // the pointer to the data
+	CMemoryBuffer* Next = nullptr; // the pointer to next buffer in the pool
+	CMemoryBufferPool* OwnerPool; // the pointer to the owner pool of buffers
 
-	explicit CMemoryBuffer() : next(0) {}
-
-	CMemoryBuffer* GetNext() { return next; }
-	void SetNext( CMemoryBuffer* _next ) { next = _next; }
-
-private:
-	CMemoryBuffer* next;
+	explicit CMemoryBuffer( CMemoryBufferPool* ownerPool ) : OwnerPool( ownerPool ) {}
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -64,21 +60,19 @@ private:
 
 CMemoryBuffer* CMemoryBufferPool::TryAlloc()
 {
-	CMemoryBuffer* result = head;
-
-	if( result != 0 ) {
-		head = result->GetNext();
-		result->SetNext(0);
+	CMemoryBuffer* buffer = head;
+	if( buffer != nullptr ) {
+		head = buffer->Next;
+		buffer->Next = nullptr;
 		memoryInPool -= BufferSize;
 	}
-
-	return result;
+	return buffer;
 }
 
-void CMemoryBufferPool::Free(CMemoryBuffer* data)
+void CMemoryBufferPool::Free( CMemoryBuffer* buffer )
 {
-	data->SetNext( head );
-	head = data;
+	buffer->Next = head;
+	head = buffer;
 	memoryInPool += BufferSize;
 }
 
@@ -96,6 +90,10 @@ static const unsigned int BufferSizes[] = {
 template <typename T, int size>
 inline constexpr int lengthof( T(&)[size] ) { return size; }
 
+const size_t CMemoryPool::CThreadData::DefaultBufferMemoryThreshold = BufferSizes[lengthof( BufferSizes ) - 1];
+
+//------------------------------------------------------------------------------------------------------------
+
 CMemoryPool::CMemoryPool( size_t _memoryLimit, IRawMemoryManager* _rawMemoryManager, bool reuseMemoryMode ) :
 	memoryLimit( _memoryLimit ),
 	rawMemoryManager( _rawMemoryManager ),
@@ -108,8 +106,8 @@ CMemoryPool::CMemoryPool( size_t _memoryLimit, IRawMemoryManager* _rawMemoryMana
 
 CMemoryPool::~CMemoryPool()
 {
-	for( auto curPool : pools ) {
-		cleanUp( curPool.first );
+	for( auto& curPool : pools ) {
+		cleanUp( &curPool.second );
 		for( auto curMemBufferPool : curPool.second.Pool ) {
 			delete curMemBufferPool;
 		}
@@ -118,91 +116,152 @@ CMemoryPool::~CMemoryPool()
 
 void CMemoryPool::SetReuseMemoryMode( bool enable )
 {
-	thread::id id = this_thread::get_id();
-	auto pool = pools.find( id );
-	if( pool == pools.end() ) {
-		createPools( id );
-		pool = pools.find( id );
-	}
+	getThreadData()->Enabled = enable;
+}
 
-	pool->second.Enabled = enable;
+bool CMemoryPool::GetReuseMemoryMode() const
+{
+	const CThreadData* threadData = getThreadData();
+	return ( threadData != nullptr ) ? threadData->Enabled : false;
+}
+
+void CMemoryPool::SetThreadBufferMemoryThreshold( size_t threshold )
+{
+	getThreadData()->BufferMemoryThreshold = threshold;
+}
+
+size_t CMemoryPool::GetThreadBufferMemoryThreshold() const
+{
+	const CThreadData* threadData = getThreadData();
+	return ( threadData != nullptr )
+		? threadData->BufferMemoryThreshold
+		: CThreadData::DefaultBufferMemoryThreshold;
 }
 
 CMemoryHandle CMemoryPool::Alloc( size_t size )
 {
-	thread::id id = this_thread::get_id();
-	auto pool = pools.find( id );
-	if( pool == pools.end() ) {
-		createPools( id );
-		pool = pools.find( id );
-	}
-
-	CMemoryHandle result = tryAlloc( size, pool->second );
+	CThreadData& threadData = *getThreadData();
+	CMemoryHandle result = tryAlloc( size, threadData );
 	if( !result.IsNull() ) {
 		return result;
 	}
 
 	// Not enough memory. Try to free all allocated pools
 	CleanUp();
-	return tryAlloc( size, pool->second );
+	return tryAlloc( size, threadData );
 }
 
 void CMemoryPool::Free( const CMemoryHandle& handle )
 {
-	TUsedAddressMap::const_iterator pos = usedMap.find( GetRaw(handle) );
-	const CUsedInfo& info = pos->second;
-	if( info.pool != 0 ) {
-		info.pool->Free(info.buffer);
-		freeMemorySize += info.pool->BufferSize;
+	TUsedAddressMap::const_iterator it = usedMap.find( GetRaw( handle ) );
+	const CUsedInfo& info = it->second;
+
+	if( info.buffer != nullptr ) {
+		CMemoryBufferPool* const pool = info.buffer->OwnerPool;
+		pool->Free( info.buffer );
+		freeMemorySize += pool->BufferSize;
 	} else {
 		// Large buffer, don't use the pool
-		freeMemory(info.size, handle);
+		freeMemory( info.size, handle );
 		freeMemorySize += info.size;
 	}
-	usedMap.erase( pos );
+	usedMap.erase( it );
 }
 
 size_t CMemoryPool::GetMemoryInPools() const
 {
-	thread::id id = this_thread::get_id();
-	auto pool = pools.find( id );
-	if( pool == pools.end() ) {
+	const CThreadData* threadData = getThreadData();
+	if( threadData == nullptr ) {
 		return 0;
 	}
-	const TPoolVector& threadPools = pool->second.Pool;
-	return std::accumulate( threadPools.begin(), threadPools.end(), size_t( 0 ),
+	return std::accumulate( threadData->Pool.begin(), threadData->Pool.end(), size_t( 0 ),
 		[] ( const size_t& sum, const CMemoryBufferPool* cur ) { return sum + cur->GetMemoryInPool(); } );
 }
 
 void CMemoryPool::CleanUp()
 {
-	cleanUp( this_thread::get_id() );
+	cleanUp( getThreadData( /*forceCreate*/false ) );
 }
 
-void CMemoryPool::createPools( thread::id id )
+// Transfers handle from other thread owner to this thread
+void CMemoryPool::TransferHandleToThisThread( const CMemoryHandle& handle, size_t size )
+{
+	TUsedAddressMap::iterator usedMapIt = usedMap.find( GetRaw( handle ) );
+	CUsedInfo& info = usedMapIt->second;
+
+	if( info.buffer != nullptr ) {
+		// Find the buffer pool to steal from
+		CMemoryBufferPool* otherThreadBufferPool = info.buffer->OwnerPool;
+		ASSERT_EXPR( size <= otherThreadBufferPool->BufferSize );
+		size = otherThreadBufferPool->BufferSize; // set actual allocated size
+
+		CThreadData& thisThreadData = *getThreadData();
+		// If on this thread pools are turned off
+		if( !thisThreadData.Enabled ) {
+			// Transfer the handle from that thread's pool just to heap, so
+			// it wouldn't be cleaned-up for that thread after mathEngine.CleanUp().
+			delete info.buffer;
+			info = CUsedInfo( size );
+		} else {
+			// Find the buffer in this thread's pool to append it to
+			CMemoryBufferPool* thisThreadBufferPool = nullptr;
+			for( int i = 0; i < static_cast<int>( thisThreadData.Pool.size() ); ++i ) {
+				if( thisThreadData.Pool[i]->BufferSize == size ) {
+					thisThreadBufferPool = thisThreadData.Pool[i];
+					break; // Ascending sorted vector
+				}
+			}
+			// Transfer the handle from other thread-owner to this thread-owner
+			info.buffer->OwnerPool = thisThreadBufferPool;
+		}
+	} else { // Large buffers don't use the pools
+		const size_t validSize = *std::lower_bound( std::begin( BufferSizes ), std::end( BufferSizes ), size );
+		ASSERT_EXPR( size == info.size || validSize  == info.size );
+		// No need to transfer, because
+		// it wouldn't be cleaned-up for that thread after mathEngine.CleanUp().
+	}
+}
+
+const CMemoryPool::CThreadData* CMemoryPool::getThreadData() const
+{
+	auto it = pools.find( std::this_thread::get_id() );
+	return ( it == pools.end() ) ? nullptr : &( it->second );
+}
+
+CMemoryPool::CThreadData* CMemoryPool::getThreadData( bool forceCreate )
+{
+	std::thread::id id = std::this_thread::get_id();
+	auto it = pools.find( id );
+	if( it == pools.end() ) {
+		if( !forceCreate ) {
+			return nullptr;
+		}
+		return createPools( id );
+	}
+	return &( it->second );
+}
+
+CMemoryPool::CThreadData* CMemoryPool::createPools( std::thread::id id )
 {
 	CThreadData threadData;
 	threadData.Enabled = defaultReuseMemoryMode;
 	for( size_t i = 0; i < sizeof( BufferSizes ) / sizeof( *BufferSizes ); ++i ) {
 		threadData.Pool.push_back( new CMemoryBufferPool( BufferSizes[i] ) );
 	}
-
-	pools[id] = threadData;
+	return &( pools[id] = threadData );
 }
 
-void CMemoryPool::cleanUp( thread::id id )
+void CMemoryPool::cleanUp( CThreadData* threadData )
 {
-	auto pool = pools.find( id );
-	if( pool == pools.end() ) {
+	if( threadData == nullptr ) {
 		return;
 	}
-
-	for( auto cur : pool->second.Pool ) {
-		CMemoryBuffer* buffer = cur->TryAlloc();
+	for( CMemoryBufferPool* pool : threadData->Pool ) {
+		CMemoryBuffer* buffer = pool->TryAlloc();
 		while( buffer != 0 ) {
-			freeMemory(cur->BufferSize, buffer->Data);
+			freeMemory( pool->BufferSize, buffer->Data );
 			delete buffer;
-			buffer = cur->TryAlloc();
+			buffer = pool->TryAlloc();
 		}
 	}
 }
@@ -215,23 +274,23 @@ inline static bool poolsCompare( const CMemoryBufferPool* a, const size_t& b )
 // Tries to allocate memory
 CMemoryHandle CMemoryPool::tryAlloc( size_t size, CThreadData& data )
 {
-	if( !data.Enabled || size > BufferSizes[lengthof(BufferSizes) - 1] ) {
+	if( !data.Enabled || size > data.BufferMemoryThreshold ) {
 		// Allocate without using the buffers pool
 		CMemoryHandle result = alloc( size );
 		if( !result.IsNull() ) {
-			usedMap[GetRaw( result )] = CUsedInfo( size, 0, 0 );
+			usedMap[GetRaw( result )] = CUsedInfo( size );
 			freeMemorySize -= size;
 		}
 		return result;
 	}
 
 	// Allocate via the buffers pool
-	TPoolVector::iterator pos = std::lower_bound( data.Pool.begin(), data.Pool.end(), size, &poolsCompare );
+	CMemoryBufferPool* pool = *std::lower_bound(
+		data.Pool.begin(), data.Pool.end(), size, &poolsCompare );
 
-	CMemoryBufferPool* pool = *pos;
 	CMemoryBuffer* buffer = pool->TryAlloc();
-	if( buffer == 0 ) {
-		buffer = new CMemoryBuffer();
+	if( buffer == nullptr ) {
+		buffer = new CMemoryBuffer( pool );
 		buffer->Data = alloc( pool->BufferSize );
 		if( buffer->Data.IsNull() ) {
 			delete buffer;
@@ -239,7 +298,7 @@ CMemoryHandle CMemoryPool::tryAlloc( size_t size, CThreadData& data )
 		}
 	}
 	freeMemorySize -= pool->BufferSize;
-	usedMap[GetRaw(buffer->Data)] = CUsedInfo(size, buffer, pool);
+	usedMap[GetRaw(buffer->Data)] = CUsedInfo( buffer );
 
 	return buffer->Data;
 }
@@ -249,21 +308,17 @@ CMemoryHandle CMemoryPool::alloc( size_t size )
 	if( size > memoryLimit || allocatedMemory > memoryLimit - size ) {
 		return CMemoryHandle();
 	}
-	
 	CMemoryHandle result = rawMemoryManager->Alloc( size );
-
 	if( !result.IsNull() ) {
 		allocatedMemory += size;
 	}
-	peakMemoryUsage = max( peakMemoryUsage, allocatedMemory );
-
+	peakMemoryUsage = std::max( peakMemoryUsage, allocatedMemory );
 	return result;
 }
 
 void CMemoryPool::freeMemory( size_t size, const CMemoryHandle& data )
 {
 	allocatedMemory -= size;
-
 	rawMemoryManager->Free( data );
 }
 

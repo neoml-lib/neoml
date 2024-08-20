@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright Â© 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@ const unsigned char PM_LeftLeaf = 2; // the left child is a leaf in the optimize
 const unsigned char PM_RightLeaf = 4; // the right child is a leaf in the optimized subtree
 
 // The descriptor of an non-leaf node of the subtree to be optimized
-struct CQSNode {
+struct CQSNode final {
 	unsigned __int64 Mask; // the false nodes mask: has zeros in the positions where the vector cannot possibly belong if the node criterion is false
 	float Threshold; // split threshold
 	short Tree; // the index of the tree in the ensemble
@@ -52,18 +52,18 @@ inline CQSNode::CQSNode( unsigned __int64 mask, float threshold, int tree, int o
 
 // The description of a leaf in the optimized subtree
 // Stores either a subtree or a value of a leaf in the original tree
-struct CQSLeaf {
+struct CQSLeaf final {
 	float Value; // the value of a leaf
 	int SimpleNodeIndex; // the index of the non-optimized subtree root in the simpleNodes array
 
-	explicit CQSLeaf( float value ) : Value( value ), SimpleNodeIndex( NotFound ) {};
-	explicit CQSLeaf( int rootIndex ) : Value( 0 ), SimpleNodeIndex( rootIndex ) {};
+	explicit CQSLeaf( float value ) : Value( value ), SimpleNodeIndex( NotFound ) {}
+	explicit CQSLeaf( int rootIndex ) : Value( 0 ), SimpleNodeIndex( rootIndex ) {}
 };
 
 //------------------------------------------------------------------------------------------------------------
 
 // The description of a node not in the optimized subtree
-struct CSimpleNode {
+struct CSimpleNode final {
 	int Feature; // the index of split feature; if the node is a leaf - NotFound (-1)
 	float Value; // the value in the node (splitting threshold or the prediction value)
 	int RightChild; // the index of the right child; its left child always has the index of the right + 1
@@ -73,7 +73,7 @@ struct CSimpleNode {
 };
 
 // The offset to the optimized nodes that use this feature for splitting
-struct CQSNodeOffset {
+struct CQSNodeOffset final {
 	CInterval Less;
 	CInterval More;
 
@@ -85,10 +85,10 @@ struct CQSNodeOffset {
 class IQsSerializer;
 
 // Optimized trees ensemble
-class CGradientBoostQSEnsemble {
+class CGradientBoostQSEnsemble final {
 public:
 	// Builds the ensemble from an unoptimized trees ensemble
-	void Build( const CGradientBoostEnsemble &treeModel );
+	void Build( const CGradientBoostEnsemble& treeModel );
 
 	// Prediction methods
 	double Predict( const CFloatVectorDesc& data ) const;
@@ -97,7 +97,7 @@ public:
 	double Predict( const CFloatVectorDesc& data, int lastTreeIndex ) const;
 
 	// Gets the number of trees in the ensemble
-	int GetTreesCount() const { return treeQsLeavesOffsets.Size(); };
+	int GetTreesCount() const { return treeQsLeavesOffsets.Size(); }
 
 	// Serialization
 	friend CArchive& operator<<( CArchive& archive, const CGradientBoostQSEnsemble& block );
@@ -106,12 +106,12 @@ public:
 private:
 	// Optimized nodes descriptions, sorted by splitting feature
 	// The nodes that use ith feature are in the ranges featureQsNodesOffsets[i].Less and featureQsNodesOffsets[i].More
-	CArray<CQSNode> qsNodes;
-	CMap<int, CQSNodeOffset> featureQsNodesOffsets; // offsets to optimized nodes that use the same feature
+	CArray<CQSNode> qsNodes{};
+	CMap<int, CQSNodeOffset> featureQsNodesOffsets{}; // offsets to optimized nodes that use the same feature
 	 // Optimized subtree leaves descriptions, sorted by subtree
-	CArray<CQSLeaf> qsLeaves; // the leaves of the i subtree start from treeQsLeavesOffsets[i] index
-	CArray<int> treeQsLeavesOffsets; // offsets to optimized subtree leaves for the specified tree in the ensemble
-	CArray<CSimpleNode> simpleNodes; // the descriptions of the nodes that are not in optimized subtrees
+	CArray<CQSLeaf> qsLeaves{}; // the leaves of the i subtree start from treeQsLeavesOffsets[i] index
+	CArray<int> treeQsLeavesOffsets{}; // offsets to optimized subtree leaves for the specified tree in the ensemble
+	CArray<CSimpleNode> simpleNodes{}; // the descriptions of the nodes that are not in optimized subtrees
 
 	void store( CArchive& archive ) const;
 	void storeQSNode( IQsSerializer& serializer, const CArray<int>& links, const CArray<int>& features,

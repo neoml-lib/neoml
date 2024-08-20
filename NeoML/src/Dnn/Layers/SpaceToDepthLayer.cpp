@@ -32,16 +32,16 @@ void CSpaceToDepthLayer::Reshape()
 	CheckInput1();
 	CheckOutputs();
 
-	CheckArchitecture( blockSize > 1, GetName(), "block size must be more than 1" );
-	CheckArchitecture( inputDescs[0].Depth() == 1, GetName(), "input depth must be 1" );
+	CheckLayerArchitecture( blockSize > 1, "block size must be more than 1" );
+	CheckLayerArchitecture( inputDescs[0].Depth() == 1, "input depth must be 1" );
 
 	// The layer needs only one output
-	CheckArchitecture( GetOutputCount() == 1, GetName(), "multiple outputs" );
+	CheckLayerArchitecture( GetOutputCount() == 1, "multiple outputs" );
 
 	// The input size should be a multiple of the block size
-	CheckArchitecture( inputDescs[0].Height() % blockSize == 0, GetName(),
+	CheckLayerArchitecture( inputDescs[0].Height() % blockSize == 0,
 		"input height must be a multiple of the block size" );
-	CheckArchitecture( inputDescs[0].Width() % blockSize == 0, GetName(),
+	CheckLayerArchitecture( inputDescs[0].Width() % blockSize == 0,
 		"input width must be a multiple of the block size" );
 
 	// Calculate the output size

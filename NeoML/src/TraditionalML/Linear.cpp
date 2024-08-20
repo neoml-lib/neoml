@@ -25,8 +25,7 @@ limitations under the License.
 
 namespace NeoML {
 
-ILinearBinaryModel::~ILinearBinaryModel()
-{}
+ILinearBinaryModel::~ILinearBinaryModel() = default;
 
 // Normalizes the error weight
 static double normalizeErrorWeight( const CLinear::CParams& param, const IProblem& trainingClassificationData )

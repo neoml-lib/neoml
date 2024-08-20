@@ -61,7 +61,7 @@ CConvolutionDesc* CMetalMathEngine::InitBlobConvolution( const CBlobDesc& source
 }
 
 void CMetalMathEngine::BlobConvolution( const CConvolutionDesc& convDesc,
-	const CFloatHandle& sourceData, const CFloatHandle& filterData, const CFloatHandle* freeTermData,
+	const CConstFloatHandle& sourceData, const CConstFloatHandle& filterData, const CConstFloatHandle* freeTermData,
 	const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
@@ -142,8 +142,8 @@ void CMetalMathEngine::BlobConvolution( const CConvolutionDesc& convDesc,
     }
 }
 
-void CMetalMathEngine::BlobConvolutionBackward( const CConvolutionDesc& convDesc, const CFloatHandle& outputDiffData,
-	const CFloatHandle& filterData, const CFloatHandle* freeTermData, const CFloatHandle& inputDiffData )
+void CMetalMathEngine::BlobConvolutionBackward( const CConvolutionDesc& convDesc, const CConstFloatHandle& outputDiffData,
+	const CConstFloatHandle& filterData, const CConstFloatHandle* freeTermData, const CFloatHandle& inputDiffData )
 {
 	ASSERT_EXPR( outputDiffData.GetMathEngine() == this );
 	ASSERT_EXPR( filterData.GetMathEngine() == this );
@@ -186,7 +186,7 @@ void CMetalMathEngine::BlobConvolutionBackward( const CConvolutionDesc& convDesc
     }
 }
 
-void CMetalMathEngine::BlobConvolutionLearnAdd( const CConvolutionDesc&, const CFloatHandle&, const CFloatHandle&,
+void CMetalMathEngine::BlobConvolutionLearnAdd( const CConvolutionDesc&, const CConstFloatHandle&, const CConstFloatHandle&,
 	const CFloatHandle&, const CFloatHandle*, bool )
 {
 	ASSERT_EXPR( false );
@@ -223,8 +223,8 @@ C3dConvolutionDesc* CMetalMathEngine::InitBlob3dConvolution( const CBlobDesc& so
 	return desc;
 }
 
-void CMetalMathEngine::Blob3dConvolution( const C3dConvolutionDesc& convDesc, const CFloatHandle& sourceData,
-	const CFloatHandle& filterData, const CFloatHandle* freeTermData, const CFloatHandle& resultData )
+void CMetalMathEngine::Blob3dConvolution( const C3dConvolutionDesc& convDesc, const CConstFloatHandle& sourceData,
+	const CConstFloatHandle& filterData, const CConstFloatHandle* freeTermData, const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( filterData.GetMathEngine() == this );
@@ -272,8 +272,8 @@ void CMetalMathEngine::Blob3dConvolution( const C3dConvolutionDesc& convDesc, co
     }
 }
 
-void CMetalMathEngine::Blob3dConvolutionBackward( const C3dConvolutionDesc& convDesc, const CFloatHandle& outputDiffData,
-	const CFloatHandle& filterData, const CFloatHandle* freeTermData, const CFloatHandle& inputDiffData )
+void CMetalMathEngine::Blob3dConvolutionBackward( const C3dConvolutionDesc& convDesc, const CConstFloatHandle& outputDiffData,
+	const CConstFloatHandle& filterData, const CConstFloatHandle* freeTermData, const CFloatHandle& inputDiffData )
 {
     ASSERT_EXPR( outputDiffData.GetMathEngine() == this );
     ASSERT_EXPR( filterData.GetMathEngine() == this );
@@ -317,8 +317,8 @@ void CMetalMathEngine::Blob3dConvolutionBackward( const C3dConvolutionDesc& conv
     }
 }
 
-void CMetalMathEngine::Blob3dConvolutionLearnAdd( const C3dConvolutionDesc&, const CFloatHandle&,
-	const CFloatHandle&, const CFloatHandle&, const CFloatHandle*, bool )
+void CMetalMathEngine::Blob3dConvolutionLearnAdd( const C3dConvolutionDesc&, const CConstFloatHandle&,
+	const CConstFloatHandle&, const CFloatHandle&, const CFloatHandle*, bool )
 {
 	ASSERT_EXPR( false );
 }
@@ -355,7 +355,7 @@ CTimeConvolutionDesc* CMetalMathEngine::InitTimeConvolution( const CBlobDesc& so
 static const int BlobTimeConvolutionPrepareCombine = 16;
 
 void CMetalMathEngine::BlobTimeConvolution( const CTimeConvolutionDesc& convDesc,
-	const CFloatHandle& sourceData, const CFloatHandle& filterData, const CFloatHandle& freeTermData,
+	const CConstFloatHandle& sourceData, const CConstFloatHandle& filterData, const CConstFloatHandle& freeTermData,
 	const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
@@ -409,14 +409,14 @@ void CMetalMathEngine::BlobTimeConvolution( const CTimeConvolutionDesc& convDesc
 	AddVectorToMatrixRows( 1, resultData, resultData, result.ObjectCount(), result.ObjectSize(), freeTermData );
 }
 
-void CMetalMathEngine::BlobTimeConvolutionBackward( const CTimeConvolutionDesc&, const CFloatHandle&,
-	const CFloatHandle&, const CFloatHandle&, const CFloatHandle& )
+void CMetalMathEngine::BlobTimeConvolutionBackward( const CTimeConvolutionDesc&, const CConstFloatHandle&,
+	const CConstFloatHandle&, const CConstFloatHandle&, const CFloatHandle& )
 {
 	ASSERT_EXPR( false );
 }
 
-void CMetalMathEngine::BlobTimeConvolutionLearnAdd( const CTimeConvolutionDesc&, const CFloatHandle&,
-	const CFloatHandle&, const CFloatHandle&, const CFloatHandle& )
+void CMetalMathEngine::BlobTimeConvolutionLearnAdd( const CTimeConvolutionDesc&, const CConstFloatHandle&,
+	const CConstFloatHandle&, const CFloatHandle&, const CFloatHandle& )
 {
 	ASSERT_EXPR( false );
 }
@@ -562,14 +562,14 @@ void CMetalMathEngine::BlobChannelwiseConvolution( const CChannelwiseConvolution
     }
 }
 
-void CMetalMathEngine::BlobChannelwiseConvolutionBackward( const CChannelwiseConvolutionDesc&, const CFloatHandle&,
-	const CFloatHandle&, const CFloatHandle& )
+void CMetalMathEngine::BlobChannelwiseConvolutionBackward( const CChannelwiseConvolutionDesc&, const CConstFloatHandle&,
+	const CConstFloatHandle&, const CFloatHandle& )
 {
 	ASSERT_EXPR( false );
 }
 
-void CMetalMathEngine::BlobChannelwiseConvolutionLearnAdd( const CChannelwiseConvolutionDesc&, const CFloatHandle&,
-	const CFloatHandle&, const CFloatHandle&, const CFloatHandle* )
+void CMetalMathEngine::BlobChannelwiseConvolutionLearnAdd( const CChannelwiseConvolutionDesc&, const CConstFloatHandle&,
+	const CConstFloatHandle&, const CFloatHandle&, const CFloatHandle* )
 {
 	ASSERT_EXPR( false );
 }
@@ -624,8 +624,8 @@ CRleConvolutionDesc* CMetalMathEngine::InitBlobRleConvolution( const CBlobDesc& 
 	return desc;
 }
 
-void CMetalMathEngine::BlobRleConvolution( const CRleConvolutionDesc& desc, const CFloatHandle& sourceData,
-	const CFloatHandle& filterData, const CFloatHandle* freeTermData, const CFloatHandle& resultData )
+void CMetalMathEngine::BlobRleConvolution( const CRleConvolutionDesc& desc, const CConstFloatHandle& sourceData,
+	const CConstFloatHandle& filterData, const CConstFloatHandle* freeTermData, const CFloatHandle& resultData )
 {
 	ASSERT_EXPR( sourceData.GetMathEngine() == this );
 	ASSERT_EXPR( filterData.GetMathEngine() == this );
@@ -640,7 +640,7 @@ void CMetalMathEngine::BlobRleConvolution( const CRleConvolutionDesc& desc, cons
 	BlobConvolution( *(rleDesc.ConvDesc), inputConverted, filterData, freeTermData, resultData );
 }
 
-void CMetalMathEngine::blobConvertFromRle( const CMetalRleConvolutionDesc& desc, const CFloatHandle& sourceData, const CFloatHandle& resultData )
+void CMetalMathEngine::blobConvertFromRle( const CMetalRleConvolutionDesc& desc, const CConstFloatHandle& sourceData, const CFloatHandle& resultData )
 {
     const CCommonConvolutionDesc* convDesc = static_cast<const CCommonConvolutionDesc*>( desc.ConvDesc );
 	const CBlobDesc& source = convDesc->Source;
@@ -657,7 +657,7 @@ void CMetalMathEngine::blobConvertFromRle( const CMetalRleConvolutionDesc& desc,
 	kernel.Run();
 }
 
-void CMetalMathEngine::BlobRleConvolutionLearnAdd( const CRleConvolutionDesc&, const CFloatHandle&, const CFloatHandle&,
+void CMetalMathEngine::BlobRleConvolutionLearnAdd( const CRleConvolutionDesc&, const CConstFloatHandle&, const CConstFloatHandle&,
 	const CFloatHandle&, const CFloatHandle* )
 {
 	ASSERT_EXPR( false );

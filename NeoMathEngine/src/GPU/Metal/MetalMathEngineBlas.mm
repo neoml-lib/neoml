@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -402,6 +402,11 @@ void CMetalMathEngine::VectorMultiplyAndSub(const CConstFloatHandle& firstHandle
     ASSERT_EXPR( kernel.Run() );
 }
 
+void CMetalMathEngine::VectorEltwiseNot( const CConstIntHandle&, const CIntHandle&, int )
+{
+    ASSERT_EXPR( false );
+}
+
 void CMetalMathEngine::VectorEltwiseNotNegative( const CConstIntHandle& firstHanle, const CFloatHandle& resultHandle,
     int vectorSize )
 {
@@ -619,7 +624,7 @@ void CMetalMathEngine::MultiplyMatrixByMatrix( int batchSize, const CConstFloatH
 
 void CMetalMathEngine::MultiplyMatrixByTransposedMatrix(const CConstFloatHandle& firstHandle, int firstHeight,
     int firstWidth, int firstRowSize, const CConstFloatHandle& secondHandle, int secondHeight, int secondRowSize,
-    const CFloatHandle& resultHandle, int /*resultRowSize*/, int /*resultBufferSize */ )
+    const CFloatHandle& resultHandle, int /*resultRowSize*/, int /*resultBufferSize*/ )
 {
     ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
@@ -944,17 +949,19 @@ void CMetalMathEngine::Multiply1DiagMatrixByMatrix(int batchSize, const CConstFl
     ASSERT_EXPR( kernel.Run() );
 }
 
-void CMetalMathEngine::MultiplyMatrixByDiagMatrix(const CConstFloatHandle& firstHandle, int firstHeight, int firstWidth,
-	const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int)
+void CMetalMathEngine::BatchMultiplyMatrixByDiagMatrix( int batchSize, const CConstFloatHandle& firstHandle, int height,
+	int width, int firstMatrixOffset, const CConstFloatHandle& secondHandle, int secondMatrixOffset,
+	const CFloatHandle& resultHandle, int )
 {
     ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( secondHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+    ASSERT_EXPR( batchSize == 1 );
 
-    C2DKernel kernel( *queue, "matrixKernelMultiplyMatrixByDiagMatrix", 1, 1, firstHeight, firstWidth );
+    C2DKernel kernel( *queue, "matrixKernelMultiplyMatrixByDiagMatrix", 1, 1, height, width );
     kernel.SetParam( firstHandle, 0 );
-    kernel.SetParam( firstHeight, 1 );
-    kernel.SetParam( firstWidth, 2 );
+    kernel.SetParam( height, 1 );
+    kernel.SetParam( width, 2 );
     kernel.SetParam( secondHandle, 3 );
     kernel.SetParam( resultHandle, 4 );
     ASSERT_EXPR( kernel.Run() );
@@ -965,6 +972,11 @@ void CMetalMathEngine::TransposeMatrix(int batchSize, const CConstFloatHandle& f
 {
     ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+	if( medium == 1 && ( height == 1 || width == 1 ) ) {
+		VectorCopy( resultHandle, firstHandle, batchSize * height * medium * width * channels );
+		return;
+	}
 
     const int size = batchSize * height * medium * width * channels;
     ASSERT_EXPR( resultBufferSize >= size );
@@ -986,6 +998,11 @@ void CMetalMathEngine::TransposeMatrix(int batchSize, const CConstIntHandle& fir
 {
     ASSERT_EXPR( firstHandle.GetMathEngine() == this );
 	ASSERT_EXPR( resultHandle.GetMathEngine() == this );
+
+	if( medium == 1 && ( height == 1 || width == 1 ) ) {
+		VectorCopy( resultHandle, firstHandle, batchSize * height * medium * width * channels );
+		return;
+	}
 
     const int size = batchSize * height * medium * width * channels;
     ASSERT_EXPR( resultBufferSize >= size );
@@ -1290,6 +1307,42 @@ void CMetalMathEngine::SumMatrixRows( int batchSize, const CFloatHandle& resultH
 {
 	VectorFill(resultHandle, 0.f, batchSize * matrixWidth);
 	SumMatrixRowsAdd(batchSize, resultHandle, matrixHandle, matrixHeight, matrixWidth);
+}
+
+void CMetalMathEngine::SumMatrixRows( int, const CIntHandle&, const CConstIntHandle&, int, int )
+{
+	ASSERT_EXPR( false );
+}
+
+void CMetalMathEngine::SingularValueDecomposition( const CFloatHandle&, int, int, const CFloatHandle&, const CFloatHandle&,
+	const CFloatHandle&, const CFloatHandle&, bool, bool )
+{
+    ASSERT_EXPR( false );
+}
+
+void CMetalMathEngine::MultiplyTransposedMatrixBySparseMatrix( int, int, int, const CConstFloatHandle&, const CSparseMatrixDesc&, const CFloatHandle&, bool )
+{
+    ASSERT_EXPR( false );
+}
+
+void CMetalMathEngine::MultiplySparseMatrixByMatrix( int, int, int, const CSparseMatrixDesc&, const CConstFloatHandle&, const CFloatHandle& )
+{
+    ASSERT_EXPR( false );
+}
+
+void CMetalMathEngine::MultiplyTransposedSparseMatrixByMatrix( int, int, int, const CSparseMatrixDesc&, const CConstFloatHandle&, const CFloatHandle& )
+{
+    ASSERT_EXPR( false );
+}
+
+void CMetalMathEngine::QRFactorization( int, int, const CFloatHandle&, const CFloatHandle*, const CFloatHandle*, bool, bool, bool )
+{
+    ASSERT_EXPR( false );
+}
+
+void CMetalMathEngine::LUFactorization( int, int, const CFloatHandle& )
+{
+    ASSERT_EXPR( false );
 }
 
 } // namespace NeoML

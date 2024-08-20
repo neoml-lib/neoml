@@ -25,25 +25,15 @@ namespace NeoML {
 static CMap<CString, TCreateModelFunction, CDefaultHash<CString>, RuntimeHeap> registeredModels;
 static CMap<const std::type_info*, CString, CDefaultHash<const std::type_info*>, RuntimeHeap> modelNames;
 
-IModel::~IModel()
-{
-}
+IModel::~IModel() = default;
 
-IRegressionModel::~IRegressionModel()
-{
-}
+IRegressionModel::~IRegressionModel() = default;
 
-IMultivariateRegressionModel::~IMultivariateRegressionModel()
-{
-}
+IMultivariateRegressionModel::~IMultivariateRegressionModel() = default;
 
-ITrainingModel::~ITrainingModel()
-{
-}
+ITrainingModel::~ITrainingModel() = default;
 
-IRegressionTrainingModel::~IRegressionTrainingModel()
-{
-}
+IRegressionTrainingModel::~IRegressionTrainingModel() = default;
 
 void RegisterModelName( const char* modelName, const std::type_info& typeInfo, TCreateModelFunction function )
 {

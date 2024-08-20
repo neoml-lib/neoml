@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -58,7 +58,7 @@ C3dConvolutionDesc* CCudaMathEngine::InitBlob3dConvolution( const CBlobDesc& inp
 }
 
 void CCudaMathEngine::Blob3dConvolution( const C3dConvolutionDesc& convDesc,
-	const CFloatHandle& source, const CFloatHandle& filter, const CFloatHandle* freeTerm,
+	const CConstFloatHandle& source, const CConstFloatHandle& filter, const CConstFloatHandle* freeTerm,
 	const CFloatHandle& result )
 {
 	SetCudaDevice( device->DeviceNumber );
@@ -100,12 +100,13 @@ void CCudaMathEngine::Blob3dConvolution( const C3dConvolutionDesc& convDesc,
 
 	int tempMatrixHeightIndex = 0;
 	while( tempMatrixHeightIndex < matrixHeight ) {
-		int curTempMatrixHeight = min( matrixHeight - tempMatrixHeightIndex, tempMatrixHeightBatchSize );
+		const int curTempMatrixHeight = min( matrixHeight - tempMatrixHeightIndex, tempMatrixHeightBatchSize );
+		const int widthNorm = ( matrixWidth + BuildTempMatrixCombine - 1 ) / BuildTempMatrixCombine;
 
 		dim3 blockCount;
 		dim3 threadCount;
-		const int widthNorm = ( matrixWidth + BuildTempMatrixCombine - 1 ) / BuildTempMatrixCombine;
 		getCudaTaskGrid2D( blockCount, threadCount, curTempMatrixHeight, widthNorm );
+
 		BuildTempMatrixKernel<<<blockCount, threadCount>>>( desc, GetRaw( source ), curTempMatrixHeight,
 			matrixWidth, GetRaw( tempMatrix.GetHandle() ), widthNorm, tempMatrixHeightIndex );
 	
@@ -126,8 +127,8 @@ void CCudaMathEngine::Blob3dConvolution( const C3dConvolutionDesc& convDesc,
 	}
 }
 
-void CCudaMathEngine::Blob3dConvolutionBackward( const C3dConvolutionDesc& convDesc, const CFloatHandle& outputDiff,
-	const CFloatHandle& filter, const CFloatHandle* freeTerm, const CFloatHandle& inputDiff )
+void CCudaMathEngine::Blob3dConvolutionBackward( const C3dConvolutionDesc& convDesc, const CConstFloatHandle& outputDiff,
+	const CConstFloatHandle& filter, const CConstFloatHandle* freeTerm, const CFloatHandle& inputDiff )
 {
 	SetCudaDevice( device->DeviceNumber );
 	const CCuda3dConvolutionDescInternal& desc = static_cast<const CCuda3dConvolutionDesc&>( convDesc ).Internal;
@@ -170,15 +171,16 @@ void CCudaMathEngine::Blob3dConvolutionBackward( const C3dConvolutionDesc& convD
 
 	int tempMatrixHeightIndex = 0;
 	while( tempMatrixHeightIndex < matrixHeight ) {
-		int curTempMatrixHeight = min( matrixHeight - tempMatrixHeightIndex, tempMatrixHeightBatchSize );
+		const int curTempMatrixHeight = min( matrixHeight - tempMatrixHeightIndex, tempMatrixHeightBatchSize );
 		MultiplyMatrixByMatrix( 1, outputDiff + tempMatrixHeightIndex * filterCount, desc.Result.BlobSize() / filterCount, filterCount,
 			filter, filterObjectSize, tempMatrix, tempMatrix.Size() );
 		
+		const int widthNorm = ( matrixWidth + BuildInputFromTempMatrixCombine - 1 ) / BuildInputFromTempMatrixCombine;
 		// Get the input gradients from the temporary matrix data
 		dim3 blockCount;
 		dim3 threadCount;
-		int widthNorm = ( matrixWidth + BuildInputFromTempMatrixCombine - 1 ) / BuildInputFromTempMatrixCombine;
 		getCudaTaskGrid2D( blockCount, threadCount, curTempMatrixHeight, widthNorm );
+
 		BuildInputFromTempMatrixKernel<<<blockCount, threadCount>>>( desc, GetRaw( tempMatrix.GetHandle() ),
 			curTempMatrixHeight, matrixWidth, GetRaw( inputDiff ), operation, widthNorm, tempMatrixHeightIndex );
 		tempMatrixHeightIndex += curTempMatrixHeight;
@@ -186,14 +188,13 @@ void CCudaMathEngine::Blob3dConvolutionBackward( const C3dConvolutionDesc& convD
 }
 
 void CCudaMathEngine::Blob3dConvolutionLearnAdd( const C3dConvolutionDesc& convDesc,
-	const CFloatHandle& input, const CFloatHandle& outputDiff, const CFloatHandle& filterDiff,
+	const CConstFloatHandle& input, const CConstFloatHandle& outputDiff, const CFloatHandle& filterDiff,
 	const CFloatHandle* freeTermDiff, bool isFreeTermDiffFromInput )
 {
 	SetCudaDevice( device->DeviceNumber );
 	const CCuda3dConvolutionDescInternal& desc = static_cast<const CCuda3dConvolutionDesc&>( convDesc ).Internal;
 
 	if( freeTermDiff != 0 ) {
-		const CConstFloatHandle& freeTermSrc = isFreeTermDiffFromInput ? input : outputDiff;
 		// Get the free term gradient
 		if( !isFreeTermDiffFromInput ) {
 			SumMatrixRowsAdd( 1, *freeTermDiff, outputDiff, desc.Result.BlobSize() / desc.Filter.ObjectCount(),
@@ -213,12 +214,13 @@ void CCudaMathEngine::Blob3dConvolutionLearnAdd( const C3dConvolutionDesc& convD
 
 	int tempMatrixHeightIndex = 0;
 	while( tempMatrixHeightIndex < matrixHeight ) {
-		int curTempMatrixHeight = min( matrixHeight - tempMatrixHeightIndex, tempMatrixHeightBatchSize );
+		const int curTempMatrixHeight = min( matrixHeight - tempMatrixHeightIndex, tempMatrixHeightBatchSize );
+		const int widthNorm = ( matrixWidth + BuildTempMatrixCombine - 1 ) / BuildTempMatrixCombine;
 
 		dim3 blockCount;
 		dim3 threadCount;
-		const int widthNorm = ( matrixWidth + BuildTempMatrixCombine - 1 ) / BuildTempMatrixCombine;
 		getCudaTaskGrid2D( blockCount, threadCount, curTempMatrixHeight, widthNorm );
+
 		BuildTempMatrixKernel<<<blockCount, threadCount>>>( desc, GetRaw( input ), curTempMatrixHeight,
 			matrixWidth, GetRaw( tempMatrix.GetHandle() ), widthNorm, tempMatrixHeightIndex );
 	

@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -57,6 +57,18 @@ size_t CCudaMathEngine::GetPeakMemoryUsage() const
 	return memoryPool->GetPeakMemoryUsage();
 }
 
+void CCudaMathEngine::ResetPeakMemoryUsage()
+{
+	std::lock_guard<std::mutex> lock( mutex );
+	memoryPool->ResetPeakMemoryUsage();
+}
+
+size_t CCudaMathEngine::GetCurrentMemoryUsage() const
+{
+	std::lock_guard<std::mutex> lock( mutex );
+	return memoryPool->GetCurrentMemoryUsage();
+}
+
 size_t CCudaMathEngine::GetMemoryInPools() const
 {
 	std::lock_guard<std::mutex> lock( mutex );
@@ -66,6 +78,24 @@ size_t CCudaMathEngine::GetMemoryInPools() const
 void CCudaMathEngine::SetReuseMemoryMode( bool )
 {
 	// Always true, because allocation is sync
+}
+
+bool CCudaMathEngine::GetReuseMemoryMode() const
+{
+	// Always true, because allocation is sync
+	return true;
+}
+
+void CCudaMathEngine::SetThreadBufferMemoryThreshold( size_t threshold )
+{
+	std::lock_guard<std::mutex> lock( mutex );
+	memoryPool->SetThreadBufferMemoryThreshold( threshold );
+}
+
+size_t CCudaMathEngine::GetThreadBufferMemoryThreshold() const
+{
+	std::lock_guard<std::mutex> lock( mutex );
+	return memoryPool->GetThreadBufferMemoryThreshold();
 }
 
 CMemoryHandle CCudaMathEngine::HeapAlloc( size_t size )
@@ -83,7 +113,15 @@ void CCudaMathEngine::HeapFree( const CMemoryHandle& handle )
 	ASSERT_EXPR( handle.GetMathEngine() == this );
 
 	std::lock_guard<std::mutex> lock( mutex );
-	return memoryPool->Free( handle );
+	memoryPool->Free( handle );
+}
+
+void CCudaMathEngine::TransferHandleToThisThread( const CMemoryHandle& handle, size_t size )
+{
+	ASSERT_EXPR( handle.GetMathEngine() == this );
+
+	std::lock_guard<std::mutex> lock( mutex );
+	memoryPool->TransferHandleToThisThread( handle, size );
 }
 
 CMemoryHandle CCudaMathEngine::StackAlloc( size_t size )
@@ -202,6 +240,15 @@ void CCudaMathEngine::AllReduce( const CFloatHandle& handle, int size )
 #endif
 }
 
+void CCudaMathEngine::AbortDistributed()
+{
+#ifdef NEOML_USE_NCCL
+	if( ncclCommunicator != nullptr ){
+		ncclCommunicator->Abort();
+	}
+#endif
+}
+
 void CCudaMathEngine::Broadcast( const CFloatHandle& handle, int size, int root )
 {
 	ASSERT_EXPR( handle.GetMathEngine() == this );
@@ -215,9 +262,10 @@ void CCudaMathEngine::Broadcast( const CFloatHandle& handle, int size, int root 
 }
 
 #ifdef NEOML_USE_NCCL
-void CCudaMathEngine::SetDistributedCommunicator( const ncclUniqueId& uniqueId, const CMathEngineDistributedInfo& info )
+void CCudaMathEngine::SetDistributedCommunicator( const ncclUniqueId& uniqueId, const CMathEngineDistributedInfo& info,
+	std::shared_ptr<std::atomic<bool>> isAbort )
 {
-	ncclCommunicator = std::make_unique<CCudaDistributedCommunicator>( uniqueId, info );
+	ncclCommunicator = std::make_unique<CCudaDistributedCommunicator>( uniqueId, info, isAbort );
 	distributedInfo = info;
 }
 #endif

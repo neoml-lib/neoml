@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,12 +19,12 @@ limitations under the License.
 
 #ifdef NEOML_USE_CUDA
 
-#include <cublas_v2.h>
+#include <cublas.h>
 
 namespace NeoML {
 
 // The cublas functions used in CUDA implementation of the MathEngine
-struct CCublas {
+struct CCublas final {
 	// typedef for convenience
 	typedef cublasStatus_t( CUBLASWINAPI *TCublasCreate ) ( cublasHandle_t *handle );
 	typedef cublasStatus_t( CUBLASWINAPI *TCublasDestroy ) ( cublasHandle_t handle );
@@ -45,16 +45,16 @@ struct CCublas {
 	typedef cublasStatus_t( CUBLASWINAPI *TCublasSdgmm ) ( cublasHandle_t handle, cublasSideMode_t mode, int m, int n,
 		const float *A, int lda, const float *x, int incx, float *C, int ldc );
 
-	TCublasCreate Create;
-	TCublasDestroy Destroy;
-	TCublasSetMathMode SetMathMode;
-	TCublasSetPointerMode SetPointerMode;
-	TCublasSetAtomicsMode SetAtomicsMode;
-	TCublasSdot Sdot;
-	TCublasSaxpy Saxpy;
-	TCublasSgemm Sgemm;
-	TCublasSgemmStridedBatched SgemmStridedBatched;
-	TCublasSdgmm Sdgmm;
+	TCublasCreate Create{};
+	TCublasDestroy Destroy{};
+	TCublasSetMathMode SetMathMode{};
+	TCublasSetPointerMode SetPointerMode{};
+	TCublasSetAtomicsMode SetAtomicsMode{};
+	TCublasSdot Sdot{};
+	TCublasSaxpy Saxpy{};
+	TCublasSgemm Sgemm{};
+	TCublasSgemmStridedBatched SgemmStridedBatched{};
+	TCublasSdgmm Sdgmm{};
 };
 
 } // namespace NeoML

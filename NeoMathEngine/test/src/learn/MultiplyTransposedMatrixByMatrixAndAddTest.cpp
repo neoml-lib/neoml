@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -43,7 +43,7 @@ static void multiplyTransposedMatrixByMatrixAndAddTestImpl( const CTestParams& p
 	const int secondWidth = random.UniformInt( widthInterval.Begin, widthInterval.End );
 
 	CREATE_FILL_FLOAT_ARRAY( first, valuesInterval.Begin, valuesInterval.End, firstHeight * firstWidth, random )
-		CREATE_FILL_FLOAT_ARRAY( second, valuesInterval.Begin, valuesInterval.End, firstHeight * secondWidth, random )
+	CREATE_FILL_FLOAT_ARRAY( second, valuesInterval.Begin, valuesInterval.End, firstHeight * secondWidth, random )
 
 	CREATE_FILL_FLOAT_ARRAY( get, valuesInterval.Begin, valuesInterval.End, firstWidth * secondWidth, random )
 	std::vector<float> expected;
@@ -69,19 +69,13 @@ INSTANTIATE_TEST_CASE_P( CMultiplyTransposedMatrixByMatrixAndAddTestInstantiatio
 		CTestParams(
 			"Height = (1..50);"
 			"Width = (1..50);"
-			"BatchSize = (1..5);"
-			"VectorSize = (1..20);"
 			"Values = (-1..1);"
-			"Channels = (1..5);"
 			"TestCount = 100;"
 		),
 		CTestParams(
 			"Height = (100..500);"
 			"Width = (100..500);"
-			"BatchSize = (1..5);"
-			"VectorSize = (30..50);"
 			"Values = (-1..1);"
-			"Channels = (1..5);"
 			"TestCount = 5;"
 		)
 	)

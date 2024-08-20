@@ -39,8 +39,9 @@ float CBinaryCrossEntropyLossLayer::GetPositiveWeight() const
 void CBinaryCrossEntropyLossLayer::Reshape()
 {
 	CLossLayer::Reshape();
-	CheckArchitecture( inputDescs[1].GetDataType() == CT_Float, GetName(), "labels must be CT_Float" );
-	CheckArchitecture( inputDescs[0].ObjectSize() == 1 && inputDescs[1].ObjectSize() == 1, GetName(), "BinaryCrossEntropy layer can only work with a binary classificaion problem" );
+	CheckLayerArchitecture( inputDescs[1].GetDataType() == CT_Float, "labels must be CT_Float" );
+	CheckLayerArchitecture( inputDescs[0].ObjectSize() == 1 && inputDescs[1].ObjectSize() == 1,
+		"BinaryCrossEntropy layer can only work with a binary classificaion problem" );
 }
 
 void CBinaryCrossEntropyLossLayer::BatchCalculateLossAndGradient( int batchSize, CConstFloatHandle data, int /* vectorSize */,

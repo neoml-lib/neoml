@@ -84,7 +84,7 @@ public:
 	template<typename U = T, typename std::enable_if<std::is_same<U, T>::value && !std::is_const<U>::value, int>::type = 0>
 	operator CTypedMemoryHandle<const U>() const
 	{
-		return CTypedMemoryHandle<const U>( *this );
+		return CTypedMemoryHandle<const U>( static_cast<const CMemoryHandle&>( *this ) );
 	}
 
 	CTypedMemoryHandle& operator+=( ptrdiff_t shift )

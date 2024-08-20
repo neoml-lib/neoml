@@ -37,7 +37,7 @@ DECLARE_NEOML_MODEL_NAME( OneVersusAllModelName, "FmlOneVersusAllModel" )
 // One-versus-all classification model interface
 class NEOML_API IOneVersusAllModel : public IModel {
 public:
-	virtual ~IOneVersusAllModel();
+	~IOneVersusAllModel() override;
 
 	// Gets the basic IModel for all the binary classifiers
 	virtual const CObjectArray<IModel>& GetModels() const = 0;
@@ -57,7 +57,7 @@ public:
 	void SetLog( CTextStream* newLog ) { logStream = newLog; }
 
 	// ITrainingModel interface methods:
-	virtual CPtr<IModel> Train( const IProblem& trainingClassificationData );
+	CPtr<IModel> Train( const IProblem& trainingClassificationData ) override;
 
 private:
 	ITrainingModel& baseBinaryClassifier; // the basic binary classifier used

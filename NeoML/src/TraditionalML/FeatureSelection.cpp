@@ -26,7 +26,7 @@ struct CClusterStatistics {
 	CArray<double> SumSquare;
 	double SumWeight;
 
-	CClusterStatistics( int featuresCount );
+	explicit CClusterStatistics( int featuresCount );
 
 	void AddVector( const CFloatVectorDesc& vector, double weight );
 	void GetVariance( CArray<double>& variance );
@@ -332,11 +332,11 @@ void CalcFeaturesInformationGain( const IProblem& problem, CArray<double>& infor
 	informationGain.Empty();
 	informationGain.SetBufferSize( featureCount );
 	for( int i = 0; i < statistics.Size(); i++ ) {
-		double value = 0;
 		CMap<double, CVectorSetClassificationStatistic*>* oneStatistics = statistics[i];
 		if( oneStatistics == 0 ) {
 			informationGain.Add( 0 );
 		} else {
+			double value = 0;
 			TMapPosition pos = oneStatistics->GetFirstPosition();
 			while( pos != NotFound ) {
 				CVectorSetClassificationStatistic* oneStatisticsValue = oneStatistics->GetValue( pos );

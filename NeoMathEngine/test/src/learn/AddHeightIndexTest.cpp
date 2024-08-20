@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,24 +14,10 @@ limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
 #include <TestFixture.h>
+#include <MeTestCommon.h>
 
 using namespace NeoML;
 using namespace NeoMLTest;
-
-static void addIndexNaive( const int *input, int batchSize, int height, int width, int channels, int *output, bool isAddHeight )
-{
-	for( int batch = 0; batch < batchSize; ++batch ) {
-		for( int h = 0; h < height; ++h ) {
-			for( int w = 0; w < width; ++w ) {
-				for( int c = 0; c < channels; ++c ) {
-					*output = *input + ( isAddHeight ? h : w );
-					input++;
-					output++;
-				}
-			}
-		}
-	}
-}
 
 static void addHeightIndexImpl( const CTestParams& params, int seed )
 {
@@ -46,29 +32,30 @@ static void addHeightIndexImpl( const CTestParams& params, int seed )
 	const int width = random.UniformInt( widthInterval.Begin, widthInterval.End );
 	const int channels = random.UniformInt( channelsInterval.Begin, channelsInterval.End );
 	const int batchSize = random.UniformInt( batchSizeInterval.Begin, batchSizeInterval.End );
+	const auto size = static_cast<size_t>( height ) * width * channels * batchSize;
 
-	CREATE_FILL_INT_ARRAY( inputData, valuesInterval.Begin, valuesInterval.End, height * width * channels * batchSize, random )
+	CREATE_FILL_INT_ARRAY( inputData, valuesInterval.Begin, valuesInterval.End, size, random )
 	CIntBlob inputBlob( MathEngine(), batchSize, height, width, channels );
 	inputBlob.CopyFrom( inputData.data() );
 	CIntBlob outputBlob( MathEngine(), batchSize, height, width, channels );
 	std::vector<int> outputData, getData;
-	outputData.resize( height * width * channels * batchSize );
-	getData.resize( height * width * channels * batchSize );
+	outputData.resize( size );
+	getData.resize( size );
 
-	MathEngine().AddHeightIndex( inputBlob.GetDesc(), inputBlob.GetData(), true, outputBlob.GetData() );
+	MathEngine().AddHeightIndex( inputBlob.GetDesc(), inputBlob.GetData(), /*isForward*/true, outputBlob.GetData() );
 
-	addIndexNaive( inputData.data(), batchSize, height, width, channels, outputData.data(), true );
+	addIndexNaive( inputData.data(), batchSize, height, width, channels, outputData.data(), /*isHeight*/true );
 	outputBlob.CopyTo( getData.data() );
 
-	for( int i = 0; i < height * width * channels * batchSize; ++i ) {
-		ASSERT_EQ( outputData[i], getData[i] );
+	for( size_t i = 0; i < size; ++i ) {
+		EXPECT_EQ( outputData[i], getData[i] );
 	}
 
-	MathEngine().AddHeightIndex( inputBlob.GetDesc(), outputBlob.GetData(), false, inputBlob.GetData() );
+	MathEngine().AddHeightIndex( inputBlob.GetDesc(), outputBlob.GetData(), /*isForward*/false, inputBlob.GetData() );
 
 	inputBlob.CopyTo( getData.data() );
-	for( int i = 0; i < height * width * channels * batchSize; ++i ) {
-		ASSERT_EQ( inputData[i], getData[i] );
+	for( size_t i = 0; i < size; ++i ) {
+		EXPECT_EQ( inputData[i], getData[i] );
 	}
 }
 
@@ -92,5 +79,11 @@ INSTANTIATE_TEST_CASE_P( CAddHeightIndexTestInstantiation, CAddHeightIndexTest,
 
 TEST_P( CAddHeightIndexTest, Random )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		return;
+	}
+
 	RUN_TEST_IMPL( addHeightIndexImpl )
 }

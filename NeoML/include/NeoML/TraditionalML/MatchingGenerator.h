@@ -28,11 +28,11 @@ namespace NeoML {
 template<int BlockSize>
 class CGeneratorAllocator : public IMemoryManager {
 public:
-	virtual void* Alloc( size_t ) { return allocator.Alloc(); }
-	virtual void Free( void* ptr ) { allocator.Free( ptr ); }
+	void* Alloc( size_t ) override { return allocator.Alloc(); }
+	void Free( void* ptr ) override { allocator.Free( ptr ); }
 
 #ifdef _DEBUG
-	virtual void* Alloc( size_t, const char*, int ) { return allocator.Alloc(); }
+	void* Alloc( size_t, const char*, int ) override { return allocator.Alloc(); }
 #endif
 
 	// Sets the tentative number of blocks to be allocated
@@ -100,8 +100,10 @@ private:
 	int minActiveLeftNode; // the minimum number of the left node for active generators
 
 	class CNextMatchingGenerator;
-	class EstimatedPenaltyDescending;
-	class CurrentPenaltyDescending;
+	using EstimatedPenaltyDescending = DescendingPtrByMethod<CNextMatchingGenerator, Quality,
+		&CNextMatchingGenerator::EstimatedPenalty>;
+	using CurrentPenaltyDescending = DescendingPtrByMethod<CNextMatchingGenerator, Quality,
+		&CNextMatchingGenerator::CurrentPenalty>;
 	CPriorityQueue<CFastArray<CNextMatchingGenerator*, 1>, EstimatedPenaltyDescending> nextMatchingGenerators;
 	CPriorityQueue<CFastArray<CNextMatchingGenerator*, 1>, CurrentPenaltyDescending> nextMatchings;
 	CArray<CNextMatchingGenerator*> usedGenerators; // the used generators (to be deleted)
@@ -259,20 +261,6 @@ inline void CMatchingGenerator<Element>::CNextMatchingGenerator::stepRight()
 	}
 	NeoAssert( estimatedPenalty <= currentPenalty );
 }
-
-//-------------------------------------------------------------------------------------------------------------
-
-template<class Element>
-class CMatchingGenerator<Element>::EstimatedPenaltyDescending : public DescendingPtrByMethod<CNextMatchingGenerator, Quality,
-	&CNextMatchingGenerator::EstimatedPenalty>
-{
-};
-
-template<class Element>
-class CMatchingGenerator<Element>::CurrentPenaltyDescending : public DescendingPtrByMethod<CNextMatchingGenerator, Quality,
-	&CNextMatchingGenerator::CurrentPenalty>
-{
-};
 
 //-------------------------------------------------------------------------------------------------------------
 

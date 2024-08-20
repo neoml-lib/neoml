@@ -375,10 +375,20 @@ PARAM_STRUCT(VectorMultiplyFloat)
 
 /////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////
-// VectorEltwiseDivide
-DEFINE_SHADER_1D(VectorEltwiseDivide)
+// VectorEltwiseDivideInt
+DEFINE_SHADER_1D(VectorEltwiseDivideInt)
 
-PARAM_STRUCT(VectorEltwiseDivide)
+PARAM_STRUCT(VectorEltwiseDivideInt)
+{
+	int dummy;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// VectorEltwiseDivideFloat
+DEFINE_SHADER_1D(VectorEltwiseDivideFloat)
+
+PARAM_STRUCT(VectorEltwiseDivideFloat)
 {
 	int dummy;
 };
@@ -2336,6 +2346,20 @@ PARAM_STRUCT(Lrn)
 	float bias;
 	float alpha;
 	float beta;
+};
+
+/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////
+// BertConv
+DEFINE_SHADER_1D( BertConv )
+
+PARAM_STRUCT( BertConv )
+{
+	int seqLen;
+	int batchSize;
+	int numHeads;
+	int headSize;
+	int kernelSize;
 };
 
 

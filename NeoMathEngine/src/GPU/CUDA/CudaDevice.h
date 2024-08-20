@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -25,18 +25,20 @@ namespace NeoML {
 
 // CUDA device descriptor
 struct CCudaDevice : public CCrtAllocatedObject {
-	int DeviceNumber;
-	int DeviceId;
-	size_t MemoryLimit;
-	int SharedMemoryLimit;
-	int ThreadMaxCount;
-	unsigned int ThreadMax3DCountX;
-	unsigned int ThreadMax3DCountY;
-	unsigned int ThreadMax3DCountZ;
-	int WarpSize;
-	void* Handle;
+	int DeviceNumber{};
+	size_t MemoryLimit{};
+	int SharedMemoryLimit{};
+	int ThreadMaxCount{};
+	unsigned int ThreadMax3DCountX{};
+	unsigned int ThreadMax3DCountY{};
+	unsigned int ThreadMax3DCountZ{};
+	unsigned int MaxGridSizeX{};
+	unsigned int MaxGridSizeY{};
+	unsigned int MaxGridSizeZ{};
+	int WarpSize{};
+	void* Handle{};
 
-	CCudaDevice() {}
+	CCudaDevice() = default;
 	~CCudaDevice();
 	CCudaDevice( const CCudaDevice& ) = delete;
 	CCudaDevice& operator=( const CCudaDevice& ) = delete;

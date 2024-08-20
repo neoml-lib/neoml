@@ -41,13 +41,15 @@ public:
 	void SetFilterData( const CPtr<CDnnBlob>& newFilter ) override;
 
 protected:
-	virtual ~CChannelwiseConvLayer() { destroyConvDesc(); }
+	~CChannelwiseConvLayer() override { destroyConvDesc(); }
 
 	void Reshape() override;
 	void RunOnce() override;
 	void BackwardOnce() override;
 	void LearnOnce() override;
 	bool IsFilterTransposed() const override { return true; }
+	int BlobsForBackward() const override { return 0; }
+	int BlobsForLearn() const override { return TInputBlobs; }
 
 private:
 	// Convolution descriptor

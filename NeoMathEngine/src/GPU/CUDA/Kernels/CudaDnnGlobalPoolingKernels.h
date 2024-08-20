@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -24,9 +24,9 @@ namespace NeoML {
 
 enum HeapType { MinHeap, MaxHeap };
 
-struct IndexedValue {
-	float val;
-	float ind;
+struct IndexedValue final {
+	float val = 0;
+	float ind = 0;
 
 	__device__ bool isLess( const IndexedValue& other ) {
 		return ( val == other.val ) ? ind > other.ind : val < other.val;
@@ -43,10 +43,14 @@ struct IndexedValue {
 };
 
 template<HeapType T>
-struct Heap {
-	IndexedValue* data;
-	int size;
-	__device__ Heap( float* _data, int maxCount ) : data( reinterpret_cast<IndexedValue*>( _data ) ), size( maxCount ) {}
+struct Heap final {
+	IndexedValue* data = 0;
+	int size = 0;
+
+	__device__ Heap( float* _data, int maxCount ) :
+		data( reinterpret_cast<IndexedValue*>( _data ) ),
+		size( maxCount )
+	{}
 
 	__device__ bool isLess( int left, int right ) {
 		if( T == HeapType::MinHeap ) {
@@ -57,17 +61,17 @@ struct Heap {
 	}
 
 	__device__ void heapify( int node, int size ) {
-		while (true) {
+		while( true ) {
 			const int left = 2 * node + 1;
 			const int right = left + 1;
 			int smallest = node;
-			if ( left < size && isLess( left, smallest ) ) {
+			if( left < size && isLess( left, smallest ) ) {
 				smallest = left;
 			}
-			if ( right < size && isLess( right, smallest ) ) {
+			if( right < size && isLess( right, smallest ) ) {
 				smallest = right;
 			}
-			if ( smallest == node ) {
+			if( smallest == node ) {
 				break;
 			}
 			data[smallest].swap( data[node] );
@@ -76,13 +80,13 @@ struct Heap {
 	}
 
 	__device__ void buildHeap() {
-		for ( int node = ( size - 1 ) / 2; node >= 0; node-- ) {
+		for( int node = ( size - 1 ) / 2; node >= 0; --node ) {
 			heapify( node, size );
 		}
 	}
 
 	__device__ void sort() {
-		for ( int cnt = size - 1; cnt > 0; cnt-- ) {
+		for( int cnt = size - 1; cnt > 0; --cnt ) {
 			data[0].swap( data[cnt] );
 			heapify( 0, cnt );
 		}
@@ -108,22 +112,21 @@ __launch_bounds__( 1024, 1 )
 __global__ void BlobGlobalMaxPoolingHeapKernel( const CCudaGlobalMaxPoolingDescInternal desc, const float* sourceData,
 	int* maxIndicesData, float* resultData, int poolSize, int maxCount )
 {
+	assert( threadIdx.z == 0 );
+
 	const CCudaBlobDesc& source = desc.Source;
-	const CCudaBlobDesc& maxIndices = desc.MaxIndices;
-	const CCudaBlobDesc& result = desc.Result;
 
 	// Initialize the data
 	extern __shared__ float sharedData[];
 
-	int totalChannels = source.Channels();
-	int y = blockIdx.y * blockDim.y + threadIdx.y;
-	int b = y / totalChannels;
-	int c = y % totalChannels;
-
-	int threadCountX = blockDim.x;
-	int bufferStep = 2 * maxCount;
-	float* localHeap = sharedData + ( threadIdx.y * ( blockDim.x + 1 ) + threadIdx.x ) * bufferStep;
-	float* globalHeap = sharedData + ( threadIdx.y * ( blockDim.x + 1 ) + blockDim.x ) * bufferStep;
+	const int totalChannels = source.Channels();
+	const int y = blockIdx.y * blockDim.y + threadIdx.y;
+	const int b = y / totalChannels;
+	const int c = y % totalChannels;
+	const int threadCountX = blockDim.x;
+	const int bufferStep = 2 * maxCount;
+	float* const localHeap = sharedData + ( threadIdx.y * ( blockDim.x + 1 ) + threadIdx.x ) * bufferStep;
+	float* const globalHeap = sharedData + ( threadIdx.y * ( blockDim.x + 1 ) + blockDim.x ) * bufferStep;
 
 	for( int i = 0; i < maxCount; ++i ) {
 		localHeap[2 * i] = -FLT_MAX;
@@ -131,7 +134,6 @@ __global__ void BlobGlobalMaxPoolingHeapKernel( const CCudaGlobalMaxPoolingDescI
 	}
 
 	Heap<HeapType::MinHeap> heap( localHeap, maxCount );
-
 	if( b < source.ObjectCount() && c < totalChannels ) {
 		const float* curSourceData = sourceData + ( b * poolSize + threadIdx.x ) * totalChannels + c;
 		for( int ind = threadIdx.x; ind < poolSize; ind += threadCountX ) {
@@ -142,8 +144,8 @@ __global__ void BlobGlobalMaxPoolingHeapKernel( const CCudaGlobalMaxPoolingDescI
 	}
 	__syncthreads();
 
-	if( threadIdx.x == 0 && b < source.ObjectCount() && c < totalChannels  ) {
-		for(int i = 0; i < maxCount; ++i) {
+	if( threadIdx.x == 0 && b < source.ObjectCount() && c < totalChannels ) {
+		for( int i = 0; i < maxCount; ++i ) {
 			globalHeap[2 * i] = -FLT_MAX;
 			globalHeap[2 * i + 1] = -1;
 		}
@@ -160,13 +162,13 @@ __global__ void BlobGlobalMaxPoolingHeapKernel( const CCudaGlobalMaxPoolingDescI
 		for( int i = 0, resIndex = b * maxCount * totalChannels + c; i < maxCount; ++i, resIndex += totalChannels ) {
 			const IndexedValue& root = maxHeap.root();
 			resultData[resIndex] = root.val;
-			int rootIndex = ( int )root.ind;
+			const int rootIndex = ( int )root.ind;
 			if( rootIndex == -1 ) {
 				maxIndicesData[resIndex] = -1;
 			} else {
-				IndexedValue* threadMax = reinterpret_cast< IndexedValue* >( localHeap + rootIndex );
+				IndexedValue* threadMax = reinterpret_cast<IndexedValue*>( localHeap + rootIndex );
 				maxIndicesData[resIndex] = ( int )threadMax->ind;
-				IndexedValue* threadNextMax = reinterpret_cast< IndexedValue* >( localHeap + rootIndex + 2 );
+				IndexedValue* threadNextMax = reinterpret_cast<IndexedValue*>( localHeap + rootIndex + 2 );
 				maxHeap.replaceRoot( { threadNextMax->val, float( rootIndex + 2 ) } );
 			}
 		}
@@ -176,7 +178,7 @@ __global__ void BlobGlobalMaxPoolingHeapKernel( const CCudaGlobalMaxPoolingDescI
 __device__ inline unsigned FloatToUnsigned( const float* ptr )
 {
 	unsigned res = *( unsigned* )ptr;
-	unsigned sign = 1 << ( sizeof( float ) * 8 - 1 );
+	constexpr unsigned sign = 1U << ( sizeof( float ) * 8 - 1 );
 	if( res & sign ) {
 		res = ~res;
 	} else {
@@ -187,24 +189,27 @@ __device__ inline unsigned FloatToUnsigned( const float* ptr )
 
 __launch_bounds__( 1024, 1 )
 __global__ void BlobGlobalMaxPoolingLocalSortKernel( const CCudaGlobalMaxPoolingDescInternal desc, const float* sourceData,
-	int* indicesSorted1, int* indicesSorted2, int poolSize, int bin, int histSize, int* local, int* global  )
+	int* indicesSorted1, int* indicesSorted2, int poolSize, int bin, int histSize, int* local, int* global )
 {
+	assert( threadIdx.z == 0 );
+
 	extern __shared__ float sharedData[];
 
 	const CCudaBlobDesc& source = desc.Source;
 
-	int* startHistogram = (int*)( sharedData + threadIdx.x * blockDim.y * histSize );
-	int* threadHistogram = (int*)( sharedData + ( threadIdx.x * blockDim.y + threadIdx.y ) * histSize );
+	int* const startHistogram = ( int* )( sharedData + threadIdx.x * blockDim.y * histSize );
+	int* const threadHistogram = ( int* )( sharedData + ( threadIdx.x * blockDim.y + threadIdx.y ) * histSize );
 
-	int totalChannels = source.Channels();
-	int x = blockIdx.x * blockDim.x + threadIdx.x;
-	int* globalSums = global + x * ( gridDim.y + 1 ) * histSize;
-	int* localSums = local + x * gridDim.y * histSize;
-	int b = x / totalChannels;
-	int c = x % totalChannels;
-	int countPerBlock = ( poolSize + gridDim.y - 1 ) / gridDim.y;
-	int countPerThread = ( countPerBlock + blockDim.y - 1 ) / blockDim.y;
-	int count = min( countPerThread, min( countPerBlock, poolSize - (int)blockIdx.y * countPerBlock ) - (int)threadIdx.y * countPerThread );
+	const int totalChannels = source.Channels();
+	const int x = blockIdx.x * blockDim.x + threadIdx.x;
+	int* const globalSums = global + x * ( gridDim.y + 1 ) * histSize;
+	int* const localSums = local + x * gridDim.y * histSize;
+
+	const int b = x / totalChannels;
+	const int c = x % totalChannels;
+	const int countPerBlock = ( poolSize + gridDim.y - 1 ) / gridDim.y;
+	const int countPerThread = ( countPerBlock + blockDim.y - 1 ) / blockDim.y;
+	const int count = min( countPerThread, min( countPerBlock, poolSize - (int)blockIdx.y * countPerBlock ) - (int)threadIdx.y * countPerThread );
 
 	for( int i = 0; i < histSize; ++i ) {
 		threadHistogram[i] = 0;
@@ -219,8 +224,8 @@ __global__ void BlobGlobalMaxPoolingLocalSortKernel( const CCudaGlobalMaxPooling
 			if( bin == 0 ) {
 				sourceIndex = curIndex;
 			}
-			unsigned int value = FloatToUnsigned( sourceData + sourceIndex );
-			unsigned int histValue = ~( value >> bin ) & ( histSize - 1 );
+			const unsigned int value = FloatToUnsigned( sourceData + sourceIndex );
+			const unsigned int histValue = ~( value >> bin ) & ( histSize - 1 );
 			threadHistogram[histValue] += 1;
 			curIndex += totalChannels;
 		}
@@ -234,7 +239,7 @@ __global__ void BlobGlobalMaxPoolingLocalSortKernel( const CCudaGlobalMaxPooling
 	int offset = 1;
 	for( int d = blockDim.y >> 1; d > 0; d >>= 1 ) {
 		if( threadIdx.y < d ) {
-			int* left = startHistogram + ( offset * ( 2 * threadIdx.y + 1 ) - 1 ) * histSize;
+			const int* left = startHistogram + ( offset * ( 2 * threadIdx.y + 1 ) - 1 ) * histSize;
 			int* right = startHistogram + ( offset * ( 2 * threadIdx.y + 2 ) - 1 ) * histSize;
 			for( int j = 0; j < histSize; ++j, ++right, ++left ) {
 				*right += *left;
@@ -273,14 +278,14 @@ __global__ void BlobGlobalMaxPoolingLocalSortKernel( const CCudaGlobalMaxPooling
 
 	// local sort in block
 	if( b < source.ObjectCount() && c < totalChannels ) {
-		int globalBlockIndex = ( b * poolSize + blockIdx.y * countPerBlock ) * totalChannels + c;
+		const int globalBlockIndex = ( b * poolSize + blockIdx.y * countPerBlock ) * totalChannels + c;
 		int curIndex = ( b * poolSize + blockIdx.y * countPerBlock + threadIdx.y * countPerThread ) * totalChannels + c;
 
 		for( int i = 0; i < count; ++i ) {
-			int sourceIndex = indicesSorted1[curIndex];
-			unsigned int value = FloatToUnsigned( sourceData + sourceIndex );
-			unsigned int histValue = ~( value >> bin ) & ( histSize - 1 );
-			int newIndex = globalBlockIndex + ( threadHistogram[histValue] + localSums[blockIdx.y * histSize + histValue] ) * totalChannels;
+			const int sourceIndex = indicesSorted1[curIndex];
+			const unsigned int value = FloatToUnsigned( sourceData + sourceIndex );
+			const unsigned int histValue = ~( value >> bin ) & ( histSize - 1 );
+			const int newIndex = globalBlockIndex + ( threadHistogram[histValue] + localSums[blockIdx.y * histSize + histValue] ) * totalChannels;
 			indicesSorted2[newIndex] = sourceIndex;
 			curIndex += totalChannels;
 			threadHistogram[histValue]++;
@@ -291,16 +296,18 @@ __global__ void BlobGlobalMaxPoolingLocalSortKernel( const CCudaGlobalMaxPooling
 __launch_bounds__( 1024, 1 )
 __global__ void BlobGlobalMaxPoolingGlobalScanKernel( const CCudaGlobalMaxPoolingDescInternal desc, int histSize, int* global, int blockCountY )
 {
+	assert( threadIdx.z == 0 );
+
 	extern __shared__ float sharedData[];
 
-	int x = blockIdx.x * blockDim.x + threadIdx.x;
-	int* globalSums = global + x * ( blockCountY + 1 ) * histSize;
-	int* startHistogram = ( int* )( sharedData + threadIdx.x * blockDim.y * histSize );
-	int* threadHistogram = ( int* )( sharedData + ( threadIdx.x * blockDim.y + threadIdx.y ) * histSize );
-	
-	int countPerThread = ( blockCountY + blockDim.y - 1 ) / blockDim.y;
-	int index = threadIdx.y * countPerThread;
-	int count = min( countPerThread, blockCountY - ( int )index );
+	const int x = blockIdx.x * blockDim.x + threadIdx.x;
+	int* const globalSums = global + x * ( blockCountY + 1 ) * histSize;
+	int* const startHistogram = ( int* )( sharedData + threadIdx.x * blockDim.y * histSize );
+	int* const threadHistogram = ( int* )( sharedData + ( threadIdx.x * blockDim.y + threadIdx.y ) * histSize );
+
+	const int countPerThread = ( blockCountY + blockDim.y - 1 ) / blockDim.y;
+	const int index = threadIdx.y * countPerThread;
+	const int count = min( countPerThread, blockCountY - ( int )index );
 
 	for( int i = 0; i < histSize; ++i ) {
 		int temp = 0;
@@ -368,19 +375,17 @@ __global__ void BlobGlobalMaxPoolingGlobalShuffleKernel( const CCudaGlobalMaxPoo
 	int* indicesSorted1, int* indicesSorted2, int bin, int histSize, int poolSize, int* local, int* global, float* resultData, int* resultIndices, int maxCount, bool isFirst, bool isLast )
 {
 	const CCudaBlobDesc& source = desc.Source;
-	const CCudaBlobDesc& maxIndices = desc.MaxIndices;
-	const CCudaBlobDesc& result = desc.Result;
 
-	int totalChannels = source.Channels();
-	int x = blockIdx.x * blockDim.x + threadIdx.x;
-	int b = x / totalChannels;
-	int c = x % totalChannels;
-	int* globalSums = global + x * ( gridDim.y + 1 ) * histSize;
-	int* localSums = local + x * gridDim.y * histSize;
-	int countPerBlock = ( poolSize + gridDim.y - 1 ) / gridDim.y;
-	int countPerThread = ( countPerBlock + blockDim.y - 1 ) / blockDim.y;
-	int localPos = threadIdx.y * countPerThread;
-	int count = min( countPerThread, min( countPerBlock, poolSize - ( int )blockIdx.y * countPerBlock ) - localPos );
+	const int totalChannels = source.Channels();
+	const int x = blockIdx.x * blockDim.x + threadIdx.x;
+	const int b = x / totalChannels;
+	const int c = x % totalChannels;
+	const int* const globalSums = global + x * ( gridDim.y + 1 ) * histSize;
+	const int* const localSums = local + x * gridDim.y * histSize;
+	const int countPerBlock = ( poolSize + gridDim.y - 1 ) / gridDim.y;
+	const int countPerThread = ( countPerBlock + blockDim.y - 1 ) / blockDim.y;
+	const int localPos = threadIdx.y * countPerThread;
+	const int count = min( countPerThread, min( countPerBlock, poolSize - ( int )blockIdx.y * countPerBlock ) - localPos );
 	int index = ( b * poolSize + blockIdx.y * countPerBlock + localPos ) * totalChannels + c;
 
 	// global sort using local and global positions of histogram values
@@ -388,7 +393,7 @@ __global__ void BlobGlobalMaxPoolingGlobalShuffleKernel( const CCudaGlobalMaxPoo
 		// initialize result
 		if( isFirst ) {
 			int index = blockIdx.y * blockDim.y + threadIdx.y;
-			int step = gridDim.y * blockDim.y;
+			const int step = gridDim.y * blockDim.y;
 			for( ; index < maxCount; index += step ) {
 				int resultIndex = ( b * maxCount + index ) * totalChannels + c;
 				resultIndices[resultIndex] = -1;
@@ -397,15 +402,15 @@ __global__ void BlobGlobalMaxPoolingGlobalShuffleKernel( const CCudaGlobalMaxPoo
 		}
 
 		for( int i = 0; i < count; i++ ) {
-			int sourceIndex = indicesSorted1[index];
-			unsigned int value = FloatToUnsigned( sourceData + sourceIndex );
-			unsigned int histValue = ~( value >> bin ) & ( histSize - 1 );
-			int localIndex = localPos + i - localSums[blockIdx.y * histSize + histValue];
-			int globalIndex = globalSums[blockIdx.y * histSize + histValue] + globalSums[gridDim.y * histSize + histValue];
-			int pos = globalIndex + localIndex;
+			const int sourceIndex = indicesSorted1[index];
+			const unsigned int value = FloatToUnsigned( sourceData + sourceIndex );
+			const unsigned int histValue = ~( value >> bin ) & ( histSize - 1 );
+			const int localIndex = localPos + i - localSums[blockIdx.y * histSize + histValue];
+			const int globalIndex = globalSums[blockIdx.y * histSize + histValue] + globalSums[gridDim.y * histSize + histValue];
+			const int pos = globalIndex + localIndex;
 			if( isLast && pos < maxCount ) {
 				// fill result
-				int resultIndex = ( b * maxCount + pos ) * totalChannels + c;
+				const int resultIndex = ( b * maxCount + pos ) * totalChannels + c;
 				resultIndices[resultIndex] = ( sourceIndex - c ) / totalChannels - b * poolSize;
 				resultData[resultIndex] = sourceData[sourceIndex];
 			} else {
@@ -417,24 +422,22 @@ __global__ void BlobGlobalMaxPoolingGlobalShuffleKernel( const CCudaGlobalMaxPoo
 }
 
 const int BlobGlobalMaxPoolingBackwardCombine = 8;
-__global__ void BlobGlobalMaxPoolingBackwardKernel( const CCudaGlobalMaxPoolingDescInternal desc, const float* __restrict__ outputDiffData,
-	const int* maxIndicesData, float* inputDiffData, int poolSize, int maxCount, int fullSize )
+__global__ void BlobGlobalMaxPoolingBackwardKernel( const CCudaGlobalMaxPoolingDescInternal desc, const float* __restrict__ resultDiff,
+	const int* __restrict__ maxIndices, float* __restrict__ sourceDiff, int poolSize, int maxCount, int fullSize )
 {
-	int index;
-	int step;
-	int count = GetCudaTaskCountAndIndex(fullSize, BlobGlobalMaxPoolingBackwardCombine, index, step);
+	int index = 0;
+	int step = 0;
+	const int count = GetCudaTaskCountAndIndex( fullSize, BlobGlobalMaxPoolingBackwardCombine, index, step );
 
-	int totalChannels = desc.Result.Channels();
+	const int totalChannels = desc.Result.Channels();
 
-	for(int i = 0; i < count; ++i) {
-		int channel = index % totalChannels;
-		int batchNum = index / totalChannels / maxCount;
-
-		int inputIndex = maxIndicesData[index];
+	for( int i = 0; i < count; ++i ) {
+		const int channel = index % totalChannels;
+		const int batchNum = index / totalChannels / maxCount;
+		const int inputIndex = maxIndices[index];
 		if( inputIndex >= 0 ) {
-			inputDiffData[(batchNum * poolSize + inputIndex ) * totalChannels + channel] = __ldg(outputDiffData + index);
+			sourceDiff[( batchNum * poolSize + inputIndex ) * totalChannels + channel] = __ldg( resultDiff + index );
 		}
-
 		index += step;
 	}
 }

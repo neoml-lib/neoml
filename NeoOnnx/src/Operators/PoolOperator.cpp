@@ -1,4 +1,4 @@
-/* Copyright Â© 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,6 +20,8 @@ limitations under the License.
 
 #include "PoolOperator.h"
 #include "TensorUtils.h"
+
+using namespace NeoML;
 
 namespace NeoOnnx {
 
@@ -44,7 +46,7 @@ void CPoolOperatorBase::GetPads( const CTensorArray& inputs, CFastArray<int, 8>&
 	GetAttribute( "pads", pads );
 
 	if( pads.IsEmpty() ) {
-		pads.Add( 0, 2 * ( inputs[0]->Shape().Size() - 2 ) );
+		pads.Add( 0, 2 * ( inputs[0]->DimCount() - 2 ) );
 	}
 
 	if( autoPad == "SAME_UPPER" || autoPad == "SAME_LOWER" ) {
@@ -55,12 +57,11 @@ void CPoolOperatorBase::GetPads( const CTensorArray& inputs, CFastArray<int, 8>&
 void CPoolOperatorBase::AddLayersImpl( const CTensorArray& inputs, float padValue,
 	CPoolingLayer& pooling, CDnn& dnn, CTensorArray& outputs ) const
 {
+	CheckNoNullInputs( inputs );
+	CheckNoShapeInputs( inputs );
 	// Check input
-	CheckOnnxProtocol( inputs[0] != nullptr, "input can't be optional", *this );
-	const CTensorShape& inputShape = inputs[0]->Shape();
-	CheckNeoOnnxSupport( inputShape.Size() > 2 && inputShape.Size() <= 4,
+	CheckNeoOnnxSupport( inputs[0]->DimCount() > 2 && inputs[0]->DimCount() <= 4,
 		"wrong input tensor's dimensions number", *this );
-	const int poolDims = inputShape.Size() - 2;
 
 	// Initialize strides and pads(if not given)
 	CFastArray<int, 8> strides;
@@ -68,20 +69,11 @@ void CPoolOperatorBase::AddLayersImpl( const CTensorArray& inputs, float padValu
 	CFastArray<int, 8> pads;
 	GetPads( inputs, pads );
 
-	// Calculate output shape
-	CTensorShape outputShape;
-	inputShape.CopyTo( outputShape );
-	for( int dimIndex = 0; dimIndex < poolDims; ++dimIndex ) {
-		outputShape[dimIndex + 2] = ( inputShape[dimIndex + 2] + pads[dimIndex] + pads[dimIndex + poolDims]
-			- kernelShape[dimIndex] ) / strides[dimIndex] + 1;
-	}
-
 	pooling.SetName( Name() );
 
-	CTensorLayout expectedLayout( { BD_BatchWidth, BD_Channels, BD_Height, BD_Width } );
-	expectedLayout.SetSize( inputShape.Size() );
-	CPtr<const CUserTensor> input = AsUserTensor( *ConvertTensor( *inputs[0], expectedLayout ), Name() + "_Source", dnn );
-	input = PadUserTensor( *input, pads, padValue );
+	CPtr<const CUserTensor> input = AsUserTensor( *ConvertTensor( *inputs[0], CNeoMLImageLayoutValidator() ),
+		Name() + "_Source", dnn );
+	input = PadUserTensor( *input, pads, TBlobResizePadding::Constant, padValue );
 
 	pooling.SetFilterHeight( kernelShape[0] );
 	pooling.SetFilterWidth( kernelShape[1] );
@@ -92,7 +84,10 @@ void CPoolOperatorBase::AddLayersImpl( const CTensorArray& inputs, float padValu
 	pooling.Connect( 0, *input->Layer(), input->OutputIndex() );
 	dnn.AddLayer( pooling );
 
-	outputs.Add( new CUserTensor( outputShape, input->Layout(), CLayerOutput( &pooling, 0 ) ) );
+	outputs.Add( new CUserTensor( input->Layout(), CLayerOutput( &pooling, 0 ) ) );
+	if( OutputCount() > outputs.Size() ) {
+		outputs.Add( nullptr, OutputCount() - outputs.Size() );
+	}
 }
 
 // Gets pool strides
@@ -101,7 +96,7 @@ void CPoolOperatorBase::getStrides( const CTensorArray& inputs, CFastArray<int, 
 	GetAttribute( "strides", strides );
 
 	if( strides.IsEmpty() ) {
-		strides.Add( 1, inputs[0]->Shape().Size() - 2 );
+		strides.Add( 1, inputs[0]->DimCount() - 2 );
 	}
 }
 
@@ -119,10 +114,26 @@ CAveragePoolOperator::CAveragePoolOperator( const onnx::NodeProto& averagePool, 
 	CPoolOperatorBase( averagePool, opsetVersion ),
 	includePad( false )
 {
+	// v1 - initial version
+	// v7 - added count_include_pad
+	// v10 - added ceil mode
+	// v19 - added dilations
 	if( OpsetVersion >= 7 ) {
 		int countIncludePad = 0;
 		GetAttribute( "count_include_pad", countIncludePad );
 		includePad = countIncludePad != 0;
+	}
+	if( OpsetVersion >= 10 ) {
+		int ceilMode = 0;
+		GetAttribute( "ceil_mode", ceilMode );
+		CheckNeoOnnxSupport( ceilMode == 0, "ceil_mode", *this );
+	}
+	if( OpsetVersion >= 19 ) {
+		CArray<int> dilations;
+		GetAttribute( "dilations", dilations );
+		for( const int dilation : dilations ) {
+			CheckNeoOnnxSupport( dilation == 1, "non-trivial dilation", *this );
+		}
 	}
 }
 

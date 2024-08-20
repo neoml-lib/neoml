@@ -50,9 +50,6 @@ public:
 	// The number of features
 	virtual int GetFeaturesCount() const = 0;
 
-	// Gets the vector with the given index
-	virtual CFloatVectorDesc GetVector( int index ) const = 0;
-
 	// Gets all input vectors as a matrix of size GetVectorCount() x GetFeaturesCount()
 	virtual CFloatMatrixDesc GetMatrix() const = 0;
 
@@ -72,7 +69,7 @@ public:
 
 	// Clusterizes the input data 
 	// and returns true if successful with the given parameters
-	virtual bool Clusterize( IClusteringData* data, CClusteringResult& result ) = 0;
+	virtual bool Clusterize( const IClusteringData* data, CClusteringResult& result ) = 0;
 };
 ```
 

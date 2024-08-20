@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -34,7 +34,9 @@ public:
 	void SetNumberOfElements(int newNumberOfElements);
 
 	// Retrieves or sets the weights data (the data blob is copied)
-	// The dimensions of the blob are NumOfElements * InputHeight * InputWidth * InputChannelsCount
+	// The dimensions of the blob are
+	//     weightsData.GetObjectCount() is equal to GetNumberOfElements()
+	//     weightsData.GetObjectSize() is equal to inputBlob.GetObjectSize()
 	// If the weights have not been initialized, an empty blob will be returned; pass an empty blob to reset the weights
 	CPtr<CDnnBlob> GetWeightsData() const;
 	void SetWeightsData(const CDnnBlob* newWeights);
@@ -54,28 +56,29 @@ public:
 	bool IsZeroFreeTerm() const { return isZeroFreeTerm; }
 	void SetZeroFreeTerm(bool _isZeroFreeTerm);
 
+	CPtr<CDnnBlob>& Weights() { return paramBlobs[0]; }
+	CPtr<CDnnBlob>& FreeTerms() { return paramBlobs[1]; }	// the free term matrix
+	const CPtr<CDnnBlob>& Weights() const { return paramBlobs[0]; }
+	const CPtr<CDnnBlob>& FreeTerms() const { return paramBlobs[1]; }	// the free term matrix
+
 protected:
-	virtual ~CFullyConnectedLayer();
+	~CFullyConnectedLayer() override = default;
 
 	void Reshape() override;
 	void RunOnce() override;
 	void BackwardOnce() override;
 	void LearnOnce() override;
 	void FilterLayerParams( float threshold ) override;
+	int BlobsForBackward() const override { return 0; }
+	int BlobsForLearn() const override { return TInputBlobs; }
 
 	// The filter. The pointer is valid only if the desired parameters are known (either defined externally or obtained on reshape)
-	CPtr<CDnnBlob>& Weights() { return paramBlobs[0]; }
-	CPtr<CDnnBlob>& FreeTerms() { return paramBlobs[1]; }	// the free term matrix
-
 	CPtr<CDnnBlob>& WeightsDiff() { return paramDiffBlobs[0]; }
 	CPtr<CDnnBlob>& FreeTermsDiff() { return paramDiffBlobs[1]; }
 
-	const CPtr<CDnnBlob>& Weights() const { return paramBlobs[0]; }
-	const CPtr<CDnnBlob>& FreeTerms() const { return paramBlobs[1]; }	// the free term matrix
-
 private:
-	int numberOfElements; // the number of elements (neurons) of the fully-connected layer
-	bool isZeroFreeTerm; // indicates if the free term should be set to zero
+	int numberOfElements = 0; // the number of elements (neurons) of the fully-connected layer
+	bool isZeroFreeTerm = false; // indicates if the free term should be set to zero
 };
 
 NEOML_API CLayerWrapper<CFullyConnectedLayer> FullyConnected(

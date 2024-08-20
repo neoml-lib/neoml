@@ -68,6 +68,7 @@ protected:
 	void Reshape() override;
 	void RunOnce() override;
 	void BackwardOnce() override;
+	int BlobsForBackward() const override { return TInputBlobs; }
 
 	// The function that calculates the loss function and its gradient for a vector set
 	// The data vectors are stored one after another in the batch. The whole data set is of batchSize * vectorSize size.
@@ -216,6 +217,25 @@ protected:
 };
 
 NEOML_API CLayerWrapper<CEuclideanLossLayer> EuclideanLoss( float lossWeight = 1.0f );
+
+///////////////////////////////////////////////////////////////////////////////////
+
+// CL1LossLayer implements a layer that estimates the loss value as abs(result - standard)
+// The layer has two inputs: #0 - result, #1 - standard
+class NEOML_API CL1LossLayer : public CLossLayer {
+	NEOML_DNN_LAYER( CL1LossLayer )
+public:
+	explicit CL1LossLayer( IMathEngine& mathEngine ) : CLossLayer( mathEngine, "CL1LossLayer" ) {}
+
+	void Serialize( CArchive& archive ) override;
+
+protected:
+	void Reshape() override;
+	void BatchCalculateLossAndGradient( int batchSize, CConstFloatHandle data, int vectorSize, CConstFloatHandle label,
+		int labelSize, CFloatHandle lossValue, CFloatHandle lossGradient ) override;
+};
+
+NEOML_API CLayerWrapper<CL1LossLayer> L1Loss( float lossWeight = 1.0f );
 
 ///////////////////////////////////////////////////////////////////////////////////
 

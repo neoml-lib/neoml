@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -31,6 +31,7 @@ class NEOML_API CLstmLayer : public CRecurrentLayer {
 	NEOML_DNN_LAYER( CLstmLayer )
 public:
 	explicit CLstmLayer( IMathEngine& mathEngine );
+	~CLstmLayer();
 
 	void Serialize( CArchive& archive ) override;
 
@@ -41,14 +42,14 @@ public:
 	// The input hidden layers weights (the blob size is (4*HiddenSize)x1x1xInputSize)
 	CPtr<CDnnBlob> GetInputWeightsData() const { return inputHiddenLayer->GetWeightsData(); }
 	CPtr<CDnnBlob> GetInputFreeTermData() const { return inputHiddenLayer->GetFreeTermData(); }
-	void SetInputWeightsData( const CPtr<CDnnBlob>& inputWeights ) { inputHiddenLayer->SetWeightsData( inputWeights ); }
-	void SetInputFreeTermData( const CPtr<CDnnBlob>& inputFreeTerm ) { inputHiddenLayer->SetFreeTermData( inputFreeTerm ); }
+	void SetInputWeightsData( const CPtr<CDnnBlob>& inputWeights );
+	void SetInputFreeTermData( const CPtr<CDnnBlob>& inputFreeTerm );
 
 	// The recurrent hidden layers weights (the blob size is (4*HiddenSize)x1x1xHiddenSize)
 	CPtr<CDnnBlob> GetRecurWeightsData() const { return recurHiddenLayer->GetWeightsData(); }
 	CPtr<CDnnBlob> GetRecurFreeTermData() const { return recurHiddenLayer->GetFreeTermData(); }
-	void SetRecurWeightsData( const CPtr<CDnnBlob>& recurWeights ) { recurHiddenLayer->SetWeightsData( recurWeights ); }
-	void SetRecurFreeTermData( const CPtr<CDnnBlob>& recurFreeTerm ) { recurHiddenLayer->SetFreeTermData( recurFreeTerm ); }
+	void SetRecurWeightsData( const CPtr<CDnnBlob>& recurWeights );
+	void SetRecurFreeTermData( const CPtr<CDnnBlob>& recurFreeTerm );
 
 	// The dropout rate for the hidden layer
 	// Variational tied weights dropout is used (see https://arxiv.org/abs/1512.05287)
@@ -65,6 +66,9 @@ public:
 	// it will return the result of tanh function that is passed to the resetGate.
 	bool IsInCompatibilityMode() const { return isInCompatibilityMode; }
 	void SetCompatibilityMode( bool compatibilityMode );
+
+	void RunOnce() override;
+	void Reshape() override;
 
 private:
 	// The gate numbers for the hidden layer output
@@ -92,10 +96,16 @@ private:
 	TActivationFunction recurrentActivation;
 	bool isInCompatibilityMode;
 
+	CLstmDesc* lstmDesc;
+
 	void buildLayer(float dropout);
+	void checkBlobDescs() const;
 	void setWeightsData(const CPtr<CDnnBlob>& newWeights);
+	void initDesc();
+	void freeDesc();
 };
 
+//--------------------------------------------------------------------------
 NEOML_API CLayerWrapper<CLstmLayer> Lstm(
 	int hiddenSize, float dropoutRate, bool isInCompatibilityMode = false );
 

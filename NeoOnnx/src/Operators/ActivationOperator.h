@@ -1,4 +1,4 @@
-/* Copyright © 2017-2021 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ namespace NeoOnnx {
 class CActivationOperatorBase : public CLayerOperator {
 public:
 	CActivationOperatorBase( const onnx::NodeProto& onnxNode, int opsetVersion,
-		TActivationFunction activation );
+		NeoML::TActivationFunction activation );
 
 protected:
 	// CLayerOperator methods
@@ -31,7 +31,7 @@ protected:
 
 private:
 	// Activation function which is applied to the input by this operator
-	const TActivationFunction activation;
+	const NeoML::TActivationFunction activation;
 };
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -57,6 +57,10 @@ protected:
 class CEluOperator : public CActivationOperatorBase {
 public:
 	CEluOperator( const onnx::NodeProto& elu, int opsetVersion );
+
+protected:
+	// CLayerOperator methods
+	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
 };
 
 // HardSigmoid operator
@@ -115,6 +119,40 @@ protected:
 class CTanhOperator : public CActivationOperatorBase {
 public:
 	CTanhOperator( const onnx::NodeProto& tanh, int opsetVersion );
+};
+
+// Exp operator
+class CExpOperator : public CActivationOperatorBase {
+public:
+	CExpOperator( const onnx::NodeProto& exp, int opsetVersion );
+};
+
+// Log operator
+class CLogOperator : public CActivationOperatorBase {
+public:
+	CLogOperator( const onnx::NodeProto& log, int opsetVersion );
+};
+
+// Erf operator
+class CErfOperator : public CActivationOperatorBase {
+public:
+	CErfOperator( const onnx::NodeProto& erf, int opsetVersion );
+};
+
+// Neg operator
+class CNegOperator : public CActivationOperatorBase {
+public:
+	CNegOperator( const onnx::NodeProto& neg, int opsetVersion );
+
+protected:
+	// CLayerOperator methods
+	void AddLayers( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const override;
+};
+
+// HardSwish operator
+class CHardSwishOperator : public CActivationOperatorBase {
+public:
+	CHardSwishOperator( const onnx::NodeProto& hardSwish, int opsetVersion );
 };
 
 } // namespace NeoOnnx

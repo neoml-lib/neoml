@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright Â© 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,14 +14,10 @@ limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
 #include <TestFixture.h>
+#include <MeTestCommon.h>
 
 using namespace NeoML;
 using namespace NeoMLTest;
-
-static inline int calcConvOutputSize( int input, int padding, int filter, int dilation, int stride )
-{
-	return  1 + ( input - ( filter - 1 ) * dilation + 2 * padding - 1 ) / stride;
-}
 
 static void batchConvolutionLearnAdd( const float* input, float* filter, float* freeTerms, const float* outputDiff,
 	int inputLength, int inputBatch, int inputHeight, int inputWidth, int inputDepth, int inputChannels,
@@ -138,13 +134,13 @@ static void blobConvolutionLearnAddImpl( const CTestParams& params, int seed )
 		dilationHeight, dilationWidth, strideHeight, strideWidth );
 
 	for( size_t i = 0; i < expectedFilterData.size(); ++i ) {
-		ASSERT_NEAR( expectedFilterData[i], filterData[i], 1e-2f );
+		EXPECT_NEAR( expectedFilterData[i], filterData[i], 1e-2f );
 	}
 
 	if( !isZeroFreeTerm ) {
 		freeTermBlob.CopyTo( freeTermData.data() );
 		for( size_t i = 0; i < expectedFreeTermData.size(); ++i ) {
-			ASSERT_NEAR( expectedFreeTermData[i], freeTermData[i], 0.1f );
+			EXPECT_NEAR( expectedFreeTermData[i], freeTermData[i], 0.1f );
 		}
 	}
 }
@@ -521,5 +517,11 @@ INSTANTIATE_TEST_CASE_P( CMathEngineBlobConvolutionLearnAddTestInstantiation, CM
 
 TEST_P( CMathEngineBlobConvolutionLearnAddTest, Random )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		return;
+	}
+
 	RUN_TEST_IMPL( blobConvolutionLearnAddImpl );
 }

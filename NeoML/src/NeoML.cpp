@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@ limitations under the License.
 #include <NeoML/NeoMLDefs.h>
 #include <NeoML/Dnn/Dnn.h>
 #include <NeoMathEngine/NeoMathEngine.h>
-#include <NeoMathEngine/OpenMP.h>
 
 namespace NeoML {
 
@@ -103,9 +102,7 @@ struct CModuleInitializer {
 //------------------------------------------------------------------------------------------------------------
 
 static CMathEngineExceptionHandler fmlExceptionHandler;
-static IMathEngine* singleThreadCpuMathEngine = 0;
-static IMathEngine* multiThreadCpuMathEngine = 0;
-static bool isSingleThreadModeOn = true;
+static IMathEngine* cpuMathEngine = nullptr;
 static CCriticalSection section;
 #ifndef NEOML_USE_FINEOBJ
 static CModuleInitializer moduleInitializer;
@@ -117,43 +114,37 @@ IMathEngineExceptionHandler* GetExceptionHandler()
 	return &fmlExceptionHandler;
 }
 
-void EnableSingleThreadMode( bool enable )
+// deprecated
+void EnableSingleThreadMode( bool /*enable*/ )
 {
-	CCriticalSectionLock lock( section );
-	isSingleThreadModeOn = enable;
 }
 
+// deprecated
 bool IsSingleThreadModeOn()
 {
-	return isSingleThreadModeOn;
+	return true;
 }
 
+// deprecated
 IMathEngine& GetSingleThreadCpuMathEngine()
 {
-	CCriticalSectionLock lock( section );
-	if( singleThreadCpuMathEngine == 0 ) {
-		SetMathEngineExceptionHandler( GetExceptionHandler() );
-		singleThreadCpuMathEngine = CreateCpuMathEngine( 1, 0 );
-	}
-	return *singleThreadCpuMathEngine;
+	return GetDefaultCpuMathEngine();
 }
 
+// deprecated
 IMathEngine& GetMultiThreadCpuMathEngine()
 {
-	CCriticalSectionLock lock( section );
-	if( multiThreadCpuMathEngine == 0 ) {
-		SetMathEngineExceptionHandler( GetExceptionHandler() );
-		multiThreadCpuMathEngine = CreateCpuMathEngine( 0, 0 );
-	}
-	return *multiThreadCpuMathEngine;
+	return GetDefaultCpuMathEngine();
 }
 
 IMathEngine& GetDefaultCpuMathEngine()
 {
-	if( IsSingleThreadModeOn() ) {
-		return GetSingleThreadCpuMathEngine();
+	CCriticalSectionLock lock( section );
+	if( cpuMathEngine == nullptr ) {
+		SetMathEngineExceptionHandler( GetExceptionHandler() );
+		cpuMathEngine = CreateCpuMathEngine( /*memoryLimit*/0u );
 	}
-	return GetMultiThreadCpuMathEngine();
+	return *cpuMathEngine;
 }
 
 IMathEngine* GetRecommendedGpuMathEngine( size_t memoryLimit )
@@ -165,13 +156,9 @@ IMathEngine* GetRecommendedGpuMathEngine( size_t memoryLimit )
 static void destroyDefaultCpuMathEngine()
 {
 	CCriticalSectionLock lock( section );
-	if( singleThreadCpuMathEngine != 0 ) {
-		delete singleThreadCpuMathEngine;
-		singleThreadCpuMathEngine = 0;
-	}
-	if( multiThreadCpuMathEngine != 0 ) {
-		delete multiThreadCpuMathEngine;
-		multiThreadCpuMathEngine = 0;
+	if( cpuMathEngine != nullptr ) {
+		delete cpuMathEngine;
+		cpuMathEngine = nullptr;
 	}
 	CpuMathEngineCleanUp();
 }
@@ -179,25 +166,6 @@ static void destroyDefaultCpuMathEngine()
 } // namespace NeoML
 
 #ifndef STATIC_NEOML
-// To avoid mistakes when unloading OpenMP, set the number of threads to 1 and perform any parallel task
-static inline void deinitializeOmp()
-{
-#ifdef NEOML_USE_OMP
-	const int prevNumThreads = omp_get_num_threads();
-	omp_set_num_threads( 1 );
-
-	const int size = 16;
-	CFastArray<float, 16> arr;
-	arr.Add( 0, size );
-
-	#pragma omp parallel for
-	for( int i = 0; i < size; ++i ) {
-		arr[i]++;
-	}
-	omp_set_num_threads( prevNumThreads );
-#endif
-}
-
 // Initializes a dynamic module
 void InitializeModule()
 {
@@ -207,16 +175,16 @@ void InitializeModule()
 void DeinitializeModule()
 {
 	NeoML::destroyDefaultCpuMathEngine();
-	deinitializeOmp();
+	NeoML::DeinitializeNeoMathEngine();
 }
-#endif // STATIC_NEOML
+#endif // !STATIC_NEOML
 
 #ifndef NEOML_USE_FINEOBJ
 NeoML::CModuleInitializer::~CModuleInitializer()
 {
 	NeoML::destroyDefaultCpuMathEngine();
 }
-#endif //NEOML_USE_FINEOBJ
+#endif // NEOML_USE_FINEOBJ
 
 //------------------------------------------------------------------------------------------------------------
 

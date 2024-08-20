@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,6 +21,8 @@ limitations under the License.
 #include "GraphOutput.h"
 #include "TensorUtils.h"
 
+using namespace NeoML;
+
 namespace NeoOnnx {
 
 CGraphOutput::CGraphOutput( const onnx::ValueInfoProto& output ) :
@@ -32,17 +34,7 @@ CPtr<const CSinkLayer> CGraphOutput::AddSinkLayer( const CUserTensor& input, CDn
 {
 	CPtr<CSinkLayer> sink = new CSinkLayer( dnn.GetMathEngine() );
 	sink->SetName( Name() );
-
-	// Sinks must return blobs in the onnx-friendly layout (non-transposed)
-	CPtr<const CUserTensor> currInput = &input;
-	if( IsTransposedLayout( currInput->Layout() ) ) {
-		CTensorLayout onnxLayout = input.Layout();
-		onnxLayout.QuickSort<Ascending<TBlobDim>>();
-		currInput = ConvertTensor( *currInput, onnxLayout );
-	}
-	const CLayerOutput& layerOutput = currInput->LayerOutput();
-	sink->Connect( 0, *layerOutput.Layer, layerOutput.OutputIndex );
-
+	sink->Connect( 0, *input.Layer(), input.OutputIndex() );
 	dnn.AddLayer( *sink );
 	return sink.Ptr();
 }

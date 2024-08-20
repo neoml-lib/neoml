@@ -76,8 +76,10 @@ else() # NOT USE_FINE_OBJECTS
             mkl_cblas.h
         PATHS
             $ENV{MKLROOT}
+            $ENV{ONEAPI_ROOT}/mkl/latest
             /opt/intel
             /opt/intel/mkl
+            /opt/intel/oneapi/mkl/latest
         PATH_SUFFIXES
             mkl
             include
@@ -88,8 +90,10 @@ else() # NOT USE_FINE_OBJECTS
         NAMES ${MKL_LIBRARY_PREFIX}mkl_core${MKL_LIBRARY_SUFFIX}
         PATHS
             $ENV{MKLROOT}/lib
+            $ENV{ONEAPI_ROOT}/mkl/latest/lib
             /opt/intel/lib
             /opt/intel/mkl/lib
+            /opt/intel/oneapi/mkl/latest/lib
         PATH_SUFFIXES 
             ${MKL_LIBRARY_DIR_SUFFIX}
             IntelSWTools/compilers_and_libraries/windows/mkl/lib/${MKL_LIBRARY_DIR_SUFFIX}
@@ -99,8 +103,10 @@ else() # NOT USE_FINE_OBJECTS
         NAMES ${MKL_LIBRARY_PREFIX}mkl_sequential${MKL_LIBRARY_SUFFIX}
         PATHS
             $ENV{MKLROOT}/lib
+            $ENV{ONEAPI_ROOT}/mkl/latest/lib
             /opt/intel/lib
             /opt/intel/mkl/lib
+            /opt/intel/oneapi/mkl/latest/lib
         PATH_SUFFIXES 
             ${MKL_LIBRARY_DIR_SUFFIX}
             IntelSWTools/compilers_and_libraries/windows/mkl/lib/${MKL_LIBRARY_DIR_SUFFIX}
@@ -110,8 +116,10 @@ else() # NOT USE_FINE_OBJECTS
         NAMES ${MKL_LIBRARY_PREFIX}mkl_intel${MKL_INTERFACE_TYPE}${MKL_LIBRARY_SUFFIX}
         PATHS
             $ENV{MKLROOT}/lib
+            $ENV{ONEAPI_ROOT}/mkl/latest/lib
             /opt/intel/lib
             /opt/intel/mkl/lib
+            /opt/intel/oneapi/mkl/latest/lib
         PATH_SUFFIXES 
             ${MKL_LIBRARY_DIR_SUFFIX}
             IntelSWTools/compilers_and_libraries/windows/mkl/lib/${MKL_LIBRARY_DIR_SUFFIX}

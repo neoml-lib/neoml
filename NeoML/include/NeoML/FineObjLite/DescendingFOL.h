@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,6 +15,8 @@ limitations under the License.
 
 #pragma once
 
+#include <MathFOL.h>
+
 namespace FObj {
 
 // The class to sort descending, by the elements values
@@ -23,7 +25,7 @@ class Descending {
 public:
 	bool Predicate( const T& first, const T& second ) const { return second < first; }
 	bool IsEqual( const T& first, const T& second ) const { return first == second; }
-	void Swap( T& first, T& second ) const { std::swap<T>( first, second ); }
+	void Swap( T& first, T& second ) const { FObj::swap<T>( first, second ); }
 };
 
 // The class to sort descending by the Member field, of the TMemberType type
@@ -37,7 +39,7 @@ public:
 	bool IsEqual( const T& first, const T& second ) const { return ( first.*Member ) == ( second.*Member ); }
 	bool IsEqual( const TMemberType& first, const T& second ) const { return first == ( second.*Member ); }
 	bool IsEqual( const T& first, const TMemberType& second ) const { return ( first.*Member ) == second; }
-	void Swap( T& first, T& second ) const { std::swap( first, second ); }
+	void Swap( T& first, T& second ) const { FObj::swap<T>( first, second ); }
 };
 
 // The class to sort descending by the Method value, of the TMethodReturnType Method() const signature
@@ -51,7 +53,7 @@ public:
 	bool IsEqual( const T& first, const T& second ) const { return ( first.*Method )() == ( second.*Method )(); }
 	bool IsEqual( const TMethodReturnType& first, const T& second ) const { return first == ( second.*Method )(); }
 	bool IsEqual( const T& first, const TMethodReturnType& second ) const { return ( first.*Method )() == second; }
-	void Swap( T& first, T& second ) const { std::swap( first, second ); }
+	void Swap( T& first, T& second ) const { FObj::swap<T>( first, second ); }
 };
 
 // A special version for constant references
@@ -64,7 +66,7 @@ public:
 	bool IsEqual( const T& first, const T& second ) const { return ( first.*Method )() == ( second.*Method )(); }
 	bool IsEqual( const TMethodReturnType& first, const T& second ) const { return first == ( second.*Method )(); }
 	bool IsEqual( const T& first, const TMethodReturnType& second ) const { return ( first.*Method )() == second; }
-	void Swap( T& first, T& second ) const { std::swap( first, second ); }
+	void Swap( T& first, T& second ) const { FObj::swap<T>( first, second ); }
 };
 
 // The class to sort descending an array of pointers, by comparing the objects the pointers refer to
@@ -73,8 +75,8 @@ class DescendingPtr {
 public:
 	bool Predicate( const T* first, const T* second ) const { return *second < *first; }
 	bool IsEqual( const T* first, const T* second ) const { return *first == *second; }
-	void Swap( T*& first, T*& second ) const { swap( first, second ); }
-	void Swap( CPtr<T>& first, CPtr<T>& second ) const { std::swap( first, second ); }
+	void Swap( T*& first, T*& second ) const { FObj::swap( first, second ); }
+	void Swap( CPtr<T>& first, CPtr<T>& second ) const { FObj::swap( first, second ); }
 };
 
 // The class to sort descending an array of pointers by comparing the objects' Member field, of the TMemberType type
@@ -88,8 +90,8 @@ public:
 	bool IsEqual( const T* first, const T* second ) const { return ( first->*Member ) == ( second->*Member ); }
 	bool IsEqual( const TMemberType& first, const T* second ) const { return first == ( second->*Member ); }
 	bool IsEqual( const T* first, const TMemberType& second ) const { return ( first->*Member ) == second; }
-	void Swap( T*& first, T*& second ) const { swap( first, second ); }
-	void Swap( CPtr<T>& first, CPtr<T>& second ) const { std::swap( first, second ); }
+	void Swap( T*& first, T*& second ) const { FObj::swap( first, second ); }
+	void Swap( CPtr<T>& first, CPtr<T>& second ) const { FObj::swap( first, second ); }
 };
 
 // The class to sort descending an array of pointers by the Method value, of the TMethodReturnType Method() const signature
@@ -103,8 +105,8 @@ public:
 	bool IsEqual( const T* first, const T* second ) const { return ( first->*Method )() == ( second->*Method )(); }
 	bool IsEqual( const TMethodReturnType& first, const T* second ) const { return first == ( second->*Method )(); }
 	bool IsEqual( const T* first, const TMethodReturnType& second ) const { return ( first->*Method )() == second; }
-	void Swap( T*& first, T*& second ) const { swap( first, second ); }
-	void Swap( CPtr<T>& first, CPtr<T>& second ) const { std::swap( first, second ); }
+	void Swap( T*& first, T*& second ) const { FObj::swap( first, second ); }
+	void Swap( CPtr<T>& first, CPtr<T>& second ) const { FObj::swap( first, second ); }
 };
 
 // A special version for constant references
@@ -117,8 +119,8 @@ public:
 	bool IsEqual( const T* first, const T* second ) const { return ( first->*Method )() == ( second->*Method )(); }
 	bool IsEqual( const TMethodReturnType& first, const T* second ) const { return first == ( second->*Method )(); }
 	bool IsEqual( const T* first, const TMethodReturnType& second ) const { return ( first->*Method )() == second; }
-	void Swap( T*& first, T*& second ) const { swap( first, second ); }
-	void Swap( CPtr<T>& first, CPtr<T>& second ) const { std::swap( first, second ); }
+	void Swap( T*& first, T*& second ) const { FObj::swap( first, second ); }
+	void Swap( CPtr<T>& first, CPtr<T>& second ) const { FObj::swap( first, second ); }
 };
 
 } // namespace FObj

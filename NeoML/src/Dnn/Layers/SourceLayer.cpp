@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,22 +22,22 @@ namespace NeoML {
 
 void CSourceLayer::SetBlob( CDnnBlob* _blob )
 {
-	if( _blob == blob.Ptr() ) {
-		return;
-	}
-
+	bool sameBlob = _blob == blob.Ptr();
 	blob = _blob;
 
 	if( !outputDescs.IsEmpty() ) {
-		if( blob->GetDataType() != outputDescs[0].GetDataType()
-			|| !blob->GetDesc().HasEqualDimensions( outputDescs[0] ) )
+		if( blob != nullptr
+			&& ( blob->GetDataType() != outputDescs[0].GetDataType()
+			|| !blob->GetDesc().HasEqualDimensions( outputDescs[0] ) ) )
 		{
 			outputDescs[0] = blob->GetDesc();
 			ForceReshape();
+		} else {
+			sameBlob = false;
 		}
 	}
 
-	if( !outputBlobs.IsEmpty() ) {
+	if( !outputBlobs.IsEmpty() && !sameBlob ) {
 		outputBlobs[0] = 0;
 	}
 }
@@ -45,8 +45,9 @@ void CSourceLayer::SetBlob( CDnnBlob* _blob )
 void CSourceLayer::Reshape()
 {
 	CheckOutputs();
-	CheckArchitecture( GetOutputCount() == 1, GetName(), "Source layer has more than 1 output" );
-	CheckArchitecture( blob.Ptr() != 0, GetName(), "Source layer has null data blob" );
+	CheckLayerArchitecture( GetInputCount() == 0, "layer must not have inputs" );
+	CheckLayerArchitecture( GetOutputCount() == 1, "Source layer has more than 1 output" );
+	CheckLayerArchitecture( blob.Ptr() != 0, "Source layer has null data blob" );
 	outputDescs[0] = blob->GetDesc();
 }
 
@@ -90,6 +91,14 @@ void CSourceLayer::Serialize( CArchive& archive )
 		}
 	} else if( archive.IsLoading() ) {
 		storeBlob = false;
+	}
+}
+
+void CSourceLayer::CleanUp( bool totalCleanUp )
+{
+	CBaseLayer::CleanUp( totalCleanUp );
+	if( totalCleanUp ) {
+		SetBlob( nullptr );
 	}
 }
 

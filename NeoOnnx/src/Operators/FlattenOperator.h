@@ -31,7 +31,7 @@ protected:
 private:
 	// Axis index
 	// Flatten result is a matrix with size Dim(0) * ... * Dim(axis-1) x Dim(axis) * ... * Dim(N-1)
-	int axis;
+	int axisAttr;
 };
 
 } // namespace NeoOnnx

@@ -49,9 +49,17 @@ static void initializeShift( CDnnBlob& shift, int imageHeight, int imageWidth )
 
 // Calculates the shifted indices to use the set of images from which 
 // the pixels should be extracted as one lookup table of batchSize x imageHeight x imageWidth size
-static void shiftIndices( IMathEngine& mathEngine, CDnnBlob& indices, CDnnBlob& shift, CDnnBlob& result )
+static void shiftIndices( int imageSize, IMathEngine& mathEngine, CDnnBlob& indices, CDnnBlob& shift, CDnnBlob& result )
 {
-	mathEngine.AddVectorToMatrixColumns( indices.GetData<int>(), result.GetData<int>(),
+	mathEngine.VectorFill( result.GetData<int>(), 0, result.GetDataSize() );
+	// Add imageSize value to negative indices
+	mathEngine.VectorEltwiseLess( indices.GetData<int>(), result.GetData<int>(), result.GetData<int>(), result.GetDataSize() );
+	CIntHandleStackVar imageSizeVar( mathEngine );
+	imageSizeVar.SetValue( imageSize );
+	mathEngine.VectorMultiply( result.GetData<int>(), result.GetData<int>(), result.GetDataSize(), imageSizeVar );
+	mathEngine.VectorAdd( result.GetData<int>(), indices.GetData<int>(), result.GetData<int>(), result.GetDataSize() );
+	// Add shift to emulate big batchSize x height x width lookup table
+	mathEngine.AddVectorToMatrixColumns( result.GetData<int>(), result.GetData<int>(),
 		indices.GetBatchWidth(), indices.GetObjectSize(), shift.GetData<int>() );
 }
 
@@ -166,7 +174,7 @@ void CPixelToImageLayer::RunOnce()
 	NeoAssert( outputBlobs.Size() == 1 );
 
 	// Initialize the offset indices vector
-	shiftIndices( MathEngine(), *inputBlobs[1], *shift, *shiftedIndices );
+	shiftIndices( imageHeight * imageWidth, MathEngine(), *inputBlobs[1], *shift, *shiftedIndices );
 
 	convertPixelToImage( MathEngine(), *inputBlobs[0], *shiftedIndices, *outputBlobs[0] );
 }
@@ -181,7 +189,6 @@ void CPixelToImageLayer::BackwardOnce()
 
 	// The layer needs two inputs and one output
 	// Additional dimension checks are performed in Reshape()
-	NeoAssert( inputBlobs.Size() == 2 );
 	NeoAssert( inputDiffBlobs.Size() == 2 );
 	NeoAssert( outputDiffBlobs.Size() == 1 );
 
@@ -191,13 +198,23 @@ void CPixelToImageLayer::BackwardOnce()
 void CPixelToImageLayer::SetImageHeight( int newHeight )
 {
 	NeoAssert( newHeight > 0 );
+	if( newHeight == imageHeight ) {
+		return;
+	}
+
 	imageHeight = newHeight;
+	ForceReshape();
 }
 
 void CPixelToImageLayer::SetImageWidth( int newWidth )
 {
 	NeoAssert( newWidth > 0 );
+	if( newWidth == imageWidth ) {
+		return;
+	}
+
 	imageWidth = newWidth;
+	ForceReshape();
 }
 
 CLayerWrapper<CPixelToImageLayer> PixelToImage( int imageHeight, int imageWidth )
@@ -260,7 +277,7 @@ void CImageToPixelLayer::RunOnce()
 	NeoAssert( outputBlobs.Size() == 1 );
 
 	// Initialize the offset indices vector
-	shiftIndices( MathEngine(), *inputBlobs[1], *shift, *shiftedIndices );
+	shiftIndices( inputBlobs[0]->GetGeometricalSize(), MathEngine(), *inputBlobs[1], *shift, *shiftedIndices );
 
 	if( inputBlobs[0]->GetDataType() == CT_Float ) {
 		convertImageToPixel<float>( MathEngine(), *inputBlobs[0], *shiftedIndices, *outputBlobs[0] );
@@ -279,10 +296,8 @@ void CImageToPixelLayer::BackwardOnce()
 
 	// The layer needs two inputs and one output
 	// Additional dimension checks are performed in Reshape()
-	NeoAssert( inputBlobs.Size() == 2 );
 	NeoAssert( inputDiffBlobs.Size() == 2 );
 	NeoAssert( outputDiffBlobs.Size() == 1 );
-	NeoAssert( inputBlobs[0]->GetDataType() == CT_Float );
 
 	convertPixelToImage( MathEngine(), *outputDiffBlobs[0], *shiftedIndices, *inputDiffBlobs[0] );
 }

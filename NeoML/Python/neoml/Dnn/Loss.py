@@ -81,7 +81,7 @@ class Loss(Layer):
 
 
 class CrossEntropyLoss(Loss):
-    """The layer that calculates the loss value as cross-entropy 
+    r"""The layer that calculates the loss value as cross-entropy 
     between the result and the standard:
     :math:`loss = -\sum{y_i * \log{z_i}}`,
     where for each i class 
@@ -157,7 +157,7 @@ class CrossEntropyLoss(Loss):
 
 
 class BinaryCrossEntropyLoss(Loss):
-    """The layer that calculates the cross-entropy loss function
+    r"""The layer that calculates the cross-entropy loss function
     for binary classification:
     :math:`loss = - y * \log(sigmoid(x)) - (1 - y) * \log(1 - sigmoid(x))`, where
     x is the network response, y is the correct class label (can be -1 or 1)
@@ -266,8 +266,52 @@ class EuclideanLoss(Loss):
 # ----------------------------------------------------------------------------------------------------------------------
 
 
+class L1Loss(Loss):
+    """The layer that calculates the loss function equal to L1 distance
+    between the objects in the network response and the correct objects.
+    
+    :param input_layers: The input layers to be connected. 
+        The integer in each tuple specifies the number of the output.
+        If not set, the first output will be used.
+    :type input_layers: list of object, tuple(object, int)
+    :param loss_weight: The multiplier for the loss function value during training.
+    :type loss_weight: float, default=1.0
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) the network response for which you are calculating the loss.
+    
+    (2) the correct objects. 
+    
+    (3) (optional): the objects' weights.
+    
+    The dimensions of all inputs are the same:
+
+        - **BatchLength** * **BatchWidth** * **ListSize** - the number of objects
+        - **Height** * **Width** * **Depth** * **Channels** - the object size
+
+    .. rubric:: Layer outputs:
+
+    The layer has no output.
+    """
+    def __init__(self, input_layers, loss_weight=1.0, name=None):
+
+        if type(input_layers) is PythonWrapper.L1Loss:
+            super().__init__(input_layers)
+            return
+
+        layers, outputs = check_input_layers(input_layers, (2, 3))
+
+        internal = PythonWrapper.L1Loss(str(name), layers, outputs, float(loss_weight))
+        super().__init__(internal)
+
+# ----------------------------------------------------------------------------------------------------------------------
+
+
 class HingeLoss(Loss):
-    """The layer that calculates hinge loss function for binary classification:
+    r"""The layer that calculates hinge loss function for binary classification:
     :math:`f(x) = \max(0, 1 - x * y)`, where 
     x is the network response, 
     y is the correct class label (1 or -1).
@@ -314,7 +358,7 @@ class HingeLoss(Loss):
 
 
 class SquaredHingeLoss(Loss):
-    """The layer that calculates squared hinge loss function
+    r"""The layer that calculates squared hinge loss function
     for binary classification:
 
     - :math:`f(x) = -4 * x * y`               if :math:`x * y < -1`
@@ -365,7 +409,7 @@ class SquaredHingeLoss(Loss):
 
 
 class FocalLoss(Loss):
-    """The layer that calculates the focal loss function for multiple class
+    r"""The layer that calculates the focal loss function for multiple class
     classification. It is a version of cross-entropy in which 
     the easily-distinguished objects receive smaller penalties. This helps
     focus on learning the difference between similar-looking elements of
@@ -451,7 +495,7 @@ class FocalLoss(Loss):
 
 
 class BinaryFocalLoss(Loss):
-    """The layer that calculates the focal loss function for binary
+    r"""The layer that calculates the focal loss function for binary
     classification. It is a version of cross-entropy in which 
     the easily-distinguished objects receive smaller penalties. This helps
     focus on learning the difference between similar-looking elements of
@@ -615,7 +659,7 @@ class CenterLoss(Loss):
 
 
 class MultiHingeLoss(Loss):
-    """The layer that calculates hinge loss function for multiple class
+    r"""The layer that calculates hinge loss function for multiple class
     classification:
     :math:`f(x) = \max(0, 1 - (x_{right} - x_{max\_wrong}))`
     where 
@@ -677,7 +721,7 @@ class MultiHingeLoss(Loss):
 
 
 class MultiSquaredHingeLoss(Loss):
-    """The layer that calculates squared hinge loss function for multiple class
+    r"""The layer that calculates squared hinge loss function for multiple class
     classification:
 
     - :math:`f(x) = -4 * (x_{right} - x_{max\_wrong})`             if :math:`x_{right} - x_{max\_wrong} < -1`

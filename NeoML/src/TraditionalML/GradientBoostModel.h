@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -49,7 +49,7 @@ public:
 	bool ClassifyEx( const CFloatVectorDesc& data, CArray<CClassificationResult>& results ) const override;
 	void CalcFeatureStatistics( int maxFeature, CArray<int>& result ) const override;
 	void CutNumberOfTrees( int numberOfTrees ) override;
-	virtual void ConvertToCompact() override;
+	void ConvertToCompact() override;
 
 	// IRegressionModel interface methods
 	double Predict( const CFloatVectorDesc& data ) const override;
@@ -58,16 +58,16 @@ public:
 	CFloatVector MultivariatePredict( const CFloatVectorDesc& data ) const override;
 
 private:
-	CArray<CGradientBoostEnsemble> ensembles; // the models
-	double learningRate; // the coefficient for each of the models
-	CGradientBoost::TLossFunction lossFunction; // the loss function to be optimized
-	int valueSize; // the value size of each model, if valueSize > 1 then ensemble consists of multiclass trees
+	CArray<CGradientBoostEnsemble> ensembles{}; // the models
+	double learningRate{}; // the coefficient for each of the models
+	CGradientBoost::TLossFunction lossFunction{}; // the loss function to be optimized
+	int valueSize{}; // the value size of each model, if valueSize > 1 then ensemble consists of multiclass trees
 
 	bool classify( CFastArray<double, 1>& predictions, CClassificationResult& result ) const;
 	double probability( double prediction ) const;
 };
 
-/////////////////////////////////////////////////////////////////////////////////////////
+//------------------------------------------------------------------------------------------------------------
 
 template<typename TFeatures>
 void CGradientBoostModel::PredictRaw(
@@ -86,7 +86,7 @@ void CGradientBoostModel::PredictRaw(
 		predictions.Add( prediction * learningRate );
 	} else {
 		CRegressionTree::CPrediction pred;
-		predictions.Add(0.0, predictionSize);
+		predictions.Add( 0.0, predictionSize );
 		for( int i = startPos; i < ensemble.Size(); i++ ) {
 			static_cast<const CRegressionTree*>( ensemble[i].Ptr() )->Predict( features, pred );
 			NeoPresume( predictionSize == pred.Size() );
@@ -99,7 +99,5 @@ void CGradientBoostModel::PredictRaw(
 		}
 	}
 }
-
-/////////////////////////////////////////////////////////////////////////////////////////
 
 } // namespace NeoML

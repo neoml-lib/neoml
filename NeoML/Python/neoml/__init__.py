@@ -10,7 +10,12 @@ import neoml.GradientBoost
 import neoml.SVM
 import neoml.DecisionTree
 
+import neoml.PCA
 import neoml.Clustering
 import neoml.DifferentialEvolution
+
+import neoml.BytePairEncoder
+
+import neoml.Onnx
 
 __all__ = []

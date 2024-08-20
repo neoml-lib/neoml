@@ -17,10 +17,14 @@ limitations under the License.
 import neoml.PythonWrapper as PythonWrapper
 from .Dnn import Layer
 from neoml.Utils import check_input_layers
-
+import typing as tp
+try:
+    from typing import Literal
+except ImportError:
+    from typing_extensions import Literal
 
 class Linear(Layer):
-    """The layer that calculates a linear activation function
+    r"""The layer that calculates a linear activation function
     for each element of a single input:
     :math:`f(x) = multiplier * x + free\_term`
 
@@ -86,7 +90,7 @@ class Linear(Layer):
 
 
 class ELU(Layer):
-    """The layer that calculates the ELU activation function
+    r"""The layer that calculates the ELU activation function
     for each element of the single input:
 
     - :math:`f(x) = alpha * (e^x - 1)`    if :math:`x < 0`
@@ -140,7 +144,7 @@ class ELU(Layer):
 
 
 class ReLU(Layer):
-    """The layer that calculates the ReLU activation function
+    r"""The layer that calculates the ReLU activation function
     for each element of the single input:
 
     - :math:`f(x) = 0`    if :math:`x \le 0`
@@ -198,7 +202,7 @@ class ReLU(Layer):
 
 
 class LeakyReLU(Layer):
-    """The layer that calculates the "leaky" ReLU activation function
+    r"""The layer that calculates the "leaky" ReLU activation function
     for each element of the single input:
 
     - :math:`f(x) = alpha * x`    if :math:`x \le 0`
@@ -251,7 +255,7 @@ class LeakyReLU(Layer):
 
 
 class HSwish(Layer):
-    """The layer that calculates the H-Swish activation function
+    r"""The layer that calculates the H-Swish activation function
     for each element of the single input:
 
     - :math:`f(x) = 0`                    if :math:`x \le -3`
@@ -397,7 +401,7 @@ class Tanh(Layer):
 
 
 class HardTanh(Layer):
-    """The layer that calculates the HardTanh activation function
+    r"""The layer that calculates the HardTanh activation function
     for each element of the single input:
   
     - :math:`f(x) = -1`    if :math:`x \le -1`
@@ -436,7 +440,7 @@ class HardTanh(Layer):
 
 
 class HardSigmoid(Layer):
-    """The layer that calculates the "hard sigmoid" activation function
+    r"""The layer that calculates the "hard sigmoid" activation function
     for each element of the single input:
 
     - :math:`f(x) = 0`                    if :math:`x \le -bias / slope`
@@ -551,11 +555,10 @@ class Power(Layer):
 
 # ----------------------------------------------------------------------------------------------------------------------
 
-
 class GELU(Layer):
     """The layer that calculates the GELU activation function
-    for each element of the signle input:
-    :math:`f(x) = x / (1 + e^{-1.702 * x})`
+    for each element of the single input:
+    :math:`f(x) = x * 0.5 * ( 1 + erf( x / sqrt(2) ) )` or approx.: `f(x) = x * sigmoid( 1.702 * x )`
     
     :param input_layer: The input layer and the number of its output. If no number
         is specified, the first output will be connected.
@@ -574,7 +577,9 @@ class GELU(Layer):
 
     """
 
-    def __init__(self, input_layer, name=None):
+    def __init__(self, input_layer: tp.Union[Layer, tp.Tuple[Layer, int], PythonWrapper.GELU],
+                 calculation_mode: Literal["precise", "sigmoid_approximate"] = "sigmoid_approximate", 
+                 name: str=None):
 
         if type(input_layer) is PythonWrapper.GELU:
             super().__init__(input_layer)
@@ -584,3 +589,122 @@ class GELU(Layer):
 
         internal = PythonWrapper.GELU(str(name), layers[0], int(outputs[0]))
         super().__init__(internal)
+        self.calculation_mode = calculation_mode
+
+    @property
+    def calculation_mode(self) -> Literal["precise", "sigmoid_approximate"]:
+        """ 'precise' (calculate GELU using the error function) or 'sigmoid_approximate' (using an approximation x * sigmoid(1.702x))
+        """
+        return self._internal.get_calculation_mode()
+
+    @calculation_mode.setter
+    def calculation_mode(self, value: Literal["precise", "sigmoid_approximate"]):
+        if value not in ["precise", "sigmoid_approximate"]:
+            raise ValueError("GELU. Calculation mode should be 'precise' or 'sigmoid_approximate'.")
+        self._internal.set_calculation_mode(value)
+
+# ----------------------------------------------------------------------------------------------------------------------
+
+
+class Exp(Layer):
+    """The layer that calculates the exponent function
+    for each element of the single input.
+    
+    :param input_layer: The input layer and the number of its output. If no number
+        is specified, the first output will be connected.
+    :type input_layer: object, tuple(object, int)
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) a data blob of any size
+    
+    .. rubric:: Layer outputs:
+
+    (1) a data blob of the same size as the input,
+        with exponent function values on each of the input elements
+
+    """
+
+    def __init__(self, input_layer, name=None):
+
+        if type(input_layer) is PythonWrapper.Exp:
+            super().__init__(input_layer)
+            return
+
+        layers, outputs = check_input_layers(input_layer, 1)
+
+        internal = PythonWrapper.Exp(str(name), layers[0], int(outputs[0]))
+        super().__init__(internal)
+
+# ----------------------------------------------------------------------------------------------------------------------
+
+
+class Log(Layer):
+    """The layer that calculates the logarithm function
+    for each element of the single input.
+    
+    :param input_layer: The input layer and the number of its output. If no number
+        is specified, the first output will be connected.
+    :type input_layer: object, tuple(object, int)
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) a data blob of any size
+    
+    .. rubric:: Layer outputs:
+
+    (1) a data blob of the same size as the input,
+        with logarithm function values on each of the input elements
+
+    """
+
+    def __init__(self, input_layer, name=None):
+
+        if type(input_layer) is PythonWrapper.Log:
+            super().__init__(input_layer)
+            return
+
+        layers, outputs = check_input_layers(input_layer, 1)
+
+        internal = PythonWrapper.Log(str(name), layers[0], int(outputs[0]))
+        super().__init__(internal)
+
+# ----------------------------------------------------------------------------------------------------------------------
+
+
+class Erf(Layer):
+    """The layer that calculates the error function
+    for each element of the single input.
+
+    :param input_layer: The input layer and the number of its output. If no number
+        is specified, the first output will be connected.
+    :type input_layer: object, tuple(object, int)
+    :param name: The layer name.
+    :type name: str, default=None
+
+    .. rubric:: Layer inputs:
+
+    (1) a data blob of any size
+    
+    .. rubric:: Layer outputs:
+
+    (1) a data blob of the same size as the input,
+        with error function values on each of the input elements
+
+    """
+
+    def __init__(self, input_layer, name=None):
+
+        if type(input_layer) is PythonWrapper.Erf:
+            super().__init__(input_layer)
+            return
+
+        layers, outputs = check_input_layers(input_layer, 1)
+
+        internal = PythonWrapper.Erf(str(name), layers[0], int(outputs[0]))
+        super().__init__(internal)
+

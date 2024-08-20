@@ -22,7 +22,7 @@
 # -- Project information -----------------------------------------------------
 
 project = 'NeoML'
-copyright = '2021, ABBYY'
+copyright = '2023, ABBYY'
 author = 'ABBYY'
 
 

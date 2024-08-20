@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright Â© 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@ limitations under the License.
 
 #pragma once 
 
-#include <NeoML/Platforms.h>
+#include <NeoMathEngine/Platforms.h>
 
 #if FINE_PLATFORM( FINE_WINDOWS )
 
@@ -71,19 +71,21 @@ inline unsigned long long GetTickCount()
     return duration_cast<milliseconds>( steady_clock::now().time_since_epoch() ).count();
 }
 
-#else
+#else  // !FINE_PLATFORM
 
 #error "Platform is not supported!"
 
-#endif // FINE_PLATFORM( FINE_WINDOWS )
+#endif // !FINE_PLATFORM
 
 #include <algorithm>
-#include <memory.h>
 #include <initializer_list>
+#include <type_traits>
+#include <memory>
 #include <mutex>
 #include <cmath>
 #include <atomic>
 #include <string>
+#include <cstring>
 #include <sstream>
 #include <cassert>
 

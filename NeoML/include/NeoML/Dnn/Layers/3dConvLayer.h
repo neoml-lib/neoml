@@ -60,12 +60,14 @@ public:
 	void Serialize( CArchive& archive ) override;
 
 protected:
-	virtual ~C3dConvLayer();
+	~C3dConvLayer() override;
 
 	void Reshape() override;
 	void RunOnce() override;
 	void BackwardOnce() override;
 	void LearnOnce() override;
+	int BlobsForBackward() const override { return 0; }
+	int BlobsForLearn() const override { return TInputBlobs; }
 
 private:
 	void calcOutputBlobSize(int& outputHeight, int& outputWidth, int& outputDepth) const;
@@ -77,7 +79,7 @@ private:
 
 // N.B. Layer does not support dilation! 
 // The Dilation parameter in the CConvAxisParams will be ignored.
-CLayerWrapper<C3dConvLayer> Conv3d( int filterCount,
+NEOML_API CLayerWrapper<C3dConvLayer> Conv3d( int filterCount,
 	const CConvAxisParams& heightParams,
 	const CConvAxisParams& widthParams,
 	const CConvAxisParams& depthParams,

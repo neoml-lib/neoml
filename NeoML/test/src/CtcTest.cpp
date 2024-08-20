@@ -84,6 +84,7 @@ protected:
 	void Reshape() override;
 	void RunOnce() override;
 	void BackwardOnce() override;
+	int BlobsForBackward() const override { return 0; }
 
 private:
 	CPtr<CDnnBlob> lossWeight; // scale multiplier for the loss function
@@ -329,11 +330,11 @@ void CCtcLossNaiveLayer::Reshape()
 {
 	CheckInputs();
 
-	CheckArchitecture(outputDescs.IsEmpty(), GetName(), "CCtcLossNaiveLayer has no output");
+	CheckArchitecture(outputDescs.IsEmpty(), GetPath(), "CCtcLossNaiveLayer has no output");
 	CheckArchitecture(!GetDnn()->IsRecurrentMode(),
-		GetName(), "ctc loss layer inside the recurrent composite layer" );
+		GetPath(), "ctc loss layer inside the recurrent composite layer" );
 	CheckArchitecture( GetInputCount() >= 2 && GetInputCount() <= 5,
-		GetName(), "CCtcLossNaiveLayer must have two to five inputs" );
+		GetPath(), "CCtcLossNaiveLayer must have two to five inputs" );
 
 	const CBlobDesc& labels = inputDescs[I_Labels];
 	const bool hasLabelsLengths = GetInputCount() > I_LabelsLengths;
@@ -343,30 +344,30 @@ void CCtcLossNaiveLayer::Reshape()
 	const int labelsMaxLength = labels.BatchLength();
 
 	CheckArchitecture( inputDescs[I_Result].BatchWidth() == inputDescs[I_Labels].BatchWidth(), 
-		GetName(), "loss layer result batch size doesn't match labels batch size" );
-	CheckArchitecture( inputDescs[I_Result].ObjectSize() >= blankLabel, GetName(),
+		GetPath(), "loss layer result batch size doesn't match labels batch size" );
+	CheckArchitecture( inputDescs[I_Result].ObjectSize() >= blankLabel, GetPath(),
 		"too small classes count" );
 	CheckArchitecture( inputDescs[I_Labels].BatchLength() >= 1 && inputDescs[I_Labels].ObjectSize() == 1, 
-		GetName(), "incorrect label size" );
+		GetPath(), "incorrect label size" );
 	CheckArchitecture( allowBlankLabelSkip || hasLabelsLengths || labelsMaxLength * 2 + 1 <= inputDescs[I_Result].BatchLength(),
-		GetName(), "too small input length" );
+		GetPath(), "too small input length" );
 	if( hasLabelsLengths ) {
 		CheckArchitecture( inputDescs[I_LabelsLengths].BatchLength() == 1 &&
 			inputDescs[I_LabelsLengths].BatchWidth() == batchWidth &&
 			inputDescs[I_LabelsLengths].ObjectSize() == 1,
-			GetName(), "CCtcLossNaiveLayer: incorrect labels lengths blob dimensions" );
+			GetPath(), "CCtcLossNaiveLayer: incorrect labels lengths blob dimensions" );
 	}
 	if( hasInputLengths ) {
 		CheckArchitecture( inputDescs[I_InputLengths].BatchLength() == 1 &&
 			inputDescs[I_InputLengths].BatchWidth() == batchWidth &&
 			inputDescs[I_InputLengths].ObjectSize() == 1,
-			GetName(), "CCtcLossNaiveLayer: incorrect inputs lengths blob dimensions" );
+			GetPath(), "CCtcLossNaiveLayer: incorrect inputs lengths blob dimensions" );
 	}
 	if( GetInputCount() > I_LabelWeights ) {
 		CheckArchitecture( inputDescs[I_Result].BatchWidth() == inputDescs[I_LabelWeights].BatchWidth(),
-			GetName(), "weights batch size doesn't match result batch size" );
+			GetPath(), "weights batch size doesn't match result batch size" );
 		CheckArchitecture( inputDescs[I_LabelWeights].BatchLength() == 1 && inputDescs[I_LabelWeights].ObjectSize() == 1,
-			GetName(), "weight's batchLength and objectSize must have be equal to 1" );
+			GetPath(), "weight's batchLength and objectSize must have be equal to 1" );
 	} else {
 		weights = CDnnBlob::CreateVector( MathEngine(), CT_Float, inputDescs[I_Result].BatchWidth() );
 		weights->Fill( 1.f );
@@ -784,6 +785,9 @@ protected:
 			ActualDiff = outputDiffBlobs[0]->GetCopy();
 		}
 	}
+
+	int BlobsForBackward() const override { return 0; }
+	int BlobsForLearn() const override { return 0; }
 };
 
 // ====================================================================================================================
@@ -864,50 +868,6 @@ static CPtr<CTC> buildDnn( int resultLen, int batchSize, int classCount, int lab
 	return ctc;
 }
 
-static void compareBlobs( const CDnnBlob* expected, const CDnnBlob* actual, const float eps=1e-4f )
-{
-	if( expected == actual ) {
-		return;
-	}
-
-	ASSERT_EQ( expected->GetDataType(), actual->GetDataType() );
-	ASSERT_TRUE( expected->HasEqualDimensions( actual ) );
-
-	const int dataSize = expected->GetDataSize();
-
-	if( expected->GetDataType() == CT_Float ) {
-		CArray<float> expectedData;
-		expectedData.SetSize( dataSize );
-		expected->CopyTo( expectedData.GetPtr() );
-
-		CArray<float> actualData;
-		actualData.SetSize( dataSize );
-		actual->CopyTo( actualData.GetPtr() );
-
-		for( int i = 0; i < expectedData.Size(); ++i ) {
-			if( fabsf( expectedData[i] - actualData[i] ) >= eps ) {
-				FineDebugBreak();
-			}
-			ASSERT_NEAR( expectedData[i], actualData[i], eps );
-		}
-	} else {
-		CArray<int> expectedData;
-		expectedData.SetSize( dataSize );
-		expected->CopyTo( expectedData.GetPtr() );
-
-		CArray<int> actualData;
-		actualData.SetSize( dataSize );
-		actual->CopyTo( actualData.GetPtr() );
-
-		for( int i = 0; i < expectedData.Size(); ++i ) {
-			if( expectedData[i] != actualData[i] ) {
-				FineDebugBreak();
-			}
-			ASSERT_EQ( expectedData[i], actualData[i] );
-		}
-	}
-}
-
 namespace FObj {
 	inline void swap( FObj::CArray<int>*& a, FObj::CArray<int>*& b ) {
 		std::swap( a, b );
@@ -978,9 +938,10 @@ static void ctcTestImpl( const CTestParams& params, int seed )
 	naiveDnn.RunAndBackwardOnce();
 	actualDnn.RunAndBackwardOnce();
 
-	ASSERT_NEAR( naiveLoss->GetLastLoss(), actualLoss->GetLastLoss(), 1e-4f );
-	compareBlobs( naiveLoss->GetLastGradient(), actualLoss->GetLastGradient(), 1e-4f );
-	compareBlobs( naiveLearn->ActualDiff, actualLearn->ActualDiff, 1e-4f );
+	EXPECT_TRUE( FloatEq( naiveLoss->GetLastLoss(), actualLoss->GetLastLoss(), 1e-4f ) ) << naiveLoss->GetLastLoss()
+		<< '\t' << actualLoss->GetLastLoss();
+	EXPECT_TRUE( CompareBlobs( *naiveLoss->GetLastGradient(), *actualLoss->GetLastGradient(), 1e-4f ) );
+	EXPECT_TRUE( CompareBlobs( *naiveLearn->ActualDiff, *actualLearn->ActualDiff, 1e-4f ) );
 }
 
 TEST_P( CCtcTest, Random )

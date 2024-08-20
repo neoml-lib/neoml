@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright Â© 2017-2020 ABBYY Production LLC
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,14 +14,10 @@ limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
 #include <TestFixture.h>
+#include <MeTestCommon.h>
 
 using namespace NeoML;
 using namespace NeoMLTest;
-
-static inline int calcConvOutputSize( int input, int padding, int filter, int dilation, int stride )
-{
-	return  1 + ( input - ( filter - 1 ) * dilation + 2 * padding - 1 ) / stride;
-}
 
 static void batchConvolutionBackward( float* input, const float* filter, const float* freeTerms, const float* output,
 	int inputLength, int inputBatch, int inputHeight, int inputWidth, int inputDepth, int inputChannels,
@@ -95,21 +91,25 @@ static void blobConvolutionBackwardImpl( const CTestParams& params, int seed )
 
 	bool isZeroFreeTerm = params.GetValue<int>( "IsZeroFreeTerm" ) == 1;
 
-	const int inputLength = random.UniformInt( lengthInterval.Begin, lengthInterval.End );
-	const int inputBatch = random.UniformInt( batchInterval.Begin, batchInterval.End );
-	const int inputHeight = random.UniformInt( inputHeightInterval.Begin, inputHeightInterval.End );
-	const int inputWidth = random.UniformInt( inputWidthInterval.Begin, inputWidthInterval.End );
-	const int inputDepth = random.UniformInt( inputDepthInterval.Begin, inputDepthInterval.End );
-	const int inputChannels = random.UniformInt( channelsInterval.Begin, channelsInterval.End );
-	const int paddingHeight = random.UniformInt( paddingHeightInterval.Begin, paddingHeightInterval.End );
-	const int paddingWidth = random.UniformInt( paddingWidthInterval.Begin, paddingWidthInterval.End );
 	const int filterCount = random.UniformInt( filterCountInterval.Begin, filterCountInterval.End );
 	const int filterHeight = random.UniformInt( filterHeightInterval.Begin, filterHeightInterval.End );
 	const int filterWidth = random.UniformInt( filterWidthInterval.Begin, filterWidthInterval.End );
+	const int paddingHeight = random.UniformInt( paddingHeightInterval.Begin, std::min( filterHeight - 1, paddingHeightInterval.End ) );
+	const int paddingWidth = random.UniformInt( paddingWidthInterval.Begin, std::min( filterWidth - 1, paddingWidthInterval.End ) );
 	const int dilationHeight = random.UniformInt( dilationHeightInterval.Begin, dilationHeightInterval.End );
 	const int dilationWidth = random.UniformInt( dilationWidthInterval.Begin, dilationWidthInterval.End );
 	const int strideHeight = random.UniformInt( strideHeightInterval.Begin, strideHeightInterval.End );
 	const int strideWidth = random.UniformInt( strideWidthInterval.Begin, strideWidthInterval.End );
+	const int inputLength = random.UniformInt( lengthInterval.Begin, lengthInterval.End );
+	const int inputBatch = random.UniformInt( batchInterval.Begin, batchInterval.End );
+	const int inputHeight = random.UniformInt(
+		calcConvInputSize( inputHeightInterval.Begin, paddingHeight, filterHeight, dilationHeight, strideHeight ),
+		calcConvInputSize( inputHeightInterval.End, paddingHeight, filterHeight, dilationHeight, strideHeight ) );
+	const int inputWidth = random.UniformInt(
+		calcConvInputSize( inputWidthInterval.Begin, paddingWidth, filterWidth, dilationWidth, strideWidth ),
+		calcConvInputSize( inputWidthInterval.End, paddingWidth, filterWidth, dilationWidth, strideWidth ) );
+	const int inputDepth = random.UniformInt( inputDepthInterval.Begin, inputDepthInterval.End );
+	const int inputChannels = random.UniformInt( channelsInterval.Begin, channelsInterval.End );
 	const int outputHeight = calcConvOutputSize( inputHeight, paddingHeight, filterHeight, dilationHeight, strideHeight );
 	const int outputWidth = calcConvOutputSize( inputWidth, paddingWidth, filterWidth, dilationWidth, strideWidth );
 
@@ -137,7 +137,7 @@ static void blobConvolutionBackwardImpl( const CTestParams& params, int seed )
 		paddingHeight, paddingWidth, strideHeight, strideWidth,
 		dilationHeight, dilationWidth, filterBlob.GetDesc(), outputBlob.GetDesc() );
 
-	CFloatHandle freeTermDataPtr = freeTermBlob.GetData();
+	CConstFloatHandle freeTermDataPtr = freeTermBlob.GetData();
 
 	MathEngine().BlobConvolutionBackward( *convDesc, outputBlob.GetData(), filterBlob.GetData(),
 		isZeroFreeTerm ? 0 : &freeTermDataPtr, inputBlob.GetData() );
@@ -154,7 +154,7 @@ static void blobConvolutionBackwardImpl( const CTestParams& params, int seed )
 		dilationHeight, dilationWidth, strideHeight, strideWidth );
 
 	for( int i = 0; i < inputSize; ++i ) {
-		ASSERT_NEAR( expectedData[i], actualData[i], 1e-3f );
+		ASSERT_TRUE( FloatEq( expectedData[i], actualData[i], 1e-3f ) );
 	}
 }
 
@@ -165,6 +165,46 @@ class CMathEngineBlobConvolutionBackwardTest : public CTestFixtureWithParams {
 
 INSTANTIATE_TEST_CASE_P( CMathEngineBlobConvolutionBackwardTestInstantiation, CMathEngineBlobConvolutionBackwardTest,
 	::testing::Values(
+		CTestParams(
+			"InputLength = 1;"
+			"InputBatch = 1;"
+			"InputHeight = 288;"
+			"InputWidth = 128;"
+			"InputDepth = 1;"
+			"InputChannels = 2;"
+			"FilterCount = 16;"
+			"FilterHeight = 2;"
+			"FilterWidth = 2;"
+			"PaddingHeight = 0;"
+			"PaddingWidth = 0;"
+			"DilationHeight = 1;"
+			"DilationWidth = 1;"
+			"StrideHeight = 2;"
+			"StrideWidth = 2;"
+			"IsZeroFreeTerm = 0;"
+			"Values = (-10..10);"
+			"TestCount = 1;"
+		),
+		CTestParams(
+			"InputLength = 1;"
+			"InputBatch = 1;"
+			"InputHeight = 416;"
+			"InputWidth = 128;"
+			"InputDepth = 1;"
+			"InputChannels = 2;"
+			"FilterCount = 16;"
+			"FilterHeight = 2;"
+			"FilterWidth = 2;"
+			"PaddingHeight = 0;"
+			"PaddingWidth = 0;"
+			"DilationHeight = 1;"
+			"DilationWidth = 1;"
+			"StrideHeight = 2;"
+			"StrideWidth = 2;"
+			"IsZeroFreeTerm = 0;"
+			"Values = (-10..10);"
+			"TestCount = 1;"
+		),
 		CTestParams(
 			"InputLength = (1..3);"
 			"InputBatch = (1..3);"

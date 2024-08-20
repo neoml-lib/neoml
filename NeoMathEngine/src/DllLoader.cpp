@@ -45,7 +45,7 @@ int CDllLoader::avxDllLinkCount = 0;
 
 static std::mutex mutex;
 
-int CDllLoader::Load( int dll )
+int CDllLoader::loadDlls( int dll )
 {
 	int result = 0;
 	if( dll != 0 ) {
@@ -122,7 +122,7 @@ int CDllLoader::Load( int dll )
 	return result;
 }
 
-void CDllLoader::Free( int dll )
+void CDllLoader::freeDlls( int dll )
 {
 	if( dll != 0 ) {
 		std::lock_guard<std::mutex> lock( mutex );

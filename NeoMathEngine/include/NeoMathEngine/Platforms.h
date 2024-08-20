@@ -48,7 +48,7 @@ limitations under the License.
 		#define FINE_32_BIT 1
 	#endif
 	#define FINE_LITTLE_ENDIAN 1
-#elif defined(_ANDROID)
+#elif defined(_ANDROID) || defined(__ANDROID__)
 	#define FINE_PLATFORM( a ) a
 	#define FINE_BIT( a ) a
 	#define FINE_BYTE_ORDER( a ) a

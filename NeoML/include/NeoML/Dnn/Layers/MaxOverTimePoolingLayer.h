@@ -38,12 +38,13 @@ public:
 	void SetStrideLength(int length);
 
 protected:
-	virtual ~CMaxOverTimePoolingLayer() { destroyDescs(); }
+	~CMaxOverTimePoolingLayer() override { destroyDescs(); }
 
 	// CBaseLayer methods
 	void Reshape() override;
 	void RunOnce() override;
 	void BackwardOnce() override;
+	int BlobsForBackward() const override { return 0; }
 
 private:
 	CMaxOverTimePoolingDesc* desc;

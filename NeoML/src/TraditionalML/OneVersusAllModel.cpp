@@ -20,8 +20,7 @@ limitations under the License.
 
 namespace NeoML {
 
-IOneVersusAllModel::~IOneVersusAllModel()
-{}
+IOneVersusAllModel::~IOneVersusAllModel() = default;
 
 REGISTER_NEOML_MODEL( COneVersusAllModel, OneVersusAllModelName )
 

@@ -1,4 +1,4 @@
-/* Copyright © 2021 ABBYY Production LLC
+/* Copyright © 2021-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -132,10 +132,10 @@ protected:
 	CPtr<IModel> ModelSparse;
 
 	void TrainBinary( ITrainingModel& trainingModel )
-		{ Train( trainingModel, *DenseRandomBinaryProblem, *SparseRandomBinaryProblem, ModelDense, ModelSparse ); }
+	{ Train( trainingModel, *DenseRandomBinaryProblem, *SparseRandomBinaryProblem, ModelDense, ModelSparse ); }
 
 	void TestBinaryClassificationResult() const
-		{ TestClassificationResult( ModelDense, ModelSparse, DenseBinaryTestData, SparseBinaryTestData ); }
+	{ TestClassificationResult( ModelDense, ModelSparse, DenseBinaryTestData, SparseBinaryTestData ); }
 };
 
 CClassificationRandomProblem* RandomBinaryClassification4000x20::getDenseRandomBinaryProblem( CRandom& rand )
@@ -181,7 +181,7 @@ protected:
 	CPtr<IRegressionModel> ModelSparse;
 
 	void TrainBinaryGradientBoost( const CGradientBoost::CParams& params )
-		{ TrainGB( params, *DenseRandomBinaryProblem, *SparseRandomBinaryProblem, ModelDense, ModelSparse ); }
+	{ TrainGB( params, *DenseRandomBinaryProblem, *SparseRandomBinaryProblem, ModelDense, ModelSparse ); }
 
 	void TestBinaryRegressionResult() const
 	{
@@ -219,13 +219,13 @@ protected:
 	CPtr<IModel> ModelSparse;
 
 	void TrainMulti( ITrainingModel& trainingModel )
-		{ Train( trainingModel, *DenseRandomMultiProblem, *SparseRandomMultiProblem, ModelDense, ModelSparse ); }
+	{ Train( trainingModel, *DenseRandomMultiProblem, *SparseRandomMultiProblem, ModelDense, ModelSparse ); }
 
 	void TrainMultiGradientBoost( const CGradientBoost::CParams& params )
-		{ TrainGB( params, *DenseRandomMultiProblem, *SparseRandomMultiProblem, ModelDense, ModelSparse ); }
+	{ TrainGB( params, *DenseRandomMultiProblem, *SparseRandomMultiProblem, ModelDense, ModelSparse ); }
 
 	void TestMultiClassificationResult() const
-		{ TestClassificationResult( ModelDense, ModelSparse, DenseMultiTestData, SparseMultiTestData ); }
+	{ TestClassificationResult( ModelDense, ModelSparse, DenseMultiTestData, SparseMultiTestData ); }
 };
 
 CClassificationRandomProblem* RandomMultiClassification2000x20::getDenseRandomMultiProblem( CRandom& rand )
@@ -268,14 +268,15 @@ protected:
 	CPtr<IMultivariateRegressionModel> ModelSparse;
 
 	void TrainMultiGradientBoost( const CGradientBoost::CParams& params )
-		{ TrainGB( params, *DenseRandomMultiProblem, *SparseRandomMultiProblem, ModelDense, ModelSparse ); }
+	{ TrainGB( params, *DenseRandomMultiProblem, *SparseRandomMultiProblem, ModelDense, ModelSparse ); }
 
 	void TestMultiRegressionResult() const
 	{
-		auto cmpFloatVectors = []( const CFloatVectorDesc& v1, const CFloatVectorDesc& v2 ) {
+		auto cmpFloatVectors = []( const CFloatVectorDesc& v1, const CFloatVectorDesc& v2 )
+		{
 			ASSERT_EQ( v1.Size, v2.Size );
 			ASSERT_EQ( ::memcmp( v1.Values, v2.Values, v2.Size * sizeof( float ) ), 0 );
-			ASSERT_EQ( ::memcmp( v1.Indexes, v2.Indexes, ( v2.Indexes == nullptr ? 0 : v2.Size )*sizeof( float ) ), 0 );
+			ASSERT_EQ( ::memcmp( v1.Indexes, v2.Indexes, ( v2.Indexes == nullptr ? 0 : v2.Size ) * sizeof( float ) ), 0 );
 		};
 
 		for( int i = 0; i < SparseMultiTestData->GetVectorCount(); i++ ) {
@@ -691,4 +692,24 @@ TEST_F( RandomMultiGBRegression2000x20, Compact )
 	params.Representation = GBMR_Compact;
 	TrainMultiGradientBoost( params );
 	TestMultiRegressionResult();
+}
+
+TEST( FunctionSetArgumentTest, InitialGradient )
+{
+	auto testImpl = [] ( CFunctionWithGradient&& func ) -> void
+	{
+		CFloatVector zeroArg( 11, 0.f );
+		func.SetArgument( zeroArg );
+
+		ASSERT_GE( 1e5, func.Gradient().Norm() );
+	};
+
+	CRandom rand( 42 );
+	CPtr<IProblem> classProblem = CClassificationRandomProblem::Random( rand, 22, 10, 2 ).Ptr();
+	CPtr<IRegressionProblem> regrProblem = CRegressionRandomProblem::Random( rand, 22, 10, 2 ).Ptr();
+
+	testImpl( CSquaredHinge( *classProblem, 1, 0.001f, 16 ) );
+	testImpl( CL2Regression( *regrProblem, 1, 0.5, 0.001f, 16 ) );
+	testImpl( CLogRegression( *classProblem, 1, 0.001f, 16 ) );
+	testImpl( CSmoothedHinge( *classProblem, 1, 0.001f, 16 ) );
 }

@@ -64,11 +64,12 @@ public:
 	void Serialize( CArchive& archive ) override;
 
 protected:
-	virtual ~C3dMaxPoolingLayer() { destroyDesc(); }
+	~C3dMaxPoolingLayer() override { destroyDesc(); }
 
 	void RunOnce() override;
 	void BackwardOnce() override;
 	void Reshape() override;
+	int BlobsForBackward() const override { return 0; }
 
 private:
 	CPtr<CDnnBlob> indexBlob; // the indices of maximum elements, used for backpropagation
@@ -93,11 +94,12 @@ public:
 	void Serialize( CArchive& archive ) override;
 
 protected:
-	virtual ~C3dMeanPoolingLayer() { destroyDesc(); }
+	~C3dMeanPoolingLayer() override { destroyDesc(); }
 
 	void RunOnce() override;
 	void BackwardOnce() override;
 	void Reshape() override;
+	int BlobsForBackward() const override { return 0; }
 
 private:
 	C3dMeanPoolingDesc* desc;

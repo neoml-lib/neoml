@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,18 +18,39 @@ limitations under the License.
 
 #include "LayerOperator.h"
 
+using namespace NeoML;
+
 namespace NeoOnnx {
 
-// Returns true if some of the inputs are depending on user data
-static bool hasUserInputs( const CTensorArray& inputs )
+// Returns true if some of the inputs are CUserTensor
+static bool hasUserOrShapeInputs( const CTensorArray& inputs )
 {
+	static_assert( static_cast<int>( TTensorType::Count ) == 3, "TTensorType::Count != 3" );
 	for( int inputIndex = 0; inputIndex < inputs.Size(); ++inputIndex ) {
-		if( inputs[inputIndex] != nullptr && !inputs[inputIndex]->IsCalculated() ) {
+		if( inputs[inputIndex] != nullptr && inputs[inputIndex]->Type() != TTensorType::Data ) {
 			return true;
 		}
 	}
 
 	return false;
+}
+
+// Returns true if tensor has elements
+static bool tensorHasElements( const CTensorBase& tensor )
+{
+	// The only scenario when tensor has no elements is CShapeTensor with one of dimensions equal to 0
+	if( tensor.Type() != TTensorType::Shape ) {
+		return true;
+	}
+
+	const CShapeTensor& shapeTensor = dynamic_cast<const CShapeTensor&>( tensor );
+	for( int i = 0; i < shapeTensor.DimCount(); ++i ) {
+		if( shapeTensor.Shape()[i] == 0 ) {
+			return false;
+		}
+	}
+
+	return true;
 }
 
 // Builds an array of sinks (corresponding to the operator outputs)
@@ -40,15 +61,23 @@ static void addInternalDnnSinks( const CTensorArray& internalOutputs,
 	IMathEngine& mathEngine = internalDnn.GetMathEngine();
 
 	for( int outputIndex = 0; outputIndex < internalOutputs.Size(); ++outputIndex ) {
-		if( internalOutputs[outputIndex] == nullptr || internalOutputs[outputIndex]->IsCalculated() ) {
+		if( internalOutputs[outputIndex] == nullptr || internalOutputs[outputIndex]->Type() == TTensorType::Data ) {
 			sinks.Add( nullptr );
 		} else {
+			// internalOutputs[outputIndex] is a CShapeTensor or CUserTensor
+			CPtr<const CUserTensor> userOutput = AsUserTensor( *internalOutputs[outputIndex],
+				Str( internalDnn.GetLayerCount() ), internalDnn );
 			CPtr<CSinkLayer> sink = new CSinkLayer( mathEngine );
 			sink->SetName( Str( internalDnn.GetLayerCount() ) );
 			internalDnn.AddLayer( *sink );
-			const CLayerOutput& connectedOutput = dynamic_cast<const CUserTensor*>( internalOutputs[outputIndex].Ptr() )->LayerOutput();
-			sink->Connect( 0, *connectedOutput.Layer, connectedOutput.OutputIndex );
-			sinks.Add( sink.Ptr() );
+			sink->Connect( 0, *userOutput->Layer(), userOutput->OutputIndex() );
+			if( tensorHasElements( *internalOutputs[outputIndex] ) ) {
+				sinks.Add( sink.Ptr() );
+			} else {
+				// Let this sink be in order to avoid hanging layers
+				// But don't register it (the resulting tensor will be nullptr)
+				sinks.Add( nullptr );
+			}
 		}
 	}
 }
@@ -58,14 +87,14 @@ static void extractOutputs( const CTensorArray& internalOutputs, const CArray<CS
 	CTensorArray& outputs )
 {
 	for( int outputIndex = 0; outputIndex < internalOutputs.Size(); ++outputIndex ) {
-		if( internalOutputs[outputIndex] != nullptr && internalOutputs[outputIndex]->IsCalculated() ) {
+		if( internalOutputs[outputIndex] != nullptr && internalOutputs[outputIndex]->Type() == TTensorType::Data ) {
 			// This data was calculated prior to the net
 			outputs.Add( internalOutputs[outputIndex] );
 		} else if( sinks[outputIndex] != nullptr ) {
 			// Add network result as data tensor
 			// Shape and layout remain unchanged
-			outputs.Add( new CDataTensor( internalOutputs[outputIndex]->Shape(),
-				internalOutputs[outputIndex]->Layout(), *( sinks[outputIndex]->GetBlob() ) ) );
+			outputs.Add( new CDataTensor( internalOutputs[outputIndex]->Layout(),
+				*( sinks[outputIndex]->GetBlob() ) ) );
 		} else {
 			// otherwise leave internalOutputs[outputIndex] as nullptr
 			outputs.Add( nullptr );
@@ -77,7 +106,7 @@ static void extractOutputs( const CTensorArray& internalOutputs, const CArray<CS
 
 void CLayerOperator::ProcessTensors( const CTensorArray& inputs, CDnn& dnn, CTensorArray& outputs ) const
 {
-	if( hasUserInputs( inputs ) ) {
+	if( hasUserOrShapeInputs( inputs ) ) {
 		AddLayers( inputs, dnn, outputs );
 		return;
 	}

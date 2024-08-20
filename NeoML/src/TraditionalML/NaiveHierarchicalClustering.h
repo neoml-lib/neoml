@@ -25,7 +25,7 @@ namespace NeoML {
 // FLT_MAX is used as "not set" value
 class CDistanceMatrixRow {
 public:
-	CDistanceMatrixRow() {}
+	CDistanceMatrixRow() = default;
 	CDistanceMatrixRow( const CDistanceMatrixRow& other );
 
 	// Random access (CFloatVector-like)
@@ -96,7 +96,7 @@ private:
 	void findNearestClusters( int& first ) const;
 	void mergeClusters( int first, int newClusterIndex, CArray<CMergeInfo>* dendrogram );
 	float recalcDistance( const CCommonCluster& currCluster, const CCommonCluster& mergedCluster,
-		int firstSize, int secondSize, float currToFirst, float currToSecond, float firstToSecond ) const;
+		int firstSize, int secondSize, int currSize, float currToFirst, float currToSecond, float firstToSecond ) const;
 	void fillResult( const CFloatMatrixDesc& matrix, CClusteringResult& result, CArray<int>* dendrogramIndices ) const;
 };
 

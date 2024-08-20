@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -35,6 +35,10 @@ namespace NeoML {
 class NEOML_API CDnnBlob : public IObject {
 public:
 	explicit CDnnBlob( IMathEngine& mathEngine );
+
+	// Move other's Blob state to this Blob and transfer its data (if dataOwned) to this thread
+	CDnnBlob( CDnnBlob&& other );
+	CDnnBlob& operator=( CDnnBlob&& other );
 
 	// Create blobs of various kinds
 	static CDnnBlob* CreateVector(IMathEngine& mathEngine, TBlobType type, int vectorSize);
@@ -136,6 +140,11 @@ public:
 	// Copies the contents from another blob
 	void CopyFrom(const CDnnBlob* other);
 
+	// Transfers CDnnBlob data from other thread owner to this thread.
+	// By default memory underneath each blob is associated with the thread on which its allocation has occurred.
+	// This method switches this association to the calling thread.
+	void TransferDataToThisThread();
+
 	// Elementwise adds a blob of the same dimensions
 	void Add(const CDnnBlob* other);
 	// Clears the contents
@@ -170,17 +179,17 @@ public:
 	static void MergeByObject( IMathEngine& mathEngine, const CObjectArray<CDnnBlob>& from, const CPtr<CDnnBlob>& to );
 
 	// Splits blobs along the given dimension
-	static void SplitByDim( IMathEngine& mathEngine, TBlobDim d, const CPtr<CDnnBlob>& from, const CObjectArray<CDnnBlob>& to );
-	static void SplitByChannels( IMathEngine& mathEngine, const CPtr<CDnnBlob>& from, const CObjectArray<CDnnBlob>& to );
-	static void SplitByDepth( IMathEngine& mathEngine, const CPtr<CDnnBlob>& from, const CObjectArray<CDnnBlob>& to );
-	static void SplitByWidth( IMathEngine& mathEngine, const CPtr<CDnnBlob>& from, const CObjectArray<CDnnBlob>& to );
-	static void SplitByHeight( IMathEngine& mathEngine, const CPtr<CDnnBlob>& from, const CObjectArray<CDnnBlob>& to );
-	static void SplitByListSize( IMathEngine& mathEngine, const CPtr<CDnnBlob>& from, const CObjectArray<CDnnBlob>& to );
-	static void SplitByBatchWidth( IMathEngine& mathEngine, const CPtr<CDnnBlob>& from, const CObjectArray<CDnnBlob>& to );
-	static void SplitByBatchLength( IMathEngine& mathEngine, const CPtr<CDnnBlob>& from, const CObjectArray<CDnnBlob>& to );
-	static void SplitByObject( IMathEngine& mathEngine, const CPtr<CDnnBlob>& from, const CObjectArray<CDnnBlob>& to );
+	static void SplitByDim( IMathEngine& mathEngine, TBlobDim d, const CPtr<const CDnnBlob>& from, const CObjectArray<CDnnBlob>& to );
+	static void SplitByChannels( IMathEngine& mathEngine, const CPtr<const CDnnBlob>& from, const CObjectArray<CDnnBlob>& to );
+	static void SplitByDepth( IMathEngine& mathEngine, const CPtr<const CDnnBlob>& from, const CObjectArray<CDnnBlob>& to );
+	static void SplitByWidth( IMathEngine& mathEngine, const CPtr<const CDnnBlob>& from, const CObjectArray<CDnnBlob>& to );
+	static void SplitByHeight( IMathEngine& mathEngine, const CPtr<const CDnnBlob>& from, const CObjectArray<CDnnBlob>& to );
+	static void SplitByListSize( IMathEngine& mathEngine, const CPtr<const CDnnBlob>& from, const CObjectArray<CDnnBlob>& to );
+	static void SplitByBatchWidth( IMathEngine& mathEngine, const CPtr<const CDnnBlob>& from, const CObjectArray<CDnnBlob>& to );
+	static void SplitByBatchLength( IMathEngine& mathEngine, const CPtr<const CDnnBlob>& from, const CObjectArray<CDnnBlob>& to );
+	static void SplitByObject( IMathEngine& mathEngine, const CPtr<const CDnnBlob>& from, const CObjectArray<CDnnBlob>& to );
 
-	virtual void Serialize( CArchive& );
+	void Serialize( CArchive& ) override;
 
 	// Gets the pointer to the MathEngine on which the blob was created
 	IMathEngine& GetMathEngine() const { return mathEngine; }
@@ -205,7 +214,7 @@ public:
 	void ShiftParentPos( int shift );
 
 protected:
-	virtual ~CDnnBlob();
+	~CDnnBlob() override;
 
 	CDnnBlob( IMathEngine& _mathEngine, const CBlobDesc& _desc, CMemoryHandle _data, bool _dataOwned ) :
 		mathEngine( _mathEngine ), desc( _desc ), data( _data ), dataOwned( _dataOwned ), parentPos( 0 )
@@ -286,6 +295,9 @@ public:
 		access( _access ),
 		size( _size ),
 		ptr( blob.GetBuffer<TBufferType>( pos, size, access == TDnnBlobBufferAccess::Read || access == TDnnBlobBufferAccess::ReadWrite ) )
+	{}
+	CDnnBlobBuffer( CDnnBlob& _blob, TDnnBlobBufferAccess _access ) :
+		CDnnBlobBuffer( _blob, 0, _blob.GetDataSize(), _access )
 	{}
 	CDnnBlobBuffer( const CDnnBlobBuffer& ) = delete;
 	~CDnnBlobBuffer();

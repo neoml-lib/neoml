@@ -17,7 +17,7 @@ find_package(Python3 ${Python3_FIND_VERSION} EXACT COMPONENTS Interpreter Develo
 FetchContent_Declare(
     pybind11
     GIT_REPOSITORY https://github.com/pybind/pybind11.git
-    GIT_TAG v2.6.2
+    GIT_TAG v2.11.1
 )
 
 FetchContent_GetProperties(pybind11)
@@ -29,7 +29,10 @@ endif()
 # Build NeoML
 set(NeoML_INSTALL OFF CACHE BOOL "" FORCE)
 set(NeoML_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-set(NeoOnnx_BUILD OFF CACHE BOOL "" FORCE)
+set(NeoOnnx_BUILD ON CACHE BOOL "" FORCE)
+if(LINUX)
+    set(NeoOnnx_BUILD_SHARED OFF CACHE BOOL "" FORCE)
+endif()
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/.. ${CMAKE_BINARY_DIR}/NeoML)
 
 # Build python module
@@ -44,13 +47,17 @@ pybind11_add_module(PythonWrapper
     src/PyAttentionDecoderLayer.cpp
     src/PyBaseConvLayer.cpp
     src/PyBatchNormalizationLayer.cpp
+    src/PyBertConvLayer.cpp
     src/PyBinarizationLayer.cpp
+    src/PyBroadcastLayer.cpp
+    src/PyBytePairEncoder.cpp
     src/PyConcatLayer.cpp
     src/PyCastLayer.cpp
     src/PyConvLayer.cpp
     src/PyClustering.cpp
     src/PyCrfLayer.cpp
     src/PyCtcLayer.cpp
+    src/PyCumSumLayer.cpp
     src/PyCustomLossLayer.cpp
     src/PyDataLayer.cpp
     src/PyDifferentialEvolution.cpp
@@ -67,6 +74,7 @@ pybind11_add_module(PythonWrapper
     src/PyIrnnLayer.cpp
     src/PyGruLayer.cpp
     src/PyLayer.cpp
+    src/PyLogicalLayer.cpp
     src/PyLossLayer.cpp
     src/PyLrnLayer.cpp
     src/PyLstmLayer.cpp
@@ -76,6 +84,8 @@ pybind11_add_module(PythonWrapper
     src/PyMultichannelLookupLayer.cpp
     src/PyMultiheadAttentionLayer.cpp
     src/PyObjectNormalizationLayer.cpp
+    src/PyOnnxLayers.cpp
+    src/PyPCA.cpp
     src/PyPoolingLayer.cpp
     src/PyPositionalEmbeddingLayer.cpp
     src/PyPrecisionRecallLayer.cpp
@@ -83,6 +93,7 @@ pybind11_add_module(PythonWrapper
     src/PyRandom.cpp
     src/PyReorgLayer.cpp
     src/PyRepeatSequenceLayer.cpp
+    src/PyScatterGatherLayers.cpp
     src/PySequenceSumLayer.cpp
     src/PySoftmaxLayer.cpp
     src/PySplitLayer.cpp
@@ -98,11 +109,12 @@ pybind11_add_module(PythonWrapper
     src/PyTransposeLayer.cpp
     src/PyUpsampling2DLayer.cpp
     src/PyWrapper.cpp
+    src/PyOnnx.cpp
 )
 
 target_include_directories(PythonWrapper PRIVATE src)
 
-target_link_libraries(PythonWrapper PRIVATE NeoML)
+target_link_libraries(PythonWrapper PRIVATE NeoML NeoOnnx)
 
 set_target_properties(PythonWrapper PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
 if(APPLE)
@@ -113,5 +125,8 @@ install(TARGETS PythonWrapper DESTINATION ${CMAKE_INSTALL_PREFIX})
 install(FILES $<TARGET_FILE:NeoMathEngine> $<TARGET_FILE:NeoML> DESTINATION ${CMAKE_INSTALL_PREFIX})
 if(TARGET NeoMathEngineAvx)
     install(FILES $<TARGET_FILE:NeoMathEngineAvx> DESTINATION ${CMAKE_INSTALL_PREFIX})
+endif()
+if(TARGET NeoOnnx AND NOT LINUX)
+    install(FILES $<TARGET_FILE:NeoOnnx> DESTINATION ${CMAKE_INSTALL_PREFIX})
 endif()
 

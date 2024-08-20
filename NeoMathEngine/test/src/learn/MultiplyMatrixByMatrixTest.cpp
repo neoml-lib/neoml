@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,28 +14,10 @@ limitations under the License.
 --------------------------------------------------------------------------------------------------------------*/
 
 #include <TestFixture.h>
+#include <MeTestCommon.h>
 
 using namespace NeoML;
 using namespace NeoMLTest;
-
-static void batchMultiplyMatrixByMatrixAndAddNaive( int batchSize, const std::vector<float>& first, const std::vector<float>& second,
-	int firstHeight, int firstWidth, int secondWidth, std::vector<float>& result )
-{
-	const int firstMatrixSize = firstHeight * firstWidth;
-	const int secondMatrixSize = firstWidth * secondWidth;
-	const int resultMatrixSize = firstHeight * secondWidth;
-
-	for( int b = 0; b < batchSize; ++b ) {
-		for( int i = 0; i < firstHeight; ++i ) {
-			for( int j = 0; j < secondWidth; ++j ) {
-				for( int k = 0; k < firstWidth; ++k ) {
-					result[b * resultMatrixSize + i * secondWidth + j] +=
-						first[b * firstMatrixSize + i * firstWidth + k] * second[b * secondMatrixSize + k * secondWidth + j];
-				}
-			}
-		}
-	}
-}
 
 static void multiplyMatrixByMatrixAndAddTestImpl( const CTestParams& params, int seed )
 {
@@ -79,18 +61,14 @@ INSTANTIATE_TEST_CASE_P( CMultiplyMatrixByMatrixTestInstantiation, CMultiplyMatr
 			"Height = (1..50);"
 			"Width = (1..50);"
 			"BatchSize = (1..5);"
-			"VectorSize = (1..20);"
 			"Values = (-1..1);"
-			"Channels = (1..5);"
 			"TestCount = 100;"
 		),
 		CTestParams(
 			"Height = (100..500);"
 			"Width = (100..500);"
 			"BatchSize = (1..5);"
-			"VectorSize = (30..50);"
 			"Values = (-1..1);"
-			"Channels = (1..5);"
 			"TestCount = 5;"
 		)
 	)

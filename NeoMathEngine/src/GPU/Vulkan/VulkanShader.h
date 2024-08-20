@@ -121,7 +121,8 @@ enum TShader {
 	SH_VectorMultiplyFloat,
 	SH_VectorMultiplyAndAdd,
 	SH_VectorMultiplyAndSub,
-	SH_VectorEltwiseDivide,
+	SH_VectorEltwiseDivideInt,
+	SH_VectorEltwiseDivideFloat,
 	SH_VectorEltwisePower,
 	SH_VectorSqrt,
 	SH_VectorInv,
@@ -195,6 +196,7 @@ enum TShader {
 	SH_SpaceToDepthInt,
 	SH_SpaceToDepthFloat,
 	SH_Lrn,
+	SH_BertConv,
 
 	SH_Count
 };

@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -75,8 +75,8 @@ void CPoolingLayer::Reshape()
 {
 	CheckInputs();
 	CheckOutputs();
-	CheckArchitecture( GetInputCount() == 1, GetName(), "pooling with multiple inputs" );
-	CheckArchitecture( GetOutputCount() == 1, GetName(), "pooling with multiple outputs" );
+	CheckLayerArchitecture( GetInputCount() == 1, "pooling with multiple inputs" );
+	CheckLayerArchitecture( GetOutputCount() == 1, "pooling with multiple outputs" );
 
 	outputDescs[0] = inputDescs[0];
 	outputDescs[0].SetDimSize( BD_Height, ( inputDescs[0].Height() - filterHeight ) / strideHeight + 1 );
@@ -100,7 +100,7 @@ void CPoolingLayer::Serialize( CArchive& archive )
 	}
 }
 
-///////////////////////////////////////////////////////////////////////////////////
+//------------------------------------------------------------------------------------------------------------
 // CMeanPoolingLayer
 
 void CMeanPoolingLayer::RunOnce()
@@ -128,8 +128,11 @@ void CMeanPoolingLayer::Reshape()
 void CMeanPoolingLayer::initDesc()
 {
 	if( desc == 0 ) {
-		desc = MathEngine().InitMeanPooling( inputBlobs[0]->GetDesc(), filterHeight, filterWidth,
-			strideHeight, strideWidth, outputBlobs[0]->GetDesc() );
+		NeoPresume( inputBlobs[0] != nullptr || inputDiffBlobs[0] != nullptr );
+		NeoPresume( outputBlobs[0] != nullptr || outputDiffBlobs[0] != nullptr );
+		desc = MathEngine().InitMeanPooling( inputBlobs[0] != nullptr ? inputBlobs[0]->GetDesc() : inputDiffBlobs[0]->GetDesc(),
+			filterHeight, filterWidth, strideHeight, strideWidth,
+			outputBlobs[0] != nullptr ? outputBlobs[0]->GetDesc() : outputDiffBlobs[0]->GetDesc() );
 	}
 }
 
@@ -149,7 +152,7 @@ void CMeanPoolingLayer::Serialize( CArchive& archive )
 	CPoolingLayer::Serialize( archive );
 }
 
-///////////////////////////////////////////////////////////////////////////////////
+//------------------------------------------------------------------------------------------------------------
 // CMaxPoolingLayer
 
 void CMaxPoolingLayer::Reshape()
@@ -158,7 +161,7 @@ void CMaxPoolingLayer::Reshape()
 	maxIndices = 0;
 	if( IsBackwardPerformed() ) {
 		maxIndices = CDnnBlob::CreateBlob( MathEngine(), CT_Int, outputDescs[0] );
-		RegisterRuntimeBlob(maxIndices);
+		RegisterRuntimeBlob( maxIndices );
 	}
 	destroyDesc();
 }
@@ -187,8 +190,11 @@ void CMaxPoolingLayer::BackwardOnce()
 void CMaxPoolingLayer::initDesc()
 {
 	if( desc == 0 ) {
-		desc = MathEngine().InitMaxPooling( inputBlobs[0]->GetDesc(), filterHeight, filterWidth,
-			strideHeight, strideWidth, outputBlobs[0]->GetDesc() );
+		NeoPresume( inputBlobs[0] != nullptr || inputDiffBlobs[0] != nullptr );
+		NeoPresume( outputBlobs[0] != nullptr || outputDiffBlobs[0] != nullptr );
+		desc = MathEngine().InitMaxPooling( inputBlobs[0] != nullptr ? inputBlobs[0]->GetDesc() : inputDiffBlobs[0]->GetDesc(),
+			filterHeight, filterWidth, strideHeight, strideWidth,
+			outputBlobs[0] != nullptr ? outputBlobs[0]->GetDesc() : outputDiffBlobs[0]->GetDesc() );
 	}
 }
 
@@ -207,6 +213,8 @@ void CMaxPoolingLayer::Serialize( CArchive& archive )
 	archive.SerializeVersion( MaxPoolingLayerVersion, CDnn::ArchiveMinSupportedVersion );
 	CPoolingLayer::Serialize( archive );
 }
+
+//------------------------------------------------------------------------------------------------------------
 
 CLayerWrapper<CMaxPoolingLayer> MaxPooling(
 	int filterHeight, int filterWidth, int strideHeight, int strideWidth )

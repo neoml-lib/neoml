@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -109,6 +109,11 @@ void CVulkanMathEngine::AddDiagMatrixToMatrix( const CConstFloatHandle& diagMatr
 void CVulkanMathEngine::TransposeMatrix( int batchSize, const CConstFloatHandle& firstHandle,
 	int height, int medium, int width, int channels, const CFloatHandle& resultHandle, int /*resultBufferSize*/ )
 {
+	if( medium == 1 && ( height == 1 || width == 1 ) ) {
+		VectorCopy( resultHandle, firstHandle, batchSize * height * medium * width * channels );
+		return;
+	}
+
 	int vectorSize = batchSize * height * medium * width * channels;
 	CMemoryHandle bufs[2] = { firstHandle, resultHandle };
 	size_t sizes[2] = { vectorSize * sizeof(float), vectorSize * sizeof(float) };
@@ -122,6 +127,11 @@ void CVulkanMathEngine::TransposeMatrix( int batchSize, const CConstFloatHandle&
 void CVulkanMathEngine::TransposeMatrix( int batchSize, const CConstIntHandle& firstHandle,
 	int height, int medium, int width, int channels, const CIntHandle& resultHandle, int /*resultBufferSize*/ )
 {
+	if( medium == 1 && ( height == 1 || width == 1 ) ) {
+		VectorCopy( resultHandle, firstHandle, batchSize * height * medium * width * channels );
+		return;
+	}
+
 	int vectorSize = batchSize * height * medium * width * channels;
 	CMemoryHandle bufs[2] = { firstHandle, resultHandle };
 	size_t sizes[2] = { vectorSize * sizeof(int), vectorSize * sizeof(int) };
@@ -146,8 +156,9 @@ void CVulkanMathEngine::MultiplyMatrixByTransposedMatrix( const CConstFloatHandl
 	}
 }
 
-void CVulkanMathEngine::MultiplyMatrixByTransposedMatrix(int batchSize, const CConstFloatHandle& firstHandle, int firstHeight,
-	int firstWidth, const CConstFloatHandle& secondHandle, int secondHeight, const CFloatHandle& resultHandle, int resultBufferSize)
+void CVulkanMathEngine::MultiplyMatrixByTransposedMatrix( int batchSize, const CConstFloatHandle& firstHandle, int firstHeight,
+	int firstWidth, const CConstFloatHandle& secondHandle, int secondHeight, const CFloatHandle& resultHandle,
+	int resultBufferSize )
 {
 	if( device->Type == VDT_Adreno ) {
 		batchMultiplyMatrixByMatrixAdreno( false, batchSize, firstHandle,
@@ -178,6 +189,12 @@ void CVulkanMathEngine::MultiplySparseMatrixByTransposedMatrix( int firstHeight,
 		&param, sizeof( param ), 0, 0, 0, 0, bufs, sizes, 5, secondHeight, firstHeight, 1 );
 }
 
+void CVulkanMathEngine::MultiplyTransposedMatrixBySparseMatrix( int, int, int,
+	const CConstFloatHandle&, const CSparseMatrixDesc&, const CFloatHandle&, bool )
+{
+	ASSERT_EXPR( false );
+}
+
 void CVulkanMathEngine::MultiplyTransposedMatrixBySparseMatrixAndAdd( int firstHeight, int firstWidth, int secondWidth,
 	const CConstFloatHandle& firstHandle, const CSparseMatrixDesc& secondDesc, const CFloatHandle& resultHandle )
 {
@@ -197,6 +214,18 @@ void CVulkanMathEngine::MultiplyTransposedMatrixBySparseMatrixAndAdd( int firstH
 		&param, sizeof( param ), 0, 0, 0, 0, bufs, sizes, 5, firstWidth );
 }
 
+void CVulkanMathEngine::MultiplySparseMatrixByMatrix( int, int, int,
+	const CSparseMatrixDesc&, const CConstFloatHandle&, const CFloatHandle& )
+{
+	ASSERT_EXPR( false );
+}
+
+void CVulkanMathEngine::MultiplyTransposedSparseMatrixByMatrix( int, int, int,
+	const CSparseMatrixDesc&, const CConstFloatHandle&, const CFloatHandle& )
+{
+	ASSERT_EXPR( false );
+}
+
 void CVulkanMathEngine::MultiplyTransposedMatrixByMatrixAndAdd( const CConstFloatHandle& firstHandle, int firstHeight,
 	int firstWidth, int firstRowSize, const CConstFloatHandle& secondHandle, int secondWidth, int secondRowSize,
 	const CFloatHandle& resultHandle, int resultRowSize, int resultBufferSize )
@@ -210,8 +239,9 @@ void CVulkanMathEngine::MultiplyTransposedMatrixByMatrixAndAdd( const CConstFloa
 	}
 }
 
-void CVulkanMathEngine::MultiplyTransposedMatrixByMatrix(int batchSize, const CConstFloatHandle& firstHandle, int firstHeight,
-	int firstWidth, const CConstFloatHandle& secondHandle, int secondWidth, const CFloatHandle& resultHandle, int resultBufferSize)
+void CVulkanMathEngine::MultiplyTransposedMatrixByMatrix( int batchSize, const CConstFloatHandle& firstHandle, int firstHeight,
+	int firstWidth, const CConstFloatHandle& secondHandle, int secondWidth, const CFloatHandle& resultHandle,
+	int resultBufferSize )
 {
 	if( device->Type == VDT_Adreno ) {
 		batchMultiplyMatrixByMatrixAdreno( false, batchSize, firstHandle, firstHeight, firstWidth, firstWidth, true,
@@ -256,7 +286,8 @@ void CVulkanMathEngine::Multiply1DiagMatrixByMatrix( int, const CConstFloatHandl
 }
 
 void CVulkanMathEngine::MultiplyMatrixByMatrix( int batchSize, const CConstFloatHandle& firstHandle, int firstHeight,
-	int firstWidth, const CConstFloatHandle& secondHandle, int secondWidth, const CFloatHandle& resultHandle, int resultBufferSize )
+	int firstWidth, const CConstFloatHandle& secondHandle, int secondWidth, const CFloatHandle& resultHandle,
+	int resultBufferSize )
 {
 	if( device->Type == VDT_Adreno ) {
 		batchMultiplyMatrixByMatrixAdreno( false, batchSize, firstHandle, firstHeight, firstWidth, firstWidth, false,
@@ -710,6 +741,11 @@ void CVulkanMathEngine::SumMatrixRows( int batchSize, const CFloatHandle& result
 		&param, sizeof(param), 0, 0, 0, 0, bufs, sizes, 2, matrixWidth, 1, batchSize);
 }
 
+void CVulkanMathEngine::SumMatrixRows( int, const CIntHandle&, const CConstIntHandle&, int, int )
+{
+	ASSERT_EXPR( false );
+}
+
 void CVulkanMathEngine::SumMatrixColumns( const CFloatHandle& resultHandle, const CConstFloatHandle& matrixHandle,
 	int matrixHeight, int matrixWidth )
 {
@@ -769,37 +805,34 @@ void CVulkanMathEngine::MatrixSoftmaxDiffOpByColumns(const CConstFloatHandle&, c
 	ASSERT_EXPR( false );
 }
 
-void CVulkanMathEngine::MultiplyMatrixByDiagMatrix( const CConstFloatHandle& firstHandle, int firstHeight, int firstWidth,
-	const CConstFloatHandle& secondHandle, const CFloatHandle& resultHandle, int resultBufferSize )
+void CVulkanMathEngine::BatchMultiplyMatrixByDiagMatrix( int batchSize, const CConstFloatHandle& firstHandle, int height,
+	int width, int, const CConstFloatHandle& secondHandle, int, const CFloatHandle& resultHandle, int resultBufferSize )
 {
-	const int batchSize = 1;
+	ASSERT_EXPR( batchSize == 1 );
 	const int secondBatchSize = 1;
-	const bool toAdd = false;
-	int matrixSize = batchSize * firstHeight * firstWidth;
+	int matrixSize = batchSize * height * width;
 
 	ASSERT_EXPR( resultBufferSize >= matrixSize );
 
 	if( device->Type == VDT_Adreno ) {
 		const CVulkanImage* samplers[] =
-		{ &batchVectorToImage( secondBatchSize, secondHandle, firstWidth, TVI_DiagMatrix ) };
+		{ &batchVectorToImage( secondBatchSize, secondHandle, width, TVI_DiagMatrix ) };
 
 		CMemoryHandle bufs[2] = { firstHandle, resultHandle };
 		size_t sizes[2] = { matrixSize * sizeof( float ), matrixSize * sizeof( float ) };
 
-		PARAM_STRUCT( MultiplyMatrixByDiagMatrixAdreno ) param =
-		{ batchSize, secondBatchSize, firstHeight, firstWidth, ( toAdd ? 1 : 0 ) };
+		PARAM_STRUCT( MultiplyMatrixByDiagMatrixAdreno ) param = { batchSize, secondBatchSize, height, width, 0 };
 
 		runShader( shaderLoader->GET_SHADER_DATA( MultiplyMatrixByDiagMatrixAdreno, true, 0, 1, 2 ),
-			&param, sizeof( param ), 0, 0, samplers, 1, bufs, sizes, 2, Ceil( firstWidth, 4 ), batchSize * firstHeight, 1 );
+			&param, sizeof( param ), 0, 0, samplers, 1, bufs, sizes, 2, Ceil( width, 4 ), batchSize * height, 1 );
 	} else {
 		CMemoryHandle bufs[3] = { firstHandle, secondHandle, resultHandle };
-		size_t sizes[3] = { matrixSize * sizeof( float ), firstWidth * sizeof( float ), matrixSize * sizeof( float ) };
+		size_t sizes[3] = { matrixSize * sizeof( float ), width * sizeof( float ), matrixSize * sizeof( float ) };
 
-		PARAM_STRUCT( MultiplyMatrixByDiagMatrix ) param =
-		{ batchSize, secondBatchSize, firstHeight, firstWidth, ( toAdd ? 1 : 0 ) };
+		PARAM_STRUCT( MultiplyMatrixByDiagMatrix ) param = { batchSize, secondBatchSize, height, width, 0 };
 
 		runShader( shaderLoader->GET_SHADER_DATA( MultiplyMatrixByDiagMatrix, true, 0, 0, 3 ),
-			&param, sizeof( param ), 0, 0, 0, 0, bufs, sizes, 3, Ceil( firstWidth, 4 ), batchSize * firstHeight, 1 );
+			&param, sizeof( param ), 0, 0, 0, 0, bufs, sizes, 3, Ceil( width, 4 ), batchSize * height, 1 );
 	}
 }
 
@@ -845,7 +878,7 @@ void CVulkanMathEngine::batchMultiplyMatrixByTransposedMatrix( bool toAdd, int b
     ASSERT_EXPR( firstWidth <= firstRowSize );
     ASSERT_EXPR( firstWidth <= secondRowSize );
     ASSERT_EXPR( secondHeight <= resultRowSize );
-    ASSERT_EXPR( ( firstHeight - 1 ) * resultRowSize + secondHeight <= resultBufferSize );
+    ASSERT_EXPR( resultBufferSize == 0 || ( ( firstHeight - 1 ) * resultRowSize + secondHeight ) <= resultBufferSize );
 
 	CMemoryHandle bufs[3] = { firstHandle, secondHandle, resultHandle };
 	size_t sizes[3] = { batchSize * firstHeight * firstWidth * sizeof(float), 
@@ -1153,6 +1186,23 @@ void CVulkanMathEngine::MultiplyTransposedLookupMatrixByVectorAndAdd( int, const
 
 void CVulkanMathEngine::MultiplyVectorByTransposedLookupVectorAndAddToTable( int,const CFloatHandle&, int, int,
 	const CConstIntHandle&, const CConstFloatHandle&, int, const CLookupVector& )
+{
+	ASSERT_EXPR( false );
+}
+
+void CVulkanMathEngine::SingularValueDecomposition( const CFloatHandle&, int, int, const CFloatHandle&, const CFloatHandle&,
+	const CFloatHandle&, const CFloatHandle&, bool, bool )
+{
+	ASSERT_EXPR( false );
+}
+
+void CVulkanMathEngine::QRFactorization( int, int, const CFloatHandle&, const CFloatHandle*, const CFloatHandle*,
+	bool, bool, bool )
+{
+	ASSERT_EXPR( false );
+}
+
+void CVulkanMathEngine::LUFactorization( int, int, const CFloatHandle& )
 {
 	ASSERT_EXPR( false );
 }

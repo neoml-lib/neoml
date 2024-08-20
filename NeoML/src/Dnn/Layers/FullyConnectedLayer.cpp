@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,96 +22,132 @@ limitations under the License.
 namespace NeoML {
 
 CFullyConnectedLayer::CFullyConnectedLayer( IMathEngine& mathEngine, const char* name ) :
-	CBaseLayer( mathEngine, name == nullptr ? "CCnnFullyConnectedLayer" : name, true ),
-	numberOfElements(0),
-	isZeroFreeTerm(false)
+	CBaseLayer( mathEngine, name == nullptr ? "CCnnFullyConnectedLayer" : name, /*isLearnable*/true ),
+	numberOfElements( 0 ),
+	isZeroFreeTerm( false )
 {
 	paramBlobs.SetSize(2);
-}
-
-CFullyConnectedLayer::~CFullyConnectedLayer()
-{
 }
 
 void CFullyConnectedLayer::Reshape()
 {
 	CheckInputs();
-	CheckArchitecture( GetInputCount() == GetOutputCount(),
-		GetName(), "fully connected layer with different numbers of input and output" );
-	for(int i = 0; i < GetInputCount(); i++) {
-		if(Weights() == 0) {
+	CheckLayerArchitecture( GetInputCount() == GetOutputCount(),
+		"fully connected layer with different numbers of input and output" );
+	for( int i = 0; i < GetInputCount(); ++i ) {
+		if( Weights() == nullptr ) {
 			// Create a weights matrix
 			CBlobDesc weightsDesc = inputDescs[i];
-			weightsDesc.SetDimSize(BD_BatchLength, 1);
-			weightsDesc.SetDimSize(BD_BatchWidth, numberOfElements);
-			weightsDesc.SetDimSize(BD_ListSize, 1);
-			Weights() = CDnnBlob::CreateBlob(MathEngine(), CT_Float, weightsDesc);
+			weightsDesc.SetDimSize( BD_BatchLength, 1 );
+			weightsDesc.SetDimSize( BD_BatchWidth, numberOfElements );
+			weightsDesc.SetDimSize( BD_ListSize, 1 );
+			Weights() = CDnnBlob::CreateBlob( MathEngine(), CT_Float, weightsDesc );
 			// Initialize
-			InitializeParamBlob(i, *Weights());
+			InitializeParamBlob( i, *Weights() );
 		} else {
-			CheckArchitecture( Weights()->GetObjectCount() == numberOfElements,
-				GetName(), "weights number is not equal to number of elements" );
-			CheckArchitecture( Weights()->GetObjectSize() == inputDescs[i].ObjectSize(),
-				GetName(), "weights size mismatch" );
+			CheckLayerArchitecture( Weights()->GetObjectCount() == numberOfElements,
+				"weights number is not equal to number of elements" );
+			CheckLayerArchitecture( Weights()->GetObjectSize() == inputDescs[i].ObjectSize(),
+				"weights size mismatch" );
 		}
 
-		if(FreeTerms() == 0) {
-			FreeTerms() = CDnnBlob::CreateVector(MathEngine(), CT_Float, numberOfElements);
+		if( FreeTerms() == nullptr ) {
+			FreeTerms() = CDnnBlob::CreateVector( MathEngine(), CT_Float, numberOfElements );
 			// Initialize
-			FreeTerms()->Fill(0);
+			FreeTerms()->Fill( 0 );
 		} else {
-			CheckArchitecture( FreeTerms()->GetDataSize() == numberOfElements,
-				GetName(), "free terms num is not equal to number of elements" );
+			CheckLayerArchitecture( FreeTerms()->GetDataSize() == numberOfElements,
+				"free terms num is not equal to number of elements" );
 		}
 
 		// For each layer element there is a channel in the output blob
 		outputDescs[i] = inputDescs[i];
-		outputDescs[i].SetDimSize(BD_Height, 1);
-		outputDescs[i].SetDimSize(BD_Width, 1);
-		outputDescs[i].SetDimSize(BD_Depth, 1);
-		outputDescs[i].SetDimSize(BD_Channels, numberOfElements);
+		outputDescs[i].SetDimSize( BD_Height, 1 );
+		outputDescs[i].SetDimSize( BD_Width, 1 );
+		outputDescs[i].SetDimSize( BD_Depth, 1 );
+		outputDescs[i].SetDimSize( BD_Channels, numberOfElements );
 	}
 }
 
 void CFullyConnectedLayer::RunOnce()
 {
-	for( int i = 0; i < GetInputCount(); i++ ) {
-		CConstFloatHandle inputData = inputBlobs[i]->GetData();
-		CFloatHandle outputData = outputBlobs[i]->GetData();
-		CConstFloatHandle weightData = Weights()->GetData();
+	const int inputCount = GetInputCount();
+	const int secondHeight = numberOfElements;
+	const int secondWidth = Weights()->GetObjectSize();
 
-		MathEngine().MultiplyMatrixByTransposedMatrix(inputData, inputBlobs[i]->GetObjectCount(),
-			inputBlobs[i]->GetObjectSize(), inputBlobs[i]->GetObjectSize(),
-			weightData, numberOfElements, Weights()->GetObjectSize(),
-			outputData, outputBlobs[i]->GetObjectSize(), outputBlobs[i]->GetObjectSize() * inputBlobs[i]->GetObjectCount());
+	CConstFloatHandle weightData = Weights()->GetData();
+	CConstFloatHandle FreeTermsData = FreeTerms()->GetData();
+
+	for( int inputNumber = 0; inputNumber < inputCount; ++inputNumber ) {
+		CConstFloatHandle inputData = inputBlobs[inputNumber]->GetData();
+		CFloatHandle outputData = outputBlobs[inputNumber]->GetData();
+
+		const int firstHeight = inputBlobs[inputNumber]->GetObjectCount();
+		const int firstWidth = inputBlobs[inputNumber]->GetObjectSize();
+		const int resultWidth = outputBlobs[inputNumber]->GetObjectSize();
+		NeoPresume( firstWidth == secondWidth );
+		NeoPresume( resultWidth == secondHeight );
+
+		MathEngine().MultiplyMatrixByTransposedMatrix(
+			/*first*/inputData, firstHeight, firstWidth, firstWidth,
+			/*second*/weightData, secondHeight, secondWidth,
+			/*result*/outputData, resultWidth, /*unused*/0 );
 
 		if( !isZeroFreeTerm ) {
-			MathEngine().AddVectorToMatrixRows(1, outputData, outputData, inputBlobs[i]->GetObjectCount(),
-				outputBlobs[i]->GetObjectSize(), FreeTerms()->GetData());
+			MathEngine().AddVectorToMatrixRows( /*batchSize*/1, outputData,
+				outputData, firstHeight, resultWidth, FreeTermsData );
 		}
 	}
 }
 
 void CFullyConnectedLayer::BackwardOnce()
 {
-	for( int i = 0; i < outputDiffBlobs.Size(); i++ ) {
-		MathEngine().MultiplyMatrixByMatrix(1, outputDiffBlobs[i]->GetData(), inputBlobs[i]->GetObjectCount(),
-			outputDiffBlobs[i]->GetObjectSize(), Weights()->GetData(), Weights()->GetObjectSize(),
-			inputDiffBlobs[i]->GetData(), inputDiffBlobs[i]->GetDataSize());
+	const int outputDiffCount = outputDiffBlobs.Size();
+	const int secondWidth = Weights()->GetObjectSize();
+
+	CConstFloatHandle weightData = Weights()->GetData();
+
+	for( int outputDiffNumber = 0; outputDiffNumber < outputDiffCount; ++outputDiffNumber ) {
+		CConstFloatHandle outputDiffData = outputDiffBlobs[outputDiffNumber]->GetData();
+		CFloatHandle inputDiffData = inputDiffBlobs[outputDiffNumber]->GetData();
+
+		const int firstHeight = outputDiffBlobs[outputDiffNumber]->GetObjectCount();
+		const int firstWidth = outputDiffBlobs[outputDiffNumber]->GetObjectSize();
+		const int resultBufferSize = inputDiffBlobs[outputDiffNumber]->GetDataSize();
+
+		MathEngine().MultiplyMatrixByMatrix( /*batchSize*/1,
+			/*first*/outputDiffData, firstHeight, firstWidth,
+			/*second*/weightData, secondWidth,
+			/*result*/inputDiffData, resultBufferSize );
 	}
 }
 
 void CFullyConnectedLayer::LearnOnce()
 {
-	for( int out = 0; out < outputDiffBlobs.Size(); out++ ) {
-		MathEngine().MultiplyTransposedMatrixByMatrixAndAdd(outputDiffBlobs[out]->GetData(),
-			outputDiffBlobs[out]->GetObjectCount(), numberOfElements, numberOfElements,
-			inputBlobs[out]->GetData(), inputBlobs[out]->GetObjectSize(), inputBlobs[out]->GetObjectSize(),
-			WeightsDiff()->GetData(), WeightsDiff()->GetObjectSize(), WeightsDiff()->GetDataSize());
+	const int outputDiffCount = outputDiffBlobs.Size();
+	const int firstWidth = numberOfElements;
+	const int resultWidth = WeightsDiff()->GetObjectSize();
+	const int resultBufferSize = WeightsDiff()->GetDataSize();
+
+	CFloatHandle weightsDiffData = WeightsDiff()->GetData();
+	CFloatHandle FreeTermsDiffData = FreeTermsDiff()->GetData();
+
+	for( int outputDiffNumber = 0; outputDiffNumber < outputDiffCount; ++outputDiffNumber ) {
+		CConstFloatHandle outputDiffData = outputDiffBlobs[outputDiffNumber]->GetData();
+		CConstFloatHandle inputData = inputBlobs[outputDiffNumber]->GetData();
+
+		const int firstHeight = outputDiffBlobs[outputDiffNumber]->GetObjectCount();
+		const int secondWidth = inputBlobs[outputDiffNumber]->GetObjectSize();
+		NeoPresume( resultWidth == secondWidth );
+
+		MathEngine().MultiplyTransposedMatrixByMatrixAndAdd(
+			/*first*/outputDiffData, firstHeight, firstWidth, firstWidth,
+			/*second*/inputData, secondWidth, secondWidth,
+			/*result*/weightsDiffData, resultWidth, resultBufferSize );
 
 		if( !isZeroFreeTerm ) {
-			MathEngine().SumMatrixRowsAdd(1, FreeTermsDiff()->GetData(),
-				outputDiffBlobs[out]->GetData(), outputDiffBlobs[out]->GetObjectCount(), numberOfElements);
+			MathEngine().SumMatrixRowsAdd( /*batchSize*/1, FreeTermsDiffData,
+				outputDiffData, firstHeight, firstWidth );
 		}
 	}
 }
@@ -119,97 +155,95 @@ void CFullyConnectedLayer::LearnOnce()
 void CFullyConnectedLayer::FilterLayerParams( float threshold )
 {
 	for( int blobIndex = 0; blobIndex < paramBlobs.Size(); ++blobIndex ) {
-		if( paramBlobs[blobIndex] != 0 ) {
+		if( paramBlobs[blobIndex] != nullptr ) {
 			MathEngine().FilterSmallValues( paramBlobs[blobIndex]->GetData(),
 				paramBlobs[blobIndex]->GetDataSize(), threshold );
 		}
 	}
 }
 
-void CFullyConnectedLayer::SetNumberOfElements(int newNumberOfElements)
+void CFullyConnectedLayer::SetNumberOfElements( int newNumberOfElements )
 {
-	NeoAssert( ( Weights() == 0 && FreeTerms() == 0 ) || numberOfElements == newNumberOfElements );
+	NeoAssert( ( Weights() == nullptr && FreeTerms() == nullptr ) || numberOfElements == newNumberOfElements );
 	numberOfElements = newNumberOfElements;
 }
 
 CPtr<CDnnBlob> CFullyConnectedLayer::GetWeightsData() const
 {
-	if(Weights() == 0) {
-		return 0;
+	if( Weights() == nullptr ) {
+		return nullptr;
 	}
-
 	return Weights()->GetCopy();
 }
 
-void CFullyConnectedLayer::SetWeightsData(const CDnnBlob* newWeights)
+void CFullyConnectedLayer::SetWeightsData( const CDnnBlob* newWeights )
 {
-	if(newWeights == 0) {
-		NeoAssert(Weights() == 0 || GetDnn() == 0);
-		Weights() = 0;
-	} else if(Weights() != 0 && GetDnn() != 0) {
-		NeoAssert(Weights()->GetObjectCount() == newWeights->GetObjectCount());
-		NeoAssert(Weights()->GetObjectSize() == newWeights->GetObjectSize());
-		Weights()->CopyFrom(newWeights);
+	if( newWeights == nullptr ) {
+		NeoAssert( Weights() == nullptr || GetDnn() == nullptr );
+		Weights() = nullptr;
+	} else if( Weights() != nullptr && GetDnn() != nullptr ) {
+		NeoAssert( Weights()->GetObjectCount() == newWeights->GetObjectCount() );
+		NeoAssert( Weights()->GetObjectSize() == newWeights->GetObjectSize() );
+		Weights()->CopyFrom( newWeights );
 	} else {
 		Weights() = newWeights->GetCopy();
 	}
 
-	if(Weights() != 0) {
+	if( Weights() != nullptr ) {
 		numberOfElements = Weights()->GetObjectCount();
 	}
 }
 
 CPtr<CDnnBlob> CFullyConnectedLayer::GetFreeTermData() const
 {
-	if(FreeTerms() == 0) {
-		return 0;
+	if( FreeTerms() == nullptr ) {
+		return nullptr;
 	}
-
 	return FreeTerms()->GetCopy();
 }
 
-void CFullyConnectedLayer::SetFreeTermData(const CDnnBlob* newFreeTerms)
+void CFullyConnectedLayer::SetFreeTermData( const CDnnBlob* newFreeTerms )
 {
-	if(newFreeTerms == 0) {
-		NeoAssert(FreeTerms() == 0 || GetDnn() == 0);
-		FreeTerms() = 0;
+	if( newFreeTerms == nullptr ) {
+		NeoAssert( FreeTerms() == nullptr || GetDnn() == nullptr );
+		FreeTerms() = nullptr;
 	} else {
-		if(FreeTerms() != 0 && GetDnn() != 0) {
-			NeoAssert(FreeTerms()->GetDataSize() == newFreeTerms->GetDataSize());
+		if( FreeTerms() != nullptr && GetDnn() != nullptr ) {
+			NeoAssert( FreeTerms()->GetDataSize() == newFreeTerms->GetDataSize() );
 
-			FreeTerms()->CopyFrom(newFreeTerms);
+			FreeTerms()->CopyFrom( newFreeTerms );
 		} else {
 			FreeTerms() = newFreeTerms->GetCopy();
 		}
 	}
 
-	if(FreeTerms() != 0) {
+	if( FreeTerms() != nullptr ) {
 		numberOfElements = FreeTerms()->GetDataSize();
 	}
 }
 
-void CFullyConnectedLayer::SetZeroFreeTerm(bool _isZeroFreeTerm)
+void CFullyConnectedLayer::SetZeroFreeTerm( bool _isZeroFreeTerm )
 {
 	isZeroFreeTerm = _isZeroFreeTerm;
 }
 
-void CFullyConnectedLayer::ApplyBatchNormalization(CBatchNormalizationLayer& batchNorm)
+void CFullyConnectedLayer::ApplyBatchNormalization( CBatchNormalizationLayer& batchNorm )
 {
 	CPtr<CDnnBlob> params = batchNorm.GetFinalParams();
-	if(params.Ptr() == 0 || Weights().Ptr() == 0) {
+	if( params.Ptr() == nullptr || Weights().Ptr() == nullptr ) {
 		return;
 	}
-	NeoAssert(params->GetObjectSize() == numberOfElements);
+	NeoAssert( params->GetObjectSize() == numberOfElements );
 	CConstFloatHandle gamma = params->GetObjectData( 0 );
 	CConstFloatHandle beta = params->GetObjectData( 1 );
 
 	CFloatHandle weightData = Weights()->GetData();
 	CFloatHandle freeTermData = FreeTerms()->GetData();
 	int wieghtCount = Weights()->GetObjectSize();
-	MathEngine().VectorEltwiseMultiply(freeTermData, gamma, freeTermData, numberOfElements);
-	MathEngine().VectorAdd(freeTermData, beta, freeTermData, numberOfElements);
-	for(int i = 0; i < numberOfElements; ++i) {
-		MathEngine().VectorMultiply(weightData, weightData, wieghtCount, gamma++);
+	MathEngine().VectorEltwiseMultiply( freeTermData, gamma, freeTermData, numberOfElements );
+	MathEngine().VectorAdd( freeTermData, beta, freeTermData, numberOfElements );
+	for( int i = 0; i < numberOfElements; ++i ) {
+		MathEngine().VectorMultiply( weightData, weightData, wieghtCount, gamma++ );
 		weightData += wieghtCount;
 	}
 }
@@ -227,7 +261,7 @@ void CFullyConnectedLayer::Serialize( CArchive& archive )
 	if( archive.IsLoading() ) {
 		// Converts the free terms blob into a new tensor with the length in the first dimension not Channels
 		CDnnBlob* freeTerms = FreeTerms();
-		if( freeTerms != 0 && freeTerms->DimSize(0) != freeTerms->GetDataSize() ) {
+		if( freeTerms != nullptr && freeTerms->DimSize( 0 ) != freeTerms->GetDataSize() ) {
 			NeoAssert( freeTerms->GetChannelsCount() == freeTerms->GetDataSize() );
 			CBlobDesc desc( CT_Float );
 			desc.SetDimSize( 0, freeTerms->GetDataSize() );

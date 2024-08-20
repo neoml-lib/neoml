@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright Â© 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,7 +16,6 @@ limitations under the License.
 #pragma once
 
 #include <NeoMathEngine/NeoMathEngine.h>
-#include <memory>
 
 namespace NeoML {
 
@@ -26,6 +25,8 @@ typedef void ( *SgemmFunc )( bool transA, bool transB,
 	const float* bPtr, size_t bRowSize,
 	float* cPtr, size_t cRowSize,
 	size_t m, size_t n, size_t k );
+
+struct CMathEngineLstmDesc;
 
 class ISimdMathEngine : public CCrtAllocatedObject {
 public:
@@ -39,8 +40,16 @@ public:
 
 	virtual void BlobConvolution( const CConvolutionDesc& convDesc, const float* source,
 		const float* filter, const float* freeTerm, float* result ) const = 0;
+	virtual void BlobConvolutionRowwise( const CConvolutionDesc& convDesc, const float* source,
+		int sourceRowIndex, const float* filter, const float* freeTerm, float* result,
+		int resultRowIndex, int resultRowCount ) const = 0;
 
 	virtual SgemmFunc GetSgemmFunction() const = 0;
+
+	virtual void Tanh( float* dst, const float* src, size_t dataSize ) = 0;
+	virtual void Exp( float* dst, const float* src, size_t dataSize ) = 0;
+	virtual void RunOnceRestOfLstm( CMathEngineLstmDesc* desc, int sequenceCount, float* fullyConnectedResult,
+		const float* inputStateBackLink, float* outputStateBackLink, float* outputMainBackLink ) = 0;
 };
 
 }

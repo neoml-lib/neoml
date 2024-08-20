@@ -16,6 +16,7 @@
     - [Serialization](#serialization)
         - [Sample code for saving the network](#sample-code-for-saving-the-network)
     - [Using the network](#using-the-network)
+    - [Distributed Inference](#distributed-inference)
     - [The layers](#the-layers)
 
 <!-- /TOC -->
@@ -166,8 +167,8 @@ IMathEngine* gpuMathEngine = CreateGpuMathEngine( 1024 * 1024 * 1024, GetFmlExce
 
     // Load the network
     {
-      CArchiveFile file( "my_net.archive", CArchive::store );
-      CArchive archive( &file, CArchive::SD_Storing );
+      CArchiveFile file( "my_net.archive", CArchive::load );
+      CArchive archive( &file, CArchive::SD_Loading );
       archive.Serialize( net );
       // file and archive will be closed in destructors
     }
@@ -199,6 +200,18 @@ IMathEngine* gpuMathEngine = CreateGpuMathEngine( 1024 * 1024 * 1024, GetFmlExce
 delete gpuMathEngine;
 ```
 
+
+## Distributed Inference
+
+This class implements neural network inference across multiple CPU threads simultaneously.
+
+[Distributed Inference](DistributedInference.md)
+
+To get a more detailed understanding of how this approach works, see
+
+[Reference DNN Factory](ReferenceDnnFactory.md)
+
+
 ## The layers
 
 - [CBaseLayer](BaseLayer.md) is the base class for common layer functionality
@@ -221,7 +234,10 @@ delete gpuMathEngine;
   - [CHardSigmoidLayer](ActivationLayers/HardSigmoidLayer.md) - `HardSigmoid` activation function
   - [CPowerLayer](ActivationLayers/PowerLayer.md) - `pow(x, exp)` activation function
   - [CHSwishLayer](ActivationLayers/HSwishLayer.md) - `h-swish` activation function
-  - [CGELULayer](ActivationLayers/GELULayer.md) - `x * sigmoid(1.702 * x)` activation function
+  - [CGELULayer](ActivationLayers/GELULayer.md) - `x * F( X < x )` activation function, where X ~ N(0, 1)
+  - [CExpLayer](ActivationLayers/ExpLayer.md) - `exp` activation function
+  - [CLogLayer](ActivationLayers/LogLayer.md) - `log` activation function
+  - [CErfLayer](ActivationLayers/ErfLayer.md) - `erf` activation function
 - Convolution layers:
   - [CConvLayer](ConvolutionLayers/ConvLayer.md) - 2-dimensional convolution
     - [CRleConvLayer](ConvolutionLayers/RleConvLayer.md) - convolution for 2-dimensional images in RLE format
@@ -236,12 +252,15 @@ delete gpuMathEngine;
   - [C3dMaxPoolingLayer](PoolingLayers/3dMaxPoolingLayer.md) - 3-dimensional max pooling
   - [C3dMeanPoolingLayer](PoolingLayers/3dMeanPoolingLayer.md) - 3-dimensional mean pooling
   - [CGlobalMaxPoolingLayer](PoolingLayers/GlobalMaxPoolingLayer.md) - max pooling over whole objects
+  - [CGlobalMeanPoolingLayer](PoolingLayers/GlobalMeanPoolingLayer.md) - mean pooling over whole objects
+  - [CGlobalSumPoolingLayer](PoolingLayers/GlobalSumPoolingLayer.md) - sum pooling over whole objects
   - [CMaxOverTimePoolingLayer](PoolingLayers/MaxOverTimePoolingLayer.md) - max pooling over sequences along the "time" axis
   - [CProjectionPoolingLayer](PoolingLayers/ProjectionPoolingLayer.md) - mean pooling along one of the blob dimensions
 - [CSoftmaxLayer](SoftmaxLayer.md) calculates softmax function
 - [CDropoutLayer](DropoutLayer.md) implements random dropout
 - [CBatchNormalizationLayer](BatchNormalizationLayer.md) implements batch normalization
 - [CObjectNormalizationLayer](ObjectNormalizationLayer.md) implements normalization over the objects
+- [CCumSumLayer](CumSumLayer.md) implements cumulative sum over the blob dimension
 - [CLrnLayer](LrnLayer.md) implements local response normalization
 - Elementwise operations with data blobs:
   - [CEltwiseSumLayer](EltwiseLayers/EltwiseSumLayer.md) - elementwise sum
@@ -250,6 +269,11 @@ delete gpuMathEngine;
   - [CEltwiseDivLayer](EltwiseLayers/EltwiseDivLayer.md) - elementwise division
   - [CEltwiseMaxLayer](EltwiseLayers/EltwiseMaxLayer.md) - elementwise maximum
   - [CEltwiseNegMulLayer](EltwiseLayers/EltwiseNegMulLayer.md) calculates the elementwise product of `1 - first input` and the other inputs
+- Logical operations:
+  - [CNotLayer](LogicalLayers/NotLayer.md) - elementwise logical `not` over integer data
+  - [CLessLayer](LogicalLayers/LessLayer.md) - elementwise comparison of 2 blobs `a < b ? 1 : 0`
+  - [CEqualLayer](LogicalLayers/EqualLayer.md) - elementwise comparison of 2 blobs `a == b ? 1 : 0`
+  - [CWhereLayer](LogicalLayers/WhereLayer.md) - elementwise merge of 2 blobs based on the mask `a != 0 ? b : c`
 - Auxiliary operations:
   - [CTransformLayer](TransformLayer.md) changes the blob shape
   - [CTransposeLayer](TransposeLayer.md) switches the blob dimensions
@@ -260,6 +284,7 @@ delete gpuMathEngine;
   - [CAddToObjectLayer](AddToObjectLayer.md) adds the content of one input to each of the objects of the other
   - [CMatrixMultiplicationLayer](MatrixMultiplicationLayer.md) - mutiplication of two sets of matrices
   - [CCastLayer](CastLayer.md) - data type conversion
+  - [CInterpolationLayer](InterpolationLayer.md) - interpolation layer
   - Blob concatenation:
     - [CConcatChannelsLayer](ConcatLayers/ConcatChannelsLayer.md) concatenates along the Channels dimension
     - [CConcatDepthLayer](ConcatLayers/ConcatDepthLayer.md) concatenates along the Depth dimension
@@ -281,6 +306,8 @@ delete gpuMathEngine;
   - Repeating data:
     - [CRepeatSequenceLayer](RepeatSequenceLayer.md) repeats sequences several times
     - [CUpsampling2DLayer](Upsampling2DLayer.md) scales up two-dimensional images
+  - Scatter & Gather operations
+    - [CScatterNDLayer](ScatterGatherLayers/ScatterNDLayer.md) scatters updates over indexed objects of data
   - [CReorgLayer](ReorgLayer.md) transforms a multi-channel image into several smaller images with more channels
   - [CSpaceToDepthLayer](SpaceToDepthLayer.md) splits images into squared blocks and flattens each block
   - [CDepthToSpaceLayer](DepthToSpaceLayer.md) transforms pixels of images into squared blocks
@@ -297,6 +324,7 @@ delete gpuMathEngine;
     - [CFocalLossLayer](LossLayers/FocalLossLayer.md) - focal loss function (modified cross-entropy)
   - For regression:
     - [CEuclideanLossLayer](LossLayers/EuclideanLossLayer.md) - Euclidean distance
+    - [CL1LossLayer](LossLayers/L1LossLayer.md) - L1 distance
   - Additionally:
     - [CCenterLossLayer](LossLayers/CenterLossLayer.md) - the auxiliary *center loss* function that penalizes large variance inside a class
 - Working with discrete features:

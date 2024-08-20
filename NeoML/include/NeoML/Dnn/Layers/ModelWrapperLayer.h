@@ -53,7 +53,7 @@ public:
 	void SetLabelType( TBlobType newLabelType );
 
 protected:
-	virtual ~CProblemSourceLayer() {}
+	~CProblemSourceLayer() override = default;
 
 	void Reshape() override;
 	void RunOnce() override;

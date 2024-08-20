@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -68,7 +68,7 @@ static void multiplyLookupMatrixByLookupVectorTestImpl( const CTestParams& param
 		CARRAY_FLOAT_WRAPPER( vectorData ), 1, CARRAY_FLOAT_WRAPPER( res1 ), batchSize * height );
 
 	for( size_t i = 0; i < res0.size(); ++i ) {
-		ASSERT_NEAR( res0[i], res1[i], 1e-3 );
+		EXPECT_NEAR( res0[i], res1[i], 1e-3 );
 	}
 }
 
@@ -83,18 +83,14 @@ INSTANTIATE_TEST_CASE_P( CMultiplyLookupMatrixByLookupVectorTestInstantiation, C
 			"Height = (1..50);"
 			"Width = (1..50);"
 			"BatchSize = (1..5);"
-			"VectorSize = (1..20);"
 			"Values = (-1..1);"
-			"Channels = (1..5);"
 			"TestCount = 100;"
 		),
 		CTestParams(
 			"Height = (100..500);"
 			"Width = (100..500);"
 			"BatchSize = (1..5);"
-			"VectorSize = (30..50);"
 			"Values = (-1..1);"
-			"Channels = (1..5);"
 			"TestCount = 5;"
 		)
 	)
@@ -102,5 +98,11 @@ INSTANTIATE_TEST_CASE_P( CMultiplyLookupMatrixByLookupVectorTestInstantiation, C
 
 TEST_P( CMultiplyLookupMatrixByLookupVectorTest, Random )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		return;
+	}
+
 	RUN_TEST_IMPL( multiplyLookupMatrixByLookupVectorTestImpl )
 }

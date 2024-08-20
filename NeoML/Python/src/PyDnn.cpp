@@ -87,19 +87,27 @@ REGISTER_NEOML_PYLAYER_EX( "Activation", "HardTanh", "FmlCnnHardTanhLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Activation", "HardSigmoid", "FmlCnnSigmoidTanhLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Activation", "HSwish", "FmlCnnHSwishLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Activation", "Power", "FmlCnnPowerLayer" )
-REGISTER_NEOML_PYLAYER( "RleConv", "FmlCnnRleConvLayer" )
+REGISTER_NEOML_PYLAYER_EX( "Activation", "Exp", "NeoMLDnnExpLayer" )
+REGISTER_NEOML_PYLAYER_EX( "Activation", "Log", "NeoMLDnnLogLayer" )
+REGISTER_NEOML_PYLAYER_EX( "Activation", "Erf", "NeoMLDnnErfLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Pooling", "MaxPooling", "FmlCnnMaxPoolingLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Pooling", "MeanPooling", "FmlCnnMeanPoolingLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Pooling", "GlobalMeanPooling", "FmlCnnGlobalMainPoolingLayer")
 REGISTER_NEOML_PYLAYER_EX( "Pooling", "GlobalMaxPooling", "FmlCnnGlobalMaxPoolingLayer")
+REGISTER_NEOML_PYLAYER_EX( "Pooling", "GlobalSumPooling", "NeoMLDnnGlobalSumPoolingLayer")
 REGISTER_NEOML_PYLAYER_EX( "Pooling", "MaxOverTimePooling", "FmlCnnMaxOverTimePoolingLayer")
 REGISTER_NEOML_PYLAYER_EX( "Pooling", "MaxPooling3D", "FmlCnn3dMaxPoolingLayer")
 REGISTER_NEOML_PYLAYER_EX( "Pooling", "MeanPooling3D", "FmlCnn3dMeanPoolingLayer")
 REGISTER_NEOML_PYLAYER( "FullyConnected", "FmlCnnFullyConnectedLayer" )
 REGISTER_NEOML_PYLAYER( "FullyConnectedSource", "FmlCnnFullyConnectedSourceLayer" )
+REGISTER_NEOML_PYLAYER_EX( "Logical", "Equal", "NeoMLDnnEqualLayer" )
+REGISTER_NEOML_PYLAYER_EX( "Logical", "Not", "NeoMLDnnNotLayer" )
+REGISTER_NEOML_PYLAYER_EX( "Logical", "Less", "NeoMLDnnLessLayer" )
+REGISTER_NEOML_PYLAYER_EX( "Logical", "Where", "NeoMLDnnWhereLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Loss", "CrossEntropyLoss", "FmlCnnCrossEntropyLossLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Loss", "BinaryCrossEntropyLoss", "FmlCnnBinaryCrossEntropyLossLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Loss", "EuclideanLoss", "FmlCnnEuclideanLossLayer" )
+REGISTER_NEOML_PYLAYER_EX( "Loss", "L1Loss", "NeoMLDnnL1LossLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Loss", "HingeLoss", "FmlCnnHingeLossLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Loss", "SquaredHingeLoss", "FmlCnnSquaredHingeLossLayer" )
 REGISTER_NEOML_PYLAYER_EX( "Loss", "CustomLoss", "NeoMLCustomLossLayer" )
@@ -172,6 +180,12 @@ REGISTER_NEOML_PYLAYER( "Lrn", "NeoMLDnnLrnLayer" )
 REGISTER_NEOML_PYLAYER( "Cast", "NeoMLDnnCastLayer" )
 REGISTER_NEOML_PYLAYER( "Data", "NeoMLDnnDataLayer" )
 REGISTER_NEOML_PYLAYER( "TransformerEncoder", "NeoMLDnnTransformerEncoderLayer" )
+REGISTER_NEOML_PYLAYER( "BertConv", "NeoMLDnnBertConvLayer" )
+REGISTER_NEOML_PYLAYER( "Broadcast", "NeoMLDnnBroadcastLayer" )
+REGISTER_NEOML_PYLAYER( "CumSum", "NeoMLDnnCumSumLayer" )
+REGISTER_NEOML_PYLAYER_EX( "ScatterGather", "ScatterND", "NeoMLDnnScatterNDLayer" )
+REGISTER_NEOML_PYLAYER( "OnnxTransform", "NeoMLDnnOnnxTransformHelper" )
+REGISTER_NEOML_PYLAYER( "OnnxTranspose", "NeoMLDnnOnnxTransposeHelper" )
 
 }
 
@@ -180,13 +194,13 @@ py::object createLayer( CBaseLayer& layer, CPyMathEngineOwner& mathEngineOwner )
 	CPyLayer pyLayer( layer, mathEngineOwner );
 
 	CMap<CString, CPyClass, CDefaultHash<CString>, RuntimeHeap>& layers = getRegisteredPyLayers();
-	CString layerName( GetLayerClass( layer ) );
+	CString layerClass( GetLayerClass( layer ) );
 
-	CPyClass c = layers.Get( layerName );
+	const int pos = layers.GetFirstPosition( layerClass );
 
 	CString wrapperModuleName = "neoml.PythonWrapper";
 	py::object wrapperModule = py::module::import( wrapperModuleName );
-	py::object wrapperConstructor = wrapperModule.attr( c.ClassName );
+	py::object wrapperConstructor = wrapperModule.attr( pos == NotFound ? "Layer" : layers.GetValue( pos ).ClassName );
 	py::object wrapper = wrapperConstructor( pyLayer );
 
 	return wrapper.attr("create_python_object")();
@@ -380,7 +394,7 @@ py::dict CPyDnn::Run( py::list inputs )
 	return result;
 }
 
-void CPyDnn::RunAndBackward( py::list inputs )
+py::dict CPyDnn::RunAndBackward( py::list inputs )
 {
 	CArray<const char*> layerNames;
 	dnn->GetLayerList( layerNames );
@@ -399,9 +413,19 @@ void CPyDnn::RunAndBackward( py::list inputs )
 		py::gil_scoped_release release;
 		dnn->RunAndBackwardOnce();
 	}
+
+	auto result = py::dict();
+	for( int layerIndex = 0; layerIndex < layerNames.Size(); ++layerIndex ) {
+		CPtr<CSinkLayer> layer = dynamic_cast<CSinkLayer*>( dnn->GetLayer( layerNames[layerIndex] ).Ptr() );
+		if( layer != 0 ) {
+			result[layerNames[layerIndex]] = CPyBlob( *mathEngineOwner, layer->GetBlob() );
+		}
+	}
+
+	return result;
 }
 
-void CPyDnn::Learn( py::list inputs )
+py::dict CPyDnn::Learn( py::list inputs )
 {
 	CArray<const char*> layerNames;
 	dnn->GetLayerList( layerNames );
@@ -420,6 +444,16 @@ void CPyDnn::Learn( py::list inputs )
 		py::gil_scoped_release release;
 		dnn->RunAndLearnOnce();
 	}
+
+	auto result = py::dict();
+	for( int layerIndex = 0; layerIndex < layerNames.Size(); ++layerIndex ) {
+		CPtr<CSinkLayer> layer = dynamic_cast<CSinkLayer*>( dnn->GetLayer( layerNames[layerIndex] ).Ptr() );
+		if( layer != 0 ) {
+			result[layerNames[layerIndex]] = CPyBlob( *mathEngineOwner, layer->GetBlob() );
+		}
+	}
+
+	return result;
 }
 
 //------------------------------------------------------------------------------------------------------------

@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,13 +23,24 @@ limitations under the License.
 
 #include "NeoOnnxCheck.h"
 #include "Tensor.h"
+#include "Optimization/Graph.h"
 
 namespace NeoOnnx {
+using CDnn = NeoML::CDnn;
+
+template<class T>
+constexpr const T& Clamp( const T& value, const T& low, const T& high )
+{
+	return value < low ? low : ( high < value ? high : value );
+}
+
+// Checks if float contains an integer value
+bool IsInteger( float x );
 
 // Auxiliary tensor's data loading functions
 
 // Gets NeoML blob type from onnx tensor's data type
-TBlobType GetBlobType( const onnx::TensorProto_DataType& onnxDataType );
+NeoML::TBlobType GetBlobType( const onnx::TensorProto_DataType& onnxDataType );
 
 // Loads data from raw bytes as an array of TSrc and stores it as an array of TDst (via static_cast)
 template<class TSrc, class TDst>
@@ -37,14 +48,9 @@ inline void LoadFromRawData( const std::string& rawSrc, TDst* dest )
 {
 	const TSrc* src = reinterpret_cast<const TSrc*>( rawSrc.data() );
 	for( size_t i = 0; i < rawSrc.size() / sizeof( TSrc ); ++i ) {
-		TSrc value = src[i];
-		if( value >= static_cast<TSrc>( (std::numeric_limits<TDst>::max)() ) ) {
-			dest[i] = (std::numeric_limits<TDst>::max)();
-		} else if( value <= static_cast<TSrc>( (std::numeric_limits<TDst>::lowest)() ) ) {
-			dest[i] = (std::numeric_limits<TDst>::lowest)();
-		} else {
-			dest[i] = static_cast<TDst>( value );
-		}
+		TSrc value = Clamp( src[i], static_cast<TSrc>( std::numeric_limits<TDst>::lowest() ),
+			static_cast<TSrc>( (std::numeric_limits<TDst>::max)() ) );
+		dest[i] = static_cast<TDst>( value );
 	}
 }
 
@@ -98,12 +104,9 @@ inline void LoadBlobData( const onnx::TensorProto& src, CDnnBlob& dest )
 				LoadFromRawData<uint64_t, T>( src.raw_data(), buffer );
 			} else {
 				for( int valueIndex = 0; valueIndex < src.uint64_data_size(); ++valueIndex ) {
-					uint64_t value = src.uint64_data( valueIndex );
-					if( value >= static_cast<uint64_t>( std::numeric_limits<T>::max() ) ) {
-						buffer[valueIndex] = std::numeric_limits<T>::max();
-					} else {
-						buffer[valueIndex] = static_cast<T>( value );
-					}
+					uint64_t value = Clamp( static_cast<uint64_t>( src.uint64_data( valueIndex ) ),
+						static_cast<uint64_t>( 0 ), static_cast<uint64_t>( (std::numeric_limits<T>::max)() ) );
+					buffer[valueIndex] = static_cast<T>( value );
 				}
 			}
 			break;
@@ -112,14 +115,10 @@ inline void LoadBlobData( const onnx::TensorProto& src, CDnnBlob& dest )
 				LoadFromRawData<int64_t, T>( src.raw_data(), buffer );
 			} else {
 				for( int valueIndex = 0; valueIndex < src.int64_data_size(); ++valueIndex ) {
-					int64_t value = src.int64_data( valueIndex );
-					if( value >= static_cast<int64_t>( (std::numeric_limits<T>::max)() ) ) {
-						buffer[valueIndex] = (std::numeric_limits<T>::max)();
-					} else if( value <= static_cast<int64_t>( (std::numeric_limits<T>::lowest)() ) ) {
-						buffer[valueIndex] = (std::numeric_limits<T>::lowest)();
-					} else {
-						buffer[valueIndex] = static_cast<T>( value );
-					}
+					int64_t value = Clamp( src.int64_data( valueIndex ),
+						static_cast<int64_t>( std::numeric_limits<T>::lowest() ),
+						static_cast<int64_t>( (std::numeric_limits<T>::max)() ) );
+					buffer[valueIndex] = static_cast<T>( value );
 				}
 			}
 			break;
@@ -136,12 +135,30 @@ inline void LoadBlobData( const onnx::TensorProto& src, CDnnBlob& dest )
 }
 
 //---------------------------------------------------------------------------------------------------------------------
-// Auxiliary tensor layout functions
+// Layout conversion functions
+
+class ITensorLayoutValidator {
+public:
+	virtual ~ITensorLayoutValidator() = default;
+
+	// Returns whether the given layout satisfies the criteria
+	virtual bool operator()( const CTensorLayout& layout ) const = 0;
+};
+
+// Converts tensor to the layout accepted by validator
+CPtr<const CTensorBase> ConvertTensor( const CTensorBase& inputTensor, const ITensorLayoutValidator& validator );
+CPtr<const CUserTensor> ConvertTensor( const CUserTensor& inputTensor, const ITensorLayoutValidator& validator );
 
 // Converts tensor to the given layout
 CPtr<const CTensorBase> ConvertTensor( const CTensorBase& inputTensor, const CTensorLayout& destLayout );
 CPtr<const CUserTensor> ConvertTensor( const CUserTensor& inputTensor, const CTensorLayout& destLayout );
 CPtr<const CDataTensor> ConvertTensor( const CDataTensor& inputTensor, const CTensorLayout& destLayout );
+CPtr<const CShapeTensor> ConvertTensor( const CShapeTensor& inputTensor, const CTensorLayout& destLayout );
+
+// Layout conversion during optimizations
+optimization::CLayerOutput<> ConvertTensor( const optimization::CLayerOutput<>& inputData,
+	const CTensorLayout& inputLayout, const ITensorLayoutValidator& validator,
+	optimization::CGraph& graph, CTensorLayout& outputLayout );
 
 //---------------------------------------------------------------------------------------------------------------------
 // Auxiliary tensor padding functions
@@ -149,11 +166,12 @@ CPtr<const CDataTensor> ConvertTensor( const CDataTensor& inputTensor, const CTe
 // Calculates padding size if autoPad is SAME_UPPER or SAME_LOWER
 void CalculatePadding( const CString& autoPad, const CTensorShape& kernelShape, CFastArray<int, 8>& pads );
 
-// Pads user tensor with padValue values
+// Pads user tensor via padding mode
 // Last pads.Size() / 2 dimensions of the input tensor will be padded (it's compatible with both Conv and Pad onnx operators)
 // First pads.Size() / 2 numbers determine padding size at the front of the dims
 // Last pads.Size() / 2 numbers determine padding size at the back of the dims
-CPtr<const CUserTensor> PadUserTensor( const CUserTensor& input, const CFastArray<int, 8>& pads, float padValue );
+CPtr<const CUserTensor> PadUserTensor( const CUserTensor& input, const CFastArray<int, 8>& pads,
+	NeoML::TBlobResizePadding padding, float padValue );
 
 //---------------------------------------------------------------------------------------------------------------------
 // Auxiliary tensor broadcast functions
@@ -166,6 +184,10 @@ enum TBroadcastType {
 	BT_Onnx,
 	// Numpy-style broadcast, used in later opset versions
 	BT_Numpy,
+	// Upsample operator style
+	// Number of dimensions must match
+	// Supports broadcasting of non-trivial dimensions (size != 1)
+	BT_Upsample,
 
 	BT_Count
 };
@@ -186,13 +208,95 @@ struct CBroadcast {
 bool BroadcastTensorShape( const CTensorShape& first, const CTensorShape& second, const CBroadcast& broadcast,
 	CTensorShape& result );
 
-// Broadcasts the given tensor to the given outputShape according to given broadcast
-CPtr<const CTensorBase> BroadcastTensor( const CTensorBase& input, const CBroadcast& broadcast, const CTensorShape& outputShape );
+// Generates layout recommended for broadcasting given tensor
+CTensorLayout BroadcastTensorLayout( const CTensorLayout& inputLayout, const CBroadcast& broadcast, int outputDims );
+
+// Prepares tensor for operation with broadcast
+CPtr<const CTensorBase> PrepareForBroadcast( const CTensorBase& input, const CBroadcast& broadcast, int outputDims );
 
 //---------------------------------------------------------------------------------------------------------------------
 
 // Converts the given tensor to user tensor by adding corresponding data layer to the dnn (if needed)
 CPtr<const CUserTensor> AsUserTensor( const CTensorBase& tensor, const CString& layerName, CDnn& dnn );
+
+// Converts the given tensor to shape tensor by adding corresponding layers to the dnn (if needed)
+CPtr<const CShapeTensor> AsShapeTensor( const CTensorBase& tensor, const CString& layerName, CDnn& dnn );
+
+// Converts the given array to shape tensor by adding corresponding layers to the dnn (if needed)
+CPtr<const CShapeTensor> AsShapeTensor( const CFastArray<int, 8>& data, const CString& layerName, CDnn& dnn );
+CPtr<const CShapeTensor> AsShapeTensor( const CFastArray<float, 8>& data, const CString& layerName, CDnn& dnn );
+
+//---------------------------------------------------------------------------------------------------------------------
+
+// Extracts shape to the given array
+// Throws an exception if CUserTensor is provided (CUserTensor doesn't have shape)
+void GetTensorShape( const CTensorBase& tensor, CTensorShape& shape );
+
+//---------------------------------------------------------------------------------------------------------------------
+// Implementations of ITensorLayoutValidator
+
+// Validator which considers as a valid only etalon layout
+class CTensorLayoutMatchValidator : public ITensorLayoutValidator {
+public:
+	explicit CTensorLayoutMatchValidator( const CTensorLayout& etalon ) : etalon( etalon ) {}
+
+	bool operator()( const CTensorLayout& layout ) const override { return etalon == layout; }
+
+private:
+	CTensorLayout etalon;
+};
+
+// Validator which considers any ONNX-compatible layout as valid
+class COnnxTensorLayoutValidator : public ITensorLayoutValidator {
+public:
+	bool operator()( const CTensorLayout& layout ) const override { return !IsTransposedLayout( layout ); }
+};
+
+// Validator which considers NeoML-compatible image layouts as valid
+class CNeoMLImageLayoutValidator : public ITensorLayoutValidator {
+public:
+	bool operator()( const CTensorLayout& layout ) const override;
+};
+
+inline bool CNeoMLImageLayoutValidator::operator()( const CTensorLayout& layout ) const
+{
+	if( ( !layout.IsEmpty() && layout[0] >= NeoML::BD_Height )
+		|| ( layout.Size() > 1 && layout[1] != NeoML::BD_Channels ) )
+	{
+		return false;
+	}
+
+	for( int i = 2; i < layout.Size(); ++i ) {
+		if( layout[i] != NeoML::BD_Height + ( i - 2 ) ) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+// Validator for batch normalization operator
+class CBatchNormLayoutValidator : public ITensorLayoutValidator {
+public:
+	bool operator()( const CTensorLayout& layout ) const override;
+};
+
+inline bool CBatchNormLayoutValidator::operator()( const CTensorLayout& layout ) const
+{
+	if( ( !layout.IsEmpty() && layout[0] >= NeoML::BD_Height )
+		|| ( layout.Size() > 1 && layout[1] != NeoML::BD_Channels ) )
+	{
+		return false;
+	}
+
+	for( int i = 2; i < layout.Size(); ++i ) {
+		if( layout[i] < NeoML::BD_Height || layout[i] == NeoML::BD_Channels ) {
+			return false;
+		}
+	}
+
+	return true;
+}
 
 } // namespace NeoOnnx
 

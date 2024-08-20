@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,24 +17,152 @@ limitations under the License.
 #pragma hdrstop
 
 #include <GradientBoostFastHistProblem.h>
-#include <NeoMathEngine/OpenMP.h>
+#include <GradientBoostThreadTask.h>
+#include <NeoMathEngine/ThreadPool.h>
 
 namespace NeoML {
+
+namespace {
+
+// Abstract base class
+class IGBoostFeaturesThreadTask : public IGradientBoostThreadTask {
+public:
+	using TFeatureValue = CGradientBoostFastHistProblem::CFeatureValue;
+protected:
+	// Create a task
+	IGBoostFeaturesThreadTask( IThreadPool& threadPool,
+			CArray<CArray<TFeatureValue>>& featureValues ) :
+		IGradientBoostThreadTask( threadPool ),
+		FeatureValues( featureValues )
+	{}
+	// The size of parallelization, max number of elements to perform
+	int ParallelizeSize() const override { return FeatureValues.Size(); }
+	// Run the process in a separate thread
+	void Run( int /*threadIndex*/, int startIndex, int count ) override final;
+	// Run on each problem's element separately
+	virtual void RunOnElement( int index ) = 0;
+
+	CArray<CArray<TFeatureValue>>& FeatureValues;
+};
+
+void IGBoostFeaturesThreadTask::Run( int /*threadIndex*/, int startIndex, int count )
+{
+	const int endIndex = startIndex + count;
+	for( int index = startIndex; index < endIndex; ++index ) {
+		RunOnElement( index );
+	}
+}
+
+//-------------------------------------------------------------------------------------------------------------
+
+// Sorting and merging the same feature values
+class CGBoostSortAndMergeFeaturesThreadTask : public IGBoostFeaturesThreadTask {
+public:
+	// Create a task
+	CGBoostSortAndMergeFeaturesThreadTask( IThreadPool& threadPool,
+			CArray<CArray<TFeatureValue>>& featureValues ) :
+		IGBoostFeaturesThreadTask( threadPool, featureValues )
+	{}
+protected:
+	// Run on each problem's element separately
+	void RunOnElement( int index ) override;
+};
+
+void CGBoostSortAndMergeFeaturesThreadTask::RunOnElement( int index )
+{
+	FeatureValues[index].QuickSort<AscendingByMember<TFeatureValue, float, &TFeatureValue::Value>>();
+	int size = 1;
+	for( int j = 1; j < FeatureValues[index].Size(); ++j ) {
+		if( FeatureValues[index][j].Value == FeatureValues[index][size - 1].Value ) {
+			FeatureValues[index][size - 1].Weight += FeatureValues[index][j].Weight;
+		} else {
+			++size;
+			FeatureValues[index][size - 1] = FeatureValues[index][j];
+		}
+	}
+	FeatureValues[index].SetSize( size );
+}
+
+//-------------------------------------------------------------------------------------------------------------
+
+// Compresses the values of each feature so that there are no more than maxBins different values
+class CGBoostCompressFeaturesThreadTask : public IGBoostFeaturesThreadTask {
+public:
+	// Create a task
+	CGBoostCompressFeaturesThreadTask( IThreadPool& threadPool,
+			CArray<CArray<TFeatureValue>>& featureValues, int maxBins, double totalWeight ) :
+		IGBoostFeaturesThreadTask( threadPool, featureValues ),
+		MaxBins( maxBins ),
+		TotalWeight( totalWeight )
+	{ NeoAssert( MaxBins > 1 ); } // otherwise there can be no split
+protected:
+	// Run on each problem's element separately
+	void RunOnElement( int index ) override;
+
+	const int MaxBins;
+	const double TotalWeight;
+};
+
+void CGBoostCompressFeaturesThreadTask::RunOnElement( int index )
+{
+	CArray<TFeatureValue>& currFeatureValues = FeatureValues[index];
+	if( currFeatureValues.Size() <= MaxBins ) {
+		return;
+	}
+
+	// Always keep the minimum and the maximum value for each feature
+	if( MaxBins == 2 ) {
+		currFeatureValues[1] = currFeatureValues.Last();
+		currFeatureValues.SetSize( 2 );
+		return;
+	}
+	// Always keep the minimum and the maximum value for each feature
+	const double weight = TotalWeight - currFeatureValues.First().Weight - currFeatureValues.Last().Weight;
+	const int n = MaxBins - 2;
+	NeoAssert( n > 0 );
+	const double maxItemWeight = weight / n;
+
+	// Grouping the rest of the values by weight
+	int size = 1;
+	double sumWeight = 0;
+	for( int j = 1; j < currFeatureValues.Size() - 1; ++j ) {
+		if( sumWeight + currFeatureValues[j].Weight >= size * maxItemWeight ) {
+			currFeatureValues[size] = currFeatureValues[j];
+			++size;
+		}
+		sumWeight += currFeatureValues[j].Weight;
+	}
+	currFeatureValues[size] = currFeatureValues.Last();
+	++size;
+	currFeatureValues.SetSize( size );
+	NeoAssert( size <= MaxBins );
+}
+
+} // namespace
+
+//-------------------------------------------------------------------------------------------------------------
 
 CGradientBoostFastHistProblem::CGradientBoostFastHistProblem( int threadCount, int maxBins,
 		const IMultivariateRegressionProblem& baseProblem,
 		const CArray<int>& _usedVectors, const CArray<int>& _usedFeatures ) :
+	threadPool( CreateThreadPool( threadCount ) ),
 	usedVectors( _usedVectors ),
 	usedFeatures( _usedFeatures )
 {
+	NeoAssert( threadPool != nullptr );
 	CFloatMatrixDesc matrix = baseProblem.GetMatrix();
 	NeoAssert( matrix.Height == baseProblem.GetVectorCount() );
 	NeoAssert( matrix.Width == baseProblem.GetFeatureCount() );
 	// Initialize features data
-	initializeFeatureInfo( threadCount, maxBins, matrix, baseProblem );
+	initializeFeatureInfo( maxBins, matrix, baseProblem );
 
 	// Build vector data
 	buildVectorData( matrix );
+}
+
+CGradientBoostFastHistProblem::~CGradientBoostFastHistProblem()
+{
+	delete threadPool;
 }
 
 const int* CGradientBoostFastHistProblem::GetUsedVectorDataPtr( int index ) const
@@ -54,7 +182,7 @@ int CGradientBoostFastHistProblem::GetUsedVectorDataSize( int index ) const
 }
 
 // Initializes the feature values
-void CGradientBoostFastHistProblem::initializeFeatureInfo( int threadCount, int maxBins, const CFloatMatrixDesc& matrix,
+void CGradientBoostFastHistProblem::initializeFeatureInfo( int maxBins, const CFloatMatrixDesc& matrix,
 	const IMultivariateRegressionProblem& baseProblem )
 {
 	const int vectorCount = baseProblem.GetVectorCount();
@@ -81,7 +209,7 @@ void CGradientBoostFastHistProblem::initializeFeatureInfo( int threadCount, int 
 				if( featureValues[index].IsEmpty()
 					|| featureValues[index].Last().Value != vector.Values[j] )
 				{
-					CFeatureValue newValue;
+					CFeatureValue newValue{};
 					newValue.Value = vector.Values[j];
 					newValue.Weight = vectorWeight;
 					featureValues[index].Add( newValue );
@@ -105,22 +233,9 @@ void CGradientBoostFastHistProblem::initializeFeatureInfo( int threadCount, int 
 	}
 
 	// Sorting and merging the same values
-	NEOML_OMP_FOR_NUM_THREADS( threadCount )
-	for( int i = 0; i < featureValues.Size(); i++ ) {
-		featureValues[i].QuickSort< AscendingByMember<CFeatureValue, float, &CFeatureValue::Value> >();
-		int size = 1;
-		for( int j = 1; j < featureValues[i].Size(); j++ ) {
-			if( featureValues[i][j].Value == featureValues[i][size - 1].Value ) {
-				featureValues[i][size - 1].Weight += featureValues[i][j].Weight;
-			} else {
-				size++;
-				featureValues[i][size - 1] = featureValues[i][j];
-			}
-		}
-		featureValues[i].SetSize( size );
-	}
+	CGBoostSortAndMergeFeaturesThreadTask( *threadPool, featureValues ).ParallelRun();
 
-	compressFeatureValues( threadCount, maxBins, totalWeight, featureValues );
+	CGBoostCompressFeaturesThreadTask( *threadPool, featureValues, maxBins, totalWeight ).ParallelRun();
 
 	// Initializing the internal arrays
 	nullValueIds.Add( NotFound, featureValues.Size() );
@@ -142,54 +257,11 @@ void CGradientBoostFastHistProblem::initializeFeatureInfo( int threadCount, int 
 	featurePos.Add( curPos );
 }
 
-// Compresses the values of each feature so that there are no more than maxBins different values
-void CGradientBoostFastHistProblem::compressFeatureValues( int threadCount, int maxBins, double totalWeight,
-	CArray< CArray<CFeatureValue> >& featureValues )
-{
-	NeoAssert( maxBins > 1 ); // otherwise there can be no split
-
-	NEOML_OMP_FOR_NUM_THREADS( threadCount )
-	for( int i = 0; i < featureValues.Size(); i++ ) {
-		CArray<CFeatureValue>& currFeatureValues = featureValues[i];
-
-		if( currFeatureValues.Size() <= maxBins ) {
-			continue;
-		}
-
-		// Always keep the minimum and the maximum value for each feature
-		if( maxBins == 2 ) {
-			currFeatureValues[1] = currFeatureValues.Last();
-			currFeatureValues.SetSize( 2 );
-			continue;
-		}
-		// Always keep the minimum and the maximum value for each feature
-		const double weight = totalWeight - currFeatureValues.First().Weight - currFeatureValues.Last().Weight;
-		const int n = maxBins - 2;
-		NeoAssert( n > 0 );
-		const double maxItemWeight = weight / n;
-
-		// Grouping the rest of the values by weight
-		int size = 1;
-		double sumWeight = 0;
-		for( int j = 1; j < currFeatureValues.Size() - 1; j++ ) {
-			if( sumWeight + currFeatureValues[j].Weight >= size * maxItemWeight ) {
-				currFeatureValues[size] = currFeatureValues[j];
-				size++;
-			}
-			sumWeight += currFeatureValues[j].Weight;
-		}
-		currFeatureValues[size] = currFeatureValues.Last();
-		size++;
-		currFeatureValues.SetSize( size );
-		NeoAssert( size <= maxBins );
-	}
-}
-
 // Builds an array with vector data
 void CGradientBoostFastHistProblem::buildVectorData( const CFloatMatrixDesc& matrix )
 {
 	const int vectorCount = matrix.Height;
-	
+
 	vectorPtr.SetBufferSize( vectorCount + 1 );
 	int curVectorPtr = 0;
 	for( int i = 0; i < vectorCount; i++ ) {
@@ -205,7 +277,7 @@ void CGradientBoostFastHistProblem::buildVectorData( const CFloatMatrixDesc& mat
 				int valueCount = featurePos[index + 1] - featurePos[index]; // the number of different values for the feature
 				// Now we get the bin into which the current value falls
 				int pos = FindInsertionPoint<float, Ascending<float>, float>( vector.Values[j], valuePtr, valueCount );
-				if( pos > 0 && *(valuePtr + pos - 1) == vector.Values[j] ) {
+				if( pos > 0 && *( valuePtr + pos - 1 ) == vector.Values[j] ) {
 					pos--;
 				}
 				vectorData.Add( featurePos[index] + pos );

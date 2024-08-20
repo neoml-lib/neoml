@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -50,10 +50,10 @@ void CCudaMathEngine::Lrn( const CLrnDesc& lrnDesc, const CConstFloatHandle& inp
 	dim3 threadCount;
 	getCudaTaskGrid2D( blockCount, threadCount, vectorCount, vectorSize );
 
-	const float* inputPtr = GetRaw( input );
-	float* outputPtr = GetRaw( output );
-	float* invSumPtr = invSum.IsNull() ? outputPtr : GetRaw( invSum );
-	float* invSumBetaPtr = invSumBeta.IsNull() ? outputPtr : GetRaw( invSumBeta );
+	const float* const inputPtr = GetRaw( input );
+	float* const outputPtr = GetRaw( output );
+	float* const invSumPtr = invSum.IsNull() ? outputPtr : GetRaw( invSum );
+	float* const invSumBetaPtr = invSumBeta.IsNull() ? outputPtr : GetRaw( invSumBeta );
 
 	LrnKernel<<<blockCount, threadCount>>>( inputPtr, invSumPtr, invSumBetaPtr, outputPtr, vectorCount, vectorSize,
 		desc.WindowSize, desc.Bias, desc.Alpha, desc.Beta ); 
@@ -80,11 +80,11 @@ void CCudaMathEngine::LrnBackward( const CLrnDesc& lrnDesc, const CConstFloatHan
 	dim3 threadCount;
 	getCudaTaskGrid2D( blockCount, threadCount, vectorCount, vectorSize );
 
-	const float* inputPtr = GetRaw( input );
-	const float* outputPtr = GetRaw( output );
-	const float* outputDiffPtr = GetRaw( outputDiff );
-	const float* invSumPtr = GetRaw( invSum );
-	const float* invSumBetaPtr = GetRaw( invSumBeta );
+	const float* const inputPtr = GetRaw( input );
+	const float* const outputPtr = GetRaw( output );
+	const float* const outputDiffPtr = GetRaw( outputDiff );
+	const float* const invSumPtr = GetRaw( invSum );
+	const float* const invSumBetaPtr = GetRaw( invSumBeta );
 	float* inputDiffPtr = GetRaw( inputDiff );
 
 	LrnBackwardKernel<<<blockCount, threadCount>>>( inputPtr, outputPtr, outputDiffPtr, invSumPtr, invSumBetaPtr,

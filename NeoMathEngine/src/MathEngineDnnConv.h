@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -36,7 +36,7 @@ struct CCommonConvolutionDesc : public CConvolutionDesc {
 			int paddingHeight, int paddingWidth, int strideHeight, int strideWidth, int dilationHeight, int dilationWidth ) :
 		Source( source ),
 		Result( result ),
-        Filter( filter ),
+		Filter( filter ),
 		PaddingHeight( paddingHeight ),
 		PaddingWidth( paddingWidth ),
 		StrideHeight( strideHeight ),
@@ -59,19 +59,20 @@ struct CCommon3dConvolutionDesc : public C3dConvolutionDesc {
 	int StrideWidth;
 	int StrideDepth;
 
-	CCommon3dConvolutionDesc( const CBlobDesc& source, const CBlobDesc& result, const CBlobDesc& filter,
-			int paddingHeight, int paddingWidth, int paddingDepth, int strideHeight, int strideWidth, int strideDepth ) :
+	CCommon3dConvolutionDesc(
+			const CBlobDesc& source, const CBlobDesc& result, const CBlobDesc& filter,
+			int paddingHeight, int paddingWidth, int paddingDepth,
+			int strideHeight, int strideWidth, int strideDepth ) :
 		Source( source ),
-        Result( result ),
-        Filter( filter ),
- 		PaddingHeight( paddingHeight ),
+		Result( result ),
+		Filter( filter ),
+		PaddingHeight( paddingHeight ),
 		PaddingWidth( paddingWidth ),
 		PaddingDepth( paddingDepth ),
 		StrideHeight( strideHeight ),
 		StrideWidth( strideWidth ),
 		StrideDepth( strideDepth )
-	{
-	}
+	{}
 };
 
 // The general time convolution descriptor
@@ -84,17 +85,17 @@ struct CCommonTimeConvolutionDesc : public CTimeConvolutionDesc {
 	int PaddingBack;
 	int Dilation;
 
-	CCommonTimeConvolutionDesc( const CBlobDesc& source, const CBlobDesc& result, const CBlobDesc& filter,
+	CCommonTimeConvolutionDesc(
+			const CBlobDesc& source, const CBlobDesc& result, const CBlobDesc& filter,
 			int stride, int paddingFront, int paddingBack, int dilation ) :
 		Source( source ),
-        Filter( filter ),
+		Filter( filter ),
 		Result( result ),
-        Stride( stride ),
+		Stride( stride ),
 		PaddingFront( paddingFront ),
 		PaddingBack( paddingBack ),
-        Dilation( dilation )
-	{
-	}
+		Dilation( dilation )
+	{}
 };
 
 // The general channelwise convolution descriptor

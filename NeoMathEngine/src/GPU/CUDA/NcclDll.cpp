@@ -34,14 +34,7 @@ static const char* ncclDllName = "libnccl.so";
 #error "Platform is not supported!"
 #endif
 
-CNcclDll::CNcclDll()
-{
-}
-
-CNcclDll::~CNcclDll()
-{
-	Free();
-}
+CNcclDll::CNcclDll() = default;
 
 bool CNcclDll::Load()
 {
@@ -61,13 +54,6 @@ bool CNcclDll::Load()
 	return true;
 }
 
-void CNcclDll::Free()
-{
-	if( IsLoaded() ) {
-		CDll::Free();
-	}
-}
-
 // Load all cublas functions used
 bool CNcclDll::loadFunctions()
 {
@@ -80,6 +66,8 @@ bool CNcclDll::loadFunctions()
 	LOAD_NCCL_FUNC( GroupEnd );
 	LOAD_NCCL_FUNC( GetUniqueId );
 	LOAD_NCCL_FUNC( GetErrorString );
+	LOAD_NCCL_FUNC( CommGetAsyncError );
+	LOAD_NCCL_FUNC( CommAbort );
 
 	return true;
 }

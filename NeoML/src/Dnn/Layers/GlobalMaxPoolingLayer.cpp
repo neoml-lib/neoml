@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2023 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ CGlobalMaxPoolingLayer::CGlobalMaxPoolingLayer( IMathEngine& mathEngine ) :
 {
 }
 
-void CGlobalMaxPoolingLayer::SetMaxCount(int _maxCount)
+void CGlobalMaxPoolingLayer::SetMaxCount( int _maxCount )
 {
 	if( maxCount == _maxCount ) {
 		return;
@@ -56,7 +56,7 @@ void CGlobalMaxPoolingLayer::Reshape()
 	outputDescs[0].SetDimSize( BD_Width, maxCount );
 	outputDescs[0].SetDimSize( BD_Depth, 1 );
 
-	if(GetOutputCount() > 1) {
+	if( GetOutputCount() > 1 ) {
 		// Write the index of the maximum into the second output
 		outputDescs[1] = outputDescs[0];
 		outputDescs[1].SetDataType( CT_Int );
@@ -65,7 +65,7 @@ void CGlobalMaxPoolingLayer::Reshape()
 		indexBlob = CDnnBlob::CreateBlob( MathEngine(), CT_Int, outputDescs[0] );
 	}
 
-	RegisterRuntimeBlob(indexBlob);
+	RegisterRuntimeBlob( indexBlob );
 	destroyDesc();
 }
 
@@ -88,7 +88,11 @@ void CGlobalMaxPoolingLayer::BackwardOnce()
 void CGlobalMaxPoolingLayer::initDesc()
 {
 	if( desc == 0 ) {
-		desc = MathEngine().InitGlobalMaxPooling( inputBlobs[0]->GetDesc(), indexBlob->GetDesc(), outputBlobs[0]->GetDesc() );
+		NeoPresume( inputBlobs[0] != nullptr || inputDiffBlobs[0] != nullptr );
+		NeoPresume( outputBlobs[0] != nullptr || outputDiffBlobs[0] != nullptr );
+		desc = MathEngine().InitGlobalMaxPooling(
+			inputBlobs[0] != nullptr ? inputBlobs[0]->GetDesc() : inputDiffBlobs[0]->GetDesc(),
+			indexBlob->GetDesc(), outputBlobs[0] != nullptr ? outputBlobs[0]->GetDesc() : outputDiffBlobs[0]->GetDesc() );
 	}
 }
 

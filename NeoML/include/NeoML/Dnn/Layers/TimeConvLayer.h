@@ -67,7 +67,7 @@ public:
 	// Sets padding in both sides of BD_BatchLength
 	void SetPadding( int _padding );
 protected:
-	virtual ~CTimeConvLayer() { destroyDesc(); }
+	~CTimeConvLayer() override { destroyDesc(); }
 
 	// CBaseLayer methods
 	void Reshape() override;
@@ -75,6 +75,8 @@ protected:
 	void BackwardOnce() override;
 	void LearnOnce() override;
 	void FilterLayerParams( float threshold ) override;
+	int BlobsForBackward() const override { return 0; }
+	int BlobsForLearn() const override { return TInputBlobs; }
 
 private:
 	CTimeConvolutionDesc* desc;
