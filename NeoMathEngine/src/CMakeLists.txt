@@ -31,6 +31,7 @@ set(CPU_COMMON_SOURCES
     MathEngineDnnDropout.cpp
     MathEngine.cpp
     MathEngineHostStackAllocator.cpp
+    MemoryEngineMixin.cpp
     MemoryPool.cpp
     ThreadPool.cpp
     common.cpp
@@ -50,6 +51,7 @@ target_sources(${PROJECT_NAME}
     MathEngineDnnLrn.h
     MathEngineDnnPoolings.h
     MathEngineHostStackAllocator.h
+    MemoryEngineMixin.h
     MemoryHandleInternal.h
     MemoryPool.h
     RawMemoryManager.h

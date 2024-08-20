@@ -141,32 +141,38 @@ IMathEngine* CGpuMathEngineManager::CreateMathEngine( int index, size_t memoryLi
 	if( size == 0 || index >= size ) {
 		return nullptr;
 	}
+	IMathEngine* mathEngine = nullptr;
 	switch(info[index >= 0 ? index : 0].Type) {
 #ifdef NEOML_USE_CUDA
 	case MET_Cuda:
 	{
 		std::unique_ptr<CCudaDevice> device( CaptureCudaDevice( index >= 0 ? info[index].Id : -1, memoryLimit ) );
-		if( device == nullptr ) {
-			return nullptr;
+		if( device != nullptr ) {
+			mathEngine = new CCudaMathEngine( CDllLoader::cusparseDll->GetFunctions(), CDllLoader::cublasDll->GetFunctions(), device, flags );
+			break;
 		}
-		return new CCudaMathEngine( CDllLoader::cusparseDll->GetFunctions(), CDllLoader::cublasDll->GetFunctions(), device, flags );
+		return nullptr;
 	}
-#endif
+#endif //NEOML_USE_CUDA
 #ifdef NEOML_USE_VULKAN
 	case MET_Vulkan:
 	{
 		const auto& deviceInfo = loader.vulkanDll->GetDevices()[index >= 0 ? info[index].Id : 0];
 		std::unique_ptr<const CVulkanDevice> device (loader.vulkanDll->CreateDevice( deviceInfo ) );
-		if( !device ) {
-			return nullptr;
+		if( device != nullptr ) {
+			mathEngine = new CVulkanMathEngine( device, memoryLimit );
+			break;
 		}
-		return new CVulkanMathEngine( device, memoryLimit );
+		return nullptr;
 	}
-#endif
+#endif //NEOML_USE_VULKAN
 #ifdef NEOML_USE_METAL
 	case MET_Metal:
-		return new CMetalMathEngine( memoryLimit );
-#endif
+	{
+		mathEngine = new CMetalMathEngine( memoryLimit );
+		break;
+	}
+#endif //NEOML_USE_METAL
 	case MET_Undefined:
 	default:
 	{
@@ -174,6 +180,8 @@ IMathEngine* CGpuMathEngineManager::CreateMathEngine( int index, size_t memoryLi
 		return nullptr;
 	}
 	}
+	ASSERT_EXPR( mathEngine && mathEngine->IsInitialized() ); // Fails, if no call CMemoryEngineMixin::InitializeMemory in some child ctor
+	return mathEngine;
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -218,7 +226,9 @@ IMathEngineExceptionHandler* GetMathEngineExceptionHandler()
 
 IMathEngine* CreateCpuMathEngine( size_t memoryLimit )
 {
-	return new CCpuMathEngine( memoryLimit );
+	IMathEngine *mathEngine = new CCpuMathEngine( memoryLimit );
+	ASSERT_EXPR( mathEngine && mathEngine->IsInitialized() ); // Fails, if no call CMemoryEngineMixin::InitializeMemory in some child ctor
+	return mathEngine;
 }
 
 // deprecated

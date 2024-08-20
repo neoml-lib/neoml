@@ -90,8 +90,9 @@ void CMultiThreadDistributedCommunicator::Broadcast( const CFloatHandle& handle,
 void CreateDistributedCpuMathEngines( IMathEngine** mathEngines, int count, size_t memoryLimit )
 {
 	auto communicator = std::make_shared<CMultiThreadDistributedCommunicator>( count );
-	for( int i = 0; i < count; i++ ){
+	for( int i = 0; i < count; ++i ) {
 		mathEngines[i] = new CCpuMathEngine( memoryLimit, communicator, CMathEngineDistributedInfo( i, count ) );
+		ASSERT_EXPR( mathEngines[i] && mathEngines[i]->IsInitialized() ); // Fails, if no call CMemoryEngineMixin::InitializeMemory in some child ctor
 	}
 }
 

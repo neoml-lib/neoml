@@ -108,7 +108,7 @@ void CVulkanMathEngine::VectorFill( const CFloatHandle& result, float value, int
 
 	CVulkanMemory* vulkanMemory = GetRawAllocation( result );
 
-	std::lock_guard<std::mutex> lock( mutex );
+	std::lock_guard<std::mutex> lock( Mutex );
 	commandQueue->RunFillBuffer( vulkanMemory->Buffer(), GetRawOffset( result ), size, data );
 }
 
@@ -119,7 +119,7 @@ void CVulkanMathEngine::VectorFill( const CIntHandle& result, int value, int vec
 
 	CVulkanMemory* vulkanMemory = GetRawAllocation( result );
 
-	std::lock_guard<std::mutex> lock( mutex );
+	std::lock_guard<std::mutex> lock( Mutex );
 	commandQueue->RunFillBuffer( vulkanMemory->Buffer(), GetRawOffset(result), size, data );
 }
 
@@ -186,7 +186,7 @@ void CVulkanMathEngine::VectorCopy( const CFloatHandle& to, const CConstFloatHan
 	CVulkanMemory* vulkanMemoryFrom = GetRawAllocation(from);
 	CVulkanMemory* vulkanMemoryTo = GetRawAllocation(to);
 
-	std::lock_guard<std::mutex> lock( mutex );
+	std::lock_guard<std::mutex> lock( Mutex );
 	commandQueue->RunCopyBuffer( vulkanMemoryFrom->Buffer(), vulkanMemoryTo->Buffer(), region );
 }
 
@@ -200,7 +200,7 @@ void CVulkanMathEngine::VectorCopy(const CIntHandle& to, const CConstIntHandle& 
 	CVulkanMemory* vulkanMemoryFrom = GetRawAllocation(from);
 	CVulkanMemory* vulkanMemoryTo = GetRawAllocation(to);
 
-	std::lock_guard<std::mutex> lock( mutex );
+	std::lock_guard<std::mutex> lock( Mutex );
 	commandQueue->RunCopyBuffer( vulkanMemoryFrom->Buffer(), vulkanMemoryTo->Buffer(), region );
 }
 
