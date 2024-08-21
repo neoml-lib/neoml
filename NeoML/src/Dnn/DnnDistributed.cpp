@@ -1,4 +1,5 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
@@ -84,54 +85,64 @@ void initThreadGroupInfo()
 	}
 }
 
-#else // FINE_PLATFORM( FINE_WINDOWS )
+#else  // !FINE_PLATFORM( FINE_WINDOWS )
 
 static void initThreadGroupInfo() {}
 
-#endif
+#endif // !FINE_PLATFORM( FINE_WINDOWS )
+
+//---------------------------------------------------------------------------------------------------------------------
 
 // RAII switcher of current thread's group
-class CThreadGroupSwitcher {
+class CThreadGroupSwitcher final {
 public:
-#if FINE_PLATFORM( FINE_WINDOWS )
-	CThreadGroupSwitcher( bool isCpu, int threadIndex, int threadCount ) :
-		isAffinitySet( false )
-	{
-		if( isCpu && threadGroupCount > 1 ) {
-			// spread threads equally between multiple thread groups
-			const int threadPerGroup = ( threadCount + threadGroupCount - 1 ) / threadGroupCount;
-			GROUP_AFFINITY affinity;
-			affinity.Reserved[0] = 0;
-			affinity.Reserved[1] = 0;
-			affinity.Reserved[2] = 0;
-			NeoAssert( getThreadGroupAffinity != nullptr );
-			if( getThreadGroupAffinity( ::GetCurrentThread(), &affinity ) != 0 ) {
-				affinity.Group = threadGroups[threadIndex / threadPerGroup];
-				isAffinitySet = ( setThreadGroupAffinity( ::GetCurrentThread(), &affinity, &prevAffinity ) != 0 );
-			}
-		}
-	}
-
-	~CThreadGroupSwitcher()
-	{
-		if( isAffinitySet ) {
-			setThreadGroupAffinity( ::GetCurrentThread(), &prevAffinity, nullptr );
-		}
-	}
-#else
-	CThreadGroupSwitcher( int, int, int ) {}
-	~CThreadGroupSwitcher() = default;
-#endif
-
+	CThreadGroupSwitcher( bool isCpu, int threadIndex, int threadCount );
 	CThreadGroupSwitcher( const CThreadGroupSwitcher& ) = delete;
+
+	~CThreadGroupSwitcher();
+
 	CThreadGroupSwitcher operator=( const CThreadGroupSwitcher& ) = delete;
 
 private:
 #if FINE_PLATFORM( FINE_WINDOWS )
-	bool isAffinitySet;
-	GROUP_AFFINITY prevAffinity;
-#endif
+	bool isAffinitySet = false;
+	GROUP_AFFINITY prevAffinity{};
+#endif // FINE_PLATFORM( FINE_WINDOWS )
 };
+
+CThreadGroupSwitcher::CThreadGroupSwitcher( bool isCpu, int threadIndex, int threadCount )
+{
+#if FINE_PLATFORM( FINE_WINDOWS )
+	if( isCpu && threadGroupCount > 1 ) {
+		// spread threads equally between multiple thread groups
+		const int threadPerGroup = ( threadCount + threadGroupCount - 1 ) / threadGroupCount;
+		GROUP_AFFINITY affinity;
+		affinity.Reserved[0] = 0;
+		affinity.Reserved[1] = 0;
+		affinity.Reserved[2] = 0;
+		NeoAssert( getThreadGroupAffinity != nullptr );
+		if( getThreadGroupAffinity( ::GetCurrentThread(), &affinity ) != 0 ) {
+			affinity.Group = threadGroups[threadIndex / threadPerGroup];
+			isAffinitySet = ( setThreadGroupAffinity( ::GetCurrentThread(), &affinity, &prevAffinity ) != 0 );
+		}
+	}
+#else  // !FINE_PLATFORM( FINE_WINDOWS )
+	( void ) isCpu;
+	( void ) threadIndex;
+	( void ) threadCount;
+#endif // !FINE_PLATFORM( FINE_WINDOWS )
+}
+
+CThreadGroupSwitcher::~CThreadGroupSwitcher()
+{
+#if FINE_PLATFORM( FINE_WINDOWS )
+	if( isAffinitySet ) {
+		setThreadGroupAffinity( ::GetCurrentThread(), &prevAffinity, nullptr );
+	}
+#endif // FINE_PLATFORM( FINE_WINDOWS )
+}
+
+//---------------------------------------------------------------------------------------------------------------------
 
 static CPtr<CDnnInitializer> createInitializer( TDistributedInitializer type, CRandom& random )
 {
@@ -148,9 +159,56 @@ static CPtr<CDnnInitializer> createInitializer( TDistributedInitializer type, CR
 	return nullptr;
 }
 
+//---------------------------------------------------------------------------------------------------------------------
+
+struct CDistributedTraining::CThreadParams final {
+	bool* const IsFirstRun;
+	IDistributedDataset* const Data;
+	CPointerArray<CDnn>& Dnns;
+	CArray<int>& BatchSize;
+	const bool IsCpu;
+	CArray<CString>& ErrorMessages;
+	bool IsErrorHappened = false;
+	int TotalBatch = 0;
+
+	// RunOnce and RunAndBackwardOnce
+	CThreadParams( bool* isFirstRun, IDistributedDataset* data, CPointerArray<CDnn>& dnns,
+			CArray<int>& batchSize, bool isCpu, CArray<CString>& errorMessages ) :
+		IsFirstRun( isFirstRun ),
+		Data( data ),
+		Dnns( dnns ),
+		BatchSize( batchSize ),
+		IsCpu( isCpu ),
+		ErrorMessages( errorMessages )
+	{}
+
+	// solver.Train
+	CThreadParams( CPointerArray<CDnn>& dnns,
+			CArray<int>& batchSize, int totalBatch, bool isCpu, CArray<CString>& errorMessages ) :
+		CThreadParams( nullptr, nullptr, dnns, batchSize, isCpu, errorMessages )
+	{ TotalBatch = totalBatch; }
+
+	void SetErrorMessage( int threadIndex, CString message );
+};
+
+void CDistributedTraining::CThreadParams::SetErrorMessage( int threadIndex, CString message )
+{
+	IsErrorHappened = true;
+	ErrorMessages[threadIndex] = std::move( message );
+	// This abort is monitored only inside:
+	//   - CDnnSolver::allReduce (MathEngine.AllReduce)
+	//   - CDnnDistributedInitializer::InitializeLayerParams (MathEngine.Broadcast)
+	Dnns[threadIndex]->GetMathEngine().AbortDistributed();
+	// For dnn.RunOnce or dnn.RunBackwardOnce other threads will not stop
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
 void CDistributedTraining::initialize( CArchive& archive, int count, TDistributedInitializer initializer, int seed )
 {
 	NeoAssert( archive.IsLoading() );
+	rands.SetBufferSize( count );
+	cnns.SetBufferSize( count );
 	for( int i = 0; i < count; i++ ){
 		rands.Add( new CRandom( seed ) );
 		cnns.Add( new CDnn( *rands[i], *mathEngines[i] ) );
@@ -160,9 +218,11 @@ void CDistributedTraining::initialize( CArchive& archive, int count, TDistribute
 		archive.Seek( 0, static_cast<CBaseFile::TSeekPosition>( 0 ) );
 	}
 	batchSize.Add( 0, count );
+	errorMessages.Add( {}, count );
 }
 
-CDistributedTraining::CDistributedTraining( CDnn& dnn, int count, TDistributedInitializer initializer, int seed ) :
+CDistributedTraining::CDistributedTraining( const CDnn& dnn, int count,
+		TDistributedInitializer initializer, int seed, size_t memoryLimit ) :
 	isCpu( true ),
 	threadPool( CreateThreadPool( count ) )
 {
@@ -171,10 +231,10 @@ CDistributedTraining::CDistributedTraining( CDnn& dnn, int count, TDistributedIn
 
 	initThreadGroupInfo();
 	mathEngines.SetSize( count );
-	CreateDistributedCpuMathEngines( mathEngines.GetPtr(), count );
+	CreateDistributedCpuMathEngines( mathEngines.GetPtr(), count, memoryLimit );
 	CMemoryFile file;
 	CArchive archive( &file, CArchive::SD_Storing );
-	dnn.Serialize( archive );
+	const_cast<CDnn&>( dnn ).Serialize( archive );
 	archive.Close();
 	file.SeekToBegin();
 
@@ -184,8 +244,8 @@ CDistributedTraining::CDistributedTraining( CDnn& dnn, int count, TDistributedIn
 	file.SeekToBegin();
 
 	archive.Open( &file, CArchive::SD_Storing );
-	CPtr<CDnnSolver> solver = dnn.GetSolver();
-	SerializeSolver( archive, dnn, solver );
+	CPtr<CDnnSolver> solver = const_cast<CDnn&>( dnn ).GetSolver();
+	SerializeSolver( archive, const_cast<CDnn&>( dnn ), solver );
 	archive.Close();
 	file.SeekToBegin();
 
@@ -193,7 +253,8 @@ CDistributedTraining::CDistributedTraining( CDnn& dnn, int count, TDistributedIn
 	SetSolver( archive );
 }
 
-CDistributedTraining::CDistributedTraining( CArchive& archive, int count, TDistributedInitializer initializer, int seed ) :
+CDistributedTraining::CDistributedTraining( CArchive& archive, int count,
+		TDistributedInitializer initializer, int seed, size_t memoryLimit ) :
 	isCpu( true ),
 	threadPool( CreateThreadPool( count ) )
 {
@@ -202,20 +263,20 @@ CDistributedTraining::CDistributedTraining( CArchive& archive, int count, TDistr
 
 	initThreadGroupInfo();
 	mathEngines.SetSize( count );
-	CreateDistributedCpuMathEngines( mathEngines.GetPtr(), count );
+	CreateDistributedCpuMathEngines( mathEngines.GetPtr(), count, memoryLimit );
 	initialize( archive, count, initializer, seed );
 }
 
-CDistributedTraining::CDistributedTraining( CDnn& dnn, const CArray<int>& cudaDevs,
-		TDistributedInitializer initializer, int seed ) :
+CDistributedTraining::CDistributedTraining( const CDnn& dnn, const CArray<int>& cudaDevs,
+		TDistributedInitializer initializer, int seed, size_t memoryLimit ) :
 	isCpu( false ),
 	threadPool( CreateThreadPool(cudaDevs.Size()) )
 {
 	mathEngines.SetSize( cudaDevs.Size() );
-	CreateDistributedCudaMathEngines( mathEngines.GetPtr(), cudaDevs.Size(), cudaDevs.GetPtr() );
+	CreateDistributedCudaMathEngines( mathEngines.GetPtr(), cudaDevs.Size(), cudaDevs.GetPtr(), memoryLimit );
 	CMemoryFile file;
 	CArchive archive( &file, CArchive::SD_Storing );
-	dnn.Serialize( archive );
+	const_cast<CDnn&>( dnn ).Serialize( archive );
 	archive.Close();
 	file.SeekToBegin();
 
@@ -225,8 +286,8 @@ CDistributedTraining::CDistributedTraining( CDnn& dnn, const CArray<int>& cudaDe
 	file.SeekToBegin();
 
 	archive.Open( &file, CArchive::SD_Storing );
-	CPtr<CDnnSolver> solver = dnn.GetSolver();
-	SerializeSolver( archive, dnn, solver );
+	CPtr<CDnnSolver> solver = const_cast<CDnn&>( dnn ).GetSolver();
+	SerializeSolver( archive, const_cast<CDnn&>( dnn ), solver );
 	archive.Close();
 	file.SeekToBegin();
 
@@ -235,21 +296,22 @@ CDistributedTraining::CDistributedTraining( CDnn& dnn, const CArray<int>& cudaDe
 }
 
 CDistributedTraining::CDistributedTraining( CArchive& archive, const CArray<int>& cudaDevs,
-		TDistributedInitializer initializer, int seed ) :
+		TDistributedInitializer initializer, int seed, size_t memoryLimit ) :
 	isCpu( false ),
 	threadPool( CreateThreadPool(cudaDevs.Size()) )
 {
 	mathEngines.SetSize( cudaDevs.Size() );
-	CreateDistributedCudaMathEngines( mathEngines.GetPtr(), cudaDevs.Size(), cudaDevs.GetPtr() );
+	CreateDistributedCudaMathEngines( mathEngines.GetPtr(), cudaDevs.Size(), cudaDevs.GetPtr(), memoryLimit );
 	initialize( archive, cudaDevs.Size(), initializer, seed );
 }
 
 CDistributedTraining::~CDistributedTraining()
 {
 	delete threadPool;
-	for( int i = 0; i < cnns.Size(); i++ ){
-		delete cnns[i];
-		delete rands[i];
+	cnns.DeleteAll();
+	rands.DeleteAll();
+	// As mathEngines are owned, there are no buffers in pools left for any thread
+	for( int i = 0; i < mathEngines.Size(); ++i ){
 		delete mathEngines[i];
 	}
 }
@@ -280,116 +342,70 @@ float CDistributedTraining::GetLearningRate() const
 
 void CDistributedTraining::RunOnce( IDistributedDataset& data )
 {
-	struct CFunctionParams {
-		bool& IsFirstRun;
-		IDistributedDataset& Data;
-		CArray<CDnn*>& Cnns;
-		CArray<int>& BatchSize;
-		bool IsCpu;
-		CString& ErrorMessage;
-
-		CFunctionParams(bool& isFirstRun, IDistributedDataset& data, CArray<CDnn*>& cnns, CArray<int>& batchSize, bool isCpu, CString& errorMessage) :
-			IsFirstRun(isFirstRun),
-			Data(data),
-			Cnns(cnns),
-			BatchSize(batchSize),
-			IsCpu(isCpu),
-			ErrorMessage(errorMessage)
-		{
-		}
-	} function_params(isFirstRun, data, cnns, batchSize, isCpu, errorMessage);
+	CThreadParams function_params( &isFirstRun, &data, cnns, batchSize, isCpu, errorMessages );
 
 	IThreadPool::TFunction f = [](int threadIndex, void* ptr)
 	{
-		CFunctionParams& function_params = *(CFunctionParams*)ptr;
-		CArray<CDnn*>& cnns = function_params.Cnns;
+		CThreadParams& function_params = *static_cast<CThreadParams*>( ptr );
+		CPointerArray<CDnn>& cnns = function_params.Dnns;
 		CArray<int>& batchSize = function_params.BatchSize;
-		CString& errorMessage = function_params.ErrorMessage;
 		try {
 			CThreadGroupSwitcher groupSwitcher( function_params.IsCpu, threadIndex, cnns.Size() );
-			const int currBatchSize = function_params.Data.SetInputBatch( *cnns[threadIndex], threadIndex );
-			NeoAssert( currBatchSize > 0 || ( currBatchSize == 0 && !function_params.IsFirstRun ) );
+			const int currBatchSize = function_params.Data->SetInputBatch( *cnns[threadIndex], threadIndex );
+			NeoAssert( currBatchSize > 0 || ( currBatchSize == 0 && !( *function_params.IsFirstRun ) ) );
 			if( currBatchSize > 0 ) {
 				batchSize[threadIndex] += currBatchSize;
 				cnns[threadIndex]->RunOnce();
 			}
-			function_params.IsFirstRun = false;
+			*function_params.IsFirstRun = false;
 		} catch( std::exception& e ) {
-			if( errorMessage.IsEmpty() ) {
-				errorMessage = e.what();
-			}
-			cnns[threadIndex]->GetMathEngine().AbortDistributed();
+			function_params.SetErrorMessage( threadIndex, e.what() );
 		}
 #ifdef NEOML_USE_FINEOBJ
-		catch( CCheckException* e ) {
-			if( errorMessage.IsEmpty() ) {
-				errorMessage = e->MessageText().CreateString();
-			}
-			cnns[threadIndex]->GetMathEngine().AbortDistributed();
+		catch( CException* e ) {
+			function_params.SetErrorMessage( threadIndex, e->MessageText().CreateString() );
 			delete e;
 		}
-#endif
+#endif // NEOML_USE_FINEOBJ
 	};
 	NEOML_NUM_THREADS( *threadPool, &function_params, f );
 
-	CheckArchitecture( errorMessage.IsEmpty(), "DistributedTraining", errorMessage );
+	CheckArchitecture( !function_params.IsErrorHappened, "DistributedTraining",
+		JoinStrings( function_params.ErrorMessages ) );
 }
 
 void CDistributedTraining::RunAndBackwardOnce( IDistributedDataset& data )
 {
-	struct CFunctionParams {
-		bool& IsFirstRun;
-		IDistributedDataset& Data;
-		CArray<CDnn*>& Cnns;
-		CArray<int>& BatchSize;
-		bool IsCpu;
-		CString& ErrorMessage;
-
-		CFunctionParams(bool& isFirstRun, IDistributedDataset& data, CArray<CDnn*>& cnns, CArray<int>& batchSize, bool isCpu, CString& errorMessage) :
-			IsFirstRun(isFirstRun),
-			Data(data),
-			Cnns(cnns),
-			BatchSize(batchSize),
-			IsCpu(isCpu),
-			ErrorMessage(errorMessage)
-		{
-		}
-	} function_params(isFirstRun, data, cnns, batchSize, isCpu, errorMessage);
+	CThreadParams function_params( &isFirstRun, &data, cnns, batchSize, isCpu, errorMessages );
 
 	IThreadPool::TFunction f = [](int threadIndex, void* ptr)
 	{
-		CFunctionParams& function_params = *(CFunctionParams*)ptr;
-		CArray<CDnn*>& cnns = function_params.Cnns;
+		CThreadParams& function_params = *static_cast<CThreadParams*>( ptr );
+		CPointerArray<CDnn>& cnns = function_params.Dnns;
 		CArray<int>& batchSize = function_params.BatchSize;
-		CString& errorMessage = function_params.ErrorMessage;
 		try {
 			CThreadGroupSwitcher groupSwitcher( function_params.IsCpu, threadIndex, cnns.Size() );
-			const int currBatchSize = function_params.Data.SetInputBatch( *cnns[threadIndex], threadIndex );
-			NeoAssert( currBatchSize > 0 || ( currBatchSize == 0 && !function_params.IsFirstRun ) );
+			const int currBatchSize = function_params.Data->SetInputBatch( *cnns[threadIndex], threadIndex );
+			NeoAssert( currBatchSize > 0 || ( currBatchSize == 0 && !( *function_params.IsFirstRun ) ) );
 			if( currBatchSize > 0 ) {
 				batchSize[threadIndex] += currBatchSize;
 				cnns[threadIndex]->RunAndBackwardOnce();
 			}
-			function_params.IsFirstRun = false;
+			*function_params.IsFirstRun = false;
 		} catch( std::exception& e ) {
-			if( errorMessage.IsEmpty() ) {
-				errorMessage = e.what();
-			}
-			cnns[threadIndex]->GetMathEngine().AbortDistributed();
+			function_params.SetErrorMessage( threadIndex, e.what() );
 		}
 #ifdef NEOML_USE_FINEOBJ
-		catch( CCheckException* e ) {
-			if( errorMessage.IsEmpty() ) {
-				errorMessage = e->MessageText().CreateString();
-			}
-			cnns[threadIndex]->GetMathEngine().AbortDistributed();
+		catch( CException* e ) {
+			function_params.SetErrorMessage( threadIndex, e->MessageText().CreateString() );
 			delete e;
 		}
-#endif
+#endif // NEOML_USE_FINEOBJ
 	};
 	NEOML_NUM_THREADS( *threadPool, &function_params, f );
 
-	CheckArchitecture( errorMessage.IsEmpty(), "DistributedTraining", errorMessage );
+	CheckArchitecture( !function_params.IsErrorHappened, "DistributedTraining",
+		JoinStrings( function_params.ErrorMessages ) );
 }
 
 void CDistributedTraining::RunAndLearnOnce( IDistributedDataset& data )
@@ -406,78 +422,69 @@ void CDistributedTraining::Train()
 		totalBatch += batchSize[i];
 	}
 
-	struct CFunctionParams {
-		CArray<CDnn*>& Cnns;
-		CArray<int>& BatchSize;
-		int TotalBatch;
-		bool IsCpu;
-		CString& ErrorMessage;
-
-		CFunctionParams(CArray<CDnn*>& cnns, CArray<int>& batchSize, int totalBatch, bool isCpu, CString& errorMessage) :
-			Cnns(cnns),
-			BatchSize(batchSize),
-			TotalBatch(totalBatch),
-			IsCpu(isCpu),
-			ErrorMessage(errorMessage)
-		{
-		}
-	} function_params(cnns, batchSize, totalBatch, isCpu, errorMessage);
+	CThreadParams function_params( cnns, batchSize, totalBatch, isCpu, errorMessages );
 
 	IThreadPool::TFunction f = [](int threadIndex, void* ptr)
 	{
-		CFunctionParams& function_params = *(CFunctionParams*)ptr;
-		CArray<CDnn*>& cnns = function_params.Cnns;
+		CThreadParams& function_params = *static_cast<CThreadParams*>( ptr );
+		CPointerArray<CDnn>& cnns = function_params.Dnns;
 		CArray<int>& batchSize = function_params.BatchSize;
-		CString& errorMessage = function_params.ErrorMessage;
 
 		try {
 			CThreadGroupSwitcher groupSwitcher( function_params.IsCpu, threadIndex, cnns.Size() );
-			cnns[threadIndex]->GetSolver()->Train( batchSize[threadIndex] * cnns.Size() / static_cast<float>( function_params.TotalBatch ) );
+			const float distributedCoeff
+				= batchSize[threadIndex] * cnns.Size() / static_cast<float>( function_params.TotalBatch );
+			cnns[threadIndex]->GetSolver()->Train( distributedCoeff );
 			batchSize[threadIndex] = 0;
 		} catch( std::exception& e ) {
-			if( errorMessage.IsEmpty() ) {
-				errorMessage = e.what();
-			}
-			cnns[threadIndex]->GetMathEngine().AbortDistributed();
+			function_params.SetErrorMessage( threadIndex, e.what() );
 		}
 #ifdef NEOML_USE_FINEOBJ
-		catch( CCheckException* e ) {
-			if( errorMessage.IsEmpty() ) {
-				errorMessage = e->MessageText().CreateString();
-			}
-			cnns[threadIndex]->GetMathEngine().AbortDistributed();
+		catch( CException* e ) {
+			function_params.SetErrorMessage( threadIndex, e->MessageText().CreateString() );
 			delete e;
 		}
-#endif
+#endif // NEOML_USE_FINEOBJ
 	};
 	NEOML_NUM_THREADS( *threadPool, &function_params, f );
 
-	CheckArchitecture( errorMessage.IsEmpty(), "DistributedTraining", errorMessage );
+	CheckArchitecture( !function_params.IsErrorHappened, "DistributedTraining",
+		JoinStrings( function_params.ErrorMessages ) );
 }
 
-void CDistributedTraining::GetLastLoss( const CString& layerName, CArray<float>& losses )
+void CDistributedTraining::GetLastLoss( const CString& layerName, CArray<float>& losses ) const
 {
 	losses.SetSize( cnns.Size() );
-	for( int i = 0; i < cnns.Size(); i++ ){
-		CLossLayer* lossLayer = dynamic_cast<CLossLayer*>( cnns[i]->GetLayer( layerName ).Ptr() );
-		if( lossLayer == nullptr ){
-			CCtcLossLayer* ctc = dynamic_cast<CCtcLossLayer*>( cnns[i]->GetLayer( layerName ).Ptr() );
+	for( int i = 0; i < cnns.Size(); ++i ) {
+		const CBaseLayer* layer = cnns[i]->GetLayer( layerName ).Ptr();
+		auto lossLayer = dynamic_cast<const CLossLayer*>( layer );
+		if( lossLayer != nullptr ) {
+			losses[i] = lossLayer->GetLastLoss();
+		} else {
+			auto ctc = dynamic_cast<const CCtcLossLayer*>( layer );
 			if( ctc != nullptr ) {
 				losses[i] = ctc->GetLastLoss();
 			} else {
-				losses[i] = CheckCast<CCrfLossLayer>( cnns[i]->GetLayer( layerName ) )->GetLastLoss();
+				losses[i] = CheckCast<const CCrfLossLayer>( layer )->GetLastLoss();
 			}
-		} else {
-			losses[i] = lossLayer->GetLastLoss();
 		}
 	}
 }
 
-void CDistributedTraining::GetLastBlob( const CString& layerName, CObjectArray<CDnnBlob>& blobs )
+void CDistributedTraining::GetLastBlob( const CString& layerName, CObjectArray<const CDnnBlob>& blobs ) const
 {
 	blobs.SetSize( cnns.Size() );
 	for( int i = 0; i < cnns.Size(); ++i ) {
-		blobs[i] = CheckCast<CSinkLayer>( cnns[i]->GetLayer( layerName ) )->GetBlob();
+		blobs[i] = CheckCast<const CSinkLayer>( cnns[i]->GetLayer( layerName ) )->GetBlob();
+	}
+}
+
+// deprecated
+void CDistributedTraining::GetLastBlob( const CString& layerName, CObjectArray<CDnnBlob>& blobs ) const
+{
+	blobs.SetSize( cnns.Size() );
+	for( int i = 0; i < cnns.Size(); ++i ) {
+		blobs[i] = CheckCast<const CSinkLayer>( cnns[i]->GetLayer( layerName ) )->GetBlob();
 	}
 }
 
@@ -496,6 +503,117 @@ void CDistributedTraining::StoreDnn( CArchive& archive, int index, bool storeSol
 		cnns[index]->SerializeCheckpoint( archive );
 	} else {
 		cnns[index]->Serialize( archive );
+	}
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
+// Params to transfer to all threads function
+struct CDistributedInference::CThreadParams final {
+	IDistributedDataset* Data = nullptr; // Pointer to data for the inference for all dnns
+	CObjectArray<CDnnReference> Refs; // Separate dnn for each thread
+	CArray<bool> IsDnnInferenced; // Indicates for what dnns the inference was performed
+	CArray<CString> ErrorMessages; // Containers for errors if it happened
+	bool IsErrorHappened = false;
+
+	CThreadParams( int threadsCount, CReferenceDnnFactory& referenceDnnFactory );
+	void Initialize( IDistributedDataset& data );
+};
+
+CDistributedInference::CThreadParams::CThreadParams( int threadsCount, CReferenceDnnFactory& referenceDnnFactory )
+{
+	initThreadGroupInfo();
+
+	// Create reference dnns
+	// To create a reference dnn the original network should be trained or at least reshaped
+	// All training paramBlobs should exist
+	Refs.SetBufferSize( threadsCount );
+	for( int i = 1; i < threadsCount; ++i ) {
+		Refs.Add( referenceDnnFactory.CreateReferenceDnn() );
+	}
+	// Here it can be either a one more reference dnn
+	// Or also the original dnn, because no one can create a new reference dnn, while this inference
+	Refs.Add( referenceDnnFactory.CreateReferenceDnn( /*getOriginalDnn*/true ) );
+}
+
+void CDistributedInference::CThreadParams::Initialize( IDistributedDataset& data )
+{
+	Data = &data;
+	IsDnnInferenced.DeleteAll();
+	IsDnnInferenced.Add( false, Refs.Size() );
+	ErrorMessages.DeleteAll();
+	ErrorMessages.Add( CString{}, Refs.Size() );
+	IsErrorHappened = false;
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
+CDistributedInference::CDistributedInference( const CDnn& dnn, int threadsCount,
+		bool optimizeDnn, size_t memoryLimit ) :
+	threadPool( CreateThreadPool( threadsCount ) ),
+	mathEngine( CreateCpuMathEngine( memoryLimit ) ),
+	referenceDnnFactory( new CReferenceDnnFactory( *mathEngine, dnn, optimizeDnn ) ),
+	// if count was <= 0 the pool has been initialized with the number of available CPU cores
+	threadParams( new CThreadParams( threadPool->Size(), *referenceDnnFactory ) )
+{
+}
+
+CDistributedInference::CDistributedInference( CArchive& archive, int threadsCount, int seed,
+		bool optimizeDnn, size_t memoryLimit ) :
+	threadPool( CreateThreadPool( threadsCount ) ),
+	mathEngine( CreateCpuMathEngine( memoryLimit ) ),
+	referenceDnnFactory( new CReferenceDnnFactory( *mathEngine, archive, seed, optimizeDnn ) ),
+	// if count was <= 0 the pool has been initialized with the number of available CPU cores
+	threadParams( new CThreadParams( threadPool->Size(), *referenceDnnFactory ) )
+{
+}
+
+CDistributedInference::~CDistributedInference()
+{
+}
+
+void CDistributedInference::RunOnce( IDistributedDataset& data )
+{
+	threadParams->Initialize( data );
+
+	IThreadPool::TFunction f = []( int threadIndex, void* ptr )
+	{
+		CThreadParams& threadParams = *static_cast<CThreadParams*>( ptr );
+		try {
+			CThreadGroupSwitcher groupSwitcher( /*isCpu*/true, threadIndex, threadParams.Refs.Size() );
+			// Returns the current batch size (or 0, if there is no data for this thread on this run)
+			const int currBatchSize = threadParams.Data->SetInputBatch( threadParams.Refs[threadIndex]->Dnn, threadIndex );
+			if( currBatchSize > 0 ) { // If thread has some data to perform
+				threadParams.Refs[threadIndex]->Dnn.RunOnce();
+				threadParams.IsDnnInferenced[threadIndex] = true;
+			}
+		} catch( std::exception& e ) {
+			threadParams.IsErrorHappened = true;
+			threadParams.ErrorMessages[threadIndex] = e.what();
+		}
+#ifdef NEOML_USE_FINEOBJ
+		catch( CException* e ) {
+			threadParams.IsErrorHappened = true;
+			threadParams.ErrorMessages[threadIndex] = e->MessageText().CreateString();
+			delete e;
+		}
+#endif // NEOML_USE_FINEOBJ
+	};
+	NEOML_NUM_THREADS( *threadPool, threadParams, f );
+
+	CheckArchitecture( !threadParams->IsErrorHappened, "DistributedTraining",
+		JoinStrings( threadParams->ErrorMessages ) );
+	threadParams->Data = nullptr;
+}
+
+void CDistributedInference::GetLastBlob( const CString& layerName, CObjectArray<const CDnnBlob>& blobs ) const
+{
+	blobs.DeleteAll();
+	blobs.Add( nullptr, threadParams->Refs.Size() );
+	for( int i = 0; i < threadParams->Refs.Size(); ++i ) {
+		if( threadParams->IsDnnInferenced[i] ) {
+			blobs[i] = CheckCast<const CSinkLayer>( threadParams->Refs[i]->Dnn.GetLayer( layerName ) )->GetBlob();
+		}
 	}
 }
 

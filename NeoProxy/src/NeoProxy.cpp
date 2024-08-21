@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ using namespace NeoML;
 
 extern "C" {
 
-static void initErrorInfo( TDnnErrorType errorType, const char* errorText, struct CDnnErrorInfo* errorInfo )
+static void initErrorInfo( TDnnErrorType errorType, const char* errorText, CDnnErrorInfo* errorInfo )
 {
 	if( errorInfo == 0 ) {
 		return;
@@ -40,7 +40,7 @@ static void initErrorInfo( TDnnErrorType errorType, const char* errorText, struc
 	errorInfo->Description[len] = 0;
 }
 
-//------------------------------------------------------------------------------------------------------------
+//---------------------------------------------------------------------------------------------------------------------
 
 // The file implementation over a buffer
 class CBufferFile : public CBaseFile {
@@ -118,7 +118,8 @@ void CBufferFile::Abort()
 	isOpen = false;
 }
 
-//------------------------------------------------------------------------------------------------------------
+//---------------------------------------------------------------------------------------------------------------------
+
 // CDnnMathEngineDesc implementation
 
 class CMathEngineOwner : public IObject {
@@ -134,7 +135,7 @@ private:
 	IMathEngine* mathEngine;
 };
 
-//------------------------------------------------------------------------------------------------------------
+//---------------------------------------------------------------------------------------------------------------------
 
 struct CDnnMathEngineDescImpl : public CDnnMathEngineDesc {
 	CPtr<CMathEngineOwner> MathEngineOwner;
@@ -148,13 +149,14 @@ CDnnMathEngineDescImpl::CDnnMathEngineDescImpl( IMathEngine* mathEngine, TDnnMat
 	CDnnMathEngineDesc::Type = engineType;
 }
 
-//------------------------------------------------------------------------------------------------------------
+//---------------------------------------------------------------------------------------------------------------------
+
 // MathEngine functions
 
-const struct CDnnMathEngineDesc* CreateGPUMathEngine( struct CDnnErrorInfo* errorInfo )
+const CDnnMathEngineDesc* CreateGPUMathEngine( CDnnErrorInfo* errorInfo )
 {
 	IMathEngine* mathEngine = nullptr;
-	
+
 	try {
 		SetMathEngineExceptionHandler( GetExceptionHandler() );
 		mathEngine = CreateGpuMathEngine( 0 );
@@ -173,22 +175,22 @@ const struct CDnnMathEngineDesc* CreateGPUMathEngine( struct CDnnErrorInfo* erro
 			delete mathEngine;
 		}
 	}
-#else
+#else  // !NEOML_USE_FINEOBJ
 	} catch( std::exception& e ) {
 		initErrorInfo( DET_InternalError, e.what(), errorInfo );
 		if( mathEngine != 0 ) {
 			delete mathEngine;
 		}
 	}
-#endif
+#endif // !NEOML_USE_FINEOBJ
 
 	return nullptr;
 }
 
-const struct CDnnMathEngineDesc* CreateCPUMathEngine( int threadCount, struct CDnnErrorInfo* errorInfo )
+const CDnnMathEngineDesc* CreateCPUMathEngine( int threadCount, CDnnErrorInfo* errorInfo )
 {
 	IMathEngine* mathEngine = nullptr;
-	
+
 	try {
 		SetMathEngineExceptionHandler( GetExceptionHandler() );
 		mathEngine = CreateCpuMathEngine( threadCount, 0 );
@@ -219,12 +221,13 @@ const struct CDnnMathEngineDesc* CreateCPUMathEngine( int threadCount, struct CD
 	return nullptr;
 }
 
-void DestroyMathEngine( const struct CDnnMathEngineDesc* mathEngine )
+void DestroyMathEngine( const CDnnMathEngineDesc* mathEngine )
 {
 	delete static_cast<const CDnnMathEngineDescImpl*>( mathEngine );
 }
 
-//------------------------------------------------------------------------------------------------------------
+//---------------------------------------------------------------------------------------------------------------------
+
 // CDnnBlobDesc implementation
 
 struct CDnnBlobDescImpl : public CDnnBlobDesc {
@@ -247,11 +250,12 @@ struct CDnnBlobDescImpl : public CDnnBlobDesc {
 	}
 };
 
-//------------------------------------------------------------------------------------------------------------
+//---------------------------------------------------------------------------------------------------------------------
+
 // Blob functions
 
-const struct CDnnBlobDesc* CreateDnnBlob( const struct CDnnMathEngineDesc* mathEngineDesc, TDnnBlobType dnnBlobType,
-	int batchLength, int batchWidth, int height, int width, int depth, int channelCount, struct CDnnErrorInfo* errorInfo )
+const CDnnBlobDesc* CreateDnnBlob( const CDnnMathEngineDesc* mathEngineDesc, TDnnBlobType dnnBlobType,
+	int batchLength, int batchWidth, int height, int width, int depth, int channelCount, CDnnErrorInfo* errorInfo )
 {
 	const int blobMaxSize = 1024 * 1024 * 1024; // 1GB
 
@@ -320,12 +324,12 @@ const struct CDnnBlobDesc* CreateDnnBlob( const struct CDnnMathEngineDesc* mathE
 	return nullptr;
 }
 
-void DestroyDnnBlob( const struct CDnnBlobDesc* blob )
+void DestroyDnnBlob( const CDnnBlobDesc* blob )
 {
 	delete static_cast<const CDnnBlobDescImpl*>( blob );
 }
 
-bool CopyToBlob( const struct CDnnBlobDesc* blobDesc, const void* buffer, struct CDnnErrorInfo* errorInfo )
+bool CopyToBlob( const CDnnBlobDesc* blobDesc, const void* buffer, CDnnErrorInfo* errorInfo )
 {
 	if( blobDesc == 0 ) {
 		initErrorInfo( DET_InvalidParameter, "Invalid CDnnBlobDesc parameter.", errorInfo );
@@ -346,7 +350,7 @@ bool CopyToBlob( const struct CDnnBlobDesc* blobDesc, const void* buffer, struct
 	return true;
 }
 
-bool CopyFromBlob( void* buffer, const struct CDnnBlobDesc* blobDesc, struct CDnnErrorInfo* errorInfo )
+bool CopyFromBlob( void* buffer, const CDnnBlobDesc* blobDesc, CDnnErrorInfo* errorInfo )
 {
 	if( blobDesc == 0 ) {
 		initErrorInfo( DET_InvalidParameter, "Invalid CDnnBlobDesc parameter.", errorInfo );
@@ -354,7 +358,7 @@ bool CopyFromBlob( void* buffer, const struct CDnnBlobDesc* blobDesc, struct CDn
 	}
 
 	static_assert( sizeof( float ) == sizeof( int ), "C API copy functions won't work" );
-	const CPtr<CDnnBlob>& blob = static_cast<const struct CDnnBlobDescImpl*>( blobDesc )->Blob;
+	const CPtr<CDnnBlob>& blob = static_cast<const CDnnBlobDescImpl*>( blobDesc )->Blob;
 	if( blob->GetDataType() == CT_Float ) {
 		blob->GetMathEngine().DataExchangeRaw( buffer, blob->GetData<float>(), blob->GetDataSize() * sizeof(float) );
 	} else if( blob->GetDataType() == CT_Int ) {
@@ -366,7 +370,8 @@ bool CopyFromBlob( void* buffer, const struct CDnnBlobDesc* blobDesc, struct CDn
 	return true;
 }
 
-//------------------------------------------------------------------------------------------------------------
+//---------------------------------------------------------------------------------------------------------------------
+
 // CDnnDesc implementation
 
 class CDnnDescImpl : public CDnnDesc {
@@ -485,7 +490,7 @@ void CDnnDescImpl::SetInputBlob( int index, CDnnBlob* blob ) const
 	source->SetBlob( blob );
 }
 
-bool CDnnDescImpl::RunOnce( struct CDnnErrorInfo* errorInfo ) const
+bool CDnnDescImpl::RunOnce( CDnnErrorInfo* errorInfo ) const
 {
 	try {
 		dnn.RunOnce();
@@ -495,11 +500,11 @@ bool CDnnDescImpl::RunOnce( struct CDnnErrorInfo* errorInfo ) const
 		initErrorInfo( DET_RunDnnError, e->MessageText().CreateString( CP_UTF8 ), errorInfo );
 		delete e;
 	}
-#else
+#else  // !NEOML_USE_FINEOBJ
 	} catch( std::exception& e ) {
 		initErrorInfo( DET_RunDnnError, e.what(), errorInfo );
 	}
-#endif
+#endif // !NEOML_USE_FINEOBJ
 	return false;
 }
 
@@ -512,10 +517,12 @@ CPtr<CDnnBlob> CDnnDescImpl::GetOutputBlob( int index ) const
 	return source->GetBlob();
 }
 
-//------------------------------------------------------------------------------------------------------------
+//---------------------------------------------------------------------------------------------------------------------
+
 // Network functions
 
-const struct CDnnDesc* CreateDnnFromFile( const struct CDnnMathEngineDesc* mathEngineDesc, const char* fileName, struct CDnnErrorInfo* errorInfo )
+const CDnnDesc* CreateDnnFromFile( const CDnnMathEngineDesc* mathEngineDesc, const char* fileName,
+	CDnnErrorInfo* errorInfo )
 {
 	if( mathEngineDesc == 0 ) {
 		initErrorInfo( DET_InvalidParameter, "Invalid CDnnMathEngineDesc parameter.", errorInfo );
@@ -533,23 +540,24 @@ const struct CDnnDesc* CreateDnnFromFile( const struct CDnnMathEngineDesc* mathE
 		initErrorInfo( DET_InternalError, e->MessageText().CreateString( CP_UTF8 ), errorInfo );
 		delete e;
 	}
-#else
+#else  // !NEOML_USE_FINEOBJ
 	} catch( std::system_error& e ) {
 		initErrorInfo( DET_LoadDnnError, e.what(), errorInfo );
 	} catch( std::exception& e ) {
 		initErrorInfo( DET_InternalError, e.what(), errorInfo );
 	}
-#endif
+#endif // !NEOML_USE_FINEOBJ
 	return nullptr;
 }
 
-const struct CDnnDesc* CreateDnnFromBuffer( const struct CDnnMathEngineDesc* mathEngineDesc, const void* buffer, int bufferSize, struct CDnnErrorInfo* errorInfo )
+const CDnnDesc* CreateDnnFromBuffer( const CDnnMathEngineDesc* mathEngineDesc, const void* buffer, int bufferSize,
+	CDnnErrorInfo* errorInfo )
 {
 	if( mathEngineDesc == 0 ) {
 		initErrorInfo( DET_InvalidParameter, "Invalid CDnnMathEngineDesc parameter.", errorInfo );
 		return nullptr;
 	}
-	
+
 	const CDnnMathEngineDescImpl* mathEngine = static_cast<const CDnnMathEngineDescImpl*>( mathEngineDesc );
 	try {
 		return FINE_DEBUG_NEW CDnnDescImpl( buffer, bufferSize, mathEngine );
@@ -561,17 +569,18 @@ const struct CDnnDesc* CreateDnnFromBuffer( const struct CDnnMathEngineDesc* mat
 		initErrorInfo( DET_InternalError, e->MessageText().CreateString( CP_UTF8 ), errorInfo );
 		delete e;
 	}
-#else
+#else  // !NEOML_USE_FINEOBJ
 	} catch( std::system_error& e ) {
 		initErrorInfo( DET_LoadDnnError, e.what(), errorInfo );
 	} catch( std::exception& e ) {
 		initErrorInfo( DET_InternalError, e.what(), errorInfo );
 	}
-#endif
+#endif // !NEOML_USE_FINEOBJ
 	return nullptr;
 }
 
-const struct CDnnDesc* CreateDnnFromOnnxFile( const struct CDnnMathEngineDesc* mathEngineDesc, const char* fileName, struct CDnnErrorInfo* errorInfo )
+const CDnnDesc* CreateDnnFromOnnxFile( const CDnnMathEngineDesc* mathEngineDesc, const char* fileName,
+	CDnnErrorInfo* errorInfo )
 {
 	if( mathEngineDesc == 0 ) {
 		initErrorInfo( DET_InvalidParameter, "Invalid CDnnMathEngineDesc parameter.", errorInfo );
@@ -598,7 +607,7 @@ const struct CDnnDesc* CreateDnnFromOnnxFile( const struct CDnnMathEngineDesc* m
 			delete dnnDesc;
 		}
 	}
-#else
+#else  // !NEOML_USE_FINEOBJ
 	} catch( std::system_error& e ) {
 		initErrorInfo( DET_LoadDnnError, e.what(), errorInfo );
 		if( dnnDesc != nullptr ) {
@@ -610,11 +619,12 @@ const struct CDnnDesc* CreateDnnFromOnnxFile( const struct CDnnMathEngineDesc* m
 			delete dnnDesc;
 		}
 	}
-#endif
+#endif // !NEOML_USE_FINEOBJ
 	return nullptr;
 }
 
-const struct CDnnDesc* CreateDnnFromOnnxBuffer( const struct CDnnMathEngineDesc* mathEngineDesc, const void* buffer, int bufferSize, struct CDnnErrorInfo* errorInfo )
+const CDnnDesc* CreateDnnFromOnnxBuffer( const CDnnMathEngineDesc* mathEngineDesc, const void* buffer,
+	int bufferSize, CDnnErrorInfo* errorInfo )
 {
 	if( mathEngineDesc == 0 ) {
 		initErrorInfo( DET_InvalidParameter, "Invalid CDnnMathEngineDesc parameter.", errorInfo );
@@ -641,7 +651,7 @@ const struct CDnnDesc* CreateDnnFromOnnxBuffer( const struct CDnnMathEngineDesc*
 			delete dnnDesc;
 		}
 	}
-#else
+#else  // !NEOML_USE_FINEOBJ
 	} catch( std::system_error& e ) {
 		initErrorInfo( DET_LoadDnnError, e.what(), errorInfo );
 		if( dnnDesc != nullptr ) {
@@ -653,16 +663,16 @@ const struct CDnnDesc* CreateDnnFromOnnxBuffer( const struct CDnnMathEngineDesc*
 			delete dnnDesc;
 		}
 	}
-#endif
+#endif // !NEOML_USE_FINEOBJ
 	return nullptr;
 }
 
-void DestroyDnn( const struct CDnnDesc* dnnDesc )
+void DestroyDnn( const CDnnDesc* dnnDesc )
 {
 	delete static_cast<const CDnnDescImpl*>( dnnDesc );
 }
 
-const char* GetInputName( const struct CDnnDesc* dnnDesc, int index, struct CDnnErrorInfo* errorInfo )
+const char* GetInputName( const CDnnDesc* dnnDesc, int index, CDnnErrorInfo* errorInfo )
 {
 	if( dnnDesc == 0 ) {
 		initErrorInfo( DET_InvalidParameter, "Invalid CDnnDesc parameter.", errorInfo );
@@ -678,7 +688,7 @@ const char* GetInputName( const struct CDnnDesc* dnnDesc, int index, struct CDnn
 	return dnn->GetInputName( index );
 }
 
-bool SetInputBlob( const struct CDnnDesc* dnnDesc, int index, const struct CDnnBlobDesc* blobDesc, struct CDnnErrorInfo* errorInfo )
+bool SetInputBlob( const CDnnDesc* dnnDesc, int index, const CDnnBlobDesc* blobDesc, CDnnErrorInfo* errorInfo )
 {
 	if( dnnDesc == 0 ) {
 		initErrorInfo( DET_InvalidParameter, "Invalid CDnnDesc parameter.", errorInfo );
@@ -701,7 +711,7 @@ bool SetInputBlob( const struct CDnnDesc* dnnDesc, int index, const struct CDnnB
 	return true;
 }
 
-bool DnnRunOnce( const struct CDnnDesc* dnnDesc, struct CDnnErrorInfo* errorInfo )
+bool DnnRunOnce( const CDnnDesc* dnnDesc, CDnnErrorInfo* errorInfo )
 {
 	if( dnnDesc == 0 ) {
 		initErrorInfo( DET_InvalidParameter, "Invalid CDnnDesc parameter.", errorInfo );
@@ -710,7 +720,7 @@ bool DnnRunOnce( const struct CDnnDesc* dnnDesc, struct CDnnErrorInfo* errorInfo
 	return static_cast<const CDnnDescImpl*>( dnnDesc )->RunOnce( errorInfo );
 }
 
-const char* GetOutputName( const struct CDnnDesc* dnnDesc, int index, struct CDnnErrorInfo* errorInfo )
+const char* GetOutputName( const CDnnDesc* dnnDesc, int index, CDnnErrorInfo* errorInfo )
 {
 	if( dnnDesc == 0 ) {
 		initErrorInfo( DET_InvalidParameter, "Invalid CDnnDesc parameter.", errorInfo );
@@ -726,7 +736,7 @@ const char* GetOutputName( const struct CDnnDesc* dnnDesc, int index, struct CDn
 	return dnn->GetOutputName( index );
 }
 
-const struct CDnnBlobDesc* GetOutputBlob( const struct CDnnDesc* dnnDesc, int index, struct CDnnErrorInfo* errorInfo )
+const CDnnBlobDesc* GetOutputBlob( const CDnnDesc* dnnDesc, int index, CDnnErrorInfo* errorInfo )
 {
 	if( dnnDesc == 0 ) {
 		initErrorInfo( DET_InvalidParameter, "Invalid CDnnDesc parameter.", errorInfo );
@@ -755,11 +765,11 @@ const struct CDnnBlobDesc* GetOutputBlob( const struct CDnnDesc* dnnDesc, int in
 		initErrorInfo( DET_InternalError, e->MessageText().CreateString( CP_UTF8 ), errorInfo );
 		delete e;
 	}
-#else
+#else  // !NEOML_USE_FINEOBJ
 	} catch( std::exception& e ) {
 		initErrorInfo( DET_InternalError, e.what(), errorInfo );
 	}
-#endif
+#endif // !NEOML_USE_FINEOBJ
 
 	return nullptr;
 }

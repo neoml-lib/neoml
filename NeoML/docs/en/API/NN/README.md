@@ -16,6 +16,7 @@
     - [Serialization](#serialization)
         - [Sample code for saving the network](#sample-code-for-saving-the-network)
     - [Using the network](#using-the-network)
+    - [Distributed Inference](#distributed-inference)
     - [The layers](#the-layers)
 
 <!-- /TOC -->
@@ -198,6 +199,18 @@ IMathEngine* gpuMathEngine = CreateGpuMathEngine( 1024 * 1024 * 1024, GetFmlExce
 // Delete the engine after all blobs are deleted
 delete gpuMathEngine;
 ```
+
+
+## Distributed Inference
+
+This class implements neural network inference across multiple CPU threads simultaneously.
+
+[Distributed Inference](DistributedInference.md)
+
+To get a more detailed understanding of how this approach works, see
+
+[Reference DNN Factory](ReferenceDnnFactory.md)
+
 
 ## The layers
 

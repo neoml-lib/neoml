@@ -91,16 +91,17 @@ void CTrustRegionNewtonOptimizer::Optimize()
 			alpha = sigma3 * shiftNorm;
 		}
 		// Update the trust region size using the predicted and the actual function value reduction
-		if (actualReduction < eta0 * predictedReduction)
-			trustRegionSize = min(alpha, sigma2 * trustRegionSize);
-		else if (actualReduction < eta1 * predictedReduction)
-			trustRegionSize = max(sigma1 * trustRegionSize, min(alpha, sigma2 * trustRegionSize));
-		else if (actualReduction < eta2 * predictedReduction)
-			trustRegionSize = max(sigma1 * trustRegionSize, min(alpha, sigma3 * trustRegionSize));
-		else
-			trustRegionSize = max(trustRegionSize, min(alpha, sigma3 * trustRegionSize));
+		if( actualReduction < eta0 * predictedReduction ) {
+			trustRegionSize = min( alpha, sigma2 * trustRegionSize );
+		} else if( actualReduction < eta1 * predictedReduction ) {
+			trustRegionSize = max( sigma1 * trustRegionSize, min( alpha, sigma2 * trustRegionSize ) );
+		} else if( actualReduction < eta2 * predictedReduction ) {
+			trustRegionSize = max( sigma1 * trustRegionSize, min( alpha, sigma3 * trustRegionSize ) );
+		} else {
+			trustRegionSize = max( trustRegionSize, min( alpha, sigma3 * trustRegionSize ) );
+		}
 		// Log the current iteration parameters
-		if(log != 0) {
+		if( log != nullptr ) {
 			*log << "iter = " << i << ", actual = " << actualReduction << ", predicted = " << predictedReduction 
 				<< ", trust region size = " << trustRegionSize << ", value = " << value << ", gradient norm = " << gradientNorm
 				<< ", shift norm = " << shiftNorm
@@ -153,8 +154,8 @@ void CTrustRegionNewtonOptimizer::Optimize()
 // The solution is represented as decomposition into conjugate directions:
 // shift = sum(alpha * conjugateVector)
 
-int CTrustRegionNewtonOptimizer::conjugateGradientSearch(double trustRegionSize, 
-	const CFloatVector& gradient, CFloatVector& shift, CFloatVector& residue)
+int CTrustRegionNewtonOptimizer::conjugateGradientSearch( double trustRegionSize, 
+	const CFloatVector& gradient, CFloatVector& shift, CFloatVector& residue )
 {
 	// Maximum number of iterations
 	const int maxAllowedIterations = 10000;

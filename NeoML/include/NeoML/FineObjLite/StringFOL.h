@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,19 +22,21 @@ namespace FObj {
 
 class CString : public std::string {
 public:
-	CString() {}
+	CString() = default;
 	CString( const char* str ) : std::string( str ) {}
 	CString( const char* str, int len ) : std::string( str, len ) {}
 	CString( const std::string& str ) : std::string( str ) {}
 	CString( std::string&& str ) : std::string( std::move(str) ) {}
 
 	operator const char*() const { return data(); }
+	const char* Ptr() const { return data(); }
 
 	char operator[]( int pos ) const { return std::string::operator[]( static_cast<size_t>(pos) ); }
 	char& operator[]( int pos ) { return std::string::operator[]( static_cast<size_t>(pos) ); }
 
 	void Empty() { clear(); }
 	bool IsEmpty() const { return empty(); }
+	void SetBufferLength( int length ) { reserve( length ); }
 	int Length() const { return static_cast<int>( size() ); }
 	int Find( const CString& other, int startPos = 0 ) const;
 
@@ -44,10 +46,12 @@ public:
 	CString Mid( int pos, int num ) const;
 };
 
+//---------------------------------------------------------------------------------------------------------------------
+
 inline int CString::Find( const CString& other, int startPos ) const
 {
 	size_t found = std::string::find( other, static_cast<size_t>( startPos ) );
-	return found == std::string::npos ? -1 : static_cast<int>( found );
+	return ( found == std::string::npos ) ? -1 : static_cast<int>( found );
 }
 
 inline int CString::CompareSubstr( int from, const char* str, int strLength ) const
@@ -197,9 +201,9 @@ inline bool Value( const CString& str, double& result )
 		return true;
 	}
 	return false;
-#else
+#else  // !FINE_PLATFORM
 	#error Unknown platform
-#endif
+#endif // !FINE_PLATFORM
 }
 
 } // namespace FObj

@@ -36,7 +36,7 @@
 В данном примере алгоритм k-средних используется для кластеризации набора данных [Iris Data Set](http://archive.ics.uci.edu/ml/datasets/Iris):
 
 ```c++
-void Clusterize( IClusteringData& irisDataSet, CClusteringResult& result )
+void Clusterize( const IClusteringData& irisDataSet, CClusteringResult& result )
 {
 	CKMeansClustering::CParam params;
 	params.Algorithm = CKMeansClustering::KMA_Lloyd;

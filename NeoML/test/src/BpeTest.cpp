@@ -1,4 +1,4 @@
-/* Copyright © 2022 ABBYY Production LLC
+/* Copyright © 2022-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -276,20 +276,6 @@ TEST_F( CBpeTest, Ambiguous )
 	EXPECT_EQ( 1, tokenLengths[3] );
 }
 
-#ifdef NEOML_USE_FINEOBJ
-#define BPE_TEST_ASSERT( expr ) \
-	try { \
-		( expr ); \
-		FAIL() << "No exception has been thrown during '" << #expr << "'"; \
-	} catch( CInternalError* err ) { \
-		err->Delete(); \
-	} catch( ... ) { \
-		FAIL() << "Wrong exception has been thrown during '" << #expr << "'"; \
-	}
-#else
-#define BPE_TEST_ASSERT( expr ) EXPECT_THROW( ( expr ), CInternalError )
-#endif
-
 TEST_F( CBpeTest, LoadIncorrectDictionary )
 {
 	CPtr<IBytePairEncoder> tokenizer = CheckCast<IBytePairEncoder>( CreateModel( BytePairEncoderModelName ) );
@@ -297,26 +283,26 @@ TEST_F( CBpeTest, LoadIncorrectDictionary )
 	ISubwordEncoder::CParams params;
 	params.EndOfWordToken = "@";
 	IBytePairEncoder::CBPEDictionary badDictionary = { "a@a", "a" };
-	BPE_TEST_ASSERT( tokenizer->Initialize( badDictionary, params ) );
+	NEOML_EXPECT_THROW( tokenizer->Initialize( badDictionary, params ) );
 
 	// aa@@ is inseparable
 	tokenizer = CheckCast<IBytePairEncoder>( CreateModel( BytePairEncoderModelName ) );
 	IBytePairEncoder::CBPEDictionary dictionary = { "aa@@", "a" };
 	params.EndOfWordToken = "";
-	BPE_TEST_ASSERT( tokenizer->Initialize( dictionary, params ) );
+	NEOML_EXPECT_THROW( tokenizer->Initialize( dictionary, params ) );
 
 	// no single '@@'
 	tokenizer = CheckCast<IBytePairEncoder>( CreateModel( BytePairEncoderModelName ) );
 	params.EndOfWordToken = "@@";
 	dictionary.InsertAt( "aa", 0 );
-	BPE_TEST_ASSERT( tokenizer->Initialize( dictionary, params ) );
+	NEOML_EXPECT_THROW( tokenizer->Initialize( dictionary, params ) );
 	dictionary.Add( "@@" );
 
 	// wrong symbol
 	tokenizer = CheckCast<IBytePairEncoder>( CreateModel( BytePairEncoderModelName ) );
 	params.StartOfWordToken = "";
 	params.EndOfWordToken = "!";
-	BPE_TEST_ASSERT( tokenizer->Initialize( dictionary, params ) );
+	NEOML_EXPECT_THROW( tokenizer->Initialize( dictionary, params ) );
 }
 
 TEST_F( CBpeTest, SaveLoadDictionary )

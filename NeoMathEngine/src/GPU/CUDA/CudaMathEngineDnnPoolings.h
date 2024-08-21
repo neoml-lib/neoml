@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -28,35 +28,35 @@ namespace NeoML {
 // CUDA cannot copy structures correctly in cases of multiple inheritance
 // So all operation descriptors are in the internal part
 
-struct CCudaMaxPoolingDescInternal {
-	CCudaBlobDesc Source;
-	CCudaBlobDesc Result;
-	int FilterWidth;
-	int FilterHeight;
-	int StrideHeight;
-	int StrideWidth;
+struct CCudaMaxPoolingDescInternal final {
+	CCudaBlobDesc Source{};
+	CCudaBlobDesc Result{};
+	int FilterWidth = 0;
+	int FilterHeight = 0;
+	int StrideHeight = 0;
+	int StrideWidth = 0;
 };
 
 struct CCudaMaxPoolingDesc : public CMaxPoolingDesc {
-	CCudaMaxPoolingDescInternal Internal;
+	CCudaMaxPoolingDescInternal Internal{};
 };
 
 struct CCudaMeanPoolingDescInternal {
-	CCudaBlobDesc Source;
-	CCudaBlobDesc Result;
-	int FilterHeight;
-	int FilterWidth;
-	int StrideHeight;
-	int StrideWidth;
+	CCudaBlobDesc Source{};
+	CCudaBlobDesc Result{};
+	int FilterHeight = 0;
+	int FilterWidth = 0;
+	int StrideHeight = 0;
+	int StrideWidth = 0;
 };
 
 struct CCudaMeanPoolingDesc : public CMeanPoolingDesc {
-	CCudaMeanPoolingDescInternal Internal;
+	CCudaMeanPoolingDescInternal Internal{};
 };
 
 struct CCudaGlobalMaxOverTimePoolingDescInternal {
-	CCudaBlobDesc Source;
-	CCudaBlobDesc Result;
+	CCudaBlobDesc Source{};
+	CCudaBlobDesc Result{};
 };
 
 struct CCudaGlobalMaxOverTimePoolingDesc : public CGlobalMaxOverTimePoolingDesc {
@@ -64,54 +64,54 @@ struct CCudaGlobalMaxOverTimePoolingDesc : public CGlobalMaxOverTimePoolingDesc 
 };
 
 struct CCudaGlobalMaxPoolingDescInternal {
-	CCudaBlobDesc Source;
-	CCudaBlobDesc MaxIndices;
-	CCudaBlobDesc Result;
+	CCudaBlobDesc Source{};
+	CCudaBlobDesc MaxIndices{};
+	CCudaBlobDesc Result{};
 };
 
 struct CCudaGlobalMaxPoolingDesc : public CGlobalMaxPoolingDesc {
-	CCudaGlobalMaxPoolingDescInternal Internal;
+	CCudaGlobalMaxPoolingDescInternal Internal{};
 };
 
 struct CCuda3dMaxPoolingDescInternal {
-	CCudaBlobDesc Source;
-	CCudaBlobDesc Result;
-	int FilterHeight;
-	int FilterWidth;
-	int FilterDepth;
-	int StrideHeight;
-	int StrideWidth;
-	int StrideDepth;
+	CCudaBlobDesc Source{};
+	CCudaBlobDesc Result{};
+	int FilterHeight = 0;
+	int FilterWidth = 0;
+	int FilterDepth = 0;
+	int StrideHeight = 0;
+	int StrideWidth = 0;
+	int StrideDepth = 0;
 };
 
 struct CCuda3dMaxPoolingDesc : public C3dMaxPoolingDesc {
-	CCuda3dMaxPoolingDescInternal Internal;
+	CCuda3dMaxPoolingDescInternal Internal{};
 };
 
 struct CCuda3dMeanPoolingDescInternal {
-	CCudaBlobDesc Source;
-	CCudaBlobDesc Result;
-	int FilterHeight;
-	int FilterWidth;
-	int FilterDepth;
-	int StrideHeight;
-	int StrideWidth;
-	int StrideDepth;
+	CCudaBlobDesc Source{};
+	CCudaBlobDesc Result{};
+	int FilterHeight = 0;
+	int FilterWidth = 0;
+	int FilterDepth = 0;
+	int StrideHeight = 0;
+	int StrideWidth = 0;
+	int StrideDepth = 0;
 };
 
 struct CCuda3dMeanPoolingDesc : public C3dMeanPoolingDesc {
-	CCuda3dMeanPoolingDescInternal Internal;
+	CCuda3dMeanPoolingDescInternal Internal{};
 };
 
 struct CCudaMaxOverTimePoolingDescInternal {
-	CCudaBlobDesc Source;
-	CCudaBlobDesc Result;
-	int FilterLen;
-	int StrideLen;
+	CCudaBlobDesc Source{};
+	CCudaBlobDesc Result{};
+	int FilterLen = 0;
+	int StrideLen = 0;
 };
 
 struct CCudaMaxOverTimePoolingDesc : public CMaxOverTimePoolingDesc {
-	CCudaMaxOverTimePoolingDescInternal Internal;
+	CCudaMaxOverTimePoolingDescInternal Internal{};
 };
 
 } // namespace NeoML

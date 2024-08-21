@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -24,8 +24,8 @@ __global__ void RandomMatrixDropout( const float* first, int firstHeight,
 	int firstWidth, float* res, int seed, float forwardRate )
 {
 	const unsigned int threshold = forwardRate * UINT_MAX;
-	int row;
-	int col;
+	int row = 0;
+	int col = 0;
 	if( GetCudaTaskIndex2D( firstHeight, ( firstWidth + 3 ) / 4, row, col ) ) {
 		CCudaRandom random(seed);
 		random.Skip(col);
@@ -43,9 +43,9 @@ __global__ void RandomSpatialDropout( const float* input, float* res, int inputO
 	int inputObjectSize, int maskObjectCount, int maskObjectSize, int seed, float forwardRate )
 {
 	const unsigned int threshold = forwardRate * UINT_MAX;
-	int obj;
-	int row;
-	int col;
+	int obj = 0;
+	int row = 0;
+	int col = 0;
 	if( GetCudaTaskIndex3D( inputObjectCount, inputObjectSize / maskObjectSize, maskObjectSize, obj, row, col ) ) {
 		const int pack = obj % maskObjectCount;
 		const int index = obj * inputObjectSize + row * maskObjectSize + col;

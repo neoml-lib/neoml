@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,14 +15,14 @@ limitations under the License.
 
 #pragma once
 
-#include "ErrorsFOL.h"
+#include <ErrorsFOL.h>
 
 namespace FObj {
 
 template<class TArray>
 class CArrayIterator;
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
+//---------------------------------------------------------------------------------------------------------------------
 
 // Iterator over constant CArray and CFastArray
 // Usage:
@@ -77,7 +77,8 @@ private:
 	bool isValidPtr() const;
 };
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
+//---------------------------------------------------------------------------------------------------------------------
+
 // CConstArrayIterator methods
 
 template<class TArray>
@@ -96,7 +97,7 @@ inline CConstArrayIterator<TArray>::CConstArrayIterator( const TElement* _ptr, c
 #ifdef _DEBUG
 	arr = _arr;
 #else // !_DEBUG
-	_arr;
+	( void ) _arr;
 #endif // _DEBUG
 }
 
@@ -203,7 +204,7 @@ inline CConstArrayIterator<TArray> operator+( int offset, const CConstArrayItera
 	return it + offset;
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
+//---------------------------------------------------------------------------------------------------------------------
 
 // Iterator over CArray and CFastArray
 // Usage:
@@ -244,7 +245,8 @@ private:
 	CConstArrayIterator<TArray>& myBase() { return *this; }
 };
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
+//---------------------------------------------------------------------------------------------------------------------
+
 // CArrayIterator methods
 
 template<class TArray>
@@ -318,7 +320,5 @@ inline CArrayIterator<TArray> operator+( int offset, const CArrayIterator<TArray
 {
 	return it + offset;
 }
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
 
 } // namespace FObj

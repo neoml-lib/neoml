@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,14 +15,19 @@ limitations under the License.
 
 #pragma once
 
+#include <AllocFOL.h>
+#include <ArchiveFOL.h>
+#include <DynamicBitSetIteratorFOL.h>
+#include <FastArrayFOL.h>
+#include <MathFOL.h>
+
 namespace FObj {
 
 template<int InitialSize, class Allocator>
-class CDynamicBitSet; 
+class CDynamicBitSet;
 
 template<int InitialSize, class Allocator>
 CArchive& operator<< ( CArchive&, const CDynamicBitSet<InitialSize, Allocator>& );
-
 template<int InitialSize, class Allocator>
 CArchive& operator>> ( CArchive&, CDynamicBitSet<InitialSize, Allocator>& );
 
@@ -30,15 +35,23 @@ template<int InitialSize = 1, class Allocator = CurrentMemoryManager>
 class CDynamicBitSet {
 public:
 	typedef int TElement;
+	typedef CDynamicBitSetIterator<CDynamicBitSet> TConstIterator;
+	typedef TConstIterator TIterator;
 
-	CDynamicBitSet() {}
+	CDynamicBitSet() = default;
 	explicit CDynamicBitSet( int element );
 	CDynamicBitSet( const CDynamicBitSet& other );
+	CDynamicBitSet( CDynamicBitSet&& other );
+
+	CDynamicBitSet( const std::initializer_list<int>& elements );
 	CDynamicBitSet( const int* elements, int elementsCount );
 
+	~CDynamicBitSet() = default;
+
 	CDynamicBitSet& operator=( const CDynamicBitSet& other );
+	CDynamicBitSet& operator=( CDynamicBitSet&& other );
 	void MoveTo( CDynamicBitSet& other );
-	
+
 	void* GetPtr() { return body.GetPtr(); }
 	const void* GetPtr() const { return body.GetPtr(); }
 	int BufferByteSize() const { return body.Size() * sizeof( bodyType ); }
@@ -56,29 +69,31 @@ public:
 	bool operator[]( int element ) const { return Has( element ); }
 
 	CDynamicBitSet operator | ( const CDynamicBitSet& set ) const;
-	CDynamicBitSet operator | ( int element ) const;
 	CDynamicBitSet operator & ( const CDynamicBitSet& set ) const;
-	CDynamicBitSet operator & ( int element ) const;
 	CDynamicBitSet operator - ( const CDynamicBitSet& set ) const;
-	CDynamicBitSet operator - ( int element ) const;
 	CDynamicBitSet operator ^ ( const CDynamicBitSet& set ) const;
+	CDynamicBitSet operator | ( int element ) const;
+	CDynamicBitSet operator & ( int element ) const;
+	CDynamicBitSet operator - ( int element ) const;
 	CDynamicBitSet operator ^ ( int element ) const;
-	
-	const CDynamicBitSet& operator |= ( const CDynamicBitSet& set );
-	const CDynamicBitSet& operator |= ( int element );
-	const CDynamicBitSet& operator &= ( const CDynamicBitSet& set );
-	const CDynamicBitSet& operator &= ( int element );
-	const CDynamicBitSet& operator -= ( const CDynamicBitSet& set );
-	const CDynamicBitSet& operator -= ( int element );
-	const CDynamicBitSet& operator ^= ( const CDynamicBitSet& set );
-	const CDynamicBitSet& operator ^= ( int element );
+
+	CDynamicBitSet& operator |= ( const CDynamicBitSet& set );
+	CDynamicBitSet& operator &= ( const CDynamicBitSet& set );
+	CDynamicBitSet& operator -= ( const CDynamicBitSet& set );
+	CDynamicBitSet& operator ^= ( const CDynamicBitSet& set );
+	CDynamicBitSet& operator |= ( int element );
+	CDynamicBitSet& operator &= ( int element );
+	CDynamicBitSet& operator -= ( int element );
+	CDynamicBitSet& operator ^= ( int element );
 
 	void Set( int element ) { *this |= element; }
 	void Set( const CDynamicBitSet& set ) { *this |= set; }
 	void Set( int from, int count );
+
 	void Reset( int element ) { *this -= element; }
 	void Reset( const CDynamicBitSet& set ) { *this -= set; }
 	void Reset( int from, int count );
+
 	void Invert( int element ) { *this ^= element; }
 	void Invert( const CDynamicBitSet& set ) { *this ^= set; }
 	void Invert( int from, int count );
@@ -90,7 +105,7 @@ public:
 
 	void ShiftForward();
 	void ShiftBackward();
-	
+
 	int FindFirstElement() const;
 	int FindLastElement() const;
 	int FindNextElement( int from ) const;
@@ -101,25 +116,28 @@ public:
 
 	int HashKey() const;
 
+	TConstIterator begin() const { return TConstIterator( this, FindFirstElement() ); }
+	TConstIterator end() const { return TConstIterator( this, NotFound ); }
+
 	friend CArchive& operator<< <InitialSize, Allocator>( CArchive&, const CDynamicBitSet<InitialSize, Allocator>& );
 	friend CArchive& operator>> <InitialSize, Allocator>( CArchive&, CDynamicBitSet<InitialSize, Allocator>& );
 
 private:
-	typedef unsigned int bodyType;
-	static const int BitsPerElement = CHAR_BIT * sizeof( bodyType );
+	using bodyType = unsigned;
+	static constexpr int BitsPerElement = CHAR_BIT * sizeof( bodyType );
 
-	CFastArray<bodyType, ( InitialSize + BitsPerElement - 1 ) / BitsPerElement, Allocator> body;
+	CFastArray<bodyType, ( InitialSize + BitsPerElement - 1 ) / BitsPerElement, Allocator> body = {};
 
 	void grow( int newSize );
 	void cleanTail( int from );
 	bool isTailEmpty( int from ) const;
 	static int index( int bit );
-	static bodyType mask( int bit );
-	static bodyType maskFrom( int from );
-	static bodyType maskTo( int to );
+	static auto mask( int bit )->bodyType;
+	static auto maskFrom( int from )->bodyType;
+	static auto maskTo( int to )->bodyType;
 };
 
-//-------------------------------------------------------------------------------------
+//---------------------------------------------------------------------------------------------------------------------
 
 static const unsigned char BitSetElementsTable[256] = {
 	0, 1, 1, 2, 1, 2, 2, 3,
@@ -251,40 +269,39 @@ static const unsigned char BitSetPrevMaskTable[CHAR_BIT] = {
 	0x7f, // 01111111
 };
 
-//------------------------------------------------------------------------------------------------------------
+//---------------------------------------------------------------------------------------------------------------------
 
 template<int InitialSize, class Allocator>
-inline typename CDynamicBitSet<InitialSize, Allocator>::bodyType 
-	CDynamicBitSet<InitialSize, Allocator>::mask( int bit )
+auto CDynamicBitSet<InitialSize, Allocator>::mask( int bit ) -> bodyType
 {
 	PresumeFO( bit >= 0 );
-	return 1 << ( ( static_cast<unsigned int>(bit) ) % BitsPerElement );
+	static_assert( sizeof(1) == sizeof(bodyType), "" );
+	static_assert( BitsPerElement > 0, "" );
+	return 1 << ( ( to<unsigned int>(bit) ) % BitsPerElement );
 }
 
 template<int InitialSize, class Allocator>
-inline typename CDynamicBitSet<InitialSize, Allocator>::bodyType 
-	CDynamicBitSet<InitialSize, Allocator>::maskFrom( int from )
+auto CDynamicBitSet<InitialSize, Allocator>::maskFrom( int from ) -> bodyType
 {
 	return ~bodyType( 0 ) & ~( mask( from ) - 1U );
 }
 
 template<int InitialSize, class Allocator>
-inline typename CDynamicBitSet<InitialSize, Allocator>::bodyType 
-	CDynamicBitSet<InitialSize, Allocator>::maskTo( int to )
+auto CDynamicBitSet<InitialSize, Allocator>::maskTo( int to ) -> bodyType
 {
 	bodyType bitMask = mask( to );
 	return ( bitMask - 1U ) | bitMask;
 }
 
 template<int InitialSize, class Allocator>
-inline int CDynamicBitSet<InitialSize, Allocator>::index( int bit )
+int CDynamicBitSet<InitialSize, Allocator>::index( int bit )
 {
 	PresumeFO( bit >= 0 );
 	return ( static_cast<unsigned int>(bit) ) / BitsPerElement;
 }
 
 template<int InitialSize, class Allocator>
-inline void CDynamicBitSet<InitialSize, Allocator>::cleanTail( int from )
+void CDynamicBitSet<InitialSize, Allocator>::cleanTail( int from )
 {
 	for( ; from < body.Size(); from++ ) {
 		body[from] = 0;
@@ -292,7 +309,7 @@ inline void CDynamicBitSet<InitialSize, Allocator>::cleanTail( int from )
 }
 
 template<int InitialSize, class Allocator>
-inline bool CDynamicBitSet<InitialSize, Allocator>::isTailEmpty( int from ) const
+bool CDynamicBitSet<InitialSize, Allocator>::isTailEmpty( int from ) const
 {
 	for( ; from < body.Size(); from++ ) {
 		if( body[from] != 0 ) {
@@ -303,7 +320,7 @@ inline bool CDynamicBitSet<InitialSize, Allocator>::isTailEmpty( int from ) cons
 }
 
 template<int InitialSize, class Allocator>
-inline CDynamicBitSet<InitialSize, Allocator>::CDynamicBitSet( int element )
+CDynamicBitSet<InitialSize, Allocator>::CDynamicBitSet( int element )
 {
 	Set( element );
 }
@@ -320,39 +337,70 @@ CDynamicBitSet<InitialSize, Allocator>::CDynamicBitSet( const int* elements, int
 }
 
 template<int InitialSize, class Allocator>
-inline CDynamicBitSet<InitialSize, Allocator>::CDynamicBitSet( const CDynamicBitSet<InitialSize, Allocator>& other )
+CDynamicBitSet<InitialSize, Allocator>::CDynamicBitSet( const CDynamicBitSet& other )
 {
 	other.body.CopyTo( body );
 }
 
 template<int InitialSize, class Allocator>
-inline void CDynamicBitSet<InitialSize, Allocator>::MoveTo( CDynamicBitSet<InitialSize, Allocator>& other )
+CDynamicBitSet<InitialSize, Allocator>::CDynamicBitSet( CDynamicBitSet&& other )
+{
+	other.body.MoveTo( body );
+}
+
+template<int InitialSize, class Allocator>
+CDynamicBitSet<InitialSize, Allocator>::CDynamicBitSet( const std::initializer_list<int>& elements )
+{
+	if( elements.size() == 0 ) {
+		return;
+	}
+	int maxEl = -1;
+	for( int el : elements ) {
+		maxEl = max( el, maxEl );
+	}
+	const int bitIndex = index( maxEl );
+	if( bitIndex >= body.Size() ) {
+		grow( bitIndex + 1 );
+	}
+	for( int el : elements ) {
+		Set( el );
+	}
+}
+
+template<int InitialSize, class Allocator>
+void CDynamicBitSet<InitialSize, Allocator>::MoveTo( CDynamicBitSet& other )
 {
 	body.MoveTo( other.body );
 }
 
 template<int InitialSize, class Allocator>
-inline CDynamicBitSet<InitialSize, Allocator>& CDynamicBitSet<InitialSize, Allocator>::operator = ( 
-	const CDynamicBitSet<InitialSize, Allocator>& other )
+CDynamicBitSet<InitialSize, Allocator>& CDynamicBitSet<InitialSize, Allocator>::operator = ( const CDynamicBitSet& other )
 {
 	other.body.CopyTo( body );
 	return *this;
 }
 
 template<int InitialSize, class Allocator>
-inline void CDynamicBitSet<InitialSize, Allocator>::Empty()
+CDynamicBitSet<InitialSize, Allocator>& CDynamicBitSet<InitialSize, Allocator>::operator = ( CDynamicBitSet&& other )
+{
+	other.body.MoveTo( body );
+	return *this;
+}
+
+template<int InitialSize, class Allocator>
+void CDynamicBitSet<InitialSize, Allocator>::Empty()
 {
 	body.DeleteAll();
 }
 
 template<int InitialSize, class Allocator>
-inline void CDynamicBitSet<InitialSize, Allocator>::FreeBuffer()
+void CDynamicBitSet<InitialSize, Allocator>::FreeBuffer()
 {
 	body.FreeBuffer();
 }
 
 template<int InitialSize, class Allocator>
-inline bool CDynamicBitSet<InitialSize, Allocator>::Has( const CDynamicBitSet<InitialSize, Allocator>& subset ) const
+bool CDynamicBitSet<InitialSize, Allocator>::Has( const CDynamicBitSet& subset ) const
 {
 	int minLength = min( body.Size(), subset.body.Size() );
 	for( int i = 0; i < minLength; i++ ) {
@@ -360,7 +408,7 @@ inline bool CDynamicBitSet<InitialSize, Allocator>::Has( const CDynamicBitSet<In
 			return false;
 		}
 	}
-	
+
 	return subset.isTailEmpty( minLength );
 }
 
@@ -368,11 +416,11 @@ template<int InitialSize, class Allocator>
 bool CDynamicBitSet<InitialSize, Allocator>::IsEmpty( int from, int count ) const
 {
 	PresumeFO( count >= 0 && from >= 0 );
-	
+
 	if( count == 0 || from >= GetBufferSize() ) {
 		return true;
 	}
-	
+
 	int to = min( GetBufferSize() - 1, from + count - 1 );
 	PresumeFO( from <= to );
 	int fromIndex = index( from );
@@ -392,67 +440,62 @@ bool CDynamicBitSet<InitialSize, Allocator>::IsEmpty( int from, int count ) cons
 }
 
 template<int InitialSize, class Allocator>
-inline bool CDynamicBitSet<InitialSize, Allocator>::Has( int bit ) const
+bool CDynamicBitSet<InitialSize, Allocator>::Has( int bit ) const
 {
 	const int bitIndex = index( bit );
 	return bitIndex < body.Size() && ( body[bitIndex] & mask( bit ) ) != 0;
 }
 
 template<int InitialSize, class Allocator>
-inline CDynamicBitSet<InitialSize, Allocator> CDynamicBitSet<InitialSize, Allocator>::operator|( 
-	const CDynamicBitSet<InitialSize, Allocator>& set ) const
+CDynamicBitSet<InitialSize, Allocator> CDynamicBitSet<InitialSize, Allocator>::operator|( const CDynamicBitSet& set ) const
 {
-	return CDynamicBitSet<InitialSize, Allocator>( *this ) |= set;
+	return CDynamicBitSet( *this ) |= set;
 }
 
 template<int InitialSize, class Allocator>
-inline CDynamicBitSet<InitialSize, Allocator> CDynamicBitSet<InitialSize, Allocator>::operator|( int element ) const
+CDynamicBitSet<InitialSize, Allocator> CDynamicBitSet<InitialSize, Allocator>::operator|( int element ) const
 {
-	return CDynamicBitSet<InitialSize, Allocator>( *this ) |= element;
+	return CDynamicBitSet( *this ) |= element;
 }
 
 template<int InitialSize, class Allocator>
-inline CDynamicBitSet<InitialSize, Allocator> CDynamicBitSet<InitialSize, Allocator>::operator^( 
-	const CDynamicBitSet<InitialSize, Allocator>& set ) const
+CDynamicBitSet<InitialSize, Allocator> CDynamicBitSet<InitialSize, Allocator>::operator^( const CDynamicBitSet& set ) const
 {
-	return CDynamicBitSet<InitialSize, Allocator>( *this ) ^= set;
+	return CDynamicBitSet( *this ) ^= set;
 }
 
 template<int InitialSize, class Allocator>
-inline CDynamicBitSet<InitialSize, Allocator> CDynamicBitSet<InitialSize, Allocator>::operator^( int element ) const
+CDynamicBitSet<InitialSize, Allocator> CDynamicBitSet<InitialSize, Allocator>::operator^( int element ) const
 {
-	return CDynamicBitSet<InitialSize, Allocator>( *this ) ^= element;
+	return CDynamicBitSet( *this ) ^= element;
 }
 
 template<int InitialSize, class Allocator>
-inline CDynamicBitSet<InitialSize, Allocator> CDynamicBitSet<InitialSize, Allocator>::operator&( 
-	const CDynamicBitSet<InitialSize, Allocator>& set ) const
+CDynamicBitSet<InitialSize, Allocator> CDynamicBitSet<InitialSize, Allocator>::operator&( const CDynamicBitSet& set ) const
 {
-	return CDynamicBitSet<InitialSize, Allocator>( *this ) &= set;
+	return CDynamicBitSet( *this ) &= set;
 }
 
 template<int InitialSize, class Allocator>
-inline CDynamicBitSet<InitialSize, Allocator> CDynamicBitSet<InitialSize, Allocator>::operator&( int element ) const
+CDynamicBitSet<InitialSize, Allocator> CDynamicBitSet<InitialSize, Allocator>::operator&( int element ) const
 {
-	return CDynamicBitSet<InitialSize, Allocator>( *this ) &= element;
+	return CDynamicBitSet( *this ) &= element;
 }
 
 template<int InitialSize, class Allocator>
-inline CDynamicBitSet<InitialSize, Allocator> CDynamicBitSet<InitialSize, Allocator>::operator-( 
-	const CDynamicBitSet<InitialSize, Allocator>& set ) const
+CDynamicBitSet<InitialSize, Allocator> CDynamicBitSet<InitialSize, Allocator>::operator-( const CDynamicBitSet& set ) const
 {
-	return CDynamicBitSet<InitialSize, Allocator>( *this ) -= set;
+	return CDynamicBitSet( *this ) -= set;
 }
 
 template<int InitialSize, class Allocator>
-inline CDynamicBitSet<InitialSize, Allocator> CDynamicBitSet<InitialSize, Allocator>::operator-( int bit ) const
+CDynamicBitSet<InitialSize, Allocator> CDynamicBitSet<InitialSize, Allocator>::operator-( int bit ) const
 {
-	return CDynamicBitSet<InitialSize, Allocator>( *this ) -= bit;
+	return CDynamicBitSet( *this ) -= bit;
 }
 
 template<int InitialSize, class Allocator>
-inline const CDynamicBitSet<InitialSize, Allocator>& CDynamicBitSet<InitialSize, Allocator>::operator|=( 
-	const CDynamicBitSet<InitialSize, Allocator>& set )
+CDynamicBitSet<InitialSize, Allocator>& CDynamicBitSet<InitialSize, Allocator>::operator|=( const CDynamicBitSet& set )
 {
 	if( set.body.Size() > body.Size() ) {
 		grow( set.body.Size() );
@@ -464,7 +507,7 @@ inline const CDynamicBitSet<InitialSize, Allocator>& CDynamicBitSet<InitialSize,
 }
 
 template<int InitialSize, class Allocator>
-inline const CDynamicBitSet<InitialSize, Allocator>& CDynamicBitSet<InitialSize, Allocator>::operator|=( int element )
+CDynamicBitSet<InitialSize, Allocator>& CDynamicBitSet<InitialSize, Allocator>::operator|=( int element )
 {
 	const int bitIndex = index( element );
 	if( bitIndex >= body.Size() ) {
@@ -475,8 +518,7 @@ inline const CDynamicBitSet<InitialSize, Allocator>& CDynamicBitSet<InitialSize,
 }
 
 template<int InitialSize, class Allocator>
-inline const CDynamicBitSet<InitialSize, Allocator>& CDynamicBitSet<InitialSize, Allocator>::operator^=( 
-	const CDynamicBitSet<InitialSize, Allocator>& set )
+CDynamicBitSet<InitialSize, Allocator>& CDynamicBitSet<InitialSize, Allocator>::operator^=( const CDynamicBitSet& set )
 {
 	if( set.body.Size() > body.Size() ) {
 		grow( set.body.Size() );
@@ -488,7 +530,7 @@ inline const CDynamicBitSet<InitialSize, Allocator>& CDynamicBitSet<InitialSize,
 }
 
 template<int InitialSize, class Allocator>
-inline const CDynamicBitSet<InitialSize, Allocator>& CDynamicBitSet<InitialSize, Allocator>::operator^=( int element )
+CDynamicBitSet<InitialSize, Allocator>& CDynamicBitSet<InitialSize, Allocator>::operator^=( int element )
 {
 	const int bitIndex = index( element );
 	if( bitIndex >= body.Size() ) {
@@ -499,8 +541,7 @@ inline const CDynamicBitSet<InitialSize, Allocator>& CDynamicBitSet<InitialSize,
 }
 
 template<int InitialSize, class Allocator>
-inline const CDynamicBitSet<InitialSize, Allocator>& CDynamicBitSet<InitialSize, Allocator>::operator&=( 
-	const CDynamicBitSet<InitialSize, Allocator>& set )
+CDynamicBitSet<InitialSize, Allocator>& CDynamicBitSet<InitialSize, Allocator>::operator&=( const CDynamicBitSet& set )
 {
 	const int minLength = min( body.Size(), set.body.Size() );
 	for( int i = 0; i < minLength; i++ ) {
@@ -511,7 +552,7 @@ inline const CDynamicBitSet<InitialSize, Allocator>& CDynamicBitSet<InitialSize,
 }
 
 template<int InitialSize, class Allocator>
-inline const CDynamicBitSet<InitialSize, Allocator>& CDynamicBitSet<InitialSize, Allocator>::operator&=( int element )
+CDynamicBitSet<InitialSize, Allocator>& CDynamicBitSet<InitialSize, Allocator>::operator&=( int element )
 {
 	const int bitIndex = index( element );
 	if( bitIndex < body.Size() ) {
@@ -525,8 +566,7 @@ inline const CDynamicBitSet<InitialSize, Allocator>& CDynamicBitSet<InitialSize,
 }
 
 template<int InitialSize, class Allocator>
-inline const CDynamicBitSet<InitialSize, Allocator>& CDynamicBitSet<InitialSize, Allocator>::operator-=( 
-	const CDynamicBitSet<InitialSize, Allocator>& set )
+CDynamicBitSet<InitialSize, Allocator>& CDynamicBitSet<InitialSize, Allocator>::operator-=( const CDynamicBitSet& set )
 {
 	const int minLength = min( body.Size(), set.body.Size() );
 	for( int i = 0; i < minLength; i++ ) {
@@ -536,18 +576,17 @@ inline const CDynamicBitSet<InitialSize, Allocator>& CDynamicBitSet<InitialSize,
 }
 
 template<int InitialSize, class Allocator>
-inline const CDynamicBitSet<InitialSize, Allocator>& CDynamicBitSet<InitialSize, Allocator>::operator-=( int element )
+CDynamicBitSet<InitialSize, Allocator>& CDynamicBitSet<InitialSize, Allocator>::operator-=( int element )
 {
 	const int bitIndex = index( element );
 	if( bitIndex < body.Size() ) {
 		body[bitIndex] &= ~mask( element );
 	}
 	return *this;
-} 
+}
 
 template<int InitialSize, class Allocator>
-inline bool CDynamicBitSet<InitialSize, Allocator>::operator==( 
-	const CDynamicBitSet<InitialSize, Allocator>& set ) const
+bool CDynamicBitSet<InitialSize, Allocator>::operator==( const CDynamicBitSet& set ) const
 {
 	const int minLength = min( body.Size(), set.body.Size() );
 	int i;
@@ -560,8 +599,7 @@ inline bool CDynamicBitSet<InitialSize, Allocator>::operator==(
 }
 
 template<int InitialSize, class Allocator>
-inline bool CDynamicBitSet<InitialSize, Allocator>::Intersects( 
-	const CDynamicBitSet<InitialSize, Allocator>& set ) const
+bool CDynamicBitSet<InitialSize, Allocator>::Intersects( const CDynamicBitSet& set ) const
 {
 	const int minLength = min( body.Size(), set.body.Size() );
 	for( int i = 0; i < minLength; i++ ) {
@@ -599,7 +637,7 @@ void CDynamicBitSet<InitialSize, Allocator>::ShiftBackward()
 }
 
 template<int InitialSize, class Allocator>
-inline int CDynamicBitSet<InitialSize, Allocator>::FindFirstElement() const
+int CDynamicBitSet<InitialSize, Allocator>::FindFirstElement() const
 {
 	if( GetBufferSize() == 0 ) {
 		return NotFound;
@@ -611,7 +649,7 @@ inline int CDynamicBitSet<InitialSize, Allocator>::FindFirstElement() const
 }
 
 template<int InitialSize, class Allocator>
-inline int CDynamicBitSet<InitialSize, Allocator>::FindLastElement() const
+int CDynamicBitSet<InitialSize, Allocator>::FindLastElement() const
 {
 	return FindPrevElement( GetBufferSize() );
 }
@@ -643,6 +681,8 @@ template<int InitialSize, class Allocator>
 int CDynamicBitSet<InitialSize, Allocator>::FindNextElement( int from ) const
 {
 	PresumeFO( from >= 0 );
+	static_assert( BitsPerElement == 32, "" );
+	static_assert( CHAR_BIT == 8, "" );
 
 	if( from >= GetBufferSize() - 1 ) {
 		return NotFound;
@@ -673,6 +713,8 @@ template<int InitialSize, class Allocator>
 int CDynamicBitSet<InitialSize, Allocator>::FindPrevElement( int from ) const
 {
 	PresumeFO( from >= 0 );
+	static_assert( BitsPerElement == 32, "" );
+	static_assert( CHAR_BIT == 8, "" );
 
 	from = min( from, GetBufferSize() );
 
@@ -743,7 +785,7 @@ void CDynamicBitSet<InitialSize, Allocator>::Reset( int from, int count )
 		body[fromIndex] &= ~( maskFrom( from ) & maskTo( to ) );
 	}
 }
-	
+
 template<int InitialSize, class Allocator>
 void CDynamicBitSet<InitialSize, Allocator>::Invert( int from, int count )
 {
@@ -767,7 +809,7 @@ void CDynamicBitSet<InitialSize, Allocator>::Invert( int from, int count )
 }
 
 template<int InitialSize, class Allocator>
-inline void CDynamicBitSet<InitialSize, Allocator>::SetBufferSize( int elementsCount )
+void CDynamicBitSet<InitialSize, Allocator>::SetBufferSize( int elementsCount )
 {
 	if( elementsCount == 0 ) {
 		return;
@@ -779,7 +821,7 @@ inline void CDynamicBitSet<InitialSize, Allocator>::SetBufferSize( int elementsC
 }
 
 template<int InitialSize, class Allocator>
-int CDynamicBitSet<InitialSize, Allocator>::Compare( const CDynamicBitSet<InitialSize, Allocator>& other ) const
+int CDynamicBitSet<InitialSize, Allocator>::Compare( const CDynamicBitSet& other ) const
 {
 	int minSize = min( body.Size(), other.body.Size() );
 	int minDiff = ::memcmp( body.GetPtr(), other.body.GetPtr(), minSize * sizeof( bodyType ) );
@@ -795,7 +837,7 @@ int CDynamicBitSet<InitialSize, Allocator>::Compare( const CDynamicBitSet<Initia
 }
 
 template<int InitialSize, class Allocator>
-inline int CDynamicBitSet<InitialSize, Allocator>::HashKey() const
+int CDynamicBitSet<InitialSize, Allocator>::HashKey() const
 {
 	int result = 0;
 	for( int i = body.Size() - 1; i >= 0; i-- ) {
@@ -827,10 +869,10 @@ CArchive& operator>>( CArchive& archive, CDynamicBitSet<InitialSize, Allocator>&
 	return archive;
 }
 
-//-------------------------------------------------------------------------------------
+//---------------------------------------------------------------------------------------------------------------------
 
 template<int InitialSize, class Allocator>
-inline void ArrayMemMoveElement( CDynamicBitSet<InitialSize, Allocator>* dest, 
+void ArrayMemMoveElement( CDynamicBitSet<InitialSize, Allocator>* dest,
 	CDynamicBitSet<InitialSize, Allocator>* source )
 {
 	PresumeFO( dest != source );

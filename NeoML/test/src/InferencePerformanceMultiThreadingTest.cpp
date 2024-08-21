@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -128,9 +128,9 @@ static void checkResults( const CPtr<CDnnBlob>& actualBlob, const CPtr<CDnnBlob>
 	expectedBlob->CopyTo( expectedData.GetPtr() );
 	actualBlob->CopyTo( actualData.GetPtr() );
 
-	ASSERT_EQ( expectedData.Size(), actualData.Size() );
+	EXPECT_EQ( expectedData.Size(), actualData.Size() );
 	for( int i = 0; i < expectedData.Size(); i++ ) {
-		ASSERT_NEAR( expectedData[i], actualData[i], 1E-2 ) << i;
+		EXPECT_NEAR( expectedData[i], actualData[i], 1E-2 ) << i;
 	}
 }
 
@@ -193,6 +193,12 @@ using namespace NeoMLTest;
 
 TEST_P( CDnnInferencePerformanceTest, OneMathEngine )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skip for met=" << met << ", unable use threads.\n";
+		return;
+	}
+
 	const auto& param = GetParam();
 
 	auto& mathEngine = MathEngine();
@@ -221,6 +227,12 @@ TEST_P( CDnnInferencePerformanceTest, OneMathEngine )
 
 TEST_P( CDnnInferencePerformanceTest, LocalMathEngine )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skip for met=" << met << ", unable use threads.\n";
+		return;
+	}
+
 	const auto& param = GetParam();
 
 	std::vector<std::future<ResultType>> results;
@@ -235,7 +247,7 @@ TEST_P( CDnnInferencePerformanceTest, LocalMathEngine )
 
 	for( int i = 0; i < param.ThreadCount; ++i ) {
 		auto mathEngine = CreateMathEngine( MathEngineType(), memoryLimit );
-		ASSERT_TRUE( mathEngine != nullptr ) << i;
+		EXPECT_TRUE( mathEngine != nullptr ) << i;
 		mathEngines.emplace_back( mathEngine );
 		results.push_back( std::async( std::launch::async, Run, std::ref( param ), std::ref( *mathEngine ) ) );
 	}

@@ -1,4 +1,5 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
@@ -86,11 +87,12 @@ void CMultiThreadDistributedCommunicator::Broadcast( const CFloatHandle& handle,
 	barrier();
 }
 
-void CreateDistributedCpuMathEngines( IMathEngine** mathEngines, int count )
+void CreateDistributedCpuMathEngines( IMathEngine** mathEngines, int count, size_t memoryLimit )
 {
 	auto communicator = std::make_shared<CMultiThreadDistributedCommunicator>( count );
-	for( int i = 0; i < count; i++ ){
-		mathEngines[i] = new CCpuMathEngine( /*memoryLimit*/0u, communicator, CMathEngineDistributedInfo( i, count ) );
+	for( int i = 0; i < count; ++i ) {
+		mathEngines[i] = new CCpuMathEngine( memoryLimit, communicator, CMathEngineDistributedInfo( i, count ) );
+		ASSERT_EXPR( mathEngines[i] && mathEngines[i]->IsInitialized() ); // Fails, if no call CMemoryEngineMixin::InitializeMemory in some child ctor
 	}
 }
 

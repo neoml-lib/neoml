@@ -17,9 +17,8 @@ limitations under the License.
 
 #include <NeoMathEngine/NeoMathEngine.h>
 #include <NeoMathEngine/SimdMathEngine.h>
-#include <RawMemoryManager.h>
+#include <MemoryEngineMixin.h>
 #include <DllLoader.h>
-#include <mutex>
 #include <memory>
 #include <CpuMathEngineDnnDistributed.h>
 
@@ -30,12 +29,10 @@ struct CCommon2DPoolingDesc;
 struct CCommonMaxPoolingDesc;
 struct CCommon3dConvolutionDesc;
 struct CCommonChannelwiseConvolutionDesc;
-class CDeviceStackAllocator;
-class CMemoryPool;
 class ISimdMathEngine;
 
 // Math engine that uses a CPU for calculations
-class CCpuMathEngine : public IMathEngine, public IRawMemoryManager {
+class CCpuMathEngine : public CMemoryEngineMixin, public IRawMemoryManager {
 public:
 	CCpuMathEngine( size_t memoryLimit,
 		std::shared_ptr<CMultiThreadDistributedCommunicator> communicator = nullptr,
@@ -44,27 +41,12 @@ public:
 
 	// IMathEngine interface methods
 	TMathEngineType GetType() const override { return MET_Cpu; }
-	void SetReuseMemoryMode( bool enabled ) override;
-	bool GetReuseMemoryMode() const override;
-	void SetThreadBufferMemoryThreshold( size_t threshold ) override;
-	size_t GetThreadBufferMemoryThreshold() const override;
-	CMemoryHandle HeapAlloc( size_t count ) override;
-	void HeapFree( const CMemoryHandle& handle ) override;
-	void TransferHandleToThisThread( const CMemoryHandle& handle, size_t size ) override;
-	CMemoryHandle StackAlloc( size_t count ) override;
-	void StackFree( const CMemoryHandle& handle ) override;
-	size_t GetFreeMemorySize() const override;
-	size_t GetPeakMemoryUsage() const override;
-	void ResetPeakMemoryUsage() override;
-	size_t GetCurrentMemoryUsage() const override;
-	size_t GetMemoryInPools() const override;
-	void CleanUp() override;
-	void* GetBuffer( const CMemoryHandle& handle, size_t pos, size_t size, bool exchange ) override;
-	void ReleaseBuffer( const CMemoryHandle& handle, void* ptr, bool exchange ) override;
+	void GetMathEngineInfo( CMathEngineInfo& info ) const override;
+
+	void* GetBuffer( const CMemoryHandle& handle, size_t pos, size_t size, bool exchange ) override; // specialize
+	void ReleaseBuffer( const CMemoryHandle& handle, void* ptr, bool exchange ) override; // specialize
 	void DataExchangeRaw( const CMemoryHandle& handle, const void* data, size_t size ) override;
 	void DataExchangeRaw( void* data, const CMemoryHandle& handle, size_t size ) override;
-	CMemoryHandle CopyFrom( const CMemoryHandle& handle, size_t size ) override;
-	void GetMathEngineInfo( CMathEngineInfo& info ) const override;
 
 	// IVectorMathEngine interface methods
 	void VectorFill( const CFloatHandle& result, float value, int vectorSize ) override;
@@ -637,18 +619,16 @@ protected:
 	CMemoryHandle Alloc( size_t size ) override;
 	void Free( const CMemoryHandle& handle ) override;
 
+	void CleanUpSpecial() override;
+
 private:
 	const int floatAlignment; // float alignment
-	const int memoryAlignment; // allocation alignment
 	std::shared_ptr<CMultiThreadDistributedCommunicator> communicator;
 	CMathEngineDistributedInfo distributedInfo;
-	const std::unique_ptr<CMemoryPool> memoryPool; // the memory manager
-	const std::unique_ptr<CDeviceStackAllocator> stackAllocator; // the stack memory allocator
-	mutable std::mutex mutex; // to protect the allocations
 
 	CDllLoader dllLoader; // loading library for simd instructions
 	std::unique_ptr<ISimdMathEngine> simdMathEngine; // interface for using simd instructions
-	SgemmFunc customSgemmFunction; // Used when it is availabled and is faster then default sgemm
+	SgemmFunc customSgemmFunction = nullptr; // Used when it is availabled and is faster then default sgemm
 
 	IMathEngine& mathEngine() { IMathEngine* engine = this; return *engine; }
 

@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -38,9 +38,8 @@ __global__ void BuildTempMatrixKernel( const CCudaTimeConvolutionDescInternal de
 	const int padFront = desc.PaddingFront;
 	const int dilation = desc.Dilation;
 
-	int matrixRow;
-	int matrixCol;
-
+	int matrixRow = 0;
+	int matrixCol = 0;
 	if( !GetCudaTaskIndex2D( matrixPartHeight, matrixWidth, matrixRow, matrixCol ) ) {
 		return;
 	}
@@ -82,8 +81,8 @@ __global__ void BlobTimeConvolutionBackwardUnpackKernel( const CCudaTimeConvolut
 	const int seqNum = batch / ( inputDiff.BatchWidth() * inputDiff.ListSize() );
 	const int batchNum = batch % ( inputDiff.BatchWidth() * inputDiff.ListSize() );
 
-	int index;
-	int step;
+	int index = 0;
+	int step = 0;
 	const int count = GetCudaTaskCountAndIndex(objectSize, combineCount, index, step);
 
 	// Initialize the sums
@@ -135,16 +134,16 @@ __global__ void BlobTimeConvolutionLearnFilterKernel( CCudaTimeConvolutionDescIn
 
 	const int batchWidth = desc.Source.BatchWidth();
 
-	int index;
+	int index = 0;
 	if( GetCudaTaskIndex( desc.Filter.BlobSize(), index ) ) {
 		filterDiff += index;
-		float res = 0;
 
 		const int filterChannel = index % objectSize;
 		index /= objectSize;
 		const int filterRow = index % filterHeight;
 		const int filterNum = index / filterHeight;
 
+		float res = 0;
 		for( int outL = 0; outL < outputLength; ++outL ) {
 			const int inL = outL * desc.Stride - desc.PaddingFront + filterRow * desc.Dilation;
 			if( inL < 0 || inL >= inputLength ) {

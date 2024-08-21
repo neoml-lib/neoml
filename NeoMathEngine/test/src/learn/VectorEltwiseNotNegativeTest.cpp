@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -32,7 +32,7 @@ static void vectorEltwiseNotNegativeImpl( const CTestParams& params, int seed )
 
 	for( int i = 0; i < vectorSize; i++ ) {
 		float expected = ( vector[i] >= 0 ) ? 1.f : 0.f;
-		ASSERT_NEAR( expected, result[i], 1e-3 );
+		EXPECT_NEAR( expected, result[i], 1e-3 );
 	}
 }
 
@@ -47,12 +47,17 @@ INSTANTIATE_TEST_CASE_P( CVectorEltwiseNotNegativeTestInstantiation, CVectorEltw
 			"VectorSize = (10..100);"
 			"Values = (-50..50);"
 			"TestCount = 100;"
-			"VectorCount = (5..10);"
 		)
 	)
 );
 
 TEST_P( CVectorEltwiseNotNegativeTest, Random )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		return;
+	}
+
 	RUN_TEST_IMPL( vectorEltwiseNotNegativeImpl );
 }

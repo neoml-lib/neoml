@@ -773,7 +773,7 @@ CKMeansClustering::~CKMeansClustering()
 	delete threadPool;
 }
 
-bool CKMeansClustering::Clusterize( IClusteringData* input, CClusteringResult& result )
+bool CKMeansClustering::Clusterize( const IClusteringData* input, CClusteringResult& result )
 {
 	double inertia;
 	// Run first clusterization with params.Seed as initial seed
@@ -799,7 +799,7 @@ bool CKMeansClustering::Clusterize( IClusteringData* input, CClusteringResult& r
 	return succeeded;
 }
 
-bool CKMeansClustering::runClusterization( IClusteringData* input, int seed, CClusteringResult& result, double& inertia )
+bool CKMeansClustering::runClusterization( const IClusteringData* input, int seed, CClusteringResult& result, double& inertia )
 {
 	NeoAssert( input != 0 );
 
@@ -856,7 +856,7 @@ bool CKMeansClustering::runClusterization( IClusteringData* input, int seed, CCl
 	return success;
 }
 
-bool CKMeansClustering::denseLloydL2Clusterize( IClusteringData* rawData, int seed, CClusteringResult& result, double& inertia )
+bool CKMeansClustering::denseLloydL2Clusterize( const IClusteringData* rawData, int seed, CClusteringResult& result, double& inertia )
 {
 	NeoAssert( params.DistanceFunc == DF_Euclid );
 	NeoAssert( params.Algo == KMA_Lloyd );

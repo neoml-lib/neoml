@@ -1,4 +1,4 @@
-/* Copyright © 2023 ABBYY
+/* Copyright © 2023-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -175,6 +175,13 @@ TEST( LoraFullyConnectedLayerTest, Initialization )
 
 TEST( LoraFullyConnectedLayerTest, InferenceAndLearning )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// CEuclideanLossLayer -- > VectorHuber
+		return;
+	}
+
 	constexpr int inputSize = 32;
 	constexpr int outputSize = 16;
 
@@ -283,6 +290,13 @@ TEST( LoraBuilderTest, BuildNoRecurrentReplacement )
 
 TEST( LoraBuilderTest, MergeAndDiscardTest )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// dropout
+		return;
+	}
+
 	constexpr int ioSize = 12;
 
 	CRandom random( 0xACCA );
@@ -378,9 +392,9 @@ static void loraFcSerializerTestImpl( bool initialize, bool discardBeforeLoad )
 	CMemoryFile file;
 	{
 		CArchive archive( &file, CArchive::SD_Storing );
-		ASSERT_EQ( 1, CLoraSerializer().Serialize( dnn, archive ) );
+		EXPECT_EQ( 1, CLoraSerializer().Serialize( dnn, archive ) );
 	}
-	ASSERT_GT( fullMatrixSize / 2, file.GetLength() ); // Check that we didn't serialize full matrix
+	EXPECT_GT( fullMatrixSize / 2, file.GetLength() ); // Check that we didn't serialize full matrix
 
 	// Let's change weights and roll back to those from serialization
 	dnn.RunAndLearnOnce();
@@ -393,13 +407,13 @@ static void loraFcSerializerTestImpl( bool initialize, bool discardBeforeLoad )
 
 	if( discardBeforeLoad ) {
 		// This will replace lora wrappers with fcs which will allow us to test loading over raw fcs
-		ASSERT_EQ( 1, CLoraBuilder().DiscardAllFcWrappers( dnn ) );
+		EXPECT_EQ( 1, CLoraBuilder().DiscardAllFcWrappers( dnn ) );
 	}
 
 	file.SeekToBegin();
 	{
 		CArchive archive( &file, CArchive::SD_Loading );
-		ASSERT_EQ( 1, CLoraSerializer().Serialize( dnn, archive ) );
+		EXPECT_EQ( 1, CLoraSerializer().Serialize( dnn, archive ) );
 	}
 
 	if( discardBeforeLoad ) {
@@ -423,6 +437,13 @@ static void loraFcSerializerTestImpl( bool initialize, bool discardBeforeLoad )
 
 TEST( LoraSerializerTest, LoraFc )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// dropout
+		return;
+	}
+
 	for( bool initialize : { true, false } ) {
 		for( bool discardBeforeLora : { true, false } ) {
 			loraFcSerializerTestImpl( initialize, discardBeforeLora );
@@ -465,16 +486,16 @@ TEST( LoraSerializerTest, Distributed )
 	CMemoryFile file; // dump the matrices
 	{
 		CArchive archive( &file, CArchive::SD_Storing );
-		ASSERT_EQ( 1, CLoraSerializer().Serialize( distributed, archive ) );
+		EXPECT_EQ( 1, CLoraSerializer().Serialize( distributed, archive ) );
 	}
-	ASSERT_GT( fullMatrixSize / 2, file.GetLength() ); // Check that we didn't serialize full matrix
+	EXPECT_GT( fullMatrixSize / 2, file.GetLength() ); // Check that we didn't serialize full matrix
 
 	// Let's make 1 iteration and check that output has been affected by it
 	distributed.RunAndLearnOnce( dataset );
 	CObjectArray<CDnnBlob> actualBlobs;
 	distributed.GetLastBlob( "sink", actualBlobs );
 
-	ASSERT_EQ( originalBlobs.Size(), actualBlobs.Size() );
+	EXPECT_EQ( originalBlobs.Size(), actualBlobs.Size() );
 	for( int i = 0; i < originalBlobs.Size(); ++i ) {
 		EXPECT_FALSE( CompareBlobs( *originalBlobs[i], *actualBlobs[i] ) );
 	}
@@ -483,14 +504,14 @@ TEST( LoraSerializerTest, Distributed )
 	{
 		file.SeekToBegin();
 		CArchive archive( &file, CArchive::SD_Loading );
-		ASSERT_EQ( 1, CLoraSerializer().Serialize( distributed, archive ) );
+		EXPECT_EQ( 1, CLoraSerializer().Serialize( distributed, archive ) );
 		EXPECT_EQ( file.GetPosition(), file.GetLength() );
 	}
 
 	// Check that after loading distributed from archive restored the net to original state
 	distributed.RunOnce( dataset );
 	distributed.GetLastBlob( "sink", actualBlobs );
-	ASSERT_EQ( originalBlobs.Size(), actualBlobs.Size() );
+	EXPECT_EQ( originalBlobs.Size(), actualBlobs.Size() );
 	for( int i = 0; i < originalBlobs.Size(); ++i ) {
 		EXPECT_FALSE( CompareBlobs( *originalBlobs[i], *actualBlobs[i] ) );
 	}
@@ -521,7 +542,7 @@ TEST( LoraSerializerTest, DistributedCheckpoint )
 	CMemoryFile file; // Store checkpoints
 	{
 		CArchive archive( &file, CArchive::SD_Storing );
-		ASSERT_EQ( 6, CLoraSerializer().SerializeCheckpoint( distributed, archive ) );
+		EXPECT_EQ( 6, CLoraSerializer().SerializeCheckpoint( distributed, archive ) );
 	}
 
 	const int testedIterations = 20;
@@ -541,7 +562,7 @@ TEST( LoraSerializerTest, DistributedCheckpoint )
 	{
 		file.SeekToBegin();
 		CArchive archive( &file, CArchive::SD_Loading );
-		ASSERT_EQ( 6, CLoraSerializer().SerializeCheckpoint( distributed, archive ) );
+		EXPECT_EQ( 6, CLoraSerializer().SerializeCheckpoint( distributed, archive ) );
 		EXPECT_EQ( file.GetPosition(), file.GetLength() );
 	}
 
@@ -551,7 +572,7 @@ TEST( LoraSerializerTest, DistributedCheckpoint )
 		distributed.RunAndLearnOnce( dataset );
 		distributed.GetLastBlob( "sink", currBlobs );
 		distributed.GetLastLoss( "loss", currLosses );
-		ASSERT_EQ( currBlobs.Size(), currLosses.Size() );
+		EXPECT_EQ( currBlobs.Size(), currLosses.Size() );
 		for( int i = 0; i < currBlobs.Size(); ++i ) {
 			EXPECT_TRUE( CompareBlobs( *currBlobs[i], *storedOutputs[iter][i], FLT_EPSILON ) );
 			EXPECT_FLOAT_EQ( currLosses[i], storedLosses[iter][i] );
@@ -563,10 +584,11 @@ TEST( LoraSerializerTest, DistributedCheckpoint )
 
 namespace NeoMLTest {
 
-static void memCheckTest( bool useLora )
+static void memCheckTest( bool useLora, int optimizeDnnIterations = 0, int encodersCount = 6, int iterationsCount = 10 )
 {
 	MathEngine().CleanUp();
-	std::cerr << "Peak memory after clean: " << ( double ( MathEngine().GetPeakMemoryUsage() ) / 1024 / 1024 ) << " MB\n";
+	GTEST_LOG_( INFO ) << ( useLora ? "Used LoRA" : "no LoRA" ) << "\n "
+		<< "Peak memory after clean: " << GetPeakMemScaled( MathEngine() ) << " MB\n";
 
 	// Build the net
 	CRandom random( 0x6543 );
@@ -575,8 +597,7 @@ static void memCheckTest( bool useLora )
 	const int vecSize = 768;
 	const int headCount = 4;
 	const int tableSize = 10;
-	const int stackSize = 6; // params.EncoderLayerCount;
-	const int ffSize = vecSize * headCount; //params.AttentionFeedForwardSize;
+	const int ffSize = vecSize * headCount;
 	const float dropout = 0.f;
 
 	CSourceLayer* data = Source( dnn, "data" );
@@ -584,9 +605,11 @@ static void memCheckTest( bool useLora )
 	embDims.Add( CLookupDimension( tableSize, vecSize ) );
 	CMultichannelLookupLayer* embeddings = MultichannelLookup( embDims, true )( "emb", data );
 	CBaseLayer* lastLayer = embeddings;
-	for( int i = 0; i < stackSize; ++i ) {
+	for( int i = 0; i < encodersCount; ++i ) {
 		lastLayer = TransformerEncoder( headCount, vecSize, dropout, ffSize, AF_ReLU )( "transformer_" + Str( i ), lastLayer );
 	}
+	Sink( lastLayer, "sink" );
+
 	CSourceLayer* expected = Source( dnn, "expected" );
 	CEuclideanLossLayer* loss = EuclideanLoss()( "loss", lastLayer, expected );
 
@@ -612,46 +635,113 @@ static void memCheckTest( bool useLora )
 
 	// Initialize weights
 	dnn.RunOnce();
-	std::cerr << "Peak memory after RunOnce: " << ( double( MathEngine().GetPeakMemoryUsage() ) / 1024 / 1024 ) << " MB\n";
+	GTEST_LOG_( INFO ) << "\n "
+		<< "Peak memory after RunOnce: " << GetPeakMemScaled( MathEngine() ) << " MB\n";
 
 	if( useLora ) {
 		CLoraBuilder builder;
 		CLoraParams params( 4, 5.f, 0.1f );
 		// 2 fc's inside transformer directly
 		// 4 fc's inside of attention (inside transformer)
-		EXPECT_EQ( stackSize * 6, builder.BuildAllFcWrappers( dnn, params ) );
-		EXPECT_EQ( stackSize * 2 + 1, builder.DisableNonLoraTraining( dnn ) );
+		EXPECT_EQ( encodersCount * 6, builder.BuildAllFcWrappers( dnn, params ) );
+		EXPECT_EQ( encodersCount * 2 + 1, builder.DisableNonLoraTraining( dnn ) );
 	} else {
 		embeddings->DisableLearning();
 	}
 
-	std::unique_ptr<IPerformanceCounters> counters( MathEngine().CreatePerformanceCounters() );
-	constexpr int iterCount = 10;
-	for( int iter = 0; iter < iterCount; ++iter ) {
+	MathEngine().ResetPeakMemoryUsage();
+
+	CPtrOwner<IPerformanceCounters> counters( MathEngine().CreatePerformanceCounters() );
+	for( int iter = 0; iter < iterationsCount; ++iter ) {
 		counters->Synchronise();
 		dnn.RunAndLearnOnce();
 		counters->Synchronise();
 
-		std::cerr << "Iter #" << iter
+		GTEST_LOG_( INFO ) << "Iter #" << iter
 			<< '\t' << "Loss: " << loss->GetLastLoss()
-			<< '\t' << "Train Time: " << ( double( ( *counters )[0].Value ) / 1000000 ) << " ms."
-			<< '\t' << "Peak.Mem: " << ( double( MathEngine().GetPeakMemoryUsage() ) / 1024 / 1024 ) << " MB"
+			<< '\t' << "Train Time: " << GetTimeScaled( *counters ) << " ms."
+			<< '\t' << "Peak.Mem: " << GetPeakMemScaled( MathEngine() ) << " MB"
 			<< '\n';
 	}
-	std::cerr << "Peak memory after training: " << ( double( MathEngine().GetPeakMemoryUsage() ) / 1024 / 1024 ) << " MB\n";
+	GTEST_LOG_( INFO ) << "\n "
+		<< "Peak memory after training: " << GetPeakMemScaled( MathEngine() ) << " MB\n";
+
+	if ( optimizeDnnIterations > 0 ) // Check OptimizeDnn
+	{
+		const int iters = optimizeDnnIterations;
+
+		counters->Synchronise();
+		for( int iter = 0; iter < iters; ++iter ) {
+			dnn.RunOnce();
+		}
+		counters->Synchronise();
+
+		const double unoptTime = GetTimeScaled( *counters );
+		CPtr<CDnnBlob> expectedBlob = CheckCast<CSinkLayer>( dnn.GetLayer( "sink" ) )->GetBlob();
+
+		OptimizeDnn( dnn );
+
+		MathEngine().ResetPeakMemoryUsage();
+
+		counters->Synchronise();
+		for( int iter = 0; iter < iters; ++iter ) {
+			dnn.RunOnce();
+		}
+		counters->Synchronise();
+
+		const double optTime = GetTimeScaled( *counters );
+		CPtr<CDnnBlob> sinkBlob = CheckCast<CSinkLayer>( dnn.GetLayer( "sink" ) )->GetBlob();
+
+		GTEST_LOG_( INFO )
+			<< "\n RunOnce " << iters << " (unopt) Time: " << unoptTime << " ms. per inter " << ( unoptTime / iters )
+			<< "\n RunOnce " << iters << "   (opt) Time: " << optTime << " ms. per inter " << ( optTime / iters )
+			<< "\n Peak.Mem: " << GetPeakMemScaled( MathEngine() ) << " MB"
+			<< "\n";
+
+		// Check for consistence
+		EXPECT_TRUE( CompareBlobs( *expectedBlob, *sinkBlob ) );
+	}
 }
 
 } // namespace NeoMLTest
 
-TEST( LoraMemCheck, DISABLED_WithoutLora )
+TEST( LoraMemCheck, OptimizeTest )
 {
-	memCheckTest( false );
+	const auto met = MathEngine().GetType();
+	if( met != MET_Cpu && met != MET_Cuda ) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// VectorHuberDerivative, dropout
+		return;
+	}
+
+	memCheckTest( /*lora*/true, /*optimizeDnnIterations*/10, /*encodersCount*/2, /*iterationsCount*/3 );
+
+	memCheckTest( /*lora*/false, /*optimizeDnnIterations*/10, /*encodersCount*/2, /*iterationsCount*/3 );
+}
+
+TEST( LoraMemCheck, DISABLED_PerformanceTestWithoutLora )
+{
+	const auto met = MathEngine().GetType();
+	if( met != MET_Cpu && met != MET_Cuda ) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// VectorHuberDerivative, dropout
+		return;
+	}
+
+	memCheckTest( /*lora*/false );
 	DeleteMathEngine();
 }
 
-TEST( LoraMemCheck, DISABLED_WithLora )
+TEST( LoraMemCheck, DISABLED_PerformanceTestWithLora )
 {
-	memCheckTest( true );
+	const auto met = MathEngine().GetType();
+	if( met != MET_Cpu && met != MET_Cuda ) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// VectorHuberDerivative, dropout
+		return;
+	}
+
+	memCheckTest( /*lora*/true );
 	DeleteMathEngine();
 }
 

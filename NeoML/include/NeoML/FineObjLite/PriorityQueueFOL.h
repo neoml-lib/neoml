@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,9 +23,13 @@ public:
 	typedef ARRAY ArrayType;
 	typedef COMPARE CompareType;
 	typedef CPriorityQueue<ArrayType, CompareType> QueueType;
-	typedef typename ARRAY::TElement ElementType;
+	typedef typename ARRAY::TElement  ElementType; // deprecated
+	typedef typename ARRAY::TElement  TElement;
 
 	explicit CPriorityQueue( const CompareType& compare = CompareType() ) : data( compare ) {}
+	CPriorityQueue( CPriorityQueue&& ) = default;
+
+	CPriorityQueue& operator=( CPriorityQueue&& ) = default;
 
 	int Size() const { return buffer().Size(); }
 	bool IsEmpty() const { return Size() == 0; }

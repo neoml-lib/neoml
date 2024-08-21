@@ -159,7 +159,7 @@ void CBaseLayer::link()
 		if(dnn->HasLayer(inputs[i].Name)) {
 			CDnnLayerLink link;
 			link.OutputNumber = inputs[i].OutputNumber;
-			link.Layer = dnn->GetLayer(inputs[i].Name);
+			link.Layer = dnn->getLayer(inputs[i].Name);
 			inputLinks.InsertAt(link, 0);
 			link.Layer->addOutput(inputs[i].OutputNumber);
 		} else {
@@ -299,6 +299,35 @@ size_t CBaseLayer::GetTrainableParametersSize() const
 		}
 	}
 	return result;
+}
+
+void CBaseLayer::transferParamsBlob( CBaseLayer& dist ) const
+{
+	CCompositeLayer* compositeTo = dynamic_cast<CCompositeLayer*>( &dist );
+	if( compositeTo != nullptr ) {
+		const CCompositeLayer* compositeFrom = CheckCast<const CCompositeLayer>( this );
+
+		CArray<const char*> fromLayers;
+		compositeFrom->GetLayerList( fromLayers );
+		for( const char* layerName : fromLayers ) {
+			compositeFrom->GetLayer( layerName )->transferParamsBlob( *compositeTo->GetLayer( layerName ) );
+		}
+	} else {
+		NeoAssertMsg( dist.paramBlobs.Size() == paramBlobs.Size(), "transferParamsBlob: It isn't a copy of the layer" );
+
+		NeoAssertMsg( !dist.IsLearnable() || paramBlobs.Size() > 0,
+			"transferParamsBlob: The origin dnn should be trained and reshaped to create a reference dnn" );
+		// Create reference copy of dist.paramBlobs with shared buffer
+		// Takes a pointer to parent's blob to access memory
+		for( int j = 0; j < dist.paramBlobs.Size(); ++j ) {
+			if( ContainsEmptyParamBlob( j ) ) {
+				dist.paramBlobs[j] = nullptr; // may contain empty parameter
+				continue;
+			}
+			NeoAssertMsg( paramBlobs[j] != nullptr, "transferParamsBlob: All trainable paramBlobs should exist" );
+			dist.paramBlobs[j] = CDnnBlob::CreateWindowBlob( paramBlobs[j], paramBlobs[j]->GetDesc().BatchLength() );
+		}
+	}
 }
 
 void CBaseLayer::switchBlobsToSequentialMode(CObjectArray<CDnnBlob>& blobs, TBlobCacheType cacheType, bool storeParent)
@@ -772,7 +801,15 @@ void CBaseLayer::Serialize( CArchive& archive )
 		archive << isBackwardForced;
 		archive << isLearningEnabled;
 		archive << baseLearningRate << baseL2RegularizationMult << baseL1RegularizationMult;
-		SerializeBlobs( mathEngine, archive, paramBlobs );
+
+		const bool nonReferenceDnnLayer = ( GetDnn() == nullptr || !GetDnn()->IsReferenceDnn() );
+		if( nonReferenceDnnLayer ) {
+			SerializeBlobs( mathEngine, archive, paramBlobs );
+		} else { // Reference dnns will point to original dnn paramBlobs
+			CObjectArray<CDnnBlob> emptyParamBlobs;
+			emptyParamBlobs.SetSize( paramBlobs.Size() );
+			SerializeBlobs( mathEngine, archive, emptyParamBlobs );
+		}
 	} else if( archive.IsLoading() ) {
 		if( dnn != 0 ) {
 			unlink();

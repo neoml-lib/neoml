@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -40,11 +40,11 @@ __global__ void BuildTempMatrixKernel( const CCudaConvolutionDescInternal desc,
 	const int dilationHeight = desc.DilationHeight;
 	const int dilationWidth = desc.DilationWidth;
 
-	int b;
-	int x;
-	int y;
-	int xy;
-	int c;
+	int b = 0;
+	int x = 0;
+	int y = 0;
+	int xy = 0;
+	int c = 0;
 	if( GetCudaTaskIndex2D( resultSize, desc.Source.Depth() * desc.Source.Channels(), xy, c ) ) {
 		resultData += xy * desc.Filter.ObjectSize() + c;
 		xy += resultOffset;
@@ -142,9 +142,9 @@ __global__ void Conv3x3s1d1Kernel1x8( const CCudaConvolutionDescInternal desc,
 	const int outputWidth = desc.Result.Width();
 	const int inputChannels = desc.Source.Depth() * desc.Source.Channels();
 
-	int b;
-	int outCol;
-	int filterIndex;
+	int b = 0;
+	int outCol = 0;
+	int filterIndex = 0;
 	if( GetCudaTaskIndex3D( objectCount * outputHeight, widthNorm, filterCount, b, outCol, filterIndex ) ) {
 		const int inputWidth = desc.Source.Width();
 		const int inputHeight = desc.Source.Height();
@@ -243,8 +243,8 @@ __global__ void BuildInputFromTempMatrixKernel( const CCudaConvolutionDescIntern
 	const float* __restrict__ tempMatrix, int matrixHeight, int matrixWidth, float* result,
 	TBackwardOperationType operation, int widthNorm, int heightOffset )
 {
-	int matrixRow;
-	int matrixCol;
+	int matrixRow = 0;
+	int matrixCol = 0;
 	GetCudaTaskIndex2D( matrixHeight, widthNorm, matrixRow, matrixCol );
 	if( matrixRow >= matrixHeight ) {
 		return;
@@ -257,8 +257,9 @@ __global__ void BuildInputFromTempMatrixKernel( const CCudaConvolutionDescIntern
 	const int outRow = matrixRow % desc.Result.Height();
 	const int b = matrixRow / desc.Result.Height();
 
-	int step;
+	int step = 0;
 	const int count = GetCudaTaskCountAndIndex( matrixWidth, BuildInputFromTempMatrixCombine, matrixCol, step );
+
 	tempMatrix += matrixCol;
 
 	const int inputChannels = desc.Source.Channels() * desc.Source.Depth();

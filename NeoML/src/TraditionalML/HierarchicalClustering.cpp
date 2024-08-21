@@ -41,18 +41,18 @@ CHierarchicalClustering::CHierarchicalClustering( const CParam& _params ) :
 	NeoAssert( params.MinClustersCount > 0 );
 }
 
-bool CHierarchicalClustering::Clusterize( IClusteringData* input, CClusteringResult& result )
+bool CHierarchicalClustering::Clusterize( const IClusteringData* input, CClusteringResult& result )
 {
 	return clusterizeImpl( input, result, nullptr, nullptr );
 }
 
-bool CHierarchicalClustering::ClusterizeEx( IClusteringData* input, CClusteringResult& result,
+bool CHierarchicalClustering::ClusterizeEx( const IClusteringData* input, CClusteringResult& result,
 	CArray<CMergeInfo>& dendrogram, CArray<int>& dendrogramIndices )
 {
 	return clusterizeImpl( input, result, &dendrogram, &dendrogramIndices );
 }
 
-bool CHierarchicalClustering::clusterizeImpl( IClusteringData* data, CClusteringResult& result,
+bool CHierarchicalClustering::clusterizeImpl( const IClusteringData* data, CClusteringResult& result,
 	CArray<CMergeInfo>* dendrogram, CArray<int>* dendrogramIndices ) const
 {
 	NeoAssert( params.Linkage != L_Ward || params.DistanceType == DF_Euclid ); // Ward works only in L2

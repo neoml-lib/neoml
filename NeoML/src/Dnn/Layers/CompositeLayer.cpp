@@ -482,7 +482,7 @@ void CCompositeLayer::SetInternalDnnParams()
 	internalDnn->SetLogFrequency(GetDnn()->GetLogFrequency());
 	internalDnn->RequestReshape(forcedReshape);
 	// Switch learning on or off
-	if(IsLearningEnabled()) {
+	if( GetDnn()->IsLearningEnabled() ) {
 		internalDnn->EnableLearning();
 	} else {
 		internalDnn->DisableLearning();

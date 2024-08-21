@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -115,7 +115,7 @@ void SerializeSolver( CArchive& archive, CDnn& dnn, CPtr<CDnnSolver>& solver )
 	}
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
+//---------------------------------------------------------------------------------------------------------------------
 
 namespace {
 REGISTER_NEOML_SOLVER( CDnnSimpleGradientSolver, "NeoMLDnnSimpleGradientSolver" )
@@ -124,38 +124,9 @@ REGISTER_NEOML_SOLVER( CDnnNesterovGradientSolver, "NeoMLDnnNesterovGradientSolv
 REGISTER_NEOML_SOLVER( CDnnLambGradientSolver, "NeoMLDnnLambGradientSolver" )
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
-// Utility functions for serialization
+//---------------------------------------------------------------------------------------------------------------------
 
-void mapLayerIdToPtr( CDnnLayerGraph& dnn, CMap<CString, CBaseLayer*>& result, const CString& prefix = "" )
-{
-	CArray<const char*> layerNames;
-	dnn.GetLayerList( layerNames );
-	for( int layerIndex = 0; layerIndex < layerNames.Size(); ++layerIndex ) {
-		CPtr<CBaseLayer> layer = dnn.GetLayer( layerNames[layerIndex] );
-		result.Add( prefix + layer->GetName(), layer.Ptr() );
-		CCompositeLayer* compositePtr = dynamic_cast<CCompositeLayer*>( layer.Ptr() );
-		if( compositePtr != nullptr ) {
-			mapLayerIdToPtr( *compositePtr, result, prefix + compositePtr->GetName() );
-		}
-	}
-}
-
-void mapLayerPtrToId( CDnnLayerGraph& dnn, CMap<CBaseLayer*, CString>& result, const CString& prefix = "" )
-{
-	CArray<const char*> layerNames;
-	dnn.GetLayerList( layerNames );
-	for( int layerIndex = 0; layerIndex < layerNames.Size(); ++layerIndex ) {
-		CPtr<CBaseLayer> layer = dnn.GetLayer( layerNames[layerIndex] );
-		result.Add( layer.Ptr(), prefix + layer->GetName() );
-		CCompositeLayer* compositePtr = dynamic_cast<CCompositeLayer*>( layer.Ptr() );
-		if( compositePtr != nullptr ) {
-			mapLayerPtrToId( *compositePtr, result, prefix + compositePtr->GetName() );
-		}
-	}
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
+constexpr const char* const layerPathSeparator = "/";
 
 CDnnSolver::CDnnSolver( IMathEngine& _mathEngine ) :
 	mathEngine( _mathEngine ),
@@ -169,18 +140,18 @@ CDnnSolver::CDnnSolver( IMathEngine& _mathEngine ) :
 }
 
 // Calculates the layer parameter gradients to then use them in Train method
-void CDnnSolver::AddDiff( CBaseLayer* layer, const CObjectArray<CDnnBlob>& paramDiffBlobs,
-	bool sharedWeights )
+void CDnnSolver::AddDiff( CBaseLayer* layer, const CObjectArray<CDnnBlob>& paramDiffBlobs, bool sharedWeights )
 {
-	NeoAssert( layer != 0 );
-
+	NeoAssert( layer != nullptr );
 	if( MathEngine().IsDistributed() && !layersToReduce.Has( layer ) ) {
 		layersToReduce.Add( layer );
 		reduceOrder.Add( layer );
 	}
 
-	CDiffBlobSum& paramDiffBlobsSum = layerToParamDiffBlobsSum.GetOrCreateValue( layer );
-
+	CDiffBlobSum& paramDiffBlobsSum = layerToParamDiffBlobsSum.GetOrCreateValue( layer->GetPath( layerPathSeparator ) );
+	if( paramDiffBlobsSum.LayerOwner == nullptr ) {
+		paramDiffBlobsSum.LayerOwner = layer;
+	}
 	if( !sharedWeights ) {
 		++paramDiffBlobsSum.Count;
 	}
@@ -206,11 +177,13 @@ void CDnnSolver::Train( float distributedCoeff )
 	for( TMapPosition pos = layerToParamDiffBlobsSum.GetFirstPosition(); pos != NotFound;
 		pos = layerToParamDiffBlobsSum.GetNextPosition( pos ) )
 	{
-		CBaseLayer* layer = layerToParamDiffBlobsSum.GetKey( pos );
+		const CString layerPath = layerToParamDiffBlobsSum.GetKey( pos );
 		CDiffBlobSum& paramDiffBlobsSum = layerToParamDiffBlobsSum.GetValue( pos );
 		if( paramDiffBlobsSum.Sum.IsEmpty() ) {
 			continue;
 		}
+		const CBaseLayer* layer = paramDiffBlobsSum.LayerOwner;
+		NeoAssert( layer != nullptr );
 		NeoAssert( paramDiffBlobsSum.Count > 0 );
 
 		// Take the average of the gradients to simulate that the elements from all runs were in the same batch
@@ -226,7 +199,7 @@ void CDnnSolver::Train( float distributedCoeff )
 		clipGradients( paramDiffBlobsSum.Sum );
 
 		// Train the layer based on the calculated diff data
-		TrainLayer( layer, layer->paramBlobs, paramDiffBlobsSum.Sum, layerToGradientHistory.GetOrCreateValue( layer ) );
+		TrainLayer( layer, layer->paramBlobs, paramDiffBlobsSum.Sum, layerToGradientHistory.GetOrCreateValue( layerPath ) );
 
 		// Clear the diff data
 		paramDiffBlobsSum.Sum.Empty();
@@ -322,69 +295,142 @@ void CDnnSolver::clipGradients(const CObjectArray<CDnnBlob>& paramDiffBlobs)
 	}
 }
 
-static const int DnnSolverVersion = 1;
+constexpr int DnnSolverVersion = 2;
 
-void CDnnSolver::Serialize( CArchive& archive, CDnn& dnn )
+void CDnnSolver::Serialize( CArchive& archive, const CDnn& dnn )
 {
 	const int version = archive.SerializeVersion( DnnSolverVersion );
+	int size = layerToParamDiffBlobsSum.Size();
+	archive.Serialize( size );
+
 	if( archive.IsStoring() ) {
-		CMap<CBaseLayer*, CString> layerPtrToId;
-		mapLayerPtrToId( dnn, layerPtrToId );
-
-		archive << layerToParamDiffBlobsSum.Size();
-		for( int pos = layerToParamDiffBlobsSum.GetFirstPosition(); pos != NotFound;
-			pos = layerToParamDiffBlobsSum.GetNextPosition( pos ) )
+		CArray<CString> path;
+		for( auto& blobsSum : layerToParamDiffBlobsSum )
 		{
-			archive << layerPtrToId[layerToParamDiffBlobsSum.GetKey( pos )];
-			archive << layerToParamDiffBlobsSum.GetValue( pos ).Count;
-			SerializeBlobs( mathEngine, archive, layerToParamDiffBlobsSum.GetValue( pos ).Sum );
-		}
+			serializePath( archive, path, blobsSum.Value.LayerOwner );
+			serializeDiffBlobSum( archive, blobsSum.Value, /*layer*/nullptr );
 
-		archive << layerToGradientHistory.Size();
-		for( int pos = layerToGradientHistory.GetFirstPosition(); pos != NotFound;
-			pos = layerToGradientHistory.GetNextPosition( pos ) )
-		{
-			archive << layerPtrToId[layerToGradientHistory.GetKey( pos )];
-			SerializeBlobs( mathEngine, archive, layerToGradientHistory.GetValue( pos ) );
+			serializeGradientHistory( archive, blobsSum.Key );
 		}
-		archive << learningRate << regularizationL1 << regularizationL2 << maxGradientNorm;
-		archive << clipGradientMin << clipGradientMax;
-	} else {
-		CMap<CString, CBaseLayer*> layerIdToPtr;
-		mapLayerIdToPtr( dnn, layerIdToPtr );
-
+	} else if ( archive.IsLoading() ) {
 		layerToParamDiffBlobsSum.DeleteAll();
 		layerToGradientHistory.DeleteAll();
 		layersToReduce.DeleteAll();
 		reduceOrder.DeleteAll();
 
-		int size;
-		archive >> size;
-		for( int i = 0; i < size; ++i ) {
-			CString layerId;
-			archive >> layerId;
-			CDiffBlobSum& blobSum = layerToParamDiffBlobsSum.GetOrCreateValue( layerIdToPtr[layerId] );
-			archive >> blobSum.Count;
-			SerializeBlobs( mathEngine, archive, blobSum.Sum );
-		}
+		if( version >= 2 ) {
+			CArray<CString> path;
+			for( int i = 0; i < size; ++i ) {
+				serializePath( archive, path, /*layer*/nullptr );
+				const CString layerPath = JoinStrings( path, layerPathSeparator );
+				serializeDiffBlobSum( archive, layerToParamDiffBlobsSum.CreateValue( layerPath ), dnn.GetLayer( path ) );
 
-		archive >> size;
-		for( int i = 0; i < size; ++i ) {
-			CString layerId;
-			archive >> layerId;
-			SerializeBlobs( mathEngine, archive, layerToGradientHistory.GetOrCreateValue( layerIdToPtr[layerId] ) );
-		}
-		archive >> learningRate >> regularizationL1 >> regularizationL2 >> maxGradientNorm;
-		if( version >= 1 ) {
-			archive >> clipGradientMin >> clipGradientMax;
+				serializeGradientHistory( archive, layerPath );
+			}
 		} else {
-			clipGradientMin = -FLT_MAX;
-			clipGradientMax = FLT_MAX;
+			serializeLoadMapsPrevVersion( archive, dnn, size );
 		}
+	} else {
+		NeoAssert( false );
+	}
+
+	archive.Serialize( learningRate );
+	archive.Serialize( regularizationL1 );
+	archive.Serialize( regularizationL2 );
+	archive.Serialize( maxGradientNorm );
+	if( version >= 1 ) {
+		archive.Serialize( clipGradientMin );
+		archive.Serialize( clipGradientMax );
+	} else {
+		clipGradientMin = -FLT_MAX;
+		clipGradientMax = FLT_MAX;
 	}
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
+void CDnnSolver::serializeLoadMapsPrevVersion( CArchive& archive, const CDnn& dnn, int size )
+{
+	CMap<CString, CArray<CString>> layerPrevIdToPath;
+	auto mapLayerIdToPath = [&]( const CDnnLayerGraph& dnn, auto& mapLayerIdToPath ) -> void
+	{
+		CArray<const char*> layerNames;
+		dnn.GetLayerList( layerNames );
+		for( const char* layerName : layerNames ) {
+			const CBaseLayer* layer = dnn.GetLayer( layerName );
+			const CString layerPath = layer->GetPath( "" );
+			CArray<CString>& path = layerPrevIdToPath.GetOrCreateValue( layerPath );
+			layer->GetPath( path );
+			NeoAssert( path.Size() > 0 );
+			const CCompositeLayer* composite = dynamic_cast<const CCompositeLayer*>( layer );
+			if( composite != nullptr ) {
+				mapLayerIdToPath( *composite, mapLayerIdToPath );
+			}
+		}
+	};
+	mapLayerIdToPath( dnn, mapLayerIdToPath );
+
+	auto convertOldIdToLayerPath = [&]( const CBaseLayer** layer )
+	{
+		CString layerId;
+		archive >> layerId;
+		const CArray<CString>& path = layerPrevIdToPath[layerId];
+		if( layer != nullptr ) {
+			*layer = dnn.GetLayer( path );
+		}
+		return JoinStrings( path, layerPathSeparator );
+	};
+
+	for( int i = 0; i < size; ++i ) {
+		const CBaseLayer* layer = nullptr;
+		const CString layerPath = convertOldIdToLayerPath( &layer );
+		serializeDiffBlobSum( archive, layerToParamDiffBlobsSum.CreateValue( layerPath ), layer );
+	}
+
+	archive >> size;
+	for( int i = 0; i < size; ++i ) {
+		const CString layerPath = convertOldIdToLayerPath( nullptr );
+		SerializeBlobs( mathEngine, archive, layerToGradientHistory.CreateValue( layerPath ) );
+	}
+}
+
+void CDnnSolver::serializePath( CArchive& archive, CArray<CString>& path, const CBaseLayer* layer )
+{
+	if( archive.IsStoring() ) {
+		NeoAssert( layer != nullptr );
+		layer->GetPath( path );
+	}
+	archive.Serialize( path );
+	NeoAssert( path.Size() > 0 );
+}
+
+void CDnnSolver::serializeDiffBlobSum( CArchive& archive, CDiffBlobSum& blobsSum, const CBaseLayer* layer )
+{
+	archive.Serialize( blobsSum.Count );
+	SerializeBlobs( mathEngine, archive, blobsSum.Sum );
+	if( archive.IsLoading() ) {
+		blobsSum.LayerOwner = layer;
+	}
+}
+
+void CDnnSolver::serializeGradientHistory( CArchive& archive, const CString& layerPath )
+{
+	if( archive.IsStoring() ) {
+		const bool hasGradientHistory = layerToGradientHistory.Has( layerPath );
+		archive << hasGradientHistory;
+		if( hasGradientHistory ) {
+			SerializeBlobs( mathEngine, archive, layerToGradientHistory.GetOrCreateValue( layerPath ) );
+		}
+	} else if( archive.IsLoading() ) {
+		bool hasGradientHistory;
+		archive >> hasGradientHistory;
+		if( hasGradientHistory ) {
+			SerializeBlobs( mathEngine, archive, layerToGradientHistory.CreateValue( layerPath ) );
+		}
+	} else {
+		NeoAssert( false );
+	}
+}
+
+//---------------------------------------------------------------------------------------------------------------------
 
 CDnnSimpleGradientSolver::CDnnSimpleGradientSolver( IMathEngine& mathEngine ) :
 	CDnnSolver( mathEngine ),
@@ -394,9 +440,9 @@ CDnnSimpleGradientSolver::CDnnSimpleGradientSolver( IMathEngine& mathEngine ) :
 {
 }
 
-static const int DnnSimpleGradientSolverVersion = 0;
+constexpr int DnnSimpleGradientSolverVersion = 0;
 
-void CDnnSimpleGradientSolver::Serialize( CArchive& archive, CDnn& dnn )
+void CDnnSimpleGradientSolver::Serialize( CArchive& archive, const CDnn& dnn )
 {
 	archive.SerializeVersion( DnnSimpleGradientSolverVersion );
 	CDnnSolver::Serialize( archive, dnn );
@@ -462,6 +508,8 @@ void CDnnSimpleGradientSolver::TrainLayer( const CBaseLayer* layer, const CObjec
 	}
 }
 
+//---------------------------------------------------------------------------------------------------------------------
+
 CDnnAdaptiveGradientSolver::CDnnAdaptiveGradientSolver( IMathEngine& mathEngine ) :
 	CDnnSolver( mathEngine ),
 	momentDecayRate(0.9f),
@@ -489,9 +537,9 @@ void CDnnAdaptiveGradientSolver::EnableDecoupledWeightDecay( bool enable )
 	isDecoupledWeightDecay = enable;
 }
 
-static const int DnnAdaptiveGradientSolver = 1;
+constexpr int DnnAdaptiveGradientSolver = 1;
 
-void CDnnAdaptiveGradientSolver::Serialize( CArchive& archive, CDnn& dnn )
+void CDnnAdaptiveGradientSolver::Serialize( CArchive& archive, const CDnn& dnn )
 {
 	const int version = archive.SerializeVersion( DnnAdaptiveGradientSolver );
 	CDnnSolver::Serialize( archive, dnn );
@@ -636,6 +684,8 @@ void CDnnAdaptiveGradientSolver::TrainLayer( const CBaseLayer* layer, const CObj
 	}
 }
 
+//---------------------------------------------------------------------------------------------------------------------
+
 CDnnNesterovGradientSolver::CDnnNesterovGradientSolver( IMathEngine& mathEngine ) :
 	CDnnSolver( mathEngine ),
 	momentDecayRate( 0.9f ),
@@ -663,9 +713,9 @@ void CDnnNesterovGradientSolver::EnableDecoupledWeightDecay( bool enable )
 	isDecoupledWeightDecay = enable;
 }
 
-static const int DnnNesterovGradientSolverVersion = 1;
+constexpr int DnnNesterovGradientSolverVersion = 1;
 
-void CDnnNesterovGradientSolver::Serialize( CArchive& archive, CDnn& dnn )
+void CDnnNesterovGradientSolver::Serialize( CArchive& archive, const CDnn& dnn )
 {
 	const int version = archive.SerializeVersion( DnnNesterovGradientSolverVersion );
 	CDnnSolver::Serialize( archive, dnn );
@@ -809,7 +859,7 @@ void CDnnNesterovGradientSolver::TrainLayer( const CBaseLayer* layer, const CObj
 	}
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
+//---------------------------------------------------------------------------------------------------------------------
 
 CDnnLambGradientSolver::CDnnLambGradientSolver( IMathEngine& mathEngine ) :
 	CDnnSolver( mathEngine ),
@@ -848,9 +898,9 @@ void CDnnLambGradientSolver::ExcludeBiasParamLayers()
 	ExcludeWeightDecayLayer<CTransposedConvLayer>( 1 );
 }
 
-static const int DnnLambGradientSolverVersion = 0;
+constexpr int DnnLambGradientSolverVersion = 0;
 
-void CDnnLambGradientSolver::Serialize( CArchive& archive, CDnn& dnn )
+void CDnnLambGradientSolver::Serialize( CArchive& archive, const CDnn& dnn )
 {
 	archive.SerializeVersion( DnnLambGradientSolverVersion );
 	CDnnSolver::Serialize( archive, dnn );

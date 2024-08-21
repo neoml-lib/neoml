@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ typedef std::mutex CCriticalSection;
 class CCriticalSectionLock {
 public:
 	explicit CCriticalSectionLock( CCriticalSection& _section, bool initialLock = true );
+	explicit CCriticalSectionLock( CCriticalSection* _section, bool initialLock = true );
 	~CCriticalSectionLock();
 
 	void Lock();
@@ -40,6 +41,15 @@ private:
 
 inline CCriticalSectionLock::CCriticalSectionLock( CCriticalSection& _section, bool initialLock ) :
 	section( _section ),
+	isLocked( false )
+{
+	if( initialLock ) {
+		Lock();
+	}
+}
+
+inline CCriticalSectionLock::CCriticalSectionLock( CCriticalSection* _section, bool initialLock ) :
+	section( *_section ),
 	isLocked( false )
 {
 	if( initialLock ) {

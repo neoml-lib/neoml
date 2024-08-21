@@ -1,4 +1,5 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
@@ -95,7 +96,7 @@ void CCudaDistributedCommunicator::Broadcast( const CFloatHandle& handle, int si
 	ncclStreamSynchronize( 0 );
 }
 
-void CreateDistributedCudaMathEnginesNccl( IMathEngine** mathEngines, int devsCount, const int* cudaDevs )
+void CreateDistributedCudaMathEnginesNccl( IMathEngine** mathEngines, int devsCount, const int* cudaDevs, size_t memoryLimit )
 {
 	std::unique_ptr<IGpuMathEngineManager> gpuManager( CreateGpuMathEngineManager() );
 	CDllLoader ncclLoader( CDllLoader::NCCL_DLL );
@@ -106,7 +107,7 @@ void CreateDistributedCudaMathEnginesNccl( IMathEngine** mathEngines, int devsCo
 	auto isAbort = std::make_shared<std::atomic<bool>>( false );
 	ASSERT_NCCL( nccl, nccl->GroupStart() );
 	for( int i = 0; i < devsCount; i++ ){
-		mathEngines[i]  = gpuManager->CreateMathEngine( cudaDevs[i], 0u );
+		mathEngines[i]  = gpuManager->CreateMathEngine( cudaDevs[i], memoryLimit );
 		SetCudaDevice( cudaDevs[i] );
 		static_cast<CCudaMathEngine*>( mathEngines[i] )->SetDistributedCommunicator( id, {i, devsCount}, isAbort );
 	}
@@ -115,4 +116,4 @@ void CreateDistributedCudaMathEnginesNccl( IMathEngine** mathEngines, int devsCo
 
 } // namespace NeoML
 
-#endif
+#endif // NEOML_USE_NCCL

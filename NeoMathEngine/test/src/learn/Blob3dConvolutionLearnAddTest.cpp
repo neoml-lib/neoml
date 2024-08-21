@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -124,14 +124,14 @@ static void blob3dConvolutionLearnAddImpl( const CTestParams& params, int seed )
 	batchConvolutionLearnAdd( convParams, inputData.data(), expectedFilterDiff.data(), expectedFreeTermDiff.data(), outputDiff.data() );
 
 	for( size_t i = 0; i < expectedFilterDiff.size(); i++ ) {
-		ASSERT_NEAR( expectedFilterDiff[i], filterDiff[i], 1e-2 );
+		EXPECT_NEAR( expectedFilterDiff[i], filterDiff[i], 1e-2 );
 	}
 
 	if( addFreeTerm ) {
 		freeTermDiffBlob.CopyTo( freeTermDiff.data() );
 
 		for( size_t i = 0; i < expectedFreeTermDiff.size(); i++ ) {
-			ASSERT_NEAR( expectedFreeTermDiff[i], freeTermDiff[i], 1e-2 );
+			EXPECT_NEAR( expectedFreeTermDiff[i], freeTermDiff[i], 1e-2 );
 		}
 	}
 }
@@ -205,5 +205,11 @@ INSTANTIATE_TEST_CASE_P( CBlob3dConvolutionLearnAddTestInstantiation, CBlob3dCon
 
 TEST_P( CBlob3dConvolutionLearnAddTest, Random )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		return;
+	}
+
 	RUN_TEST_IMPL( blob3dConvolutionLearnAddImpl );
 }

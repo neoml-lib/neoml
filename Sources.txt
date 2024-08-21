@@ -1,6 +1,6 @@
 
 git;https://github.com/abbyyProduct/Tools_Libs-FineObjects15
-get;FineObjects;/;FineObjects15-master 15.0.64.0
+get;FineObjects;/;master
 
 git;https://github.com/abbyyProduct/ThirdParty-CUDA
 get;ThirdParty/CUDA;/;CUDA v11.8 1.0.1.0
@@ -14,8 +14,8 @@ get;ThirdParty/MKL;/;MKL 2022.0.2 1.0.8.0
 git;https://github.com/abbyyProduct/ThirdParty-protobuf
 get;ThirdParty/protobuf;/;v3.11.4
 
-git;https://dev.azure.com/abbyy-hq/Tools_Libs/_git/NeoMLTest
-get;NeoMLTest;/;NeoMLTest-master 1.0.69.0
+git;https://github.com/abbyyProduct/Tools_Libs-NeoMLTest
+get;NeoMLTest;/;NeoMLTest-master 1.0.72.0
 
 copy;%ROOT%/../NeoML;%ROOT%/NeoML/NeoML
 copy;%ROOT%/../NeoMathEngine;%ROOT%/NeoML/NeoMathEngine

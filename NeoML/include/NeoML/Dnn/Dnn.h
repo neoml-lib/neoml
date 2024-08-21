@@ -83,10 +83,17 @@ inline CLayerClassRegistrar<T>::~CLayerClassRegistrar()
 	UnregisterLayerClass( typeid( T ) );
 }
 
+//------------------------------------------------------------------------------------------------------------
+
+// Forward declarations
 class CDnn;
 class CDnnLayerGraph;
 class CBaseLayer;
 class CCompositeLayer;
+class CReferenceDnnFactory;
+struct CReferenceDnnInfo;
+struct CReferenceDnnInfoDeleter { void operator()( CReferenceDnnInfo* ); };
+using TPtrOwnerReferenceDnnInfo = CPtrOwner<CReferenceDnnInfo, CReferenceDnnInfoDeleter>;
 
 //------------------------------------------------------------------------------------------------------------
 
@@ -149,7 +156,10 @@ public:
 	//
 	// e.g. layer "InputHidden" inside of CLstmLayer named "LSTM", which is inside of CCompositeLayer named "Encoder"
 	// has path "Encoder/LSTM/InputHidden"
-	CString GetPath() const;
+	CString GetPath( const char* sep = "/" ) const;
+	// Path in form suitable for dnn->GetLayer( CArray<CString>& path );
+	// Returns an empty array if the path cannot be constructed.
+	void GetPath( CArray<CString>& path ) const;
 
 	// Connects this layer's inputNumber input to the specified layer's outputNumber output
 	virtual void Connect( int inputNumber, const char* layer, int outputNumber = 0 );
@@ -234,6 +244,8 @@ protected:
 	bool IsBackwardPerformed() const;
 	// Indicates that backpropagation must be performed for the layer when Learn method is called
 	bool IsBackwardNeeded() const;
+	// Layer may contain empty paramBlob of given index
+	virtual bool ContainsEmptyParamBlob( int ) const { return false; }
 	// Gets a pointer to the layer connected to the given input
 	CBaseLayer* GetInputLayer(int input) { return inputLinks[input].Layer; }
 	const CBaseLayer* GetInputLayer(int input) const { return inputLinks[input].Layer; }
@@ -308,11 +320,9 @@ protected:
 
 private:
 	// Describes an input connection
-	struct CInputInfo {
+	struct CInputInfo final {
 		CString Name; // the name of the layer that is connected to the input
-		int OutputNumber; // the number of that layer's output that is connected to the input
-	
-		CInputInfo() { OutputNumber = NotFound; }
+		int OutputNumber = NotFound; // the number of that layer's output that is connected to the input
 	};
 
 	IMathEngine& mathEngine; 	// the layer's MathEngine
@@ -322,7 +332,6 @@ private:
 
 	// Indicates if the layer may be trained
 	const bool isLearnable;
-
 	// Indicates if learning is enabled for the layer
 	bool isLearningEnabled;
 	// The base learning rate (may vary inside the network depending on the learning strategy)
@@ -330,6 +339,7 @@ private:
 	// Base regularization multiplier (may vary inside the network depending on the learning strategy)
 	float baseL2RegularizationMult;
 	float baseL1RegularizationMult;
+
 	// Indicates if backpropagation should be performed for the layer
 	enum TBackwardStatus {
 		BS_Unknown,
@@ -378,7 +388,6 @@ private:
 
 	// The number of graphs with which the layer is connected
 	int graphCount;
-
 	// Use timer to calculate run once time and hit count
 	bool useTimer;
 	// The total number of RunOnce calls since last Reshape
@@ -387,21 +396,22 @@ private:
 	IPerformanceCounters::CCounter::TCounterType runOnceTime;
 	// Indicates if the layer performs in-place processing (after the Reshape method call)
 	bool isInPlace;
+	// Fields used for memory optimization during training
+	int allocatedBlobs; // the mask of currently allocated blobs
+	int blobsNeededForBackward; // the mask of blobs needed for backward and learn
 
+	// Set the 'dist' layer's paramBlobs to point to the data of this layer's paramBlobs
+	void transferParamsBlob(CBaseLayer& dist) const;
+	// Technical method for recursion in GetPath( CArray<CString>& path )
+	void getPath( CArray<CString>& path ) const;
 	// Switches the specified blobs into sequence processing mode
 	void switchBlobsToSequentialMode(CObjectArray<CDnnBlob>& blobs, TBlobCacheType cacheType, bool storeParent);
 	void switchBlobsToNonSequentialMode(CObjectArray<CDnnBlob>& blobs, TBlobCacheType cacheType, bool clear);
 	void clearAllRuntimeBlobs();
-
 	// Clones a blob to store diffs
 	CDnnBlob* cloneBlobForDiff(const CBlobDesc& desc);
-
 	// Indicates if the layer is composite (contains another sub-network)
 	virtual bool isComposite() const { return false; }
-
-	// Fields used for memory optimization during training
-	int allocatedBlobs; // the mask of currently allocated blobs
-	int blobsNeededForBackward; // the mask of blobs needed for backward and learn
 	// Sets the mask of allocated blobs
 	// If some some blobs are not marked as allocated, they will be freed during this call
 	void setAllocatedBlobs( int newMask );
@@ -422,13 +432,11 @@ private:
 	void backwardRunAndLearnOnce();
 	void transferDiffBlob( CDnnBlob* diffBlob, int outputNum );
 
-	// Indicates if the layer may be used for in-place processing (the output blobs replace the input blobs)
-	bool isInPlaceProcessAvailable() const;
-
 	friend class CDnn;
 	friend class CDnnLayerGraph;
 	friend class CDnnSolver;
 	friend class CCompositeLayer;
+	friend class CReferenceDnnFactory;
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -506,7 +514,6 @@ public:
 	// By default logging is off (set to null to turn off)
 	CTextStream* GetLog() { return log; }
 	void SetLog( CTextStream* newLog ) { log = newLog; }
-
 	// Sets the logging frequence (by default, each 100th Run or RunAndLearn call is recorded)
 	int GetLogFrequency() const { return logFrequency; }
 	void SetLogFrequency(int _logFrequency) { logFrequency = _logFrequency; }
@@ -563,9 +570,12 @@ public:
 	// Checks if the network is going to be rebuilt before the next run
 	// The method may be useful for controlling the rebuild frequency
 	bool IsRebuildRequested() const { return isRebuildNeeded; }
+	// Shares its weights with other reference dnns
+	bool IsReferenceDnn() const { return ( getOwnerDnn().referenceDnnInfo != nullptr ); }
 
 	// Gets a reference to the random numbers generator
 	CRandom& Random() { return random; }
+	const CRandom& Random() const { return random; }
 
 	// Gets a reference to the math engine
 	IMathEngine& GetMathEngine() const { return mathEngine; }
@@ -586,7 +596,6 @@ public:
 	static const int ArchiveMinSupportedVersion = 1001;
 
 	void Serialize( CArchive& archive );
-
 	// Serializes network with data, required to resume training
 	// When loading from checkpoint creates new solver (old pointers will point to an object, not used by this net anymore)
 	void SerializeCheckpoint( CArchive& archive );
@@ -595,16 +604,12 @@ public:
 	void EnableProfile( bool profile );
 
 private:
-	// Adds or deletes a layer
-	void AddLayerImpl(CBaseLayer& layer) override;
-	void DeleteLayerImpl(CBaseLayer& layer) final;
-
 	const CBaseLayer* owner; // the composite containing this CDnn (if exists)
 	CTextStream* log; // the logging stream
-	int logFrequency;	// the logging frequency
-	CPtr<CDnnSolver> solver;	// the layer parameter optimizer
+	int logFrequency; // the logging frequency
+	CPtr<CDnnSolver> solver; // the layer parameter optimizer
 
-	CRandom& random;	// the reference to the random numbers generator
+	CRandom& random; // the reference to the random numbers generator
 	IMathEngine& mathEngine; // the reference to the math engine
 
 	// The layer map
@@ -637,16 +642,30 @@ private:
 	// The low memory use mode
 	bool isReuseMemoryMode;
 
+	// Reference information
+	TPtrOwnerReferenceDnnInfo referenceDnnInfo;
+
+	// Adds or deletes a layer
+	void AddLayerImpl( CBaseLayer& layer ) override;
+	void DeleteLayerImpl( CBaseLayer& layer ) final;
+	// Should be called in all internals methods
+	CBaseLayer* getLayer( const char* name );
+	// Should be called in all internals methods
+	CBaseLayer* getLayer( const CArray<CString>& path );
+
 	void setProcessingParams(bool isRecurrentMode, int sequenceLength, bool isReverseSequense, bool isBackwardPerformed);
 	void runOnce(int curSequencePos);
 	void backwardRunAndLearnOnce(int curSequencePos);
 	void reshape();
 	void rebuild();
 	size_t getOutputBlobsSize() const;
+	const CDnn& getOwnerDnn() const
+		{ return ( owner == nullptr || owner->GetDnn() == nullptr ) ? *this : owner->GetDnn()->getOwnerDnn(); }
 
 	friend class CBaseLayer;
 	friend class CCompositeLayer;
 	friend class CRecurrentLayer;
+	friend class CReferenceDnnFactory;
 };
 
 inline CArchive& operator<<( CArchive& archive, const CDnn& dnn)
@@ -662,6 +681,64 @@ inline CArchive& operator>>( CArchive& archive, CDnn& dnn)
 }
 
 void NEOML_API SerializeLayer( CArchive& archive, IMathEngine& mathEngine, CPtr<CBaseLayer>& layer );
+
+//------------------------------------------------------------------------------------------------------------
+
+// Result of CReferenceDnnFactory::CreateReferenceDnn
+// NOTE: Class CDnnReference should be created using CPtr only.
+class NEOML_API CDnnReference : public IObject {
+public:
+	CDnn Dnn;
+
+protected:
+	CDnnReference( CRandom& random, IMathEngine& mathEngine ) : Dnn( random, mathEngine ) {}
+	// Use CPtr<CDnnReference> to create the class
+	~CDnnReference() override = default;
+
+	friend class CReferenceDnnFactory;
+};
+
+// This class can initialize a reference dnn, that has the same configuration as the original dnn
+// and shares parameter blobs with the original dnn to save memory.
+// Useful for multi-threaded inference where each thread can operate own reference dnn independently.
+// Learning is disabled for both the original dnn and the reference dnn.
+// Creates a copy of the original dnn's random generator to use it for inference.
+// NOTE: Class CReferenceDnnFactory should be created using CPtr only.
+class NEOML_API CReferenceDnnFactory : public IObject {
+public:
+	// Archive should contain trained dnn, ready for inference
+	// NOTE: mathEngine should be CPU only and live longer than CReferenceDnnFactory
+	CReferenceDnnFactory( IMathEngine& mathEngine, CArchive& archive, int seed = 42, bool optimizeDnn = true );
+	// Dnn should be trained and ready for inference,
+	// Dnn will be copied for internal storage to be non-disturbed, one can use argument dnn further as one wants
+	// NOTE: mathEngine should be CPU only and live longer than CReferenceDnnFactory
+	CReferenceDnnFactory( IMathEngine& mathEngine, const CDnn& dnn, bool optimizeDnn = true );
+	// Dnn should be trained and ready for inference, it will be moved inside and cannot be used outside.
+	// NOTE: mathEngine should be CPU only and live longer than CReferenceDnnFactory
+	CReferenceDnnFactory( CDnn&& dnn, bool optimizeDnn = true );
+
+	// Thread-safe coping of originalDnn, increments the counter
+	// NOTE: The original dnn used to copy reference dnns may be also used as one more reference dnn (optimization)
+	//       The 'getOriginDnn' flag must be used strictly for the only thread.
+	CPtr<CDnnReference> CreateReferenceDnn( bool getOriginDnn = false );
+
+protected:
+	// Use CPtr<CReferenceDnnFactory> to create the class
+	~CReferenceDnnFactory() override = default;
+
+private:
+	CPtr<CDnnReference> Origin; // The dnn to make reference dnns
+
+	// Technical constructor
+	CReferenceDnnFactory( CRandom random, IMathEngine& mathEngine );
+
+	// Internal method of loading to the origin dnn
+	void serialize( CArchive& archive, bool optimizeDnn );
+	// Thread-safe coping the state (with no copy paramBlobs the pointers used) of a dnn to a new dnn
+	void initializeReferenceDnn( CDnn& dnn, CDnn& newDnn, TPtrOwnerReferenceDnnInfo&& info );
+	// Update layers' settings for a better paramBlobs sharing
+	static void allowLayersToShareParamBlobs( CDnn& dnn );
+};
 
 } // namespace NeoML
 

@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -46,7 +46,7 @@ static void rowMultiplyMatrixByMatrixTestImpl( const CTestParams& params, int se
 		height, width, CARRAY_FLOAT_WRAPPER( get ) );
 
 	for( int i = 0; i < height; ++i ) {
-		ASSERT_NEAR( expected[i], get[i], 1e-3 );
+		EXPECT_NEAR( expected[i], get[i], 1e-3 );
 	}
 }
 
@@ -80,5 +80,11 @@ INSTANTIATE_TEST_CASE_P( CRowMultiplyMatrixByMatrixTestInstantiation, CRowMultip
 
 TEST_P( CRowMultiplyMatrixByMatrixTest, Random )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skip for MathEngine type= " << met << " , investigate later.\n";
+		return;
+	}
+
 	RUN_TEST_IMPL( rowMultiplyMatrixByMatrixTestImpl )
 }

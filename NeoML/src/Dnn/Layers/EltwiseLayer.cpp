@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -49,8 +49,7 @@ void CEltwiseBaseLayer::Serialize( CArchive& archive )
 	CBaseLayer::Serialize( archive );
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////
+//---------------------------------------------------------------------------------------------------------------------
 
 template<class T>
 static void eltwiseSumRunOnce( const CObjectArray<CDnnBlob>& inputBlobs, const CObjectArray<CDnnBlob>& outputBlobs )
@@ -100,8 +99,7 @@ CLayerWrapper<CEltwiseSumLayer> Sum()
 	return CLayerWrapper<CEltwiseSumLayer>( "Sum" );
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////
+//---------------------------------------------------------------------------------------------------------------------
 
 void CEltwiseSubLayer::Reshape()
 {
@@ -155,8 +153,8 @@ CLayerWrapper<CEltwiseSubLayer> Sub()
 	return CLayerWrapper<CEltwiseSubLayer>( "Sub" );
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////
+//---------------------------------------------------------------------------------------------------------------------
+
 void CEltwiseMulLayer::RunOnce()
 {
 	const int dataSize = outputBlobs[0]->GetDataSize();
@@ -213,8 +211,8 @@ CLayerWrapper<CEltwiseMulLayer> Mul()
 	return CLayerWrapper<CEltwiseMulLayer>( "Mul" );
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////
+//---------------------------------------------------------------------------------------------------------------------
+
 void CEltwiseNegMulLayer::Reshape()
 {
 	CEltwiseBaseLayer::Reshape();
@@ -279,8 +277,8 @@ CLayerWrapper<CEltwiseNegMulLayer> NegMul()
 	return CLayerWrapper<CEltwiseNegMulLayer>( "NegMul" );
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////
+//---------------------------------------------------------------------------------------------------------------------
+
 void CEltwiseMaxLayer::Reshape()
 {
 	CEltwiseBaseLayer::Reshape();
@@ -351,8 +349,7 @@ CLayerWrapper<CEltwiseMaxLayer> Max()
 	return CLayerWrapper<CEltwiseMaxLayer>( "Max" );
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////
+//---------------------------------------------------------------------------------------------------------------------
 
 void CEltwiseDivLayer::Reshape()
 {
@@ -377,7 +374,7 @@ void CEltwiseDivLayer::BackwardOnce()
 	const int dataSize = inputBlobs[0]->GetDataSize();
 	MathEngine().VectorEltwiseDivide( outputDiffBlobs[0]->GetData(), inputBlobs[1]->GetData(),
 		inputDiffBlobs[0]->GetData(), dataSize );
-	MathEngine().VectorEltwiseNegMultiply( outputBlobs[0]->GetData(), outputDiffBlobs[1]->GetData(),
+	MathEngine().VectorEltwiseNegMultiply( outputBlobs[0]->GetData(), outputDiffBlobs[0]->GetData(),
 		inputDiffBlobs[1]->GetData(), dataSize );
 	MathEngine().VectorEltwiseDivide( inputDiffBlobs[1]->GetData(), inputBlobs[1]->GetData(),
 		inputDiffBlobs[1]->GetData(), dataSize );

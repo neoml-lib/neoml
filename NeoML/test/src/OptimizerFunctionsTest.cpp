@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -165,6 +165,13 @@ REGISTER_NEOML_LAYER( CTwoConvActivationTestLayer, "CTwoConvActivationTestLayer"
 
 TEST( UnpackCompositeOptimizerTest, Sample )
 {
+	const auto met = MathEngine().GetType();
+	if(met != MET_Cpu && met != MET_Cuda) {
+		NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped rest of test for MathEngine type=" << met << " because no implementation.\n";
+		// RowwiseChain
+		return;
+	}
+
 	CRandom random( 0x9845 );
 	CDnn dnn( random, MathEngine() );
 	CSourceLayer* source = Source( dnn, "source" );

@@ -96,6 +96,12 @@ TEST( CDnnBlobTest, BufferTest )
 
 TEST( CDnnBlobTest, BufferMemoryThresholdTest )
 {
+    const auto met = MathEngine().GetType();
+    if( met != MET_Cpu && met != MET_Cuda ) {
+        NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped for met=" << met << ", unable use threads.\n";
+        return;
+    }
+
     auto testMethod = []( size_t threshold, bool init, size_t &sumMemoryInPools )
     {
         if( init ) {
@@ -130,6 +136,8 @@ TEST( CDnnBlobTest, BufferMemoryThresholdTest )
         testMethod( 256, /*init*/false, sumMemoryInPools );
     }
     EXPECT_EQ( sumMemoryInPools, 256 + 512 );
+
+    DeleteMathEngine(); // clear memory in pools
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -158,17 +166,17 @@ static void testTransferBlobInThreadsImpl( TTransferType type )
             if( TTransferType::PoolToPool == type ) {
                 break;
             }
-            GTEST_LOG_( INFO ) << "Skipped (" << int( type ) << ") for met=" << met;
+            NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped (" << int( type ) << ") for met=" << met << ", unable use threads.\n";
             return;
         case MET_Metal:
         case MET_Vulkan:
-            GTEST_LOG_( INFO ) << "Skipped (" << int(type) << ") for met=" << met;
+            NEOML_HILIGHT( GTEST_LOG_( INFO ) ) << "Skipped (" << int( type ) << ") for met=" << met << ", unable use threads.\n";
             return;
         default:
             EXPECT_TRUE( false );
     }
 
-    DeleteMathEngine();
+    DeleteMathEngine(); // first time
     IMathEngine& mathEngine = MathEngine(); // create unique MathEngine
 
     std::atomic<bool> created{ false };
@@ -274,6 +282,8 @@ static void testTransferBlobInThreadsImpl( TTransferType type )
     EXPECT_TRUE( mathEngine.GetPeakMemoryUsage() > 0 );
     mathEngine.ResetPeakMemoryUsage();
     EXPECT_TRUE( mathEngine.GetPeakMemoryUsage() == 0 );
+
+    DeleteMathEngine(); // clear memory in pools
 }
 
 } // namespace NeoMLTest

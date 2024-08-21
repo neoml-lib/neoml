@@ -1,4 +1,4 @@
-/* Copyright © 2017-2023 ABBYY
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -40,7 +40,8 @@ const int CudaMemoryAlignment = 4;
 
 //------------------------------------------------------------------------------------------------------------
 
-CCudaMathEngine::CCudaMathEngine( const CCusparse* _cusparse, const CCublas* _cublas, std::unique_ptr<CCudaDevice>& _device, int flags ) :
+CCudaMathEngine::CCudaMathEngine( const CCusparse* _cusparse, const CCublas* _cublas,
+		std::unique_ptr<CCudaDevice>& _device, int flags ) :
 	loader( CDllLoader::CUDA_DLL ),
 	cusparse( _cusparse ),
 	cublas( _cublas ),
@@ -72,41 +73,38 @@ CCudaMathEngine::CCudaMathEngine( const CCusparse* _cusparse, const CCublas* _cu
 	ASSERT_CUDA( cudaGetSymbolAddress((void**)&cudaConstZero, ZeroDev) );
 	ASSERT_CUDA( cudaGetSymbolAddress((void**)&cudaConstOne, OneDev) );
 
-	memoryPool = std::unique_ptr<CMemoryPool>( new CMemoryPool( device->MemoryLimit, this, true ) );
-	deviceStackRunTime = std::unique_ptr<CDeviceStackAllocator>( new CDeviceStackAllocator( *memoryPool, CudaMemoryAlignment ) );
-	hostStackRunTime = std::unique_ptr<CHostStackAllocator>( new CHostStackAllocator( CudaMemoryAlignment ) );
+	InitializeMemory( this, device->MemoryLimit, CudaMemoryAlignment, /*reuse*/true, /*hostStack*/true );
 }
 
 CCudaMathEngine::~CCudaMathEngine()
 {
-	hostStackRunTime.reset();
-	deviceStackRunTime.reset();
-	memoryPool.reset();
+	HostStackAllocator.reset();
+	DeviceStackAllocator.reset();
+	MemoryPool.reset();
 
 	cusparse->Destroy( cusparseHandle );
 	cublas->Destroy( cublasHandle );
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////
+//---------------------------------------------------------------------------------------------------------------------
 
-static inline void CudaFixGeom(int& minVal, int maxVal, unsigned int& geom)
+static inline void cudaFixGeom( int& minVal, int maxVal, unsigned int& geom )
 {
 	if(minVal > maxVal) {
 		minVal = maxVal;
 	}
 
-	if(minVal > (int)geom) {
-		minVal = (int)geom;
+	if( minVal > static_cast<int>( geom ) ) {
+		minVal = static_cast<int>( geom );
 	}
 
-	if((int)geom > maxVal) {
+	if( static_cast<int>( geom ) > maxVal ) {
 		geom = maxVal;
 	}
 }
 
 // The largest 2^N number smaller than this one (returns 1 for input 1)
-static inline int GetMax2ExpLess(int value)
+static inline int getMax2ExpLess( int value )
 {
 	const int startExp = 16;
 	int expStep = startExp >> 1;
@@ -128,7 +126,7 @@ static inline int GetMax2ExpLess(int value)
 	return candidate;
 }
 
-static inline void CudaFixMinVals(int& minX, int& minY, int& minZ, int maxThreadCount,
+static inline void cudaFixMinVals(int& minX, int& minY, int& minZ, int maxThreadCount,
 	int gridMinX, int gridMinY, int gridMinZ)
 {
 	int nextMin = 0;
@@ -138,7 +136,7 @@ static inline void CudaFixMinVals(int& minX, int& minY, int& minZ, int maxThread
 		switch(candidate) {
 			case 0:
 			{
-				int newMinX = GetMax2ExpLess( minX );
+				int newMinX = getMax2ExpLess( minX );
 				if( newMinX >= gridMinX ) {
 					minX = newMinX;
 					lastReduce = nextMin;
@@ -147,7 +145,7 @@ static inline void CudaFixMinVals(int& minX, int& minY, int& minZ, int maxThread
 			}
 			case 1:
 			{
-				int newMinY = GetMax2ExpLess( minY );
+				int newMinY = getMax2ExpLess( minY );
 				if( newMinY >= gridMinY ) {
 					minY = newMinY;
 					lastReduce = nextMin;
@@ -156,7 +154,7 @@ static inline void CudaFixMinVals(int& minX, int& minY, int& minZ, int maxThread
 			}
 			case 2:
 			{
-				int newMinZ = GetMax2ExpLess( minZ );
+				int newMinZ = getMax2ExpLess( minZ );
 				if( newMinZ >= gridMinZ ) {
 					minZ = newMinZ;
 					lastReduce = nextMin;
@@ -167,19 +165,19 @@ static inline void CudaFixMinVals(int& minX, int& minY, int& minZ, int maxThread
 	}
 }
 
-static inline int CudaGridMinBlockSize( int taskNum, int maxGridSize )
+static inline int cudaGridMinBlockSize( int taskNum, int maxGridSize )
 {
 	return static_cast<int>( ( static_cast<int64_t>( taskNum ) + maxGridSize - 1 ) / maxGridSize );
 }
 
-static inline uint64_t CudaCalculateBlock( int height, int width, int batchSize,
+static inline uint64_t cudaCalculateBlock( int height, int width, int batchSize,
 	int minX, int minY, int minZ, int maxThreadCount, const CCudaDevice& device, const dim3& geom,
 	dim3& threadCount, dim3& blockCount )
 {
 	uint64_t optimalGridSize = ULLONG_MAX;
 
 	dim3 currentGeom;
-	unsigned int zLimit = min(geom.z * 2, maxThreadCount + 1);
+	unsigned int zLimit = min( geom.z * 2, static_cast<unsigned>( maxThreadCount ) + 1 );
 	for(currentGeom.z = minZ; currentGeom.z < zLimit; currentGeom.z *= 2) {
 		unsigned int zBlock = min(currentGeom.z, geom.z);
 		unsigned int zBlockCount = (batchSize + zBlock - 1) / zBlock;
@@ -212,10 +210,9 @@ static inline uint64_t CudaCalculateBlock( int height, int width, int batchSize,
 	return optimalGridSize;
 }
 
-/////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////
+//---------------------------------------------------------------------------------------------------------------------
 
-int CCudaMathEngine::alignXSizeForWarp(int xSize)
+int CCudaMathEngine::alignXSizeForWarp( int xSize ) const
 {
 	// Align the size so it is either large than warp or smaller or equal and could be presented as 2^N 
 	// Required for reduction with warps
@@ -233,15 +230,15 @@ int CCudaMathEngine::alignXSizeForWarp(int xSize)
 	return candidate;
 }
 
-int CCudaMathEngine::getCudaTempMatrixMaxHeight(int matrixHeight, int matrixWidth)
+int CCudaMathEngine::getCudaTempMatrixMaxHeight( int matrixHeight, int matrixWidth ) const
 {
 	const int maxTempMatrixSizeConst = 256 * 1024 * 1024;
 	const int maxPossibleMatrixHeight = min( maxTempMatrixSizeConst,
-		static_cast<int>( std::max( (size_t)1, ( GetFreeMemorySize() / ( 2 * sizeof(float) * static_cast<size_t>( matrixWidth ) ) ) ) ) );
+		static_cast<int>( max( static_cast<size_t>( 1 ), GetFreeMemorySize() / ( 2 * sizeof( float ) * matrixWidth ) ) ) );
 	return min( matrixHeight, maxPossibleMatrixHeight );
 }
 
-void CCudaMathEngine::getCudaTaskGrid(int& blockCount, int& threadCount, int taskCount, int combineCount)
+void CCudaMathEngine::getCudaTaskGrid( int& blockCount, int& threadCount, int taskCount, int combineCount ) const
 {
 	ASSERT_EXPR( taskCount > 0 );
 	ASSERT_EXPR( combineCount > 0 );
@@ -256,40 +253,40 @@ void CCudaMathEngine::getCudaTaskGrid(int& blockCount, int& threadCount, int tas
 }
 
 void CCudaMathEngine::getCudaTaskGrid2D(dim3& blockCount, dim3& threadCount,
-	int height, int width, int maxThreadCount)
+	int height, int width, int maxThreadCount) const
 {
 	getCudaTaskGrid3DMinZYX(1, 1, 1, blockCount, threadCount, 1, height, width, maxThreadCount);
 }
 
 void CCudaMathEngine::getCudaTaskGrid3D(dim3& blockCount, dim3& threadCount,
-	int batchSize, int height, int width, int maxThreadCount)
+	int batchSize, int height, int width, int maxThreadCount) const
 {
 	getCudaTaskGrid3DMinZYX(1, 1, 1, blockCount, threadCount, batchSize, height, width, maxThreadCount);
 }
 
 void CCudaMathEngine::getCudaTaskGrid2DMinYX(int minY, int minX, dim3& blockCount, dim3& threadCount,
-	int height, int width, int maxThreadCount)
+	int height, int width, int maxThreadCount) const
 {
 	getCudaTaskGrid3DMinZYX(1, minY, minX, blockCount, threadCount, 1, height, width, maxThreadCount);
 }
 
 void CCudaMathEngine::getCudaTaskGrid3DMinZYX(int minZ, int minY, int minX, dim3& blockCount, dim3& threadCount,
-	int batchSize, int height, int width, int _maxThreadCount)
+	int batchSize, int height, int width, int _maxThreadCount) const
 {
-	const int maxThreadCount = min( device->ThreadMaxCount, static_cast<unsigned int>( _maxThreadCount ) );
+	const int maxThreadCount = min( device->ThreadMaxCount, _maxThreadCount );
 
 	ASSERT_EXPR(maxThreadCount >= 1);
 	ASSERT_EXPR(minZ > 0 && minY > 0 && minX > 0);
 	ASSERT_EXPR(batchSize > 0 && height > 0 && width > 0);
 
 	dim3 geom( device->ThreadMax3DCountX, device->ThreadMax3DCountY, device->ThreadMax3DCountZ );
-	CudaFixGeom(minX, width, geom.x);
-	CudaFixGeom(minY, height, geom.y);
-	CudaFixGeom(minZ, batchSize, geom.z);
+	cudaFixGeom( minX, width, geom.x );
+	cudaFixGeom( minY, height, geom.y );
+	cudaFixGeom( minZ, batchSize, geom.z );
 
-	const int gridBlockMinX = CudaGridMinBlockSize( width, device->MaxGridSizeX );
-	const int gridBlockMinY = CudaGridMinBlockSize( height, device->MaxGridSizeY );
-	const int gridBlockMinZ = CudaGridMinBlockSize( batchSize, device->MaxGridSizeZ );
+	const int gridBlockMinX = cudaGridMinBlockSize( width, device->MaxGridSizeX );
+	const int gridBlockMinY = cudaGridMinBlockSize( height, device->MaxGridSizeY );
+	const int gridBlockMinZ = cudaGridMinBlockSize( batchSize, device->MaxGridSizeZ );
 	ASSERT_EXPR( static_cast<uint64_t>( gridBlockMinX ) * gridBlockMinY * gridBlockMinZ
 		<= static_cast<uint64_t>( maxThreadCount ) );
 
@@ -298,19 +295,19 @@ void CCudaMathEngine::getCudaTaskGrid3DMinZYX(int minZ, int minY, int minX, dim3
 	minY = max( gridBlockMinY, minY );
 	minZ = max( gridBlockMinZ, minZ );
 
-	CudaFixMinVals(minX, minY, minZ, maxThreadCount, gridBlockMinX, gridBlockMinY, gridBlockMinZ);
+	cudaFixMinVals( minX, minY, minZ, maxThreadCount, gridBlockMinX, gridBlockMinY, gridBlockMinZ );
 
 	threadCount = dim3(1, 1, 1);
 	blockCount = dim3(width, height, batchSize);
 
 	uint64_t optimalBlockSize = ULLONG_MAX;
 	if( static_cast<uint64_t>( minX ) * minY * minZ <= static_cast<uint64_t>( maxThreadCount ) ) {
-		optimalBlockSize = CudaCalculateBlock( height, width, batchSize, minX, minY, minZ, maxThreadCount, *device,
+		optimalBlockSize = cudaCalculateBlock( height, width, batchSize, minX, minY, minZ, maxThreadCount, *device,
 			geom, threadCount, blockCount );
 	}
 	if( optimalBlockSize == ULLONG_MAX ) {
 		// Ignore min* and try to find the block which fits the grid (gridBlockMin*)
-		optimalBlockSize = CudaCalculateBlock( height, width, batchSize, gridBlockMinX, gridBlockMinY, gridBlockMinZ,
+		optimalBlockSize = cudaCalculateBlock( height, width, batchSize, gridBlockMinX, gridBlockMinY, gridBlockMinZ,
 			maxThreadCount, *device, geom, threadCount, blockCount );
 	}
 
