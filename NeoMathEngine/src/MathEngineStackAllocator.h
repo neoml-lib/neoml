@@ -23,28 +23,28 @@ namespace NeoML {
 class CMemoryPool;
 
 // Device or Host memory stack allocator type
-enum TTypeStackAlloc { TSA_Host, TSA_Device, TSA_Count_ };
+enum class TStackAlloc { Host, Device, Count_ };
 
 // Stack pointer wrapper for Device or Host memory block
-class CStackAllocResult final {
+class CStackMemoryHandle final {
 public:
 	// Convert ctors
-	CStackAllocResult( void* ptr = 0 ) : type( TSA_Host ), host( ptr ) {} // Default ctor
-	CStackAllocResult( CMemoryHandle ptr ) : type( TSA_Device ), device( ptr ) {}
+	CStackMemoryHandle( void* host = nullptr ); // default ctor
+	CStackMemoryHandle( CMemoryHandle device );
+	// Be copied and moved by default
 
-	bool IsNull() const { return ( type == TSA_Host ) ? ( host == 0 ) : device.IsNull(); }
-	// Casts
-	operator CMemoryHandle() { ASSERT_EXPR( type == TSA_Device ); return device; }
-	operator void*() { ASSERT_EXPR( type == TSA_Host ); return host; }
+	bool IsNull() const { return handle.IsNull(); }
+	// Types casts
+	operator void*() const; // host
+	operator CMemoryHandle() const; // device
+
+	CStackMemoryHandle operator+( size_t size ) const;
+	int operator-( const CStackMemoryHandle& ptr ) const;
 
 private:
-	static_assert( TSA_Count_ == 2, "Only TSA_Host and TSA_Device allowed" );
-	TTypeStackAlloc type;
-	union {
-		void* host{};
-		CMemoryHandle device;
-	};
-	friend class CStackAllocManager;
+	const CMemoryHandle handle;
+
+	CStackMemoryHandle( CTypedMemoryHandle<char>&& ptr ) : handle( ptr ) {}
 };
 
 //------------------------------------------------------------------------------------------------------------
@@ -52,19 +52,19 @@ private:
 // Device or Host memory stack allocator implementation for MathEngine
 class IStackAllocator : public CCrtAllocatedObject {
 public:
-	virtual ~IStackAllocator() {}
+	virtual ~IStackAllocator() = default;
 
-	virtual TTypeStackAlloc Type() const = 0;
+	virtual TStackAlloc Type() const = 0;
 	virtual void CleanUp() = 0;
 
-	virtual CStackAllocResult Alloc( size_t size ) = 0;
-	virtual void Free( const CStackAllocResult& ptr ) = 0;
+	virtual CStackMemoryHandle Alloc( size_t size ) = 0;
+	virtual void Free( const CStackMemoryHandle& ptr ) = 0;
 };
 
 //------------------------------------------------------------------------------------------------------------
 
 // Either a memoryPool is equal 0, the stack allocator for the Host memory is crated, or for the Device memory
-IStackAllocator* CreateStackAllocator( TTypeStackAlloc type, CMemoryPool* memoryPool, int memoryAlignment );
+IStackAllocator* CreateStackAllocator( TStackAlloc type, CMemoryPool* memoryPool, int memoryAlignment );
 
 // Deleter for smart pointers
 struct CStackAllocatorDeleter final : public CCrtAllocatedObject {

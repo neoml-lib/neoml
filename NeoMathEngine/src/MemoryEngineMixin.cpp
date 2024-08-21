@@ -29,9 +29,9 @@ void CMemoryEngineMixin::InitializeMemory( IRawMemoryManager* _rawManager, size_
 {
 	MemoryAlignment = _memoryAlignment;
 	MemoryPool.reset( new CMemoryPool( _memoryLimit == 0 ? SIZE_MAX : _memoryLimit, _rawManager, _reuse ) );
-	DeviceStackAllocator.reset( CreateStackAllocator( TSA_Device, MemoryPool.get(), MemoryAlignment ) );
+	DeviceStackAllocator.reset( CreateStackAllocator( TStackAlloc::Device, MemoryPool.get(), MemoryAlignment ) );
 	if( _hostStack == true ) {
-		HostStackAllocator.reset( CreateStackAllocator( TSA_Host, 0, MemoryAlignment ) );
+		HostStackAllocator.reset( CreateStackAllocator( TStackAlloc::Host, /*memoryPool*/nullptr, MemoryAlignment ) );
 	}
 }
 
