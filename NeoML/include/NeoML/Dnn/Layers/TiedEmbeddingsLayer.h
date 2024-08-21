@@ -1,4 +1,4 @@
-/* Copyright © 2017-2024 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,8 +21,6 @@ limitations under the License.
 namespace NeoML {
 
 class CMultichannelLookupLayer;
-
-////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Tied embeddings layer.  https://arxiv.org/pdf/1608.05859.pdf
 // Uses matrix from CMultichannelLookupLayer.
@@ -72,5 +70,4 @@ private:
 // Tied embeddings.
 NEOML_API CLayerWrapper<CTiedEmbeddingsLayer> TiedEmbeddings( const char* name, int channel );
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
 } // namespace NeoML

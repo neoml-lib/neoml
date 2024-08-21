@@ -709,7 +709,7 @@ class LayersTestCase(MultithreadedTestCase):
         math_engine = neoml.MathEngine.CpuMathEngine()
         dnn = neoml.Dnn.Dnn(math_engine)
         source = neoml.Dnn.Source(dnn, "source")
-        tied = neoml.Dnn.TiedEmbeddings((source,), "embeddings", 0, "tied")
+        tied = neoml.Dnn.TiedEmbeddings((source,), [ "embeddings" ], 0, "tied")
         sink = neoml.Dnn.Sink(tied, "sink")
         layer = dnn.layers['tied']
         self.assertEqual(layer.name, 'tied')
@@ -722,6 +722,8 @@ class LayersTestCase(MultithreadedTestCase):
         self.assertEqual(tied.embeddings_layer_name, "embeddings")
         tied.embeddings_layer_name = "embeddings2"
         self.assertEqual(tied.embeddings_layer_name, "embeddings2")
+        tied.embeddings_layer_path = [ "embeddings3" ]
+        self.assertEqual(tied.embeddings_layer_path, [ "embeddings3" ])
 
     def test_accuracy(self):
         math_engine = neoml.MathEngine.CpuMathEngine()
