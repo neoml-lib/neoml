@@ -1,4 +1,4 @@
-""" Copyright (c) 2017-2020 ABBYY Production LLC
+""" Copyright (c) 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -66,7 +66,7 @@ def convert_data(X):
     if issparse(X):
         return csr_matrix(X, dtype=np.float32)
 
-    data = np.array(X, dtype=np.float32, copy=False, order='C')
+    data = np.asarray(X, dtype=np.float32, order='C')
     if data.ndim != 2:
         raise ValueError('X must be of shape (n_samples, n_features)')
     return data

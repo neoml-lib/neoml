@@ -1,4 +1,4 @@
-""" Copyright (c) 2017-2020 ABBYY Production LLC
+""" Copyright (c) 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -319,12 +319,12 @@ def asblob(math_engine, data, shape=None, copy=False):
     if shape is None:
         shape = np.ones(7, np.int32)
     else:
-        shape = np.array(shape, dtype=np.int32, copy=False)
+        shape = np.asarray(shape, dtype=np.int32)
 
     if len(shape) != 7:
         raise ValueError('The `shape` must have 7 dimension sizes.')
 
-    np_data = np.array(data, copy=False, order='C')
+    np_data = np.asarray(data, order='C')
 
     if len(np_data.shape) > 7:
         raise ValueError('The `shape` must have not more then 7 dimensions.')
@@ -407,7 +407,7 @@ def tensor(math_engine, shape, dtype="float32"):
     if dtype != "float32" and dtype != "int32":
         raise ValueError('The `dtype` must be one of {`float32`, `int32`}.')
 
-    shape = np.array(shape, dtype=np.int32, copy=False)
+    shape = np.asarray(shape, dtype=np.int32)
 
     if shape.size != 7:
         raise ValueError('The `shape.size` must be == 7.')
@@ -449,7 +449,7 @@ def list_blob(math_engine, batch_len, batch_width, list_size, channels, dtype="f
     if channels < 1:
         raise ValueError('The `channels` must be > 0.')
 
-    shape = np.array((batch_len, batch_width, list_size, 1, 1, 1, channels), dtype=np.int32, copy=False)
+    shape = np.asarray((batch_len, batch_width, list_size, 1, 1, 1, channels), dtype=np.int32)
 
     return Blob(PythonWrapper.tensor(math_engine._internal, shape, dtype))
 
@@ -490,7 +490,7 @@ def image2d(math_engine, batch_len, batch_width, height, width, channels, dtype=
     if channels < 1:
         raise ValueError('The `channels` must be > 0.')
 
-    shape = np.array((batch_len, batch_width, 1, height, width, 1, channels), dtype=np.int32, copy=False)
+    shape = np.asarray((batch_len, batch_width, 1, height, width, 1, channels), dtype=np.int32)
 
     return Blob(PythonWrapper.tensor(math_engine._internal, shape, dtype))
 
@@ -536,6 +536,6 @@ def image3d(math_engine, batch_len, batch_width, height, width, depth, channels,
     if channels < 1:
         raise ValueError('The `channels` must be > 0.')
 
-    shape = np.array((batch_len, batch_width, 1, height, width, depth, channels), dtype=np.int32, copy=False)
+    shape = np.asarray((batch_len, batch_width, 1, height, width, depth, channels), dtype=np.int32)
 
     return Blob(PythonWrapper.tensor(math_engine._internal, shape, dtype))

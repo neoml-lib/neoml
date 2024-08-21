@@ -1,4 +1,4 @@
-""" Copyright (c) 2017-2020 ABBYY Production LLC
+""" Copyright (c) 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@ limitations under the License.
 import neoml.PythonWrapper as PythonWrapper
 from .Dnn import Layer
 from neoml.Utils import check_input_layers
-import numpy
+import numpy as np
 
 
 class SplitChannels(Layer):
@@ -55,12 +55,12 @@ class SplitChannels(Layer):
 
         layers, outputs = check_input_layers(input_layer, 1)
 
-        s = numpy.array(sizes, dtype=numpy.int32, copy=False)
+        s = np.asarray(sizes, dtype=np.int32)
 
         if s.size > 3:
             raise ValueError('The `sizes` must contain not more than 3 elements.')
 
-        if numpy.any(s < 0):
+        if np.any(s < 0):
             raise ValueError('The `sizes` must contain only positive values.')
 
         internal = PythonWrapper.SplitChannels(str(name), layers[0], int(outputs[0]), s)
@@ -104,12 +104,12 @@ class SplitDepth(Layer):
 
         layers, outputs = check_input_layers(input_layer, 1)
 
-        s = numpy.array(sizes, dtype=numpy.int32, copy=False)
+        s = np.asarray(sizes, dtype=np.int32)
 
         if s.size > 3:
             raise ValueError('The `sizes` must contain not more than 3 elements.')
 
-        if numpy.any(s < 0):
+        if np.any(s < 0):
             raise ValueError('The `sizes` must contain only positive values.')
 
         internal = PythonWrapper.SplitDepth(str(name), layers[0], int(outputs[0]), s)
@@ -153,12 +153,12 @@ class SplitWidth(Layer):
 
         layers, outputs = check_input_layers(input_layer, 1)
 
-        s = numpy.array(sizes, dtype=numpy.int32, copy=False)
+        s = np.asarray(sizes, dtype=np.int32)
 
         if s.size > 3:
             raise ValueError('The `sizes` must contain not more than 3 elements.')
 
-        if numpy.any(s < 0):
+        if np.any(s < 0):
             raise ValueError('The `sizes` must contain only positive values.')
 
         internal = PythonWrapper.SplitWidth(str(name), layers[0], int(outputs[0]), s)
@@ -202,12 +202,12 @@ class SplitHeight(Layer):
 
         layers, outputs = check_input_layers(input_layer, 1)
 
-        s = numpy.array(sizes, dtype=numpy.int32, copy=False)
+        s = np.asarray(sizes, dtype=np.int32)
 
         if s.size > 3:
             raise ValueError('The `sizes` must contain not more than 3 elements.')
 
-        if numpy.any(s < 0):
+        if np.any(s < 0):
             raise ValueError('The `sizes` must contain only positive values.')
 
         internal = PythonWrapper.SplitHeight(str(name), layers[0], int(outputs[0]), s)
@@ -251,12 +251,12 @@ class SplitListSize(Layer):
 
         layers, outputs = check_input_layers(input_layer, 1)
 
-        s = numpy.array(sizes, dtype=numpy.int32, copy=False)
+        s = np.asarray(sizes, dtype=np.int32)
 
         if s.size > 3:
             raise ValueError('The `sizes` must contain not more than 3 elements.')
 
-        if numpy.any(s < 0):
+        if np.any(s < 0):
             raise ValueError('The `sizes` must contain only positive values.')
 
         internal = PythonWrapper.SplitListSize(str(name), layers[0], int(outputs[0]), s)
@@ -300,12 +300,12 @@ class SplitBatchWidth(Layer):
 
         layers, outputs = check_input_layers(input_layer, 1)
 
-        s = numpy.array(sizes, dtype=numpy.int32, copy=False)
+        s = np.asarray(sizes, dtype=np.int32)
 
         if s.size > 3:
             raise ValueError('The `sizes` must contain not more than 3 elements.')
 
-        if numpy.any(s < 0):
+        if np.any(s < 0):
             raise ValueError('The `sizes` must contain only positive values.')
 
         internal = PythonWrapper.SplitBatchWidth(str(name), layers[0], int(outputs[0]), s)
@@ -349,12 +349,12 @@ class SplitBatchLength(Layer):
 
         layers, outputs = check_input_layers(input_layer, 1)
 
-        s = numpy.array(sizes, dtype=numpy.int32, copy=False)
+        s = np.asarray(sizes, dtype=np.int32)
 
         if s.size > 3:
             raise ValueError('The `sizes` must contain not more than 3 elements.')
 
-        if numpy.any(s < 0):
+        if np.any(s < 0):
             raise ValueError('The `sizes` must contain only positive values.')
 
         internal = PythonWrapper.SplitBatchLength(str(name), layers[0], int(outputs[0]), s)
