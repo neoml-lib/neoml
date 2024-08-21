@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,18 +20,19 @@ limitations under the License.
 namespace NeoML {
 
 // Sparse matrix descriptor (CSR format)
-struct CSparseMatrixDesc {
+struct CSparseMatrixDesc final {
 	// The number of elements
-	int ElementCount;
+	const int ElementCount;
 	// This array of (matrix height + 1) length stores the indices where the new row starts, as (Columns + Values)
 	// The last array element is equal to the number of elements in the matrix
-	CIntHandle Rows;
+	const CIntHandle Rows;
 	// This array of ElementCount length contains the indices of the columns to which the corresponding values belong
-	CIntHandle Columns;
+	const CIntHandle Columns;
 	// This array of ElementCount length contains the matrix elements' values
-	CFloatHandle Values;
+	const CFloatHandle Values;
 
-	CSparseMatrixDesc() : ElementCount( 0 ) {}
+	CSparseMatrixDesc( int count, const CIntHandle& rows, const CIntHandle& columns, const CFloatHandle& values ) :
+		ElementCount( count ), Rows( rows ), Columns( columns ), Values( values ) {}
 };
 
 } // namespace NeoML

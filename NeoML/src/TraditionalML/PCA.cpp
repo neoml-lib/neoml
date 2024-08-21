@@ -70,11 +70,10 @@ static CSparseMatrixDesc getSparseMatrixDesc( IMathEngine& mathEngine, const CFl
 {
 	const int height = data.Height;
 	const int width = data.Width;
-	CSparseMatrixDesc desc;
-	desc.ElementCount = ( data.Columns == nullptr ) ? height * width : data.PointerE[height - 1];
-	columns = CDnnBlob::CreateVector( mathEngine, CT_Int, desc.ElementCount );
+	int elementCount = ( data.Columns == nullptr ) ? height * width : data.PointerE[height - 1];
+	columns = CDnnBlob::CreateVector( mathEngine, CT_Int, elementCount );
 	rows = CDnnBlob::CreateVector( mathEngine, CT_Int, height + 1 );
-	values = CDnnBlob::CreateVector( mathEngine, CT_Float, desc.ElementCount );
+	values = CDnnBlob::CreateVector( mathEngine, CT_Float, elementCount );
 	if( data.Columns != nullptr ) {
 		columns->CopyFrom( data.Columns );
 		int* rowBuffer = rows->GetBuffer<int>( 0, height + 1, false );
@@ -84,7 +83,7 @@ static CSparseMatrixDesc getSparseMatrixDesc( IMathEngine& mathEngine, const CFl
 		rowBuffer[height] = data.PointerE[height - 1];
 		rows->ReleaseBuffer( rowBuffer, true );
 	} else {
-		desc.ElementCount = height * width;
+		elementCount = height * width;
 		int* colBuffer = columns->GetBuffer<int>( 0, height * width, false );
 		int* rowBuffer = rows->GetBuffer<int>( 0, height + 1, false );
 		for( int i = 0; i < height; i++ ) {
@@ -97,11 +96,8 @@ static CSparseMatrixDesc getSparseMatrixDesc( IMathEngine& mathEngine, const CFl
 		rows->ReleaseBuffer( rowBuffer, true );
 		columns->ReleaseBuffer( colBuffer, true );
 	}
-	desc.Columns = columns->GetData<int>();
 	values->CopyFrom( data.Values );
-	desc.Values = values->GetData<float>();
-	desc.Rows = rows->GetData<int>();
-	return desc;
+	return CSparseMatrixDesc( elementCount, rows->GetData<int>(), columns->GetData<int>(), values->GetData<float>() );
 }
 
 // copy blob with reduced width

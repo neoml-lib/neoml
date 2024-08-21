@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -25,10 +25,7 @@ namespace NeoML {
 CDnnSparseMatrix::CDnnSparseMatrix( IMathEngine& _mathEngine, int _rowCount, int _columnCount ) :
 	mathEngine( _mathEngine ),
 	rowCount( _rowCount ),
-	columnCount( _columnCount ),
-	totalElementSize( 0 ),
-	totalRowSize( 0 ),
-	mathEngineDataSize( 0 )
+	columnCount( _columnCount )
 {
 	NeoAssert( rowCount > 0 );
 	NeoAssert( columnCount > 0 );
@@ -64,12 +61,7 @@ void CDnnSparseMatrix::Create( const IProblem* problem, int startVectorIndex, in
 				totalRowSize++;
 			}
 			totalRowSize = CeilTo( totalRowSize, 4 );
-
-			CMatrix matrix;
-			matrix.ElementCount = 0;
-			matrix.RowPos = totalRowSize;
-			matrix.ElementPos = totalElementSize;
-			matrixes.Add( matrix );
+			matrixes.Add( CMatrix( /*elementCount*/0, totalRowSize, totalElementSize ) );
 		}
 		matrixes.Last().ElementCount += vectors.Last().Size;
 		totalElementSize += vectors.Last().Size;
@@ -141,12 +133,10 @@ CSparseMatrixDesc CDnnSparseMatrix::GetBatchDesc( int index ) const
 	NeoAssert( !vectors.IsEmpty() );
 	NeoAssert( !matrixes.IsEmpty() );
 
-	CSparseMatrixDesc result;
-	result.ElementCount = matrixes[index].ElementCount;
-	result.Rows = mathEngineData + matrixes[index].RowPos;
-	result.Columns = mathEngineData + totalRowSize + matrixes[index].ElementPos;
-	result.Values = CFloatHandle( mathEngineData ) + totalRowSize + totalElementSize + matrixes[index].ElementPos;
-	return result;
+	return CSparseMatrixDesc( matrixes[index].ElementCount,
+		mathEngineData + matrixes[index].RowPos,
+		mathEngineData + totalRowSize + matrixes[index].ElementPos,
+		CFloatHandle( mathEngineData ) + totalRowSize + totalElementSize + matrixes[index].ElementPos );
 }
 
 } // namespace NeoML
