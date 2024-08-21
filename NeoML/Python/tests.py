@@ -1,4 +1,21 @@
-from unittest import TestCase, skipIf
+# -*- coding: utf-8 -*-
+
+""" Copyright (c) 2017-2024 ABBYY
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+--------------------------------------------------------------------------------------------------------------
+"""
+from unittest import TestCase, skipIf, main
 import os
 import sys
 import tempfile
@@ -13,11 +30,12 @@ import random
 
 class MultithreadedTestCase(TestCase):
     def _thread_function(self, target, kwargs):
-        print(f"python thread {threading.get_ident()} started")
+        print(f"\tpython thread {threading.get_ident()} started")
         target(**kwargs)
-        print(f"python thread {threading.get_ident()} finished")
+        print(f"\tpython thread {threading.get_ident()} finished")
 
     def _test_mt(self, target, result, enable_assert=False):
+        print(super().id()) # test name
         import time
         threads = []
         system_time, user_time = time.perf_counter(), time.process_time()
@@ -28,9 +46,8 @@ class MultithreadedTestCase(TestCase):
         for t in threads:
             t.join()
         system_time, user_time = time.perf_counter() - system_time, time.process_time() - user_time
-        print()
         print('System time {0:.6f} sec.'.format(system_time))
-        print('User time {0:.6f} sec.'.format(user_time))
+        print('User time {0:.6f} sec.\n'.format(user_time))
         if enable_assert:
             self.assertTrue(system_time < user_time)
 
@@ -2856,6 +2873,9 @@ class ClusteringTestCase(MultithreadedTestCase):
 
 
 class TestPca(TestCase):
+    def setUp(self):
+        print(super().id()) # test name
+
     def test_full_svd(self):
         from neoml.PCA import svd
         x = np.array([[2, 1, 3, 2], [2, 4, 4, 1], [2, 4, 1, 1], [4, 4, 3, 4]], dtype=np.float32)
@@ -2953,6 +2973,9 @@ class TestPca(TestCase):
 
 @skipIf(sys.platform == 'darwin', 'Not supposed to work on MacOS')
 class DnnDistributedTestCase(TestCase):
+    def setUp(self):
+        print(super().id()) # test name
+
     def test_distributed(self):
         def set_data(math_engine, thread):
             source = neoml.Blob.asblob(math_engine, np.ones((20,), dtype=np.float32), (1, 1, 1, 1, 1, 1, 20))
@@ -2999,6 +3022,9 @@ class DnnDistributedTestCase(TestCase):
 
 
 class TestBPE(TestCase):
+    def setUp(self):
+        print(super().id()) # test name
+
     def test_saveload(self):
         word_dictionary = [ "aa", "bb", "ab", "a", "b" ]
 
@@ -3044,3 +3070,7 @@ class TestBPE(TestCase):
 
         bpe.cache_period = 10
         self.assertEqual(10, bpe.cache_period)
+
+
+if __name__ == "__main__":
+    main(module="tests")
