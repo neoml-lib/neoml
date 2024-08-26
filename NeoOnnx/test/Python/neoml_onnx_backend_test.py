@@ -1,9 +1,27 @@
-"""Runs standard backend tests from ONNX on neoml.Onnx backend
+﻿# -*- coding: utf-8 -*-
+
+""" Copyright (c) 2017-2024 ABBYY
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+--------------------------------------------------------------------------------------------------------------
 """
 import neoml
 import unittest
 import onnx.backend.test
 
+
+""" Runs standard backend tests from ONNX on neoml.Onnx backend
+"""
 pytest_plugins = "onnx.backend.test.report"
 
 backend_test = onnx.backend.test.runner.Runner(neoml.Onnx, __name__)
@@ -261,6 +279,100 @@ backend_test.exclude('test_momentum_')  # Some WEIRD stuff happens here... (Defa
 backend_test.exclude('test_ai_onnx_ml')  # Default version missing???
 
 # TODO: ALARM!!! Run ALL the failing tests and fix all the asserts (it should be replaced with some exception)...
+
+# non float params
+backend_test.exclude('test_operator_non_float_params_cpu')            # RuntimeError: Internal Program Error: (DnnBlob.h, 337) NeoAssert(GetDataType() == CBlobType<T>::GetType());
+backend_test.exclude('test_add_uint8_cpu')                            # RuntimeError: Internal Program Error: (DnnBlob.h, 337) NeoAssert(GetDataType() == CBlobType<T>::GetType());
+backend_test.exclude('test_clip_default_int8_inbounds_expanded_cpu')  # RuntimeError: Internal Program Error: (DnnBlob.h, 337) NeoAssert(GetDataType() == CBlobType<T>::GetType());
+backend_test.exclude('test_clip_default_int8_max_expanded_cpu')       # RuntimeError: Internal Program Error: (DnnBlob.h, 337) NeoAssert(GetDataType() == CBlobType<T>::GetType());
+backend_test.exclude('test_clip_default_int8_min_expanded_cpu')       # RuntimeError: Internal Program Error: (DnnBlob.h, 337) NeoAssert(GetDataType() == CBlobType<T>::GetType());
+backend_test.exclude('test_div_uint8_cpu')                            # RuntimeError: Internal Program Error: (DnnBlob.h, 337) NeoAssert(GetDataType() == CBlobType<T>::GetType());
+backend_test.exclude('test_mul_uint8_cpu')                            # RuntimeError: Internal Program Error: (DnnBlob.h, 337) NeoAssert(GetDataType() == CBlobType<T>::GetType());
+backend_test.exclude('test_sub_uint8_cpu')                            # RuntimeError: Internal Program Error: (DnnBlob.h, 337) NeoAssert(GetDataType() == CBlobType<T>::GetType());
+
+backend_test.exclude('test_equal_bcast_cpu')                          # RuntimeError: Internal Program Error: (DnnBlob.h, 337) NeoAssert(GetDataType() == CBlobType<T>::GetType());
+backend_test.exclude('test_equal_cpu')                                # RuntimeError: Internal Program Error: (DnnBlob.h, 337) NeoAssert(GetDataType() == CBlobType<T>::GetType());
+backend_test.exclude('test_gather_0_cpu')                             # RuntimeError: Internal Program Error: (DnnBlob.h, 337) NeoAssert(GetDataType() == CBlobType<T>::GetType());
+backend_test.exclude('test_gather_1_cpu')                             # RuntimeError: Internal Program Error: (DnnBlob.h, 337) NeoAssert(GetDataType() == CBlobType<T>::GetType());
+backend_test.exclude('test_gather_2d_indices_cpu')                    # RuntimeError: Internal Program Error: (DnnBlob.h, 337) NeoAssert(GetDataType() == CBlobType<T>::GetType());
+backend_test.exclude('test_gather_negative_indices_cpu')              # RuntimeError: Internal Program Error: (DnnBlob.h, 337) NeoAssert(GetDataType() == CBlobType<T>::GetType());
+backend_test.exclude('test_not_2d_cpu')                               # RuntimeError: Internal Program Error: (DnnBlob.h, 337) NeoAssert(GetDataType() == CBlobType<T>::GetType());
+backend_test.exclude('test_not_3d_cpu')                               # RuntimeError: Internal Program Error: (DnnBlob.h, 337) NeoAssert(GetDataType() == CBlobType<T>::GetType());
+backend_test.exclude('test_not_4d_cpu')                               # RuntimeError: Internal Program Error: (DnnBlob.h, 337) NeoAssert(GetDataType() == CBlobType<T>::GetType());
+backend_test.exclude('test_scatternd_cpu')                            # RuntimeError: Internal Program Error: (DnnBlob.h, 337) NeoAssert(GetDataType() == CBlobType<T>::GetType());
+backend_test.exclude('test_where_example_cpu')                        # RuntimeError: Internal Program Error: (DnnBlob.h, 337) NeoAssert(GetDataType() == CBlobType<T>::GetType());
+backend_test.exclude('test_where_long_example_cpu')                   # RuntimeError: Internal Program Error: (DnnBlob.h, 337) NeoAssert(GetDataType() == CBlobType<T>::GetType());
+backend_test.exclude('test_Embedding_cpu')                            # RuntimeError: Internal Program Error: (DnnBlob.h, 337) NeoAssert(GetDataType() == CBlobType<T>::GetType());
+backend_test.exclude('test_Embedding_sparse_cpu')                     # RuntimeError: Internal Program Error: (DnnBlob.h, 337) NeoAssert(GetDataType() == CBlobType<T>::GetType());
+
+# NeoOnnx doesn't support
+backend_test.exclude('test_affine_grid_2d_align_corners_cpu') # Unsupported opset version: 20
+backend_test.exclude('test_affine_grid_2d_align_corners_expanded_cpu') # Unsupported opset version: 20
+backend_test.exclude('test_affine_grid_2d_cpu') # Unsupported opset version: 20
+backend_test.exclude('test_affine_grid_2d_expanded_cpu') # Unsupported opset version: 20
+backend_test.exclude('test_affine_grid_3d_align_corners_cpu') # Unsupported opset version: 20
+backend_test.exclude('test_affine_grid_3d_align_corners_expanded_cpu') # Unsupported opset version: 20
+backend_test.exclude('test_affine_grid_3d_cpu') # Unsupported opset version: 20
+backend_test.exclude('test_affine_grid_3d_expanded_cpu') # Unsupported opset version: 20
+backend_test.exclude('test_constant_cpu') # Unsupported opset version: 21
+backend_test.exclude('test_flatten_axis0_cpu') # Unsupported opset version: 21
+backend_test.exclude('test_flatten_axis1_cpu') # Unsupported opset version: 21
+backend_test.exclude('test_flatten_axis2_cpu') # Unsupported opset version: 21
+backend_test.exclude('test_flatten_axis3_cpu') # Unsupported opset version: 21
+backend_test.exclude('test_flatten_default_axis_cpu') # Unsupported opset version: 21
+backend_test.exclude('test_flatten_negative_axis1_cpu') # Unsupported opset version: 21
+backend_test.exclude('test_flatten_negative_axis2_cpu') # Unsupported opset version: 21
+backend_test.exclude('test_flatten_negative_axis3_cpu') # Unsupported opset version: 21
+backend_test.exclude('test_flatten_negative_axis4_cpu') # Unsupported opset version: 21
+backend_test.exclude('test_gelu_default_1_cpu') # Unsupported opset version: 20
+backend_test.exclude('test_gelu_default_1_expanded_cpu') # Unsupported opset version: 20
+backend_test.exclude('test_gelu_default_2_cpu') # Unsupported opset version: 20
+backend_test.exclude('test_gelu_default_2_expanded_cpu') # Unsupported opset version: 20
+backend_test.exclude('test_gelu_tanh_1_cpu') # Unsupported opset version: 20
+backend_test.exclude('test_gelu_tanh_1_expanded_cpu') # Unsupported opset version: 20
+backend_test.exclude('test_gelu_tanh_2_cpu') # Unsupported opset version: 20
+backend_test.exclude('test_gelu_tanh_2_expanded_cpu') # Unsupported opset version: 20
+backend_test.exclude('test_identity_cpu') # Unsupported opset version: 21
+backend_test.exclude('test_image_decoder_decode_bmp_rgb_cpu') # Unsupported opset version: 20
+backend_test.exclude('test_image_decoder_decode_jpeg2k_rgb_cpu') # Unsupported opset version: 20
+backend_test.exclude('test_image_decoder_decode_jpeg_bgr_cpu') # Unsupported opset version: 20
+backend_test.exclude('test_image_decoder_decode_jpeg_grayscale_cpu') # Unsupported opset version: 20
+backend_test.exclude('test_image_decoder_decode_jpeg_rgb_cpu') # Unsupported opset version: 20
+backend_test.exclude('test_image_decoder_decode_png_rgb_cpu') # Unsupported opset version: 20
+backend_test.exclude('test_image_decoder_decode_pnm_rgb_cpu') # Unsupported opset version: 20
+backend_test.exclude('test_image_decoder_decode_tiff_rgb_cpu') # Unsupported opset version: 20
+backend_test.exclude('test_image_decoder_decode_webp_rgb_cpu') # Unsupported opset version: 20
+backend_test.exclude('test_regex_full_match_basic_cpu') # Unsupported opset version: 20
+backend_test.exclude('test_regex_full_match_email_domain_cpu') # Unsupported opset version: 20
+backend_test.exclude('test_regex_full_match_empty_cpu') # Unsupported opset version: 20
+backend_test.exclude('test_shape_clip_end_cpu') # Unsupported opset version: 21
+backend_test.exclude('test_shape_clip_start_cpu') # Unsupported opset version: 21
+backend_test.exclude('test_shape_cpu') # Unsupported opset version: 21
+backend_test.exclude('test_shape_end_1_cpu') # Unsupported opset version: 21
+backend_test.exclude('test_shape_end_negative_1_cpu') # Unsupported opset version: 21
+backend_test.exclude('test_shape_example_cpu') # Unsupported opset version: 21
+backend_test.exclude('test_shape_start_1_cpu') # Unsupported opset version: 21
+backend_test.exclude('test_shape_start_1_end_2_cpu') # Unsupported opset version: 21
+backend_test.exclude('test_shape_start_1_end_negative_1_cpu') # Unsupported opset version: 21
+backend_test.exclude('test_shape_start_negative_1_cpu') # Unsupported opset version: 21
+backend_test.exclude('test_string_concat_broadcasting_cpu') # Unsupported opset version: 20
+backend_test.exclude('test_string_concat_cpu') # Unsupported opset version: 20
+backend_test.exclude('test_string_concat_empty_string_cpu') # Unsupported opset version: 20
+backend_test.exclude('test_string_concat_utf8_cpu') # Unsupported opset version: 20
+backend_test.exclude('test_string_concat_zero_dimensional_cpu') # Unsupported opset version: 20
+backend_test.exclude('test_string_split_basic_cpu') # Unsupported opset version: 20
+backend_test.exclude('test_string_split_consecutive_delimiters_cpu') # Unsupported opset version: 20
+backend_test.exclude('test_string_split_empty_string_delimiter_cpu') # Unsupported opset version: 20
+backend_test.exclude('test_string_split_empty_tensor_cpu') # Unsupported opset version: 20
+backend_test.exclude('test_string_split_maxsplit_cpu') # Unsupported opset version: 20
+backend_test.exclude('test_string_split_no_delimiter_cpu') # Unsupported opset version: 20
+backend_test.exclude('test_transpose_all_permutations_0_cpu') # Unsupported opset version: 21
+backend_test.exclude('test_transpose_all_permutations_1_cpu') # Unsupported opset version: 21
+backend_test.exclude('test_transpose_all_permutations_2_cpu') # Unsupported opset version: 21
+backend_test.exclude('test_transpose_all_permutations_3_cpu') # Unsupported opset version: 21
+backend_test.exclude('test_transpose_all_permutations_4_cpu') # Unsupported opset version: 21
+backend_test.exclude('test_transpose_all_permutations_5_cpu') # Unsupported opset version: 21
+backend_test.exclude('test_transpose_default_cpu') # Unsupported opset version: 21
 
 globals().update(backend_test.enable_report().test_cases)
 
