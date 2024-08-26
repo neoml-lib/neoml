@@ -16,15 +16,13 @@ limitations under the License.
 #pragma once
 
 #include <NeoMathEngine/NeoMathEngineDefs.h>
+#include <MathEngineStackAllocator.h>
 #include <RawMemoryManager.h>
+#include <MemoryPool.h>
 #include <memory>
 #include <mutex>
 
 namespace NeoML {
-
-class CDeviceStackAllocator;
-class CHostStackAllocator;
-class CMemoryPool;
 
 // Memory management engine base class
 class CMemoryEngineMixin : public IMathEngine {
@@ -57,8 +55,8 @@ protected:
 	int MemoryAlignment = 0; // allocation alignment
 	mutable std::mutex Mutex; // protecting the data below from non-thread-safe use
 	std::unique_ptr<CMemoryPool> MemoryPool; // memory manager
-	std::unique_ptr<CDeviceStackAllocator> DeviceStackAllocator; // stack allocator for GPU memory
-	std::unique_ptr<CHostStackAllocator> HostStackAllocator; // stack allocator for regular memory
+	std::unique_ptr<IStackAllocator, CStackAllocatorDeleter> DeviceStackAllocator; // stack allocator for GPU memory
+	std::unique_ptr<IStackAllocator, CStackAllocatorDeleter> HostStackAllocator; // stack allocator for regular memory
 
 	void CleanUpSpecial() override {}
 };
