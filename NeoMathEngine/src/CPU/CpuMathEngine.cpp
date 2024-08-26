@@ -17,8 +17,6 @@ limitations under the License.
 #pragma hdrstop
 
 #include <CpuMathEngine.h>
-#include <MathEngineDeviceStackAllocator.h>
-#include <MathEngineHostStackAllocator.h>
 #include <MemoryHandleInternal.h>
 #include <MathEngineCommon.h>
 #include <NeoMathEngine/SimdMathEngine.h>
