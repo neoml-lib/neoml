@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,12 +16,9 @@ limitations under the License.
 #pragma once
 
 #include <NeoMathEngine/MemoryHandle.h>
-
 #ifdef NEOML_USE_VULKAN
-
 #include <VulkanMemory.h>
-
-#endif
+#endif // NEOML_USE_VULKAN
 
 namespace NeoML {
 
@@ -31,28 +28,28 @@ public:
 
 #ifdef NEOML_USE_VULKAN
 	static CVulkanMemory* GetRawAllocation( const CMemoryHandle& handle )
-		{ return reinterpret_cast<CVulkanMemory*>( const_cast<void*>( handle.object ) ); }
-#endif
+		{ return reinterpret_cast<CVulkanMemory*>( const_cast<void*>( handle.Object ) ); }
+#endif // NEOML_USE_VULKAN
 
 #ifdef NEOML_USE_METAL
 	static void* GetRawAllocation( const CMemoryHandle& handle )
-		{ return const_cast<void*>( handle.object ); }
-#endif
+		{ return const_cast<void*>( handle.Object ); }
+#endif // NEOML_USE_METAL
 
 #if (defined NEOML_USE_METAL) | (defined NEOML_USE_VULKAN)
-	static ptrdiff_t GetRawOffset( const CMemoryHandle& handle ) { return handle.offset; }
-#endif
+	static ptrdiff_t GetRawOffset( const CMemoryHandle& handle ) { return handle.Offset; }
+#endif // NEOML_USE_METAL || NEOML_USE_VULKAN
 
 	template<class Type>
 	static Type* GetRaw( const CTypedMemoryHandle<Type>& handle )
-		{ return const_cast<Type*>( reinterpret_cast<const Type*>( reinterpret_cast<const char*>( handle.object ) + handle.offset ) ); }
+		{ return const_cast<Type*>( reinterpret_cast<const Type*>( reinterpret_cast<const char*>( handle.Object ) + handle.Offset ) ); }
 
 	template<class Type>
 	static const Type* GetRaw( const CTypedMemoryHandle<const Type>& handle )
-		{ return reinterpret_cast<const Type*>( reinterpret_cast<const char*>( handle.object ) + handle.offset ); }
+		{ return reinterpret_cast<const Type*>( reinterpret_cast<const char*>( handle.Object ) + handle.Offset ); }
 
 	static void* GetRaw( const CMemoryHandle& handle )
-		{ return const_cast<void*>( reinterpret_cast<const void*>( reinterpret_cast<const char*>( handle.object ) + handle.offset ) ); }
+		{ return const_cast<void*>( reinterpret_cast<const void*>( reinterpret_cast<const char*>( handle.Object ) + handle.Offset ) ); }
 
 	static CMemoryHandle CreateMemoryHandle( IMathEngine* mathEngine, const void* object ) { return CMemoryHandle( mathEngine, object, 0 ); }
 };
@@ -62,21 +59,21 @@ inline static void* GetRawAllocation( const CMemoryHandle& handle )
 { 
 	return CMemoryHandleInternal::GetRawAllocation( handle );
 }
-#endif
+#endif // NEOML_USE_METAL
 
 #ifdef NEOML_USE_VULKAN
 inline static CVulkanMemory* GetRawAllocation( const CMemoryHandle& handle )
 { 
 	return CMemoryHandleInternal::GetRawAllocation( handle );
 }
-#endif
+#endif // NEOML_USE_VULKAN
 
 #if (defined NEOML_USE_METAL) | (defined NEOML_USE_VULKAN)
 inline static ptrdiff_t GetRawOffset( const CMemoryHandle& handle )
 { 
 	return CMemoryHandleInternal::GetRawOffset( handle );
 }
-#endif
+#endif // NEOML_USE_METAL || NEOML_USE_VULKAN
 
 template<class Type>
 inline static Type* GetRaw( const CTypedMemoryHandle<Type>& handle )
