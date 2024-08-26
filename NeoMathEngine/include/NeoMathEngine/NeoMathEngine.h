@@ -1149,15 +1149,19 @@ struct CMathEngineInfo {
 	CMathEngineInfo( TMathEngineType type, size_t availableMemory, int id ) : Type( type ), AvailableMemory( availableMemory ), Id( id ) { Name[0] = 0; }
 };
 
+//------------------------------------------------------------------------------------------------------------
+
 // CMathEngine class implements an engine to perform calculations on data specified by CMemoryHandle (CFloatHandle)
 class NEOMATHENGINE_API IMathEngine : public IDnnEngine {
 public:
 	virtual ~IMathEngine();
+
 	// Gets the device type
 	virtual TMathEngineType GetType() const = 0;
-	
 	// Gets the device information
 	virtual void GetMathEngineInfo( CMathEngineInfo& info ) const = 0;
+	// CMemoryEngineMixin has a delayed initialization after the device initialization
+	virtual bool IsInitialized() const = 0;
 
 	// Memory management
 
@@ -1165,6 +1169,7 @@ public:
 	// In this mode, the allocated memory blocks will not be deleted on HeapFree() and may be used until CleanUp()
 	virtual void SetReuseMemoryMode( bool enable ) = 0;
 	virtual bool GetReuseMemoryMode() const = 0;
+
 	// Specialize the size threshold in bytes for the current thread, so
 	// memory blocks of a size <= this threshold would be allocated in buffers if 'reuse' mode enabled
 	// memory blocks of a size >  this threshold would be allocated in raw RAM memory (malloc/free)
@@ -1216,9 +1221,11 @@ public:
 
 	// Typed data exchange
 	template<class T>
-	void DataExchangeTyped( const CTypedMemoryHandle<T>& result, const T* source, size_t size ) { DataExchangeRaw( result, source, size * sizeof(T) ); }
+	void DataExchangeTyped( const CTypedMemoryHandle<T>& result, const T* source, size_t size )
+		{ DataExchangeRaw( result, source, size * sizeof(T) ); }
 	template<class T>
-	void DataExchangeTyped( T* result, const CTypedMemoryHandle<const T>& source, size_t size ) { DataExchangeRaw( result, source, size * sizeof(T) ); }
+	void DataExchangeTyped( T* result, const CTypedMemoryHandle<const T>& source, size_t size )
+		{ DataExchangeRaw( result, source, size * sizeof(T) ); }
 
 	// Creates a handle with data from another math engine
 	virtual CMemoryHandle CopyFrom( const CMemoryHandle& handle, size_t size ) = 0;
@@ -1227,11 +1234,15 @@ public:
 	// This object should be destroyed using the standard delete operator after use.
 	virtual IPerformanceCounters* CreatePerformanceCounters( bool isTimeOnly = false ) const = 0;
 
+	// For Distributed only
 	virtual CMathEngineDistributedInfo GetDistributedInfo() { return CMathEngineDistributedInfo(); }
 	virtual void AllReduce( const CFloatHandle& handle, int size ) = 0;
 	virtual void Broadcast( const CFloatHandle& handle, int size, int root ) = 0;
 	virtual void AbortDistributed() {};
 	virtual bool IsDistributed() const { return false; }
+
+protected:
+	virtual void CleanUpSpecial() = 0;
 };
 
 //------------------------------------------------------------------------------------------------------------

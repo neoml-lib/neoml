@@ -1,4 +1,4 @@
-/* Copyright © 2017-2021 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -102,7 +102,7 @@ public:
 	{
 	}
 
-	void* GetPtr() const { return const_cast<void*>( CMemoryHandle::object ); }
+	void* GetPtr() const { return const_cast<void*>( CMemoryHandle::Object ); }
 };
 
 static CBlobDesc createBlobDesc( TBlobType type, std::initializer_list<int> dimensions )

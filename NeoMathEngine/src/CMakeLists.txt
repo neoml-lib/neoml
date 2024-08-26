@@ -27,10 +27,10 @@ set(CPU_COMMON_SOURCES
     CPU/CpuMathEngineVectorMath.cpp
     CrtAllocatedObject.cpp
     DllLoader.cpp
-    MathEngineDeviceStackAllocator.cpp
     MathEngineDnnDropout.cpp
     MathEngine.cpp
-    MathEngineHostStackAllocator.cpp
+    MathEngineStackAllocator.cpp
+    MemoryEngineMixin.cpp
     MemoryPool.cpp
     ThreadPool.cpp
     common.cpp
@@ -43,13 +43,13 @@ target_sources(${PROJECT_NAME}
     common.h
     MathEngineAllocator.h
     MathEngineCommon.h
-    MathEngineDeviceStackAllocator.h
     MathEngineDll.h
     MathEngineDnnConv.h
     MathEngineDnnDropout.h
     MathEngineDnnLrn.h
     MathEngineDnnPoolings.h
-    MathEngineHostStackAllocator.h
+    MathEngineStackAllocator.h
+    MemoryEngineMixin.h
     MemoryHandleInternal.h
     MemoryPool.h
     RawMemoryManager.h
@@ -102,7 +102,7 @@ set_target_properties( ${PROJECT_NAME} PROPERTIES
     UNITY_BUILD_MODE GROUP
 )
 set_property(SOURCE ${CPU_COMMON_SOURCES} PROPERTY UNITY_GROUP 1)
-set_property(SOURCE MathEngineDeviceStackAllocator.cpp PROPERTY SKIP_UNITY_BUILD_INCLUSION ON)
+set_property(SOURCE MathEngineStackAllocator.cpp PROPERTY SKIP_UNITY_BUILD_INCLUSION ON)
 
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_14)
 

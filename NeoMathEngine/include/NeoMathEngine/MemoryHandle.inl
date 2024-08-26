@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ template<class T>
 inline void CTypedMemoryHandle<T>::SetValueAt( int index, T value ) const
 {
 	CTypedMemoryHandle<T> result = *this + index;
-	mathEngine->DataExchangeRaw( result, &value, sizeof( T ) );
+	MathEngine->DataExchangeRaw( result, &value, sizeof( T ) );
 }
 
 template<class T>
@@ -31,7 +31,7 @@ inline T CTypedMemoryHandle<T>::GetValueAt( int index ) const
 {
 	char result[sizeof(T)];
 	CTypedMemoryHandle<T> source = *this + index;
-	mathEngine->DataExchangeRaw( result, source, sizeof( T ) );
+	MathEngine->DataExchangeRaw( result, source, sizeof( T ) );
 	T* value = reinterpret_cast<T*>( &result );
 	return *value;
 }
@@ -39,14 +39,14 @@ inline T CTypedMemoryHandle<T>::GetValueAt( int index ) const
 template<class T>
 inline void CTypedMemoryHandle<T>::SetValue( T value ) const
 {
-	mathEngine->DataExchangeRaw( *this, &value, sizeof( T ) );
+	MathEngine->DataExchangeRaw( *this, &value, sizeof( T ) );
 }
 
 template<class T>
 inline T CTypedMemoryHandle<T>::GetValue() const
 {
 	char result[sizeof(T)];
-	mathEngine->DataExchangeRaw( result, *this, sizeof( T ) );
+	MathEngine->DataExchangeRaw( result, *this, sizeof( T ) );
 	T* value = reinterpret_cast<T*>( &result );
 	return *value;
 }
@@ -57,25 +57,25 @@ inline T CTypedMemoryHandle<T>::GetValue() const
 template<class T>
 inline void CMemoryHandleVarBase<T>::SetValueAt( int index, T value )
 {
-	data.SetValueAt( index, value );
+	Data.SetValueAt( index, value );
 }
 
 template<class T>
 inline T CMemoryHandleVarBase<T>::GetValueAt( int index ) const
 {
-	return data.GetValueAt( index );
+	return Data.GetValueAt( index );
 }
 
 template<class T>
 inline void CMemoryHandleVarBase<T>::SetValue( T value )
 {
-	data.SetValue( value );
+	Data.SetValue( value );
 }
 
 template<class T>
 inline T CMemoryHandleVarBase<T>::GetValue() const
 {
-	return data.GetValue();
+	return Data.GetValue();
 }
 
 //------------------------------------------------------------------------------------------------------------
@@ -86,15 +86,15 @@ inline CMemoryHandleVar<T>::CMemoryHandleVar( IMathEngine& mathEngine, size_t si
 	CMemoryHandleVarBase<T>( mathEngine, size )
 {
 	if( size != 0 ) {
-		CMemoryHandleVarBase<T>::data = CMemoryHandleVarBase<T>::mathEngine->template HeapAllocTyped<T>( size );
+		CMemoryHandleVarBase<T>::Data = CMemoryHandleVarBase<T>::MathEngine.template HeapAllocTyped<T>( size );
 	}
 }
 
 template<class T>
 inline CMemoryHandleVar<T>::~CMemoryHandleVar()
 {
-	if( !CMemoryHandleVarBase<T>::data.IsNull() ) {
-		CMemoryHandleVarBase<T>::mathEngine->HeapFree( CMemoryHandleVarBase<T>::data );
+	if( !CMemoryHandleVarBase<T>::Data.IsNull() ) {
+		CMemoryHandleVarBase<T>::MathEngine.HeapFree( CMemoryHandleVarBase<T>::Data );
 	}
 }
 
@@ -105,16 +105,16 @@ inline CMemoryHandleStackVar<T>::CMemoryHandleStackVar( IMathEngine& mathEngine,
 	CMemoryHandleVarBase<T>( mathEngine, size )
 {
 	if( size != 0 ) {
-		CMemoryHandleVarBase<T>::data =
-			CTypedMemoryHandle<T>( CMemoryHandleVarBase<T>::mathEngine->StackAlloc( size * sizeof(T) ) );
+		CMemoryHandleVarBase<T>::Data =
+			CTypedMemoryHandle<T>( CMemoryHandleVarBase<T>::MathEngine.StackAlloc( size * sizeof( T ) ) );
 	}
 }
 
 template<class T>
 inline CMemoryHandleStackVar<T>::~CMemoryHandleStackVar()
 {
-	if( !CMemoryHandleVarBase<T>::data.IsNull() ) {
-		CMemoryHandleVarBase<T>::mathEngine->StackFree( CMemoryHandleVarBase<T>::data );
+	if( !CMemoryHandleVarBase<T>::Data.IsNull() ) {
+		CMemoryHandleVarBase<T>::MathEngine.StackFree( CMemoryHandleVarBase<T>::Data );
 	}
 }
 

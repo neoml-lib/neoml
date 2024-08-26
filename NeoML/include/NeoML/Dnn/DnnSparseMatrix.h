@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,14 +23,13 @@ limitations under the License.
 namespace NeoML {
 
 // A sparse matrix for IMathEngine
-class NEOML_API CDnnSparseMatrix {
+class NEOML_API CDnnSparseMatrix final {
 public:
 	CDnnSparseMatrix( IMathEngine& _mathEngine, int rowCount, int columnCount );
 	~CDnnSparseMatrix();
 
 	// Creates a matrix from the specified problem
 	void Create( const IProblem* problem, int startVectorIndex, int batchCount );
-
 	// Destroys the matrix; the allocated memory is kept
 	void Destroy();
 
@@ -41,10 +40,13 @@ public:
 	CSparseMatrixDesc GetBatchDesc( int index ) const;
 
 private:
-	struct CMatrix {
+	struct CMatrix final {
 		int ElementCount;
 		int RowPos;
 		int ElementPos;
+
+		CMatrix( int elementCount, int rowPos, int elementPos ) :
+			ElementCount( elementCount ), RowPos( rowPos ), ElementPos( elementPos ) {}
 	};
 
 	IMathEngine& mathEngine; // the math engine
@@ -52,13 +54,13 @@ private:
 	const int columnCount; // the number of columns
 	CArray<CFloatVectorDesc> vectors; // the vectors (matrix columns)
 	CArray<CMatrix> matrixes; // the matrix descriptions
-	int totalElementSize; // the size of matrix elements (aligned)
-	int totalRowSize; // the size of matrix rows (aligned)
+	int totalElementSize = 0; // the size of matrix elements (aligned)
+	int totalRowSize = 0; // the size of matrix rows (aligned)
 	CIntHandle mathEngineData; // the data allocated for the matrix by IMathEngine
-	size_t mathEngineDataSize; // the size of the data allocated by IMathEngine
+	size_t mathEngineDataSize = 0; // the size of the data allocated by IMathEngine
 
-	CDnnSparseMatrix( const CDnnSparseMatrix& );
-	CDnnSparseMatrix& operator=( const CDnnSparseMatrix& );
+	CDnnSparseMatrix( const CDnnSparseMatrix& ) = delete;
+	CDnnSparseMatrix& operator=( const CDnnSparseMatrix& ) = delete;
 };
 
 } // namespace NeoML

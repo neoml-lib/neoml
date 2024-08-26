@@ -25,8 +25,6 @@ limitations under the License.
 #include <CudaAssert.h>
 #include <MathEngineCommon.h>
 #include <MemoryHandleInternal.h>
-#include <MathEngineDeviceStackAllocator.h>
-#include <MathEngineHostStackAllocator.h>
 #include <math.h>
 #include <float.h>
 #include <cuda_runtime.h>
@@ -40,7 +38,8 @@ const int CudaMemoryAlignment = 4;
 
 //------------------------------------------------------------------------------------------------------------
 
-CCudaMathEngine::CCudaMathEngine( const CCusparse* _cusparse, const CCublas* _cublas, std::unique_ptr<CCudaDevice>& _device, int flags ) :
+CCudaMathEngine::CCudaMathEngine( const CCusparse* _cusparse, const CCublas* _cublas,
+		std::unique_ptr<CCudaDevice>& _device, int flags ) :
 	loader( CDllLoader::CUDA_DLL ),
 	cusparse( _cusparse ),
 	cublas( _cublas ),
@@ -72,16 +71,14 @@ CCudaMathEngine::CCudaMathEngine( const CCusparse* _cusparse, const CCublas* _cu
 	ASSERT_CUDA( cudaGetSymbolAddress((void**)&cudaConstZero, ZeroDev) );
 	ASSERT_CUDA( cudaGetSymbolAddress((void**)&cudaConstOne, OneDev) );
 
-	memoryPool = std::unique_ptr<CMemoryPool>( new CMemoryPool( device->MemoryLimit, this, true ) );
-	deviceStackRunTime = std::unique_ptr<CDeviceStackAllocator>( new CDeviceStackAllocator( *memoryPool, CudaMemoryAlignment ) );
-	hostStackRunTime = std::unique_ptr<CHostStackAllocator>( new CHostStackAllocator( CudaMemoryAlignment ) );
+	InitializeMemory( this, device->MemoryLimit, CudaMemoryAlignment, /*reuse*/true, /*hostStack*/true );
 }
 
 CCudaMathEngine::~CCudaMathEngine()
 {
-	hostStackRunTime.reset();
-	deviceStackRunTime.reset();
-	memoryPool.reset();
+	HostStackAllocator.reset();
+	DeviceStackAllocator.reset();
+	MemoryPool.reset();
 
 	cusparse->Destroy( cusparseHandle );
 	cublas->Destroy( cublasHandle );

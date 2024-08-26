@@ -21,10 +21,9 @@ limitations under the License.
 
 #include <NeoMathEngine/NeoMathEngine.h>
 #include <DllLoader.h>
-#include <RawMemoryManager.h>
+#include <MemoryEngineMixin.h>
 #include <cusparse.h>
 #include <cublas.h>
-#include <mutex>
 #include <memory>
 #include <PerformanceCountersDefault.h>
 #include <CudaMathEngineDnnDistributed.h>
@@ -38,12 +37,9 @@ struct CCuda3dConvolutionDescInternal;
 struct CCusparse;
 struct CCublas;
 struct CCudaDevice;
-class CDeviceStackAllocator;
-class CHostStackAllocator;
-class CMemoryPool;
 
 // CUDA math engine
-class CCudaMathEngine : public IMathEngine, public IRawMemoryManager {
+class CCudaMathEngine : public CMemoryEngineMixin, public IRawMemoryManager {
 public:
 	CCudaMathEngine( const CCusparse* cusparse, const CCublas* cublas, std::unique_ptr<CCudaDevice>& device, int flags = 0 );
 	~CCudaMathEngine() override;
@@ -51,26 +47,9 @@ public:
 	// IMathEngine interface methods
 	TMathEngineType GetType() const override { return MET_Cuda; }
 	void GetMathEngineInfo( CMathEngineInfo& info ) const override;
-	void SetReuseMemoryMode( bool enable ) override;
-	bool GetReuseMemoryMode() const override;
-	void SetThreadBufferMemoryThreshold( size_t threshold ) override;
-	size_t GetThreadBufferMemoryThreshold() const override;
-	CMemoryHandle HeapAlloc( size_t count ) override;
-	void HeapFree( const CMemoryHandle& handle ) override;
-	void TransferHandleToThisThread( const CMemoryHandle& handle, size_t size ) override;
-	CMemoryHandle StackAlloc( size_t count ) override;
-	void StackFree( const CMemoryHandle& handle ) override;
-	size_t GetFreeMemorySize() const override;
-	size_t GetPeakMemoryUsage() const override;
-	void ResetPeakMemoryUsage() override;
-	size_t GetCurrentMemoryUsage() const override;
-	size_t GetMemoryInPools() const override;
-	void CleanUp() override;
-	void* GetBuffer( const CMemoryHandle& handle, size_t pos, size_t size, bool exchange ) override;
-	void ReleaseBuffer( const CMemoryHandle& handle, void* ptr, bool exchange ) override;
+
 	void DataExchangeRaw( const CMemoryHandle& handle, const void* data, size_t size ) override;
 	void DataExchangeRaw( void* data, const CMemoryHandle& handle, size_t size ) override;
-	CMemoryHandle CopyFrom( const CMemoryHandle& handle, size_t size ) override;
 
 	// IVectorMathematicsEngine interface methods
 	void VectorFill( const CFloatHandle& result, float value, int vectorSize ) override;
@@ -656,13 +635,9 @@ private:
 	const float* cudaConstZero; // pointer to __constant__ == 0.f
 	const float* cudaConstOne; // pointer to __constant__ == 1.f
 
-	mutable std::mutex mutex; // protects the data below
 	std::unique_ptr<CCudaDevice> device; // the device descriptor
 	cublasHandle_t cublasHandle; // cublas library handle
 	cusparseHandle_t cusparseHandle; // cusparse library handle
-	std::unique_ptr<CMemoryPool> memoryPool; // memory manager
-	std::unique_ptr<CDeviceStackAllocator> deviceStackRunTime; // GPU memory stack allocator
-	std::unique_ptr<CHostStackAllocator> hostStackRunTime; // regular memory stack allocator
 	CMathEngineDistributedInfo distributedInfo;
 #ifdef NEOML_USE_NCCL
 	std::unique_ptr<CCudaDistributedCommunicator> ncclCommunicator = nullptr;
