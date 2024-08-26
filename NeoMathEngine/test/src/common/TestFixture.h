@@ -274,15 +274,7 @@ public:
 		mathEngine.DataExchangeTyped<float>( values, _values.data(), _values.size() );
 	}
 
-	CSparseMatrixDesc Desc() const
-	{
-		CSparseMatrixDesc desc;
-		desc.ElementCount = elementCount;
-		desc.Rows = rows;
-		desc.Columns = columns;
-		desc.Values = values;
-		return desc;
-	}
+	CSparseMatrixDesc Desc() const { return CSparseMatrixDesc( elementCount, rows, columns, values ); }
 
 private:
 	int elementCount;
