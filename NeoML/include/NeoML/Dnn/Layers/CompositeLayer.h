@@ -91,7 +91,7 @@ protected:
 	// It does not allocate outputBlobs in CBaseLayer in runOnce, because they are not used for inference.
 	// The outputBlob for CCompositeLayer are sinkLayer->GetBlob() of its internalDnn.
 	// NOTE: All class children do not allocate outputBlobs, for normal using cases it is ok
-	//       For special cases (like CRecurentLayer) it should be reinitializated.
+	//       For special cases (like CRecurrentLayer) it should be reinitializated.
 	void AllocateOutputBlobs() override {}
 
 	// The network object for the internal layers
