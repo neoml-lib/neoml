@@ -29,6 +29,7 @@ target_sources(${PROJECT_NAME} INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}/OptimizerFunctionsTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/ParameterLayerTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/PCATest.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/ProblemSourceLayerTest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/RandomProblem.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/RandomProblem.h
     ${CMAKE_CURRENT_SOURCE_DIR}/ReferenceDnnTest.cpp
