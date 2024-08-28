@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -24,15 +24,6 @@ limitations under the License.
 
 namespace NeoML {
 
-CProblemSourceLayer::CProblemSourceLayer( IMathEngine& mathEngine ) :
-	CBaseLayer( mathEngine, "CCnnProblemSourceLayer", false ),
-	emptyFill(0),
-	batchSize(1),
-	nextProblemIndex(0),
-	labelType(CT_Float)
-{
-}
-
 void CProblemSourceLayer::SetBatchSize(int _batchSize)
 {
 	if(_batchSize == batchSize) {
@@ -44,8 +35,8 @@ void CProblemSourceLayer::SetBatchSize(int _batchSize)
 
 void CProblemSourceLayer::SetProblem(const CPtr<const IProblem>& _problem)
 {
-	NeoAssert( _problem != 0 );
-	NeoAssert( GetDnn() == 0 || problem == 0
+	NeoAssert( _problem != nullptr );
+	NeoAssert( GetDnn() == nullptr || problem == nullptr
 		|| ( problem->GetFeatureCount() == _problem->GetFeatureCount()
 			&& problem->GetClassCount() == _problem->GetClassCount() ) );
 
@@ -100,13 +91,15 @@ void CProblemSourceLayer::Reshape()
 
 void CProblemSourceLayer::RunOnce()
 {
-	NeoAssert(problem.Ptr() != 0);
+	NeoAssert( problem != nullptr );
 
-	for(int i = 0; i < exchangeBufs[0].Size(); ++i) {
-		exchangeBufs[0][i] = emptyFill;
-	}
-	for(int i = 0; i < exchangeBufs[1].Size(); ++i) {
-		exchangeBufs[1][i] = 0;
+	::memset( exchangeBufs[1].GetPtr(), 0, exchangeBufs[1].Size() * sizeof( float ) );
+	if( emptyFill == 0.f ) {
+		::memset( exchangeBufs[0].GetPtr(), 0, exchangeBufs[0].Size() * sizeof( float ) );
+	} else {
+		for( int i = 0; i < exchangeBufs[0].Size(); ++i ) {
+			exchangeBufs[0][i] = emptyFill;
+		}
 	}
 
 	float* data = exchangeBufs[0].GetPtr();
@@ -166,30 +159,44 @@ void CProblemSourceLayer::BackwardOnce()
 	NeoAssert(0);
 }
 
-static const int ProblemSourceLayerVersion = 2000;
+constexpr int ProblemSourceLayerVersion = 2001;
 
 void CProblemSourceLayer::Serialize( CArchive& archive )
 {
-	archive.SerializeVersion( ProblemSourceLayerVersion, CDnn::ArchiveMinSupportedVersion );
+	const int version = archive.SerializeVersion( ProblemSourceLayerVersion, CDnn::ArchiveMinSupportedVersion );
 	CBaseLayer::Serialize( archive );
 
-	if( archive.IsStoring() ) {
-		archive << batchSize;
-		archive << static_cast<int>( labelType );
-	} else if( archive.IsLoading() ) {
-		archive >> batchSize;
+	if( version >= 2001 ) {
+		archive.Serialize( emptyFill );
+	} else { // loading
+		emptyFill = 0;
+	}
+	archive.Serialize( batchSize );
+	int labelTypeInt = static_cast<int>( labelType );
+	archive.Serialize( labelTypeInt );
+
+	if( archive.IsLoading() ) {
 		nextProblemIndex = NotFound;
-		problem = 0;
-		int labelTypeInt = 0;
-		archive >> labelTypeInt;
 		labelType = static_cast<TBlobType>( labelTypeInt );
-	} else {
-		NeoAssert( false );
+		problem = nullptr;
 	}
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////
+// Creates CProblemSourceLayer with the name
+CProblemSourceLayer* ProblemSource( CDnn& dnn, const char* name,
+	TBlobType labelType, int batchSize, const CPtr<const IProblem>& problem )
+{
+	CPtr<CProblemSourceLayer> result = new CProblemSourceLayer( dnn.GetMathEngine() );
+	result->SetProblem( problem );
+	result->SetLabelType( labelType );
+	result->SetBatchSize( batchSize );
+	result->SetName( name );
+	dnn.AddLayer( *result );
+	return result;
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+
 const char* const CDnnModelWrapper::SourceLayerName = "CCnnModelWrapper::SourceLayer";
 const char* const CDnnModelWrapper::SinkLayerName = "CCnnModelWrapper::SinkLayer";
 
@@ -339,8 +346,8 @@ bool CDnnModelWrapper::classify( CClassificationResult& result ) const
 	return true;
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////
+//---------------------------------------------------------------------------------------------------------------------
+
 CPtr<IModel> CDnnTrainingModelWrapper::Train(const IProblem& trainingClassificationData)
 {
 	CPtr<CDnnModelWrapper> model = FINE_DEBUG_NEW CDnnModelWrapper( mathEngine );

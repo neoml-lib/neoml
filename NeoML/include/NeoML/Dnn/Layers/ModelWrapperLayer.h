@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -32,16 +32,17 @@ class CDnnTrainingModelWrapper;
 class NEOML_API CProblemSourceLayer : public CBaseLayer {
 	NEOML_DNN_LAYER( CProblemSourceLayer )
 public:
-	explicit CProblemSourceLayer( IMathEngine& mathEngine );
+	explicit CProblemSourceLayer( IMathEngine& mathEngine ) :
+		CBaseLayer( mathEngine, "CCnnProblemSourceLayer", /*isLearnable*/false ) {}
 
 	void Serialize( CArchive& archive ) override;
 
 	int GetBatchSize() const { return batchSize; }
-	void SetBatchSize(int _batchSize);
+	void SetBatchSize( int batchSize );
 
 	// The filler for empty values that are not present in a sparse vector
 	float GetEmptyFill() const { return emptyFill; }
-	void SetEmptyFill(float _emptyFill) { NeoAssert(GetDnn() == 0); emptyFill = _emptyFill; }
+	void SetEmptyFill( float _emptyFill ) { NeoAssert( GetDnn() == nullptr ); emptyFill = _emptyFill; }
 
 	// You may only change the problem for the layer that is connected to a network
 	// if the number of classes and the number of input vectors stay the same
@@ -60,15 +61,19 @@ protected:
 	void BackwardOnce() override;
 
 private:
-	float emptyFill;		// the empty values filler (for values not represented in a sparse vector)
-	int batchSize;			// the size of the batch passed to the network
-	int nextProblemIndex;	// the index of the next element in the problem to be passed
-	CPtr<const IProblem> problem;	// the classification problem the network is solving
-	TBlobType labelType;		// the data type for labels
-	CArray<float> exchangeBufs[3];
+	float emptyFill = 0; // the empty values filler (for values not represented in a sparse vector)
+	int batchSize = 1; // the size of the batch passed to the network
+	int nextProblemIndex = NotFound; // the index of the next element in the problem to be passed
+	TBlobType labelType = CT_Float; // the data type for labels
+	CPtr<const IProblem> problem; // the classification problem the network is solving
+	CArray<float> exchangeBufs[3]{};
 };
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////
+// Creates CProblemSourceLayer with the name
+NEOML_API CProblemSourceLayer* ProblemSource( CDnn& dnn, const char* name,
+	TBlobType labelType, int batchSize, const CPtr<const IProblem>& problem );
+
+//---------------------------------------------------------------------------------------------------------------------
 
 // CDnnModelWrapper is the base class wrapping the trained neural network into the IModel interface
 class NEOML_API CDnnModelWrapper : public IModel {
@@ -83,11 +88,11 @@ protected:
 	int ClassCount;
 	float SourceEmptyFill;
 	mutable CRandom Random;
-	mutable CDnn Dnn;	// the network
-	CPtr<CSourceLayer> SourceLayer;	// the reference to the source layer
-	CPtr<CSinkLayer> SinkLayer;		// the reference to the terminator layer
-	CPtr<CDnnBlob> SourceBlob;			// the source data blob
-	mutable CArray<float> tempExp;		// the temporary array for exponent values to calculate softmax
+	mutable CDnn Dnn; // the network
+	CPtr<CSourceLayer> SourceLayer; // the reference to the source layer
+	CPtr<CSinkLayer> SinkLayer; // the reference to the terminator layer
+	CPtr<CDnnBlob> SourceBlob; // the source data blob
+	mutable CArray<float> tempExp; // the temporary array for exponent values to calculate softmax
 
 	static const char* const SourceLayerName;
 	static const char* const SinkLayerName;
@@ -101,7 +106,7 @@ private:
 	bool classify( CClassificationResult& result ) const;
 };
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////
+//---------------------------------------------------------------------------------------------------------------------
 
 // CDnnTrainingModelWrapper is the base class wrapping the neural network 
 // into an ITrainingModel interface so the network can be trained using the Train method
