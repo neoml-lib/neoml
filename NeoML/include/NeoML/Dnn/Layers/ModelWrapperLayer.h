@@ -66,7 +66,11 @@ private:
 	int nextProblemIndex = NotFound; // the index of the next element in the problem to be passed
 	TBlobType labelType = CT_Float; // the data type for labels
 	CPtr<const IProblem> problem; // the classification problem the network is solving
-	CArray<float> exchangeBufs[3]{};
+
+	enum { EB_Data, EB_Label, EB_Weight, EB_Count_ };
+	CArray<float> exchangeBufs[EB_Count_]{};
+
+	void fillExchangeBuffers( int shift );
 };
 
 // Creates CProblemSourceLayer with the name

@@ -59,104 +59,71 @@ void CProblemSourceLayer::SetLabelType( TBlobType newLabelType )
 
 void CProblemSourceLayer::Reshape()
 {
-	NeoAssert(!GetDnn()->IsRecurrentMode());
+	NeoAssert( !GetDnn()->IsRecurrentMode() );
 
-	CheckLayerArchitecture( problem.Ptr() != 0, "source problem is null" );
+	CheckLayerArchitecture( problem.Ptr() != nullptr, "source problem is null" );
 	CheckOutputs();
 	CheckLayerArchitecture( GetOutputCount() >= 2, "problem source layer has less than 2 outputs" );
 
 	// The data
-	outputDescs[0] = CBlobDesc( CT_Float );
-	outputDescs[0].SetDimSize( BD_BatchWidth, batchSize );
-	outputDescs[0].SetDimSize( BD_Channels, problem->GetFeatureCount() );
-	exchangeBufs[0].SetSize(outputDescs[0].BlobSize());
+	outputDescs[EB_Data] = CBlobDesc( CT_Float );
+	outputDescs[EB_Data].SetDimSize( BD_BatchWidth, batchSize );
+	outputDescs[EB_Data].SetDimSize( BD_Channels, problem->GetFeatureCount() );
+	exchangeBufs[EB_Data].SetSize( outputDescs[EB_Data].BlobSize() );
 
 	// The labels
 	int labelSize = problem->GetClassCount();
-	if(labelSize == 2) {
+	if( labelSize == 2 ) {
 		labelSize = 1;
 	}
-	outputDescs[1] = CBlobDesc( labelType );
-	outputDescs[1].SetDimSize( BD_BatchWidth, batchSize );
+	outputDescs[EB_Label] = CBlobDesc( labelType );
+	outputDescs[EB_Label].SetDimSize( BD_BatchWidth, batchSize );
 	if( labelType != CT_Int ) {
-		outputDescs[1].SetDimSize( BD_Channels, labelSize );
+		outputDescs[EB_Label].SetDimSize( BD_Channels, labelSize );
 	}
-	exchangeBufs[1].SetSize(outputDescs[1].BlobSize());
+	exchangeBufs[EB_Label].SetSize( outputDescs[EB_Label].BlobSize() );
 
 	// The weights
-	outputDescs[2] = CBlobDesc( CT_Float );
-	outputDescs[2].SetDimSize( BD_BatchWidth, batchSize );
-	exchangeBufs[2].SetSize(outputDescs[2].BlobSize());
+	outputDescs[EB_Weight] = CBlobDesc( CT_Float );
+	outputDescs[EB_Weight].SetDimSize( BD_BatchWidth, batchSize );
+	exchangeBufs[EB_Weight].SetSize( outputDescs[EB_Weight].BlobSize() );
 }
 
 void CProblemSourceLayer::RunOnce()
 {
 	NeoAssert( problem != nullptr );
 
-	::memset( exchangeBufs[1].GetPtr(), 0, exchangeBufs[1].Size() * sizeof( float ) );
+	::memset( exchangeBufs[EB_Label].GetPtr(), 0, exchangeBufs[EB_Label].Size() * sizeof( float ) );
 	if( emptyFill == 0.f ) {
-		::memset( exchangeBufs[0].GetPtr(), 0, exchangeBufs[0].Size() * sizeof( float ) );
+		::memset( exchangeBufs[EB_Data].GetPtr(), 0, exchangeBufs[EB_Data].Size() * sizeof( float ) );
 	} else {
-		for( int i = 0; i < exchangeBufs[0].Size(); ++i ) {
-			exchangeBufs[0][i] = emptyFill;
+		for( int i = 0; i < exchangeBufs[EB_Data].Size(); ++i ) {
+			exchangeBufs[EB_Data][i] = emptyFill;
 		}
 	}
 
-	float* data = exchangeBufs[0].GetPtr();
-	float* labels = exchangeBufs[1].GetPtr();
-	float* weights = exchangeBufs[2].GetPtr();
+	{
+		const int vectorCount = problem->GetVectorCount();
+		for( int i = 0; i < batchSize; ++i ) {
+			fillExchangeBuffers( i );
 
-	int vectorCount = problem->GetVectorCount();
-	CFloatMatrixDesc matrix = problem->GetMatrix();
-	CFloatVectorDesc vector;
-
-	for(int i = 0; i < batchSize; ++i) {
-		// The data
-		matrix.GetRow( nextProblemIndex, vector );
-		for(int j = 0; j < vector.Size; ++j) {
-			data[vector.Indexes == nullptr ? j : vector.Indexes[j]] = static_cast<float>( vector.Values[j] );
+			++nextProblemIndex;
+			nextProblemIndex %= vectorCount;
 		}
-
-		// The labels
-		// Update labels
-		if( labelType == CT_Float ) {
-			if( outputBlobs[1]->GetChannelsCount() == 1 ) {
-				*labels = static_cast< float >( problem->GetBinaryClass( nextProblemIndex ) );
-			} else {
-				int classLabel = problem->GetClass( nextProblemIndex );
-				NeoAssert( 0 <= classLabel && classLabel < outputBlobs[1]->GetChannelsCount() );
-				::memset( labels, 0, outputBlobs[1]->GetChannelsCount() * sizeof( float ) );
-				labels[classLabel] = 1;
-			}
-		} else {
-			static_assert( sizeof( float ) == sizeof( int ), "sizeof( float ) != sizeof( int )" );
-			NeoAssert( outputBlobs[1]->GetChannelsCount() == 1 );
-			*reinterpret_cast<int*>( labels ) = problem->GetClass( nextProblemIndex );
-		}
-
-		// The weights
-		*weights = static_cast<float>(problem->GetVectorWeight(nextProblemIndex));
-
-		++nextProblemIndex;
-		nextProblemIndex %= vectorCount;
-
-		data += outputBlobs[0]->GetObjectSize();
-		labels += outputBlobs[1]->GetObjectSize();
-		weights += outputBlobs[2]->GetObjectSize();
 	}
 
-	outputBlobs[0]->CopyFrom(exchangeBufs[0].GetPtr());
+	outputBlobs[EB_Data]->CopyFrom( exchangeBufs[EB_Data].GetPtr() );
 	if( labelType == CT_Float ) {
-		outputBlobs[1]->CopyFrom( exchangeBufs[1].GetPtr() );
+		outputBlobs[EB_Label]->CopyFrom( exchangeBufs[EB_Label].GetPtr() );
 	} else {
-		outputBlobs[1]->CopyFrom( reinterpret_cast<int*>( exchangeBufs[1].GetPtr() ) );
+		outputBlobs[EB_Label]->CopyFrom( reinterpret_cast<int*>( exchangeBufs[EB_Label].GetPtr() ) );
 	}
-	outputBlobs[2]->CopyFrom(exchangeBufs[2].GetPtr());
+	outputBlobs[EB_Weight]->CopyFrom( exchangeBufs[EB_Weight].GetPtr() );
 }
 
 void CProblemSourceLayer::BackwardOnce()
 {
-	NeoAssert(0);
+	NeoAssert( false );
 }
 
 constexpr int ProblemSourceLayerVersion = 2001;
@@ -180,6 +147,41 @@ void CProblemSourceLayer::Serialize( CArchive& archive )
 		labelType = static_cast<TBlobType>( labelTypeInt );
 		problem = nullptr;
 	}
+}
+
+void CProblemSourceLayer::fillExchangeBuffers( int shift )
+{
+	float* data = exchangeBufs[EB_Data].GetPtr() + shift * outputBlobs[EB_Data]->GetObjectSize();
+	float* labels = exchangeBufs[EB_Label].GetPtr() + shift * outputBlobs[EB_Label]->GetObjectSize();
+	float* weights = exchangeBufs[EB_Weight].GetPtr() + shift * outputBlobs[EB_Weight]->GetObjectSize();
+
+	// The data
+	const CFloatMatrixDesc matrix = problem->GetMatrix();
+	CFloatVectorDesc vector;
+	matrix.GetRow( nextProblemIndex, vector );
+	for( int j = 0; j < vector.Size; ++j ) {
+		data[( vector.Indexes == nullptr ) ? j : vector.Indexes[j]] = static_cast<float>( vector.Values[j] );
+	}
+
+	// The labels
+	// Update labels
+	if( labelType == CT_Float ) {
+		if( outputBlobs[EB_Label]->GetChannelsCount() == 1 ) {
+			*labels = static_cast<float>( problem->GetBinaryClass( nextProblemIndex ) );
+		} else {
+			const int classLabel = problem->GetClass( nextProblemIndex );
+			NeoAssert( 0 <= classLabel && classLabel < outputBlobs[EB_Label]->GetChannelsCount() );
+			::memset( labels, 0, outputBlobs[EB_Label]->GetChannelsCount() * sizeof( float ) );
+			labels[classLabel] = 1;
+		}
+	} else {
+		static_assert( sizeof( float ) == sizeof( int ), "sizeof( float ) != sizeof( int )" );
+		NeoAssert( outputBlobs[EB_Label]->GetChannelsCount() == 1 );
+		*reinterpret_cast<int*>( labels ) = problem->GetClass( nextProblemIndex );
+	}
+
+	// The weights
+	*weights = static_cast<float>( problem->GetVectorWeight( nextProblemIndex ) );
 }
 
 // Creates CProblemSourceLayer with the name
