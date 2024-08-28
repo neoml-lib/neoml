@@ -1,4 +1,4 @@
-/* Copyright © 2017-2020 ABBYY Production LLC
+/* Copyright © 2017-2024 ABBYY
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ namespace NeoML {
 // The shuffler class
 // Uses the standard shuffling algorithm, not all at once but sequentially; as a result, the first N positions are only shuffled among themselves
 // For example, you can use it to get the random indices in an array
-class NEOML_API CShuffler {
+class NEOML_API CShuffler final {
 public:
 	CShuffler( CRandom& _random, int count );
 
@@ -34,6 +34,10 @@ public:
 	int SetNext( int index );
 	// Finishes shuffling and returns all indices
 	const CArray<int>& GetAllIndices();
+	// Is shuffling finished
+	bool IsFinished() const { return nextIndex == indices.Size(); }
+	// Reset state to use shuffler again for the same array
+	void Reset() { nextIndex = 0; }
 
 private:
 	CRandom& random;
