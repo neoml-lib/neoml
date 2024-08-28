@@ -27,6 +27,16 @@ class CSourceLayer;
 class CSinkLayer;
 class CDnnTrainingModelWrapper;
 
+struct IShuffledBatchGenerator {
+	virtual ~IShuffledBatchGenerator() = default;
+
+	virtual const CArray<int>& GenerateBatchIndexes( int batchSize, bool batchShuffled ) = 0;
+	virtual bool HasUnseenElements() const = 0;
+	virtual void DeleteUnseenElement( int index ) = 0;
+};
+
+//---------------------------------------------------------------------------------------------------------------------
+
 // CProblemSourceLayer is a wrapper over the IProblem interface. 
 // On each iteration, it passes BatchSize vectors into the network for processing.
 class NEOML_API CProblemSourceLayer : public CBaseLayer {
@@ -47,11 +57,15 @@ public:
 	// You may only change the problem for the layer that is connected to a network
 	// if the number of classes and the number of input vectors stay the same
 	CPtr<const IProblem> GetProblem() const { return problem; }
-	void SetProblem(const CPtr<const IProblem>& _problem);
+	void SetProblem( const CPtr<const IProblem>& problem, bool shuffle = false, unsigned seed = 42 );
 
 	// Retrieves and sets the data type for class labels
 	TBlobType GetLabelType() const { return labelType; }
 	void SetLabelType( TBlobType newLabelType );
+
+	// Still not the end of an epoch
+	bool HasUnseenElements() const
+		{ return ( shuffled && shuffled->HasUnseenElements() ) || nextProblemIndex < problem->GetVectorCount(); }
 
 protected:
 	~CProblemSourceLayer() override = default;
@@ -66,16 +80,17 @@ private:
 	int nextProblemIndex = NotFound; // the index of the next element in the problem to be passed
 	TBlobType labelType = CT_Float; // the data type for labels
 	CPtr<const IProblem> problem; // the classification problem the network is solving
+	CPtrOwner<IShuffledBatchGenerator> shuffled; // if a shuffled batch input
 
 	enum { EB_Data, EB_Label, EB_Weight, EB_Count_ };
 	CArray<float> exchangeBufs[EB_Count_]{};
 
-	void fillExchangeBuffers( int shift );
+	void fillExchangeBuffers( int shift, int index );
 };
 
 // Creates CProblemSourceLayer with the name
 NEOML_API CProblemSourceLayer* ProblemSource( CDnn& dnn, const char* name,
-	TBlobType labelType, int batchSize, const CPtr<const IProblem>& problem );
+	TBlobType labelType, int batchSize, const CPtr<const IProblem>& problem, bool shuffle = false, unsigned seed = 42 );
 
 //---------------------------------------------------------------------------------------------------------------------
 
