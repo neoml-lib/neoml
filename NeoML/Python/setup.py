@@ -90,7 +90,7 @@ setup(
     long_description=get_long_description(),
     long_description_content_type='text/markdown',
     url='http://github.com/neoml-lib/neoml',
-    install_requires=['numpy>=1.19.1, <2.0.0', 'scipy>=1.5.2', 'onnx==1.14.1', 'protobuf==3.20.*'],
+    install_requires=['numpy>=1.19.1, <2.0.0', 'scipy>=1.5.2', 'onnx==1.16.0', 'protobuf==3.20.*'],
     ext_modules=[CMakeExtension("neoml.PythonWrapper")],
     cmdclass={"build_ext": CMakeBuild},
     include_package_data=True,
