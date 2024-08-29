@@ -263,13 +263,11 @@ void CBaseLayer::AllocateOutputBlobs()
 	for( int i = 0; i < outputDescs.Size(); ++i ) {
 		if( outputBlobs[i] == nullptr ) {
 			outputBlobs[i] = CDnnBlob::CreateBlob( MathEngine(), outputDescs[i].GetDataType(), outputDescs[i] );
-		} else {
-			if( !outputBlobs[i]->GetDesc().HasEqualDimensions( outputDescs[i] ) ) {
-				// If this output can be connected to in-place transform. And on the second run outputBlob's shape can mismatch with outputDesc.
-				// That's why now reinterpret it (because this layer can depend on outputBlob's shape).
-				// After that transform will change it again.
-				outputBlobs[i]->ReinterpretDimensions( outputDescs[i] );
-			}
+		} else if( !outputBlobs[i]->GetDesc().HasEqualDimensions( outputDescs[i] ) ) {
+			// If this output can be connected to in-place transform. And on the second run outputBlob's shape can mismatch with outputDesc.
+			// That's why now reinterpret it (because this layer can depend on outputBlob's shape).
+			// After that transform will change it again.
+			outputBlobs[i]->ReinterpretDimensions( outputDescs[i] );
 		}
 	}
 }
@@ -410,15 +408,15 @@ void CBaseLayer::reshape()
 {
 	NeoAssert( dnn != 0 ); // possible only in a network
 
-	if( !isReshapeNeeded && !forcedReshape) {
+	if( !isReshapeNeeded && !forcedReshape ) {
 		return;
 	}
 	isReshapeNeeded = false;
 
 	CArray<CBlobDesc> prevInputDescs;
-	inputDescs.MoveTo( prevInputDescs );
-	inputDescs.SetSize(inputs.Size());
-	
+	inputDescs.CopyTo( prevInputDescs ); // do not delete, do not loose the desc's memorySize
+	inputDescs.SetSize( inputs.Size() ); // for the first time
+
 	// Call the input layers reshape recursively, reset the input blobs
 	for( int i = 0; i < GetInputCount(); ++i ) {
 		GetInputLayer(i)->reshape();
@@ -433,7 +431,7 @@ void CBaseLayer::reshape()
 
 	if(!forcedReshape) {
 		for(int i = 0; i < inputBlobs.Size(); i++) {
-			forcedReshape = forcedReshape 
+			forcedReshape = forcedReshape
 				|| !inputDescs[i].HasEqualDimensions(prevInputDescs[i]);
 		}
 	}
@@ -450,7 +448,6 @@ void CBaseLayer::reshape()
 	for( int cacheType = 0; cacheType < BCT_Count; ++cacheType ) {
 		blobCache[cacheType].DeleteAll();
 	}
-
 	outputDescs.SetSize( outputs.Size() );
 
 	inputDiffBlobs.DeleteAll();
@@ -466,6 +463,7 @@ void CBaseLayer::reshape()
 		MathEngine().CleanUp();
 	}
 
+	// Define the outputDescs array
 	Reshape();
 	blobsNeededForBackward = ( IsBackwardPerformed() ? BlobsForBackward() : 0 )
 		| ( IsLearningPerformed() ? BlobsForLearn() : 0 );
@@ -528,34 +526,22 @@ void CBaseLayer::runOnce()
 		GetInputLayer(i)->runOnce();
 	}
 
+	const bool mayFreeIoBlobs = GetDnn()->isReuseMemoryMode
+		&& ( !GetDnn()->isBackwardPerformed || !GetDnn()->IsRecurrentMode() || GetDnn()->IsLastSequencePos()
+			|| ( ( blobsNeededForBackward & TInputBlobs ) == 0 && ( !isInPlace || ( blobsNeededForBackward & TOutputBlobs ) == 0 ) ) );
+
 	// Either this is the first runOnce after reshape
 	// or the input and output blobs are released directly after use
 	for( int i = 0; i < inputBlobs.Size(); ++i ) {
 		CBaseLayer* inputLayer = GetInputLayer( i );
 		const int outputNumber = inputs[i].OutputNumber;
-		CDnnBlob* prevLayerOutput = inputLayer->outputBlobs[outputNumber].Ptr();
+		inputBlobs[i] = inputLayer->outputBlobs[outputNumber].Ptr();
 
-		if( prevLayerOutput == inputBlobs[i].Ptr() ) {
-			continue;
-		}
-
-		inputBlobs[i] = prevLayerOutput;
-	}
-
-	const bool mayFreeIoBlobs = GetDnn()->isReuseMemoryMode
-		&& ( !GetDnn()->isBackwardPerformed || !GetDnn()->IsRecurrentMode() || GetDnn()->IsLastSequencePos()
-			|| ( ( blobsNeededForBackward & TInputBlobs ) == 0 && ( !isInPlace || ( blobsNeededForBackward & TOutputBlobs ) == 0 ) ) );
-
-	if( mayFreeIoBlobs ) {
-		for( int i = 0; i < inputBlobs.Size(); ++i ) {
-			CBaseLayer* inputLayer = GetInputLayer( i );
-			const int outputNumber = inputs[i].OutputNumber;
-
-			if( inputLayer->lastOutputUser[outputNumber] == this
-				&& ( inputLayer->blobsNeededForBackward & TOutputBlobs ) == 0 )
-			{
-				inputLayer->outputBlobs[outputNumber] = nullptr;
-			}
+		if( mayFreeIoBlobs
+			&& inputLayer->lastOutputUser[outputNumber] == this
+			&& ( inputLayer->blobsNeededForBackward & TOutputBlobs ) == 0 )
+		{
+			inputLayer->outputBlobs[outputNumber] = nullptr;
 		}
 	}
 
